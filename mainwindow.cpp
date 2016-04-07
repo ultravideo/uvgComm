@@ -4,19 +4,25 @@
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::MainWindow),
-    call(NULL)
+    ui_(new Ui::MainWindow),
+    call_(NULL)
 {
-    ui->setupUi(this);
+    ui_->setupUi(this);
 }
 
 MainWindow::~MainWindow()
 {
-    delete ui;
+    delete ui_;
+    delete call_;
 }
 
 void MainWindow::startCall()
 {
-    call = new CallWindow();
-    call->show();
+    if(call_)
+    {
+        delete call_;
+        call_ = NULL;
+    }
+    call_ = new CallWindow();
+    call_->show();
 }

@@ -24,8 +24,9 @@ private slots:
     void startCall();
 
 private:
-    Ui::MainWindow *ui;
-    CallWindow *call;
+    Ui::MainWindow *ui_;
+    CallWindow *call_;
+
 };
 
 #endif // MAINWINDOW_H

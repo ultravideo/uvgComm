@@ -9,6 +9,8 @@ namespace Ui {
 class CallWindow;
 }
 
+class CameraFrameGrabber;
+
 class CallWindow : public QMainWindow
 {
     Q_OBJECT
@@ -20,9 +22,15 @@ public:
     void startStream();
 
 
+
+private slots:
+    void handleFrame(QImage image);
+
+
 private:
     Ui::CallWindow *ui;
     QCamera *camera;
+    CameraFrameGrabber *cameraFrameGrabber_;
 };
 
 #endif // CALLWINDOW_H

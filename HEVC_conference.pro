@@ -14,10 +14,12 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         mainwindow.cpp \
-    callwindow.cpp
+    callwindow.cpp \
+    cameraframegrabber.cpp
 
 HEADERS  += mainwindow.h \
-    callwindow.h
+    callwindow.h \
+    cameraframegrabber.h
 
 FORMS    += mainwindow.ui \
     callwindow.ui
