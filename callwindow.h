@@ -15,6 +15,9 @@ public:
     explicit CallWindow(QWidget *parent = 0);
     ~CallWindow();
 
+    void startStream();
+
+
 private:
     Ui::CallWindow *ui;
 };

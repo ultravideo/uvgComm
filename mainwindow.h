@@ -3,9 +3,13 @@
 
 #include <QMainWindow>
 
+QT_BEGIN_NAMESPACE
 namespace Ui {
 class MainWindow;
 }
+QT_END_NAMESPACE
+
+class CallWindow;
 
 class MainWindow : public QMainWindow
 {
@@ -16,12 +20,12 @@ public:
     ~MainWindow();
 
 
-//private slots:
-//    void call();
+private slots:
+    void startCall();
 
 private:
     Ui::MainWindow *ui;
-//    Call *call;
+    CallWindow *call;
 };
 
 #endif // MAINWINDOW_H
