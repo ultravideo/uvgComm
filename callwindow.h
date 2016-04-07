@@ -1,6 +1,8 @@
 #ifndef CALLWINDOW_H
 #define CALLWINDOW_H
 
+#include <QCamera>
+
 #include <QMainWindow>
 
 namespace Ui {
@@ -20,6 +22,7 @@ public:
 
 private:
     Ui::CallWindow *ui;
+    QCamera *camera;
 };
 
 #endif // CALLWINDOW_H

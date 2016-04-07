@@ -21,3 +21,7 @@ HEADERS  += mainwindow.h \
 
 FORMS    += mainwindow.ui \
     callwindow.ui
+
+
+QT+=multimedia
+QT+=multimediawidgets
