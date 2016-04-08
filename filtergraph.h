@@ -1,9 +1,11 @@
-#ifndef FILTERGRAPH_H
-#define FILTERGRAPH_H
-
+#pragma once
 
 #include <vector>
 #include "filter.h"
+
+
+
+
 
 class FilterGraph
 {
@@ -12,17 +14,17 @@ public:
 
     void constructVideoGraph();
     void constructAudioGraph();
-
-    void run();
-
-    void stop();
-
     void deconstruct();
+    void run();
+    void stop();
 
 
 private:
 
-    std::vector<Filter*> filters;
-};
+    // process
+    void filterLoop();
 
-#endif // FILTERGRAPH_H
+    std::vector<Filter*> filters;
+    std::vector<std::vector<unsigned int> > connections_;
+
+};
