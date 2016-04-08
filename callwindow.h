@@ -1,9 +1,10 @@
-#ifndef CALLWINDOW_H
-#define CALLWINDOW_H
+#pragma once
 
 #include <QCamera>
 
 #include <QMainWindow>
+
+#include "filtergraph.h"
 
 namespace Ui {
 class CallWindow;
@@ -21,16 +22,14 @@ public:
 
     void startStream();
 
-
-
 private slots:
     void handleFrame(QImage image);
-
 
 private:
     Ui::CallWindow *ui;
     QCamera *camera;
     CameraFrameGrabber *cameraFrameGrabber_;
-};
 
-#endif // CALLWINDOW_H
+    FilterGraph video_;
+    FilterGraph audio_;
+};

@@ -1,5 +1,4 @@
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#pragma once
 
 #include <QMainWindow>
 
@@ -28,5 +27,3 @@ private:
     CallWindow *call_;
 
 };
-
-#endif // MAINWINDOW_H
