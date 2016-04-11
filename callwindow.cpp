@@ -22,10 +22,22 @@ CallWindow::CallWindow(QWidget *parent) :
     connect(cameraFrameGrabber_, SIGNAL(frameAvailable(QImage)), this, SLOT(handleFrame(QImage)));
 
     camera->start();
+
+    video_.constructVideoGraph();
+    audio_.constructAudioGraph();
+
+    video_.run();
+    audio_.run();
+
 }
 
 CallWindow::~CallWindow()
 {
+    video_.stop();
+    audio_.stop();
+
+    video_.deconstruct();
+    audio_.deconstruct();
     delete ui;
 }
 

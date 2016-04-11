@@ -1,8 +1,12 @@
 #pragma once
 
+#include <QWaitCondition>
+#include <QThread>
+#include <QMutex>
 
 #include <cstdint>
 #include <vector>
+#include <queue>
 #include <memory>
 
 enum DataType {RAWVIDEO = 0, RAWAUDIO, HEVCVIDEO, OPUSAUDIO};
@@ -14,38 +18,39 @@ struct Data
     uint32_t data_size;
 };
 
-class Filter
+class Filter : public QThread
 {
 public:
     Filter();
 
+    // adds one outbound connection to this filter.
+    void addOutconnection(Filter *out);
 
-    void initialize(unsigned int inputs, unsigned int outputs);
+    // empties the input buffer
+    void emptyBuffer();
 
-    void empty();
-    virtual void process() = 0;
+    void putInput(std::unique_ptr<Data> data);
 
-    // for checking the correct place in filter graph
-    bool isInputFilter() const
-    {
-        return inBuffer_.size() > 0 && outBuffer_.size() == 0;
-    }
-    bool isOutputFilter() const
-    {
-        return outBuffer_.size() > 0 && inBuffer_.size() == 0;
-    }
-
-protected:
-
-    void getInput();
-    void putOutput();
-
-    // for checking that this filter makes sense during Initialization
+    // for debug information only
     virtual bool canHaveInputs() const = 0;
     virtual bool canHaveOutputs() const = 0;
 
+protected:
+
+    // return: oldest element in buffer, empty if none found
+    std::unique_ptr<Data> getInput();
+    void putOutput(std::unique_ptr<Data> data);
+
+    // QThread function that runs the processing itself
+    void run() = 0;
+
 private:
 
-    std::vector<std::unique_ptr<Data> > inBuffer_;
-    std::vector<std::unique_ptr<Data> > outBuffer_;
+    QWaitCondition hasInput_;
+    bool running_;
+
+    std::vector<Filter*> outConnections_;
+
+    QMutex mutex_;
+    std::queue<std::unique_ptr<Data>> inBuffer_;
 };
