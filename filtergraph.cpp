@@ -1,5 +1,8 @@
 #include "filtergraph.h"
 
+
+#include "camerafilter.h"
+
 FilterGraph::FilterGraph()
 {
 
@@ -7,7 +10,7 @@ FilterGraph::FilterGraph()
 
 void FilterGraph::constructVideoGraph()
 {
-
+    filters_.push_back(new CameraFilter);
 }
 
 void FilterGraph::constructAudioGraph()

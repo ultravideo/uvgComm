@@ -9,19 +9,26 @@
 #include <queue>
 #include <memory>
 
-enum DataType {RAWVIDEO = 0, RAWAUDIO, HEVCVIDEO, OPUSAUDIO};
+enum DataType {RPG32VIDEO = 0, RAWAUDIO, HEVCVIDEO, OPUSAUDIO};
 
 struct Data
 {
     uint8_t type;
-    uint8_t *data;
+    std::unique_ptr<uchar> data;
     uint32_t data_size;
+
+    Data(uint8_t t, uchar* d, uint32_t ds):
+    type(t), data(std::unique_ptr<uchar>(d)), data_size(ds){}
 };
 
 class Filter : public QThread
 {
+
+    Q_OBJECT
+
 public:
     Filter();
+    virtual ~Filter();
 
     // adds one outbound connection to this filter.
     void addOutconnection(Filter *out);
@@ -44,13 +51,21 @@ protected:
     // QThread function that runs the processing itself
     void run() = 0;
 
-private:
+    void sleep()
+    {
+        waitMutex_->lock();
+        hasInput_.wait(waitMutex_);
+        waitMutex_->unlock();
+    }
 
+private:
+    QMutex *waitMutex_;
     QWaitCondition hasInput_;
+
     bool running_;
 
     std::vector<Filter*> outConnections_;
 
-    QMutex mutex_;
+    QMutex bufferMutex_;
     std::queue<std::unique_ptr<Data>> inBuffer_;
 };

@@ -17,13 +17,15 @@ SOURCES += main.cpp\
     callwindow.cpp \
     cameraframegrabber.cpp \
     filter.cpp \
-    filtergraph.cpp
+    filtergraph.cpp \
+    camerafilter.cpp
 
 HEADERS  += mainwindow.h \
     callwindow.h \
     cameraframegrabber.h \
     filter.h \
-    filtergraph.h
+    filtergraph.h \
+    camerafilter.h
 
 FORMS    += mainwindow.ui \
     callwindow.ui

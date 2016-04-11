@@ -26,5 +26,6 @@ QList<QVideoFrame::PixelFormat> CameraFrameGrabber::supportedPixelFormats(QAbstr
 {
     Q_UNUSED(handleType);
     return QList<QVideoFrame::PixelFormat>()
+            << QVideoFrame::Format_RGB32
             << QVideoFrame::Format_YUV420P;
 }
