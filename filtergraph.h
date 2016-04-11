@@ -21,10 +21,6 @@ public:
 
 private:
 
-    // process
-    void filterLoop();
-
-    std::vector<Filter*> filters;
-    std::vector<std::vector<unsigned int> > connections_;
+    std::vector<Filter*> filters_;
 
 };
