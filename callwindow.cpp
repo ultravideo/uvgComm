@@ -4,26 +4,26 @@
 
 
 CallWindow::CallWindow(QWidget *parent) :
-    QMainWindow(parent),
-    ui(new Ui::CallWindow)
+  QMainWindow(parent),
+  ui(new Ui::CallWindow)
 {
-    ui->setupUi(this);
+  ui->setupUi(this);
 
-    video_.constructVideoGraph();
-    audio_.constructAudioGraph();
+  video_.constructVideoGraph();
+  audio_.constructAudioGraph();
 
-    video_.run();
-    audio_.run();
+  video_.run();
+  audio_.run();
 
 }
 
 CallWindow::~CallWindow()
 {
-    video_.stop();
-    audio_.stop();
+  video_.stop();
+  audio_.stop();
 
-    video_.deconstruct();
-    audio_.deconstruct();
-    delete ui;
+  video_.deconstruct();
+  audio_.deconstruct();
+  delete ui;
 }
 

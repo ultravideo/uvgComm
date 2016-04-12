@@ -5,15 +5,15 @@
 
 class CameraFrameGrabber : public QAbstractVideoSurface
 {
-    Q_OBJECT
+  Q_OBJECT
 public:
-    explicit CameraFrameGrabber(QObject *parent = 0);
+  explicit CameraFrameGrabber(QObject *parent = 0);
 
-    QList<QVideoFrame::PixelFormat>
-        supportedPixelFormats(QAbstractVideoBuffer::HandleType handleType) const;
+  QList<QVideoFrame::PixelFormat>
+  supportedPixelFormats(QAbstractVideoBuffer::HandleType handleType) const;
 
-    bool present(const QVideoFrame &frame);
+  bool present(const QVideoFrame &frame);
 
 signals:
-    void frameAvailable(QImage frame);
+  void frameAvailable(QImage frame);
 };

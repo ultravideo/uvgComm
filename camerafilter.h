@@ -8,30 +8,30 @@ class CameraFrameGrabber;
 
 class CameraFilter : public Filter
 {
-    Q_OBJECT
+  Q_OBJECT
 
 public:
-    CameraFilter();
-    ~CameraFilter();
+  CameraFilter();
+  ~CameraFilter();
 
-    virtual bool canHaveInputs() const
-    {
-        return false;
-    }
+  virtual bool canHaveInputs() const
+  {
+    return false;
+  }
 
-    virtual bool canHaveOutputs() const
-    {
-        return true;
-    }
+  virtual bool canHaveOutputs() const
+  {
+    return true;
+  }
 
 
 private slots:
-    void handleFrame(QImage image);
+  void handleFrame(QImage image);
 
 protected:
-    void run();
+  void run();
 
 private:
-    QCamera *camera;
-    CameraFrameGrabber *cameraFrameGrabber_;
+  QCamera *camera;
+  CameraFrameGrabber *cameraFrameGrabber_;
 };

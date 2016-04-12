@@ -10,17 +10,17 @@
 class FilterGraph
 {
 public:
-    FilterGraph();
+  FilterGraph();
 
-    void constructVideoGraph();
-    void constructAudioGraph();
-    void deconstruct();
-    void run();
-    void stop();
+  void constructVideoGraph();
+  void constructAudioGraph();
+  void deconstruct();
+  void run();
+  void stop();
 
 
 private:
 
-    std::vector<Filter*> filters_;
+  std::vector<Filter*> filters_;
 
 };

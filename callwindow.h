@@ -10,18 +10,18 @@ class CallWindow;
 
 class CallWindow : public QMainWindow
 {
-    Q_OBJECT
+  Q_OBJECT
 
 public:
-    explicit CallWindow(QWidget *parent = 0);
-    ~CallWindow();
+  explicit CallWindow(QWidget *parent = 0);
+  ~CallWindow();
 
-    void startStream();
+  void startStream();
 
 
 private:
-    Ui::CallWindow *ui;
+  Ui::CallWindow *ui;
 
-    FilterGraph video_;
-    FilterGraph audio_;
+  FilterGraph video_;
+  FilterGraph audio_;
 };

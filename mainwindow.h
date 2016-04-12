@@ -12,18 +12,18 @@ class CallWindow;
 
 class MainWindow : public QMainWindow
 {
-    Q_OBJECT
+  Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget *parent = 0);
-    ~MainWindow();
+  explicit MainWindow(QWidget *parent = 0);
+  ~MainWindow();
 
 
 private slots:
-    void startCall();
+  void startCall();
 
 private:
-    Ui::MainWindow *ui_;
-    CallWindow *call_;
+  Ui::MainWindow *ui_;
+  CallWindow *call_;
 
 };
