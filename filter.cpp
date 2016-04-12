@@ -1,6 +1,6 @@
 #include "filter.h"
 
-Filter::Filter()
+Filter::Filter():running_(true), waitMutex_(NULL)
 {
     waitMutex_ = new QMutex;
 }
@@ -58,3 +58,11 @@ void Filter::putOutput(std::unique_ptr<Data> data)
         f->putInput(std::move(data));
     }
 }
+
+
+void Filter::stop()
+{
+    running_ = false;
+    hasInput_.wakeAll();
+}
+

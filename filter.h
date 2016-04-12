@@ -14,11 +14,10 @@ enum DataType {RPG32VIDEO = 0, RAWAUDIO, HEVCVIDEO, OPUSAUDIO};
 struct Data
 {
     uint8_t type;
-    std::unique_ptr<uchar> data;
+    std::unique_ptr<uchar[]> data;
     uint32_t data_size;
-
-    Data(uint8_t t, uchar* d, uint32_t ds):
-    type(t), data(std::unique_ptr<uchar>(d)), data_size(ds){}
+    int width;
+    int height;
 };
 
 class Filter : public QThread
@@ -42,6 +41,8 @@ public:
     virtual bool canHaveInputs() const = 0;
     virtual bool canHaveOutputs() const = 0;
 
+    void stop();
+
 protected:
 
     // return: oldest element in buffer, empty if none found
@@ -58,11 +59,11 @@ protected:
         waitMutex_->unlock();
     }
 
+    bool running_;
+
 private:
     QMutex *waitMutex_;
     QWaitCondition hasInput_;
-
-    bool running_;
 
     std::vector<Filter*> outConnections_;
 

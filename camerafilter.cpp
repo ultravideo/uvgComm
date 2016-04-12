@@ -24,19 +24,32 @@ CameraFilter::~CameraFilter()
 
 void CameraFilter::run()
 {
-    sleep();
-}
+    while(running_)
+    {
+        sleep();
 
+        if(!running_) break;
+    }
+}
 
 void CameraFilter::handleFrame(QImage image)
 {
-    uchar* bits = new uchar[image.byteCount()];
+    Data * newImage = new Data;
 
-    memcpy(bits, image.bits(), image.byteCount());
+    newImage->type = RPG32VIDEO;
+    std::unique_ptr<uchar> uu(new uchar[image.byteCount()]);
+    newImage->data = std::unique_ptr<uchar[]>(new uchar[image.byteCount()]);
 
-    Q_ASSERT(bits);
+    uchar *bits = image.bits();
 
-    std::unique_ptr<Data> data( new Data(RPG32VIDEO, bits, image.byteCount()));
+    memcpy(newImage->data.get(), bits, image.byteCount());
+    newImage->data_size = image.byteCount();
+    newImage->width = image.width();
+    newImage->height = image.height();
 
-    putOutput(std::move(data));
+    std::unique_ptr<Data> u_newImage( newImage );
+
+    Q_ASSERT(u_newImage->data);
+
+    putOutput(std::move(u_newImage));
 }

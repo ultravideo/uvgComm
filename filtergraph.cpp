@@ -37,6 +37,6 @@ void FilterGraph::stop()
     for(Filter* f : filters_)
     {
         f->emptyBuffer();
-        f->quit();
+        f->stop();
     }
 }
