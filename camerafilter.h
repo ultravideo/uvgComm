@@ -26,7 +26,7 @@ public:
 
 
 private slots:
-  void handleFrame(QImage image);
+  void handleFrame(const QVideoFrame &frame);
 
 protected:
   void run();

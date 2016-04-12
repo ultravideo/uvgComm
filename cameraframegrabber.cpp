@@ -9,14 +9,7 @@ CameraFrameGrabber::CameraFrameGrabber(QObject *parent) :
 bool CameraFrameGrabber::present(const QVideoFrame &frame)
 {
   if (frame.isValid()) {
-    QVideoFrame cloneFrame(frame);
-    cloneFrame.map(QAbstractVideoBuffer::ReadOnly);
-    const QImage image(cloneFrame.bits(),
-                       cloneFrame.width(),
-                       cloneFrame.height(),
-                       QVideoFrame::imageFormatFromPixelFormat(cloneFrame .pixelFormat()));
-    emit frameAvailable(image);
-    cloneFrame.unmap();
+    emit frameAvailable(frame);
     return true;
   }
   return false;
@@ -26,6 +19,5 @@ QList<QVideoFrame::PixelFormat> CameraFrameGrabber::supportedPixelFormats(QAbstr
 {
   Q_UNUSED(handleType);
   return QList<QVideoFrame::PixelFormat>()
-      << QVideoFrame::Format_RGB32
-      << QVideoFrame::Format_YUV420P;
+      << QVideoFrame::Format_RGB32;
 }

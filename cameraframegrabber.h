@@ -15,5 +15,5 @@ public:
   bool present(const QVideoFrame &frame);
 
 signals:
-  void frameAvailable(QImage frame);
+  void frameAvailable(const QVideoFrame &frame);
 };

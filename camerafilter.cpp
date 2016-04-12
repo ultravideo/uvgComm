@@ -5,13 +5,15 @@
 //#include <QCameraViewfinder>
 #include <QCameraInfo>
 
+#include <QtDebug>
+
 CameraFilter::CameraFilter()
 {
   camera = new QCamera(QCameraInfo::defaultCamera());
   cameraFrameGrabber_ = new CameraFrameGrabber();
   camera->setViewfinder(cameraFrameGrabber_);
 
-  connect(cameraFrameGrabber_, SIGNAL(frameAvailable(QImage)), this, SLOT(handleFrame(QImage)));
+  connect(cameraFrameGrabber_, SIGNAL(frameAvailable(QVideoFrame)), this, SLOT(handleFrame(QVideoFrame)));
 
   camera->start();
 }
@@ -32,22 +34,33 @@ void CameraFilter::run()
   }
 }
 
-void CameraFilter::handleFrame(QImage image)
+void CameraFilter::handleFrame(const QVideoFrame &frame)
 {
+  QVideoFrame cloneFrame(frame);
+  cloneFrame.map(QAbstractVideoBuffer::ReadOnly);
+
+  QVideoFrame::PixelFormat pf = cloneFrame.pixelFormat();
+
+  qDebug() << "Frame generated: " << pf;
+
+  Q_ASSERT(pf == QVideoFrame::Format_RGB32);
+
   Data * newImage = new Data;
 
   newImage->type = RPG32VIDEO;
-  std::unique_ptr<uchar> uu(new uchar[image.byteCount()]);
-  newImage->data = std::unique_ptr<uchar[]>(new uchar[image.byteCount()]);
+  std::unique_ptr<uchar> uu(new uchar[cloneFrame.mappedBytes()]);
+  newImage->data = std::unique_ptr<uchar[]>(new uchar[cloneFrame.mappedBytes()]);
 
-  uchar *bits = image.bits();
+  uchar *bits = cloneFrame.bits();
 
-  memcpy(newImage->data.get(), bits, image.byteCount());
-  newImage->data_size = image.byteCount();
-  newImage->width = image.width();
-  newImage->height = image.height();
+  memcpy(newImage->data.get(), bits, cloneFrame.mappedBytes());
+  newImage->data_size = cloneFrame.mappedBytes();
+  newImage->width = cloneFrame.width();
+  newImage->height = cloneFrame.height();
 
   std::unique_ptr<Data> u_newImage( newImage );
+
+  cloneFrame.unmap();
 
   Q_ASSERT(u_newImage->data);
 

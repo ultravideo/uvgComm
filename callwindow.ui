@@ -27,13 +27,13 @@
      <string>End call</string>
     </property>
    </widget>
-   <widget class="QCameraViewfinder" name="viewFinder" native="true">
+   <widget class="QWidget" name="widget" native="true">
     <property name="geometry">
      <rect>
-      <x>650</x>
-      <y>460</y>
-      <width>141</width>
-      <height>91</height>
+      <x>160</x>
+      <y>110</y>
+      <width>431</width>
+      <height>291</height>
      </rect>
     </property>
    </widget>
@@ -50,14 +50,6 @@
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>QCameraViewfinder</class>
-   <extends>QWidget</extends>
-   <header>qcameraviewfinder.h</header>
-   <container>1</container>
-  </customwidget>
- </customwidgets>
  <resources/>
  <connections>
   <connection>
