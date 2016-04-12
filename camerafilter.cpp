@@ -9,29 +9,31 @@
 
 CameraFilter::CameraFilter()
 {
-  camera = new QCamera(QCameraInfo::defaultCamera());
+  camera_ = new QCamera(QCameraInfo::defaultCamera());
   cameraFrameGrabber_ = new CameraFrameGrabber();
-  camera->setViewfinder(cameraFrameGrabber_);
+  camera_->setViewfinder(cameraFrameGrabber_);
 
   connect(cameraFrameGrabber_, SIGNAL(frameAvailable(QVideoFrame)), this, SLOT(handleFrame(QVideoFrame)));
 
-  camera->start();
+  camera_->start();
 }
 
 CameraFilter::~CameraFilter()
 {
-  delete camera;
+  delete camera_;
   delete cameraFrameGrabber_;
 }
 
-void CameraFilter::run()
+void CameraFilter::process()
 {
-  while(running_)
-  {
-    sleep();
+  // do nothing because camera input is handled via camera signal
+}
 
-    if(!running_) break;
-  }
+
+void CameraFilter::stop()
+{
+  camera_->stop();
+  Filter::stop();
 }
 
 void CameraFilter::handleFrame(const QVideoFrame &frame)

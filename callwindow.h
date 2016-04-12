@@ -18,6 +18,7 @@ public:
 
   void startStream();
 
+  void closeEvent(QCloseEvent *event);
 
 private:
   Ui::CallWindow *ui;

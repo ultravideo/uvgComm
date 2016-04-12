@@ -11,7 +11,7 @@ Filter::~Filter()
   delete waitMutex_;
 }
 
-void Filter::addOutconnection(Filter *out)
+void Filter::addOutConnection(Filter *out)
 {
   outConnections_.push_back(out);
 }
@@ -34,15 +34,13 @@ void Filter::putInput(std::unique_ptr<Data> data)
   bufferMutex_.unlock();
 }
 
-
-
 std::unique_ptr<Data> Filter::getInput()
 {
   bufferMutex_.lock();
   std::unique_ptr<Data> r;
   if(!inBuffer_.empty())
   {
-    std::unique_ptr<Data> r = std::move(inBuffer_.front());
+    r = std::move(inBuffer_.front());
     inBuffer_.pop();
   }
   bufferMutex_.unlock();
@@ -66,3 +64,14 @@ void Filter::stop()
   hasInput_.wakeAll();
 }
 
+void Filter::run()
+{
+  running_ = true;
+  while(running_)
+  {
+    sleep();
+    if(!running_) break;
+
+    process();
+  }
+}

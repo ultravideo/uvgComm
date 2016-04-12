@@ -1,7 +1,7 @@
 #include "callwindow.h"
 #include "ui_callwindow.h"
 
-
+#include <QCloseEvent>
 
 CallWindow::CallWindow(QWidget *parent) :
   QMainWindow(parent),
@@ -14,7 +14,6 @@ CallWindow::CallWindow(QWidget *parent) :
 
   video_.run();
   audio_.run();
-
 }
 
 CallWindow::~CallWindow()
@@ -27,3 +26,9 @@ CallWindow::~CallWindow()
   delete ui;
 }
 
+void CallWindow::closeEvent(QCloseEvent *event)
+{
+  video_.stop();
+  audio_.stop();
+  QMainWindow::closeEvent(event);
+}

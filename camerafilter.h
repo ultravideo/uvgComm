@@ -14,24 +14,25 @@ public:
   CameraFilter();
   ~CameraFilter();
 
-  virtual bool canHaveInputs() const
-  {
-    return false;
-  }
-
-  virtual bool canHaveOutputs() const
+  virtual bool isInputFilter() const
   {
     return true;
   }
 
+  virtual bool isOutputFilter() const
+  {
+    return false;
+  }
+
+  virtual void stop();
 
 private slots:
   void handleFrame(const QVideoFrame &frame);
 
 protected:
-  void run();
+  void process();
 
 private:
-  QCamera *camera;
+  QCamera *camera_;
   CameraFrameGrabber *cameraFrameGrabber_;
 };

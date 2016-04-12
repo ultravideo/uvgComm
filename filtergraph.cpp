@@ -2,6 +2,8 @@
 
 
 #include "camerafilter.h"
+#include "displayfilter.h"
+
 
 FilterGraph::FilterGraph()
 {
@@ -11,12 +13,12 @@ FilterGraph::FilterGraph()
 void FilterGraph::constructVideoGraph()
 {
   filters_.push_back(new CameraFilter);
+  filters_.push_back(new DisplayFilter);
+  filters_.at(0)->addOutConnection(filters_.at(1));
 }
 
 void FilterGraph::constructAudioGraph()
-{
-
-}
+{}
 
 void FilterGraph::deconstruct()
 {

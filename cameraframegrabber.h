@@ -3,6 +3,11 @@
 #include <QAbstractVideoSurface>
 #include <QList>
 
+
+// This class is used by Camera filter to capture frames from camera.
+
+
+
 class CameraFrameGrabber : public QAbstractVideoSurface
 {
   Q_OBJECT

@@ -30,7 +30,7 @@ public:
   virtual ~Filter();
 
   // adds one outbound connection to this filter.
-  void addOutconnection(Filter *out);
+  void addOutConnection(Filter *out);
 
   // empties the input buffer
   void emptyBuffer();
@@ -38,19 +38,23 @@ public:
   void putInput(std::unique_ptr<Data> data);
 
   // for debug information only
-  virtual bool canHaveInputs() const = 0;
-  virtual bool canHaveOutputs() const = 0;
+  virtual bool isInputFilter() const = 0;
+  virtual bool isOutputFilter() const = 0;
 
-  void stop();
+  virtual void stop();
 
 protected:
 
   // return: oldest element in buffer, empty if none found
   std::unique_ptr<Data> getInput();
+
+  //sends output to out connections
   void putOutput(std::unique_ptr<Data> data);
 
-  // QThread function that runs the processing itself
-  void run() = 0;
+  // QThread function that runs the processing
+  void run();
+
+  virtual void process() = 0;
 
   void sleep()
   {
@@ -59,11 +63,11 @@ protected:
     waitMutex_->unlock();
   }
 
-  bool running_;
-
 private:
   QMutex *waitMutex_;
   QWaitCondition hasInput_;
+
+  bool running_;
 
   std::vector<Filter*> outConnections_;
 

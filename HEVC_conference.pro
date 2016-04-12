@@ -18,14 +18,18 @@ SOURCES += main.cpp\
     cameraframegrabber.cpp \
     filter.cpp \
     filtergraph.cpp \
-    camerafilter.cpp
+    camerafilter.cpp \
+    displayfilter.cpp \
+    videowidget.cpp
 
 HEADERS  += mainwindow.h \
     callwindow.h \
     cameraframegrabber.h \
     filter.h \
     filtergraph.h \
-    camerafilter.h
+    camerafilter.h \
+    displayfilter.h \
+    videowidget.h
 
 FORMS    += mainwindow.ui \
     callwindow.ui
