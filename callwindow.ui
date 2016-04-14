@@ -27,11 +27,11 @@
      <string>End call</string>
     </property>
    </widget>
-   <widget class="QWidget" name="widget" native="true">
+   <widget class="VideoWidget" name="videoCall" native="true">
     <property name="geometry">
      <rect>
       <x>160</x>
-      <y>110</y>
+      <y>50</y>
       <width>431</width>
       <height>291</height>
      </rect>
@@ -50,6 +50,14 @@
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>VideoWidget</class>
+   <extends>QWidget</extends>
+   <header location="global">videowidget.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections>
   <connection>

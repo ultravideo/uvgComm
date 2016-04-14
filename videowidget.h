@@ -1,11 +1,34 @@
-#ifndef VIDEOWIDGET_H
-#define VIDEOWIDGET_H
+#pragma once
 
 
-class VideoWidget
+#include <QPainter>
+#include <QWidget>
+#include <QRect>
+#include <QSize>
+#include <QImage>
+
+#include <memory>
+
+class VideoWidget : public QWidget
 {
+  Q_OBJECT
 public:
-  VideoWidget();
-};
+  VideoWidget(QWidget* parent = 0);
+  ~VideoWidget();
+  void inputImage(std::unique_ptr<uchar[]> input,
+                  QImage &image);
 
-#endif // VIDEOWIDGET_H
+protected:
+  void paintEvent(QPaintEvent *event);
+  void resizeEvent(QResizeEvent *event);
+
+private:
+  bool hasImage_;
+  QImage::Format imageFormat_;
+  QRect targetRect_;
+  QSize imageSize_;
+
+  QMutex drawMutex_;
+  QImage currentImage_;
+  std::unique_ptr<uchar[]> input_;
+};

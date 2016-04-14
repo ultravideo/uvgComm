@@ -3,17 +3,13 @@
 #include <QPainter>
 
 #include "filter.h"
-#include "videowidget.h"
 
-
+class VideoWidget;
 
 class DisplayFilter : public Filter
 {
 public:
-  DisplayFilter();
-
-
-  void paint(QPainter *painter);
+  DisplayFilter(VideoWidget *widget);
 
   virtual bool isInputFilter() const
   {
@@ -28,6 +24,7 @@ protected:
   void process();
 
 private:
-  VideoWidget vw_;
+  // DO NOT DELETE HERE
+  VideoWidget* widget_;
 
 };

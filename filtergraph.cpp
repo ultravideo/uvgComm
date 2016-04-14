@@ -10,10 +10,10 @@ FilterGraph::FilterGraph()
 
 }
 
-void FilterGraph::constructVideoGraph()
+void FilterGraph::constructVideoGraph(VideoWidget *videoWidget)
 {
   filters_.push_back(new CameraFilter);
-  filters_.push_back(new DisplayFilter);
+  filters_.push_back(new DisplayFilter(videoWidget));
   filters_.at(0)->addOutConnection(filters_.at(1));
 }
 
@@ -38,7 +38,7 @@ void FilterGraph::stop()
 {
   for(Filter* f : filters_)
   {
-    f->emptyBuffer();
     f->stop();
+    f->emptyBuffer();
   }
 }
