@@ -12,27 +12,30 @@ TARGET = HEVC_conference
 TEMPLATE = app
 
 
-SOURCES += main.cpp\
-        mainwindow.cpp \
-    callwindow.cpp \
-    cameraframegrabber.cpp \
-    filter.cpp \
-    filtergraph.cpp \
-    camerafilter.cpp \
-    displayfilter.cpp \
-    videowidget.cpp
+SOURCES +=\
+    src/callwindow.cpp \
+    src/camerafilter.cpp \
+    src/cameraframegrabber.cpp \
+    src/displayfilter.cpp \
+    src/filter.cpp \
+    src/filtergraph.cpp \
+    src/main.cpp \
+    src/mainwindow.cpp \
+    src/videowidget.cpp
 
-HEADERS  += mainwindow.h \
-    callwindow.h \
-    cameraframegrabber.h \
-    filter.h \
-    filtergraph.h \
-    camerafilter.h \
-    displayfilter.h \
-    videowidget.h
+HEADERS  += \
+    src/callwindow.h \
+    src/camerafilter.h \
+    src/cameraframegrabber.h \
+    src/displayfilter.h \
+    src/filter.h \
+    src/filtergraph.h \
+    src/mainwindow.h \
+    src/videowidget.h
 
-FORMS    += mainwindow.ui \
-    callwindow.ui
+FORMS    += \
+    ui/callwindow.ui \
+    ui/mainwindow.ui
 
 
 QT+=multimedia
