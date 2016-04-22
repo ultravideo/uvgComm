@@ -20,6 +20,8 @@ struct Data
   int height;
 };
 
+const int BUFFERSIZE = 100;
+
 class Filter : public QThread
 {
 
@@ -73,4 +75,9 @@ private:
 
   QMutex bufferMutex_;
   std::queue<std::unique_ptr<Data>> inBuffer_;
+
+  unsigned int inputTaken_;
+  unsigned int inputDiscarded_;
+
+
 };

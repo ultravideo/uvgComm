@@ -1,6 +1,9 @@
 #include "filter.h"
 
-Filter::Filter():running_(true), waitMutex_(NULL)
+#include <QDebug>
+
+Filter::Filter():running_(true), waitMutex_(NULL),
+  inputTaken_(0), inputDiscarded_(0)
 {
   waitMutex_ = new QMutex;
 }
@@ -28,8 +31,19 @@ void Filter::putInput(std::unique_ptr<Data> data)
 {
   Q_ASSERT(data);
 
+  ++inputTaken_;
+
   bufferMutex_.lock();
-  inBuffer_.push(std::move(data));
+  if(inBuffer_.size() < BUFFERSIZE)
+    inBuffer_.push(std::move(data));
+  else
+  {
+    ++inputDiscarded_;
+    qDebug() << "Buffer full. Discarded input: "
+             << inputDiscarded_
+             << " Total input: "
+             << inputTaken_;
+  }
   hasInput_.wakeOne();
   bufferMutex_.unlock();
 }
