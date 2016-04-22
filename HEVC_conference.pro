@@ -22,7 +22,8 @@ SOURCES +=\
     src/filtergraph.cpp \
     src/main.cpp \
     src/mainwindow.cpp \
-    src/videowidget.cpp
+    src/videowidget.cpp \
+    src/kvazaarfilter.cpp
 
 HEADERS  += \
     src/callwindow.h \
@@ -32,7 +33,8 @@ HEADERS  += \
     src/filter.h \
     src/filtergraph.h \
     src/mainwindow.h \
-    src/videowidget.h
+    src/videowidget.h \
+    src/kvazaarfilter.h
 
 FORMS    += \
     ui/callwindow.ui \
@@ -43,3 +45,10 @@ QT+=multimedia
 QT+=multimediawidgets
 
 QMAKE_CXXFLAGS += -std=c++11
+
+INCLUDEPATH += $$PWD/../kvazaar/src
+
+win32: LIBS += -L$$PWD/../ -llibkvazaar.dll
+
+INCLUDEPATH += $$PWD/../
+DEPENDPATH += $$PWD/../
