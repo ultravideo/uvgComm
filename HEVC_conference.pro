@@ -11,6 +11,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = HEVC_conference
 TEMPLATE = app
 
+INCLUDEPATH += src
 
 SOURCES +=\
     src/callwindow.cpp \
