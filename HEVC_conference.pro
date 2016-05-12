@@ -40,3 +40,5 @@ FORMS    += \
 
 QT+=multimedia
 QT+=multimediawidgets
+
+QMAKE_CXXFLAGS += -std=c++11
