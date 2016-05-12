@@ -6,6 +6,7 @@
 #include <QRect>
 #include <QSize>
 #include <QImage>
+#include <QMutex>
 
 #include <memory>
 

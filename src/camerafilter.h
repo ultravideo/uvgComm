@@ -1,8 +1,9 @@
 #pragma once
 
-#include <QCamera>
-
 #include "filter.h"
+
+#include <QCamera>
+#include <QVideoFrame>
 
 class CameraFrameGrabber;
 
