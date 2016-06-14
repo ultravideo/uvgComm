@@ -14,13 +14,19 @@ KvazaarFilter::KvazaarFilter()
 }
 
 int KvazaarFilter::init(unsigned int width,
-         unsigned int height,
-         int32_t framerate_num,
-         int32_t framerate_denom,
-         float target_bitrate)
+                        unsigned int height,
+                        int32_t framerate_num,
+                        int32_t framerate_denom,
+                        float target_bitrate)
 {
-  api_ = kvz_api_get(8);
+  qDebug() << "KvazF: Iniating";
 
+  api_ = kvz_api_get(8);
+  if(!api_)
+  {
+    qCritical() << "KvazF:Failed to retreive Kvazaar API";
+    return C_FAILURE;
+  }
   config_ = api_->config_alloc();
   enc_ = NULL;
 
@@ -42,7 +48,7 @@ int KvazaarFilter::init(unsigned int width,
     qCritical() << "KvazF: Failed to open Kvazaar encoder";
     return C_FAILURE;
   }
-
+  qDebug() << "KvazF: iniation success";
   return C_SUCCESS;
 }
 
@@ -62,6 +68,8 @@ void KvazaarFilter::process()
 {
   Q_ASSERT(enc_);
   Q_ASSERT(config_);
+
+  qDebug() << "kvazaar filter processing";
 
   std::unique_ptr<Data> input = getInput();
   while(input)
