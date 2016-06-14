@@ -39,4 +39,6 @@ private:
   const kvz_api *api_;
   kvz_config *config_;
   kvz_encoder *enc_;
+
+  FILE *f;
 };

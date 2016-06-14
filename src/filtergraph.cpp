@@ -14,7 +14,7 @@ void FilterGraph::constructVideoGraph(VideoWidget *videoWidget)
 {
   filters_.push_back(new CameraFilter);
   KvazaarFilter* kvz = new KvazaarFilter();
-  kvz->init(640, 480, 15,1, 50);
+  kvz->init(640, 480, 15,1, 0);
   filters_.push_back(kvz);
   filters_.at(0)->addOutConnection(filters_.at(1));
   filters_.push_back(new DisplayFilter(videoWidget));
