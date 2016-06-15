@@ -9,7 +9,7 @@
 #include <queue>
 #include <memory>
 
-enum DataType {RPG32VIDEO = 0, RAWAUDIO, HEVCVIDEO, OPUSAUDIO};
+enum DataType {RGB32VIDEO = 0, YUVVIDEO, RAWAUDIO, HEVCVIDEO, OPUSAUDIO};
 
 struct Data
 {

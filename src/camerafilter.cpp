@@ -49,7 +49,7 @@ void CameraFilter::handleFrame(const QVideoFrame &frame)
 
   Data * newImage = new Data;
 
-  newImage->type = RPG32VIDEO;
+  newImage->type = RGB32VIDEO;
   std::unique_ptr<uchar> uu(new uchar[cloneFrame.mappedBytes()]);
   newImage->data = std::unique_ptr<uchar[]>(new uchar[cloneFrame.mappedBytes()]);
 

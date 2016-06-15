@@ -48,7 +48,7 @@ int KvazaarFilter::init(unsigned int width,
     return C_FAILURE;
   }
 
-  f = fopen("kvazaar.265", "a+");
+  f = fopen("kvazaar.265", "ab+");
 
   qDebug() << "KvazF: iniation success";
   return C_SUCCESS;

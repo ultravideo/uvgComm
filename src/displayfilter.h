@@ -24,7 +24,7 @@ protected:
   void process();
 
 private:
-  // DO NOT DELETE HERE
+  // DO NOT FREE MEMORY HERE
   VideoWidget* widget_;
 
 };
