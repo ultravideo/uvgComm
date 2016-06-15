@@ -39,7 +39,7 @@ void Filter::putInput(std::unique_ptr<Data> data)
   else
   {
     ++inputDiscarded_;
-    qDebug() << "Buffer full. Discarded input: "
+    qDebug() << name_ << " buffer full. Discarded input: "
              << inputDiscarded_
              << " Total input: "
              << inputTaken_;

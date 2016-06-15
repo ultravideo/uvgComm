@@ -9,6 +9,7 @@
 
 CameraFilter::CameraFilter()
 {
+  name_ = "CamF";
   camera_ = new QCamera(QCameraInfo::defaultCamera());
   cameraFrameGrabber_ = new CameraFrameGrabber();
   camera_->setViewfinder(cameraFrameGrabber_);

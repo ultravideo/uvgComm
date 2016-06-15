@@ -6,6 +6,7 @@
 
 RGB32toYUV::RGB32toYUV()
 {
+  name_ = "RGBtoYUVF";
 
 }
 
@@ -13,11 +14,12 @@ RGB32toYUV::RGB32toYUV()
 
 
 
-//calculation can be done using integers
+// also flips input
 void RGB32toYUV::process()
 {
   qDebug() << "toYUVF: Converting input";
   std::unique_ptr<Data> input = getInput();
+
   while(input)
   {
     qDebug() << "toYUVF: Next";
@@ -34,27 +36,27 @@ void RGB32toYUV::process()
     // Luma pixels
     for(unsigned int i = 0; i < input->data_size; i += 4)
     {
-      double ypixel = 0.299*input->data[i] + 0.587 * input->data[i+1]
-          + 0.114 * input->data[i+2];
-      Y[i/4] = std::max(0.0,std::min(255.0, ypixel + 0.5)); // +0.5 is for rounding up.
+      int32_t ypixel = 66*input->data[i] + 129 * input->data[i+1]
+          + 25 * input->data[i+2];
+      Y[input->width*input->height - i/4] = (ypixel + 128) >> 8;
     }
 
     for(unsigned int i = 0; i < input->data_size - input->width*4; i += 2*input->width*4)
     {
       for(unsigned int j = i; j < i+input->width*4; j += 4*2)
       {
-        double upixel =  -0.147 * input->data[j+2]                  - 0.289 * input->data[j+1]                  + 0.436 * input->data[j];
-               upixel += -0.147 * input->data[j+2+4]                - 0.289 * input->data[j+1+4]                + 0.436 * input->data[j+4];
-               upixel += -0.147 * input->data[j+2+input->width*4]   - 0.289 * input->data[j+1+input->width*4]   + 0.436 * input->data[j+input->width*4];
-               upixel += -0.147 * input->data[j+2+4+input->width*4] - 0.289 * input->data[j+1+4+input->width*4] + 0.436 * input->data[j+4+input->width*4];
-        U[i/16 + (j-i)/8] = std::max(0.0,std::min(255.0, (upixel+4*128)/4 + 0.5)); // +0.5 is for rounding up
+        int32_t upixel = -43 * input->data[j+2]                   - 84 * input->data[j+1]                   + 127 * input->data[j];
+               upixel += -43 * input->data[j+2+4]                 - 84 * input->data[j+1+4]                 + 127 * input->data[j+4];
+               upixel += -43 * input->data[j+2+input->width*4]    - 84  * input->data[j+1+input->width*4]   + 127 * input->data[j+input->width*4];
+               upixel += -43 * input->data[j+2+4+input->width*4]  - 84  * input->data[j+1+4+input->width*4] + 127 * input->data[j+4+input->width*4];
+        U[input->width*input->height/4 - (i/16 + (j-i)/8)] = ((upixel + 512) >> 10) + 128;
 
 
-        double vpixel =   0.615 * input->data[j+2]                  - 0.515 * input->data[j+1]                  - 0.100 * input->data[j];
-               vpixel +=  0.615 * input->data[j+2+4]                - 0.515 * input->data[j+1+4]                - 0.100 * input->data[j+4];
-               vpixel +=  0.615 * input->data[j+2+input->width*4]   - 0.515 * input->data[j+1+input->width*4]   - 0.100 * input->data[j+input->width*4];
-               vpixel +=  0.615 * input->data[j+2+4+input->width*4] - 0.515 * input->data[j+1+4+input->width*4] - 0.100 * input->data[j+4+input->width*4];
-        V[i/16 + (j-i)/8] = std::max(0.0,std::min(255.0, (vpixel+4*128)/4 + 0.5)); // +0.5 is for rounding up.
+        int32_t vpixel =  127 * input->data[j+2]                  - 106 * input->data[j+1]                  - 21 * input->data[j];
+               vpixel +=  127 * input->data[j+2+4]                - 106 * input->data[j+1+4]                - 21 * input->data[j+4];
+               vpixel +=  127 * input->data[j+2+input->width*4]   - 106 * input->data[j+1+input->width*4]   - 21 * input->data[j+input->width*4];
+               vpixel +=  127 * input->data[j+2+4+input->width*4] - 106 * input->data[j+1+4+input->width*4] - 21 * input->data[j+4+input->width*4];
+        V[input->width*input->height/4 - (i/16 + (j-i)/8)] = ((vpixel + 512) >> 10) + 128;
       }
     }
 
@@ -63,4 +65,6 @@ void RGB32toYUV::process()
 
     input = getInput();
   }
+
+  qDebug() << "toYUVF: Buffer empty";
 }

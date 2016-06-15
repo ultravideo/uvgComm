@@ -8,6 +8,7 @@
 
 DisplayFilter::DisplayFilter(VideoWidget *widget):widget_(widget)
 {
+  name_ = "DispF";
   widget_->show();
 }
 
@@ -40,7 +41,7 @@ void DisplayFilter::process()
             input->data.get(),
             input->width,
             input->height,
-            QImage::Format_RGB32);
+            format);
 
       image = image.mirrored();
       widget_->inputImage(std::move(input->data), image);

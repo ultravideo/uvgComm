@@ -65,6 +65,8 @@ protected:
     waitMutex_->unlock();
   }
 
+  QString name_;
+
 private:
   QMutex *waitMutex_;
   QWaitCondition hasInput_;

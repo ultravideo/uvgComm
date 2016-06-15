@@ -23,13 +23,13 @@ void FilterGraph::constructVideoGraph(VideoWidget *videoWidget)
   filters_.push_back(kvz);
   filters_.at(1)->addOutConnection(filters_.at(2));
 
-  //filters_.push_back(new DisplayFilter(videoWidget));
-  //filters_.at(2)->addOutConnection(filters_.at(3));
+  filters_.push_back(new DisplayFilter(videoWidget));
+  filters_.at(2)->addOutConnection(filters_.at(3));
 
   Q_ASSERT(filters_[0]->isInputFilter());
   Q_ASSERT(!filters_[0]->isOutputFilter());
-  //Q_ASSERT(filters_[filters_.size() - 1]->isOutputFilter());
- // Q_ASSERT(!filters_[filters_.size() - 1]->isInputFilter());
+  Q_ASSERT(filters_[filters_.size() - 1]->isOutputFilter());
+  Q_ASSERT(!filters_[filters_.size() - 1]->isInputFilter());
 }
 
 void FilterGraph::constructAudioGraph()

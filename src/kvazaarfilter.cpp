@@ -7,7 +7,7 @@
 
 KvazaarFilter::KvazaarFilter()
 {
-
+name_ = "KvazF";
 }
 
 int KvazaarFilter::init(unsigned int width,
