@@ -112,8 +112,6 @@ void KvazaarFilter::process()
                          &recon_pic, NULL,
                          &frame_info );
 
-    putOutput(std::move(input));
-
     if(data_out != NULL)
     {
 
@@ -124,28 +122,33 @@ void KvazaarFilter::process()
            chunk = chunk->next) {
         fwrite(chunk->data, 1, chunk->len, f);
         output_size += chunk->len;
+
       }
 
-           qDebug() << "KvazF: frame encoded. Length: " << output_size <<
-                       " POC: " << frame_info.poc;
+      qDebug() << "KvazF: frame encoded. Length: " << len_out <<
+                  " POC: " << frame_info.poc;
 
+      Data *hevc_frame = new Data;
+      hevc_frame->data_size = len_out;
+      hevc_frame->data = std::unique_ptr<uchar[]>(new uchar[len_out]);
+      hevc_frame->width = input->width;
+      hevc_frame->height = input->height;
+      hevc_frame->type = HEVCVIDEO;
 
-/*
-      for (kvz_data_chunk *chunk = chunks_out;
+      uint8_t* writer = hevc_frame->data.get();
+
+      for (kvz_data_chunk *chunk = data_out;
            chunk != NULL;
            chunk = chunk->next) {
-        if (fwrite(chunk->data, sizeof(uint8_t), chunk->len, output) != chunk->len) {
-          fprintf(stderr, "Failed to write data to file.\n");
-          api->picture_free(cur_in_img);
-          api->chunk_free(chunks_out);
-          goto exit_failure;
-        }
-        written += chunk->len;
+        memcpy(writer, chunk->data, chunk->len);
+        writer += chunk->len;
       }
-      putOutput();*/
+      std::unique_ptr<Data> hevc_frame_data( hevc_frame );
+      putOutput(std::move(hevc_frame_data));
     }
+    input = getInput();
   }
-  input = getInput();
+
 
   qDebug() << "KvazF: input buffer empty";
 }

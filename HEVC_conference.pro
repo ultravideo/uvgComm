@@ -24,7 +24,8 @@ SOURCES +=\
     src/mainwindow.cpp \
     src/videowidget.cpp \
     src/kvazaarfilter.cpp \
-    src/rgb32toyuv.cpp
+    src/rgb32toyuv.cpp \
+    src/openhevcfilter.cpp
 
 HEADERS  += \
     src/callwindow.h \
@@ -36,7 +37,8 @@ HEADERS  += \
     src/mainwindow.h \
     src/videowidget.h \
     src/kvazaarfilter.h \
-    src/rgb32toyuv.h
+    src/rgb32toyuv.h \
+    src/openhevcfilter.h
 
 FORMS    += \
     ui/callwindow.ui \
@@ -49,8 +51,10 @@ QT+=multimediawidgets
 QMAKE_CXXFLAGS += -std=c++11
 
 INCLUDEPATH += $$PWD/../kvazaar/src
+INCLUDEPATH += $$PWD/../openHEVC/gpac/modules/openhevc_dec
 
 win32: LIBS += -L$$PWD/../ -llibkvazaar.dll
+win32: LIBS += -L$$PWD/../ -llibLibOpenHevcWrapper.dll
 
 INCLUDEPATH += $$PWD/../
 DEPENDPATH += $$PWD/../

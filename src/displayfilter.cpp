@@ -30,7 +30,7 @@ void DisplayFilter::process()
       format = QImage::Format_RGB32;
       break;
     default:
-      qWarning() << "DispF: Wrong type of display input.";
+      qCritical() << "DispF: Wrong type of display input.";
        format = QImage::Format_Invalid;
       break;
     }

@@ -1,5 +1,4 @@
-#ifndef RGB32TOYUV_H
-#define RGB32TOYUV_H
+#pragma once
 
 #include "filter.h"
 
@@ -26,5 +25,3 @@ protected:
   void process();
 
 };
-
-#endif // RGB32TOYUV_H

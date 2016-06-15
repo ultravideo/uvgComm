@@ -25,7 +25,7 @@ void RGB32toYUV::process()
     qDebug() << "toYUVF: Next";
     Data *yuv_data = new Data;
     yuv_data->data_size = input->width*input->height + input->width*input->height/2;
-    yuv_data->data = std::unique_ptr<uchar[]>(new uchar[input->width*input->height + input->width*input->height/2]);
+    yuv_data->data = std::unique_ptr<uchar[]>(new uchar[yuv_data->data_size]);
     yuv_data->width = input->width;
     yuv_data->height = input->height;
 
@@ -38,7 +38,7 @@ void RGB32toYUV::process()
     {
       int32_t ypixel = 66*input->data[i] + 129 * input->data[i+1]
           + 25 * input->data[i+2];
-      Y[input->width*input->height - i/4] = (ypixel + 128) >> 8;
+      Y[input->width*input->height - i/4 - 1] = (ypixel + 128) >> 8;
     }
 
     for(unsigned int i = 0; i < input->data_size - input->width*4; i += 2*input->width*4)
@@ -49,17 +49,18 @@ void RGB32toYUV::process()
                upixel += -43 * input->data[j+2+4]                 - 84 * input->data[j+1+4]                 + 127 * input->data[j+4];
                upixel += -43 * input->data[j+2+input->width*4]    - 84  * input->data[j+1+input->width*4]   + 127 * input->data[j+input->width*4];
                upixel += -43 * input->data[j+2+4+input->width*4]  - 84  * input->data[j+1+4+input->width*4] + 127 * input->data[j+4+input->width*4];
-        U[input->width*input->height/4 - (i/16 + (j-i)/8)] = ((upixel + 512) >> 10) + 128;
+        U[input->width*input->height/4 - (i/16 + (j-i)/8) - 1] = ((upixel + 512) >> 10) + 128;
 
 
         int32_t vpixel =  127 * input->data[j+2]                  - 106 * input->data[j+1]                  - 21 * input->data[j];
                vpixel +=  127 * input->data[j+2+4]                - 106 * input->data[j+1+4]                - 21 * input->data[j+4];
                vpixel +=  127 * input->data[j+2+input->width*4]   - 106 * input->data[j+1+input->width*4]   - 21 * input->data[j+input->width*4];
                vpixel +=  127 * input->data[j+2+4+input->width*4] - 106 * input->data[j+1+4+input->width*4] - 21 * input->data[j+4+input->width*4];
-        V[input->width*input->height/4 - (i/16 + (j-i)/8)] = ((vpixel + 512) >> 10) + 128;
+        V[input->width*input->height/4 - (i/16 + (j-i)/8) - 1] = ((vpixel + 512) >> 10) + 128;
       }
     }
 
+    yuv_data->type = YUVVIDEO;
     std::unique_ptr<Data> u_yuv_data( yuv_data );
     putOutput(std::move(u_yuv_data));
 

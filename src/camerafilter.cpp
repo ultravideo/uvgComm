@@ -44,7 +44,7 @@ void CameraFilter::handleFrame(const QVideoFrame &frame)
 
   QVideoFrame::PixelFormat pf = cloneFrame.pixelFormat();
 
-  qDebug() << "Frame generated: " << pf;
+
 
   Q_ASSERT(pf == QVideoFrame::Format_RGB32);
 
@@ -60,6 +60,8 @@ void CameraFilter::handleFrame(const QVideoFrame &frame)
   newImage->data_size = cloneFrame.mappedBytes();
   newImage->width = cloneFrame.width();
   newImage->height = cloneFrame.height();
+
+  qDebug() << "Frame generated. Format: " << pf << " width: " << newImage->width << ", height: " << newImage->height;
 
   std::unique_ptr<Data> u_newImage( newImage );
 
