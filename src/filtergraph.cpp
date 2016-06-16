@@ -6,6 +6,7 @@
 #include "kvazaarfilter.h"
 #include "rgb32toyuv.h"
 #include "openhevcfilter.h"
+#include "yuvtorgb32.h"
 
 FilterGraph::FilterGraph()
 {
@@ -31,6 +32,10 @@ void FilterGraph::constructVideoGraph(VideoWidget *videoWidget)
   OpenHEVCFilter* decoder =  new OpenHEVCFilter();
   decoder->init();
   filters_.push_back(decoder);
+  filters_.at(currentFilter)->addOutConnection(filters_.at(currentFilter + 1));
+  currentFilter++;
+
+  filters_.push_back(new YUVtoRGB32);
   filters_.at(currentFilter)->addOutConnection(filters_.at(currentFilter + 1));
   currentFilter++;
 

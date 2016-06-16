@@ -36,8 +36,8 @@ void RGB32toYUV::process()
     // Luma pixels
     for(unsigned int i = 0; i < input->data_size; i += 4)
     {
-      int32_t ypixel = 66*input->data[i] + 129 * input->data[i+1]
-          + 25 * input->data[i+2];
+      int32_t ypixel = 76*input->data[i] + 150 * input->data[i+1]
+          + 29 * input->data[i+2];
       Y[input->width*input->height - i/4 - 1] = (ypixel + 128) >> 8;
     }
 

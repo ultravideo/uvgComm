@@ -25,7 +25,8 @@ SOURCES +=\
     src/videowidget.cpp \
     src/kvazaarfilter.cpp \
     src/rgb32toyuv.cpp \
-    src/openhevcfilter.cpp
+    src/openhevcfilter.cpp \
+    src/yuvtorgb32.cpp
 
 HEADERS  += \
     src/callwindow.h \
@@ -38,7 +39,8 @@ HEADERS  += \
     src/videowidget.h \
     src/kvazaarfilter.h \
     src/rgb32toyuv.h \
-    src/openhevcfilter.h
+    src/openhevcfilter.h \
+    src/yuvtorgb32.h
 
 FORMS    += \
     ui/callwindow.ui \
