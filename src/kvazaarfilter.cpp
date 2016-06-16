@@ -34,10 +34,16 @@ int KvazaarFilter::init(unsigned int width,
   }
 
   api_->config_init(config_);
+  api_->config_parse(config_, "preset", "ultrafast");
   config_->width = width;
   config_->height = height;
   config_->threads = 4;
-  config_->qp = 37;
+  config_->qp = 32;
+  config_->wpp = 1;
+  config_->intra_period = 64;
+
+
+
   //config_->target_bitrate = target_bitrate;
 
   enc_ = api_->encoder_open(config_);
