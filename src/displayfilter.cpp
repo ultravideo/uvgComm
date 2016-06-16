@@ -43,7 +43,7 @@ void DisplayFilter::process()
             input->height,
             format);
 
-      image = image.mirrored();
+      //image = image.mirrored();
       widget_->inputImage(std::move(input->data), image);
     }
     input = getInput();

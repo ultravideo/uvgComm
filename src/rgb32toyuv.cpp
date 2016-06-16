@@ -2,8 +2,6 @@
 
 #include <QtDebug>
 
-#include <algorithm>    // std::min and std:max
-
 RGB32toYUV::RGB32toYUV()
 {
   name_ = "RGBtoYUVF";
