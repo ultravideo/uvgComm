@@ -26,7 +26,9 @@ SOURCES +=\
     src/kvazaarfilter.cpp \
     src/rgb32toyuv.cpp \
     src/openhevcfilter.cpp \
-    src/yuvtorgb32.cpp
+    src/yuvtorgb32.cpp \
+    src/rtpstreamer.cpp \
+    src/framedhevcsource.cpp
 
 HEADERS  += \
     src/callwindow.h \
@@ -40,7 +42,9 @@ HEADERS  += \
     src/kvazaarfilter.h \
     src/rgb32toyuv.h \
     src/openhevcfilter.h \
-    src/yuvtorgb32.h
+    src/yuvtorgb32.h \
+    src/rtpstreamer.h \
+    src/framedhevcsource.h
 
 FORMS    += \
     ui/callwindow.ui \
@@ -55,8 +59,14 @@ QMAKE_CXXFLAGS += -std=c++11
 INCLUDEPATH += $$PWD/../kvazaar/src
 INCLUDEPATH += $$PWD/../openHEVC/gpac/modules/openhevc_dec
 
+INCLUDEPATH += $$PWD/../live/liveMedia/include
+INCLUDEPATH += $$PWD/../live/groupsock/include
+INCLUDEPATH += $$PWD/../live/UsageEnvironment/include
+INCLUDEPATH += $$PWD/../live/BasicUsageEnvironment/include
+
 win32: LIBS += -L$$PWD/../ -llibkvazaar.dll
 win32: LIBS += -L$$PWD/../ -llibLibOpenHevcWrapper.dll
+win32: LIBS += -L$$PWD/../ -llivemedia.dll
 
 INCLUDEPATH += $$PWD/../
 DEPENDPATH += $$PWD/../
