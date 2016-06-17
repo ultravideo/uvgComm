@@ -5,7 +5,7 @@
 
 
 
-KvazaarFilter::KvazaarFilter()
+KvazaarFilter::KvazaarFilter():input_pic_(NULL)
 {
 name_ = "KvazF";
 }
@@ -17,6 +17,9 @@ int KvazaarFilter::init(unsigned int width,
                         float target_bitrate)
 {
   qDebug() << "KvazF: Iniating";
+
+  // input picture should not exist at this point
+  Q_ASSERT(!input_pic_ && !api_);
 
   api_ = kvz_api_get(8);
   if(!api_)
@@ -38,7 +41,7 @@ int KvazaarFilter::init(unsigned int width,
   config_->width = width;
   config_->height = height;
   config_->threads = 4;
-  config_->qp = 32;
+  config_->qp = 21;
   config_->wpp = 1;
   config_->intra_period = 64;
 
@@ -54,7 +57,15 @@ int KvazaarFilter::init(unsigned int width,
     return C_FAILURE;
   }
 
-  f = fopen("kvazaar.265", "ab+");
+  //f = fopen("kvazaar.265", "ab+");
+
+  input_pic_ = api_->picture_alloc(width, height);
+
+  if(!input_pic_)
+  {
+    qCritical() << name_ << ": Could not allocate input picture";
+    return C_FAILURE;
+  }
 
   qDebug() << "KvazF: iniation success";
   return C_SUCCESS;
@@ -64,6 +75,10 @@ void KvazaarFilter::close()
 {
   if(api_)
   {
+    if(input_pic_)
+      api_->picture_free(input_pic_);
+
+    input_pic_ = NULL;
     api_->encoder_close(enc_);
     api_->config_destroy(config_);
     enc_ = NULL;
@@ -82,7 +97,6 @@ void KvazaarFilter::process()
   std::unique_ptr<Data> input = getInput();
   while(input)
   {
-    kvz_picture *input_pic = NULL;
     kvz_picture *recon_pic = NULL;
     kvz_frame_info frame_info;
     kvz_data_chunk *data_out = NULL;
@@ -94,26 +108,26 @@ void KvazaarFilter::process()
       qCritical() << "KvazF: Unhandled change of resolution";
       break;
     }
-    input_pic = api_->picture_alloc(input->width, input->height);
 
-    if(!input_pic)
+
+    if(!input_pic_)
     {
-      qCritical() << "KvazF: Failed to allocate picture";
+      qCritical() << name_ << ": Input picture was not allocated correctly";
       break;
     }
 
-    memcpy(input_pic->y,
+    memcpy(input_pic_->y,
            input->data.get(),
            input->width*input->height);
-    memcpy(input_pic->u,
+    memcpy(input_pic_->u,
            &(input->data.get()[input->width*input->height]),
            input->width*input->height/4);
-    memcpy(input_pic->v,
+    memcpy(input_pic_->v,
            &(input->data.get()[input->width*input->height + input->width*input->height/4]),
            input->width*input->height/4);
 
 
-    api_->encoder_encode(enc_, input_pic,
+    api_->encoder_encode(enc_, input_pic_,
                          &data_out, &len_out,
                          &recon_pic, NULL,
                          &frame_info );
@@ -121,16 +135,14 @@ void KvazaarFilter::process()
     if(data_out != NULL)
     {
 
-
+/*
       uint64_t output_size = 0;
-      for (kvz_data_chunk *chunk = data_out;
-           chunk != NULL;
-           chunk = chunk->next) {
+      for (kvz_data_chunk *chunk = data_out;chunk != NULL; chunk = chunk->next)
+      {
         fwrite(chunk->data, 1, chunk->len, f);
         output_size += chunk->len;
-
       }
-
+*/
       qDebug() << "KvazF: frame encoded. Length: " << len_out <<
                   " POC: " << frame_info.poc;
 
@@ -143,12 +155,16 @@ void KvazaarFilter::process()
 
       uint8_t* writer = hevc_frame->data.get();
 
-      for (kvz_data_chunk *chunk = data_out;
-           chunk != NULL;
-           chunk = chunk->next) {
+      kvz_data_chunk *previous_chunk = 0;
+      for (kvz_data_chunk *chunk = data_out; chunk != NULL; chunk = chunk->next)
+      {
         memcpy(writer, chunk->data, chunk->len);
         writer += chunk->len;
+        previous_chunk = chunk;
       }
+      api_->chunk_free(data_out);
+      api_->picture_free(recon_pic);
+
       std::unique_ptr<Data> hevc_frame_data( hevc_frame );
       putOutput(std::move(hevc_frame_data));
     }
