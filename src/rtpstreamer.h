@@ -7,7 +7,7 @@
 #include <UsageEnvironment.hh>
 #include <GroupsockHelper.hh>
 
-#include "framedhevcsource.h"
+#include "framedsourcepile.h"
 
 
 
@@ -36,7 +36,7 @@ protected:
 private:
 
   UsageEnvironment* env_;
-  FramedHEVCSource* videoSource_;
+  FramedSourcePile* videoSource_;
   RTPSink* videoSink_;
   TaskScheduler* scheduler_;
 

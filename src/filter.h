@@ -9,7 +9,7 @@
 #include <queue>
 #include <memory>
 
-enum DataType {RGB32VIDEO = 0, YUVVIDEO, RAWAUDIO, HEVCVIDEO, OPUSAUDIO};
+enum DataType {NONE = 0, RGB32VIDEO, YUVVIDEO, RAWAUDIO, HEVCVIDEO, OPUSAUDIO};
 
 struct Data
 {
@@ -80,6 +80,4 @@ private:
 
   unsigned int inputTaken_;
   unsigned int inputDiscarded_;
-
-
 };

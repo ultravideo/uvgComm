@@ -28,7 +28,7 @@ SOURCES +=\
     src/openhevcfilter.cpp \
     src/yuvtorgb32.cpp \
     src/rtpstreamer.cpp \
-    src/framedhevcsource.cpp
+    src/framedsourcepile.cpp
 
 HEADERS  += \
     src/callwindow.h \
@@ -44,7 +44,7 @@ HEADERS  += \
     src/openhevcfilter.h \
     src/yuvtorgb32.h \
     src/rtpstreamer.h \
-    src/framedhevcsource.h
+    src/framedsourcepile.h
 
 FORMS    += \
     ui/callwindow.ui \
