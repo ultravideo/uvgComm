@@ -7,6 +7,8 @@
 #include "rgb32toyuv.h"
 #include "openhevcfilter.h"
 #include "yuvtorgb32.h"
+#include "rtpstreamer.h"
+
 
 FilterGraph::FilterGraph()
 {
@@ -17,9 +19,9 @@ void FilterGraph::constructVideoGraph(VideoWidget *videoWidget)
 {
   unsigned int currentFilter = 0;
 
-  filters_.push_back(new CameraFilter);
+  filters_.push_back(new CameraFilter());
 
-  filters_.push_back(new RGB32toYUV);
+  filters_.push_back(new RGB32toYUV());
   filters_.at(currentFilter)->addOutConnection(filters_.at(currentFilter + 1));
   currentFilter++;
 
@@ -35,12 +37,18 @@ void FilterGraph::constructVideoGraph(VideoWidget *videoWidget)
   filters_.at(currentFilter)->addOutConnection(filters_.at(currentFilter + 1));
   currentFilter++;
 
-  filters_.push_back(new YUVtoRGB32);
+  filters_.push_back(new YUVtoRGB32());
   filters_.at(currentFilter)->addOutConnection(filters_.at(currentFilter + 1));
   currentFilter++;
 
   filters_.push_back(new DisplayFilter(videoWidget));
   filters_.at(currentFilter)->addOutConnection(filters_.at(currentFilter + 1));
+  currentFilter++;
+
+  RTPStreamer* rtp_send = new RTPStreamer();
+  rtp_send->init(18888, 18889, 255);
+  filters_.push_back(rtp_send);
+  filters_.at(currentFilter - 1)->addOutConnection(filters_.at(currentFilter + 1));
   currentFilter++;
 
   Q_ASSERT(filters_[0]->isInputFilter());

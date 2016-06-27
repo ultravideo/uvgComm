@@ -1,10 +1,15 @@
 #include "rtpstreamer.h"
 
+#include "framedsourcepile.h"
+
 #include <BasicUsageEnvironment.hh>
+#include <QDebug>
+
+#include <thread>
 
 //#include "Winsock2.h"
 
-#include "framedsourcepile.h"
+
 
 
 RTPStreamer::RTPStreamer():
@@ -53,14 +58,18 @@ void RTPStreamer::init(uint32_t rtpPortNum, uint32_t rtcpPortNum, uint8_t ttl)
   // Note: This starts RTCP running automatically
 */
 
-  videoSink_->startPlaying(*videoSource_, NULL, NULL);
+  videoSink_->startPlaying(*videoSource_, NULL, videoSink_);
 }
 
 void RTPStreamer::process()
 {
+  Q_ASSERT(env_);
+
+
   std::unique_ptr<Data> input = getInput();
   while(input)
   {
+    qDebug() << name_ << ": sending RTP packet";
     videoSource_->putInput(std::move(input));
     input = getInput();
   }
