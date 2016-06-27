@@ -61,14 +61,25 @@ std::unique_ptr<Data> Filter::getInput()
   return r;
 }
 
-void Filter::putOutput(std::unique_ptr<Data> data)
+void Filter::sendOutput(std::unique_ptr<Data> output)
 {
-  Q_ASSERT(data);
+  Q_ASSERT(output);
 
-  for(Filter *f : outConnections_)
+  for(unsigned int i = 0; i < outConnections_.size() - 1; ++i)
   {
-    f->putInput(std::move(data));
+    Data* copy = new Data;
+    copy->type = output->type;
+    copy->data = std::unique_ptr<uchar[]>(new uchar[output->data_size]);
+    memcpy(copy->data.get(), output->data.get(), output->data_size);
+    copy->data_size = output->data_size;
+    copy->width = output->width;
+    copy->height = output->height;
+
+    std::unique_ptr<Data> u_copy(copy);
+    outConnections_[i]->putInput(std::move(u_copy));
   }
+  if(!outConnections_.empty())
+    outConnections_.back()->putInput(std::move(output));
 }
 
 

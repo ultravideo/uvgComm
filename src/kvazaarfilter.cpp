@@ -41,7 +41,7 @@ int KvazaarFilter::init(unsigned int width,
   config_->width = width;
   config_->height = height;
   config_->threads = 4;
-  config_->qp = 21;
+  config_->qp = 32;
   config_->wpp = 1;
   config_->intra_period = 64;
 
@@ -166,7 +166,7 @@ void KvazaarFilter::process()
       api_->picture_free(recon_pic);
 
       std::unique_ptr<Data> hevc_frame_data( hevc_frame );
-      putOutput(std::move(hevc_frame_data));
+      sendOutput(std::move(hevc_frame_data));
     }
     input = getInput();
   }

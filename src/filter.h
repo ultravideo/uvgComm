@@ -51,7 +51,7 @@ protected:
   std::unique_ptr<Data> getInput();
 
   //sends output to out connections
-  void putOutput(std::unique_ptr<Data> data);
+  void sendOutput(std::unique_ptr<Data> output);
 
   // QThread function that runs the processing
   void run();

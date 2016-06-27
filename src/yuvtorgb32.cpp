@@ -112,7 +112,7 @@ void YUVtoRGB32::process()
 
     rgb32_frame->type = RGB32VIDEO;
     std::unique_ptr<Data> u_rgb_data( rgb32_frame );
-    putOutput(std::move(u_rgb_data));
+    sendOutput(std::move(u_rgb_data));
 
     input = getInput();
   }

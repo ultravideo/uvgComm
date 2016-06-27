@@ -91,7 +91,7 @@ void OpenHEVCFilter::process()
       //fwrite(yuv_frame->data.get(), 1, yuv_frame->data_size, f);
 
       std::unique_ptr<Data> u_yuv_data( yuv_frame );
-      putOutput(std::move(u_yuv_data));
+      sendOutput(std::move(u_yuv_data));
       ++pts_;
 
     }

@@ -69,5 +69,5 @@ void CameraFilter::handleFrame(const QVideoFrame &frame)
 
   Q_ASSERT(u_newImage->data);
 
-  putOutput(std::move(u_newImage));
+  sendOutput(std::move(u_newImage));
 }
