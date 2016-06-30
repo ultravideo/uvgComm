@@ -5,7 +5,11 @@
 
 
 
-KvazaarFilter::KvazaarFilter():input_pic_(NULL)
+KvazaarFilter::KvazaarFilter():
+  api_(NULL),
+  config_(NULL),
+  enc_(NULL),
+  input_pic_(NULL)
 {
 name_ = "KvazF";
 }

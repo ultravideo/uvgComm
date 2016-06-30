@@ -7,10 +7,10 @@
 #include "rgb32toyuv.h"
 #include "openhevcfilter.h"
 #include "yuvtorgb32.h"
-#include "rtpstreamer.h"
+#include "framedsourcefilter.h"
 
 
-FilterGraph::FilterGraph()
+FilterGraph::FilterGraph():filters_(), streamControl_()
 {
 
 }
@@ -30,7 +30,7 @@ void FilterGraph::constructVideoGraph(VideoWidget *videoWidget)
   filters_.push_back(kvz);
   filters_.at(currentFilter)->addOutConnection(filters_.at(currentFilter + 1));
   currentFilter++;
-
+/*
   OpenHEVCFilter* decoder =  new OpenHEVCFilter();
   decoder->init();
   filters_.push_back(decoder);
@@ -44,11 +44,11 @@ void FilterGraph::constructVideoGraph(VideoWidget *videoWidget)
   filters_.push_back(new DisplayFilter(videoWidget));
   filters_.at(currentFilter)->addOutConnection(filters_.at(currentFilter + 1));
   currentFilter++;
+  */
 
-  RTPStreamer* rtp_send = new RTPStreamer();
-  rtp_send->init(18888, 18889, 255);
-  filters_.push_back(rtp_send);
-  filters_.at(currentFilter - 1)->addOutConnection(filters_.at(currentFilter + 1));
+  streamControl_.init(18888, 18890, 255);
+  filters_.push_back(streamControl_.getVideoSender());
+  filters_.at(currentFilter)->addOutConnection(filters_.at(currentFilter + 1));
   currentFilter++;
 
   Q_ASSERT(filters_[0]->isInputFilter());
@@ -72,6 +72,8 @@ void FilterGraph::run()
 {
   for(Filter* f : filters_)
     f->start();
+
+  streamControl_.run();
 }
 
 void FilterGraph::stop()
@@ -81,4 +83,5 @@ void FilterGraph::stop()
     f->stop();
     f->emptyBuffer();
   }
+  streamControl_.stop();
 }

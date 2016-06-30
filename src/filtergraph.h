@@ -1,13 +1,15 @@
 #pragma once
 
-#include <vector>
+
+
+#include "mediastreamer.h"
 #include "filter.h"
 
 #include <QWidget>
 
+#include <vector>
+
 class VideoWidget;
-
-
 
 class FilterGraph
 {
@@ -24,5 +26,7 @@ public:
 private:
 
   std::vector<Filter*> filters_;
+
+  Mediastreamer streamControl_;
 
 };
