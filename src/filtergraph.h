@@ -2,8 +2,7 @@
 
 
 
-#include "mediastreamer.h"
-#include "filter.h"
+#include "rtpstreamer.h"#include "filter.h"
 
 #include <QWidget>
 
@@ -27,6 +26,6 @@ private:
 
   std::vector<Filter*> filters_;
 
-  Mediastreamer streamControl_;
+  RTPStreamer streamer_;
 
 };

@@ -28,8 +28,7 @@ SOURCES +=\
     src/openhevcfilter.cpp \
     src/yuvtorgb32.cpp \
     src/rtpstreamer.cpp \
-    src/framedsourcefilter.cpp \
-    src/mediastreamer.cpp
+    src/framedsourcefilter.cpp
 
 HEADERS  += \
     src/callwindow.h \
@@ -45,8 +44,7 @@ HEADERS  += \
     src/openhevcfilter.h \
     src/yuvtorgb32.h \
     src/rtpstreamer.h \
-    src/framedsourcefilter.h \
-    src/mediastreamer.h
+    src/framedsourcefilter.h
 
 FORMS    += \
     ui/callwindow.ui \

@@ -27,10 +27,10 @@ void FramedSourceFilter::doGetNextFrame()
     present_time.tv_usec = 0;
     //QTime t = QTime::currentTime();
     present_time.tv_sec = QDateTime::currentMSecsSinceEpoch()/1000;
-   // present_time.tv_usec = (QDateTime::currentMSecsSinceEpoch()%1000) * 1000;
+    present_time.tv_usec = (QDateTime::currentMSecsSinceEpoch()%1000) * 1000;
     fPresentationTime = present_time;
 
-    fDurationInMicroseconds = 1000000/15;
+    fDurationInMicroseconds = 1000000/30;
 
     //gettimeofday(&fPresentationTime, NULL);
 

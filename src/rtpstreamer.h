@@ -9,7 +9,7 @@
 
 #include "framedsourcefilter.h"
 
-
+class FramedSourceFilter;
 
 class RTPStreamer : public QThread
 {
@@ -17,13 +17,27 @@ class RTPStreamer : public QThread
   Q_OBJECT
 
 public:
-  RTPStreamer(UsageEnvironment* env);
+  RTPStreamer();
 
   void run();
 
+  FramedSourceFilter* getFilter()
+  {
+    live555_.lock();
+    live555_.unlock();
+    return videoSource_;
+  }
+
 private:
 
+  QMutex live555_;
+
   UsageEnvironment* env_;
+
+  RTPSink* videoSink_;
+  FramedSourceFilter* videoSource_;
+
+  struct in_addr destinationAddress_;
 
 };
 

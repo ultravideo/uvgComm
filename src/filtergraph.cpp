@@ -10,13 +10,15 @@
 #include "framedsourcefilter.h"
 
 
-FilterGraph::FilterGraph():filters_(), streamControl_()
+FilterGraph::FilterGraph():filters_()//, streamControl_()
 {
 
 }
 
 void FilterGraph::constructVideoGraph(VideoWidget *videoWidget)
 {
+  streamer_.start();
+
   unsigned int currentFilter = 0;
 
   filters_.push_back(new CameraFilter());
@@ -30,11 +32,19 @@ void FilterGraph::constructVideoGraph(VideoWidget *videoWidget)
   filters_.push_back(kvz);
   filters_.at(currentFilter)->addOutConnection(filters_.at(currentFilter + 1));
   currentFilter++;
-/*
+
+  filters_.push_back(streamer_.getFilter());
+  filters_.at(currentFilter)->addOutConnection(filters_.at(currentFilter + 1));
+  currentFilter++;
+
+
+
+  // for testing purposes currently
+
   OpenHEVCFilter* decoder =  new OpenHEVCFilter();
   decoder->init();
   filters_.push_back(decoder);
-  filters_.at(currentFilter)->addOutConnection(filters_.at(currentFilter + 1));
+  filters_.at(currentFilter-1)->addOutConnection(filters_.at(currentFilter + 1));
   currentFilter++;
 
   filters_.push_back(new YUVtoRGB32());
@@ -42,12 +52,6 @@ void FilterGraph::constructVideoGraph(VideoWidget *videoWidget)
   currentFilter++;
 
   filters_.push_back(new DisplayFilter(videoWidget));
-  filters_.at(currentFilter)->addOutConnection(filters_.at(currentFilter + 1));
-  currentFilter++;
-  */
-
-  streamControl_.init(18888, 18890, 255);
-  filters_.push_back(streamControl_.getVideoSender());
   filters_.at(currentFilter)->addOutConnection(filters_.at(currentFilter + 1));
   currentFilter++;
 
@@ -73,7 +77,6 @@ void FilterGraph::run()
   for(Filter* f : filters_)
     f->start();
 
-  streamControl_.run();
 }
 
 void FilterGraph::stop()
@@ -83,5 +86,5 @@ void FilterGraph::stop()
     f->stop();
     f->emptyBuffer();
   }
-  streamControl_.stop();
+  //streamer_.stop();
 }
