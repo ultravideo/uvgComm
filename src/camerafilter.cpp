@@ -12,6 +12,10 @@ CameraFilter::CameraFilter()
   name_ = "CamF";
   camera_ = new QCamera(QCameraInfo::defaultCamera());
   cameraFrameGrabber_ = new CameraFrameGrabber();
+
+  Q_ASSERT(camera_ && cameraFrameGrabber_);
+
+
   camera_->setViewfinder(cameraFrameGrabber_);
 
   connect(cameraFrameGrabber_, SIGNAL(frameAvailable(QVideoFrame)), this, SLOT(handleFrame(QVideoFrame)));
@@ -44,8 +48,6 @@ void CameraFilter::handleFrame(const QVideoFrame &frame)
 
   QVideoFrame::PixelFormat pf = cloneFrame.pixelFormat();
 
-
-
   Q_ASSERT(pf == QVideoFrame::Format_RGB32);
 
   Data * newImage = new Data;
@@ -61,7 +63,7 @@ void CameraFilter::handleFrame(const QVideoFrame &frame)
   newImage->width = cloneFrame.width();
   newImage->height = cloneFrame.height();
 
-  qDebug() << "Frame generated. Format: " << pf << " width: " << newImage->width << ", height: " << newImage->height;
+  //qDebug() << "Frame generated. Format: " << pf << " width: " << newImage->width << ", height: " << newImage->height;
 
   std::unique_ptr<Data> u_newImage( newImage );
 

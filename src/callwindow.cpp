@@ -3,13 +3,14 @@
 
 #include <QCloseEvent>
 
-CallWindow::CallWindow(QWidget *parent) :
+CallWindow::CallWindow(QWidget *parent,
+                       in_addr ip, uint16_t port) :
   QMainWindow(parent),
   ui(new Ui::CallWindow)
 {
   ui->setupUi(this);
 
-  video_.constructVideoGraph(ui->videoCall);
+  video_.constructVideoGraph(ui->videoCall, ip,  port);
   //audio_.constructAudioGraph();
 
   video_.run();

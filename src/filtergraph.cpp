@@ -15,8 +15,10 @@ FilterGraph::FilterGraph():filters_()//, streamControl_()
 
 }
 
-void FilterGraph::constructVideoGraph(VideoWidget *videoWidget)
+void FilterGraph::constructVideoGraph(VideoWidget *videoWidget,
+                                      in_addr ip, uint16_t port)
 {
+  streamer_.setDestination(ip, port);
   streamer_.start();
 
   unsigned int currentFilter = 0;

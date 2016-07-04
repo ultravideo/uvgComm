@@ -11,8 +11,11 @@
 #include <QDebug>
 
 RTPStreamer::RTPStreamer():
-//  iniated_(false),
+  portNum_(18888),
   env_(NULL),
+  rtpPort_(NULL),
+  rtcpPort_(NULL),
+  ttl_(255),
   videoSink_(NULL),
   videoSource_(NULL),
   destinationAddress_()
@@ -20,45 +23,66 @@ RTPStreamer::RTPStreamer():
   live555_.lock();
 }
 
+void RTPStreamer::setDestination(in_addr address, uint16_t port)
+{
+  destinationAddress_ = address;
+  portNum_ = port;
+
+  qDebug() << "Destination IP address: "
+           << (uint8_t)((destinationAddress_.s_addr) & 0xff) << "."
+           << (uint8_t)((destinationAddress_.s_addr >> 8) & 0xff) << "."
+           << (uint8_t)((destinationAddress_.s_addr >> 16) & 0xff) << "."
+           << (uint8_t)((destinationAddress_.s_addr >> 24) & 0xff);
+}
+
 void RTPStreamer::run()
 {
-  qDebug() << "Iniating mediastreamer";
+  qDebug() << "Iniating RTP streamer";
 
-  uint32_t rtpPortNum = 18888;
-  uint32_t rtcpPortNum = 18889;
-  uint8_t ttl = 255;
+  initLiveMedia();
+
+  initH265Video();
+
+  initOpusAudio();
+
+  live555_.unlock();
+  qDebug() << "Iniating finished, do eventloop";
+
+  env_->taskScheduler().doEventLoop();
+}
+
+
+void RTPStreamer::initLiveMedia()
+{
+  qDebug() << "Iniating live555";
 
   TaskScheduler* scheduler = BasicTaskScheduler::createNew();
-  env_ = BasicUsageEnvironment::createNew(*scheduler);
-  //destinationAddress_.s_addr = chooseRandomIPv4SSMAddress(*env_);
-  destinationAddress_.s_addr = ourIPAddress(*env_);
+  if(scheduler)
+    env_ = BasicUsageEnvironment::createNew(*scheduler);
+}
 
-  qDebug() << (uint8_t)((destinationAddress_.s_addr >> 24) & 0xff) << "."
-           << (uint8_t)((destinationAddress_.s_addr >> 16) & 0xff) << "."
-           << (uint8_t)((destinationAddress_.s_addr >> 8) & 0xff) << "."
-           << (uint8_t)((destinationAddress_.s_addr) & 0xff);
+void RTPStreamer::initH265Video()
+{
 
-  const Port rtpPort(rtpPortNum);
-  const Port rtcpPort(rtcpPortNum);
+  rtpPort_ = new Port(portNum_);
+  rtcpPort_ = new Port(portNum_ + 1);
 
-  Groupsock rtpGroupsock(*env_, destinationAddress_, rtpPort, ttl);
+  rtpGroupsock_ = new Groupsock(*env_, destinationAddress_, *rtpPort_, ttl_);
   //rtpGroupsock.multicastSendOnly(); // we're a SSM source
 
-  Groupsock rtcpGroupsock(*env_, destinationAddress_, rtcpPort, ttl);
+  rtcpGroupsock_ = new Groupsock(*env_, destinationAddress_, *rtcpPort_, ttl_);
  // rtcpGroupsock.multicastSendOnly(); // we're a SSM source
 
   // Create a 'H265 Video RTP' sink from the RTP 'groupsock':
   OutPacketBuffer::maxSize = 1000000;
-  videoSink_ = H265VideoRTPSink::createNew(*env_, &rtpGroupsock, 96);
+  videoSink_ = H265VideoRTPSink::createNew(*env_, rtpGroupsock_, 96);
 
   // Create (and start) a 'RTCP instance' for this RTP sink:
   const unsigned int estimatedSessionBandwidth = 5000; // in kbps; for RTCP b/w share
   const unsigned int maxCNAMElen = 100;
   unsigned char CNAME[] = "localhost";
-  //strcpy((char*)CNAME, QHostInfo::localHostName().toStdString().c_str());
-  //CNAME[maxCNAMElen] = '\0'; // just in case
   RTCPInstance* rtcp  = RTCPInstance::createNew(*env_,
-                                                &rtcpGroupsock,
+                                                rtcpGroupsock_,
                                                 estimatedSessionBandwidth,
                                                 CNAME,
                                                 videoSink_,
@@ -78,9 +102,12 @@ void RTPStreamer::run()
   {
     qCritical() << "failed to start videosink: " << env_->getResultMsg();
   }
-
-  live555_.unlock();
-  qDebug() << "Iniating finished, do eventloop";
-
-  env_->taskScheduler().doEventLoop();
 }
+
+void RTPStreamer::initOpusAudio()
+{
+  qWarning() << "Opus RTP streamer not implemented yet";
+}
+
+
+

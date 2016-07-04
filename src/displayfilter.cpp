@@ -14,7 +14,7 @@ DisplayFilter::DisplayFilter(VideoWidget *widget):widget_(widget)
 
 void DisplayFilter::process()
 {
-  qDebug() << "DispF: Drawing input";
+  //qDebug() << "DispF: Drawing input";
   std::unique_ptr<Data> input = getInput();
   while(input)
   {

@@ -13,7 +13,8 @@ class CallWindow : public QMainWindow
   Q_OBJECT
 
 public:
-  explicit CallWindow(QWidget *parent = 0);
+  explicit CallWindow(QWidget *parent,
+                      in_addr ip, uint16_t port);
   ~CallWindow();
 
   void startStream();

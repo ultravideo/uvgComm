@@ -7,15 +7,11 @@
 FramedSourceFilter::FramedSourceFilter(UsageEnvironment &env, DataType type):
   FramedSource(env),
   type_(type)
-//  eventTriggerId_(0),
-//  referenceCount_(0)
 {
- // eventTriggerId_ = envir().taskScheduler().createEventTrigger(deliverFrame0);
 }
 
 void FramedSourceFilter::doGetNextFrame()
 {
-  qDebug() << "doGetNextFrame()";
   std::unique_ptr<Data> frame = getInput();
 
   fFrameSize = 0;
@@ -51,7 +47,6 @@ void FramedSourceFilter::doGetNextFrame()
 
   nextTask() = envir().taskScheduler().scheduleDelayedTask(1,
   (TaskFunc*)FramedSource::afterGetting, this);
-  qDebug() << "afterGetting";
 }
 
 void FramedSourceFilter::process()

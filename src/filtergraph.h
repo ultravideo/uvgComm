@@ -2,7 +2,8 @@
 
 
 
-#include "rtpstreamer.h"#include "filter.h"
+#include "rtpstreamer.h"
+#include "filter.h"
 
 #include <QWidget>
 
@@ -15,7 +16,9 @@ class FilterGraph
 public:
   FilterGraph();
 
-  void constructVideoGraph(VideoWidget *videoWidget);
+  void constructVideoGraph(VideoWidget *videoWidget,
+                           in_addr ip, uint16_t port);
+
   void constructAudioGraph();
   void deconstruct();
   void run();
