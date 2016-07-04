@@ -13,7 +13,6 @@ class FramedSourceFilter;
 
 class RTPStreamer : public QThread
 {
-
   Q_OBJECT
 
 public:

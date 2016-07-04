@@ -15,12 +15,10 @@ RGB32toYUV::RGB32toYUV()
 // also flips input
 void RGB32toYUV::process()
 {
-  qDebug() << "toYUVF: Converting input";
   std::unique_ptr<Data> input = getInput();
 
   while(input)
   {
-    qDebug() << "toYUVF: Next";
     Data *yuv_data = new Data;
     yuv_data->data_size = input->width*input->height + input->width*input->height/2;
     yuv_data->data = std::unique_ptr<uchar[]>(new uchar[yuv_data->data_size]);
@@ -64,6 +62,4 @@ void RGB32toYUV::process()
 
     input = getInput();
   }
-
-  qDebug() << "toYUVF: Buffer empty";
 }

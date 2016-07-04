@@ -41,6 +41,4 @@ private:
   kvz_encoder *enc_;
 
   kvz_picture *input_pic_;
-
-  //FILE *f;
 };

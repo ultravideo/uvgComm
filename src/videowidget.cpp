@@ -39,21 +39,18 @@ void VideoWidget::paintEvent(QPaintEvent *event)
 {
   QPainter painter(this);
 
-  qDebug() << "Painting image";
-
   if(!hasImage_)
-    qWarning() << "no Image received";
+    qWarning() << "Painter has not received an Image";
 
   if(hasImage_)
   {
     drawMutex_.lock();
     Q_ASSERT(input_);
-    currentImage_.save("testikuva.jpg");
     painter.drawImage(currentImage_.rect(), currentImage_);
     drawMutex_.unlock();
   }
   else
-    painter.fillRect(event->rect(), QBrush(QColor(100,100,0)));
+    painter.fillRect(event->rect(), QBrush(QColor(0,0,0)));
 }
 
 void VideoWidget::resizeEvent(QResizeEvent *event)

@@ -42,17 +42,16 @@ void RTPStreamer::run()
   qDebug() << "Iniating RTP streamer";
 
   initLiveMedia();
-
   initH265Video();
-
   initOpusAudio();
 
   live555_.unlock();
-  qDebug() << "Iniating finished, do eventloop";
+  qDebug() << "Iniating RTP streamer finished, do eventloop";
+
 
   env_->taskScheduler().doEventLoop();
-}
 
+}
 
 void RTPStreamer::initLiveMedia()
 {
@@ -65,12 +64,11 @@ void RTPStreamer::initLiveMedia()
 
 void RTPStreamer::initH265Video()
 {
-
+  qDebug() << "Iniating H265 video RTP/RTCP streams";
   rtpPort_ = new Port(portNum_);
   rtcpPort_ = new Port(portNum_ + 1);
 
   rtpGroupsock_ = new Groupsock(*env_, destinationAddress_, *rtpPort_, ttl_);
-
   rtcpGroupsock_ = new Groupsock(*env_, destinationAddress_, *rtcpPort_, ttl_);
 
   // Create a 'H265 Video RTP' sink from the RTP 'groupsock':
@@ -86,7 +84,6 @@ void RTPStreamer::initH265Video()
   CNAME[maxCNAMElen] = '\0'; // just in case
 
   QString sName(reinterpret_cast<char*>(CNAME));
-
   qDebug() << "Our hostname:" << sName;
 
   // This starts RTCP running automatically
@@ -113,7 +110,7 @@ void RTPStreamer::initH265Video()
 
 void RTPStreamer::initOpusAudio()
 {
-  qWarning() << "Opus RTP streamer not implemented yet";
+  qWarning() << "Opus RTP not implemented yet";
 }
 
 

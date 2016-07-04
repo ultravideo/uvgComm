@@ -31,6 +31,4 @@ private:
   OpenHevc_Handle handle_;
 
   unsigned int pts_;
-
-  FILE *f;
 };

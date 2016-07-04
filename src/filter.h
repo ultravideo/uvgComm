@@ -20,7 +20,7 @@ struct Data
   int height;
 };
 
-const int BUFFERSIZE = 100;
+const int BUFFERSIZE = 50;
 
 class Filter : public QThread
 {

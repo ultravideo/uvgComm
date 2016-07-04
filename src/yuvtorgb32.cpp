@@ -19,8 +19,6 @@ uint8_t clamp(int32_t input)
     return (-input) >> 31;
   }
   return input;
-
-//  return std::min(255, std::max(0, input));
 }
 
 
@@ -28,12 +26,10 @@ uint8_t clamp(int32_t input)
 // also flips input
 void YUVtoRGB32::process()
 {
-  qDebug() << name_ << ": Converting input";
   std::unique_ptr<Data> input = getInput();
 
   while(input)
   {
-    qDebug() << name_ << ": Next";
     Data *rgb32_frame = new Data;
     rgb32_frame->data_size = input->width*input->height*4;
     rgb32_frame->data = std::unique_ptr<uchar[]>(new uchar[rgb32_frame->data_size]);
@@ -116,6 +112,4 @@ void YUVtoRGB32::process()
 
     input = getInput();
   }
-
-  qDebug() << name_ << ": Buffer empty";
 }

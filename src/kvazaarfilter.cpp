@@ -20,7 +20,7 @@ int KvazaarFilter::init(unsigned int width,
                         int32_t framerate_denom,
                         float target_bitrate)
 {
-  qDebug() << "KvazF: Iniating";
+  qDebug() << name_ << "iniating";
 
   // input picture should not exist at this point
   Q_ASSERT(!input_pic_ && !api_);
@@ -28,7 +28,7 @@ int KvazaarFilter::init(unsigned int width,
   api_ = kvz_api_get(8);
   if(!api_)
   {
-    qCritical() << "KvazF:Failed to retreive Kvazaar API";
+    qCritical() << name_ << "failed to retreive Kvazaar API";
     return C_FAILURE;
   }
   config_ = api_->config_alloc();
@@ -36,7 +36,7 @@ int KvazaarFilter::init(unsigned int width,
 
   if(!config_)
   {
-    qCritical() << "KvazF:Failed to allocate Kvazaar config";
+    qCritical() << name_ << "failed to allocate Kvazaar config";
     return C_FAILURE;
   }
 
@@ -57,21 +57,19 @@ int KvazaarFilter::init(unsigned int width,
 
   if(!enc_)
   {
-    qCritical() << "KvazF: Failed to open Kvazaar encoder";
+    qCritical() << name_ << "failed to open Kvazaar encoder";
     return C_FAILURE;
   }
-
-  //f = fopen("kvazaar.265", "ab+");
 
   input_pic_ = api_->picture_alloc(width, height);
 
   if(!input_pic_)
   {
-    qCritical() << name_ << ": Could not allocate input picture";
+    qCritical() << name_ << "could not allocate input picture";
     return C_FAILURE;
   }
 
-  qDebug() << "KvazF: iniation success";
+  qDebug() << name_ << "iniation success";
   return C_SUCCESS;
 }
 
@@ -96,8 +94,6 @@ void KvazaarFilter::process()
   Q_ASSERT(enc_);
   Q_ASSERT(config_);
 
-  qDebug() << "KvazF: encoding frame";
-
   std::unique_ptr<Data> input = getInput();
   while(input)
   {
@@ -109,14 +105,14 @@ void KvazaarFilter::process()
     if(config_->width != input->width
        || config_->height != input->height)
     {
-      qCritical() << "KvazF: Unhandled change of resolution";
+      qCritical() << name_ << "unhandled change of resolution";
       break;
     }
 
 
     if(!input_pic_)
     {
-      qCritical() << name_ << ": Input picture was not allocated correctly";
+      qCritical() << name_ << "input picture was not allocated correctly";
       break;
     }
 
@@ -138,17 +134,6 @@ void KvazaarFilter::process()
 
     if(data_out != NULL)
     {
-
-/*
-      uint64_t output_size = 0;
-      for (kvz_data_chunk *chunk = data_out;chunk != NULL; chunk = chunk->next)
-      {
-        fwrite(chunk->data, 1, chunk->len, f);
-        output_size += chunk->len;
-      }
-*/
-      qDebug() << "KvazF: frame encoded. Length: " << len_out <<
-                  " POC: " << frame_info.poc;
 
       Data *hevc_frame = new Data;
       hevc_frame->data_size = len_out;
@@ -174,7 +159,4 @@ void KvazaarFilter::process()
     }
     input = getInput();
   }
-
-
-  qDebug() << "KvazF: input buffer empty";
 }

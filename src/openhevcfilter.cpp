@@ -15,19 +15,19 @@ OpenHEVCFilter::OpenHEVCFilter()
 
 void OpenHEVCFilter::init()
 {
-  qDebug() << name_ << " iniating";
+  qDebug() << name_ << "iniating";
   handle_ = libOpenHevcInit(1, 1);
 
   libOpenHevcSetDebugMode(handle_, 0);
   if(libOpenHevcStartDecoder(handle_) == -1)
   {
-    qCritical() << name_ << " failed to start decoder.";
+    qCritical() << name_ << "failed to start decoder.";
+    return;
   }
   libOpenHevcSetTemporalLayer_id(handle_, 0);
   libOpenHevcSetActiveDecoders(handle_, 0);
   libOpenHevcSetViewLayers(handle_, 0);
-
-  f = fopen("decoded.265", "ab+");
+  qDebug() << name_ << "initiation success";
 }
 
 
@@ -57,7 +57,6 @@ void OpenHEVCFilter::process()
     }
     else
     {
-      qDebug() << name_ << " decoded one frame";
 
       Data *yuv_frame = new Data;
       yuv_frame->data_size = input->width*input->height + input->width*input->height/2;
@@ -88,28 +87,12 @@ void OpenHEVCFilter::process()
           pV += d_stride;
         }
       }
-      //fwrite(yuv_frame->data.get(), 1, yuv_frame->data_size, f);
 
       std::unique_ptr<Data> u_yuv_data( yuv_frame );
       sendOutput(std::move(u_yuv_data));
       ++pts_;
 
     }
-/*
-
-
-    memcpy(yuv_frame->data.get(),
-           (openHevcFrame.pvY),
-           input->width*input->height);
-
-    memcpy(&(yuv_frame->data.get()[input->width*input->height]),
-           (openHevcFrame.pvU),
-           input->width*input->height/4);
-
-    memcpy(&(yuv_frame->data.get()[input->width*input->height + input->width*input->height/4]),
-           (openHevcFrame.pvV),
-           input->width*input->height/4);
-*/
 
     input = getInput();
   }

@@ -24,6 +24,5 @@ public:
 private:
   Ui::CallWindow *ui;
 
-  FilterGraph video_;
-  FilterGraph audio_;
+  FilterGraph fg_;
 };

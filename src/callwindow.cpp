@@ -10,20 +10,17 @@ CallWindow::CallWindow(QWidget *parent,
 {
   ui->setupUi(this);
 
-  video_.constructVideoGraph(ui->videoCall, ip,  port);
-  //audio_.constructAudioGraph();
+  fg_.constructVideoGraph(ui->videoCall, ip,  port);
+  //fg_.constructAudioGraph();
 
-  video_.run();
-  //audio_.run();
+  fg_.run();
 }
 
 CallWindow::~CallWindow()
 {
-  video_.stop();
-  //audio_.stop();
+  fg_.stop();
 
-  video_.deconstruct();
-  //audio_.deconstruct();
+  fg_.deconstruct();
 
   delete ui->videoCall;
   delete ui;
@@ -31,7 +28,6 @@ CallWindow::~CallWindow()
 
 void CallWindow::closeEvent(QCloseEvent *event)
 {
-  video_.stop();
-  //audio_.stop();
+  fg_.stop();
   QMainWindow::closeEvent(event);
 }
