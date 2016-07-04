@@ -67,6 +67,7 @@ INCLUDEPATH += $$PWD/../live/BasicUsageEnvironment/include
 win32: LIBS += -L$$PWD/../ -llibkvazaar.dll
 win32: LIBS += -llibLibOpenHevcWrapper.dll
 win32: LIBS += -llivemedia.dll
+win32: LIBS += -lws2_32
 
 INCLUDEPATH += $$PWD/../
 DEPENDPATH += $$PWD/../

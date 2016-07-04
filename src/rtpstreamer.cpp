@@ -7,8 +7,10 @@
 #include <GroupsockHelper.hh>
 #include <BasicUsageEnvironment.hh>
 
-
+#include <QHostInfo>
 #include <QDebug>
+
+#include <iostream>
 
 RTPStreamer::RTPStreamer():
   portNum_(18888),
@@ -68,10 +70,8 @@ void RTPStreamer::initH265Video()
   rtcpPort_ = new Port(portNum_ + 1);
 
   rtpGroupsock_ = new Groupsock(*env_, destinationAddress_, *rtpPort_, ttl_);
-  //rtpGroupsock.multicastSendOnly(); // we're a SSM source
 
   rtcpGroupsock_ = new Groupsock(*env_, destinationAddress_, *rtcpPort_, ttl_);
- // rtcpGroupsock.multicastSendOnly(); // we're a SSM source
 
   // Create a 'H265 Video RTP' sink from the RTP 'groupsock':
   OutPacketBuffer::maxSize = 1000000;
@@ -79,17 +79,24 @@ void RTPStreamer::initH265Video()
 
   // Create (and start) a 'RTCP instance' for this RTP sink:
   const unsigned int estimatedSessionBandwidth = 5000; // in kbps; for RTCP b/w share
-  const unsigned int maxCNAMElen = 100;
-  unsigned char CNAME[] = "localhost";
-  RTCPInstance* rtcp  = RTCPInstance::createNew(*env_,
-                                                rtcpGroupsock_,
-                                                estimatedSessionBandwidth,
-                                                CNAME,
-                                                videoSink_,
-                                                NULL,
-                                                False);
-  // Note: This starts RTCP running automatically
 
+  const unsigned maxCNAMElen = 100;
+  unsigned char CNAME[maxCNAMElen+1];
+  gethostname((char*)CNAME, maxCNAMElen);
+  CNAME[maxCNAMElen] = '\0'; // just in case
+
+  QString sName(reinterpret_cast<char*>(CNAME));
+
+  qDebug() << "Our hostname:" << sName;
+
+  // This starts RTCP running automatically
+  rtcp_  = RTCPInstance::createNew(*env_,
+                                   rtcpGroupsock_,
+                                   estimatedSessionBandwidth,
+                                   CNAME,
+                                   videoSink_,
+                                   NULL,
+                                   False);
 
   videoSource_ = new FramedSourceFilter(*env_, HEVCVIDEO);
 

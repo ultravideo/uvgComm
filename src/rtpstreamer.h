@@ -50,6 +50,8 @@ private:
   Groupsock* rtpGroupsock_;
   Groupsock* rtcpGroupsock_;
 
+  RTCPInstance* rtcp_;
+
   RTPSink* videoSink_;
   FramedSourceFilter* videoSource_;
 
