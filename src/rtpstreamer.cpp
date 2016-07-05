@@ -13,6 +13,7 @@
 #include <iostream>
 
 RTPStreamer::RTPStreamer():
+  iniated_(false),
   portNum_(18888),
   env_(NULL),
   rtpPort_(NULL),
@@ -21,9 +22,7 @@ RTPStreamer::RTPStreamer():
   videoSink_(NULL),
   videoSource_(NULL),
   destinationAddress_()
-{
-  live555_.lock();
-}
+{}
 
 void RTPStreamer::setDestination(in_addr address, uint16_t port)
 {
@@ -39,19 +38,67 @@ void RTPStreamer::setDestination(in_addr address, uint16_t port)
 
 void RTPStreamer::run()
 {
-  qDebug() << "Iniating RTP streamer";
 
-  initLiveMedia();
-  initH265Video();
-  initOpusAudio();
+  if(!iniated_)
+  {
+    qDebug() << "Iniating RTP streamer";
+    initLiveMedia();
+    initH265Video();
+    initOpusAudio();
+    iniated_ = true;
+    qDebug() << "Iniating RTP streamer finished";
+  }
 
-  live555_.unlock();
-  qDebug() << "Iniating RTP streamer finished, do eventloop";
+  qDebug() << "RTP streamer starting eventloop";
 
+  stopRTP_ = 0;
+  env_->taskScheduler().doEventLoop(&stopRTP_);
 
-  env_->taskScheduler().doEventLoop();
+  qDebug() << "RTP streamer eventloop stopped";
+
+  uninit();
 
 }
+
+void RTPStreamer::stop()
+{
+  stopRTP_ = 1;
+}
+
+void RTPStreamer::uninit()
+{
+  Q_ASSERT(stopRTP_);
+  if(iniated_)
+  {
+    qDebug() << "Uniniating RTP streamer";
+    iniated_ = false;
+    videoSource_ = NULL;
+    videoSink_->stopPlaying();
+
+    RTPSink::close(videoSink_);
+    RTCPInstance::close(rtcp_);
+
+    delete rtpGroupsock_;
+    rtpGroupsock_ = 0;
+    delete rtcpGroupsock_;
+    rtcpGroupsock_ = 0;
+
+    delete rtpPort_;
+    rtpPort_ = 0;
+    delete rtcpPort_;
+    rtcpPort_ = 0;
+
+    if(!env_->reclaim())
+      qWarning() << "Unsuccesful reclaim of usage environment";
+
+  }
+  else
+  {
+    qWarning() << "Double uninit for RTP streamer";
+  }
+  qDebug() << "RTP streamer uninit succesful";
+}
+
 
 void RTPStreamer::initLiveMedia()
 {

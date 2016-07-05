@@ -22,11 +22,13 @@ public:
 
   void run();
 
-  FramedSourceFilter* getFilter()
+  void stop();
+
+  FramedSourceFilter* getSourceFilter()
   {
-    live555_.lock();
-    live555_.unlock();
-    return videoSource_;
+    if(iniated_)
+      return videoSource_;
+    return NULL;
   }
 
 private:
@@ -35,10 +37,12 @@ private:
   void initH265Video();
   void initOpusAudio();
 
+  void uninit();
+
+  bool iniated_;
+
 //  in_addr address_;
   uint16_t portNum_;
-
-  QMutex live555_;
 
   UsageEnvironment* env_;
 
@@ -55,6 +59,8 @@ private:
   FramedSourceFilter* videoSource_;
 
   struct in_addr destinationAddress_;
+
+  char stopRTP_;
 
 };
 

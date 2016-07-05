@@ -18,7 +18,9 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow()
 {
   delete ui_;
+  ui_ = 0;
   delete call_;
+  call_ = 0;
 }
 
 void MainWindow::startCall()

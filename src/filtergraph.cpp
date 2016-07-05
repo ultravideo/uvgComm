@@ -19,7 +19,7 @@ void FilterGraph::constructVideoGraph(VideoWidget *videoWidget,
                                       in_addr ip, uint16_t port)
 {
   streamer_.setDestination(ip, port);
-  streamer_.start();
+  streamer_.start(); //creates framedsource filter
 
   unsigned int currentFilter = 0;
 
@@ -35,7 +35,13 @@ void FilterGraph::constructVideoGraph(VideoWidget *videoWidget,
   filters_.at(currentFilter)->addOutConnection(filters_.at(currentFilter + 1));
   currentFilter++;
 
-  filters_.push_back(streamer_.getFilter());
+  Filter* framedSource = NULL;
+
+  while(framedSource == NULL)
+  {
+    framedSource = streamer_.getSourceFilter();
+  }
+  filters_.push_back(framedSource);
   filters_.at(currentFilter)->addOutConnection(filters_.at(currentFilter + 1));
   currentFilter++;
 
@@ -79,6 +85,7 @@ void FilterGraph::run()
   for(Filter* f : filters_)
     f->start();
 
+  streamer_.start();
 }
 
 void FilterGraph::stop()
@@ -88,5 +95,5 @@ void FilterGraph::stop()
     f->stop();
     f->emptyBuffer();
   }
-  //streamer_.stop();
+  streamer_.stop();
 }
