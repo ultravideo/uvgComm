@@ -16,11 +16,14 @@ RTPStreamer::RTPStreamer():
   iniated_(false),
   portNum_(18888),
   env_(NULL),
-  rtpPort_(NULL),
-  rtcpPort_(NULL),
+  sendRtpPort_(NULL),
+  sendRtcpPort_(NULL),
+  recvRtpPort_(NULL),
+//  inputRtcpPort_(NULL),
   ttl_(255),
-  videoSink_(NULL),
-  videoSource_(NULL),
+  sendVideoSink_(NULL),
+  sendVideoSource_(NULL),
+  recvVideoSource_(NULL),
   destinationAddress_()
 {}
 
@@ -43,7 +46,7 @@ void RTPStreamer::run()
   {
     qDebug() << "Iniating RTP streamer";
     initLiveMedia();
-    initH265Video();
+    initH265VideoSend();
     initOpusAudio();
     iniated_ = true;
     qDebug() << "Iniating RTP streamer finished";
@@ -72,21 +75,21 @@ void RTPStreamer::uninit()
   {
     qDebug() << "Uniniating RTP streamer";
     iniated_ = false;
-    videoSource_ = NULL;
-    videoSink_->stopPlaying();
+    sendVideoSource_ = NULL;
+    sendVideoSink_->stopPlaying();
 
-    RTPSink::close(videoSink_);
+    RTPSink::close(sendVideoSink_);
     RTCPInstance::close(rtcp_);
 
-    delete rtpGroupsock_;
-    rtpGroupsock_ = 0;
-    delete rtcpGroupsock_;
-    rtcpGroupsock_ = 0;
+    delete sendRtpGroupsock_;
+    sendRtpGroupsock_ = 0;
+    delete sendRtcpGroupsock_;
+    sendRtcpGroupsock_ = 0;
 
-    delete rtpPort_;
-    rtpPort_ = 0;
-    delete rtcpPort_;
-    rtcpPort_ = 0;
+    delete sendRtpPort_;
+    sendRtpPort_ = 0;
+    delete sendRtcpPort_;
+    sendRtcpPort_ = 0;
 
     if(!env_->reclaim())
       qWarning() << "Unsuccesful reclaim of usage environment";
@@ -109,18 +112,19 @@ void RTPStreamer::initLiveMedia()
     env_ = BasicUsageEnvironment::createNew(*scheduler);
 }
 
-void RTPStreamer::initH265Video()
+void RTPStreamer::initH265VideoSend()
 {
   qDebug() << "Iniating H265 video RTP/RTCP streams";
-  rtpPort_ = new Port(portNum_);
-  rtcpPort_ = new Port(portNum_ + 1);
+  sendRtpPort_ = new Port(portNum_);
+  sendRtcpPort_ = new Port(portNum_ + 1);
 
-  rtpGroupsock_ = new Groupsock(*env_, destinationAddress_, *rtpPort_, ttl_);
-  rtcpGroupsock_ = new Groupsock(*env_, destinationAddress_, *rtcpPort_, ttl_);
+  sendRtpGroupsock_ = new Groupsock(*env_, destinationAddress_, *sendRtpPort_, ttl_);
+  sendRtcpGroupsock_ = new Groupsock(*env_, destinationAddress_, *sendRtcpPort_, ttl_);
 
   // Create a 'H265 Video RTP' sink from the RTP 'groupsock':
-  OutPacketBuffer::maxSize = 1000000;
-  videoSink_ = H265VideoRTPSink::createNew(*env_, rtpGroupsock_, 96);
+  OutPacketBuffer::maxSize = 65536;
+  // todo: negotiate payload number
+  sendVideoSink_ = H265VideoRTPSink::createNew(*env_, sendRtpGroupsock_, 96);
 
   // Create (and start) a 'RTCP instance' for this RTP sink:
   const unsigned int estimatedSessionBandwidth = 5000; // in kbps; for RTCP b/w share
@@ -135,29 +139,45 @@ void RTPStreamer::initH265Video()
 
   // This starts RTCP running automatically
   rtcp_  = RTCPInstance::createNew(*env_,
-                                   rtcpGroupsock_,
+                                   sendRtcpGroupsock_,
                                    estimatedSessionBandwidth,
                                    CNAME,
-                                   videoSink_,
+                                   sendVideoSink_,
                                    NULL,
                                    False);
 
-  videoSource_ = new FramedSourceFilter(*env_, HEVCVIDEO);
+  sendVideoSource_ = new FramedSourceFilter(*env_, HEVCVIDEO);
 
-  if(!videoSource_ || !videoSink_)
+  if(!sendVideoSource_ || !sendVideoSink_)
   {
     qCritical() << "Failed to setup RTP stream";
+    return;
   }
 
-  if(!videoSink_->startPlaying(*videoSource_, NULL, NULL))
+  if(!sendVideoSink_->startPlaying(*sendVideoSource_, NULL, NULL))
   {
     qCritical() << "failed to start videosink: " << env_->getResultMsg();
   }
 }
 
+void RTPStreamer::initH265VideoReceive()
+{
+  qDebug() << "Iniating H265 video RTP/RTCP streams";
+  recvRtpPort_ = new Port(portNum_);
+  //recvRtcpPort_ = new Port(portNum_ + 1);
+
+  recvRtpGroupsock_ = new Groupsock(*env_, destinationAddress_, *recvRtpPort_, ttl_);
+  //recvRtcpGroupsock_ = new Groupsock(*env_, destinationAddress_, *recvRtcpPort_, ttl_);
+
+  // todo: negotiate payload number
+  recvVideoSource_ = H265VideoRTPSource::createNew(*env_, recvRtpGroupsock_, 96);
+  //recvVideoSource_ = H265VideoStreamFramer::createNew(*env_, recvRtpGroupsock_);
+}
+
+
 void RTPStreamer::initOpusAudio()
 {
-  qWarning() << "Opus RTP not implemented yet";
+  qWarning() << "Audio RTP not implemented yet";
 }
 
 

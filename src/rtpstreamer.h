@@ -27,36 +27,41 @@ public:
   FramedSourceFilter* getSourceFilter()
   {
     if(iniated_)
-      return videoSource_;
+      return sendVideoSource_;
     return NULL;
   }
 
 private:
 
   void initLiveMedia();
-  void initH265Video();
+  void initH265VideoSend();
+  void initH265VideoReceive();
   void initOpusAudio();
 
   void uninit();
 
   bool iniated_;
 
-//  in_addr address_;
   uint16_t portNum_;
 
   UsageEnvironment* env_;
 
-  Port* rtpPort_;
-  Port* rtcpPort_;
+  Port* sendRtpPort_;
+  Port* sendRtcpPort_;
+  Port* recvRtpPort_;
+  //Port* recvRtcpPort_;
   uint8_t ttl_;
 
-  Groupsock* rtpGroupsock_;
-  Groupsock* rtcpGroupsock_;
-
+  Groupsock* sendRtpGroupsock_;
+  Groupsock* sendRtcpGroupsock_;
+  Groupsock* recvRtpGroupsock_;
+  //Groupsock* recvRtcpGroupsock_;
   RTCPInstance* rtcp_;
 
-  RTPSink* videoSink_;
-  FramedSourceFilter* videoSource_;
+  RTPSink* sendVideoSink_;
+  FramedSourceFilter* sendVideoSource_;
+
+  FramedSource* recvVideoSource_;
 
   struct in_addr destinationAddress_;
 
