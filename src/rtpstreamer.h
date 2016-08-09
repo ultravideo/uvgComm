@@ -2,6 +2,7 @@
 #define RTPSTREAMER_H
 
 #include "framedsourcefilter.h"
+#include "rtpsinkfilter.h"
 #include "filter.h"
 
 #include <liveMedia.hh>
@@ -10,6 +11,7 @@
 
 
 class FramedSourceFilter;
+class RTPSinkFilter;
 
 class RTPStreamer : public QThread
 {
@@ -30,6 +32,14 @@ public:
       return sendVideoSource_;
     return NULL;
   }
+
+  RTPSinkFilter* getSinkFilter()
+  {
+    if(iniated_)
+      return recvVideoSink_;
+    return NULL;
+  }
+
 
 private:
 
@@ -62,6 +72,7 @@ private:
   FramedSourceFilter* sendVideoSource_;
 
   FramedSource* recvVideoSource_;
+  RTPSinkFilter* recvVideoSink_;
 
   struct in_addr destinationAddress_;
 

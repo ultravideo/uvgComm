@@ -47,6 +47,7 @@ void RTPStreamer::run()
     qDebug() << "Iniating RTP streamer";
     initLiveMedia();
     initH265VideoSend();
+    initH265VideoReceive();
     initOpusAudio();
     iniated_ = true;
     qDebug() << "Iniating RTP streamer finished";
@@ -114,12 +115,14 @@ void RTPStreamer::initLiveMedia()
 
 void RTPStreamer::initH265VideoSend()
 {
-  qDebug() << "Iniating H265 video RTP/RTCP streams";
-  sendRtpPort_ = new Port(portNum_);
+  qDebug() << "Iniating H265 send video RTP/RTCP streams";
+  sendRtpPort_ = new Port(portNum_ + 10);
   sendRtcpPort_ = new Port(portNum_ + 1);
 
   sendRtpGroupsock_ = new Groupsock(*env_, destinationAddress_, *sendRtpPort_, ttl_);
   sendRtcpGroupsock_ = new Groupsock(*env_, destinationAddress_, *sendRtcpPort_, ttl_);
+
+  sendRtpGroupsock_->changeDestinationParameters(destinationAddress_, portNum_, ttl_);
 
   // Create a 'H265 Video RTP' sink from the RTP 'groupsock':
   OutPacketBuffer::maxSize = 65536;
@@ -150,7 +153,7 @@ void RTPStreamer::initH265VideoSend()
 
   if(!sendVideoSource_ || !sendVideoSink_)
   {
-    qCritical() << "Failed to setup RTP stream";
+    qCritical() << "Failed to setup sending RTP stream";
     return;
   }
 
@@ -162,7 +165,7 @@ void RTPStreamer::initH265VideoSend()
 
 void RTPStreamer::initH265VideoReceive()
 {
-  qDebug() << "Iniating H265 video RTP/RTCP streams";
+  qDebug() << "Iniating H265 receive video RTP/RTCP streams";
   recvRtpPort_ = new Port(portNum_);
   //recvRtcpPort_ = new Port(portNum_ + 1);
 
@@ -172,6 +175,19 @@ void RTPStreamer::initH265VideoReceive()
   // todo: negotiate payload number
   recvVideoSource_ = H265VideoRTPSource::createNew(*env_, recvRtpGroupsock_, 96);
   //recvVideoSource_ = H265VideoStreamFramer::createNew(*env_, recvRtpGroupsock_);
+
+  recvVideoSink_ = new RTPSinkFilter(*env_, recvRtpGroupsock_, 96);
+
+  if(!recvVideoSource_ || !recvVideoSink_)
+  {
+    qCritical() << "Failed to setup receiving RTP stream";
+    return;
+  }
+
+  if(!recvVideoSink_->startPlaying(*recvVideoSource_,NULL,NULL))
+  {
+    qCritical() << "failed to start videosink: " << env_->getResultMsg();
+  }
 }
 
 
