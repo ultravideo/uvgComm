@@ -64,6 +64,11 @@ std::unique_ptr<Data> Filter::getInput()
 void Filter::sendOutput(std::unique_ptr<Data> output)
 {
   Q_ASSERT(output);
+  if(outConnections_.empty())
+  {
+    qWarning() << "Filter trying to send putput data without outconnections";
+    return;
+  }
 
   for(unsigned int i = 0; i < outConnections_.size() - 1; ++i)
   {
@@ -78,8 +83,7 @@ void Filter::sendOutput(std::unique_ptr<Data> output)
     std::unique_ptr<Data> u_copy(copy);
     outConnections_[i]->putInput(std::move(u_copy));
   }
-  if(!outConnections_.empty())
-    outConnections_.back()->putInput(std::move(output));
+  outConnections_.back()->putInput(std::move(output));
 }
 
 

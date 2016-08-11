@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>600</height>
+    <width>880</width>
+    <height>640</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,7 +17,7 @@
    <widget class="QPushButton" name="EndCallButton">
     <property name="geometry">
      <rect>
-      <x>320</x>
+      <x>370</x>
       <y>520</y>
       <width>131</width>
       <height>41</height>
@@ -30,12 +30,24 @@
    <widget class="VideoWidget" name="videoCall" native="true">
     <property name="geometry">
      <rect>
-      <x>160</x>
-      <y>50</y>
-      <width>431</width>
-      <height>291</height>
+      <x>120</x>
+      <y>30</y>
+      <width>640</width>
+      <height>480</height>
      </rect>
     </property>
+    <widget class="VideoWidget" name="SelfView" native="true">
+     <property name="geometry">
+      <rect>
+       <x>540</x>
+       <y>380</y>
+       <width>100</width>
+       <height>100</height>
+      </rect>
+     </property>
+     <zorder>videoCall</zorder>
+     <zorder>videoCall</zorder>
+    </widget>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -43,7 +55,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>800</width>
+     <width>880</width>
      <height>21</height>
     </rect>
    </property>

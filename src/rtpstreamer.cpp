@@ -131,8 +131,6 @@ void RTPStreamer::initH265VideoSend()
 
   sendRtcpGroupsock_ = new Groupsock(*env_, destinationAddress_, *sendRtcpPort_, ttl_);
 
-
-
   // Create a 'H265 Video RTP' sink from the RTP 'groupsock':
   OutPacketBuffer::maxSize = 65536;
   // todo: negotiate payload number

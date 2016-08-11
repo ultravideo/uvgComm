@@ -33,9 +33,20 @@ void RTPSinkFilter::afterGettingFrame(unsigned frameSize,
                        struct timeval presentationTime,
                        unsigned durationInMicroseconds)
 {
-  qDebug() << "Received HEVC frame. Size: " << frameSize;
+  qDebug() << "Received HEVC frame. Size: " << frameSize
+           << ", truncated: " << numTruncatedBytes;
 
+  Q_ASSERT(numTruncatedBytes != 0);
 
+  Data *received_picture = new Data;
+  received_picture->data_size = frameSize;
+  received_picture->type = HEVCVIDEO;
+  received_picture->data = std::unique_ptr<uchar[]>(new uchar[received_picture->data_size]);
+  received_picture->width = 0;
+  received_picture->height = 0;
+  memcpy(received_picture->data.get(), fReceiveBuffer, received_picture->data_size);
+  std::unique_ptr<Data> rp( received_picture );
+  sendOutput(std::move(rp));
 
   continuePlaying();
 }
