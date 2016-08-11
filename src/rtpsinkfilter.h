@@ -4,10 +4,10 @@
 #include <H265VideoRTPSink.hh>
 
 
-class RTPSinkFilter : public Filter, public H265VideoRTPSink
+class RTPSinkFilter : public Filter, public MediaSink
 {
 public:
-  RTPSinkFilter(UsageEnvironment& env, Groupsock *gs, unsigned char pf);
+  RTPSinkFilter(UsageEnvironment& env);
 
   virtual ~RTPSinkFilter();
 

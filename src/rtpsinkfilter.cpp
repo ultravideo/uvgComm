@@ -7,8 +7,8 @@ const uint32_t BUFFER_SIZE = 65536;
 
 
 
-RTPSinkFilter::RTPSinkFilter(UsageEnvironment& env, Groupsock *gs, unsigned char pf):
-  Filter(), H265VideoRTPSink(*createNew(env, gs, pf))
+RTPSinkFilter::RTPSinkFilter(UsageEnvironment& env):
+  Filter(), MediaSink(env)
 {
   fReceiveBuffer = new u_int8_t[BUFFER_SIZE];
 }
@@ -34,6 +34,10 @@ void RTPSinkFilter::afterGettingFrame(unsigned frameSize,
                        unsigned durationInMicroseconds)
 {
   qDebug() << "Received HEVC frame. Size: " << frameSize;
+
+
+
+  continuePlaying();
 }
 
 

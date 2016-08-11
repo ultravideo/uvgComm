@@ -74,6 +74,7 @@ private:
   FramedSource* recvVideoSource_;
   RTPSinkFilter* recvVideoSink_;
 
+  struct in_addr sessionAdress_;
   struct in_addr destinationAddress_;
 
   char stopRTP_;

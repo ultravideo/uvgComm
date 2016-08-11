@@ -7,6 +7,7 @@
 #include <GroupsockHelper.hh>
 #include <BasicUsageEnvironment.hh>
 
+#include <QtEndian>
 #include <QHostInfo>
 #include <QDebug>
 
@@ -92,6 +93,12 @@ void RTPStreamer::uninit()
     delete sendRtcpPort_;
     sendRtcpPort_ = 0;
 
+    // use unicast
+    QString ip_str = "0.0.0.0";
+    QHostAddress address;
+    address.setAddress(ip_str);
+    sessionAdress_.S_un.S_addr = qToBigEndian(address.toIPv4Address());
+
     if(!env_->reclaim())
       qWarning() << "Unsuccesful reclaim of usage environment";
 
@@ -116,13 +123,15 @@ void RTPStreamer::initLiveMedia()
 void RTPStreamer::initH265VideoSend()
 {
   qDebug() << "Iniating H265 send video RTP/RTCP streams";
-  sendRtpPort_ = new Port(portNum_ + 10);
+  sendRtpPort_ = new Port(0); // 0 because it reserves the port for some reason
   sendRtcpPort_ = new Port(portNum_ + 1);
 
-  sendRtpGroupsock_ = new Groupsock(*env_, destinationAddress_, *sendRtpPort_, ttl_);
+  sendRtpGroupsock_ = new Groupsock(*env_, sessionAdress_, destinationAddress_, *sendRtpPort_);
+  sendRtpGroupsock_->changeDestinationParameters(destinationAddress_, portNum_, ttl_);
+
   sendRtcpGroupsock_ = new Groupsock(*env_, destinationAddress_, *sendRtcpPort_, ttl_);
 
-  sendRtpGroupsock_->changeDestinationParameters(destinationAddress_, portNum_, ttl_);
+
 
   // Create a 'H265 Video RTP' sink from the RTP 'groupsock':
   OutPacketBuffer::maxSize = 65536;
@@ -169,14 +178,17 @@ void RTPStreamer::initH265VideoReceive()
   recvRtpPort_ = new Port(portNum_);
   //recvRtcpPort_ = new Port(portNum_ + 1);
 
-  recvRtpGroupsock_ = new Groupsock(*env_, destinationAddress_, *recvRtpPort_, ttl_);
+
+
+  recvRtpGroupsock_ = new Groupsock(*env_, sessionAdress_, destinationAddress_, *recvRtpPort_);
+
   //recvRtcpGroupsock_ = new Groupsock(*env_, destinationAddress_, *recvRtcpPort_, ttl_);
 
   // todo: negotiate payload number
   recvVideoSource_ = H265VideoRTPSource::createNew(*env_, recvRtpGroupsock_, 96);
   //recvVideoSource_ = H265VideoStreamFramer::createNew(*env_, recvRtpGroupsock_);
 
-  recvVideoSink_ = new RTPSinkFilter(*env_, recvRtpGroupsock_, 96);
+  recvVideoSink_ = new RTPSinkFilter(*env_);
 
   if(!recvVideoSource_ || !recvVideoSink_)
   {
