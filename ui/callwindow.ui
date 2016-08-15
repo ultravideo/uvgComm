@@ -39,14 +39,12 @@
     <widget class="VideoWidget" name="SelfView" native="true">
      <property name="geometry">
       <rect>
-       <x>540</x>
-       <y>380</y>
-       <width>100</width>
-       <height>100</height>
+       <x>512</x>
+       <y>384</y>
+       <width>128</width>
+       <height>96</height>
       </rect>
      </property>
-     <zorder>videoCall</zorder>
-     <zorder>videoCall</zorder>
     </widget>
    </widget>
   </widget>

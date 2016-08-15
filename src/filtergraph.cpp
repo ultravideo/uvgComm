@@ -8,6 +8,7 @@
 #include "openhevcfilter.h"
 #include "yuvtorgb32.h"
 #include "framedsourcefilter.h"
+#include "displayfilter.h"
 
 
 FilterGraph::FilterGraph():filters_()//, streamControl_()
@@ -15,7 +16,7 @@ FilterGraph::FilterGraph():filters_()//, streamControl_()
 
 }
 
-void FilterGraph::constructVideoGraph(VideoWidget *videoWidget,
+void FilterGraph::constructVideoGraph(VideoWidget *selfView, VideoWidget *videoCall,
                                       in_addr ip, uint16_t port)
 {
   streamer_.setDestination(ip, port);
@@ -23,6 +24,7 @@ void FilterGraph::constructVideoGraph(VideoWidget *videoWidget,
 
   unsigned int currentFilter = 0;
 
+  // Sending video graph
   filters_.push_back(new CameraFilter());
 
   filters_.push_back(new RGB32toYUV());
@@ -34,7 +36,6 @@ void FilterGraph::constructVideoGraph(VideoWidget *videoWidget,
   filters_.push_back(kvz);
   filters_.at(currentFilter)->addOutConnection(filters_.at(currentFilter + 1));
   currentFilter++;
-
   Filter* framedSource = NULL;
 
   while(framedSource == NULL)
@@ -45,9 +46,23 @@ void FilterGraph::constructVideoGraph(VideoWidget *videoWidget,
   filters_.at(currentFilter)->addOutConnection(filters_.at(currentFilter + 1));
   currentFilter++;
 
+  // connect selfview to camera
+  DisplayFilter* selfviewFilter = new DisplayFilter(selfView);
+  selfviewFilter->setProperties(true, QSize(128,96));
+  filters_.push_back(selfviewFilter);
+  filters_.at(0)->addOutConnection(filters_.at(currentFilter + 1));
+  currentFilter++;
 
 
-  // for testing purposes currently
+
+  // Receiving video graph
+  Filter* rtpSink = NULL;
+  while(rtpSink == NULL)
+  {
+    rtpSink = streamer_.getSinkFilter();
+  }
+  filters_.push_back(rtpSink);
+  currentFilter++;
 
   OpenHEVCFilter* decoder =  new OpenHEVCFilter();
   decoder->init();
@@ -59,7 +74,7 @@ void FilterGraph::constructVideoGraph(VideoWidget *videoWidget,
   filters_.at(currentFilter)->addOutConnection(filters_.at(currentFilter + 1));
   currentFilter++;
 
-  filters_.push_back(new DisplayFilter(videoWidget));
+  filters_.push_back(new DisplayFilter(videoCall));
   filters_.at(currentFilter)->addOutConnection(filters_.at(currentFilter + 1));
   currentFilter++;
 

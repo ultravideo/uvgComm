@@ -16,7 +16,7 @@ class FilterGraph
 public:
   FilterGraph();
 
-  void constructVideoGraph(VideoWidget *videoWidget,
+  void constructVideoGraph(VideoWidget *selfView, VideoWidget *videoCall,
                            in_addr ip, uint16_t port);
 
   void constructAudioGraph();

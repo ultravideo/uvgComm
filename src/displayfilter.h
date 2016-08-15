@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QPainter>
+#include <QSize>
 
 #include "filter.h"
 
@@ -20,10 +21,20 @@ public:
   {
     return true;
   }
+
+  void setProperties(bool mirror, QSize scale)
+  {
+    mirrored_ = mirror;
+    scale_ = scale;
+  }
+
 protected:
   void process();
 
 private:
+
+  bool mirrored_;
+  QSize scale_;
   // DO NOT FREE MEMORY HERE
   VideoWidget* widget_;
 

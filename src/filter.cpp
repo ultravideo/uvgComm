@@ -66,7 +66,7 @@ void Filter::sendOutput(std::unique_ptr<Data> output)
   Q_ASSERT(output);
   if(outConnections_.empty())
   {
-    qWarning() << "Filter trying to send putput data without outconnections";
+    qWarning() << "Filter trying to send output data without outconnections";
     return;
   }
 

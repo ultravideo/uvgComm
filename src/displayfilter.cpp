@@ -9,6 +9,7 @@
 DisplayFilter::DisplayFilter(VideoWidget *widget):widget_(widget)
 {
   name_ = "DispF";
+  mirrored_ = false;
   widget_->show();
 }
 
@@ -39,7 +40,14 @@ void DisplayFilter::process()
             input->height,
             format);
 
-      //image = image.mirrored();
+      if(mirrored_)
+        image = image.mirrored(true, true);
+      else
+        image = image.mirrored(true, false);
+      if(!scale_.isEmpty() && scale_.isValid())
+        image = image.scaled(scale_);
+
+
       widget_->inputImage(std::move(input->data), image);
     }
     input = getInput();
