@@ -29,6 +29,4 @@ protected:
 
 private:
   OpenHevc_Handle handle_;
-
-  unsigned int pts_;
 };

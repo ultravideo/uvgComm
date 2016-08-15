@@ -9,6 +9,7 @@ KvazaarFilter::KvazaarFilter():
   api_(NULL),
   config_(NULL),
   enc_(NULL),
+  pts_(0),
   input_pic_(NULL)
 {
 name_ = "KvazF";
@@ -126,6 +127,8 @@ void KvazaarFilter::process()
            &(input->data.get()[input->width*input->height + input->width*input->height/4]),
            input->width*input->height/4);
 
+    input_pic_->pts = pts_;
+    ++pts_;
 
     api_->encoder_encode(enc_, input_pic_,
                          &data_out, &len_out,

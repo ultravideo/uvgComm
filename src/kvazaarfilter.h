@@ -40,5 +40,7 @@ private:
   kvz_config *config_;
   kvz_encoder *enc_;
 
+  int64_t pts_;
+
   kvz_picture *input_pic_;
 };

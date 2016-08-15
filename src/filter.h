@@ -4,6 +4,7 @@
 #include <QThread>
 #include <QMutex>
 
+#include <sys/time.h>
 #include <cstdint>
 #include <vector>
 #include <queue>
@@ -18,6 +19,7 @@ struct Data
   uint32_t data_size;
   int width;
   int height;
+  timeval presentationTime;
 };
 
 const int BUFFERSIZE = 50;

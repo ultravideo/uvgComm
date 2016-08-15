@@ -44,6 +44,7 @@ void RTPSinkFilter::afterGettingFrame(unsigned frameSize,
   received_picture->data = std::unique_ptr<uchar[]>(new uchar[received_picture->data_size]);
   received_picture->width = 0;
   received_picture->height = 0;
+  received_picture->presentationTime = presentationTime;
   memcpy(received_picture->data.get(), fReceiveBuffer, received_picture->data_size);
   std::unique_ptr<Data> rp( received_picture );
   sendOutput(std::move(rp));

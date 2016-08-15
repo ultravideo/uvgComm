@@ -8,9 +8,6 @@
 OpenHEVCFilter::OpenHEVCFilter()
 {
   name_ = "OHEVCF";
-  pts_ = 1;
-
-
 }
 
 void OpenHEVCFilter::init()
@@ -40,8 +37,8 @@ void OpenHEVCFilter::process()
     OpenHevc_Frame openHevcFrame;
     const unsigned char *buff = input->data.get();
 
-    int gotPicture = libOpenHevcDecode(handle_, buff, input->data_size, pts_);
-
+    int64_t pts = input->presentationTime.tv_sec*90000 + input->presentationTime.tv_usec*90000/1000000;
+    int gotPicture = libOpenHevcDecode(handle_, buff, input->data_size, pts);
 
     if( gotPicture == -1)
     {
@@ -59,23 +56,24 @@ void OpenHEVCFilter::process()
     {
 
       Data *yuv_frame = new Data;
-      yuv_frame->data_size = input->width*input->height + input->width*input->height/2;
+      yuv_frame->width = openHevcFrame.frameInfo.nWidth;
+      yuv_frame->height = openHevcFrame.frameInfo.nHeight;
+      yuv_frame->data_size = yuv_frame->width*yuv_frame->height + yuv_frame->width*yuv_frame->height/2;
       yuv_frame->data = std::unique_ptr<uchar[]>(new uchar[yuv_frame->data_size]);
-      yuv_frame->width = input->width;
-      yuv_frame->height = input->height;
+
       yuv_frame->type = YUVVIDEO;
 
       uint8_t* pY = (uint8_t*)yuv_frame->data.get();
-      uint8_t* pU = (uint8_t*)&(yuv_frame->data.get()[input->width*input->height]);
-      uint8_t* pV = (uint8_t*)&(yuv_frame->data.get()[input->width*input->height + input->width*input->height/4]);
+      uint8_t* pU = (uint8_t*)&(yuv_frame->data.get()[yuv_frame->width*yuv_frame->height]);
+      uint8_t* pV = (uint8_t*)&(yuv_frame->data.get()[yuv_frame->width*yuv_frame->height + yuv_frame->width*yuv_frame->height/4]);
 
       uint32_t s_stride = openHevcFrame.frameInfo.nYPitch;
       uint32_t qs_stride = openHevcFrame.frameInfo.nUPitch/2;
 
-      uint32_t d_stride = input->width/2;
-      uint32_t dd_stride = input->width;
+      uint32_t d_stride = yuv_frame->width/2;
+      uint32_t dd_stride = yuv_frame->width;
 
-      for (uint32_t i=0; i<input->height; i++) {
+      for (uint32_t i=0; i<yuv_frame->height; i++) {
         memcpy(pY,  (uint8_t *) openHevcFrame.pvY + i*s_stride, dd_stride);
         pY += dd_stride;
 
@@ -90,8 +88,6 @@ void OpenHEVCFilter::process()
 
       std::unique_ptr<Data> u_yuv_data( yuv_frame );
       sendOutput(std::move(u_yuv_data));
-      ++pts_;
-
     }
 
     input = getInput();
