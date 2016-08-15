@@ -16,8 +16,15 @@ class FilterGraph
 public:
   FilterGraph();
 
-  void constructVideoGraph(VideoWidget *selfView, VideoWidget *videoCall,
-                           in_addr ip, uint16_t port);
+  // starts the camera and the encoder
+  void initVideoGraph(VideoWidget *selfView);
+
+  // attaches an RTP destination to video graph
+  void attachVideoDestination(in_addr ip, uint16_t port);
+
+
+  void attachVideoSource(in_addr ip, uint16_t port,
+                         VideoWidget *participantView);
 
   void constructAudioGraph();
   void deconstruct();
@@ -28,6 +35,8 @@ public:
 private:
 
   std::vector<Filter*> filters_;
+
+  unsigned int senderFilter_;
 
   RTPStreamer streamer_;
 

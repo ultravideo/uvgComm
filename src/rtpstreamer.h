@@ -13,6 +13,9 @@
 class FramedSourceFilter;
 class RTPSinkFilter;
 
+typedef uint16_t PeerID;
+
+
 class RTPStreamer : public QThread
 {
   Q_OBJECT
@@ -20,64 +23,76 @@ class RTPStreamer : public QThread
 public:
   RTPStreamer();
 
-  void setDestination(in_addr address, uint16_t port);
+  //void setDestination(in_addr address, uint16_t port);
 
   void run();
 
   void stop();
 
-  FramedSourceFilter* getSourceFilter()
+  FramedSourceFilter* getSourceFilter(PeerID peer)
   {
     if(iniated_)
-      return sendVideoSource_;
+      return senders_[peer];
     return NULL;
   }
 
-  RTPSinkFilter* getSinkFilter()
+  RTPSinkFilter* getSinkFilter(PeerID peer)
   {
     if(iniated_)
-      return recvVideoSink_;
+      return receivers_[peer];
     return NULL;
   }
 
+  PeerID addPeer(in_addr peerAddress, bool video, bool audio = true);
+
+  void removePeer(PeerID id);
 
 private:
 
   void initLiveMedia();
-  void initH265VideoSend();
-  void initH265VideoReceive();
-  void initOpusAudio();
-
+  void addH265VideoSend(PeerID peer, in_addr peerAddress);
+  void addH265VideoReceive(PeerID peer, in_addr peerAddress);
   void uninit();
 
+  struct Sender
+  {
+    struct in_addr peerAddress;
+
+    Port* rtpPort;
+    Port* rtcpPort;
+    Groupsock* rtpGroupsock;
+    Groupsock* rtcpGroupsock;
+
+    RTCPInstance* rtcp;
+
+    RTPSink* videoSink;
+    FramedSourceFilter* videoSource; // receives stuff from filter graph
+  };
+
+  struct Receiver
+  {
+    struct in_addr peerAddress;
+
+    Port* rtpPort;
+    //Port* rtcpPort_;
+    Groupsock* rtpGroupsock;
+    //Groupsock* rtcpGroupsock_;
+
+    FramedSource* videoSource;
+    RTPSinkFilter* videoSink; // sends stuff to filter graph
+  };
+
+  std::map<PeerID, Sender> senders_;
+  std::map<PeerID, Receiver> receivers_;
+
+  PeerID nextID_;
   bool iniated_;
-
   uint16_t portNum_;
-
-  UsageEnvironment* env_;
-
-  Port* sendRtpPort_;
-  Port* sendRtcpPort_;
-  Port* recvRtpPort_;
-  //Port* recvRtcpPort_;
   uint8_t ttl_;
-
-  Groupsock* sendRtpGroupsock_;
-  Groupsock* sendRtcpGroupsock_;
-  Groupsock* recvRtpGroupsock_;
-  //Groupsock* recvRtcpGroupsock_;
-  RTCPInstance* rtcp_;
-
-  RTPSink* sendVideoSink_;
-  FramedSourceFilter* sendVideoSource_;
-
-  FramedSource* recvVideoSource_;
-  RTPSinkFilter* recvVideoSink_;
-
-  struct in_addr sessionAdress_;
-  struct in_addr destinationAddress_;
+  struct in_addr sessionAddress_;
 
   char stopRTP_;
+  UsageEnvironment* env_;
 
 };
 

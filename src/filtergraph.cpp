@@ -16,11 +16,11 @@ FilterGraph::FilterGraph():filters_()//, streamControl_()
 
 }
 
-void FilterGraph::constructVideoGraph(VideoWidget *selfView, VideoWidget *videoCall,
-                                      in_addr ip, uint16_t port)
+
+void FilterGraph::initVideoGraph(VideoWidget *selfView)
 {
-  streamer_.setDestination(ip, port);
-  streamer_.start(); //creates framedsource filter
+
+  streamer_.start();
 
   unsigned int currentFilter = 0;
 
@@ -38,22 +38,12 @@ void FilterGraph::constructVideoGraph(VideoWidget *selfView, VideoWidget *videoC
   currentFilter++;
   Filter* framedSource = NULL;
 
-  while(framedSource == NULL)
-  {
-    framedSource = streamer_.getSourceFilter();
-  }
-  filters_.push_back(framedSource);
-  filters_.at(currentFilter)->addOutConnection(filters_.at(currentFilter + 1));
-  currentFilter++;
-
   // connect selfview to camera
   DisplayFilter* selfviewFilter = new DisplayFilter(selfView);
   selfviewFilter->setProperties(true, QSize(128,96));
   filters_.push_back(selfviewFilter);
   filters_.at(0)->addOutConnection(filters_.at(currentFilter + 1));
   currentFilter++;
-
-
 
   // Receiving video graph
   Filter* rtpSink = NULL;
@@ -83,6 +73,21 @@ void FilterGraph::constructVideoGraph(VideoWidget *selfView, VideoWidget *videoC
   Q_ASSERT(filters_[filters_.size() - 1]->isOutputFilter());
   Q_ASSERT(!filters_[filters_.size() - 1]->isInputFilter());
 }
+
+
+void FilterGraph::attachVideoParticipant(VideoWidget *participantView)
+{
+  Q_ASSERT(!filters_.empty());
+  while(framedSource == NULL)
+  {
+    framedSource = streamer_.getSourceFilter();
+  }
+  filters_.push_back(framedSource);
+  filters_.at(senderFilter_)->addOutConnection(filters_.at(currentFilter + 1));
+  currentFilter++;
+}
+
+
 
 void FilterGraph::constructAudioGraph()
 {}
