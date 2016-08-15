@@ -14,7 +14,10 @@ RTPSinkFilter::RTPSinkFilter(UsageEnvironment& env):
 }
 
 RTPSinkFilter::~RTPSinkFilter()
-{}
+{
+  delete fReceiveBuffer;
+  fReceiveBuffer = 0;
+}
 
 void RTPSinkFilter::afterGettingFrame(void* clientData,
                               unsigned frameSize,

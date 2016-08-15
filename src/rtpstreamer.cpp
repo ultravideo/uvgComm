@@ -78,10 +78,23 @@ void RTPStreamer::uninit()
     qDebug() << "Uniniating RTP streamer";
     iniated_ = false;
     sendVideoSource_ = NULL;
-    sendVideoSink_->stopPlaying();
 
+    sendVideoSink_->stopPlaying();
     RTPSink::close(sendVideoSink_);
+
     RTCPInstance::close(rtcp_);
+
+    recvVideoSink_->stopPlaying();
+    recvVideoSink_ = NULL; // deleted in filter graph
+    FramedSource::close(recvVideoSource_);
+    recvVideoSource_ = 0;
+
+
+    delete recvRtpGroupsock_;
+    recvRtpGroupsock_ = 0;
+
+    delete recvRtpPort_;
+    recvRtpPort_ = 0;
 
     delete sendRtpGroupsock_;
     sendRtpGroupsock_ = 0;
