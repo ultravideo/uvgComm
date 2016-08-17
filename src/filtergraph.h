@@ -1,7 +1,5 @@
 #pragma once
 
-
-
 #include "rtpstreamer.h"
 #include "filter.h"
 
@@ -11,31 +9,51 @@
 
 class VideoWidget;
 
+typedef uint16_t ParticipantID;
+
 class FilterGraph
 {
 public:
   FilterGraph();
 
+  void init(in_addr ip, uint16_t port, VideoWidget* selfView, VideoWidget* peerView);
+
+  ParticipantID addParticipant(in_addr ip, uint16_t port, VideoWidget* view = NULL,
+                      bool wantsAudio = true, bool sendsAudio = true,
+                      bool wantsVideo = true, bool sendsVideo = true);
+
+  void modifyParticipant(ParticipantID peer, VideoWidget* view = NULL,
+                         bool wantsAudio = true, bool sendsAudio = true,
+                         bool wantsVideo = true, bool sendsVideo = true);
+
+  // NON-FUNCTIONAL at the moment
+  void removeParticipant(ParticipantID peer);
+
+  void run();
+  void stop();
+
+  void uninit();
+
+private:
+
   // starts the camera and the encoder
-  void initVideoGraph(VideoWidget *selfView);
+  void initSender(VideoWidget *selfView);
 
   // attaches an RTP destination to video graph
   void attachVideoDestination(in_addr ip, uint16_t port);
 
-
   void attachVideoSource(in_addr ip, uint16_t port,
                          VideoWidget *participantView);
 
-  void constructAudioGraph();
+  void attachAudioDestination();
+
+  void attachAudioSource();
+
   void deconstruct();
-  void run();
-  void stop();
-
-
-private:
 
   std::vector<Filter*> filters_;
 
+  bool videoSendIniated_;
   unsigned int senderFilter_;
 
   RTPStreamer streamer_;

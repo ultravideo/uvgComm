@@ -16,81 +16,69 @@ FilterGraph::FilterGraph():filters_()//, streamControl_()
 
 }
 
-
-void FilterGraph::initVideoGraph(VideoWidget *selfView)
+void FilterGraph::init(in_addr ip, uint16_t port, VideoWidget* selfView, VideoWidget *peerView)
 {
-
   streamer_.start();
 
-  unsigned int currentFilter = 0;
+  streamer_.addPeer(ip, true, true);
 
-  // Sending video graph
-  filters_.push_back(new CameraFilter());
 
-  filters_.push_back(new RGB32toYUV());
-  filters_.at(currentFilter)->addOutConnection(filters_.at(currentFilter + 1));
-  currentFilter++;
+  initSender(selfView);
 
-  KvazaarFilter* kvz = new KvazaarFilter();
-  kvz->init(640, 480, 15,1, 0);
-  filters_.push_back(kvz);
-  filters_.at(currentFilter)->addOutConnection(filters_.at(currentFilter + 1));
-  currentFilter++;
-  Filter* framedSource = NULL;
 
-  // connect selfview to camera
-  DisplayFilter* selfviewFilter = new DisplayFilter(selfView);
-  selfviewFilter->setProperties(true, QSize(128,96));
-  filters_.push_back(selfviewFilter);
-  filters_.at(0)->addOutConnection(filters_.at(currentFilter + 1));
-  currentFilter++;
+  Filter *framedSource = NULL;
+  while(framedSource == NULL)
+  {
+    framedSource = streamer_.getSourceFilter(1);
+  }
+  filters_.push_back(framedSource);
+  filters_.at(filters_.size() - 3)->addOutConnection(filters_.back());
 
   // Receiving video graph
   Filter* rtpSink = NULL;
   while(rtpSink == NULL)
   {
-    rtpSink = streamer_.getSinkFilter();
+    rtpSink = streamer_.getSinkFilter(1);
   }
   filters_.push_back(rtpSink);
-  currentFilter++;
 
   OpenHEVCFilter* decoder =  new OpenHEVCFilter();
   decoder->init();
   filters_.push_back(decoder);
-  filters_.at(currentFilter)->addOutConnection(filters_.at(currentFilter + 1));
-  currentFilter++;
+  filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
 
   filters_.push_back(new YUVtoRGB32());
-  filters_.at(currentFilter)->addOutConnection(filters_.at(currentFilter + 1));
-  currentFilter++;
+  filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
 
-  filters_.push_back(new DisplayFilter(videoCall));
-  filters_.at(currentFilter)->addOutConnection(filters_.at(currentFilter + 1));
-  currentFilter++;
-
-  Q_ASSERT(filters_[0]->isInputFilter());
-  Q_ASSERT(!filters_[0]->isOutputFilter());
-  Q_ASSERT(filters_[filters_.size() - 1]->isOutputFilter());
-  Q_ASSERT(!filters_[filters_.size() - 1]->isInputFilter());
+  filters_.push_back(new DisplayFilter(peerView));
+  filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
 }
 
 
-void FilterGraph::attachVideoParticipant(VideoWidget *participantView)
+void FilterGraph::initSender(VideoWidget *selfView)
 {
-  Q_ASSERT(!filters_.empty());
-  while(framedSource == NULL)
-  {
-    framedSource = streamer_.getSourceFilter();
-  }
-  filters_.push_back(framedSource);
-  filters_.at(senderFilter_)->addOutConnection(filters_.at(currentFilter + 1));
-  currentFilter++;
+  // Sending video graph
+  filters_.push_back(new CameraFilter());
+
+  filters_.push_back(new RGB32toYUV());
+  filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
+
+  KvazaarFilter* kvz = new KvazaarFilter();
+  kvz->init(640, 480, 15,1, 0);
+  filters_.push_back(kvz);
+  filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
+
+  // connect selfview to camera
+  DisplayFilter* selfviewFilter = new DisplayFilter(selfView);
+  selfviewFilter->setProperties(true, QSize(128,96));
+  filters_.push_back(selfviewFilter);
+  filters_.at(0)->addOutConnection(filters_.back());
 }
 
-
-
-void FilterGraph::constructAudioGraph()
-{}
+void FilterGraph::uninit()
+{
+  deconstruct();
+}
 
 void FilterGraph::deconstruct()
 {

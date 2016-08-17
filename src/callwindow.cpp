@@ -10,8 +10,7 @@ CallWindow::CallWindow(QWidget *parent,
 {
   ui->setupUi(this);
 
-  fg_.constructVideoGraph(ui->SelfView, ui->videoCall, ip,  port);
-  //fg_.constructAudioGraph();
+  fg_.init(ip, port, ui->SelfView, ui->videoCall);
 
   fg_.run();
 }
@@ -20,7 +19,7 @@ CallWindow::~CallWindow()
 {
   fg_.stop();
 
-  fg_.deconstruct();
+  fg_.uninit();
 
   delete ui->videoCall;
   delete ui;

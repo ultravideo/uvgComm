@@ -2,11 +2,9 @@
 
 #include <QDebug>
 
-Filter::Filter():running_(true), waitMutex_(NULL),
+Filter::Filter():running_(true), waitMutex_(new QMutex),
   inputTaken_(0), inputDiscarded_(0)
-{
-  waitMutex_ = new QMutex;
-}
+{}
 
 
 Filter::~Filter()
@@ -66,7 +64,7 @@ void Filter::sendOutput(std::unique_ptr<Data> output)
   Q_ASSERT(output);
   if(outConnections_.empty())
   {
-    qWarning() << "Filter trying to send output data without outconnections";
+    qWarning() << name_ << "trying to send output data without outconnections";
     return;
   }
 

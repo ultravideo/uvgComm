@@ -25,26 +25,32 @@ public:
 
   //void setDestination(in_addr address, uint16_t port);
 
+  void setPorts(uint16_t audioPort, uint16_t videoPort)
+  {
+    audioPort_ = audioPort;
+    videoPort_ = videoPort;
+  }
+
   void run();
 
   void stop();
 
   FramedSourceFilter* getSourceFilter(PeerID peer)
   {
-    if(iniated_)
-      return senders_[peer];
-    return NULL;
+    peer_.lock();
+    peer_.unlock();
+    return senders_[peer]->videoSource;
   }
 
   RTPSinkFilter* getSinkFilter(PeerID peer)
   {
-    if(iniated_)
-      return receivers_[peer];
-    return NULL;
+    peer_.lock();
+    peer_.unlock();
+    return receivers_[peer]->videoSink;
   }
 
-  PeerID addPeer(in_addr peerAddress, bool video, bool audio = true);
-
+  PeerID addPeer(in_addr peerAddress,
+                 bool video = true, bool audio = true);
   void removePeer(PeerID id);
 
 private:
@@ -82,14 +88,18 @@ private:
     RTPSinkFilter* videoSink; // sends stuff to filter graph
   };
 
-  std::map<PeerID, Sender> senders_;
-  std::map<PeerID, Receiver> receivers_;
+  std::map<PeerID, Sender*> senders_;
+  std::map<PeerID, Receiver*> receivers_;
 
   PeerID nextID_;
-  bool iniated_;
-  uint16_t portNum_;
+  //bool iniated_;
+  QMutex iniated_;
+  QMutex peer_;
+
   uint8_t ttl_;
   struct in_addr sessionAddress_;
+  uint16_t audioPort_;
+  uint16_t videoPort_;
 
   char stopRTP_;
   UsageEnvironment* env_;
