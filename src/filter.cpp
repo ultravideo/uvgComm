@@ -32,6 +32,10 @@ void Filter::putInput(std::unique_ptr<Data> data)
   ++inputTaken_;
 
   bufferMutex_.lock();
+
+  if(inputTaken_%180 == 0)
+    qDebug() << name_ << "buffer status:" << inBuffer_.size();
+
   if(inBuffer_.size() < BUFFERSIZE)
     inBuffer_.push(std::move(data));
   else

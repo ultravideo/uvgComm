@@ -58,37 +58,6 @@ void RTPStreamer::stop()
   stopRTP_ = 1;
 }
 
-PeerID RTPStreamer::addPeer(in_addr peerAddress, bool video, bool audio)
-{
-  iniated_.lock();
-
-  qDebug() << "Adding peer to following IP: "
-           << (uint8_t)((peerAddress.s_addr) & 0xff) << "."
-           << (uint8_t)((peerAddress.s_addr >> 8) & 0xff) << "."
-           << (uint8_t)((peerAddress.s_addr >> 16) & 0xff) << "."
-           << (uint8_t)((peerAddress.s_addr >> 24) & 0xff);
-
-  PeerID peerID = nextID_;
-  ++nextID_;
-
-  if(video)
-  {
-    addH265VideoSend(peerID, peerAddress);
-    addH265VideoReceive(peerID, peerAddress);
-  }
-
-  peer_.unlock();
-  iniated_.unlock();
-
-  qDebug() << "RTP streamer: Peer added";
-
-  return peerID;
-}
-
-void RTPStreamer::removePeer(PeerID id)
-{
-
-}
 
 
 void RTPStreamer::uninit()
@@ -142,6 +111,39 @@ void RTPStreamer::initLiveMedia()
 
   OutPacketBuffer::maxSize = 65536;
 }
+
+PeerID RTPStreamer::addPeer(in_addr peerAddress, bool video, bool audio)
+{
+  iniated_.lock();
+
+  qDebug() << "Adding peer to following IP: "
+           << (uint8_t)((peerAddress.s_addr) & 0xff) << "."
+           << (uint8_t)((peerAddress.s_addr >> 8) & 0xff) << "."
+           << (uint8_t)((peerAddress.s_addr >> 16) & 0xff) << "."
+           << (uint8_t)((peerAddress.s_addr >> 24) & 0xff);
+
+  PeerID peerID = nextID_;
+  ++nextID_;
+
+  if(video)
+  {
+    addH265VideoSend(peerID, peerAddress);
+    addH265VideoReceive(peerID, peerAddress);
+  }
+
+  peer_.unlock();
+  iniated_.unlock();
+
+  qDebug() << "RTP streamer: Peer added";
+
+  return peerID;
+}
+
+void RTPStreamer::removePeer(PeerID id)
+{
+
+}
+
 
 void RTPStreamer::addH265VideoSend(PeerID peer, in_addr peerAddress)
 {

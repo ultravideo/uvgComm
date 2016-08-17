@@ -27,7 +27,6 @@ private:
   bool hasImage_;
   QImage::Format imageFormat_;
   QRect targetRect_;
-  QSize imageSize_;
 
   QMutex drawMutex_;
   QImage currentImage_;

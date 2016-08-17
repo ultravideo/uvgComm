@@ -16,7 +16,7 @@ class FilterGraph
 public:
   FilterGraph();
 
-  void init(in_addr ip, uint16_t port, VideoWidget* selfView, VideoWidget* peerView);
+  void init(VideoWidget* selfView);
 
   ParticipantID addParticipant(in_addr ip, uint16_t port, VideoWidget* view = NULL,
                       bool wantsAudio = true, bool sendsAudio = true,
@@ -54,7 +54,7 @@ private:
   std::vector<Filter*> filters_;
 
   bool videoSendIniated_;
-  unsigned int senderFilter_;
+  unsigned int encoderFilter_;
 
   RTPStreamer streamer_;
 

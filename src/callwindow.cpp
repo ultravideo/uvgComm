@@ -10,7 +10,9 @@ CallWindow::CallWindow(QWidget *parent,
 {
   ui->setupUi(this);
 
-  fg_.init(ip, port, ui->SelfView, ui->videoCall);
+  fg_.init(ui->SelfView);
+
+  fg_.addParticipant(ip, port, ui->videoCall);
 
   fg_.run();
 }
