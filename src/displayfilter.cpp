@@ -46,9 +46,14 @@ void DisplayFilter::process()
         image = image.mirrored(true, false);
       if(!scale_.isEmpty() && scale_.isValid())
         image = image.scaled(scale_);
+      else
+      {
+        image = image.scaled(widget_->size(), Qt::KeepAspectRatio);
+      }
 
+      QSize padding = (widget_->size() - image.size())/2;
 
-      widget_->inputImage(std::move(input->data), image);
+      widget_->inputImage(std::move(input->data), image, padding);
     }
     input = getInput();
   }

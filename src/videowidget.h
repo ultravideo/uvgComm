@@ -17,7 +17,7 @@ public:
   VideoWidget(QWidget* parent = 0);
   ~VideoWidget();
   void inputImage(std::unique_ptr<uchar[]> input,
-                  QImage &image);
+                  QImage &image, QSize padding);
 
 protected:
   void paintEvent(QPaintEvent *event);

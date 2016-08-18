@@ -23,7 +23,7 @@ VideoWidget::~VideoWidget()
 
 
 void VideoWidget::inputImage(std::unique_ptr<uchar[]> input,
-                             QImage &image)
+                             QImage &image, QSize padding)
 {
   Q_ASSERT(input);
   drawMutex_.lock();
@@ -40,7 +40,7 @@ void VideoWidget::paintEvent(QPaintEvent *event)
   QPainter painter(this);
 
   if(!hasImage_)
-    qWarning() << "Painter has not received an Image";
+    qWarning() << "VideoWidget has not received an Image for painting";
 
   if(hasImage_)
   {
