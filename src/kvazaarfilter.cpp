@@ -48,6 +48,7 @@ int KvazaarFilter::init(unsigned int width,
   config_->threads = 4;
   config_->qp = 32;
   config_->wpp = 1;
+  config_->vps_period = 1;
   config_->intra_period = 64;
 
 

@@ -5,7 +5,7 @@
 
 
 
-OpenHEVCFilter::OpenHEVCFilter()
+OpenHEVCFilter::OpenHEVCFilter():handle_()
 {
   name_ = "OHEVCF";
 }
@@ -24,7 +24,7 @@ void OpenHEVCFilter::init()
   libOpenHevcSetTemporalLayer_id(handle_, 0);
   libOpenHevcSetActiveDecoders(handle_, 0);
   libOpenHevcSetViewLayers(handle_, 0);
-  qDebug() << name_ << "initiation success";
+  qDebug() << name_ << "initiation success. Version: " << libOpenHevcVersion(handle_);
 }
 
 
@@ -46,7 +46,8 @@ void OpenHEVCFilter::process()
     }
     else if(!gotPicture)
     {
-      qDebug() << name_ << " could not decompress frame";
+      qDebug() << name_ << " could not decode frame. NAL type:" <<
+       buff[0] << buff[1] << buff[2] << buff[3] << (buff[4] >> 1);
     }
     else if( libOpenHevcGetOutput(handle_, gotPicture, &openHevcFrame) == -1 )
     {
