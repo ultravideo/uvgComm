@@ -39,6 +39,7 @@ public:
   {
     peer_.lock();
     peer_.unlock();
+    Q_ASSERT(senders_.find(peer) == senders_.end());
     return senders_[peer]->videoSource;
   }
 
@@ -46,6 +47,7 @@ public:
   {
     peer_.lock();
     peer_.unlock();
+    Q_ASSERT(receivers_.find(peer) == receivers_.end());
     return receivers_[peer]->videoSink;
   }
 

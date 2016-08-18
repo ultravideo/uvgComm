@@ -39,7 +39,7 @@ void RTPSinkFilter::afterGettingFrame(unsigned frameSize,
   qDebug() << "Received HEVC frame. Size: " << frameSize
            << ", truncated: " << numTruncatedBytes;
 
-  Q_ASSERT(numTruncatedBytes != 0);
+  Q_ASSERT(numTruncatedBytes == 0);
 
   Data *received_picture = new Data;
   received_picture->data_size = frameSize;

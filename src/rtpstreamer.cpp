@@ -33,7 +33,6 @@ RTPStreamer::RTPStreamer():
   sessionAddress_.S_un.S_addr = qToBigEndian(address.toIPv4Address());
 
   iniated_.lock();
-  peer_.lock();
 }
 
 void RTPStreamer::run()
@@ -115,7 +114,7 @@ void RTPStreamer::initLiveMedia()
 PeerID RTPStreamer::addPeer(in_addr peerAddress, bool video, bool audio)
 {
   iniated_.lock();
-
+  peer_.lock();
   qDebug() << "Adding peer to following IP: "
            << (uint8_t)((peerAddress.s_addr) & 0xff) << "."
            << (uint8_t)((peerAddress.s_addr >> 8) & 0xff) << "."
