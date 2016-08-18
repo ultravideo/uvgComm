@@ -29,7 +29,7 @@ public:
   // NON-FUNCTIONAL at the moment
   void removeParticipant(ParticipantID peer);
 
-  void run();
+  void restart();
   void stop();
 
   void uninit();

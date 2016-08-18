@@ -31,16 +31,6 @@ void MainWindow::startCall()
     call_ = NULL;
   }
 
-  QString ip_str = ui_->ip->toPlainText();
-  QString port_str = ui_->port->toPlainText();
-
-  QHostAddress address;
-
-  address.setAddress(ip_str);
-
-  in_addr ip;
-  ip.S_un.S_addr = qToBigEndian(address.toIPv4Address());
-
-  call_ = new CallWindow(this,  ip, port_str.toInt());
+  call_ = new CallWindow(this);
   call_->show();
 }

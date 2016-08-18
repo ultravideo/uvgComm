@@ -13,16 +13,20 @@ class CallWindow : public QMainWindow
   Q_OBJECT
 
 public:
-  explicit CallWindow(QWidget *parent,
-                      in_addr ip, uint16_t port);
+  explicit CallWindow(QWidget *parent);
   ~CallWindow();
 
   void startStream();
 
   void closeEvent(QCloseEvent *event);
 
+public slots:
+   void addParticipant();
+
 private:
-  Ui::CallWindow *ui;
+  Ui::CallWindow *ui_;
 
   FilterGraph fg_;
+
+  unsigned int participants_;
 };

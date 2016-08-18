@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>880</width>
+    <width>1280</width>
     <height>640</height>
    </rect>
   </property>
@@ -17,9 +17,9 @@
    <widget class="QPushButton" name="EndCallButton">
     <property name="geometry">
      <rect>
-      <x>370</x>
-      <y>520</y>
-      <width>131</width>
+      <x>20</x>
+      <y>540</y>
+      <width>91</width>
       <height>41</height>
      </rect>
     </property>
@@ -30,35 +30,170 @@
    <widget class="VideoWidget" name="videoCall" native="true">
     <property name="geometry">
      <rect>
-      <x>120</x>
-      <y>30</y>
-      <width>640</width>
-      <height>480</height>
+      <x>0</x>
+      <y>0</y>
+      <width>320</width>
+      <height>240</height>
      </rect>
     </property>
-    <widget class="VideoWidget" name="SelfView" native="true">
-     <property name="geometry">
-      <rect>
-       <x>512</x>
-       <y>384</y>
-       <width>128</width>
-       <height>96</height>
-      </rect>
-     </property>
-    </widget>
    </widget>
+   <widget class="VideoWidget" name="SelfView" native="true">
+    <property name="geometry">
+     <rect>
+      <x>270</x>
+      <y>490</y>
+      <width>128</width>
+      <height>96</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="addParticipant">
+    <property name="geometry">
+     <rect>
+      <x>590</x>
+      <y>540</y>
+      <width>101</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Add participant</string>
+    </property>
+   </widget>
+   <widget class="QTextEdit" name="ip">
+    <property name="geometry">
+     <rect>
+      <x>720</x>
+      <y>540</y>
+      <width>151</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="html">
+     <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;127.0.0.1&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
+   </widget>
+   <widget class="QTextEdit" name="port">
+    <property name="geometry">
+     <rect>
+      <x>899</x>
+      <y>540</y>
+      <width>141</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="html">
+     <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;18888&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
+   </widget>
+   <widget class="VideoWidget" name="videoCall_2" native="true">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>240</y>
+      <width>320</width>
+      <height>240</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="VideoWidget" name="videoCall_3" native="true">
+    <property name="geometry">
+     <rect>
+      <x>320</x>
+      <y>0</y>
+      <width>320</width>
+      <height>240</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="VideoWidget" name="videoCall_4" native="true">
+    <property name="geometry">
+     <rect>
+      <x>320</x>
+      <y>240</y>
+      <width>320</width>
+      <height>240</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="VideoWidget" name="videoCall_5" native="true">
+    <property name="geometry">
+     <rect>
+      <x>640</x>
+      <y>0</y>
+      <width>320</width>
+      <height>240</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="VideoWidget" name="videoCall_6" native="true">
+    <property name="geometry">
+     <rect>
+      <x>640</x>
+      <y>240</y>
+      <width>320</width>
+      <height>240</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="VideoWidget" name="videoCall_7" native="true">
+    <property name="geometry">
+     <rect>
+      <x>960</x>
+      <y>0</y>
+      <width>320</width>
+      <height>240</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="VideoWidget" name="videoCall_8" native="true">
+    <property name="geometry">
+     <rect>
+      <x>960</x>
+      <y>240</y>
+      <width>320</width>
+      <height>240</height>
+     </rect>
+    </property>
+   </widget>
+   <zorder>EndCallButton</zorder>
+   <zorder>videoCall</zorder>
+   <zorder>addParticipant</zorder>
+   <zorder>ip</zorder>
+   <zorder>port</zorder>
+   <zorder>videoCall_2</zorder>
+   <zorder>videoCall_3</zorder>
+   <zorder>videoCall_4</zorder>
+   <zorder>videoCall_5</zorder>
+   <zorder>videoCall_6</zorder>
+   <zorder>videoCall_7</zorder>
+   <zorder>videoCall_8</zorder>
+   <zorder>SelfView</zorder>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>880</width>
+     <width>1280</width>
      <height>21</height>
     </rect>
    </property>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionAdd_Caller">
+   <property name="text">
+    <string>Add Caller</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -86,5 +221,24 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>addParticipant</sender>
+   <signal>clicked()</signal>
+   <receiver>CallWindow</receiver>
+   <slot>addParticipant()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>640</x>
+     <y>581</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>639</x>
+     <y>319</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
+ <slots>
+  <slot>addParticipant()</slot>
+ </slots>
 </ui>

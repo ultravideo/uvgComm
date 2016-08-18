@@ -35,14 +35,17 @@ void FilterGraph::initSender(VideoWidget *selfView)
   selfviewFilter->setProperties(true, QSize(128,96));
   filters_.push_back(selfviewFilter);
   filters_.at(0)->addOutConnection(filters_.back());
+  filters_.back()->start();
 
   filters_.push_back(new RGB32toYUV());
   filters_.at(0)->addOutConnection(filters_.back());
+  filters_.back()->start();
 
   KvazaarFilter* kvz = new KvazaarFilter();
   kvz->init(640, 480, 15,1, 0);
   filters_.push_back(kvz);
   filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
+  filters_.back()->start();
 
   encoderFilter_ = filters_.size() - 1;
 
@@ -64,27 +67,34 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
 
     filters_.push_back(framedSource);
     filters_.at(encoderFilter_)->addOutConnection(filters_.back());
+    filters_.back()->start();
   }
 
-  if(sendsVideo)
+  if(sendsVideo && view != NULL)
   {
     // Receiving video graph
     Filter* rtpSink = NULL;
     rtpSink = streamer_.getSinkFilter(peer);
 
     filters_.push_back(rtpSink);
+    filters_.back()->start();
 
     OpenHEVCFilter* decoder =  new OpenHEVCFilter();
     decoder->init();
     filters_.push_back(decoder);
     filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
+    filters_.back()->start();
 
     filters_.push_back(new YUVtoRGB32());
     filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
+    filters_.back()->start();
 
     filters_.push_back(new DisplayFilter(view));
     filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
+    filters_.back()->start();
   }
+  else if(view == NULL)
+    qWarning() << "Warn: wanted to receive video, but no view available";
 }
 
 
@@ -102,7 +112,7 @@ void FilterGraph::deconstruct()
   filters_.clear();
 }
 
-void FilterGraph::run()
+void FilterGraph::restart()
 {
   for(Filter* f : filters_)
     f->start();
