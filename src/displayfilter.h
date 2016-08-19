@@ -1,8 +1,5 @@
 #pragma once
 
-#include <QPainter>
-#include <QSize>
-
 #include "filter.h"
 
 class VideoWidget;

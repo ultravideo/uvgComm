@@ -38,16 +38,16 @@ public:
   FramedSourceFilter* getSourceFilter(PeerID peer)
   {
     peer_.lock();
+    Q_ASSERT(senders_.find(peer) != senders_.end());
     peer_.unlock();
-    Q_ASSERT(senders_.find(peer) == senders_.end());
     return senders_[peer]->videoSource;
   }
 
   RTPSinkFilter* getSinkFilter(PeerID peer)
   {
     peer_.lock();
+    Q_ASSERT(receivers_.find(peer) != receivers_.end());
     peer_.unlock();
-    Q_ASSERT(receivers_.find(peer) == receivers_.end());
     return receivers_[peer]->videoSink;
   }
 

@@ -2,15 +2,12 @@
 
 #include <QPaintEvent>
 #include <QDebug>
-
-
-
+#include <QCoreApplication>
 
 VideoWidget::VideoWidget(QWidget* parent): QWidget(parent), hasImage_(false)
 {
   setAutoFillBackground(false);
   setAttribute(Qt::WA_NoSystemBackground, true);
-  setAttribute(Qt::WA_PaintOnScreen, true);
 
   QPalette palette = this->palette();
   palette.setColor(QPalette::Background, Qt::black);
@@ -18,9 +15,9 @@ VideoWidget::VideoWidget(QWidget* parent): QWidget(parent), hasImage_(false)
 
   setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
 }
+
 VideoWidget::~VideoWidget()
 {}
-
 
 void VideoWidget::inputImage(std::unique_ptr<uchar[]> input,
                              QImage &image, QSize padding)
@@ -30,7 +27,6 @@ void VideoWidget::inputImage(std::unique_ptr<uchar[]> input,
   input_ = std::move(input);
   currentImage_ = image;
   drawMutex_.unlock();
-
   hasImage_ = true;
   update();
 }
@@ -46,6 +42,7 @@ void VideoWidget::paintEvent(QPaintEvent *event)
   {
     drawMutex_.lock();
     Q_ASSERT(input_);
+
     painter.drawImage(currentImage_.rect(), currentImage_);
     drawMutex_.unlock();
   }

@@ -133,7 +133,7 @@ PeerID RTPStreamer::addPeer(in_addr peerAddress, bool video, bool audio)
   peer_.unlock();
   iniated_.unlock();
 
-  qDebug() << "RTP streamer: Peer added";
+  qDebug() << "RTP streamer: Peer added:" << peerID;
 
   return peerID;
 }
