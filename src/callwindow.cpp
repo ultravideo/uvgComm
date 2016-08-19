@@ -12,8 +12,8 @@ CallWindow::CallWindow(QWidget *parent) :
   participants_(0)
 {
   ui_->setupUi(this);
-
-  fg_.init(ui_->SelfView);
+  QSize resolution(320, 240);
+  fg_.init(ui_->SelfView, resolution);
 }
 
 CallWindow::~CallWindow()
@@ -28,7 +28,7 @@ CallWindow::~CallWindow()
 
 void CallWindow::addParticipant()
 {
-  qDebug() << "User wants to add participant to phone call";
+  qDebug() << "User wants to add participant to phone call. #" << participants_;
   QString ip_str = ui_->ip->toPlainText();
   QString port_str = ui_->port->toPlainText();
 

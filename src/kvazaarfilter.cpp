@@ -3,6 +3,7 @@
 #include <kvazaar.h>
 #include <QtDebug>
 
+#include <QSize>
 
 
 KvazaarFilter::KvazaarFilter():
@@ -15,8 +16,7 @@ KvazaarFilter::KvazaarFilter():
 name_ = "KvazF";
 }
 
-int KvazaarFilter::init(unsigned int width,
-                        unsigned int height,
+int KvazaarFilter::init(QSize resolution,
                         int32_t framerate_num,
                         int32_t framerate_denom,
                         float target_bitrate)
@@ -43,8 +43,8 @@ int KvazaarFilter::init(unsigned int width,
 
   api_->config_init(config_);
   api_->config_parse(config_, "preset", "ultrafast");
-  config_->width = width;
-  config_->height = height;
+  config_->width = resolution.width();
+  config_->height = resolution.height();
   config_->threads = 4;
   config_->qp = 32;
   config_->wpp = 1;
@@ -63,7 +63,7 @@ int KvazaarFilter::init(unsigned int width,
     return C_FAILURE;
   }
 
-  input_pic_ = api_->picture_alloc(width, height);
+  input_pic_ = api_->picture_alloc(config_->width, config_->height);
 
   if(!input_pic_)
   {

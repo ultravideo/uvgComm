@@ -13,8 +13,7 @@ class KvazaarFilter : public Filter
 public:
   KvazaarFilter();
 
-  int init(unsigned int width,
-           unsigned int height,
+  int init(QSize resolution,
            int32_t framerate_num,
            int32_t framerate_denom,
            float target_bitrate);

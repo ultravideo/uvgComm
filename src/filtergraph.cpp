@@ -16,19 +16,19 @@ FilterGraph::FilterGraph():filters_()//, streamControl_()
 
 }
 
-void FilterGraph::init(VideoWidget* selfView)
+void FilterGraph::init(VideoWidget* selfView, QSize resolution)
 {
   streamer_.setPorts(15555,18888);
   streamer_.start();
 
-  initSender(selfView);
+  initSender(selfView, resolution);
 }
 
 
-void FilterGraph::initSender(VideoWidget *selfView)
+void FilterGraph::initSender(VideoWidget *selfView, QSize resolution)
 {
   // Sending video graph
-  filters_.push_back(new CameraFilter());
+  filters_.push_back(new CameraFilter(resolution));
 
   // connect selfview to camera
   DisplayFilter* selfviewFilter = new DisplayFilter(selfView);
@@ -42,7 +42,7 @@ void FilterGraph::initSender(VideoWidget *selfView)
   filters_.back()->start();
 
   KvazaarFilter* kvz = new KvazaarFilter();
-  kvz->init(640, 480, 15,1, 0);
+  kvz->init(resolution, 15,1, 0);
   filters_.push_back(kvz);
   filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
   filters_.back()->start();

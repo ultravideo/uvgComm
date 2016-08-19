@@ -16,7 +16,7 @@ class FilterGraph
 public:
   FilterGraph();
 
-  void init(VideoWidget* selfView);
+  void init(VideoWidget* selfView, QSize resolution);
 
   ParticipantID addParticipant(in_addr ip, uint16_t port, VideoWidget* view = NULL,
                       bool wantsAudio = true, bool sendsAudio = true,
@@ -37,7 +37,7 @@ public:
 private:
 
   // starts the camera and the encoder
-  void initSender(VideoWidget *selfView);
+  void initSender(VideoWidget *selfView, QSize resolution);
 
   // attaches an RTP destination to video graph
   void attachVideoDestination(in_addr ip, uint16_t port);
