@@ -22,10 +22,9 @@ public:
     return true;
   }
 
-  void setProperties(bool mirror, QSize scale)
+  void setProperties(bool mirror)
   {
     mirrored_ = mirror;
-    scale_ = scale;
   }
 
 protected:
@@ -34,7 +33,6 @@ protected:
 private:
 
   bool mirrored_;
-  QSize scale_;
   // DO NOT FREE MEMORY HERE
   VideoWidget* widget_;
 

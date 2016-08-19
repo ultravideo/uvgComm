@@ -32,7 +32,7 @@ void FilterGraph::initSender(VideoWidget *selfView, QSize resolution)
 
   // connect selfview to camera
   DisplayFilter* selfviewFilter = new DisplayFilter(selfView);
-  selfviewFilter->setProperties(true, QSize(128,96));
+  selfviewFilter->setProperties(true);
   filters_.push_back(selfviewFilter);
   filters_.at(0)->addOutConnection(filters_.back());
   filters_.back()->start();

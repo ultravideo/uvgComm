@@ -40,16 +40,8 @@ void DisplayFilter::process()
             input->height,
             format);
 
-      if(mirrored_)
-        image = image.mirrored(true, true);
-      else
-        image = image.mirrored(true, false);
-      if(!scale_.isEmpty() && scale_.isValid())
-        image = image.scaled(scale_);
-      else
-      {
-        image = image.scaled(widget_->size(), Qt::KeepAspectRatio);
-      }
+      image = image.mirrored(true, mirrored_);
+      image = image.scaled(widget_->size(), Qt::KeepAspectRatio);
 
       QSize padding = (widget_->size() - image.size())/2;
 
