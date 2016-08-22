@@ -29,4 +29,6 @@ private:
   FilterGraph fg_;
 
   unsigned int participants_;
+
+  QTimer *timer_;
 };

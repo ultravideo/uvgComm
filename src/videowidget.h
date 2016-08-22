@@ -19,6 +19,8 @@ public:
   void inputImage(std::unique_ptr<uchar[]> input,
                   QImage &image);
 
+  static unsigned int number_;
+
 protected:
   void paintEvent(QPaintEvent *event);
   void resizeEvent(QResizeEvent *event);
@@ -34,4 +36,6 @@ private:
   QMutex drawMutex_;
   QImage currentImage_;
   std::unique_ptr<uchar[]> input_;
+
+  unsigned int id_;
 };

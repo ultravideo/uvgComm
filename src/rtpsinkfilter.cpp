@@ -36,8 +36,8 @@ void RTPSinkFilter::afterGettingFrame(unsigned frameSize,
                        struct timeval presentationTime,
                        unsigned durationInMicroseconds)
 {
-  qDebug() << "Received HEVC frame. Size: " << frameSize
-           << ", truncated: " << numTruncatedBytes;
+  //qDebug() << "Received HEVC frame. Size: " << frameSize
+  //         << ", truncated: " << numTruncatedBytes;
 
   Q_ASSERT(numTruncatedBytes == 0);
 

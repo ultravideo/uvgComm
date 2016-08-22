@@ -4,8 +4,13 @@
 #include <QDebug>
 #include <QCoreApplication>
 
-VideoWidget::VideoWidget(QWidget* parent): QWidget(parent), hasImage_(false)
+unsigned int VideoWidget::number_ = 0;
+
+VideoWidget::VideoWidget(QWidget* parent): QWidget(parent),
+  hasImage_(false),
+  id_(number_)
 {
+  ++number_;
   setAutoFillBackground(false);
   setAttribute(Qt::WA_NoSystemBackground, true);
 
@@ -36,10 +41,10 @@ void VideoWidget::inputImage(std::unique_ptr<uchar[]> input,
 
 void VideoWidget::paintEvent(QPaintEvent *event)
 {
-  QPainter painter(this);
+  Q_UNUSED(event);
 
-  if(!hasImage_)
-    qWarning() << "VideoWidget has not received an Image for painting";
+  qDebug() << "PaintEvent for widget:" << id_;
+  QPainter painter(this);
 
   if(hasImage_)
   {
@@ -50,11 +55,14 @@ void VideoWidget::paintEvent(QPaintEvent *event)
     drawMutex_.unlock();
   }
   else
+  {
     painter.fillRect(event->rect(), QBrush(QColor(0,0,0)));
+  }
 }
 
 void VideoWidget::resizeEvent(QResizeEvent *event)
 {
+  qDebug() << "ResizeEvent:" << id_;
   QWidget::resizeEvent(event);
   updateTargetRect();
 }

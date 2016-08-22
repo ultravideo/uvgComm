@@ -17,8 +17,8 @@ void FramedSourceFilter::doGetNextFrame()
   fFrameSize = 0;
   if(frame)
   {
-    qDebug() << "Sending frame at sec since epoch:" << QDateTime::currentMSecsSinceEpoch()/1000
-             << "Framesize:" << frame->data_size << "/" << fMaxSize;
+    //qDebug() << "Sending frame at sec since epoch:" << QDateTime::currentMSecsSinceEpoch()/1000
+    //         << "Framesize:" << frame->data_size << "/" << fMaxSize;
     timeval present_time;
     present_time.tv_sec = 0;
     present_time.tv_usec = 0;

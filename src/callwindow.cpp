@@ -28,7 +28,7 @@ CallWindow::~CallWindow()
 
 void CallWindow::addParticipant()
 {
-  qDebug() << "User wants to add participant to phone call. #" << participants_;
+  qDebug() << "User wants to add participant to phone call. Num:" << participants_;
   QString ip_str = ui_->ip->toPlainText();
   QString port_str = ui_->port->toPlainText();
 
@@ -71,6 +71,8 @@ void CallWindow::addParticipant()
   }
 
   fg_.addParticipant(ip, port_str.toInt(), view);
+
+  qDebug() << "Participant" << participants_ << "added";
   ++participants_;
 
 }
