@@ -5,6 +5,8 @@
 #include <QHostAddress>
 #include <QtEndian>
 
+#include <QTimer>
+
 CallWindow::CallWindow(QWidget *parent) :
   QMainWindow(parent),
   ui_(new Ui::CallWindow),
@@ -14,6 +16,12 @@ CallWindow::CallWindow(QWidget *parent) :
   ui_->setupUi(this);
   QSize resolution(320, 240);
   fg_.init(ui_->SelfView, resolution);
+
+  timer_ = new QTimer(this);
+  timer_->setInterval(10);
+  timer_->setSingleShot(false);
+  connect(timer_, SIGNAL(timeout()), this, SLOT(update()));
+  timer_->start();
 }
 
 CallWindow::~CallWindow()
@@ -22,6 +30,8 @@ CallWindow::~CallWindow()
 
   fg_.uninit();
 
+  timer_->stop();
+  delete timer_;
   delete ui_->videoCall;
   delete ui_;
 }

@@ -36,7 +36,6 @@ void VideoWidget::inputImage(std::unique_ptr<uchar[]> input,
   drawMutex_.unlock();
 
   updateTargetRect();
-  update();
 }
 
 void VideoWidget::paintEvent(QPaintEvent *event)
