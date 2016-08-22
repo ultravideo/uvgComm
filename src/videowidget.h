@@ -17,13 +17,16 @@ public:
   VideoWidget(QWidget* parent = 0);
   ~VideoWidget();
   void inputImage(std::unique_ptr<uchar[]> input,
-                  QImage &image, QSize padding);
+                  QImage &image);
 
 protected:
   void paintEvent(QPaintEvent *event);
   void resizeEvent(QResizeEvent *event);
 
 private:
+
+  void updateTargetRect();
+
   bool hasImage_;
   QImage::Format imageFormat_;
   QRect targetRect_;

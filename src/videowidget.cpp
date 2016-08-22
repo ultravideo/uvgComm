@@ -20,14 +20,17 @@ VideoWidget::~VideoWidget()
 {}
 
 void VideoWidget::inputImage(std::unique_ptr<uchar[]> input,
-                             QImage &image, QSize padding)
+                             QImage &image)
 {
+  qDebug() << "Inputting image:" << id_;
   Q_ASSERT(input);
   drawMutex_.lock();
   input_ = std::move(input);
   currentImage_ = image;
-  drawMutex_.unlock();
   hasImage_ = true;
+  drawMutex_.unlock();
+
+  updateTargetRect();
   update();
 }
 
@@ -43,7 +46,7 @@ void VideoWidget::paintEvent(QPaintEvent *event)
     drawMutex_.lock();
     Q_ASSERT(input_);
 
-    painter.drawImage(currentImage_.rect(), currentImage_);
+    painter.drawImage(targetRect_, currentImage_);
     drawMutex_.unlock();
   }
   else
@@ -53,9 +56,17 @@ void VideoWidget::paintEvent(QPaintEvent *event)
 void VideoWidget::resizeEvent(QResizeEvent *event)
 {
   QWidget::resizeEvent(event);
-  QSize size = currentImage_.size();
-  size.scale(QWidget::size().boundedTo(size), Qt::KeepAspectRatio);
+  updateTargetRect();
+}
 
-  targetRect_ = QRect(QPoint(0, 0), size);
-  targetRect_.moveCenter(rect().center());
+void VideoWidget::updateTargetRect()
+{
+  if(hasImage_)
+  {
+    QSize size = currentImage_.size();
+    size.scale(QWidget::size().boundedTo(size), Qt::KeepAspectRatio);
+
+    targetRect_ = QRect(QPoint(0, 0), size);
+    targetRect_.moveCenter(rect().center());
+  }
 }
