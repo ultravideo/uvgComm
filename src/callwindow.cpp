@@ -42,6 +42,14 @@ void CallWindow::addParticipant()
   QString ip_str = ui_->ip->toPlainText();
   QString port_str = ui_->port->toPlainText();
 
+  uint16_t nextIp = 0;
+
+  nextIp = port_str.toInt();
+
+  nextIp += 2;
+
+  ui_->port->setText(QString::number(nextIp));
+
   QHostAddress address;
 
   address.setAddress(ip_str);

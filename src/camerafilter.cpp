@@ -75,8 +75,8 @@ void CameraFilter::handleFrame(const QVideoFrame &frame)
   newImage->width = resolution_.width();
   newImage->height = resolution_.height();
   newImage->data_size = image2.byteCount();
-  qDebug() << "Frame generated. Format: " << pf
-           << " width: " << newImage->width << ", height: " << newImage->height;
+  //qDebug() << "Frame generated. Format: " << pf
+  //         << " width: " << newImage->width << ", height: " << newImage->height;
 
   std::unique_ptr<Data> u_newImage( newImage );
   cloneFrame.unmap();

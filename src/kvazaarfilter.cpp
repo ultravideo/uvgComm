@@ -159,7 +159,11 @@ void KvazaarFilter::process()
       api_->picture_free(recon_pic);
 
       std::unique_ptr<Data> hevc_frame_data( hevc_frame );
+
+      qDebug() << "Frame encoded. Size:" << hevc_frame_data->data_size
+               << " width:" << hevc_frame_data->width << ", height:" << hevc_frame_data->height;
       sendOutput(std::move(hevc_frame_data));
+
     }
     input = getInput();
   }

@@ -27,7 +27,7 @@ VideoWidget::~VideoWidget()
 void VideoWidget::inputImage(std::unique_ptr<uchar[]> input,
                              QImage &image)
 {
-  qDebug() << "Inputting image:" << id_;
+  //qDebug() << "Inputting image:" << id_;
   Q_ASSERT(input);
   drawMutex_.lock();
   input_ = std::move(input);
@@ -42,7 +42,7 @@ void VideoWidget::paintEvent(QPaintEvent *event)
 {
   Q_UNUSED(event);
 
-  qDebug() << "PaintEvent for widget:" << id_;
+  //qDebug() << "PaintEvent for widget:" << id_;
   QPainter painter(this);
 
   if(hasImage_)
