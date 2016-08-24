@@ -29,7 +29,9 @@ SOURCES +=\
     src/yuvtorgb32.cpp \
     src/rtpstreamer.cpp \
     src/framedsourcefilter.cpp \
-    src/rtpsinkfilter.cpp
+    src/rtpsinkfilter.cpp \
+    src/audiocapturefilter.cpp \
+    src/audiocapturedevice.cpp
 
 HEADERS  += \
     src/callwindow.h \
@@ -46,7 +48,9 @@ HEADERS  += \
     src/yuvtorgb32.h \
     src/rtpstreamer.h \
     src/framedsourcefilter.h \
-    src/rtpsinkfilter.h
+    src/rtpsinkfilter.h \
+    src/audiocapturefilter.h \
+    src/audiocapturedevice.h
 
 FORMS    += \
     ui/callwindow.ui \
