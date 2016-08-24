@@ -13,7 +13,7 @@ class CallWindow : public QMainWindow
   Q_OBJECT
 
 public:
-  explicit CallWindow(QWidget *parent);
+  explicit CallWindow(QWidget *parent, uint16_t width, uint16_t height);
   ~CallWindow();
 
   void startStream();

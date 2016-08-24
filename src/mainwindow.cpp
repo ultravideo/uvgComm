@@ -31,6 +31,11 @@ void MainWindow::startCall()
     call_ = NULL;
   }
 
-  call_ = new CallWindow(this);
+  QString width = ui_->width->toPlainText();
+  QString height = ui_->height->toPlainText();
+
+  call_ = new CallWindow(this, width.toInt(), height.toInt());
   call_->show();
 }
+
+

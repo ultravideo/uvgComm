@@ -7,14 +7,14 @@
 
 #include <QTimer>
 
-CallWindow::CallWindow(QWidget *parent) :
+CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height) :
   QMainWindow(parent),
   ui_(new Ui::CallWindow),
   fg_(),
   participants_(0)
 {
   ui_->setupUi(this);
-  QSize resolution(320, 240);
+  QSize resolution(width, height);
   fg_.init(ui_->SelfView, resolution);
 
   timer_ = new QTimer(this);
