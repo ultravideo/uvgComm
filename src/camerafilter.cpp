@@ -51,8 +51,8 @@ void CameraFilter::handleFrame(const QVideoFrame &frame)
 
   Q_ASSERT(pf == QVideoFrame::Format_RGB32);
 
+  // capture the frame data
   Data * newImage = new Data;
-
   newImage->type = RGB32VIDEO;
   std::unique_ptr<uchar> uu(new uchar[cloneFrame.mappedBytes()]);
   newImage->data = std::unique_ptr<uchar[]>(new uchar[cloneFrame.mappedBytes()]);
@@ -64,17 +64,27 @@ void CameraFilter::handleFrame(const QVideoFrame &frame)
   newImage->width = cloneFrame.width();
   newImage->height = cloneFrame.height();
 
-  QImage image(
-        newImage->data.get(),
-        newImage->width,
-        newImage->height,
-        QImage::Format_RGB32);
+  // scale the image and copy to new data
+  if(resolution_ != cloneFrame.size())
+  {
+    QImage image(
+          newImage->data.get(),
+          newImage->width,
+          newImage->height,
+          QImage::Format_RGB32);
 
-  QImage image2 = image.scaled(resolution_);
-  memcpy(newImage->data.get(), image2.bits(), image2.byteCount());
-  newImage->width = resolution_.width();
-  newImage->height = resolution_.height();
-  newImage->data_size = image2.byteCount();
+    QImage image2 = image.scaled(resolution_);
+    if(resolution_.width() * resolution_.height()
+       > cloneFrame.size().width() * cloneFrame.size().height())
+    {
+      newImage->data = std::unique_ptr<uchar[]>(new uchar[image2.byteCount()]);
+    }
+    memcpy(newImage->data.get(), image2.bits(), image2.byteCount());
+    newImage->width = resolution_.width();
+    newImage->height = resolution_.height();
+    newImage->data_size = image2.byteCount();
+  }
+
   //qDebug() << "Frame generated. Format: " << pf
   //         << " width: " << newImage->width << ", height: " << newImage->height;
 
