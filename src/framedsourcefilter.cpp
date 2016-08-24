@@ -8,6 +8,7 @@ FramedSourceFilter::FramedSourceFilter(UsageEnvironment &env, DataType type):
   FramedSource(env),
   type_(type)
 {
+  name_ = "FramedSourceF";
 }
 
 void FramedSourceFilter::doGetNextFrame()

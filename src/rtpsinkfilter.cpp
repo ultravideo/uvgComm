@@ -11,6 +11,7 @@ RTPSinkFilter::RTPSinkFilter(UsageEnvironment& env):
   Filter(), MediaSink(env)
 {
   fReceiveBuffer = new u_int8_t[BUFFER_SIZE];
+  name_ = "RTPSinkF";
 }
 
 RTPSinkFilter::~RTPSinkFilter()
