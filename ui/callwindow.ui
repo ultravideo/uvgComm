@@ -10,183 +10,172 @@
     <height>640</height>
    </rect>
   </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+    <horstretch>1</horstretch>
+    <verstretch>1</verstretch>
+   </sizepolicy>
+  </property>
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QPushButton" name="EndCallButton">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>540</y>
-      <width>91</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>End call</string>
-    </property>
-   </widget>
-   <widget class="VideoWidget" name="videoCall" native="true">
-    <property name="geometry">
-     <rect>
-      <x>0</x>
-      <y>0</y>
-      <width>320</width>
-      <height>240</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="VideoWidget" name="SelfView" native="true">
-    <property name="geometry">
-     <rect>
-      <x>270</x>
-      <y>490</y>
-      <width>128</width>
-      <height>96</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="addParticipant">
-    <property name="geometry">
-     <rect>
-      <x>590</x>
-      <y>540</y>
-      <width>101</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Add participant</string>
-    </property>
-   </widget>
-   <widget class="QTextEdit" name="ip">
-    <property name="geometry">
-     <rect>
-      <x>720</x>
-      <y>540</y>
-      <width>151</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>18</pointsize>
-     </font>
-    </property>
-    <property name="html">
-     <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+   <layout class="QGridLayout" name="gridLayout_2">
+    <item row="2" column="5">
+     <widget class="QPushButton" name="pushButton">
+      <property name="text">
+       <string>Statistics</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="2">
+     <widget class="QPushButton" name="addParticipant">
+      <property name="text">
+       <string>Add participant</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="3">
+     <widget class="QTextEdit" name="ip">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>200</width>
+        <height>50</height>
+       </size>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>18</pointsize>
+       </font>
+      </property>
+      <property name="html">
+       <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
 &lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:18pt; font-weight:400; font-style:normal;&quot;&gt;
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;127.0.0.1&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-    </property>
-   </widget>
-   <widget class="QTextEdit" name="port">
-    <property name="geometry">
-     <rect>
-      <x>899</x>
-      <y>540</y>
-      <width>141</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>18</pointsize>
-     </font>
-    </property>
-    <property name="html">
-     <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="0">
+     <widget class="QPushButton" name="EndCallButton">
+      <property name="text">
+       <string>End call</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="4">
+     <widget class="QTextEdit" name="port">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>100</width>
+        <height>50</height>
+       </size>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>18</pointsize>
+       </font>
+      </property>
+      <property name="html">
+       <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
 &lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:18pt; font-weight:400; font-style:normal;&quot;&gt;
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;18888&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-    </property>
-   </widget>
-   <widget class="VideoWidget" name="videoCall_2" native="true">
-    <property name="geometry">
-     <rect>
-      <x>0</x>
-      <y>240</y>
-      <width>320</width>
-      <height>240</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="VideoWidget" name="videoCall_3" native="true">
-    <property name="geometry">
-     <rect>
-      <x>320</x>
-      <y>0</y>
-      <width>320</width>
-      <height>240</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="VideoWidget" name="videoCall_4" native="true">
-    <property name="geometry">
-     <rect>
-      <x>320</x>
-      <y>240</y>
-      <width>320</width>
-      <height>240</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="VideoWidget" name="videoCall_5" native="true">
-    <property name="geometry">
-     <rect>
-      <x>640</x>
-      <y>0</y>
-      <width>320</width>
-      <height>240</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="VideoWidget" name="videoCall_6" native="true">
-    <property name="geometry">
-     <rect>
-      <x>640</x>
-      <y>240</y>
-      <width>320</width>
-      <height>240</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="VideoWidget" name="videoCall_7" native="true">
-    <property name="geometry">
-     <rect>
-      <x>960</x>
-      <y>0</y>
-      <width>320</width>
-      <height>240</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="VideoWidget" name="videoCall_8" native="true">
-    <property name="geometry">
-     <rect>
-      <x>960</x>
-      <y>240</y>
-      <width>320</width>
-      <height>240</height>
-     </rect>
-    </property>
-   </widget>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="1">
+     <widget class="VideoWidget" name="SelfView" native="true">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>32</width>
+        <height>24</height>
+       </size>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>320</width>
+        <height>240</height>
+       </size>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="0" rowspan="2" colspan="6">
+     <widget class="QWidget" name="participants" native="true">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>320</width>
+        <height>240</height>
+       </size>
+      </property>
+      <layout class="QGridLayout" name="gridLayout">
+       <property name="sizeConstraint">
+        <enum>QLayout::SetMaximumSize</enum>
+       </property>
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <item row="0" column="1">
+        <widget class="VideoWidget" name="videoCall" native="true"/>
+       </item>
+       <item row="0" column="3">
+        <widget class="VideoWidget" name="videoCall_4" native="true"/>
+       </item>
+       <item row="0" column="2">
+        <widget class="VideoWidget" name="videoCall_3" native="true"/>
+       </item>
+       <item row="1" column="1">
+        <widget class="VideoWidget" name="videoCall_8" native="true"/>
+       </item>
+       <item row="1" column="3">
+        <widget class="VideoWidget" name="videoCall_7" native="true"/>
+       </item>
+       <item row="0" column="0">
+        <widget class="VideoWidget" name="videoCall_5" native="true"/>
+       </item>
+       <item row="1" column="2">
+        <widget class="VideoWidget" name="videoCall_6" native="true"/>
+       </item>
+       <item row="1" column="0">
+        <widget class="VideoWidget" name="videoCall_2" native="true"/>
+       </item>
+      </layout>
+     </widget>
+    </item>
+   </layout>
    <zorder>EndCallButton</zorder>
-   <zorder>videoCall</zorder>
    <zorder>addParticipant</zorder>
    <zorder>ip</zorder>
    <zorder>port</zorder>
-   <zorder>videoCall_2</zorder>
-   <zorder>videoCall_3</zorder>
-   <zorder>videoCall_4</zorder>
-   <zorder>videoCall_5</zorder>
-   <zorder>videoCall_6</zorder>
-   <zorder>videoCall_7</zorder>
-   <zorder>videoCall_8</zorder>
    <zorder>SelfView</zorder>
+   <zorder>pushButton</zorder>
+   <zorder>participants</zorder>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
