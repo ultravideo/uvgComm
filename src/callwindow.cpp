@@ -1,6 +1,8 @@
 #include "callwindow.h"
 #include "ui_callwindow.h"
 
+#include "statisticswindow.h"
+
 #include <QCloseEvent>
 #include <QHostAddress>
 #include <QtEndian>
@@ -21,6 +23,7 @@ CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height) :
   timer_->setInterval(10);
   timer_->setSingleShot(false);
   connect(timer_, SIGNAL(timeout()), this, SLOT(update()));
+  connect(ui_->stats, SIGNAL(clicked()), this, SLOT(openStatistics()));
   timer_->start();
 }
 
@@ -32,7 +35,7 @@ CallWindow::~CallWindow()
 
   timer_->stop();
   delete timer_;
-  delete ui_->videoCall;
+  delete ui_->videoCall; // TODO delete rest of the video views?
   delete ui_;
 }
 
@@ -100,3 +103,16 @@ void CallWindow::closeEvent(QCloseEvent *event)
   fg_.stop();
   QMainWindow::closeEvent(event);
 }
+
+void CallWindow::openStatistics()
+{
+  if(stats_)
+  {
+    delete stats_;
+    stats_ = NULL;
+  }
+
+  stats_ = new StatisticsWindow(this);
+  stats_->show();
+}
+

@@ -4,6 +4,8 @@
 
 #include "filtergraph.h"
 
+class StatisticsWindow;
+
 namespace Ui {
 class CallWindow;
 }
@@ -22,9 +24,11 @@ public:
 
 public slots:
    void addParticipant();
+   void openStatistics();
 
 private:
   Ui::CallWindow *ui_;
+  StatisticsWindow *stats_;
 
   FilterGraph fg_;
 

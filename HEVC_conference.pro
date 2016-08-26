@@ -31,7 +31,8 @@ SOURCES +=\
     src/framedsourcefilter.cpp \
     src/rtpsinkfilter.cpp \
     src/audiocapturefilter.cpp \
-    src/audiocapturedevice.cpp
+    src/audiocapturedevice.cpp \
+    src/statisticswindow.cpp
 
 HEADERS  += \
     src/callwindow.h \
@@ -50,11 +51,13 @@ HEADERS  += \
     src/framedsourcefilter.h \
     src/rtpsinkfilter.h \
     src/audiocapturefilter.h \
-    src/audiocapturedevice.h
+    src/audiocapturedevice.h \
+    src/statisticswindow.h
 
 FORMS    += \
     ui/callwindow.ui \
-    ui/mainwindow.ui
+    ui/mainwindow.ui \
+    ui/statisticswindow.ui
 
 
 QT+=multimedia

@@ -22,7 +22,7 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_2">
     <item row="2" column="5">
-     <widget class="QPushButton" name="pushButton">
+     <widget class="QPushButton" name="stats">
       <property name="text">
        <string>Statistics</string>
       </property>
@@ -174,7 +174,7 @@ p, li { white-space: pre-wrap; }
    <zorder>ip</zorder>
    <zorder>port</zorder>
    <zorder>SelfView</zorder>
-   <zorder>pushButton</zorder>
+   <zorder>stats</zorder>
    <zorder>participants</zorder>
   </widget>
   <widget class="QMenuBar" name="menubar">
