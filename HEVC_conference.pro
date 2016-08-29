@@ -52,7 +52,8 @@ HEADERS  += \
     src/rtpsinkfilter.h \
     src/audiocapturefilter.h \
     src/audiocapturedevice.h \
-    src/statisticswindow.h
+    src/statisticswindow.h \
+    src/statisticsinterface.h
 
 FORMS    += \
     ui/callwindow.ui \
