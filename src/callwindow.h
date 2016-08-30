@@ -35,4 +35,9 @@ private:
   unsigned int participants_;
 
   QTimer *timer_;
+
+  int row_;
+  int column_;
+
+  QSize currentResolution_;
 };

@@ -13,11 +13,14 @@ CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height) :
   QMainWindow(parent),
   ui_(new Ui::CallWindow),
   fg_(),
-  participants_(0)
+  participants_(0),
+  timer_(),
+  row_(0),
+  column_(0)
 {
   ui_->setupUi(this);
-  QSize resolution(width, height);
-  fg_.init(ui_->SelfView, resolution);
+  currentResolution_ = QSize(width, height);
+  fg_.init(ui_->SelfView, currentResolution_);
 
   timer_ = new QTimer(this);
   timer_->setInterval(10);
@@ -39,7 +42,6 @@ CallWindow::~CallWindow()
   delete timer_;
 
   delete stats_;
-  delete ui_->videoCall; // TODO delete rest of the video views?
   delete ui_;
 }
 
@@ -64,35 +66,14 @@ void CallWindow::addParticipant()
   in_addr ip;
   ip.S_un.S_addr = qToBigEndian(address.toIPv4Address());
 
-  VideoWidget * view = NULL;
-  switch(participants_)
+  VideoWidget* view = new VideoWidget;
+  ui_->participantLayout->addWidget(view, row_, column_);
+
+  ++column_;
+  if(column_ == 3)
   {
-  case 0:
-    view = ui_->videoCall;
-    break;
-  case 1:
-    view = ui_->videoCall_2;
-    break;
-  case 2:
-    view = ui_->videoCall_3;
-    break;
-  case 3:
-    view = ui_->videoCall_4;
-    break;
-  case 4:
-    view = ui_->videoCall_5;
-    break;
-  case 5:
-    view = ui_->videoCall_6;
-    break;
-  case 6:
-    view = ui_->videoCall_7;
-    break;
-  case 7:
-    view = ui_->videoCall_8;
-    break;
-  default:
-    view = NULL;
+    column_ = 0;
+    ++row_;
   }
 
   fg_.addParticipant(ip, port_str.toInt(), view);
@@ -112,7 +93,6 @@ void CallWindow::closeEvent(QCloseEvent *event)
 
 void CallWindow::openStatistics()
 {
-
   stats_->show();
 }
 

@@ -134,37 +134,13 @@ p, li { white-space: pre-wrap; }
         <height>240</height>
        </size>
       </property>
-      <layout class="QGridLayout" name="gridLayout">
+      <layout class="QGridLayout" name="participantLayout">
        <property name="sizeConstraint">
         <enum>QLayout::SetMaximumSize</enum>
        </property>
        <property name="spacing">
         <number>0</number>
        </property>
-       <item row="0" column="1">
-        <widget class="VideoWidget" name="videoCall" native="true"/>
-       </item>
-       <item row="0" column="3">
-        <widget class="VideoWidget" name="videoCall_4" native="true"/>
-       </item>
-       <item row="0" column="2">
-        <widget class="VideoWidget" name="videoCall_3" native="true"/>
-       </item>
-       <item row="1" column="1">
-        <widget class="VideoWidget" name="videoCall_8" native="true"/>
-       </item>
-       <item row="1" column="3">
-        <widget class="VideoWidget" name="videoCall_7" native="true"/>
-       </item>
-       <item row="0" column="0">
-        <widget class="VideoWidget" name="videoCall_5" native="true"/>
-       </item>
-       <item row="1" column="2">
-        <widget class="VideoWidget" name="videoCall_6" native="true"/>
-       </item>
-       <item row="1" column="0">
-        <widget class="VideoWidget" name="videoCall_2" native="true"/>
-       </item>
       </layout>
      </widget>
     </item>
