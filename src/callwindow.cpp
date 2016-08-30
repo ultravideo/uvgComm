@@ -25,6 +25,8 @@ CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height) :
   connect(timer_, SIGNAL(timeout()), this, SLOT(update()));
   connect(ui_->stats, SIGNAL(clicked()), this, SLOT(openStatistics()));
   timer_->start();
+
+  stats_ = new StatisticsWindow(this);
 }
 
 CallWindow::~CallWindow()
@@ -35,6 +37,8 @@ CallWindow::~CallWindow()
 
   timer_->stop();
   delete timer_;
+
+  delete stats_;
   delete ui_->videoCall; // TODO delete rest of the video views?
   delete ui_;
 }
@@ -96,6 +100,8 @@ void CallWindow::addParticipant()
   qDebug() << "Participant" << participants_ << "added";
   ++participants_;
 
+  if(stats_)
+    stats_->addParticipant(ip_str, port_str);
 }
 
 void CallWindow::closeEvent(QCloseEvent *event)
@@ -106,13 +112,7 @@ void CallWindow::closeEvent(QCloseEvent *event)
 
 void CallWindow::openStatistics()
 {
-  if(stats_)
-  {
-    delete stats_;
-    stats_ = NULL;
-  }
 
-  stats_ = new StatisticsWindow(this);
   stats_->show();
 }
 

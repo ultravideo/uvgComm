@@ -5,11 +5,12 @@
 
 #include <map>
 
+#include <sys/time.h>
+
 class StatisticsInterface
 {
 public:
-  StatisticsInterface();
-  virtual ~StatisticsInterface();
+  StatisticsInterface(){}
 
   virtual void addNextInterface(StatisticsInterface* next) = 0;
 
