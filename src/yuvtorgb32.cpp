@@ -5,12 +5,9 @@
 #include <QDebug>
 
 
-
-
-YUVtoRGB32::YUVtoRGB32()
-{
-  name_ = "toRGB32";
-}
+YUVtoRGB32::YUVtoRGB32(StatisticsInterface *stats) :
+  Filter("YUVtoRGB32", stats)
+{}
 
 uint8_t clamp(int32_t input)
 {
@@ -20,8 +17,6 @@ uint8_t clamp(int32_t input)
   }
   return input;
 }
-
-
 
 // also flips input
 void YUVtoRGB32::process()

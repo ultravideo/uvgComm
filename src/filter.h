@@ -23,6 +23,7 @@ struct Data
 };
 
 const int BUFFERSIZE = 50;
+class StatisticsInterface;
 
 class Filter : public QThread
 {
@@ -30,7 +31,7 @@ class Filter : public QThread
   Q_OBJECT
 
 public:
-  Filter();
+  Filter(QString name, StatisticsInterface* stats);
   virtual ~Filter();
 
   // adds one outbound connection to this filter.
@@ -68,6 +69,7 @@ protected:
   }
 
   QString name_;
+  StatisticsInterface* stats_;
 
 private:
   QMutex *waitMutex_;

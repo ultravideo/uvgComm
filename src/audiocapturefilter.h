@@ -9,7 +9,7 @@
 class AudioCaptureFilter : public Filter
 {
 public:
-  AudioCaptureFilter();
+  AudioCaptureFilter(StatisticsInterface* stats);
 
   virtual ~AudioCaptureFilter();
 

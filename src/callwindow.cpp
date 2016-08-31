@@ -12,9 +12,10 @@
 CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height) :
   QMainWindow(parent),
   ui_(new Ui::CallWindow),
-  fg_(),
+  stats_(new StatisticsWindow(this)),
+  fg_(stats_),
   participants_(0),
-  timer_(),
+  timer_(new QTimer(this)),
   row_(0),
   column_(0)
 {
@@ -22,14 +23,13 @@ CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height) :
   currentResolution_ = QSize(width, height);
   fg_.init(ui_->SelfView, currentResolution_);
 
-  timer_ = new QTimer(this);
   timer_->setInterval(10);
   timer_->setSingleShot(false);
   connect(timer_, SIGNAL(timeout()), this, SLOT(update()));
   connect(ui_->stats, SIGNAL(clicked()), this, SLOT(openStatistics()));
   timer_->start();
 
-  stats_ = new StatisticsWindow(this);
+
 }
 
 CallWindow::~CallWindow()
@@ -40,7 +40,7 @@ CallWindow::~CallWindow()
 
   timer_->stop();
   delete timer_;
-
+  stats_->close();
   delete stats_;
   delete ui_;
 }

@@ -6,15 +6,14 @@
 #include <QSize>
 
 
-KvazaarFilter::KvazaarFilter():
+KvazaarFilter::KvazaarFilter(StatisticsInterface *stats):
+  Filter("Kvazaar", stats),
   api_(NULL),
   config_(NULL),
   enc_(NULL),
   pts_(0),
   input_pic_(NULL)
-{
-name_ = "KvazF";
-}
+{}
 
 int KvazaarFilter::init(QSize resolution,
                         int32_t framerate_num,

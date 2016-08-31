@@ -7,7 +7,7 @@
 class RTPSinkFilter : public Filter, public MediaSink
 {
 public:
-  RTPSinkFilter(UsageEnvironment& env);
+  RTPSinkFilter(StatisticsInterface* stats, UsageEnvironment& env);
 
   virtual ~RTPSinkFilter();
 

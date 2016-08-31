@@ -2,7 +2,7 @@
 
 #include <QDebug>
 
-Filter::Filter():running_(true), waitMutex_(new QMutex),
+Filter::Filter(QString name, StatisticsInterface *stats):name_(name), stats_(stats), running_(true), waitMutex_(new QMutex),
   inputTaken_(0), inputDiscarded_(0)
 {}
 

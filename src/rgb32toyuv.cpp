@@ -2,15 +2,9 @@
 
 #include <QtDebug>
 
-RGB32toYUV::RGB32toYUV()
-{
-  name_ = "RGBtoYUVF";
-
-}
-
-
-
-
+RGB32toYUV::RGB32toYUV(StatisticsInterface *stats) :
+  Filter("RGB32toYUV", stats)
+{}
 
 // also flips input
 void RGB32toYUV::process()

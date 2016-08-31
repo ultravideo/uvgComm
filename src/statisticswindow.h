@@ -3,6 +3,7 @@
 #include "statisticsinterface.h"
 
 #include <QDialog>
+#include <QMutex>
 
 class QStringListModel;
 
@@ -30,4 +31,6 @@ public:
 
 private:
   Ui::StatisticsWindow *ui_;
+
+  std::map<QString, uint16_t> buffers_;
 };

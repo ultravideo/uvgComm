@@ -7,7 +7,7 @@ class VideoWidget;
 class DisplayFilter : public Filter
 {
 public:
-  DisplayFilter(VideoWidget *widget);
+  DisplayFilter(StatisticsInterface* stats, VideoWidget *widget);
 
   virtual bool isInputFilter() const
   {

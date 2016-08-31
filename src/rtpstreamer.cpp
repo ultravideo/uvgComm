@@ -13,7 +13,7 @@
 
 #include <iostream>
 
-RTPStreamer::RTPStreamer():
+RTPStreamer::RTPStreamer(StatisticsInterface* stats):
   senders_(),
   receivers_(),
   nextID_(1),
@@ -24,7 +24,8 @@ RTPStreamer::RTPStreamer():
   audioPort_(15555),
   videoPort_(18888),
   stopRTP_(0),
-  env_(NULL)
+  env_(NULL),
+  stats_(stats)
 {
   // use unicast
   QString ip_str = "0.0.0.0";
@@ -188,7 +189,7 @@ void RTPStreamer::addH265VideoSend(PeerID peer, in_addr peerAddress)
                                    NULL,
                                    False);
 
-  sender->videoSource = new FramedSourceFilter(*env_, HEVCVIDEO);
+  sender->videoSource = new FramedSourceFilter(stats_, *env_, HEVCVIDEO);
 
   if(!sender->videoSource || !sender->videoSink)
   {
@@ -229,7 +230,7 @@ void RTPStreamer::addH265VideoReceive(PeerID peer, in_addr peerAddress)
   receiver->videoSource = H265VideoRTPSource::createNew(*env_, receiver->rtpGroupsock, 96);
   //recvVideoSource_ = H265VideoStreamFramer::createNew(*env_, recvRtpGroupsock_);
 
-  receiver->videoSink = new RTPSinkFilter(*env_);
+  receiver->videoSink = new RTPSinkFilter(stats_, *env_);
 
   if(!receiver->videoSource || !receiver->videoSink)
   {

@@ -4,12 +4,12 @@
 #include <QDebug>
 
 
-FramedSourceFilter::FramedSourceFilter(UsageEnvironment &env, DataType type):
+FramedSourceFilter::FramedSourceFilter(StatisticsInterface* stats,
+                                       UsageEnvironment &env, DataType type):
+  Filter("Framed source", stats),
   FramedSource(env),
   type_(type)
-{
-  name_ = "FramedSourceF";
-}
+{}
 
 void FramedSourceFilter::doGetNextFrame()
 {

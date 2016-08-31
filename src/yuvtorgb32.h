@@ -6,7 +6,7 @@
 class YUVtoRGB32 : public Filter
 {
 public:
-  YUVtoRGB32();
+  YUVtoRGB32(StatisticsInterface* stats);
 
 
   virtual bool isInputFilter() const

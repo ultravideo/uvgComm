@@ -7,11 +7,12 @@
 
 #include <QtDebug>
 
-CameraFilter::CameraFilter(QSize resolution):camera_(),
+CameraFilter::CameraFilter(StatisticsInterface *stats, QSize resolution):
+  Filter("Camera", stats),
+  camera_(),
   cameraFrameGrabber_(),
   resolution_(resolution)
 {
-  name_ = "CamF";
   camera_ = new QCamera(QCameraInfo::defaultCamera());
   cameraFrameGrabber_ = new CameraFrameGrabber();
 
@@ -34,7 +35,6 @@ void CameraFilter::process()
 {
   // do nothing because camera input is handled via camera signal
 }
-
 
 void CameraFilter::stop()
 {

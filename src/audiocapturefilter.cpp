@@ -4,13 +4,14 @@
 
 const int AUDIO_BUFFER_SIZE = 4096;
 
-AudioCaptureFilter::AudioCaptureFilter() :
-      deviceInfo_(QAudioDeviceInfo::defaultInputDevice())
-  ,   device_(0)
-  ,   audioInput_(0)
-  ,   input_(0)
-  ,   pullMode_(true)
-  ,   buffer_(AUDIO_BUFFER_SIZE, 0)
+AudioCaptureFilter::AudioCaptureFilter(StatisticsInterface *stats) :
+  Filter("Audio capture", stats),
+  deviceInfo_(QAudioDeviceInfo::defaultInputDevice()),
+  device_(0),
+  audioInput_(0),
+  input_(0),
+  pullMode_(true),
+  buffer_(AUDIO_BUFFER_SIZE, 0)
 {}
 
 AudioCaptureFilter::~AudioCaptureFilter(){}

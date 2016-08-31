@@ -9,7 +9,7 @@
 class OpenHEVCFilter : public Filter
 {
 public:
-  OpenHEVCFilter();
+  OpenHEVCFilter(StatisticsInterface* stats);
 
   void init();
 

@@ -8,13 +8,14 @@
 #include <vector>
 
 class VideoWidget;
+class StatisticsInterface;
 
 typedef uint16_t ParticipantID;
 
 class FilterGraph
 {
 public:
-  FilterGraph();
+  FilterGraph(StatisticsInterface *stats);
 
   void init(VideoWidget* selfView, QSize resolution);
 
@@ -57,5 +58,7 @@ private:
   unsigned int encoderFilter_;
 
   RTPStreamer streamer_;
+
+  StatisticsInterface* stats_;
 
 };

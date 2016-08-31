@@ -21,7 +21,7 @@ class RTPStreamer : public QThread
   Q_OBJECT
 
 public:
-  RTPStreamer();
+  RTPStreamer(StatisticsInterface* stats);
 
   //void setDestination(in_addr address, uint16_t port);
 
@@ -105,6 +105,8 @@ private:
 
   char stopRTP_;
   UsageEnvironment* env_;
+
+  StatisticsInterface* stats_;
 
 };
 

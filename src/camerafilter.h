@@ -12,7 +12,7 @@ class CameraFilter : public Filter
   Q_OBJECT
 
 public:
-  CameraFilter(QSize resolution);
+  CameraFilter(StatisticsInterface* stats, QSize resolution);
   ~CameraFilter();
 
   virtual bool isInputFilter() const

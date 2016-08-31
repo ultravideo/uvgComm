@@ -5,10 +5,10 @@
 
 
 
-OpenHEVCFilter::OpenHEVCFilter():handle_()
-{
-  name_ = "OHEVCF";
-}
+OpenHEVCFilter::OpenHEVCFilter(StatisticsInterface *stats):
+  Filter("OpenHEVC", stats),
+  handle_()
+{}
 
 void OpenHEVCFilter::init()
 {

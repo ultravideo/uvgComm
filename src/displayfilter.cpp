@@ -6,9 +6,10 @@
 #include "videowidget.h"
 
 
-DisplayFilter::DisplayFilter(VideoWidget *widget):widget_(widget)
+DisplayFilter::DisplayFilter(StatisticsInterface *stats, VideoWidget *widget):
+  Filter("Display", stats),
+  widget_(widget)
 {
-  name_ = "DispF";
   mirrored_ = false;
   widget_->show();
 }

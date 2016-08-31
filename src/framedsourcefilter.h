@@ -10,7 +10,8 @@
 class FramedSourceFilter : public FramedSource, public Filter
 {
 public:
-  FramedSourceFilter(UsageEnvironment &env, DataType type);
+  FramedSourceFilter(StatisticsInterface* stats,
+                     UsageEnvironment &env, DataType type);
 
   virtual void doGetNextFrame();
 

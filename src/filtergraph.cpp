@@ -11,9 +11,10 @@
 #include "displayfilter.h"
 
 
-FilterGraph::FilterGraph():filters_()//, streamControl_()
+FilterGraph::FilterGraph(StatisticsInterface* stats):filters_(), stats_(stats),
+  streamer_(stats)
 {
-
+  Q_ASSERT(stats);
 }
 
 void FilterGraph::init(VideoWidget* selfView, QSize resolution)
@@ -24,24 +25,24 @@ void FilterGraph::init(VideoWidget* selfView, QSize resolution)
   initSender(selfView, resolution);
 }
 
-
 void FilterGraph::initSender(VideoWidget *selfView, QSize resolution)
 {
+  Q_ASSERT(stats_);
   // Sending video graph
-  filters_.push_back(new CameraFilter(resolution));
+  filters_.push_back(new CameraFilter(stats_, resolution));
 
   // connect selfview to camera
-  DisplayFilter* selfviewFilter = new DisplayFilter(selfView);
+  DisplayFilter* selfviewFilter = new DisplayFilter(stats_, selfView);
   selfviewFilter->setProperties(true);
   filters_.push_back(selfviewFilter);
   filters_.at(0)->addOutConnection(filters_.back());
   filters_.back()->start();
 
-  filters_.push_back(new RGB32toYUV());
+  filters_.push_back(new RGB32toYUV(stats_));
   filters_.at(0)->addOutConnection(filters_.back());
   filters_.back()->start();
 
-  KvazaarFilter* kvz = new KvazaarFilter();
+  KvazaarFilter* kvz = new KvazaarFilter(stats_);
   kvz->init(resolution, 15,1, 0);
   filters_.push_back(kvz);
   filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
@@ -56,6 +57,8 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
                                           bool wantsAudio, bool sendsAudio,
                                           bool wantsVideo, bool sendsVideo)
 {
+  Q_ASSERT(stats_);
+
   if(port != 0)
     streamer_.setPorts(15555, port);
 
@@ -79,17 +82,17 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
     filters_.push_back(rtpSink);
     filters_.back()->start();
 
-    OpenHEVCFilter* decoder =  new OpenHEVCFilter();
+    OpenHEVCFilter* decoder =  new OpenHEVCFilter(stats_);
     decoder->init();
     filters_.push_back(decoder);
     filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
     filters_.back()->start();
 
-    filters_.push_back(new YUVtoRGB32());
+    filters_.push_back(new YUVtoRGB32(stats_));
     filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
     filters_.back()->start();
 
-    filters_.push_back(new DisplayFilter(view));
+    filters_.push_back(new DisplayFilter(stats_, view));
     filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
     filters_.back()->start();
   }
