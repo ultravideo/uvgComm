@@ -143,6 +143,7 @@ void KvazaarFilter::process()
       hevc_frame->data = std::unique_ptr<uchar[]>(new uchar[len_out]);
       hevc_frame->width = input->width;
       hevc_frame->height = input->height;
+      hevc_frame->presentationTime = input->presentationTime;
       hevc_frame->type = HEVCVIDEO;
 
       uint8_t* writer = hevc_frame->data.get();

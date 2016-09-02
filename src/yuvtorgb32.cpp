@@ -30,6 +30,7 @@ void YUVtoRGB32::process()
     rgb32_frame->data = std::unique_ptr<uchar[]>(new uchar[rgb32_frame->data_size]);
     rgb32_frame->width = input->width;
     rgb32_frame->height = input->height;
+    rgb32_frame->presentationTime = input->presentationTime;
 
 
     // Luma pixels

@@ -4,7 +4,7 @@
 
 //#include <QCameraViewfinder>
 #include <QCameraInfo>
-
+#include <QTime>
 #include <QtDebug>
 
 CameraFilter::CameraFilter(StatisticsInterface *stats, QSize resolution):
@@ -53,6 +53,14 @@ void CameraFilter::handleFrame(const QVideoFrame &frame)
 
   // capture the frame data
   Data * newImage = new Data;
+
+  // set time
+  timeval present_time;
+
+  present_time.tv_sec = QDateTime::currentMSecsSinceEpoch()/1000;
+  present_time.tv_usec = (QDateTime::currentMSecsSinceEpoch()%1000) * 1000;
+
+  newImage->presentationTime = present_time;
   newImage->type = RGB32VIDEO;
   std::unique_ptr<uchar> uu(new uchar[cloneFrame.mappedBytes()]);
   newImage->data = std::unique_ptr<uchar[]>(new uchar[cloneFrame.mappedBytes()]);

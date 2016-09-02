@@ -1,6 +1,6 @@
 #include "framedsourcefilter.h"
 
-#include <QTime>
+
 #include <QDebug>
 
 
@@ -20,13 +20,8 @@ void FramedSourceFilter::doGetNextFrame()
   {
     //qDebug() << "Sending frame at sec since epoch:" << QDateTime::currentMSecsSinceEpoch()/1000
     //         << "Framesize:" << frame->data_size << "/" << fMaxSize;
-    timeval present_time;
-    present_time.tv_sec = 0;
-    present_time.tv_usec = 0;
-    present_time.tv_sec = QDateTime::currentMSecsSinceEpoch()/1000;
-    present_time.tv_usec = (QDateTime::currentMSecsSinceEpoch()%1000) * 1000;
-    fPresentationTime = present_time;
 
+    fPresentationTime = frame->presentationTime;
     fDurationInMicroseconds = 1000000/30;
 
     if(frame->data_size > fMaxSize)

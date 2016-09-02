@@ -57,6 +57,7 @@ void OpenHEVCFilter::process()
     {
 
       Data *yuv_frame = new Data;
+      yuv_frame->presentationTime = input->presentationTime;
       yuv_frame->width = openHevcFrame.frameInfo.nWidth;
       yuv_frame->height = openHevcFrame.frameInfo.nHeight;
       yuv_frame->data_size = yuv_frame->width*yuv_frame->height + yuv_frame->width*yuv_frame->height/2;

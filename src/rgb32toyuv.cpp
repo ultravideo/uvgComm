@@ -18,6 +18,7 @@ void RGB32toYUV::process()
     yuv_data->data = std::unique_ptr<uchar[]>(new uchar[yuv_data->data_size]);
     yuv_data->width = input->width;
     yuv_data->height = input->height;
+    yuv_data->presentationTime = input->presentationTime;
 
     uint8_t* Y = yuv_data->data.get();
     uint8_t* U = &(yuv_data->data[input->width*input->height]);
