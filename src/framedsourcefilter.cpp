@@ -1,5 +1,6 @@
 #include "framedsourcefilter.h"
 
+#include "statisticsinterface.h"
 
 #include <QDebug>
 
@@ -35,6 +36,7 @@ void FramedSourceFilter::doGetNextFrame()
     }
 
     memcpy(fTo, frame->data.get(), fFrameSize);
+    stats_->addSendPacket(frame->data_size);
   }
 
   nextTask() = envir().taskScheduler().scheduleDelayedTask(1,

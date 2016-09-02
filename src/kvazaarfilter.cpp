@@ -1,8 +1,10 @@
 #include "kvazaarfilter.h"
 
+#include "statisticsinterface.h"
+
 #include <kvazaar.h>
 #include <QtDebug>
-
+#include <QTime>
 #include <QSize>
 
 
@@ -50,6 +52,7 @@ int KvazaarFilter::init(QSize resolution,
   config_->vps_period = 1;
   config_->intra_period = 64;
 
+  stats_->videoInfo(double(framerate_num/framerate_denom), resolution);
 
 
   //config_->target_bitrate = target_bitrate;
@@ -145,6 +148,11 @@ void KvazaarFilter::process()
       hevc_frame->height = input->height;
       hevc_frame->presentationTime = input->presentationTime;
       hevc_frame->type = HEVCVIDEO;
+
+      uint32_t delay = QDateTime::currentMSecsSinceEpoch() -
+          (hevc_frame->presentationTime.tv_sec * 1000 + hevc_frame->presentationTime.tv_usec/1000);
+      stats_->delayTime("video", delay);
+      stats_->addEncodedVideo(hevc_frame->data_size);
 
       uint8_t* writer = hevc_frame->data.get();
 

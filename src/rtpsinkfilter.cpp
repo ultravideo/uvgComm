@@ -2,6 +2,7 @@
 
 #include <QDebug>
 
+#include <statisticsinterface.h>
 
 const uint32_t BUFFER_SIZE = 65536;
 
@@ -40,7 +41,11 @@ void RTPSinkFilter::afterGettingFrame(unsigned frameSize,
   //qDebug() << "Received HEVC frame. Size: " << frameSize
   //         << ", truncated: " << numTruncatedBytes;
 
+
+  // TODO increase buffer for large frames
   Q_ASSERT(numTruncatedBytes == 0);
+
+  stats_->addReceivePacket(frameSize);
 
   Data *received_picture = new Data;
   received_picture->data_size = frameSize;

@@ -43,7 +43,7 @@ void FilterGraph::initSender(VideoWidget *selfView, QSize resolution)
   filters_.back()->start();
 
   KvazaarFilter* kvz = new KvazaarFilter(stats_);
-  kvz->init(resolution, 15,1, 0);
+  kvz->init(resolution, 30, 1, 0);
   filters_.push_back(kvz);
   filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
   filters_.back()->start();

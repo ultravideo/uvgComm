@@ -32,7 +32,7 @@
    <item row="0" column="0">
     <widget class="QTabWidget" name="Statistics_tabs">
      <property name="currentIndex">
-      <number>0</number>
+      <number>2</number>
      </property>
      <widget class="QWidget" name="Participants">
       <attribute name="title">
@@ -49,8 +49,21 @@
        <string>Network</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout">
-       <item row="1" column="0">
-        <widget class="QLabel" name="packets_received">
+       <item row="5" column="0">
+        <spacer name="network_spacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>548</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="data_sent">
          <property name="maximumSize">
           <size>
            <width>150</width>
@@ -58,7 +71,7 @@
           </size>
          </property>
          <property name="text">
-          <string>RTP packets received:</string>
+          <string>Data sent:</string>
          </property>
         </widget>
        </item>
@@ -88,28 +101,8 @@
          </property>
         </widget>
        </item>
-       <item row="5" column="1">
-        <spacer name="network_spacer_2">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>40</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="3" column="1">
-        <widget class="QLabel" name="data_sent_value">
-         <property name="text">
-          <string>0</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="data_sent">
+       <item row="1" column="0">
+        <widget class="QLabel" name="packets_received">
          <property name="maximumSize">
           <size>
            <width>150</width>
@@ -117,34 +110,7 @@
           </size>
          </property>
          <property name="text">
-          <string>Data sent:</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="1">
-        <widget class="QLabel" name="packets_received_value">
-         <property name="text">
-          <string>0</string>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="0">
-        <spacer name="network_spacer">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>548</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="4" column="1">
-        <widget class="QLabel" name="data_received_value">
-         <property name="text">
-          <string>0</string>
+          <string>RTP packets received:</string>
          </property>
         </widget>
        </item>
@@ -155,27 +121,98 @@
          </property>
         </widget>
        </item>
+       <item row="1" column="1">
+        <widget class="QLabel" name="packets_received_value">
+         <property name="text">
+          <string>0</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QLabel" name="data_sent_value">
+         <property name="text">
+          <string>0</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1">
+        <widget class="QLabel" name="data_received_value">
+         <property name="text">
+          <string>0</string>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="widget">
+     <widget class="QWidget" name="Media">
       <attribute name="title">
        <string>Media</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_3">
-       <item row="8" column="0">
-        <spacer name="mediaspacer">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
+       <item row="9" column="1">
+        <widget class="QLabel" name="audio_delay_value">
+         <property name="text">
+          <string>-</string>
          </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>40</height>
-          </size>
-         </property>
-        </spacer>
+        </widget>
        </item>
-       <item row="1" column="0">
+       <item row="10" column="1">
+        <widget class="QLabel" name="sample_rate_value">
+         <property name="text">
+          <string>-</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="framerate">
+         <property name="text">
+          <string>Current framerate:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QLabel" name="framerate_value">
+         <property name="text">
+          <string>-</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="1">
+        <widget class="QLabel" name="video_bitrate_value">
+         <property name="text">
+          <string>-</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1">
+        <widget class="QLabel" name="resolution_value">
+         <property name="text">
+          <string>-</string>
+         </property>
+        </widget>
+       </item>
+       <item row="9" column="0">
+        <widget class="QLabel" name="audio_delay">
+         <property name="text">
+          <string>Received audio delay:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
+        <widget class="QLabel" name="encode_delay_value">
+         <property name="text">
+          <string>-</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QLabel" name="resolution">
+         <property name="text">
+          <string>Current resolution:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
         <widget class="QLabel" name="video">
          <property name="font">
           <font>
@@ -187,14 +224,40 @@
          </property>
         </widget>
        </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="framerate">
+       <item row="11" column="1">
+        <widget class="QLabel" name="bit_depth_value">
          <property name="text">
-          <string>Current framerate:</string>
+          <string>-</string>
          </property>
         </widget>
        </item>
-       <item row="6" column="0">
+       <item row="13" column="0">
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="13" column="1">
+        <spacer name="verticalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="8" column="0">
         <widget class="QLabel" name="audio">
          <property name="font">
           <font>
@@ -206,31 +269,73 @@
          </property>
         </widget>
        </item>
+       <item row="11" column="0">
+        <widget class="QLabel" name="bit_depth">
+         <property name="text">
+          <string>Bit depth</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLabel" name="packets_skipped_value">
+         <property name="text">
+          <string>-</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="0">
+        <widget class="QLabel" name="video_bitrate">
+         <property name="text">
+          <string>Bitrate:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="10" column="0">
+        <widget class="QLabel" name="sample_rate">
+         <property name="text">
+          <string>Sample Rate</string>
+         </property>
+        </widget>
+       </item>
        <item row="0" column="0">
         <widget class="QLabel" name="packets_skipped">
          <property name="text">
-          <string>Packets skipped:</string>
+          <string>Packets dropped:</string>
          </property>
         </widget>
        </item>
-       <item row="4" column="0">
-        <widget class="QLabel" name="video_delay">
+       <item row="5" column="0">
+        <widget class="QLabel" name="encode_delay">
          <property name="text">
-          <string>Received video delay:</string>
+          <string>Encoding delay:</string>
          </property>
         </widget>
        </item>
-       <item row="7" column="0">
-        <widget class="QLabel" name="audio_delay">
+       <item row="1" column="1">
+        <widget class="QLabel" name="buffer_sizes_value">
          <property name="text">
-          <string>Received audio delay:</string>
+          <string>-</string>
          </property>
         </widget>
        </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="resolution">
+       <item row="1" column="0">
+        <widget class="QLabel" name="buffer_sizes">
          <property name="text">
-          <string>Current resolution:</string>
+          <string>Total buffer size:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="12" column="0">
+        <widget class="QLabel" name="audio_bitrate">
+         <property name="text">
+          <string>Bitrate:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="12" column="1">
+        <widget class="QLabel" name="audio_bitrate_value">
+         <property name="text">
+          <string>-</string>
          </property>
         </widget>
        </item>

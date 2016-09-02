@@ -1,5 +1,7 @@
 #include "filter.h"
 
+#include "statisticswindow.h"
+
 #include <QDebug>
 
 Filter::Filter(QString name, StatisticsInterface *stats):name_(name), stats_(stats), running_(true), waitMutex_(new QMutex),
@@ -33,14 +35,18 @@ void Filter::putInput(std::unique_ptr<Data> data)
 
   bufferMutex_.lock();
 
-  if(inputTaken_%180 == 0)
+  if(inputTaken_%30 == 0)
+  {
+    stats_->updateBufferStatus(name_, inBuffer_.size());
     qDebug() << name_ << "buffer status:" << inBuffer_.size();
+  }
 
   if(inBuffer_.size() < BUFFERSIZE)
     inBuffer_.push(std::move(data));
   else
   {
     ++inputDiscarded_;
+    stats_->packetDropped();
     qDebug() << name_ << " buffer full. Discarded input: "
              << inputDiscarded_
              << " Total input: "
