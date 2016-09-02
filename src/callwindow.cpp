@@ -26,6 +26,7 @@ CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height) :
   timer_->setInterval(10);
   timer_->setSingleShot(false);
   connect(timer_, SIGNAL(timeout()), this, SLOT(update()));
+  connect(timer_, SIGNAL(timeout()), stats_, SLOT(update()));
   connect(ui_->stats, SIGNAL(clicked()), this, SLOT(openStatistics()));
   timer_->start();
 
@@ -88,11 +89,12 @@ void CallWindow::addParticipant()
 void CallWindow::closeEvent(QCloseEvent *event)
 {
   fg_.stop();
+  stats_->finished(0);
   QMainWindow::closeEvent(event);
 }
 
 void CallWindow::openStatistics()
 {
-  stats_->show();
+  stats_->open();
 }
 
