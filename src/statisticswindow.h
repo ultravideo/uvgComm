@@ -41,13 +41,15 @@ private:
 
   std::map<QString, uint16_t> buffers_;
 
+  // mutexes to prevent simultanious recording of certain statistics
   QMutex receiveMutex_;
   QMutex sendMutex_;
   QMutex bufferMutex_;
 
+  // should the buffervalue be updated in next paintEvent
   bool dirtyBuffers_;
-  // framerate rounded down
-  uint16_t framerate_;
+
+  uint16_t framerate_; // rounded down currently
   uint16_t bitrateCounter_;
   uint32_t bitrate_;
 

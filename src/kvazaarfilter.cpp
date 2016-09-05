@@ -51,9 +51,10 @@ int KvazaarFilter::init(QSize resolution,
   config_->wpp = 1;
   config_->vps_period = 1;
   config_->intra_period = 64;
+  config_->framerate_num = framerate_num;
+  config_->framerate_denom = framerate_denom;
 
   stats_->videoInfo(double(framerate_num/framerate_denom), resolution);
-
 
   //config_->target_bitrate = target_bitrate;
 
@@ -120,6 +121,7 @@ void KvazaarFilter::process()
       break;
     }
 
+    // copy input to kvazaar picture
     memcpy(input_pic_->y,
            input->data.get(),
            input->width*input->height);

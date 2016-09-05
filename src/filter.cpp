@@ -38,7 +38,7 @@ void Filter::putInput(std::unique_ptr<Data> data)
   if(inputTaken_%30 == 0)
   {
     stats_->updateBufferStatus(name_, inBuffer_.size());
-    qDebug() << name_ << "buffer status:" << inBuffer_.size();
+    //qDebug() << name_ << "buffer status:" << inBuffer_.size();
   }
 
   if(inBuffer_.size() < BUFFERSIZE)
@@ -78,6 +78,7 @@ void Filter::sendOutput(std::unique_ptr<Data> output)
     return;
   }
 
+  // copy input to outputs expect move it to the last
   for(unsigned int i = 0; i < outConnections_.size() - 1; ++i)
   {
     Data* copy = new Data;

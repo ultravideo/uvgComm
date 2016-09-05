@@ -51,14 +51,15 @@ public:
     return receivers_[peer]->videoSink;
   }
 
-  PeerID addPeer(in_addr peerAddress,
-                 bool video = true, bool audio = true);
+  PeerID addPeer(in_addr peerAddress, uint16_t framerate,
+                 bool video, bool audio);
+
   void removePeer(PeerID id);
 
 private:
 
   void initLiveMedia();
-  void addH265VideoSend(PeerID peer, in_addr peerAddress);
+  void addH265VideoSend(PeerID peer, in_addr peerAddress, uint16_t framerate);
   void addH265VideoReceive(PeerID peer, in_addr peerAddress);
   void uninit();
 

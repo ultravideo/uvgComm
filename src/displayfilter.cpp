@@ -1,10 +1,9 @@
 #include "displayfilter.h"
 
-#include <QImage>
-#include <QtDebug>
-
 #include "videowidget.h"
 
+#include <QImage>
+#include <QtDebug>
 
 DisplayFilter::DisplayFilter(StatisticsInterface *stats, VideoWidget *widget):
   Filter("Display", stats),

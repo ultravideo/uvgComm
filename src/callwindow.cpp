@@ -14,7 +14,6 @@ CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height) :
   ui_(new Ui::CallWindow),
   stats_(new StatisticsWindow(this)),
   fg_(stats_),
-  participants_(0),
   timer_(new QTimer(this)),
   row_(0),
   column_(0)
@@ -23,14 +22,14 @@ CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height) :
   currentResolution_ = QSize(width, height);
   fg_.init(ui_->SelfView, currentResolution_);
 
+  // GUI updates are handled solely by timer
   timer_->setInterval(10);
   timer_->setSingleShot(false);
   connect(timer_, SIGNAL(timeout()), this, SLOT(update()));
   connect(timer_, SIGNAL(timeout()), stats_, SLOT(update()));
-  connect(ui_->stats, SIGNAL(clicked()), this, SLOT(openStatistics()));
   timer_->start();
 
-
+  connect(ui_->stats, SIGNAL(clicked()), this, SLOT(openStatistics()));
 }
 
 CallWindow::~CallWindow()
@@ -48,20 +47,17 @@ CallWindow::~CallWindow()
 
 void CallWindow::addParticipant()
 {
-  qDebug() << "User wants to add participant to phone call. Num:" << participants_;
   QString ip_str = ui_->ip->toPlainText();
   QString port_str = ui_->port->toPlainText();
 
   uint16_t nextIp = 0;
 
   nextIp = port_str.toInt();
-
-  nextIp += 2;
+  nextIp += 2; // increase port for convencience
 
   ui_->port->setText(QString::number(nextIp));
 
   QHostAddress address;
-
   address.setAddress(ip_str);
 
   in_addr ip;
@@ -70,6 +66,7 @@ void CallWindow::addParticipant()
   VideoWidget* view = new VideoWidget;
   ui_->participantLayout->addWidget(view, row_, column_);
 
+  // TODO improve this algorithm
   ++column_;
   if(column_ == 3)
   {
@@ -78,9 +75,6 @@ void CallWindow::addParticipant()
   }
 
   fg_.addParticipant(ip, port_str.toInt(), view);
-
-  qDebug() << "Participant" << participants_ << "added";
-  ++participants_;
 
   if(stats_)
     stats_->addParticipant(ip_str, port_str);

@@ -58,8 +58,6 @@ void RTPStreamer::stop()
   stopRTP_ = 1;
 }
 
-
-
 void RTPStreamer::uninit()
 {
   Q_ASSERT(stopRTP_);
@@ -100,7 +98,6 @@ void RTPStreamer::uninit()
   qDebug() << "RTP streamer uninit succesful";
 }
 
-
 void RTPStreamer::initLiveMedia()
 {
   qDebug() << "Iniating live555";
@@ -112,7 +109,7 @@ void RTPStreamer::initLiveMedia()
   OutPacketBuffer::maxSize = 65536;
 }
 
-PeerID RTPStreamer::addPeer(in_addr peerAddress, bool video, bool audio)
+PeerID RTPStreamer::addPeer(in_addr peerAddress, uint16_t framerate, bool video, bool audio)
 {
   iniated_.lock();
   peer_.lock();
@@ -127,7 +124,7 @@ PeerID RTPStreamer::addPeer(in_addr peerAddress, bool video, bool audio)
 
   if(video)
   {
-    addH265VideoSend(peerID, peerAddress);
+    addH265VideoSend(peerID, peerAddress, framerate);
     addH265VideoReceive(peerID, peerAddress);
   }
 
@@ -144,8 +141,7 @@ void RTPStreamer::removePeer(PeerID id)
 
 }
 
-
-void RTPStreamer::addH265VideoSend(PeerID peer, in_addr peerAddress)
+void RTPStreamer::addH265VideoSend(PeerID peer, in_addr peerAddress, uint16_t framerate)
 {
   if (senders_.find(peer) != senders_.end())
   {
@@ -189,7 +185,7 @@ void RTPStreamer::addH265VideoSend(PeerID peer, in_addr peerAddress)
                                    NULL,
                                    False);
 
-  sender->videoSource = new FramedSourceFilter(stats_, *env_, HEVCVIDEO);
+  sender->videoSource = new FramedSourceFilter(stats_, *env_, HEVCVIDEO, framerate);
 
   if(!sender->videoSource || !sender->videoSink)
   {
@@ -216,11 +212,9 @@ void RTPStreamer::addH265VideoReceive(PeerID peer, in_addr peerAddress)
   }
   Receiver *receiver = new Receiver;
 
-
   qDebug() << "Iniating H265 receive video RTP/RTCP streams";
   receiver->rtpPort = new Port(videoPort_);
   //recvRtcpPort_ = new Port(portNum_ + 1);
-
 
   receiver->rtpGroupsock = new Groupsock(*env_, sessionAddress_, peerAddress, *receiver->rtpPort);
 
@@ -228,7 +222,6 @@ void RTPStreamer::addH265VideoReceive(PeerID peer, in_addr peerAddress)
 
   // todo: negotiate payload number
   receiver->videoSource = H265VideoRTPSource::createNew(*env_, receiver->rtpGroupsock, 96);
-  //recvVideoSource_ = H265VideoStreamFramer::createNew(*env_, recvRtpGroupsock_);
 
   receiver->videoSink = new RTPSinkFilter(stats_, *env_);
 
@@ -248,6 +241,3 @@ void RTPStreamer::addH265VideoReceive(PeerID peer, in_addr peerAddress)
 
   receivers_[peer] = receiver;
 }
-
-
-

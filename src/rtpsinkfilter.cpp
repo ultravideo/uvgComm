@@ -7,7 +7,6 @@
 const uint32_t BUFFER_SIZE = 65536;
 
 
-
 RTPSinkFilter::RTPSinkFilter(StatisticsInterface *stats, UsageEnvironment& env):
   Filter("RTP Sink", stats),
   MediaSink(env)
@@ -51,7 +50,7 @@ void RTPSinkFilter::afterGettingFrame(unsigned frameSize,
   received_picture->data_size = frameSize;
   received_picture->type = HEVCVIDEO;
   received_picture->data = std::unique_ptr<uchar[]>(new uchar[received_picture->data_size]);
-  received_picture->width = 0;
+  received_picture->width = 0; // not know at this point. Decoder tells the correct resolution
   received_picture->height = 0;
   received_picture->presentationTime = presentationTime;
   memcpy(received_picture->data.get(), fReceiveBuffer, received_picture->data_size);
@@ -61,10 +60,8 @@ void RTPSinkFilter::afterGettingFrame(unsigned frameSize,
   continuePlaying();
 }
 
-
 void RTPSinkFilter::process()
 {}
-
 
 Boolean RTPSinkFilter::continuePlaying() {
   if (fSource == NULL) return False; // sanity check (should not happen)

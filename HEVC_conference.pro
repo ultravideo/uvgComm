@@ -74,7 +74,8 @@ INCLUDEPATH += $$PWD/../live/groupsock/include
 INCLUDEPATH += $$PWD/../live/UsageEnvironment/include
 INCLUDEPATH += $$PWD/../live/BasicUsageEnvironment/include
 
-win32: LIBS += -L$$PWD/../ -llibkvazaar.dll
+win32: LIBS += -L$$PWD/../
+win32: LIBS += -llibkvazaar.dll
 win32: LIBS += -llibLibOpenHevcWrapper.dll
 win32: LIBS += -llivemedia.dll
 win32: LIBS += -lws2_32

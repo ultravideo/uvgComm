@@ -17,7 +17,7 @@ ui_(new Ui::StatisticsWindow),
   packetsDropped_(0)
 {
   ui_->setupUi(this);
-  ui_->participantTable->setColumnCount(2);
+  ui_->participantTable->setColumnCount(2); // more columns can be added later
   ui_->participantTable->setHorizontalHeaderItem(0, new QTableWidgetItem(QString("IP")));
   ui_->participantTable->setHorizontalHeaderItem(1, new QTableWidgetItem(QString("Port")));
 }
@@ -51,6 +51,7 @@ void StatisticsWindow::audioInfo(uint32_t sampleRate)
 void StatisticsWindow::addParticipant(QString ip, QString port)
 {
   ui_->participantTable->insertRow(ui_->participantTable->rowCount());
+  // add cells to table
   ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 0, new QTableWidgetItem(ip));
   ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 1, new QTableWidgetItem(port));
 }

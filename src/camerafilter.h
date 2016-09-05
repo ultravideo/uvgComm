@@ -28,6 +28,7 @@ public:
   virtual void stop();
 
 private slots:
+  // qcamera calls this when frame available
   void handleFrame(const QVideoFrame &frame);
 
 protected:

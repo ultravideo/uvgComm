@@ -24,7 +24,7 @@ public:
 
 public slots:
    void addParticipant();
-   void openStatistics();
+   void openStatistics(); // Opens statistics window
 
 private:
   Ui::CallWindow *ui_;
@@ -32,10 +32,9 @@ private:
 
   FilterGraph fg_;
 
-  unsigned int participants_;
+  QTimer *timer_; // for GUI update
 
-  QTimer *timer_;
-
+  // dynamic videowidget adding to layout
   int row_;
   int column_;
 

@@ -27,7 +27,6 @@ VideoWidget::~VideoWidget()
 void VideoWidget::inputImage(std::unique_ptr<uchar[]> input,
                              QImage &image)
 {
-  //qDebug() << "Inputting image:" << id_;
   Q_ASSERT(input);
   drawMutex_.lock();
   input_ = std::move(input);

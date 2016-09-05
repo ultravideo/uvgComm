@@ -6,10 +6,11 @@
 
 
 FramedSourceFilter::FramedSourceFilter(StatisticsInterface* stats,
-                                       UsageEnvironment &env, DataType type):
+                                       UsageEnvironment &env, DataType type, uint16_t framerate):
   Filter("Framed source", stats),
   FramedSource(env),
-  type_(type)
+  type_(type),
+  framerate_(framerate)
 {}
 
 void FramedSourceFilter::doGetNextFrame()
@@ -23,7 +24,7 @@ void FramedSourceFilter::doGetNextFrame()
     //         << "Framesize:" << frame->data_size << "/" << fMaxSize;
 
     fPresentationTime = frame->presentationTime;
-    fDurationInMicroseconds = 1000000/30;
+    fDurationInMicroseconds = 1000000/framerate_;
 
     if(frame->data_size > fMaxSize)
     {

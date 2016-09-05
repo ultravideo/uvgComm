@@ -1,8 +1,6 @@
 #include "audiocapturedevice.h"
 
-
 #include <QtEndian>
-
 
 AudioCaptureDevice::AudioCaptureDevice(const QAudioFormat &format, QObject *parent)
     :   QIODevice(parent)

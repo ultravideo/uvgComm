@@ -62,7 +62,7 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
   if(port != 0)
     streamer_.setPorts(15555, port);
 
-  PeerID peer = streamer_.addPeer(ip, true, true);
+  PeerID peer = streamer_.addPeer(ip, 30, true, true);
   if(wantsVideo)
   {
     Filter *framedSource = NULL;

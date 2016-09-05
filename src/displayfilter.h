@@ -30,7 +30,7 @@ protected:
 private:
 
   bool mirrored_;
-  // DO NOT FREE MEMORY HERE
+  // Owned by VideoCall window
   VideoWidget* widget_;
 
 };
