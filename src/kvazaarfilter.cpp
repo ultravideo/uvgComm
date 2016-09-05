@@ -30,7 +30,7 @@ int KvazaarFilter::init(QSize resolution,
   api_ = kvz_api_get(8);
   if(!api_)
   {
-    qCritical() << name_ << "failed to retreive Kvazaar API";
+    qCritical() << name_ << "failed to retrieve Kvazaar API";
     return C_FAILURE;
   }
   config_ = api_->config_alloc();
@@ -158,12 +158,10 @@ void KvazaarFilter::process()
 
       uint8_t* writer = hevc_frame->data.get();
 
-      kvz_data_chunk *previous_chunk = 0;
       for (kvz_data_chunk *chunk = data_out; chunk != NULL; chunk = chunk->next)
       {
         memcpy(writer, chunk->data, chunk->len);
         writer += chunk->len;
-        previous_chunk = chunk;
       }
       api_->chunk_free(data_out);
       api_->picture_free(recon_pic);

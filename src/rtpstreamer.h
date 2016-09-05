@@ -13,7 +13,7 @@
 class FramedSourceFilter;
 class RTPSinkFilter;
 
-typedef uint16_t PeerID;
+typedef int16_t PeerID;
 
 
 class RTPStreamer : public QThread

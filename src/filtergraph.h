@@ -61,4 +61,9 @@ private:
 
   StatisticsInterface* stats_;
 
+  //config stuff, moved to config later
+  uint16_t frameRate_;
+  QSize resolution_;
+  VideoWidget *selfView_;
+
 };

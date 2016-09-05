@@ -11,8 +11,12 @@
 #include "displayfilter.h"
 
 
-FilterGraph::FilterGraph(StatisticsInterface* stats):filters_(), stats_(stats),
-  streamer_(stats)
+FilterGraph::FilterGraph(StatisticsInterface* stats):
+  filters_(),
+  videoSendIniated_(false),
+  encoderFilter_(0),
+  streamer_(stats),
+  stats_(stats)
 {
   Q_ASSERT(stats);
 }
@@ -21,6 +25,10 @@ void FilterGraph::init(VideoWidget* selfView, QSize resolution)
 {
   streamer_.setPorts(15555,18888);
   streamer_.start();
+
+  resolution_ = resolution;
+  selfView_ = selfView;
+  frameRate_ = 30;
 
   initSender(selfView, resolution);
 }
@@ -43,14 +51,14 @@ void FilterGraph::initSender(VideoWidget *selfView, QSize resolution)
   filters_.back()->start();
 
   KvazaarFilter* kvz = new KvazaarFilter(stats_);
-  kvz->init(resolution, 30, 1, 0);
+  kvz->init(resolution, frameRate_, 1, 0);
   filters_.push_back(kvz);
   filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
   filters_.back()->start();
 
   encoderFilter_ = filters_.size() - 1;
 
-
+  videoSendIniated_ = true;
 }
 
 ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget* view,
@@ -62,14 +70,26 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
   if(port != 0)
     streamer_.setPorts(15555, port);
 
-  PeerID peer = streamer_.addPeer(ip, 30, true, true);
+  PeerID peer = streamer_.addPeer(ip, frameRate_, true, true);
+
+  if(peer == -1)
+  {
+    qCritical() << "Error creating RTP peer";
+    return peer;
+  }
+
   if(wantsVideo)
   {
+    if(!videoSendIniated_)
+    {
+      initSender(selfView_, resolution_);
+    }
     Filter *framedSource = NULL;
     framedSource = streamer_.getSourceFilter(peer);
 
     filters_.push_back(framedSource);
-    filters_.at(encoderFilter_)->addOutConnection(filters_.back());
+
+      filters_.at(encoderFilter_)->addOutConnection(filters_.back());
     filters_.back()->start();
   }
 
@@ -98,6 +118,8 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
   }
   else if(view == NULL)
     qWarning() << "Warn: wanted to receive video, but no view available";
+
+  return peer;
 }
 
 

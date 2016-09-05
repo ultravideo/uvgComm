@@ -34,7 +34,7 @@ void YUVtoRGB32::process()
 
 
     // Luma pixels
-    for(unsigned int i = 0; i < input->width*input->height; ++i)
+    for(int i = 0; i < input->width*input->height; ++i)
     {
       rgb32_frame->data[i*4] = input->data[i];
       rgb32_frame->data[i*4+1] = input->data[i];
@@ -45,9 +45,9 @@ void YUVtoRGB32::process()
     uint32_t u_offset = input->width*input->height;
     uint32_t v_offset = input->width*input->height + input->height*input->width/4;
 
-    for(unsigned int y = 0; y < input->height/2; ++y)
+    for(int y = 0; y < input->height/2; ++y)
     {
-      for(unsigned int x = 0; x < input->width/2; ++x)
+      for(int x = 0; x < input->width/2; ++x)
       {
         int32_t cr = input->data[x + y*input->width/2 + u_offset] - 128;
         int32_t cb = input->data[x + y*input->width/2 + v_offset] - 128;

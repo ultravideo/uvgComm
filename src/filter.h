@@ -17,8 +17,8 @@ struct Data
   uint8_t type;
   std::unique_ptr<uchar[]> data;
   uint32_t data_size;
-  int width;
-  int height;
+  int16_t width;
+  int16_t height;
   timeval presentationTime;
 };
 
@@ -91,6 +91,6 @@ private:
   unsigned int inputTaken_;
   unsigned int inputDiscarded_;
 
-  bool output_;
   bool input_;
+  bool output_;
 };

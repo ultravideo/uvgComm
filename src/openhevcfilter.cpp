@@ -75,7 +75,7 @@ void OpenHEVCFilter::process()
       uint32_t d_stride = yuv_frame->width/2;
       uint32_t dd_stride = yuv_frame->width;
 
-      for (uint32_t i=0; i<yuv_frame->height; i++) {
+      for (int i=0; i<yuv_frame->height; i++) {
         memcpy(pY,  (uint8_t *) openHevcFrame.pvY + i*s_stride, dd_stride);
         pY += dd_stride;
 
