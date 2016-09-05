@@ -4,10 +4,17 @@
 
 #include <QDebug>
 
-Filter::Filter(QString name, StatisticsInterface *stats):name_(name), stats_(stats), running_(true), waitMutex_(new QMutex),
-  inputTaken_(0), inputDiscarded_(0)
+Filter::Filter(QString name, StatisticsInterface *stats,
+               bool input, bool output):
+  name_(name),
+  stats_(stats),
+  running_(true),
+  waitMutex_(new QMutex),
+  inputTaken_(0),
+  inputDiscarded_(0),
+  input_(input),
+  output_(output)
 {}
-
 
 Filter::~Filter()
 {
@@ -94,7 +101,6 @@ void Filter::sendOutput(std::unique_ptr<Data> output)
   }
   outConnections_.back()->putInput(std::move(output));
 }
-
 
 void Filter::stop()
 {

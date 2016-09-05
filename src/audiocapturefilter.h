@@ -13,18 +13,7 @@ public:
 
   virtual ~AudioCaptureFilter();
 
-
   void init();
-
-  virtual bool isInputFilter() const
-  {
-    return true;
-  }
-
-  virtual bool isOutputFilter() const
-  {
-    return false;
-  }
 
   void toggleMode();
   void toggleSuspend();

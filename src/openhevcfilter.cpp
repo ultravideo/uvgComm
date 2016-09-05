@@ -6,7 +6,7 @@
 
 
 OpenHEVCFilter::OpenHEVCFilter(StatisticsInterface *stats):
-  Filter("OpenHEVC", stats),
+  Filter("OpenHEVC", stats, true, true),
   handle_()
 {}
 

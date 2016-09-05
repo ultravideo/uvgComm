@@ -20,17 +20,6 @@ public:
 
   void close();
 
-  virtual bool isInputFilter() const
-  {
-    return false;
-  }
-
-  virtual bool isOutputFilter() const
-  {
-    return false;
-  }
-
-
 protected:
   virtual void process();
 

@@ -30,7 +30,7 @@ class Filter : public QThread
   Q_OBJECT
 
 public:
-  Filter(QString name, StatisticsInterface* stats);
+  Filter(QString name, StatisticsInterface* stats, bool input, bool output);
   virtual ~Filter();
 
   // adds one outbound connection to this filter.
@@ -41,9 +41,15 @@ public:
 
   void putInput(std::unique_ptr<Data> data);
 
-  // for debug information only
-  virtual bool isInputFilter() const = 0;
-  virtual bool isOutputFilter() const = 0;
+  // for debugging filter graphs
+  virtual bool isInputFilter() const
+  {
+    return input_;
+  }
+  virtual bool isOutputFilter() const
+  {
+    return output_;
+  }
 
   virtual void stop();
 
@@ -70,6 +76,7 @@ protected:
   QString name_;
   StatisticsInterface* stats_;
 
+
 private:
   QMutex *waitMutex_;
   QWaitCondition hasInput_;
@@ -83,4 +90,7 @@ private:
 
   unsigned int inputTaken_;
   unsigned int inputDiscarded_;
+
+  bool output_;
+  bool input_;
 };

@@ -15,16 +15,6 @@ public:
   CameraFilter(StatisticsInterface* stats, QSize resolution);
   ~CameraFilter();
 
-  virtual bool isInputFilter() const
-  {
-    return true;
-  }
-
-  virtual bool isOutputFilter() const
-  {
-    return false;
-  }
-
   virtual void stop();
 
 private slots:

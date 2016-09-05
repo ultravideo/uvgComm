@@ -6,7 +6,7 @@
 #include <QtDebug>
 
 DisplayFilter::DisplayFilter(StatisticsInterface *stats, VideoWidget *widget):
-  Filter("Display", stats),
+  Filter("Display", stats, true, false),
   widget_(widget)
 {
   mirrored_ = false;

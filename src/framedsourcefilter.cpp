@@ -7,7 +7,7 @@
 
 FramedSourceFilter::FramedSourceFilter(StatisticsInterface* stats,
                                        UsageEnvironment &env, DataType type, uint16_t framerate):
-  Filter("Framed source", stats),
+  Filter("Framed source", stats, true, false),
   FramedSource(env),
   type_(type),
   framerate_(framerate)

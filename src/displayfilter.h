@@ -9,16 +9,6 @@ class DisplayFilter : public Filter
 public:
   DisplayFilter(StatisticsInterface* stats, VideoWidget *widget);
 
-  virtual bool isInputFilter() const
-  {
-    return false;
-  }
-
-  virtual bool isOutputFilter() const
-  {
-    return true;
-  }
-
   void setProperties(bool mirror)
   {
     mirrored_ = mirror;

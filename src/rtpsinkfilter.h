@@ -22,16 +22,6 @@ public:
                          struct timeval presentationTime,
                          unsigned durationInMicroseconds);
 
-  virtual bool isInputFilter() const
-  {
-    return true;
-  }
-
-  virtual bool isOutputFilter() const
-  {
-    return false;
-  }
-
 protected:
   void process();
 

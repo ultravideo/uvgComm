@@ -6,7 +6,7 @@
 
 
 YUVtoRGB32::YUVtoRGB32(StatisticsInterface *stats) :
-  Filter("YUVtoRGB32", stats)
+  Filter("YUVtoRGB32", stats, true, true)
 {}
 
 uint8_t clamp(int32_t input)

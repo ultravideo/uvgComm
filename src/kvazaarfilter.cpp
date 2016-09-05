@@ -9,7 +9,7 @@
 
 
 KvazaarFilter::KvazaarFilter(StatisticsInterface *stats):
-  Filter("Kvazaar", stats),
+  Filter("Kvazaar", stats, true, true),
   api_(NULL),
   config_(NULL),
   enc_(NULL),

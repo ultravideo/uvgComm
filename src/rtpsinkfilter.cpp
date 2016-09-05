@@ -8,7 +8,7 @@ const uint32_t BUFFER_SIZE = 65536;
 
 
 RTPSinkFilter::RTPSinkFilter(StatisticsInterface *stats, UsageEnvironment& env):
-  Filter("RTP Sink", stats),
+  Filter("RTP Sink", stats, false, true),
   MediaSink(env)
 {
   fReceiveBuffer = new u_int8_t[BUFFER_SIZE];

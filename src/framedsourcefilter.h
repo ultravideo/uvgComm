@@ -21,15 +21,6 @@ public:
     return type_ == HEVCVIDEO;
   }
 
-  virtual bool isInputFilter() const
-  {
-    return false;
-  }
-  virtual bool isOutputFilter() const
-  {
-    return true;
-  }
-
 protected:
   void process();
 

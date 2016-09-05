@@ -8,7 +8,7 @@
 #include <QtDebug>
 
 CameraFilter::CameraFilter(StatisticsInterface *stats, QSize resolution):
-  Filter("Camera", stats),
+  Filter("Camera", stats, false, true),
   camera_(),
   cameraFrameGrabber_(),
   resolution_(resolution)
