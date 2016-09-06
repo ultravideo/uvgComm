@@ -8,6 +8,7 @@
 
 class AudioCaptureFilter : public Filter
 {
+  Q_OBJECT
 public:
   AudioCaptureFilter(StatisticsInterface* stats);
 
@@ -23,14 +24,14 @@ protected:
 
   void process();
 
+private slots:
+  void readMore();
+  void volumeChanged(int value);
+
 private:
 
   void initializeAudio();
   void createAudioInput();
-
-  void readMore();
-  void sliderChanged(int value);
-
 
   QAudioDeviceInfo deviceInfo_;
   AudioCaptureDevice* device_;
