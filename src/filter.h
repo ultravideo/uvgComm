@@ -9,6 +9,7 @@
 #include <vector>
 #include <queue>
 #include <memory>
+#include <functional>
 
 enum DataType {NONE = 0, RGB32VIDEO, YUVVIDEO, RAWAUDIO, HEVCVIDEO, OPUSAUDIO};
 
@@ -35,6 +36,17 @@ public:
 
   // adds one outbound connection to this filter.
   void addOutConnection(Filter *out);
+
+  // callback registeration enables other classes besides Filter
+  // to receive output data
+  template <typename Class>
+  void addDataOutCallback (Class& o, void (Class::*method) (std::unique_ptr<Data> data))
+  {
+      outDataCallbacks_.push_back([&o,method] (std::unique_ptr<Data> data)
+      {
+        return (o.*method)(data);
+      });
+  }
 
   // empties the input buffer
   void emptyBuffer();
@@ -78,10 +90,15 @@ protected:
 
 
 private:
+
+  Data* deepDataCopy(Data* original);
+
   QMutex *waitMutex_;
   QWaitCondition hasInput_;
 
   bool running_;
+
+  std::vector<std::function<void(std::unique_ptr<Data>)> > outDataCallbacks_;
 
   std::vector<Filter*> outConnections_;
 

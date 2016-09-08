@@ -80,27 +80,51 @@ std::unique_ptr<Data> Filter::getInput()
 void Filter::sendOutput(std::unique_ptr<Data> output)
 {
   Q_ASSERT(output);
-  if(outConnections_.empty())
+
+  if(outDataCallbacks_.size() == 0 && outConnections_.size() == 0)
   {
     qWarning() << name_ << "trying to send output data without outconnections";
     return;
   }
 
-  // copy input to outputs expect move it to the last
-  for(unsigned int i = 0; i < outConnections_.size() - 1; ++i)
+  // copy data to callbacks expect the last one is moved
+  // in either callbacks or outconnections(default).
+  if(outDataCallbacks_.size() != 0)
   {
-    Data* copy = new Data;
-    copy->type = output->type;
-    copy->data = std::unique_ptr<uchar[]>(new uchar[output->data_size]);
-    memcpy(copy->data.get(), output->data.get(), output->data_size);
-    copy->data_size = output->data_size;
-    copy->width = output->width;
-    copy->height = output->height;
+    // all expect the last
+    for(unsigned int i = 0; i < outDataCallbacks_.size() - 1; ++i)
+    {
+      Data* copy = deepDataCopy(output.get());
+      std::unique_ptr<Data> u_copy(copy);
+      outDataCallbacks_[i](std::move(u_copy));
+    }
 
-    std::unique_ptr<Data> u_copy(copy);
-    outConnections_[i]->putInput(std::move(u_copy));
+    // copy last one
+    if(outConnections_.size() != 0)
+    {
+      Data* copy = deepDataCopy(output.get());
+      std::unique_ptr<Data> u_copy(copy);
+      outDataCallbacks_.back()(std::move(u_copy));
+    }
+    else // move last one
+    {
+      outDataCallbacks_.back()(std::move(output));
+    }
   }
-  outConnections_.back()->putInput(std::move(output));
+
+  // handle all connected filters.
+  if(outConnections_.size() != 0)
+  {
+    // all expect the last
+    for(unsigned int i = 0; i < outConnections_.size() - 1; ++i)
+    {
+      Data* copy = deepDataCopy(output.get());
+      std::unique_ptr<Data> u_copy(copy);
+      outConnections_[i]->putInput(std::move(u_copy));
+    }
+    // always move the last outconnection
+    outConnections_.back()->putInput(std::move(output));
+  }
 }
 
 void Filter::stop()
@@ -119,4 +143,21 @@ void Filter::run()
 
     process();
   }
+}
+
+Data* Filter::deepDataCopy(Data* original)
+{
+  if(original != NULL)
+  {
+    Data* copy = new Data;
+    copy->type = original->type;
+    copy->data = std::unique_ptr<uchar[]>(new uchar[original->data_size]);
+    memcpy(copy->data.get(), original->data.get(), original->data_size);
+    copy->data_size = original->data_size;
+    copy->width = original->width;
+    copy->height = original->height;
+    return copy;
+  }
+  qWarning() << "Warning: Trying to copy NULL Data pointer";
+  return NULL;
 }
