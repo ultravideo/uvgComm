@@ -25,21 +25,15 @@ void YUVtoRGB32::process()
 
   while(input)
   {
-    Data *rgb32_frame = new Data;
-    rgb32_frame->data_size = input->width*input->height*4;
-    rgb32_frame->data = std::unique_ptr<uchar[]>(new uchar[rgb32_frame->data_size]);
-    rgb32_frame->width = input->width;
-    rgb32_frame->height = input->height;
-    rgb32_frame->presentationTime = input->presentationTime;
-
+    uint32_t finalDataSize = input->width*input->height*4;
+    std::unique_ptr<uchar[]> rgb32_frame(new uchar[finalDataSize]);
 
     // Luma pixels
     for(int i = 0; i < input->width*input->height; ++i)
     {
-      rgb32_frame->data[i*4] = input->data[i];
-      rgb32_frame->data[i*4+1] = input->data[i];
-      rgb32_frame->data[i*4+2] = input->data[i];
-
+      rgb32_frame[i*4] = input->data[i];
+      rgb32_frame[i*4+1] = input->data[i];
+      rgb32_frame[i*4+2] = input->data[i];
     }
 
     uint32_t u_offset = input->width*input->height;
@@ -62,49 +56,50 @@ void YUVtoRGB32::process()
         // add chroma components to rgb pixels
         // R
         int32_t pixel_value = 0;
-        pixel_value = rgb32_frame->data[8*x + row ] + rpixel;
-        rgb32_frame->data[8*x + row ] = clamp(pixel_value);
+        pixel_value = rgb32_frame[8*x + row ] + rpixel;
+        rgb32_frame[8*x + row ] = clamp(pixel_value);
 
-        pixel_value = rgb32_frame->data[8*x + 4 + row     ] + rpixel;
-        rgb32_frame->data[8*x + 4 + row     ] = clamp(pixel_value);
+        pixel_value = rgb32_frame[8*x + 4 + row     ] + rpixel;
+        rgb32_frame[8*x + 4 + row     ] = clamp(pixel_value);
 
-        pixel_value = rgb32_frame->data[8*x +     next_row] + rpixel;
-        rgb32_frame->data[8*x +     next_row] = clamp(pixel_value);
+        pixel_value = rgb32_frame[8*x +     next_row] + rpixel;
+        rgb32_frame[8*x +     next_row] = clamp(pixel_value);
 
-        pixel_value = rgb32_frame->data[8*x + 4 + next_row] + rpixel;
-        rgb32_frame->data[8*x + 4 + next_row] = clamp(pixel_value);
+        pixel_value = rgb32_frame[8*x + 4 + next_row] + rpixel;
+        rgb32_frame[8*x + 4 + next_row] = clamp(pixel_value);
 
         // G
-        pixel_value = rgb32_frame->data[8*x +     row      + 1] + gpixel;
-        rgb32_frame->data[8*x +     row      + 1] = clamp(pixel_value);
+        pixel_value = rgb32_frame[8*x +     row      + 1] + gpixel;
+        rgb32_frame[8*x +     row      + 1] = clamp(pixel_value);
 
-        pixel_value = rgb32_frame->data[8*x + 4 + row      + 1] + gpixel;
-        rgb32_frame->data[8*x + 4 + row      + 1] = clamp(pixel_value);
+        pixel_value = rgb32_frame[8*x + 4 + row      + 1] + gpixel;
+        rgb32_frame[8*x + 4 + row      + 1] = clamp(pixel_value);
 
-        pixel_value = rgb32_frame->data[8*x +     next_row + 1] + gpixel;
-        rgb32_frame->data[8*x +     next_row + 1] = clamp(pixel_value);
+        pixel_value = rgb32_frame[8*x +     next_row + 1] + gpixel;
+        rgb32_frame[8*x +     next_row + 1] = clamp(pixel_value);
 
-        pixel_value = rgb32_frame->data[8*x + 4 + next_row + 1] + gpixel;
-        rgb32_frame->data[8*x + 4 + next_row + 1] = clamp(pixel_value);
+        pixel_value = rgb32_frame[8*x + 4 + next_row + 1] + gpixel;
+        rgb32_frame[8*x + 4 + next_row + 1] = clamp(pixel_value);
 
         // B
-        pixel_value = rgb32_frame->data[8*x +     row      + 2] + bpixel;
-        rgb32_frame->data[8*x +     row      + 2] = clamp(pixel_value);
+        pixel_value = rgb32_frame[8*x +     row      + 2] + bpixel;
+        rgb32_frame[8*x +     row      + 2] = clamp(pixel_value);
 
-        pixel_value = rgb32_frame->data[8*x + 4 + row      + 2] + bpixel;
-        rgb32_frame->data[8*x + 4 + row      + 2] = clamp(pixel_value);
+        pixel_value = rgb32_frame[8*x + 4 + row      + 2] + bpixel;
+        rgb32_frame[8*x + 4 + row      + 2] = clamp(pixel_value);
 
-        pixel_value = rgb32_frame->data[8*x +     next_row + 2] + bpixel;
-        rgb32_frame->data[8*x +     next_row + 2] = clamp(pixel_value);
+        pixel_value = rgb32_frame[8*x +     next_row + 2] + bpixel;
+        rgb32_frame[8*x +     next_row + 2] = clamp(pixel_value);
 
-        pixel_value = rgb32_frame->data[8*x + 4 + next_row + 2] + bpixel;
-        rgb32_frame->data[8*x + 4 + next_row + 2] = clamp(pixel_value);
+        pixel_value = rgb32_frame[8*x + 4 + next_row + 2] + bpixel;
+        rgb32_frame[8*x + 4 + next_row + 2] = clamp(pixel_value);
       }
     }
 
-    rgb32_frame->type = RGB32VIDEO;
-    std::unique_ptr<Data> u_rgb_data( rgb32_frame );
-    sendOutput(std::move(u_rgb_data));
+    input->type = RGB32VIDEO;
+    input->data = std::move(rgb32_frame);
+    input->data_size = finalDataSize;
+    sendOutput(std::move(input));
 
     input = getInput();
   }

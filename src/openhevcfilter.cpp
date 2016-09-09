@@ -55,27 +55,22 @@ void OpenHEVCFilter::process()
     }
     else
     {
+      input->width = openHevcFrame.frameInfo.nWidth;
+      input->height = openHevcFrame.frameInfo.nHeight;
+      uint32_t finalDataSize = input->width*input->height + input->width*input->height/2;
+      std::unique_ptr<uchar[]> yuv_frame(new uchar[finalDataSize]);
 
-      Data *yuv_frame = new Data;
-      yuv_frame->presentationTime = input->presentationTime;
-      yuv_frame->width = openHevcFrame.frameInfo.nWidth;
-      yuv_frame->height = openHevcFrame.frameInfo.nHeight;
-      yuv_frame->data_size = yuv_frame->width*yuv_frame->height + yuv_frame->width*yuv_frame->height/2;
-      yuv_frame->data = std::unique_ptr<uchar[]>(new uchar[yuv_frame->data_size]);
-
-      yuv_frame->type = YUVVIDEO;
-
-      uint8_t* pY = (uint8_t*)yuv_frame->data.get();
-      uint8_t* pU = (uint8_t*)&(yuv_frame->data.get()[yuv_frame->width*yuv_frame->height]);
-      uint8_t* pV = (uint8_t*)&(yuv_frame->data.get()[yuv_frame->width*yuv_frame->height + yuv_frame->width*yuv_frame->height/4]);
+      uint8_t* pY = (uint8_t*)yuv_frame.get();
+      uint8_t* pU = (uint8_t*)&(yuv_frame.get()[input->width*input->height]);
+      uint8_t* pV = (uint8_t*)&(yuv_frame.get()[input->width*input->height + input->width*input->height/4]);
 
       uint32_t s_stride = openHevcFrame.frameInfo.nYPitch;
       uint32_t qs_stride = openHevcFrame.frameInfo.nUPitch/2;
 
-      uint32_t d_stride = yuv_frame->width/2;
-      uint32_t dd_stride = yuv_frame->width;
+      uint32_t d_stride = input->width/2;
+      uint32_t dd_stride = input->width;
 
-      for (int i=0; i<yuv_frame->height; i++) {
+      for (int i=0; i<input->height; i++) {
         memcpy(pY,  (uint8_t *) openHevcFrame.pvY + i*s_stride, dd_stride);
         pY += dd_stride;
 
@@ -88,11 +83,13 @@ void OpenHEVCFilter::process()
         }
       }
 
-      std::unique_ptr<Data> u_yuv_data( yuv_frame );
-      sendOutput(std::move(u_yuv_data));
+      input->type = YUVVIDEO;
+      input->data_size = finalDataSize;
+      input->data = std::move(yuv_frame);
+
+      sendOutput(std::move(input));
     }
 
     input = getInput();
   }
-
 }

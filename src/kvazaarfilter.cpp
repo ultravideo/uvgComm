@@ -142,21 +142,14 @@ void KvazaarFilter::process()
 
     if(data_out != NULL)
     {
-
-      Data *hevc_frame = new Data;
-      hevc_frame->data_size = len_out;
-      hevc_frame->data = std::unique_ptr<uchar[]>(new uchar[len_out]);
-      hevc_frame->width = input->width;
-      hevc_frame->height = input->height;
-      hevc_frame->presentationTime = input->presentationTime;
-      hevc_frame->type = HEVCVIDEO;
+      std::unique_ptr<uchar[]> hevc_frame(new uchar[len_out]);
 
       uint32_t delay = QDateTime::currentMSecsSinceEpoch() -
-          (hevc_frame->presentationTime.tv_sec * 1000 + hevc_frame->presentationTime.tv_usec/1000);
+          (input->presentationTime.tv_sec * 1000 + input->presentationTime.tv_usec/1000);
       stats_->delayTime("video", delay);
-      stats_->addEncodedVideo(hevc_frame->data_size);
+      stats_->addEncodedVideo(len_out);
 
-      uint8_t* writer = hevc_frame->data.get();
+      uint8_t* writer = hevc_frame.get();
 
       for (kvz_data_chunk *chunk = data_out; chunk != NULL; chunk = chunk->next)
       {
@@ -166,11 +159,13 @@ void KvazaarFilter::process()
       api_->chunk_free(data_out);
       api_->picture_free(recon_pic);
 
-      std::unique_ptr<Data> hevc_frame_data( hevc_frame );
+      qDebug() << "Frame encoded. Size:" << len_out
+               << " width:" << input->width << ", height:" << input->height;
 
-      qDebug() << "Frame encoded. Size:" << hevc_frame_data->data_size
-               << " width:" << hevc_frame_data->width << ", height:" << hevc_frame_data->height;
-      sendOutput(std::move(hevc_frame_data));
+      input->type = HEVCVIDEO;
+      input->data_size = len_out;
+      input->data = std::move(hevc_frame);
+      sendOutput(std::move(input));
 
     }
     input = getInput();

@@ -13,16 +13,12 @@ void RGB32toYUV::process()
 
   while(input)
   {
-    Data *yuv_data = new Data;
-    yuv_data->data_size = input->width*input->height + input->width*input->height/2;
-    yuv_data->data = std::unique_ptr<uchar[]>(new uchar[yuv_data->data_size]);
-    yuv_data->width = input->width;
-    yuv_data->height = input->height;
-    yuv_data->presentationTime = input->presentationTime;
+    uint32_t finalDataSize = input->width*input->height + input->width*input->height/2;
+    std::unique_ptr<uchar[]> yuv_data(new uchar[finalDataSize]);
 
-    uint8_t* Y = yuv_data->data.get();
-    uint8_t* U = &(yuv_data->data[input->width*input->height]);
-    uint8_t* V = &(yuv_data->data[input->width*input->height + input->width*input->height/4]);
+    uint8_t* Y = yuv_data.get();
+    uint8_t* U = &(yuv_data[input->width*input->height]);
+    uint8_t* V = &(yuv_data[input->width*input->height + input->width*input->height/4]);
 
     // Luma pixels
     for(unsigned int i = 0; i < input->data_size; i += 4)
@@ -51,9 +47,10 @@ void RGB32toYUV::process()
       }
     }
 
-    yuv_data->type = YUVVIDEO;
-    std::unique_ptr<Data> u_yuv_data( yuv_data );
-    sendOutput(std::move(u_yuv_data));
+    input->type = YUVVIDEO;
+    input->data = std::move(yuv_data);
+    input->data_size = finalDataSize;
+    sendOutput(std::move(input));
 
     input = getInput();
   }
