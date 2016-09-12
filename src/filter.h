@@ -40,12 +40,12 @@ public:
   // callback registeration enables other classes besides Filter
   // to receive output data
   template <typename Class>
-  void addDataOutCallback (Class& o, void (Class::*method) (std::unique_ptr<Data> data))
+  void addDataOutCallback (Class* o, void (Class::*method) (std::unique_ptr<Data> data))
   {
-      outDataCallbacks_.push_back([&o,method] (std::unique_ptr<Data> data)
-      {
-        return (o.*method)(data);
-      });
+    outDataCallbacks_.push_back([o,method] (std::unique_ptr<Data> data)
+    {
+      return (o->*method)(std::move(data));
+    });
   }
 
   // empties the input buffer
