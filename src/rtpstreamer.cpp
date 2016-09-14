@@ -14,8 +14,10 @@
 #include <iostream>
 
 RTPStreamer::RTPStreamer(StatisticsInterface* stats):
-  senders_(),
-  receivers_(),
+  audioSenders_(),
+  videoSenders_(),
+  audioReceivers_(),
+  videoReceivers_(),
   nextID_(1),
   iniated_(),
   peer_(),
@@ -63,12 +65,12 @@ void RTPStreamer::uninit()
   Q_ASSERT(stopRTP_);
   qDebug() << "Uniniating RTP streamer";
 
-  for(auto it : senders_)
+  for(auto it : videoSenders_)
   {
-    it.second->videoSource = NULL;
+    it.second->framedSource = NULL;
 
-    it.second->videoSink->stopPlaying();
-    RTPSink::close(it.second->videoSink);
+    it.second->sink->stopPlaying();
+    RTPSink::close(it.second->sink);
 
     RTCPInstance::close(it.second->rtcp);
 
@@ -80,12 +82,12 @@ void RTPStreamer::uninit()
 
     delete it.second;
   }
-  for(auto it : receivers_)
+  for(auto it : videoReceivers_)
   {
-    it.second->videoSink->stopPlaying();
-    it.second->videoSink = NULL; // deleted in filter graph
-    FramedSource::close(it.second->videoSource);
-    it.second->videoSource = 0;
+    it.second->sink->stopPlaying();
+    it.second->sink = NULL; // deleted in filter graph
+    FramedSource::close(it.second->framedSource);
+    it.second->framedSource = 0;
 
     delete it.second->rtpGroupsock;
     delete it.second->rtpPort;
@@ -143,7 +145,7 @@ void RTPStreamer::removePeer(PeerID id)
 
 void RTPStreamer::addH265VideoSend(PeerID peer, in_addr peerAddress, uint16_t framerate)
 {
-  if (senders_.find(peer) != senders_.end())
+  if (videoSenders_.find(peer) != videoSenders_.end())
   {
     qWarning() << "Peer already exists, not adding to senders list";
     return;
@@ -163,7 +165,7 @@ void RTPStreamer::addH265VideoSend(PeerID peer, in_addr peerAddress, uint16_t fr
 
 
   // todo: negotiate payload number
-  sender->videoSink = H265VideoRTPSink::createNew(*env_, sender->rtpGroupsock, 96);
+  sender->sink = H265VideoRTPSink::createNew(*env_, sender->rtpGroupsock, 96);
 
   // Create (and start) a 'RTCP instance' for this RTP sink:
   const unsigned int estimatedSessionBandwidth = 5000; // in kbps; for RTCP b/w share
@@ -181,31 +183,31 @@ void RTPStreamer::addH265VideoSend(PeerID peer, in_addr peerAddress, uint16_t fr
                                    sender->rtcpGroupsock,
                                    estimatedSessionBandwidth,
                                    CNAME,
-                                   sender->videoSink,
+                                   sender->sink,
                                    NULL,
                                    False);
 
-  sender->videoSource = new FramedSourceFilter(stats_, *env_, HEVCVIDEO, framerate);
+  sender->framedSource = new FramedSourceFilter(stats_, *env_, HEVCVIDEO, framerate);
 
-  if(!sender->videoSource || !sender->videoSink)
+  if(!sender->framedSource || !sender->sink)
   {
     qCritical() << "Failed to setup sending RTP stream";
     return;
   }
 
-  if(!sender->videoSink->startPlaying(*(sender->videoSource), NULL, NULL))
+  if(!sender->sink->startPlaying(*(sender->framedSource), NULL, NULL))
   {
     qCritical() << "failed to start videosink: " << env_->getResultMsg();
   }
 
 
-  senders_[peer] = sender;
+  videoSenders_[peer] = sender;
 
 }
 
 void RTPStreamer::addH265VideoReceive(PeerID peer, in_addr peerAddress)
 {
-  if (receivers_.find(peer) != receivers_.end())
+  if (videoReceivers_.find(peer) != videoReceivers_.end())
   {
     qWarning() << "Peer already exists, not adding to receivers list";
     return;
@@ -221,11 +223,11 @@ void RTPStreamer::addH265VideoReceive(PeerID peer, in_addr peerAddress)
   //recvRtcpGroupsock_ = new Groupsock(*env_, destinationAddress_, *recvRtcpPort_, ttl_);
 
   // todo: negotiate payload number
-  receiver->videoSource = H265VideoRTPSource::createNew(*env_, receiver->rtpGroupsock, 96);
+  receiver->framedSource = H265VideoRTPSource::createNew(*env_, receiver->rtpGroupsock, 96);
 
-  receiver->videoSink = new RTPSinkFilter(stats_, *env_);
+  receiver->sink = new RTPSinkFilter(stats_, *env_);
 
-  if(!receiver->videoSource || !receiver->videoSink)
+  if(!receiver->framedSource || !receiver->sink)
   {
     qCritical() << "Failed to setup receiving RTP stream";
     delete receiver->rtpGroupsock;
@@ -234,10 +236,10 @@ void RTPStreamer::addH265VideoReceive(PeerID peer, in_addr peerAddress)
     return;
   }
 
-  if(!receiver->videoSink->startPlaying(*receiver->videoSource,NULL,NULL))
+  if(!receiver->sink->startPlaying(*receiver->framedSource,NULL,NULL))
   {
     qCritical() << "failed to start videosink: " << env_->getResultMsg();
   }
 
-  receivers_[peer] = receiver;
+  videoReceivers_[peer] = receiver;
 }

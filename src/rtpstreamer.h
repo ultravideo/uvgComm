@@ -14,7 +14,16 @@ class FramedSourceFilter;
 class RTPSinkFilter;
 
 typedef int16_t PeerID;
+/*
+struct ConnectionInfo
+{
+  ip_addr addr;
+  uint16_t rtpPort;
+  uint16_t rtcpPort;
+};
+*/
 
+enum ConnectionType {AUDIO, VIDEO};
 
 class RTPStreamer : public QThread
 {
@@ -35,20 +44,27 @@ public:
 
   void stop();
 
-  FramedSourceFilter* getSourceFilter(PeerID peer)
+
+  // use these to ask for filters that are connected to filter graph
+  FramedSourceFilter* getSourceFilter(PeerID peer,  ConnectionType type)
   {
     peer_.lock();
-    Q_ASSERT(senders_.find(peer) != senders_.end());
+    // TODO: Check availability
+ //   Q_ASSERT(videoSenders_.find(peer) != videoSenders_.end());
     peer_.unlock();
-    return senders_[peer]->videoSource;
+    if(type == AUDIO)
+      return audioSenders_[peer]->framedSource;
+    return videoSenders_[peer]->framedSource;
   }
 
-  RTPSinkFilter* getSinkFilter(PeerID peer)
+  RTPSinkFilter* getSinkFilter(PeerID peer, ConnectionType type)
   {
     peer_.lock();
-    Q_ASSERT(receivers_.find(peer) != receivers_.end());
+//    Q_ASSERT(receivers_.find(peer) != receivers_.end());
     peer_.unlock();
-    return receivers_[peer]->videoSink;
+    if(type == AUDIO)
+      return audioReceivers_[peer]->sink;
+    return videoReceivers_[peer]->sink;
   }
 
   PeerID addPeer(in_addr peerAddress, uint16_t framerate,
@@ -63,6 +79,16 @@ private:
   void addH265VideoReceive(PeerID peer, in_addr peerAddress);
   void uninit();
 
+  struct Connection
+  {
+    struct in_addr peerAddress;
+
+    Port* rtpPort;
+    Port* rtcpPort;
+    Groupsock* rtpGroupsock;
+    Groupsock* rtcpGroupsock;
+  };
+
   struct Sender
   {
     struct in_addr peerAddress;
@@ -74,8 +100,8 @@ private:
 
     RTCPInstance* rtcp;
 
-    RTPSink* videoSink;
-    FramedSourceFilter* videoSource; // receives stuff from filter graph
+    RTPSink* sink;
+    FramedSourceFilter* framedSource; // receives stuff from filter graph
   };
 
   struct Receiver
@@ -87,12 +113,20 @@ private:
     Groupsock* rtpGroupsock;
     //Groupsock* rtcpGroupsock_;
 
-    FramedSource* videoSource;
-    RTPSinkFilter* videoSink; // sends stuff to filter graph
+    FramedSource* framedSource;
+    RTPSinkFilter* sink; // sends stuff to filter graph
   };
 
-  std::map<PeerID, Sender*> senders_;
-  std::map<PeerID, Receiver*> receivers_;
+  void addSender(bool audio, bool video);
+  void addReceiver(bool audio, bool video);
+  void destroySenders(std::map<PeerID, Sender*> &senders);
+  void destroyReceivers(std::map<PeerID, Receiver*> &receivers);
+
+  std::map<PeerID, Sender*> audioSenders_;
+  std::map<PeerID, Sender*> videoSenders_;
+
+  std::map<PeerID, Receiver*> audioReceivers_;
+  std::map<PeerID, Receiver*> videoReceivers_;
 
   PeerID nextID_;
   //bool iniated_;
