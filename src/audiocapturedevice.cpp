@@ -80,7 +80,7 @@ qint64 AudioCaptureDevice::readData(char *data, qint64 maxlen)
 
 qint64 AudioCaptureDevice::writeData(const char *data, qint64 len)
 {
-  qDebug() << "Converting capture IOdevice data with size:" << len;
+  //qDebug() << "Converting capture IOdevice data with size:" << len;
   if (m_maxAmplitude) {
     Q_ASSERT(m_format.sampleSize() % 8 == 0);
     const int channelBytes = m_format.sampleSize() / 8;

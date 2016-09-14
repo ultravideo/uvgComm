@@ -32,7 +32,9 @@ SOURCES +=\
     src/rtpsinkfilter.cpp \
     src/audiocapturefilter.cpp \
     src/audiocapturedevice.cpp \
-    src/statisticswindow.cpp
+    src/statisticswindow.cpp \
+    src/audiooutput.cpp \
+    src/audiooutputdevice.cpp
 
 HEADERS  += \
     src/callwindow.h \
@@ -53,7 +55,9 @@ HEADERS  += \
     src/audiocapturefilter.h \
     src/audiocapturedevice.h \
     src/statisticswindow.h \
-    src/statisticsinterface.h
+    src/statisticsinterface.h \
+    src/audiooutput.h \
+    src/audiooutputdevice.h
 
 FORMS    += \
     ui/callwindow.ui \

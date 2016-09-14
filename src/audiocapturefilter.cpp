@@ -82,7 +82,10 @@ void AudioCaptureFilter::readMore()
   present_time.tv_usec = (QDateTime::currentMSecsSinceEpoch()%1000) * 1000;
   newSample->presentationTime = present_time;
   newSample->type = RAWAUDIO;
-  newSample->data = std::unique_ptr<uchar[]>(new uchar[len]);
+  newSample->data = std::unique_ptr<uint8_t[]>(new uint8_t[len]);
+
+  memcpy(newSample->data.get(), buffer_.constData(), len);
+
   newSample->data_size = len;
   newSample->width = 0;
   newSample->height = 0;
@@ -90,7 +93,7 @@ void AudioCaptureFilter::readMore()
   std::unique_ptr<Data> u_newSample( newSample );
   sendOutput(std::move(u_newSample));
 
-  qDebug() << "Audio sample generated with size:" << len;
+  qDebug() << "Audio capture: Generated sample with size:" << len;
 }
 
 
