@@ -2,14 +2,17 @@
 
 
 #include "camerafilter.h"
-#include "displayfilter.h"
 #include "kvazaarfilter.h"
 #include "rgb32toyuv.h"
 #include "openhevcfilter.h"
 #include "yuvtorgb32.h"
 #include "framedsourcefilter.h"
+#include "rtpsinkfilter.h"
 #include "displayfilter.h"
 
+#include "audiocapturefilter.h"
+#include "audiooutputdevice.h"
+#include "audiooutput.h"
 
 FilterGraph::FilterGraph(StatisticsInterface* stats):
   filters_(),
@@ -59,6 +62,18 @@ void FilterGraph::initSender(VideoWidget *selfView, QSize resolution)
   encoderFilter_ = filters_.size() - 1;
 
   videoSendIniated_ = true;
+
+  // audio filtergraph test
+  AudioCaptureFilter* capture = new AudioCaptureFilter(stats_);
+  capture->init();
+  filters_.push_back(capture);
+
+  AudioOutput* output = new AudioOutput(stats_);
+  output->initializeAudio();
+  AudioOutputDevice* outputModule = output->getOutputModule();
+
+  outputModule->init(filters_.back());
+
 }
 
 ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget* view,
