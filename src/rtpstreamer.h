@@ -87,6 +87,8 @@ private:
     Port* rtcpPort;
     Groupsock* rtpGroupsock;
     Groupsock* rtcpGroupsock;
+
+    RTCPInstance* rtcp;
   };
 
   struct Sender
@@ -109,14 +111,17 @@ private:
     struct in_addr peerAddress;
 
     Port* rtpPort;
-    //Port* rtcpPort_;
+    Port* rtcpPort;
     Groupsock* rtpGroupsock;
-    //Groupsock* rtcpGroupsock_;
+    Groupsock* rtcpGroupsock;
 
-    FramedSource* framedSource;
+    RTCPInstance* rtcp;
+
+    RTPSource* framedSource;
     RTPSinkFilter* sink; // sends stuff to filter graph
   };
 
+  void createConnection(Connection& connection);
   void addSender(bool audio, bool video);
   void addReceiver(bool audio, bool video);
   void destroySenders(std::map<PeerID, Sender*> &senders);

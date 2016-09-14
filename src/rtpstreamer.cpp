@@ -216,14 +216,31 @@ void RTPStreamer::addH265VideoReceive(PeerID peer, in_addr peerAddress)
 
   qDebug() << "Iniating H265 receive video RTP/RTCP streams";
   receiver->rtpPort = new Port(videoPort_);
-  //recvRtcpPort_ = new Port(portNum_ + 1);
+  receiver->rtcpPort = new Port(videoPort_ + 1);
 
   receiver->rtpGroupsock = new Groupsock(*env_, sessionAddress_, peerAddress, *receiver->rtpPort);
 
-  //recvRtcpGroupsock_ = new Groupsock(*env_, destinationAddress_, *recvRtcpPort_, ttl_);
+  receiver->rtcpGroupsock = new Groupsock(*env_, peerAddress, *(receiver->rtcpPort), ttl_);
+
+  const unsigned int estimatedSessionBandwidth = 5000; // in kbps; for RTCP b/w share
+  const unsigned maxCNAMElen = 100;
+  unsigned char CNAME[maxCNAMElen+1];
+  gethostname((char*)CNAME, maxCNAMElen);
+  CNAME[maxCNAMElen] = '\0'; // just in case
+
+
 
   // todo: negotiate payload number
   receiver->framedSource = H265VideoRTPSource::createNew(*env_, receiver->rtpGroupsock, 96);
+
+  // This starts RTCP running automatically
+  receiver->rtcp  = RTCPInstance::createNew(*env_,
+                                   receiver->rtcpGroupsock,
+                                   estimatedSessionBandwidth,
+                                   CNAME,
+                                   NULL,
+                                   receiver->framedSource, // this is the client
+                                   False);
 
   receiver->sink = new RTPSinkFilter(stats_, *env_);
 
