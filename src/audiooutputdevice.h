@@ -1,8 +1,9 @@
 #pragma once
 
+#include "filter.h"
 
 #include <QIODevice>
-#include "filter.h"
+#include <QMutex>
 
 class AudioOutputDevice : public QIODevice
 {
@@ -27,4 +28,6 @@ signals:
 private:
   qint64 pos_;
   QByteArray m_buffer;
+
+  QMutex bufferMutex_;
 };
