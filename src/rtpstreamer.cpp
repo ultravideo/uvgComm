@@ -122,8 +122,8 @@ PeerID RTPStreamer::addPeer(in_addr peerAddress,
 
   if(videoPort)
   {
-    addH265VideoSend(peerID, peerAddress, videoPort);
-    addH265VideoReceive(peerID, peerAddress, videoPort);
+    videoSenders_[peerID] = addSendRTP(peerAddress, videoPort, HEVCVIDEO);
+    videoReceivers_[peerID] = addReceiveRTP(peerAddress, videoPort, HEVCVIDEO);
   }
 
   peer_.unlock();
@@ -135,29 +135,27 @@ PeerID RTPStreamer::addPeer(in_addr peerAddress,
 }
 
 void RTPStreamer::removePeer(PeerID id)
+{}
+
+RTPStreamer::Sender* RTPStreamer::addSendRTP(in_addr ip, uint16_t port, DataType type)
 {
-
-}
-
-void RTPStreamer::addH265VideoSend(PeerID peer, in_addr peerAddress, uint16_t port)
-{
-  if (videoSenders_.find(peer) != videoSenders_.end())
-  {
-    qWarning() << "Peer already exists, not adding to senders list";
-    return;
-  }
-
-  qDebug() << "Iniating H265 send video RTP/RTCP streams";
+  qDebug() << "Iniating send RTP/RTCP stream";
 
   Sender* sender = new Sender;
-  createConnection(sender->connection, peerAddress, port, false);
+  createConnection(sender->connection, ip, port, false);
 
   // todo: negotiate payload number
-  sender->sink = H265VideoRTPSink::createNew(*env_, sender->connection.rtpGroupsock, 96);
-
-  // Create (and start) a 'RTCP instance' for this RTP sink:
+  switch(type)
+  {
+  case HEVCVIDEO :
+    sender->sink = H265VideoRTPSink::createNew(*env_, sender->connection.rtpGroupsock, 96);
+    break;
+  default :
+    qWarning() << "Warning: RTP support not implemented for this format";
+    break;
+  }
+  sender->framedSource = new FramedSourceFilter(stats_, *env_, type);
   const unsigned int estimatedSessionBandwidth = 5000; // in kbps; for RTCP b/w share
-
   // This starts RTCP running automatically
   sender->rtcp  = RTCPInstance::createNew(*env_,
                                    sender->connection.rtcpGroupsock,
@@ -167,40 +165,39 @@ void RTPStreamer::addH265VideoSend(PeerID peer, in_addr peerAddress, uint16_t po
                                    NULL,
                                    False);
 
-  sender->framedSource = new FramedSourceFilter(stats_, *env_, HEVCVIDEO);
-
   if(!sender->framedSource || !sender->sink)
   {
     qCritical() << "Failed to setup sending RTP stream";
-    return;
+    return NULL;
   }
 
   if(!sender->sink->startPlaying(*(sender->framedSource), NULL, NULL))
   {
     qCritical() << "failed to start videosink: " << env_->getResultMsg();
   }
-
-  videoSenders_[peer] = sender;
+  return sender;
 }
 
-void RTPStreamer::addH265VideoReceive(PeerID peer, in_addr peerAddress, uint16_t port)
+RTPStreamer::Receiver* RTPStreamer::addReceiveRTP(in_addr peerAddress, uint16_t port, DataType type)
 {
-  if (videoReceivers_.find(peer) != videoReceivers_.end())
-  {
-    qWarning() << "Peer already exists, not adding to receivers list";
-    return;
-  }
-  qDebug() << "Iniating H265 receive video RTP/RTCP streams";
-
+  qDebug() << "Iniating receive RTP/RTCP stream";
   Receiver *receiver = new Receiver;
-
   createConnection(receiver->connection, peerAddress, port, true);
 
-  const unsigned int estimatedSessionBandwidth = 5000; // in kbps; for RTCP b/w share
-
   // todo: negotiate payload number
-  receiver->framedSource = H265VideoRTPSource::createNew(*env_, receiver->connection.rtpGroupsock, 96);
+  switch(type)
+  {
+  case HEVCVIDEO :
+    receiver->framedSource = H265VideoRTPSource::createNew(*env_, receiver->connection.rtpGroupsock, 96);
+    break;
+  default :
+    qWarning() << "Warning: RTP support not implemented for this format";
+    break;
+  }
 
+  receiver->sink = new RTPSinkFilter(stats_, *env_);
+
+  const unsigned int estimatedSessionBandwidth = 5000; // in kbps; for RTCP b/w share
   // This starts RTCP running automatically
   receiver->rtcp  = RTCPInstance::createNew(*env_,
                                    receiver->connection.rtcpGroupsock,
@@ -210,15 +207,13 @@ void RTPStreamer::addH265VideoReceive(PeerID peer, in_addr peerAddress, uint16_t
                                    receiver->framedSource, // this is the client
                                    False);
 
-  receiver->sink = new RTPSinkFilter(stats_, *env_);
-
   if(!receiver->framedSource || !receiver->sink)
   {
     qCritical() << "Failed to setup receiving RTP stream";
     RTCPInstance::close(receiver->rtcp);
     destroyConnection(receiver->connection);
     delete receiver;
-    return;
+    return NULL;
   }
 
   if(!receiver->sink->startPlaying(*receiver->framedSource,NULL,NULL))
@@ -226,7 +221,7 @@ void RTPStreamer::addH265VideoReceive(PeerID peer, in_addr peerAddress, uint16_t
     qCritical() << "failed to start videosink: " << env_->getResultMsg();
   }
 
-  videoReceivers_[peer] = receiver;
+  return receiver;
 }
 
 void RTPStreamer::createConnection(Connection& connection, struct in_addr ip,
@@ -245,6 +240,7 @@ void RTPStreamer::createConnection(Connection& connection, struct in_addr ip,
 
   connection.rtpGroupsock = new Groupsock(*env_, sessionAddress_, ip, *connection.rtpPort);
   connection.rtcpGroupsock = new Groupsock(*env_, ip, *(connection.rtcpPort), ttl_);
+
   if(!reservePorts)
   {
     connection.rtpGroupsock->changeDestinationParameters(ip, portNum, ttl_);

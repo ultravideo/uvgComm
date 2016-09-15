@@ -72,17 +72,13 @@ private:
 
   void destroyConnection(Connection& connection);
 
-  Sender* addSendRTP(in_addr peerAddress, uint16_t port, DataType type);
-  Receiver* addReceiveRTP(in_addr peerAddress, uint16_t port, DataType type);
+  Sender* addSendRTP(in_addr ip, uint16_t port, DataType type);
+  Receiver* addReceiveRTP(in_addr ip, uint16_t port, DataType type);
 
-  void addH265VideoSend(   PeerID peer, in_addr peerAddress, uint16_t port);
-  void addH265VideoReceive(PeerID peer, in_addr peerAddress, uint16_t port);
   void uninit();
 
-  void addSender(bool audio, bool video);
-  void addReceiver(bool audio, bool video);
-  void destroySenders(std::map<PeerID, Sender*> &senders);
-  void destroyReceivers(std::map<PeerID, Receiver*> &receivers);
+  //void destroySenders(std::map<PeerID, Sender*> &senders);
+  //void destroyReceivers(std::map<PeerID, Receiver*> &receivers);
 
   std::map<PeerID, Sender*> audioSenders_;
   std::map<PeerID, Sender*> videoSenders_;
