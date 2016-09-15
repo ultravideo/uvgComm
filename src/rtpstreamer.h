@@ -32,18 +32,8 @@ class RTPStreamer : public QThread
 public:
   RTPStreamer(StatisticsInterface* stats);
 
-  //void setDestination(in_addr address, uint16_t port);
-
-  void setPorts(uint16_t audioPort, uint16_t videoPort)
-  {
-    audioPort_ = audioPort;
-    videoPort_ = videoPort;
-  }
-
   void run();
-
   void stop();
-
 
   // use these to ask for filters that are connected to filter graph
   FramedSourceFilter* getSourceFilter(PeerID peer,  ConnectionType type)
@@ -67,8 +57,8 @@ public:
     return videoReceivers_[peer]->sink;
   }
 
-  PeerID addPeer(in_addr peerAddress, uint16_t framerate,
-                 bool video, bool audio);
+  // if audioPort or videoPort is 0, corresponding streams are not created
+  PeerID addPeer(in_addr peerAddress, uint16_t videoPort, uint16_t audioPort);
 
   void removePeer(PeerID id);
 
@@ -78,8 +68,8 @@ private:
   void addSendRTP();
   void addReceiveRTP();
 
-  void addH265VideoSend(PeerID peer, in_addr peerAddress, uint16_t framerate);
-  void addH265VideoReceive(PeerID peer, in_addr peerAddress);
+  void addH265VideoSend(   PeerID peer, in_addr peerAddress, uint16_t port);
+  void addH265VideoReceive(PeerID peer, in_addr peerAddress, uint16_t port);
   void uninit();
 
   struct Connection
@@ -134,10 +124,8 @@ private:
 
   uint8_t ttl_;
   struct in_addr sessionAddress_;
-  uint16_t audioPort_;
-  uint16_t videoPort_;
 
-  char stopRTP_;
+  char stopRTP_; // char for stopping live555 taskscheduler
   UsageEnvironment* env_;
 
   StatisticsInterface* stats_;

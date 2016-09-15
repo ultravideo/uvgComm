@@ -26,7 +26,7 @@ FilterGraph::FilterGraph(StatisticsInterface* stats):
 
 void FilterGraph::init(VideoWidget* selfView, QSize resolution)
 {
-  streamer_.setPorts(15555,18888);
+  //streamer_.setPorts(15555,18888);
   streamer_.start();
 
   resolution_ = resolution;
@@ -82,10 +82,10 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
 {
   Q_ASSERT(stats_);
 
-  if(port != 0)
-    streamer_.setPorts(15555, port);
+  //if(port != 0)
+  //  streamer_.setPorts(15555, port);
 
-  PeerID peer = streamer_.addPeer(ip, frameRate_, true, true);
+  PeerID peer = streamer_.addPeer(ip, port, port + 1000); // TODO Audioport!
 
   if(peer == -1)
   {
@@ -137,12 +137,10 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
   return peer;
 }
 
-
 void FilterGraph::uninit()
 {
   deconstruct();
 }
-
 
 void FilterGraph::deconstruct()
 {
