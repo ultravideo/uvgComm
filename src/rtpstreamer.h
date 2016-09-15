@@ -14,16 +14,6 @@ class FramedSourceFilter;
 class RTPSinkFilter;
 
 typedef int16_t PeerID;
-/*
-struct ConnectionInfo
-{
-  ip_addr addr;
-  uint16_t rtpPort;
-  uint16_t rtcpPort;
-};
-*/
-
-enum ConnectionType {AUDIO, VIDEO};
 
 class RTPStreamer : public QThread
 {
@@ -36,26 +26,8 @@ public:
   void stop();
 
   // use these to ask for filters that are connected to filter graph
-  FramedSourceFilter* getSourceFilter(PeerID peer,  ConnectionType type)
-  {
-    peer_.lock();
-    // TODO: Check availability
- //   Q_ASSERT(videoSenders_.find(peer) != videoSenders_.end());
-    peer_.unlock();
-    if(type == AUDIO)
-      return audioSenders_[peer]->framedSource;
-    return videoSenders_[peer]->framedSource;
-  }
-
-  RTPSinkFilter* getSinkFilter(PeerID peer, ConnectionType type)
-  {
-    peer_.lock();
-//    Q_ASSERT(receivers_.find(peer) != receivers_.end());
-    peer_.unlock();
-    if(type == AUDIO)
-      return audioReceivers_[peer]->sink;
-    return videoReceivers_[peer]->sink;
-  }
+  FramedSourceFilter* getSourceFilter(PeerID peer, DataType type);
+  RTPSinkFilter* getSinkFilter(PeerID peer, DataType type);
 
   // if audioPort or videoPort is 0, corresponding streams are not created
   PeerID addPeer(in_addr peerAddress, uint16_t videoPort, uint16_t audioPort);
@@ -63,14 +35,6 @@ public:
   void removePeer(PeerID id);
 
 private:
-
-  void initLiveMedia();
-  void addSendRTP();
-  void addReceiveRTP();
-
-  void addH265VideoSend(   PeerID peer, in_addr peerAddress, uint16_t port);
-  void addH265VideoReceive(PeerID peer, in_addr peerAddress, uint16_t port);
-  void uninit();
 
   struct Connection
   {
@@ -100,11 +64,20 @@ private:
     RTPSinkFilter* sink; // sends stuff to filter graph
   };
 
+  void initLiveMedia();
+
   void createConnection(Connection& connection,
                         struct in_addr ip, uint16_t portNum,
                         bool reservePorts);
 
   void destroyConnection(Connection& connection);
+
+  Sender* addSendRTP(in_addr peerAddress, uint16_t port, DataType type);
+  Receiver* addReceiveRTP(in_addr peerAddress, uint16_t port, DataType type);
+
+  void addH265VideoSend(   PeerID peer, in_addr peerAddress, uint16_t port);
+  void addH265VideoReceive(PeerID peer, in_addr peerAddress, uint16_t port);
+  void uninit();
 
   void addSender(bool audio, bool video);
   void addReceiver(bool audio, bool video);

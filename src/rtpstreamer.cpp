@@ -277,3 +277,31 @@ void RTPStreamer::destroyConnection(Connection& connection)
   }
 }
 
+// use these to ask for filters that are connected to filter graph
+FramedSourceFilter* RTPStreamer::getSourceFilter(PeerID peer, DataType type)
+{
+  peer_.lock();
+  // TODO: Check availability
+//   Q_ASSERT(videoSenders_.find(peer) != videoSenders_.end());
+  peer_.unlock();
+  if(type == RAWAUDIO)
+    return audioSenders_[peer]->framedSource;
+  else if(type == HEVCVIDEO)
+    return videoSenders_[peer]->framedSource;
+
+  return NULL;
+}
+
+RTPSinkFilter* RTPStreamer::getSinkFilter(PeerID peer, DataType type)
+{
+  peer_.lock();
+//    Q_ASSERT(receivers_.find(peer) != receivers_.end());
+  peer_.unlock();
+  if(type == RAWAUDIO)
+    return audioReceivers_[peer]->sink;
+  else if(type == HEVCVIDEO)
+    return videoReceivers_[peer]->sink;
+
+  return NULL;
+}
+
