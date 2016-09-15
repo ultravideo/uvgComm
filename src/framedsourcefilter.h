@@ -11,7 +11,7 @@ class FramedSourceFilter : public FramedSource, public Filter
 {
 public:
   FramedSourceFilter(StatisticsInterface* stats,
-                     UsageEnvironment &env, DataType type, uint16_t framerate);
+                     UsageEnvironment &env, DataType type);
 
   // called by live555. Takes a sample from input and schedules it to be sent.
   virtual void doGetNextFrame();
@@ -27,7 +27,5 @@ protected:
 private:
 
   DataType type_;
-
-  uint16_t framerate_;
 
 };

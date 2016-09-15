@@ -90,6 +90,7 @@ void CameraFilter::handleFrame(const QVideoFrame &frame)
     newImage->width = resolution_.width();
     newImage->height = resolution_.height();
     newImage->data_size = image2.byteCount();
+    newImage->framerate = 30; // TODO Input this using settings.
   }
 
   //qDebug() << "Frame generated. Format: " << pf

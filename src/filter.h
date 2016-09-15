@@ -21,6 +21,9 @@ struct Data
   int16_t width;
   int16_t height;
   timeval presentationTime;
+
+  uint16_t framerate;
+
 };
 
 const int BUFFERSIZE = 50;

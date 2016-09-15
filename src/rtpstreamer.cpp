@@ -27,13 +27,17 @@ RTPStreamer::RTPStreamer(StatisticsInterface* stats):
   videoPort_(18888),
   stopRTP_(0),
   env_(NULL),
-  stats_(stats)
+  stats_(stats),
+  CNAME_()
 {
   // use unicast
   QString ip_str = "0.0.0.0";
   QHostAddress address;
   address.setAddress(ip_str);
   sessionAddress_.S_un.S_addr = qToBigEndian(address.toIPv4Address());
+
+  gethostname((char*)CNAME_, maxCNAMElen_);
+  CNAME_[maxCNAMElen_] = '\0'; // just in case
 
   iniated_.lock();
 }
@@ -67,31 +71,22 @@ void RTPStreamer::uninit()
 
   for(auto it : videoSenders_)
   {
+    RTCPInstance::close(it.second->rtcp);
     it.second->framedSource = NULL;
-
     it.second->sink->stopPlaying();
     RTPSink::close(it.second->sink);
-
-    RTCPInstance::close(it.second->rtcp);
-
-    delete it.second->rtpGroupsock;
-    delete it.second->rtcpGroupsock;
-
-    delete it.second->rtpPort;
-    delete it.second->rtcpPort;
+    destroyConnection(it.second->connection);
 
     delete it.second;
   }
   for(auto it : videoReceivers_)
   {
+    RTCPInstance::close(it.second->rtcp);
     it.second->sink->stopPlaying();
     it.second->sink = NULL; // deleted in filter graph
     FramedSource::close(it.second->framedSource);
     it.second->framedSource = 0;
-
-    delete it.second->rtpGroupsock;
-    delete it.second->rtpPort;
-    delete it.second;
+    destroyConnection(it.second->connection);
   }
 
   if(!env_->reclaim())
@@ -103,6 +98,8 @@ void RTPStreamer::uninit()
 void RTPStreamer::initLiveMedia()
 {
   qDebug() << "Iniating live555";
+  QString sName(reinterpret_cast<char*>(CNAME_));
+  qDebug() << "Our hostname:" << sName;
 
   TaskScheduler* scheduler = BasicTaskScheduler::createNew();
   if(scheduler)
@@ -155,39 +152,29 @@ void RTPStreamer::addH265VideoSend(PeerID peer, in_addr peerAddress, uint16_t fr
 
   Sender* sender = new Sender;
 
-  sender->rtpPort = new Port(0); // 0 because it reserves the port for some reason
-  sender->rtcpPort = new Port(videoPort_ + 1);
-
-  sender->rtpGroupsock = new Groupsock(*env_, sessionAddress_, peerAddress, *(sender->rtpPort));
-  sender->rtpGroupsock->changeDestinationParameters(peerAddress, videoPort_, ttl_);
-
-  sender->rtcpGroupsock = new Groupsock(*env_, peerAddress, *(sender->rtcpPort), ttl_);
-
+  createConnection(sender->connection, peerAddress, videoPort_, false);
 
   // todo: negotiate payload number
-  sender->sink = H265VideoRTPSink::createNew(*env_, sender->rtpGroupsock, 96);
+  sender->sink = H265VideoRTPSink::createNew(*env_, sender->connection.rtpGroupsock, 96);
+
+
 
   // Create (and start) a 'RTCP instance' for this RTP sink:
   const unsigned int estimatedSessionBandwidth = 5000; // in kbps; for RTCP b/w share
 
-  const unsigned maxCNAMElen = 100;
-  unsigned char CNAME[maxCNAMElen+1];
-  gethostname((char*)CNAME, maxCNAMElen);
-  CNAME[maxCNAMElen] = '\0'; // just in case
-
-  QString sName(reinterpret_cast<char*>(CNAME));
-  qDebug() << "Our hostname:" << sName;
 
   // This starts RTCP running automatically
   sender->rtcp  = RTCPInstance::createNew(*env_,
-                                   sender->rtcpGroupsock,
+                                   sender->connection.rtcpGroupsock,
                                    estimatedSessionBandwidth,
-                                   CNAME,
+                                   CNAME_,
                                    sender->sink,
                                    NULL,
                                    False);
 
-  sender->framedSource = new FramedSourceFilter(stats_, *env_, HEVCVIDEO, framerate);
+  sender->framedSource = new FramedSourceFilter(stats_, *env_, HEVCVIDEO);
+
+
 
   if(!sender->framedSource || !sender->sink)
   {
@@ -214,30 +201,20 @@ void RTPStreamer::addH265VideoReceive(PeerID peer, in_addr peerAddress)
   }
   Receiver *receiver = new Receiver;
 
+  createConnection(receiver->connection, peerAddress, videoPort_, true);
+
   qDebug() << "Iniating H265 receive video RTP/RTCP streams";
-  receiver->rtpPort = new Port(videoPort_);
-  receiver->rtcpPort = new Port(videoPort_ + 1);
-
-  receiver->rtpGroupsock = new Groupsock(*env_, sessionAddress_, peerAddress, *receiver->rtpPort);
-
-  receiver->rtcpGroupsock = new Groupsock(*env_, peerAddress, *(receiver->rtcpPort), ttl_);
 
   const unsigned int estimatedSessionBandwidth = 5000; // in kbps; for RTCP b/w share
-  const unsigned maxCNAMElen = 100;
-  unsigned char CNAME[maxCNAMElen+1];
-  gethostname((char*)CNAME, maxCNAMElen);
-  CNAME[maxCNAMElen] = '\0'; // just in case
-
-
 
   // todo: negotiate payload number
-  receiver->framedSource = H265VideoRTPSource::createNew(*env_, receiver->rtpGroupsock, 96);
+  receiver->framedSource = H265VideoRTPSource::createNew(*env_, receiver->connection.rtpGroupsock, 96);
 
   // This starts RTCP running automatically
   receiver->rtcp  = RTCPInstance::createNew(*env_,
-                                   receiver->rtcpGroupsock,
+                                   receiver->connection.rtcpGroupsock,
                                    estimatedSessionBandwidth,
-                                   CNAME,
+                                   CNAME_,
                                    NULL,
                                    receiver->framedSource, // this is the client
                                    False);
@@ -247,8 +224,7 @@ void RTPStreamer::addH265VideoReceive(PeerID peer, in_addr peerAddress)
   if(!receiver->framedSource || !receiver->sink)
   {
     qCritical() << "Failed to setup receiving RTP stream";
-    delete receiver->rtpGroupsock;
-    delete receiver->rtpPort;
+    destroyConnection(receiver->connection);
     delete receiver;
     return;
   }
@@ -260,3 +236,53 @@ void RTPStreamer::addH265VideoReceive(PeerID peer, in_addr peerAddress)
 
   videoReceivers_[peer] = receiver;
 }
+
+void RTPStreamer::createConnection(Connection& connection, struct in_addr ip,
+                                   uint16_t portNum, bool reservePorts)
+{
+  if(!reservePorts)
+  {
+    connection.rtpPort = new Port(0);
+    connection.rtcpPort = new Port(0);
+  }
+  else
+  {
+    connection.rtpPort = new Port(portNum);
+    connection.rtcpPort = new Port(portNum + 1);
+  }
+
+  connection.rtpGroupsock = new Groupsock(*env_, sessionAddress_, ip, *connection.rtpPort);
+  connection.rtcpGroupsock = new Groupsock(*env_, ip, *(connection.rtcpPort), ttl_);
+  if(!reservePorts)
+  {
+    connection.rtpGroupsock->changeDestinationParameters(ip, portNum, ttl_);
+    connection.rtcpGroupsock->changeDestinationParameters(ip, portNum + 1, ttl_);
+  }
+
+}
+
+void RTPStreamer::destroyConnection(Connection& connection)
+{
+  if(connection.rtpGroupsock)
+  {
+    delete connection.rtpGroupsock;
+    connection.rtpGroupsock = 0;
+  }
+  if(connection.rtcpGroupsock)
+  {
+    delete connection.rtcpGroupsock;
+    connection.rtcpGroupsock = 0;
+  }
+
+  if(connection.rtpPort)
+  {
+    delete connection.rtpPort;
+    connection.rtpPort = 0;
+  }
+  if(connection.rtcpPort)
+  {
+    delete connection.rtcpPort;
+    connection.rtcpPort = 0;
+  }
+}
+

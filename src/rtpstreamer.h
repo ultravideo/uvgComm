@@ -75,30 +75,24 @@ public:
 private:
 
   void initLiveMedia();
+  void addSendRTP();
+  void addReceiveRTP();
+
   void addH265VideoSend(PeerID peer, in_addr peerAddress, uint16_t framerate);
   void addH265VideoReceive(PeerID peer, in_addr peerAddress);
   void uninit();
 
   struct Connection
   {
-    struct in_addr peerAddress;
-
     Port* rtpPort;
     Port* rtcpPort;
     Groupsock* rtpGroupsock;
     Groupsock* rtcpGroupsock;
-
-    RTCPInstance* rtcp;
   };
 
   struct Sender
   {
-    struct in_addr peerAddress;
-
-    Port* rtpPort;
-    Port* rtcpPort;
-    Groupsock* rtpGroupsock;
-    Groupsock* rtcpGroupsock;
+    Connection connection;
 
     RTCPInstance* rtcp;
 
@@ -108,12 +102,7 @@ private:
 
   struct Receiver
   {
-    struct in_addr peerAddress;
-
-    Port* rtpPort;
-    Port* rtcpPort;
-    Groupsock* rtpGroupsock;
-    Groupsock* rtcpGroupsock;
+    Connection connection;
 
     RTCPInstance* rtcp;
 
@@ -121,7 +110,12 @@ private:
     RTPSinkFilter* sink; // sends stuff to filter graph
   };
 
-  void createConnection(Connection& connection);
+  void createConnection(Connection& connection,
+                        struct in_addr ip, uint16_t portNum,
+                        bool reservePorts);
+
+  void destroyConnection(Connection& connection);
+
   void addSender(bool audio, bool video);
   void addReceiver(bool audio, bool video);
   void destroySenders(std::map<PeerID, Sender*> &senders);
@@ -147,6 +141,9 @@ private:
   UsageEnvironment* env_;
 
   StatisticsInterface* stats_;
+
+  static const unsigned int maxCNAMElen_ = 100;
+  unsigned char CNAME_[maxCNAMElen_ + 1];
 
 };
 
