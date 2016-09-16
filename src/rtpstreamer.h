@@ -30,8 +30,18 @@ public:
   FramedSourceFilter* getSendFilter(PeerID peer, DataType type);
   RTPSinkFilter* getReceiveFilter(PeerID peer, DataType type);
 
-  // if audioPort or videoPort is 0, corresponding streams are not created
-  PeerID addPeer(in_addr peerAddress, uint16_t videoPort, uint16_t audioPort);
+  // associate add and remove functions with returned peerID
+  PeerID addPeer(in_addr ip);
+
+  void addSendVideo(PeerID peer, uint16_t port);
+  void addSendAudio(PeerID peer, uint16_t port);
+  void addReceiveVideo(PeerID peer, uint16_t port);
+  void addReceiveAudio(PeerID peer, uint16_t port);
+
+  void removeSendVideo(PeerID peer);
+  void removeSendAudio(PeerID peer);
+  void removeReceiveVideo(PeerID peer);
+  void removeReceiveAudio(PeerID peer);
 
   // removes everything related to this peer
   void removePeer(PeerID id);

@@ -90,30 +90,24 @@ void RTPStreamer::initLiveMedia()
   OutPacketBuffer::maxSize = 65536;
 }
 
-PeerID RTPStreamer::addPeer(in_addr peerAddress,
-                            uint16_t videoPort, uint16_t audioPort)
+PeerID RTPStreamer::addPeer(in_addr ip)
 {
   iniated_.lock();
   peer_.lock();
   qDebug() << "Adding peer to following IP: "
-           << (uint8_t)((peerAddress.s_addr) & 0xff) << "."
-           << (uint8_t)((peerAddress.s_addr >> 8) & 0xff) << "."
-           << (uint8_t)((peerAddress.s_addr >> 16) & 0xff) << "."
-           << (uint8_t)((peerAddress.s_addr >> 24) & 0xff);
-
-//  PeerID peerID = nextID_;
-//  ++nextID_;
+           << (uint8_t)((ip.s_addr) & 0xff) << "."
+           << (uint8_t)((ip.s_addr >> 8) & 0xff) << "."
+           << (uint8_t)((ip.s_addr >> 16) & 0xff) << "."
+           << (uint8_t)((ip.s_addr >> 24) & 0xff);
 
   Peer* peer = new Peer;
 
-  if(videoPort)
-  {
+  peer->ip = ip;
+  peer->videoSender = 0;
+  peer->videoReceiver = 0;
+  peer->audioSender = 0;
+  peer->audioReceiver = 0;
 
-    peer->videoSender = addSender(peerAddress, videoPort, HEVCVIDEO);
-    peer->videoReceiver = addReceiver(peerAddress, videoPort, HEVCVIDEO);
-    peer->audioSender = 0;
-    peer->audioReceiver = 0;
-  }
   peers_.push_back(peer);
 
   peer_.unlock();
@@ -175,6 +169,82 @@ void RTPStreamer::destroyReceiver(Receiver* recv)
   }
   else
     qWarning() << "Warning: Tried to delete receiver a second time";
+}
+
+void RTPStreamer::addSendVideo(PeerID peer, uint16_t port)
+{
+  if(peers_.at(peer)->videoSender)
+    destroySender(peers_.at(peer)->videoSender);
+
+  peers_.at(peer)->videoSender = addSender(peers_.at(peer)->ip, port, HEVCVIDEO);
+}
+
+void RTPStreamer::addSendAudio(PeerID peer, uint16_t port)
+{
+  if(peers_.at(peer)->audioSender)
+    destroySender(peers_.at(peer)->audioSender);
+
+  peers_.at(peer)->audioSender = addSender(peers_.at(peer)->ip, port, RAWAUDIO);
+}
+
+
+void RTPStreamer::addReceiveVideo(PeerID peer, uint16_t port)
+{
+  if(peers_.at(peer)->videoReceiver)
+    destroyReceiver(peers_.at(peer)->videoReceiver);
+
+  peers_.at(peer)->videoReceiver = addReceiver(peers_.at(peer)->ip, port, HEVCVIDEO);
+}
+
+void RTPStreamer::addReceiveAudio(PeerID peer, uint16_t port)
+{
+  if(peers_.at(peer)->audioReceiver)
+    destroyReceiver(peers_.at(peer)->audioReceiver);
+
+  peers_.at(peer)->audioReceiver = addReceiver(peers_.at(peer)->ip, port, RAWAUDIO);
+}
+
+void RTPStreamer::removeSendVideo(PeerID peer)
+{
+  if(peers_.at(peer)->videoSender)
+  {
+    destroySender(peers_.at(peer)->videoSender);
+    peers_.at(peer)->videoSender = 0;
+  }
+  else
+    qWarning() << "WARNING: Tried to remove send video that did not exist.";
+}
+void RTPStreamer::removeSendAudio(PeerID peer)
+{
+  if(peers_.at(peer)->audioSender)
+  {
+    destroySender(peers_.at(peer)->audioSender);
+    peers_.at(peer)->audioSender = 0;
+  }
+
+  else
+    qWarning() << "WARNING: Tried to remove send video that did not exist.";
+}
+
+void RTPStreamer::removeReceiveVideo(PeerID peer)
+{
+  if(peers_.at(peer)->videoReceiver)
+  {
+    destroyReceiver(peers_.at(peer)->videoReceiver);
+    peers_.at(peer)->videoReceiver = 0;
+  }
+  else
+    qWarning() << "WARNING: Tried to remove send video that did not exist.";
+}
+void RTPStreamer::removeReceiveAudio(PeerID peer)
+{
+  if(peers_.at(peer)->audioReceiver)
+  {
+    destroyReceiver(peers_.at(peer)->audioReceiver);
+    peers_.at(peer)->audioReceiver = 0;
+  }
+  else
+    qWarning() << "WARNING: Tried to remove send video that did not exist.";
 }
 
 RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType type)

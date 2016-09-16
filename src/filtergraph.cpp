@@ -85,7 +85,11 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
   //if(port != 0)
   //  streamer_.setPorts(15555, port);
 
-  PeerID peer = streamer_.addPeer(ip, port, port + 1000); // TODO Audioport!
+  PeerID peer = streamer_.addPeer(ip);
+
+  streamer_.addSendVideo(peer, port);
+  streamer_.addReceiveVideo(peer, port);
+   // TODO Audioport!
 
   if(peer == -1)
   {
