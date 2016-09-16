@@ -14,11 +14,7 @@
 #include <iostream>
 
 RTPStreamer::RTPStreamer(StatisticsInterface* stats):
-  audioSenders_(),
-  videoSenders_(),
-  audioReceivers_(),
-  videoReceivers_(),
-  nextID_(1),
+  peers_(),
   iniated_(),
   peer_(),
   ttl_(255),
@@ -67,24 +63,12 @@ void RTPStreamer::uninit()
   Q_ASSERT(stopRTP_);
   qDebug() << "Uniniating RTP streamer";
 
-  for(auto it : videoSenders_)
+  for(unsigned int i = 0; i < peers_.size(); ++i)
   {
-    RTCPInstance::close(it.second->rtcp);
-    it.second->framedSource = NULL;
-    it.second->sink->stopPlaying();
-    RTPSink::close(it.second->sink);
-    destroyConnection(it.second->connection);
-
-    delete it.second;
-  }
-  for(auto it : videoReceivers_)
-  {
-    RTCPInstance::close(it.second->rtcp);
-    it.second->sink->stopPlaying();
-    it.second->sink = NULL; // deleted in filter graph
-    FramedSource::close(it.second->framedSource);
-    it.second->framedSource = 0;
-    destroyConnection(it.second->connection);
+    if(peers_.at(i) != 0)
+    {
+      removePeer(i);
+    }
   }
 
   if(!env_->reclaim())
@@ -117,27 +101,83 @@ PeerID RTPStreamer::addPeer(in_addr peerAddress,
            << (uint8_t)((peerAddress.s_addr >> 16) & 0xff) << "."
            << (uint8_t)((peerAddress.s_addr >> 24) & 0xff);
 
-  PeerID peerID = nextID_;
-  ++nextID_;
+//  PeerID peerID = nextID_;
+//  ++nextID_;
+
+  Peer* peer = new Peer;
 
   if(videoPort)
   {
-    videoSenders_[peerID] = addSendRTP(peerAddress, videoPort, HEVCVIDEO);
-    videoReceivers_[peerID] = addReceiveRTP(peerAddress, videoPort, HEVCVIDEO);
+
+    peer->videoSender = addSender(peerAddress, videoPort, HEVCVIDEO);
+    peer->videoReceiver = addReceiver(peerAddress, videoPort, HEVCVIDEO);
+    peer->audioSender = 0;
+    peer->audioReceiver = 0;
   }
+  peers_.push_back(peer);
 
   peer_.unlock();
   iniated_.unlock();
 
-  qDebug() << "RTP streamer: Peer" << peerID << "added";
+  qDebug() << "RTP streamer: Peer #" << peers_.size() - 1 << "added";
 
-  return peerID;
+  return (PeerID)peers_.size() - 1;
 }
 
 void RTPStreamer::removePeer(PeerID id)
-{}
+{
+  if(peers_.at(id) != 0)
+  {
+    if(peers_.at(id)->audioSender)
+      destroySender(peers_.at(id)->audioSender);
+    if(peers_.at(id)->videoSender)
+      destroySender(peers_.at(id)->videoSender);
+    if(peers_.at(id)->audioReceiver)
+      destroyReceiver(peers_.at(id)->audioReceiver);
+    if(peers_.at(id)->videoReceiver)
+      destroyReceiver(peers_.at(id)->videoReceiver);
 
-RTPStreamer::Sender* RTPStreamer::addSendRTP(in_addr ip, uint16_t port, DataType type)
+    delete peers_.at(id);
+
+    peers_.at(id) = 0;
+  }
+}
+
+void RTPStreamer::destroySender(Sender* sender)
+{
+  Q_ASSERT(sender);
+  if(sender)
+  {
+    RTCPInstance::close(sender->rtcp);
+    sender->framedSource = NULL;
+    sender->sink->stopPlaying();
+    RTPSink::close(sender->sink);
+    destroyConnection(sender->connection);
+
+    delete sender;
+  }
+  else
+    qWarning() << "Warning: Tried to delete sender a second time";
+}
+void RTPStreamer::destroyReceiver(Receiver* recv)
+{
+  Q_ASSERT(recv);
+  if(recv)
+  {
+    RTCPInstance::close(recv->rtcp);
+    recv->sink->stopPlaying();
+    recv->sink = NULL; // deleted in filter graph
+    FramedSource::close(recv->framedSource);
+    recv->framedSource = 0;
+    destroyConnection(recv->connection);
+
+    delete recv;
+  }
+  else
+    qWarning() << "Warning: Tried to delete receiver a second time";
+}
+
+RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType type)
 {
   qDebug() << "Iniating send RTP/RTCP stream";
 
@@ -178,7 +218,7 @@ RTPStreamer::Sender* RTPStreamer::addSendRTP(in_addr ip, uint16_t port, DataType
   return sender;
 }
 
-RTPStreamer::Receiver* RTPStreamer::addReceiveRTP(in_addr peerAddress, uint16_t port, DataType type)
+RTPStreamer::Receiver* RTPStreamer::addReceiver(in_addr peerAddress, uint16_t port, DataType type)
 {
   qDebug() << "Iniating receive RTP/RTCP stream";
   Receiver *receiver = new Receiver;
@@ -274,30 +314,31 @@ void RTPStreamer::destroyConnection(Connection& connection)
 }
 
 // use these to ask for filters that are connected to filter graph
-FramedSourceFilter* RTPStreamer::getSourceFilter(PeerID peer, DataType type)
+FramedSourceFilter* RTPStreamer::getSendFilter(PeerID peer, DataType type)
 {
   peer_.lock();
   // TODO: Check availability
 //   Q_ASSERT(videoSenders_.find(peer) != videoSenders_.end());
   peer_.unlock();
+
   if(type == RAWAUDIO)
-    return audioSenders_[peer]->framedSource;
+    return peers_[peer]->audioSender->framedSource;
   else if(type == HEVCVIDEO)
-    return videoSenders_[peer]->framedSource;
+    return peers_[peer]->videoSender->framedSource;
 
   return NULL;
 }
 
-RTPSinkFilter* RTPStreamer::getSinkFilter(PeerID peer, DataType type)
+RTPSinkFilter* RTPStreamer::getReceiveFilter(PeerID peer, DataType type)
 {
   peer_.lock();
 //    Q_ASSERT(receivers_.find(peer) != receivers_.end());
   peer_.unlock();
+
   if(type == RAWAUDIO)
-    return audioReceivers_[peer]->sink;
+    return peers_[peer]->audioReceiver->sink;
   else if(type == HEVCVIDEO)
-    return videoReceivers_[peer]->sink;
+    return peers_[peer]->videoReceiver->sink;
 
   return NULL;
 }
-

@@ -100,7 +100,7 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
       initSender(selfView_, resolution_);
     }
     Filter *framedSource = NULL;
-    framedSource = streamer_.getSourceFilter(peer, HEVCVIDEO);
+    framedSource = streamer_.getSendFilter(peer, HEVCVIDEO);
 
     filters_.push_back(framedSource);
 
@@ -112,7 +112,7 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
   {
     // Receiving video graph
     Filter* rtpSink = NULL;
-    rtpSink = streamer_.getSinkFilter(peer, HEVCVIDEO);
+    rtpSink = streamer_.getReceiveFilter(peer, HEVCVIDEO);
 
     filters_.push_back(rtpSink);
     filters_.back()->start();

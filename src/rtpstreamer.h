@@ -9,6 +9,7 @@
 #include <UsageEnvironment.hh>
 #include <GroupsockHelper.hh>
 
+#include <vector>
 
 class FramedSourceFilter;
 class RTPSinkFilter;
@@ -26,12 +27,13 @@ public:
   void stop();
 
   // use these to ask for filters that are connected to filter graph
-  FramedSourceFilter* getSourceFilter(PeerID peer, DataType type);
-  RTPSinkFilter* getSinkFilter(PeerID peer, DataType type);
+  FramedSourceFilter* getSendFilter(PeerID peer, DataType type);
+  RTPSinkFilter* getReceiveFilter(PeerID peer, DataType type);
 
   // if audioPort or videoPort is 0, corresponding streams are not created
   PeerID addPeer(in_addr peerAddress, uint16_t videoPort, uint16_t audioPort);
 
+  // removes everything related to this peer
   void removePeer(PeerID id);
 
 private:
@@ -64,6 +66,17 @@ private:
     RTPSinkFilter* sink; // sends stuff to filter graph
   };
 
+  struct Peer
+  {
+    PeerID id;
+    struct in_addr ip;
+    Sender* audioSender; // audio to this peer
+    Sender* videoSender; // video to this peer
+
+    Receiver* audioReceiver; // audio from this peer
+    Receiver* videoReceiver; // video from this peer
+  };
+
   void initLiveMedia();
 
   void createConnection(Connection& connection,
@@ -72,22 +85,16 @@ private:
 
   void destroyConnection(Connection& connection);
 
-  Sender* addSendRTP(in_addr ip, uint16_t port, DataType type);
-  Receiver* addReceiveRTP(in_addr ip, uint16_t port, DataType type);
+  Sender* addSender(in_addr ip, uint16_t port, DataType type);
+  Receiver* addReceiver(in_addr peerAddress, uint16_t port, DataType type);
+
+  void destroySender(Sender* sender);
+  void destroyReceiver(Receiver* recv);
 
   void uninit();
 
-  //void destroySenders(std::map<PeerID, Sender*> &senders);
-  //void destroyReceivers(std::map<PeerID, Receiver*> &receivers);
+  std::vector<Peer*> peers_;
 
-  std::map<PeerID, Sender*> audioSenders_;
-  std::map<PeerID, Sender*> videoSenders_;
-
-  std::map<PeerID, Receiver*> audioReceivers_;
-  std::map<PeerID, Receiver*> videoReceivers_;
-
-  PeerID nextID_;
-  //bool iniated_;
   QMutex iniated_;
   QMutex peer_;
 
