@@ -260,6 +260,14 @@ RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType 
   case HEVCVIDEO :
     sender->sink = H265VideoRTPSink::createNew(*env_, sender->connection.rtpGroupsock, 96);
     break;
+  case RAWAUDIO :
+    sender->sink = SimpleRTPSink::createNew(*env_, sender->connection.rtpGroupsock, 0,
+                                            48000, "audio", "PCM", 2, False);
+    break;
+  case OPUSAUDIO :
+    sender->sink = SimpleRTPSink::createNew(*env_, sender->connection.rtpGroupsock, 97,
+                                            48000, "audio", "OPUS", 2, False);
+    break;
   default :
     qWarning() << "Warning: RTP support not implemented for this format";
     break;
@@ -299,6 +307,14 @@ RTPStreamer::Receiver* RTPStreamer::addReceiver(in_addr peerAddress, uint16_t po
   {
   case HEVCVIDEO :
     receiver->framedSource = H265VideoRTPSource::createNew(*env_, receiver->connection.rtpGroupsock, 96);
+    break;
+  case RAWAUDIO :
+    receiver->framedSource = SimpleRTPSource::createNew(*env_, receiver->connection.rtpGroupsock, 0,
+                                                        48000, "audio/PCM", 0, True);
+    break;
+  case OPUSAUDIO :
+    receiver->framedSource = SimpleRTPSource::createNew(*env_, receiver->connection.rtpGroupsock, 97,
+                                                        48000, "audio/OPUS", 0, True);
     break;
   default :
     qWarning() << "Warning: RTP support not implemented for this format";
