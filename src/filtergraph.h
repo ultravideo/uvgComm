@@ -9,6 +9,7 @@
 
 class VideoWidget;
 class StatisticsInterface;
+class AudioOutput;
 
 typedef uint16_t ParticipantID;
 
@@ -53,9 +54,11 @@ private:
   void deconstruct();
 
   std::vector<Filter*> filters_;
+  std::vector<AudioOutput*> outputs_;
 
   bool videoSendIniated_;
-  unsigned int encoderFilter_;
+  unsigned int videoEncoderFilter_;
+  unsigned int audioEncoderFilter_;
 
   RTPStreamer streamer_;
 

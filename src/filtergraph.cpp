@@ -17,7 +17,8 @@
 FilterGraph::FilterGraph(StatisticsInterface* stats):
   filters_(),
   videoSendIniated_(false),
-  encoderFilter_(0),
+  videoEncoderFilter_(0),
+  audioEncoderFilter_(0),
   streamer_(stats),
   stats_(stats)
 {
@@ -59,7 +60,7 @@ void FilterGraph::initSender(VideoWidget *selfView, QSize resolution)
   filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
   filters_.back()->start();
 
-  encoderFilter_ = filters_.size() - 1;
+  videoEncoderFilter_ = filters_.size() - 1;
 
   videoSendIniated_ = true;
 
@@ -68,11 +69,7 @@ void FilterGraph::initSender(VideoWidget *selfView, QSize resolution)
   capture->init();
   filters_.push_back(capture);
 
-  AudioOutput* output = new AudioOutput(stats_);
-  output->initializeAudio();
-  AudioOutputDevice* outputModule = output->getOutputModule();
-
-  outputModule->init(filters_.back());
+  audioEncoderFilter_ = filters_.size() - 1;
 
 }
 
@@ -87,18 +84,48 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
 
   PeerID peer = streamer_.addPeer(ip);
 
-  streamer_.addSendVideo(peer, port);
-  streamer_.addReceiveVideo(peer, port);
-   // TODO Audioport!
-
   if(peer == -1)
   {
     qCritical() << "Error creating RTP peer";
     return peer;
   }
 
+  if(wantsAudio)
+  {
+    streamer_.addSendAudio(peer, port + 1000);// TODO Audioport!
+
+    Filter *framedSource = NULL;
+    framedSource = streamer_.getSendFilter(peer, RAWAUDIO);
+
+    filters_.push_back(framedSource);
+
+    filters_.at(audioEncoderFilter_)->addOutConnection(filters_.back());
+    //filters_.back()->start();
+  }
+
+  if(sendsAudio)
+  {
+    streamer_.addReceiveAudio(peer, port + 1000);
+
+    Filter* rtpSink = NULL;
+    rtpSink = streamer_.getReceiveFilter(peer, RAWAUDIO);
+
+    filters_.push_back(rtpSink);
+    //filters_.back()->start();
+
+    AudioOutput* output = new AudioOutput(stats_);
+    output->initializeAudio();
+    AudioOutputDevice* outputModule = output->getOutputModule();
+
+    outputModule->init(filters_.back());
+
+    outputs_.push_back(output);
+  }
+
   if(wantsVideo)
   {
+    streamer_.addSendVideo(peer, port);
+
     if(!videoSendIniated_)
     {
       initSender(selfView_, resolution_);
@@ -108,18 +135,20 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
 
     filters_.push_back(framedSource);
 
-      filters_.at(encoderFilter_)->addOutConnection(filters_.back());
-    filters_.back()->start();
+    filters_.at(videoEncoderFilter_)->addOutConnection(filters_.back());
+    //filters_.back()->start();
   }
 
   if(sendsVideo && view != NULL)
   {
+    streamer_.addReceiveVideo(peer, port);
+
     // Receiving video graph
     Filter* rtpSink = NULL;
     rtpSink = streamer_.getReceiveFilter(peer, HEVCVIDEO);
 
     filters_.push_back(rtpSink);
-    filters_.back()->start();
+    //filters_.back()->start();
 
     OpenHEVCFilter* decoder =  new OpenHEVCFilter(stats_);
     decoder->init();
@@ -150,6 +179,9 @@ void FilterGraph::deconstruct()
 {
   for( Filter *f : filters_ )
     delete f;
+
+  for( AudioOutput* a : outputs_)
+    delete a;
 
   filters_.clear();
 }

@@ -74,7 +74,7 @@ void CallWindow::addParticipant()
     ++row_;
   }
 
-  fg_.addParticipant(ip, port_str.toInt(), view);
+  fg_.addParticipant(ip, port_str.toInt(), view, true, true, true, true);
 
   if(stats_)
     stats_->addParticipant(ip_str, port_str);
