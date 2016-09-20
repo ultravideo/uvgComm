@@ -34,7 +34,8 @@ SOURCES +=\
     src/audiocapturedevice.cpp \
     src/statisticswindow.cpp \
     src/audiooutput.cpp \
-    src/audiooutputdevice.cpp
+    src/audiooutputdevice.cpp \
+    src/opusencoderfilter.cpp
 
 HEADERS  += \
     src/callwindow.h \
@@ -57,7 +58,8 @@ HEADERS  += \
     src/statisticswindow.h \
     src/statisticsinterface.h \
     src/audiooutput.h \
-    src/audiooutputdevice.h
+    src/audiooutputdevice.h \
+    src/opusencoderfilter.h
 
 FORMS    += \
     ui/callwindow.ui \
@@ -72,6 +74,7 @@ QMAKE_CXXFLAGS += -std=c++11
 
 INCLUDEPATH += $$PWD/../kvazaar/src
 INCLUDEPATH += $$PWD/../openHEVC/gpac/modules/openhevc_dec
+INCLUDEPATH += $$PWD/../opus/include
 
 INCLUDEPATH += $$PWD/../live/liveMedia/include
 INCLUDEPATH += $$PWD/../live/groupsock/include
@@ -80,6 +83,7 @@ INCLUDEPATH += $$PWD/../live/BasicUsageEnvironment/include
 
 win32: LIBS += -L$$PWD/../
 win32: LIBS += -llibkvazaar.dll
+win32: LIBS += -llibopus.dll
 win32: LIBS += -llibLibOpenHevcWrapper.dll
 win32: LIBS += -llivemedia.dll
 win32: LIBS += -lws2_32

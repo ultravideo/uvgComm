@@ -4,7 +4,7 @@
 
 #include <QTime>
 
-const int AUDIO_BUFFER_SIZE = 4096;
+const int AUDIO_BUFFER_SIZE = 65536;
 
 AudioCaptureFilter::AudioCaptureFilter(StatisticsInterface *stats) :
   Filter("Audio capture", stats, false, true),
@@ -69,31 +69,36 @@ void AudioCaptureFilter::readMore()
   }
   qint64 len = audioInput_->bytesReady();
   if (len > AUDIO_BUFFER_SIZE)
+  {
     len = AUDIO_BUFFER_SIZE;
+  }
   qint64 l = input_->read(buffer_.data(), len);
+
   if (l > 0)
+  {
     device_->write(buffer_.constData(), l);
 
-  Data * newSample = new Data;
+    Data * newSample = new Data;
 
-  // set time
-  timeval present_time;
-  present_time.tv_sec = QDateTime::currentMSecsSinceEpoch()/1000;
-  present_time.tv_usec = (QDateTime::currentMSecsSinceEpoch()%1000) * 1000;
-  newSample->presentationTime = present_time;
-  newSample->type = RAWAUDIO;
-  newSample->data = std::unique_ptr<uint8_t[]>(new uint8_t[len]);
+    // set time
+    timeval present_time;
+    present_time.tv_sec = QDateTime::currentMSecsSinceEpoch()/1000;
+    present_time.tv_usec = (QDateTime::currentMSecsSinceEpoch()%1000) * 1000;
+    newSample->presentationTime = present_time;
+    newSample->type = RAWAUDIO;
+    newSample->data = std::unique_ptr<uint8_t[]>(new uint8_t[len]);
 
-  memcpy(newSample->data.get(), buffer_.constData(), len);
+    memcpy(newSample->data.get(), buffer_.constData(), len);
 
-  newSample->data_size = len;
-  newSample->width = 0;
-  newSample->height = 0;
+    newSample->data_size = len;
+    newSample->width = 0;
+    newSample->height = 0;
 
-  std::unique_ptr<Data> u_newSample( newSample );
-  sendOutput(std::move(u_newSample));
+    std::unique_ptr<Data> u_newSample( newSample );
+    sendOutput(std::move(u_newSample));
 
-  qDebug() << "Audio capture: Generated sample with size:" << len;
+    qDebug() << "Audio capture: Generated sample with size:" << l;
+  }
 }
 
 

@@ -13,6 +13,7 @@
 #include "audiocapturefilter.h"
 #include "audiooutputdevice.h"
 #include "audiooutput.h"
+#include "opusencoderfilter.h"
 
 FilterGraph::FilterGraph(StatisticsInterface* stats):
   filters_(),
@@ -70,6 +71,12 @@ void FilterGraph::initSender(VideoWidget *selfView, QSize resolution)
   filters_.push_back(capture);
 
   audioEncoderFilter_ = filters_.size() - 1;
+
+  OpusEncoderFilter *encoder = new OpusEncoderFilter(stats_);
+  encoder->init();
+  filters_.push_back(encoder);
+  filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
+  filters_.back()->start();
 
 }
 
