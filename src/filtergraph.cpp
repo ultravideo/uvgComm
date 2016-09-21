@@ -14,6 +14,7 @@
 #include "audiooutputdevice.h"
 #include "audiooutput.h"
 #include "opusencoderfilter.h"
+#include "opusdecoderfilter.h"
 
 FilterGraph::FilterGraph(StatisticsInterface* stats):
   filters_(),
@@ -70,14 +71,13 @@ void FilterGraph::initSender(VideoWidget *selfView, QSize resolution)
   capture->init();
   filters_.push_back(capture);
 
-  audioEncoderFilter_ = filters_.size() - 1;
-
   OpusEncoderFilter *encoder = new OpusEncoderFilter(stats_);
   encoder->init();
   filters_.push_back(encoder);
   filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
   filters_.back()->start();
 
+  audioEncoderFilter_ = filters_.size() - 1;
 }
 
 ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget* view,
@@ -99,10 +99,10 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
 
   if(wantsAudio)
   {
-    streamer_.addSendAudio(peer, port + 1000);// TODO Audioport!
+    streamer_.addSendAudio(peer, port + 1000); // TODO Audioport!
 
     Filter *framedSource = NULL;
-    framedSource = streamer_.getSendFilter(peer, RAWAUDIO);
+    framedSource = streamer_.getSendFilter(peer, OPUSAUDIO);
 
     filters_.push_back(framedSource);
 
@@ -115,10 +115,16 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
     streamer_.addReceiveAudio(peer, port + 1000);
 
     Filter* rtpSink = NULL;
-    rtpSink = streamer_.getReceiveFilter(peer, RAWAUDIO);
+    rtpSink = streamer_.getReceiveFilter(peer, OPUSAUDIO);
 
     filters_.push_back(rtpSink);
     //filters_.back()->start();
+
+    OpusDecoderFilter *decoder = new OpusDecoderFilter(stats_);
+    decoder->init();
+    filters_.push_back(decoder);
+    filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
+    filters_.back()->start();
 
     AudioOutput* output = new AudioOutput(stats_);
     output->initializeAudio();

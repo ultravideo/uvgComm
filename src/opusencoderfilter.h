@@ -8,18 +8,16 @@ class OpusEncoderFilter : public Filter
 {
 public:
   OpusEncoderFilter(StatisticsInterface* stats);
+  ~OpusEncoderFilter();
 
   void init();
 
 protected:
   void process();
 
-
 private:
   OpusEncoder* enc_;
 
-  unsigned char* output_;
-
-  opus_int32 max_data_bytes_;
-
+  unsigned char* opusOutput_;
+  uint32_t max_data_bytes_;
 };

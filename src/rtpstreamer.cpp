@@ -407,7 +407,7 @@ FramedSourceFilter* RTPStreamer::getSendFilter(PeerID peer, DataType type)
 //   Q_ASSERT(videoSenders_.find(peer) != videoSenders_.end());
   peer_.unlock();
 
-  if(type == RAWAUDIO)
+  if(type == RAWAUDIO || type == OPUSAUDIO)
     return peers_[peer]->audioSender->framedSource;
   else if(type == HEVCVIDEO)
     return peers_[peer]->videoSender->framedSource;
@@ -421,7 +421,7 @@ RTPSinkFilter* RTPStreamer::getReceiveFilter(PeerID peer, DataType type)
 //    Q_ASSERT(receivers_.find(peer) != receivers_.end());
   peer_.unlock();
 
-  if(type == RAWAUDIO)
+  if(type == RAWAUDIO || type == OPUSAUDIO)
     return peers_[peer]->audioReceiver->sink;
   else if(type == HEVCVIDEO)
     return peers_[peer]->videoReceiver->sink;

@@ -53,6 +53,7 @@ void Filter::putInput(std::unique_ptr<Data> data)
     inBuffer_.push(std::move(data));
   else
   {
+    // TODO: OPUS decoder should be inputted a NULL pointer in case this happens
     ++inputDiscarded_;
     stats_->packetDropped();
     qDebug() << name_ << " buffer full. Discarded input: "

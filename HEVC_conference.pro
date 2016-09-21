@@ -35,7 +35,8 @@ SOURCES +=\
     src/statisticswindow.cpp \
     src/audiooutput.cpp \
     src/audiooutputdevice.cpp \
-    src/opusencoderfilter.cpp
+    src/opusencoderfilter.cpp \
+    src/opusdecoderfilter.cpp
 
 HEADERS  += \
     src/callwindow.h \
@@ -59,7 +60,8 @@ HEADERS  += \
     src/statisticsinterface.h \
     src/audiooutput.h \
     src/audiooutputdevice.h \
-    src/opusencoderfilter.h
+    src/opusencoderfilter.h \
+    src/opusdecoderfilter.h
 
 FORMS    += \
     ui/callwindow.ui \
