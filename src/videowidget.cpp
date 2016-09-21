@@ -70,7 +70,16 @@ void VideoWidget::updateTargetRect()
   if(hasImage_)
   {
     QSize size = currentImage_.size();
-    size.scale(QWidget::size().boundedTo(size), Qt::KeepAspectRatio);
+
+    if(QWidget::size().height() > size.height()
+       && QWidget::size().width() > size.width())
+    {
+      size.scale(QWidget::size().expandedTo(size), Qt::KeepAspectRatio);
+    }
+    else
+    {
+       size.scale(QWidget::size().boundedTo(size), Qt::KeepAspectRatio);
+    }
 
     targetRect_ = QRect(QPoint(0, 0), size);
     targetRect_.moveCenter(rect().center());
