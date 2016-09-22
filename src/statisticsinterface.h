@@ -19,7 +19,7 @@ public:
   virtual void videoInfo(double framerate, QSize resolution) = 0;
 
   // basic information on audio. Can be called in case information changes.
-  virtual void audioInfo(uint32_t sampleRate) = 0;
+  virtual void audioInfo(uint32_t sampleRate, uint16_t channelCount) = 0;
 
   // adds participant information. May in future be extended to include
   // RTP tracking fo each participant individually with ID

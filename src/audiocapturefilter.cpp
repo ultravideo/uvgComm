@@ -4,6 +4,9 @@
 
 #include <QTime>
 
+
+#include "statisticsinterface.h"
+
 const int AUDIO_BUFFER_SIZE = 65536;
 
 AudioCaptureFilter::AudioCaptureFilter(StatisticsInterface *stats) :
@@ -26,7 +29,7 @@ void AudioCaptureFilter::initializeAudio()
 {
   qDebug() << "Initializing audio capture filter";
   format_.setSampleRate(48000);
-  format_.setChannelCount(1);
+  format_.setChannelCount(2);
   format_.setSampleSize(16);
   format_.setSampleType(QAudioFormat::SignedInt);
   format_.setByteOrder(QAudioFormat::LittleEndian);
@@ -37,6 +40,8 @@ void AudioCaptureFilter::initializeAudio()
     qWarning() << "Default format not supported - trying to use nearest";
     format_ = info.nearestFormat(format_);
   }
+
+  stats_->audioInfo(format_.sampleRate(), format_.channelCount());
 
   if (device_)
     delete device_;
@@ -97,7 +102,7 @@ void AudioCaptureFilter::readMore()
     std::unique_ptr<Data> u_newSample( newSample );
     sendOutput(std::move(u_newSample));
 
-    qDebug() << "Audio capture: Generated sample with size:" << l;
+    //qDebug() << "Audio capture: Generated sample with size:" << l;
   }
 }
 

@@ -7,6 +7,9 @@
 #include <QTime>
 #include <QtDebug>
 
+#include "statisticsinterface.h"
+
+
 CameraFilter::CameraFilter(StatisticsInterface *stats, QSize resolution):
   Filter("Camera", stats, false, true),
   camera_(),
@@ -23,6 +26,12 @@ CameraFilter::CameraFilter(StatisticsInterface *stats, QSize resolution):
   connect(cameraFrameGrabber_, SIGNAL(frameAvailable(QVideoFrame)), this, SLOT(handleFrame(QVideoFrame)));
 
   camera_->start();
+
+  if( camera_->state() == QCamera::ActiveState)
+  {
+    QCameraViewfinderSettings settings = camera_->viewfinderSettings();
+    stats_->videoInfo(settings.maximumFrameRate(), settings.resolution());
+  }
 }
 
 CameraFilter::~CameraFilter()
@@ -44,6 +53,7 @@ void CameraFilter::stop()
 
 void CameraFilter::handleFrame(const QVideoFrame &frame)
 {
+
   QVideoFrame cloneFrame(frame);
   cloneFrame.map(QAbstractVideoBuffer::ReadOnly);
 

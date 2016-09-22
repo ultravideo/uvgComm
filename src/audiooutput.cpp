@@ -28,7 +28,7 @@ void AudioOutput::initializeAudio()
   // connect(m_pushTimer, SIGNAL(timeout()), SLOT(pushTimerExpired()));
 
   format_.setSampleRate(48000);
-  format_.setChannelCount(1);
+  format_.setChannelCount(2);
   format_.setSampleSize(16);
   format_.setSampleType(QAudioFormat::SignedInt);
   format_.setByteOrder(QAudioFormat::LittleEndian);

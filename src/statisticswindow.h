@@ -24,7 +24,7 @@ public:
 
   virtual void addNextInterface(StatisticsInterface* next);
   virtual void videoInfo(double framerate, QSize resolution);
-  virtual void audioInfo(uint32_t sampleRate);
+  virtual void audioInfo(uint32_t sampleRate, uint16_t channelCount);
   virtual void addParticipant(QString ip, QString port);
   virtual void delayTime(QString type, uint32_t delay);
   virtual void addEncodedVideo(uint16_t size);
@@ -35,7 +35,14 @@ public:
 
 private:
 
+  struct PacketInfo
+  {
+    uint32_t timestamp;
+    uint16_t size;
+  };
+
   uint32_t totalBuffers();
+  uint32_t bitrate(std::vector<PacketInfo*>& packets);
 
   Ui::StatisticsWindow *ui_;
 
@@ -50,8 +57,12 @@ private:
   bool dirtyBuffers_;
 
   uint16_t framerate_; // rounded down currently
-  uint16_t bitrateCounter_;
-  uint32_t bitrate_;
+//  uint16_t bitrateCounter_;
+//  uint32_t v_bitrate_;
+
+  unsigned int videoIndex_;
+  std::vector<PacketInfo*> videoPackets_;
+  //std::vector<PacketInfo> audioPackets_;
 
   uint64_t sendPacketCount_;
   uint64_t transferredData_;
