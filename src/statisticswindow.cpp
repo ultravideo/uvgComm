@@ -135,7 +135,7 @@ uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets, uint32_t i
     p = packets[i%BUFFERSIZE];
   }
 
-  qDebug() << "Bitrate:" << bitrate << "timeInterval:"  << timeInterval;
+  //qDebug() << "Bitrate:" << bitrate << "timeInterval:"  << timeInterval;
   if(timeInterval)
     return 8*bitrate/(timeInterval);
 

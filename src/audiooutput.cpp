@@ -91,7 +91,7 @@ void AudioOutput::receiveInput()
     int chunks = audioOutput_->bytesFree()/audioOutput_->periodSize();
     while (chunks) {
       const qint64 len = source_->read(buffer_.data(), audioOutput_->periodSize());
-      qDebug() << "Audio output getting input with size:" << len;
+      //qDebug() << "Audio output getting input with size:" << len;
       if (len)
         output_->write(buffer_.data(), len);
       if (len != audioOutput_->periodSize())

@@ -44,7 +44,7 @@ void OpusEncoderFilter::process()
 
     len = opus_encode(enc_, input_data, frame_size, opusOutput_, max_data_bytes_);
 
-    qDebug() << "Encoded Opus audio. New framesize:" << len;
+    //qDebug() << "Encoded Opus audio. New framesize:" << len;
 
     if(len != -1)
     {

@@ -27,7 +27,7 @@ void OpusDecoderFilter::process()
   while(input)
   {
     // TODO: get number of channels from opus sample
-    qDebug() << "Decoding:" << input->data_size;
+    //qDebug() << "Decoding:" << input->data_size;
 
     int channels = 2;
     int32_t len = 0;
@@ -37,7 +37,7 @@ void OpusDecoderFilter::process()
 
     uint32_t datasize = len*channels*sizeof(opus_int16);
 
-    qDebug() << "Decoded Opus audio. New framesize:" << datasize;
+    //qDebug() << "Decoded Opus audio. New framesize:" << datasize;
 
     if(len != -1)
     {
