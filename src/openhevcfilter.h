@@ -18,4 +18,6 @@ protected:
 
 private:
   OpenHevc_Handle handle_;
+
+  bool parameterSets_;
 };

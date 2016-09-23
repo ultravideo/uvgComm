@@ -7,7 +7,8 @@
 
 OpenHEVCFilter::OpenHEVCFilter(StatisticsInterface *stats):
   Filter("OpenHEVC", stats, true, true),
-  handle_()
+  handle_(),
+  parameterSets_(false)
 {}
 
 void OpenHEVCFilter::init()
@@ -33,9 +34,22 @@ void OpenHEVCFilter::process()
   std::unique_ptr<Data> input = getInput();
   while(input)
   {
-
     OpenHevc_Frame openHevcFrame;
     const unsigned char *buff = input->data.get();
+
+    if(!parameterSets_
+       && buff[0] == 0
+       && buff[1] == 0
+       && buff[2] == 0
+       && buff[3] == 1
+       && (buff[4] >> 1) == 1)
+    {
+      break;
+    }
+    else
+    {
+      parameterSets_ = true;
+    }
 
     int64_t pts = input->presentationTime.tv_sec*90000 + input->presentationTime.tv_usec*90000/1000000;
     int gotPicture = libOpenHevcDecode(handle_, buff, input->data_size, pts);
@@ -44,9 +58,9 @@ void OpenHEVCFilter::process()
     {
       qCritical() << name_ << " error while decoding.";
     }
-    else if(!gotPicture)
+    else if(!gotPicture && input->data_size >= 2)
     {
-      qDebug() << name_ << " could not decode frame. NAL type:" <<
+      qWarning() << "Warning: Could not decode video frame. NAL type:" <<
        buff[0] << buff[1] << buff[2] << buff[3] << (buff[4] >> 1);
     }
     else if( libOpenHevcGetOutput(handle_, gotPicture, &openHevcFrame) == -1 )
