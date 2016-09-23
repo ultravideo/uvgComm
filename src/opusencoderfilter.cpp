@@ -1,6 +1,9 @@
 #include "opusencoderfilter.h"
 
 #include <QDebug>
+#include <QDateTime>
+
+#include "statisticsinterface.h"
 
 OpusEncoderFilter::OpusEncoderFilter(StatisticsInterface* stats):
   Filter("Opus Encoder", stats, true, true),
@@ -20,7 +23,7 @@ OpusEncoderFilter::~OpusEncoderFilter()
 void OpusEncoderFilter::init()
 {
   int error = 0;
-  enc_ = opus_encoder_create(48000, 2, OPUS_APPLICATION_VOIP, &error);
+  enc_ = opus_encoder_create(48000, 2, OPUS_APPLICATION_AUDIO, &error);
 
   if(error)
     qWarning() << "Failed to initialize opus encoder with errorcode:" << error;
@@ -38,6 +41,7 @@ void OpusEncoderFilter::process()
     int frame_size = input->data_size/(channels*sizeof(opus_int16));
     opus_int16* input_data = (opus_int16*)input->data.get();
 
+
     len = opus_encode(enc_, input_data, frame_size, opusOutput_, max_data_bytes_);
 
     qDebug() << "Encoded Opus audio. New framesize:" << len;
@@ -49,6 +53,11 @@ void OpusEncoderFilter::process()
       input->data_size = len;
 
       input->data = std::move(opus_frame);
+
+      uint32_t delay = QDateTime::currentMSecsSinceEpoch() -
+          (input->presentationTime.tv_sec * 1000 + input->presentationTime.tv_usec/1000);
+      stats_->delayTime("audio", delay);
+      stats_->addEncodedPacket("audio", len);
       sendOutput(std::move(input));
     }
     else

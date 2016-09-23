@@ -28,8 +28,8 @@ public:
   // can be used to record delays at different points within program
   virtual void delayTime(QString type, uint32_t delay) = 0;
 
-  // For tracking of encoding information.
-  virtual void addEncodedVideo(uint16_t size) = 0;
+  // For tracking of encoding bitrate and possibly other information.
+  virtual void addEncodedPacket(QString type, uint16_t size) = 0;
 
   // Tracking of sent packets
   virtual void addSendPacket(uint16_t size) = 0;

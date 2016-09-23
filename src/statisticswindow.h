@@ -27,7 +27,7 @@ public:
   virtual void audioInfo(uint32_t sampleRate, uint16_t channelCount);
   virtual void addParticipant(QString ip, QString port);
   virtual void delayTime(QString type, uint32_t delay);
-  virtual void addEncodedVideo(uint16_t size);
+  virtual void addEncodedPacket(QString type, uint16_t size);
   virtual void addSendPacket(uint16_t size);
   virtual void addReceivePacket(uint16_t size);
   virtual void updateBufferStatus(QString filter, uint16_t buffersize);
@@ -42,7 +42,7 @@ private:
   };
 
   uint32_t totalBuffers();
-  uint32_t bitrate(std::vector<PacketInfo*>& packets);
+  uint32_t bitrate(std::vector<PacketInfo*>& packets, uint32_t index);
 
   Ui::StatisticsWindow *ui_;
 
@@ -60,9 +60,11 @@ private:
 //  uint16_t bitrateCounter_;
 //  uint32_t v_bitrate_;
 
-  unsigned int videoIndex_;
+  uint32_t videoIndex_;
   std::vector<PacketInfo*> videoPackets_;
-  //std::vector<PacketInfo> audioPackets_;
+
+  uint32_t audioIndex_;
+  std::vector<PacketInfo*> audioPackets_;
 
   uint64_t sendPacketCount_;
   uint64_t transferredData_;

@@ -13,10 +13,10 @@ QDialog(parent),
 StatisticsInterface(),
 ui_(new Ui::StatisticsWindow),
   framerate_(0),
-//  bitrateCounter_(0),
-//  bitrate_(0),
   videoIndex_(0), // ringbuffer index
   videoPackets_(BUFFERSIZE,0), // ringbuffer
+  audioIndex_(0), // ringbuffer index
+  audioPackets_(BUFFERSIZE,0), // ringbuffer
   sendPacketCount_(0),
   transferredData_(0),
   receivePacketCount_(0),
@@ -67,66 +67,69 @@ void StatisticsWindow::addParticipant(QString ip, QString port)
 
 void StatisticsWindow::delayTime(QString type, uint32_t delay)
 {
-  if(type == "video")
+  if(type == "video" || type == "Video")
   {
     sendMutex_.lock();
     ui_->encode_delay_value->setText( QString::number(delay) + "ms. (not precise)" );
     sendMutex_.unlock();
   }
+  else if(type == "audio" || type == "Audio")
+  {
+    sendMutex_.lock();
+    ui_->audio_delay_value->setText( QString::number(delay) + "ms. (not precise)" );
+    sendMutex_.unlock();
+  }
 }
-void StatisticsWindow::addEncodedVideo(uint16_t size)
+
+void StatisticsWindow::addEncodedPacket(QString type, uint16_t size)
 {
-  // TODO: assumes constant flow of frames at framerate
-
-  /*
-  if(framerate_ == 0)
-    ui_->video_bitrate_value->setText( QString::number(size) + "bytes" );
-  else
-  {
-    if(bitrateCounter_ == framerate_)
-    {
-      bitrateCounter_ = 0;
-      bitrate_ = 0;
-    }
-    ++bitrateCounter_;
-    bitrate_ += size;
-  }
-*/
-
-  if(videoPackets_[videoIndex_%BUFFERSIZE])
-  {
-    delete videoPackets_.at(videoIndex_%BUFFERSIZE);
-  }
   PacketInfo *packet = new PacketInfo{QDateTime::currentMSecsSinceEpoch(), size};
 
-  videoPackets_[videoIndex_%BUFFERSIZE] = packet;
+  if(type == "video" || type == "Video")
+  {
+    if(videoPackets_[videoIndex_%BUFFERSIZE])
+    {
+      delete videoPackets_.at(videoIndex_%BUFFERSIZE);
+    }
 
-  ++videoIndex_;
+    videoPackets_[videoIndex_%BUFFERSIZE] = packet;
 
+    ++videoIndex_;
+  }
+  else if(type == "audio" || type == "Audio")
+  {
+    if(audioPackets_[audioIndex_%BUFFERSIZE])
+    {
+      delete audioPackets_.at(audioIndex_%BUFFERSIZE);
+    }
+
+    audioPackets_[audioIndex_%BUFFERSIZE] = packet;
+
+    ++audioIndex_;
+  }
 }
 
-uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets)
+uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets, uint32_t index)
 {
+  if(index == 0)
+    return 0;
+
   uint32_t currentTime = QDateTime::currentMSecsSinceEpoch();
   uint32_t timeInterval = 0;
   uint32_t bitrate = 0;
-
   uint32_t bitrateInterval = 2000;
 
-  if(videoIndex_ == 0)
-    return 0;
-
-  unsigned int i = videoIndex_ - 1;
+  uint32_t i = index - 1;
 
   PacketInfo* p = packets[i%BUFFERSIZE];
 
   while(p && timeInterval < bitrateInterval)
   {
     bitrate += p->size;
-    if(i)
+    if(i != 0)
       --i;
     else
-      i = BUFFERSIZE;
+      i = BUFFERSIZE - 1;
 
     timeInterval = currentTime - p->timestamp;
     p = packets[i%BUFFERSIZE];
@@ -173,16 +176,15 @@ void StatisticsWindow::packetDropped()
 
 void StatisticsWindow::paintEvent(QPaintEvent *event)
 {
-  /*
-  if(bitrateCounter_ == framerate_)
-  {
-    ui_->video_bitrate_value->setText(QString::number(bitrate_*8/1000) + "kbit/s. (if correct framerate)" );
-  }
-*/
   if(videoIndex_%10 == 0)
   {
     ui_->video_bitrate_value->setText
-      ( QString::number(bitrate(videoPackets_)) + "kbit/s" );
+      ( QString::number(bitrate(videoPackets_, videoIndex_)) + "kbit/s" );
+  }
+  if(audioIndex_%20 == 0)
+  {
+    ui_->audio_bitrate_value->setText
+      ( QString::number(bitrate(audioPackets_, audioIndex_)) + "kbit/s" );
   }
 
   ui_->packets_sent_value->setText( QString::number(sendPacketCount_));
