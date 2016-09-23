@@ -18,7 +18,7 @@
 
 FilterGraph::FilterGraph(StatisticsInterface* stats):
   filters_(),
-  videoSendIniated_(false),
+  senderIniated_(false),
   videoEncoderFilter_(0),
   audioEncoderFilter_(0),
   streamer_(stats),
@@ -36,14 +36,10 @@ void FilterGraph::init(VideoWidget* selfView, QSize resolution)
   selfView_ = selfView;
   frameRate_ = 30;
 
-  initSender(selfView, resolution);
-}
-
-void FilterGraph::initSender(VideoWidget *selfView, QSize resolution)
-{
-  Q_ASSERT(stats_);
   // Sending video graph
   filters_.push_back(new CameraFilter(stats_, resolution));
+
+  //TODO: tee tämä vasta kun call ikkuna on avattu. Nopeampi UI response.
 
   // connect selfview to camera
   DisplayFilter* selfviewFilter = new DisplayFilter(stats_, selfView);
@@ -52,8 +48,15 @@ void FilterGraph::initSender(VideoWidget *selfView, QSize resolution)
   filters_.at(0)->addOutConnection(filters_.back());
   filters_.back()->start();
 
+  //initSender(selfView, resolution);
+}
+
+void FilterGraph::initSender(VideoWidget *selfView, QSize resolution)
+{
+  Q_ASSERT(stats_);
+
   filters_.push_back(new RGB32toYUV(stats_));
-  filters_.at(0)->addOutConnection(filters_.back());
+  filters_.at(0)->addOutConnection(filters_.back()); // attach to camera
   filters_.back()->start();
 
   KvazaarFilter* kvz = new KvazaarFilter(stats_);
@@ -63,8 +66,6 @@ void FilterGraph::initSender(VideoWidget *selfView, QSize resolution)
   filters_.back()->start();
 
   videoEncoderFilter_ = filters_.size() - 1;
-
-  videoSendIniated_ = true;
 
   // audio filtergraph test
   AudioCaptureFilter* capture = new AudioCaptureFilter(stats_);
@@ -78,6 +79,8 @@ void FilterGraph::initSender(VideoWidget *selfView, QSize resolution)
   filters_.back()->start();
 
   audioEncoderFilter_ = filters_.size() - 1;
+
+  senderIniated_ = true;
 }
 
 ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget* view,
@@ -85,6 +88,11 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
                                           bool wantsVideo, bool sendsVideo)
 {
   Q_ASSERT(stats_);
+
+  if(!senderIniated_ && (wantsAudio || wantsVideo))
+  {
+    initSender(selfView_, resolution_);
+  }
 
   //if(port != 0)
   //  streamer_.setPorts(15555, port);
@@ -139,10 +147,6 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
   {
     streamer_.addSendVideo(peer, port);
 
-    if(!videoSendIniated_)
-    {
-      initSender(selfView_, resolution_);
-    }
     Filter *framedSource = NULL;
     framedSource = streamer_.getSendFilter(peer, HEVCVIDEO);
 
@@ -179,6 +183,8 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
   }
   else if(view == NULL)
     qWarning() << "Warn: wanted to receive video, but no view available";
+
+  qDebug() << "Participant has been successfully added to call.";
 
   return peer;
 }

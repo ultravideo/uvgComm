@@ -56,7 +56,7 @@ private:
   std::vector<Filter*> filters_;
   std::vector<AudioOutput*> outputs_;
 
-  bool videoSendIniated_;
+  bool senderIniated_;
   unsigned int videoEncoderFilter_;
   unsigned int audioEncoderFilter_;
 
