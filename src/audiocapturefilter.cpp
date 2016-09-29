@@ -20,25 +20,18 @@ AudioCaptureFilter::AudioCaptureFilter(StatisticsInterface *stats) :
 
 AudioCaptureFilter::~AudioCaptureFilter(){}
 
-void AudioCaptureFilter::init()
-{
-  initializeAudio();
-}
-
-void AudioCaptureFilter::initializeAudio()
+void AudioCaptureFilter::initializeAudio(QAudioFormat format)
 {
   qDebug() << "Initializing audio capture filter";
-  format_.setSampleRate(48000);
-  format_.setChannelCount(2);
-  format_.setSampleSize(16);
-  format_.setSampleType(QAudioFormat::SignedInt);
-  format_.setByteOrder(QAudioFormat::LittleEndian);
-  format_.setCodec("audio/pcm");
 
   QAudioDeviceInfo info(deviceInfo_);
-  if (!info.isFormatSupported(format_)) {
+  if (!info.isFormatSupported(format)) {
     qWarning() << "Default format not supported - trying to use nearest";
-    format_ = info.nearestFormat(format_);
+    format_ = info.nearestFormat(format);
+  }
+  else
+  {
+    format_ = format;
   }
 
   stats_->audioInfo(format_.sampleRate(), format_.channelCount());
@@ -133,7 +126,7 @@ void AudioCaptureFilter::deviceChanged(int index)
   delete audioInput_;
 
   //deviceInfo_ = m_deviceBox->itemData(index).value<QAudioDeviceInfo>();
-  initializeAudio();
+  initializeAudio(format_);
 }
 
 void AudioCaptureFilter::volumeChanged(int value)

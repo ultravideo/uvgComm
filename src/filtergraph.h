@@ -4,6 +4,7 @@
 #include "filter.h"
 
 #include <QWidget>
+#include <QAudioFormat>
 
 #include <vector>
 
@@ -68,5 +69,8 @@ private:
   uint16_t frameRate_;
   QSize resolution_;
   VideoWidget *selfView_;
+
+  // audio configs
+  QAudioFormat format_;
 
 };

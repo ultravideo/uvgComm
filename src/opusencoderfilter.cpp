@@ -20,13 +20,15 @@ OpusEncoderFilter::~OpusEncoderFilter()
   enc_ = 0;
 }
 
-void OpusEncoderFilter::init()
+void OpusEncoderFilter::init(QAudioFormat format)
 {
   int error = 0;
-  enc_ = opus_encoder_create(48000, 2, OPUS_APPLICATION_AUDIO, &error);
+  enc_ = opus_encoder_create(format.sampleRate(), format.channelCount(), OPUS_APPLICATION_AUDIO, &error);
 
   if(error)
     qWarning() << "Failed to initialize opus encoder with errorcode:" << error;
+
+  format_ = format;
 }
 
 void OpusEncoderFilter::process()
@@ -35,12 +37,11 @@ void OpusEncoderFilter::process()
 
   while(input)
   {
-    int channels = 2;
+    //int channels = 2;
 
     opus_int32 len = 0;
-    int frame_size = input->data_size/(channels*sizeof(opus_int16));
+    int frame_size = input->data_size/(format_.channelCount()*sizeof(opus_int16));
     opus_int16* input_data = (opus_int16*)input->data.get();
-
 
     len = opus_encode(enc_, input_data, frame_size, opusOutput_, max_data_bytes_);
 
@@ -62,9 +63,8 @@ void OpusEncoderFilter::process()
     }
     else
     {
-      qWarning() << "Warning: Failed to encode audio frame";
+      qWarning() << "Warning: Failed to encode audio frame. Length:" << input->data_size;
     }
     input = getInput();
   }
-
 }

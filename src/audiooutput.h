@@ -13,7 +13,7 @@ public:
   AudioOutput(StatisticsInterface* stats);
   virtual ~AudioOutput();
 
-  void initializeAudio();
+  void initializeAudio(QAudioFormat format);
 
   AudioOutputDevice* getOutputModule()
   {

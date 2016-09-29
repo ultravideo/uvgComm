@@ -16,28 +16,24 @@ AudioOutput::AudioOutput(StatisticsInterface *stats):
   output_(0),
   format_(),
   buffer_(BufferSize, 0)
-{
-
-}
+{}
 
 AudioOutput::~AudioOutput()
 {}
 
-void AudioOutput::initializeAudio()
+void AudioOutput::initializeAudio(QAudioFormat format)
 {
   // connect(m_pushTimer, SIGNAL(timeout()), SLOT(pushTimerExpired()));
 
-  format_.setSampleRate(48000);
-  format_.setChannelCount(2);
-  format_.setSampleSize(16);
-  format_.setSampleType(QAudioFormat::SignedInt);
-  format_.setByteOrder(QAudioFormat::LittleEndian);
-  format_.setCodec("audio/pcm");
 
   QAudioDeviceInfo info(device_);
-  if (!info.isFormatSupported(format_)) {
+  if (!info.isFormatSupported(format)) {
     qWarning() << "Default format not supported - trying to use nearest";
-    format_ = info.nearestFormat(format_);
+    format_ = info.nearestFormat(format);
+  }
+  else
+  {
+    format_ = format;
   }
 
   if(source_)
@@ -76,7 +72,7 @@ void AudioOutput::deviceChanged(int index)
   audioOutput_->stop();
   audioOutput_->disconnect(this);
   //device = m_deviceBox->itemData(index).value<QAudioDeviceInfo>();
-  initializeAudio();
+  initializeAudio(format_);
 }
 
 void AudioOutput::volumeChanged(int value)
@@ -91,7 +87,6 @@ void AudioOutput::receiveInput()
     int chunks = audioOutput_->bytesFree()/audioOutput_->periodSize();
     while (chunks) {
       const qint64 len = source_->read(buffer_.data(), audioOutput_->periodSize());
-      //qDebug() << "Audio output getting input with size:" << len;
       if (len)
         output_->write(buffer_.data(), len);
       if (len != audioOutput_->periodSize())

@@ -14,7 +14,7 @@ public:
 
   virtual ~AudioCaptureFilter();
 
-  void init();
+  void initializeAudio(QAudioFormat format);
 
   void toggleMode();
   void toggleSuspend();
@@ -30,7 +30,6 @@ private slots:
 
 private:
 
-  void initializeAudio();
   void createAudioInput();
 
   QAudioDeviceInfo deviceInfo_;

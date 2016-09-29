@@ -11,13 +11,15 @@ OpusDecoderFilter::OpusDecoderFilter(StatisticsInterface *stats):
   pcmOutput_ = new int16_t[max_data_bytes_];
 }
 
-void OpusDecoderFilter::init()
+void OpusDecoderFilter::init(QAudioFormat format)
 {
   int error = 0;
-  dec_ = opus_decoder_create(48000, 2, &error);
+  dec_ = opus_decoder_create(format.sampleRate(), format.channelCount(), &error);
 
   if(error)
     qWarning() << "Failed to initialize opus decoder with errorcode:" << error;
+
+  format_ = format;
 }
 
 void OpusDecoderFilter::process()
@@ -29,13 +31,13 @@ void OpusDecoderFilter::process()
     // TODO: get number of channels from opus sample
     //qDebug() << "Decoding:" << input->data_size;
 
-    int channels = 2;
+    //int channels = 2;
     int32_t len = 0;
-    int frame_size = max_data_bytes_/(channels*sizeof(opus_int16));
+    int frame_size = max_data_bytes_/(format_.channelCount()*sizeof(opus_int16));
 
     len = opus_decode(dec_, input->data.get(), input->data_size, pcmOutput_, frame_size, 0);
 
-    uint32_t datasize = len*channels*sizeof(opus_int16);
+    uint32_t datasize = len*format_.channelCount()*sizeof(opus_int16);
 
     //qDebug() << "Decoded Opus audio. New framesize:" << datasize;
 

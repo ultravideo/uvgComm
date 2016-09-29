@@ -22,9 +22,16 @@ FilterGraph::FilterGraph(StatisticsInterface* stats):
   videoEncoderFilter_(0),
   audioEncoderFilter_(0),
   streamer_(stats),
-  stats_(stats)
+  stats_(stats),
+  format_()
 {
   Q_ASSERT(stats);
+  format_.setSampleRate(8000);
+  format_.setChannelCount(2);
+  format_.setSampleSize(16);
+  format_.setSampleType(QAudioFormat::SignedInt);
+  format_.setByteOrder(QAudioFormat::LittleEndian);
+  format_.setCodec("audio/pcm");
 }
 
 void FilterGraph::init(VideoWidget* selfView, QSize resolution)
@@ -69,11 +76,11 @@ void FilterGraph::initSender(VideoWidget *selfView, QSize resolution)
 
   // audio filtergraph test
   AudioCaptureFilter* capture = new AudioCaptureFilter(stats_);
-  capture->init();
+  capture->initializeAudio(format_);
   filters_.push_back(capture);
 
   OpusEncoderFilter *encoder = new OpusEncoderFilter(stats_);
-  encoder->init();
+  encoder->init(format_);
   filters_.push_back(encoder);
   filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
   filters_.back()->start();
@@ -129,13 +136,13 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
     //filters_.back()->start();
 
     OpusDecoderFilter *decoder = new OpusDecoderFilter(stats_);
-    decoder->init();
+    decoder->init(format_);
     filters_.push_back(decoder);
     filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
     filters_.back()->start();
 
     AudioOutput* output = new AudioOutput(stats_);
-    output->initializeAudio();
+    output->initializeAudio(format_);
     AudioOutputDevice* outputModule = output->getOutputModule();
 
     outputModule->init(filters_.back());
