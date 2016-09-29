@@ -157,6 +157,7 @@ Data* Filter::deepDataCopy(Data* original)
     copy->data_size = original->data_size;
     copy->width = original->width;
     copy->height = original->height;
+    copy->presentationTime = original->presentationTime;
     return copy;
   }
   qWarning() << "Warning: Trying to copy NULL Data pointer";
