@@ -83,12 +83,13 @@ void CallWindow::addParticipant()
 void CallWindow::closeEvent(QCloseEvent *event)
 {
   fg_.stop();
+  stats_->hide();
   stats_->finished(0);
   QMainWindow::closeEvent(event);
 }
 
 void CallWindow::openStatistics()
 {
-  stats_->open();
+  stats_->show();
 }
 
