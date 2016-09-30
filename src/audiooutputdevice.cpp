@@ -3,8 +3,7 @@
 #include <QDebug>
 
 AudioOutputDevice::AudioOutputDevice(StatisticsInterface* stats):
-  QIODevice(),
-  pos_(0)
+  QIODevice()
 {
 
 }
@@ -27,26 +26,21 @@ void AudioOutputDevice::start()
 
 void AudioOutputDevice::stop()
 {
-    pos_ = 0;
     close();
 }
 
 qint64 AudioOutputDevice::readData(char *data, qint64 len)
 {
+  bufferMutex_.lock();
+  const qint64 chunk = qMin((qint64)m_buffer.size(), len);
 
-  qint64 total = 0;
   if (!m_buffer.isEmpty())
   {
-    bufferMutex_.lock();
-    while (len - total > 0) {
-      const qint64 chunk = qMin((m_buffer.size() - pos_), len - total);
-      memcpy(data + total, m_buffer.constData() + pos_, chunk);
-      pos_ = (pos_ + chunk) % m_buffer.size();
-      total += chunk;
-    }
-    bufferMutex_.unlock();
+    memcpy(data, m_buffer.constData(), chunk);
+    m_buffer.remove(0,chunk);
   }
-  return total;
+  bufferMutex_.unlock();
+  return chunk;
 }
 
 qint64 AudioOutputDevice::writeData(const char *data, qint64 len)

@@ -26,7 +26,6 @@ signals:
   void inputAvailable();
 
 private:
-  qint64 pos_;
   QByteArray m_buffer;
 
   QMutex bufferMutex_;
