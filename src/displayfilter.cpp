@@ -4,10 +4,14 @@
 
 #include <QImage>
 #include <QtDebug>
+#include <QDateTime>
 
-DisplayFilter::DisplayFilter(StatisticsInterface *stats, VideoWidget *widget):
+#include "statisticsinterface.h"
+
+DisplayFilter::DisplayFilter(StatisticsInterface *stats, VideoWidget *widget, uint32_t peer):
   Filter("Display", stats, true, false),
-  widget_(widget)
+  widget_(widget),
+  peer_(peer)
 {
   mirrored_ = false;
   widget_->show();
@@ -41,6 +45,12 @@ void DisplayFilter::process()
             format);
 
       image = image.mirrored(true, mirrored_);
+
+      int32_t delay = QDateTime::currentMSecsSinceEpoch() -
+          (input->presentationTime.tv_sec * 1000 + input->presentationTime.tv_usec/1000);
+
+      if( peer_ != 1111)
+        stats_->receiveDelay(peer_, "Video", delay);
 
       widget_->inputImage(std::move(input->data), image);
     }

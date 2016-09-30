@@ -1,9 +1,15 @@
 #include "audiooutputdevice.h"
 
 #include <QDebug>
+#include <QDateTime>
 
-AudioOutputDevice::AudioOutputDevice(StatisticsInterface* stats):
-  QIODevice()
+#include "statisticsinterface.h"
+
+
+AudioOutputDevice::AudioOutputDevice(StatisticsInterface* stats, uint32_t peer):
+  QIODevice(),
+  stats_(stats),
+  peer_(peer)
 {
 
 }
@@ -58,6 +64,10 @@ qint64 AudioOutputDevice::bytesAvailable() const
 
 void AudioOutputDevice::takeInput(std::unique_ptr<Data> input)
 {
+  int64_t delay = QDateTime::currentMSecsSinceEpoch() -
+      ((uint64_t)input->presentationTime.tv_sec * 1000 + (uint64_t)input->presentationTime.tv_usec/1000);
+  stats_->receiveDelay(peer_, "Audio", delay);
+
   bufferMutex_.lock();
   m_buffer.append((const char*)input->data.get(), input->data_size);
   bufferMutex_.unlock();

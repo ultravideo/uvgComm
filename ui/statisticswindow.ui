@@ -49,42 +49,17 @@
        <string>Network</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout">
-       <item row="5" column="0">
-        <spacer name="network_spacer">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>548</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="data_sent">
-         <property name="maximumSize">
-          <size>
-           <width>150</width>
-           <height>16777215</height>
-          </size>
-         </property>
+       <item row="0" column="1">
+        <widget class="QLabel" name="packets_sent_value">
          <property name="text">
-          <string>Data sent:</string>
+          <string>0</string>
          </property>
         </widget>
        </item>
-       <item row="0" column="0">
-        <widget class="QLabel" name="packets_sent">
-         <property name="maximumSize">
-          <size>
-           <width>150</width>
-           <height>16777215</height>
-          </size>
-         </property>
+       <item row="3" column="1">
+        <widget class="QLabel" name="data_sent_value">
          <property name="text">
-          <string>RTP packets sent:</string>
+          <string>0</string>
          </property>
         </widget>
        </item>
@@ -101,6 +76,73 @@
          </property>
         </widget>
        </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="data_sent">
+         <property name="maximumSize">
+          <size>
+           <width>150</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Data sent:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QLabel" name="packets_received_value">
+         <property name="text">
+          <string>0</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1">
+        <widget class="QLabel" name="data_received_value">
+         <property name="text">
+          <string>0</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="packets_sent">
+         <property name="maximumSize">
+          <size>
+           <width>150</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>RTP packets sent:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0">
+        <widget class="QLabel" name="send_bitrate">
+         <property name="text">
+          <string>Upload bandwith:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
+        <widget class="QLabel" name="send_bitrate_value">
+         <property name="text">
+          <string>- kbit/s</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="0">
+        <spacer name="network_spacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>548</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
        <item row="1" column="0">
         <widget class="QLabel" name="packets_received">
          <property name="maximumSize">
@@ -114,31 +156,17 @@
          </property>
         </widget>
        </item>
-       <item row="0" column="1">
-        <widget class="QLabel" name="packets_sent_value">
+       <item row="6" column="0">
+        <widget class="QLabel" name="down_bandwith">
          <property name="text">
-          <string>0</string>
+          <string>Download bandwith:</string>
          </property>
         </widget>
        </item>
-       <item row="1" column="1">
-        <widget class="QLabel" name="packets_received_value">
+       <item row="6" column="1">
+        <widget class="QLabel" name="down_bandwith_value">
          <property name="text">
-          <string>0</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="1">
-        <widget class="QLabel" name="data_sent_value">
-         <property name="text">
-          <string>0</string>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="1">
-        <widget class="QLabel" name="data_received_value">
-         <property name="text">
-          <string>0</string>
+          <string>- kbit/s</string>
          </property>
         </widget>
        </item>

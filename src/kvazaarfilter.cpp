@@ -146,7 +146,7 @@ void KvazaarFilter::process()
 
       uint32_t delay = QDateTime::currentMSecsSinceEpoch() -
           (input->presentationTime.tv_sec * 1000 + input->presentationTime.tv_usec/1000);
-      stats_->delayTime("video", delay);
+      stats_->sendDelay("video", delay);
       stats_->addEncodedPacket("video", len_out);
 
       uint8_t* writer = hevc_frame.get();

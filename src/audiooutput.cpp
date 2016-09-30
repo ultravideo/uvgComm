@@ -7,7 +7,7 @@
 
 const int BufferSize      = 32768;
 
-AudioOutput::AudioOutput(StatisticsInterface *stats):
+AudioOutput::AudioOutput(StatisticsInterface *stats, uint32_t peer):
   QObject(),
   stats_(stats),
   device_(QAudioDeviceInfo::defaultOutputDevice()),
@@ -15,7 +15,8 @@ AudioOutput::AudioOutput(StatisticsInterface *stats):
   audioOutput_(0),
   output_(0),
   format_(),
-  buffer_(BufferSize, 0)
+  buffer_(BufferSize, 0),
+  peer_(peer)
 {}
 
 AudioOutput::~AudioOutput()
@@ -39,7 +40,7 @@ void AudioOutput::initializeAudio(QAudioFormat format)
   if(source_)
     delete source_;
 
-  source_ = new AudioOutputDevice(stats_);
+  source_ = new AudioOutputDevice(stats_, peer_);
 
   connect(source_, SIGNAL(inputAvailable()), SLOT(receiveInput()));
 
@@ -85,7 +86,8 @@ void AudioOutput::receiveInput()
 {
   if (audioOutput_ && audioOutput_->state() != QAudio::StoppedState) {
     int chunks = audioOutput_->bytesFree()/audioOutput_->periodSize();
-    while (chunks) {
+    while (chunks)
+    {
       const qint64 len = source_->read(buffer_.data(), audioOutput_->periodSize());
       if (len)
         output_->write(buffer_.data(), len);

@@ -21,12 +21,16 @@ ui_(new Ui::StatisticsWindow),
   transferredData_(0),
   receivePacketCount_(0),
   receivedData_(0),
-  packetsDropped_(0)
+  packetsDropped_(0),
+  lastVideoBitrate_(0),
+  lastAudioBitrate_(0)
 {
   ui_->setupUi(this);
-  ui_->participantTable->setColumnCount(2); // more columns can be added later
+  ui_->participantTable->setColumnCount(4); // more columns can be added later
   ui_->participantTable->setHorizontalHeaderItem(0, new QTableWidgetItem(QString("IP")));
   ui_->participantTable->setHorizontalHeaderItem(1, new QTableWidgetItem(QString("Port")));
+  ui_->participantTable->setHorizontalHeaderItem(2, new QTableWidgetItem(QString("Audio delay")));
+  ui_->participantTable->setHorizontalHeaderItem(3, new QTableWidgetItem(QString("Video delay")));
 }
 
 StatisticsWindow::~StatisticsWindow()
@@ -45,7 +49,7 @@ void StatisticsWindow::addNextInterface(StatisticsInterface* next)
 void StatisticsWindow::videoInfo(double framerate, QSize resolution)
 {
   framerate_ = framerate;
-  ui_->framerate_value->setText( QString::number(framerate)+"fps");
+  ui_->framerate_value->setText( QString::number(framerate)+" fps");
   ui_->resolution_value->setText( QString::number(resolution.width()) + "x"
                           + QString::number(resolution.height()));
 }
@@ -54,7 +58,7 @@ void StatisticsWindow::audioInfo(uint32_t sampleRate, uint16_t channelCount)
 {
   //ui_->a_framerate_value->setText(QString::number(framerate)+"fps");
   ui_->channels_value->setText(QString::number(channelCount));
-  ui_->sample_rate_value->setText(QString::number(sampleRate) + "Hz");
+  ui_->sample_rate_value->setText(QString::number(sampleRate) + " Hz");
 }
 
 void StatisticsWindow::addParticipant(QString ip, QString port)
@@ -63,21 +67,40 @@ void StatisticsWindow::addParticipant(QString ip, QString port)
   // add cells to table
   ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 0, new QTableWidgetItem(ip));
   ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 1, new QTableWidgetItem(port));
+  ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 2, new QTableWidgetItem("- ms"));
+  ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 3, new QTableWidgetItem("- ms"));
+
+  delays_.push_back({0,0});
+
 }
 
-void StatisticsWindow::delayTime(QString type, uint32_t delay)
+void StatisticsWindow::sendDelay(QString type, uint32_t delay)
 {
   if(type == "video" || type == "Video")
   {
     sendMutex_.lock();
-    ui_->encode_delay_value->setText( QString::number(delay) + "ms. (not precise)" );
+    ui_->encode_delay_value->setText( QString::number(delay) + " ms. (not precise)" );
     sendMutex_.unlock();
   }
   else if(type == "audio" || type == "Audio")
   {
     sendMutex_.lock();
-    ui_->audio_delay_value->setText( QString::number(delay) + "ms. (not precise)" );
+    ui_->audio_delay_value->setText( QString::number(delay) + " ms. (not precise)" );
     sendMutex_.unlock();
+  }
+}
+
+void StatisticsWindow::receiveDelay(uint32_t peer, QString type, int32_t delay)
+{
+  if(type == "video" || type == "Video")
+  {
+    delays_.at(peer).video = delay;
+    //ui_->participantTable->setItem(peer, 3, new QTableWidgetItem( QString::number(delay) + " ms"));
+  }
+  else if(type == "audio" || type == "Audio")
+  {
+    delays_.at(peer).audio = delay;
+    //ui_->participantTable->setItem(peer, 2, new QTableWidgetItem( QString::number(delay) + " ms"));
   }
 }
 
@@ -176,15 +199,26 @@ void StatisticsWindow::packetDropped()
 
 void StatisticsWindow::paintEvent(QPaintEvent *event)
 {
-  if(videoIndex_%10 == 0)
+  if(videoIndex_%15 == 0)
   {
+    lastVideoBitrate_ = bitrate(videoPackets_, videoIndex_);
     ui_->video_bitrate_value->setText
-      ( QString::number(bitrate(videoPackets_, videoIndex_)) + "kbit/s" );
+      ( QString::number(lastVideoBitrate_) + " kbit/s" );
+
+    uint index = 0;
+    for(Delays d : delays_)
+    {
+      ui_->participantTable->setItem(index, 2, new QTableWidgetItem( QString::number(d.audio) + " ms"));
+      ui_->participantTable->setItem(index, 3, new QTableWidgetItem( QString::number(d.video) + " ms"));
+      ++index;
+    }
   }
+
   if(audioIndex_%20 == 0)
   {
+    lastAudioBitrate_ = bitrate(audioPackets_, audioIndex_);
     ui_->audio_bitrate_value->setText
-      ( QString::number(bitrate(audioPackets_, audioIndex_)) + "kbit/s" );
+      ( QString::number(lastAudioBitrate_) + " kbit/s" );
   }
 
   ui_->packets_sent_value->setText( QString::number(sendPacketCount_));

@@ -26,7 +26,7 @@ FilterGraph::FilterGraph(StatisticsInterface* stats):
   format_()
 {
   Q_ASSERT(stats);
-  format_.setSampleRate(8000);
+  format_.setSampleRate(48000);
   format_.setChannelCount(2);
   format_.setSampleSize(16);
   format_.setSampleType(QAudioFormat::SignedInt);
@@ -49,7 +49,7 @@ void FilterGraph::init(VideoWidget* selfView, QSize resolution)
   //TODO: tee tämä vasta kun call ikkuna on avattu. Nopeampi UI response.
 
   // connect selfview to camera
-  DisplayFilter* selfviewFilter = new DisplayFilter(stats_, selfView);
+  DisplayFilter* selfviewFilter = new DisplayFilter(stats_, selfView, 1111);
   selfviewFilter->setProperties(true);
   filters_.push_back(selfviewFilter);
   filters_.at(0)->addOutConnection(filters_.back());
@@ -141,7 +141,7 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
     filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
     filters_.back()->start();
 
-    AudioOutput* output = new AudioOutput(stats_);
+    AudioOutput* output = new AudioOutput(stats_, peer);
     output->initializeAudio(format_);
     AudioOutputDevice* outputModule = output->getOutputModule();
 
@@ -184,7 +184,7 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
     filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
     filters_.back()->start();
 
-    filters_.push_back(new DisplayFilter(stats_, view));
+    filters_.push_back(new DisplayFilter(stats_, view, peer));
     filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
     filters_.back()->start();
   }
@@ -203,6 +203,7 @@ void FilterGraph::uninit()
 
 void FilterGraph::deconstruct()
 {
+  qDebug() << "Destroying filter graph with" << filters_.size() << "filters.";
   for( Filter *f : filters_ )
     delete f;
 

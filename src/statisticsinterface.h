@@ -25,8 +25,11 @@ public:
   // RTP tracking fo each participant individually with ID
   virtual void addParticipant(QString ip, QString port) = 0;
 
-  // can be used to record delays at different points within program
-  virtual void delayTime(QString type, uint32_t delay) = 0;
+  // the delay it takes from input to the point when input is encoded
+  virtual void sendDelay(QString type, uint32_t delay) = 0;
+
+  // the delay until the presentation of the packet
+  virtual void receiveDelay(uint32_t peer, QString type, int32_t delay) = 0;
 
   // For tracking of encoding bitrate and possibly other information.
   virtual void addEncodedPacket(QString type, uint16_t size) = 0;

@@ -10,7 +10,7 @@ class AudioOutput : public QObject
 {
   Q_OBJECT
 public:
-  AudioOutput(StatisticsInterface* stats);
+  AudioOutput(StatisticsInterface* stats, uint32_t peer);
   virtual ~AudioOutput();
 
   void initializeAudio(QAudioFormat format);
@@ -33,6 +33,8 @@ private:
   QAudioFormat format_;
 
   QByteArray buffer_;
+
+  uint32_t peer_;
 
 private slots:
   void receiveInput();

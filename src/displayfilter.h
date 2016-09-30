@@ -7,7 +7,7 @@ class VideoWidget;
 class DisplayFilter : public Filter
 {
 public:
-  DisplayFilter(StatisticsInterface* stats, VideoWidget *widget);
+  DisplayFilter(StatisticsInterface* stats, VideoWidget *widget, uint32_t peer);
 
   void setProperties(bool mirror)
   {
@@ -22,5 +22,7 @@ private:
   bool mirrored_;
   // Owned by VideoCall window
   VideoWidget* widget_;
+
+  uint32_t peer_;
 
 };

@@ -9,7 +9,7 @@ class AudioOutputDevice : public QIODevice
 {
  Q_OBJECT
 public:
-  AudioOutputDevice(StatisticsInterface* stats);
+  AudioOutputDevice(StatisticsInterface* stats, uint32_t peer);
 
   void init(Filter* source);
 
@@ -29,4 +29,8 @@ private:
   QByteArray m_buffer;
 
   QMutex bufferMutex_;
+
+  StatisticsInterface* stats_;
+
+  uint32_t peer_;
 };

@@ -26,7 +26,8 @@ public:
   virtual void videoInfo(double framerate, QSize resolution);
   virtual void audioInfo(uint32_t sampleRate, uint16_t channelCount);
   virtual void addParticipant(QString ip, QString port);
-  virtual void delayTime(QString type, uint32_t delay);
+  virtual void sendDelay(QString type, uint32_t delay);
+  virtual void receiveDelay(uint32_t peer, QString type, int32_t delay);
   virtual void addEncodedPacket(QString type, uint16_t size);
   virtual void addSendPacket(uint16_t size);
   virtual void addReceivePacket(uint16_t size);
@@ -40,6 +41,14 @@ private:
     uint32_t timestamp;
     uint16_t size;
   };
+
+  struct Delays
+  {
+    int32_t video;
+    int32_t audio;
+  };
+
+  std::vector<Delays> delays_;
 
   uint32_t totalBuffers();
   uint32_t bitrate(std::vector<PacketInfo*>& packets, uint32_t index);
@@ -73,4 +82,7 @@ private:
   uint64_t receivedData_;
 
   uint64_t packetsDropped_;
+
+  uint32_t lastVideoBitrate_;
+  uint32_t lastAudioBitrate_;
 };
