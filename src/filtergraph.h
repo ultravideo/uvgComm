@@ -29,7 +29,6 @@ public:
                          bool wantsAudio = true, bool sendsAudio = true,
                          bool wantsVideo = true, bool sendsVideo = true);
 
-  // NON-FUNCTIONAL at the moment
   void removeParticipant(ParticipantID peer);
 
   void restart();
@@ -76,6 +75,8 @@ private:
   void attachAudioDestination(Peer* recv);
 
   void attachAudioSource(Peer* recv);
+
+  void destroyPeer(Peer* peer);
 
   void destroyFilters(std::vector<Filter*>& filters);
 

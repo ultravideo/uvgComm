@@ -215,11 +215,20 @@ void FilterGraph::uninit()
 
 void FilterGraph::deconstruct()
 {
-  qDebug() << "Destroying filter graph with" << videoSend_.size() << "filters.";
-  for( Filter *f : videoSend_ )
-    delete f;
+  stop();
 
-  videoSend_.clear();
+  for(Peer* p : peers_)
+  {
+    if(p != 0)
+    {
+      delete p;
+    }
+    p = 0;
+  }
+  peers_.clear();
+
+  destroyFilters(videoSend_);
+  destroyFilters(audioSend_);
 }
 
 void FilterGraph::restart()
@@ -237,11 +246,46 @@ void FilterGraph::stop()
     f->stop();
     f->emptyBuffer();
   }
+
+  for(Filter* f : audioSend_)
+  {
+    f->stop();
+    f->emptyBuffer();
+  }
   streamer_.stop();
 }
 
-
 void FilterGraph::destroyFilters(std::vector<Filter*>& filters)
 {
+  qDebug() << "Destroying filter graph with" << filters.size() << "filters.";
+  for( Filter *f : filters )
+  {
+    f->stop();
+    delete f;
+  }
 
+  filters.clear();
+}
+
+void FilterGraph::destroyPeer(Peer* peer)
+{
+  if(peer->audioFramedSource)
+  {
+    delete peer->audioFramedSource;
+    peer->audioFramedSource = 0;
+  }
+  if(peer->videoFramedSource)
+  {
+    delete peer->videoFramedSource;
+    peer->videoFramedSource = 0;
+  }
+
+  destroyFilters(peer->audioReceive);
+  destroyFilters(peer->audioReceive);
+
+  if(peer->output)
+  {
+    delete peer->output;
+    peer->output = 0;
+  }
 }
