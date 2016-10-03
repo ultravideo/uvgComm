@@ -31,6 +31,8 @@ private:
   StatisticsWindow *stats_;
 
   FilterGraph fg_;
+  bool filterIniated_;
+
 
   QTimer *timer_; // for GUI update
 

@@ -14,13 +14,13 @@ CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height) :
   ui_(new Ui::CallWindow),
   stats_(new StatisticsWindow(this)),
   fg_(stats_),
+  filterIniated_(false),
   timer_(new QTimer(this)),
   row_(0),
   column_(0)
 {
   ui_->setupUi(this);
   currentResolution_ = QSize(width, height);
-  fg_.init(ui_->SelfView, currentResolution_);
 
   // GUI updates are handled solely by timer
   timer_->setInterval(10);
@@ -45,8 +45,19 @@ CallWindow::~CallWindow()
   delete ui_;
 }
 
+void CallWindow::startStream()
+{
+  if(!filterIniated_)
+  {
+    fg_.init(ui_->SelfView, currentResolution_);
+    filterIniated_ = true;
+  }
+}
+
 void CallWindow::addParticipant()
 {
+  startStream();
+
   QString ip_str = ui_->ip->toPlainText();
   QString port_str = ui_->port->toPlainText();
 
