@@ -17,10 +17,10 @@
 #include "opusdecoderfilter.h"
 
 FilterGraph::FilterGraph(StatisticsInterface* stats):
-  filters_(),
-  senderIniated_(false),
-  videoEncoderFilter_(0),
-  audioEncoderFilter_(0),
+  peers_(),
+  videoSend_(),
+  audioSend_(),
+  selfView_(NULL),
   streamer_(stats),
   stats_(stats),
   format_()
@@ -36,58 +36,76 @@ FilterGraph::FilterGraph(StatisticsInterface* stats):
 
 void FilterGraph::init(VideoWidget* selfView, QSize resolution)
 {
-  //streamer_.setPorts(15555,18888);
   streamer_.start();
 
   resolution_ = resolution;
   selfView_ = selfView;
   frameRate_ = 30;
 
-  // Sending video graph
-  filters_.push_back(new CameraFilter(stats_, resolution));
-
-  //TODO: tee tämä vasta kun call ikkuna on avattu. Nopeampi UI response.
-
-  // connect selfview to camera
-  DisplayFilter* selfviewFilter = new DisplayFilter(stats_, selfView, 1111);
-  selfviewFilter->setProperties(true);
-  filters_.push_back(selfviewFilter);
-  filters_.at(0)->addOutConnection(filters_.back());
-  filters_.back()->start();
-
-  //initSender(selfView, resolution);
+  initSelfView(selfView, resolution);
 }
 
-void FilterGraph::initSender(VideoWidget *selfView, QSize resolution)
+void FilterGraph::addFilter(Filter* filter, std::vector<Filter*>& graph)
 {
-  Q_ASSERT(stats_);
+  graph.push_back(filter);
+  graph.at(graph.size()-2)->addOutConnection(graph.back());
+  graph.back()->start();
+}
 
-  filters_.push_back(new RGB32toYUV(stats_));
-  filters_.at(0)->addOutConnection(filters_.back()); // attach to camera
-  filters_.back()->start();
+void FilterGraph::initSelfView(VideoWidget *selfView, QSize resolution)
+{
+  if(videoSend_.size() > 0)
+  {
+    destroyFilters(videoSend_);
+  }
+
+  // Sending video graph
+  videoSend_.push_back(new CameraFilter(stats_, resolution));
+
+  if(selfView)
+  {
+    // connect selfview to camera
+    DisplayFilter* selfviewFilter = new DisplayFilter(stats_, selfView, 1111);
+    selfviewFilter->setProperties(true);
+    videoSend_.push_back(selfviewFilter);
+    videoSend_.at(0)->addOutConnection(videoSend_.back());
+    videoSend_.back()->start();
+  }
+}
+
+void FilterGraph::initVideoSend(QSize resolution)
+{
+  if(videoSend_.size() != 2)
+  {
+    if(videoSend_.size() > 2)
+    {
+      destroyFilters(videoSend_);
+    }
+    initSelfView(selfView_, resolution_);
+  }
+
+  videoSend_.push_back(new RGB32toYUV(stats_));
+  videoSend_.at(0)->addOutConnection(videoSend_.back()); // attach to camera
+  videoSend_.back()->start();
 
   KvazaarFilter* kvz = new KvazaarFilter(stats_);
   kvz->init(resolution, frameRate_, 1, 0);
-  filters_.push_back(kvz);
-  filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
-  filters_.back()->start();
+  videoSend_.push_back(kvz);
+  videoSend_.at(videoSend_.size() - 2)->addOutConnection(videoSend_.back());
+  videoSend_.back()->start();
+}
 
-  videoEncoderFilter_ = filters_.size() - 1;
-
-  // audio filtergraph test
+void FilterGraph::initAudioSend()
+{
   AudioCaptureFilter* capture = new AudioCaptureFilter(stats_);
   capture->initializeAudio(format_);
-  filters_.push_back(capture);
+  audioSend_.push_back(capture);
 
   OpusEncoderFilter *encoder = new OpusEncoderFilter(stats_);
   encoder->init(format_);
-  filters_.push_back(encoder);
-  filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
-  filters_.back()->start();
-
-  audioEncoderFilter_ = filters_.size() - 1;
-
-  senderIniated_ = true;
+  audioSend_.push_back(encoder);
+  audioSend_.at(audioSend_.size() - 2)->addOutConnection(audioSend_.back());
+  audioSend_.back()->start();
 }
 
 ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget* view,
@@ -96,13 +114,17 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
 {
   Q_ASSERT(stats_);
 
-  if(!senderIniated_ && (wantsAudio || wantsVideo))
+  if(wantsAudio && audioSend_.size() == 0)
   {
-    initSender(selfView_, resolution_);
+    initAudioSend();
   }
 
-  //if(port != 0)
-  //  streamer_.setPorts(15555, port);
+  if(wantsVideo && videoSend_.size() < 3)
+  {
+    initVideoSend(resolution_);
+  }
+
+  peers_.push_back(new Peer);
 
   PeerID peer = streamer_.addPeer(ip);
 
@@ -119,9 +141,11 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
     Filter *framedSource = NULL;
     framedSource = streamer_.getSendFilter(peer, OPUSAUDIO);
 
-    filters_.push_back(framedSource);
+    peers_.back()->audioFramedSource = framedSource;
 
-    filters_.at(audioEncoderFilter_)->addOutConnection(filters_.back());
+    //filters_.push_back(framedSource);
+
+    audioSend_.back()->addOutConnection(framedSource);
     //filters_.back()->start();
   }
 
@@ -132,22 +156,18 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
     Filter* rtpSink = NULL;
     rtpSink = streamer_.getReceiveFilter(peer, OPUSAUDIO);
 
-    filters_.push_back(rtpSink);
-    //filters_.back()->start();
+    peers_.back()->audioReceive.push_back(rtpSink);
 
     OpusDecoderFilter *decoder = new OpusDecoderFilter(stats_);
     decoder->init(format_);
-    filters_.push_back(decoder);
-    filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
-    filters_.back()->start();
 
-    AudioOutput* output = new AudioOutput(stats_, peer);
-    output->initializeAudio(format_);
-    AudioOutputDevice* outputModule = output->getOutputModule();
+    addFilter(decoder, peers_.back()->audioReceive);
 
-    outputModule->init(filters_.back());
+    peers_.back()->output = new AudioOutput(stats_, peer);
+    peers_.back()->output->initializeAudio(format_);
+    AudioOutputDevice* outputModule = peers_.back()->output->getOutputModule();
 
-    outputs_.push_back(output);
+    outputModule->init(peers_.back()->audioReceive.back());
   }
 
   if(wantsVideo)
@@ -157,10 +177,9 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
     Filter *framedSource = NULL;
     framedSource = streamer_.getSendFilter(peer, HEVCVIDEO);
 
-    filters_.push_back(framedSource);
+    peers_.back()->videoFramedSource = framedSource;
 
-    filters_.at(videoEncoderFilter_)->addOutConnection(filters_.back());
-    //filters_.back()->start();
+    videoSend_.back()->addOutConnection(framedSource);
   }
 
   if(sendsVideo && view != NULL)
@@ -171,22 +190,15 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
     Filter* rtpSink = NULL;
     rtpSink = streamer_.getReceiveFilter(peer, HEVCVIDEO);
 
-    filters_.push_back(rtpSink);
-    //filters_.back()->start();
+    peers_.back()->videoReceive.push_back(rtpSink);
 
     OpenHEVCFilter* decoder =  new OpenHEVCFilter(stats_);
     decoder->init();
-    filters_.push_back(decoder);
-    filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
-    filters_.back()->start();
+    addFilter(decoder, peers_.back()->videoReceive);
 
-    filters_.push_back(new YUVtoRGB32(stats_));
-    filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
-    filters_.back()->start();
+    addFilter(new YUVtoRGB32(stats_), peers_.back()->videoReceive);
 
-    filters_.push_back(new DisplayFilter(stats_, view, peer));
-    filters_.at(filters_.size() - 2)->addOutConnection(filters_.back());
-    filters_.back()->start();
+    addFilter(new DisplayFilter(stats_, view, peer), peers_.back()->videoReceive);
   }
   else if(view == NULL)
     qWarning() << "Warn: wanted to receive video, but no view available";
@@ -203,19 +215,16 @@ void FilterGraph::uninit()
 
 void FilterGraph::deconstruct()
 {
-  qDebug() << "Destroying filter graph with" << filters_.size() << "filters.";
-  for( Filter *f : filters_ )
+  qDebug() << "Destroying filter graph with" << videoSend_.size() << "filters.";
+  for( Filter *f : videoSend_ )
     delete f;
 
-  for( AudioOutput* a : outputs_)
-    delete a;
-
-  filters_.clear();
+  videoSend_.clear();
 }
 
 void FilterGraph::restart()
 {
-  for(Filter* f : filters_)
+  for(Filter* f : videoSend_)
     f->start();
 
   streamer_.start();
@@ -223,10 +232,16 @@ void FilterGraph::restart()
 
 void FilterGraph::stop()
 {
-  for(Filter* f : filters_)
+  for(Filter* f : videoSend_)
   {
     f->stop();
     f->emptyBuffer();
   }
   streamer_.stop();
+}
+
+
+void FilterGraph::destroyFilters(std::vector<Filter*>& filters)
+{
+
 }

@@ -39,27 +39,54 @@ public:
 
 private:
 
+  // attaches filter to the end of the graph and starts it
+  void addFilter(Filter* filter, std::vector<Filter*>& graph);
+
+  // iniates camera and attaches a self view to it.
+  void initSelfView(VideoWidget *selfView, QSize resolution);
+
+  // iniates encoder and attaches it
+  void initVideoSend(QSize resolution);
+
+  // iniates encoder and attaches it
+  void initAudioSend();
+
   // starts the camera and the encoder
-  void initSender(VideoWidget *selfView, QSize resolution);
+  //void initSender(VideoWidget *selfView, QSize resolution);
+
+  struct Peer
+  {
+    Filter* audioFramedSource; // sends audio
+    Filter* videoFramedSource; // sends video
+
+    std::vector<Filter*> videoReceive;
+    std::vector<Filter*> audioReceive;
+
+    AudioOutput* output;
+
+    PeerID id;
+  };
 
   // attaches an RTP destination to video graph
-  void attachVideoDestination(in_addr ip, uint16_t port);
+  void attachVideoDestination(Peer* recv, in_addr ip, uint16_t port);
 
-  void attachVideoSource(in_addr ip, uint16_t port,
+  void attachVideoSource(Peer* recv, in_addr ip, uint16_t port,
                          VideoWidget *participantView);
 
-  void attachAudioDestination();
+  void attachAudioDestination(Peer* recv);
 
-  void attachAudioSource();
+  void attachAudioSource(Peer* recv);
+
+  void destroyFilters(std::vector<Filter*>& filters);
 
   void deconstruct();
 
-  std::vector<Filter*> filters_;
-  std::vector<AudioOutput*> outputs_;
+  std::vector<Peer*> peers_;
 
-  bool senderIniated_;
-  unsigned int videoEncoderFilter_;
-  unsigned int audioEncoderFilter_;
+  std::vector<Filter*> videoSend_;
+  std::vector<Filter*> audioSend_;
+
+  VideoWidget *selfView_;
 
   RTPStreamer streamer_;
 
@@ -68,9 +95,7 @@ private:
   //config stuff, moved to config later
   uint16_t frameRate_;
   QSize resolution_;
-  VideoWidget *selfView_;
 
   // audio configs
   QAudioFormat format_;
-
 };
