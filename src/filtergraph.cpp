@@ -45,13 +45,6 @@ void FilterGraph::init(VideoWidget* selfView, QSize resolution)
   initSelfView(selfView, resolution);
 }
 
-void FilterGraph::addFilter(Filter* filter, std::vector<Filter*>& graph)
-{
-  graph.push_back(filter);
-  graph.at(graph.size()-2)->addOutConnection(graph.back());
-  graph.back()->start();
-}
-
 void FilterGraph::initSelfView(VideoWidget *selfView, QSize resolution)
 {
   if(videoSend_.size() > 0)
@@ -143,31 +136,33 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
 
     peers_.back()->audioFramedSource = framedSource;
 
-    //filters_.push_back(framedSource);
-
     audioSend_.back()->addOutConnection(framedSource);
-    //filters_.back()->start();
   }
 
   if(sendsAudio)
   {
     streamer_.addReceiveAudio(peer, port + 1000);
 
+    std::vector<Filter*>& audioReceive = peers_.back()->audioReceive;
+
     Filter* rtpSink = NULL;
     rtpSink = streamer_.getReceiveFilter(peer, OPUSAUDIO);
 
-    peers_.back()->audioReceive.push_back(rtpSink);
+    audioReceive.push_back(rtpSink);
 
     OpusDecoderFilter *decoder = new OpusDecoderFilter(stats_);
     decoder->init(format_);
 
-    addFilter(decoder, peers_.back()->audioReceive);
+    audioReceive.push_back(decoder);
+    audioReceive.at(audioReceive.size()-2)
+        ->addOutConnection(audioReceive.back());
+    audioReceive.back()->start();
 
     peers_.back()->output = new AudioOutput(stats_, peer);
     peers_.back()->output->initializeAudio(format_);
     AudioOutputDevice* outputModule = peers_.back()->output->getOutputModule();
 
-    outputModule->init(peers_.back()->audioReceive.back());
+    outputModule->init(audioReceive.back());
   }
 
   if(wantsVideo)
@@ -186,19 +181,27 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
   {
     streamer_.addReceiveVideo(peer, port);
 
+    std::vector<Filter*>& videoReceive = peers_.back()->videoReceive;
+
     // Receiving video graph
     Filter* rtpSink = NULL;
     rtpSink = streamer_.getReceiveFilter(peer, HEVCVIDEO);
 
-    peers_.back()->videoReceive.push_back(rtpSink);
+    videoReceive.push_back(rtpSink);
 
     OpenHEVCFilter* decoder =  new OpenHEVCFilter(stats_);
     decoder->init();
-    addFilter(decoder, peers_.back()->videoReceive);
+    videoReceive.push_back(decoder);
+    videoReceive.at(videoReceive.size()-2)->addOutConnection(videoReceive.back());
+    videoReceive.back()->start();
 
-    addFilter(new YUVtoRGB32(stats_), peers_.back()->videoReceive);
+    videoReceive.push_back(new YUVtoRGB32(stats_));
+    videoReceive.at(videoReceive.size()-2)->addOutConnection(videoReceive.back());
+    videoReceive.back()->start();
 
-    addFilter(new DisplayFilter(stats_, view, peer), peers_.back()->videoReceive);
+    videoReceive.push_back(new DisplayFilter(stats_, view, peer));
+    videoReceive.at(videoReceive.size()-2)->addOutConnection(videoReceive.back());
+    videoReceive.back()->start();
   }
   else if(view == NULL)
     qWarning() << "Warn: wanted to receive video, but no view available";

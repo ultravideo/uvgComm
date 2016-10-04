@@ -38,9 +38,6 @@ public:
 
 private:
 
-  // attaches filter to the end of the graph and starts it
-  void addFilter(Filter* filter, std::vector<Filter*>& graph);
-
   // iniates camera and attaches a self view to it.
   void initSelfView(VideoWidget *selfView, QSize resolution);
 
