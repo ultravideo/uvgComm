@@ -107,6 +107,12 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
 {
   Q_ASSERT(stats_);
 
+  if(!wantsAudio && !wantsVideo && !sendsAudio && !sendsVideo)
+  {
+    qWarning() << "WARNING: peer does not want or send any media";
+    return -1;
+  }
+
   if(wantsAudio && audioSend_.size() == 0)
   {
     initAudioSend();
@@ -118,97 +124,118 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
   }
 
   peers_.push_back(new Peer);
-
-  PeerID peer = streamer_.addPeer(ip);
-
-  if(peer == -1)
+  peers_.back()->streamID = streamer_.addPeer(ip);
+  if(peers_.back()->streamID == -1)
   {
     qCritical() << "Error creating RTP peer";
-    return peer;
+    return peers_.back()->streamID;
   }
 
   if(wantsAudio)
   {
-    streamer_.addSendAudio(peer, port + 1000); // TODO Audioport!
-
-    Filter *framedSource = NULL;
-    framedSource = streamer_.getSendFilter(peer, OPUSAUDIO);
-
-    peers_.back()->audioFramedSource = framedSource;
-
-    audioSend_.back()->addOutConnection(framedSource);
+    sendAudioTo(peers_.back(), port + 1000);
   }
-
   if(sendsAudio)
   {
-    streamer_.addReceiveAudio(peer, port + 1000);
-
-    std::vector<Filter*>& audioReceive = peers_.back()->audioReceive;
-
-    Filter* rtpSink = NULL;
-    rtpSink = streamer_.getReceiveFilter(peer, OPUSAUDIO);
-
-    audioReceive.push_back(rtpSink);
-
-    OpusDecoderFilter *decoder = new OpusDecoderFilter(stats_);
-    decoder->init(format_);
-
-    audioReceive.push_back(decoder);
-    audioReceive.at(audioReceive.size()-2)
-        ->addOutConnection(audioReceive.back());
-    audioReceive.back()->start();
-
-    peers_.back()->output = new AudioOutput(stats_, peer);
-    peers_.back()->output->initializeAudio(format_);
-    AudioOutputDevice* outputModule = peers_.back()->output->getOutputModule();
-
-    outputModule->init(audioReceive.back());
+    receiveAudioFrom(peers_.back(), port + 1000);
   }
-
   if(wantsVideo)
   {
-    streamer_.addSendVideo(peer, port);
-
-    Filter *framedSource = NULL;
-    framedSource = streamer_.getSendFilter(peer, HEVCVIDEO);
-
-    peers_.back()->videoFramedSource = framedSource;
-
-    videoSend_.back()->addOutConnection(framedSource);
+    sendVideoto(peers_.back(), port);
   }
-
   if(sendsVideo && view != NULL)
   {
-    streamer_.addReceiveVideo(peer, port);
-
-    std::vector<Filter*>& videoReceive = peers_.back()->videoReceive;
-
-    // Receiving video graph
-    Filter* rtpSink = NULL;
-    rtpSink = streamer_.getReceiveFilter(peer, HEVCVIDEO);
-
-    videoReceive.push_back(rtpSink);
-
-    OpenHEVCFilter* decoder =  new OpenHEVCFilter(stats_);
-    decoder->init();
-    videoReceive.push_back(decoder);
-    videoReceive.at(videoReceive.size()-2)->addOutConnection(videoReceive.back());
-    videoReceive.back()->start();
-
-    videoReceive.push_back(new YUVtoRGB32(stats_));
-    videoReceive.at(videoReceive.size()-2)->addOutConnection(videoReceive.back());
-    videoReceive.back()->start();
-
-    videoReceive.push_back(new DisplayFilter(stats_, view, peer));
-    videoReceive.at(videoReceive.size()-2)->addOutConnection(videoReceive.back());
-    videoReceive.back()->start();
+    receiveVideoFrom(peers_.back(), port, view);
   }
   else if(view == NULL)
-    qWarning() << "Warn: wanted to receive video, but no view available";
+  {
+    qWarning() << "Warning: wanted to receive video, but no view available";
+  }
 
   qDebug() << "Participant has been successfully added to call.";
 
-  return peer;
+  return peers_.back()->streamID;
+}
+
+void FilterGraph::sendVideoto(Peer* send, uint16_t port)
+{
+  Q_ASSERT(send && send->streamID != -1);
+
+  streamer_.addSendVideo(send->streamID, port);
+
+  Filter *framedSource = NULL;
+  framedSource = streamer_.getSendFilter(send->streamID, HEVCVIDEO);
+
+  send->videoFramedSource = framedSource;
+
+  videoSend_.back()->addOutConnection(framedSource);
+}
+
+void FilterGraph::receiveVideoFrom(Peer* recv, uint16_t port, VideoWidget *view)
+{
+  Q_ASSERT(recv && recv->streamID != -1);
+
+  streamer_.addReceiveVideo(recv->streamID, port);
+
+  // Receiving video graph
+  Filter* rtpSink = NULL;
+  rtpSink = streamer_.getReceiveFilter(recv->streamID, HEVCVIDEO);
+
+  recv->videoReceive.push_back(rtpSink);
+
+  OpenHEVCFilter* decoder =  new OpenHEVCFilter(stats_);
+  decoder->init();
+  recv->videoReceive.push_back(decoder);
+  recv->videoReceive.at(recv->videoReceive.size()-2)->addOutConnection(recv->videoReceive.back());
+  recv->videoReceive.back()->start();
+
+  recv->videoReceive.push_back(new YUVtoRGB32(stats_));
+  recv->videoReceive.at(recv->videoReceive.size()-2)->addOutConnection(recv->videoReceive.back());
+  recv->videoReceive.back()->start();
+
+  recv->videoReceive.push_back(new DisplayFilter(stats_, view, recv->streamID));
+  recv->videoReceive.at(recv->videoReceive.size()-2)->addOutConnection(recv->videoReceive.back());
+  recv->videoReceive.back()->start();
+}
+
+void FilterGraph::sendAudioTo(Peer* send, uint16_t port)
+{
+  Q_ASSERT(send && send->streamID != -1);
+
+  streamer_.addSendAudio(send->streamID, port); // TODO Audioport!
+
+  Filter *framedSource = NULL;
+  framedSource = streamer_.getSendFilter(send->streamID, OPUSAUDIO);
+
+  send->audioFramedSource = framedSource;
+
+  audioSend_.back()->addOutConnection(framedSource);
+}
+
+void FilterGraph::receiveAudioFrom(Peer* recv, uint16_t port)
+{
+  Q_ASSERT(recv && recv->streamID != -1);
+
+  streamer_.addReceiveAudio(recv->streamID, port);
+
+  Filter* rtpSink = NULL;
+  rtpSink = streamer_.getReceiveFilter(peers_.back()->streamID, OPUSAUDIO);
+
+  recv->audioReceive.push_back(rtpSink);
+
+  OpusDecoderFilter *decoder = new OpusDecoderFilter(stats_);
+  decoder->init(format_);
+
+  recv->audioReceive.push_back(decoder);
+  recv->audioReceive.at(recv->audioReceive.size()-2)
+      ->addOutConnection(recv->audioReceive.back());
+  recv->audioReceive.back()->start();
+
+  peers_.back()->output = new AudioOutput(stats_, recv->streamID);
+  peers_.back()->output->initializeAudio(format_);
+  AudioOutputDevice* outputModule = recv->output->getOutputModule();
+
+  outputModule->init(recv->audioReceive.back());
 }
 
 void FilterGraph::uninit()

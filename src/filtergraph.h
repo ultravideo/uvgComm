@@ -12,7 +12,7 @@ class VideoWidget;
 class StatisticsInterface;
 class AudioOutput;
 
-typedef uint16_t ParticipantID;
+typedef int16_t ParticipantID;
 
 class FilterGraph
 {
@@ -47,9 +47,6 @@ private:
   // iniates encoder and attaches it
   void initAudioSend();
 
-  // starts the camera and the encoder
-  //void initSender(VideoWidget *selfView, QSize resolution);
-
   struct Peer
   {
     Filter* audioFramedSource; // sends audio
@@ -60,24 +57,20 @@ private:
 
     AudioOutput* output;
 
-    PeerID id;
+    PeerID streamID;
   };
-
-  // attaches an RTP destination to video graph
-  void attachVideoDestination(Peer* recv, in_addr ip, uint16_t port);
-
-  void attachVideoSource(Peer* recv, in_addr ip, uint16_t port,
-                         VideoWidget *participantView);
-
-  void attachAudioDestination(Peer* recv);
-
-  void attachAudioSource(Peer* recv);
 
   void destroyPeer(Peer* peer);
 
   void destroyFilters(std::vector<Filter*>& filters);
 
   void deconstruct();
+
+  // These functions are used to manipulate filter graphs
+  void sendVideoto(Peer* send, uint16_t port);
+  void receiveVideoFrom(Peer* recv, uint16_t port, VideoWidget *view);
+  void sendAudioTo(Peer* send, uint16_t port);
+  void receiveAudioFrom(Peer* recv, uint16_t port);
 
   std::vector<Peer*> peers_;
 
