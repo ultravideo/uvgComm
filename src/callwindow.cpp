@@ -94,6 +94,9 @@ void CallWindow::addParticipant()
 void CallWindow::closeEvent(QCloseEvent *event)
 {
   fg_.stop();
+  fg_.uninit();
+  filterIniated_ = false;
+
   stats_->hide();
   stats_->finished(0);
   QMainWindow::closeEvent(event);

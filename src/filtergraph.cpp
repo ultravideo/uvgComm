@@ -142,6 +142,9 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
   }
 
   peers_.push_back(new Peer);
+  peers_.back()->output = 0;
+  peers_.back()->audioFramedSource = 0;
+  peers_.back()->videoFramedSource = 0;
   peers_.back()->streamID = streamer_.addPeer(ip);
   if(peers_.back()->streamID == -1)
   {
@@ -293,14 +296,65 @@ void FilterGraph::stop()
   {
     f->stop();
     f->emptyBuffer();
+    while(f->isRunning())
+    {
+      qSleep(1);
+    }
   }
 
   for(Filter* f : audioSend_)
   {
     f->stop();
     f->emptyBuffer();
+    while(f->isRunning())
+    {
+      qSleep(1);
+    }
   }
   streamer_.stop();
+
+  for(Peer* p : peers_)
+  {
+    if(p->audioFramedSource)
+    {
+      p->audioFramedSource->stop();
+      p->audioFramedSource->emptyBuffer();
+
+      while(p->audioFramedSource->isRunning())
+      {
+        qSleep(1);
+      }
+    }
+
+    if(p->videoFramedSource)
+    {
+      p->videoFramedSource->stop();
+      p->videoFramedSource->emptyBuffer();
+
+      while(p->videoFramedSource->isRunning())
+      {
+        qSleep(1);
+      }
+    }
+    for(Filter* f : p->audioReceive)
+    {
+      f->stop();
+      f->emptyBuffer();
+      while(f->isRunning())
+      {
+        qSleep(1);
+      }
+    }
+    for(Filter* f : p->videoReceive)
+    {
+      f->stop();
+      f->emptyBuffer();
+      while(f->isRunning())
+      {
+        qSleep(1);
+      }
+    }
+  }
 }
 
 void FilterGraph::destroyFilters(std::vector<Filter*>& filters)
@@ -308,12 +362,7 @@ void FilterGraph::destroyFilters(std::vector<Filter*>& filters)
   qDebug() << "Destroying filter graph with" << filters.size() << "filters.";
   for( Filter *f : filters )
   {
-    f->stop();
-    f->quit();
-    while(f->isRunning())
-    {
-      qSleep(1);
-    }
+
     delete f;
   }
 
