@@ -39,6 +39,7 @@ public:
 
   // adds one outbound connection to this filter.
   void addOutConnection(Filter *out);
+  void removeOutConnection(Filter *out);
 
   // callback registeration enables other classes besides Filter
   // to receive output data

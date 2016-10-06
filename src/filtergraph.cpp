@@ -16,6 +16,24 @@
 #include "opusencoderfilter.h"
 #include "opusdecoderfilter.h"
 
+
+#ifdef Q_OS_WIN
+#include <windows.h> // for Sleep
+#endif
+void qSleep(int ms)
+{
+
+#ifdef Q_OS_WIN
+    Sleep(uint(ms));
+#else
+    struct timespec ts = { ms / 1000, (ms % 1000) * 1000 * 1000 };
+    nanosleep(&ts, NULL);
+#endif
+}
+
+
+
+
 FilterGraph::FilterGraph(StatisticsInterface* stats):
   peers_(),
   videoSend_(),
@@ -251,9 +269,9 @@ void FilterGraph::deconstruct()
   {
     if(p != 0)
     {
-      delete p;
+      destroyPeer(p);
+      p = 0;
     }
-    p = 0;
   }
   peers_.clear();
 
@@ -291,6 +309,11 @@ void FilterGraph::destroyFilters(std::vector<Filter*>& filters)
   for( Filter *f : filters )
   {
     f->stop();
+    f->quit();
+    while(f->isRunning())
+    {
+      qSleep(1);
+    }
     delete f;
   }
 
@@ -301,21 +324,23 @@ void FilterGraph::destroyPeer(Peer* peer)
 {
   if(peer->audioFramedSource)
   {
+    audioSend_.back()->removeOutConnection(peer->audioFramedSource);
     delete peer->audioFramedSource;
     peer->audioFramedSource = 0;
   }
   if(peer->videoFramedSource)
   {
+    videoSend_.back()->removeOutConnection(peer->videoFramedSource);
     delete peer->videoFramedSource;
     peer->videoFramedSource = 0;
   }
-
   destroyFilters(peer->audioReceive);
-  destroyFilters(peer->audioReceive);
+  destroyFilters(peer->videoReceive);
 
   if(peer->output)
   {
     delete peer->output;
     peer->output = 0;
   }
+  delete peer;
 }

@@ -27,6 +27,25 @@ void Filter::addOutConnection(Filter *out)
   outConnections_.push_back(out);
 }
 
+void Filter::removeOutConnection(Filter *out)
+{
+  bool removed = false;
+  for(unsigned int i = 0; i < outConnections_.size(); ++i)
+  {
+    if(outConnections_[i] == out)
+    {
+      outConnections_.erase(outConnections_.begin() + i);
+      removed = true;
+      --i;
+    }
+  }
+
+  if(!removed)
+  {
+    qWarning() << "WARNING: Did not succeed at removing outconnection.";
+  }
+}
+
 void Filter::emptyBuffer()
 {
   bufferMutex_.lock();
