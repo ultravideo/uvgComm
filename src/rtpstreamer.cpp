@@ -16,11 +16,13 @@
 RTPStreamer::RTPStreamer(StatisticsInterface* stats):
   peers_(),
   iniated_(),
+  destroyed_(),
   peer_(),
   ttl_(255),
   sessionAddress_(),
   stopRTP_(0),
   env_(NULL),
+  scheduler_(NULL),
   stats_(stats),
   CNAME_()
 {
@@ -32,30 +34,39 @@ RTPStreamer::RTPStreamer(StatisticsInterface* stats):
 
   gethostname((char*)CNAME_, maxCNAMElen_);
   CNAME_[maxCNAMElen_] = '\0'; // just in case
-
-  iniated_.lock();
 }
 
 void RTPStreamer::run()
 {
+  // QThread run function
   qDebug() << "Iniating RTP streamer";
+  iniated_.lock();
   initLiveMedia();
   iniated_.unlock();
   qDebug() << "Iniating RTP streamer finished. "
            << "RTP streamer starting eventloop";
 
   stopRTP_ = 0;
+  // returns when stopRTP_ is set to 1
   env_->taskScheduler().doEventLoop(&stopRTP_);
 
   qDebug() << "RTP streamer eventloop stopped";
 
   uninit();
-
+  destroyed_.unlock();
 }
 
 void RTPStreamer::stop()
 {
-  stopRTP_ = 1;
+  qDebug() << "Stopping RTP Streamer";
+  destroyed_.lock();
+  if(stopRTP_ == 0)
+  {
+    qDebug() << "RTP Streamer was running as expected";
+    stopRTP_ = 1;
+    destroyed_.lock(); // unlocked at the end of run function
+  }
+  destroyed_.unlock();
 }
 
 void RTPStreamer::uninit()
@@ -72,9 +83,18 @@ void RTPStreamer::uninit()
   }
 
   if(!env_->reclaim())
-    qWarning() << "Unsuccesful reclaim of usage environment";
+  {
+    qWarning() << "Warning: Unsuccessful reclaim of usage environment";
+  }
+  else
+  {
+    delete scheduler_;
+    qDebug() << "Successful reclaim of usage environment";
+  }
 
-  qDebug() << "RTP streamer uninit succesful";
+
+
+  qDebug() << "RTP streamer uninit completed";
 }
 
 void RTPStreamer::initLiveMedia()
@@ -83,39 +103,48 @@ void RTPStreamer::initLiveMedia()
   QString sName(reinterpret_cast<char*>(CNAME_));
   qDebug() << "Our hostname:" << sName;
 
-  TaskScheduler* scheduler = BasicTaskScheduler::createNew();
-  if(scheduler)
-    env_ = BasicUsageEnvironment::createNew(*scheduler);
+  scheduler_ = BasicTaskScheduler::createNew();
+  if(scheduler_)
+    env_ = BasicUsageEnvironment::createNew(*scheduler_);
 
   OutPacketBuffer::maxSize = 65536;
 }
 
 PeerID RTPStreamer::addPeer(in_addr ip)
 {
-  iniated_.lock();
-  peer_.lock();
-  qDebug() << "Adding peer to following IP: "
-           << (uint8_t)((ip.s_addr) & 0xff) << "."
-           << (uint8_t)((ip.s_addr >> 8) & 0xff) << "."
-           << (uint8_t)((ip.s_addr >> 16) & 0xff) << "."
-           << (uint8_t)((ip.s_addr >> 24) & 0xff);
+  // not being destroyed
+  if(destroyed_.tryLock(0))
+  {
+    iniated_.lock(); // not being iniated
+    peer_.lock(); // filters cant be given before they are created
 
-  Peer* peer = new Peer;
+    qDebug() << "Adding peer to following IP: "
+             << (uint8_t)((ip.s_addr) & 0xff) << "."
+             << (uint8_t)((ip.s_addr >> 8) & 0xff) << "."
+             << (uint8_t)((ip.s_addr >> 16) & 0xff) << "."
+             << (uint8_t)((ip.s_addr >> 24) & 0xff);
 
-  peer->ip = ip;
-  peer->videoSender = 0;
-  peer->videoReceiver = 0;
-  peer->audioSender = 0;
-  peer->audioReceiver = 0;
+    Peer* peer = new Peer;
 
-  peers_.push_back(peer);
+    peer->ip = ip;
+    peer->videoSender = 0;
+    peer->videoReceiver = 0;
+    peer->audioSender = 0;
+    peer->audioReceiver = 0;
 
-  peer_.unlock();
-  iniated_.unlock();
+    peers_.push_back(peer);
 
-  qDebug() << "RTP streamer: Peer #" << peers_.size() - 1 << "added";
+    peer_.unlock();
+    iniated_.unlock();
+    destroyed_.unlock();
 
-  return (PeerID)peers_.size() - 1;
+    qDebug() << "RTP streamer: Peer #" << peers_.size() - 1 << "added";
+
+    return (PeerID)peers_.size() - 1;
+  }
+  qWarning() <<  "Trying to add peer while RTP was being destroyed.";
+
+  return -1;
 }
 
 void RTPStreamer::removePeer(PeerID id)
@@ -142,10 +171,14 @@ void RTPStreamer::destroySender(Sender* sender)
   Q_ASSERT(sender);
   if(sender)
   {
+    qDebug() << "Destroying sender:" << sender;
+
+    // order of destruction is important!
     RTCPInstance::close(sender->rtcp);
-    sender->framedSource = NULL;
+    sender->sourcefilter = NULL;
     sender->sink->stopPlaying();
     RTPSink::close(sender->sink);
+    FramedSource::close(sender->sourcefilter);
     destroyConnection(sender->connection);
 
     delete sender;
@@ -158,11 +191,15 @@ void RTPStreamer::destroyReceiver(Receiver* recv)
   Q_ASSERT(recv);
   if(recv)
   {
+    qDebug() << "Destroying receiver:" << recv;
+
+    // order of destruction is important!
     RTCPInstance::close(recv->rtcp);
     recv->sink->stopPlaying();
-    recv->sink = NULL; // deleted in filter graph
+    RTPSink::close(recv->sink);
+    recv->framedSource->stopGettingFrames();
     FramedSource::close(recv->framedSource);
-    recv->framedSource = 0;
+    recv->framedSource = NULL;
     destroyConnection(recv->connection);
 
     delete recv;
@@ -272,7 +309,7 @@ RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType 
     qWarning() << "Warning: RTP support not implemented for this format";
     break;
   }
-  sender->framedSource = new FramedSourceFilter(stats_, *env_, type);
+  sender->sourcefilter = new FramedSourceFilter(stats_, *env_, type);
   const unsigned int estimatedSessionBandwidth = 5000; // in kbps; for RTCP b/w share
   // This starts RTCP running automatically
   sender->rtcp  = RTCPInstance::createNew(*env_,
@@ -283,15 +320,15 @@ RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType 
                                    NULL,
                                    False);
 
-  if(!sender->framedSource || !sender->sink)
+  if(!sender->sourcefilter || !sender->sink)
   {
     qCritical() << "Failed to setup sending RTP stream";
     return NULL;
   }
 
-  if(!sender->sink->startPlaying(*(sender->framedSource), NULL, NULL))
+  if(!sender->sink->startPlaying(*(sender->sourcefilter), NULL, NULL))
   {
-    qCritical() << "failed to start videosink: " << env_->getResultMsg();
+    qCritical() << "Critical: failed to start videosink: " << env_->getResultMsg();
   }
   return sender;
 }
@@ -378,11 +415,13 @@ void RTPStreamer::destroyConnection(Connection& connection)
 {
   if(connection.rtpGroupsock)
   {
+    connection.rtpGroupsock->removeAllDestinations();
     delete connection.rtpGroupsock;
     connection.rtpGroupsock = 0;
   }
   if(connection.rtcpGroupsock)
   {
+    connection.rtcpGroupsock->removeAllDestinations();
     delete connection.rtcpGroupsock;
     connection.rtcpGroupsock = 0;
   }
@@ -408,9 +447,9 @@ FramedSourceFilter* RTPStreamer::getSendFilter(PeerID peer, DataType type)
   peer_.unlock();
 
   if(type == RAWAUDIO || type == OPUSAUDIO)
-    return peers_[peer]->audioSender->framedSource;
+    return peers_[peer]->audioSender->sourcefilter;
   else if(type == HEVCVIDEO)
-    return peers_[peer]->videoSender->framedSource;
+    return peers_[peer]->videoSender->sourcefilter;
 
   return NULL;
 }

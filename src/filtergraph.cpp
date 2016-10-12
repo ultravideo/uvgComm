@@ -145,6 +145,8 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
   peers_.back()->output = 0;
   peers_.back()->audioFramedSource = 0;
   peers_.back()->videoFramedSource = 0;
+  peers_.back()->audioSink = 0;
+  peers_.back()->videoSink = 0;
   peers_.back()->streamID = streamer_.addPeer(ip);
   if(peers_.back()->streamID == -1)
   {
@@ -199,15 +201,13 @@ void FilterGraph::receiveVideoFrom(Peer* recv, uint16_t port, VideoWidget *view)
   streamer_.addReceiveVideo(recv->streamID, port);
 
   // Receiving video graph
-  Filter* rtpSink = NULL;
-  rtpSink = streamer_.getReceiveFilter(recv->streamID, HEVCVIDEO);
-
-  recv->videoReceive.push_back(rtpSink);
+  recv->videoSink = streamer_.getReceiveFilter(recv->streamID, HEVCVIDEO);
+  //recv->videoReceive.push_back(rtpSink);
 
   OpenHEVCFilter* decoder =  new OpenHEVCFilter(stats_);
   decoder->init();
   recv->videoReceive.push_back(decoder);
-  recv->videoReceive.at(recv->videoReceive.size()-2)->addOutConnection(recv->videoReceive.back());
+  recv->videoSink->addOutConnection(recv->videoReceive.back());
   recv->videoReceive.back()->start();
 
   recv->videoReceive.push_back(new YUVtoRGB32(stats_));
@@ -239,17 +239,13 @@ void FilterGraph::receiveAudioFrom(Peer* recv, uint16_t port)
 
   streamer_.addReceiveAudio(recv->streamID, port);
 
-  Filter* rtpSink = NULL;
-  rtpSink = streamer_.getReceiveFilter(peers_.back()->streamID, OPUSAUDIO);
-
-  recv->audioReceive.push_back(rtpSink);
+  recv->audioSink = streamer_.getReceiveFilter(peers_.back()->streamID, OPUSAUDIO);
 
   OpusDecoderFilter *decoder = new OpusDecoderFilter(stats_);
   decoder->init(format_);
 
   recv->audioReceive.push_back(decoder);
-  recv->audioReceive.at(recv->audioReceive.size()-2)
-      ->addOutConnection(recv->audioReceive.back());
+  recv->audioSink->addOutConnection(recv->audioReceive.back());
   recv->audioReceive.back()->start();
 
   peers_.back()->output = new AudioOutput(stats_, recv->streamID);
@@ -261,12 +257,7 @@ void FilterGraph::receiveAudioFrom(Peer* recv, uint16_t port)
 
 void FilterGraph::uninit()
 {
-  deconstruct();
-}
-
-void FilterGraph::deconstruct()
-{
-  stop();
+  streamer_.stop();
 
   for(Peer* p : peers_)
   {
@@ -282,77 +273,64 @@ void FilterGraph::deconstruct()
   destroyFilters(audioSend_);
 }
 
-void FilterGraph::restart()
+void changeState(Filter* f, bool state)
 {
-  for(Filter* f : videoSend_)
+  if(state)
+  {
+    f->emptyBuffer();
     f->start();
+  }
+  else
+  {
+    f->stop();
+    f->emptyBuffer();
 
-  streamer_.start();
+    while(f->isRunning())
+    {
+      qSleep(1);
+    }
+  }
 }
 
-void FilterGraph::stop()
+void FilterGraph::running(bool state)
 {
   for(Filter* f : videoSend_)
   {
-    f->stop();
-    f->emptyBuffer();
-    while(f->isRunning())
-    {
-      qSleep(1);
-    }
+    changeState(f, state);
   }
-
   for(Filter* f : audioSend_)
   {
-    f->stop();
-    f->emptyBuffer();
-    while(f->isRunning())
-    {
-      qSleep(1);
-    }
+    changeState(f, state);
   }
-  streamer_.stop();
+
+  /*
+  if(state)
+  {
+    streamer_.start();
+  }
+  else
+  {
+    streamer_.stop();
+  }
+  */
 
   for(Peer* p : peers_)
   {
     if(p->audioFramedSource)
     {
-      p->audioFramedSource->stop();
-      p->audioFramedSource->emptyBuffer();
-
-      while(p->audioFramedSource->isRunning())
-      {
-        qSleep(1);
-      }
+      changeState(p->audioFramedSource, state);
     }
-
     if(p->videoFramedSource)
     {
-      p->videoFramedSource->stop();
-      p->videoFramedSource->emptyBuffer();
-
-      while(p->videoFramedSource->isRunning())
-      {
-        qSleep(1);
-      }
+      changeState(p->videoFramedSource, state);
     }
     for(Filter* f : p->audioReceive)
     {
-      f->stop();
-      f->emptyBuffer();
-      while(f->isRunning())
-      {
-        qSleep(1);
-      }
+      changeState(f, state);
     }
     for(Filter* f : p->videoReceive)
     {
-      f->stop();
-      f->emptyBuffer();
-      while(f->isRunning())
-      {
-        qSleep(1);
-      }
+      changeState(f, state);
     }
   }
 }
@@ -362,7 +340,6 @@ void FilterGraph::destroyFilters(std::vector<Filter*>& filters)
   qDebug() << "Destroying filter graph with" << filters.size() << "filters.";
   for( Filter *f : filters )
   {
-
     delete f;
   }
 
@@ -374,13 +351,13 @@ void FilterGraph::destroyPeer(Peer* peer)
   if(peer->audioFramedSource)
   {
     audioSend_.back()->removeOutConnection(peer->audioFramedSource);
-    delete peer->audioFramedSource;
+    //delete peer->audioFramedSource;
     peer->audioFramedSource = 0;
   }
   if(peer->videoFramedSource)
   {
     videoSend_.back()->removeOutConnection(peer->videoFramedSource);
-    delete peer->videoFramedSource;
+    //delete peer->videoFramedSource;
     peer->videoFramedSource = 0;
   }
   destroyFilters(peer->audioReceive);

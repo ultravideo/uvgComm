@@ -17,7 +17,9 @@ CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height) :
   filterIniated_(false),
   timer_(new QTimer(this)),
   row_(0),
-  column_(0)
+  column_(0),
+  running_(false),
+  currentResolution_()
 {
   ui_->setupUi(this);
   currentResolution_ = QSize(width, height);
@@ -34,8 +36,6 @@ CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height) :
 
 CallWindow::~CallWindow()
 {
-  fg_.stop();
-
   fg_.uninit();
 
   timer_->stop();
@@ -51,6 +51,7 @@ void CallWindow::startStream()
   {
     fg_.init(ui_->SelfView, currentResolution_);
     filterIniated_ = true;
+    running_ = true;
   }
 }
 
@@ -91,19 +92,29 @@ void CallWindow::addParticipant()
     stats_->addParticipant(ip_str, port_str);
 }
 
+void CallWindow::openStatistics()
+{
+  stats_->show();
+}
+
+void CallWindow::pause()
+{
+  running_ = !running_;
+  fg_.running(running_);
+}
+
 void CallWindow::closeEvent(QCloseEvent *event)
 {
-  fg_.stop();
+  fg_.running(false);
   fg_.uninit();
   filterIniated_ = false;
 
   stats_->hide();
   stats_->finished(0);
+  //delete stats_;
+  //stats_ = 0;
   QMainWindow::closeEvent(event);
 }
 
-void CallWindow::openStatistics()
-{
-  stats_->show();
-}
+
 

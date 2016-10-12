@@ -31,8 +31,9 @@ public:
 
   void removeParticipant(ParticipantID peer);
 
-  void restart();
-  void stop();
+  void mute(bool state);
+  void camera(bool state);
+  void running(bool state);
 
   void uninit();
 
@@ -52,6 +53,9 @@ private:
     Filter* audioFramedSource; // sends audio
     Filter* videoFramedSource; // sends video
 
+    Filter* audioSink; // receives audio
+    Filter* videoSink; // receives video
+
     std::vector<Filter*> videoReceive;
     std::vector<Filter*> audioReceive;
 
@@ -66,7 +70,7 @@ private:
 
   void deconstruct();
 
-  // These functions are used to manipulate filter graphs
+  // These functions are used to manipulate filter graphs regarding a peer
   void sendVideoto(Peer* send, uint16_t port);
   void receiveVideoFrom(Peer* recv, uint16_t port, VideoWidget *view);
   void sendAudioTo(Peer* send, uint16_t port);

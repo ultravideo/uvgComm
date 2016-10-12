@@ -25,6 +25,7 @@ public:
 public slots:
    void addParticipant();
    void openStatistics(); // Opens statistics window
+   void pause();
 
 private:
   Ui::CallWindow *ui_;
@@ -39,6 +40,8 @@ private:
   // dynamic videowidget adding to layout
   int row_;
   int column_;
+
+  bool running_;
 
   QSize currentResolution_;
 };

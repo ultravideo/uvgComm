@@ -27,6 +27,8 @@ public:
   void stop();
 
   // use these to ask for filters that are connected to filter graph
+  // ownership is not transferred.
+  // Removepeer and stop destroy returned filter.
   FramedSourceFilter* getSendFilter(PeerID peer, DataType type);
   RTPSinkFilter* getReceiveFilter(PeerID peer, DataType type);
 
@@ -63,7 +65,7 @@ private:
     RTCPInstance* rtcp;
 
     RTPSink* sink;
-    FramedSourceFilter* framedSource; // receives stuff from filter graph
+    FramedSourceFilter* sourcefilter; // receives stuff from filter graph
   };
 
   struct Receiver
@@ -105,7 +107,8 @@ private:
 
   std::vector<Peer*> peers_;
 
-  QMutex iniated_;
+  QMutex iniated_; // locks for duration of creation
+  QMutex destroyed_; // locks for duration of
   QMutex peer_;
 
   uint8_t ttl_;
@@ -113,6 +116,7 @@ private:
 
   char stopRTP_; // char for stopping live555 taskscheduler
   UsageEnvironment* env_;
+  TaskScheduler* scheduler_; // pointer needed for proper destruction
 
   StatisticsInterface* stats_;
 
