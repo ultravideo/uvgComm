@@ -174,12 +174,20 @@ void RTPStreamer::destroySender(Sender* sender)
     qDebug() << "Destroying sender:" << sender;
 
     // order of destruction is important!
-    RTCPInstance::close(sender->rtcp);
-    sender->sourcefilter = NULL;
-    sender->sink->stopPlaying();
-    RTPSink::close(sender->sink);
-    FramedSource::close(sender->sourcefilter);
-    destroyConnection(sender->connection);
+    if(sender->rtcp)
+    {
+      RTCPInstance::close(sender->rtcp);
+    }
+    if(sender->sink)
+    {
+      sender->sink->stopPlaying();
+      RTPSink::close(sender->sink);
+    }
+    if(sender->sourcefilter)
+    {
+      FramedSource::close(sender->sourcefilter);
+      destroyConnection(sender->connection);
+    }
 
     delete sender;
   }
@@ -194,12 +202,22 @@ void RTPStreamer::destroyReceiver(Receiver* recv)
     qDebug() << "Destroying receiver:" << recv;
 
     // order of destruction is important!
-    RTCPInstance::close(recv->rtcp);
-    recv->sink->stopPlaying();
-    RTPSink::close(recv->sink);
-    recv->framedSource->stopGettingFrames();
-    FramedSource::close(recv->framedSource);
-    recv->framedSource = NULL;
+    if(recv->rtcp)
+    {
+      RTCPInstance::close(recv->rtcp);
+    }
+    if(recv->sink)
+    {
+      recv->sink->stopPlaying();
+      RTPSink::close(recv->sink);
+    }
+    if(recv->framedSource)
+    {
+      recv->framedSource->stopGettingFrames();
+      FramedSource::close(recv->framedSource);
+      recv->framedSource = NULL;
+    }
+
     destroyConnection(recv->connection);
 
     delete recv;
