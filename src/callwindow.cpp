@@ -19,6 +19,8 @@ CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height) :
   row_(0),
   column_(0),
   running_(false),
+  mic_(true),
+  camera_(true),
   currentResolution_()
 {
   ui_->setupUi(this);
@@ -101,6 +103,37 @@ void CallWindow::pause()
 {
   running_ = !running_;
   fg_.running(running_);
+}
+
+void CallWindow::micState()
+{
+  mic_ = !mic_;
+  fg_.mic(mic_);
+
+  if(mic_)
+  {
+    ui_->mic->setText("Mic off");
+  }
+  else
+  {
+    ui_->mic->setText("Mic on");
+  }
+}
+
+void CallWindow::cameraState()
+{
+  camera_ = !camera_;
+  fg_.camera(camera_);
+
+  if(camera_)
+  {
+    ui_->camera->setText("Camera off");
+  }
+  else
+  {
+    ui_->camera->setText("Camera on");
+  }
+
 }
 
 void CallWindow::closeEvent(QCloseEvent *event)

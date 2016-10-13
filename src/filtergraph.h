@@ -31,7 +31,7 @@ public:
 
   void removeParticipant(ParticipantID peer);
 
-  void mute(bool state);
+  void mic(bool state);
   void camera(bool state);
   void running(bool state);
 

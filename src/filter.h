@@ -67,6 +67,11 @@ public:
     return output_;
   }
 
+  virtual void start()
+  {
+    QThread::start();
+  }
+
   virtual void stop();
 
 protected:

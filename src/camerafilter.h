@@ -15,6 +15,7 @@ public:
   CameraFilter(StatisticsInterface* stats, QSize resolution);
   ~CameraFilter();
 
+  virtual void start();
   virtual void stop();
 
 private slots:

@@ -45,9 +45,20 @@ void CameraFilter::process()
   // do nothing because camera input is handled via camera signal
 }
 
+void CameraFilter::start()
+{
+  if(camera_->state() == QCamera::LoadedState)
+  {
+    camera_->start();
+  }
+}
+
 void CameraFilter::stop()
 {
-  camera_->stop();
+  if(camera_->state() == QCamera::ActiveState)
+  {
+    camera_->stop();
+  }
   Filter::stop();
 }
 

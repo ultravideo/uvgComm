@@ -16,19 +16,23 @@ public:
 
   void initializeAudio(QAudioFormat format);
 
-  void toggleMode();
-  void toggleSuspend();
-  void deviceChanged(int index);
+  virtual void start();
+  virtual void stop();
 
 protected:
 
   void process();
 
 private slots:
+
   void readMore();
   void volumeChanged(int value);
 
 private:
+
+  void toggleMode();
+  void toggleSuspend();
+  void deviceChanged(int index);
 
   void createAudioInput();
 

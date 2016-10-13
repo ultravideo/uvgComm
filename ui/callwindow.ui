@@ -22,6 +22,20 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_2">
     <item row="2" column="4">
+     <widget class="QPushButton" name="mic">
+      <property name="text">
+       <string>Mic off</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="3">
+     <widget class="QPushButton" name="pause">
+      <property name="text">
+       <string>Pause</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="6">
      <widget class="QTextEdit" name="ip">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -49,21 +63,7 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="2" column="0">
-     <widget class="QPushButton" name="EndCallButton">
-      <property name="text">
-       <string>End call</string>
-      </property>
-     </widget>
-    </item>
-    <item row="2" column="2">
-     <widget class="QPushButton" name="addParticipant">
-      <property name="text">
-       <string>Add participant</string>
-      </property>
-     </widget>
-    </item>
-    <item row="2" column="5">
+    <item row="2" column="7">
      <widget class="QTextEdit" name="port">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
@@ -91,14 +91,28 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="2" column="6">
+    <item row="2" column="8">
      <widget class="QPushButton" name="stats">
       <property name="text">
        <string>Statistics</string>
       </property>
      </widget>
     </item>
-    <item row="0" column="0" rowspan="2" colspan="7">
+    <item row="2" column="2">
+     <widget class="QPushButton" name="addParticipant">
+      <property name="text">
+       <string>Add participant</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="0">
+     <widget class="QPushButton" name="EndCallButton">
+      <property name="text">
+       <string>End call</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="0" rowspan="2" colspan="9">
      <widget class="QWidget" name="participants" native="true">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -144,10 +158,10 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="2" column="3">
-     <widget class="QPushButton" name="pause">
+    <item row="2" column="5">
+     <widget class="QPushButton" name="camera">
       <property name="text">
-       <string>Pause</string>
+       <string>Camera off</string>
       </property>
      </widget>
     </item>
@@ -160,6 +174,8 @@ p, li { white-space: pre-wrap; }
    <zorder>stats</zorder>
    <zorder>participants</zorder>
    <zorder>pause</zorder>
+   <zorder>mic</zorder>
+   <zorder>camera</zorder>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -236,9 +252,43 @@ p, li { white-space: pre-wrap; }
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>mic</sender>
+   <signal>clicked()</signal>
+   <receiver>CallWindow</receiver>
+   <slot>micState()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>620</x>
+     <y>585</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>639</x>
+     <y>319</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>camera</sender>
+   <signal>clicked()</signal>
+   <receiver>CallWindow</receiver>
+   <slot>cameraState()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>756</x>
+     <y>585</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>639</x>
+     <y>319</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>addParticipant()</slot>
   <slot>pause()</slot>
+  <slot>micState()</slot>
+  <slot>cameraState()</slot>
  </slots>
 </ui>

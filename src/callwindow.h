@@ -26,6 +26,8 @@ public slots:
    void addParticipant();
    void openStatistics(); // Opens statistics window
    void pause();
+   void micState();
+   void cameraState();
 
 private:
   Ui::CallWindow *ui_;
@@ -42,6 +44,9 @@ private:
   int column_;
 
   bool running_;
+
+  bool mic_;
+  bool camera_;
 
   QSize currentResolution_;
 };

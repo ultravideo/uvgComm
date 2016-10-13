@@ -292,6 +292,41 @@ void changeState(Filter* f, bool state)
   }
 }
 
+void FilterGraph::mic(bool state)
+{
+
+  if(audioSend_.size() > 0)
+  {
+    if(!state)
+    {
+      qDebug() << "Stopping microphone";
+      audioSend_.at(0)->stop();
+    }
+    else
+    {
+      qDebug() << "Starting microphone";
+      audioSend_.at(0)->start();
+    }
+  }
+}
+
+void FilterGraph::camera(bool state)
+{
+  if(videoSend_.size() > 0)
+  {
+    if(!state)
+    {
+      qDebug() << "Stopping camera";
+      videoSend_.at(0)->stop();
+    }
+    else
+    {
+      qDebug() << "Starting camera";
+      videoSend_.at(0)->start();
+    }
+  }
+}
+
 void FilterGraph::running(bool state)
 {
   for(Filter* f : videoSend_)
@@ -302,17 +337,6 @@ void FilterGraph::running(bool state)
   {
     changeState(f, state);
   }
-
-  /*
-  if(state)
-  {
-    streamer_.start();
-  }
-  else
-  {
-    streamer_.stop();
-  }
-  */
 
   for(Peer* p : peers_)
   {
@@ -351,13 +375,13 @@ void FilterGraph::destroyPeer(Peer* peer)
   if(peer->audioFramedSource)
   {
     audioSend_.back()->removeOutConnection(peer->audioFramedSource);
-    //delete peer->audioFramedSource;
+    //peer->audioFramedSource is destroyed by RTPStreamer
     peer->audioFramedSource = 0;
   }
   if(peer->videoFramedSource)
   {
     videoSend_.back()->removeOutConnection(peer->videoFramedSource);
-    //delete peer->videoFramedSource;
+    //peer->videoFramedSource is destroyed by RTPStreamer
     peer->videoFramedSource = 0;
   }
   destroyFilters(peer->audioReceive);

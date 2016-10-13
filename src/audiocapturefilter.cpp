@@ -99,6 +99,31 @@ void AudioCaptureFilter::readMore()
   }
 }
 
+void AudioCaptureFilter::start()
+{
+  qDebug() << "Resuming audio input.";
+
+  if (audioInput_->state() == QAudio::SuspendedState
+      || audioInput_->state() == QAudio::StoppedState)
+  {
+    audioInput_->resume();
+  }
+}
+
+void AudioCaptureFilter::stop()
+{
+  qDebug() << "Suspending audio input.";
+
+  if (audioInput_->state() == QAudio::ActiveState)
+  {
+    audioInput_->suspend();
+  }
+
+  // just in case the filter part was running
+  Filter::stop();
+
+  qDebug() << "Audio input suspended.";
+}
 
 void AudioCaptureFilter::toggleSuspend()
 {
