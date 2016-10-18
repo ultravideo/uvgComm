@@ -36,7 +36,8 @@ SOURCES +=\
     src/audiooutput.cpp \
     src/audiooutputdevice.cpp \
     src/opusencoderfilter.cpp \
-    src/opusdecoderfilter.cpp
+    src/opusdecoderfilter.cpp \
+    src/speexaecfilter.cpp
 
 HEADERS  += \
     src/callwindow.h \
@@ -61,7 +62,8 @@ HEADERS  += \
     src/audiooutput.h \
     src/audiooutputdevice.h \
     src/opusencoderfilter.h \
-    src/opusdecoderfilter.h
+    src/opusdecoderfilter.h \
+    src/speexaecfilter.h
 
 FORMS    += \
     ui/callwindow.ui \
@@ -88,7 +90,11 @@ win32: LIBS += -llibkvazaar.dll
 win32: LIBS += -llibopus.dll
 win32: LIBS += -llibLibOpenHevcWrapper.dll
 win32: LIBS += -llivemedia.dll
+win32: LIBS += -llibspeexdsp.dll
 win32: LIBS += -lws2_32
 
 INCLUDEPATH += $$PWD/../
 DEPENDPATH += $$PWD/../
+
+DISTFILES += \
+    .gitignore

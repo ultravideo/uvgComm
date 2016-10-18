@@ -24,6 +24,7 @@ struct Data
 
   uint16_t framerate;
 
+  bool local;
 };
 
 const int BUFFERSIZE = 50;
