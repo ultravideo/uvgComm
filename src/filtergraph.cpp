@@ -15,7 +15,7 @@
 #include "audiooutput.h"
 #include "opusencoderfilter.h"
 #include "opusdecoderfilter.h"
-
+#include "speexaecfilter.h"
 
 #ifdef Q_OS_WIN
 #include <windows.h> // for Sleep
@@ -44,6 +44,7 @@ FilterGraph::FilterGraph(StatisticsInterface* stats):
   format_()
 {
   Q_ASSERT(stats);
+  // TODO negotiate these values with all included filters
   format_.setSampleRate(48000);
   format_.setChannelCount(2);
   format_.setSampleSize(16);
@@ -108,6 +109,8 @@ void FilterGraph::initVideoSend(QSize resolution)
 
 void FilterGraph::initAudioSend()
 {
+  // Do this before adding participants, otherwise AEC filter wont get attached
+
   AudioCaptureFilter* capture = new AudioCaptureFilter(stats_);
   capture->initializeAudio(format_);
   audioSend_.push_back(capture);
@@ -131,7 +134,8 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
     return -1;
   }
 
-  if(wantsAudio && audioSend_.size() == 0)
+  // just in case it is wanted later. AEC filter has to be attached
+  if(audioSend_.size() == 0)
   {
     initAudioSend();
   }
@@ -247,6 +251,18 @@ void FilterGraph::receiveAudioFrom(Peer* recv, uint16_t port)
   recv->audioReceive.push_back(decoder);
   recv->audioSink->addOutConnection(recv->audioReceive.back());
   recv->audioReceive.back()->start();
+
+  if(audioSend_.size() > 0)
+  {
+    recv->audioReceive.push_back(new SpeexAECFilter(stats_, format_));
+    audioSend_.at(0)->addOutConnection(recv->audioReceive.back());
+    recv->audioReceive.at(recv->audioReceive.size()-2)->addOutConnection(recv->audioReceive.back());
+    recv->audioReceive.back()->start();
+  }
+  else
+  {
+    qWarning() << "WARNING: Did not attach echo cancellation";
+  }
 
   peers_.back()->output = new AudioOutput(stats_, recv->streamID);
   peers_.back()->output->initializeAudio(format_);
