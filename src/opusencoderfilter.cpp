@@ -18,6 +18,8 @@ OpusEncoderFilter::~OpusEncoderFilter()
 {
   opus_encoder_destroy(enc_);
   enc_ = 0;
+  delete opusOutput_;
+  opusOutput_ = 0;
 }
 
 void OpusEncoderFilter::init(QAudioFormat format)
@@ -40,7 +42,7 @@ void OpusEncoderFilter::process()
     //int channels = 2;
 
     opus_int32 len = 0;
-    int frame_size = input->data_size/(format_.channelCount()*sizeof(opus_int16));
+    int frame_size = input->data_size/format_.bytesPerFrame();
     opus_int16* input_data = (opus_int16*)input->data.get();
 
     len = opus_encode(enc_, input_data, frame_size, opusOutput_, max_data_bytes_);

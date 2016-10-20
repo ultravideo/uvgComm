@@ -11,6 +11,12 @@ OpusDecoderFilter::OpusDecoderFilter(StatisticsInterface *stats):
   pcmOutput_ = new int16_t[max_data_bytes_];
 }
 
+OpusDecoderFilter::~OpusDecoderFilter()
+{
+  delete pcmOutput_;
+  pcmOutput_ = 0;
+}
+
 void OpusDecoderFilter::init(QAudioFormat format)
 {
   int error = 0;
