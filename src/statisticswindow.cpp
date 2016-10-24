@@ -79,13 +79,13 @@ void StatisticsWindow::sendDelay(QString type, uint32_t delay)
   if(type == "video" || type == "Video")
   {
     sendMutex_.lock();
-    ui_->encode_delay_value->setText( QString::number(delay) + " ms. (not precise)" );
+    ui_->encode_delay_value->setText( QString::number(delay) + " ms." );
     sendMutex_.unlock();
   }
   else if(type == "audio" || type == "Audio")
   {
     sendMutex_.lock();
-    ui_->audio_delay_value->setText( QString::number(delay) + " ms. (not precise)" );
+    ui_->audio_delay_value->setText( QString::number(delay) + " ms." );
     sendMutex_.unlock();
   }
 }
