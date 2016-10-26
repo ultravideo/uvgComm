@@ -58,6 +58,16 @@ void Filter::putInput(std::unique_ptr<Data> data)
 {
   Q_ASSERT(data);
 
+  if(data->source == UNKNOWN
+     || data->type == NONE
+     || data->data_size == 0
+     || data->width > 40000
+     || data->height > 20000)
+  {
+    qWarning() << "Warning: Discarding bad data";
+    return;
+  }
+
   ++inputTaken_;
 
   bufferMutex_.lock();
@@ -176,7 +186,7 @@ Data* Filter::deepDataCopy(Data* original)
     copy->data_size = original->data_size;
     copy->width = original->width;
     copy->height = original->height;
-    copy->local = original->local;
+    copy->source = original->source;
     copy->presentationTime = original->presentationTime;
     return copy;
   }

@@ -91,7 +91,7 @@ void CameraFilter::handleFrame(const QVideoFrame &frame)
   newImage->data_size = cloneFrame.mappedBytes();
   newImage->width = cloneFrame.width();
   newImage->height = cloneFrame.height();
-  newImage->local = true;
+  newImage->source = LOCAL;
 
   // scale the image and copy to new data
   if(resolution_ != cloneFrame.size())

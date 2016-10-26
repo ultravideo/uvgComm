@@ -91,7 +91,7 @@ void AudioCaptureFilter::readMore()
     newSample->data_size = len;
     newSample->width = 0;
     newSample->height = 0;
-    newSample->local = true;
+    newSample->source = LOCAL;
 
     std::unique_ptr<Data> u_newSample( newSample );
     sendOutput(std::move(u_newSample));

@@ -12,6 +12,7 @@
 #include <functional>
 
 enum DataType {NONE = 0, RGB32VIDEO, YUVVIDEO, RAWAUDIO, HEVCVIDEO, OPUSAUDIO};
+enum DataSource {UNKNOWN, LOCAL, REMOTE};
 
 // NOTE: remember to make changes to deepcopy, camera, audiocapture and RTPSinkFilter
 struct Data
@@ -25,7 +26,7 @@ struct Data
 
   uint16_t framerate;
 
-  bool local;
+  DataSource source;
 };
 
 const int BUFFERSIZE = 50;

@@ -53,7 +53,7 @@ void RTPSinkFilter::afterGettingFrame(unsigned frameSize,
   received_picture->width = 0; // not know at this point. Decoder tells the correct resolution
   received_picture->height = 0;
   received_picture->presentationTime = presentationTime;
-  received_picture->local = false;
+  received_picture->source = REMOTE;
   memcpy(received_picture->data.get(), fReceiveBuffer, received_picture->data_size);
   std::unique_ptr<Data> rp( received_picture );
   sendOutput(std::move(rp));

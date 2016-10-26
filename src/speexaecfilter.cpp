@@ -54,7 +54,7 @@ void SpeexAECFilter::process()
   {
     if(format_.bytesPerFrame()*frameSize_ == input->data_size)
     {
-      if(input->local)
+      if(input->source == LOCAL)
       {
         ++in_;
         //qDebug() << "AEC: Getting input from mic:" << in_;
