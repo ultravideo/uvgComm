@@ -119,14 +119,14 @@ void Filter::sendOutput(std::unique_ptr<Data> output)
       outDataCallbacks_[i](std::move(u_copy));
     }
 
-    // copy last one
+    // copy last callback and move last connection
     if(outConnections_.size() != 0)
     {
       Data* copy = deepDataCopy(output.get());
       std::unique_ptr<Data> u_copy(copy);
       outDataCallbacks_.back()(std::move(u_copy));
     }
-    else // move last one
+    else // move last callback
     {
       outDataCallbacks_.back()(std::move(output));
     }
@@ -176,6 +176,7 @@ Data* Filter::deepDataCopy(Data* original)
     copy->data_size = original->data_size;
     copy->width = original->width;
     copy->height = original->height;
+    copy->local = original->local;
     copy->presentationTime = original->presentationTime;
     return copy;
   }

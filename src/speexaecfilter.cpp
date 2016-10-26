@@ -12,7 +12,9 @@ SpeexAECFilter::SpeexAECFilter(StatisticsInterface* stats, QAudioFormat format):
   echo_state_(NULL),
   format_(format),
   frameSize_(0),
-  max_data_bytes_(65536)
+  max_data_bytes_(65536),
+  in_(0),
+  out_(0)
 {
 
   frameSize_ = format_.sampleRate()/FRAMESPERSECOND;
@@ -54,12 +56,14 @@ void SpeexAECFilter::process()
     {
       if(input->local)
       {
-        //qDebug() << "AEC: Getting input from mic";
+        ++in_;
+        //qDebug() << "AEC: Getting input from mic:" << in_;
         speex_echo_playback(echo_state_, (int16_t*)input->data.get());
       }
-      else
+      else if( in_ >= out_)
       {
-        //qDebug() << "AEC: Getting reply from outside";
+        ++out_;
+        //qDebug() << "AEC: Getting reply from outside:" << out_ << "in:" << in_;
         std::unique_ptr<uchar[]> pcm_frame(new uchar[input->data_size]);
 
         // TODO: implement more channels
@@ -74,6 +78,10 @@ void SpeexAECFilter::process()
         memcpy(pcm_frame.get(), pcmOutput_, input->data_size);
         input->data = std::move(pcm_frame);
         sendOutput(std::move(input));
+      }
+      else
+      {
+        qWarning() << "Warning: AEC received too much output before input";
       }
     }
     else

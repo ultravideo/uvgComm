@@ -13,6 +13,7 @@
 
 enum DataType {NONE = 0, RGB32VIDEO, YUVVIDEO, RAWAUDIO, HEVCVIDEO, OPUSAUDIO};
 
+// NOTE: remember to make changes to deepcopy, camera, audiocapture and RTPSinkFilter
 struct Data
 {
   uint8_t type;

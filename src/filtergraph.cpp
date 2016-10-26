@@ -135,7 +135,7 @@ ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget
   }
 
   // just in case it is wanted later. AEC filter has to be attached
-  if(audioSend_.size() == 0)
+  if(audioSend_.size() == 0 && wantsAudio)
   {
     initAudioSend();
   }
@@ -252,7 +252,9 @@ void FilterGraph::receiveAudioFrom(Peer* recv, uint16_t port)
   recv->audioSink->addOutConnection(recv->audioReceive.back());
   recv->audioReceive.back()->start();
 
-  if(audioSend_.size() > 0)
+  bool AEC = true;
+
+  if(audioSend_.size() > 0 && AEC)
   {
     recv->audioReceive.push_back(new SpeexAECFilter(stats_, format_));
     audioSend_.at(0)->addOutConnection(recv->audioReceive.back());

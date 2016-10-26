@@ -26,4 +26,7 @@ private:
 
   int16_t* pcmOutput_;
   int32_t max_data_bytes_;
+
+  uint16_t in_;
+  uint16_t out_;
 };
