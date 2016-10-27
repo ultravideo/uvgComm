@@ -14,7 +14,8 @@ CameraFilter::CameraFilter(StatisticsInterface *stats, QSize resolution):
   Filter("Camera", stats, false, true),
   camera_(),
   cameraFrameGrabber_(),
-  resolution_(resolution)
+  resolution_(resolution),
+  framerate_(0)
 {
   camera_ = new QCamera(QCameraInfo::defaultCamera());
   cameraFrameGrabber_ = new CameraFrameGrabber();
@@ -31,6 +32,7 @@ CameraFilter::CameraFilter(StatisticsInterface *stats, QSize resolution):
   {
     QCameraViewfinderSettings settings = camera_->viewfinderSettings();
     stats_->videoInfo(settings.maximumFrameRate(), settings.resolution());
+    framerate_ = settings.maximumFrameRate();
   }
 }
 
@@ -92,6 +94,7 @@ void CameraFilter::handleFrame(const QVideoFrame &frame)
   newImage->width = cloneFrame.width();
   newImage->height = cloneFrame.height();
   newImage->source = LOCAL;
+  newImage->framerate = framerate_;
 
   // scale the image and copy to new data
   if(resolution_ != cloneFrame.size())

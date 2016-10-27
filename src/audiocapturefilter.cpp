@@ -76,7 +76,7 @@ void AudioCaptureFilter::readMore()
   {
     device_->write(buffer_.constData(), l);
 
-    Data * newSample = new Data;
+    Data* newSample = new Data;
 
     // set time
     timeval present_time;
@@ -92,6 +92,7 @@ void AudioCaptureFilter::readMore()
     newSample->width = 0;
     newSample->height = 0;
     newSample->source = LOCAL;
+    newSample->framerate = format_.sampleRate();
 
     std::unique_ptr<Data> u_newSample( newSample );
     sendOutput(std::move(u_newSample));

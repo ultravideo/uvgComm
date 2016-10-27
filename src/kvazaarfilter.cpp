@@ -114,6 +114,10 @@ void KvazaarFilter::process()
       break;
     }
 
+    if(config_->framerate_num != input->framerate)
+    {
+      qWarning() << name_ << "unhandled change of framerate";
+    }
 
     if(!input_pic_)
     {

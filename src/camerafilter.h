@@ -29,5 +29,8 @@ private:
   QCamera *camera_;
   CameraFrameGrabber *cameraFrameGrabber_;
 
+  // used only for scaling at the moment
   QSize resolution_;
+
+  uint16_t framerate_;
 };
