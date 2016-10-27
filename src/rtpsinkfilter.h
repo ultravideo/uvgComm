@@ -7,7 +7,7 @@
 class RTPSinkFilter : public Filter, public MediaSink
 {
 public:
-  RTPSinkFilter(StatisticsInterface* stats, UsageEnvironment& env);
+  RTPSinkFilter(StatisticsInterface* stats, UsageEnvironment& env, DataType type);
 
   virtual ~RTPSinkFilter();
 
@@ -30,4 +30,6 @@ protected:
   virtual Boolean continuePlaying();
 
   u_int8_t* fReceiveBuffer;
+
+  DataType type_;
 };

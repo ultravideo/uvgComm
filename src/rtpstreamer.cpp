@@ -376,7 +376,7 @@ RTPStreamer::Receiver* RTPStreamer::addReceiver(in_addr peerAddress, uint16_t po
     break;
   }
 
-  receiver->sink = new RTPSinkFilter(stats_, *env_);
+  receiver->sink = new RTPSinkFilter(stats_, *env_, type);
 
   const unsigned int estimatedSessionBandwidth = 5000; // in kbps; for RTCP b/w share
   // This starts RTCP running automatically
