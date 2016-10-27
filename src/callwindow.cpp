@@ -9,6 +9,11 @@
 
 #include <QTimer>
 
+
+const uint16_t MAXOPENPORTS = 42;
+const uint16_t PORTSPERPARTICIPANT = 4;
+
+
 CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height) :
   QMainWindow(parent),
   ui_(new Ui::CallWindow),
@@ -21,7 +26,8 @@ CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height) :
   running_(false),
   mic_(true),
   camera_(true),
-  currentResolution_()
+  currentResolution_(),
+  portsOpen_(0)
 {
   ui_->setupUi(this);
   currentResolution_ = QSize(width, height);
@@ -58,40 +64,45 @@ void CallWindow::startStream()
 }
 
 void CallWindow::addParticipant()
-{
-  startStream();
+{ 
+  portsOpen_ +=PORTSPERPARTICIPANT;
 
-  QString ip_str = ui_->ip->toPlainText();
-  QString port_str = ui_->port->toPlainText();
-
-  uint16_t nextIp = 0;
-
-  nextIp = port_str.toInt();
-  nextIp += 2; // increase port for convencience
-
-  ui_->port->setText(QString::number(nextIp));
-
-  QHostAddress address;
-  address.setAddress(ip_str);
-
-  in_addr ip;
-  ip.S_un.S_addr = qToBigEndian(address.toIPv4Address());
-
-  VideoWidget* view = new VideoWidget;
-  ui_->participantLayout->addWidget(view, row_, column_);
-
-  // TODO improve this algorithm
-  ++column_;
-  if(column_ == 3)
+  if(portsOpen_ <= MAXOPENPORTS)
   {
-    column_ = 0;
-    ++row_;
+    startStream();
+
+    QString ip_str = ui_->ip->toPlainText();
+    QString port_str = ui_->port->toPlainText();
+
+    uint16_t nextIp = 0;
+
+    nextIp = port_str.toInt();
+    nextIp += 2; // increase port for convencience
+
+    ui_->port->setText(QString::number(nextIp));
+
+    QHostAddress address;
+    address.setAddress(ip_str);
+
+    in_addr ip;
+    ip.S_un.S_addr = qToBigEndian(address.toIPv4Address());
+
+    VideoWidget* view = new VideoWidget;
+    ui_->participantLayout->addWidget(view, row_, column_);
+
+    // TODO improve this algorithm
+    ++column_;
+    if(column_ == 3)
+    {
+      column_ = 0;
+      ++row_;
+    }
+
+    fg_.addParticipant(ip, port_str.toInt(), view, true, true, true, true);
+
+    if(stats_)
+      stats_->addParticipant(ip_str, port_str);
   }
-
-  fg_.addParticipant(ip, port_str.toInt(), view, true, true, true, true);
-
-  if(stats_)
-    stats_->addParticipant(ip_str, port_str);
 }
 
 void CallWindow::openStatistics()

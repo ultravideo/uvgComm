@@ -49,4 +49,6 @@ private:
   bool camera_;
 
   QSize currentResolution_;
+
+  uint16_t portsOpen_;
 };
