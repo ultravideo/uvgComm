@@ -77,6 +77,10 @@ public:
 
   virtual void stop();
 
+  // helper function for copying Data
+  Data* shallowDataCopy(Data* original);
+  Data* deepDataCopy(Data* original);
+
 protected:
 
   // return: oldest element in buffer, empty if none found
@@ -102,8 +106,6 @@ protected:
 
 
 private:
-
-  Data* deepDataCopy(Data* original);
 
   QMutex *waitMutex_;
   QWaitCondition hasInput_;

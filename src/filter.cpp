@@ -175,19 +175,33 @@ void Filter::run()
   }
 }
 
-Data* Filter::deepDataCopy(Data* original)
+Data* Filter::shallowDataCopy(Data* original)
 {
   if(original != NULL)
   {
     Data* copy = new Data;
     copy->type = original->type;
-    copy->data = std::unique_ptr<uchar[]>(new uchar[original->data_size]);
-    memcpy(copy->data.get(), original->data.get(), original->data_size);
-    copy->data_size = original->data_size;
     copy->width = original->width;
     copy->height = original->height;
     copy->source = original->source;
     copy->presentationTime = original->presentationTime;
+    copy->data_size = 0; // no data in shallow copy
+
+    return copy;
+  }
+  qWarning() << "Warning: Trying to copy NULL Data pointer";
+  return NULL;
+}
+
+Data* Filter::deepDataCopy(Data* original)
+{
+  if(original != NULL)
+  {
+    Data* copy = shallowDataCopy(original);
+    copy->data = std::unique_ptr<uchar[]>(new uchar[original->data_size]);
+    memcpy(copy->data.get(), original->data.get(), original->data_size);
+    copy->data_size = original->data_size;
+
     return copy;
   }
   qWarning() << "Warning: Trying to copy NULL Data pointer";
