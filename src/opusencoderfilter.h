@@ -19,8 +19,10 @@ protected:
 private:
   OpusEncoder* enc_;
 
-  unsigned char* opusOutput_;
+  uchar* opusOutput_;
   uint32_t max_data_bytes_;
 
   QAudioFormat format_;
+
+  uint32_t numberOfSamples_;
 };

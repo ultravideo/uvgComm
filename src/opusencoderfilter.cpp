@@ -5,11 +5,16 @@
 
 #include "statisticsinterface.h"
 
+// this is how many frames the audio capture seems to send
+const uint16_t FRAMESPERSECOND = 25;
+
 OpusEncoderFilter::OpusEncoderFilter(StatisticsInterface* stats):
   Filter("Opus Encoder", stats, true, true),
   enc_(0),
   opusOutput_(0),
-  max_data_bytes_(65536)
+  max_data_bytes_(65536),
+  format_(),
+  numberOfSamples_(0)
 {
   opusOutput_ = new uchar[max_data_bytes_];
 }
@@ -31,6 +36,7 @@ void OpusEncoderFilter::init(QAudioFormat format)
     qWarning() << "Failed to initialize opus encoder with errorcode:" << error;
 
   format_ = format;
+  numberOfSamples_ = format_.sampleRate()/FRAMESPERSECOND;
 }
 
 void OpusEncoderFilter::process()
@@ -39,29 +45,42 @@ void OpusEncoderFilter::process()
 
   while(input)
   {
-    //int channels = 2;
+    opus_int32 len = 0; // encoded frame size
+    uint32_t pos = 0; // output position
 
-    opus_int32 len = 0;
-    int frame_size = input->data_size/format_.bytesPerFrame();
-    opus_int16* input_data = (opus_int16*)input->data.get();
-
-    len = opus_encode(enc_, input_data, frame_size, opusOutput_, max_data_bytes_);
-
-    //qDebug() << "Encoded Opus audio. New framesize:" << len;
-
-    if(len != -1)
+    // one input packet may contain more than one audio frame (usually doesn't).
+    // Process them all and send one by one.
+    for(uint32_t i = 0; i < input->data_size; i += format_.bytesPerFrame()*numberOfSamples_)
     {
+      //qDebug() << "Audio input datasize:" << input->data_size << "index:" << i << "pos:" << pos;
+
+      len = opus_encode(enc_, (opus_int16*)input->data.get()+i/2, numberOfSamples_, opusOutput_ + pos, max_data_bytes_ - pos);
+      if(len <= 0)
+      {
+        qWarning() << "Warning: Failed to encode audio. Error:" << len;
+        break;
+      }
+
+      std::unique_ptr<Data> u_copy(shallowDataCopy(input.get()));
+
       std::unique_ptr<uchar[]> opus_frame(new uchar[len]);
-      memcpy(opus_frame.get(), opusOutput_, len);
-      input->data_size = len;
+      memcpy(opus_frame.get(), opusOutput_ + pos, len);
+      u_copy->data_size = len;
 
-      input->data = std::move(opus_frame);
+      u_copy->data = std::move(opus_frame);
+      sendOutput(std::move(u_copy));
 
+      pos += len;
+      //qDebug() << "Encoded Opus audio. New framesize:" << len;
+    }
+
+    if(len > 0)
+    {
       uint32_t delay = QDateTime::currentMSecsSinceEpoch() -
           (input->presentationTime.tv_sec * 1000 + input->presentationTime.tv_usec/1000);
+
       stats_->sendDelay("audio", delay);
       stats_->addEncodedPacket("audio", len);
-      sendOutput(std::move(input));
     }
     else
     {

@@ -22,7 +22,7 @@ private:
 
   QAudioFormat format_;
 
-  uint32_t frameSize_;
+  uint32_t numberOfSamples_;
 
   int16_t* pcmOutput_;
   int32_t max_data_bytes_;

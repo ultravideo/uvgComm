@@ -47,7 +47,7 @@ void OpusDecoderFilter::process()
 
     //qDebug() << "Decoded Opus audio. New framesize:" << datasize;
 
-    if(len != -1)
+    if(len > -1)
     {
       std::unique_ptr<uchar[]> pcm_frame(new uchar[datasize]);
       memcpy(pcm_frame.get(), pcmOutput_, datasize);
@@ -58,7 +58,7 @@ void OpusDecoderFilter::process()
     }
     else
     {
-      qWarning() << "Warning: Failed to encode audio frame";
+      qWarning() << "Warning: Failed to encode audio frame. Error:" << len;
     }
     input = getInput();
   }

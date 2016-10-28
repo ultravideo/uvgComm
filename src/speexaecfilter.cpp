@@ -2,7 +2,7 @@
 
 #include <QDebug>
 
-
+// this is how many frames the audio capture seems to send
 const uint16_t FRAMESPERSECOND = 25;
 
 
@@ -11,29 +11,28 @@ SpeexAECFilter::SpeexAECFilter(StatisticsInterface* stats, QAudioFormat format):
   preprocess_state_(NULL),
   echo_state_(NULL),
   format_(format),
-  frameSize_(0),
+  numberOfSamples_(0),
   max_data_bytes_(65536),
   in_(0),
   out_(0)
 {
-
-  frameSize_ = format_.sampleRate()/FRAMESPERSECOND;
-  uint16_t echoFilterLength = frameSize_*10;
+  numberOfSamples_ = format_.sampleRate()/FRAMESPERSECOND;
+  uint16_t echoFilterLength = numberOfSamples_*10;
   if(format.channelCount() > 1)
   {
-    echo_state_ = speex_echo_state_init_mc(frameSize_,
+    echo_state_ = speex_echo_state_init_mc(numberOfSamples_,
                                            echoFilterLength,
                                            format.channelCount(),
                                            format.channelCount());
   }
   else
   {
-    echo_state_ = speex_echo_state_init(frameSize_, echoFilterLength);
+    echo_state_ = speex_echo_state_init(numberOfSamples_, echoFilterLength);
   }
 
   pcmOutput_ = new int16_t[max_data_bytes_];
 
-  preprocess_state_ = speex_preprocess_state_init(frameSize_, format_.sampleRate());
+  preprocess_state_ = speex_preprocess_state_init(numberOfSamples_, format_.sampleRate());
 
   speex_preprocess_ctl(preprocess_state_, SPEEX_PREPROCESS_SET_ECHO_STATE, echo_state_);
 }
@@ -42,9 +41,7 @@ SpeexAECFilter::~SpeexAECFilter()
 {
   speex_preprocess_state_destroy(preprocess_state_);
   speex_echo_state_destroy(echo_state_);
-
 }
-
 
 void SpeexAECFilter::process()
 {
@@ -52,43 +49,47 @@ void SpeexAECFilter::process()
 
   while(input)
   {
-    if(format_.bytesPerFrame()*frameSize_ == input->data_size)
+    for(uint32_t i = 0; i < input->data_size; i += format_.bytesPerFrame()*numberOfSamples_)
     {
+      //qDebug() << "AEC audio input:" << input->data_size << "index:" << i << "samples:" << numberOfSamples_;
       if(input->source == LOCAL)
       {
         ++in_;
         //qDebug() << "AEC: Getting input from mic:" << in_;
-        speex_echo_playback(echo_state_, (int16_t*)input->data.get());
+        speex_echo_playback(echo_state_, (int16_t*)input->data.get() + i/2);
       }
       else if( in_ >= out_)
       {
         ++out_;
         //qDebug() << "AEC: Getting reply from outside:" << out_ << "in:" << in_;
-        std::unique_ptr<uchar[]> pcm_frame(new uchar[input->data_size]);
 
         // TODO: implement more channels
         if(format_.channelCount() == 1)
         {
-          speex_preprocess_run(preprocess_state_, (int16_t*)input->data.get());
+          speex_preprocess_run(preprocess_state_, (int16_t*)input->data.get()+i/2);
         }
 
-        speex_echo_capture(echo_state_, (int16_t*)input->data.get(), pcmOutput_);
-
-        //memcpy(pcm_frame.get(), input->data.get(), input->data_size);
-        memcpy(pcm_frame.get(), pcmOutput_, input->data_size);
-        input->data = std::move(pcm_frame);
-        sendOutput(std::move(input));
+        speex_echo_capture(echo_state_, (int16_t*)input->data.get()+i/2, pcmOutput_+i/2);
       }
       else
       {
         qWarning() << "Warning: AEC received too much output before input";
+        break;
       }
     }
-    else
+
+    //qDebug() << "Echo cancel received frame size:"
+    //         << input->data_size << "One frame size:" << format_.bytesPerFrame()*numberOfSamples_;
+
+    if(input->source == REMOTE)
     {
-      qWarning() << "Warning: Echo cancel received unexpected frame size:"
-                 << input->data_size << "Expected:" << format_.bytesPerFrame()*frameSize_;
+      std::unique_ptr<uchar[]> pcm_frame(new uchar[input->data_size]);
+      //memcpy(pcm_frame.get(), input->data.get(), input->data_size);
+      memcpy(pcm_frame.get(), pcmOutput_, input->data_size);
+      input->data = std::move(pcm_frame);
+      sendOutput(std::move(input));
     }
+
     input = getInput();
   }
 }
