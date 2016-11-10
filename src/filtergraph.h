@@ -12,32 +12,30 @@ class VideoWidget;
 class StatisticsInterface;
 class AudioOutput;
 
-typedef int16_t ParticipantID;
-
 class FilterGraph
 {
 public:
   FilterGraph(StatisticsInterface *stats);
 
   void init(VideoWidget* selfView, QSize resolution);
+  void uninit();
 
-  ParticipantID addParticipant(in_addr ip, uint16_t port, VideoWidget* view = NULL,
-                      bool wantsAudio = true, bool sendsAudio = true,
-                      bool wantsVideo = true, bool sendsVideo = true);
+  // These functions are used to manipulate filter graphs regarding a peer
+  void sendVideoto(int16_t id, Filter* videoFramedSource);
+  void receiveVideoFrom(int16_t id, Filter* videoSink, VideoWidget *view);
+  void sendAudioTo(int16_t id, Filter* audioFramedSource);
+  void receiveAudioFrom(int16_t id, Filter* audioSink);
 
-  void modifyParticipant(ParticipantID peer, VideoWidget* view = NULL,
-                         bool wantsAudio = true, bool sendsAudio = true,
-                         bool wantsVideo = true, bool sendsVideo = true);
-
-  void removeParticipant(ParticipantID peer);
+  void removeParticipant(int16_t id);
 
   void mic(bool state);
   void camera(bool state);
   void running(bool state);
 
-  void uninit();
-
 private:
+
+  // makes sure the participant exists and adds if necessary
+  void checkParticipant(int16_t id);
 
   // iniates camera and attaches a self view to it.
   void initSelfView(VideoWidget *selfView, QSize resolution);
@@ -59,9 +57,7 @@ private:
     std::vector<Filter*> videoReceive;
     std::vector<Filter*> audioReceive;
 
-    AudioOutput* output;
-
-    PeerID streamID;
+    AudioOutput* output; // plays audio coming from this peer
   };
 
   void destroyPeer(Peer* peer);
@@ -70,20 +66,12 @@ private:
 
   void deconstruct();
 
-  // These functions are used to manipulate filter graphs regarding a peer
-  void sendVideoto(Peer* send, uint16_t port);
-  void receiveVideoFrom(Peer* recv, uint16_t port, VideoWidget *view);
-  void sendAudioTo(Peer* send, uint16_t port);
-  void receiveAudioFrom(Peer* recv, uint16_t port);
-
   std::vector<Peer*> peers_;
 
   std::vector<Filter*> videoSend_;
   std::vector<Filter*> audioSend_;
 
   VideoWidget *selfView_;
-
-  RTPStreamer streamer_;
 
   StatisticsInterface* stats_;
 

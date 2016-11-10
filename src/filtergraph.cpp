@@ -17,6 +17,8 @@
 #include "opusdecoderfilter.h"
 #include "speexaecfilter.h"
 
+
+// Didn't find sleep in QCore
 #ifdef Q_OS_WIN
 #include <windows.h> // for Sleep
 #endif
@@ -32,14 +34,11 @@ void qSleep(int ms)
 }
 
 
-
-
 FilterGraph::FilterGraph(StatisticsInterface* stats):
   peers_(),
   videoSend_(),
   audioSend_(),
   selfView_(NULL),
-  streamer_(stats),
   stats_(stats),
   format_()
 {
@@ -55,8 +54,6 @@ FilterGraph::FilterGraph(StatisticsInterface* stats):
 
 void FilterGraph::init(VideoWidget* selfView, QSize resolution)
 {
-  streamer_.start();
-
   resolution_ = resolution;
   selfView_ = selfView;
   frameRate_ = 30;
@@ -122,161 +119,181 @@ void FilterGraph::initAudioSend()
   audioSend_.back()->start();
 }
 
-ParticipantID FilterGraph::addParticipant(in_addr ip, uint16_t port, VideoWidget* view,
-                                          bool wantsAudio, bool sendsAudio,
-                                          bool wantsVideo, bool sendsVideo)
+void FilterGraph::checkParticipant(int16_t id)
 {
   Q_ASSERT(stats_);
+  Q_ASSERT(id > -1);
 
-  if(!wantsAudio && !wantsVideo && !sendsAudio && !sendsVideo)
+  qDebug() << "Checking participant with id:" << id;
+
+  if(peers_.size() > (unsigned int)id)
   {
-    qWarning() << "WARNING: peer does not want or send any media";
-    return -1;
+    if(peers_.at(id) != 0)
+    {
+      qDebug() << "Filter graph: Peer exists";
+      return;
+    }
+    else
+    {
+      qDebug() << "Filter graph: Replacing old participant with id:" << id;
+      peers_.at(id) = new Peer;
+    }
+  }
+  else
+  {
+    while(peers_.size() < id)
+    {
+      peers_.push_back(0);
+    }
+    peers_.push_back(new Peer);
+
+    qDebug() << "Filter graph: Adding participant to end";
   }
 
-  // just in case it is wanted later. AEC filter has to be attached
-  if(audioSend_.size() == 0 && wantsAudio)
-  {
-    initAudioSend();
-  }
+  peers_.at(id)->output = 0;
+  peers_.at(id)->audioFramedSource = 0;
+  peers_.at(id)->videoFramedSource = 0;
+  peers_.at(id)->audioSink = 0;
+  peers_.at(id)->videoSink = 0;
+}
 
-  if(wantsVideo && videoSend_.size() < 3)
+void FilterGraph::sendVideoto(int16_t id, Filter *videoFramedSource)
+{
+  Q_ASSERT(id > -1);
+  Q_ASSERT(videoFramedSource);
+
+  qDebug() << "Adding send video for peer:" << id;
+
+  // make sure we are generating video
+  if(videoSend_.size() < 3)
   {
     initVideoSend(resolution_);
   }
 
-  peers_.push_back(new Peer);
-  peers_.back()->output = 0;
-  peers_.back()->audioFramedSource = 0;
-  peers_.back()->videoFramedSource = 0;
-  peers_.back()->audioSink = 0;
-  peers_.back()->videoSink = 0;
-  peers_.back()->streamID = streamer_.addPeer(ip);
-  if(peers_.back()->streamID == -1)
+  // add participant if necessary
+  checkParticipant(id);
+
+  if(peers_.at(id)->videoFramedSource)
   {
-    qCritical() << "Error creating RTP peer";
-    return peers_.back()->streamID;
+    qWarning() << "Warning: We are already sending video to participant.";
+    return;
   }
 
-  if(wantsAudio)
-  {
-    sendAudioTo(peers_.back(), port + 1000);
-  }
-  if(sendsAudio)
-  {
-    receiveAudioFrom(peers_.back(), port + 1000);
-  }
-  if(wantsVideo)
-  {
-    sendVideoto(peers_.back(), port);
-  }
-  if(sendsVideo && view != NULL)
-  {
-    receiveVideoFrom(peers_.back(), port, view);
-  }
-  else if(view == NULL)
-  {
-    qWarning() << "Warning: wanted to receive video, but no view available";
-  }
+  peers_.at(id)->videoFramedSource = videoFramedSource;
 
-  qDebug() << "Participant has been successfully added to call.";
-
-  return peers_.back()->streamID;
+  videoSend_.back()->addOutConnection(videoFramedSource);
 }
 
-void FilterGraph::sendVideoto(Peer* send, uint16_t port)
+void FilterGraph::receiveVideoFrom(int16_t id, Filter *videoSink, VideoWidget *view)
 {
-  Q_ASSERT(send && send->streamID != -1);
+  Q_ASSERT(id > -1);
+  Q_ASSERT(videoSink);
 
-  streamer_.addSendVideo(send->streamID, port);
+  // add participant if necessary
+  checkParticipant(id);
 
-  Filter *framedSource = NULL;
-  framedSource = streamer_.getSendFilter(send->streamID, HEVCVIDEO);
+  if(peers_.at(id)->videoSink)
+  {
+    qWarning() << "Warning: We are receiving video from this participant:" << id;
+    return;
+  }
 
-  send->videoFramedSource = framedSource;
-
-  videoSend_.back()->addOutConnection(framedSource);
-}
-
-void FilterGraph::receiveVideoFrom(Peer* recv, uint16_t port, VideoWidget *view)
-{
-  Q_ASSERT(recv && recv->streamID != -1);
-
-  streamer_.addReceiveVideo(recv->streamID, port);
-
-  // Receiving video graph
-  recv->videoSink = streamer_.getReceiveFilter(recv->streamID, HEVCVIDEO);
-  //recv->videoReceive.push_back(rtpSink);
+  peers_.at(id)->videoSink = videoSink;
 
   OpenHEVCFilter* decoder =  new OpenHEVCFilter(stats_);
   decoder->init();
-  recv->videoReceive.push_back(decoder);
-  recv->videoSink->addOutConnection(recv->videoReceive.back());
-  recv->videoReceive.back()->start();
+  peers_.at(id)->videoReceive.push_back(decoder);
+  peers_.at(id)->videoSink->addOutConnection(peers_.at(id)->videoReceive.back());
+  peers_.at(id)->videoReceive.back()->start();
 
-  recv->videoReceive.push_back(new YUVtoRGB32(stats_));
-  recv->videoReceive.at(recv->videoReceive.size()-2)->addOutConnection(recv->videoReceive.back());
-  recv->videoReceive.back()->start();
+  peers_.at(id)->videoReceive.push_back(new YUVtoRGB32(stats_));
+  peers_.at(id)->videoReceive.at(peers_.at(id)->videoReceive.size()-2)
+      ->addOutConnection(peers_.at(id)->videoReceive.back());
+  peers_.at(id)->videoReceive.back()->start();
 
-  recv->videoReceive.push_back(new DisplayFilter(stats_, view, recv->streamID));
-  recv->videoReceive.at(recv->videoReceive.size()-2)->addOutConnection(recv->videoReceive.back());
-  recv->videoReceive.back()->start();
+  peers_.at(id)->videoReceive.push_back(new DisplayFilter(stats_, view, id));
+  peers_.at(id)->videoReceive.at(peers_.at(id)->videoReceive.size()-2)
+      ->addOutConnection(peers_.at(id)->videoReceive.back());
+  peers_.at(id)->videoReceive.back()->start();
 }
 
-void FilterGraph::sendAudioTo(Peer* send, uint16_t port)
+void FilterGraph::sendAudioTo(int16_t id, Filter* audioFramedSource)
 {
-  Q_ASSERT(send && send->streamID != -1);
+  Q_ASSERT(id > -1);
+  Q_ASSERT(audioFramedSource);
 
-  streamer_.addSendAudio(send->streamID, port); // TODO Audioport!
+  // just in case it is wanted later. AEC filter has to be attached
+  if(audioSend_.size() == 0)
+  {
+    initAudioSend();
+  }
 
-  Filter *framedSource = NULL;
-  framedSource = streamer_.getSendFilter(send->streamID, OPUSAUDIO);
+  // add participant if necessary
+  checkParticipant(id);
 
-  send->audioFramedSource = framedSource;
+  if(peers_.at(id)->audioFramedSource)
+  {
+    qWarning() << "Warning: We are sending audio from to participant:" << id;
+    return;
+  }
 
-  audioSend_.back()->addOutConnection(framedSource);
+  peers_.at(id)->audioFramedSource = audioFramedSource;
+
+  audioSend_.back()->addOutConnection(audioFramedSource);
 }
 
-void FilterGraph::receiveAudioFrom(Peer* recv, uint16_t port)
+void FilterGraph::receiveAudioFrom(int16_t id, Filter* audioSink)
 {
-  Q_ASSERT(recv && recv->streamID != -1);
+  Q_ASSERT(id > -1);
+  Q_ASSERT(audioSink);
 
-  streamer_.addReceiveAudio(recv->streamID, port);
+  bool AEC = true;
 
-  recv->audioSink = streamer_.getReceiveFilter(peers_.back()->streamID, OPUSAUDIO);
+  // just in case it is wanted later. AEC filter has to be attached
+  if(AEC && audioSend_.size() == 0)
+  {
+    initAudioSend();
+  }
+
+  // add participant if necessary
+  checkParticipant(id);
+
+  if(peers_.at(id)->audioSink)
+  {
+    qWarning() << "Warning: We are receiving video from this participant:" << id;
+    return;
+  }
+  peers_.at(id)->audioSink = audioSink;
 
   OpusDecoderFilter *decoder = new OpusDecoderFilter(stats_);
   decoder->init(format_);
 
-  recv->audioReceive.push_back(decoder);
-  recv->audioSink->addOutConnection(recv->audioReceive.back());
-  recv->audioReceive.back()->start();
-
-  bool AEC = true;
+  peers_.at(id)->audioReceive.push_back(decoder);
+  peers_.at(id)->audioSink->addOutConnection(peers_.at(id)->audioReceive.back());
+  peers_.at(id)->audioReceive.back()->start();
 
   if(audioSend_.size() > 0 && AEC)
   {
-    recv->audioReceive.push_back(new SpeexAECFilter(stats_, format_));
-    audioSend_.at(0)->addOutConnection(recv->audioReceive.back());
-    recv->audioReceive.at(recv->audioReceive.size()-2)->addOutConnection(recv->audioReceive.back());
-    recv->audioReceive.back()->start();
+    peers_.at(id)->audioReceive.push_back(new SpeexAECFilter(stats_, format_));
+    audioSend_.at(0)->addOutConnection(peers_.at(id)->audioReceive.back());
+    peers_.at(id)->audioReceive.at(peers_.at(id)->audioReceive.size()-2)
+        ->addOutConnection(peers_.at(id)->audioReceive.back());
+    peers_.at(id)->audioReceive.back()->start();
   }
   else
   {
     qWarning() << "WARNING: Did not attach echo cancellation";
   }
 
-  peers_.back()->output = new AudioOutput(stats_, recv->streamID);
-  peers_.back()->output->initializeAudio(format_);
-  AudioOutputDevice* outputModule = recv->output->getOutputModule();
+  peers_.at(id)->output = new AudioOutput(stats_, id);
+  peers_.at(id)->output->initializeAudio(format_);
+  AudioOutputDevice* outputModule = peers_.at(id)->output->getOutputModule();
 
-  outputModule->init(recv->audioReceive.back());
+  outputModule->init(peers_.at(id)->audioReceive.back());
 }
 
 void FilterGraph::uninit()
 {
-  streamer_.stop();
-
   for(Peer* p : peers_)
   {
     if(p != 0)

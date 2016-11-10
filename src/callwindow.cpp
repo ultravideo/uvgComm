@@ -6,7 +6,6 @@
 #include <QCloseEvent>
 #include <QHostAddress>
 #include <QtEndian>
-
 #include <QTimer>
 
 
@@ -18,14 +17,10 @@ CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height) :
   QMainWindow(parent),
   ui_(new Ui::CallWindow),
   stats_(new StatisticsWindow(this)),
-  fg_(stats_),
-  filterIniated_(false),
+  call_(stats_),
   timer_(new QTimer(this)),
   row_(0),
   column_(0),
-  running_(false),
-  mic_(true),
-  camera_(true),
   currentResolution_(),
   portsOpen_(0)
 {
@@ -44,8 +39,6 @@ CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height) :
 
 CallWindow::~CallWindow()
 {
-  fg_.uninit();
-
   timer_->stop();
   delete timer_;
   stats_->close();
@@ -55,12 +48,8 @@ CallWindow::~CallWindow()
 
 void CallWindow::startStream()
 {
-  if(!filterIniated_)
-  {
-    fg_.init(ui_->SelfView, currentResolution_);
-    filterIniated_ = true;
-    running_ = true;
-  }
+  call_.init();
+  call_.startCall(ui_->SelfView, currentResolution_);
 }
 
 void CallWindow::addParticipant()
@@ -69,7 +58,6 @@ void CallWindow::addParticipant()
 
   if(portsOpen_ <= MAXOPENPORTS)
   {
-    startStream();
 
     QString ip_str = ui_->ip->toPlainText();
     QString port_str = ui_->port->toPlainText();
@@ -90,7 +78,7 @@ void CallWindow::addParticipant()
     VideoWidget* view = new VideoWidget;
     ui_->participantLayout->addWidget(view, row_, column_);
 
-    // TODO improve this algorithm
+    // TODO improve this algorithm for more optimized layout
     ++column_;
     if(column_ == 3)
     {
@@ -98,7 +86,7 @@ void CallWindow::addParticipant()
       ++row_;
     }
 
-    fg_.addParticipant(ip, port_str.toInt(), view, true, true, true, true);
+    call_.addParticipant(ip, port_str.toInt(), view);
 
     if(stats_)
       stats_->addParticipant(ip_str, port_str);
@@ -110,48 +98,37 @@ void CallWindow::openStatistics()
   stats_->show();
 }
 
-void CallWindow::pause()
-{
-  running_ = !running_;
-  fg_.running(running_);
-}
 
 void CallWindow::micState()
 {
-  mic_ = !mic_;
-  fg_.mic(mic_);
+  bool state = call_.toggleMic();
 
-  if(mic_)
+  if(state)
   {
-    ui_->mic->setText("Mic off");
+    ui_->mic->setText("Turn mic off");
   }
   else
   {
-    ui_->mic->setText("Mic on");
+    ui_->mic->setText("Turn mic on");
   }
 }
 
 void CallWindow::cameraState()
 {
-  camera_ = !camera_;
-  fg_.camera(camera_);
-
-  if(camera_)
+  bool state = call_.toggleCamera();
+  if(state)
   {
-    ui_->camera->setText("Camera off");
+    ui_->camera->setText("Turn camera off");
   }
   else
   {
-    ui_->camera->setText("Camera on");
+    ui_->camera->setText("Turn camera on");
   }
-
 }
 
 void CallWindow::closeEvent(QCloseEvent *event)
 {
-  fg_.running(false);
-  fg_.uninit();
-  filterIniated_ = false;
+  call_.uninit();
 
   stats_->hide();
   stats_->finished(0);
@@ -159,6 +136,3 @@ void CallWindow::closeEvent(QCloseEvent *event)
   //stats_ = 0;
   QMainWindow::closeEvent(event);
 }
-
-
-

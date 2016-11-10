@@ -2,7 +2,7 @@
 
 #include <QMainWindow>
 
-#include "filtergraph.h"
+#include "callmanager.h"
 
 class StatisticsWindow;
 
@@ -25,7 +25,6 @@ public:
 public slots:
    void addParticipant();
    void openStatistics(); // Opens statistics window
-   void pause();
    void micState();
    void cameraState();
 
@@ -33,8 +32,7 @@ private:
   Ui::CallWindow *ui_;
   StatisticsWindow *stats_;
 
-  FilterGraph fg_;
-  bool filterIniated_;
+  CallManager call_;
 
 
   QTimer *timer_; // for GUI update
@@ -42,11 +40,6 @@ private:
   // dynamic videowidget adding to layout
   int row_;
   int column_;
-
-  bool running_;
-
-  bool mic_;
-  bool camera_;
 
   QSize currentResolution_;
 

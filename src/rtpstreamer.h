@@ -1,5 +1,4 @@
-#ifndef RTPSTREAMER_H
-#define RTPSTREAMER_H
+#pragma once
 
 #include "framedsourcefilter.h"
 #include "rtpsinkfilter.h"
@@ -26,19 +25,15 @@ public:
   void run();
   void stop();
 
-  // use these to ask for filters that are connected to filter graph
-  // ownership is not transferred.
-  // Removepeer and stop destroy returned filter.
-  FramedSourceFilter* getSendFilter(PeerID peer, DataType type);
-  RTPSinkFilter* getReceiveFilter(PeerID peer, DataType type);
-
   // associate add and remove functions with returned peerID
   PeerID addPeer(in_addr ip);
 
-  void addSendVideo(PeerID peer, uint16_t port);
-  void addSendAudio(PeerID peer, uint16_t port);
-  void addReceiveVideo(PeerID peer, uint16_t port);
-  void addReceiveAudio(PeerID peer, uint16_t port);
+  // Returns filter to be attached to filter graph. ownership is not transferred.
+  // removing peer and stopping destroy these filters.
+  FramedSourceFilter* addSendVideo(PeerID peer, uint16_t port);
+  FramedSourceFilter* addSendAudio(PeerID peer, uint16_t port);
+  RTPSinkFilter* addReceiveVideo(PeerID peer, uint16_t port);
+  RTPSinkFilter* addReceiveAudio(PeerID peer, uint16_t port);
 
   void removeSendVideo(PeerID peer);
   void removeSendAudio(PeerID peer);
@@ -109,7 +104,6 @@ private:
 
   QMutex iniated_; // locks for duration of creation
   QMutex destroyed_; // locks for duration of
-  QMutex peer_;
 
   uint8_t ttl_;
   struct in_addr sessionAddress_;
@@ -124,5 +118,3 @@ private:
   unsigned char CNAME_[maxCNAMElen_ + 1];
 
 };
-
-#endif // RTPSTREAMER_H

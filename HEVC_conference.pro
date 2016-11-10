@@ -37,7 +37,8 @@ SOURCES +=\
     src/audiooutputdevice.cpp \
     src/opusencoderfilter.cpp \
     src/opusdecoderfilter.cpp \
-    src/speexaecfilter.cpp
+    src/speexaecfilter.cpp \
+    src/callmanager.cpp
 
 HEADERS  += \
     src/callwindow.h \
@@ -63,7 +64,8 @@ HEADERS  += \
     src/audiooutputdevice.h \
     src/opusencoderfilter.h \
     src/opusdecoderfilter.h \
-    src/speexaecfilter.h
+    src/speexaecfilter.h \
+    src/callmanager.h
 
 FORMS    += \
     ui/callwindow.ui \
