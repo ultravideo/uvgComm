@@ -4,9 +4,7 @@
 
 CameraFrameGrabber::CameraFrameGrabber(QObject *parent) :
   QAbstractVideoSurface(parent)
-{
-
-}
+{}
 
 bool CameraFrameGrabber::present(const QVideoFrame &frame)
 {

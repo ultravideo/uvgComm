@@ -20,6 +20,9 @@ public:
     return source_;
   }
 
+  void start();
+  void stop();
+
 private:
 
   void createAudioOutput();
@@ -38,7 +41,6 @@ private:
 
 private slots:
   void receiveInput();
-  void toggleSuspendResume();
   void deviceChanged(int index);
   void volumeChanged(int);
 };

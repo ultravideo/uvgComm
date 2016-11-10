@@ -5,6 +5,7 @@
 
 #include <QByteArray>
 
+//TODO: this class would not have to be a filter, just needs to send data to one
 
 class AudioCaptureFilter : public Filter
 {
@@ -30,10 +31,7 @@ private slots:
 
 private:
 
-  void toggleMode();
-  void toggleSuspend();
   void deviceChanged(int index);
-
   void createAudioInput();
 
   QAudioDeviceInfo deviceInfo_;

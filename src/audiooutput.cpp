@@ -24,9 +24,6 @@ AudioOutput::~AudioOutput()
 
 void AudioOutput::initializeAudio(QAudioFormat format)
 {
-  // connect(m_pushTimer, SIGNAL(timeout()), SLOT(pushTimerExpired()));
-
-
   QAudioDeviceInfo info(device_);
   if (!info.isFormatSupported(format)) {
     qWarning() << "Default format not supported - trying to use nearest";
@@ -57,13 +54,6 @@ void AudioOutput::createAudioOutput()
   source_->start();
   // pull mode
   output_ = audioOutput_->start();
-
-
-  // push mode
-  // audioOutput_->start(source_);
-
-
- // m_volumeSlider->setValue(int(m_audioOutput->volume()*100.0f));
 }
 
 void AudioOutput::deviceChanged(int index)
@@ -98,18 +88,19 @@ void AudioOutput::receiveInput()
   }
 }
 
-void AudioOutput::toggleSuspendResume()
+void AudioOutput::start()
 {
-  if (audioOutput_->state() == QAudio::SuspendedState) {
+  if(audioOutput_->state() == QAudio::SuspendedState
+     || audioOutput_->state() == QAudio::StoppedState)
+  {
     audioOutput_->resume();
-//    m_suspendResumeButton->setText(tr(SUSPEND_LABEL));
-  } else if (audioOutput_->state() == QAudio::ActiveState) {
+  }
+}
+
+void AudioOutput::stop()
+{
+  if(audioOutput_->state() == QAudio::ActiveState)
+  {
     audioOutput_->suspend();
-//    m_suspendResumeButton->setText(tr(RESUME_LABEL));
-  } else if (audioOutput_->state() == QAudio::StoppedState) {
-    audioOutput_->resume();
-//    m_suspendResumeButton->setText(tr(SUSPEND_LABEL));
-  } else if (audioOutput_->state() == QAudio::IdleState) {
-    // no-op
   }
 }
