@@ -38,7 +38,8 @@ SOURCES +=\
     src/opusencoderfilter.cpp \
     src/opusdecoderfilter.cpp \
     src/speexaecfilter.cpp \
-    src/callmanager.cpp
+    src/callmanager.cpp \
+    src/callnegotiation.cpp
 
 HEADERS  += \
     src/callwindow.h \
@@ -65,7 +66,8 @@ HEADERS  += \
     src/opusencoderfilter.h \
     src/opusdecoderfilter.h \
     src/speexaecfilter.h \
-    src/callmanager.h
+    src/callmanager.h \
+    src/callnegotiation.h
 
 FORMS    += \
     ui/callwindow.ui \
