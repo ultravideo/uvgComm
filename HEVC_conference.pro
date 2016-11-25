@@ -83,11 +83,13 @@ QMAKE_CXXFLAGS += -std=c++11
 INCLUDEPATH += $$PWD/../kvazaar/src
 INCLUDEPATH += $$PWD/../openHEVC/gpac/modules/openhevc_dec
 INCLUDEPATH += $$PWD/../opus/include
+INCLUDEPATH += $$PWD/../libosip2/include
 
 INCLUDEPATH += $$PWD/../live/liveMedia/include
 INCLUDEPATH += $$PWD/../live/groupsock/include
 INCLUDEPATH += $$PWD/../live/UsageEnvironment/include
 INCLUDEPATH += $$PWD/../live/BasicUsageEnvironment/include
+
 
 win32: LIBS += -L$$PWD/../
 win32: LIBS += -llibkvazaar.dll
