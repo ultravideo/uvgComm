@@ -80,24 +80,23 @@ QT+=multimediawidgets
 
 QMAKE_CXXFLAGS += -std=c++11
 
-INCLUDEPATH += $$PWD/../kvazaar/src
-INCLUDEPATH += $$PWD/../openHEVC/gpac/modules/openhevc_dec
-INCLUDEPATH += $$PWD/../opus/include
-INCLUDEPATH += $$PWD/../libosip2/include
+INCLUDEPATH += $$PWD/../include/kvazaar/src
+INCLUDEPATH += $$PWD/../include/openHEVC/gpac/modules/openhevc_dec
+INCLUDEPATH += $$PWD/../include/opus/include
+INCLUDEPATH += $$PWD/../include/libosip2/include
+INCLUDEPATH += $$PWD/../include/live/liveMedia/include
+INCLUDEPATH += $$PWD/../include/live/groupsock/include
+INCLUDEPATH += $$PWD/../include/live/UsageEnvironment/include
+INCLUDEPATH += $$PWD/../include/live/BasicUsageEnvironment/include
 
-INCLUDEPATH += $$PWD/../live/liveMedia/include
-INCLUDEPATH += $$PWD/../live/groupsock/include
-INCLUDEPATH += $$PWD/../live/UsageEnvironment/include
-INCLUDEPATH += $$PWD/../live/BasicUsageEnvironment/include
-
-
-win32: LIBS += -L$$PWD/../
+win32: LIBS += -L$$PWD/../libs
 win32: LIBS += -llibkvazaar.dll
 win32: LIBS += -llibopus.dll
 win32: LIBS += -llibLibOpenHevcWrapper.dll
 win32: LIBS += -llivemedia.dll
 win32: LIBS += -llibspeexdsp.dll
 win32: LIBS += -lws2_32
+win32: LIBS += -llibosip2.dll
 
 INCLUDEPATH += $$PWD/../
 DEPENDPATH += $$PWD/../
