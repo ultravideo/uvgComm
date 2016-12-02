@@ -6,6 +6,8 @@
 CallManager::CallManager(StatisticsInterface *stats):
   stats_(stats),
   fg_(new FilterGraph(stats)),
+  call_neg_(new CallNegotiation),
+  session_(NULL),
   streamer_(new RTPStreamer(stats)),
   mic_(true),
   camera_(true)
@@ -17,7 +19,12 @@ CallManager::~CallManager()
 }
 
 void CallManager::init()
-{}
+{
+  if(call_neg_)
+  {
+    call_neg_->init();
+  }
+}
 
 void CallManager::uninit()
 {

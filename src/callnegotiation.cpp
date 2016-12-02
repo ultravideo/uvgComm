@@ -12,3 +12,8 @@ CallNegotiation::~CallNegotiation()
     delete osip_;
   }
 }
+
+void CallNegotiation::init()
+{
+
+}
