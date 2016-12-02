@@ -8,8 +8,8 @@ const uint16_t FRAMESPERSECOND = 25;
 
 SpeexAECFilter::SpeexAECFilter(StatisticsInterface* stats, QAudioFormat format):
   Filter("SpeexAEC", stats, true, true),
-  preprocess_state_(NULL),
   echo_state_(NULL),
+  preprocess_state_(NULL),
   format_(format),
   numberOfSamples_(0),
   max_data_bytes_(65536),

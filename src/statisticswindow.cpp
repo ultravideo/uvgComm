@@ -40,11 +40,15 @@ StatisticsWindow::~StatisticsWindow()
 
 void StatisticsWindow::closeEvent(QCloseEvent *event)
 {
+  Q_UNUSED(event)
   accept();
 }
 
 void StatisticsWindow::addNextInterface(StatisticsInterface* next)
-{}
+{
+  Q_UNUSED(next)
+  qWarning() << "WARNING: addNextInterface has not been implemented in stat window";
+}
 
 void StatisticsWindow::videoInfo(double framerate, QSize resolution)
 {
@@ -199,6 +203,8 @@ void StatisticsWindow::packetDropped()
 
 void StatisticsWindow::paintEvent(QPaintEvent *event)
 {
+  Q_UNUSED(event)
+
   if(videoIndex_%15 == 0)
   {
     lastVideoBitrate_ = bitrate(videoPackets_, videoIndex_);

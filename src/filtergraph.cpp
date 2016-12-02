@@ -98,7 +98,7 @@ void FilterGraph::initVideoSend(QSize resolution)
   videoSend_.back()->start();
 
   KvazaarFilter* kvz = new KvazaarFilter(stats_);
-  kvz->init(resolution, frameRate_, 1, 0);
+  kvz->init(resolution, frameRate_, 1);
   videoSend_.push_back(kvz);
   videoSend_.at(videoSend_.size() - 2)->addOutConnection(videoSend_.back());
   videoSend_.back()->start();
@@ -141,7 +141,7 @@ void FilterGraph::checkParticipant(int16_t id)
   }
   else
   {
-    while(peers_.size() < id)
+    while(peers_.size() < (unsigned int)id)
     {
       peers_.push_back(0);
     }

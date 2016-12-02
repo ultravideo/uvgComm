@@ -37,7 +37,9 @@ void CallManager::uninit()
 
 // registers a contact for activity monitoring
 void CallManager::registerContact(in_addr ip)
-{}
+{
+  Q_UNUSED(ip)
+}
 
 void CallManager::startCall(VideoWidget *selfView, QSize resolution)
 {
@@ -81,16 +83,25 @@ void CallManager::kickParticipant()
 
 // callID in case more than one person is calling
 void CallManager::joinCall(unsigned int callID)
-{}
+{
+  Q_UNUSED(callID)
+}
 
 void CallManager::endCall()
 {}
 
 void CallManager::streamToIP(in_addr ip, uint16_t port)
-{}
+{
+  Q_UNUSED(ip)
+  Q_UNUSED(port)
+}
 
 void CallManager::receiveFromIP(in_addr ip, uint16_t port, VideoWidget* view)
-{}
+{
+  Q_UNUSED(ip)
+  Q_UNUSED(port)
+  Q_UNUSED(view)
+}
 
 bool CallManager::toggleMic()
 {

@@ -15,8 +15,7 @@ public:
 
   int init(QSize resolution,
            int32_t framerate_num,
-           int32_t framerate_denom,
-           float target_bitrate);
+           int32_t framerate_denom);
 
   void close();
 

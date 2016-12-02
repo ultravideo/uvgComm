@@ -19,8 +19,7 @@ KvazaarFilter::KvazaarFilter(StatisticsInterface *stats):
 
 int KvazaarFilter::init(QSize resolution,
                         int32_t framerate_num,
-                        int32_t framerate_denom,
-                        float target_bitrate)
+                        int32_t framerate_denom)
 {
   qDebug() << name_ << "iniating";
 

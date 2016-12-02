@@ -60,9 +60,7 @@ void Filter::putInput(std::unique_ptr<Data> data)
 
   if(data->source == UNKNOWN
      || data->type == NONE
-     || data->data_size == 0
-     || data->width > 40000
-     || data->height > 20000)
+     || data->data_size == 0)
   {
     qWarning() << "Warning: Discarding bad data";
     return;

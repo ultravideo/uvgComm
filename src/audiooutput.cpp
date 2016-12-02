@@ -58,6 +58,8 @@ void AudioOutput::createAudioOutput()
 
 void AudioOutput::deviceChanged(int index)
 {
+  qWarning() << "WARNING: audio output device change not implemented fully:" << index;
+
   //m_pushTimer->stop();
   source_->stop();
   audioOutput_->stop();

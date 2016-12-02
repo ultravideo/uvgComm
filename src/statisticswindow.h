@@ -38,7 +38,7 @@ private:
 
   struct PacketInfo
   {
-    uint32_t timestamp;
+    int64_t timestamp;
     uint16_t size;
   };
 
