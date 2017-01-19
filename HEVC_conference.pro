@@ -39,7 +39,8 @@ SOURCES +=\
     src/opusdecoderfilter.cpp \
     src/speexaecfilter.cpp \
     src/callmanager.cpp \
-    src/callnegotiation.cpp
+    src/callnegotiation.cpp \
+    src/sipstringcomposer.cpp
 
 HEADERS  += \
     src/callwindow.h \
@@ -67,7 +68,8 @@ HEADERS  += \
     src/opusdecoderfilter.h \
     src/speexaecfilter.h \
     src/callmanager.h \
-    src/callnegotiation.h
+    src/callnegotiation.h \
+    src/sipstringcomposer.h
 
 FORMS    += \
     ui/callwindow.ui \
