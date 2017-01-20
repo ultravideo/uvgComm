@@ -5,17 +5,22 @@
 #include <QtNetwork>
 #include <QThread>
 
-
 #include <functional>
+
+
+/* Receives all the SIP messages */
+
 
 class NetworkReceiver : public QThread
 {
 public:
   NetworkReceiver();
 
-  void init(QHostAddress destination, uint16_t port);
+  void init(uint16_t port);
 
   //void run();
+
+  void addIP(QHostAddress address);
 
   // callback
   template <typename Class>

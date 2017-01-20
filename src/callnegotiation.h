@@ -1,15 +1,9 @@
 #pragma once
 
-
-#ifdef Q_OS_WIN
-  #include <winsock2.h>
-  #include <osip2/osip.h>
-#else
-  #include <sys/time.h>
-  #include <osip2/osip.h>
-#endif
-
 #include <MediaSession.hh>
+
+#include <QHostAddress>
+#include <QString>
 
 class CallNegotiation
 {
@@ -21,12 +15,28 @@ public:
 
   void setupSession(MediaSubsession* subsession);
 
-  void sendINVITE();
+  void startCall(QList<QHostAddress> addresses);
 
-  // accepts INVITE command
-  void sendACK();
+  void acceptCall(QString CallID);
+
+  void endCall();
 
 private:
 
-  osip_t* osip_;
+  struct SIPLink
+  {
+    QString CallID; // for identification
+
+    QString name;
+    QHostAddress address;
+
+    uint16_t port;
+
+    uint32_t cseq;
+
+    QString ourTag;
+    QString theirTag;
+
+    QString sdp; // current session description
+  };
 };
