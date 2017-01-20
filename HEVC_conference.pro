@@ -40,7 +40,9 @@ SOURCES +=\
     src/speexaecfilter.cpp \
     src/callmanager.cpp \
     src/callnegotiation.cpp \
-    src/sipstringcomposer.cpp
+    src/sipstringcomposer.cpp \
+    src/networksender.cpp \
+    src/networkreceiver.cpp
 
 HEADERS  += \
     src/callwindow.h \
@@ -69,7 +71,9 @@ HEADERS  += \
     src/speexaecfilter.h \
     src/callmanager.h \
     src/callnegotiation.h \
-    src/sipstringcomposer.h
+    src/sipstringcomposer.h \
+    src/networksender.h \
+    src/networkreceiver.h
 
 FORMS    += \
     ui/callwindow.ui \
@@ -79,6 +83,7 @@ FORMS    += \
 
 QT+=multimedia
 QT+=multimediawidgets
+QT+=network
 
 QMAKE_CXXFLAGS += -std=c++11
 
