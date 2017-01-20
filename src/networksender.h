@@ -11,7 +11,7 @@ public:
   NetworkSender();
 
   void init(QHostAddress destination, uint16_t port);
-  void sendPacket(QByteArray data);
+  void sendPacket(QByteArray& data);
 
 private:
 
