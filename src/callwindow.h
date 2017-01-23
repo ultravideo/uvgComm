@@ -3,6 +3,7 @@
 #include <QMainWindow>
 
 #include "callmanager.h"
+#include "callnegotiation.h"
 
 class StatisticsWindow;
 
@@ -33,6 +34,8 @@ private:
   StatisticsWindow *stats_;
 
   CallManager call_;
+
+  CallNegotiation call_neg_;
 
 
   QTimer *timer_; // for GUI update

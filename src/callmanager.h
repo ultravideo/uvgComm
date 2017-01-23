@@ -2,7 +2,6 @@
 
 #include "rtpstreamer.h"
 #include "filtergraph.h"
-#include "callnegotiation.h"
 
 #include <QObject>
 #include <memory>
@@ -96,7 +95,7 @@ private:
 
   std::unique_ptr<FilterGraph> fg_;
 
-  std::unique_ptr<CallNegotiation> call_neg_;
+
   MediaSession* session_;
 
   std::unique_ptr<RTPStreamer> streamer_;

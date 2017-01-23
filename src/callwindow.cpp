@@ -18,6 +18,7 @@ CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height) :
   ui_(new Ui::CallWindow),
   stats_(new StatisticsWindow(this)),
   call_(stats_),
+  call_neg_(),
   timer_(new QTimer(this)),
   row_(0),
   column_(0),
@@ -48,12 +49,16 @@ CallWindow::~CallWindow()
 
 void CallWindow::startStream()
 {
+  call_neg_.init();
+
   call_.init();
   call_.startCall(ui_->SelfView, currentResolution_);
+
+
 }
 
 void CallWindow::addParticipant()
-{ 
+{
   portsOpen_ +=PORTSPERPARTICIPANT;
 
   if(portsOpen_ <= MAXOPENPORTS)
@@ -61,6 +66,16 @@ void CallWindow::addParticipant()
 
     QString ip_str = ui_->ip->toPlainText();
     QString port_str = ui_->port->toPlainText();
+
+    Contact con;
+
+    con.address = QString(ip_str);
+    con.name = "somebody";
+
+    QList<Contact> list;
+    list.append(con);
+
+    call_neg_.startCall(list, "");
 
     uint16_t nextIp = 0;
 
