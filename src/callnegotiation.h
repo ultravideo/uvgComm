@@ -1,9 +1,21 @@
 #pragma once
 
+
+#include "networkreceiver.h"
+#include "networksender.h"
+
 #include <MediaSession.hh>
 
 #include <QHostAddress>
 #include <QString>
+
+#include <memory>
+
+struct Contact
+{
+  QHostAddress address;
+  QString name;
+};
 
 class CallNegotiation
 {
@@ -15,7 +27,7 @@ public:
 
   void setupSession(MediaSubsession* subsession);
 
-  void startCall(QList<QHostAddress> addresses);
+  void startCall(QList<Contact> addresses, QString sdp);
 
   void acceptCall(QString CallID);
 
@@ -25,10 +37,9 @@ private:
 
   struct SIPLink
   {
-    QString CallID; // for identification
+    QString callID; // for identification
 
-    QString name;
-    QHostAddress address;
+    Contact peer;
 
     uint16_t port;
 
@@ -38,5 +49,16 @@ private:
     QString theirTag;
 
     QString sdp; // current session description
+
+    NetworkSender sender;
   };
+
+
+  std::map<QString, std::unique_ptr<SIPLink>> negotiations_;
+
+  NetworkReceiver receiver;
+
+
+
+
 };
