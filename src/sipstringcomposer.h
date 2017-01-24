@@ -10,10 +10,9 @@
  * only that all required fields are provided.
  * Usage: call startRequest or startResponse */
 
-enum Request {NOREQUEST, INVITE, ACK, BYE, CANCEL, OPTIONS, REGISTER}; // RFC 3261
+enum MessageType {NOREQUEST, INVITE, ACK, BYE, CANCEL, OPTIONS, REGISTER, OK200}; // RFC 3261
               //PRACK,SUBSCRIBE, NOTIFY, PUBLISH, INFO, REFER, MESSAGE, UPDATE }; RFC 3262, 6665, 3903, 6086, 3515, 3428, 3311
 
-enum Response {OK200};
 
 typedef int16_t messageID;
 
@@ -22,8 +21,7 @@ class SIPStringComposer
 public:
   SIPStringComposer();
 
-  messageID startRequest(const Request request, const QString& SIPversion = "2.0");
-  messageID startResponse(const Response reponse, const QString& SIPversion = "2.0");
+  messageID startSIPString(const MessageType message, const QString& SIPversion = "2.0");
 
   // include their tag only if it was already provided
   void to(messageID id, QString& username, const QHostInfo& hostname, const QString& tag = "");
@@ -33,7 +31,7 @@ public:
   void fromIP(messageID id, QString& username, const QHostAddress& address, const QString& tag);
 
   // Where to send responses. branch is generated. Also adds the contact field with same info.
-  void via(messageID id, const QString& hostname);
+  void via(messageID id, const QHostInfo& hostname);
   void viaIP(messageID id, QHostAddress address);
 
   void maxForwards(messageID id, uint32_t forwards);
@@ -45,7 +43,9 @@ public:
   void addSDP(messageID id, QString& sdp);
 
   // returns the complete SIP message if successful.
-  QString& composeMessage(messageID id);
+  // this function will use information provided in above functions
+  // to generate RFC 3261 compliant SIP message
+  QString composeMessage(messageID id);
 
   void removeMessage(messageID id);
 
@@ -64,11 +64,11 @@ private:
 
     QString maxForwards; // maxForwards-function
 
-    QString myName; // from-function
-    QString myUsername; // from-function
-    QString myLocation; // from-function
+    QString ourName; // from-function
+    QString ourUsername; // from-function
+    QString ourLocation; // from-function
     QString replyAddress; // via-function
-    QString myTag;
+    QString ourTag;
 
     QString callID; // setCallID-function
 
@@ -81,6 +81,7 @@ private:
     QString branch; // generated
   };
 
+  bool checkMessageReady(SIPMessage* message);
 
   std::vector<SIPMessage*> messages_;
 };

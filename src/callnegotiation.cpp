@@ -57,9 +57,9 @@ void CallNegotiation::startCall(QList<Contact> addresses, QString sdp)
   }
 }
 
-void CallNegotiation::sendRequest(Request request, std::shared_ptr<SIPLink> contact)
+void CallNegotiation::sendRequest(MessageType request, std::shared_ptr<SIPLink> contact)
 {
-  messageID id = messageComposer_.startRequest(request);
+  messageID id = messageComposer_.startSIPString(request);
   // TODO: names
   QHostAddress we = QHostAddress("0.0.0.0");
 

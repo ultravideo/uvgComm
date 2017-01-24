@@ -58,7 +58,7 @@ private:
   };
 
   // helper function that composes SIP message and sends it
-  void sendRequest(Request request, std::shared_ptr<SIPLink> contact);
+  void sendRequest(MessageType request, std::shared_ptr<SIPLink> contact);
 
   std::map<QString, std::shared_ptr<SIPLink>> sessions_;
 
