@@ -3,6 +3,7 @@
 
 #include "networkreceiver.h"
 #include "networksender.h"
+#include "sipstringcomposer.h"
 
 #include <MediaSession.hh>
 
@@ -14,6 +15,7 @@
 struct Contact
 {
   QHostAddress address;
+  QHostInfo hostname;
   QString name;
 };
 
@@ -40,25 +42,29 @@ private:
     QString callID; // for identification
 
     Contact peer;
-
-    uint16_t port;
-
+    //uint16_t port;
     uint32_t cseq;
 
     QString ourTag;
     QString theirTag;
+
+    // stored for convenience
+    QString ourName;
+    QString theirName;
 
     QString sdp; // current session description
 
     NetworkSender sender;
   };
 
+  // helper function that composes SIP message and sends it
+  void sendRequest(Request request, std::shared_ptr<SIPLink> contact);
 
-  std::map<QString, std::unique_ptr<SIPLink>> negotiations_;
+  std::map<QString, std::shared_ptr<SIPLink>> sessions_;
 
-  NetworkReceiver receiver;
+  NetworkReceiver receiver_;
 
+  SIPStringComposer messageComposer_;
 
-
-
+  uint16_t sipPort_;
 };

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QHostInfo>
 #include <QHostAddress>
 #include <QString>
 
@@ -25,11 +26,11 @@ public:
   messageID startResponse(const Response reponse, const QString& SIPversion = "2.0");
 
   // include their tag only if it was already provided
-  void to(messageID id, const QString& name, QString& username, const QString& hostname, const QString& tag = "");
-  void toIP(messageID id, const QString& name, QString& username, QHostAddress& address, const QString& tag = "");
+  void to(messageID id, QString& username, const QHostInfo& hostname, const QString& tag = "");
+  void toIP(messageID id, QString& username, const QHostAddress& address, const QString& tag = "");
 
-  void from(messageID id, const QString& name, QString& username, const QString& hostname, const QString& tag);
-  void fromIP(messageID id, const QString& name, QString& username, QHostAddress& address, const QString& tag);
+  void from(messageID id, QString& username, const QHostInfo& hostname, const QString& tag);
+  void fromIP(messageID id, QString& username, const QHostAddress& address, const QString& tag);
 
   // Where to send responses. branch is generated. Also adds the contact field with same info.
   void via(messageID id, const QString& hostname);
@@ -54,6 +55,7 @@ private:
   {
     // comments tell function which gives this value. Do not include field names.
     QString request; // start-function
+    QString version;
 
     QString theirName; // to-function
     QString theirUsername; // to-function
