@@ -5,18 +5,23 @@
 
 // handles one connection
 
-class NetworkSender
+class NetworkSender : public QThread
 {
 public:
   NetworkSender();
 
-  void init(QHostAddress destination, uint16_t port);
-  void sendPacket(QByteArray& data);
+  void sendPacket(QByteArray& data, QHostAddress &destination, uint16_t port);
+
+  void connect();
 
 private:
 
-  QUdpSocket socket_;
+  void run();
+
+  QTcpSocket socket_;
+  QWaitCondition cond_;
+  QMutex mutex_;
+
   QHostAddress destination_;
   uint16_t port_;
-
 };

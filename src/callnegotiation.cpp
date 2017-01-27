@@ -64,7 +64,7 @@ void CallNegotiation::startCall(QList<Contact> addresses, QString sdp)
       branch.append(alphabet.at(qrand()%alphabet.size()));
     }
 
-    contact->sender.init(contact->peer.address, sipPort_);
+    //contact->sender.init(contact->peer.address, sipPort_);
 
     contact->theirName = "Unknown";
     contact->theirUsername = "unknown";
@@ -95,5 +95,5 @@ void CallNegotiation::sendRequest(MessageType request, std::shared_ptr<SIPLink> 
 
   QByteArray message = SIPRequest.toUtf8();
 
-  contact->sender.sendPacket(message);
+  //contact->sender.sendPacket(message);
 }
