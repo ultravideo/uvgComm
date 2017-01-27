@@ -48,9 +48,8 @@ private:
     QString ourTag;
     QString theirTag;
 
-    // stored for convenience
-    QString ourName;
     QString theirName;
+    QString theirUsername;
 
     QString sdp; // current session description
 
@@ -58,7 +57,7 @@ private:
   };
 
   // helper function that composes SIP message and sends it
-  void sendRequest(MessageType request, std::shared_ptr<SIPLink> contact);
+  void sendRequest(MessageType request, std::shared_ptr<SIPLink> contact, QString &branch);
 
   std::map<QString, std::shared_ptr<SIPLink>> sessions_;
 
@@ -67,4 +66,8 @@ private:
   SIPStringComposer messageComposer_;
 
   uint16_t sipPort_;
+
+  QString ourName_;
+  QString ourUsername_;
+  QHostAddress ourLocation_;
 };
