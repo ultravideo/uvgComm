@@ -5,10 +5,10 @@
 
 // handles one connection
 
-class NetworkSender : public QThread
+class Connection : public QThread
 {
 public:
-  NetworkSender();
+  Connection();
 
   void sendPacket(QByteArray& data, QHostAddress &destination, uint16_t port);
 

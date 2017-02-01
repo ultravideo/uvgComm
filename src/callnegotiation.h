@@ -1,8 +1,7 @@
 #pragma once
 
 
-#include "networkreceiver.h"
-#include "networksender.h"
+#include "connection.h"
 #include "sipstringcomposer.h"
 
 #include <MediaSession.hh>
@@ -53,15 +52,13 @@ private:
 
     QString sdp; // current session description
 
-    NetworkSender sender;
+    Connection network;
   };
 
   // helper function that composes SIP message and sends it
   void sendRequest(MessageType request, std::shared_ptr<SIPLink> contact, QString &branch);
 
   std::map<QString, std::shared_ptr<SIPLink>> sessions_;
-
-  NetworkReceiver receiver_;
 
   SIPStringComposer messageComposer_;
 

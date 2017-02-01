@@ -9,7 +9,6 @@ const uint16_t callIDLength = 16;
 
 CallNegotiation::CallNegotiation():
   sessions_(),
-  receiver_(),
   messageComposer_(),
   sipPort_(5060) // use 5061 for tls encrypted
 {}

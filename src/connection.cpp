@@ -1,11 +1,11 @@
-#include "networksender.h"
+#include "connection.h"
 
-NetworkSender::NetworkSender()
+Connection::Connection()
 {
 
 }
 
-void NetworkSender::sendPacket(QByteArray& data, QHostAddress& destination, uint16_t port)
+void Connection::sendPacket(QByteArray& data, QHostAddress& destination, uint16_t port)
 {
   mutex_.lock();
   port_ = port;
@@ -19,7 +19,7 @@ void NetworkSender::sendPacket(QByteArray& data, QHostAddress& destination, uint
   mutex_.unlock();
 }
 
-void NetworkSender::run()
+void Connection::run()
 {
   mutex_.lock();
 
