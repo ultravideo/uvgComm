@@ -1,32 +1,73 @@
 #include "connection.h"
 
-Connection::Connection()
-{
+#include <QDataStream>
 
+Connection::Connection()
+{}
+
+void Connection::establishConnection(QString &destination, uint16_t port)
+{
+  destination_ = destination;
+  port_ = port;
+  start();
 }
 
-void Connection::sendPacket(QByteArray& data, QHostAddress& destination, uint16_t port)
+void Connection::sendPacket(QByteArray& data)
 {
   mutex_.lock();
-  port_ = port;
-  destination_ = destination;
 
   if(!isRunning())
     start();
   else
-    cond_.wakeOne();
+    wait_.wakeOne();
 
   mutex_.unlock();
 }
 
 void Connection::run()
 {
-  mutex_.lock();
+  QString serverName = destination_;
+  quint16 serverPort = port_;
 
-  QHostAddress address = destination_;
-  uint16_t port = port_;
+  while(running_)
+  {
+    // start connection
+    connect(this, &error, this, &printError);
 
-  mutex_.unlock();
 
-  //socket_.writeData(data, destination_, port_);
+    const int connectionTimeout = 5 * 1000;
+    const int packetTimeout = 300 * 1000;
+
+    socket_.connectToHost(destination_, port_);
+
+    if (!socket_.waitForConnected(connectionTimeout)) {
+        emit error(socket_.error(), socket_.errorString());
+        return;
+    }
+
+    QDataStream in(&socket_);
+    in.setVersion(QDataStream::Qt_4_0);
+    QString message;
+
+    if (!socket_.waitForReadyRead(packetTimeout)) {
+      emit error(socket_.error(), socket_.errorString());
+      return;
+    }
+
+    in >> message;
+    qDebug().noquote() << "Received the following message:" << message;
+
+    mutex_.lock();
+    emit messageReceived(message);
+
+    wait_.wait(&mutex_);
+    serverName = destination_;
+    serverPort = port_;
+    mutex_.unlock();
+  }
+}
+
+void Connection::printError(int socketError, const QString &message)
+{
+  qWarning() << "ERROR: " << message;
 }
