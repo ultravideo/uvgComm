@@ -3,11 +3,13 @@
 #include <QByteArray>
 #include <QtNetwork>
 
+#include <queue>
+
 #include <functional>
 
 // handles one connection
 
-class Connection : public QThread
+class Connection : public QObject
 {
   Q_OBJECT
 public:
@@ -16,10 +18,10 @@ public:
   // establishes a tcp connection
   void establishConnection(QString &destination, uint16_t port);
 
-  void setConnection(QString &destination, uint16_t port);
+  void setExistingConnection(qintptr socketDescriptor);
 
   // sends packet via connection
-  void sendPacket(QByteArray& data);
+  void sendPacket(QString &data);
 
   // callback
   template <typename Class>
@@ -37,21 +39,28 @@ signals:
 
 private:
 
-  void run();
+  void startLoops();
 
   void printError(int socketError, const QString &message);
+
+  void connectLoop();
+  void receiveLoop();
+  void sendLoop();
+
+  void disconnect();
 
   std::function<void(QByteArray& data)> outDataCallback_;
 
   QTcpSocket socket_;
-  QWaitCondition wait_;
-  QMutex mutex_;
 
   QString destination_;
   uint16_t port_;
 
-  // whether we should initiate a new connection
-  bool connect_;
+  std::queue<QString> buffer_;
+
+  QMutex connectMutex_;
+  QMutex sendMutex_;
+  QWaitCondition sendCond_;
 
   bool running_;
 };

@@ -41,7 +41,8 @@ SOURCES +=\
     src/callmanager.cpp \
     src/callnegotiation.cpp \
     src/sipstringcomposer.cpp \
-    src/connection.cpp
+    src/connection.cpp \
+    src/connectionserver.cpp
 
 HEADERS  += \
     src/callwindow.h \
@@ -71,7 +72,8 @@ HEADERS  += \
     src/callmanager.h \
     src/callnegotiation.h \
     src/sipstringcomposer.h \
-    src/connection.h
+    src/connection.h \
+    src/connectionserver.h
 
 FORMS    += \
     ui/callwindow.ui \
