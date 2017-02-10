@@ -26,6 +26,8 @@ void CallNegotiation::init()
 
   QObject::connect(&server_, SIGNAL(newConnection(Connection*)), this, SLOT(receiveConnection(Connection*)));
 
+  server_.listen(ourLocation_, sipPort_);
+
   initUs();
 }
 
@@ -44,6 +46,11 @@ void CallNegotiation::startCall(QList<Contact> addresses, QString sdp)
   qDebug() << "Starting call negotiation";
   for (int i = 0; i < addresses.size(); ++i)
   {
+    Connection* con = new Connection;
+    QString address = addresses.at(i).address.toString();
+
+    con->establishConnection(address, sipPort_);
+
     std::shared_ptr<SIPLink> contact (new SIPLink);
     contact->peer.address = addresses.at(i).address;
 
@@ -109,12 +116,18 @@ void CallNegotiation::sendRequest(MessageType request, std::shared_ptr<SIPLink> 
   //contact->sender.sendPacket(message);
 }
 
-
 void CallNegotiation::receiveConnection(Connection* con)
 {
+  QObject::connect(con, SIGNAL(messageReceived(QString, uint32_t)), this, SLOT(processMessage(QString, uint32_t)));
   connections_.push_back(con);
 
   con->setID(connections_.size());
+}
 
+void CallNegotiation::processMessage(QString message, uint32_t connectionID)
+{
+  if(connectionID != 0)
+  {
 
+  }
 }

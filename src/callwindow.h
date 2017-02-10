@@ -23,6 +23,11 @@ public:
 
   void closeEvent(QCloseEvent *event);
 
+  bool isRunning()
+  {
+    return running_;
+  }
+
 public slots:
    void addParticipant();
    void openStatistics(); // Opens statistics window
@@ -47,4 +52,6 @@ private:
   QSize currentResolution_;
 
   uint16_t portsOpen_;
+
+  bool running_;
 };

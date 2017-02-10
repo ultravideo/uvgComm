@@ -9,6 +9,7 @@ Connection::Connection()
 
 void Connection::establishConnection(QString &destination, uint16_t port)
 {
+  qDebug() << "Establishing connection to" << destination << ":" << port;
 
   QObject::connect(this, &error, this, &printError);
 

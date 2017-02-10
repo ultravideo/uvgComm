@@ -43,6 +43,7 @@ public:
   private slots:
 
   void receiveConnection(Connection* con);
+  void processMessage(QString message, uint32_t connectionID);
 
 private:
 
@@ -53,7 +54,6 @@ private:
     QString callID; // for identification
 
     Contact peer;
-    //uint16_t port;
     uint32_t cseq;
 
     QString ourTag;
@@ -81,6 +81,6 @@ private:
   QString ourUsername_;
   QHostAddress ourLocation_;
 
-
+  // listens to incoming tcp connections on sipPort_
   ConnectionServer server_;
 };
