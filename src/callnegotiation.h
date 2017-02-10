@@ -1,8 +1,12 @@
 #pragma once
 
 
+
+#include "connectionserver.h"
 #include "connection.h"
 #include "sipstringcomposer.h"
+
+
 
 #include <MediaSession.hh>
 
@@ -18,13 +22,15 @@ struct Contact
   QString name;
 };
 
-class CallNegotiation
+class CallNegotiation : public QObject
 {
+  Q_OBJECT
 public:
   CallNegotiation();
   ~CallNegotiation();
 
   void init();
+  void uninit();
 
   void setupSession(MediaSubsession* subsession);
 
@@ -34,7 +40,13 @@ public:
 
   void endCall();
 
+  private slots:
+
+  void receiveConnection(Connection* con);
+
 private:
+
+  void initUs();
 
   struct SIPLink
   {
@@ -52,13 +64,14 @@ private:
 
     QString sdp; // current session description
 
-    Connection network;
+    uint32_t connectionID;
   };
 
   // helper function that composes SIP message and sends it
   void sendRequest(MessageType request, std::shared_ptr<SIPLink> contact, QString &branch);
 
   std::map<QString, std::shared_ptr<SIPLink>> sessions_;
+  std::vector<Connection*> connections_;
 
   SIPStringComposer messageComposer_;
 
@@ -67,4 +80,7 @@ private:
   QString ourName_;
   QString ourUsername_;
   QHostAddress ourLocation_;
+
+
+  ConnectionServer server_;
 };

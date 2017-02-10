@@ -33,9 +33,20 @@ public:
     });
   }
 
+  void setID(uint32_t id)
+  {
+    ID_ = id;
+  }
+
+  uint32_t getID()
+  {
+    return ID_;
+  }
+
 signals:
   void error(int socketError, const QString &message);
-  void messageReceived(QString message);
+  void messageReceived(QString message, uint32_t id);
+
 
 private:
 
@@ -63,4 +74,7 @@ private:
   QWaitCondition sendCond_;
 
   bool running_;
+
+  uint32_t ID_; // id for this connection
+
 };

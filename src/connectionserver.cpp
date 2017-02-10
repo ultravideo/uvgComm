@@ -14,4 +14,6 @@ void ConnectionServer::incomingConnection(qintptr socketDescriptor)
   Connection* con = new Connection;
 
   con->setExistingConnection(socketDescriptor);
+
+  emit newConnection(con);
 }

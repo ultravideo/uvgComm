@@ -83,7 +83,7 @@ void Connection::receiveLoop()
     in >> message;
     qDebug().noquote() << "Received the following message:" << message;
 
-    emit messageReceived(message);
+    emit messageReceived(message, ID_);
   }
 }
 

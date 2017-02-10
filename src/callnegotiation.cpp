@@ -1,5 +1,8 @@
 #include "callnegotiation.h"
 
+
+
+
 //TODO use cryptographically secure callID generation!!
 const QString alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                          "abcdefghijklmnopqrstuvwxyz"
@@ -20,12 +23,23 @@ void CallNegotiation::init()
 {
   qsrand(1);
   ourLocation_ = QHostAddress("127.0.0.1");
+
+  QObject::connect(&server_, SIGNAL(newConnection(Connection*)), this, SLOT(receiveConnection(Connection*)));
+
+  initUs();
+}
+
+void CallNegotiation::uninit()
+{}
+
+void CallNegotiation::initUs()
+{
+  ourName_ = "I";
+  ourUsername_ = "i";
 }
 
 void CallNegotiation::startCall(QList<Contact> addresses, QString sdp)
 {
-  ourName_ = "I";
-  ourUsername_ = "i";
 
   qDebug() << "Starting call negotiation";
   for (int i = 0; i < addresses.size(); ++i)
@@ -40,7 +54,6 @@ void CallNegotiation::startCall(QList<Contact> addresses, QString sdp)
 
     contact->callID.append("@");
     contact->callID.append(ourLocation_.toString());
-
 
     qDebug() << "Generated CallID: " << contact->callID;
 
@@ -74,7 +87,6 @@ void CallNegotiation::startCall(QList<Contact> addresses, QString sdp)
 
 void CallNegotiation::sendRequest(MessageType request, std::shared_ptr<SIPLink> contact, QString& branch)
 {
-
   // TODO: names
   ++contact->cseq;
 
@@ -95,4 +107,14 @@ void CallNegotiation::sendRequest(MessageType request, std::shared_ptr<SIPLink> 
   QByteArray message = SIPRequest.toUtf8();
 
   //contact->sender.sendPacket(message);
+}
+
+
+void CallNegotiation::receiveConnection(Connection* con)
+{
+  connections_.push_back(con);
+
+  con->setID(connections_.size());
+
+
 }
