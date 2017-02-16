@@ -47,11 +47,15 @@ void CallNegotiation::startCall(QList<Contact> addresses, QString sdp)
   for (int i = 0; i < addresses.size(); ++i)
   {
     Connection* con = new Connection;
+    connections_.push_back(con);
+
+
     QString address = addresses.at(i).address.toString();
 
     con->establishConnection(address, sipPort_);
 
     std::shared_ptr<SIPLink> contact (new SIPLink);
+    contact->connectionID = connections_.size();
     contact->peer.address = addresses.at(i).address;
 
     for( unsigned int i = 0; i < callIDLength; ++i )
@@ -112,8 +116,7 @@ void CallNegotiation::sendRequest(MessageType request, std::shared_ptr<SIPLink> 
   qDebug().noquote() << SIPRequest;
 
   QByteArray message = SIPRequest.toUtf8();
-
-  //contact->sender.sendPacket(message);
+  connections_.at(contact->connectionID - 1)->sendPacket(message);
 }
 
 void CallNegotiation::receiveConnection(Connection* con)

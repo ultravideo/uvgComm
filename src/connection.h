@@ -9,7 +9,10 @@
 
 // handles one connection
 
-class Connection : public QObject
+
+
+
+class Connection : public QThread
 {
   Q_OBJECT
 public:
@@ -21,7 +24,7 @@ public:
   void setExistingConnection(qintptr socketDescriptor);
 
   // sends packet via connection
-  void sendPacket(QString &data);
+  void sendPacket(const QString &data);
 
   // callback
   template <typename Class>
@@ -43,14 +46,28 @@ public:
     return ID_;
   }
 
+  static uint32_t generateID()
+  {
+    static uint32_t currentID_ = 1;
+    return ++currentID_;
+  }
+
 signals:
   void error(int socketError, const QString &message);
   void messageReceived(QString message, uint32_t id);
 
+private slots:
+  //void receivedMessage();
+
+  void printBytesWritten(qint64 bytes);
+
+protected:
+
+  void run();
 
 private:
 
-  void startLoops();
+  void init();
 
   void printError(int socketError, const QString &message);
 
@@ -62,19 +79,22 @@ private:
 
   std::function<void(QByteArray& data)> outDataCallback_;
 
-  QTcpSocket socket_;
+  QTcpSocket *socket_;
+
+  bool shouldConnect_;
+  bool connected_;
 
   QString destination_;
   uint16_t port_;
 
+  qintptr socketDescriptor_;
   std::queue<QString> buffer_;
 
-  QMutex connectMutex_;
   QMutex sendMutex_;
-  QWaitCondition sendCond_;
+  QMutex checkMutex_;
+  QWaitCondition checkCond_;
 
   bool running_;
 
   uint32_t ID_; // id for this connection
-
 };
