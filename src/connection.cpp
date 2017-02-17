@@ -14,8 +14,6 @@ Connection::Connection()
     socketDescriptor_(0),
     buffer_(),
     sendMutex_(),
-    checkMutex_(),
-    checkCond_(),
     running_(false),
     ID_(generateID())
 {
@@ -55,12 +53,21 @@ void Connection::sendPacket(const QString &data)
     sendMutex_.lock();
     buffer_.push(data);
     sendMutex_.unlock();
-    checkCond_.wakeOne();
+
+    eventDispatcher()->wakeUp();
   }
   else
   {
     qWarning() << "Warning: Not sending message, because sender has been shut down.";
   }
+}
+
+void Connection::receivedMessage()
+{
+  qDebug() << "Socket ready to read:" << ID_;
+
+  // probably unnecessary, but just in case
+  eventDispatcher()->wakeUp();
 }
 
 void Connection::connectLoop()
@@ -73,9 +80,7 @@ void Connection::connectLoop()
       emit error(socket_->error(), socket_->errorString());
       return;
   }
-
   connected_ = true;
-
   qDebug() << "Outgoing TCP connection established";
 }
 
@@ -88,6 +93,7 @@ void Connection::run()
   {
     socket_ = new QTcpSocket();
     QObject::connect(socket_, SIGNAL(bytesWritten(qint64)), this, SLOT(printBytesWritten(qint64)));
+    QObject::connect(socket_, SIGNAL(readyRead()), this, SLOT(receivedMessage()));
   }
 
   if(socketDescriptor_ != 0)
@@ -108,7 +114,6 @@ void Connection::run()
 
   while(running_)
   {
-    eventDispatcher()->processEvents(QEventLoop::AllEvents);
 
     if(!connected_ && shouldConnect_)
     {
@@ -118,7 +123,6 @@ void Connection::run()
     if(socket_->bytesToWrite() > 0)
     {
       qDebug() << "Bytes to write:" << socket_->bytesToWrite() << "in state:" << socket_->state();
-      //socket_->flush();
     }
 
     if(connected_)
@@ -156,6 +160,10 @@ void Connection::run()
       }
       sendMutex_.unlock();
     }
+
+    qDebug() << "Connection thread waiting:" << ID_;
+    eventDispatcher()->processEvents(QEventLoop::WaitForMoreEvents);
+    qDebug() << "Connection thread woken:" << ID_;
   }
 
   disconnect();

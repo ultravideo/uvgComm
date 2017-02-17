@@ -48,7 +48,7 @@ public:
 
   static uint32_t generateID()
   {
-    static uint32_t currentID_ = 1;
+    static uint32_t currentID_ = 0;
     return ++currentID_;
   }
 
@@ -57,9 +57,9 @@ signals:
   void messageReceived(QString message, uint32_t id);
 
 private slots:
-  //void receivedMessage();
-
+  void receivedMessage();
   void printBytesWritten(qint64 bytes);
+
 
 protected:
 
@@ -91,8 +91,6 @@ private:
   std::queue<QString> buffer_;
 
   QMutex sendMutex_;
-  QMutex checkMutex_;
-  QWaitCondition checkCond_;
 
   bool running_;
 
