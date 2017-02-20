@@ -137,9 +137,52 @@ void Connection::run()
         QString message;
 
         in >> message;
-        qDebug().noquote() << "Received the following message:" << message;
 
-        //emit messageReceived(message, ID_);
+        if(leftOvers_.length() > 0)
+        {
+          message = leftOvers_ + message;
+        }
+
+
+        int headerEndIndex = message.indexOf("\r\n\r\n", 0, Qt::CaseInsensitive);
+        int contentLengthIndex = message.indexOf("content-length", 0, Qt::CaseInsensitive);
+
+        qDebug() << "header end at:" << headerEndIndex
+                 << "and content-length at:" << contentLengthIndex;
+
+        if(contentLengthIndex != -1 && headerEndIndex != -1)
+        {
+          int contentLengthLineEndIndex = message.indexOf("\r\n", contentLengthIndex, Qt::CaseInsensitive);
+
+          QString value = message.mid(contentLengthIndex + 16, contentLengthLineEndIndex);
+
+          int valueInt= value.toInt();
+
+          qDebug() << "Content-length:" <<  valueInt;
+
+          if(message.length() < headerEndIndex + valueInt + 4)
+          {
+            leftOvers_ = message;
+          }
+          else
+          {
+            leftOvers_ = message.right(message.length() - (headerEndIndex + valueInt  + 4));
+            QString header = message.left(headerEndIndex);
+            QString content = message.mid(headerEndIndex, valueInt);
+
+            qDebug() << "Whole message available. Left overs:" << leftOvers_;
+
+            qDebug() << "Header:" << header;
+            qDebug() << "Content:" << content;
+
+            //emit messageAvailable(header, content, ID_);
+          }
+        }
+        else
+        {
+          qDebug() << "Message was not received fully";
+          leftOvers_ = message;
+        }
       }
 
       sendMutex_.lock();

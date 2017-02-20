@@ -9,9 +9,6 @@
 
 // handles one connection
 
-
-
-
 class Connection : public QThread
 {
   Q_OBJECT
@@ -54,7 +51,7 @@ public:
 
 signals:
   void error(int socketError, const QString &message);
-  void messageReceived(QString message, uint32_t id);
+  void messageAvailable(QString header, QString content, uint32_t id);
 
 private slots:
   void receivedMessage();
@@ -95,4 +92,7 @@ private:
   bool running_;
 
   uint32_t ID_; // id for this connection
+
+
+  QString leftOvers_;
 };
