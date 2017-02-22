@@ -7,7 +7,6 @@
 #include "sipstringcomposer.h"
 
 
-
 #include <MediaSession.hh>
 
 #include <QHostAddress>
@@ -21,6 +20,8 @@ struct Contact
   QHostInfo hostname;
   QString name;
 };
+
+struct SIPMessageInfo;
 
 class CallNegotiation : public QObject
 {
@@ -40,14 +41,11 @@ public:
 
   void endCall();
 
-  private slots:
-
+private slots:
   void receiveConnection(Connection* con);
-  void processMessage(QString message, uint32_t connectionID);
+  void processMessage(QString header, QString content, uint32_t connectionID);
 
 private:
-
-  void initUs();
 
   struct SIPLink
   {
@@ -67,8 +65,16 @@ private:
     uint32_t connectionID;
   };
 
+  void initUs();
+  void compareLinkandInfo(std::shared_ptr<SIPLink> link, SIPMessageInfo* info);
+  std::shared_ptr<SIPLink> createNewsSIPLink();
+  //std::shared_ptr<SIPLink> createNewsSIPLink(Contact& contact);
+
+  QString generateRandomString(uint32_t length);
+
+
   // helper function that composes SIP message and sends it
-  void sendRequest(MessageType request, std::shared_ptr<SIPLink> contact, QString &branch);
+  void sendRequest(MessageType request, std::shared_ptr<SIPLink> contact);
 
   std::map<QString, std::shared_ptr<SIPLink>> sessions_;
   std::vector<Connection*> connections_;
