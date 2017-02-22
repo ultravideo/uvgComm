@@ -46,34 +46,7 @@ void CallNegotiation::initUs()
   ourUsername_ = "i";
 }
 
-std::shared_ptr<CallNegotiation::SIPLink> CallNegotiation::createNewsSIPLink()
-{
-  std::shared_ptr<SIPLink> link (new SIPLink);
 
-  link->callID = generateRandomString(CALLIDLENGTH);
-
-  link->callID.append("@");
-  link->callID.append(ourLocation_.toString());
-
-  qDebug() << "Generated CallID: " << link->callID;
-
-  link->cseq = 0;
-  link->ourTag = generateRandomString(TAGLENGTH);
-
-  qDebug() << "Generated tag: " << link->ourTag;
-
-  if(sessions_.find(link->callID) == sessions_.end())
-  {
-    sessions_[link->callID] = link;
-  }
-  else
-  {
-    qWarning() << "WARNING: Collision: Call-ID already exists.";
-    return 0;
-  }
-
-  return link;
-}
 
 void CallNegotiation::startCall(QList<Contact> addresses, QString sdp)
 {
@@ -82,14 +55,14 @@ void CallNegotiation::startCall(QList<Contact> addresses, QString sdp)
   {
     Connection* con = new Connection;
     connections_.push_back(con);
-    QObject::connect(con, SIGNAL(messageAvailable(QString, QString, uint32_t)),
-                     this, SLOT(processMessage(QString, QString, uint32_t)));
+    QObject::connect(con, SIGNAL(messageAvailable(QString, QString, quint32)),
+                     this, SLOT(processMessage(QString, QString, quint32)));
 
     QString address = addresses.at(i).address.toString();
 
     con->establishConnection(address, sipPort_);
 
-    std::shared_ptr<CallNegotiation::SIPLink> link = createNewsSIPLink();
+    std::shared_ptr<CallNegotiation::SIPLink> link = newSIPLink();
     link->connectionID = connections_.size();
     link->peer.address = addresses.at(i).address;
 
@@ -150,11 +123,13 @@ void CallNegotiation::processMessage(QString header, QString content, quint32 co
       Q_ASSERT(info->callID != "");
       if(sessions_.find(info->callID) == sessions_.end())
       {
-        //sessions_[info->callID] = ;
+        // Receiving the first message of this SIP connection
+        newSIPLinkFromMessage(std::move(info), connectionID);
       }
       else
       {
-
+        // updating everything that has changed for our next message
+        updateSIPLink(sessions_[info->callID],std::move(info));
       }
     }
   }
@@ -168,4 +143,48 @@ QString CallNegotiation::generateRandomString(uint32_t length)
     string.append(alphabet.at(qrand()%alphabet.size()));
   }
   return string;
+}
+
+std::shared_ptr<CallNegotiation::SIPLink> CallNegotiation::newSIPLink()
+{
+  std::shared_ptr<SIPLink> link (new SIPLink);
+
+  link->callID = generateRandomString(CALLIDLENGTH);
+
+  link->callID.append("@");
+  link->callID.append(ourLocation_.toString());
+
+  qDebug() << "Generated CallID: " << link->callID;
+
+  link->cseq = 0;
+  link->ourTag = generateRandomString(TAGLENGTH);
+
+  qDebug() << "Generated tag: " << link->ourTag;
+
+  if(sessions_.find(link->callID) == sessions_.end())
+  {
+    sessions_[link->callID] = link;
+  }
+  else
+  {
+    qWarning() << "WARNING: Collision: Call-ID already exists.";
+    return 0;
+  }
+
+  return link;
+}
+
+void CallNegotiation::newSIPLinkFromMessage(std::unique_ptr<SIPMessageInfo> info, quint32 connectionId)
+{
+  std::shared_ptr<CallNegotiation::SIPLink> link = newSIPLink();
+
+
+}
+
+
+void CallNegotiation::updateSIPLink(std::shared_ptr<SIPLink> link, std::unique_ptr<SIPMessageInfo> info)
+{
+
+
+
 }

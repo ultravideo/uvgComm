@@ -66,9 +66,13 @@ private:
   };
 
   void initUs();
-  void compareLinkandInfo(std::shared_ptr<SIPLink> link, SIPMessageInfo* info);
-  std::shared_ptr<SIPLink> createNewsSIPLink();
-  //std::shared_ptr<SIPLink> createNewsSIPLink(Contact& contact);
+
+  std::shared_ptr<SIPLink> newSIPLink();
+  void newSIPLinkFromMessage(std::unique_ptr<SIPMessageInfo> info);
+
+  void updateSIPLink(std::shared_ptr<SIPLink> link, std::unique_ptr<SIPMessageInfo> info);
+
+
 
   QString generateRandomString(uint32_t length);
 
