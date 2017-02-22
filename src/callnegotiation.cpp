@@ -8,7 +8,13 @@ const QString alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                          "abcdefghijklmnopqrstuvwxyz"
                          "0123456789";
 
-const uint16_t callIDLength = 16;
+const uint16_t CALLIDLENGTH = 16;
+const uint16_t TAGLENGTH = 16;
+const uint16_t BRANCHLENGTH = 16;
+
+const uint16_t MAXFORWARDS = 70; // the recommmended value is 70
+
+
 
 CallNegotiation::CallNegotiation():
   sessions_(),
@@ -44,7 +50,7 @@ std::shared_ptr<CallNegotiation::SIPLink> CallNegotiation::createNewsSIPLink()
 {
   std::shared_ptr<SIPLink> link (new SIPLink);
 
-  link->callID = generateRandomString(callIDLength);
+  link->callID = generateRandomString(CALLIDLENGTH);
 
   link->callID.append("@");
   link->callID.append(ourLocation_.toString());
@@ -52,11 +58,19 @@ std::shared_ptr<CallNegotiation::SIPLink> CallNegotiation::createNewsSIPLink()
   qDebug() << "Generated CallID: " << link->callID;
 
   link->cseq = 0;
-  link->ourTag = generateRandomString(callIDLength);
+  link->ourTag = generateRandomString(TAGLENGTH);
 
   qDebug() << "Generated tag: " << link->ourTag;
 
-  sessions_[link->callID] = link;
+  if(sessions_.find(link->callID) == sessions_.end())
+  {
+    sessions_[link->callID] = link;
+  }
+  else
+  {
+    qWarning() << "WARNING: Collision: Call-ID already exists.";
+    return 0;
+  }
 
   return link;
 }
@@ -96,13 +110,13 @@ void CallNegotiation::sendRequest(MessageType request, std::shared_ptr<SIPLink> 
   // TODO: names
   ++contact->cseq;
 
-  QString branch = generateRandomString(callIDLength);
+  QString branch = generateRandomString(BRANCHLENGTH);
 
   messageID id = messageComposer_.startSIPString(request);
   messageComposer_.toIP(id, contact->theirName, contact->theirUsername, contact->peer.address, contact->theirTag);
   messageComposer_.fromIP(id, ourName_, ourUsername_, ourLocation_, contact->ourTag);
   messageComposer_.viaIP(id, ourLocation_, branch);
-  messageComposer_.maxForwards(id, 70); // 70 is the recommended value
+  messageComposer_.maxForwards(id, MAXFORWARDS);
   messageComposer_.setCallID(id, contact->callID);
   messageComposer_.sequenceNum(id, contact->cseq);
   messageComposer_.addSDP(id, contact->sdp);
@@ -118,13 +132,14 @@ void CallNegotiation::sendRequest(MessageType request, std::shared_ptr<SIPLink> 
 
 void CallNegotiation::receiveConnection(Connection* con)
 {
-  QObject::connect(con, SIGNAL(messageAvailable(QString,QString,uint32_t)), this, SLOT(processMessage(QString, QString, uint32_t)));
+  QObject::connect(con, SIGNAL(messageAvailable(QString,QString, quint32)),
+                   this, SLOT(processMessage(QString, QString, quint32)));
   connections_.push_back(con);
 
   con->setID(connections_.size());
 }
 
-void CallNegotiation::processMessage(QString header, QString content, uint32_t connectionID)
+void CallNegotiation::processMessage(QString header, QString content, quint32 connectionID)
 {
   if(connectionID != 0)
   {

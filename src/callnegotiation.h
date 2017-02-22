@@ -43,7 +43,7 @@ public:
 
 private slots:
   void receiveConnection(Connection* con);
-  void processMessage(QString header, QString content, uint32_t connectionID);
+  void processMessage(QString header, QString content, quint32 connectionID);
 
 private:
 
