@@ -15,6 +15,7 @@ Connection::Connection()
     buffer_(),
     sendMutex_(),
     running_(false),
+    started_(false),
     ID_(generateID())
 {
   qDebug() << "Creating connection with ID:" << ID_;
@@ -54,7 +55,8 @@ void Connection::sendPacket(const QString &data)
     buffer_.push(data);
     sendMutex_.unlock();
 
-    eventDispatcher()->wakeUp();
+    if(started_)
+      eventDispatcher()->wakeUp();
   }
   else
   {
@@ -66,8 +68,8 @@ void Connection::receivedMessage()
 {
   qDebug() << "Socket ready to read:" << ID_;
 
-  // probably unnecessary, but just in case
-  eventDispatcher()->wakeUp();
+  if(started_)
+    eventDispatcher()->wakeUp();
 }
 
 void Connection::connectLoop()
@@ -89,11 +91,16 @@ void Connection::run()
 {
   qDebug() << "Starting connection run loop";
 
+  started_ = true;
+
   if(socket_ == 0)
   {
     socket_ = new QTcpSocket();
-    QObject::connect(socket_, SIGNAL(bytesWritten(qint64)), this, SLOT(printBytesWritten(qint64)));
-    QObject::connect(socket_, SIGNAL(readyRead()), this, SLOT(receivedMessage()));
+    QObject::connect(socket_, SIGNAL(bytesWritten(qint64)),
+                     this, SLOT(printBytesWritten(qint64)));
+
+    QObject::connect(socket_, SIGNAL(readyRead()),
+                     this, SLOT(receivedMessage()));
   }
 
   if(socketDescriptor_ != 0)
@@ -114,7 +121,6 @@ void Connection::run()
 
   while(running_)
   {
-
     if(!connected_ && shouldConnect_)
     {
       connectLoop();
@@ -143,7 +149,6 @@ void Connection::run()
           message = leftOvers_ + message;
         }
 
-
         int headerEndIndex = message.indexOf("\r\n\r\n", 0, Qt::CaseInsensitive);
         int contentLengthIndex = message.indexOf("content-length", 0, Qt::CaseInsensitive);
 
@@ -170,12 +175,12 @@ void Connection::run()
             QString header = message.left(headerEndIndex);
             QString content = message.mid(headerEndIndex, valueInt);
 
-            qDebug() << "Whole message available. Left overs:" << leftOvers_;
-
+            qDebug() << "Whole message received.";
             qDebug() << "Header:" << header;
             qDebug() << "Content:" << content;
+            qDebug() << "Left overs:" << leftOvers_;
 
-            //emit messageAvailable(header, content, ID_);
+            emit messageAvailable(header, content, ID_);
           }
         }
         else

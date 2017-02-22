@@ -90,6 +90,7 @@ private:
   QMutex sendMutex_;
 
   bool running_;
+  bool started_;
 
   uint32_t ID_; // id for this connection
 
