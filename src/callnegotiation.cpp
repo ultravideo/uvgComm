@@ -30,7 +30,8 @@ void CallNegotiation::init()
   qsrand(1);
   ourLocation_ = QHostAddress("127.0.0.1");
 
-  QObject::connect(&server_, SIGNAL(newConnection(Connection*)), this, SLOT(receiveConnection(Connection*)));
+  QObject::connect(&server_, SIGNAL(newConnection(Connection*)),
+                   this, SLOT(receiveConnection(Connection*)));
 
   server_.listen(ourLocation_, sipPort_);
 
@@ -86,7 +87,8 @@ void CallNegotiation::sendRequest(MessageType request, std::shared_ptr<SIPLink> 
   QString branch = generateRandomString(BRANCHLENGTH);
 
   messageID id = messageComposer_.startSIPString(request);
-  messageComposer_.toIP(id, contact->theirName, contact->theirUsername, contact->peer.address, contact->theirTag);
+  messageComposer_.toIP(id, contact->theirName, contact->theirUsername,
+                        contact->peer.address, contact->theirTag);
   messageComposer_.fromIP(id, ourName_, ourUsername_, ourLocation_, contact->ourTag);
   messageComposer_.viaIP(id, ourLocation_, branch);
   messageComposer_.maxForwards(id, MAXFORWARDS);
@@ -114,23 +116,34 @@ void CallNegotiation::receiveConnection(Connection* con)
 
 void CallNegotiation::processMessage(QString header, QString content, quint32 connectionID)
 {
+  qDebug() << "Processing message";
+
   if(connectionID != 0)
   {
     std::unique_ptr<SIPMessageInfo> info = std::move(parseSIPMessage(header));
+    qDebug() << "Message parsed";
 
     if(info != 0)
     {
       Q_ASSERT(info->callID != "");
       if(sessions_.find(info->callID) == sessions_.end())
       {
+        qDebug() << "New Call-ID detected. Creating session...";
+
         // Receiving the first message of this SIP connection
         newSIPLinkFromMessage(std::move(info), connectionID);
       }
       else
       {
+        qDebug() << "Existing Call-ID detected. Updating session...";
+
         // updating everything that has changed for our next message
         updateSIPLink(sessions_[info->callID],std::move(info));
       }
+    }
+    else
+    {
+      qDebug() << "Invalid SIP message received";
     }
   }
 }
@@ -174,17 +187,15 @@ std::shared_ptr<CallNegotiation::SIPLink> CallNegotiation::newSIPLink()
   return link;
 }
 
-void CallNegotiation::newSIPLinkFromMessage(std::unique_ptr<SIPMessageInfo> info, quint32 connectionId)
+void CallNegotiation::newSIPLinkFromMessage(std::unique_ptr<SIPMessageInfo> info,
+                                            quint32 connectionId)
 {
   std::shared_ptr<CallNegotiation::SIPLink> link = newSIPLink();
-
-
 }
 
 
-void CallNegotiation::updateSIPLink(std::shared_ptr<SIPLink> link, std::unique_ptr<SIPMessageInfo> info)
+void CallNegotiation::updateSIPLink(std::shared_ptr<SIPLink> link,
+                                    std::unique_ptr<SIPMessageInfo> info)
 {
-
-
 
 }

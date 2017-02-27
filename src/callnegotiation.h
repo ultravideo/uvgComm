@@ -68,7 +68,7 @@ private:
   void initUs();
 
   std::shared_ptr<SIPLink> newSIPLink();
-  void newSIPLinkFromMessage(std::unique_ptr<SIPMessageInfo> info);
+  void newSIPLinkFromMessage(std::unique_ptr<SIPMessageInfo> info, quint32 connectionId);
 
   void updateSIPLink(std::shared_ptr<SIPLink> link, std::unique_ptr<SIPMessageInfo> info);
 
