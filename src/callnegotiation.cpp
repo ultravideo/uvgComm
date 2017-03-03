@@ -128,7 +128,7 @@ void CallNegotiation::processMessage(QString header, QString content, quint32 co
       Q_ASSERT(info->callID != "");
       if(sessions_.find(info->callID) == sessions_.end())
       {
-        qDebug() << "New Call-ID detected. Creating session...";
+        qDebug() << "New Call-ID detected:" << info->callID << "Creating session...";
 
         // Receiving the first message of this SIP connection
         newSIPLinkFromMessage(std::move(info), connectionID);
@@ -138,7 +138,7 @@ void CallNegotiation::processMessage(QString header, QString content, quint32 co
         qDebug() << "Existing Call-ID detected. Updating session...";
 
         // updating everything that has changed for our next message
-        updateSIPLink(sessions_[info->callID],std::move(info));
+        updateSIPLink(std::move(info));
       }
     }
     else
@@ -190,12 +190,26 @@ std::shared_ptr<CallNegotiation::SIPLink> CallNegotiation::newSIPLink()
 void CallNegotiation::newSIPLinkFromMessage(std::unique_ptr<SIPMessageInfo> info,
                                             quint32 connectionId)
 {
-  std::shared_ptr<CallNegotiation::SIPLink> link = newSIPLink();
+  std::shared_ptr<CallNegotiation::SIPLink> link
+      = std::shared_ptr<CallNegotiation::SIPLink> (new SIPLink);
+
+
 }
 
-
-void CallNegotiation::updateSIPLink(std::shared_ptr<SIPLink> link,
-                                    std::unique_ptr<SIPMessageInfo> info)
+void CallNegotiation::updateSIPLink(std::unique_ptr<SIPMessageInfo> info)
 {
+  qDebug() << "Updating call with ID:" << info->callID;
+
+  std::shared_ptr<SIPLink> oldLink = sessions_[info->callID];
+
+  Q_ASSERT(oldLink && "Old SIP information doesn't exist");
+
+  ++oldLink->cseq;
+
+  if(info->cSeq != oldLink->cseq)
+  {
+    qDebug() << "Wrong sequence number. Possibly missing SIP messages? Expected cseq:" << oldLink->cseq
+             << "got:" << info->cSeq;
+  }
 
 }
