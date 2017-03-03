@@ -87,7 +87,7 @@ void SIPStringComposer::viaIP(messageID id, QHostAddress address, QString& branc
   messages_.at(id - 1)->branch = branch;
 }
 
-void SIPStringComposer::maxForwards(messageID id, uint32_t forwards)
+void SIPStringComposer::maxForwards(messageID id, uint16_t forwards)
 {
   Q_ASSERT(messages_.size() >= id && messages_.at(id - 1) != 0);
   QString num;
@@ -202,7 +202,10 @@ QString SIPStringComposer::composeMessage(messageID id)
   message += lineEnding;
 
   message += "Call-ID: " + messages_.at(id - 1)->callID + lineEnding;
-  message += "CSeq: " + messages_.at(id - 1)->cSeq + lineEnding;
+  message += "CSeq: " + messages_.at(id - 1)->cSeq + " " + messages_.at(id - 1)->request + lineEnding;
+
+  message += "Contact: <sip:" + messages_.at(id - 1)->ourUsername
+      + "@" + messages_.at(id - 1)->ourLocation + ">" + lineEnding;
 
   if(!messages_.at(id - 1)->contentType.isEmpty() &&
      !messages_.at(id - 1)->contentLength.isEmpty())

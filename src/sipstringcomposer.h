@@ -9,8 +9,7 @@
  * only that all required fields are provided.
  * Usage: call startRequest or startResponse */
 
-enum MessageType {NOREQUEST, INVITE, ACK, BYE, CANCEL, OPTIONS, REGISTER, OK200}; // RFC 3261
-              //PRACK,SUBSCRIBE, NOTIFY, PUBLISH, INFO, REFER, MESSAGE, UPDATE }; RFC 3262, 6665, 3903, 6086, 3515, 3428, 3311
+#include "common.h"
 
 typedef int16_t messageID;
 
@@ -35,7 +34,7 @@ public:
   void via(messageID id, const QHostInfo& hostname, QString& branch);
   void viaIP(messageID id, QHostAddress address, QString& branch);
 
-  void maxForwards(messageID id, uint32_t forwards);
+  void maxForwards(messageID id, uint16_t forwards);
 
   // string must include host!
   void setCallID(messageID id, QString& callID);
