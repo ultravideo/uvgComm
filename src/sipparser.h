@@ -1,14 +1,15 @@
 #pragma once
 
 
-#include <QHostAddress>
+#include "common.h"
 
+#include <QHostAddress>
 #include <QString>
 
-#include "common.h"
 #include <memory>
 
-// TODO maybe combine this with other sip message structures such as session or compser message structure
+
+// if strict has not been set, these can include
 struct SIPMessageInfo
 {
   MessageType request;
@@ -16,8 +17,7 @@ struct SIPMessageInfo
 
   QString theirName;
   QString theirUsername;
-
-  QHostAddress theirLocation;
+  QString theirLocation;
 
   QString theirTag;
 
@@ -27,17 +27,20 @@ struct SIPMessageInfo
   QString ourUsername;
   QString ourLocation;
   QString ourTag;
-  QString replyAddress; // TODO more than one via possible
+  QList<QHostAddress> replyAddress;
+  QList<QHostAddress> contactAddress;
+
   QString branch;
 
   QString callID;
+  QString host;
 
   uint32_t cSeq;
 
   QString contentType;
-  QString content;
 };
 
-  // returns a null pointer if parsing is not successful
+  // returns a filled SIPMessageInfo if possible, otherwise
+  // returns a null pointer if parsing was not successful
   std::unique_ptr<SIPMessageInfo> parseSIPMessage(QString& header);
 

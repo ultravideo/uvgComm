@@ -3,7 +3,12 @@
 #include <iostream>
 #include <sstream>
 
+#include <QRegularExpression>
+#include <QRegularExpressionMatch>
 #include <QList>
+#include <QHostInfo>
+
+
 
 struct HeaderLine
 {
@@ -11,9 +16,12 @@ struct HeaderLine
   quint8 words;
 };
 
-// remember to update tableToInfo if adding new header fields!
+//TODO: possiblity of having more than one same line in header.
+
+// remember to also update tableToInfo if adding new header fields!
 const QList<HeaderLine> HEADERLINES(
 {
+      {"METHOD", 3},
       {"Via:", 3},
       {"Max-Forwards:", 2},
       {"To:", 3},
@@ -28,15 +36,25 @@ const QList<HeaderLine> HEADERLINES(
 
 // TODO this changes depending on the message type, maybe make a function/table for that
 const uint16_t MANDATORYLINES = 9;
-const uint16_t FIRSTLINEWORDS = 3;
+const bool STRICT = true;
 
 
-bool parseMethodName(SIPMessageInfo* info, QString line);
+// Functions
+
 
 void messageToTable(QStringList& lines, QList<QStringList> &values);
-void tableToInfo(QList<QStringList>& values, SIPMessageInfo* info);
-
+SIPMessageInfo* tableToInfo(QList<QStringList>& values);
 bool checkSIPMessage(QList<QStringList>& values);
+
+void parseSIPaddress(QString address, QString& user, QString& location);
+QList<QHostAddress> parseIPAddress(QString address);
+bool parseSIPParameter(QString field, QString parameterName,
+                       QString& parameterValue, QString& remaining);
+
+void cleanup(SIPMessageInfo* info);
+
+
+
 
 void cleanup(SIPMessageInfo* info)
 {
@@ -44,95 +62,180 @@ void cleanup(SIPMessageInfo* info)
     delete info;
 }
 
-
-// The basi logic goes as follow:
-// 1. Parse first line with method name
-// 2. then sort the header-fields to an array
-// 3. then set info fields from sorted array where everything is in place
 std::unique_ptr<SIPMessageInfo> parseSIPMessage(QString& header)
 {
-  SIPMessageInfo* info = new SIPMessageInfo;
-
   QStringList lines = header.split("\r\n");
 
   qDebug() << "SIP message split into"  << lines.length() << "lines";
 
   QList<QStringList> values;
 
-
-  if(!parseMethodName(info, lines.at(0)))
+  // increase the list size
+  while(values.size() < HEADERLINES.size())
   {
-     cleanup(info);
-     return NULL;
+    values.append(QStringList(""));
   }
 
   messageToTable(lines, values);
   if(!checkSIPMessage(values))
     return NULL;
-  tableToInfo(values, info);
+
+  SIPMessageInfo* info = tableToInfo(values);
 
   return std::unique_ptr<SIPMessageInfo> (info);
-}
-
-bool parseMethodName(SIPMessageInfo* info, QString line)
-{
-  qDebug() << "Parsing method name";
-  QStringList words = line.split(" ");
-
-  if(words.length() != FIRSTLINEWORDS)
-  {
-    qDebug() << "First line had wrong number of words:"<< words.length()
-             << "Expected:" << FIRSTLINEWORDS;
-    qDebug() << "Tried to parse following line:" << line;
-    return false;
-  }
-
-  if(words.at(0) == "INVITE")
-  {
-    info->request = INVITE;
-    qDebug() << "INVITE found";
-  }
-  else
-  {
-    qDebug() << "Unrecognized Method:" << words.at(0);
-  }
-
-  return true;
 }
 
 void messageToTable(QStringList& lines, QList<QStringList> &values)
 {
   qDebug() << "Sorting sip message to table for lookup";
 
-  for(unsigned int i = 1;  i < lines.length(); ++i)
+  for(uint32_t i = 0;  i < lines.length(); ++i)
   {
-    qDebug() << "Line" << i + 1 << "contents:" << lines.at(i);
+    qDebug() << "Line" << i << "contents:" << lines.at(i);
     QStringList words = lines.at(i).split(" ");
 
-    for(auto field : HEADERLINES)
+    if(i == 0)
     {
-      if(QString::compare(words.at(0), field.name, Qt::CaseInsensitive) == 0)
+      values[0] = words;
+    }
+    else
+    {
+      // find headertype in array
+      for(uint32_t j = 1; j < HEADERLINES.size(); ++j)
       {
-        // increase the list size to
-        while(values.size() < i)
+        // RFC-3261 defines headers as case-insensitive
+        if(QString::compare(words.at(0), HEADERLINES.at(j).name, Qt::CaseInsensitive) == 0)
         {
-          values.append(QStringList(""));
+          values[j] = words;
         }
-
-        values[i - 1] = words;
       }
     }
   }
 }
 
-void tableToInfo(QList<QStringList>& values, SIPMessageInfo* info)
+SIPMessageInfo* tableToInfo(QList<QStringList>& values)
 {
-  qDebug() << "";
+  SIPMessageInfo* info = new SIPMessageInfo;
+
+  qDebug() << "Converting table to struct";
+
+  if(values.at(0).at(0) == "INVITE")
+  {
+    info->request = INVITE;
+    qDebug() << "INVITE found";
+
+    // TODO: this affects which header-lines are mandatory,
+    //       and it should be taken into account
+  }
+  else
+  {
+    qDebug() << "Unrecognized Method:" << values.at(0).at(0);
+    cleanup(info);
+    return NULL;
+  }
+
+  // values has been set according to HEADERLINES-table
+  // and their existance has been checked in checkSIPMessage-function
+  info->version = values.at(0).at(2).right(3);
+  qDebug() << "Version:" << info->version;
+
+  info->theirName = values.at(4).at(1);
+  info->ourName = values.at(3).at(1);
+
+  QString replyAddress = "";
+  parseSIPParameter(values.at(1).at(2), ";branch=", info->branch, replyAddress);
+
+  if(STRICT && info->branch.isEmpty())
+  {
+    cleanup(info);
+    return NULL;
+  }
+
+  info->replyAddress = parseIPAddress(replyAddress);
+
+  /*
+  QRegularExpression re("\\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\\.|$)){4}\\b");
+  if(re.match(replyAddress).hasMatch())
+  {
+    qDebug() << "Found IPv4 address:" << replyAddress;
+    info->replyAddress.append(QHostAddress(replyAddress));
+  }
+  else
+  {
+    qDebug() << "Did not find IPv4 address:" << replyAddress;
+    QHostInfo hostInfo;
+    hostInfo.setHostName(replyAddress);
+
+    info->replyAddress.append(hostInfo.addresses());
+  }
+*/
+
+  QStringList callIDsplit = values.at(5).at(1).split("@");
+
+  if(callIDsplit.size() != 2)
+  {
+    qDebug() << "Unclear CallID:" << callIDsplit;
+    if(STRICT || callIDsplit.size() > 2)
+    {
+      cleanup(info);
+      return NULL;
+    }
+    info->host = "";
+  }
+  else
+  {
+    info->host = callIDsplit.at(1);
+  }
+
+  info->callID = callIDsplit.at(0);
+
+  qDebug() << "CallID:" << info->callID;
+
+  QString toSIPAddress = "";
+  QString fromSIPAddress = "";
+
+  parseSIPParameter(values.at(3).at(2), ";tag=", info->ourTag, toSIPAddress);
+  parseSIPParameter(values.at(4).at(2), ";tag=", info->theirTag, fromSIPAddress);
+
+  if(STRICT && info->theirTag.isEmpty())
+  {
+    qDebug() << "They did not send their tag!";
+    cleanup(info);
+    return NULL;
+  }
+
+  parseSIPaddress(toSIPAddress, info->ourUsername, info->ourLocation);
+  parseSIPaddress(fromSIPAddress, info->theirUsername, info->theirLocation);
+
+  bool ok = false;
+  info->cSeq = values.at(6).at(1).toInt(&ok);
+
+  if(!ok && STRICT)
+  {
+    qDebug() << "Some junk in cSeq:" << info->cSeq;
+    delete info;
+    return NULL;
+  }
+
+  QString username ="";
+  QString contactAddress = "";
+
+  parseSIPaddress(values.at(7).at(1), username, contactAddress);
+
+  info->contactAddress = parseIPAddress(contactAddress);
+
+  info->contentType = values.at(8).at(1);
+  return info;
 }
 
 bool checkSIPMessage(QList<QStringList>& values)
 {
   qDebug() << "Checking SIP message";
+  if(values.size() == 0)
+  {
+    qDebug() << "Message creation had failed previously";
+    return false;
+  }
 
   if(values.size() < MANDATORYLINES)
   {
@@ -151,6 +254,68 @@ bool checkSIPMessage(QList<QStringList>& values)
       qDebug() << "Line:" << values[i];
       return false;
     }
-
   }
+
+  qDebug() << "No immidiate problems detected in SIP message";
+  return true;
+}
+
+void parseSIPaddress(QString address, QString& user, QString& location)
+{
+  QStringList splitAddress = address.split("@");
+
+  if(splitAddress.size() != 2)
+  {
+    user = "";
+    location = "";
+    return;
+  }
+
+  user = splitAddress.at(0).right(splitAddress.at(0).length() - 5);
+  location = splitAddress.at(1).left(splitAddress.at(1).length() - 1);
+
+  qDebug() << "Parsed SIP address:" << address
+           << "to user:" << user << "and location:" << location;
+}
+
+
+bool parseSIPParameter(QString field, QString parameterName,
+                       QString& parameterValue, QString& remaining)
+{
+  QStringList parameterSplit = field.split(parameterName);
+
+  if(parameterSplit.size() != 2)
+  {
+    qDebug() << "Did not find" << parameterName << "in" << field;
+    parameterValue = "";
+  }
+  else
+  {
+    qDebug() << "Found" << parameterName;
+    parameterValue = parameterSplit.at(1);
+  }
+  remaining = parameterSplit.at(0);
+}
+
+
+QList<QHostAddress> parseIPAddress(QString address)
+{
+  QList<QHostAddress> ipAddresses;
+
+  QRegularExpression re("\\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\\.|$)){4}\\b");
+  if(re.match(address).hasMatch())
+  {
+    qDebug() << "Found IPv4 address:" << address;
+    ipAddresses.append(QHostAddress(address));
+  }
+  else
+  {
+    qDebug() << "Did not find IPv4 address:" << address;
+    QHostInfo hostInfo;
+    hostInfo.setHostName(address);
+
+    ipAddresses.append(hostInfo.addresses());
+  }
+
+  return ipAddresses;
 }
