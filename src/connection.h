@@ -43,15 +43,15 @@ public:
     return ID_;
   }
 
-  static uint32_t generateID()
+  static quint32 generateID()
   {
-    static uint32_t currentID_ = 0;
+    static quint32 currentID_ = 0;
     return ++currentID_;
   }
 
 signals:
   void error(int socketError, const QString &message);
-  void messageAvailable(QString header, QString content, uint32_t id);
+  void messageAvailable(QString header, QString content, quint32 id);
 
 private slots:
   void receivedMessage();
@@ -92,7 +92,7 @@ private:
   bool running_;
   bool started_;
 
-  uint32_t ID_; // id for this connection
+  quint32 ID_; // id for this connection
 
 
   QString leftOvers_;
