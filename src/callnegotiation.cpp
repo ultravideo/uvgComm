@@ -126,6 +126,10 @@ void CallNegotiation::processMessage(QString header, QString content, quint32 co
     if(info != 0)
     {
       Q_ASSERT(info->callID != "");
+      QString callID = info->callID;
+      QString theirname;
+      MessageType type = info->request;
+
       if(sessions_.find(info->callID) == sessions_.end())
       {
         qDebug() << "New Call-ID detected:" << info->callID << "Creating session...";
@@ -140,6 +144,19 @@ void CallNegotiation::processMessage(QString header, QString content, quint32 co
         // updating everything that has changed for our next message
         updateSIPLink(std::move(info));
       }
+
+      //react to message
+
+      switch(type)
+      {
+      case INVITE:
+      {
+        emit incomingINVITE(callID);
+        break;
+      }
+
+      }
+
     }
     else
     {

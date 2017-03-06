@@ -1,6 +1,8 @@
 #include "callwindow.h"
 #include "ui_callwindow.h"
 
+#include "ui_callingwidget.h"
+
 #include "statisticswindow.h"
 
 #include <QCloseEvent>
@@ -16,9 +18,11 @@ const uint16_t PORTSPERPARTICIPANT = 4;
 CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height) :
   QMainWindow(parent),
   ui_(new Ui::CallWindow),
+  widget_(new Ui::CallerWidget),
   stats_(new StatisticsWindow(this)),
   call_(stats_),
   call_neg_(),
+  callingWidget_(new QWidget),
   timer_(new QTimer(this)),
   row_(0),
   column_(0),
@@ -26,6 +30,8 @@ CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height) :
   portsOpen_(0)
 {
   ui_->setupUi(this);
+  widget_->setupUi(callingWidget_);
+
   currentResolution_ = QSize(width, height);
 
   // GUI updates are handled solely by timer
@@ -51,10 +57,10 @@ void CallWindow::startStream()
 {
   call_neg_.init();
 
+  QObject::connect(&call_neg_, SIGNAL(incomingINVITE(QString)), this, SLOT(incomingCall(QString)));
+
   call_.init();
   call_.startCall(ui_->SelfView, currentResolution_);
-
-
 }
 
 void CallWindow::addParticipant()
@@ -150,4 +156,10 @@ void CallWindow::closeEvent(QCloseEvent *event)
   //delete stats_;
   //stats_ = 0;
   QMainWindow::closeEvent(event);
+}
+
+
+void CallWindow::incomingCall(QString caller)
+{
+  callingWidget_->show();
 }

@@ -81,7 +81,8 @@ HEADERS  += \
 FORMS    += \
     ui/callwindow.ui \
     ui/mainwindow.ui \
-    ui/statisticswindow.ui
+    ui/statisticswindow.ui \
+    ui/callingwidget.ui
 
 
 QT+=multimedia

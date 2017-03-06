@@ -41,6 +41,12 @@ public:
 
   void endCall();
 
+signals:
+
+  // somebody wants to call us. Ask user whether this person is ok
+  void incomingINVITE(QString caller);
+
+
 private slots:
   void receiveConnection(Connection* con);
   void processMessage(QString header, QString content, quint32 connectionID);

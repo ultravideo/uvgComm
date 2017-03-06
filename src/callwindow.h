@@ -9,6 +9,7 @@ class StatisticsWindow;
 
 namespace Ui {
 class CallWindow;
+class CallerWidget;
 }
 
 class CallWindow : public QMainWindow
@@ -34,14 +35,20 @@ public slots:
    void micState();
    void cameraState();
 
+   void incomingCall(QString caller);
+
+
 private:
   Ui::CallWindow *ui_;
+  Ui::CallerWidget *widget_;
+
   StatisticsWindow *stats_;
 
   CallManager call_;
 
   CallNegotiation call_neg_;
 
+  QWidget* callingWidget_;
 
   QTimer *timer_; // for GUI update
 
