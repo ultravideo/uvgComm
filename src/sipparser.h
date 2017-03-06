@@ -18,6 +18,8 @@ struct SIPMessageInfo
   QString theirName;
   QString theirUsername;
   QString theirLocation;
+  QString replyAddress;
+  QString contactAddress;
 
   QString theirTag;
 
@@ -27,8 +29,6 @@ struct SIPMessageInfo
   QString ourUsername;
   QString ourLocation;
   QString ourTag;
-  QList<QHostAddress> replyAddress;
-  QList<QHostAddress> contactAddress;
 
   QString branch;
 

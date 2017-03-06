@@ -54,47 +54,58 @@ void CallNegotiation::startCall(QList<Contact> addresses, QString sdp)
   qDebug() << "Starting call negotiation";
   for (int i = 0; i < addresses.size(); ++i)
   {
+    std::shared_ptr<CallNegotiation::SIPLink> link = newSIPLink();
+
     Connection* con = new Connection;
+    connectionMutex_.lock();
     connections_.push_back(con);
+    link->connectionID = connections_.size();
+    connectionMutex_.unlock();
     QObject::connect(con, SIGNAL(messageAvailable(QString, QString, quint32)),
                      this, SLOT(processMessage(QString, QString, quint32)));
 
-    QString address = addresses.at(i).address.toString();
-
+    QString address = addresses.at(i).contactAddress;
     con->establishConnection(address, sipPort_);
 
-    std::shared_ptr<CallNegotiation::SIPLink> link = newSIPLink();
-    link->connectionID = connections_.size();
-    link->peer.address = addresses.at(i).address;
+    link->contact = addresses.at(i);
+
+    if(link->contact.name.isEmpty())
+    {
+      qWarning() << "Warning: No name was given for callee";
+      link->contact.name = "Unknown";
+    }
+
+    if(link->contact.username.isEmpty())
+    {
+      qWarning() << "Warning: No username was given for callee";
+      link->contact.username = "unknown";
+    }
 
     link->sdp = sdp;
     link->theirTag = "";
 
     //contact->sender.init(contact->peer.address, sipPort_);
 
-    link->theirName = "Unknown";
-    link->theirUsername = "unknown";
-
     sendRequest(INVITE, link);
   }
 }
 
-void CallNegotiation::sendRequest(MessageType request, std::shared_ptr<SIPLink> contact)
+void CallNegotiation::sendRequest(MessageType request, std::shared_ptr<SIPLink> link)
 {
   // TODO: names
-  ++contact->cseq;
+  ++link->cseq;
 
   QString branch = generateRandomString(BRANCHLENGTH);
 
   messageID id = messageComposer_.startSIPString(request);
-  messageComposer_.toIP(id, contact->theirName, contact->theirUsername,
-                        contact->peer.address, contact->theirTag);
-  messageComposer_.fromIP(id, ourName_, ourUsername_, ourLocation_, contact->ourTag);
+  messageComposer_.to(id, link->contact.name, link->contact.username,
+                        link->contact.contactAddress, link->theirTag);
+  messageComposer_.fromIP(id, ourName_, ourUsername_, ourLocation_, link->ourTag);
   messageComposer_.viaIP(id, ourLocation_, branch);
   messageComposer_.maxForwards(id, MAXFORWARDS);
-  messageComposer_.setCallID(id, contact->callID);
-  messageComposer_.sequenceNum(id, contact->cseq);
-  messageComposer_.addSDP(id, contact->sdp);
+  messageComposer_.setCallID(id, link->callID);
+  messageComposer_.sequenceNum(id, link->cseq);
+  messageComposer_.addSDP(id, link->sdp);
 
   QString SIPRequest = messageComposer_.composeMessage(id);
 
@@ -102,7 +113,9 @@ void CallNegotiation::sendRequest(MessageType request, std::shared_ptr<SIPLink> 
   qDebug().noquote() << SIPRequest;
 
   QByteArray message = SIPRequest.toUtf8();
-  connections_.at(contact->connectionID - 1)->sendPacket(message);
+  connections_.at(link->connectionID - 1)->sendPacket(message);
+
+  link->sentRequest = request;
 }
 
 void CallNegotiation::receiveConnection(Connection* con)
@@ -127,7 +140,7 @@ void CallNegotiation::processMessage(QString header, QString content, quint32 co
     {
       Q_ASSERT(info->callID != "");
       QString callID = info->callID;
-      QString theirname;
+      QString theirname = info->theirName;
       MessageType type = info->request;
 
       if(sessions_.find(info->callID) == sessions_.end())
@@ -149,14 +162,17 @@ void CallNegotiation::processMessage(QString header, QString content, quint32 co
 
       switch(type)
       {
-      case INVITE:
+        case INVITE:
+        {
+          qDebug() << "Found INVITE";
+          emit incomingINVITE(callID, theirname);
+          break;
+        }
+      default:
       {
-        emit incomingINVITE(callID);
-        break;
+        qDebug() << "Warning. Rrequest/response unimplemented";
       }
-
       }
-
     }
     else
     {
@@ -210,7 +226,12 @@ void CallNegotiation::newSIPLinkFromMessage(std::unique_ptr<SIPMessageInfo> info
   std::shared_ptr<CallNegotiation::SIPLink> link
       = std::shared_ptr<CallNegotiation::SIPLink> (new SIPLink);
 
+  if(info->ourTag != "")
+  {
+    qDebug() << "WHY DO THEY HAVE OUR TAG BEFORE IT WAS GENERATED!?!";
+  }
 
+  link->ourTag = generateRandomString(TAGLENGTH);
 }
 
 void CallNegotiation::updateSIPLink(std::unique_ptr<SIPMessageInfo> info)
@@ -229,4 +250,26 @@ void CallNegotiation::updateSIPLink(std::unique_ptr<SIPMessageInfo> info)
              << "got:" << info->cSeq;
   }
 
+}
+
+QList<QHostAddress> parseIPAddress(QString address)
+{
+  QList<QHostAddress> ipAddresses;
+
+  QRegularExpression re("\\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\\.|$)){4}\\b");
+  if(re.match(address).hasMatch())
+  {
+    qDebug() << "Found IPv4 address:" << address;
+    ipAddresses.append(QHostAddress(address));
+  }
+  else
+  {
+    qDebug() << "Did not find IPv4 address:" << address;
+    QHostInfo hostInfo;
+    hostInfo.setHostName(address);
+
+    ipAddresses.append(hostInfo.addresses());
+  }
+
+  return ipAddresses;
 }

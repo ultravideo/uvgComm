@@ -47,7 +47,6 @@ SIPMessageInfo* tableToInfo(QList<QStringList>& values);
 bool checkSIPMessage(QList<QStringList>& values);
 
 void parseSIPaddress(QString address, QString& user, QString& location);
-QList<QHostAddress> parseIPAddress(QString address);
 bool parseSIPParameter(QString field, QString parameterName,
                        QString& parameterValue, QString& remaining);
 
@@ -151,24 +150,8 @@ SIPMessageInfo* tableToInfo(QList<QStringList>& values)
     return NULL;
   }
 
-  info->replyAddress = parseIPAddress(replyAddress);
-
-  /*
-  QRegularExpression re("\\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\\.|$)){4}\\b");
-  if(re.match(replyAddress).hasMatch())
-  {
-    qDebug() << "Found IPv4 address:" << replyAddress;
-    info->replyAddress.append(QHostAddress(replyAddress));
-  }
-  else
-  {
-    qDebug() << "Did not find IPv4 address:" << replyAddress;
-    QHostInfo hostInfo;
-    hostInfo.setHostName(replyAddress);
-
-    info->replyAddress.append(hostInfo.addresses());
-  }
-*/
+  //info->replyAddress = parseIPAddress(replyAddress);
+  info->replyAddress = replyAddress;
 
   QStringList callIDsplit = values.at(5).at(1).split("@");
 
@@ -222,7 +205,9 @@ SIPMessageInfo* tableToInfo(QList<QStringList>& values)
 
   parseSIPaddress(values.at(7).at(1), username, contactAddress);
 
-  info->contactAddress = parseIPAddress(contactAddress);
+  //info->contactAddress = parseIPAddress(contactAddress);
+  info->contactAddress = contactAddress;
+
 
   info->contentType = values.at(8).at(1);
   return info;
@@ -298,24 +283,3 @@ bool parseSIPParameter(QString field, QString parameterName,
 }
 
 
-QList<QHostAddress> parseIPAddress(QString address)
-{
-  QList<QHostAddress> ipAddresses;
-
-  QRegularExpression re("\\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\\.|$)){4}\\b");
-  if(re.match(address).hasMatch())
-  {
-    qDebug() << "Found IPv4 address:" << address;
-    ipAddresses.append(QHostAddress(address));
-  }
-  else
-  {
-    qDebug() << "Did not find IPv4 address:" << address;
-    QHostInfo hostInfo;
-    hostInfo.setHostName(address);
-
-    ipAddresses.append(hostInfo.addresses());
-  }
-
-  return ipAddresses;
-}

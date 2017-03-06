@@ -35,7 +35,7 @@ public slots:
    void micState();
    void cameraState();
 
-   void incomingCall(QString caller);
+   void incomingCall(QString callID, QString caller);
 
 
 private:

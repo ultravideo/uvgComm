@@ -24,13 +24,13 @@ public:
   messageID startSIPString(const MessageType message, const QString& SIPversion = "2.0");
 
   // include their tag only if it was already provided
-  void to(messageID id, QString& name, QString& username, const QHostInfo& hostname, const QString& tag = "");
-  void toIP(messageID id, QString& name, QString& username, const QHostAddress& address, const QString& tag = "");
+  void to(messageID id, QString& name, QString& username, const QString& hostname, const QString& tag = "");
 
   void from(messageID id, QString& name, QString& username, const QHostInfo& hostname, const QString& tag);
   void fromIP(messageID id, QString& name, QString& username, const QHostAddress& address, const QString& tag);
 
-  // Where to send responses. branch is generated. Also adds the contact field with same info.
+  // Where to send responses. branch is generated.
+  // Also adds the contact (where to send requests) field with same info.
   void via(messageID id, const QHostInfo& hostname, QString& branch);
   void viaIP(messageID id, QHostAddress address, QString& branch);
 

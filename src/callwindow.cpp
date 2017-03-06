@@ -15,6 +15,8 @@ const uint16_t MAXOPENPORTS = 42;
 const uint16_t PORTSPERPARTICIPANT = 4;
 
 
+
+
 CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height) :
   QMainWindow(parent),
   ui_(new Ui::CallWindow),
@@ -57,7 +59,8 @@ void CallWindow::startStream()
 {
   call_neg_.init();
 
-  QObject::connect(&call_neg_, SIGNAL(incomingINVITE(QString)), this, SLOT(incomingCall(QString)));
+  QObject::connect(&call_neg_, SIGNAL(incomingINVITE(QString, QString)),
+                   this, SLOT(incomingCall(QString, QString)));
 
   call_.init();
   call_.startCall(ui_->SelfView, currentResolution_);
@@ -75,8 +78,9 @@ void CallWindow::addParticipant()
 
     Contact con;
 
-    con.address = QString(ip_str);
-    con.name = "somebody";
+    con.contactAddress = ip_str;
+    con.name = "Unknown";
+    con.username = "unknown";
 
     QList<Contact> list;
     list.append(con);
@@ -158,8 +162,8 @@ void CallWindow::closeEvent(QCloseEvent *event)
   QMainWindow::closeEvent(event);
 }
 
-
-void CallWindow::incomingCall(QString caller)
+void CallWindow::incomingCall(QString callID, QString caller)
 {
+  widget_->CallerLabel->setText(caller + " is calling..");
   callingWidget_->show();
 }

@@ -29,24 +29,14 @@ messageID SIPStringComposer::startSIPString(const MessageType message, const QSt
 }
 
 // include their tag only if it was already provided
-void SIPStringComposer::to(messageID id, QString& name, QString &username, const QHostInfo& hostname, const QString& tag)
+void SIPStringComposer::to(messageID id, QString& name, QString &username, const QString &hostname, const QString& tag)
 {
   Q_ASSERT(messages_.size() >= id && messages_.at(id - 1) != 0);
   Q_ASSERT(!name.isEmpty() && !username.isEmpty());
 
   messages_.at(id - 1)->theirName = name;
   messages_.at(id - 1)->theirUsername = username;
-  messages_.at(id - 1)->theirLocation = hostname.hostName();
-  messages_.at(id - 1)->theirTag = tag;
-}
-
-void SIPStringComposer::toIP(messageID id, QString& name, QString &username, const QHostAddress& address, const QString& tag)
-{
-  Q_ASSERT(messages_.size() >= id && messages_.at(id - 1) != 0);
- // Q_ASSERT(messages_.at(id - 1).);
-  messages_.at(id - 1)->theirName = name;
-  messages_.at(id - 1)->theirUsername = username;
-  messages_.at(id - 1)->theirLocation = address.toString();
+  messages_.at(id - 1)->theirLocation = hostname;
   messages_.at(id - 1)->theirTag = tag;
 }
 
