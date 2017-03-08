@@ -58,6 +58,7 @@ private:
   struct SIPLink
   {
     QString callID; // for identification
+    QString host;
 
     Contact contact;
 

@@ -84,11 +84,12 @@ void SIPStringComposer::maxForwards(messageID id, uint16_t forwards)
   messages_.at(id - 1)->maxForwards = num.setNum(forwards);
 }
 
-void SIPStringComposer::setCallID(messageID id, QString& callID)
+void SIPStringComposer::setCallID(messageID id, QString& callID, QString &host)
 {
   Q_ASSERT(messages_.size() >= id && messages_.at(id - 1) != 0);
 
   messages_.at(id - 1)->callID = callID;
+  messages_.at(id - 1)->host = host;
 }
 
 void SIPStringComposer::sequenceNum(messageID id, uint32_t seq)
@@ -127,6 +128,7 @@ QString SIPStringComposer::composeMessage(messageID id)
      messages_.at(id - 1)->replyAddress.isEmpty() ||
      messages_.at(id - 1)->ourTag.isEmpty() ||
      messages_.at(id - 1)->callID.isEmpty() ||
+     messages_.at(id - 1)->host.isEmpty() ||
      messages_.at(id - 1)->cSeq.isEmpty() ||
      messages_.at(id - 1)->branch.isEmpty())
   {
@@ -191,7 +193,7 @@ QString SIPStringComposer::composeMessage(messageID id)
   }
   message += lineEnding;
 
-  message += "Call-ID: " + messages_.at(id - 1)->callID + lineEnding;
+  message += "Call-ID: " + messages_.at(id - 1)->callID + "@" + messages_.at(id - 1)->host + lineEnding;
   message += "CSeq: " + messages_.at(id - 1)->cSeq + " " + messages_.at(id - 1)->request + lineEnding;
 
   message += "Contact: <sip:" + messages_.at(id - 1)->ourUsername

@@ -37,7 +37,7 @@ public:
   void maxForwards(messageID id, uint16_t forwards);
 
   // string must include host!
-  void setCallID(messageID id, QString& callID);
+  void setCallID(messageID id, QString& callID, QString& host);
 
   void sequenceNum(messageID id, uint32_t seq);
 
@@ -75,6 +75,7 @@ private:
     QString branch;       // via-function
 
     QString callID; // setCallID-function
+    QString host;
 
     QString cSeq; // sequenceNumber-function
 

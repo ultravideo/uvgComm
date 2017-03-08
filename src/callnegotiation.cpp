@@ -101,7 +101,7 @@ void CallNegotiation::sendRequest(MessageType request, std::shared_ptr<SIPLink> 
   messageComposer_.fromIP(id, ourName_, ourUsername_, ourLocation_, link->ourTag);
   messageComposer_.viaIP(id, ourLocation_, branch);
   messageComposer_.maxForwards(id, MAXFORWARDS);
-  messageComposer_.setCallID(id, link->callID);
+  messageComposer_.setCallID(id, link->callID, link->host);
   messageComposer_.sequenceNum(id, link->cSeq);
   messageComposer_.addSDP(id, link->sdp);
 
@@ -185,9 +185,7 @@ std::shared_ptr<CallNegotiation::SIPLink> CallNegotiation::newSIPLink()
   std::shared_ptr<SIPLink> link (new SIPLink);
 
   link->callID = generateRandomString(CALLIDLENGTH);
-
-  link->callID.append("@");
-  link->callID.append(ourLocation_.toString());
+  link->host = ourLocation_.toString();
 
   qDebug() << "Generated CallID: " << link->callID;
 
@@ -199,6 +197,7 @@ std::shared_ptr<CallNegotiation::SIPLink> CallNegotiation::newSIPLink()
   if(sessions_.find(link->callID) == sessions_.end())
   {
     sessions_[link->callID] = link;
+    qDebug() << "SIPLink added to sessions";
   }
   else
   {
@@ -262,7 +261,7 @@ bool CallNegotiation::compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info, q
     // this would be our problem
     Q_ASSERT(link->callID == info->callID);
 
-    if(info->ourTag != link->ourTag && STRICTSIPPROCESSING)
+    if(!info->ourTag.isEmpty() && info->ourTag != link->ourTag && STRICTSIPPROCESSING)
     {
       qDebug() << "Our tag has changed! Something went wrong on other end.";
       return false;
@@ -283,6 +282,7 @@ bool CallNegotiation::compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info, q
     if(link->connectionID != connectionID)
     {
       qWarning() << "WARNING: Unexpected change of connection ID";
+      qDebug() << "Maybe we are calling ourselves";
     }
 
     // TODO  Maybe check the name portion also
