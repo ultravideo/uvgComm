@@ -20,11 +20,11 @@ const uint16_t PORTSPERPARTICIPANT = 4;
 CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height) :
   QMainWindow(parent),
   ui_(new Ui::CallWindow),
-  widget_(new Ui::CallerWidget),
+  ui_widget_(new Ui::CallerWidget),
   stats_(new StatisticsWindow(this)),
-  call_(stats_),
-  call_neg_(),
   callingWidget_(new QWidget),
+  call_neg_(),
+  call_(stats_),
   timer_(new QTimer(this)),
   row_(0),
   column_(0),
@@ -32,7 +32,7 @@ CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height) :
   portsOpen_(0)
 {
   ui_->setupUi(this);
-  widget_->setupUi(callingWidget_);
+  ui_widget_->setupUi(callingWidget_);
 
   currentResolution_ = QSize(width, height);
 
@@ -85,37 +85,45 @@ void CallWindow::addParticipant()
     QList<Contact> list;
     list.append(con);
 
+    //start negotiations for this connection
     call_neg_.startCall(list, "");
 
-    uint16_t nextIp = 0;
+    createParticipant(ip_str, port_str);
 
-    nextIp = port_str.toInt();
-    nextIp += 2; // increase port for convencience
-
-    ui_->port->setText(QString::number(nextIp));
-
-    QHostAddress address;
-    address.setAddress(ip_str);
-
-    in_addr ip;
-    ip.S_un.S_addr = qToBigEndian(address.toIPv4Address());
-
-    VideoWidget* view = new VideoWidget;
-    ui_->participantLayout->addWidget(view, row_, column_);
-
-    // TODO improve this algorithm for more optimized layout
-    ++column_;
-    if(column_ == 3)
-    {
-      column_ = 0;
-      ++row_;
-    }
-
-    call_.addParticipant(ip, port_str.toInt(), view);
-
-    if(stats_)
-      stats_->addParticipant(ip_str, port_str);
   }
+}
+
+void CallWindow::createParticipant(QString ip_str, QString port_str)
+{
+
+  uint16_t nextIp = 0;
+
+  nextIp = port_str.toInt();
+  nextIp += 2; // increase port for convencience
+
+  ui_->port->setText(QString::number(nextIp));
+
+  QHostAddress address;
+  address.setAddress(ip_str);
+
+  in_addr ip;
+  ip.S_un.S_addr = qToBigEndian(address.toIPv4Address());
+
+  VideoWidget* view = new VideoWidget;
+  ui_->participantLayout->addWidget(view, row_, column_);
+
+  // TODO improve this algorithm for more optimized layout
+  ++column_;
+  if(column_ == 3)
+  {
+    column_ = 0;
+    ++row_;
+  }
+
+  call_.addParticipant(ip, port_str.toInt(), view);
+
+  if(stats_)
+    stats_->addParticipant(ip_str, port_str);
 }
 
 void CallWindow::openStatistics()
@@ -157,13 +165,14 @@ void CallWindow::closeEvent(QCloseEvent *event)
 
   stats_->hide();
   stats_->finished(0);
-  //delete stats_;
-  //stats_ = 0;
+
+  callingWidget_->hide();
+
   QMainWindow::closeEvent(event);
 }
 
 void CallWindow::incomingCall(QString callID, QString caller)
 {
-  widget_->CallerLabel->setText(caller + " is calling..");
+  ui_widget_->CallerLabel->setText(caller + " is calling..");
   callingWidget_->show();
 }

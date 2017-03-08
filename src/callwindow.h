@@ -24,11 +24,6 @@ public:
 
   void closeEvent(QCloseEvent *event);
 
-  bool isRunning()
-  {
-    return running_;
-  }
-
 public slots:
    void addParticipant();
    void openStatistics(); // Opens statistics window
@@ -39,16 +34,17 @@ public slots:
 
 
 private:
+
+  void createParticipant(QString ip_str, QString port_str);
+
   Ui::CallWindow *ui_;
-  Ui::CallerWidget *widget_;
+  Ui::CallerWidget *ui_widget_;
 
   StatisticsWindow *stats_;
-
-  CallManager call_;
+  QWidget* callingWidget_;
 
   CallNegotiation call_neg_;
-
-  QWidget* callingWidget_;
+  CallManager call_;
 
   QTimer *timer_; // for GUI update
 
@@ -60,5 +56,4 @@ private:
 
   uint16_t portsOpen_;
 
-  bool running_;
 };
