@@ -88,8 +88,8 @@ void CallWindow::addParticipant()
     //start negotiations for this connection
     call_neg_.startCall(list, "");
 
-    createParticipant(ip_str, port_str);
-
+    ip_ = ip_str;
+    port_ = port_str;
   }
 }
 
@@ -175,4 +175,20 @@ void CallWindow::incomingCall(QString callID, QString caller)
 {
   ui_widget_->CallerLabel->setText(caller + " is calling..");
   callingWidget_->show();
+
+  createParticipant(ip_, port_);
+}
+
+void CallWindow::acceptCall()
+{
+  createParticipant(ip_, port_);
+  callingWidget_->hide();
+}
+
+void CallWindow::rejectCall()
+{
+  ip_ = "";
+  port_ = "";
+
+  callingWidget_->hide();
 }

@@ -27,11 +27,14 @@ public:
 public slots:
    void addParticipant();
    void openStatistics(); // Opens statistics window
+
    void micState();
    void cameraState();
 
    void incomingCall(QString callID, QString caller);
 
+   void acceptCall();
+   void rejectCall();
 
 private:
 
@@ -56,4 +59,6 @@ private:
 
   uint16_t portsOpen_;
 
+  QString ip_;
+  QString port_;
 };

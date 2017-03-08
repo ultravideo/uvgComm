@@ -125,7 +125,8 @@ void CallNegotiation::receiveConnection(Connection* con)
   con->setID(connections_.size());
 }
 
-void CallNegotiation::processMessage(QString header, QString content, quint32 connectionID)
+void CallNegotiation::processMessage(QString header, QString content,
+                                     quint32 connectionID)
 {
   qDebug() << "Processing message";
 
@@ -232,9 +233,9 @@ void CallNegotiation::newSIPLinkFromMessage(std::shared_ptr<SIPMessageInfo> info
   sessions_[info->callID] = link;
 }
 
-bool CallNegotiation::compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info, quint32 connectionID)
+bool CallNegotiation::compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info,
+                                         quint32 connectionID)
 {
-
   qDebug() << "Checking SIP message by comparing it to existing information.";
 
   if(sessions_.find(info->callID) == sessions_.end())
@@ -261,13 +262,15 @@ bool CallNegotiation::compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info, q
     // this would be our problem
     Q_ASSERT(link->callID == info->callID);
 
-    if(!info->ourTag.isEmpty() && info->ourTag != link->ourTag && STRICTSIPPROCESSING)
+    if(!info->ourTag.isEmpty() && info->ourTag != link->ourTag &&
+       STRICTSIPPROCESSING)
     {
       qDebug() << "Our tag has changed! Something went wrong on other end.";
       return false;
     }
 
-    if(!link->theirTag.isEmpty() && info->theirTag != link->theirTag && STRICTSIPPROCESSING)
+    if(!link->theirTag.isEmpty() && info->theirTag != link->theirTag &&
+       STRICTSIPPROCESSING)
     {
       qDebug() << "They have changed their tag! Something went wrong.";
       return false;
@@ -287,9 +290,7 @@ bool CallNegotiation::compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info, q
 
     // TODO  Maybe check the name portion also
   }
-
 }
-
 
 QList<QHostAddress> parseIPAddress(QString address)
 {
