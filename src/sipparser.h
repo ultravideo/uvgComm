@@ -42,5 +42,5 @@ struct SIPMessageInfo
 
   // returns a filled SIPMessageInfo if possible, otherwise
   // returns a null pointer if parsing was not successful
-  std::unique_ptr<SIPMessageInfo> parseSIPMessage(QString& header);
+  std::shared_ptr<SIPMessageInfo> parseSIPMessage(QString& header);
 

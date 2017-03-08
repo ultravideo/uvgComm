@@ -47,8 +47,6 @@ void CallNegotiation::initUs()
   ourUsername_ = "i";
 }
 
-
-
 void CallNegotiation::startCall(QList<Contact> addresses, QString sdp)
 {
   qDebug() << "Starting call negotiation";
@@ -93,7 +91,7 @@ void CallNegotiation::startCall(QList<Contact> addresses, QString sdp)
 void CallNegotiation::sendRequest(MessageType request, std::shared_ptr<SIPLink> link)
 {
   // TODO: names
-  ++link->cseq;
+  ++link->cSeq;
 
   QString branch = generateRandomString(BRANCHLENGTH);
 
@@ -104,7 +102,7 @@ void CallNegotiation::sendRequest(MessageType request, std::shared_ptr<SIPLink> 
   messageComposer_.viaIP(id, ourLocation_, branch);
   messageComposer_.maxForwards(id, MAXFORWARDS);
   messageComposer_.setCallID(id, link->callID);
-  messageComposer_.sequenceNum(id, link->cseq);
+  messageComposer_.sequenceNum(id, link->cSeq);
   messageComposer_.addSDP(id, link->sdp);
 
   QString SIPRequest = messageComposer_.composeMessage(id);
@@ -133,45 +131,36 @@ void CallNegotiation::processMessage(QString header, QString content, quint32 co
 
   if(connectionID != 0)
   {
-    std::unique_ptr<SIPMessageInfo> info = std::move(parseSIPMessage(header));
+    std::shared_ptr<SIPMessageInfo> info = std::move(parseSIPMessage(header));
     qDebug() << "Message parsed";
 
     if(info != 0)
     {
       Q_ASSERT(info->callID != "");
-      QString callID = info->callID;
-      QString theirname = info->theirName;
-      MessageType type = info->request;
 
-      if(sessions_.find(info->callID) == sessions_.end())
+      if(compareSIPLinkInfo(info, connectionID))
       {
-        qDebug() << "New Call-ID detected:" << info->callID << "Creating session...";
+        QString callID = info->callID;
+        MessageType type = info->request;
 
-        // Receiving the first message of this SIP connection
-        newSIPLinkFromMessage(std::move(info), connectionID);
+        newSIPLinkFromMessage(info, connectionID);
+        switch(type)
+        {
+          case INVITE:
+          {
+            qDebug() << "Found INVITE";
+            emit incomingINVITE(callID, sessions_[callID]->contact.name);
+            break;
+          }
+          default:
+          {
+            qDebug() << "Warning. Rrequest/response unimplemented";
+          }
+        }
       }
       else
       {
-        qDebug() << "Existing Call-ID detected. Updating session...";
-
-        // updating everything that has changed for our next message
-        updateSIPLink(std::move(info));
-      }
-
-      //react to message
-
-      switch(type)
-      {
-        case INVITE:
-        {
-          qDebug() << "Found INVITE";
-          emit incomingINVITE(callID, theirname);
-          break;
-        }
-      default:
-      {
-        qDebug() << "Warning. Rrequest/response unimplemented";
-      }
+        qDebug() << "Problem detected in SIP message based on previous information!!";
       }
     }
     else
@@ -202,7 +191,7 @@ std::shared_ptr<CallNegotiation::SIPLink> CallNegotiation::newSIPLink()
 
   qDebug() << "Generated CallID: " << link->callID;
 
-  link->cseq = 0;
+  link->cSeq = 0;
   link->ourTag = generateRandomString(TAGLENGTH);
 
   qDebug() << "Generated tag: " << link->ourTag;
@@ -220,37 +209,87 @@ std::shared_ptr<CallNegotiation::SIPLink> CallNegotiation::newSIPLink()
   return link;
 }
 
-void CallNegotiation::newSIPLinkFromMessage(std::unique_ptr<SIPMessageInfo> info,
-                                            quint32 connectionId)
+void CallNegotiation::newSIPLinkFromMessage(std::shared_ptr<SIPMessageInfo> info,
+                                            quint32 connectionID)
 {
   std::shared_ptr<CallNegotiation::SIPLink> link
       = std::shared_ptr<CallNegotiation::SIPLink> (new SIPLink);
 
-  if(info->ourTag != "")
-  {
-    qDebug() << "WHY DO THEY HAVE OUR TAG BEFORE IT WAS GENERATED!?!";
-  }
+  link->callID = info->callID;
+  link->contact = {info->theirName, info->theirUsername, info->contactAddress};
+  link->replyAddress = info->replyAddress;
+
+  link->cSeq = info->cSeq;
 
   link->ourTag = generateRandomString(TAGLENGTH);
+
+  link->theirTag = info->theirTag;
+
+  //TODO evaluate SDP
+
+  link->connectionID = connectionID;
+  link->sentRequest = NOREQUEST;
+
+  sessions_[info->callID] = link;
 }
 
-void CallNegotiation::updateSIPLink(std::unique_ptr<SIPMessageInfo> info)
+bool CallNegotiation::compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info, quint32 connectionID)
 {
-  qDebug() << "Updating call with ID:" << info->callID;
 
-  std::shared_ptr<SIPLink> oldLink = sessions_[info->callID];
+  qDebug() << "Checking SIP message by comparing it to existing information.";
 
-  Q_ASSERT(oldLink && "Old SIP information doesn't exist");
-
-  ++oldLink->cseq;
-
-  if(info->cSeq != oldLink->cseq)
+  if(sessions_.find(info->callID) == sessions_.end())
   {
-    qDebug() << "Wrong sequence number. Possibly missing SIP messages? Expected cseq:" << oldLink->cseq
-             << "got:" << info->cSeq;
+    qDebug() << "New Call-ID detected:" << info->callID << "Creating session...";
+
+    if(info->ourTag != "" && STRICTSIPPROCESSING)
+    {
+      qDebug() << "WHY DO THEY HAVE OUR TAG BEFORE IT WAS GENERATED!?!";
+      return false;
+    }
+
+    if(info->cSeq != 1 && STRICTSIPPROCESSING)
+    {
+      qDebug() << "Weird first cseq:" << info->cSeq;
+      return false;
+    }
+  }
+  else
+  {
+    qDebug() << "Existing Call-ID detected.";
+    std::shared_ptr<SIPLink> link = sessions_[info->callID];
+
+    // this would be our problem
+    Q_ASSERT(link->callID == info->callID);
+
+    if(info->ourTag != link->ourTag && STRICTSIPPROCESSING)
+    {
+      qDebug() << "Our tag has changed! Something went wrong on other end.";
+      return false;
+    }
+
+    if(!link->theirTag.isEmpty() && info->theirTag != link->theirTag && STRICTSIPPROCESSING)
+    {
+      qDebug() << "They have changed their tag! Something went wrong.";
+      return false;
+    }
+
+    if(info->cSeq != link->cSeq + 1)
+    {
+      qDebug() << "We are missing a message!. Expected cseq:" << link->cSeq + 1
+               << "Got:" << info->cSeq;
+    }
+
+    if(link->connectionID != connectionID)
+    {
+      qWarning() << "WARNING: Unexpected change of connection ID";
+    }
+
+    // TODO  Maybe check the name portion also
   }
 
 }
+
 
 QList<QHostAddress> parseIPAddress(QString address)
 {

@@ -62,7 +62,7 @@ private:
     Contact contact;
 
     QString replyAddress;
-    uint32_t cseq;
+    uint32_t cSeq;
 
     QString ourTag;
     QString theirTag;
@@ -77,9 +77,9 @@ private:
   void initUs();
 
   std::shared_ptr<SIPLink> newSIPLink();
-  void newSIPLinkFromMessage(std::unique_ptr<SIPMessageInfo> info, quint32 connectionId);
+  void newSIPLinkFromMessage(std::shared_ptr<SIPMessageInfo> info, quint32 connectionID);
 
-  void updateSIPLink(std::unique_ptr<SIPMessageInfo> info);
+  bool compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info, quint32 connectionID);
 
   QString generateRandomString(uint32_t length);
 

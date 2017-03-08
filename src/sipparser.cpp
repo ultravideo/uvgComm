@@ -61,7 +61,7 @@ void cleanup(SIPMessageInfo* info)
     delete info;
 }
 
-std::unique_ptr<SIPMessageInfo> parseSIPMessage(QString& header)
+std::shared_ptr<SIPMessageInfo> parseSIPMessage(QString& header)
 {
   QStringList lines = header.split("\r\n");
 
@@ -81,7 +81,7 @@ std::unique_ptr<SIPMessageInfo> parseSIPMessage(QString& header)
 
   SIPMessageInfo* info = tableToInfo(values);
 
-  return std::unique_ptr<SIPMessageInfo> (info);
+  return std::shared_ptr<SIPMessageInfo> (info);
 }
 
 void messageToTable(QStringList& lines, QList<QStringList> &values)
