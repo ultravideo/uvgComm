@@ -36,7 +36,6 @@ const QList<HeaderLine> HEADERLINES(
 
 // TODO this changes depending on the message type, maybe make a function/table for that
 const uint16_t MANDATORYLINES = 9;
-const bool STRICT = true;
 
 
 // Functions
@@ -144,7 +143,7 @@ SIPMessageInfo* tableToInfo(QList<QStringList>& values)
   QString replyAddress = "";
   parseSIPParameter(values.at(1).at(2), ";branch=", info->branch, replyAddress);
 
-  if(STRICT && info->branch.isEmpty())
+  if(STRICTSIPPROCESSING && info->branch.isEmpty())
   {
     cleanup(info);
     return NULL;
@@ -158,7 +157,7 @@ SIPMessageInfo* tableToInfo(QList<QStringList>& values)
   if(callIDsplit.size() != 2)
   {
     qDebug() << "Unclear CallID:" << callIDsplit;
-    if(STRICT || callIDsplit.size() > 2)
+    if(STRICTSIPPROCESSING || callIDsplit.size() > 2)
     {
       cleanup(info);
       return NULL;
@@ -180,7 +179,7 @@ SIPMessageInfo* tableToInfo(QList<QStringList>& values)
   parseSIPParameter(values.at(3).at(2), ";tag=", info->ourTag, toSIPAddress);
   parseSIPParameter(values.at(4).at(2), ";tag=", info->theirTag, fromSIPAddress);
 
-  if(STRICT && info->theirTag.isEmpty())
+  if(STRICTSIPPROCESSING && info->theirTag.isEmpty())
   {
     qDebug() << "They did not send their tag!";
     cleanup(info);
@@ -193,7 +192,7 @@ SIPMessageInfo* tableToInfo(QList<QStringList>& values)
   bool ok = false;
   info->cSeq = values.at(6).at(1).toInt(&ok);
 
-  if(!ok && STRICT)
+  if(!ok && STRICTSIPPROCESSING)
   {
     qDebug() << "Some junk in cSeq:" << info->cSeq;
     delete info;
@@ -281,5 +280,3 @@ bool parseSIPParameter(QString field, QString parameterName,
   }
   remaining = parameterSplit.at(0);
 }
-
-
