@@ -55,6 +55,8 @@ CallWindow::~CallWindow()
   stats_->close();
   delete stats_;
   delete ui_;
+
+  call_.uninit();
 }
 
 void CallWindow::startStream()

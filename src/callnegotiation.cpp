@@ -303,6 +303,8 @@ bool CallNegotiation::compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info,
 
     // TODO  Maybe check the name portion also
   }
+
+  return true;
 }
 
 QList<QHostAddress> parseIPAddress(QString address)
