@@ -141,16 +141,21 @@ void CallNegotiation::processMessage(QString header, QString content,
 
       if(compareSIPLinkInfo(info, connectionID))
       {
-        QString callID = info->callID;
-        MessageType type = info->request;
-
         newSIPLinkFromMessage(info, connectionID);
-        switch(type)
+        switch(info->request)
         {
           case INVITE:
           {
             qDebug() << "Found INVITE";
-            emit incomingINVITE(callID, sessions_[callID]->contact.name);
+
+            if(sessions_[info->callID]->ourselves)
+            {
+              emit callingOurselves();
+            }
+            else
+            {
+              emit incomingINVITE(info->callID, sessions_[info->callID]->contact.name);
+            }
             break;
           }
           default:
@@ -206,6 +211,8 @@ std::shared_ptr<CallNegotiation::SIPLink> CallNegotiation::newSIPLink()
     return 0;
   }
 
+  link->ourselves = false;
+
   return link;
 }
 
@@ -214,6 +221,12 @@ void CallNegotiation::newSIPLinkFromMessage(std::shared_ptr<SIPMessageInfo> info
 {
   std::shared_ptr<CallNegotiation::SIPLink> link
       = std::shared_ptr<CallNegotiation::SIPLink> (new SIPLink);
+
+  if(info->contactAddress == ourLocation_.toString())
+  {
+    qDebug() << "We are calling ourselves.";
+    link->ourselves = true;
+  }
 
   link->callID = info->callID;
   link->contact = {info->theirName, info->theirUsername, info->contactAddress};

@@ -32,6 +32,7 @@ public slots:
    void cameraState();
 
    void incomingCall(QString callID, QString caller);
+   void callOurselves();
 
    void acceptCall();
    void rejectCall();
@@ -39,6 +40,7 @@ public slots:
 private:
 
   void createParticipant(QString ip_str, QString port_str);
+  void hideLabel();
 
   Ui::CallWindow *ui_;
   Ui::CallerWidget *ui_widget_;

@@ -35,6 +35,8 @@ CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height) :
   ui_widget_->setupUi(callingWidget_);
 
   currentResolution_ = QSize(width, height);
+  connect(ui_widget_->AcceptButton, SIGNAL(clicked()), this, SLOT(acceptCall()));
+  connect(ui_widget_->DeclineButton, SIGNAL(clicked()), this, SLOT(rejectCall()));
 
   // GUI updates are handled solely by timer
   timer_->setInterval(10);
@@ -61,6 +63,9 @@ void CallWindow::startStream()
 
   QObject::connect(&call_neg_, SIGNAL(incomingINVITE(QString, QString)),
                    this, SLOT(incomingCall(QString, QString)));
+
+  QObject::connect(&call_neg_, SIGNAL(callingOurselves()),
+                   this, SLOT(callOurselves()));
 
   call_.init();
   call_.startCall(ui_->SelfView, currentResolution_);
@@ -90,11 +95,28 @@ void CallWindow::addParticipant()
 
     ip_ = ip_str;
     port_ = port_str;
+
+    QLabel* label = new QLabel(this);
+    label->setText("Calling...");
+
+    QFont font = QFont("Times", 16);
+    label->setFont(font);
+    label->setAlignment(Qt::AlignHCenter);
+    ui_->participantLayout->addWidget(label, row_, column_);
+
   }
+}
+
+void CallWindow::hideLabel()
+{
+  QLayoutItem* label = ui_->participantLayout->itemAtPosition(row_,column_);
+  if(label)
+    label->widget()->hide();
 }
 
 void CallWindow::createParticipant(QString ip_str, QString port_str)
 {
+  qDebug() << "Adding participant to conference.";
 
   uint16_t nextIp = 0;
 
@@ -108,6 +130,8 @@ void CallWindow::createParticipant(QString ip_str, QString port_str)
 
   in_addr ip;
   ip.S_un.S_addr = qToBigEndian(address.toIPv4Address());
+
+  hideLabel();
 
   VideoWidget* view = new VideoWidget;
   ui_->participantLayout->addWidget(view, row_, column_);
@@ -175,7 +199,10 @@ void CallWindow::incomingCall(QString callID, QString caller)
 {
   ui_widget_->CallerLabel->setText(caller + " is calling..");
   callingWidget_->show();
+}
 
+void CallWindow::callOurselves()
+{
   createParticipant(ip_, port_);
 }
 
@@ -191,4 +218,5 @@ void CallWindow::rejectCall()
   port_ = "";
 
   callingWidget_->hide();
+  hideLabel();
 }

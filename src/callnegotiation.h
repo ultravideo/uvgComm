@@ -47,6 +47,7 @@ signals:
 
   // somebody wants to call us. Ask user whether this person is ok
   void incomingINVITE(QString CallID, QString caller);
+  void callingOurselves();
 
 
 private slots:
@@ -73,6 +74,8 @@ private:
     uint32_t connectionID;
 
     MessageType sentRequest;
+
+    bool ourselves;
   };
 
   void initUs();
