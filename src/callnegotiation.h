@@ -38,9 +38,9 @@ public:
   void setupSession(MediaSubsession* subsession);
 
   void startCall(QList<Contact> addresses, QString sdp);
-
+  void ringing(QString CallID);
   void acceptCall(QString CallID);
-
+  void rejectCall(QString CallID);
   void endCall();
 
 signals:

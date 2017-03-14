@@ -93,7 +93,9 @@ void CallWindow::addParticipant()
     list.append(con);
 
     //start negotiations for this connection
-    call_neg_.startCall(list, "");
+
+    QString sdp = "";
+    call_neg_.startCall(list, sdp);
 
     ip_ = ip_str;
     port_ = port_str;

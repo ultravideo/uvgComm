@@ -1,14 +1,13 @@
 #include "sipparser.h"
 
-#include <iostream>
-#include <sstream>
-
 #include <QRegularExpression>
 #include <QRegularExpressionMatch>
 #include <QList>
 #include <QHostInfo>
 
-
+#include <iostream>
+#include <sstream>
+#include <string>
 
 struct HeaderLine
 {
@@ -19,7 +18,7 @@ struct HeaderLine
 //TODO: possiblity of having more than one same line in header.
 
 // remember to also update tableToInfo if adding new header fields!
-const QList<HeaderLine> HEADERLINES(
+const QList<HeaderLine> SIPHEADERLINES(
 {
       {"METHOD", 3},
       {"Via:", 3},
@@ -35,7 +34,7 @@ const QList<HeaderLine> HEADERLINES(
 );
 
 // TODO this changes depending on the message type, maybe make a function/table for that
-const uint16_t MANDATORYLINES = 9;
+const uint16_t SIPMANDATORYLINES = 9;
 
 
 // Functions
@@ -69,7 +68,7 @@ std::shared_ptr<SIPMessageInfo> parseSIPMessage(QString& header)
   QList<QStringList> values;
 
   // increase the list size
-  while(values.size() < HEADERLINES.size())
+  while(values.size() < SIPHEADERLINES.size())
   {
     values.append(QStringList(""));
   }
@@ -99,10 +98,10 @@ void messageToTable(QStringList& lines, QList<QStringList> &values)
     else
     {
       // find headertype in array
-      for(uint32_t j = 1; j < HEADERLINES.size(); ++j)
+      for(uint32_t j = 1; j < SIPHEADERLINES.size(); ++j)
       {
         // RFC-3261 defines headers as case-insensitive
-        if(QString::compare(words.at(0), HEADERLINES.at(j).name, Qt::CaseInsensitive) == 0)
+        if(QString::compare(words.at(0), SIPHEADERLINES.at(j).name, Qt::CaseInsensitive) == 0)
         {
           values[j] = words;
         }
@@ -221,20 +220,20 @@ bool checkSIPMessage(QList<QStringList>& values)
     return false;
   }
 
-  if(values.size() < MANDATORYLINES)
+  if(values.size() < SIPMANDATORYLINES)
   {
     qDebug() << "Found SIP message with too few lines:" << values.size() << "lines";
     return false;
   }
 
-  for(unsigned int i = 0; i < MANDATORYLINES; ++i)
+  for(unsigned int i = 0; i < SIPHEADERLINES.size(); ++i)
   {
-    if(values[i].length() != HEADERLINES.at(i).words)
+    if(values[i].length() != SIPHEADERLINES.at(i).words)
     {
-      qDebug() << "Wrong number of words in a line for:" << HEADERLINES.at(i).name
+      qDebug() << "Wrong number of words in a line for:" << SIPHEADERLINES.at(i).name
                << "(" << i << ")"
                <<". Found:" << values[i].length()
-               << "Expecting:" << HEADERLINES.at(i).words;
+               << "Expecting:" << SIPHEADERLINES.at(i).words;
       qDebug() << "Line:" << values[i];
       return false;
     }
@@ -262,7 +261,6 @@ void parseSIPaddress(QString address, QString& user, QString& location)
            << "to user:" << user << "and location:" << location;
 }
 
-
 bool parseSIPParameter(QString field, QString parameterName,
                        QString& parameterValue, QString& remaining)
 {
@@ -279,4 +277,90 @@ bool parseSIPParameter(QString field, QString parameterName,
     parameterValue = parameterSplit.at(1);
   }
   remaining = parameterSplit.at(0);
+}
+
+std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
+{
+  std::istringstream ss;
+
+  ss.str(body.toStdString());
+  std::string word;
+
+  bool version = false;
+  bool originator = false;
+  bool session = false;
+  bool timing = false;
+  bool contact = false;
+
+  std::shared_ptr<SDPMessageInfo> info(new SDPMessageInfo);
+
+  while(ss >> word)
+  {
+    switch(word[0])
+    {
+    case 'v':
+    {
+      version = true;
+      if(word.size() != 3 || word[2] != 0)
+      {
+        std::string garbage = "";
+        std::getline(ss, garbage);
+        qDebug() << "Weird version string";
+      }
+      break;
+    }
+    case 'o':
+    {
+      originator = true;
+      info->username = word.substr(2, word.size() - 2);
+
+      // TODO: check if message ends
+      ss >> info->sess_id;
+      ss >> info->sess_v;
+      ss >> info->nettype;
+      ss >> info->addrtype;
+      bool success = static_cast<bool>(ss >> info->hostAddress);
+
+      if(!success)
+      {
+        qDebug() << "failed to parse origin in SDP";
+        return NULL;
+      }
+
+      qDebug() << "Origin read successfully";
+      break;
+    }
+    case 's':
+    {
+      std::string sessionName = "";
+      std::getline(ss, sessionName);
+      sessionName = word + sessionName;
+
+      info->sessionName = sessionName.substr(2, sessionName.size() - 2);
+
+      break;
+    }
+    case 't':
+    {
+      break;
+    }
+    case 'm':
+    {
+      break;
+    }
+    default:
+    {
+      std::string garbage = "";
+      std::getline(ss, garbage);
+      qDebug() << "Unimplemented or malformed SDP line type!";
+    }
+    }
+  }
+
+  if(!version || !originator || !session || timing)
+  {
+    qDebug() << "All required fields not present in SDP";
+    //return NULL;
+  }
+
 }

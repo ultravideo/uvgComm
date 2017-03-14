@@ -79,6 +79,13 @@ void CallNegotiation::startCall(QList<Contact> addresses, QString sdp)
       link->contact.username = "unknown";
     }
 
+    sdp = "v=0 \r\n"
+          "o=" + ourUsername_ + " 1234 12345 IN IP4" + ourLocation_.toString() + "\r\n"
+        "s=HEVC Video Conference \r\n"
+        "t=0 0\r\n"
+        "m=audio 18888 RTP/AVP 97\r\n"
+        "m=video 19888 RTP/AVP 96\r\n";
+
     link->sdp = sdp;
     link->theirTag = "";
 
@@ -86,6 +93,11 @@ void CallNegotiation::startCall(QList<Contact> addresses, QString sdp)
 
     sendRequest(INVITE, link);
   }
+}
+
+void CallNegotiation::acceptCall(QString CallID)
+{
+
 }
 
 void CallNegotiation::sendRequest(MessageType request, std::shared_ptr<SIPLink> link)
@@ -235,7 +247,6 @@ void CallNegotiation::newSIPLinkFromMessage(std::shared_ptr<SIPMessageInfo> info
   link->cSeq = info->cSeq;
 
   link->ourTag = generateRandomString(TAGLENGTH);
-
   link->theirTag = info->theirTag;
 
   //TODO evaluate SDP
