@@ -149,7 +149,7 @@ void Connection::run()
           message = leftOvers_ + message;
         }
 
-        int headerEndIndex = message.indexOf("\r\n\r\n", 0, Qt::CaseInsensitive);
+        int headerEndIndex = message.indexOf("\r\n\r\n", 0, Qt::CaseInsensitive) + 4;
         int contentLengthIndex = message.indexOf("content-length", 0, Qt::CaseInsensitive);
 
         qDebug() << "header end at:" << headerEndIndex
@@ -159,19 +159,19 @@ void Connection::run()
         {
           int contentLengthLineEndIndex = message.indexOf("\r\n", contentLengthIndex, Qt::CaseInsensitive);
 
-          QString value = message.mid(contentLengthIndex + 16, contentLengthLineEndIndex);
+          QString value = message.mid(contentLengthIndex + 16, contentLengthLineEndIndex - (contentLengthIndex + 16));
 
           int valueInt= value.toInt();
 
           qDebug() << "Content-length:" <<  valueInt;
 
-          if(message.length() < headerEndIndex + valueInt + 4)
+          if(message.length() < headerEndIndex + valueInt)
           {
             leftOvers_ = message;
           }
           else
           {
-            leftOvers_ = message.right(message.length() - (headerEndIndex + valueInt  + 4));
+            leftOvers_ = message.right(message.length() - (headerEndIndex + valueInt));
             QString header = message.left(headerEndIndex);
             QString content = message.mid(headerEndIndex, valueInt);
 
