@@ -84,6 +84,8 @@ void Connection::connectLoop()
   }
   connected_ = true;
   qDebug() << "Outgoing TCP connection established";
+
+  emit connected(ID_);
 }
 
 
@@ -110,6 +112,8 @@ void Connection::run()
     {
       qCritical() << "ERROR: Could not get socket descriptor";
     }
+    qDebug() << "Socket connected to our address:" << socket_->localAddress() << ":" << socket_->peerPort()
+             << "Peer address:" << socket_->peerAddress() << ":" << socket_->peerPort();
     connected_ = true;
   }
 

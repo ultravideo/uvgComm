@@ -49,9 +49,31 @@ public:
     return ++currentID_;
   }
 
+  bool connected()
+  {
+    if(socket_ != 0){
+      return socket_->state() == QAbstractSocket::ConnectedState;
+    }
+    return false;
+  }
+
+  QHostAddress getLocalAddress()
+  {
+    Q_ASSERT(connected());
+    return socket_->localAddress();
+  }
+
+  QHostAddress getPeerAddress()
+  {
+    Q_ASSERT(connected());
+    return socket_->peerAddress();
+  }
+
+
 signals:
   void error(int socketError, const QString &message);
   void messageAvailable(QString header, QString content, quint32 id);
+  void connected(quint32 connectionID);
 
 private slots:
   void receivedMessage();

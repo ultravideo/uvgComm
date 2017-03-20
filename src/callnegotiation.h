@@ -54,6 +54,8 @@ private slots:
   void receiveConnection(Connection* con);
   void processMessage(QString header, QString content, quint32 connectionID);
 
+  void connectionEstablished(quint32 connectionID);
+
 private:
 
   struct SIPLink
@@ -68,6 +70,7 @@ private:
 
     QString ourTag;
     QString theirTag;
+    QHostAddress localAddress;
 
     QString sdp; // current session description
 
@@ -77,6 +80,8 @@ private:
 
     bool ourselves;
   };
+
+
 
   void initUs();
 
@@ -92,6 +97,8 @@ private:
   // helper function that composes SIP message and sends it
   void sendRequest(MessageType request, std::shared_ptr<SIPLink> link);
 
+
+
   std::map<QString, std::shared_ptr<SIPLink>> sessions_;
 
   QMutex connectionMutex_;
@@ -103,7 +110,7 @@ private:
 
   QString ourName_;
   QString ourUsername_;
-  QHostAddress ourLocation_;
+  //QHostAddress ourLocation_;
 
   // listens to incoming tcp connections on sipPort_
   ConnectionServer server_;

@@ -28,12 +28,21 @@ CallNegotiation::~CallNegotiation()
 void CallNegotiation::init()
 {
   qsrand(1);
-  ourLocation_ = QHostAddress("127.0.0.1");
+
+  foreach (const QHostAddress &address, QNetworkInterface::allAddresses()) {
+      if (address.protocol() == QAbstractSocket::IPv4Protocol && address != QHostAddress(QHostAddress::LocalHost))
+           qDebug() << address.toString();
+  }
+
+  //ourLocation_ = QHostAddress("127.0.0.1");
 
   QObject::connect(&server_, SIGNAL(newConnection(Connection*)),
                    this, SLOT(receiveConnection(Connection*)));
 
-  server_.listen(ourLocation_, sipPort_);
+  // listen to everything
+  // TODO: maybe record the incoming connection address and choose used network interface address
+  // according to that
+  server_.listen(QHostAddress("0.0.0.0"), sipPort_);
 
   initUs();
 }
@@ -49,7 +58,10 @@ void CallNegotiation::initUs()
 
 void CallNegotiation::startCall(QList<Contact> addresses, QString sdp)
 {
+  Q_ASSERT(addresses.size() != 0);
+
   qDebug() << "Starting call negotiation";
+
   for (int i = 0; i < addresses.size(); ++i)
   {
     std::shared_ptr<CallNegotiation::SIPLink> link = newSIPLink();
@@ -62,8 +74,11 @@ void CallNegotiation::startCall(QList<Contact> addresses, QString sdp)
     QObject::connect(con, SIGNAL(messageAvailable(QString, QString, quint32)),
                      this, SLOT(processMessage(QString, QString, quint32)));
 
+    QObject::connect(con, SIGNAL(connected(quint32)),
+                     this, SLOT(connectionEstablished(quint32)));
+
     QString address = addresses.at(i).contactAddress;
-    con->establishConnection(address, sipPort_);
+
 
     link->contact = addresses.at(i);
 
@@ -79,25 +94,56 @@ void CallNegotiation::startCall(QList<Contact> addresses, QString sdp)
       link->contact.username = "unknown";
     }
 
-    sdp = "v=0 \r\n"
-          "o=" + ourUsername_ + " 1234 12345 IN IP4" + ourLocation_.toString() + "\r\n"
-        "s=HEVC Video Conference \r\n"
-        "t=0 0\r\n"
-        "m=audio 18888 RTP/AVP 97\r\n"
-        "m=video 19888 RTP/AVP 96\r\n";
-
     link->sdp = sdp;
     link->theirTag = "";
 
+    con->establishConnection(address, sipPort_);
+
     //contact->sender.init(contact->peer.address, sipPort_);
 
-    sendRequest(INVITE, link);
+    // message is sent only after connection has been established so we know our address
+
+    //sendRequest(INVITE, link);
   }
 }
 
 void CallNegotiation::acceptCall(QString CallID)
 {
 
+}
+
+void CallNegotiation::connectionEstablished(quint32 connectionID)
+{
+  qDebug() << "Connection established for id:" << connectionID;
+
+  std::shared_ptr<SIPLink> foundLink;
+  for(auto link : sessions_)
+  {
+    if(link.second->connectionID == connectionID)
+    {
+      qDebug() << "link found";
+      foundLink = link.second;
+    }
+  }
+
+  Q_ASSERT(foundLink);
+  if(!foundLink)
+  {
+    qWarning() << "WARNING: Link not found";
+    return;
+  }
+
+  foundLink->localAddress = connections_.at(connectionID - 1)->getLocalAddress();
+  foundLink->host = foundLink->localAddress.toString();
+
+  foundLink->sdp = "v=0 \r\n"
+                   "o=" + ourUsername_ + " 1234 12345 IN IP4" + foundLink->localAddress.toString() + "\r\n"
+                   "s=HEVC Video Conference \r\n"
+                   "t=0 0\r\n"
+                   "m=audio 18888 RTP/AVP 97\r\n"
+                   "m=video 19888 RTP/AVP 96\r\n";
+
+  sendRequest(INVITE, foundLink);
 }
 
 void CallNegotiation::sendRequest(MessageType request, std::shared_ptr<SIPLink> link)
@@ -110,8 +156,8 @@ void CallNegotiation::sendRequest(MessageType request, std::shared_ptr<SIPLink> 
   messageID id = messageComposer_.startSIPString(request);
   messageComposer_.to(id, link->contact.name, link->contact.username,
                         link->contact.contactAddress, link->theirTag);
-  messageComposer_.fromIP(id, ourName_, ourUsername_, ourLocation_, link->ourTag);
-  messageComposer_.viaIP(id, ourLocation_, branch);
+  messageComposer_.fromIP(id, ourName_, ourUsername_, link->localAddress, link->ourTag);
+  messageComposer_.viaIP(id, link->localAddress, branch);
   messageComposer_.maxForwards(id, MAXFORWARDS);
   messageComposer_.setCallID(id, link->callID, link->host);
   messageComposer_.sequenceNum(id, link->cSeq);
@@ -144,7 +190,13 @@ void CallNegotiation::processMessage(QString header, QString content,
 
   if(connectionID != 0)
   {
-    std::shared_ptr<SIPMessageInfo> info = std::move(parseSIPMessage(header));
+    std::shared_ptr<SIPMessageInfo> info = parseSIPMessage(header);
+
+    if(info->contentType == "application/sdp" && content.size() != 0)
+    {
+      std::shared_ptr<SDPMessageInfo> sdpInfo = parseSDPMessage(content);
+    }
+
     qDebug() << "Message parsed";
 
     if(info != 0)
@@ -203,7 +255,6 @@ std::shared_ptr<CallNegotiation::SIPLink> CallNegotiation::newSIPLink()
   std::shared_ptr<SIPLink> link (new SIPLink);
 
   link->callID = generateRandomString(CALLIDLENGTH);
-  link->host = ourLocation_.toString();
 
   qDebug() << "Generated CallID: " << link->callID;
 
@@ -234,10 +285,14 @@ void CallNegotiation::newSIPLinkFromMessage(std::shared_ptr<SIPMessageInfo> info
   std::shared_ptr<CallNegotiation::SIPLink> link
       = std::shared_ptr<CallNegotiation::SIPLink> (new SIPLink);
 
-  if(info->contactAddress == ourLocation_.toString())
+  if(info->contactAddress == link->localAddress.toString())
   {
     qDebug() << "We are calling ourselves.";
     link->ourselves = true;
+  }
+  else
+  {
+    link->ourselves = false;
   }
 
   link->callID = info->callID;

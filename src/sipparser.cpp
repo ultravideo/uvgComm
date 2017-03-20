@@ -363,4 +363,5 @@ std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
     //return NULL;
   }
 
+  return info;
 }

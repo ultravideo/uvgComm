@@ -201,12 +201,14 @@ void CallWindow::closeEvent(QCloseEvent *event)
 
 void CallWindow::incomingCall(QString callID, QString caller)
 {
+  qDebug() << "Displaying pop-up for somebody calling";
   ui_widget_->CallerLabel->setText(caller + " is calling..");
   callingWidget_->show();
 }
 
 void CallWindow::callOurselves()
 {
+  qDebug() << "Calling ourselves, how boring.";
   createParticipant(ip_, port_);
 }
 

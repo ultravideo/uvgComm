@@ -91,6 +91,8 @@ QT+=network
 
 QMAKE_CXXFLAGS += -std=c++11
 
+#CONFIG += console
+
 INCLUDEPATH += $$PWD/../include/kvazaar/src
 INCLUDEPATH += $$PWD/../include/openHEVC/gpac/modules/openhevc_dec
 INCLUDEPATH += $$PWD/../include/opus/include
