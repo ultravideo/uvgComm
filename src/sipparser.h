@@ -59,14 +59,17 @@ struct MediaInfo
 struct SDPMessageInfo
 {
   uint8_t version;
-  std::string username;
-  std::string sess_id;
-  std::string sess_v;
-  std::string nettype;
-  std::string addrtype;
-  std::string hostAddress;
+  QString username;
+  uint32_t sess_id;
+  uint32_t sess_v;
+  QString nettype;
+  QString addrtype;
+  QString hostAddress;
 
-  std::string sessionName;
+  QString sessionName;
+
+  uint32_t startTime;
+  uint32_t endTime;
 
   QList<MediaInfo> media;
 };

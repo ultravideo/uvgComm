@@ -137,7 +137,7 @@ void CallNegotiation::connectionEstablished(quint32 connectionID)
   foundLink->host = foundLink->localAddress.toString();
 
   foundLink->sdp = "v=0 \r\n"
-                   "o=" + ourUsername_ + " 1234 12345 IN IP4" + foundLink->localAddress.toString() + "\r\n"
+                   "o=" + ourUsername_ + " 1234 12345 IN IP4 " + foundLink->localAddress.toString() + "\r\n"
                    "s=HEVC Video Conference \r\n"
                    "t=0 0\r\n"
                    "m=audio 18888 RTP/AVP 97\r\n"
@@ -195,6 +195,10 @@ void CallNegotiation::processMessage(QString header, QString content,
     if(info->contentType == "application/sdp" && content.size() != 0)
     {
       std::shared_ptr<SDPMessageInfo> sdpInfo = parseSDPMessage(content);
+      if(sdpInfo == NULL)
+      {
+        qDebug() << "SDP parsing failed";
+      }
     }
 
     qDebug() << "Message parsed";

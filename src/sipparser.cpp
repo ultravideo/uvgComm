@@ -51,7 +51,27 @@ bool parseSIPParameter(QString field, QString parameterName,
 void cleanup(SIPMessageInfo* info);
 
 
+bool checkSDPLine(QStringList& line, uint8_t expectedLength, QString& firstValue);
 
+bool checkSDPLine(QStringList& line, uint8_t expectedLength, QString& firstValue)
+{
+  Q_ASSERT(expectedLength != 0);
+
+  if(line.size() != expectedLength)
+  {
+    qDebug() << "SDP line:" << line << "not expected length:" << expectedLength;
+    return false;
+  }
+  if(line.at(0).length() < 3)
+  {
+    qDebug() << "First word missing in SDP Line:" << line;
+    return false;
+  }
+
+  firstValue = line.at(0).right(line.at(0).size() - 2);
+
+  return true;
+}
 
 void cleanup(SIPMessageInfo* info)
 {
@@ -281,11 +301,8 @@ bool parseSIPParameter(QString field, QString parameterName,
 
 std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
 {
-  std::istringstream ss;
-
-  ss.str(body.toStdString());
-  std::string word;
-
+  QStringList lines = body.split("\r\n", QString::SkipEmptyParts);
+  QStringListIterator lineIterator(lines);
   bool version = false;
   bool originator = false;
   bool session = false;
@@ -294,65 +311,81 @@ std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
 
   std::shared_ptr<SDPMessageInfo> info(new SDPMessageInfo);
 
-  while(ss >> word)
+  while(lineIterator.hasNext())
+  //for(QStringListIterator line = lines.iterator; line != lines.end(); ++line)
+  //for(auto line: lines)
   {
-    switch(word[0])
+    QString line = lineIterator.next();
+    qDebug() << "Parsing SDP line:" << line;
+
+    QStringList words = line.split(" ", QString::SkipEmptyParts);
+
+    QString firstValue = "";
+
+    switch(line.at(0).toLatin1())
     {
     case 'v':
     {
-      version = true;
-      if(word.size() != 3 || word[2] != 0)
+
+      if(!checkSDPLine(words, 1, firstValue))
+        return NULL;
+
+      info->version = firstValue.toUInt();
+      if(info->version != 0)
       {
-        std::string garbage = "";
-        std::getline(ss, garbage);
-        qDebug() << "Weird version string";
+        qDebug() << "Unsupported SDP version:" << info->version;
+        return NULL;
       }
+
+      version = true;
       break;
     }
     case 'o':
     {
-      originator = true;
-      info->username = word.substr(2, word.size() - 2);
-
-      // TODO: check if message ends
-      ss >> info->sess_id;
-      ss >> info->sess_v;
-      ss >> info->nettype;
-      ss >> info->addrtype;
-      bool success = static_cast<bool>(ss >> info->hostAddress);
-
-      if(!success)
-      {
-        qDebug() << "failed to parse origin in SDP";
+      if(!checkSDPLine(words, 6, info->username))
         return NULL;
-      }
 
-      qDebug() << "Origin read successfully";
+      info->sess_id = words.at(1).toUInt();
+      info->sess_v = words.at(2).toUInt();
+      info->nettype = words.at(3);
+      info->addrtype = words.at(4);
+      info->hostAddress = words.at(5);
+
+      qDebug() << "Origin read successfully. host_address:" << info->hostAddress;
+
+      originator = true;
       break;
     }
     case 's':
     {
-      std::string sessionName = "";
-      std::getline(ss, sessionName);
-      sessionName = word + sessionName;
+      if(line.size() < 3 )
+        return NULL;
 
-      info->sessionName = sessionName.substr(2, sessionName.size() - 2);
+      info->sessionName = line.right(words.at(0).size() - 2);
+
+      qDebug() << "Session name:" << info->sessionName;
 
       break;
     }
     case 't':
     {
+      if(!checkSDPLine(words, 2, firstValue))
+        return NULL;
+
+      info->startTime = firstValue.toUInt();
+      info->endTime = words.at(1).toUInt();
+
       break;
     }
     case 'm':
     {
+      if( words.size() != 4)
+        return NULL;
       break;
     }
     default:
     {
-      std::string garbage = "";
-      std::getline(ss, garbage);
-      qDebug() << "Unimplemented or malformed SDP line type!";
+      qDebug() << "Unimplemented or malformed SDP line type:" << line;
     }
     }
   }
