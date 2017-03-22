@@ -51,8 +51,12 @@ struct MediaInfo
 {
   QString type;
   uint16_t port;
+  QString proto;
   uint16_t rtpNum;
-  QString connectionAddress;
+  QString nettype;
+  QString addrtype;
+  QString address;
+
   QList<RTPMap> codecs;
 };
 
@@ -62,14 +66,18 @@ struct SDPMessageInfo
   QString username;
   uint32_t sess_id;
   uint32_t sess_v;
-  QString nettype;
-  QString addrtype;
+  QString host_nettype;
+  QString host_addrtype;
   QString hostAddress;
 
   QString sessionName;
 
   uint32_t startTime;
   uint32_t endTime;
+
+  QString global_nettype;
+  QString global_addrtype;
+  QString globalAddress;
 
   QList<MediaInfo> media;
 };
