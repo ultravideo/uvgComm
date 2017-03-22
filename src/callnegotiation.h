@@ -86,9 +86,8 @@ private:
   void initUs();
 
   std::shared_ptr<SIPLink> newSIPLink();
-  void newSIPLinkFromMessage(std::shared_ptr<SIPMessageInfo> info, quint32 connectionID);
-
   bool compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info, quint32 connectionID);
+  void newSIPLinkFromMessage(std::shared_ptr<SIPMessageInfo> info, quint32 connectionID);
 
   QString generateRandomString(uint32_t length);
 

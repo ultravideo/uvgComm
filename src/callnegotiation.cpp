@@ -34,8 +34,6 @@ void CallNegotiation::init()
            qDebug() << address.toString();
   }
 
-  //ourLocation_ = QHostAddress("127.0.0.1");
-
   QObject::connect(&server_, SIGNAL(newConnection(Connection*)),
                    this, SLOT(receiveConnection(Connection*)));
 
@@ -134,6 +132,20 @@ void CallNegotiation::connectionEstablished(quint32 connectionID)
   }
 
   foundLink->localAddress = connections_.at(connectionID - 1)->getLocalAddress();
+  foundLink->contact.contactAddress
+      = connections_.at(connectionID - 1)->getPeerAddress().toString();
+
+  if(foundLink->contact.contactAddress == foundLink->localAddress.toString())
+  {
+    qDebug() << "We are calling ourselves.";
+    foundLink->ourselves = true;
+  }
+  else
+  {
+    qDebug() << "We are not calling ourselves.";
+    foundLink->ourselves = false;
+  }
+
   foundLink->host = foundLink->localAddress.toString();
 
   foundLink->sdp = "v=0 \r\n"
@@ -286,17 +298,15 @@ std::shared_ptr<CallNegotiation::SIPLink> CallNegotiation::newSIPLink()
 void CallNegotiation::newSIPLinkFromMessage(std::shared_ptr<SIPMessageInfo> info,
                                             quint32 connectionID)
 {
-  std::shared_ptr<CallNegotiation::SIPLink> link
-      = std::shared_ptr<CallNegotiation::SIPLink> (new SIPLink);
+  std::shared_ptr<CallNegotiation::SIPLink> link;
 
-  if(info->contactAddress == link->localAddress.toString())
+  if(sessions_.find(info->callID) != sessions_.end())
   {
-    qDebug() << "We are calling ourselves.";
-    link->ourselves = true;
+    link = sessions_[info->callID];
   }
   else
   {
-    link->ourselves = false;
+    link = std::shared_ptr<CallNegotiation::SIPLink> (new SIPLink);
   }
 
   link->callID = info->callID;
