@@ -29,7 +29,8 @@ CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height) :
   row_(0),
   column_(0),
   currentResolution_(),
-  portsOpen_(0)
+  portsOpen_(0),
+  ringing_(false)
 {
   ui_->setupUi(this);
   ui_widget_->setupUi(callingWidget_);
@@ -201,9 +202,16 @@ void CallWindow::closeEvent(QCloseEvent *event)
 
 void CallWindow::incomingCall(QString callID, QString caller)
 {
-  qDebug() << "Displaying pop-up for somebody calling";
-  ui_widget_->CallerLabel->setText(caller + " is calling..");
-  callingWidget_->show();
+  callWaitingMutex_.lock();
+  waitingCalls_.append({callID,caller});
+  callWaitingMutex_.unlock();
+
+  if(!ringing_)
+  {
+    qDebug() << "Displaying pop-up for somebody calling";
+    ui_widget_->CallerLabel->setText(caller + " is calling..");
+    callingWidget_->show();
+  }
 }
 
 void CallWindow::callOurselves()
@@ -216,6 +224,8 @@ void CallWindow::acceptCall()
 {
   createParticipant(ip_, port_);
   callingWidget_->hide();
+
+  processNextWaitingCall();
 }
 
 void CallWindow::rejectCall()
@@ -225,4 +235,33 @@ void CallWindow::rejectCall()
 
   callingWidget_->hide();
   hideLabel();
+
+  processNextWaitingCall();
+}
+
+
+void CallWindow::processNextWaitingCall()
+{
+  if(!ringing_)
+  {
+    callWaitingMutex_.lock();
+
+    if(waitingCalls_.size() > 0)
+    {
+      waitingCalls_.removeFirst();
+
+      if(waitingCalls_.size() > 0)
+      {
+        ui_widget_->CallerLabel->setText(waitingCalls_.first().name + " is calling..");
+        callingWidget_->show();
+        ringing_ = true;
+      }
+      else
+      {
+        callingWidget_->hide();
+        ringing_ = false;
+      }
+    }
+    callWaitingMutex_.unlock();
+  }
 }

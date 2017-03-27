@@ -135,16 +135,6 @@ void CallNegotiation::connectionEstablished(quint32 connectionID)
   foundLink->contact.contactAddress
       = connections_.at(connectionID - 1)->getPeerAddress().toString();
 
-  if(foundLink->contact.contactAddress == foundLink->localAddress.toString())
-  {
-    qDebug() << "We are calling ourselves.";
-    foundLink->ourselves = true;
-  }
-  else
-  {
-    qDebug() << "We are not calling ourselves.";
-    foundLink->ourselves = false;
-  }
 
   foundLink->host = foundLink->localAddress.toString();
 
@@ -228,7 +218,8 @@ void CallNegotiation::processMessage(QString header, QString content,
           {
             qDebug() << "Found INVITE";
 
-            if(sessions_[info->callID]->ourselves)
+            if(sessions_[info->callID]->contact.contactAddress
+               == sessions_[info->callID]->localAddress.toString())
             {
               emit callingOurselves();
             }
@@ -289,9 +280,6 @@ std::shared_ptr<CallNegotiation::SIPLink> CallNegotiation::newSIPLink()
     qWarning() << "WARNING: Collision: Call-ID already exists.";
     return 0;
   }
-
-  link->ourselves = false;
-
   return link;
 }
 
@@ -346,6 +334,21 @@ bool CallNegotiation::compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info,
       qDebug() << "Weird first cseq:" << info->cSeq;
       return false;
     }
+    connectionMutex_.lock();
+    if(info->ourLocation != connections_.at(connectionID - 1)->getLocalAddress().toString())
+    {
+      qDebug() << "We are not connected to their address:" << info->ourLocation;
+      return false;
+    }
+
+    if(info->theirLocation != connections_.at(connectionID - 1)->getPeerAddress().toString())
+    {
+      qDebug() << "We are not connected to their address:" << info->theirLocation;
+      return false;
+    }
+
+    connectionMutex_.unlock();
+
   }
   else
   {

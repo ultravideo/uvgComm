@@ -34,6 +34,9 @@ public slots:
    void incomingCall(QString callID, QString caller);
    void callOurselves();
 
+   //void startMediaStreams(SDPMessageInfo& info);
+
+   // UI messages
    void acceptCall();
    void rejectCall();
 
@@ -41,6 +44,8 @@ private:
 
   void createParticipant(QString ip_str, QString port_str);
   void hideLabel();
+
+  void processNextWaitingCall();
 
   Ui::CallWindow *ui_;
   Ui::CallerWidget *ui_widget_;
@@ -63,4 +68,14 @@ private:
 
   QString ip_;
   QString port_;
+
+  struct CallInfo
+  {
+    QString callID;
+    QString name;
+  };
+
+  QMutex callWaitingMutex_;
+  QList<CallInfo> waitingCalls_;
+  bool ringing_;
 };

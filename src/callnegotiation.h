@@ -77,8 +77,6 @@ private:
     uint32_t connectionID;
 
     MessageType sentRequest;
-
-    bool ourselves;
   };
 
 
