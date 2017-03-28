@@ -70,6 +70,21 @@ void CallWindow::startStream()
   QObject::connect(&call_neg_, SIGNAL(callingOurselves()),
                    this, SLOT(callOurselves()));
 
+  QObject::connect(&call_neg_, SIGNAL(callNegotiated(std::shared_ptr<SDPMessageInfo>)),
+                   this, SLOT(callOurselves()));
+
+  QObject::connect(&call_neg_, SIGNAL(ringing(QString)),
+                   this, SLOT(ringing(QString)));
+
+  QObject::connect(&call_neg_, SIGNAL(ourCallAccepted(std::shared_ptr<SDPMessageInfo>)),
+                   this, SLOT(ourCallAccepted(std::shared_ptr<SDPMessageInfo>)));
+
+  QObject::connect(&call_neg_, SIGNAL(ourCallRejected(QString CallID)),
+                   this, SLOT(ourCallRejected(QString CallID)));
+
+  QObject::connect(&call_neg_, SIGNAL(callEnded()),
+                   this, SLOT(endCall()));
+
   call_.init();
   call_.startCall(ui_->SelfView, currentResolution_);
 }
@@ -119,17 +134,17 @@ void CallWindow::hideLabel()
     label->widget()->hide();
 }
 
-void CallWindow::createParticipant(QString ip_str, QString port_str)
+void CallWindow::createParticipant(QString ip_str, uint16_t port)
 {
   qDebug() << "Adding participant to conference.";
-
+/*
   uint16_t nextIp = 0;
 
   nextIp = port_str.toInt();
   nextIp += 2; // increase port for convencience
 
   ui_->port->setText(QString::number(nextIp));
-
+*/
   QHostAddress address;
   address.setAddress(ip_str);
 
@@ -149,10 +164,10 @@ void CallWindow::createParticipant(QString ip_str, QString port_str)
     ++row_;
   }
 
-  call_.addParticipant(ip, port_str.toInt(), view);
+  call_.addParticipant(ip, port, view);
 
   if(stats_)
-    stats_->addParticipant(ip_str, port_str);
+    stats_->addParticipant(ip_str, QString(port));
 }
 
 void CallWindow::openStatistics()
@@ -217,13 +232,16 @@ void CallWindow::incomingCall(QString callID, QString caller)
 void CallWindow::callOurselves()
 {
   qDebug() << "Calling ourselves, how boring.";
-  createParticipant(ip_, port_);
+  createParticipant(ip_, port_.toInt());
 }
 
 void CallWindow::acceptCall()
 {
-  createParticipant(ip_, port_);
   callingWidget_->hide();
+
+  callWaitingMutex_.lock();
+  call_neg_.acceptCall(waitingCalls_.first().callID);
+  callWaitingMutex_.unlock();
 
   processNextWaitingCall();
 }
@@ -236,9 +254,12 @@ void CallWindow::rejectCall()
   callingWidget_->hide();
   hideLabel();
 
+  callWaitingMutex_.lock();
+  call_neg_.rejectCall(waitingCalls_.first().callID);
+  callWaitingMutex_.unlock();
+
   processNextWaitingCall();
 }
-
 
 void CallWindow::processNextWaitingCall()
 {
@@ -264,4 +285,39 @@ void CallWindow::processNextWaitingCall()
     }
     callWaitingMutex_.unlock();
   }
+}
+
+void CallWindow::ringing(QString callID)
+{}
+
+void CallWindow::ourCallAccepted(std::shared_ptr<SDPMessageInfo> info)
+{
+  qDebug() << "Our call has been accepted.";
+
+  qDebug() << "Sending media to IP:" << info->globalAddress
+           << "to port:" << info->media.first().port;
+
+  // TODO check the SDP info and do ports and rtp numbers properly
+  createParticipant(info->globalAddress, info->media.first().port);
+}
+
+void CallWindow::ourCallRejected(QString callID)
+{
+  qDebug() << "Our Call was rejected. TODO: display it to user";
+}
+
+void CallWindow::theirCallNegotiated(std::shared_ptr<SDPMessageInfo> info)
+{
+  qDebug() << "Their call has been negotiated.";
+
+  qDebug() << "Sending media to IP:" << info->globalAddress
+           << "to port:" << info->media.first().port;
+
+  // TODO check the SDP info and do ports and rtp numbers properly
+  createParticipant(info->globalAddress, info->media.first().port);
+}
+
+void CallWindow::endCall(QString callID)
+{
+  qDebug() << "End call";
 }

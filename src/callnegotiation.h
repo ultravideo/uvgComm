@@ -16,7 +16,6 @@
 
 struct SIPMessageInfo;
 
-
 struct Contact
 {
   QString name;
@@ -38,17 +37,22 @@ public:
   void setupSession(MediaSubsession* subsession);
 
   void startCall(QList<Contact> addresses, QString sdp);
-  void ringing(QString CallID);
-  void acceptCall(QString CallID);
-  void rejectCall(QString CallID);
+  void acceptCall(QString callID);
+  void rejectCall(QString callID);
   void endCall();
 
 signals:
 
-  // somebody wants to call us. Ask user whether this person is ok
+  // caller wants to call us. Ask the user whether call is accepted
   void incomingINVITE(QString CallID, QString caller);
   void callingOurselves();
+  void callNegotiated(std::shared_ptr<SDPMessageInfo> info);
 
+  void ringing(QString callID);
+  void ourCallAccepted(QString CallID, std::shared_ptr<SDPMessageInfo> info);
+  void ourCallRejected(QString CallID);
+
+  void callEnded(QString callID);
 
 private slots:
   void receiveConnection(Connection* con);
@@ -76,9 +80,8 @@ private:
 
     uint32_t connectionID;
 
-    MessageType sentRequest;
+    MessageType waitingResponse;
   };
-
 
 
   void initUs();
@@ -92,8 +95,7 @@ private:
   QList<QHostAddress> parseIPAddress(QString address);
 
   // helper function that composes SIP message and sends it
-  void sendRequest(MessageType request, std::shared_ptr<SIPLink> link);
-
+  void sendRequest(MessageType request, std::shared_ptr<SIPLink> link, bool isRequest);
 
 
   std::map<QString, std::shared_ptr<SIPLink>> sessions_;

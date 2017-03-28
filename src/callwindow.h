@@ -34,15 +34,22 @@ public slots:
    void incomingCall(QString callID, QString caller);
    void callOurselves();
 
-   //void startMediaStreams(SDPMessageInfo& info);
+   void ringing(QString callID);
+
+   void ourCallAccepted(std::shared_ptr<SDPMessageInfo> info);
+   void ourCallRejected(QString callID);
+
+   void theirCallNegotiated(std::shared_ptr<SDPMessageInfo> info);
 
    // UI messages
    void acceptCall();
    void rejectCall();
 
+   void endCall(QString callID);
+
 private:
 
-  void createParticipant(QString ip_str, QString port_str);
+  void createParticipant(QString ip_str, uint16_t port);
   void hideLabel();
 
   void processNextWaitingCall();

@@ -105,9 +105,24 @@ void CallNegotiation::startCall(QList<Contact> addresses, QString sdp)
   }
 }
 
-void CallNegotiation::acceptCall(QString CallID)
+void CallNegotiation::acceptCall(QString callID)
 {
+  if(sessions_.find(callID) == sessions_.end())
+  {
+    qWarning() << "WARNING: We have lost our link somewhere";
+    return;
+  }
+  sendRequest(OK_200, sessions_[callID], false);
+}
 
+void CallNegotiation::rejectCall(QString callID)
+{
+  if(sessions_.find(callID) == sessions_.end())
+  {
+    qWarning() << "WARNING: We have lost our link somewhere";
+    return;
+  }
+  sendRequest(DECLINE_600, sessions_[callID], false);
 }
 
 void CallNegotiation::connectionEstablished(quint32 connectionID)
@@ -140,15 +155,16 @@ void CallNegotiation::connectionEstablished(quint32 connectionID)
 
   foundLink->sdp = "v=0 \r\n"
                    "o=" + ourUsername_ + " 1234 12345 IN IP4 " + foundLink->localAddress.toString() + "\r\n"
-                   "s=HEVC Video Conference \r\n"
+                   "s=HEVC Video Conference\r\n"
                    "t=0 0\r\n"
-                   "m=audio 18888 RTP/AVP 97\r\n"
-                   "m=video 19888 RTP/AVP 96\r\n";
+                   "c=IN IP4 " + foundLink->localAddress.toString() + "\r\n"
+                   "m=video 18888 RTP/AVP 97\r\n"
+                   "m=audio 19888 RTP/AVP 96\r\n";
 
-  sendRequest(INVITE, foundLink);
+  sendRequest(INVITE, foundLink, true);
 }
 
-void CallNegotiation::sendRequest(MessageType request, std::shared_ptr<SIPLink> link)
+void CallNegotiation::sendRequest(MessageType request, std::shared_ptr<SIPLink> link, bool isRequest)
 {
   // TODO: names
   ++link->cSeq;
@@ -172,8 +188,14 @@ void CallNegotiation::sendRequest(MessageType request, std::shared_ptr<SIPLink> 
 
   QByteArray message = SIPRequest.toUtf8();
   connections_.at(link->connectionID - 1)->sendPacket(message);
-
-  link->sentRequest = request;
+  if(isRequest)
+  {
+    link->waitingResponse = request;
+  }
+  else
+  {
+    link->waitingResponse = NOREQUEST;
+  }
 }
 
 void CallNegotiation::receiveConnection(Connection* con)
@@ -193,10 +215,10 @@ void CallNegotiation::processMessage(QString header, QString content,
   if(connectionID != 0)
   {
     std::shared_ptr<SIPMessageInfo> info = parseSIPMessage(header);
-
+    std::shared_ptr<SDPMessageInfo> sdpInfo = NULL;
     if(info->contentType == "application/sdp" && content.size() != 0)
     {
-      std::shared_ptr<SDPMessageInfo> sdpInfo = parseSDPMessage(content);
+      sdpInfo = parseSDPMessage(content);
       if(sdpInfo == NULL)
       {
         qDebug() << "SDP parsing failed";
@@ -218,6 +240,11 @@ void CallNegotiation::processMessage(QString header, QString content,
           {
             qDebug() << "Found INVITE";
 
+            if(sdpInfo == NULL)
+            {
+              qDebug() << "No SDP received in INVITE";
+              return;
+            }
             if(sessions_[info->callID]->contact.contactAddress
                == sessions_[info->callID]->localAddress.toString())
             {
@@ -229,6 +256,33 @@ void CallNegotiation::processMessage(QString header, QString content,
             }
             break;
           }
+          case ACK:
+          {
+            qDebug() << "Found ACK";
+
+
+            emit callNegotiated(sdpInfo);
+            break;
+          }
+          case OK_200:
+          {
+            qDebug() << "Found 200 OK";
+            if(sessions_[info->callID]->waitingResponse == INVITE)
+            {
+              if(sdpInfo == NULL)
+              {
+                qDebug() << "No SDP received in INVITE OK reponse";
+                return;
+              }
+              emit ourCallAccepted(info->callID, sdpInfo);
+              sendRequest(ACK, sessions_[info->callID], false);
+            }
+            else
+            {
+              qDebug() << "Unexpected response received";
+            }
+            break;
+          }
           default:
           {
             qDebug() << "Warning. Rrequest/response unimplemented";
@@ -237,6 +291,7 @@ void CallNegotiation::processMessage(QString header, QString content,
       }
       else
       {
+        // TODO: send 400
         qDebug() << "Problem detected in SIP message based on previous information!!";
       }
     }
@@ -309,7 +364,7 @@ void CallNegotiation::newSIPLinkFromMessage(std::shared_ptr<SIPMessageInfo> info
   //TODO evaluate SDP
 
   link->connectionID = connectionID;
-  link->sentRequest = NOREQUEST;
+  link->waitingResponse = NOREQUEST;
 
   sessions_[info->callID] = link;
 }
@@ -411,3 +466,4 @@ QList<QHostAddress> parseIPAddress(QString address)
 
   return ipAddresses;
 }
+

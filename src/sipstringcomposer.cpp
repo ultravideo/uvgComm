@@ -15,6 +15,11 @@ messageID SIPStringComposer::startSIPString(const MessageType message, const QSt
     messages_.back()->request = "INVITE";
     break;
   }
+  case OK_200:
+  {
+    messages_.back()->request = "200 OK";
+    break;
+  }
   default:
   {
     qCritical() << "SIP REQUEST NOT IMPLEMENTED";
