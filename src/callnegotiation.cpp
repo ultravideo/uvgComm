@@ -173,6 +173,11 @@ void CallNegotiation::sendRequest(MessageType request, std::shared_ptr<SIPLink> 
   // TODO: names
   ++link->cSeq;
 
+  if(isRequest)
+  {
+    link->originalRequest = request;
+  }
+
   QString branch = generateRandomString(BRANCHLENGTH);
 
   messageID id = messageComposer_.startSIPString(request);
@@ -182,7 +187,7 @@ void CallNegotiation::sendRequest(MessageType request, std::shared_ptr<SIPLink> 
   messageComposer_.viaIP(id, link->localAddress, branch);
   messageComposer_.maxForwards(id, MAXFORWARDS);
   messageComposer_.setCallID(id, link->callID, link->host);
-  messageComposer_.sequenceNum(id, link->cSeq);
+  messageComposer_.sequenceNum(id, link->cSeq, link->originalRequest);
   messageComposer_.addSDP(id, link->sdp);
 
   QString SIPRequest = messageComposer_.composeMessage(id);
@@ -192,14 +197,6 @@ void CallNegotiation::sendRequest(MessageType request, std::shared_ptr<SIPLink> 
 
   QByteArray message = SIPRequest.toUtf8();
   connections_.at(link->connectionID - 1)->sendPacket(message);
-  if(isRequest)
-  {
-    link->waitingResponse = request;
-  }
-  else
-  {
-    link->waitingResponse = NOREQUEST;
-  }
 }
 
 void CallNegotiation::receiveConnection(Connection* con)
@@ -264,14 +261,13 @@ void CallNegotiation::processMessage(QString header, QString content,
           {
             qDebug() << "Found ACK";
 
-
             emit callNegotiated(sdpInfo);
             break;
           }
           case OK_200:
           {
             qDebug() << "Found 200 OK";
-            if(sessions_[info->callID]->waitingResponse == INVITE)
+            if(sessions_[info->callID]->originalRequest == INVITE)
             {
               if(sdpInfo == NULL)
               {
@@ -283,7 +279,7 @@ void CallNegotiation::processMessage(QString header, QString content,
             }
             else
             {
-              qDebug() << "Unexpected response received";
+              qDebug() << "Received a response for unrecognized request";
             }
             break;
           }
@@ -358,7 +354,9 @@ void CallNegotiation::newSIPLinkFromMessage(std::shared_ptr<SIPMessageInfo> info
 
   link->callID = info->callID;
   link->contact = {info->theirName, info->theirUsername, info->contactAddress};
-  link->replyAddress = info->replyAddress;
+  link->replyAddress = info->ourLocation;
+  link->localAddress = info->ourLocation;
+  link->host = info->host;
 
   link->cSeq = info->cSeq;
 
@@ -368,7 +366,7 @@ void CallNegotiation::newSIPLinkFromMessage(std::shared_ptr<SIPMessageInfo> info
   //TODO evaluate SDP
 
   link->connectionID = connectionID;
-  link->waitingResponse = NOREQUEST;
+  link->originalRequest = info->originalRequest;
 
   sessions_[info->callID] = link;
 }
@@ -378,6 +376,7 @@ bool CallNegotiation::compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info,
 {
   qDebug() << "Checking SIP message by comparing it to existing information.";
 
+  // if we don't have previous information
   if(sessions_.find(info->callID) == sessions_.end())
   {
     qDebug() << "New Call-ID detected:" << info->callID << "Creating session...";
@@ -393,22 +392,8 @@ bool CallNegotiation::compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info,
       qDebug() << "Weird first cseq:" << info->cSeq;
       return false;
     }
-    connectionMutex_.lock();
-    if(info->ourLocation != connections_.at(connectionID - 1)->getLocalAddress().toString())
-    {
-      qDebug() << "We are not connected to their address:" << info->ourLocation;
-      return false;
-    }
-
-    if(info->theirLocation != connections_.at(connectionID - 1)->getPeerAddress().toString())
-    {
-      qDebug() << "We are not connected to their address:" << info->theirLocation;
-      return false;
-    }
-
-    connectionMutex_.unlock();
-
   }
+  // if this is not the first message of this call
   else
   {
     qDebug() << "Existing Call-ID detected.";
@@ -437,6 +422,12 @@ bool CallNegotiation::compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info,
                << "Got:" << info->cSeq;
     }
 
+    if(link->host != info->host)
+    {
+      qDebug() << "They changed the host!!";
+      return false;
+    }
+
     if(link->connectionID != connectionID)
     {
       qWarning() << "WARNING: Unexpected change of connection ID";
@@ -445,6 +436,20 @@ bool CallNegotiation::compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info,
 
     // TODO  Maybe check the name portion also
   }
+
+  // check connection details
+  connectionMutex_.lock();
+  if(info->ourLocation != connections_.at(connectionID - 1)->getLocalAddress().toString())
+  {
+    qDebug() << "We are not connected to their address:" << info->ourLocation;
+    return false;
+  }
+  if(info->theirLocation != connections_.at(connectionID - 1)->getPeerAddress().toString())
+  {
+    qDebug() << "We are not connected to their address:" << info->theirLocation;
+    return false;
+  }
+  connectionMutex_.unlock();
 
   return true;
 }
@@ -470,4 +475,3 @@ QList<QHostAddress> parseIPAddress(QString address)
 
   return ipAddresses;
 }
-

@@ -36,7 +36,7 @@ public slots:
 
    void ringing(QString callID);
 
-   void ourCallAccepted(std::shared_ptr<SDPMessageInfo> info);
+   void ourCallAccepted(QString CallID, std::shared_ptr<SDPMessageInfo> info);
    void ourCallRejected(QString callID);
 
    void theirCallNegotiated(std::shared_ptr<SDPMessageInfo> info);

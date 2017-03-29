@@ -213,9 +213,9 @@ void Connection::run()
       sendMutex_.unlock();
     }
 
-    qDebug() << "Connection thread waiting:" << ID_;
+    //qDebug() << "Connection thread waiting:" << ID_;
     eventDispatcher()->processEvents(QEventLoop::WaitForMoreEvents);
-    qDebug() << "Connection thread woken:" << ID_;
+    //qDebug() << "Connection thread woken:" << ID_;
   }
 
   disconnect();

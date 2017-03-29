@@ -36,6 +36,7 @@ struct SIPMessageInfo
   QString host;
 
   uint32_t cSeq;
+  MessageType originalRequest;
 
   QString contentType;
 };

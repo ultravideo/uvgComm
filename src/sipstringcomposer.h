@@ -39,7 +39,7 @@ public:
   // string must include host!
   void setCallID(messageID id, QString& callID, QString& host);
 
-  void sequenceNum(messageID id, uint32_t seq);
+  void sequenceNum(messageID id, uint32_t seq, const MessageType originalRequest);
 
   // returns the complete SIP message if successful.
   // this function will use information provided in above functions
@@ -78,16 +78,18 @@ private:
     QString host;
 
     QString cSeq; // sequenceNumber-function
+    QString originalRequest; // sequenceNumber-function
 
     QString contentType;   // addSDP-function
     QString contentLength; // addSDP-function
     QString content;       // addSDP-function
+
+    bool isRequest;
   };
+
+  QString requestToString(const MessageType request, bool &isRequest);
 
   bool checkMessageReady(SIPMessage* message);
 
   std::vector<SIPMessage*> messages_;
-
-
-  bool request_;
 };

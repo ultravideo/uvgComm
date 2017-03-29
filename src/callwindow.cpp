@@ -71,19 +71,19 @@ void CallWindow::startStream()
                    this, SLOT(callOurselves(std::shared_ptr<SDPMessageInfo>)));
 
   QObject::connect(&call_neg_, SIGNAL(callNegotiated(std::shared_ptr<SDPMessageInfo>)),
-                   this, SLOT(callOurselves()));
+                   this, SLOT(theirCallNegotiated(std::shared_ptr<SDPMessageInfo>)));
 
   QObject::connect(&call_neg_, SIGNAL(ringing(QString)),
                    this, SLOT(ringing(QString)));
 
-  QObject::connect(&call_neg_, SIGNAL(ourCallAccepted(std::shared_ptr<SDPMessageInfo>)),
-                   this, SLOT(ourCallAccepted(std::shared_ptr<SDPMessageInfo>)));
+  QObject::connect(&call_neg_, SIGNAL(ourCallAccepted(QString, std::shared_ptr<SDPMessageInfo>)),
+                   this, SLOT(ourCallAccepted(QString, std::shared_ptr<SDPMessageInfo>)));
 
-  QObject::connect(&call_neg_, SIGNAL(ourCallRejected(QString CallID)),
-                   this, SLOT(ourCallRejected(QString CallID)));
+  QObject::connect(&call_neg_, SIGNAL(ourCallRejected(QString)),
+                   this, SLOT(ourCallRejected(QString)));
 
-  QObject::connect(&call_neg_, SIGNAL(callEnded()),
-                   this, SLOT(endCall()));
+  QObject::connect(&call_neg_, SIGNAL(callEnded(QString)),
+                   this, SLOT(endCall(QString)));
 
   call_.init();
   call_.startCall(ui_->SelfView, currentResolution_);
@@ -284,7 +284,7 @@ void CallWindow::processNextWaitingCall()
 void CallWindow::ringing(QString callID)
 {}
 
-void CallWindow::ourCallAccepted(std::shared_ptr<SDPMessageInfo> info)
+void CallWindow::ourCallAccepted(QString CallID, std::shared_ptr<SDPMessageInfo> info)
 {
   qDebug() << "Our call has been accepted.";
 

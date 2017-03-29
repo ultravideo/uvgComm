@@ -80,7 +80,7 @@ private:
 
     uint32_t connectionID;
 
-    MessageType waitingResponse;
+    MessageType originalRequest;
   };
 
 

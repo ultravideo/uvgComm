@@ -94,6 +94,7 @@ std::shared_ptr<SIPMessageInfo> parseSIPMessage(QString& header)
   }
 
   messageToTable(lines, values);
+
   if(!checkSIPMessage(values))
     return NULL;
 
@@ -136,30 +137,25 @@ SIPMessageInfo* tableToInfo(QList<QStringList>& values)
 
   qDebug() << "Converting table to struct";
 
+  // TODO: this affects which header-lines are mandatory,
+  //       and it should be taken into account
+
   // requests
   if(values.at(0).at(0) == "INVITE")
   {
     info->request = INVITE;
     qDebug() << "INVITE found";
 
-    // TODO: this affects which header-lines are mandatory,
-    //       and it should be taken into account
   }
   else if(values.at(0).at(0) == "ACK")
   {
     info->request = ACK;
     qDebug() << "ACK found";
-
-    // TODO: this affects which header-lines are mandatory,
-    //       and it should be taken into account
   }
   else if(values.at(0).at(0) == "BYE")
   {
     info->request = BYE;
     qDebug() << "BYE found";
-
-    // TODO: this affects which header-lines are mandatory,
-    //       and it should be taken into account
   }
   // responses
   else if(values.at(0).at(0) == "SIP/2.0")
