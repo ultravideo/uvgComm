@@ -32,7 +32,7 @@ public slots:
    void cameraState();
 
    void incomingCall(QString callID, QString caller);
-   void callOurselves();
+   void callOurselves(std::shared_ptr<SDPMessageInfo> info);
 
    void ringing(QString callID);
 
@@ -72,9 +72,6 @@ private:
   QSize currentResolution_;
 
   uint16_t portsOpen_;
-
-  QString ip_;
-  QString port_;
 
   struct CallInfo
   {

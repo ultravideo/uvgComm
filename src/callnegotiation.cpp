@@ -19,7 +19,9 @@ const uint16_t MAXFORWARDS = 70; // the recommmended value is 70
 CallNegotiation::CallNegotiation():
   sessions_(),
   messageComposer_(),
-  sipPort_(5060) // use 5061 for tls encrypted
+  sipPort_(5060), // use 5061 for tls encrypted
+  sdpAudioPort_(18888),
+  sdpVideoPort_(19888)
 {}
 
 CallNegotiation::~CallNegotiation()
@@ -158,9 +160,11 @@ void CallNegotiation::connectionEstablished(quint32 connectionID)
                    "s=HEVC Video Conference\r\n"
                    "t=0 0\r\n"
                    "c=IN IP4 " + foundLink->localAddress.toString() + "\r\n"
-                   "m=video 18888 RTP/AVP 97\r\n"
-                   "m=audio 19888 RTP/AVP 96\r\n";
+                   "m=video " + QString::number(sdpVideoPort_) + " RTP/AVP 97\r\n"
+                   "m=audio " + QString::number(sdpAudioPort_) + " RTP/AVP 96\r\n";
 
+  sdpAudioPort_ += 2;
+  sdpVideoPort_ += 2;
   sendRequest(INVITE, foundLink, true);
 }
 
@@ -248,7 +252,7 @@ void CallNegotiation::processMessage(QString header, QString content,
             if(sessions_[info->callID]->contact.contactAddress
                == sessions_[info->callID]->localAddress.toString())
             {
-              emit callingOurselves();
+              emit callingOurselves(sdpInfo);
             }
             else
             {

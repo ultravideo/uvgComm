@@ -67,8 +67,8 @@ void CallWindow::startStream()
   QObject::connect(&call_neg_, SIGNAL(incomingINVITE(QString, QString)),
                    this, SLOT(incomingCall(QString, QString)));
 
-  QObject::connect(&call_neg_, SIGNAL(callingOurselves()),
-                   this, SLOT(callOurselves()));
+  QObject::connect(&call_neg_, SIGNAL(callingOurselves(std::shared_ptr<SDPMessageInfo>)),
+                   this, SLOT(callOurselves(std::shared_ptr<SDPMessageInfo>)));
 
   QObject::connect(&call_neg_, SIGNAL(callNegotiated(std::shared_ptr<SDPMessageInfo>)),
                    this, SLOT(callOurselves()));
@@ -112,9 +112,6 @@ void CallWindow::addParticipant()
 
     QString sdp = "";
     call_neg_.startCall(list, sdp);
-
-    ip_ = ip_str;
-    port_ = port_str;
 
     QLabel* label = new QLabel(this);
     label->setText("Calling...");
@@ -229,10 +226,10 @@ void CallWindow::incomingCall(QString callID, QString caller)
   }
 }
 
-void CallWindow::callOurselves()
+void CallWindow::callOurselves(std::shared_ptr<SDPMessageInfo> info)
 {
   qDebug() << "Calling ourselves, how boring.";
-  createParticipant(ip_, port_.toInt());
+  createParticipant(info->globalAddress, info->media.first().port);
 }
 
 void CallWindow::acceptCall()
@@ -248,9 +245,6 @@ void CallWindow::acceptCall()
 
 void CallWindow::rejectCall()
 {
-  ip_ = "";
-  port_ = "";
-
   callingWidget_->hide();
   hideLabel();
 

@@ -45,7 +45,7 @@ signals:
 
   // caller wants to call us. Ask the user whether call is accepted
   void incomingINVITE(QString CallID, QString caller);
-  void callingOurselves();
+  void callingOurselves(std::shared_ptr<SDPMessageInfo> info);
   void callNegotiated(std::shared_ptr<SDPMessageInfo> info);
 
   void ringing(QString callID);
@@ -113,4 +113,8 @@ private:
 
   // listens to incoming tcp connections on sipPort_
   ConnectionServer server_;
+
+
+  uint16_t sdpAudioPort_;
+  uint16_t sdpVideoPort_;
 };
