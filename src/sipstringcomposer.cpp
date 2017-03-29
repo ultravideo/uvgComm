@@ -1,6 +1,6 @@
 #include "sipstringcomposer.h"
 
-SIPStringComposer::SIPStringComposer()
+SIPStringComposer::SIPStringComposer():request_(false)
 {}
 
 messageID SIPStringComposer::startSIPString(const MessageType message, const QString& SIPversion)
@@ -13,11 +13,37 @@ messageID SIPStringComposer::startSIPString(const MessageType message, const QSt
   case INVITE:
   {
     messages_.back()->request = "INVITE";
+    request_ = true;
+    break;
+  }
+  case ACK:
+  {
+    messages_.back()->request = "ACK";
+    request_ = true;
+    break;
+  }
+  case BYE:
+  {
+    messages_.back()->request = "BYE";
+    request_ = true;
+    break;
+  }
+  case RINGING_180:
+  {
+    messages_.back()->request = "180 RINGING";
+    request_ = false;
     break;
   }
   case OK_200:
   {
     messages_.back()->request = "200 OK";
+    request_ = false;
+    break;
+  }
+  case DECLINE_600:
+  {
+    messages_.back()->request = "600 DECLINE";
+    request_ = false;
     break;
   }
   default:
@@ -167,10 +193,18 @@ QString SIPStringComposer::composeMessage(messageID id)
   QString lineEnding = "\r\n";
   QString message = "";
 
+  if(request_)
+  {
   // INVITE sip:bob@biloxi.com SIP/2.0
   message = messages_.at(id - 1)->request
       + " sip:" + messages_.at(id - 1)->theirUsername + "@" + messages_.at(id - 1)->theirLocation
       + " SIP/" + messages_.at(id - 1)->version + lineEnding;
+  }
+  else
+  {
+    // response
+    message = messages_.at(id - 1)->version + " " + messages_.at(id - 1)->request + lineEnding;
+  }
 
   message += "Via: SIP/" + messages_.at(id - 1)->version + "/UDP " + messages_.at(id - 1)->replyAddress
       + ";branch=" + messages_.at(id - 1)->branch + lineEnding;

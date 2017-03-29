@@ -136,6 +136,7 @@ SIPMessageInfo* tableToInfo(QList<QStringList>& values)
 
   qDebug() << "Converting table to struct";
 
+  // requests
   if(values.at(0).at(0) == "INVITE")
   {
     info->request = INVITE;
@@ -144,9 +145,51 @@ SIPMessageInfo* tableToInfo(QList<QStringList>& values)
     // TODO: this affects which header-lines are mandatory,
     //       and it should be taken into account
   }
+  else if(values.at(0).at(0) == "ACK")
+  {
+    info->request = ACK;
+    qDebug() << "ACK found";
+
+    // TODO: this affects which header-lines are mandatory,
+    //       and it should be taken into account
+  }
+  else if(values.at(0).at(0) == "BYE")
+  {
+    info->request = BYE;
+    qDebug() << "BYE found";
+
+    // TODO: this affects which header-lines are mandatory,
+    //       and it should be taken into account
+  }
+  // responses
+  else if(values.at(0).at(0) == "SIP/2.0")
+  {
+    if(values.at(0).at(1) == "180")
+    {
+      qDebug() << "RINGING found";
+      info->request = RINGING_180;
+    }
+    else if(values.at(0).at(1) == "200")
+    {
+      qDebug() << "OK found";
+      info->request = OK_200;
+    }
+    else if(values.at(0).at(1) == "603")
+    {
+      qDebug() << "DECLINE found";
+      info->request = OK_200;
+    }
+    else
+    {
+      qDebug() << "Unrecognized response:" << values.at(0).at(1) << values.at(0).at(2);
+      cleanup(info);
+      return NULL;
+    }
+
+  }
   else
   {
-    qDebug() << "Unrecognized Method:" << values.at(0).at(0);
+    qDebug() << "Unrecognized Request:" << values.at(0).at(0);
     cleanup(info);
     return NULL;
   }

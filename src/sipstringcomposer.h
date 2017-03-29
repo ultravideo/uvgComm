@@ -87,4 +87,7 @@ private:
   bool checkMessageReady(SIPMessage* message);
 
   std::vector<SIPMessage*> messages_;
+
+
+  bool request_;
 };
