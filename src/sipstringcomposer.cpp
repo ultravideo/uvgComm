@@ -267,7 +267,7 @@ QString SIPStringComposer::composeMessage(messageID id)
   message += lineEnding;
 
   message += "Call-ID: " + messages_.at(id - 1)->callID + "@" + messages_.at(id - 1)->host + lineEnding;
-  message += "CSeq: " + messages_.at(id - 1)->cSeq + " " + messages_.at(id - 1)->method + lineEnding;
+  message += "CSeq: " + messages_.at(id - 1)->cSeq + " " + messages_.at(id - 1)->originalRequest + lineEnding;
 
   message += "Contact: <sip:" + messages_.at(id - 1)->ourUsername
       + "@" + messages_.at(id - 1)->ourLocation + ">" + lineEnding;

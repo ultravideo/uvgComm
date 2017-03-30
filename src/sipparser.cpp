@@ -16,6 +16,7 @@ struct HeaderLine
 };
 
 //TODO: possiblity of having more than one same line in header.
+// TODO: Maybe make SIP implementation simpler?
 
 // remember to also update tableToInfo if adding new header fields!
 const QList<HeaderLine> SIPHEADERLINES(
@@ -39,7 +40,6 @@ const uint16_t SIPMANDATORYLINES = 9;
 
 // Functions
 
-
 void messageToTable(QStringList& lines, QList<QStringList> &values);
 SIPMessageInfo* tableToInfo(QList<QStringList>& values);
 bool checkSIPMessage(QList<QStringList>& values);
@@ -50,8 +50,8 @@ bool parseSIPParameter(QString field, QString parameterName,
 
 void cleanup(SIPMessageInfo* info);
 
-
 bool checkSDPLine(QStringList& line, uint8_t expectedLength, QString& firstValue);
+
 
 bool checkSDPLine(QStringList& line, uint8_t expectedLength, QString& firstValue)
 {
@@ -285,7 +285,7 @@ bool checkSIPMessage(QList<QStringList>& values)
     return false;
   }
 
-  for(unsigned int i = 0; i < SIPHEADERLINES.size(); ++i)
+  for(unsigned int i = 1; i < SIPHEADERLINES.size(); ++i)
   {
     if(values[i].length() != SIPHEADERLINES.at(i).words)
     {

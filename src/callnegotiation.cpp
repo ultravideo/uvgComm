@@ -220,6 +220,12 @@ void CallNegotiation::processMessage(QString header, QString content,
   if(connectionID != 0)
   {
     std::shared_ptr<SIPMessageInfo> info = parseSIPMessage(header);
+    if(info == NULL)
+    {
+      qDebug() << "Failed to parse SIP message";
+      return;
+    }
+
     std::shared_ptr<SDPMessageInfo> sdpInfo = NULL;
     if(info->contentType == "application/sdp" && content.size() != 0)
     {
