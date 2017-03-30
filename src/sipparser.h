@@ -12,7 +12,8 @@
 // if strict has not been set, these can include
 struct SIPMessageInfo
 {
-  MessageType request;
+  RequestType request;
+  ResponseType response;
   QString version;
 
   QString theirName;
@@ -36,7 +37,7 @@ struct SIPMessageInfo
   QString host;
 
   uint32_t cSeq;
-  MessageType originalRequest;
+  RequestType originalRequest;
 
   QString contentType;
 };

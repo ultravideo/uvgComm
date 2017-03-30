@@ -21,7 +21,8 @@ public:
 
   // MANDATORY ---------------------------
 
-  messageID startSIPString(const MessageType message, const QString& SIPversion = "2.0");
+  messageID startSIPRequest(const RequestType request, const QString& SIPversion = "2.0");
+  messageID startSIPResponse(const ResponseType response, const QString& SIPversion = "2.0");
 
   // include their tag only if it was already provided
   void to(messageID id, QString& name, QString& username, const QString& hostname, const QString& tag = "");
@@ -39,7 +40,7 @@ public:
   // string must include host!
   void setCallID(messageID id, QString& callID, QString& host);
 
-  void sequenceNum(messageID id, uint32_t seq, const MessageType originalRequest);
+  void sequenceNum(messageID id, uint32_t seq, const RequestType originalRequest);
 
   // returns the complete SIP message if successful.
   // this function will use information provided in above functions
@@ -57,8 +58,9 @@ private:
   struct SIPMessage
   {
     // comments tell function which gives this value.
-    QString request; // startSIPString-function
-    QString version; // startSIPString-function
+    QString method; // startSIP-function
+    bool isRequest;
+    QString version; // startSIP-function
 
     QString theirName;     // to-function
     QString theirUsername; // to-function
@@ -83,13 +85,13 @@ private:
     QString contentType;   // addSDP-function
     QString contentLength; // addSDP-function
     QString content;       // addSDP-function
-
-    bool isRequest;
   };
 
-  QString requestToString(const MessageType request, bool &isRequest);
+  QString requestToString(const RequestType request);
+  QString responseToString(const ResponseType response);
 
   bool checkMessageReady(SIPMessage* message);
+  void initializeMessage(const QString& SIPversion);
 
   std::vector<SIPMessage*> messages_;
 };

@@ -163,17 +163,17 @@ SIPMessageInfo* tableToInfo(QList<QStringList>& values)
     if(values.at(0).at(1) == "180")
     {
       qDebug() << "RINGING found";
-      info->request = RINGING_180;
+      info->response = RINGING_180;
     }
     else if(values.at(0).at(1) == "200")
     {
       qDebug() << "OK found";
-      info->request = OK_200;
+      info->response = OK_200;
     }
     else if(values.at(0).at(1) == "603")
     {
       qDebug() << "DECLINE found";
-      info->request = OK_200;
+      info->response = DECLINE_600;
     }
     else
     {

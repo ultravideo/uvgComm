@@ -80,7 +80,7 @@ private:
 
     uint32_t connectionID;
 
-    MessageType originalRequest;
+    RequestType originalRequest;
   };
 
 
@@ -94,8 +94,16 @@ private:
 
   QList<QHostAddress> parseIPAddress(QString address);
 
+  void processRequest(std::shared_ptr<SIPMessageInfo> info,
+                      std::shared_ptr<SDPMessageInfo> sdpInfo);
+
+  void processResponse(std::shared_ptr<SIPMessageInfo> info,
+                       std::shared_ptr<SDPMessageInfo> sdpInfo);
+
   // helper function that composes SIP message and sends it
-  void sendRequest(MessageType request, std::shared_ptr<SIPLink> link, bool isRequest);
+  void messageComposition(messageID id, std::shared_ptr<SIPLink> link);
+  void sendRequest(RequestType request, std::shared_ptr<SIPLink> link);
+  void sendResponse(ResponseType request, std::shared_ptr<SIPLink> link);
 
 
   std::map<QString, std::shared_ptr<SIPLink>> sessions_;

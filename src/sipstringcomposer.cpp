@@ -3,43 +3,50 @@
 SIPStringComposer::SIPStringComposer()
 {}
 
-QString SIPStringComposer::requestToString(const MessageType request, bool& isRequest)
+QString SIPStringComposer::requestToString(const RequestType request)
 {
   switch(request)
   {
   case INVITE:
   {
-    isRequest = true;
     return "INVITE";
     break;
   }
   case ACK:
   {
-    isRequest = true;
     return "ACK";
     break;
   }
   case BYE:
   {
-    isRequest = true;
     return "BYE";
     break;
   }
+  default:
+  {
+    qCritical() << "SIP REQUEST NOT IMPLEMENTED";
+    return "";
+    break;
+  }
+  }
+}
+
+QString SIPStringComposer::responseToString(const ResponseType response)
+{
+  switch(response)
+  {
   case RINGING_180:
   {
-    isRequest = false;
     return "180 RINGING";
     break;
   }
   case OK_200:
   {
-    isRequest = false;
     return "200 OK";
     break;
   }
   case DECLINE_600:
   {
-    isRequest = false;
     return "600 DECLINE";
     break;
   }
@@ -52,14 +59,32 @@ QString SIPStringComposer::requestToString(const MessageType request, bool& isRe
   }
 }
 
-messageID SIPStringComposer::startSIPString(const MessageType message, const QString& SIPversion)
+void SIPStringComposer::initializeMessage(const QString& SIPversion)
 {
   qDebug() << "Composing message number:" << messages_.size() + 1;
+
+  if(SIPversion != "2.0")
+  {
+    qWarning() << "Unsupported SIP version:" << SIPversion;
+  }
+
   messages_.push_back(new SIPMessage);
-
   messages_.back()->version = SIPversion;
-  messages_.back()->request = requestToString(message, messages_.back()->isRequest);
+}
 
+messageID SIPStringComposer::startSIPRequest(const RequestType request, const QString& SIPversion)
+{
+  initializeMessage(SIPversion);
+  messages_.back()->method = requestToString(request);
+  messages_.back()->isRequest = true;
+  return messages_.size();
+}
+
+messageID SIPStringComposer::startSIPResponse(const ResponseType response, const QString& SIPversion)
+{
+  initializeMessage(SIPversion);
+  messages_.back()->method = responseToString(response);
+  messages_.back()->isRequest = false;
   return messages_.size();
 }
 
@@ -127,7 +152,7 @@ void SIPStringComposer::setCallID(messageID id, QString& callID, QString &host)
   messages_.at(id - 1)->host = host;
 }
 
-void SIPStringComposer::sequenceNum(messageID id, uint32_t seq, const MessageType originalRequest)
+void SIPStringComposer::sequenceNum(messageID id, uint32_t seq, const RequestType originalRequest)
 {
   Q_ASSERT(messages_.size() >= id && messages_.at(id - 1) != 0);
   Q_ASSERT(seq != 0);
@@ -135,14 +160,7 @@ void SIPStringComposer::sequenceNum(messageID id, uint32_t seq, const MessageTyp
   QString num;
   messages_.at(id - 1)->cSeq = num.setNum(seq);
 
-  bool request = false;
-
-  messages_.at(id - 1)->originalRequest = requestToString(originalRequest, request);
-
-  if(!request)
-  {
-    qWarning() << "WARNING: We are composing a message with response as a starting message!";
-  }
+  messages_.at(id - 1)->originalRequest = requestToString(originalRequest);
 }
 
 void SIPStringComposer::addSDP(messageID id, QString& sdp)
@@ -160,7 +178,7 @@ QString SIPStringComposer::composeMessage(messageID id)
   Q_ASSERT(messages_.size() >= id && messages_.at(id - 1) != 0);
 
   // check
-  if(messages_.at(id - 1)->request.isEmpty() ||
+  if(messages_.at(id - 1)->method.isEmpty() ||
      messages_.at(id - 1)->version.isEmpty() ||
      messages_.at(id - 1)->theirName.isEmpty() ||
      messages_.at(id - 1)->theirUsername.isEmpty() ||
@@ -177,7 +195,7 @@ QString SIPStringComposer::composeMessage(messageID id)
      messages_.at(id - 1)->branch.isEmpty())
   {
     qWarning() << "WARNING: All required SIP fields have not been provided";
-    qWarning() << messages_.at(id - 1)->request <<
+    qWarning() << messages_.at(id - 1)->method <<
                   messages_.at(id - 1)->version <<
                   messages_.at(id - 1)->theirName <<
                   messages_.at(id - 1)->theirUsername <<
@@ -212,14 +230,14 @@ QString SIPStringComposer::composeMessage(messageID id)
   if(messages_.at(id - 1)->isRequest)
   {
   // INVITE sip:bob@biloxi.com SIP/2.0
-  message = messages_.at(id - 1)->request
+  message = messages_.at(id - 1)->method
       + " sip:" + messages_.at(id - 1)->theirUsername + "@" + messages_.at(id - 1)->theirLocation
       + " SIP/" + messages_.at(id - 1)->version + lineEnding;
   }
   else
   {
     // response
-    message = messages_.at(id - 1)->version + " " + messages_.at(id - 1)->request + lineEnding;
+    message = messages_.at(id - 1)->version + " " + messages_.at(id - 1)->method + lineEnding;
   }
 
   message += "Via: SIP/" + messages_.at(id - 1)->version + "/UDP " + messages_.at(id - 1)->replyAddress
@@ -249,7 +267,7 @@ QString SIPStringComposer::composeMessage(messageID id)
   message += lineEnding;
 
   message += "Call-ID: " + messages_.at(id - 1)->callID + "@" + messages_.at(id - 1)->host + lineEnding;
-  message += "CSeq: " + messages_.at(id - 1)->cSeq + " " + messages_.at(id - 1)->request + lineEnding;
+  message += "CSeq: " + messages_.at(id - 1)->cSeq + " " + messages_.at(id - 1)->method + lineEnding;
 
   message += "Contact: <sip:" + messages_.at(id - 1)->ourUsername
       + "@" + messages_.at(id - 1)->ourLocation + ">" + lineEnding;
