@@ -339,11 +339,34 @@ QString SIPStringComposer::formSDP(std::shared_ptr<SDPMessageInfo> sdpInfo)
 
   QString lineEnd = "\n\r";
   sdp += "v=" + QString::number(sdpInfo->version) + lineEnd;
-  sdp += "o=" + sdpInfo->version + lineEnd;
-  sdp += "i=" + sdpInfo->version + lineEnd;
-  sdp += "c=" + sdpInfo->version + lineEnd;
-  sdp += "t=" + sdpInfo->version + lineEnd;
+  sdp += "o=" + sdpInfo->username + " " + sdpInfo->sess_id  + " "
+      + sdpInfo->sess_v + " " + sdpInfo->host_nettype + " "
+      + sdpInfo->host_addrtype + " " + sdpInfo->hostAddress + lineEnd;
 
+  sdp += "i=" + sdpInfo->sessionName + lineEnd;
+  sdp += "c=" + sdpInfo->global_nettype + " " + sdpInfo->global_addrtype +
+      + " " + sdpInfo->globalAddress + " " + lineEnd;
+  sdp += "t=" + QString::number(sdpInfo->startTime) + " "
+      + QString::number(sdpInfo->endTime) + lineEnd;
 
+  for(auto mediaStream : sdpInfo->media)
+  {
+    sdp += "m=" + mediaStream.type + " " + QString::number(mediaStream.port)
+        + " " + mediaStream.proto + " " + QString::number(mediaStream.rtpNum)
+        + " " + lineEnd;
+    if(!mediaStream.nettype.isEmpty())
+    {
+      sdp += "c=" + mediaStream.nettype + " " + mediaStream.addrtype + " "
+          + mediaStream.address + lineEnd;
+    }
+
+    for(auto rtpmap : mediaStream.codecs)
+    {
+      sdp += "a=rtpmap:" + QString::number(rtpmap.rtpNum) + " "
+          + rtpmap.codec + "/" + QString::number(rtpmap.clockFrequency) + lineEnd;
+    }
+  }
+
+  qDebug().noquote() << "Generated SDP message:" << sdp;
 }
 
