@@ -52,6 +52,8 @@ void cleanup(SIPMessageInfo* info);
 
 bool checkSDPLine(QStringList& line, uint8_t expectedLength, QString& firstValue);
 
+RequestType parseRequest(QString request);
+
 
 bool checkSDPLine(QStringList& line, uint8_t expectedLength, QString& firstValue)
 {
@@ -71,6 +73,28 @@ bool checkSDPLine(QStringList& line, uint8_t expectedLength, QString& firstValue
   firstValue = line.at(0).right(line.at(0).size() - 2);
 
   return true;
+}
+
+RequestType parseRequest(QString request)
+{
+  if(request == "INVITE")
+  {
+    qDebug() << "INVITE found";
+    return INVITE;
+  }
+  else if(request == "ACK")
+  {
+    qDebug() << "ACK found";
+    return ACK;
+  }
+  else if(request == "BYE")
+  {
+    qDebug() << "BYE found";
+    return BYE;
+  }
+
+  qDebug() << "No sensible SIP message found";
+  return NOREQUEST;
 }
 
 void cleanup(SIPMessageInfo* info)
@@ -140,26 +164,20 @@ SIPMessageInfo* tableToInfo(QList<QStringList>& values)
   // TODO: this affects which header-lines are mandatory,
   //       and it should be taken into account
 
-  // requests
-  if(values.at(0).at(0) == "INVITE")
+  if(values.at(0).at(0) != "SIP/2.0")
   {
-    info->request = INVITE;
-    qDebug() << "INVITE found";
+    info->request = parseRequest(values.at(0).at(0));
+    if(info->request == NOREQUEST)
+    {
+      cleanup(info);
+      return NULL;
+    }
 
+    info->response = NORESPONSE;
   }
-  else if(values.at(0).at(0) == "ACK")
+  else
   {
-    info->request = ACK;
-    qDebug() << "ACK found";
-  }
-  else if(values.at(0).at(0) == "BYE")
-  {
-    info->request = BYE;
-    qDebug() << "BYE found";
-  }
-  // responses
-  else if(values.at(0).at(0) == "SIP/2.0")
-  {
+    info->request = NOREQUEST;
     if(values.at(0).at(1) == "180")
     {
       qDebug() << "RINGING found";
@@ -181,13 +199,6 @@ SIPMessageInfo* tableToInfo(QList<QStringList>& values)
       cleanup(info);
       return NULL;
     }
-
-  }
-  else
-  {
-    qDebug() << "Unrecognized Request:" << values.at(0).at(0);
-    cleanup(info);
-    return NULL;
   }
 
   // values has been set according to HEADERLINES-table
@@ -249,6 +260,8 @@ SIPMessageInfo* tableToInfo(QList<QStringList>& values)
 
   bool ok = false;
   info->cSeq = values.at(6).at(1).toInt(&ok);
+
+  info->originalRequest = parseRequest(values.at(6).at(2));
 
   if(!ok && STRICTSIPPROCESSING)
   {

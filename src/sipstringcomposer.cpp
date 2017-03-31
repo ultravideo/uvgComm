@@ -22,6 +22,11 @@ QString SIPStringComposer::requestToString(const RequestType request)
     return "BYE";
     break;
   }
+  case NOREQUEST:
+  {
+    qCritical() << "Received NOREQUEST for string translation";
+    break;
+  }
   default:
   {
     qCritical() << "SIP REQUEST NOT IMPLEMENTED";
@@ -50,9 +55,14 @@ QString SIPStringComposer::responseToString(const ResponseType response)
     return "600 DECLINE";
     break;
   }
+  case NORESPONSE:
+  {
+    qCritical() << "Received NORESPONSE for string translation";
+    break;
+  }
   default:
   {
-    qCritical() << "SIP REQUEST NOT IMPLEMENTED";
+    qCritical() << "SIP RESPONSE NOT IMPLEMENTED";
     return "";
     break;
   }
@@ -156,6 +166,7 @@ void SIPStringComposer::sequenceNum(messageID id, uint32_t seq, const RequestTyp
 {
   Q_ASSERT(messages_.size() >= id && messages_.at(id - 1) != 0);
   Q_ASSERT(seq != 0);
+  Q_ASSERT(originalRequest != NOREQUEST);
 
   QString num;
   messages_.at(id - 1)->cSeq = num.setNum(seq);
@@ -166,6 +177,13 @@ void SIPStringComposer::sequenceNum(messageID id, uint32_t seq, const RequestTyp
 void SIPStringComposer::addSDP(messageID id, QString& sdp)
 {
   Q_ASSERT(messages_.size() >= id && messages_.at(id - 1) != 0);
+
+  if(sdp.isEmpty())
+  {
+    qWarning() << "WARNING: Tried composing a message with empty SDP message";
+    return;
+  }
+
   messages_.at(id - 1)->contentType = "application/sdp";
   QString num;
   messages_.at(id - 1)->contentLength = num.setNum(sdp.length());
@@ -192,6 +210,7 @@ QString SIPStringComposer::composeMessage(messageID id)
      messages_.at(id - 1)->callID.isEmpty() ||
      messages_.at(id - 1)->host.isEmpty() ||
      messages_.at(id - 1)->cSeq.isEmpty() ||
+     messages_.at(id - 1)->originalRequest.isEmpty() ||
      messages_.at(id - 1)->branch.isEmpty())
   {
     qWarning() << "WARNING: All required SIP fields have not been provided";
@@ -209,6 +228,7 @@ QString SIPStringComposer::composeMessage(messageID id)
                   messages_.at(id - 1)->callID <<
                   messages_.at(id - 1)->host <<
                   messages_.at(id - 1)->cSeq <<
+                  messages_.at(id - 1)->originalRequest <<
                   messages_.at(id - 1)->branch;
 
     return QString();
@@ -237,7 +257,7 @@ QString SIPStringComposer::composeMessage(messageID id)
   else
   {
     // response
-    message = messages_.at(id - 1)->version + " " + messages_.at(id - 1)->method + lineEnding;
+    message = "SIP/" + messages_.at(id - 1)->version + " " + messages_.at(id - 1)->method + lineEnding;
   }
 
   message += "Via: SIP/" + messages_.at(id - 1)->version + "/UDP " + messages_.at(id - 1)->replyAddress
@@ -296,3 +316,34 @@ void SIPStringComposer::removeMessage(messageID id)
   Q_ASSERT(messages_.size() >= id && messages_.at(id - 1) != 0);
   qCritical() << "NOT IMPLEMENTED";
 }
+
+QString SIPStringComposer::formSDP(std::shared_ptr<SDPMessageInfo> sdpInfo)
+{
+  if(sdpInfo->version != 0 ||
+     sdpInfo->username.isEmpty() ||
+     sdpInfo->host_nettype.isEmpty() ||
+     sdpInfo->host_addrtype.isEmpty() ||
+     sdpInfo->sessionName.isEmpty() ||
+     sdpInfo->hostAddress.isEmpty() ||
+     sdpInfo->global_nettype.isEmpty() ||
+     sdpInfo->global_addrtype.isEmpty() ||
+     sdpInfo->globalAddress.isEmpty() ||
+     sdpInfo->media.empty()
+     )
+  {
+    qCritical() << "WARNING: Bad SDPInfo in string formation";
+    return "";
+  }
+
+  QString sdp = "";
+
+  QString lineEnd = "\n\r";
+  sdp += "v=" + QString::number(sdpInfo->version) + lineEnd;
+  sdp += "o=" + sdpInfo->version + lineEnd;
+  sdp += "i=" + sdpInfo->version + lineEnd;
+  sdp += "c=" + sdpInfo->version + lineEnd;
+  sdp += "t=" + sdpInfo->version + lineEnd;
+
+
+}
+

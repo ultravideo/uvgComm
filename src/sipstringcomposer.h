@@ -11,6 +11,8 @@
 
 #include "common.h"
 
+#include <memory>
+
 typedef int16_t messageID;
 
 class SIPStringComposer
@@ -51,6 +53,7 @@ public:
 
   // OPTIONAL ------------------------------
 
+  QString formSDP(std::shared_ptr<SDPMessageInfo> sdpInfo);
   void addSDP(messageID id, QString& sdp);
 
 private:
