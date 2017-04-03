@@ -191,7 +191,7 @@ SIPMessageInfo* tableToInfo(QList<QStringList>& values)
     else if(values.at(0).at(1) == "603")
     {
       qDebug() << "DECLINE found";
-      info->response = DECLINE_600;
+      info->response = DECLINE_603;
     }
     else
     {
@@ -413,7 +413,7 @@ std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
         info->sessionName = line.right(line.size() - 2);
 
         qDebug() << "Session name:" << info->sessionName;
-
+        session = true;
         break;
       }
       case 't':
@@ -424,6 +424,7 @@ std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
         info->startTime = firstValue.toUInt();
         info->endTime = words.at(1).toUInt();
 
+        timing = true;
         break;
       }
       case 'm':
@@ -438,7 +439,8 @@ std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
 
         // TODO process other possible lines
 
-        while(lineIterator.hasNext())
+
+        while(lineIterator.hasNext()) // TODO ERROR if not correct, the line is not processsed, move backwards?
         {
           QString additionalLine = lineIterator.next();
           QStringList additionalWords = additionalLine.split(" ", QString::SkipEmptyParts);
@@ -454,7 +456,7 @@ std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
             info->global_addrtype = additionalWords.at(1);
             info->globalAddress = additionalWords.at(2);
           }
-          if(additionalLine.at(0) == 'a=rtpmap')
+          else if(additionalLine.at(0) == 'a=rtpmap')
           {
             if(additionalWords.size() >= 2)
             {
@@ -489,6 +491,11 @@ std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
               // TODO support encoding parameters
             }
           }
+          else
+          {
+            lineIterator.previous();
+            break;
+          }
         }
 
         info->media.append(mediaInfo);
@@ -501,6 +508,7 @@ std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
 
         info->global_addrtype = words.at(1);
         info->globalAddress = words.at(2);
+        break;
       }
       default:
       {
@@ -509,9 +517,10 @@ std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
     }
   }
 
-  if(!version || !originator || !session || timing)
+  if(!version || !originator || !session || !timing)
   {
-    qDebug() << "All required fields not present in SDP";
+    qDebug() << "All required fields not present in SDP:"
+             << "v" << version << "o" << originator << "s" << session << "t" << timing;
     //return NULL;
   }
 

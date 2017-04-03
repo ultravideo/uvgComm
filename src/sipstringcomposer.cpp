@@ -50,9 +50,9 @@ QString SIPStringComposer::responseToString(const ResponseType response)
     return "200 OK";
     break;
   }
-  case DECLINE_600:
+  case DECLINE_603:
   {
-    return "600 DECLINE";
+    return "603 DECLINE";
     break;
   }
   case NORESPONSE:
@@ -317,9 +317,10 @@ void SIPStringComposer::removeMessage(messageID id)
   qCritical() << "NOT IMPLEMENTED";
 }
 
-QString SIPStringComposer::formSDP(std::shared_ptr<SDPMessageInfo> sdpInfo)
+QString SIPStringComposer::formSDP(const std::shared_ptr<SDPMessageInfo> sdpInfo)
 {
-  if(sdpInfo->version != 0 ||
+  if(sdpInfo == NULL ||
+     sdpInfo->version != 0 ||
      sdpInfo->username.isEmpty() ||
      sdpInfo->host_nettype.isEmpty() ||
      sdpInfo->host_addrtype.isEmpty() ||
@@ -337,13 +338,13 @@ QString SIPStringComposer::formSDP(std::shared_ptr<SDPMessageInfo> sdpInfo)
 
   QString sdp = "";
 
-  QString lineEnd = "\n\r";
+  QString lineEnd = "\r\n";
   sdp += "v=" + QString::number(sdpInfo->version) + lineEnd;
-  sdp += "o=" + sdpInfo->username + " " + sdpInfo->sess_id  + " "
-      + sdpInfo->sess_v + " " + sdpInfo->host_nettype + " "
+  sdp += "o=" + sdpInfo->username + " " + QString::number(sdpInfo->sess_id)  + " "
+      + QString::number(sdpInfo->sess_v) + " " + sdpInfo->host_nettype + " "
       + sdpInfo->host_addrtype + " " + sdpInfo->hostAddress + lineEnd;
 
-  sdp += "i=" + sdpInfo->sessionName + lineEnd;
+  sdp += "s=" + sdpInfo->sessionName + lineEnd;
   sdp += "c=" + sdpInfo->global_nettype + " " + sdpInfo->global_addrtype +
       + " " + sdpInfo->globalAddress + " " + lineEnd;
   sdp += "t=" + QString::number(sdpInfo->startTime) + " "
@@ -353,7 +354,7 @@ QString SIPStringComposer::formSDP(std::shared_ptr<SDPMessageInfo> sdpInfo)
   {
     sdp += "m=" + mediaStream.type + " " + QString::number(mediaStream.port)
         + " " + mediaStream.proto + " " + QString::number(mediaStream.rtpNum)
-        + " " + lineEnd;
+        + lineEnd;
     if(!mediaStream.nettype.isEmpty())
     {
       sdp += "c=" + mediaStream.nettype + " " + mediaStream.addrtype + " "
@@ -367,6 +368,7 @@ QString SIPStringComposer::formSDP(std::shared_ptr<SDPMessageInfo> sdpInfo)
     }
   }
 
-  qDebug().noquote() << "Generated SDP message:" << sdp;
+  qDebug().noquote() << "Generated SDP string:" << sdp;
+  return sdp;
 }
 

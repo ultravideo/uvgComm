@@ -53,7 +53,7 @@ public:
 
   // OPTIONAL ------------------------------
 
-  QString formSDP(std::shared_ptr<SDPMessageInfo> sdpInfo);
+  QString formSDP(const std::shared_ptr<SDPMessageInfo> sdpInfo);
   void addSDP(messageID id, QString& sdp);
 
 private:

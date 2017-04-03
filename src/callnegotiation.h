@@ -36,7 +36,7 @@ public:
 
   void setupSession(MediaSubsession* subsession);
 
-  void startCall(QList<Contact> addresses, QString sdp);
+  void startCall(QList<Contact> addresses);
   void acceptCall(QString callID);
   void rejectCall(QString callID);
   void endCall();
@@ -76,15 +76,19 @@ private:
     QString theirTag;
     QHostAddress localAddress;
 
-    QString sdp; // current session description
+    std::shared_ptr<SDPMessageInfo> sdp; // our session description
 
     uint32_t connectionID;
 
     RequestType originalRequest;
+
+    QList<uint16_t> suggestedPorts_;
+
+    bool finalSDP;
   };
 
-
   void initUs();
+  std::shared_ptr<SDPMessageInfo> generateSDP(QString localAddress);
 
   std::shared_ptr<SIPLink> newSIPLink();
   bool compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info, quint32 connectionID);
@@ -100,11 +104,14 @@ private:
   void processResponse(std::shared_ptr<SIPMessageInfo> info,
                        std::shared_ptr<SDPMessageInfo> sdpInfo);
 
+  // edits the SDP so it suits us. Returns whether it is suitable
+  bool modifySDP(std::shared_ptr<SDPMessageInfo> sdpInfo,
+                 std::shared_ptr<SDPMessageInfo> oldInfo, bool& modified);
+
   // helper function that composes SIP message and sends it
   void messageComposition(messageID id, std::shared_ptr<SIPLink> link);
   void sendRequest(RequestType request, std::shared_ptr<SIPLink> link);
   void sendResponse(ResponseType request, std::shared_ptr<SIPLink> link);
-
 
   std::map<QString, std::shared_ptr<SIPLink>> sessions_;
 
@@ -123,6 +130,5 @@ private:
   ConnectionServer server_;
 
 
-  uint16_t sdpAudioPort_;
-  uint16_t sdpVideoPort_;
+  uint16_t firstAvailablePort_;
 };

@@ -11,17 +11,14 @@ const QString alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 const uint16_t CALLIDLENGTH = 16;
 const uint16_t TAGLENGTH = 16;
 const uint16_t BRANCHLENGTH = 16;
-
 const uint16_t MAXFORWARDS = 70; // the recommmended value is 70
-
-
+const uint16_t STARTPORT = 18888;
 
 CallNegotiation::CallNegotiation():
   sessions_(),
   messageComposer_(),
   sipPort_(5060), // use 5061 for tls encrypted
-  sdpAudioPort_(18888),
-  sdpVideoPort_(19888)
+  firstAvailablePort_(STARTPORT)
 {}
 
 CallNegotiation::~CallNegotiation()
@@ -56,7 +53,26 @@ void CallNegotiation::initUs()
   ourUsername_ = "i";
 }
 
-void CallNegotiation::startCall(QList<Contact> addresses, QString sdp)
+std::shared_ptr<SDPMessageInfo> CallNegotiation::generateSDP(QString localAddress)
+{
+  QString sdp_str = "v=0 \r\n"
+                   "o=" + ourUsername_ + " 1234 12345 IN IP4 " + localAddress + "\r\n"
+                   "s=HEVC Video Conference\r\n"
+                   "t=0 0\r\n"
+                   "c=IN IP4 " + localAddress + "\r\n"
+                   "m=video " + QString::number(firstAvailablePort_) + " RTP/AVP 97\r\n"
+                   "m=audio " + QString::number(firstAvailablePort_ + 2) + " RTP/AVP 96\r\n";
+
+  firstAvailablePort_ += 4; // video and audio + rtcp for both
+
+  // TODO maybe fill the struct from available values at some point!!
+
+  std::shared_ptr<SDPMessageInfo> sdp = parseSDPMessage(sdp_str);
+
+  return sdp;
+}
+
+void CallNegotiation::startCall(QList<Contact> addresses)
 {
   Q_ASSERT(addresses.size() != 0);
 
@@ -94,16 +110,10 @@ void CallNegotiation::startCall(QList<Contact> addresses, QString sdp)
       link->contact.username = "unknown";
     }
 
-    link->sdp = sdp;
     link->theirTag = "";
 
     con->establishConnection(address, sipPort_);
-
-    //contact->sender.init(contact->peer.address, sipPort_);
-
     // message is sent only after connection has been established so we know our address
-
-    //sendRequest(INVITE, link);
   }
 }
 
@@ -124,7 +134,7 @@ void CallNegotiation::rejectCall(QString callID)
     qWarning() << "WARNING: We have lost our link somewhere";
     return;
   }
-  sendResponse(DECLINE_600, sessions_[callID]);
+  sendResponse(DECLINE_603, sessions_[callID]);
 }
 
 void CallNegotiation::connectionEstablished(quint32 connectionID)
@@ -152,19 +162,9 @@ void CallNegotiation::connectionEstablished(quint32 connectionID)
   foundLink->contact.contactAddress
       = connections_.at(connectionID - 1)->getPeerAddress().toString();
 
-
   foundLink->host = foundLink->localAddress.toString();
+  foundLink->sdp = generateSDP(foundLink->localAddress.toString());
 
-  foundLink->sdp = "v=0 \r\n"
-                   "o=" + ourUsername_ + " 1234 12345 IN IP4 " + foundLink->localAddress.toString() + "\r\n"
-                   "s=HEVC Video Conference\r\n"
-                   "t=0 0\r\n"
-                   "c=IN IP4 " + foundLink->localAddress.toString() + "\r\n"
-                   "m=video " + QString::number(sdpVideoPort_) + " RTP/AVP 97\r\n"
-                   "m=audio " + QString::number(sdpAudioPort_) + " RTP/AVP 96\r\n";
-
-  sdpAudioPort_ += 2;
-  sdpVideoPort_ += 2;
   sendRequest(INVITE, foundLink);
 }
 
@@ -179,7 +179,8 @@ void CallNegotiation::messageComposition(messageID id, std::shared_ptr<SIPLink> 
   messageComposer_.setCallID(id, link->callID, link->host);
   ++link->cSeq;
   messageComposer_.sequenceNum(id, link->cSeq, link->originalRequest);
-  messageComposer_.addSDP(id, link->sdp);
+  QString sdp_str = messageComposer_.formSDP(link->sdp);
+  messageComposer_.addSDP(id, sdp_str);
 
   QString SIPRequest = messageComposer_.composeMessage(id);
 
@@ -246,11 +247,11 @@ void CallNegotiation::processMessage(QString header, QString content,
       {
         newSIPLinkFromMessage(info, connectionID);
 
-        if(info->request != NOREQUEST && info->response == NOREQUEST)
+        if(info->request != NOREQUEST && info->response == NORESPONSE)
         {
           processRequest(info, sdpInfo);
         }
-        else if(info->request == NOREQUEST && info->response != NOREQUEST)
+        else if(info->request == NOREQUEST && info->response != NORESPONSE)
         {
           processResponse(info, sdpInfo);
         }
@@ -330,7 +331,15 @@ void CallNegotiation::newSIPLinkFromMessage(std::shared_ptr<SIPMessageInfo> info
 
   link->cSeq = info->cSeq;
 
-  link->ourTag = generateRandomString(TAGLENGTH);
+
+  if(!link->ourTag.isEmpty())
+  {
+    link->ourTag = info->ourTag;
+  }
+  else
+  {
+    link->ourTag = generateRandomString(TAGLENGTH);
+  }
   link->theirTag = info->theirTag;
 
   //TODO evaluate SDP
@@ -338,6 +347,9 @@ void CallNegotiation::newSIPLinkFromMessage(std::shared_ptr<SIPMessageInfo> info
   link->connectionID = connectionID;
   link->originalRequest = info->originalRequest;
 
+  link->sdp = generateSDP(info->ourLocation);
+
+  // TODO: make user the sdp is checked somewhere.
   sessions_[info->callID] = link;
 }
 
@@ -382,7 +394,8 @@ bool CallNegotiation::compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info,
     if(!link->theirTag.isEmpty() && info->theirTag != link->theirTag &&
        STRICTSIPPROCESSING)
     {
-      qDebug() << "They have changed their tag! Something went wrong.";
+      qDebug() << "They have changed their tag! Something went wrong. Old:" << link->theirTag
+               << "new:" << info->theirTag;
       return false;
     }
 
@@ -445,7 +458,16 @@ void CallNegotiation::processRequest(std::shared_ptr<SIPMessageInfo> info,
     }
     else
     {
-      emit incomingINVITE(info->callID, sessions_[info->callID]->contact.name);
+      bool modified = false;
+      if(modifySDP(sdpInfo, sessions_[info->callID]->sdp, modified))
+      {
+        emit incomingINVITE(info->callID, sessions_[info->callID]->contact.name);
+      }
+      else
+      {
+        qDebug() << "Could not find suitable call parameters within INVITE. Terminating..";
+        sendResponse(DECLINE_603, sessions_[info->callID]);
+      }
     }
     break;
   }
@@ -490,10 +512,57 @@ void CallNegotiation::processResponse(std::shared_ptr<SIPMessageInfo> info,
   }
   default:
   {
-    qWarning() << "";
+    qWarning() << "WARNING: Unable to process response";
+  }
+  }
+}
 
+bool CallNegotiation::modifySDP(std::shared_ptr<SDPMessageInfo> newInfo,
+                                std::shared_ptr<SDPMessageInfo> oldInfo,
+                                bool &modified)
+{
+  modified = false;
+  for(auto mediaStream : newInfo->media)
+  {
+    // have they changed the suggested port
+    bool samePort = false;
+    for(auto oldMedia : oldInfo->media)
+    {
+      if(mediaStream.port == oldMedia.port)
+      {
+        samePort = true;
+      }
+    }
+
+    // they have
+    if(!samePort)
+    {
+      // is the new port suitable for us
+      if(mediaStream.port > STARTPORT && mediaStream.port < firstAvailablePort_)
+      {
+         qDebug() << "They suggested a port that is already in use. Suggesting a different one";
+
+        mediaStream.port = firstAvailablePort_;
+        firstAvailablePort_ += 2;
+        // TODO check that we don't run out of ports
+      }
+    }
   }
-  }
+
+  newInfo->username = oldInfo->username;
+  newInfo->sess_id = oldInfo->sess_id;
+  newInfo->sess_v = oldInfo->sess_v;
+  newInfo->host_nettype = oldInfo->host_nettype;
+  newInfo->host_addrtype = oldInfo->host_addrtype;
+  newInfo->hostAddress = oldInfo->hostAddress;
+  newInfo->sessionName = oldInfo->sessionName;
+  newInfo->startTime = oldInfo->startTime;
+  newInfo->endTime = oldInfo->endTime;
+  newInfo->global_nettype = oldInfo->global_nettype;
+  newInfo->global_addrtype = oldInfo->global_addrtype;
+  newInfo->globalAddress = oldInfo->globalAddress;
+
+  return true;
 }
 
 QList<QHostAddress> parseIPAddress(QString address)
@@ -517,3 +586,5 @@ QList<QHostAddress> parseIPAddress(QString address)
 
   return ipAddresses;
 }
+
+

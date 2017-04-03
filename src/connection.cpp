@@ -76,6 +76,8 @@ void Connection::connectLoop()
 {
   const int connectionTimeout = 5 * 1000; // 5 seconds
 
+  qDebug() << "Connecting to address:" << destination_ << "Port:" << port_;
+
   socket_->connectToHost(destination_, port_);
 
   if (!socket_->waitForConnected(connectionTimeout)) {

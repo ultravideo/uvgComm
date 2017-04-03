@@ -110,8 +110,7 @@ void CallWindow::addParticipant()
 
     //start negotiations for this connection
 
-    QString sdp = "";
-    call_neg_.startCall(list, sdp);
+    call_neg_.startCall(list);
 
     QLabel* label = new QLabel(this);
     label->setText("Calling...");
