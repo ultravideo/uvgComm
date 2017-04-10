@@ -241,7 +241,7 @@ QString SIPStringComposer::composeMessage(messageID id)
 
   if(messages_.at(id - 1)->contentType.isEmpty())
   {
-    qWarning() << "WARNING: No SDP has been provided for SIP message. Not including body";
+    qDebug() << "No SDP has been provided for SIP message. Not including body";
   }
 
   QString lineEnding = "\r\n";
@@ -298,6 +298,11 @@ QString SIPStringComposer::composeMessage(messageID id)
     message += "Content-Type: " + messages_.at(id - 1)->contentType + lineEnding;
     message += "Content-Length: " + messages_.at(id - 1)->contentLength + lineEnding;
   }
+  else
+  {
+    message += "Content-Length: 0" + lineEnding;
+  }
+
 
   message += lineEnding; // extra line between header and body
 

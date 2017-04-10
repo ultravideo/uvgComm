@@ -12,7 +12,9 @@
 struct HeaderLine
 {
   QString name;
-  quint8 words;
+  quint8 minWords;
+  quint8 maxWords;
+  bool mandatory;
 };
 
 //TODO: possiblity of having more than one same line in header.
@@ -21,16 +23,16 @@ struct HeaderLine
 // remember to also update tableToInfo if adding new header fields!
 const QList<HeaderLine> SIPHEADERLINES(
 {
-      {"METHOD", 3},
-      {"Via:", 3},
-      {"Max-Forwards:", 2},
-      {"To:", 3},
-      {"From:", 3},
-      {"Call-ID:", 2},
-      {"Cseq:", 3},
-      {"Contact:", 2},
-      {"Content-Type:", 2},
-      {"Content-Length:", 2},
+      {"METHOD", 3, 4, true},
+      {"Via:", 3, 3, true},
+      {"Max-Forwards:", 2, 2, true},
+      {"To:", 3, 3, true},
+      {"From:", 3, 3, true},
+      {"Call-ID:", 2, 2, true},
+      {"Cseq:", 3, 3, true},
+      {"Contact:", 2, 2, true},
+      {"Content-Type:", 2, 2, false},
+      {"Content-Length:", 2, 2, true},
 }
 );
 
@@ -105,7 +107,7 @@ void cleanup(SIPMessageInfo* info)
 
 std::shared_ptr<SIPMessageInfo> parseSIPMessage(QString& header)
 {
-  QStringList lines = header.split("\r\n");
+  QStringList lines = header.split("\r\n",  QString::SkipEmptyParts);
 
   qDebug() << "SIP message split into"  << lines.length() << "lines";
 
@@ -114,7 +116,7 @@ std::shared_ptr<SIPMessageInfo> parseSIPMessage(QString& header)
   // increase the list size
   while(values.size() < SIPHEADERLINES.size())
   {
-    values.append(QStringList(""));
+    values.append(QStringList());
   }
 
   messageToTable(lines, values);
@@ -278,8 +280,10 @@ SIPMessageInfo* tableToInfo(QList<QStringList>& values)
   //info->contactAddress = parseIPAddress(contactAddress);
   info->contactAddress = contactAddress;
 
-
-  info->contentType = values.at(8).at(1);
+  if(values.size() >= 9 && values.at(8).size() == 2)
+  {
+    info->contentType = values.at(8).at(1);
+  }
   return info;
 }
 
@@ -298,15 +302,24 @@ bool checkSIPMessage(QList<QStringList>& values)
     return false;
   }
 
-  for(unsigned int i = 1; i < SIPHEADERLINES.size(); ++i)
+  for(unsigned int i = 0; i < SIPHEADERLINES.size(); ++i)
   {
-    if(values[i].length() != SIPHEADERLINES.at(i).words)
+    if(!values[i].isEmpty())
     {
-      qDebug() << "Wrong number of words in a line for:" << SIPHEADERLINES.at(i).name
-               << "(" << i << ")"
-               <<". Found:" << values[i].length()
-               << "Expecting:" << SIPHEADERLINES.at(i).words;
-      qDebug() << "Line:" << values[i];
+      if(values[i].length() < SIPHEADERLINES.at(i).minWords ||
+         values[i].length() > SIPHEADERLINES.at(i).maxWords)
+      {
+        qDebug() << "Wrong number of words in a line for:" << SIPHEADERLINES.at(i).name
+                 << "(" << i << ")"
+                 <<". Found:" << values[i].length()
+                << "Expecting:" << SIPHEADERLINES.at(i).minWords << "-" << SIPHEADERLINES.at(i).maxWords;
+        qDebug() << "Line:" << values[i];
+        return false;
+      }
+    }
+    else if(SIPHEADERLINES.at(i).mandatory)
+    {
+      qDebug() << "SIP message missing a mandatory line:" << SIPHEADERLINES.at(i).name;
       return false;
     }
   }
@@ -437,6 +450,8 @@ std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
         mediaInfo.proto = words.at(2);
         mediaInfo.rtpNum = words.at(3).toUInt();
 
+        qDebug() << "Media found with type:" << mediaInfo.type;
+
         // TODO process other possible lines
 
 
@@ -456,7 +471,7 @@ std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
             info->global_addrtype = additionalWords.at(1);
             info->globalAddress = additionalWords.at(2);
           }
-          else if(additionalLine.at(0) == 'a=rtpmap')
+          else if(additionalLine.at(0) == "a=rtpmap")
           {
             if(additionalWords.size() >= 2)
             {
@@ -476,6 +491,8 @@ std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
               mapping.rtpNum = payloadNum.at(1).toUInt();
               mapping.codec = encoding.at(0);
               mapping.clockFrequency = encoding.at(1).toUInt();
+
+              qDebug() << "RTPmap found with codec:" << mapping.codec;
 
               mediaInfo.codecs.append(mapping);
             }
