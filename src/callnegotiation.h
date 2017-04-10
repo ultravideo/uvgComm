@@ -76,7 +76,8 @@ private:
     QString theirTag;
     QHostAddress localAddress;
 
-    std::shared_ptr<SDPMessageInfo> sdp; // our session description
+    std::shared_ptr<SDPMessageInfo> localSDP;
+    std::shared_ptr<SDPMessageInfo> peerSDP;
 
     uint32_t connectionID;
 
@@ -99,14 +100,15 @@ private:
   QList<QHostAddress> parseIPAddress(QString address);
 
   void processRequest(std::shared_ptr<SIPMessageInfo> info,
-                      std::shared_ptr<SDPMessageInfo> sdpInfo);
+                      std::shared_ptr<SDPMessageInfo> peerSDP);
 
   void processResponse(std::shared_ptr<SIPMessageInfo> info,
-                       std::shared_ptr<SDPMessageInfo> sdpInfo);
+                       std::shared_ptr<SDPMessageInfo> peerSDP);
 
   // edits the SDP so it suits us. Returns whether it is suitable
-  bool modifySDP(std::shared_ptr<SDPMessageInfo> sdpInfo,
-                 std::shared_ptr<SDPMessageInfo> oldInfo, bool& modified);
+  bool modifySDP(std::shared_ptr<SDPMessageInfo> newPeerInfo,
+                 std::shared_ptr<SDPMessageInfo> localInfo,
+                 bool& modified);
 
   // helper function that composes SIP message and sends it
   void messageComposition(messageID id, std::shared_ptr<SIPLink> link);

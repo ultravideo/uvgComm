@@ -49,7 +49,7 @@ public slots:
 
 private:
 
-  void createParticipant(QString ip_str, uint16_t port);
+  void createParticipant(std::shared_ptr<SDPMessageInfo> info);
   void hideLabel();
 
   void processNextWaitingCall();

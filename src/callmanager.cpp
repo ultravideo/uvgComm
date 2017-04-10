@@ -43,7 +43,7 @@ void CallManager::startCall(VideoWidget *selfView, QSize resolution)
   fg_->init(selfView, resolution);
 }
 
-void CallManager::addParticipant(in_addr ip, uint16_t port, VideoWidget *view)
+void CallManager::addParticipant(in_addr ip, uint16_t audioPort, uint16_t videoPort, VideoWidget *view)
 {
   qDebug() << "Adding participant";
 
@@ -58,10 +58,10 @@ void CallManager::addParticipant(in_addr ip, uint16_t port, VideoWidget *view)
 
   qDebug() << "Creating connections";
 
-  Filter *videoFramedSource = streamer_->addSendVideo(streamID, port);
-  Filter *videoSink =streamer_->addReceiveVideo(streamID, port);
-  Filter *audioFramedSource = streamer_->addSendAudio(streamID, port + 1000);
-  Filter *audioSink = streamer_->addReceiveAudio(streamID, port + 1000);
+  Filter *videoFramedSource = streamer_->addSendVideo(streamID, videoPort);
+  Filter *videoSink =streamer_->addReceiveVideo(streamID, videoPort);
+  Filter *audioFramedSource = streamer_->addSendAudio(streamID, audioPort);
+  Filter *audioSink = streamer_->addReceiveAudio(streamID, audioPort);
 
   qDebug() << "Modifying filter graph";
 

@@ -163,7 +163,7 @@ void CallNegotiation::connectionEstablished(quint32 connectionID)
       = connections_.at(connectionID - 1)->getPeerAddress().toString();
 
   foundLink->host = foundLink->localAddress.toString();
-  foundLink->sdp = generateSDP(foundLink->localAddress.toString());
+  foundLink->localSDP = generateSDP(foundLink->localAddress.toString());
 
   sendRequest(INVITE, foundLink);
 }
@@ -179,8 +179,6 @@ void CallNegotiation::messageComposition(messageID id, std::shared_ptr<SIPLink> 
   messageComposer_.setCallID(id, link->callID, link->host);
   ++link->cSeq;
   messageComposer_.sequenceNum(id, link->cSeq, link->originalRequest);
-  QString sdp_str = messageComposer_.formSDP(link->sdp);
-  messageComposer_.addSDP(id, sdp_str);
 
   QString SIPRequest = messageComposer_.composeMessage(id);
 
@@ -195,12 +193,26 @@ void CallNegotiation::sendRequest(RequestType request, std::shared_ptr<SIPLink> 
 {
   link->originalRequest = request;
   messageID id = messageComposer_.startSIPRequest(request);
+
+  if(request == INVITE)
+  {
+    QString sdp_str = messageComposer_.formSDP(link->localSDP);
+    messageComposer_.addSDP(id, sdp_str);
+  }
+
   messageComposition(id, link);
 }
 
 void CallNegotiation::sendResponse(ResponseType response, std::shared_ptr<SIPLink> link)
 {
   messageID id = messageComposer_.startSIPResponse(response);
+
+  if(link->originalRequest == INVITE && response == OK_200)
+  {
+    QString sdp_str = messageComposer_.formSDP(link->localSDP);
+    messageComposer_.addSDP(id, sdp_str);
+  }
+
   messageComposition(id, link);
 }
 
@@ -224,6 +236,7 @@ void CallNegotiation::processMessage(QString header, QString content,
     if(info == NULL)
     {
       qDebug() << "Failed to parse SIP message";
+      //sendResponse(MALFORMED_400, ); TODO: get link and attempted request from somewhere
       return;
     }
 
@@ -234,6 +247,8 @@ void CallNegotiation::processMessage(QString header, QString content,
       if(sdpInfo == NULL)
       {
         qDebug() << "SDP parsing failed";
+        return;
+        //sendResponse(MALFORMED_400, );
       }
     }
 
@@ -331,7 +346,6 @@ void CallNegotiation::newSIPLinkFromMessage(std::shared_ptr<SIPMessageInfo> info
 
   link->cSeq = info->cSeq;
 
-
   if(!link->ourTag.isEmpty())
   {
     link->ourTag = info->ourTag;
@@ -347,7 +361,10 @@ void CallNegotiation::newSIPLinkFromMessage(std::shared_ptr<SIPMessageInfo> info
   link->connectionID = connectionID;
   link->originalRequest = info->originalRequest;
 
-  link->sdp = generateSDP(info->ourLocation);
+  if(link->localSDP == NULL)
+  {
+    link->localSDP = generateSDP(info->ourLocation);
+  }
 
   // TODO: make user the sdp is checked somewhere.
   sessions_[info->callID] = link;
@@ -438,7 +455,7 @@ bool CallNegotiation::compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info,
 }
 
 void CallNegotiation::processRequest(std::shared_ptr<SIPMessageInfo> info,
-                                     std::shared_ptr<SDPMessageInfo> sdpInfo)
+                                     std::shared_ptr<SDPMessageInfo> peerSDP)
 {
   switch(info->request)
   {
@@ -446,27 +463,37 @@ void CallNegotiation::processRequest(std::shared_ptr<SIPMessageInfo> info,
   {
     qDebug() << "Found INVITE";
 
-    if(sdpInfo == NULL)
+    if(peerSDP == NULL)
     {
       qDebug() << "No SDP received in INVITE";
+      // TODO: send malformed request
       return;
     }
     if(sessions_[info->callID]->contact.contactAddress
        == sessions_[info->callID]->localAddress.toString())
     {
-      emit callingOurselves(sdpInfo);
+      emit callingOurselves(peerSDP);
     }
     else
     {
-      bool modified = false;
-      if(modifySDP(sdpInfo, sessions_[info->callID]->sdp, modified))
+      if(peerSDP)
       {
-        emit incomingINVITE(info->callID, sessions_[info->callID]->contact.name);
+        bool modified = false;
+        if(modifySDP(peerSDP, sessions_[info->callID]->localSDP, modified))
+        {
+          emit incomingINVITE(info->callID, sessions_[info->callID]->contact.name);
+        }
+        else
+        {
+          qDebug() << "Could not find suitable call parameters within INVITE. Terminating..";
+          // TODO implement this response
+          sendResponse(UNSUPPORTED_413, sessions_[info->callID]);
+        }
       }
       else
       {
-        qDebug() << "Could not find suitable call parameters within INVITE. Terminating..";
-        sendResponse(DECLINE_603, sessions_[info->callID]);
+        qDebug() << "No sdpInfo received in request!";
+        sendResponse(MALFORMED_400, sessions_[info->callID]);
       }
     }
     break;
@@ -474,8 +501,14 @@ void CallNegotiation::processRequest(std::shared_ptr<SIPMessageInfo> info,
   case ACK:
   {
     qDebug() << "Found ACK";
-
-    emit callNegotiated(sdpInfo);
+    if(sessions_[info->callID]->peerSDP)
+    {
+      emit callNegotiated(sessions_[info->callID]->peerSDP);
+    }
+    else
+    {
+      qDebug() << "Got ACK without a previous SDP";
+    }
     break;
   }
   default:
@@ -487,7 +520,7 @@ void CallNegotiation::processRequest(std::shared_ptr<SIPMessageInfo> info,
 }
 
 void CallNegotiation::processResponse(std::shared_ptr<SIPMessageInfo> info,
-                                      std::shared_ptr<SDPMessageInfo> sdpInfo)
+                                      std::shared_ptr<SDPMessageInfo> peerSDP)
 {
   switch(info->response)
   {
@@ -496,13 +529,40 @@ void CallNegotiation::processResponse(std::shared_ptr<SIPMessageInfo> info,
     qDebug() << "Found 200 OK";
     if(sessions_[info->callID]->originalRequest == INVITE)
     {
-      if(sdpInfo == NULL)
+      if(peerSDP)
       {
-        qDebug() << "No SDP received in INVITE OK reponse";
-        return;
+        bool modified = false;
+        if(modifySDP(peerSDP, sessions_[info->callID]->localSDP, modified))
+        {
+          if(!modified)
+          {
+            emit ourCallAccepted(info->callID, peerSDP);
+          }
+          else
+          {
+            // TODO implement new sending of INVITE
+            qWarning() << "WARNING: Unimplemented change of their response SDP";
+          }
+        }
+        else
+        {
+          qDebug() << "Could not find suitable call parameters for their response. Is this possible";
+          // TODO implement this response
+          sendResponse(UNSUPPORTED_413, sessions_[info->callID]);
+        }
       }
-      emit ourCallAccepted(info->callID, sdpInfo);
+      else
+      {
+        qDebug() << "No sdpInfo received in request!";
+        sendResponse(MALFORMED_400, sessions_[info->callID]);
+      }
+
       sendRequest(ACK, sessions_[info->callID]);
+    }
+    else if(sessions_[info->callID]->originalRequest != NOREQUEST)
+    {
+      qWarning() << "WARNING: Response processing not implemented for this request:"
+                 << sessions_[info->callID]->originalRequest;
     }
     else
     {
@@ -517,16 +577,16 @@ void CallNegotiation::processResponse(std::shared_ptr<SIPMessageInfo> info,
   }
 }
 
-bool CallNegotiation::modifySDP(std::shared_ptr<SDPMessageInfo> newInfo,
-                                std::shared_ptr<SDPMessageInfo> oldInfo,
+bool CallNegotiation::modifySDP(std::shared_ptr<SDPMessageInfo> newPeerInfo,
+                                std::shared_ptr<SDPMessageInfo> localInfo,
                                 bool &modified)
 {
   modified = false;
-  for(auto mediaStream : newInfo->media)
+  for(auto mediaStream : newPeerInfo->media)
   {
     // have they changed the suggested port
     bool samePort = false;
-    for(auto oldMedia : oldInfo->media)
+    for(auto oldMedia : localInfo->media)
     {
       if(mediaStream.port == oldMedia.port)
       {
@@ -538,7 +598,7 @@ bool CallNegotiation::modifySDP(std::shared_ptr<SDPMessageInfo> newInfo,
     if(!samePort)
     {
       // is the new port suitable for us
-      if(mediaStream.port > STARTPORT && mediaStream.port < firstAvailablePort_)
+      if(mediaStream.port >= STARTPORT && mediaStream.port < firstAvailablePort_)
       {
          qDebug() << "They suggested a port that is already in use. Suggesting a different one";
 
@@ -549,18 +609,18 @@ bool CallNegotiation::modifySDP(std::shared_ptr<SDPMessageInfo> newInfo,
     }
   }
 
-  newInfo->username = oldInfo->username;
-  newInfo->sess_id = oldInfo->sess_id;
-  newInfo->sess_v = oldInfo->sess_v;
-  newInfo->host_nettype = oldInfo->host_nettype;
-  newInfo->host_addrtype = oldInfo->host_addrtype;
-  newInfo->hostAddress = oldInfo->hostAddress;
-  newInfo->sessionName = oldInfo->sessionName;
-  newInfo->startTime = oldInfo->startTime;
-  newInfo->endTime = oldInfo->endTime;
-  newInfo->global_nettype = oldInfo->global_nettype;
-  newInfo->global_addrtype = oldInfo->global_addrtype;
-  newInfo->globalAddress = oldInfo->globalAddress;
+  newPeerInfo->username = localInfo->username;
+  newPeerInfo->sess_id = localInfo->sess_id;
+  newPeerInfo->sess_v = localInfo->sess_v;
+  newPeerInfo->host_nettype = localInfo->host_nettype;
+  newPeerInfo->host_addrtype = localInfo->host_addrtype;
+  newPeerInfo->hostAddress = localInfo->hostAddress;
+  newPeerInfo->sessionName = localInfo->sessionName;
+  newPeerInfo->startTime = localInfo->startTime;
+  newPeerInfo->endTime = localInfo->endTime;
+  newPeerInfo->global_nettype = localInfo->global_nettype;
+  newPeerInfo->global_addrtype = localInfo->global_addrtype;
+  newPeerInfo->globalAddress = localInfo->globalAddress;
 
   return true;
 }

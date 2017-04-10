@@ -65,12 +65,12 @@ void StatisticsWindow::audioInfo(uint32_t sampleRate, uint16_t channelCount)
   ui_->sample_rate_value->setText(QString::number(sampleRate) + " Hz");
 }
 
-void StatisticsWindow::addParticipant(QString ip, QString port)
+void StatisticsWindow::addParticipant(QString ip, QString audioPort, QString videoPort)
 {
   ui_->participantTable->insertRow(ui_->participantTable->rowCount());
   // add cells to table
   ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 0, new QTableWidgetItem(ip));
-  ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 1, new QTableWidgetItem(port));
+  ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 1, new QTableWidgetItem(audioPort));
   ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 2, new QTableWidgetItem("- ms"));
   ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 3, new QTableWidgetItem("- ms"));
 

@@ -45,7 +45,8 @@ public:
   void registerContact(in_addr ip);
 
   void startCall(VideoWidget* selfView, QSize resolution);
-  void addParticipant(in_addr ip, uint16_t port, VideoWidget* view);
+  void addParticipant(in_addr ip, uint16_t audioPort,
+                      uint16_t videoPort, VideoWidget* view);
   void kickParticipant();
 
   // callID in case more than one person is calling

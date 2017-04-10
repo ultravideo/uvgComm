@@ -130,19 +130,12 @@ void CallWindow::hideLabel()
     label->widget()->hide();
 }
 
-void CallWindow::createParticipant(QString ip_str, uint16_t port)
+void CallWindow::createParticipant(std::shared_ptr<SDPMessageInfo> info)
 {
   qDebug() << "Adding participant to conference.";
-/*
-  uint16_t nextIp = 0;
 
-  nextIp = port_str.toInt();
-  nextIp += 2; // increase port for convencience
-
-  ui_->port->setText(QString::number(nextIp));
-*/
   QHostAddress address;
-  address.setAddress(ip_str);
+  address.setAddress(info->globalAddress);
 
   in_addr ip;
   ip.S_un.S_addr = qToBigEndian(address.toIPv4Address());
@@ -159,11 +152,35 @@ void CallWindow::createParticipant(QString ip_str, uint16_t port)
     column_ = 0;
     ++row_;
   }
+  uint16_t audioPort = 0;
+  uint16_t videoPort = 0;
 
-  call_.addParticipant(ip, port, view);
+  for(auto media : info->media)
+  {
+    if(media.type == "audio" && audioPort == 0)
+    {
+      audioPort = media.port;
+    }
+    else if(media.type == "video" && audioPort == 0)
+    {
+      videoPort = media.port;
+    }
+  }
+
+  if(audioPort == 0 && videoPort == 0)
+  {
+    qWarning() << "WARNING: No mediaports found in given SDP";
+    return;
+  }
+
+  qDebug() << "Sending mediastreams to:" << info->globalAddress << "audioPort:" << audioPort
+           << "VideoPort:" << videoPort;
+  call_.addParticipant(ip, audioPort, videoPort, view);
 
   if(stats_)
-    stats_->addParticipant(ip_str, QString(port));
+    stats_->addParticipant(info->globalAddress,
+                           QString::number(audioPort),
+                           QString::number(videoPort));
 }
 
 void CallWindow::openStatistics()
@@ -228,7 +245,7 @@ void CallWindow::incomingCall(QString callID, QString caller)
 void CallWindow::callOurselves(std::shared_ptr<SDPMessageInfo> info)
 {
   qDebug() << "Calling ourselves, how boring.";
-  createParticipant(info->globalAddress, info->media.first().port);
+  createParticipant(info);
 }
 
 void CallWindow::acceptCall()
@@ -291,7 +308,7 @@ void CallWindow::ourCallAccepted(QString CallID, std::shared_ptr<SDPMessageInfo>
            << "to port:" << info->media.first().port;
 
   // TODO check the SDP info and do ports and rtp numbers properly
-  createParticipant(info->globalAddress, info->media.first().port);
+  createParticipant(info);
 }
 
 void CallWindow::ourCallRejected(QString callID)
@@ -301,13 +318,15 @@ void CallWindow::ourCallRejected(QString callID)
 
 void CallWindow::theirCallNegotiated(std::shared_ptr<SDPMessageInfo> info)
 {
+  Q_ASSERT(info);
   qDebug() << "Their call has been negotiated.";
+
 
   qDebug() << "Sending media to IP:" << info->globalAddress
            << "to port:" << info->media.first().port;
 
   // TODO check the SDP info and do ports and rtp numbers properly
-  createParticipant(info->globalAddress, info->media.first().port);
+  createParticipant(info);
 }
 
 void CallWindow::endCall(QString callID)
