@@ -46,10 +46,12 @@ signals:
   // caller wants to call us. Ask the user whether call is accepted
   void incomingINVITE(QString CallID, QString caller);
   void callingOurselves(std::shared_ptr<SDPMessageInfo> info);
-  void callNegotiated(std::shared_ptr<SDPMessageInfo> info);
+  void callNegotiated(QString callID, std::shared_ptr<SDPMessageInfo> peerInfo,
+                      std::shared_ptr<SDPMessageInfo> localInfo);
 
   void ringing(QString callID);
-  void ourCallAccepted(QString CallID, std::shared_ptr<SDPMessageInfo> info);
+  void ourCallAccepted(QString callID, std::shared_ptr<SDPMessageInfo> peerInfo,
+                       std::shared_ptr<SDPMessageInfo> localInfo);
   void ourCallRejected(QString CallID);
 
   void callEnded(QString callID);
@@ -105,15 +107,7 @@ private:
   void processResponse(std::shared_ptr<SIPMessageInfo> info,
                        std::shared_ptr<SDPMessageInfo> peerSDP);
 
-  // compares localSDP with received peerSDP
-  // return whether we can accept peerSDP as is
-  bool suitableSDP(std::shared_ptr<SDPMessageInfo> newPeerInfo,
-                std::shared_ptr<SDPMessageInfo> oldLocalInfo);
-
-  // modifies the peerInfo and localInfo to suitable format for us
-  // returns false if none can be found.
-  bool modifySDP(std::shared_ptr<SDPMessageInfo> newPeerInfo,
-                 std::shared_ptr<SDPMessageInfo> localInfo);
+  bool suitableSDP(std::shared_ptr<SDPMessageInfo> peerSDP);
 
   // helper function that composes SIP message and sends it
   void messageComposition(messageID id, std::shared_ptr<SIPLink> link);

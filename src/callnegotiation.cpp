@@ -478,25 +478,16 @@ void CallNegotiation::processRequest(std::shared_ptr<SIPMessageInfo> info,
     {
       if(peerSDP)
       {
-        bool suitable = suitableSDP(peerSDP, sessions_[info->callID]->localSDP);
-        if(suitable)
+        if(suitableSDP(peerSDP))
         {
+          sessions_[info->callID]->peerSDP = peerSDP;
           emit incomingINVITE(info->callID, sessions_[info->callID]->contact.name);
-        }/*
-        else if(modifySDP(peerSDP, sessions_[info->callID]->localSDP))
-        {
-          sendRequest();
-        }*/
+        }
         else
         {
           qDebug() << "Could not find suitable call parameters within INVITE. Terminating..";
           // TODO implement this response
           sendResponse(UNSUPPORTED_413, sessions_[info->callID]);
-        }
-
-        if(!suitable)
-        {
-          // TODO: renegotiate formats. needed for at least new port
         }
       }
       else
@@ -512,7 +503,8 @@ void CallNegotiation::processRequest(std::shared_ptr<SIPMessageInfo> info,
     qDebug() << "Found ACK";
     if(sessions_[info->callID]->peerSDP)
     {
-      emit callNegotiated(sessions_[info->callID]->peerSDP);
+      emit callNegotiated(info->callID, sessions_[info->callID]->peerSDP,
+          sessions_[info->callID]->localSDP);
     }
     else
     {
@@ -540,33 +532,26 @@ void CallNegotiation::processResponse(std::shared_ptr<SIPMessageInfo> info,
     {
       if(peerSDP)
       {
-        bool modified = false;
-        if(modifySDP(peerSDP, sessions_[info->callID]->localSDP))
+        if(suitableSDP(peerSDP))
         {
-          if(!modified)
-          {
-            emit ourCallAccepted(info->callID, peerSDP);
-          }
-          else
-          {
-            // TODO implement new sending of INVITE
-            qWarning() << "WARNING: Unimplemented change of their response SDP";
-          }
+          sessions_[info->callID]->peerSDP = peerSDP;
+          emit ourCallAccepted(info->callID, sessions_[info->callID]->peerSDP,
+              sessions_[info->callID]->localSDP);
+          sendRequest(ACK, sessions_[info->callID]);
         }
         else
         {
-          qDebug() << "Could not find suitable call parameters for their response. Is this possible";
+          qDebug() << "SDP not supported";
           // TODO implement this response
           sendResponse(UNSUPPORTED_413, sessions_[info->callID]);
         }
       }
       else
       {
-        qDebug() << "No sdpInfo received in request!";
+        qDebug() << "No sdpInfo received in INVITE OK response!";
         sendResponse(MALFORMED_400, sessions_[info->callID]);
       }
 
-      sendRequest(ACK, sessions_[info->callID]);
     }
     else if(sessions_[info->callID]->originalRequest != NOREQUEST)
     {
@@ -586,68 +571,31 @@ void CallNegotiation::processResponse(std::shared_ptr<SIPMessageInfo> info,
   }
 }
 
-bool CallNegotiation::suitableSDP(std::shared_ptr<SDPMessageInfo> newPeerInfo,
-              std::shared_ptr<SDPMessageInfo> oldLocalInfo)
+bool CallNegotiation::suitableSDP(std::shared_ptr<SDPMessageInfo> peerSDP)
 {
-  for(auto mediaStream : newPeerInfo->media)
+  Q_ASSERT(peerSDP);
+  if(peerSDP == NULL)
   {
-    // is the new port suitable for us
-    if(mediaStream.port >= STARTPORT && mediaStream.port < firstAvailablePort_)
+    return false;
+  }
+
+  bool audio = false;
+  bool video = false;
+
+  for(auto media : peerSDP->media)
+  {
+    if(media.type == "video")
     {
-      qDebug() << "They suggested a port that is already in use. Suggesting a different one";
-      return false;
+      video = true;
+    }
+
+    if(media.type == "audio")
+    {
+      audio = true;
     }
   }
 
-  //TODO check suitable codecs
-
-  return true;
-}
-
-bool CallNegotiation::modifySDP(std::shared_ptr<SDPMessageInfo> newPeerInfo,
-                                std::shared_ptr<SDPMessageInfo> localInfo)
-{
-  for(auto mediaStream : newPeerInfo->media)
-  {
-    // have they changed the suggested port
-    bool samePort = false;
-    for(auto oldMedia : localInfo->media)
-    {
-      if(mediaStream.port == oldMedia.port)
-      {
-        samePort = true;
-      }
-    }
-
-    // they have
-    if(!samePort)
-    {
-      // is the new port suitable for us
-      if(mediaStream.port >= STARTPORT && mediaStream.port < firstAvailablePort_)
-      {
-         qDebug() << "They suggested a port that is already in use. Suggesting a different one";
-
-        mediaStream.port = firstAvailablePort_;
-        firstAvailablePort_ += 2;
-        // TODO check that we don't run out of ports
-      }
-    }
-  }
-
-  newPeerInfo->username = localInfo->username;
-  newPeerInfo->sess_id = localInfo->sess_id;
-  newPeerInfo->sess_v = localInfo->sess_v;
-  newPeerInfo->host_nettype = localInfo->host_nettype;
-  newPeerInfo->host_addrtype = localInfo->host_addrtype;
-  newPeerInfo->hostAddress = localInfo->hostAddress;
-  newPeerInfo->sessionName = localInfo->sessionName;
-  newPeerInfo->startTime = localInfo->startTime;
-  newPeerInfo->endTime = localInfo->endTime;
-  newPeerInfo->global_nettype = localInfo->global_nettype;
-  newPeerInfo->global_addrtype = localInfo->global_addrtype;
-  newPeerInfo->globalAddress = localInfo->globalAddress;
-
-  return true;
+  return audio && video;
 }
 
 QList<QHostAddress> parseIPAddress(QString address)

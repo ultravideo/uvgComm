@@ -305,8 +305,7 @@ void RTPStreamer::removeReceiveAudio(PeerID peer)
 
 RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType type)
 {
-  qDebug() << "Iniating send RTP/RTCP stream";
-
+  qDebug() << "Iniating send RTP/RTCP stream to port:" << port;
   Sender* sender = new Sender;
   createConnection(sender->connection, ip, port, false);
 
