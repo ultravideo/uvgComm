@@ -36,10 +36,10 @@ public slots:
 
    void ringing(QString callID);
 
-   void ourCallAccepted(QString CallID, std::shared_ptr<SDPMessageInfo> info);
    void ourCallRejected(QString callID);
 
-   void theirCallNegotiated(std::shared_ptr<SDPMessageInfo> info);
+   void callNegotiated(QString CallID, std::shared_ptr<SDPMessageInfo> peerInfo,
+                       std::shared_ptr<SDPMessageInfo> localInfo);
 
    // UI messages
    void acceptCall();
@@ -49,7 +49,8 @@ public slots:
 
 private:
 
-  void createParticipant(std::shared_ptr<SDPMessageInfo> info);
+  void createParticipant(const std::shared_ptr<SDPMessageInfo> peerInfo,
+                         const std::shared_ptr<SDPMessageInfo> localInfo);
   void hideLabel();
 
   void processNextWaitingCall();

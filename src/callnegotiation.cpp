@@ -478,16 +478,25 @@ void CallNegotiation::processRequest(std::shared_ptr<SIPMessageInfo> info,
     {
       if(peerSDP)
       {
-        bool modified = false;
-        if(modifySDP(peerSDP, sessions_[info->callID]->localSDP, modified))
+        bool suitable = suitableSDP(peerSDP, sessions_[info->callID]->localSDP);
+        if(suitable)
         {
           emit incomingINVITE(info->callID, sessions_[info->callID]->contact.name);
-        }
+        }/*
+        else if(modifySDP(peerSDP, sessions_[info->callID]->localSDP))
+        {
+          sendRequest();
+        }*/
         else
         {
           qDebug() << "Could not find suitable call parameters within INVITE. Terminating..";
           // TODO implement this response
           sendResponse(UNSUPPORTED_413, sessions_[info->callID]);
+        }
+
+        if(!suitable)
+        {
+          // TODO: renegotiate formats. needed for at least new port
         }
       }
       else
@@ -532,7 +541,7 @@ void CallNegotiation::processResponse(std::shared_ptr<SIPMessageInfo> info,
       if(peerSDP)
       {
         bool modified = false;
-        if(modifySDP(peerSDP, sessions_[info->callID]->localSDP, modified))
+        if(modifySDP(peerSDP, sessions_[info->callID]->localSDP))
         {
           if(!modified)
           {
@@ -577,11 +586,27 @@ void CallNegotiation::processResponse(std::shared_ptr<SIPMessageInfo> info,
   }
 }
 
-bool CallNegotiation::modifySDP(std::shared_ptr<SDPMessageInfo> newPeerInfo,
-                                std::shared_ptr<SDPMessageInfo> localInfo,
-                                bool &modified)
+bool CallNegotiation::suitableSDP(std::shared_ptr<SDPMessageInfo> newPeerInfo,
+              std::shared_ptr<SDPMessageInfo> oldLocalInfo)
 {
-  modified = false;
+  for(auto mediaStream : newPeerInfo->media)
+  {
+    // is the new port suitable for us
+    if(mediaStream.port >= STARTPORT && mediaStream.port < firstAvailablePort_)
+    {
+      qDebug() << "They suggested a port that is already in use. Suggesting a different one";
+      return false;
+    }
+  }
+
+  //TODO check suitable codecs
+
+  return true;
+}
+
+bool CallNegotiation::modifySDP(std::shared_ptr<SDPMessageInfo> newPeerInfo,
+                                std::shared_ptr<SDPMessageInfo> localInfo)
+{
   for(auto mediaStream : newPeerInfo->media)
   {
     // have they changed the suggested port
@@ -646,5 +671,3 @@ QList<QHostAddress> parseIPAddress(QString address)
 
   return ipAddresses;
 }
-
-

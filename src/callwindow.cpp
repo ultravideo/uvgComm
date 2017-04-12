@@ -70,14 +70,18 @@ void CallWindow::startStream()
   QObject::connect(&call_neg_, SIGNAL(callingOurselves(std::shared_ptr<SDPMessageInfo>)),
                    this, SLOT(callOurselves(std::shared_ptr<SDPMessageInfo>)));
 
-  QObject::connect(&call_neg_, SIGNAL(callNegotiated(std::shared_ptr<SDPMessageInfo>)),
-                   this, SLOT(theirCallNegotiated(std::shared_ptr<SDPMessageInfo>)));
+  QObject::connect(&call_neg_, SIGNAL(callNegotiated(QString, std::shared_ptr<SDPMessageInfo>,
+                                                              std::shared_ptr<SDPMessageInfo>)),
+                   this, SLOT(callNegotiated(QString, std::shared_ptr<SDPMessageInfo>,
+                                                      std::shared_ptr<SDPMessageInfo>)));
 
   QObject::connect(&call_neg_, SIGNAL(ringing(QString)),
                    this, SLOT(ringing(QString)));
 
-  QObject::connect(&call_neg_, SIGNAL(ourCallAccepted(QString, std::shared_ptr<SDPMessageInfo>)),
-                   this, SLOT(ourCallAccepted(QString, std::shared_ptr<SDPMessageInfo>)));
+  QObject::connect(&call_neg_, SIGNAL(ourCallAccepted(QString, std::shared_ptr<SDPMessageInfo>,
+                                                               std::shared_ptr<SDPMessageInfo>)),
+                   this, SLOT(callNegotiated(QString, std::shared_ptr<SDPMessageInfo>,
+                                                      std::shared_ptr<SDPMessageInfo>)));
 
   QObject::connect(&call_neg_, SIGNAL(ourCallRejected(QString)),
                    this, SLOT(ourCallRejected(QString)));
@@ -130,12 +134,13 @@ void CallWindow::hideLabel()
     label->widget()->hide();
 }
 
-void CallWindow::createParticipant(std::shared_ptr<SDPMessageInfo> info)
+void CallWindow::createParticipant(std::shared_ptr<SDPMessageInfo> peerInfo,
+                                   const std::shared_ptr<SDPMessageInfo> localInfo)
 {
   qDebug() << "Adding participant to conference.";
 
   QHostAddress address;
-  address.setAddress(info->globalAddress);
+  address.setAddress(peerInfo->globalAddress);
 
   in_addr ip;
   ip.S_un.S_addr = qToBigEndian(address.toIPv4Address());
@@ -152,35 +157,52 @@ void CallWindow::createParticipant(std::shared_ptr<SDPMessageInfo> info)
     column_ = 0;
     ++row_;
   }
-  uint16_t audioPort = 0;
-  uint16_t videoPort = 0;
 
-  for(auto media : info->media)
+  // TODO: have these be arrays and send video to all of them in case SDP describes it so
+  uint16_t sendAudioPort = 0;
+  uint16_t recvAudioPort = 0;
+  uint16_t sendVideoPort = 0;
+  uint16_t recvVideoPort = 0;
+
+  for(auto media : peerInfo->media)
   {
-    if(media.type == "audio" && audioPort == 0)
+    if(media.type == "audio" && recvAudioPort == 0)
     {
-      audioPort = media.port;
+      recvAudioPort = media.port;
     }
-    else if(media.type == "video" && audioPort == 0)
+    else if(media.type == "video" && recvVideoPort == 0)
     {
-      videoPort = media.port;
+      recvVideoPort = media.port;
     }
   }
 
-  if(audioPort == 0 && videoPort == 0)
+  for(auto media : localInfo->media)
   {
-    qWarning() << "WARNING: No mediaports found in given SDP";
+    if(media.type == "audio" && sendAudioPort == 0)
+    {
+      sendAudioPort = media.port;
+    }
+    else if(media.type == "video" && sendVideoPort == 0)
+    {
+      sendVideoPort = media.port;
+    }
+  }
+
+  if(sendAudioPort == 0 || recvAudioPort == 0 || sendVideoPort == 0 || recvVideoPort == 0)
+  {
+    qWarning() << "WARNING: All media ports were not found in given SDP. SendAudio:" << sendAudioPort
+               << "recvAudio:" << recvAudioPort << "SendVideo:" << sendVideoPort << "RecvVideo:" << recvVideoPort;
     return;
   }
 
-  qDebug() << "Sending mediastreams to:" << info->globalAddress << "audioPort:" << audioPort
-           << "VideoPort:" << videoPort;
-  call_.addParticipant(ip, audioPort, videoPort, view);
+  qDebug() << "Sending mediastreams to:" << peerInfo->globalAddress << "audioPort:" << sendAudioPort
+           << "VideoPort:" << sendVideoPort;
+  call_.addParticipant(ip, sendAudioPort, recvAudioPort, sendVideoPort, recvVideoPort, view);
 
   if(stats_)
-    stats_->addParticipant(info->globalAddress,
-                           QString::number(audioPort),
-                           QString::number(videoPort));
+    stats_->addParticipant(peerInfo->globalAddress,
+                           QString::number(sendAudioPort),
+                           QString::number(sendVideoPort));
 }
 
 void CallWindow::openStatistics()
@@ -245,7 +267,7 @@ void CallWindow::incomingCall(QString callID, QString caller)
 void CallWindow::callOurselves(std::shared_ptr<SDPMessageInfo> info)
 {
   qDebug() << "Calling ourselves, how boring.";
-  createParticipant(info);
+  createParticipant(info, info);
 }
 
 void CallWindow::acceptCall()
@@ -300,34 +322,23 @@ void CallWindow::processNextWaitingCall()
 void CallWindow::ringing(QString callID)
 {}
 
-void CallWindow::ourCallAccepted(QString CallID, std::shared_ptr<SDPMessageInfo> info)
-{
-  qDebug() << "Our call has been accepted.";
-
-  qDebug() << "Sending media to IP:" << info->globalAddress
-           << "to port:" << info->media.first().port;
-
-  // TODO check the SDP info and do ports and rtp numbers properly
-  createParticipant(info);
-}
-
 void CallWindow::ourCallRejected(QString callID)
 {
   qDebug() << "Our Call was rejected. TODO: display it to user";
 }
 
-void CallWindow::theirCallNegotiated(std::shared_ptr<SDPMessageInfo> info)
+void CallWindow::callNegotiated(QString CallID, std::shared_ptr<SDPMessageInfo> peerInfo,
+                    std::shared_ptr<SDPMessageInfo> localInfo)
 {
-  Q_ASSERT(info);
-  qDebug() << "Their call has been negotiated.";
+  qDebug() << "Our call has been accepted.";
 
-
-  qDebug() << "Sending media to IP:" << info->globalAddress
-           << "to port:" << info->media.first().port;
+  qDebug() << "Sending media to IP:" << peerInfo->globalAddress
+           << "to port:" << peerInfo->media.first().port;
 
   // TODO check the SDP info and do ports and rtp numbers properly
-  createParticipant(info);
+  createParticipant(peerInfo, localInfo);
 }
+
 
 void CallWindow::endCall(QString callID)
 {

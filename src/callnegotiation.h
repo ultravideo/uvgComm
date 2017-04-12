@@ -105,10 +105,15 @@ private:
   void processResponse(std::shared_ptr<SIPMessageInfo> info,
                        std::shared_ptr<SDPMessageInfo> peerSDP);
 
-  // edits the SDP so it suits us. Returns whether it is suitable
+  // compares localSDP with received peerSDP
+  // return whether we can accept peerSDP as is
+  bool suitableSDP(std::shared_ptr<SDPMessageInfo> newPeerInfo,
+                std::shared_ptr<SDPMessageInfo> oldLocalInfo);
+
+  // modifies the peerInfo and localInfo to suitable format for us
+  // returns false if none can be found.
   bool modifySDP(std::shared_ptr<SDPMessageInfo> newPeerInfo,
-                 std::shared_ptr<SDPMessageInfo> localInfo,
-                 bool& modified);
+                 std::shared_ptr<SDPMessageInfo> localInfo);
 
   // helper function that composes SIP message and sends it
   void messageComposition(messageID id, std::shared_ptr<SIPLink> link);
