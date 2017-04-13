@@ -17,7 +17,7 @@ class CallWindow : public QMainWindow
   Q_OBJECT
 
 public:
-  explicit CallWindow(QWidget *parent, uint16_t width, uint16_t height);
+  explicit CallWindow(QWidget *parent, uint16_t width, uint16_t height, QString name);
   ~CallWindow();
 
   void startStream();
@@ -73,6 +73,8 @@ private:
   QSize currentResolution_;
 
   uint16_t portsOpen_;
+
+  QString name_;
 
   struct CallInfo
   {

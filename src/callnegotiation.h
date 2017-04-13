@@ -31,7 +31,7 @@ public:
   CallNegotiation();
   ~CallNegotiation();
 
-  void init();
+  void init(QString localName);
   void uninit();
 
   void setupSession(MediaSubsession* subsession);
@@ -72,7 +72,7 @@ private:
     Contact contact;
 
     QString replyAddress;
-    uint32_t cSeq;
+    uint32_t cSeq; // TODO cSeq is only the number of forwards!!
 
     QString ourTag;
     QString theirTag;
@@ -90,7 +90,6 @@ private:
     bool finalSDP;
   };
 
-  void initUs();
   std::shared_ptr<SDPMessageInfo> generateSDP(QString localAddress);
 
   std::shared_ptr<SIPLink> newSIPLink();

@@ -18,13 +18,14 @@ CallNegotiation::CallNegotiation():
   sessions_(),
   messageComposer_(),
   sipPort_(5060), // use 5061 for tls encrypted
-  firstAvailablePort_(STARTPORT)
+  firstAvailablePort_(STARTPORT),
+  ourName_("Unknown")
 {}
 
 CallNegotiation::~CallNegotiation()
 {}
 
-void CallNegotiation::init()
+void CallNegotiation::init(QString localName)
 {
   qsrand(1);
 
@@ -41,17 +42,15 @@ void CallNegotiation::init()
   // according to that
   server_.listen(QHostAddress("0.0.0.0"), sipPort_);
 
-  initUs();
+  if(!localName.isEmpty())
+  {
+    ourName_ = localName;
+  }
+  ourUsername_ = "i";
 }
 
 void CallNegotiation::uninit()
 {}
-
-void CallNegotiation::initUs()
-{
-  ourName_ = "I";
-  ourUsername_ = "i";
-}
 
 std::shared_ptr<SDPMessageInfo> CallNegotiation::generateSDP(QString localAddress)
 {

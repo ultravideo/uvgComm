@@ -33,8 +33,9 @@ void MainWindow::startCall()
 
   QString width = ui_->width->toPlainText();
   QString height = ui_->height->toPlainText();
+  QString name = ui_->name->toPlainText();
 
-  call_ = new CallWindow(this, width.toInt(), height.toInt());
+  call_ = new CallWindow(this, width.toInt(), height.toInt(), name);
   call_->show();
   call_->startStream();
 }

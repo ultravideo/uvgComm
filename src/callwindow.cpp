@@ -17,7 +17,7 @@ const uint16_t PORTSPERPARTICIPANT = 4;
 
 
 
-CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height) :
+CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height, QString name) :
   QMainWindow(parent),
   ui_(new Ui::CallWindow),
   ui_widget_(new Ui::CallerWidget),
@@ -30,6 +30,7 @@ CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height) :
   column_(0),
   currentResolution_(),
   portsOpen_(0),
+  name_(name),
   ringing_(false)
 {
   ui_->setupUi(this);
@@ -62,7 +63,7 @@ CallWindow::~CallWindow()
 
 void CallWindow::startStream()
 {
-  call_neg_.init();
+  call_neg_.init(name_);
 
   QObject::connect(&call_neg_, SIGNAL(incomingINVITE(QString, QString)),
                    this, SLOT(incomingCall(QString, QString)));
@@ -93,6 +94,7 @@ void CallWindow::startStream()
   call_.startCall(ui_->SelfView, currentResolution_);
 }
 
+
 void CallWindow::addParticipant()
 {
   portsOpen_ +=PORTSPERPARTICIPANT;
@@ -101,12 +103,15 @@ void CallWindow::addParticipant()
   {
 
     QString ip_str = ui_->ip->toPlainText();
-    QString port_str = ui_->port->toPlainText();
 
     Contact con;
 
     con.contactAddress = ip_str;
     con.name = "Unknown";
+    if(!name_.isEmpty())
+    {
+      con.name = name_;
+    }
     con.username = "unknown";
 
     QList<Contact> list;
@@ -195,14 +200,16 @@ void CallWindow::createParticipant(std::shared_ptr<SDPMessageInfo> peerInfo,
     return;
   }
 
-  qDebug() << "Sending mediastreams to:" << peerInfo->globalAddress << "audioPort:" << sendAudioPort
-           << "VideoPort:" << sendVideoPort;
-  call_.addParticipant(ip, sendAudioPort, recvAudioPort, sendVideoPort, recvVideoPort, view);
-
   if(stats_)
     stats_->addParticipant(peerInfo->globalAddress,
                            QString::number(sendAudioPort),
                            QString::number(sendVideoPort));
+
+  qDebug() << "Sending mediastreams to:" << peerInfo->globalAddress << "audioPort:" << sendAudioPort
+           << "VideoPort:" << sendVideoPort;
+  call_.addParticipant(ip, sendAudioPort, recvAudioPort, sendVideoPort, recvVideoPort, view);
+
+
 }
 
 void CallWindow::openStatistics()
