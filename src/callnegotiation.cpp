@@ -18,8 +18,8 @@ CallNegotiation::CallNegotiation():
   sessions_(),
   messageComposer_(),
   sipPort_(5060), // use 5061 for tls encrypted
-  firstAvailablePort_(STARTPORT),
-  ourName_("Unknown")
+  ourName_("Unknown"),
+  firstAvailablePort_(STARTPORT)
 {}
 
 CallNegotiation::~CallNegotiation()
@@ -153,7 +153,7 @@ void CallNegotiation::connectionEstablished(quint32 connectionID)
   Q_ASSERT(foundLink);
   if(!foundLink)
   {
-    qWarning() << "WARNING: Link not found";
+    qWarning() << "WARNING: Link not found for established session.";
     return;
   }
 
@@ -176,8 +176,7 @@ void CallNegotiation::messageComposition(messageID id, std::shared_ptr<SIPLink> 
   messageComposer_.viaIP(id, link->localAddress, branch);
   messageComposer_.maxForwards(id, MAXFORWARDS);
   messageComposer_.setCallID(id, link->callID, link->host);
-  ++link->cSeq;
-  messageComposer_.sequenceNum(id, link->cSeq, link->originalRequest);
+  messageComposer_.sequenceNum(id, 1, link->originalRequest);
 
   QString SIPRequest = messageComposer_.composeMessage(id);
 
@@ -305,7 +304,6 @@ std::shared_ptr<CallNegotiation::SIPLink> CallNegotiation::newSIPLink()
 
   qDebug() << "Generated CallID: " << link->callID;
 
-  link->cSeq = 0;
   link->ourTag = generateRandomString(TAGLENGTH);
 
   qDebug() << "Generated tag: " << link->ourTag;
@@ -342,8 +340,6 @@ void CallNegotiation::newSIPLinkFromMessage(std::shared_ptr<SIPMessageInfo> info
   link->replyAddress = info->ourLocation;
   link->localAddress = info->ourLocation;
   link->host = info->host;
-
-  link->cSeq = info->cSeq;
 
   if(!link->ourTag.isEmpty())
   {
@@ -415,10 +411,9 @@ bool CallNegotiation::compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info,
       return false;
     }
 
-    if(info->cSeq != link->cSeq + 1)
+    if(info->cSeq != 1)
     {
-      qDebug() << "We are missing a message!. Expected cseq:" << link->cSeq + 1
-               << "Got:" << info->cSeq;
+      qDebug() << "CSeq differs from 1 Got:" << info->cSeq;
     }
 
     if(link->host != info->host)

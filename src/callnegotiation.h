@@ -72,7 +72,7 @@ private:
     Contact contact;
 
     QString replyAddress;
-    uint32_t cSeq; // TODO cSeq is only the number of forwards!!
+    //uint32_t cSeq; // TODO cSeq is only the number of forwards!!
 
     QString ourTag;
     QString theirTag;
