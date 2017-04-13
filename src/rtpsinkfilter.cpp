@@ -41,7 +41,7 @@ void RTPSinkFilter::afterGettingFrame(unsigned frameSize,
   //qDebug() << "Received HEVC frame. Size: " << frameSize
   //         << ", truncated: " << numTruncatedBytes;
 
-  Q_UNUSED(durationInMicroseconds)
+  Q_UNUSED(durationInMicroseconds);
 
   // TODO increase buffer for large frames
   Q_ASSERT(numTruncatedBytes == 0);

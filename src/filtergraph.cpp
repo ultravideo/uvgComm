@@ -419,6 +419,17 @@ void FilterGraph::destroyPeer(Peer* peer)
     //peer->videoFramedSource is destroyed by RTPStreamer
     peer->videoFramedSource = 0;
   }
+
+  if(peer->audioSink)
+  {
+    peer->audioSink->removeOutConnection(peer->audioReceive.front());
+  }
+
+  if(peer->videoSink)
+  {
+    peer->videoSink->removeOutConnection(peer->videoReceive.front());
+  }
+
   destroyFilters(peer->audioReceive);
   destroyFilters(peer->videoReceive);
 

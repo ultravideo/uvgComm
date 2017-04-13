@@ -101,6 +101,7 @@ INCLUDEPATH += $$PWD/../include/live/liveMedia/include
 INCLUDEPATH += $$PWD/../include/live/groupsock/include
 INCLUDEPATH += $$PWD/../include/live/UsageEnvironment/include
 INCLUDEPATH += $$PWD/../include/live/BasicUsageEnvironment/include
+INCLUDEPATH += $$PWD/../include/
 
 win32: LIBS += -L$$PWD/../libs
 win32: LIBS += -llibkvazaar.dll
