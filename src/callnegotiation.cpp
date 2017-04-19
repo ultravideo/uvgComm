@@ -74,6 +74,28 @@ std::shared_ptr<SDPMessageInfo> CallNegotiation::generateSDP(QString localAddres
 void CallNegotiation::endCall(QString callID)
 {
 
+  if(sessions_.find(callID) == sessions_.end())
+  {
+    qWarning() << "WARNING: Ending a call that doesn't exist";
+  }
+  else
+  {
+
+    std::shared_ptr<SIPLink> link = sessions_[callID];
+
+    sendRequest(BYE, link);
+
+    if(link->connectionID != 0 && sessions_.size() >= link->connectionID)
+    {
+      connections_.erase(connections_.begin() + link->connectionID - 1);
+    }
+    else
+    {
+      qWarning() << "WARNING: Someting wrong with connection id for call we are ending";
+    }
+
+    sessions_.erase(callID);
+  }
 }
 
 void CallNegotiation::startCall(QList<Contact> addresses)
@@ -516,6 +538,12 @@ void CallNegotiation::processRequest(std::shared_ptr<SIPMessageInfo> info,
       qDebug() << "Got ACK without a previous SDP";
     }
     break;
+  }
+  case BYE:
+  {
+    qDebug() << "Found BYE";
+
+    emit callEnded(info->callID);
   }
   default:
   {
