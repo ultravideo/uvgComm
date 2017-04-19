@@ -4,7 +4,7 @@
 
 #include <QtConcurrent/QtConcurrent>
 
-Connection::Connection()
+Connection::Connection(uint32_t id)
   :
     socket_(0),
     shouldConnect_(false),
@@ -16,9 +16,9 @@ Connection::Connection()
     sendMutex_(),
     running_(false),
     started_(false),
-    ID_(generateID())
+    ID_(id)
 {
-  qDebug() << "Creating connection with ID:" << ID_;
+  qDebug() << "Constructing connection with ID:" << ID_;
 }
 
 void Connection::init()

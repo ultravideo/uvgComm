@@ -15,8 +15,6 @@ const uint16_t MAXOPENPORTS = 42;
 const uint16_t PORTSPERPARTICIPANT = 4;
 
 
-
-
 CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height, QString name) :
   QMainWindow(parent),
   ui_(new Ui::CallWindow),

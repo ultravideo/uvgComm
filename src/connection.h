@@ -13,7 +13,7 @@ class Connection : public QThread
 {
   Q_OBJECT
 public:
-  Connection();
+  Connection(uint32_t id);
 
   // establishes a tcp connection
   void establishConnection(QString &destination, uint16_t port);
@@ -40,6 +40,11 @@ public:
 
   uint32_t getID()
   {
+    Q_ASSERT(ID_);
+    if(ID_ == 0)
+    {
+      qCritical() << "ERROR: Connection ID has not been set and it is asked!!";
+    }
     return ID_;
   }
 
@@ -115,7 +120,6 @@ private:
   bool started_;
 
   quint32 ID_; // id for this connection
-
 
   QString leftOvers_;
 };

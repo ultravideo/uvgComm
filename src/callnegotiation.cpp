@@ -71,21 +71,29 @@ std::shared_ptr<SDPMessageInfo> CallNegotiation::generateSDP(QString localAddres
   return sdp;
 }
 
+void CallNegotiation::endCall(QString callID)
+{
+
+}
+
 void CallNegotiation::startCall(QList<Contact> addresses)
 {
   Q_ASSERT(addresses.size() != 0);
 
-  qDebug() << "Starting call negotiation";
+  qDebug() << "Starting call negotiation with " << addresses.size() << "addresses";
 
   for (int i = 0; i < addresses.size(); ++i)
   {
+    qDebug() << "Creating call number:" << i;
     std::shared_ptr<CallNegotiation::SIPLink> link = newSIPLink();
-
-    Connection* con = new Connection;
+    Connection* con = new Connection(connections_.size() + 1);
     connectionMutex_.lock();
     connections_.push_back(con);
-    link->connectionID = connections_.size();
+    link->connectionID = con->getID();
     connectionMutex_.unlock();
+
+    qDebug() << "Creating connection with ID:" << link->connectionID;
+
     QObject::connect(con, SIGNAL(messageAvailable(QString, QString, quint32)),
                      this, SLOT(processMessage(QString, QString, quint32)));
 
@@ -93,7 +101,6 @@ void CallNegotiation::startCall(QList<Contact> addresses)
                      this, SLOT(connectionEstablished(quint32)));
 
     QString address = addresses.at(i).contactAddress;
-
 
     link->contact = addresses.at(i);
 
@@ -153,7 +160,11 @@ void CallNegotiation::connectionEstablished(quint32 connectionID)
   Q_ASSERT(foundLink);
   if(!foundLink)
   {
-    qWarning() << "WARNING: Link not found for established session.";
+    qWarning() << "WARNING: Link not found for established session. ID:" << connectionID;
+    for(auto link : sessions_)
+    {
+      qDebug() << "Existing IDs:" << link.second->connectionID;
+    }
     return;
   }
 

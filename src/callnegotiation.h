@@ -39,7 +39,7 @@ public:
   void startCall(QList<Contact> addresses);
   void acceptCall(QString callID);
   void rejectCall(QString callID);
-  void endCall();
+  void endCall(QString callID);
 
 signals:
 
