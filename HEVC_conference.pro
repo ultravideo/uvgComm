@@ -43,7 +43,8 @@ SOURCES +=\
     src/sipstringcomposer.cpp \
     src/connection.cpp \
     src/connectionserver.cpp \
-    src/sipparser.cpp
+    src/sipparser.cpp \
+    src/common.cpp
 
 HEADERS  += \
     src/callwindow.h \

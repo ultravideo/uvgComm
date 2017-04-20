@@ -53,3 +53,5 @@ struct SDPMessageInfo
 
   QList<MediaInfo> media;
 };
+
+void qSleep(int ms);

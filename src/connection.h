@@ -15,6 +15,12 @@ class Connection : public QThread
 public:
   Connection(uint32_t id);
 
+  void stopConnection()
+  {
+    running_ = false;
+    eventDispatcher()->interrupt();
+  }
+
   // establishes a tcp connection
   void establishConnection(QString &destination, uint16_t port);
 
@@ -73,6 +79,7 @@ public:
     Q_ASSERT(connected());
     return socket_->peerAddress();
   }
+
 
 
 signals:

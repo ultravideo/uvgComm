@@ -2,7 +2,6 @@
 
 #include "sipparser.h"
 
-
 //TODO use cryptographically secure callID generation!!
 const QString alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                          "abcdefghijklmnopqrstuvwxyz"
@@ -50,7 +49,27 @@ void CallNegotiation::init(QString localName)
 }
 
 void CallNegotiation::uninit()
-{}
+{
+  for(Connection* con : connections_)
+  {
+    if(con != 0)
+    {
+      qDebug() << "Destroying connection";
+      con->exit(0);
+
+      con->stopConnection();
+
+      while(con->isRunning())
+      {
+        qSleep(1);
+      }
+
+      delete con;
+    }
+  }
+
+  connections_.empty();
+}
 
 std::shared_ptr<SDPMessageInfo> CallNegotiation::generateSDP(QString localAddress)
 {
@@ -80,18 +99,20 @@ void CallNegotiation::endCall(QString callID)
   }
   else
   {
-
     std::shared_ptr<SIPLink> link = sessions_[callID];
-
     sendRequest(BYE, link);
 
-    if(link->connectionID != 0 && sessions_.size() >= link->connectionID)
+    if(link->connectionID != 0 && sessions_.size() >= link->connectionID
+       && connections_.at(link->connectionID - 1) != 0)
     {
+      connections_.at(link->connectionID - 1)->exit();
+      delete connections_.at(link->connectionID - 1);
+      connections_.at(link->connectionID - 1) = 0;
       connections_.erase(connections_.begin() + link->connectionID - 1);
     }
     else
     {
-      qWarning() << "WARNING: Someting wrong with connection id for call we are ending";
+      qWarning() << "WARNING: Something wrong with connection id for call we are ending";
     }
 
     sessions_.erase(callID);

@@ -245,6 +245,9 @@ void CallWindow::cameraState()
 
 void CallWindow::closeEvent(QCloseEvent *event)
 {
+
+  call_neg_.uninit();
+
   call_.uninit();
 
   stats_->hide();
@@ -306,7 +309,9 @@ void CallWindow::processNextWaitingCall()
 
     if(waitingCalls_.size() > 0)
     {
+      currentCalls_.push_back(waitingCalls_.first());
       waitingCalls_.removeFirst();
+
 
       if(waitingCalls_.size() > 0)
       {
@@ -325,7 +330,9 @@ void CallWindow::processNextWaitingCall()
 }
 
 void CallWindow::ringing(QString callID)
-{}
+{
+  qDebug() << "call is ringing. TODO: display it to user";
+}
 
 void CallWindow::ourCallRejected(QString callID)
 {

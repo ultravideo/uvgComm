@@ -84,5 +84,7 @@ private:
 
   QMutex callWaitingMutex_;
   QList<CallInfo> waitingCalls_;
+  std::vector<CallInfo> currentCalls_;
+
   bool ringing_;
 };

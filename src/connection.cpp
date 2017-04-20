@@ -220,6 +220,7 @@ void Connection::run()
     //qDebug() << "Connection thread woken:" << ID_;
   }
 
+  qDebug() << "Disconnecting connection with id:" << ID_;
   disconnect();
 
   if(socket_ != 0)
