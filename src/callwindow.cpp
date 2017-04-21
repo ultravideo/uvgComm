@@ -206,8 +206,6 @@ void CallWindow::createParticipant(std::shared_ptr<SDPMessageInfo> peerInfo,
   qDebug() << "Sending mediastreams to:" << peerInfo->globalAddress << "audioPort:" << sendAudioPort
            << "VideoPort:" << sendVideoPort;
   call_.addParticipant(ip, sendAudioPort, recvAudioPort, sendVideoPort, recvVideoPort, view);
-
-
 }
 
 void CallWindow::openStatistics()
@@ -260,6 +258,14 @@ void CallWindow::closeEvent(QCloseEvent *event)
 
 void CallWindow::incomingCall(QString callID, QString caller)
 {
+  portsOpen_ +=PORTSPERPARTICIPANT;
+
+  if(portsOpen_ <= MAXOPENPORTS)
+  {
+    qWarning() << "WARNING: Ran out of ports!!";
+    rejectCall(); // TODO: send a not possible message instead of reject.
+  }
+
   callWaitingMutex_.lock();
   waitingCalls_.append({callID,caller});
   callWaitingMutex_.unlock();
@@ -351,8 +357,9 @@ void CallWindow::callNegotiated(QString CallID, std::shared_ptr<SDPMessageInfo> 
   createParticipant(peerInfo, localInfo);
 }
 
-
 void CallWindow::endCall(QString callID)
 {
   qDebug() << "End call";
+
+  call_neg_.endCall(callID);
 }
