@@ -30,13 +30,13 @@ struct AudioOptions
 
 };
 
-class CallManager : public QObject
+class MediaManager : public QObject
 {
   Q_OBJECT
 
 public:
-  CallManager(StatisticsInterface* stats);
-  ~CallManager();
+  MediaManager(StatisticsInterface* stats);
+  ~MediaManager();
 
   void init();
   void uninit();
@@ -89,13 +89,11 @@ signals:
 
 private:
 
-
   std::vector<PeerID> ids_;
 
   StatisticsInterface* stats_;
 
   std::unique_ptr<FilterGraph> fg_;
-
 
   MediaSession* session_;
 

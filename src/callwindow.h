@@ -2,7 +2,7 @@
 
 #include <QMainWindow>
 
-#include "callmanager.h"
+#include "MediaManager.h"
 #include "callnegotiation.h"
 
 class StatisticsWindow;
@@ -61,8 +61,8 @@ private:
   StatisticsWindow *stats_;
   QWidget* callingWidget_;
 
-  CallNegotiation call_neg_;
-  CallManager call_;
+  CallNegotiation callNeg_;
+  MediaManager media_;
 
   QTimer *timer_; // for GUI update
 

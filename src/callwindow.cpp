@@ -14,15 +14,14 @@
 const uint16_t MAXOPENPORTS = 42;
 const uint16_t PORTSPERPARTICIPANT = 4;
 
-
 CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height, QString name) :
   QMainWindow(parent),
   ui_(new Ui::CallWindow),
   ui_widget_(new Ui::CallerWidget),
   stats_(new StatisticsWindow(this)),
   callingWidget_(new QWidget),
-  call_neg_(),
-  call_(stats_),
+  callNeg_(),
+  media_(stats_),
   timer_(new QTimer(this)),
   row_(0),
   column_(0),
@@ -56,40 +55,40 @@ CallWindow::~CallWindow()
   delete stats_;
   delete ui_;
 
-  call_.uninit();
+  media_.uninit();
 }
 
 void CallWindow::startStream()
 {
-  call_neg_.init(name_);
+  callNeg_.init(name_);
 
-  QObject::connect(&call_neg_, SIGNAL(incomingINVITE(QString, QString)),
+  QObject::connect(&callNeg_, SIGNAL(incomingINVITE(QString, QString)),
                    this, SLOT(incomingCall(QString, QString)));
 
-  QObject::connect(&call_neg_, SIGNAL(callingOurselves(std::shared_ptr<SDPMessageInfo>)),
+  QObject::connect(&callNeg_, SIGNAL(callingOurselves(std::shared_ptr<SDPMessageInfo>)),
                    this, SLOT(callOurselves(std::shared_ptr<SDPMessageInfo>)));
 
-  QObject::connect(&call_neg_, SIGNAL(callNegotiated(QString, std::shared_ptr<SDPMessageInfo>,
+  QObject::connect(&callNeg_, SIGNAL(callNegotiated(QString, std::shared_ptr<SDPMessageInfo>,
                                                               std::shared_ptr<SDPMessageInfo>)),
                    this, SLOT(callNegotiated(QString, std::shared_ptr<SDPMessageInfo>,
                                                       std::shared_ptr<SDPMessageInfo>)));
 
-  QObject::connect(&call_neg_, SIGNAL(ringing(QString)),
+  QObject::connect(&callNeg_, SIGNAL(ringing(QString)),
                    this, SLOT(ringing(QString)));
 
-  QObject::connect(&call_neg_, SIGNAL(ourCallAccepted(QString, std::shared_ptr<SDPMessageInfo>,
+  QObject::connect(&callNeg_, SIGNAL(ourCallAccepted(QString, std::shared_ptr<SDPMessageInfo>,
                                                                std::shared_ptr<SDPMessageInfo>)),
                    this, SLOT(callNegotiated(QString, std::shared_ptr<SDPMessageInfo>,
                                                       std::shared_ptr<SDPMessageInfo>)));
 
-  QObject::connect(&call_neg_, SIGNAL(ourCallRejected(QString)),
+  QObject::connect(&callNeg_, SIGNAL(ourCallRejected(QString)),
                    this, SLOT(ourCallRejected(QString)));
 
-  QObject::connect(&call_neg_, SIGNAL(callEnded(QString)),
+  QObject::connect(&callNeg_, SIGNAL(callEnded(QString)),
                    this, SLOT(endCall(QString)));
 
-  call_.init();
-  call_.startCall(ui_->SelfView, currentResolution_);
+  media_.init();
+  media_.startCall(ui_->SelfView, currentResolution_);
 }
 
 
@@ -117,7 +116,7 @@ void CallWindow::addParticipant()
 
     //start negotiations for this connection
 
-    call_neg_.startCall(list);
+    callNeg_.startCall(list);
 
     QLabel* label = new QLabel(this);
     label->setText("Calling...");
@@ -205,7 +204,7 @@ void CallWindow::createParticipant(std::shared_ptr<SDPMessageInfo> peerInfo,
 
   qDebug() << "Sending mediastreams to:" << peerInfo->globalAddress << "audioPort:" << sendAudioPort
            << "VideoPort:" << sendVideoPort;
-  call_.addParticipant(ip, sendAudioPort, recvAudioPort, sendVideoPort, recvVideoPort, view);
+  media_.addParticipant(ip, sendAudioPort, recvAudioPort, sendVideoPort, recvVideoPort, view);
 }
 
 void CallWindow::openStatistics()
@@ -216,7 +215,7 @@ void CallWindow::openStatistics()
 
 void CallWindow::micState()
 {
-  bool state = call_.toggleMic();
+  bool state = media_.toggleMic();
 
   if(state)
   {
@@ -230,7 +229,7 @@ void CallWindow::micState()
 
 void CallWindow::cameraState()
 {
-  bool state = call_.toggleCamera();
+  bool state = media_.toggleCamera();
   if(state)
   {
     ui_->camera->setText("Turn camera off");
@@ -244,9 +243,9 @@ void CallWindow::cameraState()
 void CallWindow::closeEvent(QCloseEvent *event)
 {
 
-  call_neg_.uninit();
+  callNeg_.uninit();
 
-  call_.uninit();
+  media_.uninit();
 
   stats_->hide();
   stats_->finished(0);
@@ -289,7 +288,7 @@ void CallWindow::acceptCall()
   callingWidget_->hide();
 
   callWaitingMutex_.lock();
-  call_neg_.acceptCall(waitingCalls_.first().callID);
+  callNeg_.acceptCall(waitingCalls_.first().callID);
   callWaitingMutex_.unlock();
 
   processNextWaitingCall();
@@ -301,7 +300,7 @@ void CallWindow::rejectCall()
   hideLabel();
 
   callWaitingMutex_.lock();
-  call_neg_.rejectCall(waitingCalls_.first().callID);
+  callNeg_.rejectCall(waitingCalls_.first().callID);
   callWaitingMutex_.unlock();
 
   processNextWaitingCall();
@@ -361,5 +360,5 @@ void CallWindow::endCall(QString callID)
 {
   qDebug() << "End call";
 
-  call_neg_.endCall(callID);
+  callNeg_.endCall(callID);
 }

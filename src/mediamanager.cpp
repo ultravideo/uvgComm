@@ -1,9 +1,9 @@
-#include "callmanager.h"
+#include "mediamanager.h"
 
 #include <QDebug>
 
 
-CallManager::CallManager(StatisticsInterface *stats):
+MediaManager::MediaManager(StatisticsInterface *stats):
   stats_(stats),
   fg_(new FilterGraph(stats)),
   session_(NULL),
@@ -12,17 +12,17 @@ CallManager::CallManager(StatisticsInterface *stats):
   camera_(true)
 {}
 
-CallManager::~CallManager()
+MediaManager::~MediaManager()
 {
   fg_->uninit();
 }
 
-void CallManager::init()
+void MediaManager::init()
 {
 
 }
 
-void CallManager::uninit()
+void MediaManager::uninit()
 {
   // first filter graph, then streamer because of the rtpfilters
   fg_->running(false);
@@ -32,18 +32,18 @@ void CallManager::uninit()
 }
 
 // registers a contact for activity monitoring
-void CallManager::registerContact(in_addr ip)
+void MediaManager::registerContact(in_addr ip)
 {
   Q_UNUSED(ip)
 }
 
-void CallManager::startCall(VideoWidget *selfView, QSize resolution)
+void MediaManager::startCall(VideoWidget *selfView, QSize resolution)
 {
   streamer_->start();
   fg_->init(selfView, resolution);
 }
 
-void CallManager::addParticipant(in_addr ip, uint16_t sendAudioPort, uint16_t recvAudioPort,
+void MediaManager::addParticipant(in_addr ip, uint16_t sendAudioPort, uint16_t recvAudioPort,
                                  uint16_t sendVideoPort, uint16_t recvVideoPort, VideoWidget *view)
 {
   qDebug() << "Adding participant";
@@ -75,39 +75,39 @@ void CallManager::addParticipant(in_addr ip, uint16_t sendAudioPort, uint16_t re
   qDebug() << "Participant added";
 }
 
-void CallManager::kickParticipant()
+void MediaManager::kickParticipant()
 {}
 
 // callID in case more than one person is calling
-void CallManager::joinCall(unsigned int callID)
+void MediaManager::joinCall(unsigned int callID)
 {
   Q_UNUSED(callID)
 }
 
-void CallManager::endCall()
+void MediaManager::endCall()
 {}
 
-void CallManager::streamToIP(in_addr ip, uint16_t port)
+void MediaManager::streamToIP(in_addr ip, uint16_t port)
 {
   Q_UNUSED(ip)
   Q_UNUSED(port)
 }
 
-void CallManager::receiveFromIP(in_addr ip, uint16_t port, VideoWidget* view)
+void MediaManager::receiveFromIP(in_addr ip, uint16_t port, VideoWidget* view)
 {
   Q_UNUSED(ip)
   Q_UNUSED(port)
   Q_UNUSED(view)
 }
 
-bool CallManager::toggleMic()
+bool MediaManager::toggleMic()
 {
   mic_ = !mic_;
   fg_->mic(mic_);
   return mic_;
 }
 
-bool CallManager::toggleCamera()
+bool MediaManager::toggleCamera()
 {
   camera_ = !camera_;
   fg_->camera(camera_);

@@ -38,13 +38,13 @@ SOURCES +=\
     src/opusencoderfilter.cpp \
     src/opusdecoderfilter.cpp \
     src/speexaecfilter.cpp \
-    src/callmanager.cpp \
     src/callnegotiation.cpp \
     src/sipstringcomposer.cpp \
     src/connection.cpp \
     src/connectionserver.cpp \
     src/sipparser.cpp \
-    src/common.cpp
+    src/common.cpp \
+    src/mediamanager.cpp
 
 HEADERS  += \
     src/callwindow.h \
@@ -71,13 +71,13 @@ HEADERS  += \
     src/opusencoderfilter.h \
     src/opusdecoderfilter.h \
     src/speexaecfilter.h \
-    src/callmanager.h \
     src/callnegotiation.h \
     src/sipstringcomposer.h \
     src/connection.h \
     src/connectionserver.h \
     src/sipparser.h \
-    src/common.h
+    src/common.h \
+    src/mediamanager.h
 
 FORMS    += \
     ui/callwindow.ui \
