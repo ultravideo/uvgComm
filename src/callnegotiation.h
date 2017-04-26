@@ -36,7 +36,7 @@ public:
 
   void setupSession(MediaSubsession* subsession);
 
-  void startCall(QList<Contact> addresses);
+  QList<QString> startCall(QList<Contact> addresses);
   void acceptCall(QString callID);
   void rejectCall(QString callID);
   void endCall(QString callID);
@@ -45,7 +45,7 @@ signals:
 
   // caller wants to call us. Ask the user whether call is accepted
   void incomingINVITE(QString CallID, QString caller);
-  void callingOurselves(std::shared_ptr<SDPMessageInfo> info);
+  void callingOurselves(QString callID, std::shared_ptr<SDPMessageInfo> info);
   void callNegotiated(QString callID, std::shared_ptr<SDPMessageInfo> peerInfo,
                       std::shared_ptr<SDPMessageInfo> localInfo);
 

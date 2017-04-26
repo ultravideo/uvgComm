@@ -119,10 +119,11 @@ void CallNegotiation::endCall(QString callID)
   }
 }
 
-void CallNegotiation::startCall(QList<Contact> addresses)
+QList<QString> CallNegotiation::startCall(QList<Contact> addresses)
 {
   Q_ASSERT(addresses.size() != 0);
 
+  QList<QString> callIDs;
   qDebug() << "Starting call negotiation with " << addresses.size() << "addresses";
 
   for (int i = 0; i < addresses.size(); ++i)
@@ -163,7 +164,10 @@ void CallNegotiation::startCall(QList<Contact> addresses)
 
     con->establishConnection(address, sipPort_);
     // message is sent only after connection has been established so we know our address
+
+    callIDs.append(link->callID);
   }
+  return callIDs;
 }
 
 void CallNegotiation::acceptCall(QString callID)
@@ -520,7 +524,7 @@ void CallNegotiation::processRequest(std::shared_ptr<SIPMessageInfo> info,
     if(sessions_[info->callID]->contact.contactAddress
        == sessions_[info->callID]->localAddress.toString())
     {
-      emit callingOurselves(peerSDP);
+      emit callingOurselves(info->callID, peerSDP);
     }
     else
     {

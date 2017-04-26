@@ -1,9 +1,10 @@
 #pragma once
 
-#include <QMainWindow>
-
-#include "MediaManager.h"
+#include "mediamanager.h"
 #include "callnegotiation.h"
+#include "conferenceview.h"
+
+#include <QMainWindow>
 
 class StatisticsWindow;
 
@@ -32,13 +33,13 @@ public slots:
    void cameraState();
 
    void incomingCall(QString callID, QString caller);
-   void callOurselves(std::shared_ptr<SDPMessageInfo> info);
+   void callOurselves(QString callID, std::shared_ptr<SDPMessageInfo> info);
 
    void ringing(QString callID);
 
    void ourCallRejected(QString callID);
 
-   void callNegotiated(QString CallID, std::shared_ptr<SDPMessageInfo> peerInfo,
+   void callNegotiated(QString callID, std::shared_ptr<SDPMessageInfo> peerInfo,
                        std::shared_ptr<SDPMessageInfo> localInfo);
 
    // UI messages
@@ -49,9 +50,9 @@ public slots:
 
 private:
 
-  void createParticipant(const std::shared_ptr<SDPMessageInfo> peerInfo,
+  void createParticipant(QString& callID, const std::shared_ptr<SDPMessageInfo> peerInfo,
                          const std::shared_ptr<SDPMessageInfo> localInfo);
-  void hideLabel();
+
 
   void processNextWaitingCall();
 
@@ -61,14 +62,12 @@ private:
   StatisticsWindow *stats_;
   QWidget* callingWidget_;
 
+  ConferenceView conference_;
+
   CallNegotiation callNeg_;
   MediaManager media_;
 
   QTimer *timer_; // for GUI update
-
-  // dynamic videowidget adding to layout
-  int row_;
-  int column_;
 
   QSize currentResolution_;
 
@@ -81,6 +80,8 @@ private:
     QString callID;
     QString name;
   };
+
+  QString askedCall_;
 
   QMutex callWaitingMutex_;
   QList<CallInfo> waitingCalls_;

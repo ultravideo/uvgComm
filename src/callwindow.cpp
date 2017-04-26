@@ -20,15 +20,15 @@ CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height, QString
   ui_widget_(new Ui::CallerWidget),
   stats_(new StatisticsWindow(this)),
   callingWidget_(new QWidget),
+  conference_(this),
   callNeg_(),
   media_(stats_),
   timer_(new QTimer(this)),
-  row_(0),
-  column_(0),
   currentResolution_(),
   portsOpen_(0),
   name_(name),
   ringing_(false)
+
 {
   ui_->setupUi(this);
   ui_widget_->setupUi(callingWidget_);
@@ -65,8 +65,8 @@ void CallWindow::startStream()
   QObject::connect(&callNeg_, SIGNAL(incomingINVITE(QString, QString)),
                    this, SLOT(incomingCall(QString, QString)));
 
-  QObject::connect(&callNeg_, SIGNAL(callingOurselves(std::shared_ptr<SDPMessageInfo>)),
-                   this, SLOT(callOurselves(std::shared_ptr<SDPMessageInfo>)));
+  QObject::connect(&callNeg_, SIGNAL(callingOurselves(QString, std::shared_ptr<SDPMessageInfo>)),
+                   this, SLOT(callOurselves(QString, std::shared_ptr<SDPMessageInfo>)));
 
   QObject::connect(&callNeg_, SIGNAL(callNegotiated(QString, std::shared_ptr<SDPMessageInfo>,
                                                               std::shared_ptr<SDPMessageInfo>)),
@@ -86,6 +86,8 @@ void CallWindow::startStream()
 
   QObject::connect(&callNeg_, SIGNAL(callEnded(QString)),
                    this, SLOT(endCall(QString)));
+
+  conference_.init(ui_->participantLayout);
 
   media_.init();
   media_.startCall(ui_->SelfView, currentResolution_);
@@ -116,27 +118,16 @@ void CallWindow::addParticipant()
 
     //start negotiations for this connection
 
-    callNeg_.startCall(list);
+    QList<QString> callIDs = callNeg_.startCall(list);
 
-    QLabel* label = new QLabel(this);
-    label->setText("Calling...");
-
-    QFont font = QFont("Times", 16);
-    label->setFont(font);
-    label->setAlignment(Qt::AlignHCenter);
-    ui_->participantLayout->addWidget(label, row_, column_);
-
+    for(auto callID : callIDs)
+    {
+      conference_.callingTo(callID);
+    }
   }
 }
 
-void CallWindow::hideLabel()
-{
-  QLayoutItem* label = ui_->participantLayout->itemAtPosition(row_,column_);
-  if(label)
-    label->widget()->hide();
-}
-
-void CallWindow::createParticipant(std::shared_ptr<SDPMessageInfo> peerInfo,
+void CallWindow::createParticipant(QString& callID, std::shared_ptr<SDPMessageInfo> peerInfo,
                                    const std::shared_ptr<SDPMessageInfo> localInfo)
 {
   qDebug() << "Adding participant to conference.";
@@ -147,19 +138,7 @@ void CallWindow::createParticipant(std::shared_ptr<SDPMessageInfo> peerInfo,
   in_addr ip;
   ip.S_un.S_addr = qToBigEndian(address.toIPv4Address());
 
-  hideLabel();
-
-  VideoWidget* view = new VideoWidget;
-  ui_->participantLayout->addWidget(view, row_, column_);
-
-  // TODO improve this algorithm for more optimized layout
-  ++column_;
-  if(column_ == 3)
-  {
-    column_ = 0;
-    ++row_;
-  }
-
+  VideoWidget* view = conference_.addParticipant(callID);
   // TODO: have these be arrays and send video to all of them in case SDP describes it so
   uint16_t sendAudioPort = 0;
   uint16_t recvAudioPort = 0;
@@ -277,10 +256,10 @@ void CallWindow::incomingCall(QString callID, QString caller)
   }
 }
 
-void CallWindow::callOurselves(std::shared_ptr<SDPMessageInfo> info)
+void CallWindow::callOurselves(QString callID, std::shared_ptr<SDPMessageInfo> info)
 {
   qDebug() << "Calling ourselves, how boring.";
-  createParticipant(info, info);
+  createParticipant(callID, info, info);
 }
 
 void CallWindow::acceptCall()
@@ -297,7 +276,8 @@ void CallWindow::acceptCall()
 void CallWindow::rejectCall()
 {
   callingWidget_->hide();
-  hideLabel();
+
+  conference_.removeCaller(askedCall_);
 
   callWaitingMutex_.lock();
   callNeg_.rejectCall(waitingCalls_.first().callID);
@@ -323,6 +303,7 @@ void CallWindow::processNextWaitingCall()
         ui_widget_->CallerLabel->setText(waitingCalls_.first().name + " is calling..");
         callingWidget_->show();
         ringing_ = true;
+
       }
       else
       {
@@ -344,7 +325,7 @@ void CallWindow::ourCallRejected(QString callID)
   qDebug() << "Our Call was rejected. TODO: display it to user";
 }
 
-void CallWindow::callNegotiated(QString CallID, std::shared_ptr<SDPMessageInfo> peerInfo,
+void CallWindow::callNegotiated(QString callID, std::shared_ptr<SDPMessageInfo> peerInfo,
                     std::shared_ptr<SDPMessageInfo> localInfo)
 {
   qDebug() << "Our call has been accepted.";
@@ -353,7 +334,7 @@ void CallWindow::callNegotiated(QString CallID, std::shared_ptr<SDPMessageInfo> 
            << "to port:" << peerInfo->media.first().port;
 
   // TODO check the SDP info and do ports and rtp numbers properly
-  createParticipant(peerInfo, localInfo);
+  createParticipant(callID, peerInfo, localInfo);
 }
 
 void CallWindow::endCall(QString callID)

@@ -44,7 +44,8 @@ SOURCES +=\
     src/connectionserver.cpp \
     src/sipparser.cpp \
     src/common.cpp \
-    src/mediamanager.cpp
+    src/mediamanager.cpp \
+    src/conferenceview.cpp
 
 HEADERS  += \
     src/callwindow.h \
@@ -77,7 +78,8 @@ HEADERS  += \
     src/connectionserver.h \
     src/sipparser.h \
     src/common.h \
-    src/mediamanager.h
+    src/mediamanager.h \
+    src/conferenceview.h
 
 FORMS    += \
     ui/callwindow.ui \
