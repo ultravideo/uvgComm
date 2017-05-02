@@ -17,25 +17,18 @@ const uint16_t PORTSPERPARTICIPANT = 4;
 CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height, QString name) :
   QMainWindow(parent),
   ui_(new Ui::CallWindow),
-  ui_widget_(new Ui::CallerWidget),
   stats_(new StatisticsWindow(this)),
-  callingWidget_(new QWidget),
   conference_(this),
   callNeg_(),
   media_(stats_),
   timer_(new QTimer(this)),
   currentResolution_(),
   portsOpen_(0),
-  name_(name),
-  ringing_(false)
-
+  name_(name)
 {
   ui_->setupUi(this);
-  ui_widget_->setupUi(callingWidget_);
 
   currentResolution_ = QSize(width, height);
-  connect(ui_widget_->AcceptButton, SIGNAL(clicked()), this, SLOT(acceptCall()));
-  connect(ui_widget_->DeclineButton, SIGNAL(clicked()), this, SLOT(rejectCall()));
 
   // GUI updates are handled solely by timer
   timer_->setInterval(10);
@@ -60,6 +53,12 @@ CallWindow::~CallWindow()
 
 void CallWindow::startStream()
 {
+  Ui::CallerWidget *ui_widget = new Ui::CallerWidget;
+  QWidget* holderWidget = new QWidget;
+  ui_widget->setupUi(holderWidget);
+  connect(ui_widget->AcceptButton, SIGNAL(clicked()), this, SLOT(acceptCall()));
+  connect(ui_widget->DeclineButton, SIGNAL(clicked()), this, SLOT(rejectCall()));
+
   callNeg_.init(name_);
 
   QObject::connect(&callNeg_, SIGNAL(incomingINVITE(QString, QString)),
@@ -87,7 +86,9 @@ void CallWindow::startStream()
   QObject::connect(&callNeg_, SIGNAL(callEnded(QString)),
                    this, SLOT(endCall(QString)));
 
-  conference_.init(ui_->participantLayout);
+  conferenceMutex_.lock();
+  conference_.init(ui_->participantLayout, ui_->participants, ui_widget, holderWidget);
+  conferenceMutex_.unlock();
 
   media_.init();
   media_.startCall(ui_->SelfView, currentResolution_);
@@ -100,11 +101,9 @@ void CallWindow::addParticipant()
 
   if(portsOpen_ <= MAXOPENPORTS)
   {
-
     QString ip_str = ui_->ip->toPlainText();
 
     Contact con;
-
     con.contactAddress = ip_str;
     con.name = "Unknown";
     if(!name_.isEmpty())
@@ -122,7 +121,9 @@ void CallWindow::addParticipant()
 
     for(auto callID : callIDs)
     {
-      conference_.callingTo(callID);
+      conferenceMutex_.lock();
+      conference_.callingTo(callID, con.name);
+      conferenceMutex_.unlock();
     }
   }
 }
@@ -138,7 +139,16 @@ void CallWindow::createParticipant(QString& callID, std::shared_ptr<SDPMessageIn
   in_addr ip;
   ip.S_un.S_addr = qToBigEndian(address.toIPv4Address());
 
-  VideoWidget* view = conference_.addParticipant(callID);
+  conferenceMutex_.lock();
+  VideoWidget* view = conference_.addVideoStream(callID);
+  conferenceMutex_.unlock();
+
+  if(view == NULL)
+  {
+    qWarning() << "WARNING: NULL widget got from";
+    return;
+  }
+
   // TODO: have these be arrays and send video to all of them in case SDP describes it so
   uint16_t sendAudioPort = 0;
   uint16_t recvAudioPort = 0;
@@ -229,7 +239,9 @@ void CallWindow::closeEvent(QCloseEvent *event)
   stats_->hide();
   stats_->finished(0);
 
-  callingWidget_->hide();
+  conferenceMutex_.lock();
+  conference_.close();
+  conferenceMutex_.unlock();
 
   QMainWindow::closeEvent(event);
 }
@@ -244,16 +256,9 @@ void CallWindow::incomingCall(QString callID, QString caller)
     rejectCall(); // TODO: send a not possible message instead of reject.
   }
 
-  callWaitingMutex_.lock();
-  waitingCalls_.append({callID,caller});
-  callWaitingMutex_.unlock();
-
-  if(!ringing_)
-  {
-    qDebug() << "Displaying pop-up for somebody calling";
-    ui_widget_->CallerLabel->setText(caller + " is calling..");
-    callingWidget_->show();
-  }
+  conferenceMutex_.lock();
+  conference_.incomingCall(callID, caller);
+  conferenceMutex_.unlock();
 }
 
 void CallWindow::callOurselves(QString callID, std::shared_ptr<SDPMessageInfo> info)
@@ -264,55 +269,18 @@ void CallWindow::callOurselves(QString callID, std::shared_ptr<SDPMessageInfo> i
 
 void CallWindow::acceptCall()
 {
-  callingWidget_->hide();
-
-  callWaitingMutex_.lock();
-  callNeg_.acceptCall(waitingCalls_.first().callID);
-  callWaitingMutex_.unlock();
-
-  processNextWaitingCall();
+  conferenceMutex_.lock();
+  QString callID = conference_.acceptNewest();
+  conferenceMutex_.unlock();
+  callNeg_.rejectCall(callID);
 }
 
 void CallWindow::rejectCall()
 {
-  callingWidget_->hide();
-
-  conference_.removeCaller(askedCall_);
-
-  callWaitingMutex_.lock();
-  callNeg_.rejectCall(waitingCalls_.first().callID);
-  callWaitingMutex_.unlock();
-
-  processNextWaitingCall();
-}
-
-void CallWindow::processNextWaitingCall()
-{
-  if(!ringing_)
-  {
-    callWaitingMutex_.lock();
-
-    if(waitingCalls_.size() > 0)
-    {
-      currentCalls_.push_back(waitingCalls_.first());
-      waitingCalls_.removeFirst();
-
-
-      if(waitingCalls_.size() > 0)
-      {
-        ui_widget_->CallerLabel->setText(waitingCalls_.first().name + " is calling..");
-        callingWidget_->show();
-        ringing_ = true;
-
-      }
-      else
-      {
-        callingWidget_->hide();
-        ringing_ = false;
-      }
-    }
-    callWaitingMutex_.unlock();
-  }
+  conferenceMutex_.lock();
+  QString callID = conference_.rejectNewest();
+  conferenceMutex_.unlock();
+  callNeg_.rejectCall(callID);
 }
 
 void CallWindow::ringing(QString callID)
@@ -323,10 +291,13 @@ void CallWindow::ringing(QString callID)
 void CallWindow::ourCallRejected(QString callID)
 {
   qDebug() << "Our Call was rejected. TODO: display it to user";
+  conferenceMutex_.lock();
+  conference_.removeCaller(callID);
+  conferenceMutex_.unlock();
 }
 
 void CallWindow::callNegotiated(QString callID, std::shared_ptr<SDPMessageInfo> peerInfo,
-                    std::shared_ptr<SDPMessageInfo> localInfo)
+                                std::shared_ptr<SDPMessageInfo> localInfo)
 {
   qDebug() << "Our call has been accepted.";
 

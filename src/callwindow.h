@@ -53,15 +53,11 @@ private:
   void createParticipant(QString& callID, const std::shared_ptr<SDPMessageInfo> peerInfo,
                          const std::shared_ptr<SDPMessageInfo> localInfo);
 
-
-  void processNextWaitingCall();
-
   Ui::CallWindow *ui_;
-  Ui::CallerWidget *ui_widget_;
 
   StatisticsWindow *stats_;
-  QWidget* callingWidget_;
 
+  QMutex conferenceMutex_;
   ConferenceView conference_;
 
   CallNegotiation callNeg_;
@@ -74,18 +70,4 @@ private:
   uint16_t portsOpen_;
 
   QString name_;
-
-  struct CallInfo
-  {
-    QString callID;
-    QString name;
-  };
-
-  QString askedCall_;
-
-  QMutex callWaitingMutex_;
-  QList<CallInfo> waitingCalls_;
-  std::vector<CallInfo> currentCalls_;
-
-  bool ringing_;
 };

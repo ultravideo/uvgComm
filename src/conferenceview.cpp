@@ -1,25 +1,41 @@
 #include "conferenceview.h"
 
 #include "videowidget.h"
+#include "ui_callingwidget.h"
+
 
 #include <QLabel>
 #include <QGridLayout>
+#include <QDebug>
+
+uint16_t ROWMAXLENGTH = 3;
 
 ConferenceView::ConferenceView(QWidget *parent):
   parent_(parent),
   layout_(NULL),
+  layoutWidget_(NULL),
+  callingWidget_(NULL),
   row_(0),
-  column_(0)
+  column_(0),
+  activeCalls_(),
+  deniedCalls_()
 {}
 
-void ConferenceView::init(QGridLayout* conferenceLayout)
+void ConferenceView::init(QGridLayout* conferenceLayout, QWidget* layoutwidget,
+                          Ui::CallerWidget* callingwidget, QWidget* holdingWidget)
 {
   layout_ = conferenceLayout;
+  layoutWidget_ = layoutwidget;
+  callingWidget_ = callingwidget;
 }
 
-void ConferenceView::callingTo(QString callID)
+void ConferenceView::callingTo(QString callID, QString name)
 {
-  hideLabel();
+  if(activeCalls_.find(callID) != activeCalls_.end())
+  {
+    qWarning() << "WARNING: Outgoing call already has an allocated view";
+    return;
+  }
 
   QLabel* label = new QLabel(parent_);
   label->setText("Calling...");
@@ -28,38 +44,120 @@ void ConferenceView::callingTo(QString callID)
   label->setFont(font);
   label->setAlignment(Qt::AlignHCenter);
   layout_->addWidget(label, row_, column_);
+
+  activeCalls_[callID] = new CallInfo{WAITINGPEER, name, layout_->itemAtPosition(row_,column_),
+                         row_, column_};
+
+  nextSlot();
 }
 
-void ConferenceView::incomingCall()
-{}
-
-
-// if our call is accepted or we accepted their call
-VideoWidget* ConferenceView::addParticipant(QString callID)
+void ConferenceView::incomingCall(QString callID, QString name)
 {
-  VideoWidget* view = new VideoWidget;
-
-  layout_->addWidget(view, row_, column_);
-
-  // TODO improve this algorithm for more optimized layout
-  ++column_;
-  if(column_ == 3)
+  Q_ASSERT(callingWidget_);
+  if(callingWidget_ == NULL)
   {
-    column_ = 0;
-    ++row_;
+    qWarning() << "WARNING: Calling widget is missing!!";
+  }
+  if(activeCalls_.find(callID) != activeCalls_.end())
+  {
+    qWarning() << "WARNING: Incoming call already has an allocated view";
+    return;
   }
 
+  // TODO display a incoming call widget instead of layout/stream?
+  QLabel* label = new QLabel(parent_);
+  label->setText("Incoming call from " + name);
+
+  QFont font = QFont("Times", 16);
+  label->setFont(font);
+  label->setAlignment(Qt::AlignHCenter);
+  layout_->addWidget(label, row_, column_);
+
+  activeCalls_[callID] = new CallInfo{ASKINGUSER, name, layout_->itemAtPosition(row_,column_),
+                          row_, column_};
+
+  qDebug() << "Displaying pop-up for somebody calling";
+  callingWidget_->CallerLabel->setText(name + " is calling..");
+  holdingWidget_->show();
+
+  askingQueue_.append(callID);
+  nextSlot();
+}
+
+// if our call is accepted or we accepted their call
+VideoWidget* ConferenceView::addVideoStream(QString callID)
+{
+  VideoWidget* view = new VideoWidget;
+  if(activeCalls_.find(callID) != activeCalls_.end())
+  {
+    qDebug() << "Adding a stream without previous. Must be ourselves";
+    return view;
+  }
+  else if(activeCalls_[callID]->state != ASKINGUSER
+          && activeCalls_[callID]->state != WAITINGPEER)
+  {
+    qWarning() << "WARNING: activating stream without previous state set";
+    return NULL;
+  }
+
+
+
+  // add the widget in place of previous one
+  activeCalls_[callID]->state = ACTIVE;
+
+  // TODO delete previous widget now instead of with parent
+  layout_->addWidget(view, row_, column_);
+  activeCalls_[callID]->item = layout_->itemAtPosition(row_,column_);
   return view;
+}
+
+void ringing(QString callID)
+{
+  // get widget from layout and change the text.
 }
 
 void ConferenceView::removeCaller(QString callID)
 {
-    hideLabel();
+  if(activeCalls_.find(callID) == activeCalls_.end() || activeCalls_[callID]->item == NULL )
+  {
+    qWarning() << "WARNING: Trying to remove nonexisting call from ConferenceView";
+    return;
+  }
+
+  layout_->removeItem(activeCalls_[callID]->item);
+
+  activeCalls_.erase(callID);
 }
 
-void ConferenceView::hideLabel()
+void ConferenceView::nextSlot()
 {
-  QLayoutItem* label = layout_->itemAtPosition(row_,column_);
-  if(label)
-    label->widget()->hide();
+  // TODO improve this algorithm for more optimized layout
+  ++column_;
+  if(column_ == ROWMAXLENGTH)
+  {
+    column_ = 0;
+    ++row_;
+  }
+}
+
+QString ConferenceView::acceptNewest()
+{
+  QString last = askingQueue_.last();
+  askingQueue_.pop_back();
+  return last;
+}
+
+QString ConferenceView::rejectNewest()
+{
+  QString last = askingQueue_.last();
+  askingQueue_.pop_back();
+  return last;
+}
+
+void ConferenceView::close()
+{
+  for(auto call : activeCalls_)
+  {
+    delete call.second;
+  }
 }

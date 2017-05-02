@@ -54,7 +54,7 @@
     </font>
    </property>
    <property name="text">
-    <string>Somebody calling</string>
+    <string/>
    </property>
   </widget>
  </widget>
