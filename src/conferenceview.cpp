@@ -3,7 +3,6 @@
 #include "videowidget.h"
 #include "ui_callingwidget.h"
 
-
 #include <QLabel>
 #include <QGridLayout>
 #include <QDebug>
@@ -65,7 +64,8 @@ void ConferenceView::incomingCall(QString callID, QString name)
   }
 
   // TODO display a incoming call widget instead of layout/stream?
-  QLabel* label = new QLabel(parent_);
+  //QLabel* label = new QLabel(parent_);
+  QLabel* label = new QLabel(NULL);
   label->setText("Incoming call from " + name);
 
   QFont font = QFont("Times", 16);
@@ -87,11 +87,11 @@ void ConferenceView::incomingCall(QString callID, QString name)
 // if our call is accepted or we accepted their call
 VideoWidget* ConferenceView::addVideoStream(QString callID)
 {
-  VideoWidget* view = new VideoWidget;
-  if(activeCalls_.find(callID) != activeCalls_.end())
+  VideoWidget* view = new VideoWidget();
+  if(activeCalls_.find(callID) == activeCalls_.end())
   {
-    qDebug() << "Adding a stream without previous. Must be ourselves";
-    return view;
+    qWarning() << "WARNING: Adding a videostream without previous.";
+    return NULL;
   }
   else if(activeCalls_[callID]->state != ASKINGUSER
           && activeCalls_[callID]->state != WAITINGPEER)
@@ -100,14 +100,16 @@ VideoWidget* ConferenceView::addVideoStream(QString callID)
     return NULL;
   }
 
-
-
   // add the widget in place of previous one
   activeCalls_[callID]->state = ACTIVE;
 
-  // TODO delete previous widget now instead of with parent
-  layout_->addWidget(view, row_, column_);
-  activeCalls_[callID]->item = layout_->itemAtPosition(row_,column_);
+  // TODO delete previous widget now instead of with parent.
+  // Now they accumulate in memory until call has ended
+  delete activeCalls_[callID]->item->widget();
+  layout_->removeItem(activeCalls_[callID]->item);
+  layout_->addWidget(view, activeCalls_[callID]->row, activeCalls_[callID]->column);
+  activeCalls_[callID]->item = layout_->itemAtPosition(activeCalls_[callID]->row,
+                                                       activeCalls_[callID]->column);
   return view;
 }
 
