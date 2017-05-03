@@ -622,9 +622,22 @@ void CallNegotiation::processResponse(std::shared_ptr<SIPMessageInfo> info,
     }
     break;
   }
+  case DECLINE_603:
+  {
+    if(sessions_[info->callID]->originalRequest == INVITE)
+    {
+      qDebug() << "Received DECLINE";
+      emit ourCallRejected(info->callID);
+    }
+    else
+    {
+      qDebug() << "Unimplemented decline for:" << sessions_[info->callID]->originalRequest;
+    }
+    break;
+  }
   default:
   {
-    qWarning() << "WARNING: Unable to process response";
+    qWarning() << "WARNING: Response processing not implemented!";
   }
   }
 }

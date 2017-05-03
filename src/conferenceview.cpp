@@ -164,6 +164,7 @@ QString ConferenceView::rejectNewest()
     holdingWidget_->hide();
   }
 
+  removeCaller(last);
   return last;
 }
 
