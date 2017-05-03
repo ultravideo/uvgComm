@@ -14,7 +14,7 @@ class VideoWidget : public QWidget
 {
   Q_OBJECT
 public:
-  VideoWidget(QWidget* parent = 0);
+  VideoWidget(QWidget* parent = NULL);
   ~VideoWidget();
   void inputImage(std::unique_ptr<uchar[]> input,
                   QImage &image);

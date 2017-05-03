@@ -97,7 +97,6 @@ void CallWindow::startStream()
 
 void CallWindow::addParticipant()
 {
-  portsOpen_ +=PORTSPERPARTICIPANT;
 
   if(portsOpen_ <= MAXOPENPORTS)
   {
@@ -231,7 +230,6 @@ void CallWindow::cameraState()
 
 void CallWindow::closeEvent(QCloseEvent *event)
 {
-
   callNeg_.uninit();
 
   media_.uninit();
@@ -250,10 +248,11 @@ void CallWindow::incomingCall(QString callID, QString caller)
 {
   portsOpen_ +=PORTSPERPARTICIPANT;
 
-  if(portsOpen_ <= MAXOPENPORTS)
+  if(portsOpen_ > MAXOPENPORTS)
   {
-    qWarning() << "WARNING: Ran out of ports!!";
+    qWarning() << "WARNING: Ran out of ports:" << portsOpen_ << "/" << MAXOPENPORTS;
     rejectCall(); // TODO: send a not possible message instead of reject.
+    return;
   }
 
   conferenceMutex_.lock();
@@ -269,14 +268,16 @@ void CallWindow::callOurselves(QString callID, std::shared_ptr<SDPMessageInfo> i
 
 void CallWindow::acceptCall()
 {
+  qDebug() << "We accepted";
   conferenceMutex_.lock();
   QString callID = conference_.acceptNewest();
   conferenceMutex_.unlock();
-  callNeg_.rejectCall(callID);
+  callNeg_.acceptCall(callID);
 }
 
 void CallWindow::rejectCall()
 {
+  qDebug() << "We rejected";
   conferenceMutex_.lock();
   QString callID = conference_.rejectNewest();
   conferenceMutex_.unlock();

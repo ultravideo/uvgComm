@@ -232,7 +232,16 @@ void Connection::disconnect()
   running_ = false;
   shouldConnect_ = false;
   socket_->disconnectFromHost();
-  socket_->waitForDisconnected();
+  if (socket_->state() == QAbstractSocket::UnconnectedState ||
+      socket_->waitForDisconnected(1000))
+  {
+      qDebug() << "Disconnected id:" << ID_;
+  }
+  else
+  {
+    emit error(socket_->error(), socket_->errorString());
+    return;
+  }
   connected_ = false;
 }
 

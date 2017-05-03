@@ -26,6 +26,7 @@ void ConferenceView::init(QGridLayout* conferenceLayout, QWidget* layoutwidget,
   layout_ = conferenceLayout;
   layoutWidget_ = layoutwidget;
   callingWidget_ = callingwidget;
+  holdingWidget_ = holdingWidget;
 }
 
 void ConferenceView::callingTo(QString callID, QString name)
@@ -146,6 +147,11 @@ QString ConferenceView::acceptNewest()
 {
   QString last = askingQueue_.last();
   askingQueue_.pop_back();
+  if(askingQueue_.size() == 0)
+  {
+    holdingWidget_->hide();
+  }
+
   return last;
 }
 
@@ -153,6 +159,11 @@ QString ConferenceView::rejectNewest()
 {
   QString last = askingQueue_.last();
   askingQueue_.pop_back();
+  if(askingQueue_.size() == 0)
+  {
+    holdingWidget_->hide();
+  }
+
   return last;
 }
 
