@@ -6,7 +6,7 @@
 class YUVtoRGB32 : public Filter
 {
 public:
-  YUVtoRGB32(StatisticsInterface* stats);
+  YUVtoRGB32(QString id, StatisticsInterface* stats);
 
 protected:
 

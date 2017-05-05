@@ -6,8 +6,8 @@
 const uint16_t FRAMESPERSECOND = 25;
 
 
-SpeexAECFilter::SpeexAECFilter(StatisticsInterface* stats, QAudioFormat format):
-  Filter("SpeexAEC", stats, true, true),
+SpeexAECFilter::SpeexAECFilter(QString id, StatisticsInterface* stats, QAudioFormat format):
+  Filter(id, "SpeexAEC", stats, true, true),
   echo_state_(NULL),
   preprocess_state_(NULL),
   format_(format),

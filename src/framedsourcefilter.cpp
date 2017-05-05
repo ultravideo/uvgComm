@@ -5,10 +5,10 @@
 #include <QDebug>
 
 
-FramedSourceFilter::FramedSourceFilter(StatisticsInterface* stats,
+FramedSourceFilter::FramedSourceFilter(QString id, StatisticsInterface* stats,
                                        UsageEnvironment &env, DataType type):
   FramedSource(env),
-  Filter("Framed source", stats, true, false),
+  Filter(id, "Framed_Source", stats, true, false),
   type_(type)
 {}
 

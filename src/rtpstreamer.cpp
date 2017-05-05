@@ -327,7 +327,14 @@ RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType 
     qWarning() << "Warning: RTP support not implemented for this format";
     break;
   }
-  sender->sourcefilter = new FramedSourceFilter(stats_, *env_, type);
+
+  QString  ip_str = QString::number((uint8_t)((ip.s_addr) & 0xff)) + "."
+                 + QString::number((uint8_t)((ip.s_addr >> 8) & 0xff)) + "."
+                 + QString::number((uint8_t)((ip.s_addr >> 16) & 0xff)) + "."
+                 + QString::number((uint8_t)((ip.s_addr >> 24) & 0xff));
+
+
+  sender->sourcefilter = new FramedSourceFilter(ip_str + "_", stats_, *env_, type);
   const unsigned int estimatedSessionBandwidth = 5000; // in kbps; for RTCP b/w share
   // This starts RTCP running automatically
   sender->rtcp  = RTCPInstance::createNew(*env_,
@@ -350,7 +357,7 @@ RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType 
   }
   return sender;
 }
-
+// TODO why name peerADDress
 RTPStreamer::Receiver* RTPStreamer::addReceiver(in_addr peerAddress, uint16_t port, DataType type)
 {
   qDebug() << "Iniating receive RTP/RTCP stream to port:" << port;
@@ -375,8 +382,12 @@ RTPStreamer::Receiver* RTPStreamer::addReceiver(in_addr peerAddress, uint16_t po
     qWarning() << "Warning: RTP support not implemented for this format";
     break;
   }
+  QString  ip_str = QString::number((uint8_t)((peerAddress.s_addr) & 0xff)) + "."
+                 + QString::number((uint8_t)((peerAddress.s_addr >> 8) & 0xff)) + "."
+                 + QString::number((uint8_t)((peerAddress.s_addr >> 16) & 0xff)) + "."
+                 + QString::number((uint8_t)((peerAddress.s_addr >> 24) & 0xff));
 
-  receiver->sink = new RTPSinkFilter(stats_, *env_, type);
+  receiver->sink = new RTPSinkFilter(ip_str + "_", stats_, *env_, type);
 
   const unsigned int estimatedSessionBandwidth = 5000; // in kbps; for RTCP b/w share
   // This starts RTCP running automatically

@@ -11,7 +11,7 @@ enum RETURN_STATUS {C_SUCCESS = 0, C_FAILURE = -1};
 class KvazaarFilter : public Filter
 {
 public:
-  KvazaarFilter(StatisticsInterface* stats);
+  KvazaarFilter(QString id, StatisticsInterface* stats);
 
   int init(QSize resolution,
            int32_t framerate_num,

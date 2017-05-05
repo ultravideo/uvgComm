@@ -11,7 +11,7 @@ class AudioCaptureFilter : public Filter
 {
   Q_OBJECT
 public:
-  AudioCaptureFilter(StatisticsInterface* stats);
+  AudioCaptureFilter(QString id, StatisticsInterface* stats);
 
   virtual ~AudioCaptureFilter();
 

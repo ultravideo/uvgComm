@@ -4,9 +4,9 @@
 
 #include <QDebug>
 
-Filter::Filter(QString name, StatisticsInterface *stats,
+Filter::Filter(QString id, QString name, StatisticsInterface *stats,
                bool input, bool output):
-  name_(name),
+  name_(id + name),
   stats_(stats),
   waitMutex_(new QMutex),
   hasInput_(),
@@ -19,6 +19,7 @@ Filter::Filter(QString name, StatisticsInterface *stats,
 
 Filter::~Filter()
 {
+  qDebug() << "Destroying filter:" << name_;
   delete waitMutex_;
 }
 
@@ -29,16 +30,21 @@ void Filter::addOutConnection(Filter *out)
 
 void Filter::removeOutConnection(Filter *out)
 {
+  qDebug() << "Removing out connection from filter:" << name_
+           << "to filter:" << out->name_;
+
   bool removed = false;
+  connectionMutex_.lock();
   for(unsigned int i = 0; i < outConnections_.size(); ++i)
   {
     if(outConnections_[i] == out)
     {
       outConnections_.erase(outConnections_.begin() + i);
       removed = true;
-      --i;
+      break;
     }
   }
+  connectionMutex_.unlock();
 
   if(!removed)
   {
@@ -83,10 +89,13 @@ void Filter::putInput(std::unique_ptr<Data> data)
     // TODO: OPUS decoder should be inputted a NULL pointer in case this happens
     ++inputDiscarded_;
     stats_->packetDropped();
-    qDebug() << name_ << " buffer full. Discarded input: "
-             << inputDiscarded_
-             << " Total input: "
-             << inputTaken_;
+    if(inputDiscarded_ == 1 || inputDiscarded_%10 == 0)
+    {
+      qDebug() << name_ << "buffer full. Discarded input:"
+               << inputDiscarded_
+               << "Total input:"
+               << inputTaken_;
+    }
   }
   hasInput_.wakeOne();
   bufferMutex_.unlock();
@@ -115,6 +124,7 @@ void Filter::sendOutput(std::unique_ptr<Data> output)
     return;
   }
 
+  connectionMutex_.lock();
   // copy data to callbacks expect the last one is moved
   // in either callbacks or outconnections(default).
   if(outDataCallbacks_.size() != 0)
@@ -153,6 +163,8 @@ void Filter::sendOutput(std::unique_ptr<Data> output)
     // always move the last outconnection
     outConnections_.back()->putInput(std::move(output));
   }
+
+  connectionMutex_.unlock();
 }
 
 void Filter::stop()
@@ -204,4 +216,21 @@ Data* Filter::deepDataCopy(Data* original)
   }
   qWarning() << "Warning: Trying to copy NULL Data pointer";
   return NULL;
+}
+
+
+QString Filter::printOutputs()
+{
+  QString outs = "";
+
+  for(auto out : outConnections_)
+  {
+    outs += "   \"" + name_ + "\" -> \"" + out->name_ + "\";" + "\r\n";
+  }
+
+  for(auto out : outDataCallbacks_)
+  {
+    outs += "   \"" + name_ + "\" -> \" All_outputs \";" + "\r\n";
+  }
+  return outs;
 }

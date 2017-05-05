@@ -2,8 +2,8 @@
 
 #include <QDebug>
 
-OpusDecoderFilter::OpusDecoderFilter(StatisticsInterface *stats):
-  Filter("Opus Decoder", stats, true, true),
+OpusDecoderFilter::OpusDecoderFilter(QString id, StatisticsInterface *stats):
+  Filter(id, "Opus_Decoder", stats, true, true),
   dec_(0),
   pcmOutput_(0),
   max_data_bytes_(65536)

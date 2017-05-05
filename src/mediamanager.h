@@ -5,6 +5,7 @@
 
 #include <QObject>
 #include <memory>
+#include <map>
 #include <inaddr.h>
 
 class VideoWidget;
@@ -45,14 +46,10 @@ public:
   void registerContact(in_addr ip);
 
   void startCall(VideoWidget* selfView, QSize resolution);
-  void addParticipant(in_addr ip, uint16_t sendAudioPort, uint16_t recvAudioPort,
+  void addParticipant(QString callID, in_addr ip, uint16_t sendAudioPort, uint16_t recvAudioPort,
                       uint16_t sendVideoPort, uint16_t recvVideoPort, VideoWidget* view);
-  void kickParticipant();
 
-  // callID in case more than one person is calling
-  void joinCall(unsigned int callID);
-
-  void endCall();
+  void endCall(QString callID);
 
   void streamToIP(in_addr ip, uint16_t port);
   void receiveFromIP(in_addr ip, uint16_t port, VideoWidget* view);
@@ -89,7 +86,8 @@ signals:
 
 private:
 
-  std::vector<PeerID> ids_;
+  // callID, PeerID relation pairs
+  std::map<QString,PeerID> ids_;
 
   StatisticsInterface* stats_;
 

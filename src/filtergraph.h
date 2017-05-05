@@ -32,6 +32,8 @@ public:
   void camera(bool state);
   void running(bool state);
 
+  void print();
+
 private:
 
   // makes sure the participant exists and adds if necessary
@@ -66,6 +68,7 @@ private:
 
   void deconstruct();
 
+  // id is also the index of the Peer in this vector
   std::vector<Peer*> peers_;
 
   std::vector<Filter*> videoSend_;

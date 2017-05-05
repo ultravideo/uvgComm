@@ -37,7 +37,7 @@ class Filter : public QThread
   Q_OBJECT
 
 public:
-  Filter(QString name, StatisticsInterface* stats, bool input, bool output);
+  Filter(QString id, QString name, StatisticsInterface* stats, bool input, bool output);
   virtual ~Filter();
 
   // adds one outbound connection to this filter.
@@ -77,6 +77,8 @@ public:
 
   virtual void stop();
 
+  QString printOutputs();
+
   // helper function for copying Data
   Data* shallowDataCopy(Data* original);
   Data* deepDataCopy(Data* original);
@@ -104,7 +106,6 @@ protected:
   QString name_;
   StatisticsInterface* stats_;
 
-
 private:
 
   QMutex *waitMutex_;
@@ -114,6 +115,7 @@ private:
 
   std::vector<std::function<void(std::unique_ptr<Data>)> > outDataCallbacks_;
 
+  QMutex connectionMutex_;
   std::vector<Filter*> outConnections_;
 
   QMutex bufferMutex_;

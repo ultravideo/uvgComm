@@ -8,8 +8,8 @@
 #include <QSize>
 
 
-KvazaarFilter::KvazaarFilter(StatisticsInterface *stats):
-  Filter("Kvazaar", stats, true, true),
+KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats):
+  Filter(id, "Kvazaar", stats, true, true),
   api_(NULL),
   config_(NULL),
   enc_(NULL),

@@ -54,12 +54,12 @@ void FilterGraph::initSelfView(VideoWidget *selfView, QSize resolution)
   }
 
   // Sending video graph
-  videoSend_.push_back(new CameraFilter(stats_, resolution));
+  videoSend_.push_back(new CameraFilter("", stats_, resolution));
 
   if(selfView)
   {
     // connect selfview to camera
-    DisplayFilter* selfviewFilter = new DisplayFilter(stats_, selfView, 1111);
+    DisplayFilter* selfviewFilter = new DisplayFilter("Self_", stats_, selfView, 1111);
     selfviewFilter->setProperties(true);
     videoSend_.push_back(selfviewFilter);
     videoSend_.at(0)->addOutConnection(videoSend_.back());
@@ -78,11 +78,11 @@ void FilterGraph::initVideoSend(QSize resolution)
     initSelfView(selfView_, resolution_);
   }
 
-  videoSend_.push_back(new RGB32toYUV(stats_));
+  videoSend_.push_back(new RGB32toYUV("", stats_));
   videoSend_.at(0)->addOutConnection(videoSend_.back()); // attach to camera
   videoSend_.back()->start();
 
-  KvazaarFilter* kvz = new KvazaarFilter(stats_);
+  KvazaarFilter* kvz = new KvazaarFilter("", stats_);
   kvz->init(resolution, frameRate_, 1);
   videoSend_.push_back(kvz);
   videoSend_.at(videoSend_.size() - 2)->addOutConnection(videoSend_.back());
@@ -93,11 +93,11 @@ void FilterGraph::initAudioSend()
 {
   // Do this before adding participants, otherwise AEC filter wont get attached
 
-  AudioCaptureFilter* capture = new AudioCaptureFilter(stats_);
+  AudioCaptureFilter* capture = new AudioCaptureFilter("", stats_);
   capture->initializeAudio(format_);
   audioSend_.push_back(capture);
 
-  OpusEncoderFilter *encoder = new OpusEncoderFilter(stats_);
+  OpusEncoderFilter *encoder = new OpusEncoderFilter("", stats_);
   encoder->init(format_);
   audioSend_.push_back(encoder);
   audioSend_.at(audioSend_.size() - 2)->addOutConnection(audioSend_.back());
@@ -185,18 +185,18 @@ void FilterGraph::receiveVideoFrom(int16_t id, Filter *videoSink, VideoWidget *v
 
   peers_.at(id)->videoSink = videoSink;
 
-  OpenHEVCFilter* decoder =  new OpenHEVCFilter(stats_);
+  OpenHEVCFilter* decoder =  new OpenHEVCFilter(QString::number(id) + "_", stats_);
   decoder->init();
   peers_.at(id)->videoReceive.push_back(decoder);
   peers_.at(id)->videoSink->addOutConnection(peers_.at(id)->videoReceive.back());
   peers_.at(id)->videoReceive.back()->start();
 
-  peers_.at(id)->videoReceive.push_back(new YUVtoRGB32(stats_));
+  peers_.at(id)->videoReceive.push_back(new YUVtoRGB32(QString::number(id) + "_", stats_));
   peers_.at(id)->videoReceive.at(peers_.at(id)->videoReceive.size()-2)
       ->addOutConnection(peers_.at(id)->videoReceive.back());
   peers_.at(id)->videoReceive.back()->start();
 
-  peers_.at(id)->videoReceive.push_back(new DisplayFilter(stats_, view, id));
+  peers_.at(id)->videoReceive.push_back(new DisplayFilter(QString::number(id) + "_", stats_, view, id));
   peers_.at(id)->videoReceive.at(peers_.at(id)->videoReceive.size()-2)
       ->addOutConnection(peers_.at(id)->videoReceive.back());
   peers_.at(id)->videoReceive.back()->start();
@@ -248,7 +248,7 @@ void FilterGraph::receiveAudioFrom(int16_t id, Filter* audioSink)
   }
   peers_.at(id)->audioSink = audioSink;
 
-  OpusDecoderFilter *decoder = new OpusDecoderFilter(stats_);
+  OpusDecoderFilter *decoder = new OpusDecoderFilter(QString::number(id) + "_", stats_);
   decoder->init(format_);
 
   peers_.at(id)->audioReceive.push_back(decoder);
@@ -257,7 +257,7 @@ void FilterGraph::receiveAudioFrom(int16_t id, Filter* audioSink)
 
   if(audioSend_.size() > 0 && AEC)
   {
-    peers_.at(id)->audioReceive.push_back(new SpeexAECFilter(stats_, format_));
+    peers_.at(id)->audioReceive.push_back(new SpeexAECFilter(QString::number(id) + "_", stats_, format_));
     audioSend_.at(0)->addOutConnection(peers_.at(id)->audioReceive.back());
     peers_.at(id)->audioReceive.at(peers_.at(id)->audioReceive.size()-2)
         ->addOutConnection(peers_.at(id)->audioReceive.back());
@@ -440,3 +440,63 @@ void FilterGraph::removeParticipant(int16_t id)
   peers_.at(id) = NULL;
 }
 
+
+void FilterGraph::print()
+{
+  QString audioDotFile = "digraph AudioGraph {\r\n";
+
+  for(auto f : audioSend_)
+  {
+    audioDotFile += f->printOutputs();
+  }
+
+  for(unsigned int i = 0; i <peers_.size(); ++i)
+  {
+    for(auto f : peers_.at(i)->audioReceive)
+    {
+      audioDotFile += f->printOutputs();
+    }
+
+    audioDotFile += peers_.at(i)->audioSink->printOutputs();
+    audioDotFile += peers_.at(i)->audioFramedSource->printOutputs();
+  }
+  audioDotFile += "}";
+
+  qDebug() << audioDotFile;
+
+  QString videoDotFile = "digraph VideoGraph {\r\n";
+
+  for(auto f : videoSend_)
+  {
+    videoDotFile += f->printOutputs();
+  }
+
+  for(unsigned int i = 0; i <peers_.size(); ++i)
+  {
+    for(auto f : peers_.at(i)->videoReceive)
+    {
+      videoDotFile += f->printOutputs();
+    }
+
+    videoDotFile += peers_.at(i)->videoSink->printOutputs();
+    videoDotFile += peers_.at(i)->videoFramedSource->printOutputs();
+  }
+  videoDotFile += "}";
+  qDebug() << videoDotFile;
+
+  QString aFilename="audiograph.dot";
+  QFile aFile( aFilename );
+  if ( aFile.open(QIODevice::WriteOnly) )
+  {
+      QTextStream stream( &aFile );
+      stream << audioDotFile << endl;
+  }
+
+  QString vFilename="videograph.dot";
+  QFile vFile( vFilename );
+  if ( vFile.open(QIODevice::WriteOnly) )
+  {
+      QTextStream stream( &vFile );
+      stream << videoDotFile << endl;
+  }
+}

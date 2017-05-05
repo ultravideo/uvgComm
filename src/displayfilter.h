@@ -7,7 +7,7 @@ class VideoWidget;
 class DisplayFilter : public Filter
 {
 public:
-  DisplayFilter(StatisticsInterface* stats, VideoWidget *widget, uint32_t peer);
+  DisplayFilter(QString id, StatisticsInterface* stats, VideoWidget *widget, uint32_t peer);
 
   void setProperties(bool mirror)
   {

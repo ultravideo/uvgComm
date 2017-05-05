@@ -8,7 +8,7 @@
 class OpusDecoderFilter : public Filter
 {
 public:
-  OpusDecoderFilter(StatisticsInterface* stats);
+  OpusDecoderFilter(QString id, StatisticsInterface* stats);
   ~OpusDecoderFilter();
 
   void init(QAudioFormat format);

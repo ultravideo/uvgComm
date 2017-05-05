@@ -2,8 +2,8 @@
 
 #include <QtDebug>
 
-RGB32toYUV::RGB32toYUV(StatisticsInterface *stats) :
-  Filter("RGB32toYUV", stats, true, true)
+RGB32toYUV::RGB32toYUV(QString id, StatisticsInterface *stats) :
+  Filter(id, "RGB32toYUV", stats, true, true)
 {}
 
 // also flips input

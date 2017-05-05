@@ -80,6 +80,8 @@ void MediaManager::addParticipant(QString callID, in_addr ip, uint16_t sendAudio
   fg_->receiveAudioFrom(streamID, audioSink);
 
   qDebug() << "Participant added";
+
+  fg_->print();
 }
 
 void MediaManager::endCall(QString callID)

@@ -5,8 +5,8 @@
 
 
 
-OpenHEVCFilter::OpenHEVCFilter(StatisticsInterface *stats):
-  Filter("OpenHEVC", stats, true, true),
+OpenHEVCFilter::OpenHEVCFilter(QString id, StatisticsInterface *stats):
+  Filter(id, "OpenHEVC", stats, true, true),
   handle_(),
   parameterSets_(false)
 {}

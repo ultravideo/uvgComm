@@ -9,7 +9,7 @@
 class OpenHEVCFilter : public Filter
 {
 public:
-  OpenHEVCFilter(StatisticsInterface* stats);
+  OpenHEVCFilter(QString id, StatisticsInterface* stats);
 
   void init();
 

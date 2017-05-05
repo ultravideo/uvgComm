@@ -12,7 +12,7 @@ class CameraFilter : public Filter
   Q_OBJECT
 
 public:
-  CameraFilter(StatisticsInterface* stats, QSize resolution);
+  CameraFilter(QString id, StatisticsInterface* stats, QSize resolution);
   ~CameraFilter();
 
   virtual void start();

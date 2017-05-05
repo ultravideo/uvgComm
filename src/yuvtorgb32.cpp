@@ -5,8 +5,8 @@
 #include <QDebug>
 
 
-YUVtoRGB32::YUVtoRGB32(StatisticsInterface *stats) :
-  Filter("YUVtoRGB32", stats, true, true)
+YUVtoRGB32::YUVtoRGB32(QString id, StatisticsInterface *stats) :
+  Filter(id, "YUVtoRGB32", stats, true, true)
 {}
 
 uint8_t clamp(int32_t input)

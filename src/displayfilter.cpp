@@ -8,8 +8,8 @@
 
 #include "statisticsinterface.h"
 
-DisplayFilter::DisplayFilter(StatisticsInterface *stats, VideoWidget *widget, uint32_t peer):
-  Filter("Display", stats, true, false),
+DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats, VideoWidget *widget, uint32_t peer):
+  Filter(id, "Display", stats, true, false),
   widget_(widget),
   peer_(peer)
 {

@@ -9,7 +9,7 @@
 class SpeexAECFilter : public Filter
 {
 public:
-  SpeexAECFilter(StatisticsInterface* stats, QAudioFormat format);
+  SpeexAECFilter(QString id, StatisticsInterface* stats, QAudioFormat format);
   ~SpeexAECFilter();
 
 protected:
