@@ -113,7 +113,7 @@ void FilterGraph::checkParticipant(int16_t id)
 
   if(peers_.size() > (unsigned int)id)
   {
-    if(peers_.at(id) != 0)
+    if(peers_.at(id) != NULL)
     {
       qDebug() << "Filter graph: Peer exists";
       return;
@@ -279,7 +279,7 @@ void FilterGraph::uninit()
 {
   for(Peer* p : peers_)
   {
-    if(p != 0)
+    if(p != NULL)
     {
       destroyPeer(p);
       p = 0;
@@ -358,21 +358,24 @@ void FilterGraph::running(bool state)
 
   for(Peer* p : peers_)
   {
-    if(p->audioFramedSource)
+    if(p != NULL)
     {
-      changeState(p->audioFramedSource, state);
-    }
-    if(p->videoFramedSource)
-    {
-      changeState(p->videoFramedSource, state);
-    }
-    for(Filter* f : p->audioReceive)
-    {
-      changeState(f, state);
-    }
-    for(Filter* f : p->videoReceive)
-    {
-      changeState(f, state);
+      if(p->audioFramedSource)
+      {
+        changeState(p->audioFramedSource, state);
+      }
+      if(p->videoFramedSource)
+      {
+        changeState(p->videoFramedSource, state);
+      }
+      for(Filter* f : p->audioReceive)
+      {
+        changeState(f, state);
+      }
+      for(Filter* f : p->videoReceive)
+      {
+        changeState(f, state);
+      }
     }
   }
 }
@@ -452,13 +455,16 @@ void FilterGraph::print()
 
   for(unsigned int i = 0; i <peers_.size(); ++i)
   {
-    for(auto f : peers_.at(i)->audioReceive)
+    if(peers_.at(i) != NULL)
     {
-      audioDotFile += f->printOutputs();
-    }
+      for(auto f : peers_.at(i)->audioReceive)
+      {
+        audioDotFile += f->printOutputs();
+      }
 
-    audioDotFile += peers_.at(i)->audioSink->printOutputs();
-    audioDotFile += peers_.at(i)->audioFramedSource->printOutputs();
+      audioDotFile += peers_.at(i)->audioSink->printOutputs();
+      audioDotFile += peers_.at(i)->audioFramedSource->printOutputs();
+    }
   }
   audioDotFile += "}";
 
@@ -473,13 +479,16 @@ void FilterGraph::print()
 
   for(unsigned int i = 0; i <peers_.size(); ++i)
   {
-    for(auto f : peers_.at(i)->videoReceive)
+    if(peers_.at(i) != NULL)
     {
-      videoDotFile += f->printOutputs();
-    }
+      for(auto f : peers_.at(i)->videoReceive)
+      {
+        videoDotFile += f->printOutputs();
+      }
 
-    videoDotFile += peers_.at(i)->videoSink->printOutputs();
-    videoDotFile += peers_.at(i)->videoFramedSource->printOutputs();
+      videoDotFile += peers_.at(i)->videoSink->printOutputs();
+      videoDotFile += peers_.at(i)->videoFramedSource->printOutputs();
+    }
   }
   videoDotFile += "}";
   qDebug() << videoDotFile;
