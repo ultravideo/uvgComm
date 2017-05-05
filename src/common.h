@@ -55,3 +55,6 @@ struct SDPMessageInfo
 };
 
 void qSleep(int ms);
+
+
+const bool AEC = true;

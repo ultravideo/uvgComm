@@ -232,8 +232,6 @@ void FilterGraph::receiveAudioFrom(int16_t id, Filter* audioSink)
   Q_ASSERT(id > -1);
   Q_ASSERT(audioSink);
 
-  bool AEC = true;
-
   // just in case it is wanted later. AEC filter has to be attached
   if(AEC && audioSend_.size() == 0)
   {
@@ -384,6 +382,7 @@ void FilterGraph::destroyFilters(std::vector<Filter*>& filters)
   qDebug() << "Destroying filter graph with" << filters.size() << "filters.";
   for( Filter *f : filters )
   {
+    changeState(f, false);
     delete f;
   }
 
@@ -397,6 +396,11 @@ void FilterGraph::destroyPeer(Peer* peer)
     audioSend_.back()->removeOutConnection(peer->audioFramedSource);
     //peer->audioFramedSource is destroyed by RTPStreamer
     peer->audioFramedSource = 0;
+
+    if(AEC)
+    {
+      audioSend_.at(0)->removeOutConnection(peer->audioReceive.back());
+    }
   }
   if(peer->videoFramedSource)
   {
@@ -425,3 +429,14 @@ void FilterGraph::destroyPeer(Peer* peer)
   }
   delete peer;
 }
+
+
+void FilterGraph::removeParticipant(int16_t id)
+{
+  qDebug() << "Removing peer index:" << id << "/" << peers_.size();
+  Q_ASSERT(id < peers_.size());
+  if(peers_.at(id) != NULL)
+    destroyPeer(peers_.at(id));
+  peers_.at(id) = NULL;
+}
+

@@ -14,6 +14,7 @@ MediaManager::MediaManager(StatisticsInterface *stats):
 
 MediaManager::~MediaManager()
 {
+  fg_->running(false);
   fg_->uninit();
 }
 
@@ -43,13 +44,19 @@ void MediaManager::startCall(VideoWidget *selfView, QSize resolution)
   fg_->init(selfView, resolution);
 }
 
-void MediaManager::addParticipant(in_addr ip, uint16_t sendAudioPort, uint16_t recvAudioPort,
+void MediaManager::addParticipant(QString callID, in_addr ip, uint16_t sendAudioPort, uint16_t recvAudioPort,
                                  uint16_t sendVideoPort, uint16_t recvVideoPort, VideoWidget *view)
 {
   qDebug() << "Adding participant";
 
   // Open necessary ports and create filters for sending and receiving
   PeerID streamID = streamer_->addPeer(ip);
+
+  if(ids_.find(callID) != ids_.end())
+  {
+    endCall(callID);
+  }
+  ids_[callID] = streamID;
 
   if(streamID == -1)
   {
@@ -75,17 +82,16 @@ void MediaManager::addParticipant(in_addr ip, uint16_t sendAudioPort, uint16_t r
   qDebug() << "Participant added";
 }
 
-void MediaManager::kickParticipant()
-{}
-
-// callID in case more than one person is calling
-void MediaManager::joinCall(unsigned int callID)
+void MediaManager::endCall(QString callID)
 {
-  Q_UNUSED(callID)
-}
+  if(ids_.find(callID) == ids_.end())
+  {
+    qWarning() << "WARNING: No callID found in mediamanager:" << callID;
+  }
+  fg_->removeParticipant(ids_[callID]);
 
-void MediaManager::endCall()
-{}
+  streamer_->removePeer(ids_[callID]);
+}
 
 void MediaManager::streamToIP(in_addr ip, uint16_t port)
 {

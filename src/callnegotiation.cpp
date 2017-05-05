@@ -92,31 +92,15 @@ std::shared_ptr<SDPMessageInfo> CallNegotiation::generateSDP(QString localAddres
 
 void CallNegotiation::endCall(QString callID)
 {
-
   if(sessions_.find(callID) == sessions_.end())
   {
     qWarning() << "WARNING: Ending a call that doesn't exist";
+    return;
   }
-  else
-  {
-    std::shared_ptr<SIPLink> link = sessions_[callID];
-    sendRequest(BYE, link);
+  std::shared_ptr<SIPLink> link = sessions_[callID];
+  sendRequest(BYE, link);
 
-    if(link->connectionID != 0 && sessions_.size() >= link->connectionID
-       && connections_.at(link->connectionID - 1) != 0)
-    {
-      connections_.at(link->connectionID - 1)->exit();
-      delete connections_.at(link->connectionID - 1);
-      connections_.at(link->connectionID - 1) = 0;
-      connections_.erase(connections_.begin() + link->connectionID - 1);
-    }
-    else
-    {
-      qWarning() << "WARNING: Something wrong with connection id for call we are ending";
-    }
-
-    sessions_.erase(callID);
-  }
+  uninitSession(link);
 }
 
 QList<QString> CallNegotiation::startCall(QList<Contact> addresses)
@@ -399,7 +383,7 @@ void CallNegotiation::newSIPLinkFromMessage(std::shared_ptr<SIPMessageInfo> info
   link->localAddress = info->ourLocation;
   link->host = info->host;
 
-  if(!link->ourTag.isEmpty())
+  if(!info->ourTag.isEmpty())
   {
     link->ourTag = info->ourTag;
   }
@@ -491,15 +475,18 @@ bool CallNegotiation::compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info,
 
   // check connection details
   connectionMutex_.lock();
-  if(info->ourLocation != connections_.at(connectionID - 1)->getLocalAddress().toString())
+  if(connections_.at(connectionID - 1)->connected())
   {
-    qDebug() << "We are not connected to their address:" << info->ourLocation;
-    return false;
-  }
-  if(info->theirLocation != connections_.at(connectionID - 1)->getPeerAddress().toString())
-  {
-    qDebug() << "We are not connected to their address:" << info->theirLocation;
-    return false;
+    if(info->ourLocation != connections_.at(connectionID - 1)->getLocalAddress().toString())
+    {
+      qDebug() << "We are not connected from our address:" << info->ourLocation;
+      return false;
+    }
+    if(info->theirLocation != connections_.at(connectionID - 1)->getPeerAddress().toString())
+    {
+      qDebug() << "We are not connected to their address:" << info->theirLocation;
+      return false;
+    }
   }
   connectionMutex_.unlock();
 
@@ -569,6 +556,7 @@ void CallNegotiation::processRequest(std::shared_ptr<SIPMessageInfo> info,
     qDebug() << "Found BYE";
 
     emit callEnded(info->callID);
+    break;
   }
   default:
   {
@@ -669,6 +657,42 @@ bool CallNegotiation::suitableSDP(std::shared_ptr<SDPMessageInfo> peerSDP)
   return audio && video;
 }
 
+void CallNegotiation::endAllCalls()
+{
+  for(auto session : sessions_)
+  {
+    sendRequest(BYE, session.second);
+  }
+
+  while(!sessions_.empty())
+  {
+    uninitSession((*sessions_.begin()).second);
+  }
+}
+
+void CallNegotiation::uninitSession(std::shared_ptr<SIPLink> link)
+{
+  if(link->connectionID != 0 && sessions_.size() >= link->connectionID
+     && connections_.at(link->connectionID - 1) != 0)
+  {
+    connections_.at(link->connectionID - 1)->exit(0); // stops qthread
+    connections_.at(link->connectionID - 1)->stopConnection(); // exits run loop
+    while(connections_.at(link->connectionID - 1)->isRunning())
+    {
+      qSleep(5);
+    }
+    delete connections_.at(link->connectionID - 1);
+    connections_.at(link->connectionID - 1) = 0;
+    connections_.erase(connections_.begin() + link->connectionID - 1);
+  }
+  else
+  {
+    qWarning() << "WARNING: Something wrong with connection id for call we are ending";
+  }
+
+  sessions_.erase(link->callID);
+}
+
 QList<QHostAddress> parseIPAddress(QString address)
 {
   QList<QHostAddress> ipAddresses;
@@ -690,3 +714,4 @@ QList<QHostAddress> parseIPAddress(QString address)
 
   return ipAddresses;
 }
+

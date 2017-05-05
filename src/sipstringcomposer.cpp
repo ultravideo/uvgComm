@@ -34,6 +34,7 @@ QString SIPStringComposer::requestToString(const RequestType request)
     break;
   }
   }
+  return "";
 }
 
 QString SIPStringComposer::responseToString(const ResponseType response)

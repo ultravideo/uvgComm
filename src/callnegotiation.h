@@ -41,6 +41,8 @@ public:
   void rejectCall(QString callID);
   void endCall(QString callID);
 
+  void endAllCalls();
+
 signals:
 
   // caller wants to call us. Ask the user whether call is accepted
@@ -112,6 +114,8 @@ private:
   void messageComposition(messageID id, std::shared_ptr<SIPLink> link);
   void sendRequest(RequestType request, std::shared_ptr<SIPLink> link);
   void sendResponse(ResponseType request, std::shared_ptr<SIPLink> link);
+
+  void uninitSession(std::shared_ptr<SIPLink> link);
 
   std::map<QString, std::shared_ptr<SIPLink>> sessions_;
 

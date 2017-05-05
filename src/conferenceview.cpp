@@ -170,8 +170,8 @@ QString ConferenceView::rejectNewest()
 
 void ConferenceView::close()
 {
-  for(auto call : activeCalls_)
+  while(!activeCalls_.empty())
   {
-    delete call.second;
+    removeCaller((*activeCalls_.begin()).first);
   }
 }

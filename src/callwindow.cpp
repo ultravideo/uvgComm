@@ -192,7 +192,7 @@ void CallWindow::createParticipant(QString& callID, std::shared_ptr<SDPMessageIn
 
   qDebug() << "Sending mediastreams to:" << peerInfo->globalAddress << "audioPort:" << sendAudioPort
            << "VideoPort:" << sendVideoPort;
-  media_.addParticipant(ip, sendAudioPort, recvAudioPort, sendVideoPort, recvVideoPort, view);
+  media_.addParticipant(callID, ip, sendAudioPort, recvAudioPort, sendVideoPort, recvVideoPort, view);
 }
 
 void CallWindow::openStatistics()
@@ -230,6 +230,8 @@ void CallWindow::cameraState()
 
 void CallWindow::closeEvent(QCloseEvent *event)
 {
+  callNeg_.endAllCalls();
+
   callNeg_.uninit();
 
   media_.uninit();
@@ -262,8 +264,13 @@ void CallWindow::incomingCall(QString callID, QString caller)
 
 void CallWindow::callOurselves(QString callID, std::shared_ptr<SDPMessageInfo> info)
 {
-  qDebug() << "Calling ourselves, how boring.";
-  createParticipant(callID, info, info);
+  portsOpen_ +=PORTSPERPARTICIPANT;
+
+  if(portsOpen_ <= MAXOPENPORTS)
+  {
+    qDebug() << "Calling ourselves, how boring.";
+    createParticipant(callID, info, info);
+  }
 }
 
 void CallWindow::acceptCall()
@@ -311,7 +318,11 @@ void CallWindow::callNegotiated(QString callID, std::shared_ptr<SDPMessageInfo> 
 
 void CallWindow::endCall(QString callID)
 {
-  qDebug() << "End call";
+  qDebug() << "Received the end of call message";
 
-  callNeg_.endCall(callID);
+  conferenceMutex_.lock();
+  conference_.removeCaller(callID);
+  conferenceMutex_.unlock();
+
+  media_.endCall(callID);
 }
