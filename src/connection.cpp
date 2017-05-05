@@ -121,7 +121,7 @@ void Connection::run()
 
   if(eventDispatcher() == 0)
   {
-    qWarning() << "WARNING: Sorry no event dispatcher.";
+    qWarning() << "WARNING: Sorry no event dispatcher for this connection.";
     return;
   }
 
@@ -199,18 +199,7 @@ void Connection::run()
       sendMutex_.lock();
       while(buffer_.size() > 0 && socket_->state() == QAbstractSocket::ConnectedState)
       {
-        qDebug() << "Sending packet with buffersize:" << buffer_.size();
-        QString message = buffer_.front();
-        buffer_.pop();
-
-        QByteArray block;
-        QDataStream out(&block, QIODevice::WriteOnly);
-        out.setVersion(QDataStream::Qt_4_0);
-        out << message;
-
-        qint64 sentBytes = socket_->write(block);
-
-        qDebug() << "Sent Bytes:" << sentBytes;
+        bufferToSocket();
       }
       sendMutex_.unlock();
     }
@@ -220,11 +209,34 @@ void Connection::run()
     //qDebug() << "Connection thread woken:" << ID_;
   }
 
+  while(buffer_.size() > 0 && socket_->state() == QAbstractSocket::ConnectedState)
+  {
+    bufferToSocket();
+  }
+
+  eventDispatcher()->processEvents(QEventLoop::AllEvents);
+
   qDebug() << "Disconnecting connection with id:" << ID_;
   disconnect();
 
   if(socket_ != 0)
     delete socket_;
+}
+
+void Connection::bufferToSocket()
+{
+  qDebug() << "Sending packet with buffersize:" << buffer_.size();
+  QString message = buffer_.front();
+  buffer_.pop();
+
+  QByteArray block;
+  QDataStream out(&block, QIODevice::WriteOnly);
+  out.setVersion(QDataStream::Qt_4_0);
+  out << message;
+
+  qint64 sentBytes = socket_->write(block);
+
+  qDebug() << "Sent Bytes:" << sentBytes;
 }
 
 void Connection::disconnect()

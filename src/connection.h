@@ -106,6 +106,8 @@ private:
   void receiveLoop();
   void sendLoop();
 
+  void bufferToSocket();
+
   void disconnect();
 
   std::function<void(QByteArray& data)> outDataCallback_;
