@@ -441,6 +441,19 @@ void FilterGraph::removeParticipant(int16_t id)
   if(peers_.at(id) != NULL)
     destroyPeer(peers_.at(id));
   peers_.at(id) = NULL;
+
+  bool peerPresent = false;
+  for(auto peer : peers_)
+  {
+    if (peer != NULL)
+      peerPresent = true;
+  }
+
+  if(!peerPresent)
+  {
+    destroyFilters(videoSend_);
+    destroyFilters(audioSend_);
+  }
 }
 
 
