@@ -24,6 +24,14 @@ void AudioCaptureFilter::initializeAudio(QAudioFormat format)
   qDebug() << "Initializing audio capture filter";
 
   QAudioDeviceInfo info(deviceInfo_);
+
+  for(auto device : QAudioDeviceInfo::availableDevices(QAudio::AudioInput))
+  {
+    qDebug() << "Audio Recording device:" << device.deviceName();
+  }
+
+  qDebug() << "Using device:" << info.deviceName();
+
   if (!info.isFormatSupported(format)) {
     qWarning() << "Default format not supported - trying to use nearest";
     format_ = info.nearestFormat(format);
@@ -33,7 +41,10 @@ void AudioCaptureFilter::initializeAudio(QAudioFormat format)
     format_ = format;
   }
 
-  stats_->audioInfo(format_.sampleRate(), format_.channelCount());
+  if(format_.sampleRate() != -1)
+    stats_->audioInfo(format_.sampleRate(), format_.channelCount());
+  else
+    stats_->audioInfo(0, 0);
 
   if (device_)
     delete device_;

@@ -61,8 +61,16 @@ void StatisticsWindow::videoInfo(double framerate, QSize resolution)
 void StatisticsWindow::audioInfo(uint32_t sampleRate, uint16_t channelCount)
 {
   //ui_->a_framerate_value->setText(QString::number(framerate)+"fps");
-  ui_->channels_value->setText(QString::number(channelCount));
-  ui_->sample_rate_value->setText(QString::number(sampleRate) + " Hz");
+  if(sampleRate == 0 || sampleRate == 4294967295)
+  {
+    ui_->channels_value->setText("No Audio");
+    ui_->sample_rate_value->setText("No Audio");
+  }
+  else
+  {
+    ui_->channels_value->setText(QString::number(channelCount));
+    ui_->sample_rate_value->setText(QString::number(sampleRate) + " Hz");
+  }
 }
 
 void StatisticsWindow::addParticipant(QString ip, QString audioPort, QString videoPort)
