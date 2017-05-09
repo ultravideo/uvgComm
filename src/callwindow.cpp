@@ -154,7 +154,7 @@ void CallWindow::createParticipant(QString& callID, std::shared_ptr<SDPMessageIn
   uint16_t sendVideoPort = 0;
   uint16_t recvVideoPort = 0;
 
-  for(auto media : peerInfo->media)
+  for(auto media : localInfo->media)
   {
     if(media.type == "audio" && recvAudioPort == 0)
     {
@@ -166,7 +166,7 @@ void CallWindow::createParticipant(QString& callID, std::shared_ptr<SDPMessageIn
     }
   }
 
-  for(auto media : localInfo->media)
+  for(auto media : peerInfo->media)
   {
     if(media.type == "audio" && sendAudioPort == 0)
     {
@@ -178,6 +178,7 @@ void CallWindow::createParticipant(QString& callID, std::shared_ptr<SDPMessageIn
     }
   }
 
+  // TODO send all the media if more than one are specified and if required to more than one participant.
   if(sendAudioPort == 0 || recvAudioPort == 0 || sendVideoPort == 0 || recvVideoPort == 0)
   {
     qWarning() << "WARNING: All media ports were not found in given SDP. SendAudio:" << sendAudioPort
