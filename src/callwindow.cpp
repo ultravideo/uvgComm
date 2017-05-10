@@ -320,11 +320,11 @@ void CallWindow::endCall(QString callID, QString ip)
 {
   qDebug() << "Received the end of call message";
 
+  media_.endCall(callID); // must be ended first because of the view.
+
   conferenceMutex_.lock();
   conference_.removeCaller(callID);
   conferenceMutex_.unlock();
-
-  media_.endCall(callID);
 
   stats_->removeParticipant(ip);
 }

@@ -127,6 +127,7 @@ void ConferenceView::removeCaller(QString callID)
     return;
   }
 
+  delete activeCalls_[callID]->item->widget();
   layout_->removeItem(activeCalls_[callID]->item);
 
   activeCalls_.erase(callID);
