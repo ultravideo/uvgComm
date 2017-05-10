@@ -46,7 +46,7 @@ public slots:
    void acceptCall();
    void rejectCall();
 
-   void endCall(QString callID);
+   void endCall(QString callID, QString ip);
 
 private:
 

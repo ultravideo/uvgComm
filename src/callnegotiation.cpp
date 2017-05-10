@@ -555,7 +555,7 @@ void CallNegotiation::processRequest(std::shared_ptr<SIPMessageInfo> info,
   {
     qDebug() << "Found BYE";
 
-    emit callEnded(info->callID);
+    emit callEnded(info->callID, info->replyAddress);
     break;
   }
   default:

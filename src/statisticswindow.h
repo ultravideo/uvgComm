@@ -26,6 +26,7 @@ public:
   virtual void videoInfo(double framerate, QSize resolution);
   virtual void audioInfo(uint32_t sampleRate, uint16_t channelCount);
   virtual void addParticipant(QString ip, QString audioPort, QString videoPort);
+  virtual void removeParticipant(QString ip);
   virtual void sendDelay(QString type, uint32_t delay);
   virtual void receiveDelay(uint32_t peer, QString type, int32_t delay);
   virtual void addEncodedPacket(QString type, uint16_t size);
@@ -46,6 +47,7 @@ private:
   {
     int32_t video;
     int32_t audio;
+    bool active;
   };
 
   std::vector<Delays> delays_;

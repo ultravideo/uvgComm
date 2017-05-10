@@ -56,7 +56,7 @@ signals:
                        std::shared_ptr<SDPMessageInfo> localInfo);
   void ourCallRejected(QString CallID);
 
-  void callEnded(QString callID);
+  void callEnded(QString callID, QString ip);
 
 private slots:
   void receiveConnection(Connection* con);

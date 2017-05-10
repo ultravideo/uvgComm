@@ -82,8 +82,19 @@ void StatisticsWindow::addParticipant(QString ip, QString audioPort, QString vid
   ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 2, new QTableWidgetItem("- ms"));
   ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 3, new QTableWidgetItem("- ms"));
 
-  delays_.push_back({0,0});
+  delays_.push_back({0, 0,true});
+}
 
+void StatisticsWindow::removeParticipant(QString ip)
+{
+  for(unsigned int i = 0; i < ui_->participantTable->rowCount(); ++i)
+  {
+    if(ui_->participantTable->item(i, 0)->text() == ip )
+    {
+      ui_->participantTable->removeRow(i);
+      delays_.at(i).active = false;
+    }
+  }
 }
 
 void StatisticsWindow::sendDelay(QString type, uint32_t delay)
@@ -222,9 +233,14 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
     uint index = 0;
     for(Delays d : delays_)
     {
-      ui_->participantTable->setItem(index, 2, new QTableWidgetItem( QString::number(d.audio) + " ms"));
-      ui_->participantTable->setItem(index, 3, new QTableWidgetItem( QString::number(d.video) + " ms"));
-      ++index;
+      // if this participant has not yet been removed
+      // also tells whether the slot for this participant exists
+      if(d.active)
+      {
+        ui_->participantTable->setItem(index, 2, new QTableWidgetItem( QString::number(d.audio) + " ms"));
+        ui_->participantTable->setItem(index, 3, new QTableWidgetItem( QString::number(d.video) + " ms"));
+        ++index;
+      }
     }
   }
 

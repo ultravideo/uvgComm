@@ -83,8 +83,8 @@ void CallWindow::startStream()
   QObject::connect(&callNeg_, SIGNAL(ourCallRejected(QString)),
                    this, SLOT(ourCallRejected(QString)));
 
-  QObject::connect(&callNeg_, SIGNAL(callEnded(QString)),
-                   this, SLOT(endCall(QString)));
+  QObject::connect(&callNeg_, SIGNAL(callEnded(QString, QString)),
+                   this, SLOT(endCall(QString, QString)));
 
   conferenceMutex_.lock();
   conference_.init(ui_->participantLayout, ui_->participants, ui_widget, holderWidget);
@@ -201,7 +201,6 @@ void CallWindow::openStatistics()
   stats_->show();
 }
 
-
 void CallWindow::micState()
 {
   bool state = media_.toggleMic();
@@ -317,7 +316,7 @@ void CallWindow::callNegotiated(QString callID, std::shared_ptr<SDPMessageInfo> 
   createParticipant(callID, peerInfo, localInfo);
 }
 
-void CallWindow::endCall(QString callID)
+void CallWindow::endCall(QString callID, QString ip)
 {
   qDebug() << "Received the end of call message";
 
@@ -326,4 +325,6 @@ void CallWindow::endCall(QString callID)
   conferenceMutex_.unlock();
 
   media_.endCall(callID);
+
+  stats_->removeParticipant(ip);
 }
