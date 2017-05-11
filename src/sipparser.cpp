@@ -135,7 +135,6 @@ void messageToTable(QStringList& lines, QList<QStringList> &values)
 
   for(uint32_t i = 0;  i < lines.length(); ++i)
   {
-    qDebug() << "Line" << i << "contents:" << lines.at(i);
     QStringList words = lines.at(i).split(" ");
 
     if(i == 0)
@@ -342,8 +341,6 @@ void parseSIPaddress(QString address, QString& user, QString& location)
   user = splitAddress.at(0).right(splitAddress.at(0).length() - 5);
   location = splitAddress.at(1).left(splitAddress.at(1).length() - 1);
 
-  qDebug() << "Parsed SIP address:" << address
-           << "to user:" << user << "and location:" << location;
 }
 
 bool parseSIPParameter(QString field, QString parameterName,
@@ -379,7 +376,6 @@ std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
   while(lineIterator.hasNext())
   {
     QString line = lineIterator.next();
-    qDebug() << "Parsing SDP line:" << line;
 
     QStringList words = line.split(" ", QString::SkipEmptyParts);
     QString firstValue = "";

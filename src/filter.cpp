@@ -19,7 +19,6 @@ Filter::Filter(QString id, QString name, StatisticsInterface *stats,
 
 Filter::~Filter()
 {
-  qDebug() << "Destroying filter:" << name_;
   delete waitMutex_;
 }
 
@@ -30,8 +29,6 @@ void Filter::addOutConnection(Filter *out)
 
 void Filter::removeOutConnection(Filter *out)
 {
-  qDebug() << "Removing out connection from filter:" << name_
-           << "to filter:" << out->name_;
 
   bool removed = false;
   connectionMutex_.lock();

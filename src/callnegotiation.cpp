@@ -27,11 +27,11 @@ CallNegotiation::~CallNegotiation()
 void CallNegotiation::init(QString localName)
 {
   qsrand(1);
-
+/*
   foreach (const QHostAddress &address, QNetworkInterface::allAddresses()) {
       if (address.protocol() == QAbstractSocket::IPv4Protocol && address != QHostAddress(QHostAddress::LocalHost))
-           qDebug() << address.toString();
-  }
+           //qDebug() << address.toString();
+  }*/
 
   QObject::connect(&server_, SIGNAL(newConnection(Connection*)),
                    this, SLOT(receiveConnection(Connection*)));
@@ -223,7 +223,7 @@ void CallNegotiation::messageComposition(messageID id, std::shared_ptr<SIPLink> 
   QString SIPRequest = messageComposer_.composeMessage(id);
 
   qDebug() << "Sending the following SIP Request:";
-  qDebug().noquote() << SIPRequest;
+  qDebug() << SIPRequest;
 
   QByteArray message = SIPRequest.toUtf8();
   connections_.at(link->connectionID - 1)->sendPacket(message);

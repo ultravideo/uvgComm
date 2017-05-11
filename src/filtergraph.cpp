@@ -382,7 +382,8 @@ void FilterGraph::running(bool state)
 
 void FilterGraph::destroyFilters(std::vector<Filter*>& filters)
 {
-  qDebug() << "Destroying filter graph with" << filters.size() << "filters.";
+  if(filters.size() != 0)
+    qDebug() << "Destroying filter graph with" << filters.size() << "filters.";
   for( Filter *f : filters )
   {
     changeState(f, false);
@@ -436,7 +437,7 @@ void FilterGraph::destroyPeer(Peer* peer)
 
 void FilterGraph::removeParticipant(int16_t id)
 {
-  qDebug() << "Removing peer index:" << id << "/" << peers_.size();
+  qDebug() << "Removing peer:" << id +1 << "/" << peers_.size();
   Q_ASSERT(id < peers_.size());
   if(peers_.at(id) != NULL)
     destroyPeer(peers_.at(id));
@@ -481,8 +482,6 @@ void FilterGraph::print()
   }
   audioDotFile += "}";
 
-  qDebug() << audioDotFile;
-
   QString videoDotFile = "digraph VideoGraph {\r\n";
 
   for(auto f : videoSend_)
@@ -504,7 +503,6 @@ void FilterGraph::print()
     }
   }
   videoDotFile += "}";
-  qDebug() << videoDotFile;
 
   QString aFilename="audiograph.dot";
   QFile aFile( aFilename );

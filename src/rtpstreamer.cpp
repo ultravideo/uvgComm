@@ -360,7 +360,7 @@ RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType 
 // TODO why name peerADDress
 RTPStreamer::Receiver* RTPStreamer::addReceiver(in_addr peerAddress, uint16_t port, DataType type)
 {
-  qDebug() << "Iniating receive RTP/RTCP stream to port:" << port << "With type:" << type;
+  qDebug() << "Iniating receive RTP/RTCP stream from port:" << port;
   Receiver *receiver = new Receiver;
   createConnection(receiver->connection, peerAddress, port, true);
 
