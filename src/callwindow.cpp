@@ -47,8 +47,6 @@ CallWindow::~CallWindow()
   stats_->close();
   delete stats_;
   delete ui_;
-
-  media_.uninit();
 }
 
 void CallWindow::startStream()
