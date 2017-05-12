@@ -105,30 +105,30 @@ void SIPStringComposer::to(messageID id, QString& name, QString &username, const
   Q_ASSERT(messages_.size() >= id && messages_.at(id - 1) != 0);
   Q_ASSERT(!name.isEmpty() && !username.isEmpty());
 
-  messages_.at(id - 1)->theirName = name;
-  messages_.at(id - 1)->theirUsername = username;
-  messages_.at(id - 1)->theirLocation = hostname;
-  messages_.at(id - 1)->theirTag = tag;
+  messages_.at(id - 1)->remoteName = name;
+  messages_.at(id - 1)->remoteUsername = username;
+  messages_.at(id - 1)->remoteLocation = hostname;
+  messages_.at(id - 1)->remoteTag = tag;
 }
 
 void SIPStringComposer::from(messageID id, QString& name, QString& username, const QHostInfo& hostname, const QString& tag)
 {
   Q_ASSERT(messages_.size() >= id && messages_.at(id - 1) != 0);
 
-  messages_.at(id - 1)->ourName = name;
-  messages_.at(id - 1)->ourUsername = username;
-  messages_.at(id - 1)->ourLocation = hostname.hostName();
-  messages_.at(id - 1)->ourTag = tag;
+  messages_.at(id - 1)->localName = name;
+  messages_.at(id - 1)->localUsername = username;
+  messages_.at(id - 1)->localLocation = hostname.hostName();
+  messages_.at(id - 1)->localTag = tag;
 }
 
 void SIPStringComposer::fromIP(messageID id, QString& name, QString &username, const QHostAddress& address, const QString& tag)
 {
   Q_ASSERT(messages_.size() >= id && messages_.at(id - 1) != 0);
 
-  messages_.at(id - 1)->ourName = name;
-  messages_.at(id - 1)->ourUsername = username;
-  messages_.at(id - 1)->ourLocation = address.toString();
-  messages_.at(id - 1)->ourTag = tag;
+  messages_.at(id - 1)->localName = name;
+  messages_.at(id - 1)->localUsername = username;
+  messages_.at(id - 1)->localLocation = address.toString();
+  messages_.at(id - 1)->localTag = tag;
 }
 
 // Where to send responses. branch is generated. Also adds the contact field with same info.
@@ -199,15 +199,15 @@ QString SIPStringComposer::composeMessage(messageID id)
   // check
   if(messages_.at(id - 1)->method.isEmpty() ||
      messages_.at(id - 1)->version.isEmpty() ||
-     messages_.at(id - 1)->theirName.isEmpty() ||
-     messages_.at(id - 1)->theirUsername.isEmpty() ||
-     messages_.at(id - 1)->theirLocation.isEmpty() ||
+     messages_.at(id - 1)->remoteName.isEmpty() ||
+     messages_.at(id - 1)->remoteUsername.isEmpty() ||
+     messages_.at(id - 1)->remoteLocation.isEmpty() ||
      messages_.at(id - 1)->maxForwards.isEmpty() ||
-     messages_.at(id - 1)->ourName.isEmpty() ||
-     messages_.at(id - 1)->ourUsername.isEmpty() ||
-     messages_.at(id - 1)->ourLocation.isEmpty() ||
+     messages_.at(id - 1)->localName.isEmpty() ||
+     messages_.at(id - 1)->localUsername.isEmpty() ||
+     messages_.at(id - 1)->localLocation.isEmpty() ||
      messages_.at(id - 1)->replyAddress.isEmpty() ||
-     messages_.at(id - 1)->ourTag.isEmpty() ||
+     messages_.at(id - 1)->localTag.isEmpty() ||
      messages_.at(id - 1)->callID.isEmpty() ||
      messages_.at(id - 1)->host.isEmpty() ||
      messages_.at(id - 1)->cSeq.isEmpty() ||
@@ -217,15 +217,15 @@ QString SIPStringComposer::composeMessage(messageID id)
     qWarning() << "WARNING: All required SIP fields have not been provided";
     qWarning() << messages_.at(id - 1)->method <<
                   messages_.at(id - 1)->version <<
-                  messages_.at(id - 1)->theirName <<
-                  messages_.at(id - 1)->theirUsername <<
-                  messages_.at(id - 1)->theirLocation <<
+                  messages_.at(id - 1)->remoteName <<
+                  messages_.at(id - 1)->remoteUsername <<
+                  messages_.at(id - 1)->remoteLocation <<
                   messages_.at(id - 1)->maxForwards <<
-                  messages_.at(id - 1)->ourName <<
-                  messages_.at(id - 1)->ourUsername <<
-                  messages_.at(id - 1)->ourLocation <<
+                  messages_.at(id - 1)->localName <<
+                  messages_.at(id - 1)->localUsername <<
+                  messages_.at(id - 1)->localLocation <<
                   messages_.at(id - 1)->replyAddress <<
-                  messages_.at(id - 1)->ourTag <<
+                  messages_.at(id - 1)->localTag <<
                   messages_.at(id - 1)->callID <<
                   messages_.at(id - 1)->host <<
                   messages_.at(id - 1)->cSeq <<
@@ -235,7 +235,7 @@ QString SIPStringComposer::composeMessage(messageID id)
     return QString();
   }
 
-  if(messages_.at(id - 1)->theirTag.isEmpty())
+  if(messages_.at(id - 1)->remoteTag.isEmpty())
   {
     qDebug() << "Their tag will be provided later.";
   }
@@ -252,7 +252,7 @@ QString SIPStringComposer::composeMessage(messageID id)
   {
   // INVITE sip:bob@biloxi.com SIP/2.0
   message = messages_.at(id - 1)->method
-      + " sip:" + messages_.at(id - 1)->theirUsername + "@" + messages_.at(id - 1)->theirLocation
+      + " sip:" + messages_.at(id - 1)->remoteUsername + "@" + messages_.at(id - 1)->remoteLocation
       + " SIP/" + messages_.at(id - 1)->version + lineEnding;
   }
   else
@@ -266,32 +266,32 @@ QString SIPStringComposer::composeMessage(messageID id)
 
   message += "Max-Forwards: " + messages_.at(id - 1)->maxForwards + lineEnding;
 
-  message += "To: " + messages_.at(id - 1)->theirName
-      + " <sip:" + messages_.at(id - 1)->theirUsername
-      + "@" + messages_.at(id - 1)->theirLocation + ">";
+  message += "To: " + messages_.at(id - 1)->remoteName
+      + " <sip:" + messages_.at(id - 1)->remoteUsername
+      + "@" + messages_.at(id - 1)->remoteLocation + ">";
 
-  if(!messages_.at(id - 1)->theirTag.isEmpty())
+  if(!messages_.at(id - 1)->remoteTag.isEmpty())
   {
-    message += ";tag=" + messages_.at(id - 1)->theirTag;
+    message += ";tag=" + messages_.at(id - 1)->remoteTag;
   }
 
   message += lineEnding;
 
-  message += "From: " + messages_.at(id - 1)->ourName
-      + " <sip:" + messages_.at(id - 1)->ourUsername
-      + "@" + messages_.at(id - 1)->ourLocation + ">";
+  message += "From: " + messages_.at(id - 1)->localName
+      + " <sip:" + messages_.at(id - 1)->localUsername
+      + "@" + messages_.at(id - 1)->localLocation + ">";
 
-  if(!messages_.at(id - 1)->ourTag.isEmpty())
+  if(!messages_.at(id - 1)->localTag.isEmpty())
   {
-    message += ";tag=" + messages_.at(id - 1)->ourTag;
+    message += ";tag=" + messages_.at(id - 1)->localTag;
   }
   message += lineEnding;
 
   message += "Call-ID: " + messages_.at(id - 1)->callID + "@" + messages_.at(id - 1)->host + lineEnding;
   message += "CSeq: " + messages_.at(id - 1)->cSeq + " " + messages_.at(id - 1)->originalRequest + lineEnding;
 
-  message += "Contact: <sip:" + messages_.at(id - 1)->ourUsername
-      + "@" + messages_.at(id - 1)->ourLocation + ">" + lineEnding;
+  message += "Contact: <sip:" + messages_.at(id - 1)->localUsername
+      + "@" + messages_.at(id - 1)->localLocation + ">" + lineEnding;
 
   if(!messages_.at(id - 1)->contentType.isEmpty() &&
      !messages_.at(id - 1)->contentLength.isEmpty())

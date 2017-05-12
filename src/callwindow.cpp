@@ -102,7 +102,7 @@ void CallWindow::addParticipant()
 
     Contact con;
     con.contactAddress = ip_str;
-    con.name = "Unknown";
+    con.name = "Anonymous";
     if(!name_.isEmpty())
     {
       con.name = name_;

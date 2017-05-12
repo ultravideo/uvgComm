@@ -65,17 +65,17 @@ private:
     bool isRequest;
     QString version; // startSIP-function
 
-    QString theirName;     // to-function
-    QString theirUsername; // to-function
-    QString theirLocation; // to-function
-    QString theirTag;      // to-function
+    QString remoteName;     // to-function
+    QString remoteUsername; // to-function
+    QString remoteLocation; // to-function
+    QString remoteTag;      // to-function
 
     QString maxForwards; // maxForwards-function
 
-    QString ourName;     // from-function
-    QString ourUsername; // from-function
-    QString ourLocation; // from-function
-    QString ourTag;      // from-function
+    QString localName;     // from-function
+    QString localUsername; // from-function
+    QString localLocation; // from-function
+    QString localTag;      // from-function
     QString replyAddress; // via-function
     QString branch;       // via-function
 

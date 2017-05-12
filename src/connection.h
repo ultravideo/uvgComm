@@ -21,9 +21,11 @@ public:
     eventDispatcher()->interrupt();
   }
 
-  // establishes a tcp connection
+  // establishes a new TCP connection
   void establishConnection(QString &destination, uint16_t port);
 
+  // when a server receives a TCP connection,
+  // use this to give the socket to Connection
   void setExistingConnection(qintptr socketDescriptor);
 
   // sends packet via connection
@@ -85,6 +87,8 @@ public:
 signals:
   void error(int socketError, const QString &message);
   void messageAvailable(QString header, QString content, quint32 id);
+
+  // connection has been established
   void connected(quint32 connectionID);
 
 private slots:

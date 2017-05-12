@@ -16,20 +16,20 @@ struct SIPMessageInfo
   ResponseType response;
   QString version;
 
-  QString theirName;
-  QString theirUsername;
-  QString theirLocation;
+  QString remoteName;
+  QString remoteUsername;
+  QString remoteLocation;
   QString replyAddress;
   QString contactAddress;
 
-  QString theirTag;
+  QString remoteTag;
 
   uint16_t maxForwards;
 
-  QString ourName;
-  QString ourUsername;
-  QString ourLocation;
-  QString ourTag;
+  QString localName;
+  QString localUsername;
+  QString localLocation;
+  QString localTag;
 
   QString branch;
 
@@ -42,23 +42,9 @@ struct SIPMessageInfo
   QString contentType;
 };
 
-
   // returns a filled SIPMessageInfo if possible, otherwise
   // returns a null pointer if parsing was not successful
   std::shared_ptr<SIPMessageInfo> parseSIPMessage(QString& header);
 
   std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body);
 
-/*
-struct SDPMessageInfo
-{
-  QList<uint16_t> videoPorts;
-  QList<uint16_t> audioPorts;
-
-  QList<QString> videoCodec;
-  QList<QString> audioCodec;
-
-  QString mediaLocation;
-};
-
-*/

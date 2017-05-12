@@ -17,7 +17,7 @@ struct HeaderLine
   bool mandatory;
 };
 
-//TODO: possiblity of having more than one same line in header.
+// TODO: possiblity of having more than one same line in header.
 // TODO: Maybe make SIP implementation simpler?
 
 // remember to also update tableToInfo if adding new header fields!
@@ -207,8 +207,8 @@ SIPMessageInfo* tableToInfo(QList<QStringList>& values)
   info->version = values.at(0).at(2).right(3);
   qDebug() << "Version:" << info->version;
 
-  info->theirName = values.at(4).at(1);
-  info->ourName = values.at(3).at(1);
+  info->remoteName = values.at(4).at(1);
+  info->localName = values.at(3).at(1);
 
   QString replyAddress = "";
   parseSIPParameter(values.at(1).at(2), ";branch=", info->branch, replyAddress);
@@ -246,18 +246,18 @@ SIPMessageInfo* tableToInfo(QList<QStringList>& values)
   QString toSIPAddress = "";
   QString fromSIPAddress = "";
 
-  parseSIPParameter(values.at(3).at(2), ";tag=", info->ourTag, toSIPAddress);
-  parseSIPParameter(values.at(4).at(2), ";tag=", info->theirTag, fromSIPAddress);
+  parseSIPParameter(values.at(3).at(2), ";tag=", info->localTag, toSIPAddress);
+  parseSIPParameter(values.at(4).at(2), ";tag=", info->remoteTag, fromSIPAddress);
 
-  if(STRICTSIPPROCESSING && info->theirTag.isEmpty())
+  if(STRICTSIPPROCESSING && info->remoteTag.isEmpty())
   {
     qDebug() << "They did not send their tag!";
     cleanup(info);
     return NULL;
   }
 
-  parseSIPaddress(toSIPAddress, info->ourUsername, info->ourLocation);
-  parseSIPaddress(fromSIPAddress, info->theirUsername, info->theirLocation);
+  parseSIPaddress(toSIPAddress, info->localUsername, info->localLocation);
+  parseSIPaddress(fromSIPAddress, info->remoteUsername, info->remoteLocation);
 
   bool ok = false;
   info->cSeq = values.at(6).at(1).toInt(&ok);
