@@ -28,7 +28,8 @@ ui_(new Ui::StatisticsWindow),
   ui_->setupUi(this);
   ui_->participantTable->setColumnCount(4); // more columns can be added later
   ui_->participantTable->setHorizontalHeaderItem(0, new QTableWidgetItem(QString("IP")));
-  ui_->participantTable->setHorizontalHeaderItem(1, new QTableWidgetItem(QString("Port")));
+  ui_->participantTable->setHorizontalHeaderItem(1, new QTableWidgetItem(QString("AudioPort")));
+  ui_->participantTable->setHorizontalHeaderItem(1, new QTableWidgetItem(QString("VideoPort")));
   ui_->participantTable->setHorizontalHeaderItem(2, new QTableWidgetItem(QString("Audio delay")));
   ui_->participantTable->setHorizontalHeaderItem(3, new QTableWidgetItem(QString("Video delay")));
 }
@@ -47,6 +48,7 @@ void StatisticsWindow::closeEvent(QCloseEvent *event)
 void StatisticsWindow::addNextInterface(StatisticsInterface* next)
 {
   Q_UNUSED(next)
+  Q_ASSERT(false && "NOT IMPLEMENTED");
   qWarning() << "WARNING: addNextInterface has not been implemented in stat window";
 }
 
@@ -79,15 +81,16 @@ void StatisticsWindow::addParticipant(QString ip, QString audioPort, QString vid
   // add cells to table
   ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 0, new QTableWidgetItem(ip));
   ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 1, new QTableWidgetItem(audioPort));
-  ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 2, new QTableWidgetItem("- ms"));
+  ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 2, new QTableWidgetItem(videoPort));
   ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 3, new QTableWidgetItem("- ms"));
+  ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 4, new QTableWidgetItem("- ms"));
 
   delays_.push_back({0, 0,true});
 }
 
 void StatisticsWindow::removeParticipant(QString ip)
 {
-  for(unsigned int i = 0; i < ui_->participantTable->rowCount(); ++i)
+  for(int i = 0; i < ui_->participantTable->rowCount(); ++i)
   {
     if(ui_->participantTable->item(i, 0)->text() == ip )
     {
@@ -118,12 +121,10 @@ void StatisticsWindow::receiveDelay(uint32_t peer, QString type, int32_t delay)
   if(type == "video" || type == "Video")
   {
     delays_.at(peer).video = delay;
-    //ui_->participantTable->setItem(peer, 3, new QTableWidgetItem( QString::number(delay) + " ms"));
   }
   else if(type == "audio" || type == "Audio")
   {
     delays_.at(peer).audio = delay;
-    //ui_->participantTable->setItem(peer, 2, new QTableWidgetItem( QString::number(delay) + " ms"));
   }
 }
 
@@ -237,8 +238,8 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
       // also tells whether the slot for this participant exists
       if(d.active)
       {
-        ui_->participantTable->setItem(index, 2, new QTableWidgetItem( QString::number(d.audio) + " ms"));
-        ui_->participantTable->setItem(index, 3, new QTableWidgetItem( QString::number(d.video) + " ms"));
+        ui_->participantTable->setItem(index, 3, new QTableWidgetItem( QString::number(d.audio) + " ms"));
+        ui_->participantTable->setItem(index, 4, new QTableWidgetItem( QString::number(d.video) + " ms"));
         ++index;
       }
     }

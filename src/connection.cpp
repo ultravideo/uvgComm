@@ -259,7 +259,8 @@ void Connection::disconnect()
 
 void Connection::printError(int socketError, const QString &message)
 {
-  qWarning() << "ERROR. Socket error for connection:" << ID_ << "Error:" << message;
+  qWarning() << "ERROR. Socket error" << socketError << "for connection:"
+             << ID_ << "Error:" << message;
 }
 
 void Connection::printBytesWritten(qint64 bytes)

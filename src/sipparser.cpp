@@ -47,7 +47,7 @@ SIPMessageInfo* tableToInfo(QList<QStringList>& values);
 bool checkSIPMessage(QList<QStringList>& values);
 
 void parseSIPaddress(QString address, QString& user, QString& location);
-bool parseSIPParameter(QString field, QString parameterName,
+void parseSIPParameter(QString field, QString parameterName,
                        QString& parameterValue, QString& remaining);
 
 void cleanup(SIPMessageInfo* info);
@@ -133,7 +133,7 @@ void messageToTable(QStringList& lines, QList<QStringList> &values)
 {
   qDebug() << "Sorting sip message to table for lookup";
 
-  for(uint32_t i = 0;  i < lines.length(); ++i)
+  for(int32_t i = 0;  i < lines.length(); ++i)
   {
     QStringList words = lines.at(i).split(" ");
 
@@ -144,7 +144,7 @@ void messageToTable(QStringList& lines, QList<QStringList> &values)
     else
     {
       // find headertype in array
-      for(uint32_t j = 1; j < SIPHEADERLINES.size(); ++j)
+      for(int32_t j = 1; j < SIPHEADERLINES.size(); ++j)
       {
         // RFC-3261 defines headers as case-insensitive
         if(QString::compare(words.at(0), SIPHEADERLINES.at(j).name, Qt::CaseInsensitive) == 0)
@@ -301,7 +301,7 @@ bool checkSIPMessage(QList<QStringList>& values)
     return false;
   }
 
-  for(unsigned int i = 0; i < SIPHEADERLINES.size(); ++i)
+  for(int32_t i = 0; i < SIPHEADERLINES.size(); ++i)
   {
     if(!values[i].isEmpty())
     {
@@ -343,7 +343,7 @@ void parseSIPaddress(QString address, QString& user, QString& location)
 
 }
 
-bool parseSIPParameter(QString field, QString parameterName,
+void parseSIPParameter(QString field, QString parameterName,
                        QString& parameterValue, QString& remaining)
 {
   QStringList parameterSplit = field.split(parameterName);
@@ -368,7 +368,8 @@ std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
   bool originator = false;
   bool session = false;
   bool timing = false;
-  bool contact = false;
+  bool globalContact = false;
+  bool localContacts = true;
 
   QStringList lines = body.split("\r\n", QString::SkipEmptyParts);
   QStringListIterator lineIterator(lines);
@@ -442,6 +443,7 @@ std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
         if(!checkSDPLine(words, 4, mediaInfo.type))
           return NULL;
 
+        bool mediaContact = false;
         mediaInfo.port = words.at(1).toUInt();
         mediaInfo.proto = words.at(2);
         mediaInfo.rtpNum = words.at(3).toUInt();
@@ -449,12 +451,11 @@ std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
         qDebug() << "Media found with type:" << mediaInfo.type;
 
         // TODO process other possible lines
-
-
         while(lineIterator.hasNext()) // TODO ERROR if not correct, the line is not processsed, move backwards?
         {
           QString additionalLine = lineIterator.next();
           QStringList additionalWords = additionalLine.split(" ", QString::SkipEmptyParts);
+
 
           if(additionalLine.at(0) == 'c')
           {
@@ -466,6 +467,8 @@ std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
 
             info->global_addrtype = additionalWords.at(1);
             info->globalAddress = additionalWords.at(2);
+
+            mediaContact = true;
           }
           else if(additionalLine.at(0) == "a=rtpmap")
           {
@@ -512,6 +515,10 @@ std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
         }
 
         info->media.append(mediaInfo);
+
+        if(!mediaContact)
+          localContacts = false;
+
         break;
       }
       case 'c':
@@ -521,6 +528,7 @@ std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
 
         info->global_addrtype = words.at(1);
         info->globalAddress = words.at(2);
+        globalContact = true;
         break;
       }
       default:
@@ -530,10 +538,11 @@ std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
     }
   }
 
-  if(!version || !originator || !session || !timing)
+  if(!version || !originator || !session || !timing || (!globalContact && !localContacts))
   {
     qDebug() << "All required fields not present in SDP:"
-             << "v" << version << "o" << originator << "s" << session << "t" << timing;
+             << "v" << version << "o" << originator << "s" << session << "t" << timing
+             << "global c" << globalContact << "local c" << localContacts;
     //return NULL;
   }
 

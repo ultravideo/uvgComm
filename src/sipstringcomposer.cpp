@@ -64,10 +64,10 @@ QString SIPStringComposer::responseToString(const ResponseType response)
   default:
   {
     qCritical() << "SIP RESPONSE NOT IMPLEMENTED";
-    return "";
     break;
   }
   }
+  return "";
 }
 
 void SIPStringComposer::initializeMessage(const QString& SIPversion)
