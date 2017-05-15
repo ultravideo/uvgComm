@@ -32,12 +32,6 @@ void MediaManager::uninit()
   streamer_->stop();
 }
 
-// registers a contact for activity monitoring
-void MediaManager::registerContact(in_addr ip)
-{
-  Q_UNUSED(ip)
-}
-
 void MediaManager::startCall(VideoWidget *selfView, QSize resolution)
 {
   streamer_->start();
@@ -93,19 +87,6 @@ void MediaManager::endCall(QString callID)
   fg_->removeParticipant(ids_[callID]);
 
   streamer_->removePeer(ids_[callID]);
-}
-
-void MediaManager::streamToIP(in_addr ip, uint16_t port)
-{
-  Q_UNUSED(ip)
-  Q_UNUSED(port)
-}
-
-void MediaManager::receiveFromIP(in_addr ip, uint16_t port, VideoWidget* view)
-{
-  Q_UNUSED(ip)
-  Q_UNUSED(port)
-  Q_UNUSED(view)
 }
 
 bool MediaManager::toggleMic()
