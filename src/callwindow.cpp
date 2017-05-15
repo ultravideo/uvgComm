@@ -38,6 +38,8 @@ CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height, QString
   timer_->start();
 
   connect(ui_->stats, SIGNAL(clicked()), this, SLOT(openStatistics()));
+
+  setWindowTitle("HEVC Conferencing");
 }
 
 CallWindow::~CallWindow()
@@ -325,4 +327,9 @@ void CallWindow::endCall(QString callID, QString ip)
   conferenceMutex_.unlock();
 
   stats_->removeParticipant(ip);
+}
+
+void CallWindow::on_settings_clicked()
+{
+    settings_.show();
 }

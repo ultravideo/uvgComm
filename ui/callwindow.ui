@@ -21,28 +21,14 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_2">
-    <item row="2" column="0">
-     <widget class="QPushButton" name="EndCallButton">
-      <property name="text">
-       <string>End call</string>
-      </property>
-     </widget>
-    </item>
-    <item row="2" column="2">
-     <widget class="QPushButton" name="addParticipant">
-      <property name="text">
-       <string>Add participant</string>
-      </property>
-     </widget>
-    </item>
-    <item row="2" column="6">
+    <item row="2" column="8">
      <widget class="QPushButton" name="stats">
       <property name="text">
        <string>Statistics</string>
       </property>
      </widget>
     </item>
-    <item row="2" column="5">
+    <item row="2" column="6">
      <widget class="QTextEdit" name="ip">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -70,21 +56,73 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </item>
-    <item row="2" column="3">
-     <widget class="QPushButton" name="mic">
+    <item row="2" column="9">
+     <widget class="VideoWidget" name="SelfView" native="true">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>32</width>
+        <height>24</height>
+       </size>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>320</width>
+        <height>240</height>
+       </size>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="7">
+     <widget class="QPushButton" name="settings">
+      <property name="toolTip">
+       <string extracomment="Settings"/>
+      </property>
       <property name="text">
-       <string>Turn mic off</string>
+       <string>Settings</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="5">
+     <widget class="QPushButton" name="camera">
+      <property name="text">
+       <string>Camera off</string>
       </property>
      </widget>
     </item>
     <item row="2" column="4">
-     <widget class="QPushButton" name="camera">
+     <widget class="QPushButton" name="mic">
+      <property name="toolTip">
+       <string extracomment="Mic off"/>
+      </property>
       <property name="text">
-       <string>Turn camera off</string>
+       <string>Mic off</string>
       </property>
      </widget>
     </item>
-    <item row="0" column="0" rowspan="2" colspan="7">
+    <item row="2" column="3">
+     <widget class="QPushButton" name="EndCallButton">
+      <property name="toolTip">
+       <string extracomment="End call"/>
+      </property>
+      <property name="text">
+       <string>End call</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="2">
+     <widget class="QPushButton" name="addParticipant">
+      <property name="text">
+       <string>Add participant</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="2" rowspan="2" colspan="8">
      <widget class="QWidget" name="participants" native="true">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -108,37 +146,7 @@ p, li { white-space: pre-wrap; }
       </layout>
      </widget>
     </item>
-    <item row="2" column="1">
-     <widget class="VideoWidget" name="SelfView" native="true">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="minimumSize">
-       <size>
-        <width>32</width>
-        <height>24</height>
-       </size>
-      </property>
-      <property name="maximumSize">
-       <size>
-        <width>320</width>
-        <height>240</height>
-       </size>
-      </property>
-     </widget>
-    </item>
    </layout>
-   <zorder>EndCallButton</zorder>
-   <zorder>addParticipant</zorder>
-   <zorder>ip</zorder>
-   <zorder>SelfView</zorder>
-   <zorder>stats</zorder>
-   <zorder>participants</zorder>
-   <zorder>mic</zorder>
-   <zorder>camera</zorder>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">

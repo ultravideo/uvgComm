@@ -3,6 +3,7 @@
 #include "mediamanager.h"
 #include "callnegotiation.h"
 #include "conferenceview.h"
+#include "settings.h"
 
 #include <QMainWindow>
 
@@ -48,6 +49,9 @@ public slots:
 
    void endCall(QString callID, QString ip);
 
+private slots:
+   void on_settings_clicked();
+
 private:
 
   void createParticipant(QString& callID, const std::shared_ptr<SDPMessageInfo> peerInfo,
@@ -55,6 +59,7 @@ private:
 
   Ui::CallWindow *ui_;
 
+  Settings settings_;
   StatisticsWindow *stats_;
 
   QMutex conferenceMutex_;

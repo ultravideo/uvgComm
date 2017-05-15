@@ -44,7 +44,8 @@ SOURCES +=\
     src/sipparser.cpp \
     src/common.cpp \
     src/mediamanager.cpp \
-    src/conferenceview.cpp
+    src/conferenceview.cpp \
+    src/settings.cpp
 
 HEADERS  += \
     src/callwindow.h \
@@ -77,12 +78,15 @@ HEADERS  += \
     src/sipparser.h \
     src/common.h \
     src/mediamanager.h \
-    src/conferenceview.h
+    src/conferenceview.h \
+    src/settings.h
 
 FORMS    += \
     ui/callwindow.ui \
     ui/statisticswindow.ui \
-    ui/callingwidget.ui
+    ui/callingwidget.ui \
+    ui/settings.ui \
+    ui/settings.ui
 
 
 QT+=multimedia

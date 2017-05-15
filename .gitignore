@@ -5,3 +5,4 @@ release/
 ui_*
 Makefile*
 object_script.*
+*.dot
