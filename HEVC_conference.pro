@@ -21,7 +21,6 @@ SOURCES +=\
     src/filter.cpp \
     src/filtergraph.cpp \
     src/main.cpp \
-    src/mainwindow.cpp \
     src/videowidget.cpp \
     src/kvazaarfilter.cpp \
     src/rgb32toyuv.cpp \
@@ -54,7 +53,6 @@ HEADERS  += \
     src/displayfilter.h \
     src/filter.h \
     src/filtergraph.h \
-    src/mainwindow.h \
     src/videowidget.h \
     src/kvazaarfilter.h \
     src/rgb32toyuv.h \
@@ -83,7 +81,6 @@ HEADERS  += \
 
 FORMS    += \
     ui/callwindow.ui \
-    ui/mainwindow.ui \
     ui/statisticswindow.ui \
     ui/callingwidget.ui
 
