@@ -85,7 +85,6 @@ FORMS    += \
     ui/callwindow.ui \
     ui/statisticswindow.ui \
     ui/callingwidget.ui \
-    ui/settings.ui \
     ui/settings.ui
 
 

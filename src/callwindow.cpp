@@ -14,7 +14,7 @@
 const uint16_t MAXOPENPORTS = 42;
 const uint16_t PORTSPERPARTICIPANT = 4;
 
-CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height, QString name) :
+CallWindow::CallWindow(QWidget *parent):
   QMainWindow(parent),
   ui_(new Ui::CallWindow),
   stats_(new StatisticsWindow(this)),
@@ -22,13 +22,10 @@ CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height, QString
   callNeg_(),
   media_(stats_),
   timer_(new QTimer(this)),
-  currentResolution_(),
   portsOpen_(0),
-  name_(name)
+  settings_()
 {
   ui_->setupUi(this);
-
-  currentResolution_ = QSize(width, height);
 
   // GUI updates are handled solely by timer
   timer_->setInterval(30);
@@ -59,7 +56,7 @@ void CallWindow::startStream()
   connect(ui_widget->AcceptButton, SIGNAL(clicked()), this, SLOT(acceptCall()));
   connect(ui_widget->DeclineButton, SIGNAL(clicked()), this, SLOT(rejectCall()));
 
-  callNeg_.init(name_);
+
 
   QObject::connect(&callNeg_, SIGNAL(incomingINVITE(QString, QString)),
                    this, SLOT(incomingCall(QString, QString)));
@@ -86,14 +83,33 @@ void CallWindow::startStream()
   QObject::connect(&callNeg_, SIGNAL(callEnded(QString, QString)),
                    this, SLOT(endCall(QString, QString)));
 
+  QObject::connect(&settingsManager_, SIGNAL(settingsChanged()),
+                   this, SLOT(recordChangedSettings()));
+
   conferenceMutex_.lock();
   conference_.init(ui_->participantLayout, ui_->participants, ui_widget, holderWidget);
   conferenceMutex_.unlock();
 
+  settingsManager_.loadSettingsFromFile("settings.ini");
+  settingsManager_.getSettings(settings_);
+
+  QString localName = settings_["LocalName"];
+  QString localUsername = settings_["LocalUsername"];
+
+  callNeg_.init(localName, localUsername);
+
+  QSize resolution = QSize(settings_["ScaledWidth"].toInt(),settings_["ScaledHeight"].toInt());
+  qDebug() << "reso:" << resolution;
   media_.init();
-  media_.startCall(ui_->SelfView, currentResolution_);
+  media_.startCall(ui_->SelfView, resolution);
 }
 
+void CallWindow::recordChangedSettings()
+{
+  settingsManager_.getSettings(settings_);
+
+  // TODO call update settings on everything?
+}
 
 void CallWindow::addParticipant()
 {
@@ -105,10 +121,6 @@ void CallWindow::addParticipant()
     Contact con;
     con.contactAddress = ip_str;
     con.name = "Anonymous";
-    if(!name_.isEmpty())
-    {
-      con.name = name_;
-    }
     con.username = "unknown";
 
     QList<Contact> list;
@@ -121,7 +133,7 @@ void CallWindow::addParticipant()
     for(auto callID : callIDs)
     {
       conferenceMutex_.lock();
-      conference_.callingTo(callID, con.name);
+      conference_.callingTo(callID, "Contact List Missing!"); // TODO get name from contact list
       conferenceMutex_.unlock();
     }
   }
@@ -230,6 +242,8 @@ void CallWindow::cameraState()
 
 void CallWindow::closeEvent(QCloseEvent *event)
 {
+  settingsManager_.settingsToFile("settings.ini");
+
   callNeg_.endAllCalls();
 
   callNeg_.uninit();
@@ -331,5 +345,5 @@ void CallWindow::endCall(QString callID, QString ip)
 
 void CallWindow::on_settings_clicked()
 {
-    settings_.show();
+    settingsManager_.show();
 }

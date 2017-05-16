@@ -24,7 +24,7 @@ CallNegotiation::CallNegotiation():
 CallNegotiation::~CallNegotiation()
 {}
 
-void CallNegotiation::init(QString localName)
+void CallNegotiation::init(QString localName, QString localUsername)
 {
   qsrand(1);
 
@@ -40,7 +40,7 @@ void CallNegotiation::init(QString localName)
   {
     localName_ = localName;
   }
-  localUsername_ = "i";
+  localUsername_ = localUsername;
 }
 
 void CallNegotiation::uninit()

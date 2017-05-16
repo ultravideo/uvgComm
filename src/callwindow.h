@@ -19,7 +19,7 @@ class CallWindow : public QMainWindow
   Q_OBJECT
 
 public:
-  explicit CallWindow(QWidget *parent, uint16_t width, uint16_t height, QString name);
+  explicit CallWindow(QWidget *parent);
   ~CallWindow();
 
   void startStream();
@@ -52,6 +52,9 @@ public slots:
 private slots:
    void on_settings_clicked();
 
+   void recordChangedSettings();
+
+
 private:
 
   void createParticipant(QString& callID, const std::shared_ptr<SDPMessageInfo> peerInfo,
@@ -59,7 +62,7 @@ private:
 
   Ui::CallWindow *ui_;
 
-  Settings settings_;
+  Settings settingsManager_;
   StatisticsWindow *stats_;
 
   QMutex conferenceMutex_;
@@ -70,9 +73,9 @@ private:
 
   QTimer *timer_; // for GUI update
 
-  QSize currentResolution_;
-
   uint16_t portsOpen_;
 
-  QString name_;
+  // should always hold the current settings for everything
+  // modifying is done in the settingsManager_
+  std::map<QString, QString> settings_;
 };

@@ -11,8 +11,7 @@ int main(int argc, char *argv[])
 
   // TODO load settings file
 
-  QString name = "";
-  CallWindow call(NULL, 640, 480, name);
+  CallWindow call(NULL);
 
   call.show();
   call.startStream();

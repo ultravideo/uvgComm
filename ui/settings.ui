@@ -55,11 +55,11 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>481</width>
+         <width>491</width>
          <height>481</height>
         </rect>
        </property>
-       <layout class="QFormLayout" name="formLayout">
+       <layout class="QGridLayout" name="gridLayout_3">
         <item row="0" column="0">
          <widget class="QLabel" name="Name">
           <property name="font">
@@ -69,6 +69,23 @@
           </property>
           <property name="text">
            <string>Name</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QTextEdit" name="username_edit">
+          <property name="maximumSize">
+           <size>
+            <width>1000</width>
+            <height>30</height>
+           </size>
+          </property>
+          <property name="html">
+           <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;anonymous&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
          </widget>
         </item>
@@ -101,22 +118,44 @@ p, li { white-space: pre-wrap; }
           </property>
          </widget>
         </item>
-        <item row="1" column="1">
-         <widget class="QTextEdit" name="username_edit">
-          <property name="maximumSize">
+        <item row="0" column="2">
+         <spacer name="horizontalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
            <size>
-            <width>1000</width>
-            <height>30</height>
+            <width>40</width>
+            <height>20</height>
            </size>
           </property>
-          <property name="html">
-           <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
-&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
-p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;anonymous&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </spacer>
+        </item>
+        <item row="1" column="2">
+         <spacer name="horizontalSpacer_3">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
           </property>
-         </widget>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item row="2" column="1">
+         <spacer name="verticalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
         </item>
        </layout>
       </widget>
@@ -136,7 +175,7 @@ p, li { white-space: pre-wrap; }
        </property>
        <layout class="QGridLayout" name="gridLayout_2">
         <item row="1" column="2">
-         <widget class="QLabel" name="label_5">
+         <widget class="QLabel" name="ScaledWidth_2">
           <property name="font">
            <font>
             <pointsize>12</pointsize>
@@ -148,7 +187,7 @@ p, li { white-space: pre-wrap; }
          </widget>
         </item>
         <item row="1" column="0">
-         <widget class="QLabel" name="label_2">
+         <widget class="QLabel" name="ScaledWidth">
           <property name="font">
            <font>
             <pointsize>12</pointsize>
@@ -160,7 +199,7 @@ p, li { white-space: pre-wrap; }
          </widget>
         </item>
         <item row="1" column="1">
-         <widget class="QTextEdit" name="width">
+         <widget class="QTextEdit" name="scaled_width">
           <property name="maximumSize">
            <size>
             <width>16777215</width>
@@ -177,7 +216,7 @@ p, li { white-space: pre-wrap; }
          </widget>
         </item>
         <item row="1" column="3">
-         <widget class="QTextEdit" name="height">
+         <widget class="QTextEdit" name="scaled_height">
           <property name="maximumSize">
            <size>
             <width>16777215</width>
@@ -194,7 +233,7 @@ p, li { white-space: pre-wrap; }
          </widget>
         </item>
         <item row="0" column="0" colspan="4">
-         <widget class="QLabel" name="label">
+         <widget class="QLabel" name="ScaledResolution">
           <property name="maximumSize">
            <size>
             <width>16777215</width>
@@ -212,6 +251,19 @@ p, li { white-space: pre-wrap; }
            <string>Scaled Resolution</string>
           </property>
          </widget>
+        </item>
+        <item row="2" column="2">
+         <spacer name="verticalSpacer">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
         </item>
        </layout>
       </widget>
