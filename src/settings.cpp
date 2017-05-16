@@ -22,7 +22,14 @@ void Settings::show()
   QDialog::show();
 }
 
-void Settings::cancel()
+void Settings::on_ok_clicked()
+{
+  qDebug() << "Settings have been modified";
+  emit settingsChanged();
+  hide();
+}
+
+void Settings::on_cancel_clicked()
 {
   qDebug() << "Getting settings from temp";
   restoreSettings();
@@ -47,13 +54,13 @@ void Settings::saveSettings()
 // restores temporarily recorded settings
 void Settings::restoreSettings()
 {
-  if(tempSettings_.find("Name") == tempSettings_.end())
+  if(tempSettings_.find("LocalName") == tempSettings_.end())
   {
     qDebug() << "WARNING: Did not find recorded settings in restoreSettings!";
     return;
   }
-  ui->name_edit->setText(tempSettings_["Name"]);
-  ui->username_edit->setText(tempSettings_["username"]);
+  ui->name_edit->setText(tempSettings_["LocalName"]);
+  ui->username_edit->setText(tempSettings_["LocalUsername"]);
   ui->scaled_height->setText(tempSettings_["ScaledHeight"]);
   ui->scaled_width->setText(tempSettings_["ScaledWidth"]);
 }

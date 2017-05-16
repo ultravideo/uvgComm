@@ -37,7 +37,7 @@
    <item row="2" column="1">
     <widget class="QPushButton" name="ok">
      <property name="text">
-      <string>Ok</string>
+      <string>Save</string>
      </property>
     </widget>
    </item>
@@ -273,22 +273,9 @@ p, li { white-space: pre-wrap; }
   </layout>
  </widget>
  <resources/>
- <connections>
-  <connection>
-   <sender>ok</sender>
-   <signal>clicked()</signal>
-   <receiver>Settings</receiver>
-   <slot>hide()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>387</x>
-     <y>542</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>257</x>
-     <y>281</y>
-    </hint>
-   </hints>
-  </connection>
- </connections>
+ <connections/>
+ <slots>
+  <slot>on_ok_clicked()</slot>
+  <slot>on_cancel_clicked()</slot>
+ </slots>
 </ui>

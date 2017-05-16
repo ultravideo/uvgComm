@@ -32,8 +32,10 @@ signals:
 
 public slots:
 
+  void on_ok_clicked();
   // restores settings
-  void cancel();
+  void on_cancel_clicked();
+
 
 private:
   Ui::Settings *ui;
@@ -46,6 +48,8 @@ private:
   // GUI <- temp
   // use this when to revert changes
   void restoreSettings();
+
+
 
   // purpose of this is a place record/restore settings in case the cancel button is pushed
   std::map<QString, QString> tempSettings_;
