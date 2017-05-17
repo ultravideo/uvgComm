@@ -21,18 +21,27 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_2">
-    <item row="2" column="7">
-     <widget class="QPushButton" name="settings">
-      <property name="toolTip">
-       <string extracomment="Settings"/>
+    <item row="2" column="3">
+     <widget class="QLineEdit" name="ip">
+      <property name="maximumSize">
+       <size>
+        <width>124</width>
+        <height>16777215</height>
+       </size>
       </property>
       <property name="text">
-       <string>Settings</string>
+       <string>127.0.0.1</string>
       </property>
      </widget>
     </item>
     <item row="2" column="8">
      <widget class="QPushButton" name="stats">
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>32</height>
+       </size>
+      </property>
       <property name="text">
        <string>Statistics</string>
       </property>
@@ -40,6 +49,12 @@
     </item>
     <item row="2" column="5">
      <widget class="QPushButton" name="mic">
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>32</height>
+       </size>
+      </property>
       <property name="toolTip">
        <string extracomment="Mic off"/>
       </property>
@@ -48,52 +63,65 @@
       </property>
      </widget>
     </item>
+    <item row="2" column="1">
+     <widget class="QPushButton" name="contactsButton">
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>32</height>
+       </size>
+      </property>
+      <property name="text">
+       <string>Contacts</string>
+      </property>
+      <property name="checkable">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="7">
+     <widget class="QPushButton" name="settings">
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>32</height>
+       </size>
+      </property>
+      <property name="toolTip">
+       <string extracomment="Settings"/>
+      </property>
+      <property name="text">
+       <string>Settings</string>
+      </property>
+     </widget>
+    </item>
     <item row="2" column="6">
      <widget class="QPushButton" name="camera">
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>32</height>
+       </size>
+      </property>
       <property name="text">
        <string>Camera off</string>
       </property>
      </widget>
     </item>
-    <item row="2" column="2">
-     <widget class="QPushButton" name="addParticipant">
-      <property name="text">
-       <string>Add participant</string>
-      </property>
-     </widget>
-    </item>
     <item row="2" column="4">
      <widget class="QPushButton" name="EndCallButton">
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>32</height>
+       </size>
+      </property>
       <property name="toolTip">
        <string extracomment="End call"/>
       </property>
       <property name="text">
        <string>End call</string>
       </property>
-     </widget>
-    </item>
-    <item row="0" column="2" rowspan="2" colspan="8">
-     <widget class="QWidget" name="participants" native="true">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="minimumSize">
-       <size>
-        <width>320</width>
-        <height>240</height>
-       </size>
-      </property>
-      <layout class="QGridLayout" name="participantLayout">
-       <property name="sizeConstraint">
-        <enum>QLayout::SetMaximumSize</enum>
-       </property>
-       <property name="spacing">
-        <number>0</number>
-       </property>
-      </layout>
      </widget>
     </item>
     <item row="2" column="9">
@@ -118,16 +146,50 @@
       </property>
      </widget>
     </item>
-    <item row="2" column="3">
-     <widget class="QLineEdit" name="ip">
+    <item row="0" column="1" rowspan="2" colspan="9">
+     <widget class="QWidget" name="participants" native="true">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>320</width>
+        <height>240</height>
+       </size>
+      </property>
+      <layout class="QGridLayout" name="participantLayout">
+       <property name="sizeConstraint">
+        <enum>QLayout::SetMaximumSize</enum>
+       </property>
+       <property name="spacing">
+        <number>0</number>
+       </property>
+      </layout>
+     </widget>
+    </item>
+    <item row="0" column="0" rowspan="3">
+     <widget class="QListView" name="contactList">
       <property name="maximumSize">
        <size>
-        <width>124</width>
+        <width>200</width>
         <height>16777215</height>
        </size>
       </property>
+     </widget>
+    </item>
+    <item row="2" column="2">
+     <widget class="QPushButton" name="addParticipant">
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>32</height>
+       </size>
+      </property>
       <property name="text">
-       <string>127.0.0.1</string>
+       <string>Add participant</string>
       </property>
      </widget>
     </item>
@@ -142,11 +204,29 @@
      <height>21</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menuConference">
+    <property name="title">
+     <string>Menu</string>
+    </property>
+    <addaction name="actionAbout"/>
+    <addaction name="actionClose"/>
+   </widget>
+   <addaction name="menuConference"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionAdd_Caller">
    <property name="text">
     <string>Add Caller</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>About</string>
+   </property>
+  </action>
+  <action name="actionClose">
+   <property name="text">
+    <string>Close</string>
    </property>
   </action>
  </widget>
@@ -217,6 +297,38 @@
     <hint type="sourcelabel">
      <x>756</x>
      <y>585</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>639</x>
+     <y>319</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>contactsButton</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>contactList</receiver>
+   <slot>setHidden(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>270</x>
+     <y>598</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>108</x>
+     <y>305</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionClose</sender>
+   <signal>triggered()</signal>
+   <receiver>CallWindow</receiver>
+   <slot>close()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>639</x>
+     <y>319</y>
     </hint>
     <hint type="destinationlabel">
      <x>639</x>
