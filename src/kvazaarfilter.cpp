@@ -44,7 +44,6 @@ int KvazaarFilter::init(QSize resolution,
   }
   QSettings settings;
 
-
   api_->config_init(config_);
   api_->config_parse(config_, "preset", settings.value("video/Preset").toString().toUtf8());
   config_->width = resolution.width();
@@ -56,6 +55,8 @@ int KvazaarFilter::init(QSize resolution,
   config_->intra_period = settings.value("video/Intra").toInt();
   config_->framerate_num = framerate_num;
   config_->framerate_denom = framerate_denom;
+
+  // TODO Send parameter sets only when needed
 
   //stats_->videoInfo(double(framerate_num/framerate_denom), resolution);
 

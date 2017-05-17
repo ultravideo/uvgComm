@@ -34,36 +34,30 @@ void Settings::on_cancel_clicked()
 // temparily records the settings
 void Settings::saveSettings()
 {
-
+  // Local settings
   QSettings settings;
   if(ui->name_edit->toPlainText() != "")
     settings.setValue("local/Name",         ui->name_edit->toPlainText());
   if(ui->username_edit->toPlainText() != "")
     settings.setValue("local/Username",     ui->username_edit->toPlainText());
 
-  if(ui->preset->toPlainText() != "")
-    settings.setValue("video/Preset",       ui->preset->toPlainText());
-  if(ui->scaled_height->toPlainText() == "ultrafast"
-     || ui->scaled_height->toPlainText() == "superfast"
-     || ui->scaled_height->toPlainText() == "veryfast"
-     || ui->scaled_height->toPlainText() == "faster"
-     || ui->scaled_height->toPlainText() == "fast"
-     || ui->scaled_height->toPlainText() == "medium"
-     || ui->scaled_height->toPlainText() == "slow"
-     || ui->scaled_height->toPlainText() == "slower"
-     || ui->scaled_height->toPlainText() == "veryslow"
-     || ui->scaled_height->toPlainText() == "placebo")
+  // Video settings
+  settings.setValue("video/Preset",       ui->preset->currentText());
+
+  if(ui->scaled_height->toPlainText() != "")
     settings.setValue("video/ScaledHeight", ui->scaled_height->toPlainText());
   if(ui->scaled_width->toPlainText() != "")
     settings.setValue("video/ScaledWidth",  ui->scaled_width->toPlainText());
   if(ui->threads->toPlainText() != "")
     settings.setValue("video/Threads",      ui->threads->toPlainText());
-  if(ui->qp->toPlainText() != ""
-     && ui->qp->toPlainText().toInt() >= 0
-     && ui->qp->toPlainText().toInt() <= 51)
-    settings.setValue("video/QP",           ui->qp->toPlainText());
-  if(ui->wpp->toPlainText() != "")
-    settings.setValue("video/WPP",          ui->wpp->toPlainText());
+
+  settings.setValue("video/QP",             QString::number(ui->qp->value()));
+
+  if(ui->wpp->isChecked())
+    settings.setValue("video/WPP",          "1");
+  else
+    settings.setValue("video/WPP",          "0");
+
   if(ui->vps->toPlainText() != "")
     settings.setValue("video/VPS",          ui->vps->toPlainText());
   if(ui->intra->toPlainText() != "")
@@ -82,6 +76,7 @@ void Settings::restoreSettings()
 
   for(auto key : list)
   {
+    qDebug() << "Found settings key:" << key << "value:" << settings.value(key).toString();
     if(!missingSettings && settings.value(key).isNull())
       missingSettings = true;
   }
@@ -89,16 +84,22 @@ void Settings::restoreSettings()
   //get values from QSettings
   if(!missingSettings)
   {
-    qDebug() << "Restoring preivous settings";
+    qDebug() << "Restoring previous settings";
     ui->name_edit->setText      (settings.value("local/Name").toString());
     ui->username_edit->setText  (settings.value("local/Username").toString());
 
-    ui->preset->setText         (settings.value("video/Preset").toString());
+    int index = ui->preset->findText(settings.value("video/Preset").toString());
+    if(index != -1)
+      ui->preset->setCurrentIndex(index);
     ui->scaled_height->setText  (settings.value("video/ScaledHeight").toString());
     ui->scaled_width->setText   (settings.value("video/ScaledWidth").toString());
     ui->threads->setText        (settings.value("video/Threads").toString());
-    ui->qp->setText             (settings.value("video/QP").toString());
-    ui->wpp->setText            (settings.value("video/WPP").toString());
+    ui->qp->setValue            (settings.value("video/QP").toInt());
+
+    if(settings.value("video/WPP").toString() == "1")
+      ui->wpp->setChecked(true);
+    else if(settings.value("video/WPP").toString() == "0")
+      ui->wpp->setChecked(false);
     ui->vps->setText            (settings.value("video/VPS").toString());
     ui->intra->setText          (settings.value("video/Intra").toString());
   }
