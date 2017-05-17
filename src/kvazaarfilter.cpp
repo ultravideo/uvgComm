@@ -3,6 +3,8 @@
 #include "statisticsinterface.h"
 
 #include <kvazaar.h>
+
+#include <QSettings>
 #include <QtDebug>
 #include <QTime>
 #include <QSize>
@@ -40,16 +42,18 @@ int KvazaarFilter::init(QSize resolution,
     qCritical() << name_ << "failed to allocate Kvazaar config";
     return C_FAILURE;
   }
+  QSettings settings;
+
 
   api_->config_init(config_);
-  api_->config_parse(config_, "preset", "ultrafast");
-  config_->width = 640;
-  config_->height = 480;
-  config_->threads = 4;
-  config_->qp = 32;
-  config_->wpp = 1;
-  config_->vps_period = 1;
-  config_->intra_period = 64;
+  api_->config_parse(config_, "preset", settings.value("video/Preset").toString().toUtf8());
+  config_->width = resolution.width();
+  config_->height = resolution.height();
+  config_->threads = settings.value("video/Threads").toInt();
+  config_->qp = settings.value("video/QP").toInt();
+  config_->wpp = settings.value("video/WPP").toInt();
+  config_->vps_period = settings.value("video/VPS").toInt();
+  config_->intra_period = settings.value("video/Intra").toInt();
   config_->framerate_num = framerate_num;
   config_->framerate_denom = framerate_denom;
 

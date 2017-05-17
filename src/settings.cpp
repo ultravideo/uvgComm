@@ -34,12 +34,41 @@ void Settings::on_cancel_clicked()
 // temparily records the settings
 void Settings::saveSettings()
 {
-  QSettings settings;
-  settings.setValue("local/Name", ui->name_edit->toPlainText());
-  settings.setValue("local/Username", ui->username_edit->toPlainText());
 
-  settings.setValue("video/ScaledHeight", ui->scaled_height->toPlainText());
-  settings.setValue("video/ScaledWidth", ui->scaled_width->toPlainText());
+  QSettings settings;
+  if(ui->name_edit->toPlainText() != "")
+    settings.setValue("local/Name",         ui->name_edit->toPlainText());
+  if(ui->username_edit->toPlainText() != "")
+    settings.setValue("local/Username",     ui->username_edit->toPlainText());
+
+  if(ui->preset->toPlainText() != "")
+    settings.setValue("video/Preset",       ui->preset->toPlainText());
+  if(ui->scaled_height->toPlainText() == "ultrafast"
+     || ui->scaled_height->toPlainText() == "superfast"
+     || ui->scaled_height->toPlainText() == "veryfast"
+     || ui->scaled_height->toPlainText() == "faster"
+     || ui->scaled_height->toPlainText() == "fast"
+     || ui->scaled_height->toPlainText() == "medium"
+     || ui->scaled_height->toPlainText() == "slow"
+     || ui->scaled_height->toPlainText() == "slower"
+     || ui->scaled_height->toPlainText() == "veryslow"
+     || ui->scaled_height->toPlainText() == "placebo")
+    settings.setValue("video/ScaledHeight", ui->scaled_height->toPlainText());
+  if(ui->scaled_width->toPlainText() != "")
+    settings.setValue("video/ScaledWidth",  ui->scaled_width->toPlainText());
+  if(ui->threads->toPlainText() != "")
+    settings.setValue("video/Threads",      ui->threads->toPlainText());
+  if(ui->qp->toPlainText() != ""
+     && ui->qp->toPlainText().toInt() >= 0
+     && ui->qp->toPlainText().toInt() <= 51)
+    settings.setValue("video/QP",           ui->qp->toPlainText());
+  if(ui->wpp->toPlainText() != "")
+    settings.setValue("video/WPP",          ui->wpp->toPlainText());
+  if(ui->vps->toPlainText() != "")
+    settings.setValue("video/VPS",          ui->vps->toPlainText());
+  if(ui->intra->toPlainText() != "")
+    settings.setValue("video/Intra",        ui->intra->toPlainText());
+
   //settings.sync(); // TODO is this needed?
 }
 
@@ -47,17 +76,36 @@ void Settings::saveSettings()
 void Settings::restoreSettings()
 {
   QSettings settings;
-  if(settings.contains("local/Name"))
-  {
-    ui->name_edit->setText(settings.value("local/Name").toString());
-    ui->username_edit->setText(settings.value("local/Username").toString());
+  bool missingSettings = false;
 
-    ui->scaled_height->setText(settings.value("video/ScaledHeight").toString());
-    ui->scaled_width->setText(settings.value("video/ScaledWidth").toString());
+  QStringList list = settings.allKeys();
+
+  for(auto key : list)
+  {
+    if(!missingSettings && settings.value(key).isNull())
+      missingSettings = true;
+  }
+
+  //get values from QSettings
+  if(!missingSettings)
+  {
+    qDebug() << "Restoring preivous settings";
+    ui->name_edit->setText      (settings.value("local/Name").toString());
+    ui->username_edit->setText  (settings.value("local/Username").toString());
+
+    ui->preset->setText         (settings.value("video/Preset").toString());
+    ui->scaled_height->setText  (settings.value("video/ScaledHeight").toString());
+    ui->scaled_width->setText   (settings.value("video/ScaledWidth").toString());
+    ui->threads->setText        (settings.value("video/Threads").toString());
+    ui->qp->setText             (settings.value("video/QP").toString());
+    ui->wpp->setText            (settings.value("video/WPP").toString());
+    ui->vps->setText            (settings.value("video/VPS").toString());
+    ui->intra->setText          (settings.value("video/Intra").toString());
   }
   else
   {
-    // No settings have bee initialized
+    // Some settings have not been initialized (due to new settings). Use defaults in GUI
+    qDebug() << "Resettings settings to defaults";
     saveSettings();
   }
 }
