@@ -112,7 +112,7 @@ void CallWindow::addParticipant()
 
   if(portsOpen_ <= MAXOPENPORTS)
   {
-    QString ip_str = ui_->ip->toPlainText();
+    QString ip_str = ui_->ip->text();
 
     Contact con;
     con.contactAddress = ip_str;

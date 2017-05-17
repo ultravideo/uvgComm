@@ -36,20 +36,20 @@ void Settings::saveSettings()
 {
   // Local settings
   QSettings settings;
-  if(ui->name_edit->toPlainText() != "")
-    settings.setValue("local/Name",         ui->name_edit->toPlainText());
-  if(ui->username_edit->toPlainText() != "")
-    settings.setValue("local/Username",     ui->username_edit->toPlainText());
+  if(ui->name_edit->text() != "")
+    settings.setValue("local/Name",         ui->name_edit->text());
+  if(ui->username_edit->text() != "")
+    settings.setValue("local/Username",     ui->username_edit->text());
 
   // Video settings
   settings.setValue("video/Preset",       ui->preset->currentText());
 
-  if(ui->scaled_height->toPlainText() != "")
-    settings.setValue("video/ScaledHeight", ui->scaled_height->toPlainText());
-  if(ui->scaled_width->toPlainText() != "")
-    settings.setValue("video/ScaledWidth",  ui->scaled_width->toPlainText());
-  if(ui->threads->toPlainText() != "")
-    settings.setValue("video/Threads",      ui->threads->toPlainText());
+  if(ui->scaled_height->text() != "")
+    settings.setValue("video/ScaledHeight", ui->scaled_height->text());
+  if(ui->scaled_width->text() != "")
+    settings.setValue("video/ScaledWidth",  ui->scaled_width->text());
+  if(ui->threads->text() != "")
+    settings.setValue("video/Threads",      ui->threads->text());
 
   settings.setValue("video/QP",             QString::number(ui->qp->value()));
 
@@ -58,10 +58,10 @@ void Settings::saveSettings()
   else
     settings.setValue("video/WPP",          "0");
 
-  if(ui->vps->toPlainText() != "")
-    settings.setValue("video/VPS",          ui->vps->toPlainText());
-  if(ui->intra->toPlainText() != "")
-    settings.setValue("video/Intra",        ui->intra->toPlainText());
+  if(ui->vps->text() != "")
+    settings.setValue("video/VPS",          ui->vps->text());
+  if(ui->intra->text() != "")
+    settings.setValue("video/Intra",        ui->intra->text());
 
   //settings.sync(); // TODO is this needed?
 }
