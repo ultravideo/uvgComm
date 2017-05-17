@@ -7,6 +7,11 @@
 
 #include <QMainWindow>
 
+// This class is the heart of this software. It is responsible for directing
+// all the other classes based on user input. It would be best if
+// this class did as little as possible apart from that
+
+
 class StatisticsWindow;
 
 namespace Ui {
@@ -54,7 +59,6 @@ private slots:
 
    void recordChangedSettings();
 
-
 private:
 
   void createParticipant(QString& callID, const std::shared_ptr<SDPMessageInfo> peerInfo,
@@ -62,7 +66,7 @@ private:
 
   Ui::CallWindow *ui_;
 
-  Settings settingsManager_;
+  Settings settingsView_;
   StatisticsWindow *stats_;
 
   QMutex conferenceMutex_;
@@ -74,8 +78,4 @@ private:
   QTimer *timer_; // for GUI update
 
   uint16_t portsOpen_;
-
-  // should always hold the current settings for everything
-  // modifying is done in the settingsManager_
-  std::map<QString, QString> settings_;
 };

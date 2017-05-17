@@ -8,6 +8,7 @@ Settings::Settings(QWidget *parent) :
   ui(new Ui::Settings)
 {
   ui->setupUi(this);
+  restoreSettings(); // initializes the GUI with values
 }
 
 Settings::~Settings()
@@ -15,60 +16,48 @@ Settings::~Settings()
   delete ui;
 }
 
-void Settings::show()
-{
-  qDebug() << "Saving settings to temp";
-  saveSettings();
-  QDialog::show();
-}
-
 void Settings::on_ok_clicked()
 {
   qDebug() << "Settings have been modified";
+  saveSettings();
   emit settingsChanged();
   hide();
 }
 
 void Settings::on_cancel_clicked()
 {
-  qDebug() << "Getting settings from temp";
+  qDebug() << "Getting settings from system";
   restoreSettings();
   hide();
-}
-
-void Settings::getSettings(std::map<QString, QString>& settings)
-{
-  settings["LocalName"] = ui->name_edit->toPlainText();
-  settings["LocalUsername"] = ui->username_edit->toPlainText();
-  settings["ScaledHeight"] = ui->scaled_height->toPlainText();
-  settings["ScaledWidth"] = ui->scaled_width->toPlainText();
 }
 
 // temparily records the settings
 void Settings::saveSettings()
 {
-  tempSettings_.clear();
-  getSettings(tempSettings_);
+  QSettings settings;
+  settings.setValue("local/Name", ui->name_edit->toPlainText());
+  settings.setValue("local/Username", ui->username_edit->toPlainText());
+
+  settings.setValue("video/ScaledHeight", ui->scaled_height->toPlainText());
+  settings.setValue("video/ScaledWidth", ui->scaled_width->toPlainText());
+  //settings.sync(); // TODO is this needed?
 }
 
 // restores temporarily recorded settings
 void Settings::restoreSettings()
 {
-  if(tempSettings_.find("LocalName") == tempSettings_.end())
+  QSettings settings;
+  if(settings.contains("local/Name"))
   {
-    qDebug() << "WARNING: Did not find recorded settings in restoreSettings!";
-    return;
+    ui->name_edit->setText(settings.value("local/Name").toString());
+    ui->username_edit->setText(settings.value("local/Username").toString());
+
+    ui->scaled_height->setText(settings.value("video/ScaledHeight").toString());
+    ui->scaled_width->setText(settings.value("video/ScaledWidth").toString());
   }
-  ui->name_edit->setText(tempSettings_["LocalName"]);
-  ui->username_edit->setText(tempSettings_["LocalUsername"]);
-  ui->scaled_height->setText(tempSettings_["ScaledHeight"]);
-  ui->scaled_width->setText(tempSettings_["ScaledWidth"]);
+  else
+  {
+    // No settings have bee initialized
+    saveSettings();
+  }
 }
-
-// saves UI settings to file
-void Settings::settingsToFile(QString filename)
-{}
-
-// loads settings from a fileto UI
-void Settings::loadSettingsFromFile(QString filename)
-{}

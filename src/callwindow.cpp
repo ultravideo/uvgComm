@@ -17,13 +17,13 @@ const uint16_t PORTSPERPARTICIPANT = 4;
 CallWindow::CallWindow(QWidget *parent):
   QMainWindow(parent),
   ui_(new Ui::CallWindow),
+  settingsView_(),
   stats_(new StatisticsWindow(this)),
   conference_(this),
   callNeg_(),
   media_(stats_),
   timer_(new QTimer(this)),
-  portsOpen_(0),
-  settings_()
+  portsOpen_(0)
 {
   ui_->setupUi(this);
 
@@ -56,8 +56,6 @@ void CallWindow::startStream()
   connect(ui_widget->AcceptButton, SIGNAL(clicked()), this, SLOT(acceptCall()));
   connect(ui_widget->DeclineButton, SIGNAL(clicked()), this, SLOT(rejectCall()));
 
-
-
   QObject::connect(&callNeg_, SIGNAL(incomingINVITE(QString, QString)),
                    this, SLOT(incomingCall(QString, QString)));
 
@@ -83,22 +81,22 @@ void CallWindow::startStream()
   QObject::connect(&callNeg_, SIGNAL(callEnded(QString, QString)),
                    this, SLOT(endCall(QString, QString)));
 
-  QObject::connect(&settingsManager_, SIGNAL(settingsChanged()),
+  QObject::connect(&settingsView_, SIGNAL(settingsChanged()),
                    this, SLOT(recordChangedSettings()));
 
   conferenceMutex_.lock();
   conference_.init(ui_->participantLayout, ui_->participants, ui_widget, holderWidget);
   conferenceMutex_.unlock();
 
-  settingsManager_.loadSettingsFromFile("settings.ini");
-  settingsManager_.getSettings(settings_);
-
-  QString localName = settings_["LocalName"];
-  QString localUsername = settings_["LocalUsername"];
+  // TODO move these closer to useagepoint
+  QSettings settings;
+  QString localName = settings.value("local/Name").toString();
+  QString localUsername = settings.value("local/Username").toString();
 
   callNeg_.init(localName, localUsername);
 
-  QSize resolution = QSize(settings_["ScaledWidth"].toInt(),settings_["ScaledHeight"].toInt());
+  QSize resolution = QSize(settings.value("video/ScaledWidth").toInt(),
+                           settings.value("video/ScaledHeight").toInt());
   qDebug() << "reso:" << resolution;
   media_.init();
   media_.startCall(ui_->SelfView, resolution);
@@ -106,8 +104,6 @@ void CallWindow::startStream()
 
 void CallWindow::recordChangedSettings()
 {
-  settingsManager_.getSettings(settings_);
-
   // TODO call update settings on everything?
 }
 
@@ -242,8 +238,6 @@ void CallWindow::cameraState()
 
 void CallWindow::closeEvent(QCloseEvent *event)
 {
-  settingsManager_.settingsToFile("settings.ini");
-
   callNeg_.endAllCalls();
 
   callNeg_.uninit();
@@ -345,5 +339,5 @@ void CallWindow::endCall(QString callID, QString ip)
 
 void CallWindow::on_settings_clicked()
 {
-    settingsManager_.show();
+    settingsView_.show();
 }
