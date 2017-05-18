@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1280</width>
-    <height>720</height>
+    <height>759</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -143,19 +143,6 @@
          </property>
          <property name="text">
           <string>Settings</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="stats">
-         <property name="minimumSize">
-          <size>
-           <width>50</width>
-           <height>50</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>Statistics</string>
          </property>
         </widget>
        </item>
@@ -307,6 +294,7 @@
      <string>Menu</string>
     </property>
     <addaction name="actionAbout"/>
+    <addaction name="actionStatistics"/>
     <addaction name="actionClose"/>
    </widget>
    <addaction name="menuConference"/>
@@ -325,6 +313,11 @@
   <action name="actionClose">
    <property name="text">
     <string>Close</string>
+   </property>
+  </action>
+  <action name="actionStatistics">
+   <property name="text">
+    <string>Statistics</string>
    </property>
   </action>
  </widget>
@@ -434,10 +427,27 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionStatistics</sender>
+   <signal>triggered()</signal>
+   <receiver>CallWindow</receiver>
+   <slot>openStatistics()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>639</x>
+     <y>379</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>addParticipant()</slot>
   <slot>micState()</slot>
   <slot>cameraState()</slot>
+  <slot>openStatistics()</slot>
  </slots>
 </ui>

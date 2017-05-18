@@ -34,8 +34,6 @@ CallWindow::CallWindow(QWidget *parent):
   connect(timer_, SIGNAL(timeout()), stats_, SLOT(update()));
   timer_->start();
 
-  connect(ui_->stats, SIGNAL(clicked()), this, SLOT(openStatistics()));
-
   setWindowTitle("HEVC Conferencing");
 }
 
