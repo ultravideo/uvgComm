@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1280</width>
-    <height>759</height>
+    <width>960</width>
+    <height>640</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -21,35 +21,17 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_2">
-    <item row="0" column="1" rowspan="8" colspan="9">
-     <widget class="QWidget" name="participants" native="true">
+    <item row="10" column="1" colspan="9">
+     <widget class="QWidget" name="buttonContainer" native="true">
       <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+       <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
         <horstretch>0</horstretch>
         <verstretch>0</verstretch>
        </sizepolicy>
       </property>
       <property name="minimumSize">
        <size>
-        <width>640</width>
-        <height>480</height>
-       </size>
-      </property>
-      <layout class="QGridLayout" name="participantLayout">
-       <property name="sizeConstraint">
-        <enum>QLayout::SetMaximumSize</enum>
-       </property>
-       <property name="spacing">
-        <number>0</number>
-       </property>
-      </layout>
-     </widget>
-    </item>
-    <item row="8" column="1" colspan="9">
-     <widget class="QWidget" name="buttonContainer" native="true">
-      <property name="minimumSize">
-       <size>
-        <width>0</width>
+        <width>480</width>
         <height>96</height>
        </size>
       </property>
@@ -86,7 +68,20 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="EndCallButton">
+        <spacer name="horizontalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QPushButton" name="settings">
          <property name="minimumSize">
           <size>
            <width>50</width>
@@ -94,10 +89,10 @@
           </size>
          </property>
          <property name="toolTip">
-          <string extracomment="End call"/>
+          <string extracomment="Settings"/>
          </property>
          <property name="text">
-          <string>End call</string>
+          <string>Settings</string>
          </property>
         </widget>
        </item>
@@ -131,7 +126,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="settings">
+        <widget class="QPushButton" name="EndCallButton">
          <property name="minimumSize">
           <size>
            <width>50</width>
@@ -139,12 +134,25 @@
           </size>
          </property>
          <property name="toolTip">
-          <string extracomment="Settings"/>
+          <string extracomment="End call"/>
          </property>
          <property name="text">
-          <string>Settings</string>
+          <string>End call</string>
          </property>
         </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer_3">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
        </item>
        <item>
         <widget class="VideoWidget" name="SelfView" native="true">
@@ -171,23 +179,71 @@
       </layout>
      </widget>
     </item>
-    <item row="8" column="0">
-     <spacer name="horizontalSpacer">
-      <property name="orientation">
-       <enum>Qt::Horizontal</enum>
+    <item row="0" column="1" rowspan="10" colspan="9">
+     <widget class="QWidget" name="participants" native="true">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
       </property>
-      <property name="sizeType">
-       <enum>QSizePolicy::Preferred</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
+      <property name="minimumSize">
        <size>
-        <width>200</width>
-        <height>10</height>
+        <width>320</width>
+        <height>240</height>
        </size>
       </property>
-     </spacer>
+      <layout class="QGridLayout" name="participantLayout">
+       <property name="sizeConstraint">
+        <enum>QLayout::SetMaximumSize</enum>
+       </property>
+       <property name="spacing">
+        <number>0</number>
+       </property>
+      </layout>
+     </widget>
     </item>
-    <item row="0" column="0" rowspan="8">
+    <item row="0" column="0">
+     <widget class="QWidget" name="TopLeftSpacerContainer" native="true">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>0</height>
+       </size>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>200</width>
+        <height>0</height>
+       </size>
+      </property>
+      <layout class="QHBoxLayout" name="horizontalLayout_2">
+       <item>
+        <spacer name="horizontalSpacer">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Expanding</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>200</width>
+           <height>13</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item row="1" column="0" rowspan="10">
      <widget class="QWidget" name="contactListContainer" native="true">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
@@ -198,7 +254,7 @@
       <property name="minimumSize">
        <size>
         <width>150</width>
-        <height>600</height>
+        <height>240</height>
        </size>
       </property>
       <property name="maximumSize">
@@ -208,6 +264,9 @@
        </size>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout">
+       <property name="topMargin">
+        <number>0</number>
+       </property>
        <item>
         <widget class="Line" name="line">
          <property name="orientation">
@@ -285,7 +344,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1280</width>
+     <width>960</width>
      <height>21</height>
     </rect>
    </property>
