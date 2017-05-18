@@ -419,6 +419,21 @@ bool CallNegotiation::compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info,
       return false;
     }
 
+    if(info->response != NORESPONSE)
+    {
+      qDebug() << "Got a response as a first messsage. Discarding.";
+      return false;
+    }
+
+    if(info->request == BYE // No call to end
+       || info->request == ACK // No INVITE response to confirm
+       || info->request == CANCEL // No request to be cancelled
+       || info->request == NOREQUEST)
+    {
+      qDebug() << "Got an unsuitable request as first request:" << info->request;
+      return false;
+    }
+
     if(info->cSeq != 1)
     {
       qDebug() << "Not our application based on first:" << info->cSeq;
