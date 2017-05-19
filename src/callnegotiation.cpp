@@ -45,23 +45,13 @@ void CallNegotiation::init(QString localName, QString localUsername)
 
 void CallNegotiation::uninit()
 {
-  for(Connection* con : connections_)
+  for (int connectionID = 1; connectionID <= connections_.size();
+       ++connectionID)
   {
-    if(con != 0)
-    {
-      qDebug() << "Destroying connection";
-      con->exit(0);
-      con->stopConnection();
-
-      while(con->isRunning())
-      {
-        qSleep(1);
-      }
-      delete con;
-    }
+    stopConnection(connectionID);
   }
-
   connections_.empty();
+  sessions_.clear();
 }
 
 std::shared_ptr<SDPMessageInfo> CallNegotiation::generateSDP(QString localAddress)
@@ -84,15 +74,17 @@ std::shared_ptr<SDPMessageInfo> CallNegotiation::generateSDP(QString localAddres
 
 void CallNegotiation::endCall(QString callID)
 {
+  sessionMutex_.lock();
   if(sessions_.find(callID) == sessions_.end())
   {
     qWarning() << "WARNING: Ending a call that doesn't exist";
     return;
   }
-  std::shared_ptr<SIPLink> link = sessions_[callID];
-  sendRequest(BYE, link);
 
-  uninitSession(link);
+  sendRequest(BYE, sessions_[callID]);
+
+  uninitSession(sessions_[callID]);
+  sessionMutex_.lock();
 }
 
 QList<QString> CallNegotiation::startCall(QList<Contact> addresses)
@@ -206,6 +198,7 @@ void CallNegotiation::connectionEstablished(quint32 connectionID)
 
 void CallNegotiation::messageComposition(messageID id, std::shared_ptr<SIPLink> link)
 {
+
   messageComposer_.to(id, link->contact.name, link->contact.username,
                         link->contact.contactAddress, link->remoteTag);
   messageComposer_.fromIP(id, localName_, localUsername_, link->localAddress, link->localTag);
@@ -221,7 +214,14 @@ void CallNegotiation::messageComposition(messageID id, std::shared_ptr<SIPLink> 
   qDebug() << SIPRequest;
 
   QByteArray message = SIPRequest.toUtf8();
-  connections_.at(link->connectionID - 1)->sendPacket(message);
+  if(connections_.at(link->connectionID - 1) != 0)
+  {
+    connections_.at(link->connectionID - 1)->sendPacket(message);
+  }
+  else
+  {
+    qWarning() << "WARNING: Tried to send message with destroyed connection!";
+  }
 }
 
 void CallNegotiation::sendRequest(RequestType request, std::shared_ptr<SIPLink> link)
@@ -292,14 +292,14 @@ void CallNegotiation::processMessage(QString header, QString content,
     if(info != 0)
     {
       Q_ASSERT(info->callID != "");
-
+      sessionMutex_.lock();
       if(compareSIPLinkInfo(info, connectionID))
       {
         newSIPLinkFromMessage(info, connectionID);
 
         if(info->request != NOREQUEST && info->response == NORESPONSE)
         {
-          processRequest(info, sdpInfo);
+          processRequest(info, sdpInfo, connectionID);
         }
         else if(info->request == NOREQUEST && info->response != NORESPONSE)
         {
@@ -315,6 +315,7 @@ void CallNegotiation::processMessage(QString header, QString content,
         // TODO: send 400
         qDebug() << "Problem detected in SIP message based on previous information!!";
       }
+      sessionMutex_.unlock();
     }
     else
     {
@@ -346,6 +347,7 @@ std::shared_ptr<CallNegotiation::SIPLink> CallNegotiation::newSIPLink()
 
   qDebug() << "Generated tag: " << link->localTag;
 
+  sessionMutex_.lock();
   if(sessions_.find(link->callID) == sessions_.end())
   {
     sessions_[link->callID] = link;
@@ -354,8 +356,10 @@ std::shared_ptr<CallNegotiation::SIPLink> CallNegotiation::newSIPLink()
   else
   {
     qWarning() << "WARNING: Collision: Call-ID already exists.";
+    sessionMutex_.unlock();
     return 0;
   }
+  sessionMutex_.unlock();
   return link;
 }
 
@@ -407,6 +411,21 @@ bool CallNegotiation::compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info,
                                          quint32 connectionID)
 {
   qDebug() << "Checking SIP message by comparing it to existing information.";
+
+  if(connectionID > connections_.size() || connections_.at(connectionID - 1) == 0)
+  {
+    qWarning() << "WARNING: Bad connection ID:"
+               << connectionID << "/" << connections_.size();
+    return false;
+  }
+
+  // TODO: This relies on outside information.
+  // Maybe keep the SIPLink until our BYE has been received?
+  if(info->localLocation == info->remoteLocation)
+  {
+    qDebug() << "It is us. Lets forget checking the message";
+    return true;
+  }
 
   // if we don't have previous information
   if(sessions_.find(info->callID) == sessions_.end())
@@ -504,7 +523,8 @@ bool CallNegotiation::compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info,
 }
 
 void CallNegotiation::processRequest(std::shared_ptr<SIPMessageInfo> info,
-                                     std::shared_ptr<SDPMessageInfo> peerSDP)
+                                     std::shared_ptr<SDPMessageInfo> peerSDP,
+                                     quint32 connectionID)
 {
   switch(info->request)
   {
@@ -565,7 +585,15 @@ void CallNegotiation::processRequest(std::shared_ptr<SIPMessageInfo> info,
   {
     qDebug() << "Found BYE";
 
+    sendResponse(OK_200, sessions_[info->callID]);
     emit callEnded(info->callID, info->replyAddress);
+
+    if(connectionID != sessions_[info->callID]->connectionID)
+    {
+      stopConnection(connectionID);
+    }
+    uninitSession(sessions_[info->callID]);
+
     break;
   }
   default:
@@ -608,6 +636,10 @@ void CallNegotiation::processResponse(std::shared_ptr<SIPMessageInfo> info,
         sendResponse(MALFORMED_400, sessions_[info->callID]);
       }
 
+    }
+    else if(sessions_[info->callID]->originalRequest == BYE)
+    {
+      qDebug() << "They accepted our BYE";
     }
     else if(sessions_[info->callID]->originalRequest != NOREQUEST)
     {
@@ -672,6 +704,7 @@ bool CallNegotiation::suitableSDP(std::shared_ptr<SDPMessageInfo> peerSDP)
 
 void CallNegotiation::endAllCalls()
 {
+  sessionMutex_.lock();
   for(auto session : sessions_)
   {
     sendRequest(BYE, session.second);
@@ -681,28 +714,29 @@ void CallNegotiation::endAllCalls()
   {
     uninitSession((*sessions_.begin()).second);
   }
+  sessionMutex_.unlock();
+}
+
+void CallNegotiation::stopConnection(quint32 connectionID)
+{
+  if(connectionID != 0
+     && connections_.at(connectionID - 1) != 0
+     && connections_.size() > connectionID - 1 )
+  {
+    connections_.at(connectionID - 1)->exit(0); // stops qthread
+    connections_.at(connectionID - 1)->stopConnection(); // exits run loop
+    while(connections_.at(connectionID - 1)->isRunning())
+    {
+      qSleep(5);
+    }
+    delete connections_.at(connectionID - 1);
+    connections_.at(connectionID - 1) = 0;
+  }
 }
 
 void CallNegotiation::uninitSession(std::shared_ptr<SIPLink> link)
 {
-  if(link->connectionID != 0 && sessions_.size() >= link->connectionID
-     && connections_.at(link->connectionID - 1) != 0)
-  {
-    connections_.at(link->connectionID - 1)->exit(0); // stops qthread
-    connections_.at(link->connectionID - 1)->stopConnection(); // exits run loop
-    while(connections_.at(link->connectionID - 1)->isRunning())
-    {
-      qSleep(5);
-    }
-    delete connections_.at(link->connectionID - 1);
-    connections_.at(link->connectionID - 1) = 0;
-    connections_.erase(connections_.begin() + link->connectionID - 1);
-  }
-  else
-  {
-    qWarning() << "WARNING: Something wrong with connection id for call we are ending";
-  }
-
+  stopConnection(link->connectionID);
   sessions_.erase(link->callID);
 }
 

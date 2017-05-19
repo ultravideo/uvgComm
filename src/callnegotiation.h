@@ -124,7 +124,8 @@ private:
   QList<QHostAddress> parseIPAddress(QString address);
 
   void processRequest(std::shared_ptr<SIPMessageInfo> info,
-                      std::shared_ptr<SDPMessageInfo> peerSDP);
+                      std::shared_ptr<SDPMessageInfo> peerSDP,
+                      quint32 connectionID);
 
   void processResponse(std::shared_ptr<SIPMessageInfo> info,
                        std::shared_ptr<SDPMessageInfo> peerSDP);
@@ -137,8 +138,10 @@ private:
   void sendRequest(RequestType request, std::shared_ptr<SIPLink> link);
   void sendResponse(ResponseType request, std::shared_ptr<SIPLink> link);
 
+  void stopConnection(quint32 connectionID);
   void uninitSession(std::shared_ptr<SIPLink> link);
 
+  QMutex sessionMutex_;
   // TODO: identify session with CallID AND tags, not just callID.
   // this enables splitting a call into multiple dialogs
   std::map<QString, std::shared_ptr<SIPLink>> sessions_;
