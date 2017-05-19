@@ -107,8 +107,9 @@ void CallWindow::recordChangedSettings()
 
 void CallWindow::addParticipant()
 {
-
-  if(portsOpen_ <= MAXOPENPORTS)
+  qDebug() << "User wants to add participant. Ports required:"
+           << portsOpen_ + PORTSPERPARTICIPANT << "/" << MAXOPENPORTS;
+  if(portsOpen_ <= MAXOPENPORTS - PORTSPERPARTICIPANT)
   {
     QString ip_str = ui_->ip->text();
 
@@ -137,6 +138,8 @@ void CallWindow::createParticipant(QString& callID, std::shared_ptr<SDPMessageIn
                                    const std::shared_ptr<SDPMessageInfo> localInfo)
 {
   qDebug() << "Adding participant to conference.";
+
+  portsOpen_ +=PORTSPERPARTICIPANT;
 
   QHostAddress address;
   address.setAddress(peerInfo->globalAddress);
@@ -249,9 +252,7 @@ void CallWindow::closeEvent(QCloseEvent *event)
 
 void CallWindow::incomingCall(QString callID, QString caller)
 {
-  portsOpen_ +=PORTSPERPARTICIPANT;
-
-  if(portsOpen_ > MAXOPENPORTS)
+  if(portsOpen_ <= MAXOPENPORTS - PORTSPERPARTICIPANT)
   {
     qWarning() << "WARNING: Ran out of ports:" << portsOpen_ << "/" << MAXOPENPORTS;
     rejectCall(); // TODO: send a not possible message instead of reject.
@@ -265,9 +266,7 @@ void CallWindow::incomingCall(QString callID, QString caller)
 
 void CallWindow::callOurselves(QString callID, std::shared_ptr<SDPMessageInfo> info)
 {
-  portsOpen_ +=PORTSPERPARTICIPANT;
-
-  if(portsOpen_ <= MAXOPENPORTS)
+  if(portsOpen_ <= MAXOPENPORTS - PORTSPERPARTICIPANT)
   {
     qDebug() << "Calling ourselves, how boring.";
     createParticipant(callID, info, info);
@@ -321,13 +320,18 @@ void CallWindow::endCall(QString callID, QString ip)
 {
   qDebug() << "Received the end of call message";
 
-  media_.removeParticipant(callID); // must be ended first because of the view.
+  // hack to go around the situation where we are ending our own call
+  if(portsOpen_ != 0)
+  {
+    media_.removeParticipant(callID); // must be ended first because of the view.
 
-  conferenceMutex_.lock();
-  conference_.removeCaller(callID);
-  conferenceMutex_.unlock();
+    conferenceMutex_.lock();
+    conference_.removeCaller(callID);
+    conferenceMutex_.unlock();
 
-  stats_->removeParticipant(ip);
+    stats_->removeParticipant(ip);
+    portsOpen_ -= PORTSPERPARTICIPANT;
+  }
 }
 
 void CallWindow::on_settings_clicked()
@@ -337,11 +341,11 @@ void CallWindow::on_settings_clicked()
 
 void CallWindow::endAllCalls()
 {
-
   callNeg_.endAllCalls();
 
   media_.endAllCalls();
   conferenceMutex_.lock();
   conference_.close();
   conferenceMutex_.unlock();
+  portsOpen_ = 0;
 }
