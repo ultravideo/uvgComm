@@ -252,10 +252,10 @@ void CallWindow::closeEvent(QCloseEvent *event)
 
 void CallWindow::incomingCall(QString callID, QString caller)
 {
-  if(portsOpen_ <= MAXOPENPORTS - PORTSPERPARTICIPANT)
+  if(portsOpen_ > MAXOPENPORTS - PORTSPERPARTICIPANT)
   {
     qWarning() << "WARNING: Ran out of ports:" << portsOpen_ << "/" << MAXOPENPORTS;
-    rejectCall(); // TODO: send a not possible message instead of reject.
+    //rejectCall(); // TODO: send a not possible message instead of reject.
     return;
   }
 
