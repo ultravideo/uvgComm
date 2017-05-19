@@ -81,6 +81,9 @@ void Settings::restoreSettings()
       missingSettings = true;
   }
 
+  if(list.size() < 11) // Remember to update this value
+    missingSettings = true;
+
   //get values from QSettings
   if(!missingSettings)
   {
