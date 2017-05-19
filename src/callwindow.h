@@ -53,6 +53,7 @@ public slots:
    void rejectCall();
 
    void endCall(QString callID, QString ip);
+   void endAllCalls();
 
 private slots:
    void on_settings_clicked();

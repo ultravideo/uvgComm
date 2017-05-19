@@ -397,8 +397,10 @@ void FilterGraph::destroyPeer(Peer* peer)
 {
   if(peer->audioFramedSource)
   {
+
     audioSend_.back()->removeOutConnection(peer->audioFramedSource);
     //peer->audioFramedSource is destroyed by RTPStreamer
+    peer->audioFramedSource->stop();
     peer->audioFramedSource = 0;
 
     if(AEC)
@@ -409,6 +411,7 @@ void FilterGraph::destroyPeer(Peer* peer)
   if(peer->videoFramedSource)
   {
     videoSend_.back()->removeOutConnection(peer->videoFramedSource);
+    peer->videoFramedSource->stop();
     //peer->videoFramedSource is destroyed by RTPStreamer
     peer->videoFramedSource = 0;
   }
@@ -416,11 +419,13 @@ void FilterGraph::destroyPeer(Peer* peer)
   if(peer->audioSink)
   {
     peer->audioSink->removeOutConnection(peer->audioReceive.front());
+    peer->audioSink->stop();
   }
 
   if(peer->videoSink)
   {
     peer->videoSink->removeOutConnection(peer->videoReceive.front());
+    peer->videoSink->stop();
   }
 
   destroyFilters(peer->audioReceive);
@@ -443,6 +448,7 @@ void FilterGraph::removeParticipant(int16_t id)
     destroyPeer(peers_.at(id));
   peers_.at(id) = NULL;
 
+    // destroy send graphs if this was the last peer
   bool peerPresent = false;
   for(auto peer : peers_)
   {

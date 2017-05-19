@@ -236,18 +236,13 @@ void CallWindow::cameraState()
 
 void CallWindow::closeEvent(QCloseEvent *event)
 {
-  callNeg_.endAllCalls();
+  endAllCalls();
 
   callNeg_.uninit();
-
   media_.uninit();
 
   stats_->hide();
   stats_->finished(0);
-
-  conferenceMutex_.lock();
-  conference_.close();
-  conferenceMutex_.unlock();
 
   QMainWindow::closeEvent(event);
 }
@@ -326,7 +321,7 @@ void CallWindow::endCall(QString callID, QString ip)
 {
   qDebug() << "Received the end of call message";
 
-  media_.endCall(callID); // must be ended first because of the view.
+  media_.removeParticipant(callID); // must be ended first because of the view.
 
   conferenceMutex_.lock();
   conference_.removeCaller(callID);
@@ -338,4 +333,15 @@ void CallWindow::endCall(QString callID, QString ip)
 void CallWindow::on_settings_clicked()
 {
     settingsView_.show();
+}
+
+void CallWindow::endAllCalls()
+{
+
+  callNeg_.endAllCalls();
+
+  media_.endAllCalls();
+  conferenceMutex_.lock();
+  conference_.close();
+  conferenceMutex_.unlock();
 }

@@ -49,7 +49,8 @@ public:
   void addParticipant(QString callID, in_addr ip, uint16_t sendAudioPort, uint16_t recvAudioPort,
                       uint16_t sendVideoPort, uint16_t recvVideoPort, VideoWidget* view);
 
-  void endCall(QString callID);
+  void removeParticipant(QString callID);
+  void endAllCalls();
 
   void streamToIP(in_addr ip, uint16_t port);
   void receiveFromIP(in_addr ip, uint16_t port, VideoWidget* view);

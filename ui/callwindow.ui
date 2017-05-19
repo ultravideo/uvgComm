@@ -394,7 +394,7 @@
    <sender>EndCallButton</sender>
    <signal>clicked()</signal>
    <receiver>CallWindow</receiver>
-   <slot>close()</slot>
+   <slot>endAllCalls()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>385</x>
@@ -508,5 +508,6 @@
   <slot>micState()</slot>
   <slot>cameraState()</slot>
   <slot>openStatistics()</slot>
+  <slot>endAllCalls()</slot>
  </slots>
 </ui>

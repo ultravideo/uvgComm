@@ -48,7 +48,7 @@ void MediaManager::addParticipant(QString callID, in_addr ip, uint16_t sendAudio
 
   if(ids_.find(callID) != ids_.end())
   {
-    endCall(callID);
+    removeParticipant(callID);
   }
   ids_[callID] = streamID;
 
@@ -78,15 +78,28 @@ void MediaManager::addParticipant(QString callID, in_addr ip, uint16_t sendAudio
   fg_->print();
 }
 
-void MediaManager::endCall(QString callID)
+void MediaManager::removeParticipant(QString callID)
 {
   if(ids_.find(callID) == ids_.end())
   {
     qWarning() << "WARNING: No callID found in mediamanager:" << callID;
+    return;
   }
   fg_->removeParticipant(ids_[callID]);
-
   streamer_->removePeer(ids_[callID]);
+  ids_.erase(callID);
+  qDebug() << "Participant " << callID << "removed.";
+}
+
+void MediaManager::endAllCalls()
+{
+  qDebug() << "Destroying" << ids_.size() << "calls.";
+  for(auto caller : ids_)
+  {
+    fg_->removeParticipant(caller.second);
+    streamer_->removePeer(caller.second);
+  }
+  ids_.clear();
 }
 
 bool MediaManager::toggleMic()

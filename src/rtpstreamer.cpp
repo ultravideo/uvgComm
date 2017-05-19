@@ -126,6 +126,7 @@ PeerID RTPStreamer::addPeer(in_addr ip)
 
     Peer* peer = new Peer;
 
+    peer->id = (PeerID)peers_.size();
     peer->ip = ip;
     peer->videoSender = 0;
     peer->videoReceiver = 0;
@@ -137,9 +138,9 @@ PeerID RTPStreamer::addPeer(in_addr ip)
     iniated_.unlock();
     destroyed_.unlock();
 
-    qDebug() << "RTP streamer: Peer #" << peers_.size() - 1 << "added";
+    qDebug() << "RTP streamer: Peer #" << peer->id << "added";
 
-    return (PeerID)peers_.size() - 1;
+    return peer->id;
   }
   qWarning() <<  "Trying to add peer while RTP was being destroyed.";
 
@@ -148,7 +149,7 @@ PeerID RTPStreamer::addPeer(in_addr ip)
 
 void RTPStreamer::removePeer(PeerID id)
 {
-  if(peers_.at(id) != 0)
+  if(peers_.at(id) <= 0)
   {
     if(peers_.at(id)->audioSender)
       destroySender(peers_.at(id)->audioSender);
@@ -163,6 +164,14 @@ void RTPStreamer::removePeer(PeerID id)
 
     peers_.at(id) = 0;
   }
+  else if(peers_.at(id) == 0)
+  {
+    qWarning() << "WARNING: Tried to destroy already freed peer:" << id;
+  }
+  else
+  {
+    qCritical() << "ERROR: Something really wierd in rtpstreamer removePeer";
+  }
 }
 
 void RTPStreamer::destroySender(Sender* sender)
@@ -173,21 +182,24 @@ void RTPStreamer::destroySender(Sender* sender)
     qDebug() << "Destroying sender:" << sender;
 
     // order of destruction is important!
+    if(sender->sink)
+    {
+      sender->sink->stopPlaying();
+    }
     if(sender->rtcp)
     {
       RTCPInstance::close(sender->rtcp);
     }
     if(sender->sink)
     {
-      sender->sink->stopPlaying();
-      RTPSink::close(sender->sink);
+      Medium::close(sender->sink);
     }
     if(sender->sourcefilter)
     {
-      FramedSource::close(sender->sourcefilter);
-      destroyConnection(sender->connection);
+      Medium::close(sender->sourcefilter);
     }
 
+    destroyConnection(sender->connection);
     delete sender;
   }
   else
@@ -201,23 +213,30 @@ void RTPStreamer::destroyReceiver(Receiver* recv)
     qDebug() << "Destroying receiver:" << recv;
 
     // order of destruction is important!
-    if(recv->rtcp)
-    {
-      RTCPInstance::close(recv->rtcp);
-    }
     if(recv->sink)
     {
       recv->sink->stopPlaying();
-      RTPSink::close(recv->sink);
+      recv->sink->stop();
     }
     if(recv->framedSource)
     {
       recv->framedSource->stopGettingFrames();
-      FramedSource::close(recv->framedSource);
+    }
+    if(recv->rtcp)
+    {
+      //RTCPInstance::close(recv->rtcp);
+    }
+    if(recv->sink)
+    {
+      //Medium::close(recv->sink);
+    }
+    if(recv->framedSource)
+    {
+      //Medium::close(recv->framedSource);
       recv->framedSource = NULL;
     }
 
-    destroyConnection(recv->connection);
+    //destroyConnection(recv->connection);
 
     delete recv;
   }
@@ -242,7 +261,6 @@ FramedSourceFilter* RTPStreamer::addSendAudio(PeerID peer, uint16_t port)
   peers_.at(peer)->audioSender = addSender(peers_.at(peer)->ip, port, RAWAUDIO);
   return peers_.at(peer)->audioSender->sourcefilter;
 }
-
 
 RTPSinkFilter* RTPStreamer::addReceiveVideo(PeerID peer, uint16_t port)
 {
