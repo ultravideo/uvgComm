@@ -3,6 +3,9 @@
 
 #include <QDebug>
 
+
+const int SETTINGCOUNT = 10;
+
 Settings::Settings(QWidget *parent) :
   QDialog(parent),
   ui(new Ui::Settings)
@@ -81,8 +84,11 @@ void Settings::restoreSettings()
       missingSettings = true;
   }
 
-  if(list.size() < 11) // Remember to update this value
+  if(list.size() < SETTINGCOUNT) // Remember to update this value
+  {
+    qDebug() << "Settings found:" << list.size() << "Expected:" << SETTINGCOUNT;
     missingSettings = true;
+  }
 
   //get values from QSettings
   if(!missingSettings)
