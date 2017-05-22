@@ -20,7 +20,7 @@ MediaManager::~MediaManager()
 
 void MediaManager::init()
 {
-
+  streamer_->init();
 }
 
 void MediaManager::uninit()
@@ -30,6 +30,7 @@ void MediaManager::uninit()
   fg_->uninit();
 
   streamer_->stop();
+  streamer_->uninit();
 }
 
 void MediaManager::startCall(VideoWidget *selfView, QSize resolution)

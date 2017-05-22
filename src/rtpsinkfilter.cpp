@@ -1,8 +1,12 @@
 #include "rtpsinkfilter.h"
 
+#include "common.h"
+
 #include <QDebug>
 
 #include <statisticsinterface.h>
+
+#include <RTPInterface.hh>
 
 const uint32_t BUFFER_SIZE = 65536;
 
@@ -16,7 +20,16 @@ RTPSinkFilter::RTPSinkFilter(QString id, StatisticsInterface *stats, UsageEnviro
 }
 
 RTPSinkFilter::~RTPSinkFilter()
+{}
+
+void RTPSinkFilter::uninit()
 {
+  stopPlaying();
+  while (fSource  != NULL)
+  {
+    qSleep(1);
+  }
+  qDebug() << "Deleting RTPSink:" << name_ << "type:" << type_;
   delete fReceiveBuffer;
   fReceiveBuffer = 0;
 }

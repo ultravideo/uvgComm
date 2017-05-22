@@ -11,6 +11,8 @@ public:
 
   virtual ~RTPSinkFilter();
 
+  void uninit();
+
   static void afterGettingFrame(void* clientData,
                                 unsigned frameSize,
                                 unsigned numTruncatedBytes,
@@ -21,7 +23,6 @@ public:
                          unsigned numTruncatedBytes,
                          struct timeval presentationTime,
                          unsigned durationInMicroseconds);
-
 protected:
   void process();
 

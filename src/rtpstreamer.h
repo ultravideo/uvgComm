@@ -22,6 +22,9 @@ class RTPStreamer : public QThread
 public:
   RTPStreamer(StatisticsInterface* stats);
 
+  void init();
+  void uninit();
+
   void run();
   void stop();
 
@@ -84,8 +87,6 @@ private:
     Receiver* videoReceiver; // video from this peer
   };
 
-  void initLiveMedia();
-
   void createConnection(Connection& connection,
                         struct in_addr ip, uint16_t portNum,
                         bool reservePorts);
@@ -98,9 +99,10 @@ private:
   void destroySender(Sender* sender);
   void destroyReceiver(Receiver* recv);
 
-  void uninit();
-
   std::vector<Peer*> peers_;
+
+  bool isIniated_;
+  bool isRunning_;
 
   QMutex iniated_; // locks for duration of creation
   QMutex destroyed_; // locks for duration of
@@ -116,5 +118,4 @@ private:
 
   static const unsigned int maxCNAMElen_ = 100;
   unsigned char CNAME_[maxCNAMElen_ + 1];
-
 };

@@ -6,6 +6,7 @@
 #include <UsageEnvironment.hh>
 #include <GroupsockHelper.hh>
 #include <BasicUsageEnvironment.hh>
+#include <common.h>
 
 #include <QtEndian>
 #include <QHostInfo>
@@ -15,6 +16,8 @@
 
 RTPStreamer::RTPStreamer(StatisticsInterface* stats):
   peers_(),
+  isIniated_(false),
+  isRunning_(false),
   iniated_(),
   destroyed_(),
   ttl_(255),
@@ -35,45 +38,66 @@ RTPStreamer::RTPStreamer(StatisticsInterface* stats):
   CNAME_[maxCNAMElen_] = '\0'; // just in case
 }
 
+ // QThread run function
 void RTPStreamer::run()
 {
+
   qDebug() << "Live555 TID:" << (uint64_t)currentThreadId();
 
-  // QThread run function
-  qDebug() << "Iniating RTP streamer";
-  iniated_.lock();
-  initLiveMedia();
-  iniated_.unlock();
-  qDebug() << "Iniating RTP streamer finished. "
-           << "RTP streamer starting eventloop";
-
+  if(!isIniated_)
+  {
+    init();
+  }
+  qDebug() << "RTP streamer starting eventloop";
   stopRTP_ = 0;
+
+
+  isRunning_ = true;
   // returns when stopRTP_ is set to 1
   env_->taskScheduler().doEventLoop(&stopRTP_);
-
+  isRunning_ = false;
   qDebug() << "RTP streamer eventloop stopped";
-
-  uninit();
-  destroyed_.unlock();
 }
 
 void RTPStreamer::stop()
 {
   qDebug() << "Stopping RTP Streamer";
-  destroyed_.lock();
   if(stopRTP_ == 0)
   {
     qDebug() << "RTP Streamer was running as expected";
     stopRTP_ = 1;
-    destroyed_.lock(); // unlocked at the end of run function
   }
-  destroyed_.unlock();
 }
+
+void RTPStreamer::init()
+{
+  iniated_.lock();
+  qDebug() << "Iniating live555";
+  QString sName(reinterpret_cast<char*>(CNAME_));
+  qDebug() << "Our hostname:" << sName;
+
+  scheduler_ = BasicTaskScheduler::createNew();
+  if(scheduler_)
+    env_ = BasicUsageEnvironment::createNew(*scheduler_);
+
+  OutPacketBuffer::maxSize = 65536;
+  isIniated_ = true;
+  iniated_.unlock();
+}
+
 
 void RTPStreamer::uninit()
 {
   Q_ASSERT(stopRTP_);
   qDebug() << "Uniniating RTP streamer";
+
+  if(isRunning_)
+  {
+    stop();
+  }
+
+  while(isRunning_)
+    qSleep(1);
 
   for(unsigned int i = 0; i < peers_.size(); ++i)
   {
@@ -93,22 +117,9 @@ void RTPStreamer::uninit()
     qDebug() << "Successful reclaim of usage environment";
   }
 
-
+  isIniated_ = false;
 
   qDebug() << "RTP streamer uninit completed";
-}
-
-void RTPStreamer::initLiveMedia()
-{
-  qDebug() << "Iniating live555";
-  QString sName(reinterpret_cast<char*>(CNAME_));
-  qDebug() << "Our hostname:" << sName;
-
-  scheduler_ = BasicTaskScheduler::createNew();
-  if(scheduler_)
-    env_ = BasicUsageEnvironment::createNew(*scheduler_);
-
-  OutPacketBuffer::maxSize = 65536;
 }
 
 PeerID RTPStreamer::addPeer(in_addr ip)
@@ -149,8 +160,13 @@ PeerID RTPStreamer::addPeer(in_addr ip)
 
 void RTPStreamer::removePeer(PeerID id)
 {
-  if(peers_.at(id) <= 0)
+  qDebug() << "Removing peer" << id << "from RTPStreamer";
+  if(peers_.at(id) != 0)
   {
+    stop();
+    while(isRunning_)
+      qSleep(1);
+
     if(peers_.at(id)->audioSender)
       destroySender(peers_.at(id)->audioSender);
     if(peers_.at(id)->videoSender)
@@ -161,16 +177,13 @@ void RTPStreamer::removePeer(PeerID id)
       destroyReceiver(peers_.at(id)->videoReceiver);
 
     delete peers_.at(id);
-
     peers_.at(id) = 0;
+    start();
   }
   else if(peers_.at(id) == 0)
   {
-    qWarning() << "WARNING: Tried to destroy already freed peer:" << id;
-  }
-  else
-  {
-    qCritical() << "ERROR: Something really wierd in rtpstreamer removePeer";
+    qWarning() << "WARNING: Tried to destroy already freed peer:" << id
+               << peers_.at(id);
   }
 }
 
@@ -213,30 +226,34 @@ void RTPStreamer::destroyReceiver(Receiver* recv)
     qDebug() << "Destroying receiver:" << recv;
 
     // order of destruction is important!
-    if(recv->sink)
-    {
-      recv->sink->stopPlaying();
-      recv->sink->stop();
-    }
     if(recv->framedSource)
     {
       recv->framedSource->stopGettingFrames();
-    }
-    if(recv->rtcp)
-    {
-      //RTCPInstance::close(recv->rtcp);
+      recv->framedSource->handleClosure();
     }
     if(recv->sink)
     {
-      //Medium::close(recv->sink);
+      recv->sink->stopPlaying();
+      recv->sink->emptyBuffer();
+      recv->sink->stop();
+    }
+
+    if(recv->rtcp)
+    {
+      RTCPInstance::close(recv->rtcp);
+    }
+    if(recv->sink)
+    {
+      recv->sink->uninit();
+      Medium::close(recv->sink);
     }
     if(recv->framedSource)
     {
-      //Medium::close(recv->framedSource);
+      Medium::close(recv->framedSource);
       recv->framedSource = NULL;
     }
 
-    //destroyConnection(recv->connection);
+    destroyConnection(recv->connection);
 
     delete recv;
   }
