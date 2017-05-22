@@ -175,4 +175,9 @@ void ConferenceView::close()
   {
     removeCaller((*activeCalls_.begin()).first);
   }
+
+  askingQueue_.clear();
+
+  row_ = 0;
+  column_ = 0;
 }
