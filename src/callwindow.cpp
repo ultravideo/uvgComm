@@ -46,8 +46,15 @@ CallWindow::~CallWindow()
   delete ui_;
 }
 
+void CallWindow::addContact()
+{
+  contacts_.addContact(ui_->peerName->text(), "anonymous", ui_->ip->text());
+}
+
 void CallWindow::startStream()
 {
+  contacts_.initializeList(ui_->contactList);
+
   Ui::CallerWidget *ui_widget = new Ui::CallerWidget;
   QWidget* holderWidget = new QWidget;
   ui_widget->setupUi(holderWidget);
@@ -81,7 +88,6 @@ void CallWindow::startStream()
 
   QObject::connect(&settingsView_, SIGNAL(settingsChanged()),
                    this, SLOT(recordChangedSettings()));
-
   conferenceMutex_.lock();
   conference_.init(ui_->participantLayout, ui_->participants, ui_widget, holderWidget);
   conferenceMutex_.unlock();
@@ -98,6 +104,8 @@ void CallWindow::startStream()
   qDebug() << "reso:" << resolution;
   media_.init();
   media_.startCall(ui_->SelfView, resolution);
+
+
 }
 
 void CallWindow::recordChangedSettings()
@@ -105,7 +113,7 @@ void CallWindow::recordChangedSettings()
   // TODO call update settings on everything?
 }
 
-void CallWindow::addParticipant()
+void CallWindow::addParticipant(QString name, QString username, QString ip)
 {
   qDebug() << "User wants to add participant. Ports required:"
            << portsOpen_ + PORTSPERPARTICIPANT << "/" << MAXOPENPORTS;

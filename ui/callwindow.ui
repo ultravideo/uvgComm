@@ -339,7 +339,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="addParticipant">
+        <widget class="QPushButton" name="addContact">
          <property name="minimumSize">
           <size>
            <width>0</width>
@@ -430,10 +430,10 @@
    </hints>
   </connection>
   <connection>
-   <sender>addParticipant</sender>
+   <sender>addContact</sender>
    <signal>clicked()</signal>
    <receiver>CallWindow</receiver>
-   <slot>addParticipant()</slot>
+   <slot>addContact()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>208</x>
@@ -527,10 +527,10 @@
   </connection>
  </connections>
  <slots>
-  <slot>addParticipant()</slot>
   <slot>micState()</slot>
   <slot>cameraState()</slot>
   <slot>openStatistics()</slot>
   <slot>endAllCalls()</slot>
+  <slot>addContact()</slot>
  </slots>
 </ui>

@@ -46,7 +46,8 @@ SOURCES +=\
     src/mediamanager.cpp \
     src/conferenceview.cpp \
     src/settings.cpp \
-    src/contactlist.cpp
+    src/contactlist.cpp \
+    src/contactlistitem.cpp
 
 HEADERS  += \
     src/callwindow.h \
@@ -81,7 +82,8 @@ HEADERS  += \
     src/mediamanager.h \
     src/conferenceview.h \
     src/settings.h \
-    src/contactlist.h
+    src/contactlist.h \
+    src/contactlistitem.h
 
 FORMS    += \
     ui/callwindow.ui \

@@ -4,13 +4,13 @@
 #include "callnegotiation.h"
 #include "conferenceview.h"
 #include "settings.h"
+#include "contactlist.h"
 
 #include <QMainWindow>
 
 // This class is the heart of this software. It is responsible for directing
 // all the other classes based on user input. It would be best if
 // this class did as little as possible apart from that
-
 
 class StatisticsWindow;
 
@@ -32,33 +32,35 @@ public:
   void closeEvent(QCloseEvent *event);
 
 public slots:
-   void addParticipant();
-   void openStatistics(); // Opens statistics window
+  void addContact();
 
-   void micState();
-   void cameraState();
+  void addParticipant(QString name, QString username, QString ip);
+  void openStatistics(); // Opens statistics window
 
-   void incomingCall(QString callID, QString caller);
-   void callOurselves(QString callID, std::shared_ptr<SDPMessageInfo> info);
+  void micState();
+  void cameraState();
 
-   void ringing(QString callID);
+  void incomingCall(QString callID, QString caller);
+  void callOurselves(QString callID, std::shared_ptr<SDPMessageInfo> info);
 
-   void ourCallRejected(QString callID);
+  void ringing(QString callID);
 
-   void callNegotiated(QString callID, std::shared_ptr<SDPMessageInfo> peerInfo,
-                       std::shared_ptr<SDPMessageInfo> localInfo);
+  void ourCallRejected(QString callID);
 
-   // UI messages
-   void acceptCall();
-   void rejectCall();
+  void callNegotiated(QString callID, std::shared_ptr<SDPMessageInfo> peerInfo,
+                     std::shared_ptr<SDPMessageInfo> localInfo);
 
-   void endCall(QString callID, QString ip);
-   void endAllCalls();
+  // UI messages
+  void acceptCall();
+  void rejectCall();
+
+  void endCall(QString callID, QString ip);
+  void endAllCalls();
 
 private slots:
-   void on_settings_clicked();
+  void on_settings_clicked();
 
-   void recordChangedSettings();
+  void recordChangedSettings();
 
 private:
 
@@ -73,6 +75,7 @@ private:
   QMutex conferenceMutex_;
   ConferenceView conference_;
 
+  ContactList contacts_;
   CallNegotiation callNeg_;
   MediaManager media_;
 
