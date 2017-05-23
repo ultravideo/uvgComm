@@ -246,7 +246,7 @@
     <item row="1" column="0" rowspan="10">
      <widget class="QWidget" name="contactListContainer" native="true">
       <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+       <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
         <horstretch>0</horstretch>
         <verstretch>0</verstretch>
        </sizepolicy>
@@ -268,24 +268,23 @@
         <number>0</number>
        </property>
        <item>
-        <widget class="Line" name="line">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
+        <widget class="QListWidget" name="contactList">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QListView" name="contactList">
-         <property name="maximumSize">
-          <size>
-           <width>300</width>
-           <height>16777215</height>
-          </size>
+        <widget class="QLabel" name="NameLabel">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
          </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_2">
          <property name="text">
           <string>Name</string>
          </property>
@@ -293,6 +292,12 @@
        </item>
        <item>
         <widget class="QLineEdit" name="peerName">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="maximumSize">
           <size>
            <width>200</width>
@@ -302,7 +307,13 @@
         </widget>
        </item>
        <item>
-        <widget class="QLabel" name="label">
+        <widget class="QLabel" name="addressLabel">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="text">
           <string>Address</string>
          </property>
@@ -310,6 +321,12 @@
        </item>
        <item>
         <widget class="QLineEdit" name="ip">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="maximumSize">
           <size>
            <width>200</width>
@@ -353,6 +370,7 @@
      <string>Menu</string>
     </property>
     <addaction name="actionAbout"/>
+    <addaction name="actionAdvanced_Settings"/>
     <addaction name="actionStatistics"/>
     <addaction name="actionClose"/>
    </widget>
@@ -377,6 +395,11 @@
   <action name="actionStatistics">
    <property name="text">
     <string>Statistics</string>
+   </property>
+  </action>
+  <action name="actionAdvanced_Settings">
+   <property name="text">
+    <string>Advanced Settings</string>
    </property>
   </action>
  </widget>
