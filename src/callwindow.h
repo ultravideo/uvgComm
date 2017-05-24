@@ -13,6 +13,8 @@
 // all the other classes based on user input. It would be best if
 // this class did as little as possible apart from that
 
+// TODO separate Call logic from UI ( split this class in two )
+
 class StatisticsWindow;
 
 namespace Ui {
@@ -23,20 +25,19 @@ class CallerWidget;
 class CallWindow : public QMainWindow, public ParticipantInterface
 {
   Q_OBJECT
-  Q_INTERFACES(ParticipantInterface)
 public:
   explicit CallWindow(QWidget *parent);
   ~CallWindow();
 
   void startStream();
 
+  virtual void callToParticipant(QString name, QString username, QString ip);
+  virtual void chatWithParticipant(QString name, QString username, QString ip);
+
   void closeEvent(QCloseEvent *event);
 
 public slots:
   void addContact();
-
-  void callToParticipant(QString name, QString username, QString ip);
-  void chatWithParticipant(QString name, QString username, QString ip);
 
   void openStatistics(); // Opens statistics window
 

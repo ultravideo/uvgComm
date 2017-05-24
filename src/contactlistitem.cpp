@@ -6,8 +6,10 @@ ContactListItem::ContactListItem(QString name, QString username, QString ip):
   ip_(ip)
 {}
 
-void ContactListItem::init()
+void ContactListItem::init(ParticipantInterface *interface)
 {
+  interface_ = interface;
+
   layout_ = new QHBoxLayout(this);
   setLayout(layout_);
 
@@ -22,16 +24,17 @@ void ContactListItem::init()
 
   QObject::connect(callButton_, SIGNAL(clicked()), this, SLOT(call()));
   QObject::connect(chatButton_, SIGNAL(clicked()), this, SLOT(chat()));
+
 }
 
 void ContactListItem::call()
 {
-  emit startCall(name_, username_, ip_);
+  interface_->callToParticipant(name_, username_, ip_);
 }
 
 void ContactListItem::chat()
 {
-  emit startChat(name_, username_, ip_);
+  interface_->chatWithParticipant(name_, username_, ip_);
 }
 
 QString ContactListItem::getName()

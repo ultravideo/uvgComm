@@ -48,12 +48,12 @@ CallWindow::~CallWindow()
 
 void CallWindow::addContact()
 {
-  contacts_.addContact(ui_->peerName->text(), "anonymous", ui_->ip->text());
+  contacts_.addContact(this, ui_->peerName->text(), "anonymous", ui_->ip->text());
 }
 
 void CallWindow::startStream()
 {
-  contacts_.initializeList(ui_->contactList);
+  contacts_.initializeList(ui_->contactList, this);
 
   Ui::CallerWidget *ui_widget = new Ui::CallerWidget;
   QWidget* holderWidget = new QWidget;
@@ -119,7 +119,7 @@ void CallWindow::callToParticipant(QString name, QString username, QString ip)
            << portsOpen_ + PORTSPERPARTICIPANT << "/" << MAXOPENPORTS;
   if(portsOpen_ <= MAXOPENPORTS - PORTSPERPARTICIPANT)
   {
-    QString ip_str = ui_->ip->text();
+    QString ip_str = ip;
 
     Contact con;
     con.contactAddress = ip_str;

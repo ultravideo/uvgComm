@@ -10,7 +10,7 @@ ContactList::ContactList()
 
 }
 
-void ContactList::initializeList(QListWidget* list)
+void ContactList::initializeList(QListWidget* list, ParticipantInterface* interface)
 {
   list_ = list;
 
@@ -24,12 +24,13 @@ void ContactList::initializeList(QListWidget* list)
     QString username = settings.value("userName").toString();
     QString address = settings.value("ip").toString();
 
-    addContactToList(name, username, address);
+    addContactToList(interface, name, username, address);
   }
   settings.endArray();
 }
 
-void ContactList::addContact(QString name, QString username, QString address)
+void ContactList::addContact(ParticipantInterface* interface,
+                             QString name, QString username, QString address)
 {
   Q_ASSERT(!address.isEmpty());
 
@@ -51,7 +52,7 @@ void ContactList::addContact(QString name, QString username, QString address)
   qDebug() << "Adding contact. Name:" << name << "username:" << username
          << "address:" << address;
 
-  addContactToList(name, username, address);
+  addContactToList(interface, name, username, address);
 
   // not the fastest, just the simplest way to do this
   writeListToSettings();
@@ -75,16 +76,17 @@ void ContactList::writeListToSettings()
   settings.endArray();
 }
 
-void ContactList::addContactToList(QString name, QString username, QString address)
+void ContactList::addContactToList(ParticipantInterface *interface,
+                                   QString name, QString username, QString address)
 {
   Q_ASSERT(list_);
 
   items_.push_back(new ContactListItem(name, username, address));
-  items_.back()->init();
+  items_.back()->init(interface);
 
   // set list_ as a parent
   QListWidgetItem* item = new QListWidgetItem(list_);
-
+  item->setSizeHint(QSize(150, 50));
   list_->addItem(item);
   list_->setItemWidget(item, items_.back());
 }

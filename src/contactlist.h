@@ -4,6 +4,7 @@
 #include <QObject>
 
 class ContactListItem;
+class ParticipantInterface;
 
 class ContactList : public QObject
 {
@@ -11,10 +12,11 @@ class ContactList : public QObject
 public:
   ContactList();
 
-  void initializeList(QListWidget *list);
+  void initializeList(QListWidget *list, ParticipantInterface* interface);
 
 public slots:
-  void addContact(QString name, QString username, QString address);
+  void addContact(ParticipantInterface* interface,
+                  QString name, QString username, QString address);
 
 signals:
   void callTo(QString name, QString username, QString address);
@@ -26,7 +28,8 @@ private:
   void writeListToSettings();
 
   // list must be initialized before this
-  void addContactToList(QString name, QString username, QString address);
+  void addContactToList(ParticipantInterface* interface,
+                        QString name, QString username, QString address);
 
   // return -1 if it does not exist, otherwise returns the index
   int doesAddressExist(QString address);

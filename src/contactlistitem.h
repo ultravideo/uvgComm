@@ -1,5 +1,7 @@
 #pragma once
 
+#include "participantinterface.h"
+
 #include <QPushButton>
 #include <QWidget>
 #include <QHBoxLayout>
@@ -16,11 +18,7 @@ public:
   QString getAddress();
 
   // construct the widget
-  void init();
-
-signals:
-  void startCall(QString name, QString username, QString ip);
-  void startChat(QString name, QString username, QString ip);
+  void init(ParticipantInterface* interface);
 
 public slots:
   void call();
@@ -37,4 +35,7 @@ private:
   QLabel* nameLabel_;
   QPushButton* callButton_;
   QPushButton* chatButton_;
+
+  ParticipantInterface* interface_;
+
 };
