@@ -113,7 +113,7 @@ void CallWindow::recordChangedSettings()
   // TODO call update settings on everything?
 }
 
-void CallWindow::addParticipant(QString name, QString username, QString ip)
+void CallWindow::callToParticipant(QString name, QString username, QString ip)
 {
   qDebug() << "User wants to add participant. Ports required:"
            << portsOpen_ + PORTSPERPARTICIPANT << "/" << MAXOPENPORTS;
@@ -140,6 +140,11 @@ void CallWindow::addParticipant(QString name, QString username, QString ip)
       conferenceMutex_.unlock();
     }
   }
+}
+
+void CallWindow::chatWithParticipant(QString name, QString username, QString ip)
+{
+  qDebug("Chat not implemented yet");
 }
 
 void CallWindow::createParticipant(QString& callID, std::shared_ptr<SDPMessageInfo> peerInfo,

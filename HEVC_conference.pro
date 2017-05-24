@@ -83,7 +83,8 @@ HEADERS  += \
     src/conferenceview.h \
     src/settings.h \
     src/contactlist.h \
-    src/contactlistitem.h
+    src/contactlistitem.h \
+    src/participantinterface.h
 
 FORMS    += \
     ui/callwindow.ui \

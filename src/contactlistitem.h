@@ -7,6 +7,7 @@
 
 class ContactListItem : public QWidget
 {
+  Q_OBJECT
 public:
   ContactListItem(QString name, QString username, QString ip);
 

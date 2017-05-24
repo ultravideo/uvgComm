@@ -5,6 +5,7 @@
 #include "conferenceview.h"
 #include "settings.h"
 #include "contactlist.h"
+#include "participantinterface.h"
 
 #include <QMainWindow>
 
@@ -19,10 +20,10 @@ class CallWindow;
 class CallerWidget;
 }
 
-class CallWindow : public QMainWindow
+class CallWindow : public QMainWindow, public ParticipantInterface
 {
   Q_OBJECT
-
+  Q_INTERFACES(ParticipantInterface)
 public:
   explicit CallWindow(QWidget *parent);
   ~CallWindow();
@@ -34,7 +35,9 @@ public:
 public slots:
   void addContact();
 
-  void addParticipant(QString name, QString username, QString ip);
+  void callToParticipant(QString name, QString username, QString ip);
+  void chatWithParticipant(QString name, QString username, QString ip);
+
   void openStatistics(); // Opens statistics window
 
   void micState();

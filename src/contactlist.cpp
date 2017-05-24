@@ -40,6 +40,9 @@ void ContactList::addContact(QString name, QString username, QString address)
   if(address == "")
     return;
 
+  qDebug() << "Adding contact. Name:" << name << "username:" << username
+         << "address:" << address;
+
   addContactToList(name, username, address);
 
   // not the fastest, just the simplest way to do this
@@ -48,6 +51,7 @@ void ContactList::addContact(QString name, QString username, QString address)
 
 void ContactList::writeListToSettings()
 {
+  qDebug() << "Writing contactList with" << items_.size() << "items to settings.";
   QSettings settings;
 
   settings.beginWriteArray("contacts");

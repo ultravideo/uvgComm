@@ -22,18 +22,16 @@ void ContactListItem::init()
 
   QObject::connect(callButton_, SIGNAL(clicked()), this, SLOT(call()));
   QObject::connect(chatButton_, SIGNAL(clicked()), this, SLOT(chat()));
-
-
 }
 
 void ContactListItem::call()
 {
-  //emit startCall(name_, username_, ip_);
+  emit startCall(name_, username_, ip_);
 }
 
 void ContactListItem::chat()
 {
-  //emit startChat(name_, username_, ip_);
+  emit startChat(name_, username_, ip_);
 }
 
 QString ContactListItem::getName()
