@@ -14,6 +14,9 @@ public:
 
   void initializeList(QListWidget *list, ParticipantInterface* interface);
 
+  void removeContact(QString address);
+  void sort();
+
 public slots:
   void addContact(ParticipantInterface* interface,
                   QString name, QString username, QString address);
@@ -30,6 +33,8 @@ private:
   // list must be initialized before this
   void addContactToList(ParticipantInterface* interface,
                         QString name, QString username, QString address);
+
+  void addToWidgetList(ContactListItem* cItem);
 
   // return -1 if it does not exist, otherwise returns the index
   int doesAddressExist(QString address);

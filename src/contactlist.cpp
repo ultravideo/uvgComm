@@ -12,7 +12,11 @@ ContactList::ContactList()
 
 void ContactList::initializeList(QListWidget* list, ParticipantInterface* interface)
 {
+  Q_ASSERT(list);
   list_ = list;
+
+  //list_->setContentsMargins(QMargins(0,0,0,0));
+  list_->setStyleSheet("border-width: 1px");
 
   QSettings settings;
 
@@ -84,11 +88,7 @@ void ContactList::addContactToList(ParticipantInterface *interface,
   items_.push_back(new ContactListItem(name, username, address));
   items_.back()->init(interface);
 
-  // set list_ as a parent
-  QListWidgetItem* item = new QListWidgetItem(list_);
-  item->setSizeHint(QSize(150, 50));
-  list_->addItem(item);
-  list_->setItemWidget(item, items_.back());
+  addToWidgetList(items_.back());
 }
 
 int ContactList::doesAddressExist(QString address)
@@ -99,4 +99,39 @@ int ContactList::doesAddressExist(QString address)
       return i;
   }
   return -1;
+}
+
+void ContactList::removeContact(QString address)
+{
+  //
+  int index = doesAddressExist(address);
+
+  Q_ASSERT(index != -1);
+
+  if(index == -1)
+  {
+    qWarning() << "WARNING: Tried to remove a nonexisting contact";
+  }
+
+  items_.erase(items_.begin() + index);
+
+  QSettings settings;
+  settings.remove("contacts");
+  writeListToSettings();
+
+  list_->clear();
+
+  for(auto item : items_)
+  {
+    addToWidgetList(item);
+  }
+}
+
+void ContactList::addToWidgetList(ContactListItem* cItem)
+{
+  // set list_ as a parent
+  QListWidgetItem* item = new QListWidgetItem(list_);
+  item->setSizeHint(QSize(150, 50));
+  list_->addItem(item);
+  list_->setItemWidget(item, cItem);
 }
