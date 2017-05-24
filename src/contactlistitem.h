@@ -10,6 +10,10 @@ class ContactListItem : public QWidget
 public:
   ContactListItem(QString name, QString username, QString ip);
 
+  QString getName();
+  QString getUserName();
+  QString getAddress();
+
   // construct the widget
   void init();
 

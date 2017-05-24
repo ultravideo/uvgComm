@@ -35,3 +35,16 @@ void ContactListItem::chat()
 {
   //emit startChat(name_, username_, ip_);
 }
+
+QString ContactListItem::getName()
+{
+  return name_;
+}
+QString ContactListItem::getUserName()
+{
+  return username_;
+}
+QString ContactListItem::getAddress()
+{
+  return ip_;
+}
