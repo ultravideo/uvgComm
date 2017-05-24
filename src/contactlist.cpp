@@ -40,6 +40,14 @@ void ContactList::addContact(QString name, QString username, QString address)
   if(address == "")
     return;
 
+  int index = doesAddressExist(address);
+
+  if(index != -1)
+  {
+    qDebug() << "User already exists at index:" << index;
+    return;
+  }
+
   qDebug() << "Adding contact. Name:" << name << "username:" << username
          << "address:" << address;
 
@@ -79,4 +87,14 @@ void ContactList::addContactToList(QString name, QString username, QString addre
 
   list_->addItem(item);
   list_->setItemWidget(item, items_.back());
+}
+
+int ContactList::doesAddressExist(QString address)
+{
+  for(unsigned int i = 0; i < items_.size(); ++i)
+  {
+    if(items_.at(i)->getAddress() == address)
+      return i;
+  }
+  return -1;
 }

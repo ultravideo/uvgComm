@@ -28,6 +28,9 @@ private:
   // list must be initialized before this
   void addContactToList(QString name, QString username, QString address);
 
+  // return -1 if it does not exist, otherwise returns the index
+  int doesAddressExist(QString address);
+
   QListWidget* list_;
 
   QList<ContactListItem*> items_;
