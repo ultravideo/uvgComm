@@ -20,6 +20,7 @@ class StatisticsWindow;
 namespace Ui {
 class CallWindow;
 class CallerWidget;
+class AboutWidget;
 }
 
 class CallWindow : public QMainWindow, public ParticipantInterface
@@ -63,6 +64,7 @@ public slots:
 
 private slots:
   void on_settings_clicked();
+  void on_about_clicked();
 
   void recordChangedSettings();
 
@@ -75,6 +77,9 @@ private:
 
   Settings settingsView_;
   StatisticsWindow *stats_;
+
+  Ui::AboutWidget* aboutWidget_;
+  QWidget about_;
 
   QMutex conferenceMutex_;
   ConferenceView conference_;

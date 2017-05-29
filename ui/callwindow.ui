@@ -525,6 +525,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionAbout</sender>
+   <signal>triggered()</signal>
+   <receiver>CallWindow</receiver>
+   <slot>on_about_clicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>479</x>
+     <y>319</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>479</x>
+     <y>319</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>micState()</slot>
@@ -532,5 +548,6 @@
   <slot>openStatistics()</slot>
   <slot>endAllCalls()</slot>
   <slot>addContact()</slot>
+  <slot>on_about_clicked()</slot>
  </slots>
 </ui>

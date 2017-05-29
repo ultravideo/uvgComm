@@ -338,7 +338,7 @@
        <item row="13" column="0" colspan="2">
         <widget class="QLabel" name="NOTE">
          <property name="text">
-          <string>NOTE: Changes currently take effect when the first call is started</string>
+          <string>NOTE: Call has to be ended for changes to take effect.</string>
          </property>
         </widget>
        </item>

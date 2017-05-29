@@ -2,6 +2,7 @@
 #include "ui_callwindow.h"
 
 #include "ui_callingwidget.h"
+#include "ui_about.h"
 
 #include "statisticswindow.h"
 
@@ -60,6 +61,10 @@ void CallWindow::startStream()
   ui_widget->setupUi(holderWidget);
   connect(ui_widget->AcceptButton, SIGNAL(clicked()), this, SLOT(acceptCall()));
   connect(ui_widget->DeclineButton, SIGNAL(clicked()), this, SLOT(rejectCall()));
+
+  aboutWidget_ = new Ui::AboutWidget;
+  aboutWidget_->setupUi(&about_);
+
 
   QObject::connect(&callNeg_, SIGNAL(incomingINVITE(QString, QString)),
                    this, SLOT(incomingCall(QString, QString)));
@@ -349,7 +354,12 @@ void CallWindow::endCall(QString callID, QString ip)
 
 void CallWindow::on_settings_clicked()
 {
-    settingsView_.show();
+  settingsView_.show();
+}
+
+void CallWindow::on_about_clicked()
+{
+  about_.show();
 }
 
 void CallWindow::endAllCalls()
