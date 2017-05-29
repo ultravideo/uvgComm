@@ -8,7 +8,7 @@
 
 #include <RTPInterface.hh>
 
-const uint32_t BUFFER_SIZE = 65536;
+const uint32_t BUFFER_SIZE = 10*65536;
 
 
 RTPSinkFilter::RTPSinkFilter(QString id, StatisticsInterface *stats, UsageEnvironment& env, DataType type):

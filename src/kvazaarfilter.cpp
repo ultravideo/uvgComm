@@ -56,10 +56,7 @@ int KvazaarFilter::init(QSize resolution,
   config_->framerate_num = framerate_num;
   config_->framerate_denom = framerate_denom;
 
-  // TODO Send parameter sets only when needed
-
-  //stats_->videoInfo(double(framerate_num/framerate_denom), resolution);
-
+  // TODO Send parameter sets only when needed maybe
   //config_->target_bitrate = target_bitrate;
 
   enc_ = api_->encoder_open(config_);
@@ -86,16 +83,16 @@ void KvazaarFilter::close()
 {
   if(api_)
   {
-    if(input_pic_)
-      api_->picture_free(input_pic_);
-
-    input_pic_ = NULL;
     api_->encoder_close(enc_);
     api_->config_destroy(config_);
     enc_ = NULL;
     config_ = NULL;
-  }
 
+    api_->picture_free(input_pic_);
+    input_pic_ = NULL;
+    api_ = NULL;
+  }
+  qDebug() << name_ << "Kvazaar closed";
 }
 
 void KvazaarFilter::process()
@@ -112,15 +109,14 @@ void KvazaarFilter::process()
     uint32_t len_out = 0;
 
     if(config_->width != input->width
-       || config_->height != input->height)
+       || config_->height != input->height
+       || config_->framerate_num != input->framerate)
     {
-      qCritical() << name_ << "unhandled change of resolution";
-      break;
-    }
+      qDebug() << name_ << "Input resolution differs";
 
-    if(config_->framerate_num != input->framerate)
-    {
-      qWarning() << name_ << "unhandled change of framerate";
+      close();
+      if(init(QSize(input->width, input->height), input->framerate, 1) != C_FAILURE)
+        qDebug() << name_ << "Kvazaar resolution change successful";
     }
 
     if(!input_pic_)
@@ -167,8 +163,8 @@ void KvazaarFilter::process()
       api_->chunk_free(data_out);
       api_->picture_free(recon_pic);
 
-      //qDebug() << "Frame encoded. Size:" << len_out
-      //         << " width:" << input->width << ", height:" << input->height;
+      qDebug() << "Frame encoded. Size:" << len_out
+               << " width:" << input->width << ", height:" << input->height;
 
       input->type = HEVCVIDEO;
       input->data_size = len_out;

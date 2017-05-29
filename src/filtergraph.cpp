@@ -17,6 +17,8 @@
 #include "opusdecoderfilter.h"
 #include "speexaecfilter.h"
 
+#include "dshowcamerafilter.h"
+
 #include "common.h"
 
 FilterGraph::FilterGraph(StatisticsInterface* stats):
@@ -54,7 +56,13 @@ void FilterGraph::initSelfView(VideoWidget *selfView, QSize resolution)
   }
 
   // Sending video graph
-  videoSend_.push_back(new CameraFilter("", stats_, resolution));
+  //videoSend_.push_back(new CameraFilter("", stats_, resolution));
+
+
+  DShowCameraFilter* dshow = new DShowCameraFilter("", stats_);
+  dshow->init();
+  videoSend_.push_back(dshow);
+  videoSend_.back()->start();
 
   if(selfView)
   {

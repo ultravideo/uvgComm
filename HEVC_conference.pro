@@ -47,7 +47,9 @@ SOURCES +=\
     src/conferenceview.cpp \
     src/settings.cpp \
     src/contactlist.cpp \
-    src/contactlistitem.cpp
+    src/contactlistitem.cpp \
+    src/dshowcamerafilter.cpp \
+    src/dshow/capture.cpp
 
 HEADERS  += \
     src/callwindow.h \
@@ -84,7 +86,11 @@ HEADERS  += \
     src/settings.h \
     src/contactlist.h \
     src/contactlistitem.h \
-    src/participantinterface.h
+    src/participantinterface.h \
+    src/dshowcamerafilter.h \
+    src/dshow/capture.h \
+    src/dshow/capture_interface.h \
+    src/dshow/SampleGrabber.h
 
 FORMS    += \
     ui/callwindow.ui \
@@ -116,6 +122,11 @@ win32: LIBS += -llibLibOpenHevcWrapper.dll
 win32: LIBS += -llivemedia.dll
 win32: LIBS += -llibspeexdsp.dll
 win32: LIBS += -lws2_32
+
+win32: LIBS += -lstrmiids
+win32: LIBS += -lole32
+win32: LIBS += -loleaut32
+
 
 INCLUDEPATH += $$PWD/../
 DEPENDPATH += $$PWD/../
