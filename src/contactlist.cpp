@@ -4,6 +4,7 @@
 
 #include <QSettings>
 #include <QDebug>
+#include <QMenu>
 
 ContactList::ContactList()
 {
@@ -15,8 +16,9 @@ void ContactList::initializeList(QListWidget* list, ParticipantInterface* interf
   Q_ASSERT(list);
   list_ = list;
 
-  //list_->setContentsMargins(QMargins(0,0,0,0));
-  list_->setStyleSheet("border-width: 1px");
+  list_->setContextMenuPolicy(Qt::CustomContextMenu);
+  connect(list, SIGNAL(customContextMenuRequested(QPoint)),
+          this, SLOT(showContextMenu(QPoint)));
 
   QSettings settings;
 
@@ -33,10 +35,39 @@ void ContactList::initializeList(QListWidget* list, ParticipantInterface* interf
   settings.endArray();
 }
 
+void ContactList::showContextMenu(const QPoint& pos)
+{
+  // Handle global position
+  QPoint globalPos = list_->mapToGlobal(pos);
+
+  // Create menu and insert some actions
+  QMenu myMenu;
+  myMenu.addAction("Delete", this, SLOT(deleteListItem()));
+
+  // Show context menu at handling position
+  myMenu.exec(globalPos);
+}
+
+void ContactList::deleteListItem()
+{
+  // If multiple selection is on, we need to erase all selected items
+  for (int i = 0; i < list_->selectedItems().size(); ++i) {
+    // Get curent item on selected row
+    int row = list_->currentRow();
+    QListWidgetItem *item = list_->takeItem(row);
+
+    removeContact(row);
+    delete item;
+  }
+}
+
 void ContactList::addContact(ParticipantInterface* interface,
                              QString name, QString username, QString address)
 {
   Q_ASSERT(!address.isEmpty());
+
+  qDebug() << "Adding contact. Name:" << name << "username:" << username
+         << "address:" << address << "index:" << items_.size();
 
   if(name == "")
     name = "Anonymous";
@@ -52,9 +83,6 @@ void ContactList::addContact(ParticipantInterface* interface,
     qDebug() << "User already exists at index:" << index;
     return;
   }
-
-  qDebug() << "Adding contact. Name:" << name << "username:" << username
-         << "address:" << address;
 
   addContactToList(interface, name, username, address);
 
@@ -101,16 +129,16 @@ int ContactList::doesAddressExist(QString address)
   return -1;
 }
 
-void ContactList::removeContact(QString address)
+void ContactList::removeContact(int index)
 {
-  //
-  int index = doesAddressExist(address);
+  Q_ASSERT(index != -1 && index < items_.size());
 
-  Q_ASSERT(index != -1);
+  qDebug() << "Removing contact from index:" << index;
 
-  if(index == -1)
+  if(index == -1 && index >= items_.size())
   {
     qWarning() << "WARNING: Tried to remove a nonexisting contact";
+    return;
   }
 
   items_.erase(items_.begin() + index);
@@ -118,13 +146,6 @@ void ContactList::removeContact(QString address)
   QSettings settings;
   settings.remove("contacts");
   writeListToSettings();
-
-  list_->clear();
-
-  for(auto item : items_)
-  {
-    addToWidgetList(item);
-  }
 }
 
 void ContactList::addToWidgetList(ContactListItem* cItem)

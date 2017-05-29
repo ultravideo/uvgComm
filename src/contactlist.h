@@ -14,18 +14,23 @@ public:
 
   void initializeList(QListWidget *list, ParticipantInterface* interface);
 
-  void removeContact(QString address);
   void sort();
 
 public slots:
+
+  void deleteListItem();
+
+  void showContextMenu(const QPoint& pos);
+
   void addContact(ParticipantInterface* interface,
                   QString name, QString username, QString address);
-
 signals:
   void callTo(QString name, QString username, QString address);
   void openChatWith(QString name, QString username, QString address);
 
 private:
+
+  void removeContact(int index);
 
   // called whenever a contact is added
   void writeListToSettings();
@@ -38,6 +43,12 @@ private:
 
   // return -1 if it does not exist, otherwise returns the index
   int doesAddressExist(QString address);
+
+  QAction *deleteAction_;
+  // = new QAction("Reset",this);
+  //ui->taskList->addAction(m_clientReset);
+  //QObject::connect(m_clientReset, SIGNAL(triggered()), this, SLOT(resetButton()));
+
 
   QListWidget* list_;
 
