@@ -354,7 +354,11 @@ void CallWindow::endCall(QString callID, QString ip)
 
 void CallWindow::on_settings_clicked()
 {
-  settingsView_.show();
+  settingsView_.showBasicSettings();
+}
+void CallWindow::on_advanced_settings_clicked()
+{
+  settingsView_.showAdvancedSettings();
 }
 
 void CallWindow::on_about_clicked()

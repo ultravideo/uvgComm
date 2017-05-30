@@ -64,6 +64,9 @@ public slots:
 
 private slots:
   void on_settings_clicked();
+
+  void on_advanced_settings_clicked();
+
   void on_about_clicked();
 
   void recordChangedSettings();

@@ -1,5 +1,6 @@
 #include "settings.h"
-#include "ui_settings.h"
+#include "ui_basicsettings.h"
+#include "ui_advancedsettings.h"
 
 #include <QDebug>
 
@@ -7,31 +8,38 @@
 const int SETTINGCOUNT = 10;
 
 Settings::Settings(QWidget *parent) :
-  QDialog(parent),
-  ui(new Ui::Settings)
+  QObject(parent),
+  basicUI_(new Ui::BasicSettings),
+  advancedUI_(new Ui::AdvancedSettings)
 {
-  ui->setupUi(this);
+  basicUI_->setupUi(&basicParent_);
+  advancedUI_->setupUi(&advancedParent_);
   restoreSettings(); // initializes the GUI with values
+
+  QObject::connect(basicUI_->ok, SIGNAL(clicked()), this, SLOT(on_ok_clicked()));
+  QObject::connect(basicUI_->cancel, SIGNAL(clicked()), this, SLOT(on_cancel_clicked()));
 }
 
 Settings::~Settings()
 {
-  delete ui;
+  // I think the UI:s are destroyed when parents are destroyed
+  //delete basicUI_;
+  //delete advancedUI_;
 }
 
 void Settings::on_ok_clicked()
 {
-  qDebug() << "Settings have been modified";
+  qDebug() << "Saving settings";
   saveSettings();
   emit settingsChanged();
-  hide();
+  basicParent_.hide();
 }
 
 void Settings::on_cancel_clicked()
 {
   qDebug() << "Getting settings from system";
   restoreSettings();
-  hide();
+  basicParent_.hide();
 }
 
 // temparily records the settings
@@ -39,32 +47,32 @@ void Settings::saveSettings()
 {
   // Local settings
   QSettings settings;
-  if(ui->name_edit->text() != "")
-    settings.setValue("local/Name",         ui->name_edit->text());
-  if(ui->username_edit->text() != "")
-    settings.setValue("local/Username",     ui->username_edit->text());
+  if(basicUI_->name_edit->text() != "")
+    settings.setValue("local/Name",         basicUI_->name_edit->text());
+  if(basicUI_->username_edit->text() != "")
+    settings.setValue("local/Username",     basicUI_->username_edit->text());
 
   // Video settings
-  settings.setValue("video/Preset",       ui->preset->currentText());
+  settings.setValue("video/Preset",       advancedUI_->preset->currentText());
 
-  if(ui->scaled_height->text() != "")
-    settings.setValue("video/ScaledHeight", ui->scaled_height->text());
-  if(ui->scaled_width->text() != "")
-    settings.setValue("video/ScaledWidth",  ui->scaled_width->text());
-  if(ui->threads->text() != "")
-    settings.setValue("video/Threads",      ui->threads->text());
+  if(advancedUI_->scaled_height->text() != "")
+    settings.setValue("video/ScaledHeight", advancedUI_->scaled_height->text());
+  if(advancedUI_->scaled_width->text() != "")
+    settings.setValue("video/ScaledWidth",  advancedUI_->scaled_width->text());
+  if(advancedUI_->threads->text() != "")
+    settings.setValue("video/Threads",      advancedUI_->threads->text());
 
-  settings.setValue("video/QP",             QString::number(ui->qp->value()));
+  settings.setValue("video/QP",             QString::number(advancedUI_->qp->value()));
 
-  if(ui->wpp->isChecked())
+  if(advancedUI_->wpp->isChecked())
     settings.setValue("video/WPP",          "1");
   else
     settings.setValue("video/WPP",          "0");
 
-  if(ui->vps->text() != "")
-    settings.setValue("video/VPS",          ui->vps->text());
-  if(ui->intra->text() != "")
-    settings.setValue("video/Intra",        ui->intra->text());
+  if(advancedUI_->vps->text() != "")
+    settings.setValue("video/VPS",          advancedUI_->vps->text());
+  if(advancedUI_->intra->text() != "")
+    settings.setValue("video/Intra",        advancedUI_->intra->text());
 
   //settings.sync(); // TODO is this needed?
 }
@@ -94,23 +102,23 @@ void Settings::restoreSettings()
   if(!missingSettings)
   {
     qDebug() << "Restoring previous settings";
-    ui->name_edit->setText      (settings.value("local/Name").toString());
-    ui->username_edit->setText  (settings.value("local/Username").toString());
+    basicUI_->name_edit->setText      (settings.value("local/Name").toString());
+    basicUI_->username_edit->setText  (settings.value("local/Username").toString());
 
-    int index = ui->preset->findText(settings.value("video/Preset").toString());
+    int index = advancedUI_->preset->findText(settings.value("video/Preset").toString());
     if(index != -1)
-      ui->preset->setCurrentIndex(index);
-    ui->scaled_height->setText  (settings.value("video/ScaledHeight").toString());
-    ui->scaled_width->setText   (settings.value("video/ScaledWidth").toString());
-    ui->threads->setText        (settings.value("video/Threads").toString());
-    ui->qp->setValue            (settings.value("video/QP").toInt());
+      advancedUI_->preset->setCurrentIndex(index);
+    advancedUI_->scaled_height->setText  (settings.value("video/ScaledHeight").toString());
+    advancedUI_->scaled_width->setText   (settings.value("video/ScaledWidth").toString());
+    advancedUI_->threads->setText        (settings.value("video/Threads").toString());
+    advancedUI_->qp->setValue            (settings.value("video/QP").toInt());
 
     if(settings.value("video/WPP").toString() == "1")
-      ui->wpp->setChecked(true);
+      advancedUI_->wpp->setChecked(true);
     else if(settings.value("video/WPP").toString() == "0")
-      ui->wpp->setChecked(false);
-    ui->vps->setText            (settings.value("video/VPS").toString());
-    ui->intra->setText          (settings.value("video/Intra").toString());
+      advancedUI_->wpp->setChecked(false);
+    advancedUI_->vps->setText            (settings.value("video/VPS").toString());
+    advancedUI_->intra->setText          (settings.value("video/Intra").toString());
   }
   else
   {
@@ -118,4 +126,14 @@ void Settings::restoreSettings()
     qDebug() << "Resettings settings to defaults";
     saveSettings();
   }
+}
+
+void Settings::showBasicSettings()
+{
+  basicParent_.show();
+}
+
+void Settings::showAdvancedSettings()
+{
+  advancedParent_.show();
 }

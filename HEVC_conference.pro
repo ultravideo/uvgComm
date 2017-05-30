@@ -97,7 +97,8 @@ FORMS    += \
     ui/statisticswindow.ui \
     ui/callingwidget.ui \
     ui/about.ui \
-    ui/advancedSettings.ui
+    ui/advancedSettings.ui \
+    ui/basicSettings.ui
 
 
 QT+=multimedia
