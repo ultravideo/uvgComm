@@ -8,7 +8,7 @@ class BasicSettings;
 class AdvancedSettings;
 }
 
-class Settings : public QObject// : public QDialog
+class Settings : public QObject
 {
   Q_OBJECT
 

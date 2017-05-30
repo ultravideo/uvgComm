@@ -18,6 +18,10 @@ Settings::Settings(QWidget *parent) :
 
   QObject::connect(basicUI_->ok, SIGNAL(clicked()), this, SLOT(on_ok_clicked()));
   QObject::connect(basicUI_->cancel, SIGNAL(clicked()), this, SLOT(on_cancel_clicked()));
+
+  QObject::connect(advancedUI_->ok, SIGNAL(clicked()), this, SLOT(on_ok_clicked()));
+  QObject::connect(advancedUI_->cancel, SIGNAL(clicked()), this, SLOT(on_cancel_clicked()));
+
 }
 
 Settings::~Settings()
@@ -33,6 +37,7 @@ void Settings::on_ok_clicked()
   saveSettings();
   emit settingsChanged();
   basicParent_.hide();
+  advancedParent_.hide();
 }
 
 void Settings::on_cancel_clicked()
@@ -40,6 +45,7 @@ void Settings::on_cancel_clicked()
   qDebug() << "Getting settings from system";
   restoreSettings();
   basicParent_.hide();
+  advancedParent_.hide();
 }
 
 // temparily records the settings
