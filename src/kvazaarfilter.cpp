@@ -163,8 +163,8 @@ void KvazaarFilter::process()
       api_->chunk_free(data_out);
       api_->picture_free(recon_pic);
 
-      qDebug() << "Frame encoded. Size:" << len_out
-               << " width:" << input->width << ", height:" << input->height;
+      //qDebug() << "Frame encoded. Size:" << len_out
+      //         << " width:" << input->width << ", height:" << input->height;
 
       input->type = HEVCVIDEO;
       input->data_size = len_out;

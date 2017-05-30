@@ -55,14 +55,18 @@ void FilterGraph::initSelfView(VideoWidget *selfView, QSize resolution)
     destroyFilters(videoSend_);
   }
 
+  bool dshow = true;
+
   // Sending video graph
-  //videoSend_.push_back(new CameraFilter("", stats_, resolution));
-
-
-  DShowCameraFilter* dshow = new DShowCameraFilter("", stats_);
-  dshow->init();
-  videoSend_.push_back(dshow);
-  videoSend_.back()->start();
+  if(dshow)
+  {
+    DShowCameraFilter* dshow = new DShowCameraFilter("", stats_);
+    dshow->init();
+    videoSend_.push_back(dshow);
+    videoSend_.back()->start();
+  }
+  else
+    videoSend_.push_back(new CameraFilter("", stats_, resolution));
 
   if(selfView)
   {
