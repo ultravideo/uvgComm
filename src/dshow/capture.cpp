@@ -8,6 +8,7 @@
 #include "SampleGrabber.h"
 #include "capture.h"
 
+// mingw: g++ capture.cpp main_cli.cpp -lm -lstrmiids -lole32 -loleaut32
 #pragma comment(lib,"Strmiids.lib") 
 
 #ifdef __CRT_UUID_DECL
@@ -40,7 +41,7 @@ public:
 
   //ISampleGrabberCB
   STDMETHODIMP SampleCB(double SampleTime, IMediaSample *pSample);
-  STDMETHODIMP BufferCB(double SampleTime, BYTE *pBuffer, long BufferLen) { return S_OK; }
+  STDMETHODIMP BufferCB(double SampleTime, BYTE *pBuffer, long BufferLen) { std::cerr << "BufferCB" << std::endl; return S_OK; }
 };
 
 STDMETHODIMP CallbackObject::SampleCB(double SampleTime, IMediaSample *pSample)
@@ -252,13 +253,14 @@ int8_t DShow_Capture::queryCapabilities()
         double fps = 10000000.0 / pVih->AvgTimePerFrame;
         DWORD comp = pVih->bmiHeader.biCompression;
         char name[5];
-        name[4] = '\0';
-        memcpy(name, (void*)&comp, 4);
+
 
         deviceCapability cap;
         cap.width = pVih->bmiHeader.biWidth;
         cap.height = pVih->bmiHeader.biHeight;
         cap.fps = fps;
+        cap.format[4] = '\0';
+        memcpy(cap.format, (void*)&comp, 4);
         device_capabilities.push_back(cap);
       }
     }
@@ -322,7 +324,7 @@ int8_t DShow_Capture::startCapture()
   }
   pGrabberF->QueryInterface(IID_PPV_ARGS(&pGrabber));
 
-  // Output YUV 4:2:0
+  // Output RGB32  
   AM_MEDIA_TYPE mt;
   ZeroMemory(&mt, sizeof(mt));
   mt.majortype = MEDIATYPE_Video;
@@ -330,7 +332,7 @@ int8_t DShow_Capture::startCapture()
   if (!SUCCEEDED(pGrabber->SetMediaType(&mt))) {
     return FALSE;
   }
-
+  
   pGrabber->SetOneShot(FALSE);
   pGrabber->SetBufferSamples(TRUE);
 
@@ -338,16 +340,14 @@ int8_t DShow_Capture::startCapture()
     IID_PPV_ARGS(&pNullF)))) {
     return FALSE;
   }
-
-
+  
   // Connect filters to graph
   pGraph->AddFilter(inputFilter, L"Input Filter");
   pGraph->AddFilter(pGrabberF, L"Sample Grabber");
   pGraph->AddFilter(pNullF, L"Null Filter");
 
   //pGraph->Connect()
-  pBuild->RenderStream(NULL, NULL, inputFilter, NULL, pGrabberF);
-  pBuild->RenderStream(NULL, NULL, pGrabberF, NULL, pNullF);
+  pBuild->RenderStream(&PIN_CATEGORY_CAPTURE, &MEDIATYPE_Video, inputFilter, pGrabberF, pNullF);
 
   pGrabber->SetCallback(new CallbackObject(), 0);
 
@@ -434,7 +434,6 @@ extern "C" int8_t dshow_getDeviceCapabilities(deviceCapability** list, int8_t *c
 
 extern "C" int8_t dshow_setDeviceCapability(int capability)
 {
-  //return capture.setCapability(capability);
   capture.selectedCapability = capability;
   return TRUE;
 }

@@ -5,7 +5,8 @@ struct deviceCapability {
   int width;
   int height;
   double fps;
-  char reserved[100];
+  char format[5]; // Null-terminated string
+  char reserved[95];
 };
 
 
