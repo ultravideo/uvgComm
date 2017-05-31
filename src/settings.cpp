@@ -67,6 +67,7 @@ void Settings::saveBasicSettings()
   {
     settings.setValue("video/Device",        basicUI_->videoDevice->currentText());
     settings.setValue("video/DeviceID",      currentIndex);
+    qDebug() << "Recording following device:" << basicUI_->videoDevice->currentText();
   }
 }
 
@@ -109,23 +110,20 @@ void Settings::restoreBasicSettings()
     qDebug() << "Restoring previous Basic settings";
     basicUI_->name_edit->setText      (settings.value("local/Name").toString());
     basicUI_->username_edit->setText  (settings.value("local/Username").toString());
-    if(basicUI_->videoDevice->currentIndex() != -1)
-      settings.setValue("video/Device",        basicUI_->videoDevice->currentText());
 
     int deviceIndex = basicUI_->videoDevice->findText(settings.value("video/Device").toString());
-    int deviceID = settings.value("video/Device").toInt();
-    if(deviceIndex != -1)
+    int deviceID = settings.value("video/DeviceID").toInt();
+
+    qDebug() << "deviceIndex:" << deviceIndex << "deviceID:" << deviceID;
+    qDebug() << "deviceName:" << settings.value("video/Device").toString();
+    if(deviceIndex != -1 && basicUI_->videoDevice->count() != 0)
     {
       // if we have multiple devices with same name we use id
       if(deviceID != deviceIndex
          && basicUI_->videoDevice->itemText(deviceID) == settings.value("video/Device").toString())
-      {
         basicUI_->videoDevice->setCurrentIndex(deviceID);
-      }
       else
-      {
         basicUI_->videoDevice->setCurrentIndex(deviceIndex);
-      }
     }
     else
       basicUI_->videoDevice->setCurrentIndex(0);
@@ -176,11 +174,12 @@ void Settings::showBasicSettings()
 {
   basicUI_->videoDevice->clear();
   QStringList videoDevices = getVideoDevices();
-  basicParent_.show();
   for(unsigned int i = 0; i < videoDevices.size(); ++i)
   {
     basicUI_->videoDevice->addItem( videoDevices[i]);
   }
+  restoreBasicSettings();
+  basicParent_.show();
 }
 
 void Settings::showAdvancedSettings()
