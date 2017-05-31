@@ -9,7 +9,7 @@
 
 DShowCameraFilter::DShowCameraFilter(QString id, StatisticsInterface *stats)
   :Filter(id, "Camera", stats, false, true),
-    settingsID_(35)
+    settingsID_(0)
 {}
 
 void DShowCameraFilter::init()

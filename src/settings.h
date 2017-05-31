@@ -30,18 +30,26 @@ private:
 
   // checks if user settings make sense
   // TODO: display errors to user on ok click
-  bool checkGUISettings();
+  bool checkUIBasicSettings();
+  bool checkUIAdvancedSettings();
+  bool checkSavedSettings();
 
   // QSettings -> GUI
-  void restoreSettings();
+  void restoreBasicSettings();
+  void restoreAdvancedSettings();
 
   // GUI -> QSettings
   // permanently records GUI settings to system
-  void saveSettings();
+  void saveBasicSettings();
+  void saveAdvancedSettings();
 
   QStringList getVideoDevices();
   QStringList getAudioDevices();
   QStringList getVideoCapabilities(QString device);
+
+  void resetFaultySettings();
+
+  int getSettingsDeviceID();
 
   QDialog basicParent_;
   Ui::BasicSettings *basicUI_;

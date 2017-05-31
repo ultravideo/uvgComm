@@ -16,7 +16,10 @@ Settings::Settings(QWidget *parent) :
 {
   basicUI_->setupUi(&basicParent_);
   advancedUI_->setupUi(&advancedParent_);
-  restoreSettings(); // initializes the GUI with values
+
+  // initializes the GUI with values
+  restoreBasicSettings();
+  restoreAdvancedSettings();
 
   QObject::connect(basicUI_->ok, SIGNAL(clicked()), this, SLOT(on_ok_clicked()));
   QObject::connect(basicUI_->cancel, SIGNAL(clicked()), this, SLOT(on_cancel_clicked()));
@@ -34,7 +37,8 @@ Settings::~Settings()
 void Settings::on_ok_clicked()
 {
   qDebug() << "Saving settings";
-  saveSettings();
+  saveBasicSettings();// because I am lazy record both
+  saveAdvancedSettings();
   emit settingsChanged();
   basicParent_.hide();
   advancedParent_.hide();
@@ -43,13 +47,14 @@ void Settings::on_ok_clicked()
 void Settings::on_cancel_clicked()
 {
   qDebug() << "Getting settings from system";
-  restoreSettings();
+  restoreBasicSettings(); // because I am lazy restore both
+  restoreAdvancedSettings();
   basicParent_.hide();
   advancedParent_.hide();
 }
 
 // records the settings
-void Settings::saveSettings()
+void Settings::saveBasicSettings()
 {
   // Local settings
   QSettings settings;
@@ -63,6 +68,11 @@ void Settings::saveSettings()
     settings.setValue("video/Device",        basicUI_->videoDevice->currentText());
     settings.setValue("video/DeviceID",      currentIndex);
   }
+}
+
+void Settings::saveAdvancedSettings()
+{
+  QSettings settings;
 
   // Video settings
   settings.setValue("video/Preset",       advancedUI_->preset->currentText());
@@ -90,30 +100,13 @@ void Settings::saveSettings()
 }
 
 // restores temporarily recorded settings
-void Settings::restoreSettings()
+void Settings::restoreBasicSettings()
 {
-  QSettings settings;
-  bool missingSettings = false;
-
-  QStringList list = settings.allKeys();
-
-  for(auto key : list)
-  {
-    qDebug() << "Found settings key:" << key << "value:" << settings.value(key).toString();
-    if(!missingSettings && settings.value(key).isNull())
-      missingSettings = true;
-  }
-
-  if(list.size() < SETTINGCOUNT) // Remember to update this value
-  {
-    qDebug() << "Settings found:" << list.size() << "Expected:" << SETTINGCOUNT;
-    missingSettings = true;
-  }
-
   //get values from QSettings
-  if(!missingSettings)
+  if(checkSavedSettings())
   {
-    qDebug() << "Restoring previous settings";
+    QSettings settings;
+    qDebug() << "Restoring previous Basic settings";
     basicUI_->name_edit->setText      (settings.value("local/Name").toString());
     basicUI_->username_edit->setText  (settings.value("local/Username").toString());
     if(basicUI_->videoDevice->currentIndex() != -1)
@@ -136,7 +129,19 @@ void Settings::restoreSettings()
     }
     else
       basicUI_->videoDevice->setCurrentIndex(0);
+  }
+  else
+  {
+    resetFaultySettings();
+  }
+}
 
+void Settings::restoreAdvancedSettings()
+{
+  if(checkSavedSettings())
+  {
+    qDebug() << "Restoring previous Advanced settings";
+    QSettings settings;
     int index = advancedUI_->preset->findText(settings.value("video/Preset").toString());
     if(index != -1)
       advancedUI_->preset->setCurrentIndex(index);
@@ -154,11 +159,18 @@ void Settings::restoreSettings()
   }
   else
   {
-    // Some settings have not been initialized (due to new settings). Use defaults in GUI
-    qDebug() << "Resettings settings to defaults";
-    saveSettings();
+    resetFaultySettings();
   }
 }
+
+void Settings::resetFaultySettings()
+{
+  qDebug() << "Could not restore advanced settings because they were corrupted";
+  // record GUI settings in hope that they are correct ( is case by default )
+  saveBasicSettings();
+  saveAdvancedSettings();
+}
+
 
 void Settings::showBasicSettings()
 {
@@ -199,3 +211,42 @@ QStringList Settings::getAudioDevices()
 
 QStringList Settings::getVideoCapabilities(QString device)
 {}
+
+int Settings::getSettingsDeviceID()
+{
+
+}
+
+bool Settings::checkUIBasicSettings()
+{
+  return true;
+}
+bool Settings::checkUIAdvancedSettings()
+{
+  return true;
+}
+
+bool Settings::checkSavedSettings()
+{
+  QSettings settings;
+  bool missingSettings = false;
+
+  QStringList list = settings.allKeys();
+
+  for(auto key : list)
+  {
+    if(!missingSettings && settings.value(key).isNull())
+    {
+      qDebug() << "MISSING SETTING FOR:" << key;
+      missingSettings = true;
+    }
+  }
+
+  if(list.size() < SETTINGCOUNT) // Remember to update this value
+  {
+    qDebug() << "Settings found:" << list.size() << "Expected:" << SETTINGCOUNT;
+    missingSettings = true;
+  }
+
+  return !missingSettings;
+}
