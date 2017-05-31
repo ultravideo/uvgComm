@@ -1,5 +1,4 @@
 #pragma once
-
 #include <QDialog>
 #include <QSettings>
 
@@ -28,10 +27,9 @@ public slots:
   void on_cancel_clicked();
 
 private:
-  QDialog basicParent_;
-  Ui::BasicSettings *basicUI_;
-  QDialog advancedParent_;
-  Ui::AdvancedSettings *advancedUI_;
+
+  // checks if user settings make sense
+  // TODO: display errors to user on ok click
   bool checkGUISettings();
 
   // QSettings -> GUI
@@ -40,4 +38,13 @@ private:
   // GUI -> QSettings
   // permanently records GUI settings to system
   void saveSettings();
+
+  QStringList getVideoDevices();
+  QStringList getAudioDevices();
+  QStringList getVideoCapabilities(QString device);
+
+  QDialog basicParent_;
+  Ui::BasicSettings *basicUI_;
+  QDialog advancedParent_;
+  Ui::AdvancedSettings *advancedUI_;
 };

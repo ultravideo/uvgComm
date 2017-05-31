@@ -2,6 +2,8 @@
 #include "ui_basicsettings.h"
 #include "ui_advancedsettings.h"
 
+#include "dshow/capture_interface.h"
+
 #include <QDebug>
 
 
@@ -18,10 +20,8 @@ Settings::Settings(QWidget *parent) :
 
   QObject::connect(basicUI_->ok, SIGNAL(clicked()), this, SLOT(on_ok_clicked()));
   QObject::connect(basicUI_->cancel, SIGNAL(clicked()), this, SLOT(on_cancel_clicked()));
-
   QObject::connect(advancedUI_->ok, SIGNAL(clicked()), this, SLOT(on_ok_clicked()));
   QObject::connect(advancedUI_->cancel, SIGNAL(clicked()), this, SLOT(on_cancel_clicked()));
-
 }
 
 Settings::~Settings()
@@ -48,7 +48,7 @@ void Settings::on_cancel_clicked()
   advancedParent_.hide();
 }
 
-// temparily records the settings
+// records the settings
 void Settings::saveSettings()
 {
   // Local settings
@@ -57,6 +57,12 @@ void Settings::saveSettings()
     settings.setValue("local/Name",         basicUI_->name_edit->text());
   if(basicUI_->username_edit->text() != "")
     settings.setValue("local/Username",     basicUI_->username_edit->text());
+  int currentIndex = basicUI_->videoDevice->currentIndex();
+  if( currentIndex != -1)
+  {
+    settings.setValue("video/Device",        basicUI_->videoDevice->currentText());
+    settings.setValue("video/DeviceID",      currentIndex);
+  }
 
   // Video settings
   settings.setValue("video/Preset",       advancedUI_->preset->currentText());
@@ -110,6 +116,26 @@ void Settings::restoreSettings()
     qDebug() << "Restoring previous settings";
     basicUI_->name_edit->setText      (settings.value("local/Name").toString());
     basicUI_->username_edit->setText  (settings.value("local/Username").toString());
+    if(basicUI_->videoDevice->currentIndex() != -1)
+      settings.setValue("video/Device",        basicUI_->videoDevice->currentText());
+
+    int deviceIndex = basicUI_->videoDevice->findText(settings.value("video/Device").toString());
+    int deviceID = settings.value("video/Device").toInt();
+    if(deviceIndex != -1)
+    {
+      // if we have multiple devices with same name we use id
+      if(deviceID != deviceIndex
+         && basicUI_->videoDevice->itemText(deviceID) == settings.value("video/Device").toString())
+      {
+        basicUI_->videoDevice->setCurrentIndex(deviceID);
+      }
+      else
+      {
+        basicUI_->videoDevice->setCurrentIndex(deviceIndex);
+      }
+    }
+    else
+      basicUI_->videoDevice->setCurrentIndex(0);
 
     int index = advancedUI_->preset->findText(settings.value("video/Preset").toString());
     if(index != -1)
@@ -136,10 +162,40 @@ void Settings::restoreSettings()
 
 void Settings::showBasicSettings()
 {
+  basicUI_->videoDevice->clear();
+  QStringList videoDevices = getVideoDevices();
   basicParent_.show();
+  for(unsigned int i = 0; i < videoDevices.size(); ++i)
+  {
+    basicUI_->videoDevice->addItem( videoDevices[i]);
+  }
 }
 
 void Settings::showAdvancedSettings()
 {
   advancedParent_.show();
 }
+
+QStringList Settings::getVideoDevices()
+{
+  char** devices;
+  int8_t count;
+  dshow_queryDevices(&devices, &count);
+
+  QStringList list;
+
+  qDebug() << "Found " << (int)count << " devices: ";
+  for(int i = 0; i < count; ++i)
+  {
+    qDebug() << "[" << i << "] " << devices[i];
+    list.push_back(devices[i]);
+  }
+
+  return list;
+}
+
+QStringList Settings::getAudioDevices()
+{}
+
+QStringList Settings::getVideoCapabilities(QString device)
+{}

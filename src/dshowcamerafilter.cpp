@@ -1,14 +1,15 @@
 #include "dshowcamerafilter.h"
-
 #include "statisticsinterface.h"
 
+#include "dshow/capture_interface.h"
+
+#include <QSettings>
 #include <QDateTime>
 #include <QDebug>
 
 DShowCameraFilter::DShowCameraFilter(QString id, StatisticsInterface *stats)
   :Filter(id, "Camera", stats, false, true),
-    deviceID_(0),
-    settingsID_(33)
+    settingsID_(35)
 {}
 
 void DShowCameraFilter::init()
@@ -16,15 +17,44 @@ void DShowCameraFilter::init()
   dshow_initCapture();
   int8_t count;
   dshow_queryDevices(&devices, &count);
-  if (!dshow_selectDevice(deviceID_))
-  {
-    qDebug() << "Error selecting device!";
+
+  QSettings settings;
+
+  QString deviceName = settings.value("video/Device").toString();
+  int deviceID = settings.value("video/DeviceID").toInt();
+
+  qDebug() << "Getting camera from settings. ID:" << deviceID << "Name:" << deviceName;
+
+  if(count == 0)
     return;
+
+  if(deviceID < count)
+  {
+    // if the deviceID has changed
+    if(devices[deviceID] != deviceName)
+    {
+      // search for device with same name
+      for(int i = 0; i < count; ++i)
+      {
+        if(devices[i] == deviceName)
+        {
+          deviceID = i;
+          break;
+        }
+      }
+      // previous camera could not be found, use default.
+      deviceID = 0;
+    }
   }
 
-  qDebug() << "Found " << (int)count << " devices: ";
-  for (int i = 0; i < count; i++) {
-    qDebug() << "[" << i << "] " << devices[i];
+  if (!dshow_selectDevice(deviceID))
+  {
+    qDebug() << "Could not select device from settings. Trying first";
+    if(!dshow_selectDevice(0))
+    {
+      qDebug() << "Error selecting device!";
+      return;
+    }
   }
 
   dshow_getDeviceCapabilities(&list_, &count);
@@ -59,7 +89,8 @@ void DShowCameraFilter::run()
   run_ = true;
 
   while (run_) {
-    _sleep(1);
+    // sleep half of what is between frames. TODO sleep correct amount
+    _sleep(500/list_[settingsID_].fps);
     uint8_t *data;
     uint32_t size;
     while (dshow_queryFrame(&data, &size))

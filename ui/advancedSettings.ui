@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Settings</string>
+   <string>Advanced Settings</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="2" column="2">
@@ -197,7 +197,7 @@
           <number>51</number>
          </property>
          <property name="value">
-          <number>32</number>
+          <number>27</number>
          </property>
         </widget>
        </item>

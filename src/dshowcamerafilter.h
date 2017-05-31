@@ -1,7 +1,7 @@
 #pragma once
-
 #include "filter.h"
-#include "dshow/capture_interface.h"
+
+struct deviceCapability;
 
 class DShowCameraFilter : public Filter
 {
@@ -18,8 +18,6 @@ private:
 
   char **devices;
   deviceCapability *list_;
-
-  unsigned int deviceID_;
   unsigned int settingsID_;
 
   bool run_;
