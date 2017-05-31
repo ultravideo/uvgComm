@@ -13,4 +13,8 @@ protected:
   // flips input
   void process();
 
+private:
+
+  bool sse_;
+
 };

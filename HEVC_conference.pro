@@ -90,7 +90,8 @@ HEADERS  += \
     src/dshowcamerafilter.h \
     src/dshow/capture.h \
     src/dshow/capture_interface.h \
-    src/dshow/SampleGrabber.h
+    src/dshow/SampleGrabber.h \
+    src/sse4/rgb2yuv.h
 
 FORMS    += \
     ui/callwindow.ui \
@@ -106,6 +107,7 @@ QT+=multimediawidgets
 QT+=network
 
 QMAKE_CXXFLAGS += -std=c++11
+QMAKE_CXXFLAGS += -msse4.1
 
 CONFIG += console
 
