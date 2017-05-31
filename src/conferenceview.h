@@ -1,7 +1,7 @@
 #pragma once
-
 #include <QList>
 #include <QString>
+
 #include <map>
 
 // Does the mapping of calls to their streams and upkeeps the layout of stream widgets

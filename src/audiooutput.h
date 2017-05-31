@@ -1,5 +1,4 @@
 #pragma once
-
 #include <QAudioOutput>
 #include <QObject>
 

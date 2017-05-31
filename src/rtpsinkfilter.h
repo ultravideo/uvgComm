@@ -1,8 +1,7 @@
 #pragma once
-
 #include "filter.h"
-#include <H265VideoRTPSink.hh>
 
+#include <H265VideoRTPSink.hh>
 
 class RTPSinkFilter : public Filter, public MediaSink
 {

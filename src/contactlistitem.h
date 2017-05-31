@@ -1,11 +1,10 @@
 #pragma once
-
-#include "participantinterface.h"
-
 #include <QPushButton>
 #include <QWidget>
 #include <QHBoxLayout>
 #include <QLabel>
+
+class ParticipantInterface;
 
 class ContactListItem : public QWidget
 {

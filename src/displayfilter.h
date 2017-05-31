@@ -1,5 +1,4 @@
 #pragma once
-
 #include "filter.h"
 
 class VideoWidget;

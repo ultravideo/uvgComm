@@ -1,12 +1,12 @@
 #pragma once
-
-
 #include "filter.h"
-#include <kvazaar.h>
 
 enum RETURN_STATUS {C_SUCCESS = 0, C_FAILURE = -1};
 
-
+struct kvz_api;
+struct kvz_config;
+struct kvz_encoder;
+struct kvz_picture;
 
 class KvazaarFilter : public Filter
 {

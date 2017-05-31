@@ -1,5 +1,4 @@
 #pragma once
-
 #include "mediamanager.h"
 #include "callnegotiation.h"
 #include "conferenceview.h"
@@ -10,10 +9,10 @@
 #include <QMainWindow>
 
 // This class is the heart of this software. It is responsible for directing
-// all the other classes based on user input. It would be best if
-// this class did as little as possible apart from that
+// all the other classes based on user input.
 
-// TODO separate Call logic from UI ( split this class in two )
+// TODO separate Call logic from UI ( split this class in two classes,
+// one handling ui and one handling all of call logic )
 
 class StatisticsWindow;
 

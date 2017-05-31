@@ -2,6 +2,8 @@
 
 #include "contactlistitem.h"
 
+#include "participantinterface.h"
+
 #include <QSettings>
 #include <QDebug>
 #include <QMenu>

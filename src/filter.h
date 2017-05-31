@@ -29,7 +29,7 @@ struct Data
   DataSource source;
 };
 
-const int BUFFERSIZE = 50;
+const int BUFFERSIZE = 20;
 class StatisticsInterface;
 
 class Filter : public QThread

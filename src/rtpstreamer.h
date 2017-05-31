@@ -1,17 +1,18 @@
 #pragma once
-
-#include "framedsourcefilter.h"
-#include "rtpsinkfilter.h"
 #include "filter.h"
 
 #include <liveMedia.hh>
 #include <UsageEnvironment.hh>
 #include <GroupsockHelper.hh>
 
+#include <QThread>
+
 #include <vector>
 
 class FramedSourceFilter;
 class RTPSinkFilter;
+class Filter;
+class StatisticsInterface;
 
 typedef int16_t PeerID;
 

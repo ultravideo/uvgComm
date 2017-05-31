@@ -1,7 +1,12 @@
 #include "mediamanager.h"
 
-#include <QDebug>
+#include "filtergraph.h"
+#include "rtpstreamer.h"
+#include "filter.h"
+#include "framedsourcefilter.h"
+#include "rtpsinkfilter.h"
 
+#include <QDebug>
 
 MediaManager::MediaManager(StatisticsInterface *stats):
   stats_(stats),

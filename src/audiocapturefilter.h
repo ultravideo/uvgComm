@@ -1,11 +1,14 @@
 #pragma once
-
 #include "filter.h"
-#include "audiocapturedevice.h"
 
 #include <QByteArray>
+#include <QAudioDeviceInfo>
 
 //TODO: this class would not have to be a filter, just needs to send data to one
+
+class AudioCaptureDevice;
+class QAudioInput;
+class QIODevice;
 
 class AudioCaptureFilter : public Filter
 {

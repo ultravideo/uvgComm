@@ -1,10 +1,8 @@
 #pragma once
-
 #include <QByteArray>
 #include <QtNetwork>
 
 #include <queue>
-
 #include <functional>
 
 // handles one connection

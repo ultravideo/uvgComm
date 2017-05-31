@@ -1,7 +1,12 @@
 #pragma once
-
 #include <QListWidget>
 #include <QObject>
+#include <QString>
+
+// no idea why this enables copilation of ParticipantInterface
+#if defined(Q_OS_WIN) && defined(interface)
+#undef interface
+#endif
 
 class ContactListItem;
 class ParticipantInterface;

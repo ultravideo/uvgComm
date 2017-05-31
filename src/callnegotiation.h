@@ -1,20 +1,18 @@
 #pragma once
-
-
-
 #include "connectionserver.h"
-#include "connection.h"
 #include "sipstringcomposer.h"
-#include "common.h"
 
 #include <MediaSession.hh>
 
 #include <QHostAddress>
 #include <QString>
+#include <QMutex>
 
 #include <memory>
 
 struct SIPMessageInfo;
+struct SDPMessageInfo;
+class Connection;
 
 struct Contact
 {

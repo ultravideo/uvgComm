@@ -1,5 +1,4 @@
 #pragma once
-
 #include "statisticsinterface.h"
 
 #include <QDialog>
@@ -68,8 +67,6 @@ private:
   bool dirtyBuffers_;
 
   uint16_t framerate_; // rounded down currently
-//  uint16_t bitrateCounter_;
-//  uint32_t v_bitrate_;
 
   uint32_t videoIndex_;
   std::vector<PacketInfo*> videoPackets_;

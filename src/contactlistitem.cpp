@@ -1,5 +1,7 @@
 #include "contactlistitem.h"
 
+#include "participantinterface.h"
+
 ContactListItem::ContactListItem(QString name, QString username, QString ip):
   name_(name),
   username_(username),

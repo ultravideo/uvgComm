@@ -1,10 +1,7 @@
 #pragma once
-
 #include "filter.h"
 
 #include "openHevcWrapper.h"
-
-
 
 class OpenHEVCFilter : public Filter
 {

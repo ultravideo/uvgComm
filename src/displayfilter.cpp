@@ -48,7 +48,7 @@ void DisplayFilter::process()
             input->height,
             format);
 
-      image = image.mirrored(true, mirrored_);
+      image = image.mirrored(mirrored_, mirrored_);
 
       int32_t delay = QDateTime::currentMSecsSinceEpoch() -
           (input->presentationTime.tv_sec * 1000 + input->presentationTime.tv_usec/1000);

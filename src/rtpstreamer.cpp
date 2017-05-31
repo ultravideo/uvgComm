@@ -1,6 +1,6 @@
 #include "rtpstreamer.h"
-
 #include "framedsourcefilter.h"
+#include "rtpsinkfilter.h"
 
 #include <liveMedia.hh>
 #include <UsageEnvironment.hh>
@@ -80,7 +80,7 @@ void RTPStreamer::init()
   if(scheduler_)
     env_ = BasicUsageEnvironment::createNew(*scheduler_);
 
-  OutPacketBuffer::maxSize = 65536;
+  OutPacketBuffer::maxSize = 65536*10;
   isIniated_ = true;
   iniated_.unlock();
 }

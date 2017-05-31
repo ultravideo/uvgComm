@@ -31,7 +31,8 @@ CallWindow::CallWindow(QWidget *parent):
   // GUI updates are handled solely by timer
   timer_->setInterval(30);
   timer_->setSingleShot(false);
-  connect(timer_, SIGNAL(timeout()), this, SLOT(update()));
+  connect(timer_, SIGNAL(timeout()), ui_->participants, SLOT(update()));
+  connect(timer_, SIGNAL(timeout()), ui_->SelfView, SLOT(update()));
   connect(timer_, SIGNAL(timeout()), stats_, SLOT(update()));
   timer_->start();
 

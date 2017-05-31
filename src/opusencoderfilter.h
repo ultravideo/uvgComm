@@ -1,5 +1,4 @@
 #pragma once
-
 #include "filter.h"
 
 #include <opus.h>

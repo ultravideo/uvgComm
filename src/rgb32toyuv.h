@@ -1,7 +1,5 @@
 #pragma once
-
 #include "filter.h"
-
 
 class RGB32toYUV : public Filter
 {

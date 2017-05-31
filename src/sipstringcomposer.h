@@ -1,4 +1,5 @@
 #pragma once
+#include "common.h"
 
 #include <QHostInfo>
 #include <QHostAddress>
@@ -8,8 +9,6 @@
  * Will not check the legality of the request/response,
  * only that all required fields are provided.
  * Usage: call startRequest or startResponse */
-
-#include "common.h"
 
 #include <memory>
 

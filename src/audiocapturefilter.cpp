@@ -1,10 +1,9 @@
 #include "audiocapturefilter.h"
+#include "audiocapturedevice.h"
+#include "statisticsinterface.h"
 
 #include <QDebug>
 #include <QTime>
-
-
-#include "statisticsinterface.h"
 
 const int AUDIO_BUFFER_SIZE = 65536;
 

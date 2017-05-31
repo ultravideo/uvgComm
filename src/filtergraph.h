@@ -1,8 +1,5 @@
 #pragma once
 
-#include "rtpstreamer.h"
-#include "filter.h"
-
 #include <QWidget>
 #include <QAudioFormat>
 
@@ -11,6 +8,8 @@
 class VideoWidget;
 class StatisticsInterface;
 class AudioOutput;
+class Filter;
+
 
 class FilterGraph
 {

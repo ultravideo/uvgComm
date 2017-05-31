@@ -1,6 +1,4 @@
 #pragma once
-
-
 #include <QPainter>
 #include <QWidget>
 #include <QRect>

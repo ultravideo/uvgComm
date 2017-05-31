@@ -1,5 +1,5 @@
 #include "callnegotiation.h"
-
+#include "connection.h"
 #include "sipparser.h"
 
 //TODO use cryptographically secure callID generation!!

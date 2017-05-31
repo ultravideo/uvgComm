@@ -1,8 +1,4 @@
 #pragma once
-
-#include "rtpstreamer.h"
-#include "filtergraph.h"
-
 #include <QObject>
 #include <memory>
 #include <map>
@@ -11,25 +7,11 @@
 class VideoWidget;
 class StatisticsInterface;
 
-struct VideoConfig
-{
-  QSize resolution_; // scaled from 640x480
-};
+class FilterGraph;
+class RTPStreamer;
+class MediaSession;
 
-struct VideoOptions
-{
-  //QList<QCameraInfo> cameras_;
-};
-
-struct AudioConfig
-{
-
-};
-
-struct AudioOptions
-{
-
-};
+typedef int16_t PeerID;
 
 class MediaManager : public QObject
 {
@@ -54,12 +36,6 @@ public:
 
   void streamToIP(in_addr ip, uint16_t port);
   void receiveFromIP(in_addr ip, uint16_t port, VideoWidget* view);
-
-  AudioOptions* giveAudioOption();
-  void setAudioConfig(AudioConfig* config);
-
-  VideoOptions* giveVideoOptions();
-  void setVideoConfig(VideoConfig* config);
 
   // call changes. Returns state after toggle
   bool toggleMic();

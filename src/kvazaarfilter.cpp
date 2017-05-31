@@ -93,6 +93,8 @@ void KvazaarFilter::close()
     api_ = NULL;
   }
   qDebug() << name_ << "Kvazaar closed";
+
+  pts_ = 0;
 }
 
 void KvazaarFilter::process()
