@@ -45,11 +45,9 @@ private:
 
   QStringList getVideoDevices();
   QStringList getAudioDevices();
-  QStringList getVideoCapabilities(QString device);
+  QStringList getVideoCapabilities(int deviceID);
 
   void resetFaultySettings();
-
-  int getSettingsDeviceID();
 
   QDialog basicParent_;
   Ui::BasicSettings *basicUI_;

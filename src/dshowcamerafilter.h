@@ -18,7 +18,7 @@ private:
 
   char **devices;
   deviceCapability *list_;
-  unsigned int settingsID_;
+  unsigned int capabilityID_;
 
   bool run_;
 

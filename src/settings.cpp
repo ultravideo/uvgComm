@@ -78,10 +78,6 @@ void Settings::saveAdvancedSettings()
   // Video settings
   settings.setValue("video/Preset",       advancedUI_->preset->currentText());
 
-  if(advancedUI_->scaled_height->text() != "")
-    settings.setValue("video/ScaledHeight", advancedUI_->scaled_height->text());
-  if(advancedUI_->scaled_width->text() != "")
-    settings.setValue("video/ScaledWidth",  advancedUI_->scaled_width->text());
   if(advancedUI_->threads->text() != "")
     settings.setValue("video/Threads",      advancedUI_->threads->text());
 
@@ -96,6 +92,18 @@ void Settings::saveAdvancedSettings()
     settings.setValue("video/VPS",          advancedUI_->vps->text());
   if(advancedUI_->intra->text() != "")
     settings.setValue("video/Intra",        advancedUI_->intra->text());
+
+  int currentIndex = advancedUI_->resolution->currentIndex();
+  if( currentIndex != -1)
+  {
+    settings.setValue("video/ResolutionID",      currentIndex);
+    qDebug() << "Saving resolution:" << advancedUI_->resolution->currentText();
+  }
+  else
+  {
+    qDebug() << "No current index set for resolution";
+    settings.setValue("video/ResolutionID",      0);
+  }
 
   //settings.sync(); // TODO is this needed?
 }
@@ -143,8 +151,6 @@ void Settings::restoreAdvancedSettings()
     int index = advancedUI_->preset->findText(settings.value("video/Preset").toString());
     if(index != -1)
       advancedUI_->preset->setCurrentIndex(index);
-    advancedUI_->scaled_height->setText  (settings.value("video/ScaledHeight").toString());
-    advancedUI_->scaled_width->setText   (settings.value("video/ScaledWidth").toString());
     advancedUI_->threads->setText        (settings.value("video/Threads").toString());
     advancedUI_->qp->setValue            (settings.value("video/QP").toInt());
 
@@ -154,6 +160,7 @@ void Settings::restoreAdvancedSettings()
       advancedUI_->wpp->setChecked(false);
     advancedUI_->vps->setText            (settings.value("video/VPS").toString());
     advancedUI_->intra->setText          (settings.value("video/Intra").toString());
+    advancedUI_->resolution->setCurrentIndex(settings.value("video/ResolutionID").toInt());
   }
   else
   {
@@ -184,6 +191,14 @@ void Settings::showBasicSettings()
 
 void Settings::showAdvancedSettings()
 {
+  advancedUI_->resolution->clear();
+  QSettings settings;
+  QStringList capabilities = getVideoCapabilities(settings.value("video/DeviceID").toInt());
+  for(unsigned int i = 0; i < capabilities.size(); ++i)
+  {
+    advancedUI_->resolution->addItem( capabilities[i]);
+  }
+  restoreAdvancedSettings();
   advancedParent_.show();
 }
 
@@ -208,12 +223,27 @@ QStringList Settings::getVideoDevices()
 QStringList Settings::getAudioDevices()
 {}
 
-QStringList Settings::getVideoCapabilities(QString device)
-{}
-
-int Settings::getSettingsDeviceID()
+QStringList Settings::getVideoCapabilities(int deviceID)
 {
+  int8_t count;
+  deviceCapability *capList;
 
+  QStringList list;
+  if (dshow_selectDevice(deviceID) || dshow_selectDevice(0))
+  {
+    dshow_getDeviceCapabilities(&capList, &count);
+
+    qDebug() << "Found " << (int)count << " capabilities: ";
+    for(int i = 0; i < count; ++i)
+    {
+      //qDebug() << "[" << i << "] " << capList[i].width << "x" << capList[i].height;
+      list.push_back(QString(capList[i].format) + " " + QString::number(capList[i].width) + "x" +
+                     QString::number(capList[i].height) + " " +
+                     QString::number(capList[i].fps) + " fps");
+    }
+  }
+
+  return list;
 }
 
 bool Settings::checkUIBasicSettings()

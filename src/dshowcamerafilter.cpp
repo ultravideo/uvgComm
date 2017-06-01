@@ -9,7 +9,7 @@
 
 DShowCameraFilter::DShowCameraFilter(QString id, StatisticsInterface *stats)
   :Filter(id, "Camera", stats, false, true),
-    settingsID_(0)
+    capabilityID_(0)
 {}
 
 void DShowCameraFilter::init()
@@ -23,10 +23,13 @@ void DShowCameraFilter::init()
   QString deviceName = settings.value("video/Device").toString();
   int deviceID = settings.value("video/DeviceID").toInt();
 
-  qDebug() << "Getting camera from settings. ID:" << deviceID << "Name:" << deviceName;
+  qDebug() << "Camera Device ID:" << deviceID << "Name:" << deviceName;
 
   if(count == 0)
     return;
+
+  if(deviceID == -1)
+    deviceID = 0;
 
   if(deviceID < count)
   {
@@ -57,19 +60,24 @@ void DShowCameraFilter::init()
     }
   }
 
+  capabilityID_ = settings.value("video/ResolutionID").toInt();
+
+  if(capabilityID_ == -1)
+  {
+    qWarning() << "WARNING: Settings Id was -1";
+    capabilityID_ = 0;
+  }
+
+  qDebug() << "Camera capability ID:" << capabilityID_;
+
   dshow_getDeviceCapabilities(&list_, &count);
-  if (!dshow_setDeviceCapability(settingsID_))
+  if (!dshow_setDeviceCapability(capabilityID_))
   {
     qDebug() << "Error selecting capability!";
     return;
   }
 
-  qDebug() << "Found " << (int)count << " capabilities: ";
-  for (int i = 0; i < count; i++) {
-    qDebug()  << "[" << i << "] " << list_[i].width << "x" << list_[i].height  << " " << list_[i].fps << "fps";
-  }
-
-  stats_->videoInfo(list_[settingsID_].fps, QSize(list_[settingsID_].width, list_[settingsID_].height));
+  stats_->videoInfo(list_[capabilityID_].fps, QSize(list_[capabilityID_].width, list_[capabilityID_].height));
 
   qDebug() << "Starting DShow camera";
   dshow_startCapture();
@@ -84,13 +92,15 @@ void DShowCameraFilter::run()
 {
   Q_ASSERT(list_ != 0);
 
+
+
   qDebug() << "Start taking frames from DShow camera";
 
   run_ = true;
 
   while (run_) {
     // sleep half of what is between frames. TODO sleep correct amount
-    _sleep(500/list_[settingsID_].fps);
+    _sleep(500/list_[capabilityID_].fps);
     uint8_t *data;
     uint32_t size;
     while (dshow_queryFrame(&data, &size))
@@ -108,11 +118,11 @@ void DShowCameraFilter::run()
       data = 0;
       newImage->data_size = size;
 
-      newImage->height = list_[settingsID_].height;
-      newImage->width = list_[settingsID_].width;
+      newImage->height = list_[capabilityID_].height;
+      newImage->width = list_[capabilityID_].width;
 
       newImage->source = LOCAL;
-      newImage->framerate = list_[settingsID_].fps;
+      newImage->framerate = list_[capabilityID_].fps;
 
       //qDebug() << "Frame generated. Width: " << newImage->width
       //         << ", height: " << newImage->height << "Framerate:" << newImage->framerate;
@@ -121,4 +131,7 @@ void DShowCameraFilter::run()
       sendOutput(std::move(u_newImage));
     }
   }
+
+  // TODO: Either empty dshow buffer or fix the dshow stop should also make it possible to restart
+  //dshow_stopCapture();
 }
