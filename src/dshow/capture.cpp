@@ -351,11 +351,16 @@ int8_t DShow_Capture::startCapture()
 
   pGrabber->SetCallback(new CallbackObject(), 0);
 
+  return TRUE;
+}
+
+int8_t DShow_Capture::play()
+{
   pControl->Run();
   return TRUE;
 }
 
-int8_t DShow_Capture::stopCapture()
+int8_t DShow_Capture::stop()
 {
 
   pControl->Stop();
@@ -443,9 +448,15 @@ extern "C" int8_t dshow_startCapture()
   return capture.startCapture();
 }
 
-extern "C" int8_t dshow_stopCapture()
+extern "C" int8_t dshow_play()
 {
-  return capture.stopCapture();
+  return capture.play();
+}
+
+
+extern "C" int8_t dshow_stop()
+{
+  return capture.stop();
 }
 
 extern "C" int32_t dshow_getFrameCount()

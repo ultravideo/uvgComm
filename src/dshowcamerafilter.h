@@ -7,6 +7,7 @@ class DShowCameraFilter : public Filter
 {
 public:
   DShowCameraFilter(QString id, StatisticsInterface *stats);
+  ~DShowCameraFilter();
 
   void init();
 
@@ -14,12 +15,13 @@ public:
   virtual void stop();
 
   virtual void process(){}
-private:
 
-  char **devices;
+  virtual void updateSettings();
+
+private:
   deviceCapability *list_;
-  unsigned int capabilityID_;
+  int deviceID_;
+  int capabilityID_;
 
   bool run_;
-
 };

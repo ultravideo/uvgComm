@@ -37,7 +37,8 @@ public:
   int8_t pushFrame(uint8_t *data, int32_t datalen);
 
   int8_t startCapture();
-  int8_t stopCapture();
+  int8_t play();
+  int8_t stop();
 
   int32_t getFrameCount() { return frames.size(); }
 

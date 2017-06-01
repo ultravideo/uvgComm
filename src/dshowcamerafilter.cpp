@@ -91,8 +91,11 @@ void DShowCameraFilter::stop()
 void DShowCameraFilter::run()
 {
   Q_ASSERT(list_ != 0);
+  dshow_play();
 
-
+  uint8_t *data;
+  uint32_t size;
+  while (dshow_queryFrame(&data, &size));
 
   qDebug() << "Start taking frames from DShow camera";
 
@@ -101,8 +104,7 @@ void DShowCameraFilter::run()
   while (run_) {
     // sleep half of what is between frames. TODO sleep correct amount
     _sleep(500/list_[capabilityID_].fps);
-    uint8_t *data;
-    uint32_t size;
+
     while (dshow_queryFrame(&data, &size))
     {
       Data * newImage = new Data;
@@ -133,5 +135,5 @@ void DShowCameraFilter::run()
   }
 
   // TODO: Either empty dshow buffer or fix the dshow stop should also make it possible to restart
-  //dshow_stopCapture();
+  dshow_stop();
 }
