@@ -87,6 +87,13 @@ void DShowCameraFilter::init()
   qDebug() << "Camera capability ID:" << capabilityID_;
 
   dshow_getDeviceCapabilities(&list_, &count);
+
+  if(capabilityID_ > count)
+  {
+    qWarning() << "WARNING: Device capability exceeds the maximum number. Maybe the device has changed "
+                  "and capabilities was not updated?";
+    capabilityID_ = 0;
+  }
   if (!dshow_setDeviceCapability(capabilityID_))
   {
     qDebug() << "Error selecting capability!";
@@ -140,14 +147,15 @@ void DShowCameraFilter::run()
       data = 0;
       newImage->data_size = size;
 
-      newImage->height = list_[capabilityID_].height;
-      newImage->width = list_[capabilityID_].width;
+      // take camera height and width and make sure they are divisable by 8 for kvazaar
+      newImage->height = list_[capabilityID_].height - list_[capabilityID_].height%8;
+      newImage->width = list_[capabilityID_].width - list_[capabilityID_].width%8;
 
       newImage->source = LOCAL;
       newImage->framerate = list_[capabilityID_].fps;
 
-        qDebug() << "Frame generated. Width: " << newImage->width
-                 << ", height: " << newImage->height << "Framerate:" << newImage->framerate;
+      //qDebug() << "Frame generated. Width: " << newImage->width
+      //         << ", height: " << newImage->height << "Framerate:" << newImage->framerate;
 
       std::unique_ptr<Data> u_newImage( newImage );
       sendOutput(std::move(u_newImage));

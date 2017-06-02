@@ -108,8 +108,9 @@ void CameraFilter::handleFrame(const QVideoFrame &frame)
 
   memcpy(newImage->data.get(), bits, cloneFrame.mappedBytes());
   newImage->data_size = cloneFrame.mappedBytes();
-  newImage->width = cloneFrame.width();
-  newImage->height = cloneFrame.height();
+  // kvazaar requires divisable by 8 resolution
+  newImage->width = cloneFrame.width() - cloneFrame.width()%8;
+  newImage->height = cloneFrame.height() - cloneFrame.height()%8;
   newImage->source = LOCAL;
   newImage->framerate = framerate_;
 /*
