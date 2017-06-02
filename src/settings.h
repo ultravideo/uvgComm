@@ -47,6 +47,9 @@ private:
   QStringList getAudioDevices();
   QStringList getVideoCapabilities(int deviceID);
 
+  // make sure the ui video devices is initialized before calling this
+  int getVideoDeviceID(QSettings& settings);
+
   void resetFaultySettings();
 
   QDialog basicParent_;

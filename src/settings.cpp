@@ -37,7 +37,7 @@ Settings::~Settings()
 void Settings::on_ok_clicked()
 {
   qDebug() << "Saving settings";
-  saveBasicSettings();// because I am lazy record both
+  saveBasicSettings();// because I am lazy, record both
   saveAdvancedSettings();
   emit settingsChanged();
   basicParent_.hide();
@@ -47,7 +47,7 @@ void Settings::on_ok_clicked()
 void Settings::on_cancel_clicked()
 {
   qDebug() << "Getting settings from system";
-  restoreBasicSettings(); // because I am lazy restore both
+  restoreBasicSettings(); // because I am lazy, restore both
   restoreAdvancedSettings();
   basicParent_.hide();
   advancedParent_.hide();
@@ -65,8 +65,15 @@ void Settings::saveBasicSettings()
   int currentIndex = basicUI_->videoDevice->currentIndex();
   if( currentIndex != -1)
   {
-    settings.setValue("video/Device",        basicUI_->videoDevice->currentText());
     settings.setValue("video/DeviceID",      currentIndex);
+
+    if(basicUI_->videoDevice->currentText() != settings.value("video/Device") )
+    {
+      settings.setValue("video/Device",        basicUI_->videoDevice->currentText());
+      settings.setValue("video/ResolutionID",        QString::number(0));
+      advancedUI_->resolution->setCurrentIndex(0);
+    }
+
     qDebug() << "Recording following device:" << basicUI_->videoDevice->currentText();
   }
 }
@@ -119,22 +126,7 @@ void Settings::restoreBasicSettings()
     basicUI_->name_edit->setText      (settings.value("local/Name").toString());
     basicUI_->username_edit->setText  (settings.value("local/Username").toString());
 
-    int deviceIndex = basicUI_->videoDevice->findText(settings.value("video/Device").toString());
-    int deviceID = settings.value("video/DeviceID").toInt();
-
-    qDebug() << "deviceIndex:" << deviceIndex << "deviceID:" << deviceID;
-    qDebug() << "deviceName:" << settings.value("video/Device").toString();
-    if(deviceIndex != -1 && basicUI_->videoDevice->count() != 0)
-    {
-      // if we have multiple devices with same name we use id
-      if(deviceID != deviceIndex
-         && basicUI_->videoDevice->itemText(deviceID) == settings.value("video/Device").toString())
-        basicUI_->videoDevice->setCurrentIndex(deviceID);
-      else
-        basicUI_->videoDevice->setCurrentIndex(deviceIndex);
-    }
-    else
-      basicUI_->videoDevice->setCurrentIndex(0);
+    basicUI_->videoDevice->setCurrentIndex(getVideoDeviceID(settings));
   }
   else
   {
@@ -160,7 +152,15 @@ void Settings::restoreAdvancedSettings()
       advancedUI_->wpp->setChecked(false);
     advancedUI_->vps->setText            (settings.value("video/VPS").toString());
     advancedUI_->intra->setText          (settings.value("video/Intra").toString());
-    advancedUI_->resolution->setCurrentIndex(settings.value("video/ResolutionID").toInt());
+
+    int capabilityID = settings.value("video/ResolutionID").toInt();
+
+    if(advancedUI_->resolution->count() < capabilityID)
+    {
+      capabilityID = 0;
+    }
+
+    advancedUI_->resolution->setCurrentIndex(capabilityID);
   }
   else
   {
@@ -193,7 +193,7 @@ void Settings::showAdvancedSettings()
 {
   advancedUI_->resolution->clear();
   QSettings settings;
-  QStringList capabilities = getVideoCapabilities(settings.value("video/DeviceID").toInt());
+  QStringList capabilities = getVideoCapabilities(getVideoDeviceID(settings));
   for(unsigned int i = 0; i < capabilities.size(); ++i)
   {
     advancedUI_->resolution->addItem( capabilities[i]);
@@ -244,6 +244,33 @@ QStringList Settings::getVideoCapabilities(int deviceID)
   }
 
   return list;
+}
+
+int Settings::getVideoDeviceID(QSettings &settings)
+{
+  int deviceIndex = basicUI_->videoDevice->findText(settings.value("video/Device").toString());
+  int deviceID = settings.value("video/DeviceID").toInt();
+
+  qDebug() << "deviceIndex:" << deviceIndex << "deviceID:" << deviceID;
+  qDebug() << "deviceName:" << settings.value("video/Device").toString();
+  if(deviceIndex != -1 && basicUI_->videoDevice->count() != 0)
+  {
+    // if we have multiple devices with same name we use id
+    if(deviceID != deviceIndex
+       && basicUI_->videoDevice->itemText(deviceID) == settings.value("video/Device").toString())
+    {
+      return deviceID;
+    }
+    else
+    {
+      return deviceIndex;
+    }
+  }
+  else if(basicUI_->videoDevice->count() != 0)
+  {
+    return 0;
+  }
+  return -1;
 }
 
 bool Settings::checkUIBasicSettings()
