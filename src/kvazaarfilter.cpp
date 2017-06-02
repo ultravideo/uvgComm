@@ -9,6 +9,7 @@
 #include <QTime>
 #include <QSize>
 
+enum RETURN_STATUS {C_SUCCESS = 0, C_FAILURE = -1};
 
 KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats):
   Filter(id, "Kvazaar", stats, true, true),
@@ -16,8 +17,24 @@ KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats):
   config_(NULL),
   enc_(NULL),
   pts_(0),
-  input_pic_(NULL)
+  input_pic_(NULL),
+  resolution_(),
+  framerate_num_(30),
+  framerate_denom_(1)
 {}
+
+void KvazaarFilter::updateSettings()
+{
+  qDebug() << name_ << "Input resolution differs";
+
+  close();
+  if(init(resolution_, framerate_num_, framerate_denom_) != C_FAILURE)
+  {
+    qDebug() << name_ << "Kvazaar resolution change successful";
+  }
+
+  Filter::updateSettings();
+}
 
 int KvazaarFilter::init(QSize resolution,
                         int32_t framerate_num,
@@ -27,6 +44,10 @@ int KvazaarFilter::init(QSize resolution,
 
   // input picture should not exist at this point
   Q_ASSERT(!input_pic_ && !api_);
+
+  resolution_ = resolution;
+  framerate_num_ = framerate_num;
+  framerate_denom_ = framerate_denom;
 
   api_ = kvz_api_get(8);
   if(!api_)
@@ -46,6 +67,7 @@ int KvazaarFilter::init(QSize resolution,
 
   api_->config_init(config_);
   api_->config_parse(config_, "preset", settings.value("video/Preset").toString().toUtf8());
+
   config_->width = resolution.width();
   config_->height = resolution.height();
   config_->threads = settings.value("video/Threads").toInt();
@@ -114,11 +136,8 @@ void KvazaarFilter::process()
        || config_->height != input->height
        || config_->framerate_num != input->framerate)
     {
-      qDebug() << name_ << "Input resolution differs";
-
-      close();
-      if(init(QSize(input->width, input->height), input->framerate, 1) != C_FAILURE)
-        qDebug() << name_ << "Kvazaar resolution change successful";
+      resolution_ = QSize(input->width, input->height);
+      updateSettings();
     }
 
     if(!input_pic_)

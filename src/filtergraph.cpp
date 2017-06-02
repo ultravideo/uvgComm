@@ -48,10 +48,16 @@ void FilterGraph::init(VideoWidget* selfView, QSize resolution)
 
 void FilterGraph::updateSettings()
 {
-  if(!videoSend_.empty())
+  for(auto filter : videoSend_)
   {
-    videoSend_[0]->updateSettings();
+    filter->updateSettings();
   }
+  for(auto filter : audioSend_)
+  {
+    filter->updateSettings();
+  }
+
+  // TODO update all peers also if needed
 }
 
 void FilterGraph::initSelfView(VideoWidget *selfView, QSize resolution)
