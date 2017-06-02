@@ -33,6 +33,8 @@ public:
 
   void print();
 
+  void updateSettings();
+
 private:
 
   // makes sure the participant exists and adds if necessary

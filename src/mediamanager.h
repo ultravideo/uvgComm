@@ -24,6 +24,8 @@ public:
   void init();
   void uninit();
 
+  void updateSettings();
+
   // registers a contact for activity monitoring
   void registerContact(in_addr ip);
 

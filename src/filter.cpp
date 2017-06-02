@@ -22,6 +22,9 @@ Filter::~Filter()
   delete waitMutex_;
 }
 
+void Filter::updateSettings()
+{}
+
 void Filter::addOutConnection(Filter *out)
 {
   outConnections_.push_back(out);

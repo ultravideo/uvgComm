@@ -117,6 +117,7 @@ void CallWindow::startStream()
 void CallWindow::recordChangedSettings()
 {
   // TODO call update settings on everything?
+  media_.updateSettings();
 }
 
 void CallWindow::callToParticipant(QString name, QString username, QString ip)

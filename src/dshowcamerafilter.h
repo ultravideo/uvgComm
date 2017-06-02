@@ -24,4 +24,6 @@ private:
   int capabilityID_;
 
   bool run_;
+
+  bool exited_;
 };

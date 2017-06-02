@@ -1,6 +1,5 @@
 #include "filtergraph.h"
 
-
 #include "camerafilter.h"
 #include "kvazaarfilter.h"
 #include "rgb32toyuv.h"
@@ -16,7 +15,6 @@
 #include "opusencoderfilter.h"
 #include "opusdecoderfilter.h"
 #include "speexaecfilter.h"
-
 #include "dshowcamerafilter.h"
 
 #include "common.h"
@@ -46,6 +44,14 @@ void FilterGraph::init(VideoWidget* selfView, QSize resolution)
   frameRate_ = 30;
 
   initSelfView(selfView, resolution);
+}
+
+void FilterGraph::updateSettings()
+{
+  if(!videoSend_.empty())
+  {
+    videoSend_[0]->updateSettings();
+  }
 }
 
 void FilterGraph::initSelfView(VideoWidget *selfView, QSize resolution)

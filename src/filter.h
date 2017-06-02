@@ -40,6 +40,8 @@ public:
   Filter(QString id, QString name, StatisticsInterface* stats, bool input, bool output);
   virtual ~Filter();
 
+  virtual void updateSettings();
+
   // adds one outbound connection to this filter.
   void addOutConnection(Filter *out);
   void removeOutConnection(Filter *out);

@@ -9,48 +9,63 @@
 
 DShowCameraFilter::DShowCameraFilter(QString id, StatisticsInterface *stats)
   :Filter(id, "Camera", stats, false, true),
-    capabilityID_(0)
+    deviceID_(0),
+    capabilityID_(0),
+    exited_(true)
 {}
+
+DShowCameraFilter::~DShowCameraFilter()
+{}
+
+void DShowCameraFilter::updateSettings()
+{
+  stop();
+  while(!exited_)
+    _sleep(1);
+  init();
+  start();
+}
 
 void DShowCameraFilter::init()
 {
   dshow_initCapture();
   int8_t count;
+  char **devices;
   dshow_queryDevices(&devices, &count);
 
   QSettings settings;
 
   QString deviceName = settings.value("video/Device").toString();
-  int deviceID = settings.value("video/DeviceID").toInt();
+  deviceID_ = settings.value("video/DeviceID").toInt();
 
-  qDebug() << "Camera Device ID:" << deviceID << "Name:" << deviceName;
+  qDebug() << "Camera Device ID:" << deviceID_ << "Name:" << deviceName;
 
   if(count == 0)
     return;
 
-  if(deviceID == -1)
-    deviceID = 0;
+  if(deviceID_ == -1)
+    deviceID_ = 0;
 
-  if(deviceID < count)
+  if(deviceID_ < count)
   {
     // if the deviceID has changed
-    if(devices[deviceID] != deviceName)
+    if(devices[deviceID_] != deviceName)
     {
       // search for device with same name
       for(int i = 0; i < count; ++i)
       {
         if(devices[i] == deviceName)
         {
-          deviceID = i;
+          deviceID_ = i;
           break;
         }
       }
       // previous camera could not be found, use default.
-      deviceID = 0;
+      deviceID_ = 0;
     }
   }
 
-  if (!dshow_selectDevice(deviceID))
+  if (!dshow_selectDevice(deviceID_))
   {
     qDebug() << "Could not select device from settings. Trying first";
     if(!dshow_selectDevice(0))
@@ -61,6 +76,7 @@ void DShowCameraFilter::init()
   }
 
   capabilityID_ = settings.value("video/ResolutionID").toInt();
+  //capabilityID_ = 0;
 
   if(capabilityID_ == -1)
   {
@@ -91,11 +107,15 @@ void DShowCameraFilter::stop()
 void DShowCameraFilter::run()
 {
   Q_ASSERT(list_ != 0);
+  exited_ = false;
   dshow_play();
 
   uint8_t *data;
   uint32_t size;
-  while (dshow_queryFrame(&data, &size));
+  while (dshow_queryFrame(&data, &size))
+  {
+    delete data;
+  }
 
   qDebug() << "Start taking frames from DShow camera";
 
@@ -126,8 +146,8 @@ void DShowCameraFilter::run()
       newImage->source = LOCAL;
       newImage->framerate = list_[capabilityID_].fps;
 
-      //qDebug() << "Frame generated. Width: " << newImage->width
-      //         << ", height: " << newImage->height << "Framerate:" << newImage->framerate;
+        qDebug() << "Frame generated. Width: " << newImage->width
+                 << ", height: " << newImage->height << "Framerate:" << newImage->framerate;
 
       std::unique_ptr<Data> u_newImage( newImage );
       sendOutput(std::move(u_newImage));
@@ -136,4 +156,6 @@ void DShowCameraFilter::run()
 
   // TODO: Either empty dshow buffer or fix the dshow stop should also make it possible to restart
   dshow_stop();
+
+  exited_ = true;
 }

@@ -38,6 +38,11 @@ void MediaManager::uninit()
   streamer_->uninit();
 }
 
+void MediaManager::updateSettings()
+{
+  fg_->updateSettings();
+}
+
 void MediaManager::startCall(VideoWidget *selfView, QSize resolution)
 {
   streamer_->start();
