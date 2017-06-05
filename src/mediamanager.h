@@ -29,7 +29,7 @@ public:
   // registers a contact for activity monitoring
   void registerContact(in_addr ip);
 
-  void startCall(VideoWidget* selfView, QSize resolution);
+  void startCall(VideoWidget* selfView);
   void addParticipant(QString callID, in_addr ip, uint16_t sendAudioPort, uint16_t recvAudioPort,
                       uint16_t sendVideoPort, uint16_t recvVideoPort, VideoWidget* view);
 

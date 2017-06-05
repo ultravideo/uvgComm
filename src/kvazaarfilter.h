@@ -15,9 +15,7 @@ public:
 
   virtual void updateSettings();
 
-  int init(QSize resolution,
-           int32_t framerate_num,
-           int32_t framerate_denom);
+  int init();
 
   void close();
 

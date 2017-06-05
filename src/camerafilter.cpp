@@ -10,11 +10,10 @@
 #include "statisticsinterface.h"
 
 
-CameraFilter::CameraFilter(QString id, StatisticsInterface *stats, QSize resolution):
+CameraFilter::CameraFilter(QString id, StatisticsInterface *stats):
   Filter(id, "Camera", stats, false, true),
   camera_(),
   cameraFrameGrabber_(),
-  resolution_(resolution),
   framerate_(0)
 {
   camera_ = new QCamera(QCameraInfo::defaultCamera());

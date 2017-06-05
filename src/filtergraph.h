@@ -16,7 +16,7 @@ class FilterGraph
 public:
   FilterGraph(StatisticsInterface *stats);
 
-  void init(VideoWidget* selfView, QSize resolution);
+  void init(VideoWidget* selfView);
   void uninit();
 
   // These functions are used to manipulate filter graphs regarding a peer
@@ -41,10 +41,10 @@ private:
   void checkParticipant(int16_t id);
 
   // iniates camera and attaches a self view to it.
-  void initSelfView(VideoWidget *selfView, QSize resolution);
+  void initSelfView(VideoWidget *selfView);
 
   // iniates encoder and attaches it
-  void initVideoSend(QSize resolution);
+  void initVideoSend();
 
   // iniates encoder and attaches it
   void initAudioSend();
@@ -78,10 +78,6 @@ private:
   VideoWidget *selfView_;
 
   StatisticsInterface* stats_;
-
-  //config stuff, moved to config later
-  uint16_t frameRate_;
-  QSize resolution_;
 
   // audio configs
   QAudioFormat format_;

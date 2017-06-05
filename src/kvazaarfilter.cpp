@@ -18,7 +18,7 @@ KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats):
   enc_(NULL),
   pts_(0),
   input_pic_(NULL),
-  resolution_(),
+  resolution_(QSize(640,480)),
   framerate_num_(30),
   framerate_denom_(1)
 {}
@@ -27,7 +27,7 @@ void KvazaarFilter::updateSettings()
 {
   qDebug() << "Updating kvazaar settings";
   close();
-  if(init(resolution_, framerate_num_, framerate_denom_) != C_FAILURE)
+  if(init() != C_FAILURE)
   {
     qDebug() << name_ << "Kvazaar resolution change successful";
   }
@@ -35,18 +35,12 @@ void KvazaarFilter::updateSettings()
   Filter::updateSettings();
 }
 
-int KvazaarFilter::init(QSize resolution,
-                        int32_t framerate_num,
-                        int32_t framerate_denom)
+int KvazaarFilter::init()
 {
   qDebug() << name_ << "iniating";
 
   // input picture should not exist at this point
   Q_ASSERT(!input_pic_ && !api_);
-
-  resolution_ = resolution;
-  framerate_num_ = framerate_num;
-  framerate_denom_ = framerate_denom;
 
   api_ = kvz_api_get(8);
   if(!api_)
@@ -67,15 +61,15 @@ int KvazaarFilter::init(QSize resolution,
   api_->config_init(config_);
   api_->config_parse(config_, "preset", settings.value("video/Preset").toString().toUtf8());
 
-  config_->width = resolution.width();
-  config_->height = resolution.height();
+  config_->width = resolution_.width();
+  config_->height = resolution_.height();
   config_->threads = settings.value("video/Threads").toInt();
   config_->qp = settings.value("video/QP").toInt();
   config_->wpp = settings.value("video/WPP").toInt();
   config_->vps_period = settings.value("video/VPS").toInt();
   config_->intra_period = settings.value("video/Intra").toInt();
-  config_->framerate_num = framerate_num;
-  config_->framerate_denom = framerate_denom;
+  config_->framerate_num = framerate_num_;
+  config_->framerate_denom = framerate_denom_;
 
   // TODO Send parameter sets only when needed maybe
   //config_->target_bitrate = target_bitrate;

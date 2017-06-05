@@ -105,13 +105,8 @@ void CallWindow::startStream()
 
   callNeg_.init(localName, localUsername);
 
-  QSize resolution = QSize(settings.value("video/ScaledWidth").toInt(),
-                           settings.value("video/ScaledHeight").toInt());
-  qDebug() << "reso:" << resolution;
   media_.init();
-  media_.startCall(ui_->SelfView, resolution);
-
-
+  media_.startCall(ui_->SelfView);
 }
 
 void CallWindow::recordChangedSettings()

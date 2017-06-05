@@ -43,10 +43,10 @@ void MediaManager::updateSettings()
   fg_->updateSettings();
 }
 
-void MediaManager::startCall(VideoWidget *selfView, QSize resolution)
+void MediaManager::startCall(VideoWidget *selfView)
 {
   streamer_->start();
-  fg_->init(selfView, resolution);
+  fg_->init(selfView);
 }
 
 void MediaManager::addParticipant(QString callID, in_addr ip, uint16_t sendAudioPort, uint16_t recvAudioPort,

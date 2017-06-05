@@ -37,13 +37,11 @@ FilterGraph::FilterGraph(StatisticsInterface* stats):
   format_.setCodec("audio/pcm");
 }
 
-void FilterGraph::init(VideoWidget* selfView, QSize resolution)
+void FilterGraph::init(VideoWidget* selfView)
 {
-  resolution_ = resolution;
   selfView_ = selfView;
-  frameRate_ = 30;
 
-  initSelfView(selfView, resolution);
+  initSelfView(selfView);
 }
 
 void FilterGraph::updateSettings()
@@ -60,7 +58,7 @@ void FilterGraph::updateSettings()
   // TODO update all peers also if needed
 }
 
-void FilterGraph::initSelfView(VideoWidget *selfView, QSize resolution)
+void FilterGraph::initSelfView(VideoWidget *selfView)
 {
   if(videoSend_.size() > 0)
   {
@@ -78,7 +76,7 @@ void FilterGraph::initSelfView(VideoWidget *selfView, QSize resolution)
     videoSend_.back()->start();
   }
   else
-    videoSend_.push_back(new CameraFilter("", stats_, resolution));
+    videoSend_.push_back(new CameraFilter("", stats_));
 
   if(selfView)
   {
@@ -91,7 +89,7 @@ void FilterGraph::initSelfView(VideoWidget *selfView, QSize resolution)
   }
 }
 
-void FilterGraph::initVideoSend(QSize resolution)
+void FilterGraph::initVideoSend()
 {
   if(videoSend_.size() != 2)
   {
@@ -99,7 +97,7 @@ void FilterGraph::initVideoSend(QSize resolution)
     {
       destroyFilters(videoSend_);
     }
-    initSelfView(selfView_, resolution_);
+    initSelfView(selfView_);
   }
 
   videoSend_.push_back(new RGB32toYUV("", stats_));
@@ -107,7 +105,7 @@ void FilterGraph::initVideoSend(QSize resolution)
   videoSend_.back()->start();
 
   KvazaarFilter* kvz = new KvazaarFilter("", stats_);
-  kvz->init(resolution, frameRate_, 1);
+  kvz->init();
   videoSend_.push_back(kvz);
   videoSend_.at(videoSend_.size() - 2)->addOutConnection(videoSend_.back());
   videoSend_.back()->start();
@@ -176,7 +174,7 @@ void FilterGraph::sendVideoto(int16_t id, Filter *videoFramedSource)
   // make sure we are generating video
   if(videoSend_.size() < 3)
   {
-    initVideoSend(resolution_);
+    initVideoSend();
   }
 
   // add participant if necessary

@@ -11,7 +11,7 @@ class CameraFilter : public Filter
   Q_OBJECT
 
 public:
-  CameraFilter(QString id, StatisticsInterface* stats, QSize resolution);
+  CameraFilter(QString id, StatisticsInterface* stats);
   ~CameraFilter();
 
   virtual void start();
@@ -27,9 +27,6 @@ protected:
 private:
   QCamera *camera_;
   CameraFrameGrabber *cameraFrameGrabber_;
-
-  // used only for scaling at the moment
-  QSize resolution_;
 
   uint16_t framerate_;
 };
