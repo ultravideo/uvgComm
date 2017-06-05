@@ -18,8 +18,8 @@ Settings::Settings(QWidget *parent) :
   advancedUI_->setupUi(&advancedParent_);
 
   // initializes the GUI with values
-  restoreBasicSettings();
-  restoreAdvancedSettings();
+  //restoreBasicSettings();
+  //restoreAdvancedSettings();
 
   QObject::connect(basicUI_->ok, SIGNAL(clicked()), this, SLOT(on_ok_clicked()));
   QObject::connect(basicUI_->cancel, SIGNAL(clicked()), this, SLOT(on_cancel_clicked()));
@@ -103,14 +103,23 @@ void Settings::saveAdvancedSettings()
   int currentIndex = advancedUI_->resolution->currentIndex();
   if( currentIndex != -1)
   {
-    settings.setValue("video/ResolutionID",      currentIndex);
     qDebug() << "Saving resolution:" << advancedUI_->resolution->currentText();
   }
   else
   {
-    qDebug() << "No current index set for resolution";
-    settings.setValue("video/ResolutionID",      0);
+    qDebug() << "No current index set for resolution. Using 0";
+    currentIndex = 0;
   }
+
+  QSize resolution = QSize(0,0);
+  double fps = 0.0f;
+  getCapability(currentIndex, resolution, fps);
+  int32_t fps_int = static_cast<int>(fps);
+
+  settings.setValue("video/ResolutionID",          currentIndex);
+  settings.setValue("video/ResolutionWidth",      resolution.width());
+  settings.setValue("video/ResolutionHeight",     resolution.height());
+  settings.setValue("video/Framerate",            fps_int);
 
   //settings.sync(); // TODO is this needed?
 }
@@ -119,7 +128,7 @@ void Settings::saveAdvancedSettings()
 void Settings::restoreBasicSettings()
 {
   //get values from QSettings
-  if(checkSavedSettings())
+  if(checkMissingValues())
   {
     QSettings settings;
     qDebug() << "Restoring previous Basic settings";
@@ -136,7 +145,7 @@ void Settings::restoreBasicSettings()
 
 void Settings::restoreAdvancedSettings()
 {
-  if(checkSavedSettings())
+  if(checkUserSettings())
   {
     qDebug() << "Restoring previous Advanced settings";
     QSettings settings;
@@ -154,12 +163,10 @@ void Settings::restoreAdvancedSettings()
     advancedUI_->intra->setText          (settings.value("video/Intra").toString());
 
     int capabilityID = settings.value("video/ResolutionID").toInt();
-
     if(advancedUI_->resolution->count() < capabilityID)
     {
       capabilityID = 0;
     }
-
     advancedUI_->resolution->setCurrentIndex(capabilityID);
   }
   else
@@ -205,7 +212,7 @@ void Settings::showAdvancedSettings()
 QStringList Settings::getVideoDevices()
 {
   char** devices;
-  int8_t count;
+  int8_t count = 0;
   dshow_queryDevices(&devices, &count);
 
   QStringList list;
@@ -225,18 +232,17 @@ QStringList Settings::getAudioDevices()
 
 QStringList Settings::getVideoCapabilities(int deviceID)
 {
-  int8_t count;
-  deviceCapability *capList;
-
   QStringList list;
   if (dshow_selectDevice(deviceID) || dshow_selectDevice(0))
   {
+    int8_t count = 0;
+    deviceCapability *capList;
     dshow_getDeviceCapabilities(&capList, &count);
 
     qDebug() << "Found " << (int)count << " capabilities: ";
     for(int i = 0; i < count; ++i)
     {
-      //qDebug() << "[" << i << "] " << capList[i].width << "x" << capList[i].height;
+      qDebug() << "[" << i << "] " << capList[i].width << "x" << capList[i].height;
       list.push_back(QString(capList[i].format) + " " + QString::number(capList[i].width) + "x" +
                      QString::number(capList[i].height) + " " +
                      QString::number(capList[i].fps) + " fps");
@@ -245,6 +251,31 @@ QStringList Settings::getVideoCapabilities(int deviceID)
 
   return list;
 }
+
+void Settings::getCapability(int id, QSize& resolution, double& framerate)
+{
+  if (dshow_selectDevice(id) || dshow_selectDevice(0))
+  {
+    int8_t count;
+    deviceCapability *capList;
+    dshow_getDeviceCapabilities(&capList, &count);
+
+    if(count == 0)
+    {
+      qDebug() << "No capabilites found";
+      return;
+    }
+    if(count < id)
+    {
+      id = 0;
+      qDebug() << "Capability id not found";
+    }
+
+    resolution = QSize(capList[id].width,capList[id].height);
+    framerate = capList[id].fps;
+  }
+}
+
 
 int Settings::getVideoDeviceID(QSettings &settings)
 {
@@ -273,36 +304,36 @@ int Settings::getVideoDeviceID(QSettings &settings)
   return -1;
 }
 
-bool Settings::checkUIBasicSettings()
-{
-  return true;
-}
-bool Settings::checkUIAdvancedSettings()
-{
-  return true;
-}
-
-bool Settings::checkSavedSettings()
+bool Settings::checkUserSettings()
 {
   QSettings settings;
-  bool missingSettings = false;
+  return settings.contains("local/Name")
+      && settings.contains("local/Username");
+}
+bool Settings::checkVideoSettings()
+{
+  QSettings settings;
+  return checkMissingValues()
+      && settings.contains("video/DeviceID")
+      && settings.contains("video/DeviceName")
+      && settings.contains("video/ResolutionWidth")
+      && settings.contains("video/ResolutionHeight")
+      && settings.contains("video/WPP")
+      && settings.contains("video/Framerate")
+      && settings.contains("video/DeviceName");
+}
 
+bool Settings::checkMissingValues()
+{
+  QSettings settings;
   QStringList list = settings.allKeys();
-
   for(auto key : list)
   {
-    if(!missingSettings && settings.value(key).isNull())
+    if(settings.value(key).isNull())
     {
       qDebug() << "MISSING SETTING FOR:" << key;
-      missingSettings = true;
+      return false;
     }
   }
-
-  if(list.size() < SETTINGCOUNT) // Remember to update this value
-  {
-    qDebug() << "Settings found:" << list.size() << "Expected:" << SETTINGCOUNT;
-    missingSettings = true;
-  }
-
-  return !missingSettings;
+  return true;
 }

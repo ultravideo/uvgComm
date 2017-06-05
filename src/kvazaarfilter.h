@@ -31,8 +31,6 @@ private:
 
   kvz_picture *input_pic_;
 
-  QSize resolution_;
-
   int32_t framerate_num_;
   int32_t framerate_denom_;
 };

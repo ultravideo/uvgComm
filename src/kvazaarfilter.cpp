@@ -18,7 +18,6 @@ KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats):
   enc_(NULL),
   pts_(0),
   input_pic_(NULL),
-  resolution_(QSize(640,480)),
   framerate_num_(30),
   framerate_denom_(1)
 {}
@@ -61,14 +60,14 @@ int KvazaarFilter::init()
   api_->config_init(config_);
   api_->config_parse(config_, "preset", settings.value("video/Preset").toString().toUtf8());
 
-  config_->width = resolution_.width();
-  config_->height = resolution_.height();
+  config_->width = settings.value("video/ResolutionWidth").toInt();
+  config_->height = settings.value("video/ResolutionHeight").toInt();
   config_->threads = settings.value("video/Threads").toInt();
   config_->qp = settings.value("video/QP").toInt();
   config_->wpp = settings.value("video/WPP").toInt();
   config_->vps_period = settings.value("video/VPS").toInt();
   config_->intra_period = settings.value("video/Intra").toInt();
-  config_->framerate_num = framerate_num_;
+  config_->framerate_num = settings.value("video/Framerate").toInt();
   config_->framerate_denom = framerate_denom_;
 
   // TODO Send parameter sets only when needed maybe
@@ -134,8 +133,6 @@ void KvazaarFilter::process()
                << input->width << "x" << input->height;
 
       qDebug() << name_ << "Framerates:" << config_->framerate_num << "input:" << input->framerate;
-      resolution_ = QSize(input->width, input->height);
-      framerate_num_ = input->framerate;
       updateSettings();
     }
 

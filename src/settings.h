@@ -30,9 +30,9 @@ private:
 
   // checks if user settings make sense
   // TODO: display errors to user on ok click
-  bool checkUIBasicSettings();
-  bool checkUIAdvancedSettings();
-  bool checkSavedSettings();
+  bool checkUserSettings();
+  bool checkVideoSettings();
+  bool checkMissingValues();
 
   // QSettings -> GUI
   void restoreBasicSettings();
@@ -46,6 +46,7 @@ private:
   QStringList getVideoDevices();
   QStringList getAudioDevices();
   QStringList getVideoCapabilities(int deviceID);
+  void getCapability(int id, QSize& resolution, double& framerate);
 
   // make sure the ui video devices is initialized before calling this
   int getVideoDeviceID(QSettings& settings);
