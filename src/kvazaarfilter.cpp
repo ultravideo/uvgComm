@@ -25,8 +25,7 @@ KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats):
 
 void KvazaarFilter::updateSettings()
 {
-  qDebug() << name_ << "Input resolution differs";
-
+  qDebug() << "Updating kvazaar settings";
   close();
   if(init(resolution_, framerate_num_, framerate_denom_) != C_FAILURE)
   {
@@ -136,7 +135,13 @@ void KvazaarFilter::process()
        || config_->height != input->height
        || config_->framerate_num != input->framerate)
     {
+      qDebug() << name_ << "Input resolution differs:"
+               << config_->width << "x" << config_->height << "input:"
+               << input->width << "x" << input->height;
+
+      qDebug() << name_ << "Framerates:" << config_->framerate_num << "input:" << input->framerate;
       resolution_ = QSize(input->width, input->height);
+      framerate_num_ = input->framerate;
       updateSettings();
     }
 
