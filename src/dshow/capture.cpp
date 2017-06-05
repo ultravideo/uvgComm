@@ -184,6 +184,9 @@ int8_t DShow_Capture::queryDevices() {
   // Create an enumerator for the category.        
   pDevEnum->CreateClassEnumerator(CLSID_VideoInputDeviceCategory, &pEnum, 0);
   int deviceID = 0;
+  if(pEnum == NULL)
+    return 0;
+
   while (pEnum->Next(1, &pMoniker, NULL) == S_OK)
   {
     IPropertyBag *pPropBag;

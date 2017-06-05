@@ -41,7 +41,11 @@ void DShowCameraFilter::init()
   qDebug() << "Camera Device ID:" << deviceID_ << "Name:" << deviceName;
 
   if(count == 0)
+  {
+    deviceID_ = -1;
+    capabilityID_ = -1;
     return;
+  }
 
   if(deviceID_ == -1)
     deviceID_ = 0;
@@ -128,7 +132,7 @@ void DShowCameraFilter::run()
 
   run_ = true;
 
-  while (run_) {
+  while (run_ && capabilityID_ != -1 && deviceID_ != -1) {
     // sleep half of what is between frames. TODO sleep correct amount
     _sleep(500/list_[capabilityID_].fps);
 
@@ -161,6 +165,8 @@ void DShowCameraFilter::run()
       sendOutput(std::move(u_newImage));
     }
   }
+
+  qDebug() << "Stop taking frames from DShow";
 
   // TODO: Either empty dshow buffer or fix the dshow stop should also make it possible to restart
   dshow_stop();
