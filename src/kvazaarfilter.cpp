@@ -128,11 +128,17 @@ void KvazaarFilter::process()
        || config_->height != input->height
        || config_->framerate_num != input->framerate)
     {
-      qDebug() << name_ << "Input resolution differs:"
+      // This should not happen.
+      qDebug() << name_ << "WARNING: Input resolution differs:"
                << config_->width << "x" << config_->height << "input:"
                << input->width << "x" << input->height;
 
       qDebug() << name_ << "Framerates:" << config_->framerate_num << "input:" << input->framerate;
+
+      QSettings settings;
+      settings.setValue("video/ResolutionWidth", input->width);
+      settings.setValue("video/ResolutionHeight", input->height);
+      settings.setValue("video/Framerate", input->framerate);
       updateSettings();
     }
 

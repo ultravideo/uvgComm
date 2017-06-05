@@ -13,6 +13,7 @@ OpenHEVCFilter::OpenHEVCFilter(QString id, StatisticsInterface *stats):
 
 void OpenHEVCFilter::init()
 {
+  setPriority(QThread::HighPriority);
   qDebug() << name_ << "iniating";
   handle_ = libOpenHevcInit(1, 1);
 
