@@ -29,7 +29,6 @@ struct Data
   DataSource source;
 };
 
-const int BUFFERSIZE = 2;
 class StatisticsInterface;
 
 class Filter : public QThread
@@ -107,7 +106,7 @@ protected:
 
   QString name_;
   StatisticsInterface* stats_;
-
+  int maxBufferSize_;
 private:
 
   QMutex *waitMutex_;

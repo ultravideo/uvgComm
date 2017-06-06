@@ -8,6 +8,7 @@ Filter::Filter(QString id, QString name, StatisticsInterface *stats,
                bool input, bool output):
   name_(id + name),
   stats_(stats),
+  maxBufferSize_(10),
   waitMutex_(new QMutex),
   hasInput_(),
   running_(true),
@@ -82,20 +83,20 @@ void Filter::putInput(std::unique_ptr<Data> data)
     //qDebug() << name_ << "buffer status:" << inBuffer_.size();
   }
 
-  if(inBuffer_.size() < BUFFERSIZE)
+  if(inBuffer_.size() < maxBufferSize_)
     inBuffer_.push(std::move(data));
   else
   {
     // TODO: OPUS decoder should be inputted a NULL pointer in case this happens
     ++inputDiscarded_;
     stats_->packetDropped();
-    if(inputDiscarded_ == 1 || inputDiscarded_%10 == 0)
-    {
+    //if(inputDiscarded_ == 1 || inputDiscarded_%10 == 0)
+    //{
       qDebug() << name_ << "buffer full. Discarded input:"
                << inputDiscarded_
                << "Total input:"
                << inputTaken_;
-    }
+    //}
   }
   hasInput_.wakeOne();
   bufferMutex_.unlock();
