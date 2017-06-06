@@ -17,9 +17,9 @@ Settings::Settings(QWidget *parent) :
   basicUI_->setupUi(&basicParent_);
   advancedUI_->setupUi(&advancedParent_);
 
-  // initializes the GUI with values
-  //restoreBasicSettings();
-  //restoreAdvancedSettings();
+  // initializes the GUI with values or initialize them in case they dont exist
+  restoreBasicSettings();
+  restoreAdvancedSettings();
 
   QObject::connect(basicUI_->ok, SIGNAL(clicked()), this, SLOT(on_ok_clicked()));
   QObject::connect(basicUI_->cancel, SIGNAL(clicked()), this, SLOT(on_cancel_clicked()));
@@ -139,7 +139,7 @@ void Settings::saveCameraCapabilities(QSettings& settings, int deviceIndex, int 
 void Settings::restoreBasicSettings()
 {
   //get values from QSettings
-  if(checkMissingValues())
+  if(checkMissingValues() && checkUserSettings())
   {
     QSettings settings;
     qDebug() << "Restoring previous Basic settings";
@@ -156,7 +156,7 @@ void Settings::restoreBasicSettings()
 
 void Settings::restoreAdvancedSettings()
 {
-  if(checkUserSettings())
+  if(checkVideoSettings())
   {
     qDebug() << "Restoring previous Advanced settings";
     QSettings settings;
@@ -188,7 +188,7 @@ void Settings::restoreAdvancedSettings()
 
 void Settings::resetFaultySettings()
 {
-  qDebug() << "Could not restore advanced settings because they were corrupted";
+  qDebug() << "Could not restore settings because they were corrupted";
   // record GUI settings in hope that they are correct ( is case by default )
   saveBasicSettings();
   saveAdvancedSettings();
