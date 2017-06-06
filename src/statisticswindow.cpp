@@ -23,7 +23,9 @@ ui_(new Ui::StatisticsWindow),
   receivedData_(0),
   packetsDropped_(0),
   lastVideoBitrate_(0),
-  lastAudioBitrate_(0)
+  lastAudioBitrate_(0),
+  lastVideoFrameRate_(0.0f),
+  lastAudioFrameRate_(0.0f)
 {
   ui_->setupUi(this);
   ui_->participantTable->setColumnCount(4); // more columns can be added later
@@ -156,7 +158,7 @@ void StatisticsWindow::addEncodedPacket(QString type, uint16_t size)
   }
 }
 
-uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets, uint32_t index)
+uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets, uint32_t index, float& framerate)
 {
   if(index == 0)
     return 0;
@@ -165,6 +167,7 @@ uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets, uint32_t i
   uint32_t timeInterval = 0;
   uint32_t bitrate = 0;
   uint32_t bitrateInterval = 5000;
+  framerate = 0;
 
   uint32_t i = index - 1;
 
@@ -173,6 +176,7 @@ uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets, uint32_t i
   while(p && timeInterval < bitrateInterval)
   {
     bitrate += p->size;
+    ++framerate;
     if(i != 0)
       --i;
     else
@@ -184,7 +188,10 @@ uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets, uint32_t i
 
   //qDebug() << "Bitrate:" << bitrate << "timeInterval:"  << timeInterval;
   if(timeInterval)
+  {
+    framerate = 1000*framerate/timeInterval;
     return 8*bitrate/(timeInterval);
+  }
 
   return 0;
 }
@@ -227,9 +234,12 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 
   if(videoIndex_%15 == 0)
   {
-    lastVideoBitrate_ = bitrate(videoPackets_, videoIndex_);
+    lastVideoBitrate_ = bitrate(videoPackets_, videoIndex_, lastVideoFrameRate_);
     ui_->video_bitrate_value->setText
       ( QString::number(lastVideoBitrate_) + " kbit/s" );
+
+    ui_->encoded_framerate_value->setText
+      ( QString::number(lastVideoFrameRate_) + " fps" );
 
     uint index = 0;
     for(Delays d : delays_)
@@ -247,7 +257,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 
   if(audioIndex_%20 == 0)
   {
-    lastAudioBitrate_ = bitrate(audioPackets_, audioIndex_);
+    lastAudioBitrate_ = bitrate(audioPackets_, audioIndex_, lastAudioFrameRate_);
     ui_->audio_bitrate_value->setText
       ( QString::number(lastAudioBitrate_) + " kbit/s" );
   }

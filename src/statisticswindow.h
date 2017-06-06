@@ -52,7 +52,7 @@ private:
   std::vector<Delays> delays_;
 
   uint32_t totalBuffers();
-  uint32_t bitrate(std::vector<PacketInfo*>& packets, uint32_t index);
+  uint32_t bitrate(std::vector<PacketInfo*>& packets, uint32_t index, float &framerate);
 
   Ui::StatisticsWindow *ui_;
 
@@ -84,4 +84,7 @@ private:
 
   uint32_t lastVideoBitrate_;
   uint32_t lastAudioBitrate_;
+
+  float lastVideoFrameRate_;
+  float lastAudioFrameRate_;
 };
