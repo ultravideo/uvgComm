@@ -1,8 +1,6 @@
 #include "openhevcfilter.h"
 
-
 #include <QDebug>
-
 
 
 OpenHEVCFilter::OpenHEVCFilter(QString id, StatisticsInterface *stats):
@@ -13,7 +11,6 @@ OpenHEVCFilter::OpenHEVCFilter(QString id, StatisticsInterface *stats):
 
 void OpenHEVCFilter::init()
 {
-  setPriority(QThread::HighPriority);
   qDebug() << name_ << "iniating";
   handle_ = libOpenHevcInit(1, 1);
 
@@ -29,6 +26,11 @@ void OpenHEVCFilter::init()
   qDebug() << name_ << "initiation success. Version: " << libOpenHevcVersion(handle_);
 }
 
+void OpenHEVCFilter::run()
+{
+  setPriority(QThread::HighPriority);
+  Filter::run();
+}
 
 void OpenHEVCFilter::process()
 {
@@ -38,71 +40,72 @@ void OpenHEVCFilter::process()
     OpenHevc_Frame openHevcFrame;
     const unsigned char *buff = input->data.get();
 
-    if(!parameterSets_
-       && buff[0] == 0
+    // if we already have the parameter sets or this is not an intra frame
+    if(parameterSets_
+       || !((buff[0] == 0
        && buff[1] == 0
        && buff[2] == 0
        && buff[3] == 1
-       && (buff[4] >> 1) == 1)
-    {
-      break;
-    }
-    else
+       && (buff[4] >> 1) == 1)))
     {
       parameterSets_ = true;
-    }
 
-    int64_t pts = input->presentationTime.tv_sec*90000 + input->presentationTime.tv_usec*90000/1000000;
-    int gotPicture = libOpenHevcDecode(handle_, buff, input->data_size, pts);
+      int64_t pts = input->presentationTime.tv_sec*90000 + input->presentationTime.tv_usec*90000/1000000;
+      int gotPicture = libOpenHevcDecode(handle_, buff, input->data_size, pts);
 
-    if( gotPicture == -1)
-    {
-      qCritical() << name_ << " error while decoding.";
-    }
-    else if(!gotPicture && input->data_size >= 2)
-    {
-      qWarning() << "Warning: Could not decode video frame. NAL type:" <<
-       buff[0] << buff[1] << buff[2] << buff[3] << (buff[4] >> 1);
-    }
-    else if( libOpenHevcGetOutput(handle_, gotPicture, &openHevcFrame) == -1 )
-    {
-      qCritical() << name_ << " failed to get output.";
+      if( gotPicture == -1)
+      {
+        qCritical() << name_ << " error while decoding.";
+      }
+      else if(!gotPicture && input->data_size >= 2)
+      {
+        qWarning() << "Warning: Could not decode video frame. NAL type:" <<
+                      buff[0] << buff[1] << buff[2] << buff[3] << (buff[4] >> 1);
+      }
+      else if( libOpenHevcGetOutput(handle_, gotPicture, &openHevcFrame) == -1 )
+      {
+        qCritical() << name_ << " failed to get output.";
+      }
+      else
+      {
+        input->width = openHevcFrame.frameInfo.nWidth;
+        input->height = openHevcFrame.frameInfo.nHeight;
+        uint32_t finalDataSize = input->width*input->height + input->width*input->height/2;
+        std::unique_ptr<uchar[]> yuv_frame(new uchar[finalDataSize]);
+
+        uint8_t* pY = (uint8_t*)yuv_frame.get();
+        uint8_t* pU = (uint8_t*)&(yuv_frame.get()[input->width*input->height]);
+        uint8_t* pV = (uint8_t*)&(yuv_frame.get()[input->width*input->height + input->width*input->height/4]);
+
+        uint32_t s_stride = openHevcFrame.frameInfo.nYPitch;
+        uint32_t qs_stride = openHevcFrame.frameInfo.nUPitch/2;
+
+        uint32_t d_stride = input->width/2;
+        uint32_t dd_stride = input->width;
+
+        for (int i=0; i<input->height; i++) {
+          memcpy(pY,  (uint8_t *) openHevcFrame.pvY + i*s_stride, dd_stride);
+          pY += dd_stride;
+
+          if (! (i%2) ) {
+            memcpy(pU,  (uint8_t *) openHevcFrame.pvU + i*qs_stride, d_stride);
+            pU += d_stride;
+
+            memcpy(pV,  (uint8_t *) openHevcFrame.pvV + i*qs_stride, d_stride);
+            pV += d_stride;
+          }
+        }
+
+        input->type = YUVVIDEO;
+        input->data_size = finalDataSize;
+        input->data = std::move(yuv_frame);
+
+        sendOutput(std::move(input));
+      }
     }
     else
     {
-      input->width = openHevcFrame.frameInfo.nWidth;
-      input->height = openHevcFrame.frameInfo.nHeight;
-      uint32_t finalDataSize = input->width*input->height + input->width*input->height/2;
-      std::unique_ptr<uchar[]> yuv_frame(new uchar[finalDataSize]);
-
-      uint8_t* pY = (uint8_t*)yuv_frame.get();
-      uint8_t* pU = (uint8_t*)&(yuv_frame.get()[input->width*input->height]);
-      uint8_t* pV = (uint8_t*)&(yuv_frame.get()[input->width*input->height + input->width*input->height/4]);
-
-      uint32_t s_stride = openHevcFrame.frameInfo.nYPitch;
-      uint32_t qs_stride = openHevcFrame.frameInfo.nUPitch/2;
-
-      uint32_t d_stride = input->width/2;
-      uint32_t dd_stride = input->width;
-
-      for (int i=0; i<input->height; i++) {
-        memcpy(pY,  (uint8_t *) openHevcFrame.pvY + i*s_stride, dd_stride);
-        pY += dd_stride;
-
-        if (! (i%2) ) {
-          memcpy(pU,  (uint8_t *) openHevcFrame.pvU + i*qs_stride, d_stride);
-          pU += d_stride;
-
-          memcpy(pV,  (uint8_t *) openHevcFrame.pvV + i*qs_stride, d_stride);
-          pV += d_stride;
-        }
-      }
-
-      input->type = YUVVIDEO;
-      input->data_size = finalDataSize;
-      input->data = std::move(yuv_frame);
-
-      sendOutput(std::move(input));
+      qDebug() << name_ << "has not received parameter set yet.";
     }
 
     input = getInput();

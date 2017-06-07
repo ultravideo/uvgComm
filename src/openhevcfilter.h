@@ -10,6 +10,8 @@ public:
 
   void init();
 
+  void run();
+
 protected:
   virtual void process();
 
