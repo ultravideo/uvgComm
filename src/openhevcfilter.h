@@ -19,4 +19,6 @@ private:
   OpenHevc_Handle handle_;
 
   bool parameterSets_;
+
+  uint32_t waitFrames_;
 };

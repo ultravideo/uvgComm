@@ -1,12 +1,13 @@
 #include "openhevcfilter.h"
 
 #include <QDebug>
-
+#include <QSettings>
 
 OpenHEVCFilter::OpenHEVCFilter(QString id, StatisticsInterface *stats):
   Filter(id, "OpenHEVC", stats, true, true),
   handle_(),
-  parameterSets_(false)
+  parameterSets_(false),
+  waitFrames_(0)
 {}
 
 void OpenHEVCFilter::init()
@@ -24,6 +25,20 @@ void OpenHEVCFilter::init()
   libOpenHevcSetActiveDecoders(handle_, 0);
   libOpenHevcSetViewLayers(handle_, 0);
   qDebug() << name_ << "initiation success. Version: " << libOpenHevcVersion(handle_);
+
+  QSettings settings;
+  // buffersize should be the
+  int bufferSize = settings.value("video/VPS").toInt()*settings.value("video/Intra").toInt();
+
+  if(bufferSize > 0)
+  {
+    maxBufferSize_ = bufferSize;
+  }
+  else
+  {
+    maxBufferSize_ = -1; // no buffer limit
+  }
+  qDebug() << "Set openhevcfilter buffersize to" << bufferSize;
 }
 
 void OpenHEVCFilter::run()
@@ -40,13 +55,13 @@ void OpenHEVCFilter::process()
     OpenHevc_Frame openHevcFrame;
     const unsigned char *buff = input->data.get();
 
-    // if we already have the parameter sets or this is not an intra frame
+    // if we already have the parameter sets or this is not an inter frame
     if(parameterSets_
-       || !((buff[0] == 0
+       || !(buff[0] == 0
        && buff[1] == 0
        && buff[2] == 0
        && buff[3] == 1
-       && (buff[4] >> 1) == 1)))
+       && (buff[4] >> 1) == 1))
     {
       parameterSets_ = true;
 
@@ -105,7 +120,8 @@ void OpenHEVCFilter::process()
     }
     else
     {
-      qDebug() << name_ << "has not received parameter set yet.";
+      ++waitFrames_;
+      qDebug() << name_ << "has not received parameter set yet for" << waitFrames_ << "frames";
     }
 
     input = getInput();

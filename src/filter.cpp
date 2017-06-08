@@ -56,7 +56,8 @@ void Filter::removeOutConnection(Filter *out)
 void Filter::emptyBuffer()
 {
   bufferMutex_.lock();
-  std::queue<std::unique_ptr<Data>> empty;
+  //std::queue<std::unique_ptr<Data>> empty;
+  std::deque<std::unique_ptr<Data>> empty;
   std::swap( inBuffer_, empty );
   bufferMutex_.unlock();
 }
@@ -80,14 +81,43 @@ void Filter::putInput(std::unique_ptr<Data> data)
   if(inputTaken_%30 == 0)
   {
     stats_->updateBufferStatus(name_, inBuffer_.size());
-    //qDebug() << name_ << "buffer status:" << inBuffer_.size();
   }
 
-  if(inBuffer_.size() < maxBufferSize_)
-    inBuffer_.push(std::move(data));
-  else
+  inBuffer_.push_back(std::move(data));
+
+  if(inBuffer_.size() >= maxBufferSize_ && maxBufferSize_ != -1)
   {
-    // TODO: OPUS decoder should be inputted a NULL pointer in case this happens
+    if(inBuffer_[0]->type == HEVCVIDEO)
+    {
+      // Search for intra frames and discard everything up to it
+      for(int i = 0; i < inBuffer_.size(); ++i)
+      {
+        const unsigned char *buff = inBuffer_.at(i)->data.get();
+        if(!(buff[0] == 0
+           && buff[1] == 0
+           && buff[2] == 0
+           && buff[3] == 1
+           && (buff[4] >> 1) == 1))
+        {
+          qDebug() << "Discarding" << i
+                   << "HEVC frames. Found non inter frame from buffer at :" << i;
+          for(int j = i; j != 0; --j)
+          {
+            inBuffer_.pop_front();
+          }
+          break;
+        }
+      }
+    }
+//    else if(inBuffer_[0]->type == OPUSAUDIO)
+//    {
+      // TODO: OPUS decoder should be inputted a NULL pointer in case this happens
+//    }
+    else
+    {
+      inBuffer_.pop_front(); // discard the oldest
+    }
+
     ++inputDiscarded_;
     stats_->packetDropped();
     //if(inputDiscarded_ == 1 || inputDiscarded_%10 == 0)
@@ -109,7 +139,7 @@ std::unique_ptr<Data> Filter::getInput()
   if(!inBuffer_.empty())
   {
     r = std::move(inBuffer_.front());
-    inBuffer_.pop();
+    inBuffer_.pop_front();
   }
   bufferMutex_.unlock();
   return r;

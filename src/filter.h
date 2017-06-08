@@ -106,6 +106,7 @@ protected:
 
   QString name_;
   StatisticsInterface* stats_;
+  // -1 disables buffer, but its not recommended because delay
   int maxBufferSize_;
 private:
 
@@ -120,7 +121,8 @@ private:
   std::vector<Filter*> outConnections_;
 
   QMutex bufferMutex_;
-  std::queue<std::unique_ptr<Data>> inBuffer_;
+  //std::queue<std::unique_ptr<Data>> inBuffer_;
+  std::deque<std::unique_ptr<Data>> inBuffer_;
 
   unsigned int inputTaken_;
   unsigned int inputDiscarded_;
