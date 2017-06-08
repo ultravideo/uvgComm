@@ -80,7 +80,7 @@ void RTPStreamer::init()
   if(scheduler_)
     env_ = BasicUsageEnvironment::createNew(*scheduler_);
 
-  OutPacketBuffer::maxSize = 65536*10;
+  OutPacketBuffer::maxSize = 65536;
   isIniated_ = true;
   iniated_.unlock();
 }

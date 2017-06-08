@@ -19,8 +19,6 @@ void FramedSourceFilter::doGetNextFrame()
   fFrameSize = 0;
   if(frame)
   {
-    //qDebug() << "Sending frame at sec since epoch:" << QDateTime::currentMSecsSinceEpoch()/1000
-    //         << "Framesize:" << frame->data_size << "/" << fMaxSize;
 
     fPresentationTime = frame->presentationTime;
     if(frame->framerate != 0)
@@ -32,10 +30,13 @@ void FramedSourceFilter::doGetNextFrame()
     {
       fFrameSize = fMaxSize;
       fNumTruncatedBytes = frame->data_size - fMaxSize;
+      qDebug() << "WARNING: Requested sending larger packet than possible:"
+               << frame->data_size << "/" << fMaxSize;
     }
     else
     {
       fFrameSize = frame->data_size;
+      fNumTruncatedBytes = 0;
     }
 
     memcpy(fTo, frame->data.get(), fFrameSize);
