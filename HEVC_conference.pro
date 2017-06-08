@@ -91,7 +91,8 @@ HEADERS  += \
     src/dshow/capture.h \
     src/dshow/capture_interface.h \
     src/dshow/SampleGrabber.h \
-    src/sse4/rgb2yuv.h
+    src/sse4/rgb2yuv.h \
+    src/sse4/yuv2rgb.h
 
 FORMS    += \
     ui/callwindow.ui \

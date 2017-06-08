@@ -8,5 +8,8 @@ public:
 
 protected:
   void process();
+
+private:
+  bool sse_;
 };
 
