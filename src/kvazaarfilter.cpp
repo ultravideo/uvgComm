@@ -72,6 +72,19 @@ int KvazaarFilter::init()
   config_->framerate_num = settings.value("video/Framerate").toInt();
   config_->framerate_denom = framerate_denom_;
 
+  if(settings.value("video/Slices").toInt() == 1)
+  {
+    if(config_->wpp == 0)
+    {
+      api_->config_parse(config_, "tiles", "2x2");
+      config_->slices = KVZ_SLICES_TILES;
+    }
+    else
+    {
+      config_->slices = KVZ_SLICES_WPP;
+    }
+  }
+
   // TODO Send parameter sets only when needed maybe
   //config_->target_bitrate = target_bitrate;
 
@@ -171,19 +184,37 @@ void KvazaarFilter::process()
 
     if(data_out != NULL)
     {
-      std::unique_ptr<uchar[]> hevc_frame(new uchar[len_out]);
+
 
       uint32_t delay = QDateTime::currentMSecsSinceEpoch() -
           (input->presentationTime.tv_sec * 1000 + input->presentationTime.tv_usec/1000);
       stats_->sendDelay("video", delay);
       stats_->addEncodedPacket("video", len_out);
 
+      std::unique_ptr<uchar[]> hevc_frame(new uchar[len_out]);
       uint8_t* writer = hevc_frame.get();
+      uint32_t dataWritten = 0;
 
       for (kvz_data_chunk *chunk = data_out; chunk != NULL; chunk = chunk->next)
       {
+        if(chunk->first_chunk_in_slice && dataWritten != 0 && config_->slices != KVZ_SLICES_NONE)
+        {
+          // send previous packet if this is not the first
+          std::unique_ptr<Data> slice(shallowDataCopy(input.get()));
+
+          slice->type = HEVCVIDEO;
+          slice->data_size = dataWritten;
+          slice->data = std::move(hevc_frame);
+          sendOutput(std::move(slice));
+
+          hevc_frame = std::unique_ptr<uchar[]>(new uchar[len_out - dataWritten]);
+          writer = hevc_frame.get();
+          dataWritten = 0;
+        }
+
         memcpy(writer, chunk->data, chunk->len);
         writer += chunk->len;
+        dataWritten += chunk->len;
       }
       api_->chunk_free(data_out);
       api_->picture_free(recon_pic);
@@ -191,8 +222,9 @@ void KvazaarFilter::process()
       //qDebug() << "Frame encoded. Size:" << len_out
       //         << " width:" << input->width << ", height:" << input->height;
 
+      // send last packet reusing input structure
       input->type = HEVCVIDEO;
-      input->data_size = len_out;
+      input->data_size = dataWritten;
       input->data = std::move(hevc_frame);
       sendOutput(std::move(input));
 

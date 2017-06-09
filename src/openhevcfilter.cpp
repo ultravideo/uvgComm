@@ -26,19 +26,8 @@ void OpenHEVCFilter::init()
   libOpenHevcSetViewLayers(handle_, 0);
   qDebug() << name_ << "initiation success. Version: " << libOpenHevcVersion(handle_);
 
-  QSettings settings;
-  // buffersize should be the
-  int bufferSize = settings.value("video/VPS").toInt()*settings.value("video/Intra").toInt();
-
-  if(bufferSize > 0)
-  {
-    maxBufferSize_ = bufferSize;
-  }
-  else
-  {
-    maxBufferSize_ = -1; // no buffer limit
-  }
-  qDebug() << "Set openhevcfilter buffersize to" << bufferSize;
+  // This is because we don't know anything about the incoming stream
+  maxBufferSize_ = -1; // no buffer limit
 }
 
 void OpenHEVCFilter::run()

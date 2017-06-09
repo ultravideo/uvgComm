@@ -104,6 +104,11 @@ void Settings::saveAdvancedSettings()
   if(advancedUI_->intra->text() != "")
     settings.setValue("video/Intra",        advancedUI_->intra->text());
 
+  if(advancedUI_->slices->isChecked())
+    settings.setValue("video/Slices",          "1");
+  else
+    settings.setValue("video/Slices",          "0");
+
   int currentIndex = advancedUI_->resolution->currentIndex();
   if( currentIndex != -1)
   {
@@ -172,6 +177,11 @@ void Settings::restoreAdvancedSettings()
       advancedUI_->wpp->setChecked(false);
     advancedUI_->vps->setText            (settings.value("video/VPS").toString());
     advancedUI_->intra->setText          (settings.value("video/Intra").toString());
+
+    if(settings.value("video/Slices").toString() == "1")
+      advancedUI_->slices->setChecked(true);
+    else if(settings.value("video/Slices").toString() == "0")
+      advancedUI_->slices->setChecked(false);
 
     int capabilityID = settings.value("video/ResolutionID").toInt();
     if(advancedUI_->resolution->count() < capabilityID)
@@ -330,7 +340,8 @@ bool Settings::checkVideoSettings()
       && settings.contains("video/ResolutionWidth")
       && settings.contains("video/ResolutionHeight")
       && settings.contains("video/WPP")
-      && settings.contains("video/Framerate");
+      && settings.contains("video/Framerate")
+      && settings.contains("video/Slices");
 }
 
 bool Settings::checkMissingValues()
