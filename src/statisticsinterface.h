@@ -43,6 +43,9 @@ public:
   // tracking of received packets.
   virtual void addReceivePacket(uint16_t size) = 0;
 
+  // tell the Thread ID of Filter thread.
+  virtual void addFilterTID(QString filter, uint64_t TID) = 0;
+
   // Tracking of buffer information.
   virtual void updateBufferStatus(QString filter, uint16_t buffersize) = 0;
 

@@ -13,7 +13,7 @@
   <property name="windowTitle">
    <string>Statistics</string>
   </property>
-  <layout class="QGridLayout" name="gridLayout_4">
+  <layout class="QGridLayout" name="gridLayout_5">
    <property name="leftMargin">
     <number>0</number>
    </property>
@@ -380,6 +380,16 @@
           <string>-</string>
          </property>
         </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="Filters">
+      <attribute name="title">
+       <string>Filters</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayout_4">
+       <item row="0" column="0">
+        <widget class="QTableWidget" name="filterTable"/>
        </item>
       </layout>
      </widget>

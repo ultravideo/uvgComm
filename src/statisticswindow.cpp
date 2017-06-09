@@ -34,6 +34,10 @@ ui_(new Ui::StatisticsWindow),
   ui_->participantTable->setHorizontalHeaderItem(1, new QTableWidgetItem(QString("VideoPort")));
   ui_->participantTable->setHorizontalHeaderItem(2, new QTableWidgetItem(QString("Audio delay")));
   ui_->participantTable->setHorizontalHeaderItem(3, new QTableWidgetItem(QString("Video delay")));
+
+  ui_->filterTable->setColumnCount(2); // more columns can be added later
+  ui_->filterTable->setHorizontalHeaderItem(0, new QTableWidgetItem(QString("Filter")));
+  ui_->filterTable->setHorizontalHeaderItem(1, new QTableWidgetItem(QString("TID")));
 }
 
 StatisticsWindow::~StatisticsWindow()
@@ -88,6 +92,13 @@ void StatisticsWindow::addParticipant(QString ip, QString audioPort, QString vid
   ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 4, new QTableWidgetItem("- ms"));
 
   delays_.push_back({0, 0,true});
+}
+
+void StatisticsWindow::addFilterTID(QString filter, uint64_t TID)
+{
+  ui_->filterTable->insertRow(ui_->filterTable->rowCount());
+  ui_->filterTable->setItem(ui_->filterTable->rowCount() -1, 0, new QTableWidgetItem(filter));
+  ui_->filterTable->setItem(ui_->filterTable->rowCount() -1, 1, new QTableWidgetItem(QString::number(TID)));
 }
 
 void StatisticsWindow::removeParticipant(QString ip)

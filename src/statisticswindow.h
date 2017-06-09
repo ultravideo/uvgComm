@@ -31,6 +31,7 @@ public:
   virtual void addEncodedPacket(QString type, uint16_t size);
   virtual void addSendPacket(uint16_t size);
   virtual void addReceivePacket(uint16_t size);
+  virtual void addFilterTID(QString filter, uint64_t TID);
   virtual void updateBufferStatus(QString filter, uint16_t buffersize);
   virtual void packetDropped();
 
