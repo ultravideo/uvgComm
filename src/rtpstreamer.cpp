@@ -401,6 +401,7 @@ RTPStreamer::Receiver* RTPStreamer::addReceiver(in_addr peerAddress, uint16_t po
   Receiver *receiver = new Receiver;
   createConnection(receiver->connection, peerAddress, port, true);
 
+  unsigned int estimatedSessionBandwidth = 10000; // in kbps; for RTCP b/w share
   // todo: negotiate payload number
   switch(type)
   {
@@ -414,6 +415,7 @@ RTPStreamer::Receiver* RTPStreamer::addReceiver(in_addr peerAddress, uint16_t po
   case OPUSAUDIO :
     receiver->framedSource = SimpleRTPSource::createNew(*env_, receiver->connection.rtpGroupsock, 97,
                                                         48000, "audio/OPUS", 0, True);
+    estimatedSessionBandwidth = 200; // in kbps; for RTCP b/w share
     break;
   default :
     qWarning() << "Warning: RTP support not implemented for this format";
@@ -426,7 +428,7 @@ RTPStreamer::Receiver* RTPStreamer::addReceiver(in_addr peerAddress, uint16_t po
 
   receiver->sink = new RTPSinkFilter(ip_str + "_", stats_, *env_, type);
 
-  const unsigned int estimatedSessionBandwidth = 5000; // in kbps; for RTCP b/w share
+
   // This starts RTCP running automatically
   receiver->rtcp  = RTCPInstance::createNew(*env_,
                                    receiver->connection.rtcpGroupsock,
