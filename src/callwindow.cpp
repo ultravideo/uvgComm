@@ -10,7 +10,7 @@
 #include <QHostAddress>
 #include <QtEndian>
 #include <QTimer>
-
+#include <QMetaType>
 
 const uint16_t MAXOPENPORTS = 42;
 const uint16_t PORTSPERPARTICIPANT = 4;
@@ -65,6 +65,9 @@ void CallWindow::startStream()
 
   aboutWidget_ = new Ui::AboutWidget;
   aboutWidget_->setupUi(&about_);
+
+  // TODO: I don't know why this is required.
+  qRegisterMetaType<QVector<int> >("QVector<int>");
 
 
   QObject::connect(&callNeg_, SIGNAL(incomingINVITE(QString, QString)),
