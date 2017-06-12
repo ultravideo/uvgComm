@@ -16,9 +16,14 @@ protected:
   virtual void process();
 
 private:
+
+  std::unique_ptr<Data> combineFrame();
+
   OpenHevc_Handle handle_;
 
   bool parameterSets_;
 
   uint32_t waitFrames_;
+
+  std::vector<std::unique_ptr<Data>> sliceBuffer_;
 };
