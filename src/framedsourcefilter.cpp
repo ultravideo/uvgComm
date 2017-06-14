@@ -31,7 +31,9 @@ void FramedSourceFilter::doGetNextFrame()
     fPresentationTime = frame->presentationTime;
     if(frame->framerate != 0)
     {
-      fDurationInMicroseconds = 1000000/frame->framerate;
+      //1000000/framerate is the correct length but
+      // 0 works with slices
+      fDurationInMicroseconds = 0;
     }
 
     if(frame->data_size > fMaxSize)

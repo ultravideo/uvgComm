@@ -51,6 +51,7 @@ void RTPStreamer::run()
   qDebug() << "RTP streamer starting eventloop";
   stopRTP_ = 0;
 
+  setPriority(QThread::HighPriority);
 
   isRunning_ = true;
   // returns when stopRTP_ is set to 1
