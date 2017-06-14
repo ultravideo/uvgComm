@@ -23,6 +23,11 @@ protected:
   virtual void process();
 
 private:
+
+  void sendEncodedFrame(std::unique_ptr<Data> input,
+                        std::unique_ptr<uchar[]> hevc_frame,
+                        uint32_t dataWritten);
+
   const kvz_api *api_;
   kvz_config *config_;
   kvz_encoder *enc_;

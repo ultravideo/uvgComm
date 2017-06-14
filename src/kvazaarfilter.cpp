@@ -184,8 +184,6 @@ void KvazaarFilter::process()
 
     if(data_out != NULL)
     {
-
-
       uint32_t delay = QDateTime::currentMSecsSinceEpoch() -
           (input->presentationTime.tv_sec * 1000 + input->presentationTime.tv_usec/1000);
       stats_->sendDelay("video", delay);
@@ -202,10 +200,7 @@ void KvazaarFilter::process()
           // send previous packet if this is not the first
           std::unique_ptr<Data> slice(shallowDataCopy(input.get()));
 
-          slice->type = HEVCVIDEO;
-          slice->data_size = dataWritten;
-          slice->data = std::move(hevc_frame);
-          sendOutput(std::move(slice));
+          sendEncodedFrame(std::move(slice), std::move(hevc_frame), dataWritten);
 
           hevc_frame = std::unique_ptr<uchar[]>(new uchar[len_out - dataWritten]);
           writer = hevc_frame.get();
@@ -219,16 +214,18 @@ void KvazaarFilter::process()
       api_->chunk_free(data_out);
       api_->picture_free(recon_pic);
 
-      //qDebug() << "Frame encoded. Size:" << len_out
-      //         << " width:" << input->width << ", height:" << input->height;
-
       // send last packet reusing input structure
-      input->type = HEVCVIDEO;
-      input->data_size = dataWritten;
-      input->data = std::move(hevc_frame);
-      sendOutput(std::move(input));
-
+      sendEncodedFrame(std::move(input), std::move(hevc_frame), dataWritten);
     }
     input = getInput();
   }
+}
+
+void KvazaarFilter::sendEncodedFrame(std::unique_ptr<Data> input, std::unique_ptr<uchar[]> hevc_frame,
+                                     uint32_t dataWritten)
+{
+  input->type = HEVCVIDEO;
+  input->data_size = dataWritten;
+  input->data = std::move(hevc_frame);
+  sendOutput(std::move(input));
 }
