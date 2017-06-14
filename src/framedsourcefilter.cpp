@@ -2,6 +2,7 @@
 
 #include "statisticsinterface.h"
 
+#include <QSettings>
 #include <QDebug>
 
 
@@ -10,7 +11,14 @@ FramedSourceFilter::FramedSourceFilter(QString id, StatisticsInterface* stats,
   FramedSource(env),
   Filter(id, "Framed_Source", stats, true, false),
   type_(type)
-{}
+{
+  QSettings settings;
+
+  if(settings.value("video/Slices").toInt() == 1)
+  {
+    maxBufferSize_ = -1; // no buffer limit
+  }
+}
 
 void FramedSourceFilter::doGetNextFrame()
 {

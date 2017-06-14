@@ -7,7 +7,8 @@ OpenHEVCFilter::OpenHEVCFilter(QString id, StatisticsInterface *stats):
   Filter(id, "OpenHEVC", stats, true, true),
   handle_(),
   parameterSets_(false),
-  waitFrames_(0)
+  waitFrames_(0),
+  slices_(true)
 {}
 
 void OpenHEVCFilter::init()
@@ -18,7 +19,7 @@ void OpenHEVCFilter::init()
   libOpenHevcSetDebugMode(handle_, 0);
   if(libOpenHevcStartDecoder(handle_) == -1)
   {
-    qCritical() << name_ << "failed to start decoder.";
+    qCritical() << name_ << "ERROR: failed to start decoder.";
     return;
   }
   libOpenHevcSetTemporalLayer_id(handle_, 0);
@@ -28,6 +29,13 @@ void OpenHEVCFilter::init()
 
   // This is because we don't know anything about the incoming stream
   maxBufferSize_ = -1; // no buffer limit
+}
+
+void OpenHEVCFilter::uninit()
+{
+  qDebug() << name_ << "uniniating.";
+  libOpenHevcFlush(handle_);
+  libOpenHevcClose(handle_);
 }
 
 void OpenHEVCFilter::run()
@@ -62,8 +70,13 @@ std::unique_ptr<Data> OpenHEVCFilter::combineFrame()
     dataWritten += sliceBuffer_.at(i)->data_size;
   }
 
-  qDebug() << "Combined a frame from" << sliceBuffer_.size()
-           << "slices." << "Frame size:" << combinedFrame->data_size;
+  if(slices_ && sliceBuffer_.size() == 1)
+  {
+    slices_ = false;
+    qDebug() << name_ << "Detected no slices in incoming stream.";
+    uninit();
+    init();
+  }
 
   sliceBuffer_.clear();
 
@@ -81,25 +94,26 @@ void OpenHEVCFilter::process()
         && buff[1] == 0
         && buff[2] == 0;
 
-    qDebug() << "NAL type:"
-             << buff[0] << buff[1] << buff[2] << buff[3] << (buff[4] >> 1)
-        << "size:" << input->data_size;
+    if(!slices_ && buff[0] == 0
+       && buff[1] == 0
+       && buff[2] == 1)
+    {
+      slices_ = true;
+      qDebug() << "Detected slices in incoming stream";
+      uninit();
+      init();
+    }
 
-    parameterSets_ = true;
-    /*
-    if(!(nextSlice && (buff[4] >> 1) == 1))
+    if(!parameterSets_ && (buff[4] >> 1) == 32)
     {
       parameterSets_ = true;
-      nextSlice = false;
-      qDebug() << "Parameter set found";
+      qDebug() << name_ << ": Parameter set found after" << waitFrames_ << "frames";
     }
-    */
 
     if(parameterSets_)
     {
       if(nextSlice && sliceBuffer_.size() != 0)
       {
-        qDebug() << "Next slice found";
         std::unique_ptr<Data> frame = combineFrame();
 
         int64_t pts = frame->presentationTime.tv_sec*90000 + frame->presentationTime.tv_usec*90000/1000000;

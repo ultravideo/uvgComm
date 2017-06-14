@@ -9,7 +9,7 @@ public:
   OpenHEVCFilter(QString id, StatisticsInterface* stats);
 
   void init();
-
+  void uninit();
   void run();
 
 protected:
@@ -24,6 +24,8 @@ private:
   bool parameterSets_;
 
   uint32_t waitFrames_;
+
+  bool slices_;
 
   std::vector<std::unique_ptr<Data>> sliceBuffer_;
 };
