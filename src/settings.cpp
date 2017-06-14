@@ -132,11 +132,14 @@ void Settings::saveCameraCapabilities(QSettings& settings, int deviceIndex, int 
   int32_t fps_int = static_cast<int>(fps);
 
   settings.setValue("video/ResolutionID",         capabilityIndex);
-  settings.setValue("video/ResolutionWidth",      resolution.width());
-  settings.setValue("video/ResolutionHeight",     resolution.height());
+
+  // since kvazaar requires resolution to be divisible by eight
+  settings.setValue("video/ResolutionWidth",      resolution.width() - resolution.width()%8);
+  settings.setValue("video/ResolutionHeight",     resolution.height() - resolution.height()%8);
   settings.setValue("video/Framerate",            fps_int);
 
-  qDebug() << "Recorded the following video settings: Resolution:" << resolution
+  qDebug() << "Recorded the following video settings: Resolution:"
+           << resolution.width() - resolution.width()%8 << "x" << resolution.height() - resolution.height()%8
            << "fps:" << fps_int << "resolution index:" << capabilityIndex;
 }
 
