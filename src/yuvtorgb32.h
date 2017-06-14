@@ -11,5 +11,6 @@ protected:
 
 private:
   bool sse_;
+  bool avx2_;
 };
 

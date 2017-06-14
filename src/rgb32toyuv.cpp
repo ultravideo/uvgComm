@@ -1,6 +1,6 @@
 #include "rgb32toyuv.h"
 
-#include "sse4/rgb2yuv.h"
+#include "optimized/rgb2yuv.h"
 
 #include <QtDebug>
 

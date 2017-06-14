@@ -1,6 +1,6 @@
 #include "yuvtorgb32.h"
 
-#include "sse4/yuv2rgb.h"
+#include "optimized/yuv2rgb.h"
 
 #include <QDebug>
 
@@ -17,7 +17,8 @@ uint8_t clamp(int32_t input)
 
 YUVtoRGB32::YUVtoRGB32(QString id, StatisticsInterface *stats) :
   Filter(id, "YUVtoRGB32", stats, true, true),
-  sse_(true)
+  sse_(true),
+  avx2_(true)
 {}
 
 // also flips input
@@ -31,7 +32,11 @@ void YUVtoRGB32::process()
     uint32_t finalDataSize = input->width*input->height*4;
     std::unique_ptr<uchar[]> rgb32_frame(new uchar[finalDataSize]);
 
-    if(sse_)
+    if(avx2_ && input->width % 16 == 0)
+    {
+      yuv2rgb_i_avx2(input->data.get(), rgb32_frame.get(), input->width, input->height);
+    }
+    else if(sse_ && input->width % 16 == 0)
     {
       yuv2rgb_i_sse41(input->data.get(), rgb32_frame.get(), input->width, input->height);
     }
