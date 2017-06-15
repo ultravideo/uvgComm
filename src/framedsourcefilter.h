@@ -15,6 +15,8 @@ public:
   // called by live555. Takes a sample from input and schedules it to be sent.
   virtual void doGetNextFrame();
 
+  virtual void updateSettings();
+
   virtual Boolean isH265VideoStreamFramer() const
   {
     return type_ == HEVCVIDEO;

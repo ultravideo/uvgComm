@@ -54,8 +54,28 @@ void FilterGraph::updateSettings()
   {
     filter->updateSettings();
   }
+  for(auto peer : peers_)
+  {
+    peer->audioFramedSource->updateSettings();
+    peer->videoFramedSource->updateSettings();
 
-  // TODO update all peers also if needed
+    peer->audioSink->updateSettings();
+    peer->videoSink->updateSettings();
+
+    // currently does nothing, but maybe later we decide to add some settings
+    // to our receive such as hos much we want to decode and stuff
+    for(auto video : peer->videoReceive)
+    {
+      video->updateSettings();
+    }
+    for(auto audio : peer->audioReceive)
+    {
+      audio->updateSettings();
+    }
+  }
+
+
+  // update selfview in case camera format has changed
 }
 
 void FilterGraph::initSelfView(VideoWidget *selfView)

@@ -12,11 +12,28 @@ FramedSourceFilter::FramedSourceFilter(QString id, StatisticsInterface* stats,
   Filter(id, "Framed_Source", stats, true, false),
   type_(type)
 {
-  QSettings settings;
+  updateSettings();
+}
 
-  if(settings.value("video/Slices").toInt() == 1)
+void FramedSourceFilter::updateSettings()
+{
+  // called in case we later decide to add some settings to filter
+  Filter::updateSettings();
+
+  if(type_ == HEVCVIDEO)
   {
-    maxBufferSize_ = -1; // no buffer limit
+    QSettings settings;
+    if(settings.value("video/Slices").toInt() == 1)
+    {
+      maxBufferSize_ = -1; // no buffer limit
+    }
+    else
+    {
+      maxBufferSize_ = settings.value("video/VPS").toInt()
+          *settings.value("video/Intra").toInt();
+    }
+
+     qDebug() << name_ << "updated buffersize to" << maxBufferSize_;
   }
 }
 
