@@ -98,7 +98,21 @@ void DShowCameraFilter::init()
                   "and capabilities was not updated?";
     capabilityID_ = 0;
   }
-  if (!dshow_setDeviceCapability(capabilityID_))
+
+  bool rgb32 = strcmp(list_[capabilityID_].format, "I420");
+
+  if(rgb32)
+  {
+    qDebug() << "DShow outputting RGB32";
+    type_ = RGB32VIDEO;
+  }
+  else
+  {
+    qDebug() << "DShow outputting YUV420";
+    type_ = YUVVIDEO;
+  }
+
+  if (!dshow_setDeviceCapability(capabilityID_, rgb32))
   {
     qDebug() << "Error selecting capability!";
     return;
@@ -146,7 +160,7 @@ void DShowCameraFilter::run()
       present_time.tv_usec = (QDateTime::currentMSecsSinceEpoch()%1000) * 1000;
 
       newImage->presentationTime = present_time;
-      newImage->type = RGB32VIDEO;
+      newImage->type = type_;
       newImage->data = std::unique_ptr<uchar[]>(data);
       data = 0;
       newImage->data_size = size;

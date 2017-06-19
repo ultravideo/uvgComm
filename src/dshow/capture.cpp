@@ -273,9 +273,10 @@ int8_t DShow_Capture::queryCapabilities()
   return TRUE;
 }
 
-int8_t DShow_Capture::setCapability(IBaseFilter* filter,int capability) {
+int8_t DShow_Capture::setCapability(IBaseFilter* filter, int capability) {
 
   selectedCapability = capability;
+
   //IBaseFilter* filter = CreateFilterFromDevice(selectedDevice);
   if (!filter) return FALSE;
 
@@ -327,15 +328,17 @@ int8_t DShow_Capture::startCapture()
   }
   pGrabberF->QueryInterface(IID_PPV_ARGS(&pGrabber));
 
-  // Output RGB32  
-  AM_MEDIA_TYPE mt;
-  ZeroMemory(&mt, sizeof(mt));
-  mt.majortype = MEDIATYPE_Video;
-  mt.subtype = MEDIASUBTYPE_RGB32;
-  if (!SUCCEEDED(pGrabber->SetMediaType(&mt))) {
-    return FALSE;
+  if(rgb32_)
+  {
+    // Output RGB32
+    AM_MEDIA_TYPE mt;
+    ZeroMemory(&mt, sizeof(mt));
+    mt.majortype = MEDIATYPE_Video;
+    mt.subtype = MEDIASUBTYPE_RGB32;
+    if (!SUCCEEDED(pGrabber->SetMediaType(&mt))) {
+      return FALSE;
+    }
   }
-  
   pGrabber->SetOneShot(FALSE);
   pGrabber->SetBufferSamples(TRUE);
 
@@ -440,9 +443,10 @@ extern "C" int8_t dshow_getDeviceCapabilities(deviceCapability** list, int8_t *c
   return TRUE;
 }
 
-extern "C" int8_t dshow_setDeviceCapability(int capability)
+extern "C" int8_t dshow_setDeviceCapability(int capability, bool rgb32)
 {
   capture.selectedCapability = capability;
+  capture.rgb32_ = rgb32;
   return TRUE;
 }
 

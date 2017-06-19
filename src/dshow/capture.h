@@ -51,6 +51,7 @@ public:
   std::vector<std::string> devices;
   std::vector<deviceCapability> device_capabilities;
 
+  bool rgb32_;
 
 private:
 
@@ -71,5 +72,4 @@ private:
   IBaseFilter *pNullF           = NULL;
   IBaseFilter *pGrabberF        = NULL;
   ISampleGrabber *pGrabber      = NULL;
-
 };

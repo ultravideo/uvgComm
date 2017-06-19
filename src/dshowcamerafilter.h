@@ -23,6 +23,8 @@ private:
   int deviceID_;
   int capabilityID_;
 
+  DataType type_;
+
   bool run_;
 
   bool exited_;

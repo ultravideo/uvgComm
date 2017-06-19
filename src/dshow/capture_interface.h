@@ -14,7 +14,7 @@ extern "C" int8_t dshow_initCapture();
 extern "C" int8_t dshow_queryDevices(char **devices[], int8_t *count);
 extern "C" int8_t dshow_selectDevice(int device);
 extern "C" int8_t dshow_getDeviceCapabilities(deviceCapability** list, int8_t *count);
-extern "C" int8_t dshow_setDeviceCapability(int capability);
+extern "C" int8_t dshow_setDeviceCapability(int capability, bool rgb32);
 extern "C" int8_t dshow_startCapture();
 extern "C" int8_t dshow_play();
 extern "C" int8_t dshow_stop();
