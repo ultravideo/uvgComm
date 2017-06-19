@@ -17,6 +17,9 @@
 #include "speexaecfilter.h"
 #include "dshowcamerafilter.h"
 
+#include <QSettings>
+#include <QDebug>
+
 #include "common.h"
 
 FilterGraph::FilterGraph(StatisticsInterface* stats):
@@ -80,6 +83,8 @@ void FilterGraph::updateSettings()
 
 void FilterGraph::initSelfView(VideoWidget *selfView)
 {
+  qDebug() << "Iniating camera and selfview";
+
   if(videoSend_.size() > 0)
   {
     destroyFilters(videoSend_);
@@ -100,29 +105,58 @@ void FilterGraph::initSelfView(VideoWidget *selfView)
 
   if(selfView)
   {
+    // TODO filters could automatically detect output of previous filter
+    // and add a conversion filter afterwards if needed
+
+    QSettings settings;
+    if(settings.value("video/InputFormat").toString() == "I420")
+    {
+      qDebug() << "Adding YUV to RGB32 conversion after camera for selfview";
+      videoSend_.push_back(new YUVtoRGB32("", stats_));
+      videoSend_.at(videoSend_.size() - 2)->addOutConnection(videoSend_.back()); // attach to camera
+      videoSend_.back()->start();
+    }
+    else
+    {
+      qDebug() << "Input already RGB32, no need for conversion to selfview";
+    }
+
     // connect selfview to camera
     DisplayFilter* selfviewFilter = new DisplayFilter("Self_", stats_, selfView, 1111);
     selfviewFilter->setProperties(true);
     videoSend_.push_back(selfviewFilter);
-    videoSend_.at(0)->addOutConnection(videoSend_.back());
+    videoSend_.at(videoSend_.size() - 2)->addOutConnection(videoSend_.back());
     videoSend_.back()->start();
   }
 }
 
 void FilterGraph::initVideoSend()
 {
-  if(videoSend_.size() != 2)
+  qDebug() << "Iniating video send";
+
+  if(videoSend_.size() == 0)
   {
-    if(videoSend_.size() > 2)
-    {
-      destroyFilters(videoSend_);
-    }
+    qDebug() << "WARNING: Camera was not iniated for video send";
     initSelfView(selfView_);
   }
+  else if(videoSend_.size() > 3)
+  {
+    qDebug() << "WARNING: Too many filters in videosend";
+    destroyFilters(videoSend_);
+  }
 
-  videoSend_.push_back(new RGB32toYUV("", stats_));
-  videoSend_.at(0)->addOutConnection(videoSend_.back()); // attach to camera
-  videoSend_.back()->start();
+  QSettings settings;
+  if(settings.value("video/InputFormat").toString() != "I420")
+  {
+    qDebug() << "Adding RGB32 to YUV conversion after camera";
+    videoSend_.push_back(new RGB32toYUV("", stats_));
+    videoSend_.at(0)->addOutConnection(videoSend_.back()); // attach to camera
+    videoSend_.back()->start();
+  }
+  else
+  {
+    qDebug() << "Input already YUV, no need for conversion to kvazaar";
+  }
 
   KvazaarFilter* kvz = new KvazaarFilter("", stats_);
   kvz->init();
@@ -192,7 +226,7 @@ void FilterGraph::sendVideoto(int16_t id, Filter *videoFramedSource)
   qDebug() << "Adding send video for peer:" << id;
 
   // make sure we are generating video
-  if(videoSend_.size() < 3)
+  if(videoSend_.size() < 4)
   {
     initVideoSend();
   }

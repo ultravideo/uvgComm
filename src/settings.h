@@ -51,7 +51,7 @@ private:
   QStringList getAudioDevices();
   QStringList getVideoCapabilities(int deviceID);
   void getCapability(int deviceIndex, int capabilityIndex,
-                     QSize& resolution, double& framerate);
+                     QSize& resolution, double& framerate, QString &format);
 
   // make sure the ui video devices is initialized before calling this
   int getVideoDeviceID(QSettings& settings);

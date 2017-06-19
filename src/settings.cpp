@@ -128,7 +128,8 @@ void Settings::saveCameraCapabilities(QSettings& settings, int deviceIndex, int 
 {
   QSize resolution = QSize(0,0);
   double fps = 0.0f;
-  getCapability(deviceIndex, capabilityIndex, resolution, fps);
+  QString format = "";
+  getCapability(deviceIndex, capabilityIndex, resolution, fps, format);
   int32_t fps_int = static_cast<int>(fps);
 
   settings.setValue("video/ResolutionID",         capabilityIndex);
@@ -137,10 +138,11 @@ void Settings::saveCameraCapabilities(QSettings& settings, int deviceIndex, int 
   settings.setValue("video/ResolutionWidth",      resolution.width() - resolution.width()%8);
   settings.setValue("video/ResolutionHeight",     resolution.height() - resolution.height()%8);
   settings.setValue("video/Framerate",            fps_int);
+  settings.setValue("video/InputFormat",          format);
 
   qDebug() << "Recorded the following video settings: Resolution:"
            << resolution.width() - resolution.width()%8 << "x" << resolution.height() - resolution.height()%8
-           << "fps:" << fps_int << "resolution index:" << capabilityIndex;
+           << "fps:" << fps_int << "resolution index:" << capabilityIndex << "format" << format;
 }
 
 // restores temporarily recorded settings
@@ -205,6 +207,8 @@ void Settings::resetFaultySettings()
   // record GUI settings in hope that they are correct ( is case by default )
   saveBasicSettings();
   saveAdvancedSettings();
+
+
 }
 
 
@@ -225,6 +229,7 @@ void Settings::showAdvancedSettings()
   advancedUI_->resolution->clear();
   QSettings settings;
   QStringList capabilities = getVideoCapabilities(getVideoDeviceID(settings));
+  qDebug() << "Showing advanced settings";
   for(unsigned int i = 0; i < capabilities.size(); ++i)
   {
     advancedUI_->resolution->addItem( capabilities[i]);
@@ -263,10 +268,9 @@ QStringList Settings::getVideoCapabilities(int deviceID)
     deviceCapability *capList;
     dshow_getDeviceCapabilities(&capList, &count);
 
-    qDebug() << "Found " << (int)count << " capabilities: ";
+    qDebug() << "Found" << (int)count << "capabilities";
     for(int i = 0; i < count; ++i)
     {
-      qDebug() << "[" << i << "] " << capList[i].width << "x" << capList[i].height;
       list.push_back(QString(capList[i].format) + " " + QString::number(capList[i].width) + "x" +
                      QString::number(capList[i].height) + " " +
                      QString::number(capList[i].fps) + " fps");
@@ -276,7 +280,11 @@ QStringList Settings::getVideoCapabilities(int deviceID)
   return list;
 }
 
-void Settings::getCapability(int deviceIndex, int capabilityIndex, QSize& resolution, double& framerate)
+void Settings::getCapability(int deviceIndex,
+                             int capabilityIndex,
+                             QSize& resolution,
+                             double& framerate,
+                             QString& format)
 {
   if (dshow_selectDevice(deviceIndex) || dshow_selectDevice(0))
   {
@@ -297,6 +305,7 @@ void Settings::getCapability(int deviceIndex, int capabilityIndex, QSize& resolu
 
     resolution = QSize(capList[capabilityIndex].width,capList[capabilityIndex].height);
     framerate = capList[capabilityIndex].fps;
+    format = capList[capabilityIndex].format;
   }
 }
 
@@ -344,6 +353,7 @@ bool Settings::checkVideoSettings()
       && settings.contains("video/ResolutionHeight")
       && settings.contains("video/WPP")
       && settings.contains("video/Framerate")
+      && settings.contains("video/InputFormat")
       && settings.contains("video/Slices");
 }
 
@@ -353,7 +363,7 @@ bool Settings::checkMissingValues()
   QStringList list = settings.allKeys();
   for(auto key : list)
   {
-    if(settings.value(key).isNull())
+    if(settings.value(key).isNull() || settings.value(key) == "")
     {
       qDebug() << "MISSING SETTING FOR:" << key;
       return false;

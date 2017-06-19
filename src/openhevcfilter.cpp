@@ -175,7 +175,6 @@ void OpenHEVCFilter::process()
     else
     {
       ++waitFrames_;
-      qDebug() << name_ << "has not received parameter set yet for" << waitFrames_ << "frames";
     }
 
     input = getInput();
