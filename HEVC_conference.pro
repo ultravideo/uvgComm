@@ -91,12 +91,10 @@ QT+=network
 
 QMAKE_CXXFLAGS += -std=c++11
 
-#CONFIG += console
+CONFIG += console
 
-INCLUDEPATH += $$PWD/../include/kvazaar/src
-INCLUDEPATH += $$PWD/../include/openHEVC/gpac/modules/openhevc_dec
-INCLUDEPATH += $$PWD/../include/opus/include
-INCLUDEPATH += $$PWD/../include/libosip2/include
+INCLUDEPATH += $$PWD/../include/openhevc_dec
+INCLUDEPATH += $$PWD/../include/opus
 INCLUDEPATH += $$PWD/../include/live/liveMedia/include
 INCLUDEPATH += $$PWD/../include/live/groupsock/include
 INCLUDEPATH += $$PWD/../include/live/UsageEnvironment/include
@@ -110,7 +108,6 @@ win32: LIBS += -llibLibOpenHevcWrapper.dll
 win32: LIBS += -llivemedia.dll
 win32: LIBS += -llibspeexdsp.dll
 win32: LIBS += -lws2_32
-win32: LIBS += -llibosip2.dll
 
 INCLUDEPATH += $$PWD/../
 DEPENDPATH += $$PWD/../

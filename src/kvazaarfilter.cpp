@@ -43,8 +43,8 @@ int KvazaarFilter::init(QSize resolution,
 
   api_->config_init(config_);
   api_->config_parse(config_, "preset", "ultrafast");
-  config_->width = resolution.width();
-  config_->height = resolution.height();
+  config_->width = 640;
+  config_->height = 480;
   config_->threads = 4;
   config_->qp = 32;
   config_->wpp = 1;

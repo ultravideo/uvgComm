@@ -30,7 +30,7 @@ FilterGraph::FilterGraph(StatisticsInterface* stats):
   Q_ASSERT(stats);
   // TODO negotiate these values with all included filters
   format_.setSampleRate(48000);
-  format_.setChannelCount(2);
+  format_.setChannelCount(1);
   format_.setSampleSize(16);
   format_.setSampleType(QAudioFormat::SignedInt);
   format_.setByteOrder(QAudioFormat::LittleEndian);

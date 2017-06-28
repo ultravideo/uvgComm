@@ -164,7 +164,7 @@ uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets, uint32_t i
   uint32_t currentTime = QDateTime::currentMSecsSinceEpoch();
   uint32_t timeInterval = 0;
   uint32_t bitrate = 0;
-  uint32_t bitrateInterval = 2000;
+  uint32_t bitrateInterval = 5000;
 
   uint32_t i = index - 1;
 

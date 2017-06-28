@@ -37,5 +37,7 @@ private:
   QImage currentImage_;
   std::unique_ptr<uchar[]> input_;
 
+  bool updated_;
+
   unsigned int id_;
 };

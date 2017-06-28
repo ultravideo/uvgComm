@@ -26,14 +26,12 @@ CameraFilter::CameraFilter(QString id, StatisticsInterface *stats, QSize resolut
 
   connect(cameraFrameGrabber_, SIGNAL(frameAvailable(QVideoFrame)), this, SLOT(handleFrame(QVideoFrame)));
 
-  camera_->start();
+  QCameraViewfinderSettings settings = camera_->viewfinderSettings();
 
-  if( camera_->state() == QCamera::ActiveState)
-  {
-    QCameraViewfinderSettings settings = camera_->viewfinderSettings();
-    stats_->videoInfo(settings.maximumFrameRate(), settings.resolution());
-    framerate_ = settings.maximumFrameRate();
-  }
+  settings.setResolution(QSize(640, 480));
+  settings.setPixelFormat(QVideoFrame::Format_Jpeg);
+  camera_->setViewfinderSettings(settings);
+  camera_->start();
 }
 
 CameraFilter::~CameraFilter()
@@ -66,6 +64,25 @@ void CameraFilter::stop()
 
 void CameraFilter::handleFrame(const QVideoFrame &frame)
 {
+  if(framerate_ == 0)
+  {
+    QCameraViewfinderSettings settings = camera_->viewfinderSettings();
+    QList<QVideoFrame::PixelFormat> formats = camera_->supportedViewfinderPixelFormats();
+    /*
+    for(auto format : formats)
+    {
+      qDebug() << "QCamera supported format:" << format;
+    }
+
+    QList<QSize> resolutions = camera_->supportedViewfinderResolutions();
+    for(auto reso : resolutions)
+    {
+      qDebug() << "QCamera supported resolutions:" << reso;
+    }
+    */
+    stats_->videoInfo(settings.maximumFrameRate(), settings.resolution());
+    framerate_ = settings.maximumFrameRate();
+  }
 
   QVideoFrame cloneFrame(frame);
   cloneFrame.map(QAbstractVideoBuffer::ReadOnly);
@@ -95,7 +112,7 @@ void CameraFilter::handleFrame(const QVideoFrame &frame)
   newImage->height = cloneFrame.height();
   newImage->source = LOCAL;
   newImage->framerate = framerate_;
-
+/*
   // scale the image and copy to new data
   if(resolution_ != cloneFrame.size())
   {
@@ -117,7 +134,7 @@ void CameraFilter::handleFrame(const QVideoFrame &frame)
     newImage->data_size = image2.byteCount();
     newImage->framerate = 30; // TODO Input this using settings.
   }
-
+*/
   //qDebug() << "Frame generated. Format: " << pf
   //         << " width: " << newImage->width << ", height: " << newImage->height;
 

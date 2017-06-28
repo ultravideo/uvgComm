@@ -8,7 +8,8 @@ unsigned int VideoWidget::number_ = 0;
 
 VideoWidget::VideoWidget(QWidget* parent): QWidget(parent),
   hasImage_(false),
-  id_(number_)
+  id_(number_),
+  updated_(false)
 {
   ++number_;
   setAutoFillBackground(false);
@@ -33,6 +34,7 @@ void VideoWidget::inputImage(std::unique_ptr<uchar[]> input,
   currentImage_ = image;
   hasImage_ = true;
   drawMutex_.unlock();
+  updated_ = true;
 
   updateTargetRect();
 }
@@ -46,11 +48,14 @@ void VideoWidget::paintEvent(QPaintEvent *event)
 
   if(hasImage_)
   {
-    drawMutex_.lock();
-    Q_ASSERT(input_);
+    if(updated_)
+    {
+      drawMutex_.lock();
+      Q_ASSERT(input_);
 
-    painter.drawImage(targetRect_, currentImage_);
-    drawMutex_.unlock();
+      painter.drawImage(targetRect_, currentImage_);
+      drawMutex_.unlock();
+    }
   }
   else
   {

@@ -30,7 +30,7 @@ OpusEncoderFilter::~OpusEncoderFilter()
 void OpusEncoderFilter::init(QAudioFormat format)
 {
   int error = 0;
-  enc_ = opus_encoder_create(format.sampleRate(), format.channelCount(), OPUS_APPLICATION_AUDIO, &error);
+  enc_ = opus_encoder_create(format.sampleRate(), format.channelCount(), OPUS_APPLICATION_VOIP, &error);
 
   if(error)
     qWarning() << "Failed to initialize opus encoder with errorcode:" << error;

@@ -37,6 +37,8 @@ RTPStreamer::RTPStreamer(StatisticsInterface* stats):
 
 void RTPStreamer::run()
 {
+  qDebug() << "Live555 TID:" << (uint64_t)currentThreadId();
+
   // QThread run function
   qDebug() << "Iniating RTP streamer";
   iniated_.lock();

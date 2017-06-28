@@ -31,7 +31,7 @@ CallWindow::CallWindow(QWidget *parent, uint16_t width, uint16_t height, QString
   currentResolution_ = QSize(width, height);
 
   // GUI updates are handled solely by timer
-  timer_->setInterval(10);
+  timer_->setInterval(30);
   timer_->setSingleShot(false);
   connect(timer_, SIGNAL(timeout()), this, SLOT(update()));
   connect(timer_, SIGNAL(timeout()), stats_, SLOT(update()));

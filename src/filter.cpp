@@ -172,6 +172,7 @@ void Filter::stop()
 
 void Filter::run()
 {
+  qDebug() << name_ << "TID:" << (uint64_t)currentThreadId();
   running_ = true;
   while(running_)
   {
