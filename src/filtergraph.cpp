@@ -90,10 +90,8 @@ void FilterGraph::initSelfView(VideoWidget *selfView)
     destroyFilters(videoSend_);
   }
 
-  bool dshow = true;
-
   // Sending video graph
-  if(dshow)
+  if(DSHOW_ENABLED)
   {
     DShowCameraFilter* dshow = new DShowCameraFilter("", stats_);
     dshow->init();
@@ -309,7 +307,7 @@ void FilterGraph::receiveAudioFrom(int16_t id, Filter* audioSink)
   Q_ASSERT(audioSink);
 
   // just in case it is wanted later. AEC filter has to be attached
-  if(AEC && audioSend_.size() == 0)
+  if(AEC_ENABLED && audioSend_.size() == 0)
   {
     initAudioSend();
   }
@@ -331,7 +329,7 @@ void FilterGraph::receiveAudioFrom(int16_t id, Filter* audioSink)
   peers_.at(id)->audioSink->addOutConnection(peers_.at(id)->audioReceive.back());
   peers_.at(id)->audioReceive.back()->start();
 
-  if(audioSend_.size() > 0 && AEC)
+  if(audioSend_.size() > 0 && AEC_ENABLED)
   {
     peers_.at(id)->audioReceive.push_back(new SpeexAECFilter(QString::number(id) + "_", stats_, format_));
     audioSend_.at(0)->addOutConnection(peers_.at(id)->audioReceive.back());
@@ -479,7 +477,7 @@ void FilterGraph::destroyPeer(Peer* peer)
     peer->audioFramedSource->stop();
     peer->audioFramedSource = 0;
 
-    if(AEC)
+    if(AEC_ENABLED)
     {
       audioSend_.at(0)->removeOutConnection(peer->audioReceive.back());
     }

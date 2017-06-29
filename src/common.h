@@ -58,4 +58,5 @@ struct SDPMessageInfo
 void qSleep(int ms);
 
 // TODO fix AEC bugs and faulty operating.
-const bool AEC = false;
+const bool AEC_ENABLED = false;
+const bool DSHOW_ENABLED = true;
