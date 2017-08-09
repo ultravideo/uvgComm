@@ -17,14 +17,16 @@ Settings::Settings(QWidget *parent) :
   basicUI_->setupUi(&basicParent_);
   advancedUI_->setupUi(&advancedParent_);
 
+  dshow_initCapture();
+
   // initializes the GUI with values or initialize them in case they dont exist
   restoreBasicSettings();
   restoreAdvancedSettings();
 
   QObject::connect(basicUI_->ok, SIGNAL(clicked()), this, SLOT(on_ok_clicked()));
   QObject::connect(basicUI_->cancel, SIGNAL(clicked()), this, SLOT(on_cancel_clicked()));
-  QObject::connect(advancedUI_->ok, SIGNAL(clicked()), this, SLOT(on_ok_clicked()));
-  QObject::connect(advancedUI_->cancel, SIGNAL(clicked()), this, SLOT(on_cancel_clicked()));
+  QObject::connect(advancedUI_->ok, SIGNAL(clicked()), this, SLOT(on_advanced_ok_clicked()));
+  QObject::connect(advancedUI_->cancel, SIGNAL(clicked()), this, SLOT(on_advanced_cancel_clicked()));
 }
 
 Settings::~Settings()
@@ -36,20 +38,31 @@ Settings::~Settings()
 
 void Settings::on_ok_clicked()
 {
-  qDebug() << "Saving settings";
-  saveBasicSettings();// because I am lazy, record both
-  saveAdvancedSettings();
+  qDebug() << "Saving basic settings";
+  saveBasicSettings();
   emit settingsChanged();
   basicParent_.hide();
-  advancedParent_.hide();
 }
 
 void Settings::on_cancel_clicked()
 {
-  qDebug() << "Getting settings from system";
-  restoreBasicSettings(); // because I am lazy, restore both
-  restoreAdvancedSettings();
+  qDebug() << "Getting basic settings from system";
+  restoreBasicSettings();
   basicParent_.hide();
+}
+
+void Settings::on_advanced_ok_clicked()
+{
+  qDebug() << "Saving advanced settings";
+  saveAdvancedSettings();
+  emit settingsChanged();
+  advancedParent_.hide();
+}
+
+void Settings::on_advanced_cancel_clicked()
+{
+  qDebug() << "Getting advanced settings from system";
+  restoreAdvancedSettings();
   advancedParent_.hide();
 }
 
@@ -126,6 +139,7 @@ void Settings::saveAdvancedSettings()
 
 void Settings::saveCameraCapabilities(QSettings& settings, int deviceIndex, int capabilityIndex)
 {
+  qDebug() << "Recording capability settings for deviceIndex:" << deviceIndex;
   QSize resolution = QSize(0,0);
   double fps = 0.0f;
   QString format = "";
@@ -207,19 +221,11 @@ void Settings::resetFaultySettings()
   // record GUI settings in hope that they are correct ( is case by default )
   saveBasicSettings();
   saveAdvancedSettings();
-
-
 }
-
 
 void Settings::showBasicSettings()
 {
-  basicUI_->videoDevice->clear();
-  QStringList videoDevices = getVideoDevices();
-  for(unsigned int i = 0; i < videoDevices.size(); ++i)
-  {
-    basicUI_->videoDevice->addItem( videoDevices[i]);
-  }
+  initializeDeviceList();
   restoreBasicSettings();
   basicParent_.show();
 }
@@ -236,6 +242,17 @@ void Settings::showAdvancedSettings()
   }
   restoreAdvancedSettings();
   advancedParent_.show();
+}
+
+void Settings::initializeDeviceList()
+{
+  qDebug() << "Initialize device list";
+  basicUI_->videoDevice->clear();
+  QStringList videoDevices = getVideoDevices();
+  for(unsigned int i = 0; i < videoDevices.size(); ++i)
+  {
+    basicUI_->videoDevice->addItem( videoDevices[i]);
+  }
 }
 
 QStringList Settings::getVideoDevices()
@@ -312,6 +329,8 @@ void Settings::getCapability(int deviceIndex,
 
 int Settings::getVideoDeviceID(QSettings &settings)
 {
+  initializeDeviceList();
+
   int deviceIndex = basicUI_->videoDevice->findText(settings.value("video/Device").toString());
   int deviceID = settings.value("video/DeviceID").toInt();
 
@@ -327,13 +346,19 @@ int Settings::getVideoDeviceID(QSettings &settings)
     }
     else
     {
+      // the recorded info was false and our found device is chosen
+      settings.setValue("video/DeviceID", deviceIndex);
       return deviceIndex;
     }
   }
   else if(basicUI_->videoDevice->count() != 0)
   {
+    // could not find the device. Choosing first one
+    settings.setValue("video/DeviceID", 0);
     return 0;
   }
+
+  // no devices attached
   return -1;
 }
 

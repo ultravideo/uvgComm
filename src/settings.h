@@ -28,7 +28,11 @@ public slots:
   void on_ok_clicked();
   void on_cancel_clicked();
 
+  void on_advanced_ok_clicked();
+  void on_advanced_cancel_clicked();
+
 private:
+  void initializeDeviceList();
 
   // checks if user settings make sense
   // TODO: display errors to user on ok click
