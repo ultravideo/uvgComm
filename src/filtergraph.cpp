@@ -49,9 +49,28 @@ void FilterGraph::init(VideoWidget* selfView)
 
 void FilterGraph::updateSettings()
 {
-  for(auto filter : videoSend_)
+  QSettings settings;
+  // if the video format has changed so that we need different conversions
+  if(videoFormat_ != settings.value("video/InputFormat").toString())
   {
-    filter->updateSettings();
+    qDebug() << "The video format has been changed from " << videoFormat_
+             << "to" << settings.value("video/InputFormat").toString() << "Video send graph has to be reconstructed.";
+
+    initSelfView(selfView_);
+    initVideoSend();
+
+    // reconnect all videosends to streamers
+    for(Peer* peer : peers_)
+    {
+      videoSend_.back()->addOutConnection(peer->videoFramedSource);
+    }
+  }
+  else
+  {
+    for(auto filter : videoSend_)
+    {
+      filter->updateSettings();
+    }
   }
   for(auto filter : audioSend_)
   {
@@ -107,7 +126,8 @@ void FilterGraph::initSelfView(VideoWidget *selfView)
     // and add a conversion filter afterwards if needed
 
     QSettings settings;
-    if(settings.value("video/InputFormat").toString() == "I420")
+    videoFormat_ = settings.value("video/InputFormat").toString();
+    if(videoFormat_ == "I420")
     {
       qDebug() << "Adding YUV to RGB32 conversion after camera for selfview";
       videoSend_.push_back(new YUVtoRGB32("", stats_));

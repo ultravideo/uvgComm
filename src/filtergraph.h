@@ -81,4 +81,6 @@ private:
 
   // audio configs
   QAudioFormat format_;
+
+  QString videoFormat_;
 };
