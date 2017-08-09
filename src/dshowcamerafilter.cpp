@@ -50,23 +50,20 @@ void DShowCameraFilter::init()
   if(deviceID_ == -1)
     deviceID_ = 0;
 
-  if(deviceID_ < count)
+  // if the deviceID has changed
+  if(deviceID_ < count && devices[deviceID_] != deviceName)
   {
-    // if the deviceID has changed
-    if(devices[deviceID_] != deviceName)
+    // search for device with same name
+    for(int i = 0; i < count; ++i)
     {
-      // search for device with same name
-      for(int i = 0; i < count; ++i)
+      if(devices[i] == deviceName)
       {
-        if(devices[i] == deviceName)
-        {
-          deviceID_ = i;
-          break;
-        }
+        deviceID_ = i;
+        break;
       }
-      // previous camera could not be found, use default.
-      deviceID_ = 0;
     }
+    // previous camera could not be found, use first.
+    deviceID_ = 0;
   }
 
   if (!dshow_selectDevice(deviceID_))

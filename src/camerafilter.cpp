@@ -3,6 +3,7 @@
 #include "cameraframegrabber.h"
 
 //#include <QCameraViewfinder>
+#include <QSettings>
 #include <QCameraInfo>
 #include <QTime>
 #include <QtDebug>
@@ -16,7 +17,35 @@ CameraFilter::CameraFilter(QString id, StatisticsInterface *stats):
   cameraFrameGrabber_(),
   framerate_(0)
 {
-  camera_ = new QCamera(QCameraInfo::defaultCamera());
+  QList<QCameraInfo> cameras = QCameraInfo::availableCameras();
+
+  if(cameras.size() == 0)
+  {
+    return;
+  }
+
+  QSettings settings;
+  QString deviceName = settings.value("video/Device").toString();
+  int deviceID = settings.value("video/DeviceID").toInt();
+
+  // if the deviceID has changed
+  if(deviceID < cameras.size() && cameras[deviceID].deviceName() != deviceName)
+  {
+    // search for device with same name
+    for(int i = 0; i < cameras.size(); ++i)
+    {
+      if(cameras.at(i).deviceName() == deviceName)
+      {
+        deviceID = i;
+        break;
+      }
+    }
+    // previous camera could not be found, use first.
+    deviceID = 0;
+  }
+
+  camera_ = new QCamera(cameras.at(deviceID));
+  //camera_ = new QCamera(QCameraInfo::defaultCamera());
   cameraFrameGrabber_ = new CameraFrameGrabber();
 
   Q_ASSERT(camera_ && cameraFrameGrabber_);
@@ -25,11 +54,11 @@ CameraFilter::CameraFilter(QString id, StatisticsInterface *stats):
 
   connect(cameraFrameGrabber_, SIGNAL(frameAvailable(QVideoFrame)), this, SLOT(handleFrame(QVideoFrame)));
 
-  QCameraViewfinderSettings settings = camera_->viewfinderSettings();
-
-  settings.setResolution(QSize(640, 480));
-  settings.setPixelFormat(QVideoFrame::Format_Jpeg);
-  camera_->setViewfinderSettings(settings);
+  QCameraViewfinderSettings viewSettings = camera_->viewfinderSettings();
+  camera_->supportedViewfinderResolutions();
+  viewSettings.setResolution(QSize(640, 480));
+  viewSettings.setPixelFormat(QVideoFrame::Format_Jpeg);
+  camera_->setViewfinderSettings(viewSettings);
   camera_->start();
 }
 
