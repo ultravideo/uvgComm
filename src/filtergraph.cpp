@@ -533,6 +533,7 @@ void FilterGraph::removeParticipant(int16_t id)
   if(!peerPresent)
   {
     destroyFilters(videoSend_);
+    initSelfView(selfView_); // restore the self view.
     destroyFilters(audioSend_);
   }
 }
