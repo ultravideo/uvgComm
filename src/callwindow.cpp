@@ -108,8 +108,7 @@ void CallWindow::startStream()
 
   callNeg_.init(localName, localUsername);
 
-  media_.init();
-  media_.startCall(ui_->SelfView);
+  media_.init(ui_->SelfView);
 }
 
 void CallWindow::recordChangedSettings()

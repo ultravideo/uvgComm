@@ -23,13 +23,17 @@ MediaManager::~MediaManager()
   fg_->uninit();
 }
 
-void MediaManager::init()
+void MediaManager::init(VideoWidget *selfView)
 {
+  qDebug() << "Iniating media manager";
   streamer_->init();
+  streamer_->start();
+  fg_->init(selfView);
 }
 
 void MediaManager::uninit()
 {
+  qDebug() << "Destroying media manager";
   // first filter graph, then streamer because of the rtpfilters
   fg_->running(false);
   fg_->uninit();
@@ -41,12 +45,6 @@ void MediaManager::uninit()
 void MediaManager::updateSettings()
 {
   fg_->updateSettings();
-}
-
-void MediaManager::startCall(VideoWidget *selfView)
-{
-  streamer_->start();
-  fg_->init(selfView);
 }
 
 void MediaManager::addParticipant(QString callID, in_addr ip, uint16_t sendAudioPort, uint16_t recvAudioPort,
