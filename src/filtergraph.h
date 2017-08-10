@@ -37,7 +37,7 @@ public:
 
 private:
 
-  bool addFilter(Filter* filter, std::vector<Filter*>& graph);
+  bool addToGraph(Filter* filter, std::vector<Filter*>& graph);
   bool connectFilters(Filter* filter, Filter* previous);
 
   // makes sure the participant exists and adds if necessary

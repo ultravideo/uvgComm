@@ -99,7 +99,6 @@ void FilterGraph::updateSettings()
     }
   }
 
-
   // update selfview in case camera format has changed
 }
 
@@ -115,39 +114,17 @@ void FilterGraph::initSelfView(VideoWidget *selfView)
   // Sending video graph
   if(DSHOW_ENABLED)
   {
-    DShowCameraFilter* dshow = new DShowCameraFilter("", stats_);
-    dshow->init();
-    videoSend_.push_back(dshow);
-    videoSend_.back()->start();
+    addToGraph(new DShowCameraFilter("", stats_), videoSend_);
   }
   else
-    videoSend_.push_back(new CameraFilter("", stats_));
+    addToGraph(new CameraFilter("", stats_), videoSend_);
 
   if(selfView)
   {
-    // TODO filters could automatically detect output of previous filter
-    // and add a conversion filter afterwards if needed
-
-    QSettings settings;
-    videoFormat_ = settings.value("video/InputFormat").toString();
-    if(videoFormat_ == "I420")
-    {
-      qDebug() << "Adding YUV to RGB32 conversion after camera for selfview";
-      videoSend_.push_back(new YUVtoRGB32("", stats_));
-      videoSend_.at(videoSend_.size() - 2)->addOutConnection(videoSend_.back()); // attach to camera
-      videoSend_.back()->start();
-    }
-    else
-    {
-      qDebug() << "Input already RGB32, no need for conversion to selfview";
-    }
-
     // connect selfview to camera
     DisplayFilter* selfviewFilter = new DisplayFilter("Self_", stats_, selfView, 1111);
     selfviewFilter->setProperties(true);
-    videoSend_.push_back(selfviewFilter);
-    videoSend_.at(videoSend_.size() - 2)->addOutConnection(videoSend_.back());
-    videoSend_.back()->start();
+    addToGraph(selfviewFilter, videoSend_);
   }
 }
 
@@ -201,43 +178,52 @@ void FilterGraph::initAudioSend()
   audioSend_.back()->start();
 }
 
-bool FilterGraph::addFilter(Filter* filter, std::vector<Filter*>& graph)
+bool FilterGraph::addToGraph(Filter* filter, std::vector<Filter*>& graph)
 {
-  if(graph.back()->outputType() != filter->inputType())
+  if(graph.size() != 0)
   {
-    qDebug() << "Filter output and input do not match. Trying to find an existing conversion";
+    // check if we need some sort of conversion
+    if(graph.back()->outputType() != filter->inputType())
+    {
+      qDebug() << "Filter output and input do not match. Trying to find an existing conversion";
 
-    if(graph.back()->outputType() == RGB32VIDEO &&
-       filter->inputType() == YUVVIDEO)
-    {
-      addFilter(new RGB32toYUV("", stats_), graph);
+      Q_ASSERT(graph.back()->outputType() != NONE);
+
+      if(graph.back()->outputType() == RGB32VIDEO &&
+         filter->inputType() == YUVVIDEO)
+      {
+        addToGraph(new RGB32toYUV("", stats_), graph);
+      }
+      else if(graph.back()->outputType() == YUVVIDEO &&
+              filter->inputType() == RGB32VIDEO)
+      {
+        addToGraph(new YUVtoRGB32("", stats_), graph);
+      }
+      else
+      {
+        qWarning() << "WARNING: Could not find conversion for filter";
+        return false;
+      }
     }
-    else if(graph.back()->outputType() == YUVVIDEO &&
-            filter->inputType() == RGB32VIDEO)
-    {
-      addFilter(new YUVtoRGB32("", stats_), graph);
-    }
-    else
-    {
-      qWarning() << "WARNING: Could not find conversion";
-      return false;
-    }
+    connectFilters(filter, graph.back());
   }
   graph.push_back(filter);
-  connectFilters(filter, graph.back());
+  filter->init();
+  filter->start();
+  qDebug() << "Added, iniated and started a filter";
   return true;
 }
 
 bool FilterGraph::connectFilters(Filter* filter, Filter* previous)
 {
+  Q_ASSERT(filter != NULL && previous != NULL);
+
   if(previous->outputType() != filter->inputType())
   {
     qWarning() << "WARNING: The connecting filter output and input DO NOT MATCH";
     return false;
   }
-
   previous->addOutConnection(filter);
-  filter->start();
 }
 
 
