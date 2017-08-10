@@ -16,7 +16,7 @@ uint8_t clamp(int32_t input)
 }
 
 YUVtoRGB32::YUVtoRGB32(QString id, StatisticsInterface *stats) :
-  Filter(id, "YUVtoRGB32", stats, true, true),
+  Filter(id, "YUVtoRGB32", stats, YUVVIDEO, RGB32VIDEO),
   sse_(true),
   avx2_(true)
 {}

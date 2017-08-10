@@ -5,7 +5,7 @@
 #include <QDebug>
 
 Filter::Filter(QString id, QString name, StatisticsInterface *stats,
-               bool input, bool output):
+               DataType input, DataType output):
   name_(id + name),
   stats_(stats),
   maxBufferSize_(10),

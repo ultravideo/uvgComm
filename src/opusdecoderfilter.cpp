@@ -3,7 +3,7 @@
 #include <QDebug>
 
 OpusDecoderFilter::OpusDecoderFilter(QString id, StatisticsInterface *stats):
-  Filter(id, "Opus_Decoder", stats, true, true),
+  Filter(id, "Opus_Decoder", stats, OPUSAUDIO, RAWAUDIO),
   dec_(0),
   pcmOutput_(0),
   max_data_bytes_(65536)

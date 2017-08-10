@@ -12,7 +12,7 @@ const uint32_t BUFFER_SIZE = 10*65536;
 
 
 RTPSinkFilter::RTPSinkFilter(QString id, StatisticsInterface *stats, UsageEnvironment& env, DataType type):
-  Filter(id, "RTP_Sink", stats, false, true),
+  Filter(id, "RTP_Sink", stats, NONE, type),
   MediaSink(env),
   type_(type)
 {

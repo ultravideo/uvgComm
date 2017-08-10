@@ -12,7 +12,7 @@
 
 
 CameraFilter::CameraFilter(QString id, StatisticsInterface *stats):
-  Filter(id, "Camera", stats, false, true),
+  Filter(id, "Camera", stats, NONE, RGB32VIDEO),
   camera_(),
   cameraFrameGrabber_(),
   framerate_(0)

@@ -12,7 +12,7 @@
 enum RETURN_STATUS {C_SUCCESS = 0, C_FAILURE = -1};
 
 KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats):
-  Filter(id, "Kvazaar", stats, true, true),
+  Filter(id, "Kvazaar", stats, YUVVIDEO, HEVCVIDEO),
   api_(NULL),
   config_(NULL),
   enc_(NULL),

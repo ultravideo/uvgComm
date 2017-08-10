@@ -10,7 +10,7 @@
 
 DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
                              VideoWidget *widget, uint32_t peer):
-  Filter(id, "Display", stats, true, false),
+  Filter(id, "Display", stats, RGB32VIDEO, NONE),
   widget_(widget),
   peer_(peer)
 {

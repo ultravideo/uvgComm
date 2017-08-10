@@ -4,7 +4,7 @@
 #include <QSettings>
 
 OpenHEVCFilter::OpenHEVCFilter(QString id, StatisticsInterface *stats):
-  Filter(id, "OpenHEVC", stats, true, true),
+  Filter(id, "OpenHEVC", stats, HEVCVIDEO, YUVVIDEO),
   handle_(),
   parameterSets_(false),
   waitFrames_(0),

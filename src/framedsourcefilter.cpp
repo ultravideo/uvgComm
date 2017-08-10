@@ -9,7 +9,7 @@
 FramedSourceFilter::FramedSourceFilter(QString id, StatisticsInterface* stats,
                                        UsageEnvironment &env, DataType type):
   FramedSource(env),
-  Filter(id, "Framed_Source", stats, true, false),
+  Filter(id, "Framed_Source", stats, type, NONE),
   type_(type)
 {
   updateSettings();

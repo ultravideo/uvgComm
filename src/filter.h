@@ -36,7 +36,7 @@ class Filter : public QThread
   Q_OBJECT
 
 public:
-  Filter(QString id, QString name, StatisticsInterface* stats, bool input, bool output);
+  Filter(QString id, QString name, StatisticsInterface* stats, DataType input, DataType output);
   virtual ~Filter();
 
   virtual void updateSettings();
@@ -62,11 +62,11 @@ public:
   void putInput(std::unique_ptr<Data> data);
 
   // for debugging filter graphs
-  virtual bool isInputFilter() const
+  virtual DataType inputType() const
   {
     return input_;
   }
-  virtual bool isOutputFilter() const
+  virtual DataType outputType() const
   {
     return output_;
   }
@@ -108,6 +108,10 @@ protected:
   StatisticsInterface* stats_;
   // -1 disables buffer, but its not recommended because delay
   int maxBufferSize_;
+
+  DataType input_;
+  DataType output_;
+
 private:
 
   QMutex *waitMutex_;
@@ -126,7 +130,4 @@ private:
 
   unsigned int inputTaken_;
   unsigned int inputDiscarded_;
-
-  bool input_;
-  bool output_;
 };

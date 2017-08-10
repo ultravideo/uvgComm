@@ -8,7 +8,7 @@
 #include <QDebug>
 
 DShowCameraFilter::DShowCameraFilter(QString id, StatisticsInterface *stats)
-  :Filter(id, "Camera", stats, false, true),
+  :Filter(id, "Camera", stats, NONE, RGB32VIDEO),
     deviceID_(0),
     capabilityID_(0),
     exited_(true)
