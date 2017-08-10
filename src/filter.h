@@ -39,6 +39,8 @@ public:
   Filter(QString id, QString name, StatisticsInterface* stats, DataType input, DataType output);
   virtual ~Filter();
 
+  virtual bool init();
+
   virtual void updateSettings();
 
   // adds one outbound connection to this filter.

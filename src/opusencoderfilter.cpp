@@ -8,12 +8,12 @@
 // this is how many frames the audio capture seems to send
 const uint16_t FRAMESPERSECOND = 25;
 
-OpusEncoderFilter::OpusEncoderFilter(QString id, StatisticsInterface* stats):
+OpusEncoderFilter::OpusEncoderFilter(QString id, QAudioFormat format, StatisticsInterface* stats):
   Filter(id, "Opus_Encoder", stats, RAWAUDIO, OPUSAUDIO),
   enc_(0),
   opusOutput_(0),
   max_data_bytes_(65536),
-  format_(),
+  format_(format),
   numberOfSamples_(0)
 {
   opusOutput_ = new uchar[max_data_bytes_];
@@ -27,16 +27,19 @@ OpusEncoderFilter::~OpusEncoderFilter()
   opusOutput_ = 0;
 }
 
-void OpusEncoderFilter::init(QAudioFormat format)
+bool OpusEncoderFilter::init()
 {
   int error = 0;
-  enc_ = opus_encoder_create(format.sampleRate(), format.channelCount(), OPUS_APPLICATION_VOIP, &error);
+  enc_ = opus_encoder_create(format_.sampleRate(), format_.channelCount(), OPUS_APPLICATION_VOIP, &error);
 
   if(error)
+  {
     qWarning() << "Failed to initialize opus encoder with errorcode:" << error;
+    return false;
+  }
 
-  format_ = format;
   numberOfSamples_ = format_.sampleRate()/FRAMESPERSECOND;
+  return true;
 }
 
 void OpusEncoderFilter::process()

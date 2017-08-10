@@ -190,12 +190,12 @@ void FilterGraph::initAudioSend()
 {
   // Do this before adding participants, otherwise AEC filter wont get attached
 
-  AudioCaptureFilter* capture = new AudioCaptureFilter("", stats_);
-  capture->initializeAudio(format_);
+  AudioCaptureFilter* capture = new AudioCaptureFilter("", format_, stats_);
+  capture->init();
   audioSend_.push_back(capture);
 
-  OpusEncoderFilter *encoder = new OpusEncoderFilter("", stats_);
-  encoder->init(format_);
+  OpusEncoderFilter *encoder = new OpusEncoderFilter("", format_, stats_);
+  encoder->init();
   audioSend_.push_back(encoder);
   audioSend_.at(audioSend_.size() - 2)->addOutConnection(audioSend_.back());
   audioSend_.back()->start();
@@ -385,8 +385,8 @@ void FilterGraph::receiveAudioFrom(int16_t id, Filter* audioSink)
   }
   peers_.at(id)->audioSink = audioSink;
 
-  OpusDecoderFilter *decoder = new OpusDecoderFilter(QString::number(id) + "_", stats_);
-  decoder->init(format_);
+  OpusDecoderFilter *decoder = new OpusDecoderFilter(QString::number(id) + "_", format_, stats_);
+  decoder->init();
 
   peers_.at(id)->audioReceive.push_back(decoder);
   peers_.at(id)->audioSink->addOutConnection(peers_.at(id)->audioReceive.back());

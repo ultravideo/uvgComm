@@ -9,7 +9,7 @@ public:
   DShowCameraFilter(QString id, StatisticsInterface *stats);
   ~DShowCameraFilter();
 
-  void init();
+  virtual bool init();
 
   virtual void run();
   virtual void stop();

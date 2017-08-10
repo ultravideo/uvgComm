@@ -36,7 +36,7 @@ void KvazaarFilter::updateSettings()
   Filter::updateSettings();
 }
 
-int KvazaarFilter::init()
+bool KvazaarFilter::init()
 {
   qDebug() << name_ << "iniating";
 
@@ -47,7 +47,7 @@ int KvazaarFilter::init()
   if(!api_)
   {
     qCritical() << name_ << "failed to retrieve Kvazaar API";
-    return C_FAILURE;
+    return false;
   }
   config_ = api_->config_alloc();
   enc_ = NULL;
@@ -55,7 +55,7 @@ int KvazaarFilter::init()
   if(!config_)
   {
     qCritical() << name_ << "failed to allocate Kvazaar config";
-    return C_FAILURE;
+    return false;
   }
   QSettings settings;
 
@@ -93,7 +93,7 @@ int KvazaarFilter::init()
   if(!enc_)
   {
     qCritical() << name_ << "failed to open Kvazaar encoder";
-    return C_FAILURE;
+    return false;
   }
 
   input_pic_ = api_->picture_alloc(config_->width, config_->height);
@@ -101,11 +101,11 @@ int KvazaarFilter::init()
   if(!input_pic_)
   {
     qCritical() << name_ << "could not allocate input picture";
-    return C_FAILURE;
+    return false;
   }
 
   qDebug() << name_ << "iniation success";
-  return C_SUCCESS;
+  return true;
 }
 
 void KvazaarFilter::close()

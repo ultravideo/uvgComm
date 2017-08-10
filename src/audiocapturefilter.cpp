@@ -7,10 +7,11 @@
 
 const int AUDIO_BUFFER_SIZE = 65536;
 
-AudioCaptureFilter::AudioCaptureFilter(QString id, StatisticsInterface *stats) :
+AudioCaptureFilter::AudioCaptureFilter(QString id, QAudioFormat format, StatisticsInterface *stats) :
   Filter(id, "Audio_Capture", stats, NONE, RAWAUDIO),
   deviceInfo_(QAudioDeviceInfo::defaultInputDevice()),
   device_(NULL),
+  format_(format),
   audioInput_(NULL),
   input_(NULL),
   buffer_(AUDIO_BUFFER_SIZE, 0)
@@ -18,7 +19,7 @@ AudioCaptureFilter::AudioCaptureFilter(QString id, StatisticsInterface *stats) :
 
 AudioCaptureFilter::~AudioCaptureFilter(){}
 
-void AudioCaptureFilter::initializeAudio(QAudioFormat format)
+bool AudioCaptureFilter::init()
 {
   qDebug() << "Initializing audio capture filter";
 
@@ -31,13 +32,9 @@ void AudioCaptureFilter::initializeAudio(QAudioFormat format)
 
   qDebug() << "Using device:" << info.deviceName();
 
-  if (!info.isFormatSupported(format)) {
-    qWarning() << "Default format not supported - trying to use nearest";
-    format_ = info.nearestFormat(format);
-  }
-  else
-  {
-    format_ = format;
+  if (!info.isFormatSupported(format_)) {
+    qWarning() << "Default audio format not supported - trying to use nearest";
+    format_ = info.nearestFormat(format_);
   }
 
   if(format_.sampleRate() != -1)
@@ -51,6 +48,8 @@ void AudioCaptureFilter::initializeAudio(QAudioFormat format)
 
   createAudioInput();
   qDebug() << "Audio initializing completed";
+
+  return true;
 }
 
 void AudioCaptureFilter::createAudioInput()
@@ -144,7 +143,7 @@ void AudioCaptureFilter::deviceChanged(int index)
   audioInput_->disconnect(this);
   delete audioInput_;
 
-  initializeAudio(format_);
+  init();
 }
 
 void AudioCaptureFilter::volumeChanged(int value)

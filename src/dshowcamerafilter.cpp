@@ -26,7 +26,7 @@ void DShowCameraFilter::updateSettings()
   start();
 }
 
-void DShowCameraFilter::init()
+bool DShowCameraFilter::init()
 {
   dshow_initCapture();
   int8_t count;
@@ -44,7 +44,7 @@ void DShowCameraFilter::init()
   {
     deviceID_ = -1;
     capabilityID_ = -1;
-    return;
+    return false;
   }
 
   if(deviceID_ == -1)
@@ -72,7 +72,7 @@ void DShowCameraFilter::init()
     if(!dshow_selectDevice(0))
     {
       qDebug() << "Error selecting device!";
-      return;
+      return false;
     }
   }
 
@@ -112,13 +112,14 @@ void DShowCameraFilter::init()
   if (!dshow_setDeviceCapability(capabilityID_, rgb32))
   {
     qDebug() << "Error selecting capability!";
-    return;
+    return false;
   }
 
   stats_->videoInfo(list_[capabilityID_].fps, QSize(list_[capabilityID_].width, list_[capabilityID_].height));
 
   qDebug() << "Starting DShow camera";
   dshow_startCapture();
+  return true;
 }
 
 void DShowCameraFilter::stop()

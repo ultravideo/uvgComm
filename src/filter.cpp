@@ -26,6 +26,11 @@ Filter::~Filter()
 void Filter::updateSettings()
 {}
 
+bool Filter::init()
+{
+  return true;
+}
+
 void Filter::addOutConnection(Filter *out)
 {
   outConnections_.push_back(out);

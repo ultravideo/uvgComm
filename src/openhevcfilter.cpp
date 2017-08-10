@@ -11,7 +11,7 @@ OpenHEVCFilter::OpenHEVCFilter(QString id, StatisticsInterface *stats):
   slices_(true)
 {}
 
-void OpenHEVCFilter::init()
+bool OpenHEVCFilter::init()
 {
   qDebug() << name_ << "iniating";
   handle_ = libOpenHevcInit(1, 1);
@@ -20,7 +20,7 @@ void OpenHEVCFilter::init()
   if(libOpenHevcStartDecoder(handle_) == -1)
   {
     qCritical() << name_ << "ERROR: failed to start decoder.";
-    return;
+    return false;
   }
   libOpenHevcSetTemporalLayer_id(handle_, 0);
   libOpenHevcSetActiveDecoders(handle_, 0);
@@ -29,6 +29,8 @@ void OpenHEVCFilter::init()
 
   // This is because we don't know anything about the incoming stream
   maxBufferSize_ = -1; // no buffer limit
+
+  return true;
 }
 
 void OpenHEVCFilter::uninit()

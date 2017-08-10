@@ -15,7 +15,7 @@ public:
 
   virtual void updateSettings();
 
-  int init();
+  virtual bool init();
 
   void close();
 

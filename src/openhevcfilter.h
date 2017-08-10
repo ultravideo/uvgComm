@@ -8,7 +8,7 @@ class OpenHEVCFilter : public Filter
 public:
   OpenHEVCFilter(QString id, StatisticsInterface* stats);
 
-  void init();
+  virtual bool init();
   void uninit();
   void run();
 

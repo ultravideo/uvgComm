@@ -7,10 +7,10 @@
 class OpusEncoderFilter : public Filter
 {
 public:
-  OpusEncoderFilter(QString id, StatisticsInterface* stats);
+  OpusEncoderFilter(QString id, QAudioFormat format, StatisticsInterface* stats);
   ~OpusEncoderFilter();
 
-  void init(QAudioFormat format);
+  bool init();
 
 protected:
   void process();

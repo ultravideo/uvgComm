@@ -2,11 +2,12 @@
 
 #include <QDebug>
 
-OpusDecoderFilter::OpusDecoderFilter(QString id, StatisticsInterface *stats):
+OpusDecoderFilter::OpusDecoderFilter(QString id, QAudioFormat format, StatisticsInterface *stats):
   Filter(id, "Opus_Decoder", stats, OPUSAUDIO, RAWAUDIO),
   dec_(0),
   pcmOutput_(0),
-  max_data_bytes_(65536)
+  max_data_bytes_(65536),
+  format_(format)
 {
   pcmOutput_ = new int16_t[max_data_bytes_];
 }
@@ -17,15 +18,17 @@ OpusDecoderFilter::~OpusDecoderFilter()
   pcmOutput_ = 0;
 }
 
-void OpusDecoderFilter::init(QAudioFormat format)
+bool OpusDecoderFilter::init()
 {
   int error = 0;
-  dec_ = opus_decoder_create(format.sampleRate(), format.channelCount(), &error);
+  dec_ = opus_decoder_create(format_.sampleRate(), format_.channelCount(), &error);
 
   if(error)
+  {
     qWarning() << "Failed to initialize opus decoder with errorcode:" << error;
-
-  format_ = format;
+    return false;
+  }
+  return true;
 }
 
 void OpusDecoderFilter::process()

@@ -14,11 +14,11 @@ class AudioCaptureFilter : public Filter
 {
   Q_OBJECT
 public:
-  AudioCaptureFilter(QString id, StatisticsInterface* stats);
+  AudioCaptureFilter(QString id, QAudioFormat format, StatisticsInterface* stats);
 
   virtual ~AudioCaptureFilter();
 
-  void initializeAudio(QAudioFormat format);
+  virtual bool init();
 
   virtual void start();
   virtual void stop();
