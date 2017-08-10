@@ -57,12 +57,15 @@ void FilterGraph::updateSettings()
              << "to" << settings.value("video/InputFormat").toString() << "Video send graph has to be reconstructed.";
 
     initSelfView(selfView_);
-    initVideoSend();
-
-    // reconnect all videosends to streamers
-    for(Peer* peer : peers_)
+    if(peers_.size() != 0)
     {
-      videoSend_.back()->addOutConnection(peer->videoFramedSource);
+      initVideoSend();
+
+      // reconnect all videosends to streamers
+      for(Peer* peer : peers_)
+      {
+        videoSend_.back()->addOutConnection(peer->videoFramedSource);
+      }
     }
   }
   else
