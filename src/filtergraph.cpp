@@ -201,6 +201,46 @@ void FilterGraph::initAudioSend()
   audioSend_.back()->start();
 }
 
+bool FilterGraph::addFilter(Filter* filter, std::vector<Filter*>& graph)
+{
+  if(graph.back()->outputType() != filter->inputType())
+  {
+    qDebug() << "Filter output and input do not match. Trying to find an existing conversion";
+
+    if(graph.back()->outputType() == RGB32VIDEO &&
+       filter->inputType() == YUVVIDEO)
+    {
+      addFilter(new RGB32toYUV("", stats_), graph);
+    }
+    else if(graph.back()->outputType() == YUVVIDEO &&
+            filter->inputType() == RGB32VIDEO)
+    {
+      addFilter(new YUVtoRGB32("", stats_), graph);
+    }
+    else
+    {
+      qWarning() << "WARNING: Could not find conversion";
+      return false;
+    }
+  }
+  graph.push_back(filter);
+  connectFilters(filter, graph.back());
+  return true;
+}
+
+bool FilterGraph::connectFilters(Filter* filter, Filter* previous)
+{
+  if(previous->outputType() != filter->inputType())
+  {
+    qWarning() << "WARNING: The connecting filter output and input DO NOT MATCH";
+    return false;
+  }
+
+  previous->addOutConnection(filter);
+  filter->start();
+}
+
+
 void FilterGraph::checkParticipant(int16_t id)
 {
   Q_ASSERT(stats_);
