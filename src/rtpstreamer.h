@@ -34,10 +34,10 @@ public:
 
   // Returns filter to be attached to filter graph. ownership is not transferred.
   // removing peer and stopping destroy these filters.
-  FramedSourceFilter* addSendVideo(PeerID peer, uint16_t port);
-  FramedSourceFilter* addSendAudio(PeerID peer, uint16_t port);
-  RTPSinkFilter* addReceiveVideo(PeerID peer, uint16_t port);
-  RTPSinkFilter* addReceiveAudio(PeerID peer, uint16_t port);
+  std::shared_ptr<Filter> addSendVideo(PeerID peer, uint16_t port);
+  std::shared_ptr<Filter> addSendAudio(PeerID peer, uint16_t port);
+  std::shared_ptr<Filter> addReceiveVideo(PeerID peer, uint16_t port);
+  std::shared_ptr<Filter> addReceiveAudio(PeerID peer, uint16_t port);
 
   void removeSendVideo(PeerID peer);
   void removeSendAudio(PeerID peer);
@@ -64,7 +64,7 @@ private:
     RTCPInstance* rtcp;
 
     RTPSink* sink;
-    FramedSourceFilter* sourcefilter; // receives stuff from filter graph
+    std::shared_ptr<FramedSourceFilter> sourcefilter; // receives stuff from filter graph
   };
 
   struct Receiver
@@ -74,7 +74,7 @@ private:
     RTCPInstance* rtcp;
 
     RTPSource* framedSource;
-    RTPSinkFilter* sink; // sends stuff to filter graph
+    std::shared_ptr<RTPSinkFilter> sink; // sends stuff to filter graph
   };
 
   struct Peer

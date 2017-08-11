@@ -10,7 +10,7 @@ class AudioOutputDevice : public QIODevice
 public:
   AudioOutputDevice(StatisticsInterface* stats, uint32_t peer);
 
-  void init(Filter* source);
+  void init(std::shared_ptr<Filter> source);
 
   void start();
   void stop();

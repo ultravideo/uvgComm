@@ -114,17 +114,17 @@ void FilterGraph::initSelfView(VideoWidget *selfView)
   // Sending video graph
   if(DSHOW_ENABLED)
   {
-    addToGraph(new DShowCameraFilter("", stats_), videoSend_);
+    addToGraph(std::shared_ptr<Filter>(new DShowCameraFilter("", stats_)), videoSend_);
   }
   else
-    addToGraph(new CameraFilter("", stats_), videoSend_);
+    addToGraph(std::shared_ptr<Filter>(new CameraFilter("", stats_)), videoSend_);
 
   if(selfView)
   {
     // connect selfview to camera
     DisplayFilter* selfviewFilter = new DisplayFilter("Self_", stats_, selfView, 1111);
     selfviewFilter->setProperties(true);
-    addToGraph(selfviewFilter, videoSend_);
+    addToGraph(std::shared_ptr<Filter>(selfviewFilter), videoSend_);
   }
 }
 
@@ -147,7 +147,7 @@ void FilterGraph::initVideoSend()
   if(settings.value("video/InputFormat").toString() != "I420")
   {
     qDebug() << "Adding RGB32 to YUV conversion after camera";
-    videoSend_.push_back(new RGB32toYUV("", stats_));
+    videoSend_.push_back(std::shared_ptr<Filter>(new RGB32toYUV("", stats_)));
     videoSend_.at(0)->addOutConnection(videoSend_.back()); // attach to camera
     videoSend_.back()->start();
   }
@@ -158,7 +158,7 @@ void FilterGraph::initVideoSend()
 
   KvazaarFilter* kvz = new KvazaarFilter("", stats_);
   kvz->init();
-  videoSend_.push_back(kvz);
+  videoSend_.push_back(std::shared_ptr<Filter>(kvz));
   videoSend_.at(videoSend_.size() - 2)->addOutConnection(videoSend_.back());
   videoSend_.back()->start();
 }
@@ -169,16 +169,16 @@ void FilterGraph::initAudioSend()
 
   AudioCaptureFilter* capture = new AudioCaptureFilter("", format_, stats_);
   capture->init();
-  audioSend_.push_back(capture);
+  audioSend_.push_back(std::shared_ptr<Filter>(capture));
 
   OpusEncoderFilter *encoder = new OpusEncoderFilter("", format_, stats_);
   encoder->init();
-  audioSend_.push_back(encoder);
+  audioSend_.push_back(std::shared_ptr<Filter>(encoder));
   audioSend_.at(audioSend_.size() - 2)->addOutConnection(audioSend_.back());
   audioSend_.back()->start();
 }
 
-bool FilterGraph::addToGraph(Filter* filter, std::vector<Filter*>& graph)
+bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter, std::vector<std::shared_ptr<Filter> > &graph)
 {
   if(graph.size() != 0)
   {
@@ -192,12 +192,12 @@ bool FilterGraph::addToGraph(Filter* filter, std::vector<Filter*>& graph)
       if(graph.back()->outputType() == RGB32VIDEO &&
          filter->inputType() == YUVVIDEO)
       {
-        addToGraph(new RGB32toYUV("", stats_), graph);
+        addToGraph(std::shared_ptr<Filter>(new RGB32toYUV("", stats_)), graph);
       }
       else if(graph.back()->outputType() == YUVVIDEO &&
               filter->inputType() == RGB32VIDEO)
       {
-        addToGraph(new YUVtoRGB32("", stats_), graph);
+        addToGraph(std::shared_ptr<Filter>(new YUVtoRGB32("", stats_)), graph);
       }
       else
       {
@@ -214,7 +214,7 @@ bool FilterGraph::addToGraph(Filter* filter, std::vector<Filter*>& graph)
   return true;
 }
 
-bool FilterGraph::connectFilters(Filter* filter, Filter* previous)
+bool FilterGraph::connectFilters(std::shared_ptr<Filter> filter, std::shared_ptr<Filter> previous)
 {
   Q_ASSERT(filter != NULL && previous != NULL);
 
@@ -265,7 +265,7 @@ void FilterGraph::checkParticipant(int16_t id)
   peers_.at(id)->videoSink = 0;
 }
 
-void FilterGraph::sendVideoto(int16_t id, Filter *videoFramedSource)
+void FilterGraph::sendVideoto(int16_t id, std::shared_ptr<Filter> videoFramedSource)
 {
   Q_ASSERT(id > -1);
   Q_ASSERT(videoFramedSource);
@@ -292,7 +292,7 @@ void FilterGraph::sendVideoto(int16_t id, Filter *videoFramedSource)
   videoSend_.back()->addOutConnection(videoFramedSource);
 }
 
-void FilterGraph::receiveVideoFrom(int16_t id, Filter *videoSink, VideoWidget *view)
+void FilterGraph::receiveVideoFrom(int16_t id, std::shared_ptr<Filter> videoSink, VideoWidget *view)
 {
   Q_ASSERT(id > -1);
   Q_ASSERT(videoSink);
@@ -310,22 +310,22 @@ void FilterGraph::receiveVideoFrom(int16_t id, Filter *videoSink, VideoWidget *v
 
   OpenHEVCFilter* decoder =  new OpenHEVCFilter(QString::number(id) + "_", stats_);
   decoder->init();
-  peers_.at(id)->videoReceive.push_back(decoder);
+  peers_.at(id)->videoReceive.push_back(std::shared_ptr<Filter>(decoder));
   peers_.at(id)->videoSink->addOutConnection(peers_.at(id)->videoReceive.back());
   peers_.at(id)->videoReceive.back()->start();
 
-  peers_.at(id)->videoReceive.push_back(new YUVtoRGB32(QString::number(id) + "_", stats_));
+  peers_.at(id)->videoReceive.push_back(std::shared_ptr<Filter>(new YUVtoRGB32(QString::number(id) + "_", stats_)));
   peers_.at(id)->videoReceive.at(peers_.at(id)->videoReceive.size()-2)
       ->addOutConnection(peers_.at(id)->videoReceive.back());
   peers_.at(id)->videoReceive.back()->start();
 
-  peers_.at(id)->videoReceive.push_back(new DisplayFilter(QString::number(id) + "_", stats_, view, id));
+  peers_.at(id)->videoReceive.push_back(std::shared_ptr<Filter>(new DisplayFilter(QString::number(id) + "_", stats_, view, id)));
   peers_.at(id)->videoReceive.at(peers_.at(id)->videoReceive.size()-2)
       ->addOutConnection(peers_.at(id)->videoReceive.back());
   peers_.at(id)->videoReceive.back()->start();
 }
 
-void FilterGraph::sendAudioTo(int16_t id, Filter* audioFramedSource)
+void FilterGraph::sendAudioTo(int16_t id, std::shared_ptr<Filter> audioFramedSource)
 {
   Q_ASSERT(id > -1);
   Q_ASSERT(audioFramedSource);
@@ -350,7 +350,7 @@ void FilterGraph::sendAudioTo(int16_t id, Filter* audioFramedSource)
   audioSend_.back()->addOutConnection(audioFramedSource);
 }
 
-void FilterGraph::receiveAudioFrom(int16_t id, Filter* audioSink)
+void FilterGraph::receiveAudioFrom(int16_t id, std::shared_ptr<Filter> audioSink)
 {
   Q_ASSERT(id > -1);
   Q_ASSERT(audioSink);
@@ -374,13 +374,13 @@ void FilterGraph::receiveAudioFrom(int16_t id, Filter* audioSink)
   OpusDecoderFilter *decoder = new OpusDecoderFilter(QString::number(id) + "_", format_, stats_);
   decoder->init();
 
-  peers_.at(id)->audioReceive.push_back(decoder);
+  peers_.at(id)->audioReceive.push_back(std::shared_ptr<Filter>(decoder));
   peers_.at(id)->audioSink->addOutConnection(peers_.at(id)->audioReceive.back());
   peers_.at(id)->audioReceive.back()->start();
 
   if(audioSend_.size() > 0 && AEC_ENABLED)
   {
-    peers_.at(id)->audioReceive.push_back(new SpeexAECFilter(QString::number(id) + "_", stats_, format_));
+    peers_.at(id)->audioReceive.push_back(std::shared_ptr<Filter>(new SpeexAECFilter(QString::number(id) + "_", stats_, format_)));
     audioSend_.at(0)->addOutConnection(peers_.at(id)->audioReceive.back());
     peers_.at(id)->audioReceive.at(peers_.at(id)->audioReceive.size()-2)
         ->addOutConnection(peers_.at(id)->audioReceive.back());
@@ -414,7 +414,7 @@ void FilterGraph::uninit()
   destroyFilters(audioSend_);
 }
 
-void changeState(Filter* f, bool state)
+void changeState(std::shared_ptr<Filter> f, bool state)
 {
   if(state)
   {
@@ -470,11 +470,11 @@ void FilterGraph::camera(bool state)
 
 void FilterGraph::running(bool state)
 {
-  for(Filter* f : videoSend_)
+  for(std::shared_ptr<Filter> f : videoSend_)
   {
     changeState(f, state);
   }
-  for(Filter* f : audioSend_)
+  for(std::shared_ptr<Filter> f : audioSend_)
   {
     changeState(f, state);
   }
@@ -491,11 +491,11 @@ void FilterGraph::running(bool state)
       {
         changeState(p->videoFramedSource, state);
       }
-      for(Filter* f : p->audioReceive)
+      for(std::shared_ptr<Filter> f : p->audioReceive)
       {
         changeState(f, state);
       }
-      for(Filter* f : p->videoReceive)
+      for(std::shared_ptr<Filter> f : p->videoReceive)
       {
         changeState(f, state);
       }
@@ -503,14 +503,14 @@ void FilterGraph::running(bool state)
   }
 }
 
-void FilterGraph::destroyFilters(std::vector<Filter*>& filters)
+void FilterGraph::destroyFilters(std::vector<std::shared_ptr<Filter> > &filters)
 {
   if(filters.size() != 0)
     qDebug() << "Destroying filter graph with" << filters.size() << "filters.";
-  for( Filter *f : filters )
+  for( std::shared_ptr<Filter> f : filters )
   {
     changeState(f, false);
-    delete f;
+    //delete f;
   }
 
   filters.clear();

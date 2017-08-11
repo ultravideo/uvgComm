@@ -69,18 +69,18 @@ void MediaManager::addParticipant(QString callID, in_addr ip, uint16_t sendAudio
 
   qDebug() << "Creating connections";
 
-  Filter *videoFramedSource = streamer_->addSendVideo(streamID, sendVideoPort);
-  Filter *videoSink =streamer_->addReceiveVideo(streamID, recvVideoPort);
-  Filter *audioFramedSource = streamer_->addSendAudio(streamID, sendAudioPort);
-  Filter *audioSink = streamer_->addReceiveAudio(streamID, recvAudioPort);
+  std::shared_ptr<Filter> videoFramedSource = streamer_->addSendVideo(streamID, sendVideoPort);
+  std::shared_ptr<Filter> videoSink =streamer_->addReceiveVideo(streamID, recvVideoPort);
+  std::shared_ptr<Filter> audioFramedSource = streamer_->addSendAudio(streamID, sendAudioPort);
+  std::shared_ptr<Filter> audioSink = streamer_->addReceiveAudio(streamID, recvAudioPort);
 
   qDebug() << "Modifying filter graph";
 
   // create filter graphs for this participant
-  fg_->sendVideoto(streamID, videoFramedSource);
-  fg_->receiveVideoFrom(streamID, videoSink, view);
-  fg_->sendAudioTo(streamID, audioFramedSource);
-  fg_->receiveAudioFrom(streamID, audioSink);
+  fg_->sendVideoto(streamID, std::shared_ptr<Filter>(videoFramedSource));
+  fg_->receiveVideoFrom(streamID, std::shared_ptr<Filter>(videoSink), view);
+  fg_->sendAudioTo(streamID, std::shared_ptr<Filter>(audioFramedSource));
+  fg_->receiveAudioFrom(streamID, std::shared_ptr<Filter>(audioSink));
 
   qDebug() << "Participant added";
 

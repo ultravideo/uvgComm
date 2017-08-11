@@ -44,8 +44,8 @@ public:
   virtual void updateSettings();
 
   // adds one outbound connection to this filter.
-  void addOutConnection(Filter *out);
-  void removeOutConnection(Filter *out);
+  void addOutConnection(std::shared_ptr<Filter> out);
+  void removeOutConnection(std::shared_ptr<Filter> out);
 
   // callback registeration enables other classes besides Filter
   // to receive output data
@@ -124,7 +124,7 @@ private:
   std::vector<std::function<void(std::unique_ptr<Data>)> > outDataCallbacks_;
 
   QMutex connectionMutex_;
-  std::vector<Filter*> outConnections_;
+  std::vector<std::shared_ptr<Filter>> outConnections_;
 
   QMutex bufferMutex_;
   //std::queue<std::unique_ptr<Data>> inBuffer_;

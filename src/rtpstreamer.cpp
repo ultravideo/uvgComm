@@ -210,7 +210,7 @@ void RTPStreamer::destroySender(Sender* sender)
     }
     if(sender->sourcefilter)
     {
-      Medium::close(sender->sourcefilter);
+      //Medium::close(sender->sourcefilter);
     }
 
     destroyConnection(sender->connection);
@@ -246,7 +246,7 @@ void RTPStreamer::destroyReceiver(Receiver* recv)
     if(recv->sink)
     {
       recv->sink->uninit();
-      Medium::close(recv->sink);
+      //Medium::close(recv->sink);
     }
     if(recv->framedSource)
     {
@@ -262,7 +262,7 @@ void RTPStreamer::destroyReceiver(Receiver* recv)
     qWarning() << "Warning: Tried to delete receiver a second time";
 }
 
-FramedSourceFilter* RTPStreamer::addSendVideo(PeerID peer, uint16_t port)
+std::shared_ptr<Filter> RTPStreamer::addSendVideo(PeerID peer, uint16_t port)
 {
   if(peers_.at(peer)->videoSender)
     destroySender(peers_.at(peer)->videoSender);
@@ -271,7 +271,7 @@ FramedSourceFilter* RTPStreamer::addSendVideo(PeerID peer, uint16_t port)
   return peers_.at(peer)->videoSender->sourcefilter;
 }
 
-FramedSourceFilter* RTPStreamer::addSendAudio(PeerID peer, uint16_t port)
+std::shared_ptr<Filter> RTPStreamer::addSendAudio(PeerID peer, uint16_t port)
 {
   if(peers_.at(peer)->audioSender)
     destroySender(peers_.at(peer)->audioSender);
@@ -280,7 +280,7 @@ FramedSourceFilter* RTPStreamer::addSendAudio(PeerID peer, uint16_t port)
   return peers_.at(peer)->audioSender->sourcefilter;
 }
 
-RTPSinkFilter* RTPStreamer::addReceiveVideo(PeerID peer, uint16_t port)
+std::shared_ptr<Filter> RTPStreamer::addReceiveVideo(PeerID peer, uint16_t port)
 {
   if(peers_.at(peer)->videoReceiver)
     destroyReceiver(peers_.at(peer)->videoReceiver);
@@ -289,7 +289,7 @@ RTPSinkFilter* RTPStreamer::addReceiveVideo(PeerID peer, uint16_t port)
   return peers_.at(peer)->videoReceiver->sink;
 }
 
-RTPSinkFilter* RTPStreamer::addReceiveAudio(PeerID peer, uint16_t port)
+std::shared_ptr<Filter> RTPStreamer::addReceiveAudio(PeerID peer, uint16_t port)
 {
   if(peers_.at(peer)->audioReceiver)
     destroyReceiver(peers_.at(peer)->audioReceiver);
@@ -372,7 +372,8 @@ RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType 
                  + QString::number((uint8_t)((ip.s_addr >> 24) & 0xff));
 
 
-  sender->sourcefilter = new FramedSourceFilter(ip_str + "_", stats_, *env_, type);
+  sender->sourcefilter
+      = std::shared_ptr<FramedSourceFilter>(new FramedSourceFilter(ip_str + "_", stats_, *env_, type));
   const unsigned int estimatedSessionBandwidth = 5000; // in kbps; for RTCP b/w share
   // This starts RTCP running automatically
   sender->rtcp  = RTCPInstance::createNew(*env_,
@@ -389,7 +390,7 @@ RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType 
     return NULL;
   }
 
-  if(!sender->sink->startPlaying(*(sender->sourcefilter), NULL, NULL))
+  if(!sender->sink->startPlaying(*(sender->sourcefilter.get()), NULL, NULL))
   {
     qCritical() << "Critical: failed to start videosink: " << env_->getResultMsg();
   }
@@ -427,7 +428,8 @@ RTPStreamer::Receiver* RTPStreamer::addReceiver(in_addr peerAddress, uint16_t po
                  + QString::number((uint8_t)((peerAddress.s_addr >> 16) & 0xff)) + "."
                  + QString::number((uint8_t)((peerAddress.s_addr >> 24) & 0xff));
 
-  receiver->sink = new RTPSinkFilter(ip_str + "_", stats_, *env_, type);
+  receiver->sink
+      = std::shared_ptr<RTPSinkFilter>(new RTPSinkFilter(ip_str + "_", stats_, *env_, type));
 
 
   // This starts RTCP running automatically

@@ -31,19 +31,19 @@ bool Filter::init()
   return true;
 }
 
-void Filter::addOutConnection(Filter *out)
+void Filter::addOutConnection(std::shared_ptr<Filter> out)
 {
   outConnections_.push_back(out);
 }
 
-void Filter::removeOutConnection(Filter *out)
+void Filter::removeOutConnection(std::shared_ptr<Filter> out)
 {
 
   bool removed = false;
   connectionMutex_.lock();
   for(unsigned int i = 0; i < outConnections_.size(); ++i)
   {
-    if(outConnections_[i] == out)
+    if(outConnections_[i].get() == out.get())
     {
       outConnections_.erase(outConnections_.begin() + i);
       removed = true;
