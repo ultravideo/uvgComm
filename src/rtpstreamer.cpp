@@ -210,7 +210,9 @@ void RTPStreamer::destroySender(Sender* sender)
     }
     if(sender->sourcefilter)
     {
-      //Medium::close(sender->sourcefilter);
+      // the shared_ptr was initialized not to delete the pointer
+      // I don't like live555
+      Medium::close(sender->sourcefilter.get());
     }
 
     destroyConnection(sender->connection);
@@ -246,7 +248,9 @@ void RTPStreamer::destroyReceiver(Receiver* recv)
     if(recv->sink)
     {
       recv->sink->uninit();
-      //Medium::close(recv->sink);
+      // the shared_ptr was initialized not to delete the pointer
+      // I don't like live555
+      Medium::close(recv->sink.get());
     }
     if(recv->framedSource)
     {
@@ -371,9 +375,10 @@ RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType 
                  + QString::number((uint8_t)((ip.s_addr >> 16) & 0xff)) + "."
                  + QString::number((uint8_t)((ip.s_addr >> 24) & 0xff));
 
-
+  // shared_ptr which does not release
   sender->sourcefilter
-      = std::shared_ptr<FramedSourceFilter>(new FramedSourceFilter(ip_str + "_", stats_, *env_, type));
+      = std::shared_ptr<FramedSourceFilter>(new FramedSourceFilter(ip_str + "_", stats_, *env_, type),
+                                            [](FramedSourceFilter*){});
   const unsigned int estimatedSessionBandwidth = 5000; // in kbps; for RTCP b/w share
   // This starts RTCP running automatically
   sender->rtcp  = RTCPInstance::createNew(*env_,
@@ -428,8 +433,10 @@ RTPStreamer::Receiver* RTPStreamer::addReceiver(in_addr peerAddress, uint16_t po
                  + QString::number((uint8_t)((peerAddress.s_addr >> 16) & 0xff)) + "."
                  + QString::number((uint8_t)((peerAddress.s_addr >> 24) & 0xff));
 
+  // shared_ptr which does not release
   receiver->sink
-      = std::shared_ptr<RTPSinkFilter>(new RTPSinkFilter(ip_str + "_", stats_, *env_, type));
+      = std::shared_ptr<RTPSinkFilter>(new RTPSinkFilter(ip_str + "_", stats_, *env_, type),
+                                       [](RTPSinkFilter*){});
 
 
   // This starts RTCP running automatically
