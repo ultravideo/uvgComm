@@ -86,6 +86,11 @@ public:
   Data* shallowDataCopy(Data* original);
   Data* deepDataCopy(Data* original);
 
+  QString getName()
+  {
+    return name_;
+  }
+
 protected:
 
   // return: oldest element in buffer, empty if none found

@@ -23,7 +23,7 @@ private:
   int deviceID_;
   int capabilityID_;
 
-  DataType type_;
+  //DataType type_;
 
   bool run_;
 

@@ -38,7 +38,10 @@ public:
 
 private:
 
-  bool addToGraph(std::shared_ptr<Filter> filter, std::vector<std::shared_ptr<Filter>>& graph);
+  bool addToGraph(std::shared_ptr<Filter> filter,
+                  std::vector<std::shared_ptr<Filter>>& graph,
+                  unsigned int connectIndex = 0);
+
   bool connectFilters(std::shared_ptr<Filter> filter, std::shared_ptr<Filter> previous);
 
   // makes sure the participant exists and adds if necessary

@@ -101,12 +101,12 @@ bool DShowCameraFilter::init()
   if(rgb32)
   {
     qDebug() << "DShow outputting RGB32";
-    type_ = RGB32VIDEO;
+    output_ = RGB32VIDEO;
   }
   else
   {
     qDebug() << "DShow outputting YUV420";
-    type_ = YUVVIDEO;
+    output_ = YUVVIDEO;
   }
 
   if (!dshow_setDeviceCapability(capabilityID_, rgb32))
@@ -158,7 +158,7 @@ void DShowCameraFilter::run()
       present_time.tv_usec = (QDateTime::currentMSecsSinceEpoch()%1000) * 1000;
 
       newImage->presentationTime = present_time;
-      newImage->type = type_;
+      newImage->type = output_;
       newImage->data = std::unique_ptr<uchar[]>(data);
       data = 0;
       newImage->data_size = size;
