@@ -9,7 +9,6 @@
 
 int yuv2rgb_i_sse41(uint8_t* input, uint8_t* output, int width, int height)
 {
-
   const int mini[4] = { 0,0,0,0 };
   const int middle[4] = { 128, 128, 128, 128 };
   const int maxi[4] = { 255, 255, 255, 255 };
@@ -94,12 +93,10 @@ int yuv2rgb_i_sse41(uint8_t* input, uint8_t* output, int width, int height)
       out += 16;
 
       if (ii != 3) {
-        if (!row) {
-          u_a = _mm_srli_si128(u_a, 2);
-          v_a = _mm_srli_si128(v_a, 2);
-          chroma_u = _mm_shuffle_epi8(u_a, chroma_shufflemask);
-          chroma_v = _mm_shuffle_epi8(v_a, chroma_shufflemask);
-        }
+        u_a = _mm_srli_si128(u_a, 2);
+        v_a = _mm_srli_si128(v_a, 2);
+        chroma_u = _mm_shuffle_epi8(u_a, chroma_shufflemask);
+        chroma_v = _mm_shuffle_epi8(v_a, chroma_shufflemask);
 
         y_a = _mm_srli_si128(y_a, 4);
         luma_a = _mm_shuffle_epi8(y_a, luma_shufflemask);
@@ -123,9 +120,13 @@ int yuv2rgb_i_sse41(uint8_t* input, uint8_t* output, int width, int height)
 
  #define _mm256_set_m128i(/* __m128i */ hi, /* __m128i */ lo) _mm256_insertf128_si256(_mm256_castsi128_si256(lo), (hi), 0x1)
 
+// Return the next aligned address for *p. Result is at most alignment larger than p.
+#define ALIGNED_POINTER(p, alignment) (void*)((intptr_t)(p) + (alignment) - ((intptr_t)(p) % (alignment)))
+// 32 bytes is enough for AVX2
+#define SIMD_ALIGNMENT 32
+
 int yuv2rgb_i_avx2(uint8_t* input, uint8_t* output, int width, int height)
 {
-
   const int mini[8] = { 0,0,0,0,0,0,0,0 };
   const int middle[8] = { 128, 128, 128, 128,128, 128, 128, 128 };
   const int maxi[8] = { 255, 255, 255, 255,255, 255, 255, 255 };
@@ -134,9 +135,15 @@ int yuv2rgb_i_avx2(uint8_t* input, uint8_t* output, int width, int height)
   const __m256i middle_val = _mm256_loadu_si256((__m256i const*)middle);
   const __m256i max_val = _mm256_loadu_si256((__m256i const*)maxi);
 
-  uint8_t *row_r = (uint8_t *)malloc(width * 4+32);
-  uint8_t *row_g = (uint8_t *)malloc(width * 4+32);
-  uint8_t *row_b = (uint8_t *)malloc(width * 4+32);
+  //*output = (uint8_t *)malloc(width*height*4);
+
+  uint8_t *row_r_temp = (uint8_t *)malloc(width * 4+ SIMD_ALIGNMENT);
+  uint8_t *row_g_temp = (uint8_t *)malloc(width * 4+ SIMD_ALIGNMENT);
+  uint8_t *row_b_temp = (uint8_t *)malloc(width * 4+ SIMD_ALIGNMENT);
+  uint8_t *row_r = (uint8_t*)ALIGNED_POINTER(row_r_temp, SIMD_ALIGNMENT);
+  uint8_t *row_g = (uint8_t*)ALIGNED_POINTER(row_g_temp, SIMD_ALIGNMENT);
+  uint8_t *row_b = (uint8_t*)ALIGNED_POINTER(row_b_temp, SIMD_ALIGNMENT);
+
 
   uint8_t *in_y = &input[0];
   uint8_t *in_u = &input[width*height];
@@ -180,7 +187,7 @@ int yuv2rgb_i_avx2(uint8_t* input, uint8_t* output, int width, int height)
 
       __m128i chroma_v_lo = _mm_shuffle_epi8(v_a, chroma_shufflemask_lo);
       __m128i chroma_v_hi = _mm_shuffle_epi8(v_a, chroma_shufflemask_hi);
-      
+
       chroma_v = _mm256_set_m128i(chroma_v_hi, chroma_v_lo);
 
     }
@@ -223,18 +230,17 @@ int yuv2rgb_i_avx2(uint8_t* input, uint8_t* output, int width, int height)
       out += 32;
 
       if (ii != 1) {
-        if (!row) {
-          u_a = _mm_srli_si128(u_a, 4);
-          v_a = _mm_srli_si128(v_a, 4);
-          __m128i chroma_u_lo = _mm_shuffle_epi8(u_a, chroma_shufflemask_lo);
-          __m128i chroma_u_hi = _mm_shuffle_epi8(u_a, chroma_shufflemask_hi);
-          chroma_u = _mm256_set_m128i(chroma_u_hi, chroma_u_lo);
+        u_a = _mm_srli_si128(u_a, 4);
+        v_a = _mm_srli_si128(v_a, 4);
+        __m128i chroma_u_lo = _mm_shuffle_epi8(u_a, chroma_shufflemask_lo);
+        __m128i chroma_u_hi = _mm_shuffle_epi8(u_a, chroma_shufflemask_hi);
+        chroma_u = _mm256_set_m128i(chroma_u_hi, chroma_u_lo);
 
-          __m128i chroma_v_lo = _mm_shuffle_epi8(v_a, chroma_shufflemask_lo);
-          __m128i chroma_v_hi = _mm_shuffle_epi8(v_a, chroma_shufflemask_hi);
+        __m128i chroma_v_lo = _mm_shuffle_epi8(v_a, chroma_shufflemask_lo);
+        __m128i chroma_v_hi = _mm_shuffle_epi8(v_a, chroma_shufflemask_hi);
 
-          chroma_v = _mm256_set_m128i(chroma_v_hi, chroma_v_lo);
-        }
+        chroma_v = _mm256_set_m128i(chroma_v_hi, chroma_v_lo);
+
 
         y_a = _mm_srli_si128(y_a, 8);
         __m128i luma_lo = _mm_shuffle_epi8(y_a, luma_shufflemask_lo);
@@ -252,8 +258,8 @@ int yuv2rgb_i_avx2(uint8_t* input, uint8_t* output, int width, int height)
     }
   }
 
-  free(row_r);
-  free(row_g);
-  free(row_b);
+  free(row_r_temp);
+  free(row_g_temp);
+  free(row_b_temp);
   return 1;
 }
