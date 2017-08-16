@@ -84,9 +84,6 @@ void FilterGraph::updateSettings()
     peer->audioFramedSource->updateSettings();
     peer->videoFramedSource->updateSettings();
 
-    peer->audioSink->updateSettings();
-    peer->videoSink->updateSettings();
-
     // currently does nothing, but maybe later we decide to add some settings
     // to our receive such as hos much we want to decode and stuff
     for(auto video : peer->videoReceive)
@@ -162,19 +159,23 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
   {
     if(graph.at(connectIndex)->outputType() != filter->inputType())
     {
-      qDebug() << "Filter output and input do not match. Trying to find an existing conversion";
+      qDebug() << "Filter output and input do not match for" << graph.at(connectIndex)->getName()
+               << "->" << filter->getName() << "Trying to find an existing conversion:" << graph.at(connectIndex)->outputType()
+               << "to" << filter->inputType();
 
       Q_ASSERT(graph.at(connectIndex)->outputType() != NONE);
 
       if(graph.at(connectIndex)->outputType() == RGB32VIDEO &&
          filter->inputType() == YUVVIDEO)
       {
-        addToGraph(std::shared_ptr<Filter>(new RGB32toYUV("", stats_)), graph);
+        qDebug() << "Found RGB32 to YUV conversion needed";
+        addToGraph(std::shared_ptr<Filter>(new RGB32toYUV("", stats_)), graph, connectIndex);
       }
       else if(graph.at(connectIndex)->outputType() == YUVVIDEO &&
               filter->inputType() == RGB32VIDEO)
       {
-        addToGraph(std::shared_ptr<Filter>(new YUVtoRGB32("", stats_)), graph);
+        qDebug() << "Found RGB32 to YUV conversion needed";
+        addToGraph(std::shared_ptr<Filter>(new YUVtoRGB32("", stats_)), graph, connectIndex);
       }
       else
       {
@@ -205,6 +206,7 @@ bool FilterGraph::connectFilters(std::shared_ptr<Filter> filter, std::shared_ptr
     return false;
   }
   previous->addOutConnection(filter);
+  return true;
 }
 
 
@@ -242,8 +244,6 @@ void FilterGraph::checkParticipant(int16_t id)
   peers_.at(id)->output = 0;
   peers_.at(id)->audioFramedSource = 0;
   peers_.at(id)->videoFramedSource = 0;
-  peers_.at(id)->audioSink = 0;
-  peers_.at(id)->videoSink = 0;
 }
 
 void FilterGraph::sendVideoto(int16_t id, std::shared_ptr<Filter> videoFramedSource)
@@ -281,19 +281,17 @@ void FilterGraph::receiveVideoFrom(int16_t id, std::shared_ptr<Filter> videoSink
   // add participant if necessary
   checkParticipant(id);
 
-  if(peers_.at(id)->videoSink)
+  if(!peers_.at(id)->videoReceive.empty())
   {
     qWarning() << "Warning: We are receiving video from this participant:" << id;
     return;
   }
-
-  peers_.at(id)->videoSink = videoSink;
-
+  addToGraph(videoSink, peers_.at(id)->videoReceive);
   addToGraph(std::shared_ptr<Filter>(new OpenHEVCFilter(QString::number(id) + "_", stats_)),
-             peers_.at(id)->videoReceive);
-  peers_.at(id)->videoSink->addOutConnection(peers_.at(id)->videoReceive.back());
+             peers_.at(id)->videoReceive, 0);
 
-  addToGraph(std::shared_ptr<Filter>(new DisplayFilter(QString::number(id) + "_", stats_, view, id)), peers_.at(id)->videoReceive);
+  addToGraph(std::shared_ptr<Filter>(new DisplayFilter(QString::number(id) + "_", stats_, view, id)),
+             peers_.at(id)->videoReceive, 1);
 }
 
 void FilterGraph::sendAudioTo(int16_t id, std::shared_ptr<Filter> audioFramedSource)
@@ -335,22 +333,19 @@ void FilterGraph::receiveAudioFrom(int16_t id, std::shared_ptr<Filter> audioSink
   // add participant if necessary
   checkParticipant(id);
 
-  if(peers_.at(id)->audioSink)
+  if(!peers_.at(id)->audioReceive.empty())
   {
     qWarning() << "Warning: We are receiving video from this participant:" << id;
     return;
   }
-  peers_.at(id)->audioSink = audioSink;
-
+  addToGraph(audioSink, peers_.at(id)->audioReceive);
   addToGraph(std::shared_ptr<Filter>(new OpusDecoderFilter(QString::number(id) + "_", format_, stats_)),
-                                     peers_.at(id)->audioReceive);
-
-  peers_.at(id)->audioSink->addOutConnection(peers_.at(id)->audioReceive.back());
+                                     peers_.at(id)->audioReceive, 0);
 
   if(audioSend_.size() > 0 && AEC_ENABLED)
   {
     addToGraph(std::shared_ptr<Filter>(new SpeexAECFilter(QString::number(id) + "_", stats_, format_)),
-               peers_.at(id)->audioReceive, 0);
+               peers_.at(id)->audioReceive, 1);
 
     //connect to capture filter to remove echo
     audioSend_.at(0)->addOutConnection(peers_.at(id)->audioReceive.back());
@@ -508,18 +503,6 @@ void FilterGraph::destroyPeer(Peer* peer)
     peer->videoFramedSource = 0;
   }
 
-  if(peer->audioSink)
-  {
-    peer->audioSink->removeOutConnection(peer->audioReceive.front());
-    peer->audioSink->stop();
-  }
-
-  if(peer->videoSink)
-  {
-    peer->videoSink->removeOutConnection(peer->videoReceive.front());
-    peer->videoSink->stop();
-  }
-
   destroyFilters(peer->audioReceive);
   destroyFilters(peer->videoReceive);
 
@@ -575,7 +558,6 @@ void FilterGraph::print()
         audioDotFile += f->printOutputs();
       }
 
-      audioDotFile += peers_.at(i)->audioSink->printOutputs();
       audioDotFile += peers_.at(i)->audioFramedSource->printOutputs();
     }
   }
@@ -597,7 +579,6 @@ void FilterGraph::print()
         videoDotFile += f->printOutputs();
       }
 
-      videoDotFile += peers_.at(i)->videoSink->printOutputs();
       videoDotFile += peers_.at(i)->videoFramedSource->printOutputs();
     }
   }

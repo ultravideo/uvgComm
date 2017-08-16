@@ -280,7 +280,7 @@ std::shared_ptr<Filter> RTPStreamer::addSendAudio(PeerID peer, uint16_t port)
   if(peers_.at(peer)->audioSender)
     destroySender(peers_.at(peer)->audioSender);
 
-  peers_.at(peer)->audioSender = addSender(peers_.at(peer)->ip, port, RAWAUDIO);
+  peers_.at(peer)->audioSender = addSender(peers_.at(peer)->ip, port, OPUSAUDIO);
   return peers_.at(peer)->audioSender->sourcefilter;
 }
 
@@ -298,7 +298,7 @@ std::shared_ptr<Filter> RTPStreamer::addReceiveAudio(PeerID peer, uint16_t port)
   if(peers_.at(peer)->audioReceiver)
     destroyReceiver(peers_.at(peer)->audioReceiver);
 
-  peers_.at(peer)->audioReceiver = addReceiver(peers_.at(peer)->ip, port, RAWAUDIO);
+  peers_.at(peer)->audioReceiver = addReceiver(peers_.at(peer)->ip, port, OPUSAUDIO);
   return peers_.at(peer)->audioReceiver->sink;
 }
 

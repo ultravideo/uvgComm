@@ -61,9 +61,6 @@ private:
     std::shared_ptr<Filter> audioFramedSource; // sends audio
     std::shared_ptr<Filter> videoFramedSource; // sends video
 
-    std::shared_ptr<Filter> audioSink; // receives audio
-    std::shared_ptr<Filter> videoSink; // receives video
-
     std::vector<std::shared_ptr<Filter>> videoReceive;
     std::vector<std::shared_ptr<Filter>> audioReceive;
 
@@ -75,6 +72,10 @@ private:
   void destroyFilters(std::vector<std::shared_ptr<Filter>>& filters);
 
   void deconstruct();
+
+  unsigned int camera_;
+  unsigned int kvazaar_;
+  unsigned int opusEncoder_;
 
   // id is also the index of the Peer in this vector
   std::vector<Peer*> peers_;
