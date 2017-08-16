@@ -8,6 +8,8 @@
 #include "SampleGrabber.h"
 #include "capture.h"
 
+#include <QDebug>
+
 // mingw: g++ capture.cpp main_cli.cpp -lm -lstrmiids -lole32 -loleaut32
 #pragma comment(lib,"Strmiids.lib") 
 
@@ -41,11 +43,12 @@ public:
 
   //ISampleGrabberCB
   STDMETHODIMP SampleCB(double SampleTime, IMediaSample *pSample);
-  STDMETHODIMP BufferCB(double SampleTime, BYTE *pBuffer, long BufferLen) { std::cerr << "BufferCB" << std::endl; return S_OK; }
+  STDMETHODIMP BufferCB(double SampleTime, BYTE *pBuffer, long BufferLen);// { qDebug() << "BufferCB"; return S_OK; }
 };
 
 STDMETHODIMP CallbackObject::SampleCB(double SampleTime, IMediaSample *pSample)
 {
+  qDebug() << "SampleCB";
   if (!pSample)
     return E_POINTER;
   long sz = pSample->GetActualDataLength();
@@ -58,6 +61,14 @@ STDMETHODIMP CallbackObject::SampleCB(double SampleTime, IMediaSample *pSample)
   return S_OK;
 }
 
+STDMETHODIMP CallbackObject::BufferCB(double SampleTime, BYTE *pBuffer, long BufferLen)
+{
+  if (BufferLen <= 0 || pBuffer == NULL) return E_UNEXPECTED;
+  capture.pushFrame((uint8_t*)pBuffer, BufferLen);
+
+  return S_OK;
+}
+
 
 DEFINE_GUID(CLSID_NullRenderer, 0xc1f400a4, 0x3f08, 0x11d3, 0x9f, 0x0b, 0x00, 0x60, 0x08, 0x03, 0x9e, 0x37);
 DEFINE_GUID(CLSID_SampleGrabber, 0xc1f400a0, 0x3f08, 0x11d3, 0x9f, 0x0b, 0x00, 0x60, 0x08, 0x03, 0x9e, 0x37);
@@ -65,6 +76,9 @@ DEFINE_GUID(CLSID_SampleGrabber, 0xc1f400a0, 0x3f08, 0x11d3, 0x9f, 0x0b, 0x00, 0
 
 int8_t DShow_Capture::pushFrame(uint8_t *data, int32_t datalen)
 {
+  if(frames.size() > 10)
+    return FALSE;
+
   frameData fdata;
   fdata.data = (uint8_t*)malloc(datalen);
   memcpy(fdata.data, data, datalen);
@@ -355,7 +369,7 @@ int8_t DShow_Capture::startCapture()
   //pGraph->Connect()
   pBuild->RenderStream(&PIN_CATEGORY_CAPTURE, &MEDIATYPE_Video, inputFilter, pGrabberF, pNullF);
 
-  pGrabber->SetCallback(new CallbackObject(), 0);
+  pGrabber->SetCallback(new CallbackObject(), 1);
 
   return TRUE;
 }
