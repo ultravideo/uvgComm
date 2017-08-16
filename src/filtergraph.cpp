@@ -64,7 +64,10 @@ void FilterGraph::updateSettings()
       // reconnect all videosends to streamers
       for(Peer* peer : peers_)
       {
-        videoSend_.back()->addOutConnection(peer->videoFramedSource);
+        if(peer != NULL)
+        {
+          videoSend_.back()->addOutConnection(peer->videoFramedSource);
+        }
       }
     }
   }
@@ -79,20 +82,23 @@ void FilterGraph::updateSettings()
   {
     filter->updateSettings();
   }
-  for(auto peer : peers_)
+  for(Peer* peer : peers_)
   {
-    peer->audioFramedSource->updateSettings();
-    peer->videoFramedSource->updateSettings();
+    if(peer != NULL)
+    {
+      peer->audioFramedSource->updateSettings();
+      peer->videoFramedSource->updateSettings();
 
-    // currently does nothing, but maybe later we decide to add some settings
-    // to our receive such as hos much we want to decode and stuff
-    for(auto video : peer->videoReceive)
-    {
-      video->updateSettings();
-    }
-    for(auto audio : peer->audioReceive)
-    {
-      audio->updateSettings();
+      // currently does nothing, but maybe later we decide to add some settings
+      // to our receive such as hos much we want to decode and stuff
+      for(auto video : peer->videoReceive)
+      {
+        video->updateSettings();
+      }
+      for(auto audio : peer->audioReceive)
+      {
+        audio->updateSettings();
+      }
     }
   }
 
