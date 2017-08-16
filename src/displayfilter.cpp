@@ -12,9 +12,10 @@ DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
                              VideoWidget *widget, uint32_t peer):
   Filter(id, "Display", stats, RGB32VIDEO, NONE),
   widget_(widget),
-  peer_(peer)
+  peer_(peer),
+  horizontalMirroring_(false),
+  verticalMirroring_(false)
 {
-  mirrored_ = false;
   widget_->show();
 }
 
@@ -48,7 +49,8 @@ void DisplayFilter::process()
             input->height,
             format);
 
-      image = image.mirrored(mirrored_, mirrored_);
+
+      image = image.mirrored(horizontalMirroring_, verticalMirroring_);
 
       int32_t delay = QDateTime::currentMSecsSinceEpoch() -
           (input->presentationTime.tv_sec * 1000 + input->presentationTime.tv_usec/1000);

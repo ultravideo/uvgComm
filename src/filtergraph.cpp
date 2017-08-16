@@ -126,7 +126,7 @@ void FilterGraph::initSelfView(VideoWidget *selfView)
   {
     // connect selfview to camera
     DisplayFilter* selfviewFilter = new DisplayFilter("Self_", stats_, selfView, 1111);
-    selfviewFilter->setProperties(true);
+    selfviewFilter->setProperties(true, videoSend_.at(0)->outputType() == RGB32VIDEO);
     addToGraph(std::shared_ptr<Filter>(selfviewFilter), videoSend_);
   }
 }
