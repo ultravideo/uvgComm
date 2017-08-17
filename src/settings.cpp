@@ -303,6 +303,10 @@ void Settings::getCapability(int deviceIndex,
                              double& framerate,
                              QString& format)
 {
+  char **devices;
+  int8_t count;
+  dshow_queryDevices(&devices, &count); // this has to be done because of the api
+
   if (dshow_selectDevice(deviceIndex) || dshow_selectDevice(0))
   {
     int8_t count;
@@ -323,6 +327,10 @@ void Settings::getCapability(int deviceIndex,
     resolution = QSize(capList[capabilityIndex].width,capList[capabilityIndex].height);
     framerate = capList[capabilityIndex].fps;
     format = capList[capabilityIndex].format;
+  }
+  else
+  {
+    qWarning() << "WARNING: Failed to select device for capacity information.";
   }
 }
 
@@ -386,13 +394,15 @@ bool Settings::checkMissingValues()
 {
   QSettings settings;
   QStringList list = settings.allKeys();
+
+  bool foundEverything = true;
   for(auto key : list)
   {
     if(settings.value(key).isNull() || settings.value(key) == "")
     {
       qDebug() << "MISSING SETTING FOR:" << key;
-      return false;
+      foundEverything = false;
     }
   }
-  return true;
+  return foundEverything;
 }
