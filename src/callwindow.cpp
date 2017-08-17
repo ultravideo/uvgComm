@@ -36,7 +36,7 @@ CallWindow::CallWindow(QWidget *parent):
   connect(timer_, SIGNAL(timeout()), stats_, SLOT(update()));
   timer_->start();
 
-  setWindowTitle("HEVC Conferencing");
+  setWindowTitle("Kvazzup");
 }
 
 CallWindow::~CallWindow()
