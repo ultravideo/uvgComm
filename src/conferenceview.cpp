@@ -7,8 +7,6 @@
 #include <QGridLayout>
 #include <QDebug>
 
-uint16_t ROWMAXLENGTH = 3;
-
 ConferenceView::ConferenceView(QWidget *parent):
   parent_(parent),
   layout_(NULL),
@@ -16,6 +14,7 @@ ConferenceView::ConferenceView(QWidget *parent):
   callingWidget_(NULL),
   row_(0),
   column_(0),
+  rowMaxLength_(2),
   activeCalls_(),
   deniedCalls_()
 {}
@@ -111,6 +110,11 @@ VideoWidget* ConferenceView::addVideoStream(QString callID)
   layout_->addWidget(view, activeCalls_[callID]->row, activeCalls_[callID]->column);
   activeCalls_[callID]->item = layout_->itemAtPosition(activeCalls_[callID]->row,
                                                        activeCalls_[callID]->column);
+  //view->setParent(0);
+  //view->showMaximized();
+  //view->show();
+  //view->setWindowFlags(Qt::CustomizeWindowHint | Qt::FramelessWindowHint);
+
   return view;
 }
 
@@ -135,12 +139,32 @@ void ConferenceView::removeCaller(QString callID)
 
 void ConferenceView::nextSlot()
 {
-  // TODO improve this algorithm for more optimized layout
   ++column_;
-  if(column_ == ROWMAXLENGTH)
+  if(column_ == rowMaxLength_)
   {
-    column_ = 0;
-    ++row_;
+    // move to first row, third place
+    if(row_ == 1 && column_ == 2)
+    {
+      rowMaxLength_ = 3;
+      row_ = 0;
+      column_ = 2;
+    }
+    // move to second row, third place
+    else if(row_ == 0 && column_ == 3)
+    {
+      row_ = 1;
+      column_ = 2;
+    }
+    else if(row_ == 2 && column_ == 3)
+    {
+      ++row_;
+      column_ = 1;
+    }
+    else // move forward
+    {
+      column_ = 0;
+      ++row_;
+    }
   }
 }
 
@@ -173,6 +197,7 @@ void ConferenceView::close()
 {
   while(!activeCalls_.empty())
   {
+    layout_->removeItem((*activeCalls_.begin()).second->item);
     removeCaller((*activeCalls_.begin()).first);
   }
 
@@ -180,4 +205,5 @@ void ConferenceView::close()
 
   row_ = 0;
   column_ = 0;
+  rowMaxLength_ = 2;
 }

@@ -55,6 +55,8 @@ private:
   uint16_t row_;
   uint16_t column_;
 
+  uint16_t rowMaxLength_;
+
   struct CallInfo
   {
     CallState state;
