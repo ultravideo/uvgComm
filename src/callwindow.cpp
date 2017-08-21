@@ -7,13 +7,8 @@
 #include "statisticswindow.h"
 
 #include <QCloseEvent>
-#include <QHostAddress>
-#include <QtEndian>
 #include <QTimer>
 #include <QMetaType>
-
-const uint16_t MAXOPENPORTS = 42;
-const uint16_t PORTSPERPARTICIPANT = 4;
 
 CallWindow::CallWindow(QWidget *parent):
   QMainWindow(parent),
@@ -21,10 +16,9 @@ CallWindow::CallWindow(QWidget *parent):
   settingsView_(),
   stats_(new StatisticsWindow(this)),
   conference_(this),
+  manager_(stats_),
   callNeg_(),
-  media_(stats_),
-  timer_(new QTimer(this)),
-  portsOpen_(0)
+  timer_(new QTimer(this))
 {
   ui_->setupUi(this);
 
@@ -96,7 +90,8 @@ void CallWindow::startStream()
                    this, SLOT(endCall(QString, QString)));
 
   QObject::connect(&settingsView_, SIGNAL(settingsChanged()),
-                   this, SLOT(recordChangedSettings()));
+                   &manager_, SLOT(recordChangedSettings()));
+
   conferenceMutex_.lock();
   conference_.init(ui_->participantLayout, ui_->participants, ui_widget, holderWidget);
   conferenceMutex_.unlock();
@@ -108,20 +103,12 @@ void CallWindow::startStream()
 
   callNeg_.init(localName, localUsername);
 
-  media_.init(ui_->SelfView);
-}
-
-void CallWindow::recordChangedSettings()
-{
-  // TODO call update settings on everything?
-  media_.updateSettings();
+  manager_.init(ui_->SelfView);
 }
 
 void CallWindow::callToParticipant(QString name, QString username, QString ip)
 {
-  qDebug() << "User wants to add participant. Ports required:"
-           << portsOpen_ + PORTSPERPARTICIPANT << "/" << MAXOPENPORTS;
-  if(portsOpen_ <= MAXOPENPORTS - PORTSPERPARTICIPANT)
+  if(manager_.roomForMoreParticipants())
   {
     QString ip_str = ip;
 
@@ -144,6 +131,10 @@ void CallWindow::callToParticipant(QString name, QString username, QString ip)
       conferenceMutex_.unlock();
     }
   }
+  else
+  {
+    qDebug() << "No room for more participants.";
+  }
 }
 
 void CallWindow::chatWithParticipant(QString name, QString username, QString ip)
@@ -151,107 +142,9 @@ void CallWindow::chatWithParticipant(QString name, QString username, QString ip)
   qDebug("Chat not implemented yet");
 }
 
-void CallWindow::createParticipant(QString& callID, std::shared_ptr<SDPMessageInfo> peerInfo,
-                                   const std::shared_ptr<SDPMessageInfo> localInfo)
-{
-  qDebug() << "Adding participant to conference.";
-
-  portsOpen_ +=PORTSPERPARTICIPANT;
-
-  QHostAddress address;
-  address.setAddress(peerInfo->globalAddress);
-
-  in_addr ip;
-  ip.S_un.S_addr = qToBigEndian(address.toIPv4Address());
-
-  conferenceMutex_.lock();
-  VideoWidget* view = conference_.addVideoStream(callID);
-  conferenceMutex_.unlock();
-
-  if(view == NULL)
-  {
-    qWarning() << "WARNING: NULL widget got from";
-    return;
-  }
-
-  // TODO: have these be arrays and send video to all of them in case SDP describes it so
-  uint16_t sendAudioPort = 0;
-  uint16_t recvAudioPort = 0;
-  uint16_t sendVideoPort = 0;
-  uint16_t recvVideoPort = 0;
-
-  for(auto media : localInfo->media)
-  {
-    if(media.type == "audio" && recvAudioPort == 0)
-    {
-      recvAudioPort = media.port;
-    }
-    else if(media.type == "video" && recvVideoPort == 0)
-    {
-      recvVideoPort = media.port;
-    }
-  }
-
-  for(auto media : peerInfo->media)
-  {
-    if(media.type == "audio" && sendAudioPort == 0)
-    {
-      sendAudioPort = media.port;
-    }
-    else if(media.type == "video" && sendVideoPort == 0)
-    {
-      sendVideoPort = media.port;
-    }
-  }
-
-  // TODO send all the media if more than one are specified and if required to more than one participant.
-  if(sendAudioPort == 0 || recvAudioPort == 0 || sendVideoPort == 0 || recvVideoPort == 0)
-  {
-    qWarning() << "WARNING: All media ports were not found in given SDP. SendAudio:" << sendAudioPort
-               << "recvAudio:" << recvAudioPort << "SendVideo:" << sendVideoPort << "RecvVideo:" << recvVideoPort;
-    return;
-  }
-
-  if(stats_)
-    stats_->addParticipant(peerInfo->globalAddress,
-                           QString::number(sendAudioPort),
-                           QString::number(sendVideoPort));
-
-  qDebug() << "Sending mediastreams to:" << peerInfo->globalAddress << "audioPort:" << sendAudioPort
-           << "VideoPort:" << sendVideoPort;
-  media_.addParticipant(callID, ip, sendAudioPort, recvAudioPort, sendVideoPort, recvVideoPort, view);
-}
-
 void CallWindow::openStatistics()
 {
   stats_->show();
-}
-
-void CallWindow::micState()
-{
-  bool state = media_.toggleMic();
-
-  if(state)
-  {
-    ui_->mic->setText("Turn mic off");
-  }
-  else
-  {
-    ui_->mic->setText("Turn mic on");
-  }
-}
-
-void CallWindow::cameraState()
-{
-  bool state = media_.toggleCamera();
-  if(state)
-  {
-    ui_->camera->setText("Turn camera off");
-  }
-  else
-  {
-    ui_->camera->setText("Turn camera on");
-  }
 }
 
 void CallWindow::closeEvent(QCloseEvent *event)
@@ -259,7 +152,7 @@ void CallWindow::closeEvent(QCloseEvent *event)
   endAllCalls();
 
   callNeg_.uninit();
-  media_.uninit();
+  manager_.uninit();
 
   stats_->hide();
   stats_->finished(0);
@@ -267,11 +160,17 @@ void CallWindow::closeEvent(QCloseEvent *event)
   QMainWindow::closeEvent(event);
 }
 
+void CallWindow::setMicState(bool on)
+{}
+
+void CallWindow::setCameraState(bool on)
+{}
+
 void CallWindow::incomingCall(QString callID, QString caller)
 {
-  if(portsOpen_ > MAXOPENPORTS - PORTSPERPARTICIPANT)
+  if(!manager_.roomForMoreParticipants())
   {
-    qWarning() << "WARNING: Ran out of ports:" << portsOpen_ << "/" << MAXOPENPORTS;
+    qWarning() << "WARNING: Could not fit more participants to this call";
     //rejectCall(); // TODO: send a not possible message instead of reject.
     return;
   }
@@ -283,10 +182,15 @@ void CallWindow::incomingCall(QString callID, QString caller)
 
 void CallWindow::callOurselves(QString callID, std::shared_ptr<SDPMessageInfo> info)
 {
-  if(portsOpen_ <= MAXOPENPORTS - PORTSPERPARTICIPANT)
+  if(manager_.roomForMoreParticipants())
   {
+    conferenceMutex_.lock();
+    VideoWidget* view = conference_.addVideoStream(callID);
+    conferenceMutex_.unlock();
+
     qDebug() << "Calling ourselves, how boring.";
-    createParticipant(callID, info, info);
+
+    manager_.createParticipant(callID, info, info, view, stats_);
   }
 }
 
@@ -329,32 +233,32 @@ void CallWindow::callNegotiated(QString callID, std::shared_ptr<SDPMessageInfo> 
   qDebug() << "Sending media to IP:" << peerInfo->globalAddress
            << "to port:" << peerInfo->media.first().port;
 
+  conferenceMutex_.lock();
+  VideoWidget* view = conference_.addVideoStream(callID);
+  conferenceMutex_.unlock();
+
   // TODO check the SDP info and do ports and rtp numbers properly
-  createParticipant(callID, peerInfo, localInfo);
+  manager_.createParticipant(callID, peerInfo, localInfo, view, stats_);
 }
 
 void CallWindow::endCall(QString callID, QString ip)
 {
   qDebug() << "Received the end of call message";
 
-  // hack to go around the situation where we are ending our own call
-  if(portsOpen_ != 0)
-  {
-    media_.removeParticipant(callID); // must be ended first because of the view.
+  manager_.removeParticipant(callID);
 
-    conferenceMutex_.lock();
-    conference_.removeCaller(callID);
-    conferenceMutex_.unlock();
+  conferenceMutex_.lock();
+  conference_.removeCaller(callID);
+  conferenceMutex_.unlock();
 
-    stats_->removeParticipant(ip);
-    portsOpen_ -= PORTSPERPARTICIPANT;
-  }
+  stats_->removeParticipant(ip);
 }
 
 void CallWindow::on_settings_clicked()
 {
   settingsView_.showBasicSettings();
 }
+
 void CallWindow::on_advanced_settings_clicked()
 {
   settingsView_.showAdvancedSettings();
@@ -368,10 +272,8 @@ void CallWindow::on_about_clicked()
 void CallWindow::endAllCalls()
 {
   callNeg_.endAllCalls();
-
-  media_.endAllCalls();
+  manager_.endCall();
   conferenceMutex_.lock();
   conference_.close();
   conferenceMutex_.unlock();
-  portsOpen_ = 0;
 }

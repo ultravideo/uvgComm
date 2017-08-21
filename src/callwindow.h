@@ -1,5 +1,6 @@
 #pragma once
-#include "mediamanager.h"
+
+#include "callmanager.h"
 #include "callnegotiation.h"
 #include "conferenceview.h"
 #include "settings.h"
@@ -7,6 +8,7 @@
 #include "participantinterface.h"
 
 #include <QMainWindow>
+#include <QMutex>
 
 // This class is the heart of this software. It is responsible for directing
 // all the other classes based on user input.
@@ -14,6 +16,7 @@
 // TODO separate Call logic from UI ( split this class in two classes,
 // one handling ui and one handling all of call logic )
 
+// The main Call window. It is also responsible for coordinating the GUI components.
 class StatisticsWindow;
 
 namespace Ui {
@@ -36,13 +39,13 @@ public:
 
   void closeEvent(QCloseEvent *event);
 
+  void setMicState(bool on);
+  void setCameraState(bool on);
+
 public slots:
   void addContact();
 
   void openStatistics(); // Opens statistics window
-
-  void micState();
-  void cameraState();
 
   void incomingCall(QString callID, QString caller);
   void callOurselves(QString callID, std::shared_ptr<SDPMessageInfo> info);
@@ -68,12 +71,10 @@ private slots:
 
   void on_about_clicked();
 
-  void recordChangedSettings();
-
 private:
 
-  void createParticipant(QString& callID, const std::shared_ptr<SDPMessageInfo> peerInfo,
-                         const std::shared_ptr<SDPMessageInfo> localInfo);
+  //void createParticipant(QString& callID, const std::shared_ptr<SDPMessageInfo> peerInfo,
+  //                       const std::shared_ptr<SDPMessageInfo> localInfo);
 
   Ui::CallWindow *ui_;
 
@@ -87,10 +88,8 @@ private:
   ConferenceView conference_;
 
   ContactList contacts_;
+  CallManager manager_;
   CallNegotiation callNeg_;
-  MediaManager media_;
 
   QTimer *timer_; // for GUI update
-
-  uint16_t portsOpen_;
 };

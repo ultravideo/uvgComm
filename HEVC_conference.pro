@@ -49,7 +49,8 @@ SOURCES +=\
     src/contactlist.cpp \
     src/contactlistitem.cpp \
     src/dshowcamerafilter.cpp \
-    src/dshow/capture.cpp
+    src/dshow/capture.cpp \
+    src/callmanager.cpp
 
 HEADERS  += \
     src/callwindow.h \
@@ -92,7 +93,8 @@ HEADERS  += \
     src/dshow/capture_interface.h \
     src/dshow/SampleGrabber.h \
     src/optimized/rgb2yuv.h \
-    src/optimized/yuv2rgb.h
+    src/optimized/yuv2rgb.h \
+    src/callmanager.h
 
 FORMS    += \
     ui/callwindow.ui \
