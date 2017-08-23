@@ -17,8 +17,8 @@ CallWindow::CallWindow(QWidget *parent):
   settingsView_(),
   statsWindow_(NULL),
   conference_(this),
-  timer_(new QTimer(this)),
-  partInt_(NULL)
+    partInt_(NULL),
+  timer_(new QTimer(this))
 {}
 
 CallWindow::~CallWindow()
@@ -77,7 +77,19 @@ void CallWindow::init(ParticipantInterface *partInt)
 
 
   QObject::connect(&settingsView_, SIGNAL(settingsChanged()),
-                   this, SLOT(forwardSettingsUpdate()));
+                   this, SIGNAL(settingsChanged()));
+
+  QObject::connect(ui_->mic, SIGNAL(clicked()),
+                   this, SIGNAL(micStateSwitch()));
+
+  QObject::connect(ui_->camera, SIGNAL(clicked()),
+                   this, SIGNAL(cameraStateSwitch()));
+
+  QObject::connect(ui_->EndCallButton, SIGNAL(clicked()),
+                   this, SIGNAL(endCall()));
+
+  QObject::connect(ui_->actionClose, SIGNAL(triggered()),
+                   this, SIGNAL(closed()));
 
   QMainWindow::show();
   //manager_.init(ui_->SelfView);
@@ -94,17 +106,13 @@ void CallWindow::registerGUIEndpoints()
   conferenceMutex_.lock();
   conference_.init(ui_->participantLayout, ui_->participants, ui_widget, holderWidget);
   conferenceMutex_.unlock();
-}
 
+  //connect(ui_->EndCallButton, SIGNAL(clicked()), partInt_, SLOT(endTheCall()));
+}
 
 VideoWidget* CallWindow::getSelfDisplay()
 {
   return ui_->SelfView;
-}
-
-void CallWindow::forwardSettingsUpdate()
-{
-  emit settingsChanged();
 }
 
 void CallWindow::openStatistics()
@@ -121,7 +129,6 @@ void CallWindow::openStatistics()
 
 void CallWindow::closeEvent(QCloseEvent *event)
 {
-  endAllCalls();
   emit closed();
   statsWindow_->hide();
   statsWindow_->finished(0);
@@ -225,10 +232,8 @@ void CallWindow::on_about_clicked()
   about_.show();
 }
 
-void CallWindow::endAllCalls()
+void CallWindow::clearConferenceView()
 {
-  //callNeg_.endAllCalls();
-  //manager_.endCall();
   conferenceMutex_.lock();
   conference_.close();
   conferenceMutex_.unlock();

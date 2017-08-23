@@ -404,22 +404,6 @@
  <resources/>
  <connections>
   <connection>
-   <sender>EndCallButton</sender>
-   <signal>clicked()</signal>
-   <receiver>CallWindow</receiver>
-   <slot>endAllCalls()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>385</x>
-     <y>561</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>399</x>
-     <y>299</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>addContact</sender>
    <signal>clicked()</signal>
    <receiver>CallWindow</receiver>
@@ -428,54 +412,6 @@
     <hint type="sourcelabel">
      <x>208</x>
      <y>578</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>639</x>
-     <y>319</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>mic</sender>
-   <signal>clicked()</signal>
-   <receiver>CallWindow</receiver>
-   <slot>micState()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>556</x>
-     <y>578</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>639</x>
-     <y>319</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>camera</sender>
-   <signal>clicked()</signal>
-   <receiver>CallWindow</receiver>
-   <slot>cameraState()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>672</x>
-     <y>578</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>639</x>
-     <y>319</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>actionClose</sender>
-   <signal>triggered()</signal>
-   <receiver>CallWindow</receiver>
-   <slot>close()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>-1</x>
-     <y>-1</y>
     </hint>
     <hint type="destinationlabel">
      <x>639</x>

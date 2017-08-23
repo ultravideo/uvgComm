@@ -47,6 +47,7 @@ public:
 
   void setMicState(bool on);
   void setCameraState(bool on);
+  void clearConferenceView();
 
   // UI messages
   void acceptCall();
@@ -54,13 +55,16 @@ public:
 
 signals:
 
+  // maybe addcontact too, after the settings has been reorganized.
+  void settingsChanged();
+  void micStateSwitch();
+  void cameraStateSwitch();
+  void endCall();
   void closed();
 
-  void settingsChanged();
+  //void kickParticipant();
 
 public slots:
-
-  void forwardSettingsUpdate();
 
   void addContact();
 
@@ -72,19 +76,11 @@ public slots:
 
   void endCall(QString callID, QString ip);
 
-  void endAllCalls();
-
-private slots:
   void on_settings_clicked();
-
   void on_advanced_settings_clicked();
-
   void on_about_clicked();
 
 private:
-
-  //void createParticipant(QString& callID, const std::shared_ptr<SDPMessageInfo> peerInfo,
-  //                       const std::shared_ptr<SDPMessageInfo> localInfo);
 
   Ui::CallWindow *ui_;
 

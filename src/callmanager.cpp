@@ -43,7 +43,7 @@ void CallManager::init()
                                                       std::shared_ptr<SDPMessageInfo>)));
 
   QObject::connect(&callNeg_, SIGNAL(ringing(QString)),
-                   this, SLOT(ringing(QString)));
+                   this, SLOT(callRinging(QString)));
 
   QObject::connect(&callNeg_, SIGNAL(ourCallAccepted(QString, std::shared_ptr<SDPMessageInfo>,
                                                                std::shared_ptr<SDPMessageInfo>)),
@@ -51,12 +51,20 @@ void CallManager::init()
                                                       std::shared_ptr<SDPMessageInfo>)));
 
   QObject::connect(&callNeg_, SIGNAL(ourCallRejected(QString)),
-                   this, SLOT(ourCallRejected(QString)));
+                   this, SLOT(callRejected(QString)));
 
   QObject::connect(&callNeg_, SIGNAL(callEnded(QString, QString)),
                    this, SLOT(endCall(QString, QString)));
 
+  QObject::connect(&window_, SIGNAL(settingsChanged()), this, SLOT(updateSettings()));
+  QObject::connect(&window_, SIGNAL(micStateSwitch()), this, SLOT(micState()));
+  QObject::connect(&window_, SIGNAL(cameraStateSwitch()), this, SLOT(cameraState()));
+  QObject::connect(&window_, SIGNAL(endCall()), this, SLOT(endTheCall()));
   QObject::connect(&window_, SIGNAL(closed()), this, SLOT(windowClosed()));
+
+  QObject::connect(&window_, SIGNAL(closed()), this, SLOT(acceptCall(QString)));
+  QObject::connect(&window_, SIGNAL(closed()), this, SLOT(rejectCall(QString)));
+
 
   stats_ = window_.createStatsWindow();
 
@@ -134,7 +142,7 @@ void CallManager::incomingCall(QString callID, QString caller)
   window_.incomingCallNotification(callID, caller);
 }
 
-void CallManager::recordChangedSettings()
+void CallManager::updateSettings()
 {
   // TODO call update settings on everything?
   media_.updateSettings();
@@ -246,9 +254,11 @@ void CallManager::rejectCall(QString callID)
   callNeg_.rejectCall(callID);
 }
 
-void CallManager::endCall()
+void CallManager::endTheCall()
 {
+  qDebug() << "Ending all calls";
   media_.endAllCalls();
+  window_.clearConferenceView();
   portsOpen_ = 0;
 }
 
@@ -261,3 +271,20 @@ void CallManager::cameraState()
 {
   window_.setCameraState(media_.toggleCamera());
 }
+
+
+void CallManager::callRinging(QString callID)
+{
+  qDebug() << "Our call is ringing!";
+}
+
+void CallManager::callRejected(QString callID)
+{
+  qDebug() << "Our call has been rejected!";
+}
+
+void CallManager::callEnded()
+{
+  qDebug() << "They have left the call";
+}
+

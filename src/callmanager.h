@@ -28,28 +28,30 @@ public:
 
   void removeParticipant(QString callID);
 
-  void endCall();
-
   void uninit();
 
-public slots:
+public slots:  
 
-  void incomingCall(QString callID, QString caller);
-
-  void callOurselves(QString callID, std::shared_ptr<SDPMessageInfo> info);
-
-  void recordChangedSettings();
-
+  // reaction to user GUI interactions
+  void updateSettings();
   void micState();
   void cameraState();
-
-  void callNegotiated(QString callID, std::shared_ptr<SDPMessageInfo> peerInfo,
-                     std::shared_ptr<SDPMessageInfo> localInfo);
-
+  void endTheCall();
   void windowClosed();
-
   void acceptCall(QString callID);
   void rejectCall(QString callID);
+
+  // call state changes view negotiation slots
+  void incomingCall(QString callID, QString caller);
+  void callOurselves(QString callID, std::shared_ptr<SDPMessageInfo> info);
+  void callNegotiated(QString callID, std::shared_ptr<SDPMessageInfo> peerInfo,
+                     std::shared_ptr<SDPMessageInfo> localInfo);
+  void callRinging(QString callID);
+  void callRejected(QString callID);
+  void callEnded();
+
+
+
 
 private:
 
