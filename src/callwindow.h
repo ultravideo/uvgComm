@@ -1,23 +1,18 @@
 #pragma once
 
-#include "callmanager.h"
-#include "callnegotiation.h"
 #include "conferenceview.h"
 #include "settings.h"
 #include "contactlist.h"
-#include "participantinterface.h"
 
 #include <QMainWindow>
 #include <QMutex>
 
-// This class is the heart of this software. It is responsible for directing
-// all the other classes based on user input.
+// The main Call window. It is also responsible for coordinating other GUI components.
+// The user inputs are directed to call manager and call manager issues changes to GUI
+// as necessary
 
-// TODO separate Call logic from UI ( split this class in two classes,
-// one handling ui and one handling all of call logic )
-
-// The main Call window. It is also responsible for coordinating the GUI components.
 class StatisticsWindow;
+class StatisticsInterface;
 
 namespace Ui {
 class CallWindow;
@@ -25,41 +20,57 @@ class CallerWidget;
 class AboutWidget;
 }
 
-class CallWindow : public QMainWindow, public ParticipantInterface
+class CallWindow : public QMainWindow
 {
   Q_OBJECT
 public:
   explicit CallWindow(QWidget *parent);
   ~CallWindow();
 
-  void startStream();
+  void init();
 
-  virtual void callToParticipant(QString name, QString username, QString ip);
-  virtual void chatWithParticipant(QString name, QString username, QString ip);
+  // Connects all functions that are called when the
+  // user interacts with the program
+  void registerGUIEndpoints(ParticipantInterface *partInt);
+
+  VideoWidget* getSelfDisplay();
+
+  StatisticsInterface* createStatsWindow();
+
+  void callingTo(QString callID);
+
+  VideoWidget* addVideoStream(QString callID);
+
+  void incomingCallNotification(QString callID, QString caller);
 
   void closeEvent(QCloseEvent *event);
 
   void setMicState(bool on);
   void setCameraState(bool on);
 
+  // UI messages
+  void acceptCall();
+  void rejectCall();
+
+
+signals:
+
+  void closed();
+
+  void settingsChanged();
+
 public slots:
+
+  void forwardSettingsUpdate();
+
   void addContact();
 
   void openStatistics(); // Opens statistics window
-
-  void incomingCall(QString callID, QString caller);
-  void callOurselves(QString callID, std::shared_ptr<SDPMessageInfo> info);
 
   void ringing(QString callID);
 
   void ourCallRejected(QString callID);
 
-  void callNegotiated(QString callID, std::shared_ptr<SDPMessageInfo> peerInfo,
-                     std::shared_ptr<SDPMessageInfo> localInfo);
-
-  // UI messages
-  void acceptCall();
-  void rejectCall();
 
   void endCall(QString callID, QString ip);
   void endAllCalls();
@@ -79,7 +90,7 @@ private:
   Ui::CallWindow *ui_;
 
   Settings settingsView_;
-  StatisticsWindow *stats_;
+  StatisticsWindow *statsWindow_;
 
   Ui::AboutWidget* aboutWidget_;
   QWidget about_;
@@ -87,9 +98,8 @@ private:
   QMutex conferenceMutex_;
   ConferenceView conference_;
 
+  ParticipantInterface* partInt_;
   ContactList contacts_;
-  CallManager manager_;
-  CallNegotiation callNeg_;
 
   QTimer *timer_; // for GUI update
 };

@@ -18,10 +18,10 @@ class MediaManager : public QObject
   Q_OBJECT
 
 public:
-  MediaManager(StatisticsInterface* stats);
+  MediaManager();
   ~MediaManager();
 
-  void init(VideoWidget *selfView);
+  void init(VideoWidget *selfView, StatisticsInterface *stats);
   void uninit();
 
   void updateSettings();

@@ -21,9 +21,9 @@ class RTPStreamer : public QThread
   Q_OBJECT
 
 public:
-  RTPStreamer(StatisticsInterface* stats);
+  RTPStreamer();
 
-  void init();
+  void init(StatisticsInterface* stats);
   void uninit();
 
   void run();

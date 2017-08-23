@@ -1,4 +1,5 @@
-#include "callwindow.h"
+//#include "callwindow.h"
+#include "callmanager.h"
 
 #include <QApplication>
 #include <QFontDatabase>
@@ -30,10 +31,8 @@ int main(int argc, char *argv[])
   QCoreApplication::setOrganizationDomain("ultravideo.cs.tut.fi");
   QCoreApplication::setApplicationName("Kvazzup");
 
-  CallWindow call(NULL);
-
-  call.show();
-  call.startStream();
+  CallManager manager;
+  manager.init();
 
   return a.exec();
 }

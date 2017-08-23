@@ -8,11 +8,11 @@
 
 #include <QDebug>
 
-MediaManager::MediaManager(StatisticsInterface *stats):
-  stats_(stats),
-  fg_(new FilterGraph(stats)),
+MediaManager::MediaManager():
+  stats_(NULL),
+  fg_(new FilterGraph()),
   session_(NULL),
-  streamer_(new RTPStreamer(stats)),
+  streamer_(new RTPStreamer()),
   mic_(true),
   camera_(true)
 {}
@@ -23,12 +23,12 @@ MediaManager::~MediaManager()
   fg_->uninit();
 }
 
-void MediaManager::init(VideoWidget *selfView)
+void MediaManager::init(VideoWidget *selfView, StatisticsInterface* stats)
 {
   qDebug() << "Iniating media manager";
-  streamer_->init();
+  streamer_->init(stats);
   streamer_->start();
-  fg_->init(selfView);
+  fg_->init(selfView, stats);
 }
 
 void MediaManager::uninit()

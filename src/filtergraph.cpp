@@ -22,15 +22,14 @@
 
 #include "common.h"
 
-FilterGraph::FilterGraph(StatisticsInterface* stats):
+FilterGraph::FilterGraph():
   peers_(),
   videoSend_(),
   audioSend_(),
   selfView_(NULL),
-  stats_(stats),
+  stats_(NULL),
   format_()
 {
-  Q_ASSERT(stats);
   // TODO negotiate these values with all included filters
   format_.setSampleRate(48000);
   format_.setChannelCount(1);
@@ -40,8 +39,11 @@ FilterGraph::FilterGraph(StatisticsInterface* stats):
   format_.setCodec("audio/pcm");
 }
 
-void FilterGraph::init(VideoWidget* selfView)
+void FilterGraph::init(VideoWidget* selfView, StatisticsInterface* stats)
 {
+  Q_ASSERT(stats);
+
+  stats_ = stats;
   selfView_ = selfView;
 
   initSelfView(selfView);

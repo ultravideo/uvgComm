@@ -15,9 +15,9 @@ class Filter;
 class FilterGraph
 {
 public:
-  FilterGraph(StatisticsInterface *stats);
+  FilterGraph();
 
-  void init(VideoWidget* selfView);
+  void init(VideoWidget* selfView, StatisticsInterface *stats);
   void uninit();
 
   // These functions are used to manipulate filter graphs regarding a peer

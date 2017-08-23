@@ -5,26 +5,135 @@
 
 #include <QHostAddress>
 #include <QtEndian>
+#include <QSettings>
 
 const uint16_t MAXOPENPORTS = 42;
 const uint16_t PORTSPERPARTICIPANT = 4;
 
-CallManager::CallManager(StatisticsInterface *stats):
-    media_(stats),
+CallManager::CallManager():
+    media_(),
+    callNeg_(),
+    window_(NULL),
     portsOpen_(0)
 {}
 
 
-void CallManager::init(VideoWidget* selfview)
+void CallManager::init()
 {
-  media_.init(selfview);
+  window_.init();
+  window_.registerGUIEndpoints(this);
+  window_.show();
+  VideoWidget* selfview = window_.getSelfDisplay();
+
+  // TODO move these closer to useagepoint
+  QSettings settings;
+  QString localName = settings.value("local/Name").toString();
+  QString localUsername = settings.value("local/Username").toString();
+
+  callNeg_.init(localName, localUsername);
+
+  QObject::connect(&callNeg_, SIGNAL(incomingINVITE(QString, QString)),
+                   this, SLOT(incomingCall(QString, QString)));
+
+  QObject::connect(&callNeg_, SIGNAL(callingOurselves(QString, std::shared_ptr<SDPMessageInfo>)),
+                   this, SLOT(callOurselves(QString, std::shared_ptr<SDPMessageInfo>)));
+
+  QObject::connect(&callNeg_, SIGNAL(callNegotiated(QString, std::shared_ptr<SDPMessageInfo>,
+                                                              std::shared_ptr<SDPMessageInfo>)),
+                   this, SLOT(callNegotiated(QString, std::shared_ptr<SDPMessageInfo>,
+                                                      std::shared_ptr<SDPMessageInfo>)));
+
+  QObject::connect(&callNeg_, SIGNAL(ringing(QString)),
+                   this, SLOT(ringing(QString)));
+
+  QObject::connect(&callNeg_, SIGNAL(ourCallAccepted(QString, std::shared_ptr<SDPMessageInfo>,
+                                                               std::shared_ptr<SDPMessageInfo>)),
+                   this, SLOT(callNegotiated(QString, std::shared_ptr<SDPMessageInfo>,
+                                                      std::shared_ptr<SDPMessageInfo>)));
+
+  QObject::connect(&callNeg_, SIGNAL(ourCallRejected(QString)),
+                   this, SLOT(ourCallRejected(QString)));
+
+  QObject::connect(&callNeg_, SIGNAL(callEnded(QString, QString)),
+                   this, SLOT(endCall(QString, QString)));
+
+  QObject::connect(&window_, SIGNAL(closed()), this, SLOT(windowClosed()));
+
+  stats_ = window_.createStatsWindow();
+
+  media_.init(selfview, stats_);
 }
 
 void CallManager::uninit()
 {
+  callNeg_.uninit();
   media_.uninit();
 }
 
+void CallManager::windowClosed()
+{
+  uninit();
+}
+
+void CallManager::callToParticipant(QString name, QString username, QString ip)
+{
+  if(roomForMoreParticipants())
+  {
+    QString ip_str = ip;
+
+    Contact con;
+    con.contactAddress = ip_str;
+    con.name = "Anonymous";
+    con.username = "unknown";
+
+    QList<Contact> list;
+    list.append(con);
+
+    //start negotiations for this connection
+
+    QList<QString> callIDs = callNeg_.startCall(list);
+
+    for(auto callID : callIDs)
+    {
+      window_.callingTo(callID);
+    }
+  }
+  else
+  {
+    qDebug() << "No room for more participants.";
+  }
+}
+
+void CallManager::callOurselves(QString callID, std::shared_ptr<SDPMessageInfo> info)
+{
+  if(roomForMoreParticipants())
+  {
+    qDebug() << "Calling ourselves, how boring.";
+    VideoWidget* view = window_.addVideoStream(callID);
+    createParticipant(callID, info, info, view, stats_);
+  }
+  else
+  {
+    qDebug() << "WARNING: No Room when calling ourselves, but this should be checked earlier.";
+  }
+}
+
+void CallManager::chatWithParticipant(QString name, QString username, QString ip)
+{
+  qDebug("Chat not implemented yet");
+}
+
+void CallManager::incomingCall(QString callID, QString caller)
+{
+  if(!roomForMoreParticipants())
+  {
+    qWarning() << "WARNING: Could not fit more participants to this call";
+    //rejectCall(); // TODO: send a not possible message instead of reject.
+    return;
+  }
+
+  window_.incomingCallNotification(callID, caller);
+}
 
 void CallManager::recordChangedSettings()
 {
@@ -59,8 +168,6 @@ void CallManager::createParticipant(QString& callID, std::shared_ptr<SDPMessageI
 
   in_addr ip;
   ip.S_un.S_addr = qToBigEndian(address.toIPv4Address());
-
-
 
   // TODO: have these be arrays and send video to all of them in case SDP describes it so
   uint16_t sendAudioPort = 0;
@@ -116,6 +223,30 @@ void CallManager::removeParticipant(QString callID)
   portsOpen_ -= PORTSPERPARTICIPANT;
 }
 
+void CallManager::callNegotiated(QString callID, std::shared_ptr<SDPMessageInfo> peerInfo,
+                                std::shared_ptr<SDPMessageInfo> localInfo)
+{
+  qDebug() << "Our call has been accepted.";
+
+  qDebug() << "Sending media to IP:" << peerInfo->globalAddress
+           << "to port:" << peerInfo->media.first().port;
+
+  VideoWidget* view = window_.addVideoStream(callID);
+
+  // TODO check the SDP info and do ports and rtp numbers properly
+  createParticipant(callID, peerInfo, localInfo, view, stats_);
+}
+
+void CallManager::acceptCall(QString callID)
+{
+  callNeg_.acceptCall(callID);
+}
+
+void CallManager::rejectCall(QString callID)
+{
+  callNeg_.rejectCall(callID);
+}
+
 void CallManager::endCall()
 {
   media_.endAllCalls();
@@ -124,30 +255,10 @@ void CallManager::endCall()
 
 void CallManager::micState()
 {
-  bool state = media_.toggleMic();
-/*
-  if(state)
-  {
-    ui_->mic->setText("Mic off");
-  }
-  else
-  {
-    ui_->mic->setText("Mic on");
-  }
-  */
+  window_.setMicState(media_.toggleMic());
 }
 
 void CallManager::cameraState()
 {
-  bool state = media_.toggleCamera();
-  /*
-  if(state)
-  {
-    ui_->camera->setText("Camera off");
-  }
-  else
-  {
-    ui_->camera->setText("Camera on");
-  }
-  */
+  window_.setCameraState(media_.toggleCamera());
 }

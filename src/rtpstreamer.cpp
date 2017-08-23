@@ -14,7 +14,7 @@
 
 #include <iostream>
 
-RTPStreamer::RTPStreamer(StatisticsInterface* stats):
+RTPStreamer::RTPStreamer():
   peers_(),
   isIniated_(false),
   isRunning_(false),
@@ -25,7 +25,7 @@ RTPStreamer::RTPStreamer(StatisticsInterface* stats):
   stopRTP_(0),
   env_(NULL),
   scheduler_(NULL),
-  stats_(stats),
+  stats_(NULL),
   CNAME_()
 {
   // use unicast
@@ -46,7 +46,7 @@ void RTPStreamer::run()
 
   if(!isIniated_)
   {
-    init();
+    init(stats_);
   }
   qDebug() << "RTP streamer starting eventloop";
   stopRTP_ = 0;
@@ -70,8 +70,10 @@ void RTPStreamer::stop()
   }
 }
 
-void RTPStreamer::init()
+void RTPStreamer::init(StatisticsInterface *stats)
 {
+  stats_ = stats;
+
   iniated_.lock();
   qDebug() << "Iniating live555";
   QString sName(reinterpret_cast<char*>(CNAME_));
