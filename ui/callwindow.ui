@@ -31,7 +31,7 @@
       </property>
       <property name="minimumSize">
        <size>
-        <width>480</width>
+        <width>320</width>
         <height>96</height>
        </size>
       </property>
@@ -42,31 +42,6 @@
        </size>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout">
-       <item>
-        <widget class="QPushButton" name="contactsButton">
-         <property name="minimumSize">
-          <size>
-           <width>50</width>
-           <height>50</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>64</width>
-           <height>64</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>Contacts</string>
-         </property>
-         <property name="checkable">
-          <bool>true</bool>
-         </property>
-         <property name="checked">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
        <item>
         <spacer name="horizontalSpacer_2">
          <property name="orientation">
@@ -120,6 +95,9 @@
            <height>50</height>
           </size>
          </property>
+         <property name="toolTip">
+          <string/>
+         </property>
          <property name="text">
           <string>Camera off</string>
          </property>
@@ -138,6 +116,15 @@
          </property>
          <property name="text">
           <string>End call</string>
+         </property>
+         <property name="autoDefault">
+          <bool>false</bool>
+         </property>
+         <property name="default">
+          <bool>false</bool>
+         </property>
+         <property name="flat">
+          <bool>false</bool>
          </property>
         </widget>
        </item>
@@ -165,7 +152,7 @@
          <property name="minimumSize">
           <size>
            <width>128</width>
-           <height>64</height>
+           <height>96</height>
           </size>
          </property>
          <property name="maximumSize">
@@ -253,7 +240,7 @@
       </property>
       <property name="minimumSize">
        <size>
-        <width>150</width>
+        <width>300</width>
         <height>240</height>
        </size>
       </property>
@@ -293,7 +280,7 @@
        <item>
         <widget class="QLineEdit" name="peerName">
          <property name="sizePolicy">
-          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
@@ -322,7 +309,7 @@
        <item>
         <widget class="QLineEdit" name="ip">
          <property name="sizePolicy">
-          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
@@ -345,6 +332,9 @@
            <width>0</width>
            <height>32</height>
           </size>
+         </property>
+         <property name="toolTip">
+          <string/>
          </property>
          <property name="text">
           <string>Add Contact</string>
@@ -474,22 +464,6 @@
     <hint type="destinationlabel">
      <x>639</x>
      <y>319</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>contactsButton</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>contactListContainer</receiver>
-   <slot>setVisible(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>324</x>
-     <y>578</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>108</x>
-     <y>309</y>
     </hint>
    </hints>
   </connection>
