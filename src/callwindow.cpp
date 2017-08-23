@@ -38,7 +38,7 @@ void CallWindow::addContact()
   contacts_.addContact(partInt_, ui_->peerName->text(), "anonymous", ui_->ip->text());
 }
 
-void CallWindow::callingTo(QString callID)
+void CallWindow::displayOutgoingCall(QString callID)
 {
   conferenceMutex_.lock();
   conference_.callingTo(callID, "Contact List Missing!"); // TODO get name from contact list
@@ -168,7 +168,7 @@ void CallWindow::setCameraState(bool on)
   }
 }
 
-void CallWindow::incomingCallNotification(QString callID, QString caller)
+void CallWindow::displayIncomingCall(QString callID, QString caller)
 {
   conferenceMutex_.lock();
   conference_.incomingCall(callID, caller);
@@ -191,7 +191,7 @@ void CallWindow::rejectCall()
   conferenceMutex_.unlock();
 }
 
-void CallWindow::ringing(QString callID)
+void CallWindow::displayRinging(QString callID)
 {
   qDebug() << "call is ringing. TODO: display it to user";
 }

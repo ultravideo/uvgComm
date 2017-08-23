@@ -33,12 +33,13 @@ public:
   // user interacts with the program
   void registerGUIEndpoints();
 
-  VideoWidget* getSelfDisplay();
-
   StatisticsInterface* createStatsWindow();
 
-  void callingTo(QString callID);
+  void displayOutgoingCall(QString callID);
+  void displayRinging(QString callID);
+  void displayIncomingCall(QString callID, QString caller);
 
+  VideoWidget* getSelfDisplay();
   VideoWidget* addVideoStream(QString callID);
 
   void incomingCallNotification(QString callID, QString caller);
@@ -69,8 +70,6 @@ public slots:
   void addContact();
 
   void openStatistics(); // Opens statistics window
-
-  void ringing(QString callID);
 
   void ourCallRejected(QString callID);
 

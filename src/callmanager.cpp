@@ -73,6 +73,7 @@ void CallManager::init()
 
 void CallManager::uninit()
 {
+  endTheCall();
   callNeg_.uninit();
   media_.uninit();
 }
@@ -102,7 +103,7 @@ void CallManager::callToParticipant(QString name, QString username, QString ip)
 
     for(auto callID : callIDs)
     {
-      window_.callingTo(callID);
+      window_.displayOutgoingCall(callID);
     }
   }
   else
@@ -139,7 +140,7 @@ void CallManager::incomingCall(QString callID, QString caller)
     return;
   }
 
-  window_.incomingCallNotification(callID, caller);
+  window_.displayIncomingCall(callID, caller);
 }
 
 void CallManager::updateSettings()
