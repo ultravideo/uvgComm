@@ -21,8 +21,6 @@ public:
   virtual void callToParticipant(QString name, QString username, QString ip);
   virtual void chatWithParticipant(QString name, QString username, QString ip);
 
-  void callOurselves(QString callID, std::shared_ptr<SDPMessageInfo> info);
-
   void createParticipant(QString& callID, std::shared_ptr<SDPMessageInfo> peerInfo,
                          const std::shared_ptr<SDPMessageInfo> localInfo,
                          VideoWidget *videoWidget,
@@ -37,6 +35,8 @@ public:
 public slots:
 
   void incomingCall(QString callID, QString caller);
+
+  void callOurselves(QString callID, std::shared_ptr<SDPMessageInfo> info);
 
   void recordChangedSettings();
 

@@ -17,11 +17,10 @@ CallManager::CallManager():
     portsOpen_(0)
 {}
 
-
 void CallManager::init()
 {
-  window_.init();
-  window_.registerGUIEndpoints(this);
+  window_.init(this);
+  window_.registerGUIEndpoints();
   window_.show();
   VideoWidget* selfview = window_.getSelfDisplay();
 

@@ -27,11 +27,11 @@ public:
   explicit CallWindow(QWidget *parent);
   ~CallWindow();
 
-  void init();
+  void init(ParticipantInterface *partInt);
 
   // Connects all functions that are called when the
   // user interacts with the program
-  void registerGUIEndpoints(ParticipantInterface *partInt);
+  void registerGUIEndpoints();
 
   VideoWidget* getSelfDisplay();
 
@@ -52,7 +52,6 @@ public:
   void acceptCall();
   void rejectCall();
 
-
 signals:
 
   void closed();
@@ -71,8 +70,8 @@ public slots:
 
   void ourCallRejected(QString callID);
 
-
   void endCall(QString callID, QString ip);
+
   void endAllCalls();
 
 private slots:
@@ -98,8 +97,8 @@ private:
   QMutex conferenceMutex_;
   ConferenceView conference_;
 
-  ParticipantInterface* partInt_;
   ContactList contacts_;
+  ParticipantInterface* partInt_;
 
   QTimer *timer_; // for GUI update
 };

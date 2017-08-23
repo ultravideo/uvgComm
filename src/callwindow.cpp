@@ -17,7 +17,8 @@ CallWindow::CallWindow(QWidget *parent):
   settingsView_(),
   statsWindow_(NULL),
   conference_(this),
-  timer_(new QTimer(this))
+  timer_(new QTimer(this)),
+  partInt_(NULL)
 {}
 
 CallWindow::~CallWindow()
@@ -51,8 +52,10 @@ StatisticsInterface* CallWindow::createStatsWindow()
   return statsWindow_;
 }
 
-void CallWindow::init()
+void CallWindow::init(ParticipantInterface *partInt)
 {
+  partInt_ = partInt;
+
   ui_->setupUi(this);
 
   // GUI updates are handled solely by timer
@@ -80,10 +83,8 @@ void CallWindow::init()
   //manager_.init(ui_->SelfView);
 }
 
-void CallWindow::registerGUIEndpoints(ParticipantInterface *partInt)
+void CallWindow::registerGUIEndpoints()
 {
-  partInt_ = partInt;
-
   Ui::CallerWidget *ui_widget = new Ui::CallerWidget;
   QWidget* holderWidget = new QWidget;
   ui_widget->setupUi(holderWidget);
