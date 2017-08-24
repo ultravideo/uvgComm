@@ -63,6 +63,9 @@ signals:
   void endCall();
   void closed();
 
+  void callAccepted(QString callID);
+  void callRejected(QString callID);
+
   //void kickParticipant();
 
 public slots:

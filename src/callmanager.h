@@ -48,7 +48,7 @@ public slots:
                      std::shared_ptr<SDPMessageInfo> localInfo);
   void callRinging(QString callID);
   void callRejected(QString callID);
-  void callEnded();
+  void callEnded(QString callID, QString ip);
 
 
 

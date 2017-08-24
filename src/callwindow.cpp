@@ -181,6 +181,7 @@ void CallWindow::acceptCall()
   conferenceMutex_.lock();
   QString callID = conference_.acceptNewest();
   conferenceMutex_.unlock();
+  emit callAccepted(callID);
 }
 
 void CallWindow::rejectCall()
@@ -189,6 +190,8 @@ void CallWindow::rejectCall()
   conferenceMutex_.lock();
   QString callID = conference_.rejectNewest();
   conferenceMutex_.unlock();
+
+  emit callRejected(callID);
 }
 
 void CallWindow::displayRinging(QString callID)

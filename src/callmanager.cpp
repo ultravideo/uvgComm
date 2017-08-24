@@ -62,9 +62,8 @@ void CallManager::init()
   QObject::connect(&window_, SIGNAL(endCall()), this, SLOT(endTheCall()));
   QObject::connect(&window_, SIGNAL(closed()), this, SLOT(windowClosed()));
 
-  QObject::connect(&window_, SIGNAL(closed()), this, SLOT(acceptCall(QString)));
-  QObject::connect(&window_, SIGNAL(closed()), this, SLOT(rejectCall(QString)));
-
+  QObject::connect(&window_, SIGNAL(callAccepted(QString)), this, SLOT(acceptCall(QString)));
+  QObject::connect(&window_, SIGNAL(callRejected(QString)), this, SLOT(rejectCall(QString)));
 
   stats_ = window_.createStatsWindow();
 
@@ -284,7 +283,7 @@ void CallManager::callRejected(QString callID)
   qDebug() << "Our call has been rejected!";
 }
 
-void CallManager::callEnded()
+void CallManager::callEnded(QString callID, QString ip)
 {
   qDebug() << "They have left the call";
 }
