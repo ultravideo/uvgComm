@@ -217,7 +217,6 @@ bool FilterGraph::connectFilters(std::shared_ptr<Filter> filter, std::shared_ptr
   return true;
 }
 
-
 void FilterGraph::checkParticipant(int16_t id)
 {
   Q_ASSERT(stats_);
@@ -492,7 +491,6 @@ void FilterGraph::destroyPeer(Peer* peer)
 {
   if(peer->audioFramedSource)
   {
-
     audioSend_.back()->removeOutConnection(peer->audioFramedSource);
     //peer->audioFramedSource is destroyed by RTPStreamer
     peer->audioFramedSource->stop();
@@ -522,7 +520,6 @@ void FilterGraph::destroyPeer(Peer* peer)
   delete peer;
 }
 
-
 void FilterGraph::removeParticipant(int16_t id)
 {
   qDebug() << "Removing peer:" << id +1 << "/" << peers_.size();
@@ -546,7 +543,6 @@ void FilterGraph::removeParticipant(int16_t id)
     destroyFilters(audioSend_);
   }
 }
-
 
 void FilterGraph::print()
 {

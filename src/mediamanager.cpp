@@ -95,6 +95,7 @@ void MediaManager::removeParticipant(QString callID)
     return;
   }
   fg_->removeParticipant(ids_[callID]);
+  fg_->camera(camera_); // if the last participant was destroyed, restore camera state
   streamer_->removePeer(ids_[callID]);
   ids_.erase(callID);
   qDebug() << "Participant " << callID << "removed.";
@@ -105,7 +106,9 @@ void MediaManager::endAllCalls()
   qDebug() << "Destroying" << ids_.size() << "calls.";
   for(auto caller : ids_)
   {
+    //cant use removeparticipant-function of media manager,  because iterator would break
     fg_->removeParticipant(caller.second);
+    fg_->camera(camera_); // if the last participant was destroyed, restore camera state
     streamer_->removePeer(caller.second);
   }
   ids_.clear();
