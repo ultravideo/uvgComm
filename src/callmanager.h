@@ -44,7 +44,6 @@ public slots:
   void callRejected(QString callID);
   void callEnded(QString callID, QString ip);
 
-
 private:
 
   bool roomForMoreParticipants() const;

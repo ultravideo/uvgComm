@@ -7,9 +7,6 @@
 #include <QtEndian>
 #include <QSettings>
 
-const uint16_t MAXOPENPORTS = 42;
-const uint16_t PORTSPERPARTICIPANT = 4;
-
 CallManager::CallManager():
     media_(),
     callNeg_(),
@@ -149,7 +146,7 @@ void CallManager::updateSettings()
 
 bool CallManager::roomForMoreParticipants() const
 {
-  return portsOpen_ + PORTSPERPARTICIPANT <= MAXOPENPORTS;
+  return portsOpen_ + media_.portsPerParticipant() <= media_.maxOpenPorts();
 }
 
 void CallManager::createParticipant(QString& callID, std::shared_ptr<SDPMessageInfo> peerInfo,
@@ -158,7 +155,7 @@ void CallManager::createParticipant(QString& callID, std::shared_ptr<SDPMessageI
                                     StatisticsInterface* stats)
 {
   qDebug() << "User wants to add participant. Ports required:"
-           << portsOpen_ + PORTSPERPARTICIPANT << "/" << MAXOPENPORTS;
+           << portsOpen_ + media_.portsPerParticipant() << "/" << media_.maxOpenPorts();
   Q_ASSERT(roomForMoreParticipants());
 
   if(videoWidget == NULL)
@@ -167,7 +164,7 @@ void CallManager::createParticipant(QString& callID, std::shared_ptr<SDPMessageI
     return;
   }
 
-  portsOpen_ +=PORTSPERPARTICIPANT;
+  portsOpen_ +=media_.portsPerParticipant();
 
   QHostAddress address;
   address.setAddress(peerInfo->globalAddress);
@@ -265,7 +262,6 @@ void CallManager::cameraState()
   window_.setCameraState(media_.toggleCamera());
 }
 
-
 void CallManager::callRinging(QString callID)
 {
   qDebug() << "Our call is ringing!";
@@ -280,11 +276,11 @@ void CallManager::callRejected(QString callID)
 
 void CallManager::callEnded(QString callID, QString ip)
 {
-  qDebug() << "They have left the call";
+  qDebug() << "They have left the call. Ports in use:" << portsOpen_ << "->" << portsOpen_ - media_.portsForCallID(callID);
   media_.removeParticipant(callID);
   window_.removeParticipant(callID);
   stats_->removeParticipant(ip);
 
-  portsOpen_ -= PORTSPERPARTICIPANT;
+  Q_ASSERT(portsOpen_ >= media_.portsForCallID(callID));
+  portsOpen_ -= media_.portsForCallID(callID);
 }
-

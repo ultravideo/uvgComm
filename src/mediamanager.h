@@ -42,6 +42,25 @@ public:
   bool toggleMic();
   bool toggleCamera();
 
+  uint16_t portsForCallID(QString callID) const
+  {
+    if(ids_.find(callID) != ids_.end())
+    {
+      return portsPerParticipant();
+    }
+    return 0;
+  }
+
+  uint16_t portsPerParticipant() const
+  {
+    return 4;
+  }
+
+  uint16_t maxOpenPorts() const
+  {
+    return 42;
+  }
+
 signals:
 
   // somebody is calling
