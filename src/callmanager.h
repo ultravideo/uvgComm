@@ -18,15 +18,9 @@ public:
 
   void init();
 
+  // participant interface funtions used to start a call or a chat.
   virtual void callToParticipant(QString name, QString username, QString ip);
   virtual void chatWithParticipant(QString name, QString username, QString ip);
-
-  void createParticipant(QString& callID, std::shared_ptr<SDPMessageInfo> peerInfo,
-                         const std::shared_ptr<SDPMessageInfo> localInfo,
-                         VideoWidget *videoWidget,
-                         StatisticsInterface* stats);
-
-  void removeParticipant(QString callID);
 
   void uninit();
 
@@ -51,11 +45,14 @@ public slots:
   void callEnded(QString callID, QString ip);
 
 
-
-
 private:
 
   bool roomForMoreParticipants() const;
+
+  void createParticipant(QString& callID, std::shared_ptr<SDPMessageInfo> peerInfo,
+                         const std::shared_ptr<SDPMessageInfo> localInfo,
+                         VideoWidget *videoWidget,
+                         StatisticsInterface* stats);
 
   MediaManager media_; // Media processing and delivery
   CallNegotiation callNeg_; // SIP

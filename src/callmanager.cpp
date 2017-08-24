@@ -20,7 +20,6 @@ CallManager::CallManager():
 void CallManager::init()
 {
   window_.init(this);
-  window_.registerGUIEndpoints();
   window_.show();
   VideoWidget* selfview = window_.getSelfDisplay();
 
@@ -54,7 +53,7 @@ void CallManager::init()
                    this, SLOT(callRejected(QString)));
 
   QObject::connect(&callNeg_, SIGNAL(callEnded(QString, QString)),
-                   this, SLOT(endCall(QString, QString)));
+                   this, SLOT(callEnded(QString, QString)));
 
   QObject::connect(&window_, SIGNAL(settingsChanged()), this, SLOT(updateSettings()));
   QObject::connect(&window_, SIGNAL(micStateSwitch()), this, SLOT(micState()));
@@ -224,12 +223,6 @@ void CallManager::createParticipant(QString& callID, std::shared_ptr<SDPMessageI
   media_.addParticipant(callID, ip, sendAudioPort, recvAudioPort, sendVideoPort, recvVideoPort, videoWidget);
 }
 
-void CallManager::removeParticipant(QString callID)
-{
-  media_.removeParticipant(callID); // must be ended first because of the view.
-  portsOpen_ -= PORTSPERPARTICIPANT;
-}
-
 void CallManager::callNegotiated(QString callID, std::shared_ptr<SDPMessageInfo> peerInfo,
                                 std::shared_ptr<SDPMessageInfo> localInfo)
 {
@@ -276,15 +269,22 @@ void CallManager::cameraState()
 void CallManager::callRinging(QString callID)
 {
   qDebug() << "Our call is ringing!";
+  window_.displayRinging(callID);
 }
 
 void CallManager::callRejected(QString callID)
 {
   qDebug() << "Our call has been rejected!";
+  window_.removeParticipant(callID);
 }
 
 void CallManager::callEnded(QString callID, QString ip)
 {
   qDebug() << "They have left the call";
+  media_.removeParticipant(callID);
+  window_.removeParticipant(callID);
+  stats_->removeParticipant(ip);
+
+  portsOpen_ -= PORTSPERPARTICIPANT;
 }
 

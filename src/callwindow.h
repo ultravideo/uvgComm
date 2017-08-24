@@ -29,34 +29,26 @@ public:
 
   void init(ParticipantInterface *partInt);
 
-  // Connects all functions that are called when the
-  // user interacts with the program
-  void registerGUIEndpoints();
-
+  // functions for managing the GUI
   StatisticsInterface* createStatsWindow();
 
+  VideoWidget* getSelfDisplay();
   void displayOutgoingCall(QString callID);
   void displayRinging(QString callID);
   void displayIncomingCall(QString callID, QString caller);
 
-  VideoWidget* getSelfDisplay();
   VideoWidget* addVideoStream(QString callID);
-
-  void incomingCallNotification(QString callID, QString caller);
-
-  void closeEvent(QCloseEvent *event);
+  void removeParticipant(QString callID);
 
   void setMicState(bool on);
   void setCameraState(bool on);
   void clearConferenceView();
 
-  // UI messages
-  void acceptCall();
-  void rejectCall();
+  void closeEvent(QCloseEvent *event);
 
 signals:
 
-  // maybe addcontact too, after the settings has been reorganized.
+  // signals for informing the program of users wishes
   void settingsChanged();
   void micStateSwitch();
   void cameraStateSwitch();
@@ -70,17 +62,16 @@ signals:
 
 public slots:
 
+  // for processing GUI messages that mostly affect GUI elements.
   void addContact();
-
   void openStatistics(); // Opens statistics window
-
-  void ourCallRejected(QString callID);
-
-  void endCall(QString callID, QString ip);
-
   void on_settings_clicked();
   void on_advanced_settings_clicked();
   void on_about_clicked();
+
+  // responses to GUI question of incoming call. Also emit signals
+  void acceptCall();
+  void rejectCall();
 
 private:
 

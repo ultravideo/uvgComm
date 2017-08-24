@@ -33,25 +33,6 @@ CallWindow::~CallWindow()
   delete ui_;
 }
 
-void CallWindow::addContact()
-{
-  contacts_.addContact(partInt_, ui_->peerName->text(), "anonymous", ui_->ip->text());
-}
-
-void CallWindow::displayOutgoingCall(QString callID)
-{
-  conferenceMutex_.lock();
-  conference_.callingTo(callID, "Contact List Missing!"); // TODO get name from contact list
-  conferenceMutex_.unlock();
-}
-
-StatisticsInterface* CallWindow::createStatsWindow()
-{
-  statsWindow_ = new StatisticsWindow(this);
-  connect(timer_, SIGNAL(timeout()), statsWindow_, SLOT(update()));
-  return statsWindow_;
-}
-
 void CallWindow::init(ParticipantInterface *partInt)
 {
   partInt_ = partInt;
@@ -92,27 +73,71 @@ void CallWindow::init(ParticipantInterface *partInt)
                    this, SIGNAL(closed()));
 
   QMainWindow::show();
-  //manager_.init(ui_->SelfView);
-}
 
-void CallWindow::registerGUIEndpoints()
-{
   Ui::CallerWidget *ui_widget = new Ui::CallerWidget;
   QWidget* holderWidget = new QWidget;
   ui_widget->setupUi(holderWidget);
-  //connect(ui_widget->AcceptButton, SIGNAL(clicked()), this, SLOT(acceptCall()));
-  //connect(ui_widget->DeclineButton, SIGNAL(clicked()), this, SLOT(rejectCall()));
+  connect(ui_widget->AcceptButton, SIGNAL(clicked()), this, SLOT(acceptCall()));
+  connect(ui_widget->DeclineButton, SIGNAL(clicked()), this, SLOT(rejectCall()));
 
   conferenceMutex_.lock();
   conference_.init(ui_->participantLayout, ui_->participants, ui_widget, holderWidget);
   conferenceMutex_.unlock();
+}
 
-  //connect(ui_->EndCallButton, SIGNAL(clicked()), partInt_, SLOT(endTheCall()));
+StatisticsInterface* CallWindow::createStatsWindow()
+{
+  statsWindow_ = new StatisticsWindow(this);
+  connect(timer_, SIGNAL(timeout()), statsWindow_, SLOT(update()));
+  return statsWindow_;
 }
 
 VideoWidget* CallWindow::getSelfDisplay()
 {
   return ui_->SelfView;
+}
+
+void CallWindow::addContact()
+{
+  contacts_.addContact(partInt_, ui_->peerName->text(), "anonymous", ui_->ip->text());
+}
+
+void CallWindow::displayOutgoingCall(QString callID)
+{
+  conferenceMutex_.lock();
+  conference_.callingTo(callID, "Contact List Missing!"); // TODO get name from contact list
+  conferenceMutex_.unlock();
+}
+
+void CallWindow::displayIncomingCall(QString callID, QString caller)
+{
+  conferenceMutex_.lock();
+  conference_.incomingCall(callID, caller);
+  conferenceMutex_.unlock();
+}
+
+void CallWindow::displayRinging(QString callID)
+{
+  qDebug() << "call is ringing. TODO: display it to user";
+}
+
+void CallWindow::acceptCall()
+{
+  qDebug() << "We accepted";
+  conferenceMutex_.lock();
+  QString callID = conference_.acceptNewest();
+  conferenceMutex_.unlock();
+  emit callAccepted(callID);
+}
+
+void CallWindow::rejectCall()
+{
+  qDebug() << "We rejected";
+  conferenceMutex_.lock();
+  QString callID = conference_.rejectNewest();
+  conferenceMutex_.unlock();
+
+  emit callRejected(callID);
 }
 
 void CallWindow::openStatistics()
@@ -168,56 +193,11 @@ void CallWindow::setCameraState(bool on)
   }
 }
 
-void CallWindow::displayIncomingCall(QString callID, QString caller)
+void CallWindow::removeParticipant(QString callID)
 {
-  conferenceMutex_.lock();
-  conference_.incomingCall(callID, caller);
-  conferenceMutex_.unlock();
-}
-
-void CallWindow::acceptCall()
-{
-  qDebug() << "We accepted";
-  conferenceMutex_.lock();
-  QString callID = conference_.acceptNewest();
-  conferenceMutex_.unlock();
-  emit callAccepted(callID);
-}
-
-void CallWindow::rejectCall()
-{
-  qDebug() << "We rejected";
-  conferenceMutex_.lock();
-  QString callID = conference_.rejectNewest();
-  conferenceMutex_.unlock();
-
-  emit callRejected(callID);
-}
-
-void CallWindow::displayRinging(QString callID)
-{
-  qDebug() << "call is ringing. TODO: display it to user";
-}
-
-void CallWindow::ourCallRejected(QString callID)
-{
-  qDebug() << "Our Call was rejected. TODO: display it to user";
   conferenceMutex_.lock();
   conference_.removeCaller(callID);
   conferenceMutex_.unlock();
-}
-
-void CallWindow::endCall(QString callID, QString ip)
-{
-  qDebug() << "Received the end of call message";
-
-  //manager_.removeParticipant(callID);
-
-  conferenceMutex_.lock();
-  conference_.removeCaller(callID);
-  conferenceMutex_.unlock();
-
-  statsWindow_->removeParticipant(ip);
 }
 
 void CallWindow::on_settings_clicked()
