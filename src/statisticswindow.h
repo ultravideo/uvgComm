@@ -60,6 +60,7 @@ private:
   std::map<QString, uint16_t> buffers_;
 
   // mutexes to prevent simultanious recording of certain statistics
+  QMutex initMutex_;
   QMutex receiveMutex_;
   QMutex sendMutex_;
   QMutex bufferMutex_;

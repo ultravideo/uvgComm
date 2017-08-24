@@ -83,6 +83,7 @@ void StatisticsWindow::audioInfo(uint32_t sampleRate, uint16_t channelCount)
 
 void StatisticsWindow::addParticipant(QString ip, QString audioPort, QString videoPort)
 {
+  initMutex_.lock();
   ui_->participantTable->insertRow(ui_->participantTable->rowCount());
   // add cells to table
   ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 0, new QTableWidgetItem(ip));
@@ -92,17 +93,21 @@ void StatisticsWindow::addParticipant(QString ip, QString audioPort, QString vid
   ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 4, new QTableWidgetItem("- ms"));
 
   delays_.push_back({0, 0,true});
+  initMutex_.unlock();
 }
 
 void StatisticsWindow::addFilterTID(QString filter, uint64_t TID)
 {
+  initMutex_.lock();
   ui_->filterTable->insertRow(ui_->filterTable->rowCount());
   ui_->filterTable->setItem(ui_->filterTable->rowCount() -1, 0, new QTableWidgetItem(filter));
   ui_->filterTable->setItem(ui_->filterTable->rowCount() -1, 1, new QTableWidgetItem(QString::number(TID)));
+  initMutex_.unlock();
 }
 
 void StatisticsWindow::removeParticipant(QString ip)
 {
+  initMutex_.lock();
   for(int i = 0; i < ui_->participantTable->rowCount(); ++i)
   {
     if(ui_->participantTable->item(i, 0)->text() == ip )
@@ -111,6 +116,7 @@ void StatisticsWindow::removeParticipant(QString ip)
       delays_.at(i).active = false;
     }
   }
+  initMutex_.unlock();
 }
 
 void StatisticsWindow::sendDelay(QString type, uint32_t delay)
