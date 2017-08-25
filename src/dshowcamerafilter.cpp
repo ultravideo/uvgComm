@@ -119,12 +119,14 @@ bool DShowCameraFilter::init()
 
   qDebug() << "Starting DShow camera";
   dshow_startCapture();
+  run_ = true;
   return true;
 }
 
 void DShowCameraFilter::stop()
 {
   run_ = false;
+  Filter::stop();
 }
 
 void DShowCameraFilter::run()
@@ -141,8 +143,6 @@ void DShowCameraFilter::run()
   }
 
   qDebug() << "Start taking frames from DShow camera";
-
-  run_ = true;
 
   while (run_ && capabilityID_ != -1 && deviceID_ != -1) {
     // sleep half of what is between frames. TODO sleep correct amount

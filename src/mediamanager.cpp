@@ -45,6 +45,8 @@ void MediaManager::uninit()
 void MediaManager::updateSettings()
 {
   fg_->updateSettings();
+  fg_->camera(camera_); // kind of a hack to make sure the camera/mic state is preserved
+  fg_->mic(mic_);
 }
 
 void MediaManager::addParticipant(QString callID, in_addr ip, uint16_t sendAudioPort, uint16_t recvAudioPort,
@@ -96,6 +98,7 @@ void MediaManager::removeParticipant(QString callID)
   }
   fg_->removeParticipant(ids_[callID]);
   fg_->camera(camera_); // if the last participant was destroyed, restore camera state
+  fg_->mic(mic_);
   streamer_->removePeer(ids_[callID]);
   ids_.erase(callID);
   qDebug() << "Participant " << callID << "removed.";
@@ -109,6 +112,7 @@ void MediaManager::endAllCalls()
     //cant use removeparticipant-function of media manager,  because iterator would break
     fg_->removeParticipant(caller.second);
     fg_->camera(camera_); // if the last participant was destroyed, restore camera state
+    fg_->mic(mic_);
     streamer_->removePeer(caller.second);
   }
   ids_.clear();
