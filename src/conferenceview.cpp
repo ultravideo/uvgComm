@@ -37,9 +37,9 @@ void ConferenceView::callingTo(QString callID, QString name)
   }
 
   QLabel* label = new QLabel(parent_);
-  label->setText("Calling...");
+  label->setText("Calling " + name);
 
-  QFont font = QFont("Times", 16);
+  QFont font = QFont("Times", 16); // TODO: change font
   label->setFont(font);
   label->setAlignment(Qt::AlignHCenter);
   layout_->addWidget(label, row_, column_);
@@ -63,22 +63,16 @@ void ConferenceView::incomingCall(QString callID, QString name)
     return;
   }
 
-  // TODO display a incoming call widget instead of layout/stream?
-  //QLabel* label = new QLabel(parent_);
-  QLabel* label = new QLabel(NULL);
-  label->setText("Incoming call from " + name);
+  qDebug() << "Displaying pop-up for somebody calling";
+  callingWidget_->CallerLabel->setText(name + " is calling..");
+  holdingWidget_->show();
 
-  QFont font = QFont("Times", 16);
-  label->setFont(font);
-  label->setAlignment(Qt::AlignHCenter);
-  layout_->addWidget(label, row_, column_);
+  layout_->addWidget(holdingWidget_, row_, column_);
 
   activeCalls_[callID] = new CallInfo{ASKINGUSER, name, layout_->itemAtPosition(row_,column_),
                           row_, column_};
 
-  qDebug() << "Displaying pop-up for somebody calling";
-  callingWidget_->CallerLabel->setText(name + " is calling..");
-  holdingWidget_->show();
+
 
   askingQueue_.append(callID);
   nextSlot();
@@ -130,8 +124,10 @@ void ConferenceView::removeCaller(QString callID)
     qWarning() << "WARNING: Trying to remove nonexisting call from ConferenceView";
     return;
   }
-
-  delete activeCalls_[callID]->item->widget();
+  if(activeCalls_[callID]->state == ACTIVE)
+  {
+    delete activeCalls_[callID]->item->widget();
+  }
   layout_->removeItem(activeCalls_[callID]->item);
 
   activeCalls_.erase(callID);

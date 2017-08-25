@@ -86,8 +86,8 @@ void CallManager::callToParticipant(QString name, QString username, QString ip)
 
     Contact con;
     con.contactAddress = ip_str;
-    con.name = "Anonymous";
-    con.username = "unknown";
+    con.name = name;
+    con.username = username;
 
     QList<Contact> list;
     list.append(con);
@@ -98,7 +98,7 @@ void CallManager::callToParticipant(QString name, QString username, QString ip)
 
     for(auto callID : callIDs)
     {
-      window_.displayOutgoingCall(callID);
+      window_.displayOutgoingCall(callID, name);
     }
   }
   else
@@ -276,7 +276,9 @@ void CallManager::callRejected(QString callID)
 
 void CallManager::callEnded(QString callID, QString ip)
 {
-  qDebug() << "They have left the call. Ports in use:" << portsOpen_ << "->" << portsOpen_ - media_.portsForCallID(callID);
+  qDebug() << "They have left the call. Ports in use:" << portsOpen_
+           << "->" << portsOpen_ - media_.portsForCallID(callID);
+
   media_.removeParticipant(callID);
   window_.removeParticipant(callID);
   stats_->removeParticipant(ip);

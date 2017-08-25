@@ -33,7 +33,7 @@ public:
   StatisticsInterface* createStatsWindow();
 
   VideoWidget* getSelfDisplay();
-  void displayOutgoingCall(QString callID);
+  void displayOutgoingCall(QString callID, QString name);
   void displayRinging(QString callID);
   void displayIncomingCall(QString callID, QString caller);
 

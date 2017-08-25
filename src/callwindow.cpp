@@ -102,10 +102,10 @@ void CallWindow::addContact()
   contacts_.addContact(partInt_, ui_->peerName->text(), "anonymous", ui_->ip->text());
 }
 
-void CallWindow::displayOutgoingCall(QString callID)
+void CallWindow::displayOutgoingCall(QString callID, QString name)
 {
   conferenceMutex_.lock();
-  conference_.callingTo(callID, "Contact List Missing!"); // TODO get name from contact list
+  conference_.callingTo(callID, name); // TODO get name from contact list
   conferenceMutex_.unlock();
 }
 
