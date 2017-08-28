@@ -3,6 +3,8 @@
 #include <QPaintEvent>
 #include <QDebug>
 #include <QCoreApplication>
+#include <QEvent>
+#include <QKeyEvent>
 
 unsigned int VideoWidget::number_ = 0;
 
@@ -68,6 +70,19 @@ void VideoWidget::resizeEvent(QResizeEvent *event)
   qDebug() << "ResizeEvent:" << id_;
   QWidget::resizeEvent(event);
   updateTargetRect();
+}
+
+void VideoWidget::keyPressEvent(QKeyEvent *event)
+{
+  if(event->key() == Qt::Key_Escape)
+  {
+    qDebug() << "Esc key pressed";
+    this->showNormal();
+  }
+  else
+  {
+    qDebug() << "You Pressed Other Key";
+  }
 }
 
 void VideoWidget::updateTargetRect()

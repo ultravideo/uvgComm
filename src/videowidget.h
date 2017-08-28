@@ -19,9 +19,14 @@ public:
 
   static unsigned int number_;
 
+signals:
+
+  void minimized();
+
 protected:
   void paintEvent(QPaintEvent *event);
   void resizeEvent(QResizeEvent *event);
+  void keyPressEvent(QKeyEvent *event);
 
 private:
 
