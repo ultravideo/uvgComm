@@ -102,9 +102,7 @@ IPin* DShow_Capture::getPin(IBaseFilter *pFilter, LPCOLESTR pinname) {
       delete pPin;
     }
   }
-  else {
-    return NULL;
-  }
+  return NULL;
 }
 
 
@@ -197,7 +195,7 @@ int8_t DShow_Capture::queryDevices() {
 
   // Create an enumerator for the category.        
   pDevEnum->CreateClassEnumerator(CLSID_VideoInputDeviceCategory, &pEnum, 0);
-  int deviceID = 0;
+  //int deviceID = 0;
   if(pEnum == NULL)
     return 0;
 
@@ -269,7 +267,7 @@ int8_t DShow_Capture::queryCapabilities()
         /* Access VIDEOINFOHEADER members through pVih. */
         double fps = 10000000.0 / pVih->AvgTimePerFrame;
         DWORD comp = pVih->bmiHeader.biCompression;
-        char name[5];
+        //char name[5];
 
 
         deviceCapability cap;

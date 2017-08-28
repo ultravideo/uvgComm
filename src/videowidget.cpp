@@ -10,8 +10,8 @@ unsigned int VideoWidget::number_ = 0;
 
 VideoWidget::VideoWidget(QWidget* parent): QWidget(parent),
   hasImage_(false),
-  id_(number_),
-  updated_(false)
+  updated_(false),
+  id_(number_)
 {
   ++number_;
   setAutoFillBackground(false);

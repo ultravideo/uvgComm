@@ -125,7 +125,7 @@ void CallManager::callOurselves(QString callID, std::shared_ptr<SDPMessageInfo> 
 
 void CallManager::chatWithParticipant(QString name, QString username, QString ip)
 {
-  qDebug("Chat not implemented yet");
+  qDebug() << "Chatting with:" << name << '(' << username << ") at ip:" << ip << ": Chat not implemented yet";
 }
 
 void CallManager::incomingCall(QString callID, QString caller)

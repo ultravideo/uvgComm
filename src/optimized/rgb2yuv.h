@@ -35,7 +35,6 @@ int rgb2yuv_i_sse41(uint8_t* input, uint8_t* output, int width, int height)
 
 
   const int mini[4] = { 0,0,0,0 };
-  const int middle[4] = { 128, 128, 128, 128 };
   const int maxi[4] = { 255, 255, 255, 255 };
 
   const int chroma_offset[4] = { 255 * 255, 255 * 255, 255 * 255, 255 * 255 };
@@ -43,19 +42,14 @@ int rgb2yuv_i_sse41(uint8_t* input, uint8_t* output, int width, int height)
   uint8_t *in = input;
 
   const __m128i min_val = _mm_loadu_si128((__m128i const*)mini);
-  const __m128i middle_val = _mm_loadu_si128((__m128i const*)middle);
   const __m128i max_val = _mm_loadu_si128((__m128i const*)maxi);
   const __m128i cr_offset = _mm_loadu_si128((__m128i const*)chroma_offset);
-
-  const int mask[4] = { 0x0000ff,0x0000ff, 0x0000ff, 0x0000ff };
-  const __m128i maska = _mm_loadu_si128((__m128i const*) mask);
 
   //*output = (uint8_t *)malloc(width*height + width*height);
   uint8_t *out_y = &output[width*height-width];
   uint8_t *out_u = &output[width*height + (width*height>>2) - (width>>1)];
   uint8_t *out_v = &out_u[width*height >> 2];
 
-  int8_t row = 0;
   int32_t pix = 0;
 
   __m128i shufflemask = _mm_set_epi8(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 12, 8, 4, 0);

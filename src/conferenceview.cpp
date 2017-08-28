@@ -110,9 +110,10 @@ VideoWidget* ConferenceView::addVideoStream(QString callID)
   return view;
 }
 
-void ringing(QString callID)
+void ConferenceView::ringing(QString callID)
 {
   // get widget from layout and change the text.
+  qDebug() << callID << "call is ringing. TODO: display it to user";
 }
 
 void ConferenceView::removeCaller(QString callID)

@@ -26,5 +26,4 @@ private:
   VideoWidget* widget_;
 
   uint32_t peer_;
-
 };

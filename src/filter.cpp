@@ -9,13 +9,13 @@ Filter::Filter(QString id, QString name, StatisticsInterface *stats,
   name_(id + name),
   stats_(stats),
   maxBufferSize_(10),
+  input_(input),
+  output_(output),
   waitMutex_(new QMutex),
   hasInput_(),
   running_(true),
   inputTaken_(0),
-  inputDiscarded_(0),
-  input_(input),
-  output_(output)
+  inputDiscarded_(0)
 {}
 
 Filter::~Filter()
@@ -38,7 +38,6 @@ void Filter::addOutConnection(std::shared_ptr<Filter> out)
 
 void Filter::removeOutConnection(std::shared_ptr<Filter> out)
 {
-
   bool removed = false;
   connectionMutex_.lock();
   for(unsigned int i = 0; i < outConnections_.size(); ++i)
@@ -90,12 +89,12 @@ void Filter::putInput(std::unique_ptr<Data> data)
 
   inBuffer_.push_back(std::move(data));
 
-  if(inBuffer_.size() >= maxBufferSize_ && maxBufferSize_ != -1)
+  if(maxBufferSize_ != -1 && inBuffer_.size() >= (uint32_t)maxBufferSize_)
   {
     if(inBuffer_[0]->type == HEVCVIDEO)
     {
       // Search for intra frames and discard everything up to it
-      for(int i = 0; i < inBuffer_.size(); ++i)
+      for(uint32_t i = 0; i < inBuffer_.size(); ++i)
       {
         const unsigned char *buff = inBuffer_.at(i)->data.get();
         if(!(buff[0] == 0

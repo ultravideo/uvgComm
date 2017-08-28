@@ -1,7 +1,8 @@
 #include "dshowcamerafilter.h"
 
-#include "dshow/capture_interface.h"
 #include "statisticsinterface.h"
+#include "common.h"
+#include "dshow/capture_interface.h"
 
 #include <QSettings>
 #include <QDateTime>
@@ -21,7 +22,7 @@ void DShowCameraFilter::updateSettings()
 {
   stop();
   while(!exited_)
-    _sleep(1);
+    qSleep(1);
   init();
   start();
 }
@@ -145,7 +146,7 @@ void DShowCameraFilter::run()
 
   while (run_ && capabilityID_ != -1 && deviceID_ != -1) {
     // sleep half of what is between frames. TODO sleep correct amount
-    _sleep(500/list_[capabilityID_].fps);
+    qSleep(500/list_[capabilityID_].fps);
 
     while (dshow_queryFrame(&data, &size))
     {

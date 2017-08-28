@@ -28,9 +28,13 @@ void KvazaarFilter::updateSettings()
 {
   qDebug() << "Updating kvazaar settings";
   close();
-  if(init() != C_FAILURE)
+  if(init())
   {
     qDebug() << name_ << "Kvazaar resolution change successful";
+  }
+  else
+  {
+    qDebug() << "Failed to change resolution";
   }
 
   Filter::updateSettings();

@@ -46,7 +46,7 @@ void CallNegotiation::init(QString localName, QString localUsername)
 
 void CallNegotiation::uninit()
 {
-  for (int connectionID = 1; connectionID <= connections_.size();
+  for (uint16_t connectionID = 1; connectionID <= connections_.size();
        ++connectionID)
   {
     stopConnection(connectionID);

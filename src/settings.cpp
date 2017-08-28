@@ -231,7 +231,7 @@ void Settings::showAdvancedSettings()
   QSettings settings;
   QStringList capabilities = getVideoCapabilities(getVideoDeviceID(settings));
   qDebug() << "Showing advanced settings";
-  for(unsigned int i = 0; i < capabilities.size(); ++i)
+  for(int i = 0; i < capabilities.size(); ++i)
   {
     advancedUI_->resolution->addItem( capabilities[i]);
   }
@@ -244,7 +244,7 @@ void Settings::initializeDeviceList()
   qDebug() << "Initialize device list";
   basicUI_->videoDevice->clear();
   QStringList videoDevices = getVideoDevices();
-  for(unsigned int i = 0; i < videoDevices.size(); ++i)
+  for(int i = 0; i < videoDevices.size(); ++i)
   {
     basicUI_->videoDevice->addItem( videoDevices[i]);
   }
@@ -270,6 +270,7 @@ QStringList Settings::getVideoDevices()
 QStringList Settings::getAudioDevices()
 {
   //TODO
+  return QStringList();
 }
 
 QStringList Settings::getVideoCapabilities(int deviceID)

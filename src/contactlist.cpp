@@ -120,7 +120,7 @@ void ContactList::addContactToList(ParticipantInterface *interface,
 
 int ContactList::doesAddressExist(QString address)
 {
-  for(unsigned int i = 0; i < items_.size(); ++i)
+  for(int i = 0; i < items_.size(); ++i)
   {
     if(items_.at(i)->getAddress() == address)
       return i;

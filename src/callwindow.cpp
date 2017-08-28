@@ -119,7 +119,9 @@ void CallWindow::displayIncomingCall(QString callID, QString caller)
 
 void CallWindow::displayRinging(QString callID)
 {
-  qDebug() << "call is ringing. TODO: display it to user";
+  conferenceMutex_.lock();
+  conference_.ringing(callID);
+  conferenceMutex_.unlock();
 }
 
 void CallWindow::acceptCall()

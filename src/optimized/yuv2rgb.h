@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include <math.h>
 
-int yuv2rgb_i_sse41(uint8_t* input, uint8_t* output, int width, int height)
+int yuv2rgb_i_sse41(uint8_t* input, uint8_t* output, uint16_t width, uint16_t height)
 {
   const int mini[4] = { 0,0,0,0 };
   const int middle[4] = { 128, 128, 128, 128 };
@@ -109,7 +109,7 @@ int yuv2rgb_i_sse41(uint8_t* input, uint8_t* output, int width, int height)
     if (pix == width) {
       row = !row;
       pix = 0;
-    }   
+    }
   }
 
   free(row_r);
@@ -125,7 +125,7 @@ int yuv2rgb_i_sse41(uint8_t* input, uint8_t* output, int width, int height)
 // 32 bytes is enough for AVX2
 #define SIMD_ALIGNMENT 32
 
-int yuv2rgb_i_avx2(uint8_t* input, uint8_t* output, int width, int height)
+int yuv2rgb_i_avx2(uint8_t* input, uint8_t* output, uint16_t width, uint16_t height)
 {
   const int mini[8] = { 0,0,0,0,0,0,0,0 };
   const int middle[8] = { 128, 128, 128, 128,128, 128, 128, 128 };
