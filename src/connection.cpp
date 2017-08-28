@@ -1,7 +1,6 @@
 #include "connection.h"
 
 #include <QDataStream>
-
 #include <QtConcurrent/QtConcurrent>
 
 Connection::Connection(uint32_t id)

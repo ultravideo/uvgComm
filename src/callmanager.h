@@ -17,12 +17,11 @@ public:
   CallManager();
 
   void init();
+  void uninit();
 
   // participant interface funtions used to start a call or a chat.
   virtual void callToParticipant(QString name, QString username, QString ip);
   virtual void chatWithParticipant(QString name, QString username, QString ip);
-
-  void uninit();
 
 public slots:  
 
@@ -57,7 +56,7 @@ private:
   CallNegotiation callNeg_; // SIP
   CallWindow window_; // GUI
 
-  uint16_t portsOpen_;
+  uint16_t portsOpen_; // TODO: move this to media manager
 
   StatisticsInterface* stats_;
 };

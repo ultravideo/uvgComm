@@ -1,7 +1,7 @@
 #include "dshowcamerafilter.h"
-#include "statisticsinterface.h"
 
 #include "dshow/capture_interface.h"
+#include "statisticsinterface.h"
 
 #include <QSettings>
 #include <QDateTime>
@@ -77,7 +77,6 @@ bool DShowCameraFilter::init()
   }
 
   capabilityID_ = settings.value("video/ResolutionID").toInt();
-  //capabilityID_ = 0;
 
   if(capabilityID_ == -1)
   {

@@ -29,8 +29,9 @@ void FramedSourceFilter::updateSettings()
     }
     else
     {
+      // the number of frames between parameter sets
       maxBufferSize_ = settings.value("video/VPS").toInt()
-          *settings.value("video/Intra").toInt();
+                      *settings.value("video/Intra").toInt();
     }
 
      qDebug() << name_ << "updated buffersize to" << maxBufferSize_;

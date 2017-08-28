@@ -9,7 +9,6 @@ RGB32toYUV::RGB32toYUV(QString id, StatisticsInterface *stats) :
   sse_(true)
 {}
 
-// also flips input
 void RGB32toYUV::process()
 {
   std::unique_ptr<Data> input = getInput();

@@ -13,14 +13,12 @@ public:
   virtual ~AudioOutput();
 
   void initializeAudio(QAudioFormat format);
-
-  AudioOutputDevice* getOutputModule()
-  {
-    return source_;
-  }
-
   void start();
   void stop();
+
+  AudioOutputDevice* getOutputModule() {
+    return source_;
+  }
 
 private:
 
@@ -35,7 +33,6 @@ private:
   QAudioFormat format_;
 
   QByteArray buffer_;
-
   uint32_t peer_;
 
 private slots:

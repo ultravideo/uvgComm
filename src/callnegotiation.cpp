@@ -1,4 +1,5 @@
 #include "callnegotiation.h"
+
 #include "connection.h"
 #include "sipparser.h"
 
@@ -528,79 +529,79 @@ void CallNegotiation::processRequest(std::shared_ptr<SIPMessageInfo> info,
 {
   switch(info->request)
   {
-  case INVITE:
-  {
-    qDebug() << "Found INVITE";
+    case INVITE:
+    {
+      qDebug() << "Found INVITE";
 
-    if(peerSDP == NULL)
-    {
-      qDebug() << "No SDP received in INVITE";
-      // TODO: send malformed request
-      return;
-    }
-    if(sessions_[info->callID]->contact.contactAddress
-       == sessions_[info->callID]->localAddress.toString())
-    {
-      emit callingOurselves(info->callID, peerSDP);
-    }
-    else
-    {
-      if(peerSDP)
+      if(peerSDP == NULL)
       {
-        if(suitableSDP(peerSDP))
-        {
-          sessions_[info->callID]->peerSDP = peerSDP;
-          emit incomingINVITE(info->callID, sessions_[info->callID]->contact.name);
-        }
-        else
-        {
-          qDebug() << "Could not find suitable SDP parameters within INVITE. Terminating..";
-          // TODO implement this response
-          sendResponse(UNSUPPORTED_413, sessions_[info->callID]);
-        }
+        qDebug() << "No SDP received in INVITE";
+        // TODO: send malformed request
+        return;
+      }
+      if(sessions_[info->callID]->contact.contactAddress
+         == sessions_[info->callID]->localAddress.toString())
+      {
+        emit callingOurselves(info->callID, peerSDP);
       }
       else
       {
-        qDebug() << "No sdpInfo received in request!";
-        sendResponse(MALFORMED_400, sessions_[info->callID]);
+        if(peerSDP)
+        {
+          if(suitableSDP(peerSDP))
+          {
+            sessions_[info->callID]->peerSDP = peerSDP;
+            emit incomingINVITE(info->callID, sessions_[info->callID]->contact.name);
+          }
+          else
+          {
+            qDebug() << "Could not find suitable SDP parameters within INVITE. Terminating..";
+            // TODO implement this response
+            sendResponse(UNSUPPORTED_413, sessions_[info->callID]);
+          }
+        }
+        else
+        {
+          qDebug() << "No sdpInfo received in request!";
+          sendResponse(MALFORMED_400, sessions_[info->callID]);
+        }
       }
+      break;
     }
-    break;
-  }
-  case ACK:
-  {
-    qDebug() << "Found ACK";
-    if(sessions_[info->callID]->peerSDP)
+    case ACK:
     {
-      emit callNegotiated(info->callID, sessions_[info->callID]->peerSDP,
-          sessions_[info->callID]->localSDP);
+      qDebug() << "Found ACK";
+      if(sessions_[info->callID]->peerSDP)
+      {
+        emit callNegotiated(info->callID, sessions_[info->callID]->peerSDP,
+            sessions_[info->callID]->localSDP);
+      }
+      else
+      {
+        qDebug() << "Got ACK without a previous SDP";
+      }
+      break;
     }
-    else
+    case BYE:
     {
-      qDebug() << "Got ACK without a previous SDP";
+      qDebug() << "Found BYE";
+
+      sendResponse(OK_200, sessions_[info->callID]);
+      emit callEnded(info->callID, info->replyAddress);
+
+      if(connectionID != sessions_[info->callID]->connectionID)
+      {
+        stopConnection(connectionID);
+      }
+      uninitSession(sessions_[info->callID]);
+
+      break;
     }
-    break;
-  }
-  case BYE:
-  {
-    qDebug() << "Found BYE";
-
-    sendResponse(OK_200, sessions_[info->callID]);
-    emit callEnded(info->callID, info->replyAddress);
-
-    if(connectionID != sessions_[info->callID]->connectionID)
+    default:
     {
-      stopConnection(connectionID);
+      qWarning() << "WARNING: Request not implemented";
+      break;
     }
-    uninitSession(sessions_[info->callID]);
-
-    break;
-  }
-  default:
-  {
-    qWarning() << "WARNING: Request not implemented";
-    break;
-  }
   }
 }
 
@@ -609,66 +610,66 @@ void CallNegotiation::processResponse(std::shared_ptr<SIPMessageInfo> info,
 {
   switch(info->response)
   {
-  case OK_200:
-  {
-    qDebug() << "Found 200 OK";
-    if(sessions_[info->callID]->originalRequest == INVITE)
+    case OK_200:
     {
-      if(peerSDP)
+      qDebug() << "Found 200 OK";
+      if(sessions_[info->callID]->originalRequest == INVITE)
       {
-        if(suitableSDP(peerSDP))
+        if(peerSDP)
         {
-          sessions_[info->callID]->peerSDP = peerSDP;
-          emit ourCallAccepted(info->callID, sessions_[info->callID]->peerSDP,
-              sessions_[info->callID]->localSDP);
-          sendRequest(ACK, sessions_[info->callID]);
+          if(suitableSDP(peerSDP))
+          {
+            sessions_[info->callID]->peerSDP = peerSDP;
+            emit ourCallAccepted(info->callID, sessions_[info->callID]->peerSDP,
+                sessions_[info->callID]->localSDP);
+            sendRequest(ACK, sessions_[info->callID]);
+          }
+          else
+          {
+            qDebug() << "SDP not supported";
+            // TODO implement this response
+            sendResponse(UNSUPPORTED_413, sessions_[info->callID]);
+          }
         }
         else
         {
-          qDebug() << "SDP not supported";
-          // TODO implement this response
-          sendResponse(UNSUPPORTED_413, sessions_[info->callID]);
+          qDebug() << "No sdpInfo received in INVITE OK response!";
+          sendResponse(MALFORMED_400, sessions_[info->callID]);
         }
+
+      }
+      else if(sessions_[info->callID]->originalRequest == BYE)
+      {
+        qDebug() << "They accepted our BYE";
+      }
+      else if(sessions_[info->callID]->originalRequest != NOREQUEST)
+      {
+        qWarning() << "WARNING: Response processing not implemented for this request:"
+                   << sessions_[info->callID]->originalRequest;
       }
       else
       {
-        qDebug() << "No sdpInfo received in INVITE OK response!";
-        sendResponse(MALFORMED_400, sessions_[info->callID]);
+        qDebug() << "Received a response for unrecognized request";
       }
-
+      break;
     }
-    else if(sessions_[info->callID]->originalRequest == BYE)
+    case DECLINE_603:
     {
-      qDebug() << "They accepted our BYE";
+      if(sessions_[info->callID]->originalRequest == INVITE)
+      {
+        qDebug() << "Received DECLINE";
+        emit ourCallRejected(info->callID);
+      }
+      else
+      {
+        qDebug() << "Unimplemented decline for:" << sessions_[info->callID]->originalRequest;
+      }
+      break;
     }
-    else if(sessions_[info->callID]->originalRequest != NOREQUEST)
+    default:
     {
-      qWarning() << "WARNING: Response processing not implemented for this request:"
-                 << sessions_[info->callID]->originalRequest;
+      qWarning() << "WARNING: Response processing not implemented!";
     }
-    else
-    {
-      qDebug() << "Received a response for unrecognized request";
-    }
-    break;
-  }
-  case DECLINE_603:
-  {
-    if(sessions_[info->callID]->originalRequest == INVITE)
-    {
-      qDebug() << "Received DECLINE";
-      emit ourCallRejected(info->callID);
-    }
-    else
-    {
-      qDebug() << "Unimplemented decline for:" << sessions_[info->callID]->originalRequest;
-    }
-    break;
-  }
-  default:
-  {
-    qWarning() << "WARNING: Response processing not implemented!";
-  }
   }
 }
 
@@ -692,7 +693,6 @@ bool CallNegotiation::suitableSDP(std::shared_ptr<SDPMessageInfo> peerSDP)
     {
       video = true;
     }
-
     if(media.type == "audio")
     {
       audio = true;
@@ -758,7 +758,6 @@ QList<QHostAddress> parseIPAddress(QString address)
 
     ipAddresses.append(hostInfo.addresses());
   }
-
   return ipAddresses;
 }
 

@@ -1,7 +1,9 @@
 #include "audiocapturefilter.h"
+
 #include "audiocapturedevice.h"
 #include "statisticsinterface.h"
 
+#include <QAudioInput>
 #include <QDebug>
 #include <QTime>
 
@@ -61,7 +63,6 @@ void AudioCaptureFilter::createAudioInput()
 
   input_ = audioInput_->start();
   connect(input_, SIGNAL(readyRead()), SLOT(readMore()));
-
 }
 
 void AudioCaptureFilter::readMore()

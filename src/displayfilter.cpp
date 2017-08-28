@@ -1,12 +1,11 @@
 #include "displayfilter.h"
 
 #include "videowidget.h"
+#include "statisticsinterface.h"
 
 #include <QImage>
 #include <QtDebug>
 #include <QDateTime>
-
-#include "statisticsinterface.h"
 
 DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
                              VideoWidget *widget, uint32_t peer):
@@ -49,7 +48,6 @@ void DisplayFilter::process()
             input->height,
             format);
 
-
       image = image.mirrored(horizontalMirroring_, verticalMirroring_);
 
       int32_t delay = QDateTime::currentMSecsSinceEpoch() -
@@ -62,5 +60,4 @@ void DisplayFilter::process()
     }
     input = getInput();
   }
-
 }

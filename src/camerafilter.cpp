@@ -1,14 +1,12 @@
 #include "camerafilter.h"
 
 #include "cameraframegrabber.h"
+#include "statisticsinterface.h"
 
-//#include <QCameraViewfinder>
 #include <QSettings>
 #include <QCameraInfo>
 #include <QTime>
 #include <QtDebug>
-
-#include "statisticsinterface.h"
 
 
 CameraFilter::CameraFilter(QString id, StatisticsInterface *stats):
@@ -45,7 +43,6 @@ CameraFilter::CameraFilter(QString id, StatisticsInterface *stats):
   }
 
   camera_ = new QCamera(cameras.at(deviceID));
-  //camera_ = new QCamera(QCameraInfo::defaultCamera());
   cameraFrameGrabber_ = new CameraFrameGrabber();
 
   Q_ASSERT(camera_ && cameraFrameGrabber_);
@@ -54,6 +51,7 @@ CameraFilter::CameraFilter(QString id, StatisticsInterface *stats):
 
   connect(cameraFrameGrabber_, SIGNAL(frameAvailable(QVideoFrame)), this, SLOT(handleFrame(QVideoFrame)));
 
+  // TODO: get resolution etc. from settings
   QCameraViewfinderSettings viewSettings = camera_->viewfinderSettings();
   camera_->supportedViewfinderResolutions();
   viewSettings.setResolution(QSize(640, 480));

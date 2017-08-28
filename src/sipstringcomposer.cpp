@@ -7,32 +7,32 @@ QString SIPStringComposer::requestToString(const RequestType request)
 {
   switch(request)
   {
-  case INVITE:
-  {
-    return "INVITE";
-    break;
-  }
-  case ACK:
-  {
-    return "ACK";
-    break;
-  }
-  case BYE:
-  {
-    return "BYE";
-    break;
-  }
-  case NOREQUEST:
-  {
-    qCritical() << "Received NOREQUEST for string translation";
-    break;
-  }
-  default:
-  {
-    qCritical() << "SIP REQUEST NOT IMPLEMENTED";
-    return "";
-    break;
-  }
+    case INVITE:
+    {
+      return "INVITE";
+      break;
+    }
+    case ACK:
+    {
+      return "ACK";
+      break;
+    }
+    case BYE:
+    {
+      return "BYE";
+      break;
+    }
+    case NOREQUEST:
+    {
+      qCritical() << "Received NOREQUEST for string translation";
+      break;
+    }
+    default:
+    {
+      qCritical() << "SIP REQUEST NOT IMPLEMENTED";
+      return "";
+      break;
+    }
   }
   return "";
 }
@@ -41,31 +41,31 @@ QString SIPStringComposer::responseToString(const ResponseType response)
 {
   switch(response)
   {
-  case RINGING_180:
-  {
-    return "180 RINGING";
-    break;
-  }
-  case OK_200:
-  {
-    return "200 OK";
-    break;
-  }
-  case DECLINE_603:
-  {
-    return "603 DECLINE";
-    break;
-  }
-  case NORESPONSE:
-  {
-    qCritical() << "Received NORESPONSE for string translation";
-    break;
-  }
-  default:
-  {
-    qCritical() << "SIP RESPONSE NOT IMPLEMENTED";
-    break;
-  }
+    case RINGING_180:
+    {
+      return "180 RINGING";
+      break;
+    }
+    case OK_200:
+    {
+      return "200 OK";
+      break;
+    }
+    case DECLINE_603:
+    {
+      return "603 DECLINE";
+      break;
+    }
+    case NORESPONSE:
+    {
+      qCritical() << "Received NORESPONSE for string translation";
+      break;
+    }
+    default:
+    {
+      qCritical() << "SIP RESPONSE NOT IMPLEMENTED";
+      break;
+    }
   }
   return "";
 }
@@ -196,7 +196,7 @@ QString SIPStringComposer::composeMessage(messageID id)
 {
   Q_ASSERT(messages_.size() >= id && messages_.at(id - 1) != 0);
 
-  // check
+  // check existance of required fields
   if(messages_.at(id - 1)->method.isEmpty() ||
      messages_.at(id - 1)->version.isEmpty() ||
      messages_.at(id - 1)->remoteName.isEmpty() ||
@@ -250,10 +250,10 @@ QString SIPStringComposer::composeMessage(messageID id)
 
   if(messages_.at(id - 1)->isRequest)
   {
-  // INVITE sip:bob@biloxi.com SIP/2.0
-  message = messages_.at(id - 1)->method
-      + " sip:" + messages_.at(id - 1)->remoteUsername + "@" + messages_.at(id - 1)->remoteLocation
-      + " SIP/" + messages_.at(id - 1)->version + lineEnding;
+    // INVITE sip:bob@biloxi.com SIP/2.0
+    message = messages_.at(id - 1)->method
+        + " sip:" + messages_.at(id - 1)->remoteUsername + "@" + messages_.at(id - 1)->remoteLocation
+        + " SIP/" + messages_.at(id - 1)->version + lineEnding;
   }
   else
   {
@@ -265,7 +265,6 @@ QString SIPStringComposer::composeMessage(messageID id)
       + ";branch=" + messages_.at(id - 1)->branch + lineEnding;
 
   message += "Max-Forwards: " + messages_.at(id - 1)->maxForwards + lineEnding;
-
   message += "To: " + messages_.at(id - 1)->remoteName
       + " <sip:" + messages_.at(id - 1)->remoteUsername
       + "@" + messages_.at(id - 1)->remoteLocation + ">";
@@ -276,7 +275,6 @@ QString SIPStringComposer::composeMessage(messageID id)
   }
 
   message += lineEnding;
-
   message += "From: " + messages_.at(id - 1)->localName
       + " <sip:" + messages_.at(id - 1)->localUsername
       + "@" + messages_.at(id - 1)->localLocation + ">";
@@ -286,10 +284,8 @@ QString SIPStringComposer::composeMessage(messageID id)
     message += ";tag=" + messages_.at(id - 1)->localTag;
   }
   message += lineEnding;
-
   message += "Call-ID: " + messages_.at(id - 1)->callID + "@" + messages_.at(id - 1)->host + lineEnding;
   message += "CSeq: " + messages_.at(id - 1)->cSeq + " " + messages_.at(id - 1)->originalRequest + lineEnding;
-
   message += "Contact: <sip:" + messages_.at(id - 1)->localUsername
       + "@" + messages_.at(id - 1)->localLocation + ">" + lineEnding;
 
@@ -303,7 +299,6 @@ QString SIPStringComposer::composeMessage(messageID id)
   {
     message += "Content-Length: 0" + lineEnding;
   }
-
 
   message += lineEnding; // extra line between header and body
 
@@ -343,7 +338,6 @@ QString SIPStringComposer::formSDP(const std::shared_ptr<SDPMessageInfo> sdpInfo
   }
 
   QString sdp = "";
-
   QString lineEnd = "\r\n";
   sdp += "v=" + QString::number(sdpInfo->version) + lineEnd;
   sdp += "o=" + sdpInfo->username + " " + QString::number(sdpInfo->sess_id)  + " "

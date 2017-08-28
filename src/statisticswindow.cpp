@@ -1,4 +1,5 @@
 #include "statisticswindow.h"
+
 #include "ui_statisticswindow.h"
 
 #include <QCloseEvent>
@@ -6,7 +7,6 @@
 #include <QDebug>
 
 const int BUFFERSIZE = 65536;
-
 
 StatisticsWindow::StatisticsWindow(QWidget *parent) :
 QDialog(parent),
@@ -209,7 +209,6 @@ uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets, uint32_t i
     framerate = 1000*framerate/timeInterval;
     return 8*bitrate/(timeInterval);
   }
-
   return 0;
 }
 

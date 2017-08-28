@@ -1,13 +1,11 @@
 #include "settings.h"
+
 #include "ui_basicsettings.h"
 #include "ui_advancedsettings.h"
 
 #include "dshow/capture_interface.h"
 
 #include <QDebug>
-
-
-const int SETTINGCOUNT = 10;
 
 Settings::Settings(QWidget *parent) :
   QObject(parent),
@@ -31,9 +29,7 @@ Settings::Settings(QWidget *parent) :
 
 Settings::~Settings()
 {
-  // I think the UI:s are destroyed when parents are destroyed
-  //delete basicUI_;
-  //delete advancedUI_;
+  // I believe the UI:s are destroyed when parents are destroyed
 }
 
 void Settings::on_ok_clicked()
@@ -132,7 +128,6 @@ void Settings::saveAdvancedSettings()
     qDebug() << "No current index set for resolution. Using 0";
     currentIndex = 0;
   }
-
   saveCameraCapabilities(settings, settings.value("video/DeviceID").toInt(), currentIndex);
   //settings.sync(); // TODO is this needed?
 }
@@ -269,12 +264,13 @@ QStringList Settings::getVideoDevices()
     qDebug() << "[" << i << "] " << devices[i];
     list.push_back(devices[i]);
   }
-
   return list;
 }
 
 QStringList Settings::getAudioDevices()
-{}
+{
+  //TODO
+}
 
 QStringList Settings::getVideoCapabilities(int deviceID)
 {
@@ -293,7 +289,6 @@ QStringList Settings::getVideoCapabilities(int deviceID)
                      QString::number(capList[i].fps) + " fps");
     }
   }
-
   return list;
 }
 
@@ -333,7 +328,6 @@ void Settings::getCapability(int deviceIndex,
     qWarning() << "WARNING: Failed to select device for capacity information.";
   }
 }
-
 
 int Settings::getVideoDeviceID(QSettings &settings)
 {
@@ -376,6 +370,7 @@ bool Settings::checkUserSettings()
   return settings.contains("local/Name")
       && settings.contains("local/Username");
 }
+
 bool Settings::checkVideoSettings()
 {
   QSettings settings;

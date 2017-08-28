@@ -10,7 +10,6 @@ public:
   ~DShowCameraFilter();
 
   virtual bool init();
-
   virtual void run();
   virtual void stop();
 

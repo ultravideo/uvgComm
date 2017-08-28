@@ -27,6 +27,7 @@ void CallManager::init()
 
   callNeg_.init(localName, localUsername);
 
+  // make the system react to messages from other call participants
   QObject::connect(&callNeg_, SIGNAL(incomingINVITE(QString, QString)),
                    this, SLOT(incomingCall(QString, QString)));
 
@@ -52,6 +53,7 @@ void CallManager::init()
   QObject::connect(&callNeg_, SIGNAL(callEnded(QString, QString)),
                    this, SLOT(callEnded(QString, QString)));
 
+  // register the GUI signals indicating GUI changes to be handled approrietly in a system wide manner
   QObject::connect(&window_, SIGNAL(settingsChanged()), this, SLOT(updateSettings()));
   QObject::connect(&window_, SIGNAL(micStateSwitch()), this, SLOT(micState()));
   QObject::connect(&window_, SIGNAL(cameraStateSwitch()), this, SLOT(cameraState()));
@@ -223,9 +225,7 @@ void CallManager::createParticipant(QString& callID, std::shared_ptr<SDPMessageI
 void CallManager::callNegotiated(QString callID, std::shared_ptr<SDPMessageInfo> peerInfo,
                                 std::shared_ptr<SDPMessageInfo> localInfo)
 {
-  qDebug() << "Our call has been accepted.";
-
-  qDebug() << "Sending media to IP:" << peerInfo->globalAddress
+  qDebug() << "Our call has been accepted." << "Sending media to IP:" << peerInfo->globalAddress
            << "to port:" << peerInfo->media.first().port;
 
   VideoWidget* view = window_.addVideoStream(callID);

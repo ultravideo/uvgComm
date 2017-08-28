@@ -1,8 +1,14 @@
 #pragma once
-#include "filter.h"
 
 #include <QIODevice>
 #include <QMutex>
+
+#include <memory>
+
+class Filter;
+class StatisticsInterface;
+
+struct Data;
 
 class AudioOutputDevice : public QIODevice
 {
@@ -11,7 +17,6 @@ public:
   AudioOutputDevice(StatisticsInterface* stats, uint32_t peer);
 
   void init(std::shared_ptr<Filter> source);
-
   void start();
   void stop();
 

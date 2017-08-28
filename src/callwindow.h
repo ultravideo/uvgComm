@@ -32,17 +32,24 @@ public:
   // functions for managing the GUI
   StatisticsInterface* createStatsWindow();
 
+  // gets video widget from GUI
   VideoWidget* getSelfDisplay();
+
+  // callID identifies the view slot
   void displayOutgoingCall(QString callID, QString name);
   void displayRinging(QString callID);
   void displayIncomingCall(QString callID, QString caller);
 
+  // adds video stream to view and returns created/atttached videowidget
   VideoWidget* addVideoStream(QString callID);
-  void removeParticipant(QString callID);
 
+  // removes caller from view
+  void removeParticipant(QString callID);
+  void clearConferenceView();
+
+  // set GUI to reflect state
   void setMicState(bool on);
   void setCameraState(bool on);
-  void clearConferenceView();
 
   void closeEvent(QCloseEvent *event);
 

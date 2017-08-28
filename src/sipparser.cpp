@@ -39,9 +39,7 @@ const QList<HeaderLine> SIPHEADERLINES(
 // TODO this changes depending on the message type, maybe make a function/table for that
 const uint16_t SIPMANDATORYLINES = 9;
 
-
-// Functions
-
+// Local functions
 void messageToTable(QStringList& lines, QList<QStringList> &values);
 SIPMessageInfo* tableToInfo(QList<QStringList>& values);
 bool checkSIPMessage(QList<QStringList>& values);
@@ -56,6 +54,7 @@ bool checkSDPLine(QStringList& line, uint8_t expectedLength, QString& firstValue
 
 RequestType parseRequest(QString request);
 
+// Implementations
 
 bool checkSDPLine(QStringList& line, uint8_t expectedLength, QString& firstValue)
 {
@@ -173,7 +172,6 @@ SIPMessageInfo* tableToInfo(QList<QStringList>& values)
       cleanup(info);
       return NULL;
     }
-
     info->response = NORESPONSE;
   }
   else
@@ -219,7 +217,6 @@ SIPMessageInfo* tableToInfo(QList<QStringList>& values)
     return NULL;
   }
 
-  //info->replyAddress = parseIPAddress(replyAddress);
   info->replyAddress = replyAddress;
 
   QStringList callIDsplit = values.at(5).at(1).split("@");
@@ -340,7 +337,6 @@ void parseSIPaddress(QString address, QString& user, QString& location)
 
   user = splitAddress.at(0).right(splitAddress.at(0).length() - 5);
   location = splitAddress.at(1).left(splitAddress.at(1).length() - 1);
-
 }
 
 void parseSIPParameter(QString field, QString parameterName,

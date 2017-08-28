@@ -1,12 +1,13 @@
 #include "rtpstreamer.h"
+
 #include "framedsourcefilter.h"
 #include "rtpsinkfilter.h"
+#include "common.h"
 
 #include <liveMedia.hh>
 #include <UsageEnvironment.hh>
 #include <GroupsockHelper.hh>
 #include <BasicUsageEnvironment.hh>
-#include <common.h>
 
 #include <QtEndian>
 #include <QHostInfo>
@@ -41,14 +42,11 @@ RTPStreamer::RTPStreamer():
  // QThread run function
 void RTPStreamer::run()
 {
-
-  qDebug() << "Live555 TID:" << (uint64_t)currentThreadId();
-
   if(!isIniated_)
   {
     init(stats_);
   }
-  qDebug() << "RTP streamer starting eventloop";
+  qDebug() << "Live555 starting eventloop. TID:" << (uint64_t)currentThreadId();
   stopRTP_ = 0;
 
   setPriority(QThread::HighPriority);
@@ -439,7 +437,6 @@ RTPStreamer::Receiver* RTPStreamer::addReceiver(in_addr peerAddress, uint16_t po
   receiver->sink
       = std::shared_ptr<RTPSinkFilter>(new RTPSinkFilter(ip_str + "_", stats_, *env_, type),
                                        [](RTPSinkFilter*){});
-
 
   // This starts RTCP running automatically
   receiver->rtcp  = RTCPInstance::createNew(*env_,

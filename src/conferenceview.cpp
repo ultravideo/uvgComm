@@ -72,8 +72,6 @@ void ConferenceView::incomingCall(QString callID, QString name)
   activeCalls_[callID] = new CallInfo{ASKINGUSER, name, layout_->itemAtPosition(row_,column_),
                           row_, column_};
 
-
-
   askingQueue_.append(callID);
   nextSlot();
 }

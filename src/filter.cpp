@@ -114,24 +114,24 @@ void Filter::putInput(std::unique_ptr<Data> data)
         }
       }
     }
-//    else if(inBuffer_[0]->type == OPUSAUDIO)
-//    {
-      // TODO: OPUS decoder should be inputted a NULL pointer in case this happens
-//    }
     else
     {
+      if(inBuffer_[0]->type == OPUSAUDIO)
+      {
+        qDebug() << "WARNING: Unimplented: Should input Null pointer to decoder";
+      }
       inBuffer_.pop_front(); // discard the oldest
     }
 
     ++inputDiscarded_;
     stats_->packetDropped();
-    //if(inputDiscarded_ == 1 || inputDiscarded_%10 == 0)
-    //{
+    if(inputDiscarded_ == 1 || inputDiscarded_%10 == 0)
+    {
       qDebug() << name_ << "buffer full. Discarded input:"
                << inputDiscarded_
                << "Total input:"
                << inputTaken_;
-    //}
+    }
   }
   hasInput_.wakeOne();
   bufferMutex_.unlock();
@@ -199,7 +199,6 @@ void Filter::sendOutput(std::unique_ptr<Data> output)
     // always move the last outconnection
     outConnections_.back()->putInput(std::move(output));
   }
-
   connectionMutex_.unlock();
 }
 
@@ -265,7 +264,6 @@ QString Filter::printOutputs()
   {
     outs += "   \"" + name_ + "\" -> \"" + out->name_ + "\";" + "\r\n";
   }
-
   for(auto out : outDataCallbacks_)
   {
     outs += "   \"" + name_ + "\" -> \" All_outputs \";" + "\r\n";

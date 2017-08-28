@@ -74,6 +74,7 @@ void CallWindow::init(ParticipantInterface *partInt)
 
   QMainWindow::show();
 
+  // TODO: move to conferenceview somehow
   Ui::CallerWidget *ui_widget = new Ui::CallerWidget;
   QWidget* holderWidget = new QWidget;
   ui_widget->setupUi(holderWidget);

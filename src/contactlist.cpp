@@ -1,7 +1,6 @@
 #include "contactlist.h"
 
 #include "contactlistitem.h"
-
 #include "participantinterface.h"
 
 #include <QSettings>
@@ -9,9 +8,7 @@
 #include <QMenu>
 
 ContactList::ContactList()
-{
-
-}
+{}
 
 void ContactList::initializeList(QListWidget* list, ParticipantInterface* interface)
 {

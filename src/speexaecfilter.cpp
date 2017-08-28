@@ -5,7 +5,6 @@
 // this is how many frames the audio capture seems to send
 const uint16_t FRAMESPERSECOND = 25;
 
-
 SpeexAECFilter::SpeexAECFilter(QString id, StatisticsInterface* stats, QAudioFormat format):
   Filter(id, "SpeexAEC", stats, RAWAUDIO, RAWAUDIO),
   echo_state_(NULL),

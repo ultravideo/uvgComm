@@ -7,6 +7,8 @@ class BasicSettings;
 class AdvancedSettings;
 }
 
+// TODO: Possibly separate settings ui and settings management
+
 class Settings : public QObject
 {
   Q_OBJECT

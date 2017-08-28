@@ -85,7 +85,7 @@ bool KvazaarFilter::init()
     }
   }
 
-  // TODO Send parameter sets only when needed maybe
+  // TODO Maybe send parameter sets only when needed
   //config_->target_bitrate = target_bitrate;
 
   enc_ = api_->encoder_open(config_);

@@ -1,18 +1,17 @@
 #include "audiooutputdevice.h"
 
+#include "statisticsinterface.h"
+#include "filter.h"
+
 #include <QDebug>
 #include <QDateTime>
-
-#include "statisticsinterface.h"
 
 
 AudioOutputDevice::AudioOutputDevice(StatisticsInterface* stats, uint32_t peer):
   QIODevice(),
   stats_(stats),
   peer_(peer)
-{
-
-}
+{}
 
 void AudioOutputDevice::init(std::shared_ptr<Filter> source)
 {
@@ -22,7 +21,6 @@ void AudioOutputDevice::init(std::shared_ptr<Filter> source)
   {
     source->addDataOutCallback(this, &AudioOutputDevice::takeInput);
   }
-
 }
 
 void AudioOutputDevice::start()

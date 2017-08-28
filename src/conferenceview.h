@@ -17,7 +17,6 @@ namespace Ui {
 class CallerWidget;
 }
 
-
 class ConferenceView
 {
 public:

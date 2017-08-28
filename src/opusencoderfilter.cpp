@@ -1,9 +1,9 @@
 #include "opusencoderfilter.h"
 
+#include "statisticsinterface.h"
+
 #include <QDebug>
 #include <QDateTime>
-
-#include "statisticsinterface.h"
 
 // this is how many frames the audio capture seems to send
 const uint16_t FRAMESPERSECOND = 25;
@@ -55,8 +55,6 @@ void OpusEncoderFilter::process()
     // Process them all and send one by one.
     for(uint32_t i = 0; i < input->data_size; i += format_.bytesPerFrame()*numberOfSamples_)
     {
-      //qDebug() << "Audio input datasize:" << input->data_size << "index:" << i << "pos:" << pos;
-
       len = opus_encode(enc_, (opus_int16*)input->data.get()+i/2, numberOfSamples_, opusOutput_ + pos, max_data_bytes_ - pos);
       if(len <= 0)
       {
@@ -73,8 +71,9 @@ void OpusEncoderFilter::process()
       u_copy->data = std::move(opus_frame);
       sendOutput(std::move(u_copy));
 
+      //qDebug() << "Audio input datasize:" << input->data_size
+      // << "index:" << i << "pos:" << pos << "Encoded Opus audio. New framesize:" << len;
       pos += len;
-      //qDebug() << "Encoded Opus audio. New framesize:" << len;
     }
 
     if(len > 0)

@@ -1,8 +1,8 @@
 #pragma once
 
 // This class has been modified from QT audio input example
-
-#include <QAudioInput>
+#include <QAudioFormat>
+#include <QIODevice>
 
 class AudioCaptureDevice :  public QIODevice
 {

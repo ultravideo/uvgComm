@@ -24,7 +24,6 @@ YUVtoRGB32::YUVtoRGB32(QString id, StatisticsInterface *stats) :
 // also flips input
 void YUVtoRGB32::process()
 {
-
   std::unique_ptr<Data> input = getInput();
 
   while(input)

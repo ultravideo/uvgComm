@@ -17,10 +17,10 @@
 #include "speexaecfilter.h"
 #include "dshowcamerafilter.h"
 
+#include "common.h"
+
 #include <QSettings>
 #include <QDebug>
-
-#include "common.h"
 
 FilterGraph::FilterGraph():
   peers_(),
@@ -30,7 +30,8 @@ FilterGraph::FilterGraph():
   stats_(NULL),
   format_()
 {
-  // TODO negotiate these values with all included filters
+  // TODO negotiate these values with all included filters and SDP
+  // TODO move these to settings and manage them automatically
   format_.setSampleRate(48000);
   format_.setChannelCount(1);
   format_.setSampleSize(16);
@@ -58,7 +59,10 @@ void FilterGraph::updateSettings()
     qDebug() << "The video format has been changed from " << videoFormat_
              << "to" << settings.value("video/InputFormat").toString() << "Video send graph has to be reconstructed.";
 
+    // update selfview in case camera format has changed
     initSelfView(selfView_);
+
+    // if we are in a call, initiate kvazaar and connect peers. Otherwise add it late.
     if(peers_.size() != 0)
     {
       initVideoSend();
@@ -91,20 +95,18 @@ void FilterGraph::updateSettings()
       peer->audioFramedSource->updateSettings();
       peer->videoFramedSource->updateSettings();
 
-      // currently does nothing, but maybe later we decide to add some settings
-      // to our receive such as hos much we want to decode and stuff
+      // decode and display settings
       for(auto video : peer->videoReceive)
       {
         video->updateSettings();
       }
+      // decoding and playback settings
       for(auto audio : peer->audioReceive)
       {
         audio->updateSettings();
       }
     }
   }
-
-  // update selfview in case camera format has changed
 }
 
 void FilterGraph::initSelfView(VideoWidget *selfView)
@@ -117,6 +119,7 @@ void FilterGraph::initSelfView(VideoWidget *selfView)
   }
 
   // Sending video graph
+  // TODO: move to settings or remove one of these
   if(DSHOW_ENABLED)
   {
     addToGraph(std::shared_ptr<Filter>(new DShowCameraFilter("", stats_)), videoSend_);
@@ -128,6 +131,8 @@ void FilterGraph::initSelfView(VideoWidget *selfView)
   {
     // connect selfview to camera
     DisplayFilter* selfviewFilter = new DisplayFilter("Self_", stats_, selfView, 1111);
+    // the self view rotation depends on which conversions are use as some of the optimizations
+    // do the mirroring. Note: mirroring is slow with Qt
     selfviewFilter->setProperties(true, videoSend_.at(0)->outputType() == RGB32VIDEO);
     addToGraph(std::shared_ptr<Filter>(selfviewFilter), videoSend_);
   }
@@ -406,7 +411,6 @@ void changeState(std::shared_ptr<Filter> f, bool state)
 
 void FilterGraph::mic(bool state)
 {
-
   if(audioSend_.size() > 0)
   {
     if(!state)
@@ -477,11 +481,12 @@ void FilterGraph::running(bool state)
 void FilterGraph::destroyFilters(std::vector<std::shared_ptr<Filter> > &filters)
 {
   if(filters.size() != 0)
+  {
     qDebug() << "Destroying filter graph with" << filters.size() << "filters.";
+  }
   for( std::shared_ptr<Filter> f : filters )
   {
     changeState(f, false);
-    //delete f;
   }
 
   filters.clear();

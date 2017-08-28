@@ -1,4 +1,3 @@
-//#include "callwindow.h"
 #include "callmanager.h"
 
 #include <QApplication>
@@ -11,10 +10,9 @@ int main(int argc, char *argv[])
 
   a.setApplicationName("Kvazzup");
 
-  // TODO load settings file
-
   qDebug() << "Starting Kvazzup in" << QDir::currentPath();
 
+  // TODO move to GUI
   int id = QFontDatabase::addApplicationFont(QDir::currentPath() + "/fonts/OpenSans-Regular.ttf");
 
   if(id != -1)

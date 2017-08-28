@@ -1,15 +1,13 @@
 #include "rtpsinkfilter.h"
 
-#include "common.h"
-
-#include <QDebug>
-
 #include <statisticsinterface.h>
+#include "common.h"
 
 #include <RTPInterface.hh>
 
-const uint32_t BUFFER_SIZE = 10*65536;
+#include <QDebug>
 
+const uint32_t BUFFER_SIZE = 10*65536;
 
 RTPSinkFilter::RTPSinkFilter(QString id, StatisticsInterface *stats, UsageEnvironment& env, DataType type):
   Filter(id, "RTP_Sink", stats, NONE, type),

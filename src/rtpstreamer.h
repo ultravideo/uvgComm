@@ -25,7 +25,6 @@ public:
 
   void init(StatisticsInterface* stats);
   void uninit();
-
   void run();
   void stop();
 

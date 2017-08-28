@@ -2,7 +2,6 @@
 
 #include "audiooutputdevice.h"
 
-
 #include <QDebug>
 
 const int BufferSize      = 32768;

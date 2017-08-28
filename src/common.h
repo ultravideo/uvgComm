@@ -55,6 +55,7 @@ struct SDPMessageInfo
   QList<MediaInfo> media;
 };
 
+// TODO use _sleep?
 void qSleep(int ms);
 
 // TODO fix AEC bugs and faulty operating.

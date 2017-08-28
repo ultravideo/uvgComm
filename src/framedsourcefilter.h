@@ -27,6 +27,6 @@ protected:
 
 private:
 
-  DataType type_;
+  DataType type_; // TODO use output_
 
 };

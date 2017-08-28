@@ -7,6 +7,7 @@
 #include <windows.h> // for Sleep
 #endif
 
+// TODO move this to a different file from common.h
 void qSleep(int ms)
 {
 

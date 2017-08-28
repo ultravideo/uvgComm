@@ -3,9 +3,7 @@
 #include "connection.h"
 
 ConnectionServer::ConnectionServer()
-{
-
-}
+{}
 
 void ConnectionServer::incomingConnection(qintptr socketDescriptor)
 {
