@@ -56,15 +56,17 @@ private:
 
   void nextSlot();
 
+  void attachCallingWidget(QWidget* holder, QString text);
+
+  QString findInvoker(QString buttonName);
+
   QWidget *parent_;
 
   QMutex layoutMutex_;
   QGridLayout* layout_;
   QWidget* layoutWidget_;
-  Ui::CallerWidget* callingWidget_;
-  QWidget* holdingWidget_;
-  // dynamic videowidget adding to layout
 
+  // dynamic videowidget adding to layout
   QMutex locMutex_;
   uint16_t row_;
   uint16_t column_;
@@ -79,13 +81,10 @@ private:
 
     uint16_t row;
     uint16_t column;
+
+    QWidget* holder;
   };
 
   QMutex callsMutex_; // TODO: missing implementation
   std::map<QString, CallInfo*> activeCalls_;
-
-  // TODO: enable more than one call ringing at the same time
-  QList<QString> askingQueue_;
-  //QList<CallInfo*> deniedCalls_;
-
 };

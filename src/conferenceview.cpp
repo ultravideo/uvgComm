@@ -11,29 +11,18 @@ ConferenceView::ConferenceView(QWidget *parent):
   parent_(parent),
   layout_(NULL),
   layoutWidget_(NULL),
-  callingWidget_(NULL),
   row_(0),
   column_(0),
   rowMaxLength_(2),
-  activeCalls_()//,
-  //deniedCalls_()
+  activeCalls_()
 {}
 
 void ConferenceView::init(QGridLayout* conferenceLayout, QWidget* layoutwidget)
 {
-  // TODO: move to conferenceview somehow
-  Ui::CallerWidget *ui_widget = new Ui::CallerWidget;
-  QWidget* holderWidget = new QWidget;
-  ui_widget->setupUi(holderWidget);
-  connect(ui_widget->AcceptButton, SIGNAL(clicked()), this, SLOT(accept()));
-  connect(ui_widget->DeclineButton, SIGNAL(clicked()), this, SLOT(reject()));
-
   layoutMutex_.lock();
   layout_ = conferenceLayout;
   layoutMutex_.unlock();
   layoutWidget_ = layoutwidget;
-  callingWidget_ = ui_widget;
-  holdingWidget_ = holderWidget;
 }
 
 void ConferenceView::callingTo(QString callID, QString name)
@@ -55,39 +44,45 @@ void ConferenceView::callingTo(QString callID, QString name)
   layout_->addWidget(label, row_, column_);
 
   activeCalls_[callID] = new CallInfo{WAITINGPEER, name, layout_->itemAtPosition(row_,column_),
-                         row_, column_};
+                         row_, column_, NULL};
   locMutex_.unlock();
   layoutMutex_.unlock();
   nextSlot();
-
 }
 
 void ConferenceView::incomingCall(QString callID, QString name)
 {
-  Q_ASSERT(callingWidget_);
-  if(callingWidget_ == NULL)
-  {
-    qWarning() << "WARNING: Calling widget is missing!!";
-  }
   if(activeCalls_.find(callID) != activeCalls_.end())
   {
     qWarning() << "WARNING: Incoming call already has an allocated view";
     return;
   }
   qDebug() << "Displaying pop-up for somebody calling";
-  callingWidget_->CallerLabel->setText(name + " is calling..");
-  holdingWidget_->show();
+  QWidget* holder = new QWidget;
+  attachCallingWidget(holder, name + " is calling..");
 
   layoutMutex_.lock();
   locMutex_.lock();
-  layout_->addWidget(holdingWidget_, row_, column_);
+  layout_->addWidget(holder, row_, column_);
 
   activeCalls_[callID] = new CallInfo{ASKINGUSER, name, layout_->itemAtPosition(row_,column_),
-                          row_, column_};
+                          row_, column_, holder};
   locMutex_.unlock();
   layoutMutex_.unlock();
-  askingQueue_.append(callID);
   nextSlot();
+}
+
+void ConferenceView::attachCallingWidget(QWidget* holder, QString text)
+{
+
+  Ui::CallerWidget *calling = new Ui::CallerWidget;
+;
+  calling->setupUi(holder);
+  connect(calling->AcceptButton, SIGNAL(clicked()), this, SLOT(accept()));
+  connect(calling->DeclineButton, SIGNAL(clicked()), this, SLOT(reject()));
+
+  calling->CallerLabel->setText(text);
+  holder->show();
 }
 
 // if our call is accepted or we accepted their call
@@ -183,30 +178,6 @@ void ConferenceView::nextSlot()
   locMutex_.unlock();
 }
 
-QString ConferenceView::acceptNewest()
-{
-  QString last = askingQueue_.last();
-  askingQueue_.pop_back();
-  if(askingQueue_.size() == 0)
-  {
-    holdingWidget_->hide();
-  }
-  return last;
-}
-
-QString ConferenceView::rejectNewest()
-{
-  QString last = askingQueue_.last();
-  askingQueue_.pop_back();
-  if(askingQueue_.size() == 0)
-  {
-    holdingWidget_->hide();
-  }
-
-  removeCaller(last);
-  return last;
-}
-
 void ConferenceView::close()
 {
   while(!activeCalls_.empty())
@@ -217,7 +188,6 @@ void ConferenceView::close()
     removeCaller((*activeCalls_.begin()).first);
   }
 
-  askingQueue_.clear();
   locMutex_.lock();
   row_ = 0;
   column_ = 0;
@@ -225,16 +195,43 @@ void ConferenceView::close()
   locMutex_.unlock();
 }
 
+QString ConferenceView::findInvoker(QString buttonName)
+{
+  QString callID = "";
+  QPushButton* button = qobject_cast<QPushButton*>(sender());
+  for(auto callinfo : activeCalls_)
+  {
+    QPushButton* pb = callinfo.second->holder->findChildren<QPushButton *>("AcceptButton").first();
+    if(pb == button)
+    {
+      callID = callinfo.first;
+      qDebug() << "Found invoking" << buttonName << "CallID:" << callID;
+    }
+  }
+
+  return callID;
+}
+
 void ConferenceView::accept()
 {
-  QString callID = acceptNewest();
-  qDebug() << callID << ": We accepted";
+  QString callID = findInvoker("AcceptButton");
+  if(callID == "")
+  {
+    qWarning() << "WARNING: Could not find invoking push_button";
+    return;
+  }
   emit acceptCall(callID);
 }
 
 void ConferenceView::reject()
 {
-  QString callID = rejectNewest();
-  qDebug() << callID << ": We rejected";
+  QString callID = findInvoker("DeclineButton");
+  if(callID == "")
+  {
+    qWarning() << "WARNING: Could not find invoking reject button";
+    return;
+  }
+
+  removeCaller(callID);
   emit rejectCall(callID);
 }
