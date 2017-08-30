@@ -1,5 +1,8 @@
 #pragma once
+
 #include <QObject>
+#include <QMutex>
+
 #include <memory>
 #include <map>
 #include <inaddr.h>
@@ -42,24 +45,8 @@ public:
   bool toggleMic();
   bool toggleCamera();
 
-  uint16_t portsForCallID(QString callID) const
-  {
-    if(ids_.find(callID) != ids_.end())
-    {
-      return portsPerParticipant();
-    }
-    return 0;
-  }
-
-  uint16_t portsPerParticipant() const
-  {
-    return 4;
-  }
-
-  uint16_t maxOpenPorts() const
-  {
-    return 42;
-  }
+  // use this function to avoid a race condition with ports
+  bool reservePorts();
 
 signals:
 
@@ -83,6 +70,15 @@ signals:
 
 private:
 
+  uint16_t portsForCallID(QString callID) const
+  {
+    if(ids_.find(callID) != ids_.end())
+    {
+      return portsPerParticipant_;
+    }
+    return 0;
+  }
+
   // callID, PeerID relation pairs
   std::map<QString,PeerID> ids_;
 
@@ -96,4 +92,11 @@ private:
 
   bool mic_;
   bool camera_;
+
+  uint16_t portsPerParticipant_;
+  uint16_t maxPortsOpen_;
+  uint16_t portsInUse_;
+  uint16_t portsReserved_;
+
+  QMutex portsMutex_;
 };

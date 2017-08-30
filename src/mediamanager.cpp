@@ -14,7 +14,11 @@ MediaManager::MediaManager():
   session_(NULL),
   streamer_(new RTPStreamer()),
   mic_(true),
-  camera_(true)
+  camera_(true),
+  portsPerParticipant_(4),
+  maxPortsOpen_(42),
+  portsInUse_(0),
+  portsReserved_(0)
 {}
 
 MediaManager::~MediaManager()
@@ -52,7 +56,16 @@ void MediaManager::updateSettings()
 void MediaManager::addParticipant(QString callID, in_addr ip, uint16_t sendAudioPort, uint16_t recvAudioPort,
                                  uint16_t sendVideoPort, uint16_t recvVideoPort, VideoWidget *view)
 {
-  qDebug() << "Adding participant";
+  Q_ASSERT(portsInUse_ + portsPerParticipant_ <= maxPortsOpen_);
+  Q_ASSERT(portsReserved_ >= portsPerParticipant_);
+
+  qDebug() << "Adding participant to media with ports left:" << maxPortsOpen_ - portsInUse_
+           << "Reserved:" << portsReserved_;
+
+  portsMutex_.lock();
+  portsInUse_ += portsPerParticipant_;
+  portsReserved_ -= portsPerParticipant_;
+  portsMutex_.unlock();
 
   // Open necessary ports and create filters for sending and receiving
   PeerID streamID = streamer_->addPeer(ip);
@@ -69,28 +82,28 @@ void MediaManager::addParticipant(QString callID, in_addr ip, uint16_t sendAudio
     return;
   }
 
-  qDebug() << "Creating connections";
-
+  qDebug() << "Creating connections for ID:" << streamID;
   std::shared_ptr<Filter> videoFramedSource = streamer_->addSendVideo(streamID, sendVideoPort);
   std::shared_ptr<Filter> videoSink =streamer_->addReceiveVideo(streamID, recvVideoPort);
   std::shared_ptr<Filter> audioFramedSource = streamer_->addSendAudio(streamID, sendAudioPort);
   std::shared_ptr<Filter> audioSink = streamer_->addReceiveAudio(streamID, recvAudioPort);
 
-  qDebug() << "Modifying filter graph";
-
+  qDebug() << "Modifying filter graph for ID:" << streamID;
   // create filter graphs for this participant
   fg_->sendVideoto(streamID, std::shared_ptr<Filter>(videoFramedSource));
   fg_->receiveVideoFrom(streamID, std::shared_ptr<Filter>(videoSink), view);
   fg_->sendAudioTo(streamID, std::shared_ptr<Filter>(audioFramedSource));
   fg_->receiveAudioFrom(streamID, std::shared_ptr<Filter>(audioSink));
 
-  qDebug() << "Participant added";
+  qDebug() << "Participant added with ID:" << streamID;
 
   fg_->print();
 }
 
 void MediaManager::removeParticipant(QString callID)
 {
+  Q_ASSERT(portsInUse_ >= portsForCallID(callID));
+
   if(ids_.find(callID) == ids_.end())
   {
     qWarning() << "WARNING: No callID found in mediamanager:" << callID;
@@ -102,6 +115,11 @@ void MediaManager::removeParticipant(QString callID)
   streamer_->removePeer(ids_[callID]);
   ids_.erase(callID);
   qDebug() << "Participant " << callID << "removed.";
+
+  qDebug() << "They have left the call. Ports in use:" << portsInUse_
+           << "->" << portsInUse_ - portsForCallID(callID);
+
+  portsInUse_ -= portsForCallID(callID);
 }
 
 void MediaManager::endAllCalls()
@@ -116,6 +134,9 @@ void MediaManager::endAllCalls()
     streamer_->removePeer(caller.second);
   }
   ids_.clear();
+
+  portsInUse_ = 0;
+  portsReserved_ = 0;
 }
 
 bool MediaManager::toggleMic()
@@ -131,3 +152,17 @@ bool MediaManager::toggleCamera()
   fg_->camera(camera_);
   return camera_;
 }
+
+bool MediaManager::reservePorts()
+{
+  portsMutex_.lock();
+  if(portsReserved_ + portsPerParticipant_ + portsInUse_ <= maxPortsOpen_)
+  {
+    portsReserved_ += portsPerParticipant_;
+    portsMutex_.unlock();
+    return true;
+  }
+  portsMutex_.unlock();
+  return false;
+}
+

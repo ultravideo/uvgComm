@@ -45,8 +45,6 @@ public slots:
 
 private:
 
-  bool roomForMoreParticipants() const;
-
   void createParticipant(QString& callID, std::shared_ptr<SDPMessageInfo> peerInfo,
                          const std::shared_ptr<SDPMessageInfo> localInfo,
                          VideoWidget *videoWidget,
@@ -56,8 +54,5 @@ private:
   CallNegotiation callNeg_; // SIP
   CallWindow window_; // GUI
 
-  uint16_t portsOpen_; // TODO: move this to media manager
-
   StatisticsInterface* stats_;
 };
-

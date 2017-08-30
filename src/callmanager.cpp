@@ -9,8 +9,7 @@
 CallManager::CallManager():
     media_(),
     callNeg_(),
-    window_(NULL),
-    portsOpen_(0)
+    window_(NULL)
 {}
 
 void CallManager::init()
@@ -76,7 +75,7 @@ void CallManager::windowClosed()
 
 void CallManager::callToParticipant(QString name, QString username, QString ip)
 {
-  if(roomForMoreParticipants())
+  if(media_.reservePorts())
   {
     QString ip_str = ip;
 
@@ -105,16 +104,9 @@ void CallManager::callToParticipant(QString name, QString username, QString ip)
 
 void CallManager::callOurselves(QString callID, std::shared_ptr<SDPMessageInfo> info)
 {
-  if(roomForMoreParticipants())
-  {
-    qDebug() << "Calling ourselves, how boring.";
-    VideoWidget* view = window_.addVideoStream(callID);
-    createParticipant(callID, info, info, view, stats_);
-  }
-  else
-  {
-    qDebug() << "WARNING: No Room when calling ourselves, but this should be checked earlier.";
-  }
+  qDebug() << "Calling ourselves, how boring.";
+  VideoWidget* view = window_.addVideoStream(callID);
+  createParticipant(callID, info, info, view, stats_);
 }
 
 void CallManager::chatWithParticipant(QString name, QString username, QString ip)
@@ -124,7 +116,7 @@ void CallManager::chatWithParticipant(QString name, QString username, QString ip
 
 void CallManager::incomingCall(QString callID, QString caller)
 {
-  if(!roomForMoreParticipants())
+  if(!media_.reservePorts())
   {
     qWarning() << "WARNING: Could not fit more participants to this call";
     rejectCall(callID); // TODO: send a not possible message instead of reject.
@@ -139,27 +131,16 @@ void CallManager::updateSettings()
   media_.updateSettings();
 }
 
-bool CallManager::roomForMoreParticipants() const
-{
-  return portsOpen_ + media_.portsPerParticipant() <= media_.maxOpenPorts();
-}
-
 void CallManager::createParticipant(QString& callID, std::shared_ptr<SDPMessageInfo> peerInfo,
                                     const std::shared_ptr<SDPMessageInfo> localInfo,
                                     VideoWidget* videoWidget,
                                     StatisticsInterface* stats)
 {
-  qDebug() << "User wants to add participant. Ports required:"
-           << portsOpen_ + media_.portsPerParticipant() << "/" << media_.maxOpenPorts();
-  Q_ASSERT(roomForMoreParticipants());
-
   if(videoWidget == NULL)
   {
     qWarning() << "WARNING: NULL widget got from";
     return;
   }
-
-  portsOpen_ +=media_.portsPerParticipant();
 
   QHostAddress address;
   address.setAddress(peerInfo->globalAddress);
@@ -242,7 +223,6 @@ void CallManager::endTheCall()
   qDebug() << "Ending all calls";
   media_.endAllCalls();
   window_.clearConferenceView();
-  portsOpen_ = 0;
 }
 
 void CallManager::micState()
@@ -269,13 +249,7 @@ void CallManager::callRejected(QString callID)
 
 void CallManager::callEnded(QString callID, QString ip)
 {
-  qDebug() << "They have left the call. Ports in use:" << portsOpen_
-           << "->" << portsOpen_ - media_.portsForCallID(callID);
-
   media_.removeParticipant(callID);
   window_.removeParticipant(callID);
   stats_->removeParticipant(ip);
-
-  Q_ASSERT(portsOpen_ >= media_.portsForCallID(callID));
-  portsOpen_ -= media_.portsForCallID(callID);
 }
