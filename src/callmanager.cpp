@@ -5,7 +5,6 @@
 
 #include <QHostAddress>
 #include <QtEndian>
-#include <QSettings>
 
 CallManager::CallManager():
     media_(),
@@ -20,12 +19,7 @@ void CallManager::init()
   window_.show();
   VideoWidget* selfview = window_.getSelfDisplay();
 
-  // TODO move these closer to useagepoint
-  QSettings settings;
-  QString localName = settings.value("local/Name").toString();
-  QString localUsername = settings.value("local/Username").toString();
-
-  callNeg_.init(localName, localUsername);
+  callNeg_.init();
 
   // make the system react to messages from other call participants
   QObject::connect(&callNeg_, SIGNAL(incomingINVITE(QString, QString)),

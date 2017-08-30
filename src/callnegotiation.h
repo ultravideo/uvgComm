@@ -29,7 +29,7 @@ public:
   CallNegotiation();
   ~CallNegotiation();
 
-  void init(QString localName, QString localUsername);
+  void init();
   void uninit();
 
   QList<QString> startCall(QList<Contact> addresses);

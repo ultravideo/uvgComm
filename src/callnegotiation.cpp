@@ -3,6 +3,8 @@
 #include "connection.h"
 #include "sipparser.h"
 
+#include <QSettings>
+
 //TODO use cryptographically secure callID generation!!
 const QString alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                          "abcdefghijklmnopqrstuvwxyz"
@@ -25,7 +27,7 @@ CallNegotiation::CallNegotiation():
 CallNegotiation::~CallNegotiation()
 {}
 
-void CallNegotiation::init(QString localName, QString localUsername)
+void CallNegotiation::init()
 {
   qsrand(1);
 
@@ -37,11 +39,27 @@ void CallNegotiation::init(QString localName, QString localUsername)
   // according to that
   server_.listen(QHostAddress("0.0.0.0"), sipPort_);
 
+  QSettings settings;
+  QString localName = settings.value("local/Name").toString();
+  QString localUsername = settings.value("local/Username").toString();
+
   if(!localName.isEmpty())
   {
     localName_ = localName;
   }
-  localUsername_ = localUsername;
+  else
+  {
+    localName_ = "Anonymous";
+  }
+
+  if(!localUsername.isEmpty())
+  {
+    localUsername_ = localUsername;
+  }
+  else
+  {
+    localUsername_ = "anonymous";
+  }
 }
 
 void CallNegotiation::uninit()
