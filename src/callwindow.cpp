@@ -1,7 +1,6 @@
 #include "callwindow.h"
-#include "ui_callwindow.h"
 
-#include "ui_callingwidget.h"
+#include "ui_callwindow.h"
 #include "ui_about.h"
 
 #include "statisticswindow.h"
@@ -53,7 +52,7 @@ void CallWindow::init(ParticipantInterface *partInt)
   aboutWidget_ = new Ui::AboutWidget;
   aboutWidget_->setupUi(&about_);
 
-  // TODO: I don't know why this is required.
+  // I don't know why this is required.
   qRegisterMetaType<QVector<int> >("QVector<int>");
 
 
@@ -74,16 +73,10 @@ void CallWindow::init(ParticipantInterface *partInt)
 
   QMainWindow::show();
 
-  // TODO: move to conferenceview somehow
-  Ui::CallerWidget *ui_widget = new Ui::CallerWidget;
-  QWidget* holderWidget = new QWidget;
-  ui_widget->setupUi(holderWidget);
-  connect(ui_widget->AcceptButton, SIGNAL(clicked()), this, SLOT(acceptCall()));
-  connect(ui_widget->DeclineButton, SIGNAL(clicked()), this, SLOT(rejectCall()));
+  connect(&conference_, SIGNAL(acceptCall(QString)), this, SIGNAL(callAccepted(QString)));
+  connect(&conference_, SIGNAL(rejectCall(QString)), this, SIGNAL(callRejected(QString)));
 
-  conferenceMutex_.lock();
-  conference_.init(ui_->participantLayout, ui_->participants, ui_widget, holderWidget);
-  conferenceMutex_.unlock();
+  conference_.init(ui_->participantLayout, ui_->participants);
 }
 
 StatisticsInterface* CallWindow::createStatsWindow()
@@ -105,42 +98,17 @@ void CallWindow::addContact()
 
 void CallWindow::displayOutgoingCall(QString callID, QString name)
 {
-  conferenceMutex_.lock();
   conference_.callingTo(callID, name); // TODO get name from contact list
-  conferenceMutex_.unlock();
 }
 
 void CallWindow::displayIncomingCall(QString callID, QString caller)
 {
-  conferenceMutex_.lock();
   conference_.incomingCall(callID, caller);
-  conferenceMutex_.unlock();
 }
 
 void CallWindow::displayRinging(QString callID)
 {
-  conferenceMutex_.lock();
   conference_.ringing(callID);
-  conferenceMutex_.unlock();
-}
-
-void CallWindow::acceptCall()
-{
-  qDebug() << "We accepted";
-  conferenceMutex_.lock();
-  QString callID = conference_.acceptNewest();
-  conferenceMutex_.unlock();
-  emit callAccepted(callID);
-}
-
-void CallWindow::rejectCall()
-{
-  qDebug() << "We rejected";
-  conferenceMutex_.lock();
-  QString callID = conference_.rejectNewest();
-  conferenceMutex_.unlock();
-
-  emit callRejected(callID);
 }
 
 void CallWindow::openStatistics()
@@ -166,9 +134,7 @@ void CallWindow::closeEvent(QCloseEvent *event)
 
 VideoWidget* CallWindow::addVideoStream(QString callID)
 {
-  conferenceMutex_.lock();
   VideoWidget* view = conference_.addVideoStream(callID);
-  conferenceMutex_.unlock();
   return view;
 }
 
@@ -198,9 +164,7 @@ void CallWindow::setCameraState(bool on)
 
 void CallWindow::removeParticipant(QString callID)
 {
-  conferenceMutex_.lock();
   conference_.removeCaller(callID);
-  conferenceMutex_.unlock();
 }
 
 void CallWindow::on_settings_clicked()
@@ -220,7 +184,5 @@ void CallWindow::on_about_clicked()
 
 void CallWindow::clearConferenceView()
 {
-  conferenceMutex_.lock();
   conference_.close();
-  conferenceMutex_.unlock();
 }

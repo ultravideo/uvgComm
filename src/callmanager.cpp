@@ -210,6 +210,7 @@ void CallManager::callNegotiated(QString callID, std::shared_ptr<SDPMessageInfo>
 
 void CallManager::acceptCall(QString callID)
 {
+  qDebug() << "Sending accept";
   callNeg_.acceptCall(callID);
 }
 

@@ -15,17 +15,25 @@ ConferenceView::ConferenceView(QWidget *parent):
   row_(0),
   column_(0),
   rowMaxLength_(2),
-  activeCalls_(),
-  deniedCalls_()
+  activeCalls_()//,
+  //deniedCalls_()
 {}
 
-void ConferenceView::init(QGridLayout* conferenceLayout, QWidget* layoutwidget,
-                          Ui::CallerWidget* callingwidget, QWidget* holdingWidget)
+void ConferenceView::init(QGridLayout* conferenceLayout, QWidget* layoutwidget)
 {
+  // TODO: move to conferenceview somehow
+  Ui::CallerWidget *ui_widget = new Ui::CallerWidget;
+  QWidget* holderWidget = new QWidget;
+  ui_widget->setupUi(holderWidget);
+  connect(ui_widget->AcceptButton, SIGNAL(clicked()), this, SLOT(accept()));
+  connect(ui_widget->DeclineButton, SIGNAL(clicked()), this, SLOT(reject()));
+
+  layoutMutex_.lock();
   layout_ = conferenceLayout;
+  layoutMutex_.unlock();
   layoutWidget_ = layoutwidget;
-  callingWidget_ = callingwidget;
-  holdingWidget_ = holdingWidget;
+  callingWidget_ = ui_widget;
+  holdingWidget_ = holderWidget;
 }
 
 void ConferenceView::callingTo(QString callID, QString name)
@@ -42,12 +50,16 @@ void ConferenceView::callingTo(QString callID, QString name)
   QFont font = QFont("Times", 16); // TODO: change font
   label->setFont(font);
   label->setAlignment(Qt::AlignHCenter);
+  layoutMutex_.lock();
+  locMutex_.lock();
   layout_->addWidget(label, row_, column_);
 
   activeCalls_[callID] = new CallInfo{WAITINGPEER, name, layout_->itemAtPosition(row_,column_),
                          row_, column_};
-
+  locMutex_.unlock();
+  layoutMutex_.unlock();
   nextSlot();
+
 }
 
 void ConferenceView::incomingCall(QString callID, QString name)
@@ -62,16 +74,18 @@ void ConferenceView::incomingCall(QString callID, QString name)
     qWarning() << "WARNING: Incoming call already has an allocated view";
     return;
   }
-
   qDebug() << "Displaying pop-up for somebody calling";
   callingWidget_->CallerLabel->setText(name + " is calling..");
   holdingWidget_->show();
 
+  layoutMutex_.lock();
+  locMutex_.lock();
   layout_->addWidget(holdingWidget_, row_, column_);
 
   activeCalls_[callID] = new CallInfo{ASKINGUSER, name, layout_->itemAtPosition(row_,column_),
                           row_, column_};
-
+  locMutex_.unlock();
+  layoutMutex_.unlock();
   askingQueue_.append(callID);
   nextSlot();
 }
@@ -98,10 +112,12 @@ VideoWidget* ConferenceView::addVideoStream(QString callID)
   // TODO delete previous widget now instead of with parent.
   // Now they accumulate in memory until call has ended
   delete activeCalls_[callID]->item->widget();
+  layoutMutex_.lock();
   layout_->removeItem(activeCalls_[callID]->item);
   layout_->addWidget(view, activeCalls_[callID]->row, activeCalls_[callID]->column);
   activeCalls_[callID]->item = layout_->itemAtPosition(activeCalls_[callID]->row,
                                                        activeCalls_[callID]->column);
+  layoutMutex_.unlock();
   //view->setParent(0);
   //view->showMaximized();
   //view->show();
@@ -127,13 +143,16 @@ void ConferenceView::removeCaller(QString callID)
   {
     delete activeCalls_[callID]->item->widget();
   }
+  layoutMutex_.lock();
   layout_->removeItem(activeCalls_[callID]->item);
+  layoutMutex_.unlock();
 
   activeCalls_.erase(callID);
 }
 
 void ConferenceView::nextSlot()
 {
+  locMutex_.lock();
   ++column_;
   if(column_ == rowMaxLength_)
   {
@@ -161,6 +180,7 @@ void ConferenceView::nextSlot()
       ++row_;
     }
   }
+  locMutex_.unlock();
 }
 
 QString ConferenceView::acceptNewest()
@@ -171,7 +191,6 @@ QString ConferenceView::acceptNewest()
   {
     holdingWidget_->hide();
   }
-
   return last;
 }
 
@@ -192,13 +211,30 @@ void ConferenceView::close()
 {
   while(!activeCalls_.empty())
   {
+    layoutMutex_.lock();
     layout_->removeItem((*activeCalls_.begin()).second->item);
+    layoutMutex_.unlock();
     removeCaller((*activeCalls_.begin()).first);
   }
 
   askingQueue_.clear();
-
+  locMutex_.lock();
   row_ = 0;
   column_ = 0;
   rowMaxLength_ = 2;
+  locMutex_.unlock();
+}
+
+void ConferenceView::accept()
+{
+  QString callID = acceptNewest();
+  qDebug() << callID << ": We accepted";
+  emit acceptCall(callID);
+}
+
+void ConferenceView::reject()
+{
+  QString callID = rejectNewest();
+  qDebug() << callID << ": We rejected";
+  emit rejectCall(callID);
 }

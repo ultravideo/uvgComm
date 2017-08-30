@@ -1,6 +1,8 @@
 #pragma once
+
 #include <QList>
 #include <QString>
+#include <QMutex>
 
 #include <map>
 
@@ -17,13 +19,13 @@ namespace Ui {
 class CallerWidget;
 }
 
-class ConferenceView
+class ConferenceView : public QObject
 {
+  Q_OBJECT
 public:
   ConferenceView(QWidget *parent);
 
-  void init(QGridLayout* conferenceLayout, QWidget* layoutwidget,
-            Ui::CallerWidget* callingwidget, QWidget* holdingWidget);
+  void init(QGridLayout* conferenceLayout, QWidget* layoutwidget);
 
   void callingTo(QString callID, QString name);
   void ringing(QString callID);
@@ -40,17 +42,30 @@ public:
 
   void close();
 
+signals:
+
+  void acceptCall(QString callID);
+  void rejectCall(QString callID);
+
+private slots:
+
+  void accept();
+  void reject();
+
 private:
 
   void nextSlot();
 
   QWidget *parent_;
 
+  QMutex layoutMutex_;
   QGridLayout* layout_;
   QWidget* layoutWidget_;
   Ui::CallerWidget* callingWidget_;
   QWidget* holdingWidget_;
   // dynamic videowidget adding to layout
+
+  QMutex locMutex_;
   uint16_t row_;
   uint16_t column_;
 
@@ -66,8 +81,11 @@ private:
     uint16_t column;
   };
 
+  QMutex callsMutex_; // TODO: missing implementation
   std::map<QString, CallInfo*> activeCalls_;
 
+  // TODO: enable more than one call ringing at the same time
   QList<QString> askingQueue_;
-  QList<CallInfo*> deniedCalls_;
+  //QList<CallInfo*> deniedCalls_;
+
 };

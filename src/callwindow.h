@@ -5,7 +5,6 @@
 #include "contactlist.h"
 
 #include <QMainWindow>
-#include <QMutex>
 
 // The main Call window. It is also responsible for coordinating other GUI components.
 // The user inputs are directed to call manager and call manager issues changes to GUI
@@ -76,10 +75,6 @@ public slots:
   void on_advanced_settings_clicked();
   void on_about_clicked();
 
-  // responses to GUI question of incoming call. Also emit signals
-  void acceptCall();
-  void rejectCall();
-
 private:
 
   Ui::CallWindow *ui_;
@@ -90,7 +85,6 @@ private:
   Ui::AboutWidget* aboutWidget_;
   QWidget about_;
 
-  QMutex conferenceMutex_;
   ConferenceView conference_;
 
   ContactList contacts_;
