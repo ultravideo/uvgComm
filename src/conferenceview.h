@@ -82,7 +82,7 @@ private:
     uint16_t row;
     uint16_t column;
 
-    QWidget* holder;
+    //QWidget* holder;
   };
 
   QMutex callsMutex_; // TODO: missing implementation

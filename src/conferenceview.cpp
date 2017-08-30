@@ -44,7 +44,7 @@ void ConferenceView::callingTo(QString callID, QString name)
   layout_->addWidget(label, row_, column_);
 
   activeCalls_[callID] = new CallInfo{WAITINGPEER, name, layout_->itemAtPosition(row_,column_),
-                         row_, column_, NULL};
+                         row_, column_};
   locMutex_.unlock();
   layoutMutex_.unlock();
   nextSlot();
@@ -57,7 +57,7 @@ void ConferenceView::incomingCall(QString callID, QString name)
     qWarning() << "WARNING: Incoming call already has an allocated view";
     return;
   }
-  qDebug() << "Displaying pop-up for somebody calling";
+  qDebug() << "Displaying pop-up for somebody calling in slot:" << row_ << "," << column_;
   QWidget* holder = new QWidget;
   attachCallingWidget(holder, name + " is calling..");
 
@@ -66,7 +66,7 @@ void ConferenceView::incomingCall(QString callID, QString name)
   layout_->addWidget(holder, row_, column_);
 
   activeCalls_[callID] = new CallInfo{ASKINGUSER, name, layout_->itemAtPosition(row_,column_),
-                          row_, column_, holder};
+                          row_, column_};
   locMutex_.unlock();
   layoutMutex_.unlock();
   nextSlot();
@@ -134,8 +134,9 @@ void ConferenceView::removeCaller(QString callID)
     qWarning() << "WARNING: Trying to remove nonexisting call from ConferenceView";
     return;
   }
-  if(activeCalls_[callID]->state == ACTIVE)
+  if(activeCalls_[callID]->state == ACTIVE || activeCalls_[callID]->state == ASKINGUSER)
   {
+    activeCalls_[callID]->item->widget()->hide();
     delete activeCalls_[callID]->item->widget();
   }
   layoutMutex_.lock();
@@ -201,7 +202,7 @@ QString ConferenceView::findInvoker(QString buttonName)
   QPushButton* button = qobject_cast<QPushButton*>(sender());
   for(auto callinfo : activeCalls_)
   {
-    QPushButton* pb = callinfo.second->holder->findChildren<QPushButton *>("AcceptButton").first();
+    QPushButton* pb = callinfo.second->item->widget()->findChildren<QPushButton *>(buttonName).first();
     if(pb == button)
     {
       callID = callinfo.first;
@@ -220,6 +221,7 @@ void ConferenceView::accept()
     qWarning() << "WARNING: Could not find invoking push_button";
     return;
   }
+  Q_ASSERT(activeCalls_[callID]->state != ASKINGUSER);
   emit acceptCall(callID);
 }
 
@@ -231,7 +233,7 @@ void ConferenceView::reject()
     qWarning() << "WARNING: Could not find invoking reject button";
     return;
   }
-
+  Q_ASSERT(activeCalls_[callID]->state != ASKINGUSER);
   removeCaller(callID);
   emit rejectCall(callID);
 }
