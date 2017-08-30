@@ -127,7 +127,7 @@ void CallManager::incomingCall(QString callID, QString caller)
   if(!roomForMoreParticipants())
   {
     qWarning() << "WARNING: Could not fit more participants to this call";
-    //rejectCall(); // TODO: send a not possible message instead of reject.
+    rejectCall(callID); // TODO: send a not possible message instead of reject.
     return;
   }
 
@@ -136,7 +136,6 @@ void CallManager::incomingCall(QString callID, QString caller)
 
 void CallManager::updateSettings()
 {
-  // TODO call update settings on everything?
   media_.updateSettings();
 }
 
