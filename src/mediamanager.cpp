@@ -106,7 +106,8 @@ void MediaManager::removeParticipant(QString callID)
 
   if(ids_.find(callID) == ids_.end())
   {
-    qWarning() << "WARNING: No callID found in mediamanager:" << callID;
+    qDebug() << callID << "No callID found in mediamanager. Maybe this was a call that we didn't asnwer?";
+    freePorts();
     return;
   }
   fg_->removeParticipant(ids_[callID]);
@@ -163,6 +164,24 @@ bool MediaManager::reservePorts()
     return true;
   }
   portsMutex_.unlock();
+  qDebug() << "Could not fit more participants to call. Max ports:" << maxPortsOpen_
+           << "Ports in use:" << portsInUse_ << "Ports reserved:" << portsReserved_;
   return false;
+}
+
+void MediaManager::freePorts()
+{
+  Q_ASSERT(portsReserved_ >= portsPerParticipant_);
+  portsMutex_.lock();
+  if(portsReserved_ >= portsPerParticipant_)
+  {
+    portsReserved_ -= portsPerParticipant_;
+  }
+  else
+  {
+    qDebug() << "WARNING: Trying to free ports that have not been reserved!";
+  }
+
+  portsMutex_.unlock();
 }
 

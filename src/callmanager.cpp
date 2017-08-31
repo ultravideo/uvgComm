@@ -246,6 +246,7 @@ void CallManager::callRejected(QString callID)
 {
   qDebug() << "Our call has been rejected!";
   window_.removeParticipant(callID);
+  media_.freePorts();
 }
 
 void CallManager::callEnded(QString callID, QString ip)

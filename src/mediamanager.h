@@ -47,6 +47,7 @@ public:
 
   // use this function to avoid a race condition with ports
   bool reservePorts();
+  void freePorts();
 
 signals:
 
