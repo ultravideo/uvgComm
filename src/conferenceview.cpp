@@ -39,15 +39,38 @@ void ConferenceView::callingTo(QString callID, QString name)
   QFont font = QFont("Times", 16); // TODO: change font
   label->setFont(font);
   label->setAlignment(Qt::AlignHCenter);
-  layoutMutex_.lock();
-  locMutex_.lock();
-  layout_->addWidget(label, row_, column_);
 
-  activeCalls_[callID] = new CallInfo{WAITINGPEER, name, layout_->itemAtPosition(row_,column_),
-                         row_, column_};
-  locMutex_.unlock();
+  addWidgetToLayout(WAITINGPEER, label, name, callID);
+}
+
+void ConferenceView::addWidgetToLayout(CallState state, QWidget* widget, QString name, QString callID)
+{
+
+  locMutex_.lock();
+  int row = row_;
+  int column = column_;
+
+  if(!freedLocs_.empty())
+  {
+    row = freedLocs_.front().row;
+    column = freedLocs_.front().column;
+  }
+
+  layoutMutex_.lock();
+  layout_->addWidget(widget, row, column);
+
+  activeCalls_[callID] = new CallInfo{state, name, layout_->itemAtPosition(row,column),
+                         row, column};
   layoutMutex_.unlock();
-  nextSlot();
+
+  if(!freedLocs_.empty()){
+    freedLocs_.pop_front();
+  }
+  else
+  {
+    nextSlot();
+  }
+  locMutex_.unlock();
 }
 
 void ConferenceView::incomingCall(QString callID, QString name)
@@ -60,23 +83,14 @@ void ConferenceView::incomingCall(QString callID, QString name)
   qDebug() << "Displaying pop-up for somebody calling in slot:" << row_ << "," << column_;
   QWidget* holder = new QWidget;
   attachCallingWidget(holder, name + " is calling..");
-
-  layoutMutex_.lock();
-  locMutex_.lock();
-  layout_->addWidget(holder, row_, column_);
-
-  activeCalls_[callID] = new CallInfo{ASKINGUSER, name, layout_->itemAtPosition(row_,column_),
-                          row_, column_};
-  locMutex_.unlock();
-  layoutMutex_.unlock();
-  nextSlot();
+  addWidgetToLayout(ASKINGUSER, holder, name, callID);
 }
 
 void ConferenceView::attachCallingWidget(QWidget* holder, QString text)
 {
 
   Ui::CallerWidget *calling = new Ui::CallerWidget;
-;
+
   calling->setupUi(holder);
   connect(calling->AcceptButton, SIGNAL(clicked()), this, SLOT(accept()));
   connect(calling->DeclineButton, SIGNAL(clicked()), this, SLOT(reject()));
@@ -143,12 +157,25 @@ void ConferenceView::removeCaller(QString callID)
   layout_->removeItem(activeCalls_[callID]->item);
   layoutMutex_.unlock();
 
+  locMutex_.lock();
+  if(activeCalls_.size() != 1)
+  {
+    freedLocs_.push_back({activeCalls_[callID]->row, activeCalls_[callID]->column});
+  }
+  else
+  {
+    freedLocs_.clear();
+    row_ = 0;
+    column_ = 0;
+    rowMaxLength_ = 2;
+    qDebug() << "Removed last video view. Clearing previous data";
+  }
+  locMutex_.unlock();
   activeCalls_.erase(callID);
 }
 
 void ConferenceView::nextSlot()
 {
-  locMutex_.lock();
   ++column_;
   if(column_ == rowMaxLength_)
   {
@@ -176,7 +203,6 @@ void ConferenceView::nextSlot()
       ++row_;
     }
   }
-  locMutex_.unlock();
 }
 
 void ConferenceView::close()
@@ -193,6 +219,7 @@ void ConferenceView::close()
   row_ = 0;
   column_ = 0;
   rowMaxLength_ = 2;
+
   locMutex_.unlock();
 }
 

@@ -5,6 +5,7 @@
 #include <QMutex>
 
 #include <map>
+#include <deque>
 
 // Does the mapping of calls to their streams and upkeeps the layout of stream widgets
 
@@ -54,9 +55,11 @@ private slots:
 
 private:
 
+  //TODO: also some way to keep track of freed positions
   void nextSlot();
 
   void attachCallingWidget(QWidget* holder, QString text);
+  void addWidgetToLayout(CallState state, QWidget* widget, QString name, QString callID);
 
   QString findInvoker(QString buttonName);
 
@@ -67,6 +70,7 @@ private:
   QWidget* layoutWidget_;
 
   // dynamic videowidget adding to layout
+  // mutex takes care of locations accessing and changes
   QMutex locMutex_;
   uint16_t row_;
   uint16_t column_;
@@ -87,4 +91,14 @@ private:
 
   QMutex callsMutex_; // TODO: missing implementation
   std::map<QString, CallInfo*> activeCalls_;
+
+  // keeping track of freed places
+  // TODO: update the whole layout with each added and removed participant. Use window width.
+  struct LayoutLoc
+  {
+    uint8_t row;
+    uint8_t column;
+  };
+
+  std::deque<LayoutLoc> freedLocs_;
 };
