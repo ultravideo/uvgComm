@@ -222,6 +222,7 @@ void CallManager::rejectCall(QString callID)
 void CallManager::endTheCall()
 {
   qDebug() << "Ending all calls";
+  callNeg_.endAllCalls();
   media_.endAllCalls();
   window_.clearConferenceView();
 }
