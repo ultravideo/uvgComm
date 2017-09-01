@@ -9,6 +9,7 @@
 #include <QTimer>
 #include <QMetaType>
 #include <QDebug>
+#include <QDir>
 
 CallWindow::CallWindow(QWidget *parent):
   QMainWindow(parent),
@@ -77,6 +78,27 @@ void CallWindow::init(ParticipantInterface *partInt)
   connect(&conference_, SIGNAL(rejectCall(QString)), this, SIGNAL(callRejected(QString)));
 
   conference_.init(ui_->participantLayout, ui_->participants);
+
+  initButton(QDir::currentPath() + "/icons/plus.svg", QSize(60,60), QSize(35,35), ui_->addContact);
+  initButton(QDir::currentPath() + "/icons/settings.svg", QSize(60,60), QSize(35,35), ui_->settings);
+  initButton(QDir::currentPath() + "/icons/photo-camera.svg", QSize(60,60), QSize(35,35), ui_->camera);
+  initButton(QDir::currentPath() + "/icons/microphone.svg", QSize(60,60), QSize(35,35), ui_->mic);
+  initButton(QDir::currentPath() + "/icons/end_call.svg", QSize(60,60), QSize(35,35), ui_->EndCallButton);
+}
+
+void CallWindow::initButton(QString iconPath, QSize size, QSize iconSize, QPushButton* button)
+{
+  QPixmap pixmap(iconPath);
+  if(!pixmap.isNull())
+  {
+    QIcon ButtonIcon(pixmap);
+    button->setIcon(ButtonIcon);
+    button->setText("");
+
+    button->setMaximumSize(size);
+    button->setMinimumSize(size);
+    button->setIconSize(iconSize);
+  }
 }
 
 StatisticsInterface* CallWindow::createStatsWindow()

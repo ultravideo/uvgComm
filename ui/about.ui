@@ -22,7 +22,7 @@
       </font>
      </property>
      <property name="text">
-      <string>HEVC Conferencing</string>
+      <string>Kvazzup</string>
      </property>
     </widget>
    </item>
@@ -48,7 +48,24 @@
    <item>
     <widget class="QLabel" name="label_4">
      <property name="text">
-      <string>http://ultravideo.cs.tut.fi/</string>
+      <string>&lt;a href=&quot;https://ultravideo.cs.tut.fi/&quot;&gt;https://ultravideo.cs.tut.fi/&lt;/a&gt;</string>
+     </property>
+     <property name="openExternalLinks">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="Line" name="line_2">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_5">
+     <property name="text">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Icons made by &lt;a href=&quot;https://www.flaticon.com/authors/gregor-cresnar&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;Gregor Cresnar&lt;/span&gt;&lt;/a&gt; from &lt;a href=&quot;https://www.flaticon.com&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;www.flaticon.com&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
     </widget>
    </item>

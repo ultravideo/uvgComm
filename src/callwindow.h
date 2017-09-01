@@ -77,6 +77,8 @@ public slots:
 
 private:
 
+  void initButton(QString iconPath, QSize size, QSize iconSize, QPushButton* button);
+
   Ui::CallWindow *ui_;
 
   Settings settingsView_;

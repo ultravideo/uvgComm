@@ -29,6 +29,11 @@ int main(int argc, char *argv[])
   QCoreApplication::setOrganizationDomain("ultravideo.cs.tut.fi");
   QCoreApplication::setApplicationName("Kvazzup");
 
+  QFile File("stylesheet.qss");
+  File.open(QFile::ReadOnly);
+  QString StyleSheet = QLatin1String(File.readAll());
+  a.setStyleSheet(StyleSheet);
+
   CallManager manager;
   manager.init();
 

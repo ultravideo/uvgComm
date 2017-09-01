@@ -108,6 +108,7 @@ FORMS    += \
 QT+=multimedia
 QT+=multimediawidgets
 QT+=network
+QT += svg
 
 QMAKE_CXXFLAGS += -std=c++11
 QMAKE_CXXFLAGS += -msse4.1 -mavx2

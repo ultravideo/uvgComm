@@ -2,6 +2,8 @@
 
 #include "participantinterface.h"
 
+#include <QDir>
+
 ContactListItem::ContactListItem(QString name, QString username, QString ip):
   name_(name),
   username_(username),
@@ -20,14 +22,24 @@ void ContactListItem::init(ParticipantInterface *interface)
   nameLabel_ = new QLabel(name_);
   layout_->addWidget(nameLabel_);
 
-  callButton_ = new QPushButton("Call");
+  callButton_ = new QPushButton();
+  callButton_->setMaximumWidth(30);
   layout_->addWidget(callButton_);
 
-  chatButton_ = new QPushButton("Chat");
+  chatButton_ = new QPushButton();
+  chatButton_->setMaximumWidth(30);
   layout_->addWidget(chatButton_);
 
   QObject::connect(callButton_, SIGNAL(clicked()), this, SLOT(call()));
   QObject::connect(chatButton_, SIGNAL(clicked()), this, SLOT(chat()));
+
+  QPixmap pixmap(QDir::currentPath() + "/icons/call.svg");
+  QIcon ButtonIcon(pixmap);
+  callButton_->setIcon(ButtonIcon);
+
+  QPixmap pixmap2(QDir::currentPath() + "/icons/chat.svg");
+  QIcon ButtonIcon2(pixmap2);
+  chatButton_->setIcon(ButtonIcon2);
 }
 
 void ContactListItem::call()
