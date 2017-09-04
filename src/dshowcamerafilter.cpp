@@ -27,6 +27,13 @@ void DShowCameraFilter::updateSettings()
   start();
 }
 
+void DShowCameraFilter::start()
+{
+  run_ = true;
+  Filter::start();
+}
+
+
 bool DShowCameraFilter::init()
 {
   dshow_initCapture();
@@ -128,6 +135,7 @@ void DShowCameraFilter::stop()
   run_ = false;
   Filter::stop();
 }
+
 
 void DShowCameraFilter::run()
 {
