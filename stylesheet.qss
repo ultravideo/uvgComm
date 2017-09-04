@@ -1,0 +1,52 @@
+
+QPushButton {
+    border-style: outset;
+    border-width: 2px;
+    border-radius: 0px;
+    font: bold 14px;
+    min-width: 20px;
+	min-height: 20px;
+    padding: 1px;
+	background-color: rgb(100, 100, 100);
+	border-color: rgb(120, 120, 120);
+	color: rgb(255, 255, 255);
+	margin: 0px;
+	position: relative;
+	top: -10ex;
+}
+
+QPushButton#settings {
+	/*border-image: url(:/icons/call.svg);*/
+}
+
+QPushButton:pressed {
+    background-color: rgb(50, 50, 50);
+	border-color: rgb(60, 60, 60);
+    border-style: inset;
+}
+
+QMainWindow {
+    background-color: rgb(250, 250, 250);
+    border-style: inset;
+}
+
+QListWidget::item{
+    margin: 0px;
+	position: relative;
+}
+
+QComboBox {
+    border-style: outset;
+    border-width: 2px;
+    border-radius: 5px;
+    font: bold 14px;
+    min-width: 20px;
+	min-height: 20px;
+    padding: 1px;
+	background-color: rgb(100, 100, 100);
+	border-color: rgb(120, 120, 120);
+	color: rgb(255, 255, 255);
+	margin: 0px;
+	position: relative;
+	top: -10ex;
+}

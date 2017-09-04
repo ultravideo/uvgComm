@@ -65,16 +65,6 @@
          </property>
         </widget>
        </item>
-       <item row="3" column="0">
-        <widget class="QComboBox" name="resolution">
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-        </widget>
-       </item>
        <item row="9" column="1">
         <widget class="QCheckBox" name="wpp">
          <property name="toolTip">
@@ -211,7 +201,7 @@
         <widget class="QSpinBox" name="qp">
          <property name="maximumSize">
           <size>
-           <width>32</width>
+           <width>46</width>
            <height>24</height>
           </size>
          </property>
@@ -315,6 +305,16 @@
         <widget class="QLabel" name="VPS">
          <property name="text">
           <string>VPS period</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0" colspan="2">
+        <widget class="QComboBox" name="resolution">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
          </property>
         </widget>
        </item>
