@@ -154,4 +154,13 @@ void ContactList::addToWidgetList(ContactListItem* cItem)
   item->setSizeHint(QSize(150, 50));
   list_->addItem(item);
   list_->setItemWidget(item, cItem);
+
+  QListWidgetItem* line = new QListWidgetItem(list_);
+  line->setSizeHint(QSize(150, 1));
+  list_->addItem(line);
+  QFrame *frame = new QFrame();
+  frame->setFrameStyle(QFrame::HLine | QFrame::Plain);
+  frame->setLineWidth(1);
+
+  list_->setItemWidget(line, frame);
 }
