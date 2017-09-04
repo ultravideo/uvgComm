@@ -1,6 +1,6 @@
 #pragma once
 #include <QPainter>
-#include <QWidget>
+#include <QFrame>
 #include <QRect>
 #include <QSize>
 #include <QImage>
@@ -8,11 +8,11 @@
 
 #include <memory>
 
-class VideoWidget : public QWidget
+class VideoWidget : public QFrame
 {
   Q_OBJECT
 public:
-  VideoWidget(QWidget* parent = NULL);
+  VideoWidget(QWidget* parent = NULL, uint8_t borderSize = 1);
   ~VideoWidget();
   void inputImage(std::unique_ptr<uchar[]> input,
                   QImage &image);
@@ -43,4 +43,6 @@ private:
   bool updated_;
 
   unsigned int id_;
+
+  unsigned int borderSize_;
 };

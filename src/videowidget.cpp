@@ -8,10 +8,11 @@
 
 unsigned int VideoWidget::number_ = 0;
 
-VideoWidget::VideoWidget(QWidget* parent): QWidget(parent),
+VideoWidget::VideoWidget(QWidget* parent, uint8_t borderSize): QFrame(parent),
   hasImage_(false),
   updated_(false),
-  id_(number_)
+  id_(number_),
+  borderSize_(borderSize)
 {
   ++number_;
   setAutoFillBackground(false);
@@ -22,6 +23,10 @@ VideoWidget::VideoWidget(QWidget* parent): QWidget(parent),
   setPalette(palette);
 
   setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
+
+  QFrame::setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
+  QFrame::setLineWidth(borderSize_);
+  QFrame::setMidLineWidth(1);
 }
 
 VideoWidget::~VideoWidget()
@@ -63,6 +68,8 @@ void VideoWidget::paintEvent(QPaintEvent *event)
   {
     painter.fillRect(event->rect(), QBrush(QColor(0,0,0)));
   }
+
+  QFrame::paintEvent(event);
 }
 
 void VideoWidget::resizeEvent(QResizeEvent *event)
@@ -90,18 +97,23 @@ void VideoWidget::updateTargetRect()
   if(hasImage_)
   {
     QSize size = currentImage_.size();
+    QSize frameSize = QWidget::size() - QSize(borderSize_,borderSize_);
 
-    if(QWidget::size().height() > size.height()
-       && QWidget::size().width() > size.width())
+    if(frameSize.height() > size.height()
+       && frameSize.width() > size.width())
     {
-      size.scale(QWidget::size().expandedTo(size), Qt::KeepAspectRatio);
+      size.scale(frameSize.expandedTo(size), Qt::KeepAspectRatio);
     }
     else
     {
-       size.scale(QWidget::size().boundedTo(size), Qt::KeepAspectRatio);
+       size.scale(frameSize.boundedTo(size), Qt::KeepAspectRatio);
     }
 
     targetRect_ = QRect(QPoint(0, 0), size);
     targetRect_.moveCenter(rect().center());
+    QRect frameRect = QRect(QPoint(0, 0), size + QSize(borderSize_,borderSize_));
+    frameRect.moveCenter(rect().center());
+
+    QFrame::setFrameRect(frameRect);
   }
 }

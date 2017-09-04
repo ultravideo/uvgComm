@@ -45,7 +45,6 @@ void ConferenceView::callingTo(QString callID, QString name)
 
 void ConferenceView::addWidgetToLayout(CallState state, QWidget* widget, QString name, QString callID)
 {
-
   locMutex_.lock();
   int row = row_;
   int column = column_;
@@ -102,7 +101,7 @@ void ConferenceView::attachCallingWidget(QWidget* holder, QString text)
 // if our call is accepted or we accepted their call
 VideoWidget* ConferenceView::addVideoStream(QString callID)
 {
-  VideoWidget* view = new VideoWidget();
+  VideoWidget* view = new VideoWidget(NULL,1);
   if(activeCalls_.find(callID) == activeCalls_.end())
   {
     qWarning() << "WARNING: Adding a videostream without previous.";
