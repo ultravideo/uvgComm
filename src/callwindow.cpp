@@ -165,11 +165,13 @@ void CallWindow::setMicState(bool on)
 {
   if(on)
   {
-    ui_->mic->setText("Mic off");
+    initButton(QDir::currentPath() + "/icons/microphone.svg", QSize(60,60), QSize(35,35), ui_->mic);
+    //ui_->mic->setText("Mic off");
   }
   else
   {
-    ui_->mic->setText("Mic on");
+    initButton(QDir::currentPath() + "/icons/no_microphone.svg", QSize(60,60), QSize(35,35), ui_->mic);
+    //ui_->mic->setText("Mic on");
   }
 }
 
@@ -177,11 +179,13 @@ void CallWindow::setCameraState(bool on)
 {
   if(on)
   {
-    ui_->camera->setText("Camera off");
+    initButton(QDir::currentPath() + "/icons/photo-camera.svg", QSize(60,60), QSize(35,35), ui_->camera);
+    //ui_->camera->setText("Camera off");
   }
   else
   {
-    ui_->camera->setText("Camera on");
+    initButton(QDir::currentPath() + "/icons/no_photo-camera.svg", QSize(60,60), QSize(35,35), ui_->camera);
+    //ui_->camera->setText("Camera on");
   }
 }
 
