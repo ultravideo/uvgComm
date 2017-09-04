@@ -38,6 +38,7 @@ void CallWindow::init(ParticipantInterface *partInt)
   partInt_ = partInt;
 
   ui_->setupUi(this);
+  ui_->Add_contact_widget->setVisible(false);
 
   // GUI updates are handled solely by timer
   timer_->setInterval(30);
