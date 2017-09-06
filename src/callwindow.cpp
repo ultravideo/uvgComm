@@ -86,6 +86,13 @@ void CallWindow::init(ParticipantInterface *partInt)
   initButton(QDir::currentPath() + "/icons/no_microphone.svg", QSize(60,60), QSize(35,35), ui_->mic);
   initButton(QDir::currentPath() + "/icons/end_call.svg", QSize(60,60), QSize(35,35), ui_->EndCallButton);
 
+  ui_->buttonContainer->layout()->setAlignment(ui_->endcallHolder, Qt::AlignBottom);
+  ui_->buttonContainer->layout()->setAlignment(ui_->settings, Qt::AlignBottom);
+  ui_->buttonContainer->layout()->setAlignment(ui_->mic, Qt::AlignBottom);
+  ui_->buttonContainer->layout()->setAlignment(ui_->camera, Qt::AlignBottom);
+
+  ui_->contactListContainer->layout()->setAlignment(ui_->addContact, Qt::AlignHCenter);
+
   ui_->EndCallButton->hide();
 }
 
