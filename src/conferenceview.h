@@ -39,7 +39,9 @@ public:
   VideoWidget* addVideoStream(QString callID);
 
   void declineCall();
-  void removeCaller(QString callID);
+
+  // return whether there are still participants left in call view
+  bool removeCaller(QString callID);
 
   void close();
 

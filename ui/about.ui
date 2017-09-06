@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>279</width>
-    <height>132</height>
+    <width>320</width>
+    <height>160</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -30,6 +30,13 @@
     <widget class="Line" name="line">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_3">
+     <property name="text">
+      <string>Autors: Joni Räsänen and Marko Viitanen</string>
      </property>
     </widget>
    </item>

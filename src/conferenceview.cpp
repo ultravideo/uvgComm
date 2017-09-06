@@ -140,12 +140,12 @@ void ConferenceView::ringing(QString callID)
   qDebug() << callID << "call is ringing. TODO: display it to user";
 }
 
-void ConferenceView::removeCaller(QString callID)
+bool ConferenceView::removeCaller(QString callID)
 {
   if(activeCalls_.find(callID) == activeCalls_.end() || activeCalls_[callID]->item == NULL )
   {
     qWarning() << "WARNING: Trying to remove nonexisting call from ConferenceView";
-    return;
+    return !activeCalls_.empty();
   }
   if(activeCalls_[callID]->state == ACTIVE || activeCalls_[callID]->state == ASKINGUSER)
   {
@@ -171,6 +171,8 @@ void ConferenceView::removeCaller(QString callID)
   }
   locMutex_.unlock();
   activeCalls_.erase(callID);
+
+  return !activeCalls_.empty();
 }
 
 void ConferenceView::nextSlot()

@@ -20,9 +20,15 @@ QPushButton#settings {
 }
 
 QPushButton:pressed {
-    background-color: rgb(50, 50, 50);
-	border-color: rgb(60, 60, 60);
+    background-color: rgb(80, 80, 80);
+	border-color: rgb(70, 70, 70);
     border-style: inset;
+}
+
+QPushButton:disabled {
+	background-color: rgb(170, 170, 170);
+	border-color: rgb(170, 170, 170);
+	color: rgb(50, 50, 50);
 }
 
 QMainWindow {
