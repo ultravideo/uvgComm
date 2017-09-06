@@ -19,10 +19,6 @@ public:
 
   static unsigned int number_;
 
-signals:
-
-  void minimized();
-
 protected:
   void paintEvent(QPaintEvent *event);
   void resizeEvent(QResizeEvent *event);
@@ -37,6 +33,7 @@ private:
   QRect targetRect_;
 
   QMutex drawMutex_;
+  QSize previousSize_;
   QImage currentImage_;
   std::unique_ptr<uchar[]> input_;
 

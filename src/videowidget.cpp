@@ -10,6 +10,7 @@ unsigned int VideoWidget::number_ = 0;
 
 VideoWidget::VideoWidget(QWidget* parent, uint8_t borderSize): QFrame(parent),
   hasImage_(false),
+  previousSize_(QSize(0,0)),
   updated_(false),
   id_(number_),
   borderSize_(borderSize)
@@ -27,6 +28,8 @@ VideoWidget::VideoWidget(QWidget* parent, uint8_t borderSize): QFrame(parent),
   QFrame::setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
   QFrame::setLineWidth(borderSize_);
   QFrame::setMidLineWidth(1);
+
+  QSettings settings;
 }
 
 VideoWidget::~VideoWidget()
@@ -43,7 +46,11 @@ void VideoWidget::inputImage(std::unique_ptr<uchar[]> input,
   drawMutex_.unlock();
   updated_ = true;
 
-  updateTargetRect();
+  if(previousSize_ != image.size())
+  {
+    qDebug() << "WARNING: Probably calling QFrame update from wrong thread!";
+    updateTargetRect();
+  }
 }
 
 void VideoWidget::paintEvent(QPaintEvent *event)
@@ -115,5 +122,7 @@ void VideoWidget::updateTargetRect()
     frameRect.moveCenter(rect().center());
 
     QFrame::setFrameRect(frameRect);
+
+    previousSize_ = currentImage_.size();
   }
 }
