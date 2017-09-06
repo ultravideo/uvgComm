@@ -85,6 +85,8 @@ void CallWindow::init(ParticipantInterface *partInt)
   initButton(QDir::currentPath() + "/icons/no_photo-camera.svg", QSize(60,60), QSize(35,35), ui_->camera);
   initButton(QDir::currentPath() + "/icons/no_microphone.svg", QSize(60,60), QSize(35,35), ui_->mic);
   initButton(QDir::currentPath() + "/icons/end_call.svg", QSize(60,60), QSize(35,35), ui_->EndCallButton);
+
+  ui_->EndCallButton->hide();
 }
 
 void CallWindow::initButton(QString iconPath, QSize size, QSize iconSize, QPushButton* button)
@@ -158,6 +160,7 @@ void CallWindow::closeEvent(QCloseEvent *event)
 VideoWidget* CallWindow::addVideoStream(QString callID)
 {
   ui_->EndCallButton->setEnabled(true);
+  ui_->EndCallButton->show();
   VideoWidget* view = conference_.addVideoStream(callID);
   return view;
 }
@@ -194,7 +197,8 @@ void CallWindow::removeParticipant(QString callID)
 {
   if(!conference_.removeCaller(callID))
   {
-
+    ui_->EndCallButton->setEnabled(false);
+    ui_->EndCallButton->hide();
   }
 }
 
@@ -216,5 +220,6 @@ void CallWindow::on_about_clicked()
 void CallWindow::clearConferenceView()
 {
   ui_->EndCallButton->setEnabled(false);
+  ui_->EndCallButton->hide();
   conference_.close();
 }
