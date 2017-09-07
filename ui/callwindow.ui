@@ -449,12 +449,21 @@
             <property name="text">
              <string>Cancel</string>
             </property>
+            <property name="autoDefault">
+             <bool>true</bool>
+            </property>
            </widget>
           </item>
           <item row="4" column="0">
            <widget class="QPushButton" name="ok_contact">
             <property name="text">
              <string>Ok</string>
+            </property>
+            <property name="default">
+             <bool>true</bool>
+            </property>
+            <property name="flat">
+             <bool>false</bool>
             </property>
            </widget>
           </item>
@@ -567,6 +576,18 @@
    <container>1</container>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>contactList</tabstop>
+  <tabstop>addContact</tabstop>
+  <tabstop>peerName</tabstop>
+  <tabstop>ip</tabstop>
+  <tabstop>ok_contact</tabstop>
+  <tabstop>cancelcontact</tabstop>
+  <tabstop>settings</tabstop>
+  <tabstop>mic</tabstop>
+  <tabstop>camera</tabstop>
+  <tabstop>EndCallButton</tabstop>
+ </tabstops>
  <resources/>
  <connections>
   <connection>
@@ -694,6 +715,102 @@
     <hint type="destinationlabel">
      <x>158</x>
      <y>585</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>cancelcontact</sender>
+   <signal>clicked()</signal>
+   <receiver>peerName</receiver>
+   <slot>clear()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>141</x>
+     <y>552</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>141</x>
+     <y>430</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>cancelcontact</sender>
+   <signal>clicked()</signal>
+   <receiver>ip</receiver>
+   <slot>clear()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>141</x>
+     <y>552</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>141</x>
+     <y>495</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>ok_contact</sender>
+   <signal>clicked()</signal>
+   <receiver>ip</receiver>
+   <slot>clear()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>141</x>
+     <y>523</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>141</x>
+     <y>495</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>ok_contact</sender>
+   <signal>clicked()</signal>
+   <receiver>peerName</receiver>
+   <slot>clear()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>141</x>
+     <y>523</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>141</x>
+     <y>430</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>ok_contact</sender>
+   <signal>clicked()</signal>
+   <receiver>Add_contact_widget</receiver>
+   <slot>hide()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>141</x>
+     <y>523</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>141</x>
+     <y>472</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>ok_contact</sender>
+   <signal>clicked()</signal>
+   <receiver>addContact</receiver>
+   <slot>show()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>141</x>
+     <y>523</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>141</x>
+     <y>594</y>
     </hint>
    </hints>
   </connection>
