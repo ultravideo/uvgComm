@@ -329,6 +329,19 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>SettingTabs</tabstop>
+  <tabstop>resolution</tabstop>
+  <tabstop>preset</tabstop>
+  <tabstop>threads</tabstop>
+  <tabstop>qp</tabstop>
+  <tabstop>wpp</tabstop>
+  <tabstop>vps</tabstop>
+  <tabstop>intra</tabstop>
+  <tabstop>slices</tabstop>
+  <tabstop>ok</tabstop>
+  <tabstop>cancel</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
  <slots>

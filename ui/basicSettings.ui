@@ -169,6 +169,14 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>name_edit</tabstop>
+  <tabstop>username_edit</tabstop>
+  <tabstop>videoDevice</tabstop>
+  <tabstop>ok</tabstop>
+  <tabstop>cancel</tabstop>
+  <tabstop>SettingTabs</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
  <slots>
