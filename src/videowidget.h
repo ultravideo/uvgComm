@@ -31,6 +31,7 @@ private:
   bool hasImage_;
   QImage::Format imageFormat_;
   QRect targetRect_;
+  QRect newFrameRect_;
 
   QMutex drawMutex_;
   QSize previousSize_;

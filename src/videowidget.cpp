@@ -28,8 +28,6 @@ VideoWidget::VideoWidget(QWidget* parent, uint8_t borderSize): QFrame(parent),
   QFrame::setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
   QFrame::setLineWidth(borderSize_);
   QFrame::setMidLineWidth(1);
-
-  QSettings settings;
 }
 
 VideoWidget::~VideoWidget()
@@ -43,14 +41,14 @@ void VideoWidget::inputImage(std::unique_ptr<uchar[]> input,
   input_ = std::move(input);
   currentImage_ = image;
   hasImage_ = true;
-  drawMutex_.unlock();
   updated_ = true;
 
   if(previousSize_ != image.size())
   {
-    qDebug() << "WARNING: Probably calling QFrame update from wrong thread!";
+    qDebug() << "Video widget needs. to update its target rectangle because of resolution change.";
     updateTargetRect();
   }
+  drawMutex_.unlock();
 }
 
 void VideoWidget::paintEvent(QPaintEvent *event)
@@ -64,6 +62,11 @@ void VideoWidget::paintEvent(QPaintEvent *event)
   {
     if(updated_)
     {
+      if(QFrame::frameRect() != newFrameRect_)
+      {
+        QFrame::setFrameRect(newFrameRect_);
+      }
+
       drawMutex_.lock();
       Q_ASSERT(input_);
 
@@ -118,10 +121,8 @@ void VideoWidget::updateTargetRect()
 
     targetRect_ = QRect(QPoint(0, 0), size);
     targetRect_.moveCenter(rect().center());
-    QRect frameRect = QRect(QPoint(0, 0), size + QSize(borderSize_,borderSize_));
-    frameRect.moveCenter(rect().center());
-
-    QFrame::setFrameRect(frameRect);
+    newFrameRect_ = QRect(QPoint(0, 0), size + QSize(borderSize_,borderSize_));
+    newFrameRect_.moveCenter(rect().center());
 
     previousSize_ = currentImage_.size();
   }
