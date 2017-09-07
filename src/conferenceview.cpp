@@ -142,7 +142,7 @@ void ConferenceView::ringing(QString callID)
 
 bool ConferenceView::removeCaller(QString callID)
 {
-  if(activeCalls_.find(callID) == activeCalls_.end() || activeCalls_[callID]->item == NULL )
+  if(activeCalls_.find(callID) == activeCalls_.end() || activeCalls_[callID]->item == NULL)
   {
     qWarning() << "WARNING: Trying to remove nonexisting call from ConferenceView";
     return !activeCalls_.empty();

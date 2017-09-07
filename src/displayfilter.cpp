@@ -26,7 +26,6 @@ void DisplayFilter::process()
   std::unique_ptr<Data> input = getInput();
   while(input)
   {
-
     QImage::Format format;
 
     switch(input->type)

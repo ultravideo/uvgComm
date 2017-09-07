@@ -82,8 +82,8 @@ void CallWindow::init(ParticipantInterface *partInt)
 
   initButton(QDir::currentPath() + "/icons/add_contact.svg", QSize(60,60), QSize(35,35), ui_->addContact);
   initButton(QDir::currentPath() + "/icons/settings.svg", QSize(60,60), QSize(35,35), ui_->settings);
-  initButton(QDir::currentPath() + "/icons/no_photo-camera.svg", QSize(60,60), QSize(35,35), ui_->camera);
-  initButton(QDir::currentPath() + "/icons/no_microphone.svg", QSize(60,60), QSize(35,35), ui_->mic);
+  initButton(QDir::currentPath() + "/icons/photo-camera.svg", QSize(60,60), QSize(35,35), ui_->camera);
+  initButton(QDir::currentPath() + "/icons/microphone.svg", QSize(60,60), QSize(35,35), ui_->mic);
   initButton(QDir::currentPath() + "/icons/end_call.svg", QSize(60,60), QSize(35,35), ui_->EndCallButton);
 
   ui_->buttonContainer->layout()->setAlignment(ui_->endcallHolder, Qt::AlignBottom);
@@ -176,12 +176,12 @@ void CallWindow::setMicState(bool on)
 {
   if(on)
   {
-    initButton(QDir::currentPath() + "/icons/no_microphone.svg", QSize(60,60), QSize(35,35), ui_->mic);
+    initButton(QDir::currentPath() + "/icons/microphone.svg", QSize(60,60), QSize(35,35), ui_->mic);
     //ui_->mic->setText("Mic off");
   }
   else
   {
-    initButton(QDir::currentPath() + "/icons/microphone.svg", QSize(60,60), QSize(35,35), ui_->mic);
+    initButton(QDir::currentPath() + "/icons/no_microphone.svg", QSize(60,60), QSize(35,35), ui_->mic);
     //ui_->mic->setText("Mic on");
   }
 }
@@ -190,12 +190,12 @@ void CallWindow::setCameraState(bool on)
 {
   if(on)
   {
-    initButton(QDir::currentPath() + "/icons/no_photo-camera.svg", QSize(60,60), QSize(35,35), ui_->camera);
+    initButton(QDir::currentPath() + "/icons/photo-camera.svg", QSize(60,60), QSize(35,35), ui_->camera);
     //ui_->camera->setText("Camera off");
   }
   else
   {
-    initButton(QDir::currentPath() + "/icons/photo-camera.svg", QSize(60,60), QSize(35,35), ui_->camera);
+    initButton(QDir::currentPath() + "/icons/no_photo-camera.svg", QSize(60,60), QSize(35,35), ui_->camera);
     //ui_->camera->setText("Camera on");
   }
 }

@@ -6,3 +6,4 @@ ui_*
 Makefile*
 object_script.*
 *.dot
+/.qmake.stash

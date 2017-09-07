@@ -27,10 +27,6 @@ QFrame {
 	border-color: rgb(120, 120, 120);
 }
 
-QPushButton#settings {
-	/*border-image: url(:/icons/call.svg);*/
-}
-
 QPushButton:pressed {
     background-color: rgb(80, 80, 80);
 	border-color: rgb(70, 70, 70);
