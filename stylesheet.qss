@@ -1,5 +1,5 @@
 
-QPushButton {
+QPushButton,  QComboBox {
     border-style: outset;
     border-width: 2px;
     border-radius: 0px;
@@ -13,6 +13,18 @@ QPushButton {
 	margin: 0px;
 	position: relative;
 	top: -10ex;
+}
+
+QComboBox {
+    border-radius: 5px;
+}
+
+QListWidget::item {
+    border-bottom: 1px solid rgb(180, 180, 180); 
+}
+QFrame {
+    border-width: 2px;
+	border-color: rgb(120, 120, 120);
 }
 
 QPushButton#settings {
@@ -41,18 +53,3 @@ QListWidget::item{
 	position: relative;
 }
 
-QComboBox {
-    border-style: outset;
-    border-width: 2px;
-    border-radius: 5px;
-    font: bold 14px;
-    min-width: 20px;
-	min-height: 20px;
-    padding: 1px;
-	background-color: rgb(100, 100, 100);
-	border-color: rgb(120, 120, 120);
-	color: rgb(255, 255, 255);
-	margin: 0px;
-	position: relative;
-	top: -10ex;
-}

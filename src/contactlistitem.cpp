@@ -40,11 +40,6 @@ void ContactListItem::init(ParticipantInterface *interface)
   layout_->addWidget(chatButton_);
   QObject::connect(chatButton_, SIGNAL(clicked()), this, SLOT(chat()));
 */
-
-  QFrame *frame = new QFrame();
-  frame->setFrameStyle(QFrame::HLine | QFrame::Plain);
-  frame->setLineWidth(1);
-  layout_->addWidget(frame, 1, 0, 1, 2);
 }
 
 void ContactListItem::call()
