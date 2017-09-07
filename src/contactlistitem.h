@@ -29,7 +29,7 @@ private:
   QString username_;
   QString ip_;
 
-  QHBoxLayout* layout_;
+  QGridLayout* layout_;
 
   QLabel* nameLabel_;
   QPushButton* callButton_;

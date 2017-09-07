@@ -16,19 +16,21 @@ void ContactListItem::init(ParticipantInterface *interface)
   Q_ASSERT(interface);
   interface_ = interface;
 
-  layout_ = new QHBoxLayout(this);
-  setLayout(layout_);
+  //layout_ = new QHBoxLayout(this);
+  layout_ = new QGridLayout(this);
+  QWidget::setLayout(layout_);
 
   nameLabel_ = new QLabel(name_);
-  layout_->addWidget(nameLabel_);
+  layout_->addWidget(nameLabel_, 0,0);
 
   callButton_ = new QPushButton();
   callButton_->setMaximumWidth(30);
   QPixmap pixmap(QDir::currentPath() + "/icons/call.svg");
   QIcon ButtonIcon(pixmap);
   callButton_->setIcon(ButtonIcon);
-  layout_->addWidget(callButton_);
+  layout_->addWidget(callButton_, 0, 1);
   QObject::connect(callButton_, SIGNAL(clicked()), this, SLOT(call()));
+
 /*
   chatButton_ = new QPushButton();
   chatButton_->setMaximumWidth(30);
@@ -38,6 +40,11 @@ void ContactListItem::init(ParticipantInterface *interface)
   layout_->addWidget(chatButton_);
   QObject::connect(chatButton_, SIGNAL(clicked()), this, SLOT(chat()));
 */
+
+  QFrame *frame = new QFrame();
+  frame->setFrameStyle(QFrame::HLine | QFrame::Plain);
+  frame->setLineWidth(1);
+  layout_->addWidget(frame, 1, 0, 1, 2);
 }
 
 void ContactListItem::call()

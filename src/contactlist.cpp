@@ -134,7 +134,7 @@ void ContactList::removeContact(int index)
 
   qDebug() << "Removing contact from index:" << index;
 
-  if(index == -1 && index >= items_.size())
+  if(index == -1  || index >= items_.size())
   {
     qWarning() << "WARNING: Tried to remove a nonexisting contact";
     return;
@@ -142,8 +142,10 @@ void ContactList::removeContact(int index)
 
   items_.erase(items_.begin() + index);
 
-  QSettings settings;
-  settings.remove("contacts");
+  {
+    QSettings settings;
+    settings.remove("contacts");
+  }
   writeListToSettings();
 }
 
@@ -154,13 +156,4 @@ void ContactList::addToWidgetList(ContactListItem* cItem)
   item->setSizeHint(QSize(150, 50));
   list_->addItem(item);
   list_->setItemWidget(item, cItem);
-
-  QListWidgetItem* line = new QListWidgetItem(list_);
-  line->setSizeHint(QSize(150, 1));
-  list_->addItem(line);
-  QFrame *frame = new QFrame();
-  frame->setFrameStyle(QFrame::HLine | QFrame::Plain);
-  frame->setLineWidth(1);
-
-  list_->setItemWidget(line, frame);
 }
