@@ -90,6 +90,7 @@ void CallWindow::init(ParticipantInterface *partInt)
   ui_->buttonContainer->layout()->setAlignment(ui_->settings, Qt::AlignBottom);
   ui_->buttonContainer->layout()->setAlignment(ui_->mic, Qt::AlignBottom);
   ui_->buttonContainer->layout()->setAlignment(ui_->camera, Qt::AlignBottom);
+  ui_->buttonContainer->layout()->setAlignment(ui_->SelfView, Qt::AlignBottom);
 
   ui_->contactListContainer->layout()->setAlignment(ui_->addContact, Qt::AlignHCenter);
 
