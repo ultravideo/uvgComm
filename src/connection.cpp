@@ -77,6 +77,7 @@ void Connection::connectLoop()
 
   qDebug() << "Connecting to address:" << destination_ << "Port:" << port_;
 
+  // TODO Stop trying if connection can't be established.
   socket_->connectToHost(destination_, port_);
 
   if (!socket_->waitForConnected(connectionTimeout)) {
