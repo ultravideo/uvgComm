@@ -1,20 +1,18 @@
 #include "filtergraph.h"
 
-#include "camerafilter.h"
-#include "kvazaarfilter.h"
-#include "rgb32toyuv.h"
-#include "openhevcfilter.h"
-#include "yuvtorgb32.h"
-#include "displayfilter.h"
-
-#include "audiocapturefilter.h"
-#include "audiooutputdevice.h"
-#include "audiooutput.h"
-#include "opusencoderfilter.h"
-#include "opusdecoderfilter.h"
-#include "speexaecfilter.h"
-#include "dshowcamerafilter.h"
-
+#include "video/camerafilter.h"
+#include "video/kvazaarfilter.h"
+#include "video/rgb32toyuv.h"
+#include "video/openhevcfilter.h"
+#include "video/yuvtorgb32.h"
+#include "video/displayfilter.h"
+#include "video/dshowcamerafilter.h"
+#include "audio/audiocapturefilter.h"
+#include "audio/audiooutputdevice.h"
+#include "audio/audiooutput.h"
+#include "audio/opusencoderfilter.h"
+#include "audio/opusdecoderfilter.h"
+#include "audio/speexaecfilter.h"
 #include "common.h"
 
 #include <QSettings>

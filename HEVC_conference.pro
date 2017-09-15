@@ -8,93 +8,93 @@ QT       += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-TARGET = HEVC_conference
+TARGET = Kvazzup
 TEMPLATE = app
 
 INCLUDEPATH += src
 
 SOURCES +=\
-    src/callwindow.cpp \
-    src/camerafilter.cpp \
-    src/cameraframegrabber.cpp \
-    src/displayfilter.cpp \
-    src/filter.cpp \
-    src/filtergraph.cpp \
     src/main.cpp \
-    src/videowidget.cpp \
-    src/kvazaarfilter.cpp \
-    src/rgb32toyuv.cpp \
-    src/openhevcfilter.cpp \
-    src/yuvtorgb32.cpp \
     src/rtpstreamer.cpp \
     src/framedsourcefilter.cpp \
     src/rtpsinkfilter.cpp \
-    src/audiocapturefilter.cpp \
-    src/audiocapturedevice.cpp \
-    src/statisticswindow.cpp \
-    src/audiooutput.cpp \
-    src/audiooutputdevice.cpp \
-    src/opusencoderfilter.cpp \
-    src/opusdecoderfilter.cpp \
-    src/speexaecfilter.cpp \
+    src/common.cpp \
+    src/mediamanager.cpp \
+    src/callmanager.cpp \
+    src/filter.cpp \
+    src/filtergraph.cpp \
+    src/audio/audiocapturedevice.cpp \
+    src/audio/audiocapturefilter.cpp \
+    src/audio/audiooutput.cpp \
+    src/audio/audiooutputdevice.cpp \
+    src/video/camerafilter.cpp \
+    src/video/cameraframegrabber.cpp \
+    src/video/displayfilter.cpp \
+    src/video/dshowcamerafilter.cpp \
+    src/video/kvazaarfilter.cpp \
+    src/video/openhevcfilter.cpp \
+    src/audio/opusdecoderfilter.cpp \
+    src/audio/opusencoderfilter.cpp \
+    src/video/rgb32toyuv.cpp \
+    src/audio/speexaecfilter.cpp \
+    src/video/yuvtorgb32.cpp \
+    src/video/dshow/capture.cpp \
     src/callnegotiation.cpp \
-    src/sipstringcomposer.cpp \
     src/connection.cpp \
     src/connectionserver.cpp \
     src/sipparser.cpp \
-    src/common.cpp \
-    src/mediamanager.cpp \
-    src/conferenceview.cpp \
-    src/settings.cpp \
-    src/contactlist.cpp \
-    src/contactlistitem.cpp \
-    src/dshowcamerafilter.cpp \
-    src/dshow/capture.cpp \
-    src/callmanager.cpp
+    src/sipstringcomposer.cpp \
+    src/gui/callwindow.cpp \
+    src/gui/conferenceview.cpp \
+    src/gui/contactlist.cpp \
+    src/gui/contactlistitem.cpp \
+    src/gui/settings.cpp \
+    src/gui/statisticswindow.cpp \
+    src/gui/videowidget.cpp
 
 HEADERS  += \
-    src/callwindow.h \
-    src/camerafilter.h \
-    src/cameraframegrabber.h \
-    src/displayfilter.h \
     src/filter.h \
     src/filtergraph.h \
-    src/videowidget.h \
-    src/kvazaarfilter.h \
-    src/rgb32toyuv.h \
-    src/openhevcfilter.h \
-    src/yuvtorgb32.h \
     src/rtpstreamer.h \
     src/framedsourcefilter.h \
     src/rtpsinkfilter.h \
-    src/audiocapturefilter.h \
-    src/audiocapturedevice.h \
-    src/statisticswindow.h \
     src/statisticsinterface.h \
-    src/audiooutput.h \
-    src/audiooutputdevice.h \
-    src/opusencoderfilter.h \
-    src/opusdecoderfilter.h \
-    src/speexaecfilter.h \
+    src/common.h \
+    src/mediamanager.h \
+    src/participantinterface.h \
+    src/callmanager.h \
+    src/video/dshow/capture_interface.h \
+    src/video/dshow/SampleGrabber.h \
+    src/audio/audiocapturedevice.h \
+    src/video/dshow/capture.h \
+    src/video/cameraframegrabber.h \
+    src/video/openhevcfilter.h \
+    src/audio/opusdecoderfilter.h \
+    src/audio/opusencoderfilter.h \
+    src/video/rgb32toyuv.h \
+    src/video/yuvtorgb32.h \
+    src/audio/speexaecfilter.h \
+    src/audio/audiocapturefilter.h \
+    src/audio/audiooutput.h \
+    src/audio/audiooutputdevice.h \
+    src/video/dshowcamerafilter.h \
+    src/video/camerafilter.h \
+    src/video/kvazaarfilter.h \
+    src/video/optimized/rgb2yuv.h \
+    src/video/optimized/yuv2rgb.h \
+    src/video/displayfilter.h \
     src/callnegotiation.h \
-    src/sipstringcomposer.h \
     src/connection.h \
     src/connectionserver.h \
     src/sipparser.h \
-    src/common.h \
-    src/mediamanager.h \
-    src/conferenceview.h \
-    src/settings.h \
-    src/contactlist.h \
-    src/contactlistitem.h \
-    src/participantinterface.h \
-    src/dshowcamerafilter.h \
-    src/dshow/capture.h \
-    src/dshow/capture_interface.h \
-    src/dshow/SampleGrabber.h \
-    src/optimized/rgb2yuv.h \
-    src/optimized/yuv2rgb.h \
-    src/callmanager.h
+    src/sipstringcomposer.h \
+    src/gui/callwindow.h \
+    src/gui/conferenceview.h \
+    src/gui/contactlist.h \
+    src/gui/contactlistitem.h \
+    src/gui/settings.h \
+    src/gui/statisticswindow.h \
+    src/gui/videowidget.h
 
 FORMS    += \
     ui/callwindow.ui \

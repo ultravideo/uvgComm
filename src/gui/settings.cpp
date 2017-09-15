@@ -3,7 +3,7 @@
 #include "ui_basicsettings.h"
 #include "ui_advancedsettings.h"
 
-#include "dshow/capture_interface.h"
+#include "video/dshow/capture_interface.h"
 
 #include <QDebug>
 

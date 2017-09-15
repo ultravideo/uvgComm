@@ -2,7 +2,7 @@
 
 #include "mediamanager.h"
 #include "callnegotiation.h"
-#include "callwindow.h"
+#include "gui/callwindow.h"
 #include "participantinterface.h"
 
 #include <QObject>

@@ -1,6 +1,6 @@
 #include "filter.h"
 
-#include "statisticswindow.h"
+#include "statisticsinterface.h"
 
 #include <QDebug>
 

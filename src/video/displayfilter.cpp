@@ -1,6 +1,6 @@
 #include "displayfilter.h"
 
-#include "videowidget.h"
+#include "gui/videowidget.h"
 #include "statisticsinterface.h"
 
 #include <QImage>
