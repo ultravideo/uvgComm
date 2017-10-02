@@ -110,6 +110,10 @@ void CallWindow::initButton(QString iconPath, QSize size, QSize iconSize, QPushB
     button->setMinimumSize(size);
     button->setIconSize(iconSize);
   }
+  else
+  {
+    qDebug() << "Could not find icon:" << iconPath;
+  }
 }
 
 StatisticsInterface* CallWindow::createStatsWindow()

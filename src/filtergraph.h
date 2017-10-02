@@ -38,10 +38,13 @@ public:
 
 private:
 
+  // adds fitler to graph and connects it to connectIndex unless this is the first filter in graph.
+  // adds format conversion if needed.
   bool addToGraph(std::shared_ptr<Filter> filter,
                   std::vector<std::shared_ptr<Filter>>& graph,
                   unsigned int connectIndex = 0);
 
+  // connects the two filters and checks for any problems
   bool connectFilters(std::shared_ptr<Filter> filter, std::shared_ptr<Filter> previous);
 
   // makes sure the participant exists and adds if necessary
