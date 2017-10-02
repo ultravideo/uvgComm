@@ -46,8 +46,8 @@ void ConferenceView::callingTo(QString callID, QString name)
 void ConferenceView::addWidgetToLayout(CallState state, QWidget* widget, QString name, QString callID)
 {
   locMutex_.lock();
-  uint8_t row = row_;
-  uint8_t column = column_;
+  int row = row_;
+  int column = column_;
 
   if(!freedLocs_.empty())
   {

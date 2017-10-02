@@ -74,8 +74,8 @@ private:
   // dynamic videowidget adding to layout
   // mutex takes care of locations accessing and changes
   QMutex locMutex_;
-  uint8_t row_;
-  uint8_t column_;
+  uint16_t row_;
+  uint16_t column_;
 
   uint16_t rowMaxLength_;
 
@@ -85,8 +85,8 @@ private:
     QString name;
     QLayoutItem* item;
 
-    uint8_t row;
-    uint8_t column;
+    uint16_t row;
+    uint16_t column;
 
     //QWidget* holder;
   };
