@@ -10,7 +10,7 @@ enum ResponseType {NORESPONSE, RINGING_180, OK_200, MALFORMED_400, UNSUPPORTED_4
 
 const bool STRICTSIPPROCESSING = true;
 
-const QString APPLICATIONNAME = "HEVC Conferencing";
+const QString APPLICATIONNAME = "Kvazzup";
 
 /* SDP message info structs */
 struct RTPMap

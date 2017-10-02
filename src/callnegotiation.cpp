@@ -78,7 +78,7 @@ std::shared_ptr<SDPMessageInfo> CallNegotiation::generateSDP(QString localAddres
   // TODO: Get suitable SDP from media manager
   QString sdp_str = "v=0 \r\n"
                    "o=" + localUsername_ + " 1234 12345 IN IP4 " + localAddress + "\r\n"
-                   "s=HEVC Video Conference\r\n"
+                   "s=Kvazzup\r\n"
                    "t=0 0\r\n"
                    "c=IN IP4 " + localAddress + "\r\n"
                    "m=video " + QString::number(firstAvailablePort_) + " RTP/AVP 97\r\n"

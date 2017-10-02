@@ -1,5 +1,3 @@
-/HEVC_conference.pro.user
-
 debug/
 release/
 ui_*
@@ -7,3 +5,4 @@ Makefile*
 object_script.*
 *.dot
 /.qmake.stash
+/*.user
