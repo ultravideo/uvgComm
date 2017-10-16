@@ -50,7 +50,8 @@ SOURCES +=\
     src/gui/contactlistitem.cpp \
     src/gui/settings.cpp \
     src/gui/statisticswindow.cpp \
-    src/gui/videowidget.cpp
+    src/gui/videowidget.cpp \
+    src/udpserver.cpp
 
 HEADERS  += \
     src/filter.h \
@@ -94,7 +95,8 @@ HEADERS  += \
     src/gui/contactlistitem.h \
     src/gui/settings.h \
     src/gui/statisticswindow.h \
-    src/gui/videowidget.h
+    src/gui/videowidget.h \
+    src/udpserver.h
 
 FORMS    += \
     ui/callwindow.ui \

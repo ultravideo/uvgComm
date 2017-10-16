@@ -4,6 +4,7 @@
 #include "callnegotiation.h"
 #include "gui/callwindow.h"
 #include "participantinterface.h"
+#include "udpserver.h"
 
 #include <QObject>
 
@@ -43,6 +44,10 @@ public slots:
   void callRejected(QString callID);
   void callEnded(QString callID, QString ip);
 
+private slots:
+
+  void udpMessage(QString message);
+
 private:
 
   void createParticipant(QString& callID, std::shared_ptr<SDPMessageInfo> peerInfo,
@@ -55,4 +60,6 @@ private:
   CallWindow window_; // GUI
 
   StatisticsInterface* stats_;
+
+  UDPServer testServer_;
 };

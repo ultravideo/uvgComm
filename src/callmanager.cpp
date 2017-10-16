@@ -59,7 +59,19 @@ void CallManager::init()
   stats_ = window_.createStatsWindow();
 
   media_.init(selfview, stats_);
+
+  testServer_.bind(QHostAddress::LocalHost, 3478);
+
+  QObject::connect(&testServer_, SIGNAL(messageAvailable(QString)), this, SLOT(udpMessage(QString)));
+
+  testServer_.sendData("This is my message to you.", false);
 }
+
+void CallManager::udpMessage(QString message)
+{
+  qDebug() << "Printing message:" << message;
+}
+
 
 void CallManager::uninit()
 {
