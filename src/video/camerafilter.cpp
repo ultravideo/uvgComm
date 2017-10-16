@@ -27,23 +27,28 @@ CameraFilter::CameraFilter(QString id, StatisticsInterface *stats):
   int deviceID = settings.value("video/DeviceID").toInt();
 
   // if the deviceID has changed
-  if(deviceID < cameras.size() && cameras[deviceID].deviceName() != deviceName)
+  if(deviceID < cameras.size() && cameras[deviceID].description() != deviceName)
   {
     // search for device with same name
     for(int i = 0; i < cameras.size(); ++i)
     {
-      if(cameras.at(i).deviceName() == deviceName)
+      if(cameras.at(i).description() == deviceName)
       {
+        qDebug() << "Found camera with name:" << cameras.at(i).description() << "and id:" << i;
         deviceID = i;
         break;
       }
     }
     // previous camera could not be found, use first.
+    qDebug() << "Did not find camera name:" << deviceName << " Using first";
     deviceID = 0;
   }
 
+  qDebug() << "Iniating Qt camera with device ID:" << deviceID << " cameras:" << cameras.size();
+
   camera_ = new QCamera(cameras.at(deviceID));
   cameraFrameGrabber_ = new CameraFrameGrabber();
+
 
   Q_ASSERT(camera_ && cameraFrameGrabber_);
 
@@ -53,9 +58,49 @@ CameraFilter::CameraFilter(QString id, StatisticsInterface *stats):
 
   // TODO: get resolution etc. from settings
   QCameraViewfinderSettings viewSettings = camera_->viewfinderSettings();
-  camera_->supportedViewfinderResolutions();
-  viewSettings.setResolution(QSize(640, 480));
-  viewSettings.setPixelFormat(QVideoFrame::Format_Jpeg);
+
+  qDebug() << "Format:" << settings.value("video/InputFormat").toString();
+  if(settings.value("video/InputFormat").toString() == "MJPG")
+  {
+    viewSettings.setPixelFormat(QVideoFrame::Format_Jpeg);
+  }
+  else if(settings.value("video/InputFormat").toString() == "YUY2")
+  {
+    viewSettings.setPixelFormat(QVideoFrame::Format_YUYV);
+  }
+
+  if(settings.value("video/ResolutionWidth").toInt() != 0 &&
+     settings.value("video/ResolutionHeight").toInt() != 0)
+  {
+    viewSettings.setResolution(QSize(settings.value("video/ResolutionWidth").toInt(),
+                                     settings.value("video/ResolutionHeight").toInt()));
+  }
+
+
+  viewSettings.setMaximumFrameRate(settings.value("video/Framerate").toInt());
+  viewSettings.setMinimumFrameRate(settings.value("video/Framerate").toInt());
+
+  QList<QSize> supportedResos = camera_->supportedViewfinderResolutions(viewSettings);
+  qDebug() << "Found" << supportedResos.count() << "resos.";
+  for(QSize res : supportedResos)
+  {
+    qDebug() << "Resolution:" << res.width() << "x" << res.height();
+  }
+
+  supportedResos = camera_->supportedViewfinderResolutions();
+  qDebug() << "Found" << supportedResos.count() << "resos.";
+  for(QSize res : supportedResos)
+  {
+    qDebug() << "Resolution:" << res.width() << "x" << res.height();
+  }
+
+  qDebug() << "Using following QCamera settings:";
+  qDebug() << "---------------------------------------";
+  qDebug() << "Format:" << viewSettings.pixelFormat();
+  qDebug() << "Resolution:" << viewSettings.resolution();
+  qDebug() << "FrameRate:" << viewSettings.minimumFrameRate() << "to" << viewSettings.maximumFrameRate();
+  qDebug() << "---------------------------------------";
+
   camera_->setViewfinderSettings(viewSettings);
   camera_->start();
 }

@@ -19,6 +19,7 @@ bool CameraFrameGrabber::present(const QVideoFrame &frame)
 QList<QVideoFrame::PixelFormat> CameraFrameGrabber::supportedPixelFormats(QAbstractVideoBuffer::HandleType handleType) const
 {
   Q_UNUSED(handleType);
+  // TODO: Implement raw YUV from camera.
   return QList<QVideoFrame::PixelFormat>()
       << QVideoFrame::Format_RGB32;
 }
