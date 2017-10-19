@@ -17,12 +17,15 @@ public:
 signals:
   void addressReceived(QHostAddress address);
 
+  void stunError();
+
 private slots:
   void handleHostaddress(QHostInfo info);
   void processReply(QByteArray data);
 
 private:
-  uint32_t generate96bits(uint8_t transactionID[12]);
 
   UDPServer udp_;
+
+  uint8_t transactionID_[12];
 };
