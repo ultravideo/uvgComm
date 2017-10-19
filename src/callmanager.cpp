@@ -60,16 +60,12 @@ void CallManager::init()
 
   media_.init(selfview, stats_);
 
-  testServer_.bind(QHostAddress::LocalHost, 3478);
-
-  QObject::connect(&testServer_, SIGNAL(messageAvailable(QString)), this, SLOT(udpMessage(QString)));
-
-  testServer_.sendData("This is my message to you.", false);
+  stun_.wantAddress();
 }
 
-void CallManager::udpMessage(QString message)
+void CallManager::stunAddress(QString address)
 {
-  qDebug() << "Printing message:" << message;
+  qDebug() << "Our stun address:" << address;
 }
 
 

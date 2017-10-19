@@ -15,11 +15,11 @@ public:
 
   void bind(const QHostAddress &address, quint16 port);
 
-  void sendData(QString data, bool untilReply);
+  void sendData(QByteArray& data, const QHostAddress &address, quint16 port, bool untilReply);
 
 signals:
 
-  void messageAvailable(QString message);
+  void messageAvailable(QByteArray message);
 
 private slots:
 
@@ -29,11 +29,9 @@ private:
 
   QUdpSocket* socket_;
 
-  QHostAddress peerAddress_;
-  quint16 port_;
-
   QTimer resendTimer_;
   bool waitingReply_;
 
   int tryNumber_;
+  uint16_t sendPort_;
 };

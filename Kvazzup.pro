@@ -51,7 +51,8 @@ SOURCES +=\
     src/gui/settings.cpp \
     src/gui/statisticswindow.cpp \
     src/gui/videowidget.cpp \
-    src/udpserver.cpp
+    src/udpserver.cpp \
+    src/stun.cpp
 
 HEADERS  += \
     src/filter.h \
@@ -96,7 +97,8 @@ HEADERS  += \
     src/gui/settings.h \
     src/gui/statisticswindow.h \
     src/gui/videowidget.h \
-    src/udpserver.h
+    src/udpserver.h \
+    src/stun.h
 
 FORMS    += \
     ui/callwindow.ui \

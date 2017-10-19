@@ -4,7 +4,7 @@
 #include "callnegotiation.h"
 #include "gui/callwindow.h"
 #include "participantinterface.h"
-#include "udpserver.h"
+#include "stun.h"
 
 #include <QObject>
 
@@ -46,7 +46,7 @@ public slots:
 
 private slots:
 
-  void udpMessage(QString message);
+  void stunAddress(QString message);
 
 private:
 
@@ -61,5 +61,5 @@ private:
 
   StatisticsInterface* stats_;
 
-  UDPServer testServer_;
+  Stun stun_;
 };
