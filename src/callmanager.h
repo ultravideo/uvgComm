@@ -46,7 +46,8 @@ public slots:
 
 private slots:
 
-  void stunAddress(QString message);
+  void stunAddress(QHostAddress message);
+  void noStunAddress();
 
 private:
 

@@ -12,7 +12,7 @@ class Stun : public QObject
 public:
   Stun();
 
-  void wantAddress();
+  void wantAddress(QString stunServer);
 
 signals:
   void addressReceived(QHostAddress address);

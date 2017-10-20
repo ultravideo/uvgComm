@@ -60,12 +60,19 @@ void CallManager::init()
 
   media_.init(selfview, stats_);
 
-  stun_.wantAddress();
+  QObject::connect(&stun_, SIGNAL(addressReceived(QHostAddress)), this, SLOT(stunAddress(QHostAddress)));
+  QObject::connect(&stun_, SIGNAL(error()), this, SLOT(noStunAddress()));
+  //stun_.wantAddress("stun.l.google.com");
 }
 
-void CallManager::stunAddress(QString address)
+void CallManager::stunAddress(QHostAddress address)
 {
   qDebug() << "Our stun address:" << address;
+}
+
+void CallManager::noStunAddress()
+{
+  qDebug() << "Could not get STUN address";
 }
 
 

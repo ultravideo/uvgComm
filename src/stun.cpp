@@ -26,11 +26,10 @@ Stun::Stun():
   udp_()
 {}
 
-void Stun::wantAddress()
+void Stun::wantAddress(QString stunServer)
 {
   // To find the IP address of qt-project.org
-  QHostInfo::lookupHost("stun.l.google.com",
-                        this, SLOT(handleHostaddress(QHostInfo)));
+  QHostInfo::lookupHost(stunServer, this, SLOT(handleHostaddress(QHostInfo)));
 }
 
 void Stun::handleHostaddress(QHostInfo info)
@@ -195,6 +194,7 @@ void Stun::processReply(QByteArray data)
         }
         else if(ip_type == 0x02)
         {
+          // TODO: Add IPv6 support for STUN
           qDebug() << "Received IPv6 address from STUN. Support not implemented yet.";
         }
         else
