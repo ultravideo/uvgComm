@@ -8,7 +8,7 @@
 #include <QtEndian>
 
 const uint16_t GOOGLE_STUN_PORT = 19302;
-const uint16_t STUN_PORT = 3478;
+const uint16_t STUN_PORT = 21000;
 
 struct STUNMessage
 {
@@ -20,7 +20,7 @@ struct STUNMessage
 
 STUNMessage generateRequest();
 QByteArray toNetwork(STUNMessage request);
-STUNMessage fromNetwork(QByteArray& data);
+STUNMessage fromNetwork(QByteArray& data, char **outRawAddress);
 
 Stun::Stun():
   udp_()
@@ -75,8 +75,6 @@ STUNMessage generateRequest()
   {
     request.transactionID[i] = qToBigEndian(uint8_t(qrand()%256));
   }
-
-  qDebug() << "Generated STUN transactionID:" << request.transactionID;
   return request;
 }
 
@@ -98,18 +96,26 @@ QByteArray toNetwork(STUNMessage request)
   return QByteArray(data,sizeof(request));
 }
 
-STUNMessage fromNetwork(QByteArray& data)
+STUNMessage fromNetwork(QByteArray& data, char** outRawAddress)
 {
-  const char * raw_data = data.constData();
+  char *raw_data = data.data();
   STUNMessage response;
-  response.type = qFromBigEndian(*((short*)&raw_data[0]));
-  response.length = qFromBigEndian(*((short*)&raw_data[2]));
-  response.magicCookie = qFromBigEndian(*((int*)&raw_data[4]));
+  response.type = qFromBigEndian(*((uint16_t*)&raw_data[0]));
+  response.length = qFromBigEndian(*((uint16_t*)&raw_data[2]));
+  response.magicCookie = qFromBigEndian(*((uint32_t*)&raw_data[4]));
 
   for(unsigned int i = 0; i < 12; ++i)
   {
     response.transactionID[i] = (uint8_t)raw_data[8 + i];
   }
+
+  qDebug() << "Type:" << response.type
+           << "Length:" << response.length
+           << "Magic Cookie:" << response.magicCookie;
+
+  *outRawAddress = (char*)malloc(response.length);
+
+  memcpy(*outRawAddress, (void*)&raw_data[20], response.length);
 
   return response;
 }
@@ -123,14 +129,10 @@ void Stun::processReply(QByteArray data)
   }
 
   QString message = QString::fromStdString(data.toHex().toStdString());
-  qDebug() << "Got a STUN reply:" << message;
+  qDebug() << "Got a STUN reply:" << message << "with size:" << data.size();
 
-  STUNMessage response = fromNetwork(data);
-
-  qDebug() << "Type:" << response.type
-           << "Length:" << response.length
-           << "Magic Cookie:" << response.magicCookie
-           << "TransactionID:" << response.transactionID;
+  char* outRawAddress = NULL;
+  STUNMessage response = fromNetwork(data, &outRawAddress);
 
   if(response.type != 0x0101)
   {
@@ -155,12 +157,65 @@ void Stun::processReply(QByteArray data)
                << "sent:" << transactionID_[i] << "got:" << response.transactionID[i];
     }
   }
-  qDebug() << "Successful STUN transaction!";
+  qDebug() << "Valid STUN response. Decoding address";
 
+  QHostAddress address;
 
-  // TODO XOR the address
- // emit addressReceived(message);
+  // enough for attribute
+  if(response.length >= 4)
+  {
+    uint16_t attr_type = qFromBigEndian(*((uint16_t*)&outRawAddress[0]));
+    uint16_t attr_length = qFromBigEndian(*((uint16_t*)&outRawAddress[2]));
+
+    if(attr_type == 0x0020)
+    {
+      if(attr_length >= 8)
+      {
+        // outRawAddress[4] is ignored according to RFC 5389
+        uint8_t ip_type = outRawAddress[5];
+
+        if(ip_type == 0x01)
+        {
+          if(attr_length == 8)
+          {
+            uint16_t port = qFromBigEndian(*((uint16_t*)&outRawAddress[6]))^0x2112;
+            uint32_t uAddress = qFromBigEndian(*((uint32_t*)&outRawAddress[8]))^response.magicCookie;
+
+            address.setAddress(uAddress);
+
+            qDebug() << "Got our address from STUN:" << address.toString() << ":" << port;
+
+            emit addressReceived(address);
+            return; // success
+          }
+          else
+          {
+            qDebug() << "the XOR_MAPPED IPv4 attribution length is not 8:" << attr_length;
+          }
+        }
+        else if(ip_type == 0x02)
+        {
+          qDebug() << "Received IPv6 address from STUN. Support not implemented yet.";
+        }
+        else
+        {
+          qDebug() << "Some crap in STUN ipv field";
+        }
+      }
+      else
+      {
+        qDebug() << "STUN XOR_MAPPED_ATTRIBUTE is too short:" << attr_length;
+      }
+    }
+    else
+    {
+      qDebug() << "Unsupproted STUN attribute:" << attr_type;
+    }
+  }
+  else
+  {
+    qDebug() << "Response length too short:" << response.length;
+  }
+
+  emit stunError();
 }
-
-
-

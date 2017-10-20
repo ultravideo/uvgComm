@@ -25,6 +25,7 @@ private slots:
 
 private:
 
+  // TODO [Encryption] Use TLS to send packet
   UDPServer udp_;
 
   uint8_t transactionID_[12];
