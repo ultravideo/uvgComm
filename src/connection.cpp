@@ -3,7 +3,7 @@
 #include <QDataStream>
 #include <QtConcurrent/QtConcurrent>
 
-Connection::Connection(uint32_t id)
+Connection::Connection(uint32_t id, bool sip)
   :
     socket_(0),
     shouldConnect_(false),
@@ -15,7 +15,8 @@ Connection::Connection(uint32_t id)
     sendMutex_(),
     running_(false),
     started_(false),
-    ID_(id)
+    ID_(id),
+    sipParsing_(sip)
 {
   qDebug() << "Constructing connection with ID:" << ID_;
 }
@@ -150,49 +151,57 @@ void Connection::run()
 
         in >> message;
 
-        if(leftOvers_.length() > 0)
+        if(sipParsing_)
         {
-          message = leftOvers_ + message;
-        }
 
-        int headerEndIndex = message.indexOf("\r\n\r\n", 0, Qt::CaseInsensitive) + 4;
-        int contentLengthIndex = message.indexOf("content-length", 0, Qt::CaseInsensitive);
-
-        qDebug() << "header end at:" << headerEndIndex
-                 << "and content-length at:" << contentLengthIndex;
-
-        if(contentLengthIndex != -1 && headerEndIndex != -1)
-        {
-          int contentLengthLineEndIndex = message.indexOf("\r\n", contentLengthIndex, Qt::CaseInsensitive);
-
-          QString value = message.mid(contentLengthIndex + 16, contentLengthLineEndIndex - (contentLengthIndex + 16));
-
-          int valueInt= value.toInt();
-
-          qDebug() << "Content-length:" <<  valueInt;
-
-          if(message.length() < headerEndIndex + valueInt)
+          if(leftOvers_.length() > 0)
           {
-            leftOvers_ = message;
+            message = leftOvers_ + message;
+          }
+
+          int headerEndIndex = message.indexOf("\r\n\r\n", 0, Qt::CaseInsensitive) + 4;
+          int contentLengthIndex = message.indexOf("content-length", 0, Qt::CaseInsensitive);
+
+          qDebug() << "header end at:" << headerEndIndex
+                   << "and content-length at:" << contentLengthIndex;
+
+          if(contentLengthIndex != -1 && headerEndIndex != -1)
+          {
+            int contentLengthLineEndIndex = message.indexOf("\r\n", contentLengthIndex, Qt::CaseInsensitive);
+
+            QString value = message.mid(contentLengthIndex + 16, contentLengthLineEndIndex - (contentLengthIndex + 16));
+
+            int valueInt= value.toInt();
+
+            qDebug() << "Content-length:" <<  valueInt;
+
+            if(message.length() < headerEndIndex + valueInt)
+            {
+              leftOvers_ = message;
+            }
+            else
+            {
+              leftOvers_ = message.right(message.length() - (headerEndIndex + valueInt));
+              QString header = message.left(headerEndIndex);
+              QString content = message.mid(headerEndIndex, valueInt);
+
+              qDebug() << "Whole message received.";
+              qDebug() << "Header:" << header;
+              qDebug() << "Content:" << content;
+              qDebug() << "Left overs:" << leftOvers_;
+
+              emit messageAvailable(header, content, ID_);
+            }
           }
           else
           {
-            leftOvers_ = message.right(message.length() - (headerEndIndex + valueInt));
-            QString header = message.left(headerEndIndex);
-            QString content = message.mid(headerEndIndex, valueInt);
-
-            qDebug() << "Whole message received.";
-            qDebug() << "Header:" << header;
-            qDebug() << "Content:" << content;
-            qDebug() << "Left overs:" << leftOvers_;
-
-            emit messageAvailable(header, content, ID_);
+            qDebug() << "Message was not received fully";
+            leftOvers_ = message;
           }
         }
-        else
+        else // no parsing
         {
-          qDebug() << "Message was not received fully";
-          leftOvers_ = message;
+          emit messageAvailable(message, ID_);
         }
       }
 

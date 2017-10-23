@@ -11,7 +11,7 @@ class Connection : public QThread
 {
   Q_OBJECT
 public:
-  Connection(uint32_t id);
+  Connection(uint32_t id, bool sip);
 
   void stopConnection()
   {
@@ -80,11 +80,10 @@ public:
     return socket_->peerAddress();
   }
 
-
-
 signals:
   void error(int socketError, const QString &message);
   void messageAvailable(QString header, QString content, quint32 id);
+  void messageAvailable(QString message, quint32 id);
 
   // connection has been established
   void connected(quint32 connectionID);
@@ -133,4 +132,6 @@ private:
   quint32 ID_; // id for this connection
 
   QString leftOvers_;
+
+  bool sipParsing_;
 };

@@ -118,7 +118,7 @@ QList<QString> CallNegotiation::startCall(QList<Contact> addresses)
   {
     qDebug() << "Creating call number:" << i;
     std::shared_ptr<CallNegotiation::SIPLink> link = newSIPLink();
-    Connection* con = new Connection(connections_.size() + 1);
+    Connection* con = new Connection(connections_.size() + 1, true);
     connectionMutex_.lock();
     connections_.push_back(con);
     link->connectionID = con->getID();
