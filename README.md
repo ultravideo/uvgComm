@@ -5,25 +5,24 @@ Kvazzup is written in C++ and built on Qt framework. Kvazzup also makes use of t
 
 ## Features 
 
-Kvazzup can be used to make video calls based on an IP. Kvazzup supports saving IP:s to a contact list that is used to make calls. Some parameters of the call can be altered even during the call. Microphone and camera can be turned during a call. Supports multiple simultanious calls, but not yet as a conference. Kvazzup has a statistics window for viewing details about the call.
+Kvazzup has the following features:  
+- Make video calls based on an IP.  
+- Contact list.  
+- Enable/disable audio or video.  
+- Live call paramter adjustement.  
+- A statistics window.
 
 ## Compile Kvazzup
 
 Kvazzup needs the following external libraries to run:  
-Kvazaar,  
-Opus,  
-OpenHEVC,  
-LiveMedia,  
-Speex ( for AEC )  
+- Kvazaar  
+- Opus  
+- OpenHEVC  
+- LiveMedia  
+- Speex
 
-You have to build these libraries using MinGW. The liveMedia produced the most trouble. A packet with all required libraries may be provided in the future.
-
-Qt Creator is recommended tool for compiling Kvazzup. The MinGW Toolkit has to be set and the build dir has to be the root folder.
+Build these libraries using MinGW. A packet with all required libraries may be provided in the future. Qt Creator is recommended tool for compiling Kvazzup.
 
 ## How to Run
 
-You need a webcam and a microphone. You will also need to open the firewall port 5080 for SIP and 18888-18892 for media in the windows firewall and in any other firewalls if you want to call another computer.
-
-## Future 
-
-STUN, ICE and Video Conferencing are among planned features as well as support for more platforms.
+You need a webcam and a microphone. You will also need to open the firewall port 5080 for SIP and 18888-18892 for media in the windows firewall and in any other firewalls if you want to call another computer. Opening the ports will not be needed once STUN has been implemented.

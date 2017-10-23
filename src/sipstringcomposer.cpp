@@ -3,6 +3,8 @@
 SIPStringComposer::SIPStringComposer()
 {}
 
+
+
 QString SIPStringComposer::requestToString(const RequestType request)
 {
   switch(request)
@@ -24,12 +26,12 @@ QString SIPStringComposer::requestToString(const RequestType request)
     }
     case NOREQUEST:
     {
-      qCritical() << "Received NOREQUEST for string translation";
+      qCritical() << "WARNING: Received NOREQUEST for string translation";
       break;
     }
     default:
     {
-      qCritical() << "SIP REQUEST NOT IMPLEMENTED";
+      qCritical() << "WARNING: SIP REQUEST NOT IMPLEMENTED";
       return "";
       break;
     }

@@ -5,7 +5,7 @@
 
 #include <QSettings>
 
-//TODO use cryptographically secure callID generation!!
+//TODO use cryptographically secure callID generation to avoid collisions.
 const QString alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                          "abcdefghijklmnopqrstuvwxyz"
                          "0123456789";
