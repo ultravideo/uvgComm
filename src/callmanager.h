@@ -1,7 +1,7 @@
 #pragma once
 
 #include "mediamanager.h"
-#include "sipstate.h"
+#include "sipmanager.h"
 #include "gui/callwindow.h"
 #include "participantinterface.h"
 #include "stun.h"
@@ -57,7 +57,7 @@ private:
                          StatisticsInterface* stats);
 
   MediaManager media_; // Media processing and delivery
-  SIPState sip_; // SIP
+  SIPManager sip_; // SIP
   CallWindow window_; // GUI
 
   StatisticsInterface* stats_;

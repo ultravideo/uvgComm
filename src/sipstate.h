@@ -46,7 +46,7 @@ signals:
   void incomingINVITE(QString CallID, QString caller);
 
   // we are calling ourselves.
-  // TODO: Current implementation seizes the negotiation and just starts the call.
+  // TODO: Current implementation ceases the negotiation and just starts the call.
   void callingOurselves(QString callID, std::shared_ptr<SDPMessageInfo> info);
 
   // their call which we have accepted has finished negotiating. Call can now start.

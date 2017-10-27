@@ -52,7 +52,8 @@ SOURCES +=\
     src/gui/videowidget.cpp \
     src/udpserver.cpp \
     src/stun.cpp \
-    src/sipstate.cpp
+    src/sipstate.cpp \
+    src/sipmanager.cpp
 
 HEADERS  += \
     src/filter.h \
@@ -98,7 +99,8 @@ HEADERS  += \
     src/gui/videowidget.h \
     src/udpserver.h \
     src/stun.h \
-    src/sipstate.h
+    src/sipstate.h \
+    src/sipmanager.h
 
 FORMS    += \
     ui/callwindow.ui \
