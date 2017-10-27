@@ -80,7 +80,7 @@ private slots:
 
 private:
 
-  struct SIPLink
+  struct SIPSessionInfo
   {
     QString callID; // for identification
     QString host;
@@ -108,41 +108,41 @@ private:
 
   std::shared_ptr<SDPMessageInfo> generateSDP(QString localAddress);
 
-  std::shared_ptr<SIPLink> newSIPLink();
+  std::shared_ptr<SIPSessionInfo> newSIPSessionInfo();
 
   // checks that incoming SIP message makes sense
-  bool compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info, quint32 connectionID);
+  bool compareSIPSessionInfo(std::shared_ptr<SIPMessageInfo> mInfo, quint32 connectionID);
 
-  // updates the Link information based on new message
-  void newSIPLinkFromMessage(std::shared_ptr<SIPMessageInfo> info, quint32 connectionID);
+  // updates the info information based on new message
+  void newSIPSessionInfoFromMessage(std::shared_ptr<SIPMessageInfo> mInfo, quint32 connectionID);
 
   QString generateRandomString(uint32_t length);
 
 
   QList<QHostAddress> parseIPAddress(QString address);
 
-  void processRequest(std::shared_ptr<SIPMessageInfo> info,
+  void processRequest(std::shared_ptr<SIPMessageInfo> mInfo,
                       std::shared_ptr<SDPMessageInfo> peerSDP,
                       quint32 connectionID);
 
-  void processResponse(std::shared_ptr<SIPMessageInfo> info,
+  void processResponse(std::shared_ptr<SIPMessageInfo> mInfo,
                        std::shared_ptr<SDPMessageInfo> peerSDP);
 
   // checks that received SDP is what we are expecting.
   bool suitableSDP(std::shared_ptr<SDPMessageInfo> peerSDP);
 
   // helper function that composes SIP message and sends it
-  void messageComposition(messageID id, std::shared_ptr<SIPLink> link);
-  void sendRequest(RequestType request, std::shared_ptr<SIPLink> link);
-  void sendResponse(ResponseType request, std::shared_ptr<SIPLink> link);
+  void messageComposition(messageID id, std::shared_ptr<SIPSessionInfo> info);
+  void sendRequest(RequestType request, std::shared_ptr<SIPSessionInfo> info);
+  void sendResponse(ResponseType request, std::shared_ptr<SIPSessionInfo> info);
 
   void stopConnection(quint32 connectionID);
-  void uninitSession(std::shared_ptr<SIPLink> link);
+  void uninitSession(std::shared_ptr<SIPSessionInfo> info);
 
   QMutex sessionMutex_;
   // TODO: identify session with CallID AND tags, not just callID.
   // this enables splitting a call into multiple dialogs
-  std::map<QString, std::shared_ptr<SIPLink>> sessions_;
+  std::map<QString, std::shared_ptr<SIPSessionInfo>> sessions_;
 
   QMutex connectionMutex_;
   std::vector<Connection*> connections_;

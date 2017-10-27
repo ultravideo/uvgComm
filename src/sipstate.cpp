@@ -117,14 +117,14 @@ QList<QString> SIPState::startCall(QList<Contact> addresses)
   for (int i = 0; i < addresses.size(); ++i)
   {
     qDebug() << "Creating call number:" << i;
-    std::shared_ptr<SIPState::SIPLink> link = newSIPLink();
+    std::shared_ptr<SIPState::SIPSessionInfo> info = newSIPSessionInfo();
     Connection* con = new Connection(connections_.size() + 1, true);
     connectionMutex_.lock();
     connections_.push_back(con);
-    link->connectionID = con->getID();
+    info->connectionID = con->getID();
     connectionMutex_.unlock();
 
-    qDebug() << "Creating connection with ID:" << link->connectionID;
+    qDebug() << "Creating connection with ID:" << info->connectionID;
 
     QObject::connect(con, SIGNAL(messageAvailable(QString, QString, quint32)),
                      this, SLOT(processMessage(QString, QString, quint32)));
@@ -134,26 +134,26 @@ QList<QString> SIPState::startCall(QList<Contact> addresses)
 
     QString address = addresses.at(i).contactAddress;
 
-    link->contact = addresses.at(i);
+    info->contact = addresses.at(i);
 
-    if(link->contact.name.isEmpty())
+    if(info->contact.name.isEmpty())
     {
       qWarning() << "Warning: No name was given for callee";
-      link->contact.name = "Unknown";
+      info->contact.name = "Unknown";
     }
 
-    if(link->contact.username.isEmpty())
+    if(info->contact.username.isEmpty())
     {
       qWarning() << "Warning: No username was given for callee";
-      link->contact.username = "unknown";
+      info->contact.username = "unknown";
     }
 
-    link->remoteTag = "";
+    info->remoteTag = "";
 
     con->establishConnection(address, sipPort_);
     // message is sent only after connection has been established so we know our address
 
-    callIDs.append(link->callID);
+    callIDs.append(info->callID);
   }
   return callIDs;
 }
@@ -162,7 +162,7 @@ void SIPState::acceptCall(QString callID)
 {
   if(sessions_.find(callID) == sessions_.end())
   {
-    qWarning() << "WARNING: We have lost our link somewhere";
+    qWarning() << "WARNING: We have lost our info somewhere";
     return;
   }
   sendResponse(OK_200, sessions_[callID]);
@@ -172,7 +172,7 @@ void SIPState::rejectCall(QString callID)
 {
   if(sessions_.find(callID) == sessions_.end())
   {
-    qWarning() << "WARNING: We have lost our link somewhere";
+    qWarning() << "WARNING: We have lost our info somewhere";
     return;
   }
   sendResponse(DECLINE_603, sessions_[callID]);
@@ -182,50 +182,50 @@ void SIPState::connectionEstablished(quint32 connectionID)
 {
   qDebug() << "Connection established for id:" << connectionID;
 
-  std::shared_ptr<SIPLink> foundLink;
-  for(auto link : sessions_)
+  std::shared_ptr<SIPSessionInfo> foundInfo;
+  for(auto info : sessions_)
   {
-    if(link.second->connectionID == connectionID)
+    if(info.second->connectionID == connectionID)
     {
-      qDebug() << "link found";
-      foundLink = link.second;
+      qDebug() << "info found";
+      foundInfo = info.second;
     }
   }
 
-  Q_ASSERT(foundLink);
-  if(!foundLink)
+  Q_ASSERT(foundInfo);
+  if(!foundInfo)
   {
-    qWarning() << "WARNING: Link not found for established session. ID:" << connectionID;
-    for(auto link : sessions_)
+    qWarning() << "WARNING: info not found for established session. ID:" << connectionID;
+    for(auto info : sessions_)
     {
-      qDebug() << "Existing IDs:" << link.second->connectionID;
+      qDebug() << "Existing IDs:" << info.second->connectionID;
     }
     return;
   }
 
   // update SIP fields for future communications. Needed because our address may vary
   // based on which interface the their address is accessed through
-  foundLink->localAddress = connections_.at(connectionID - 1)->getLocalAddress();
-  foundLink->contact.contactAddress
+  foundInfo->localAddress = connections_.at(connectionID - 1)->getLocalAddress();
+  foundInfo->contact.contactAddress
       = connections_.at(connectionID - 1)->getPeerAddress().toString();
 
-  foundLink->host = foundLink->localAddress.toString();
-  foundLink->localSDP = generateSDP(foundLink->localAddress.toString());
+  foundInfo->host = foundInfo->localAddress.toString();
+  foundInfo->localSDP = generateSDP(foundInfo->localAddress.toString());
 
-  sendRequest(INVITE, foundLink);
+  sendRequest(INVITE, foundInfo);
 }
 
-void SIPState::messageComposition(messageID id, std::shared_ptr<SIPLink> link)
+void SIPState::messageComposition(messageID id, std::shared_ptr<SIPSessionInfo> info)
 {
 
-  messageComposer_.to(id, link->contact.name, link->contact.username,
-                        link->contact.contactAddress, link->remoteTag);
-  messageComposer_.fromIP(id, localName_, localUsername_, link->localAddress, link->localTag);
+  messageComposer_.to(id, info->contact.name, info->contact.username,
+                        info->contact.contactAddress, info->remoteTag);
+  messageComposer_.fromIP(id, localName_, localUsername_, info->localAddress, info->localTag);
   QString branch = generateRandomString(BRANCHLENGTH);
-  messageComposer_.viaIP(id, link->localAddress, branch);
+  messageComposer_.viaIP(id, info->localAddress, branch);
   messageComposer_.maxForwards(id, MAXFORWARDS);
-  messageComposer_.setCallID(id, link->callID, link->host);
-  messageComposer_.sequenceNum(id, 1, link->originalRequest);
+  messageComposer_.setCallID(id, info->callID, info->host);
+  messageComposer_.sequenceNum(id, 1, info->originalRequest);
 
   QString SIPRequest = messageComposer_.composeMessage(id);
 
@@ -233,9 +233,9 @@ void SIPState::messageComposition(messageID id, std::shared_ptr<SIPLink> link)
   qDebug() << SIPRequest;
 
   QByteArray message = SIPRequest.toUtf8();
-  if(connections_.at(link->connectionID - 1) != 0)
+  if(connections_.at(info->connectionID - 1) != 0)
   {
-    connections_.at(link->connectionID - 1)->sendPacket(message);
+    connections_.at(info->connectionID - 1)->sendPacket(message);
   }
   else
   {
@@ -243,31 +243,31 @@ void SIPState::messageComposition(messageID id, std::shared_ptr<SIPLink> link)
   }
 }
 
-void SIPState::sendRequest(RequestType request, std::shared_ptr<SIPLink> link)
+void SIPState::sendRequest(RequestType request, std::shared_ptr<SIPSessionInfo> info)
 {
-  link->originalRequest = request;
+  info->originalRequest = request;
   messageID id = messageComposer_.startSIPRequest(request);
 
   if(request == INVITE)
   {
-    QString sdp_str = messageComposer_.formSDP(link->localSDP);
+    QString sdp_str = messageComposer_.formSDP(info->localSDP);
     messageComposer_.addSDP(id, sdp_str);
   }
 
-  messageComposition(id, link);
+  messageComposition(id, info);
 }
 
-void SIPState::sendResponse(ResponseType response, std::shared_ptr<SIPLink> link)
+void SIPState::sendResponse(ResponseType response, std::shared_ptr<SIPSessionInfo> info)
 {
   messageID id = messageComposer_.startSIPResponse(response);
 
-  if(link->originalRequest == INVITE && response == OK_200)
+  if(info->originalRequest == INVITE && response == OK_200)
   {
-    QString sdp_str = messageComposer_.formSDP(link->localSDP);
+    QString sdp_str = messageComposer_.formSDP(info->localSDP);
     messageComposer_.addSDP(id, sdp_str);
   }
 
-  messageComposition(id, link);
+  messageComposition(id, info);
 }
 
 void SIPState::receiveConnection(Connection* con)
@@ -290,7 +290,7 @@ void SIPState::processMessage(QString header, QString content,
     if(info == NULL)
     {
       qDebug() << "Failed to parse SIP message";
-      //sendResponse(MALFORMED_400, ); TODO: get link and attempted request from somewhere
+      //sendResponse(MALFORMED_400, ); TODO: get info and attempted request from somewhere
       return;
     }
 
@@ -312,9 +312,9 @@ void SIPState::processMessage(QString header, QString content,
     {
       Q_ASSERT(info->callID != "");
       sessionMutex_.lock();
-      if(compareSIPLinkInfo(info, connectionID))
+      if(compareSIPSessionInfo(info, connectionID))
       {
-        newSIPLinkFromMessage(info, connectionID);
+        newSIPSessionInfoFromMessage(info, connectionID);
 
         if(info->request != NOREQUEST && info->response == NORESPONSE)
         {
@@ -354,23 +354,23 @@ QString SIPState::generateRandomString(uint32_t length)
   return string;
 }
 
-std::shared_ptr<SIPState::SIPLink> SIPState::newSIPLink()
+std::shared_ptr<SIPState::SIPSessionInfo> SIPState::newSIPSessionInfo()
 {
-  std::shared_ptr<SIPLink> link (new SIPLink);
+  std::shared_ptr<SIPSessionInfo> info (new SIPSessionInfo);
 
-  link->callID = generateRandomString(CALLIDLENGTH);
+  info->callID = generateRandomString(CALLIDLENGTH);
 
-  qDebug() << "Generated CallID: " << link->callID;
+  qDebug() << "Generated CallID: " << info->callID;
 
-  link->localTag = generateRandomString(TAGLENGTH);
+  info->localTag = generateRandomString(TAGLENGTH);
 
-  qDebug() << "Generated tag: " << link->localTag;
+  qDebug() << "Generated tag: " << info->localTag;
 
   sessionMutex_.lock();
-  if(sessions_.find(link->callID) == sessions_.end())
+  if(sessions_.find(info->callID) == sessions_.end())
   {
-    sessions_[link->callID] = link;
-    qDebug() << "SIPLink added to sessions";
+    sessions_[info->callID] = info;
+    qDebug() << "SIPSessionInfo added to sessions";
   }
   else
   {
@@ -379,54 +379,54 @@ std::shared_ptr<SIPState::SIPLink> SIPState::newSIPLink()
     return 0;
   }
   sessionMutex_.unlock();
-  return link;
+  return info;
 }
 
-void SIPState::newSIPLinkFromMessage(std::shared_ptr<SIPMessageInfo> info,
+void SIPState::newSIPSessionInfoFromMessage(std::shared_ptr<SIPMessageInfo> mInfo,
                                             quint32 connectionID)
 {
-  std::shared_ptr<SIPState::SIPLink> link;
+  std::shared_ptr<SIPState::SIPSessionInfo> info;
 
-  if(sessions_.find(info->callID) != sessions_.end())
+  if(sessions_.find(mInfo->callID) != sessions_.end())
   {
-    link = sessions_[info->callID];
+    info = sessions_[mInfo->callID];
   }
   else
   {
-    link = std::shared_ptr<SIPState::SIPLink> (new SIPLink);
+    info = std::shared_ptr<SIPState::SIPSessionInfo> (new SIPSessionInfo);
   }
 
-  link->callID = info->callID;
-  link->contact = {info->remoteName, info->remoteUsername, info->contactAddress};
-  link->replyAddress = info->localLocation;
-  link->localAddress = info->localLocation;
-  link->host = info->host;
+  info->callID = mInfo->callID;
+  info->contact = {mInfo->remoteName, mInfo->remoteUsername, mInfo->contactAddress};
+  info->replyAddress = mInfo->localLocation;
+  info->localAddress = mInfo->localLocation;
+  info->host = mInfo->host;
 
-  if(!info->localTag.isEmpty())
+  if(!mInfo->localTag.isEmpty())
   {
-    link->localTag = info->localTag;
+    info->localTag = mInfo->localTag;
   }
   else
   {
-    link->localTag = generateRandomString(TAGLENGTH);
+    info->localTag = generateRandomString(TAGLENGTH);
   }
-  link->remoteTag = info->remoteTag;
+  info->remoteTag = mInfo->remoteTag;
 
   //TODO evaluate SDP
 
-  link->connectionID = connectionID;
-  link->originalRequest = info->originalRequest;
+  info->connectionID = connectionID;
+  info->originalRequest = mInfo->originalRequest;
 
-  if(link->localSDP == NULL)
+  if(info->localSDP == NULL)
   {
-    link->localSDP = generateSDP(info->localLocation);
+    info->localSDP = generateSDP(mInfo->localLocation);
   }
 
   // TODO: make user the sdp is checked somewhere.
-  sessions_[info->callID] = link;
+  sessions_[mInfo->callID] = info;
 }
 
-bool SIPState::compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info,
+bool SIPState::compareSIPSessionInfo(std::shared_ptr<SIPMessageInfo> mInfo,
                                          quint32 connectionID)
 {
   qDebug() << "Checking SIP message by comparing it to existing information.";
@@ -439,80 +439,80 @@ bool SIPState::compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info,
   }
 
   // TODO: This relies on outside information.
-  // Maybe keep the SIPLink until our BYE has been received?
-  if(info->localLocation == info->remoteLocation)
+  // Maybe keep the SIPSessionInfo until our BYE has been received?
+  if(mInfo->localLocation == mInfo->remoteLocation)
   {
     qDebug() << "It is us. Lets forget checking the message";
     return true;
   }
 
   // if we don't have previous information
-  if(sessions_.find(info->callID) == sessions_.end())
+  if(sessions_.find(mInfo->callID) == sessions_.end())
   {
-    qDebug() << "New Call-ID detected:" << info->callID << "Creating session...";
+    qDebug() << "New Call-ID detected:" << mInfo->callID << "Creating session...";
 
-    if(info->localTag != "" && STRICTSIPPROCESSING)
+    if(mInfo->localTag != "" && STRICTSIPPROCESSING)
     {
       qDebug() << "WHY DO THEY HAVE OUR TAG BEFORE IT WAS GENERATED!?!";
       return false;
     }
 
-    if(info->response != NORESPONSE)
+    if(mInfo->response != NORESPONSE)
     {
       qDebug() << "Got a response as a first messsage. Discarding.";
       return false;
     }
 
-    if(info->request == BYE // No call to end
-       || info->request == ACK // No INVITE response to confirm
-       || info->request == CANCEL // No request to be cancelled
-       || info->request == NOREQUEST)
+    if(mInfo->request == BYE // No call to end
+       || mInfo->request == ACK // No INVITE response to confirm
+       || mInfo->request == CANCEL // No request to be cancelled
+       || mInfo->request == NOREQUEST)
     {
-      qDebug() << "Got an unsuitable request as first request:" << info->request;
+      qDebug() << "Got an unsuitable request as first request:" << mInfo->request;
       return false;
     }
 
-    if(info->cSeq != 1)
+    if(mInfo->cSeq != 1)
     {
-      qDebug() << "Not our application based on first:" << info->cSeq;
+      qDebug() << "Not our application based on first:" << mInfo->cSeq;
     }
   }
   // if this is not the first message of this call
   else
   {
     qDebug() << "Existing Call-ID detected.";
-    std::shared_ptr<SIPLink> link = sessions_[info->callID];
+    std::shared_ptr<SIPSessionInfo> info = sessions_[mInfo->callID];
 
     // this would be our problem
-    Q_ASSERT(link->callID == info->callID);
+    Q_ASSERT(info->callID == mInfo->callID);
 
-    if(!info->localTag.isEmpty() && info->localTag != link->localTag &&
+    if(!mInfo->localTag.isEmpty() && mInfo->localTag != info->localTag &&
        STRICTSIPPROCESSING)
     {
       qDebug() << "Our tag has changed! Something went wrong on other end.";
       return false;
     }
 
-    if(!link->remoteTag.isEmpty() && info->remoteTag != link->remoteTag &&
+    if(!info->remoteTag.isEmpty() && mInfo->remoteTag != info->remoteTag &&
        STRICTSIPPROCESSING)
     {
-      qDebug() << "They have changed their tag! Something went wrong. Old:" << link->remoteTag
-               << "new:" << info->remoteTag;
+      qDebug() << "They have changed their tag! Something went wrong. Old:" << info->remoteTag
+               << "new:" << mInfo->remoteTag;
       return false;
     }
 
-    if(info->cSeq != 1)
+    if(mInfo->cSeq != 1)
     {
-      qDebug() << "CSeq differs from 1 Got:" << info->cSeq;
+      qDebug() << "CSeq differs from 1 Got:" << mInfo->cSeq;
     }
 
-    if(link->host != info->host)
+    if(info->host != mInfo->host)
     {
       qDebug() << "They changed the host!!";
       return false;
     }
 
-    if(link->connectionID != connectionID)
+    if(info->connectionID != connectionID)
     {
       qWarning() << "WARNING: Unexpected change of connection ID";
       qDebug() << "Maybe we are calling ourselves";
@@ -525,14 +525,14 @@ bool SIPState::compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info,
   connectionMutex_.lock();
   if(connections_.at(connectionID - 1)->connected())
   {
-    if(info->localLocation != connections_.at(connectionID - 1)->getLocalAddress().toString())
+    if(mInfo->localLocation != connections_.at(connectionID - 1)->getLocalAddress().toString())
     {
-      qDebug() << "We are not connected from our address:" << info->localLocation;
+      qDebug() << "We are not connected from our address:" << mInfo->localLocation;
       return false;
     }
-    if(info->remoteLocation != connections_.at(connectionID - 1)->getPeerAddress().toString())
+    if(mInfo->remoteLocation != connections_.at(connectionID - 1)->getPeerAddress().toString())
     {
-      qDebug() << "We are not connected to their address:" << info->remoteLocation;
+      qDebug() << "We are not connected to their address:" << mInfo->remoteLocation;
       return false;
     }
   }
@@ -541,11 +541,11 @@ bool SIPState::compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info,
   return true;
 }
 
-void SIPState::processRequest(std::shared_ptr<SIPMessageInfo> info,
+void SIPState::processRequest(std::shared_ptr<SIPMessageInfo> mInfo,
                                      std::shared_ptr<SDPMessageInfo> peerSDP,
                                      quint32 connectionID)
 {
-  switch(info->request)
+  switch(mInfo->request)
   {
     case INVITE:
     {
@@ -557,10 +557,10 @@ void SIPState::processRequest(std::shared_ptr<SIPMessageInfo> info,
         // TODO: send malformed request
         return;
       }
-      if(sessions_[info->callID]->contact.contactAddress
-         == sessions_[info->callID]->localAddress.toString())
+      if(sessions_[mInfo->callID]->contact.contactAddress
+         == sessions_[mInfo->callID]->localAddress.toString())
       {
-        emit callingOurselves(info->callID, peerSDP);
+        emit callingOurselves(mInfo->callID, peerSDP);
       }
       else
       {
@@ -568,20 +568,20 @@ void SIPState::processRequest(std::shared_ptr<SIPMessageInfo> info,
         {
           if(suitableSDP(peerSDP))
           {
-            sessions_[info->callID]->peerSDP = peerSDP;
-            emit incomingINVITE(info->callID, sessions_[info->callID]->contact.name);
+            sessions_[mInfo->callID]->peerSDP = peerSDP;
+            emit incomingINVITE(mInfo->callID, sessions_[mInfo->callID]->contact.name);
           }
           else
           {
             qDebug() << "Could not find suitable SDP parameters within INVITE. Terminating..";
             // TODO implement this response
-            sendResponse(UNSUPPORTED_413, sessions_[info->callID]);
+            sendResponse(UNSUPPORTED_413, sessions_[mInfo->callID]);
           }
         }
         else
         {
           qDebug() << "No sdpInfo received in request!";
-          sendResponse(MALFORMED_400, sessions_[info->callID]);
+          sendResponse(MALFORMED_400, sessions_[mInfo->callID]);
         }
       }
       break;
@@ -589,10 +589,10 @@ void SIPState::processRequest(std::shared_ptr<SIPMessageInfo> info,
     case ACK:
     {
       qDebug() << "Found ACK";
-      if(sessions_[info->callID]->peerSDP)
+      if(sessions_[mInfo->callID]->peerSDP)
       {
-        emit callNegotiated(info->callID, sessions_[info->callID]->peerSDP,
-            sessions_[info->callID]->localSDP);
+        emit callNegotiated(mInfo->callID, sessions_[mInfo->callID]->peerSDP,
+            sessions_[mInfo->callID]->localSDP);
       }
       else
       {
@@ -604,14 +604,14 @@ void SIPState::processRequest(std::shared_ptr<SIPMessageInfo> info,
     {
       qDebug() << "Found BYE";
 
-      sendResponse(OK_200, sessions_[info->callID]);
-      emit callEnded(info->callID, info->replyAddress);
+      sendResponse(OK_200, sessions_[mInfo->callID]);
+      emit callEnded(mInfo->callID, mInfo->replyAddress);
 
-      if(connectionID != sessions_[info->callID]->connectionID)
+      if(connectionID != sessions_[mInfo->callID]->connectionID)
       {
         stopConnection(connectionID);
       }
-      uninitSession(sessions_[info->callID]);
+      uninitSession(sessions_[mInfo->callID]);
 
       break;
     }
@@ -623,47 +623,47 @@ void SIPState::processRequest(std::shared_ptr<SIPMessageInfo> info,
   }
 }
 
-void SIPState::processResponse(std::shared_ptr<SIPMessageInfo> info,
+void SIPState::processResponse(std::shared_ptr<SIPMessageInfo> mInfo,
                                       std::shared_ptr<SDPMessageInfo> peerSDP)
 {
-  switch(info->response)
+  switch(mInfo->response)
   {
     case OK_200:
     {
       qDebug() << "Found 200 OK";
-      if(sessions_[info->callID]->originalRequest == INVITE)
+      if(sessions_[mInfo->callID]->originalRequest == INVITE)
       {
         if(peerSDP)
         {
           if(suitableSDP(peerSDP))
           {
-            sessions_[info->callID]->peerSDP = peerSDP;
-            emit ourCallAccepted(info->callID, sessions_[info->callID]->peerSDP,
-                sessions_[info->callID]->localSDP);
-            sendRequest(ACK, sessions_[info->callID]);
+            sessions_[mInfo->callID]->peerSDP = peerSDP;
+            emit ourCallAccepted(mInfo->callID, sessions_[mInfo->callID]->peerSDP,
+                sessions_[mInfo->callID]->localSDP);
+            sendRequest(ACK, sessions_[mInfo->callID]);
           }
           else
           {
             qDebug() << "SDP not supported";
             // TODO implement this response
-            sendResponse(UNSUPPORTED_413, sessions_[info->callID]);
+            sendResponse(UNSUPPORTED_413, sessions_[mInfo->callID]);
           }
         }
         else
         {
           qDebug() << "No sdpInfo received in INVITE OK response!";
-          sendResponse(MALFORMED_400, sessions_[info->callID]);
+          sendResponse(MALFORMED_400, sessions_[mInfo->callID]);
         }
 
       }
-      else if(sessions_[info->callID]->originalRequest == BYE)
+      else if(sessions_[mInfo->callID]->originalRequest == BYE)
       {
         qDebug() << "They accepted our BYE";
       }
-      else if(sessions_[info->callID]->originalRequest != NOREQUEST)
+      else if(sessions_[mInfo->callID]->originalRequest != NOREQUEST)
       {
         qWarning() << "WARNING: Response processing not implemented for this request:"
-                   << sessions_[info->callID]->originalRequest;
+                   << sessions_[mInfo->callID]->originalRequest;
       }
       else
       {
@@ -673,14 +673,14 @@ void SIPState::processResponse(std::shared_ptr<SIPMessageInfo> info,
     }
     case DECLINE_603:
     {
-      if(sessions_[info->callID]->originalRequest == INVITE)
+      if(sessions_[mInfo->callID]->originalRequest == INVITE)
       {
         qDebug() << "Received DECLINE";
-        emit ourCallRejected(info->callID);
+        emit ourCallRejected(mInfo->callID);
       }
       else
       {
-        qDebug() << "Unimplemented decline for:" << sessions_[info->callID]->originalRequest;
+        qDebug() << "Unimplemented decline for:" << sessions_[mInfo->callID]->originalRequest;
       }
       break;
     }
@@ -752,10 +752,10 @@ void SIPState::stopConnection(quint32 connectionID)
   }
 }
 
-void SIPState::uninitSession(std::shared_ptr<SIPLink> link)
+void SIPState::uninitSession(std::shared_ptr<SIPSessionInfo> info)
 {
-  stopConnection(link->connectionID);
-  sessions_.erase(link->callID);
+  stopConnection(info->connectionID);
+  sessions_.erase(info->callID);
 }
 
 QList<QHostAddress> parseIPAddress(QString address)
