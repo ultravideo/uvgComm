@@ -22,12 +22,12 @@ struct Contact
 };
 
 
-class CallNegotiation : public QObject
+class SIPState : public QObject
 {
   Q_OBJECT
 public:
-  CallNegotiation();
-  ~CallNegotiation();
+  SIPState();
+  ~SIPState();
 
   void init();
   void uninit();

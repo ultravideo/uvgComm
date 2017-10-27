@@ -39,7 +39,6 @@ SOURCES +=\
     src/audio/speexaecfilter.cpp \
     src/video/yuvtorgb32.cpp \
     src/video/dshow/capture.cpp \
-    src/callnegotiation.cpp \
     src/connection.cpp \
     src/connectionserver.cpp \
     src/sipparser.cpp \
@@ -52,7 +51,8 @@ SOURCES +=\
     src/gui/statisticswindow.cpp \
     src/gui/videowidget.cpp \
     src/udpserver.cpp \
-    src/stun.cpp
+    src/stun.cpp \
+    src/sipstate.cpp
 
 HEADERS  += \
     src/filter.h \
@@ -85,7 +85,6 @@ HEADERS  += \
     src/video/optimized/rgb2yuv.h \
     src/video/optimized/yuv2rgb.h \
     src/video/displayfilter.h \
-    src/callnegotiation.h \
     src/connection.h \
     src/connectionserver.h \
     src/sipparser.h \
@@ -98,7 +97,8 @@ HEADERS  += \
     src/gui/statisticswindow.h \
     src/gui/videowidget.h \
     src/udpserver.h \
-    src/stun.h
+    src/stun.h \
+    src/sipstate.h
 
 FORMS    += \
     ui/callwindow.ui \

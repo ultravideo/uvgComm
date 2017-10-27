@@ -1,6 +1,6 @@
 #include "callmanager.h"
 
-#include "callnegotiation.h"
+#include "sipstate.h"
 #include "statisticsinterface.h"
 
 #include <QHostAddress>
@@ -8,7 +8,7 @@
 
 CallManager::CallManager():
     media_(),
-    callNeg_(),
+    sip_(),
     window_(NULL)
 {}
 
@@ -18,32 +18,32 @@ void CallManager::init()
   window_.show();
   VideoWidget* selfview = window_.getSelfDisplay();
 
-  callNeg_.init();
+  sip_.init();
 
   // make the system react to messages from other call participants
-  QObject::connect(&callNeg_, SIGNAL(incomingINVITE(QString, QString)),
+  QObject::connect(&sip_, SIGNAL(incomingINVITE(QString, QString)),
                    this, SLOT(incomingCall(QString, QString)));
 
-  QObject::connect(&callNeg_, SIGNAL(callingOurselves(QString, std::shared_ptr<SDPMessageInfo>)),
+  QObject::connect(&sip_, SIGNAL(callingOurselves(QString, std::shared_ptr<SDPMessageInfo>)),
                    this, SLOT(callOurselves(QString, std::shared_ptr<SDPMessageInfo>)));
 
-  QObject::connect(&callNeg_, SIGNAL(callNegotiated(QString, std::shared_ptr<SDPMessageInfo>,
+  QObject::connect(&sip_, SIGNAL(callNegotiated(QString, std::shared_ptr<SDPMessageInfo>,
                                                               std::shared_ptr<SDPMessageInfo>)),
                    this, SLOT(callNegotiated(QString, std::shared_ptr<SDPMessageInfo>,
                                                       std::shared_ptr<SDPMessageInfo>)));
 
-  QObject::connect(&callNeg_, SIGNAL(ringing(QString)),
+  QObject::connect(&sip_, SIGNAL(ringing(QString)),
                    this, SLOT(callRinging(QString)));
 
-  QObject::connect(&callNeg_, SIGNAL(ourCallAccepted(QString, std::shared_ptr<SDPMessageInfo>,
+  QObject::connect(&sip_, SIGNAL(ourCallAccepted(QString, std::shared_ptr<SDPMessageInfo>,
                                                                std::shared_ptr<SDPMessageInfo>)),
                    this, SLOT(callNegotiated(QString, std::shared_ptr<SDPMessageInfo>,
                                                       std::shared_ptr<SDPMessageInfo>)));
 
-  QObject::connect(&callNeg_, SIGNAL(ourCallRejected(QString)),
+  QObject::connect(&sip_, SIGNAL(ourCallRejected(QString)),
                    this, SLOT(callRejected(QString)));
 
-  QObject::connect(&callNeg_, SIGNAL(callEnded(QString, QString)),
+  QObject::connect(&sip_, SIGNAL(callEnded(QString, QString)),
                    this, SLOT(callEnded(QString, QString)));
 
   // register the GUI signals indicating GUI changes to be handled approrietly in a system wide manner
@@ -79,7 +79,7 @@ void CallManager::noStunAddress()
 void CallManager::uninit()
 {
   endTheCall();
-  callNeg_.uninit();
+  sip_.uninit();
   media_.uninit();
 }
 
@@ -104,7 +104,7 @@ void CallManager::callToParticipant(QString name, QString username, QString ip)
 
     //start negotiations for this connection
 
-    QList<QString> callIDs = callNeg_.startCall(list);
+    QList<QString> callIDs = sip_.startCall(list);
 
     for(auto callID : callIDs)
     {
@@ -226,18 +226,18 @@ void CallManager::callNegotiated(QString callID, std::shared_ptr<SDPMessageInfo>
 void CallManager::acceptCall(QString callID)
 {
   qDebug() << "Sending accept";
-  callNeg_.acceptCall(callID);
+  sip_.acceptCall(callID);
 }
 
 void CallManager::rejectCall(QString callID)
 {
-  callNeg_.rejectCall(callID);
+  sip_.rejectCall(callID);
 }
 
 void CallManager::endTheCall()
 {
   qDebug() << "Ending all calls";
-  callNeg_.endAllCalls();
+  sip_.endAllCalls();
   media_.endAllCalls();
   window_.clearConferenceView();
 }

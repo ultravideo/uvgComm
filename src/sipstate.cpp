@@ -1,4 +1,4 @@
-#include "callnegotiation.h"
+#include "sipstate.h"
 
 #include "connection.h"
 #include "sipparser.h"
@@ -16,7 +16,7 @@ const uint16_t BRANCHLENGTH = 16;
 const uint16_t MAXFORWARDS = 70; // the recommmended value is 70
 const uint16_t STARTPORT = 18888;
 
-CallNegotiation::CallNegotiation():
+SIPState::SIPState():
   sessions_(),
   messageComposer_(),
   sipPort_(5060), // default for sip, use 5061 for tls encrypted
@@ -24,10 +24,10 @@ CallNegotiation::CallNegotiation():
   firstAvailablePort_(STARTPORT)
 {}
 
-CallNegotiation::~CallNegotiation()
+SIPState::~SIPState()
 {}
 
-void CallNegotiation::init()
+void SIPState::init()
 {
   qsrand(1);
 
@@ -62,7 +62,7 @@ void CallNegotiation::init()
   }
 }
 
-void CallNegotiation::uninit()
+void SIPState::uninit()
 {
   for (uint16_t connectionID = 1; connectionID <= connections_.size();
        ++connectionID)
@@ -73,7 +73,7 @@ void CallNegotiation::uninit()
   sessions_.clear();
 }
 
-std::shared_ptr<SDPMessageInfo> CallNegotiation::generateSDP(QString localAddress)
+std::shared_ptr<SDPMessageInfo> SIPState::generateSDP(QString localAddress)
 {
   // TODO: Get suitable SDP from media manager
   QString sdp_str = "v=0 \r\n"
@@ -91,7 +91,7 @@ std::shared_ptr<SDPMessageInfo> CallNegotiation::generateSDP(QString localAddres
   return sdp;
 }
 
-void CallNegotiation::endCall(QString callID)
+void SIPState::endCall(QString callID)
 {
   sessionMutex_.lock();
   if(sessions_.find(callID) == sessions_.end())
@@ -106,7 +106,7 @@ void CallNegotiation::endCall(QString callID)
   sessionMutex_.lock();
 }
 
-QList<QString> CallNegotiation::startCall(QList<Contact> addresses)
+QList<QString> SIPState::startCall(QList<Contact> addresses)
 {
   Q_ASSERT(addresses.size() != 0);
 
@@ -117,7 +117,7 @@ QList<QString> CallNegotiation::startCall(QList<Contact> addresses)
   for (int i = 0; i < addresses.size(); ++i)
   {
     qDebug() << "Creating call number:" << i;
-    std::shared_ptr<CallNegotiation::SIPLink> link = newSIPLink();
+    std::shared_ptr<SIPState::SIPLink> link = newSIPLink();
     Connection* con = new Connection(connections_.size() + 1, true);
     connectionMutex_.lock();
     connections_.push_back(con);
@@ -158,7 +158,7 @@ QList<QString> CallNegotiation::startCall(QList<Contact> addresses)
   return callIDs;
 }
 
-void CallNegotiation::acceptCall(QString callID)
+void SIPState::acceptCall(QString callID)
 {
   if(sessions_.find(callID) == sessions_.end())
   {
@@ -168,7 +168,7 @@ void CallNegotiation::acceptCall(QString callID)
   sendResponse(OK_200, sessions_[callID]);
 }
 
-void CallNegotiation::rejectCall(QString callID)
+void SIPState::rejectCall(QString callID)
 {
   if(sessions_.find(callID) == sessions_.end())
   {
@@ -178,7 +178,7 @@ void CallNegotiation::rejectCall(QString callID)
   sendResponse(DECLINE_603, sessions_[callID]);
 }
 
-void CallNegotiation::connectionEstablished(quint32 connectionID)
+void SIPState::connectionEstablished(quint32 connectionID)
 {
   qDebug() << "Connection established for id:" << connectionID;
 
@@ -215,7 +215,7 @@ void CallNegotiation::connectionEstablished(quint32 connectionID)
   sendRequest(INVITE, foundLink);
 }
 
-void CallNegotiation::messageComposition(messageID id, std::shared_ptr<SIPLink> link)
+void SIPState::messageComposition(messageID id, std::shared_ptr<SIPLink> link)
 {
 
   messageComposer_.to(id, link->contact.name, link->contact.username,
@@ -243,7 +243,7 @@ void CallNegotiation::messageComposition(messageID id, std::shared_ptr<SIPLink> 
   }
 }
 
-void CallNegotiation::sendRequest(RequestType request, std::shared_ptr<SIPLink> link)
+void SIPState::sendRequest(RequestType request, std::shared_ptr<SIPLink> link)
 {
   link->originalRequest = request;
   messageID id = messageComposer_.startSIPRequest(request);
@@ -257,7 +257,7 @@ void CallNegotiation::sendRequest(RequestType request, std::shared_ptr<SIPLink> 
   messageComposition(id, link);
 }
 
-void CallNegotiation::sendResponse(ResponseType response, std::shared_ptr<SIPLink> link)
+void SIPState::sendResponse(ResponseType response, std::shared_ptr<SIPLink> link)
 {
   messageID id = messageComposer_.startSIPResponse(response);
 
@@ -270,7 +270,7 @@ void CallNegotiation::sendResponse(ResponseType response, std::shared_ptr<SIPLin
   messageComposition(id, link);
 }
 
-void CallNegotiation::receiveConnection(Connection* con)
+void SIPState::receiveConnection(Connection* con)
 {
   QObject::connect(con, SIGNAL(messageAvailable(QString,QString, quint32)),
                    this, SLOT(processMessage(QString, QString, quint32)));
@@ -279,7 +279,7 @@ void CallNegotiation::receiveConnection(Connection* con)
   con->setID(connections_.size());
 }
 
-void CallNegotiation::processMessage(QString header, QString content,
+void SIPState::processMessage(QString header, QString content,
                                      quint32 connectionID)
 {
   qDebug() << "Processing message";
@@ -343,7 +343,7 @@ void CallNegotiation::processMessage(QString header, QString content,
   }
 }
 
-QString CallNegotiation::generateRandomString(uint32_t length)
+QString SIPState::generateRandomString(uint32_t length)
 {
   // TODO make this cryptographically secure
   QString string;
@@ -354,7 +354,7 @@ QString CallNegotiation::generateRandomString(uint32_t length)
   return string;
 }
 
-std::shared_ptr<CallNegotiation::SIPLink> CallNegotiation::newSIPLink()
+std::shared_ptr<SIPState::SIPLink> SIPState::newSIPLink()
 {
   std::shared_ptr<SIPLink> link (new SIPLink);
 
@@ -382,10 +382,10 @@ std::shared_ptr<CallNegotiation::SIPLink> CallNegotiation::newSIPLink()
   return link;
 }
 
-void CallNegotiation::newSIPLinkFromMessage(std::shared_ptr<SIPMessageInfo> info,
+void SIPState::newSIPLinkFromMessage(std::shared_ptr<SIPMessageInfo> info,
                                             quint32 connectionID)
 {
-  std::shared_ptr<CallNegotiation::SIPLink> link;
+  std::shared_ptr<SIPState::SIPLink> link;
 
   if(sessions_.find(info->callID) != sessions_.end())
   {
@@ -393,7 +393,7 @@ void CallNegotiation::newSIPLinkFromMessage(std::shared_ptr<SIPMessageInfo> info
   }
   else
   {
-    link = std::shared_ptr<CallNegotiation::SIPLink> (new SIPLink);
+    link = std::shared_ptr<SIPState::SIPLink> (new SIPLink);
   }
 
   link->callID = info->callID;
@@ -426,7 +426,7 @@ void CallNegotiation::newSIPLinkFromMessage(std::shared_ptr<SIPMessageInfo> info
   sessions_[info->callID] = link;
 }
 
-bool CallNegotiation::compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info,
+bool SIPState::compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info,
                                          quint32 connectionID)
 {
   qDebug() << "Checking SIP message by comparing it to existing information.";
@@ -541,7 +541,7 @@ bool CallNegotiation::compareSIPLinkInfo(std::shared_ptr<SIPMessageInfo> info,
   return true;
 }
 
-void CallNegotiation::processRequest(std::shared_ptr<SIPMessageInfo> info,
+void SIPState::processRequest(std::shared_ptr<SIPMessageInfo> info,
                                      std::shared_ptr<SDPMessageInfo> peerSDP,
                                      quint32 connectionID)
 {
@@ -623,7 +623,7 @@ void CallNegotiation::processRequest(std::shared_ptr<SIPMessageInfo> info,
   }
 }
 
-void CallNegotiation::processResponse(std::shared_ptr<SIPMessageInfo> info,
+void SIPState::processResponse(std::shared_ptr<SIPMessageInfo> info,
                                       std::shared_ptr<SDPMessageInfo> peerSDP)
 {
   switch(info->response)
@@ -691,7 +691,7 @@ void CallNegotiation::processResponse(std::shared_ptr<SIPMessageInfo> info,
   }
 }
 
-bool CallNegotiation::suitableSDP(std::shared_ptr<SDPMessageInfo> peerSDP)
+bool SIPState::suitableSDP(std::shared_ptr<SDPMessageInfo> peerSDP)
 {
   Q_ASSERT(peerSDP);
   if(peerSDP == NULL)
@@ -720,7 +720,7 @@ bool CallNegotiation::suitableSDP(std::shared_ptr<SDPMessageInfo> peerSDP)
   return audio && video;
 }
 
-void CallNegotiation::endAllCalls()
+void SIPState::endAllCalls()
 {
   sessionMutex_.lock();
   for(auto session : sessions_)
@@ -735,7 +735,7 @@ void CallNegotiation::endAllCalls()
   sessionMutex_.unlock();
 }
 
-void CallNegotiation::stopConnection(quint32 connectionID)
+void SIPState::stopConnection(quint32 connectionID)
 {
   if(connectionID != 0
      && connections_.at(connectionID - 1) != 0
@@ -752,7 +752,7 @@ void CallNegotiation::stopConnection(quint32 connectionID)
   }
 }
 
-void CallNegotiation::uninitSession(std::shared_ptr<SIPLink> link)
+void SIPState::uninitSession(std::shared_ptr<SIPLink> link)
 {
   stopConnection(link->connectionID);
   sessions_.erase(link->callID);
