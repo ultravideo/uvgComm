@@ -1,7 +1,8 @@
 #pragma once
 
 #include "SIPState.h"
-
+#include "connection.h"
+#include "connectionserver.h"
 
 class SIPManager : public QObject
 {
@@ -48,5 +49,20 @@ signals:
 
 private:
 
-  SIPState state_; // SIP
+  struct SIPSession
+  {
+    QString callID;
+    Connection *con;
+    SIPState *state;
+  };
+
+  SIPState state_;
+
+  QMutex sessionMutex_;
+  //callID to session
+  QList<SIPSession*> sessions_;
+
+  SIPStringComposer messageComposer_;
+
+  ConnectionServer server_;
 };

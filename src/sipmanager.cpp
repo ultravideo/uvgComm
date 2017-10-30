@@ -27,9 +27,23 @@ void SIPManager::uninit()
   state_.uninit();
 }
 
-
 QList<QString> SIPManager::startCall(QList<Contact> addresses)
 {
+  QList<QString> callIDs;
+  for(unsigned int i = 0; i < addresses.size(); ++i)
+  {
+    SIPSession* session = new SIPSession;
+    session->con = new Connection(sessions_.size() + 1, true);
+    session->state = new SIPState();
+    //sessions->callID = session->state->???
+    //callIDs.push_back(sessions->callID);
+
+    sessionMutex_.lock();
+    sessions_.push_back(session);
+    sessionMutex_.unlock();
+    qDebug() << "Added a new session:" << sessions_.size();
+  }
+
   return state_.startCall(addresses);
 }
 
