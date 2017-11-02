@@ -57,6 +57,9 @@ private slots:
 private:
 
   SIPState* createSIPState();
+  void sendRequest();
+
+
 
   struct SIPSession
   {
@@ -66,7 +69,7 @@ private:
     bool hostedSession;
   };
 
-  //SIPState state_;
+  void destroySession(SIPSession *session);
 
   QMutex sessionMutex_;
 

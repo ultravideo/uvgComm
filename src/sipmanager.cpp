@@ -16,9 +16,7 @@ void SIPManager::init()
 }
 
 void SIPManager::uninit()
-{
-  //state_.uninit();
-}
+{}
 
 QList<QString> SIPManager::startCall(QList<Contact> addresses)
 {
@@ -40,6 +38,8 @@ QList<QString> SIPManager::startCall(QList<Contact> addresses)
     QObject::connect(session->con, SIGNAL(connected(quint32)),
                      this, SLOT(connectionEstablished(quint32)));
 
+
+    // message is sent only after connection has been established so we know our address
     session->con->establishConnection(addresses.at(i).contactAddress, sipPort_);
 
     sessionMutex_.lock();
@@ -53,7 +53,7 @@ QList<QString> SIPManager::startCall(QList<Contact> addresses)
 
 void SIPManager::acceptCall(QString callID)
 {
-  //state_.acceptCall(callID);
+
 }
 
 void SIPManager::rejectCall(QString callID)
@@ -124,13 +124,52 @@ void SIPManager::connectionEstablished(quint32 sessionID)
            << "To:" << session->con->getPeerAddress().toString();
 
   // generate SDP
-  //sendRequest(INVITE, foundInfo);
+  // sendRequest(INVITE);
 }
 
 void SIPManager::processSIPMessage(QString header, QString content, quint32 sessionID)
 {
   qDebug() << "Connection " << sessionID << "received SIP message. Processing...";
 
+  // parse
+  // check validity
+  // compare against state and update
+  // inform user if necessary
+  // respond
+}
 
 
+void SIPManager::sendRequest()
+{
+  // get info from state
+  // compose message
+  // check message (and maybe parse?)
+  // create and attach SDP if necessary
+  // send string
+}
+
+
+void SIPManager::destroySession(SIPSession* session)
+{
+  if(session != NULL)
+  {
+    if(session->con != NULL)
+    {
+      session->con->exit(0); // stops qthread
+      session->con->stopConnection(); // exits run loop
+      while(session->con->isRunning())
+      {
+        qSleep(5);
+      }
+      delete session->con;
+      session->con = NULL;
+    }
+
+    if(session->state != NULL)
+    {
+      session->state->uninit();
+      delete session->state;
+      session->state = NULL;
+    }
+  }
 }

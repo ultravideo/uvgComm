@@ -37,8 +37,6 @@ public:
   void rejectCall();
   void endCall();
 
-  void endAllCalls();
-
   void setPeerConnection(QString ourAddress, QString theirAddress);
   void setServerConnection(QString hostAddress);
 
@@ -128,21 +126,14 @@ private:
   bool suitableSDP(std::shared_ptr<SDPMessageInfo> peerSDP);
 
   // helper function that composes SIP message and sends it
-  void messageComposition(messageID id, std::shared_ptr<SIPSessionInfo> info);
+  QString messageComposition(messageID id, std::shared_ptr<SIPSessionInfo> info);
   void sendRequest(RequestType request, std::shared_ptr<SIPSessionInfo> info);
   void sendResponse(ResponseType request, std::shared_ptr<SIPSessionInfo> info);
 
   void stopConnection(quint32 connectionID);
-  void uninitSession(std::shared_ptr<SIPSessionInfo> info);
 
   QMutex sessionMutex_;
-  // TODO: identify session with CallID AND tags, not just callID.
-  // this enables splitting a call into multiple dialogs
-  //std::map<QString, std::shared_ptr<SIPSessionInfo>> sessions_;
   std::shared_ptr<SIPSessionInfo> session_;
-
-  QMutex connectionMutex_;
-  std::vector<Connection*> connections_;
 
   SIPStringComposer messageComposer_;
 
