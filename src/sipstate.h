@@ -32,7 +32,7 @@ public:
   void init();
   void uninit();
 
-  QList<QString> startCall(QList<Contact> addresses);
+  QString startCall(Contact address);
   void acceptCall(QString callID);
   void rejectCall(QString callID);
   void endCall(QString callID);

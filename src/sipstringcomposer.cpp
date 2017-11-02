@@ -335,7 +335,24 @@ QString SIPStringComposer::formSDP(const std::shared_ptr<SDPMessageInfo> sdpInfo
      sdpInfo->media.empty()
      )
   {
-    qCritical() << "WARNING: Bad SDPInfo in string formation";
+
+    if(sdpInfo != NULL)
+    {
+      qCritical() << "WARNING: Bad SDPInfo in string formation";
+      qWarning() << sdpInfo->version <<
+          sdpInfo->username<<
+          sdpInfo->host_nettype <<
+          sdpInfo->host_addrtype <<
+          sdpInfo->sessionName <<
+          sdpInfo->hostAddress <<
+          sdpInfo->global_nettype <<
+          sdpInfo->global_addrtype <<
+          sdpInfo->globalAddress;
+    }
+    else
+    {
+      qCritical() << "WARNING: Tried to form SDP message with null pointer";
+    }
     return "";
   }
 

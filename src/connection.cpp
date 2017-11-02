@@ -145,6 +145,7 @@ void Connection::run()
         qDebug() << "Can read line with bytes available:" << socket_->bytesAvailable();
 
         // TODO: maybe not create the data stream everytime.
+        // TODO: Check that the bytes available makes sense and that we are no already processing SIP message.
         QDataStream in(socket_);
         in.setVersion(QDataStream::Qt_4_0);
         QString message;

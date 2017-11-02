@@ -47,6 +47,10 @@ signals:
   // Received call ending signal (BYE)
   void callEnded(QString callID, QString ip);
 
+private slots:
+
+  void processSIPMessage(QString header, QString content, quint32 connectionID);
+
 private:
 
   struct SIPSession
@@ -56,10 +60,10 @@ private:
     SIPState *state;
   };
 
-  SIPState state_;
+  //SIPState state_;
 
   QMutex sessionMutex_;
-  //callID to session
+
   QList<SIPSession*> sessions_;
 
   SIPStringComposer messageComposer_;

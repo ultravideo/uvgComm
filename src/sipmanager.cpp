@@ -5,26 +5,16 @@ SIPManager::SIPManager()
 
 }
 
-
 void SIPManager::init()
 {
-  state_.init();
+  //state_.init();
 
-  // would use newer syntax if it supported qstring
-  QObject::connect(&state_, SIGNAL(incomingINVITE(QString, QString)), this, SIGNAL(incomingINVITE(QString, QString)));
-  QObject::connect(&state_, SIGNAL(callingOurselves(QString, std::shared_ptr<SDPMessageInfo>)),
-                   this, SIGNAL(callingOurselves(QString, std::shared_ptr<SDPMessageInfo>)));
-  QObject::connect(&state_, SIGNAL(callNegotiated(QString, std::shared_ptr<SDPMessageInfo>, std::shared_ptr<SDPMessageInfo>)),
-                   this, SIGNAL(callNegotiated(QString, std::shared_ptr<SDPMessageInfo>, std::shared_ptr<SDPMessageInfo>)));
-  QObject::connect(&state_, SIGNAL(ringing(QString)), this, SIGNAL(ringing(QString)));
-  QObject::connect(&state_, SIGNAL(ourCallAccepted(QString, std::shared_ptr<SDPMessageInfo>, std::shared_ptr<SDPMessageInfo>)),
-                   this, SIGNAL(ourCallAccepted(QString, std::shared_ptr<SDPMessageInfo>, std::shared_ptr<SDPMessageInfo>)));
-  QObject::connect(&state_, SIGNAL(ourCallRejected(QString)), this, SIGNAL(ourCallRejected(QString)));
-  QObject::connect(&state_, SIGNAL(callEnded(QString, QString)), this, SIGNAL(callEnded(QString, QString)));
+
 }
+
 void SIPManager::uninit()
 {
-  state_.uninit();
+  //state_.uninit();
 }
 
 QList<QString> SIPManager::startCall(QList<Contact> addresses)
@@ -34,9 +24,27 @@ QList<QString> SIPManager::startCall(QList<Contact> addresses)
   {
     SIPSession* session = new SIPSession;
     session->con = new Connection(sessions_.size() + 1, true);
+
     session->state = new SIPState();
-    //sessions->callID = session->state->???
-    //callIDs.push_back(sessions->callID);
+    session->state->init();
+
+    // would use newer syntax if it supported qstring
+    QObject::connect(session->state, SIGNAL(incomingINVITE(QString, QString)), this, SIGNAL(incomingINVITE(QString, QString)));
+    QObject::connect(session->state, SIGNAL(callingOurselves(QString, std::shared_ptr<SDPMessageInfo>)),
+                     this, SIGNAL(callingOurselves(QString, std::shared_ptr<SDPMessageInfo>)));
+    QObject::connect(session->state, SIGNAL(callNegotiated(QString, std::shared_ptr<SDPMessageInfo>, std::shared_ptr<SDPMessageInfo>)),
+                     this, SIGNAL(callNegotiated(QString, std::shared_ptr<SDPMessageInfo>, std::shared_ptr<SDPMessageInfo>)));
+    QObject::connect(session->state, SIGNAL(ringing(QString)), this, SIGNAL(ringing(QString)));
+    QObject::connect(session->state, SIGNAL(ourCallAccepted(QString, std::shared_ptr<SDPMessageInfo>, std::shared_ptr<SDPMessageInfo>)),
+                     this, SIGNAL(ourCallAccepted(QString, std::shared_ptr<SDPMessageInfo>, std::shared_ptr<SDPMessageInfo>)));
+    QObject::connect(session->state, SIGNAL(ourCallRejected(QString)), this, SIGNAL(ourCallRejected(QString)));
+    QObject::connect(session->state, SIGNAL(callEnded(QString, QString)), this, SIGNAL(callEnded(QString, QString)));
+
+    session->callID = session->state->startCall(addresses.at(i));
+    callIDs.push_back(session->callID);
+
+    QObject::connect(session->con, SIGNAL(messageAvailable(QString, QString, quint32)),
+                     this, SLOT(processSIPMessage(QString, QString, quint32)));
 
     sessionMutex_.lock();
     sessions_.push_back(session);
@@ -44,25 +52,33 @@ QList<QString> SIPManager::startCall(QList<Contact> addresses)
     qDebug() << "Added a new session:" << sessions_.size();
   }
 
-  return state_.startCall(addresses);
+  return callIDs;
 }
 
 void SIPManager::acceptCall(QString callID)
 {
-  state_.acceptCall(callID);
+  //state_.acceptCall(callID);
 }
 
 void SIPManager::rejectCall(QString callID)
 {
-  state_.rejectCall(callID);
+  //state_.rejectCall(callID);
 }
 
 void SIPManager::endCall(QString callID)
 {
-  state_.endCall(callID);
+  //state_.endCall(callID);
 }
 
 void SIPManager::endAllCalls()
 {
-  state_.endAllCalls();
+  //state_.endAllCalls();
+}
+
+void SIPManager::processSIPMessage(QString header, QString content, quint32 connectionID)
+{
+  qDebug() << "Connection " << connectionID << "received SIP message. Processing...";
+
+
+
 }

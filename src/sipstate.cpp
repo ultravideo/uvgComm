@@ -88,6 +88,10 @@ std::shared_ptr<SDPMessageInfo> SIPState::generateSDP(QString localAddress)
 
   std::shared_ptr<SDPMessageInfo> sdp = parseSDPMessage(sdp_str);
 
+  if(sdp == NULL)
+  {
+    qWarning() << "WARNING: Failed to generate SDP info fomr following sdp message:" << sdp_str;
+  }
   return sdp;
 }
 
@@ -106,56 +110,45 @@ void SIPState::endCall(QString callID)
   sessionMutex_.lock();
 }
 
-QList<QString> SIPState::startCall(QList<Contact> addresses)
+QString SIPState::startCall(Contact address)
 {
-  Q_ASSERT(addresses.size() != 0);
+  qDebug() << "Starting call negotiation with " << address.name << "at" << address.contactAddress;
 
-  QList<QString> callIDs;
-  qDebug() << "Starting call negotiation with " << addresses.size() << "addresses";
+  std::shared_ptr<SIPState::SIPSessionInfo> info = newSIPSessionInfo();
+  Connection* con = new Connection(connections_.size() + 1, true);
+  connectionMutex_.lock();
+  connections_.push_back(con);
+  info->connectionID = con->getID();
+  connectionMutex_.unlock();
 
-  // TODO create a conference with these participants
-  for (int i = 0; i < addresses.size(); ++i)
+  qDebug() << "Creating connection with ID:" << info->connectionID;
+
+  QObject::connect(con, SIGNAL(messageAvailable(QString, QString, quint32)),
+                   this, SLOT(processMessage(QString, QString, quint32)));
+
+  QObject::connect(con, SIGNAL(connected(quint32)),
+                   this, SLOT(connectionEstablished(quint32)));
+
+  info->contact = address;
+
+  if(info->contact.name.isEmpty())
   {
-    qDebug() << "Creating call number:" << i;
-    std::shared_ptr<SIPState::SIPSessionInfo> info = newSIPSessionInfo();
-    Connection* con = new Connection(connections_.size() + 1, true);
-    connectionMutex_.lock();
-    connections_.push_back(con);
-    info->connectionID = con->getID();
-    connectionMutex_.unlock();
-
-    qDebug() << "Creating connection with ID:" << info->connectionID;
-
-    QObject::connect(con, SIGNAL(messageAvailable(QString, QString, quint32)),
-                     this, SLOT(processMessage(QString, QString, quint32)));
-
-    QObject::connect(con, SIGNAL(connected(quint32)),
-                     this, SLOT(connectionEstablished(quint32)));
-
-    QString address = addresses.at(i).contactAddress;
-
-    info->contact = addresses.at(i);
-
-    if(info->contact.name.isEmpty())
-    {
-      qWarning() << "Warning: No name was given for callee";
-      info->contact.name = "Unknown";
-    }
-
-    if(info->contact.username.isEmpty())
-    {
-      qWarning() << "Warning: No username was given for callee";
-      info->contact.username = "unknown";
-    }
-
-    info->remoteTag = "";
-
-    con->establishConnection(address, sipPort_);
-    // message is sent only after connection has been established so we know our address
-
-    callIDs.append(info->callID);
+    qWarning() << "Warning: No name was given for callee";
+    info->contact.name = "Unknown";
   }
-  return callIDs;
+
+  if(info->contact.username.isEmpty())
+  {
+    qWarning() << "Warning: No username was given for callee";
+    info->contact.username = "unknown";
+  }
+
+  info->remoteTag = "";
+
+  con->establishConnection(address.contactAddress, sipPort_);
+  // message is sent only after connection has been established so we know our address
+
+  return info->callID;
 }
 
 void SIPState::acceptCall(QString callID)
