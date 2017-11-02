@@ -33,11 +33,14 @@ public:
   void uninit();
 
   QString startCall(Contact address);
-  void acceptCall(QString callID);
-  void rejectCall(QString callID);
-  void endCall(QString callID);
+  void acceptCall();
+  void rejectCall();
+  void endCall();
 
   void endAllCalls();
+
+  void setPeerConnection(QString ourAddress, QString theirAddress);
+  void setServerConnection(QString hostAddress);
 
 signals:
 
@@ -68,15 +71,8 @@ signals:
 
 private slots:
 
-  // somebody has established a TCP connection with us.
-  void receiveConnection(Connection* con);
-
   // We have received a message from one of our connection.
   void processMessage(QString header, QString content, quint32 connectionID);
-
-  // connection has been established. This enables for us to get the needed info
-  // to form a SIP message
-  void connectionEstablished(quint32 connectionID);
 
 private:
 
@@ -142,7 +138,8 @@ private:
   QMutex sessionMutex_;
   // TODO: identify session with CallID AND tags, not just callID.
   // this enables splitting a call into multiple dialogs
-  std::map<QString, std::shared_ptr<SIPSessionInfo>> sessions_;
+  //std::map<QString, std::shared_ptr<SIPSessionInfo>> sessions_;
+  std::shared_ptr<SIPSessionInfo> session_;
 
   QMutex connectionMutex_;
   std::vector<Connection*> connections_;
@@ -151,10 +148,6 @@ private:
 
   QString localName_;
   QString localUsername_;
-
-  // listens to incoming tcp connections on sipPort_
-  //ConnectionServer server_;
-
 
   uint16_t firstAvailablePort_;
 };

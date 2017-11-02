@@ -50,9 +50,9 @@ signals:
 private slots:
   // connection has been established. This enables for us to get the needed info
   // to form a SIP message
-  void connectionEstablished(quint32 connectionID);
+  void connectionEstablished(quint32 sessionID);
   void receiveTCPConnection(Connection* con);
-  void processSIPMessage(QString header, QString content, quint32 connectionID);
+  void processSIPMessage(QString header, QString content, quint32 sessionID);
 
 private:
 
@@ -63,6 +63,7 @@ private:
     QString callID;
     Connection *con;
     SIPState *state;
+    bool hostedSession;
   };
 
   //SIPState state_;

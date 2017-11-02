@@ -29,7 +29,7 @@ QList<QString> SIPManager::startCall(QList<Contact> addresses)
     session->con = new Connection(sessions_.size() + 1, true);
     session->con->setID(sessions_.size() + 1);
     session->state = createSIPState();
-
+    session->hostedSession = false;
 
     session->callID = session->state->startCall(addresses.at(i));
     callIDs.push_back(session->callID);
@@ -103,15 +103,33 @@ void SIPManager::receiveTCPConnection(Connection* con)
 
 // connection has been established. This enables for us to get the needed info
 // to form a SIP message
-void SIPManager::connectionEstablished(quint32 connectionID)
+void SIPManager::connectionEstablished(quint32 sessionID)
 {
-  qDebug() << "Connection" << connectionID << "connected.";
+  if(sessionID == 0 || sessionID> sessions_.size())
+  {
+    qDebug() << "WARNING: Missing session for connected session";
+  }
+  SIPSession* session = sessions_.at(sessionID - 1);
+  if(session->hostedSession)
+  {
+    session->state->setPeerConnection(session->con->getLocalAddress().toString(),
+                                      session->con->getPeerAddress().toString());
+  }
+  else
+  {
+    session->state->setServerConnection("");
+  }
+  qDebug() << "Connection" << sessionID << "connected."
+           << "From:" << session->con->getLocalAddress().toString()
+           << "To:" << session->con->getPeerAddress().toString();
+
+  // generate SDP
+  //sendRequest(INVITE, foundInfo);
 }
 
-
-void SIPManager::processSIPMessage(QString header, QString content, quint32 connectionID)
+void SIPManager::processSIPMessage(QString header, QString content, quint32 sessionID)
 {
-  qDebug() << "Connection " << connectionID << "received SIP message. Processing...";
+  qDebug() << "Connection " << sessionID << "received SIP message. Processing...";
 
 
 
