@@ -20,7 +20,7 @@ public:
   }
 
   // establishes a new TCP connection
-  void establishConnection(QString &destination, uint16_t port);
+  void establishConnection(QString const &destination, uint16_t port);
 
   // when a server receives a TCP connection,
   // use this to give the socket to Connection

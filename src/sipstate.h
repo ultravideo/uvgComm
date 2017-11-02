@@ -149,13 +149,11 @@ private:
 
   SIPStringComposer messageComposer_;
 
-  uint16_t sipPort_;
-
   QString localName_;
   QString localUsername_;
 
   // listens to incoming tcp connections on sipPort_
-  ConnectionServer server_;
+  //ConnectionServer server_;
 
 
   uint16_t firstAvailablePort_;

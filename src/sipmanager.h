@@ -48,10 +48,15 @@ signals:
   void callEnded(QString callID, QString ip);
 
 private slots:
-
+  // connection has been established. This enables for us to get the needed info
+  // to form a SIP message
+  void connectionEstablished(quint32 connectionID);
+  void receiveTCPConnection(Connection* con);
   void processSIPMessage(QString header, QString content, quint32 connectionID);
 
 private:
+
+  SIPState* createSIPState();
 
   struct SIPSession
   {
@@ -69,4 +74,5 @@ private:
   SIPStringComposer messageComposer_;
 
   ConnectionServer server_;
+  uint16_t sipPort_;
 };

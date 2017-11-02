@@ -29,7 +29,7 @@ void Connection::init()
   start();
 }
 
-void Connection::establishConnection(QString &destination, uint16_t port)
+void Connection::establishConnection(const QString &destination, uint16_t port)
 {
   qDebug() << "Establishing connection to" << destination << ":" << port;
 

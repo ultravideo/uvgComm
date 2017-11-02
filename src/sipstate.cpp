@@ -19,7 +19,6 @@ const uint16_t STARTPORT = 18888;
 SIPState::SIPState():
   sessions_(),
   messageComposer_(),
-  sipPort_(5060), // default for sip, use 5061 for tls encrypted
   localName_("Anonymous"),
   firstAvailablePort_(STARTPORT)
 {}
@@ -30,7 +29,7 @@ SIPState::~SIPState()
 void SIPState::init()
 {
   qsrand(1);
-
+/*
   QObject::connect(&server_, SIGNAL(newConnection(Connection*)),
                    this, SLOT(receiveConnection(Connection*)));
 
@@ -38,7 +37,7 @@ void SIPState::init()
   // TODO: maybe record the incoming connection address and choose used network interface address
   // according to that
   server_.listen(QHostAddress("0.0.0.0"), sipPort_);
-
+*/
   QSettings settings;
   QString localName = settings.value("local/Name").toString();
   QString localUsername = settings.value("local/Username").toString();
@@ -115,20 +114,20 @@ QString SIPState::startCall(Contact address)
   qDebug() << "Starting call negotiation with " << address.name << "at" << address.contactAddress;
 
   std::shared_ptr<SIPState::SIPSessionInfo> info = newSIPSessionInfo();
-  Connection* con = new Connection(connections_.size() + 1, true);
+  //Connection* con = new Connection(connections_.size() + 1, true);
   connectionMutex_.lock();
-  connections_.push_back(con);
-  info->connectionID = con->getID();
+  //connections_.push_back(con);
+  //info->connectionID = con->getID();
   connectionMutex_.unlock();
 
   qDebug() << "Creating connection with ID:" << info->connectionID;
-
+/*
   QObject::connect(con, SIGNAL(messageAvailable(QString, QString, quint32)),
                    this, SLOT(processMessage(QString, QString, quint32)));
 
   QObject::connect(con, SIGNAL(connected(quint32)),
                    this, SLOT(connectionEstablished(quint32)));
-
+*/
   info->contact = address;
 
   if(info->contact.name.isEmpty())
@@ -145,7 +144,7 @@ QString SIPState::startCall(Contact address)
 
   info->remoteTag = "";
 
-  con->establishConnection(address.contactAddress, sipPort_);
+  //con->establishConnection(address.contactAddress, sipPort_);
   // message is sent only after connection has been established so we know our address
 
   return info->callID;
