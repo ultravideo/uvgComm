@@ -14,13 +14,12 @@ const uint16_t CALLIDLENGTH = 16;
 const uint16_t TAGLENGTH = 16;
 const uint16_t BRANCHLENGTH = 16;
 const uint16_t MAXFORWARDS = 70; // the recommmended value is 70
-const uint16_t STARTPORT = 18888;
+
 
 SIPState::SIPState():
   session_(),
   messageComposer_(),
-  localName_("Anonymous"),
-  firstAvailablePort_(STARTPORT)
+  localName_("Anonymous")
 {}
 
 SIPState::~SIPState()
@@ -55,28 +54,6 @@ void SIPState::init()
 
 void SIPState::uninit()
 {}
-
-std::shared_ptr<SDPMessageInfo> SIPState::generateSDP(QString localAddress)
-{
-  // TODO: Get suitable SDP from media manager
-  QString sdp_str = "v=0 \r\n"
-                   "o=" + localUsername_ + " 1234 12345 IN IP4 " + localAddress + "\r\n"
-                   "s=Kvazzup\r\n"
-                   "t=0 0\r\n"
-                   "c=IN IP4 " + localAddress + "\r\n"
-                   "m=video " + QString::number(firstAvailablePort_) + " RTP/AVP 97\r\n"
-                   "m=audio " + QString::number(firstAvailablePort_ + 2) + " RTP/AVP 96\r\n";
-
-  firstAvailablePort_ += 4; // video and audio + rtcp for both
-
-  std::shared_ptr<SDPMessageInfo> sdp = parseSDPMessage(sdp_str);
-
-  if(sdp == NULL)
-  {
-    qWarning() << "WARNING: Failed to generate SDP info fomr following sdp message:" << sdp_str;
-  }
-  return sdp;
-}
 
 void SIPState::endCall()
 {
@@ -149,26 +126,26 @@ void SIPState::sendRequest(RequestType request, std::shared_ptr<SIPSessionInfo> 
 {
   info->originalRequest = request;
   messageID id = messageComposer_.startSIPRequest(request);
-
+/*
   if(request == INVITE)
   {
     QString sdp_str = messageComposer_.formSDP(info->localSDP);
     messageComposer_.addSDP(id, sdp_str);
   }
-
+*/
   messageComposition(id, info);
 }
 
 void SIPState::sendResponse(ResponseType response, std::shared_ptr<SIPSessionInfo> info)
 {
   messageID id = messageComposer_.startSIPResponse(response);
-
+/*
   if(info->originalRequest == INVITE && response == OK_200)
   {
     QString sdp_str = messageComposer_.formSDP(info->localSDP);
     messageComposer_.addSDP(id, sdp_str);
   }
-
+*/
   messageComposition(id, info);
 }
 
@@ -186,7 +163,7 @@ void SIPState::processMessage(QString header, QString content,
       //sendResponse(MALFORMED_400, ); TODO: get info and attempted request from somewhere
       return;
     }
-
+/*
     std::shared_ptr<SDPMessageInfo> sdpInfo = NULL;
     if(info->contentType == "application/sdp" && content.size() != 0)
     {
@@ -197,7 +174,7 @@ void SIPState::processMessage(QString header, QString content,
         return;
         //sendResponse(MALFORMED_400, );
       }
-    }
+    }*/
 
     qDebug() << "Message parsed";
 
@@ -208,7 +185,7 @@ void SIPState::processMessage(QString header, QString content,
       if(compareSIPSessionInfo(info, connectionID))
       {
         newSIPSessionInfoFromMessage(info, connectionID);
-
+/*
         if(info->request != NOREQUEST && info->response == NORESPONSE)
         {
           processRequest(info, sdpInfo, connectionID);
@@ -220,7 +197,7 @@ void SIPState::processMessage(QString header, QString content,
         else
         {
           qWarning() << "WARNING: No response or request indicated in parsing";
-        }
+        }*/
       }
       else
       {
@@ -299,12 +276,12 @@ void SIPState::newSIPSessionInfoFromMessage(std::shared_ptr<SIPMessageInfo> mInf
 
   info->connectionID = connectionID;
   info->originalRequest = mInfo->originalRequest;
-
+/*
   if(info->localSDP == NULL)
   {
     info->localSDP = generateSDP(mInfo->localLocation);
   }
-
+*/
   // TODO: make user the sdp is checked somewhere.
   session_ = info;
 }
@@ -410,7 +387,6 @@ bool SIPState::compareSIPSessionInfo(std::shared_ptr<SIPMessageInfo> mInfo,
 }
 
 void SIPState::processRequest(std::shared_ptr<SIPMessageInfo> mInfo,
-                                     std::shared_ptr<SDPMessageInfo> peerSDP,
                                      quint32 connectionID)
 {
   switch(mInfo->request)
@@ -418,20 +394,20 @@ void SIPState::processRequest(std::shared_ptr<SIPMessageInfo> mInfo,
     case INVITE:
     {
       qDebug() << "Found INVITE";
-
+/*
       if(peerSDP == NULL)
       {
         qDebug() << "No SDP received in INVITE";
         // TODO: send malformed request
         return;
-      }
+      }*/
       if(session_->contact.contactAddress
          == session_->localAddress.toString())
       {
-        emit callingOurselves(mInfo->callID, peerSDP);
+        //emit callingOurselves(mInfo->callID, peerSDP);
       }
       else
-      {
+      {/*
         if(peerSDP)
         {
           if(suitableSDP(peerSDP))
@@ -450,13 +426,14 @@ void SIPState::processRequest(std::shared_ptr<SIPMessageInfo> mInfo,
         {
           qDebug() << "No sdpInfo received in request!";
           sendResponse(MALFORMED_400, session_);
-        }
+        }*/
       }
       break;
     }
     case ACK:
     {
       qDebug() << "Found ACK";
+      /*
       if(session_->peerSDP)
       {
         emit callNegotiated(mInfo->callID, session_->peerSDP,
@@ -465,7 +442,7 @@ void SIPState::processRequest(std::shared_ptr<SIPMessageInfo> mInfo,
       else
       {
         qDebug() << "Got ACK without a previous SDP";
-      }
+      }*/
       break;
     }
     case BYE:
@@ -485,8 +462,7 @@ void SIPState::processRequest(std::shared_ptr<SIPMessageInfo> mInfo,
   }
 }
 
-void SIPState::processResponse(std::shared_ptr<SIPMessageInfo> mInfo,
-                                      std::shared_ptr<SDPMessageInfo> peerSDP)
+void SIPState::processResponse(std::shared_ptr<SIPMessageInfo> mInfo)
 {
   switch(mInfo->response)
   {
@@ -495,6 +471,7 @@ void SIPState::processResponse(std::shared_ptr<SIPMessageInfo> mInfo,
       qDebug() << "Found 200 OK";
       if(session_->originalRequest == INVITE)
       {
+        /*
         if(peerSDP)
         {
           if(suitableSDP(peerSDP))
@@ -516,7 +493,7 @@ void SIPState::processResponse(std::shared_ptr<SIPMessageInfo> mInfo,
           qDebug() << "No sdpInfo received in INVITE OK response!";
           sendResponse(MALFORMED_400, session_);
         }
-
+*/
       }
       else if(session_->originalRequest == BYE)
       {
@@ -551,35 +528,6 @@ void SIPState::processResponse(std::shared_ptr<SIPMessageInfo> mInfo,
       qWarning() << "WARNING: Response processing not implemented!";
     }
   }
-}
-
-bool SIPState::suitableSDP(std::shared_ptr<SDPMessageInfo> peerSDP)
-{
-  Q_ASSERT(peerSDP);
-  if(peerSDP == NULL)
-  {
-    return false;
-  }
-
-  // TODO check codec
-
-  //checks if the stream has both audio and video. TODO: Both are actually not necessary
-  bool audio = false;
-  bool video = false;
-
-  for(auto media : peerSDP->media)
-  {
-    if(media.type == "video")
-    {
-      video = true;
-    }
-    if(media.type == "audio")
-    {
-      audio = true;
-    }
-  }
-
-  return audio && video;
 }
 
 

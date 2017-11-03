@@ -10,8 +10,6 @@ void SIPManager::init()
                    this, SLOT(receiveTCPConnection(Connection*)));
 
   // listen to everything
-  // TODO: maybe record the incoming connection address and choose used network interface address
-  // according to that
   server_.listen(QHostAddress("0.0.0.0"), sipPort_);
 }
 
@@ -133,6 +131,7 @@ void SIPManager::processSIPMessage(QString header, QString content, quint32 sess
 
   // parse
   // check validity
+  // if invite or response to invite, check SDP
   // compare against state and update
   // inform user if necessary
   // respond

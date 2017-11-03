@@ -11,7 +11,6 @@
 #include <memory>
 
 struct SIPMessageInfo;
-struct SDPMessageInfo;
 class Connection;
 
 struct Contact
@@ -44,22 +43,20 @@ signals:
 
   // caller wants to establish a call.
   // Ask use if it is and call accept or reject call
-  void incomingINVITE(QString CallID, QString caller);
+  void incomingINVITE(QString caller);
 
   // we are calling ourselves.
   // TODO: Current implementation ceases the negotiation and just starts the call.
-  void callingOurselves(QString callID, std::shared_ptr<SDPMessageInfo> info);
+  void callingOurselves(QString callID);
 
   // their call which we have accepted has finished negotiating. Call can now start.
-  void callNegotiated(QString callID, std::shared_ptr<SDPMessageInfo> peerInfo,
-                      std::shared_ptr<SDPMessageInfo> localInfo);
+  void callNegotiated(QString callID);
 
   // Local call is waiting for user input at remote end
   void ringing(QString callID);
 
   // Call iniated locally has been accepted by peer. Call can now start.
-  void ourCallAccepted(QString callID, std::shared_ptr<SDPMessageInfo> peerInfo,
-                       std::shared_ptr<SDPMessageInfo> localInfo);
+  void ourCallAccepted(QString callID);
 
   // Remote rejected local INVITE
   void ourCallRejected(QString CallID);
@@ -88,19 +85,12 @@ private:
     QString remoteTag;
     QHostAddress localAddress;
 
-    std::shared_ptr<SDPMessageInfo> localSDP;
-    std::shared_ptr<SDPMessageInfo> peerSDP;
-
     uint32_t connectionID;
 
     RequestType originalRequest;
 
     QList<uint16_t> suggestedPorts_;
-
-    bool finalSDP;
   };
-
-  std::shared_ptr<SDPMessageInfo> generateSDP(QString localAddress);
 
   std::shared_ptr<SIPSessionInfo> newSIPSessionInfo();
 
@@ -116,21 +106,14 @@ private:
   QList<QHostAddress> parseIPAddress(QString address);
 
   void processRequest(std::shared_ptr<SIPMessageInfo> mInfo,
-                      std::shared_ptr<SDPMessageInfo> peerSDP,
                       quint32 connectionID);
 
-  void processResponse(std::shared_ptr<SIPMessageInfo> mInfo,
-                       std::shared_ptr<SDPMessageInfo> peerSDP);
-
-  // checks that received SDP is what we are expecting.
-  bool suitableSDP(std::shared_ptr<SDPMessageInfo> peerSDP);
+  void processResponse(std::shared_ptr<SIPMessageInfo> mInfo);
 
   // helper function that composes SIP message and sends it
   QString messageComposition(messageID id, std::shared_ptr<SIPSessionInfo> info);
   void sendRequest(RequestType request, std::shared_ptr<SIPSessionInfo> info);
   void sendResponse(ResponseType request, std::shared_ptr<SIPSessionInfo> info);
-
-  void stopConnection(quint32 connectionID);
 
   QMutex sessionMutex_;
   std::shared_ptr<SIPSessionInfo> session_;
@@ -139,6 +122,4 @@ private:
 
   QString localName_;
   QString localUsername_;
-
-  uint16_t firstAvailablePort_;
 };

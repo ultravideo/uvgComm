@@ -1,8 +1,10 @@
 #pragma once
 
 #include "SIPState.h"
+#include "sdpstate.h"
 #include "connection.h"
 #include "connectionserver.h"
+
 
 class SIPManager : public QObject
 {
@@ -75,6 +77,7 @@ private:
 
   QList<SIPSession*> sessions_;
 
+  SDPState sdp_;
   SIPStringComposer messageComposer_;
 
   ConnectionServer server_;
