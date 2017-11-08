@@ -129,24 +129,33 @@ void SIPManager::processSIPMessage(QString header, QString content, quint32 sess
 {
   qDebug() << "Connection " << sessionID << "received SIP message. Processing...";
 
-  // parse
-  // check validity
+  // parse to struct of fields
+  // check if all fields are present
+  // convert struct to routingInfo and SIPMesgInfo
+  // check validity of both
+  // check if callID matches
+  // check if we are the intended destination and sender is who it should be
   // if invite or response to invite, check SDP
   // compare against state and update
   // inform user if necessary
   // respond
-}
 
+
+
+
+
+}
 
 void SIPManager::sendRequest()
 {
   // get info from state
-  // compose message
+  // check validity of routingInfo and SIPMesgInfo
+  // convert routingInfo and SIPMesgInfo to struct fields
+  // check that all fields are present
   // check message (and maybe parse?)
   // create and attach SDP if necessary
   // send string
 }
-
 
 void SIPManager::destroySession(SIPSession* session)
 {

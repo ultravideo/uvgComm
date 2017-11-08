@@ -97,7 +97,6 @@ void SIPState::rejectCall()
   sendResponse(DECLINE_603, session_);
 }
 
-
 void SIPState::setPeerConnection(QString ourAddress, QString theirAddress)
 {
 
@@ -382,7 +381,6 @@ bool SIPState::compareSIPSessionInfo(std::shared_ptr<SIPMessageInfo> mInfo,
     return false;
   }
 
-
   return true;
 }
 
@@ -530,7 +528,6 @@ void SIPState::processResponse(std::shared_ptr<SIPMessageInfo> mInfo)
   }
 }
 
-
 QList<QHostAddress> parseIPAddress(QString address)
 {
   QList<QHostAddress> ipAddresses;
@@ -551,4 +548,3 @@ QList<QHostAddress> parseIPAddress(QString address)
   }
   return ipAddresses;
 }
-
