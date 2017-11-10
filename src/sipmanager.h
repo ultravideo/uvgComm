@@ -12,6 +12,7 @@ struct Contact
   QString remoteAddress;
 };
 
+class SIPRouting;
 
 class SIPManager : public QObject
 {
@@ -73,8 +74,9 @@ private:
   struct SIPSession
   {
     QString callID;
-    Connection *con;
-    SIPState *state;
+    Connection* con;
+    SIPState* state;
+    SIPRouting* routing;
     bool hostedSession;
   };
 
@@ -89,4 +91,7 @@ private:
 
   ConnectionServer server_;
   uint16_t sipPort_;
+
+  QString localName_;
+  QString localUsername_;
 };

@@ -29,27 +29,7 @@ void SIPState::init()
 {
   qsrand(1);
 
-  QSettings settings;
-  QString localName = settings.value("local/Name").toString();
-  QString localUsername = settings.value("local/Username").toString();
 
-  if(!localName.isEmpty())
-  {
-    localName_ = localName;
-  }
-  else
-  {
-    localName_ = "Anonymous";
-  }
-
-  if(!localUsername.isEmpty())
-  {
-    localUsername_ = localUsername;
-  }
-  else
-  {
-    localUsername_ = "anonymous";
-  }
 }
 
 void SIPState::uninit()
@@ -95,16 +75,6 @@ void SIPState::acceptCall()
 void SIPState::rejectCall()
 {
   sendResponse(DECLINE_603, session_);
-}
-
-void SIPState::setPeerConnection(QString ourAddress, QString theirAddress)
-{
-
-}
-
-void SIPState::setServerConnection(QString hostAddress)
-{
-  qWarning() << "WARNING: Servered connection not implemented yet.";
 }
 
 QString SIPState::messageComposition(messageID id, std::shared_ptr<SIPSessionInfo> info)

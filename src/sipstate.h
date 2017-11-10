@@ -28,9 +28,6 @@ public:
   void rejectCall();
   void endCall();
 
-  void setPeerConnection(QString ourAddress, QString theirAddress);
-  void setServerConnection(QString hostAddress);
-
 signals:
 
   // caller wants to establish a call.

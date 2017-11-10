@@ -1,7 +1,11 @@
 #include "sipmanager.h"
 
+#include "siprouting.h"
+
 SIPManager::SIPManager():
-  sipPort_(5060) // default for SIP, use 5061 for tls encrypted
+  sipPort_(5060), // default for SIP, use 5061 for tls encrypted
+  localName_(""),
+  localUsername_("")
 {}
 
 void SIPManager::init()
@@ -11,6 +15,29 @@ void SIPManager::init()
 
   // listen to everything
   server_.listen(QHostAddress("0.0.0.0"), sipPort_);
+
+
+  QSettings settings;
+  QString localName = settings.value("local/Name").toString();
+  QString localUsername = settings.value("local/Username").toString();
+
+  if(!localName.isEmpty())
+  {
+    localName_ = localName;
+  }
+  else
+  {
+    localName_ = "Anonymous";
+  }
+
+  if(!localUsername.isEmpty())
+  {
+    localUsername_ = localUsername;
+  }
+  else
+  {
+    localUsername_ = "anonymous";
+  }
 }
 
 void SIPManager::uninit()
@@ -21,10 +48,15 @@ QList<QString> SIPManager::startCall(QList<Contact> addresses)
   QList<QString> callIDs;
   for(unsigned int i = 0; i < addresses.size(); ++i)
   {
+
     SIPSession* session = new SIPSession;
+
     session->con = new Connection(sessions_.size() + 1, true);
     session->con->setID(sessions_.size() + 1);
+
     session->state = createSIPState();
+
+    session->routing = new SIPRouting;
     session->hostedSession = false;
 
     session->callID = session->state->startCall();
@@ -35,7 +67,6 @@ QList<QString> SIPManager::startCall(QList<Contact> addresses)
 
     QObject::connect(session->con, SIGNAL(connected(quint32)),
                      this, SLOT(connectionEstablished(quint32)));
-
 
     // message is sent only after connection has been established so we know our address
     session->con->establishConnection(addresses.at(i).remoteAddress, sipPort_);
@@ -106,16 +137,29 @@ void SIPManager::connectionEstablished(quint32 sessionID)
   if(sessionID == 0 || sessionID> sessions_.size())
   {
     qDebug() << "WARNING: Missing session for connected session";
+    return;
   }
   SIPSession* session = sessions_.at(sessionID - 1);
+
+
   if(session->hostedSession)
   {
-    session->state->setPeerConnection(session->con->getLocalAddress().toString(),
-                                      session->con->getPeerAddress().toString());
+    // TODO: get server
+    qDebug() << "Forming connection through SIP server";
+
+    session->routing->initLocal(localUsername_,
+                                session->con->getLocalAddress().toString(),
+                                session->con->getLocalAddress().toString(),
+                                session->con->getLocalAddress().toString());
   }
   else
   {
-    session->state->setServerConnection("");
+    qDebug() << "Forming a peer-to-peer SIP connection. Firewall needs to be open for this";
+
+    session->routing->initLocal(localUsername_,
+                                session->con->getLocalAddress().toString(),
+                                session->con->getLocalAddress().toString(),
+                                session->con->getLocalAddress().toString());
   }
   qDebug() << "Connection" << sessionID << "connected."
            << "From:" << session->con->getLocalAddress().toString()
@@ -145,6 +189,7 @@ void SIPManager::processSIPMessage(QString header, QString content, quint32 sess
 void SIPManager::sendRequest()
 {
   // get routinginfo for
+
   // get info from state
   // check validity of routingInfo and SIPMesgInfo
   // convert routingInfo and SIPMesgInfo to struct fields
