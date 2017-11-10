@@ -1,8 +1,8 @@
-#include "sipconnection.h"
+#include "siprouting.h"
 
 #include <QDebug>
 
-SIPConnection::SIPConnection():
+SIPRouting::SIPRouting():
   localUsername_(""),
   localHost_(""),
   localDirectAddress_(""),
@@ -13,20 +13,20 @@ SIPConnection::SIPConnection():
   previousSentRequest_(NULL)
 {}
 
-void SIPConnection::initLocal(QString localUsername, QString localHost, QString localAddress, QString sessionHost)
+void SIPRouting::initLocal(QString localUsername, QString localHost, QString localAddress, QString sessionHost)
 {
   localUsername_ = localUsername;
   localHost_ = localHost;       // name of our sip server
   localDirectAddress_ = localAddress;
 }
 
-void SIPConnection::initRemote(QString remoteUsername, QString remoteHost)
+void SIPRouting::initRemote(QString remoteUsername, QString remoteHost)
 {
   remoteUsername_ = remoteUsername;
   remoteHost_ = remoteHost;
 }
 
-bool SIPConnection::incomingSIPRequest(std::shared_ptr<SIPRouting> routing)
+bool SIPRouting::incomingSIPRequest(std::shared_ptr<SIPRoutingInfo> routing)
 {
   if(remoteUsername_ == "" && remoteHost_ == "")
   {
@@ -48,7 +48,7 @@ bool SIPConnection::incomingSIPRequest(std::shared_ptr<SIPRouting> routing)
   return true;
 }
 
-bool SIPConnection::incomingSIPResponse(std::shared_ptr<SIPRouting> routing)
+bool SIPRouting::incomingSIPResponse(std::shared_ptr<SIPRoutingInfo> routing)
 {
   if(previousSentRequest_ == NULL)
   {
@@ -80,7 +80,7 @@ bool SIPConnection::incomingSIPResponse(std::shared_ptr<SIPRouting> routing)
   remoteDirectAddress_ = routing->contactAddress;
 }
 
-std::shared_ptr<SIPRouting> SIPConnection::requestRouting(QString &directAddress)
+std::shared_ptr<SIPRoutingInfo> SIPRouting::requestRouting(QString &directAddress)
 {
   if(localUsername_.isEmpty() ||
      localHost_.isEmpty() ||
@@ -93,7 +93,7 @@ std::shared_ptr<SIPRouting> SIPConnection::requestRouting(QString &directAddress
     return NULL;
   }
 
-  std::shared_ptr<SIPRouting> newRouting(new SIPRouting);
+  std::shared_ptr<SIPRoutingInfo> newRouting(new SIPRoutingInfo);
 
   newRouting->senderUsername = localUsername_;
   newRouting->senderHost = localHost_;
@@ -114,7 +114,7 @@ std::shared_ptr<SIPRouting> SIPConnection::requestRouting(QString &directAddress
 }
 
 // copies the fields from previous request
-std::shared_ptr<SIPRouting> SIPConnection::responseRouting()
+std::shared_ptr<SIPRoutingInfo> SIPRouting::responseRouting()
 {
   Q_ASSERT(previousReceivedRequest_);
   if(!previousReceivedRequest_)
@@ -124,7 +124,7 @@ std::shared_ptr<SIPRouting> SIPConnection::responseRouting()
     return NULL;
   }
 
-  std::shared_ptr<SIPRouting> newRouting(new SIPRouting);
+  std::shared_ptr<SIPRoutingInfo> newRouting(new SIPRoutingInfo);
   //everything expect contact field are copied from received request
   *newRouting = *previousReceivedRequest_;
   newRouting->contactAddress = localDirectAddress_;

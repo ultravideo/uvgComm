@@ -5,7 +5,7 @@
 
 #include <memory>
 
-struct SIPRouting
+struct SIPRoutingInfo
 {
   //what about request vs response?
 
@@ -23,10 +23,10 @@ struct SIPRouting
 // This class handles routing information for one SIP dialog.
 // Use this class to get necessary info for via, to, from, contact etc fields in SIP message
 
-class SIPConnection
+class SIPRouting
 {
 public:
-  SIPConnection();
+  SIPRouting();
 
   // for peer-to-peer calls, use ip addresses as both host
   void initLocal(QString localUsername, QString sessionHost, QString localAddress, QString localHost);
@@ -37,15 +37,15 @@ public:
   // returns whether the incoming info is valid.
   // Remember to process request in order of arrival
   // Does not check if we are allowed to receive requests from this user.
-  bool incomingSIPRequest(std::shared_ptr<SIPRouting> routing);
-  bool incomingSIPResponse(std::shared_ptr<SIPRouting> routing);
+  bool incomingSIPRequest(std::shared_ptr<SIPRoutingInfo> routing);
+  bool incomingSIPResponse(std::shared_ptr<SIPRoutingInfo> routing);
 
   // returns values to be used in SIP request. Sets directaddress if we have it.
-  std::shared_ptr<SIPRouting> requestRouting(QString& directAddress);
+  std::shared_ptr<SIPRoutingInfo> requestRouting(QString& directAddress);
 
   // copies the fields from previous request
   // sets direct contact as per RFC.
-  std::shared_ptr<SIPRouting> responseRouting();
+  std::shared_ptr<SIPRoutingInfo> responseRouting();
 
 private:
 
@@ -59,6 +59,6 @@ private:
 
   QString sessionHost_;
 
-  std::shared_ptr<SIPRouting> previousReceivedRequest_;
-  std::shared_ptr<SIPRouting> previousSentRequest_;
+  std::shared_ptr<SIPRoutingInfo> previousReceivedRequest_;
+  std::shared_ptr<SIPRoutingInfo> previousSentRequest_;
 };
