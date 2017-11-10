@@ -13,14 +13,6 @@
 struct SIPMessageInfo;
 class Connection;
 
-struct Contact
-{
-  QString name;
-  QString username;
-  QString contactAddress;
-};
-
-
 class SIPState : public QObject
 {
   Q_OBJECT
@@ -31,7 +23,7 @@ public:
   void init();
   void uninit();
 
-  QString startCall(Contact address);
+  QString startCall();
   void acceptCall();
   void rejectCall();
   void endCall();
@@ -76,7 +68,7 @@ private:
     QString callID; // for identification
     QString host;
 
-    Contact contact;
+    //Contact contact;
 
     QString replyAddress;
     //uint32_t cSeq; // TODO cSeq is only the number of forwards!!
@@ -101,7 +93,6 @@ private:
   void newSIPSessionInfoFromMessage(std::shared_ptr<SIPMessageInfo> mInfo, quint32 connectionID);
 
   QString generateRandomString(uint32_t length);
-
 
   QList<QHostAddress> parseIPAddress(QString address);
 

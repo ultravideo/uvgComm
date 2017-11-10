@@ -5,6 +5,13 @@
 #include "connection.h"
 #include "connectionserver.h"
 
+struct Contact
+{
+  QString username;
+  QString realName;
+  QString remoteAddress;
+};
+
 
 class SIPManager : public QObject
 {

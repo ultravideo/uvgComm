@@ -1,6 +1,5 @@
 #include "callmanager.h"
 
-#include "sipstate.h"
 #include "statisticsinterface.h"
 
 #include <QHostAddress>
@@ -95,8 +94,8 @@ void CallManager::callToParticipant(QString name, QString username, QString ip)
     QString ip_str = ip;
 
     Contact con;
-    con.contactAddress = ip_str;
-    con.name = name;
+    con.remoteAddress = ip_str;
+    con.realName = name;
     con.username = username;
 
     QList<Contact> list;

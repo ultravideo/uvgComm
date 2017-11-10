@@ -27,7 +27,7 @@ QList<QString> SIPManager::startCall(QList<Contact> addresses)
     session->state = createSIPState();
     session->hostedSession = false;
 
-    session->callID = session->state->startCall(addresses.at(i));
+    session->callID = session->state->startCall();
     callIDs.push_back(session->callID);
 
     QObject::connect(session->con, SIGNAL(messageAvailable(QString, QString, quint32)),
@@ -38,7 +38,7 @@ QList<QString> SIPManager::startCall(QList<Contact> addresses)
 
 
     // message is sent only after connection has been established so we know our address
-    session->con->establishConnection(addresses.at(i).contactAddress, sipPort_);
+    session->con->establishConnection(addresses.at(i).remoteAddress, sipPort_);
 
     sessionMutex_.lock();
     sessions_.push_back(session);
@@ -140,14 +140,11 @@ void SIPManager::processSIPMessage(QString header, QString content, quint32 sess
   // inform user if necessary
   // respond
 
-
-
-
-
 }
 
 void SIPManager::sendRequest()
 {
+  // get routinginfo for
   // get info from state
   // check validity of routingInfo and SIPMesgInfo
   // convert routingInfo and SIPMesgInfo to struct fields

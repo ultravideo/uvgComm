@@ -62,13 +62,13 @@ void SIPState::endCall()
   sessionMutex_.lock();
 }
 
-QString SIPState::startCall(Contact address)
+QString SIPState::startCall()
 {
+  std::shared_ptr<SIPState::SIPSessionInfo> info = newSIPSessionInfo();
+  /*
   qDebug() << "Starting call negotiation with " << address.name << "at" << address.contactAddress;
 
-  std::shared_ptr<SIPState::SIPSessionInfo> info = newSIPSessionInfo();
-
-  info->contact = address;
+  //info->contact = address;
 
   if(info->contact.name.isEmpty())
   {
@@ -83,7 +83,7 @@ QString SIPState::startCall(Contact address)
   }
 
   info->remoteTag = "";
-
+  */
   return info->callID;
 }
 
@@ -109,8 +109,8 @@ void SIPState::setServerConnection(QString hostAddress)
 
 QString SIPState::messageComposition(messageID id, std::shared_ptr<SIPSessionInfo> info)
 {
-  messageComposer_.to(id, info->contact.name, info->contact.username,
-                        info->contact.contactAddress, info->remoteTag);
+  //messageComposer_.to(id, info->contact.name, info->contact.username,
+  //                      info->contact.contactAddress, info->remoteTag);
   messageComposer_.fromIP(id, localName_, localUsername_, info->localAddress, info->localTag);
   QString branch = generateRandomString(BRANCHLENGTH);
   messageComposer_.viaIP(id, info->localAddress, branch);
@@ -256,7 +256,7 @@ void SIPState::newSIPSessionInfoFromMessage(std::shared_ptr<SIPMessageInfo> mInf
   }
 
   info->callID = mInfo->callID;
-  info->contact = {mInfo->remoteName, mInfo->remoteUsername, mInfo->contactAddress};
+  //info->contact = {mInfo->remoteName, mInfo->remoteUsername, mInfo->contactAddress};
   info->replyAddress = mInfo->localLocation;
   info->localAddress = mInfo->localLocation;
   info->host = mInfo->host;
@@ -398,14 +398,14 @@ void SIPState::processRequest(std::shared_ptr<SIPMessageInfo> mInfo,
         qDebug() << "No SDP received in INVITE";
         // TODO: send malformed request
         return;
-      }*/
+      }
       if(session_->contact.contactAddress
          == session_->localAddress.toString())
       {
         //emit callingOurselves(mInfo->callID, peerSDP);
       }
       else
-      {/*
+      {
         if(peerSDP)
         {
           if(suitableSDP(peerSDP))
@@ -424,8 +424,8 @@ void SIPState::processRequest(std::shared_ptr<SIPMessageInfo> mInfo,
         {
           qDebug() << "No sdpInfo received in request!";
           sendResponse(MALFORMED_400, session_);
-        }*/
-      }
+        }
+      }*/
       break;
     }
     case ACK:
