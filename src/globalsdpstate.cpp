@@ -1,24 +1,27 @@
-#include "sdpstate.h"
+#include "globalsdpstate.h"
 
 // TODO: this should not use parser
 #include "sipparser.h"
 
-SDPState::SDPState():
+GlobalSDPState::GlobalSDPState():
   localAddress_(),
   localUsername_(""),
   firstAvailablePort_(18888)
-{
+{}
 
-}
-
-void SDPState::init(QHostAddress localAddress, QString username, uint16_t firstAvailablePort)
+void GlobalSDPState::setLocalInfo(QHostAddress localAddress, QString username)
 {
   localAddress_ = localAddress;
   localUsername_ = username;
-  firstAvailablePort_ = firstAvailablePort;
 }
 
-void SDPState::generateSDP()
+void GlobalSDPState::setPortRange(uint16_t minport, uint16_t maxport, uint16_t maxRTPConnections)
+{
+  firstAvailablePort_ = minport;
+  maxPort_ = maxport;
+}
+
+void GlobalSDPState::generateSDP()
 {
   if(localAddress_ == QHostAddress::Null
      || localUsername_ == ""
@@ -48,14 +51,12 @@ void SDPState::generateSDP()
   }
 }
 
-std::shared_ptr<SDPMessageInfo> SDPState::getSDP()
+std::shared_ptr<SDPMessageInfo> GlobalSDPState::getSDP()
 {
 
 }
 
-
-
-bool SDPState::isSDPSuitable(std::shared_ptr<SDPMessageInfo> peerSDP)
+bool GlobalSDPState::isSDPSuitable(std::shared_ptr<SDPMessageInfo> peerSDP)
 {
   Q_ASSERT(peerSDP);
   if(ourInfo_ == NULL)

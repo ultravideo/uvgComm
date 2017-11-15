@@ -1,9 +1,11 @@
 #pragma once
 
 #include "SIPState.h"
-#include "sdpstate.h"
+#include "globalsdpstate.h"
 #include "connection.h"
 #include "connectionserver.h"
+
+#include "common.h"
 
 struct Contact
 {
@@ -66,11 +68,6 @@ private slots:
 
 private:
 
-  SIPState* createSIPState();
-  void sendRequest();
-
-
-
   struct SIPSession
   {
     QString callID;
@@ -80,13 +77,16 @@ private:
     bool hostedSession;
   };
 
+  SIPState* createSIPState();
+  void sendRequest(RequestType request, SIPSession *session);
+
   void destroySession(SIPSession *session);
 
   QMutex sessionMutex_;
 
   QList<SIPSession*> sessions_;
 
-  SDPState sdp_;
+  GlobalSDPState sdp_;
   SIPStringComposer messageComposer_;
 
   ConnectionServer server_;

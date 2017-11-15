@@ -1,17 +1,18 @@
 #pragma once
 
-#include "common.h"
+#include "siptypes.h"
 
 #include <QHostAddress>
 
 #include <memory>
 
-class SDPState
+class GlobalSDPState
 {
 public:
-  SDPState();
+  GlobalSDPState();
 
-  void init(QHostAddress localAddress, QString username, uint16_t firstAvailablePort);
+  void setLocalInfo(QHostAddress localAddress, QString username);
+  void setPortRange(uint16_t minport, uint16_t maxport, uint16_t maxRTPConnections);
 
   std::shared_ptr<SDPMessageInfo> getSDP();
 
@@ -30,4 +31,6 @@ private:
   std::shared_ptr<SDPMessageInfo> ourInfo_;
 
   uint16_t firstAvailablePort_;
+
+  uint16_t maxPort_;
 };

@@ -1,5 +1,5 @@
 #pragma once
-#include "common.h"
+#include "siptypes.h"
 
 #include <QHostInfo>
 #include <QHostAddress>

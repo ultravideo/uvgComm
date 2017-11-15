@@ -1,26 +1,11 @@
 #pragma once
 
+#include "siptypes.h"
+
 #include <QString>
 #include <QList>
 
 #include <memory>
-
-struct SIPRoutingInfo
-{
-  //what about request vs response?
-
-  QString senderUsername;
-  QString senderRealname;
-  QString senderHost;
-  QList<QString> senderReplyAddress;   // from via-fields. Send responses here by copying these.
-  QString contactAddress;  // from contact field. Send requests here to bypass server
-
-  QString receiverUsername;
-  QString receiverRealname;
-  QString receiverHost;
-
-  QString sessionHost;
-};
 
 // This class handles routing information for one SIP dialog.
 // Use this class to get necessary info for via, to, from, contact etc fields in SIP message

@@ -1,6 +1,7 @@
 #include "sipstate.h"
 
 #include "sipparser.h"
+#include "common.h"
 
 #include <QSettings>
 #include <QRegularExpression>
@@ -28,8 +29,6 @@ SIPState::~SIPState()
 void SIPState::init()
 {
   qsrand(1);
-
-
 }
 
 void SIPState::uninit()

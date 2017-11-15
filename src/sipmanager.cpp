@@ -2,6 +2,10 @@
 
 #include "siprouting.h"
 
+
+const bool DIRECTMESSAGES = false;
+
+
 SIPManager::SIPManager():
   sipPort_(5060), // default for SIP, use 5061 for tls encrypted
   localName_(""),
@@ -183,12 +187,17 @@ void SIPManager::processSIPMessage(QString header, QString content, quint32 sess
   // compare against state and update
   // inform user if necessary
   // respond
-
 }
 
-void SIPManager::sendRequest()
+void SIPManager::sendRequest(RequestType request, SIPSession* session)
 {
+  Q_ASSERT(session);
+
   // get routinginfo for
+  QString direct = "";
+  std::shared_ptr<SIPRoutingInfo> routing = session->routing->requestRouting(direct);
+
+
 
   // get info from state
   // check validity of routingInfo and SIPMesgInfo
@@ -197,6 +206,8 @@ void SIPManager::sendRequest()
   // check message (and maybe parse?)
   // create and attach SDP if necessary
   // send string
+
+
 }
 
 void SIPManager::destroySession(SIPSession* session)

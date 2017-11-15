@@ -2,8 +2,12 @@
 
 #include "statisticsinterface.h"
 
+#include "globalsdpstate.h"
+
 #include <QHostAddress>
 #include <QtEndian>
+
+
 
 CallManager::CallManager():
     media_(),

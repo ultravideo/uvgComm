@@ -1,5 +1,7 @@
 #include "sipparser.h"
 
+#include "common.h"
+
 #include <QRegularExpression>
 #include <QRegularExpressionMatch>
 #include <QList>
