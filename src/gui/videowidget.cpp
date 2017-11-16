@@ -105,8 +105,16 @@ void VideoWidget::keyPressEvent(QKeyEvent *event)
 
 void VideoWidget::updateTargetRect()
 {
+  // TODO: Find a way to
+
   if(hasImage_)
   {
+    Q_ASSERT(currentImage_.data_ptr());
+    if(currentImage_.data_ptr() == NULL)
+    {
+      qWarning() << "WARNING: Null pointer in current image!";
+    }
+
     QSize size = currentImage_.size();
     QSize frameSize = QWidget::size() - QSize(borderSize_,borderSize_);
 
@@ -126,5 +134,9 @@ void VideoWidget::updateTargetRect()
     newFrameRect_.moveCenter(rect().center());
 
     previousSize_ = currentImage_.size();
+  }
+  else
+  {
+    qDebug() << "VideoWidget: Tried updating target rect before picture";
   }
 }
