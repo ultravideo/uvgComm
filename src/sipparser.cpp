@@ -399,16 +399,16 @@ std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
       }
       case 'o':
       {
-        if(!checkSDPLine(words, 6, info->username))
+        if(!checkSDPLine(words, 6, info->originator_username))
           return NULL;
 
         info->sess_id = words.at(1).toUInt();
         info->sess_v = words.at(2).toUInt();
         info->host_nettype = words.at(3);
         info->host_addrtype = words.at(4);
-        info->hostAddress = words.at(5);
+        info->host_address = words.at(5);
 
-        qDebug() << "Origin read successfully. host_address:" << info->hostAddress;
+        qDebug() << "Origin read successfully. host_address:" << info->host_address;
 
         originator = true;
         break;
@@ -442,7 +442,7 @@ std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
           return NULL;
 
         bool mediaContact = false;
-        mediaInfo.port = words.at(1).toUInt();
+        mediaInfo.receivePort = words.at(1).toUInt();
         mediaInfo.proto = words.at(2);
         mediaInfo.rtpNum = words.at(3).toUInt();
 
@@ -463,8 +463,8 @@ std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
             mediaInfo.addrtype = additionalWords.at(1);
             mediaInfo.address = additionalWords.at(2);
 
-            info->global_addrtype = additionalWords.at(1);
-            info->globalAddress = additionalWords.at(2);
+            info->connection_addrtype = additionalWords.at(1); // TODO: what about nettype?
+            info->connection_address = additionalWords.at(2);
 
             mediaContact = true;
           }
@@ -521,11 +521,11 @@ std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
       }
       case 'c':
       {
-        if(!checkSDPLine(words, 3, info->global_nettype))
+        if(!checkSDPLine(words, 3, info->connection_nettype))
           return NULL;
 
-        info->global_addrtype = words.at(1);
-        info->globalAddress = words.at(2);
+        info->connection_addrtype = words.at(1);
+        info->connection_address = words.at(2);
         globalContact = true;
         break;
       }

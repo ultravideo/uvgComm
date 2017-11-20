@@ -74,6 +74,10 @@ private:
     Connection* con;
     SIPState* state;
     SIPRouting* routing;
+    // has local invite sdp or o response sdp
+    std::shared_ptr<SDPMessageInfo> localSdp_;
+    // empty until final ok 200
+    std::shared_ptr<SDPMessageInfo> remoteSdp_;
     bool hostedSession;
   };
 

@@ -14,21 +14,20 @@ public:
   void setLocalInfo(QHostAddress localAddress, QString username);
   void setPortRange(uint16_t minport, uint16_t maxport, uint16_t maxRTPConnections);
 
-  std::shared_ptr<SDPMessageInfo> getSDP();
+  // when sending an invite, use this'
+  // generates the next suitable SDP message
+  std::shared_ptr<SDPMessageInfo> localInviteSDP();
 
-  // return NULL, if suitable could not be found.
-  std::shared_ptr<SDPMessageInfo> modifyToSuitable(std::shared_ptr<SDPMessageInfo> suggestedSDP);
-
-  bool isSDPSuitable(std::shared_ptr<SDPMessageInfo> suggestedSDP);
+  // checks if invite message is acceptable
+  // returns NULL if suitable could not be found
+  // chooces what to use
+  std::shared_ptr<SDPMessageInfo> localResponseSDP(std::shared_ptr<SDPMessageInfo> remoteInviteSDP);
+  std::shared_ptr<SDPMessageInfo> remoteFinalSDP(std::shared_ptr<SDPMessageInfo> remoteInviteSDP);
 
 private:
 
-  void generateSDP();
-
   QHostAddress localAddress_;
   QString localUsername_;
-
-  std::shared_ptr<SDPMessageInfo> ourInfo_;
 
   uint16_t firstAvailablePort_;
 

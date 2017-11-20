@@ -324,14 +324,14 @@ QString SIPStringComposer::formSDP(const std::shared_ptr<SDPMessageInfo> sdpInfo
 {
   if(sdpInfo == NULL ||
      sdpInfo->version != 0 ||
-     sdpInfo->username.isEmpty() ||
+     sdpInfo->originator_username.isEmpty() ||
      sdpInfo->host_nettype.isEmpty() ||
      sdpInfo->host_addrtype.isEmpty() ||
      sdpInfo->sessionName.isEmpty() ||
-     sdpInfo->hostAddress.isEmpty() ||
-     sdpInfo->global_nettype.isEmpty() ||
-     sdpInfo->global_addrtype.isEmpty() ||
-     sdpInfo->globalAddress.isEmpty() ||
+     sdpInfo->host_address.isEmpty() ||
+     sdpInfo->connection_nettype.isEmpty() ||
+     sdpInfo->connection_addrtype.isEmpty() ||
+     sdpInfo->connection_address.isEmpty() ||
      sdpInfo->media.empty()
      )
   {
@@ -340,14 +340,14 @@ QString SIPStringComposer::formSDP(const std::shared_ptr<SDPMessageInfo> sdpInfo
     {
       qCritical() << "WARNING: Bad SDPInfo in string formation";
       qWarning() << sdpInfo->version <<
-          sdpInfo->username<<
+          sdpInfo->originator_username <<
           sdpInfo->host_nettype <<
           sdpInfo->host_addrtype <<
           sdpInfo->sessionName <<
-          sdpInfo->hostAddress <<
-          sdpInfo->global_nettype <<
-          sdpInfo->global_addrtype <<
-          sdpInfo->globalAddress;
+          sdpInfo->host_address <<
+          sdpInfo->connection_nettype <<
+          sdpInfo->connection_addrtype <<
+          sdpInfo->connection_address;
     }
     else
     {
@@ -359,19 +359,19 @@ QString SIPStringComposer::formSDP(const std::shared_ptr<SDPMessageInfo> sdpInfo
   QString sdp = "";
   QString lineEnd = "\r\n";
   sdp += "v=" + QString::number(sdpInfo->version) + lineEnd;
-  sdp += "o=" + sdpInfo->username + " " + QString::number(sdpInfo->sess_id)  + " "
+  sdp += "o=" + sdpInfo->originator_username + " " + QString::number(sdpInfo->sess_id)  + " "
       + QString::number(sdpInfo->sess_v) + " " + sdpInfo->host_nettype + " "
-      + sdpInfo->host_addrtype + " " + sdpInfo->hostAddress + lineEnd;
+      + sdpInfo->host_addrtype + " " + sdpInfo->host_address + lineEnd;
 
   sdp += "s=" + sdpInfo->sessionName + lineEnd;
-  sdp += "c=" + sdpInfo->global_nettype + " " + sdpInfo->global_addrtype +
-      + " " + sdpInfo->globalAddress + " " + lineEnd;
+  sdp += "c=" + sdpInfo->connection_nettype + " " + sdpInfo->connection_addrtype +
+      + " " + sdpInfo->connection_address + " " + lineEnd;
   sdp += "t=" + QString::number(sdpInfo->startTime) + " "
       + QString::number(sdpInfo->endTime) + lineEnd;
 
   for(auto mediaStream : sdpInfo->media)
   {
-    sdp += "m=" + mediaStream.type + " " + QString::number(mediaStream.port)
+    sdp += "m=" + mediaStream.type + " " + QString::number(mediaStream.receivePort)
         + " " + mediaStream.proto + " " + QString::number(mediaStream.rtpNum)
         + lineEnd;
     if(!mediaStream.nettype.isEmpty())

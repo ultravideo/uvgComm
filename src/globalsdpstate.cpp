@@ -1,7 +1,6 @@
 #include "globalsdpstate.h"
 
-// TODO: this should not use parser
-#include "sipparser.h"
+#include <QDateTime>
 
 GlobalSDPState::GlobalSDPState():
   localAddress_(),
@@ -21,7 +20,7 @@ void GlobalSDPState::setPortRange(uint16_t minport, uint16_t maxport, uint16_t m
   maxPort_ = maxport;
 }
 
-void GlobalSDPState::generateSDP()
+std::shared_ptr<SDPMessageInfo> GlobalSDPState::localInviteSDP()
 {
   if(localAddress_ == QHostAddress::Null
      || localUsername_ == ""
@@ -29,61 +28,75 @@ void GlobalSDPState::generateSDP()
   {
     qWarning() << "WARNING: Necessary info not set for SDP generation:" << localAddress_.toString()
                << localUsername_ << firstAvailablePort_;
-    return;
+    return NULL;
   }
 
-  // TODO: Get suitable SDP from media manager or at least from somewhere else
-  QString sdp_str = "v=0 \r\n"
-                   "o=" + localUsername_ + " 1234 12345 IN IP4 " + localAddress_.toString() + "\r\n"
-                   "s=Kvazzup\r\n"
-                   "t=0 0\r\n"
-                   "c=IN IP4 " + localAddress_.toString() + "\r\n"
-                   "m=video " + QString::number(firstAvailablePort_) + " RTP/AVP 97\r\n"
-                   "m=audio " + QString::number(firstAvailablePort_ + 2) + " RTP/AVP 96\r\n";
-
-  firstAvailablePort_ += 4; // video and audio + rtcp for both
-
-  ourInfo_ = parseSDPMessage(sdp_str);
-
-  if(ourInfo_ == NULL)
+  // TODO: Get suitable SDP from media manager
+  std::shared_ptr<SDPMessageInfo> newInfo = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
+  newInfo->version = 0;
+  newInfo->originator_username = localUsername_;
+  newInfo->sess_id = QDateTime::currentMSecsSinceEpoch();
+  newInfo->sess_v = QDateTime::currentMSecsSinceEpoch();
+  newInfo->host_nettype = "IN";
+  if(localAddress_.protocol() == QAbstractSocket::IPv6Protocol)
   {
-    qWarning() << "WARNING: Failed to generate SDP info from following sdp message:" << sdp_str;
+    newInfo->host_addrtype = "IP6";
+    newInfo->connection_addrtype = "IP6";
   }
+  else
+  {
+    newInfo->host_addrtype = "IP4";
+    newInfo->connection_addrtype = "IP4";
+  }
+
+  newInfo->host_address = localAddress_.toString();
+
+  newInfo->sessionName = " ";
+  newInfo->sessionDescription = "A Kvazzup Video Conference";
+
+  newInfo->connection_address = localAddress_.toString();
+  newInfo->connection_nettype = "IN";
+
+  MediaInfo audio;
+  MediaInfo video;
+  audio.type = "audio";
+  video.type = "video";
+  audio.receivePort = firstAvailablePort_;
+  video.receivePort = firstAvailablePort_ + 2;
+  audio.proto = "RTP/AVP";
+  video.proto = "RTP/AVP";
+  audio.rtpNum = 96;
+  video.rtpNum = 97;
+  // we ignore nettype, addrtype and address, because we have a global c=
+
+  RTPMap a_rtp;
+  RTPMap v_rtp;
+  a_rtp.rtpNum = 96;
+  v_rtp.rtpNum = 97;
+  a_rtp.clockFrequency = 48000;
+  v_rtp.clockFrequency = 90000;
+  a_rtp.codec = "opus";
+  v_rtp.codec = "h265";
+
+  audio.codecs.push_back(a_rtp);
+  video.codecs.push_back(a_rtp);
+  audio.activity = SENDRECV;
+  video.activity = SENDRECV;
+
+  newInfo->media.push_back(audio);
+  newInfo->media.push_back(video);
+
+  firstAvailablePort_ += 4; // video and audio rtp & rtcp
 }
 
-std::shared_ptr<SDPMessageInfo> GlobalSDPState::getSDP()
+// returns NULL if suitable could not be found
+std::shared_ptr<SDPMessageInfo> localResponseSDP(std::shared_ptr<SDPMessageInfo> remoteInviteSDP)
 {
+  // if sdp not acceptable, change origin line to local!
 
 }
 
-bool GlobalSDPState::isSDPSuitable(std::shared_ptr<SDPMessageInfo> peerSDP)
+std::shared_ptr<SDPMessageInfo> remoteFinalSDP(std::shared_ptr<SDPMessageInfo> remoteInviteSDP)
 {
-  Q_ASSERT(peerSDP);
-  if(ourInfo_ == NULL)
-  {
-    qDebug() << "WARNING: Can't test SDP suitability because local SDP has not been generated";
-    return false;
-  }
-  //TODO: WARNING THIS DOES NOT DO WAHT IT IS SUPPOSED TO DO. IT CHECKS THE SPD INSTEAD OF COMPARING IT TO EXISTING
 
-
-  // TODO check codec
-
-  //checks if the stream has both audio and video. TODO: Both are actually not necessary
-  bool audio = false;
-  bool video = false;
-
-  for(auto media : peerSDP->media)
-  {
-    if(media.type == "video")
-    {
-      video = true;
-    }
-    if(media.type == "audio")
-    {
-      audio = true;
-    }
-  }
-
-  return audio && video;
 }

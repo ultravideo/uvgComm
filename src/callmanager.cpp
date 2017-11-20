@@ -3,6 +3,8 @@
 #include "statisticsinterface.h"
 
 #include "globalsdpstate.h"
+#include "siptypes.h"
+
 
 #include <QHostAddress>
 #include <QtEndian>
@@ -161,7 +163,7 @@ void CallManager::createParticipant(QString& callID, std::shared_ptr<SDPMessageI
   }
 
   QHostAddress address;
-  address.setAddress(peerInfo->globalAddress);
+  address.setAddress(peerInfo->connection_address);
 
   in_addr ip;
   ip.S_un.S_addr = qToBigEndian(address.toIPv4Address());
@@ -176,11 +178,11 @@ void CallManager::createParticipant(QString& callID, std::shared_ptr<SDPMessageI
   {
     if(media.type == "audio" && recvAudioPort == 0)
     {
-      recvAudioPort = media.port;
+      recvAudioPort = media.receivePort;
     }
     else if(media.type == "video" && recvVideoPort == 0)
     {
-      recvVideoPort = media.port;
+      recvVideoPort = media.receivePort;
     }
   }
 
@@ -188,11 +190,11 @@ void CallManager::createParticipant(QString& callID, std::shared_ptr<SDPMessageI
   {
     if(media.type == "audio" && sendAudioPort == 0)
     {
-      sendAudioPort = media.port;
+      sendAudioPort = media.receivePort;
     }
     else if(media.type == "video" && sendVideoPort == 0)
     {
-      sendVideoPort = media.port;
+      sendVideoPort = media.receivePort;
     }
   }
 
@@ -205,11 +207,11 @@ void CallManager::createParticipant(QString& callID, std::shared_ptr<SDPMessageI
   }
 
   if(stats)
-    stats->addParticipant(peerInfo->globalAddress,
+    stats->addParticipant(peerInfo->connection_address,
                           QString::number(sendAudioPort),
                           QString::number(sendVideoPort));
 
-  qDebug() << "Sending mediastreams to:" << peerInfo->globalAddress << "audioPort:" << sendAudioPort
+  qDebug() << "Sending mediastreams to:" << peerInfo->connection_address << "audioPort:" << sendAudioPort
            << "VideoPort:" << sendVideoPort;
   media_.addParticipant(callID, ip, sendAudioPort, recvAudioPort, sendVideoPort, recvVideoPort, videoWidget);
 }
@@ -217,8 +219,8 @@ void CallManager::createParticipant(QString& callID, std::shared_ptr<SDPMessageI
 void CallManager::callNegotiated(QString callID, std::shared_ptr<SDPMessageInfo> peerInfo,
                                 std::shared_ptr<SDPMessageInfo> localInfo)
 {
-  qDebug() << "Our call has been accepted." << "Sending media to IP:" << peerInfo->globalAddress
-           << "to port:" << peerInfo->media.first().port;
+  qDebug() << "Our call has been accepted." << "Sending media to IP:" << peerInfo->connection_address
+           << "to port:" << peerInfo->media.first().receivePort;
 
   VideoWidget* view = window_.addVideoStream(callID);
 
