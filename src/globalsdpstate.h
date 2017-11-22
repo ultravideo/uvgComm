@@ -3,7 +3,9 @@
 #include "siptypes.h"
 
 #include <QHostAddress>
+#include <QMutex>
 
+#include <deque>
 #include <memory>
 
 class GlobalSDPState
@@ -26,10 +28,16 @@ public:
 
 private:
 
+  // return the lower port of the pair and removes both from list of available ports
+  uint16_t nextAvailablePortPair();
+  void makePortPairAvailable(uint16_t lowerPort);
+
   QHostAddress localAddress_;
   QString localUsername_;
 
-  uint16_t firstAvailablePort_;
+  uint16_t remainingPorts_;
 
-  uint16_t maxPort_;
+  QMutex portLock_;
+  //keeps a list of all available ports. Has only every other port because of rtcp
+  std::deque<uint16_t> availablePorts_;
 };

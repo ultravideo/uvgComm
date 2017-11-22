@@ -5,7 +5,7 @@
 GlobalSDPState::GlobalSDPState():
   localAddress_(),
   localUsername_(""),
-  firstAvailablePort_(18888)
+  remainingPorts_(0)
 {}
 
 void GlobalSDPState::setLocalInfo(QHostAddress localAddress, QString username)
@@ -16,18 +16,27 @@ void GlobalSDPState::setLocalInfo(QHostAddress localAddress, QString username)
 
 void GlobalSDPState::setPortRange(uint16_t minport, uint16_t maxport, uint16_t maxRTPConnections)
 {
-  firstAvailablePort_ = minport;
-  maxPort_ = maxport;
+  for(unsigned int i = minport; i < maxport; i += 2)
+  {
+    makePortPairAvailable(i);
+  }
+
+  remainingPorts_ = maxRTPConnections;
 }
 
 std::shared_ptr<SDPMessageInfo> GlobalSDPState::localInviteSDP()
 {
   if(localAddress_ == QHostAddress::Null
-     || localUsername_ == ""
-     || firstAvailablePort_ == 0)
+     || localUsername_ == "")
   {
     qWarning() << "WARNING: Necessary info not set for SDP generation:" << localAddress_.toString()
-               << localUsername_ << firstAvailablePort_;
+               << localUsername_;
+    return NULL;
+  }
+
+  if(availablePorts_.size() <= 2)
+  {
+    qDebug() << "Not enough free ports to create SDP:" << availablePorts_.size();
     return NULL;
   }
 
@@ -61,8 +70,15 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::localInviteSDP()
   MediaInfo video;
   audio.type = "audio";
   video.type = "video";
-  audio.receivePort = firstAvailablePort_;
-  video.receivePort = firstAvailablePort_ + 2;
+  audio.receivePort = nextAvailablePortPair();
+  video.receivePort = nextAvailablePortPair();
+  if(audio.receivePort == 0 || video.receivePort == 0)
+  {
+    makePortPairAvailable(audio.receivePort);
+    makePortPairAvailable(video.receivePort);
+    qDebug() << "WARNING: Ran out of ports to assign to SDP. SHould be checked earlier.";
+    return NULL;
+  }
   audio.proto = "RTP/AVP";
   video.proto = "RTP/AVP";
   audio.rtpNum = 96;
@@ -86,17 +102,45 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::localInviteSDP()
   newInfo->media.push_back(audio);
   newInfo->media.push_back(video);
 
-  firstAvailablePort_ += 4; // video and audio rtp & rtcp
+  qDebug() << "SDP generated";
 }
 
 // returns NULL if suitable could not be found
-std::shared_ptr<SDPMessageInfo> localResponseSDP(std::shared_ptr<SDPMessageInfo> remoteInviteSDP)
+std::shared_ptr<SDPMessageInfo> GlobalSDPState::localResponseSDP(std::shared_ptr<SDPMessageInfo> remoteInviteSDP)
 {
   // if sdp not acceptable, change origin line to local!
 
 }
 
-std::shared_ptr<SDPMessageInfo> remoteFinalSDP(std::shared_ptr<SDPMessageInfo> remoteInviteSDP)
+std::shared_ptr<SDPMessageInfo> GlobalSDPState::remoteFinalSDP(std::shared_ptr<SDPMessageInfo> remoteInviteSDP)
 {
 
+}
+
+uint16_t GlobalSDPState::nextAvailablePortPair()
+{
+  uint16_t newLowerPort = 0;
+
+  portLock_.lock();
+  if(availablePorts_.size() <= 1 && remainingPorts_ >= 2)
+  {
+    newLowerPort = availablePorts_.at(0);
+    availablePorts_.pop_front();
+    remainingPorts_ -= 2;
+  }
+  portLock_.unlock();
+
+  return newLowerPort;
+}
+
+void GlobalSDPState::makePortPairAvailable(uint16_t lowerPort)
+{
+  if(lowerPort != 0)
+  {
+    portLock_.lock();
+    availablePorts_.push_back(lowerPort);
+    remainingPorts_ += 2;
+    portLock_.unlock();
+
+  }
 }
