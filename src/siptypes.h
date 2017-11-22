@@ -89,8 +89,8 @@ struct SDPMessageInfo
 
   // o=
   QString originator_username;
-  uint32_t sess_id; // set id so it does not collide
-  uint32_t sess_v;  // version that is increased with each modification
+  uint64_t sess_id; // set id so it does not collide
+  uint64_t sess_v;  // version that is increased with each modification
   QString host_nettype;
   QString host_addrtype;
   QString host_address;

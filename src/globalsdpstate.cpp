@@ -108,13 +108,49 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::localInviteSDP()
 // returns NULL if suitable could not be found
 std::shared_ptr<SDPMessageInfo> GlobalSDPState::localResponseSDP(std::shared_ptr<SDPMessageInfo> remoteInviteSDP)
 {
-  // if sdp not acceptable, change origin line to local!
+  if(remoteInviteSDP == NULL)
+  {
+    qDebug() << "WARNING: Got a remote NULL invite SDP.";
+  }
+  else if(!checkSDPOffer(remoteInviteSDP))
+  {
+    qDebug() << "Incoming SDP did not have Opus and H265 in their offer.";
+    return NULL;
+  }
 
+  // check if suitable.
+  // Generate response
+  return generateSDP();
 }
 
-std::shared_ptr<SDPMessageInfo> GlobalSDPState::remoteFinalSDP(std::shared_ptr<SDPMessageInfo> remoteInviteSDP)
+bool GlobalSDPState::remoteFinalSDP(std::shared_ptr<SDPMessageInfo> remoteInviteSDP)
 {
+  return checkSDPOffer(remoteInviteSDP);
+}
 
+bool GlobalSDPState::checkSDPOffer(std::shared_ptr<SDPMessageInfo> offer)
+{
+  bool hasOpus = false;
+  bool hasH265 = false;
+
+  for(MediaInfo media : remoteInviteSDP->media)
+  {
+    for(RTPMap rtp : media.codecs)
+    {
+      if(rtp.codec == "opus")
+      {
+        qDebug() << "Found Opus";
+        hasOpus = true;
+      }
+      else if(rtp.codec == "h265")
+      {
+        qDebug() << "Found H265";
+        hasH265 = true;
+      }
+    }
+  }
+
+  return hasOpus && hasH265;
 }
 
 uint16_t GlobalSDPState::nextAvailablePortPair()

@@ -24,13 +24,19 @@ public:
   // returns NULL if suitable could not be found
   // chooces what to use
   std::shared_ptr<SDPMessageInfo> localResponseSDP(std::shared_ptr<SDPMessageInfo> remoteInviteSDP);
-  std::shared_ptr<SDPMessageInfo> remoteFinalSDP(std::shared_ptr<SDPMessageInfo> remoteInviteSDP);
+
+  // return if the final SDP was suitable.
+  bool remoteFinalSDP(std::shared_ptr<SDPMessageInfo> remoteInviteSDP);
 
 private:
 
   // return the lower port of the pair and removes both from list of available ports
   uint16_t nextAvailablePortPair();
   void makePortPairAvailable(uint16_t lowerPort);
+
+  std::shared_ptr<SDPMessageInfo> generateSDP();
+
+  bool checkSDPOffer(std::shared_ptr<SDPMessageInfo> offer);
 
   QHostAddress localAddress_;
   QString localUsername_;

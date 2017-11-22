@@ -197,8 +197,6 @@ void SIPManager::sendRequest(RequestType request, SIPSession* session)
   QString direct = "";
   std::shared_ptr<SIPRoutingInfo> routing = session->routing->requestRouting(direct);
 
-
-
   // get info from state
   // check validity of routingInfo and SIPMesgInfo
   // convert routingInfo and SIPMesgInfo to struct fields
