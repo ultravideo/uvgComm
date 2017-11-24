@@ -26,6 +26,11 @@ void GlobalSDPState::setPortRange(uint16_t minport, uint16_t maxport, uint16_t m
 
 std::shared_ptr<SDPMessageInfo> GlobalSDPState::localInviteSDP()
 {
+  return generateSDP();
+}
+
+std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP()
+{
   if(localAddress_ == QHostAddress::Null
      || localUsername_ == "")
   {
@@ -103,8 +108,9 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::localInviteSDP()
   newInfo->media.push_back(video);
 
   qDebug() << "SDP generated";
-}
 
+  return newInfo;
+}
 // returns NULL if suitable could not be found
 std::shared_ptr<SDPMessageInfo> GlobalSDPState::localResponseSDP(std::shared_ptr<SDPMessageInfo> remoteInviteSDP)
 {
@@ -133,7 +139,7 @@ bool GlobalSDPState::checkSDPOffer(std::shared_ptr<SDPMessageInfo> offer)
   bool hasOpus = false;
   bool hasH265 = false;
 
-  for(MediaInfo media : remoteInviteSDP->media)
+  for(MediaInfo media : offer->media)
   {
     for(RTPMap rtp : media.codecs)
     {

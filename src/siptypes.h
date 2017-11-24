@@ -8,6 +8,7 @@ enum ResponseType {NORESPONSE, RINGING_180, OK_200, MALFORMED_400, UNSUPPORTED_4
 #include <QString>
 #include <QList>
 
+// All the info needed for the SIP message to find its correct recipient
 struct SIPRoutingInfo
 {
   //what about request vs response?
@@ -23,6 +24,25 @@ struct SIPRoutingInfo
   QString receiverHost;
 
   QString sessionHost;
+
+  uint16_t maxForwards;
+};
+
+// Identifies the SIP dialog
+struct SIPStateInfo
+{
+  QString remoteTag;
+  QString localTag;
+  QString callID;
+};
+
+// Identiefies the SIP message and the transaction it belongs to
+struct SIPMessage
+{
+  // QString version;
+  QString branch;
+  uint32_t cSeq; // must be less than 2^31
+  RequestType transactionRequest;
 };
 
 struct SIPMessageInfo
