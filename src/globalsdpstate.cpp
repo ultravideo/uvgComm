@@ -101,8 +101,8 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP()
 
   audio.codecs.push_back(a_rtp);
   video.codecs.push_back(a_rtp);
-  audio.activity = SENDRECV;
-  video.activity = SENDRECV;
+  audio.activity = A_SENDRECV;
+  video.activity = A_SENDRECV;
 
   newInfo->media.push_back(audio);
   newInfo->media.push_back(video);

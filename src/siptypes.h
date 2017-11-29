@@ -29,7 +29,7 @@ struct SIPRoutingInfo
 };
 
 // Identifies the SIP dialog
-struct SIPStateInfo
+struct SIPSessionInfo
 {
   QString remoteTag;
   QString localTag;
@@ -78,7 +78,7 @@ struct SIPMessageInfo
 };
 
 // sendrecv is default, if none present.
-enum SDPAttribute {SENDRECV, SENDONLY, RECVONLY, INACTIVE};
+enum SDPAttribute {A_SENDRECV, A_SENDONLY, A_RECVONLY, A_INACTIVE};
 
 /* SDP message info structs */
 struct RTPMap

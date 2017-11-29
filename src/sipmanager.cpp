@@ -1,7 +1,7 @@
 #include "sipmanager.h"
 
 #include "siprouting.h"
-
+#include "sipsession.h"
 
 const bool DIRECTMESSAGES = false;
 
@@ -53,32 +53,32 @@ QList<QString> SIPManager::startCall(QList<Contact> addresses)
   for(unsigned int i = 0; i < addresses.size(); ++i)
   {
 
-    SIPSession* session = new SIPSession;
+    SIPDialogData* dialog = new SIPDialogData;
 
-    session->con = new Connection(sessions_.size() + 1, true);
-    session->con->setID(sessions_.size() + 1);
+    dialog->con = new Connection(dialogs_.size() + 1, true);
+    dialog->con->setID(dialogs_.size() + 1);
 
-    session->state = createSIPState();
+    dialog->session = createSIPSession();
 
-    session->routing = new SIPRouting;
-    session->hostedSession = false;
+    dialog->routing = new SIPRouting;
+    dialog->hostedSession = false;
 
-    session->callID = session->state->startCall();
-    callIDs.push_back(session->callID);
+    //dialog->callID = dialog->session->startCall();
+    callIDs.push_back(dialog->callID);
 
-    QObject::connect(session->con, SIGNAL(messageAvailable(QString, QString, quint32)),
+    QObject::connect(dialog->con, SIGNAL(messageAvailable(QString, QString, quint32)),
                      this, SLOT(processSIPMessage(QString, QString, quint32)));
 
-    QObject::connect(session->con, SIGNAL(connected(quint32)),
+    QObject::connect(dialog->con, SIGNAL(connected(quint32)),
                      this, SLOT(connectionEstablished(quint32)));
 
     // message is sent only after connection has been established so we know our address
-    session->con->establishConnection(addresses.at(i).remoteAddress, sipPort_);
+    dialog->con->establishConnection(addresses.at(i).remoteAddress, sipPort_);
 
-    sessionMutex_.lock();
-    sessions_.push_back(session);
-    sessionMutex_.unlock();
-    qDebug() << "Added a new session:" << sessions_.size();
+    dialogMutex_.lock();
+    dialogs_.push_back(dialog);
+    dialogMutex_.unlock();
+    qDebug() << "Added a new dialog:" << dialogs_.size();
   }
 
   return callIDs;
@@ -104,10 +104,15 @@ void SIPManager::endAllCalls()
   //state_.endAllCalls();
 }
 
-SIPState* SIPManager::createSIPState()
+SIPSession *SIPManager::createSIPSession()
 {
-  SIPState* state = new SIPState();
-  state->init();
+  SIPSession* session = new SIPSession();
+
+  QObject::connect(session, SIGNAL(sendRequest(uint32_t,RequestType,SIPSessionInfo)),
+                   this, SLOT(sendRequest(uint32_t,RequestType,SIPSessionInfo)));
+
+  /*
+  session->init();
 
   // would use newer syntax if it supported qstring
   QObject::connect(state, SIGNAL(incomingINVITE(QString, QString)), this, SIGNAL(incomingINVITE(QString, QString)));
@@ -120,17 +125,20 @@ SIPState* SIPManager::createSIPState()
                    this, SIGNAL(ourCallAccepted(QString, std::shared_ptr<SDPMessageInfo>, std::shared_ptr<SDPMessageInfo>)));
   QObject::connect(state, SIGNAL(ourCallRejected(QString)), this, SIGNAL(ourCallRejected(QString)));
   QObject::connect(state, SIGNAL(callEnded(QString, QString)), this, SIGNAL(callEnded(QString, QString)));
-  return state;
+  return state; */
+
+
 }
 
 void SIPManager::receiveTCPConnection(Connection* con)
 {
-  SIPSession* session = new SIPSession;
-  session->con = con;
-  session->state = NULL;
-  session->callID = "";
+  Q_ASSERT(con);
+  SIPDialogData* dialog = new SIPDialogData;
+  dialog->con = con;
+  dialog->session = NULL;
+  dialog->callID = "";
 
-  QObject::connect(con, SIGNAL(messageAvailable(QString,QString, quint32)),
+  QObject::connect(dialog->con, SIGNAL(messageAvailable(QString,QString, quint32)),
                    this, SLOT(processSIPMessage(QString, QString, quint32)));
 }
 
@@ -138,36 +146,36 @@ void SIPManager::receiveTCPConnection(Connection* con)
 // to form a SIP message
 void SIPManager::connectionEstablished(quint32 sessionID)
 {
-  if(sessionID == 0 || sessionID> sessions_.size())
+  if(sessionID == 0 || sessionID> dialogs_.size())
   {
     qDebug() << "WARNING: Missing session for connected session";
     return;
   }
-  SIPSession* session = sessions_.at(sessionID - 1);
+  SIPDialogData* dialog = dialogs_.at(sessionID - 1);
 
 
-  if(session->hostedSession)
+  if(dialog->hostedSession)
   {
     // TODO: get server
     qDebug() << "Forming connection through SIP server";
 
-    session->routing->initLocal(localUsername_,
-                                session->con->getLocalAddress().toString(),
-                                session->con->getLocalAddress().toString(),
-                                session->con->getLocalAddress().toString());
+    dialog->routing->initLocal(localUsername_,
+                                dialog->con->getLocalAddress().toString(),
+                                dialog->con->getLocalAddress().toString(),
+                                dialog->con->getLocalAddress().toString());
   }
   else
   {
     qDebug() << "Forming a peer-to-peer SIP connection. Firewall needs to be open for this";
 
-    session->routing->initLocal(localUsername_,
-                                session->con->getLocalAddress().toString(),
-                                session->con->getLocalAddress().toString(),
-                                session->con->getLocalAddress().toString());
+    dialog->routing->initLocal(localUsername_,
+                                dialog->con->getLocalAddress().toString(),
+                                dialog->con->getLocalAddress().toString(),
+                                dialog->con->getLocalAddress().toString());
   }
   qDebug() << "Connection" << sessionID << "connected."
-           << "From:" << session->con->getLocalAddress().toString()
-           << "To:" << session->con->getPeerAddress().toString();
+           << "From:" << dialog->con->getLocalAddress().toString()
+           << "To:" << dialog->con->getPeerAddress().toString();
 
   // generate SDP
   // sendRequest(INVITE);
@@ -189,13 +197,12 @@ void SIPManager::processSIPMessage(QString header, QString content, quint32 sess
   // respond
 }
 
-void SIPManager::sendRequest(RequestType request, SIPSession* session)
+void SIPManager::sendRequest(uint32_t dialogID_, RequestType request, const SIPSessionInfo &session)
 {
-  Q_ASSERT(session);
-
+  Q_ASSERT(dialogID_ < dialogs_.size());
   // get routinginfo for
   QString direct = "";
-  std::shared_ptr<SIPRoutingInfo> routing = session->routing->requestRouting(direct);
+  std::shared_ptr<SIPRoutingInfo> routing = dialogs_.at(dialogID_ - 1)->routing->requestRouting(direct);
 
   // get info from state
   // check validity of routingInfo and SIPMesgInfo
@@ -205,30 +212,40 @@ void SIPManager::sendRequest(RequestType request, SIPSession* session)
   // create and attach SDP if necessary
   // send string
 
+  /* messageComposer_.to(id, info->contact.name, info->contact.username,
+                        info->contact.contactAddress, info->remoteTag);
+  messageComposer_.fromIP(id, localName_, localUsername_, info->localAddress, info->localTag);
+  QString branch = generateRandomString(BRANCHLENGTH);
+  messageComposer_.viaIP(id, info->localAddress, branch);
+  messageComposer_.maxForwards(id, MAXFORWARDS);
+  messageComposer_.setCallID(id, info->callID, info->host);
+  messageComposer_.sequenceNum(id, 1, info->originalRequest);
 
+  messageComposer_.composeMessage(id);
+*/
 }
 
-void SIPManager::destroySession(SIPSession* session)
+void SIPManager::destroySession(SIPDialogData *dialog)
 {
-  if(session != NULL)
+  if(dialog != NULL)
   {
-    if(session->con != NULL)
+    if(dialog->con != NULL)
     {
-      session->con->exit(0); // stops qthread
-      session->con->stopConnection(); // exits run loop
-      while(session->con->isRunning())
+      dialog->con->exit(0); // stops qthread
+      dialog->con->stopConnection(); // exits run loop
+      while(dialog->con->isRunning())
       {
         qSleep(5);
       }
-      delete session->con;
-      session->con = NULL;
+      delete dialog->con;
+      dialog->con = NULL;
     }
 
-    if(session->state != NULL)
+    if(dialog->session != NULL)
     {
-      session->state->uninit();
-      delete session->state;
-      session->state = NULL;
+      //dialog->session->uninit();
+      delete dialog->session;
+      dialog->session = NULL;
     }
   }
 }

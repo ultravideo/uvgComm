@@ -1,7 +1,7 @@
 #pragma once
 
-#include "SIPState.h"
 #include "globalsdpstate.h"
+#include "sipstringcomposer.h"
 #include "connection.h"
 #include "connectionserver.h"
 
@@ -15,6 +15,7 @@ struct Contact
 };
 
 class SIPRouting;
+class SIPSession;
 
 class SIPManager : public QObject
 {
@@ -66,13 +67,15 @@ private slots:
   void receiveTCPConnection(Connection* con);
   void processSIPMessage(QString header, QString content, quint32 sessionID);
 
+  void sendRequest(uint32_t dialogID_, RequestType request, const SIPSessionInfo& session);
+
 private:
 
-  struct SIPSession
+  struct SIPDialogData
   {
     QString callID;
     Connection* con;
-    SIPState* state;
+    SIPSession* session;
     SIPRouting* routing;
     // has local invite sdp or o response sdp
     std::shared_ptr<SDPMessageInfo> localSdp_;
@@ -81,14 +84,17 @@ private:
     bool hostedSession;
   };
 
-  SIPState* createSIPState();
-  void sendRequest(RequestType request, SIPSession *session);
+  SIPSession* createSIPSession();
 
-  void destroySession(SIPSession *session);
 
-  QMutex sessionMutex_;
+  void destroySession(SIPDialogData *dialog);
 
-  QList<SIPSession*> sessions_;
+  // tmp function to convert new structs to old
+  void toSIPMessageInfo(SIPRoutingInfo info);
+
+  QMutex dialogMutex_;
+
+  QList<SIPDialogData*> dialogs_;
 
   GlobalSDPState sdp_;
   SIPStringComposer messageComposer_;

@@ -10,6 +10,9 @@
 
 #include <memory>
 
+
+// To be removed. Kept as a reference for a little longer. This class was too complicated
+
 struct SIPMessageInfo;
 class Connection;
 
