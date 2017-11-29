@@ -4,9 +4,21 @@
 
 // 2 seconds for a SIP reply
 const unsigned int TIMEOUT = 2000;
-
 // 1 minute for the user to react
 const unsigned int INVITE_TIMEOUT = 60000;
+
+
+//TODO use cryptographically secure callID generation to avoid collisions.
+const QString alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                         "abcdefghijklmnopqrstuvwxyz"
+                         "0123456789";
+
+const uint16_t CALLIDLENGTH = 16;
+const uint16_t TAGLENGTH = 16;
+const uint16_t BRANCHLENGTH = 16;
+
+
+
 
 SIPSession::SIPSession():
   session_(),
@@ -115,3 +127,15 @@ void SIPSession::requestTimeOut()
   emit timedOut(sessionID_, ongoingTransactionType_);
   ongoingTransactionType_ = NOREQUEST;
 }
+
+QString SIPSession::generateRandomString(uint32_t length)
+{
+  // TODO make this cryptographically secure
+  QString string;
+  for( unsigned int i = 0; i < length; ++i )
+  {
+    string.append(alphabet.at(qrand()%alphabet.size()));
+  }
+  return string;
+}
+

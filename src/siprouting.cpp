@@ -2,6 +2,8 @@
 
 #include <QDebug>
 
+const uint16_t MAXFORWARDS = 70; // the recommmended value is 70
+
 SIPRouting::SIPRouting():
   localUsername_(""),
   localHost_(""),
@@ -105,6 +107,8 @@ std::shared_ptr<SIPRoutingInfo> SIPRouting::requestRouting(QString &directAddres
 
   newRouting->sessionHost = sessionHost_;
 
+  newRouting->maxForwards = MAXFORWARDS;
+
   if(!remoteDirectAddress_.isEmpty())
   {
     directAddress = remoteDirectAddress_;
@@ -128,6 +132,8 @@ std::shared_ptr<SIPRoutingInfo> SIPRouting::responseRouting()
   //everything expect contact field are copied from received request
   *newRouting = *previousReceivedRequest_;
   newRouting->contactAddress = localDirectAddress_;
+
+  // I may be wrong, but I did not reset maxforwards
 
   return newRouting;
 }

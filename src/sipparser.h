@@ -15,3 +15,4 @@
 
   std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body);
 
+  QList<QHostAddress> parseIPAddress(QString address);

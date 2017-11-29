@@ -29,8 +29,6 @@ class SIPSession : public QObject
 public:
   SIPSession();
 
-
-
   void setStateInfo(SIPSessionInfo session, uint32_t sessionID);
 
   // checks that the incoming message belongs to this session
@@ -79,6 +77,8 @@ signals:
 private:
 
   void requestSender(RequestType type);
+
+  QString generateRandomString(uint32_t length);
 
   SIPSessionInfo session_;
 

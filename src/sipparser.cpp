@@ -546,3 +546,25 @@ std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
 
   return info;
 }
+
+
+QList<QHostAddress> parseIPAddress(QString address)
+{
+  QList<QHostAddress> ipAddresses;
+
+  QRegularExpression re("\\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\\.|$)){4}\\b");
+  if(re.match(address).hasMatch())
+  {
+    qDebug() << "Found IPv4 address:" << address;
+    ipAddresses.append(QHostAddress(address));
+  }
+  else
+  {
+    qDebug() << "Did not find IPv4 address:" << address;
+    QHostInfo hostInfo;
+    hostInfo.setHostName(address);
+
+    ipAddresses.append(hostInfo.addresses());
+  }
+  return ipAddresses;
+}

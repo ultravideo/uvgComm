@@ -52,7 +52,6 @@ SOURCES +=\
     src/gui/videowidget.cpp \
     src/udpserver.cpp \
     src/stun.cpp \
-    src/sipstate.cpp \
     src/sipmanager.cpp \
     src/siprouting.cpp \
     src/globalsdpstate.cpp \
@@ -102,7 +101,6 @@ HEADERS  += \
     src/gui/videowidget.h \
     src/udpserver.h \
     src/stun.h \
-    src/sipstate.h \
     src/sipmanager.h \
     src/siprouting.h \
     src/globalsdpstate.h \
