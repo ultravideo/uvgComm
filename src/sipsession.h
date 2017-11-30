@@ -7,15 +7,15 @@
 #include <QObject>
 
 /* The main function of this class is to keep track of the call state.
- * Pass all user requests through this class which are checked for legality
- * and reacted view requests and responses.
+ * Pass all user requests and SIP messages through this class which are checked for legality.
+ * This class is also responsible for sending correct request or response. This class also
+ * does the translation between SIP CallID and sessionID.
  *
  * Is responsible for:
  * 1) check if this is the correct session
  * 2) check from incoming messages is legal at this point.
  * 3) modify call state when user wants to modify the call and forward the request
  *
- * This class is responsible for deciding which requests and responses to send.
  */
 
 // where is the checking of request/response type and the reaction?
@@ -29,7 +29,9 @@ class SIPSession : public QObject
 public:
   SIPSession();
 
-  void setStateInfo(SIPSessionInfo session, uint32_t sessionID);
+  void initSessionInfo(uint32_t sessionID);
+
+  void setSessionInfo(SIPSessionInfo session, uint32_t sessionID);
 
   // checks that the incoming message belongs to this session
   bool correctSession(const SIPSessionInfo& session) const;
@@ -71,8 +73,6 @@ signals:
 
   void sendRequest(uint32_t sessionID, RequestType type, const SIPSessionInfo& session);
   void sendResponse(uint32_t sessionID, ResponseType type, const SIPSessionInfo& session);
-
-  void timedOut(uint32_t sessionID, RequestType type);
 
 private:
 

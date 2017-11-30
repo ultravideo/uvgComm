@@ -20,7 +20,6 @@ void SIPManager::init()
   // listen to everything
   server_.listen(QHostAddress("0.0.0.0"), sipPort_);
 
-
   QSettings settings;
   QString localName = settings.value("local/Name").toString();
   QString localUsername = settings.value("local/Username").toString();
@@ -56,10 +55,10 @@ QList<QString> SIPManager::startCall(QList<Contact> addresses)
     SIPDialogData* dialog = new SIPDialogData;
 
     dialog->con = new Connection(dialogs_.size() + 1, true);
+
+    dialogMutex_.lock();
     dialog->con->setID(dialogs_.size() + 1);
-
-    dialog->session = createSIPSession();
-
+    dialog->session = createSIPSession(dialogs_.size() + 1);
     dialog->routing = new SIPRouting;
     dialog->hostedSession = false;
 
@@ -75,7 +74,6 @@ QList<QString> SIPManager::startCall(QList<Contact> addresses)
     // message is sent only after connection has been established so we know our address
     dialog->con->establishConnection(addresses.at(i).remoteAddress, sipPort_);
 
-    dialogMutex_.lock();
     dialogs_.push_back(dialog);
     dialogMutex_.unlock();
     qDebug() << "Added a new dialog:" << dialogs_.size();
@@ -104,30 +102,20 @@ void SIPManager::endAllCalls()
   //state_.endAllCalls();
 }
 
-SIPSession *SIPManager::createSIPSession()
+SIPSession *SIPManager::createSIPSession(uint32_t sessionID)
 {
   SIPSession* session = new SIPSession();
+
+  session->initSessionInfo(sessionID);
 
   QObject::connect(session, SIGNAL(sendRequest(uint32_t,RequestType,SIPSessionInfo)),
                    this, SLOT(sendRequest(uint32_t,RequestType,SIPSessionInfo)));
 
-  /*
-  session->init();
+  QObject::connect(session, SIGNAL(sendResponse(uint32_t,RequestType,SIPSessionInfo)),
+                   this, SLOT(sendResponse(uint32_t,RequestType,SIPSessionInfo)));
 
-  // would use newer syntax if it supported qstring
-  QObject::connect(state, SIGNAL(incomingINVITE(QString, QString)), this, SIGNAL(incomingINVITE(QString, QString)));
-  QObject::connect(state, SIGNAL(callingOurselves(QString, std::shared_ptr<SDPMessageInfo>)),
-                   this, SIGNAL(callingOurselves(QString, std::shared_ptr<SDPMessageInfo>)));
-  QObject::connect(state, SIGNAL(callNegotiated(QString, std::shared_ptr<SDPMessageInfo>, std::shared_ptr<SDPMessageInfo>)),
-                   this, SIGNAL(callNegotiated(QString, std::shared_ptr<SDPMessageInfo>, std::shared_ptr<SDPMessageInfo>)));
-  QObject::connect(state, SIGNAL(ringing(QString)), this, SIGNAL(ringing(QString)));
-  QObject::connect(state, SIGNAL(ourCallAccepted(QString, std::shared_ptr<SDPMessageInfo>, std::shared_ptr<SDPMessageInfo>)),
-                   this, SIGNAL(ourCallAccepted(QString, std::shared_ptr<SDPMessageInfo>, std::shared_ptr<SDPMessageInfo>)));
-  QObject::connect(state, SIGNAL(ourCallRejected(QString)), this, SIGNAL(ourCallRejected(QString)));
-  QObject::connect(state, SIGNAL(callEnded(QString, QString)), this, SIGNAL(callEnded(QString, QString)));
-  return state; */
-
-
+  // connect signals to signals. Session is responsible for responses
+  // and callmanager handles informing the user.
 }
 
 void SIPManager::receiveTCPConnection(Connection* con)
@@ -197,12 +185,12 @@ void SIPManager::processSIPMessage(QString header, QString content, quint32 sess
   // respond
 }
 
-void SIPManager::sendRequest(uint32_t dialogID_, RequestType request, const SIPSessionInfo &session)
+void SIPManager::sendRequest(uint32_t dialogID, RequestType request, const SIPSessionInfo &session)
 {
-  Q_ASSERT(dialogID_ < dialogs_.size());
+  Q_ASSERT(dialogID < dialogs_.size());
   // get routinginfo for
   QString direct = "";
-  std::shared_ptr<SIPRoutingInfo> routing = dialogs_.at(dialogID_ - 1)->routing->requestRouting(direct);
+  std::shared_ptr<SIPRoutingInfo> routing = dialogs_.at(dialogID - 1)->routing->requestRouting(direct);
 
   // get info from state
   // check validity of routingInfo and SIPMesgInfo
@@ -223,6 +211,11 @@ void SIPManager::sendRequest(uint32_t dialogID_, RequestType request, const SIPS
 
   messageComposer_.composeMessage(id);
 */
+}
+
+void SIPManager::sendResponse(uint32_t dialogID, ResponseType response, const SIPSessionInfo& session)
+{
+  qDebug() << "WARNING: Sending responses not implemented yet";
 }
 
 void SIPManager::destroySession(SIPDialogData *dialog)

@@ -17,9 +17,6 @@ const uint16_t CALLIDLENGTH = 16;
 const uint16_t TAGLENGTH = 16;
 const uint16_t BRANCHLENGTH = 16;
 
-
-
-
 SIPSession::SIPSession():
   session_(),
   sessionID_(0),
@@ -29,10 +26,19 @@ SIPSession::SIPSession():
   timeoutTimer_()
 {}
 
-void SIPSession::setStateInfo(SIPSessionInfo session, uint32_t sessionID)
+void SIPSession::initSessionInfo(uint32_t sessionID)
+{
+  session_.callID = generateRandomString(CALLIDLENGTH);
+  session_.localTag = generateRandomString(TAGLENGTH);
+  session_.remoteTag = "";
+}
+
+void SIPSession::setSessionInfo(SIPSessionInfo session, uint32_t sessionID)
 {
   Q_ASSERT(sessionID_ != 0);
   session_ = session;
+  session_.localTag = generateRandomString(TAGLENGTH);
+
   sessionID_ = sessionID;
 
   timeoutTimer_.setSingleShot(true);
@@ -124,7 +130,8 @@ void SIPSession::requestTimeOut()
     sendRequest(sessionID_, BYE, session_);
   }
 
-  emit timedOut(sessionID_, ongoingTransactionType_);
+  // TODO emit some signal indicating something
+
   ongoingTransactionType_ = NOREQUEST;
 }
 
