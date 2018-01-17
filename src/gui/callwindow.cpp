@@ -133,19 +133,19 @@ void CallWindow::addContact()
   contacts_.addContact(partInt_, ui_->peerName->text(), "anonymous", ui_->ip->text());
 }
 
-void CallWindow::displayOutgoingCall(QString callID, QString name)
+void CallWindow::displayOutgoingCall(uint32_t sessionID, QString name)
 {
-  conference_.callingTo(callID, name); // TODO get name from contact list
+  conference_.callingTo(sessionID, name); // TODO get name from contact list
 }
 
-void CallWindow::displayIncomingCall(QString callID, QString caller)
+void CallWindow::displayIncomingCall(uint32_t sessionID, QString caller)
 {
-  conference_.incomingCall(callID, caller);
+  conference_.incomingCall(sessionID, caller);
 }
 
-void CallWindow::displayRinging(QString callID)
+void CallWindow::displayRinging(uint32_t sessionID)
 {
-  conference_.ringing(callID);
+  conference_.ringing(sessionID);
 }
 
 void CallWindow::openStatistics()
@@ -169,11 +169,11 @@ void CallWindow::closeEvent(QCloseEvent *event)
   QMainWindow::closeEvent(event);
 }
 
-VideoWidget* CallWindow::addVideoStream(QString callID)
+VideoWidget* CallWindow::addVideoStream(uint32_t sessionID)
 {
   ui_->EndCallButton->setEnabled(true);
   ui_->EndCallButton->show();
-  VideoWidget* view = conference_.addVideoStream(callID);
+  VideoWidget* view = conference_.addVideoStream(sessionID);
   return view;
 }
 
@@ -205,9 +205,9 @@ void CallWindow::setCameraState(bool on)
   }
 }
 
-void CallWindow::removeParticipant(QString callID)
+void CallWindow::removeParticipant(uint32_t sessionID)
 {
-  if(!conference_.removeCaller(callID))
+  if(!conference_.removeCaller(sessionID))
   {
     ui_->EndCallButton->setEnabled(false);
     ui_->EndCallButton->hide();

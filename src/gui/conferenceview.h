@@ -28,27 +28,27 @@ public:
 
   void init(QGridLayout* conferenceLayout, QWidget* layoutwidget);
 
-  void callingTo(QString callID, QString name);
-  void ringing(QString callID);
-  void incomingCall(QString callID, QString name);
+  void callingTo(uint32_t sessionID, QString name);
+  void ringing(uint32_t sessionID);
+  void incomingCall(uint32_t sessionID, QString name);
 
-  QString acceptNewest();
-  QString rejectNewest();
+  uint32_t acceptNewest();
+  uint32_t rejectNewest();
 
   // if our call is accepted or we accepted their call
-  VideoWidget* addVideoStream(QString callID);
+  VideoWidget* addVideoStream(uint32_t sessionID);
 
   void declineCall();
 
   // return whether there are still participants left in call view
-  bool removeCaller(QString callID);
+  bool removeCaller(uint32_t sessionID);
 
   void close();
 
 signals:
 
-  void acceptCall(QString callID);
-  void rejectCall(QString callID);
+  void acceptCall(uint32_t sessionID);
+  void rejectCall(uint32_t sessionID);
 
 private slots:
 
@@ -61,9 +61,9 @@ private:
   void nextSlot();
 
   void attachCallingWidget(QWidget* holder, QString text);
-  void addWidgetToLayout(CallState state, QWidget* widget, QString name, QString callID);
+  void addWidgetToLayout(CallState state, QWidget* widget, QString name, uint32_t sessionID);
 
-  QString findInvoker(QString buttonName);
+  uint32_t findInvoker(QString buttonName);
 
   QWidget *parent_;
 
@@ -92,7 +92,9 @@ private:
   };
 
   QMutex callsMutex_; // TODO: missing implementation
-  std::map<QString, CallInfo*> activeCalls_;
+
+  // matches sessionID - 1, but is not the definitive source of sessionID.
+  QList<CallInfo*> activeCalls_;
 
   // keeping track of freed places
   // TODO: update the whole layout with each added and removed participant. Use window width.

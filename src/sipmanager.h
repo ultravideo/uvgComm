@@ -26,10 +26,10 @@ public:
   void init();
   void uninit();
 
-  QList<QString> startCall(QList<Contact> addresses);
-  void acceptCall(QString callID);
-  void rejectCall(QString callID);
-  void endCall(QString callID);
+  QList<uint32_t> startCall(QList<Contact> addresses);
+  void acceptCall(uint32_t sessionID);
+  void rejectCall(uint32_t sessionID);
+  void endCall(uint32_t sessionID);
 
   void endAllCalls();
 
@@ -37,28 +37,28 @@ signals:
 
   // caller wants to establish a call.
   // Ask use if it is and call accept or reject call
-  void incomingINVITE(QString CallID, QString caller);
+  void incomingINVITE(uint32_t sessionID, QString caller);
 
   // we are calling ourselves.
   // TODO: Current implementation ceases the negotiation and just starts the call.
-  void callingOurselves(QString callID, std::shared_ptr<SDPMessageInfo> info);
+  void callingOurselves(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> info);
 
   // their call which we have accepted has finished negotiating. Call can now start.
-  void callNegotiated(QString callID, std::shared_ptr<SDPMessageInfo> peerInfo,
+  void callNegotiated(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> peerInfo,
                       std::shared_ptr<SDPMessageInfo> localInfo);
 
   // Local call is waiting for user input at remote end
-  void ringing(QString callID);
+  void ringing(uint32_t sessionID);
 
   // Call iniated locally has been accepted by peer. Call can now start.
-  void ourCallAccepted(QString callID, std::shared_ptr<SDPMessageInfo> peerInfo,
+  void ourCallAccepted(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> peerInfo,
                        std::shared_ptr<SDPMessageInfo> localInfo);
 
   // Remote rejected local INVITE
-  void ourCallRejected(QString CallID);
+  void ourCallRejected(uint32_t sessionID);
 
   // Received call ending signal (BYE)
-  void callEnded(QString callID, QString ip);
+  void callEnded(uint32_t sessionID, QString ip);
 
 private slots:
   // connection has been established. This enables for us to get the needed info
@@ -73,7 +73,6 @@ private:
 
   struct SIPDialogData
   {
-    QString callID;
     Connection* con;
     SIPSession* session;
     SIPRouting* routing;
@@ -93,6 +92,9 @@ private:
 
   QMutex dialogMutex_;
 
+  // sessionID:s are positions in this list. SessionID:s are used in this program to
+  // keep track of sessions. The CallID is not used because we could be calling ourselves
+  // and using uint32_t is simpler than keeping track of tags
   QList<SIPDialogData*> dialogs_;
 
   GlobalSDPState sdp_;

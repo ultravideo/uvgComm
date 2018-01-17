@@ -109,11 +109,11 @@ void CallManager::callToParticipant(QString name, QString username, QString ip)
 
     //start negotiations for this connection
 
-    QList<QString> callIDs = sip_.startCall(list);
+    QList<uint32_t> sessionIDs = sip_.startCall(list);
 
-    for(auto callID : callIDs)
+    for(auto sessionID : sessionIDs)
     {
-      window_.displayOutgoingCall(callID, name);
+      window_.displayOutgoingCall(sessionID, name);
     }
   }
   else
@@ -122,11 +122,11 @@ void CallManager::callToParticipant(QString name, QString username, QString ip)
   }
 }
 
-void CallManager::callOurselves(QString callID, std::shared_ptr<SDPMessageInfo> info)
+void CallManager::callOurselves(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> info)
 {
   qDebug() << "Calling ourselves, how boring.";
-  VideoWidget* view = window_.addVideoStream(callID);
-  createParticipant(callID, info, info, view, stats_);
+  VideoWidget* view = window_.addVideoStream(sessionID);
+  createParticipant(sessionID, info, info, view, stats_);
 }
 
 void CallManager::chatWithParticipant(QString name, QString username, QString ip)
@@ -134,16 +134,16 @@ void CallManager::chatWithParticipant(QString name, QString username, QString ip
   qDebug() << "Chatting with:" << name << '(' << username << ") at ip:" << ip << ": Chat not implemented yet";
 }
 
-void CallManager::incomingCall(QString callID, QString caller)
+void CallManager::incomingCall(uint32_t sessionID, QString caller)
 {
   if(!media_.reservePorts())
   {
     qWarning() << "WARNING: Could not fit more participants to this call";
-    rejectCall(callID); // TODO: send a not possible message instead of reject.
+    rejectCall(sessionID); // TODO: send a not possible message instead of reject.
     return;
   }
 
-  window_.displayIncomingCall(callID, caller);
+  window_.displayIncomingCall(sessionID, caller);
 }
 
 void CallManager::updateSettings()
@@ -151,7 +151,7 @@ void CallManager::updateSettings()
   media_.updateSettings();
 }
 
-void CallManager::createParticipant(QString& callID, std::shared_ptr<SDPMessageInfo> peerInfo,
+void CallManager::createParticipant(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> peerInfo,
                                     const std::shared_ptr<SDPMessageInfo> localInfo,
                                     VideoWidget* videoWidget,
                                     StatisticsInterface* stats)
@@ -213,30 +213,30 @@ void CallManager::createParticipant(QString& callID, std::shared_ptr<SDPMessageI
 
   qDebug() << "Sending mediastreams to:" << peerInfo->connection_address << "audioPort:" << sendAudioPort
            << "VideoPort:" << sendVideoPort;
-  media_.addParticipant(callID, ip, sendAudioPort, recvAudioPort, sendVideoPort, recvVideoPort, videoWidget);
+  media_.addParticipant(sessionID, ip, sendAudioPort, recvAudioPort, sendVideoPort, recvVideoPort, videoWidget);
 }
 
-void CallManager::callNegotiated(QString callID, std::shared_ptr<SDPMessageInfo> peerInfo,
+void CallManager::callNegotiated(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> peerInfo,
                                 std::shared_ptr<SDPMessageInfo> localInfo)
 {
   qDebug() << "Our call has been accepted." << "Sending media to IP:" << peerInfo->connection_address
            << "to port:" << peerInfo->media.first().receivePort;
 
-  VideoWidget* view = window_.addVideoStream(callID);
+  VideoWidget* view = window_.addVideoStream(sessionID);
 
   // TODO check the SDP info and do ports and rtp numbers properly
-  createParticipant(callID, peerInfo, localInfo, view, stats_);
+  createParticipant(sessionID, peerInfo, localInfo, view, stats_);
 }
 
-void CallManager::acceptCall(QString callID)
+void CallManager::acceptCall(uint32_t sessionID)
 {
   qDebug() << "Sending accept";
-  sip_.acceptCall(callID);
+  sip_.acceptCall(sessionID);
 }
 
-void CallManager::rejectCall(QString callID)
+void CallManager::rejectCall(uint32_t sessionID)
 {
-  sip_.rejectCall(callID);
+  sip_.rejectCall(sessionID);
 }
 
 void CallManager::endTheCall()
@@ -257,22 +257,22 @@ void CallManager::cameraState()
   window_.setCameraState(media_.toggleCamera());
 }
 
-void CallManager::callRinging(QString callID)
+void CallManager::callRinging(uint32_t sessionID)
 {
   qDebug() << "Our call is ringing!";
-  window_.displayRinging(callID);
+  window_.displayRinging(sessionID);
 }
 
-void CallManager::callRejected(QString callID)
+void CallManager::callRejected(uint32_t sessionID)
 {
   qDebug() << "Our call has been rejected!";
-  window_.removeParticipant(callID);
+  window_.removeParticipant(sessionID);
   media_.freePorts();
 }
 
-void CallManager::callEnded(QString callID, QString ip)
+void CallManager::callEnded(uint32_t sessionID, QString ip)
 {
-  media_.removeParticipant(callID);
-  window_.removeParticipant(callID);
+  media_.removeParticipant(sessionID);
+  window_.removeParticipant(sessionID);
   stats_->removeParticipant(ip);
 }

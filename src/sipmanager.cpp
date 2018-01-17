@@ -46,9 +46,9 @@ void SIPManager::init()
 void SIPManager::uninit()
 {}
 
-QList<QString> SIPManager::startCall(QList<Contact> addresses)
+QList<uint32_t> SIPManager::startCall(QList<Contact> addresses)
 {
-  QList<QString> callIDs;
+  QList<uint32_t> calls;
   for(unsigned int i = 0; i < addresses.size(); ++i)
   {
 
@@ -62,8 +62,9 @@ QList<QString> SIPManager::startCall(QList<Contact> addresses)
     dialog->routing = new SIPRouting;
     dialog->hostedSession = false;
 
+
     //dialog->callID = dialog->session->startCall();
-    callIDs.push_back(dialog->callID);
+
 
     QObject::connect(dialog->con, SIGNAL(messageAvailable(QString, QString, quint32)),
                      this, SLOT(processSIPMessage(QString, QString, quint32)));
@@ -75,24 +76,25 @@ QList<QString> SIPManager::startCall(QList<Contact> addresses)
     dialog->con->establishConnection(addresses.at(i).remoteAddress, sipPort_);
 
     dialogs_.push_back(dialog);
+    calls.push_back(dialogs_.size());
     dialogMutex_.unlock();
     qDebug() << "Added a new dialog:" << dialogs_.size();
   }
 
-  return callIDs;
+  return calls;
 }
 
-void SIPManager::acceptCall(QString callID)
+void SIPManager::acceptCall(uint32_t sessionID)
 {
 
 }
 
-void SIPManager::rejectCall(QString callID)
+void SIPManager::rejectCall(uint32_t sessionID)
 {
   //state_.rejectCall(callID);
 }
 
-void SIPManager::endCall(QString callID)
+void SIPManager::endCall(uint32_t sessionID)
 {
   //state_.endCall(callID);
 }
@@ -124,7 +126,6 @@ void SIPManager::receiveTCPConnection(Connection* con)
   SIPDialogData* dialog = new SIPDialogData;
   dialog->con = con;
   dialog->session = NULL;
-  dialog->callID = "";
 
   QObject::connect(dialog->con, SIGNAL(messageAvailable(QString,QString, quint32)),
                    this, SLOT(processSIPMessage(QString, QString, quint32)));

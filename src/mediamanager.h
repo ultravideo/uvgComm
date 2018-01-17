@@ -32,10 +32,10 @@ public:
   // registers a contact for activity monitoring
   void registerContact(in_addr ip);
 
-  void addParticipant(QString callID, in_addr ip, uint16_t sendAudioPort, uint16_t recvAudioPort,
+  void addParticipant(uint32_t sessionID, in_addr ip, uint16_t sendAudioPort, uint16_t recvAudioPort,
                       uint16_t sendVideoPort, uint16_t recvVideoPort, VideoWidget* view);
 
-  void removeParticipant(QString callID);
+  void removeParticipant(uint32_t sessionID);
   void endAllCalls();
 
   void streamToIP(in_addr ip, uint16_t port);
@@ -71,17 +71,11 @@ signals:
 
 private:
 
-  uint16_t portsForCallID(QString callID) const
+  uint16_t portsForSessionID(uint32_t sessionID) const
   {
-    if(ids_.find(callID) != ids_.end())
-    {
-      return portsPerParticipant_;
-    }
-    return 0;
+    // if there is a need to have variable amount of streams per participant, modify this.
+    return portsPerParticipant_;
   }
-
-  // callID, PeerID relation pairs
-  std::map<QString,PeerID> ids_;
 
   StatisticsInterface* stats_;
 

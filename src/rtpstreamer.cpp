@@ -86,7 +86,6 @@ void RTPStreamer::init(StatisticsInterface *stats)
   iniated_.unlock();
 }
 
-
 void RTPStreamer::uninit()
 {
   Q_ASSERT(stopRTP_);
@@ -100,13 +99,7 @@ void RTPStreamer::uninit()
   while(isRunning_)
     qSleep(1);
 
-  for(unsigned int i = 0; i < peers_.size(); ++i)
-  {
-    if(peers_.at(i) != 0)
-    {
-      removePeer(i);
-    }
-  }
+  removeAllPeers();
 
   if(!env_->reclaim())
   {
@@ -123,8 +116,21 @@ void RTPStreamer::uninit()
   qDebug() << "RTP streamer uninit completed";
 }
 
-PeerID RTPStreamer::addPeer(in_addr ip)
+void RTPStreamer::removeAllPeers()
 {
+  for(unsigned int i = 0; i < peers_.size(); ++i)
+  {
+    if(peers_.at(i) != 0)
+    {
+      removePeer(i);
+    }
+  }
+}
+
+bool RTPStreamer::addPeer(in_addr ip, uint32_t sessionID)
+{
+  Q_ASSERT(!checkSessionID(sessionID));
+
   // not being destroyed
   if(destroyed_.tryLock(0))
   {
@@ -138,53 +144,57 @@ PeerID RTPStreamer::addPeer(in_addr ip)
 
     Peer* peer = new Peer;
 
-    peer->id = (PeerID)peers_.size();
     peer->ip = ip;
     peer->videoSender = 0;
     peer->videoReceiver = 0;
     peer->audioSender = 0;
     peer->audioReceiver = 0;
 
+    while(peers_.size() < sessionID)
+    {
+      peers_.append(NULL);
+    }
+
     peers_.push_back(peer);
 
     iniated_.unlock();
     destroyed_.unlock();
 
-    qDebug() << "RTP streamer: Peer #" << peer->id << "added";
+    qDebug() << "RTP streamer: SessionID #" << sessionID << "added to rtp streamer.";
 
-    return peer->id;
+    return true;
   }
   qWarning() <<  "Trying to add peer while RTP was being destroyed.";
 
-  return -1;
+  return false;
 }
 
-void RTPStreamer::removePeer(PeerID id)
+void RTPStreamer::removePeer(uint32_t sessionID)
 {
-  qDebug() << "Removing peer" << id << "from RTPStreamer";
-  if(peers_.at(id) != 0)
+  qDebug() << "Removing peer" << sessionID << "from RTPStreamer";
+  if(peers_.at(sessionID) != 0)
   {
     stop();
     while(isRunning_)
       qSleep(1);
 
-    if(peers_.at(id)->audioSender)
-      destroySender(peers_.at(id)->audioSender);
-    if(peers_.at(id)->videoSender)
-      destroySender(peers_.at(id)->videoSender);
-    if(peers_.at(id)->audioReceiver)
-      destroyReceiver(peers_.at(id)->audioReceiver);
-    if(peers_.at(id)->videoReceiver)
-      destroyReceiver(peers_.at(id)->videoReceiver);
+    if(peers_.at(sessionID - 1)->audioSender)
+      destroySender(peers_.at(sessionID - 1)->audioSender);
+    if(peers_.at(sessionID - 1)->videoSender)
+      destroySender(peers_.at(sessionID - 1)->videoSender);
+    if(peers_.at(sessionID - 1)->audioReceiver)
+      destroyReceiver(peers_.at(sessionID - 1)->audioReceiver);
+    if(peers_.at(sessionID - 1)->videoReceiver)
+      destroyReceiver(peers_.at(sessionID - 1)->videoReceiver);
 
-    delete peers_.at(id);
-    peers_.at(id) = 0;
+    delete peers_.at(sessionID - 1);
+    peers_[sessionID - 1] = NULL;
     start();
   }
-  else if(peers_.at(id) == 0)
+  else if(peers_.at(sessionID - 1) == 0)
   {
-    qWarning() << "WARNING: Tried to destroy already freed peer:" << id
-               << peers_.at(id);
+    qWarning() << "WARNING: Tried to destroy already freed peer:" << sessionID
+               << peers_.at(sessionID - 1);
   }
 }
 
@@ -266,80 +276,90 @@ void RTPStreamer::destroyReceiver(Receiver* recv)
     qWarning() << "Warning: Tried to delete receiver a second time";
 }
 
-std::shared_ptr<Filter> RTPStreamer::addSendVideo(PeerID peer, uint16_t port)
+bool RTPStreamer::checkSessionID(uint32_t sessionID)
 {
-  if(peers_.at(peer)->videoSender)
-    destroySender(peers_.at(peer)->videoSender);
-
-  peers_.at(peer)->videoSender = addSender(peers_.at(peer)->ip, port, HEVCVIDEO);
-  return peers_.at(peer)->videoSender->sourcefilter;
+  return peers_.size() >= sessionID
+      && peers_.at(sessionID - 1) != NULL;
 }
 
-std::shared_ptr<Filter> RTPStreamer::addSendAudio(PeerID peer, uint16_t port)
+std::shared_ptr<Filter> RTPStreamer::addSendVideo(uint32_t peer, uint16_t port)
 {
-  if(peers_.at(peer)->audioSender)
-    destroySender(peers_.at(peer)->audioSender);
+  Q_ASSERT(checkSessionID(peer));
+  if(peers_.at(peer - 1)->videoSender)
+    destroySender(peers_.at(peer - 1)->videoSender);
 
-  peers_.at(peer)->audioSender = addSender(peers_.at(peer)->ip, port, OPUSAUDIO);
-  return peers_.at(peer)->audioSender->sourcefilter;
+  peers_.at(peer - 1)->videoSender = addSender(peers_.at(peer - 1)->ip, port, HEVCVIDEO);
+  return peers_.at(peer - 1)->videoSender->sourcefilter;
 }
 
-std::shared_ptr<Filter> RTPStreamer::addReceiveVideo(PeerID peer, uint16_t port)
+std::shared_ptr<Filter> RTPStreamer::addSendAudio(uint32_t peer, uint16_t port)
 {
-  if(peers_.at(peer)->videoReceiver)
-    destroyReceiver(peers_.at(peer)->videoReceiver);
+  Q_ASSERT(checkSessionID(peer));
+  if(peers_.at(peer - 1)->audioSender)
+    destroySender(peers_.at(peer - 1)->audioSender);
 
-  peers_.at(peer)->videoReceiver = addReceiver(peers_.at(peer)->ip, port, HEVCVIDEO);
-  return peers_.at(peer)->videoReceiver->sink;
+  peers_.at(peer - 1)->audioSender = addSender(peers_.at(peer - 1)->ip, port, OPUSAUDIO);
+  return peers_.at(peer - 1)->audioSender->sourcefilter;
 }
 
-std::shared_ptr<Filter> RTPStreamer::addReceiveAudio(PeerID peer, uint16_t port)
+std::shared_ptr<Filter> RTPStreamer::addReceiveVideo(uint32_t peer, uint16_t port)
 {
-  if(peers_.at(peer)->audioReceiver)
-    destroyReceiver(peers_.at(peer)->audioReceiver);
+  Q_ASSERT(checkSessionID(peer));
+  if(peers_.at(peer - 1)->videoReceiver)
+    destroyReceiver(peers_.at(peer - 1)->videoReceiver);
 
-  peers_.at(peer)->audioReceiver = addReceiver(peers_.at(peer)->ip, port, OPUSAUDIO);
-  return peers_.at(peer)->audioReceiver->sink;
+  peers_.at(peer - 1)->videoReceiver = addReceiver(peers_.at(peer - 1)->ip, port, HEVCVIDEO);
+  return peers_.at(peer - 1)->videoReceiver->sink;
 }
 
-void RTPStreamer::removeSendVideo(PeerID peer)
+std::shared_ptr<Filter> RTPStreamer::addReceiveAudio(uint32_t peer, uint16_t port)
 {
-  if(peers_.at(peer)->videoSender)
+  Q_ASSERT(checkSessionID(peer));
+  if(peers_.at(peer - 1)->audioReceiver)
+    destroyReceiver(peers_.at(peer - 1)->audioReceiver);
+
+  peers_.at(peer - 1)->audioReceiver = addReceiver(peers_.at(peer - 1)->ip, port, OPUSAUDIO);
+  return peers_.at(peer - 1)->audioReceiver->sink;
+}
+
+void RTPStreamer::removeSendVideo(uint32_t sessionID)
+{
+  if(peers_.at(sessionID - 1)->videoSender)
   {
-    destroySender(peers_.at(peer)->videoSender);
-    peers_.at(peer)->videoSender = 0;
+    destroySender(peers_.at(sessionID - 1)->videoSender);
+    peers_.at(sessionID - 1)->videoSender = 0;
   }
   else
     qWarning() << "WARNING: Tried to remove send video that did not exist.";
 }
-void RTPStreamer::removeSendAudio(PeerID peer)
+void RTPStreamer::removeSendAudio(uint32_t sessionID)
 {
-  if(peers_.at(peer)->audioSender)
+  if(peers_.at(sessionID - 1)->audioSender)
   {
-    destroySender(peers_.at(peer)->audioSender);
-    peers_.at(peer)->audioSender = 0;
+    destroySender(peers_.at(sessionID - 1)->audioSender);
+    peers_.at(sessionID - 1)->audioSender = 0;
   }
 
   else
     qWarning() << "WARNING: Tried to remove send video that did not exist.";
 }
 
-void RTPStreamer::removeReceiveVideo(PeerID peer)
+void RTPStreamer::removeReceiveVideo(uint32_t sessionID)
 {
-  if(peers_.at(peer)->videoReceiver)
+  if(peers_.at(sessionID)->videoReceiver)
   {
-    destroyReceiver(peers_.at(peer)->videoReceiver);
-    peers_.at(peer)->videoReceiver = 0;
+    destroyReceiver(peers_.at(sessionID - 1)->videoReceiver);
+    peers_.at(sessionID - 1)->videoReceiver = 0;
   }
   else
     qWarning() << "WARNING: Tried to remove send video that did not exist.";
 }
-void RTPStreamer::removeReceiveAudio(PeerID peer)
+void RTPStreamer::removeReceiveAudio(uint32_t sessionID)
 {
-  if(peers_.at(peer)->audioReceiver)
+  if(peers_.at(sessionID - 1)->audioReceiver)
   {
-    destroyReceiver(peers_.at(peer)->audioReceiver);
-    peers_.at(peer)->audioReceiver = 0;
+    destroyReceiver(peers_.at(sessionID - 1)->audioReceiver);
+    peers_.at(sessionID - 1)->audioReceiver = 0;
   }
   else
     qWarning() << "WARNING: Tried to remove send video that did not exist.";

@@ -53,7 +53,7 @@ void MediaManager::updateSettings()
   fg_->mic(mic_);
 }
 
-void MediaManager::addParticipant(QString callID, in_addr ip, uint16_t sendAudioPort, uint16_t recvAudioPort,
+void MediaManager::addParticipant(uint32_t sessionID, in_addr ip, uint16_t sendAudioPort, uint16_t recvAudioPort,
                                  uint16_t sendVideoPort, uint16_t recvVideoPort, VideoWidget *view)
 {
   Q_ASSERT(portsInUse_ + portsPerParticipant_ <= maxPortsOpen_);
@@ -68,73 +68,53 @@ void MediaManager::addParticipant(QString callID, in_addr ip, uint16_t sendAudio
   portsMutex_.unlock();
 
   // Open necessary ports and create filters for sending and receiving
-  PeerID streamID = streamer_->addPeer(ip);
-
-  if(ids_.find(callID) != ids_.end())
+  if( streamer_->addPeer(ip, sessionID))
   {
-    removeParticipant(callID);
-  }
-  ids_[callID] = streamID;
-
-  if(streamID == -1)
-  {
-    qCritical() << "Error creating RTP peer";
+    qCritical() << "Error creating RTP peer. Simultanious destruction?";
     return;
   }
 
-  qDebug() << "Creating connections for ID:" << streamID;
-  std::shared_ptr<Filter> videoFramedSource = streamer_->addSendVideo(streamID, sendVideoPort);
-  std::shared_ptr<Filter> videoSink =streamer_->addReceiveVideo(streamID, recvVideoPort);
-  std::shared_ptr<Filter> audioFramedSource = streamer_->addSendAudio(streamID, sendAudioPort);
-  std::shared_ptr<Filter> audioSink = streamer_->addReceiveAudio(streamID, recvAudioPort);
+  qDebug() << "Creating connections for ID:" << sessionID;
+  std::shared_ptr<Filter> videoFramedSource = streamer_->addSendVideo(sessionID, sendVideoPort);
+  std::shared_ptr<Filter> videoSink =streamer_->addReceiveVideo(sessionID, recvVideoPort);
+  std::shared_ptr<Filter> audioFramedSource = streamer_->addSendAudio(sessionID, sendAudioPort);
+  std::shared_ptr<Filter> audioSink = streamer_->addReceiveAudio(sessionID, recvAudioPort);
 
-  qDebug() << "Modifying filter graph for ID:" << streamID;
+  qDebug() << "Modifying filter graph for ID:" << sessionID;
   // create filter graphs for this participant
-  fg_->sendVideoto(streamID, std::shared_ptr<Filter>(videoFramedSource));
-  fg_->receiveVideoFrom(streamID, std::shared_ptr<Filter>(videoSink), view);
-  fg_->sendAudioTo(streamID, std::shared_ptr<Filter>(audioFramedSource));
-  fg_->receiveAudioFrom(streamID, std::shared_ptr<Filter>(audioSink));
+  fg_->sendVideoto(sessionID, std::shared_ptr<Filter>(videoFramedSource));
+  fg_->receiveVideoFrom(sessionID, std::shared_ptr<Filter>(videoSink), view);
+  fg_->sendAudioTo(sessionID, std::shared_ptr<Filter>(audioFramedSource));
+  fg_->receiveAudioFrom(sessionID, std::shared_ptr<Filter>(audioSink));
 
-  qDebug() << "Participant added with ID:" << streamID;
+  qDebug() << "Participant added with ID:" << sessionID;
 
   fg_->print();
 }
 
-void MediaManager::removeParticipant(QString callID)
+void MediaManager::removeParticipant(uint32_t sessionID)
 {
-  Q_ASSERT(portsInUse_ >= portsForCallID(callID));
+  Q_ASSERT(portsInUse_ >= portsForSessionID(sessionID));
 
-  if(ids_.find(callID) == ids_.end())
-  {
-    qDebug() << callID << "No callID found in mediamanager. Maybe this was a call that we didn't asnwer?";
-    freePorts();
-    return;
-  }
-  fg_->removeParticipant(ids_[callID]);
+  fg_->removeParticipant(sessionID);
   fg_->camera(camera_); // if the last participant was destroyed, restore camera state
   fg_->mic(mic_);
-  streamer_->removePeer(ids_[callID]);
-  ids_.erase(callID);
-  qDebug() << "Participant " << callID << "removed.";
+  streamer_->removePeer(sessionID);
+  qDebug() << "Session " << sessionID << " media removed.";
 
   qDebug() << "They have left the call. Ports in use:" << portsInUse_
-           << "->" << portsInUse_ - portsForCallID(callID);
+           << "->" << portsInUse_ - portsForSessionID(sessionID);
 
-  portsInUse_ -= portsForCallID(callID);
+  portsInUse_ -= portsForSessionID(sessionID);
 }
 
 void MediaManager::endAllCalls()
 {
-  qDebug() << "Destroying" << ids_.size() << "calls.";
-  for(auto caller : ids_)
-  {
-    //cant use removeparticipant-function of media manager,  because iterator would break
-    fg_->removeParticipant(caller.second);
-    fg_->camera(camera_); // if the last participant was destroyed, restore camera state
-    fg_->mic(mic_);
-    streamer_->removePeer(caller.second);
-  }
-  ids_.clear();
+  fg_->removeAllParticipants();
+  streamer_->removeAllPeers();
+
+  fg_->camera(camera_); // if the last participant was destroyed, restore camera state
+  fg_->mic(mic_);
 
   portsInUse_ = 0;
   portsReserved_ = 0;

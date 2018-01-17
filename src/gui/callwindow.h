@@ -8,7 +8,8 @@
 
 // The main Call window. It is also responsible for coordinating other GUI components.
 // The user inputs are directed to call manager and call manager issues changes to GUI
-// as necessary
+// as necessary. Someday the separation of callwindow and uimanager may be necessary, but
+// currently there is not enough functionality on the callwindow itself.
 
 class StatisticsWindow;
 class StatisticsInterface;
@@ -35,15 +36,15 @@ public:
   VideoWidget* getSelfDisplay();
 
   // callID identifies the view slot
-  void displayOutgoingCall(QString callID, QString name);
-  void displayRinging(QString callID);
-  void displayIncomingCall(QString callID, QString caller);
+  void displayOutgoingCall(uint32_t sessionID, QString name);
+  void displayRinging(uint32_t sessionID);
+  void displayIncomingCall(uint32_t sessionID, QString caller);
 
   // adds video stream to view and returns created/atttached videowidget
-  VideoWidget* addVideoStream(QString callID);
+  VideoWidget* addVideoStream(uint32_t sessionID);
 
   // removes caller from view
-  void removeParticipant(QString callID);
+  void removeParticipant(uint32_t sessionID);
   void clearConferenceView();
 
   // set GUI to reflect state
@@ -61,8 +62,8 @@ signals:
   void endCall();
   void closed();
 
-  void callAccepted(QString callID);
-  void callRejected(QString callID);
+  void callAccepted(uint32_t sessionID);
+  void callRejected(uint32_t sessionID);
 
   //void kickParticipant();
 

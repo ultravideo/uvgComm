@@ -21,12 +21,13 @@ public:
   void uninit();
 
   // These functions are used to manipulate filter graphs regarding a peer
-  void sendVideoto(int16_t id, std::shared_ptr<Filter> videoFramedSource);
-  void receiveVideoFrom(int16_t id, std::shared_ptr<Filter> videoSink, VideoWidget *view);
-  void sendAudioTo(int16_t id, std::shared_ptr<Filter> audioFramedSource);
-  void receiveAudioFrom(int16_t id, std::shared_ptr<Filter> audioSink);
+  void sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoFramedSource);
+  void receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> videoSink, VideoWidget *view);
+  void sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioFramedSource);
+  void receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> audioSink);
 
-  void removeParticipant(int16_t id);
+  void removeParticipant(uint32_t sessionID);
+  void removeAllParticipants();
 
   void mic(bool state);
   void camera(bool state);
@@ -48,7 +49,7 @@ private:
   bool connectFilters(std::shared_ptr<Filter> filter, std::shared_ptr<Filter> previous);
 
   // makes sure the participant exists and adds if necessary
-  void checkParticipant(int16_t id);
+  void checkParticipant(uint32_t sessionID);
 
   // iniates camera and attaches a self view to it.
   void initSelfView(VideoWidget *selfView);

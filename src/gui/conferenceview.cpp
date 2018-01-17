@@ -25,9 +25,10 @@ void ConferenceView::init(QGridLayout* conferenceLayout, QWidget* layoutwidget)
   layoutWidget_ = layoutwidget;
 }
 
-void ConferenceView::callingTo(QString callID, QString name)
+void ConferenceView::callingTo(uint32_t sessionID, QString name)
 {
-  if(activeCalls_.find(callID) != activeCalls_.end())
+  Q_ASSERT(sessionID);
+  if(activeCalls_.size() >= sessionID && activeCalls_.at(sessionID - 1) != NULL )
   {
     qWarning() << "WARNING: Outgoing call already has an allocated view";
     return;
@@ -40,10 +41,10 @@ void ConferenceView::callingTo(QString callID, QString name)
   label->setFont(font);
   label->setAlignment(Qt::AlignHCenter);
 
-  addWidgetToLayout(WAITINGPEER, label, name, callID);
+  addWidgetToLayout(WAITINGPEER, label, name, sessionID);
 }
 
-void ConferenceView::addWidgetToLayout(CallState state, QWidget* widget, QString name, QString callID)
+void ConferenceView::addWidgetToLayout(CallState state, QWidget* widget, QString name, uint32_t sessionID)
 {
   locMutex_.lock();
   int row = row_;
@@ -58,7 +59,12 @@ void ConferenceView::addWidgetToLayout(CallState state, QWidget* widget, QString
   layoutMutex_.lock();
   layout_->addWidget(widget, row, column);
 
-  activeCalls_[callID] = new CallInfo{state, name, layout_->itemAtPosition(row,column),
+  while(activeCalls_.size() < sessionID)
+  {
+    activeCalls_.append(NULL);
+  }
+
+  activeCalls_[sessionID - 1] = new CallInfo{state, name, layout_->itemAtPosition(row,column),
                          row, column};
   layoutMutex_.unlock();
 
@@ -72,9 +78,9 @@ void ConferenceView::addWidgetToLayout(CallState state, QWidget* widget, QString
   locMutex_.unlock();
 }
 
-void ConferenceView::incomingCall(QString callID, QString name)
+void ConferenceView::incomingCall(uint32_t sessionID, QString name)
 {
-  if(activeCalls_.find(callID) != activeCalls_.end())
+  if(activeCalls_.size() >= sessionID && activeCalls_.at(sessionID - 1) != NULL)
   {
     qWarning() << "WARNING: Incoming call already has an allocated view";
     return;
@@ -82,7 +88,7 @@ void ConferenceView::incomingCall(QString callID, QString name)
   qDebug() << "Displaying pop-up for somebody calling in slot:" << row_ << "," << column_;
   QWidget* holder = new QWidget;
   attachCallingWidget(holder, name + " is calling..");
-  addWidgetToLayout(ASKINGUSER, holder, name, callID);
+  addWidgetToLayout(ASKINGUSER, holder, name, sessionID);
 }
 
 void ConferenceView::attachCallingWidget(QWidget* holder, QString text)
@@ -99,32 +105,32 @@ void ConferenceView::attachCallingWidget(QWidget* holder, QString text)
 }
 
 // if our call is accepted or we accepted their call
-VideoWidget* ConferenceView::addVideoStream(QString callID)
+VideoWidget* ConferenceView::addVideoStream(uint32_t sessionID)
 {
   VideoWidget* view = new VideoWidget(NULL,1);
-  if(activeCalls_.find(callID) == activeCalls_.end())
+  if(activeCalls_.size() < sessionID || activeCalls_.at(sessionID - 1) == NULL)
   {
     qWarning() << "WARNING: Adding a videostream without previous.";
     return NULL;
   }
-  else if(activeCalls_[callID]->state != ASKINGUSER
-          && activeCalls_[callID]->state != WAITINGPEER)
+  else if(activeCalls_[sessionID - 1]->state != ASKINGUSER
+          && activeCalls_[sessionID - 1]->state != WAITINGPEER)
   {
     qWarning() << "WARNING: activating stream without previous state set";
     return NULL;
   }
 
   // add the widget in place of previous one
-  activeCalls_[callID]->state = ACTIVE;
+  activeCalls_[sessionID - 1]->state = ACTIVE;
 
   // TODO delete previous widget now instead of with parent.
   // Now they accumulate in memory until call has ended
-  delete activeCalls_[callID]->item->widget();
+  delete activeCalls_[sessionID - 1]->item->widget();
   layoutMutex_.lock();
-  layout_->removeItem(activeCalls_[callID]->item);
-  layout_->addWidget(view, activeCalls_[callID]->row, activeCalls_[callID]->column);
-  activeCalls_[callID]->item = layout_->itemAtPosition(activeCalls_[callID]->row,
-                                                       activeCalls_[callID]->column);
+  layout_->removeItem(activeCalls_[sessionID - 1]->item);
+  layout_->addWidget(view, activeCalls_[sessionID - 1]->row, activeCalls_[sessionID - 1]->column);
+  activeCalls_[sessionID - 1]->item = layout_->itemAtPosition(activeCalls_[sessionID - 1]->row,
+                                                       activeCalls_[sessionID - 1]->column);
   layoutMutex_.unlock();
   //view->setParent(0);
   //view->showMaximized();
@@ -134,32 +140,34 @@ VideoWidget* ConferenceView::addVideoStream(QString callID)
   return view;
 }
 
-void ConferenceView::ringing(QString callID)
+void ConferenceView::ringing(uint32_t sessionID)
 {
   // get widget from layout and change the text.
-  qDebug() << callID << "call is ringing. TODO: display it to user";
+  qDebug() << sessionID << "call is ringing. TODO: display it to user";
 }
 
-bool ConferenceView::removeCaller(QString callID)
+bool ConferenceView::removeCaller(uint32_t sessionID)
 {
-  if(activeCalls_.find(callID) == activeCalls_.end() || activeCalls_[callID]->item == NULL)
+  if(activeCalls_.size() >= sessionID
+     || activeCalls_[sessionID - 1] == NULL
+     || activeCalls_[sessionID - 1]->item == NULL)
   {
     qWarning() << "WARNING: Trying to remove nonexisting call from ConferenceView";
     return !activeCalls_.empty();
   }
-  if(activeCalls_[callID]->state == ACTIVE || activeCalls_[callID]->state == ASKINGUSER)
+  if(activeCalls_[sessionID - 1]->state == ACTIVE || activeCalls_[sessionID - 1]->state == ASKINGUSER)
   {
-    activeCalls_[callID]->item->widget()->hide();
-    delete activeCalls_[callID]->item->widget();
+    activeCalls_[sessionID - 1]->item->widget()->hide();
+    delete activeCalls_[sessionID - 1]->item->widget();
   }
   layoutMutex_.lock();
-  layout_->removeItem(activeCalls_[callID]->item);
+  layout_->removeItem(activeCalls_[sessionID - 1]->item);
   layoutMutex_.unlock();
 
   locMutex_.lock();
   if(activeCalls_.size() != 1)
   {
-    freedLocs_.push_back({activeCalls_[callID]->row, activeCalls_[callID]->column});
+    freedLocs_.push_back({activeCalls_[sessionID - 1]->row, activeCalls_[sessionID - 1]->column});
   }
   else
   {
@@ -170,7 +178,8 @@ bool ConferenceView::removeCaller(QString callID)
     qDebug() << "Removed last video view. Clearing previous data";
   }
   locMutex_.unlock();
-  activeCalls_.erase(callID);
+  delete activeCalls_.at(sessionID - 1);
+  activeCalls_[sessionID - 1] = NULL;
 
   return !activeCalls_.empty();
 }
@@ -208,13 +217,19 @@ void ConferenceView::nextSlot()
 
 void ConferenceView::close()
 {
-  while(!activeCalls_.empty())
+  for(unsigned int i = 0; i < activeCalls_.size(); ++i)
   {
-    layoutMutex_.lock();
-    layout_->removeItem((*activeCalls_.begin()).second->item);
-    layoutMutex_.unlock();
-    removeCaller((*activeCalls_.begin()).first);
+    if(activeCalls_.at(i) != NULL)
+    {
+      layoutMutex_.lock();
+      layout_->removeItem(activeCalls_.at(i)->item);
+      layoutMutex_.unlock();
+      removeCaller(i);
+    }
   }
+
+  // not strictly needed, but just in case.
+  activeCalls_.clear();
 
   locMutex_.lock();
   row_ = 0;
@@ -224,44 +239,37 @@ void ConferenceView::close()
   locMutex_.unlock();
 }
 
-QString ConferenceView::findInvoker(QString buttonName)
+uint32_t ConferenceView::findInvoker(QString buttonName)
 {
-  QString callID = "";
+  uint32_t sessionID = 0;
   QPushButton* button = qobject_cast<QPushButton*>(sender());
-  for(auto callinfo : activeCalls_)
+  for(unsigned int i = 0; i < activeCalls_.size(); ++i)
   {
-    QPushButton* pb = callinfo.second->item->widget()->findChildren<QPushButton *>(buttonName).first();
-    if(pb == button)
+    if(activeCalls_.at(i) != NULL)
     {
-      callID = callinfo.first;
-      qDebug() << "Found invoking" << buttonName << "CallID:" << callID;
+      QPushButton* pb = activeCalls_.at(i)->item->widget()->findChildren<QPushButton *>(buttonName).first();
+      if(pb == button)
+      {
+        sessionID = i;
+        qDebug() << "Found invoking" << buttonName << "Session ID:" << sessionID;
+      }
     }
   }
 
-  return callID;
+  Q_ASSERT(sessionID != 0);
+  Q_ASSERT(sessionID <= activeCalls_.size());
+  return sessionID;
 }
 
 void ConferenceView::accept()
 {
-  QString callID = findInvoker("AcceptButton");
-  if(callID == "")
-  {
-    qWarning() << "WARNING: Could not find invoking push_button";
-    return;
-  }
-  Q_ASSERT(activeCalls_[callID]->state != ASKINGUSER);
-  emit acceptCall(callID);
+  uint32_t sessionID = findInvoker("AcceptButton");
+  emit acceptCall(sessionID);
 }
 
 void ConferenceView::reject()
 {
-  QString callID = findInvoker("DeclineButton");
-  if(callID == "")
-  {
-    qWarning() << "WARNING: Could not find invoking reject button";
-    return;
-  }
-  Q_ASSERT(activeCalls_[callID]->state != ASKINGUSER);
-  removeCaller(callID);
-  emit rejectCall(callID);
+  uint32_t sessionID = findInvoker("DeclineButton");
+  removeCaller(sessionID);
+  emit rejectCall(sessionID);
 }

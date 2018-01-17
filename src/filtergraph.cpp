@@ -218,48 +218,48 @@ bool FilterGraph::connectFilters(std::shared_ptr<Filter> filter, std::shared_ptr
   return true;
 }
 
-void FilterGraph::checkParticipant(int16_t id)
+void FilterGraph::checkParticipant(uint32_t sessionID)
 {
   Q_ASSERT(stats_);
-  Q_ASSERT(id > -1);
+  Q_ASSERT(sessionID);
 
-  qDebug() << "Checking participant with id:" << id;
+  qDebug() << "Checking participant with session ID:" << sessionID;
 
-  if(peers_.size() > (unsigned int)id)
+  if(peers_.size() >= sessionID)
   {
-    if(peers_.at(id) != NULL)
+    if(peers_.at(sessionID - 1) != NULL)
     {
       qDebug() << "Filter graph: Peer exists";
       return;
     }
     else
     {
-      qDebug() << "Filter graph: Replacing old participant with id:" << id;
-      peers_.at(id) = new Peer;
+      qDebug() << "Filter graph: Replacing old participant with session ID:" << sessionID;
+      peers_.at(sessionID - 1) = new Peer;
     }
   }
   else
   {
-    while(peers_.size() < (unsigned int)id)
+    while(peers_.size() < sessionID)
     {
-      peers_.push_back(0);
+      peers_.push_back(NULL);
     }
-    peers_.push_back(new Peer);
+    peers_.at(sessionID - 1) = new Peer();
 
     qDebug() << "Filter graph: Adding participant to end";
   }
 
-  peers_.at(id)->output = 0;
-  peers_.at(id)->audioFramedSource = 0;
-  peers_.at(id)->videoFramedSource = 0;
+  peers_.at(sessionID - 1)->output = 0;
+  peers_.at(sessionID - 1)->audioFramedSource = 0;
+  peers_.at(sessionID - 1)->videoFramedSource = 0;
 }
 
-void FilterGraph::sendVideoto(int16_t id, std::shared_ptr<Filter> videoFramedSource)
+void FilterGraph::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoFramedSource)
 {
-  Q_ASSERT(id > -1);
+  Q_ASSERT(sessionID);
   Q_ASSERT(videoFramedSource);
 
-  qDebug() << "Adding send video for peer:" << id;
+  qDebug() << "Adding send video for peer:" << sessionID;
 
   // make sure we are generating video
   if(videoSend_.size() < 4)
@@ -268,43 +268,43 @@ void FilterGraph::sendVideoto(int16_t id, std::shared_ptr<Filter> videoFramedSou
   }
 
   // add participant if necessary
-  checkParticipant(id);
+  checkParticipant(sessionID - 1);
 
-  if(peers_.at(id)->videoFramedSource)
+  if(peers_.at(sessionID - 1)->videoFramedSource)
   {
     qWarning() << "Warning: We are already sending video to participant.";
     return;
   }
 
-  peers_.at(id)->videoFramedSource = videoFramedSource;
+  peers_.at(sessionID - 1)->videoFramedSource = videoFramedSource;
 
   videoSend_.back()->addOutConnection(videoFramedSource);
 }
 
-void FilterGraph::receiveVideoFrom(int16_t id, std::shared_ptr<Filter> videoSink, VideoWidget *view)
+void FilterGraph::receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> videoSink, VideoWidget *view)
 {
-  Q_ASSERT(id > -1);
+  Q_ASSERT(sessionID);
   Q_ASSERT(videoSink);
 
   // add participant if necessary
-  checkParticipant(id);
+  checkParticipant(sessionID);
 
-  if(!peers_.at(id)->videoReceive.empty())
+  if(!peers_.at(sessionID - 1)->videoReceive.empty())
   {
-    qWarning() << "Warning: We are receiving video from this participant:" << id;
+    qWarning() << "Warning: We are receiving video from this participant:" << sessionID;
     return;
   }
-  addToGraph(videoSink, peers_.at(id)->videoReceive);
-  addToGraph(std::shared_ptr<Filter>(new OpenHEVCFilter(QString::number(id) + "_", stats_)),
-             peers_.at(id)->videoReceive, 0);
+  addToGraph(videoSink, peers_.at(sessionID - 1)->videoReceive);
+  addToGraph(std::shared_ptr<Filter>(new OpenHEVCFilter(QString::number(sessionID) + "_", stats_)),
+             peers_.at(sessionID - 1)->videoReceive, 0);
 
-  addToGraph(std::shared_ptr<Filter>(new DisplayFilter(QString::number(id) + "_", stats_, view, id)),
-             peers_.at(id)->videoReceive, 1);
+  addToGraph(std::shared_ptr<Filter>(new DisplayFilter(QString::number(sessionID) + "_", stats_, view, sessionID)),
+             peers_.at(sessionID - 1)->videoReceive, 1);
 }
 
-void FilterGraph::sendAudioTo(int16_t id, std::shared_ptr<Filter> audioFramedSource)
+void FilterGraph::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioFramedSource)
 {
-  Q_ASSERT(id > -1);
+  Q_ASSERT(sessionID);
   Q_ASSERT(audioFramedSource);
 
   // just in case it is wanted later. AEC filter has to be attached
@@ -314,22 +314,22 @@ void FilterGraph::sendAudioTo(int16_t id, std::shared_ptr<Filter> audioFramedSou
   }
 
   // add participant if necessary
-  checkParticipant(id);
+  checkParticipant(sessionID - 1);
 
-  if(peers_.at(id)->audioFramedSource)
+  if(peers_.at(sessionID - 1)->audioFramedSource)
   {
-    qWarning() << "Warning: We are sending audio from to participant:" << id;
+    qWarning() << "Warning: We are sending audio from to participant:" << sessionID;
     return;
   }
 
-  peers_.at(id)->audioFramedSource = audioFramedSource;
+  peers_.at(sessionID - 1)->audioFramedSource = audioFramedSource;
 
   audioSend_.back()->addOutConnection(audioFramedSource);
 }
 
-void FilterGraph::receiveAudioFrom(int16_t id, std::shared_ptr<Filter> audioSink)
+void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> audioSink)
 {
-  Q_ASSERT(id > -1);
+  Q_ASSERT(sessionID);
   Q_ASSERT(audioSink);
 
   // just in case it is wanted later. AEC filter has to be attached
@@ -339,38 +339,46 @@ void FilterGraph::receiveAudioFrom(int16_t id, std::shared_ptr<Filter> audioSink
   }
 
   // add participant if necessary
-  checkParticipant(id);
+  checkParticipant(sessionID);
 
-  if(!peers_.at(id)->audioReceive.empty())
+  if(!peers_.at(sessionID - 1)->audioReceive.empty())
   {
-    qWarning() << "Warning: We are receiving video from this participant:" << id;
+    qWarning() << "Warning: We are receiving video from this participant:" << sessionID;
     return;
   }
-  addToGraph(audioSink, peers_.at(id)->audioReceive);
-  addToGraph(std::shared_ptr<Filter>(new OpusDecoderFilter(QString::number(id) + "_", format_, stats_)),
-                                     peers_.at(id)->audioReceive, 0);
+  addToGraph(audioSink, peers_.at(sessionID - 1)->audioReceive);
+  addToGraph(std::shared_ptr<Filter>(new OpusDecoderFilter(QString::number(sessionID) + "_", format_, stats_)),
+                                     peers_.at(sessionID - 1)->audioReceive, 0);
 
   if(audioSend_.size() > 0 && AEC_ENABLED)
   {
-    addToGraph(std::shared_ptr<Filter>(new SpeexAECFilter(QString::number(id) + "_", stats_, format_)),
-               peers_.at(id)->audioReceive, 1);
+    addToGraph(std::shared_ptr<Filter>(new SpeexAECFilter(QString::number(sessionID) + "_", stats_, format_)),
+               peers_.at(sessionID - 1)->audioReceive, 1);
 
     //connect to capture filter to remove echo
-    audioSend_.at(0)->addOutConnection(peers_.at(id)->audioReceive.back());
+    audioSend_.at(0)->addOutConnection(peers_.at(sessionID - 1)->audioReceive.back());
   }
   else
   {
     qWarning() << "WARNING: Did not attach echo cancellation";
   }
 
-  peers_.at(id)->output = new AudioOutput(stats_, id);
-  peers_.at(id)->output->initializeAudio(format_);
-  AudioOutputDevice* outputModule = peers_.at(id)->output->getOutputModule();
+  peers_.at(sessionID - 1)->output = new AudioOutput(stats_, sessionID);
+  peers_.at(sessionID - 1)->output->initializeAudio(format_);
+  AudioOutputDevice* outputModule = peers_.at(sessionID - 1)->output->getOutputModule();
 
-  outputModule->init(peers_.at(id)->audioReceive.back());
+  outputModule->init(peers_.at(sessionID - 1)->audioReceive.back());
 }
 
 void FilterGraph::uninit()
+{
+  removeAllParticipants();
+
+  destroyFilters(videoSend_);
+  destroyFilters(audioSend_);
+}
+
+void FilterGraph::removeAllParticipants()
 {
   for(Peer* p : peers_)
   {
@@ -381,9 +389,6 @@ void FilterGraph::uninit()
     }
   }
   peers_.clear();
-
-  destroyFilters(videoSend_);
-  destroyFilters(audioSend_);
 }
 
 void changeState(std::shared_ptr<Filter> f, bool state)
@@ -521,13 +526,13 @@ void FilterGraph::destroyPeer(Peer* peer)
   delete peer;
 }
 
-void FilterGraph::removeParticipant(int16_t id)
+void FilterGraph::removeParticipant(uint32_t sessionID)
 {
-  qDebug() << "Removing peer:" << id +1 << "/" << peers_.size();
-  Q_ASSERT(id < peers_.size());
-  if(peers_.at(id) != NULL)
-    destroyPeer(peers_.at(id));
-  peers_.at(id) = NULL;
+  qDebug() << "Removing peer:" << sessionID << "/" << peers_.size();
+  Q_ASSERT(sessionID < peers_.size());
+  if(peers_.at(sessionID - 1) != NULL)
+    destroyPeer(peers_.at(sessionID - 1));
+  peers_.at(sessionID - 1) = NULL;
 
     // destroy send graphs if this was the last peer
   bool peerPresent = false;

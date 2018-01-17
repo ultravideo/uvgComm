@@ -32,17 +32,17 @@ public slots:
   void cameraState();
   void endTheCall();
   void windowClosed();
-  void acceptCall(QString callID);
-  void rejectCall(QString callID);
+  void acceptCall(uint32_t sessionID);
+  void rejectCall(uint32_t sessionID);
 
   // call state changes view negotiation slots
-  void incomingCall(QString callID, QString caller);
-  void callOurselves(QString callID, std::shared_ptr<SDPMessageInfo> info);
-  void callNegotiated(QString callID, std::shared_ptr<SDPMessageInfo> peerInfo,
+  void incomingCall(uint32_t sessionID, QString caller);
+  void callOurselves(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> info);
+  void callNegotiated(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> peerInfo,
                      std::shared_ptr<SDPMessageInfo> localInfo);
-  void callRinging(QString callID);
-  void callRejected(QString callID);
-  void callEnded(QString callID, QString ip);
+  void callRinging(uint32_t sessionID);
+  void callRejected(uint32_t sessionID);
+  void callEnded(uint32_t sessionID, QString ip);
 
 private slots:
 
@@ -51,7 +51,7 @@ private slots:
 
 private:
 
-  void createParticipant(QString& callID, std::shared_ptr<SDPMessageInfo> peerInfo,
+  void createParticipant(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> peerInfo,
                          const std::shared_ptr<SDPMessageInfo> localInfo,
                          VideoWidget *videoWidget,
                          StatisticsInterface* stats);

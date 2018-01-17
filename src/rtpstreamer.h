@@ -14,8 +14,6 @@ class RTPSinkFilter;
 class Filter;
 class StatisticsInterface;
 
-typedef int16_t PeerID;
-
 class RTPStreamer : public QThread
 {
   Q_OBJECT
@@ -28,23 +26,26 @@ public:
   void run();
   void stop();
 
-  // associate add and remove functions with returned peerID
-  PeerID addPeer(in_addr ip);
+  // init a session with sessionID to use with add/remove functions
+  // returns whther opeartion was successful
+  bool addPeer(in_addr ip, uint32_t sessionID);
 
   // Returns filter to be attached to filter graph. ownership is not transferred.
   // removing peer and stopping destroy these filters.
-  std::shared_ptr<Filter> addSendVideo(PeerID peer, uint16_t port);
-  std::shared_ptr<Filter> addSendAudio(PeerID peer, uint16_t port);
-  std::shared_ptr<Filter> addReceiveVideo(PeerID peer, uint16_t port);
-  std::shared_ptr<Filter> addReceiveAudio(PeerID peer, uint16_t port);
+  std::shared_ptr<Filter> addSendVideo(uint32_t peer, uint16_t port);
+  std::shared_ptr<Filter> addSendAudio(uint32_t peer, uint16_t port);
+  std::shared_ptr<Filter> addReceiveVideo(uint32_t peer, uint16_t port);
+  std::shared_ptr<Filter> addReceiveAudio(uint32_t peer, uint16_t port);
 
-  void removeSendVideo(PeerID peer);
-  void removeSendAudio(PeerID peer);
-  void removeReceiveVideo(PeerID peer);
-  void removeReceiveAudio(PeerID peer);
+  void removeSendVideo(uint32_t sessionID);
+  void removeSendAudio(uint32_t sessionID);
+  void removeReceiveVideo(uint32_t sessionID);
+  void removeReceiveAudio(uint32_t sessionID);
 
   // removes everything related to this peer
-  void removePeer(PeerID id);
+  void removePeer(uint32_t sessionID);
+
+  void removeAllPeers();
 
 private:
 
@@ -78,7 +79,6 @@ private:
 
   struct Peer
   {
-    PeerID id;
     struct in_addr ip;
     Sender* audioSender; // audio to this peer
     Sender* videoSender; // video to this peer
@@ -93,13 +93,16 @@ private:
 
   void destroyConnection(Connection& connection);
 
+  // returns whether peer corresponding to sessionID has been created. Debug
+  bool checkSessionID(uint32_t sessionID);
+
   Sender* addSender(in_addr ip, uint16_t port, DataType type);
   Receiver* addReceiver(in_addr peerAddress, uint16_t port, DataType type);
 
   void destroySender(Sender* sender);
   void destroyReceiver(Receiver* recv);
 
-  std::vector<Peer*> peers_;
+  QList<Peer*> peers_;
 
   bool isIniated_;
   bool isRunning_;
