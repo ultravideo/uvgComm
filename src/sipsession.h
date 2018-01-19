@@ -6,6 +6,8 @@
 #include <QMUtex>
 #include <QObject>
 
+#include <memory>
+
 /* The main function of this class is to keep track of the call state.
  * Pass all user requests and SIP messages through this class which are checked for legality.
  * This class is also responsible for sending correct request or response. This class also
@@ -29,9 +31,11 @@ class SIPSession : public QObject
 public:
   SIPSession();
 
-  void initSessionInfo(uint32_t sessionID);
+  void init(uint32_t sessionID);
 
-  void setSessionInfo(SIPSessionInfo session, uint32_t sessionID);
+  std::shared_ptr<SIPSessionInfo> getSessionInfo();
+
+  SIPMessage generateMessage(RequestType originalRequest);
 
   // checks that the incoming message belongs to this session
   bool correctSession(const SIPSessionInfo& session) const;
@@ -46,11 +50,9 @@ public:
                        const SIPSessionInfo& session,
                        const SIPMessage& messageInfo);
 
-  void startCall();
+  bool startCall();
   void endCall();
   void registerToServer();
-
-  void sendMessage(QString message);
 
   // forbid copy and assignment
   SIPSession(const SIPSession& copied) = delete;
@@ -62,6 +64,7 @@ public:
 
 signals:
 
+  // notify the user
   void callRinging(uint32_t sessionID);
   void callAccepted(uint32_t sessionID);
   void callFailed(uint32_t sessionID);
@@ -71,18 +74,20 @@ signals:
   void registerSucceeded(uint32_t sessionID);
   void registerFailed(uint32_t sessionID);
 
-  void sendRequest(uint32_t sessionID, RequestType type, const SIPSessionInfo& session);
-  void sendResponse(uint32_t sessionID, ResponseType type, const SIPSessionInfo& session);
+  void sendRequest(uint32_t sessionID, RequestType type);
+  void sendResponse(uint32_t sessionID, ResponseType type);
 
 private:
 
+  void setSessionInfo(std::shared_ptr<SIPSessionInfo> info, uint32_t sessionID);
   void requestSender(RequestType type);
 
   QString generateRandomString(uint32_t length);
 
-  SIPSessionInfo session_;
+  std::shared_ptr<SIPSessionInfo> session_;
 
   uint32_t sessionID_;
+  uint32_t cSeq_;
 
   // used to check if the received response is for our request
   RequestType ongoingTransactionType_;

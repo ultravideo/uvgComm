@@ -67,8 +67,8 @@ private slots:
   void receiveTCPConnection(Connection* con);
   void processSIPMessage(QString header, QString content, quint32 sessionID);
 
-  void sendRequest(uint32_t dialogID, RequestType request, const SIPSessionInfo& session);
-  void sendResponse(uint32_t dialogID, ResponseType response, const SIPSessionInfo& session);
+  void sendRequest(uint32_t sessionID, RequestType request);
+  void sendResponse(uint32_t sessionID, ResponseType response);
 private:
 
   struct SIPDialogData

@@ -15,69 +15,123 @@ const QString alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 const uint16_t CALLIDLENGTH = 16;
 const uint16_t TAGLENGTH = 16;
-const uint16_t BRANCHLENGTH = 16;
+const uint16_t BRANCHLENGTH = 9;
 
 SIPSession::SIPSession():
   session_(),
   sessionID_(0),
+  cSeq_(0),
   ongoingTransactionType_(NOREQUEST),
   state_(CALL_INACTIVE),
   registered_(false),
   timeoutTimer_()
 {}
 
-void SIPSession::initSessionInfo(uint32_t sessionID)
+void SIPSession::init(uint32_t sessionID)
 {
-  session_.callID = generateRandomString(CALLIDLENGTH);
-  session_.localTag = generateRandomString(TAGLENGTH);
-  session_.remoteTag = "";
-}
-
-void SIPSession::setSessionInfo(SIPSessionInfo session, uint32_t sessionID)
-{
-  Q_ASSERT(sessionID_ != 0);
-  session_ = session;
-  session_.localTag = generateRandomString(TAGLENGTH);
+  Q_ASSERT(sessionID != 0);
+  session_ = std::shared_ptr<SIPSessionInfo> (new SIPSessionInfo);
+  session_->callID = "";
+  session_->localTag = generateRandomString(TAGLENGTH);
+  session_->remoteTag = "";
 
   sessionID_ = sessionID;
-
   timeoutTimer_.setSingleShot(true);
+}
+
+void SIPSession::setSessionInfo(std::shared_ptr<SIPSessionInfo> info, uint32_t sessionID)
+{
+  Q_ASSERT(sessionID_ != 0);
+  session_ = info;
+  sessionID_ = sessionID;
+}
+
+std::shared_ptr<SIPSessionInfo> SIPSession::getSessionInfo()
+{
+  Q_ASSERT(session_);
+  if(!session_)
+  {
+    qWarning() << "WARNING: No initialized session to give";
+  }
+  return session_;
+}
+
+SIPMessage SIPSession::generateMessage(RequestType originalRequest)
+{
+  SIPMessage mesg;
+  mesg.branch = "z9hG4bK" + generateRandomString(BRANCHLENGTH);
+  mesg.cSeq = cSeq_;
+  ++cSeq_;
+  if(originalRequest == ACK)
+  {
+    mesg.transactionRequest = INVITE;
+  }
+  else
+  {
+    mesg.transactionRequest = originalRequest;
+  }
+  return mesg;
 }
 
 // checks that the incoming message belongs to this session
 bool SIPSession::correctSession(const SIPSessionInfo& session) const
 {
-  return session.callID == session_.callID &&
-      session.localTag == session_.localTag &&
-      session.remoteTag == session_.remoteTag;
+  return session.callID == session_->callID &&
+      session.localTag == session_->localTag &&
+      session.remoteTag == session_->remoteTag;
 }
 
 // processes incoming request
 void SIPSession::processRequest(RequestType request, const SIPSessionInfo& session,
                                 const SIPMessage& messageInfo)
 {
-
+  Q_ASSERT(sessionID_ != 0);
+  if(!session_)
+  {
+    qWarning() << "WARNING: SIP Session not initialized.";
+    return;
+  }
 }
 
 //processes incoming response
 void SIPSession::processResponse(ResponseType response, const SIPSessionInfo &session,
                                  const SIPMessage& messageInfo)
 {
+  Q_ASSERT(sessionID_ != 0);
+  if(!session_)
+  {
+    qWarning() << "WARNING: SIP Session not initialized.";
+    return;
+  }
 
 }
 
-void SIPSession::startCall()
+bool SIPSession::startCall()
 {
+  qDebug() << "Starting a call and sending an INVITE in session";
+  Q_ASSERT(sessionID_ != 0);
+  if(!session_)
+  {
+    qWarning() << "WARNING: SIP Session not initialized";
+    return false;
+  }
+
   if(state_ == CALL_INACTIVE)
   {
-    emit sendRequest(sessionID_, INVITE, session_);
+    if(session_->callID == "")
+    {
+      session_->callID = generateRandomString(CALLIDLENGTH);
+    }
+
+    requestSender(INVITE);
   }
   else
   {
-    qDebug() << "WARNING: Trying to start a call, when it is already running or negotiating!";
+    qWarning() << "WARNING: Trying to start a call, when it is already running or negotiating:" << state_;
+    return false;
   }
 
-  requestSender(INVITE);
+  return true;
 }
 
 void SIPSession::endCall()
@@ -101,22 +155,19 @@ void SIPSession::registerToServer()
   requestSender(REGISTER);
 }
 
-void SIPSession::sendMessage(QString message)
-{
-  qDebug() << "WARNING: Sending messages has not been implemented!";
-}
-
 void SIPSession::requestSender(RequestType type)
 {
-  emit sendRequest(sessionID_, type, session_);
+  emit sendRequest(sessionID_, type);
   ongoingTransactionType_ = type;
 
   if(type != INVITE)
   {
+    qDebug() << "Request timeout set to: " << TIMEOUT;
     timeoutTimer_.start(TIMEOUT);
   }
   else
   {
+    qDebug() << "INVITE timeout set to: " << INVITE_TIMEOUT;
     timeoutTimer_.start(INVITE_TIMEOUT);
   }
 }
@@ -127,7 +178,8 @@ void SIPSession::requestTimeOut()
 
   if(ongoingTransactionType_ == INVITE)
   {
-    sendRequest(sessionID_, BYE, session_);
+    sendRequest(sessionID_, BYE);
+    // TODO tell user we have failed
   }
 
   // TODO emit some signal indicating something
@@ -137,7 +189,7 @@ void SIPSession::requestTimeOut()
 
 QString SIPSession::generateRandomString(uint32_t length)
 {
-  // TODO make this cryptographically secure
+  // TODO make this cryptographically secure to avoid collisions
   QString string;
   for( unsigned int i = 0; i < length; ++i )
   {
@@ -145,4 +197,3 @@ QString SIPSession::generateRandomString(uint32_t length)
   }
   return string;
 }
-

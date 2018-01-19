@@ -51,7 +51,6 @@ QList<uint32_t> SIPManager::startCall(QList<Contact> addresses)
   QList<uint32_t> calls;
   for(unsigned int i = 0; i < addresses.size(); ++i)
   {
-
     SIPDialogData* dialog = new SIPDialogData;
 
     dialog->con = new Connection(dialogs_.size() + 1, true);
@@ -62,9 +61,7 @@ QList<uint32_t> SIPManager::startCall(QList<Contact> addresses)
     dialog->routing = new SIPRouting;
     dialog->hostedSession = false;
 
-
     //dialog->callID = dialog->session->startCall();
-
 
     QObject::connect(dialog->con, SIGNAL(messageAvailable(QString, QString, quint32)),
                      this, SLOT(processSIPMessage(QString, QString, quint32)));
@@ -108,16 +105,17 @@ SIPSession *SIPManager::createSIPSession(uint32_t sessionID)
 {
   SIPSession* session = new SIPSession();
 
-  session->initSessionInfo(sessionID);
+  session->init(sessionID);
 
-  QObject::connect(session, SIGNAL(sendRequest(uint32_t,RequestType,SIPSessionInfo)),
-                   this, SLOT(sendRequest(uint32_t,RequestType,SIPSessionInfo)));
+  QObject::connect(session, SIGNAL(sendRequest(uint32_t,RequestType)),
+                   this, SLOT(sendRequest(uint32_t,RequestType)));
 
-  QObject::connect(session, SIGNAL(sendResponse(uint32_t,RequestType,SIPSessionInfo)),
-                   this, SLOT(sendResponse(uint32_t,RequestType,SIPSessionInfo)));
+  QObject::connect(session, SIGNAL(sendResponse(uint32_t,RequestType)),
+                   this, SLOT(sendResponse(uint32_t,RequestType)));
 
   // connect signals to signals. Session is responsible for responses
   // and callmanager handles informing the user.
+  return session;
 }
 
 void SIPManager::receiveTCPConnection(Connection* con)
@@ -166,8 +164,10 @@ void SIPManager::connectionEstablished(quint32 sessionID)
            << "From:" << dialog->con->getLocalAddress().toString()
            << "To:" << dialog->con->getPeerAddress().toString();
 
-  // generate SDP
-  // sendRequest(INVITE);
+  if(!dialog->session->startCall())
+  {
+    qDebug() << "WARNING: Could not start a call according to session.";
+  }
 }
 
 void SIPManager::processSIPMessage(QString header, QString content, quint32 sessionID)
@@ -186,37 +186,52 @@ void SIPManager::processSIPMessage(QString header, QString content, quint32 sess
   // respond
 }
 
-void SIPManager::sendRequest(uint32_t dialogID, RequestType request, const SIPSessionInfo &session)
+void SIPManager::sendRequest(uint32_t sessionID, RequestType request)
 {
-  Q_ASSERT(dialogID < dialogs_.size());
+  qDebug() << "---- Iniated sending of a request ---";
+  Q_ASSERT(sessionID < dialogs_.size());
   // get routinginfo for
   QString direct = "";
-  std::shared_ptr<SIPRoutingInfo> routing = dialogs_.at(dialogID - 1)->routing->requestRouting(direct);
 
-  // get info from state
-  // check validity of routingInfo and SIPMesgInfo
-  // convert routingInfo and SIPMesgInfo to struct fields
+  // get routing info from  siprouting
+  std::shared_ptr<SIPRoutingInfo> routing = dialogs_.at(sessionID - 1)->routing->requestRouting(direct);
+  std::shared_ptr<SIPSessionInfo> session = dialogs_.at(sessionID - 1)->session->getSessionInfo();
+  SIPMessage mesg_info = dialogs_.at(sessionID - 1)->session->generateMessage(request);
+
+
+  // convert routingInfo to SIPMesgInfo to struct fields
   // check that all fields are present
   // check message (and maybe parse?)
   // create and attach SDP if necessary
   // send string
 
-  /* messageComposer_.to(id, info->contact.name, info->contact.username,
-                        info->contact.contactAddress, info->remoteTag);
-  messageComposer_.fromIP(id, localName_, localUsername_, info->localAddress, info->localTag);
-  QString branch = generateRandomString(BRANCHLENGTH);
-  messageComposer_.viaIP(id, info->localAddress, branch);
-  messageComposer_.maxForwards(id, MAXFORWARDS);
-  messageComposer_.setCallID(id, info->callID, info->host);
-  messageComposer_.sequenceNum(id, 1, info->originalRequest);
+  messageID id = messageComposer_.startSIPRequest(request);
 
-  messageComposer_.composeMessage(id);
-*/
+  messageComposer_.to(id, routing->receiverRealname, routing->receiverUsername,
+                        routing->receiverHost, session->remoteTag);
+  messageComposer_.fromIP(id, routing->senderRealname, routing->senderUsername, QHostAddress(routing->senderHost), session->localTag);
+
+  for(QString viaAddress : routing->senderReplyAddress)
+  {
+    messageComposer_.viaIP(id, QHostAddress(viaAddress), mesg_info.branch);
+  }
+
+  messageComposer_.maxForwards(id, routing->maxForwards);
+  messageComposer_.setCallID(id, session->callID, routing->senderHost);
+
+  messageComposer_.sequenceNum(id, mesg_info.cSeq, mesg_info.transactionRequest);
+
+  QString message = messageComposer_.composeMessage(id);
+
+  dialogs_.at(sessionID - 1)->con->sendPacket(message);
+
+  qDebug() << "---- Finished sending of a request ---";
 }
 
-void SIPManager::sendResponse(uint32_t dialogID, ResponseType response, const SIPSessionInfo& session)
+void SIPManager::sendResponse(uint32_t sessionID, ResponseType response)
 {
   qDebug() << "WARNING: Sending responses not implemented yet";
+
 }
 
 void SIPManager::destroySession(SIPDialogData *dialog)
