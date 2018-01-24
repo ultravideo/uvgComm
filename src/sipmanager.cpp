@@ -59,6 +59,8 @@ QList<uint32_t> SIPManager::startCall(QList<Contact> addresses)
     dialog->con->setID(dialogs_.size() + 1);
     dialog->session = createSIPSession(dialogs_.size() + 1);
     dialog->routing = new SIPRouting;
+    dialog->routing->setLocalUsername(localUsername_);
+    dialog->routing->setRemoteUsername(addresses.at(i).username);
     dialog->hostedSession = false;
 
     //dialog->callID = dialog->session->startCall();
@@ -88,17 +90,17 @@ void SIPManager::acceptCall(uint32_t sessionID)
 
 void SIPManager::rejectCall(uint32_t sessionID)
 {
-  //state_.rejectCall(callID);
+
 }
 
 void SIPManager::endCall(uint32_t sessionID)
 {
-  //state_.endCall(callID);
+
 }
 
 void SIPManager::endAllCalls()
 {
-  //state_.endAllCalls();
+
 }
 
 SIPSession *SIPManager::createSIPSession(uint32_t sessionID)
@@ -143,23 +145,24 @@ void SIPManager::connectionEstablished(quint32 sessionID)
 
   if(dialog->hostedSession)
   {
-    // TODO: get server
-    qDebug() << "Forming connection through SIP server";
+    qDebug() << "Setting connection as a SIP server connection.";
+    dialog->routing->setLocalAddress(dialog->con->getLocalAddress().toString());
+    dialog->routing->setLocalHost(dialog->con->getPeerAddress().toString());
 
-    dialog->routing->initLocal(localUsername_,
-                                dialog->con->getLocalAddress().toString(),
-                                dialog->con->getLocalAddress().toString(),
-                                dialog->con->getLocalAddress().toString());
+    // TODO enable remote to have a different host from ours
+    dialog->routing->setRemoteHost(dialog->con->getPeerAddress().toString());
   }
   else
   {
-    qDebug() << "Forming a peer-to-peer SIP connection. Firewall needs to be open for this";
-
-    dialog->routing->initLocal(localUsername_,
-                                dialog->con->getLocalAddress().toString(),
-                                dialog->con->getLocalAddress().toString(),
-                                dialog->con->getLocalAddress().toString());
+    qDebug() << "Setting connection as a peer-to-peer SIP connection. Firewall needs to be open for this";
+    dialog->routing->setLocalAddress(dialog->con->getLocalAddress().toString());
+    dialog->routing->setLocalHost(dialog->con->getLocalAddress().toString());
+    dialog->routing->setRemoteHost(dialog->con->getPeerAddress().toString());
   }
+
+  qDebug() << "Setting info for peer-to-peer connection";
+  // TODO make possible to set the server
+
   qDebug() << "Connection" << sessionID << "connected."
            << "From:" << dialog->con->getLocalAddress().toString()
            << "To:" << dialog->con->getPeerAddress().toString();

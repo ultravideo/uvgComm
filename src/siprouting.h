@@ -15,11 +15,11 @@ class SIPRouting
 public:
   SIPRouting();
 
-  // for peer-to-peer calls, use ip addresses as both host
-  void initLocal(QString localUsername, QString sessionHost, QString localAddress, QString localHost);
-
-  // use this if sending the first request. Not needed if the first request is sent by remote.
-  void initRemote(QString remoteUsername, QString remoteHost);
+  void setLocalUsername(QString username);
+  void setRemoteUsername(QString username);
+  void setLocalAddress(QString localAddress);
+  void setLocalHost(QString host);
+  void setRemoteHost(QString host);
 
   // returns whether the incoming info is valid.
   // Remember to process request in order of arrival
@@ -43,8 +43,6 @@ private:
   QString remoteUsername_;
   QString remoteHost_;          // name of their sip server or their ip address
   QString remoteDirectAddress_; // from contact field. Send requests here if not empty.
-
-  QString sessionHost_;
 
   std::shared_ptr<SIPRoutingInfo> previousReceivedRequest_;
   std::shared_ptr<SIPRoutingInfo> previousSentRequest_;

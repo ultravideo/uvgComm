@@ -10,22 +10,33 @@ SIPRouting::SIPRouting():
   localDirectAddress_(""),
   remoteUsername_(""),
   remoteHost_(""),
-  sessionHost_(""),
   previousReceivedRequest_(NULL),
   previousSentRequest_(NULL)
 {}
 
-void SIPRouting::initLocal(QString localUsername, QString localHost, QString localAddress, QString sessionHost)
+void SIPRouting::setLocalUsername(QString username)
 {
-  localUsername_ = localUsername;
-  localHost_ = localHost;       // name of our sip server
+  localUsername_ = username;
+}
+
+void SIPRouting::setRemoteUsername(QString username)
+{
+  remoteUsername_ = username;
+}
+
+void SIPRouting::setLocalAddress(QString localAddress)
+{
   localDirectAddress_ = localAddress;
 }
 
-void SIPRouting::initRemote(QString remoteUsername, QString remoteHost)
+void SIPRouting::setLocalHost(QString host)
 {
-  remoteUsername_ = remoteUsername;
-  remoteHost_ = remoteHost;
+  localHost_ = host;
+}
+
+void SIPRouting::setRemoteHost(QString host)
+{
+  remoteHost_ = host;
 }
 
 bool SIPRouting::incomingSIPRequest(std::shared_ptr<SIPRoutingInfo> routing)
@@ -88,10 +99,9 @@ std::shared_ptr<SIPRoutingInfo> SIPRouting::requestRouting(QString &directAddres
      localHost_.isEmpty() ||
      localDirectAddress_.isEmpty() ||
      remoteUsername_.isEmpty() ||
-     remoteHost_.isEmpty() ||
-     sessionHost_.isEmpty())
+     remoteHost_.isEmpty())
   {
-    qDebug() << "WARNING: Trying to get request routing without initialization!!";
+    qDebug() << "WARNING: Trying to get request routing without proper initialization!!";
     return NULL;
   }
 
@@ -105,7 +115,7 @@ std::shared_ptr<SIPRoutingInfo> SIPRouting::requestRouting(QString &directAddres
   newRouting->receiverHost = remoteUsername_;
   newRouting->receiverHost = remoteHost_;
 
-  newRouting->sessionHost = sessionHost_;
+  newRouting->sessionHost = localHost_;
 
   newRouting->maxForwards = MAXFORWARDS;
 
