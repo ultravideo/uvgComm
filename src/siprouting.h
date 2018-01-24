@@ -7,15 +7,16 @@
 
 #include <memory>
 
-// This class handles routing information for one SIP dialog.
-// Use this class to get necessary info for via, to, from, contact etc fields in SIP message
+/* This class handles routing information for one SIP dialog.
+ * Use this class to get necessary info for via, to, from, contact etc fields in SIP message
+ */
 
 class SIPRouting
 {
 public:
   SIPRouting();
 
-  void setLocalUsername(QString username);
+  void setLocalNames(QString username, QString name);
   void setRemoteUsername(QString username);
   void setLocalAddress(QString localAddress);
   void setLocalHost(QString host);
@@ -35,7 +36,7 @@ public:
   std::shared_ptr<SIPRoutingInfo> responseRouting();
 
 private:
-
+  QString localName_;
   QString localUsername_;      //our username on sip server
   QString localHost_;          // name of our sip server
   QString localDirectAddress_; // to contact and via fields

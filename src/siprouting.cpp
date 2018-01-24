@@ -14,9 +14,10 @@ SIPRouting::SIPRouting():
   previousSentRequest_(NULL)
 {}
 
-void SIPRouting::setLocalUsername(QString username)
+void SIPRouting::setLocalNames(QString username, QString name)
 {
   localUsername_ = username;
+  localName_ = name;
 }
 
 void SIPRouting::setRemoteUsername(QString username)
@@ -99,7 +100,12 @@ std::shared_ptr<SIPRoutingInfo> SIPRouting::requestRouting(QString &directAddres
      localHost_.isEmpty() ||
      localDirectAddress_.isEmpty() ||
      remoteUsername_.isEmpty() ||
-     remoteHost_.isEmpty())
+     remoteHost_.isEmpty() ||
+     localUsername_ == "" ||
+     localHost_ == "" ||
+     localDirectAddress_ == "" ||
+     remoteUsername_ == ""  ||
+     remoteHost_ == "")
   {
     qDebug() << "WARNING: Trying to get request routing without proper initialization!!";
     return NULL;
@@ -108,11 +114,13 @@ std::shared_ptr<SIPRoutingInfo> SIPRouting::requestRouting(QString &directAddres
   std::shared_ptr<SIPRoutingInfo> newRouting(new SIPRoutingInfo);
 
   newRouting->senderUsername = localUsername_;
+  newRouting->senderRealname = localName_;
   newRouting->senderHost = localHost_;
   newRouting->senderReplyAddress.append(localDirectAddress_);
   newRouting->contactAddress = localDirectAddress_;
 
-  newRouting->receiverHost = remoteUsername_;
+  newRouting->receiverRealname = remoteUsername_;
+  newRouting->receiverUsername = remoteUsername_;
   newRouting->receiverHost = remoteHost_;
 
   newRouting->sessionHost = localHost_;

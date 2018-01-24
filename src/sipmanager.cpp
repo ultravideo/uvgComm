@@ -59,7 +59,7 @@ QList<uint32_t> SIPManager::startCall(QList<Contact> addresses)
     dialog->con->setID(dialogs_.size() + 1);
     dialog->session = createSIPSession(dialogs_.size() + 1);
     dialog->routing = new SIPRouting;
-    dialog->routing->setLocalUsername(localUsername_);
+    dialog->routing->setLocalNames(localUsername_, localName_);
     dialog->routing->setRemoteUsername(addresses.at(i).username);
     dialog->hostedSession = false;
 
@@ -175,7 +175,7 @@ void SIPManager::connectionEstablished(quint32 sessionID)
 
 void SIPManager::processSIPMessage(QString header, QString content, quint32 sessionID)
 {
-  qDebug() << "Connection " << sessionID << "received SIP message. Processing...";
+  qDebug() << "Connection for session" << sessionID << "received a SIP message. Processing...";
 
   // parse to struct of fields
   // check if all fields are present
@@ -212,7 +212,8 @@ void SIPManager::sendRequest(uint32_t sessionID, RequestType request)
 
   messageComposer_.to(id, routing->receiverRealname, routing->receiverUsername,
                         routing->receiverHost, session->remoteTag);
-  messageComposer_.fromIP(id, routing->senderRealname, routing->senderUsername, QHostAddress(routing->senderHost), session->localTag);
+  messageComposer_.fromIP(id, routing->senderRealname, routing->senderUsername,
+                          QHostAddress(routing->senderHost), session->localTag);
 
   for(QString viaAddress : routing->senderReplyAddress)
   {
@@ -221,7 +222,6 @@ void SIPManager::sendRequest(uint32_t sessionID, RequestType request)
 
   messageComposer_.maxForwards(id, routing->maxForwards);
   messageComposer_.setCallID(id, session->callID, routing->senderHost);
-
   messageComposer_.sequenceNum(id, mesg_info.cSeq, mesg_info.transactionRequest);
 
   QString message = messageComposer_.composeMessage(id);

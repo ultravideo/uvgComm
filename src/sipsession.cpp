@@ -37,6 +37,7 @@ void SIPSession::init(uint32_t sessionID)
 
   sessionID_ = sessionID;
   timeoutTimer_.setSingleShot(true);
+  connect(&timeoutTimer_, SIGNAL(timeout()), this, SLOT(requestTimeOut()));
 }
 
 void SIPSession::setSessionInfo(std::shared_ptr<SIPSessionInfo> info, uint32_t sessionID)
@@ -183,7 +184,7 @@ void SIPSession::requestTimeOut()
   }
 
   // TODO emit some signal indicating something
-
+  emit callFailed(sessionID_);
   ongoingTransactionType_ = NOREQUEST;
 }
 

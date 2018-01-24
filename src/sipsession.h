@@ -8,19 +8,13 @@
 
 #include <memory>
 
-/* The main function of this class is to keep track of the call state.
- * Pass all user requests and SIP messages through this class which are checked for legality.
- * This class is also responsible for sending correct request or response. This class also
- * does the translation between SIP CallID and sessionID.
- *
- * Is responsible for:
- * 1) check if this is the correct session
- * 2) check from incoming messages is legal at this point.
- * 3) modify call state when user wants to modify the call and forward the request
- *
+/* This class maintains the state of the SIP call and
+ * selects the correct SIP response to any given situation.
+ * All SIP requests and responses are iniated here.
+ * Class is responsible for maintaining Call-ID and tags
+ * to identify this call. Each call should have their own call
+ * session.
  */
-
-// where is the checking of request/response type and the reaction?
 
 enum CallState {CALL_INACTIVE, CALL_NEGOTIATING, CALL_ACTIVE};
 
@@ -74,6 +68,7 @@ signals:
   void registerSucceeded(uint32_t sessionID);
   void registerFailed(uint32_t sessionID);
 
+  // send messages to other end
   void sendRequest(uint32_t sessionID, RequestType type);
   void sendResponse(uint32_t sessionID, ResponseType type);
 
