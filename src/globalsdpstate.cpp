@@ -2,6 +2,8 @@
 
 #include <QDateTime>
 
+#include <QUdpSocket>
+
 GlobalSDPState::GlobalSDPState():
   localAddress_(),
   localUsername_(""),
@@ -100,7 +102,7 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP()
   v_rtp.codec = "h265";
 
   audio.codecs.push_back(a_rtp);
-  video.codecs.push_back(a_rtp);
+  video.codecs.push_back(v_rtp);
   audio.activity = A_SENDRECV;
   video.activity = A_SENDRECV;
 
@@ -164,11 +166,25 @@ uint16_t GlobalSDPState::nextAvailablePortPair()
   uint16_t newLowerPort = 0;
 
   portLock_.lock();
-  if(availablePorts_.size() <= 1 && remainingPorts_ >= 2)
+  if(availablePorts_.size() >= 1 && remainingPorts_ >= 2)
   {
-    newLowerPort = availablePorts_.at(0);
-    availablePorts_.pop_front();
-    remainingPorts_ -= 2;
+    QUdpSocket test_port1;
+    QUdpSocket test_port2;
+    do
+    {
+      newLowerPort = availablePorts_.at(0);
+      availablePorts_.pop_front();
+      remainingPorts_ -= 2;
+      qDebug() << "Trying to bind ports:" << newLowerPort << "and" << newLowerPort + 1;
+
+    } while(!test_port1.bind(newLowerPort) && !test_port2.bind(newLowerPort + 1));
+    test_port1.abort();
+    test_port2.abort();
+  }
+  else
+  {
+    qDebug() << "Could not reserve ports. Remaining ports:" << remainingPorts_
+             << "deque size:" << availablePorts_.size();
   }
   portLock_.unlock();
 

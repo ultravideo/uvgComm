@@ -3,10 +3,13 @@
 #include "siprouting.h"
 #include "sipsession.h"
 
+#include "sipparser.h"
+
 const bool DIRECTMESSAGES = false;
 
 
 SIPManager::SIPManager():
+  isConference_(false),
   sipPort_(5060), // default for SIP, use 5061 for tls encrypted
   localName_(""),
   localUsername_("")
@@ -41,6 +44,8 @@ void SIPManager::init()
   {
     localUsername_ = "anonymous";
   }
+
+  sdp_.setPortRange(21500, 22000, 42);
 }
 
 void SIPManager::uninit()
@@ -176,6 +181,31 @@ void SIPManager::connectionEstablished(quint32 sessionID)
 void SIPManager::processSIPMessage(QString header, QString content, quint32 sessionID)
 {
   qDebug() << "Connection for session" << sessionID << "received a SIP message. Processing...";
+  if(sessionID == 0)
+  {
+    qDebug() << "Assuming this is a new connection";
+  }
+
+
+  std::shared_ptr<SIPMessageInfo> info = parseSIPMessage(header);
+  if(info == NULL)
+  {
+    qDebug() << "Failed to parse SIP message";
+    //sendResponse(MALFORMED_400, ); TODO: get link and attempted request from somewhere
+    return;
+  }
+
+  std::shared_ptr<SDPMessageInfo> sdpInfo = NULL;
+  if(info->contentType == "application/sdp" && content.size() != 0)
+  {
+    sdpInfo = parseSDPMessage(content);
+    if(sdpInfo == NULL)
+    {
+      qDebug() << "SDP parsing failed";
+      return;
+      //sendResponse(MALFORMED_400, );
+    }
+}
 
   // parse to struct of fields
   // check if all fields are present
@@ -201,7 +231,6 @@ void SIPManager::sendRequest(uint32_t sessionID, RequestType request)
   std::shared_ptr<SIPSessionInfo> session = dialogs_.at(sessionID - 1)->session->getSessionInfo();
   SIPMessage mesg_info = dialogs_.at(sessionID - 1)->session->generateMessage(request);
 
-
   // convert routingInfo to SIPMesgInfo to struct fields
   // check that all fields are present
   // check message (and maybe parse?)
@@ -223,6 +252,14 @@ void SIPManager::sendRequest(uint32_t sessionID, RequestType request)
   messageComposer_.maxForwards(id, routing->maxForwards);
   messageComposer_.setCallID(id, session->callID, routing->senderHost);
   messageComposer_.sequenceNum(id, mesg_info.cSeq, mesg_info.transactionRequest);
+
+  if(request == INVITE)
+  {
+    sdp_.setLocalInfo(QHostAddress(routing->senderHost), routing->senderUsername);
+    std::shared_ptr<SDPMessageInfo> sdp = sdp_.localInviteSDP();
+    QString sdp_str = messageComposer_.formSDP(sdp);
+    messageComposer_.addSDP(id,sdp_str);
+  }
 
   QString message = messageComposer_.composeMessage(id);
 
