@@ -468,7 +468,7 @@ std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
 
             mediaContact = true;
           }
-          else if(additionalLine.at(0) == "a=rtpmap")
+          else if(additionalLine.left(8) == "a=rtpmap")
           {
             if(additionalWords.size() >= 2)
             {
@@ -501,7 +501,7 @@ std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
 
             if(additionalWords.size() < 4)
             {
-              qDebug() << "Detected unsupported encoding parameters.";
+              qDebug() << "Detected unsupported encoding parameter in:" << additionalWords;
               // TODO support encoding parameters
             }
           }
@@ -567,4 +567,23 @@ QList<QHostAddress> parseIPAddress(QString address)
     ipAddresses.append(hostInfo.addresses());
   }
   return ipAddresses;
+}
+
+
+
+void messageToAtoms(std::shared_ptr<SIPMessageInfo> inMessage,
+                    std::shared_ptr<SIPRoutingInfo> outRouting,
+                    std::shared_ptr<SIPSessionInfo> outSession,
+                    std::shared_ptr<SIPMessage> outMessage)
+{
+  outRouting = std::shared_ptr<SIPRoutingInfo> (new SIPRoutingInfo);
+
+  outRouting->senderUsername = inMessage->remoteUsername;
+  outRouting->senderHost = inMessage->host;
+
+
+  outSession = std::shared_ptr<SIPSessionInfo> (new SIPSessionInfo);
+  outMessage = std::shared_ptr<SIPMessage> (new SIPMessage);
+
+
 }

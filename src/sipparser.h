@@ -16,3 +16,8 @@
   std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body);
 
   QList<QHostAddress> parseIPAddress(QString address);
+
+  void messageToAtoms(std::shared_ptr<SIPMessageInfo> inMessage,
+                      std::shared_ptr<SIPRoutingInfo> outRouting,
+                      std::shared_ptr<SIPSessionInfo> outSession,
+                      std::shared_ptr<SIPMessage> outMessage);

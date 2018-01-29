@@ -7,6 +7,11 @@
 
 #include "common.h"
 
+/* This class manages the interactions between different components in
+ * a SIP transaction. This class should implement as little functionality
+ * as possible.
+ */
+
 struct Contact
 {
   QString username;
@@ -32,6 +37,9 @@ public:
   void endCall(uint32_t sessionID);
 
   void endAllCalls();
+
+  void makeConference();
+  void dispandConference();
 
 signals:
 
@@ -65,12 +73,22 @@ private slots:
   // to form a SIP message
   void connectionEstablished(quint32 sessionID);
   void receiveTCPConnection(Connection* con);
+
+  // will be removed at some point.
   void processSIPMessage(QString header, QString content, quint32 sessionID);
+  void processSIPRequest(RequestType request, std::shared_ptr<SIPRoutingInfo> routing,
+                         std::shared_ptr<SIPSessionInfo> session,
+                         std::shared_ptr<SIPMessage> message,
+                         quint32 sessionID);
+  void processSIPResponse(ResponseType response, std::shared_ptr<SIPRoutingInfo> routing,
+                          std::shared_ptr<SIPSessionInfo> session,
+                          std::shared_ptr<SIPMessage> message,
+                          quint32 sessionID);
 
   void sendRequest(uint32_t sessionID, RequestType request);
   void sendResponse(uint32_t sessionID, ResponseType response);
-private:
 
+private:
   struct SIPDialogData
   {
     Connection* con;
@@ -95,7 +113,10 @@ private:
   // sessionID:s are positions in this list. SessionID:s are used in this program to
   // keep track of sessions. The CallID is not used because we could be calling ourselves
   // and using uint32_t is simpler than keeping track of tags
+
   QList<SIPDialogData*> dialogs_;
+
+  bool isConference_;
 
   GlobalSDPState sdp_;
   SIPStringComposer messageComposer_;
