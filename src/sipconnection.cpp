@@ -51,9 +51,11 @@ void SIPConnection::networkPackage(QString message)
   parsePackage(message, header, body);
 
   std::shared_ptr<QList<SIPField>> fields;
+  std::shared_ptr<QStringList> firstLine;
+
   if(header != "")
   {
-    fields = SIPConnection::networkToFields(header);
+    fields = SIPConnection::networkToFields(header, firstLine);
   }
   else
   {
@@ -61,7 +63,7 @@ void SIPConnection::networkPackage(QString message)
     return;
   }
 
-  if(!checkFields(fields))
+  if(!checkFields(firstLine, fields))
   {
     qDebug() << "The received message was not correct. ";
     emit incomingMalformedRequest(sessionID_); // TODO support other possible error types
@@ -119,17 +121,26 @@ void SIPConnection::parsePackage(QString package, QString& header, QString& body
   }
 }
 
-std::shared_ptr<QList<SIPField>> SIPConnection::networkToFields(QString header)
+std::shared_ptr<QList<SIPField>> SIPConnection::networkToFields(QString header, std::shared_ptr<QStringList> firstLine)
 {
   qWarning() << "WARNING: SIPConnection not implemented yet.";
+  std::shared_ptr<QList<SIPField>> fields = std::shared_ptr<QList<SIPField>>(new QList<SIPField>);
+  firstLine = std::shared_ptr<QStringList>(new QStringList);
+
   QStringList lines = header.split("\r\n", QString::SkipEmptyParts);
-  for(QString line : lines)
+  if(lines.size() == 0)
+  {
+    return NULL;
+  }
+  *firstLine.get() = lines[0].split("\r\n", QString::SkipEmptyParts);
+
+  for(unsigned int i = 1; i < lines.size(); ++i)
   {
 
   }
 }
 
-bool SIPConnection::checkFields(std::shared_ptr<QList<SIPField>> fields)
+bool SIPConnection::checkFields(std::shared_ptr<QStringList> firstLine, std::shared_ptr<QList<SIPField>> fields)
 {
   qWarning() << "WARNING: SIPConnection not implemented yet.";
   return true;

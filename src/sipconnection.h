@@ -24,6 +24,8 @@ struct SIPField
   QList<SIPParameter>* parameters;
 };
 
+
+
 class SIPConnection : public QObject
 {
   Q_OBJECT
@@ -65,8 +67,10 @@ signals:
 private:
 
   void parsePackage(QString package, QString& header, QString& body);
-  std::shared_ptr<QList<SIPField>> networkToFields(QString header);
-  bool checkFields(std::shared_ptr<QList<SIPField>> fields);
+  std::shared_ptr<QList<SIPField>> networkToFields(QString header,
+                                                   std::shared_ptr<QStringList> firstLine);
+  bool checkFields(std::shared_ptr<QStringList> firstLine,
+                   std::shared_ptr<QList<SIPField>> fields);
   void processFields(std::shared_ptr<QList<SIPField>> fields);
 
   std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body);
