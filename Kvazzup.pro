@@ -41,7 +41,6 @@ SOURCES +=\
     src/video/dshow/capture.cpp \
     src/connection.cpp \
     src/connectionserver.cpp \
-    src/sipparser.cpp \
     src/sipstringcomposer.cpp \
     src/gui/callwindow.cpp \
     src/gui/conferenceview.cpp \
@@ -55,7 +54,8 @@ SOURCES +=\
     src/sipmanager.cpp \
     src/siprouting.cpp \
     src/globalsdpstate.cpp \
-    src/sipsession.cpp
+    src/sipsession.cpp \
+    src/sipconnection.cpp
 
 HEADERS  += \
     src/filter.h \
@@ -90,7 +90,6 @@ HEADERS  += \
     src/video/displayfilter.h \
     src/connection.h \
     src/connectionserver.h \
-    src/sipparser.h \
     src/sipstringcomposer.h \
     src/gui/callwindow.h \
     src/gui/conferenceview.h \
@@ -105,7 +104,8 @@ HEADERS  += \
     src/siprouting.h \
     src/globalsdpstate.h \
     src/siptypes.h \
-    src/sipsession.h
+    src/sipsession.h \
+    src/sipconnection.h
 
 FORMS    += \
     ui/callwindow.ui \

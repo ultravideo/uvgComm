@@ -1,4 +1,4 @@
-#include "sipparser.h"
+#include "sipconnection.h"
 
 #include "common.h"
 
@@ -11,7 +11,7 @@
 #include <sstream>
 #include <string>
 
-std::shared_ptr<SDPMessageInfo> SIPParser::parseSDPMessage(QString& body)
+std::shared_ptr<SDPMessageInfo> SIPConnection::parseSDPMessage(QString& body)
 {
   std::shared_ptr<SDPMessageInfo> info(new SDPMessageInfo);
   bool version = false;
@@ -199,7 +199,7 @@ std::shared_ptr<SDPMessageInfo> SIPParser::parseSDPMessage(QString& body)
   return info;
 }
 
-void SIPParser::parseSIPaddress(QString address, QString& user, QString& location)
+void SIPConnection::parseSIPaddress(QString address, QString& user, QString& location)
 {
   QStringList splitAddress = address.split("@");
 
@@ -214,7 +214,7 @@ void SIPParser::parseSIPaddress(QString address, QString& user, QString& locatio
   location = splitAddress.at(1).left(splitAddress.at(1).length() - 1);
 }
 
-void SIPParser::parseSIPParameter(QString field, QString parameterName,
+void SIPConnection::parseSIPParameter(QString field, QString parameterName,
                        QString& parameterValue, QString& remaining)
 {
   QStringList parameterSplit = field.split(parameterName);
@@ -232,7 +232,7 @@ void SIPParser::parseSIPParameter(QString field, QString parameterName,
   remaining = parameterSplit.at(0);
 }
 
-QList<QHostAddress> SIPParser::parseIPAddress(QString address)
+QList<QHostAddress> SIPConnection::parseIPAddress(QString address)
 {
   QList<QHostAddress> ipAddresses;
 
@@ -253,7 +253,7 @@ QList<QHostAddress> SIPParser::parseIPAddress(QString address)
   return ipAddresses;
 }
 
-bool SIPParser::checkSDPLine(QStringList& line, uint8_t expectedLength, QString& firstValue)
+bool SIPConnection::checkSDPLine(QStringList& line, uint8_t expectedLength, QString& firstValue)
 {
   Q_ASSERT(expectedLength != 0);
 

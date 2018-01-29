@@ -3,7 +3,7 @@
 #include "siprouting.h"
 #include "sipsession.h"
 
-#include "sipparser.h"
+#include "sipconnection.h"
 
 const bool DIRECTMESSAGES = false;
 

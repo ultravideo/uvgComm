@@ -11,10 +11,10 @@
 
 enum ConnectionType {ANY, TCP, UDP, TSL};
 
-class SIPParser : public QObject
+class SIPConnection : public QObject
 {
-  SIPParser();
-  ~SIPParser();
+  SIPConnection();
+  ~SIPConnection();
 
   void initConnection(ConnectionType type, QHostAddress target);
 
