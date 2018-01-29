@@ -178,64 +178,9 @@ void SIPManager::connectionEstablished(quint32 sessionID)
   }
 }
 
-void SIPManager::processSIPMessage(QString header, QString content, quint32 sessionID)
-{
-  qDebug() << "Connection for session" << sessionID << "received a SIP message. Processing...";
-  if(sessionID == 0)
-  {
-    qDebug() << "Assuming this is a new connection";
-  }
-
-
-  std::shared_ptr<SIPMessageInfo> sipInfo = parseSIPMessage(header);
-  if(sipInfo == NULL)
-  {
-    qDebug() << "Failed to parse SIP message";
-    //sendResponse(MALFORMED_400, ); TODO: get link and attempted request from somewhere
-    return;
-  }
-
-  std::shared_ptr<SDPMessageInfo> sdpInfo = NULL;
-  if(sipInfo->contentType == "application/sdp" && content.size() != 0)
-  {
-    sdpInfo = parseSDPMessage(content);
-    if(sdpInfo == NULL)
-    {
-      qDebug() << "SDP parsing failed";
-      return;
-      //sendResponse(MALFORMED_400, );
-    }
-  }
-
-  if(sipInfo->request != NOREQUEST)
-  {
-    //processSIPRequest(request);
-  }
-  else if(sipInfo->response != NORESPONSE)
-  {
-    //processSIPResponse();
-  }
-  else
-  {
-    qWarning() << "WARNING: Parsing succeeded, but it was not a SIP request or a response.";
-  }
-
-
-  // parse to struct of fields
-  // check if all fields are present
-  // convert struct to routingInfo and SIPMesgInfo
-  // check validity of both
-  // check if callID matches
-  // check if we are the intended destination and sender is who it should be
-  // if invite or response to invite, check SDP
-  // compare against state and update
-  // inform user if necessary
-  // respond
-}
-
 void SIPManager::processSIPRequest(RequestType request, std::shared_ptr<SIPRoutingInfo> routing,
                        std::shared_ptr<SIPSessionInfo> session,
-                       std::shared_ptr<SIPMessage> message,
+                       std::shared_ptr<SIPMessageInfo> message,
                        quint32 sessionID)
 {
   if(!dialogs_.at(sessionID - 1)->routing->incomingSIPRequest(routing))
@@ -249,7 +194,7 @@ void SIPManager::processSIPRequest(RequestType request, std::shared_ptr<SIPRouti
 
 void SIPManager::processSIPResponse(ResponseType response, std::shared_ptr<SIPRoutingInfo> routing,
                         std::shared_ptr<SIPSessionInfo> session,
-                        std::shared_ptr<SIPMessage> message, quint32 sessionID)
+                        std::shared_ptr<SIPMessageInfo> message, quint32 sessionID)
 {
   if(!dialogs_.at(sessionID - 1)->routing->incomingSIPResponse(routing))
   {
@@ -270,7 +215,7 @@ void SIPManager::sendRequest(uint32_t sessionID, RequestType request)
   // get routing info from  siprouting
   std::shared_ptr<SIPRoutingInfo> routing = dialogs_.at(sessionID - 1)->routing->requestRouting(direct);
   std::shared_ptr<SIPSessionInfo> session = dialogs_.at(sessionID - 1)->session->getSessionInfo();
-  SIPMessage mesg_info = dialogs_.at(sessionID - 1)->session->generateMessage(request);
+  SIPMessageInfo mesg_info = dialogs_.at(sessionID - 1)->session->generateMessage(request);
 
   // convert routingInfo to SIPMesgInfo to struct fields
   // check that all fields are present

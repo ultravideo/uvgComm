@@ -57,9 +57,9 @@ std::shared_ptr<SIPSessionInfo> SIPSession::getSessionInfo()
   return session_;
 }
 
-SIPMessage SIPSession::generateMessage(RequestType originalRequest)
+SIPMessageInfo SIPSession::generateMessage(RequestType originalRequest)
 {
-  SIPMessage mesg;
+  SIPMessageInfo mesg;
   mesg.branch = "z9hG4bK" + generateRandomString(BRANCHLENGTH);
   mesg.cSeq = cSeq_;
   ++cSeq_;
@@ -84,7 +84,7 @@ bool SIPSession::correctSession(const SIPSessionInfo& session) const
 
 // processes incoming request
 void SIPSession::processRequest(RequestType request, const SIPSessionInfo& session,
-                                const SIPMessage& messageInfo)
+                                const SIPMessageInfo& messageInfo)
 {
   Q_ASSERT(sessionID_ != 0);
   if(!session_)
@@ -96,7 +96,7 @@ void SIPSession::processRequest(RequestType request, const SIPSessionInfo& sessi
 
 //processes incoming response
 void SIPSession::processResponse(ResponseType response, const SIPSessionInfo &session,
-                                 const SIPMessage& messageInfo)
+                                 const SIPMessageInfo& messageInfo)
 {
   Q_ASSERT(sessionID_ != 0);
   if(!session_)

@@ -29,7 +29,7 @@ public:
 
   std::shared_ptr<SIPSessionInfo> getSessionInfo();
 
-  SIPMessage generateMessage(RequestType originalRequest);
+  SIPMessageInfo generateMessage(RequestType originalRequest);
 
   // checks that the incoming message belongs to this session
   bool correctSession(const SIPSessionInfo& session) const;
@@ -37,16 +37,21 @@ public:
   // processes incoming request
   void processRequest(RequestType request,
                       const SIPSessionInfo& session,
-                      const SIPMessage& messageInfo);
+                      const SIPMessageInfo &messageInfo);
 
   //processes incoming response
   void processResponse(ResponseType response,
                        const SIPSessionInfo& session,
-                       const SIPMessage& messageInfo);
+                       const SIPMessageInfo &messageInfo);
 
   bool startCall();
   void endCall();
   void registerToServer();
+
+
+  // messages from other components
+  void malformedMessage(); // if parse fails
+  void wrongDestination(); // if this is the wrong destination
 
   // forbid copy and assignment
   SIPSession(const SIPSession& copied) = delete;

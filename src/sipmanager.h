@@ -74,15 +74,13 @@ private slots:
   void connectionEstablished(quint32 sessionID);
   void receiveTCPConnection(Connection* con);
 
-  // will be removed at some point.
-  void processSIPMessage(QString header, QString content, quint32 sessionID);
   void processSIPRequest(RequestType request, std::shared_ptr<SIPRoutingInfo> routing,
                          std::shared_ptr<SIPSessionInfo> session,
-                         std::shared_ptr<SIPMessage> message,
+                         std::shared_ptr<SIPMessageInfo> message,
                          quint32 sessionID);
   void processSIPResponse(ResponseType response, std::shared_ptr<SIPRoutingInfo> routing,
                           std::shared_ptr<SIPSessionInfo> session,
-                          std::shared_ptr<SIPMessage> message,
+                          std::shared_ptr<SIPMessageInfo> message,
                           quint32 sessionID);
 
   void sendRequest(uint32_t sessionID, RequestType request);

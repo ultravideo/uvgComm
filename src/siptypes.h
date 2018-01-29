@@ -36,45 +36,13 @@ struct SIPSessionInfo
   QString callID;
 };
 
-// Identiefies the SIP message and the transaction it belongs to
-struct SIPMessage
+// Identifies the SIP message and the transaction it belongs to
+struct SIPMessageInfo
 {
-  // QString version;
+  QString version;
   QString branch;
   uint32_t cSeq; // must be less than 2^31
   RequestType transactionRequest;
-};
-
-struct SIPMessageInfo
-{
-  RequestType request;
-  ResponseType response;
-  QString version;
-
-  QString remoteName;
-  QString remoteUsername;
-  QString remoteLocation;
-  QString replyAddress;
-  QString contactAddress;
-
-  QString remoteTag;
-
-  uint16_t maxForwards;
-
-  QString localName;
-  QString localUsername;
-  QString localLocation;
-  QString localTag;
-
-  QString branch;
-
-  QString callID;
-  QString host;
-
-  uint32_t cSeq;
-  RequestType originalRequest;
-
-  QString contentType;
 };
 
 // sendrecv is default, if none present.
