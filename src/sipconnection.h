@@ -11,9 +11,24 @@
 
 enum ConnectionType {ANY, TCP, UDP, TSL};
 
+struct SIPParameter
+{
+  QString name;
+  QString value;
+};
+
+struct SIPField
+{
+  QString name;
+  QList<QString>* values;
+  QList<SIPParameter>* parameters;
+};
+
 class SIPConnection : public QObject
 {
-  SIPConnection();
+  Q_OBJECT
+public:
+  SIPConnection(quint32 sessionID);
   ~SIPConnection();
 
   void initConnection(ConnectionType type, QHostAddress target);
@@ -48,20 +63,7 @@ signals:
 
 private:
 
-  struct SIPParameter
-  {
-    QString name;
-    QString value;
-  };
-
-  struct SIPField
-  {
-    QString name;
-    QList<QString>* values;
-    QList<SIPParameter>* parameters;
-  };
-
-  void parsePackage(QString package, QString& header, QString& field);
+  void parsePackage(QString package, QString& header, QString& body);
   std::shared_ptr<QList<SIPField>> networkToFields(QString package);
   bool checkFields(std::shared_ptr<QList<SIPField>> fields);
   void fieldsToStructs(std::shared_ptr<QList<SIPField>> fields,

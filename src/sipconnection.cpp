@@ -11,6 +11,121 @@
 #include <sstream>
 #include <string>
 
+SIPConnection::SIPConnection(quint32 sessionID):
+  partialMessage_(""),
+  connection_(sessionID, false),
+  sessionID_(sessionID)
+{}
+
+
+SIPConnection::~SIPConnection()
+{}
+
+void SIPConnection::initConnection(ConnectionType type, QHostAddress target)
+{
+  qWarning() << "WARNING: SIPConnection not implemented yet.";
+}
+
+void SIPConnection::sendRequest(RequestType request,
+                 std::shared_ptr<SIPRoutingInfo> routing,
+                 std::shared_ptr<SIPSessionInfo> session,
+                 std::shared_ptr<SIPMessageInfo> message)
+{
+  qWarning() << "WARNING: SIPConnection not implemented yet.";
+}
+
+void SIPConnection::sendResponse(ResponseType response,
+                  std::shared_ptr<SIPRoutingInfo> routing,
+                  std::shared_ptr<SIPSessionInfo> session,
+                  std::shared_ptr<SIPMessageInfo> message)
+{
+  qWarning() << "WARNING: SIPConnection not implemented yet.";
+}
+
+void SIPConnection::networkPackage(QString message)
+{
+  qDebug() << "Received a network package for SIP Connection";
+  // parse to header and body
+  QString header = "";
+  QString body = "";
+  parsePackage(message, header, body);
+
+
+  // convert header to fields
+  // checkFields for message integrity
+  // check
+}
+
+void SIPConnection::parsePackage(QString package, QString& header, QString& body)
+{
+    qDebug() << "Parsing package to header and body.";
+
+  if(partialMessage_.length() > 0)
+  {
+    package = partialMessage_ + package;
+    partialMessage_ = "";
+  }
+
+  int headerEndIndex = package.indexOf("\r\n\r\n", 0, Qt::CaseInsensitive) + 4;
+  int contentLengthIndex = package.indexOf("content-length", 0, Qt::CaseInsensitive);
+
+  qDebug() << "header end at:" << headerEndIndex
+           << "and content-length at:" << contentLengthIndex;
+
+  if(contentLengthIndex != -1 && headerEndIndex != -1)
+  {
+    int contentLengthLineEndIndex = package.indexOf("\r\n", contentLengthIndex, Qt::CaseInsensitive);
+
+    QString value = package.mid(contentLengthIndex + 16, contentLengthLineEndIndex - (contentLengthIndex + 16));
+
+    int valueInt= value.toInt();
+
+    qDebug() << "Content-length:" <<  valueInt;
+
+    if(package.length() < headerEndIndex + valueInt)
+    {
+      partialMessage_ = package;
+    }
+    else
+    {
+      partialMessage_ = package.right(package.length() - (headerEndIndex + valueInt));
+      header = package.left(headerEndIndex);
+      body = package.mid(headerEndIndex, valueInt);
+
+      qDebug() << "Whole message received.";
+      qDebug() << "Header:" << header;
+      qDebug() << "Content:" << body;
+      qDebug() << "Left overs:" << partialMessage_;
+    }
+  }
+  else
+  {
+    qDebug() << "Message was not received fully";
+    partialMessage_.append(package);
+  }
+}
+
+std::shared_ptr<QList<SIPField>> SIPConnection::networkToFields(QString package)
+{
+  qWarning() << "WARNING: SIPConnection not implemented yet.";
+}
+
+bool SIPConnection::checkFields(std::shared_ptr<QList<SIPField>> fields)
+{
+  qWarning() << "WARNING: SIPConnection not implemented yet.";
+  return true;
+}
+
+void SIPConnection::fieldsToStructs(std::shared_ptr<QList<SIPField>> fields,
+                     std::shared_ptr<SIPRoutingInfo> outRouting,
+                     std::shared_ptr<SIPSessionInfo> outSession,
+                     std::shared_ptr<SIPMessageInfo> outMessage)
+{
+  qWarning() << "WARNING: SIPConnection not implemented yet.";
+}
+
+
+
 std::shared_ptr<SDPMessageInfo> SIPConnection::parseSDPMessage(QString& body)
 {
   std::shared_ptr<SDPMessageInfo> info(new SDPMessageInfo);
