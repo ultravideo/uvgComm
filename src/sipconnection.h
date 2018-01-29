@@ -42,7 +42,6 @@ public:
                     std::shared_ptr<SIPRoutingInfo> routing,
                     std::shared_ptr<SIPSessionInfo> session,
                     std::shared_ptr<SIPMessageInfo> message);
-
 public slots:
 
   void networkPackage(QString message);
@@ -61,15 +60,14 @@ signals:
                            std::shared_ptr<SIPMessageInfo> message,
                            quint32 sessionID_);
 
+  void incomingMalformedRequest(quint32 sessionID_);
+
 private:
 
   void parsePackage(QString package, QString& header, QString& body);
-  std::shared_ptr<QList<SIPField>> networkToFields(QString package);
+  std::shared_ptr<QList<SIPField>> networkToFields(QString header);
   bool checkFields(std::shared_ptr<QList<SIPField>> fields);
-  void fieldsToStructs(std::shared_ptr<QList<SIPField>> fields,
-                       std::shared_ptr<SIPRoutingInfo> outRouting,
-                       std::shared_ptr<SIPSessionInfo> outSession,
-                       std::shared_ptr<SIPMessageInfo> outMessage);
+  void processFields(std::shared_ptr<QList<SIPField>> fields);
 
   std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body);
 
