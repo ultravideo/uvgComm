@@ -9,7 +9,7 @@
 
 // Does the mapping of calls to their streams and upkeeps the layout of stream widgets
 
-enum CallState {EMPTY, ASKINGUSER, WAITINGPEER, RINGING, ACTIVE};
+enum CallState {EMPTY, ASKINGUSER, WAITINGPEER, CALL_RINGING, CALL_ACTIVE};
 
 class QGridLayout;
 class VideoWidget;

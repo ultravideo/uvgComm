@@ -43,22 +43,22 @@ QString SIPStringComposer::responseToString(const ResponseType response)
 {
   switch(response)
   {
-    case RINGING_180:
+    case SIP_RINGING:
     {
       return "180 RINGING";
       break;
     }
-    case OK_200:
+    case SIP_OK:
     {
       return "200 OK";
       break;
     }
-    case DECLINE_603:
+    case SIP_DECLINE:
     {
       return "603 DECLINE";
       break;
     }
-    case NORESPONSE:
+    case SIP_NORESPONSE:
     {
       qCritical() << "Received NORESPONSE for string translation";
       break;

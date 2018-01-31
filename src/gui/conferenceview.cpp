@@ -121,7 +121,7 @@ VideoWidget* ConferenceView::addVideoStream(uint32_t sessionID)
   }
 
   // add the widget in place of previous one
-  activeCalls_[sessionID - 1]->state = ACTIVE;
+  activeCalls_[sessionID - 1]->state = CALL_ACTIVE;
 
   // TODO delete previous widget now instead of with parent.
   // Now they accumulate in memory until call has ended
@@ -155,7 +155,7 @@ bool ConferenceView::removeCaller(uint32_t sessionID)
     qWarning() << "WARNING: Trying to remove nonexisting call from ConferenceView";
     return !activeCalls_.empty();
   }
-  if(activeCalls_[sessionID - 1]->state == ACTIVE || activeCalls_[sessionID - 1]->state == ASKINGUSER)
+  if(activeCalls_[sessionID - 1]->state == CALL_ACTIVE || activeCalls_[sessionID - 1]->state == ASKINGUSER)
   {
     activeCalls_[sessionID - 1]->item->widget()->hide();
     delete activeCalls_[sessionID - 1]->item->widget();

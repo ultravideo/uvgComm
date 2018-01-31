@@ -24,8 +24,6 @@ struct SIPField
   std::shared_ptr<QList<SIPParameter>> parameters;
 };
 
-
-
 class SIPConnection : public QObject
 {
   Q_OBJECT
@@ -62,7 +60,7 @@ signals:
                            std::shared_ptr<SIPMessageInfo> message,
                            quint32 sessionID_);
 
-  void incomingMalformedRequest(quint32 sessionID_);
+  void parsingError(ResponseType errorResponse, quint32 sessionID);
 
 private:
 

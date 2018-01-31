@@ -11,6 +11,18 @@
 #include <sstream>
 #include <string>
 
+
+const std::map<QString, RequestType> requestTypes = {{"INVITE", INVITE},
+                                                     {"ACK", ACK},
+                                                     {"BYE", BYE},
+                                                     {"CANCEL", CANCEL},
+                                                     {"OPTIONS", OPTIONS},
+                                                     {"REGISTER", REGISTER}};
+
+
+
+
+
 SIPConnection::SIPConnection(quint32 sessionID):
   partialMessage_(""),
   connection_(sessionID, false),
@@ -23,6 +35,8 @@ SIPConnection::~SIPConnection()
 void SIPConnection::initConnection(ConnectionType type, QHostAddress target)
 {
   qWarning() << "WARNING: SIPConnection not implemented yet.";
+
+
 }
 
 void SIPConnection::sendRequest(RequestType request,
@@ -65,7 +79,7 @@ void SIPConnection::networkPackage(QString message)
   if(!checkFields(firstLine, fields))
   {
     qDebug() << "The received message was not correct. ";
-    emit incomingMalformedRequest(sessionID_); // TODO support other possible error types
+    emit parsingError(SIP_BAD_REQUEST, sessionID_); // TODO support other possible error types
   }
 
   processFields(fields);

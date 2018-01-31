@@ -105,7 +105,8 @@ HEADERS  += \
     src/globalsdpstate.h \
     src/siptypes.h \
     src/sipsession.h \
-    src/sipconnection.h
+    src/sipconnection.h \
+    src/sipconversions.h
 
 FORMS    += \
     ui/callwindow.ui \
