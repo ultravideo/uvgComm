@@ -17,7 +17,6 @@ SIPConnection::SIPConnection(quint32 sessionID):
   sessionID_(sessionID)
 {}
 
-
 SIPConnection::~SIPConnection()
 {}
 
@@ -74,7 +73,7 @@ void SIPConnection::networkPackage(QString message)
 
 void SIPConnection::parsePackage(QString package, QString& header, QString& body)
 {
-    qDebug() << "Parsing package to header and body.";
+  qDebug() << "Parsing package to header and body.";
 
   if(partialMessage_.length() > 0)
   {
@@ -123,8 +122,6 @@ void SIPConnection::parsePackage(QString package, QString& header, QString& body
 
 std::shared_ptr<QList<SIPField>> SIPConnection::networkToFields(QString header, std::shared_ptr<QStringList> firstLine)
 {
-  qWarning() << "WARNING: SIPConnection not implemented yet.";
-  std::shared_ptr<QList<SIPField>> fields = std::shared_ptr<QList<SIPField>>(new QList<SIPField>);
   firstLine = std::shared_ptr<QStringList>(new QStringList);
 
   QStringList lines = header.split("\r\n", QString::SkipEmptyParts);
@@ -134,10 +131,54 @@ std::shared_ptr<QList<SIPField>> SIPConnection::networkToFields(QString header, 
   }
   *firstLine.get() = lines[0].split("\r\n", QString::SkipEmptyParts);
 
+  std::shared_ptr<QList<SIPField>> fields = std::shared_ptr<QList<SIPField>>(new QList<SIPField>);
   for(unsigned int i = 1; i < lines.size(); ++i)
   {
+    SIPField field = {"",NULL,NULL};
+    // separate paramters from line using ; mark
+    QStringList parameters = lines[i].split(";", QString::SkipEmptyParts);
+    for(unsigned int j = 1; j < parameters.size(); ++j)
+    {
+      QStringList nameValue = lines[i].split("=", QString::SkipEmptyParts);
+      if(nameValue.size() == 2)
+      {
+        SIPParameter parameter;
+        parameter.name = nameValue[0];
+        parameter.value = nameValue[1];
+        if(field.parameters == NULL)
+        {
+          field.parameters = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
+        }
+        field.parameters->append(parameter);
+      }
+      else
+      {
+        qDebug() << "Can't understand parameter with more than on \"=\" mark";
+      }
+    }
 
+    if(parameters.size() >= 1)
+    {
+      QStringList nameValues = parameters[0].split(":", QString::SkipEmptyParts);
+      if(nameValues.size() >= 2)
+      {
+        field.name = nameValues[0];
+        field.values = std::shared_ptr<QStringList> (new QStringList);
+        for(unsigned int j = 1; j < nameValues.size(); ++j)
+        {
+          field.values->append(nameValues[j]);
+        }
+      }
+      else
+      {
+        qDebug() << "Either field name or value missing in sip line:" << nameValues;
+      }
+    }
+    fields->append(field);
   }
+
+  qDebug() << "Fields parsed. Found" << fields->size() << "fields.";
+  return fields;
 }
 
 bool SIPConnection::checkFields(std::shared_ptr<QStringList> firstLine, std::shared_ptr<QList<SIPField>> fields)

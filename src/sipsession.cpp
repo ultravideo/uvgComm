@@ -20,7 +20,7 @@ const uint16_t BRANCHLENGTH = 9;
 SIPSession::SIPSession():
   session_(),
   sessionID_(0),
-  cSeq_(0),
+  cSeq_(1),
   ongoingTransactionType_(NOREQUEST),
   state_(CALL_INACTIVE),
   registered_(false),

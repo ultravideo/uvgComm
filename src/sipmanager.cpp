@@ -59,6 +59,7 @@ QList<uint32_t> SIPManager::startCall(QList<Contact> addresses)
     SIPDialogData* dialog = new SIPDialogData;
 
     dialog->con = new Connection(dialogs_.size() + 1, true);
+    dialog->sCon = new SIPConnection(dialogs_.size() + 1);
 
     dialogMutex_.lock();
     dialog->con->setID(dialogs_.size() + 1);
@@ -208,7 +209,7 @@ void SIPManager::processSIPResponse(ResponseType response, std::shared_ptr<SIPRo
 void SIPManager::sendRequest(uint32_t sessionID, RequestType request)
 {
   qDebug() << "---- Iniated sending of a request ---";
-  Q_ASSERT(sessionID < dialogs_.size());
+  Q_ASSERT(sessionID <= dialogs_.size());
   // get routinginfo for
   QString direct = "";
 
@@ -252,6 +253,8 @@ void SIPManager::sendRequest(uint32_t sessionID, RequestType request)
   dialogs_.at(sessionID - 1)->con->sendPacket(message);
 
   qDebug() << "---- Finished sending of a request ---";
+
+  dialogs_.at(sessionID - 1)->sCon->networkPackage(message);
 }
 
 void SIPManager::sendResponse(uint32_t sessionID, ResponseType response)

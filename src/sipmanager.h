@@ -2,6 +2,7 @@
 
 #include "globalsdpstate.h"
 #include "sipstringcomposer.h"
+#include "sipconnection.h"
 #include "connection.h"
 #include "connectionserver.h"
 
@@ -90,6 +91,7 @@ private:
   struct SIPDialogData
   {
     Connection* con;
+    SIPConnection* sCon;
     SIPSession* session;
     SIPRouting* routing;
     // has local invite sdp or o response sdp

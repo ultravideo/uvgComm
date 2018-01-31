@@ -20,8 +20,8 @@ struct SIPParameter
 struct SIPField
 {
   QString name;
-  QList<QString>* values;
-  QList<SIPParameter>* parameters;
+  std::shared_ptr<QStringList> values;
+  std::shared_ptr<QList<SIPParameter>> parameters;
 };
 
 
