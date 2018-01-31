@@ -55,7 +55,8 @@ SOURCES +=\
     src/siprouting.cpp \
     src/globalsdpstate.cpp \
     src/sipsession.cpp \
-    src/sipconnection.cpp
+    src/sipconnection.cpp \
+    src/sipconversions.cpp
 
 HEADERS  += \
     src/filter.h \

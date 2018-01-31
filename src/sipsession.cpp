@@ -21,7 +21,7 @@ SIPSession::SIPSession():
   session_(),
   sessionID_(0),
   cSeq_(1),
-  ongoingTransactionType_(NOREQUEST),
+  ongoingTransactionType_(SIP_UNKNOWN_REQUEST),
   state_(CALL_INACTIVE),
   registered_(false),
   timeoutTimer_()
@@ -148,7 +148,7 @@ void SIPSession::endCall()
 
 void SIPSession::registerToServer()
 {
-  if(registered_ || ongoingTransactionType_ != NOREQUEST)
+  if(registered_ || ongoingTransactionType_ != SIP_UNKNOWN_REQUEST)
   {
     qDebug() << "WARNING: We have already registered";
   }
@@ -185,7 +185,7 @@ void SIPSession::requestTimeOut()
 
   // TODO emit some signal indicating something
   emit callFailed(sessionID_);
-  ongoingTransactionType_ = NOREQUEST;
+  ongoingTransactionType_ = SIP_UNKNOWN_REQUEST;
 }
 
 QString SIPSession::generateRandomString(uint32_t length)

@@ -24,7 +24,7 @@ QString SIPStringComposer::requestToString(const RequestType request)
       return "BYE";
       break;
     }
-    case NOREQUEST:
+    case SIP_UNKNOWN_REQUEST:
     {
       qCritical() << "WARNING: Received NOREQUEST for string translation";
       break;
@@ -58,7 +58,7 @@ QString SIPStringComposer::responseToString(const ResponseType response)
       return "603 DECLINE";
       break;
     }
-    case SIP_NORESPONSE:
+    case SIP_UNKNOWN_RESPONSE:
     {
       qCritical() << "Received NORESPONSE for string translation";
       break;
@@ -169,7 +169,7 @@ void SIPStringComposer::sequenceNum(messageID id, uint32_t seq, const RequestTyp
 {
   Q_ASSERT(messages_.size() >= id && messages_.at(id - 1) != 0);
   Q_ASSERT(seq != 0);
-  Q_ASSERT(originalRequest != NOREQUEST);
+  Q_ASSERT(originalRequest != SIP_UNKNOWN_REQUEST);
 
   QString num;
   messages_.at(id - 1)->cSeq = num.setNum(seq);

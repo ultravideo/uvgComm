@@ -11,18 +11,6 @@
 #include <sstream>
 #include <string>
 
-
-const std::map<QString, RequestType> requestTypes = {{"INVITE", INVITE},
-                                                     {"ACK", ACK},
-                                                     {"BYE", BYE},
-                                                     {"CANCEL", CANCEL},
-                                                     {"OPTIONS", OPTIONS},
-                                                     {"REGISTER", REGISTER}};
-
-
-
-
-
 SIPConnection::SIPConnection(quint32 sessionID):
   partialMessage_(""),
   connection_(sessionID, false),
@@ -134,7 +122,7 @@ void SIPConnection::parsePackage(QString package, QString& header, QString& body
   }
 }
 
-std::shared_ptr<QList<SIPField>> SIPConnection::networkToFields(QString header, std::shared_ptr<QStringList> firstLine)
+std::shared_ptr<QList<SIPField>> SIPConnection::networkToFields(QString header, std::shared_ptr<QStringList>& firstLine)
 {
   firstLine = std::shared_ptr<QStringList>(new QStringList);
 
@@ -143,7 +131,7 @@ std::shared_ptr<QList<SIPField>> SIPConnection::networkToFields(QString header, 
   {
     return NULL;
   }
-  *firstLine.get() = lines[0].split("\r\n", QString::SkipEmptyParts);
+  *firstLine.get() = lines[0].split(" ", QString::SkipEmptyParts);
 
   std::shared_ptr<QList<SIPField>> fields = std::shared_ptr<QList<SIPField>>(new QList<SIPField>);
   for(unsigned int i = 1; i < lines.size(); ++i)
@@ -197,13 +185,35 @@ std::shared_ptr<QList<SIPField>> SIPConnection::networkToFields(QString header, 
 
 bool SIPConnection::checkFields(std::shared_ptr<QStringList> firstLine, std::shared_ptr<QList<SIPField>> fields)
 {
-  qWarning() << "WARNING: SIPConnection not implemented yet.";
+  qDebug() << "Checking SIP message integrity";
+
+  if(firstLine->size() < 3)
+  {
+    qDebug() << "Not enough words in first SIP message line:" << firstLine->size();
+    return false;
+  }
+
+  if(firstLine->at(0) == "SIP/2.0")
+  {
+
+  }
+  else if(firstLine->at(2) == "SIP/2.0")
+  {
+
+  }
+  else
+  {
+    qDebug() << "SIP message not a Request or a response!";
+    return false;
+  }
+  qDebug() << "WARNING: Checking in progress";
+  qDebug() << "Fields checked and they are ok.";
   return true;
 }
 
 void SIPConnection::processFields(std::shared_ptr<QList<SIPField>> fields)
 {
-  qWarning() << "WARNING: SIPConnection not implemented yet.";
+  qWarning() << "WARNING: Process fields not implemented yet";
 }
 
 

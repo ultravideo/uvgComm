@@ -66,7 +66,7 @@ private:
 
   void parsePackage(QString package, QString& header, QString& body);
   std::shared_ptr<QList<SIPField>> networkToFields(QString header,
-                                                   std::shared_ptr<QStringList> firstLine);
+                                                   std::shared_ptr<QStringList>& firstLine);
   bool checkFields(std::shared_ptr<QStringList> firstLine,
                    std::shared_ptr<QList<SIPField>> fields);
   void processFields(std::shared_ptr<QList<SIPField>> fields);
