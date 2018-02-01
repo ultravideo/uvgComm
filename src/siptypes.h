@@ -121,6 +121,18 @@ struct SIPMessageInfo
   RequestType transactionRequest;
 };
 
+struct SIP_Request
+{
+  SIPMessageInfo message;
+  RequestType type;
+};
+
+struct SIP_Response
+{
+  SIPMessageInfo message;
+  RequestType type;
+};
+
 // sendrecv is default, if none present.
 enum SDPAttribute {A_SENDRECV, A_SENDONLY, A_RECVONLY, A_INACTIVE};
 

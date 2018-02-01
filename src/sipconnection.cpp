@@ -87,9 +87,10 @@ void SIPConnection::networkPackage(QString message)
   {
     qDebug() << "The received message was not correct. ";
     emit parsingError(SIP_BAD_REQUEST, sessionID_); // TODO support other possible error types
+    return;
   }
 
-  processFields(fields);
+  processFields(firstLine, fields);
 }
 
 void SIPConnection::parsePackage(QString package, QString& header, QString& body)
@@ -232,7 +233,6 @@ bool SIPConnection::checkFields(std::shared_ptr<QStringList> firstLine, std::sha
   if(firstLine->at(2) == "SIP/2.0") // Request
   {
     RequestType request = stringToRequest(firstLine->at(0));
-
     if(request == SIP_UNKNOWN_REQUEST)
     {
       qDebug() << "Could not recognize request type!";
@@ -303,9 +303,62 @@ bool SIPConnection::linePresent(QString name, std::shared_ptr<QList<SIPField>> f
   return false;
 }
 
-void SIPConnection::processFields(std::shared_ptr<QList<SIPField>> fields)
+void SIPConnection::processFields(std::shared_ptr<QStringList>& firstLine, std::shared_ptr<QList<SIPField>> fields)
 {
+  // The check has been able to identify the request/response, verify that every mandatory field is present
+  // and that each mandatory field has some kind of value.
 
+  std::shared_ptr<SIPRoutingInfo> routing = std::shared_ptr<SIPRoutingInfo>(new SIPRoutingInfo);
+  std::shared_ptr<SIPSessionInfo> session = std::shared_ptr<SIPSessionInfo>(new SIPSessionInfo);
+
+  if(firstLine->at(2) == "SIP/2.0") // Request
+  {
+    std::shared_ptr<SIP_Request> request = std::shared_ptr<SIP_Request>(new SIP_Request);
+    if(routing == NULL || session == NULL || request == NULL)
+    {
+      return; // ran out of memory?
+    }
+
+    request->type = stringToRequest(firstLine->at(0));
+
+    for(SIPField field : *fields.get())
+    {
+      if(field.name == "To")
+      {
+
+      }
+      else if(field.name == "From")
+      {
+
+      }
+      else if(field.name == "CSeq")
+      {
+
+      }
+      else if(field.name == "Call-ID")
+      {
+
+      }
+      else if(field.name == "Via")
+      {
+
+      }
+      else if(field.name == "Max-Forwards")
+      {
+
+      }
+      else if(field.name == "Contact")
+      {
+
+      }
+    }
+  }
+  else if(firstLine->at(0) == "SIP/2.0") // Response
+  {
+    uint16_t responseCode = stringResponseCode(firstLine->at(1));
+  }
+
+  qDebug() << "Ending processing.";
 }
 
 std::shared_ptr<SDPMessageInfo> SIPConnection::parseSDPMessage(QString& body)
