@@ -69,6 +69,7 @@ private:
                                                    std::shared_ptr<QStringList>& firstLine);
   bool checkFields(std::shared_ptr<QStringList> firstLine,
                    std::shared_ptr<QList<SIPField>> fields);
+  bool linePresent(QString name, std::shared_ptr<QList<SIPField>> fields);
   void processFields(std::shared_ptr<QList<SIPField>> fields);
 
   std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body);

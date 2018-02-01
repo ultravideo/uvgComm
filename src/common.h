@@ -3,9 +3,6 @@
 #include <QString>
 #include <stdint.h>
 
-
-const bool STRICTSIPPROCESSING = true;
-
 const QString APPLICATIONNAME = "Kvazzup";
 
 // TODO use _sleep?
