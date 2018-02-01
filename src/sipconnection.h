@@ -71,14 +71,11 @@ private:
   bool linePresent(QString name, std::shared_ptr<QList<SIPField>> fields);
   void processFields(std::shared_ptr<QStringList>& firstLine, std::shared_ptr<QList<SIPField>> fields);
 
-  std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body);
-
   void parseSIPaddress(QString address, QString& user, QString& location);
   void parseSIPParameter(QString field, QString parameterName,
                          QString& parameterValue, QString& remaining);
   QList<QHostAddress> parseIPAddress(QString address);
 
-  bool checkSDPLine(QStringList& line, uint8_t expectedLength, QString& firstValue);
 
   QString partialMessage_;
 
@@ -86,12 +83,3 @@ private:
 
   quint32 sessionID_;
 };
-
-std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body);
-
-QList<QHostAddress> parseIPAddress(QString address);
-
-
-
-
-

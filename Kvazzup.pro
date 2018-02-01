@@ -56,7 +56,8 @@ SOURCES +=\
     src/globalsdpstate.cpp \
     src/sipsession.cpp \
     src/sipconnection.cpp \
-    src/sipconversions.cpp
+    src/sipconversions.cpp \
+    src/sdpparser.cpp
 
 HEADERS  += \
     src/filter.h \
@@ -107,7 +108,8 @@ HEADERS  += \
     src/siptypes.h \
     src/sipsession.h \
     src/sipconnection.h \
-    src/sipconversions.h
+    src/sipconversions.h \
+    src/sdpparser.h
 
 FORMS    += \
     ui/callwindow.ui \
