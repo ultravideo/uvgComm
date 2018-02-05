@@ -11,20 +11,7 @@
 #include <sstream>
 #include <string>
 
-
-enum FieldPrecense {MANDATORY, SHOULD, COPIED, OPTIONAL, ABSENT};
-
-struct HeaderInfo
-{
-  QString condition;
-
-  FieldPrecense ACK;
-  FieldPrecense BYE;
-  FieldPrecense CANCEL;
-  FieldPrecense INVITE;
-  FieldPrecense OPTIONS;
-  FieldPrecense REGISTER;
-};
+#include <functional>
 
 SIPConnection::SIPConnection(quint32 sessionID):
   partialMessage_(""),
@@ -34,17 +21,14 @@ SIPConnection::SIPConnection(quint32 sessionID):
 
 SIPConnection::~SIPConnection()
 {}
-/*
-const std::map<QString, uint16_t> fieldMinValues = {{"Call-ID",1},
-                                                   {"Contact",1},
-                                                   {"To", }};
-*/
+
 void SIPConnection::initConnection(ConnectionType type, QHostAddress target)
 {
   qWarning() << "WARNING: SIPConnection not implemented yet.";
 
 
 }
+
 
 void SIPConnection::sendRequest(RequestType request,
                  std::shared_ptr<SIPRoutingInfo> routing,
@@ -54,6 +38,7 @@ void SIPConnection::sendRequest(RequestType request,
   qWarning() << "WARNING: SIPConnection not implemented yet.";
 }
 
+
 void SIPConnection::sendResponse(ResponseType response,
                   std::shared_ptr<SIPRoutingInfo> routing,
                   std::shared_ptr<SIPSessionInfo> session,
@@ -61,6 +46,7 @@ void SIPConnection::sendResponse(ResponseType response,
 {
   qWarning() << "WARNING: SIPConnection not implemented yet.";
 }
+
 
 void SIPConnection::networkPackage(QString message)
 {
@@ -75,23 +61,20 @@ void SIPConnection::networkPackage(QString message)
 
   if(header != "")
   {
-    fields = SIPConnection::networkToFields(header, firstLine);
+    if(!parseSIPHeader(header))
+    {
+      qDebug() << "The received message was not correct. ";
+      emit parsingError(SIP_BAD_REQUEST, sessionID_); // TODO support other possible error types
+      return;
+    }
+    //fields = SIPConnection::networkToFields(header, firstLine);
   }
   else
   {
-    // parsing was not successfull. Possibly because the whole message was not received.
-    return;
+    qDebug() << "The whole message was not received";
   }
-
-  if(!checkFields(firstLine, fields))
-  {
-    qDebug() << "The received message was not correct. ";
-    emit parsingError(SIP_BAD_REQUEST, sessionID_); // TODO support other possible error types
-    return;
-  }
-
-  processFields(firstLine, fields);
 }
+
 
 void SIPConnection::parsePackage(QString package, QString& header, QString& body)
 {
@@ -142,157 +125,140 @@ void SIPConnection::parsePackage(QString package, QString& header, QString& body
   }
 }
 
-std::shared_ptr<QList<SIPField>> SIPConnection::networkToFields(QString header, std::shared_ptr<QStringList>& firstLine)
+bool SIPConnection::parseSIPHeader(QString header)
 {
-  firstLine = std::shared_ptr<QStringList>(new QStringList);
-
+  // Divide into lines
   QStringList lines = header.split("\r\n", QString::SkipEmptyParts);
+  qDebug() << "Parsing SIP header with" << lines.size() << "lines";
   if(lines.size() == 0)
   {
-    return NULL;
+    qDebug() << "No first line present in SIP header!";
+    return false;
   }
-  *firstLine.get() = lines[0].split(" ", QString::SkipEmptyParts);
 
-  std::shared_ptr<QList<SIPField>> fields = std::shared_ptr<QList<SIPField>>(new QList<SIPField>);
+  QList<SIPField> fields;
   for(unsigned int i = 1; i < lines.size(); ++i)
   {
-    SIPField field = {"",NULL,NULL};
-    // separate paramters from line using ; mark
-    QStringList parameters = lines[i].split(";", QString::SkipEmptyParts);
-    for(unsigned int j = 1; j < parameters.size(); ++j)
-    {
-      QStringList nameValue = lines[i].split("=", QString::SkipEmptyParts);
-      if(nameValue.size() == 2)
-      {
-        SIPParameter parameter;
-        parameter.name = nameValue[0];
-        parameter.value = nameValue[1];
-        if(field.parameters == NULL)
-        {
-          field.parameters = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
-        }
-        field.parameters->append(parameter);
-      }
-      else
-      {
-        qDebug() << "Can't understand parameter with more than on \"=\" mark";
-      }
-    }
+    QStringList parameters = lines.at(i).split(";", QString::SkipEmptyParts);
 
-    if(parameters.size() >= 1)
+    QRegularExpression re_field("(\\S*): (.+)");
+    QRegularExpressionMatch field_match = re_field.match(parameters.at(0));
+
+    if(field_match.hasMatch() && field_match.lastCapturedIndex() == 2)
     {
-      QStringList nameValues = parameters[0].split(":", QString::SkipEmptyParts);
-      if(nameValues.size() >= 2)
+      SIPField field = {field_match.captured(1),field_match.captured(2),NULL};
+      qDebug() << "Parsing field: " << field.name;
+      if(parameters.size() > 1)
       {
-        field.name = nameValues[0];
-        field.values = std::shared_ptr<QStringList> (new QStringList);
-        for(unsigned int j = 1; j < nameValues.size(); ++j)
+        for(unsigned int j = 1; j < parameters.size(); ++j)
         {
-          field.values->append(nameValues[j]);
+          SIPParameter parameter;
+          if(parseParameter(parameters[j], parameter))
+          {
+            if(field.parameters == NULL)
+            {
+              field.parameters = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
+            }
+            field.parameters->append(parameter);
+          }
+          else
+          {
+            qDebug() << "Failed to parse SIP parameter:" << parameters[j];
+          }
         }
       }
-      else
-      {
-        qDebug() << "Either field name or value missing in sip line:" << nameValues;
-      }
+      fields.append(field);
     }
-    fields->append(field);
+    else
+    {
+      qDebug() << "Failed to parse line:" << lines.at(i) << "Matches:" << field_match.lastCapturedIndex();
+    }
   }
 
-  qDebug() << "Fields parsed. Found" << fields->size() << "fields.";
-  return fields;
-}
-
-bool SIPConnection::checkFields(std::shared_ptr<QStringList> firstLine, std::shared_ptr<QList<SIPField>> fields)
-{
-  qDebug() << "General checking of SIP message integrity";
-  if(firstLine == NULL || fields == NULL)
-  {
-    qDebug() << "Did not find enough lines in SIP message.";
-    return false;
-  }
-
-  // first we check that the first line is parsed correctly
-  if(firstLine->size() < 3)
-  {
-    qDebug() << "Not enough words in first SIP message line:" << firstLine->size();
-    return false;
-  }
-  qDebug() << "Checking only that absolutely mandatory header fields are present.";
   // check that all required header lines are present
-  if(!linePresent("To", fields)
-     || !linePresent("From", fields)
-     || !linePresent("CSeq", fields)
-     || (!linePresent("Call-ID", fields) && !linePresent("i", fields))
-     | !linePresent("Via", fields))
+  if(!isLinePresent("To", fields)
+     || !isLinePresent("From", fields)
+     || !isLinePresent("CSeq", fields)
+     || (!isLinePresent("Call-ID", fields) && !isLinePresent("i", fields))
+     | !isLinePresent("Via", fields))
   {
     qDebug() << "All mandatory header lines not present!";
     return false;
   }
 
-  if(firstLine->at(2) == "SIP/2.0") // Request
-  {
-    RequestType request = stringToRequest(firstLine->at(0));
-    if(request == SIP_UNKNOWN_REQUEST)
-    {
-      qDebug() << "Could not recognize request type!";
-      return false;
-    }
+  std::shared_ptr<SIPRoutingInfo> routing = std::shared_ptr<SIPRoutingInfo>(new SIPRoutingInfo);
+  std::shared_ptr<SIPSessionInfo> session = std::shared_ptr<SIPSessionInfo>(new SIPSessionInfo);
 
-    if(!linePresent("Max-Forwards", fields))
-    {
-      qDebug() << "Mandatory Max-Forwards not present in Request header";
-      return false;
-    }
-    qDebug() << "Identified a request:" << firstLine->at(0);
-    if(request == INVITE && !linePresent("Contact", fields))
-    {
-      qDebug() << "Contact header missing from INVITE request";
-      return false;
-    }
-  }
-  else if(firstLine->at(0) == "SIP/2.0") // Response
-  {
-    uint16_t responseCode = stringResponseCode(firstLine->at(1));
 
-    if(responseCode < 100 || responseCode > 607)
-    {
-      qDebug() << "Response code does not make sense:" << responseCode;
-      return false;
-    }
-    qDebug() << "Identified a response:" << responseCode;
-  }
-  else // not recognized
-  {
-    qDebug() << "SIP message format not recognized!";
-    return false;
-  }
 
-  for(SIPField field : *fields.get())
+  QRegularExpression re_firstLine("(^(\\w+)|(SIP\/2\.0)) (\\S+) (.*)");
+  QRegularExpressionMatch firstline_match = re_firstLine.match(lines[0]);
+
+  if(firstline_match.hasMatch() && firstline_match.lastCapturedIndex() >= 5)
   {
-    if(field.values == NULL || field.values->size() == 0)
+    if(firstline_match.captured(5) == "SIP/2.0")
     {
-      qDebug() << "No value present for a field.";
-      if(field.name == "To" ||
-         field.name == "From" ||
-         field.name == "CSeq" ||
-         field.name == "Call-ID" ||
-         field.name == "Via" ||
-         field.name == "Max-Forwards")
+      qDebug() << "Request detected:" << firstline_match.captured(1);
+      std::shared_ptr<SIP_Request> request = std::shared_ptr<SIP_Request>(new SIP_Request);
+
+      RequestType requestType = stringToRequest(firstline_match.captured(1));
+      if(requestType == SIP_UNKNOWN_REQUEST)
       {
-        qDebug() << "and that field is important:" << field.name;
+        qDebug() << "Could not recognize request type!";
+        return false;
+      }
+
+      if(!isLinePresent("Max-Forwards", fields))
+      {
+        qDebug() << "Mandatory Max-Forwards not present in Request header";
+        return false;
+      }
+
+      if(requestType == INVITE && !isLinePresent("Contact", fields))
+      {
+        qDebug() << "Contact header missing from INVITE request";
         return false;
       }
     }
+    else if(firstline_match.captured(1) == "SIP/2.0")
+    {
+      qDebug() << "Response detected:" << firstline_match.captured(1);
+
+    }
+    else
+    {
+      qDebug() << "Could not identify request or response from:" << lines[0]
+               << "with first match as:" << firstline_match.captured(1);
+    }
+  }
+  else
+  {
+    qDebug() << "Failed to parse first line of SIP message:" << lines[0]
+             << "Matches detected:" << firstline_match.lastCapturedIndex();
+    return false;
   }
 
-  qDebug() << "Header checked and it is ok.";
   return true;
 }
 
-bool SIPConnection::linePresent(QString name, std::shared_ptr<QList<SIPField>> fields)
+bool SIPConnection::parseParameter(QString text, SIPParameter& parameter)
 {
-  for(SIPField field : *fields.get())
+  QRegularExpression re_parameter("([^=]+)=([^;]+)");
+  QRegularExpressionMatch parameter_match = re_parameter.match(text);
+  if(parameter_match.hasMatch() && parameter_match.lastCapturedIndex() == 2)
+  {
+    parameter.name = parameter_match.captured(1);
+    parameter.value = parameter_match.captured(2);
+    return true;
+  }
+
+  return false;
+}
+
+
+bool SIPConnection::isLinePresent(QString name, QList<SIPField>& fields)
+{
+  for(SIPField field : fields)
   {
     if(field.name == name)
     {
@@ -301,64 +267,6 @@ bool SIPConnection::linePresent(QString name, std::shared_ptr<QList<SIPField>> f
   }
   qDebug() << "Did not find header:" << name;
   return false;
-}
-
-void SIPConnection::processFields(std::shared_ptr<QStringList>& firstLine, std::shared_ptr<QList<SIPField>> fields)
-{
-  // The check has been able to identify the request/response, verify that every mandatory field is present
-  // and that each mandatory field has some kind of value.
-
-  std::shared_ptr<SIPRoutingInfo> routing = std::shared_ptr<SIPRoutingInfo>(new SIPRoutingInfo);
-  std::shared_ptr<SIPSessionInfo> session = std::shared_ptr<SIPSessionInfo>(new SIPSessionInfo);
-
-  if(firstLine->at(2) == "SIP/2.0") // Request
-  {
-    std::shared_ptr<SIP_Request> request = std::shared_ptr<SIP_Request>(new SIP_Request);
-    if(routing == NULL || session == NULL || request == NULL)
-    {
-      return; // ran out of memory?
-    }
-
-    request->type = stringToRequest(firstLine->at(0));
-
-    for(SIPField field : *fields.get())
-    {
-      if(field.name == "To")
-      {
-
-      }
-      else if(field.name == "From")
-      {
-
-      }
-      else if(field.name == "CSeq")
-      {
-
-      }
-      else if(field.name == "Call-ID")
-      {
-
-      }
-      else if(field.name == "Via")
-      {
-
-      }
-      else if(field.name == "Max-Forwards")
-      {
-
-      }
-      else if(field.name == "Contact")
-      {
-
-      }
-    }
-  }
-  else if(firstLine->at(0) == "SIP/2.0") // Response
-  {
-    uint16_t responseCode = stringResponseCode(firstLine->at(1));
-  }
-
-  qDebug() << "Ending processing.";
 }
 
 
@@ -377,23 +285,6 @@ void SIPConnection::parseSIPaddress(QString address, QString& user, QString& loc
   location = splitAddress.at(1).left(splitAddress.at(1).length() - 1);
 }
 
-void SIPConnection::parseSIPParameter(QString field, QString parameterName,
-                       QString& parameterValue, QString& remaining)
-{
-  QStringList parameterSplit = field.split(parameterName);
-
-  if(parameterSplit.size() != 2)
-  {
-    qDebug() << "Did not find" << parameterName << "in" << field;
-    parameterValue = "";
-  }
-  else
-  {
-    qDebug() << "Found" << parameterName;
-    parameterValue = parameterSplit.at(1);
-  }
-  remaining = parameterSplit.at(0);
-}
 
 QList<QHostAddress> SIPConnection::parseIPAddress(QString address)
 {

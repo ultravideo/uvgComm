@@ -19,7 +19,7 @@ struct SIPParameter
 struct SIPField
 {
   QString name;
-  std::shared_ptr<QStringList> values;
+  QString values;
   std::shared_ptr<QList<SIPParameter>> parameters;
 };
 
@@ -68,14 +68,17 @@ private:
                                                    std::shared_ptr<QStringList>& firstLine);
   bool checkFields(std::shared_ptr<QStringList> firstLine,
                    std::shared_ptr<QList<SIPField>> fields);
-  bool linePresent(QString name, std::shared_ptr<QList<SIPField>> fields);
+  bool isLinePresent(QString name, QList<SIPField> &fields);
   void processFields(std::shared_ptr<QStringList>& firstLine, std::shared_ptr<QList<SIPField>> fields);
 
   void parseSIPaddress(QString address, QString& user, QString& location);
-  void parseSIPParameter(QString field, QString parameterName,
-                         QString& parameterValue, QString& remaining);
+  bool parseParameter(QString text, SIPParameter& parameter);
+
   QList<QHostAddress> parseIPAddress(QString address);
 
+  void parseToField();
+
+  bool parseSIPHeader(QString header);
 
   QString partialMessage_;
 
