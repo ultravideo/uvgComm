@@ -10,19 +10,6 @@
 
 enum ConnectionType {ANY, TCP, UDP, TSL};
 
-struct SIPParameter
-{
-  QString name;
-  QString value;
-};
-
-struct SIPField
-{
-  QString name;
-  QString values;
-  std::shared_ptr<QList<SIPParameter>> parameters;
-};
-
 class SIPConnection : public QObject
 {
   Q_OBJECT
@@ -32,31 +19,19 @@ public:
 
   void initConnection(ConnectionType type, QHostAddress target);
 
-  void sendRequest(RequestType request,
-                   std::shared_ptr<SIPRoutingInfo> routing,
-                   std::shared_ptr<SIPSessionInfo> session,
-                   std::shared_ptr<SIPMessageInfo> message);
+  void sendRequest(SIPRequest request);
+  void sendResponse(SIPResponse response);
 
-  void sendResponse(ResponseType response,
-                    std::shared_ptr<SIPRoutingInfo> routing,
-                    std::shared_ptr<SIPSessionInfo> session,
-                    std::shared_ptr<SIPMessageInfo> message);
 public slots:
 
   void networkPackage(QString message);
 
 signals:
 
-  void incomingSIPRequest(RequestType request,
-                          std::shared_ptr<SIPRoutingInfo> routing,
-                          std::shared_ptr<SIPSessionInfo> session,
-                          std::shared_ptr<SIPMessageInfo> message,
+  void incomingSIPRequest(SIPRequest request,
                           quint32 sessionID_);
 
-  void incomingSIPResponse(ResponseType response,
-                           std::shared_ptr<SIPRoutingInfo> routing,
-                           std::shared_ptr<SIPSessionInfo> session,
-                           std::shared_ptr<SIPMessageInfo> message,
+  void incomingSIPResponse(SIPResponse response,
                            quint32 sessionID_);
 
   void parsingError(ResponseType errorResponse, quint32 sessionID);
@@ -64,19 +39,10 @@ signals:
 private:
 
   void parsePackage(QString package, QString& header, QString& body);
-  std::shared_ptr<QList<SIPField>> networkToFields(QString header,
-                                                   std::shared_ptr<QStringList>& firstLine);
-  bool checkFields(std::shared_ptr<QStringList> firstLine,
-                   std::shared_ptr<QList<SIPField>> fields);
-  bool isLinePresent(QString name, QList<SIPField> &fields);
-  void processFields(std::shared_ptr<QStringList>& firstLine, std::shared_ptr<QList<SIPField>> fields);
 
   void parseSIPaddress(QString address, QString& user, QString& location);
-  bool parseParameter(QString text, SIPParameter& parameter);
 
   QList<QHostAddress> parseIPAddress(QString address);
-
-  void parseToField();
 
   bool parseSIPHeader(QString header);
 

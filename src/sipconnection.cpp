@@ -1,6 +1,7 @@
 #include "sipconnection.h"
 
 #include "sipconversions.h"
+#include <sipfieldparser.h>
 
 #include <QRegularExpression>
 #include <QRegularExpressionMatch>
@@ -12,6 +13,8 @@
 #include <string>
 
 #include <functional>
+
+const std::map<QString, std::function<void(int)>> parsing;
 
 SIPConnection::SIPConnection(quint32 sessionID):
   partialMessage_(""),
@@ -30,19 +33,13 @@ void SIPConnection::initConnection(ConnectionType type, QHostAddress target)
 }
 
 
-void SIPConnection::sendRequest(RequestType request,
-                 std::shared_ptr<SIPRoutingInfo> routing,
-                 std::shared_ptr<SIPSessionInfo> session,
-                 std::shared_ptr<SIPMessageInfo> message)
+void SIPConnection::sendRequest(SIPRequest request)
 {
   qWarning() << "WARNING: SIPConnection not implemented yet.";
 }
 
 
-void SIPConnection::sendResponse(ResponseType response,
-                  std::shared_ptr<SIPRoutingInfo> routing,
-                  std::shared_ptr<SIPSessionInfo> session,
-                  std::shared_ptr<SIPMessageInfo> message)
+void SIPConnection::sendResponse(SIPResponse response)
 {
   qWarning() << "WARNING: SIPConnection not implemented yet.";
 }
@@ -67,7 +64,6 @@ void SIPConnection::networkPackage(QString message)
       emit parsingError(SIP_BAD_REQUEST, sessionID_); // TODO support other possible error types
       return;
     }
-    //fields = SIPConnection::networkToFields(header, firstLine);
   }
   else
   {
@@ -199,7 +195,7 @@ bool SIPConnection::parseSIPHeader(QString header)
     if(firstline_match.captured(5) == "SIP/2.0")
     {
       qDebug() << "Request detected:" << firstline_match.captured(1);
-      std::shared_ptr<SIP_Request> request = std::shared_ptr<SIP_Request>(new SIP_Request);
+      std::shared_ptr<SIPRequest> request = std::shared_ptr<SIPRequest>(new SIPRequest);
 
       RequestType requestType = stringToRequest(firstline_match.captured(1));
       if(requestType == SIP_UNKNOWN_REQUEST)
@@ -241,33 +237,6 @@ bool SIPConnection::parseSIPHeader(QString header)
   return true;
 }
 
-bool SIPConnection::parseParameter(QString text, SIPParameter& parameter)
-{
-  QRegularExpression re_parameter("([^=]+)=([^;]+)");
-  QRegularExpressionMatch parameter_match = re_parameter.match(text);
-  if(parameter_match.hasMatch() && parameter_match.lastCapturedIndex() == 2)
-  {
-    parameter.name = parameter_match.captured(1);
-    parameter.value = parameter_match.captured(2);
-    return true;
-  }
-
-  return false;
-}
-
-
-bool SIPConnection::isLinePresent(QString name, QList<SIPField>& fields)
-{
-  for(SIPField field : fields)
-  {
-    if(field.name == name)
-    {
-      return true;
-    }
-  }
-  qDebug() << "Did not find header:" << name;
-  return false;
-}
 
 
 void SIPConnection::parseSIPaddress(QString address, QString& user, QString& location)

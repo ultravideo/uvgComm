@@ -57,7 +57,8 @@ SOURCES +=\
     src/sipsession.cpp \
     src/sipconnection.cpp \
     src/sipconversions.cpp \
-    src/sdpparser.cpp
+    src/sdpparser.cpp \
+    src/sipfieldparser.cpp
 
 HEADERS  += \
     src/filter.h \
@@ -109,7 +110,8 @@ HEADERS  += \
     src/sipsession.h \
     src/sipconnection.h \
     src/sipconversions.h \
-    src/sdpparser.h
+    src/sdpparser.h \
+    src/sipfieldparser.h
 
 FORMS    += \
     ui/callwindow.ui \

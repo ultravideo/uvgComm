@@ -84,6 +84,8 @@ enum ResponseType {SIP_UNKNOWN_RESPONSE = 0,
 #include <QString>
 #include <QList>
 
+#include <memory>
+
 // All the info needed for the SIP message to find its correct recipient
 struct SIPRoutingInfo
 {
@@ -115,23 +117,30 @@ struct SIPSessionInfo
 // Identifies the SIP message and the transaction it belongs to
 struct SIPMessageInfo
 {
+  std::shared_ptr<SIPRoutingInfo> routing;
+  std::shared_ptr<SIPSessionInfo> session;
+
+  // message specific info
   QString version;
   QString branch;
   uint32_t cSeq; // must be less than 2^31
   RequestType transactionRequest;
 };
 
-struct SIP_Request
+struct SIPRequest
 {
-  SIPMessageInfo message;
   RequestType type;
+  std::shared_ptr<SIPMessageInfo> message;
 };
 
-struct SIP_Response
+struct SIPResponse
 {
-  SIPMessageInfo message;
   RequestType type;
+  SIPMessageInfo message;
 };
+
+
+
 
 // sendrecv is default, if none present.
 enum SDPAttribute {A_SENDRECV, A_SENDONLY, A_RECVONLY, A_INACTIVE};
