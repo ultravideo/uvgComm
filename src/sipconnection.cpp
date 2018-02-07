@@ -14,7 +14,19 @@
 
 #include <functional>
 
-const std::map<QString, std::function<void(int)>> parsing;
+const std::map<QString, std::function<void(SIPField& field, std::shared_ptr<SIPMessageInfo>)>> parsing =
+{
+    {"To", parseToField},
+    {"From", parseFromField},
+    {"CSeq", parseCSeqField},
+    {"Call-ID", parseCallIDField},
+    {"Via", parseViaField},
+    {"Max-Forwards", parseMaxForwardsField},
+    {"Contact", parseContactField},
+    {"Content-type", parseContentTypeField},
+    {"Content-Length", parseContentLengthField}
+};
+
 
 SIPConnection::SIPConnection(quint32 sessionID):
   partialMessage_(""),
@@ -132,6 +144,7 @@ bool SIPConnection::parseSIPHeader(QString header)
     return false;
   }
 
+  // parse lines to fields.
   QList<SIPField> fields;
   for(unsigned int i = 1; i < lines.size(); ++i)
   {
@@ -182,10 +195,21 @@ bool SIPConnection::parseSIPHeader(QString header)
     return false;
   }
 
-  std::shared_ptr<SIPRoutingInfo> routing = std::shared_ptr<SIPRoutingInfo>(new SIPRoutingInfo);
-  std::shared_ptr<SIPSessionInfo> session = std::shared_ptr<SIPSessionInfo>(new SIPSessionInfo);
+  std::shared_ptr<SIPMessageInfo> message = std::shared_ptr<SIPMessageInfo> (new SIPMessageInfo);
+  message->routing = std::shared_ptr<SIPRoutingInfo> (new SIPRoutingInfo);
+  message->session = std::shared_ptr<SIPSessionInfo> (new SIPSessionInfo);
 
-
+  for(unsigned int i = 0; i < fields.size(); ++i)
+  {
+    if(parsing.find(fields[i].name) == parsing.end())
+    {
+      qDebug() << "Field not supported:" << fields[i].name;
+    }
+    else
+    {
+      parsing.at(fields.at(i).name)(fields[i], message);
+    }
+  }
 
   QRegularExpression re_firstLine("(^(\\w+)|(SIP\/2\.0)) (\\S+) (.*)");
   QRegularExpressionMatch firstline_match = re_firstLine.match(lines[0]);
@@ -236,7 +260,6 @@ bool SIPConnection::parseSIPHeader(QString header)
 
   return true;
 }
-
 
 
 void SIPConnection::parseSIPaddress(QString address, QString& user, QString& location)

@@ -139,9 +139,6 @@ struct SIPResponse
   SIPMessageInfo message;
 };
 
-
-
-
 // sendrecv is default, if none present.
 enum SDPAttribute {A_SENDRECV, A_SENDONLY, A_RECVONLY, A_INACTIVE};
 
