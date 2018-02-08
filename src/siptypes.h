@@ -1,8 +1,12 @@
 #pragma once
 
+#include <QString>
+#include <QList>
+
+#include <memory>
+
 enum RequestType {SIP_UNKNOWN_REQUEST, INVITE, ACK, BYE, CANCEL, OPTIONS, REGISTER}; // RFC 3261
  //PRACK,SUBSCRIBE, NOTIFY, PUBLISH, INFO, REFER, MESSAGE, UPDATE }; RFC 3262, 6665, 3903, 6086, 3515, 3428, 3311
-
 
 // the phrase is for humans only, so we will ignore it
 enum ResponseType {SIP_UNKNOWN_RESPONSE = 0,
@@ -81,25 +85,20 @@ enum ResponseType {SIP_UNKNOWN_RESPONSE = 0,
                    SIP_NOT_ACCEPTABLE = 606,
                    SIP_UNWANTED = 607}; // RFC 3261;
 
-#include <QString>
-#include <QList>
-
-#include <memory>
-
 // All the info needed for the SIP message to find its correct recipient
 struct SIPRoutingInfo
 {
   //what about request vs response?
 
-  QString senderUsername;
-  QString senderRealname;
-  QString senderHost;
+  QString fromUsername;
+  QString fromRealname;
+  QString fromHost;
   QList<QString> senderReplyAddress;   // from via-fields. Send responses here by copying these.
   QString contactAddress;  // from contact field. Send requests here to bypass server
 
-  QString receiverUsername;
-  QString receiverRealname;
-  QString receiverHost;
+  QString toUsername;
+  QString toRealname;
+  QString toHost;
 
   QString sessionHost;
 

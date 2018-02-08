@@ -44,17 +44,17 @@ bool SIPRouting::incomingSIPRequest(std::shared_ptr<SIPRoutingInfo> routing)
 {
   if(remoteUsername_ == "" && remoteHost_ == "")
   {
-    remoteUsername_ = routing->senderUsername;
-    remoteHost_ = routing->senderHost;
+    remoteUsername_ = routing->fromUsername;
+    remoteHost_ = routing->fromHost;
   }
 
-  if(routing->senderUsername != remoteUsername_ ||
-     routing->senderHost != remoteHost_ ||
-     routing->receiverUsername != localUsername_ ||
-     routing->receiverHost != localHost_)
+  if(routing->fromUsername != remoteUsername_ ||
+     routing->fromHost != remoteHost_ ||
+     routing->toUsername != localUsername_ ||
+     routing->toHost != localHost_)
   {
-    qDebug() << "Incoming SIP Request sender:" << routing->senderUsername << "@" << routing->senderHost
-             << "->" << routing->receiverUsername << "@" << routing->receiverHost << "does not match local info. Them:"
+    qDebug() << "Incoming SIP Request sender:" << routing->fromUsername << "@" << routing->fromHost
+             << "->" << routing->toUsername << "@" << routing->toHost << "does not match local info. Them:"
              << remoteUsername_ << "@" << remoteHost_ << "-> Us" << localUsername_ << "@" << localHost_;
     return false;
   }
@@ -71,10 +71,10 @@ bool SIPRouting::incomingSIPResponse(std::shared_ptr<SIPRoutingInfo> routing)
   }
 
   // check if this response matches the request sent.
-  if(routing->senderUsername   != previousSentRequest_->senderUsername ||
-     routing->senderHost       != previousSentRequest_->senderHost ||
-     routing->receiverUsername != previousSentRequest_->receiverUsername ||
-     routing->receiverHost     != previousSentRequest_->receiverHost ||
+  if(routing->fromUsername   != previousSentRequest_->fromUsername ||
+     routing->fromHost       != previousSentRequest_->fromHost ||
+     routing->toUsername != previousSentRequest_->toUsername ||
+     routing->toHost     != previousSentRequest_->toHost ||
      routing->sessionHost != previousSentRequest_->sessionHost)
   {
     qDebug() << "OTHER ERROR: The incoming SIP response "
@@ -92,6 +92,7 @@ bool SIPRouting::incomingSIPResponse(std::shared_ptr<SIPRoutingInfo> routing)
            << "Response # vias:" << routing->senderReplyAddress.size();
 
   remoteDirectAddress_ = routing->contactAddress;
+  return true;
 }
 
 std::shared_ptr<SIPRoutingInfo> SIPRouting::requestRouting(QString &directAddress)
@@ -113,15 +114,15 @@ std::shared_ptr<SIPRoutingInfo> SIPRouting::requestRouting(QString &directAddres
 
   std::shared_ptr<SIPRoutingInfo> newRouting(new SIPRoutingInfo);
 
-  newRouting->senderUsername = localUsername_;
-  newRouting->senderRealname = localName_;
-  newRouting->senderHost = localHost_;
+  newRouting->fromUsername = localUsername_;
+  newRouting->fromRealname = localName_;
+  newRouting->fromHost = localHost_;
   newRouting->senderReplyAddress.append(localDirectAddress_);
   newRouting->contactAddress = localDirectAddress_;
 
-  newRouting->receiverRealname = remoteUsername_;
-  newRouting->receiverUsername = remoteUsername_;
-  newRouting->receiverHost = remoteHost_;
+  newRouting->toRealname = remoteUsername_;
+  newRouting->toUsername = remoteUsername_;
+  newRouting->toHost = remoteHost_;
 
   newRouting->sessionHost = localHost_;
 
