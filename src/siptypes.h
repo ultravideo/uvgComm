@@ -109,7 +109,7 @@ struct SIPRoutingInfo
   SIP_URI to;
 
   QList<ConnectInstructions> senderReplyAddress;   // from via-fields. Send responses here by copying these.
-  QString contactAddress;  // from contact field. Send requests here to bypass server
+  SIP_URI contact;  // from contact field. Send requests here to bypass server
 
   QString sessionHost;
 

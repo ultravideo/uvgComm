@@ -185,7 +185,17 @@ bool parseMaxForwardsField(SIPField& field,
   Q_ASSERT(message);
   Q_ASSERT(message->routing);
   Q_ASSERT(message->session);
+  QRegularExpression re_field("(\d+)");
+  QRegularExpressionMatch field_match = re_field.match(field.values);
 
+  if(!field_match.hasMatch() || field_match.lastCapturedIndex() != 2)
+  {
+    return false;
+  }
+  else
+  {
+    message->routing->maxForwards = field.values.toUInt();
+  }
   return true;
 }
 
@@ -196,7 +206,7 @@ bool parseContactField(SIPField& field,
   Q_ASSERT(message->routing);
   Q_ASSERT(message->session);
 
-  return true;
+  return parseURI(field.values, message->routing->contact);
 }
 
 bool parseContentTypeField(SIPField& field,

@@ -82,7 +82,8 @@ bool SIPRouting::incomingSIPResponse(std::shared_ptr<SIPRoutingInfo> routing)
     return false;
   }
 
-  if(routing->contactAddress == previousSentRequest_->contactAddress)
+  if(routing->contact.host == previousSentRequest_->contact.host
+     && routing->contact.username == previousSentRequest_->contact.username)
   {
     qDebug() << "OTHER ERROR: They have not set their contact field correctly";
     return false;
@@ -91,7 +92,7 @@ bool SIPRouting::incomingSIPResponse(std::shared_ptr<SIPRoutingInfo> routing)
   qDebug() << "Request via:" << previousSentRequest_->senderReplyAddress.at(0).address
            << "Response # vias:" << routing->senderReplyAddress.size();
 
-  remoteDirectAddress_ = routing->contactAddress;
+  remoteDirectAddress_ = routing->contact;
   return true;
 }
 
@@ -118,7 +119,8 @@ std::shared_ptr<SIPRoutingInfo> SIPRouting::requestRouting(QString &directAddres
   newRouting->from.realname = localName_;
   newRouting->from.host = localHost_;
   newRouting->senderReplyAddress.append(ConnectInstructions {TCP, "2.0", localDirectAddress_});
-  newRouting->contactAddress = localDirectAddress_;
+  newRouting->contact.host = localDirectAddress_;
+  newRouting->contact.username = localUsername_;
 
   newRouting->to.realname = remoteUsername_;
   newRouting->to.username = remoteUsername_;
@@ -128,9 +130,9 @@ std::shared_ptr<SIPRoutingInfo> SIPRouting::requestRouting(QString &directAddres
 
   newRouting->maxForwards = MAXFORWARDS;
 
-  if(!remoteDirectAddress_.isEmpty())
+  if(remoteDirectAddress_.host != "")
   {
-    directAddress = remoteDirectAddress_;
+    directAddress = remoteDirectAddress_.host;
   }
 
   return newRouting;
@@ -150,7 +152,8 @@ std::shared_ptr<SIPRoutingInfo> SIPRouting::responseRouting()
   std::shared_ptr<SIPRoutingInfo> newRouting(new SIPRoutingInfo);
   //everything expect contact field are copied from received request
   *newRouting = *previousReceivedRequest_;
-  newRouting->contactAddress = localDirectAddress_;
+  newRouting->contact.host = localDirectAddress_;
+  newRouting->contact.username = localUsername_;
 
   // I may be wrong, but I did not reset maxforwards
 

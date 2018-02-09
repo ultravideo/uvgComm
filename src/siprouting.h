@@ -43,7 +43,7 @@ private:
 
   QString remoteUsername_;
   QString remoteHost_;          // name of their sip server or their ip address
-  QString remoteDirectAddress_; // from contact field. Send requests here if not empty.
+  SIP_URI remoteDirectAddress_; // from contact field. Send requests here if not empty.
 
   std::shared_ptr<SIPRoutingInfo> previousReceivedRequest_;
   std::shared_ptr<SIPRoutingInfo> previousSentRequest_;
