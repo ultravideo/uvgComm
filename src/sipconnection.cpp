@@ -14,7 +14,7 @@
 
 #include <functional>
 
-const std::map<QString, std::function<void(SIPField& field, std::shared_ptr<SIPMessageInfo>)>> parsing =
+const std::map<QString, std::function<bool(SIPField& field, std::shared_ptr<SIPMessageInfo>)>> parsing =
 {
     {"To", parseToField},
     {"From", parseFromField},
@@ -23,7 +23,7 @@ const std::map<QString, std::function<void(SIPField& field, std::shared_ptr<SIPM
     {"Via", parseViaField},
     {"Max-Forwards", parseMaxForwardsField},
     {"Contact", parseContactField},
-    {"Content-type", parseContentTypeField},
+    {"Content-Type", parseContentTypeField},
     {"Content-Length", parseContentLengthField}
 };
 
@@ -156,7 +156,7 @@ bool SIPConnection::parseSIPHeader(QString header)
     if(field_match.hasMatch() && field_match.lastCapturedIndex() == 2)
     {
       SIPField field = {field_match.captured(1),field_match.captured(2),NULL};
-      qDebug() << "Parsing field: " << field.name;
+      qDebug() << "Found field: " << field.name;
       if(parameters.size() > 1)
       {
         for(unsigned int j = 1; j < parameters.size(); ++j)
@@ -196,7 +196,10 @@ bool SIPConnection::parseSIPHeader(QString header)
   }
 
   std::shared_ptr<SIPMessageInfo> message = std::shared_ptr<SIPMessageInfo> (new SIPMessageInfo);
+  message->cSeq = 0;
+  message->transactionRequest = SIP_UNKNOWN_REQUEST;
   message->routing = std::shared_ptr<SIPRoutingInfo> (new SIPRoutingInfo);
+  message->routing->maxForwards = 0;
   message->session = std::shared_ptr<SIPSessionInfo> (new SIPSessionInfo);
 
   for(unsigned int i = 0; i < fields.size(); ++i)
@@ -207,7 +210,10 @@ bool SIPConnection::parseSIPHeader(QString header)
     }
     else
     {
-      parsing.at(fields.at(i).name)(fields[i], message);
+      if(!parsing.at(fields.at(i).name)(fields[i], message))
+      {
+        qDebug() << "Failed to parse following field:" << fields.at(i).name;
+      }
     }
   }
 

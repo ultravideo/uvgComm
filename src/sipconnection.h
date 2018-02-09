@@ -8,8 +8,6 @@
 
 #include <memory>
 
-enum ConnectionType {ANY, TCP, UDP, TSL};
-
 class SIPConnection : public QObject
 {
   Q_OBJECT

@@ -226,23 +226,23 @@ void SIPManager::sendRequest(uint32_t sessionID, RequestType request)
 
   messageID id = messageComposer_.startSIPRequest(request);
 
-  messageComposer_.to(id, routing->toRealname, routing->toUsername,
-                        routing->toHost, session->remoteTag);
-  messageComposer_.fromIP(id, routing->fromRealname, routing->fromUsername,
-                          QHostAddress(routing->fromHost), session->localTag);
+  messageComposer_.to(id, routing->to.realname, routing->to.username,
+                        routing->to.host, session->remoteTag);
+  messageComposer_.fromIP(id, routing->from.realname, routing->from.username,
+                          QHostAddress(routing->from.host), session->localTag);
 
-  for(QString viaAddress : routing->senderReplyAddress)
+  for(ConnectInstructions viaAddress : routing->senderReplyAddress)
   {
-    messageComposer_.viaIP(id, QHostAddress(viaAddress), mesg_info.branch);
+    messageComposer_.viaIP(id, QHostAddress(viaAddress.address), mesg_info.branch);
   }
 
   messageComposer_.maxForwards(id, routing->maxForwards);
-  messageComposer_.setCallID(id, session->callID, routing->fromHost);
+  messageComposer_.setCallID(id, session->callID, routing->from.host);
   messageComposer_.sequenceNum(id, mesg_info.cSeq, mesg_info.transactionRequest);
 
   if(request == INVITE)
   {
-    sdp_.setLocalInfo(QHostAddress(routing->fromHost), routing->fromUsername);
+    sdp_.setLocalInfo(QHostAddress(routing->from.host), routing->from.username);
     std::shared_ptr<SDPMessageInfo> sdp = sdp_.localInviteSDP();
     QString sdp_str = messageComposer_.formSDP(sdp);
     messageComposer_.addSDP(id,sdp_str);

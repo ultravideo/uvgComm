@@ -18,31 +18,34 @@ struct SIPField
   std::shared_ptr<QList<SIPParameter>> parameters;
 };
 
-void parseToField(SIPField& field,
+// parsing of individual header fields, but not the first line.
+// returns whther the parsing was successful.
+
+bool parseToField(SIPField& field,
                   std::shared_ptr<SIPMessageInfo> message);
 
-void parseFromField(SIPField& field,
+bool parseFromField(SIPField& field,
                   std::shared_ptr<SIPMessageInfo> message);
 
-void parseCSeqField(SIPField& field,
+bool parseCSeqField(SIPField& field,
                   std::shared_ptr<SIPMessageInfo> message);
 
-void parseCallIDField(SIPField& field,
+bool parseCallIDField(SIPField& field,
                   std::shared_ptr<SIPMessageInfo> message);
 
-void parseViaField(SIPField& field,
+bool parseViaField(SIPField& field,
                   std::shared_ptr<SIPMessageInfo> message);
 
-void parseMaxForwardsField(SIPField& field,
+bool parseMaxForwardsField(SIPField& field,
                   std::shared_ptr<SIPMessageInfo> message);
 
-void parseContactField(SIPField& field,
+bool parseContactField(SIPField& field,
                   std::shared_ptr<SIPMessageInfo> message);
 
-void parseContentTypeField(SIPField& field,
+bool parseContentTypeField(SIPField& field,
                   std::shared_ptr<SIPMessageInfo> message);
 
-void parseContentLengthField(SIPField& field,
+bool parseContentLengthField(SIPField& field,
                   std::shared_ptr<SIPMessageInfo> message);
 
 

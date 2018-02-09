@@ -85,20 +85,31 @@ enum ResponseType {SIP_UNKNOWN_RESPONSE = 0,
                    SIP_NOT_ACCEPTABLE = 606,
                    SIP_UNWANTED = 607}; // RFC 3261;
 
+enum ConnectionType {ANY, TCP, UDP, TLS};
+
+struct ConnectInstructions
+{
+  ConnectionType type;
+  QString address;
+  QString version;
+};
+
+struct SIP_URI // usually in format: "realname <sip:username@host>". realname optional
+{
+  QString username;
+  QString realname;
+  QString host;
+};
+
 // All the info needed for the SIP message to find its correct recipient
 struct SIPRoutingInfo
 {
   //what about request vs response?
+  SIP_URI from;
+  SIP_URI to;
 
-  QString fromUsername;
-  QString fromRealname;
-  QString fromHost;
-  QList<QString> senderReplyAddress;   // from via-fields. Send responses here by copying these.
+  QList<ConnectInstructions> senderReplyAddress;   // from via-fields. Send responses here by copying these.
   QString contactAddress;  // from contact field. Send requests here to bypass server
-
-  QString toUsername;
-  QString toRealname;
-  QString toHost;
 
   QString sessionHost;
 
@@ -108,7 +119,7 @@ struct SIPRoutingInfo
 // Identifies the SIP dialog
 struct SIPSessionInfo
 {
-  QString remoteTag;
+  QString remoteTag; // TODO:Maybe toTag and fromTag would be clearer names?
   QString localTag;
   QString callID;
 };
