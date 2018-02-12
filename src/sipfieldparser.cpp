@@ -9,6 +9,8 @@
 bool parseURI(QString values, SIP_URI& uri);
 bool parseParameterNameToValue(std::shared_ptr<QList<SIPParameter>> parameters,
                                QString name, QString& value);
+bool parseUint(QString values, uint& number);
+
 
 bool parseURI(QString values, SIP_URI& uri)
 {
@@ -47,6 +49,19 @@ bool parseParameterNameToValue(std::shared_ptr<QList<SIPParameter>> parameters,
         return true;
       }
     }
+  }
+  return false;
+}
+
+bool parseUint(QString values, uint& number)
+{
+  QRegularExpression re_field("(\\d+)");
+  QRegularExpressionMatch field_match = re_field.match(values);
+
+  if(field_match.hasMatch() && field_match.lastCapturedIndex() == 1)
+  {
+    number = values.toUInt();
+    return true;
   }
   return false;
 }
@@ -184,19 +199,8 @@ bool parseMaxForwardsField(SIPField& field,
 {
   Q_ASSERT(message);
   Q_ASSERT(message->routing);
-  Q_ASSERT(message->session);
-  QRegularExpression re_field("(\d+)");
-  QRegularExpressionMatch field_match = re_field.match(field.values);
 
-  if(!field_match.hasMatch() || field_match.lastCapturedIndex() != 2)
-  {
-    return false;
-  }
-  else
-  {
-    message->routing->maxForwards = field.values.toUInt();
-  }
-  return true;
+  return parseUint(field.values, message->routing->maxForwards);
 }
 
 bool parseContactField(SIPField& field,
@@ -213,20 +217,23 @@ bool parseContentTypeField(SIPField& field,
                            std::shared_ptr<SIPMessageInfo> message)
 {
   Q_ASSERT(message);
-  Q_ASSERT(message->routing);
-  Q_ASSERT(message->session);
 
-  return true;
+  QRegularExpression re_field("(\\w+)");
+  QRegularExpressionMatch field_match = re_field.match(field.values);
+
+  if(field_match.hasMatch() && field_match.lastCapturedIndex() == 1)
+  {
+    message->content.type = field_match.captured(1);
+    return true;
+  }
+  return false;
 }
 
 bool parseContentLengthField(SIPField& field,
                              std::shared_ptr<SIPMessageInfo> message)
 {
   Q_ASSERT(message);
-  Q_ASSERT(message->routing);
-  Q_ASSERT(message->session);
-
-  return true;
+  return parseUint(field.values, message->content.length);
 }
 
 bool isLinePresent(QString name, QList<SIPField>& fields)
@@ -241,7 +248,6 @@ bool isLinePresent(QString name, QList<SIPField>& fields)
   qDebug() << "Did not find header:" << name;
   return false;
 }
-
 
 bool parseParameter(QString text, SIPParameter& parameter)
 {

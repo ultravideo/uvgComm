@@ -51,4 +51,5 @@ bool parseContentLengthField(SIPField& field,
 
 bool isLinePresent(QString name, QList<SIPField> &fields);
 
+// takes the parameter string (name=value) and parses it to SIPParameter
 bool parseParameter(QString text, SIPParameter& parameter);

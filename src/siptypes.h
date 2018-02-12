@@ -101,6 +101,12 @@ struct SIP_URI // usually in format: "realname <sip:username@host>". realname op
   QString host;
 };
 
+struct ContentInfo
+{
+  QString type;
+  uint32_t length;
+};
+
 // All the info needed for the SIP message to find its correct recipient
 struct SIPRoutingInfo
 {
@@ -113,7 +119,7 @@ struct SIPRoutingInfo
 
   QString sessionHost;
 
-  uint16_t maxForwards;
+  uint maxForwards;
 };
 
 // Identifies the SIP dialog
@@ -135,6 +141,8 @@ struct SIPMessageInfo
   QString branch;
   uint32_t cSeq; // must be less than 2^31
   RequestType transactionRequest;
+
+  ContentInfo content;
 };
 
 struct SIPRequest
