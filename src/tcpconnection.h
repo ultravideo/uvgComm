@@ -7,11 +7,11 @@
 
 // handles one connection
 
-class Connection : public QThread
+class TCPConnection : public QThread
 {
   Q_OBJECT
 public:
-  Connection(uint32_t id, bool sip);
+  TCPConnection(uint32_t id, bool sip);
 
   void stopConnection()
   {

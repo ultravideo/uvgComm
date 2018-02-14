@@ -58,7 +58,7 @@ QList<uint32_t> SIPManager::startCall(QList<Contact> addresses)
   {
     SIPDialogData* dialog = new SIPDialogData;
 
-    dialog->con = new Connection(dialogs_.size() + 1, true);
+    dialog->con = new TCPConnection(dialogs_.size() + 1, true);
     dialog->sCon = new SIPConnection(dialogs_.size() + 1);
 
     dialogMutex_.lock();
@@ -126,7 +126,7 @@ SIPSession *SIPManager::createSIPSession(uint32_t sessionID)
   return session;
 }
 
-void SIPManager::receiveTCPConnection(Connection* con)
+void SIPManager::receiveTCPConnection(TCPConnection *con)
 {
   Q_ASSERT(con);
   SIPDialogData* dialog = new SIPDialogData;

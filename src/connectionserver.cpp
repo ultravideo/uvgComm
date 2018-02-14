@@ -1,6 +1,6 @@
 #include "connectionserver.h"
 
-#include "connection.h"
+#include "tcpconnection.h"
 
 ConnectionServer::ConnectionServer()
 {}
@@ -9,7 +9,7 @@ void ConnectionServer::incomingConnection(qintptr socketDescriptor)
 {
   qDebug() << "Incoming TCP connection";
   // create connection
-  Connection* con = new Connection(0, true);
+  TCPConnection* con = new TCPConnection(0, true);
 
   con->setExistingConnection(socketDescriptor);
 

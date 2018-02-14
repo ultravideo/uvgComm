@@ -39,7 +39,6 @@ SOURCES +=\
     src/audio/speexaecfilter.cpp \
     src/video/yuvtorgb32.cpp \
     src/video/dshow/capture.cpp \
-    src/connection.cpp \
     src/connectionserver.cpp \
     src/sipstringcomposer.cpp \
     src/gui/callwindow.cpp \
@@ -58,7 +57,8 @@ SOURCES +=\
     src/sipconnection.cpp \
     src/sipconversions.cpp \
     src/sdpparser.cpp \
-    src/sipfieldparser.cpp
+    src/sipfieldparser.cpp \
+    src/tcpconnection.cpp
 
 HEADERS  += \
     src/filter.h \
@@ -91,7 +91,6 @@ HEADERS  += \
     src/video/optimized/rgb2yuv.h \
     src/video/optimized/yuv2rgb.h \
     src/video/displayfilter.h \
-    src/connection.h \
     src/connectionserver.h \
     src/sipstringcomposer.h \
     src/gui/callwindow.h \
@@ -111,7 +110,8 @@ HEADERS  += \
     src/sipconnection.h \
     src/sipconversions.h \
     src/sdpparser.h \
-    src/sipfieldparser.h
+    src/sipfieldparser.h \
+    src/tcpconnection.h
 
 FORMS    += \
     ui/callwindow.ui \

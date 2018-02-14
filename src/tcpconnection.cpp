@@ -1,9 +1,9 @@
-#include "connection.h"
+#include "tcpconnection.h"
 
 #include <QDataStream>
 #include <QtConcurrent/QtConcurrent>
 
-Connection::Connection(uint32_t id, bool sip)
+TCPConnection::TCPConnection(uint32_t id, bool sip)
   :
     socket_(0),
     shouldConnect_(false),
@@ -21,7 +21,7 @@ Connection::Connection(uint32_t id, bool sip)
   qDebug() << "Constructing connection with ID:" << ID_;
 }
 
-void Connection::init()
+void TCPConnection::init()
 {
   QObject::connect(this, &error, this, &printError);
   running_ = true;
@@ -29,7 +29,7 @@ void Connection::init()
   start();
 }
 
-void Connection::establishConnection(const QString &destination, uint16_t port)
+void TCPConnection::establishConnection(const QString &destination, uint16_t port)
 {
   qDebug() << "Establishing connection to" << destination << ":" << port;
 
@@ -39,14 +39,14 @@ void Connection::establishConnection(const QString &destination, uint16_t port)
   init();
 }
 
-void Connection::setExistingConnection(qintptr socketDescriptor)
+void TCPConnection::setExistingConnection(qintptr socketDescriptor)
 {
   qDebug() << "Setting existing/incoming connection. SocketDesc:" << socketDescriptor;
   socketDescriptor_ = socketDescriptor;
   init();
 }
 
-void Connection::sendPacket(const QString &data)
+void TCPConnection::sendPacket(const QString &data)
 {
   qDebug() << "adding packet for sending";
   if(running_)
@@ -64,7 +64,7 @@ void Connection::sendPacket(const QString &data)
   }
 }
 
-void Connection::receivedMessage()
+void TCPConnection::receivedMessage()
 {
   qDebug() << "Socket ready to read:" << ID_;
 
@@ -72,7 +72,7 @@ void Connection::receivedMessage()
     eventDispatcher()->wakeUp();
 }
 
-void Connection::connectLoop()
+void TCPConnection::connectLoop()
 {
   const int connectionTimeout = 5 * 1000; // 5 seconds
 
@@ -92,7 +92,7 @@ void Connection::connectLoop()
 }
 
 
-void Connection::run()
+void TCPConnection::run()
 {
   qDebug() << "Starting connection run loop";
 
@@ -233,7 +233,7 @@ void Connection::run()
     delete socket_;
 }
 
-void Connection::bufferToSocket()
+void TCPConnection::bufferToSocket()
 {
   qDebug() << "Sending packet with buffersize:" << buffer_.size();
   QString message = buffer_.front();
@@ -249,7 +249,7 @@ void Connection::bufferToSocket()
   qDebug() << "Sent Bytes:" << sentBytes;
 }
 
-void Connection::disconnect()
+void TCPConnection::disconnect()
 {
   running_ = false;
   shouldConnect_ = false;
@@ -267,13 +267,13 @@ void Connection::disconnect()
   connected_ = false;
 }
 
-void Connection::printError(int socketError, const QString &message)
+void TCPConnection::printError(int socketError, const QString &message)
 {
   qWarning() << "ERROR. Socket error" << socketError << "for connection:"
              << ID_ << "Error:" << message;
 }
 
-void Connection::printBytesWritten(qint64 bytes)
+void TCPConnection::printBytesWritten(qint64 bytes)
 {
   qDebug() << bytes << "bytes written to socket for connection ID:" << ID_;
 }

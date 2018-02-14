@@ -1,7 +1,8 @@
 #pragma once
 
 #include "siptypes.h"
-#include <connection.h>
+#include "tcpconnection.h"
+#include "sipstringcomposer.h"
 
 #include <QHostAddress>
 #include <QString>
@@ -16,6 +17,7 @@ public:
   ~SIPConnection();
 
   void initConnection(ConnectionType type, QHostAddress target);
+  void receiveTCPConnection(std::shared_ptr<TCPConnection> con);
 
   void sendRequest(SIPRequest request);
   void sendResponse(SIPResponse response);
@@ -46,7 +48,7 @@ private:
 
   QString partialMessage_;
 
-  Connection connection_;
+  TCPConnection connection_;
 
   quint32 sessionID_;
 };

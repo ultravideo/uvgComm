@@ -1,7 +1,7 @@
 #pragma once
 #include <QTcpServer>
 
-class Connection;
+class TCPConnection;
 
 class ConnectionServer : public QTcpServer
 {
@@ -12,7 +12,7 @@ public:
 
 signals:
 
-void newConnection(Connection* con);
+void newConnection(TCPConnection* con);
 
 protected:
 
