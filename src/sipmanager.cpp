@@ -215,7 +215,7 @@ void SIPManager::sendRequest(uint32_t sessionID, RequestType request)
 
   // get routing info from  siprouting
   std::shared_ptr<SIPRoutingInfo> routing = dialogs_.at(sessionID - 1)->routing->requestRouting(direct);
-  std::shared_ptr<SIPSessionInfo> session = dialogs_.at(sessionID - 1)->session->getSessionInfo();
+  std::shared_ptr<SIPSessionInfo> session = dialogs_.at(sessionID - 1)->session->getRequestInfo();
   SIPMessageInfo mesg_info = dialogs_.at(sessionID - 1)->session->generateMessage(request);
 
   // convert routingInfo to SIPMesgInfo to struct fields
@@ -227,9 +227,9 @@ void SIPManager::sendRequest(uint32_t sessionID, RequestType request)
   messageID id = messageComposer_.startSIPRequest(request);
 
   messageComposer_.to(id, routing->to.realname, routing->to.username,
-                        routing->to.host, session->remoteTag);
+                        routing->to.host, session->toTag);
   messageComposer_.fromIP(id, routing->from.realname, routing->from.username,
-                          QHostAddress(routing->from.host), session->localTag);
+                          QHostAddress(routing->from.host), session->fromTag);
 
   for(ViaInfo viaAddress : routing->senderReplyAddress)
   {

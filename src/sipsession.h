@@ -27,12 +27,13 @@ public:
 
   void init(uint32_t sessionID);
 
-  std::shared_ptr<SIPSessionInfo> getSessionInfo();
+  std::shared_ptr<SIPSessionInfo> getRequestInfo();
+  std::shared_ptr<SIPSessionInfo> getResponseInfo();
 
   SIPMessageInfo generateMessage(RequestType originalRequest);
 
-  // checks that the incoming message belongs to this session
-  bool correctSession(const SIPSessionInfo& session) const;
+  bool correctRequest(std::shared_ptr<SIPSessionInfo> session);
+  bool correctResponse(std::shared_ptr<SIPSessionInfo> session);
 
   // processes incoming request
   void processRequest(RequestType request,
@@ -79,10 +80,11 @@ signals:
 
 private:
 
-  void setSessionInfo(std::shared_ptr<SIPSessionInfo> info, uint32_t sessionID);
   void requestSender(RequestType type);
 
-  std::shared_ptr<SIPSessionInfo> session_;
+  QString localTag_;
+  QString remoteTag_;
+  QString callID_;
 
   uint32_t sessionID_;
   uint32_t cSeq_;

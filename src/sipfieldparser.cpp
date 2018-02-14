@@ -71,7 +71,7 @@ bool parseToField(SIPField& field,
     return false;
   }
 
-  parseParameterNameToValue(field.parameters, "tag", message->session->remoteTag);
+  parseParameterNameToValue(field.parameters, "tag", message->session->toTag);
   return true;
 }
 
@@ -86,7 +86,7 @@ bool parseFromField(SIPField& field,
   {
     return false;
   }
-  parseParameterNameToValue(field.parameters, "tag", message->session->localTag);
+  parseParameterNameToValue(field.parameters, "tag", message->session->fromTag);
   return true;
 }
 

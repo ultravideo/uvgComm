@@ -126,8 +126,8 @@ struct SIPRoutingInfo
 // Identifies the SIP dialog
 struct SIPSessionInfo
 {
-  QString remoteTag; // TODO:Maybe toTag and fromTag would be clearer names?
-  QString localTag;
+  QString toTag;
+  QString fromTag;
   QString callID;
 };
 
