@@ -18,3 +18,21 @@ void qSleep(int ms)
     nanosleep(&ts, NULL);
 #endif
 }
+
+
+//TODO use cryptographically secure callID generation to avoid collisions.
+const QString alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                         "abcdefghijklmnopqrstuvwxyz"
+                         "0123456789";
+
+
+QString generateRandomString(uint32_t length)
+{
+  // TODO make this cryptographically secure to avoid collisions
+  QString string;
+  for( unsigned int i = 0; i < length; ++i )
+  {
+    string.append(alphabet.at(qrand()%alphabet.size()));
+  }
+  return string;
+}

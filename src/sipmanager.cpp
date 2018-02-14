@@ -231,9 +231,10 @@ void SIPManager::sendRequest(uint32_t sessionID, RequestType request)
   messageComposer_.fromIP(id, routing->from.realname, routing->from.username,
                           QHostAddress(routing->from.host), session->localTag);
 
-  for(ConnectInstructions viaAddress : routing->senderReplyAddress)
+  for(ViaInfo viaAddress : routing->senderReplyAddress)
   {
-    messageComposer_.viaIP(id, QHostAddress(viaAddress.address), mesg_info.branch);
+    QString branch = routing->senderReplyAddress.at(0).branch;
+    messageComposer_.viaIP(id, QHostAddress(viaAddress.address), branch);
   }
 
   messageComposer_.maxForwards(id, routing->maxForwards);

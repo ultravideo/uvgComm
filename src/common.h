@@ -8,6 +8,8 @@ const QString APPLICATIONNAME = "Kvazzup";
 // TODO use _sleep?
 void qSleep(int ms);
 
+QString generateRandomString(uint32_t length);
+
 // TODO fix AEC bugs and faulty operating.
 const bool AEC_ENABLED = false;
 const bool DSHOW_ENABLED = true;

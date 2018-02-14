@@ -1,8 +1,12 @@
 #include "siprouting.h"
 
+#include <common.h>
+
 #include <QDebug>
 
 const uint16_t MAXFORWARDS = 70; // the recommmended value is 70
+const uint16_t BRANCHLENGTH = 9;
+
 
 SIPRouting::SIPRouting():
   localUsername_(""),
@@ -74,8 +78,8 @@ bool SIPRouting::incomingSIPResponse(std::shared_ptr<SIPRoutingInfo> routing)
   if(routing->from.username   != previousSentRequest_->from.username ||
      routing->from.host       != previousSentRequest_->from.host ||
      routing->to.username != previousSentRequest_->to.username ||
-     routing->to.host     != previousSentRequest_->to.host ||
-     routing->sessionHost != previousSentRequest_->sessionHost)
+     routing->to.host     != previousSentRequest_->to.host /*||
+     routing->sessionHost != previousSentRequest_->sessionHost*/)
   {
     qDebug() << "OTHER ERROR: The incoming SIP response "
                 "does not have the same fields as the sent request";
@@ -118,7 +122,8 @@ std::shared_ptr<SIPRoutingInfo> SIPRouting::requestRouting(QString &directAddres
   newRouting->from.username = localUsername_;
   newRouting->from.realname = localName_;
   newRouting->from.host = localHost_;
-  newRouting->senderReplyAddress.append(ConnectInstructions {TCP, "2.0", localDirectAddress_});
+  newRouting->senderReplyAddress.append(ViaInfo {TCP, "2.0", localDirectAddress_
+                                                             ,"z9hG4bK" + generateRandomString(BRANCHLENGTH)});
   newRouting->contact.host = localDirectAddress_;
   newRouting->contact.username = localUsername_;
 
@@ -126,7 +131,7 @@ std::shared_ptr<SIPRoutingInfo> SIPRouting::requestRouting(QString &directAddres
   newRouting->to.username = remoteUsername_;
   newRouting->to.host = remoteHost_;
 
-  newRouting->sessionHost = localHost_;
+  //newRouting->sessionHost = localHost_;
 
   newRouting->maxForwards = MAXFORWARDS;
 

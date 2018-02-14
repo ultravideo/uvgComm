@@ -134,7 +134,7 @@ void SIPStringComposer::fromIP(messageID id, QString& name, QString &username, c
 }
 
 // Where to send responses. branch is generated. Also adds the contact field with same info.
-void SIPStringComposer::via(messageID id, const QHostInfo& hostname, QString &branch)
+void SIPStringComposer::via(messageID id, const QHostInfo& hostname, const QString &branch)
 {
   Q_ASSERT(messages_.size() >= id && messages_.at(id - 1) != 0);
 

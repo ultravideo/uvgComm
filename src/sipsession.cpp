@@ -1,4 +1,5 @@
 #include "sipsession.h"
+#include "common.h"
 
 #include <QDebug>
 
@@ -8,14 +9,9 @@ const unsigned int TIMEOUT = 2000;
 const unsigned int INVITE_TIMEOUT = 60000;
 
 
-//TODO use cryptographically secure callID generation to avoid collisions.
-const QString alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                         "abcdefghijklmnopqrstuvwxyz"
-                         "0123456789";
-
 const uint16_t CALLIDLENGTH = 16;
 const uint16_t TAGLENGTH = 16;
-const uint16_t BRANCHLENGTH = 9;
+
 
 SIPSession::SIPSession():
   session_(),
@@ -60,7 +56,6 @@ std::shared_ptr<SIPSessionInfo> SIPSession::getSessionInfo()
 SIPMessageInfo SIPSession::generateMessage(RequestType originalRequest)
 {
   SIPMessageInfo mesg;
-  mesg.branch = "z9hG4bK" + generateRandomString(BRANCHLENGTH);
   mesg.cSeq = cSeq_;
   ++cSeq_;
   if(originalRequest == ACK)
@@ -186,15 +181,4 @@ void SIPSession::requestTimeOut()
   // TODO emit some signal indicating something
   emit callFailed(sessionID_);
   ongoingTransactionType_ = SIP_UNKNOWN_REQUEST;
-}
-
-QString SIPSession::generateRandomString(uint32_t length)
-{
-  // TODO make this cryptographically secure to avoid collisions
-  QString string;
-  for( unsigned int i = 0; i < length; ++i )
-  {
-    string.append(alphabet.at(qrand()%alphabet.size()));
-  }
-  return string;
 }

@@ -87,11 +87,12 @@ enum ResponseType {SIP_UNKNOWN_RESPONSE = 0,
 
 enum ConnectionType {ANY, TCP, UDP, TLS};
 
-struct ConnectInstructions
+struct ViaInfo
 {
   ConnectionType type;
   QString address;
   QString version;
+  QString branch;
 };
 
 struct SIP_URI // usually in format: "realname <sip:username@host>". realname optional
@@ -114,10 +115,10 @@ struct SIPRoutingInfo
   SIP_URI from;
   SIP_URI to;
 
-  QList<ConnectInstructions> senderReplyAddress;   // from via-fields. Send responses here by copying these.
+  QList<ViaInfo> senderReplyAddress;   // from via-fields. Send responses here by copying these.
   SIP_URI contact;  // from contact field. Send requests here to bypass server
 
-  QString sessionHost;
+  //QString sessionHost;
 
   uint maxForwards;
 };
@@ -138,7 +139,6 @@ struct SIPMessageInfo
 
   // message specific info
   QString version;
-  QString branch;
   uint32_t cSeq; // must be less than 2^31
   RequestType transactionRequest;
 

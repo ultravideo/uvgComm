@@ -82,8 +82,6 @@ private:
   void setSessionInfo(std::shared_ptr<SIPSessionInfo> info, uint32_t sessionID);
   void requestSender(RequestType type);
 
-  QString generateRandomString(uint32_t length);
-
   std::shared_ptr<SIPSessionInfo> session_;
 
   uint32_t sessionID_;

@@ -33,7 +33,7 @@ public:
 
   // Where to send responses. branch is generated.
   // Also adds the contact (where to send requests) field with same info.
-  void via(messageID id, const QHostInfo& hostname, QString& branch);
+  void via(messageID id, const QHostInfo& hostname, const QString& branch);
   void viaIP(messageID id, QHostAddress address, QString& branch);
 
   void maxForwards(messageID id, uint16_t forwards);

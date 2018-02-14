@@ -14,26 +14,19 @@ bool parseUint(QString values, uint& number);
 
 bool parseURI(QString values, SIP_URI& uri)
 {
-  QRegularExpression re_field("(\\w* )?<sip:(\\w+)@([\\w\.:]+)>");
+  QRegularExpression re_field("(\\w+ )?<sip:(\\w+)@([\\w\.:]+)>");
   QRegularExpressionMatch field_match = re_field.match(values);
 
-  if(!field_match.hasMatch() || field_match.lastCapturedIndex() < 3)
-  {
-    return false;
-  }
-  if(field_match.lastCapturedIndex() == 3)
-  {
-    uri.realname = "";
-    uri.username = field_match.captured(1);
-    uri.host = field_match.captured(2);
-  }
-  else if(field_match.lastCapturedIndex() == 4)
+  if(field_match.hasMatch() && (field_match.lastCapturedIndex() == 4
+          || field_match.lastCapturedIndex() == 3))
   {
     uri.realname = field_match.captured(1);
     uri.username = field_match.captured(2);
     uri.host = field_match.captured(3);
+    return true;
   }
-  return true;
+
+  return false;
 }
 
 bool parseParameterNameToValue(std::shared_ptr<QList<SIPParameter>> parameters,
@@ -101,51 +94,34 @@ bool parseCSeqField(SIPField& field,
                   std::shared_ptr<SIPMessageInfo> message)
 {
   Q_ASSERT(message);
-  Q_ASSERT(message->routing);
-  Q_ASSERT(message->session);
 
-  QRegularExpression re_field("(\d+) (\w+)");
+  QRegularExpression re_field("(\\d+) (\\w+)");
   QRegularExpressionMatch field_match = re_field.match(field.values);
 
-  if(!field_match.hasMatch() || field_match.lastCapturedIndex() < 3)
-  {
-    return false;
-  }
-  else if(field_match.lastCapturedIndex() == 3)
+  if(field_match.hasMatch() && field_match.lastCapturedIndex() == 2)
   {
     message->cSeq = field_match.captured(1).toUInt();
     message->transactionRequest = stringToRequest(field_match.captured(2));
+    return true;
   }
-  else
-  {
-    return false;
-  }
-  return true;
+  return false;
 }
 
 bool parseCallIDField(SIPField& field,
                       std::shared_ptr<SIPMessageInfo> message)
 {
   Q_ASSERT(message);
-  Q_ASSERT(message->routing);
   Q_ASSERT(message->session);
-  QRegularExpression re_field("(\w+)@([\w\.:]+)");
+  QRegularExpression re_field("(\\w+)@([\\w\.:]+)");
   QRegularExpressionMatch field_match = re_field.match(field.values);
 
-  if(!field_match.hasMatch() || field_match.lastCapturedIndex() < 3)
-  {
-    return false;
-  }
-  else if(field_match.lastCapturedIndex() == 3)
+  if(field_match.hasMatch() && field_match.lastCapturedIndex() == 2)
   {
     message->session->callID = field.values;
-  }
-  else
-  {
-    return false;
+    return true;
   }
 
-  return true;
+  return false;
 }
 
 bool parseViaField(SIPField& field,
@@ -153,7 +129,6 @@ bool parseViaField(SIPField& field,
 {
   Q_ASSERT(message);
   Q_ASSERT(message->routing);
-  Q_ASSERT(message->session);
 
   QRegularExpression re_field("SIP\/(\\d\.\\d)\/(\\w+) ([\\w\.:]+)");
   QRegularExpressionMatch field_match = re_field.match(field.values);
@@ -164,7 +139,7 @@ bool parseViaField(SIPField& field,
   }
   else if(field_match.lastCapturedIndex() == 3)
   {
-    ConnectInstructions via;
+    ViaInfo via;
     if(field_match.captured(2) == "UDP")
     {
       via.type = UDP;
@@ -179,12 +154,15 @@ bool parseViaField(SIPField& field,
     }
     else
     {
-      qDebug() << "Unsupported connection protocol detected in Via.";
+      qDebug() << "Unrecognized connection protocol found in Via.";
       return false;
     }
 
-    via.version = field_match.captured(1).toUInt();
+    via.version = field_match.captured(1);
     via.address = field_match.captured(3);
+
+    parseParameterNameToValue(field.parameters, "branch", via.branch);
+
     message->routing->senderReplyAddress.push_back(via);
   }
   else
@@ -208,7 +186,6 @@ bool parseContactField(SIPField& field,
 {
   Q_ASSERT(message);
   Q_ASSERT(message->routing);
-  Q_ASSERT(message->session);
 
   return parseURI(field.values, message->routing->contact);
 }
@@ -218,7 +195,7 @@ bool parseContentTypeField(SIPField& field,
 {
   Q_ASSERT(message);
 
-  QRegularExpression re_field("(\\w+)");
+  QRegularExpression re_field("(\\w+/\\w+)");
   QRegularExpressionMatch field_match = re_field.match(field.values);
 
   if(field_match.hasMatch() && field_match.lastCapturedIndex() == 1)

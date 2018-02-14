@@ -225,6 +225,8 @@ bool SIPConnection::parseSIPHeader(QString header)
     if(firstline_match.captured(5) == "SIP/2.0")
     {
       qDebug() << "Request detected:" << firstline_match.captured(1);
+
+      message->version = firstline_match.captured(5);
       std::shared_ptr<SIPRequest> request = std::shared_ptr<SIPRequest>(new SIPRequest);
 
       RequestType requestType = stringToRequest(firstline_match.captured(1));
