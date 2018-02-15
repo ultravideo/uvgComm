@@ -9,7 +9,7 @@ void ConnectionServer::incomingConnection(qintptr socketDescriptor)
 {
   qDebug() << "Incoming TCP connection";
   // create connection
-  TCPConnection* con = new TCPConnection(0, true);
+  TCPConnection* con = new TCPConnection();
 
   con->setExistingConnection(socketDescriptor);
 

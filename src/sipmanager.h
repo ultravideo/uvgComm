@@ -2,7 +2,6 @@
 
 #include "globalsdpstate.h"
 #include "sipconnection.h"
-#include "tcpconnection.h"
 #include "connectionserver.h"
 
 #include "common.h"
@@ -71,7 +70,7 @@ signals:
 private slots:
   // connection has been established. This enables for us to get the needed info
   // to form a SIP message
-  void connectionEstablished(quint32 sessionID);
+  void connectionEstablished(quint32 sessionID, QString localAddress, QString remoteAddress);
   void receiveTCPConnection(TCPConnection* con);
 
   void processSIPRequest(RequestType request, std::shared_ptr<SIPRoutingInfo> routing,
@@ -89,7 +88,6 @@ private slots:
 private:
   struct SIPDialogData
   {
-    TCPConnection* con;
     SIPConnection* sCon;
     SIPSession* session;
     SIPRouting* routing;
@@ -118,7 +116,6 @@ private:
   bool isConference_;
 
   GlobalSDPState sdp_;
-  SIPStringComposer messageComposer_;
 
   ConnectionServer server_;
   uint16_t sipPort_;

@@ -1,7 +1,9 @@
 #include "sipconnection.h"
 
 #include "sipconversions.h"
-#include <sipfieldparser.h>
+#include "sipfieldparser.h"
+
+#include "common.h"
 
 #include <QRegularExpression>
 #include <QRegularExpressionMatch>
@@ -13,6 +15,8 @@
 #include <string>
 
 #include <functional>
+
+const uint16_t SIP_PORT = 5060;
 
 const std::map<QString, std::function<bool(SIPField& field, std::shared_ptr<SIPMessageInfo>)>> parsing =
 {
@@ -30,28 +34,124 @@ const std::map<QString, std::function<bool(SIPField& field, std::shared_ptr<SIPM
 
 SIPConnection::SIPConnection(quint32 sessionID):
   partialMessage_(""),
-  connection_(sessionID, false),
+  messageComposer_(),
+  connection_(),
   sessionID_(sessionID)
 {}
 
 SIPConnection::~SIPConnection()
 {}
 
-void SIPConnection::initConnection(ConnectionType type, QHostAddress target)
+void SIPConnection::initConnection(ConnectionType type, QString target)
 {
-  qWarning() << "WARNING: SIPConnection not implemented yet.";
+  if(type == TCP)
+  {
+    connection_ = std::shared_ptr<TCPConnection>(new TCPConnection);
+    connection_->establishConnection(target, SIP_PORT);
 
+    QObject::connect(connection_.get(), SIGNAL(messageAvailable(QString)),
+                     this, SLOT(networkPackage(QString)));
+
+    QObject::connect(connection_.get(), SIGNAL(connected()),
+                     this, SLOT(connectionEstablished()));
+  }
+  else
+  {
+    qDebug() << "WARNING: Trying to initiate a SIP Connection with unsupported connection type.";
+  }
 
 }
 
+void SIPConnection::connectionEstablished()
+{
+  emit sipConnectionEstablished(sessionID_,
+                                connection_->getLocalAddress().toString(),
+                                connection_->getPeerAddress().toString());
+}
 
-void SIPConnection::sendRequest(SIPRequest request)
+void SIPConnection::incomingTCPConnection(std::shared_ptr<TCPConnection> con)
+{
+  if(connection_ != NULL)
+  {
+    qDebug() << "Replacing existing connection";
+  }
+  connection_ = con;
+  QObject::connect(connection_.get(), SIGNAL(messageAvailable(QString)),
+                   this, SLOT(networkPackage(QString)));
+
+  QObject::connect(connection_.get(), SIGNAL(messageAvailable(QString)),
+                   this, SLOT(networkPackage(QString)));
+}
+
+void SIPConnection::destroyConnection()
+{
+  if(connection_ == NULL)
+  {
+    qDebug() << "Trying to destroy an already destroyed connection";
+    return;
+  }
+  connection_->exit(0); // stops qthread
+  connection_->stopConnection(); // exits run loop
+  while(connection_->isRunning())
+  {
+    qSleep(5);
+  }
+  connection_.reset();
+}
+
+void SIPConnection::sendRequest(SIPRequest& request, std::shared_ptr<SDPMessageInfo> sdp)
 {
   qWarning() << "WARNING: SIPConnection not implemented yet.";
+
+  // convert routingInfo to SIPMesgInfo to struct fields
+  // check that all fields are present
+  // check message (and maybe parse?)
+  // create and attach SDP if necessary
+  // send string
+
+  std::shared_ptr<SIPRoutingInfo> routing = request.message->routing;
+  std::shared_ptr<SIPSessionInfo> session = request.message->session;
+
+  messageID id = messageComposer_.startSIPRequest(request.type);
+
+  messageComposer_.to(id, routing->to.realname, routing->to.username,
+                        routing->to.host, session->toTag);
+  messageComposer_.fromIP(id, routing->from.realname, routing->from.username,
+                          QHostAddress(routing->from.host), session->fromTag);
+
+  for(ViaInfo viaAddress : routing->senderReplyAddress)
+  {
+    QString branch = routing->senderReplyAddress.at(0).branch;
+    messageComposer_.viaIP(id, QHostAddress(viaAddress.address), branch);
+  }
+
+  messageComposer_.maxForwards(id, routing->maxForwards);
+  messageComposer_.setCallID(id, session->callID, routing->from.host);
+  messageComposer_.sequenceNum(id, request.message->cSeq, request.message->transactionRequest);
+
+  if(request.type == INVITE)
+  {
+    Q_ASSERT(sdp);
+    //sdp_.setLocalInfo(QHostAddress(routing->from.host), routing->from.username);
+    //td::shared_ptr<SDPMessageInfo> sdp = sdp_.localInviteSDP();'
+    QString sdp_str = messageComposer_.formSDP(sdp);
+    messageComposer_.addSDP(id,sdp_str);
+  }
+
+  QString message = messageComposer_.composeMessage(id);
+
+  if(connection_ != NULL)
+  {
+    connection_->sendPacket(message);
+  }
+  else
+  {
+    qWarning() << "WARNING: Trying to send a packet without connection";
+  }
 }
 
 
-void SIPConnection::sendResponse(SIPResponse response)
+void SIPConnection::sendResponse(SIPResponse &response)
 {
   qWarning() << "WARNING: SIPConnection not implemented yet.";
 }

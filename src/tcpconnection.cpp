@@ -3,7 +3,7 @@
 #include <QDataStream>
 #include <QtConcurrent/QtConcurrent>
 
-TCPConnection::TCPConnection(uint32_t id, bool sip)
+TCPConnection::TCPConnection()
   :
     socket_(0),
     shouldConnect_(false),
@@ -14,11 +14,9 @@ TCPConnection::TCPConnection(uint32_t id, bool sip)
     buffer_(),
     sendMutex_(),
     running_(false),
-    started_(false),
-    ID_(id),
-    sipParsing_(sip)
+    started_(false)
 {
-  qDebug() << "Constructing connection with ID:" << ID_;
+  qDebug() << "Constructing connection";
 }
 
 void TCPConnection::init()
@@ -66,7 +64,7 @@ void TCPConnection::sendPacket(const QString &data)
 
 void TCPConnection::receivedMessage()
 {
-  qDebug() << "Socket ready to read:" << ID_;
+  qDebug() << "Socket ready to read";
 
   if(started_)
     eventDispatcher()->wakeUp();
@@ -88,7 +86,7 @@ void TCPConnection::connectLoop()
   connected_ = true;
   qDebug() << "Outgoing TCP connection established";
 
-  emit connected(ID_);
+  emit socketConnected();
 }
 
 
@@ -149,61 +147,8 @@ void TCPConnection::run()
         QDataStream in(socket_);
         in.setVersion(QDataStream::Qt_4_0);
         QString message;
-
         in >> message;
-
-        if(sipParsing_)
-        {
-
-          if(leftOvers_.length() > 0)
-          {
-            message = leftOvers_ + message;
-          }
-
-          int headerEndIndex = message.indexOf("\r\n\r\n", 0, Qt::CaseInsensitive) + 4;
-          int contentLengthIndex = message.indexOf("content-length", 0, Qt::CaseInsensitive);
-
-          qDebug() << "header end at:" << headerEndIndex
-                   << "and content-length at:" << contentLengthIndex;
-
-          if(contentLengthIndex != -1 && headerEndIndex != -1)
-          {
-            int contentLengthLineEndIndex = message.indexOf("\r\n", contentLengthIndex, Qt::CaseInsensitive);
-
-            QString value = message.mid(contentLengthIndex + 16, contentLengthLineEndIndex - (contentLengthIndex + 16));
-
-            int valueInt= value.toInt();
-
-            qDebug() << "Content-length:" <<  valueInt;
-
-            if(message.length() < headerEndIndex + valueInt)
-            {
-              leftOvers_ = message;
-            }
-            else
-            {
-              leftOvers_ = message.right(message.length() - (headerEndIndex + valueInt));
-              QString header = message.left(headerEndIndex);
-              QString content = message.mid(headerEndIndex, valueInt);
-
-              qDebug() << "Whole message received.";
-              qDebug() << "Header:" << header;
-              qDebug() << "Content:" << content;
-              qDebug() << "Left overs:" << leftOvers_;
-
-              emit messageAvailable(header, content, ID_);
-            }
-          }
-          else
-          {
-            qDebug() << "Message was not received fully";
-            leftOvers_ = message;
-          }
-        }
-        else // no parsing
-        {
-          emit messageAvailable(message, ID_);
-        }
+        emit messageAvailable(message);
       }
 
       sendMutex_.lock();
@@ -214,9 +159,9 @@ void TCPConnection::run()
       sendMutex_.unlock();
     }
 
-    //qDebug() << "Connection thread waiting:" << ID_;
+    //qDebug() << "Connection thread waiting";
     eventDispatcher()->processEvents(QEventLoop::WaitForMoreEvents);
-    //qDebug() << "Connection thread woken:" << ID_;
+    //qDebug() << "Connection thread woken";
   }
 
   while(buffer_.size() > 0 && socket_->state() == QAbstractSocket::ConnectedState)
@@ -226,7 +171,7 @@ void TCPConnection::run()
 
   eventDispatcher()->processEvents(QEventLoop::AllEvents);
 
-  qDebug() << "Disconnecting connection with id:" << ID_;
+  qDebug() << "Disconnecting connection";
   disconnect();
 
   if(socket_ != 0)
@@ -257,7 +202,7 @@ void TCPConnection::disconnect()
   if (socket_->state() == QAbstractSocket::UnconnectedState ||
       socket_->waitForDisconnected(1000))
   {
-      qDebug() << "Disconnected id:" << ID_;
+      qDebug() << "Disconnected";
   }
   else
   {
@@ -269,11 +214,11 @@ void TCPConnection::disconnect()
 
 void TCPConnection::printError(int socketError, const QString &message)
 {
-  qWarning() << "ERROR. Socket error" << socketError << "for connection:"
-             << ID_ << "Error:" << message;
+  qWarning() << "ERROR. Socket error" << socketError
+             << "Error:" << message;
 }
 
 void TCPConnection::printBytesWritten(qint64 bytes)
 {
-  qDebug() << bytes << "bytes written to socket for connection ID:" << ID_;
+  qDebug() << bytes << "bytes written to socket for connection.";
 }

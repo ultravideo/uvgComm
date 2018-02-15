@@ -11,7 +11,7 @@ class TCPConnection : public QThread
 {
   Q_OBJECT
 public:
-  TCPConnection(uint32_t id, bool sip);
+  TCPConnection();
 
   void stopConnection()
   {
@@ -39,28 +39,7 @@ public:
     });
   }
 
-  void setID(uint32_t id)
-  {
-    ID_ = id;
-  }
-
-  uint32_t getID()
-  {
-    Q_ASSERT(ID_);
-    if(ID_ == 0)
-    {
-      qCritical() << "ERROR: Connection ID has not been set and it is asked!!";
-    }
-    return ID_;
-  }
-
-  static quint32 generateID()
-  {
-    static quint32 currentID_ = 0;
-    return ++currentID_;
-  }
-
-  bool connected()
+  bool isConnected()
   {
     if(socket_ != 0){
       return socket_->state() == QAbstractSocket::ConnectedState;
@@ -70,23 +49,22 @@ public:
 
   QHostAddress getLocalAddress()
   {
-    Q_ASSERT(connected());
+    Q_ASSERT(isConnected());
     return socket_->localAddress();
   }
 
   QHostAddress getPeerAddress()
   {
-    Q_ASSERT(connected());
+    Q_ASSERT(isConnected());
     return socket_->peerAddress();
   }
 
 signals:
   void error(int socketError, const QString &message);
-  void messageAvailable(QString header, QString content, quint32 id);
-  void messageAvailable(QString message, quint32 id);
+  void messageAvailable(QString message);
 
   // connection has been established
-  void connected(quint32 connectionID);
+  void socketConnected();
 
 private slots:
   void receivedMessage();
@@ -129,9 +107,5 @@ private:
   bool running_;
   bool started_;
 
-  quint32 ID_; // id for this connection
-
   QString leftOvers_;
-
-  bool sipParsing_;
 };

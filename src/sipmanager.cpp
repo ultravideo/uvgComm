@@ -57,12 +57,9 @@ QList<uint32_t> SIPManager::startCall(QList<Contact> addresses)
   for(unsigned int i = 0; i < addresses.size(); ++i)
   {
     SIPDialogData* dialog = new SIPDialogData;
-
-    dialog->con = new TCPConnection(dialogs_.size() + 1, true);
     dialog->sCon = new SIPConnection(dialogs_.size() + 1);
 
     dialogMutex_.lock();
-    dialog->con->setID(dialogs_.size() + 1);
     dialog->session = createSIPSession(dialogs_.size() + 1);
     dialog->routing = new SIPRouting;
     dialog->routing->setLocalNames(localUsername_, localName_);
@@ -71,14 +68,8 @@ QList<uint32_t> SIPManager::startCall(QList<Contact> addresses)
 
     //dialog->callID = dialog->session->startCall();
 
-    QObject::connect(dialog->con, SIGNAL(messageAvailable(QString, QString, quint32)),
-                     this, SLOT(processSIPMessage(QString, QString, quint32)));
-
-    QObject::connect(dialog->con, SIGNAL(connected(quint32)),
-                     this, SLOT(connectionEstablished(quint32)));
-
     // message is sent only after connection has been established so we know our address
-    dialog->con->establishConnection(addresses.at(i).remoteAddress, sipPort_);
+    dialog->sCon->initConnection(TCP, addresses.at(i).remoteAddress);
 
     dialogs_.push_back(dialog);
     calls.push_back(dialogs_.size());
@@ -128,18 +119,20 @@ SIPSession *SIPManager::createSIPSession(uint32_t sessionID)
 
 void SIPManager::receiveTCPConnection(TCPConnection *con)
 {
+  qDebug() << "Received a TCP connection. Initializing a connection";
   Q_ASSERT(con);
   SIPDialogData* dialog = new SIPDialogData;
-  dialog->con = con;
+  dialog->sCon = new SIPConnection(dialogs_.size() + 1);
+  dialog->sCon->incomingTCPConnection(std::shared_ptr<TCPConnection> (con));
   dialog->session = NULL;
+  dialog->routing = NULL;
 
-  QObject::connect(dialog->con, SIGNAL(messageAvailable(QString,QString, quint32)),
-                   this, SLOT(processSIPMessage(QString, QString, quint32)));
+  dialogs_.append(dialog);
 }
 
 // connection has been established. This enables for us to get the needed info
 // to form a SIP message
-void SIPManager::connectionEstablished(quint32 sessionID)
+void SIPManager::connectionEstablished(quint32 sessionID, QString localAddress, QString remoteAddress)
 {
   if(sessionID == 0 || sessionID> dialogs_.size())
   {
@@ -148,30 +141,29 @@ void SIPManager::connectionEstablished(quint32 sessionID)
   }
   SIPDialogData* dialog = dialogs_.at(sessionID - 1);
 
-
   if(dialog->hostedSession)
   {
     qDebug() << "Setting connection as a SIP server connection.";
-    dialog->routing->setLocalAddress(dialog->con->getLocalAddress().toString());
-    dialog->routing->setLocalHost(dialog->con->getPeerAddress().toString());
+    dialog->routing->setLocalAddress(localAddress);
+    dialog->routing->setLocalHost(remoteAddress);
 
     // TODO enable remote to have a different host from ours
-    dialog->routing->setRemoteHost(dialog->con->getPeerAddress().toString());
+    dialog->routing->setRemoteHost(remoteAddress);
   }
   else
   {
     qDebug() << "Setting connection as a peer-to-peer SIP connection. Firewall needs to be open for this";
-    dialog->routing->setLocalAddress(dialog->con->getLocalAddress().toString());
-    dialog->routing->setLocalHost(dialog->con->getLocalAddress().toString());
-    dialog->routing->setRemoteHost(dialog->con->getPeerAddress().toString());
+    dialog->routing->setLocalAddress(localAddress);
+    dialog->routing->setLocalHost(localAddress);
+    dialog->routing->setRemoteHost(remoteAddress);
   }
 
   qDebug() << "Setting info for peer-to-peer connection";
   // TODO make possible to set the server
 
   qDebug() << "Connection" << sessionID << "connected."
-           << "From:" << dialog->con->getLocalAddress().toString()
-           << "To:" << dialog->con->getPeerAddress().toString();
+           << "From:" << localAddress
+           << "To:" << remoteAddress;
 
   if(!dialog->session->startCall())
   {
@@ -218,44 +210,9 @@ void SIPManager::sendRequest(uint32_t sessionID, RequestType request)
   std::shared_ptr<SIPSessionInfo> session = dialogs_.at(sessionID - 1)->session->getRequestInfo();
   SIPMessageInfo mesg_info = dialogs_.at(sessionID - 1)->session->generateMessage(request);
 
-  // convert routingInfo to SIPMesgInfo to struct fields
-  // check that all fields are present
-  // check message (and maybe parse?)
-  // create and attach SDP if necessary
-  // send string
 
-  messageID id = messageComposer_.startSIPRequest(request);
-
-  messageComposer_.to(id, routing->to.realname, routing->to.username,
-                        routing->to.host, session->toTag);
-  messageComposer_.fromIP(id, routing->from.realname, routing->from.username,
-                          QHostAddress(routing->from.host), session->fromTag);
-
-  for(ViaInfo viaAddress : routing->senderReplyAddress)
-  {
-    QString branch = routing->senderReplyAddress.at(0).branch;
-    messageComposer_.viaIP(id, QHostAddress(viaAddress.address), branch);
-  }
-
-  messageComposer_.maxForwards(id, routing->maxForwards);
-  messageComposer_.setCallID(id, session->callID, routing->from.host);
-  messageComposer_.sequenceNum(id, mesg_info.cSeq, mesg_info.transactionRequest);
-
-  if(request == INVITE)
-  {
-    sdp_.setLocalInfo(QHostAddress(routing->from.host), routing->from.username);
-    std::shared_ptr<SDPMessageInfo> sdp = sdp_.localInviteSDP();
-    QString sdp_str = messageComposer_.formSDP(sdp);
-    messageComposer_.addSDP(id,sdp_str);
-  }
-
-  QString message = messageComposer_.composeMessage(id);
-
-  dialogs_.at(sessionID - 1)->con->sendPacket(message);
 
   qDebug() << "---- Finished sending of a request ---";
-
-  dialogs_.at(sessionID - 1)->sCon->networkPackage(message);
 }
 
 void SIPManager::sendResponse(uint32_t sessionID, ResponseType response)
@@ -268,16 +225,9 @@ void SIPManager::destroySession(SIPDialogData *dialog)
 {
   if(dialog != NULL)
   {
-    if(dialog->con != NULL)
+    if(dialog->sCon != NULL)
     {
-      dialog->con->exit(0); // stops qthread
-      dialog->con->stopConnection(); // exits run loop
-      while(dialog->con->isRunning())
-      {
-        qSleep(5);
-      }
-      delete dialog->con;
-      dialog->con = NULL;
+      dialog->sCon->destroyConnection();
     }
 
     if(dialog->session != NULL)
