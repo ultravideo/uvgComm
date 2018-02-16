@@ -19,6 +19,8 @@ TCPConnection::TCPConnection()
   qDebug() << "Constructing connection";
 }
 
+const uint32_t OVERFLOW = 100000;
+
 void TCPConnection::init()
 {
   QObject::connect(this, &error, this, &printError);
@@ -138,17 +140,23 @@ void TCPConnection::run()
 
     if(connected_)
     {
-      if(socket_->canReadLine())
+      if(socket_->isValid() && socket_->canReadLine() && socket_->bytesAvailable() < OVERFLOW)
       {
         qDebug() << "Can read line with bytes available:" << socket_->bytesAvailable();
 
         // TODO: maybe not create the data stream everytime.
         // TODO: Check that the bytes available makes sense and that we are no already processing SIP message.
         QDataStream in(socket_);
-        in.setVersion(QDataStream::Qt_4_0);
+        in.setVersion(QDataStream::Qt_5_0);
         QString message;
         in >> message;
+
         emit messageAvailable(message);
+      }
+      else if(socket_->bytesAvailable() > OVERFLOW)
+      {
+        qWarning() << "Flushing the socket because of too much data!";
+        socket_->flush();
       }
 
       sendMutex_.lock();
@@ -181,6 +189,12 @@ void TCPConnection::run()
 void TCPConnection::bufferToSocket()
 {
   qDebug() << "Sending packet with buffersize:" << buffer_.size();
+
+  if(buffer_.size() > OVERFLOW)
+  {
+    qWarning() << "We are sending too much stuff to the other end:" << buffer_.size();
+  }
+
   QString message = buffer_.front();
   buffer_.pop();
 
@@ -199,10 +213,10 @@ void TCPConnection::disconnect()
   running_ = false;
   shouldConnect_ = false;
   socket_->disconnectFromHost();
-  if (socket_->state() == QAbstractSocket::UnconnectedState ||
-      socket_->waitForDisconnected(1000))
+  if(socket_->state() == QAbstractSocket::UnconnectedState ||
+     socket_->waitForDisconnected(1000))
   {
-      qDebug() << "Disconnected";
+    qDebug() << "Disconnected";
   }
   else
   {
