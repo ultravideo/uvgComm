@@ -58,7 +58,10 @@ QList<uint32_t> SIPManager::startCall(QList<Contact> addresses)
   for(unsigned int i = 0; i < addresses.size(); ++i)
   {
     SIPDialogData* dialog = new SIPDialogData;
-    dialog->sCon = new SIPConnection(dialogs_.size() + 1);
+    dialog->sCon = createSIPConnection();
+
+    // message is sent only after connection has been established so we know our address
+    dialog->sCon->initConnection(TCP, addresses.at(i).remoteAddress);
 
     dialogMutex_.lock();
     dialog->session = createSIPSession(dialogs_.size() + 1);
@@ -66,14 +69,6 @@ QList<uint32_t> SIPManager::startCall(QList<Contact> addresses)
     dialog->routing->setLocalNames(localUsername_, localName_);
     dialog->routing->setRemoteUsername(addresses.at(i).username);
     dialog->hostedSession = false;
-
-    //dialog->callID = dialog->session->startCall();
-
-    QObject::connect(dialog->sCon, SIGNAL(sipConnectionEstablished(quint32,QString,QString)),
-                     this, SLOT(connectionEstablished(quint32,QString,QString)));
-
-    // message is sent only after connection has been established so we know our address
-    dialog->sCon->initConnection(TCP, addresses.at(i).remoteAddress);
 
     dialogs_.push_back(dialog);
     calls.push_back(dialogs_.size());
@@ -121,12 +116,24 @@ SIPSession *SIPManager::createSIPSession(uint32_t sessionID)
   return session;
 }
 
+std::shared_ptr<SIPConnection> SIPManager::createSIPConnection()
+{
+  std::shared_ptr<SIPConnection> connection = std::shared_ptr<SIPConnection>(new SIPConnection(dialogs_.size() + 1));
+  QObject::connect(connection.get(), SIGNAL(sipConnectionEstablished(quint32,QString,QString)),
+                   this, SLOT(connectionEstablished(quint32,QString,QString)));
+  QObject::connect(connection.get(), SIGNAL(incomingSIPRequest(SIPRequest,quint32)),
+                   this, SLOT(processSIPRequest(SIPRequest,quint32)));
+  QObject::connect(connection.get(), SIGNAL(incomingSIPResponse(SIPResponse,quint32)),
+                   this, SLOT(processSIPResponse(SIPResponse,quint32)));
+  return connection;
+}
+
 void SIPManager::receiveTCPConnection(TCPConnection *con)
 {
   qDebug() << "Received a TCP connection. Initializing a connection";
   Q_ASSERT(con);
   SIPDialogData* dialog = new SIPDialogData;
-  dialog->sCon = new SIPConnection(dialogs_.size() + 1);
+  dialog->sCon = createSIPConnection();
   dialog->sCon->incomingTCPConnection(std::shared_ptr<TCPConnection> (con));
   // note: the connection has already been established
   dialog->session = NULL;
@@ -176,12 +183,10 @@ void SIPManager::connectionEstablished(quint32 sessionID, QString localAddress, 
   }
 }
 
-void SIPManager::processSIPRequest(RequestType request, std::shared_ptr<SIPRoutingInfo> routing,
-                       std::shared_ptr<SIPSessionInfo> session,
-                       std::shared_ptr<SIPMessageInfo> message,
+void SIPManager::processSIPRequest(SIPRequest request,
                        quint32 sessionID)
 {
-  if(!dialogs_.at(sessionID - 1)->routing->incomingSIPRequest(routing))
+  if(!dialogs_.at(sessionID - 1)->routing->incomingSIPRequest(request.message->routing))
   {
     qDebug() << "Something wrong with incoming SIP request";
     // TODO: sent to wrong address
@@ -192,11 +197,9 @@ void SIPManager::processSIPRequest(RequestType request, std::shared_ptr<SIPRouti
   //dialogs_.at(sessionID - 1)->session->processRequest();
 }
 
-void SIPManager::processSIPResponse(ResponseType response, std::shared_ptr<SIPRoutingInfo> routing,
-                        std::shared_ptr<SIPSessionInfo> session,
-                        std::shared_ptr<SIPMessageInfo> message, quint32 sessionID)
+void SIPManager::processSIPResponse(SIPResponse response, quint32 sessionID)
 {
-  if(!dialogs_.at(sessionID - 1)->routing->incomingSIPResponse(routing))
+  if(!dialogs_.at(sessionID - 1)->routing->incomingSIPResponse(response.message->routing))
   {
 
     qDebug() << "Something wrong with incoming SIP response";

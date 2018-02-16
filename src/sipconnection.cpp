@@ -323,8 +323,6 @@ bool SIPConnection::parseSIPHeader(QString header)
       qDebug() << "Request detected:" << firstline_match.captured(1);
 
       message->version = firstline_match.captured(5);
-      std::shared_ptr<SIPRequest> request = std::shared_ptr<SIPRequest>(new SIPRequest);
-
       RequestType requestType = stringToRequest(firstline_match.captured(1));
       if(requestType == SIP_UNKNOWN_REQUEST)
       {
@@ -343,10 +341,20 @@ bool SIPConnection::parseSIPHeader(QString header)
         qDebug() << "Contact header missing from INVITE request";
         return false;
       }
+
+      // construct request
+
+      SIPRequest request;
+      request.type = requestType;
+      request.message = message;
+
+      emit incomingSIPRequest(request, sessionID_);
     }
     else if(firstline_match.captured(1) == "SIP/2.0")
     {
       qDebug() << "Response detected:" << firstline_match.captured(1);
+
+      ResponseType type = codeToResponse(stringResponseCode(firstline_match.captured(1)));
 
     }
     else

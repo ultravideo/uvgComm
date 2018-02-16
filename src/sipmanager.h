@@ -73,14 +73,8 @@ private slots:
   void connectionEstablished(quint32 sessionID, QString localAddress, QString remoteAddress);
   void receiveTCPConnection(TCPConnection* con);
 
-  void processSIPRequest(RequestType request, std::shared_ptr<SIPRoutingInfo> routing,
-                         std::shared_ptr<SIPSessionInfo> session,
-                         std::shared_ptr<SIPMessageInfo> message,
-                         quint32 sessionID);
-  void processSIPResponse(ResponseType response, std::shared_ptr<SIPRoutingInfo> routing,
-                          std::shared_ptr<SIPSessionInfo> session,
-                          std::shared_ptr<SIPMessageInfo> message,
-                          quint32 sessionID);
+  void processSIPRequest(SIPRequest request, quint32 sessionID);
+  void processSIPResponse(SIPResponse response, quint32 sessionID);
 
   void sendRequest(uint32_t sessionID, RequestType type);
   void sendResponse(uint32_t sessionID, ResponseType response);
@@ -88,7 +82,7 @@ private slots:
 private:
   struct SIPDialogData
   {
-    SIPConnection* sCon;
+    std::shared_ptr<SIPConnection> sCon;
     SIPSession* session;
     SIPRouting* routing;
     // has local invite sdp or o response sdp
@@ -104,6 +98,8 @@ private:
 
   // tmp function to convert new structs to old
   void toSIPMessageInfo(SIPRoutingInfo info);
+
+  std::shared_ptr<SIPConnection> createSIPConnection();
 
   QMutex dialogMutex_;
 

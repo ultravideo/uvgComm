@@ -154,7 +154,7 @@ struct SIPRequest
 struct SIPResponse
 {
   RequestType type;
-  SIPMessageInfo message;
+  std::shared_ptr<SIPMessageInfo> message;
 };
 
 // sendrecv is default, if none present.
