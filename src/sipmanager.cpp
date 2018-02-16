@@ -2,7 +2,6 @@
 
 #include "siprouting.h"
 #include "sipsession.h"
-
 #include "sipconnection.h"
 
 const bool DIRECTMESSAGES = false;
@@ -17,8 +16,10 @@ SIPManager::SIPManager():
 
 void SIPManager::init()
 {
-  QObject::connect(&server_, SIGNAL(newConnection(Connection*)),
-                   this, SLOT(receiveTCPConnection(Connection*)));
+  qDebug() << "Iniating SIP Manager";
+
+  QObject::connect(&server_, SIGNAL(newConnection(TCPConnection*)),
+                   this, SLOT(receiveTCPConnection(TCPConnection*)));
 
   // listen to everything
   server_.listen(QHostAddress("0.0.0.0"), sipPort_);
@@ -44,7 +45,7 @@ void SIPManager::init()
   {
     localUsername_ = "anonymous";
   }
-
+  sdp_.setLocalInfo(QHostAddress("0.0.0.0"), localUsername_);
   sdp_.setPortRange(21500, 22000, 42);
 }
 
@@ -216,13 +217,20 @@ void SIPManager::sendRequest(uint32_t sessionID, RequestType type)
   request.message->routing = dialogs_.at(sessionID - 1)->routing->requestRouting(directRouting);
   request.message->session = dialogs_.at(sessionID - 1)->session->getRequestInfo();
 
-  dialogs_.at(sessionID - 1)->sCon->sendRequest(request, NULL);
+  std::shared_ptr<SDPMessageInfo> sdp_info = NULL;
+  if(type == INVITE)
+  {
+    sdp_info = sdp_.localInviteSDP();
+  }
+
+  dialogs_.at(sessionID - 1)->sCon->sendRequest(request, sdp_info);
   qDebug() << "---- Finished sending of a request ---";
 }
 
 void SIPManager::sendResponse(uint32_t sessionID, ResponseType response)
 {
   qDebug() << "WARNING: Sending responses not implemented yet";
+
 
 }
 

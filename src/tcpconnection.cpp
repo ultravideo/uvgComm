@@ -16,7 +16,7 @@ TCPConnection::TCPConnection()
     running_(false),
     started_(false)
 {
-  qDebug() << "Constructing connection";
+  qDebug() << "Constructing TCP connection";
 }
 
 const uint32_t OVERFLOW = 100000;

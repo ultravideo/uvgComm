@@ -2,7 +2,6 @@
 
 #include "sipconversions.h"
 #include "sipfieldparser.h"
-
 #include "common.h"
 
 #include <QRegularExpression>
@@ -46,6 +45,7 @@ void SIPConnection::initConnection(ConnectionType type, QString target)
 {
   if(type == TCP)
   {
+    qDebug() << "Initiating TCP connection for sip connection number:" << sessionID_;
     connection_ = std::shared_ptr<TCPConnection>(new TCPConnection);
     connection_->establishConnection(target, SIP_PORT);
 
@@ -71,14 +71,12 @@ void SIPConnection::connectionEstablished()
 
 void SIPConnection::incomingTCPConnection(std::shared_ptr<TCPConnection> con)
 {
+  qDebug() << "This SIP connection uses an incoming connection:" << sessionID_;
   if(connection_ != NULL)
   {
     qDebug() << "Replacing existing connection";
   }
   connection_ = con;
-  QObject::connect(connection_.get(), SIGNAL(messageAvailable(QString)),
-                   this, SLOT(networkPackage(QString)));
-
   QObject::connect(connection_.get(), SIGNAL(messageAvailable(QString)),
                    this, SLOT(networkPackage(QString)));
 }
@@ -101,8 +99,6 @@ void SIPConnection::destroyConnection()
 
 void SIPConnection::sendRequest(SIPRequest& request, std::shared_ptr<SDPMessageInfo> sdp)
 {
-  qWarning() << "WARNING: SIPConnection not implemented yet.";
-
   // convert routingInfo to SIPMesgInfo to struct fields
   // check that all fields are present
   // check message (and maybe parse?)

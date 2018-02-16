@@ -43,12 +43,9 @@ signals:
 private:
 
   void parsePackage(QString package, QString& header, QString& body);
-
-  void parseSIPaddress(QString address, QString& user, QString& location);
-
-  QList<QHostAddress> parseIPAddress(QString address);
-
   bool parseSIPHeader(QString header);
+  void parseSIPaddress(QString address, QString& user, QString& location);
+  QList<QHostAddress> parseIPAddress(QString address);
 
   QString partialMessage_;
   SIPStringComposer messageComposer_;
