@@ -30,7 +30,7 @@ public:
   std::shared_ptr<SIPSessionInfo> getRequestInfo();
   std::shared_ptr<SIPSessionInfo> getResponseInfo();
 
-  SIPMessageInfo generateMessage(RequestType originalRequest);
+  std::shared_ptr<SIPMessageInfo> generateMessage(RequestType originalRequest);
 
   bool correctRequest(std::shared_ptr<SIPSessionInfo> session);
   bool correctResponse(std::shared_ptr<SIPSessionInfo> session);

@@ -55,18 +55,18 @@ bool SIPSession::correctResponse(std::shared_ptr<SIPSessionInfo> session)
       ( session->callID == callID_ || callID_ == "");
 }
 
-SIPMessageInfo SIPSession::generateMessage(RequestType originalRequest)
+std::shared_ptr<SIPMessageInfo> SIPSession::generateMessage(RequestType originalRequest)
 {
-  SIPMessageInfo mesg;
-  mesg.cSeq = cSeq_;
+  std::shared_ptr<SIPMessageInfo> mesg = std::shared_ptr<SIPMessageInfo>(new SIPMessageInfo);
+  mesg->cSeq = cSeq_;
   ++cSeq_;
   if(originalRequest == ACK)
   {
-    mesg.transactionRequest = INVITE;
+    mesg->transactionRequest = INVITE;
   }
   else
   {
-    mesg.transactionRequest = originalRequest;
+    mesg->transactionRequest = originalRequest;
   }
   return mesg;
 }

@@ -52,7 +52,7 @@ void SIPConnection::initConnection(ConnectionType type, QString target)
     QObject::connect(connection_.get(), SIGNAL(messageAvailable(QString)),
                      this, SLOT(networkPackage(QString)));
 
-    QObject::connect(connection_.get(), SIGNAL(connected()),
+    QObject::connect(connection_.get(), SIGNAL(socketConnected()),
                      this, SLOT(connectionEstablished()));
   }
   else

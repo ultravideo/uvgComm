@@ -68,6 +68,9 @@ QList<uint32_t> SIPManager::startCall(QList<Contact> addresses)
 
     //dialog->callID = dialog->session->startCall();
 
+    QObject::connect(dialog->sCon, SIGNAL(sipConnectionEstablished(quint32,QString,QString)),
+                     this, SLOT(connectionEstablished(quint32,QString,QString)));
+
     // message is sent only after connection has been established so we know our address
     dialog->sCon->initConnection(TCP, addresses.at(i).remoteAddress);
 
@@ -109,8 +112,8 @@ SIPSession *SIPManager::createSIPSession(uint32_t sessionID)
   QObject::connect(session, SIGNAL(sendRequest(uint32_t,RequestType)),
                    this, SLOT(sendRequest(uint32_t,RequestType)));
 
-  QObject::connect(session, SIGNAL(sendResponse(uint32_t,RequestType)),
-                   this, SLOT(sendResponse(uint32_t,RequestType)));
+  QObject::connect(session, SIGNAL(sendResponse(uint32_t,ResponseType)),
+                   this, SLOT(sendResponse(uint32_t,ResponseType)));
 
   // connect signals to signals. Session is responsible for responses
   // and callmanager handles informing the user.
@@ -124,6 +127,7 @@ void SIPManager::receiveTCPConnection(TCPConnection *con)
   SIPDialogData* dialog = new SIPDialogData;
   dialog->sCon = new SIPConnection(dialogs_.size() + 1);
   dialog->sCon->incomingTCPConnection(std::shared_ptr<TCPConnection> (con));
+  // note: the connection has already been established
   dialog->session = NULL;
   dialog->routing = NULL;
 
@@ -182,6 +186,8 @@ void SIPManager::processSIPRequest(RequestType request, std::shared_ptr<SIPRouti
     // TODO: sent to wrong address
     return;
   }
+
+  qWarning() << "WARNING: Processing requests not implemented yet";
   //dialogs_.at(sessionID - 1)->session->processRequest();
 }
 
@@ -196,22 +202,21 @@ void SIPManager::processSIPResponse(ResponseType response, std::shared_ptr<SIPRo
     // TODO: sent to wrong address
     return;
   }
+  qWarning() << "WARNING: Processing responses not implemented yet";
 }
 
-void SIPManager::sendRequest(uint32_t sessionID, RequestType request)
+void SIPManager::sendRequest(uint32_t sessionID, RequestType type)
 {
   qDebug() << "---- Iniated sending of a request ---";
   Q_ASSERT(sessionID <= dialogs_.size());
-  // get routinginfo for
-  QString direct = "";
+  QString directRouting = "";
 
-  // get routing info from  siprouting
-  std::shared_ptr<SIPRoutingInfo> routing = dialogs_.at(sessionID - 1)->routing->requestRouting(direct);
-  std::shared_ptr<SIPSessionInfo> session = dialogs_.at(sessionID - 1)->session->getRequestInfo();
-  SIPMessageInfo mesg_info = dialogs_.at(sessionID - 1)->session->generateMessage(request);
+  // this is a bit confusing. Get all the necessary information from different components.
+  SIPRequest request = {type, dialogs_.at(sessionID - 1)->session->generateMessage(type)};
+  request.message->routing = dialogs_.at(sessionID - 1)->routing->requestRouting(directRouting);
+  request.message->session = dialogs_.at(sessionID - 1)->session->getRequestInfo();
 
-
-
+  dialogs_.at(sessionID - 1)->sCon->sendRequest(request, NULL);
   qDebug() << "---- Finished sending of a request ---";
 }
 

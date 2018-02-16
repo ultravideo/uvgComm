@@ -82,7 +82,7 @@ private slots:
                           std::shared_ptr<SIPMessageInfo> message,
                           quint32 sessionID);
 
-  void sendRequest(uint32_t sessionID, RequestType request);
+  void sendRequest(uint32_t sessionID, RequestType type);
   void sendResponse(uint32_t sessionID, ResponseType response);
 
 private:
