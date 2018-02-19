@@ -6,7 +6,6 @@
 
 const bool DIRECTMESSAGES = false;
 
-
 SIPManager::SIPManager():
   isConference_(false),
   sipPort_(5060), // default for SIP, use 5061 for tls encrypted
@@ -50,30 +49,28 @@ void SIPManager::init()
 }
 
 void SIPManager::uninit()
-{}
+{
+  //TODO: delete all dialogs
+}
 
 QList<uint32_t> SIPManager::startCall(QList<Contact> addresses)
 {
   QList<uint32_t> calls;
   for(unsigned int i = 0; i < addresses.size(); ++i)
   {
-    SIPDialogData* dialog = new SIPDialogData;
-    dialog->sCon = createSIPConnection();
+    std::shared_ptr<SIPDialogData> dialog = std::shared_ptr<SIPDialogData> (new SIPDialogData);
 
+    dialog->sCon = createSIPConnection();
+    dialog->session = NULL;
+    dialog->routing = NULL;
+    connectionMutex_.lock();
     // message is sent only after connection has been established so we know our address
     dialog->sCon->initConnection(TCP, addresses.at(i).remoteAddress);
 
-    dialogMutex_.lock();
-    dialog->session = createSIPSession(dialogs_.size() + 1);
-    dialog->routing = new SIPRouting;
-    dialog->routing->setLocalNames(localUsername_, localName_);
-    dialog->routing->setRemoteUsername(addresses.at(i).username);
-    dialog->hostedSession = false;
-
     dialogs_.push_back(dialog);
+    connectionMutex_.unlock();
     calls.push_back(dialogs_.size());
-    dialogMutex_.unlock();
-    qDebug() << "Added a new dialog:" << dialogs_.size();
+    qDebug() << "Added a new dialog. ID:" << dialogs_.size();
   }
 
   return calls;
@@ -128,52 +125,71 @@ std::shared_ptr<SIPConnection> SIPManager::createSIPConnection()
   return connection;
 }
 
+std::shared_ptr<SIPRouting> SIPManager::createSIPRouting(QString localAddress, QString remoteAddress, bool hostedSession)
+{
+  std::shared_ptr<SIPRouting> routing = std::shared_ptr<SIPRouting> (new SIPRouting);
+
+  routing->setLocalNames(localUsername_, localName_);
+
+  if(hostedSession)
+  {
+    qDebug() << "Setting connection as a SIP server connection.";
+    routing->setLocalAddress(localAddress);
+    routing->setLocalHost(remoteAddress);
+
+    // TODO enable remote to have a different host from ours
+    routing->setRemoteHost(remoteAddress);
+  }
+  else
+  {
+    qDebug() << "Setting connection as a peer-to-peer SIP connection. Firewall needs to be open for this";
+    routing->setLocalAddress(localAddress);
+    routing->setLocalHost(localAddress);
+    routing->setRemoteHost(remoteAddress);
+  }
+
+  qDebug() << "Setting info for peer-to-peer connection";
+  // TODO make possible to set the server
+
+
+  return routing;
+}
+
 void SIPManager::receiveTCPConnection(TCPConnection *con)
 {
-  qDebug() << "Received a TCP connection. Initializing a connection";
+  qDebug() << "Received a TCP connection. Initializing dialog";
   Q_ASSERT(con);
-  SIPDialogData* dialog = new SIPDialogData;
+  std::shared_ptr<SIPDialogData> dialog = std::shared_ptr<SIPDialogData> (new SIPDialogData);
   dialog->sCon = createSIPConnection();
+  connectionMutex_.lock();
   dialog->sCon->incomingTCPConnection(std::shared_ptr<TCPConnection> (con));
-  // note: the connection has already been established
-  dialog->session = NULL;
-  dialog->routing = NULL;
-
+  dialog->session = createSIPSession(dialogs_.size() + 1);
+  dialog->routing = createSIPRouting(con->getLocalAddress().toString(), // TODO: problem here if not connected yet
+                                     con->getPeerAddress().toString(), false);
   dialogs_.append(dialog);
+  connectionMutex_.unlock();
+  qDebug() << "Dialog with ID:" << dialogs_.size() << "created for received connection.";
 }
 
 // connection has been established. This enables for us to get the needed info
 // to form a SIP message
 void SIPManager::connectionEstablished(quint32 sessionID, QString localAddress, QString remoteAddress)
 {
-  if(sessionID == 0 || sessionID> dialogs_.size())
+  Q_ASSERT(sessionID != 0 || dialogs_.at(sessionID - 1));
+  if(sessionID == 0 || sessionID > dialogs_.size() || dialogs_.at(sessionID - 1) == NULL)
   {
     qDebug() << "WARNING: Missing session for connected session";
     return;
   }
-  SIPDialogData* dialog = dialogs_.at(sessionID - 1);
+  connectionMutex_.lock();
+  std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
+  connectionMutex_.unlock();
 
-  if(dialog->hostedSession)
-  {
-    qDebug() << "Setting connection as a SIP server connection.";
-    dialog->routing->setLocalAddress(localAddress);
-    dialog->routing->setLocalHost(remoteAddress);
+  dialog->session = createSIPSession(sessionID);
+  dialog->routing = createSIPRouting(localAddress,
+                                     remoteAddress, false);
 
-    // TODO enable remote to have a different host from ours
-    dialog->routing->setRemoteHost(remoteAddress);
-  }
-  else
-  {
-    qDebug() << "Setting connection as a peer-to-peer SIP connection. Firewall needs to be open for this";
-    dialog->routing->setLocalAddress(localAddress);
-    dialog->routing->setLocalHost(localAddress);
-    dialog->routing->setRemoteHost(remoteAddress);
-  }
-
-  qDebug() << "Setting info for peer-to-peer connection";
-  // TODO make possible to set the server
-
-  qDebug() << "Connection" << sessionID << "connected."
+  qDebug() << "Connection" << sessionID << "connected and dialog created."
            << "From:" << localAddress
            << "To:" << remoteAddress;
 
@@ -186,6 +202,13 @@ void SIPManager::connectionEstablished(quint32 sessionID, QString localAddress, 
 void SIPManager::processSIPRequest(SIPRequest request,
                        quint32 sessionID)
 {
+  Q_ASSERT(!dialogs_.at(sessionID - 1)->routing);
+  Q_ASSERT(!dialogs_.at(sessionID - 1)->session);
+
+  connectionMutex_.lock();
+  std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
+  connectionMutex_.unlock();
+
   if(!dialogs_.at(sessionID - 1)->routing->incomingSIPRequest(request.message->routing))
   {
     qDebug() << "Something wrong with incoming SIP request";
@@ -199,6 +222,11 @@ void SIPManager::processSIPRequest(SIPRequest request,
 
 void SIPManager::processSIPResponse(SIPResponse response, quint32 sessionID)
 {
+
+  connectionMutex_.lock();
+  std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
+  connectionMutex_.unlock();
+
   if(!dialogs_.at(sessionID - 1)->routing->incomingSIPResponse(response.message->routing))
   {
 
@@ -212,16 +240,16 @@ void SIPManager::processSIPResponse(SIPResponse response, quint32 sessionID)
 void SIPManager::sendRequest(uint32_t sessionID, RequestType type)
 {
   qDebug() << "---- Iniated sending of a request ---";
-  Q_ASSERT(sessionID <= dialogs_.size());
+  Q_ASSERT(sessionID != 0 && sessionID <= dialogs_.size());
   QString directRouting = "";
 
-  // this is a bit confusing. Get all the necessary information from different components.
+  // Get all the necessary information from different components.
   SIPRequest request = {type, dialogs_.at(sessionID - 1)->session->generateMessage(type)};
   request.message->routing = dialogs_.at(sessionID - 1)->routing->requestRouting(directRouting);
   request.message->session = dialogs_.at(sessionID - 1)->session->getRequestInfo();
 
   std::shared_ptr<SDPMessageInfo> sdp_info = NULL;
-  if(type == INVITE)
+  if(type == INVITE) // TODO: SDP in progress...
   {
     sdp_info = sdp_.localInviteSDP();
   }
@@ -237,7 +265,7 @@ void SIPManager::sendResponse(uint32_t sessionID, ResponseType response)
 
 }
 
-void SIPManager::destroySession(SIPDialogData *dialog)
+void SIPManager::destroyDialog(std::shared_ptr<SIPDialogData> dialog)
 {
   if(dialog != NULL)
   {

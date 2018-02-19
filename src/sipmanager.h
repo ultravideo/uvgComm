@@ -84,30 +84,31 @@ private:
   {
     std::shared_ptr<SIPConnection> sCon;
     SIPSession* session;
-    SIPRouting* routing;
+    std::shared_ptr<SIPRouting> routing;
     // has local invite sdp or o response sdp
     std::shared_ptr<SDPMessageInfo> localSdp_;
     // empty until final ok 200
     std::shared_ptr<SDPMessageInfo> remoteSdp_;
-    bool hostedSession;
   };
 
   SIPSession* createSIPSession(uint32_t sessionID);
+  std::shared_ptr<SIPConnection> createSIPConnection();
+  std::shared_ptr<SIPRouting> createSIPRouting(QString localAddress, QString remoteAddress, bool hostedSession);
 
-  void destroySession(SIPDialogData *dialog);
+  void destroyDialog(std::shared_ptr<SIPDialogData> dialog);
 
   // tmp function to convert new structs to old
   void toSIPMessageInfo(SIPRoutingInfo info);
 
-  std::shared_ptr<SIPConnection> createSIPConnection();
-
-  QMutex dialogMutex_;
+  // This mutex makes sure that the dialog has been added to the dialogs_ list
+  // before we are accessing it when receiving messages
+  QMutex connectionMutex_;
 
   // sessionID:s are positions in this list. SessionID:s are used in this program to
   // keep track of sessions. The CallID is not used because we could be calling ourselves
   // and using uint32_t is simpler than keeping track of tags
 
-  QList<SIPDialogData*> dialogs_;
+  QList<std::shared_ptr<SIPDialogData>> dialogs_;
 
   bool isConference_;
 
