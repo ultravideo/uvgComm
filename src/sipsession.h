@@ -45,10 +45,12 @@ public:
                        const SIPSessionInfo& session,
                        const SIPMessageInfo &messageInfo);
 
+
   bool startCall();
   void endCall();
   void registerToServer();
 
+  void connectionReady(bool ready);
 
   // messages from other components
   void malformedMessage(); // if parse fails
@@ -81,6 +83,7 @@ signals:
 private:
 
   void requestSender(RequestType type);
+  void responseSender(ResponseType type);
 
   QString localTag_;
   QString remoteTag_;
@@ -96,4 +99,8 @@ private:
   bool registered_;
 
   QTimer timeoutTimer_;
+
+  bool connected_;
+  RequestType pendingRequest_;
+  ResponseType pendingResponse_;
 };

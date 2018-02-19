@@ -83,7 +83,7 @@ private:
   struct SIPDialogData
   {
     std::shared_ptr<SIPConnection> sCon;
-    SIPSession* session;
+    std::shared_ptr<SIPSession> session;
     std::shared_ptr<SIPRouting> routing;
     // has local invite sdp or o response sdp
     std::shared_ptr<SDPMessageInfo> localSdp_;
@@ -91,7 +91,7 @@ private:
     std::shared_ptr<SDPMessageInfo> remoteSdp_;
   };
 
-  SIPSession* createSIPSession(uint32_t sessionID);
+  std::shared_ptr<SIPSession> createSIPSession(uint32_t sessionID);
   std::shared_ptr<SIPConnection> createSIPConnection();
   std::shared_ptr<SIPRouting> createSIPRouting(QString localAddress, QString remoteAddress, bool hostedSession);
 

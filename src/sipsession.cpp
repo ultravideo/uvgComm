@@ -20,7 +20,10 @@ SIPSession::SIPSession():
   ongoingTransactionType_(SIP_UNKNOWN_REQUEST),
   state_(CALL_INACTIVE),
   registered_(false),
-  timeoutTimer_()
+  timeoutTimer_(),
+  connected_(false),
+  pendingRequest_(SIP_UNKNOWN_REQUEST),
+  pendingResponse_(SIP_UNKNOWN_RESPONSE)
 {}
 
 void SIPSession::init(uint32_t sessionID)
@@ -144,20 +147,52 @@ void SIPSession::registerToServer()
   requestSender(REGISTER);
 }
 
+void SIPSession::connectionReady(bool ready)
+{
+  connected_ = ready;
+  if(pendingRequest_ != SIP_UNKNOWN_REQUEST)
+  {
+    requestSender(pendingRequest_);
+  }
+  if(pendingResponse_ != SIP_UNKNOWN_RESPONSE)
+  {
+    responseSender(pendingResponse_);
+  }
+}
+
 void SIPSession::requestSender(RequestType type)
 {
-  emit sendRequest(sessionID_, type);
-  ongoingTransactionType_ = type;
-
-  if(type != INVITE)
+  if(!connected_)
   {
-    qDebug() << "Request timeout set to: " << TIMEOUT;
-    timeoutTimer_.start(TIMEOUT);
+    pendingRequest_ = type;
   }
   else
   {
-    qDebug() << "INVITE timeout set to: " << INVITE_TIMEOUT;
-    timeoutTimer_.start(INVITE_TIMEOUT);
+    emit sendRequest(sessionID_, type);
+    ongoingTransactionType_ = type;
+
+    if(type != INVITE)
+    {
+      qDebug() << "Request timeout set to: " << TIMEOUT;
+      timeoutTimer_.start(TIMEOUT);
+    }
+    else
+    {
+      qDebug() << "INVITE timeout set to: " << INVITE_TIMEOUT;
+      timeoutTimer_.start(INVITE_TIMEOUT);
+    }
+  }
+}
+
+void SIPSession::responseSender(ResponseType type)
+{
+  if(!connected_)
+  {
+    pendingResponse_ = type;
+  }
+  else
+  {
+    emit sendResponse(sessionID_, type);
   }
 }
 

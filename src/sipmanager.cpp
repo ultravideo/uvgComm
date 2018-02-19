@@ -51,6 +51,10 @@ void SIPManager::init()
 void SIPManager::uninit()
 {
   //TODO: delete all dialogs
+  for(std::shared_ptr<SIPDialogData> dialog : dialogs_)
+  {
+    destroyDialog(dialog);
+  }
 }
 
 QList<uint32_t> SIPManager::startCall(QList<Contact> addresses)
@@ -61,7 +65,7 @@ QList<uint32_t> SIPManager::startCall(QList<Contact> addresses)
     std::shared_ptr<SIPDialogData> dialog = std::shared_ptr<SIPDialogData> (new SIPDialogData);
 
     dialog->sCon = createSIPConnection();
-    dialog->session = NULL;
+    dialog->session = createSIPSession(dialogs_.size() + 1);
     dialog->routing = NULL;
     connectionMutex_.lock();
     // message is sent only after connection has been established so we know our address
@@ -71,6 +75,12 @@ QList<uint32_t> SIPManager::startCall(QList<Contact> addresses)
     connectionMutex_.unlock();
     calls.push_back(dialogs_.size());
     qDebug() << "Added a new dialog. ID:" << dialogs_.size();
+
+    // this start call will commence once the connection has been established
+    if(!dialog->session->startCall())
+    {
+      qDebug() << "WARNING: Could not start a call according to session.";
+    }
   }
 
   return calls;
@@ -96,16 +106,17 @@ void SIPManager::endAllCalls()
 
 }
 
-SIPSession *SIPManager::createSIPSession(uint32_t sessionID)
+std::shared_ptr<SIPSession> SIPManager::createSIPSession(uint32_t sessionID)
 {
-  SIPSession* session = new SIPSession();
+  qDebug() << "Creating SIP Session";
+  std::shared_ptr<SIPSession> session = std::shared_ptr<SIPSession> (new SIPSession());
 
   session->init(sessionID);
 
-  QObject::connect(session, SIGNAL(sendRequest(uint32_t,RequestType)),
+  QObject::connect(session.get(), SIGNAL(sendRequest(uint32_t,RequestType)),
                    this, SLOT(sendRequest(uint32_t,RequestType)));
 
-  QObject::connect(session, SIGNAL(sendResponse(uint32_t,ResponseType)),
+  QObject::connect(session.get(), SIGNAL(sendResponse(uint32_t,ResponseType)),
                    this, SLOT(sendResponse(uint32_t,ResponseType)));
 
   // connect signals to signals. Session is responsible for responses
@@ -115,6 +126,7 @@ SIPSession *SIPManager::createSIPSession(uint32_t sessionID)
 
 std::shared_ptr<SIPConnection> SIPManager::createSIPConnection()
 {
+  qDebug() << "Creating SIP Connection";
   std::shared_ptr<SIPConnection> connection = std::shared_ptr<SIPConnection>(new SIPConnection(dialogs_.size() + 1));
   QObject::connect(connection.get(), SIGNAL(sipConnectionEstablished(quint32,QString,QString)),
                    this, SLOT(connectionEstablished(quint32,QString,QString)));
@@ -127,6 +139,7 @@ std::shared_ptr<SIPConnection> SIPManager::createSIPConnection()
 
 std::shared_ptr<SIPRouting> SIPManager::createSIPRouting(QString localAddress, QString remoteAddress, bool hostedSession)
 {
+  qDebug() << "Creating SIP Routing";
   std::shared_ptr<SIPRouting> routing = std::shared_ptr<SIPRouting> (new SIPRouting);
 
   routing->setLocalNames(localUsername_, localName_);
@@ -148,9 +161,7 @@ std::shared_ptr<SIPRouting> SIPManager::createSIPRouting(QString localAddress, Q
     routing->setRemoteHost(remoteAddress);
   }
 
-  qDebug() << "Setting info for peer-to-peer connection";
   // TODO make possible to set the server
-
 
   return routing;
 }
@@ -164,8 +175,7 @@ void SIPManager::receiveTCPConnection(TCPConnection *con)
   connectionMutex_.lock();
   dialog->sCon->incomingTCPConnection(std::shared_ptr<TCPConnection> (con));
   dialog->session = createSIPSession(dialogs_.size() + 1);
-  dialog->routing = createSIPRouting(con->getLocalAddress().toString(), // TODO: problem here if not connected yet
-                                     con->getPeerAddress().toString(), false);
+  dialog->routing = NULL;
   dialogs_.append(dialog);
   connectionMutex_.unlock();
   qDebug() << "Dialog with ID:" << dialogs_.size() << "created for received connection.";
@@ -183,20 +193,23 @@ void SIPManager::connectionEstablished(quint32 sessionID, QString localAddress, 
   }
   connectionMutex_.lock();
   std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
-  connectionMutex_.unlock();
+  connectionMutex_.unlock(); 
 
-  dialog->session = createSIPSession(sessionID);
-  dialog->routing = createSIPRouting(localAddress,
-                                     remoteAddress, false);
+  if(dialog->session == NULL)
+  {
+    dialog->session = createSIPSession(sessionID);
+  }
+  if(dialog->routing == NULL)
+  {
+    dialog->routing = createSIPRouting(localAddress,
+                                       remoteAddress, false);
+  }
+
+  dialog->session->connectionReady(true);
 
   qDebug() << "Connection" << sessionID << "connected and dialog created."
            << "From:" << localAddress
            << "To:" << remoteAddress;
-
-  if(!dialog->session->startCall())
-  {
-    qDebug() << "WARNING: Could not start a call according to session.";
-  }
 }
 
 void SIPManager::processSIPRequest(SIPRequest request,
@@ -220,9 +233,9 @@ void SIPManager::processSIPRequest(SIPRequest request,
   //dialogs_.at(sessionID - 1)->session->processRequest();
 }
 
-void SIPManager::processSIPResponse(SIPResponse response, quint32 sessionID)
+void SIPManager::processSIPResponse(SIPResponse response,
+                                    quint32 sessionID)
 {
-
   connectionMutex_.lock();
   std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
   connectionMutex_.unlock();
@@ -261,8 +274,6 @@ void SIPManager::sendRequest(uint32_t sessionID, RequestType type)
 void SIPManager::sendResponse(uint32_t sessionID, ResponseType response)
 {
   qDebug() << "WARNING: Sending responses not implemented yet";
-
-
 }
 
 void SIPManager::destroyDialog(std::shared_ptr<SIPDialogData> dialog)
@@ -272,13 +283,10 @@ void SIPManager::destroyDialog(std::shared_ptr<SIPDialogData> dialog)
     if(dialog->sCon != NULL)
     {
       dialog->sCon->destroyConnection();
+      dialog->sCon.reset();
     }
 
-    if(dialog->session != NULL)
-    {
-      //dialog->session->uninit();
-      delete dialog->session;
-      dialog->session = NULL;
-    }
+    dialog->session.reset();
+    dialog->routing.reset();
   }
 }

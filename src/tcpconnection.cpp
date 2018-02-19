@@ -43,6 +43,7 @@ void TCPConnection::setExistingConnection(qintptr socketDescriptor)
 {
   qDebug() << "Setting existing/incoming connection. SocketDesc:" << socketDescriptor;
   socketDescriptor_ = socketDescriptor;
+  shouldConnect_ = true;
   init();
 }
 
@@ -74,21 +75,35 @@ void TCPConnection::receivedMessage()
 
 void TCPConnection::connectLoop()
 {
-  const int connectionTimeout = 5 * 1000; // 5 seconds
+  const int connectionTimeout = 2 * 1000; // 2 seconds
 
   qDebug() << "Connecting to address:" << destination_ << "Port:" << port_;
 
-  // TODO Stop trying if connection can't be established.
-  socket_->connectToHost(destination_, port_);
+  if(socketDescriptor_ != 0)
+  {
+    qDebug() << "Getting socket";
+    if(!socket_->setSocketDescriptor(socketDescriptor_))
+    {
+      qCritical() << "ERROR: Could not get socket descriptor";
+    }
+  }
+  else
+  {
+    socket_->connectToHost(destination_, port_);
+  }
 
-  if (!socket_->waitForConnected(connectionTimeout)) {
+  if (socket_->state() != QAbstractSocket::ConnectedState &&
+      !socket_->waitForConnected(connectionTimeout)) {
       emit error(socket_->error(), socket_->errorString());
       return;
   }
   connected_ = true;
-  qDebug() << "Outgoing TCP connection established";
+  qDebug().nospace() << "Socket connected to our address: "
+                     << socket_->localAddress().toString() << ":" << socket_->peerPort()
+           << " Remote address: " << socket_->peerAddress().toString()
+           << ":" << socket_->peerPort();
 
-  emit socketConnected();
+  emit socketConnected(socket_->localAddress(), socket_->peerAddress());
 }
 
 
@@ -108,18 +123,6 @@ void TCPConnection::run()
                      this, SLOT(receivedMessage()));
   }
 
-  if(socketDescriptor_ != 0)
-  {
-    qDebug() << "Getting socket";
-    if(!socket_->setSocketDescriptor(socketDescriptor_))
-    {
-      qCritical() << "ERROR: Could not get socket descriptor";
-    }
-    qDebug() << "Socket connected to our address:" << socket_->localAddress() << ":" << socket_->peerPort()
-             << "Peer address:" << socket_->peerAddress() << ":" << socket_->peerPort();
-    connected_ = true;
-  }
-
   if(eventDispatcher() == 0)
   {
     qWarning() << "WARNING: Sorry no event dispatcher for this connection.";
@@ -128,6 +131,7 @@ void TCPConnection::run()
 
   while(running_)
   {
+    // TODO Stop trying if connection can't be established.
     if(!connected_ && shouldConnect_)
     {
       connectLoop();

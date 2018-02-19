@@ -26,15 +26,13 @@ public:
 public slots:
 
   void networkPackage(QString message);
-  void connectionEstablished();
+  void connectionEstablished(QHostAddress localAddress, QHostAddress remoteAddress);
 
 signals:
 
-  void incomingSIPRequest(SIPRequest request,
-                          quint32 sessionID);
+  void incomingSIPRequest(SIPRequest request, quint32 sessionID);
 
-  void incomingSIPResponse(SIPResponse response,
-                           quint32 sessionID);
+  void incomingSIPResponse(SIPResponse response, quint32 sessionID);
 
   void parsingError(ResponseType errorResponse, quint32 sessionID);
 

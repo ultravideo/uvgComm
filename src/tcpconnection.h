@@ -39,32 +39,12 @@ public:
     });
   }
 
-  bool isConnected()
-  {
-    if(socket_ != 0){
-      return socket_->state() == QAbstractSocket::ConnectedState;
-    }
-    return false;
-  }
-
-  QHostAddress getLocalAddress()
-  {
-    Q_ASSERT(isConnected());
-    return socket_->localAddress();
-  }
-
-  QHostAddress getPeerAddress()
-  {
-    Q_ASSERT(isConnected());
-    return socket_->peerAddress();
-  }
-
 signals:
   void error(int socketError, const QString &message);
   void messageAvailable(QString message);
 
   // connection has been established
-  void socketConnected();
+  void socketConnected(QHostAddress localAddress, QHostAddress remoteAddress);
 
 private slots:
   void receivedMessage();

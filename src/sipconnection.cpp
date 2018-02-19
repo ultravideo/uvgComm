@@ -52,7 +52,7 @@ void SIPConnection::initConnection(ConnectionType type, QString target)
     QObject::connect(connection_.get(), SIGNAL(messageAvailable(QString)),
                      this, SLOT(networkPackage(QString)));
 
-    QObject::connect(connection_.get(), SIGNAL(socketConnected()),
+    QObject::connect(connection_.get(), SIGNAL(socketConnected(QHostAddress& localAddress, QHostAddress remoteAddress)),
                      this, SLOT(connectionEstablished()));
   }
   else
@@ -62,11 +62,11 @@ void SIPConnection::initConnection(ConnectionType type, QString target)
 
 }
 
-void SIPConnection::connectionEstablished()
+void SIPConnection::connectionEstablished(QHostAddress localAddress, QHostAddress remoteAddress)
 {
   emit sipConnectionEstablished(sessionID_,
-                                connection_->getLocalAddress().toString(),
-                                connection_->getPeerAddress().toString());
+                                localAddress.toString(),
+                                remoteAddress.toString());
 }
 
 void SIPConnection::incomingTCPConnection(std::shared_ptr<TCPConnection> con)

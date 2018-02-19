@@ -57,9 +57,9 @@ bool SIPRouting::incomingSIPRequest(std::shared_ptr<SIPRoutingInfo> routing)
      routing->to.username != localUsername_ ||
      routing->to.host != localHost_)
   {
-    qDebug() << "Incoming SIP Request sender:" << routing->from.username << "@" << routing->from.host
-             << "->" << routing->to.username << "@" << routing->to.host << "does not match local info. Them:"
-             << remoteUsername_ << "@" << remoteHost_ << "-> Us" << localUsername_ << "@" << localHost_;
+    qDebug().nospace() << "Incoming SIP Request sender: " << routing->from.username << "@" << routing->from.host
+             << " -> " << routing->to.username << "@" << routing->to.host << " does not match local info. Them: "
+             << remoteUsername_ << "@" << remoteHost_ << " -> Us: " << localUsername_ << "@" << localHost_;
     return false;
   }
   previousReceivedRequest_ = routing;
