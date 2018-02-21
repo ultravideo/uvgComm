@@ -77,11 +77,9 @@ void TCPConnection::connectLoop()
 {
   const int connectionTimeout = 2 * 1000; // 2 seconds
 
-  qDebug() << "Connecting to address:" << destination_ << "Port:" << port_;
-
   if(socketDescriptor_ != 0)
   {
-    qDebug() << "Getting socket";
+    qDebug() << "Getting socket:" << socketDescriptor_;
     if(!socket_->setSocketDescriptor(socketDescriptor_))
     {
       qCritical() << "ERROR: Could not get socket descriptor";
@@ -89,6 +87,7 @@ void TCPConnection::connectLoop()
   }
   else
   {
+    qDebug() << "Connecting to address:" << destination_ << "Port:" << port_;
     socket_->connectToHost(destination_, port_);
   }
 

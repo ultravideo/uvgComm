@@ -67,6 +67,7 @@ QList<uint32_t> SIPManager::startCall(QList<Contact> addresses)
     dialog->sCon = createSIPConnection();
     dialog->session = createSIPSession(dialogs_.size() + 1);
     dialog->routing = NULL;
+    dialog->remoteUsername = addresses.at(i).username;
     connectionMutex_.lock();
     // message is sent only after connection has been established so we know our address
     dialog->sCon->createConnection(TCP, addresses.at(i).remoteAddress);
@@ -137,12 +138,15 @@ std::shared_ptr<SIPConnection> SIPManager::createSIPConnection()
   return connection;
 }
 
-std::shared_ptr<SIPRouting> SIPManager::createSIPRouting(QString localAddress, QString remoteAddress, bool hostedSession)
+std::shared_ptr<SIPRouting> SIPManager::createSIPRouting(QString remoteUsername,
+                                                         QString localAddress,
+                                                         QString remoteAddress, bool hostedSession)
 {
   qDebug() << "Creating SIP Routing";
   std::shared_ptr<SIPRouting> routing = std::shared_ptr<SIPRouting> (new SIPRouting);
 
   routing->setLocalNames(localUsername_, localName_);
+  routing->setRemoteUsername(remoteUsername);
 
   if(hostedSession)
   {
@@ -176,6 +180,7 @@ void SIPManager::receiveTCPConnection(TCPConnection *con)
   dialog->sCon->incomingTCPConnection(std::shared_ptr<TCPConnection> (con));
   dialog->session = createSIPSession(dialogs_.size() + 1);
   dialog->routing = NULL;
+  dialog->remoteUsername = "";
   dialogs_.append(dialog);
   connectionMutex_.unlock();
   qDebug() << "Dialog with ID:" << dialogs_.size() << "created for received connection.";
@@ -186,6 +191,7 @@ void SIPManager::receiveTCPConnection(TCPConnection *con)
 void SIPManager::connectionEstablished(quint32 sessionID, QString localAddress, QString remoteAddress)
 {
   Q_ASSERT(sessionID != 0 || dialogs_.at(sessionID - 1));
+  qDebug() << "Establishing connection";
   if(sessionID == 0 || sessionID > dialogs_.size() || dialogs_.at(sessionID - 1) == NULL)
   {
     qDebug() << "WARNING: Missing session for connected session";
@@ -201,7 +207,7 @@ void SIPManager::connectionEstablished(quint32 sessionID, QString localAddress, 
   }
   if(dialog->routing == NULL)
   {
-    dialog->routing = createSIPRouting(localAddress,
+    dialog->routing = createSIPRouting(dialog->remoteUsername, localAddress,
                                        remoteAddress, false);
   }
 

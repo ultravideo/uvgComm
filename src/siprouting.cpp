@@ -46,15 +46,18 @@ void SIPRouting::setRemoteHost(QString host)
 
 bool SIPRouting::incomingSIPRequest(std::shared_ptr<SIPRoutingInfo> routing)
 {
-  if(remoteUsername_ == "" && remoteHost_ == "")
+  if(remoteUsername_ == "")
   {
     remoteUsername_ = routing->from.username;
+  }
+  if( remoteHost_ == "")
+  {
     remoteHost_ = routing->from.host;
   }
 
   if(routing->from.username != remoteUsername_ ||
      routing->from.host != remoteHost_ ||
-     routing->to.username != localUsername_ ||
+     (routing->to.username != localUsername_ && routing->to.username != "anonymous") ||
      routing->to.host != localHost_)
   {
     qDebug().nospace() << "Incoming SIP Request sender: " << routing->from.username << "@" << routing->from.host
@@ -106,12 +109,7 @@ std::shared_ptr<SIPRoutingInfo> SIPRouting::requestRouting(QString &directAddres
      localHost_.isEmpty() ||
      localDirectAddress_.isEmpty() ||
      remoteUsername_.isEmpty() ||
-     remoteHost_.isEmpty() ||
-     localUsername_ == "" ||
-     localHost_ == "" ||
-     localDirectAddress_ == "" ||
-     remoteUsername_ == ""  ||
-     remoteHost_ == "")
+     remoteHost_.isEmpty())
   {
     qDebug() << "WARNING: Trying to get request routing without proper initialization!!";
     return NULL;
@@ -138,6 +136,8 @@ std::shared_ptr<SIPRoutingInfo> SIPRouting::requestRouting(QString &directAddres
   if(remoteDirectAddress_.host != "")
   {
     directAddress = remoteDirectAddress_.host;
+    newRouting->to.username = remoteDirectAddress_.username;
+    newRouting->to.realname = remoteDirectAddress_.realname;
   }
 
   return newRouting;

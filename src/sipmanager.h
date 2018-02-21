@@ -85,6 +85,7 @@ private:
     std::shared_ptr<SIPConnection> sCon;
     std::shared_ptr<SIPSession> session;
     std::shared_ptr<SIPRouting> routing;
+    QString remoteUsername;
     // has local invite sdp or o response sdp
     std::shared_ptr<SDPMessageInfo> localSdp_;
     // empty until final ok 200
@@ -93,7 +94,9 @@ private:
 
   std::shared_ptr<SIPSession> createSIPSession(uint32_t sessionID);
   std::shared_ptr<SIPConnection> createSIPConnection();
-  std::shared_ptr<SIPRouting> createSIPRouting(QString localAddress, QString remoteAddress, bool hostedSession);
+  std::shared_ptr<SIPRouting> createSIPRouting(QString remoteUsername,
+                                               QString localAddress,
+                                               QString remoteAddress, bool hostedSession);
 
   void destroyDialog(std::shared_ptr<SIPDialogData> dialog);
 
