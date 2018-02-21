@@ -44,7 +44,7 @@ signals:
   void messageAvailable(QString message);
 
   // connection has been established
-  void socketConnected(QHostAddress localAddress, QHostAddress remoteAddress);
+  void socketConnected(QString localAddress, QString remoteAddress);
 
 private slots:
   void receivedMessage();

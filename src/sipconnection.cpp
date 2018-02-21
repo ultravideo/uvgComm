@@ -41,32 +41,19 @@ SIPConnection::SIPConnection(quint32 sessionID):
 SIPConnection::~SIPConnection()
 {}
 
-void SIPConnection::initConnection(ConnectionType type, QString target)
+void SIPConnection::createConnection(ConnectionType type, QString target)
 {
   if(type == TCP)
   {
     qDebug() << "Initiating TCP connection for sip connection number:" << sessionID_;
     connection_ = std::shared_ptr<TCPConnection>(new TCPConnection);
+    signalConnections();
     connection_->establishConnection(target, SIP_PORT);
-
-    QObject::connect(connection_.get(), SIGNAL(messageAvailable(QString)),
-                     this, SLOT(networkPackage(QString)));
-
-    QObject::connect(connection_.get(), SIGNAL(socketConnected(QHostAddress& localAddress, QHostAddress remoteAddress)),
-                     this, SLOT(connectionEstablished()));
   }
   else
   {
     qDebug() << "WARNING: Trying to initiate a SIP Connection with unsupported connection type.";
   }
-
-}
-
-void SIPConnection::connectionEstablished(QHostAddress localAddress, QHostAddress remoteAddress)
-{
-  emit sipConnectionEstablished(sessionID_,
-                                localAddress.toString(),
-                                remoteAddress.toString());
 }
 
 void SIPConnection::incomingTCPConnection(std::shared_ptr<TCPConnection> con)
@@ -77,9 +64,27 @@ void SIPConnection::incomingTCPConnection(std::shared_ptr<TCPConnection> con)
     qDebug() << "Replacing existing connection";
   }
   connection_ = con;
-  QObject::connect(connection_.get(), SIGNAL(messageAvailable(QString)),
-                   this, SLOT(networkPackage(QString)));
+
+  signalConnections();
 }
+
+void SIPConnection::signalConnections()
+{
+  Q_ASSERT(connection_);
+  QObject::connect(connection_.get(), &TCPConnection::messageAvailable,
+                   this, &SIPConnection::networkPackage);
+
+  QObject::connect(connection_.get(), &TCPConnection::socketConnected,
+                   this, &SIPConnection::connectionEstablished);
+}
+
+void SIPConnection::connectionEstablished(QString localAddress, QString remoteAddress)
+{
+  emit sipConnectionEstablished(sessionID_,
+                                localAddress,
+                                remoteAddress);
+}
+
 
 void SIPConnection::destroyConnection()
 {

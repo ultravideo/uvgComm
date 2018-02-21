@@ -103,7 +103,7 @@ void TCPConnection::connectLoop()
            << " Remote address: " << socket_->peerAddress().toString()
            << ":" << socket_->peerPort();
 
-  emit socketConnected(socket_->localAddress(), socket_->peerAddress());
+  emit socketConnected(socket_->localAddress().toString(), socket_->peerAddress().toString());
 }
 
 

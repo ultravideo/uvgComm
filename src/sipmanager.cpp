@@ -69,7 +69,7 @@ QList<uint32_t> SIPManager::startCall(QList<Contact> addresses)
     dialog->routing = NULL;
     connectionMutex_.lock();
     // message is sent only after connection has been established so we know our address
-    dialog->sCon->initConnection(TCP, addresses.at(i).remoteAddress);
+    dialog->sCon->createConnection(TCP, addresses.at(i).remoteAddress);
 
     dialogs_.push_back(dialog);
     connectionMutex_.unlock();
