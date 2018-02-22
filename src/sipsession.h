@@ -36,19 +36,15 @@ public:
   bool correctResponse(std::shared_ptr<SIPSessionInfo> session);
 
   // processes incoming request
-  void processRequest(RequestType request,
-                      const SIPSessionInfo& session,
-                      const SIPMessageInfo &messageInfo);
+  void processRequest(SIPRequest& request);
 
   //processes incoming response
-  void processResponse(ResponseType response,
-                       const SIPSessionInfo& session,
-                       const SIPMessageInfo &messageInfo);
-
+  void processResponse(SIPResponse& response);
 
   bool startCall();
   void endCall();
   void registerToServer();
+  void acceptCall();
 
   void connectionReady(bool ready);
 
@@ -69,12 +65,16 @@ signals:
   // notify the user
   void callRinging(uint32_t sessionID);
   void callAccepted(uint32_t sessionID);
-  void callFailed(uint32_t sessionID);
   void callDeclined(uint32_t sessionID);
-  void callEnded(uint32_t sessionID);
+  void callFailed(uint32_t sessionID);
 
   void registerSucceeded(uint32_t sessionID);
   void registerFailed(uint32_t sessionID);
+
+  void incomingCall(uint32_t sessionID);
+  void cancelIncomingCall(uint32_t sessionID);
+  void callStarting(uint32_t sessionID);
+  void callEnded(uint32_t sessionID);
 
   // send messages to other end
   void sendRequest(uint32_t sessionID, RequestType type);

@@ -48,7 +48,7 @@ std::shared_ptr<SIPSessionInfo> SIPSession::getResponseInfo()
 
 bool SIPSession::correctRequest(std::shared_ptr<SIPSessionInfo> session)
 {
-  return session->toTag == localTag_ && (session->fromTag == remoteTag_ || remoteTag_ == "") &&
+  return (session->toTag == localTag_ || session->toTag == "") && (session->fromTag == remoteTag_ || remoteTag_ == "") &&
       ( session->callID == callID_ || callID_ == "");
 }
 
@@ -61,6 +61,8 @@ bool SIPSession::correctResponse(std::shared_ptr<SIPSessionInfo> session)
 std::shared_ptr<SIPMessageInfo> SIPSession::generateMessage(RequestType originalRequest)
 {
   std::shared_ptr<SIPMessageInfo> mesg = std::shared_ptr<SIPMessageInfo>(new SIPMessageInfo);
+  mesg->session = NULL;
+  mesg->routing = NULL;
   mesg->cSeq = cSeq_;
   ++cSeq_;
   if(originalRequest == ACK)
@@ -75,8 +77,7 @@ std::shared_ptr<SIPMessageInfo> SIPSession::generateMessage(RequestType original
 }
 
 // processes incoming request
-void SIPSession::processRequest(RequestType request, const SIPSessionInfo& session,
-                                const SIPMessageInfo& messageInfo)
+void SIPSession::processRequest(SIPRequest &request)
 {
   Q_ASSERT(sessionID_ != 0);
   if(!sessionID_)
@@ -84,11 +85,52 @@ void SIPSession::processRequest(RequestType request, const SIPSessionInfo& sessi
     qWarning() << "WARNING: SIP Session not initialized.";
     return;
   }
+
+  switch(request.type)
+  {
+  case INVITE:
+  {
+    emit incomingCall(sessionID_);
+    responseSender(SIP_RINGING);
+    break;
+  }
+  case ACK:
+  {
+    emit callAccepted(sessionID_);
+    break;
+  }
+  case BYE:
+  {
+    emit callEnded(sessionID_);
+    break;
+  }
+  case CANCEL:
+  {
+    emit cancelIncomingCall(sessionID_);
+    break;
+  }
+  case OPTIONS:
+  {
+    qDebug() << "Don't know what to do with OPTIONS yet";
+    break;
+  }
+  case REGISTER:
+  {
+    qDebug() << "Why on earth are we receiving REGISTER methods?";
+    responseSender(SIP_NOT_IMPLEMENTED);
+    break;
+  }
+  default:
+  {
+    qDebug() << "Unsupported request type received";
+    responseSender(SIP_NOT_IMPLEMENTED);
+    break;
+  }
+  }
 }
 
 //processes incoming response
-void SIPSession::processResponse(ResponseType response, const SIPSessionInfo &session,
-                                 const SIPMessageInfo& messageInfo)
+void SIPSession::processResponse(SIPResponse &response)
 {
   Q_ASSERT(sessionID_ != 0);
   if(!sessionID_)

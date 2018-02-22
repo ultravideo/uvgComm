@@ -228,15 +228,21 @@ void SIPManager::processSIPRequest(SIPRequest request,
   std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
   connectionMutex_.unlock();
 
-  if(!dialogs_.at(sessionID - 1)->routing->incomingSIPRequest(request.message->routing))
+  if(!dialog->routing->incomingSIPRequest(request.message->routing))
   {
-    qDebug() << "Something wrong with incoming SIP request";
-    // TODO: sent to wrong address
+    qDebug() << "Something wrong with incoming SIP request routing";
+    sendResponse(sessionID, SIP_NOT_FOUND);
     return;
   }
 
-  qWarning() << "WARNING: Processing requests not implemented yet";
-  //dialogs_.at(sessionID - 1)->session->processRequest();
+  if(!dialog->session->correctRequest(request.message->session))
+  {
+    qDebug() << "Received a request for a wrong session!";
+    sendResponse(sessionID, SIP_CALL_DOES_NOT_EXIST);
+    return;
+  }
+
+  dialogs_.at(sessionID - 1)->session->processRequest(request);
 }
 
 void SIPManager::processSIPResponse(SIPResponse response,
@@ -250,7 +256,7 @@ void SIPManager::processSIPResponse(SIPResponse response,
   {
 
     qDebug() << "Something wrong with incoming SIP response";
-    // TODO: sent to wrong address
+    // TODO: sent to wrong address (404 response)
     return;
   }
   qWarning() << "WARNING: Processing responses not implemented yet";
