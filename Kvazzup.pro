@@ -111,7 +111,8 @@ HEADERS  += \
     src/sipconversions.h \
     src/sdpparser.h \
     src/sipfieldparser.h \
-    src/tcpconnection.h
+    src/tcpconnection.h \
+    src/callcontrolinterface.h
 
 FORMS    += \
     ui/callwindow.ui \

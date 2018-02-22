@@ -5,11 +5,8 @@
 #include "globalsdpstate.h"
 #include "siptypes.h"
 
-
 #include <QHostAddress>
 #include <QtEndian>
-
-
 
 CallManager::CallManager():
     media_(),
@@ -24,32 +21,6 @@ void CallManager::init()
   VideoWidget* selfview = window_.getSelfDisplay();
 
   sip_.init();
-
-  // make the system react to messages from other call participants
-  QObject::connect(&sip_, SIGNAL(incomingINVITE(QString, QString)),
-                   this, SLOT(incomingCall(QString, QString)));
-
-  QObject::connect(&sip_, SIGNAL(callingOurselves(QString, std::shared_ptr<SDPMessageInfo>)),
-                   this, SLOT(callOurselves(QString, std::shared_ptr<SDPMessageInfo>)));
-
-  QObject::connect(&sip_, SIGNAL(callNegotiated(QString, std::shared_ptr<SDPMessageInfo>,
-                                                              std::shared_ptr<SDPMessageInfo>)),
-                   this, SLOT(callNegotiated(QString, std::shared_ptr<SDPMessageInfo>,
-                                                      std::shared_ptr<SDPMessageInfo>)));
-
-  QObject::connect(&sip_, SIGNAL(ringing(QString)),
-                   this, SLOT(callRinging(QString)));
-
-  QObject::connect(&sip_, SIGNAL(ourCallAccepted(QString, std::shared_ptr<SDPMessageInfo>,
-                                                               std::shared_ptr<SDPMessageInfo>)),
-                   this, SLOT(callNegotiated(QString, std::shared_ptr<SDPMessageInfo>,
-                                                      std::shared_ptr<SDPMessageInfo>)));
-
-  QObject::connect(&sip_, SIGNAL(ourCallRejected(QString)),
-                   this, SLOT(callRejected(QString)));
-
-  QObject::connect(&sip_, SIGNAL(callEnded(QString, QString)),
-                   this, SLOT(callEnded(QString, QString)));
 
   // register the GUI signals indicating GUI changes to be handled approrietly in a system wide manner
   QObject::connect(&window_, SIGNAL(settingsChanged()), this, SLOT(updateSettings()));
@@ -79,7 +50,6 @@ void CallManager::noStunAddress()
 {
   qDebug() << "Could not get STUN address";
 }
-
 
 void CallManager::uninit()
 {
@@ -122,13 +92,6 @@ void CallManager::callToParticipant(QString name, QString username, QString ip)
   }
 }
 
-void CallManager::callOurselves(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> info)
-{
-  qDebug() << "Calling ourselves, how boring.";
-  VideoWidget* view = window_.addVideoStream(sessionID);
-  createParticipant(sessionID, info, info, view, stats_);
-}
-
 void CallManager::chatWithParticipant(QString name, QString username, QString ip)
 {
   qDebug() << "Chatting with:" << name << '(' << username << ") at ip:" << ip << ": Chat not implemented yet";
@@ -144,6 +107,56 @@ void CallManager::incomingCall(uint32_t sessionID, QString caller)
   }
 
   window_.displayIncomingCall(sessionID, caller);
+}
+
+void CallManager::callRinging(uint32_t sessionID)
+{
+  qDebug() << "Our call is ringing!";
+  window_.displayRinging(sessionID);
+}
+
+void CallManager::callRejected(uint32_t sessionID)
+{
+  qDebug() << "Our call has been rejected!";
+  window_.removeParticipant(sessionID);
+  media_.freePorts();
+}
+
+void CallManager::callNegotiated(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> peerInfo,
+                                std::shared_ptr<SDPMessageInfo> localInfo)
+{
+  qDebug() << "Our call has been accepted." << "Sending media to IP:" << peerInfo->connection_address
+           << "to port:" << peerInfo->media.first().receivePort;
+
+  VideoWidget* view = window_.addVideoStream(sessionID);
+
+  // TODO check the SDP info and do ports and rtp numbers properly
+  createParticipant(sessionID, peerInfo, localInfo, view, stats_);
+}
+
+void CallManager::callNegotiationFailed(uint32_t sessionID)
+{
+  // TODO: display a proper error for the user
+  callRejected(sessionID);
+}
+
+void CallManager::cancelIncomingCall(uint32_t sessionID)
+{
+  // TODO: display a proper message to the user
+  window_.removeParticipant(sessionID);
+}
+
+void CallManager::endCall(uint32_t sessionID, QString ip)
+{
+  media_.removeParticipant(sessionID);
+  window_.removeParticipant(sessionID);
+  stats_->removeParticipant(ip);
+}
+
+void CallManager::registeredToServer()
+{
+  qDebug() << "Got info, that we have been registered to SIP server.";
+  // TODO: indicate to user in some small detail
 }
 
 void CallManager::updateSettings()
@@ -216,17 +229,6 @@ void CallManager::createParticipant(uint32_t sessionID, std::shared_ptr<SDPMessa
   media_.addParticipant(sessionID, ip, sendAudioPort, recvAudioPort, sendVideoPort, recvVideoPort, videoWidget);
 }
 
-void CallManager::callNegotiated(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> peerInfo,
-                                std::shared_ptr<SDPMessageInfo> localInfo)
-{
-  qDebug() << "Our call has been accepted." << "Sending media to IP:" << peerInfo->connection_address
-           << "to port:" << peerInfo->media.first().receivePort;
-
-  VideoWidget* view = window_.addVideoStream(sessionID);
-
-  // TODO check the SDP info and do ports and rtp numbers properly
-  createParticipant(sessionID, peerInfo, localInfo, view, stats_);
-}
 
 void CallManager::acceptCall(uint32_t sessionID)
 {
@@ -255,24 +257,4 @@ void CallManager::micState()
 void CallManager::cameraState()
 {
   window_.setCameraState(media_.toggleCamera());
-}
-
-void CallManager::callRinging(uint32_t sessionID)
-{
-  qDebug() << "Our call is ringing!";
-  window_.displayRinging(sessionID);
-}
-
-void CallManager::callRejected(uint32_t sessionID)
-{
-  qDebug() << "Our call has been rejected!";
-  window_.removeParticipant(sessionID);
-  media_.freePorts();
-}
-
-void CallManager::callEnded(uint32_t sessionID, QString ip)
-{
-  media_.removeParticipant(sessionID);
-  window_.removeParticipant(sessionID);
-  stats_->removeParticipant(ip);
 }

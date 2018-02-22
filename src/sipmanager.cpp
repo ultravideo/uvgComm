@@ -172,6 +172,8 @@ std::shared_ptr<SIPRouting> SIPManager::createSIPRouting(QString remoteUsername,
 
 void SIPManager::receiveTCPConnection(TCPConnection *con)
 {
+  // TODO: this could also be for one of the existing sessions, not just a new session
+
   qDebug() << "Received a TCP connection. Initializing dialog";
   Q_ASSERT(con);
   std::shared_ptr<SIPDialogData> dialog = std::shared_ptr<SIPDialogData> (new SIPDialogData);

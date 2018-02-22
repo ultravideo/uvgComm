@@ -4,6 +4,7 @@
 #include "sipmanager.h"
 #include "gui/callwindow.h"
 #include "participantinterface.h"
+#include "callcontrolinterface.h"
 #include "stun.h"
 
 #include <QObject>
@@ -11,7 +12,7 @@
 struct SDPMessageInfo;
 class StatisticsInterface;
 
-class CallManager : public QObject, public ParticipantInterface
+class CallManager : public QObject, public ParticipantInterface, public CallControlInterface
 {
   Q_OBJECT
 public:
@@ -24,6 +25,17 @@ public:
   virtual void callToParticipant(QString name, QString username, QString ip);
   virtual void chatWithParticipant(QString name, QString username, QString ip);
 
+  // Call Control Interface userd by SIP
+  virtual void incomingCall(uint32_t sessionID, QString caller);
+  virtual void callRinging(uint32_t sessionID);
+  virtual void callRejected(uint32_t sessionID);
+  virtual void callNegotiated(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> peerInfo,
+                              std::shared_ptr<SDPMessageInfo> localInfo);
+  virtual void callNegotiationFailed(uint32_t sessionID);
+  virtual void cancelIncomingCall(uint32_t sessionID);
+  virtual void endCall(uint32_t sessionID, QString ip);
+  virtual void registeredToServer();
+
 public slots:  
 
   // reaction to user GUI interactions
@@ -34,15 +46,6 @@ public slots:
   void windowClosed();
   void acceptCall(uint32_t sessionID);
   void rejectCall(uint32_t sessionID);
-
-  // call state changes view negotiation slots
-  void incomingCall(uint32_t sessionID, QString caller);
-  void callOurselves(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> info);
-  void callNegotiated(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> peerInfo,
-                     std::shared_ptr<SDPMessageInfo> localInfo);
-  void callRinging(uint32_t sessionID);
-  void callRejected(uint32_t sessionID);
-  void callEnded(uint32_t sessionID, QString ip);
 
 private slots:
 
