@@ -29,12 +29,12 @@ public:
   virtual void incomingCall(uint32_t sessionID, QString caller);
   virtual void callRinging(uint32_t sessionID);
   virtual void callRejected(uint32_t sessionID);
-  virtual void callNegotiated(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> peerInfo,
-                              std::shared_ptr<SDPMessageInfo> localInfo);
+  virtual void callNegotiated(uint32_t sessionID);
   virtual void callNegotiationFailed(uint32_t sessionID);
   virtual void cancelIncomingCall(uint32_t sessionID);
-  virtual void endCall(uint32_t sessionID, QString ip);
+  virtual void endCall(uint32_t sessionID);
   virtual void registeredToServer();
+  virtual void registeringFailed();
 
 public slots:  
 

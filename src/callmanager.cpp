@@ -20,7 +20,7 @@ void CallManager::init()
   window_.show();
   VideoWidget* selfview = window_.getSelfDisplay();
 
-  sip_.init();
+  sip_.init(this);
 
   // register the GUI signals indicating GUI changes to be handled approrietly in a system wide manner
   QObject::connect(&window_, SIGNAL(settingsChanged()), this, SLOT(updateSettings()));
@@ -122,16 +122,15 @@ void CallManager::callRejected(uint32_t sessionID)
   media_.freePorts();
 }
 
-void CallManager::callNegotiated(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> peerInfo,
-                                std::shared_ptr<SDPMessageInfo> localInfo)
+void CallManager::callNegotiated(uint32_t sessionID)
 {
-  qDebug() << "Our call has been accepted." << "Sending media to IP:" << peerInfo->connection_address
-           << "to port:" << peerInfo->media.first().receivePort;
+  //qDebug() << "Our call has been accepted." << "Sending media to IP:" << peerInfo->connection_address
+  //         << "to port:" << peerInfo->media.first().receivePort;
 
   VideoWidget* view = window_.addVideoStream(sessionID);
 
   // TODO check the SDP info and do ports and rtp numbers properly
-  createParticipant(sessionID, peerInfo, localInfo, view, stats_);
+  //createParticipant(sessionID, peerInfo, localInfo, view, stats_);
 }
 
 void CallManager::callNegotiationFailed(uint32_t sessionID)
@@ -146,17 +145,23 @@ void CallManager::cancelIncomingCall(uint32_t sessionID)
   window_.removeParticipant(sessionID);
 }
 
-void CallManager::endCall(uint32_t sessionID, QString ip)
+void CallManager::endCall(uint32_t sessionID)
 {
   media_.removeParticipant(sessionID);
   window_.removeParticipant(sessionID);
-  stats_->removeParticipant(ip);
+  //stats_->removeParticipant(ip); TODO use sessionID for stats identificatioin
 }
 
 void CallManager::registeredToServer()
 {
   qDebug() << "Got info, that we have been registered to SIP server.";
   // TODO: indicate to user in some small detail
+}
+
+void CallManager::registeringFailed()
+{
+  qDebug() << "Failed to register";
+  // TODO: indicate error to user
 }
 
 void CallManager::updateSettings()

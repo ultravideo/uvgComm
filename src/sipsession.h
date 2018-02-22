@@ -18,6 +18,8 @@
 
 enum CallState {CALL_INACTIVE, CALL_NEGOTIATING, CALL_ACTIVE};
 
+class CallControlInterface;
+
 class SIPSession : public QObject
 {
   Q_OBJECT
@@ -25,7 +27,7 @@ class SIPSession : public QObject
 public:
   SIPSession();
 
-  void init(uint32_t sessionID);
+  void init(uint32_t sessionID, CallControlInterface* callControl);
 
   std::shared_ptr<SIPSessionInfo> getRequestInfo();
   std::shared_ptr<SIPSessionInfo> getResponseInfo();
@@ -62,15 +64,6 @@ public:
 
 signals:
 
-  // notify the user
-  void callRinging(uint32_t sessionID);
-  void callAccepted(uint32_t sessionID);
-  void callDeclined(uint32_t sessionID);
-  void callFailed(uint32_t sessionID);
-
-  void registerSucceeded(uint32_t sessionID);
-  void registerFailed(uint32_t sessionID);
-
   void incomingCall(uint32_t sessionID);
   void cancelIncomingCall(uint32_t sessionID);
   void callStarting(uint32_t sessionID);
@@ -103,4 +96,6 @@ private:
   bool connected_;
   RequestType pendingRequest_;
   ResponseType pendingResponse_;
+
+  CallControlInterface* callControl_;
 };

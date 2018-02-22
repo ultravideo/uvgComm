@@ -13,9 +13,11 @@ SIPManager::SIPManager():
   localUsername_("")
 {}
 
-void SIPManager::init()
+void SIPManager::init(CallControlInterface *callControl)
 {
   qDebug() << "Iniating SIP Manager";
+
+  callControl_ = callControl;
 
   QObject::connect(&server_, SIGNAL(newConnection(TCPConnection*)),
                    this, SLOT(receiveTCPConnection(TCPConnection*)));
@@ -112,7 +114,7 @@ std::shared_ptr<SIPSession> SIPManager::createSIPSession(uint32_t sessionID)
   qDebug() << "Creating SIP Session";
   std::shared_ptr<SIPSession> session = std::shared_ptr<SIPSession> (new SIPSession());
 
-  session->init(sessionID);
+  session->init(sessionID, callControl_);
 
   QObject::connect(session.get(), SIGNAL(sendRequest(uint32_t,RequestType)),
                    this, SLOT(sendRequest(uint32_t,RequestType)));

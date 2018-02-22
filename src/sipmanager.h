@@ -20,6 +20,7 @@ struct Contact
 
 class SIPRouting;
 class SIPSession;
+class CallControlInterface;
 
 class SIPManager : public QObject
 {
@@ -27,7 +28,7 @@ class SIPManager : public QObject
 public:
   SIPManager();
 
-  void init();
+  void init(CallControlInterface* callControl);
   void uninit();
 
   QList<uint32_t> startCall(QList<Contact> addresses);
@@ -122,4 +123,6 @@ private:
 
   QString localName_;
   QString localUsername_;
+
+  CallControlInterface* callControl_;
 };

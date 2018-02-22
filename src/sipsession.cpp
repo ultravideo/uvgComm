@@ -1,6 +1,8 @@
 #include "sipsession.h"
 #include "common.h"
 
+#include "callcontrolinterface.h"
+
 #include <QDebug>
 
 // 2 seconds for a SIP reply
@@ -26,9 +28,11 @@ SIPSession::SIPSession():
   pendingResponse_(SIP_UNKNOWN_RESPONSE)
 {}
 
-void SIPSession::init(uint32_t sessionID)
+void SIPSession::init(uint32_t sessionID, CallControlInterface *callControl)
 {
   Q_ASSERT(sessionID != 0);
+  Q_ASSERT(callControl);
+  callControl_ = callControl;
   localTag_ = generateRandomString(TAGLENGTH);
   sessionID_ = sessionID;
   timeoutTimer_.setSingleShot(true);
@@ -86,27 +90,29 @@ void SIPSession::processRequest(SIPRequest &request)
     return;
   }
 
+  // TODO: check that the request is appropriate at this time.
+
   switch(request.type)
   {
   case INVITE:
   {
-    emit incomingCall(sessionID_);
+    callControl_->incomingCall(sessionID_, request.message->routing->to.realname);
     responseSender(SIP_RINGING);
     break;
   }
   case ACK:
   {
-    emit callAccepted(sessionID_);
+    callControl_->callNegotiated(sessionID_);
     break;
   }
   case BYE:
   {
-    emit callEnded(sessionID_);
+    callControl_->endCall(sessionID_);
     break;
   }
   case CANCEL:
   {
-    emit cancelIncomingCall(sessionID_);
+    emit callControl_->cancelIncomingCall(sessionID_);
     break;
   }
   case OPTIONS:
@@ -248,7 +254,7 @@ void SIPSession::requestTimeOut()
     // TODO tell user we have failed
   }
 
-  // TODO emit some signal indicating something
-  emit callFailed(sessionID_);
+  requestSender(CANCEL);
+  callControl_->callRejected(sessionID_);
   ongoingTransactionType_ = SIP_UNKNOWN_REQUEST;
 }
