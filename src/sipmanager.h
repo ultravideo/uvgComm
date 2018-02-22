@@ -41,33 +41,6 @@ public:
   void makeConference();
   void dispandConference();
 
-signals:
-
-  // caller wants to establish a call.
-  // Ask use if it is and call accept or reject call
-  void incomingINVITE(uint32_t sessionID, QString caller);
-
-  // we are calling ourselves.
-  // TODO: Current implementation ceases the negotiation and just starts the call.
-  void callingOurselves(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> info);
-
-  // their call which we have accepted has finished negotiating. Call can now start.
-  void callNegotiated(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> peerInfo,
-                      std::shared_ptr<SDPMessageInfo> localInfo);
-
-  // Local call is waiting for user input at remote end
-  void ringing(uint32_t sessionID);
-
-  // Call iniated locally has been accepted by peer. Call can now start.
-  void ourCallAccepted(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> peerInfo,
-                       std::shared_ptr<SDPMessageInfo> localInfo);
-
-  // Remote rejected local INVITE
-  void ourCallRejected(uint32_t sessionID);
-
-  // Received call ending signal (BYE)
-  void callEnded(uint32_t sessionID, QString ip);
-
 private slots:
   // connection has been established. This enables for us to get the needed info
   // to form a SIP message
