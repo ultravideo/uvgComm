@@ -60,10 +60,8 @@ private:
     std::shared_ptr<SIPSession> session;
     std::shared_ptr<SIPRouting> routing;
     QString remoteUsername;
-    // has local invite sdp or o response sdp
-    std::shared_ptr<SDPMessageInfo> localSdp_;
-    // empty until final ok 200
-    std::shared_ptr<SDPMessageInfo> remoteSdp_;
+    std::shared_ptr<SDPMessageInfo> localFinalSdp_;
+    std::shared_ptr<SDPMessageInfo> remoteFinalSdp_;
   };
 
   std::shared_ptr<SIPSession> createSIPSession(uint32_t sessionID);

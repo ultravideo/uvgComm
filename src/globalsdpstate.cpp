@@ -26,7 +26,7 @@ void GlobalSDPState::setPortRange(uint16_t minport, uint16_t maxport, uint16_t m
   remainingPorts_ = maxRTPConnections;
 }
 
-std::shared_ptr<SDPMessageInfo> GlobalSDPState::localInviteSDP()
+std::shared_ptr<SDPMessageInfo> GlobalSDPState::localSDPSuggestion()
 {
   return generateSDP();
 }
@@ -114,13 +114,13 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP()
   return newInfo;
 }
 // returns NULL if suitable could not be found
-std::shared_ptr<SDPMessageInfo> GlobalSDPState::localResponseSDP(std::shared_ptr<SDPMessageInfo> remoteInviteSDP)
+std::shared_ptr<SDPMessageInfo> GlobalSDPState::localFinalSDP(std::shared_ptr<SDPMessageInfo> remoteSDP)
 {
-  if(remoteInviteSDP == NULL)
+  if(remoteSDP == NULL)
   {
     qDebug() << "WARNING: Got a remote NULL invite SDP.";
   }
-  else if(!checkSDPOffer(remoteInviteSDP))
+  else if(!checkSDPOffer(remoteSDP))
   {
     qDebug() << "Incoming SDP did not have Opus and H265 in their offer.";
     return NULL;
@@ -128,7 +128,7 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::localResponseSDP(std::shared_ptr
 
   // check if suitable.
   // Generate response
-  return generateSDP();
+  return generateSDP(); // TODO: this does not make sense. The final should be modified from suggestion
 }
 
 bool GlobalSDPState::remoteFinalSDP(std::shared_ptr<SDPMessageInfo> remoteInviteSDP)
@@ -199,6 +199,5 @@ void GlobalSDPState::makePortPairAvailable(uint16_t lowerPort)
     availablePorts_.push_back(lowerPort);
     remainingPorts_ += 2;
     portLock_.unlock();
-
   }
 }

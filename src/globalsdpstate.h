@@ -17,16 +17,19 @@ public:
   void setPortRange(uint16_t minport, uint16_t maxport, uint16_t maxRTPConnections);
 
   // when sending an invite, use this'
-  // generates the next suitable SDP message
-  std::shared_ptr<SDPMessageInfo> localInviteSDP();
+  // generates the next suitable SDP message with all possible options
+  std::shared_ptr<SDPMessageInfo> localSDPSuggestion();
 
   // checks if invite message is acceptable
+  // use for getting our answer and for getting our final to be used
   // returns NULL if suitable could not be found
   // chooces what to use
-  std::shared_ptr<SDPMessageInfo> localResponseSDP(std::shared_ptr<SDPMessageInfo> remoteInviteSDP);
+  std::shared_ptr<SDPMessageInfo> localFinalSDP(std::shared_ptr<SDPMessageInfo> remoteSDP);
 
-  // return if the final SDP was suitable.
+  // return if the final SDP was suitable. It should be, but just to be sure
   bool remoteFinalSDP(std::shared_ptr<SDPMessageInfo> remoteInviteSDP);
+
+  // TODO: failed SDP negotiations and ended calls
 
 private:
 
