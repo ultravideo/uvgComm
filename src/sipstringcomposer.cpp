@@ -1,76 +1,9 @@
 #include "sipstringcomposer.h"
 
+#include "sipconversions.h"
+
 SIPStringComposer::SIPStringComposer()
 {}
-
-
-
-QString SIPStringComposer::requestToString(const RequestType request)
-{
-  switch(request)
-  {
-    case INVITE:
-    {
-      return "INVITE";
-      break;
-    }
-    case ACK:
-    {
-      return "ACK";
-      break;
-    }
-    case BYE:
-    {
-      return "BYE";
-      break;
-    }
-    case SIP_UNKNOWN_REQUEST:
-    {
-      qCritical() << "WARNING: Received NOREQUEST for string translation";
-      break;
-    }
-    default:
-    {
-      qCritical() << "WARNING: SIP REQUEST NOT IMPLEMENTED";
-      return "";
-      break;
-    }
-  }
-  return "";
-}
-
-QString SIPStringComposer::responseToString(const ResponseType response)
-{
-  switch(response)
-  {
-    case SIP_RINGING:
-    {
-      return "180 RINGING";
-      break;
-    }
-    case SIP_OK:
-    {
-      return "200 OK";
-      break;
-    }
-    case SIP_DECLINE:
-    {
-      return "603 DECLINE";
-      break;
-    }
-    case SIP_UNKNOWN_RESPONSE:
-    {
-      qCritical() << "Received NORESPONSE for string translation";
-      break;
-    }
-    default:
-    {
-      qCritical() << "SIP RESPONSE NOT IMPLEMENTED";
-      break;
-    }
-  }
-  return "";
-}
 
 void SIPStringComposer::initializeMessage(const QString& SIPversion)
 {
@@ -96,7 +29,7 @@ messageID SIPStringComposer::startSIPRequest(const RequestType request, const QS
 messageID SIPStringComposer::startSIPResponse(const ResponseType response, const QString& SIPversion)
 {
   initializeMessage(SIPversion);
-  messages_.back()->method = responseToString(response);
+  messages_.back()->method = responseToCode(response) + responseToPhrase(response);
   messages_.back()->isRequest = false;
   return messages_.size();
 }

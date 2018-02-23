@@ -89,9 +89,6 @@ private:
     QString content;       // addSDP-function
   };
 
-  QString requestToString(const RequestType request);
-  QString responseToString(const ResponseType response);
-
   bool checkMessageReady(SIPMessage* message);
   void initializeMessage(const QString& SIPversion);
 
