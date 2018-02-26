@@ -85,7 +85,6 @@ void SIPConnection::connectionEstablished(QString localAddress, QString remoteAd
                                 remoteAddress);
 }
 
-
 void SIPConnection::destroyConnection()
 {
   if(connection_ == NULL)
@@ -104,37 +103,13 @@ void SIPConnection::destroyConnection()
 
 void SIPConnection::sendRequest(SIPRequest& request, std::shared_ptr<SDPMessageInfo> sdp)
 {
-  // convert routingInfo to SIPMesgInfo to struct fields
-  // check that all fields are present
-  // check message (and maybe parse?)
-  // create and attach SDP if necessary
-  // send string
-
-  std::shared_ptr<SIPRoutingInfo> routing = request.message->routing;
-  std::shared_ptr<SIPSessionInfo> session = request.message->session;
-
   messageID id = messageComposer_.startSIPRequest(request.type);
 
-  messageComposer_.to(id, routing->to.realname, routing->to.username,
-                        routing->to.host, session->toTag);
-  messageComposer_.fromIP(id, routing->from.realname, routing->from.username,
-                          QHostAddress(routing->from.host), session->fromTag);
-
-  for(ViaInfo viaAddress : routing->senderReplyAddress)
-  {
-    QString branch = routing->senderReplyAddress.at(0).branch;
-    messageComposer_.viaIP(id, QHostAddress(viaAddress.address), branch);
-  }
-
-  messageComposer_.maxForwards(id, routing->maxForwards);
-  messageComposer_.setCallID(id, session->callID, routing->from.host);
-  messageComposer_.sequenceNum(id, request.message->cSeq, request.message->transactionRequest);
+  composeHelper(id, request.message);
 
   if(request.type == INVITE)
   {
     Q_ASSERT(sdp);
-    //sdp_.setLocalInfo(QHostAddress(routing->from.host), routing->from.username);
-    //td::shared_ptr<SDPMessageInfo> sdp = sdp_.localInviteSDP();'
     QString sdp_str = messageComposer_.formSDP(sdp);
     messageComposer_.addSDP(id,sdp_str);
   }
@@ -151,12 +126,50 @@ void SIPConnection::sendRequest(SIPRequest& request, std::shared_ptr<SDPMessageI
   }
 }
 
-
 void SIPConnection::sendResponse(SIPResponse &response, std::shared_ptr<SDPMessageInfo> sdp)
 {
-  qWarning() << "WARNING: SIPConnection not implemented yet.";
+  messageID id = messageComposer_.startSIPResponse(response.type);
+  composeHelper(id, response.message);
+
+  if(response.message->transactionRequest == INVITE && response.type == SIP_OK)
+  {
+    Q_ASSERT(sdp);
+    QString sdp_str = messageComposer_.formSDP(sdp);
+    messageComposer_.addSDP(id,sdp_str);
+  }
+
+  QString message = messageComposer_.composeMessage(id);
+
+  if(connection_ != NULL)
+  {
+    connection_->sendPacket(message);
+  }
+  else
+  {
+    qWarning() << "WARNING: Trying to send a packet without connection";
+  }
 }
 
+void SIPConnection::composeHelper(uint32_t id, std::shared_ptr<SIPMessageInfo> message)
+{
+  std::shared_ptr<SIPRoutingInfo> routing = message->routing;
+  std::shared_ptr<SIPSessionInfo> session = message->session;
+
+  messageComposer_.to(id, routing->to.realname, routing->to.username,
+                        routing->to.host, session->toTag);
+  messageComposer_.fromIP(id, routing->from.realname, routing->from.username,
+                          QHostAddress(routing->from.host), session->fromTag);
+
+  for(ViaInfo viaAddress : routing->senderReplyAddress)
+  {
+    QString branch = routing->senderReplyAddress.at(0).branch;
+    messageComposer_.viaIP(id, QHostAddress(viaAddress.address), branch);
+  }
+
+  messageComposer_.maxForwards(id, routing->maxForwards);
+  messageComposer_.setCallID(id, session->callID, routing->from.host);
+  messageComposer_.sequenceNum(id, message->cSeq, message->transactionRequest);
+}
 
 void SIPConnection::networkPackage(QString message)
 {

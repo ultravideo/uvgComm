@@ -39,6 +39,8 @@ signals:
 
 private:
 
+  void composeHelper(uint32_t id, std::shared_ptr<SIPMessageInfo> message);
+
   void parsePackage(QString package, QString& header, QString& body);
   bool parseSIPHeader(QString header);
   void parseSIPaddress(QString address, QString& user, QString& location);
