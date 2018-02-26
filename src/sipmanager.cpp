@@ -273,9 +273,8 @@ void SIPManager::sendRequest(uint32_t sessionID, RequestType type)
   QString directRouting = "";
 
   // Get all the necessary information from different components.
-  SIPRequest request = {type, dialogs_.at(sessionID - 1)->session->generateMessage(type)};
+  SIPRequest request = {type, dialogs_.at(sessionID - 1)->session->getRequestInfo(type)};
   request.message->routing = dialogs_.at(sessionID - 1)->routing->requestRouting(directRouting);
-  request.message->session = dialogs_.at(sessionID - 1)->session->getRequestInfo();
 
   std::shared_ptr<SDPMessageInfo> sdp_info = NULL;
   if(type == INVITE) // TODO: SDP in progress...
@@ -287,9 +286,25 @@ void SIPManager::sendRequest(uint32_t sessionID, RequestType type)
   qDebug() << "---- Finished sending of a request ---";
 }
 
-void SIPManager::sendResponse(uint32_t sessionID, ResponseType response)
+void SIPManager::sendResponse(uint32_t sessionID, ResponseType type)
 {
-  qDebug() << "WARNING: Sending responses not implemented yet";
+  qDebug() << "---- Iniated sending of a response ---";
+  Q_ASSERT(sessionID != 0 && sessionID <= dialogs_.size());
+  QString directRouting = "";
+
+  // Get all the necessary information from different components.
+  SIPResponse response = {type, dialogs_.at(sessionID - 1)->session->getResponseInfo()};
+  response.message->routing = dialogs_.at(sessionID - 1)->routing->requestRouting(directRouting);
+
+  std::shared_ptr<SDPMessageInfo> sdp_info = NULL;
+  if(response.message->transactionRequest == INVITE) // TODO: SDP in progress...
+  {
+    sdp_info = dialogs_.at(sessionID - 1)->localFinalSdp_;
+    Q_ASSERT(sdp_info);
+  }
+
+  dialogs_.at(sessionID - 1)->sCon->sendResponse(response, sdp_info);
+  qDebug() << "---- Finished sending of a response ---";
 }
 
 void SIPManager::destroyDialog(std::shared_ptr<SIPDialogData> dialog)

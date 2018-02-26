@@ -152,7 +152,7 @@ void SIPConnection::sendRequest(SIPRequest& request, std::shared_ptr<SDPMessageI
 }
 
 
-void SIPConnection::sendResponse(SIPResponse &response)
+void SIPConnection::sendResponse(SIPResponse &response, std::shared_ptr<SDPMessageInfo> sdp)
 {
   qWarning() << "WARNING: SIPConnection not implemented yet.";
 }

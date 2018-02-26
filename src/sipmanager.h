@@ -51,7 +51,7 @@ private slots:
   void processSIPResponse(SIPResponse response, quint32 sessionID);
 
   void sendRequest(uint32_t sessionID, RequestType type);
-  void sendResponse(uint32_t sessionID, ResponseType response);
+  void sendResponse(uint32_t sessionID, ResponseType type);
 
 private:
   struct SIPDialogData

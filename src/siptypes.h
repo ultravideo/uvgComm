@@ -153,7 +153,7 @@ struct SIPRequest
 
 struct SIPResponse
 {
-  RequestType type;
+  ResponseType type;
   std::shared_ptr<SIPMessageInfo> message;
 };
 

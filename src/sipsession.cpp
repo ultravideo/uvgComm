@@ -39,15 +39,19 @@ void SIPSession::init(uint32_t sessionID, CallControlInterface *callControl)
   connect(&timeoutTimer_, SIGNAL(timeout()), this, SLOT(requestTimeOut()));
 }
 
-std::shared_ptr<SIPSessionInfo> SIPSession::getRequestInfo()
+std::shared_ptr<SIPMessageInfo> SIPSession::getRequestInfo(RequestType type)
 {
-  return std::shared_ptr<SIPSessionInfo> (new SIPSessionInfo{remoteTag_, localTag_, callID_});
+  std::shared_ptr<SIPMessageInfo> message = generateMessage(type);
+  message->session = std::shared_ptr<SIPSessionInfo> (new SIPSessionInfo{remoteTag_, localTag_, callID_});
+  return message;
 }
 
-std::shared_ptr<SIPSessionInfo> SIPSession::getResponseInfo()
+std::shared_ptr<SIPMessageInfo> SIPSession::getResponseInfo()
 {
   Q_ASSERT(ongoingTransactionType_ != SIP_UNKNOWN_REQUEST);
-  return std::shared_ptr<SIPSessionInfo> (new SIPSessionInfo{localTag_, remoteTag_, callID_});
+  std::shared_ptr<SIPMessageInfo> message = generateMessage(ongoingTransactionType_);
+  message->session = std::shared_ptr<SIPSessionInfo> (new SIPSessionInfo{localTag_, remoteTag_, callID_});
+  return message;
 }
 
 bool SIPSession::correctRequest(std::shared_ptr<SIPSessionInfo> session)

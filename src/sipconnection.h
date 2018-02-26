@@ -21,7 +21,7 @@ public:
   void destroyConnection();
 
   void sendRequest(SIPRequest &request, std::shared_ptr<SDPMessageInfo> sdp);
-  void sendResponse(SIPResponse &response);
+  void sendResponse(SIPResponse &response, std::shared_ptr<SDPMessageInfo> sdp);
 
 public slots:
 

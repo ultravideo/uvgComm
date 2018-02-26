@@ -29,10 +29,9 @@ public:
 
   void init(uint32_t sessionID, CallControlInterface* callControl);
 
-  std::shared_ptr<SIPSessionInfo> getRequestInfo();
-  std::shared_ptr<SIPSessionInfo> getResponseInfo();
-
-  std::shared_ptr<SIPMessageInfo> generateMessage(RequestType originalRequest);
+  // these will provide both message and session structs, routing will be empty
+  std::shared_ptr<SIPMessageInfo> getRequestInfo(RequestType type);
+  std::shared_ptr<SIPMessageInfo> getResponseInfo();
 
   bool correctRequest(std::shared_ptr<SIPSessionInfo> session);
   bool correctResponse(std::shared_ptr<SIPSessionInfo> session);
@@ -78,6 +77,8 @@ private:
   void requestSender(RequestType type);
   void responseSender(ResponseType type);
 
+  std::shared_ptr<SIPMessageInfo> generateMessage(RequestType originalRequest);
+
   QString localTag_;
   QString remoteTag_;
   QString callID_;
@@ -94,6 +95,8 @@ private:
   QTimer timeoutTimer_;
 
   bool connected_;
+
+  // waiting to be sent once the connecion has been opened
   RequestType pendingRequest_;
   ResponseType pendingResponse_;
 
