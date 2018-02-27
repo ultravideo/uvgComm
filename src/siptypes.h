@@ -145,16 +145,33 @@ struct SIPMessageInfo
   ContentInfo content;
 };
 
+// data in a request
 struct SIPRequest
 {
   RequestType type;
   std::shared_ptr<SIPMessageInfo> message;
 };
 
+// data in a response
 struct SIPResponse
 {
   ResponseType type;
   std::shared_ptr<SIPMessageInfo> message;
+};
+
+
+// SIPParameter and SIPField are used as an intermediary step in composing and parsing SIP messages
+struct SIPParameter
+{
+  QString name;
+  QString value;
+};
+
+struct SIPField
+{
+  QString name;
+  QString values;
+  std::shared_ptr<QList<SIPParameter>> parameters;
 };
 
 // sendrecv is default, if none present.
