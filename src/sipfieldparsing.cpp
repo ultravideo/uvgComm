@@ -139,30 +139,11 @@ bool parseViaField(SIPField& field,
   }
   else if(field_match.lastCapturedIndex() == 3)
   {
-    ViaInfo via;
-    if(field_match.captured(2) == "UDP")
-    {
-      via.type = UDP;
-    }
-    else if(field_match.captured(2) == "TCP")
-    {
-      via.type = TCP;
-    }
-    else if(field_match.captured(2) == "TLS")
-    {
-      via.type = TLS;
-    }
-    else
-    {
-      qDebug() << "Unrecognized connection protocol found in Via.";
-      return false;
-    }
-
-    via.version = field_match.captured(1);
-    via.address = field_match.captured(3);
+    ViaInfo via = {stringToConnection(field_match.captured(2)),
+                   field_match.captured(3),
+                   field_match.captured(1), ""};
 
     parseParameterNameToValue(field.parameters, "branch", via.branch);
-
     message->routing->senderReplyAddress.push_back(via);
   }
   else
@@ -239,4 +220,3 @@ bool parseParameter(QString text, SIPParameter& parameter)
 
   return false;
 }
-

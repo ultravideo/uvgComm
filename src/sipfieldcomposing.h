@@ -3,30 +3,32 @@
 #include "siptypes.h"
 
 
+bool getFirstRequestLine(QString& line, SIPRequest& request);
+bool getFirstResponseLine(QString& line, SIPResponse& response);
 
 bool includeToField(QList<SIPField>& fields,
-                  std::shared_ptr<SIPMessageInfo> message);
+                    std::shared_ptr<SIPMessageInfo> message);
 
 bool includeFromField(QList<SIPField>& fields,
-                  std::shared_ptr<SIPMessageInfo> message);
+                      std::shared_ptr<SIPMessageInfo> message);
 
 bool includeCSeqField(QList<SIPField>& fields,
-                  std::shared_ptr<SIPMessageInfo> message);
+                      std::shared_ptr<SIPMessageInfo> message);
 
 bool includeCallIDField(QList<SIPField>& fields,
-                  std::shared_ptr<SIPMessageInfo> message);
+                        std::shared_ptr<SIPMessageInfo> message);
 
-bool includeViaField(QList<SIPField>& fields,
-                  std::shared_ptr<SIPMessageInfo> message);
+bool includeViaFields(QList<SIPField>& fields,
+                      std::shared_ptr<SIPMessageInfo> message);
 
 bool includeMaxForwardsField(QList<SIPField>& fields,
-                  std::shared_ptr<SIPMessageInfo> message);
+                             std::shared_ptr<SIPMessageInfo> message);
 
 bool includeContactField(QList<SIPField>& fields,
-                  std::shared_ptr<SIPMessageInfo> message);
+                         std::shared_ptr<SIPMessageInfo> message);
 
 bool includeContentTypeField(QList<SIPField>& fields,
-                  std::shared_ptr<SIPMessageInfo> message);
+                             QString contentType);
 
 bool includeContentLengthField(QList<SIPField>& fields,
-                  std::shared_ptr<SIPMessageInfo> message);
+                               uint32_t contentLenght);

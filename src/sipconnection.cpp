@@ -103,22 +103,13 @@ void SIPConnection::destroyConnection()
 
 void SIPConnection::sendRequest(SIPRequest& request, std::shared_ptr<SDPMessageInfo> sdp)
 {
-  messageID id = messageComposer_.startSIPRequest(request.type);
 
-  composeHelper(id, request.message);
 
-  if(request.type == INVITE)
-  {
-    Q_ASSERT(sdp);
-    QString sdp_str = messageComposer_.formSDP(sdp);
-    messageComposer_.addSDP(id,sdp_str);
-  }
 
-  QString message = messageComposer_.composeMessage(id);
 
   if(connection_ != NULL)
   {
-    connection_->sendPacket(message);
+    //connection_->sendPacket(message);
   }
   else
   {
@@ -372,7 +363,8 @@ bool SIPConnection::parseSIPHeader(QString header)
     {
       qDebug() << "Response detected:" << firstline_match.captured(1);
 
-      ResponseType type = codeToResponse(stringResponseCode(firstline_match.captured(1)));
+      ResponseType type = codeToResponse(stringToResponseCode(firstline_match.captured(1)));
+      qDebug() << "WARNING: Response parsing is incomplete";
 
     }
     else
