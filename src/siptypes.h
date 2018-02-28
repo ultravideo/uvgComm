@@ -5,6 +5,7 @@
 
 #include <memory>
 
+
 enum RequestType {SIP_UNKNOWN_REQUEST, INVITE, ACK, BYE, CANCEL, OPTIONS, REGISTER}; // RFC 3261
  //PRACK,SUBSCRIBE, NOTIFY, PUBLISH, INFO, REFER, MESSAGE, UPDATE }; RFC 3262, 6665, 3903, 6086, 3515, 3428, 3311
 
@@ -107,6 +108,23 @@ struct ContentInfo
   QString type;
   uint32_t length;
 };
+
+/* notes on expansion of the SIP structures such as SIPRouting, SIPSession, SIPMessage, SIPRequest and SIPResponse
+ * with new sipmessage extensions.
+
+ * If you want to add support for a new parameter to SIP message:
+ * 1) add the parameter to desired struct,
+ * 2) compose the parameter using tryAddParameter in sipfieldcomposing withing desired field and
+ * 3) parse parameter using parseParameterNameToValue in sipfieldparsing
+
+ * If you want to add support for a new field to SIP message:
+ * 1) add field values to desired structs,
+ * 2) add a function for composing the message to sipfieldcomposing
+ * 3) use the composing function in SIPConnection
+ * 4) add a function for field parsing to sipfieldparsing and
+ * 5) add the parsing function to parsing map at the start of sipconnection
+ */
+
 
 // All the info needed for the SIP message to find its correct recipient
 struct SIPRoutingInfo
