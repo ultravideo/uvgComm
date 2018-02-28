@@ -2,6 +2,7 @@
 
 #include "sipconversions.h"
 #include "sipfieldparsing.h"
+#include "sipfieldcomposing.h"
 #include "common.h"
 
 #include <QRegularExpression>
@@ -103,13 +104,75 @@ void SIPConnection::destroyConnection()
 
 void SIPConnection::sendRequest(SIPRequest& request, std::shared_ptr<SDPMessageInfo> sdp)
 {
+  qDebug() << "Composing SIP Request:" << requestToString(request.type);
 
+  QList<SIPField> fields;
 
+  if(!includeViaFields(fields, request.message) ||
+     !includeMaxForwardsField(fields, request.message) ||
+     !includeToField(fields, request.message) ||
+     !includeFromField(fields, request.message) ||
+     !includeCallIDField(fields, request.message) ||
+     !includeCSeqField(fields, request.message) ||
+     !includeContactField(fields, request.message))
+  {
+    qDebug() << "WARNING: Failed to add all the fields. Probably because of missing values";
+    return;
+  }
+  QString sdp_str = "";
+  if(request.type == INVITE)
+  {
+    if(sdp == NULL)
+    {
+      qDebug() << "WARNING: SDP missing from INVITE sending";
+      return;
+    }
 
+    sdp_str = SDPtoString(sdp);
+
+    if(!includeContentLengthField(fields, sdp_str.length()) ||
+       !includeContentTypeField(fields, "application/sdp"))
+    {
+      qDebug() << "WARNING: Could not add sdp fields to request";
+      return;
+    }
+  }
+  else
+  {
+    if(!includeContentLengthField(fields, 0))
+    {
+      qDebug() << "WARNING: SDP missing from INVITE sending";
+      return;
+    }
+  }
+
+  QString lineEnding = "\r\n";
+  QString message = "";
+  if(!getFirstRequestLine(message, request))
+  {
+    qDebug() << "WARNING: could not get first request line";
+    return;
+  }
+  message += lineEnding;
+
+  for(SIPField field : fields)
+  {
+    message += field.name + ": " + field.values;
+    if(field.parameters != NULL)
+    {
+      for(SIPParameter parameter : *field.parameters)
+      {
+        message += ";" + parameter.name + "=" + parameter.value;
+      }
+    }
+    message += lineEnding;
+  }
+  message += lineEnding;
+  message += sdp_str;
 
   if(connection_ != NULL)
   {
-    //connection_->sendPacket(message);
+    connection_->sendPacket(message);
   }
   else
   {
@@ -419,5 +482,77 @@ QList<QHostAddress> SIPConnection::parseIPAddress(QString address)
     ipAddresses.append(hostInfo.addresses());
   }
   return ipAddresses;
+}
+
+
+QString SIPConnection::SDPtoString(const std::shared_ptr<SDPMessageInfo> sdpInfo)
+{
+  if(sdpInfo == NULL ||
+     sdpInfo->version != 0 ||
+     sdpInfo->originator_username.isEmpty() ||
+     sdpInfo->host_nettype.isEmpty() ||
+     sdpInfo->host_addrtype.isEmpty() ||
+     sdpInfo->sessionName.isEmpty() ||
+     sdpInfo->host_address.isEmpty() ||
+     sdpInfo->connection_nettype.isEmpty() ||
+     sdpInfo->connection_addrtype.isEmpty() ||
+     sdpInfo->connection_address.isEmpty() ||
+     sdpInfo->media.empty()
+     )
+  {
+
+    if(sdpInfo != NULL)
+    {
+      qCritical() << "WARNING: Bad SDPInfo in string formation";
+      qWarning() << sdpInfo->version <<
+          sdpInfo->originator_username <<
+          sdpInfo->host_nettype <<
+          sdpInfo->host_addrtype <<
+          sdpInfo->sessionName <<
+          sdpInfo->host_address <<
+          sdpInfo->connection_nettype <<
+          sdpInfo->connection_addrtype <<
+          sdpInfo->connection_address;
+    }
+    else
+    {
+      qCritical() << "WARNING: Tried to form SDP message with null pointer";
+    }
+    return "";
+  }
+
+  QString sdp = "";
+  QString lineEnd = "\r\n";
+  sdp += "v=" + QString::number(sdpInfo->version) + lineEnd;
+  sdp += "o=" + sdpInfo->originator_username + " " + QString::number(sdpInfo->sess_id)  + " "
+      + QString::number(sdpInfo->sess_v) + " " + sdpInfo->host_nettype + " "
+      + sdpInfo->host_addrtype + " " + sdpInfo->host_address + lineEnd;
+
+  sdp += "s=" + sdpInfo->sessionName + lineEnd;
+  sdp += "c=" + sdpInfo->connection_nettype + " " + sdpInfo->connection_addrtype +
+      + " " + sdpInfo->connection_address + " " + lineEnd;
+  sdp += "t=" + QString::number(sdpInfo->startTime) + " "
+      + QString::number(sdpInfo->endTime) + lineEnd;
+
+  for(auto mediaStream : sdpInfo->media)
+  {
+    sdp += "m=" + mediaStream.type + " " + QString::number(mediaStream.receivePort)
+        + " " + mediaStream.proto + " " + QString::number(mediaStream.rtpNum)
+        + lineEnd;
+    if(!mediaStream.nettype.isEmpty())
+    {
+      sdp += "c=" + mediaStream.nettype + " " + mediaStream.addrtype + " "
+          + mediaStream.address + lineEnd;
+    }
+
+    for(auto rtpmap : mediaStream.codecs)
+    {
+      sdp += "a=rtpmap:" + QString::number(rtpmap.rtpNum) + " "
+          + rtpmap.codec + "/" + QString::number(rtpmap.clockFrequency) + lineEnd;
+    }
+  }
+
+  qDebug().noquote() << "Generated SDP string:" << sdp;
+  return sdp;
 }
 

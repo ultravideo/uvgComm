@@ -46,6 +46,8 @@ private:
   void parseSIPaddress(QString address, QString& user, QString& location);
   QList<QHostAddress> parseIPAddress(QString address);
 
+  QString SDPtoString(const std::shared_ptr<SDPMessageInfo> sdpInfo);
+
   void signalConnections();
 
   QString partialMessage_;
