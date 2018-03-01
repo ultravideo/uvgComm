@@ -91,8 +91,8 @@ enum ConnectionType {ANY, TCP, UDP, TLS};
 struct ViaInfo
 {
   ConnectionType type;
-  QString address;
   QString version;
+  QString address;
   QString branch;
 };
 
@@ -146,7 +146,7 @@ struct SIPSessionInfo
 {
   QString toTag;
   QString fromTag;
-  QString callID;
+  QString callID; // in form callid@host
 };
 
 // Identifies the SIP message and the transaction it belongs to

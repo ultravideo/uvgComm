@@ -381,6 +381,7 @@ bool SIPConnection::parseSIPHeader(QString header)
       if(!parsing.at(fields.at(i).name)(fields[i], message))
       {
         qDebug() << "Failed to parse following field:" << fields.at(i).name;
+        return false;
       }
     }
   }

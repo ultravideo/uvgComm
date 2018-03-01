@@ -29,6 +29,9 @@ public:
 
   void init(uint32_t sessionID, CallControlInterface* callControl);
 
+  // generates callID if we wanted to start a call
+  void generateCallID(QString localAddress);
+
   // these will provide both message and session structs, routing will be empty
   std::shared_ptr<SIPMessageInfo> getRequestInfo(RequestType type);
   std::shared_ptr<SIPMessageInfo> getResponseInfo();
@@ -82,7 +85,6 @@ private:
   QString localTag_;
   QString remoteTag_;
   QString callID_;
-
   uint32_t sessionID_;
   uint32_t cSeq_;
 
@@ -95,6 +97,8 @@ private:
   QTimer timeoutTimer_;
 
   bool connected_;
+
+  bool ourSession_; // is callID our or theirs
 
   // waiting to be sent once the connecion has been opened
   RequestType pendingRequest_;

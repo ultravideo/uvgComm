@@ -13,6 +13,7 @@ bool getFirstRequestLine(QString& line, SIPRequest& request)
 {
   if(request.type == SIP_UNKNOWN_REQUEST)
   {
+    qDebug() << "WARNING: First request line failed";
     return false;
   }
   line = requestToString(request.type) + " "
@@ -25,6 +26,7 @@ bool getFirstResponseLine(QString& line, SIPResponse& response)
 {
   if(response.type == SIP_UNKNOWN_RESPONSE)
   {
+    qDebug() << "WARNING: First response line failed";
     return false;
   }
   line = " SIP/" + response.message->version
@@ -39,6 +41,7 @@ bool includeToField(QList<SIPField> &fields,
   Q_ASSERT(message->routing->to.username != "" && message->routing->to.host != "");
   if(message->routing->to.username == "" ||  message->routing->to.host == "")
   {
+    qDebug() << "WARNING: To field failed";
     return false;
   }
 
@@ -48,7 +51,7 @@ bool includeToField(QList<SIPField> &fields,
   {
     field.values = message->routing->to.realname + " ";
   }
-  field.values += "<" + message->routing->to.username + "@" + message->routing->to.host + ">";
+  field.values += "<sip:" + message->routing->to.username + "@" + message->routing->to.host + ">";
   field.parameters = NULL;
 
   tryAddParameter(field, "tag", message->session->toTag);
@@ -63,6 +66,7 @@ bool includeFromField(QList<SIPField> &fields,
   Q_ASSERT(message->routing->from.username != "" && message->routing->from.host != "");
   if(message->routing->from.username == "" ||  message->routing->from.host == "")
   {
+    qDebug() << "WARNING: From field failed";
     return false;
   }
 
@@ -72,7 +76,7 @@ bool includeFromField(QList<SIPField> &fields,
   {
     field.values = message->routing->from.realname + " ";
   }
-  field.values += "<" + message->routing->from.username + "@" + message->routing->from.host + ">";
+  field.values += "<sip:" + message->routing->from.username + "@" + message->routing->from.host + ">";
   field.parameters = NULL;
 
   tryAddParameter(field, "tag", message->session->fromTag);
@@ -85,8 +89,9 @@ bool includeCSeqField(QList<SIPField> &fields,
                       std::shared_ptr<SIPMessageInfo> message)
 {
   Q_ASSERT(message->cSeq != 0 && message->transactionRequest != SIP_UNKNOWN_REQUEST);
-  if(message->cSeq == 0 || message->transactionRequest != SIP_UNKNOWN_REQUEST)
+  if(message->cSeq == 0 || message->transactionRequest == SIP_UNKNOWN_REQUEST)
   {
+    qDebug() << "WARNING: cSeq field failed";
     return false;
   }
 
@@ -106,6 +111,7 @@ bool includeCallIDField(QList<SIPField> &fields,
   Q_ASSERT(message->session->callID != "");
   if(message->session->callID == "")
   {
+    qDebug() << "WARNING: Call-ID field failed";
     return false;
   }
 
@@ -119,6 +125,7 @@ bool includeViaFields(QList<SIPField> &fields,
   Q_ASSERT(!message->routing->senderReplyAddress.empty());
   if(message->routing->senderReplyAddress.empty())
   {
+    qDebug() << "WARNING: Via field failed";
     return false;
   }
 
@@ -134,8 +141,10 @@ bool includeViaFields(QList<SIPField> &fields,
 
     if(!tryAddParameter(field, "branch", via.branch))
     {
+      qDebug() << "WARNING: Via field failed";
       return false;
     }
+    fields.push_back(field);
   }
   return true;
 }
@@ -146,6 +155,7 @@ bool includeMaxForwardsField(QList<SIPField> &fields,
   Q_ASSERT(message->routing->maxForwards != 0);
   if(message->routing->maxForwards == 0)
   {
+    qDebug() << "WARNING: Max-forwards field failed";
     return false;
   }
 
@@ -159,12 +169,13 @@ bool includeContactField(QList<SIPField> &fields,
   Q_ASSERT(message->routing->contact.username != "" && message->routing->contact.host != "");
   if(message->routing->contact.username == "" ||  message->routing->contact.host == "")
   {
+    qDebug() << "WARNING: Contact field failed";
     return false;
   }
 
   SIPField field;
   field.name = "Contact";
-  field.values = "<" + message->routing->contact.username + "@" + message->routing->contact.host + ">";
+  field.values = "<sip:" + message->routing->contact.username + "@" + message->routing->contact.host + ">";
   field.parameters = NULL;
   fields.push_back(field);
   return true;
@@ -176,6 +187,7 @@ bool includeContentTypeField(QList<SIPField> &fields,
   Q_ASSERT(contentType != "");
   if(contentType == "")
   {
+    qDebug() << "WARNING: Content-type field failed";
     return false;
   }
   fields.push_back({"Content-Type", contentType, NULL});

@@ -24,6 +24,7 @@ SIPSession::SIPSession():
   registered_(false),
   timeoutTimer_(),
   connected_(false),
+  ourSession_(false),
   pendingRequest_(SIP_UNKNOWN_REQUEST),
   pendingResponse_(SIP_UNKNOWN_RESPONSE)
 {}
@@ -39,8 +40,17 @@ void SIPSession::init(uint32_t sessionID, CallControlInterface *callControl)
   connect(&timeoutTimer_, SIGNAL(timeout()), this, SLOT(requestTimeOut()));
 }
 
+void SIPSession::generateCallID(QString localAddress)
+{
+  if(ourSession_)
+  {
+    callID_ = generateRandomString(CALLIDLENGTH) + "@" + localAddress;
+  }
+}
+
 std::shared_ptr<SIPMessageInfo> SIPSession::getRequestInfo(RequestType type)
 {
+
   std::shared_ptr<SIPMessageInfo> message = generateMessage(type);
   message->session = std::shared_ptr<SIPSessionInfo> (new SIPSessionInfo{remoteTag_, localTag_, callID_});
   return message;
@@ -73,6 +83,8 @@ std::shared_ptr<SIPMessageInfo> SIPSession::generateMessage(RequestType original
   mesg->routing = NULL;
   mesg->cSeq = cSeq_;
   ++cSeq_;
+
+  mesg->version = "2.0";
   if(originalRequest == ACK)
   {
     mesg->transactionRequest = INVITE;
@@ -152,6 +164,7 @@ void SIPSession::processResponse(SIPResponse &response)
 
 bool SIPSession::startCall()
 {
+  ourSession_ = true;
   qDebug() << "Starting a call and sending an INVITE in session";
   Q_ASSERT(sessionID_ != 0);
   if(!sessionID_)
@@ -162,11 +175,6 @@ bool SIPSession::startCall()
 
   if(state_ == CALL_INACTIVE)
   {
-    if(callID_ == "")
-    {
-      callID_ = generateRandomString(CALLIDLENGTH);
-    }
-
     requestSender(INVITE);
   }
   else

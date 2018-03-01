@@ -91,22 +91,22 @@ QList<uint32_t> SIPManager::startCall(QList<Contact> addresses)
 
 void SIPManager::acceptCall(uint32_t sessionID)
 {
-
+  qDebug() << "WARNING: Not implemented in SIPManager";
 }
 
 void SIPManager::rejectCall(uint32_t sessionID)
 {
-
+  qDebug() << "WARNING: Not implemented in SIPManager";
 }
 
 void SIPManager::endCall(uint32_t sessionID)
 {
-
+  qDebug() << "WARNING: Not implemented in SIPManager";
 }
 
 void SIPManager::endAllCalls()
 {
-
+  qDebug() << "WARNING: Not implemented in SIPManager";
 }
 
 std::shared_ptr<SIPSession> SIPManager::createSIPSession(uint32_t sessionID)
@@ -205,15 +205,16 @@ void SIPManager::connectionEstablished(quint32 sessionID, QString localAddress, 
   std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
   connectionMutex_.unlock(); 
 
-  if(dialog->session == NULL)
-  {
-    dialog->session = createSIPSession(sessionID);
-  }
   if(dialog->routing == NULL)
   {
     dialog->routing = createSIPRouting(dialog->remoteUsername, localAddress,
                                        remoteAddress, false);
   }
+  if(dialog->session == NULL)
+  {
+    dialog->session = createSIPSession(sessionID);
+  }
+  dialog->session->generateCallID(localAddress);
 
   dialog->session->connectionReady(true);
 
