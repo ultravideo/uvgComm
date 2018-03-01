@@ -34,7 +34,6 @@ const std::map<QString, std::function<bool(SIPField& field, std::shared_ptr<SIPM
 
 SIPConnection::SIPConnection(quint32 sessionID):
   partialMessage_(""),
-  messageComposer_(),
   connection_(),
   sessionID_(sessionID)
 {}
@@ -105,56 +104,82 @@ void SIPConnection::destroyConnection()
 void SIPConnection::sendRequest(SIPRequest& request, std::shared_ptr<SDPMessageInfo> sdp)
 {
   qDebug() << "Composing SIP Request:" << requestToString(request.type);
-
-  QList<SIPField> fields;
-
-  if(!includeViaFields(fields, request.message) ||
-     !includeMaxForwardsField(fields, request.message) ||
-     !includeToField(fields, request.message) ||
-     !includeFromField(fields, request.message) ||
-     !includeCallIDField(fields, request.message) ||
-     !includeCSeqField(fields, request.message) ||
-     !includeContactField(fields, request.message))
+  Q_ASSERT(request.type != INVITE || sdp != NULL);
+  Q_ASSERT(connection_ != NULL);
+  if(request.type == INVITE && sdp == NULL || connection_ == NULL)
   {
-    qDebug() << "WARNING: Failed to add all the fields. Probably because of missing values";
+    qDebug() << "WARNING: SDP null or connection does not exist in sendRequest";
     return;
   }
-  QString sdp_str = "";
-  if(request.type == INVITE)
+  QList<SIPField> fields;
+  if(!composeMandatoryFields(fields, request.message) ||
+     !includeContactField(fields, request.message))
   {
-    if(sdp == NULL)
-    {
-      qDebug() << "WARNING: SDP missing from INVITE sending";
-      return;
-    }
-
-    sdp_str = SDPtoString(sdp);
-
-    if(!includeContentLengthField(fields, sdp_str.length()) ||
-       !includeContentTypeField(fields, "application/sdp"))
-    {
-      qDebug() << "WARNING: Could not add sdp fields to request";
-      return;
-    }
-  }
-  else
-  {
-    if(!includeContentLengthField(fields, 0))
-    {
-      qDebug() << "WARNING: SDP missing from INVITE sending";
-      return;
-    }
+    qDebug() << "WARNING: Failed to add all the fields. Probably because of missing values.";
+    return;
   }
 
   QString lineEnding = "\r\n";
   QString message = "";
-  if(!getFirstRequestLine(message, request))
+  // adds content fields and converts the sdp to string if INVITE
+  QString sdp_str = addContent(fields, request.type == INVITE, sdp);
+  if(!getFirstRequestLine(message, request, lineEnding))
   {
     qDebug() << "WARNING: could not get first request line";
     return;
   }
-  message += lineEnding;
+  message += fieldsToString(fields, lineEnding) + lineEnding;
+  message += sdp_str;
+  connection_->sendPacket(message);
+}
 
+void SIPConnection::sendResponse(SIPResponse &response, std::shared_ptr<SDPMessageInfo> sdp)
+{
+  qDebug() << "Composing SIP Response:" << responseToPhrase(response.type);
+  Q_ASSERT(response.message->transactionRequest != INVITE
+           || response.type != SIP_OK || sdp != NULL);
+  Q_ASSERT(connection_ != NULL);
+  if(response.message->transactionRequest == INVITE
+     && response.type == SIP_OK && sdp == NULL || connection_ == NULL)
+  {
+    qDebug() << "WARNING: SDP null or connection does not exist in sendResponse";
+    return;
+  }
+  QList<SIPField> fields;
+  if(!composeMandatoryFields(fields, response.message))
+  {
+    qDebug() << "WARNING: Failed to add mandatory fields. Probably because of missing values.";
+    return;
+  }
+
+  QString lineEnding = "\r\n";
+  QString message = "";
+  // adds content fields and converts the sdp to string if INVITE
+  QString sdp_str = addContent(fields, response.message->transactionRequest == INVITE
+                               && response.type == SIP_OK, sdp);
+  if(!getFirstResponseLine(message, response, lineEnding))
+  {
+    qDebug() << "WARNING: could not get first request line";
+    return;
+  }
+  message += fieldsToString(fields, lineEnding) + lineEnding;
+  message += sdp_str;
+  connection_->sendPacket(message);
+}
+
+bool SIPConnection::composeMandatoryFields(QList<SIPField>& fields, std::shared_ptr<SIPMessageInfo> message)
+{
+  return includeViaFields(fields, message) &&
+         includeMaxForwardsField(fields, message) &&
+         includeToField(fields, message) &&
+         includeFromField(fields, message) &&
+         includeCallIDField(fields, message) &&
+         includeCSeqField(fields, message);
+}
+
+QString SIPConnection::fieldsToString(QList<SIPField>& fields, QString lineEnding)
+{
+  QString message = "";
   for(SIPField field : fields)
   {
     message += field.name + ": " + field.values;
@@ -167,63 +192,9 @@ void SIPConnection::sendRequest(SIPRequest& request, std::shared_ptr<SDPMessageI
     }
     message += lineEnding;
   }
-  message += lineEnding;
-  message += sdp_str;
-
-  if(connection_ != NULL)
-  {
-    connection_->sendPacket(message);
-  }
-  else
-  {
-    qWarning() << "WARNING: Trying to send a packet without connection";
-  }
+  return message;
 }
 
-void SIPConnection::sendResponse(SIPResponse &response, std::shared_ptr<SDPMessageInfo> sdp)
-{
-  messageID id = messageComposer_.startSIPResponse(response.type);
-  composeHelper(id, response.message);
-
-  if(response.message->transactionRequest == INVITE && response.type == SIP_OK)
-  {
-    Q_ASSERT(sdp);
-    QString sdp_str = messageComposer_.formSDP(sdp);
-    messageComposer_.addSDP(id,sdp_str);
-  }
-
-  QString message = messageComposer_.composeMessage(id);
-
-  if(connection_ != NULL)
-  {
-    connection_->sendPacket(message);
-  }
-  else
-  {
-    qWarning() << "WARNING: Trying to send a packet without connection";
-  }
-}
-
-void SIPConnection::composeHelper(uint32_t id, std::shared_ptr<SIPMessageInfo> message)
-{
-  std::shared_ptr<SIPRoutingInfo> routing = message->routing;
-  std::shared_ptr<SIPSessionInfo> session = message->session;
-
-  messageComposer_.to(id, routing->to.realname, routing->to.username,
-                        routing->to.host, session->toTag);
-  messageComposer_.fromIP(id, routing->from.realname, routing->from.username,
-                          QHostAddress(routing->from.host), session->fromTag);
-
-  for(ViaInfo viaAddress : routing->senderReplyAddress)
-  {
-    QString branch = routing->senderReplyAddress.at(0).branch;
-    messageComposer_.viaIP(id, QHostAddress(viaAddress.address), branch);
-  }
-
-  messageComposer_.maxForwards(id, routing->maxForwards);
-  messageComposer_.setCallID(id, session->callID, routing->from.host);
-  messageComposer_.sequenceNum(id, message->cSeq, message->transactionRequest);
-}
 
 void SIPConnection::networkPackage(QString message)
 {
@@ -483,6 +454,28 @@ QList<QHostAddress> SIPConnection::parseIPAddress(QString address)
     ipAddresses.append(hostInfo.addresses());
   }
   return ipAddresses;
+}
+
+
+QString SIPConnection::addContent(QList<SIPField>& fields, bool haveContent, std::shared_ptr<SDPMessageInfo> sdp)
+{
+  Q_ASSERT(sdp);
+  QString sdp_str = "";
+  if(haveContent)
+  {
+    sdp_str = SDPtoString(sdp);
+    if(!includeContentLengthField(fields, sdp_str.length()) ||
+       !includeContentTypeField(fields, "application/sdp"))
+    {
+      qDebug() << "WARNING: Could not add sdp fields to request";
+      return "";
+    }
+  }
+  else if(!includeContentLengthField(fields, 0))
+  {
+    qDebug() << "WARNING: Could not add content-length field to sip message!";
+  }
+  return sdp_str;
 }
 
 

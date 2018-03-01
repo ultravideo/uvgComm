@@ -40,7 +40,6 @@ SOURCES +=\
     src/video/yuvtorgb32.cpp \
     src/video/dshow/capture.cpp \
     src/connectionserver.cpp \
-    src/sipstringcomposer.cpp \
     src/gui/callwindow.cpp \
     src/gui/conferenceview.cpp \
     src/gui/contactlist.cpp \
@@ -93,7 +92,6 @@ HEADERS  += \
     src/video/optimized/yuv2rgb.h \
     src/video/displayfilter.h \
     src/connectionserver.h \
-    src/sipstringcomposer.h \
     src/gui/callwindow.h \
     src/gui/conferenceview.h \
     src/gui/contactlist.h \

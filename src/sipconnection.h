@@ -2,7 +2,6 @@
 
 #include "siptypes.h"
 #include "tcpconnection.h"
-#include "sipstringcomposer.h"
 
 #include <QHostAddress>
 #include <QString>
@@ -39,19 +38,21 @@ signals:
 
 private:
 
-  void composeHelper(uint32_t id, std::shared_ptr<SIPMessageInfo> message);
-
+  // parsing
   void parsePackage(QString package, QString& header, QString& body);
   bool parseSIPHeader(QString header);
   void parseSIPaddress(QString address, QString& user, QString& location);
   QList<QHostAddress> parseIPAddress(QString address);
 
+  // composing
+  bool composeMandatoryFields(QList<SIPField>& fields, std::shared_ptr<SIPMessageInfo> message);
+  QString fieldsToString(QList<SIPField>& fields, QString lineEnding);
+  QString addContent(QList<SIPField>& fields, bool haveContent, std::shared_ptr<SDPMessageInfo> sdp);
   QString SDPtoString(const std::shared_ptr<SDPMessageInfo> sdpInfo);
 
   void signalConnections();
 
   QString partialMessage_;
-  SIPStringComposer messageComposer_;
 
   std::shared_ptr<TCPConnection> connection_;
   quint32 sessionID_;

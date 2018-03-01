@@ -3,8 +3,8 @@
 #include "siptypes.h"
 
 
-bool getFirstRequestLine(QString& line, SIPRequest& request);
-bool getFirstResponseLine(QString& line, SIPResponse& response);
+bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding);
+bool getFirstResponseLine(QString& line, SIPResponse& response, QString lineEnding);
 
 bool includeToField(QList<SIPField>& fields,
                     std::shared_ptr<SIPMessageInfo> message);

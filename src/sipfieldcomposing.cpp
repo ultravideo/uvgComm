@@ -9,7 +9,7 @@
 bool tryAddParameter(SIPField& field, QString parameterName, QString parameterValue);
 
 
-bool getFirstRequestLine(QString& line, SIPRequest& request)
+bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
 {
   if(request.type == SIP_UNKNOWN_REQUEST)
   {
@@ -18,11 +18,11 @@ bool getFirstRequestLine(QString& line, SIPRequest& request)
   }
   line = requestToString(request.type) + " "
       + request.message->routing->to.username + "@" + request.message->routing->to.host
-      + " SIP/" + request.message->version;
+      + " SIP/" + request.message->version + lineEnding;
   return true;
 }
 
-bool getFirstResponseLine(QString& line, SIPResponse& response)
+bool getFirstResponseLine(QString& line, SIPResponse& response, QString lineEnding)
 {
   if(response.type == SIP_UNKNOWN_RESPONSE)
   {
@@ -31,7 +31,7 @@ bool getFirstResponseLine(QString& line, SIPResponse& response)
   }
   line = " SIP/" + response.message->version
       + QString::number(responseToCode(response.type)) + " "
-      + responseToPhrase(response.type);
+      + responseToPhrase(response.type) + lineEnding;
   return true;
 }
 
