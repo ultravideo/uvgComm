@@ -128,3 +128,26 @@ QString connectionToString(ConnectionType connection)
   }
   return "";
 }
+
+ContentType stringToContentType(QString typeStr)
+{
+  if(typeStr == "application/sdp")
+  {
+    return APPLICATION_SDP;
+  }
+  return NO_CONTENT;
+}
+
+QString contentTypeToString(ContentType type)
+{
+  switch(type)
+  {
+  case APPLICATION_SDP:
+  {
+    return "application/sdp";
+  }
+  default:
+    break;
+  }
+  return "";
+}

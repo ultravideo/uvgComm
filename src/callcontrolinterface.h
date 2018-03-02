@@ -3,8 +3,6 @@
 #include <QString>
 #include <memory>
 
-class SDPMessageInfo;
-
 class CallControlInterface
 {
  public:

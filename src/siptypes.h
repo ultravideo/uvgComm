@@ -103,9 +103,11 @@ struct SIP_URI // usually in format: "realname <sip:username@host>". realname op
   QString host;
 };
 
+enum ContentType {NO_CONTENT, APPLICATION_SDP};
+
 struct ContentInfo
 {
-  QString type;
+  ContentType type;
   uint32_t length;
 };
 

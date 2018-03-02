@@ -2,7 +2,6 @@
 
 #include "siptypes.h"
 #include "tcpconnection.h"
-
 #include <QHostAddress>
 #include <QString>
 
@@ -23,18 +22,16 @@ public:
   void sendResponse(SIPResponse &response, std::shared_ptr<SDPMessageInfo> sdp);
 
 public slots:
-
   void networkPackage(QString message);
   void connectionEstablished(QString localAddress, QString remoteAddress);
 
 signals:
+  void sipConnectionEstablished(quint32 sessionID, QString localAddress, QString remoteAddress);
 
   void incomingSIPRequest(SIPRequest request, quint32 sessionID);
   void incomingSIPResponse(SIPResponse response, quint32 sessionID);
 
   void parsingError(ResponseType errorResponse, quint32 sessionID);
-
-  void sipConnectionEstablished(quint32 sessionID, QString localAddress, QString remoteAddress);
 
 private:
 
@@ -48,7 +45,6 @@ private:
   bool composeMandatoryFields(QList<SIPField>& fields, std::shared_ptr<SIPMessageInfo> message);
   QString fieldsToString(QList<SIPField>& fields, QString lineEnding);
   QString addContent(QList<SIPField>& fields, bool haveContent, std::shared_ptr<SDPMessageInfo> sdp);
-  QString SDPtoString(const std::shared_ptr<SDPMessageInfo> sdpInfo);
 
   void signalConnections();
 

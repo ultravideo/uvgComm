@@ -181,7 +181,7 @@ bool parseContentTypeField(SIPField& field,
 
   if(field_match.hasMatch() && field_match.lastCapturedIndex() == 1)
   {
-    message->content.type = field_match.captured(1);
+    message->content.type = stringToContentType(field_match.captured(1));
     return true;
   }
   return false;
