@@ -248,6 +248,15 @@ void SIPManager::processSIPRequest(SIPRequest request,
   }
 
   dialogs_.at(sessionID - 1)->session->processRequest(request);
+  /*
+  if(request.message.content == APPLICATION_SDP)
+  {
+
+  }
+  else
+  {
+
+  }*/
 }
 
 void SIPManager::processSIPResponse(SIPResponse response,

@@ -84,7 +84,7 @@ enum ResponseType {SIP_UNKNOWN_RESPONSE = 0,
                    SIP_DECLINE = 603,
                    SIP_DOES_NOT_EXIST_ANYWHERE = 604,
                    SIP_NOT_ACCEPTABLE = 606,
-                   SIP_UNWANTED = 607}; // RFC 3261;
+                   SIP_UNWANTED = 607}; // RFC 3261
 
 enum ConnectionType {ANY, TCP, UDP, TLS};
 
@@ -103,7 +103,7 @@ struct SIP_URI // usually in format: "realname <sip:username@host>". realname op
   QString host;
 };
 
-enum ContentType {NO_CONTENT, APPLICATION_SDP};
+enum ContentType {NO_CONTENT, APPLICATION_SDP, TEXT_PLAIN};
 
 struct ContentInfo
 {
@@ -250,3 +250,5 @@ struct SDPMessageInfo
   // m=
   QList<MediaInfo> media;
 };
+
+Q_DECLARE_METATYPE(SDPMessageInfo)

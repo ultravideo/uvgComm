@@ -462,10 +462,12 @@ QList<QHostAddress> SIPConnection::parseIPAddress(QString address)
 QString SIPConnection::addContent(QList<SIPField>& fields, bool haveContent, std::shared_ptr<SDPMessageInfo> sdp)
 {
   Q_ASSERT(sdp);
+
   QString sdp_str = "";
+
   if(haveContent)
   {
-    sdp_str = SDPtoString(sdp);
+    sdp_str = composeSDPContent(sdp);
     if(!includeContentLengthField(fields, sdp_str.length()) ||
        !includeContentTypeField(fields, "application/sdp"))
     {

@@ -1,12 +1,12 @@
 #include "sipcontent.h"
 
-#include <siptypes.h>
+#include "siptypes.h"
 
 #include <QDebug>
 
 bool checkSDPLine(QStringList& line, uint8_t expectedLength, QString& firstValue);
 
-QString SDPtoString(const std::shared_ptr<SDPMessageInfo> sdpInfo)
+QString composeSDPContent(const std::shared_ptr<SDPMessageInfo> sdpInfo)
 {
   if(sdpInfo == NULL ||
      sdpInfo->version != 0 ||
@@ -72,16 +72,11 @@ QString SDPtoString(const std::shared_ptr<SDPMessageInfo> sdpInfo)
     }
   }
 
-  qDebug().noquote() << "Generated SDP string:" << sdp;
+  qDebug().noquote() << "Composed SDP string:" << sdp;
   return sdp;
 }
 
-
-#include <siptypes.h>
-
-#include <QDebug>
-
-std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
+std::shared_ptr<SDPMessageInfo> parseSDPContent(const QString& content)
 {
   std::shared_ptr<SDPMessageInfo> info(new SDPMessageInfo);
   bool version = false;
@@ -91,7 +86,7 @@ std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
   bool globalContact = false;
   bool localContacts = true;
 
-  QStringList lines = body.split("\r\n", QString::SkipEmptyParts);
+  QStringList lines = content.split("\r\n", QString::SkipEmptyParts);
   QStringListIterator lineIterator(lines);
 
   while(lineIterator.hasNext())
@@ -105,7 +100,6 @@ std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
     {
       case 'v':
       {
-
         if(!checkSDPLine(words, 1, firstValue))
           return NULL;
 
@@ -263,7 +257,7 @@ std::shared_ptr<SDPMessageInfo> parseSDPMessage(QString& body)
     qDebug() << "All required fields not present in SDP:"
              << "v" << version << "o" << originator << "s" << session << "t" << timing
              << "global c" << globalContact << "local c" << localContacts;
-    //return NULL;
+    return NULL;
   }
 
   return info;
@@ -288,4 +282,3 @@ bool checkSDPLine(QStringList& line, uint8_t expectedLength, QString& firstValue
 
   return true;
 }
-
