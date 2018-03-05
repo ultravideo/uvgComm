@@ -130,7 +130,8 @@ std::shared_ptr<SIPSession> SIPManager::createSIPSession(uint32_t sessionID)
 std::shared_ptr<SIPConnection> SIPManager::createSIPConnection()
 {
   qDebug() << "Creating SIP Connection";
-  std::shared_ptr<SIPConnection> connection = std::shared_ptr<SIPConnection>(new SIPConnection(dialogs_.size() + 1));
+  std::shared_ptr<SIPConnection> connection =
+      std::shared_ptr<SIPConnection>(new SIPConnection(dialogs_.size() + 1));
   QObject::connect(connection.get(), SIGNAL(sipConnectionEstablished(quint32,QString,QString)),
                    this, SLOT(connectionEstablished(quint32,QString,QString)));
   QObject::connect(connection.get(), SIGNAL(incomingSIPRequest(SIPRequest,quint32)),
@@ -286,13 +287,15 @@ void SIPManager::sendRequest(uint32_t sessionID, RequestType type)
   SIPRequest request = {type, dialogs_.at(sessionID - 1)->session->getRequestInfo(type)};
   request.message->routing = dialogs_.at(sessionID - 1)->routing->requestRouting(directRouting);
 
-  std::shared_ptr<SDPMessageInfo> sdp_info = NULL;
+  QVariant content;
   if(type == INVITE) // TODO: SDP in progress...
   {
-    sdp_info = sdp_.localSDPSuggestion();
+    request.message->content.type = APPLICATION_SDP;
+    SDPMessageInfo sdp = *sdp_.localSDPSuggestion().get();
+    content.setValue(sdp);
   }
 
-  dialogs_.at(sessionID - 1)->sCon->sendRequest(request, sdp_info);
+  dialogs_.at(sessionID - 1)->sCon->sendRequest(request, content);
   qDebug() << "---- Finished sending of a request ---";
 }
 
@@ -306,14 +309,15 @@ void SIPManager::sendResponse(uint32_t sessionID, ResponseType type)
   SIPResponse response = {type, dialogs_.at(sessionID - 1)->session->getResponseInfo()};
   response.message->routing = dialogs_.at(sessionID - 1)->routing->requestRouting(directRouting);
 
-  std::shared_ptr<SDPMessageInfo> sdp_info = NULL;
+  QVariant content;
   if(response.message->transactionRequest == INVITE) // TODO: SDP in progress...
   {
-    sdp_info = dialogs_.at(sessionID - 1)->localFinalSdp_;
-    Q_ASSERT(sdp_info);
+    response.message->content.type = APPLICATION_SDP;
+    SDPMessageInfo sdp = *dialogs_.at(sessionID - 1)->localFinalSdp_.get();
+    content.setValue(sdp);
   }
 
-  dialogs_.at(sessionID - 1)->sCon->sendResponse(response, sdp_info);
+  dialogs_.at(sessionID - 1)->sCon->sendResponse(response, content);
   qDebug() << "---- Finished sending of a response ---";
 }
 

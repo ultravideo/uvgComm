@@ -18,8 +18,8 @@ public:
   void incomingTCPConnection(std::shared_ptr<TCPConnection> con);
   void destroyConnection();
 
-  void sendRequest(SIPRequest &request, std::shared_ptr<SDPMessageInfo> sdp);
-  void sendResponse(SIPResponse &response, std::shared_ptr<SDPMessageInfo> sdp);
+  void sendRequest(SIPRequest &request, QVariant content);
+  void sendResponse(SIPResponse &response, QVariant content);
 
 public slots:
   void networkPackage(QString message);
@@ -28,8 +28,8 @@ public slots:
 signals:
   void sipConnectionEstablished(quint32 sessionID, QString localAddress, QString remoteAddress);
 
-  void incomingSIPRequest(SIPRequest request, quint32 sessionID);
-  void incomingSIPResponse(SIPResponse response, quint32 sessionID);
+  void incomingSIPRequest(SIPRequest request, quint32 sessionID, QVariant content);
+  void incomingSIPResponse(SIPResponse response, quint32 sessionID, QVariant content);
 
   void parsingError(ResponseType errorResponse, quint32 sessionID);
 
@@ -44,7 +44,7 @@ private:
   // composing
   bool composeMandatoryFields(QList<SIPField>& fields, std::shared_ptr<SIPMessageInfo> message);
   QString fieldsToString(QList<SIPField>& fields, QString lineEnding);
-  QString addContent(QList<SIPField>& fields, bool haveContent, std::shared_ptr<SDPMessageInfo> sdp);
+  QString addContent(QList<SIPField>& fields, bool haveContent, const SDPMessageInfo& sdp);
 
   void signalConnections();
 

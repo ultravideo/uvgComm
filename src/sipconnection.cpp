@@ -102,12 +102,15 @@ void SIPConnection::destroyConnection()
   connection_.reset();
 }
 
-void SIPConnection::sendRequest(SIPRequest& request, std::shared_ptr<SDPMessageInfo> sdp)
+void SIPConnection::sendRequest(SIPRequest& request, QVariant content)
 {
   qDebug() << "Composing SIP Request:" << requestToString(request.type);
-  Q_ASSERT(request.type != INVITE || sdp != NULL);
+  Q_ASSERT(request.type != INVITE ||
+      (request.message->content.type == APPLICATION_SDP && content.isValid()));
   Q_ASSERT(connection_ != NULL);
-  if(request.type == INVITE && sdp == NULL || connection_ == NULL)
+  if(request.type == INVITE &&
+     (request.message->content.type != APPLICATION_SDP || !content.isValid())
+     || connection_ == NULL)
   {
     qDebug() << "WARNING: SDP null or connection does not exist in sendRequest";
     return;
@@ -123,7 +126,7 @@ void SIPConnection::sendRequest(SIPRequest& request, std::shared_ptr<SDPMessageI
   QString lineEnding = "\r\n";
   QString message = "";
   // adds content fields and converts the sdp to string if INVITE
-  QString sdp_str = addContent(fields, request.type == INVITE, sdp);
+  QString sdp_str = addContent(fields, request.type == INVITE, content.value<SDPMessageInfo>());
   if(!getFirstRequestLine(message, request, lineEnding))
   {
     qDebug() << "WARNING: could not get first request line";
@@ -134,14 +137,16 @@ void SIPConnection::sendRequest(SIPRequest& request, std::shared_ptr<SDPMessageI
   connection_->sendPacket(message);
 }
 
-void SIPConnection::sendResponse(SIPResponse &response, std::shared_ptr<SDPMessageInfo> sdp)
+void SIPConnection::sendResponse(SIPResponse &response, QVariant content)
 {
   qDebug() << "Composing SIP Response:" << responseToPhrase(response.type);
   Q_ASSERT(response.message->transactionRequest != INVITE
-           || response.type != SIP_OK || sdp != NULL);
+           || response.type != SIP_OK || (response.message->content.type == APPLICATION_SDP && content.isValid()));
   Q_ASSERT(connection_ != NULL);
-  if(response.message->transactionRequest == INVITE
-     && response.type == SIP_OK && sdp == NULL || connection_ == NULL)
+
+  if(response.message->transactionRequest == INVITE && response.type == SIP_OK
+     && (!content.isValid() || response.message->content.type != APPLICATION_SDP)
+     || connection_ == NULL)
   {
     qDebug() << "WARNING: SDP null or connection does not exist in sendResponse";
     return;
@@ -157,7 +162,7 @@ void SIPConnection::sendResponse(SIPResponse &response, std::shared_ptr<SDPMessa
   QString message = "";
   // adds content fields and converts the sdp to string if INVITE
   QString sdp_str = addContent(fields, response.message->transactionRequest == INVITE
-                               && response.type == SIP_OK, sdp);
+                               && response.type == SIP_OK, content.value<SDPMessageInfo>());
   if(!getFirstResponseLine(message, response, lineEnding))
   {
     qDebug() << "WARNING: could not get first request line";
@@ -394,7 +399,8 @@ bool SIPConnection::parseSIPHeader(QString header)
       request.type = requestType;
       request.message = message;
 
-      emit incomingSIPRequest(request, sessionID_);
+      QVariant content;
+      emit incomingSIPRequest(request, sessionID_, content);
     }
     else if(firstline_match.captured(1) == "SIP/2.0")
     {
@@ -459,10 +465,8 @@ QList<QHostAddress> SIPConnection::parseIPAddress(QString address)
 }
 
 
-QString SIPConnection::addContent(QList<SIPField>& fields, bool haveContent, std::shared_ptr<SDPMessageInfo> sdp)
+QString SIPConnection::addContent(QList<SIPField>& fields, bool haveContent, const SDPMessageInfo &sdp)
 {
-  Q_ASSERT(sdp);
-
   QString sdp_str = "";
 
   if(haveContent)

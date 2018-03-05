@@ -107,8 +107,8 @@ enum ContentType {NO_CONTENT, APPLICATION_SDP, TEXT_PLAIN};
 
 struct ContentInfo
 {
-  ContentType type;
-  uint32_t length;
+  ContentType type; // tells what is in QVariant content
+  uint32_t length;  // set by SIPConnection
 };
 
 /* notes on expansion of the SIP structures such as SIPRouting, SIPSession, SIPMessage, SIPRequest and SIPResponse
@@ -251,4 +251,4 @@ struct SDPMessageInfo
   QList<MediaInfo> media;
 };
 
-Q_DECLARE_METATYPE(SDPMessageInfo)
+Q_DECLARE_METATYPE(SDPMessageInfo); // used in qvariant
