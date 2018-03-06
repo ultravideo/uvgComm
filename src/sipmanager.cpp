@@ -19,8 +19,8 @@ void SIPManager::init(CallControlInterface *callControl)
 
   callControl_ = callControl;
 
-  QObject::connect(&server_, SIGNAL(newConnection(TCPConnection*)),
-                   this, SLOT(receiveTCPConnection(TCPConnection*)));
+  QObject::connect(&server_, &ConnectionServer::newConnection,
+                   this, &SIPManager::receiveTCPConnection);
 
   // listen to everything
   server_.listen(QHostAddress("0.0.0.0"), sipPort_);
@@ -116,11 +116,11 @@ std::shared_ptr<SIPSession> SIPManager::createSIPSession(uint32_t sessionID)
 
   session->init(sessionID, callControl_);
 
-  QObject::connect(session.get(), SIGNAL(sendRequest(uint32_t,RequestType)),
-                   this, SLOT(sendRequest(uint32_t,RequestType)));
+  QObject::connect(session.get(), &SIPSession::sendRequest,
+                   this, &SIPManager::sendRequest);
 
-  QObject::connect(session.get(), SIGNAL(sendResponse(uint32_t,ResponseType)),
-                   this, SLOT(sendResponse(uint32_t,ResponseType)));
+  QObject::connect(session.get(), &SIPSession::sendResponse,
+                   this, &SIPManager::sendResponse);
 
   // connect signals to signals. Session is responsible for responses
   // and callmanager handles informing the user.
@@ -132,12 +132,12 @@ std::shared_ptr<SIPConnection> SIPManager::createSIPConnection()
   qDebug() << "Creating SIP Connection";
   std::shared_ptr<SIPConnection> connection =
       std::shared_ptr<SIPConnection>(new SIPConnection(dialogs_.size() + 1));
-  QObject::connect(connection.get(), SIGNAL(sipConnectionEstablished(quint32,QString,QString)),
-                   this, SLOT(connectionEstablished(quint32,QString,QString)));
-  QObject::connect(connection.get(), SIGNAL(incomingSIPRequest(SIPRequest,quint32)),
-                   this, SLOT(processSIPRequest(SIPRequest,quint32)));
-  QObject::connect(connection.get(), SIGNAL(incomingSIPResponse(SIPResponse,quint32)),
-                   this, SLOT(processSIPResponse(SIPResponse,quint32)));
+  QObject::connect(connection.get(), &SIPConnection::sipConnectionEstablished,
+                   this, &SIPManager::connectionEstablished);
+  QObject::connect(connection.get(), &SIPConnection::incomingSIPRequest,
+                   this, &SIPManager::processSIPRequest);
+  QObject::connect(connection.get(), &SIPConnection::incomingSIPResponse,
+                   this, &SIPManager::processSIPResponse);
   return connection;
 }
 
