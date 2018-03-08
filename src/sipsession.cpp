@@ -108,6 +108,11 @@ void SIPSession::processRequest(SIPRequest &request)
 
   // TODO: check that the request is appropriate at this time.
 
+  if(ongoingTransactionType_ == SIP_UNKNOWN_REQUEST)
+  {
+    ongoingTransactionType_ = request.type;
+  }
+
   switch(request.type)
   {
   case INVITE:
@@ -159,6 +164,13 @@ void SIPSession::processResponse(SIPResponse &response)
   {
     qWarning() << "WARNING: SIP Session not initialized.";
     return;
+  }
+
+  qWarning() << "WARNING: Response processing in session not implemented.";
+
+  if(ongoingTransactionType_ != SIP_UNKNOWN_REQUEST)
+  {
+    ongoingTransactionType_ = SIP_UNKNOWN_REQUEST;
   }
 }
 

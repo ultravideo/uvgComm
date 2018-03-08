@@ -288,7 +288,7 @@ void SIPManager::sendRequest(uint32_t sessionID, RequestType type)
   request.message->routing = dialogs_.at(sessionID - 1)->routing->requestRouting(directRouting);
 
   QVariant content;
-  if(type == INVITE) // TODO: SDP in progress...
+  if(type == INVITE)
   {
     request.message->content.type = APPLICATION_SDP;
     SDPMessageInfo sdp = *sdp_.localSDPSuggestion().get();

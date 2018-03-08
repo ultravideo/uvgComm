@@ -39,10 +39,10 @@ public:
   bool correctRequest(std::shared_ptr<SIPSessionInfo> session);
   bool correctResponse(std::shared_ptr<SIPSessionInfo> session);
 
-  // processes incoming request
+  // processes incoming request. Part of our server transaction
   void processRequest(SIPRequest& request);
 
-  //processes incoming response
+  //processes incoming response. Part of our client transaction
   void processResponse(SIPResponse& response);
 
   bool startCall();
@@ -79,6 +79,9 @@ private:
 
   void requestSender(RequestType type);
   void responseSender(ResponseType type);
+
+  bool goodRequest(); // use this to filter out untimely/duplicate requests
+  bool goodResponse(); // use this to filter out untimely/duplicate responses
 
   std::shared_ptr<SIPMessageInfo> generateMessage(RequestType originalRequest);
 
