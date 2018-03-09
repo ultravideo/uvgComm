@@ -373,7 +373,7 @@ bool SIPConnection::parseSIPHeader(QString header)
     {
       qDebug() << "Request detected:" << firstline_match.captured(1);
 
-      message->version = firstline_match.captured(5);
+      message->version = firstline_match.captured(5); // TODO: set only version not SIP/version
       RequestType requestType = stringToRequest(firstline_match.captured(1));
       if(requestType == SIP_UNKNOWN_REQUEST)
       {
@@ -399,16 +399,27 @@ bool SIPConnection::parseSIPHeader(QString header)
       request.type = requestType;
       request.message = message;
 
-      QVariant content;
+      QVariant content; // TODO parse content
       emit incomingSIPRequest(request, sessionID_, content);
     }
     else if(firstline_match.captured(1) == "SIP/2.0")
     {
-      qDebug() << "Response detected:" << firstline_match.captured(1);
-
+      qDebug() << "Response detected:" << firstline_match.captured(2);
+      message->version = firstline_match.captured(1); // TODO: set only version not SIP/version
       ResponseType type = codeToResponse(stringToResponseCode(firstline_match.captured(1)));
-      qDebug() << "WARNING: Response parsing is incomplete";
 
+      if(type == SIP_UNKNOWN_RESPONSE)
+      {
+        qDebug() << "Could not recognize response type!";
+        return false;
+      }
+
+      SIPResponse response;
+      response.type = type;
+      response.message = message;
+
+      QVariant content; // TODO parse content
+      emit incomingSIPResponse(response, sessionID_, content);
     }
     else
     {
