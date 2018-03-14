@@ -58,7 +58,9 @@ SOURCES +=\
     src/tcpconnection.cpp \
     src/sipfieldcomposing.cpp \
     src/sipfieldparsing.cpp \
-    src/sipcontent.cpp
+    src/sipcontent.cpp \
+    src/sipservertransaction.cpp \
+    src/sipclienttransaction.cpp
 
 HEADERS  += \
     src/filter.h \
@@ -109,10 +111,12 @@ HEADERS  += \
     src/sipconnection.h \
     src/sipconversions.h \
     src/tcpconnection.h \
-    src/callcontrolinterface.h \
     src/sipfieldcomposing.h \
     src/sipfieldparsing.h \
-    src/sipcontent.h
+    src/sipcontent.h \
+    src/sipservertransaction.h \
+    src/sipclienttransaction.h \
+    src/siptransactionuser.h
 
 FORMS    += \
     ui/callwindow.ui \

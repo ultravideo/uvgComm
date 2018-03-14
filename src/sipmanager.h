@@ -20,7 +20,9 @@ struct Contact
 
 class SIPRouting;
 class SIPSession;
-class CallControlInterface;
+class SIPTransactionUser;
+class SIPServerTransaction;
+class SIPClientTransaction;
 
 class SIPManager : public QObject
 {
@@ -28,7 +30,7 @@ class SIPManager : public QObject
 public:
   SIPManager();
 
-  void init(CallControlInterface* callControl);
+  void init(SIPTransactionUser* callControl);
   void uninit();
 
   QList<uint32_t> startCall(QList<Contact> addresses);
@@ -51,13 +53,16 @@ private slots:
   void processSIPResponse(SIPResponse response, quint32 sessionID);
 
   void sendRequest(uint32_t sessionID, RequestType type);
-  void sendResponse(uint32_t sessionID, ResponseType type);
+  void sendResponse(uint32_t sessionID, ResponseType type, RequestType originalRequest);
 
 private:
   struct SIPDialogData
   {
     std::shared_ptr<SIPConnection> sCon;
     std::shared_ptr<SIPSession> session;
+    // do not stop connection before responding to all requests
+    std::shared_ptr<SIPServerTransaction> server;
+    std::shared_ptr<SIPClientTransaction> client;
     std::shared_ptr<SIPRouting> routing;
     QString remoteUsername;
     std::shared_ptr<SDPMessageInfo> localFinalSdp_;
@@ -70,6 +75,9 @@ private:
                                                QString localAddress,
                                                QString remoteAddress, bool hostedSession);
 
+  void createLocalDialog(QString remoteUsername, QString remoteAddress);
+  void createRemoteDialog(TCPConnection* con);
+  void createDialog(std::shared_ptr<SIPDialogData>& dialog);
   void destroyDialog(std::shared_ptr<SIPDialogData> dialog);
 
   // tmp function to convert new structs to old
@@ -95,5 +103,8 @@ private:
   QString localName_;
   QString localUsername_;
 
-  CallControlInterface* callControl_;
+  // use this client to register us to a server
+  std::shared_ptr<SIPClientTransaction> registerClient_;
+
+  SIPTransactionUser* transactionUser_;
 };

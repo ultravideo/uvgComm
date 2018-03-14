@@ -3,11 +3,15 @@
 #include <QString>
 #include <memory>
 
-class CallControlInterface
+// defines funcions implemented by transaction user (TU). Transaction layers call this
+// to let
+
+
+class SIPTransactionUser
 {
  public:
 
-  virtual ~CallControlInterface(){}
+  virtual ~SIPTransactionUser(){}
 
   // somebody is trying to call us
   virtual void incomingCall(uint32_t sessionID, QString caller) = 0;

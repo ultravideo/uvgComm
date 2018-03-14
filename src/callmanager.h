@@ -4,7 +4,7 @@
 #include "sipmanager.h"
 #include "gui/callwindow.h"
 #include "participantinterface.h"
-#include "callcontrolinterface.h"
+#include "siptransactionuser.h"
 #include "stun.h"
 
 #include <QObject>
@@ -12,7 +12,7 @@
 struct SDPMessageInfo;
 class StatisticsInterface;
 
-class CallManager : public QObject, public ParticipantInterface, public CallControlInterface
+class CallManager : public QObject, public ParticipantInterface, public SIPTransactionUser
 {
   Q_OBJECT
 public:

@@ -4,6 +4,9 @@
 #include "sipsession.h"
 #include "sipconnection.h"
 
+#include "sipclienttransaction.h"
+#include "sipservertransaction.h"
+
 const bool DIRECTMESSAGES = false;
 
 SIPManager::SIPManager():
@@ -13,11 +16,11 @@ SIPManager::SIPManager():
   localUsername_("")
 {}
 
-void SIPManager::init(CallControlInterface *callControl)
+void SIPManager::init(SIPTransactionUser *callControl)
 {
   qDebug() << "Iniating SIP Manager";
 
-  callControl_ = callControl;
+  transactionUser_ = callControl;
 
   QObject::connect(&server_, &ConnectionServer::newConnection,
                    this, &SIPManager::receiveTCPConnection);
@@ -64,29 +67,46 @@ QList<uint32_t> SIPManager::startCall(QList<Contact> addresses)
   QList<uint32_t> calls;
   for(unsigned int i = 0; i < addresses.size(); ++i)
   {
-    std::shared_ptr<SIPDialogData> dialog = std::shared_ptr<SIPDialogData> (new SIPDialogData);
-
-    dialog->sCon = createSIPConnection();
-    dialog->session = createSIPSession(dialogs_.size() + 1);
-    dialog->routing = NULL;
+    std::shared_ptr<SIPDialogData> dialog;
+    createDialog(dialog);
+    calls.push_back(dialogs_.size());
     dialog->remoteUsername = addresses.at(i).username;
-    connectionMutex_.lock();
     // message is sent only after connection has been established so we know our address
     dialog->sCon->createConnection(TCP, addresses.at(i).remoteAddress);
 
-    dialogs_.push_back(dialog);
-    connectionMutex_.unlock();
-    calls.push_back(dialogs_.size());
     qDebug() << "Added a new dialog. ID:" << dialogs_.size();
 
     // this start call will commence once the connection has been established
-    if(!dialog->session->startCall())
+    if(!dialog->client->startCall())
     {
       qDebug() << "WARNING: Could not start a call according to session.";
     }
   }
 
   return calls;
+}
+
+void SIPManager::createDialog(std::shared_ptr<SIPDialogData>& dialog)
+{
+  dialog = std::shared_ptr<SIPDialogData> (new SIPDialogData);
+  dialog->sCon = createSIPConnection();
+  dialog->remoteUsername = "";
+  connectionMutex_.lock();
+  dialog->session = createSIPSession(dialogs_.size() + 1);
+  dialog->routing = NULL;
+  dialog->client = std::shared_ptr<SIPClientTransaction> (new SIPClientTransaction);
+  dialog->client->init(transactionUser_, dialogs_.size() + 1);
+  dialog->server = std::shared_ptr<SIPServerTransaction> (new SIPServerTransaction);
+  dialog->server->init(transactionUser_, dialogs_.size() + 1);
+
+  QObject::connect(dialog->client.get(), &SIPClientTransaction::sendRequest,
+                   this, &SIPManager::sendRequest);
+
+  QObject::connect(dialog->server.get(), &SIPServerTransaction::sendResponse,
+                   this, &SIPManager::sendResponse);
+
+  dialogs_.push_back(dialog);
+  connectionMutex_.unlock();
 }
 
 void SIPManager::acceptCall(uint32_t sessionID)
@@ -113,14 +133,7 @@ std::shared_ptr<SIPSession> SIPManager::createSIPSession(uint32_t sessionID)
 {
   qDebug() << "Creating SIP Session";
   std::shared_ptr<SIPSession> session = std::shared_ptr<SIPSession> (new SIPSession());
-
-  session->init(sessionID, callControl_);
-
-  QObject::connect(session.get(), &SIPSession::sendRequest,
-                   this, &SIPManager::sendRequest);
-
-  QObject::connect(session.get(), &SIPSession::sendResponse,
-                   this, &SIPManager::sendResponse);
+  session->init(sessionID);
 
   // connect signals to signals. Session is responsible for responses
   // and callmanager handles informing the user.
@@ -179,15 +192,10 @@ void SIPManager::receiveTCPConnection(TCPConnection *con)
 
   qDebug() << "Received a TCP connection. Initializing dialog";
   Q_ASSERT(con);
-  std::shared_ptr<SIPDialogData> dialog = std::shared_ptr<SIPDialogData> (new SIPDialogData);
-  dialog->sCon = createSIPConnection();
-  connectionMutex_.lock();
+
+  std::shared_ptr<SIPDialogData> dialog;
+  createDialog(dialog);
   dialog->sCon->incomingTCPConnection(std::shared_ptr<TCPConnection> (con));
-  dialog->session = createSIPSession(dialogs_.size() + 1);
-  dialog->routing = NULL;
-  dialog->remoteUsername = "";
-  dialogs_.append(dialog);
-  connectionMutex_.unlock();
   qDebug() << "Dialog with ID:" << dialogs_.size() << "created for received connection.";
 }
 
@@ -217,7 +225,7 @@ void SIPManager::connectionEstablished(quint32 sessionID, QString localAddress, 
   }
   dialog->session->generateCallID(localAddress);
 
-  dialog->session->connectionReady(true);
+  dialog->client->connectionReady(true);
 
   qDebug() << "Connection" << sessionID << "connected and dialog created."
            << "From:" << localAddress
@@ -237,18 +245,18 @@ void SIPManager::processSIPRequest(SIPRequest request,
   if(!dialog->routing->incomingSIPRequest(request.message->routing))
   {
     qDebug() << "Something wrong with incoming SIP request routing";
-    sendResponse(sessionID, SIP_NOT_FOUND);
+    sendResponse(sessionID, SIP_NOT_FOUND, request.type);
     return;
   }
 
   if(!dialog->session->correctRequest(request.message->session))
   {
     qDebug() << "Received a request for a wrong session!";
-    sendResponse(sessionID, SIP_CALL_DOES_NOT_EXIST);
+    sendResponse(sessionID, SIP_CALL_DOES_NOT_EXIST, request.type);
     return;
   }
 
-  dialogs_.at(sessionID - 1)->session->processRequest(request);
+  dialogs_.at(sessionID - 1)->server->processRequest(request);
   /*
   if(request.message.content == APPLICATION_SDP)
   {
@@ -275,6 +283,8 @@ void SIPManager::processSIPResponse(SIPResponse response,
     return;
   }
   qWarning() << "WARNING: Processing responses not implemented yet";
+
+  dialogs_.at(sessionID - 1)->client->processResponse(response);
 }
 
 void SIPManager::sendRequest(uint32_t sessionID, RequestType type)
@@ -299,14 +309,14 @@ void SIPManager::sendRequest(uint32_t sessionID, RequestType type)
   qDebug() << "---- Finished sending of a request ---";
 }
 
-void SIPManager::sendResponse(uint32_t sessionID, ResponseType type)
+void SIPManager::sendResponse(uint32_t sessionID, ResponseType type, RequestType originalRequest)
 {
   qDebug() << "---- Iniated sending of a response ---";
   Q_ASSERT(sessionID != 0 && sessionID <= dialogs_.size());
   QString directRouting = "";
 
   // Get all the necessary information from different components.
-  SIPResponse response = {type, dialogs_.at(sessionID - 1)->session->getResponseInfo()};
+  SIPResponse response = {type, dialogs_.at(sessionID - 1)->session->getResponseInfo(originalRequest)};
   response.message->routing = dialogs_.at(sessionID - 1)->routing->requestRouting(directRouting);
 
   QVariant content;

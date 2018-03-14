@@ -496,5 +496,3 @@ QString SIPConnection::addContent(QList<SIPField>& fields, bool haveContent, con
   }
   return sdp_str;
 }
-
-
