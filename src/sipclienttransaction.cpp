@@ -21,7 +21,7 @@ SIPClientTransaction::SIPClientTransaction():
 void SIPClientTransaction::init(SIPTransactionUser* tu, uint32_t sessionID)
 {
   Q_ASSERT(sessionID != 0);
-  Q_ASSERT(transactionUser_);
+  Q_ASSERT(tu);
   transactionUser_ = tu;
   sessionID_ = sessionID;
   requestTimer_.setSingleShot(true);
@@ -35,7 +35,7 @@ void SIPClientTransaction::processResponse(SIPResponse &response)
   Q_ASSERT(sessionID_ != 0);
   if(!sessionID_)
   {
-    qWarning() << "WARNING: SIP Session not initialized.";
+    qWarning() << "WARNING: SIP Client Transaction not initialized.";
     return;
   }
 
@@ -54,7 +54,7 @@ bool SIPClientTransaction::startCall()
   Q_ASSERT(sessionID_ != 0);
   if(!sessionID_)
   {
-    qWarning() << "WARNING: SIP Session not initialized";
+    qWarning() << "WARNING: SIP Client Transaction not initialized";
     return false;
   }
 

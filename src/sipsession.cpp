@@ -49,13 +49,18 @@ std::shared_ptr<SIPMessageInfo> SIPSession::getResponseInfo(RequestType ongoingT
   return message;
 }
 
-bool SIPSession::correctRequest(std::shared_ptr<SIPSessionInfo> session)
+bool SIPSession::processRequest(std::shared_ptr<SIPSessionInfo> session)
 {
+  if(callID_ == "")
+  {
+    callID_ = session->callID;
+  }
+
   return (session->toTag == localTag_ || session->toTag == "") && (session->fromTag == remoteTag_ || remoteTag_ == "") &&
-      ( session->callID == callID_ || callID_ == "");
+      ( session->callID == callID_);
 }
 
-bool SIPSession::correctResponse(std::shared_ptr<SIPSessionInfo> session)
+bool SIPSession::processResponse(std::shared_ptr<SIPSessionInfo> session)
 {
   return session->fromTag == localTag_ && (session->toTag == remoteTag_ || remoteTag_ == "") &&
       ( session->callID == callID_ || callID_ == "");

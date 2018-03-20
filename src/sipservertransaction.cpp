@@ -6,14 +6,14 @@
 
 SIPServerTransaction::SIPServerTransaction():
   sessionID_(0),
+  waitingResponse_(SIP_UNKNOWN_REQUEST),
   transactionUser_(NULL)
-{
-
-}
+{}
 
 void SIPServerTransaction::init(SIPTransactionUser* tu, uint32_t sessionID)
 {
   transactionUser_ = tu;
+  sessionID_ = sessionID;
 }
 
 // processes incoming request
@@ -22,18 +22,20 @@ void SIPServerTransaction::processRequest(SIPRequest &request)
   Q_ASSERT(transactionUser_ && sessionID_);
   if(!transactionUser_ || sessionID_ == 0)
   {
-    qWarning() << "WARNING: SIP Session not initialized.";
+    qWarning() << "WARNING: SIP Server transaction not initialized.";
     return;
   }
 
   // TODO: check that the request is appropriate at this time.
 
-  switch(request.type)
+  waitingResponse_ = request.type;
+
+  switch(waitingResponse_)
   {
   case INVITE:
   {
     transactionUser_->incomingCall(sessionID_, request.message->routing->to.realname);
-    responseSender(SIP_RINGING, request.type);
+    responseSender(SIP_RINGING, false);
     break;
   }
   case ACK:
@@ -59,20 +61,34 @@ void SIPServerTransaction::processRequest(SIPRequest &request)
   case REGISTER:
   {
     qDebug() << "Why on earth are we receiving REGISTER methods?";
-    responseSender(SIP_NOT_IMPLEMENTED, request.type);
+    responseSender(SIP_NOT_IMPLEMENTED, true);
     break;
   }
   default:
   {
     qDebug() << "Unsupported request type received";
-    responseSender(SIP_NOT_IMPLEMENTED, request.type);
+    responseSender(SIP_NOT_IMPLEMENTED, true);
     break;
   }
   }
 }
 
-void SIPServerTransaction::responseSender(ResponseType type, RequestType originalRequest)
+void SIPServerTransaction::acceptCall()
 {
-   emit sendResponse(sessionID_, type, originalRequest);
+  responseSender(SIP_OK, true);
 }
 
+void SIPServerTransaction::rejectCall()
+{
+  responseSender(SIP_DECLINE, true);
+}
+
+void SIPServerTransaction::responseSender(ResponseType type, bool finalResponse)
+{
+  Q_ASSERT(waitingResponse_ != SIP_UNKNOWN_REQUEST);
+  emit sendResponse(sessionID_, type, waitingResponse_);
+  if(finalResponse)
+  {
+    waitingResponse_ = SIP_UNKNOWN_REQUEST;
+  }
+}

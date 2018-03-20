@@ -9,7 +9,7 @@
 enum RequestType {SIP_UNKNOWN_REQUEST, INVITE, ACK, BYE, CANCEL, OPTIONS, REGISTER}; // RFC 3261
  //PRACK,SUBSCRIBE, NOTIFY, PUBLISH, INFO, REFER, MESSAGE, UPDATE }; RFC 3262, 6665, 3903, 6086, 3515, 3428, 3311
 
-// the phrase is for humans only, so we will ignore it
+// the phrase is for humans only, so we will ignore it when parsing and use the code instead
 enum ResponseType {SIP_UNKNOWN_RESPONSE = 0,
                    SIP_TRYING = 100,
                    SIP_RINGING = 180,

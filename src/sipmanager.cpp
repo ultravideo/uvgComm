@@ -69,6 +69,7 @@ QList<uint32_t> SIPManager::startCall(QList<Contact> addresses)
   {
     std::shared_ptr<SIPDialogData> dialog;
     createDialog(dialog);
+    dialog->session->setOurSession(true);
     calls.push_back(dialogs_.size());
     dialog->remoteUsername = addresses.at(i).username;
     // message is sent only after connection has been established so we know our address
@@ -111,12 +112,18 @@ void SIPManager::createDialog(std::shared_ptr<SIPDialogData>& dialog)
 
 void SIPManager::acceptCall(uint32_t sessionID)
 {
-  qDebug() << "WARNING: Not implemented in SIPManager";
+  connectionMutex_.lock();
+  std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
+  connectionMutex_.unlock();
+  dialog->server->acceptCall();
 }
 
 void SIPManager::rejectCall(uint32_t sessionID)
 {
-  qDebug() << "WARNING: Not implemented in SIPManager";
+  connectionMutex_.lock();
+  std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
+  connectionMutex_.unlock();
+  dialog->server->rejectCall();
 }
 
 void SIPManager::endCall(uint32_t sessionID)
@@ -249,7 +256,7 @@ void SIPManager::processSIPRequest(SIPRequest request,
     return;
   }
 
-  if(!dialog->session->correctRequest(request.message->session))
+  if(!dialog->session->processRequest(request.message->session))
   {
     qDebug() << "Received a request for a wrong session!";
     sendResponse(sessionID, SIP_CALL_DOES_NOT_EXIST, request.type);
@@ -320,7 +327,7 @@ void SIPManager::sendResponse(uint32_t sessionID, ResponseType type, RequestType
   response.message->routing = dialogs_.at(sessionID - 1)->routing->requestRouting(directRouting);
 
   QVariant content;
-  if(response.message->transactionRequest == INVITE) // TODO: SDP in progress...
+  if(response.message->transactionRequest == INVITE && type == SIP_OK) // TODO: SDP in progress...
   {
     response.message->content.type = APPLICATION_SDP;
     SDPMessageInfo sdp = *dialogs_.at(sessionID - 1)->localFinalSdp_.get();

@@ -241,17 +241,22 @@ void ConferenceView::close()
 
 uint32_t ConferenceView::findInvoker(QString buttonName)
 {
+  // TODO: bug warning: what if a sessionID has left the call and the sessionID no longer matches the widget positions?
+
   uint32_t sessionID = 0;
   QPushButton* button = qobject_cast<QPushButton*>(sender());
   for(unsigned int i = 0; i < activeCalls_.size(); ++i)
   {
     if(activeCalls_.at(i) != NULL)
     {
-      QPushButton* pb = activeCalls_.at(i)->item->widget()->findChildren<QPushButton *>(buttonName).first();
-      if(pb == button)
+      if(!activeCalls_.at(i)->item->widget()->findChildren<QPushButton *>(buttonName).isEmpty())
       {
-        sessionID = i;
-        qDebug() << "Found invoking" << buttonName << "Session ID:" << sessionID;
+        QPushButton* pb = activeCalls_.at(i)->item->widget()->findChildren<QPushButton *>(buttonName).first();
+        if(pb == button)
+        {
+          sessionID = i + 1; // sessionID is never 0
+          qDebug() << "Found invoking" << buttonName << "Session ID:" << sessionID;
+        }
       }
     }
   }

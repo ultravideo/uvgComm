@@ -19,6 +19,7 @@ public:
   void malformedRequest();
 
   void acceptCall();
+  void rejectCall();
 
 signals:
 
@@ -26,10 +27,12 @@ signals:
 
 private:
 
-  void responseSender(ResponseType type, RequestType originalRequest);
+  void responseSender(ResponseType type, bool finalResponse);
   bool goodRequest(); // use this to filter out untimely/duplicate requests
 
   uint32_t sessionID_;
+
+  RequestType waitingResponse_;
 
   SIPTransactionUser* transactionUser_;
 };

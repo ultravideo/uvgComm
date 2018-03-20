@@ -31,8 +31,8 @@ public:
   std::shared_ptr<SIPMessageInfo> getRequestInfo(RequestType type);
   std::shared_ptr<SIPMessageInfo> getResponseInfo(RequestType ongoingTransaction);
 
-  bool correctRequest(std::shared_ptr<SIPSessionInfo> session);
-  bool correctResponse(std::shared_ptr<SIPSessionInfo> session);
+  bool processRequest(std::shared_ptr<SIPSessionInfo> session);
+  bool processResponse(std::shared_ptr<SIPSessionInfo> session);
 
   // forbid copy and assignment
   SIPSession(const SIPSession& copied) = delete;

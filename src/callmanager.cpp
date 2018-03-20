@@ -29,8 +29,8 @@ void CallManager::init()
   QObject::connect(&window_, SIGNAL(endCall()), this, SLOT(endTheCall()));
   QObject::connect(&window_, SIGNAL(closed()), this, SLOT(windowClosed()));
 
-  QObject::connect(&window_, SIGNAL(callAccepted(QString)), this, SLOT(acceptCall(QString)));
-  QObject::connect(&window_, SIGNAL(callRejected(QString)), this, SLOT(rejectCall(QString)));
+  QObject::connect(&window_, &CallWindow::callAccepted, this, &CallManager::acceptCall);
+  QObject::connect(&window_, &CallWindow::callRejected, this, &CallManager::rejectCall);
 
   stats_ = window_.createStatsWindow();
 
