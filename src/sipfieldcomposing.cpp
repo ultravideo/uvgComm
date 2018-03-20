@@ -29,7 +29,7 @@ bool getFirstResponseLine(QString& line, SIPResponse& response, QString lineEndi
     qDebug() << "WARNING: First response line failed";
     return false;
   }
-  line = " SIP/" + response.message->version
+  line = " SIP/" + response.message->version + " "
       + QString::number(responseToCode(response.type)) + " "
       + responseToPhrase(response.type) + lineEnding;
   return true;

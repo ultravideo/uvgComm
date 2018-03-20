@@ -266,8 +266,8 @@ void SIPConnection::parsePackage(QString package, QString& header, QString& body
       header = package.left(headerEndIndex);
       body = package.mid(headerEndIndex, valueInt);
 
-      qDebug() << "Whole message received.";
-      qDebug() << "Header:" << header;
+      qDebug() << "Whole SIP message received ----------- ";
+      qDebug().noquote() << "Header:" << header;
       qDebug() << "Content:" << body;
       qDebug() << "Left overs:" << partialMessage_;
     }
