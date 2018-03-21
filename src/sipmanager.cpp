@@ -249,6 +249,23 @@ void SIPManager::processSIPRequest(SIPRequest request,
   std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
   connectionMutex_.unlock();
 
+  // TODO: prechecks that the message is ok, then process it.
+
+  if(request.type == INVITE)
+  {
+    if(request.message->content.type == APPLICATION_SDP)
+    {
+      SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
+      dialog->localFinalSdp_ = sdp_.localFinalSDP(retrieved);
+    }
+    else
+    {
+      qDebug() << "No SDP in INVITE!";
+      sendResponse(sessionID, SIP_DECLINE, request.type);
+      return;
+    }
+  }
+
   if(!dialog->routing->incomingSIPRequest(request.message->routing))
   {
     qDebug() << "Something wrong with incoming SIP request routing";
@@ -263,16 +280,7 @@ void SIPManager::processSIPRequest(SIPRequest request,
     return;
   }
 
-  dialogs_.at(sessionID - 1)->server->processRequest(request);
-  /*
-  if(request.message.content == APPLICATION_SDP)
-  {
-
-  }
-  else
-  {
-
-  }*/
+  dialog->server->processRequest(request);
 }
 
 void SIPManager::processSIPResponse(SIPResponse response,
@@ -281,6 +289,22 @@ void SIPManager::processSIPResponse(SIPResponse response,
   connectionMutex_.lock();
   std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
   connectionMutex_.unlock();
+
+  if(response.message->transactionRequest == INVITE && response.type == SIP_OK)
+  {
+    if(response.message->content.type == APPLICATION_SDP)
+    {
+      SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
+      if(!sdp_.remoteFinalSDP(retrieved))
+      {
+        qDebug() << "OK SDP not suitable.";
+      }
+      else
+      {
+        *dialog->remoteFinalSdp_.get() = retrieved;
+      }
+    }
+  }
 
   if(!dialogs_.at(sessionID - 1)->routing->incomingSIPResponse(response.message->routing))
   {

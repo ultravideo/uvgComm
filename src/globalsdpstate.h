@@ -24,10 +24,10 @@ public:
   // use for getting our answer and for getting our final to be used
   // returns NULL if suitable could not be found
   // chooces what to use
-  std::shared_ptr<SDPMessageInfo> localFinalSDP(std::shared_ptr<SDPMessageInfo> remoteSDP);
+  std::shared_ptr<SDPMessageInfo> localFinalSDP(SDPMessageInfo& remoteSDP);
 
   // return if the final SDP was suitable. It should be, but just to be sure
-  bool remoteFinalSDP(std::shared_ptr<SDPMessageInfo> remoteInviteSDP);
+  bool remoteFinalSDP(SDPMessageInfo& remoteInviteSDP);
 
   // TODO: failed SDP negotiations and ended calls
 
@@ -39,7 +39,7 @@ private:
 
   std::shared_ptr<SDPMessageInfo> generateSDP();
 
-  bool checkSDPOffer(std::shared_ptr<SDPMessageInfo> offer);
+  bool checkSDPOffer(SDPMessageInfo& offer);
 
   QHostAddress localAddress_;
   QString localUsername_;

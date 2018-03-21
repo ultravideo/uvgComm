@@ -114,13 +114,9 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP()
   return newInfo;
 }
 // returns NULL if suitable could not be found
-std::shared_ptr<SDPMessageInfo> GlobalSDPState::localFinalSDP(std::shared_ptr<SDPMessageInfo> remoteSDP)
+std::shared_ptr<SDPMessageInfo> GlobalSDPState::localFinalSDP(SDPMessageInfo &remoteSDP)
 {
-  if(remoteSDP == NULL)
-  {
-    qDebug() << "WARNING: Got a remote NULL invite SDP.";
-  }
-  else if(!checkSDPOffer(remoteSDP))
+  if(!checkSDPOffer(remoteSDP))
   {
     qDebug() << "Incoming SDP did not have Opus and H265 in their offer.";
     return NULL;
@@ -131,17 +127,17 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::localFinalSDP(std::shared_ptr<SD
   return generateSDP(); // TODO: this does not make sense. The final should be modified from suggestion
 }
 
-bool GlobalSDPState::remoteFinalSDP(std::shared_ptr<SDPMessageInfo> remoteInviteSDP)
+bool GlobalSDPState::remoteFinalSDP(SDPMessageInfo &remoteInviteSDP)
 {
   return checkSDPOffer(remoteInviteSDP);
 }
 
-bool GlobalSDPState::checkSDPOffer(std::shared_ptr<SDPMessageInfo> offer)
+bool GlobalSDPState::checkSDPOffer(SDPMessageInfo &offer)
 {
   bool hasOpus = false;
   bool hasH265 = false;
 
-  for(MediaInfo media : offer->media)
+  for(MediaInfo media : offer.media)
   {
     for(RTPMap rtp : media.codecs)
     {
@@ -163,6 +159,8 @@ bool GlobalSDPState::checkSDPOffer(std::shared_ptr<SDPMessageInfo> offer)
 
 uint16_t GlobalSDPState::nextAvailablePortPair()
 {
+  // TODO: I'm suspecting this may sometimes hang Kvazzup at the start
+
   uint16_t newLowerPort = 0;
 
   portLock_.lock();
