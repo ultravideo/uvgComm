@@ -49,8 +49,8 @@ private slots:
   void connectionEstablished(quint32 sessionID, QString localAddress, QString remoteAddress);
   void receiveTCPConnection(TCPConnection* con);
 
-  void processSIPRequest(SIPRequest request, quint32 sessionID);
-  void processSIPResponse(SIPResponse response, quint32 sessionID);
+  void processSIPRequest(SIPRequest request, quint32 sessionID, QVariant content);
+  void processSIPResponse(SIPResponse response, quint32 sessionID, QVariant content);
 
   void sendRequest(uint32_t sessionID, RequestType type);
   void sendResponse(uint32_t sessionID, ResponseType type, RequestType originalRequest);

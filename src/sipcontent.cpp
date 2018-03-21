@@ -66,11 +66,9 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
   return sdp;
 }
 
-std::shared_ptr<SDPMessageInfo> parseSDPContent(const QString& content)
+bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
 {
   // TODO: not sure how good this parsing is
-
-  std::shared_ptr<SDPMessageInfo> info(new SDPMessageInfo);
   bool version = false;
   bool originator = false;
   bool session = false;
@@ -93,13 +91,13 @@ std::shared_ptr<SDPMessageInfo> parseSDPContent(const QString& content)
       case 'v':
       {
         if(!checkSDPLine(words, 1, firstValue))
-          return NULL;
+          return false;
 
-        info->version = firstValue.toUInt();
-        if(info->version != 0)
+        sdp.version = firstValue.toUInt();
+        if(sdp.version != 0)
         {
-          qDebug() << "Unsupported SDP version:" << info->version;
-          return NULL;
+          qDebug() << "Unsupported SDP version:" << sdp.version;
+          return false;
         }
 
         version = true;
@@ -107,16 +105,16 @@ std::shared_ptr<SDPMessageInfo> parseSDPContent(const QString& content)
       }
       case 'o':
       {
-        if(!checkSDPLine(words, 6, info->originator_username))
-          return NULL;
+        if(!checkSDPLine(words, 6, sdp.originator_username))
+          return false;
 
-        info->sess_id = words.at(1).toUInt();
-        info->sess_v = words.at(2).toUInt();
-        info->host_nettype = words.at(3);
-        info->host_addrtype = words.at(4);
-        info->host_address = words.at(5);
+        sdp.sess_id = words.at(1).toUInt();
+        sdp.sess_v = words.at(2).toUInt();
+        sdp.host_nettype = words.at(3);
+        sdp.host_addrtype = words.at(4);
+        sdp.host_address = words.at(5);
 
-        qDebug() << "Origin read successfully. host_address:" << info->host_address;
+        qDebug() << "Origin read successfully. host_address:" << sdp.host_address;
 
         originator = true;
         break;
@@ -124,21 +122,21 @@ std::shared_ptr<SDPMessageInfo> parseSDPContent(const QString& content)
       case 's':
       {
         if(line.size() < 3 )
-          return NULL;
+          return false;
 
-        info->sessionName = line.right(line.size() - 2);
+        sdp.sessionName = line.right(line.size() - 2);
 
-        qDebug() << "Session name:" << info->sessionName;
+        qDebug() << "Session name:" << sdp.sessionName;
         session = true;
         break;
       }
       case 't':
       {
         if(!checkSDPLine(words, 2, firstValue))
-          return NULL;
+          return false;
 
-        info->startTime = firstValue.toUInt();
-        info->endTime = words.at(1).toUInt();
+        sdp.startTime = firstValue.toUInt();
+        sdp.endTime = words.at(1).toUInt();
 
         timing = true;
         break;
@@ -147,7 +145,7 @@ std::shared_ptr<SDPMessageInfo> parseSDPContent(const QString& content)
       {
         MediaInfo mediaInfo;
         if(!checkSDPLine(words, 4, mediaInfo.type))
-          return NULL;
+          return false;
 
         bool mediaContact = false;
         mediaInfo.receivePort = words.at(1).toUInt();
@@ -166,13 +164,13 @@ std::shared_ptr<SDPMessageInfo> parseSDPContent(const QString& content)
           if(additionalLine.at(0) == 'c')
           {
             if(!checkSDPLine(additionalWords, 3, mediaInfo.nettype))
-              return NULL;
+              return false;
 
             mediaInfo.addrtype = additionalWords.at(1);
             mediaInfo.address = additionalWords.at(2);
 
-            info->connection_addrtype = additionalWords.at(1); // TODO: what about nettype?
-            info->connection_address = additionalWords.at(2);
+            sdp.connection_addrtype = additionalWords.at(1); // TODO: what about nettype?
+            sdp.connection_address = additionalWords.at(2);
 
             mediaContact = true;
           }
@@ -220,7 +218,7 @@ std::shared_ptr<SDPMessageInfo> parseSDPContent(const QString& content)
           }
         }
 
-        info->media.append(mediaInfo);
+        sdp.media.append(mediaInfo);
 
         if(!mediaContact)
           localContacts = false;
@@ -229,11 +227,11 @@ std::shared_ptr<SDPMessageInfo> parseSDPContent(const QString& content)
       }
       case 'c':
       {
-        if(!checkSDPLine(words, 3, info->connection_nettype))
-          return NULL;
+        if(!checkSDPLine(words, 3, sdp.connection_nettype))
+          return false;
 
-        info->connection_addrtype = words.at(1);
-        info->connection_address = words.at(2);
+        sdp.connection_addrtype = words.at(1);
+        sdp.connection_address = words.at(2);
         globalContact = true;
         break;
       }
@@ -249,10 +247,10 @@ std::shared_ptr<SDPMessageInfo> parseSDPContent(const QString& content)
     qDebug() << "All required fields not present in SDP:"
              << "v" << version << "o" << originator << "s" << session << "t" << timing
              << "global c" << globalContact << "local c" << localContacts;
-    return NULL;
+    return false;
   }
 
-  return info;
+  return true;
 }
 
 bool checkSDPLine(QStringList& line, uint8_t expectedLength, QString& firstValue)

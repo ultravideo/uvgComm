@@ -44,22 +44,26 @@ signals:
 
 private:
 
+  // composing
+  bool composeMandatoryFields(QList<SIPField>& fields, std::shared_ptr<SIPMessageInfo> message);
+  QString fieldsToString(QList<SIPField>& fields, QString lineEnding);
+  QString addContent(QList<SIPField>& fields, bool haveContent, const SDPMessageInfo& sdp);
+
   // parsing
   void parsePackage(QString package, QString& header, QString& body);
   bool headerToFields(QString header, QString& firstLine, QList<SIPField>& fields);
   bool fieldsToMessage(QList<SIPField>& fields, std::shared_ptr<SIPMessageInfo> &message);
   bool parseRequest(QString requestString, QString version,
                     std::shared_ptr<SIPMessageInfo> message,
-                    QList<SIPField>& fields);
-  bool parseResponse(QString responseString, QString version, std::shared_ptr<SIPMessageInfo> message);
+                    QList<SIPField>& fields, QVariant& content);
+  bool parseResponse(QString responseString, QString version,
+                     std::shared_ptr<SIPMessageInfo> message,
+                     QVariant& content);
+
+  void parseContent(QVariant content, ContentType type, QString &body);
 
   void parseSIPaddress(QString address, QString& user, QString& location);
   QList<QHostAddress> parseIPAddress(QString address);
-
-  // composing
-  bool composeMandatoryFields(QList<SIPField>& fields, std::shared_ptr<SIPMessageInfo> message);
-  QString fieldsToString(QList<SIPField>& fields, QString lineEnding);
-  QString addContent(QList<SIPField>& fields, bool haveContent, const SDPMessageInfo& sdp);
 
   void signalConnections();
 

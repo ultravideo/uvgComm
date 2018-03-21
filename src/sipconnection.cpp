@@ -225,7 +225,12 @@ void SIPConnection::networkPackage(QString package)
       return;
     }
 
-    // TODO check both request and response separately
+    QVariant content;
+    if(body != "" && message->content.type != NO_CONTENT)
+    {
+      parseContent(content, message->content.type, body);
+    }
+
     QRegularExpression requestRE("^(\\w+) (sip:\\S+@\\S+) (SIP\/2\.0)");
     QRegularExpression responseRE("^(SIP\/2\.0) (\\d\\d\\d) (\\w| )+");
     QRegularExpressionMatch request_match = requestRE.match(firstLine);
@@ -239,14 +244,14 @@ void SIPConnection::networkPackage(QString package)
 
     if(request_match.hasMatch() && request_match.lastCapturedIndex() == 3)
     {
-      if(!parseRequest(request_match.captured(1), request_match.captured(3), message, fields))
+      if(!parseRequest(request_match.captured(1), request_match.captured(3), message, fields, content))
       {
         qDebug() << "Failed to parse request";
       }
     }
     else if(response_match.hasMatch() && response_match.lastCapturedIndex() == 3)
     {
-      if(!parseResponse(response_match.captured(2), response_match.captured(1), message))
+      if(!parseResponse(response_match.captured(2), response_match.captured(1), message, content))
       {
         qDebug() << "Failed to parse response: " << response_match.captured(2);
       }
@@ -410,7 +415,7 @@ bool SIPConnection::fieldsToMessage(QList<SIPField>& fields,
 
 bool SIPConnection::parseRequest(QString requestString, QString version,
                                  std::shared_ptr<SIPMessageInfo> message,
-                                 QList<SIPField> &fields)
+                                 QList<SIPField> &fields, QVariant &content)
 {
   qDebug() << "Request detected:" << requestString;
 
@@ -439,17 +444,12 @@ bool SIPConnection::parseRequest(QString requestString, QString version,
   request.type = requestType;
   request.message = message;
 
-  QVariant content; // TODO parse content
-  if(request.message->content.type == APPLICATION_SDP)
-  {
-
-  }
-
   emit incomingSIPRequest(request, sessionID_, content);
   return true;
 }
 
-bool SIPConnection::parseResponse(QString responseString, QString version, std::shared_ptr<SIPMessageInfo> message)
+
+bool SIPConnection::parseResponse(QString responseString, QString version, std::shared_ptr<SIPMessageInfo> message, QVariant &content)
 {
   qDebug() << "Response detected:" << responseString;
   message->version = version; // TODO: set only version not SIP/version
@@ -465,15 +465,29 @@ bool SIPConnection::parseResponse(QString responseString, QString version, std::
   response.type = type;
   response.message = message;
 
-  QVariant content; // TODO parse content
-  if(response.message->content.type == APPLICATION_SDP)
-  {
-
-  }
-
   emit incomingSIPResponse(response, sessionID_, content);
 
   return true;
+}
+
+void SIPConnection::parseContent(QVariant content, ContentType type, QString& body)
+{
+  if(type == APPLICATION_SDP)
+  {
+    SDPMessageInfo sdp;
+    if(parseSDPContent(body, sdp))
+    {
+      content.setValue(sdp);
+    }
+    else
+    {
+      qDebug () << "Failed to parse SDP message";
+    }
+  }
+  else
+  {
+    qDebug() << "Unsupported content type detected!";
+  }
 }
 
 void SIPConnection::parseSIPaddress(QString address, QString& user, QString& location)

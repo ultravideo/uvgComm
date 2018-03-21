@@ -240,7 +240,7 @@ void SIPManager::connectionEstablished(quint32 sessionID, QString localAddress, 
 }
 
 void SIPManager::processSIPRequest(SIPRequest request,
-                       quint32 sessionID)
+                       quint32 sessionID, QVariant content)
 {
   Q_ASSERT(dialogs_.at(sessionID - 1)->routing);
   Q_ASSERT(dialogs_.at(sessionID - 1)->session);
@@ -276,7 +276,7 @@ void SIPManager::processSIPRequest(SIPRequest request,
 }
 
 void SIPManager::processSIPResponse(SIPResponse response,
-                                    quint32 sessionID)
+                                    quint32 sessionID, QVariant content)
 {
   connectionMutex_.lock();
   std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);

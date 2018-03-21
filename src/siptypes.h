@@ -251,4 +251,4 @@ struct SDPMessageInfo
   QList<MediaInfo> media;
 };
 
-Q_DECLARE_METATYPE(SDPMessageInfo); // used in qvariant
+Q_DECLARE_METATYPE(SDPMessageInfo); // used in qvariant for content

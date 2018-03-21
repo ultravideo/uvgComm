@@ -7,5 +7,5 @@
 class SDPMessageInfo;
 
 QString composeSDPContent(const SDPMessageInfo& sdp);
-std::shared_ptr<SDPMessageInfo> parseSDPContent(const QString& content);
+bool parseSDPContent(const QString& content, SDPMessageInfo& sdp);
 
