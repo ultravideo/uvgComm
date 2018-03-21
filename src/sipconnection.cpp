@@ -202,24 +202,60 @@ QString SIPConnection::fieldsToString(QList<SIPField>& fields, QString lineEndin
 }
 
 
-void SIPConnection::networkPackage(QString message)
+void SIPConnection::networkPackage(QString package)
 {
   qDebug() << "Received a network package for SIP Connection";
   // parse to header and body
   QString header = "";
   QString body = "";
-  parsePackage(message, header, body);
+  parsePackage(package, header, body);
 
-  std::shared_ptr<QList<SIPField>> fields;
-  std::shared_ptr<QStringList> firstLine;
+  QList<SIPField> fields;
+  QString firstLine = "";
 
-  if(header != "")
+  headerToFields(header, firstLine, fields);
+
+  if(header != "" && firstLine != "" && !fields.empty())
   {
-    if(!parseSIPHeader(header))
+    std::shared_ptr<SIPMessageInfo> message;
+    if(!fieldsToMessage(fields, message))
     {
       qDebug() << "The received message was not correct. ";
       emit parsingError(SIP_BAD_REQUEST, sessionID_); // TODO support other possible error types
       return;
+    }
+
+    // TODO check both request and response separately
+    QRegularExpression requestRE("^(\\w+) (sip:\\S+@\\S+) (SIP\/2\.0)");
+    QRegularExpression responseRE("^(SIP\/2\.0) (\\d\\d\\d) (\\w| )+");
+    QRegularExpressionMatch request_match = requestRE.match(firstLine);
+    QRegularExpressionMatch response_match = responseRE.match(firstLine);
+
+    if(request_match.hasMatch() && response_match.hasMatch())
+    {
+      qWarning() << "ERROR: Both the request and response matched, which should not be possible!";
+      return;
+    }
+
+    if(request_match.hasMatch() && request_match.lastCapturedIndex() == 3)
+    {
+      if(!parseRequest(request_match.captured(1), request_match.captured(3), message, fields))
+      {
+        qDebug() << "Failed to parse request";
+      }
+    }
+    else if(response_match.hasMatch() && response_match.lastCapturedIndex() == 3)
+    {
+      if(!parseResponse(response_match.captured(2), response_match.captured(1), message))
+      {
+        qDebug() << "Failed to parse response: " << response_match.captured(2);
+      }
+    }
+    else
+    {
+      qDebug() << "Failed to parse first line of SIP message:" << firstLine
+               << "Request index:" << request_match.lastCapturedIndex()
+               << "response index:" << response_match.lastCapturedIndex();
     }
   }
   else
@@ -279,7 +315,7 @@ void SIPConnection::parsePackage(QString package, QString& header, QString& body
   }
 }
 
-bool SIPConnection::parseSIPHeader(QString header)
+bool SIPConnection::headerToFields(QString header, QString& firstLine, QList<SIPField>& fields)
 {
   // Divide into lines
   QStringList lines = header.split("\r\n", QString::SkipEmptyParts);
@@ -289,9 +325,9 @@ bool SIPConnection::parseSIPHeader(QString header)
     qDebug() << "No first line present in SIP header!";
     return false;
   }
+  firstLine = lines.at(0);
 
   // parse lines to fields.
-  QList<SIPField> fields;
   for(unsigned int i = 1; i < lines.size(); ++i)
   {
     QStringList parameters = lines.at(i).split(";", QString::SkipEmptyParts);
@@ -340,8 +376,13 @@ bool SIPConnection::parseSIPHeader(QString header)
     qDebug() << "All mandatory header lines not present!";
     return false;
   }
+}
 
-  std::shared_ptr<SIPMessageInfo> message = std::shared_ptr<SIPMessageInfo> (new SIPMessageInfo);
+
+bool SIPConnection::fieldsToMessage(QList<SIPField>& fields,
+                                    std::shared_ptr<SIPMessageInfo>& message)
+{
+  message = std::shared_ptr<SIPMessageInfo> (new SIPMessageInfo);
   message->cSeq = 0;
   message->transactionRequest = SIP_UNKNOWN_REQUEST;
   message->routing = std::shared_ptr<SIPRoutingInfo> (new SIPRoutingInfo);
@@ -363,80 +404,77 @@ bool SIPConnection::parseSIPHeader(QString header)
       }
     }
   }
-
-  QRegularExpression re_firstLine("(^(\\w+)|(SIP\/2\.0)) (\\S+) (.*)");
-  QRegularExpressionMatch firstline_match = re_firstLine.match(lines[0]);
-
-  if(firstline_match.hasMatch() && firstline_match.lastCapturedIndex() >= 5)
-  {
-    if(firstline_match.captured(5) == "SIP/2.0")
-    {
-      qDebug() << "Request detected:" << firstline_match.captured(1);
-
-      message->version = firstline_match.captured(5); // TODO: set only version not SIP/version
-      RequestType requestType = stringToRequest(firstline_match.captured(1));
-      if(requestType == SIP_UNKNOWN_REQUEST)
-      {
-        qDebug() << "Could not recognize request type!";
-        return false;
-      }
-
-      if(!isLinePresent("Max-Forwards", fields))
-      {
-        qDebug() << "Mandatory Max-Forwards not present in Request header";
-        return false;
-      }
-
-      if(requestType == INVITE && !isLinePresent("Contact", fields))
-      {
-        qDebug() << "Contact header missing from INVITE request";
-        return false;
-      }
-
-      // construct request
-
-      SIPRequest request;
-      request.type = requestType;
-      request.message = message;
-
-      QVariant content; // TODO parse content
-      emit incomingSIPRequest(request, sessionID_, content);
-    }
-    else if(firstline_match.captured(1) == "SIP/2.0")
-    {
-      qDebug() << "Response detected:" << firstline_match.captured(2);
-      message->version = firstline_match.captured(1); // TODO: set only version not SIP/version
-      ResponseType type = codeToResponse(stringToResponseCode(firstline_match.captured(1)));
-
-      if(type == SIP_UNKNOWN_RESPONSE)
-      {
-        qDebug() << "Could not recognize response type!";
-        return false;
-      }
-
-      SIPResponse response;
-      response.type = type;
-      response.message = message;
-
-      QVariant content; // TODO parse content
-      emit incomingSIPResponse(response, sessionID_, content);
-    }
-    else
-    {
-      qDebug() << "Could not identify request or response from:" << lines[0]
-               << "with first match as:" << firstline_match.captured(1);
-    }
-  }
-  else
-  {
-    qDebug() << "Failed to parse first line of SIP message:" << lines[0]
-             << "Matches detected:" << firstline_match.lastCapturedIndex();
-    return false;
-  }
-
   return true;
 }
 
+
+bool SIPConnection::parseRequest(QString requestString, QString version,
+                                 std::shared_ptr<SIPMessageInfo> message,
+                                 QList<SIPField> &fields)
+{
+  qDebug() << "Request detected:" << requestString;
+
+  message->version = version; // TODO: set only version not SIP/version
+  RequestType requestType = stringToRequest(requestString);
+  if(requestType == SIP_UNKNOWN_REQUEST)
+  {
+    qDebug() << "Could not recognize request type!";
+    return false;
+  }
+
+  if(!isLinePresent("Max-Forwards", fields))
+  {
+    qDebug() << "Mandatory Max-Forwards not present in Request header";
+    return false;
+  }
+
+  if(requestType == INVITE && !isLinePresent("Contact", fields))
+  {
+    qDebug() << "Contact header missing from INVITE request";
+    return false;
+  }
+
+  // construct request
+  SIPRequest request;
+  request.type = requestType;
+  request.message = message;
+
+  QVariant content; // TODO parse content
+  if(request.message->content.type == APPLICATION_SDP)
+  {
+
+  }
+
+  emit incomingSIPRequest(request, sessionID_, content);
+  return true;
+}
+
+bool SIPConnection::parseResponse(QString responseString, QString version, std::shared_ptr<SIPMessageInfo> message)
+{
+  qDebug() << "Response detected:" << responseString;
+  message->version = version; // TODO: set only version not SIP/version
+  ResponseType type = codeToResponse(stringToResponseCode(responseString));
+
+  if(type == SIP_UNKNOWN_RESPONSE)
+  {
+    qDebug() << "Could not recognize response type!";
+    return false;
+  }
+
+  SIPResponse response;
+  response.type = type;
+  response.message = message;
+
+  QVariant content; // TODO parse content
+  if(response.message->content.type == APPLICATION_SDP)
+  {
+
+  }
+
+  emit incomingSIPResponse(response, sessionID_, content);
+
+  return true;
+}
 
 void SIPConnection::parseSIPaddress(QString address, QString& user, QString& location)
 {

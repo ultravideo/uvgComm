@@ -16,7 +16,7 @@ bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
     qDebug() << "WARNING: First request line failed";
     return false;
   }
-  line = requestToString(request.type) + " "
+  line = requestToString(request.type) + " sip:"
       + request.message->routing->to.username + "@" + request.message->routing->to.host
       + " SIP/" + request.message->version + lineEnding;
   return true;
@@ -29,7 +29,7 @@ bool getFirstResponseLine(QString& line, SIPResponse& response, QString lineEndi
     qDebug() << "WARNING: First response line failed";
     return false;
   }
-  line = " SIP/" + response.message->version + " "
+  line = "SIP/" + response.message->version + " "
       + QString::number(responseToCode(response.type)) + " "
       + responseToPhrase(response.type) + lineEnding;
   return true;

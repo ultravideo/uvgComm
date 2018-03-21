@@ -68,6 +68,8 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
 
 std::shared_ptr<SDPMessageInfo> parseSDPContent(const QString& content)
 {
+  // TODO: not sure how good this parsing is
+
   std::shared_ptr<SDPMessageInfo> info(new SDPMessageInfo);
   bool version = false;
   bool originator = false;

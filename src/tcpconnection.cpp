@@ -110,6 +110,8 @@ void TCPConnection::run()
 {
   qDebug() << "Starting connection run loop";
 
+  // TODO: I'm pretty sure that the reconnecting after connection closes does not work.
+
   started_ = true;
 
   if(socket_ == 0)
