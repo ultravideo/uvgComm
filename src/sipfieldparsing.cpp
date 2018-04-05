@@ -6,6 +6,7 @@
 #include <QDebug>
 
 
+// TODO: Support SIPS uri scheme. Needed for TLS
 bool parseURI(QString values, SIP_URI& uri);
 bool parseParameterNameToValue(std::shared_ptr<QList<SIPParameter>> parameters,
                                QString name, QString& value);
@@ -14,6 +15,7 @@ bool parseUint(QString values, uint& number);
 
 bool parseURI(QString values, SIP_URI& uri)
 {
+  // SIP_TODO: Try to understand other than sip: addresses such as "tel:" and give error?
   QRegularExpression re_field("(\\w+ )?<sip:(\\w+)@([\\w\.:]+)>");
   QRegularExpressionMatch field_match = re_field.match(values);
 

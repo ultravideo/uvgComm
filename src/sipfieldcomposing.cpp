@@ -16,9 +16,18 @@ bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
     qDebug() << "WARNING: First request line failed";
     return false;
   }
-  line = requestToString(request.type) + " sip:"
-      + request.message->routing->to.username + "@" + request.message->routing->to.host
-      + " SIP/" + request.message->version + lineEnding;
+  if(request.type != REGISTER)
+  {
+    line = requestToString(request.type) + " sip:"
+        + request.message->routing->to.username + "@" + request.message->routing->to.host
+        + " SIP/" + request.message->version + lineEnding;
+  }
+  else
+  {
+    qDebug() << "WARNING: REGISTER first line composing not implemented.";
+    return false;
+  }
+
   return true;
 }
 

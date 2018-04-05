@@ -8,7 +8,7 @@ class AdvancedSettings;
 }
 
 // TODO: Possibly separate settings ui and settings management
-
+// TODO: Settings of SIP server
 class Settings : public QObject
 {
   Q_OBJECT

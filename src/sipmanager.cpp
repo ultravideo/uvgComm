@@ -290,6 +290,8 @@ void SIPManager::processSIPResponse(SIPResponse response,
   std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
   connectionMutex_.unlock();
 
+  // TODO: if request was INVITE and response is 2xx or 101-199, create dialog
+
   if(response.message->transactionRequest == INVITE && response.type == SIP_OK)
   {
     if(response.message->content.type == APPLICATION_SDP)
@@ -309,7 +311,7 @@ void SIPManager::processSIPResponse(SIPResponse response,
   if(!dialogs_.at(sessionID - 1)->routing->incomingSIPResponse(response.message->routing))
   {
 
-    qDebug() << "Something wrong with incoming SIP response";
+    qDebug() << "Something wrong with incoming SIP response routing for session:" << sessionID;
     // TODO: sent to wrong address (404 response)
     return;
   }

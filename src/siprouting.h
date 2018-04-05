@@ -16,6 +16,11 @@ class SIPRouting
 public:
   SIPRouting();
 
+  // TODO: somehow get the information on session forming and record route information from request.
+  // TODO: Is this only for Record-route header-field?
+
+  // TODO: Use contact-field value with requests.
+
   void setLocalNames(QString username, QString name);
   void setRemoteUsername(QString username);
   void setLocalAddress(QString localAddress);
@@ -27,6 +32,9 @@ public:
   // Does not check if we are allowed to receive requests from this user.
   bool incomingSIPRequest(std::shared_ptr<SIPRoutingInfo> routing);
   bool incomingSIPResponse(std::shared_ptr<SIPRoutingInfo> routing);
+
+  bool requestForUs(std::shared_ptr<SIPRoutingInfo> routing);
+  bool replyToOurRequest(std::shared_ptr<SIPRoutingInfo> routing);
 
   // returns values to be used in SIP request. Sets directaddress if we have it.
   std::shared_ptr<SIPRoutingInfo> requestRouting(QString& directAddress);

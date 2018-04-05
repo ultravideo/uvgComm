@@ -33,6 +33,8 @@ public:
   void init(SIPTransactionUser* callControl);
   void uninit();
 
+  void setServerAddress(QString server);
+
   QList<uint32_t> startCall(QList<Contact> addresses);
   void acceptCall(uint32_t sessionID);
   void rejectCall(uint32_t sessionID);

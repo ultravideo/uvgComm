@@ -6,6 +6,8 @@
 bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding);
 bool getFirstResponseLine(QString& line, SIPResponse& response, QString lineEnding);
 
+// SIP_TODO: Accept header would be nice
+
 bool includeToField(QList<SIPField>& fields,
                     std::shared_ptr<SIPMessageInfo> message);
 

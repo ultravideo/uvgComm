@@ -19,6 +19,9 @@
 
 const uint16_t SIP_PORT = 5060;
 
+
+// TODO: separate this into common, request and response field parsing. This is so we can ignore nonrelevant fields (7.3.2)
+// SIP_TODO: support compact forms (7.3.3)
 const std::map<QString, std::function<bool(SIPField& field, std::shared_ptr<SIPMessageInfo>)>> parsing =
 {
     {"To", parseToField},
@@ -221,7 +224,7 @@ void SIPConnection::networkPackage(QString package)
     if(!fieldsToMessage(fields, message))
     {
       qDebug() << "The received message was not correct. ";
-      emit parsingError(SIP_BAD_REQUEST, sessionID_); // TODO support other possible error types
+      emit parsingError(SIP_BAD_REQUEST, sessionID_); // SIP_TODO support other possible error types
       return;
     }
 
@@ -274,7 +277,7 @@ void SIPConnection::parsePackage(QString package, QString& header, QString& body
 {
   qDebug() << "Parsing package to header and body.";
 
-  // TODO: make this work also without content length.
+  // SIP_TODO: make this work also without content length.
   if(partialMessage_.length() > 0)
   {
     package = partialMessage_ + package;
@@ -322,6 +325,7 @@ void SIPConnection::parsePackage(QString package, QString& header, QString& body
 
 bool SIPConnection::headerToFields(QString header, QString& firstLine, QList<SIPField>& fields)
 {
+  // SIP_TODO: support header fields that span multiple lines
   // Divide into lines
   QStringList lines = header.split("\r\n", QString::SkipEmptyParts);
   qDebug() << "Parsing SIP header with" << lines.size() << "lines";
@@ -332,16 +336,21 @@ bool SIPConnection::headerToFields(QString header, QString& firstLine, QList<SIP
   }
   firstLine = lines.at(0);
 
+  // SIP_TODO: Support comma(,) separated header fields. (expect for some field types)
+
   // parse lines to fields.
   for(unsigned int i = 1; i < lines.size(); ++i)
   {
     QStringList parameters = lines.at(i).split(";", QString::SkipEmptyParts);
 
+    // SIP_TODO: support input with unknown amounts of empty spaces
     QRegularExpression re_field("(\\S*): (.+)");
     QRegularExpressionMatch field_match = re_field.match(parameters.at(0));
 
     if(field_match.hasMatch() && field_match.lastCapturedIndex() == 2)
     {
+      // SIP_TODO: Uniformalize case formatting. Make everything big or small case expect quotes.
+
       SIPField field = {field_match.captured(1),field_match.captured(2),NULL};
       qDebug() << "Found field: " << field.name;
       if(parameters.size() > 1)
@@ -349,6 +358,7 @@ bool SIPConnection::headerToFields(QString header, QString& firstLine, QList<SIP
         for(unsigned int j = 1; j < parameters.size(); ++j)
         {
           SIPParameter parameter;
+          // TODO: check that parameter does not already exist
           if(parseParameter(parameters[j], parameter))
           {
             if(field.parameters == NULL)

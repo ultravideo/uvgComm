@@ -46,7 +46,7 @@ private:
   QString remoteTag_;
   QString callID_;
   uint32_t sessionID_;
-  uint32_t cSeq_;
+  uint32_t cSeq_; // TODO: separate to local and remote cseq
 
   bool registered_;
   bool ourSession_; // is callID our or theirs
