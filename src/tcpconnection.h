@@ -6,6 +6,8 @@
 #include <functional>
 
 // handles one connection
+// TODO: Implement a keep-alive CRLF sending.
+
 
 class TCPConnection : public QThread
 {

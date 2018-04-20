@@ -12,6 +12,11 @@
  * session.
  */
 
+// TODO: considering combining this with SIPRouting and calling it dialog data. Maybe having something separate
+// capable of generating values for fields
+// TODO: Rename this to dialog something. Session means the transfer of media.
+
+
 class SIPSession
 {
 public:
@@ -46,7 +51,10 @@ private:
   QString remoteTag_;
   QString callID_;
   uint32_t sessionID_;
-  uint32_t cSeq_; // TODO: separate to local and remote cseq
+
+  // empty until first request is sent
+  uint32_t localCSeq_;
+  uint32_t remoteCSeq_;
 
   bool registered_;
   bool ourSession_; // is callID our or theirs

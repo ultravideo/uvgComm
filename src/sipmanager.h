@@ -93,6 +93,8 @@ private:
   // keep track of sessions. The CallID is not used because we could be calling ourselves
   // and using uint32_t is simpler than keeping track of tags
 
+  // TODO: separate dialog forming from dialog
+
   QList<std::shared_ptr<SIPDialogData>> dialogs_;
 
   bool isConference_;

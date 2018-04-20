@@ -245,11 +245,12 @@ void SIPManager::processSIPRequest(SIPRequest request,
   Q_ASSERT(dialogs_.at(sessionID - 1)->routing);
   Q_ASSERT(dialogs_.at(sessionID - 1)->session);
 
+  // TODO: separate nondialog and dialog requests!
   connectionMutex_.lock();
   std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
   connectionMutex_.unlock();
 
-  // TODO: prechecks that the message is ok, then process it.
+  // TODO: prechecks that the message is ok, then modify program state.
 
   if(request.type == INVITE)
   {
@@ -291,6 +292,7 @@ void SIPManager::processSIPResponse(SIPResponse response,
   connectionMutex_.unlock();
 
   // TODO: if request was INVITE and response is 2xx or 101-199, create dialog
+  // TODO: prechecks that the response is ok, then modify program state.
 
   if(response.message->transactionRequest == INVITE && response.type == SIP_OK)
   {

@@ -45,6 +45,8 @@ void SIPClientTransaction::processResponse(SIPResponse &response)
   {
     ongoingTransactionType_ = SIP_UNKNOWN_REQUEST;
   }
+
+  // TODO: if the response is 481 or 408, terminate dialog
 }
 
 

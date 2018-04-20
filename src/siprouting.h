@@ -16,10 +16,9 @@ class SIPRouting
 public:
   SIPRouting();
 
-  // TODO: somehow get the information on session forming and record route information from request.
-  // TODO: Is this only for Record-route header-field?
-
+  // RFC3261_TODO: Support Record-route header-field
   // TODO: Use contact-field value with requests.
+  // RFC3261_TODO: note, there is a separate RFC for re-INVITE refreshes.
 
   void setLocalNames(QString username, QString name);
   void setRemoteUsername(QString username);
@@ -30,6 +29,8 @@ public:
   // returns whether the incoming info is valid.
   // Remember to process request in order of arrival
   // Does not check if we are allowed to receive requests from this user.
+  // TODO: Only INVITE requests modify route and contact address. Re-INVITEs only modify contact
+  // ( because backward compability )
   bool incomingSIPRequest(std::shared_ptr<SIPRoutingInfo> routing);
   bool incomingSIPResponse(std::shared_ptr<SIPRoutingInfo> routing);
 

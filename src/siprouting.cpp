@@ -73,7 +73,7 @@ bool SIPRouting::incomingSIPResponse(std::shared_ptr<SIPRoutingInfo> routing)
 {
   if(previousSentRequest_ == NULL)
   {
-    qDebug() << "OTHER ERROR: Got a response without sending any requests!!!";
+    qDebug() << "PEER ERROR: Got a response without sending any requests!!!";
     return false;
   }
 
@@ -84,7 +84,7 @@ bool SIPRouting::incomingSIPResponse(std::shared_ptr<SIPRoutingInfo> routing)
      routing->to.host     != previousSentRequest_->to.host /*||
      routing->sessionHost != previousSentRequest_->sessionHost*/)
   {
-    qDebug() << "OTHER ERROR: The incoming SIP response "
+    qDebug() << "PEER ERROR: The incoming SIP response "
                 "does not have the same fields as the sent request";
     return false;
   }
@@ -139,6 +139,8 @@ std::shared_ptr<SIPRoutingInfo> SIPRouting::requestRouting(QString &directAddres
     newRouting->to.username = remoteDirectAddress_.username;
     newRouting->to.realname = remoteDirectAddress_.realname;
   }
+
+  previousSentRequest_ = newRouting;
 
   return newRouting;
 }
