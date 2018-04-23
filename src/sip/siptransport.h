@@ -7,12 +7,12 @@
 
 #include <memory>
 
-class SIPConnection : public QObject
+class SIPTransport : public QObject
 {
   Q_OBJECT
 public:
-  SIPConnection(quint32 sessionID);
-  ~SIPConnection();
+  SIPTransport(quint32 sessionID);
+  ~SIPTransport();
 
   // functions for manipulating network connection
   void createConnection(ConnectionType type, QString target);
@@ -33,7 +33,7 @@ public slots:
 
 signals:
   // signal that ads sessionID to connectionEstablished slot
-  void sipConnectionEstablished(quint32 sessionID, QString localAddress, QString remoteAddress);
+  void sipTransportEstablished(quint32 sessionID, QString localAddress, QString remoteAddress);
 
   // signals that output parsed sip messages
   void incomingSIPRequest(SIPRequest request, quint32 sessionID, QVariant content);

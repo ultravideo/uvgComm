@@ -1,7 +1,7 @@
 #pragma once
 
 /* A module for parsing various parts of SIP message. When adding support for a new field, add function here
-and add a pointer to the map in sipconnection.cpp. */
+and add a pointer to the map in siptransport.cpp. */
 
 #include "siptypes.h"
 

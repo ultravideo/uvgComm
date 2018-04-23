@@ -1,10 +1,10 @@
 #pragma once
 
 #include "mediamanager.h"
-#include "sipmanager.h"
+#include "sip/sipmanager.h"
 #include "gui/callwindow.h"
 #include "participantinterface.h"
-#include "siptransactionuser.h"
+#include "sip/siptransactionuser.h"
 #include "stun.h"
 
 #include <QObject>

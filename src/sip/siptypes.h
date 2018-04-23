@@ -108,10 +108,10 @@ enum ContentType {NO_CONTENT, APPLICATION_SDP, TEXT_PLAIN};
 struct ContentInfo
 {
   ContentType type; // tells what is in QVariant content
-  uint32_t length;  // set by SIPConnection
+  uint32_t length;  // set by SIPTransport
 };
 
-/* notes on expansion of the SIP structures such as SIPRouting, SIPSession, SIPMessage, SIPRequest and SIPResponse
+/* notes on expansion of the SIP structures such as SIPRouting, SIPDialog, SIPMessage, SIPRequest and SIPResponse
  * with new sipmessage extensions.
 
  * If you want to add support for a new parameter to SIP message:
@@ -122,9 +122,9 @@ struct ContentInfo
  * If you want to add support for a new field to SIP message:
  * 1) add field values to desired structs,
  * 2) add a function for composing the message to sipfieldcomposing
- * 3) use the composing function in SIPConnection
+ * 3) use the composing function in SIPTransport
  * 4) add a function for field parsing to sipfieldparsing and
- * 5) add the parsing function to parsing map at the start of sipconnection
+ * 5) add the parsing function to parsing map at the start of siptransport
  */
 
 
@@ -138,13 +138,11 @@ struct SIPRoutingInfo
   QList<ViaInfo> senderReplyAddress;   // from via-fields. Send responses here by copying these.
   SIP_URI contact;  // from contact field. Send requests here to bypass server
 
-  //QString sessionHost;
-
   uint maxForwards;
 };
 
 // Identifies the SIP dialog
-struct SIPSessionInfo
+struct SIPDialogInfo
 {
   QString toTag;
   QString fromTag;
@@ -155,7 +153,7 @@ struct SIPSessionInfo
 struct SIPMessageInfo
 {
   std::shared_ptr<SIPRoutingInfo> routing;
-  std::shared_ptr<SIPSessionInfo> session;
+  std::shared_ptr<SIPDialogInfo> dialog;
 
   // message specific info
   QString version;

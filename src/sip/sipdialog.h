@@ -9,7 +9,7 @@
  * All SIP requests and responses are iniated here.
  * Class is responsible for maintaining Call-ID and tags
  * to identify this call. Each call should have their own call
- * session.
+ * dialog.
  */
 
 // TODO: considering combining this with SIPRouting and calling it dialog data. Maybe having something separate
@@ -17,16 +17,16 @@
 // TODO: Rename this to dialog something. Session means the transfer of media.
 
 
-class SIPSession
+class SIPDialog
 {
 public:
-  SIPSession();
+  SIPDialog();
 
   void init(uint32_t sessionID);
 
-  void setOurSession(bool ourSession)
+  void setOurDialog(bool ourDialog)
   {
-    ourSession_ = ourSession;
+    ourDialog_ = ourDialog;
   }
 
   // generates callID if we wanted to start a call
@@ -36,12 +36,12 @@ public:
   std::shared_ptr<SIPMessageInfo> getRequestInfo(RequestType type);
   std::shared_ptr<SIPMessageInfo> getResponseInfo(RequestType ongoingTransaction);
 
-  bool processRequest(std::shared_ptr<SIPSessionInfo> session);
-  bool processResponse(std::shared_ptr<SIPSessionInfo> session);
+  bool processRequest(std::shared_ptr<SIPDialogInfo> dialog);
+  bool processResponse(std::shared_ptr<SIPDialogInfo> dialog);
 
   // forbid copy and assignment
-  SIPSession(const SIPSession& copied) = delete;
-  SIPSession& operator=(SIPSession const&) = delete;
+  SIPDialog(const SIPDialog& copied) = delete;
+  SIPDialog& operator=(SIPDialog const&) = delete;
 
 private:
 
@@ -57,5 +57,5 @@ private:
   uint32_t remoteCSeq_;
 
   bool registered_;
-  bool ourSession_; // is callID our or theirs
+  bool ourDialog_; // is callID our or theirs
 };

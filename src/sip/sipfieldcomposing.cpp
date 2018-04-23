@@ -63,7 +63,7 @@ bool includeToField(QList<SIPField> &fields,
   field.values += "<sip:" + message->routing->to.username + "@" + message->routing->to.host + ">";
   field.parameters = NULL;
 
-  tryAddParameter(field, "tag", message->session->toTag);
+  tryAddParameter(field, "tag", message->dialog->toTag);
 
   fields.push_back(field);
   return true;
@@ -88,7 +88,7 @@ bool includeFromField(QList<SIPField> &fields,
   field.values += "<sip:" + message->routing->from.username + "@" + message->routing->from.host + ">";
   field.parameters = NULL;
 
-  tryAddParameter(field, "tag", message->session->fromTag);
+  tryAddParameter(field, "tag", message->dialog->fromTag);
 
   fields.push_back(field);
   return true;
@@ -117,14 +117,14 @@ bool includeCSeqField(QList<SIPField> &fields,
 bool includeCallIDField(QList<SIPField> &fields,
                         std::shared_ptr<SIPMessageInfo> message)
 {
-  Q_ASSERT(message->session->callID != "");
-  if(message->session->callID == "")
+  Q_ASSERT(message->dialog->callID != "");
+  if(message->dialog->callID == "")
   {
     qDebug() << "WARNING: Call-ID field failed";
     return false;
   }
 
-  fields.push_back({"Call-ID", message->session->callID, NULL});
+  fields.push_back({"Call-ID", message->dialog->callID, NULL});
   return true;
 }
 

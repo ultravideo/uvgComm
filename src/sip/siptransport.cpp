@@ -1,4 +1,4 @@
-#include "sipconnection.h"
+#include "siptransport.h"
 
 #include "sipconversions.h"
 #include "sipfieldparsing.h"
@@ -39,16 +39,16 @@ const std::map<QString, std::function<bool(SIPField& field, std::shared_ptr<SIPM
 };
 
 
-SIPConnection::SIPConnection(quint32 sessionID):
+SIPTransport::SIPTransport(quint32 sessionID):
   partialMessage_(""),
   connection_(),
   sessionID_(sessionID)
 {}
 
-SIPConnection::~SIPConnection()
+SIPTransport::~SIPTransport()
 {}
 
-void SIPConnection::createConnection(ConnectionType type, QString target)
+void SIPTransport::createConnection(ConnectionType type, QString target)
 {
   if(type == TCP)
   {
@@ -63,7 +63,7 @@ void SIPConnection::createConnection(ConnectionType type, QString target)
   }
 }
 
-void SIPConnection::incomingTCPConnection(std::shared_ptr<TCPConnection> con)
+void SIPTransport::incomingTCPConnection(std::shared_ptr<TCPConnection> con)
 {
   qDebug() << "This SIP connection uses an incoming connection:" << sessionID_;
   if(connection_ != NULL)
@@ -75,24 +75,24 @@ void SIPConnection::incomingTCPConnection(std::shared_ptr<TCPConnection> con)
   signalConnections();
 }
 
-void SIPConnection::signalConnections()
+void SIPTransport::signalConnections()
 {
   Q_ASSERT(connection_);
   QObject::connect(connection_.get(), &TCPConnection::messageAvailable,
-                   this, &SIPConnection::networkPackage);
+                   this, &SIPTransport::networkPackage);
 
   QObject::connect(connection_.get(), &TCPConnection::socketConnected,
-                   this, &SIPConnection::connectionEstablished);
+                   this, &SIPTransport::connectionEstablished);
 }
 
-void SIPConnection::connectionEstablished(QString localAddress, QString remoteAddress)
+void SIPTransport::connectionEstablished(QString localAddress, QString remoteAddress)
 {
-  emit sipConnectionEstablished(sessionID_,
+  emit sipTransportEstablished(sessionID_,
                                 localAddress,
                                 remoteAddress);
 }
 
-void SIPConnection::destroyConnection()
+void SIPTransport::destroyConnection()
 {
   if(connection_ == NULL)
   {
@@ -108,7 +108,7 @@ void SIPConnection::destroyConnection()
   connection_.reset();
 }
 
-void SIPConnection::sendRequest(SIPRequest& request, QVariant content)
+void SIPTransport::sendRequest(SIPRequest& request, QVariant content)
 {
   qDebug() << "Composing SIP Request:" << requestToString(request.type);
   Q_ASSERT(request.type != INVITE ||
@@ -143,7 +143,7 @@ void SIPConnection::sendRequest(SIPRequest& request, QVariant content)
   connection_->sendPacket(message);
 }
 
-void SIPConnection::sendResponse(SIPResponse &response, QVariant content)
+void SIPTransport::sendResponse(SIPResponse &response, QVariant content)
 {
   qDebug() << "Composing SIP Response:" << responseToPhrase(response.type);
   Q_ASSERT(response.message->transactionRequest != INVITE
@@ -179,7 +179,7 @@ void SIPConnection::sendResponse(SIPResponse &response, QVariant content)
   connection_->sendPacket(message);
 }
 
-bool SIPConnection::composeMandatoryFields(QList<SIPField>& fields, std::shared_ptr<SIPMessageInfo> message)
+bool SIPTransport::composeMandatoryFields(QList<SIPField>& fields, std::shared_ptr<SIPMessageInfo> message)
 {
   return includeViaFields(fields, message) &&
          includeMaxForwardsField(fields, message) &&
@@ -189,7 +189,7 @@ bool SIPConnection::composeMandatoryFields(QList<SIPField>& fields, std::shared_
          includeCSeqField(fields, message);
 }
 
-QString SIPConnection::fieldsToString(QList<SIPField>& fields, QString lineEnding)
+QString SIPTransport::fieldsToString(QList<SIPField>& fields, QString lineEnding)
 {
   QString message = "";
   for(SIPField field : fields)
@@ -208,7 +208,7 @@ QString SIPConnection::fieldsToString(QList<SIPField>& fields, QString lineEndin
 }
 
 
-void SIPConnection::networkPackage(QString package)
+void SIPTransport::networkPackage(QString package)
 {
   qDebug() << "Received a network package for SIP Connection";
   // parse to header and body
@@ -276,7 +276,7 @@ void SIPConnection::networkPackage(QString package)
 }
 
 
-void SIPConnection::parsePackage(QString package, QString& header, QString& body)
+void SIPTransport::parsePackage(QString package, QString& header, QString& body)
 {
   qDebug() << "Parsing package to header and body.";
 
@@ -326,7 +326,7 @@ void SIPConnection::parsePackage(QString package, QString& header, QString& body
   }
 }
 
-bool SIPConnection::headerToFields(QString header, QString& firstLine, QList<SIPField>& fields)
+bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPField>& fields)
 {
   // RFC3261_TODO: support header fields that span multiple lines
   // Divide into lines
@@ -397,7 +397,7 @@ bool SIPConnection::headerToFields(QString header, QString& firstLine, QList<SIP
 }
 
 
-bool SIPConnection::fieldsToMessage(QList<SIPField>& fields,
+bool SIPTransport::fieldsToMessage(QList<SIPField>& fields,
                                     std::shared_ptr<SIPMessageInfo>& message)
 {
   message = std::shared_ptr<SIPMessageInfo> (new SIPMessageInfo);
@@ -405,7 +405,7 @@ bool SIPConnection::fieldsToMessage(QList<SIPField>& fields,
   message->transactionRequest = SIP_UNKNOWN_REQUEST;
   message->routing = std::shared_ptr<SIPRoutingInfo> (new SIPRoutingInfo);
   message->routing->maxForwards = 0;
-  message->session = std::shared_ptr<SIPSessionInfo> (new SIPSessionInfo);
+  message->dialog = std::shared_ptr<SIPDialogInfo> (new SIPDialogInfo);
 
   for(unsigned int i = 0; i < fields.size(); ++i)
   {
@@ -426,7 +426,7 @@ bool SIPConnection::fieldsToMessage(QList<SIPField>& fields,
 }
 
 
-bool SIPConnection::parseRequest(QString requestString, QString version,
+bool SIPTransport::parseRequest(QString requestString, QString version,
                                  std::shared_ptr<SIPMessageInfo> message,
                                  QList<SIPField> &fields, QVariant &content)
 {
@@ -464,7 +464,7 @@ bool SIPConnection::parseRequest(QString requestString, QString version,
 }
 
 
-bool SIPConnection::parseResponse(QString responseString, QString version,
+bool SIPTransport::parseResponse(QString responseString, QString version,
                                   std::shared_ptr<SIPMessageInfo> message, QVariant &content)
 {
   qDebug() << "Response detected:" << responseString;
@@ -486,7 +486,7 @@ bool SIPConnection::parseResponse(QString responseString, QString version,
   return true;
 }
 
-void SIPConnection::parseContent(QVariant content, ContentType type, QString& body)
+void SIPTransport::parseContent(QVariant content, ContentType type, QString& body)
 {
   if(type == APPLICATION_SDP)
   {
@@ -506,7 +506,7 @@ void SIPConnection::parseContent(QVariant content, ContentType type, QString& bo
   }
 }
 
-void SIPConnection::parseSIPaddress(QString address, QString& user, QString& location)
+void SIPTransport::parseSIPaddress(QString address, QString& user, QString& location)
 {
   QStringList splitAddress = address.split("@");
 
@@ -522,7 +522,7 @@ void SIPConnection::parseSIPaddress(QString address, QString& user, QString& loc
 }
 
 
-QList<QHostAddress> SIPConnection::parseIPAddress(QString address)
+QList<QHostAddress> SIPTransport::parseIPAddress(QString address)
 {
   QList<QHostAddress> ipAddresses;
 
@@ -544,7 +544,7 @@ QList<QHostAddress> SIPConnection::parseIPAddress(QString address)
 }
 
 
-QString SIPConnection::addContent(QList<SIPField>& fields, bool haveContent, const SDPMessageInfo &sdp)
+QString SIPTransport::addContent(QList<SIPField>& fields, bool haveContent, const SDPMessageInfo &sdp)
 {
   QString sdp_str = "";
 

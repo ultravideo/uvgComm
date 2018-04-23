@@ -1,4 +1,4 @@
-#include "sipsession.h"
+#include "sipdialog.h"
 #include "common.h"
 
 #include "siptransactionuser.h"
@@ -8,7 +8,7 @@
 const uint16_t CALLIDLENGTH = 16;
 const uint16_t TAGLENGTH = 16;
 
-SIPSession::SIPSession():
+SIPDialog::SIPDialog():
   localTag_(""),
   remoteTag_(""),
   callID_(""),
@@ -16,10 +16,10 @@ SIPSession::SIPSession():
   localCSeq_(1),
   remoteCSeq_(0),
   registered_(false),
-  ourSession_(false)
+  ourDialog_(false)
 {}
 
-void SIPSession::init(uint32_t sessionID)
+void SIPDialog::init(uint32_t sessionID)
 {
   Q_ASSERT(sessionID != 0);
   localTag_ = generateRandomString(TAGLENGTH);
@@ -28,56 +28,56 @@ void SIPSession::init(uint32_t sessionID)
   // non-REGISTER outside the dialog, cseq is arbitary.
 }
 
-void SIPSession::generateCallID(QString localAddress)
+void SIPDialog::generateCallID(QString localAddress)
 {
-  if(ourSession_)
+  if(ourDialog_)
   {
     callID_ = generateRandomString(CALLIDLENGTH) + "@" + localAddress;
   }
 }
 
-std::shared_ptr<SIPMessageInfo> SIPSession::getRequestInfo(RequestType type)
+std::shared_ptr<SIPMessageInfo> SIPDialog::getRequestInfo(RequestType type)
 {
   std::shared_ptr<SIPMessageInfo> message = generateMessage(type);
-  message->session = std::shared_ptr<SIPSessionInfo> (new SIPSessionInfo{remoteTag_, localTag_, callID_});
+  message->dialog = std::shared_ptr<SIPDialogInfo> (new SIPDialogInfo{remoteTag_, localTag_, callID_});
   return message;
 }
 
-std::shared_ptr<SIPMessageInfo> SIPSession::getResponseInfo(RequestType ongoingTransaction)
+std::shared_ptr<SIPMessageInfo> SIPDialog::getResponseInfo(RequestType ongoingTransaction)
 {
   std::shared_ptr<SIPMessageInfo> message = generateMessage(ongoingTransaction);
-  message->session = std::shared_ptr<SIPSessionInfo> (new SIPSessionInfo{localTag_, remoteTag_, callID_});
+  message->dialog = std::shared_ptr<SIPDialogInfo> (new SIPDialogInfo{localTag_, remoteTag_, callID_});
   return message;
 }
 
-bool SIPSession::processRequest(std::shared_ptr<SIPSessionInfo> session)
+bool SIPDialog::processRequest(std::shared_ptr<SIPDialogInfo> dialog)
 {
   // RFC3261_TODO: For backwards compability, this should be prepared for missing To-tag.
 
   if(callID_ == "")
   {
-    callID_ = session->callID;
+    callID_ = dialog->callID;
   }
 
   // TODO: if remote cseq in message is lower than remote cseq, send 500
   // The request cseq should be larger than our remotecseq.
 
-  return (session->toTag == localTag_ || session->toTag == "") && (session->fromTag == remoteTag_ || remoteTag_ == "") &&
-      ( session->callID == callID_);
+  return (dialog->toTag == localTag_ || dialog->toTag == "") && (dialog->fromTag == remoteTag_ || remoteTag_ == "") &&
+      ( dialog->callID == callID_);
 }
 
-bool SIPSession::processResponse(std::shared_ptr<SIPSessionInfo> session)
+bool SIPDialog::processResponse(std::shared_ptr<SIPDialogInfo> dialog)
 {
   // RFC3261_TODO: For backwards compability, this should be prepared for missing To-tag.
 
-  return session->fromTag == localTag_ && (session->toTag == remoteTag_ || remoteTag_ == "") &&
-      ( session->callID == callID_ || callID_ == "");
+  return dialog->fromTag == localTag_ && (dialog->toTag == remoteTag_ || remoteTag_ == "") &&
+      ( dialog->callID == callID_ || callID_ == "");
 }
 
-std::shared_ptr<SIPMessageInfo> SIPSession::generateMessage(RequestType originalRequest)
+std::shared_ptr<SIPMessageInfo> SIPDialog::generateMessage(RequestType originalRequest)
 {
   std::shared_ptr<SIPMessageInfo> mesg = std::shared_ptr<SIPMessageInfo>(new SIPMessageInfo);
-  mesg->session = NULL;
+  mesg->dialog = NULL;
   mesg->routing = NULL;
   mesg->cSeq = localCSeq_; // TODO: ACK and CANCEL don't increase cSeq
   if(originalRequest != ACK && originalRequest != CANCEL)

@@ -49,18 +49,18 @@ SOURCES +=\
     src/gui/videowidget.cpp \
     src/udpserver.cpp \
     src/stun.cpp \
-    src/sipmanager.cpp \
-    src/siprouting.cpp \
     src/globalsdpstate.cpp \
-    src/sipsession.cpp \
-    src/sipconnection.cpp \
-    src/sipconversions.cpp \
     src/tcpconnection.cpp \
-    src/sipfieldcomposing.cpp \
-    src/sipfieldparsing.cpp \
-    src/sipcontent.cpp \
-    src/sipservertransaction.cpp \
-    src/sipclienttransaction.cpp
+    src/sip/sipclienttransaction.cpp \
+    src/sip/sipcontent.cpp \
+    src/sip/sipconversions.cpp \
+    src/sip/sipfieldcomposing.cpp \
+    src/sip/sipfieldparsing.cpp \
+    src/sip/sipmanager.cpp \
+    src/sip/siprouting.cpp \
+    src/sip/sipservertransaction.cpp \
+    src/sip/siptransport.cpp \
+    src/sip/sipdialog.cpp
 
 HEADERS  += \
     src/filter.h \
@@ -103,20 +103,20 @@ HEADERS  += \
     src/gui/videowidget.h \
     src/udpserver.h \
     src/stun.h \
-    src/sipmanager.h \
-    src/siprouting.h \
     src/globalsdpstate.h \
-    src/siptypes.h \
-    src/sipsession.h \
-    src/sipconnection.h \
-    src/sipconversions.h \
     src/tcpconnection.h \
-    src/sipfieldcomposing.h \
-    src/sipfieldparsing.h \
-    src/sipcontent.h \
-    src/sipservertransaction.h \
-    src/sipclienttransaction.h \
-    src/siptransactionuser.h
+    src/sip/sipclienttransaction.h \
+    src/sip/sipfieldcomposing.h \
+    src/sip/sipfieldparsing.h \
+    src/sip/sipcontent.h \
+    src/sip/sipconversions.h \
+    src/sip/sipmanager.h \
+    src/sip/siprouting.h \
+    src/sip/sipservertransaction.h \
+    src/sip/siptransactionuser.h \
+    src/sip/siptransport.h \
+    src/sip/siptypes.h \
+    src/sip/sipdialog.h
 
 FORMS    += \
     ui/callwindow.ui \

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "globalsdpstate.h"
-#include "sipconnection.h"
+#include "siptransport.h"
 #include "connectionserver.h"
 
 #include "common.h"
@@ -11,6 +11,12 @@
  * as possible.
  */
 
+/* Some terms used in RFC 3621:
+ * Dialog = a SIP dialog constructed with INVITE-transaction
+ * Session = a media session negotiated in INVITE-transaction
+ */
+
+
 struct Contact
 {
   QString username;
@@ -19,7 +25,7 @@ struct Contact
 };
 
 class SIPRouting;
-class SIPSession;
+class SIPDialog;
 class SIPTransactionUser;
 class SIPServerTransaction;
 class SIPClientTransaction;
@@ -58,10 +64,13 @@ private slots:
   void sendResponse(uint32_t sessionID, ResponseType type, RequestType originalRequest);
 
 private:
+
+  // TODO: Transports should be separate from dialogs
+
   struct SIPDialogData
   {
-    std::shared_ptr<SIPConnection> sCon;
-    std::shared_ptr<SIPSession> session;
+    std::shared_ptr<SIPTransport> sCon;
+    std::shared_ptr<SIPDialog> dialog;
     // do not stop connection before responding to all requests
     std::shared_ptr<SIPServerTransaction> server;
     std::shared_ptr<SIPClientTransaction> client;
@@ -71,8 +80,8 @@ private:
     std::shared_ptr<SDPMessageInfo> remoteFinalSdp_;
   };
 
-  std::shared_ptr<SIPSession> createSIPSession(uint32_t sessionID);
-  std::shared_ptr<SIPConnection> createSIPConnection();
+  std::shared_ptr<SIPDialog> createSIPDialog(uint32_t sessionID);
+  std::shared_ptr<SIPTransport> createSIPTransport();
   std::shared_ptr<SIPRouting> createSIPRouting(QString remoteUsername,
                                                QString localAddress,
                                                QString remoteAddress, bool hostedSession);
@@ -90,7 +99,7 @@ private:
   QMutex connectionMutex_;
 
   // sessionID:s are positions in this list. SessionID:s are used in this program to
-  // keep track of sessions. The CallID is not used because we could be calling ourselves
+  // keep track of dialogs. The CallID is not used because we could be calling ourselves
   // and using uint32_t is simpler than keeping track of tags
 
   // TODO: separate dialog forming from dialog
