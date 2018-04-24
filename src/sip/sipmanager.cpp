@@ -258,14 +258,32 @@ void SIPManager::connectionEstablished(quint32 sessionID, QString localAddress, 
 void SIPManager::processSIPRequest(SIPRequest request,
                        quint32 sessionID, QVariant content)
 {
-  Q_ASSERT(dialogs_.at(sessionID - 1)->routing);
-  Q_ASSERT(dialogs_.at(sessionID - 1)->dialog);
-
-// TODO: sessionID is now tranportID
-
+  // TODO: sessionID is now tranportID
   // TODO: separate nondialog and dialog requests!
   connectionMutex_.lock();
-  std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
+
+  // find the dialog which corresponds to the callID and tags received in request
+  std::shared_ptr<SIPDialogData> foundDialog;
+
+  for(std::shared_ptr<SIPDialogData> dialog : dialogs_)
+  {
+    if(dialog->dialog->processRequest(request.message->dialog))
+    {
+      foundDialog = dialog;
+      break;
+    }
+  }
+
+  if(foundDialog == NULL)
+  {
+    qDebug() << "Could not find the suggested dialog in request!";
+    return;
+  }
+
+  // check correct initialization
+  Q_ASSERT(foundDialog->routing);
+  Q_ASSERT(foundDialog->dialog);
+
   connectionMutex_.unlock();
 
   // TODO: prechecks that the message is ok, then modify program state.
@@ -275,7 +293,7 @@ void SIPManager::processSIPRequest(SIPRequest request,
     if(request.message->content.type == APPLICATION_SDP)
     {
       SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
-      dialog->localFinalSdp_ = sdp_.localFinalSDP(retrieved);
+      foundDialog->localFinalSdp_ = sdp_.localFinalSDP(retrieved);
     }
     else
     {
@@ -285,31 +303,55 @@ void SIPManager::processSIPRequest(SIPRequest request,
     }
   }
 
-  if(!dialog->routing->incomingSIPRequest(request.message->routing))
+  if(!foundDialog->routing->incomingSIPRequest(request.message->routing))
   {
     qDebug() << "Something wrong with incoming SIP request routing";
     sendResponse(sessionID, SIP_NOT_FOUND, request.type);
     return;
   }
 
-  if(!dialog->dialog->processRequest(request.message->dialog))
+  if(!foundDialog->dialog->processRequest(request.message->dialog))
   {
     qDebug() << "Received a request for a wrong session!";
     sendResponse(sessionID, SIP_CALL_DOES_NOT_EXIST, request.type);
     return;
   }
 
-  dialog->server->processRequest(request);
+  foundDialog->server->processRequest(request);
 }
 
 void SIPManager::processSIPResponse(SIPResponse response,
                                     quint32 sessionID, QVariant content)
 {
+  // TODO: sessionID is now tranportID
+  // TODO: separate nondialog and dialog requests!
   connectionMutex_.lock();
-  std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
+
+  // find the dialog which corresponds to the callID and tags received in response
+  std::shared_ptr<SIPDialogData> foundDialog;
+
+  for(std::shared_ptr<SIPDialogData> dialog : dialogs_)
+  {
+    if(dialog->dialog->processResponse(response.message->dialog))
+    {
+      foundDialog = dialog;
+      break;
+    }
+  }
+
+  if(foundDialog == NULL)
+  {
+    qDebug() << "Could not find the suggested dialog in response!";
+    return;
+  }
+
+  // check correct initialization
+  Q_ASSERT(foundDialog->routing);
+  Q_ASSERT(foundDialog->dialog);
+
   connectionMutex_.unlock();
 
-  // TODO: if request was INVITE and response is 2xx or 101-199, create dialog
+  // TODO: if our request was INVITE and response is 2xx or 101-199, create dialog
   // TODO: prechecks that the response is ok, then modify program state.
 
   if(response.message->transactionRequest == INVITE && response.type == SIP_OK)
@@ -323,7 +365,7 @@ void SIPManager::processSIPResponse(SIPResponse response,
       }
       else
       {
-        *dialog->remoteFinalSdp_.get() = retrieved;
+        *foundDialog->remoteFinalSdp_.get() = retrieved;
       }
     }
   }
