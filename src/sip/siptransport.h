@@ -11,8 +11,10 @@ class SIPTransport : public QObject
 {
   Q_OBJECT
 public:
-  SIPTransport(quint32 sessionID);
+  SIPTransport(quint32 transportID);
   ~SIPTransport();
+
+  // TODO: separate non-dialog and dialog messages
 
   // functions for manipulating network connection
   void createConnection(ConnectionType type, QString target);
@@ -32,15 +34,15 @@ public slots:
   void connectionEstablished(QString localAddress, QString remoteAddress);
 
 signals:
-  // signal that ads sessionID to connectionEstablished slot
-  void sipTransportEstablished(quint32 sessionID, QString localAddress, QString remoteAddress);
+  // signal that ads transportID to connectionEstablished slot
+  void sipTransportEstablished(quint32 transportID, QString localAddress, QString remoteAddress);
 
   // signals that output parsed sip messages
-  void incomingSIPRequest(SIPRequest request, quint32 sessionID, QVariant content);
-  void incomingSIPResponse(SIPResponse response, quint32 sessionID, QVariant content);
+  void incomingSIPRequest(SIPRequest request, quint32 transportID, QVariant content);
+  void incomingSIPResponse(SIPResponse response, quint32 transportID, QVariant content);
 
   // we got a message, but could not parse it.
-  void parsingError(ResponseType errorResponse, quint32 sessionID);
+  void parsingError(ResponseType errorResponse, quint32 transportID);
 
 private:
 
@@ -70,5 +72,5 @@ private:
   QString partialMessage_;
 
   std::shared_ptr<TCPConnection> connection_;
-  quint32 sessionID_;
+  quint32 transportID_;
 };

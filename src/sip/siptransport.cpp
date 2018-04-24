@@ -39,10 +39,10 @@ const std::map<QString, std::function<bool(SIPField& field, std::shared_ptr<SIPM
 };
 
 
-SIPTransport::SIPTransport(quint32 sessionID):
+SIPTransport::SIPTransport(quint32 transportID):
   partialMessage_(""),
   connection_(),
-  sessionID_(sessionID)
+  transportID_(transportID)
 {}
 
 SIPTransport::~SIPTransport()
@@ -52,7 +52,7 @@ void SIPTransport::createConnection(ConnectionType type, QString target)
 {
   if(type == TCP)
   {
-    qDebug() << "Initiating TCP connection for sip connection number:" << sessionID_;
+    qDebug() << "Initiating TCP connection for sip connection number:" << transportID_;
     connection_ = std::shared_ptr<TCPConnection>(new TCPConnection);
     signalConnections();
     connection_->establishConnection(target, SIP_PORT);
@@ -65,7 +65,7 @@ void SIPTransport::createConnection(ConnectionType type, QString target)
 
 void SIPTransport::incomingTCPConnection(std::shared_ptr<TCPConnection> con)
 {
-  qDebug() << "This SIP connection uses an incoming connection:" << sessionID_;
+  qDebug() << "This SIP connection uses an incoming connection:" << transportID_;
   if(connection_ != NULL)
   {
     qDebug() << "Replacing existing connection";
@@ -87,7 +87,7 @@ void SIPTransport::signalConnections()
 
 void SIPTransport::connectionEstablished(QString localAddress, QString remoteAddress)
 {
-  emit sipTransportEstablished(sessionID_,
+  emit sipTransportEstablished(transportID_,
                                 localAddress,
                                 remoteAddress);
 }
@@ -227,7 +227,7 @@ void SIPTransport::networkPackage(QString package)
     if(!fieldsToMessage(fields, message))
     {
       qDebug() << "The received message was not correct. ";
-      emit parsingError(SIP_BAD_REQUEST, sessionID_); // RFC3261_TODO support other possible error types
+      emit parsingError(SIP_BAD_REQUEST, transportID_); // RFC3261_TODO support other possible error types
       return;
     }
 
@@ -459,7 +459,7 @@ bool SIPTransport::parseRequest(QString requestString, QString version,
   request.type = requestType;
   request.message = message;
 
-  emit incomingSIPRequest(request, sessionID_, content);
+  emit incomingSIPRequest(request, transportID_, content);
   return true;
 }
 
@@ -481,7 +481,7 @@ bool SIPTransport::parseResponse(QString responseString, QString version,
   response.type = type;
   response.message = message;
 
-  emit incomingSIPResponse(response, sessionID_, content);
+  emit incomingSIPResponse(response, transportID_, content);
 
   return true;
 }

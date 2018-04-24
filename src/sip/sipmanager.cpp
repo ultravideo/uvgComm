@@ -60,6 +60,15 @@ void SIPManager::uninit()
   {
     destroyDialog(dialog);
   }
+
+  for(std::shared_ptr<SIPTransport> transport : transports_)
+  {
+    if(transport != NULL)
+    {
+      transport->destroyConnection();
+      transport.reset();
+    }
+  }
 }
 
 QList<uint32_t> SIPManager::startCall(QList<Contact> addresses)
@@ -73,8 +82,10 @@ QList<uint32_t> SIPManager::startCall(QList<Contact> addresses)
     calls.push_back(dialogs_.size());
     dialog->remoteUsername = addresses.at(i).username;
     // message is sent only after connection has been established so we know our address
-    dialog->sCon->createConnection(TCP, addresses.at(i).remoteAddress);
 
+    std::shared_ptr<SIPTransport> transport = createSIPTransport();
+    transport->createConnection(TCP, addresses.at(i).remoteAddress);
+    dialog->transportID = transports_.size();
     qDebug() << "Added a new dialog. ID:" << dialogs_.size();
 
     // this start call will commence once the connection has been established
@@ -90,7 +101,6 @@ QList<uint32_t> SIPManager::startCall(QList<Contact> addresses)
 void SIPManager::createDialog(std::shared_ptr<SIPDialogData>& dialog)
 {
   dialog = std::shared_ptr<SIPDialogData> (new SIPDialogData);
-  dialog->sCon = createSIPTransport();
   dialog->remoteUsername = "";
   connectionMutex_.lock();
   dialog->dialog = createSIPDialog(dialogs_.size() + 1);
@@ -149,15 +159,18 @@ std::shared_ptr<SIPDialog> SIPManager::createSIPDialog(uint32_t sessionID)
 
 std::shared_ptr<SIPTransport> SIPManager::createSIPTransport()
 {
-  qDebug() << "Creating SIP Connection";
+  qDebug() << "Creating SIP transport";
   std::shared_ptr<SIPTransport> connection =
-      std::shared_ptr<SIPTransport>(new SIPTransport(dialogs_.size() + 1));
+      std::shared_ptr<SIPTransport>(new SIPTransport(transports_.size() + 1));
+
   QObject::connect(connection.get(), &SIPTransport::sipTransportEstablished,
                    this, &SIPManager::connectionEstablished);
   QObject::connect(connection.get(), &SIPTransport::incomingSIPRequest,
                    this, &SIPManager::processSIPRequest);
   QObject::connect(connection.get(), &SIPTransport::incomingSIPResponse,
                    this, &SIPManager::processSIPResponse);
+
+  transports_.push_back(connection);
   return connection;
 }
 
@@ -201,8 +214,11 @@ void SIPManager::receiveTCPConnection(TCPConnection *con)
   Q_ASSERT(con);
 
   std::shared_ptr<SIPDialogData> dialog;
-  createDialog(dialog);
-  dialog->sCon->incomingTCPConnection(std::shared_ptr<TCPConnection> (con));
+  createDialog(dialog); // TODO create dialog only with INVITE request
+
+  std::shared_ptr<SIPTransport> transport = createSIPTransport();
+  transport->incomingTCPConnection(std::shared_ptr<TCPConnection> (con));
+
   qDebug() << "Dialog with ID:" << dialogs_.size() << "created for received connection.";
 }
 
@@ -244,6 +260,8 @@ void SIPManager::processSIPRequest(SIPRequest request,
 {
   Q_ASSERT(dialogs_.at(sessionID - 1)->routing);
   Q_ASSERT(dialogs_.at(sessionID - 1)->dialog);
+
+// TODO: sessionID is now tranportID
 
   // TODO: separate nondialog and dialog requests!
   connectionMutex_.lock();
@@ -340,7 +358,8 @@ void SIPManager::sendRequest(uint32_t sessionID, RequestType type)
     content.setValue(sdp);
   }
 
-  dialogs_.at(sessionID - 1)->sCon->sendRequest(request, content);
+  transports_.at(dialogs_.at(sessionID - 1)->transportID)->sendRequest(request, content);
+  //dialogs_.at(sessionID - 1)->sCon->sendRequest(request, content);
   qDebug() << "---- Finished sending of a request ---";
 }
 
@@ -362,7 +381,8 @@ void SIPManager::sendResponse(uint32_t sessionID, ResponseType type, RequestType
     content.setValue(sdp);
   }
 
-  dialogs_.at(sessionID - 1)->sCon->sendResponse(response, content);
+  transports_.at(dialogs_.at(sessionID - 1)->transportID)->sendResponse(response, content);
+  //dialogs_.at(sessionID - 1)->sCon->sendResponse(response, content);
   qDebug() << "---- Finished sending of a response ---";
 }
 
@@ -370,12 +390,6 @@ void SIPManager::destroyDialog(std::shared_ptr<SIPDialogData> dialog)
 {
   if(dialog != NULL)
   {
-    if(dialog->sCon != NULL)
-    {
-      dialog->sCon->destroyConnection();
-      dialog->sCon.reset();
-    }
-
     dialog->dialog.reset();
     dialog->routing.reset();
   }

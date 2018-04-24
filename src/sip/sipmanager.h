@@ -69,7 +69,6 @@ private:
 
   struct SIPDialogData
   {
-    std::shared_ptr<SIPTransport> sCon;
     std::shared_ptr<SIPDialog> dialog;
     // do not stop connection before responding to all requests
     std::shared_ptr<SIPServerTransaction> server;
@@ -78,6 +77,8 @@ private:
     QString remoteUsername;
     std::shared_ptr<SDPMessageInfo> localFinalSdp_;
     std::shared_ptr<SDPMessageInfo> remoteFinalSdp_;
+
+    quint32 transportID;
   };
 
   std::shared_ptr<SIPDialog> createSIPDialog(uint32_t sessionID);
@@ -106,6 +107,7 @@ private:
 
   QList<std::shared_ptr<SIPDialogData>> dialogs_;
 
+  QList<std::shared_ptr<SIPTransport>> transports_;
   bool isConference_;
 
   GlobalSDPState sdp_;
