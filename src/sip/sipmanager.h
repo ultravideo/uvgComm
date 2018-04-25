@@ -54,11 +54,11 @@ public:
 private slots:
   // connection has been established. This enables for us to get the needed info
   // to form a SIP message
-  void connectionEstablished(quint32 sessionID, QString localAddress, QString remoteAddress);
+  void connectionEstablished(quint32 transportID, QString localAddress, QString remoteAddress);
   void receiveTCPConnection(TCPConnection* con);
 
-  void processSIPRequest(SIPRequest request, quint32 sessionID, QVariant content);
-  void processSIPResponse(SIPResponse response, quint32 sessionID, QVariant content);
+  void processSIPRequest(SIPRequest request, quint32 transportID, QVariant content);
+  void processSIPResponse(SIPResponse response, quint32 transportID, QVariant content);
 
   void sendRequest(uint32_t sessionID, RequestType type);
   void sendResponse(uint32_t sessionID, ResponseType type, RequestType originalRequest);

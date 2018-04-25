@@ -224,17 +224,17 @@ void SIPManager::receiveTCPConnection(TCPConnection *con)
 
 // connection has been established. This enables for us to get the needed info
 // to form a SIP message
-void SIPManager::connectionEstablished(quint32 sessionID, QString localAddress, QString remoteAddress)
+void SIPManager::connectionEstablished(quint32 transportID, QString localAddress, QString remoteAddress)
 {
-  Q_ASSERT(sessionID != 0 || dialogs_.at(sessionID - 1));
+  Q_ASSERT(transportID != 0 || dialogs_.at(transportID - 1));
   qDebug() << "Establishing connection";
-  if(sessionID == 0 || sessionID > dialogs_.size() || dialogs_.at(sessionID - 1) == NULL)
+  if(transportID == 0 || transportID > dialogs_.size() || dialogs_.at(transportID - 1) == NULL)
   {
     qDebug() << "WARNING: Missing session for connected session";
     return;
   }
   connectionMutex_.lock();
-  std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
+  std::shared_ptr<SIPDialogData> dialog = dialogs_.at(transportID - 1);
   connectionMutex_.unlock(); 
 
   if(dialog->routing == NULL)
@@ -244,19 +244,19 @@ void SIPManager::connectionEstablished(quint32 sessionID, QString localAddress, 
   }
   if(dialog->dialog == NULL)
   {
-    dialog->dialog = createSIPDialog(sessionID);
+    dialog->dialog = createSIPDialog(transportID);
   }
   dialog->dialog->generateCallID(localAddress);
 
   dialog->client->connectionReady(true);
 
-  qDebug() << "Connection" << sessionID << "connected and dialog created."
+  qDebug() << "Connection" << transportID << "connected and dialog created."
            << "From:" << localAddress
            << "To:" << remoteAddress;
 }
 
 void SIPManager::processSIPRequest(SIPRequest request,
-                       quint32 sessionID, QVariant content)
+                       quint32 transportID, QVariant content)
 {
   // TODO: sessionID is now tranportID
   // TODO: separate nondialog and dialog requests!
@@ -298,7 +298,7 @@ void SIPManager::processSIPRequest(SIPRequest request,
     else
     {
       qDebug() << "No SDP in INVITE!";
-      sendResponse(sessionID, SIP_DECLINE, request.type);
+      sendResponse(transportID, SIP_DECLINE, request.type);
       return;
     }
   }
@@ -306,14 +306,14 @@ void SIPManager::processSIPRequest(SIPRequest request,
   if(!foundDialog->routing->incomingSIPRequest(request.message->routing))
   {
     qDebug() << "Something wrong with incoming SIP request routing";
-    sendResponse(sessionID, SIP_NOT_FOUND, request.type);
+    sendResponse(transportID, SIP_NOT_FOUND, request.type);
     return;
   }
 
   if(!foundDialog->dialog->processRequest(request.message->dialog))
   {
     qDebug() << "Received a request for a wrong session!";
-    sendResponse(sessionID, SIP_CALL_DOES_NOT_EXIST, request.type);
+    sendResponse(transportID, SIP_CALL_DOES_NOT_EXIST, request.type);
     return;
   }
 
@@ -321,7 +321,7 @@ void SIPManager::processSIPRequest(SIPRequest request,
 }
 
 void SIPManager::processSIPResponse(SIPResponse response,
-                                    quint32 sessionID, QVariant content)
+                                    quint32 transportID, QVariant content)
 {
   // TODO: sessionID is now tranportID
   // TODO: separate nondialog and dialog requests!
@@ -370,16 +370,16 @@ void SIPManager::processSIPResponse(SIPResponse response,
     }
   }
 
-  if(!dialogs_.at(sessionID - 1)->routing->incomingSIPResponse(response.message->routing))
+  if(!foundDialog->routing->incomingSIPResponse(response.message->routing))
   {
 
-    qDebug() << "Something wrong with incoming SIP response routing for session:" << sessionID;
+    qDebug() << "Something wrong with incoming SIP response routing for transportID:" << transportID;
     // TODO: sent to wrong address (404 response)
     return;
   }
   qWarning() << "WARNING: Processing responses not implemented yet";
 
-  dialogs_.at(sessionID - 1)->client->processResponse(response);
+  foundDialog->client->processResponse(response);
 }
 
 void SIPManager::sendRequest(uint32_t sessionID, RequestType type)
