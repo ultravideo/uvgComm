@@ -16,11 +16,22 @@ public:
   SIPClientTransaction();
 
   void init(SIPTransactionUser* tu, uint32_t sessionID);
+  bool ourResponse(SIPResponse& response)
+  {
+    return false;
+  }
+
+  SIPResponse& getResponseData(ResponseType type)
+  {
+    SIPResponse r;
+    return r;
+  }
 
   //processes incoming response. Part of our client transaction
   void processResponse(SIPResponse& response);
   void wrongResponseDestination();
   void malformedResponse();
+  void responseIsError();
 
   bool startCall();
   void endCall();

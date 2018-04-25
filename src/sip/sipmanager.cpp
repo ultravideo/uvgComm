@@ -1,11 +1,11 @@
-#include "sipmanager.h"
+#include "sip/sipmanager.h"
 
-#include "siprouting.h"
-#include "sipdialog.h"
-#include "siptransport.h"
+#include "sip/siprouting.h"
+#include "sip/sipdialog.h"
+#include "sip/siptransport.h"
 
-#include "sipclienttransaction.h"
-#include "sipservertransaction.h"
+#include "sip/sipclienttransaction.h"
+#include "sip/sipservertransaction.h"
 
 const bool DIRECTMESSAGES = false;
 
@@ -76,20 +76,19 @@ QList<uint32_t> SIPManager::startCall(QList<Contact> addresses)
   QList<uint32_t> calls;
   for(unsigned int i = 0; i < addresses.size(); ++i)
   {
-    std::shared_ptr<SIPDialogData> dialog;
-    createDialog(dialog);
-    dialog->dialog->setOurDialog(true);
+    std::shared_ptr<SIPDialogData> dialogData;
+    createDialog(dialogData);
     calls.push_back(dialogs_.size());
-    dialog->remoteUsername = addresses.at(i).username;
+    dialogData->remoteUsername = addresses.at(i).username;
     // message is sent only after connection has been established so we know our address
 
     std::shared_ptr<SIPTransport> transport = createSIPTransport();
     transport->createConnection(TCP, addresses.at(i).remoteAddress);
-    dialog->transportID = transports_.size();
+    dialogData->transportID = transports_.size();
     qDebug() << "Added a new dialog. ID:" << dialogs_.size();
 
     // this start call will commence once the connection has been established
-    if(!dialog->client->startCall())
+    if(!dialogData->client->startCall())
     {
       qDebug() << "WARNING: Could not start a call according to session.";
     }
@@ -149,12 +148,11 @@ void SIPManager::endAllCalls()
 std::shared_ptr<SIPDialog> SIPManager::createSIPDialog(uint32_t sessionID)
 {
   qDebug() << "Creating SIP Session";
-  std::shared_ptr<SIPDialog> session = std::shared_ptr<SIPDialog> (new SIPDialog());
-  session->init(sessionID);
+  std::shared_ptr<SIPDialog> dialog = std::shared_ptr<SIPDialog> (new SIPDialog());
 
   // connect signals to signals. Session is responsible for responses
   // and callmanager handles informing the user.
-  return session;
+  return dialog;
 }
 
 std::shared_ptr<SIPTransport> SIPManager::createSIPTransport()
@@ -235,7 +233,7 @@ void SIPManager::connectionEstablished(quint32 transportID, QString localAddress
   }
   connectionMutex_.lock();
   std::shared_ptr<SIPDialogData> dialog = dialogs_.at(transportID - 1);
-  connectionMutex_.unlock(); 
+  connectionMutex_.unlock();
 
   if(dialog->routing == NULL)
   {
@@ -246,7 +244,8 @@ void SIPManager::connectionEstablished(quint32 transportID, QString localAddress
   {
     dialog->dialog = createSIPDialog(transportID);
   }
-  dialog->dialog->generateCallID(localAddress);
+
+  dialog->dialog->initDialog(localAddress);
 
   dialog->client->connectionReady(true);
 
@@ -267,7 +266,7 @@ void SIPManager::processSIPRequest(SIPRequest request,
 
   for(std::shared_ptr<SIPDialogData> dialog : dialogs_)
   {
-    if(dialog->dialog->processRequest(request.message->dialog))
+    if(dialog->dialog->correctRequestDialog(request.message->dialog, request.type, request.message->cSeq))
     {
       foundDialog = dialog;
       break;
@@ -310,13 +309,6 @@ void SIPManager::processSIPRequest(SIPRequest request,
     return;
   }
 
-  if(!foundDialog->dialog->processRequest(request.message->dialog))
-  {
-    qDebug() << "Received a request for a wrong session!";
-    sendResponse(transportID, SIP_CALL_DOES_NOT_EXIST, request.type);
-    return;
-  }
-
   foundDialog->server->processRequest(request);
 }
 
@@ -332,7 +324,7 @@ void SIPManager::processSIPResponse(SIPResponse response,
 
   for(std::shared_ptr<SIPDialogData> dialog : dialogs_)
   {
-    if(dialog->dialog->processResponse(response.message->dialog))
+    if(dialog->client->ourResponse(response))
     {
       foundDialog = dialog;
       break;
@@ -412,7 +404,8 @@ void SIPManager::sendResponse(uint32_t sessionID, ResponseType type, RequestType
   QString directRouting = "";
 
   // Get all the necessary information from different components.
-  SIPResponse response = {type, dialogs_.at(sessionID - 1)->dialog->getResponseInfo(originalRequest)};
+  SIPResponse response = dialogs_.at(sessionID - 1)->client->getResponseData(type);
+  //SIPResponse response = {type, dialogs_.at(sessionID - 1)->dialog->getResponseInfo(originalRequest)};
   response.message->routing = dialogs_.at(sessionID - 1)->routing->requestRouting(directRouting);
 
   QVariant content;

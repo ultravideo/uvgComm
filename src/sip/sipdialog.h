@@ -4,17 +4,14 @@
 
 #include <memory>
 
-/* This class maintains the state of the SIP call and
- * selects the correct SIP response to any given situation.
- * All SIP requests and responses are iniated here.
- * Class is responsible for maintaining Call-ID and tags
- * to identify this call. Each call should have their own call
- * dialog.
+/* This class is responsible for maintaining the state of SIP dialog
+ * and all its associated data. Use this class to check the information
+ * of dialog requests. Information for responses are dealt by only the client,
+ * because the client has the sent request.
  */
 
-// TODO: considering combining this with SIPRouting and calling it dialog data. Maybe having something separate
-// capable of generating values for fields
-// TODO: Rename this to dialog something. Session means the transfer of media.
+
+enum DialogState {NONACTIVE, INIATING, ACTIVE};
 
 
 class SIPDialog
@@ -22,22 +19,18 @@ class SIPDialog
 public:
   SIPDialog();
 
-  void init(uint32_t sessionID);
+  // creates dialog which is about to start from our end
+  void initDialog(QString localAddress);
 
-  void setOurDialog(bool ourDialog)
-  {
-    ourDialog_ = ourDialog;
-  }
-
-  // generates callID if we wanted to start a call
-  void generateCallID(QString localAddress);
+  // creates the dialog from an incoming INVITE
+  void processINVITE(std::shared_ptr<SIPDialogInfo> dialog, uint32_t cSeq);
 
   // these will provide both message and session structs, routing will be empty
   std::shared_ptr<SIPMessageInfo> getRequestInfo(RequestType type);
-  std::shared_ptr<SIPMessageInfo> getResponseInfo(RequestType ongoingTransaction);
 
-  bool processRequest(std::shared_ptr<SIPDialogInfo> dialog);
-  bool processResponse(std::shared_ptr<SIPDialogInfo> dialog);
+  // use this to check whether incoming request belongs to this dialog
+  // responses should be checked by client which sent the request
+  bool correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog, RequestType type, uint32_t remoteCSeq);
 
   // forbid copy and assignment
   SIPDialog(const SIPDialog& copied) = delete;
@@ -47,15 +40,22 @@ private:
 
   std::shared_ptr<SIPMessageInfo> generateMessage(RequestType originalRequest);
 
+  // SIP Dialog fields (section 12 in RFC 3261)
   QString localTag_;
   QString remoteTag_;
   QString callID_;
-  uint32_t sessionID_;
 
-  // empty until first request is sent
+  // TODO: incorporate URIs to this class
+  SIP_URI localUri_;
+  SIP_URI remoteUri_;
+
+  // empty until first request is sent/received
+  // cseq is used to determine the order of requests and must be sequential
   uint32_t localCSeq_;
   uint32_t remoteCSeq_;
 
-  bool registered_;
-  bool ourDialog_; // is callID our or theirs
+  // may be empty if there is no route
+  QList<SIP_URI> route_;
+
+  bool secure_;
 };
