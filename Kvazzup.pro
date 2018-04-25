@@ -56,11 +56,11 @@ SOURCES +=\
     src/sip/sipconversions.cpp \
     src/sip/sipfieldcomposing.cpp \
     src/sip/sipfieldparsing.cpp \
-    src/sip/sipmanager.cpp \
     src/sip/siprouting.cpp \
     src/sip/sipservertransaction.cpp \
     src/sip/siptransport.cpp \
-    src/sip/sipdialog.cpp
+    src/sip/sipdialog.cpp \
+    src/sip/siptransactions.cpp
 
 HEADERS  += \
     src/filter.h \
@@ -110,13 +110,13 @@ HEADERS  += \
     src/sip/sipfieldparsing.h \
     src/sip/sipcontent.h \
     src/sip/sipconversions.h \
-    src/sip/sipmanager.h \
     src/sip/siprouting.h \
     src/sip/sipservertransaction.h \
     src/sip/siptransactionuser.h \
     src/sip/siptransport.h \
     src/sip/siptypes.h \
-    src/sip/sipdialog.h
+    src/sip/sipdialog.h \
+    src/sip/siptransactions.h
 
 FORMS    += \
     ui/callwindow.ui \

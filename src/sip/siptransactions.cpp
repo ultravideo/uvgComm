@@ -1,4 +1,4 @@
-#include "sip/sipmanager.h"
+#include "sip/siptransactions.h"
 
 #include "sip/siprouting.h"
 #include "sip/sipdialog.h"
@@ -9,21 +9,21 @@
 
 const bool DIRECTMESSAGES = false;
 
-SIPManager::SIPManager():
+SIPTransactions::SIPTransactions():
   isConference_(false),
   sipPort_(5060), // default for SIP, use 5061 for tls encrypted
   localName_(""),
   localUsername_("")
 {}
 
-void SIPManager::init(SIPTransactionUser *callControl)
+void SIPTransactions::init(SIPTransactionUser *callControl)
 {
   qDebug() << "Iniating SIP Manager";
 
   transactionUser_ = callControl;
 
   QObject::connect(&server_, &ConnectionServer::newConnection,
-                   this, &SIPManager::receiveTCPConnection);
+                   this, &SIPTransactions::receiveTCPConnection);
 
   // listen to everything
   server_.listen(QHostAddress("0.0.0.0"), sipPort_);
@@ -53,7 +53,7 @@ void SIPManager::init(SIPTransactionUser *callControl)
   sdp_.setPortRange(21500, 22000, 42);
 }
 
-void SIPManager::uninit()
+void SIPTransactions::uninit()
 {
   //TODO: delete all dialogs
   for(std::shared_ptr<SIPDialogData> dialog : dialogs_)
@@ -71,7 +71,7 @@ void SIPManager::uninit()
   }
 }
 
-QList<uint32_t> SIPManager::startCall(QList<Contact> addresses)
+QList<uint32_t> SIPTransactions::startCall(QList<Contact> addresses)
 {
   QList<uint32_t> calls;
   for(unsigned int i = 0; i < addresses.size(); ++i)
@@ -97,7 +97,7 @@ QList<uint32_t> SIPManager::startCall(QList<Contact> addresses)
   return calls;
 }
 
-void SIPManager::createDialog(std::shared_ptr<SIPDialogData>& dialog)
+void SIPTransactions::createDialog(std::shared_ptr<SIPDialogData>& dialog)
 {
   dialog = std::shared_ptr<SIPDialogData> (new SIPDialogData);
   dialog->remoteUsername = "";
@@ -110,16 +110,16 @@ void SIPManager::createDialog(std::shared_ptr<SIPDialogData>& dialog)
   dialog->server->init(transactionUser_, dialogs_.size() + 1);
 
   QObject::connect(dialog->client.get(), &SIPClientTransaction::sendRequest,
-                   this, &SIPManager::sendRequest);
+                   this, &SIPTransactions::sendRequest);
 
   QObject::connect(dialog->server.get(), &SIPServerTransaction::sendResponse,
-                   this, &SIPManager::sendResponse);
+                   this, &SIPTransactions::sendResponse);
 
   dialogs_.push_back(dialog);
   connectionMutex_.unlock();
 }
 
-void SIPManager::acceptCall(uint32_t sessionID)
+void SIPTransactions::acceptCall(uint32_t sessionID)
 {
   connectionMutex_.lock();
   std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
@@ -127,7 +127,7 @@ void SIPManager::acceptCall(uint32_t sessionID)
   dialog->server->acceptCall();
 }
 
-void SIPManager::rejectCall(uint32_t sessionID)
+void SIPTransactions::rejectCall(uint32_t sessionID)
 {
   connectionMutex_.lock();
   std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
@@ -135,17 +135,17 @@ void SIPManager::rejectCall(uint32_t sessionID)
   dialog->server->rejectCall();
 }
 
-void SIPManager::endCall(uint32_t sessionID)
+void SIPTransactions::endCall(uint32_t sessionID)
 {
-  qDebug() << "WARNING: Not implemented in SIPManager";
+  qDebug() << "WARNING: Not implemented in SIP Transactions";
 }
 
-void SIPManager::endAllCalls()
+void SIPTransactions::endAllCalls()
 {
-  qDebug() << "WARNING: Not implemented in SIPManager";
+  qDebug() << "WARNING: Not implemented in SIP Transactions";
 }
 
-std::shared_ptr<SIPDialog> SIPManager::createSIPDialog(uint32_t sessionID)
+std::shared_ptr<SIPDialog> SIPTransactions::createSIPDialog(uint32_t sessionID)
 {
   qDebug() << "Creating SIP Session";
   std::shared_ptr<SIPDialog> dialog = std::shared_ptr<SIPDialog> (new SIPDialog());
@@ -155,24 +155,24 @@ std::shared_ptr<SIPDialog> SIPManager::createSIPDialog(uint32_t sessionID)
   return dialog;
 }
 
-std::shared_ptr<SIPTransport> SIPManager::createSIPTransport()
+std::shared_ptr<SIPTransport> SIPTransactions::createSIPTransport()
 {
   qDebug() << "Creating SIP transport";
   std::shared_ptr<SIPTransport> connection =
       std::shared_ptr<SIPTransport>(new SIPTransport(transports_.size() + 1));
 
   QObject::connect(connection.get(), &SIPTransport::sipTransportEstablished,
-                   this, &SIPManager::connectionEstablished);
+                   this, &SIPTransactions::connectionEstablished);
   QObject::connect(connection.get(), &SIPTransport::incomingSIPRequest,
-                   this, &SIPManager::processSIPRequest);
+                   this, &SIPTransactions::processSIPRequest);
   QObject::connect(connection.get(), &SIPTransport::incomingSIPResponse,
-                   this, &SIPManager::processSIPResponse);
+                   this, &SIPTransactions::processSIPResponse);
 
   transports_.push_back(connection);
   return connection;
 }
 
-std::shared_ptr<SIPRouting> SIPManager::createSIPRouting(QString remoteUsername,
+std::shared_ptr<SIPRouting> SIPTransactions::createSIPRouting(QString remoteUsername,
                                                          QString localAddress,
                                                          QString remoteAddress, bool hostedSession)
 {
@@ -204,7 +204,7 @@ std::shared_ptr<SIPRouting> SIPManager::createSIPRouting(QString remoteUsername,
   return routing;
 }
 
-void SIPManager::receiveTCPConnection(TCPConnection *con)
+void SIPTransactions::receiveTCPConnection(TCPConnection *con)
 {
   // TODO: this could also be for one of the existing sessions, not just a new session
 
@@ -222,7 +222,7 @@ void SIPManager::receiveTCPConnection(TCPConnection *con)
 
 // connection has been established. This enables for us to get the needed info
 // to form a SIP message
-void SIPManager::connectionEstablished(quint32 transportID, QString localAddress, QString remoteAddress)
+void SIPTransactions::connectionEstablished(quint32 transportID, QString localAddress, QString remoteAddress)
 {
   Q_ASSERT(transportID != 0 || dialogs_.at(transportID - 1));
   qDebug() << "Establishing connection";
@@ -254,7 +254,7 @@ void SIPManager::connectionEstablished(quint32 transportID, QString localAddress
            << "To:" << remoteAddress;
 }
 
-void SIPManager::processSIPRequest(SIPRequest request,
+void SIPTransactions::processSIPRequest(SIPRequest request,
                        quint32 transportID, QVariant content)
 {
   // TODO: sessionID is now tranportID
@@ -312,7 +312,7 @@ void SIPManager::processSIPRequest(SIPRequest request,
   foundDialog->server->processRequest(request);
 }
 
-void SIPManager::processSIPResponse(SIPResponse response,
+void SIPTransactions::processSIPResponse(SIPResponse response,
                                     quint32 transportID, QVariant content)
 {
   // TODO: sessionID is now tranportID
@@ -374,7 +374,7 @@ void SIPManager::processSIPResponse(SIPResponse response,
   foundDialog->client->processResponse(response);
 }
 
-void SIPManager::sendRequest(uint32_t sessionID, RequestType type)
+void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
 {
   qDebug() << "---- Iniated sending of a request ---";
   Q_ASSERT(sessionID != 0 && sessionID <= dialogs_.size());
@@ -397,7 +397,7 @@ void SIPManager::sendRequest(uint32_t sessionID, RequestType type)
   qDebug() << "---- Finished sending of a request ---";
 }
 
-void SIPManager::sendResponse(uint32_t sessionID, ResponseType type, RequestType originalRequest)
+void SIPTransactions::sendResponse(uint32_t sessionID, ResponseType type, RequestType originalRequest)
 {
   qDebug() << "---- Iniated sending of a response ---";
   Q_ASSERT(sessionID != 0 && sessionID <= dialogs_.size());
@@ -421,7 +421,7 @@ void SIPManager::sendResponse(uint32_t sessionID, ResponseType type, RequestType
   qDebug() << "---- Finished sending of a response ---";
 }
 
-void SIPManager::destroyDialog(std::shared_ptr<SIPDialogData> dialog)
+void SIPTransactions::destroyDialog(std::shared_ptr<SIPDialogData> dialog)
 {
   if(dialog != NULL)
   {

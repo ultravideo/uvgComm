@@ -1,7 +1,7 @@
 #pragma once
 
 #include "globalsdpstate.h"
-#include "siptransport.h"
+#include "sip/siptransport.h"
 #include "connectionserver.h"
 
 #include "common.h"
@@ -30,11 +30,11 @@ class SIPTransactionUser;
 class SIPServerTransaction;
 class SIPClientTransaction;
 
-class SIPManager : public QObject
+class SIPTransactions : public QObject
 {
   Q_OBJECT
 public:
-  SIPManager();
+  SIPTransactions();
 
   void init(SIPTransactionUser* callControl);
   void uninit();
@@ -109,6 +109,7 @@ private:
 
   QList<std::shared_ptr<SIPTransport>> transports_;
   bool isConference_;
+  bool registered_;
 
   GlobalSDPState sdp_;
 
