@@ -1,13 +1,11 @@
 #include "sip/siptransactions.h"
 
-#include "sip/siprouting.h"
 #include "sip/sipdialog.h"
 #include "sip/siptransport.h"
 
 #include "sip/sipclienttransaction.h"
 #include "sip/sipservertransaction.h"
 
-const bool DIRECTMESSAGES = false;
 
 SIPTransactions::SIPTransactions():
   isConference_(false),
@@ -103,7 +101,6 @@ void SIPTransactions::createDialog(std::shared_ptr<SIPDialogData>& dialog)
   dialog->remoteUsername = "";
   connectionMutex_.lock();
   dialog->dialog = createSIPDialog(dialogs_.size() + 1);
-  dialog->routing = NULL;
   dialog->client = std::shared_ptr<SIPClientTransaction> (new SIPClientTransaction);
   dialog->client->init(transactionUser_, dialogs_.size() + 1);
   dialog->server = std::shared_ptr<SIPServerTransaction> (new SIPServerTransaction);
@@ -172,38 +169,6 @@ std::shared_ptr<SIPTransport> SIPTransactions::createSIPTransport()
   return connection;
 }
 
-std::shared_ptr<SIPRouting> SIPTransactions::createSIPRouting(QString remoteUsername,
-                                                         QString localAddress,
-                                                         QString remoteAddress, bool hostedSession)
-{
-  qDebug() << "Creating SIP Routing";
-  std::shared_ptr<SIPRouting> routing = std::shared_ptr<SIPRouting> (new SIPRouting);
-
-  routing->setLocalNames(localUsername_, localName_);
-  routing->setRemoteUsername(remoteUsername);
-
-  if(hostedSession)
-  {
-    qDebug() << "Setting connection as a SIP server connection.";
-    routing->setLocalAddress(localAddress);
-    routing->setLocalHost(remoteAddress);
-
-    // TODO enable remote to have a different host from ours
-    routing->setRemoteHost(remoteAddress);
-  }
-  else
-  {
-    qDebug() << "Setting connection as a peer-to-peer SIP connection. Firewall needs to be open for this";
-    routing->setLocalAddress(localAddress);
-    routing->setLocalHost(localAddress);
-    routing->setRemoteHost(remoteAddress);
-  }
-
-  // TODO make possible to set the server
-
-  return routing;
-}
-
 void SIPTransactions::receiveTCPConnection(TCPConnection *con)
 {
   // TODO: this could also be for one of the existing sessions, not just a new session
@@ -235,17 +200,12 @@ void SIPTransactions::connectionEstablished(quint32 transportID, QString localAd
   std::shared_ptr<SIPDialogData> dialog = dialogs_.at(transportID - 1);
   connectionMutex_.unlock();
 
-  if(dialog->routing == NULL)
-  {
-    dialog->routing = createSIPRouting(dialog->remoteUsername, localAddress,
-                                       remoteAddress, false);
-  }
   if(dialog->dialog == NULL)
   {
     dialog->dialog = createSIPDialog(transportID);
   }
 
-  dialog->dialog->initDialog(localAddress);
+  //dialog->dialog->initDialog(localAddress, SIP_URI(localUsername_, localName_, ));
 
   dialog->client->connectionReady(true);
 
@@ -280,7 +240,6 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
   }
 
   // check correct initialization
-  Q_ASSERT(foundDialog->routing);
   Q_ASSERT(foundDialog->dialog);
 
   connectionMutex_.unlock();
@@ -301,13 +260,14 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
       return;
     }
   }
-
+/*
   if(!foundDialog->routing->incomingSIPRequest(request.message->routing))
   {
     qDebug() << "Something wrong with incoming SIP request routing";
     sendResponse(transportID, SIP_NOT_FOUND, request.type);
     return;
   }
+*/
 
   foundDialog->server->processRequest(request);
 }
@@ -338,7 +298,6 @@ void SIPTransactions::processSIPResponse(SIPResponse response,
   }
 
   // check correct initialization
-  Q_ASSERT(foundDialog->routing);
   Q_ASSERT(foundDialog->dialog);
 
   connectionMutex_.unlock();
@@ -362,13 +321,14 @@ void SIPTransactions::processSIPResponse(SIPResponse response,
     }
   }
 
+  /*
   if(!foundDialog->routing->incomingSIPResponse(response.message->routing))
   {
 
     qDebug() << "Something wrong with incoming SIP response routing for transportID:" << transportID;
     // TODO: sent to wrong address (404 response)
     return;
-  }
+  }*/
   qWarning() << "WARNING: Processing responses not implemented yet";
 
   foundDialog->client->processResponse(response);
@@ -382,7 +342,7 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
 
   // Get all the necessary information from different components.
   SIPRequest request = {type, dialogs_.at(sessionID - 1)->dialog->getRequestInfo(type)};
-  request.message->routing = dialogs_.at(sessionID - 1)->routing->requestRouting(directRouting);
+  //request.message->routing = dialogs_.at(sessionID - 1)->routing->requestRouting(directRouting);
 
   QVariant content;
   if(type == INVITE)
@@ -406,7 +366,7 @@ void SIPTransactions::sendResponse(uint32_t sessionID, ResponseType type, Reques
   // Get all the necessary information from different components.
   SIPResponse response = dialogs_.at(sessionID - 1)->client->getResponseData(type);
   //SIPResponse response = {type, dialogs_.at(sessionID - 1)->dialog->getResponseInfo(originalRequest)};
-  response.message->routing = dialogs_.at(sessionID - 1)->routing->requestRouting(directRouting);
+  //response.message->routing = dialogs_.at(sessionID - 1)->routing->requestRouting(directRouting);
 
   QVariant content;
   if(response.message->transactionRequest == INVITE && type == SIP_OK) // TODO: SDP in progress...
@@ -426,6 +386,5 @@ void SIPTransactions::destroyDialog(std::shared_ptr<SIPDialogData> dialog)
   if(dialog != NULL)
   {
     dialog->dialog.reset();
-    dialog->routing.reset();
   }
 }

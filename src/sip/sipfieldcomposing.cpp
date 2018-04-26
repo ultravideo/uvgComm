@@ -19,7 +19,7 @@ bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
   if(request.type != REGISTER)
   {
     line = requestToString(request.type) + " sip:"
-        + request.message->routing->to.username + "@" + request.message->routing->to.host
+        + request.message->to.username + "@" + request.message->to.host
         + " SIP/" + request.message->version + lineEnding;
   }
   else
@@ -47,8 +47,8 @@ bool getFirstResponseLine(QString& line, SIPResponse& response, QString lineEndi
 bool includeToField(QList<SIPField> &fields,
                     std::shared_ptr<SIPMessageInfo> message)
 {
-  Q_ASSERT(message->routing->to.username != "" && message->routing->to.host != "");
-  if(message->routing->to.username == "" ||  message->routing->to.host == "")
+  Q_ASSERT(message->to.username != "" && message->to.host != "");
+  if(message->to.username == "" ||  message->to.host == "")
   {
     qDebug() << "WARNING: To field failed";
     return false;
@@ -56,11 +56,11 @@ bool includeToField(QList<SIPField> &fields,
 
   SIPField field;
   field.name = "To";
-  if(message->routing->to.realname != "")
+  if(message->to.realname != "")
   {
-    field.values = message->routing->to.realname + " ";
+    field.values = message->to.realname + " ";
   }
-  field.values += "<sip:" + message->routing->to.username + "@" + message->routing->to.host + ">";
+  field.values += "<sip:" + message->to.username + "@" + message->to.host + ">";
   field.parameters = NULL;
 
   tryAddParameter(field, "tag", message->dialog->toTag);
@@ -72,8 +72,8 @@ bool includeToField(QList<SIPField> &fields,
 bool includeFromField(QList<SIPField> &fields,
                       std::shared_ptr<SIPMessageInfo> message)
 {
-  Q_ASSERT(message->routing->from.username != "" && message->routing->from.host != "");
-  if(message->routing->from.username == "" ||  message->routing->from.host == "")
+  Q_ASSERT(message->from.username != "" && message->from.host != "");
+  if(message->from.username == "" ||  message->from.host == "")
   {
     qDebug() << "WARNING: From field failed";
     return false;
@@ -81,11 +81,11 @@ bool includeFromField(QList<SIPField> &fields,
 
   SIPField field;
   field.name = "From";
-  if(message->routing->from.realname != "")
+  if(message->from.realname != "")
   {
-    field.values = message->routing->from.realname + " ";
+    field.values = message->from.realname + " ";
   }
-  field.values += "<sip:" + message->routing->from.username + "@" + message->routing->from.host + ">";
+  field.values += "<sip:" + message->from.username + "@" + message->from.host + ">";
   field.parameters = NULL;
 
   tryAddParameter(field, "tag", message->dialog->fromTag);
@@ -131,14 +131,14 @@ bool includeCallIDField(QList<SIPField> &fields,
 bool includeViaFields(QList<SIPField> &fields,
                       std::shared_ptr<SIPMessageInfo> message)
 {
-  Q_ASSERT(!message->routing->senderReplyAddress.empty());
-  if(message->routing->senderReplyAddress.empty())
+  Q_ASSERT(!message->senderReplyAddress.empty());
+  if(message->senderReplyAddress.empty())
   {
     qDebug() << "WARNING: Via field failed";
     return false;
   }
 
-  for(ViaInfo via : message->routing->senderReplyAddress)
+  for(ViaInfo via : message->senderReplyAddress)
   {
     Q_ASSERT(via.type != ANY);
     Q_ASSERT(via.branch != "");
@@ -161,22 +161,22 @@ bool includeViaFields(QList<SIPField> &fields,
 bool includeMaxForwardsField(QList<SIPField> &fields,
                              std::shared_ptr<SIPMessageInfo> message)
 {
-  Q_ASSERT(message->routing->maxForwards != 0);
-  if(message->routing->maxForwards == 0)
+  Q_ASSERT(message->maxForwards != 0);
+  if(message->maxForwards == 0)
   {
     qDebug() << "WARNING: Max-forwards field failed";
     return false;
   }
 
-  fields.push_back({"Max-Forwards", QString::number(message->routing->maxForwards), NULL});
+  fields.push_back({"Max-Forwards", QString::number(message->maxForwards), NULL});
   return true;
 }
 
 bool includeContactField(QList<SIPField> &fields,
                          std::shared_ptr<SIPMessageInfo> message)
 {
-  Q_ASSERT(message->routing->contact.username != "" && message->routing->contact.host != "");
-  if(message->routing->contact.username == "" ||  message->routing->contact.host == "")
+  Q_ASSERT(message->contact.username != "" && message->contact.host != "");
+  if(message->contact.username == "" ||  message->contact.host == "")
   {
     qDebug() << "WARNING: Contact field failed";
     return false;
@@ -184,7 +184,7 @@ bool includeContactField(QList<SIPField> &fields,
 
   SIPField field;
   field.name = "Contact";
-  field.values = "<sip:" + message->routing->contact.username + "@" + message->routing->contact.host + ">";
+  field.values = "<sip:" + message->contact.username + "@" + message->contact.host + ">";
   field.parameters = NULL;
   fields.push_back(field);
   return true;

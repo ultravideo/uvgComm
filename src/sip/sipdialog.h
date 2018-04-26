@@ -6,13 +6,12 @@
 
 /* This class is responsible for maintaining the state of SIP dialog
  * and all its associated data. Use this class to check the information
- * of dialog requests. Information for responses are dealt by only the client,
- * because the client has the sent request.
+ * of dialog requests. Information for responses are dealt by only the server,
+ * because the server has the sent request.
  */
 
 
 enum DialogState {NONACTIVE, INIATING, ACTIVE};
-
 
 class SIPDialog
 {
@@ -20,10 +19,11 @@ public:
   SIPDialog();
 
   // creates dialog which is about to start from our end
-  void initDialog(QString localAddress);
+  void initDialog(QString serverName, SIP_URI localUri, SIP_URI remoteUri);
 
   // creates the dialog from an incoming INVITE
-  void processINVITE(std::shared_ptr<SIPDialogInfo> dialog, uint32_t cSeq);
+  void processINVITE(std::shared_ptr<SIPDialogInfo> dialog, uint32_t cSeq,
+                     SIP_URI localUri, SIP_URI remoteUri);
 
   // these will provide both message and session structs, routing will be empty
   std::shared_ptr<SIPMessageInfo> getRequestInfo(RequestType type);

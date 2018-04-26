@@ -111,7 +111,7 @@ struct ContentInfo
   uint32_t length;  // set by SIPTransport
 };
 
-/* notes on expansion of the SIP structures such as SIPRouting, SIPDialog, SIPMessage, SIPRequest and SIPResponse
+/* notes on expansion of the SIP structures such as SIPDialog, SIPMessage, SIPRequest and SIPResponse
  * with new sipmessage extensions.
 
  * If you want to add support for a new parameter to SIP message:
@@ -127,20 +127,6 @@ struct ContentInfo
  * 5) add the parsing function to parsing map at the start of siptransport
  */
 
-
-// All the info needed for the SIP message to find its correct recipient
-struct SIPRoutingInfo
-{
-  //what about request vs response?
-  SIP_URI from;
-  SIP_URI to;
-
-  QList<ViaInfo> senderReplyAddress;   // from via-fields. Send responses here by copying these.
-  SIP_URI contact;  // from contact field. Send requests here to bypass server
-
-  uint maxForwards;
-};
-
 // Identifies the SIP dialog
 struct SIPDialogInfo
 {
@@ -149,14 +135,22 @@ struct SIPDialogInfo
   QString callID; // in form callid@host
 };
 
-// Identifies the SIP message and the transaction it belongs to
+// Identifies the SIP message and the transaction it belongs to as well as participants
 struct SIPMessageInfo
 {
-  std::shared_ptr<SIPRoutingInfo> routing;
+  QString version;
+
   std::shared_ptr<SIPDialogInfo> dialog;
 
-  // message specific info
-  QString version;
+  // from,to: For dialog requests, use SIPDialog. Otherwise use SIPInfo
+  SIP_URI from;
+  SIP_URI to;
+
+  QList<ViaInfo> senderReplyAddress;   // from via-fields. Send responses here by copying these.
+  SIP_URI contact;  // Contact field. Send requests here
+
+  uint maxForwards;
+
   uint32_t cSeq; // must be less than 2^31
   RequestType transactionRequest;
 
@@ -191,6 +185,7 @@ struct SIPField
   QString values;
   std::shared_ptr<QList<SIPParameter>> parameters;
 };
+
 
 // sendrecv is default, if none present.
 enum SDPAttribute {A_SENDRECV, A_SENDONLY, A_RECVONLY, A_INACTIVE};

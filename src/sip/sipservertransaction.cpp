@@ -34,7 +34,7 @@ void SIPServerTransaction::processRequest(SIPRequest &request)
   {
   case INVITE:
   {
-    transactionUser_->incomingCall(sessionID_, request.message->routing->to.realname);
+    transactionUser_->incomingCall(sessionID_, request.message->to.realname);
     responseSender(SIP_RINGING, false);
     break;
   }

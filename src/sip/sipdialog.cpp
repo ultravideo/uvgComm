@@ -19,17 +19,22 @@ SIPDialog::SIPDialog():
   secure_(false)
 {}
 
-void SIPDialog::initDialog(QString localAddress)
+void SIPDialog::initDialog(QString serverName, SIP_URI localUri, SIP_URI remoteUri)
 {
   localTag_ = generateRandomString(TAGLENGTH);
-  callID_ = generateRandomString(CALLIDLENGTH) + "@" + localAddress;
+  callID_ = generateRandomString(CALLIDLENGTH);
+  if(serverName != "")
+  {
+    callID_ += "@" + serverName;
+  }
 
   qDebug() << "Local dialog created. CallID: " << callID_ << "Tag:" << localTag_ << "Cseq:" << localCSeq_;
 
   // non-REGISTER outside the dialog, cseq is arbitary.
 }
 
-void SIPDialog::processINVITE(std::shared_ptr<SIPDialogInfo> dialog, uint32_t cSeq)
+void SIPDialog::processINVITE(std::shared_ptr<SIPDialogInfo> dialog, uint32_t cSeq,
+                              SIP_URI localUri, SIP_URI remoteUri)
 {
   Q_ASSERT(callID_ != "");
   if(callID_ != "")
@@ -92,11 +97,12 @@ bool SIPDialog::correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog, Requ
   return false;
 }
 
+
+// TODO: move to sipHelper
 std::shared_ptr<SIPMessageInfo> SIPDialog::generateMessage(RequestType originalRequest)
 {
   std::shared_ptr<SIPMessageInfo> mesg = std::shared_ptr<SIPMessageInfo>(new SIPMessageInfo);
   mesg->dialog = NULL;
-  mesg->routing = NULL;
   mesg->cSeq = localCSeq_; // TODO: ACK and CANCEL don't increase cSeq
   if(originalRequest != ACK && originalRequest != CANCEL)
   {

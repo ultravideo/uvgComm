@@ -1,6 +1,6 @@
-#include <sipfieldparsing.h>
+#include <sip/sipfieldparsing.h>
 
-#include <sipconversions.h>
+#include <sip/sipconversions.h>
 
 #include <QRegularExpression>
 #include <QDebug>
@@ -65,15 +65,14 @@ bool parseToField(SIPField& field,
                   std::shared_ptr<SIPMessageInfo> message)
 {
   Q_ASSERT(message);
-  Q_ASSERT(message->routing);
-  Q_ASSERT(message->session);
+  Q_ASSERT(message->dialog);
 
-  if(!parseURI(field.values, message->routing->to))
+  if(!parseURI(field.values, message->to))
   {
     return false;
   }
 
-  parseParameterNameToValue(field.parameters, "tag", message->session->toTag);
+  parseParameterNameToValue(field.parameters, "tag", message->dialog->toTag);
   return true;
 }
 
@@ -81,14 +80,13 @@ bool parseFromField(SIPField& field,
                     std::shared_ptr<SIPMessageInfo> message)
 {
   Q_ASSERT(message);
-  Q_ASSERT(message->routing);
-  Q_ASSERT(message->session);
+  Q_ASSERT(message->dialog);
 
-  if(!parseURI(field.values, message->routing->from))
+  if(!parseURI(field.values, message->from))
   {
     return false;
   }
-  parseParameterNameToValue(field.parameters, "tag", message->session->fromTag);
+  parseParameterNameToValue(field.parameters, "tag", message->dialog->fromTag);
   return true;
 }
 
@@ -113,13 +111,14 @@ bool parseCallIDField(SIPField& field,
                       std::shared_ptr<SIPMessageInfo> message)
 {
   Q_ASSERT(message);
-  Q_ASSERT(message->session);
-  QRegularExpression re_field("(\\w+)@([\\w\.:]+)");
+  Q_ASSERT(message->dialog);
+
+  QRegularExpression re_field("(\\w+)");
   QRegularExpressionMatch field_match = re_field.match(field.values);
 
   if(field_match.hasMatch() && field_match.lastCapturedIndex() == 2)
   {
-    message->session->callID = field.values;
+    message->dialog->callID = field.values;
     return true;
   }
 
@@ -130,7 +129,6 @@ bool parseViaField(SIPField& field,
                    std::shared_ptr<SIPMessageInfo> message)
 {
   Q_ASSERT(message);
-  Q_ASSERT(message->routing);
 
   QRegularExpression re_field("SIP\/(\\d\.\\d)\/(\\w+) ([\\w\.:]+)");
   QRegularExpressionMatch field_match = re_field.match(field.values);
@@ -146,7 +144,7 @@ bool parseViaField(SIPField& field,
                    field_match.captured(1), ""};
 
     parseParameterNameToValue(field.parameters, "branch", via.branch);
-    message->routing->senderReplyAddress.push_back(via);
+    message->senderReplyAddress.push_back(via);
   }
   else
   {
@@ -159,18 +157,16 @@ bool parseMaxForwardsField(SIPField& field,
                            std::shared_ptr<SIPMessageInfo> message)
 {
   Q_ASSERT(message);
-  Q_ASSERT(message->routing);
 
-  return parseUint(field.values, message->routing->maxForwards);
+  return parseUint(field.values, message->maxForwards);
 }
 
 bool parseContactField(SIPField& field,
                        std::shared_ptr<SIPMessageInfo> message)
 {
   Q_ASSERT(message);
-  Q_ASSERT(message->routing);
 
-  return parseURI(field.values, message->routing->contact);
+  return parseURI(field.values, message->contact);
 }
 
 bool parseContentTypeField(SIPField& field,

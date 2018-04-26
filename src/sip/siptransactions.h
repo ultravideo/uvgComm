@@ -2,16 +2,17 @@
 
 #include "globalsdpstate.h"
 #include "sip/siptransport.h"
+#include "sip/siphelper.h"
 #include "connectionserver.h"
 
 #include "common.h"
 
 /* This class manages the interactions between different components in
  * a SIP transaction. This class should implement as little functionality
- * as possible.
+ * as possible and only focus on interractions.
  */
 
-/* Some terms used in RFC 3621:
+/* Some terms from RFC 3621:
  * Dialog = a SIP dialog constructed with INVITE-transaction
  * Session = a media session negotiated in INVITE-transaction
  */
@@ -73,7 +74,6 @@ private:
     // do not stop connection before responding to all requests
     std::shared_ptr<SIPServerTransaction> server;
     std::shared_ptr<SIPClientTransaction> client;
-    std::shared_ptr<SIPRouting> routing;
     QString remoteUsername;
     std::shared_ptr<SDPMessageInfo> localFinalSdp_;
     std::shared_ptr<SDPMessageInfo> remoteFinalSdp_;
@@ -92,9 +92,6 @@ private:
   void createDialog(std::shared_ptr<SIPDialogData>& dialog);
   void destroyDialog(std::shared_ptr<SIPDialogData> dialog);
 
-  // tmp function to convert new structs to old
-  void toSIPMessageInfo(SIPRoutingInfo info);
-
   // This mutex makes sure that the dialog has been added to the dialogs_ list
   // before we are accessing it when receiving messages
   QMutex connectionMutex_;
@@ -110,6 +107,12 @@ private:
   QList<std::shared_ptr<SIPTransport>> transports_;
   bool isConference_;
   bool registered_;
+
+  SIPHelper helper_;
+
+  // used with non-dialog messages
+  std::shared_ptr<SIPClientTransaction> generalClient;
+  std::shared_ptr<SIPServerTransaction> generalServer;
 
   GlobalSDPState sdp_;
 

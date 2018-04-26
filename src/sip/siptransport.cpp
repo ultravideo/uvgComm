@@ -403,8 +403,7 @@ bool SIPTransport::fieldsToMessage(QList<SIPField>& fields,
   message = std::shared_ptr<SIPMessageInfo> (new SIPMessageInfo);
   message->cSeq = 0;
   message->transactionRequest = SIP_UNKNOWN_REQUEST;
-  message->routing = std::shared_ptr<SIPRoutingInfo> (new SIPRoutingInfo);
-  message->routing->maxForwards = 0;
+  message->maxForwards = 0;
   message->dialog = std::shared_ptr<SIPDialogInfo> (new SIPDialogInfo);
 
   for(unsigned int i = 0; i < fields.size(); ++i)
