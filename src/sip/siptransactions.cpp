@@ -26,27 +26,8 @@ void SIPTransactions::init(SIPTransactionUser *callControl)
   // listen to everything
   server_.listen(QHostAddress("0.0.0.0"), sipPort_);
 
-  QSettings settings;
-  QString localName = settings.value("local/Name").toString();
-  QString localUsername = settings.value("local/Username").toString();
+  helper_.init();
 
-  if(!localName.isEmpty())
-  {
-    localName_ = localName;
-  }
-  else
-  {
-    localName_ = "Anonymous";
-  }
-
-  if(!localUsername.isEmpty())
-  {
-    localUsername_ = localUsername;
-  }
-  else
-  {
-    localUsername_ = "anonymous";
-  }
   sdp_.setLocalInfo(QHostAddress("0.0.0.0"), localUsername_);
   sdp_.setPortRange(21500, 22000, 42);
 }
@@ -338,11 +319,11 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
 {
   qDebug() << "---- Iniated sending of a request ---";
   Q_ASSERT(sessionID != 0 && sessionID <= dialogs_.size());
-  QString directRouting = "";
 
   // Get all the necessary information from different components.
-  SIPRequest request = {type, dialogs_.at(sessionID - 1)->dialog->getRequestInfo(type)};
-  //request.message->routing = dialogs_.at(sessionID - 1)->routing->requestRouting(directRouting);
+
+  SIPRequest request;
+  request.message = dialogs_.at(sessionID - 1)->dialog->getRequestDialogInfo(type);
 
   QVariant content;
   if(type == INVITE)

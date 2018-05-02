@@ -26,7 +26,7 @@ public:
                      SIP_URI localUri, SIP_URI remoteUri);
 
   // these will provide both message and session structs, routing will be empty
-  std::shared_ptr<SIPMessageInfo> getRequestInfo(RequestType type);
+  std::shared_ptr<SIPMessageInfo> getRequestDialogInfo(RequestType type);
 
   // use this to check whether incoming request belongs to this dialog
   // responses should be checked by client which sent the request
@@ -37,8 +37,6 @@ public:
   SIPDialog& operator=(SIPDialog const&) = delete;
 
 private:
-
-  std::shared_ptr<SIPMessageInfo> generateMessage(RequestType originalRequest);
 
   // SIP Dialog fields (section 12 in RFC 3261)
   QString localTag_;

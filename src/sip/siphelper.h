@@ -17,7 +17,7 @@ public:
 
   QString getServerLocation();
 
-  ViaInfo getLocalAddress();
+  ViaInfo getLocalVia(QString localAddress);
 
   // use set/get remote URI when initializing a dialog
   void setNextRemoteURI(SIP_URI remoteUri);
@@ -26,7 +26,7 @@ public:
   SIP_URI getLocalURI();
   SIP_URI getLocalContactURI();
 
-  bool isForbiddenUser(SIP_URI user);
+  bool isAllowedUser(SIP_URI user);
 
   std::shared_ptr<SIPMessageInfo> getMessageBase();
 

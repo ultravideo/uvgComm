@@ -14,7 +14,7 @@ SIPDialog::SIPDialog():
   remoteTag_(""),
   callID_(""),
   // cseq start value. For example 31-bits of 32-bit clock
-  localCSeq_(QDateTime::currentSecsSinceEpoch()%2147483647 + 1),
+  localCSeq_(QDateTime::currentSecsSinceEpoch()%2147483647),
   remoteCSeq_(0),
   secure_(false)
 {}
@@ -63,10 +63,16 @@ void SIPDialog::processINVITE(std::shared_ptr<SIPDialogInfo> dialog, uint32_t cS
   qDebug() << "Got a dialog creating INVITE. CallID: " << callID_ << "Tag:" << localTag_ << "Cseq:" << localCSeq_;
 }
 
-std::shared_ptr<SIPMessageInfo> SIPDialog::getRequestInfo(RequestType type)
+std::shared_ptr<SIPMessageInfo> SIPDialog::getRequestDialogInfo(RequestType type)
 {
-  std::shared_ptr<SIPMessageInfo> message = generateMessage(type);
+  if(type != ACK && type != CANCEL)
+  {
+    ++localCSeq_;
+  }
+  std::shared_ptr<SIPMessageInfo> message = std::shared_ptr<SIPMessageInfo>(new SIPMessageInfo);
   message->dialog = std::shared_ptr<SIPDialogInfo> (new SIPDialogInfo{remoteTag_, localTag_, callID_});
+  message->cSeq = localCSeq_;
+
   return message;
 }
 
@@ -95,28 +101,4 @@ bool SIPDialog::correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog, Requ
     return true;
   }
   return false;
-}
-
-
-// TODO: move to sipHelper
-std::shared_ptr<SIPMessageInfo> SIPDialog::generateMessage(RequestType originalRequest)
-{
-  std::shared_ptr<SIPMessageInfo> mesg = std::shared_ptr<SIPMessageInfo>(new SIPMessageInfo);
-  mesg->dialog = NULL;
-  mesg->cSeq = localCSeq_; // TODO: ACK and CANCEL don't increase cSeq
-  if(originalRequest != ACK && originalRequest != CANCEL)
-  {
-    ++localCSeq_;
-  }
-
-  mesg->version = "2.0";
-  if(originalRequest == ACK)
-  {
-    mesg->transactionRequest = INVITE;
-  }
-  else
-  {
-    mesg->transactionRequest = originalRequest;
-  }
-  return mesg;
 }
