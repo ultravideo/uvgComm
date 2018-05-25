@@ -7,9 +7,6 @@
 #include <QDebug>
 #include <QSettings>
 
-const uint16_t CALLIDLENGTH = 16;
-const uint16_t TAGLENGTH = 16;
-const uint32_t BRANCHLENGTH = 32 - 7;
 
 SIPDialog::SIPDialog():
   localTag_(""),
@@ -96,6 +93,16 @@ std::shared_ptr<SIPMessageInfo> SIPDialog::getRequestDialogInfo(RequestType type
   if(type != ACK && type != CANCEL)
   {
     ++localCSeq_;
+    message->transactionRequest = type;
+  }
+  else if(type == ACK)
+  {
+    message->transactionRequest = INVITE;
+  }
+  else
+  {
+    // TODO: for CANCEL get the type of previous request from somewhere.
+    message->transactionRequest = SIP_UNKNOWN_REQUEST;
   }
 
   message->dialog = std::shared_ptr<SIPDialogInfo> (new SIPDialogInfo{remoteTag_, localTag_, callID_});

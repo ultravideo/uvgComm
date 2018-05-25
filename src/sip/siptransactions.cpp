@@ -57,6 +57,9 @@ QList<uint32_t> SIPTransactions::startCall(QList<Contact> addresses)
     std::shared_ptr<SIPDialogData> dialogData;
     createDialog(dialogData);
 
+    dialogData->dialog->init(
+          SIP_URI{addresses.at(i).username, addresses.at(i).realName, addresses.at(i).remoteAddress});
+
     dialogData->proxyConnection_ = addresses.at(i).proxyConnection;
     calls.push_back(dialogs_.size());
     // message is sent only after connection has been established so we know our address

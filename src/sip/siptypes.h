@@ -5,7 +5,6 @@
 
 #include <memory>
 
-
 enum RequestType {SIP_UNKNOWN_REQUEST, INVITE, ACK, BYE, CANCEL, OPTIONS, REGISTER}; // RFC 3261
  //PRACK,SUBSCRIBE, NOTIFY, PUBLISH, INFO, REFER, MESSAGE, UPDATE }; RFC 3262, 6665, 3903, 6086, 3515, 3428, 3311, 4916
 
@@ -87,6 +86,10 @@ enum ResponseType {SIP_UNKNOWN_RESPONSE = 0,
                    SIP_UNWANTED = 607}; // RFC 3261
 
 enum ConnectionType {ANY, TCP, UDP, TLS};
+
+const uint16_t CALLIDLENGTH = 16;
+const uint16_t TAGLENGTH = 16;
+const uint32_t BRANCHLENGTH = 32 - 7;
 
 struct ViaInfo
 {

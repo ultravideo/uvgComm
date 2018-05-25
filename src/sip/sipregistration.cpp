@@ -4,8 +4,6 @@
 
 #include <QSettings>
 
-const uint32_t BRANCHLENGTH = 32 - 7;
-const uint16_t CALLIDLENGTH = 16;
 
 SIPRegistration::SIPRegistration():
   localUri_(),
