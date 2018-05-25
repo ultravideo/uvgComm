@@ -18,18 +18,17 @@ class SIPDialog
 public:
   SIPDialog();
 
+  void init(SIP_URI remoteURI);
+
   // creates dialog which is about to start from our end
-  void initDialog(QString serverName, SIP_URI localUri, SIP_URI remoteUri);
+  void createDialog(QString hostName);
 
   // creates the dialog from an incoming INVITE
-  void processINVITE(std::shared_ptr<SIPDialogInfo> dialog, uint32_t cSeq,
-                     SIP_URI localUri, SIP_URI remoteUri);
+  void processFirstINVITE(std::shared_ptr<SIPDialogInfo> dialog, uint32_t cSeq,
+                     SIP_URI remoteUri);
 
-  // this will fill the missing dialog details from message
-  void getRequestDialogInfo(RequestType type, std::shared_ptr<SIPMessageInfo> message);
-
-  // generate a random callID
-  void getRegisterDialogInfo(RequestType type, std::shared_ptr<SIPMessageInfo> message);
+  // Generates the request message details
+  std::shared_ptr<SIPMessageInfo> getRequestDialogInfo(RequestType type, QString localAddress);
 
   // use this to check whether incoming request belongs to this dialog
   // responses should be checked by client which sent the request
@@ -40,6 +39,10 @@ public:
   SIPDialog& operator=(SIPDialog const&) = delete;
 
 private:
+
+  // TODO: This same function also exists in sipregistration
+  void initLocalURI();
+  ViaInfo getLocalVia(QString localAddress);
 
   // SIP Dialog fields (section 12 in RFC 3261)
   QString localTag_;

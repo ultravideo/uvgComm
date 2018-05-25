@@ -73,12 +73,10 @@ private:
 
   struct SIPDialogData
   {
-    SIPRegistration helper_;
     std::shared_ptr<SIPDialog> dialog;
     // do not stop connection before responding to all requests
     std::shared_ptr<SIPServerTransaction> server;
     std::shared_ptr<SIPClientTransaction> client;
-    QString remoteUsername;
     std::shared_ptr<SDPMessageInfo> localFinalSdp_;
     std::shared_ptr<SDPMessageInfo> remoteFinalSdp_;
 
@@ -111,7 +109,8 @@ private:
 
   QList<std::shared_ptr<SIPTransport>> transports_;
   bool isConference_;
-  bool registered_;
+
+  SIPRegistration registration_;
 
   // used with non-dialog messages
   std::shared_ptr<SIPClientTransaction> generalClient;

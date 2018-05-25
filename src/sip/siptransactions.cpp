@@ -56,9 +56,9 @@ QList<uint32_t> SIPTransactions::startCall(QList<Contact> addresses)
   {
     std::shared_ptr<SIPDialogData> dialogData;
     createDialog(dialogData);
+
     dialogData->proxyConnection_ = addresses.at(i).proxyConnection;
     calls.push_back(dialogs_.size());
-    dialogData->remoteUsername = addresses.at(i).username;
     // message is sent only after connection has been established so we know our address
 
     // TODO: we should check if we already have a connection to their adddress.
@@ -67,9 +67,6 @@ QList<uint32_t> SIPTransactions::startCall(QList<Contact> addresses)
       std::shared_ptr<SIPTransport> transport = createSIPTransport();
       transport->createConnection(TCP, addresses.at(i).remoteAddress);
       dialogData->transportID = transports_.size();
-      dialogData->helper_.initPeerToPeer(SIP_URI{addresses.at(i).realName,
-                                                 addresses.at(i).username,
-                                                 addresses.at(i).remoteAddress});
     }
     else
     {
@@ -91,7 +88,6 @@ QList<uint32_t> SIPTransactions::startCall(QList<Contact> addresses)
 void SIPTransactions::createDialog(std::shared_ptr<SIPDialogData>& dialog)
 {
   dialog = std::shared_ptr<SIPDialogData> (new SIPDialogData);
-  dialog->remoteUsername = "";
   connectionMutex_.lock();
   dialog->dialog = createSIPDialog(dialogs_.size() + 1);
   dialog->client = std::shared_ptr<SIPClientTransaction> (new SIPClientTransaction);
@@ -212,19 +208,6 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
   // TODO: separate nondialog and dialog requests!
   connectionMutex_.lock();
 
-  if(!dialogs_.at(transportID - 1)->helper_.isInitiated())
-  {
-    if(dialogs_.at(transportID - 1)->proxyConnection_)
-    {
-      qDebug() << "WARNING: Proxy connection not implemented";
-      //dialogs_.at(sessionID - 1)->helper_.initServer();
-    }
-    else
-    {
-      dialogs_.at(transportID - 1)->helper_.initPeerToPeer(SIP_URI{"","anon", });
-    }
-  }
-
   // find the dialog which corresponds to the callID and tags received in request
   std::shared_ptr<SIPDialogData> foundDialog;
 
@@ -342,7 +325,6 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
 {
   qDebug() << "---- Iniated sending of a request ---";
   Q_ASSERT(sessionID != 0 && sessionID <= dialogs_.size());
-  Q_ASSERT(dialogs_.at(sessionID - 1)->helper_.isInitiated());
   // Get all the necessary information from different components.
 
   std::shared_ptr<SIPTransport> transport
@@ -350,25 +332,17 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
   SIPRequest request;
   request.type = type;
 
-  // we set the host for each peer-to-peer message in case our address has changed. Don't know if this
-  // is actually possible. This is also the most convenient place to set it.
-  if(!dialogs_.at(sessionID - 1)->proxyConnection_)
+  // if this is the session creation INVITE. Proxy sessions should be created earlier.
+  //TODO: Not working for re-INVITE
+  if(request.type == INVITE && !dialogs_.at(sessionID - 1)->proxyConnection_)
   {
-    dialogs_.at(sessionID - 1)->helper_.setHost(transport->getLocalAddress());
+    dialogs_.at(sessionID - 1)->dialog->createDialog(transport->getLocalAddress());
   }
-
 
   // Start gathering message info
   request.message =
-      dialogs_.at(sessionID - 1)->helper_.generateRequestBase(transport->getLocalAddress());
-  if(request.type != INVITE && request.type != REGISTER)
-  {
-    dialogs_.at(sessionID - 1)->dialog->getRequestDialogInfo(type, request.message);
-  }
-  else
-  {
-     dialogs_.at(sessionID - 1)->helper_.generateNonDialogRequest(request.message);
-  }
+      dialogs_.at(sessionID - 1)->dialog->getRequestDialogInfo(request.type, transport->getLocalAddress());
+
   QVariant content;
   if(type == INVITE)
   {

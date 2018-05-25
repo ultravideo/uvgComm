@@ -14,30 +14,25 @@ class SIPRegistration
 public:
   SIPRegistration();
 
+  void initServer();
+
+  void setHost(QString location);
+
+  std::shared_ptr<SIPMessageInfo> generateRegisterRequest(QString localAddress);
+
   bool isInitiated() const
   {
     return initiated_;
   }
 
-  void initServer(SIP_URI remoteUri);
-  void initPeerToPeer(SIP_URI remoteUri);
-
-  void setHost(QString location);
-
-  bool isAllowedUser(SIP_URI user) const;
-
-  std::shared_ptr<SIPMessageInfo> generateRequestBase(QString localAddress);
-
-  // REGISTER and INVITE are non-dialog requests
-  void generateNonDialogRequest(std::shared_ptr<SIPMessageInfo> messageBase);
-
 private:
 
   void initLocalURI();
+
   ViaInfo getLocalVia(QString localAddress);
 
   SIP_URI localUri_;
-  SIP_URI remoteUri_;
 
   bool initiated_;
+  bool registered_;
 };
