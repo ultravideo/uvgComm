@@ -1,4 +1,4 @@
-#include "siphelper.h"
+#include "sipregistration.h"
 
 #include "common.h"
 
@@ -7,13 +7,13 @@
 const uint32_t BRANCHLENGTH = 32 - 7;
 const uint32_t CALLIDLENGTH = 16;
 
-SIPHelper::SIPHelper():
+SIPRegistration::SIPRegistration():
   localUri_(),
   remoteUri_(),
   initiated_(false)
 {}
 
-void SIPHelper::initServer(SIP_URI remoteUri)
+void SIPRegistration::initServer(SIP_URI remoteUri)
 {
   Q_ASSERT(!initiated_);
 
@@ -21,7 +21,7 @@ void SIPHelper::initServer(SIP_URI remoteUri)
   initiated_ = true;
 }
 
-void SIPHelper::initPeerToPeer(SIP_URI remoteUri)
+void SIPRegistration::initPeerToPeer(SIP_URI remoteUri)
 {
   Q_ASSERT(!initiated_);
 
@@ -30,7 +30,7 @@ void SIPHelper::initPeerToPeer(SIP_URI remoteUri)
   initiated_ = true;
 }
 
-void SIPHelper::initLocalURI()
+void SIPRegistration::initLocalURI()
 {
   // init stuff from the settings
   QSettings settings;
@@ -47,23 +47,23 @@ void SIPHelper::initLocalURI()
   localUri_.host = "";
 }
 
-void SIPHelper::setHost(QString location)
+void SIPRegistration::setHost(QString location)
 {
   localUri_.host = location;
 }
 
-ViaInfo SIPHelper::getLocalVia(QString localAddress)
+ViaInfo SIPRegistration::getLocalVia(QString localAddress)
 {
   return ViaInfo{TCP, "2.0", localAddress, QString("z9hG4bK" + generateRandomString(BRANCHLENGTH))};
 }
 
-bool SIPHelper::isAllowedUser(SIP_URI user) const
+bool SIPRegistration::isAllowedUser(SIP_URI user) const
 {
   qDebug() << "ERROR: Block lists not implemented!";
   return false;
 }
 
-std::shared_ptr<SIPMessageInfo> SIPHelper::generateRequestBase(QString localAddress)
+std::shared_ptr<SIPMessageInfo> SIPRegistration::generateRequestBase(QString localAddress)
 {
   Q_ASSERT(localUri_.username != "" && remoteUri_.username != "");
   if(localUri_.username == "" || remoteUri_.username == "")
@@ -90,7 +90,7 @@ std::shared_ptr<SIPMessageInfo> SIPHelper::generateRequestBase(QString localAddr
 }
 
 
-void SIPHelper::generateNonDialogRequest(std::shared_ptr<SIPMessageInfo> messageBase)
+void SIPRegistration::generateNonDialogRequest(std::shared_ptr<SIPMessageInfo> messageBase)
 {
   messageBase->dialog = std::shared_ptr<SIPDialogInfo> (new SIPDialogInfo{"", "", generateRandomString(CALLIDLENGTH)});
 }

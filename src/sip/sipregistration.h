@@ -9,10 +9,10 @@
 */
 
 
-class SIPHelper
+class SIPRegistration
 {
 public:
-  SIPHelper();
+  SIPRegistration();
 
   bool isInitiated() const
   {

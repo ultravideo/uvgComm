@@ -2,7 +2,7 @@
 
 #include "globalsdpstate.h"
 #include "sip/siptransport.h"
-#include "sip/siphelper.h"
+#include "sip/sipregistration.h"
 #include "connectionserver.h"
 
 #include "common.h"
@@ -73,7 +73,7 @@ private:
 
   struct SIPDialogData
   {
-    SIPHelper helper_;
+    SIPRegistration helper_;
     std::shared_ptr<SIPDialog> dialog;
     // do not stop connection before responding to all requests
     std::shared_ptr<SIPServerTransaction> server;
