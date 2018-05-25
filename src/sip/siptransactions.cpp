@@ -9,9 +9,7 @@
 
 SIPTransactions::SIPTransactions():
   isConference_(false),
-  sipPort_(5060), // default for SIP, use 5061 for tls encrypted
-  localName_(""),
-  localUsername_("")
+  sipPort_(5060) // default for SIP, use 5061 for tls encrypted
 {}
 
 void SIPTransactions::init(SIPTransactionUser *callControl)
@@ -25,10 +23,11 @@ void SIPTransactions::init(SIPTransactionUser *callControl)
 
   // listen to everything
   server_.listen(QHostAddress("0.0.0.0"), sipPort_);
+  QSettings settings;
+  QString username = !settings.value("local/Username").isNull()
+      ? settings.value("local/Username").toString() : "anonymous";
 
-  helper_.init();
-
-  sdp_.setLocalInfo(QHostAddress("0.0.0.0"), localUsername_);
+  sdp_.setLocalInfo(QHostAddress("0.0.0.0"), username);
   sdp_.setPortRange(21500, 22000, 42);
 }
 
@@ -57,13 +56,26 @@ QList<uint32_t> SIPTransactions::startCall(QList<Contact> addresses)
   {
     std::shared_ptr<SIPDialogData> dialogData;
     createDialog(dialogData);
+    dialogData->proxyConnection_ = addresses.at(i).proxyConnection;
     calls.push_back(dialogs_.size());
     dialogData->remoteUsername = addresses.at(i).username;
     // message is sent only after connection has been established so we know our address
 
-    std::shared_ptr<SIPTransport> transport = createSIPTransport();
-    transport->createConnection(TCP, addresses.at(i).remoteAddress);
-    dialogData->transportID = transports_.size();
+    // TODO: we should check if we already have a connection to their adddress.
+    if(!addresses.at(i).proxyConnection)
+    {
+      std::shared_ptr<SIPTransport> transport = createSIPTransport();
+      transport->createConnection(TCP, addresses.at(i).remoteAddress);
+      dialogData->transportID = transports_.size();
+      dialogData->helper_.initPeerToPeer(SIP_URI{addresses.at(i).realName,
+                                                 addresses.at(i).username,
+                                                 addresses.at(i).remoteAddress});
+    }
+    else
+    {
+      qWarning() << "ERROR: Proxy connection not implemented yet";
+    }
+
     qDebug() << "Added a new dialog. ID:" << dialogs_.size();
 
     // this start call will commence once the connection has been established
@@ -152,13 +164,8 @@ std::shared_ptr<SIPTransport> SIPTransactions::createSIPTransport()
 
 void SIPTransactions::receiveTCPConnection(TCPConnection *con)
 {
-  // TODO: this could also be for one of the existing sessions, not just a new session
-
   qDebug() << "Received a TCP connection. Initializing dialog";
   Q_ASSERT(con);
-
-  std::shared_ptr<SIPDialogData> dialog;
-  createDialog(dialog); // TODO create dialog only with INVITE request
 
   std::shared_ptr<SIPTransport> transport = createSIPTransport();
   transport->incomingTCPConnection(std::shared_ptr<TCPConnection> (con));
@@ -172,6 +179,9 @@ void SIPTransactions::connectionEstablished(quint32 transportID, QString localAd
 {
   Q_ASSERT(transportID != 0 || dialogs_.at(transportID - 1));
   qDebug() << "Establishing connection";
+
+  // TODO: This is not correct and will not work with a prpxy
+  qDebug() << "INFO: Connection established will not work with a proxy connection";
   if(transportID == 0 || transportID > dialogs_.size() || dialogs_.at(transportID - 1) == NULL)
   {
     qDebug() << "WARNING: Missing session for connected session";
@@ -201,6 +211,19 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
   // TODO: sessionID is now tranportID
   // TODO: separate nondialog and dialog requests!
   connectionMutex_.lock();
+
+  if(!dialogs_.at(transportID - 1)->helper_.isInitiated())
+  {
+    if(dialogs_.at(transportID - 1)->proxyConnection_)
+    {
+      qDebug() << "WARNING: Proxy connection not implemented";
+      //dialogs_.at(sessionID - 1)->helper_.initServer();
+    }
+    else
+    {
+      dialogs_.at(transportID - 1)->helper_.initPeerToPeer(SIP_URI{"","anon", });
+    }
+  }
 
   // find the dialog which corresponds to the callID and tags received in request
   std::shared_ptr<SIPDialogData> foundDialog;
@@ -319,12 +342,24 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
 {
   qDebug() << "---- Iniated sending of a request ---";
   Q_ASSERT(sessionID != 0 && sessionID <= dialogs_.size());
-
+  Q_ASSERT(!dialogs_.at(sessionID - 1)->helper_.isInitiated());
   // Get all the necessary information from different components.
 
   SIPRequest request;
-  request.message = dialogs_.at(sessionID - 1)->dialog->getRequestDialogInfo(type);
+  request.type = type;
 
+  request.message =
+      dialogs_.at(sessionID - 1)->helper_.generateMessageBase(transports_.at(dialogs_.at(sessionID - 1)->transportID - 1)->getLocalAddress());
+
+
+  if(request.type != INVITE && request.type != REGISTER)
+  {
+    dialogs_.at(sessionID - 1)->dialog->getRequestDialogInfo(type, request.message);
+  }
+  else
+  {
+     dialogs_.at(sessionID - 1)->helper_.generateNonDialogRequest(request.message);
+  }
   QVariant content;
   if(type == INVITE)
   {
@@ -333,7 +368,7 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
     content.setValue(sdp);
   }
 
-  transports_.at(dialogs_.at(sessionID - 1)->transportID)->sendRequest(request, content);
+  transports_.at(dialogs_.at(sessionID - 1)->transportID - 1)->sendRequest(request, content);
   //dialogs_.at(sessionID - 1)->sCon->sendRequest(request, content);
   qDebug() << "---- Finished sending of a request ---";
 }

@@ -25,8 +25,11 @@ public:
   void processINVITE(std::shared_ptr<SIPDialogInfo> dialog, uint32_t cSeq,
                      SIP_URI localUri, SIP_URI remoteUri);
 
-  // these will provide both message and session structs, routing will be empty
-  std::shared_ptr<SIPMessageInfo> getRequestDialogInfo(RequestType type);
+  // this will fill the missing dialog details from message
+  void getRequestDialogInfo(RequestType type, std::shared_ptr<SIPMessageInfo> message);
+
+  // generate a random callID
+  void getRegisterDialogInfo(RequestType type, std::shared_ptr<SIPMessageInfo> message);
 
   // use this to check whether incoming request belongs to this dialog
   // responses should be checked by client which sent the request

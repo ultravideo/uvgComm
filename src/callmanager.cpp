@@ -73,6 +73,7 @@ void CallManager::callToParticipant(QString name, QString username, QString ip)
     con.remoteAddress = ip_str;
     con.realName = name;
     con.username = username;
+    con.proxyConnection = false;
 
     QList<Contact> list;
     list.append(con);

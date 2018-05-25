@@ -48,6 +48,12 @@ SIPTransport::SIPTransport(quint32 transportID):
 SIPTransport::~SIPTransport()
 {}
 
+QString SIPTransport::getLocalAddress()
+{
+  Q_ASSERT(connection_);
+  return connection_->localAddress();
+}
+
 void SIPTransport::createConnection(ConnectionType type, QString target)
 {
   if(type == TCP)

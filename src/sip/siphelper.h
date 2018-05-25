@@ -5,35 +5,40 @@
 #include <QHostAddress>
 
 /* This class is responsible for holding necessary SIP information
- * outside of dialog. This info is mostly gotten from
+ * outside of dialog.
 */
+
 
 class SIPHelper
 {
 public:
   SIPHelper();
 
-  void init();
+  bool isInitiated() const
+  {
+    return initiated_;
+  }
 
+  void initServer(SIP_URI remoteUri);
+  void initPeerToPeer(SIP_URI remoteUri);
+
+  void setServerLocation(QString location);
   QString getServerLocation();
-
-  ViaInfo getLocalVia(QString localAddress);
-
-  // use set/get remote URI when initializing a dialog
-  void setNextRemoteURI(SIP_URI remoteUri);
-  SIP_URI getNextRemoteURI();
-
-  SIP_URI getLocalURI();
-  SIP_URI getLocalContactURI();
 
   bool isAllowedUser(SIP_URI user);
 
-  std::shared_ptr<SIPMessageInfo> getMessageBase();
+  std::shared_ptr<SIPMessageInfo> generateMessageBase(QString localAddress);
+
+  // REGISTER and INVITE are non-dialog requests
+  void generateNonDialogRequest(std::shared_ptr<SIPMessageInfo> messageBase);
 
 private:
 
-  SIP_URI localUri_;
-  SIP_URI nextRemoteUri_;
+  void initLocalURI();
+  ViaInfo getLocalVia(QString localAddress);
 
-  QString serverLocation_;
+  SIP_URI localUri_;
+  SIP_URI remoteUri_;
+
+  bool initiated_;
 };

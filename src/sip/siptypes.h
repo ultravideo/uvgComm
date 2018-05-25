@@ -145,9 +145,7 @@ struct SIPMessageInfo
   SIP_URI to;
 
   QList<ViaInfo> senderReplyAddress;   // from via-fields. Send responses here by copying these.
-  SIP_URI contact;  // Contact field. Send requests here
-
-
+  SIP_URI contact;  // Contact field. Send requests here. Mandatory in INVITE requests
 
   uint32_t cSeq; // must be less than 2^31
   RequestType transactionRequest;

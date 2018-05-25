@@ -18,11 +18,14 @@
  */
 
 
+// TODO: some kind of address book class might be useful because the connection addresses can change.
+
 struct Contact
 {
   QString username;
   QString realName;
   QString remoteAddress;
+  bool proxyConnection;
 };
 
 class SIPRouting;
@@ -70,6 +73,7 @@ private:
 
   struct SIPDialogData
   {
+    SIPHelper helper_;
     std::shared_ptr<SIPDialog> dialog;
     // do not stop connection before responding to all requests
     std::shared_ptr<SIPServerTransaction> server;
@@ -78,6 +82,7 @@ private:
     std::shared_ptr<SDPMessageInfo> localFinalSdp_;
     std::shared_ptr<SDPMessageInfo> remoteFinalSdp_;
 
+    bool proxyConnection_;
     quint32 transportID;
   };
 
@@ -108,8 +113,6 @@ private:
   bool isConference_;
   bool registered_;
 
-  SIPHelper helper_;
-
   // used with non-dialog messages
   std::shared_ptr<SIPClientTransaction> generalClient;
   std::shared_ptr<SIPServerTransaction> generalServer;
@@ -118,9 +121,6 @@ private:
 
   ConnectionServer server_;
   uint16_t sipPort_;
-
-  QString localName_;
-  QString localUsername_;
 
   // use this client to register us to a server
   std::shared_ptr<SIPClientTransaction> registerClient_;

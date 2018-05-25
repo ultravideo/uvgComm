@@ -63,17 +63,14 @@ void SIPDialog::processINVITE(std::shared_ptr<SIPDialogInfo> dialog, uint32_t cS
   qDebug() << "Got a dialog creating INVITE. CallID: " << callID_ << "Tag:" << localTag_ << "Cseq:" << localCSeq_;
 }
 
-std::shared_ptr<SIPMessageInfo> SIPDialog::getRequestDialogInfo(RequestType type)
+void SIPDialog::getRequestDialogInfo(RequestType type, std::shared_ptr<SIPMessageInfo> message)
 {
   if(type != ACK && type != CANCEL)
   {
     ++localCSeq_;
   }
-  std::shared_ptr<SIPMessageInfo> message = std::shared_ptr<SIPMessageInfo>(new SIPMessageInfo);
   message->dialog = std::shared_ptr<SIPDialogInfo> (new SIPDialogInfo{remoteTag_, localTag_, callID_});
   message->cSeq = localCSeq_;
-
-  return message;
 }
 
 bool SIPDialog::correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog, RequestType type, uint32_t remoteCSeq)
