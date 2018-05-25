@@ -47,9 +47,9 @@ void SIPHelper::initLocalURI()
   localUri_.host = "";
 }
 
-QString SIPHelper::getServerLocation()
+void SIPHelper::setHost(QString location)
 {
-  return "";
+  localUri_.host = location;
 }
 
 ViaInfo SIPHelper::getLocalVia(QString localAddress)
@@ -57,13 +57,13 @@ ViaInfo SIPHelper::getLocalVia(QString localAddress)
   return ViaInfo{TCP, "2.0", localAddress, QString("z9hG4bK" + generateRandomString(BRANCHLENGTH))};
 }
 
-bool SIPHelper::isAllowedUser(SIP_URI user)
+bool SIPHelper::isAllowedUser(SIP_URI user) const
 {
   qDebug() << "ERROR: Block lists not implemented!";
   return false;
 }
 
-std::shared_ptr<SIPMessageInfo> SIPHelper::generateMessageBase(QString localAddress)
+std::shared_ptr<SIPMessageInfo> SIPHelper::generateRequestBase(QString localAddress)
 {
   Q_ASSERT(localUri_.username != "" && remoteUri_.username != "");
   if(localUri_.username == "" || remoteUri_.username == "")
@@ -82,7 +82,7 @@ std::shared_ptr<SIPMessageInfo> SIPHelper::generateMessageBase(QString localAddr
   mesg->to = remoteUri_;
   mesg->contact = localUri_;
 
-  mesg->cSeq = 0;
+  mesg->cSeq = 1;
 
   mesg->senderReplyAddress.push_back(getLocalVia(localAddress));
 

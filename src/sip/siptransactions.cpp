@@ -342,16 +342,25 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
 {
   qDebug() << "---- Iniated sending of a request ---";
   Q_ASSERT(sessionID != 0 && sessionID <= dialogs_.size());
-  Q_ASSERT(!dialogs_.at(sessionID - 1)->helper_.isInitiated());
+  Q_ASSERT(dialogs_.at(sessionID - 1)->helper_.isInitiated());
   // Get all the necessary information from different components.
 
+  std::shared_ptr<SIPTransport> transport
+      = transports_.at(dialogs_.at(sessionID - 1)->transportID - 1);
   SIPRequest request;
   request.type = type;
 
+  // we set the host for each peer-to-peer message in case our address has changed. Don't know if this
+  // is actually possible. This is also the most convenient place to set it.
+  if(!dialogs_.at(sessionID - 1)->proxyConnection_)
+  {
+    dialogs_.at(sessionID - 1)->helper_.setHost(transport->getLocalAddress());
+  }
+
+
+  // Start gathering message info
   request.message =
-      dialogs_.at(sessionID - 1)->helper_.generateMessageBase(transports_.at(dialogs_.at(sessionID - 1)->transportID - 1)->getLocalAddress());
-
-
+      dialogs_.at(sessionID - 1)->helper_.generateRequestBase(transport->getLocalAddress());
   if(request.type != INVITE && request.type != REGISTER)
   {
     dialogs_.at(sessionID - 1)->dialog->getRequestDialogInfo(type, request.message);
@@ -368,7 +377,7 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
     content.setValue(sdp);
   }
 
-  transports_.at(dialogs_.at(sessionID - 1)->transportID - 1)->sendRequest(request, content);
+  transport->sendRequest(request, content);
   //dialogs_.at(sessionID - 1)->sCon->sendRequest(request, content);
   qDebug() << "---- Finished sending of a request ---";
 }

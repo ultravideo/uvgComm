@@ -22,12 +22,11 @@ public:
   void initServer(SIP_URI remoteUri);
   void initPeerToPeer(SIP_URI remoteUri);
 
-  void setServerLocation(QString location);
-  QString getServerLocation();
+  void setHost(QString location);
 
-  bool isAllowedUser(SIP_URI user);
+  bool isAllowedUser(SIP_URI user) const;
 
-  std::shared_ptr<SIPMessageInfo> generateMessageBase(QString localAddress);
+  std::shared_ptr<SIPMessageInfo> generateRequestBase(QString localAddress);
 
   // REGISTER and INVITE are non-dialog requests
   void generateNonDialogRequest(std::shared_ptr<SIPMessageInfo> messageBase);
