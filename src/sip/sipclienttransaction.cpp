@@ -98,6 +98,30 @@ void SIPClientTransaction::connectionReady(bool ready)
   }
 }
 
+void SIPClientTransaction::getRequestMessageInfo(RequestType type,
+                                                 std::shared_ptr<SIPMessageInfo>& outMessage)
+{
+  outMessage = std::shared_ptr<SIPMessageInfo> (new SIPMessageInfo);
+
+  if(type == ACK)
+  {
+    outMessage->transactionRequest = INVITE;
+  }
+  else if(type == CANCEL)
+  {
+    outMessage->transactionRequest = ongoingTransactionType_;
+  }
+  else
+  {
+    outMessage->transactionRequest = type;
+  }
+
+  outMessage->dialog = NULL;
+  outMessage->maxForwards = 71;
+  outMessage->version = "2.0";
+  outMessage->cSeq = 0; // INVALID, should be set in dialog
+}
+
 void SIPClientTransaction::requestSender(RequestType type)
 {
   if(!connected_)

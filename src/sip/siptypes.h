@@ -87,8 +87,7 @@ enum ResponseType {SIP_UNKNOWN_RESPONSE = 0,
 
 enum ConnectionType {ANY, TCP, UDP, TLS};
 
-const uint16_t CALLIDLENGTH = 16;
-const uint16_t TAGLENGTH = 16;
+// 7 is the length of preset string
 const uint32_t BRANCHLENGTH = 32 - 7;
 
 struct ViaInfo
@@ -129,6 +128,9 @@ struct ContentInfo
  * 4) add a function for field parsing to sipfieldparsing and
  * 5) add the parsing function to parsing map at the start of siptransport
  */
+
+const uint16_t CALLIDLENGTH = 16;
+const uint16_t TAGLENGTH = 16;
 
 // Identifies the SIP dialog
 struct SIPDialogInfo

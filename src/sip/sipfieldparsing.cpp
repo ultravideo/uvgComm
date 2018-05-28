@@ -113,7 +113,7 @@ bool parseCallIDField(SIPField& field,
   Q_ASSERT(message);
   Q_ASSERT(message->dialog);
 
-  QRegularExpression re_field("(\\w+)");
+  QRegularExpression re_field("(\\S+)");
   QRegularExpressionMatch field_match = re_field.match(field.values);
 
   if(field_match.hasMatch() && field_match.lastCapturedIndex() == 2)

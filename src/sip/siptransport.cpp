@@ -423,6 +423,7 @@ bool SIPTransport::fieldsToMessage(QList<SIPField>& fields,
       if(!parsing.at(fields.at(i).name)(fields[i], message))
       {
         qDebug() << "Failed to parse following field:" << fields.at(i).name;
+        qDebug() << "Values:" << fields.at(i).values;
         return false;
       }
     }

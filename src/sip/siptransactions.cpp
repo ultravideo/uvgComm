@@ -342,11 +342,16 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
     dialogs_.at(sessionID - 1)->dialog->createDialog(transport->getLocalAddress());
   }
 
-  // Start gathering message info
-  request.message =
-      dialogs_.at(sessionID - 1)->dialog->getRequestDialogInfo(request.type, transport->getLocalAddress());
+  // Get message info
+  dialogs_.at(sessionID - 1)->client->getRequestMessageInfo(type, request.message);
+  dialogs_.at(sessionID - 1)->dialog->getRequestDialogInfo(request.type,
+                                                           transport->getLocalAddress(),
+                                                           request.message);
+  Q_ASSERT(request.message != NULL);
+  Q_ASSERT(request.message->dialog != NULL);
 
   QVariant content;
+  request.message->content.length = 0;
   if(type == INVITE)
   {
     request.message->content.type = APPLICATION_SDP;

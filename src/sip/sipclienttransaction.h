@@ -27,6 +27,9 @@ public:
     return r;
   }
 
+  void getRequestMessageInfo(RequestType type,
+                             std::shared_ptr<SIPMessageInfo> &outMessage);
+
   //processes incoming response. Part of our client transaction
   void processResponse(SIPResponse& response);
   void wrongResponseDestination();

@@ -33,6 +33,12 @@ void SIPDialog::createDialog(QString hostName)
     callID_ += "@" + hostName;
   }
 
+  // assume we are using a peer-to-peer connecion and don't know our host address until now
+  if(localUri_.host == "")
+  {
+    localUri_.host = hostName;
+  }
+
   qDebug() << "Local dialog created. CallID: " << callID_ << "Tag:" << localTag_ << "Cseq:" << localCSeq_;
 }
 
@@ -86,36 +92,23 @@ void SIPDialog::processFirstINVITE(std::shared_ptr<SIPDialogInfo> dialog, uint32
            << "CallID: " << callID_ << "Tag:" << localTag_ << "Cseq:" << localCSeq_;
 }
 
-std::shared_ptr<SIPMessageInfo> SIPDialog::getRequestDialogInfo(RequestType type, QString localAddress)
+void SIPDialog::getRequestDialogInfo(RequestType type, QString localAddress,
+                                     std::shared_ptr<SIPMessageInfo>& outMessage)
 {
-  std::shared_ptr<SIPMessageInfo> message = std::shared_ptr<SIPMessageInfo> (new SIPMessageInfo);
-
   if(type != ACK && type != CANCEL)
   {
     ++localCSeq_;
-    message->transactionRequest = type;
-  }
-  else if(type == ACK)
-  {
-    message->transactionRequest = INVITE;
-  }
-  else
-  {
-    // TODO: for CANCEL get the type of previous request from somewhere.
-    message->transactionRequest = SIP_UNKNOWN_REQUEST;
   }
 
-  message->dialog = std::shared_ptr<SIPDialogInfo> (new SIPDialogInfo{remoteTag_, localTag_, callID_});
-  message->cSeq = localCSeq_;
-  message->version = "2.0";
-  message->maxForwards = 71;
-  message->dialog = NULL;
-  message->from = localUri_;
-  message->to = remoteUri_;
-  message->contact = localUri_;
-  message->senderReplyAddress.push_back(getLocalVia(localAddress));
+  outMessage->cSeq = localCSeq_;
+  outMessage->from = localUri_;
+  outMessage->to = remoteUri_;
+  outMessage->contact = localUri_;
+  outMessage->senderReplyAddress.push_back(getLocalVia(localAddress));
 
-  return message;
+  // SIPDialogInfo format: toTag, fromTag, CallID
+  outMessage->dialog
+      = std::shared_ptr<SIPDialogInfo> (new SIPDialogInfo{remoteTag_, localTag_, callID_});
 }
 
 ViaInfo SIPDialog::getLocalVia(QString localAddress)

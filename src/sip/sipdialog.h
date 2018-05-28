@@ -28,7 +28,7 @@ public:
                      SIP_URI remoteUri);
 
   // Generates the request message details
-  std::shared_ptr<SIPMessageInfo> getRequestDialogInfo(RequestType type, QString localAddress);
+  void getRequestDialogInfo(RequestType type, QString localAddress, std::shared_ptr<SIPMessageInfo> &outMessage);
 
   // use this to check whether incoming request belongs to this dialog
   // responses should be checked by client which sent the request
@@ -49,7 +49,6 @@ private:
   QString remoteTag_;
   QString callID_;
 
-  // TODO: incorporate URIs to this class
   SIP_URI localUri_;
   SIP_URI remoteUri_;
 
