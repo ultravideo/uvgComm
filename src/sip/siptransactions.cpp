@@ -207,6 +207,8 @@ void SIPTransactions::connectionEstablished(quint32 transportID, QString localAd
 void SIPTransactions::processSIPRequest(SIPRequest request,
                        quint32 transportID, QVariant content)
 {
+  qDebug() << "Starting to process received SIP Request:" << request.type;
+
   // TODO: sessionID is now tranportID
   // TODO: separate nondialog and dialog requests!
   connectionMutex_.lock();
@@ -222,17 +224,31 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
       break;
     }
   }
+  connectionMutex_.unlock();
 
   if(foundDialog == NULL)
   {
-    qDebug() << "Could not find the suggested dialog in request!";
-    return;
+    qDebug() << "Could not find the dialog of the request.";
+
+    if(request.type == INVITE)
+    {
+      qDebug() << "Someone is trying to start a sip dialog with us!";
+      createDialog(foundDialog);
+
+      foundDialog->dialog->init(
+            SIP_URI{request.message->from.username, request.message->from.realname, request.message->from.host});
+
+      // Proxy TODO: somehow distinguish if this is a proxy connection
+      foundDialog->proxyConnection_ = false;
+
+      foundDialog->transportID = transportID;
+    }
   }
 
   // check correct initialization
   Q_ASSERT(foundDialog->dialog);
 
-  connectionMutex_.unlock();
+
 
   // TODO: prechecks that the message is ok, then modify program state.
 
@@ -260,6 +276,8 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
 */
 
   foundDialog->server->processRequest(request);
+
+  qDebug() << "Finished processing request:" << request.type;
 }
 
 void SIPTransactions::processSIPResponse(SIPResponse response,
@@ -267,6 +285,7 @@ void SIPTransactions::processSIPResponse(SIPResponse response,
 {
   // TODO: sessionID is now tranportID
   // TODO: separate nondialog and dialog requests!
+
   connectionMutex_.lock();
 
   // find the dialog which corresponds to the callID and tags received in response
@@ -314,7 +333,6 @@ void SIPTransactions::processSIPResponse(SIPResponse response,
   /*
   if(!foundDialog->routing->incomingSIPResponse(response.message->routing))
   {
-
     qDebug() << "Something wrong with incoming SIP response routing for transportID:" << transportID;
     // TODO: sent to wrong address (404 response)
     return;
