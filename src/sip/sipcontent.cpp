@@ -160,7 +160,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
           QString additionalLine = lineIterator.next();
           QStringList additionalWords = additionalLine.split(" ", QString::SkipEmptyParts);
 
-
+          // contact field that concerns only this media
           if(additionalLine.at(0) == 'c')
           {
             if(!checkSDPLine(additionalWords, 3, mediaInfo.nettype))
@@ -205,7 +205,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
               break;
             }
 
-            if(additionalWords.size() < 4)
+            if(additionalWords.size() >= 4)
             {
               qDebug() << "Detected unsupported encoding parameter in:" << additionalWords;
               // TODO support encoding parameters
@@ -214,7 +214,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
           else
           {
             lineIterator.previous();
-            break;
+            break; // nothing more in this.
           }
         }
 

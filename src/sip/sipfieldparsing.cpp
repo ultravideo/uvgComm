@@ -116,7 +116,7 @@ bool parseCallIDField(SIPField& field,
   QRegularExpression re_field("(\\S+)");
   QRegularExpressionMatch field_match = re_field.match(field.values);
 
-  if(field_match.hasMatch() && field_match.lastCapturedIndex() == 2)
+  if(field_match.hasMatch() && field_match.lastCapturedIndex() == 1)
   {
     message->dialog->callID = field.values;
     return true;

@@ -360,7 +360,6 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
   }
 
   transport->sendRequest(request, content);
-  //dialogs_.at(sessionID - 1)->sCon->sendRequest(request, content);
   qDebug() << "---- Finished sending of a request ---";
 }
 
