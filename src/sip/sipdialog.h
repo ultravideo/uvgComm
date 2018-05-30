@@ -24,8 +24,7 @@ public:
   void createDialog(QString hostName);
 
   // creates the dialog from an incoming INVITE
-  void processFirstINVITE(std::shared_ptr<SIPDialogInfo> dialog, uint32_t cSeq,
-                     SIP_URI remoteUri);
+  void processFirstINVITE(std::shared_ptr<SIPMessageInfo> &inMessage);
 
   // Generates the request message details
   void getRequestDialogInfo(RequestType type, QString localAddress, std::shared_ptr<SIPMessageInfo> &outMessage);

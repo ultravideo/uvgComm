@@ -140,8 +140,8 @@ bool parseViaField(SIPField& field,
   else if(field_match.lastCapturedIndex() == 3)
   {
     ViaInfo via = {stringToConnection(field_match.captured(2)),
-                   field_match.captured(3),
-                   field_match.captured(1), ""};
+                   field_match.captured(1),
+                   field_match.captured(3), ""};
 
     parseParameterNameToValue(field.parameters, "branch", via.branch);
     message->senderReplyAddress.push_back(via);

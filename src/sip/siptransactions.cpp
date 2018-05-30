@@ -174,7 +174,8 @@ void SIPTransactions::receiveTCPConnection(TCPConnection *con)
 
 // connection has been established. This enables for us to get the needed info
 // to form a SIP message
-void SIPTransactions::connectionEstablished(quint32 transportID, QString localAddress, QString remoteAddress)
+void SIPTransactions::connectionEstablished(quint32 transportID, QString localAddress,
+                                            QString remoteAddress)
 {
   Q_ASSERT(transportID != 0 || dialogs_.at(transportID - 1));
   qDebug() << "Establishing connection";
@@ -236,7 +237,11 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
       createDialog(foundDialog);
 
       foundDialog->dialog->init(
-            SIP_URI{request.message->from.username, request.message->from.realname, request.message->from.host});
+            SIP_URI{request.message->from.username,
+                    request.message->from.realname,
+                    request.message->from.host});
+
+      foundDialog->dialog->processFirstINVITE(request.message);
 
       // Proxy TODO: somehow distinguish if this is a proxy connection
       foundDialog->proxyConnection_ = false;
@@ -247,8 +252,6 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
 
   // check correct initialization
   Q_ASSERT(foundDialog->dialog);
-
-
 
   // TODO: prechecks that the message is ok, then modify program state.
 
@@ -266,14 +269,6 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
       return;
     }
   }
-/*
-  if(!foundDialog->routing->incomingSIPRequest(request.message->routing))
-  {
-    qDebug() << "Something wrong with incoming SIP request routing";
-    sendResponse(transportID, SIP_NOT_FOUND, request.type);
-    return;
-  }
-*/
 
   foundDialog->server->processRequest(request);
 
@@ -281,7 +276,7 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
 }
 
 void SIPTransactions::processSIPResponse(SIPResponse response,
-                                    quint32 transportID, QVariant content)
+                                         quint32 transportID, QVariant content)
 {
   // TODO: sessionID is now tranportID
   // TODO: separate nondialog and dialog requests!
@@ -330,13 +325,6 @@ void SIPTransactions::processSIPResponse(SIPResponse response,
     }
   }
 
-  /*
-  if(!foundDialog->routing->incomingSIPResponse(response.message->routing))
-  {
-    qDebug() << "Something wrong with incoming SIP response routing for transportID:" << transportID;
-    // TODO: sent to wrong address (404 response)
-    return;
-  }*/
   qWarning() << "WARNING: Processing responses not implemented yet";
 
   foundDialog->client->processResponse(response);
@@ -344,7 +332,7 @@ void SIPTransactions::processSIPResponse(SIPResponse response,
 
 void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
 {
-  qDebug() << "---- Iniated sending of a request ---";
+  qDebug() << "---- Iniated sending of a request:" << type << "----";
   Q_ASSERT(sessionID != 0 && sessionID <= dialogs_.size());
   // Get all the necessary information from different components.
 
@@ -383,14 +371,14 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
 
 void SIPTransactions::sendResponse(uint32_t sessionID, ResponseType type, RequestType originalRequest)
 {
-  qDebug() << "---- Iniated sending of a response ---";
+  qDebug() << "---- Iniated sending of a request:" << type << "----";
   Q_ASSERT(sessionID != 0 && sessionID <= dialogs_.size());
-  QString directRouting = "";
 
   // Get all the necessary information from different components.
-  SIPResponse response = dialogs_.at(sessionID - 1)->client->getResponseData(type);
-  //SIPResponse response = {type, dialogs_.at(sessionID - 1)->dialog->getResponseInfo(originalRequest)};
-  //response.message->routing = dialogs_.at(sessionID - 1)->routing->requestRouting(directRouting);
+  SIPResponse response;
+  response.type = type;
+  dialogs_.at(sessionID - 1)->server->getResponseMessage(response.message);
+  response.message->transactionRequest = originalRequest;
 
   QVariant content;
   if(response.message->transactionRequest == INVITE && type == SIP_OK) // TODO: SDP in progress...
@@ -400,8 +388,7 @@ void SIPTransactions::sendResponse(uint32_t sessionID, ResponseType type, Reques
     content.setValue(sdp);
   }
 
-  transports_.at(dialogs_.at(sessionID - 1)->transportID)->sendResponse(response, content);
-  //dialogs_.at(sessionID - 1)->sCon->sendResponse(response, content);
+  transports_.at(dialogs_.at(sessionID - 1)->transportID - 1)->sendResponse(response, content);
   qDebug() << "---- Finished sending of a response ---";
 }
 

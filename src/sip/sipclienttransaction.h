@@ -21,12 +21,6 @@ public:
     return false;
   }
 
-  SIPResponse& getResponseData(ResponseType type)
-  {
-    SIPResponse r;
-    return r;
-  }
-
   void getRequestMessageInfo(RequestType type,
                              std::shared_ptr<SIPMessageInfo> &outMessage);
 
@@ -53,8 +47,10 @@ private:
   void requestSender(RequestType type);
   bool goodResponse(); // use this to filter out untimely/duplicate responses
 
-  // used to check if the received response is for our request
+  // used to determine what type of request the response is for
   RequestType ongoingTransactionType_;
+
+  // TODO: Probably need to record the whole message and check that the details are ok.
 
   QTimer requestTimer_;
   bool connected_;

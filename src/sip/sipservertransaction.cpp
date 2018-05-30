@@ -6,7 +6,7 @@
 
 SIPServerTransaction::SIPServerTransaction():
   sessionID_(0),
-  waitingResponse_(SIP_UNKNOWN_REQUEST),
+  receivedRequest_(NULL),
   transactionUser_(NULL)
 {}
 
@@ -27,10 +27,9 @@ void SIPServerTransaction::processRequest(SIPRequest &request)
   }
 
   // TODO: check that the request is appropriate at this time.
+  copyMessageDetails(request.message, receivedRequest_);
 
-  waitingResponse_ = request.type;
-
-  switch(waitingResponse_)
+  switch(request.type)
   {
   case INVITE:
   {
@@ -61,16 +60,31 @@ void SIPServerTransaction::processRequest(SIPRequest &request)
   case REGISTER:
   {
     qDebug() << "Why on earth are we receiving REGISTER methods?";
-    responseSender(SIP_NOT_IMPLEMENTED, true);
+    responseSender(SIP_NOT_ALLOWED, true);
     break;
   }
   default:
   {
     qDebug() << "Unsupported request type received";
-    responseSender(SIP_NOT_IMPLEMENTED, true);
+    responseSender(SIP_NOT_ALLOWED, true);
     break;
   }
   }
+}
+
+void SIPServerTransaction::getResponseMessage(std::shared_ptr<SIPMessageInfo> &outMessage)
+{
+  if(receivedRequest_ == NULL)
+  {
+    qWarning() << "ERROR: The received request was not set before trying to use it!";
+  }
+  copyMessageDetails(receivedRequest_, outMessage);
+  outMessage->maxForwards = 71;
+  outMessage->contact = SIP_URI{"","",""}; // No contact for reply?
+  outMessage->content.length = 0;
+  outMessage->content.type = NO_CONTENT;
+
+  receivedRequest_ = NULL;
 }
 
 void SIPServerTransaction::acceptCall()
@@ -85,10 +99,44 @@ void SIPServerTransaction::rejectCall()
 
 void SIPServerTransaction::responseSender(ResponseType type, bool finalResponse)
 {
-  Q_ASSERT(waitingResponse_ != SIP_UNKNOWN_REQUEST);
-  emit sendResponse(sessionID_, type, waitingResponse_);
+  Q_ASSERT(receivedRequest_ != NULL);
+  emit sendResponse(sessionID_, type, receivedRequest_->transactionRequest);
+
+  // this might only be a provisional response and not the final one.
   if(finalResponse)
   {
-    waitingResponse_ = SIP_UNKNOWN_REQUEST;
+    receivedRequest_ = NULL;
   }
+}
+
+void SIPServerTransaction::copyMessageDetails(std::shared_ptr<SIPMessageInfo>& inMessage,
+                        std::shared_ptr<SIPMessageInfo>& copy)
+{
+  Q_ASSERT(inMessage);
+  copy = std::shared_ptr<SIPMessageInfo> (new SIPMessageInfo());
+  copy->dialog = std::shared_ptr<SIPDialogInfo> (new SIPDialogInfo());
+  // Which fields to copy are listed in section 8.2.6.2 of RFC 3621
+
+  // from-field
+  copy->from = inMessage->from;
+  copy->dialog->fromTag = inMessage->dialog->fromTag;
+
+  // Call-ID field
+  copy->dialog->callID = inMessage->dialog->callID;
+
+  // CSeq
+  copy->cSeq = inMessage->cSeq;
+  copy->transactionRequest = inMessage->transactionRequest;
+
+  // Via- fields in same order
+  for(ViaInfo via : inMessage->senderReplyAddress)
+  {
+    copy->senderReplyAddress.push_back(via);
+  }
+
+  // To field, expect if To tag is missing, in which case it should be added
+  // To tag is added in dialog when checking the first request.
+  Q_ASSERT(inMessage->dialog->toTag != "");
+  copy->to = inMessage->to;
+  copy->dialog->toTag = inMessage->dialog->toTag;
 }

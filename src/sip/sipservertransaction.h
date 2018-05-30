@@ -2,6 +2,10 @@
 
 #include "siptypes.h"
 
+/* This class implements the behavior defined in RFC3261 for component
+ * User Agent Server (UAS). See section 8.2 for details.
+ */
+
 
 class SIPTransactionUser;
 
@@ -18,6 +22,8 @@ public:
   void wrongRequestDestination();
   void malformedRequest();
 
+  void getResponseMessage(std::shared_ptr<SIPMessageInfo> &outMessage);
+
   void acceptCall();
   void rejectCall();
 
@@ -30,9 +36,15 @@ private:
   void responseSender(ResponseType type, bool finalResponse);
   bool goodRequest(); // use this to filter out untimely/duplicate requests
 
+  // copies the necessary details from
+  void copyMessageDetails(std::shared_ptr<SIPMessageInfo> &inMessage,
+                          std::shared_ptr<SIPMessageInfo> &copy);
+
+
   uint32_t sessionID_;
 
-  RequestType waitingResponse_;
+  // used for copying data to response
+  std::shared_ptr<SIPMessageInfo> receivedRequest_;
 
   SIPTransactionUser* transactionUser_;
 };

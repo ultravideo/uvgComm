@@ -163,12 +163,16 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant content)
     qDebug() << "WARNING: SDP null or connection does not exist in sendResponse";
     return;
   }
+
   QList<SIPField> fields;
   if(!composeMandatoryFields(fields, response.message))
   {
     qDebug() << "WARNING: Failed to add mandatory fields. Probably because of missing values.";
     return;
   }
+
+  // TODO: if the response is 405 SIP_NOT_ALLOWED we must include an allow header field.
+  // lists allowed methods.
 
   QString lineEnding = "\r\n";
   QString message = "";

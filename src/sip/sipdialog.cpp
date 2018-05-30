@@ -59,37 +59,50 @@ void SIPDialog::initLocalURI()
   localUri_.host = "";
 }
 
-void SIPDialog::processFirstINVITE(std::shared_ptr<SIPDialogInfo> dialog, uint32_t cSeq, SIP_URI remoteUri)
+void SIPDialog::processFirstINVITE(std::shared_ptr<SIPMessageInfo> &inMessage)
 {
-  Q_ASSERT(callID_ != "");
-
+  qDebug() << "Initializing SIP dialog with incoming INVITE.";
+  Q_ASSERT(callID_ == "");
+  Q_ASSERT(inMessage);
+  Q_ASSERT(inMessage->dialog);
   if(callID_ != "")
   {
-    if(correctRequestDialog(dialog, INVITE, cSeq))
+    if(correctRequestDialog(inMessage->dialog, INVITE, inMessage->cSeq))
     {
       qDebug() << "Dialog: Got a Re-INVITE";
       return;
     }
     else
     {
-      qDebug() << "ERROR: Got a request not belonging to this dialog";
+      qDebug() << "PEER_ERROR: Got a request not belonging to this dialog";
     }
   }
 
   initLocalURI();
 
-  remoteTag_ = dialog->fromTag;
+  remoteTag_ = inMessage->dialog->fromTag;
   if(remoteTag_ == "")
   {
     qDebug() << "PEER_ERROR: They did not provide their tag in INVITE!";
   }
 
-  remoteCSeq_ = cSeq;
-  localTag_ = generateRandomString(TAGLENGTH);
-  callID_ = dialog->callID;
+  remoteCSeq_ = inMessage->cSeq;
+
+  if(localTag_ == "")
+  {
+    localTag_ = generateRandomString(TAGLENGTH);
+  }
+
+   // set the request to tag to local tag value so when sending the response it is already there.
+  if(inMessage->dialog->toTag == "")
+  {
+    inMessage->dialog->toTag = localTag_;
+  }
+
+  callID_ = inMessage->dialog->callID;
 
   qDebug() << "Received a dialog creating INVITE. Creating dialog."
-           << "CallID: " << callID_ << "Tag:" << localTag_ << "Cseq:" << localCSeq_;
+           << "CallID: " << callID_ << "OurTag:" << localTag_ << "Cseq:" << localCSeq_;
 }
 
 void SIPDialog::getRequestDialogInfo(RequestType type, QString localAddress,
@@ -125,8 +138,9 @@ bool SIPDialog::correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog, Requ
     return false;
   }
 
-  // For backwards compability, this should be prepared for missing To-tag (RFC3261).
-  if((dialog->toTag == localTag_ || dialog->toTag == "") && (dialog->fromTag == remoteTag_) &&
+  // For backwards compability, this should be prepared for missing To-tag (or was it from tag) (RFC3261).
+  // if our tags and call-ID match the incoming requests, it belongs to this dialog
+  if((dialog->toTag == localTag_) && dialog->fromTag == remoteTag_ &&
      ( dialog->callID == callID_))
   {
     // The request cseq should be larger than our remotecseq.
