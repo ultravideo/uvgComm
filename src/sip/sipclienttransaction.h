@@ -16,9 +16,11 @@ public:
   SIPClientTransaction();
 
   void init(SIPTransactionUser* tu, uint32_t sessionID);
-  bool ourResponse(SIPResponse& response)
+
+  bool waitingResponse(RequestType requestType)
   {
-    return false;
+    return ongoingTransactionType_ == requestType
+        && requestType != SIP_UNKNOWN_REQUEST;
   }
 
   void getRequestMessageInfo(RequestType type,
@@ -59,7 +61,7 @@ private:
 
   CallState state_;
 
-  // waiting to be sent once the connecion has been opened
+  // waiting to be sent once the connection has been opened
   RequestType pendingRequest_;
 
   SIPTransactionUser* transactionUser_;

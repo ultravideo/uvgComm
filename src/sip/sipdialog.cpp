@@ -156,3 +156,30 @@ bool SIPDialog::correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog, Requ
   }
   return false;
 }
+
+bool SIPDialog::correctResponseDialog(std::shared_ptr<SIPDialogInfo> dialog, uint32_t messageCSeq)
+{
+  // For backwards compability, this should be prepared for missing To-tag (or was it from tag) (RFC3261).
+  // if our tags and call-ID match the incoming requests, it belongs to this dialog
+  if((dialog->fromTag == localTag_) && dialog->toTag == remoteTag_ || remoteTag_ == "" &&
+     ( dialog->callID == callID_))
+  {
+    // The response cseq should be the same as our cseq
+    if(messageCSeq != localCSeq_)
+    {
+      qDebug() << "PEER_ERROR:" << "The message CSeq was not the same as our previous request!";
+      // TODO: if remote cseq in message is lower than remote cseq, send 500
+      return false;
+    }
+
+    if(remoteTag_ == "")
+    {
+      qDebug() << "We don't yet have their remote Tag. Using the one in response.";
+      remoteTag_ = dialog->toTag;
+    }
+
+    return true;
+  }
+  return false;
+}
+

@@ -32,6 +32,7 @@ public:
   // use this to check whether incoming request belongs to this dialog
   // responses should be checked by client which sent the request
   bool correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog, RequestType type, uint32_t remoteCSeq);
+  bool correctResponseDialog(std::shared_ptr<SIPDialogInfo> dialog, uint32_t messageCSeq);
 
   // forbid copy and assignment
   SIPDialog(const SIPDialog& copied) = delete;

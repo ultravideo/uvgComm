@@ -219,7 +219,8 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
 
   for(std::shared_ptr<SIPDialogData> dialog : dialogs_)
   {
-    if(dialog->dialog->correctRequestDialog(request.message->dialog, request.type, request.message->cSeq))
+    if(dialog->dialog->correctRequestDialog(request.message->dialog,
+                                            request.type, request.message->cSeq))
     {
       foundDialog = dialog;
       break;
@@ -280,7 +281,7 @@ void SIPTransactions::processSIPResponse(SIPResponse response,
 {
   // TODO: sessionID is now tranportID
   // TODO: separate nondialog and dialog requests!
-
+  qDebug() << "Starting to process received SIP Response:" << response.type;
   connectionMutex_.lock();
 
   // find the dialog which corresponds to the callID and tags received in response
@@ -288,16 +289,24 @@ void SIPTransactions::processSIPResponse(SIPResponse response,
 
   for(std::shared_ptr<SIPDialogData> dialog : dialogs_)
   {
-    if(dialog->client->ourResponse(response))
+    if(dialog->dialog->correctResponseDialog(response.message->dialog,
+                                             response.message->cSeq))
     {
-      foundDialog = dialog;
-      break;
+      qDebug() << "Found dialog matching the response";
+
+      // TODO: we should check that every single detail is as specified in rfc.
+      if(dialog->client->waitingResponse(response.message->transactionRequest))
+      {
+        foundDialog = dialog;
+        break;
+      }
     }
   }
 
   if(foundDialog == NULL)
   {
-    qDebug() << "Could not find the suggested dialog in response!";
+    qDebug() << "PEER_ERROR: Could not find the suggested dialog in response!";
+    qDebug() << "TransportID:" << transportID << "CallID:" << response.message->dialog->callID;
     return;
   }
 
