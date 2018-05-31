@@ -34,10 +34,12 @@ void SIPTransactions::init(SIPTransactionUser *callControl)
 void SIPTransactions::uninit()
 {
   //TODO: delete all dialogs
-  for(std::shared_ptr<SIPDialogData> dialog : dialogs_)
+  for(uint32_t sessionID = 1; sessionID - 1 < dialogs_.size(); ++sessionID)
   {
-    destroyDialog(dialog);
+    destroyDialog(sessionID);
   }
+
+  dialogs_.clear();
 
   for(std::shared_ptr<SIPTransport> transport : transports_)
   {
@@ -285,25 +287,25 @@ void SIPTransactions::processSIPResponse(SIPResponse response,
   connectionMutex_.lock();
 
   // find the dialog which corresponds to the callID and tags received in response
-  std::shared_ptr<SIPDialogData> foundDialog;
+  uint32_t foundSessionID = 0;
 
-  for(std::shared_ptr<SIPDialogData> dialog : dialogs_)
+  for(unsigned int sessionID = 1; sessionID - 1 < dialogs_.size(); ++sessionID)
   {
-    if(dialog->dialog->correctResponseDialog(response.message->dialog,
+    if(dialogs_.at(sessionID - 1)->dialog->correctResponseDialog(response.message->dialog,
                                              response.message->cSeq))
     {
       qDebug() << "Found dialog matching the response";
 
       // TODO: we should check that every single detail is as specified in rfc.
-      if(dialog->client->waitingResponse(response.message->transactionRequest))
+      if(dialogs_.at(sessionID - 1)->client->waitingResponse(response.message->transactionRequest))
       {
-        foundDialog = dialog;
+        foundSessionID = sessionID;
         break;
       }
     }
   }
 
-  if(foundDialog == NULL)
+  if(foundSessionID == 0)
   {
     qDebug() << "PEER_ERROR: Could not find the suggested dialog in response!";
     qDebug() << "TransportID:" << transportID << "CallID:" << response.message->dialog->callID;
@@ -311,7 +313,7 @@ void SIPTransactions::processSIPResponse(SIPResponse response,
   }
 
   // check correct initialization
-  Q_ASSERT(foundDialog->dialog);
+  Q_ASSERT(dialogs_.at(foundSessionID - 1)->dialog);
 
   connectionMutex_.unlock();
 
@@ -329,14 +331,16 @@ void SIPTransactions::processSIPResponse(SIPResponse response,
       }
       else
       {
-        *foundDialog->remoteFinalSdp_.get() = retrieved;
+        *dialogs_.at(foundSessionID - 1)->remoteFinalSdp_.get() = retrieved;
       }
     }
   }
 
-  qWarning() << "WARNING: Processing responses not implemented yet";
-
-  foundDialog->client->processResponse(response);
+  if(!dialogs_.at(foundSessionID - 1)->client->processResponse(response))
+  {
+    // destroy dialog
+    destroyDialog(foundSessionID);
+  }
 }
 
 void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
@@ -401,10 +405,12 @@ void SIPTransactions::sendResponse(uint32_t sessionID, ResponseType type, Reques
   qDebug() << "---- Finished sending of a response ---";
 }
 
-void SIPTransactions::destroyDialog(std::shared_ptr<SIPDialogData> dialog)
+void SIPTransactions::destroyDialog(uint32_t sessionID)
 {
-  if(dialog != NULL)
-  {
-    dialog->dialog.reset();
-  }
+  std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
+  dialog->dialog.reset();
+  dialog->server.reset();
+  dialog->client.reset();
+  dialog->localFinalSdp_.reset();
+  dialog->remoteFinalSdp_.reset();
 }

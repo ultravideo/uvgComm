@@ -93,7 +93,7 @@ private:
   void createLocalDialog(QString remoteUsername, QString remoteAddress);
   void createRemoteDialog(TCPConnection* con);
   void createDialog(std::shared_ptr<SIPDialogData>& dialog);
-  void destroyDialog(std::shared_ptr<SIPDialogData> dialog);
+  void destroyDialog(uint32_t sessionID);
 
   // This mutex makes sure that the dialog has been added to the dialogs_ list
   // before we are accessing it when receiving messages
