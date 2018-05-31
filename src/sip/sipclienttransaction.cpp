@@ -30,23 +30,71 @@ void SIPClientTransaction::init(SIPTransactionUser* tu, uint32_t sessionID)
 
 
 //processes incoming response
-void SIPClientTransaction::processResponse(SIPResponse &response)
+bool SIPClientTransaction::processResponse(SIPResponse &response)
 {
   Q_ASSERT(sessionID_ != 0);
-  if(!sessionID_)
+  Q_ASSERT(transactionUser_ != NULL);
+  if(!sessionID_ || transactionUser_ == NULL)
   {
     qWarning() << "WARNING: SIP Client Transaction not initialized.";
-    return;
+    return true;
   }
 
-  qWarning() << "WARNING: Response processing in session not implemented.";
+  int responseCode = response.type;
 
-  if(ongoingTransactionType_ != SIP_UNKNOWN_REQUEST)
+  if(responseCode >= 300 && responseCode <= 399)
   {
-    ongoingTransactionType_ = SIP_UNKNOWN_REQUEST;
+    // TODO: 8.1.3.4 Processing 3xx Responses in RFC 3261
+    qDebug() << "Got a redirection response Code. Not implemented!";
+    return false;
   }
 
-  // TODO: if the response is 481 or 408, terminate dialog
+  if(responseCode >= 400 && responseCode <= 499)
+  {
+    // TODO: 8.1.3.5 Processing 4xx Responses in RFC 3261
+    qDebug() << "Got a Client Failure Response Code. Not implemented!";
+
+    // TODO: if the response is 481 or 408, terminate dialog
+    return false;
+  }
+
+  if(responseCode >= 500 && responseCode <= 599)
+  {
+    qDebug() << "Got a Server Failure Response Code. Not implemented!";
+    return false;
+  }
+
+
+  if(ongoingTransactionType_ == INVITE)
+  {
+    if(responseCode >= 600 && responseCode <= 699)
+    {
+      qDebug() << "Got a Global Failure Response Code for INVITE";
+      transactionUser_->callRejected(sessionID_);
+      return false;
+    }
+    else
+    {
+      switch (response.type) {
+      case SIP_RINGING:
+        transactionUser_->callRinging(sessionID_);
+        break;
+      case SIP_OK:
+        break;
+
+        // TODO: check that SDP is alright with us and negotiate
+
+        transactionUser_->callNegotiated(sessionID_);
+        requestSender(ACK);
+      default:
+        break;
+      }
+    }
+  }
+
+  ongoingTransactionType_ = SIP_UNKNOWN_REQUEST;
+
+  return true;
 }
 
 

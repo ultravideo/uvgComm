@@ -27,7 +27,8 @@ public:
                              std::shared_ptr<SIPMessageInfo> &outMessage);
 
   //processes incoming response. Part of our client transaction
-  void processResponse(SIPResponse& response);
+  // returns whether we should destroy the dialog
+  bool processResponse(SIPResponse& response);
   void wrongResponseDestination();
   void malformedResponse();
   void responseIsError();
