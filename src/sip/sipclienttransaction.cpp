@@ -91,8 +91,10 @@ bool SIPClientTransaction::processResponse(SIPResponse &response)
       }
     }
   }
-
-  ongoingTransactionType_ = SIP_UNKNOWN_REQUEST;
+  if(responseCode >= 200)
+  {
+    ongoingTransactionType_ = SIP_UNKNOWN_REQUEST;
+  }
 
   return true;
 }
@@ -143,6 +145,7 @@ void SIPClientTransaction::connectionReady(bool ready)
   if(pendingRequest_ != SIP_UNKNOWN_REQUEST)
   {
     requestSender(pendingRequest_);
+    pendingRequest_ = SIP_UNKNOWN_REQUEST;
   }
 }
 
@@ -178,8 +181,8 @@ void SIPClientTransaction::requestSender(RequestType type)
   }
   else
   {
-    emit sendRequest(sessionID_, type);
     ongoingTransactionType_ = type;
+    emit sendRequest(sessionID_, type);
 
     if(type != INVITE)
     {

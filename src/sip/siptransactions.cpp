@@ -232,7 +232,7 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
   std::shared_ptr<SIPDialogData> foundDialog;
   connectionMutex_.unlock();
 
-  if(foundDialog == NULL)
+  if(foundSessionID == 0)
   {
     qDebug() << "Could not find the dialog of the request.";
 
@@ -305,13 +305,16 @@ void SIPTransactions::processSIPResponse(SIPResponse response,
     if(dialogs_.at(sessionID - 1)->dialog->correctResponseDialog(response.message->dialog,
                                              response.message->cSeq))
     {
-      qDebug() << "Found dialog matching the response";
-
       // TODO: we should check that every single detail is as specified in rfc.
       if(dialogs_.at(sessionID - 1)->client->waitingResponse(response.message->transactionRequest))
       {
+        qDebug() << "Found dialog matching the response";
         foundSessionID = sessionID;
         break;
+      }
+      else
+      {
+        qDebug() << "PEER_ERROR: Found the dialog, but we have not sent a request to their response.";
       }
     }
   }
