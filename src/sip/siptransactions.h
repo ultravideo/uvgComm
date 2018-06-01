@@ -90,6 +90,9 @@ private:
                                                QString localAddress,
                                                QString remoteAddress, bool hostedSession);
 
+  // returns whether we should continue with processing
+  bool processSDP(uint32_t sessionID, QVariant content);
+
   void createLocalDialog(QString remoteUsername, QString remoteAddress);
   void createRemoteDialog(TCPConnection* con);
   void createDialog(std::shared_ptr<SIPDialogData>& dialog);

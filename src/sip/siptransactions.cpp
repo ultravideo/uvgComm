@@ -216,18 +216,20 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
   // TODO: separate nondialog and dialog requests!
   connectionMutex_.lock();
 
-  // find the dialog which corresponds to the callID and tags received in request
-  std::shared_ptr<SIPDialogData> foundDialog;
-
-  for(std::shared_ptr<SIPDialogData> dialog : dialogs_)
+  uint32_t foundSessionID = 0;
+  for(unsigned int sessionID = 1; sessionID - 1 < dialogs_.size(); ++sessionID)
   {
-    if(dialog->dialog->correctRequestDialog(request.message->dialog,
-                                            request.type, request.message->cSeq))
+    if(dialogs_.at(sessionID - 1)->dialog->correctRequestDialog(request.message->dialog,
+                                                                request.type,
+                                                                request.message->cSeq))
     {
-      foundDialog = dialog;
-      break;
+      qDebug() << "Found dialog matching the response";
+      foundSessionID = sessionID;
     }
   }
+
+  // find the dialog which corresponds to the callID and tags received in request
+  std::shared_ptr<SIPDialogData> foundDialog;
   connectionMutex_.unlock();
 
   if(foundDialog == NULL)
@@ -238,6 +240,7 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
     {
       qDebug() << "Someone is trying to start a sip dialog with us!";
       createDialog(foundDialog);
+      foundSessionID = dialogs_.size();
 
       foundDialog->dialog->init(
             SIP_URI{request.message->from.username,
@@ -251,23 +254,31 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
 
       foundDialog->transportID = transportID;
     }
+    else
+    {
+      qDebug() << "PEER_ERROR: Couldn't find the correct dialog!";
+      // TODO: send correct response.
+      return;
+    }
   }
 
   // check correct initialization
   Q_ASSERT(foundDialog->dialog);
 
   // TODO: prechecks that the message is ok, then modify program state.
-
   if(request.type == INVITE)
   {
     if(request.message->content.type == APPLICATION_SDP)
     {
-      SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
-      foundDialog->localFinalSdp_ = sdp_.localFinalSDP(retrieved);
+      if(!processSDP(foundSessionID, content))
+      {
+        qDebug() << "Failed to find suitable SDP.";
+        return;
+      }
     }
     else
     {
-      qDebug() << "No SDP in INVITE!";
+      qDebug() << "PEER ERROR: No SDP in INVITE!";
       sendResponse(transportID, SIP_DECLINE, request.type);
       return;
     }
@@ -324,14 +335,10 @@ void SIPTransactions::processSIPResponse(SIPResponse response,
   {
     if(response.message->content.type == APPLICATION_SDP)
     {
-      SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
-      if(!sdp_.remoteFinalSDP(retrieved))
+      if(!processSDP(foundSessionID, content))
       {
-        qDebug() << "OK SDP not suitable.";
-      }
-      else
-      {
-        *dialogs_.at(foundSessionID - 1)->remoteFinalSdp_.get() = retrieved;
+        qDebug() << "Failed to find suitable SDP in INVITE response.";
+        return;
       }
     }
   }
@@ -341,6 +348,22 @@ void SIPTransactions::processSIPResponse(SIPResponse response,
     // destroy dialog
     destroyDialog(foundSessionID);
   }
+}
+
+bool SIPTransactions::processSDP(uint32_t sessionID, QVariant content)
+{
+  SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
+  dialogs_.at(sessionID - 1)->localFinalSdp_ = sdp_.localFinalSDP(retrieved);
+
+  if(dialogs_.at(sessionID - 1)->localFinalSdp_ == NULL)
+  {
+    qDebug() << "Remote SDP not suitable.";
+    destroyDialog(sessionID);
+    return false;
+  }
+
+  *dialogs_.at(sessionID - 1)->remoteFinalSdp_.get() = retrieved;
+  return true;
 }
 
 void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
@@ -390,7 +413,7 @@ void SIPTransactions::sendResponse(uint32_t sessionID, ResponseType type, Reques
   // Get all the necessary information from different components.
   SIPResponse response;
   response.type = type;
-  dialogs_.at(sessionID - 1)->server->getResponseMessage(response.message);
+  dialogs_.at(sessionID - 1)->server->getResponseMessage(response.message, type);
   response.message->transactionRequest = originalRequest;
 
   QVariant content;
@@ -407,10 +430,18 @@ void SIPTransactions::sendResponse(uint32_t sessionID, ResponseType type, Reques
 
 void SIPTransactions::destroyDialog(uint32_t sessionID)
 {
+  Q_ASSERT(sessionID != 0 && sessionID <= dialogs_.size());
+  if(sessionID == 0 || sessionID > dialogs_.size())
+  {
+    qCritical() << "ERROR: Bad sessionID for destruction: ";
+    return;
+  }
+
   std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
   dialog->dialog.reset();
   dialog->server.reset();
   dialog->client.reset();
   dialog->localFinalSdp_.reset();
   dialog->remoteFinalSdp_.reset();
+  dialogs_[sessionID - 1].reset();
 }
