@@ -208,7 +208,7 @@ void SIPTransactions::connectionEstablished(quint32 transportID, QString localAd
 }
 
 void SIPTransactions::processSIPRequest(SIPRequest request,
-                       quint32 transportID, QVariant content)
+                       quint32 transportID, QVariant &content)
 {
   qDebug() << "Starting to process received SIP Request:" << request.type;
 
@@ -290,7 +290,7 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
 }
 
 void SIPTransactions::processSIPResponse(SIPResponse response,
-                                         quint32 transportID, QVariant content)
+                                         quint32 transportID, QVariant &content)
 {
   // TODO: sessionID is now tranportID
   // TODO: separate nondialog and dialog requests!
@@ -350,9 +350,16 @@ void SIPTransactions::processSIPResponse(SIPResponse response,
   }
 }
 
-bool SIPTransactions::processSDP(uint32_t sessionID, QVariant content)
+bool SIPTransactions::processSDP(uint32_t sessionID, QVariant& content)
 {
+  if(!content.isValid())
+  {
+    qWarning() << "ERROR: The SDP content is not valid at processing. SHould be detected earlier.";
+    return false;
+  }
+
   SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
+
   dialogs_.at(sessionID - 1)->localFinalSdp_ = sdp_.localFinalSDP(retrieved);
 
   if(dialogs_.at(sessionID - 1)->localFinalSdp_ == NULL)
@@ -361,8 +368,8 @@ bool SIPTransactions::processSDP(uint32_t sessionID, QVariant content)
     destroyDialog(sessionID);
     return false;
   }
-
-  *dialogs_.at(sessionID - 1)->remoteFinalSdp_.get() = retrieved;
+  dialogs_.at(sessionID - 1)->remoteFinalSdp_ = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
+  *dialogs_.at(sessionID - 1)->remoteFinalSdp_ = retrieved;
   return true;
 }
 

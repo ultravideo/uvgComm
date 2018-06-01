@@ -114,7 +114,7 @@ void SIPTransport::destroyConnection()
   connection_.reset();
 }
 
-void SIPTransport::sendRequest(SIPRequest& request, QVariant content)
+void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
 {
   qDebug() << "Composing SIP Request:" << requestToString(request.type);
   Q_ASSERT(request.type != INVITE ||
@@ -149,7 +149,7 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant content)
   connection_->sendPacket(message);
 }
 
-void SIPTransport::sendResponse(SIPResponse &response, QVariant content)
+void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
 {
   qDebug() << "Composing SIP Response:" << responseToPhrase(response.type);
   Q_ASSERT(response.message->transactionRequest != INVITE
@@ -325,7 +325,7 @@ void SIPTransport::parsePackage(QString package, QString& header, QString& body)
 
       qDebug() << "Whole SIP message received ----------- ";
       qDebug().noquote() << "Header:" << header;
-      qDebug() << "Content:" << body;
+      qDebug().noquote() << "Content:" << body;
       qDebug() << "Left overs:" << partialMessage_;
     }
   }
@@ -496,13 +496,14 @@ bool SIPTransport::parseResponse(QString responseString, QString version,
   return true;
 }
 
-void SIPTransport::parseContent(QVariant content, ContentType type, QString& body)
+void SIPTransport::parseContent(QVariant& content, ContentType type, QString& body)
 {
   if(type == APPLICATION_SDP)
   {
     SDPMessageInfo sdp;
     if(parseSDPContent(body, sdp))
     {
+      qDebug () << "Successfully parsed SDP";
       content.setValue(sdp);
     }
     else
@@ -570,7 +571,7 @@ QString SIPTransport::addContent(QList<SIPField>& fields, bool haveContent, cons
   }
   else if(!includeContentLengthField(fields, 0))
   {
-    qDebug() << "WARNING: Could not add content-length field to sip message!";
+    qWarning() << "ERROR: Could not add content-length field to sip message!";
   }
   return sdp_str;
 }

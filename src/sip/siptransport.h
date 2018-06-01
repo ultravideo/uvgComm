@@ -22,8 +22,8 @@ public:
   void destroyConnection();
 
   // sending messages
-  void sendRequest(SIPRequest &request, QVariant content);
-  void sendResponse(SIPResponse &response, QVariant content);
+  void sendRequest(SIPRequest &request, QVariant& content);
+  void sendResponse(SIPResponse &response, QVariant& content);
 
   QString getLocalAddress();
 
@@ -40,8 +40,8 @@ signals:
   void sipTransportEstablished(quint32 transportID, QString localAddress, QString remoteAddress);
 
   // signals that output parsed sip messages
-  void incomingSIPRequest(SIPRequest request, quint32 transportID, QVariant content);
-  void incomingSIPResponse(SIPResponse response, quint32 transportID, QVariant content);
+  void incomingSIPRequest(SIPRequest request, quint32 transportID, QVariant& content);
+  void incomingSIPResponse(SIPResponse response, quint32 transportID, QVariant& content);
 
   // we got a message, but could not parse it.
   void parsingError(ResponseType errorResponse, quint32 transportID);
@@ -64,7 +64,7 @@ private:
                      std::shared_ptr<SIPMessageInfo> message,
                      QVariant& content);
 
-  void parseContent(QVariant content, ContentType type, QString &body);
+  void parseContent(QVariant &content, ContentType type, QString &body);
 
   void parseSIPaddress(QString address, QString& user, QString& location);
   QList<QHostAddress> parseIPAddress(QString address);

@@ -61,8 +61,8 @@ private slots:
   void connectionEstablished(quint32 transportID, QString localAddress, QString remoteAddress);
   void receiveTCPConnection(TCPConnection* con);
 
-  void processSIPRequest(SIPRequest request, quint32 transportID, QVariant content);
-  void processSIPResponse(SIPResponse response, quint32 transportID, QVariant content);
+  void processSIPRequest(SIPRequest request, quint32 transportID, QVariant& content);
+  void processSIPResponse(SIPResponse response, quint32 transportID, QVariant& content);
 
   void sendRequest(uint32_t sessionID, RequestType type);
   void sendResponse(uint32_t sessionID, ResponseType type, RequestType originalRequest);
@@ -91,7 +91,7 @@ private:
                                                QString remoteAddress, bool hostedSession);
 
   // returns whether we should continue with processing
-  bool processSDP(uint32_t sessionID, QVariant content);
+  bool processSDP(uint32_t sessionID, QVariant &content);
 
   void createLocalDialog(QString remoteUsername, QString remoteAddress);
   void createRemoteDialog(TCPConnection* con);
