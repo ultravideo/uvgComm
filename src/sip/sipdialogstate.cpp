@@ -1,4 +1,4 @@
-#include "sipdialog.h"
+#include "sipdialogstate.h"
 #include "common.h"
 
 #include "siptransactionuser.h"
@@ -8,7 +8,7 @@
 #include <QSettings>
 
 
-SIPDialog::SIPDialog():
+SIPDialogState::SIPDialogState():
   localTag_(""),
   remoteTag_(""),
   callID_(""),
@@ -18,13 +18,13 @@ SIPDialog::SIPDialog():
   secure_(false)
 {}
 
-void SIPDialog::init(SIP_URI remoteURI)
+void SIPDialogState::init(SIP_URI remoteURI)
 {
   initLocalURI();
   remoteUri_ = remoteURI;
 }
 
-void SIPDialog::createDialog(QString hostName)
+void SIPDialogState::createDialog(QString hostName)
 {
   localTag_ = generateRandomString(TAGLENGTH);
   callID_ = generateRandomString(CALLIDLENGTH);
@@ -42,7 +42,7 @@ void SIPDialog::createDialog(QString hostName)
   qDebug() << "Local dialog created. CallID: " << callID_ << "Tag:" << localTag_ << "Cseq:" << localCSeq_;
 }
 
-void SIPDialog::initLocalURI()
+void SIPDialogState::initLocalURI()
 {
   // init stuff from the settings
   QSettings settings;
@@ -59,7 +59,7 @@ void SIPDialog::initLocalURI()
   localUri_.host = "";
 }
 
-void SIPDialog::processFirstINVITE(std::shared_ptr<SIPMessageInfo> &inMessage)
+void SIPDialogState::processFirstINVITE(std::shared_ptr<SIPMessageInfo> &inMessage)
 {
   qDebug() << "Initializing SIP dialog with incoming INVITE.";
   Q_ASSERT(callID_ == "");
@@ -105,7 +105,7 @@ void SIPDialog::processFirstINVITE(std::shared_ptr<SIPMessageInfo> &inMessage)
            << "CallID: " << callID_ << "OurTag:" << localTag_ << "Cseq:" << localCSeq_;
 }
 
-void SIPDialog::getRequestDialogInfo(RequestType type, QString localAddress,
+void SIPDialogState::getRequestDialogInfo(RequestType type, QString localAddress,
                                      std::shared_ptr<SIPMessageInfo>& outMessage)
 {
   if(type != ACK && type != CANCEL)
@@ -124,12 +124,12 @@ void SIPDialog::getRequestDialogInfo(RequestType type, QString localAddress,
       = std::shared_ptr<SIPDialogInfo> (new SIPDialogInfo{remoteTag_, localTag_, callID_});
 }
 
-ViaInfo SIPDialog::getLocalVia(QString localAddress)
+ViaInfo SIPDialogState::getLocalVia(QString localAddress)
 {
   return ViaInfo{TCP, "2.0", localAddress, QString("z9hG4bK" + generateRandomString(BRANCHLENGTH))};
 }
 
-bool SIPDialog::correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog, RequestType type, uint32_t remoteCSeq)
+bool SIPDialogState::correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog, RequestType type, uint32_t remoteCSeq)
 {
   Q_ASSERT(callID_ != "");
   if(callID_ == "")
@@ -157,7 +157,7 @@ bool SIPDialog::correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog, Requ
   return false;
 }
 
-bool SIPDialog::correctResponseDialog(std::shared_ptr<SIPDialogInfo> dialog, uint32_t messageCSeq)
+bool SIPDialogState::correctResponseDialog(std::shared_ptr<SIPDialogInfo> dialog, uint32_t messageCSeq)
 {
   // For backwards compability, this should be prepared for missing To-tag (or was it from tag) (RFC3261).
   // if our tags and call-ID match the incoming requests, it belongs to this dialog

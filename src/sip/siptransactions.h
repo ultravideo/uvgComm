@@ -29,7 +29,7 @@ struct Contact
 };
 
 class SIPRouting;
-class SIPDialog;
+class SIPDialogState;
 class SIPTransactionUser;
 class SIPServerTransaction;
 class SIPClientTransaction;
@@ -73,7 +73,7 @@ private:
 
   struct SIPDialogData
   {
-    std::shared_ptr<SIPDialog> dialog;
+    std::shared_ptr<SIPDialogState> dialog;
     // do not stop connection before responding to all requests
     std::shared_ptr<SIPServerTransaction> server;
     std::shared_ptr<SIPClientTransaction> client;
@@ -84,7 +84,7 @@ private:
     quint32 transportID;
   };
 
-  std::shared_ptr<SIPDialog> createSIPDialog(uint32_t sessionID);
+  std::shared_ptr<SIPDialogState> createSIPDialog(uint32_t sessionID);
   std::shared_ptr<SIPTransport> createSIPTransport();
   std::shared_ptr<SIPRouting> createSIPRouting(QString remoteUsername,
                                                QString localAddress,

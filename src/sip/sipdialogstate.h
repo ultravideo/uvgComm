@@ -13,10 +13,10 @@
 
 enum DialogState {NONACTIVE, INIATING, ACTIVE};
 
-class SIPDialog
+class SIPDialogState
 {
 public:
-  SIPDialog();
+  SIPDialogState();
 
   void init(SIP_URI remoteURI);
 
@@ -35,8 +35,8 @@ public:
   bool correctResponseDialog(std::shared_ptr<SIPDialogInfo> dialog, uint32_t messageCSeq);
 
   // forbid copy and assignment
-  SIPDialog(const SIPDialog& copied) = delete;
-  SIPDialog& operator=(SIPDialog const&) = delete;
+  SIPDialogState(const SIPDialogState& copied) = delete;
+  SIPDialogState& operator=(SIPDialogState const&) = delete;
 
 private:
 

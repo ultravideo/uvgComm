@@ -1,6 +1,6 @@
 #include "sip/siptransactions.h"
 
-#include "sip/sipdialog.h"
+#include "sip/sipdialogstate.h"
 #include "sip/siptransport.h"
 
 #include "sip/sipclienttransaction.h"
@@ -136,10 +136,10 @@ void SIPTransactions::endAllCalls()
   qDebug() << "WARNING: Not implemented in SIP Transactions";
 }
 
-std::shared_ptr<SIPDialog> SIPTransactions::createSIPDialog(uint32_t sessionID)
+std::shared_ptr<SIPDialogState> SIPTransactions::createSIPDialog(uint32_t sessionID)
 {
   qDebug() << "Creating SIP Session";
-  std::shared_ptr<SIPDialog> dialog = std::shared_ptr<SIPDialog> (new SIPDialog());
+  std::shared_ptr<SIPDialogState> dialog = std::shared_ptr<SIPDialogState> (new SIPDialogState());
 
   // connect signals to signals. Session is responsible for responses
   // and callmanager handles informing the user.
@@ -286,7 +286,7 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
 
   foundDialog->server->processRequest(request);
 
-  qDebug() << "Finished processing request:" << request.type;
+  qDebug() << "Finished processing request:" << request.type << "Dialog:" << foundSessionID;
 }
 
 void SIPTransactions::processSIPResponse(SIPResponse response,
@@ -351,6 +351,7 @@ void SIPTransactions::processSIPResponse(SIPResponse response,
     // destroy dialog
     destroyDialog(foundSessionID);
   }
+  qDebug() << "Response processing finished:" << response.type << "Dialog:" << foundSessionID;
 }
 
 bool SIPTransactions::processSDP(uint32_t sessionID, QVariant& content)

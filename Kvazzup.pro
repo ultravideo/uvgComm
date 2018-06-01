@@ -58,9 +58,9 @@ SOURCES +=\
     src/sip/sipfieldparsing.cpp \
     src/sip/sipservertransaction.cpp \
     src/sip/siptransport.cpp \
-    src/sip/sipdialog.cpp \
     src/sip/siptransactions.cpp \
-    src/sip/sipregistration.cpp
+    src/sip/sipregistration.cpp \
+    src/sip/sipdialogstate.cpp
 
 HEADERS  += \
     src/filter.h \
@@ -114,9 +114,9 @@ HEADERS  += \
     src/sip/siptransactionuser.h \
     src/sip/siptransport.h \
     src/sip/siptypes.h \
-    src/sip/sipdialog.h \
     src/sip/siptransactions.h \
-    src/sip/sipregistration.h
+    src/sip/sipregistration.h \
+    src/sip/sipdialogstate.h
 
 FORMS    += \
     ui/callwindow.ui \
