@@ -72,7 +72,8 @@ void SIPServerTransaction::processRequest(SIPRequest &request)
   }
 }
 
-void SIPServerTransaction::getResponseMessage(std::shared_ptr<SIPMessageInfo> &outMessage)
+void SIPServerTransaction::getResponseMessage(std::shared_ptr<SIPMessageInfo> &outMessage,
+                                              ResponseType type)
 {
   if(receivedRequest_ == NULL)
   {
@@ -85,7 +86,11 @@ void SIPServerTransaction::getResponseMessage(std::shared_ptr<SIPMessageInfo> &o
   outMessage->content.length = 0;
   outMessage->content.type = NO_CONTENT;
 
-  receivedRequest_ = NULL;
+  int responseCode = type;
+  if(responseCode >= 200)
+  {
+    receivedRequest_.reset();
+  }
 }
 
 void SIPServerTransaction::acceptCall()

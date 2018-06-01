@@ -22,7 +22,8 @@ public:
   void wrongRequestDestination();
   void malformedRequest();
 
-  void getResponseMessage(std::shared_ptr<SIPMessageInfo> &outMessage);
+  void getResponseMessage(std::shared_ptr<SIPMessageInfo> &outMessage,
+                          ResponseType type);
 
   void acceptCall();
   void rejectCall();
