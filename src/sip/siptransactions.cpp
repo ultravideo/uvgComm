@@ -261,6 +261,11 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
       return;
     }
   }
+  else
+  {
+    Q_ASSERT(foundSessionID <= dialogs_.size());
+    foundDialog = dialogs_.at(foundSessionID - 1);
+  }
 
   // check correct initialization
   Q_ASSERT(foundDialog->dialog);
@@ -447,6 +452,7 @@ void SIPTransactions::destroyDialog(uint32_t sessionID)
     qCritical() << "ERROR: Bad sessionID for destruction: ";
     return;
   }
+  qDebug() << "Destroying dialog:" << sessionID;
 
   std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
   dialog->dialog.reset();
