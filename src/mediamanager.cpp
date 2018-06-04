@@ -68,9 +68,9 @@ void MediaManager::addParticipant(uint32_t sessionID, in_addr ip, uint16_t sendA
   portsMutex_.unlock();
 
   // Open necessary ports and create filters for sending and receiving
-  if( streamer_->addPeer(ip, sessionID))
+  if(!streamer_->addPeer(ip, sessionID))
   {
-    qCritical() << "Error creating RTP peer. Simultanious destruction?";
+    qCritical() << "Error creating RTP peer. Simultaneous destruction?";
     return;
   }
 
@@ -89,7 +89,8 @@ void MediaManager::addParticipant(uint32_t sessionID, in_addr ip, uint16_t sendA
 
   qDebug() << "Participant added with ID:" << sessionID;
 
-  fg_->print();
+  // not working at the moment.
+  //fg_->print();
 }
 
 void MediaManager::removeParticipant(uint32_t sessionID)

@@ -169,8 +169,8 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
     if(graph.at(connectIndex)->outputType() != filter->inputType())
     {
       qDebug() << "Filter output and input do not match for" << graph.at(connectIndex)->getName()
-               << "->" << filter->getName() << "Trying to find an existing conversion:" << graph.at(connectIndex)->outputType()
-               << "to" << filter->inputType();
+               << "->" << filter->getName() << "Trying to find an existing conversion:"
+               << graph.at(connectIndex)->outputType() << "to" << filter->inputType();
 
       Q_ASSERT(graph.at(connectIndex)->outputType() != NONE);
 
@@ -268,7 +268,7 @@ void FilterGraph::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoF
   }
 
   // add participant if necessary
-  checkParticipant(sessionID - 1);
+  checkParticipant(sessionID);
 
   if(peers_.at(sessionID - 1)->videoFramedSource)
   {
@@ -281,7 +281,8 @@ void FilterGraph::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoF
   videoSend_.back()->addOutConnection(videoFramedSource);
 }
 
-void FilterGraph::receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> videoSink, VideoWidget *view)
+void FilterGraph::receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> videoSink,
+                                   VideoWidget *view)
 {
   Q_ASSERT(sessionID);
   Q_ASSERT(videoSink);
@@ -298,7 +299,8 @@ void FilterGraph::receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> v
   addToGraph(std::shared_ptr<Filter>(new OpenHEVCFilter(QString::number(sessionID) + "_", stats_)),
              peers_.at(sessionID - 1)->videoReceive, 0);
 
-  addToGraph(std::shared_ptr<Filter>(new DisplayFilter(QString::number(sessionID) + "_", stats_, view, sessionID)),
+  addToGraph(std::shared_ptr<Filter>(new DisplayFilter(QString::number(sessionID) + "_", stats_,
+                                                       view, sessionID)),
              peers_.at(sessionID - 1)->videoReceive, 1);
 }
 
@@ -314,7 +316,7 @@ void FilterGraph::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioF
   }
 
   // add participant if necessary
-  checkParticipant(sessionID - 1);
+  checkParticipant(sessionID);
 
   if(peers_.at(sessionID - 1)->audioFramedSource)
   {

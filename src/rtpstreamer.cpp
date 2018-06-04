@@ -129,7 +129,8 @@ void RTPStreamer::removeAllPeers()
 
 bool RTPStreamer::addPeer(in_addr ip, uint32_t sessionID)
 {
-  Q_ASSERT(!checkSessionID(sessionID));
+  //Q_ASSERT(!checkSessionID(sessionID));
+  Q_ASSERT(sessionID != 0);
 
   // not being destroyed
   if(destroyed_.tryLock(0))
@@ -150,7 +151,7 @@ bool RTPStreamer::addPeer(in_addr ip, uint32_t sessionID)
     peer->audioSender = 0;
     peer->audioReceiver = 0;
 
-    while(peers_.size() < sessionID)
+    while(peers_.size() < sessionID - 1)
     {
       peers_.append(NULL);
     }

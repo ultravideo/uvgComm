@@ -139,11 +139,11 @@ void StatisticsWindow::receiveDelay(uint32_t peer, QString type, int32_t delay)
 {
   if(type == "video" || type == "Video")
   {
-    delays_.at(peer).video = delay;
+    delays_.at(peer - 1).video = delay;
   }
   else if(type == "audio" || type == "Audio")
   {
-    delays_.at(peer).audio = delay;
+    delays_.at(peer - 1).audio = delay;
   }
 }
 
