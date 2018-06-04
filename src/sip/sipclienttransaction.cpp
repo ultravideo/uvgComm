@@ -44,6 +44,24 @@ bool SIPClientTransaction::processResponse(SIPResponse &response)
 
   int responseCode = response.type;
 
+  if(responseCode >= 100 && responseCode <= 199)
+  {
+    qDebug() << "Got provisional response. Restarting timer.";
+    if(response.message->transactionRequest == INVITE)
+    {
+      requestTimer_.start(INVITE_TIMEOUT);
+    }
+    else
+    {
+      requestTimer_.start(TIMEOUT);
+    }
+  }
+  else
+  {
+    qDebug() << "Got response. Stopping timout.";
+    requestTimer_.stop();
+  }
+
   if(responseCode >= 300 && responseCode <= 399)
   {
     // TODO: 8.1.3.4 Processing 3xx Responses in RFC 3261
@@ -186,15 +204,19 @@ void SIPClientTransaction::requestSender(RequestType type)
     ongoingTransactionType_ = type;
     emit sendRequest(sessionID_, type);
 
-    if(type != INVITE)
+    if(type != INVITE && type != CANCEL && type != ACK)
     {
       qDebug() << "Request timeout set to: " << TIMEOUT;
       requestTimer_.start(TIMEOUT);
     }
-    else
+    else if(type == INVITE)
     {
       qDebug() << "INVITE timeout set to: " << INVITE_TIMEOUT;
       requestTimer_.start(INVITE_TIMEOUT);
+    }
+    else
+    {
+      requestTimer_.stop();
     }
   }
 }
@@ -210,6 +232,7 @@ void SIPClientTransaction::requestTimeOut()
   }
 
   requestSender(CANCEL);
+  requestTimer_.stop();
   transactionUser_->callRejected(sessionID_);
   ongoingTransactionType_ = SIP_UNKNOWN_REQUEST;
 }
