@@ -34,6 +34,8 @@ bool SIPClientTransaction::processResponse(SIPResponse &response)
 {
   Q_ASSERT(sessionID_ != 0);
   Q_ASSERT(transactionUser_ != NULL);
+
+  qDebug() << "Client starts processing response";
   if(!sessionID_ || transactionUser_ == NULL)
   {
     qWarning() << "WARNING: SIP Client Transaction not initialized.";
@@ -80,12 +82,10 @@ bool SIPClientTransaction::processResponse(SIPResponse &response)
         transactionUser_->callRinging(sessionID_);
         break;
       case SIP_OK:
-        break;
-
-        // TODO: check that SDP is alright with us and negotiate
-
-        transactionUser_->callNegotiated(sessionID_);
+        // the sdp has been check by transaction layer before this.
         requestSender(ACK);
+        transactionUser_->callNegotiated(sessionID_);
+        break;
       default:
         break;
       }
@@ -170,17 +170,19 @@ void SIPClientTransaction::getRequestMessageInfo(RequestType type,
   outMessage->dialog = NULL;
   outMessage->maxForwards = 71;
   outMessage->version = "2.0";
-  outMessage->cSeq = 0; // INVALID, should be set in dialog
+  outMessage->cSeq = 0; // invalid, should be set in dialog
 }
 
 void SIPClientTransaction::requestSender(RequestType type)
 {
   if(!connected_)
   {
+    qDebug() << "Added a pending request:" << type;
     pendingRequest_ = type;
   }
   else
   {
+    qDebug() << "Client starts sending a request:" << type;
     ongoingTransactionType_ = type;
     emit sendRequest(sessionID_, type);
 
