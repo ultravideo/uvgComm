@@ -1,6 +1,7 @@
 #pragma once
 
-#include "sip/siptypes.h"
+//#include "sip/siptypes.h"
+#include "sip/sdptypes.h"
 
 #include <QHostAddress>
 #include <QMutex>
@@ -13,18 +14,18 @@ class GlobalSDPState
 public:
   GlobalSDPState();
 
-  void setLocalInfo(QHostAddress localAddress, QString username);
+  void setLocalInfo(QString username);
   void setPortRange(uint16_t minport, uint16_t maxport, uint16_t maxRTPConnections);
 
-  // when sending an invite, use this'
+  // when sending an invite, use this
   // generates the next suitable SDP message with all possible options
-  std::shared_ptr<SDPMessageInfo> localSDPSuggestion();
+  std::shared_ptr<SDPMessageInfo> localSDPSuggestion(QHostAddress localAddress);
 
   // checks if invite message is acceptable
   // use for getting our answer and for getting our final to be used
   // returns NULL if suitable could not be found
   // chooces what to use
-  std::shared_ptr<SDPMessageInfo> localFinalSDP(SDPMessageInfo& remoteSDP);
+  std::shared_ptr<SDPMessageInfo> localFinalSDP(SDPMessageInfo& remoteSDP, QHostAddress localAddress);
 
   // return if the final SDP was suitable. It should be, but just to be sure
   bool remoteFinalSDP(SDPMessageInfo& remoteInviteSDP);
@@ -37,11 +38,10 @@ private:
   uint16_t nextAvailablePortPair();
   void makePortPairAvailable(uint16_t lowerPort);
 
-  std::shared_ptr<SDPMessageInfo> generateSDP();
+  std::shared_ptr<SDPMessageInfo> generateSDP(QHostAddress localAddress);
 
   bool checkSDPOffer(SDPMessageInfo& offer);
 
-  QHostAddress localAddress_;
   QString localUsername_;
 
   uint16_t remainingPorts_;

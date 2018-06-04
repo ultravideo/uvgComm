@@ -5,14 +5,12 @@
 #include <QUdpSocket>
 
 GlobalSDPState::GlobalSDPState():
-  localAddress_(),
   localUsername_(""),
   remainingPorts_(0)
 {}
 
-void GlobalSDPState::setLocalInfo(QHostAddress localAddress, QString username)
+void GlobalSDPState::setLocalInfo(QString username)
 {
-  localAddress_ = localAddress;
   localUsername_ = username;
 }
 
@@ -26,17 +24,20 @@ void GlobalSDPState::setPortRange(uint16_t minport, uint16_t maxport, uint16_t m
   remainingPorts_ = maxRTPConnections;
 }
 
-std::shared_ptr<SDPMessageInfo> GlobalSDPState::localSDPSuggestion()
+std::shared_ptr<SDPMessageInfo> GlobalSDPState::localSDPSuggestion(QHostAddress localAddress)
 {
-  return generateSDP();
+  return generateSDP(localAddress);
 }
 
-std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP()
+std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP(QHostAddress localAddress)
 {
-  if(localAddress_ == QHostAddress::Null
+  // TODO: This should ask media manager, what options it supports.
+
+  if(localAddress == QHostAddress::Null
+     || localAddress ==QHostAddress("0.0.0.0")
      || localUsername_ == "")
   {
-    qWarning() << "WARNING: Necessary info not set for SDP generation:" << localAddress_.toString()
+    qWarning() << "WARNING: Necessary info not set for SDP generation:" << localAddress.toString()
                << localUsername_;
     return NULL;
   }
@@ -54,7 +55,7 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP()
   newInfo->sess_id = QDateTime::currentMSecsSinceEpoch();
   newInfo->sess_v = QDateTime::currentMSecsSinceEpoch();
   newInfo->host_nettype = "IN";
-  if(localAddress_.protocol() == QAbstractSocket::IPv6Protocol)
+  if(localAddress.protocol() == QAbstractSocket::IPv6Protocol)
   {
     newInfo->host_addrtype = "IP6";
     newInfo->connection_addrtype = "IP6";
@@ -65,12 +66,12 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP()
     newInfo->connection_addrtype = "IP4";
   }
 
-  newInfo->host_address = localAddress_.toString();
+  newInfo->host_address = localAddress.toString();
 
   newInfo->sessionName = " ";
   newInfo->sessionDescription = "A Kvazzup Video Conference";
 
-  newInfo->connection_address = localAddress_.toString();
+  newInfo->connection_address = localAddress.toString();
   newInfo->connection_nettype = "IN";
 
   MediaInfo audio;
@@ -114,17 +115,18 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP()
   return newInfo;
 }
 // returns NULL if suitable could not be found
-std::shared_ptr<SDPMessageInfo> GlobalSDPState::localFinalSDP(SDPMessageInfo &remoteSDP)
+std::shared_ptr<SDPMessageInfo> GlobalSDPState::localFinalSDP(SDPMessageInfo &remoteSDP,
+                                                              QHostAddress localAddress)
 {
+  // check if suitable.
   if(!checkSDPOffer(remoteSDP))
   {
     qDebug() << "Incoming SDP did not have Opus and H265 in their offer.";
     return NULL;
   }
 
-  // check if suitable.
   // Generate response
-  return generateSDP(); // TODO: this does not make sense. The final should be modified from suggestion
+  return generateSDP(localAddress); // TODO: The final should be modified from remote
 }
 
 bool GlobalSDPState::remoteFinalSDP(SDPMessageInfo &remoteInviteSDP)
@@ -136,6 +138,12 @@ bool GlobalSDPState::checkSDPOffer(SDPMessageInfo &offer)
 {
   bool hasOpus = false;
   bool hasH265 = false;
+
+  if(offer.connection_address == "0.0.0.0")
+  {
+    qDebug() << "Got bad global address from SDP:" << offer.connection_address;
+    return false;
+  }
 
   for(MediaInfo media : offer.media)
   {

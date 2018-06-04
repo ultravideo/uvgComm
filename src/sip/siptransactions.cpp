@@ -27,7 +27,7 @@ void SIPTransactions::init(SIPTransactionUser *callControl)
   QString username = !settings.value("local/Username").isNull()
       ? settings.value("local/Username").toString() : "anonymous";
 
-  sdp_.setLocalInfo(QHostAddress("0.0.0.0"), username);
+  sdp_.setLocalInfo(username);
   sdp_.setPortRange(21500, 22000, 42);
 }
 
@@ -197,7 +197,7 @@ void SIPTransactions::receiveTCPConnection(TCPConnection *con)
 void SIPTransactions::connectionEstablished(quint32 transportID, QString localAddress,
                                             QString remoteAddress)
 {
-  Q_ASSERT(transportID != 0 || dialogs_.at(transportID - 1));
+  Q_ASSERT(transportID != 0);
   qDebug() << "Establishing connection";
 
   // TODO: This is not correct and will not work with a prpxy
@@ -293,7 +293,7 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
   {
     if(request.message->content.type == APPLICATION_SDP)
     {
-      if(!processSDP(foundSessionID, content))
+      if(!processSDP(foundSessionID, content, transports_.at(transportID - 1)->getLocalAddress()))
       {
         qDebug() << "Failed to find suitable SDP.";
         return;
@@ -361,7 +361,7 @@ void SIPTransactions::processSIPResponse(SIPResponse response,
   {
     if(response.message->content.type == APPLICATION_SDP)
     {
-      if(!processSDP(foundSessionID, content))
+      if(!processSDP(foundSessionID, content, transports_.at(transportID - 1)->getLocalAddress()))
       {
         qDebug() << "Failed to find suitable SDP in INVITE response.";
         return;
@@ -377,7 +377,7 @@ void SIPTransactions::processSIPResponse(SIPResponse response,
   qDebug() << "Response processing finished:" << response.type << "Dialog:" << foundSessionID;
 }
 
-bool SIPTransactions::processSDP(uint32_t sessionID, QVariant& content)
+bool SIPTransactions::processSDP(uint32_t sessionID, QVariant& content, QHostAddress localAddress)
 {
   if(!content.isValid())
   {
@@ -387,7 +387,7 @@ bool SIPTransactions::processSDP(uint32_t sessionID, QVariant& content)
 
   SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
 
-  dialogs_.at(sessionID - 1)->localFinalSdp_ = sdp_.localFinalSDP(retrieved);
+  dialogs_.at(sessionID - 1)->localFinalSdp_ = sdp_.localFinalSDP(retrieved, localAddress);
 
   if(dialogs_.at(sessionID - 1)->localFinalSdp_ == NULL)
   {
@@ -415,13 +415,13 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
   //TODO: Not working for re-INVITE
   if(request.type == INVITE && !dialogs_.at(sessionID - 1)->proxyConnection_)
   {
-    dialogs_.at(sessionID - 1)->dialog->createDialog(transport->getLocalAddress());
+    dialogs_.at(sessionID - 1)->dialog->createDialog(transport->getLocalAddress().toString());
   }
 
   // Get message info
   dialogs_.at(sessionID - 1)->client->getRequestMessageInfo(type, request.message);
   dialogs_.at(sessionID - 1)->dialog->getRequestDialogInfo(request.type,
-                                                           transport->getLocalAddress(),
+                                                           transport->getLocalAddress().toString(),
                                                            request.message);
   Q_ASSERT(request.message != NULL);
   Q_ASSERT(request.message->dialog != NULL);
@@ -431,7 +431,7 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
   if(type == INVITE)
   {
     request.message->content.type = APPLICATION_SDP;
-    SDPMessageInfo sdp = *sdp_.localSDPSuggestion().get();
+    SDPMessageInfo sdp = *sdp_.localSDPSuggestion(transport->getLocalAddress()).get();
     content.setValue(sdp);
   }
 

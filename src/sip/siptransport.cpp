@@ -48,7 +48,7 @@ SIPTransport::SIPTransport(quint32 transportID):
 SIPTransport::~SIPTransport()
 {}
 
-QString SIPTransport::getLocalAddress()
+QHostAddress SIPTransport::getLocalAddress()
 {
   Q_ASSERT(connection_);
   return connection_->localAddress();

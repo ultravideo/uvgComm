@@ -41,11 +41,11 @@ public:
     });
   }
 
-  QString localAddress()
+  QHostAddress localAddress()
   {
     Q_ASSERT(connected_);
     Q_ASSERT(socket_->localAddress().toString() != "");
-    return socket_->localAddress().toString();
+    return socket_->localAddress();
   }
 
 signals:

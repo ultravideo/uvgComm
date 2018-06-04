@@ -26,7 +26,7 @@ public:
   void sendRequest(SIPRequest &request, QVariant& content);
   void sendResponse(SIPResponse &response, QVariant& content);
 
-  QString getLocalAddress();
+  QHostAddress getLocalAddress();
 
 public slots:
   // called when connection receives a message
