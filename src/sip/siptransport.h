@@ -1,6 +1,7 @@
 #pragma once
 
 #include "sip/siptypes.h"
+#include "sip/sdptypes.h"
 #include "tcpconnection.h"
 #include <QHostAddress>
 #include <QString>

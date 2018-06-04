@@ -116,7 +116,8 @@ HEADERS  += \
     src/sip/siptypes.h \
     src/sip/siptransactions.h \
     src/sip/sipregistration.h \
-    src/sip/sipdialogstate.h
+    src/sip/sipdialogstate.h \
+    src/sip/sdptypes.h
 
 FORMS    += \
     ui/callwindow.ui \

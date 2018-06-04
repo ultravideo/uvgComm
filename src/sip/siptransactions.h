@@ -55,6 +55,10 @@ public:
   void makeConference();
   void dispandConference();
 
+  void getSDPs(uint32_t sessionID,
+               std::shared_ptr<SDPMessageInfo>& localSDP,
+               std::shared_ptr<SDPMessageInfo>& remoteSDP);
+
 private slots:
   // connection has been established. This enables for us to get the needed info
   // to form a SIP message

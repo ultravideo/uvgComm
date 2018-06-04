@@ -3,6 +3,8 @@
 #include <QString>
 #include <memory>
 
+#include "sip/sdptypes.h"
+
 // defines funcions implemented by transaction user (TU). Transaction layers call this
 // to let
 

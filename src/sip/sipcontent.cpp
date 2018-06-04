@@ -1,6 +1,6 @@
 #include "sipcontent.h"
 
-#include "siptypes.h"
+#include "sip/sdptypes.h"
 
 #include <QDebug>
 

@@ -51,6 +51,24 @@ void SIPTransactions::uninit()
   }
 }
 
+void SIPTransactions::getSDPs(uint32_t sessionID,
+                              std::shared_ptr<SDPMessageInfo>& localSDP,
+                              std::shared_ptr<SDPMessageInfo>& remoteSDP)
+{
+  Q_ASSERT(sessionID != 0);
+
+  if(dialogs_.at(sessionID - 1)->localFinalSdp_ == NULL ||
+     dialogs_.at(sessionID - 1)->remoteFinalSdp_ == NULL)
+  {
+    qDebug() << "getSDP: Both SDP:s are not present for some reason."
+             << "Maybe the call has ended before starting?";
+  }
+
+  localSDP = dialogs_.at(sessionID - 1)->localFinalSdp_;
+  remoteSDP = dialogs_.at(sessionID - 1)->remoteFinalSdp_;
+}
+
+
 QList<uint32_t> SIPTransactions::startCall(QList<Contact> addresses)
 {
   QList<uint32_t> calls;

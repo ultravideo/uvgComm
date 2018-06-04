@@ -130,8 +130,20 @@ void CallManager::callNegotiated(uint32_t sessionID)
 
   VideoWidget* view = window_.addVideoStream(sessionID);
 
-  // TODO check the SDP info and do ports and rtp numbers properly
-  //createParticipant(sessionID, peerInfo, localInfo, view, stats_);
+  std::shared_ptr<SDPMessageInfo> localSDP;
+  std::shared_ptr<SDPMessageInfo> remoteSDP;
+
+  sip_.getSDPs(sessionID,
+               localSDP,
+               remoteSDP);
+
+  if(localSDP == NULL || remoteSDP == NULL)
+  {
+    return;
+  }
+
+  // TODO check the SDP info and do ports and rt numbers properly
+  createParticipant(sessionID, remoteSDP, localSDP, view, stats_);
 }
 
 void CallManager::callNegotiationFailed(uint32_t sessionID)
