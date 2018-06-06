@@ -65,7 +65,7 @@ void ConferenceView::addWidgetToLayout(CallState state, QWidget* widget, QString
   }
 
   activeCalls_[sessionID - 1] = new CallInfo{state, name, layout_->itemAtPosition(row,column),
-                         row, column};
+                                             row, column};
   layoutMutex_.unlock();
 
   if(!freedLocs_.empty()){
@@ -82,7 +82,8 @@ void ConferenceView::incomingCall(uint32_t sessionID, QString name)
 {
   if(activeCalls_.size() >= sessionID && activeCalls_.at(sessionID - 1) != NULL)
   {
-    qWarning() << "WARNING: Incoming call already has an allocated view";
+    qWarning() << "WARNING: Incoming call already has an allocated view. Session:" << sessionID
+               << "Slots:" << activeCalls_.size();
     return;
   }
   qDebug() << "Displaying pop-up for somebody calling in slot:" << row_ << "," << column_;
@@ -148,21 +149,29 @@ void ConferenceView::ringing(uint32_t sessionID)
 
 bool ConferenceView::removeCaller(uint32_t sessionID)
 {
-  if(activeCalls_.size() >= sessionID
-     || activeCalls_[sessionID - 1] == NULL
-     || activeCalls_[sessionID - 1]->item == NULL)
+  qDebug() << "Removing call window. Session:"
+           << sessionID << "Total slots:" << activeCalls_.size();
+  if(activeCalls_.size() < sessionID
+     || activeCalls_[sessionID - 1] == NULL)
   {
-    qWarning() << "WARNING: Trying to remove nonexisting call from ConferenceView";
+    qWarning() << "WARNING: Trying to remove nonexisting call from ConferenceView.";
     return !activeCalls_.empty();
   }
-  if(activeCalls_[sessionID - 1]->state == CALL_ACTIVE || activeCalls_[sessionID - 1]->state == ASKINGUSER)
+
+  if(activeCalls_[sessionID - 1]->item != NULL)
+  {
+    layoutMutex_.lock();
+    layout_->removeItem(activeCalls_[sessionID - 1]->item);
+    layoutMutex_.unlock();
+  }
+
+  if(activeCalls_[sessionID - 1]->state == CALL_ACTIVE
+     || activeCalls_[sessionID - 1]->state == ASKINGUSER
+     || activeCalls_[sessionID - 1]->state == WAITINGPEER)
   {
     activeCalls_[sessionID - 1]->item->widget()->hide();
     delete activeCalls_[sessionID - 1]->item->widget();
   }
-  layoutMutex_.lock();
-  layout_->removeItem(activeCalls_[sessionID - 1]->item);
-  layoutMutex_.unlock();
 
   locMutex_.lock();
   if(activeCalls_.size() != 1)
@@ -275,6 +284,5 @@ void ConferenceView::accept()
 void ConferenceView::reject()
 {
   uint32_t sessionID = findInvoker("DeclineButton");
-  removeCaller(sessionID);
   emit rejectCall(sessionID);
 }

@@ -119,14 +119,16 @@ void CallManager::callRinging(uint32_t sessionID)
 void CallManager::callRejected(uint32_t sessionID)
 {
   qDebug() << "Our call has been rejected!";
+
   window_.removeParticipant(sessionID);
+
+  // cancel the port reservation.
   media_.freePorts();
 }
 
 void CallManager::callNegotiated(uint32_t sessionID)
 {
-  //qDebug() << "Our call has been accepted." << "Sending media to IP:" << peerInfo->connection_address
-  //         << "to port:" << peerInfo->media.first().receivePort;
+  qDebug() << "Call has been agreed upon with peer:" << sessionID;
 
   VideoWidget* view = window_.addVideoStream(sessionID);
 
@@ -187,6 +189,7 @@ void CallManager::createParticipant(uint32_t sessionID, std::shared_ptr<SDPMessa
                                     VideoWidget* videoWidget,
                                     StatisticsInterface* stats)
 {
+
   if(videoWidget == NULL)
   {
     qWarning() << "WARNING: NULL widget got from";
@@ -256,7 +259,9 @@ void CallManager::acceptCall(uint32_t sessionID)
 
 void CallManager::rejectCall(uint32_t sessionID)
 {
+  qDebug() << "We have rejected their call";
   sip_.rejectCall(sessionID);
+  window_.removeParticipant(sessionID);
 }
 
 void CallManager::endTheCall()

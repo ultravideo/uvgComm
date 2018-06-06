@@ -54,10 +54,17 @@ private slots:
 
 private:
 
+  // TODO: Move this to media manager.
   void createParticipant(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> peerInfo,
                          const std::shared_ptr<SDPMessageInfo> localInfo,
                          VideoWidget *videoWidget,
                          StatisticsInterface* stats);
+
+  struct PeerState
+  {
+    bool viewAdded;
+    bool mediaAdded;
+  };
 
   MediaManager media_; // Media processing and delivery
   SIPTransactions sip_; // SIP
@@ -66,4 +73,6 @@ private:
   StatisticsInterface* stats_;
 
   Stun stun_;
+
+
 };

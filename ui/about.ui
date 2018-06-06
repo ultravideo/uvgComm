@@ -206,13 +206,6 @@
         </property>
        </widget>
       </item>
-      <item>
-       <widget class="QLabel" name="Libre">
-        <property name="text">
-         <string>Libre</string>
-        </property>
-       </widget>
-      </item>
      </layout>
     </widget>
    </item>
