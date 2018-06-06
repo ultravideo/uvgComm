@@ -143,6 +143,7 @@ void SIPTransactions::rejectCall(uint32_t sessionID)
   std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
   connectionMutex_.unlock();
   dialog->server->rejectCall();
+  destroyDialog(sessionID);
 }
 
 void SIPTransactions::endCall(uint32_t sessionID)
@@ -239,7 +240,8 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
   uint32_t foundSessionID = 0;
   for(unsigned int sessionID = 1; sessionID - 1 < dialogs_.size(); ++sessionID)
   {
-    if(dialogs_.at(sessionID - 1)->dialog->correctRequestDialog(request.message->dialog,
+    if(dialogs_.at(sessionID - 1) != NULL &&
+       dialogs_.at(sessionID - 1)->dialog->correctRequestDialog(request.message->dialog,
                                                                 request.type,
                                                                 request.message->cSeq))
     {
@@ -347,7 +349,8 @@ void SIPTransactions::processSIPResponse(SIPResponse response,
 
   for(unsigned int sessionID = 1; sessionID - 1 < dialogs_.size(); ++sessionID)
   {
-    if(dialogs_.at(sessionID - 1)->dialog->correctResponseDialog(response.message->dialog,
+    if(dialogs_.at(sessionID - 1) != NULL &&
+       dialogs_.at(sessionID - 1)->dialog->correctResponseDialog(response.message->dialog,
                                              response.message->cSeq))
     {
       // TODO: we should check that every single detail is as specified in rfc.
@@ -520,4 +523,14 @@ void SIPTransactions::destroyDialog(uint32_t sessionID)
   dialog->localSdp_.reset();
   dialog->remoteSdp_.reset();
   dialogs_[sessionID - 1].reset();
+
+  // empty all deleted dialogs from end of the list.
+  // This does not guarantee that the list wont be filled, but should suffice in most cases.
+  while(sessionID == dialogs_.size()
+        && sessionID != 0
+        && dialogs_.at(sessionID - 1) == NULL)
+  {
+    dialogs_.pop_back();
+    --sessionID;
+  }
 }
