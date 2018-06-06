@@ -59,8 +59,8 @@ void MediaManager::addParticipant(uint32_t sessionID, in_addr ip, uint16_t sendA
   Q_ASSERT(portsInUse_ + portsPerParticipant_ <= maxPortsOpen_);
   Q_ASSERT(portsReserved_ >= portsPerParticipant_);
 
-  qDebug() << "Adding participant to media with ports left:" << maxPortsOpen_ - portsInUse_
-           << "Reserved:" << portsReserved_;
+  qDebug() << " ==================== Adding participant" << sessionID << "to media with ports left:" << maxPortsOpen_ - portsInUse_
+           << "Reserved:" << portsReserved_ << "=====================";
 
   portsMutex_.lock();
   portsInUse_ += portsPerParticipant_;
@@ -87,7 +87,7 @@ void MediaManager::addParticipant(uint32_t sessionID, in_addr ip, uint16_t sendA
   fg_->sendAudioTo(sessionID, std::shared_ptr<Filter>(audioFramedSource));
   fg_->receiveAudioFrom(sessionID, std::shared_ptr<Filter>(audioSink));
 
-  qDebug() << "Participant added with ID:" << sessionID;
+  qDebug() << " ================== Participant added with ID:" << sessionID << "===========================";
 
   // not working at the moment.
   //fg_->print();

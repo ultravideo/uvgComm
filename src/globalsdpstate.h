@@ -25,7 +25,8 @@ public:
   // use for getting our answer and for getting our final to be used
   // returns NULL if suitable could not be found
   // chooces what to use
-  std::shared_ptr<SDPMessageInfo> localFinalSDP(SDPMessageInfo& remoteSDP, QHostAddress localAddress);
+  std::shared_ptr<SDPMessageInfo> localFinalSDP(SDPMessageInfo& remoteSDP, QHostAddress localAddress,
+                                                std::shared_ptr<SDPMessageInfo> localSuggestion = NULL);
 
   // return if the final SDP was suitable. It should be, but just to be sure
   bool remoteFinalSDP(SDPMessageInfo& remoteInviteSDP);
@@ -38,6 +39,7 @@ private:
   uint16_t nextAvailablePortPair();
   void makePortPairAvailable(uint16_t lowerPort);
 
+  // TODO: This should be moved to MediaManager.
   std::shared_ptr<SDPMessageInfo> generateSDP(QHostAddress localAddress);
 
   bool checkSDPOffer(SDPMessageInfo& offer);

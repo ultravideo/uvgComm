@@ -81,8 +81,8 @@ private:
     // do not stop connection before responding to all requests
     std::shared_ptr<SIPServerTransaction> server;
     std::shared_ptr<SIPClientTransaction> client;
-    std::shared_ptr<SDPMessageInfo> localFinalSdp_;
-    std::shared_ptr<SDPMessageInfo> remoteFinalSdp_;
+    std::shared_ptr<SDPMessageInfo> localSdp_;
+    std::shared_ptr<SDPMessageInfo> remoteSdp_;
 
     bool proxyConnection_;
     quint32 transportID;

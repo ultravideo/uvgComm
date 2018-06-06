@@ -117,10 +117,11 @@ void SIPTransport::destroyConnection()
 void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
 {
   qDebug() << "Composing SIP Request:" << requestToString(request.type);
-  Q_ASSERT(request.type != INVITE ||
+  Q_ASSERT((request.type != INVITE && request.type != ACK) ||
       (request.message->content.type == APPLICATION_SDP && content.isValid()));
   Q_ASSERT(connection_ != NULL);
-  if(request.type == INVITE &&
+
+  if((request.type == INVITE || request.type == ACK) &&
      (request.message->content.type != APPLICATION_SDP || !content.isValid())
      || connection_ == NULL)
   {
@@ -138,7 +139,7 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
   QString lineEnding = "\r\n";
   QString message = "";
   // adds content fields and converts the sdp to string if INVITE
-  QString sdp_str = addContent(fields, request.type == INVITE, content.value<SDPMessageInfo>());
+  QString sdp_str = addContent(fields, request.type == INVITE || request.type == ACK, content.value<SDPMessageInfo>());
   if(!getFirstRequestLine(message, request, lineEnding))
   {
     qDebug() << "WARNING: could not get first request line";

@@ -223,13 +223,13 @@ void FilterGraph::checkParticipant(uint32_t sessionID)
   Q_ASSERT(stats_);
   Q_ASSERT(sessionID);
 
-  qDebug() << "Checking participant with session ID:" << sessionID;
+  //qDebug() << "Checking participant with session ID:" << sessionID;
 
   if(peers_.size() >= sessionID)
   {
     if(peers_.at(sessionID - 1) != NULL)
     {
-      qDebug() << "Filter graph: Peer exists";
+      qDebug() << "Filter graph: Peer exists for session ID:" << sessionID;
       return;
     }
     else
@@ -246,7 +246,7 @@ void FilterGraph::checkParticipant(uint32_t sessionID)
     }
     peers_.at(sessionID - 1) = new Peer();
 
-    qDebug() << "Filter graph: Adding participant to end";
+    qDebug() << "Filter graph: Adding participant to end with sessionID:" << sessionID;
   }
 
   peers_.at(sessionID - 1)->output = 0;

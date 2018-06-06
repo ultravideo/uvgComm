@@ -57,15 +57,15 @@ void SIPTransactions::getSDPs(uint32_t sessionID,
 {
   Q_ASSERT(sessionID != 0);
 
-  if(dialogs_.at(sessionID - 1)->localFinalSdp_ == NULL ||
-     dialogs_.at(sessionID - 1)->remoteFinalSdp_ == NULL)
+  if(dialogs_.at(sessionID - 1)->localSdp_ == NULL ||
+     dialogs_.at(sessionID - 1)->remoteSdp_ == NULL)
   {
     qDebug() << "getSDP: Both SDP:s are not present for some reason."
              << "Maybe the call has ended before starting?";
   }
 
-  localSDP = dialogs_.at(sessionID - 1)->localFinalSdp_;
-  remoteSDP = dialogs_.at(sessionID - 1)->remoteFinalSdp_;
+  localSDP = dialogs_.at(sessionID - 1)->localSdp_;
+  remoteSDP = dialogs_.at(sessionID - 1)->remoteSdp_;
 }
 
 
@@ -117,7 +117,8 @@ void SIPTransactions::createDialog(std::shared_ptr<SIPDialogData>& dialog)
   dialog->client->init(transactionUser_, dialogs_.size() + 1);
   dialog->server = std::shared_ptr<SIPServerTransaction> (new SIPServerTransaction);
   dialog->server->init(transactionUser_, dialogs_.size() + 1);
-
+  dialog->localSdp_ = NULL;
+  dialog->remoteSdp_ = NULL;
   QObject::connect(dialog->client.get(), &SIPClientTransaction::sendRequest,
                    this, &SIPTransactions::sendRequest);
 
@@ -200,7 +201,8 @@ void SIPTransactions::connectionEstablished(quint32 transportID, QString localAd
   Q_ASSERT(transportID != 0);
   qDebug() << "Establishing connection";
 
-  // TODO: This is not correct and will not work with a prpxy
+  // TODO: This does not work
+  // TODO: This is not correct and will not work with a proxy
   qDebug() << "INFO: Connection established will not work with a proxy connection";
   if(transportID == 0 || transportID > dialogs_.size() || dialogs_.at(transportID - 1) == NULL)
   {
@@ -289,19 +291,39 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
   Q_ASSERT(foundDialog->dialog);
 
   // TODO: prechecks that the message is ok, then modify program state.
-  if(request.type == INVITE)
+  if(request.type == INVITE || request.type == ACK)
   {
     if(request.message->content.type == APPLICATION_SDP)
     {
-      if(!processSDP(foundSessionID, content, transports_.at(transportID - 1)->getLocalAddress()))
+      if(request.type == INVITE)
       {
-        qDebug() << "Failed to find suitable SDP.";
-        return;
+        if(!processSDP(foundSessionID, content, transports_.at(transportID - 1)->getLocalAddress()))
+        {
+          qDebug() << "Failed to find suitable SDP.";
+          return;
+        }
+      }
+      else //ACK
+      {
+        if(!content.isValid())
+        {
+          qWarning() << "ERROR: The SDP content is not valid at processing. Should be detected earlier.";
+          return;
+        }
+
+        SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
+
+        if(!sdp_.remoteFinalSDP(retrieved))
+        {
+          qDebug() << "PEER_ERROR:" << "Their final sdp is not suitable. They should have followed our SDP!!!";
+          return;
+        }
       }
     }
     else
     {
-      qDebug() << "PEER ERROR: No SDP in INVITE!";
+      qDebug() << "PEER ERROR: No SDP in" << request.type;
+      // TODO: set the request details to serverTransaction
       sendResponse(transportID, SIP_DECLINE, request.type);
       return;
     }
@@ -381,22 +403,23 @@ bool SIPTransactions::processSDP(uint32_t sessionID, QVariant& content, QHostAdd
 {
   if(!content.isValid())
   {
-    qWarning() << "ERROR: The SDP content is not valid at processing. SHould be detected earlier.";
+    qWarning() << "ERROR: The SDP content is not valid at processing. Should be detected earlier.";
     return false;
   }
 
   SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
 
-  dialogs_.at(sessionID - 1)->localFinalSdp_ = sdp_.localFinalSDP(retrieved, localAddress);
+  dialogs_.at(sessionID - 1)->localSdp_
+      = sdp_.localFinalSDP(retrieved, localAddress, dialogs_.at(sessionID - 1)->localSdp_);
 
-  if(dialogs_.at(sessionID - 1)->localFinalSdp_ == NULL)
+  if(dialogs_.at(sessionID - 1)->localSdp_ == NULL)
   {
     qDebug() << "Remote SDP not suitable.";
     destroyDialog(sessionID);
     return false;
   }
-  dialogs_.at(sessionID - 1)->remoteFinalSdp_ = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
-  *dialogs_.at(sessionID - 1)->remoteFinalSdp_ = retrieved;
+  dialogs_.at(sessionID - 1)->remoteSdp_ = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
+  *dialogs_.at(sessionID - 1)->remoteSdp_ = retrieved;
   return true;
 }
 
@@ -428,10 +451,28 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
 
   QVariant content;
   request.message->content.length = 0;
-  if(type == INVITE)
+  if(type == INVITE || type == ACK)
   {
+    qDebug() << "Adding SDP content to request:" << type;
     request.message->content.type = APPLICATION_SDP;
-    SDPMessageInfo sdp = *sdp_.localSDPSuggestion(transport->getLocalAddress()).get();
+    SDPMessageInfo sdp;
+    if(type == INVITE)
+    {
+      dialogs_.at(sessionID - 1)->localSdp_
+          = sdp_.localSDPSuggestion(transport->getLocalAddress());
+      sdp = *dialogs_.at(sessionID - 1)->localSdp_.get();
+    }
+    else
+    {
+      if(dialogs_.at(sessionID - 1)->localSdp_ == NULL)
+      {
+        qDebug() << "ERROR: Missing local final SDP when its supposed to be sent.";
+        // TODO: send client error.
+        return;
+      }
+
+      sdp = *dialogs_.at(sessionID - 1)->localSdp_.get();
+    }
     content.setValue(sdp);
   }
 
@@ -454,7 +495,7 @@ void SIPTransactions::sendResponse(uint32_t sessionID, ResponseType type, Reques
   if(response.message->transactionRequest == INVITE && type == SIP_OK) // TODO: SDP in progress...
   {
     response.message->content.type = APPLICATION_SDP;
-    SDPMessageInfo sdp = *dialogs_.at(sessionID - 1)->localFinalSdp_.get();
+    SDPMessageInfo sdp = *dialogs_.at(sessionID - 1)->localSdp_.get();
     content.setValue(sdp);
   }
 
@@ -476,7 +517,7 @@ void SIPTransactions::destroyDialog(uint32_t sessionID)
   dialog->dialog.reset();
   dialog->server.reset();
   dialog->client.reset();
-  dialog->localFinalSdp_.reset();
-  dialog->remoteFinalSdp_.reset();
+  dialog->localSdp_.reset();
+  dialog->remoteSdp_.reset();
   dialogs_[sessionID - 1].reset();
 }
