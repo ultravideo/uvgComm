@@ -77,7 +77,7 @@ QList<uint32_t> SIPTransactions::startCall(QList<Contact> addresses)
     std::shared_ptr<SIPDialogData> dialogData;
     createDialog(dialogData);
 
-    dialogData->dialog->init(
+    dialogData->state->init(
           SIP_URI{addresses.at(i).username, addresses.at(i).realName, addresses.at(i).remoteAddress});
 
     dialogData->proxyConnection_ = addresses.at(i).proxyConnection;
@@ -112,7 +112,7 @@ void SIPTransactions::createDialog(std::shared_ptr<SIPDialogData>& dialog)
 {
   dialog = std::shared_ptr<SIPDialogData> (new SIPDialogData);
   connectionMutex_.lock();
-  dialog->dialog = createSIPDialog(dialogs_.size() + 1);
+  dialog->state = createSIPDialogState(dialogs_.size() + 1);
   dialog->client = std::shared_ptr<SIPClientTransaction> (new SIPClientTransaction);
   dialog->client->init(transactionUser_, dialogs_.size() + 1);
   dialog->server = std::shared_ptr<SIPServerTransaction> (new SIPServerTransaction);
@@ -156,7 +156,7 @@ void SIPTransactions::endAllCalls()
   qDebug() << "WARNING: Not implemented in SIP Transactions";
 }
 
-std::shared_ptr<SIPDialogState> SIPTransactions::createSIPDialog(uint32_t sessionID)
+std::shared_ptr<SIPDialogState> SIPTransactions::createSIPDialogState(uint32_t sessionID)
 {
   qDebug() << "Creating SIP Session";
   std::shared_ptr<SIPDialogState> dialog = std::shared_ptr<SIPDialogState> (new SIPDialogState());
@@ -214,9 +214,9 @@ void SIPTransactions::connectionEstablished(quint32 transportID, QString localAd
   std::shared_ptr<SIPDialogData> dialog = dialogs_.at(transportID - 1);
   connectionMutex_.unlock();
 
-  if(dialog->dialog == NULL)
+  if(dialog->state == NULL)
   {
-    dialog->dialog = createSIPDialog(transportID);
+    dialog->state = createSIPDialogState(transportID);
   }
 
   //dialog->dialog->initDialog(localAddress, SIP_URI(localUsername_, localName_, ));
@@ -241,7 +241,7 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
   for(unsigned int sessionID = 1; sessionID - 1 < dialogs_.size(); ++sessionID)
   {
     if(dialogs_.at(sessionID - 1) != NULL &&
-       dialogs_.at(sessionID - 1)->dialog->correctRequestDialog(request.message->dialog,
+       dialogs_.at(sessionID - 1)->state->correctRequestDialog(request.message->dialog,
                                                                 request.type,
                                                                 request.message->cSeq))
     {
@@ -264,12 +264,12 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
       createDialog(foundDialog);
       foundSessionID = dialogs_.size();
 
-      foundDialog->dialog->init(
+      foundDialog->state->init(
             SIP_URI{request.message->from.username,
                     request.message->from.realname,
                     request.message->from.host});
 
-      foundDialog->dialog->processFirstINVITE(request.message);
+      foundDialog->state->processFirstINVITE(request.message);
 
       // Proxy TODO: somehow distinguish if this is a proxy connection
       foundDialog->proxyConnection_ = false;
@@ -290,7 +290,7 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
   }
 
   // check correct initialization
-  Q_ASSERT(foundDialog->dialog);
+  Q_ASSERT(foundDialog->state);
 
   // TODO: prechecks that the message is ok, then modify program state.
   if(request.type == INVITE || request.type == ACK)
@@ -350,7 +350,7 @@ void SIPTransactions::processSIPResponse(SIPResponse response,
   for(unsigned int sessionID = 1; sessionID - 1 < dialogs_.size(); ++sessionID)
   {
     if(dialogs_.at(sessionID - 1) != NULL &&
-       dialogs_.at(sessionID - 1)->dialog->correctResponseDialog(response.message->dialog,
+       dialogs_.at(sessionID - 1)->state->correctResponseDialog(response.message->dialog,
                                              response.message->cSeq))
     {
       // TODO: we should check that every single detail is as specified in rfc.
@@ -375,7 +375,7 @@ void SIPTransactions::processSIPResponse(SIPResponse response,
   }
 
   // check correct initialization
-  Q_ASSERT(dialogs_.at(foundSessionID - 1)->dialog);
+  Q_ASSERT(dialogs_.at(foundSessionID - 1)->state);
 
   connectionMutex_.unlock();
 
@@ -441,12 +441,12 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
   //TODO: Not working for re-INVITE
   if(request.type == INVITE && !dialogs_.at(sessionID - 1)->proxyConnection_)
   {
-    dialogs_.at(sessionID - 1)->dialog->createDialog(transport->getLocalAddress().toString());
+    dialogs_.at(sessionID - 1)->state->createDialog(transport->getLocalAddress().toString());
   }
 
   // Get message info
   dialogs_.at(sessionID - 1)->client->getRequestMessageInfo(type, request.message);
-  dialogs_.at(sessionID - 1)->dialog->getRequestDialogInfo(request.type,
+  dialogs_.at(sessionID - 1)->state->getRequestDialogInfo(request.type,
                                                            transport->getLocalAddress().toString(),
                                                            request.message);
   Q_ASSERT(request.message != NULL);
@@ -517,7 +517,7 @@ void SIPTransactions::destroyDialog(uint32_t sessionID)
   qDebug() << "Destroying dialog:" << sessionID;
 
   std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
-  dialog->dialog.reset();
+  dialog->state.reset();
   dialog->server.reset();
   dialog->client.reset();
   dialog->localSdp_.reset();
