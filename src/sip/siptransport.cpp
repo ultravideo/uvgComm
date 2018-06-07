@@ -54,6 +54,12 @@ QHostAddress SIPTransport::getLocalAddress()
   return connection_->localAddress();
 }
 
+QHostAddress SIPTransport::getRemoteAddress()
+{
+  Q_ASSERT(connection_);
+  return connection_->remoteAddress();
+}
+
 void SIPTransport::createConnection(ConnectionType type, QString target)
 {
   if(type == TCP)

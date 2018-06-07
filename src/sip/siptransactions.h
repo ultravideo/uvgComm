@@ -88,7 +88,6 @@ private:
     quint32 transportID;
   };
 
-  std::shared_ptr<SIPDialogState> createSIPDialogState(uint32_t sessionID);
   std::shared_ptr<SIPTransport> createSIPTransport();
   std::shared_ptr<SIPRouting> createSIPRouting(QString remoteUsername,
                                                QString localAddress,

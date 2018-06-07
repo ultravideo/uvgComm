@@ -84,12 +84,27 @@ QList<uint32_t> SIPTransactions::startCall(QList<Contact> addresses)
     calls.push_back(dialogs_.size());
     // message is sent only after connection has been established so we know our address
 
-    // TODO: we should check if we already have a connection to their adddress.
+    dialogData->transportID = 0;
     if(!addresses.at(i).proxyConnection)
     {
-      std::shared_ptr<SIPTransport> transport = createSIPTransport();
-      transport->createConnection(TCP, addresses.at(i).remoteAddress);
-      dialogData->transportID = transports_.size();
+      // check if we are already connected to their adddress
+
+      for(unsigned int j = 0; j < transports_.size(); ++j)
+      {
+        if(transports_.at(j) != NULL &&
+           transports_.at(j)->getRemoteAddress().toString() == addresses.at(i).remoteAddress)
+        {
+          dialogData->transportID = j + 1;
+          dialogData->client->connectionReady(true); // sends the INVITE
+        }
+      }
+
+      if(dialogData->transportID == 0)
+      {
+        std::shared_ptr<SIPTransport> transport = createSIPTransport();
+        transport->createConnection(TCP, addresses.at(i).remoteAddress);
+        dialogData->transportID = transports_.size();
+      }
     }
     else
     {
@@ -112,7 +127,7 @@ void SIPTransactions::createDialog(std::shared_ptr<SIPDialogData>& dialog)
 {
   dialog = std::shared_ptr<SIPDialogData> (new SIPDialogData);
   connectionMutex_.lock();
-  dialog->state = createSIPDialogState(dialogs_.size() + 1);
+  dialog->state = std::shared_ptr<SIPDialogState> (new SIPDialogState());
   dialog->client = std::shared_ptr<SIPClientTransaction> (new SIPClientTransaction);
   dialog->client->init(transactionUser_, dialogs_.size() + 1);
   dialog->server = std::shared_ptr<SIPServerTransaction> (new SIPServerTransaction);
@@ -156,16 +171,6 @@ void SIPTransactions::endAllCalls()
   qDebug() << "WARNING: Not implemented in SIP Transactions";
 }
 
-std::shared_ptr<SIPDialogState> SIPTransactions::createSIPDialogState(uint32_t sessionID)
-{
-  qDebug() << "Creating SIP Session";
-  std::shared_ptr<SIPDialogState> dialog = std::shared_ptr<SIPDialogState> (new SIPDialogState());
-
-  // connect signals to signals. Session is responsible for responses
-  // and callmanager handles informing the user.
-  return dialog;
-}
-
 std::shared_ptr<SIPTransport> SIPTransactions::createSIPTransport()
 {
   qDebug() << "Creating SIP transport";
@@ -200,28 +205,36 @@ void SIPTransactions::connectionEstablished(quint32 transportID, QString localAd
                                             QString remoteAddress)
 {
   Q_ASSERT(transportID != 0);
-  qDebug() << "Establishing connection";
-
-  // TODO: This does not work
-  // TODO: This is not correct and will not work with a proxy
-  qDebug() << "INFO: Connection established will not work with a proxy connection";
-  if(transportID == 0 || transportID > dialogs_.size() || dialogs_.at(transportID - 1) == NULL)
+  if(transportID == 0)
   {
-    qDebug() << "WARNING: Missing session for connected session";
+    qDebug() << "ERROR: Bad transportID detected in connection Established";
     return;
   }
+
+  qDebug() << "Establishing connection. Local Address:" << localAddress << "Remote Address:" << remoteAddress;
   connectionMutex_.lock();
-  std::shared_ptr<SIPDialogData> dialog = dialogs_.at(transportID - 1);
+  std::shared_ptr<SIPDialogData> foundDialog = NULL;
+  for(auto dialog : dialogs_)
+  {
+    if(dialog != NULL && dialog->transportID == transportID)
+    {
+      foundDialog = dialog;
+    }
+  }
   connectionMutex_.unlock();
 
-  if(dialog->state == NULL)
+  if(foundDialog != NULL)
   {
-    dialog->state = createSIPDialogState(transportID);
+    foundDialog->client->connectionReady(true);
   }
-
-  //dialog->dialog->initDialog(localAddress, SIP_URI(localUsername_, localName_, ));
-
-  dialog->client->connectionReady(true);
+  else
+  {
+    qDebug() << "ERROR: Did not find dialog for transportID:" << transportID << "Existing IDs:";
+    for(auto dialog : dialogs_)
+    {
+      qDebug() << "TransportID: " << dialog->transportID;
+    }
+  }
 
   qDebug() << "Connection" << transportID << "connected and dialog created."
            << "From:" << localAddress
@@ -463,7 +476,15 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
     {
       dialogs_.at(sessionID - 1)->localSdp_
           = sdp_.localSDPSuggestion(transport->getLocalAddress());
-      sdp = *dialogs_.at(sessionID - 1)->localSdp_.get();
+      if(dialogs_.at(sessionID - 1)->localSdp_ != NULL)
+      {
+        sdp = *dialogs_.at(sessionID - 1)->localSdp_.get();
+      }
+      else
+      {
+        qDebug() << "WARNING: Failed to generate SDP Suggestion!";
+        return;
+      }
     }
     else
     {

@@ -48,6 +48,13 @@ public:
     return socket_->localAddress();
   }
 
+  QHostAddress remoteAddress()
+  {
+    Q_ASSERT(connected_);
+    Q_ASSERT(socket_->peerAddress().toString() != "");
+    return socket_->peerAddress();
+  }
+
 signals:
   void error(int socketError, const QString &message);
   void messageAvailable(QString message);

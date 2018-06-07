@@ -27,6 +27,7 @@ public:
   void sendResponse(SIPResponse &response, QVariant& content);
 
   QHostAddress getLocalAddress();
+  QHostAddress getRemoteAddress();
 
 public slots:
   // called when connection receives a message
