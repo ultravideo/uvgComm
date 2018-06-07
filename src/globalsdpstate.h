@@ -31,7 +31,8 @@ public:
   // return if the final SDP was suitable. It should be, but just to be sure
   bool remoteFinalSDP(SDPMessageInfo& remoteInviteSDP);
 
-  // TODO: failed SDP negotiations and ended calls
+  // frees the ports when they are not needed in rest of the program
+  void endSession(std::shared_ptr<SDPMessageInfo> sessionSDP);
 
 private:
 

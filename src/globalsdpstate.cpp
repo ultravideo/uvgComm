@@ -190,6 +190,19 @@ bool GlobalSDPState::checkSDPOffer(SDPMessageInfo &offer)
   return hasOpus && hasH265;
 }
 
+// frees the ports when they are not needed in rest of the program
+void GlobalSDPState::endSession(std::shared_ptr<SDPMessageInfo> sessionSDP)
+{
+  if(sessionSDP == NULL)
+  {
+    return;
+  }
+  for(auto mediaStream : sessionSDP->media)
+  {
+    makePortPairAvailable(mediaStream.receivePort);
+  }
+}
+
 uint16_t GlobalSDPState::nextAvailablePortPair()
 {
   // TODO: I'm suspecting this may sometimes hang Kvazzup at the start
@@ -226,6 +239,8 @@ void GlobalSDPState::makePortPairAvailable(uint16_t lowerPort)
 {
   if(lowerPort != 0)
   {
+    qDebug() << "Freed ports:" << lowerPort << "/" << lowerPort + 1
+             << "Ports available:" << remainingPorts_;
     portLock_.lock();
     availablePorts_.push_back(lowerPort);
     remainingPorts_ += 2;

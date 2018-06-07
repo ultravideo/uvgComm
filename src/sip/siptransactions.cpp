@@ -538,6 +538,7 @@ void SIPTransactions::destroyDialog(uint32_t sessionID)
   qDebug() << "Destroying dialog:" << sessionID;
 
   std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
+  sdp_.endSession(dialog->localSdp_);
   dialog->state.reset();
   dialog->server.reset();
   dialog->client.reset();
