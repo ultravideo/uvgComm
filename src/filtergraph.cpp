@@ -382,12 +382,11 @@ void FilterGraph::uninit()
 
 void FilterGraph::removeAllParticipants()
 {
-  for(Peer* p : peers_)
+  for(unsigned int i = 0; i < peers_.size(); ++i)
   {
-    if(p != NULL)
+    if(peers_.at(i) != NULL)
     {
-      destroyPeer(p);
-      p = 0;
+      removeParticipant(i + 1);
     }
   }
   peers_.clear();
@@ -497,6 +496,7 @@ void FilterGraph::destroyFilters(std::vector<std::shared_ptr<Filter> > &filters)
 
 void FilterGraph::destroyPeer(Peer* peer)
 {
+  qDebug() << "Destroying peer from Filter Graph";
   if(peer->audioFramedSource)
   {
     audioSend_.back()->removeOutConnection(peer->audioFramedSource);
@@ -531,7 +531,7 @@ void FilterGraph::destroyPeer(Peer* peer)
 void FilterGraph::removeParticipant(uint32_t sessionID)
 {
   qDebug() << "Removing peer:" << sessionID << "/" << peers_.size();
-  Q_ASSERT(sessionID < peers_.size());
+  Q_ASSERT(sessionID <= peers_.size());
   if(peers_.at(sessionID - 1) != NULL)
     destroyPeer(peers_.at(sessionID - 1));
   peers_.at(sessionID - 1) = NULL;
