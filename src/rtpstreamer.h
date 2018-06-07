@@ -108,7 +108,7 @@ private:
   bool isRunning_;
 
   QMutex iniated_; // locks for duration of creation
-  QMutex destroyed_; // locks for duration of
+  QMutex destroyed_; // locks for duration of destruction
 
   uint8_t ttl_;
   struct in_addr sessionAddress_;

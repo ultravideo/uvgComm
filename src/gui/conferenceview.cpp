@@ -233,7 +233,7 @@ void ConferenceView::close()
       layoutMutex_.lock();
       layout_->removeItem(activeCalls_.at(i)->item);
       layoutMutex_.unlock();
-      removeCaller(i);
+      removeCaller(i + 1);
     }
   }
 

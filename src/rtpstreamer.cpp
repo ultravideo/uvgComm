@@ -122,7 +122,7 @@ void RTPStreamer::removeAllPeers()
   {
     if(peers_.at(i) != 0)
     {
-      removePeer(i);
+      removePeer(i + 1); // The sessionID is + 1
     }
   }
 }
@@ -173,7 +173,7 @@ bool RTPStreamer::addPeer(in_addr ip, uint32_t sessionID)
 void RTPStreamer::removePeer(uint32_t sessionID)
 {
   qDebug() << "Removing peer" << sessionID << "from RTPStreamer";
-  if(peers_.at(sessionID) != 0)
+  if(peers_.at(sessionID - 1) != 0)
   {
     stop();
     while(isRunning_)
@@ -191,6 +191,10 @@ void RTPStreamer::removePeer(uint32_t sessionID)
     delete peers_.at(sessionID - 1);
     peers_[sessionID - 1] = NULL;
     start();
+    while(!isRunning_)
+    {
+      qSleep(1);
+    }
   }
   else if(peers_.at(sessionID - 1) == 0)
   {
