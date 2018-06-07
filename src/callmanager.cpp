@@ -65,32 +65,26 @@ void CallManager::windowClosed()
 
 void CallManager::callToParticipant(QString name, QString username, QString ip)
 {
-  if(media_.reservePorts())
+  QString ip_str = ip;
+
+  Contact con;
+  con.remoteAddress = ip_str;
+  con.realName = name;
+  con.username = username;
+  con.proxyConnection = false;
+
+  QList<Contact> list;
+  list.append(con);
+
+  //start negotiations for this connection
+
+  QList<uint32_t> sessionIDs = sip_.startCall(list);
+
+  for(auto sessionID : sessionIDs)
   {
-    QString ip_str = ip;
-
-    Contact con;
-    con.remoteAddress = ip_str;
-    con.realName = name;
-    con.username = username;
-    con.proxyConnection = false;
-
-    QList<Contact> list;
-    list.append(con);
-
-    //start negotiations for this connection
-
-    QList<uint32_t> sessionIDs = sip_.startCall(list);
-
-    for(auto sessionID : sessionIDs)
-    {
-      window_.displayOutgoingCall(sessionID, name);
-    }
+    window_.displayOutgoingCall(sessionID, name);
   }
-  else
-  {
-    qDebug() << "No room for more participants.";
-  }
+
 }
 
 void CallManager::chatWithParticipant(QString name, QString username, QString ip)
@@ -100,13 +94,6 @@ void CallManager::chatWithParticipant(QString name, QString username, QString ip
 
 void CallManager::incomingCall(uint32_t sessionID, QString caller)
 {
-  if(!media_.reservePorts())
-  {
-    qWarning() << "WARNING: Could not fit more participants to this call";
-    rejectCall(sessionID); // TODO: send a not possible message instead of reject.
-    return;
-  }
-
   window_.displayIncomingCall(sessionID, caller);
 }
 
@@ -119,11 +106,7 @@ void CallManager::callRinging(uint32_t sessionID)
 void CallManager::callRejected(uint32_t sessionID)
 {
   qDebug() << "Our call has been rejected!";
-
   window_.removeParticipant(sessionID);
-
-  // cancel the port reservation.
-  media_.freePorts();
 }
 
 void CallManager::callNegotiated(uint32_t sessionID)

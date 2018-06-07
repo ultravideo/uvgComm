@@ -315,6 +315,8 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
         if(!processSDP(foundSessionID, content, transports_.at(transportID - 1)->getLocalAddress()))
         {
           qDebug() << "Failed to find suitable SDP.";
+          // TODO: set the request details to serverTransaction
+          sendResponse(transportID, SIP_DECLINE, request.type);
           return;
         }
       }
@@ -430,7 +432,7 @@ bool SIPTransactions::processSDP(uint32_t sessionID, QVariant& content, QHostAdd
 
   if(dialogs_.at(sessionID - 1)->localSdp_ == NULL)
   {
-    qDebug() << "Remote SDP not suitable.";
+    qDebug() << "Remote SDP not suitable or we have no ports to assign";
     destroyDialog(sessionID);
     return false;
   }
@@ -482,7 +484,9 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
       }
       else
       {
-        qDebug() << "WARNING: Failed to generate SDP Suggestion!";
+        qDebug() << "Failed to generate SDP Suggestion while sending: " << type <<
+                    "Possibly because we ran out of ports to assign";
+
         return;
       }
     }

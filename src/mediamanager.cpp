@@ -14,11 +14,7 @@ MediaManager::MediaManager():
   session_(NULL),
   streamer_(new RTPStreamer()),
   mic_(true),
-  camera_(true),
-  portsPerParticipant_(4),
-  maxPortsOpen_(42),
-  portsInUse_(0),
-  portsReserved_(0)
+  camera_(true)
 {}
 
 MediaManager::~MediaManager()
@@ -56,17 +52,6 @@ void MediaManager::updateSettings()
 void MediaManager::addParticipant(uint32_t sessionID, in_addr ip, uint16_t sendAudioPort, uint16_t recvAudioPort,
                                  uint16_t sendVideoPort, uint16_t recvVideoPort, VideoWidget *view)
 {
-  Q_ASSERT(portsInUse_ + portsPerParticipant_ <= maxPortsOpen_);
-  Q_ASSERT(portsReserved_ >= portsPerParticipant_);
-
-  qDebug() << " ==================== Adding participant" << sessionID << "to media with ports left:" << maxPortsOpen_ - portsInUse_
-           << "Reserved:" << portsReserved_ << "=====================";
-
-  portsMutex_.lock();
-  portsInUse_ += portsPerParticipant_;
-  portsReserved_ -= portsPerParticipant_;
-  portsMutex_.unlock();
-
   // Open necessary ports and create filters for sending and receiving
   if(!streamer_->addPeer(ip, sessionID))
   {
@@ -95,18 +80,11 @@ void MediaManager::addParticipant(uint32_t sessionID, in_addr ip, uint16_t sendA
 
 void MediaManager::removeParticipant(uint32_t sessionID)
 {
-  Q_ASSERT(portsInUse_ >= portsForSessionID(sessionID));
-
   fg_->removeParticipant(sessionID);
   fg_->camera(camera_); // if the last participant was destroyed, restore camera state
   fg_->mic(mic_);
   streamer_->removePeer(sessionID);
   qDebug() << "Session " << sessionID << " media removed.";
-
-  qDebug() << "They have left the call. Ports in use:" << portsInUse_
-           << "->" << portsInUse_ - portsForSessionID(sessionID);
-
-  portsInUse_ -= portsForSessionID(sessionID);
 }
 
 void MediaManager::endAllCalls()
@@ -116,9 +94,6 @@ void MediaManager::endAllCalls()
 
   fg_->camera(camera_); // if the last participant was destroyed, restore camera state
   fg_->mic(mic_);
-
-  portsInUse_ = 0;
-  portsReserved_ = 0;
 }
 
 bool MediaManager::toggleMic()
@@ -134,35 +109,3 @@ bool MediaManager::toggleCamera()
   fg_->camera(camera_);
   return camera_;
 }
-
-bool MediaManager::reservePorts()
-{
-  portsMutex_.lock();
-  if(portsReserved_ + portsPerParticipant_ + portsInUse_ <= maxPortsOpen_)
-  {
-    portsReserved_ += portsPerParticipant_;
-    portsMutex_.unlock();
-    return true;
-  }
-  portsMutex_.unlock();
-  qDebug() << "Could not fit more participants to call. Max ports:" << maxPortsOpen_
-           << "Ports in use:" << portsInUse_ << "Ports reserved:" << portsReserved_;
-  return false;
-}
-
-void MediaManager::freePorts()
-{
-  Q_ASSERT(portsReserved_ >= portsPerParticipant_);
-  portsMutex_.lock();
-  if(portsReserved_ >= portsPerParticipant_)
-  {
-    portsReserved_ -= portsPerParticipant_;
-  }
-  else
-  {
-    qDebug() << "WARNING: Trying to free ports that have not been reserved!";
-  }
-
-  portsMutex_.unlock();
-}
-

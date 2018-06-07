@@ -45,10 +45,6 @@ public:
   bool toggleMic();
   bool toggleCamera();
 
-  // use this function to avoid a race condition with ports
-  bool reservePorts();
-  void freePorts();
-
 signals:
 
   // somebody is calling
@@ -71,12 +67,6 @@ signals:
 
 private:
 
-  uint16_t portsForSessionID(uint32_t sessionID) const
-  {
-    // if there is a need to have variable amount of streams per participant, modify this.
-    return portsPerParticipant_;
-  }
-
   StatisticsInterface* stats_;
 
   std::unique_ptr<FilterGraph> fg_;
@@ -87,11 +77,4 @@ private:
 
   bool mic_;
   bool camera_;
-
-  uint16_t portsPerParticipant_;
-  uint16_t maxPortsOpen_;
-  uint16_t portsInUse_;
-  uint16_t portsReserved_;
-
-  QMutex portsMutex_;
 };
