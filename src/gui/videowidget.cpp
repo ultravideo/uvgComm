@@ -62,13 +62,13 @@ void VideoWidget::paintEvent(QPaintEvent *event)
   {
     if(updated_)
     {
+      drawMutex_.lock();
       if(QFrame::frameRect() != newFrameRect_)
       {
         QFrame::setFrameRect(newFrameRect_);
         QWidget::setMinimumHeight(newFrameRect_.height()*QWidget::minimumWidth()/newFrameRect_.width());
       }
 
-      drawMutex_.lock();
       Q_ASSERT(input_);
 
       painter.drawImage(targetRect_, currentImage_);
