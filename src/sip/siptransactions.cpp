@@ -74,6 +74,12 @@ QList<uint32_t> SIPTransactions::startCall(QList<Contact> addresses)
   QList<uint32_t> calls;
   for(unsigned int i = 0; i < addresses.size(); ++i)
   {
+    if(!sdp_.enoughFreePorts())
+    {
+      qDebug() << "Not enough ports to start a call";
+      break;
+    }
+
     std::shared_ptr<SIPDialogData> dialogData;
     createDialog(dialogData);
 
@@ -163,12 +169,28 @@ void SIPTransactions::rejectCall(uint32_t sessionID)
 
 void SIPTransactions::endCall(uint32_t sessionID)
 {
-  qDebug() << "WARNING: Not implemented in SIP Transactions";
+  std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
+  dialog->client->endCall();
+  destroyDialog(sessionID);
 }
 
 void SIPTransactions::endAllCalls()
 {
-  qDebug() << "WARNING: Not implemented in SIP Transactions";
+  for(auto dialog : dialogs_)
+  {
+    if(dialog != NULL)
+    {
+      dialog->client->endCall();
+    }
+  }
+
+  for(unsigned int i = 0; i < dialogs_.size(); ++i)
+  {
+    if(dialogs_.at(i) != NULL)
+    {
+      destroyDialog(i + 1);
+    }
+  }
 }
 
 std::shared_ptr<SIPTransport> SIPTransactions::createSIPTransport()
@@ -271,9 +293,16 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
   {
     qDebug() << "Could not find the dialog of the request.";
 
+    // TODO: there is a problem if the sequence number did not match and the request type is INVITE
     if(request.type == INVITE)
     {
       qDebug() << "Someone is trying to start a sip dialog with us!";
+
+      if(!sdp_.enoughFreePorts())
+      {
+        qDebug() << "Not enough free media ports to accept new dialog";
+        return;
+      }
       createDialog(foundDialog);
       foundSessionID = dialogs_.size();
 
@@ -315,8 +344,8 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
         if(!processSDP(foundSessionID, content, transports_.at(transportID - 1)->getLocalAddress()))
         {
           qDebug() << "Failed to find suitable SDP.";
-          // TODO: set the request details to serverTransaction
-          sendResponse(transportID, SIP_DECLINE, request.type);
+          foundDialog->server->setCurrentRequest(request);
+          sendResponse(foundSessionID, SIP_DECLINE, request.type);
           return;
         }
       }

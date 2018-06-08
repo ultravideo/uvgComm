@@ -34,6 +34,11 @@ public:
   // frees the ports when they are not needed in rest of the program
   void endSession(std::shared_ptr<SDPMessageInfo> sessionSDP);
 
+  bool enoughFreePorts()
+  {
+    return remainingPorts_ >= 4;
+  }
+
 private:
 
   // return the lower port of the pair and removes both from list of available ports

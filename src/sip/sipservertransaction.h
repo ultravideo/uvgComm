@@ -18,6 +18,8 @@ public:
   void init(SIPTransactionUser* tu, uint32_t sessionID);
 
   // processes incoming request. Part of our server transaction
+
+  void setCurrentRequest(SIPRequest& request);
   void processRequest(SIPRequest& request);
   void wrongRequestDestination();
   void malformedRequest();

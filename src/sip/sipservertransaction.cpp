@@ -16,6 +16,12 @@ void SIPServerTransaction::init(SIPTransactionUser* tu, uint32_t sessionID)
   sessionID_ = sessionID;
 }
 
+
+void SIPServerTransaction::setCurrentRequest(SIPRequest& request)
+{
+  copyMessageDetails(request.message, receivedRequest_);
+}
+
 // processes incoming request
 void SIPServerTransaction::processRequest(SIPRequest &request)
 {
@@ -27,7 +33,11 @@ void SIPServerTransaction::processRequest(SIPRequest &request)
   }
 
   // TODO: check that the request is appropriate at this time.
-  copyMessageDetails(request.message, receivedRequest_);
+
+  if(receivedRequest_ == NULL)
+  {
+    copyMessageDetails(request.message, receivedRequest_);
+  }
 
   switch(request.type)
   {
@@ -78,6 +88,7 @@ void SIPServerTransaction::getResponseMessage(std::shared_ptr<SIPMessageInfo> &o
   if(receivedRequest_ == NULL)
   {
     qWarning() << "ERROR: The received request was not set before trying to use it!";
+    return;
   }
   copyMessageDetails(receivedRequest_, outMessage);
   outMessage->maxForwards = 71;
