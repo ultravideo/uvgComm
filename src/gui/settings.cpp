@@ -17,7 +17,7 @@ Settings::Settings(QWidget *parent) :
 
   dshow_initCapture();
 
-  // initializes the GUI with values or initialize them in case they dont exist
+  // initializes the GUI with values or initialize them in case they don't exist
   restoreBasicSettings();
   restoreAdvancedSettings();
 
@@ -100,6 +100,9 @@ void Settings::saveAdvancedSettings()
 
   if(advancedUI_->threads->text() != "")
     settings.setValue("video/Threads",      advancedUI_->threads->text());
+
+  if(advancedUI_->openhevc_threads->text() != "")
+    settings.setValue("video/OPENHEVC_threads",      advancedUI_->openhevc_threads->text());
 
   settings.setValue("video/QP",             QString::number(advancedUI_->qp->value()));
 
@@ -184,6 +187,7 @@ void Settings::restoreAdvancedSettings()
       advancedUI_->preset->setCurrentIndex(index);
     advancedUI_->threads->setText        (settings.value("video/Threads").toString());
     advancedUI_->qp->setValue            (settings.value("video/QP").toInt());
+    advancedUI_->openhevc_threads->setText        (settings.value("video/OPENHEVC_threads").toString());
 
     if(settings.value("video/WPP").toString() == "1")
       advancedUI_->wpp->setChecked(true);

@@ -14,7 +14,9 @@ OpenHEVCFilter::OpenHEVCFilter(QString id, StatisticsInterface *stats):
 bool OpenHEVCFilter::init()
 {
   qDebug() << name_ << "iniating";
-  handle_ = libOpenHevcInit(1, 1);
+  QSettings settings;
+
+  handle_ = libOpenHevcInit(settings.value("video/OPENHEVC_threads").toInt(), 1);
 
   libOpenHevcSetDebugMode(handle_, 0);
   if(libOpenHevcStartDecoder(handle_) == -1)
