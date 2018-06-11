@@ -35,9 +35,12 @@ ui_(new Ui::StatisticsWindow),
   ui_->participantTable->setHorizontalHeaderItem(2, new QTableWidgetItem(QString("Audio delay")));
   ui_->participantTable->setHorizontalHeaderItem(3, new QTableWidgetItem(QString("Video delay")));
 
-  ui_->filterTable->setColumnCount(2); // more columns can be added later
+  ui_->filterTable->setColumnCount(3); // more columns can be added later
   ui_->filterTable->setHorizontalHeaderItem(0, new QTableWidgetItem(QString("Filter")));
   ui_->filterTable->setHorizontalHeaderItem(1, new QTableWidgetItem(QString("TID")));
+  ui_->filterTable->setHorizontalHeaderItem(2, new QTableWidgetItem(QString("Buffer Size")));
+
+  ui_->filterTable->setColumnWidth(0, 240);
 }
 
 StatisticsWindow::~StatisticsWindow()
@@ -228,13 +231,20 @@ void StatisticsWindow::addReceivePacket(uint16_t size)
   receiveMutex_.unlock();
 }
 
-void StatisticsWindow::updateBufferStatus(QString filter, uint16_t buffersize)
+void StatisticsWindow::updateBufferStatus(QString filter, uint16_t buffersize, uint16_t maxBufferSize)
 {
   bufferMutex_.lock();
   if(buffers_.find(filter) == buffers_.end() || buffers_[filter] != buffersize)
   {
     dirtyBuffers_ = true;
     buffers_[filter] = buffersize;
+
+    QList<QTableWidgetItem*> filter_name = ui_->filterTable->findItems(filter, Qt::MatchExactly);
+    if(filter_name.size() == 1)
+    {
+      ui_->filterTable->setItem(filter_name.at(0)->row(), 2,
+                                new QTableWidgetItem(QString::number(buffersize) + "/" + QString::number(maxBufferSize)));
+    }
   }
   bufferMutex_.unlock();
 }

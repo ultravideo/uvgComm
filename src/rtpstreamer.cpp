@@ -384,21 +384,26 @@ RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType 
   createConnection(sender->connection, ip, port, false);
 
   // todo: negotiate payload number
+  QString mediaName = QString::number(port);
   switch(type)
   {
   case HEVCVIDEO :
     sender->sink = H265VideoRTPSink::createNew(*env_, sender->connection.rtpGroupsock, 96);
+    mediaName += "_HEVC";
     break;
   case RAWAUDIO :
     sender->sink = SimpleRTPSink::createNew(*env_, sender->connection.rtpGroupsock, 0,
                                             48000, "audio", "PCM", 2, False);
+    mediaName += "_RAW_AUDIO";
     break;
   case OPUSAUDIO :
     sender->sink = SimpleRTPSink::createNew(*env_, sender->connection.rtpGroupsock, 97,
                                             48000, "audio", "OPUS", 2, False);
+    mediaName += "_OPUS";
     break;
   default :
     qWarning() << "Warning: RTP support not implemented for this format";
+    mediaName += "_UNKNOWN";
     break;
   }
 
@@ -409,7 +414,7 @@ RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType 
 
   // shared_ptr which does not release
   sender->sourcefilter
-      = std::shared_ptr<FramedSourceFilter>(new FramedSourceFilter(ip_str + "_", stats_, *env_, type),
+      = std::shared_ptr<FramedSourceFilter>(new FramedSourceFilter(ip_str + "_", stats_, *env_, type, mediaName),
                                             [](FramedSourceFilter*){});
   const unsigned int estimatedSessionBandwidth = 5000; // in kbps; for RTCP b/w share
   // This starts RTCP running automatically
@@ -436,7 +441,7 @@ RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType 
 // TODO why name peerADDress
 RTPStreamer::Receiver* RTPStreamer::addReceiver(in_addr peerAddress, uint16_t port, DataType type)
 {
-  qDebug() << "Iniating receive RTP/RTCP stream from port:" << port;
+  qDebug() << "Iniating receive RTP/RTCP stream from port:" << port << "with type:" << type;
   Receiver *receiver = new Receiver;
   createConnection(receiver->connection, peerAddress, port, true);
 
@@ -499,6 +504,9 @@ RTPStreamer::Receiver* RTPStreamer::addReceiver(in_addr peerAddress, uint16_t po
 void RTPStreamer::createConnection(Connection& connection, struct in_addr ip,
                                    uint16_t portNum, bool reservePorts)
 {
+  // TODO: Sending should not reserve ports.
+  // This could mean the same connection should be used for receiving
+
   if(!reservePorts)
   {
     connection.rtpPort = new Port(0);

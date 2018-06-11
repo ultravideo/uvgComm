@@ -7,12 +7,13 @@
 
 
 FramedSourceFilter::FramedSourceFilter(QString id, StatisticsInterface* stats,
-                                       UsageEnvironment &env, DataType type):
+                                       UsageEnvironment &env, DataType type, QString media):
   FramedSource(env),
-  Filter(id, "Framed_Source", stats, type, NONE),
+  Filter(id, "Framed_Source_" + media, stats, type, NONE),
   type_(type)
 {
   updateSettings();
+  stats_->addFilterTID(name_, (uint64_t)currentThreadId());
 }
 
 void FramedSourceFilter::updateSettings()

@@ -10,7 +10,7 @@ class FramedSourceFilter : public FramedSource, public Filter
 {
 public:
   FramedSourceFilter(QString id, StatisticsInterface* stats,
-                     UsageEnvironment &env, DataType type);
+                     UsageEnvironment &env, DataType type, QString media);
 
   // called by live555. Takes a sample from input and schedules it to be sent.
   virtual void doGetNextFrame();

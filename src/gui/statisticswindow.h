@@ -32,7 +32,7 @@ public:
   virtual void addSendPacket(uint16_t size);
   virtual void addReceivePacket(uint16_t size);
   virtual void addFilterTID(QString filter, uint64_t TID);
-  virtual void updateBufferStatus(QString filter, uint16_t buffersize);
+  virtual void updateBufferStatus(QString filter, uint16_t buffersize, uint16_t maxBufferSize);
   virtual void packetDropped();
 
 private:

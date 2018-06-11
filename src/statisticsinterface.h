@@ -47,7 +47,7 @@ public:
   virtual void addFilterTID(QString filter, uint64_t TID) = 0;
 
   // Tracking of buffer information.
-  virtual void updateBufferStatus(QString filter, uint16_t buffersize) = 0;
+  virtual void updateBufferStatus(QString filter, uint16_t buffersize, uint16_t maxBufferSize) = 0;
 
   // Tracking of packets dropped due to buffer overflow
   virtual void packetDropped() = 0;
