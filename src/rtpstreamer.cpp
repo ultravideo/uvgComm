@@ -151,12 +151,19 @@ bool RTPStreamer::addPeer(in_addr ip, uint32_t sessionID)
     peer->audioSender = 0;
     peer->audioReceiver = 0;
 
-    while(peers_.size() < sessionID - 1)
+    if(peers_.size() >= sessionID && peers_.at(sessionID - 1) == NULL)
     {
-      peers_.append(NULL);
+      peers_[sessionID - 1] = peer;
     }
+    else
+    {
+      while(peers_.size() < sessionID - 1)
+      {
+        peers_.append(NULL);
+      }
 
-    peers_.push_back(peer);
+      peers_.push_back(peer);
+    }
 
     iniated_.unlock();
     destroyed_.unlock();
