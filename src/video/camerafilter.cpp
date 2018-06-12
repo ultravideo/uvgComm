@@ -23,7 +23,7 @@ CameraFilter::CameraFilter(QString id, StatisticsInterface *stats):
     return;
   }
 
-  QSettings settings;
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
   QString deviceName = settings.value("video/Device").toString();
   int deviceID = settings.value("video/DeviceID").toInt();
 

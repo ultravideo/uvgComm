@@ -50,8 +50,7 @@ private:
   // permanently records GUI settings to system
   void saveBasicSettings();
   void saveAdvancedSettings();
-  void saveCameraCapabilities(QSettings &settings,
-                              int deviceIndex, int capabilityIndex);
+  void saveCameraCapabilities(int deviceIndex, int capabilityIndex);
 
   QStringList getVideoDevices();
   QStringList getAudioDevices();
@@ -60,7 +59,7 @@ private:
                      QSize& resolution, double& framerate, QString &format);
 
   // make sure the ui video devices is initialized before calling this
-  int getVideoDeviceID(QSettings& settings);
+  int getVideoDeviceID();
 
   void resetFaultySettings();
 
@@ -68,4 +67,6 @@ private:
   Ui::BasicSettings *basicUI_;
   QDialog advancedParent_;
   Ui::AdvancedSettings *advancedUI_;
+
+  QSettings settings_;
 };

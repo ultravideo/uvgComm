@@ -23,7 +23,7 @@ void FramedSourceFilter::updateSettings()
 
   if(type_ == HEVCVIDEO)
   {
-    QSettings settings;
+    QSettings settings("kvazzup.ini", QSettings::IniFormat);
     if(settings.value("video/Slices").toInt() == 1)
     {
       maxBufferSize_ = -1; // no buffer limit

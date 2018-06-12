@@ -59,7 +59,7 @@ bool KvazaarFilter::init()
     qCritical() << name_ << "failed to allocate Kvazaar config";
     return false;
   }
-  QSettings settings;
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
 
   api_->config_init(config_);
   api_->config_parse(config_, "preset", settings.value("video/Preset").toString().toUtf8());
@@ -152,7 +152,7 @@ void KvazaarFilter::process()
 
       qDebug() << name_ << "Framerates:" << config_->framerate_num << "input:" << input->framerate;
 
-      QSettings settings;
+      QSettings settings("kvazzup.ini", QSettings::IniFormat);
       settings.setValue("video/ResolutionWidth", input->width);
       settings.setValue("video/ResolutionHeight", input->height);
       settings.setValue("video/Framerate", input->framerate);

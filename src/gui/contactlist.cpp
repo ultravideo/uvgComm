@@ -19,7 +19,7 @@ void ContactList::initializeList(QListWidget* list, ParticipantInterface* interf
   connect(list, SIGNAL(customContextMenuRequested(QPoint)),
           this, SLOT(showContextMenu(QPoint)));
 
-  QSettings settings;
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
 
   int size = settings.beginReadArray("contacts");
   qDebug() << "Reading contact list with" << size << "contacts";
@@ -92,7 +92,7 @@ void ContactList::addContact(ParticipantInterface* interface,
 void ContactList::writeListToSettings()
 {
   qDebug() << "Writing contactList with" << items_.size() << "items to settings.";
-  QSettings settings;
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
 
   settings.beginWriteArray("contacts");
   int index = 0;
@@ -143,7 +143,7 @@ void ContactList::removeContact(int index)
   items_.erase(items_.begin() + index);
 
   {
-    QSettings settings;
+    QSettings settings("kvazzup.ini", QSettings::IniFormat);
     settings.remove("contacts");
   }
   writeListToSettings();

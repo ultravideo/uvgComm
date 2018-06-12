@@ -10,7 +10,8 @@
 Settings::Settings(QWidget *parent) :
   QObject(parent),
   basicUI_(new Ui::BasicSettings),
-  advancedUI_(new Ui::AdvancedSettings)
+  advancedUI_(new Ui::AdvancedSettings),
+  settings_("kvazzup.ini", QSettings::IniFormat)
 {
   basicUI_->setupUi(&basicParent_);
   advancedUI_->setupUi(&advancedParent_);
@@ -68,21 +69,20 @@ void Settings::saveBasicSettings()
   qDebug() << "Saving basic Settings";
 
   // Local settings
-  QSettings settings;
   if(basicUI_->name_edit->text() != "")
-    settings.setValue("local/Name",         basicUI_->name_edit->text());
+    settings_.setValue("local/Name",         basicUI_->name_edit->text());
   if(basicUI_->username_edit->text() != "")
-    settings.setValue("local/Username",     basicUI_->username_edit->text());
+    settings_.setValue("local/Username",     basicUI_->username_edit->text());
   int currentIndex = basicUI_->videoDevice->currentIndex();
   if( currentIndex != -1)
   {
-    settings.setValue("video/DeviceID",      currentIndex);
+    settings_.setValue("video/DeviceID",      currentIndex);
 
-    if(basicUI_->videoDevice->currentText() != settings.value("video/Device") )
+    if(basicUI_->videoDevice->currentText() != settings_.value("video/Device") )
     {
-      settings.setValue("video/Device",        basicUI_->videoDevice->currentText());
+      settings_.setValue("video/Device",        basicUI_->videoDevice->currentText());
       // set capability to first
-      saveCameraCapabilities(settings, currentIndex, 0);
+      saveCameraCapabilities(currentIndex, 0);
       advancedUI_->resolution->setCurrentIndex(0);
     }
 
@@ -93,33 +93,32 @@ void Settings::saveBasicSettings()
 void Settings::saveAdvancedSettings()
 {
   qDebug() << "Saving advanced Settings";
-  QSettings settings;
 
   // Video settings
-  settings.setValue("video/Preset",       advancedUI_->preset->currentText());
+  settings_.setValue("video/Preset",       advancedUI_->preset->currentText());
 
   if(advancedUI_->threads->text() != "")
-    settings.setValue("video/Threads",      advancedUI_->threads->text());
+    settings_.setValue("video/Threads",      advancedUI_->threads->text());
 
   if(advancedUI_->openhevc_threads->text() != "")
-    settings.setValue("video/OPENHEVC_threads",      advancedUI_->openhevc_threads->text());
+    settings_.setValue("video/OPENHEVC_threads",      advancedUI_->openhevc_threads->text());
 
-  settings.setValue("video/QP",             QString::number(advancedUI_->qp->value()));
+  settings_.setValue("video/QP",             QString::number(advancedUI_->qp->value()));
 
   if(advancedUI_->wpp->isChecked())
-    settings.setValue("video/WPP",          "1");
+    settings_.setValue("video/WPP",          "1");
   else
-    settings.setValue("video/WPP",          "0");
+    settings_.setValue("video/WPP",          "0");
 
   if(advancedUI_->vps->text() != "")
-    settings.setValue("video/VPS",          advancedUI_->vps->text());
+    settings_.setValue("video/VPS",          advancedUI_->vps->text());
   if(advancedUI_->intra->text() != "")
-    settings.setValue("video/Intra",        advancedUI_->intra->text());
+    settings_.setValue("video/Intra",        advancedUI_->intra->text());
 
   if(advancedUI_->slices->isChecked())
-    settings.setValue("video/Slices",          "1");
+    settings_.setValue("video/Slices",          "1");
   else
-    settings.setValue("video/Slices",          "0");
+    settings_.setValue("video/Slices",          "0");
 
   int currentIndex = advancedUI_->resolution->currentIndex();
   if( currentIndex != -1)
@@ -131,11 +130,11 @@ void Settings::saveAdvancedSettings()
     qDebug() << "No current index set for resolution. Using 0";
     currentIndex = 0;
   }
-  saveCameraCapabilities(settings, settings.value("video/DeviceID").toInt(), currentIndex);
+  saveCameraCapabilities(settings_.value("video/DeviceID").toInt(), currentIndex);
   //settings.sync(); // TODO is this needed?
 }
 
-void Settings::saveCameraCapabilities(QSettings& settings, int deviceIndex, int capabilityIndex)
+void Settings::saveCameraCapabilities(int deviceIndex, int capabilityIndex)
 {
   qDebug() << "Recording capability settings for deviceIndex:" << deviceIndex;
   QSize resolution = QSize(0,0);
@@ -144,13 +143,13 @@ void Settings::saveCameraCapabilities(QSettings& settings, int deviceIndex, int 
   getCapability(deviceIndex, capabilityIndex, resolution, fps, format);
   int32_t fps_int = static_cast<int>(fps);
 
-  settings.setValue("video/ResolutionID",         capabilityIndex);
+  settings_.setValue("video/ResolutionID",         capabilityIndex);
 
   // since kvazaar requires resolution to be divisible by eight
-  settings.setValue("video/ResolutionWidth",      resolution.width() - resolution.width()%8);
-  settings.setValue("video/ResolutionHeight",     resolution.height() - resolution.height()%8);
-  settings.setValue("video/Framerate",            fps_int);
-  settings.setValue("video/InputFormat",          format);
+  settings_.setValue("video/ResolutionWidth",      resolution.width() - resolution.width()%8);
+  settings_.setValue("video/ResolutionHeight",     resolution.height() - resolution.height()%8);
+  settings_.setValue("video/Framerate",            fps_int);
+  settings_.setValue("video/InputFormat",          format);
 
   qDebug() << "Recorded the following video settings: Resolution:"
            << resolution.width() - resolution.width()%8 << "x" << resolution.height() - resolution.height()%8
@@ -163,12 +162,11 @@ void Settings::restoreBasicSettings()
   //get values from QSettings
   if(checkMissingValues() && checkUserSettings())
   {
-    QSettings settings;
-    qDebug() << "Restoring previous Basic settings";
-    basicUI_->name_edit->setText      (settings.value("local/Name").toString());
-    basicUI_->username_edit->setText  (settings.value("local/Username").toString());
+    qDebug() << "Restoring previous Basic settings from file:" << settings_.fileName();
+    basicUI_->name_edit->setText      (settings_.value("local/Name").toString());
+    basicUI_->username_edit->setText  (settings_.value("local/Username").toString());
 
-    basicUI_->videoDevice->setCurrentIndex(getVideoDeviceID(settings));
+    basicUI_->videoDevice->setCurrentIndex(getVideoDeviceID());
   }
   else
   {
@@ -180,28 +178,27 @@ void Settings::restoreAdvancedSettings()
 {
   if(checkVideoSettings())
   {
-    qDebug() << "Restoring previous Advanced settings";
-    QSettings settings;
-    int index = advancedUI_->preset->findText(settings.value("video/Preset").toString());
+    qDebug() << "Restoring previous Advanced settings from file:" << settings_.fileName();
+    int index = advancedUI_->preset->findText(settings_.value("video/Preset").toString());
     if(index != -1)
       advancedUI_->preset->setCurrentIndex(index);
-    advancedUI_->threads->setText        (settings.value("video/Threads").toString());
-    advancedUI_->qp->setValue            (settings.value("video/QP").toInt());
-    advancedUI_->openhevc_threads->setText        (settings.value("video/OPENHEVC_threads").toString());
+    advancedUI_->threads->setText        (settings_.value("video/Threads").toString());
+    advancedUI_->qp->setValue            (settings_.value("video/QP").toInt());
+    advancedUI_->openhevc_threads->setText        (settings_.value("video/OPENHEVC_threads").toString());
 
-    if(settings.value("video/WPP").toString() == "1")
+    if(settings_.value("video/WPP").toString() == "1")
       advancedUI_->wpp->setChecked(true);
-    else if(settings.value("video/WPP").toString() == "0")
+    else if(settings_.value("video/WPP").toString() == "0")
       advancedUI_->wpp->setChecked(false);
-    advancedUI_->vps->setText            (settings.value("video/VPS").toString());
-    advancedUI_->intra->setText          (settings.value("video/Intra").toString());
+    advancedUI_->vps->setText            (settings_.value("video/VPS").toString());
+    advancedUI_->intra->setText          (settings_.value("video/Intra").toString());
 
-    if(settings.value("video/Slices").toString() == "1")
+    if(settings_.value("video/Slices").toString() == "1")
       advancedUI_->slices->setChecked(true);
-    else if(settings.value("video/Slices").toString() == "0")
+    else if(settings_.value("video/Slices").toString() == "0")
       advancedUI_->slices->setChecked(false);
 
-    int capabilityID = settings.value("video/ResolutionID").toInt();
+    int capabilityID = settings_.value("video/ResolutionID").toInt();
     if(advancedUI_->resolution->count() < capabilityID)
     {
       capabilityID = 0;
@@ -232,8 +229,7 @@ void Settings::showBasicSettings()
 void Settings::showAdvancedSettings()
 {
   advancedUI_->resolution->clear();
-  QSettings settings;
-  QStringList capabilities = getVideoCapabilities(getVideoDeviceID(settings));
+  QStringList capabilities = getVideoCapabilities(getVideoDeviceID());
   qDebug() << "Showing advanced settings";
   for(int i = 0; i < capabilities.size(); ++i)
   {
@@ -334,34 +330,34 @@ void Settings::getCapability(int deviceIndex,
   }
 }
 
-int Settings::getVideoDeviceID(QSettings &settings)
+int Settings::getVideoDeviceID()
 {
   initializeDeviceList();
 
-  int deviceIndex = basicUI_->videoDevice->findText(settings.value("video/Device").toString());
-  int deviceID = settings.value("video/DeviceID").toInt();
+  int deviceIndex = basicUI_->videoDevice->findText(settings_.value("video/Device").toString());
+  int deviceID = settings_.value("video/DeviceID").toInt();
 
   qDebug() << "deviceIndex:" << deviceIndex << "deviceID:" << deviceID;
-  qDebug() << "deviceName:" << settings.value("video/Device").toString();
+  qDebug() << "deviceName:" << settings_.value("video/Device").toString();
   if(deviceIndex != -1 && basicUI_->videoDevice->count() != 0)
   {
     // if we have multiple devices with same name we use id
     if(deviceID != deviceIndex
-       && basicUI_->videoDevice->itemText(deviceID) == settings.value("video/Device").toString())
+       && basicUI_->videoDevice->itemText(deviceID) == settings_.value("video/Device").toString())
     {
       return deviceID;
     }
     else
     {
       // the recorded info was false and our found device is chosen
-      settings.setValue("video/DeviceID", deviceIndex);
+      settings_.setValue("video/DeviceID", deviceIndex);
       return deviceIndex;
     }
   }
   else if(basicUI_->videoDevice->count() != 0)
   {
     // could not find the device. Choosing first one
-    settings.setValue("video/DeviceID", 0);
+    settings_.setValue("video/DeviceID", 0);
     return 0;
   }
 
@@ -371,34 +367,31 @@ int Settings::getVideoDeviceID(QSettings &settings)
 
 bool Settings::checkUserSettings()
 {
-  QSettings settings;
-  return settings.contains("local/Name")
-      && settings.contains("local/Username");
+  return settings_.contains("local/Name")
+      && settings_.contains("local/Username");
 }
 
 bool Settings::checkVideoSettings()
 {
-  QSettings settings;
   return checkMissingValues()
-      && settings.contains("video/DeviceID")
-      && settings.contains("video/Device")
-      && settings.contains("video/ResolutionWidth")
-      && settings.contains("video/ResolutionHeight")
-      && settings.contains("video/WPP")
-      && settings.contains("video/Framerate")
-      && settings.contains("video/InputFormat")
-      && settings.contains("video/Slices");
+      && settings_.contains("video/DeviceID")
+      && settings_.contains("video/Device")
+      && settings_.contains("video/ResolutionWidth")
+      && settings_.contains("video/ResolutionHeight")
+      && settings_.contains("video/WPP")
+      && settings_.contains("video/Framerate")
+      && settings_.contains("video/InputFormat")
+      && settings_.contains("video/Slices");
 }
 
 bool Settings::checkMissingValues()
 {
-  QSettings settings;
-  QStringList list = settings.allKeys();
+  QStringList list = settings_.allKeys();
 
   bool foundEverything = true;
   for(auto key : list)
   {
-    if(settings.value(key).isNull() || settings.value(key) == "")
+    if(settings_.value(key).isNull() || settings_.value(key) == "")
     {
       qDebug() << "MISSING SETTING FOR:" << key;
       foundEverything = false;

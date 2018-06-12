@@ -45,7 +45,7 @@ void SIPDialogState::createDialog(QString hostName)
 void SIPDialogState::initLocalURI()
 {
   // init stuff from the settings
-  QSettings settings;
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
 
   localUri_.realname = settings.value("local/Name").toString();
   localUri_.username = settings.value("local/Username").toString();

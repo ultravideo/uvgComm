@@ -49,7 +49,7 @@ void FilterGraph::init(VideoWidget* selfView, StatisticsInterface* stats)
 
 void FilterGraph::updateSettings()
 {
-  QSettings settings;
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
   // if the video format has changed so that we need different conversions
   if(videoFormat_ != settings.value("video/InputFormat").toString())
   {

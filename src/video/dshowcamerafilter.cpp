@@ -41,7 +41,7 @@ bool DShowCameraFilter::init()
   char **devices;
   dshow_queryDevices(&devices, &count);
 
-  QSettings settings;
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
 
   QString deviceName = settings.value("video/Device").toString();
   deviceID_ = settings.value("video/DeviceID").toInt();

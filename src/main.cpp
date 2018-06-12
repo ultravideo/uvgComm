@@ -1,6 +1,7 @@
 #include "callmanager.h"
 
 #include <QApplication>
+#include <QSettings>
 #include <QFontDatabase>
 #include <QDir>
 
@@ -28,6 +29,8 @@ int main(int argc, char *argv[])
   QCoreApplication::setOrganizationName("Ultra Video Group");
   QCoreApplication::setOrganizationDomain("ultravideo.cs.tut.fi");
   QCoreApplication::setApplicationName("Kvazzup");
+
+  QSettings::setPath(QSettings::IniFormat, QSettings::SystemScope, ".");
 
   QFile File("stylesheet.qss");
   File.open(QFile::ReadOnly);

@@ -23,7 +23,7 @@ void SIPTransactions::init(SIPTransactionUser *callControl)
 
   // listen to everything
   server_.listen(QHostAddress("0.0.0.0"), sipPort_);
-  QSettings settings;
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
   QString username = !settings.value("local/Username").isNull()
       ? settings.value("local/Username").toString() : "anonymous";
 
