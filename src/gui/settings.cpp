@@ -105,20 +105,14 @@ void Settings::saveAdvancedSettings()
 
   settings_.setValue("video/QP",             QString::number(advancedUI_->qp->value()));
 
-  if(advancedUI_->wpp->isChecked())
-    settings_.setValue("video/WPP",          "1");
-  else
-    settings_.setValue("video/WPP",          "0");
+  saveCheckBox("video/WPP", advancedUI_->wpp);
 
   if(advancedUI_->vps->text() != "")
     settings_.setValue("video/VPS",          advancedUI_->vps->text());
   if(advancedUI_->intra->text() != "")
     settings_.setValue("video/Intra",        advancedUI_->intra->text());
 
-  if(advancedUI_->slices->isChecked())
-    settings_.setValue("video/Slices",          "1");
-  else
-    settings_.setValue("video/Slices",          "0");
+  saveCheckBox("video/Slices", advancedUI_->slices);
 
   int currentIndex = advancedUI_->resolution->currentIndex();
   if( currentIndex != -1)
@@ -186,17 +180,12 @@ void Settings::restoreAdvancedSettings()
     advancedUI_->qp->setValue            (settings_.value("video/QP").toInt());
     advancedUI_->openhevc_threads->setText        (settings_.value("video/OPENHEVC_threads").toString());
 
-    if(settings_.value("video/WPP").toString() == "1")
-      advancedUI_->wpp->setChecked(true);
-    else if(settings_.value("video/WPP").toString() == "0")
-      advancedUI_->wpp->setChecked(false);
+    restoreCheckBox("video/WPP", advancedUI_->wpp);
+
     advancedUI_->vps->setText            (settings_.value("video/VPS").toString());
     advancedUI_->intra->setText          (settings_.value("video/Intra").toString());
 
-    if(settings_.value("video/Slices").toString() == "1")
-      advancedUI_->slices->setChecked(true);
-    else if(settings_.value("video/Slices").toString() == "0")
-      advancedUI_->slices->setChecked(false);
+    restoreCheckBox("video/Slices", advancedUI_->slices);
 
     int capabilityID = settings_.value("video/ResolutionID").toInt();
     if(advancedUI_->resolution->count() < capabilityID)
@@ -398,4 +387,32 @@ bool Settings::checkMissingValues()
     }
   }
   return foundEverything;
+}
+
+void Settings::restoreCheckBox(QString settingValue, QCheckBox* box)
+{
+  if(settings_.value(settingValue).toString() == "1")
+  {
+    box->setChecked(true);
+  }
+  else if(settings_.value(settingValue).toString() == "0")
+  {
+    box->setChecked(false);
+  }
+  else
+  {
+    qDebug() << "Corrupted value for checkbox in settings file for:" << settingValue << "!!!";
+  }
+}
+
+void Settings::saveCheckBox(QString settingValue, QCheckBox* box)
+{
+  if(box->isChecked())
+  {
+    settings_.setValue(settingValue,          "1");
+  }
+  else
+  {
+    settings_.setValue(settingValue,          "0");
+  }
 }

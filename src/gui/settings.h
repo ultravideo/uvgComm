@@ -7,6 +7,8 @@ class BasicSettings;
 class AdvancedSettings;
 }
 
+class QCheckBox;
+
 // TODO: Possibly separate settings ui and settings management
 // TODO: Settings of SIP server
 class Settings : public QObject
@@ -62,6 +64,9 @@ private:
   int getVideoDeviceID();
 
   void resetFaultySettings();
+
+  void restoreCheckBox(QString settingValue, QCheckBox* box);
+  void saveCheckBox(QString settingValue, QCheckBox* box);
 
   QDialog basicParent_;
   Ui::BasicSettings *basicUI_;
