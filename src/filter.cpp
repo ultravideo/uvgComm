@@ -8,7 +8,7 @@ Filter::Filter(QString id, QString name, StatisticsInterface *stats,
                DataType input, DataType output):
   name_(id + name),
   stats_(stats),
-  maxBufferSize_(10),
+  maxBufferSize_(30),
   input_(input),
   output_(output),
   waitMutex_(new QMutex),
@@ -123,7 +123,7 @@ void Filter::putInput(std::unique_ptr<Data> data)
     }
 
     ++inputDiscarded_;
-    stats_->packetDropped();
+    stats_->packetDropped(name_);
     if(inputDiscarded_ == 1 || inputDiscarded_%10 == 0)
     {
       qDebug() << name_ << "buffer full. Discarded input:"

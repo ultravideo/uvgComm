@@ -35,10 +35,11 @@ ui_(new Ui::StatisticsWindow),
   ui_->participantTable->setHorizontalHeaderItem(2, new QTableWidgetItem(QString("Audio delay")));
   ui_->participantTable->setHorizontalHeaderItem(3, new QTableWidgetItem(QString("Video delay")));
 
-  ui_->filterTable->setColumnCount(3); // more columns can be added later
+  ui_->filterTable->setColumnCount(4);
   ui_->filterTable->setHorizontalHeaderItem(0, new QTableWidgetItem(QString("Filter")));
   ui_->filterTable->setHorizontalHeaderItem(1, new QTableWidgetItem(QString("TID")));
   ui_->filterTable->setHorizontalHeaderItem(2, new QTableWidgetItem(QString("Buffer Size")));
+  ui_->filterTable->setHorizontalHeaderItem(3, new QTableWidgetItem(QString("Dropped")));
 
   ui_->filterTable->setColumnWidth(0, 240);
 }
@@ -101,10 +102,22 @@ void StatisticsWindow::addParticipant(QString ip, QString audioPort, QString vid
 
 void StatisticsWindow::addFilterTID(QString filter, uint64_t TID)
 {
+  if(buffers_.find(filter) == buffers_.end())
+  {
+    bufferMutex_.lock();
+    buffers_[filter] = FilterStatus{0,QString::number(TID),0,0};
+    bufferMutex_.unlock();
+  }
+  else
+  {
+    return;
+  }
+
   initMutex_.lock();
   ui_->filterTable->insertRow(ui_->filterTable->rowCount());
   ui_->filterTable->setItem(ui_->filterTable->rowCount() -1, 0, new QTableWidgetItem(filter));
   ui_->filterTable->setItem(ui_->filterTable->rowCount() -1, 1, new QTableWidgetItem(QString::number(TID)));
+  ui_->filterTable->setItem(ui_->filterTable->rowCount() -1, 3, new QTableWidgetItem(QString::number(0)));
   initMutex_.unlock();
 }
 
@@ -234,24 +247,34 @@ void StatisticsWindow::addReceivePacket(uint16_t size)
 void StatisticsWindow::updateBufferStatus(QString filter, uint16_t buffersize, uint16_t maxBufferSize)
 {
   bufferMutex_.lock();
-  if(buffers_.find(filter) == buffers_.end() || buffers_[filter] != buffersize)
+  if(buffers_.find(filter) != buffers_.end())
   {
-    dirtyBuffers_ = true;
-    buffers_[filter] = buffersize;
-
-    QList<QTableWidgetItem*> filter_name = ui_->filterTable->findItems(filter, Qt::MatchExactly);
-    if(filter_name.size() == 1)
+    if(buffers_[filter].bufferStatus != buffersize || buffers_[filter].bufferSize != maxBufferSize)
     {
-      ui_->filterTable->setItem(filter_name.at(0)->row(), 2,
-                                new QTableWidgetItem(QString::number(buffersize) + "/" + QString::number(maxBufferSize)));
+      dirtyBuffers_ = true;
+      buffers_[filter].bufferStatus = buffersize;
+      buffers_[filter].bufferSize = maxBufferSize;
     }
+  }
+  else
+  {
+    qDebug() << "Couldn't find correct filter for buffer status:" << filter;
   }
   bufferMutex_.unlock();
 }
 
-void StatisticsWindow::packetDropped()
+void StatisticsWindow::packetDropped(QString filter)
 {
   ++packetsDropped_;
+  if(buffers_.find(filter) != buffers_.end())
+  {
+    ++buffers_[filter].dropped;
+    dirtyBuffers_ = true;
+  }
+  else
+  {
+    qDebug() << "Couldn't find correct filter for dropped packet:" << filter;
+  }
 }
 
 void StatisticsWindow::paintEvent(QPaintEvent *event)
@@ -279,6 +302,28 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
         ++index;
       }
     }
+
+    if(dirtyBuffers_)
+    {
+      bufferMutex_.lock();
+
+      uint32_t totalBuffers = 0;
+      uint32_t row = 0;
+      for(auto& it : buffers_)
+      {
+        totalBuffers += it.second.bufferStatus;
+        ui_->filterTable->setItem(row, 0,new QTableWidgetItem(it.first));
+        ui_->filterTable->setItem(row, 1,new QTableWidgetItem(it.second.TID));
+        ui_->filterTable->setItem(row, 2,new QTableWidgetItem(QString::number(it.second.bufferStatus) +
+                                                              "/" + QString::number(it.second.bufferSize)));
+        ui_->filterTable->setItem(row, 3,new QTableWidgetItem(QString::number(it.second.dropped)));
+        ++row;
+      }
+
+      ui_->buffer_sizes_value->setText(QString::number(totalBuffers));
+      dirtyBuffers_ = false;
+      bufferMutex_.unlock();
+    }
   }
 
   if(audioIndex_%20 == 0)
@@ -294,21 +339,4 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
   ui_->data_received_value->setText( QString::number(receivedData_));
   ui_->packets_skipped_value->setText(QString::number(packetsDropped_));
 
-  if(dirtyBuffers_)
-  {
-    bufferMutex_.lock();
-    ui_->buffer_sizes_value->setText( QString::number(totalBuffers()));
-    dirtyBuffers_ = false;
-    bufferMutex_.unlock();
-  }
-}
-
-uint32_t StatisticsWindow::totalBuffers()
-{
-  uint32_t total = 0;
-  for(auto& it : buffers_)
-  {
-    total += it.second;
-  }
-  return total;
 }

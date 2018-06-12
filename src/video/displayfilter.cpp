@@ -23,6 +23,9 @@ DisplayFilter::~DisplayFilter()
 
 void DisplayFilter::process()
 {
+  // TODO: The display should try to mimic the framerate if possible,
+  // without adding too much latency
+
   std::unique_ptr<Data> input = getInput();
   while(input)
   {

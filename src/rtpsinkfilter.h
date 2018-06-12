@@ -6,7 +6,7 @@
 class RTPSinkFilter : public Filter, public MediaSink
 {
 public:
-  RTPSinkFilter(QString id, StatisticsInterface* stats, UsageEnvironment& env, DataType type);
+  RTPSinkFilter(QString id, StatisticsInterface* stats, UsageEnvironment& env, DataType type, QString media);
 
   virtual ~RTPSinkFilter();
 

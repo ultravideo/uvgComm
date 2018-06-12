@@ -9,12 +9,13 @@
 
 const uint32_t BUFFER_SIZE = 10*65536;
 
-RTPSinkFilter::RTPSinkFilter(QString id, StatisticsInterface *stats, UsageEnvironment& env, DataType type):
-  Filter(id, "RTP_Sink", stats, NONE, type),
+RTPSinkFilter::RTPSinkFilter(QString id, StatisticsInterface *stats, UsageEnvironment& env, DataType type, QString media):
+  Filter(id, "RTP_Sink_" + media, stats, NONE, type),
   MediaSink(env),
   type_(type)
 {
   fReceiveBuffer = new u_int8_t[BUFFER_SIZE];
+  stats_->addFilterTID(name_, (uint64_t)currentThreadId());
 }
 
 RTPSinkFilter::~RTPSinkFilter()

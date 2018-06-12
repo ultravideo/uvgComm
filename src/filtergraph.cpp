@@ -24,6 +24,7 @@ FilterGraph::FilterGraph():
   audioSend_(),
   selfView_(NULL),
   stats_(NULL),
+  conversionIndex_(0),
   format_()
 {
   // TODO negotiate these values with all included filters and SDP
@@ -174,17 +175,21 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
 
       Q_ASSERT(graph.at(connectIndex)->outputType() != NONE);
 
+      // TODO: Check the out connections of connected filter for an already existing conversion.
+
       if(graph.at(connectIndex)->outputType() == RGB32VIDEO &&
          filter->inputType() == YUVVIDEO)
       {
         qDebug() << "Found RGB32 to YUV conversion needed";
-        addToGraph(std::shared_ptr<Filter>(new RGB32toYUV("", stats_)), graph, connectIndex);
+        addToGraph(std::shared_ptr<Filter>(new RGB32toYUV("", stats_, conversionIndex_)), graph, connectIndex);
+        ++conversionIndex_;
       }
       else if(graph.at(connectIndex)->outputType() == YUVVIDEO &&
               filter->inputType() == RGB32VIDEO)
       {
         qDebug() << "Found RGB32 to YUV conversion needed";
-        addToGraph(std::shared_ptr<Filter>(new YUVtoRGB32("", stats_)), graph, connectIndex);
+        addToGraph(std::shared_ptr<Filter>(new YUVtoRGB32("", stats_, conversionIndex_)), graph, connectIndex);
+        ++conversionIndex_;
       }
       else
       {

@@ -447,19 +447,23 @@ RTPStreamer::Receiver* RTPStreamer::addReceiver(in_addr peerAddress, uint16_t po
 
   unsigned int estimatedSessionBandwidth = 10000; // in kbps; for RTCP b/w share
   // todo: negotiate payload number
+  QString mediaName = QString::number(port);
   switch(type)
   {
   case HEVCVIDEO :
     receiver->framedSource = H265VideoRTPSource::createNew(*env_, receiver->connection.rtpGroupsock, 96);
+    mediaName += "_HEVC";
     break;
   case RAWAUDIO :
     receiver->framedSource = SimpleRTPSource::createNew(*env_, receiver->connection.rtpGroupsock, 0,
                                                         48000, "audio/PCM", 0, True);
+    mediaName += "_RAW_AUDIO";
     break;
   case OPUSAUDIO :
     receiver->framedSource = SimpleRTPSource::createNew(*env_, receiver->connection.rtpGroupsock, 97,
                                                         48000, "audio/OPUS", 0, True);
     estimatedSessionBandwidth = 200; // in kbps; for RTCP b/w share
+    mediaName += "_OPUS";
     break;
   default :
     qWarning() << "Warning: RTP support not implemented for this format";
@@ -472,7 +476,7 @@ RTPStreamer::Receiver* RTPStreamer::addReceiver(in_addr peerAddress, uint16_t po
 
   // shared_ptr which does not release
   receiver->sink
-      = std::shared_ptr<RTPSinkFilter>(new RTPSinkFilter(ip_str + "_", stats_, *env_, type),
+      = std::shared_ptr<RTPSinkFilter>(new RTPSinkFilter(ip_str + "_", stats_, *env_, type, mediaName),
                                        [](RTPSinkFilter*){});
 
   // This starts RTCP running automatically

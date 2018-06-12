@@ -50,5 +50,5 @@ public:
   virtual void updateBufferStatus(QString filter, uint16_t buffersize, uint16_t maxBufferSize) = 0;
 
   // Tracking of packets dropped due to buffer overflow
-  virtual void packetDropped() = 0;
+  virtual void packetDropped(QString filter) = 0;
 };

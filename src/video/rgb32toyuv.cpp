@@ -4,8 +4,8 @@
 
 #include <QtDebug>
 
-RGB32toYUV::RGB32toYUV(QString id, StatisticsInterface *stats) :
-  Filter(id, "RGB32toYUV", stats, RGB32VIDEO, YUVVIDEO),
+RGB32toYUV::RGB32toYUV(QString id, StatisticsInterface *stats, uint32_t peer) :
+  Filter(id, "RGB32toYUV_" + QString::number(peer), stats, RGB32VIDEO, YUVVIDEO),
   sse_(true)
 {}
 

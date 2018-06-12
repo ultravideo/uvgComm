@@ -33,7 +33,7 @@ public:
   virtual void addReceivePacket(uint16_t size);
   virtual void addFilterTID(QString filter, uint64_t TID);
   virtual void updateBufferStatus(QString filter, uint16_t buffersize, uint16_t maxBufferSize);
-  virtual void packetDropped();
+  virtual void packetDropped(QString filter);
 
 private:
 
@@ -57,7 +57,15 @@ private:
 
   Ui::StatisticsWindow *ui_;
 
-  std::map<QString, uint16_t> buffers_;
+  struct FilterStatus
+  {
+    uint32_t bufferStatus;
+    QString TID;
+    uint32_t bufferSize;
+    uint32_t dropped;
+  };
+
+  std::map<QString, FilterStatus> buffers_;
 
   // mutexes to prevent simultanious recording of certain statistics
   QMutex initMutex_;
