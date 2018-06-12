@@ -20,9 +20,7 @@ KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats):
   input_pic_(NULL),
   framerate_num_(30),
   framerate_denom_(1)
-{
-  maxBufferSize_ = 3;
-}
+{}
 
 void KvazaarFilter::updateSettings()
 {

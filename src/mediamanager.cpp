@@ -61,7 +61,7 @@ void MediaManager::addParticipant(uint32_t sessionID, in_addr ip, uint16_t sendA
 
   qDebug() << "Creating connections for ID:" << sessionID;
   std::shared_ptr<Filter> videoFramedSource = streamer_->addSendVideo(sessionID, sendVideoPort);
-  std::shared_ptr<Filter> videoSink =streamer_->addReceiveVideo(sessionID, recvVideoPort);
+  std::shared_ptr<Filter> videoSink = streamer_->addReceiveVideo(sessionID, recvVideoPort);
   std::shared_ptr<Filter> audioFramedSource = streamer_->addSendAudio(sessionID, sendAudioPort);
   std::shared_ptr<Filter> audioSink = streamer_->addReceiveAudio(sessionID, recvAudioPort);
 
@@ -74,8 +74,7 @@ void MediaManager::addParticipant(uint32_t sessionID, in_addr ip, uint16_t sendA
 
   qDebug() << " ================== Participant added with ID:" << sessionID << "===========================";
 
-  // not working at the moment.
-  //fg_->print();
+  fg_->print();
 }
 
 void MediaManager::removeParticipant(uint32_t sessionID)

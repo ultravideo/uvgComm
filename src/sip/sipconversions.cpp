@@ -1,4 +1,4 @@
-#include <sipconversions.h>
+#include <sip/sipconversions.h>
 
 #include <QDebug>
 

@@ -136,6 +136,7 @@ QT += svg
 QMAKE_CXXFLAGS += -std=c++11
 QMAKE_CXXFLAGS += -msse4.1 -mavx2
 
+# may need a rebuild
 #CONFIG += console
 
 INCLUDEPATH += $$PWD/../include/openhevc_dec

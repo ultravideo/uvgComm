@@ -19,6 +19,7 @@ CameraFilter::CameraFilter(QString id, StatisticsInterface *stats):
 
   if(cameras.size() == 0)
   {
+    qDebug() << "No camera found!";
     return;
   }
 

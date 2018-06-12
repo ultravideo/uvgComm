@@ -68,6 +68,7 @@ void FramedSourceFilter::doGetNextFrame()
       fNumTruncatedBytes = 0;
     }
 
+    // TODO: move rest to filter thread somehow?
     memcpy(fTo, frame->data.get(), fFrameSize);
     stats_->addSendPacket(frame->data_size);
   }
