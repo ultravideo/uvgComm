@@ -69,16 +69,16 @@ void Settings::saveBasicSettings()
   qDebug() << "Saving basic Settings";
 
   // Local settings
-  if(basicUI_->name_edit->text() != "")
-    settings_.setValue("local/Name",         basicUI_->name_edit->text());
-  if(basicUI_->username_edit->text() != "")
-    settings_.setValue("local/Username",     basicUI_->username_edit->text());
+
+  saveTextValue("local/Name", basicUI_->name_edit->text());
+  saveTextValue("local/Username", basicUI_->username_edit->text());
+
   int currentIndex = basicUI_->videoDevice->currentIndex();
   if( currentIndex != -1)
   {
     settings_.setValue("video/DeviceID",      currentIndex);
 
-    if(basicUI_->videoDevice->currentText() != settings_.value("video/Device") )
+    if(basicUI_->videoDevice->currentText() != settings_.value("video/Device"))
     {
       settings_.setValue("video/Device",        basicUI_->videoDevice->currentText());
       // set capability to first
@@ -95,24 +95,15 @@ void Settings::saveAdvancedSettings()
   qDebug() << "Saving advanced Settings";
 
   // Video settings
-  settings_.setValue("video/Preset",       advancedUI_->preset->currentText());
+  saveTextValue("video/Threads",               advancedUI_->threads->text());
+  saveTextValue("video/OPENHEVC_threads",      advancedUI_->openhevc_threads->text());
+  saveTextValue("video/VPS",                   advancedUI_->vps->text());
+  saveTextValue("video/Intra",                 advancedUI_->intra->text());
+  saveCheckBox("video/WPP",                    advancedUI_->wpp);
+  saveCheckBox("video/Slices",                 advancedUI_->slices);
 
-  if(advancedUI_->threads->text() != "")
-    settings_.setValue("video/Threads",      advancedUI_->threads->text());
-
-  if(advancedUI_->openhevc_threads->text() != "")
-    settings_.setValue("video/OPENHEVC_threads",      advancedUI_->openhevc_threads->text());
-
-  settings_.setValue("video/QP",             QString::number(advancedUI_->qp->value()));
-
-  saveCheckBox("video/WPP", advancedUI_->wpp);
-
-  if(advancedUI_->vps->text() != "")
-    settings_.setValue("video/VPS",          advancedUI_->vps->text());
-  if(advancedUI_->intra->text() != "")
-    settings_.setValue("video/Intra",        advancedUI_->intra->text());
-
-  saveCheckBox("video/Slices", advancedUI_->slices);
+  settings_.setValue("video/QP",               QString::number(advancedUI_->qp->value()));
+  settings_.setValue("video/Preset",           advancedUI_->preset->currentText());
 
   int currentIndex = advancedUI_->resolution->currentIndex();
   if( currentIndex != -1)
@@ -389,7 +380,7 @@ bool Settings::checkMissingValues()
   return foundEverything;
 }
 
-void Settings::restoreCheckBox(QString settingValue, QCheckBox* box)
+void Settings::restoreCheckBox(const QString settingValue, QCheckBox* box)
 {
   if(settings_.value(settingValue).toString() == "1")
   {
@@ -405,7 +396,7 @@ void Settings::restoreCheckBox(QString settingValue, QCheckBox* box)
   }
 }
 
-void Settings::saveCheckBox(QString settingValue, QCheckBox* box)
+void Settings::saveCheckBox(const QString settingValue, QCheckBox* box)
 {
   if(box->isChecked())
   {
@@ -414,5 +405,14 @@ void Settings::saveCheckBox(QString settingValue, QCheckBox* box)
   else
   {
     settings_.setValue(settingValue,          "0");
+  }
+}
+
+
+void Settings::saveTextValue(const QString settingValue, const QString &text)
+{
+  if(text != "")
+  {
+    settings_.setValue(settingValue,  text);
   }
 }

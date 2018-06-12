@@ -65,8 +65,11 @@ private:
 
   void resetFaultySettings();
 
-  void restoreCheckBox(QString settingValue, QCheckBox* box);
-  void saveCheckBox(QString settingValue, QCheckBox* box);
+  void restoreCheckBox(const QString settingValue, QCheckBox* box);
+  void saveCheckBox(const QString settingValue, QCheckBox* box);
+
+  void saveTextValue(const QString settingValue, const QString &text);
+
 
   QDialog basicParent_;
   Ui::BasicSettings *basicUI_;
