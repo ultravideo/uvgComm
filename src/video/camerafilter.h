@@ -17,6 +17,9 @@ public:
   virtual void start();
   virtual void stop();
 
+  void scaleFrame(const QVideoFrame &cloneFrame, Data *newImage, QSize resolution);
+
+  void printSupportedFormats();
 private slots:
   // qcamera calls this when frame available
   void handleFrame(const QVideoFrame &frame);
@@ -29,4 +32,7 @@ private:
   CameraFrameGrabber *cameraFrameGrabber_;
 
   uint16_t framerate_;
+
+  QMutex frameMutex_;
+  std::deque<QVideoFrame> frames_;
 };
