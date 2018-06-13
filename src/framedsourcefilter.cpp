@@ -13,7 +13,7 @@ FramedSourceFilter::FramedSourceFilter(QString id, StatisticsInterface* stats,
   type_(type)
 {
   updateSettings();
-  stats_->addFilterTID(name_, (uint64_t)currentThreadId());
+  stats_->addFilter(name_, (uint64_t)currentThreadId());
 }
 
 void FramedSourceFilter::updateSettings()
@@ -68,7 +68,7 @@ void FramedSourceFilter::doGetNextFrame()
       fNumTruncatedBytes = 0;
     }
 
-    // TODO: move rest to filter thread somehow?
+    // TODO: move to filter thread somehow?
     memcpy(fTo, frame->data.get(), fFrameSize);
     stats_->addSendPacket(frame->data_size);
   }

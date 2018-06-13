@@ -55,10 +55,10 @@ void DisplayFilter::process()
       int32_t delay = QDateTime::currentMSecsSinceEpoch() -
           (input->presentationTime.tv_sec * 1000 + input->presentationTime.tv_usec/1000);
 
+      widget_->inputImage(std::move(input->data), image);
+
       if( peer_ != 1111)
         stats_->receiveDelay(peer_, "Video", delay);
-
-      widget_->inputImage(std::move(input->data), image);
     }
     input = getInput();
   }

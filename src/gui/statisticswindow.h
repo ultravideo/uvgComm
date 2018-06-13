@@ -31,7 +31,8 @@ public:
   virtual void addEncodedPacket(QString type, uint16_t size);
   virtual void addSendPacket(uint16_t size);
   virtual void addReceivePacket(uint16_t size);
-  virtual void addFilterTID(QString filter, uint64_t TID);
+  virtual void addFilter(QString filter, uint64_t TID);
+  virtual void removeFilter(QString filter);
   virtual void updateBufferStatus(QString filter, uint16_t buffersize, uint16_t maxBufferSize);
   virtual void packetDropped(QString filter);
 
@@ -97,4 +98,7 @@ private:
 
   float lastVideoFrameRate_;
   float lastAudioFrameRate_;
+
+  uint16_t audioEncDelay_;
+  uint16_t videoEncDelay_;
 };

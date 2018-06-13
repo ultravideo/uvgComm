@@ -209,7 +209,7 @@ void Filter::stop()
 
 void Filter::run()
 {
-  stats_->addFilterTID(name_, (uint64_t)currentThreadId());
+  stats_->addFilter(name_, (uint64_t)currentThreadId());
 
   running_ = true;
   while(running_)
@@ -219,6 +219,8 @@ void Filter::run()
 
     process();
   }
+
+  stats_->removeFilter(name_);
 }
 
 Data* Filter::shallowDataCopy(Data* original)

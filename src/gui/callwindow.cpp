@@ -41,10 +41,13 @@ void CallWindow::init(ParticipantInterface *partInt)
   ui_->Add_contact_widget->setVisible(false);
 
   // GUI updates are handled solely by timer
-  timer_->setInterval(30);
+  // TODO: there should be a better way.
+  // The update method does not seem to work in videowidget so this is needed
+  timer_->setInterval(80);
   timer_->setSingleShot(false);
   connect(timer_, SIGNAL(timeout()), ui_->participants, SLOT(update()));
   connect(timer_, SIGNAL(timeout()), ui_->SelfView, SLOT(update()));
+  connect(timer_, SIGNAL(timeout()), statsWindow_, SLOT(update()));
   timer_->start();
 
   setWindowTitle("Kvazzup");

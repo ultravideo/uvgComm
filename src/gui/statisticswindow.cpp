@@ -8,6 +8,8 @@
 
 const int BUFFERSIZE = 65536;
 
+const uint16_t UPDATEFREQUENCY = 40;
+
 StatisticsWindow::StatisticsWindow(QWidget *parent) :
 QDialog(parent),
 StatisticsInterface(),
@@ -25,15 +27,17 @@ ui_(new Ui::StatisticsWindow),
   lastVideoBitrate_(0),
   lastAudioBitrate_(0),
   lastVideoFrameRate_(0.0f),
-  lastAudioFrameRate_(0.0f)
+  lastAudioFrameRate_(0.0f),
+  audioEncDelay_(0),
+  videoEncDelay_(0)
 {
   ui_->setupUi(this);
-  ui_->participantTable->setColumnCount(4); // more columns can be added later
+  ui_->participantTable->setColumnCount(5);
   ui_->participantTable->setHorizontalHeaderItem(0, new QTableWidgetItem(QString("IP")));
   ui_->participantTable->setHorizontalHeaderItem(1, new QTableWidgetItem(QString("AudioPort")));
-  ui_->participantTable->setHorizontalHeaderItem(1, new QTableWidgetItem(QString("VideoPort")));
-  ui_->participantTable->setHorizontalHeaderItem(2, new QTableWidgetItem(QString("Audio delay")));
-  ui_->participantTable->setHorizontalHeaderItem(3, new QTableWidgetItem(QString("Video delay")));
+  ui_->participantTable->setHorizontalHeaderItem(2, new QTableWidgetItem(QString("VideoPort")));
+  ui_->participantTable->setHorizontalHeaderItem(3, new QTableWidgetItem(QString("Audio delay")));
+  ui_->participantTable->setHorizontalHeaderItem(4, new QTableWidgetItem(QString("Video delay")));
 
   ui_->filterTable->setColumnCount(4);
   ui_->filterTable->setHorizontalHeaderItem(0, new QTableWidgetItem(QString("Filter")));
@@ -64,6 +68,7 @@ void StatisticsWindow::addNextInterface(StatisticsInterface* next)
 
 void StatisticsWindow::videoInfo(double framerate, QSize resolution)
 {
+  // done only once, so setting ui directly is ok.
   framerate_ = framerate;
   ui_->framerate_value->setText( QString::number(framerate)+" fps");
   ui_->resolution_value->setText( QString::number(resolution.width()) + "x"
@@ -100,7 +105,7 @@ void StatisticsWindow::addParticipant(QString ip, QString audioPort, QString vid
   initMutex_.unlock();
 }
 
-void StatisticsWindow::addFilterTID(QString filter, uint64_t TID)
+void StatisticsWindow::addFilter(QString filter, uint64_t TID)
 {
   if(buffers_.find(filter) == buffers_.end())
   {
@@ -121,6 +126,15 @@ void StatisticsWindow::addFilterTID(QString filter, uint64_t TID)
   initMutex_.unlock();
 }
 
+void StatisticsWindow::removeFilter(QString filter)
+{
+  initMutex_.lock();
+  ui_->filterTable->removeRow(ui_->filterTable->rowCount() - 1);
+  initMutex_.unlock();
+
+  buffers_.erase(filter);
+}
+
 void StatisticsWindow::removeParticipant(QString ip)
 {
   initMutex_.lock();
@@ -139,15 +153,11 @@ void StatisticsWindow::sendDelay(QString type, uint32_t delay)
 {
   if(type == "video" || type == "Video")
   {
-    sendMutex_.lock();
-    ui_->encode_delay_value->setText( QString::number(delay) + " ms." );
-    sendMutex_.unlock();
+    videoEncDelay_ = delay;
   }
   else if(type == "audio" || type == "Audio")
   {
-    sendMutex_.lock();
-    ui_->audio_delay_value->setText( QString::number(delay) + " ms." );
-    sendMutex_.unlock();
+    audioEncDelay_ = delay;
   }
 }
 
@@ -281,7 +291,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 {
   Q_UNUSED(event)
 
-  if(videoIndex_%15 == 0)
+  if(videoIndex_%UPDATEFREQUENCY == 0)
   {
     lastVideoBitrate_ = bitrate(videoPackets_, videoIndex_, lastVideoFrameRate_);
     ui_->video_bitrate_value->setText
@@ -324,13 +334,13 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
       dirtyBuffers_ = false;
       bufferMutex_.unlock();
     }
-  }
 
-  if(audioIndex_%20 == 0)
-  {
     lastAudioBitrate_ = bitrate(audioPackets_, audioIndex_, lastAudioFrameRate_);
     ui_->audio_bitrate_value->setText
       ( QString::number(lastAudioBitrate_) + " kbit/s" );
+
+    ui_->encode_delay_value->setText( QString::number(videoEncDelay_) + " ms." );
+    ui_->audio_delay_value->setText( QString::number(audioEncDelay_) + " ms." );
   }
 
   ui_->packets_sent_value->setText( QString::number(sendPacketCount_));
@@ -338,5 +348,4 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
   ui_->packets_received_value->setText( QString::number(receivePacketCount_));
   ui_->data_received_value->setText( QString::number(receivedData_));
   ui_->packets_skipped_value->setText(QString::number(packetsDropped_));
-
 }
