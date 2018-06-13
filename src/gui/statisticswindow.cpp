@@ -8,8 +8,6 @@
 
 const int BUFFERSIZE = 65536;
 
-const uint16_t UPDATEFREQUENCY = 40;
-
 StatisticsWindow::StatisticsWindow(QWidget *parent) :
 QDialog(parent),
 StatisticsInterface(),
@@ -29,7 +27,10 @@ ui_(new Ui::StatisticsWindow),
   lastVideoFrameRate_(0.0f),
   lastAudioFrameRate_(0.0f),
   audioEncDelay_(0),
-  videoEncDelay_(0)
+  videoEncDelay_(0),
+  guiTimer_(),
+  lastDrawTime_(0),
+  guiFrequency_(1000)
 {
   ui_->setupUi(this);
   ui_->participantTable->setColumnCount(5);
@@ -46,6 +47,8 @@ ui_(new Ui::StatisticsWindow),
   ui_->filterTable->setHorizontalHeaderItem(3, new QTableWidgetItem(QString("Dropped")));
 
   ui_->filterTable->setColumnWidth(0, 240);
+
+  guiTimer_.start();
 }
 
 StatisticsWindow::~StatisticsWindow()
@@ -291,8 +294,11 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 {
   Q_UNUSED(event)
 
-  if(videoIndex_%UPDATEFREQUENCY == 0)
+  if(lastDrawTime_ + guiFrequency_ < guiTimer_.elapsed())
   {
+    // no need to catch up if we are falling behind, instead just reset the clock
+    lastDrawTime_ = guiTimer_.elapsed();
+
     lastVideoBitrate_ = bitrate(videoPackets_, videoIndex_, lastVideoFrameRate_);
     ui_->video_bitrate_value->setText
       ( QString::number(lastVideoBitrate_) + " kbit/s" );

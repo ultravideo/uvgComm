@@ -3,6 +3,7 @@
 
 #include <QDialog>
 #include <QMutex>
+#include <QTime>
 
 class QStringListModel;
 
@@ -101,4 +102,8 @@ private:
 
   uint16_t audioEncDelay_;
   uint16_t videoEncDelay_;
+
+  QTime guiTimer_;
+  uint32_t lastDrawTime_;
+  uint32_t guiFrequency_;
 };
