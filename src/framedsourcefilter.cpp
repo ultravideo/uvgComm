@@ -11,12 +11,13 @@
 
 
 FramedSourceFilter::FramedSourceFilter(QString id, StatisticsInterface* stats,
-                                       UsageEnvironment &env, DataType type, QString media):
+                                       UsageEnvironment &env, DataType type, QString media, QMutex* triggerMutex):
   FramedSource(env),
   Filter(id, "Framed_Source_" + media, stats, type, NONE),
   type_(type),
   afterEvent_(),
-  separateInput_(true)
+  separateInput_(true),
+  triggerMutex_(triggerMutex)
 {
   updateSettings();
   afterEvent_ = envir().taskScheduler().createEventTrigger((TaskFunc*)FramedSource::afterGetting);
@@ -83,7 +84,9 @@ void FramedSourceFilter::process()
       copyFrameToBuffer(std::move(currentFrame));
       currentFrame = NULL;
       // trigger the live555 to send the copied frame.
+      triggerMutex_->lock();
       envir().taskScheduler().triggerEvent(afterEvent_, this);
+      triggerMutex_->unlock();
 
       if(framePointerReady_.tryAcquire(1))
       {

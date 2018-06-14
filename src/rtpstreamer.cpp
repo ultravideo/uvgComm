@@ -37,6 +37,13 @@ RTPStreamer::RTPStreamer():
 
   gethostname((char*)CNAME_, maxCNAMElen_);
   CNAME_[maxCNAMElen_] = '\0'; // just in case
+
+  triggerMutex_ = new QMutex;
+}
+
+RTPStreamer::~RTPStreamer()
+{
+  delete triggerMutex_;
 }
 
  // QThread run function
@@ -414,7 +421,7 @@ RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType 
 
   // shared_ptr which does not release
   sender->sourcefilter
-      = std::shared_ptr<FramedSourceFilter>(new FramedSourceFilter(ip_str + "_", stats_, *env_, type, mediaName),
+      = std::shared_ptr<FramedSourceFilter>(new FramedSourceFilter(ip_str + "_", stats_, *env_, type, mediaName, triggerMutex_),
                                             [](FramedSourceFilter*){});
   const unsigned int estimatedSessionBandwidth = 5000; // in kbps; for RTCP b/w share
   // This starts RTCP running automatically

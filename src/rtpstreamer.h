@@ -20,7 +20,7 @@ class RTPStreamer : public QThread
 
 public:
   RTPStreamer();
-
+  ~RTPStreamer();
   void init(StatisticsInterface* stats);
   void uninit();
   void run();
@@ -121,4 +121,6 @@ private:
 
   static const unsigned int maxCNAMElen_ = 100;
   unsigned char CNAME_[maxCNAMElen_ + 1];
+
+  QMutex* triggerMutex_;
 };

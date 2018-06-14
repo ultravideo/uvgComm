@@ -11,7 +11,7 @@ class FramedSourceFilter : public FramedSource, public Filter
 {
 public:
   FramedSourceFilter(QString id, StatisticsInterface* stats,
-                     UsageEnvironment &env, DataType type, QString media);
+                     UsageEnvironment &env, DataType type, QString media, QMutex* triggerMutex);
 
 
 
@@ -38,6 +38,8 @@ private:
   QSemaphore framePointerReady_;
 
   EventTriggerId afterEvent_;
+
+  QMutex* triggerMutex_;
 
   bool separateInput_;
 };
