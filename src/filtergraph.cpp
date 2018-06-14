@@ -284,6 +284,7 @@ void FilterGraph::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoF
   peers_.at(sessionID - 1)->videoFramedSource = videoFramedSource;
 
   videoSend_.back()->addOutConnection(videoFramedSource);
+  videoFramedSource->start();
 }
 
 void FilterGraph::receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> videoSink,
@@ -332,6 +333,7 @@ void FilterGraph::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioF
   peers_.at(sessionID - 1)->audioFramedSource = audioFramedSource;
 
   audioSend_.back()->addOutConnection(audioFramedSource);
+  audioFramedSource->start();
 }
 
 void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> audioSink)
@@ -506,7 +508,7 @@ void FilterGraph::destroyPeer(Peer* peer)
   {
     audioSend_.back()->removeOutConnection(peer->audioFramedSource);
     //peer->audioFramedSource is destroyed by RTPStreamer
-    peer->audioFramedSource->stop();
+    changeState(peer->audioFramedSource, false);
     peer->audioFramedSource = 0;
 
     if(AEC_ENABLED)
@@ -517,7 +519,7 @@ void FilterGraph::destroyPeer(Peer* peer)
   if(peer->videoFramedSource)
   {
     videoSend_.back()->removeOutConnection(peer->videoFramedSource);
-    peer->videoFramedSource->stop();
+    changeState(peer->videoFramedSource, false);
     //peer->videoFramedSource is destroyed by RTPStreamer
     peer->videoFramedSource = 0;
   }

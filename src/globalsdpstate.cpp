@@ -239,8 +239,8 @@ void GlobalSDPState::makePortPairAvailable(uint16_t lowerPort)
 {
   if(lowerPort != 0)
   {
-    qDebug() << "Freed ports:" << lowerPort << "/" << lowerPort + 1
-             << "Ports available:" << remainingPorts_;
+    //qDebug() << "Freed ports:" << lowerPort << "/" << lowerPort + 1
+    //         << "Ports available:" << remainingPorts_;
     portLock_.lock();
     availablePorts_.push_back(lowerPort);
     remainingPorts_ += 2;

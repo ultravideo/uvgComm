@@ -2,6 +2,10 @@
 
 #include "statisticsinterface.h"
 
+#include "common.h"
+
+#include <UsageEnvironment.hh>
+
 #include <QSettings>
 #include <QDebug>
 
@@ -10,10 +14,12 @@ FramedSourceFilter::FramedSourceFilter(QString id, StatisticsInterface* stats,
                                        UsageEnvironment &env, DataType type, QString media):
   FramedSource(env),
   Filter(id, "Framed_Source_" + media, stats, type, NONE),
-  type_(type)
+  type_(type),
+  afterEvent_(),
+  separateInput_(true)
 {
   updateSettings();
-  stats_->addFilter(name_, (uint64_t)currentThreadId());
+  afterEvent_ = envir().taskScheduler().createEventTrigger((TaskFunc*)FramedSource::afterGetting);
 }
 
 void FramedSourceFilter::updateSettings()
@@ -41,41 +47,66 @@ void FramedSourceFilter::updateSettings()
 
 void FramedSourceFilter::doGetNextFrame()
 {
-  std::unique_ptr<Data> frame = getInput();
-
-  fFrameSize = 0;
-  if(frame)
+  // The fTo pointer is actually given as a pointer to be put data
+  // so replacing the pointer does nothing.
+  if(separateInput_)
   {
+    framePointerReady_.release();
+  }
+  else
+  {
+    std::unique_ptr<Data> currentFrame = getInput();
+    copyFrameToBuffer(std::move(currentFrame));
+    envir().taskScheduler().scheduleDelayedTask(1, (TaskFunc*)FramedSource::afterGetting, this);
+  }
+}
 
-    fPresentationTime = frame->presentationTime;
-    if(frame->framerate != 0)
+void FramedSourceFilter::process()
+{
+  // There is no way to copy the data here, because the
+  // pointer is given only after doGetNextFrame is called
+  if(separateInput_)
+  {
+    std::unique_ptr<Data> currentFrame = getInput();
+    while(currentFrame && framePointerReady_.tryAcquire(1))
+    {
+      copyFrameToBuffer(std::move(currentFrame));
+      currentFrame = getInput();
+
+      // trigger the live555 to send the copied frame.
+      envir().taskScheduler().triggerEvent(afterEvent_, this);
+    }
+  }
+}
+
+void FramedSourceFilter::copyFrameToBuffer(std::unique_ptr<Data> currentFrame)
+{
+  fFrameSize = 0;
+  if(currentFrame)
+  {
+    fPresentationTime = currentFrame->presentationTime;
+    if(currentFrame->framerate != 0)
     {
       //1000000/framerate is the correct length but
       // 0 works with slices
       fDurationInMicroseconds = 0;
     }
 
-    if(frame->data_size > fMaxSize)
+    if(currentFrame->data_size > fMaxSize)
     {
       fFrameSize = fMaxSize;
-      fNumTruncatedBytes = frame->data_size - fMaxSize;
+      fNumTruncatedBytes = currentFrame->data_size - fMaxSize;
       qDebug() << "WARNING: Requested sending larger packet than possible:"
-               << frame->data_size << "/" << fMaxSize;
+               << currentFrame->data_size << "/" << fMaxSize;
     }
     else
     {
-      fFrameSize = frame->data_size;
+      fFrameSize = currentFrame->data_size;
       fNumTruncatedBytes = 0;
     }
 
-    // TODO: move to filter thread somehow?
-    memcpy(fTo, frame->data.get(), fFrameSize);
-    stats_->addSendPacket(frame->data_size);
+    memcpy(fTo, currentFrame->data.get(), fFrameSize);
+
+    stats_->addSendPacket(fFrameSize);
   }
-
-  nextTask() = envir().taskScheduler().scheduleDelayedTask(1,
-  (TaskFunc*)FramedSource::afterGetting, this);
 }
-
-void FramedSourceFilter::process()
-{}
