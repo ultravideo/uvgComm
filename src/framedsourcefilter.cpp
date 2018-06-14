@@ -21,6 +21,8 @@ FramedSourceFilter::FramedSourceFilter(QString id, StatisticsInterface* stats,
   updateSettings();
   afterEvent_ = envir().taskScheduler().createEventTrigger((TaskFunc*)FramedSource::afterGetting);
   qDebug() << "Creating trigger:" << afterEvent_;
+
+  maxBufferSize_ = -1;
 }
 
 void FramedSourceFilter::updateSettings()
@@ -52,7 +54,6 @@ void FramedSourceFilter::doGetNextFrame()
   // so replacing the pointer does nothing.
   if(separateInput_)
   {
-    //qDebug() << "Releasing:" << afterEvent_;
     framePointerReady_.release();
   }
   else
@@ -70,16 +71,32 @@ void FramedSourceFilter::process()
   if(separateInput_ && framePointerReady_.tryAcquire(1))
   {
     std::unique_ptr<Data> currentFrame = getInput();
+
+    if(currentFrame == NULL)
+    {
+      framePointerReady_.release();
+      qDebug() << "Releasing because input was not available. Available:" << framePointerReady_.available();
+    }
+
     while(currentFrame)
     {
       copyFrameToBuffer(std::move(currentFrame));
-
+      currentFrame = NULL;
       // trigger the live555 to send the copied frame.
       envir().taskScheduler().triggerEvent(afterEvent_, this);
 
       if(framePointerReady_.tryAcquire(1))
       {
         currentFrame = getInput();
+        if(currentFrame == NULL)
+        {
+          framePointerReady_.release();
+          qDebug() << "Releasing because input not available. Available:" << framePointerReady_.available();
+        }
+        else
+        {
+          qDebug() << "Processing additional frames:" << name_ << "Available:" << framePointerReady_.available();
+        }
       }
       else
       {
