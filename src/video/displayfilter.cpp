@@ -50,12 +50,13 @@ void DisplayFilter::process()
             input->height,
             format);
 
+      input->data.release(); // the image takes ownership of the data
       image = image.mirrored(horizontalMirroring_, verticalMirroring_);
 
       int32_t delay = QDateTime::currentMSecsSinceEpoch() -
           (input->presentationTime.tv_sec * 1000 + input->presentationTime.tv_usec/1000);
 
-      widget_->inputImage(std::move(input->data), image);
+      widget_->inputImage(image);
 
       if( peer_ != 1111)
         stats_->receiveDelay(peer_, "Video", delay);

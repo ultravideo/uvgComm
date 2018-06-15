@@ -6,6 +6,7 @@
 #include <QImage>
 #include <QMutex>
 
+#include <deque>
 #include <memory>
 
 class VideoWidget : public QFrame
@@ -14,8 +15,9 @@ class VideoWidget : public QFrame
 public:
   VideoWidget(QWidget* parent = NULL, uint8_t borderSize = 1);
   ~VideoWidget();
-  void inputImage(std::unique_ptr<uchar[]> input,
-                  QImage &image);
+
+  // Takes ownership of the image data
+  void inputImage(QImage &image);
 
   static unsigned int number_;
 
@@ -28,17 +30,16 @@ private:
 
   void updateTargetRect();
 
-  bool hasImage_;
-  QImage::Format imageFormat_;
+  bool firstImageReceived_;
+
   QRect targetRect_;
   QRect newFrameRect_;
 
   QMutex drawMutex_;
   QSize previousSize_;
-  QImage currentImage_;
-  std::unique_ptr<uchar[]> input_;
+  std::deque<QImage> viewBuffer_;
+  QImage lastImage_;
 
-  bool updated_;
 
   unsigned int id_;
 
