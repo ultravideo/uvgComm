@@ -32,32 +32,50 @@ VideoWidget::VideoWidget(QWidget* parent, uint8_t borderSize): QFrame(parent),
 }
 
 VideoWidget::~VideoWidget()
-{}
+{
+  viewBuffer_.clear();
+  dataBuffer_.clear();
+}
 
-void VideoWidget::inputImage(QImage &image)
+void VideoWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image)
 {
   drawMutex_.lock();
-  viewBuffer_.push_front(image);
+  // if the resolution has changed in video
 
-  // delete oldes image if there is too much buffer
-  if(viewBuffer_.size() > VIEWBUFFERSIZE)
+  if(!firstImageReceived_)
   {
-    qDebug() << "WARNING: Buffer full. Deleting oldest image from viewBuffer in videowidget:" << id_;
-    viewBuffer_.pop_back();
-  }
-
-  if(previousSize_ != image.size())
-  {
-    qDebug() << "Video widget needs to update its target rectangle because of resolution change.";
-    viewBuffer_.clear();
-
-    viewBuffer_.push_front(image);
+    lastImage_ = image;
+    lastImageData_ = std::move(data);
+    firstImageReceived_ = true;
     updateTargetRect();
   }
-  drawMutex_.unlock();
+  else
+  {
+    if(previousSize_ != image.size())
+    {
+      qDebug() << "Video widget needs to update its target rectangle because of resolution change.";
+      viewBuffer_.clear();
+      dataBuffer_.clear();
 
-  firstImageReceived_ = true;
-  //update();
+      viewBuffer_.push_front(image);
+      dataBuffer_.push_front(std::move(data));
+      updateTargetRect();
+    }
+    else
+    {
+      viewBuffer_.push_front(image);
+      dataBuffer_.push_front(std::move(data));
+    }
+
+    // delete oldes image if there is too much buffer
+    if(viewBuffer_.size() > VIEWBUFFERSIZE)
+    {
+      qDebug() << "WARNING: Buffer full. Deleting oldest image from viewBuffer in videowidget:" << id_;
+      viewBuffer_.pop_back();
+      dataBuffer_.pop_back();
+    }
+  }
+  drawMutex_.unlock();
 }
 
 void VideoWidget::paintEvent(QPaintEvent *event)
@@ -80,7 +98,9 @@ void VideoWidget::paintEvent(QPaintEvent *event)
     {
       painter.drawImage(targetRect_, viewBuffer_.back());
       lastImage_ = viewBuffer_.back();
+      lastImageData_ = std::move(dataBuffer_.back());
       viewBuffer_.pop_back();
+      dataBuffer_.pop_back();
     }
     else
     {
@@ -118,18 +138,16 @@ void VideoWidget::keyPressEvent(QKeyEvent *event)
 
 void VideoWidget::updateTargetRect()
 {
-  // TODO: Find a way to
-
-  if(!viewBuffer_.empty())
+  if(firstImageReceived_)
   {
-    Q_ASSERT(viewBuffer_.back().data_ptr());
-    if(viewBuffer_.back().data_ptr() == NULL)
+    Q_ASSERT(lastImage_.data_ptr());
+    if(lastImage_.data_ptr() == NULL)
     {
       qWarning() << "WARNING: Null pointer in current image!";
       return;
     }
 
-    QSize size = viewBuffer_.back().size();
+    QSize size = lastImage_.size();
     QSize frameSize = QWidget::size() - QSize(borderSize_,borderSize_);
 
     if(frameSize.height() > size.height()
@@ -147,7 +165,7 @@ void VideoWidget::updateTargetRect()
     newFrameRect_ = QRect(QPoint(0, 0), size + QSize(borderSize_,borderSize_));
     newFrameRect_.moveCenter(rect().center());
 
-    previousSize_ = viewBuffer_.back().size();
+    previousSize_ = lastImage_.size();
   }
   else
   {

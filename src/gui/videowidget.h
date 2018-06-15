@@ -17,7 +17,7 @@ public:
   ~VideoWidget();
 
   // Takes ownership of the image data
-  void inputImage(QImage &image);
+  void inputImage(std::unique_ptr<uchar[]> data, QImage &image);
 
   static unsigned int number_;
 
@@ -38,7 +38,9 @@ private:
   QMutex drawMutex_;
   QSize previousSize_;
   std::deque<QImage> viewBuffer_;
+  std::deque<std::unique_ptr<uchar[]>> dataBuffer_;
   QImage lastImage_;
+  std::unique_ptr<uchar[]> lastImageData_;
 
 
   unsigned int id_;
