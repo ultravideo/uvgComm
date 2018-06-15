@@ -233,6 +233,7 @@ Data* Filter::shallowDataCopy(Data* original)
     copy->height = original->height;
     copy->source = original->source;
     copy->presentationTime = original->presentationTime;
+    copy->framerate = original->framerate;
     copy->data_size = 0; // no data in shallow copy
 
     return copy;
