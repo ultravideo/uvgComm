@@ -61,9 +61,9 @@ int yuv2rgb_i_sse41(uint8_t* input, uint8_t* output, uint16_t width, uint16_t he
 
       // We use the same chroma for two rows
       if (row) {
-        r_pix_temp = _mm_loadu_si128((__m128i const*)&row_r[pix * 2 + ii * 4]);
-        g_pix_temp = _mm_loadu_si128((__m128i const*)&row_g[pix * 2 + ii * 4]);
-        b_pix_temp = _mm_loadu_si128((__m128i const*)&row_b[pix * 2 + ii * 4]);
+        r_pix_temp = _mm_loadu_si128((__m128i const*)&row_r[pix * 4 + ii * 16]);
+        g_pix_temp = _mm_loadu_si128((__m128i const*)&row_g[pix * 4 + ii * 16]);
+        b_pix_temp = _mm_loadu_si128((__m128i const*)&row_b[pix * 4 + ii * 16]);
       }
       else {
         chroma_u = _mm_sub_epi32(chroma_u, middle_val);
@@ -76,9 +76,9 @@ int yuv2rgb_i_sse41(uint8_t* input, uint8_t* output, uint16_t width, uint16_t he
         b_pix_temp = _mm_add_epi32(chroma_u, _mm_add_epi32(_mm_srai_epi32(chroma_u, 1), _mm_add_epi32(_mm_srai_epi32(chroma_u, 2), _mm_srai_epi32(chroma_u, 6))));
 
         // Store results to be used for the next row
-        _mm_storeu_si128((__m128i*)&row_r[pix * 2 + ii * 4], r_pix_temp);
-        _mm_storeu_si128((__m128i*)&row_g[pix * 2 + ii * 4], g_pix_temp);
-        _mm_storeu_si128((__m128i*)&row_b[pix * 2 + ii * 4], b_pix_temp);
+        _mm_storeu_si128((__m128i*)&row_r[pix * 4 + ii * 16], r_pix_temp);
+        _mm_storeu_si128((__m128i*)&row_g[pix * 4 + ii * 16], g_pix_temp);
+        _mm_storeu_si128((__m128i*)&row_b[pix * 4 + ii * 16], b_pix_temp);
       }
 
 
@@ -198,9 +198,9 @@ int yuv2rgb_i_avx2(uint8_t* input, uint8_t* output, uint16_t width, uint16_t hei
 
       // We use the same chroma for two rows
       if (row) {
-        r_pix_temp = _mm256_loadu_si256((__m256i const*)&row_r[pix * 2 + ii * 8]);
-        g_pix_temp = _mm256_loadu_si256((__m256i const*)&row_g[pix * 2 + ii * 8]);
-        b_pix_temp = _mm256_loadu_si256((__m256i const*)&row_b[pix * 2 + ii * 8]);
+        r_pix_temp = _mm256_loadu_si256((__m256i const*)&row_r[pix * 4 + ii * 32]);
+        g_pix_temp = _mm256_loadu_si256((__m256i const*)&row_g[pix * 4 + ii * 32]);
+        b_pix_temp = _mm256_loadu_si256((__m256i const*)&row_b[pix * 4 + ii * 32]);
       }
       else {
         chroma_u = _mm256_sub_epi32(chroma_u, middle_val);
@@ -213,9 +213,9 @@ int yuv2rgb_i_avx2(uint8_t* input, uint8_t* output, uint16_t width, uint16_t hei
         b_pix_temp = _mm256_add_epi32(chroma_u, _mm256_add_epi32(_mm256_srai_epi32(chroma_u, 1), _mm256_add_epi32(_mm256_srai_epi32(chroma_u, 2), _mm256_srai_epi32(chroma_u, 6))));
 
         // Store results to be used for the next row
-        _mm256_storeu_si256((__m256i*)&row_r[pix * 2 + ii * 8], r_pix_temp);
-        _mm256_storeu_si256((__m256i*)&row_g[pix * 2 + ii * 8], g_pix_temp);
-        _mm256_storeu_si256((__m256i*)&row_b[pix * 2 + ii * 8], b_pix_temp);
+        _mm256_storeu_si256((__m256i*)&row_r[pix * 4 + ii * 32], r_pix_temp);
+        _mm256_storeu_si256((__m256i*)&row_g[pix * 4 + ii * 32], g_pix_temp);
+        _mm256_storeu_si256((__m256i*)&row_b[pix * 4 + ii * 32], b_pix_temp);
       }
 
 
