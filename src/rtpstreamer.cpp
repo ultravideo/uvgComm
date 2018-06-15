@@ -421,7 +421,8 @@ RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType 
 
   // shared_ptr which does not release
   sender->sourcefilter
-      = std::shared_ptr<FramedSourceFilter>(new FramedSourceFilter(ip_str + "_", stats_, *env_, type, mediaName, triggerMutex_),
+      = std::shared_ptr<FramedSourceFilter>(new FramedSourceFilter(ip_str + "_", stats_, *env_, type,
+                                                                   mediaName, triggerMutex_, type != HEVCVIDEO),
                                             [](FramedSourceFilter*){});
   const unsigned int estimatedSessionBandwidth = 5000; // in kbps; for RTCP b/w share
   // This starts RTCP running automatically

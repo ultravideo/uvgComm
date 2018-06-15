@@ -11,7 +11,8 @@ class FramedSourceFilter : public FramedSource, public Filter
 {
 public:
   FramedSourceFilter(QString id, StatisticsInterface* stats,
-                     UsageEnvironment &env, DataType type, QString media, QMutex* triggerMutex);
+                     UsageEnvironment &env, DataType type,
+                     QString media, QMutex* triggerMutex, bool live555Copying);
 
 
 

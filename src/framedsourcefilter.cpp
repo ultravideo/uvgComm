@@ -11,12 +11,13 @@
 
 
 FramedSourceFilter::FramedSourceFilter(QString id, StatisticsInterface* stats,
-                                       UsageEnvironment &env, DataType type, QString media, QMutex* triggerMutex):
+                                       UsageEnvironment &env, DataType type, QString media,
+                                       QMutex* triggerMutex, bool live555Copying):
   FramedSource(env),
   Filter(id, "Framed_Source_" + media, stats, type, NONE),
   type_(type),
   afterEvent_(),
-  separateInput_(true),
+  separateInput_(!live555Copying),
   triggerMutex_(triggerMutex)
 {
   updateSettings();
