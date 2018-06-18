@@ -30,7 +30,8 @@ ui_(new Ui::StatisticsWindow),
   videoEncDelay_(0),
   guiTimer_(),
   lastDrawTime_(0),
-  guiFrequency_(1000)
+  guiFrequency_(1000),
+  lastTabIndex_(254) // an invalid value so we will update the tab immediately
 {
   ui_->setupUi(this);
   ui_->participantTable->setColumnCount(6);
@@ -140,6 +141,7 @@ void StatisticsWindow::removeFilter(QString filter)
   buffers_.erase(filter);
 }
 
+// TODO: Does not work when callling ourselves with same address.
 void StatisticsWindow::removeParticipant(QString ip)
 {
   initMutex_.lock();
@@ -318,72 +320,89 @@ void StatisticsWindow::packetDropped(QString filter)
 void StatisticsWindow::paintEvent(QPaintEvent *event)
 {
   Q_UNUSED(event)
-
-  // TODO: use QTabWidget::currentIndex() to only draw the active tab
-
-  if(lastDrawTime_ + guiFrequency_ < guiTimer_.elapsed())
+  if(lastTabIndex_ != ui_->Statistics_tabs->currentIndex() || lastDrawTime_ + guiFrequency_ < guiTimer_.elapsed())
   {
     // no need to catch up if we are falling behind, instead just reset the clock
     lastDrawTime_ = guiTimer_.elapsed();
 
-    lastVideoBitrate_ = bitrate(videoPackets_, videoIndex_, lastVideoFrameRate_);
-    ui_->video_bitrate_value->setText
-      ( QString::number(lastVideoBitrate_) + " kbit/s" );
-
-    ui_->encoded_framerate_value->setText
-      ( QString::number(lastVideoFrameRate_) + " fps" );
-
-    uint index = 0;
-    for(PeerInfo d : peers_)
+    switch(ui_->Statistics_tabs->currentIndex())
     {
-      // if this participant has not yet been removed
-      // also tells whether the slot for this participant exists
-      if(d.active)
-      {
-        qDebug() << "Calculating framerate";
-        ui_->participantTable->setItem(index, 3, new QTableWidgetItem( QString::number(d.audioDelay) + " ms"));
-        ui_->participantTable->setItem(index, 4, new QTableWidgetItem( QString::number(d.videoDelay) + " ms"));
-        float framerate = 0;
-        uint32_t videoBitrate = bitrate(d.videoPackets, d.videoIndex, framerate);
-        ui_->participantTable->setItem(index, 5, new QTableWidgetItem( QString::number(framerate)));
-
-        ++index;
-      }
-    }
-
-    if(dirtyBuffers_)
+    case 0:
     {
-      bufferMutex_.lock();
-
-      uint32_t totalBuffers = 0;
-      uint32_t row = 0;
-      for(auto& it : buffers_)
+      uint index = 0;
+      for(PeerInfo d : peers_)
       {
-        totalBuffers += it.second.bufferStatus;
-        ui_->filterTable->setItem(row, 0,new QTableWidgetItem(it.first));
-        ui_->filterTable->setItem(row, 1,new QTableWidgetItem(it.second.TID));
-        ui_->filterTable->setItem(row, 2,new QTableWidgetItem(QString::number(it.second.bufferStatus) +
-                                                              "/" + QString::number(it.second.bufferSize)));
-        ui_->filterTable->setItem(row, 3,new QTableWidgetItem(QString::number(it.second.dropped)));
-        ++row;
+        // if this participant has not yet been removed
+        // also tells whether the slot for this participant exists
+        if(d.active)
+        {
+          ui_->participantTable->setItem(index, 3, new QTableWidgetItem( QString::number(d.audioDelay) + " ms"));
+          ui_->participantTable->setItem(index, 4, new QTableWidgetItem( QString::number(d.videoDelay) + " ms"));
+          float framerate = 0;
+          uint32_t videoBitrate = bitrate(d.videoPackets, d.videoIndex, framerate);
+          ui_->participantTable->setItem(index, 5, new QTableWidgetItem( QString::number(framerate)));
+
+          ++index;
+        }
       }
-
-      ui_->buffer_sizes_value->setText(QString::number(totalBuffers));
-      dirtyBuffers_ = false;
-      bufferMutex_.unlock();
+      break;
     }
+    case 1:
+    {
+      ui_->packets_sent_value->setText( QString::number(sendPacketCount_));
+      ui_->data_sent_value->setText( QString::number(transferredData_));
+      ui_->packets_received_value->setText( QString::number(receivePacketCount_));
+      ui_->data_received_value->setText( QString::number(receivedData_));
+      ui_->packets_skipped_value->setText(QString::number(packetsDropped_));
+      break;
+    case 2:
+        lastVideoBitrate_ = bitrate(videoPackets_, videoIndex_, lastVideoFrameRate_);
+        ui_->video_bitrate_value->setText
+            ( QString::number(lastVideoBitrate_) + " kbit/s" );
 
-    lastAudioBitrate_ = bitrate(audioPackets_, audioIndex_, lastAudioFrameRate_);
-    ui_->audio_bitrate_value->setText
-      ( QString::number(lastAudioBitrate_) + " kbit/s" );
+        ui_->encoded_framerate_value->setText
+            ( QString::number(lastVideoFrameRate_) + " fps" );
 
-    ui_->encode_delay_value->setText( QString::number(videoEncDelay_) + " ms." );
-    ui_->audio_delay_value->setText( QString::number(audioEncDelay_) + " ms." );
+
+        ui_->encode_delay_value->setText( QString::number(videoEncDelay_) + " ms." );
+        ui_->audio_delay_value->setText( QString::number(audioEncDelay_) + " ms." );
+
+        lastAudioBitrate_ = bitrate(audioPackets_, audioIndex_, lastAudioFrameRate_);
+        ui_->audio_bitrate_value->setText
+            ( QString::number(lastAudioBitrate_) + " kbit/s" );
+        break;
+      }
+    case 3:
+    {
+
+      if(dirtyBuffers_)
+      {
+        bufferMutex_.lock();
+
+        uint32_t totalBuffers = 0;
+        uint32_t row = 0;
+        for(auto& it : buffers_)
+        {
+          totalBuffers += it.second.bufferStatus;
+          ui_->filterTable->setItem(row, 0,new QTableWidgetItem(it.first));
+          ui_->filterTable->setItem(row, 1,new QTableWidgetItem(it.second.TID));
+          ui_->filterTable->setItem(row, 2,new QTableWidgetItem(QString::number(it.second.bufferStatus) +
+                                                                "/" + QString::number(it.second.bufferSize)));
+          ui_->filterTable->setItem(row, 3,new QTableWidgetItem(QString::number(it.second.dropped)));
+          ++row;
+        }
+
+        ui_->buffer_sizes_value->setText(QString::number(totalBuffers));
+        dirtyBuffers_ = false;
+        bufferMutex_.unlock();
+      }
+      break;
+    }
+    default:
+    {
+      break;
+    }
+    }
+    lastTabIndex_ = ui_->Statistics_tabs->currentIndex();
   }
-
-  ui_->packets_sent_value->setText( QString::number(sendPacketCount_));
-  ui_->data_sent_value->setText( QString::number(transferredData_));
-  ui_->packets_received_value->setText( QString::number(receivePacketCount_));
-  ui_->data_received_value->setText( QString::number(receivedData_));
-  ui_->packets_skipped_value->setText(QString::number(packetsDropped_));
 }

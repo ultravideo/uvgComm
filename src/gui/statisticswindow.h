@@ -111,4 +111,7 @@ private:
   QTime guiTimer_;
   uint32_t lastDrawTime_;
   uint32_t guiFrequency_;
+
+  // for updating the tab as fast as possible
+  uint8_t lastTabIndex_;
 };
