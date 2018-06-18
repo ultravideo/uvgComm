@@ -99,15 +99,23 @@ void VideoWidget::paintEvent(QPaintEvent *event)
     if(!viewBuffer_.empty())
     {
       painter.drawImage(targetRect_, viewBuffer_.back());
+      // sessionID 0 is the self display and we are not interested
+      // update stats only for each new image.
+      if(stats_ && sessionID_ != 0)
+      {
+        stats_->presentPackage(sessionID_, "Video");
+      }
       lastImage_ = viewBuffer_.back();
       lastImageData_ = std::move(dataBuffer_.back());
       viewBuffer_.pop_back();
       dataBuffer_.pop_back();
+
     }
     else
     {
       painter.drawImage(targetRect_, lastImage_);
     }
+
     drawMutex_.unlock();
   }
   else

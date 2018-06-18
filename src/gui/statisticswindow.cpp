@@ -33,12 +33,13 @@ ui_(new Ui::StatisticsWindow),
   guiFrequency_(1000)
 {
   ui_->setupUi(this);
-  ui_->participantTable->setColumnCount(5);
+  ui_->participantTable->setColumnCount(6);
   ui_->participantTable->setHorizontalHeaderItem(0, new QTableWidgetItem(QString("IP")));
   ui_->participantTable->setHorizontalHeaderItem(1, new QTableWidgetItem(QString("AudioPort")));
   ui_->participantTable->setHorizontalHeaderItem(2, new QTableWidgetItem(QString("VideoPort")));
   ui_->participantTable->setHorizontalHeaderItem(3, new QTableWidgetItem(QString("Audio delay")));
   ui_->participantTable->setHorizontalHeaderItem(4, new QTableWidgetItem(QString("Video delay")));
+  ui_->participantTable->setHorizontalHeaderItem(5, new QTableWidgetItem(QString("Video fps")));
 
   ui_->filterTable->setColumnCount(4);
   ui_->filterTable->setHorizontalHeaderItem(0, new QTableWidgetItem(QString("Filter")));
@@ -103,8 +104,9 @@ void StatisticsWindow::addParticipant(QString ip, QString audioPort, QString vid
   ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 2, new QTableWidgetItem(videoPort));
   ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 3, new QTableWidgetItem("- ms"));
   ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 4, new QTableWidgetItem("- ms"));
+  ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 5, new QTableWidgetItem("-"));
 
-  peers_.push_back({0, std::vector<PacketInfo*>(), 0, 0,true});
+  peers_.push_back({0, std::vector<PacketInfo*>(BUFFERSIZE,0), 0, 0,true});
   initMutex_.unlock();
 }
 
@@ -183,7 +185,7 @@ void StatisticsWindow::presentPackage(uint32_t peer, QString type)
   {
     if(type == "video" || type == "Video")
     {
-      updateFramerateBuffer(peers_.at(peer).videoPackets, peers_.at(peer).videoIndex, 0);
+      updateFramerateBuffer(peers_.at(peer - 1).videoPackets, peers_.at(peer - 1).videoIndex, 0);
     }
   }
 }
@@ -216,33 +218,49 @@ uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets, uint32_t i
   if(index == 0)
     return 0;
 
-  uint32_t currentTime = QDateTime::currentMSecsSinceEpoch();
-  uint32_t timeInterval = 0;
-  uint32_t bitrate = 0;
-  uint32_t bitrateInterval = 5000;
-  framerate = 0;
-
-  uint32_t i = index - 1;
-
-  PacketInfo* p = packets[i%BUFFERSIZE];
-
-  while(p && timeInterval < bitrateInterval)
+  int64_t timeInterval = 0;
+  int64_t bitrate = 0;
+  int64_t bitrateInterval = 5000; // how long time in msecs we measure
+  uint16_t frames = 0;
+  uint32_t currentTs = 0;
+  uint32_t previousTs = index - 2;
+  if(index == 0)
   {
-    bitrate += p->size;
-    ++framerate;
-    if(i != 0)
-      --i;
-    else
-      i = BUFFERSIZE - 1;
+    currentTs = BUFFERSIZE - 1;
+    previousTs = BUFFERSIZE - 2;
+  }
+  else if (index == 1)
+  {
+    currentTs = index - 1;
+    previousTs = BUFFERSIZE - 1;
+  }
+  else
+  {
+    currentTs = index - 1;
+    previousTs = index - 2;
+  }
 
-    timeInterval = currentTime - p->timestamp;
-    p = packets[i%BUFFERSIZE];
+  while(packets[previousTs%BUFFERSIZE] && timeInterval < bitrateInterval)
+  {
+    timeInterval += packets[currentTs%BUFFERSIZE]->timestamp - packets[previousTs%BUFFERSIZE]->timestamp;
+
+    bitrate += packets[currentTs%BUFFERSIZE]->size;
+    ++frames;
+    currentTs = previousTs;
+    if(previousTs != 0)
+    {
+      --previousTs;
+    }
+    else
+    {
+      previousTs = BUFFERSIZE - 1;
+    }
   }
 
   //qDebug() << "Bitrate:" << bitrate << "timeInterval:"  << timeInterval;
   if(timeInterval)
   {
-    framerate = 1000*framerate/timeInterval;
+    framerate = 1000*(float)frames/timeInterval;
     return 8*bitrate/(timeInterval);
   }
   return 0;
@@ -301,6 +319,8 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 {
   Q_UNUSED(event)
 
+  // TODO: use QTabWidget::currentIndex() to only draw the active tab
+
   if(lastDrawTime_ + guiFrequency_ < guiTimer_.elapsed())
   {
     // no need to catch up if we are falling behind, instead just reset the clock
@@ -320,8 +340,13 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
       // also tells whether the slot for this participant exists
       if(d.active)
       {
+        qDebug() << "Calculating framerate";
         ui_->participantTable->setItem(index, 3, new QTableWidgetItem( QString::number(d.audioDelay) + " ms"));
         ui_->participantTable->setItem(index, 4, new QTableWidgetItem( QString::number(d.videoDelay) + " ms"));
+        float framerate = 0;
+        uint32_t videoBitrate = bitrate(d.videoPackets, d.videoIndex, framerate);
+        ui_->participantTable->setItem(index, 5, new QTableWidgetItem( QString::number(framerate)));
+
         ++index;
       }
     }

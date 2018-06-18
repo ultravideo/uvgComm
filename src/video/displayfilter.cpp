@@ -15,6 +15,7 @@ DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
   widget_(widget),
   peer_(peer)
 {
+  widget_->setStats(stats);
   widget_->show();
 }
 
