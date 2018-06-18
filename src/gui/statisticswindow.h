@@ -28,6 +28,7 @@ public:
   virtual void addParticipant(QString ip, QString audioPort, QString videoPort);
   virtual void removeParticipant(QString ip);
   virtual void sendDelay(QString type, uint32_t delay);
+  virtual void presentPackage(uint32_t peer, QString type);
   virtual void receiveDelay(uint32_t peer, QString type, int32_t delay);
   virtual void addEncodedPacket(QString type, uint16_t size);
   virtual void addSendPacket(uint16_t size);
@@ -45,17 +46,21 @@ private:
     uint16_t size;
   };
 
-  struct Delays
+  struct PeerInfo
   {
-    int32_t video;
-    int32_t audio;
+    uint32_t videoIndex;
+    std::vector<PacketInfo*> videoPackets;
+    int32_t videoDelay;
+    int32_t audioDelay;
     bool active;
   };
 
-  std::vector<Delays> delays_;
+  std::vector<PeerInfo> peers_;
 
   uint32_t totalBuffers();
   uint32_t bitrate(std::vector<PacketInfo*>& packets, uint32_t index, float &framerate);
+  void updateFramerateBuffer(std::vector<PacketInfo*>& packets, uint32_t& index, uint32_t size);
+
 
   Ui::StatisticsWindow *ui_;
 

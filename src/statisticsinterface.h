@@ -34,6 +34,9 @@ public:
   // the delay until the presentation of the packet
   virtual void receiveDelay(uint32_t peer, QString type, int32_t delay) = 0;
 
+  // one packet has been presented to user
+  virtual void presentPackage(uint32_t peer, QString type) = 0;
+
   // For tracking of encoding bitrate and possibly other information.
   virtual void addEncodedPacket(QString type, uint16_t size) = 0;
 

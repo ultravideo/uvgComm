@@ -104,7 +104,7 @@ void StatisticsWindow::addParticipant(QString ip, QString audioPort, QString vid
   ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 3, new QTableWidgetItem("- ms"));
   ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 4, new QTableWidgetItem("- ms"));
 
-  delays_.push_back({0, 0,true});
+  peers_.push_back({0, std::vector<PacketInfo*>(), 0, 0,true});
   initMutex_.unlock();
 }
 
@@ -146,7 +146,7 @@ void StatisticsWindow::removeParticipant(QString ip)
     if(ui_->participantTable->item(i, 0)->text() == ip )
     {
       ui_->participantTable->removeRow(i);
-      delays_.at(i).active = false;
+      peers_.at(i).active = false;
     }
   }
   initMutex_.unlock();
@@ -168,40 +168,47 @@ void StatisticsWindow::receiveDelay(uint32_t peer, QString type, int32_t delay)
 {
   if(type == "video" || type == "Video")
   {
-    delays_.at(peer - 1).video = delay;
+    peers_.at(peer - 1).videoDelay = delay;
   }
   else if(type == "audio" || type == "Audio")
   {
-    delays_.at(peer - 1).audio = delay;
+    peers_.at(peer - 1).audioDelay = delay;
+  }
+}
+
+void StatisticsWindow::presentPackage(uint32_t peer, QString type)
+{
+  Q_ASSERT(peers_.size() >= peer);
+  if(peer <= peers_.size())
+  {
+    if(type == "video" || type == "Video")
+    {
+      updateFramerateBuffer(peers_.at(peer).videoPackets, peers_.at(peer).videoIndex, 0);
+    }
   }
 }
 
 void StatisticsWindow::addEncodedPacket(QString type, uint16_t size)
 {
-  PacketInfo *packet = new PacketInfo{QDateTime::currentMSecsSinceEpoch(), size};
-
   if(type == "video" || type == "Video")
   {
-    if(videoPackets_[videoIndex_%BUFFERSIZE])
-    {
-      delete videoPackets_.at(videoIndex_%BUFFERSIZE);
-    }
-
-    videoPackets_[videoIndex_%BUFFERSIZE] = packet;
-
-    ++videoIndex_;
+    updateFramerateBuffer(videoPackets_, videoIndex_, size);
   }
   else if(type == "audio" || type == "Audio")
   {
-    if(audioPackets_[audioIndex_%BUFFERSIZE])
-    {
-      delete audioPackets_.at(audioIndex_%BUFFERSIZE);
-    }
-
-    audioPackets_[audioIndex_%BUFFERSIZE] = packet;
-
-    ++audioIndex_;
+    updateFramerateBuffer(audioPackets_, audioIndex_, size);
   }
+}
+
+void StatisticsWindow::updateFramerateBuffer(std::vector<PacketInfo*>& packets, uint32_t& index, uint32_t size)
+{
+  if(packets[index%BUFFERSIZE])
+  {
+    delete packets.at(index%BUFFERSIZE);
+  }
+
+  packets[index%BUFFERSIZE] = new PacketInfo{QDateTime::currentMSecsSinceEpoch(), size};
+  ++index;
 }
 
 uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets, uint32_t index, float& framerate)
@@ -307,14 +314,14 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
       ( QString::number(lastVideoFrameRate_) + " fps" );
 
     uint index = 0;
-    for(Delays d : delays_)
+    for(PeerInfo d : peers_)
     {
       // if this participant has not yet been removed
       // also tells whether the slot for this participant exists
       if(d.active)
       {
-        ui_->participantTable->setItem(index, 3, new QTableWidgetItem( QString::number(d.audio) + " ms"));
-        ui_->participantTable->setItem(index, 4, new QTableWidgetItem( QString::number(d.video) + " ms"));
+        ui_->participantTable->setItem(index, 3, new QTableWidgetItem( QString::number(d.audioDelay) + " ms"));
+        ui_->participantTable->setItem(index, 4, new QTableWidgetItem( QString::number(d.videoDelay) + " ms"));
         ++index;
       }
     }
