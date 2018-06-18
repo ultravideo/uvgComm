@@ -1,22 +1,23 @@
 #include "videowidget.h"
 
+#include "statisticsinterface.h"
+
 #include <QPaintEvent>
 #include <QDebug>
 #include <QCoreApplication>
 #include <QEvent>
 #include <QKeyEvent>
 
-unsigned int VideoWidget::number_ = 0;
-
 uint16_t VIEWBUFFERSIZE = 3;
 
-VideoWidget::VideoWidget(QWidget* parent, uint8_t borderSize): QFrame(parent),
+VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID, uint8_t borderSize)
+  : QFrame(parent),
   firstImageReceived_(false),
   previousSize_(QSize(0,0)),
-  id_(number_),
+  stats_(NULL),
+  sessionID_(sessionID),
   borderSize_(borderSize)
 {
-  ++number_;
   setAutoFillBackground(false);
   setAttribute(Qt::WA_NoSystemBackground, true);
 
@@ -70,7 +71,8 @@ void VideoWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image)
     // delete oldes image if there is too much buffer
     if(viewBuffer_.size() > VIEWBUFFERSIZE)
     {
-      qDebug() << "WARNING: Buffer full. Deleting oldest image from viewBuffer in videowidget:" << id_;
+      qDebug() << "WARNING: Buffer full. Deleting oldest image from viewBuffer in videowidget:"
+               << sessionID_;
       viewBuffer_.pop_back();
       dataBuffer_.pop_back();
     }
@@ -82,7 +84,7 @@ void VideoWidget::paintEvent(QPaintEvent *event)
 {
   Q_UNUSED(event);
 
-  //qDebug() << "PaintEvent for widget:" << id_;
+  //qDebug() << "PaintEvent for widget:" << sessionID_;
   QPainter painter(this);
 
   if(firstImageReceived_)
@@ -118,7 +120,7 @@ void VideoWidget::paintEvent(QPaintEvent *event)
 
 void VideoWidget::resizeEvent(QResizeEvent *event)
 {
-  qDebug() << "ResizeEvent:" << id_;
+  qDebug() << "VideoWidget resizeEvent:" << sessionID_;
   QWidget::resizeEvent(event);
   updateTargetRect();
 }

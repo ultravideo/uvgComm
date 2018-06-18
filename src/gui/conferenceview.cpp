@@ -108,7 +108,7 @@ void ConferenceView::attachCallingWidget(QWidget* holder, QString text)
 // if our call is accepted or we accepted their call
 VideoWidget* ConferenceView::addVideoStream(uint32_t sessionID)
 {
-  VideoWidget* view = new VideoWidget(NULL,1);
+  VideoWidget* view = new VideoWidget(NULL, sessionID, 1);
   if(activeCalls_.size() < sessionID || activeCalls_.at(sessionID - 1) == NULL)
   {
     qWarning() << "WARNING: Adding a videostream without previous.";

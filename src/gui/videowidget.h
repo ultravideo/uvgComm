@@ -9,12 +9,19 @@
 #include <deque>
 #include <memory>
 
+class StatisticsInterface;
+
 class VideoWidget : public QFrame
 {
   Q_OBJECT
 public:
-  VideoWidget(QWidget* parent = NULL, uint8_t borderSize = 1);
+  VideoWidget(QWidget* parent = NULL, uint32_t sessionID = 0, uint8_t borderSize = 1);
   ~VideoWidget();
+
+  void setStats(StatisticsInterface* stats)
+  {
+    stats_ = stats;
+  }
 
   // Takes ownership of the image data
   void inputImage(std::unique_ptr<uchar[]> data, QImage &image);
@@ -42,8 +49,9 @@ private:
   QImage lastImage_;
   std::unique_ptr<uchar[]> lastImageData_;
 
+  StatisticsInterface* stats_;
 
-  unsigned int id_;
+  unsigned int sessionID_;
 
   unsigned int borderSize_;
 };
