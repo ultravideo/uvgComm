@@ -8,7 +8,7 @@
 #include <QEvent>
 #include <QKeyEvent>
 
-uint16_t VIEWBUFFERSIZE = 3;
+uint16_t VIEWBUFFERSIZE = 5;
 
 VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID, uint8_t borderSize)
   : QFrame(parent),
@@ -71,8 +71,8 @@ void VideoWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image)
     // delete oldes image if there is too much buffer
     if(viewBuffer_.size() > VIEWBUFFERSIZE)
     {
-      qDebug() << "WARNING: Buffer full. Deleting oldest image from viewBuffer in videowidget:"
-               << sessionID_;
+      qDebug() << "Buffer full:" << viewBuffer_.size() << "/" <<VIEWBUFFERSIZE
+               << "Deleting oldest image from viewBuffer in videowidget:" << sessionID_;
       viewBuffer_.pop_back();
       dataBuffer_.pop_back();
     }

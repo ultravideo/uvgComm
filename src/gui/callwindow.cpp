@@ -43,7 +43,7 @@ void CallWindow::init(ParticipantInterface *partInt)
   // GUI updates are handled solely by timer
   // TODO: there should be a better way.
   // The update method does not seem to work in videowidget so this is needed
-  timer_->setInterval(80);
+  timer_->setInterval(15);
   timer_->setSingleShot(false);
   connect(timer_, SIGNAL(timeout()), ui_->participants, SLOT(update()));
   connect(timer_, SIGNAL(timeout()), ui_->SelfView, SLOT(update()));
