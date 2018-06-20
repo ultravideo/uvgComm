@@ -136,7 +136,7 @@ QT+=network
 QT += svg
 
 QMAKE_CXXFLAGS += -std=c++11
-QMAKE_CXXFLAGS += -msse4.1 -mavx2
+QMAKE_CXXFLAGS += -msse4.1 -mavx2 -fopenmp
 
 # may need a rebuild
 #CONFIG += console
@@ -156,6 +156,7 @@ win32: LIBS += -llibLibOpenHevcWrapper.dll
 win32: LIBS += -llivemedia.dll
 win32: LIBS += -llibspeexdsp.dll
 win32: LIBS += -lws2_32
+win32: LIBS += -fopenmp
 
 win32: LIBS += -lstrmiids
 win32: LIBS += -lole32

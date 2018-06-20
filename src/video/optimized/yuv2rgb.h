@@ -7,6 +7,8 @@
 #include <stdint.h>
 #include <math.h>
 
+#include <omp.h>
+
 int yuv2rgb_i_sse41(uint8_t* input, uint8_t* output, uint16_t width, uint16_t height)
 {
   const int mini[4] = { 0,0,0,0 };
@@ -137,6 +139,10 @@ int yuv2rgb_i_avx2(uint8_t* input, uint8_t* output, uint16_t width, uint16_t hei
 
   //*output = (uint8_t *)malloc(width*height*4);
 
+  uint8_t *in_y_base = &input[0];;
+  uint8_t *in_u_base = &input[width*height];;
+  uint8_t *in_v_base = &input[width*height + (width*height >> 2)];
+
   uint8_t *row_r_temp = (uint8_t *)malloc(width * 4+ SIMD_ALIGNMENT);
   uint8_t *row_g_temp = (uint8_t *)malloc(width * 4+ SIMD_ALIGNMENT);
   uint8_t *row_b_temp = (uint8_t *)malloc(width * 4+ SIMD_ALIGNMENT);
@@ -144,25 +150,23 @@ int yuv2rgb_i_avx2(uint8_t* input, uint8_t* output, uint16_t width, uint16_t hei
   uint8_t *row_g = (uint8_t*)ALIGNED_POINTER(row_g_temp, SIMD_ALIGNMENT);
   uint8_t *row_b = (uint8_t*)ALIGNED_POINTER(row_b_temp, SIMD_ALIGNMENT);
 
-
-  uint8_t *in_y = &input[0];
-  uint8_t *in_u = &input[width*height];
-  uint8_t *in_v = &input[width*height + (width*height >> 2)];
-  uint8_t *out = output;
-
-  int8_t row = 0;
-  int32_t pix = 0;
-
   __m128i luma_shufflemask_lo = _mm_set_epi8(-1, -1, -1, 3, -1, -1, -1, 2, -1, -1, -1, 1, -1, -1, -1, 0);
   __m128i luma_shufflemask_hi = _mm_set_epi8(-1, -1, -1, 7, -1, -1, -1, 6, -1, -1, -1, 5, -1, -1, -1, 4);
   __m128i chroma_shufflemask_lo = _mm_set_epi8(-1, -1, -1, 1, -1, -1, -1, 1, -1, -1, -1, 0, -1, -1, -1, 0);
   __m128i chroma_shufflemask_hi = _mm_set_epi8(-1, -1, -1, 3, -1, -1, -1, 3, -1, -1, -1, 2, -1, -1, -1, 2);
 
+  #pragma omp parallel for
   for (uint32_t i = 0; i < width*height; i += 16) {
+    uint8_t *out = output + 4*i;
+
+    int8_t row = i%(width*2) >= width ? 1 : 0;
+    int32_t pix = i%width;
+
+    uint8_t *in_y = in_y_base + i;
 
     // Load 16 bytes (16 luma pixels)
     __m128i y_a = _mm_loadu_si128((__m128i const*) in_y);
-    in_y += 16;
+    //in_y += 16;
 
     __m128i luma_lo = _mm_shuffle_epi8(y_a, luma_shufflemask_lo);
     __m128i luma_hi = _mm_shuffle_epi8(y_a, luma_shufflemask_hi);
@@ -174,11 +178,12 @@ int yuv2rgb_i_avx2(uint8_t* input, uint8_t* output, uint16_t width, uint16_t hei
     // For every second row
     if (!row) {
 
+      uint8_t *in_u = in_u_base + ((i - i%width)/4) + (i%width)/2;
       u_a = _mm_loadl_epi64((__m128i const*) in_u);
-      in_u += 8;
-
+     // in_u += 8;
+      uint8_t *in_v = in_v_base + ((i - i%width)/4) + (i%width)/2;
       v_a = _mm_loadl_epi64((__m128i const*) in_v);
-      in_v += 8;
+     // in_v += 8;
 
 
       __m128i chroma_u_lo = _mm_shuffle_epi8(u_a, chroma_shufflemask_lo);
@@ -251,11 +256,12 @@ int yuv2rgb_i_avx2(uint8_t* input, uint8_t* output, uint16_t width, uint16_t hei
 
 
     // Track rows for chroma
+    /*
     pix += 16;
     if (pix == width) {
       row = !row;
       pix = 0;
-    }
+    }*/
   }
 
   free(row_r_temp);
