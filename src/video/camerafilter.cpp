@@ -196,26 +196,7 @@ void CameraFilter::handleFrame(const QVideoFrame &frame)
   frameMutex_.unlock();
 }
 
-void CameraFilter::scaleFrame(const QVideoFrame& cloneFrame, Data * newImage, QSize resolution)
-{
-  QImage image(
-        newImage->data.get(),
-        newImage->width,
-        newImage->height,
-        QImage::Format_RGB32);
 
-  QImage image2 = image.scaled(resolution);
-  if(resolution.width() * resolution.height()
-     > cloneFrame.size().width() * cloneFrame.size().height())
-  {
-    newImage->data = std::unique_ptr<uchar[]>(new uchar[image2.byteCount()]);
-  }
-  memcpy(newImage->data.get(), image2.bits(), image2.byteCount());
-  newImage->width = resolution.width();
-  newImage->height = resolution.height();
-  newImage->data_size = image2.byteCount();
-  newImage->framerate = 30; // TODO Input this using settings.
-}
 
 void CameraFilter::printSupportedFormats()
 {

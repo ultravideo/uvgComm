@@ -7,12 +7,15 @@
 #include "video/yuvtorgb32.h"
 #include "video/displayfilter.h"
 #include "video/dshowcamerafilter.h"
+#include "scalefilter.h"
 #include "audio/audiocapturefilter.h"
 #include "audio/audiooutputdevice.h"
 #include "audio/audiooutput.h"
 #include "audio/opusencoderfilter.h"
 #include "audio/opusdecoderfilter.h"
 #include "audio/speexaecfilter.h"
+#include "gui/videowidget.h"
+
 #include "common.h"
 
 #include <QSettings>
@@ -126,6 +129,14 @@ void FilterGraph::initSelfView(VideoWidget *selfView)
 
   if(selfView)
   {
+    // connect scaling filter
+    // TODO: not useful if it does not support YUV. Testing needed to verify
+    /*
+    ScaleFilter* scaler = new ScaleFilter("Self_", stats_);
+    scaler->setResolution(selfView->size());
+    addToGraph(std::shared_ptr<Filter>(scaler), videoSend_);
+    */
+
     // connect selfview to camera
     DisplayFilter* selfviewFilter = new DisplayFilter("Self_", stats_, selfView, 1111);
     // the self view rotation depends on which conversions are use as some of the optimizations

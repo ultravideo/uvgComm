@@ -60,7 +60,8 @@ SOURCES +=\
     src/sip/siptransport.cpp \
     src/sip/siptransactions.cpp \
     src/sip/sipregistration.cpp \
-    src/sip/sipdialogstate.cpp
+    src/sip/sipdialogstate.cpp \
+    src/scalefilter.cpp
 
 HEADERS  += \
     src/filter.h \
@@ -117,7 +118,8 @@ HEADERS  += \
     src/sip/siptransactions.h \
     src/sip/sipregistration.h \
     src/sip/sipdialogstate.h \
-    src/sip/sdptypes.h
+    src/sip/sdptypes.h \
+    src/scalefilter.h
 
 FORMS    += \
     ui/callwindow.ui \
