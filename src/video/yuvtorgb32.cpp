@@ -18,7 +18,8 @@ uint8_t clamp(int32_t input)
 YUVtoRGB32::YUVtoRGB32(QString id, StatisticsInterface *stats, uint32_t peer) :
   Filter(id, "YUVtoRGB32_" + QString::number(peer), stats, YUVVIDEO, RGB32VIDEO),
   sse_(true),
-  avx2_(true)
+  avx2_(true),
+  avx2SingleThread_(false)
 {}
 
 // also flips input
@@ -30,7 +31,10 @@ void YUVtoRGB32::process()
   {
     uint32_t finalDataSize = input->width*input->height*4;
     std::unique_ptr<uchar[]> rgb32_frame(new uchar[finalDataSize]);
-
+    if(avx2SingleThread_ && input->width % 16 == 0)
+    {
+      yuv2rgb_i_avx2_single(input->data.get(), rgb32_frame.get(), input->width, input->height);
+    }
     if(avx2_ && input->width % 16 == 0)
     {
       yuv2rgb_i_avx2(input->data.get(), rgb32_frame.get(), input->width, input->height);

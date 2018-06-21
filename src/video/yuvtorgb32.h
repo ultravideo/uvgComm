@@ -12,5 +12,6 @@ protected:
 private:
   bool sse_;
   bool avx2_;
+  bool avx2SingleThread_;
 };
 
