@@ -170,13 +170,16 @@ void StatisticsWindow::sendDelay(QString type, uint32_t delay)
 
 void StatisticsWindow::receiveDelay(uint32_t peer, QString type, int32_t delay)
 {
-  if(type == "video" || type == "Video")
+  if(peer <= peers_.size())
   {
-    peers_.at(peer - 1).videoDelay = delay;
-  }
-  else if(type == "audio" || type == "Audio")
-  {
-    peers_.at(peer - 1).audioDelay = delay;
+    if(type == "video" || type == "Video")
+    {
+      peers_.at(peer - 1).videoDelay = delay;
+    }
+    else if(type == "audio" || type == "Audio")
+    {
+      peers_.at(peer - 1).audioDelay = delay;
+    }
   }
 }
 
