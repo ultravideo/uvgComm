@@ -2,6 +2,8 @@
 #include <QAudioOutput>
 #include <QObject>
 
+#include <stdint.h>
+
 class AudioOutputDevice;
 class StatisticsInterface;
 

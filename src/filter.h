@@ -4,7 +4,12 @@
 #include <QThread>
 #include <QMutex>
 
+#ifndef _MSC_VER
 #include <sys/time.h>
+#else
+#include <WinSock2.h>
+#endif
+
 #include <cstdint>
 #include <vector>
 #include <queue>

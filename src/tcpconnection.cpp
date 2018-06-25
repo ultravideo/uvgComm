@@ -3,6 +3,10 @@
 #include <QDataStream>
 #include <QtConcurrent/QtConcurrent>
 
+#include <stdint.h>
+
+const uint32_t TOOMANYPACKETS = 100000;
+
 TCPConnection::TCPConnection()
   :
     socket_(0),
@@ -19,11 +23,9 @@ TCPConnection::TCPConnection()
   qDebug() << "Constructing TCP connection";
 }
 
-const uint32_t OVERFLOW = 100000;
-
 void TCPConnection::init()
 {
-  QObject::connect(this, &error, this, &printError);
+  QObject::connect(this, &TCPConnection::error, this, &TCPConnection::printError);
   running_ = true;
 
   start();
@@ -145,7 +147,7 @@ void TCPConnection::run()
 
     if(connected_)
     {
-      if(socket_->isValid() && socket_->canReadLine() && socket_->bytesAvailable() < OVERFLOW)
+      if(socket_->isValid() && socket_->canReadLine() && socket_->bytesAvailable() < TOOMANYPACKETS)
       {
         qDebug() << "Can read line with bytes available:" << socket_->bytesAvailable();
 
@@ -158,7 +160,7 @@ void TCPConnection::run()
 
         emit messageAvailable(message);
       }
-      else if(socket_->bytesAvailable() > OVERFLOW)
+      else if(socket_->bytesAvailable() > TOOMANYPACKETS)
       {
         qWarning() << "Flushing the socket because of too much data!";
         socket_->flush();
@@ -195,7 +197,7 @@ void TCPConnection::bufferToSocket()
 {
   qDebug() << "Sending packet with buffersize:" << buffer_.size();
 
-  if(buffer_.size() > OVERFLOW)
+  if(buffer_.size() > TOOMANYPACKETS)
   {
     qWarning() << "We are sending too much stuff to the other end:" << buffer_.size();
   }

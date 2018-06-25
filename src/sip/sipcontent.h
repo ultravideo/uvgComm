@@ -4,7 +4,7 @@
 
 #include <memory>
 
-class SDPMessageInfo;
+struct SDPMessageInfo;
 
 QString composeSDPContent(const SDPMessageInfo& sdp);
 bool parseSDPContent(const QString& content, SDPMessageInfo& sdp);

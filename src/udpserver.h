@@ -5,6 +5,8 @@
 #include <QTimer>
 #include <QHostAddress>
 
+#include <stdint.h>
+
 class QUdpSocket;
 
 class UDPServer : public QObject

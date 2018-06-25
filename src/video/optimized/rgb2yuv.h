@@ -128,6 +128,6 @@ int rgb2yuv_i_sse41(uint8_t* input, uint8_t* output, int width, int height)
     }
   }
 
-  _mm_empty();
+  //_mm_empty();
   return 1;
 }

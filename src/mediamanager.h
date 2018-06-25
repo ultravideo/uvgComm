@@ -5,7 +5,14 @@
 
 #include <memory>
 #include <map>
+
+
+
+#ifndef _MSC_VER
 #include <inaddr.h>
+#else
+#include <WinSock2.h>
+#endif
 
 class VideoWidget;
 class StatisticsInterface;

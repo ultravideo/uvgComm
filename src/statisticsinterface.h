@@ -3,8 +3,7 @@
 #include <QSize>
 
 #include <map>
-
-#include <sys/time.h>
+#include <stdint.h>
 
 class StatisticsInterface
 {

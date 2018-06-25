@@ -61,8 +61,8 @@ void RTPSinkFilter::afterGettingFrame(unsigned frameSize,
 
   if(addStartCodes_ && type_ == HEVCVIDEO)
   {
-    qDebug() << "Received HEVC frame. Size: " << frameSize
-             << ", truncated: " << numTruncatedBytes;
+    //qDebug() << "Received HEVC frame. Size: " << frameSize
+    //         << ", truncated: " << numTruncatedBytes;
     frameSize += 4;
   }
 

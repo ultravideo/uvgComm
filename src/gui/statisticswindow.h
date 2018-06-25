@@ -43,7 +43,7 @@ private:
   struct PacketInfo
   {
     int64_t timestamp;
-    uint16_t size;
+    uint32_t size;
   };
 
   struct PeerInfo

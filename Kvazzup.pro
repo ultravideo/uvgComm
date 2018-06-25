@@ -156,7 +156,7 @@ win32: LIBS += -llibLibOpenHevcWrapper.dll
 win32: LIBS += -llivemedia.dll
 win32: LIBS += -llibspeexdsp.dll
 win32: LIBS += -lws2_32
-win32: LIBS += -fopenmp
+win32: LIBS += -fopenmp # TODO: Does msvc need this?
 
 win32: LIBS += -lstrmiids
 win32: LIBS += -lole32

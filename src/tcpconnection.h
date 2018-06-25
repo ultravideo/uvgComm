@@ -5,9 +5,10 @@
 #include <queue>
 #include <functional>
 
+#include <stdint.h>
+
 // handles one connection
 // TODO: Implement a keep-alive CRLF sending.
-
 
 class TCPConnection : public QThread
 {

@@ -6,6 +6,7 @@
 
 #include <map>
 #include <deque>
+#include <stdint.h>
 
 // Does the mapping of calls to their streams and upkeeps the layout of stream widgets
 
@@ -100,8 +101,8 @@ private:
   // TODO: update the whole layout with each added and removed participant. Use window width.
   struct LayoutLoc
   {
-    uint8_t row;
-    uint8_t column;
+    uint16_t row;
+    uint16_t column;
   };
 
   std::deque<LayoutLoc> freedLocs_;
