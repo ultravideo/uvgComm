@@ -65,6 +65,8 @@ private:
 
     RTPSink* sink;
     std::shared_ptr<FramedSourceFilter> sourcefilter; // receives stuff from filter graph
+    //H265VideoStreamFramer* framerSource;
+    H265VideoStreamDiscreteFramer* framerSource;
   };
 
   struct Receiver

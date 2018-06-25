@@ -56,7 +56,7 @@ void RTPStreamer::run()
   qDebug() << "Live555 starting eventloop. TID:" << (uint64_t)currentThreadId();
   stopRTP_ = 0;
 
-  setPriority(QThread::HighPriority);
+  setPriority(QThread::HighestPriority);
 
   isRunning_ = true;
   // returns when stopRTP_ is set to 1
@@ -88,7 +88,8 @@ void RTPStreamer::init(StatisticsInterface *stats)
   if(scheduler_)
     env_ = BasicUsageEnvironment::createNew(*scheduler_);
 
-  OutPacketBuffer::maxSize = 65536;
+  //OutPacketBuffer::maxSize = 65536;
+  OutPacketBuffer::maxSize = 65536*512;
   isIniated_ = true;
   iniated_.unlock();
 }
@@ -424,6 +425,15 @@ RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType 
       = std::shared_ptr<FramedSourceFilter>(new FramedSourceFilter(ip_str + "_", stats_, *env_, type,
                                                                    mediaName, triggerMutex_, type != HEVCVIDEO),
                                             [](FramedSourceFilter*){});
+
+  type = NONE;
+
+  if(type == HEVCVIDEO)
+  {
+    sender->framerSource = H265VideoStreamDiscreteFramer::createNew(*env_, sender->sourcefilter.get());
+    //sender->framerSource = H265VideoStreamFramer::createNew(*env_, sender->sourcefilter.get());
+  }
+
   const unsigned int estimatedSessionBandwidth = 5000; // in kbps; for RTCP b/w share
   // This starts RTCP running automatically
   sender->rtcp  = RTCPInstance::createNew(*env_,
@@ -440,9 +450,22 @@ RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType 
     return NULL;
   }
 
-  if(!sender->sink->startPlaying(*(sender->sourcefilter.get()), NULL, NULL))
+  // TODO better code needed
+
+
+  if(type == HEVCVIDEO)
   {
-    qCritical() << "Critical: failed to start videosink: " << env_->getResultMsg();
+    if(!sender->sink->startPlaying(*(sender->framerSource), NULL, NULL))
+    {
+      qCritical() << "Critical: failed to start videosink: " << env_->getResultMsg();
+    }
+  }
+  else
+  {
+    if(!sender->sink->startPlaying(*(sender->sourcefilter.get()), NULL, NULL))
+    {
+      qCritical() << "Critical: failed to start videosink: " << env_->getResultMsg();
+    }
   }
   return sender;
 }
@@ -504,6 +527,8 @@ RTPStreamer::Receiver* RTPStreamer::addReceiver(in_addr peerAddress, uint16_t po
     delete receiver;
     return NULL;
   }
+
+
 
   if(!receiver->sink->startPlaying(*receiver->framedSource,NULL,NULL))
   {
