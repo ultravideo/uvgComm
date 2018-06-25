@@ -43,4 +43,6 @@ private:
   QMutex* triggerMutex_;
 
   bool separateInput_;
+  bool ending_;
+  bool removeStartCodes_;
 };

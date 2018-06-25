@@ -17,14 +17,15 @@ FramedSourceFilter::FramedSourceFilter(QString id, StatisticsInterface* stats,
   Filter(id, "Framed_Source_" + media, stats, type, NONE),
   type_(type),
   afterEvent_(),
-  separateInput_(!live555Copying),
-  triggerMutex_(triggerMutex)
+  //separateInput_(!live555Copying),
+  separateInput_(false),
+  triggerMutex_(triggerMutex),
+  ending_(false),
+  removeStartCodes_(true)
 {
   updateSettings();
   afterEvent_ = envir().taskScheduler().createEventTrigger((TaskFunc*)FramedSource::afterGetting);
-  qDebug() << "Creating trigger:" << afterEvent_;
-
-  maxBufferSize_ = -1;
+  qDebug() << "Creating trigger for framedSource:" << afterEvent_;
 }
 
 void FramedSourceFilter::updateSettings()
@@ -54,14 +55,22 @@ void FramedSourceFilter::doGetNextFrame()
 {
   // The fTo pointer is actually given as a pointer to be put data
   // so replacing the pointer does nothing.
-  if(separateInput_)
+  if(isCurrentlyAwaitingData())
   {
-    framePointerReady_.release();
+    if(separateInput_)
+    {
+      framePointerReady_.release();
+    }
+    else
+    {
+      std::unique_ptr<Data> currentFrame = getInput();
+      copyFrameToBuffer(std::move(currentFrame));
+      envir().taskScheduler().scheduleDelayedTask(1, (TaskFunc*)FramedSource::afterGetting, this);
+    }
   }
   else
   {
-    std::unique_ptr<Data> currentFrame = getInput();
-    copyFrameToBuffer(std::move(currentFrame));
+    fFrameSize = 0;
     envir().taskScheduler().scheduleDelayedTask(1, (TaskFunc*)FramedSource::afterGetting, this);
   }
 }
@@ -70,16 +79,20 @@ void FramedSourceFilter::process()
 {
   // There is no way to copy the data here, because the
   // pointer is given only after doGetNextFrame is called
-  if(separateInput_ && framePointerReady_.tryAcquire(1))
+  while(separateInput_)
   {
+    framePointerReady_.acquire(1);
     std::unique_ptr<Data> currentFrame = getInput();
 
     if(currentFrame == NULL)
     {
-      framePointerReady_.release();
-      qDebug() << "Releasing because input was not available. Available:" << framePointerReady_.available();
+      qDebug() << "No input, calling after getting. Available:" << framePointerReady_.available();
+      fFrameSize = 0;
+      triggerMutex_->lock();
+      envir().taskScheduler().triggerEvent(afterEvent_, this);
+      triggerMutex_->unlock();
+      return;
     }
-
     while(currentFrame)
     {
       copyFrameToBuffer(std::move(currentFrame));
@@ -89,22 +102,20 @@ void FramedSourceFilter::process()
       envir().taskScheduler().triggerEvent(afterEvent_, this);
       triggerMutex_->unlock();
 
-      if(framePointerReady_.tryAcquire(1))
+      framePointerReady_.acquire(1);
+      currentFrame = getInput();
+      if(currentFrame == NULL)
       {
-        currentFrame = getInput();
-        if(currentFrame == NULL)
-        {
-          framePointerReady_.release();
-          qDebug() << "Releasing because input not available. Available:" << framePointerReady_.available();
-        }
-        else
-        {
-          qDebug() << "Processing additional frames:" << name_ << "Available:" << framePointerReady_.available();
-        }
+        qDebug() << "No input, calling after getting" << name_ << "Available:" << framePointerReady_.available();
+        fFrameSize = 0;
+        triggerMutex_->lock();
+        envir().taskScheduler().triggerEvent(afterEvent_, this);
+        triggerMutex_->unlock();
+        return;
       }
       else
       {
-        currentFrame = NULL;
+        qDebug() << "Processing additional frames:" << name_ << "Available:" << framePointerReady_.available();
       }
     }
   }
@@ -136,7 +147,15 @@ void FramedSourceFilter::copyFrameToBuffer(std::unique_ptr<Data> currentFrame)
       fNumTruncatedBytes = 0;
     }
 
-    memcpy(fTo, currentFrame->data.get(), fFrameSize);
+    if(removeStartCodes_ && type_ == HEVCVIDEO)
+    {
+      fFrameSize -= 4;
+      memcpy(fTo, currentFrame->data.get() + 4, fFrameSize);
+    }
+    else
+    {
+      memcpy(fTo, currentFrame->data.get(), fFrameSize);
+    }
 
     stats_->addSendPacket(fFrameSize);
   }
