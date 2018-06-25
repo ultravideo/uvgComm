@@ -32,4 +32,6 @@ protected:
   u_int8_t* fReceiveBuffer;
 
   DataType type_;
+
+  bool addStartCodes_;
 };

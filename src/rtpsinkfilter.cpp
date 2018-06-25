@@ -12,7 +12,8 @@ const uint32_t BUFFER_SIZE = 10*65536;
 RTPSinkFilter::RTPSinkFilter(QString id, StatisticsInterface *stats, UsageEnvironment& env, DataType type, QString media):
   Filter(id, "RTP_Sink_" + media, stats, NONE, type),
   MediaSink(env),
-  type_(type)
+  type_(type),
+  addStartCodes_(true)
 {
   fReceiveBuffer = new u_int8_t[BUFFER_SIZE];
   stats_->addFilter(name_, (uint64_t)currentThreadId());
@@ -50,8 +51,6 @@ void RTPSinkFilter::afterGettingFrame(unsigned frameSize,
                        struct timeval presentationTime,
                        unsigned durationInMicroseconds)
 {
-  //qDebug() << "Received HEVC frame. Size: " << frameSize
-  //         << ", truncated: " << numTruncatedBytes;
 
   Q_UNUSED(durationInMicroseconds);
 
@@ -59,6 +58,13 @@ void RTPSinkFilter::afterGettingFrame(unsigned frameSize,
   Q_ASSERT(numTruncatedBytes == 0);
 
   stats_->addReceivePacket(frameSize);
+
+  if(addStartCodes_ && type_ == HEVCVIDEO)
+  {
+    qDebug() << "Received HEVC frame. Size: " << frameSize
+             << ", truncated: " << numTruncatedBytes;
+    frameSize += 4;
+  }
 
   Data *received_picture = new Data;
   received_picture->data_size = frameSize;
@@ -69,7 +75,20 @@ void RTPSinkFilter::afterGettingFrame(unsigned frameSize,
   received_picture->framerate = 0;
   received_picture->presentationTime = presentationTime;
   received_picture->source = REMOTE;
-  memcpy(received_picture->data.get(), fReceiveBuffer, received_picture->data_size);
+
+  if(addStartCodes_ && type_ == HEVCVIDEO)
+  {
+    memcpy(received_picture->data.get() + 4, fReceiveBuffer, received_picture->data_size - 4);
+    received_picture->data[0] = 0;
+    received_picture->data[1] = 0;
+    received_picture->data[2] = 0;
+    received_picture->data[3] = 1;
+  }
+  else
+  {
+    memcpy(received_picture->data.get(), fReceiveBuffer, received_picture->data_size);
+  }
+
   std::unique_ptr<Data> rp( received_picture );
   sendOutput(std::move(rp));
 
