@@ -8,7 +8,7 @@ Filter::Filter(QString id, QString name, StatisticsInterface *stats,
                DataType input, DataType output):
   name_(id + name),
   stats_(stats),
-  maxBufferSize_(30),
+  maxBufferSize_(16),
   input_(input),
   output_(output),
   waitMutex_(new QMutex),
@@ -132,7 +132,9 @@ void Filter::putInput(std::unique_ptr<Data> data)
                << inputTaken_;
     }
   }
+  waitMutex_->lock();
   hasInput_.wakeOne();
+  waitMutex_->unlock();
   bufferMutex_.unlock();
 }
 
@@ -210,7 +212,7 @@ void Filter::stop()
 void Filter::run()
 {
   stats_->addFilter(name_, (uint64_t)currentThreadId());
-
+  //qDebug() << "Running filter" << name_ << "with max buffer:" << maxBufferSize_;
   running_ = true;
   while(running_)
   {
