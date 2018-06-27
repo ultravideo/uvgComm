@@ -62,7 +62,7 @@ void RTPStreamer::run()
   // returns when stopRTP_ is set to 1
   env_->taskScheduler().doEventLoop(&stopRTP_);
   isRunning_ = false;
-  qDebug() << "RTP streamer eventloop stopped";
+  qDebug() << "RTP streamer eventloop stopped. TID:" << (uint64_t)currentThreadId();
 }
 
 void RTPStreamer::stop()
@@ -192,7 +192,9 @@ void RTPStreamer::removePeer(uint32_t sessionID)
   {
     stop();
     while(isRunning_)
+    {
       qSleep(1);
+    }
 
     if(peers_.at(sessionID - 1)->audioSender)
       destroySender(peers_.at(sessionID - 1)->audioSender);
@@ -205,6 +207,9 @@ void RTPStreamer::removePeer(uint32_t sessionID)
 
     delete peers_.at(sessionID - 1);
     peers_[sessionID - 1] = NULL;
+
+    // TODO: this may crash, because eventloop may start processing tasks on handletimout.
+    qSleep(1);
     start();
     while(!isRunning_)
     {
@@ -237,6 +242,10 @@ void RTPStreamer::destroySender(Sender* sender)
     if(sender->sink)
     {
       Medium::close(sender->sink);
+    }
+    if(sender->framerSource)
+    {
+      Medium::close(sender->framerSource);
     }
     if(sender->sourcefilter)
     {
@@ -433,6 +442,10 @@ RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType 
     sender->framerSource = H265VideoStreamDiscreteFramer::createNew(*env_, sender->sourcefilter.get());
     //sender->framerSource = H265VideoStreamFramer::createNew(*env_, sender->sourcefilter.get());
   }
+  else
+  {
+    sender->framerSource = NULL;
+  }
 
   const unsigned int estimatedSessionBandwidth = 5000; // in kbps; for RTCP b/w share
   // This starts RTCP running automatically
@@ -527,8 +540,6 @@ RTPStreamer::Receiver* RTPStreamer::addReceiver(in_addr peerAddress, uint16_t po
     delete receiver;
     return NULL;
   }
-
-
 
   if(!receiver->sink->startPlaying(*receiver->framedSource,NULL,NULL))
   {

@@ -16,16 +16,32 @@ FramedSourceFilter::FramedSourceFilter(QString id, StatisticsInterface* stats,
   FramedSource(env),
   Filter(id, "Framed_Source_" + media, stats, type, NONE),
   type_(type),
-  afterEvent_(),
+  afterEvent_(0),
   //separateInput_(!live555Copying),
   separateInput_(false),
   triggerMutex_(triggerMutex),
   ending_(false),
-  removeStartCodes_(true)
+  removeStartCodes_(true),
+  currentTask_()
 {
   updateSettings();
   afterEvent_ = envir().taskScheduler().createEventTrigger((TaskFunc*)FramedSource::afterGetting);
   qDebug() << "Creating trigger for framedSource:" << afterEvent_;
+}
+
+FramedSourceFilter::~FramedSourceFilter()
+{
+  if(afterEvent_)
+  {
+    qDebug() << "Removed trigger from live555";
+    envir().taskScheduler().deleteEventTrigger(afterEvent_);
+  }
+
+  if(currentTask_)
+  {
+    qDebug() << "Unscheduled delayed task from live555";
+    envir().taskScheduler().unscheduleDelayedTask(currentTask_);
+  }
 }
 
 void FramedSourceFilter::updateSettings()
@@ -71,7 +87,7 @@ void FramedSourceFilter::doGetNextFrame()
   else
   {
     fFrameSize = 0;
-    envir().taskScheduler().scheduleDelayedTask(1, (TaskFunc*)FramedSource::afterGetting, this);
+    currentTask_ = envir().taskScheduler().scheduleDelayedTask(1, (TaskFunc*)FramedSource::afterGetting, this);
   }
 }
 

@@ -14,7 +14,7 @@ public:
                      UsageEnvironment &env, DataType type,
                      QString media, QMutex* triggerMutex, bool live555Copying);
 
-
+  ~FramedSourceFilter();
 
   // called by live555. Takes a sample from input and schedules it to be sent.
   virtual void doGetNextFrame();
@@ -45,4 +45,6 @@ private:
   bool separateInput_;
   bool ending_;
   bool removeStartCodes_;
+
+  TaskToken currentTask_;
 };
