@@ -44,6 +44,9 @@ private:
 
   void updateTargetRect();
 
+  void enterFullscreen();
+  void exitFullscreen();
+
   bool firstImageReceived_;
 
   QRect targetRect_;

@@ -147,19 +147,6 @@ void VideoWidget::resizeEvent(QResizeEvent *event)
   updateTargetRect();
 }
 
-void VideoWidget::keyPressEvent(QKeyEvent *event)
-{
-  if(event->key() == Qt::Key_Escape)
-  {
-    qDebug() << "Esc key pressed";
-    this->showNormal();
-  }
-  else
-  {
-    qDebug() << "You Pressed Other Key";
-  }
-}
-
 void VideoWidget::updateTargetRect()
 {
   if(firstImageReceived_)
@@ -197,34 +184,60 @@ void VideoWidget::updateTargetRect()
   }
 }
 
+void VideoWidget::keyPressEvent(QKeyEvent *event)
+{
+  if(event->key() == Qt::Key_Escape)
+  {
+    qDebug() << "Esc key pressed";
+    if(isFullScreen() && sessionID_ != 0)
+    {
+      exitFullscreen();
+    }
+  }
+  else
+  {
+    qDebug() << "You Pressed Other Key";
+  }
+}
+
+
 void VideoWidget::mouseDoubleClickEvent(QMouseEvent *e) {
   QWidget::mouseDoubleClickEvent(e);
   if(sessionID_ != 0)
   {
     if(isFullScreen())
     {
-      qDebug() << "Returning video widget to original place.";
-      this->setParent(tmpParent_);
-      //this->showMaximized();
-      this->show();
-      this->setWindowState(Qt::WindowMaximized);
-
-      QFrame::setLineWidth(borderSize_);
-      QFrame::setMidLineWidth(1);
-
-      emit reattach(sessionID_, this);
-
+      exitFullscreen();
     } else {
-      qDebug() << "Setting videowidget fullscreen";
-
-      QFrame::setLineWidth(0);
-      QFrame::setMidLineWidth(0);
-
-      tmpParent_ = QWidget::parentWidget();
-      this->setParent(NULL);
-      //this->showMaximized();
-      this->show();
-      this->setWindowState(Qt::WindowFullScreen);
+      enterFullscreen();
     }
   }
+}
+
+void VideoWidget::enterFullscreen()
+{
+  qDebug() << "Setting videowidget fullscreen";
+
+  QFrame::setLineWidth(0);
+  QFrame::setMidLineWidth(0);
+
+  tmpParent_ = QWidget::parentWidget();
+  this->setParent(NULL);
+  //this->showMaximized();
+  this->show();
+  this->setWindowState(Qt::WindowFullScreen);
+}
+
+void VideoWidget::exitFullscreen()
+{
+  qDebug() << "Returning video widget to original place.";
+  this->setParent(tmpParent_);
+  //this->showMaximized();
+  this->show();
+  this->setWindowState(Qt::WindowMaximized);
+
+  QFrame::setLineWidth(borderSize_);
+  QFrame::setMidLineWidth(1);
+
+  emit reattach(sessionID_, this);
 }
