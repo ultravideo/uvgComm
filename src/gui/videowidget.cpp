@@ -218,8 +218,7 @@ void VideoWidget::enterFullscreen()
 {
   qDebug() << "Setting videowidget fullscreen";
 
-  QFrame::setLineWidth(0);
-  QFrame::setMidLineWidth(0);
+  QFrame::setFrameStyle(QFrame::NoFrame);
 
   tmpParent_ = QWidget::parentWidget();
   this->setParent(NULL);
@@ -236,8 +235,7 @@ void VideoWidget::exitFullscreen()
   this->show();
   this->setWindowState(Qt::WindowMaximized);
 
-  QFrame::setLineWidth(borderSize_);
-  QFrame::setMidLineWidth(1);
+  QFrame::setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
 
   emit reattach(sessionID_, this);
 }
