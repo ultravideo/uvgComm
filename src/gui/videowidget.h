@@ -32,6 +32,7 @@ signals:
 
   void reattach(uint32_t sessionID_, VideoWidget* view);
 
+  void newImage();
 protected:
   void paintEvent(QPaintEvent *event);
   void resizeEvent(QResizeEvent *event);

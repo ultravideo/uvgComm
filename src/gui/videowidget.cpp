@@ -35,6 +35,11 @@ VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID, uint8_t borderSize
 
   //showFullScreen();
   setWindowState(Qt::WindowFullScreen);
+
+  setUpdatesEnabled(true);
+
+  // the new syntax does not work for some reason (unresolved overloaded function type)
+  QObject::connect(this, SIGNAL(newImage()), this, SLOT(repaint()));
 }
 
 VideoWidget::~VideoWidget()
@@ -83,7 +88,9 @@ void VideoWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image)
     }
   }
 
-  update();
+  //update();
+
+  emit newImage();
   drawMutex_.unlock();
 }
 
@@ -198,10 +205,6 @@ void VideoWidget::mouseDoubleClickEvent(QMouseEvent *e) {
     {
       qDebug() << "Returning video widget to original place.";
       this->setParent(tmpParent_);
-      if(ourLayout_)
-      {
-        ourLayout_->addWidget(this);
-      }
       //this->showMaximized();
       this->show();
       this->setWindowState(Qt::WindowMaximized);
@@ -218,7 +221,6 @@ void VideoWidget::mouseDoubleClickEvent(QMouseEvent *e) {
       QFrame::setMidLineWidth(0);
 
       tmpParent_ = QWidget::parentWidget();
-      ourLayout_ = QWidget::layout();
       this->setParent(NULL);
       //this->showMaximized();
       this->show();
