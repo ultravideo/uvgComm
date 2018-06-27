@@ -105,6 +105,17 @@ void ConferenceView::attachCallingWidget(QWidget* holder, QString text)
   holder->show();
 }
 
+
+void ConferenceView::attachVideoWidget(uint32_t sessionID, VideoWidget* view)
+{
+  layoutMutex_.lock();
+  layout_->removeItem(activeCalls_[sessionID - 1]->item);
+  layout_->addWidget(view, activeCalls_[sessionID - 1]->row, activeCalls_[sessionID - 1]->column);
+  activeCalls_[sessionID - 1]->item = layout_->itemAtPosition(activeCalls_[sessionID - 1]->row,
+                                                       activeCalls_[sessionID - 1]->column);
+  layoutMutex_.unlock();
+}
+
 // if our call is accepted or we accepted their call
 VideoWidget* ConferenceView::addVideoStream(uint32_t sessionID)
 {
@@ -127,12 +138,11 @@ VideoWidget* ConferenceView::addVideoStream(uint32_t sessionID)
   // TODO delete previous widget now instead of with parent.
   // Now they accumulate in memory until call has ended
   delete activeCalls_[sessionID - 1]->item->widget();
-  layoutMutex_.lock();
-  layout_->removeItem(activeCalls_[sessionID - 1]->item);
-  layout_->addWidget(view, activeCalls_[sessionID - 1]->row, activeCalls_[sessionID - 1]->column);
-  activeCalls_[sessionID - 1]->item = layout_->itemAtPosition(activeCalls_[sessionID - 1]->row,
-                                                       activeCalls_[sessionID - 1]->column);
-  layoutMutex_.unlock();
+
+  attachVideoWidget(sessionID, view);
+
+  QObject::connect(view, &VideoWidget::reattach, this, &ConferenceView::attachVideoWidget);
+
   //view->setParent(0);
   //view->showMaximized();
   //view->show();

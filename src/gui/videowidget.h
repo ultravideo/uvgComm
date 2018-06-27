@@ -28,10 +28,16 @@ public:
 
   static unsigned int number_;
 
+signals:
+
+  void reattach(uint32_t sessionID_, VideoWidget* view);
+
 protected:
   void paintEvent(QPaintEvent *event);
   void resizeEvent(QResizeEvent *event);
   void keyPressEvent(QKeyEvent *event);
+
+  void mouseDoubleClickEvent(QMouseEvent *e);
 
 private:
 
@@ -51,7 +57,10 @@ private:
 
   StatisticsInterface* stats_;
 
-  unsigned int sessionID_;
+  uint32_t sessionID_;
 
   unsigned int borderSize_;
+
+  QWidget* tmpParent_;
+  QLayout* ourLayout_;
 };

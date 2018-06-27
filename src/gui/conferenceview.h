@@ -56,6 +56,8 @@ private slots:
   void accept();
   void reject();
 
+  void attachVideoWidget(uint32_t sessionID, VideoWidget *view);
+
 private:
 
   //TODO: also some way to keep track of freed positions

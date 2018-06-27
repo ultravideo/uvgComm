@@ -7,6 +7,7 @@
 #include <QCoreApplication>
 #include <QEvent>
 #include <QKeyEvent>
+#include <QLayout>
 
 uint16_t VIEWBUFFERSIZE = 5;
 
@@ -16,7 +17,8 @@ VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID, uint8_t borderSize
   previousSize_(QSize(0,0)),
   stats_(NULL),
   sessionID_(sessionID),
-  borderSize_(borderSize)
+  borderSize_(borderSize),
+  tmpParent_(NULL)
 {
   setAutoFillBackground(false);
   setAttribute(Qt::WA_NoSystemBackground, true);
@@ -30,6 +32,9 @@ VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID, uint8_t borderSize
   QFrame::setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
   QFrame::setLineWidth(borderSize_);
   QFrame::setMidLineWidth(1);
+
+  //showFullScreen();
+  setWindowState(Qt::WindowFullScreen);
 }
 
 VideoWidget::~VideoWidget()
@@ -77,6 +82,8 @@ void VideoWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image)
       dataBuffer_.pop_back();
     }
   }
+
+  update();
   drawMutex_.unlock();
 }
 
@@ -180,5 +187,42 @@ void VideoWidget::updateTargetRect()
   else
   {
     qDebug() << "VideoWidget: Tried updating target rect before picture";
+  }
+}
+
+void VideoWidget::mouseDoubleClickEvent(QMouseEvent *e) {
+  QWidget::mouseDoubleClickEvent(e);
+  if(sessionID_ != 0)
+  {
+    if(isFullScreen())
+    {
+      qDebug() << "Returning video widget to original place.";
+      this->setParent(tmpParent_);
+      if(ourLayout_)
+      {
+        ourLayout_->addWidget(this);
+      }
+      //this->showMaximized();
+      this->show();
+      this->setWindowState(Qt::WindowMaximized);
+
+      QFrame::setLineWidth(borderSize_);
+      QFrame::setMidLineWidth(1);
+
+      emit reattach(sessionID_, this);
+
+    } else {
+      qDebug() << "Setting videowidget fullscreen";
+
+      QFrame::setLineWidth(0);
+      QFrame::setMidLineWidth(0);
+
+      tmpParent_ = QWidget::parentWidget();
+      ourLayout_ = QWidget::layout();
+      this->setParent(NULL);
+      //this->showMaximized();
+      this->show();
+      this->setWindowState(Qt::WindowFullScreen);
+    }
   }
 }
