@@ -9,7 +9,10 @@ QT       += core gui
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = Kvazzup
-TEMPLATE = app
+
+win32-g++:   TEMPLATE = app
+win32-msvc: TEMPLATE = vcapp
+
 
 INCLUDEPATH += src
 
@@ -133,10 +136,10 @@ FORMS    += \
 QT+=multimedia
 QT+=multimediawidgets
 QT+=network
-QT += svg
+QT+=svg
 
-QMAKE_CXXFLAGS += -std=c++11
-QMAKE_CXXFLAGS += -msse4.1 -mavx2 -fopenmp
+#win32-g++: QMAKE_CXXFLAGS += -std=c++11 -fopenmp
+win32: QMAKE_CXXFLAGS += -msse4.1 -mavx2
 
 # may need a rebuild
 #CONFIG += console
@@ -149,14 +152,25 @@ INCLUDEPATH += $$PWD/../include/live/UsageEnvironment/include
 INCLUDEPATH += $$PWD/../include/live/BasicUsageEnvironment/include
 INCLUDEPATH += $$PWD/../include/
 
-win32: LIBS += -L$$PWD/../libs
-win32: LIBS += -llibkvazaar.dll
-win32: LIBS += -llibopus.dll
-win32: LIBS += -llibLibOpenHevcWrapper.dll
-win32: LIBS += -llivemedia.dll
-win32: LIBS += -llibspeexdsp.dll
+
+win32-msvc{
+LIBS += -L$$PWD/../msvc_libs
+message("Using Visual Studio libraries")
+}
+
+win32-g++{
+LIBS += -L$$PWD/../libs
+LIBS += -llibkvazaar.dll
+LIBS += -llibopus.dll
+LIBS += -llibLibOpenHevcWrapper.dll
+LIBS += -llivemedia.dll
+LIBS += -llibspeexdsp.dll
+LIBS += -fopenmp # TODO: Does msvc need this?
+message("Using MinGW libraries")
+}
+
+
 win32: LIBS += -lws2_32
-win32: LIBS += -fopenmp # TODO: Does msvc need this?
 
 win32: LIBS += -lstrmiids
 win32: LIBS += -lole32
@@ -168,3 +182,5 @@ DEPENDPATH += $$PWD/../
 
 DISTFILES += \
     .gitignore
+
+message("Qt project read")
