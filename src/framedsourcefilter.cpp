@@ -17,11 +17,10 @@ FramedSourceFilter::FramedSourceFilter(QString id, StatisticsInterface* stats,
   Filter(id, "Framed_Source_" + media, stats, type, NONE),
   type_(type),
   afterEvent_(0),
-  //separateInput_(!live555Copying),
-  separateInput_(false),
+  separateInput_(!live555Copying),
   triggerMutex_(triggerMutex),
   ending_(false),
-  removeStartCodes_(true),
+  removeStartCodes_(false),
   currentTask_()
 {
   updateSettings();
@@ -102,7 +101,6 @@ void FramedSourceFilter::process()
 
     if(currentFrame == NULL)
     {
-      qDebug() << "No input, calling after getting. Available:" << framePointerReady_.available();
       fFrameSize = 0;
       triggerMutex_->lock();
       envir().taskScheduler().triggerEvent(afterEvent_, this);
@@ -113,25 +111,21 @@ void FramedSourceFilter::process()
     {
       copyFrameToBuffer(std::move(currentFrame));
       currentFrame = NULL;
-      // trigger the live555 to send the copied frame.
+      // trigger the live555 to send the copied NAL unit.
       triggerMutex_->lock();
       envir().taskScheduler().triggerEvent(afterEvent_, this);
       triggerMutex_->unlock();
 
       framePointerReady_.acquire(1);
       currentFrame = getInput();
+      // copy additional NAL units, if available.
       if(currentFrame == NULL)
       {
-        qDebug() << "No input, calling after getting" << name_ << "Available:" << framePointerReady_.available();
         fFrameSize = 0;
         triggerMutex_->lock();
         envir().taskScheduler().triggerEvent(afterEvent_, this);
         triggerMutex_->unlock();
         return;
-      }
-      else
-      {
-        qDebug() << "Processing additional frames:" << name_ << "Available:" << framePointerReady_.available();
       }
     }
   }

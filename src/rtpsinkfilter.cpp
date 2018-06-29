@@ -13,7 +13,7 @@ RTPSinkFilter::RTPSinkFilter(QString id, StatisticsInterface *stats, UsageEnviro
   Filter(id, "RTP_Sink_" + media, stats, NONE, type),
   MediaSink(env),
   type_(type),
-  addStartCodes_(true)
+  addStartCodes_(false)
 {
   fReceiveBuffer = new u_int8_t[BUFFER_SIZE];
   stats_->addFilter(name_, (uint64_t)currentThreadId());
