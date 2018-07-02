@@ -44,6 +44,10 @@ void OpenHEVCFilter::uninit()
 
 void OpenHEVCFilter::run()
 {
+  // TODO: if not iniated, init
+
+  // TODO: call uninit when stopping?
+
   setPriority(QThread::HighPriority);
   Filter::run();
 }
@@ -167,6 +171,9 @@ void OpenHEVCFilter::process()
               pV += d_stride;
             }
           }
+
+          // TODO: put delay into deque, and set timestamp accordingly to get more accurate latency.
+
           frame->type = YUVVIDEO;
           frame->data_size = finalDataSize;
           frame->data = std::move(yuv_frame);

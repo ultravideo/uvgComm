@@ -147,7 +147,6 @@ void CallManager::endCall(uint32_t sessionID)
 {
   media_.removeParticipant(sessionID);
   window_.removeParticipant(sessionID);
-  //stats_->removeParticipant(ip); TODO use sessionID for stats identificatioin
 }
 
 void CallManager::registeredToServer()

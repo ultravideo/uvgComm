@@ -47,6 +47,9 @@ void ConferenceView::callingTo(uint32_t sessionID, QString name)
 void ConferenceView::addWidgetToLayout(CallState state, QWidget* widget, QString name, uint32_t sessionID)
 {
   locMutex_.lock();
+
+  // TODO: more checks if something goes wrong. There is some kind of bug when adding the caller
+
   uint16_t row = row_;
   uint16_t column = column_;
 
@@ -260,7 +263,10 @@ void ConferenceView::close()
 
 uint32_t ConferenceView::findInvoker(QString buttonName)
 {
-  // TODO: bug warning: what if a sessionID has left the call and the sessionID no longer matches the widget positions?
+  // TODO: bug warning: what if a sessionID has left the call
+  // and the sessionID no longer matches the widget positions?
+
+  // TODO: replace this with setproperty and getproperty for qpushbutton.
 
   uint32_t sessionID = 0;
   QPushButton* button = qobject_cast<QPushButton*>(sender());
@@ -288,7 +294,14 @@ uint32_t ConferenceView::findInvoker(QString buttonName)
 void ConferenceView::accept()
 {
   uint32_t sessionID = findInvoker("AcceptButton");
-  emit acceptCall(sessionID);
+  if (sessionID != 0)
+  {
+    emit acceptCall(sessionID);
+  }
+  else
+  {
+    qDebug() << "Couldn't find the invoker";
+  }
 }
 
 void ConferenceView::reject()

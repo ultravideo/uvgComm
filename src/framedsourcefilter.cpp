@@ -59,6 +59,11 @@ void FramedSourceFilter::doGetNextFrame()
 {
   // The fTo pointer is actually given as a pointer to be put data
   // so replacing the pointer does nothing.
+
+  // TODO_BUG: There is a possibility of timeout under heavy load (such as starting the filter)
+  // for a timeout which causes getnextframe to be called a second time resulting in an internal error
+  // for live555
+
   if(isCurrentlyAwaitingData())
   {
     if(separateInput_)

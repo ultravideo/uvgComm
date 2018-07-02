@@ -202,6 +202,8 @@ void KvazaarFilter::process()
         if(chunk->first_chunk_in_slice && dataWritten != 0 && config_->slices != KVZ_SLICES_NONE)
         {
           // send previous packet if this is not the first
+
+          // TODO: put delayes into deque, and set timestamp accordingly to get more accurate latency.
           std::unique_ptr<Data> slice(shallowDataCopy(input.get()));
 
           sendEncodedFrame(std::move(slice), std::move(hevc_frame), dataWritten);
