@@ -18,30 +18,19 @@ FramedSourceFilter::FramedSourceFilter(QString id, StatisticsInterface* stats,
   type_(type),
   afterEvent_(0),
   separateInput_(!live555Copying),
+  //separateInput_(true),
   triggerMutex_(triggerMutex),
   ending_(false),
   removeStartCodes_(false),
-  currentTask_()
+  currentTask_(),
+  stop_(false), // whether we should stop. Called when stopping
+  noMoreTasks_(true)
 {
   updateSettings();
-  afterEvent_ = envir().taskScheduler().createEventTrigger((TaskFunc*)FramedSource::afterGetting);
-  qDebug() << "Creating trigger for framedSource:" << afterEvent_;
 }
 
 FramedSourceFilter::~FramedSourceFilter()
-{
-  if(afterEvent_)
-  {
-    qDebug() << "Removed trigger from live555";
-    envir().taskScheduler().deleteEventTrigger(afterEvent_);
-  }
-
-  if(currentTask_)
-  {
-    qDebug() << "Unscheduled delayed task from live555";
-    envir().taskScheduler().unscheduleDelayedTask(currentTask_);
-  }
-}
+{}
 
 void FramedSourceFilter::updateSettings()
 {
@@ -76,7 +65,7 @@ void FramedSourceFilter::doGetNextFrame()
     {
       framePointerReady_.release();
     }
-    else
+    else if(!stop_)
     {
       std::unique_ptr<Data> currentFrame = getInput();
       copyFrameToBuffer(std::move(currentFrame));
@@ -90,6 +79,50 @@ void FramedSourceFilter::doGetNextFrame()
   }
 }
 
+void FramedSourceFilter::start()
+{
+  if(separateInput_)
+  {
+    afterEvent_ = envir().taskScheduler().createEventTrigger((TaskFunc*)FramedSource::afterGetting);
+    qDebug() << "Creating trigger for framedSource:" << name_ << "Trigger ID: " << afterEvent_;
+  }
+
+  Filter::start();
+
+  noMoreTasks_ = false;
+}
+
+void FramedSourceFilter::stop()
+{
+  stopGettingFrames();
+  Filter::stop();
+  stop_ = true;
+  framePointerReady_.release();
+
+  uint16_t waitTime = 5;
+
+  while(!noMoreTasks_)
+  {
+    qSleep(waitTime);
+    qDebug() << "Waiting for no more tasks";
+  }
+
+  if(afterEvent_)
+  {
+    qDebug() << "Removing trigger from live555:" << afterEvent_;
+    envir().taskScheduler().deleteEventTrigger(afterEvent_);
+    afterEvent_ = 0;
+  }
+
+  if(currentTask_)
+  {
+    qDebug() << "Unscheduling delayed task from live555:" << currentTask_;
+    envir().taskScheduler().unscheduleDelayedTask(currentTask_);
+    currentTask_ = 0;
+  }
+
+}
+
 void FramedSourceFilter::process()
 {
   // There is no way to copy the data here, because the
@@ -97,38 +130,50 @@ void FramedSourceFilter::process()
   while(separateInput_)
   {
     framePointerReady_.acquire(1);
+
+    if(stop_)
+    {
+      return;
+    }
+
     std::unique_ptr<Data> currentFrame = getInput();
 
     if(currentFrame == NULL)
     {
       fFrameSize = 0;
-      triggerMutex_->lock();
-      envir().taskScheduler().triggerEvent(afterEvent_, this);
-      triggerMutex_->unlock();
+      sendFrame();
       return;
     }
     while(currentFrame)
     {
       copyFrameToBuffer(std::move(currentFrame));
+      sendFrame();
+
       currentFrame = NULL;
-      // trigger the live555 to send the copied NAL unit.
-      triggerMutex_->lock();
-      envir().taskScheduler().triggerEvent(afterEvent_, this);
-      triggerMutex_->unlock();
 
       framePointerReady_.acquire(1);
+      if(stop_)
+      {
+        return;
+      }
       currentFrame = getInput();
       // copy additional NAL units, if available.
       if(currentFrame == NULL)
       {
         fFrameSize = 0;
-        triggerMutex_->lock();
-        envir().taskScheduler().triggerEvent(afterEvent_, this);
-        triggerMutex_->unlock();
+        sendFrame();
         return;
       }
     }
   }
+}
+
+void FramedSourceFilter::sendFrame()
+{
+  // trigger the live555 to send the copied NAL unit.
+  triggerMutex_->lock();
+  envir().taskScheduler().triggerEvent(afterEvent_, this);
+  triggerMutex_->unlock();
 }
 
 void FramedSourceFilter::copyFrameToBuffer(std::unique_ptr<Data> currentFrame)
@@ -169,4 +214,11 @@ void FramedSourceFilter::copyFrameToBuffer(std::unique_ptr<Data> currentFrame)
 
     stats_->addSendPacket(fFrameSize);
   }
+}
+
+
+void FramedSourceFilter::doStopGettingFrames()
+{
+  FramedSource::doStopGettingFrames();
+  noMoreTasks_ = true;
 }

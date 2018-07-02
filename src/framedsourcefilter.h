@@ -27,12 +27,19 @@ public:
   }
 
   void sendComplete();
+
+  virtual void start();
+  virtual void stop();
 protected:
   void process();
+
+  virtual void doStopGettingFrames();
 
 private:
 
   void copyFrameToBuffer(std::unique_ptr<Data> currentFrame);
+  void sendFrame();
+
 
   DataType type_; // TODO use output_
 
@@ -47,4 +54,7 @@ private:
   bool removeStartCodes_;
 
   TaskToken currentTask_;
+
+  bool stop_;
+  bool noMoreTasks_;
 };
