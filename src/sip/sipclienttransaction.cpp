@@ -13,7 +13,6 @@ SIPClientTransaction::SIPClientTransaction():
   ongoingTransactionType_(SIP_UNKNOWN_REQUEST),
   connected_(false),
   sessionID_(0),
-  state_(INACTIVE),
   pendingRequest_(SIP_UNKNOWN_REQUEST),
   transactionUser_(NULL)
 {}
@@ -128,27 +127,14 @@ bool SIPClientTransaction::startCall()
     return false;
   }
 
-  if(state_ == INACTIVE)
-  {
-    requestSender(INVITE);
-  }
-  else
-  {
-    qWarning() << "WARNING: Trying to start a call, when it is already running or negotiating:" << state_;
-    return false;
-  }
+  requestSender(INVITE);
 
   return true;
 }
 
 void SIPClientTransaction::endCall()
 {
-  if(state_ != RUNNNING)
-  {
-    qDebug() << "WARNING: Trying to end a non-active call!";
-    return;
-  }
-
+  qDebug() << "Ending the call with BYE";
   requestSender(BYE);
 }
 

@@ -108,6 +108,16 @@ void SIPDialogState::processFirstINVITE(std::shared_ptr<SIPMessageInfo> &inMessa
 void SIPDialogState::getRequestDialogInfo(RequestType type, QString localAddress,
                                      std::shared_ptr<SIPMessageInfo>& outMessage)
 {
+  Q_ASSERT(localUri_.username != "" && localUri_.host != "");
+  Q_ASSERT(remoteUri_.username != "" && remoteUri_.host != "");
+
+  if(localUri_.username == "" || localUri_.host == "" ||
+     remoteUri_.username == "" || remoteUri_.host == "")
+  {
+    qDebug() << "ERROR: The dialog state info has not been set, but we are using it.";
+  }
+
+
   if(type != ACK && type != CANCEL)
   {
     ++localCSeq_;

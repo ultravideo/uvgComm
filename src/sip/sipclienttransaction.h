@@ -7,8 +7,6 @@
 
 class SIPTransactionUser;
 
-enum CallState {INACTIVE, NEGOTIATING, RUNNNING, ENDING};
-
 class SIPClientTransaction : public QObject
 {
   Q_OBJECT
@@ -59,8 +57,6 @@ private:
   bool connected_;
 
   uint32_t sessionID_;
-
-  CallState state_;
 
   // waiting to be sent once the connection has been opened
   RequestType pendingRequest_;

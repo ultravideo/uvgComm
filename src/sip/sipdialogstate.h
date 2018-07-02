@@ -23,6 +23,11 @@ public:
   // creates dialog which is about to start from our end
   void createDialog(QString hostName);
 
+  void setHostname(QString hostName)
+  {
+    localUri_.host = hostName;
+  }
+
   // creates the dialog from an incoming INVITE
   void processFirstINVITE(std::shared_ptr<SIPMessageInfo> &inMessage);
 

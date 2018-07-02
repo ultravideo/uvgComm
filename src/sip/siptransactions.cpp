@@ -311,7 +311,11 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
                     request.message->from.realname,
                     request.message->from.host});
 
+
+      foundDialog->client->connectionReady(true);
+
       foundDialog->state->processFirstINVITE(request.message);
+      foundDialog->state->setHostname(transports_.at(transportID - 1)->getLocalAddress().toString());
 
       // Proxy TODO: somehow distinguish if this is a proxy connection
       foundDialog->proxyConnection_ = false;
