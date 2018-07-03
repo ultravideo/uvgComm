@@ -58,7 +58,7 @@ private:
 
   QStringList getVideoDevices();
   QStringList getAudioDevices();
-  QStringList getVideoCapabilities(int deviceID);
+  void getVideoCapabilities(int deviceID, QStringList& formats, QList<QStringList>& resolutions);
   void getCapability(int deviceIndex, int capabilityIndex,
                      QSize& resolution, double& framerate, QString &format);
 

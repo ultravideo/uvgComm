@@ -90,6 +90,7 @@ void Settings::saveBasicSettings()
       settings_.setValue("video/Device",        basicUI_->videoDevice->currentText());
       // set capability to first
       saveCameraCapabilities(currentIndex, 0);
+      advancedUI_->format_box->setCurrentIndex(0);
       advancedUI_->resolution->setCurrentIndex(0);
     }
 
@@ -112,16 +113,36 @@ void Settings::saveAdvancedSettings()
   settings_.setValue("video/QP",               QString::number(advancedUI_->qp->value()));
   settings_.setValue("video/Preset",           advancedUI_->preset->currentText());
 
-  int currentIndex = advancedUI_->resolution->currentIndex();
-  if( currentIndex != -1)
+  QStringList formats;
+  QList<QStringList> resolutions;
+  getVideoCapabilities(getVideoDeviceID(), formats, resolutions);
+
+  int resolutionIndex = advancedUI_->resolution->currentIndex();
+  if(resolutionIndex == -1)
   {
-    qDebug() << "Saving resolution:" << advancedUI_->resolution->currentText();
+    qDebug() << "No current index set for resolution. Using first";
+    resolutionIndex = 0;
   }
-  else
+
+  int formatIndex = advancedUI_->resolution->currentIndex();
+  if(formatIndex == -1)
   {
-    qDebug() << "No current index set for resolution. Using 0";
-    currentIndex = 0;
+    qDebug() << "No current index set for format. Using first";
+    formatIndex = 0;
   }
+
+  int currentIndex = 0;
+
+  // add all other resolutions to form currentindex
+  for(unsigned int i = 0; i <= formatIndex; ++i)
+  {
+    currentIndex += resolutions.at(i).size();
+  }
+
+  currentIndex += resolutionIndex;
+  qDebug() << "Saving format:" << advancedUI_->format_box->currentText()
+           << " and resolution:" << advancedUI_->resolution->currentText();
+
   saveCameraCapabilities(settings_.value("video/DeviceID").toInt(), currentIndex);
   //settings.sync(); // TODO is this needed?
 }
@@ -185,12 +206,19 @@ void Settings::restoreAdvancedSettings()
 
     restoreCheckBox("video/Slices", advancedUI_->slices);
 
-    int capabilityID = settings_.value("video/ResolutionID").toInt();
-    if(advancedUI_->resolution->count() < capabilityID)
+    int resolutionID = settings_.value("video/ResolutionID").toInt();
+    if(advancedUI_->resolution->count() < resolutionID)
     {
-      capabilityID = 0;
+      resolutionID = 0;
     }
-    advancedUI_->resolution->setCurrentIndex(capabilityID);
+    advancedUI_->resolution->setCurrentIndex(resolutionID);
+
+    int formatIndex = settings_.value("video/ResolutionID").toInt();
+    if(advancedUI_->resolution->count() < formatIndex)
+    {
+      formatIndex = 0;
+    }
+    advancedUI_->resolution->setCurrentIndex(formatIndex);
   }
   else
   {
@@ -216,11 +244,20 @@ void Settings::showBasicSettings()
 void Settings::showAdvancedSettings()
 {
   advancedUI_->resolution->clear();
-  QStringList capabilities = getVideoCapabilities(getVideoDeviceID());
-  qDebug() << "Showing advanced settings";
-  for(int i = 0; i < capabilities.size(); ++i)
+
+  QStringList formats;
+  QList<QStringList> resolutions;
+  getVideoCapabilities(getVideoDeviceID(), formats, resolutions);
+
+  for(int i = 0; i < formats.size(); ++i)
   {
-    advancedUI_->resolution->addItem( capabilities[i]);
+    advancedUI_->format_box->addItem( formats.at(i));
+  }
+
+  qDebug() << "Showing advanced settings";
+  for(int i = 0; i < resolutions.size(); ++i)
+  {
+    advancedUI_->resolution->addItem( resolutions[0].at(i));
   }
   restoreAdvancedSettings();
   advancedParent_.show();
@@ -260,9 +297,10 @@ QStringList Settings::getAudioDevices()
   return QStringList();
 }
 
-QStringList Settings::getVideoCapabilities(int deviceID)
+void Settings::getVideoCapabilities(int deviceID, QStringList& formats, QList<QStringList>& resolutions)
 {
-  QStringList list;
+  formats.clear();
+  resolutions.clear();
   if (dshow_selectDevice(deviceID) || dshow_selectDevice(0))
   {
     int8_t count = 0;
@@ -272,12 +310,17 @@ QStringList Settings::getVideoCapabilities(int deviceID)
     qDebug() << "Found" << (int)count << "capabilities";
     for(int i = 0; i < count; ++i)
     {
-      list.push_back(QString(capList[i].format) + " " + QString::number(capList[i].width) + "x" +
+      if(formats.empty() || formats.back() != QString(capList[i].format))
+      {
+        formats.push_back(QString(capList[i].format));
+        resolutions.push_back(QStringList());
+      }
+      resolutions.back().push_back(QString::number(capList[i].width) + "x" +
                      QString::number(capList[i].height) + " " +
                      QString::number(capList[i].fps) + " fps");
     }
   }
-  return list;
+  return;
 }
 
 void Settings::getCapability(int deviceIndex,
