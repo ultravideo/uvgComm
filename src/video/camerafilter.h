@@ -14,10 +14,11 @@ public:
   CameraFilter(QString id, StatisticsInterface* stats);
   ~CameraFilter();
 
+  virtual bool init();
+
   virtual void start();
   virtual void stop();
 
-  void printSupportedFormats();
 private slots:
   // qcamera calls this when frame available
   void handleFrame(const QVideoFrame &frame);
@@ -26,6 +27,10 @@ protected:
   void process();
 
 private:
+
+  void printSupportedFormats();
+  void printSupportedResolutions(QCameraViewfinderSettings &viewsettings);
+
   QCamera *camera_;
   CameraFrameGrabber *cameraFrameGrabber_;
 

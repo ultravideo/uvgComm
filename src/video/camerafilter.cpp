@@ -3,6 +3,8 @@
 #include "cameraframegrabber.h"
 #include "statisticsinterface.h"
 
+#include "common.h"
+
 #include <QSettings>
 #include <QCameraInfo>
 #include <QTime>
@@ -14,13 +16,23 @@ CameraFilter::CameraFilter(QString id, StatisticsInterface *stats):
   camera_(),
   cameraFrameGrabber_(),
   framerate_(0)
+{}
+
+CameraFilter::~CameraFilter()
+{
+  delete camera_;
+  delete cameraFrameGrabber_;
+}
+
+
+bool CameraFilter::init()
 {
   QList<QCameraInfo> cameras = QCameraInfo::availableCameras();
 
   if(cameras.size() == 0)
   {
     qDebug() << "No camera found!";
-    return;
+    return false;
   }
 
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
@@ -50,6 +62,13 @@ CameraFilter::CameraFilter(QString id, StatisticsInterface *stats):
   camera_ = new QCamera(cameras.at(deviceID));
   cameraFrameGrabber_ = new CameraFrameGrabber();
 
+  camera_->load();
+
+  while(camera_->state() != QCamera::LoadedState)
+  {
+    qSleep(5);
+  }
+
 
   Q_ASSERT(camera_ && cameraFrameGrabber_);
 
@@ -57,18 +76,37 @@ CameraFilter::CameraFilter(QString id, StatisticsInterface *stats):
 
   connect(cameraFrameGrabber_, SIGNAL(frameAvailable(QVideoFrame)), this, SLOT(handleFrame(QVideoFrame)));
 
-  // TODO: get resolution etc. from settings
   QCameraViewfinderSettings viewSettings = camera_->viewfinderSettings();
+  printSupportedFormats();
 
-  qDebug() << "Format:" << settings.value("video/InputFormat").toString();
+  // TODO: this should be a temprary hack until dshow is replaced by qcamera
   if(settings.value("video/InputFormat").toString() == "MJPG")
   {
     viewSettings.setPixelFormat(QVideoFrame::Format_Jpeg);
+    output_ = RGB32VIDEO;
   }
   else if(settings.value("video/InputFormat").toString() == "YUY2")
   {
     viewSettings.setPixelFormat(QVideoFrame::Format_YUYV);
+    output_ = RGB32VIDEO;
   }
+  else if(settings.value("video/InputFormat").toString() == "NV12")
+  {
+    viewSettings.setPixelFormat(QVideoFrame::Format_NV12);
+    output_ = RGB32VIDEO;
+  }
+  else if(settings.value("video/InputFormat").toString() == "I420")
+  {
+    viewSettings.setPixelFormat(QVideoFrame::Format_YUV420P);
+    output_ = RGB32VIDEO;
+  }
+  else if(settings.value("video/InputFormat").toString() == "YV12")
+  {
+    viewSettings.setPixelFormat(QVideoFrame::Format_YV12);
+    output_ = RGB32VIDEO;
+  }
+
+  printSupportedResolutions(viewSettings);
 
   if(settings.value("video/ResolutionWidth").toInt() != 0 &&
      settings.value("video/ResolutionHeight").toInt() != 0)
@@ -77,23 +115,10 @@ CameraFilter::CameraFilter(QString id, StatisticsInterface *stats):
                                      settings.value("video/ResolutionHeight").toInt()));
   }
 
-
   viewSettings.setMaximumFrameRate(settings.value("video/Framerate").toInt());
   viewSettings.setMinimumFrameRate(settings.value("video/Framerate").toInt());
 
-  QList<QSize> supportedResos = camera_->supportedViewfinderResolutions(viewSettings);
-  qDebug() << "Found" << supportedResos.count() << "resos.";
-  for(QSize res : supportedResos)
-  {
-    qDebug() << "Resolution:" << res.width() << "x" << res.height();
-  }
 
-  supportedResos = camera_->supportedViewfinderResolutions();
-  qDebug() << "Found" << supportedResos.count() << "resos.";
-  for(QSize res : supportedResos)
-  {
-    qDebug() << "Resolution:" << res.width() << "x" << res.height();
-  }
 
   qDebug() << "Using following QCamera settings:";
   qDebug() << "---------------------------------------";
@@ -104,80 +129,19 @@ CameraFilter::CameraFilter(QString id, StatisticsInterface *stats):
 
   camera_->setViewfinderSettings(viewSettings);
   camera_->start();
+
+  return Filter::init();
 }
 
-CameraFilter::~CameraFilter()
-{
-  delete camera_;
-  delete cameraFrameGrabber_;
-}
-
-void CameraFilter::process()
-{
-  if(frames_.empty())
-  {
-    return;
-  }
-  QVideoFrame frame = frames_.front();
-  frameMutex_.lock();
-  frames_.pop_front();
-  frameMutex_.unlock();
-
-  // do nothing because camera input is handled via camera signal
-  if(framerate_ == 0)
-  {
-    QCameraViewfinderSettings settings = camera_->viewfinderSettings();
-
-    stats_->videoInfo(settings.maximumFrameRate(), settings.resolution());
-    framerate_ = settings.maximumFrameRate();
-  }
-
-  QVideoFrame cloneFrame(frame);
-  cloneFrame.map(QAbstractVideoBuffer::ReadOnly);
-
-  QVideoFrame::PixelFormat pf = cloneFrame.pixelFormat();
-
-  Q_ASSERT(pf == QVideoFrame::Format_RGB32);
-
-  // capture the frame data
-  Data * newImage = new Data;
-
-  // set time
-  timeval present_time;
-
-  present_time.tv_sec = QDateTime::currentMSecsSinceEpoch()/1000;
-  present_time.tv_usec = (QDateTime::currentMSecsSinceEpoch()%1000) * 1000;
-
-  newImage->presentationTime = present_time;
-  newImage->type = RGB32VIDEO;
-  newImage->data = std::unique_ptr<uchar[]>(new uchar[cloneFrame.mappedBytes()]);
-
-  uchar *bits = cloneFrame.bits();
-
-  memcpy(newImage->data.get(), bits, cloneFrame.mappedBytes());
-  newImage->data_size = cloneFrame.mappedBytes();
-  // kvazaar requires divisable by 8 resolution
-  newImage->width = cloneFrame.width() - cloneFrame.width()%8;
-  newImage->height = cloneFrame.height() - cloneFrame.height()%8;
-  newImage->source = LOCAL;
-  newImage->framerate = framerate_;
-
-  //qDebug() << "Frame generated. Format: " << pf
-  //         << " width: " << newImage->width << ", height: " << newImage->height;
-
-  std::unique_ptr<Data> u_newImage( newImage );
-  cloneFrame.unmap();
-
-  Q_ASSERT(u_newImage->data);
-  sendOutput(std::move(u_newImage));
-}
 
 void CameraFilter::start()
 {
+  qDebug() << "Starting QCamera";
   if(camera_->state() == QCamera::LoadedState)
   {
     camera_->start();
   }
+  Filter::start();
 }
 
 void CameraFilter::stop()
@@ -194,20 +158,95 @@ void CameraFilter::handleFrame(const QVideoFrame &frame)
   frameMutex_.lock();
   frames_.push_back(frame);
   frameMutex_.unlock();
+  wakeUp();
 }
 
+void CameraFilter::process()
+{
+  if(frames_.empty())
+  {
+    qDebug() << "No frame";
+    return;
+  }
+  QVideoFrame frame = frames_.front();
+  frameMutex_.lock();
+  frames_.pop_front();
+  frameMutex_.unlock();
 
+  while(true)
+  {
+    // do nothing because camera input is handled via camera signal
+    if(framerate_ == 0)
+    {
+      QCameraViewfinderSettings settings = camera_->viewfinderSettings();
+
+      stats_->videoInfo(settings.maximumFrameRate(), settings.resolution());
+      framerate_ = settings.maximumFrameRate();
+    }
+
+    QVideoFrame cloneFrame(frame);
+    cloneFrame.map(QAbstractVideoBuffer::ReadOnly);
+
+    //QVideoFrame::PixelFormat pf = cloneFrame.pixelFormat();
+
+    // capture the frame data
+    Data * newImage = new Data;
+
+    // set time
+    timeval present_time;
+
+    present_time.tv_sec = QDateTime::currentMSecsSinceEpoch()/1000;
+    present_time.tv_usec = (QDateTime::currentMSecsSinceEpoch()%1000) * 1000;
+
+    newImage->presentationTime = present_time;
+    newImage->type = output_;
+    newImage->data = std::unique_ptr<uchar[]>(new uchar[cloneFrame.mappedBytes()]);
+
+    uchar *bits = cloneFrame.bits();
+
+    memcpy(newImage->data.get(), bits, cloneFrame.mappedBytes());
+    newImage->data_size = cloneFrame.mappedBytes();
+    // kvazaar requires divisable by 8 resolution
+    newImage->width = cloneFrame.width() - cloneFrame.width()%8;
+    newImage->height = cloneFrame.height() - cloneFrame.height()%8;
+    newImage->source = LOCAL;
+    newImage->framerate = framerate_;
+
+    //qDebug() << "Frame generated. Format: " << pf
+    //         << " width: " << newImage->width << ", height: " << newImage->height;
+
+    std::unique_ptr<Data> u_newImage( newImage );
+    cloneFrame.unmap();
+
+    Q_ASSERT(u_newImage->data);
+    sendOutput(std::move(u_newImage));
+
+    if(frames_.empty())
+    {
+      return;
+    }
+
+    frame = frames_.front();
+    frameMutex_.lock();
+    frames_.pop_front();
+    frameMutex_.unlock();
+  }
+}
 
 void CameraFilter::printSupportedFormats()
 {
   QList<QVideoFrame::PixelFormat> formats = camera_->supportedViewfinderPixelFormats();
-
+  qDebug() << "Found" << formats.size() << "supported QCamera formats.";
   for(auto format : formats)
   {
     qDebug() << "QCamera supported format:" << format;
   }
+}
 
-  QList<QSize> resolutions = camera_->supportedViewfinderResolutions();
+void CameraFilter::printSupportedResolutions(QCameraViewfinderSettings& viewsettings)
+{
+  QList<QSize> resolutions = camera_->supportedViewfinderResolutions(viewsettings);
+  qDebug() << "Found" << resolutions.size() << "supported QCamera resolutions.";
   for(auto reso : resolutions)
   {
     qDebug() << "QCamera supported resolutions:" << reso;

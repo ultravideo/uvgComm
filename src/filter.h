@@ -109,6 +109,13 @@ protected:
 
   virtual void process() = 0;
 
+  void wakeUp()
+  {
+    waitMutex_->lock();
+    hasInput_.wakeOne();
+    waitMutex_->unlock();
+  }
+
   void sleep()
   {
     waitMutex_->lock();

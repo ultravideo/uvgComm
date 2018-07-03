@@ -132,9 +132,8 @@ void Filter::putInput(std::unique_ptr<Data> data)
                << inputTaken_;
     }
   }
-  waitMutex_->lock();
-  hasInput_.wakeOne();
-  waitMutex_->unlock();
+  wakeUp();
+
   bufferMutex_.unlock();
 }
 
