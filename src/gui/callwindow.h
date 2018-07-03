@@ -73,7 +73,6 @@ public slots:
   void addContact();
   void openStatistics(); // Opens statistics window
   void on_settings_clicked();
-  void on_advanced_settings_clicked();
   void on_about_clicked();
 
 private:

@@ -84,7 +84,7 @@
         </spacer>
        </item>
        <item>
-        <widget class="QPushButton" name="settings">
+        <widget class="QPushButton" name="settings_button">
          <property name="minimumSize">
           <size>
            <width>50</width>
@@ -563,7 +563,7 @@
      <string>Menu</string>
     </property>
     <addaction name="actionAbout"/>
-    <addaction name="actionAdvanced_Settings"/>
+    <addaction name="action_Settings"/>
     <addaction name="actionStatistics"/>
     <addaction name="actionClose"/>
    </widget>
@@ -590,9 +590,9 @@
     <string>Statistics</string>
    </property>
   </action>
-  <action name="actionAdvanced_Settings">
+  <action name="action_Settings">
    <property name="text">
-    <string>Advanced Settings</string>
+    <string>Settings</string>
    </property>
   </action>
  </widget>
@@ -610,7 +610,7 @@
   <tabstop>ip</tabstop>
   <tabstop>ok_contact</tabstop>
   <tabstop>cancelcontact</tabstop>
-  <tabstop>settings</tabstop>
+  <tabstop>settings_button</tabstop>
   <tabstop>mic</tabstop>
   <tabstop>camera</tabstop>
   <tabstop>EndCallButton</tabstop>
@@ -667,10 +667,10 @@
    </hints>
   </connection>
   <connection>
-   <sender>actionAdvanced_Settings</sender>
+   <sender>action_Settings</sender>
    <signal>triggered()</signal>
    <receiver>CallWindow</receiver>
-   <slot>on_advanced_settings_clicked()</slot>
+   <slot>on_settings_clicked()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>-1</x>
@@ -850,6 +850,6 @@
   <slot>endAllCalls()</slot>
   <slot>addContact()</slot>
   <slot>on_about_clicked()</slot>
-  <slot>on_advanced_settings_clicked()</slot>
+  <slot>on_settings_clicked()</slot>
  </slots>
 </ui>

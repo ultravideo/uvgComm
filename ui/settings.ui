@@ -51,20 +51,7 @@
        <string>User</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_4">
-       <item row="5" column="1">
-        <spacer name="verticalSpacer_2">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>300</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="1" column="2">
+       <item row="3" column="2">
         <spacer name="horizontalSpacer_3">
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
@@ -77,33 +64,32 @@
          </property>
         </spacer>
        </item>
-       <item row="1" column="1">
-        <widget class="QLineEdit" name="username_edit">
-         <property name="text">
-          <string>anynomous</string>
+       <item row="7" column="1">
+        <spacer name="verticalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
          </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
-        <widget class="QLineEdit" name="name_edit">
-         <property name="text">
-          <string>Anonymous</string>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>300</height>
+          </size>
          </property>
-        </widget>
+        </spacer>
        </item>
-       <item row="1" column="0">
-        <widget class="QLabel" name="Username">
+       <item row="2" column="0">
+        <widget class="QLabel" name="Name">
          <property name="font">
           <font>
            <pointsize>12</pointsize>
           </font>
          </property>
          <property name="text">
-          <string>Username</string>
+          <string>Name</string>
          </property>
         </widget>
        </item>
-       <item row="0" column="2">
+       <item row="2" column="2">
         <spacer name="horizontalSpacer_2">
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
@@ -116,19 +102,7 @@
          </property>
         </spacer>
        </item>
-       <item row="0" column="0">
-        <widget class="QLabel" name="Name">
-         <property name="font">
-          <font>
-           <pointsize>12</pointsize>
-          </font>
-         </property>
-         <property name="text">
-          <string>Name</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="1">
+       <item row="4" column="1">
         <spacer name="verticalSpacer">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -141,7 +115,14 @@
          </property>
         </spacer>
        </item>
-       <item row="3" column="0">
+       <item row="2" column="1">
+        <widget class="QLineEdit" name="name_edit">
+         <property name="text">
+          <string>Anonymous</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0">
         <widget class="QLabel" name="VideoDeviceLabel">
          <property name="font">
           <font>
@@ -153,13 +134,39 @@
          </property>
         </widget>
        </item>
-       <item row="4" column="0" colspan="3">
+       <item row="3" column="0">
+        <widget class="QLabel" name="Username">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
+         <property name="text">
+          <string>Username</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QLineEdit" name="username_edit">
+         <property name="text">
+          <string>anynomous</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="0" colspan="3">
         <widget class="QComboBox" name="videoDevice">
          <property name="minimumSize">
           <size>
            <width>220</width>
            <height>0</height>
           </size>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="0" colspan="3">
+        <widget class="QPushButton" name="advanced_settings_button">
+         <property name="text">
+          <string>Advanced</string>
          </property>
         </widget>
        </item>
@@ -178,9 +185,27 @@
   <tabstop>SettingTabs</tabstop>
  </tabstops>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>advanced_settings_button</sender>
+   <signal>clicked()</signal>
+   <receiver>BasicSettings</receiver>
+   <slot>on_advanced_settings_clicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>183</x>
+     <y>484</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>177</x>
+     <y>273</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
  <slots>
   <slot>on_ok_clicked()</slot>
   <slot>on_cancel_clicked()</slot>
+  <slot>on_advanced_settings_clicked()</slot>
  </slots>
 </ui>

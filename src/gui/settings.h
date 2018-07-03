@@ -11,7 +11,7 @@ class QCheckBox;
 
 // TODO: Possibly separate settings ui and settings management
 // TODO: Settings of SIP server
-class Settings : public QObject
+class Settings : public QDialog
 {
   Q_OBJECT
 
@@ -34,6 +34,8 @@ public slots:
 
   void on_advanced_ok_clicked();
   void on_advanced_cancel_clicked();
+
+  void on_advanced_settings_clicked();
 
 private:
   void initializeDeviceList();
@@ -70,8 +72,7 @@ private:
 
   void saveTextValue(const QString settingValue, const QString &text);
 
-
-  QDialog basicParent_;
+  //QDialog basicParent_;
   Ui::BasicSettings *basicUI_;
   QDialog advancedParent_;
   Ui::AdvancedSettings *advancedUI_;

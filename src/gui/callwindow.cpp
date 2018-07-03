@@ -17,7 +17,7 @@ CallWindow::CallWindow(QWidget *parent):
   settingsView_(),
   statsWindow_(NULL),
   conference_(this),
-    partInt_(NULL),
+  partInt_(NULL),
   timer_(new QTimer(this))
 {}
 
@@ -72,6 +72,9 @@ void CallWindow::init(ParticipantInterface *partInt)
   QObject::connect(ui_->actionClose, SIGNAL(triggered()),
                    this, SIGNAL(closed()));
 
+  QObject::connect(ui_->settings_button, SIGNAL(clicked()),
+                   &settingsView_, SLOT(show()));
+
   QMainWindow::show();
 
   connect(&conference_, &ConferenceView::acceptCall, this, &CallWindow::callAccepted);
@@ -80,13 +83,13 @@ void CallWindow::init(ParticipantInterface *partInt)
   conference_.init(ui_->participantLayout, ui_->participants);
 
   initButton(QDir::currentPath() + "/icons/add_contact.svg", QSize(60,60), QSize(35,35), ui_->addContact);
-  initButton(QDir::currentPath() + "/icons/settings.svg", QSize(60,60), QSize(35,35), ui_->settings);
+  initButton(QDir::currentPath() + "/icons/settings.svg", QSize(60,60), QSize(35,35), ui_->settings_button);
   initButton(QDir::currentPath() + "/icons/photo-camera.svg", QSize(60,60), QSize(35,35), ui_->camera);
   initButton(QDir::currentPath() + "/icons/microphone.svg", QSize(60,60), QSize(35,35), ui_->mic);
   initButton(QDir::currentPath() + "/icons/end_call.svg", QSize(60,60), QSize(35,35), ui_->EndCallButton);
 
   ui_->buttonContainer->layout()->setAlignment(ui_->endcallHolder, Qt::AlignBottom);
-  ui_->buttonContainer->layout()->setAlignment(ui_->settings, Qt::AlignBottom);
+  ui_->buttonContainer->layout()->setAlignment(ui_->settings_button, Qt::AlignBottom);
   ui_->buttonContainer->layout()->setAlignment(ui_->mic, Qt::AlignBottom);
   ui_->buttonContainer->layout()->setAlignment(ui_->camera, Qt::AlignBottom);
   ui_->buttonContainer->layout()->setAlignment(ui_->SelfView, Qt::AlignBottom);
@@ -216,11 +219,6 @@ void CallWindow::removeParticipant(uint32_t sessionID)
 void CallWindow::on_settings_clicked()
 {
   settingsView_.showBasicSettings();
-}
-
-void CallWindow::on_advanced_settings_clicked()
-{
-  settingsView_.showAdvancedSettings();
 }
 
 void CallWindow::on_about_clicked()

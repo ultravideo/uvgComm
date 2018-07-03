@@ -131,7 +131,7 @@ FORMS    += \
     ui/callingwidget.ui \
     ui/about.ui \
     ui/advancedSettings.ui \
-    ui/basicSettings.ui
+    ui/settings.ui
 
 
 QT+=multimedia

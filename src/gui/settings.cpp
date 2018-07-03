@@ -1,6 +1,6 @@
 #include "settings.h"
 
-#include "ui_basicsettings.h"
+#include "ui_settings.h"
 #include "ui_advancedsettings.h"
 
 #include "video/dshow/capture_interface.h"
@@ -8,12 +8,12 @@
 #include <QDebug>
 
 Settings::Settings(QWidget *parent) :
-  QObject(parent),
+  QDialog(parent),
   basicUI_(new Ui::BasicSettings),
   advancedUI_(new Ui::AdvancedSettings),
   settings_("kvazzup.ini", QSettings::IniFormat)
 {
-  basicUI_->setupUi(&basicParent_);
+  basicUI_->setupUi(this);
   advancedUI_->setupUi(&advancedParent_);
 
   dshow_initCapture();
@@ -26,6 +26,8 @@ Settings::Settings(QWidget *parent) :
   QObject::connect(basicUI_->cancel, SIGNAL(clicked()), this, SLOT(on_cancel_clicked()));
   QObject::connect(advancedUI_->ok, SIGNAL(clicked()), this, SLOT(on_advanced_ok_clicked()));
   QObject::connect(advancedUI_->cancel, SIGNAL(clicked()), this, SLOT(on_advanced_cancel_clicked()));
+  QObject::connect(basicUI_->advanced_settings_button, SIGNAL(clicked()),
+                   this, SLOT(on_advanced_settings_clicked()));
 }
 
 Settings::~Settings()
@@ -38,14 +40,19 @@ void Settings::on_ok_clicked()
   qDebug() << "Saving basic settings";
   saveBasicSettings();
   emit settingsChanged();
-  basicParent_.hide();
+  hide();
 }
 
 void Settings::on_cancel_clicked()
 {
   qDebug() << "Getting basic settings from system";
   restoreBasicSettings();
-  basicParent_.hide();
+  hide();
+}
+
+void Settings::on_advanced_settings_clicked()
+{
+  showAdvancedSettings();
 }
 
 void Settings::on_advanced_ok_clicked()
@@ -203,7 +210,7 @@ void Settings::showBasicSettings()
 {
   initializeDeviceList();
   restoreBasicSettings();
-  basicParent_.show();
+  show();
 }
 
 void Settings::showAdvancedSettings()
