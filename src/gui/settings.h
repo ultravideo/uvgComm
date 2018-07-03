@@ -1,4 +1,7 @@
 #pragma once
+
+#include "video/camerainfo.h"
+
 #include <QDialog>
 #include <QSettings>
 
@@ -56,11 +59,7 @@ private:
   void saveAdvancedSettings();
   void saveCameraCapabilities(int deviceIndex, int capabilityIndex);
 
-  QStringList getVideoDevices();
   QStringList getAudioDevices();
-  void getVideoCapabilities(int deviceID, QStringList& formats, QList<QStringList>& resolutions);
-  void getCapability(int deviceIndex, int capabilityIndex,
-                     QSize& resolution, double& framerate, QString &format);
 
   // make sure the ui video devices is initialized before calling this
   int getVideoDeviceID();
@@ -78,4 +77,6 @@ private:
   Ui::AdvancedSettings *advancedUI_;
 
   QSettings settings_;
+
+  CameraInfo cam_;
 };

@@ -3,7 +3,6 @@
 #include "ui_settings.h"
 #include "ui_advancedsettings.h"
 
-#include "video/dshow/capture_interface.h"
 
 #include <QDebug>
 
@@ -11,12 +10,13 @@ Settings::Settings(QWidget *parent) :
   QDialog(parent),
   basicUI_(new Ui::BasicSettings),
   advancedUI_(new Ui::AdvancedSettings),
-  settings_("kvazzup.ini", QSettings::IniFormat)
+  settings_("kvazzup.ini", QSettings::IniFormat),
+  cam_()
 {
   basicUI_->setupUi(this);
   advancedUI_->setupUi(&advancedParent_);
 
-  dshow_initCapture();
+
 
   // initializes the GUI with values or initialize them in case they don't exist
   restoreBasicSettings();
@@ -115,7 +115,7 @@ void Settings::saveAdvancedSettings()
 
   QStringList formats;
   QList<QStringList> resolutions;
-  getVideoCapabilities(getVideoDeviceID(), formats, resolutions);
+  cam_.getVideoCapabilities(getVideoDeviceID(), formats, resolutions);
 
   int resolutionIndex = advancedUI_->resolution->currentIndex();
   if(resolutionIndex == -1)
@@ -153,7 +153,7 @@ void Settings::saveCameraCapabilities(int deviceIndex, int capabilityIndex)
   QSize resolution = QSize(0,0);
   double fps = 0.0f;
   QString format = "";
-  getCapability(deviceIndex, capabilityIndex, resolution, fps, format);
+  cam_.getCapability(deviceIndex, capabilityIndex, resolution, fps, format);
   int32_t fps_int = static_cast<int>(fps);
 
   settings_.setValue("video/ResolutionID",         capabilityIndex);
@@ -247,7 +247,7 @@ void Settings::showAdvancedSettings()
 
   QStringList formats;
   QList<QStringList> resolutions;
-  getVideoCapabilities(getVideoDeviceID(), formats, resolutions);
+  cam_.getVideoCapabilities(getVideoDeviceID(), formats, resolutions);
 
   for(int i = 0; i < formats.size(); ++i)
   {
@@ -267,97 +267,17 @@ void Settings::initializeDeviceList()
 {
   qDebug() << "Initialize device list";
   basicUI_->videoDevice->clear();
-  QStringList videoDevices = getVideoDevices();
+  QStringList videoDevices = cam_.getVideoDevices();
   for(int i = 0; i < videoDevices.size(); ++i)
   {
     basicUI_->videoDevice->addItem( videoDevices[i]);
   }
 }
 
-QStringList Settings::getVideoDevices()
-{
-  char** devices;
-  int8_t count = 0;
-  dshow_queryDevices(&devices, &count);
-
-  QStringList list;
-
-  qDebug() << "Found " << (int)count << " devices: ";
-  for(int i = 0; i < count; ++i)
-  {
-    qDebug() << "[" << i << "] " << devices[i];
-    list.push_back(devices[i]);
-  }
-  return list;
-}
-
 QStringList Settings::getAudioDevices()
 {
   //TODO
   return QStringList();
-}
-
-void Settings::getVideoCapabilities(int deviceID, QStringList& formats, QList<QStringList>& resolutions)
-{
-  formats.clear();
-  resolutions.clear();
-  if (dshow_selectDevice(deviceID) || dshow_selectDevice(0))
-  {
-    int8_t count = 0;
-    deviceCapability *capList;
-    dshow_getDeviceCapabilities(&capList, &count);
-
-    qDebug() << "Found" << (int)count << "capabilities";
-    for(int i = 0; i < count; ++i)
-    {
-      if(formats.empty() || formats.back() != QString(capList[i].format))
-      {
-        formats.push_back(QString(capList[i].format));
-        resolutions.push_back(QStringList());
-      }
-      resolutions.back().push_back(QString::number(capList[i].width) + "x" +
-                     QString::number(capList[i].height) + " " +
-                     QString::number(capList[i].fps) + " fps");
-    }
-  }
-  return;
-}
-
-void Settings::getCapability(int deviceIndex,
-                             int capabilityIndex,
-                             QSize& resolution,
-                             double& framerate,
-                             QString& format)
-{
-  char **devices;
-  int8_t count;
-  dshow_queryDevices(&devices, &count); // this has to be done because of the api
-
-  if (dshow_selectDevice(deviceIndex) || dshow_selectDevice(0))
-  {
-    int8_t count;
-    deviceCapability *capList;
-    dshow_getDeviceCapabilities(&capList, &count);
-
-    if(count == 0)
-    {
-      qDebug() << "No capabilites found";
-      return;
-    }
-    if(count < capabilityIndex)
-    {
-      capabilityIndex = 0;
-      qDebug() << "Capability id not found";
-    }
-
-    resolution = QSize(capList[capabilityIndex].width,capList[capabilityIndex].height);
-    framerate = capList[capabilityIndex].fps;
-    format = capList[capabilityIndex].format;
-  }
-  else
-  {
-    qWarning() << "WARNING: Failed to select device for capacity information.";
-  }
 }
 
 int Settings::getVideoDeviceID()
