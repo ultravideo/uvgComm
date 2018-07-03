@@ -14,7 +14,7 @@
 CallWindow::CallWindow(QWidget *parent):
   QMainWindow(parent),
   ui_(new Ui::CallWindow),
-  settingsView_(),
+  settingsView_(this),
   statsWindow_(NULL),
   conference_(this),
   partInt_(NULL),

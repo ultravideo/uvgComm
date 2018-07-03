@@ -6,8 +6,10 @@
 
 #include <QDebug>
 
-CustomSettings::CustomSettings(std::shared_ptr<CameraInfo> info)
+CustomSettings::CustomSettings(QWidget* parent,
+                               std::shared_ptr<CameraInfo> info)
   :
+  QDialog(parent),
   currentDevice_(0),
   advancedUI_(new Ui::AdvancedSettings),
   cam_(info),
@@ -23,7 +25,7 @@ CustomSettings::CustomSettings(std::shared_ptr<CameraInfo> info)
 
 void CustomSettings::changedDevice(uint16_t deviceIndex)
 {
-  saveCameraCapabilities(deviceIndex, 0);
+  saveCameraCapabilities(deviceIndex);
   advancedUI_->format_box->setCurrentIndex(0);
   advancedUI_->resolution->setCurrentIndex(0);
   currentDevice_ = deviceIndex;
@@ -39,6 +41,7 @@ void CustomSettings::on_advanced_ok_clicked()
   qDebug() << "Saving advanced settings";
   saveAdvancedSettings();
   emit customSettingsChanged();
+  emit hidden();
   hide();
 }
 
@@ -46,6 +49,7 @@ void CustomSettings::on_advanced_cancel_clicked()
 {
   qDebug() << "Getting advanced settings from system";
   restoreAdvancedSettings();
+  emit hidden();
   hide();
 }
 
@@ -64,50 +68,24 @@ void CustomSettings::saveAdvancedSettings()
   settings_.setValue("video/QP",               QString::number(advancedUI_->qp->value()));
   settings_.setValue("video/Preset",           advancedUI_->preset->currentText());
 
-  QStringList formats;
-  QList<QStringList> resolutions;
-  cam_->getVideoCapabilities(currentDevice_, formats, resolutions);
-
-  int resolutionIndex = advancedUI_->resolution->currentIndex();
-  if(resolutionIndex == -1)
-  {
-    qDebug() << "No current index set for resolution. Using first";
-    resolutionIndex = 0;
-  }
-
-  int formatIndex = advancedUI_->resolution->currentIndex();
-  if(formatIndex == -1)
-  {
-    qDebug() << "No current index set for format. Using first";
-    formatIndex = 0;
-  }
-
-  int currentIndex = 0;
-
-  // add all other resolutions to form currentindex
-  for(unsigned int i = 0; i <= formatIndex; ++i)
-  {
-    currentIndex += resolutions.at(i).size();
-  }
-
-  currentIndex += resolutionIndex;
-  qDebug() << "Saving format:" << advancedUI_->format_box->currentText()
-           << " and resolution:" << advancedUI_->resolution->currentText();
-
-  saveCameraCapabilities(settings_.value("video/DeviceID").toInt(), currentIndex);
+  saveCameraCapabilities(settings_.value("video/DeviceID").toInt());
   //settings.sync(); // TODO is this needed?
 }
 
-void CustomSettings::saveCameraCapabilities(int deviceIndex, int capabilityIndex)
+void CustomSettings::saveCameraCapabilities(int deviceIndex)
 {
   qDebug() << "Recording capability settings for deviceIndex:" << deviceIndex;
   QSize resolution = QSize(0,0);
   double fps = 0.0f;
   QString format = "";
-  cam_->getCapability(deviceIndex, capabilityIndex, resolution, fps, format);
+
+  int resolutionIndex = advancedUI_->resolution->currentIndex();
+  int formatIndex = advancedUI_->resolution->currentIndex();
+
+  cam_->getCapability(deviceIndex, formatIndex, resolutionIndex, resolution, fps, format);
   int32_t fps_int = static_cast<int>(fps);
 
-  settings_.setValue("video/ResolutionID",         capabilityIndex);
+  settings_.setValue("video/ResolutionID",         resolutionIndex);
 
   // since kvazaar requires resolution to be divisible by eight
   // TODO: Use QSize to record resolution
@@ -115,10 +93,11 @@ void CustomSettings::saveCameraCapabilities(int deviceIndex, int capabilityIndex
   settings_.setValue("video/ResolutionHeight",     resolution.height() - resolution.height()%8);
   settings_.setValue("video/Framerate",            fps_int);
   settings_.setValue("video/InputFormat",          format);
+  settings_.setValue("video/InputFormatID",        formatIndex);
 
   qDebug() << "Recorded the following video settings: Resolution:"
            << resolution.width() - resolution.width()%8 << "x" << resolution.height() - resolution.height()%8
-           << "fps:" << fps_int << "resolution index:" << capabilityIndex << "format" << format;
+           << "fps:" << fps_int << "resolution index:" << "format" << format;
 }
 
 void CustomSettings::restoreAdvancedSettings()

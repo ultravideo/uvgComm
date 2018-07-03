@@ -16,7 +16,7 @@ class CustomSettings  : public QDialog
 {
   Q_OBJECT
 public:
-  CustomSettings(std::shared_ptr<CameraInfo> info);
+  CustomSettings(QWidget* parent, std::shared_ptr<CameraInfo> info);
 
   void changedDevice(uint16_t deviceIndex);
 
@@ -27,6 +27,7 @@ public:
 signals:
 
   void customSettingsChanged();
+  void hidden();
 
 public slots:
 
@@ -41,7 +42,7 @@ private:
   // permanently records GUI settings
   void saveAdvancedSettings();
 
-  void saveCameraCapabilities(int deviceIndex, int capabilityIndex);
+  void saveCameraCapabilities(int deviceIndex);
 
   bool checkVideoSettings();
   bool checkMissingValues(); // TODO: in two places

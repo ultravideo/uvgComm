@@ -10,7 +10,7 @@ Settings::Settings(QWidget *parent) :
   QDialog(parent),
   basicUI_(new Ui::BasicSettings),
   cam_(std::shared_ptr<CameraInfo> (new CameraInfo())),
-  custom_(cam_),
+  custom_(this, cam_),
   settings_("kvazzup.ini", QSettings::IniFormat)
 {
   basicUI_->setupUi(this);
@@ -24,6 +24,7 @@ Settings::Settings(QWidget *parent) :
                    this, SLOT(on_advanced_settings_clicked()));
 
   QObject::connect(&custom_, &CustomSettings::customSettingsChanged, this, &Settings::settingsChanged);
+  QObject::connect(&custom_, &CustomSettings::hidden, this, &Settings::show);
 }
 
 Settings::~Settings()
@@ -50,6 +51,7 @@ void Settings::on_advanced_settings_clicked()
 {
   custom_.show();
   custom_.showAdvancedSettings();
+  hide();
 }
 
 // records the settings
