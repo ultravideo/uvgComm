@@ -16,6 +16,7 @@
 #include "audio/speexaecfilter.h"
 #include "gui/videowidget.h"
 
+#include "global.h"
 #include "common.h"
 
 #include <QSettings>
@@ -125,8 +126,9 @@ void FilterGraph::initSelfView(VideoWidget *selfView)
     addToGraph(std::shared_ptr<Filter>(new DShowCameraFilter("", stats_)), videoSend_);
   }
   else
+  {
     addToGraph(std::shared_ptr<Filter>(new CameraFilter("", stats_)), videoSend_);
-
+  }
   if(selfView)
   {
     // connect scaling filter

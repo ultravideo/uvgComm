@@ -122,7 +122,8 @@ HEADERS  += \
     src/sip/sipregistration.h \
     src/sip/sipdialogstate.h \
     src/sip/sdptypes.h \
-    src/scalefilter.h
+    src/scalefilter.h \
+    src/global.h
 
 FORMS    += \
     ui/callwindow.ui \
@@ -136,7 +137,7 @@ FORMS    += \
 QT+=multimedia
 QT+=multimediawidgets
 QT+=network
-QT+=svg
+QT+=svg # for icons
 
 #win32-g++: QMAKE_CXXFLAGS += -std=c++11 -fopenmp
 win32: QMAKE_CXXFLAGS += -msse4.1 -mavx2
