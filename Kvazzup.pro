@@ -65,7 +65,8 @@ SOURCES +=\
     src/sip/sipregistration.cpp \
     src/sip/sipdialogstate.cpp \
     src/scalefilter.cpp \
-    src/video/camerainfo.cpp
+    src/video/camerainfo.cpp \
+    src/gui/customsettings.cpp
 
 HEADERS  += \
     src/filter.h \
@@ -125,7 +126,8 @@ HEADERS  += \
     src/sip/sdptypes.h \
     src/scalefilter.h \
     src/global.h \
-    src/video/camerainfo.h
+    src/video/camerainfo.h \
+    src/gui/customsettings.h
 
 FORMS    += \
     ui/callwindow.ui \

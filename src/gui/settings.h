@@ -1,18 +1,20 @@
 #pragma once
 
-#include "video/camerainfo.h"
+#include "gui/customSettings.h"
 
 #include <QDialog>
 #include <QSettings>
 
+#include <memory>
+
 namespace Ui {
 class BasicSettings;
-class AdvancedSettings;
 }
+
+class CameraInfo;
 
 class QCheckBox;
 
-// TODO: Possibly separate settings ui and settings management
 // TODO: Settings of SIP server
 class Settings : public QDialog
 {
@@ -23,7 +25,6 @@ public:
   ~Settings();
 
   void showBasicSettings();
-  void showAdvancedSettings();
 
   void updateDevices();
 
@@ -35,9 +36,6 @@ public slots:
   void on_ok_clicked();
   void on_cancel_clicked();
 
-  void on_advanced_ok_clicked();
-  void on_advanced_cancel_clicked();
-
   void on_advanced_settings_clicked();
 
 private:
@@ -46,18 +44,14 @@ private:
   // checks if user settings make sense
   // TODO: display errors to user on ok click
   bool checkUserSettings();
-  bool checkVideoSettings();
   bool checkMissingValues();
 
   // QSettings -> GUI
   void restoreBasicSettings();
-  void restoreAdvancedSettings();
 
   // GUI -> QSettings
-  // permanently records GUI settings to system
+  // permanently records GUI settings
   void saveBasicSettings();
-  void saveAdvancedSettings();
-  void saveCameraCapabilities(int deviceIndex, int capabilityIndex);
 
   QStringList getAudioDevices();
 
@@ -66,17 +60,13 @@ private:
 
   void resetFaultySettings();
 
-  void restoreCheckBox(const QString settingValue, QCheckBox* box);
-  void saveCheckBox(const QString settingValue, QCheckBox* box);
-
   void saveTextValue(const QString settingValue, const QString &text);
 
-  //QDialog basicParent_;
   Ui::BasicSettings *basicUI_;
-  QDialog advancedParent_;
-  Ui::AdvancedSettings *advancedUI_;
+
+  std::shared_ptr<CameraInfo> cam_;
+
+  CustomSettings custom_;
 
   QSettings settings_;
-
-  CameraInfo cam_;
 };
