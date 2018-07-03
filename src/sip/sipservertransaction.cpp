@@ -43,7 +43,7 @@ void SIPServerTransaction::processRequest(SIPRequest &request)
   {
   case INVITE:
   {
-    transactionUser_->incomingCall(sessionID_, request.message->to.realname);
+    transactionUser_->incomingCall(sessionID_, request.message->from.realname);
     responseSender(SIP_RINGING, false);
     break;
   }
