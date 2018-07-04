@@ -15,8 +15,8 @@ Settings::Settings(QWidget *parent) :
 {
   basicUI_->setupUi(this);
 
-  // initializes the GUI with values or initialize them in case they don't exist
-  restoreBasicSettings();
+  // Checks that settings values are correct for the program to start. Also sets GUI.
+  getSettings();
 
   QObject::connect(basicUI_->ok, &QPushButton::clicked, this, &Settings::on_ok_clicked);
   QObject::connect(basicUI_->cancel, &QPushButton::clicked, this, &Settings::on_cancel_clicked);
@@ -32,15 +32,15 @@ Settings::~Settings()
 
 void Settings::show()
 {
+  initializeUIDeviceList(); // initialize everytime in case they have changed
   QWidget::show();
-  initializeDeviceList();
-  restoreBasicSettings();
 }
 
 void Settings::on_ok_clicked()
 {
   qDebug() << "Saving basic settings";
-  saveBasicSettings();
+  // The UI values are saved to settings.
+  saveSettings();
   emit settingsChanged();
   hide();
 }
@@ -48,7 +48,8 @@ void Settings::on_ok_clicked()
 void Settings::on_cancel_clicked()
 {
   qDebug() << "Settings Cancel clicked. Getting settings from system";
-  restoreBasicSettings();
+  // discard UI values and restore the settings from file
+  getSettings();
   hide();
 }
 
@@ -57,13 +58,23 @@ void Settings::on_advanced_settings_button_clicked()
   custom_.show();
 }
 
+void Settings::initializeUIDeviceList()
+{
+  qDebug() << "Initialize device list";
+  basicUI_->videoDevice->clear();
+  QStringList videoDevices = cam_->getVideoDevices();
+  for(int i = 0; i < videoDevices.size(); ++i)
+  {
+    basicUI_->videoDevice->addItem( videoDevices[i]);
+  }
+}
+
 // records the settings
-void Settings::saveBasicSettings()
+void Settings::saveSettings()
 {
   qDebug() << "Saving basic Settings";
 
   // Local settings
-
   saveTextValue("local/Name", basicUI_->name_edit->text());
   saveTextValue("local/Username", basicUI_->username_edit->text());
 
@@ -82,18 +93,24 @@ void Settings::saveBasicSettings()
 
     qDebug() << "Recording following device:" << basicUI_->videoDevice->currentText();
   }
+  else
+  {
+    currentIndex = 0;
+  }
 }
 
 // restores temporarily recorded settings
-void Settings::restoreBasicSettings()
+void Settings::getSettings()
 {
+  initializeUIDeviceList();
+
   //get values from QSettings
   if(checkMissingValues() && checkUserSettings())
   {
     qDebug() << "Restoring previous Basic settings from file:" << settings_.fileName();
     basicUI_->name_edit->setText      (settings_.value("local/Name").toString());
     basicUI_->username_edit->setText  (settings_.value("local/Username").toString());
-
+    custom_.changedDevice(currentIndex);
     basicUI_->videoDevice->setCurrentIndex(getVideoDeviceID());
   }
   else
@@ -106,19 +123,8 @@ void Settings::resetFaultySettings()
 {
   qDebug() << "Could not restore settings because they were corrupted!";
   // record GUI settings in hope that they are correct ( is case by default )
-  saveBasicSettings();
+  saveSettings();
   custom_.resetSettings();
-}
-
-void Settings::initializeDeviceList()
-{
-  qDebug() << "Initialize device list";
-  basicUI_->videoDevice->clear();
-  QStringList videoDevices = cam_->getVideoDevices();
-  for(int i = 0; i < videoDevices.size(); ++i)
-  {
-    basicUI_->videoDevice->addItem( videoDevices[i]);
-  }
 }
 
 QStringList Settings::getAudioDevices()
@@ -129,7 +135,7 @@ QStringList Settings::getAudioDevices()
 
 int Settings::getVideoDeviceID()
 {
-  initializeDeviceList();
+  initializeUIDeviceList();
 
   int deviceIndex = basicUI_->videoDevice->findText(settings_.value("video/Device").toString());
   int deviceID = settings_.value("video/DeviceID").toInt();

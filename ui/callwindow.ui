@@ -667,22 +667,6 @@
    </hints>
   </connection>
   <connection>
-   <sender>action_Settings</sender>
-   <signal>triggered()</signal>
-   <receiver>CallWindow</receiver>
-   <slot>on_settings_clicked()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>479</x>
-     <y>319</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>addContact</sender>
    <signal>clicked()</signal>
    <receiver>Add_contact_widget</receiver>
@@ -842,6 +826,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>action_Settings</sender>
+   <signal>triggered()</signal>
+   <receiver>CallWindow</receiver>
+   <slot>on_settings_button_clicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>479</x>
+     <y>319</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>micState()</slot>
@@ -850,6 +850,6 @@
   <slot>endAllCalls()</slot>
   <slot>addContact()</slot>
   <slot>on_about_clicked()</slot>
-  <slot>on_settings_clicked()</slot>
+  <slot>on_settings_button_clicked()</slot>
  </slots>
 </ui>

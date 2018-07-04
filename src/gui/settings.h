@@ -39,7 +39,7 @@ public slots:
   void on_advanced_settings_button_clicked();
 
 private:
-  void initializeDeviceList();
+  void initializeUIDeviceList();
 
   // checks if user settings make sense
   // TODO: display errors to user on ok click
@@ -47,11 +47,11 @@ private:
   bool checkMissingValues();
 
   // QSettings -> GUI
-  void restoreBasicSettings();
+  void getSettings();
 
   // GUI -> QSettings
   // permanently records GUI settings
-  void saveBasicSettings();
+  void saveSettings();
 
   QStringList getAudioDevices();
 
