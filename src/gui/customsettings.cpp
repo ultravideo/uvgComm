@@ -19,8 +19,7 @@ CustomSettings::CustomSettings(QWidget* parent,
 
   restoreAdvancedSettings();
 
-  QObject::connect(advancedUI_->ok, SIGNAL(clicked()), this, SLOT(on_advanced_ok_clicked()));
-  QObject::connect(advancedUI_->cancel, SIGNAL(clicked()), this, SLOT(on_advanced_cancel_clicked()));
+  // the buttons are named so that the slots are called automatically
 }
 
 void CustomSettings::changedDevice(uint16_t deviceIndex)
@@ -36,7 +35,7 @@ void CustomSettings::resetSettings()
   saveAdvancedSettings();
 }
 
-void CustomSettings::on_advanced_ok_clicked()
+void CustomSettings::on_custom_ok_clicked()
 {
   qDebug() << "Saving advanced settings";
   saveAdvancedSettings();
@@ -45,12 +44,34 @@ void CustomSettings::on_advanced_ok_clicked()
   hide();
 }
 
-void CustomSettings::on_advanced_cancel_clicked()
+void CustomSettings::on_custom_cancel_clicked()
 {
-  qDebug() << "Getting advanced settings from system";
+  qDebug() << "Cancelled modifying custom settings. Getting settings from system";
   restoreAdvancedSettings();
-  emit hidden();
   hide();
+  emit hidden();
+}
+
+void CustomSettings::show()
+{
+  QWidget::show();
+  advancedUI_->resolution->clear();
+
+  QStringList formats;
+  QList<QStringList> resolutions;
+  cam_->getVideoCapabilities(currentDevice_, formats, resolutions);
+
+  for(int i = 0; i < formats.size(); ++i)
+  {
+    advancedUI_->format_box->addItem( formats.at(i));
+  }
+
+  qDebug() << "Showing advanced settings";
+  for(int i = 0; i < resolutions.size(); ++i)
+  {
+    advancedUI_->resolution->addItem( resolutions[0].at(i));
+  }
+  restoreAdvancedSettings();
 }
 
 void CustomSettings::saveAdvancedSettings()
@@ -137,28 +158,6 @@ void CustomSettings::restoreAdvancedSettings()
   {
     resetSettings();
   }
-}
-
-void CustomSettings::showAdvancedSettings()
-{
-  advancedUI_->resolution->clear();
-
-  QStringList formats;
-  QList<QStringList> resolutions;
-  cam_->getVideoCapabilities(currentDevice_, formats, resolutions);
-
-  for(int i = 0; i < formats.size(); ++i)
-  {
-    advancedUI_->format_box->addItem( formats.at(i));
-  }
-
-  qDebug() << "Showing advanced settings";
-  for(int i = 0; i < resolutions.size(); ++i)
-  {
-    advancedUI_->resolution->addItem( resolutions[0].at(i));
-  }
-  restoreAdvancedSettings();
-  show();
 }
 
 void CustomSettings::restoreCheckBox(const QString settingValue, QCheckBox* box)

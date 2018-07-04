@@ -20,8 +20,6 @@ public:
 
   void changedDevice(uint16_t deviceIndex);
 
-  void showAdvancedSettings();
-
   void resetSettings();
 
 signals:
@@ -31,8 +29,11 @@ signals:
 
 public slots:
 
-  void on_advanced_ok_clicked();
-  void on_advanced_cancel_clicked();
+  virtual void show();
+
+  // button slots, called automatically by Qt
+  void on_custom_ok_clicked();
+  void on_custom_cancel_clicked();
 
 private:
   // QSettings -> GUI

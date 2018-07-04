@@ -18,10 +18,8 @@ Settings::Settings(QWidget *parent) :
   // initializes the GUI with values or initialize them in case they don't exist
   restoreBasicSettings();
 
-  QObject::connect(basicUI_->ok, SIGNAL(clicked()), this, SLOT(on_ok_clicked()));
-  QObject::connect(basicUI_->cancel, SIGNAL(clicked()), this, SLOT(on_cancel_clicked()));
-  QObject::connect(basicUI_->advanced_settings_button, SIGNAL(clicked()),
-                   this, SLOT(on_advanced_settings_clicked()));
+  QObject::connect(basicUI_->ok, &QPushButton::clicked, this, &Settings::on_ok_clicked);
+  QObject::connect(basicUI_->cancel, &QPushButton::clicked, this, &Settings::on_cancel_clicked);
 
   QObject::connect(&custom_, &CustomSettings::customSettingsChanged, this, &Settings::settingsChanged);
   QObject::connect(&custom_, &CustomSettings::hidden, this, &Settings::show);
@@ -30,6 +28,13 @@ Settings::Settings(QWidget *parent) :
 Settings::~Settings()
 {
   // I believe the UI:s are destroyed when parents are destroyed
+}
+
+void Settings::show()
+{
+  QWidget::show();
+  initializeDeviceList();
+  restoreBasicSettings();
 }
 
 void Settings::on_ok_clicked()
@@ -42,16 +47,14 @@ void Settings::on_ok_clicked()
 
 void Settings::on_cancel_clicked()
 {
-  qDebug() << "Getting basic settings from system";
+  qDebug() << "Settings Cancel clicked. Getting settings from system";
   restoreBasicSettings();
   hide();
 }
 
-void Settings::on_advanced_settings_clicked()
+void Settings::on_advanced_settings_button_clicked()
 {
   custom_.show();
-  custom_.showAdvancedSettings();
-  hide();
 }
 
 // records the settings
@@ -105,13 +108,6 @@ void Settings::resetFaultySettings()
   // record GUI settings in hope that they are correct ( is case by default )
   saveBasicSettings();
   custom_.resetSettings();
-}
-
-void Settings::showBasicSettings()
-{
-  initializeDeviceList();
-  restoreBasicSettings();
-  show();
 }
 
 void Settings::initializeDeviceList()

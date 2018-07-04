@@ -185,27 +185,5 @@
   <tabstop>SettingTabs</tabstop>
  </tabstops>
  <resources/>
- <connections>
-  <connection>
-   <sender>advanced_settings_button</sender>
-   <signal>clicked()</signal>
-   <receiver>BasicSettings</receiver>
-   <slot>on_advanced_settings_clicked()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>183</x>
-     <y>484</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>177</x>
-     <y>273</y>
-    </hint>
-   </hints>
-  </connection>
- </connections>
- <slots>
-  <slot>on_ok_clicked()</slot>
-  <slot>on_cancel_clicked()</slot>
-  <slot>on_advanced_settings_clicked()</slot>
- </slots>
+ <connections/>
 </ui>

@@ -72,9 +72,6 @@ void CallWindow::init(ParticipantInterface *partInt)
   QObject::connect(ui_->actionClose, SIGNAL(triggered()),
                    this, SIGNAL(closed()));
 
-  QObject::connect(ui_->settings_button, SIGNAL(clicked()),
-                   &settingsView_, SLOT(show()));
-
   QMainWindow::show();
 
   connect(&conference_, &ConferenceView::acceptCall, this, &CallWindow::callAccepted);
@@ -216,9 +213,9 @@ void CallWindow::removeParticipant(uint32_t sessionID)
   }
 }
 
-void CallWindow::on_settings_clicked()
+void CallWindow::on_settings_button_clicked()
 {
-  settingsView_.showBasicSettings();
+  settingsView_.show();
 }
 
 void CallWindow::on_about_clicked()

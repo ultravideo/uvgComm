@@ -24,8 +24,6 @@ public:
   explicit Settings(QWidget *parent = 0);
   ~Settings();
 
-  void showBasicSettings();
-
   void updateDevices();
 
 signals:
@@ -33,10 +31,12 @@ signals:
 
 public slots:
 
+  virtual void show();
+
+  // button slots, called automatically by Qt
   void on_ok_clicked();
   void on_cancel_clicked();
-
-  void on_advanced_settings_clicked();
+  void on_advanced_settings_button_clicked();
 
 private:
   void initializeDeviceList();

@@ -72,7 +72,9 @@ public slots:
   // for processing GUI messages that mostly affect GUI elements.
   void addContact();
   void openStatistics(); // Opens statistics window
-  void on_settings_clicked();
+
+  // buttons are called automatically when named like this
+  void on_settings_button_clicked();
   void on_about_clicked();
 
 private:
