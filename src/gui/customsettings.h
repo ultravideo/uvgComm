@@ -36,6 +36,8 @@ public slots:
   void on_custom_ok_clicked();
   void on_custom_cancel_clicked();
 
+  void initializeResolutions(int index);
+
 private:
   // QSettings -> GUI
   void restoreAdvancedSettings();
@@ -47,7 +49,7 @@ private:
   void saveCameraCapabilities(int deviceIndex);
 
   // initializes the UI with correct formats and resolutions
-  void initializeFormatAndResolutions();
+  void initializeFormat();
 
   bool checkVideoSettings();
   bool checkMissingValues(); // TODO: in two places

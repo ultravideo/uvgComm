@@ -18,7 +18,7 @@ public:
   void getVideoCapabilities(int deviceID, QStringList& formats, QList<QStringList>& resolutions);
 
   // get exact capabilities of a particular capability choice. Can also be parsed from resolutions
-  void getCapability(int deviceIndex, uint16_t format, uint16_t resolutionIndex,
+  void getCapability(int deviceIndex, int format, uint16_t resolutionIndex,
                      QSize& resolution, double& framerate, QString &formatText);
 
   // used by dshow camera to determine the index of capability

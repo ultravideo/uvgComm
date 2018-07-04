@@ -17,47 +17,66 @@ CustomSettings::CustomSettings(QWidget* parent,
 {
   advancedUI_->setupUi(this);
   // the buttons are named so that the slots are called automatically
+
+  QObject::connect(advancedUI_->format_box, SIGNAL(activated(int)), this, SLOT(initializeResolutions(int)));
 }
 
 void CustomSettings::init(int deviceID)
 {
   currentDevice_ = deviceID;
-  initializeFormatAndResolutions();
+  initializeFormat();
   restoreAdvancedSettings();
 }
 
-void CustomSettings::initializeFormatAndResolutions()
+void CustomSettings::initializeFormat()
 {
   QStringList formats;
   QList<QStringList> resolutions;
   cam_->getVideoCapabilities(currentDevice_, formats, resolutions);
 
   advancedUI_->format_box->clear();
-  advancedUI_->resolution->clear();
   for(int i = 0; i < formats.size(); ++i)
   {
     advancedUI_->format_box->addItem( formats.at(i));
   }
 
-  for(int i = 0; i < resolutions.size(); ++i)
+  int formatIndex = advancedUI_->format_box->findText(settings_.value("video/InputFormat").toString());
+  if(formatIndex == -1)
   {
-    advancedUI_->resolution->addItem( resolutions[0].at(i));
+    formatIndex = 0;
   }
+  advancedUI_->format_box->setCurrentIndex(formatIndex);
+
+  initializeResolutions(formatIndex);
+}
+
+void CustomSettings::initializeResolutions(int index)
+{
+  advancedUI_->resolution->clear();
+  QStringList formats;
+  QList<QStringList> resolutions;
+  cam_->getVideoCapabilities(currentDevice_, formats, resolutions);
+
+  for(int i = 0; i < resolutions.at(index).size(); ++i)
+  {
+    advancedUI_->resolution->addItem(resolutions.at(index).at(i));
+  }
+
+  advancedUI_->resolution->setCurrentIndex(0);
 }
 
 void CustomSettings::changedDevice(uint16_t deviceIndex)
 {
   currentDevice_ = deviceIndex;
-  initializeFormatAndResolutions();
-  advancedUI_->format_box->setCurrentIndex(0);
-  advancedUI_->resolution->setCurrentIndex(0);
+  initializeFormat();
   saveCameraCapabilities(deviceIndex); // record the new camerasettings.
 }
 
 void CustomSettings::resetSettings(int deviceID)
 {
+  qDebug() << "Resetting custom settings from UI";
   currentDevice_ = deviceID;
-  initializeFormatAndResolutions();
+  initializeFormat();
   saveAdvancedSettings();
 }
 
@@ -111,8 +130,19 @@ void CustomSettings::saveCameraCapabilities(int deviceIndex)
   double fps = 0.0f;
   QString format = "";
 
+  int formatIndex = advancedUI_->format_box->currentIndex();
   int resolutionIndex = advancedUI_->resolution->currentIndex();
-  int formatIndex = advancedUI_->resolution->currentIndex();
+
+  qDebug() << "Boxes in following positions: Format:" << formatIndex << "Resolution:" << resolutionIndex;
+  if(formatIndex == -1)
+  {
+    formatIndex = 0;
+  }
+
+  if(resolutionIndex == -1)
+  {
+    resolutionIndex = 0;
+  }
 
   cam_->getCapability(deviceIndex, formatIndex, resolutionIndex, resolution, fps, format);
   int32_t fps_int = static_cast<int>(fps);
@@ -125,7 +155,6 @@ void CustomSettings::saveCameraCapabilities(int deviceIndex)
   settings_.setValue("video/ResolutionHeight",     resolution.height() - resolution.height()%8);
   settings_.setValue("video/Framerate",            fps_int);
   settings_.setValue("video/InputFormat",          format);
-  settings_.setValue("video/InputFormatID",        formatIndex);
 
   qDebug() << "Recorded the following video settings: Resolution:"
            << resolution.width() - resolution.width()%8 << "x" << resolution.height() - resolution.height()%8
