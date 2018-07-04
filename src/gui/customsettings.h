@@ -18,9 +18,10 @@ class CustomSettings  : public QDialog
 public:
   CustomSettings(QWidget* parent, std::shared_ptr<CameraInfo> info);
 
-  void changedDevice(uint16_t deviceIndex);
+  void init(int deviceID);
 
-  void resetSettings();
+  void changedDevice(uint16_t deviceIndex);
+  void resetSettings(int deviceID);
 
 signals:
 
@@ -44,6 +45,9 @@ private:
   void saveAdvancedSettings();
 
   void saveCameraCapabilities(int deviceIndex);
+
+  // initializes the UI with correct formats and resolutions
+  void initializeFormatAndResolutions();
 
   bool checkVideoSettings();
   bool checkMissingValues(); // TODO: in two places

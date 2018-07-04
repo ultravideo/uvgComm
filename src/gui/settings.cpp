@@ -16,7 +16,9 @@ Settings::Settings(QWidget *parent) :
   basicUI_->setupUi(this);
 
   // Checks that settings values are correct for the program to start. Also sets GUI.
-  getSettings();
+  getSettings(true);
+
+  custom_.init(getVideoDeviceID());
 
   QObject::connect(basicUI_->ok, &QPushButton::clicked, this, &Settings::on_ok_clicked);
   QObject::connect(basicUI_->cancel, &QPushButton::clicked, this, &Settings::on_cancel_clicked);
@@ -41,7 +43,7 @@ void Settings::on_ok_clicked()
   qDebug() << "Saving basic settings";
   // The UI values are saved to settings.
   saveSettings();
-  emit settingsChanged();
+  emit settingsChanged(); // TODO: has the index actully changed?
   hide();
 }
 
@@ -49,12 +51,13 @@ void Settings::on_cancel_clicked()
 {
   qDebug() << "Settings Cancel clicked. Getting settings from system";
   // discard UI values and restore the settings from file
-  getSettings();
+  getSettings(false);
   hide();
 }
 
 void Settings::on_advanced_settings_button_clicked()
 {
+  on_ok_clicked(); // treat this the same as ok
   custom_.show();
 }
 
@@ -66,6 +69,16 @@ void Settings::initializeUIDeviceList()
   for(int i = 0; i < videoDevices.size(); ++i)
   {
     basicUI_->videoDevice->addItem( videoDevices[i]);
+  }
+  int deviceIndex = getVideoDeviceID();
+
+  if(deviceIndex >= basicUI_->videoDevice->count())
+  {
+    basicUI_->videoDevice->setCurrentIndex(0);
+  }
+  else
+  {
+    basicUI_->videoDevice->setCurrentIndex(deviceIndex);
   }
 }
 
@@ -98,14 +111,10 @@ void Settings::saveSettings()
 
     qDebug() << "Recording following device:" << basicUI_->videoDevice->currentText();
   }
-  else
-  {
-    currentIndex = 0;
-  }
 }
 
 // restores recorded settings
-void Settings::getSettings()
+void Settings::getSettings(bool changedDevice)
 {
   initializeUIDeviceList();
 
@@ -116,7 +125,10 @@ void Settings::getSettings()
     basicUI_->name_edit->setText      (settings_.value("local/Name").toString());
     basicUI_->username_edit->setText  (settings_.value("local/Username").toString());
     int currentIndex = getVideoDeviceID();
-    custom_.changedDevice(currentIndex);
+    if(changedDevice)
+    {
+      custom_.changedDevice(currentIndex);
+    }
     basicUI_->videoDevice->setCurrentIndex(currentIndex);
   }
   else
@@ -130,7 +142,7 @@ void Settings::resetFaultySettings()
   qDebug() << "Could not restore settings because they were corrupted!";
   // record GUI settings in hope that they are correct ( is case by default )
   saveSettings();
-  custom_.resetSettings();
+  custom_.resetSettings(getVideoDeviceID());
 }
 
 QStringList Settings::getAudioDevices()
@@ -141,8 +153,6 @@ QStringList Settings::getAudioDevices()
 
 int Settings::getVideoDeviceID()
 {
-  initializeUIDeviceList();
-
   int deviceIndex = basicUI_->videoDevice->findText(settings_.value("video/Device").toString());
   int deviceID = settings_.value("video/DeviceID").toInt();
 

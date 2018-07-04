@@ -16,22 +16,48 @@ CustomSettings::CustomSettings(QWidget* parent,
   settings_("kvazzup.ini", QSettings::IniFormat)
 {
   advancedUI_->setupUi(this);
-
-  restoreAdvancedSettings();
-
   // the buttons are named so that the slots are called automatically
+}
+
+void CustomSettings::init(int deviceID)
+{
+  currentDevice_ = deviceID;
+  initializeFormatAndResolutions();
+  restoreAdvancedSettings();
+}
+
+void CustomSettings::initializeFormatAndResolutions()
+{
+  QStringList formats;
+  QList<QStringList> resolutions;
+  cam_->getVideoCapabilities(currentDevice_, formats, resolutions);
+
+  advancedUI_->format_box->clear();
+  advancedUI_->resolution->clear();
+  for(int i = 0; i < formats.size(); ++i)
+  {
+    advancedUI_->format_box->addItem( formats.at(i));
+  }
+
+  for(int i = 0; i < resolutions.size(); ++i)
+  {
+    advancedUI_->resolution->addItem( resolutions[0].at(i));
+  }
 }
 
 void CustomSettings::changedDevice(uint16_t deviceIndex)
 {
-  saveCameraCapabilities(deviceIndex);
+  currentDevice_ = deviceIndex;
+  initializeFormatAndResolutions();
   advancedUI_->format_box->setCurrentIndex(0);
   advancedUI_->resolution->setCurrentIndex(0);
-  currentDevice_ = deviceIndex;
+  saveCameraCapabilities(deviceIndex); // record the new camerasettings.
 }
 
-void CustomSettings::resetSettings()
+void CustomSettings::resetSettings(int deviceID)
 {
+  currentDevice_ = deviceID;
+  initializeFormatAndResolutions();
   saveAdvancedSettings();
 }
 
@@ -54,24 +80,9 @@ void CustomSettings::on_custom_cancel_clicked()
 
 void CustomSettings::show()
 {
+  qDebug() << "Showing custom settings";
+  // no need to initialize format/resolutions because they only change when device is changed.
   QWidget::show();
-  advancedUI_->resolution->clear();
-
-  QStringList formats;
-  QList<QStringList> resolutions;
-  cam_->getVideoCapabilities(currentDevice_, formats, resolutions);
-
-  for(int i = 0; i < formats.size(); ++i)
-  {
-    advancedUI_->format_box->addItem( formats.at(i));
-  }
-
-  qDebug() << "Showing advanced settings";
-  for(int i = 0; i < resolutions.size(); ++i)
-  {
-    advancedUI_->resolution->addItem( resolutions[0].at(i));
-  }
-  restoreAdvancedSettings();
 }
 
 void CustomSettings::saveAdvancedSettings()
@@ -156,7 +167,7 @@ void CustomSettings::restoreAdvancedSettings()
   }
   else
   {
-    resetSettings();
+    resetSettings(currentDevice_);
   }
 }
 
@@ -224,4 +235,3 @@ bool CustomSettings::checkVideoSettings()
       && settings_.contains("video/InputFormat")
       && settings_.contains("video/Slices");
 }
-

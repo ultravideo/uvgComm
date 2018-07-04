@@ -47,7 +47,7 @@ private:
   bool checkMissingValues();
 
   // QSettings -> GUI
-  void getSettings();
+  void getSettings(bool changedDevice);
 
   // GUI -> QSettings
   // permanently records GUI settings
@@ -55,7 +55,9 @@ private:
 
   QStringList getAudioDevices();
 
-  // make sure the ui video devices is initialized before calling this
+  // Make sure the UI video devices are initialized before calling this.
+  // This function tries to get the best guess at what is the current device
+  // even in case devices have dissappeared/appeared since recording of information.
   int getVideoDeviceID();
 
   void resetFaultySettings();
