@@ -48,6 +48,8 @@ private:
 
   void saveCameraCapabilities(int deviceIndex);
 
+  int getFormatIndex();
+
   // initializes the UI with correct formats and resolutions
   void initializeFormat();
 

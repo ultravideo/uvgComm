@@ -43,7 +43,7 @@ void Settings::on_ok_clicked()
   qDebug() << "Saving basic settings";
   // The UI values are saved to settings.
   saveSettings();
-  emit settingsChanged(); // TODO: has the index actully changed?
+  emit settingsChanged(); // TODO: check have the settings actually been changed
   hide();
 }
 

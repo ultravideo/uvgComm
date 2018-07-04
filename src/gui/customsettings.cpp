@@ -30,6 +30,7 @@ void CustomSettings::init(int deviceID)
 
 void CustomSettings::initializeFormat()
 {
+  qDebug() << "Initializing formats";
   QStringList formats;
   QList<QStringList> resolutions;
   cam_->getVideoCapabilities(currentDevice_, formats, resolutions);
@@ -39,19 +40,36 @@ void CustomSettings::initializeFormat()
   {
     advancedUI_->format_box->addItem( formats.at(i));
   }
-
-  int formatIndex = advancedUI_->format_box->findText(settings_.value("video/InputFormat").toString());
-  if(formatIndex == -1)
-  {
-    formatIndex = 0;
-  }
+  int formatIndex = getFormatIndex();
   advancedUI_->format_box->setCurrentIndex(formatIndex);
 
   initializeResolutions(formatIndex);
 }
 
+int CustomSettings::getFormatIndex()
+{
+  int formatIndex = advancedUI_->format_box->findText(settings_.value("video/InputFormat").toString());
+  int formatID = settings_.value("video/InputFormatID").toInt();
+
+  if(formatID != formatIndex)
+  {
+    qDebug() << "Resettings resolution and format, because the format index was not correct. Index:" << formatIndex
+             << "ID:" << formatID;
+    // the formats have changed (device has changed), reset both format and resolution.
+    settings_.setValue("video/InputFormatID",   formatIndex);
+    settings_.setValue("video/ResolutionID",    0);
+  }
+
+  if(formatIndex == -1)
+  {
+    formatIndex = 0;
+  }
+  return formatIndex;
+}
+
 void CustomSettings::initializeResolutions(int index)
 {
+  qDebug() << "Initializing resolutions";
   advancedUI_->resolution->clear();
   QStringList formats;
   QList<QStringList> resolutions;
@@ -62,7 +80,9 @@ void CustomSettings::initializeResolutions(int index)
     advancedUI_->resolution->addItem(resolutions.at(index).at(i));
   }
 
-  advancedUI_->resolution->setCurrentIndex(0);
+  int resolutionID = settings_.value("video/ResolutionID").toInt();
+
+  advancedUI_->resolution->setCurrentIndex(resolutionID);
 }
 
 void CustomSettings::changedDevice(uint16_t deviceIndex)
@@ -147,18 +167,18 @@ void CustomSettings::saveCameraCapabilities(int deviceIndex)
   cam_->getCapability(deviceIndex, formatIndex, resolutionIndex, resolution, fps, format);
   int32_t fps_int = static_cast<int>(fps);
 
-  settings_.setValue("video/ResolutionID",         resolutionIndex);
-
   // since kvazaar requires resolution to be divisible by eight
   // TODO: Use QSize to record resolution
   settings_.setValue("video/ResolutionWidth",      resolution.width() - resolution.width()%8);
   settings_.setValue("video/ResolutionHeight",     resolution.height() - resolution.height()%8);
+  settings_.setValue("video/ResolutionID",         resolutionIndex);
   settings_.setValue("video/Framerate",            fps_int);
   settings_.setValue("video/InputFormat",          format);
+  settings_.setValue("video/InputFormatID",        formatIndex);
 
   qDebug() << "Recorded the following video settings: Resolution:"
            << resolution.width() - resolution.width()%8 << "x" << resolution.height() - resolution.height()%8
-           << "fps:" << fps_int << "resolution index:" << "format" << format;
+           << "fps:" << fps_int << "resolution index:" << resolutionIndex << "format" << format;
 }
 
 void CustomSettings::restoreAdvancedSettings()
@@ -180,19 +200,12 @@ void CustomSettings::restoreAdvancedSettings()
 
     restoreCheckBox("video/Slices", advancedUI_->slices);
 
+    int formatIndex = getFormatIndex();
+    advancedUI_->format_box->setCurrentIndex(formatIndex);
+
     int resolutionID = settings_.value("video/ResolutionID").toInt();
-    if(advancedUI_->resolution->count() < resolutionID)
-    {
-      resolutionID = 0;
-    }
     advancedUI_->resolution->setCurrentIndex(resolutionID);
 
-    int formatIndex = settings_.value("video/ResolutionID").toInt();
-    if(advancedUI_->resolution->count() < formatIndex)
-    {
-      formatIndex = 0;
-    }
-    advancedUI_->resolution->setCurrentIndex(formatIndex);
   }
   else
   {
