@@ -81,8 +81,6 @@ void Settings::saveSettings()
   int currentIndex = basicUI_->videoDevice->currentIndex();
   if( currentIndex != -1)
   {
-    settings_.setValue("video/DeviceID",      currentIndex);
-
     if(basicUI_->videoDevice->currentText() != settings_.value("video/Device"))
     {
       settings_.setValue("video/Device",        basicUI_->videoDevice->currentText());
@@ -90,6 +88,13 @@ void Settings::saveSettings()
 
       custom_.changedDevice(currentIndex);
     }
+    else if(basicUI_->videoDevice->currentIndex() != settings_.value("video/DeviceID"))
+    {
+      custom_.changedDevice(currentIndex);
+    }
+
+    // record index in all cases
+    settings_.setValue("video/DeviceID",      currentIndex);
 
     qDebug() << "Recording following device:" << basicUI_->videoDevice->currentText();
   }
@@ -99,7 +104,7 @@ void Settings::saveSettings()
   }
 }
 
-// restores temporarily recorded settings
+// restores recorded settings
 void Settings::getSettings()
 {
   initializeUIDeviceList();
@@ -110,8 +115,9 @@ void Settings::getSettings()
     qDebug() << "Restoring previous Basic settings from file:" << settings_.fileName();
     basicUI_->name_edit->setText      (settings_.value("local/Name").toString());
     basicUI_->username_edit->setText  (settings_.value("local/Username").toString());
+    int currentIndex = getVideoDeviceID();
     custom_.changedDevice(currentIndex);
-    basicUI_->videoDevice->setCurrentIndex(getVideoDeviceID());
+    basicUI_->videoDevice->setCurrentIndex(currentIndex);
   }
   else
   {
@@ -142,6 +148,8 @@ int Settings::getVideoDeviceID()
 
   qDebug() << "deviceIndex:" << deviceIndex << "deviceID:" << deviceID;
   qDebug() << "deviceName:" << settings_.value("video/Device").toString();
+
+  // if the device exists in list
   if(deviceIndex != -1 && basicUI_->videoDevice->count() != 0)
   {
     // if we have multiple devices with same name we use id
@@ -156,7 +164,7 @@ int Settings::getVideoDeviceID()
       settings_.setValue("video/DeviceID", deviceIndex);
       return deviceIndex;
     }
-  }
+  } // if there are devices available, use first
   else if(basicUI_->videoDevice->count() != 0)
   {
     // could not find the device. Choosing first one
