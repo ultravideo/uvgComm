@@ -1,4 +1,7 @@
 #pragma once
+
+#include "gui/videointerface.h"
+
 #include <QPainter>
 #include <QFrame>
 #include <QRect>
@@ -11,26 +14,25 @@
 
 class StatisticsInterface;
 
-class VideoWidget : public QFrame
+class VideoWidget : public QFrame, public VideoInterface
 {
   Q_OBJECT
+  Q_INTERFACES(VideoInterface)
 public:
   VideoWidget(QWidget* parent = NULL, uint32_t sessionID = 0, uint8_t borderSize = 1);
   ~VideoWidget();
 
-  void setStats(StatisticsInterface* stats)
+  virtual void setStats(StatisticsInterface* stats)
   {
     stats_ = stats;
   }
 
   // Takes ownership of the image data
-  void inputImage(std::unique_ptr<uchar[]> data, QImage &image);
-
-  static unsigned int number_;
+  virtual void inputImage(std::unique_ptr<uchar[]> data, QImage &image);
 
 signals:
 
-  void reattach(uint32_t sessionID_, VideoWidget* view);
+  void reattach(uint32_t sessionID_, QWidget* view);
 
   void newImage();
 protected:
