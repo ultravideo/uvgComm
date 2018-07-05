@@ -6,7 +6,17 @@
 
 QT       += core gui
 
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+message("Parsing project file. Qt version:" "$$QT_MAJOR_VERSION"."$$QT_MINOR_VERSION" ------------------------------)
+message("Minimum supported Qt version:" "5.4")
+
+greaterThan(QT_MAJOR_VERSION, 5)
+{
+greaterThan(QT_MINOR_VERSION, 4)
+{
+  message("Qt version is supported")
+  # this is because of qopenglwidget.
+}
+}
 
 TARGET = Kvazzup
 
@@ -66,7 +76,8 @@ SOURCES +=\
     src/sip/sipdialogstate.cpp \
     src/scalefilter.cpp \
     src/video/camerainfo.cpp \
-    src/gui/customsettings.cpp
+    src/gui/customsettings.cpp \
+    src/gui/videoviewfactory.cpp
 
 HEADERS  += \
     src/filter.h \
@@ -127,7 +138,9 @@ HEADERS  += \
     src/scalefilter.h \
     src/global.h \
     src/video/camerainfo.h \
-    src/gui/customsettings.h
+    src/gui/customsettings.h \
+    src/gui/videointerface.h \
+    src/gui/videoviewfactory.h
 
 FORMS    += \
     ui/callwindow.ui \
@@ -137,11 +150,18 @@ FORMS    += \
     ui/advancedSettings.ui \
     ui/settings.ui
 
+# just in case we sometimes like to support smaller qt versions.
+greaterThan(4, QT_MAJOR_VERSION)
+{
+QT += widgets
+QT += multimedia
+}
 
-QT+=multimedia
 QT+=multimediawidgets
 QT+=network
 QT+=svg # for icons
+
+QT += opengl
 
 #win32-g++: QMAKE_CXXFLAGS += -std=c++11 -fopenmp
 win32: QMAKE_CXXFLAGS += -msse4.1 -mavx2
@@ -160,7 +180,7 @@ INCLUDEPATH += $$PWD/../include/
 
 win32-msvc{
 LIBS += -L$$PWD/../msvc_libs
-message("Using Visual Studio libraries")
+message("Using Visual Studio libraries in ../msvc_libs")
 }
 
 win32-g++{
@@ -171,7 +191,7 @@ LIBS += -llibLibOpenHevcWrapper.dll
 LIBS += -llivemedia.dll
 LIBS += -llibspeexdsp.dll
 LIBS += -fopenmp # TODO: Does msvc need this?
-message("Using MinGW libraries")
+message("Using MinGW libraries in ../libs")
 }
 
 
@@ -187,5 +207,3 @@ DEPENDPATH += $$PWD/../
 
 DISTFILES += \
     .gitignore
-
-message("Qt project read")

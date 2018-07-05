@@ -56,7 +56,7 @@ private slots:
   void accept();
   void reject();
 
-  void attachVideoWidget(uint32_t sessionID, VideoWidget *view);
+  void attachVideoWidget(uint32_t sessionID, QWidget *view);
 
 private:
 

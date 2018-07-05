@@ -91,8 +91,8 @@ void ConferenceView::incomingCall(uint32_t sessionID, QString name)
   }
   qDebug() << "Displaying pop-up for somebody calling in slot:" << row_ << "," << column_;
   QWidget* holder = new QWidget;
-  attachCallingWidget(holder, name + " is calling..");
   addWidgetToLayout(ASKINGUSER, holder, name, sessionID);
+  attachCallingWidget(holder, name + " is calling..");
 }
 
 void ConferenceView::attachCallingWidget(QWidget* holder, QString text)
@@ -109,7 +109,7 @@ void ConferenceView::attachCallingWidget(QWidget* holder, QString text)
 }
 
 
-void ConferenceView::attachVideoWidget(uint32_t sessionID, VideoWidget* view)
+void ConferenceView::attachVideoWidget(uint32_t sessionID, QWidget* view)
 {
   layoutMutex_.lock();
   layout_->removeItem(activeCalls_[sessionID - 1]->item);
