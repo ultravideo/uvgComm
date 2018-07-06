@@ -9,7 +9,6 @@
 #include <QSettings>
 #include <QDebug>
 
-
 FramedSourceFilter::FramedSourceFilter(QString id, StatisticsInterface* stats,
                                        UsageEnvironment &env, DataType type, QString media,
                                        QMutex* triggerMutex, bool live555Copying):
@@ -40,18 +39,30 @@ void FramedSourceFilter::updateSettings()
   if(type_ == HEVCVIDEO)
   {
     QSettings settings("kvazzup.ini", QSettings::IniFormat);
+    uint32_t vps = settings.value("video/VPS").toInt();
+    uint16_t intra = settings.value("video/Intra").toInt();
+
     if(settings.value("video/Slices").toInt() == 1)
     {
-      maxBufferSize_ = -1; // no buffer limit
+      // 4k 30 fps uses can fit to max 200 slices.
+      int maxSlices = 200;
+      // this buffersize is intended to hold at least one intra frame so we can
+      // delete all picture that do not belong to it. TODO: not implemented.
+      maxBufferSize_ = maxSlices*vps*intra;
+      removeStartCodes_ = false;
     }
     else
     {
       // the number of frames between parameter sets
-      maxBufferSize_ = settings.value("video/VPS").toInt()
-                      *settings.value("video/Intra").toInt();
+      maxBufferSize_ = vps*intra;
+
+      // discrete framer doesn't like start codes.
+      removeStartCodes_ = true;
     }
 
      qDebug() << name_ << "updated buffersize to" << maxBufferSize_;
+
+
   }
 }
 
