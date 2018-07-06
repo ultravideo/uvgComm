@@ -77,7 +77,8 @@ SOURCES +=\
     src/scalefilter.cpp \
     src/video/camerainfo.cpp \
     src/gui/customsettings.cpp \
-    src/gui/videoviewfactory.cpp
+    src/gui/videoviewfactory.cpp \
+    src/gui/videoglwidget.cpp
 
 HEADERS  += \
     src/filter.h \
@@ -140,7 +141,8 @@ HEADERS  += \
     src/video/camerainfo.h \
     src/gui/customsettings.h \
     src/gui/videointerface.h \
-    src/gui/videoviewfactory.h
+    src/gui/videoviewfactory.h \
+    src/gui/videoglwidget.h
 
 FORMS    += \
     ui/callwindow.ui \

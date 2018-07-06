@@ -1,10 +1,13 @@
 #include "videoviewfactory.h"
 
-#include "videowidget.h"
+#include "gui/videowidget.h"
+#include "gui/videoglwidget.h"
 // this annoys me, but I can live with it. The only smart way to fix it would be to get signal connect working
 #include "conferenceview.h"
 
 #include <QDebug>
+
+const bool OPENGL_ENABLED = false;
 
 VideoviewFactory::VideoviewFactory():
   widgets_(),
@@ -13,12 +16,26 @@ VideoviewFactory::VideoviewFactory():
 
 void VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent, ConferenceView* conf)
 {
-  VideoWidget* vw = new VideoWidget(parent, sessionID);
-  widgets_[sessionID] = vw;
-  videos_[sessionID] = vw;
+  if(OPENGL_ENABLED)
+  {
+    VideoGLWidget* vw = new VideoGLWidget(parent, sessionID);
+    widgets_[sessionID] = vw;
+    videos_[sessionID] = vw;
 
-  // couldn't get this to work with videointerface, so the videowidget is used.
-  QObject::connect(vw, &VideoWidget::reattach, conf, &ConferenceView::attachWidget);
+    // couldn't get this to work with videointerface, so the videowidget is used.
+    // TODO: try qobject_cast to get the signal working for interface
+    QObject::connect(vw, &VideoGLWidget::reattach, conf, &ConferenceView::attachWidget);
+  }
+  else
+  {
+    VideoWidget* vw = new VideoWidget(parent, sessionID);
+    widgets_[sessionID] = vw;
+    videos_[sessionID] = vw;
+
+    // couldn't get this to work with videointerface, so the videowidget is used.
+    // TODO: try qobject_cast to get the signal working for interface
+    QObject::connect(vw, &VideoWidget::reattach, conf, &ConferenceView::attachWidget);
+  }
 }
 
 void VideoviewFactory::setSelfview(VideoInterface *video, QWidget *view)
