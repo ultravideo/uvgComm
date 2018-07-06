@@ -86,6 +86,7 @@ void VideoWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image)
       viewBuffer_.pop_back();
       dataBuffer_.pop_back();
 
+      //setUpdatesEnabled(true);
       // TODO: There is a possibility of image freezing
     }
   }
