@@ -18,7 +18,6 @@ void CallManager::init()
 {
   window_.init(this);
   window_.show();
-  VideoWidget* selfview = window_.getSelfDisplay();
 
   sip_.init(this);
 
@@ -34,7 +33,7 @@ void CallManager::init()
 
   stats_ = window_.createStatsWindow();
 
-  media_.init(selfview, stats_);
+  media_.init(window_.getViewFactory(), stats_);
 
   QObject::connect(&stun_, SIGNAL(addressReceived(QHostAddress)), this, SLOT(stunAddress(QHostAddress)));
   QObject::connect(&stun_, SIGNAL(error()), this, SLOT(noStunAddress()));
@@ -113,7 +112,7 @@ void CallManager::callNegotiated(uint32_t sessionID)
 {
   qDebug() << "Call has been agreed upon with peer:" << sessionID;
 
-  VideoWidget* view = window_.addVideoStream(sessionID);
+  window_.addVideoStream(sessionID);
 
   std::shared_ptr<SDPMessageInfo> localSDP;
   std::shared_ptr<SDPMessageInfo> remoteSDP;
@@ -127,8 +126,8 @@ void CallManager::callNegotiated(uint32_t sessionID)
     return;
   }
 
-  // TODO check the SDP info and do ports and rt numbers properly
-  createParticipant(sessionID, remoteSDP, localSDP, view, stats_);
+  // TODO check the SDP info and do ports and rtp numbers properly
+  createParticipant(sessionID, remoteSDP, localSDP, stats_);
 }
 
 void CallManager::callNegotiationFailed(uint32_t sessionID)
@@ -168,16 +167,8 @@ void CallManager::updateSettings()
 
 void CallManager::createParticipant(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> peerInfo,
                                     const std::shared_ptr<SDPMessageInfo> localInfo,
-                                    VideoWidget* videoWidget,
                                     StatisticsInterface* stats)
 {
-
-  if(videoWidget == NULL)
-  {
-    qWarning() << "WARNING: NULL widget got from";
-    return;
-  }
-
   QHostAddress address;
   address.setAddress(peerInfo->connection_address);
 
@@ -229,7 +220,7 @@ void CallManager::createParticipant(uint32_t sessionID, std::shared_ptr<SDPMessa
 
   qDebug() << "Sending mediastreams to:" << peerInfo->connection_address << "audioPort:" << sendAudioPort
            << "VideoPort:" << sendVideoPort;
-  media_.addParticipant(sessionID, ip, sendAudioPort, recvAudioPort, sendVideoPort, recvVideoPort, videoWidget);
+  media_.addParticipant(sessionID, ip, sendAudioPort, recvAudioPort, sendVideoPort, recvVideoPort);
 }
 
 

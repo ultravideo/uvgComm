@@ -1,6 +1,6 @@
 #include "displayfilter.h"
 
-#include "gui/videowidget.h"
+#include "gui/videointerface.h"
 #include "statisticsinterface.h"
 
 #include <QImage>
@@ -8,7 +8,7 @@
 #include <QDateTime>
 
 DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
-                             VideoWidget *widget, uint32_t peer):
+                             VideoInterface *widget, uint32_t peer):
   Filter(id, "Display", stats, RGB32VIDEO, NONE),
   horizontalMirroring_(false),
   verticalMirroring_(false),
@@ -16,7 +16,6 @@ DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
   peer_(peer)
 {
   widget_->setStats(stats);
-  widget_->show();
 }
 
 DisplayFilter::~DisplayFilter()

@@ -3,7 +3,8 @@
 #include "ui_callwindow.h"
 #include "ui_about.h"
 
-#include "statisticswindow.h"
+#include "gui/statisticswindow.h"
+#include "gui/videoviewfactory.h"
 
 #include <QCloseEvent>
 #include <QTimer>
@@ -14,6 +15,7 @@
 CallWindow::CallWindow(QWidget *parent):
   QMainWindow(parent),
   ui_(new Ui::CallWindow),
+  viewFactory_(std::shared_ptr<VideoviewFactory>(new VideoviewFactory)),
   settingsView_(this),
   statsWindow_(NULL),
   conference_(this),
@@ -34,11 +36,13 @@ CallWindow::~CallWindow()
 }
 
 void CallWindow::init(ParticipantInterface *partInt)
-{
+{ 
   partInt_ = partInt;
 
   ui_->setupUi(this);
   ui_->Add_contact_widget->setVisible(false);
+
+  viewFactory_->setSelfview(ui_->SelfView);
 
   // GUI updates are handled solely by timer
   timer_->setInterval(200);
@@ -122,11 +126,6 @@ StatisticsInterface* CallWindow::createStatsWindow()
   return statsWindow_;
 }
 
-VideoWidget* CallWindow::getSelfDisplay()
-{
-  return ui_->SelfView;
-}
-
 void CallWindow::addContact()
 {
   contacts_.addContact(partInt_, ui_->peerName->text(), "anonymous", ui_->ip->text());
@@ -168,12 +167,11 @@ void CallWindow::closeEvent(QCloseEvent *event)
   QMainWindow::closeEvent(event);
 }
 
-VideoWidget* CallWindow::addVideoStream(uint32_t sessionID)
+void CallWindow::addVideoStream(uint32_t sessionID)
 {
   ui_->EndCallButton->setEnabled(true);
   ui_->EndCallButton->show();
-  VideoWidget* view = conference_.addVideoStream(sessionID);
-  return view;
+  conference_.addVideoStream(sessionID, viewFactory_);
 }
 
 void CallWindow::setMicState(bool on)

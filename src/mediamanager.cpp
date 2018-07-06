@@ -5,6 +5,7 @@
 #include "filter.h"
 #include "framedsourcefilter.h"
 #include "rtpsinkfilter.h"
+#include "gui/videoviewfactory.h"
 
 #include <QDebug>
 
@@ -23,12 +24,13 @@ MediaManager::~MediaManager()
   fg_->uninit();
 }
 
-void MediaManager::init(VideoWidget *selfView, StatisticsInterface* stats)
+void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory, StatisticsInterface *stats)
 {
   qDebug() << "Iniating media manager";
+  viewfactory_ = viewfactory;
   streamer_->init(stats);
   streamer_->start();
-  fg_->init(selfView, stats);
+  fg_->init(viewfactory_->getVideo(0), stats); // 0 is the selfview index. The view should be created by GUI
 }
 
 void MediaManager::uninit()
@@ -50,7 +52,7 @@ void MediaManager::updateSettings()
 }
 
 void MediaManager::addParticipant(uint32_t sessionID, in_addr ip, uint16_t sendAudioPort, uint16_t recvAudioPort,
-                                 uint16_t sendVideoPort, uint16_t recvVideoPort, VideoWidget *view)
+                                  uint16_t sendVideoPort, uint16_t recvVideoPort)
 {
   // Open necessary ports and create filters for sending and receiving
   if(!streamer_->addPeer(ip, sessionID))
@@ -68,7 +70,7 @@ void MediaManager::addParticipant(uint32_t sessionID, in_addr ip, uint16_t sendA
   qDebug() << "Modifying filter graph for ID:" << sessionID;
   // create filter graphs for this participant
   fg_->sendVideoto(sessionID, std::shared_ptr<Filter>(videoFramedSource));
-  fg_->receiveVideoFrom(sessionID, std::shared_ptr<Filter>(videoSink), view);
+  fg_->receiveVideoFrom(sessionID, std::shared_ptr<Filter>(videoSink), viewfactory_->getVideo(sessionID));
   fg_->sendAudioTo(sessionID, std::shared_ptr<Filter>(audioFramedSource));
   fg_->receiveAudioFrom(sessionID, std::shared_ptr<Filter>(audioSink));
 

@@ -9,11 +9,18 @@ VideoviewFactory::VideoviewFactory():
   videos_()
 {}
 
-void VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent)
+VideoWidget* VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent)
 {
   VideoWidget* vw = new VideoWidget(parent, sessionID);
   widgets_[sessionID] = vw;
   videos_[sessionID] = vw;
+  return vw;
+}
+
+void VideoviewFactory::setSelfview(VideoWidget* widget)
+{
+  widgets_[0] = widget;
+  videos_[0] = widget;
 }
 
 QWidget* VideoviewFactory::getView(uint32_t sessionID)

@@ -16,7 +16,7 @@ class StatisticsInterface;
 class VideoInterface
 {
 public:
-  virtual ~VideoInterface() = 0;
+  virtual ~VideoInterface(){}
 
   virtual void setStats(StatisticsInterface* stats) = 0;
 
@@ -27,7 +27,5 @@ signals:
 
   virtual void reattach(uint32_t sessionID_, QWidget* view) = 0;
 };
-
-inline VideoInterface::~VideoInterface() {}
 
 Q_DECLARE_INTERFACE(VideoInterface, "VideoInterface")

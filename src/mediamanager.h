@@ -14,7 +14,7 @@
 #include <WinSock2.h>
 #endif
 
-class VideoWidget;
+class VideoviewFactory;
 class StatisticsInterface;
 
 class FilterGraph;
@@ -31,7 +31,7 @@ public:
   MediaManager();
   ~MediaManager();
 
-  void init(VideoWidget *selfView, StatisticsInterface *stats);
+  void init(std::shared_ptr<VideoviewFactory> viewfactory, StatisticsInterface *stats);
   void uninit();
 
   void updateSettings();
@@ -40,13 +40,13 @@ public:
   void registerContact(in_addr ip);
 
   void addParticipant(uint32_t sessionID, in_addr ip, uint16_t sendAudioPort, uint16_t recvAudioPort,
-                      uint16_t sendVideoPort, uint16_t recvVideoPort, VideoWidget* view);
+                      uint16_t sendVideoPort, uint16_t recvVideoPort);
 
   void removeParticipant(uint32_t sessionID);
   void endAllCalls();
 
   void streamToIP(in_addr ip, uint16_t port);
-  void receiveFromIP(in_addr ip, uint16_t port, VideoWidget* view);
+  void receiveFromIP(in_addr ip, uint16_t port);
 
   // call changes. Returns state after toggle
   bool toggleMic();
@@ -81,6 +81,8 @@ private:
   MediaSession* session_;
 
   std::unique_ptr<RTPStreamer> streamer_;
+
+  std::shared_ptr<VideoviewFactory> viewfactory_;
 
   bool mic_;
   bool camera_;

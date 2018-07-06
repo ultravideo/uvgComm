@@ -7,15 +7,17 @@
 #include <map>
 #include <deque>
 #include <stdint.h>
+#include <memory>
 
 // Does the mapping of calls to their streams and upkeeps the layout of stream widgets
 
 enum CallState {EMPTY, ASKINGUSER, WAITINGPEER, CALL_RINGING, CALL_ACTIVE};
 
 class QGridLayout;
-class VideoWidget;
 class QWidget;
 class QLayoutItem;
+class VideoviewFactory;
+
 
 namespace Ui {
 class CallerWidget;
@@ -37,7 +39,7 @@ public:
   uint32_t rejectNewest();
 
   // if our call is accepted or we accepted their call
-  VideoWidget* addVideoStream(uint32_t sessionID);
+  void addVideoStream(uint32_t sessionID, std::shared_ptr<VideoviewFactory> factory);
 
   void declineCall();
 
@@ -56,7 +58,7 @@ private slots:
   void accept();
   void reject();
 
-  void attachVideoWidget(uint32_t sessionID, QWidget *view);
+  void attachWidget(uint32_t sessionID, QWidget *view);
 
 private:
 
@@ -74,7 +76,7 @@ private:
   QGridLayout* layout_;
   QWidget* layoutWidget_;
 
-  // dynamic videowidget adding to layout
+  // dynamic widget adding to layout
   // mutex takes care of locations accessing and changes
   QMutex locMutex_;
   uint16_t row_;

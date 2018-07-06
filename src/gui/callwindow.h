@@ -32,16 +32,13 @@ public:
   // functions for managing the GUI
   StatisticsInterface* createStatsWindow();
 
-  // gets video widget from GUI
-  VideoWidget* getSelfDisplay();
-
   // callID identifies the view slot
   void displayOutgoingCall(uint32_t sessionID, QString name);
   void displayRinging(uint32_t sessionID);
   void displayIncomingCall(uint32_t sessionID, QString caller);
 
-  // adds video stream to view and returns created/atttached videowidget
-  VideoWidget* addVideoStream(uint32_t sessionID);
+  // adds video stream to view
+  void addVideoStream(uint32_t sessionID);
 
   // removes caller from view
   void removeParticipant(uint32_t sessionID);
@@ -52,6 +49,11 @@ public:
   void setCameraState(bool on);
 
   void closeEvent(QCloseEvent *event);
+
+  std::shared_ptr<VideoviewFactory> getViewFactory() const
+  {
+    return viewFactory_;
+  }
 
 signals:
 
@@ -82,6 +84,8 @@ private:
   void initButton(QString iconPath, QSize size, QSize iconSize, QPushButton* button);
 
   Ui::CallWindow *ui_;
+
+  std::shared_ptr<VideoviewFactory> viewFactory_;
 
   Settings settingsView_;
   StatisticsWindow *statsWindow_;

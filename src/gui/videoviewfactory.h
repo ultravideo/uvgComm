@@ -6,13 +6,16 @@
 
 class QWidget;
 class VideoInterface;
+class VideoWidget;
 
 class VideoviewFactory
 {
 public:
   VideoviewFactory();
 
-  void createWidget(uint32_t sessionID, QWidget* parent);
+  VideoWidget* createWidget(uint32_t sessionID, QWidget* parent);
+
+  void setSelfview(VideoWidget* widget);
 
   // 0 is for selfview
   QWidget* getView(uint32_t sessionID);

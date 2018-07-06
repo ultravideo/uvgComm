@@ -1,12 +1,12 @@
 #pragma once
 #include "filter.h"
 
-class VideoWidget;
+class VideoInterface;
 
 class DisplayFilter : public Filter
 {
 public:
-  DisplayFilter(QString id, StatisticsInterface* stats, VideoWidget *widget, uint32_t peer);
+  DisplayFilter(QString id, StatisticsInterface* stats, VideoInterface *widget, uint32_t peer);
   ~DisplayFilter();
   void setProperties(bool mirrorHorizontal, bool mirrorVertical)
   {
@@ -23,7 +23,7 @@ private:
   bool verticalMirroring_;
 
   // Owned by Conference view
-  VideoWidget* widget_;
+  VideoInterface* widget_;
 
   uint32_t peer_;
 };

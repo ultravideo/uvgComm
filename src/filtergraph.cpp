@@ -14,7 +14,7 @@
 #include "audio/opusencoderfilter.h"
 #include "audio/opusdecoderfilter.h"
 #include "audio/speexaecfilter.h"
-#include "gui/videowidget.h"
+#include "gui/videointerface.h"
 
 #include "global.h"
 #include "common.h"
@@ -41,7 +41,7 @@ FilterGraph::FilterGraph():
   format_.setCodec("audio/pcm");
 }
 
-void FilterGraph::init(VideoWidget* selfView, StatisticsInterface* stats)
+void FilterGraph::init(VideoInterface* selfView, StatisticsInterface* stats)
 {
   Q_ASSERT(stats);
 
@@ -110,7 +110,7 @@ void FilterGraph::updateSettings()
   }
 }
 
-void FilterGraph::initSelfView(VideoWidget *selfView)
+void FilterGraph::initSelfView(VideoInterface *selfView)
 {
   qDebug() << "Iniating camera and selfview";
 
@@ -301,7 +301,7 @@ void FilterGraph::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoF
 }
 
 void FilterGraph::receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> videoSink,
-                                   VideoWidget *view)
+                                   VideoInterface *view)
 {
   Q_ASSERT(sessionID);
   Q_ASSERT(videoSink);

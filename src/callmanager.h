@@ -57,7 +57,6 @@ private:
   // TODO: Move this to media manager.
   void createParticipant(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> peerInfo,
                          const std::shared_ptr<SDPMessageInfo> localInfo,
-                         VideoWidget *videoWidget,
                          StatisticsInterface* stats);
 
   struct PeerState

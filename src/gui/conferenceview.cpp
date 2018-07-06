@@ -1,7 +1,10 @@
 #include "conferenceview.h"
 
-#include "videowidget.h"
 #include "ui_callingwidget.h"
+
+#include "gui/videoviewfactory.h"
+#include "gui/videointerface.h"
+#include "gui/videowidget.h"
 
 #include <QLabel>
 #include <QGridLayout>
@@ -109,7 +112,7 @@ void ConferenceView::attachCallingWidget(QWidget* holder, QString text)
 }
 
 
-void ConferenceView::attachVideoWidget(uint32_t sessionID, QWidget* view)
+void ConferenceView::attachWidget(uint32_t sessionID, QWidget* view)
 {
   layoutMutex_.lock();
   layout_->removeItem(activeCalls_[sessionID - 1]->item);
@@ -120,19 +123,21 @@ void ConferenceView::attachVideoWidget(uint32_t sessionID, QWidget* view)
 }
 
 // if our call is accepted or we accepted their call
-VideoWidget* ConferenceView::addVideoStream(uint32_t sessionID)
+void ConferenceView::addVideoStream(uint32_t sessionID, std::shared_ptr<VideoviewFactory> factory)
 {
-  VideoWidget* view = new VideoWidget(NULL, sessionID, 1);
+  VideoWidget* vw = factory->createWidget(sessionID, NULL);
+  QWidget* view = factory->getView(sessionID);
+
   if(activeCalls_.size() < sessionID || activeCalls_.at(sessionID - 1) == NULL)
   {
     qWarning() << "WARNING: Adding a videostream without previous.";
-    return NULL;
+    return;
   }
   else if(activeCalls_[sessionID - 1]->state != ASKINGUSER
           && activeCalls_[sessionID - 1]->state != WAITINGPEER)
   {
     qWarning() << "WARNING: activating stream without previous state set";
-    return NULL;
+    return;
   }
 
   // add the widget in place of previous one
@@ -142,16 +147,17 @@ VideoWidget* ConferenceView::addVideoStream(uint32_t sessionID)
   // Now they accumulate in memory until call has ended
   delete activeCalls_[sessionID - 1]->item->widget();
 
-  attachVideoWidget(sessionID, view);
+  attachWidget(sessionID, view);
 
-  QObject::connect(view, &VideoWidget::reattach, this, &ConferenceView::attachVideoWidget);
+  // couldn't get this to work with videointerface, so the videowidget is used.
+  QObject::connect(vw, &VideoWidget::reattach, this, &ConferenceView::attachWidget);
 
   //view->setParent(0);
   //view->showMaximized();
   //view->show();
   //view->setWindowFlags(Qt::CustomizeWindowHint | Qt::FramelessWindowHint);
 
-  return view;
+  view->show();
 }
 
 void ConferenceView::ringing(uint32_t sessionID)

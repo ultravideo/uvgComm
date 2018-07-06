@@ -85,6 +85,8 @@ void VideoWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image)
                << "Deleting oldest image from viewBuffer in videowidget:" << sessionID_;
       viewBuffer_.pop_back();
       dataBuffer_.pop_back();
+
+      // TODO: There is a possibility of image freezing
     }
   }
 

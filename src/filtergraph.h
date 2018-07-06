@@ -6,7 +6,7 @@
 #include <vector>
 #include <memory>
 
-class VideoWidget;
+class VideoInterface;
 class StatisticsInterface;
 class AudioOutput;
 class Filter;
@@ -17,12 +17,12 @@ class FilterGraph
 public:
   FilterGraph();
 
-  void init(VideoWidget* selfView, StatisticsInterface *stats);
+  void init(VideoInterface* selfView, StatisticsInterface *stats);
   void uninit();
 
   // These functions are used to manipulate filter graphs regarding a peer
   void sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoFramedSource);
-  void receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> videoSink, VideoWidget *view);
+  void receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> videoSink, VideoInterface *view);
   void sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioFramedSource);
   void receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> audioSink);
 
@@ -52,7 +52,7 @@ private:
   void checkParticipant(uint32_t sessionID);
 
   // iniates camera and attaches a self view to it.
-  void initSelfView(VideoWidget *selfView);
+  void initSelfView(VideoInterface *selfView);
 
   // iniates encoder and attaches it
   void initVideoSend();
@@ -87,7 +87,7 @@ private:
   std::vector<std::shared_ptr<Filter>> videoSend_;
   std::vector<std::shared_ptr<Filter>> audioSend_;
 
-  VideoWidget *selfView_;
+  VideoInterface *selfView_;
 
   StatisticsInterface* stats_;
 
