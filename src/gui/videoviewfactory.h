@@ -6,16 +6,18 @@
 
 class QWidget;
 class VideoInterface;
-class VideoWidget;
+class ConferenceView;
 
 class VideoviewFactory
 {
 public:
   VideoviewFactory();
 
-  VideoWidget* createWidget(uint32_t sessionID, QWidget* parent);
+  // conferenceview is needed for connecting reattach signal, because I couldn't get the
+  // the interface signal connected for some reason.
+  void createWidget(uint32_t sessionID, QWidget* parent, ConferenceView* conf);
 
-  void setSelfview(VideoWidget* widget);
+  void setSelfview(VideoInterface* video, QWidget* view);
 
   // 0 is for selfview
   QWidget* getView(uint32_t sessionID);

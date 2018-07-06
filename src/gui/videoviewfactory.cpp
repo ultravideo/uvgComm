@@ -1,6 +1,8 @@
 #include "videoviewfactory.h"
 
 #include "videowidget.h"
+// this annoys me, but I can live with it. The only smart way to fix it would be to get signal connect working
+#include "conferenceview.h"
 
 #include <QDebug>
 
@@ -9,18 +11,20 @@ VideoviewFactory::VideoviewFactory():
   videos_()
 {}
 
-VideoWidget* VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent)
+void VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent, ConferenceView* conf)
 {
   VideoWidget* vw = new VideoWidget(parent, sessionID);
   widgets_[sessionID] = vw;
   videos_[sessionID] = vw;
-  return vw;
+
+  // couldn't get this to work with videointerface, so the videowidget is used.
+  QObject::connect(vw, &VideoWidget::reattach, conf, &ConferenceView::attachWidget);
 }
 
-void VideoviewFactory::setSelfview(VideoWidget* widget)
+void VideoviewFactory::setSelfview(VideoInterface *video, QWidget *view)
 {
-  widgets_[0] = widget;
-  videos_[0] = widget;
+  widgets_[0] = view;
+  videos_[0] = video;
 }
 
 QWidget* VideoviewFactory::getView(uint32_t sessionID)

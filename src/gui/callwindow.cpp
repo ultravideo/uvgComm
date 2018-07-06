@@ -42,7 +42,7 @@ void CallWindow::init(ParticipantInterface *partInt)
   ui_->setupUi(this);
   ui_->Add_contact_widget->setVisible(false);
 
-  viewFactory_->setSelfview(ui_->SelfView);
+  viewFactory_->setSelfview(ui_->SelfView, ui_->SelfView);
 
   // GUI updates are handled solely by timer
   timer_->setInterval(200);

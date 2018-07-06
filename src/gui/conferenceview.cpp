@@ -3,7 +3,6 @@
 #include "ui_callingwidget.h"
 
 #include "gui/videoviewfactory.h"
-#include "gui/videointerface.h"
 #include "gui/videowidget.h"
 
 #include <QLabel>
@@ -125,7 +124,7 @@ void ConferenceView::attachWidget(uint32_t sessionID, QWidget* view)
 // if our call is accepted or we accepted their call
 void ConferenceView::addVideoStream(uint32_t sessionID, std::shared_ptr<VideoviewFactory> factory)
 {
-  VideoWidget* vw = factory->createWidget(sessionID, NULL);
+  factory->createWidget(sessionID, NULL, this);
   QWidget* view = factory->getView(sessionID);
 
   if(activeCalls_.size() < sessionID || activeCalls_.at(sessionID - 1) == NULL)
@@ -148,9 +147,6 @@ void ConferenceView::addVideoStream(uint32_t sessionID, std::shared_ptr<Videovie
   delete activeCalls_[sessionID - 1]->item->widget();
 
   attachWidget(sessionID, view);
-
-  // couldn't get this to work with videointerface, so the videowidget is used.
-  QObject::connect(vw, &VideoWidget::reattach, this, &ConferenceView::attachWidget);
 
   //view->setParent(0);
   //view->showMaximized();

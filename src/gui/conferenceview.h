@@ -53,12 +53,15 @@ signals:
   void acceptCall(uint32_t sessionID);
   void rejectCall(uint32_t sessionID);
 
+public slots:
+
+  // this is currently connected by videoviewfactory
+  void attachWidget(uint32_t sessionID, QWidget *view);
+
 private slots:
 
   void accept();
   void reject();
-
-  void attachWidget(uint32_t sessionID, QWidget *view);
 
 private:
 
