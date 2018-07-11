@@ -29,11 +29,6 @@ VideoGLWidget::VideoGLWidget(QWidget* parent, uint32_t sessionID, uint8_t border
 
   setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
 
-  //QFrame::setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
-  //QFrame::setLineWidth(borderSize_);
-  //QFrame::setMidLineWidth(1);
-
-  //showFullScreen();
   setWindowState(Qt::WindowFullScreen);
 
   setUpdatesEnabled(true);
@@ -104,18 +99,6 @@ void VideoGLWidget::paintEvent(QPaintEvent *event)
   if(firstImageReceived_)
   {
     drawMutex_.lock();
-    /*
-    if(QFrame::frameRect() != newFrameRect_)
-    {
-      QFrame::setFrameRect(newFrameRect_);
-      QWidget::setMinimumHeight(newFrameRect_.height()*QWidget::minimumWidth()/newFrameRect_.width());
-    }
-    */
-    if(QWidget::size() != newFrameRect_.size())
-    {
-      QWidget::setMaximumSize(newFrameRect_.size());
-      QWidget::setMinimumHeight(newFrameRect_.height()*QWidget::minimumWidth()/newFrameRect_.width());
-    }
 
     if(!viewBuffer_.empty())
     {
@@ -136,22 +119,18 @@ void VideoGLWidget::paintEvent(QPaintEvent *event)
     {
       painter.drawImage(targetRect_, lastImage_);
     }
-
     drawMutex_.unlock();
   }
   else
   {
     painter.fillRect(event->rect(), QBrush(QColor(0,0,0)));
   }
-
-  //QFrame::paintEvent(event);
-  //QWidget::paintEvent(event);
 }
 
 void VideoGLWidget::resizeEvent(QResizeEvent *event)
 {
   qDebug() << "VideoGLWidget resizeEvent:" << sessionID_;
-  QWidget::resizeEvent(event);
+  QOpenGLWidget::resizeEvent(event);
   updateTargetRect();
 }
 
@@ -167,7 +146,7 @@ void VideoGLWidget::updateTargetRect()
     }
 
     QSize size = lastImage_.size();
-    QSize frameSize = QWidget::size() - QSize(borderSize_,borderSize_);
+    QSize frameSize = QWidget::size();
 
     if(frameSize.height() > size.height()
        && frameSize.width() > size.width())
@@ -181,8 +160,6 @@ void VideoGLWidget::updateTargetRect()
 
     targetRect_ = QRect(QPoint(0, 0), size);
     targetRect_.moveCenter(rect().center());
-    newFrameRect_ = QRect(QPoint(0, 0), size + QSize(borderSize_,borderSize_));
-    newFrameRect_.moveCenter(rect().center());
 
     previousSize_ = lastImage_.size();
   }
@@ -208,7 +185,6 @@ void VideoGLWidget::keyPressEvent(QKeyEvent *event)
   }
 }
 
-
 void VideoGLWidget::mouseDoubleClickEvent(QMouseEvent *e) {
   QWidget::mouseDoubleClickEvent(e);
   if(sessionID_ != 0)
@@ -226,8 +202,6 @@ void VideoGLWidget::enterFullscreen()
 {
   qDebug() << "Setting VideoGLWidget fullscreen";
 
-  //QFrame::setFrameStyle(QFrame::NoFrame);
-
   tmpParent_ = QWidget::parentWidget();
   this->setParent(NULL);
   //this->showMaximized();
@@ -237,13 +211,11 @@ void VideoGLWidget::enterFullscreen()
 
 void VideoGLWidget::exitFullscreen()
 {
-  qDebug() << "Returning video widget to original place.";
+  qDebug() << "Returning GL video widget to original place.";
   this->setParent(tmpParent_);
   //this->showMaximized();
   this->show();
   this->setWindowState(Qt::WindowMaximized);
-
-  //QFrame::setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
 
   emit reattach(sessionID_, this);
 }

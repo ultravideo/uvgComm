@@ -7,7 +7,7 @@
 
 #include <QDebug>
 
-const bool OPENGL_ENABLED = false;
+const bool OPENGL_ENABLED = true;
 
 VideoviewFactory::VideoviewFactory():
   widgets_(),

@@ -56,7 +56,6 @@ private:
   bool firstImageReceived_;
 
   QRect targetRect_;
-  QRect newFrameRect_;
 
   QMutex drawMutex_;
   QSize previousSize_;
