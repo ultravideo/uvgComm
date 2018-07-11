@@ -58,6 +58,7 @@ int CustomSettings::getFormatIndex()
     // the formats have changed (device has changed), reset both format and resolution.
     settings_.setValue("video/InputFormatID",   formatIndex);
     settings_.setValue("video/ResolutionID",    0);
+    settings_.setValue("video/CapabilityID",    cam_->formatToCapability(currentDevice_, formatIndex, 0));
   }
 
   if(formatIndex == -1)
@@ -172,6 +173,7 @@ void CustomSettings::saveCameraCapabilities(int deviceIndex)
   settings_.setValue("video/ResolutionWidth",      resolution.width() - resolution.width()%8);
   settings_.setValue("video/ResolutionHeight",     resolution.height() - resolution.height()%8);
   settings_.setValue("video/ResolutionID",         resolutionIndex);
+  settings_.setValue("video/CapabilityID",         cam_->formatToCapability(currentDevice_, formatIndex, resolutionIndex));
   settings_.setValue("video/Framerate",            fps_int);
   settings_.setValue("video/InputFormat",          format);
   settings_.setValue("video/InputFormatID",        formatIndex);

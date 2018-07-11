@@ -84,7 +84,7 @@ bool DShowCameraFilter::init()
     }
   }
 
-  capabilityID_ = settings.value("video/ResolutionID").toInt();
+  capabilityID_ = settings.value("video/CapabilityID").toInt();
 
   if(capabilityID_ == -1)
   {
