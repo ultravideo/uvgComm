@@ -90,6 +90,7 @@ void Settings::saveSettings()
   // Local settings
   saveTextValue("local/Name", basicUI_->name_edit->text());
   saveTextValue("local/Username", basicUI_->username_edit->text());
+  saveCheckBox("local/Auto-Accept", basicUI_->auto_accept);
 
   int currentIndex = basicUI_->videoDevice->currentIndex();
   if( currentIndex != -1)
@@ -124,6 +125,8 @@ void Settings::getSettings(bool changedDevice)
     qDebug() << "Restoring previous Basic settings from file:" << settings_.fileName();
     basicUI_->name_edit->setText      (settings_.value("local/Name").toString());
     basicUI_->username_edit->setText  (settings_.value("local/Username").toString());
+    restoreCheckBox("local/Auto-Accept", basicUI_->auto_accept);
+
     int currentIndex = getVideoDeviceID();
     if(changedDevice)
     {
@@ -189,7 +192,8 @@ int Settings::getVideoDeviceID()
 bool Settings::checkUserSettings()
 {
   return settings_.contains("local/Name")
-      && settings_.contains("local/Username");
+      && settings_.contains("local/Username")
+      && settings_.contains("local/Auto-Accept");
 }
 
 bool Settings::checkMissingValues()
@@ -214,5 +218,33 @@ void Settings::saveTextValue(const QString settingValue, const QString &text)
   if(text != "")
   {
     settings_.setValue(settingValue,  text);
+  }
+}
+
+void Settings::restoreCheckBox(const QString settingValue, QCheckBox* box)
+{
+  if(settings_.value(settingValue).toString() == "1")
+  {
+    box->setChecked(true);
+  }
+  else if(settings_.value(settingValue).toString() == "0")
+  {
+    box->setChecked(false);
+  }
+  else
+  {
+    qDebug() << "Corrupted value for checkbox in settings file for:" << settingValue << "!!!";
+  }
+}
+
+void Settings::saveCheckBox(const QString settingValue, QCheckBox* box)
+{
+  if(box->isChecked())
+  {
+    settings_.setValue(settingValue,          "1");
+  }
+  else
+  {
+    settings_.setValue(settingValue,          "0");
   }
 }

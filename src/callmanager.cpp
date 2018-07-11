@@ -91,9 +91,20 @@ void CallManager::chatWithParticipant(QString name, QString username, QString ip
   qDebug() << "Chatting with:" << name << '(' << username << ") at ip:" << ip << ": Chat not implemented yet";
 }
 
-void CallManager::incomingCall(uint32_t sessionID, QString caller)
+bool CallManager::incomingCall(uint32_t sessionID, QString caller)
 {
-  window_.displayIncomingCall(sessionID, caller);
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+  int autoAccept = settings.value("local/Auto-Accept").toInt();
+  if(autoAccept == 1)
+  {
+    acceptCall(sessionID);
+    return true;
+  }
+  else
+  {
+    window_.displayIncomingCall(sessionID, caller);
+  }
+  return false;
 }
 
 void CallManager::callRinging(uint32_t sessionID)

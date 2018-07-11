@@ -8,7 +8,7 @@ Filter::Filter(QString id, QString name, StatisticsInterface *stats,
                DataType input, DataType output):
   name_(id + name),
   stats_(stats),
-  maxBufferSize_(3),
+  maxBufferSize_(10),
   input_(input),
   output_(output),
   waitMutex_(new QMutex),

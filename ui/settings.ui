@@ -170,6 +170,13 @@
          </property>
         </widget>
        </item>
+       <item row="4" column="0">
+        <widget class="QCheckBox" name="auto_accept">
+         <property name="text">
+          <string>Auto-accept</string>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
     </widget>

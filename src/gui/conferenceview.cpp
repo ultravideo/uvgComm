@@ -62,7 +62,11 @@ void ConferenceView::addWidgetToLayout(CallState state, QWidget* widget, QString
   }
 
   layoutMutex_.lock();
-  layout_->addWidget(widget, row, column);
+
+  if(widget != NULL)
+  {
+    layout_->addWidget(widget, row, column);
+  }
 
   while(activeCalls_.size() < sessionID)
   {
@@ -99,7 +103,6 @@ void ConferenceView::incomingCall(uint32_t sessionID, QString name)
 
 void ConferenceView::attachCallingWidget(QWidget* holder, QString text)
 {
-
   Ui::CallerWidget *calling = new Ui::CallerWidget;
 
   calling->setupUi(holder);
@@ -114,7 +117,10 @@ void ConferenceView::attachCallingWidget(QWidget* holder, QString text)
 void ConferenceView::attachWidget(uint32_t sessionID, QWidget* view)
 {
   layoutMutex_.lock();
-  layout_->removeItem(activeCalls_[sessionID - 1]->item);
+  if(activeCalls_[sessionID - 1]->item)
+  {
+    layout_->removeItem(activeCalls_[sessionID - 1]->item);
+  }
   layout_->addWidget(view, activeCalls_[sessionID - 1]->row, activeCalls_[sessionID - 1]->column);
   activeCalls_[sessionID - 1]->item = layout_->itemAtPosition(activeCalls_[sessionID - 1]->row,
                                                        activeCalls_[sessionID - 1]->column);
@@ -129,13 +135,13 @@ void ConferenceView::addVideoStream(uint32_t sessionID, std::shared_ptr<Videovie
 
   if(activeCalls_.size() < sessionID || activeCalls_.at(sessionID - 1) == NULL)
   {
-    qWarning() << "WARNING: Adding a videostream without previous.";
-    return;
+    qDebug() << "Did not find asking widget. Assuming auto-accept and adding widget";
+    addWidgetToLayout(CALL_ACTIVE, NULL, "Auto-Accept", sessionID);
   }
   else if(activeCalls_[sessionID - 1]->state != ASKINGUSER
           && activeCalls_[sessionID - 1]->state != WAITINGPEER)
   {
-    qWarning() << "WARNING: activating stream without previous state set";
+    qWarning() << "WARNING: activating stream with wrong state";
     return;
   }
 
@@ -144,7 +150,11 @@ void ConferenceView::addVideoStream(uint32_t sessionID, std::shared_ptr<Videovie
 
   // TODO delete previous widget now instead of with parent.
   // Now they accumulate in memory until call has ended
-  delete activeCalls_[sessionID - 1]->item->widget();
+  if(activeCalls_[sessionID - 1]->item != NULL
+     && activeCalls_[sessionID - 1]->item->widget() != NULL)
+  {
+    delete activeCalls_[sessionID - 1]->item->widget();
+  }
 
   attachWidget(sessionID, view);
 

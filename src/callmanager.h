@@ -26,7 +26,7 @@ public:
   virtual void chatWithParticipant(QString name, QString username, QString ip);
 
   // Call Control Interface userd by SIP
-  virtual void incomingCall(uint32_t sessionID, QString caller);
+  virtual bool incomingCall(uint32_t sessionID, QString caller);
   virtual void callRinging(uint32_t sessionID);
   virtual void callRejected(uint32_t sessionID);
   virtual void callNegotiated(uint32_t sessionID);

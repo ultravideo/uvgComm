@@ -43,8 +43,11 @@ void SIPServerTransaction::processRequest(SIPRequest &request)
   {
   case INVITE:
   {
-    transactionUser_->incomingCall(sessionID_, request.message->from.realname);
-    responseSender(SIP_RINGING, false);
+    if(!transactionUser_->incomingCall(sessionID_, request.message->from.realname))
+    {
+      // if we did not auto-accept
+      responseSender(SIP_RINGING, false);
+    }
     break;
   }
   case ACK:
