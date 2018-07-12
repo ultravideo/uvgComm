@@ -5,9 +5,8 @@
 // this annoys me, but I can live with it. The only smart way to fix it would be to get signal connect working
 #include "conferenceview.h"
 
+#include <QSettings>
 #include <QDebug>
-
-const bool OPENGL_ENABLED = true;
 
 VideoviewFactory::VideoviewFactory():
   widgets_(),
@@ -16,7 +15,13 @@ VideoviewFactory::VideoviewFactory():
 
 void VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent, ConferenceView* conf)
 {
-  if(OPENGL_ENABLED)
+  qDebug() << "Creating videowidget for sessionID:" << sessionID;
+
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+
+  int opengl = settings.value("video/opengl").toInt();
+
+  if(opengl == 1)
   {
     VideoGLWidget* vw = new VideoGLWidget(parent, sessionID);
     widgets_[sessionID] = vw;

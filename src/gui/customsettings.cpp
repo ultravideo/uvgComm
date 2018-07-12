@@ -140,6 +140,10 @@ void CustomSettings::saveAdvancedSettings()
   settings_.setValue("video/QP",               QString::number(advancedUI_->qp->value()));
   settings_.setValue("video/Preset",           advancedUI_->preset->currentText());
 
+  saveCheckBox("video/opengl",                 advancedUI_->opengl);
+
+  settings_.setValue("audio/Channels",         QString::number(advancedUI_->channels->value()));
+
   saveCameraCapabilities(settings_.value("video/DeviceID").toInt());
   //settings.sync(); // TODO is this needed?
 }
@@ -208,11 +212,16 @@ void CustomSettings::restoreAdvancedSettings()
     int resolutionID = settings_.value("video/ResolutionID").toInt();
     advancedUI_->resolution->setCurrentIndex(resolutionID);
 
+    restoreCheckBox("video/opengl", advancedUI_->opengl);
+
   }
   else
   {
     resetSettings(currentDevice_);
   }
+
+  // TODO: check audio settings
+  advancedUI_->channels->setValue(settings_.value("audio/Channels").toInt());
 }
 
 void CustomSettings::restoreCheckBox(const QString settingValue, QCheckBox* box)
