@@ -22,7 +22,7 @@ public:
                      QSize& resolution, double& framerate, QString &formatText);
 
   // used by dshow camera to determine the index of capability
-  int formatToCapability(uint16_t device, uint16_t formatIndex, uint16_t resolutionIndex);
+  int formatToCapability(uint16_t device, int formatIndex, uint16_t resolutionIndex);
 
 private:
 

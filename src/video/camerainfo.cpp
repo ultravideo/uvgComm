@@ -88,7 +88,7 @@ void CameraInfo::getCapability(int deviceIndex, int format, uint16_t resolutionI
 }
 
 // used by dshow camera to determine the index of capability
-int CameraInfo::formatToCapability(uint16_t device, uint16_t formatIndex, uint16_t resolutionIndex)
+int CameraInfo::formatToCapability(uint16_t device, int formatIndex, uint16_t resolutionIndex)
 {
   QStringList formats;
   QList<QStringList> resolutions;
@@ -109,7 +109,7 @@ int CameraInfo::formatToCapability(uint16_t device, uint16_t formatIndex, uint16
   int currentIndex = 0;
 
   // add all other resolutions to form currentindex
-  for(unsigned int i = 0; i < formatIndex; ++i)
+  for(unsigned int i = 0; i < formatIndex && i < resolutions.size(); ++i)
   {
     currentIndex += resolutions.at(i).size();
   }
