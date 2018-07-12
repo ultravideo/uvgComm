@@ -6,12 +6,14 @@ class YUVtoRGB32 : public Filter
 public:
   YUVtoRGB32(QString id, StatisticsInterface* stats, uint32_t peer);
 
+  virtual void updateSettings();
+
 protected:
   void process();
 
 private:
   bool sse_;
   bool avx2_;
-  bool avx2SingleThread_;
+  int threadCount_;
 };
 

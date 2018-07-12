@@ -24,7 +24,13 @@ Filter::~Filter()
 }
 
 void Filter::updateSettings()
-{}
+{
+  // use the following in inherited code. This way the config doesn't go to registry.
+  // QSettings settings("kvazzup.ini", QSettings::IniFormat);
+
+  // get value with
+  //int value = settings.value("valuename").toInt();
+}
 
 bool Filter::init()
 {

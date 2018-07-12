@@ -2,6 +2,7 @@
 
 #include "optimized/yuv2rgb.h"
 
+#include <QSettings>
 #include <QDebug>
 
 #include <algorithm>    // std::min and std:max
@@ -19,8 +20,16 @@ YUVtoRGB32::YUVtoRGB32(QString id, StatisticsInterface *stats, uint32_t peer) :
   Filter(id, "YUVtoRGB32_" + QString::number(peer), stats, YUVVIDEO, RGB32VIDEO),
   sse_(true),
   avx2_(true),
-  avx2SingleThread_(false)
-{}
+  threadCount_(0)
+{
+  updateSettings();
+}
+
+void YUVtoRGB32::updateSettings()
+{
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+  threadCount_ = settings.value("video/yuvThreads").toInt();
+}
 
 // also flips input
 void YUVtoRGB32::process()
@@ -31,13 +40,14 @@ void YUVtoRGB32::process()
   {
     uint32_t finalDataSize = input->width*input->height*4;
     std::unique_ptr<uchar[]> rgb32_frame(new uchar[finalDataSize]);
-    if(avx2SingleThread_ && input->width % 16 == 0)
+
+    if(threadCount_ == 1 && input->width % 16 == 0)
     {
       yuv2rgb_i_avx2_single(input->data.get(), rgb32_frame.get(), input->width, input->height);
     }
-    if(avx2_ && input->width % 16 == 0)
+    else if(avx2_ && input->width % 16 == 0)
     {
-      yuv2rgb_i_avx2(input->data.get(), rgb32_frame.get(), input->width, input->height);
+      yuv2rgb_i_avx2(input->data.get(), rgb32_frame.get(), input->width, input->height, threadCount_);
     }
     else if(sse_ && input->width % 16 == 0)
     {

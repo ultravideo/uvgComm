@@ -68,7 +68,7 @@ bool KvazaarFilter::init()
 
   config_->width = settings.value("video/ResolutionWidth").toInt();
   config_->height = settings.value("video/ResolutionHeight").toInt();
-  config_->threads = settings.value("video/Threads").toInt();
+  config_->threads = settings.value("video/kvzThreads").toInt();
   config_->qp = settings.value("video/QP").toInt();
   config_->wpp = settings.value("video/WPP").toInt();
   config_->vps_period = settings.value("video/VPS").toInt();
