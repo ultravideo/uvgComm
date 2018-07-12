@@ -14,17 +14,17 @@
    <string>Advanced Settings</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <item row="2" column="1">
-    <widget class="QPushButton" name="custom_ok">
-     <property name="text">
-      <string>Save</string>
-     </property>
-    </widget>
-   </item>
    <item row="2" column="2">
     <widget class="QPushButton" name="custom_cancel">
      <property name="text">
       <string>Cancel</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="1">
+    <widget class="QPushButton" name="custom_ok">
+     <property name="text">
+      <string>Save</string>
      </property>
     </widget>
    </item>
@@ -51,80 +51,17 @@
        <string>Video</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_3">
-       <item row="6" column="0" colspan="2">
-        <spacer name="verticalSpacer_3">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>40</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="2" column="0" colspan="2">
-        <widget class="QLabel" name="format_label">
+       <item row="9" column="0">
+        <widget class="QLabel" name="ConversionLabel">
          <property name="text">
-          <string>Format</string>
+          <string>Threads for conversion</string>
          </property>
         </widget>
        </item>
-       <item row="7" column="0">
-        <widget class="QLabel" name="Processing">
-         <property name="font">
-          <font>
-           <pointsize>14</pointsize>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
-         </property>
+       <item row="10" column="1">
+        <widget class="QCheckBox" name="opengl">
          <property name="text">
-          <string>Processing</string>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="0" colspan="2">
-        <widget class="QLabel" name="ResolutionLabel">
-         <property name="text">
-          <string>Camera Resolution:</string>
-         </property>
-        </widget>
-       </item>
-       <item row="11" column="0" colspan="2">
-        <spacer name="verticalSpacer_2">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>40</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="9" column="1">
-        <widget class="QSlider" name="ConversionSlider">
-         <property name="maximum">
-          <number>16</number>
-         </property>
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="tickPosition">
-          <enum>QSlider::TicksBelow</enum>
-         </property>
-         <property name="tickInterval">
-          <number>1</number>
-         </property>
-        </widget>
-       </item>
-       <item row="10" column="0">
-        <widget class="QLabel" name="OpenGLLabel">
-         <property name="text">
-          <string>Draw using OpenGL</string>
+          <string/>
          </property>
         </widget>
        </item>
@@ -142,21 +79,55 @@
          </property>
         </widget>
        </item>
-       <item row="9" column="0">
-        <widget class="QLabel" name="ConversionThreads">
+       <item row="10" column="0">
+        <widget class="QLabel" name="OpenGLLabel">
          <property name="text">
-          <string>Threads for conversion</string>
+          <string>Use OpenGL for views</string>
          </property>
         </widget>
        </item>
-       <item row="10" column="1">
-        <widget class="QCheckBox" name="opengl">
+       <item row="9" column="1">
+        <widget class="QLineEdit" name="yuv_threads">
+         <property name="maximumSize">
+          <size>
+           <width>48</width>
+           <height>16777215</height>
+          </size>
+         </property>
          <property name="text">
-          <string/>
+          <string>0</string>
          </property>
         </widget>
        </item>
-       <item row="3" column="0">
+       <item row="6" column="0">
+        <widget class="QLabel" name="Processing">
+         <property name="font">
+          <font>
+           <pointsize>14</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Processing</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0" colspan="2">
+        <widget class="QLabel" name="ResolutionLabel">
+         <property name="text">
+          <string>Camera Resolution</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="format_label">
+         <property name="text">
+          <string>Format</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
         <widget class="QComboBox" name="format_box">
          <property name="maximumSize">
           <size>
@@ -173,14 +144,27 @@
          </property>
         </widget>
        </item>
-       <item row="8" column="0" colspan="2">
+       <item row="7" column="0" colspan="2">
         <widget class="Line" name="line_2">
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
          </property>
         </widget>
        </item>
-       <item row="5" column="0">
+       <item row="11" column="0" colspan="2">
+        <spacer name="verticalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="6" column="1">
         <widget class="QComboBox" name="resolution">
          <property name="minimumSize">
           <size>
@@ -203,6 +187,80 @@
        <string>HEVC</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_2">
+       <item row="4" column="1">
+        <widget class="QSpinBox" name="qp">
+         <property name="maximumSize">
+          <size>
+           <width>64</width>
+           <height>24</height>
+          </size>
+         </property>
+         <property name="toolTip">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Quantization parameter&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+         <property name="maximum">
+          <number>51</number>
+         </property>
+         <property name="value">
+          <number>27</number>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="1">
+        <widget class="QLineEdit" name="intra">
+         <property name="maximumSize">
+          <size>
+           <width>48</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>64</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QLineEdit" name="kvz_threads">
+         <property name="maximumSize">
+          <size>
+           <width>48</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>4</string>
+         </property>
+         <property name="maxLength">
+          <number>4</number>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
+        <widget class="QCheckBox" name="wpp">
+         <property name="toolTip">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Wavefront Parallel Processing&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+         <property name="tristate">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="1">
+        <widget class="QCheckBox" name="slices">
+         <property name="text">
+          <string/>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
        <item row="5" column="0">
         <widget class="QLabel" name="WPP">
          <property name="text">
@@ -217,45 +275,65 @@
          </property>
         </widget>
        </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="Kvazaar">
+         <property name="font">
+          <font>
+           <pointsize>14</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Kvazaar Parameters</string>
+         </property>
+        </widget>
+       </item>
        <item row="3" column="0">
-        <widget class="QLabel" name="kvz_threads">
+        <widget class="QLabel" name="kvz_threads_label">
          <property name="text">
           <string>Threads</string>
          </property>
         </widget>
        </item>
-       <item row="6" column="1">
-        <widget class="QLineEdit" name="vps">
-         <property name="maximumSize">
+       <item row="12" column="0" colspan="2">
+        <spacer name="verticalSpacer_5">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
           <size>
-           <width>24</width>
-           <height>16777215</height>
+           <width>20</width>
+           <height>40</height>
           </size>
          </property>
+        </spacer>
+       </item>
+       <item row="7" column="0">
+        <widget class="QLabel" name="Intra">
          <property name="text">
-          <string>1</string>
+          <string>Intra period</string>
          </property>
         </widget>
        </item>
-       <item row="12" column="1">
-        <widget class="QLineEdit" name="openhevc_threads">
-         <property name="minimumSize">
-          <size>
-           <width>48</width>
-           <height>0</height>
-          </size>
+       <item row="2" column="0">
+        <widget class="QLabel" name="Preset">
+         <property name="text">
+          <string>preset</string>
          </property>
-         <property name="maximumSize">
-          <size>
-           <width>48</width>
-           <height>16777215</height>
-          </size>
+        </widget>
+       </item>
+       <item row="9" column="0">
+        <widget class="QLabel" name="OpenHEVC">
+         <property name="font">
+          <font>
+           <pointsize>14</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
          </property>
          <property name="text">
-          <string>2</string>
-         </property>
-         <property name="maxLength">
-          <number>3</number>
+          <string>OpenHEVC Parameters</string>
          </property>
         </widget>
        </item>
@@ -331,6 +409,26 @@
          </item>
         </widget>
        </item>
+       <item row="6" column="1">
+        <widget class="QLineEdit" name="vps">
+         <property name="maximumSize">
+          <size>
+           <width>24</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>1</string>
+         </property>
+        </widget>
+       </item>
+       <item row="11" column="0">
+        <widget class="QLabel" name="label_2">
+         <property name="text">
+          <string>Threads</string>
+         </property>
+        </widget>
+       </item>
        <item row="8" column="0">
         <widget class="QLabel" name="slice_label">
          <property name="text">
@@ -338,164 +436,37 @@
          </property>
         </widget>
        </item>
-       <item row="10" column="0">
-        <widget class="QLabel" name="Kvazaar_2">
-         <property name="font">
-          <font>
-           <pointsize>14</pointsize>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
+       <item row="11" column="1">
+        <widget class="QLineEdit" name="openhevc_threads">
+         <property name="minimumSize">
+          <size>
+           <width>48</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>48</width>
+           <height>16777215</height>
+          </size>
          </property>
          <property name="text">
-          <string>OpenHEVC Parameters</string>
+          <string>2</string>
+         </property>
+         <property name="maxLength">
+          <number>3</number>
          </property>
         </widget>
        </item>
-       <item row="12" column="0">
-        <widget class="QLabel" name="label_2">
-         <property name="text">
-          <string>Threads</string>
-         </property>
-        </widget>
-       </item>
-       <item row="13" column="0" colspan="2">
-        <spacer name="verticalSpacer_5">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>40</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="9" column="0" colspan="2">
-        <spacer name="verticalSpacer">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>137</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="1" column="0" colspan="2">
-        <widget class="Line" name="line">
+       <item row="10" column="0" colspan="2">
+        <widget class="Line" name="line_4">
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
          </property>
         </widget>
        </item>
-       <item row="7" column="1">
-        <widget class="QLineEdit" name="intra">
-         <property name="maximumSize">
-          <size>
-           <width>48</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>64</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="Preset">
-         <property name="text">
-          <string>preset</string>
-         </property>
-        </widget>
-       </item>
-       <item row="7" column="0">
-        <widget class="QLabel" name="Intra">
-         <property name="text">
-          <string>Intra period</string>
-         </property>
-        </widget>
-       </item>
-       <item row="8" column="1">
-        <widget class="QCheckBox" name="slices">
-         <property name="text">
-          <string/>
-         </property>
-         <property name="checked">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="1">
-        <widget class="QCheckBox" name="wpp">
-         <property name="toolTip">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Wavefront Parallel Processing&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="checked">
-          <bool>true</bool>
-         </property>
-         <property name="tristate">
-          <bool>false</bool>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="0">
-        <widget class="QLabel" name="Kvazaar">
-         <property name="font">
-          <font>
-           <pointsize>14</pointsize>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
-         </property>
-         <property name="text">
-          <string>Kvazaar Parameters</string>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="1">
-        <widget class="QSpinBox" name="qp">
-         <property name="maximumSize">
-          <size>
-           <width>64</width>
-           <height>24</height>
-          </size>
-         </property>
-         <property name="toolTip">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Quantization parameter&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-         </property>
-         <property name="maximum">
-          <number>51</number>
-         </property>
-         <property name="value">
-          <number>27</number>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="1">
-        <widget class="QLineEdit" name="threads">
-         <property name="maximumSize">
-          <size>
-           <width>48</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>4</string>
-         </property>
-         <property name="maxLength">
-          <number>4</number>
-         </property>
-        </widget>
-       </item>
-       <item row="11" column="0" colspan="2">
-        <widget class="Line" name="line_4">
+       <item row="1" column="0" colspan="2">
+        <widget class="Line" name="line">
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
          </property>
@@ -529,18 +500,12 @@
          </property>
         </widget>
        </item>
-       <item row="3" column="0">
-        <spacer name="verticalSpacer_4">
+       <item row="1" column="0" colspan="2">
+        <widget class="Line" name="AudioLine">
          <property name="orientation">
-          <enum>Qt::Vertical</enum>
+          <enum>Qt::Horizontal</enum>
          </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>40</height>
-          </size>
-         </property>
-        </spacer>
+        </widget>
        </item>
        <item row="2" column="1">
         <widget class="QSpinBox" name="channels">
@@ -558,10 +523,23 @@
          </property>
         </widget>
        </item>
-       <item row="1" column="0" colspan="2">
-        <widget class="Line" name="AudioLine">
+       <item row="4" column="0">
+        <spacer name="verticalSpacer_4">
          <property name="orientation">
-          <enum>Qt::Horizontal</enum>
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="label">
+         <property name="text">
+          <string>NOT IMLEMENTED</string>
          </property>
         </widget>
        </item>
@@ -574,7 +552,7 @@
  <tabstops>
   <tabstop>Advanced</tabstop>
   <tabstop>preset</tabstop>
-  <tabstop>threads</tabstop>
+  <tabstop>kvz_threads</tabstop>
   <tabstop>qp</tabstop>
   <tabstop>wpp</tabstop>
   <tabstop>vps</tabstop>

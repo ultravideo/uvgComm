@@ -130,8 +130,9 @@ void CustomSettings::saveAdvancedSettings()
   qDebug() << "Saving advanced Settings";
 
   // Video settings
-  saveTextValue("video/Threads",               advancedUI_->threads->text());
+  saveTextValue("video/kvzThreads",            advancedUI_->kvz_threads->text());
   saveTextValue("video/OPENHEVC_threads",      advancedUI_->openhevc_threads->text());
+  saveTextValue("video/yuvThreads",            advancedUI_->yuv_threads->text());
   saveTextValue("video/VPS",                   advancedUI_->vps->text());
   saveTextValue("video/Intra",                 advancedUI_->intra->text());
   saveCheckBox("video/WPP",                    advancedUI_->wpp);
@@ -195,9 +196,11 @@ void CustomSettings::restoreAdvancedSettings()
     int index = advancedUI_->preset->findText(settings_.value("video/Preset").toString());
     if(index != -1)
       advancedUI_->preset->setCurrentIndex(index);
-    advancedUI_->threads->setText        (settings_.value("video/Threads").toString());
+    advancedUI_->kvz_threads->setText        (settings_.value("video/kvzThreads").toString());
     advancedUI_->qp->setValue            (settings_.value("video/QP").toInt());
     advancedUI_->openhevc_threads->setText        (settings_.value("video/OPENHEVC_threads").toString());
+
+    advancedUI_->yuv_threads->setText        (settings_.value("video/yuvThreads").toString());
 
     restoreCheckBox("video/WPP", advancedUI_->wpp);
 
@@ -286,5 +289,8 @@ bool CustomSettings::checkVideoSettings()
       && settings_.contains("video/WPP")
       && settings_.contains("video/Framerate")
       && settings_.contains("video/InputFormat")
-      && settings_.contains("video/Slices");
+      && settings_.contains("video/Slices")
+      && settings_.contains("video/kvzThreads")
+      && settings_.contains("video/yuvThreads")
+      && settings_.contains("video/OPENHEVC_Threads");
 }
