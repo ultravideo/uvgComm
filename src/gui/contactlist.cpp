@@ -19,7 +19,7 @@ void ContactList::initializeList(QListWidget* list, ParticipantInterface* interf
   connect(list, SIGNAL(customContextMenuRequested(QPoint)),
           this, SLOT(showContextMenu(QPoint)));
 
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+  QSettings settings("contacts.local", QSettings::IniFormat);
 
   int size = settings.beginReadArray("contacts");
   qDebug() << "Reading contact list with" << size << "contacts";
