@@ -142,6 +142,8 @@ void CustomSettings::saveAdvancedSettings()
   settings_.setValue("video/Preset",           advancedUI_->preset->currentText());
 
   saveCheckBox("video/opengl",                 advancedUI_->opengl);
+  saveCheckBox("video/flipViews",              advancedUI_->flip);
+  saveCheckBox("video/liveCopying",            advancedUI_->live555Copy);
 
   settings_.setValue("audio/Channels",         QString::number(advancedUI_->channels->value()));
 
@@ -216,6 +218,8 @@ void CustomSettings::restoreAdvancedSettings()
     advancedUI_->resolution->setCurrentIndex(resolutionID);
 
     restoreCheckBox("video/opengl", advancedUI_->opengl);
+    restoreCheckBox("video/flipViews", advancedUI_->flip);
+    restoreCheckBox("video/liveCopying", advancedUI_->live555Copy);
 
   }
   else

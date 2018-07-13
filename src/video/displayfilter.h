@@ -8,6 +8,9 @@ class DisplayFilter : public Filter
 public:
   DisplayFilter(QString id, StatisticsInterface* stats, VideoInterface *widget, uint32_t peer);
   ~DisplayFilter();
+
+  void updateSettings();
+
   void setProperties(bool mirrorHorizontal, bool mirrorVertical)
   {
     horizontalMirroring_ = mirrorHorizontal;
@@ -21,6 +24,7 @@ private:
 
   bool horizontalMirroring_;
   bool verticalMirroring_;
+  bool flipEnabled_;
 
   // Owned by Conference view
   VideoInterface* widget_;

@@ -62,7 +62,14 @@ void FramedSourceFilter::updateSettings()
 
      qDebug() << name_ << "updated buffersize to" << maxBufferSize_;
 
-
+     if(settings.value("video/liveCopying").isValid())
+     {
+       separateInput_ = (settings.value("video/liveCopying").toInt() == 1);
+     }
+     else
+     {
+       qDebug() << "ERROR: Missing settings value flip threads";
+     }
   }
 }
 

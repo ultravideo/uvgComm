@@ -6,6 +6,7 @@
 #include <QImage>
 #include <QtDebug>
 #include <QDateTime>
+#include <QSettings>
 
 DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
                              VideoInterface *widget, uint32_t peer):
@@ -16,10 +17,27 @@ DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
   peer_(peer)
 {
   widget_->setStats(stats);
+  updateSettings();
 }
 
 DisplayFilter::~DisplayFilter()
 {}
+
+void DisplayFilter::updateSettings()
+{
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+  if(settings.value("video/flipViews").isValid())
+  {
+    flipEnabled_ = (settings.value("video/flipViews").toInt() == 1);
+  }
+  else
+  {
+    qDebug() << "ERROR: Missing settings value flip threads";
+  }
+
+  Filter::updateSettings();
+}
+
 
 void DisplayFilter::process()
 {
@@ -50,7 +68,10 @@ void DisplayFilter::process()
             input->height,
             format);
 
-      image = image.mirrored(horizontalMirroring_, verticalMirroring_);
+      if(flipEnabled_)
+      {
+        image = image.mirrored(horizontalMirroring_, verticalMirroring_);
+      }
 
       int32_t delay = QDateTime::currentMSecsSinceEpoch() -
           (input->presentationTime.tv_sec * 1000 + input->presentationTime.tv_usec/1000);

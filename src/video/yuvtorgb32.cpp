@@ -28,20 +28,28 @@ YUVtoRGB32::YUVtoRGB32(QString id, StatisticsInterface *stats, uint32_t peer) :
 void YUVtoRGB32::updateSettings()
 {
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
-  threadCount_ = settings.value("video/yuvThreads").toInt();
-
-  qDebug() << "Settings for YUV to RGB32 threads:" << threadCount_;
-  if(threadCount_ > 0)
+  if(settings.value("video/yuvThreads").isValid())
   {
-    omp_set_dynamic(0);     // Explicitly disable dynamic teams
-    omp_set_num_threads(threadCount_);
+    threadCount_ = settings.value("video/yuvThreads").toInt();
+
+    qDebug() << "Settings for YUV to RGB32 threads:" << threadCount_;
+    if(threadCount_ > 0)
+    {
+      omp_set_dynamic(0);     // Explicitly disable dynamic teams
+      omp_set_num_threads(threadCount_);
+    }
+    else if(threadCount_ == 0)
+    {
+      omp_set_dynamic(1);
+      omp_set_num_threads(QThread::idealThreadCount());
+    }
   }
-  else if(threadCount_ == 0)
+  else
   {
-    omp_set_dynamic(1);
-    omp_set_num_threads(QThread::idealThreadCount());
+    qDebug() << "ERROR: Missing settings value YUV threads";
   }
 
+  Filter::updateSettings();
 }
 
 // also flips input
