@@ -44,12 +44,6 @@ void CallWindow::init(ParticipantInterface *partInt)
 
   viewFactory_->setSelfview(ui_->SelfView, ui_->SelfView);
 
-  // GUI updates are handled solely by timer
-  timer_->setInterval(200);
-  timer_->setSingleShot(false);
-  connect(timer_, SIGNAL(timeout()), statsWindow_, SLOT(update()));
-  timer_->start();
-
   setWindowTitle("Kvazzup");
 
   contacts_.initializeList(ui_->contactList, partInt_);
@@ -122,6 +116,12 @@ void CallWindow::initButton(QString iconPath, QSize size, QSize iconSize, QPushB
 StatisticsInterface* CallWindow::createStatsWindow()
 {
   statsWindow_ = new StatisticsWindow(this);
+
+  // Stats GUI updates are handled solely by timer
+  timer_->setInterval(200);
+  timer_->setSingleShot(false);
+  timer_->start();
+
   connect(timer_, SIGNAL(timeout()), statsWindow_, SLOT(update()));
   return statsWindow_;
 }
