@@ -127,7 +127,7 @@ int yuv2rgb_i_sse41(uint8_t* input, uint8_t* output, uint16_t width, uint16_t he
 // 32 bytes is enough for AVX2
 #define SIMD_ALIGNMENT 32
 
-int yuv2rgb_i_avx2(uint8_t* input, uint8_t* output, uint16_t width, uint16_t height)
+int yuv2rgb_i_avx2(uint8_t* input, uint8_t* output, uint16_t width, uint16_t height, uint8_t threads)
 {
   const int mini[8] = { 0,0,0,0,0,0,0,0 };
   const int middle[8] = { 128, 128, 128, 128,128, 128, 128, 128 };
@@ -146,6 +146,8 @@ int yuv2rgb_i_avx2(uint8_t* input, uint8_t* output, uint16_t width, uint16_t hei
   __m128i chroma_shufflemask_lo = _mm_set_epi8(-1, -1, -1, 1, -1, -1, -1, 1, -1, -1, -1, 0, -1, -1, -1, 0);
   __m128i chroma_shufflemask_hi = _mm_set_epi8(-1, -1, -1, 3, -1, -1, -1, 3, -1, -1, -1, 2, -1, -1, -1, 2);
 
+  // It seems the number of threads needs to be adjusted just before calling omp parrallel
+  omp_set_num_threads(threads);
   #pragma omp parallel for
   for (uint32_t i = 0; i < width*height; i += 16) {
     uint8_t *out = output + 4*i;

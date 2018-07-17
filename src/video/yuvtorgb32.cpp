@@ -33,16 +33,6 @@ void YUVtoRGB32::updateSettings()
     threadCount_ = settings.value("video/yuvThreads").toInt();
 
     qDebug() << "Settings for YUV to RGB32 threads:" << threadCount_;
-    if(threadCount_ > 0)
-    {
-      omp_set_dynamic(0);     // Explicitly disable dynamic teams
-      omp_set_num_threads(threadCount_);
-    }
-    else if(threadCount_ == 0)
-    {
-      omp_set_dynamic(1);
-      omp_set_num_threads(QThread::idealThreadCount());
-    }
   }
   else
   {
@@ -68,7 +58,7 @@ void YUVtoRGB32::process()
     }
     else if(avx2_ && input->width % 16 == 0)
     {
-      yuv2rgb_i_avx2(input->data.get(), rgb32_frame.get(), input->width, input->height);
+      yuv2rgb_i_avx2(input->data.get(), rgb32_frame.get(), input->width, input->height, threadCount_);
     }
     else if(sse_ && input->width % 16 == 0)
     {
