@@ -20,7 +20,7 @@ greaterThan(QT_MINOR_VERSION, 4)
 
 TARGET = Kvazzup
 
-win32-g++:   TEMPLATE = app
+win32-g++:  TEMPLATE = app
 win32-msvc: TEMPLATE = vcapp
 
 
@@ -166,7 +166,7 @@ QT+=svg # for icons
 QT += opengl
 
 #win32-g++: QMAKE_CXXFLAGS += -std=c++11 -fopenmp
-win32: QMAKE_CXXFLAGS += -msse4.1 -mavx2
+win32: QMAKE_CXXFLAGS += -msse4.1 -mavx2 -fopenmp
 
 # may need a rebuild
 #CONFIG += console
