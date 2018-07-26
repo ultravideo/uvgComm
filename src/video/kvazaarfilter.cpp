@@ -3,6 +3,7 @@
 #include "statisticsinterface.h"
 
 #include <kvazaar.h>
+#include <common.h>
 
 #include <QSettings>
 #include <QtDebug>
@@ -20,7 +21,7 @@ KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats):
   input_pic_(NULL),
   framerate_num_(30),
   framerate_denom_(1),
-  encodingPresentationTimes_()
+  encodingFrames_()
 {
   maxBufferSize_ = 3;
 }
@@ -182,7 +183,7 @@ void KvazaarFilter::process()
     input_pic_->pts = pts_;
     ++pts_;
 
-    encodingPresentationTimes_.push_front(input->presentationTime);
+    encodingFrames_.push_front(std::move(input));
 
     api_->encoder_encode(enc_, input_pic_,
                          &data_out, &len_out,
@@ -190,50 +191,69 @@ void KvazaarFilter::process()
                          &frame_info );
 
     // TODO: decrease latency by polling at least once more.
-
+/*
+    while(data_out == nullptr && encodingPresentationTimes_.size() != 0)
+    {
+      qSleep(3);
+      api_->encoder_encode(enc_, nullptr,
+                           &data_out, &len_out,
+                           &recon_pic, nullptr,
+                           &frame_info );
+    }
+*/
     if(data_out != NULL)
     {
-      timeval encodedTime = encodingPresentationTimes_.back();
-      encodingPresentationTimes_.pop_back();
-
-      uint32_t delay = QDateTime::currentMSecsSinceEpoch() -
-          (encodedTime.tv_sec * 1000 + encodedTime.tv_usec/1000);
-      stats_->sendDelay("video", delay);
-      stats_->addEncodedPacket("video", len_out);
-
-      std::unique_ptr<uchar[]> hevc_frame(new uchar[len_out]);
-      uint8_t* writer = hevc_frame.get();
-      uint32_t dataWritten = 0;
-
-      for (kvz_data_chunk *chunk = data_out; chunk != NULL; chunk = chunk->next)
-      {
-        if(chunk->data[0] == 0 && chunk->data[1] == 0  &&( chunk->data[2] == 1 || (chunk->data[2] == 0 && chunk->data[3] == 1 ))
-           && dataWritten != 0 && config_->slices != KVZ_SLICES_NONE)
-        {
-          // send previous packet if this is not the first
-
-          // TODO: put delayes into deque, and set timestamp accordingly to get more accurate latency.
-          std::unique_ptr<Data> slice(shallowDataCopy(input.get()));
-
-          sendEncodedFrame(std::move(slice), std::move(hevc_frame), dataWritten);
-
-          hevc_frame = std::unique_ptr<uchar[]>(new uchar[len_out - dataWritten]);
-          writer = hevc_frame.get();
-          dataWritten = 0;
-        }
-
-        memcpy(writer, chunk->data, chunk->len);
-        writer += chunk->len;
-        dataWritten += chunk->len;
-      }
-      api_->chunk_free(data_out);
-      api_->picture_free(recon_pic);
-
-      // send last packet reusing input structure
-      sendEncodedFrame(std::move(input), std::move(hevc_frame), dataWritten);
+      parseEncodedFrame(data_out, len_out, recon_pic);
     }
     input = getInput();
   }
+}
+
+void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
+{
+
+}
+
+void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out, uint32_t len_out, kvz_picture *recon_pic)
+{
+  std::unique_ptr<Data> encodedFrame = std::move(encodingFrames_.back());
+  encodingFrames_.pop_back();
+
+  uint32_t delay = QDateTime::currentMSecsSinceEpoch() -
+      (encodedFrame->presentationTime.tv_sec * 1000 + encodedFrame->presentationTime.tv_usec/1000);
+  stats_->sendDelay("video", delay);
+  stats_->addEncodedPacket("video", len_out);
+
+  std::unique_ptr<uchar[]> hevc_frame(new uchar[len_out]);
+  uint8_t* writer = hevc_frame.get();
+  uint32_t dataWritten = 0;
+
+  for (kvz_data_chunk *chunk = data_out; chunk != NULL; chunk = chunk->next)
+  {
+    if(chunk->data[0] == 0 && chunk->data[1] == 0  &&( chunk->data[2] == 1 || (chunk->data[2] == 0 && chunk->data[3] == 1 ))
+       && dataWritten != 0 && config_->slices != KVZ_SLICES_NONE)
+    {
+      // send previous packet if this is not the first
+
+      // TODO: put delayes into deque, and set timestamp accordingly to get more accurate latency.
+      std::unique_ptr<Data> slice(shallowDataCopy(encodedFrame.get()));
+
+      sendEncodedFrame(std::move(slice), std::move(hevc_frame), dataWritten);
+
+      hevc_frame = std::unique_ptr<uchar[]>(new uchar[len_out - dataWritten]);
+      writer = hevc_frame.get();
+      dataWritten = 0;
+    }
+
+    memcpy(writer, chunk->data, chunk->len);
+    writer += chunk->len;
+    dataWritten += chunk->len;
+  }
+  api_->chunk_free(data_out);
+  api_->picture_free(recon_pic);
+
+  // send last packet reusing input structure
+  sendEncodedFrame(std::move(encodedFrame), std::move(hevc_frame), dataWritten);
 }
 
 void KvazaarFilter::sendEncodedFrame(std::unique_ptr<Data> input, std::unique_ptr<uchar[]> hevc_frame,
