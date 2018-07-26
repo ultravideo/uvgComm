@@ -186,6 +186,8 @@ void KvazaarFilter::process()
                          &recon_pic, NULL,
                          &frame_info );
 
+    // TODO: decrease latency by polling at least once more.
+
     if(data_out != NULL)
     {
       uint32_t delay = QDateTime::currentMSecsSinceEpoch() -
@@ -199,7 +201,8 @@ void KvazaarFilter::process()
 
       for (kvz_data_chunk *chunk = data_out; chunk != NULL; chunk = chunk->next)
       {
-        if(chunk->first_chunk_in_slice && dataWritten != 0 && config_->slices != KVZ_SLICES_NONE)
+        if(chunk->data[0] == 0 && chunk->data[1] == 0  &&( chunk->data[2] == 1 || (chunk->data[2] == 0 && chunk->data[3] == 1 ))
+           && dataWritten != 0 && config_->slices != KVZ_SLICES_NONE)
         {
           // send previous packet if this is not the first
 
