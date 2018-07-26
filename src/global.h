@@ -2,6 +2,8 @@
 
 // A place for program defines and constants. See common.h for common functions.
 
+#include <QString>
+
 const QString APPLICATIONNAME = "Kvazzup";
 
 // TODO fix AEC bugs and faulty operating.

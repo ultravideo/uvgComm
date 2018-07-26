@@ -42,6 +42,7 @@ public:
     });
   }
 
+  // TODO: Returns empty if we are not connected to anything.
   QHostAddress localAddress()
   {
     Q_ASSERT(connected_);

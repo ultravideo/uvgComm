@@ -76,6 +76,8 @@ void RTPSinkFilter::afterGettingFrame(unsigned frameSize,
   received_picture->presentationTime = presentationTime;
   received_picture->source = REMOTE;
 
+  // TODO: This copying should be done in separate thread as in
+  // framedsource if we want to receive 4K with less powerful thread (like in Xeon)
   if(addStartCodes_ && type_ == HEVCVIDEO)
   {
     memcpy(received_picture->data.get() + 4, fReceiveBuffer, received_picture->data_size - 4);

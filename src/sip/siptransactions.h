@@ -40,6 +40,7 @@ class SIPTransactions : public QObject
 public:
   SIPTransactions();
 
+  // TODO: this hangs sometimes for a long time
   void init(SIPTransactionUser* callControl);
   void uninit();
 
