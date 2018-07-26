@@ -88,6 +88,8 @@ void VideoWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image)
 
       setUpdatesEnabled(true);
       // TODO: There is a possibility of image freezing
+
+      stats_->packetDropped("view" + QString::number(sessionID_));
     }
   }
 
