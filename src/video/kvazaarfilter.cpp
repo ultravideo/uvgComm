@@ -19,7 +19,8 @@ KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats):
   pts_(0),
   input_pic_(NULL),
   framerate_num_(30),
-  framerate_denom_(1)
+  framerate_denom_(1),
+  encodingPresentationTimes_()
 {
   maxBufferSize_ = 3;
 }
@@ -181,6 +182,8 @@ void KvazaarFilter::process()
     input_pic_->pts = pts_;
     ++pts_;
 
+    encodingPresentationTimes_.push_front(input->presentationTime);
+
     api_->encoder_encode(enc_, input_pic_,
                          &data_out, &len_out,
                          &recon_pic, NULL,
@@ -190,8 +193,11 @@ void KvazaarFilter::process()
 
     if(data_out != NULL)
     {
+      timeval encodedTime = encodingPresentationTimes_.back();
+      encodingPresentationTimes_.pop_back();
+
       uint32_t delay = QDateTime::currentMSecsSinceEpoch() -
-          (input->presentationTime.tv_sec * 1000 + input->presentationTime.tv_usec/1000);
+          (encodedTime.tv_sec * 1000 + encodedTime.tv_usec/1000);
       stats_->sendDelay("video", delay);
       stats_->addEncodedPacket("video", len_out);
 

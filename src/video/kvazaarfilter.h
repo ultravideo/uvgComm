@@ -38,4 +38,6 @@ private:
 
   int32_t framerate_num_;
   int32_t framerate_denom_;
+
+  std::deque<timeval> encodingPresentationTimes_;
 };
