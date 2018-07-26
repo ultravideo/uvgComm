@@ -138,58 +138,16 @@ void KvazaarFilter::process()
   Q_ASSERT(config_);
 
   std::unique_ptr<Data> input = getInput();
+
   while(input)
   {
-    kvz_picture *recon_pic = NULL;
-    kvz_frame_info frame_info;
-    kvz_data_chunk *data_out = NULL;
-    uint32_t len_out = 0;
-
-    if(config_->width != input->width
-       || config_->height != input->height
-       || config_->framerate_num != input->framerate)
-    {
-      // This should not happen.
-      qDebug() << name_ << "WARNING: Input resolution differs:"
-               << config_->width << "x" << config_->height << "input:"
-               << input->width << "x" << input->height;
-
-      qDebug() << name_ << "Framerates:" << config_->framerate_num << "input:" << input->framerate;
-
-      QSettings settings("kvazzup.ini", QSettings::IniFormat);
-      settings.setValue("video/ResolutionWidth", input->width);
-      settings.setValue("video/ResolutionHeight", input->height);
-      settings.setValue("video/Framerate", input->framerate);
-      updateSettings();
-    }
-
     if(!input_pic_)
     {
       qCritical() << name_ << "input picture was not allocated correctly";
       break;
     }
 
-    // copy input to kvazaar picture
-    memcpy(input_pic_->y,
-           input->data.get(),
-           input->width*input->height);
-    memcpy(input_pic_->u,
-           &(input->data.get()[input->width*input->height]),
-           input->width*input->height/4);
-    memcpy(input_pic_->v,
-           &(input->data.get()[input->width*input->height + input->width*input->height/4]),
-           input->width*input->height/4);
-
-    input_pic_->pts = pts_;
-    ++pts_;
-
-    encodingFrames_.push_front(std::move(input));
-
-    api_->encoder_encode(enc_, input_pic_,
-                         &data_out, &len_out,
-                         &recon_pic, NULL,
-                         &frame_info );
-
+    feedInput(std::move(input));
     // TODO: decrease latency by polling at least once more.
 /*
     while(data_out == nullptr && encodingPresentationTimes_.size() != 0)
@@ -201,17 +159,61 @@ void KvazaarFilter::process()
                            &frame_info );
     }
 */
-    if(data_out != NULL)
-    {
-      parseEncodedFrame(data_out, len_out, recon_pic);
-    }
+
     input = getInput();
   }
 }
 
 void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
 {
+  kvz_picture *recon_pic = nullptr;
+  kvz_frame_info frame_info;
+  kvz_data_chunk *data_out = nullptr;
+  uint32_t len_out = 0;
 
+  if(config_->width != input->width
+     || config_->height != input->height
+     || config_->framerate_num != input->framerate)
+  {
+    // This should not happen.
+    qDebug() << name_ << "WARNING: Input resolution differs:"
+             << config_->width << "x" << config_->height << "input:"
+             << input->width << "x" << input->height;
+
+    qDebug() << name_ << "Framerates:" << config_->framerate_num << "input:" << input->framerate;
+
+    QSettings settings("kvazzup.ini", QSettings::IniFormat);
+    settings.setValue("video/ResolutionWidth", input->width);
+    settings.setValue("video/ResolutionHeight", input->height);
+    settings.setValue("video/Framerate", input->framerate);
+    updateSettings();
+  }
+
+  // copy input to kvazaar picture
+  memcpy(input_pic_->y,
+         input->data.get(),
+         input->width*input->height);
+  memcpy(input_pic_->u,
+         &(input->data.get()[input->width*input->height]),
+         input->width*input->height/4);
+  memcpy(input_pic_->v,
+         &(input->data.get()[input->width*input->height + input->width*input->height/4]),
+         input->width*input->height/4);
+
+  input_pic_->pts = pts_;
+  ++pts_;
+
+  encodingFrames_.push_front(std::move(input));
+
+  api_->encoder_encode(enc_, input_pic_,
+                       &data_out, &len_out,
+                       &recon_pic, nullptr,
+                       &frame_info );
+
+  if(data_out != nullptr)
+  {
+    parseEncodedFrame(data_out, len_out, recon_pic);
+  }
 }
 
 void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out, uint32_t len_out, kvz_picture *recon_pic)
