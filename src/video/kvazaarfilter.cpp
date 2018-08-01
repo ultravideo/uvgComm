@@ -232,7 +232,8 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out, uint32_t len_out
 
   for (kvz_data_chunk *chunk = data_out; chunk != NULL; chunk = chunk->next)
   {
-    if(chunk->data[0] == 0 && chunk->data[1] == 0  &&( chunk->data[2] == 1 || (chunk->data[2] == 0 && chunk->data[3] == 1 ))
+    if(chunk->len > 3 &&
+       chunk->data[0] == 0 && chunk->data[1] == 0  &&( chunk->data[2] == 1 || (chunk->data[2] == 0 && chunk->data[3] == 1 ))
        && dataWritten != 0 && config_->slices != KVZ_SLICES_NONE)
     {
       // send previous packet if this is not the first
