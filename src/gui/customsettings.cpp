@@ -76,9 +76,12 @@ void CustomSettings::initializeResolutions(int index)
   QList<QStringList> resolutions;
   cam_->getVideoCapabilities(currentDevice_, formats, resolutions);
 
-  for(int i = 0; i < resolutions.at(index).size(); ++i)
+  if(!resolutions.empty())
   {
-    advancedUI_->resolution->addItem(resolutions.at(index).at(i));
+    for(int i = 0; i < resolutions.at(index).size(); ++i)
+    {
+      advancedUI_->resolution->addItem(resolutions.at(index).at(i));
+    }
   }
 
   int resolutionID = settings_.value("video/ResolutionID").toInt();
