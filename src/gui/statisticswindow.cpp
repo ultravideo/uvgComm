@@ -14,9 +14,9 @@ StatisticsInterface(),
 ui_(new Ui::StatisticsWindow),
   framerate_(0),
   videoIndex_(0), // ringbuffer index
-  videoPackets_(BUFFERSIZE,0), // ringbuffer
+  videoPackets_(BUFFERSIZE,nullptr), // ringbuffer
   audioIndex_(0), // ringbuffer index
-  audioPackets_(BUFFERSIZE,0), // ringbuffer
+  audioPackets_(BUFFERSIZE,nullptr), // ringbuffer
   sendPacketCount_(0),
   transferredData_(0),
   receivePacketCount_(0),

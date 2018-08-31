@@ -24,9 +24,9 @@ RTPStreamer::RTPStreamer():
   ttl_(255),
   sessionAddress_(),
   stopRTP_(0),
-  env_(NULL),
-  scheduler_(NULL),
-  stats_(NULL),
+  env_(nullptr),
+  scheduler_(nullptr),
+  stats_(nullptr),
   CNAME_()
 {
   // use unicast
@@ -128,7 +128,7 @@ void RTPStreamer::removeAllPeers()
 {
   for(unsigned int i = 0; i < peers_.size(); ++i)
   {
-    if(peers_.at(i) != 0)
+    if(peers_.at(i) != nullptr)
     {
       removePeer(i + 1); // The sessionID is + 1
     }
@@ -154,12 +154,12 @@ bool RTPStreamer::addPeer(in_addr ip, uint32_t sessionID)
     Peer* peer = new Peer;
 
     peer->ip = ip;
-    peer->videoSender = 0;
-    peer->videoReceiver = 0;
-    peer->audioSender = 0;
-    peer->audioReceiver = 0;
+    peer->videoSender = nullptr;
+    peer->videoReceiver = nullptr;
+    peer->audioSender = nullptr;
+    peer->audioReceiver = nullptr;
 
-    if(peers_.size() >= sessionID && peers_.at(sessionID - 1) == NULL)
+    if(peers_.size() >= sessionID && peers_.at(sessionID - 1) == nullptr)
     {
       peers_[sessionID - 1] = peer;
     }
@@ -167,7 +167,7 @@ bool RTPStreamer::addPeer(in_addr ip, uint32_t sessionID)
     {
       while(peers_.size() < sessionID - 1)
       {
-        peers_.append(NULL);
+        peers_.append(nullptr);
       }
 
       peers_.push_back(peer);
@@ -188,7 +188,7 @@ bool RTPStreamer::addPeer(in_addr ip, uint32_t sessionID)
 void RTPStreamer::removePeer(uint32_t sessionID)
 {
   qDebug() << "Removing peer" << sessionID << "from RTPStreamer";
-  if(peers_.at(sessionID - 1) != 0)
+  if(peers_.at(sessionID - 1) != nullptr)
   {
     stop();
     while(isRunning_)
@@ -206,7 +206,7 @@ void RTPStreamer::removePeer(uint32_t sessionID)
       destroyReceiver(peers_.at(sessionID - 1)->videoReceiver);
 
     delete peers_.at(sessionID - 1);
-    peers_[sessionID - 1] = NULL;
+    peers_[sessionID - 1] = nullptr;
 
     // TODO: this may crash, because eventloop may start processing tasks on handletimout.
     qSleep(1);
@@ -216,7 +216,7 @@ void RTPStreamer::removePeer(uint32_t sessionID)
       qSleep(1);
     }
   }
-  else if(peers_.at(sessionID - 1) == 0)
+  else if(peers_.at(sessionID - 1) == nullptr)
   {
     qWarning() << "WARNING: Tried to destroy already freed peer:" << sessionID
                << peers_.at(sessionID - 1);
@@ -294,7 +294,7 @@ void RTPStreamer::destroyReceiver(Receiver* recv)
     if(recv->framedSource)
     {
       Medium::close(recv->framedSource);
-      recv->framedSource = NULL;
+      recv->framedSource = nullptr;
     }
 
     destroyConnection(recv->connection);
@@ -308,7 +308,7 @@ void RTPStreamer::destroyReceiver(Receiver* recv)
 bool RTPStreamer::checkSessionID(uint32_t sessionID)
 {
   return peers_.size() >= sessionID
-      && peers_.at(sessionID - 1) != NULL;
+      && peers_.at(sessionID - 1) != nullptr;
 }
 
 std::shared_ptr<Filter> RTPStreamer::addSendVideo(uint32_t peer, uint16_t port)
@@ -356,7 +356,7 @@ void RTPStreamer::removeSendVideo(uint32_t sessionID)
   if(peers_.at(sessionID - 1)->videoSender)
   {
     destroySender(peers_.at(sessionID - 1)->videoSender);
-    peers_.at(sessionID - 1)->videoSender = 0;
+    peers_.at(sessionID - 1)->videoSender = nullptr;
   }
   else
     qWarning() << "WARNING: Tried to remove send video that did not exist.";
@@ -366,7 +366,7 @@ void RTPStreamer::removeSendAudio(uint32_t sessionID)
   if(peers_.at(sessionID - 1)->audioSender)
   {
     destroySender(peers_.at(sessionID - 1)->audioSender);
-    peers_.at(sessionID - 1)->audioSender = 0;
+    peers_.at(sessionID - 1)->audioSender = nullptr;
   }
 
   else
@@ -378,7 +378,7 @@ void RTPStreamer::removeReceiveVideo(uint32_t sessionID)
   if(peers_.at(sessionID)->videoReceiver)
   {
     destroyReceiver(peers_.at(sessionID - 1)->videoReceiver);
-    peers_.at(sessionID - 1)->videoReceiver = 0;
+    peers_.at(sessionID - 1)->videoReceiver = nullptr;
   }
   else
     qWarning() << "WARNING: Tried to remove send video that did not exist.";
@@ -388,7 +388,7 @@ void RTPStreamer::removeReceiveAudio(uint32_t sessionID)
   if(peers_.at(sessionID - 1)->audioReceiver)
   {
     destroyReceiver(peers_.at(sessionID - 1)->audioReceiver);
-    peers_.at(sessionID - 1)->audioReceiver = 0;
+    peers_.at(sessionID - 1)->audioReceiver = nullptr;
   }
   else
     qWarning() << "WARNING: Tried to remove send video that did not exist.";
@@ -444,7 +444,7 @@ RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType 
   }
   else
   {
-    sender->framerSource = NULL;
+    sender->framerSource = nullptr;
   }
 
   const unsigned int estimatedSessionBandwidth = 5000; // in kbps; for RTCP b/w share
@@ -454,13 +454,13 @@ RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType 
                                    estimatedSessionBandwidth,
                                    CNAME_,
                                    sender->sink,
-                                   NULL,
+                                   nullptr,
                                    False);
 
   if(!sender->sourcefilter || !sender->sink)
   {
     qCritical() << "Failed to setup sending RTP stream";
-    return NULL;
+    return nullptr;
   }
 
   // TODO better code needed
@@ -468,14 +468,14 @@ RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType 
 
   if(type == HEVCVIDEO)
   {
-    if(!sender->sink->startPlaying(*(sender->framerSource), NULL, NULL))
+    if(!sender->sink->startPlaying(*(sender->framerSource), nullptr, nullptr))
     {
       qCritical() << "Critical: failed to start videosink: " << env_->getResultMsg();
     }
   }
   else
   {
-    if(!sender->sink->startPlaying(*(sender->sourcefilter.get()), NULL, NULL))
+    if(!sender->sink->startPlaying(*(sender->sourcefilter.get()), nullptr, nullptr))
     {
       qCritical() << "Critical: failed to start videosink: " << env_->getResultMsg();
     }
@@ -528,7 +528,7 @@ RTPStreamer::Receiver* RTPStreamer::addReceiver(in_addr peerAddress, uint16_t po
                                    receiver->connection.rtcpGroupsock,
                                    estimatedSessionBandwidth,
                                    CNAME_,
-                                   NULL,
+                                   nullptr,
                                    receiver->framedSource, // this is the client
                                    False);
 
@@ -538,10 +538,10 @@ RTPStreamer::Receiver* RTPStreamer::addReceiver(in_addr peerAddress, uint16_t po
     RTCPInstance::close(receiver->rtcp);
     destroyConnection(receiver->connection);
     delete receiver;
-    return NULL;
+    return nullptr;
   }
 
-  if(!receiver->sink->startPlaying(*receiver->framedSource,NULL,NULL))
+  if(!receiver->sink->startPlaying(*receiver->framedSource, nullptr, nullptr))
   {
     qCritical() << "failed to start videosink: " << env_->getResultMsg();
   }
@@ -582,23 +582,23 @@ void RTPStreamer::destroyConnection(Connection& connection)
   {
     connection.rtpGroupsock->removeAllDestinations();
     delete connection.rtpGroupsock;
-    connection.rtpGroupsock = 0;
+    connection.rtpGroupsock = nullptr;
   }
   if(connection.rtcpGroupsock)
   {
     connection.rtcpGroupsock->removeAllDestinations();
     delete connection.rtcpGroupsock;
-    connection.rtcpGroupsock = 0;
+    connection.rtcpGroupsock = nullptr;
   }
 
   if(connection.rtpPort)
   {
     delete connection.rtpPort;
-    connection.rtpPort = 0;
+    connection.rtpPort = nullptr;
   }
   if(connection.rtcpPort)
   {
     delete connection.rtcpPort;
-    connection.rtcpPort = 0;
+    connection.rtcpPort = nullptr;
   }
 }

@@ -41,13 +41,13 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP(QHostAddress localAd
   {
     qWarning() << "WARNING: Necessary info not set for SDP generation:" << localAddress.toString()
                << localUsername_;
-    return NULL;
+    return nullptr;
   }
 
   if(availablePorts_.size() <= 2)
   {
     qDebug() << "Not enough free ports to create SDP:" << availablePorts_.size();
-    return NULL;
+    return nullptr;
   }
 
   // TODO: Get suitable SDP from media manager
@@ -87,7 +87,7 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP(QHostAddress localAd
     makePortPairAvailable(audio.receivePort);
     makePortPairAvailable(video.receivePort);
     qWarning() << "WARNING: Ran out of ports to assign to SDP. Should be checked earlier.";
-    return NULL;
+    return nullptr;
   }
   audio.proto = "RTP/AVP";
   video.proto = "RTP/AVP";
@@ -114,7 +114,7 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP(QHostAddress localAd
 
   return newInfo;
 }
-// returns NULL if suitable could not be found
+// returns nullptr if suitable could not be found
 std::shared_ptr<SDPMessageInfo> GlobalSDPState::localFinalSDP(SDPMessageInfo &remoteSDP,
                                                               QHostAddress localAddress,
                                                               std::shared_ptr<SDPMessageInfo> localSuggestion)
@@ -123,13 +123,13 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::localFinalSDP(SDPMessageInfo &re
   if(!checkSDPOffer(remoteSDP))
   {
     qDebug() << "Incoming SDP did not have Opus and H265 in their offer.";
-    return NULL;
+    return nullptr;
   }
   std::shared_ptr<SDPMessageInfo> sdp;
 
   // check if we have made a suggestion. If we have, modify that to accommodate their sdp
   // if we have not made a suggestion, then base our final SDP on their suggestion.
-  if(localSuggestion == NULL)
+  if(localSuggestion == nullptr)
   {
     sdp = generateSDP(localAddress);
     sdp->sessionName = remoteSDP.sessionName;
@@ -193,7 +193,7 @@ bool GlobalSDPState::checkSDPOffer(SDPMessageInfo &offer)
 // frees the ports when they are not needed in rest of the program
 void GlobalSDPState::endSession(std::shared_ptr<SDPMessageInfo> sessionSDP)
 {
-  if(sessionSDP == NULL)
+  if(sessionSDP == nullptr)
   {
     return;
   }

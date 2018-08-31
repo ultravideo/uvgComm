@@ -19,7 +19,7 @@ class VideoWidget : public QFrame, public VideoInterface
   Q_OBJECT
   Q_INTERFACES(VideoInterface)
 public:
-  VideoWidget(QWidget* parent = NULL, uint32_t sessionID = 0, uint8_t borderSize = 1);
+  VideoWidget(QWidget* parent = nullptr, uint32_t sessionID = 0, uint8_t borderSize = 1);
   ~VideoWidget();
 
   virtual void setStats(StatisticsInterface* stats)

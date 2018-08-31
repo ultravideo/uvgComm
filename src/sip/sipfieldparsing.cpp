@@ -34,7 +34,7 @@ bool parseURI(QString values, SIP_URI& uri)
 bool parseParameterNameToValue(std::shared_ptr<QList<SIPParameter>> parameters,
                                QString name, QString& value)
 {
-  if(parameters != NULL)
+  if(parameters != nullptr)
   {
     for(SIPParameter parameter : *parameters)
     {

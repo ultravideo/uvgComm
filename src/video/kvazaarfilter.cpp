@@ -14,11 +14,11 @@ enum RETURN_STATUS {C_SUCCESS = 0, C_FAILURE = -1};
 
 KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats):
   Filter(id, "Kvazaar", stats, YUVVIDEO, HEVCVIDEO),
-  api_(NULL),
-  config_(NULL),
-  enc_(NULL),
+  api_(nullptr),
+  config_(nullptr),
+  enc_(nullptr),
   pts_(0),
-  input_pic_(NULL),
+  input_pic_(nullptr),
   framerate_num_(30),
   framerate_denom_(1),
   encodingFrames_()
@@ -56,7 +56,7 @@ bool KvazaarFilter::init()
     return false;
   }
   config_ = api_->config_alloc();
-  enc_ = NULL;
+  enc_ = nullptr;
 
   if(!config_)
   {
@@ -120,12 +120,12 @@ void KvazaarFilter::close()
   {
     api_->encoder_close(enc_);
     api_->config_destroy(config_);
-    enc_ = NULL;
-    config_ = NULL;
+    enc_ = nullptr;
+    config_ = nullptr;
 
     api_->picture_free(input_pic_);
-    input_pic_ = NULL;
-    api_ = NULL;
+    input_pic_ = nullptr;
+    api_ = nullptr;
   }
   qDebug() << name_ << "Kvazaar closed";
 
@@ -230,7 +230,7 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out, uint32_t len_out
   uint8_t* writer = hevc_frame.get();
   uint32_t dataWritten = 0;
 
-  for (kvz_data_chunk *chunk = data_out; chunk != NULL; chunk = chunk->next)
+  for (kvz_data_chunk *chunk = data_out; chunk != nullptr; chunk = chunk->next)
   {
     if(chunk->len > 3 &&
        chunk->data[0] == 0 && chunk->data[1] == 0  &&( chunk->data[2] == 1 || (chunk->data[2] == 0 && chunk->data[3] == 1 ))

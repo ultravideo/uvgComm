@@ -11,7 +11,7 @@
 CallManager::CallManager():
     media_(),
     sip_(),
-    window_(NULL)
+    window_(nullptr)
 {}
 
 void CallManager::init()
@@ -132,7 +132,7 @@ void CallManager::callNegotiated(uint32_t sessionID)
                localSDP,
                remoteSDP);
 
-  if(localSDP == NULL || remoteSDP == NULL)
+  if(localSDP == nullptr || remoteSDP == nullptr)
   {
     return;
   }

@@ -6,7 +6,7 @@
 
 
 UDPServer::UDPServer():
-  socket_(NULL),
+  socket_(nullptr),
   sendPort_(0)
 {}
 

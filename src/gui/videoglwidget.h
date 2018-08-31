@@ -20,7 +20,7 @@ class VideoGLWidget : public QOpenGLWidget, public VideoInterface
   Q_OBJECT
   Q_INTERFACES(VideoInterface)
 public:
-  VideoGLWidget(QWidget* parent = NULL, uint32_t sessionID = 0, uint8_t borderSize = 1);
+  VideoGLWidget(QWidget* parent = nullptr, uint32_t sessionID = 0, uint8_t borderSize = 1);
   ~VideoGLWidget();
 
   void setStats(StatisticsInterface* stats)

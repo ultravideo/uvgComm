@@ -25,7 +25,7 @@ RTPSinkFilter::~RTPSinkFilter()
 void RTPSinkFilter::uninit()
 {
   stopPlaying();
-  while (fSource  != NULL)
+  while (fSource  != nullptr)
   {
     qSleep(1);
   }
@@ -101,7 +101,7 @@ void RTPSinkFilter::process()
 {}
 
 Boolean RTPSinkFilter::continuePlaying() {
-  if (fSource == NULL) return False; // sanity check (should not happen)
+  if (fSource == nullptr) return False; // sanity check (should not happen)
 
   // Request the next frame of data from our input source.  "afterGettingFrame()" will get called later, when it arrives:
   fSource->getNextFrame(fReceiveBuffer, BUFFER_SIZE,

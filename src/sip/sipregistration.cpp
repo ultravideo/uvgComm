@@ -51,13 +51,13 @@ std::shared_ptr<SIPMessageInfo> SIPRegistration::generateRegisterRequest(QString
   if(localUri_.username == "")
   {
     qWarning() << "ERROR: SIP Helper has not been initialized";
-    return std::shared_ptr<SIPMessageInfo>(NULL);
+    return std::shared_ptr<SIPMessageInfo>(nullptr);
   }
 
   std::shared_ptr<SIPMessageInfo> mesg = std::shared_ptr<SIPMessageInfo>(new SIPMessageInfo);
   mesg->version = "2.0";
   mesg->maxForwards = 71;
-  mesg->dialog = NULL;
+  mesg->dialog = nullptr;
   mesg->from = localUri_;
   mesg->to = localUri_;
   mesg->contact = localUri_;

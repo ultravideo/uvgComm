@@ -17,9 +17,9 @@ CallWindow::CallWindow(QWidget *parent):
   ui_(new Ui::CallWindow),
   viewFactory_(std::shared_ptr<VideoviewFactory>(new VideoviewFactory)),
   settingsView_(this),
-  statsWindow_(NULL),
+  statsWindow_(nullptr),
   conference_(this),
-  partInt_(NULL),
+  partInt_(nullptr),
   timer_(new QTimer(this))
 {}
 

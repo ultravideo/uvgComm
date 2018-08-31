@@ -14,7 +14,7 @@ SIPClientTransaction::SIPClientTransaction():
   connected_(false),
   sessionID_(0),
   pendingRequest_(SIP_UNKNOWN_REQUEST),
-  transactionUser_(NULL)
+  transactionUser_(nullptr)
 {}
 
 void SIPClientTransaction::init(SIPTransactionUser* tu, uint32_t sessionID)
@@ -32,10 +32,10 @@ void SIPClientTransaction::init(SIPTransactionUser* tu, uint32_t sessionID)
 bool SIPClientTransaction::processResponse(SIPResponse &response)
 {
   Q_ASSERT(sessionID_ != 0);
-  Q_ASSERT(transactionUser_ != NULL);
+  Q_ASSERT(transactionUser_ != nullptr);
 
   qDebug() << "Client starts processing response";
-  if(!sessionID_ || transactionUser_ == NULL)
+  if(!sessionID_ || transactionUser_ == nullptr)
   {
     qWarning() << "WARNING: SIP Client Transaction not initialized.";
     return true;
@@ -171,7 +171,7 @@ void SIPClientTransaction::getRequestMessageInfo(RequestType type,
     outMessage->transactionRequest = type;
   }
 
-  outMessage->dialog = NULL;
+  outMessage->dialog = nullptr;
   outMessage->maxForwards = 71;
   outMessage->version = "2.0";
   outMessage->cSeq = 0; // invalid, should be set in dialog

@@ -130,7 +130,7 @@ void Stun::processReply(QByteArray data)
   QString message = QString::fromStdString(data.toHex().toStdString());
   qDebug() << "Got a STUN reply:" << message << "with size:" << data.size();
 
-  char* outRawAddress = NULL;
+  char* outRawAddress = nullptr;
   STUNMessage response = fromNetwork(data, &outRawAddress);
 
   if(response.type != 0x0101)

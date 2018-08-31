@@ -161,7 +161,7 @@ void FramedSourceFilter::process()
 
     std::unique_ptr<Data> currentFrame = getInput();
 
-    if(currentFrame == NULL)
+    if(currentFrame == nullptr)
     {
       fFrameSize = 0;
       sendFrame();
@@ -172,7 +172,7 @@ void FramedSourceFilter::process()
       copyFrameToBuffer(std::move(currentFrame));
       sendFrame();
 
-      currentFrame = NULL;
+      currentFrame = nullptr;
 
       framePointerReady_.acquire(1);
       if(stop_)
@@ -181,7 +181,7 @@ void FramedSourceFilter::process()
       }
       currentFrame = getInput();
       // copy additional NAL units, if available.
-      if(currentFrame == NULL)
+      if(currentFrame == nullptr)
       {
         fFrameSize = 0;
         sendFrame();

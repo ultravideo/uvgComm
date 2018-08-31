@@ -11,8 +11,8 @@
 
 ConferenceView::ConferenceView(QWidget *parent):
   parent_(parent),
-  layout_(NULL),
-  layoutWidget_(NULL),
+  layout_(nullptr),
+  layoutWidget_(nullptr),
   row_(0),
   column_(0),
   rowMaxLength_(2),
@@ -30,7 +30,7 @@ void ConferenceView::init(QGridLayout* conferenceLayout, QWidget* layoutwidget)
 void ConferenceView::callingTo(uint32_t sessionID, QString name)
 {
   Q_ASSERT(sessionID);
-  if(activeCalls_.size() >= sessionID && activeCalls_.at(sessionID - 1) != NULL )
+  if(activeCalls_.size() >= sessionID && activeCalls_.at(sessionID - 1) != nullptr )
   {
     qWarning() << "WARNING: Outgoing call already has an allocated view";
     return;
@@ -63,14 +63,14 @@ void ConferenceView::addWidgetToLayout(CallState state, QWidget* widget, QString
 
   layoutMutex_.lock();
 
-  if(widget != NULL)
+  if(widget != nullptr)
   {
     layout_->addWidget(widget, row, column);
   }
 
   while(activeCalls_.size() < sessionID)
   {
-    activeCalls_.append(NULL);
+    activeCalls_.append(nullptr);
   }
 
   activeCalls_[sessionID - 1] = new CallInfo{state, name, layout_->itemAtPosition(row,column),
@@ -89,7 +89,7 @@ void ConferenceView::addWidgetToLayout(CallState state, QWidget* widget, QString
 
 void ConferenceView::incomingCall(uint32_t sessionID, QString name)
 {
-  if(activeCalls_.size() >= sessionID && activeCalls_.at(sessionID - 1) != NULL)
+  if(activeCalls_.size() >= sessionID && activeCalls_.at(sessionID - 1) != nullptr)
   {
     qWarning() << "WARNING: Incoming call already has an allocated view. Session:" << sessionID
                << "Slots:" << activeCalls_.size();
@@ -130,13 +130,13 @@ void ConferenceView::attachWidget(uint32_t sessionID, QWidget* view)
 // if our call is accepted or we accepted their call
 void ConferenceView::addVideoStream(uint32_t sessionID, std::shared_ptr<VideoviewFactory> factory)
 {
-  factory->createWidget(sessionID, NULL, this);
+  factory->createWidget(sessionID, nullptr, this);
   QWidget* view = factory->getView(sessionID);
 
-  if(activeCalls_.size() < sessionID || activeCalls_.at(sessionID - 1) == NULL)
+  if(activeCalls_.size() < sessionID || activeCalls_.at(sessionID - 1) == nullptr)
   {
     qDebug() << "Did not find asking widget. Assuming auto-accept and adding widget";
-    addWidgetToLayout(CALL_ACTIVE, NULL, "Auto-Accept", sessionID);
+    addWidgetToLayout(CALL_ACTIVE, nullptr, "Auto-Accept", sessionID);
   }
   else if(activeCalls_[sessionID - 1]->state != ASKINGUSER
           && activeCalls_[sessionID - 1]->state != WAITINGPEER)
@@ -150,8 +150,8 @@ void ConferenceView::addVideoStream(uint32_t sessionID, std::shared_ptr<Videovie
 
   // TODO delete previous widget now instead of with parent.
   // Now they accumulate in memory until call has ended
-  if(activeCalls_[sessionID - 1]->item != NULL
-     && activeCalls_[sessionID - 1]->item->widget() != NULL)
+  if(activeCalls_[sessionID - 1]->item != nullptr
+     && activeCalls_[sessionID - 1]->item->widget() != nullptr)
   {
     delete activeCalls_[sessionID - 1]->item->widget();
   }
@@ -177,13 +177,13 @@ bool ConferenceView::removeCaller(uint32_t sessionID)
   qDebug() << "Removing call window. Session:"
            << sessionID << "Total slots:" << activeCalls_.size();
   if(activeCalls_.size() < sessionID
-     || activeCalls_[sessionID - 1] == NULL)
+     || activeCalls_[sessionID - 1] == nullptr)
   {
     qWarning() << "WARNING: Trying to remove nonexisting call from ConferenceView.";
     return !activeCalls_.empty();
   }
 
-  if(activeCalls_[sessionID - 1]->item != NULL)
+  if(activeCalls_[sessionID - 1]->item != nullptr)
   {
     layoutMutex_.lock();
     layout_->removeItem(activeCalls_[sessionID - 1]->item);
@@ -213,7 +213,7 @@ bool ConferenceView::removeCaller(uint32_t sessionID)
   }
   locMutex_.unlock();
   delete activeCalls_.at(sessionID - 1);
-  activeCalls_[sessionID - 1] = NULL;
+  activeCalls_[sessionID - 1] = nullptr;
 
   return !activeCalls_.empty();
 }
@@ -253,7 +253,7 @@ void ConferenceView::close()
 {
   for(unsigned int i = 0; i < activeCalls_.size(); ++i)
   {
-    if(activeCalls_.at(i) != NULL)
+    if(activeCalls_.at(i) != nullptr)
     {
       layoutMutex_.lock();
       layout_->removeItem(activeCalls_.at(i)->item);
@@ -284,7 +284,7 @@ uint32_t ConferenceView::findInvoker(QString buttonName)
   QPushButton* button = qobject_cast<QPushButton*>(sender());
   for(unsigned int i = 0; i < activeCalls_.size(); ++i)
   {
-    if(activeCalls_.at(i) != NULL)
+    if(activeCalls_.at(i) != nullptr)
     {
       if(!activeCalls_.at(i)->item->widget()->findChildren<QPushButton *>(buttonName).isEmpty())
       {

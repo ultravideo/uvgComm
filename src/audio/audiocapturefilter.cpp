@@ -12,10 +12,10 @@ const int AUDIO_BUFFER_SIZE = 65536;
 AudioCaptureFilter::AudioCaptureFilter(QString id, QAudioFormat format, StatisticsInterface *stats) :
   Filter(id, "Audio_Capture", stats, NONE, RAWAUDIO),
   deviceInfo_(QAudioDeviceInfo::defaultInputDevice()),
-  device_(NULL),
+  device_(nullptr),
   format_(format),
-  audioInput_(NULL),
-  input_(NULL),
+  audioInput_(nullptr),
+  input_(nullptr),
   buffer_(AUDIO_BUFFER_SIZE, 0)
 {}
 

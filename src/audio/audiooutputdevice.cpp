@@ -15,7 +15,7 @@ AudioOutputDevice::AudioOutputDevice(StatisticsInterface* stats, uint32_t peer):
 
 void AudioOutputDevice::init(std::shared_ptr<Filter> source)
 {
-  Q_ASSERT(source != NULL);
+  Q_ASSERT(source != nullptr);
 
   if(source)
   {

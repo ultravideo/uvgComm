@@ -54,7 +54,7 @@ QWidget* VideoviewFactory::getView(uint32_t sessionID)
   if(widgets_.find(sessionID) == widgets_.end())
   {
     qWarning() << "ERROR: Tried to get a video widget that doesn't exists:" << sessionID;
-    return NULL;
+    return nullptr;
   }
   return widgets_[sessionID];
 }
@@ -64,7 +64,7 @@ VideoInterface* VideoviewFactory::getVideo(uint32_t sessionID)
   if(videos_.find(sessionID) == videos_.end())
   {
     qWarning() << "ERROR: Tried to get a video widget that doesn't exists:" << sessionID;
-    return NULL;
+    return nullptr;
   }
   return videos_[sessionID];
 }

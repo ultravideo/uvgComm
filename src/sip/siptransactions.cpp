@@ -43,7 +43,7 @@ void SIPTransactions::uninit()
 
   for(std::shared_ptr<SIPTransport> transport : transports_)
   {
-    if(transport != NULL)
+    if(transport != nullptr)
     {
       transport->destroyConnection();
       transport.reset();
@@ -57,8 +57,8 @@ void SIPTransactions::getSDPs(uint32_t sessionID,
 {
   Q_ASSERT(sessionID != 0);
 
-  if(dialogs_.at(sessionID - 1)->localSdp_ == NULL ||
-     dialogs_.at(sessionID - 1)->remoteSdp_ == NULL)
+  if(dialogs_.at(sessionID - 1)->localSdp_ == nullptr ||
+     dialogs_.at(sessionID - 1)->remoteSdp_ == nullptr)
   {
     qDebug() << "getSDP: Both SDP:s are not present for some reason."
              << "Maybe the call has ended before starting?";
@@ -97,7 +97,7 @@ QList<uint32_t> SIPTransactions::startCall(QList<Contact> addresses)
 
       for(unsigned int j = 0; j < transports_.size(); ++j)
       {
-        if(transports_.at(j) != NULL &&
+        if(transports_.at(j) != nullptr &&
            transports_.at(j)->getRemoteAddress().toString() == addresses.at(i).remoteAddress)
         {
           dialogData->transportID = j + 1;
@@ -138,8 +138,8 @@ void SIPTransactions::createDialog(std::shared_ptr<SIPDialogData>& dialog)
   dialog->client->init(transactionUser_, dialogs_.size() + 1);
   dialog->server = std::shared_ptr<SIPServerTransaction> (new SIPServerTransaction);
   dialog->server->init(transactionUser_, dialogs_.size() + 1);
-  dialog->localSdp_ = NULL;
-  dialog->remoteSdp_ = NULL;
+  dialog->localSdp_ = nullptr;
+  dialog->remoteSdp_ = nullptr;
   QObject::connect(dialog->client.get(), &SIPClientTransaction::sendRequest,
                    this, &SIPTransactions::sendRequest);
 
@@ -178,7 +178,7 @@ void SIPTransactions::endAllCalls()
 {
   for(auto dialog : dialogs_)
   {
-    if(dialog != NULL)
+    if(dialog != nullptr)
     {
       dialog->client->endCall();
     }
@@ -186,7 +186,7 @@ void SIPTransactions::endAllCalls()
 
   for(unsigned int i = 0; i < dialogs_.size(); ++i)
   {
-    if(dialogs_.at(i) != NULL)
+    if(dialogs_.at(i) != nullptr)
     {
       destroyDialog(i + 1);
     }
@@ -235,17 +235,17 @@ void SIPTransactions::connectionEstablished(quint32 transportID, QString localAd
 
   qDebug() << "Establishing connection. Local Address:" << localAddress << "Remote Address:" << remoteAddress;
   connectionMutex_.lock();
-  std::shared_ptr<SIPDialogData> foundDialog = NULL;
+  std::shared_ptr<SIPDialogData> foundDialog = nullptr;
   for(auto dialog : dialogs_)
   {
-    if(dialog != NULL && dialog->transportID == transportID)
+    if(dialog != nullptr && dialog->transportID == transportID)
     {
       foundDialog = dialog;
     }
   }
   connectionMutex_.unlock();
 
-  if(foundDialog != NULL)
+  if(foundDialog != nullptr)
   {
     foundDialog->client->connectionReady(true);
   }
@@ -275,7 +275,7 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
   uint32_t foundSessionID = 0;
   for(unsigned int sessionID = 1; sessionID - 1 < dialogs_.size(); ++sessionID)
   {
-    if(dialogs_.at(sessionID - 1) != NULL &&
+    if(dialogs_.at(sessionID - 1) != nullptr &&
        dialogs_.at(sessionID - 1)->state->correctRequestDialog(request.message->dialog,
                                                                 request.type,
                                                                 request.message->cSeq))
@@ -397,7 +397,7 @@ void SIPTransactions::processSIPResponse(SIPResponse response,
 
   for(unsigned int sessionID = 1; sessionID - 1 < dialogs_.size(); ++sessionID)
   {
-    if(dialogs_.at(sessionID - 1) != NULL &&
+    if(dialogs_.at(sessionID - 1) != nullptr &&
        dialogs_.at(sessionID - 1)->state->correctResponseDialog(response.message->dialog,
                                              response.message->cSeq))
     {
@@ -463,7 +463,7 @@ bool SIPTransactions::processSDP(uint32_t sessionID, QVariant& content, QHostAdd
   dialogs_.at(sessionID - 1)->localSdp_
       = sdp_.localFinalSDP(retrieved, localAddress, dialogs_.at(sessionID - 1)->localSdp_);
 
-  if(dialogs_.at(sessionID - 1)->localSdp_ == NULL)
+  if(dialogs_.at(sessionID - 1)->localSdp_ == nullptr)
   {
     qDebug() << "Remote SDP not suitable or we have no ports to assign";
     destroyDialog(sessionID);
@@ -497,8 +497,8 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
   dialogs_.at(sessionID - 1)->state->getRequestDialogInfo(request.type,
                                                            transport->getLocalAddress().toString(),
                                                            request.message);
-  Q_ASSERT(request.message != NULL);
-  Q_ASSERT(request.message->dialog != NULL);
+  Q_ASSERT(request.message != nullptr);
+  Q_ASSERT(request.message->dialog != nullptr);
 
   QVariant content;
   request.message->content.length = 0;
@@ -511,7 +511,7 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
     {
       dialogs_.at(sessionID - 1)->localSdp_
           = sdp_.localSDPSuggestion(transport->getLocalAddress());
-      if(dialogs_.at(sessionID - 1)->localSdp_ != NULL)
+      if(dialogs_.at(sessionID - 1)->localSdp_ != nullptr)
       {
         sdp = *dialogs_.at(sessionID - 1)->localSdp_.get();
       }
@@ -525,7 +525,7 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
     }
     else
     {
-      if(dialogs_.at(sessionID - 1)->localSdp_ == NULL)
+      if(dialogs_.at(sessionID - 1)->localSdp_ == nullptr)
       {
         qDebug() << "ERROR: Missing local final SDP when its supposed to be sent.";
         // TODO: send client error.
@@ -587,7 +587,7 @@ void SIPTransactions::destroyDialog(uint32_t sessionID)
   // This does not guarantee that the list wont be filled, but should suffice in most cases.
   while(sessionID == dialogs_.size()
         && sessionID != 0
-        && dialogs_.at(sessionID - 1) == NULL)
+        && dialogs_.at(sessionID - 1) == nullptr)
   {
     dialogs_.pop_back();
     --sessionID;

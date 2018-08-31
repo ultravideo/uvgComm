@@ -23,10 +23,10 @@ public:
 
   // checks if invite message is acceptable
   // use for getting our answer and for getting our final to be used
-  // returns NULL if suitable could not be found
+  // returns nullptr if suitable could not be found
   // chooces what to use
   std::shared_ptr<SDPMessageInfo> localFinalSDP(SDPMessageInfo& remoteSDP, QHostAddress localAddress,
-                                                std::shared_ptr<SDPMessageInfo> localSuggestion = NULL);
+                                                std::shared_ptr<SDPMessageInfo> localSuggestion = nullptr);
 
   // return if the final SDP was suitable. It should be, but just to be sure
   bool remoteFinalSDP(SDPMessageInfo& remoteInviteSDP);

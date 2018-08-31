@@ -6,8 +6,8 @@
 
 SIPServerTransaction::SIPServerTransaction():
   sessionID_(0),
-  receivedRequest_(NULL),
-  transactionUser_(NULL)
+  receivedRequest_(nullptr),
+  transactionUser_(nullptr)
 {}
 
 void SIPServerTransaction::init(SIPTransactionUser* tu, uint32_t sessionID)
@@ -34,7 +34,7 @@ void SIPServerTransaction::processRequest(SIPRequest &request)
 
   // TODO: check that the request is appropriate at this time.
 
-  if(receivedRequest_ == NULL)
+  if(receivedRequest_ == nullptr)
   {
     copyMessageDetails(request.message, receivedRequest_);
   }
@@ -88,7 +88,7 @@ void SIPServerTransaction::processRequest(SIPRequest &request)
 void SIPServerTransaction::getResponseMessage(std::shared_ptr<SIPMessageInfo> &outMessage,
                                               ResponseType type)
 {
-  if(receivedRequest_ == NULL)
+  if(receivedRequest_ == nullptr)
   {
     qWarning() << "ERROR: The received request was not set before trying to use it!";
     return;
@@ -119,13 +119,13 @@ void SIPServerTransaction::rejectCall()
 
 void SIPServerTransaction::responseSender(ResponseType type, bool finalResponse)
 {
-  Q_ASSERT(receivedRequest_ != NULL);
+  Q_ASSERT(receivedRequest_ != nullptr);
   emit sendResponse(sessionID_, type, receivedRequest_->transactionRequest);
 
   // this might only be a provisional response and not the final one.
   if(finalResponse)
   {
-    receivedRequest_ = NULL;
+    receivedRequest_ = nullptr;
   }
 }
 

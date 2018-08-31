@@ -8,7 +8,7 @@ ContactListItem::ContactListItem(QString name, QString username, QString ip):
   name_(name),
   username_(username),
   ip_(ip),
-  interface_(NULL)
+  interface_(nullptr)
 {}
 
 void ContactListItem::init(ParticipantInterface *interface)

@@ -232,7 +232,7 @@ void Filter::run()
 
 Data* Filter::shallowDataCopy(Data* original)
 {
-  if(original != NULL)
+  if(original != nullptr)
   {
     Data* copy = new Data;
     copy->type = original->type;
@@ -245,13 +245,13 @@ Data* Filter::shallowDataCopy(Data* original)
 
     return copy;
   }
-  qWarning() << "Warning: Trying to copy NULL Data pointer";
-  return NULL;
+  qWarning() << "Warning: Trying to copy nullptr Data pointer";
+  return nullptr;
 }
 
 Data* Filter::deepDataCopy(Data* original)
 {
-  if(original != NULL)
+  if(original != nullptr)
   {
     Data* copy = shallowDataCopy(original);
     copy->data = std::unique_ptr<uchar[]>(new uchar[original->data_size]);
@@ -260,8 +260,8 @@ Data* Filter::deepDataCopy(Data* original)
 
     return copy;
   }
-  qWarning() << "Warning: Trying to copy NULL Data pointer";
-  return NULL;
+  qWarning() << "Warning: Trying to copy nullptr Data pointer";
+  return nullptr;
 }
 
 

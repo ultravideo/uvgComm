@@ -78,7 +78,7 @@ void SIPTransport::createConnection(ConnectionType type, QString target)
 void SIPTransport::incomingTCPConnection(std::shared_ptr<TCPConnection> con)
 {
   qDebug() << "This SIP connection uses an incoming connection:" << transportID_;
-  if(connection_ != NULL)
+  if(connection_ != nullptr)
   {
     qDebug() << "Replacing existing connection";
   }
@@ -106,7 +106,7 @@ void SIPTransport::connectionEstablished(QString localAddress, QString remoteAdd
 
 void SIPTransport::destroyConnection()
 {
-  if(connection_ == NULL)
+  if(connection_ == nullptr)
   {
     qDebug() << "Trying to destroy an already destroyed connection";
     return;
@@ -125,13 +125,13 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
   qDebug() << "Composing SIP Request:" << requestToString(request.type);
   Q_ASSERT((request.type != INVITE && request.type != ACK) ||
       (request.message->content.type == APPLICATION_SDP && content.isValid()));
-  Q_ASSERT(connection_ != NULL);
+  Q_ASSERT(connection_ != nullptr);
 
   if((request.type == INVITE || request.type == ACK) &&
      (request.message->content.type != APPLICATION_SDP || !content.isValid())
-     || connection_ == NULL)
+     || connection_ == nullptr)
   {
-    qDebug() << "WARNING: SDP null or connection does not exist in sendRequest";
+    qDebug() << "WARNING: SDP nullptr or connection does not exist in sendRequest";
     return;
   }
   QList<SIPField> fields;
@@ -161,13 +161,13 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
   qDebug() << "Composing SIP Response:" << responseToPhrase(response.type);
   Q_ASSERT(response.message->transactionRequest != INVITE
            || response.type != SIP_OK || (response.message->content.type == APPLICATION_SDP && content.isValid()));
-  Q_ASSERT(connection_ != NULL);
+  Q_ASSERT(connection_ != nullptr);
 
   if(response.message->transactionRequest == INVITE && response.type == SIP_OK
      && (!content.isValid() || response.message->content.type != APPLICATION_SDP)
-     || connection_ == NULL)
+     || connection_ == nullptr)
   {
-    qDebug() << "WARNING: SDP null or connection does not exist in sendResponse";
+    qDebug() << "WARNING: SDP nullptr or connection does not exist in sendResponse";
     return;
   }
 
@@ -212,7 +212,7 @@ QString SIPTransport::fieldsToString(QList<SIPField>& fields, QString lineEnding
   for(SIPField field : fields)
   {
     message += field.name + ": " + field.values;
-    if(field.parameters != NULL)
+    if(field.parameters != nullptr)
     {
       for(SIPParameter parameter : *field.parameters)
       {
@@ -371,7 +371,7 @@ bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPF
     {
       // RFC3261_TODO: Uniformalize case formatting. Make everything big or small case expect quotes.
 
-      SIPField field = {field_match.captured(1),field_match.captured(2),NULL};
+      SIPField field = {field_match.captured(1),field_match.captured(2),nullptr};
       qDebug() << "Found field: " << field.name;
       if(parameters.size() > 1)
       {
@@ -381,7 +381,7 @@ bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPF
           // TODO: check that parameter does not already exist
           if(parseParameter(parameters[j], parameter))
           {
-            if(field.parameters == NULL)
+            if(field.parameters == nullptr)
             {
               field.parameters = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
             }

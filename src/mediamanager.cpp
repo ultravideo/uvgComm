@@ -10,9 +10,9 @@
 #include <QDebug>
 
 MediaManager::MediaManager():
-  stats_(NULL),
+  stats_(nullptr),
   fg_(new FilterGraph()),
-  session_(NULL),
+  session_(nullptr),
   streamer_(new RTPStreamer()),
   mic_(true),
   camera_(true)

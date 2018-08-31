@@ -15,10 +15,10 @@ VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID, uint8_t borderSize
   : QFrame(parent),
   firstImageReceived_(false),
   previousSize_(QSize(0,0)),
-  stats_(NULL),
+  stats_(nullptr),
   sessionID_(sessionID),
   borderSize_(borderSize),
-  tmpParent_(NULL)
+  tmpParent_(nullptr)
 {
   setAutoFillBackground(false);
   setAttribute(Qt::WA_NoSystemBackground, true);
@@ -157,7 +157,7 @@ void VideoWidget::updateTargetRect()
   if(firstImageReceived_)
   {
     Q_ASSERT(lastImage_.data_ptr());
-    if(lastImage_.data_ptr() == NULL)
+    if(lastImage_.data_ptr() == nullptr)
     {
       qWarning() << "WARNING: Null pointer in current image!";
       return;
@@ -226,7 +226,7 @@ void VideoWidget::enterFullscreen()
   QFrame::setFrameStyle(QFrame::NoFrame);
 
   tmpParent_ = QWidget::parentWidget();
-  this->setParent(NULL);
+  this->setParent(nullptr);
   //this->showMaximized();
   this->show();
   this->setWindowState(Qt::WindowFullScreen);

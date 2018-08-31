@@ -61,7 +61,7 @@ bool includeToField(QList<SIPField> &fields,
     field.values = message->to.realname + " ";
   }
   field.values += "<sip:" + message->to.username + "@" + message->to.host + ">";
-  field.parameters = NULL;
+  field.parameters = nullptr;
 
   tryAddParameter(field, "tag", message->dialog->toTag);
 
@@ -86,7 +86,7 @@ bool includeFromField(QList<SIPField> &fields,
     field.values = message->from.realname + " ";
   }
   field.values += "<sip:" + message->from.username + "@" + message->from.host + ">";
-  field.parameters = NULL;
+  field.parameters = nullptr;
 
   tryAddParameter(field, "tag", message->dialog->fromTag);
 
@@ -108,7 +108,7 @@ bool includeCSeqField(QList<SIPField> &fields,
   field.name = "CSeq";
 
   field.values = QString::number(message->cSeq) + " " + requestToString(message->transactionRequest);
-  field.parameters = NULL;
+  field.parameters = nullptr;
 
   fields.push_back(field);
   return true;
@@ -124,7 +124,7 @@ bool includeCallIDField(QList<SIPField> &fields,
     return false;
   }
 
-  fields.push_back({"Call-ID", message->dialog->callID, NULL});
+  fields.push_back({"Call-ID", message->dialog->callID, nullptr});
   return true;
 }
 
@@ -168,7 +168,7 @@ bool includeMaxForwardsField(QList<SIPField> &fields,
     return false;
   }
 
-  fields.push_back({"Max-Forwards", QString::number(message->maxForwards), NULL});
+  fields.push_back({"Max-Forwards", QString::number(message->maxForwards), nullptr});
   return true;
 }
 
@@ -185,7 +185,7 @@ bool includeContactField(QList<SIPField> &fields,
   SIPField field;
   field.name = "Contact";
   field.values = "<sip:" + message->contact.username + "@" + message->contact.host + ">";
-  field.parameters = NULL;
+  field.parameters = nullptr;
   fields.push_back(field);
   return true;
 }
@@ -199,14 +199,14 @@ bool includeContentTypeField(QList<SIPField> &fields,
     qDebug() << "WARNING: Content-type field failed";
     return false;
   }
-  fields.push_back({"Content-Type", contentType, NULL});
+  fields.push_back({"Content-Type", contentType, nullptr});
   return true;
 }
 
 bool includeContentLengthField(QList<SIPField> &fields,
                                uint32_t contentLenght)
 {
-  fields.push_back({"Content-Length", QString::number(contentLenght), NULL});
+  fields.push_back({"Content-Length", QString::number(contentLenght), nullptr});
   return true;
 }
 
@@ -217,7 +217,7 @@ bool tryAddParameter(SIPField& field, QString parameterName, QString parameterVa
     return false;
   }
 
-  if(field.parameters == NULL)
+  if(field.parameters == nullptr)
   {
     field.parameters = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
   }
