@@ -126,7 +126,7 @@ void RTPStreamer::uninit()
 
 void RTPStreamer::removeAllPeers()
 {
-  for(unsigned int i = 0; i < peers_.size(); ++i)
+  for(int i = 0; i < peers_.size(); ++i)
   {
     if(peers_.at(i) != nullptr)
     {
@@ -146,10 +146,10 @@ bool RTPStreamer::addPeer(in_addr ip, uint32_t sessionID)
     iniated_.lock(); // not being iniated
 
     qDebug() << "Adding peer to following IP: "
-             << (uint8_t)((ip.s_addr) & 0xff) << "."
-             << (uint8_t)((ip.s_addr >> 8) & 0xff) << "."
-             << (uint8_t)((ip.s_addr >> 16) & 0xff) << "."
-             << (uint8_t)((ip.s_addr >> 24) & 0xff);
+             << static_cast<uint8_t>((ip.s_addr) & 0xff) << "."
+             << static_cast<uint8_t>((ip.s_addr >> 8) & 0xff) << "."
+             << static_cast<uint8_t>((ip.s_addr >> 16) & 0xff) << "."
+             << static_cast<uint8_t>((ip.s_addr >> 24) & 0xff);
 
     Peer* peer = new Peer;
 
@@ -185,7 +185,7 @@ bool RTPStreamer::addPeer(in_addr ip, uint32_t sessionID)
   return false;
 }
 
-void RTPStreamer::removePeer(uint32_t sessionID)
+void RTPStreamer::removePeer(int sessionID)
 {
   qDebug() << "Removing peer" << sessionID << "from RTPStreamer";
   if(peers_.at(sessionID - 1) != nullptr)
@@ -424,10 +424,10 @@ RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType 
     break;
   }
 
-  QString  ip_str = QString::number((uint8_t)((ip.s_addr) & 0xff)) + "."
-                 + QString::number((uint8_t)((ip.s_addr >> 8) & 0xff)) + "."
-                 + QString::number((uint8_t)((ip.s_addr >> 16) & 0xff)) + "."
-                 + QString::number((uint8_t)((ip.s_addr >> 24) & 0xff));
+  QString  ip_str = QString::number(static_cast<uint8_t>((ip.s_addr) & 0xff)) + "."
+                 + QString::number(static_cast<uint8_t>((ip.s_addr >> 8) & 0xff)) + "."
+                 + QString::number(static_cast<uint8_t>((ip.s_addr >> 16) & 0xff)) + "."
+                 + QString::number(static_cast<uint8_t>((ip.s_addr >> 24) & 0xff));
 
   // shared_ptr which does not release
   sender->sourcefilter
@@ -513,10 +513,10 @@ RTPStreamer::Receiver* RTPStreamer::addReceiver(in_addr peerAddress, uint16_t po
     qWarning() << "Warning: RTP support not implemented for this format";
     break;
   }
-  QString  ip_str = QString::number((uint8_t)((peerAddress.s_addr) & 0xff)) + "."
-                 + QString::number((uint8_t)((peerAddress.s_addr >> 8) & 0xff)) + "."
-                 + QString::number((uint8_t)((peerAddress.s_addr >> 16) & 0xff)) + "."
-                 + QString::number((uint8_t)((peerAddress.s_addr >> 24) & 0xff));
+  QString  ip_str = QString::number(static_cast<uint8_t>((peerAddress.s_addr) & 0xff)) + "."
+                 + QString::number(static_cast<uint8_t>((peerAddress.s_addr >> 8) & 0xff)) + "."
+                 + QString::number(static_cast<uint8_t>((peerAddress.s_addr >> 16) & 0xff)) + "."
+                 + QString::number(static_cast<uint8_t>((peerAddress.s_addr >> 24) & 0xff));
 
   // shared_ptr which does not release
   receiver->sink

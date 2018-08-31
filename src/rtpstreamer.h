@@ -43,7 +43,7 @@ public:
   void removeReceiveAudio(uint32_t sessionID);
 
   // removes everything related to this peer
-  void removePeer(uint32_t sessionID);
+  void removePeer(int sessionID);
 
   void removeAllPeers();
 
