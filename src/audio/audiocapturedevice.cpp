@@ -45,6 +45,7 @@ AudioCaptureDevice::AudioCaptureDevice(const QAudioFormat &format, QObject *pare
       break;
     case QAudioFormat::Float:
       m_maxAmplitude = 0x7fffffff; // Kind of
+      break;
     default:
       break;
     }
@@ -84,16 +85,16 @@ qint64 AudioCaptureDevice::writeData(const char *data, qint64 len)
   if (m_maxAmplitude) {
     Q_ASSERT(m_format.sampleSize() % 8 == 0);
     const int channelBytes = m_format.sampleSize() / 8;
-    const int sampleBytes = m_format.channelCount() * channelBytes;
+    const long long sampleBytes = m_format.channelCount() * channelBytes;
     Q_ASSERT(len % sampleBytes == 0);
-    const int numSamples = len / sampleBytes;
+    const long long numSamples = len / sampleBytes;
 
-    quint32 maxValue = 0;
+    qint32 maxValue = 0;
     const unsigned char *ptr = reinterpret_cast<const unsigned char *>(data);
 
     for (int i = 0; i < numSamples; ++i) {
       for (int j = 0; j < m_format.channelCount(); ++j) {
-        quint32 value = 0;
+        qint32 value = 0;
 
         if (m_format.sampleSize() == 8 && m_format.sampleType() == QAudioFormat::UnSignedInt) {
           value = *reinterpret_cast<const quint8*>(ptr);
@@ -111,16 +112,17 @@ qint64 AudioCaptureDevice::writeData(const char *data, qint64 len)
             value = qAbs(qFromBigEndian<qint16>(ptr));
         } else if (m_format.sampleSize() == 32 && m_format.sampleType() == QAudioFormat::UnSignedInt) {
           if (m_format.byteOrder() == QAudioFormat::LittleEndian)
-            value = qFromLittleEndian<quint32>(ptr);
+            value = qFromLittleEndian<qint32>(ptr);
           else
-            value = qFromBigEndian<quint32>(ptr);
+            value = qFromBigEndian<qint32>(ptr);
         } else if (m_format.sampleSize() == 32 && m_format.sampleType() == QAudioFormat::SignedInt) {
           if (m_format.byteOrder() == QAudioFormat::LittleEndian)
             value = qAbs(qFromLittleEndian<qint32>(ptr));
           else
             value = qAbs(qFromBigEndian<qint32>(ptr));
         } else if (m_format.sampleSize() == 32 && m_format.sampleType() == QAudioFormat::Float) {
-          value = qAbs(*reinterpret_cast<const float*>(ptr) * 0x7fffffff); // assumes 0-1.0
+          // gives the absolute number, expands it and converts the type to int32
+          value = static_cast<qint32>(qAbs(*reinterpret_cast<const float*>(ptr) * 0x7fffffff)); // assumes 0-1.0
         }
 
         maxValue = qMax(value, maxValue);
