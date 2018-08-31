@@ -30,7 +30,7 @@ public:
   virtual void sendDelay(QString type, uint32_t delay);
   virtual void presentPackage(uint32_t peer, QString type);
   virtual void receiveDelay(uint32_t peer, QString type, int32_t delay);
-  virtual void addEncodedPacket(QString type, uint16_t size);
+  virtual void addEncodedPacket(QString type, uint32_t size);
   virtual void addSendPacket(uint16_t size);
   virtual void addReceivePacket(uint16_t size);
   virtual void addFilter(QString filter, uint64_t TID);

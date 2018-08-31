@@ -195,7 +195,7 @@ void StatisticsWindow::presentPackage(uint32_t peer, QString type)
   }
 }
 
-void StatisticsWindow::addEncodedPacket(QString type, uint16_t size)
+void StatisticsWindow::addEncodedPacket(QString type, uint32_t size)
 {
   if(type == "video" || type == "Video")
   {

@@ -8,7 +8,7 @@
 class StatisticsInterface
 {
 public:
-  StatisticsInterface(){}
+  virtual ~StatisticsInterface(){}
 
   // Next interface if there are more than one way of processing statistics
   virtual void addNextInterface(StatisticsInterface* next) = 0;
@@ -37,7 +37,7 @@ public:
   virtual void presentPackage(uint32_t peer, QString type) = 0;
 
   // For tracking of encoding bitrate and possibly other information.
-  virtual void addEncodedPacket(QString type, uint16_t size) = 0;
+  virtual void addEncodedPacket(QString type, uint32_t size) = 0;
 
   // Tracking of sent packets
   virtual void addSendPacket(uint16_t size) = 0;
