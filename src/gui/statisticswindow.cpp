@@ -332,7 +332,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
     {
     case 0:
     {
-      uint index = 0;
+      int index = 0;
       for(PeerInfo d : peers_)
       {
         // if this participant has not yet been removed
