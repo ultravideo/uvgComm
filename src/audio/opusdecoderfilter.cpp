@@ -4,8 +4,8 @@
 
 OpusDecoderFilter::OpusDecoderFilter(QString id, QAudioFormat format, StatisticsInterface *stats):
   Filter(id, "Opus_Decoder", stats, OPUSAUDIO, RAWAUDIO),
-  dec_(0),
-  pcmOutput_(0),
+  dec_(nullptr),
+  pcmOutput_(nullptr),
   max_data_bytes_(65536),
   format_(format)
 {
@@ -14,8 +14,11 @@ OpusDecoderFilter::OpusDecoderFilter(QString id, QAudioFormat format, Statistics
 
 OpusDecoderFilter::~OpusDecoderFilter()
 {
-  delete pcmOutput_;
-  pcmOutput_ = 0;
+  if(pcmOutput_)
+  {
+    delete pcmOutput_;
+  }
+  pcmOutput_ = nullptr;
 }
 
 bool OpusDecoderFilter::init()

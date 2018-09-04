@@ -87,12 +87,11 @@ qint64 AudioCaptureDevice::writeData(const char *data, qint64 len)
     const int channelBytes = m_format.sampleSize() / 8;
     const long long sampleBytes = m_format.channelCount() * channelBytes;
     Q_ASSERT(len % sampleBytes == 0);
-    const long long numSamples = len / sampleBytes;
 
     qint64 maxValue = 0;
     const unsigned char *ptr = reinterpret_cast<const unsigned char *>(data);
 
-    for (int i = 0; i < numSamples; ++i) {
+    for (int i = 0; i < len / sampleBytes; ++i) {
       for (int j = 0; j < m_format.channelCount(); ++j) {
         maxValue = qMax(dataToValue(ptr), maxValue);
         ptr += channelBytes;

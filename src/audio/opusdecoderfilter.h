@@ -20,7 +20,7 @@ private:
   OpusDecoder *dec_;
 
   int16_t* pcmOutput_;
-  int32_t max_data_bytes_;
+  uint32_t max_data_bytes_;
 
   QAudioFormat format_;
 };
