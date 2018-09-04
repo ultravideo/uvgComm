@@ -267,9 +267,9 @@ void FilterGraph::checkParticipant(uint32_t sessionID)
     qDebug() << "Filter graph: Adding participant to end with sessionID:" << sessionID;
   }
 
-  peers_.at(sessionID - 1)->output = 0;
-  peers_.at(sessionID - 1)->audioFramedSource = 0;
-  peers_.at(sessionID - 1)->videoFramedSource = 0;
+  peers_.at(sessionID - 1)->output = nullptr;
+  peers_.at(sessionID - 1)->audioFramedSource = nullptr;
+  peers_.at(sessionID - 1)->videoFramedSource = nullptr;
 }
 
 void FilterGraph::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoFramedSource)
@@ -522,7 +522,7 @@ void FilterGraph::destroyPeer(Peer* peer)
     audioSend_.back()->removeOutConnection(peer->audioFramedSource);
     //peer->audioFramedSource is destroyed by RTPStreamer
     changeState(peer->audioFramedSource, false);
-    peer->audioFramedSource = 0;
+    peer->audioFramedSource = nullptr;
 
     if(AEC_ENABLED)
     {
@@ -534,7 +534,7 @@ void FilterGraph::destroyPeer(Peer* peer)
     videoSend_.back()->removeOutConnection(peer->videoFramedSource);
     changeState(peer->videoFramedSource, false);
     //peer->videoFramedSource is destroyed by RTPStreamer
-    peer->videoFramedSource = 0;
+    peer->videoFramedSource = nullptr;
   }
 
   destroyFilters(peer->audioReceive);
@@ -543,7 +543,7 @@ void FilterGraph::destroyPeer(Peer* peer)
   if(peer->output)
   {
     delete peer->output;
-    peer->output = 0;
+    peer->output = nullptr;
   }
   delete peer;
 }
