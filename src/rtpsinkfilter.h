@@ -3,6 +3,8 @@
 
 #include <H265VideoRTPSink.hh>
 
+// Receives RTP packets and sends them forward in filter graph.
+
 class RTPSinkFilter : public Filter, public MediaSink
 {
 public:

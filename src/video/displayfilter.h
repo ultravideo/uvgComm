@@ -11,6 +11,8 @@ public:
 
   void updateSettings();
 
+  // Set whether we should mirror the incoming video depending upon what optimizations do.
+  // Settings can also affect this.
   void setProperties(bool mirrorHorizontal, bool mirrorVertical)
   {
     horizontalMirroring_ = mirrorHorizontal;

@@ -9,6 +9,10 @@
 #include <deque>
 #include <memory>
 
+
+// TODO: this class should be improved to somehow pass info directly to media manager.
+
+
 class GlobalSDPState
 {
 public:

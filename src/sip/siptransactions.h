@@ -46,13 +46,16 @@ public:
 
   void setServerAddress(QString server);
 
+  // start a call with all addresses in the list. Returns generated sessionID:s
   QList<uint32_t> startCall(QList<Contact> addresses);
+
+  // transaction user wants something.
   void acceptCall(uint32_t sessionID);
   void rejectCall(uint32_t sessionID);
   void endCall(uint32_t sessionID);
-
   void endAllCalls();
 
+  // TODO: not yet implemented
   void makeConference();
   void dispandConference();
 
@@ -66,9 +69,11 @@ private slots:
   void connectionEstablished(quint32 transportID, QString localAddress, QString remoteAddress);
   void receiveTCPConnection(TCPConnection* con);
 
+  // when sip connection has received a request/response it is handled here.
   void processSIPRequest(SIPRequest request, quint32 transportID, QVariant& content);
   void processSIPResponse(SIPResponse response, quint32 transportID, QVariant& content);
 
+  // used to send request/response
   void sendRequest(uint32_t sessionID, RequestType type);
   void sendResponse(uint32_t sessionID, ResponseType type, RequestType originalRequest);
 

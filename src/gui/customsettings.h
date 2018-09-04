@@ -18,7 +18,9 @@ class CustomSettings  : public QDialog
 public:
   CustomSettings(QWidget* parent, std::shared_ptr<CameraInfo> info);
 
+  // initializes the custom view
   void init(int deviceID);
+
 
   void changedDevice(uint16_t deviceIndex);
   void resetSettings(int deviceID);
@@ -36,6 +38,7 @@ public slots:
   void on_custom_ok_clicked();
   void on_custom_cancel_clicked();
 
+  // setup the resolution list with values
   void initializeResolutions(int index);
 
 private:

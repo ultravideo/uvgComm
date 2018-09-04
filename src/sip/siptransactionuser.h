@@ -5,8 +5,8 @@
 
 #include "sip/sdptypes.h"
 
-// defines funcions implemented by transaction user (TU). Transaction layers call this
-// to let
+// defines funcions implemented by transaction user (TU). Transaction layer call this
+// to let the program (transactino user) know of changes or messages in SIP Transaction.
 
 
 class SIPTransactionUser

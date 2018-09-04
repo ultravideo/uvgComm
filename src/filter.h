@@ -16,6 +16,11 @@
 #include <memory>
 #include <functional>
 
+// One of the most fundamental classes of Kvazzup. A filter is an indipendent data processing
+// unit running on its own thread. Filters can be linked together to form a data processing pipeline
+// called filter graph. A class inherited from filter can do any sort of processing to the data it
+// receives. The filter sleeps when it does not have any input to process.
+
 enum DataType {NONE = 0, RGB32VIDEO, YUVVIDEO, RAWAUDIO, HEVCVIDEO, OPUSAUDIO};
 enum DataSource {UNKNOWN, LOCAL, REMOTE};
 
@@ -46,6 +51,7 @@ public:
 
   virtual bool init();
 
+  // the settings have been updated. Redefine this if inherited class uses qsettings.
   virtual void updateSettings();
 
   // adds one outbound connection to this filter.

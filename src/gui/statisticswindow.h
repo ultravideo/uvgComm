@@ -22,6 +22,7 @@ public:
   void paintEvent(QPaintEvent *event);
   void closeEvent(QCloseEvent *event);
 
+  // see statisticsInterface for details
   virtual void addNextInterface(StatisticsInterface* next);
   virtual void videoInfo(double framerate, QSize resolution);
   virtual void audioInfo(uint32_t sampleRate, uint16_t channelCount);

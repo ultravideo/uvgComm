@@ -32,7 +32,7 @@ public:
   // functions for managing the GUI
   StatisticsInterface* createStatsWindow();
 
-  // callID identifies the view slot
+  // sessionID identifies the view slot
   void displayOutgoingCall(uint32_t sessionID, QString name);
   void displayRinging(uint32_t sessionID);
   void displayIncomingCall(uint32_t sessionID, QString caller);
@@ -48,8 +48,10 @@ public:
   void setMicState(bool on);
   void setCameraState(bool on);
 
+  // if user closes the window
   void closeEvent(QCloseEvent *event);
 
+  // viewfactory for creating video views.
   std::shared_ptr<VideoviewFactory> getViewFactory() const
   {
     return viewFactory_;
@@ -64,10 +66,9 @@ signals:
   void endCall();
   void closed();
 
+  // user reactions to incoming call.
   void callAccepted(uint32_t sessionID);
   void callRejected(uint32_t sessionID);
-
-  //void kickParticipant();
 
 public slots:
 
@@ -81,6 +82,7 @@ public slots:
 
 private:
 
+  // helper for setting icons to buttons.
   void initButton(QString iconPath, QSize size, QSize iconSize, QPushButton* button);
 
   Ui::CallWindow *ui_;

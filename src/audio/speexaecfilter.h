@@ -6,6 +6,8 @@
 
 #include <QAudioFormat>
 
+// TODO: this does not work well at the moment, should be fixed at some point.
+
 class SpeexAECFilter : public Filter
 {
 public:

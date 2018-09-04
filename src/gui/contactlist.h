@@ -17,14 +17,15 @@ class ContactList : public QObject
 public:
   ContactList();
 
+  // initialize contact list from settings.
   void initializeList(QListWidget *list, ParticipantInterface* interface);
-
-  void sort();
 
 public slots:
 
+  // deletes a name from the list and settings.
   void deleteListItem();
 
+  // show menu for contact list item
   void showContextMenu(const QPoint& pos);
 
   void addContact(ParticipantInterface* interface,
@@ -35,6 +36,7 @@ signals:
 
 private:
 
+  // removes contact from both list and settings. Does not delete item.
   void removeContact(int index);
 
   // called whenever a contact is added
@@ -43,6 +45,7 @@ private:
   // list must be initialized before this
   void addContactToList(ParticipantInterface* interface,
                         QString name, QString username, QString address);
+
 
   void addToWidgetList(ContactListItem* cItem);
 

@@ -25,7 +25,7 @@ public:
   virtual void callToParticipant(QString name, QString username, QString ip);
   virtual void chatWithParticipant(QString name, QString username, QString ip);
 
-  // Call Control Interface userd by SIP
+  // Call Control Interface used by SIP transaction
   virtual bool incomingCall(uint32_t sessionID, QString caller);
   virtual void callRinging(uint32_t sessionID);
   virtual void callRejected(uint32_t sessionID);
@@ -39,13 +39,13 @@ public:
 public slots:  
 
   // reaction to user GUI interactions
-  void updateSettings();
-  void micState();
-  void cameraState();
-  void endTheCall();
-  void windowClosed();
-  void acceptCall(uint32_t sessionID);
-  void rejectCall(uint32_t sessionID);
+  void updateSettings(); // update all the components that use settings
+  void micState();       // change mic state
+  void cameraState();    // change camera state
+  void endTheCall();     // user wants to end the call
+  void windowClosed();   // user has closed the window
+  void acceptCall(uint32_t sessionID); // user has accepted the incoming call
+  void rejectCall(uint32_t sessionID); // user has rejected the incoming call
 
 private slots:
 

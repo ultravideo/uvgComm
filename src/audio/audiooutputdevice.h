@@ -22,7 +22,7 @@ public:
 
   // read data from buffer
   qint64 readData(char *data, qint64 maxlen);
-  qint64 writeData(const char *data, qint64 len); // unused
+  qint64 writeData(const char *data, qint64 len); // does nothing
   qint64 bytesAvailable() const;
 
   // Receives input from filter graph and tells output that there is input available

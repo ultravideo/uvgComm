@@ -5,6 +5,9 @@
 #include <QTimer>
 #include <QObject>
 
+// A class for handling all sent requests and processing responses.
+// see RFC 3261 for more details.
+
 class SIPTransactionUser;
 
 class SIPClientTransaction : public QObject
@@ -15,26 +18,33 @@ public:
 
   void init(SIPTransactionUser* tu, uint32_t sessionID);
 
+  // have we sent this kind of request
   bool waitingResponse(RequestType requestType)
   {
     return ongoingTransactionType_ == requestType
         && requestType != SIP_UNKNOWN_REQUEST;
   }
 
+  // constructs the SIP message info struct as much as possible
   void getRequestMessageInfo(RequestType type,
                              std::shared_ptr<SIPMessageInfo> &outMessage);
 
-  //processes incoming response. Part of our client transaction
+  // processes incoming response. Part of our client transaction
   // returns whether we should destroy the dialog
   bool processResponse(SIPResponse& response);
+
+  // Not implemented. Should be used to notify transaction that there was an error with response.
   void wrongResponseDestination();
   void malformedResponse();
   void responseIsError();
 
+  // send a request
   bool startCall();
   void endCall();
   void registerToServer();
 
+  // inform this transaction that the connection it is associated with has been established
+  // sends pending requests.
   void connectionReady(bool ready);
 
 signals:

@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <QImage>
 
 #include <memory>
@@ -18,6 +17,7 @@ class VideoInterface
 public:
   virtual ~VideoInterface(){}
 
+  // set stats to use with this video view.
   virtual void setStats(StatisticsInterface* stats) = 0;
 
   // Takes ownership of the image data

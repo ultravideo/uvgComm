@@ -141,7 +141,7 @@ void FramedSourceFilter::stop()
   {
     qDebug() << "Unscheduling delayed task from live555:" << currentTask_;
     envir().taskScheduler().unscheduleDelayedTask(currentTask_);
-    currentTask_ = 0;
+    currentTask_ = nullptr;
   }
 
 }

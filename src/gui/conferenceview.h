@@ -18,10 +18,11 @@ class QWidget;
 class QLayoutItem;
 class VideoviewFactory;
 
-
 namespace Ui {
 class CallerWidget;
 }
+
+// TODO: the view algorithm should be improved somehow to be nicer.
 
 class ConferenceView : public QObject
 {
@@ -29,8 +30,10 @@ class ConferenceView : public QObject
 public:
   ConferenceView(QWidget *parent);
 
+  // init layout
   void init(QGridLayout* conferenceLayout, QWidget* layoutwidget);
 
+  // showing information to user and reserving the slot in view.
   void callingTo(uint32_t sessionID, QString name);
   void ringing(uint32_t sessionID);
   void incomingCall(uint32_t sessionID, QString name);
@@ -41,8 +44,6 @@ public:
   // if our call is accepted or we accepted their call
   void addVideoStream(uint32_t sessionID, std::shared_ptr<VideoviewFactory> factory);
 
-  void declineCall();
-
   // return whether there are still participants left in call view
   bool removeCaller(uint32_t sessionID);
 
@@ -50,6 +51,7 @@ public:
 
 signals:
 
+  // user clicks a button in view.
   void acceptCall(uint32_t sessionID);
   void rejectCall(uint32_t sessionID);
 
@@ -60,6 +62,7 @@ public slots:
 
 private slots:
 
+  // slots for accept/rejectu buttons. The invoker is searched.
   void accept();
   void reject();
 

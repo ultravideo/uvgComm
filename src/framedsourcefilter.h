@@ -5,6 +5,9 @@
 #include <QMutex>
 #include <QSemaphore>
 
+
+// This is the first step in sending data using RTP. Rest of the steps are inside live555.
+
 class StatisticsInterface;
 
 class FramedSourceFilter : public FramedSource, public Filter
@@ -26,18 +29,20 @@ public:
     return type_ == HEVCVIDEO;
   }
 
-  void sendComplete();
-
   virtual void start();
   virtual void stop();
 protected:
   void process();
 
+  // FramedSource function.
   virtual void doStopGettingFrames();
 
 private:
 
+  // copy the frame to FramedSource buffer
   void copyFrameToBuffer(std::unique_ptr<Data> currentFrame);
+
+  // send frame over the network.
   void sendFrame();
 
 

@@ -8,6 +8,10 @@
 
 #include <memory>
 
+// SIP Transportation layer. Use separate connection class to actually send the messages.
+// This class primarily deals with checking that the incoming messages are valid, parsing them
+// and composing outgoing messages.
+
 class SIPTransport : public QObject
 {
   Q_OBJECT
@@ -22,7 +26,7 @@ public:
   void incomingTCPConnection(std::shared_ptr<TCPConnection> con);
   void destroyConnection();
 
-  // sending messages
+  // sending SIP messages
   void sendRequest(SIPRequest &request, QVariant& content);
   void sendResponse(SIPResponse &response, QVariant& content);
 

@@ -24,7 +24,6 @@ CameraFilter::~CameraFilter()
   delete cameraFrameGrabber_;
 }
 
-
 bool CameraFilter::init()
 {
   QList<QCameraInfo> cameras = QCameraInfo::availableCameras();

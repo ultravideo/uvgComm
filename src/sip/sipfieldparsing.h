@@ -1,12 +1,12 @@
 #pragma once
 
-/* A module for parsing various parts of SIP message. When adding support for a new field, add function here
-and add a pointer to the map in siptransport.cpp. */
+/* A module for parsing various parts of SIP message. When adding support for a new field,
+ * add function here and add a pointer to the map in siptransport.cpp. */
 
 #include "siptypes.h"
 
-// parsing of individual header fields, but not the first line.
-// returns whther the parsing was successful.
+// parsing of individual header fields to SDPMessage, but not the first line.
+// returns whether the parsing was successful.
 
 bool parseToField(SIPField& field,
                   std::shared_ptr<SIPMessageInfo> message);
@@ -36,7 +36,11 @@ bool parseContentLengthField(SIPField& field,
                   std::shared_ptr<SIPMessageInfo> message);
 
 
+
+
+// tell whether a particular field is present in list.
 bool isLinePresent(QString name, QList<SIPField> &fields);
 
 // takes the parameter string (name=value) and parses it to SIPParameter
+// used by parse functions.
 bool parseParameter(QString text, SIPParameter& parameter);

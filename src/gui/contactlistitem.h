@@ -4,6 +4,8 @@
 #include <QHBoxLayout>
 #include <QLabel>
 
+//user to store data associated with a contact list entity
+
 class ParticipantInterface;
 
 class ContactListItem : public QWidget
@@ -12,6 +14,7 @@ class ContactListItem : public QWidget
 public:
   ContactListItem(QString name, QString username, QString ip);
 
+  // get data values
   QString getName();
   QString getUserName();
   QString getAddress();

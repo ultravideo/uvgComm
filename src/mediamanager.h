@@ -6,13 +6,16 @@
 #include <memory>
 #include <map>
 
-
-
 #ifndef _MSC_VER
 #include <inaddr.h>
 #else
 #include <WinSock2.h>
 #endif
+
+
+// Manages the Media delivery and Media Processing and the interaction between the two
+// especially during construction.
+
 
 class VideoviewFactory;
 class StatisticsInterface;
@@ -39,12 +42,14 @@ public:
   // registers a contact for activity monitoring
   void registerContact(in_addr ip);
 
+  // TODO: This should be replaced by SDP processing.
   void addParticipant(uint32_t sessionID, in_addr ip, uint16_t sendAudioPort, uint16_t recvAudioPort,
                       uint16_t sendVideoPort, uint16_t recvVideoPort);
 
   void removeParticipant(uint32_t sessionID);
   void endAllCalls();
 
+  // Functions that enable using Kvazzup as just a streming client for whatever reason.
   void streamToIP(in_addr ip, uint16_t port);
   void receiveFromIP(in_addr ip, uint16_t port);
 

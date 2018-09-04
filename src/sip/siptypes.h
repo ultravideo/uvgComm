@@ -98,7 +98,8 @@ struct ViaInfo
   QString branch;
 };
 
-struct SIP_URI // usually in format: "realname <sip:username@host>". realname optional
+// usually in format: "realname <sip:username@host>". realname may be empty and should be omitted if so
+struct SIP_URI
 {
   QString username;
   QString realname;
@@ -113,8 +114,8 @@ struct ContentInfo
   uint32_t length;  // set by SIPTransport
 };
 
-/* notes on expansion of the SIP structures such as SIPDialog, SIPMessage, SIPRequest and SIPResponse
- * with new sipmessage extensions.
+/* notes on expansion of the SIP structures such as SIPDialogInfo, SIPMessageInfo, SIPRequest and SIPResponse
+ * with new SIP message extensions.
 
  * If you want to add support for a new parameter to SIP message:
  * 1) add the parameter to desired struct,

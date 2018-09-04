@@ -6,6 +6,8 @@
 #include <QHostAddress>
 #include <QDnsLookup>
 
+// Send STUN packets and process replies.
+
 class Stun : public QObject
 {
   Q_OBJECT

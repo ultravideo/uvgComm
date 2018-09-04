@@ -2,6 +2,8 @@
 
 #include <sip/siptypes.h>
 
+// various helper functions associated with SIP
+
 // request and string
 RequestType stringToRequest(QString request);
 QString requestToString(RequestType request);

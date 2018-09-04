@@ -26,6 +26,7 @@ public:
   void sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioFramedSource);
   void receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> audioSink);
 
+  // removes participant and all its associated filter from filter graph.
   void removeParticipant(uint32_t sessionID);
   void removeAllParticipants();
 
@@ -33,8 +34,10 @@ public:
   void camera(bool state);
   void running(bool state);
 
+  // print the filter graph to a dot file to be drawn as a graph
   void print();
 
+  // Refresh settings of all filters from QSettings.
   void updateSettings();
 
 private:
@@ -71,11 +74,10 @@ private:
     AudioOutput* output; // plays audio coming from this peer
   };
 
+  // destroy all filters associated with this peer.
   void destroyPeer(Peer* peer);
 
   void destroyFilters(std::vector<std::shared_ptr<Filter>>& filters);
-
-  void deconstruct();
 
   unsigned int camera_;
   unsigned int kvazaar_;

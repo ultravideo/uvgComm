@@ -9,6 +9,8 @@
 enum SDPAttribute {A_SENDRECV, A_SENDONLY, A_RECVONLY, A_INACTIVE};
 
 /* SDP message info structs */
+
+// RTP stream info
 struct RTPMap
 {
   uint16_t rtpNum;
@@ -16,6 +18,7 @@ struct RTPMap
   QString codec;
 };
 
+// SDP media info
 struct MediaInfo
 {
   QString type;
@@ -31,6 +34,8 @@ struct MediaInfo
   SDPAttribute activity;
 };
 
+
+// Session Description Protocol message data
 struct SDPMessageInfo
 {
   uint8_t version; //v=

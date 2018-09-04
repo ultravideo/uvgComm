@@ -4,6 +4,8 @@
 
 #include <QSize>
 
+// A filter that can scale video frame.
+
 class ScaleFilter : public Filter
 {
 public:

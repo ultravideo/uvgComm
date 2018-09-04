@@ -13,6 +13,9 @@
 #include <deque>
 #include <memory>
 
+
+// TODO: duplicate code in this and videowidget.
+
 class StatisticsInterface;
 
 class VideoGLWidget : public QOpenGLWidget, public VideoInterface
@@ -40,6 +43,8 @@ signals:
 
   void newImage();
 protected:
+
+  // QOpenGLwidget events
   void paintEvent(QPaintEvent *event);
   void resizeEvent(QResizeEvent *event);
   void keyPressEvent(QKeyEvent *event);
@@ -48,6 +53,7 @@ protected:
 
 private:
 
+  // update the rect in case the window or input has changed.
   void updateTargetRect();
 
   void enterFullscreen();

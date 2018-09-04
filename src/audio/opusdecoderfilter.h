@@ -10,9 +10,12 @@ public:
   OpusDecoderFilter(QString id, QAudioFormat format, StatisticsInterface* stats);
   ~OpusDecoderFilter();
 
+  // setups decoder
   virtual bool init();
 
 protected:
+
+  // decodes input until buffer is empty
   void process();
 
 private:

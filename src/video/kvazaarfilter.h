@@ -25,8 +25,10 @@ protected:
 
 private:
 
+  // copy the frame data to kvazaar input in suitable format.
   void feedInput(std::unique_ptr<Data> input);
 
+  // parse the encoded frame and send it forward.
   void parseEncodedFrame(kvz_data_chunk *data_out, uint32_t len_out,
                          kvz_picture *recon_pic);
 

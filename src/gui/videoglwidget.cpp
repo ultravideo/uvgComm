@@ -9,7 +9,7 @@
 #include <QKeyEvent>
 #include <QLayout>
 
-uint16_t GLVIEWBUFFERSIZE = 5;
+const uint16_t GLVIEWBUFFERSIZE = 5;
 
 VideoGLWidget::VideoGLWidget(QWidget* parent, uint32_t sessionID, uint8_t borderSize)
   : QOpenGLWidget(parent),
@@ -131,7 +131,7 @@ void VideoGLWidget::paintEvent(QPaintEvent *event)
 void VideoGLWidget::resizeEvent(QResizeEvent *event)
 {
   qDebug() << "VideoGLWidget resizeEvent:" << sessionID_;
-  QOpenGLWidget::resizeEvent(event);
+  QOpenGLWidget::resizeEvent(event); // its important to call this resize function, not the qwidget one.
   updateTargetRect();
 }
 

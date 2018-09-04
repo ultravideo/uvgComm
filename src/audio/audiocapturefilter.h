@@ -17,17 +17,20 @@ public:
   AudioCaptureFilter(QString id, QAudioFormat format, StatisticsInterface* stats);
   virtual ~AudioCaptureFilter();
 
-  virtual bool init();
-  virtual void start();
-  virtual void stop();
+  virtual bool init(); // setups audio device and parameters.
+  virtual void start(); // resumes audio input
+  virtual void stop(); // suspends audio input
 
 protected:
 
+  // this does nothing. ReadMore does the sending of
   void process();
 
 private slots:
 
+  // reads audio sample data
   void readMore();
+
   void volumeChanged(int value);
 
 private:

@@ -8,6 +8,9 @@ bool getFirstResponseLine(QString& line, SIPResponse& response, QString lineEndi
 
 // RFC3261_TODO: Accept header would be nice
 
+// These functions work as follows: Create a field based on necessary info
+// from the message and add the field to list. Later the fields are converted to string.
+
 bool includeToField(QList<SIPField>& fields,
                     std::shared_ptr<SIPMessageInfo> message);
 

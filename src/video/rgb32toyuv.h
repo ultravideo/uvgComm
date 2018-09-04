@@ -1,6 +1,9 @@
 #pragma once
 #include "filter.h"
 
+// converts the RGB32 video frame to and YUV420 frame. May use optimizations.
+
+
 class RGB32toYUV : public Filter
 {
 public:

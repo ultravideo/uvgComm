@@ -9,7 +9,7 @@
 #include <QKeyEvent>
 #include <QLayout>
 
-uint16_t VIEWBUFFERSIZE = 5;
+const uint16_t VIEWBUFFERSIZE = 5;
 
 VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID, uint8_t borderSize)
   : QFrame(parent),

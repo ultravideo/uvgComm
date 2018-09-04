@@ -4,6 +4,8 @@
 
 #include <map>
 
+// handles creating and managing the view components.
+
 class QWidget;
 class VideoInterface;
 class ConferenceView;
@@ -17,9 +19,10 @@ public:
   // the interface signal connected for some reason.
   void createWidget(uint32_t sessionID, QWidget* parent, ConferenceView* conf);
 
+  // set self view which is part of the
   void setSelfview(VideoInterface* video, QWidget* view);
 
-  // 0 is for selfview
+  // nullptr is for selfview
   QWidget* getView(uint32_t sessionID);
 
   VideoInterface* getVideo(uint32_t sessionID);

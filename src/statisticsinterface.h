@@ -5,6 +5,9 @@
 #include <map>
 #include <stdint.h>
 
+// An interface where the program tells various statistics of its operations.
+// Can be used to show the statistics in window or to record the statistics to a file.
+
 class StatisticsInterface
 {
 public:

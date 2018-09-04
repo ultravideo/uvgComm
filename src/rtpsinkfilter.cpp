@@ -31,7 +31,7 @@ void RTPSinkFilter::uninit()
   }
   qDebug() << "Deleting RTPSink:" << name_ << "type:" << type_;
   delete fReceiveBuffer;
-  fReceiveBuffer = 0;
+  fReceiveBuffer = nullptr;
 }
 
 void RTPSinkFilter::afterGettingFrame(void* clientData,

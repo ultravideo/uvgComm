@@ -15,8 +15,8 @@ public:
   virtual ~AudioOutput();
 
   void initializeAudio(QAudioFormat format);
-  void start();
-  void stop();
+  void start(); // resume audio output
+  void stop(); // suspend audio output
 
   AudioOutputDevice* getOutputModule() {
     return source_;
