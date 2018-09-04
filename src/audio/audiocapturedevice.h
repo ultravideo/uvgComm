@@ -19,8 +19,11 @@ public:
     qint64 writeData(const char *data, qint64 len);
 
 private:
+
+    qint64 dataToValue(const unsigned char *ptr);
+
     const QAudioFormat m_format;
-    qint32 m_maxAmplitude;
+    qint64 m_maxAmplitude;
     qreal m_level; // 0.0 <= m_level <= 1.0
 
 };

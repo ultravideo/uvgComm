@@ -38,7 +38,7 @@ AudioCaptureDevice::AudioCaptureDevice(const QAudioFormat &format, QObject *pare
   case 32:
     switch (m_format.sampleType()) {
     case QAudioFormat::UnSignedInt:
-      m_maxAmplitude = 0xffffffff;
+      m_maxAmplitude = 0xffffffff; // this is why we need 64 bits instead of 32
       break;
     case QAudioFormat::SignedInt:
       m_maxAmplitude = 0x7fffffff;
@@ -89,43 +89,12 @@ qint64 AudioCaptureDevice::writeData(const char *data, qint64 len)
     Q_ASSERT(len % sampleBytes == 0);
     const long long numSamples = len / sampleBytes;
 
-    qint32 maxValue = 0;
+    qint64 maxValue = 0;
     const unsigned char *ptr = reinterpret_cast<const unsigned char *>(data);
 
     for (int i = 0; i < numSamples; ++i) {
       for (int j = 0; j < m_format.channelCount(); ++j) {
-        qint32 value = 0;
-
-        if (m_format.sampleSize() == 8 && m_format.sampleType() == QAudioFormat::UnSignedInt) {
-          value = *reinterpret_cast<const quint8*>(ptr);
-        } else if (m_format.sampleSize() == 8 && m_format.sampleType() == QAudioFormat::SignedInt) {
-          value = qAbs(*reinterpret_cast<const qint8*>(ptr));
-        } else if (m_format.sampleSize() == 16 && m_format.sampleType() == QAudioFormat::UnSignedInt) {
-          if (m_format.byteOrder() == QAudioFormat::LittleEndian)
-            value = qFromLittleEndian<quint16>(ptr);
-          else
-            value = qFromBigEndian<quint16>(ptr);
-        } else if (m_format.sampleSize() == 16 && m_format.sampleType() == QAudioFormat::SignedInt) {
-          if (m_format.byteOrder() == QAudioFormat::LittleEndian)
-            value = qAbs(qFromLittleEndian<qint16>(ptr));
-          else
-            value = qAbs(qFromBigEndian<qint16>(ptr));
-        } else if (m_format.sampleSize() == 32 && m_format.sampleType() == QAudioFormat::UnSignedInt) {
-          if (m_format.byteOrder() == QAudioFormat::LittleEndian)
-            value = qFromLittleEndian<qint32>(ptr);
-          else
-            value = qFromBigEndian<qint32>(ptr);
-        } else if (m_format.sampleSize() == 32 && m_format.sampleType() == QAudioFormat::SignedInt) {
-          if (m_format.byteOrder() == QAudioFormat::LittleEndian)
-            value = qAbs(qFromLittleEndian<qint32>(ptr));
-          else
-            value = qAbs(qFromBigEndian<qint32>(ptr));
-        } else if (m_format.sampleSize() == 32 && m_format.sampleType() == QAudioFormat::Float) {
-          // gives the absolute number, expands it and converts the type to int32
-          value = static_cast<qint32>(qAbs(*reinterpret_cast<const float*>(ptr) * 0x7fffffff)); // assumes 0-1.0
-        }
-
-        maxValue = qMax(value, maxValue);
+        maxValue = qMax(dataToValue(ptr), maxValue);
         ptr += channelBytes;
       }
     }
@@ -135,4 +104,67 @@ qint64 AudioCaptureDevice::writeData(const char *data, qint64 len)
   }
 
   return len;
+}
+
+qint64 AudioCaptureDevice::dataToValue(const unsigned char *ptr)
+{
+  qint64 value = 0;
+  if (m_format.sampleSize() == 8 && m_format.sampleType() == QAudioFormat::UnSignedInt)
+  {
+    value = *reinterpret_cast<const quint8*>(ptr);
+  }
+  else if (m_format.sampleSize() == 8 && m_format.sampleType() == QAudioFormat::SignedInt)
+  {
+    value = qAbs(*reinterpret_cast<const qint8*>(ptr));
+  }
+  else if (m_format.sampleSize() == 16 && m_format.sampleType() == QAudioFormat::UnSignedInt)
+  {
+    if (m_format.byteOrder() == QAudioFormat::LittleEndian)
+    {
+      value = qFromLittleEndian<quint16>(ptr);
+    }
+    else
+    {
+      value = qFromBigEndian<quint16>(ptr);
+    }
+  }
+  else if (m_format.sampleSize() == 16 && m_format.sampleType() == QAudioFormat::SignedInt)
+  {
+    if (m_format.byteOrder() == QAudioFormat::LittleEndian)
+    {
+      value = qAbs(qFromLittleEndian<qint16>(ptr));
+    }
+    else
+    {
+      value = qAbs(qFromBigEndian<qint16>(ptr));
+    }
+  }
+  else if (m_format.sampleSize() == 32 && m_format.sampleType() == QAudioFormat::UnSignedInt)
+  {
+    if (m_format.byteOrder() == QAudioFormat::LittleEndian)
+    {
+      value = qFromLittleEndian<qint32>(ptr);
+    }
+    else
+    {
+      value = qFromBigEndian<qint32>(ptr);
+    }
+  }
+  else if (m_format.sampleSize() == 32 && m_format.sampleType() == QAudioFormat::SignedInt)
+  {
+    if (m_format.byteOrder() == QAudioFormat::LittleEndian)
+    {
+      value = qAbs(qFromLittleEndian<qint32>(ptr));
+    }
+    else
+    {
+      value = qAbs(qFromBigEndian<qint32>(ptr));
+    }
+  }
+  else if (m_format.sampleSize() == 32 && m_format.sampleType() == QAudioFormat::Float)
+  {
+    // gives the absolute number, expands it and converts the type to int32
+    value = static_cast<qint32>(qAbs(*reinterpret_cast<const float*>(ptr) * 0x7fffffff)); // assumes 0-1.0
+  }
+  return value;
 }
