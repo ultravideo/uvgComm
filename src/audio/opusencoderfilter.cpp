@@ -10,8 +10,8 @@ const uint16_t FRAMESPERSECOND = 25;
 
 OpusEncoderFilter::OpusEncoderFilter(QString id, QAudioFormat format, StatisticsInterface* stats):
   Filter(id, "Opus_Encoder", stats, RAWAUDIO, OPUSAUDIO),
-  enc_(0),
-  opusOutput_(0),
+  enc_(nullptr),
+  opusOutput_(nullptr),
   max_data_bytes_(65536),
   format_(format),
   numberOfSamples_(0)
@@ -22,9 +22,9 @@ OpusEncoderFilter::OpusEncoderFilter(QString id, QAudioFormat format, Statistics
 OpusEncoderFilter::~OpusEncoderFilter()
 {
   opus_encoder_destroy(enc_);
-  enc_ = 0;
+  enc_ = nullptr;
   delete opusOutput_;
-  opusOutput_ = 0;
+  opusOutput_ = nullptr;
 }
 
 bool OpusEncoderFilter::init()

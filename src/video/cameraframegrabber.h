@@ -9,7 +9,7 @@ class CameraFrameGrabber : public QAbstractVideoSurface
 {
   Q_OBJECT
 public:
-  explicit CameraFrameGrabber(QObject *parent = 0);
+  explicit CameraFrameGrabber(QObject *parent = nullptr);
 
   QList<QVideoFrame::PixelFormat>
   supportedPixelFormats(QAbstractVideoBuffer::HandleType handleType) const;
