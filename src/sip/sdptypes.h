@@ -13,7 +13,7 @@ enum SDPAttribute {A_SENDRECV, A_SENDONLY, A_RECVONLY, A_INACTIVE};
 // RTP stream info
 struct RTPMap
 {
-  uint16_t rtpNum;
+  uint8_t rtpNum;
   uint32_t clockFrequency;
   QString codec;
 };
@@ -21,10 +21,10 @@ struct RTPMap
 // SDP media info
 struct MediaInfo
 {
-  QString type;
+  QString type; // for example audio or video or text
   uint16_t receivePort; // rtcp reports are sent to +1
   QString proto;
-  uint16_t rtpNum;
+  QList<uint8_t> rtpNums;
   QString nettype;
   QString addrtype;
   QString address;
@@ -33,7 +33,6 @@ struct MediaInfo
 
   SDPAttribute activity;
 };
-
 
 // Session Description Protocol message data
 struct SDPMessageInfo

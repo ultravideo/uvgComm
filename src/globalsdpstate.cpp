@@ -82,6 +82,7 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP(QHostAddress localAd
   video.type = "video";
   audio.receivePort = nextAvailablePortPair();
   video.receivePort = nextAvailablePortPair();
+
   if(audio.receivePort == 0 || video.receivePort == 0)
   {
     makePortPairAvailable(audio.receivePort);
@@ -91,21 +92,28 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP(QHostAddress localAd
   }
   audio.proto = "RTP/AVP";
   video.proto = "RTP/AVP";
-  audio.rtpNum = 96;
-  video.rtpNum = 97;
+
   // we ignore nettype, addrtype and address, because we have a global c=
 
-  RTPMap a_rtp;
-  RTPMap v_rtp;
-  a_rtp.rtpNum = 96;
-  v_rtp.rtpNum = 97;
-  a_rtp.clockFrequency = 48000; // opus is always 48000, even if the actual sample rate is lower
-  v_rtp.clockFrequency = 90000;
-  a_rtp.codec = "opus";
-  v_rtp.codec = "h265";
+  audio.codecs = parameters_.audioCodecs();
+  video.codecs = parameters_.videoCodecs();
 
-  audio.codecs.push_back(a_rtp);
-  video.codecs.push_back(v_rtp);
+  // add all the dynamic numbers first because we want to favor dynamic type codecs.
+  for(RTPMap codec : audio.codecs)
+  {
+    audio.rtpNums.push_back(codec.rtpNum);
+  }
+
+  audio.rtpNums += parameters_.audioPayloadTypes();
+
+  for(RTPMap codec : video.codecs)
+  {
+    video.rtpNums.push_back(codec.rtpNum);
+  }
+
+  // just for completeness, we will probably never support any of the pre-set video types.
+  video.rtpNums += parameters_.videoPayloadTypes();
+
   audio.activity = A_SENDRECV;
   video.activity = A_SENDRECV;
 

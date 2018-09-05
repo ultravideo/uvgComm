@@ -47,8 +47,14 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
   for(auto mediaStream : sdpInfo.media)
   {
     sdp += "m=" + mediaStream.type + " " + QString::number(mediaStream.receivePort)
-        + " " + mediaStream.proto + " " + QString::number(mediaStream.rtpNum)
-        + lineEnd;
+        + " " + mediaStream.proto;
+
+    for(uint8_t rtpNum : mediaStream.rtpNums)
+    {
+      sdp += " " + QString::number(rtpNum);
+    }
+    sdp += lineEnd;
+
     if(!mediaStream.nettype.isEmpty())
     {
       sdp += "c=" + mediaStream.nettype + " " + mediaStream.addrtype + " "
@@ -144,13 +150,31 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
       case 'm':
       {
         MediaInfo mediaInfo;
+
+        // TODO: horrible code, should do something about it someday
         if(!checkSDPLine(words, 4, mediaInfo.type))
-          return false;
+        {
+          if(!checkSDPLine(words, 5, mediaInfo.type))
+          {
+            if(!checkSDPLine(words, 6, mediaInfo.type))
+            {
+              if(!checkSDPLine(words, 7, mediaInfo.type))
+              {
+                // this should go on forever, but we now support only 4 codec types per media.
+                return false;
+              }
+            }
+          }
+        }
 
         bool mediaContact = false;
         mediaInfo.receivePort = words.at(1).toUInt();
         mediaInfo.proto = words.at(2);
-        mediaInfo.rtpNum = words.at(3).toUInt();
+
+        for(unsigned int i = 3; i < words.size(); ++i)
+        {
+          mediaInfo.rtpNums.push_back(words.at(i).toUShort());
+        }
 
         qDebug() << "Media found with type:" << mediaInfo.type;
 
