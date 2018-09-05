@@ -70,8 +70,8 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP(QHostAddress localAd
 
   newInfo->host_address = localAddress.toString();
 
-  newInfo->sessionName = " ";
-  newInfo->sessionDescription = "A Kvazzup Video Conference";
+  newInfo->sessionName = parameters_.sessionName();
+  newInfo->sessionDescription = parameters_.sessionDescription();
 
   newInfo->connection_address = localAddress.toString();
   newInfo->connection_nettype = "IN";
@@ -99,7 +99,7 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP(QHostAddress localAd
   RTPMap v_rtp;
   a_rtp.rtpNum = 96;
   v_rtp.rtpNum = 97;
-  a_rtp.clockFrequency = 48000; //TODO: get this from audio settings.
+  a_rtp.clockFrequency = 48000; // opus is always 48000, even if the actual sample rate is lower
   v_rtp.clockFrequency = 90000;
   a_rtp.codec = "opus";
   v_rtp.codec = "h265";

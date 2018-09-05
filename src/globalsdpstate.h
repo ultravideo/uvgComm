@@ -2,6 +2,7 @@
 
 //#include "sip/siptypes.h"
 #include "sip/sdptypes.h"
+#include "sdpparametermanager.h"
 
 #include <QHostAddress>
 #include <QMutex>
@@ -9,8 +10,7 @@
 #include <deque>
 #include <memory>
 
-
-// TODO: this class should be improved to somehow pass info directly to media manager.
+// This class holds the stat
 
 
 class GlobalSDPState
@@ -61,4 +61,6 @@ private:
   QMutex portLock_;
   //keeps a list of all available ports. Has only every other port because of rtcp
   std::deque<uint16_t> availablePorts_;
+
+  SDPParameterManager parameters_;
 };

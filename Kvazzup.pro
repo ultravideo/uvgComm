@@ -78,7 +78,8 @@ SOURCES +=\
     src/video/camerainfo.cpp \
     src/gui/customsettings.cpp \
     src/gui/videoviewfactory.cpp \
-    src/gui/videoglwidget.cpp
+    src/gui/videoglwidget.cpp \
+    src/sdpparametermanager.cpp
 
 HEADERS  += \
     src/filter.h \
@@ -142,7 +143,8 @@ HEADERS  += \
     src/gui/customsettings.h \
     src/gui/videointerface.h \
     src/gui/videoviewfactory.h \
-    src/gui/videoglwidget.h
+    src/gui/videoglwidget.h \
+    src/sdpparametermanager.h
 
 FORMS    += \
     ui/callwindow.ui \
