@@ -6,7 +6,10 @@
 #include "framedsourcefilter.h"
 #include "rtpsinkfilter.h"
 #include "gui/videoviewfactory.h"
+#include "sip/sdptypes.h"
 
+#include <QHostAddress>
+#include <QtEndian>
 #include <QDebug>
 
 MediaManager::MediaManager():
@@ -51,9 +54,77 @@ void MediaManager::updateSettings()
   fg_->mic(mic_);
 }
 
-void MediaManager::addParticipant(uint32_t sessionID, in_addr ip, uint16_t sendAudioPort, uint16_t recvAudioPort,
-                                  uint16_t sendVideoPort, uint16_t recvVideoPort)
+void MediaManager::createOutgoingMedia(uint32_t sessionID, const std::shared_ptr<SDPMessageInfo> peerInfo)
 {
+  uint16_t sendAudioPort = 0;
+  uint16_t sendVideoPort = 0;
+
+  for(auto media : peerInfo->media)
+  {
+    if(media.type == "audio" && sendAudioPort == 0)
+    {
+      sendAudioPort = media.receivePort;
+    }
+    else if(media.type == "video" && sendVideoPort == 0)
+    {
+      sendVideoPort = media.receivePort;
+    }
+  }
+
+  if(sendAudioPort == 0 || sendVideoPort == 0)
+  {
+    qWarning() << "ERROR: Faulty peerInfo at mediamanager createOutgoingStreams";
+    return;
+  }
+
+  std::shared_ptr<Filter> audioFramedSource = streamer_->addSendAudio(sessionID, sendAudioPort);
+  fg_->sendAudioTo(sessionID, std::shared_ptr<Filter>(audioFramedSource));
+
+  std::shared_ptr<Filter> videoFramedSource = streamer_->addSendVideo(sessionID, sendVideoPort);
+  fg_->sendVideoto(sessionID, std::shared_ptr<Filter>(videoFramedSource));
+
+}
+
+void MediaManager::createIncomingMedia(uint32_t sessionID, const std::shared_ptr<SDPMessageInfo> localInfo)
+{
+  uint16_t recvAudioPort = 0;
+  uint16_t recvVideoPort = 0;
+
+  for(auto media : localInfo->media)
+  {
+    if(media.type == "audio" && recvAudioPort == 0)
+    {
+      recvAudioPort = media.receivePort;
+    }
+    else if(media.type == "video" && recvVideoPort == 0)
+    {
+      recvVideoPort = media.receivePort;
+    }
+  }
+
+  if(recvAudioPort == 0 || recvVideoPort == 0)
+  {
+    qWarning() << "ERROR: Faulty peerInfo at mediamanager createOutgoingStreams";
+    return;
+  }
+
+
+  std::shared_ptr<Filter> videoSink = streamer_->addReceiveVideo(sessionID, recvVideoPort);
+  std::shared_ptr<Filter> audioSink = streamer_->addReceiveAudio(sessionID, recvAudioPort);
+
+  fg_->receiveVideoFrom(sessionID, std::shared_ptr<Filter>(videoSink), viewfactory_->getVideo(sessionID));
+  fg_->receiveAudioFrom(sessionID, std::shared_ptr<Filter>(audioSink));
+}
+
+void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> peerInfo,
+                    const std::shared_ptr<SDPMessageInfo> localInfo)
+{
+  QHostAddress address;
+  address.setAddress(peerInfo->connection_address);
+
+  in_addr ip;
+  ip.S_un.S_addr = qToBigEndian(address.toIPv4Address());
+
   // Open necessary ports and create filters for sending and receiving
   if(!streamer_->addPeer(ip, sessionID))
   {
@@ -61,23 +132,12 @@ void MediaManager::addParticipant(uint32_t sessionID, in_addr ip, uint16_t sendA
     return;
   }
 
-  qDebug() << "Creating connections for ID:" << sessionID;
-  std::shared_ptr<Filter> videoFramedSource = streamer_->addSendVideo(sessionID, sendVideoPort);
-  std::shared_ptr<Filter> videoSink = streamer_->addReceiveVideo(sessionID, recvVideoPort);
-  std::shared_ptr<Filter> audioFramedSource = streamer_->addSendAudio(sessionID, sendAudioPort);
-  std::shared_ptr<Filter> audioSink = streamer_->addReceiveAudio(sessionID, recvAudioPort);
-
-  qDebug() << "Modifying filter graph for ID:" << sessionID;
-  // create filter graphs for this participant
-  fg_->sendVideoto(sessionID, std::shared_ptr<Filter>(videoFramedSource));
-  fg_->receiveVideoFrom(sessionID, std::shared_ptr<Filter>(videoSink), viewfactory_->getVideo(sessionID));
-  fg_->sendAudioTo(sessionID, std::shared_ptr<Filter>(audioFramedSource));
-  fg_->receiveAudioFrom(sessionID, std::shared_ptr<Filter>(audioSink));
-
-  qDebug() << " ================== Participant added with ID:" << sessionID << "===========================";
+  createOutgoingMedia(sessionID, peerInfo);
+  createIncomingMedia(sessionID, localInfo);
 
   fg_->print();
 }
+
 
 void MediaManager::removeParticipant(uint32_t sessionID)
 {

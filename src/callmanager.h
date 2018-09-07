@@ -54,11 +54,6 @@ private slots:
 
 private:
 
-  // TODO: Move this to media manager.
-  void createParticipant(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> peerInfo,
-                         const std::shared_ptr<SDPMessageInfo> localInfo,
-                         StatisticsInterface* stats);
-
   struct PeerState
   {
     bool viewAdded;

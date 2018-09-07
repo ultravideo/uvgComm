@@ -23,6 +23,7 @@ class StatisticsInterface;
 class FilterGraph;
 class RTPStreamer;
 class MediaSession;
+struct SDPMessageInfo;
 
 typedef int16_t PeerID;
 
@@ -42,9 +43,8 @@ public:
   // registers a contact for activity monitoring
   void registerContact(in_addr ip);
 
-  // TODO: This should be replaced by SDP processing.
-  void addParticipant(uint32_t sessionID, in_addr ip, uint16_t sendAudioPort, uint16_t recvAudioPort,
-                      uint16_t sendVideoPort, uint16_t recvVideoPort);
+  void addParticipant(uint32_t sessionID, const std::shared_ptr<SDPMessageInfo> peerInfo,
+                      const std::shared_ptr<SDPMessageInfo> localInfo);
 
   void removeParticipant(uint32_t sessionID);
   void endAllCalls();
@@ -78,6 +78,10 @@ signals:
   void becameHost();
 
 private:
+
+  void createOutgoingMedia(uint32_t sessionID, const std::shared_ptr<SDPMessageInfo> peerInfo);
+
+  void createIncomingMedia(uint32_t sessionID, const std::shared_ptr<SDPMessageInfo> localInfo);
 
   StatisticsInterface* stats_;
 

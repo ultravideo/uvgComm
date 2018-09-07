@@ -3,10 +3,9 @@
 #include "statisticsinterface.h"
 
 #include "globalsdpstate.h"
-#include "sip/siptypes.h"
 
 #include <QHostAddress>
-#include <QtEndian>
+
 
 CallManager::CallManager():
     media_(),
@@ -137,8 +136,7 @@ void CallManager::callNegotiated(uint32_t sessionID)
     return;
   }
 
-  // TODO check the SDP info and do ports and rtp numbers properly
-  createParticipant(sessionID, remoteSDP, localSDP, stats_);
+  media_.addParticipant(sessionID, remoteSDP, localSDP);
 }
 
 void CallManager::callNegotiationFailed(uint32_t sessionID)
@@ -175,65 +173,6 @@ void CallManager::updateSettings()
 {
   media_.updateSettings();
 }
-
-void CallManager::createParticipant(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> peerInfo,
-                                    const std::shared_ptr<SDPMessageInfo> localInfo,
-                                    StatisticsInterface* stats)
-{
-  QHostAddress address;
-  address.setAddress(peerInfo->connection_address);
-
-  in_addr ip;
-  ip.S_un.S_addr = qToBigEndian(address.toIPv4Address());
-
-  // TODO: have these be arrays and send video to all of them in case SDP describes it so
-  uint16_t sendAudioPort = 0;
-  uint16_t recvAudioPort = 0;
-  uint16_t sendVideoPort = 0;
-  uint16_t recvVideoPort = 0;
-
-  for(auto media : localInfo->media)
-  {
-    if(media.type == "audio" && recvAudioPort == 0)
-    {
-      recvAudioPort = media.receivePort;
-    }
-    else if(media.type == "video" && recvVideoPort == 0)
-    {
-      recvVideoPort = media.receivePort;
-    }
-  }
-
-  for(auto media : peerInfo->media)
-  {
-    if(media.type == "audio" && sendAudioPort == 0)
-    {
-      sendAudioPort = media.receivePort;
-    }
-    else if(media.type == "video" && sendVideoPort == 0)
-    {
-      sendVideoPort = media.receivePort;
-    }
-  }
-
-  // TODO send all the media if more than one are specified and if required to more than one participant.
-  if(sendAudioPort == 0 || recvAudioPort == 0 || sendVideoPort == 0 || recvVideoPort == 0)
-  {
-    qWarning() << "WARNING: All media ports were not found in given SDP. SendAudio:" << sendAudioPort
-               << "recvAudio:" << recvAudioPort << "SendVideo:" << sendVideoPort << "RecvVideo:" << recvVideoPort;
-    return;
-  }
-
-  if(stats)
-    stats->addParticipant(peerInfo->connection_address,
-                          QString::number(sendAudioPort),
-                          QString::number(sendVideoPort));
-
-  qDebug() << "Sending mediastreams to:" << peerInfo->connection_address << "audioPort:" << sendAudioPort
-           << "VideoPort:" << sendVideoPort;
-  media_.addParticipant(sessionID, ip, sendAudioPort, recvAudioPort, sendVideoPort, recvVideoPort);
-}
-
 
 void CallManager::acceptCall(uint32_t sessionID)
 {
