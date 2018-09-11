@@ -164,7 +164,7 @@ void MediaManager::createIncomingMedia(uint32_t sessionID, const MediaInfo &loca
     if(localMedia.proto == "RTP/AVP")
     {
       std::shared_ptr<Filter> rtpSink = streamer_->addReceiveStream(sessionID, localMedia.receivePort,
-                                                                    localMedia.codecs.at(0).codec, localMedia.rtpNums.at(0));
+                                                                    codec, localMedia.rtpNums.at(0));
       if(localMedia.type == "audio")
       {
         fg_->receiveAudioFrom(sessionID, std::shared_ptr<Filter>(rtpSink));

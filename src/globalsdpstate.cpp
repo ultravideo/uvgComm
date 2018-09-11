@@ -76,6 +76,9 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP(QHostAddress localAd
   newInfo->connection_address = localAddress.toString();
   newInfo->connection_nettype = "IN";
 
+  newInfo->startTime = 0;
+  newInfo->stopTime = 0;
+
   MediaInfo audio;
   MediaInfo video;
   audio.type = "audio";
