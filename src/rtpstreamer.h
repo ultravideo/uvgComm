@@ -27,15 +27,13 @@ public:
   void stop();
 
   // init a session with sessionID to use with add/remove functions
-  // returns whther opeartion was successful
+  // returns whether operation was successful
   bool addPeer(in_addr ip, uint32_t sessionID);
 
   // Returns filter to be attached to filter graph. ownership is not transferred.
-  // removing peer and stopping destroy these filters.
-  std::shared_ptr<Filter> addSendVideo(uint32_t peer, uint16_t port);
-  std::shared_ptr<Filter> addSendAudio(uint32_t peer, uint16_t port);
-  std::shared_ptr<Filter> addReceiveVideo(uint32_t peer, uint16_t port);
-  std::shared_ptr<Filter> addReceiveAudio(uint32_t peer, uint16_t port);
+  // removing the peer or stopping the streamer destroys these filters.
+  std::shared_ptr<Filter> addSendStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum);
+  std::shared_ptr<Filter> addReceiveStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum);
 
   void removeSendVideo(uint32_t sessionID);
   void removeSendAudio(uint32_t sessionID);
@@ -98,11 +96,13 @@ private:
   // returns whether peer corresponding to sessionID has been created. Debug
   bool checkSessionID(uint32_t sessionID);
 
-  Sender* addSender(in_addr ip, uint16_t port, DataType type);
-  Receiver* addReceiver(in_addr peerAddress, uint16_t port, DataType type);
+  Sender* addSender(in_addr ip, uint16_t port, DataType type, uint8_t rtpNum);
+  Receiver* addReceiver(in_addr peerAddress, uint16_t port, DataType type, uint8_t rtpNum);
 
   void destroySender(Sender* sender);
   void destroyReceiver(Receiver* recv);
+
+  DataType typeFromString(QString type);
 
   QList<Peer*> peers_;
 

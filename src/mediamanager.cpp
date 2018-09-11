@@ -54,90 +54,113 @@ void MediaManager::updateSettings()
   fg_->mic(mic_);
 }
 
-void MediaManager::createOutgoingMedia(uint32_t sessionID, const std::shared_ptr<SDPMessageInfo> peerInfo)
-{
-  uint16_t sendAudioPort = 0;
-  uint16_t sendVideoPort = 0;
-
-  for(auto media : peerInfo->media)
-  {
-    if(media.type == "audio" && sendAudioPort == 0)
-    {
-      sendAudioPort = media.receivePort;
-    }
-    else if(media.type == "video" && sendVideoPort == 0)
-    {
-      sendVideoPort = media.receivePort;
-    }
-  }
-
-  if(sendAudioPort == 0 || sendVideoPort == 0)
-  {
-    qWarning() << "ERROR: Faulty peerInfo at mediamanager createOutgoingStreams";
-    return;
-  }
-
-  std::shared_ptr<Filter> audioFramedSource = streamer_->addSendAudio(sessionID, sendAudioPort);
-  fg_->sendAudioTo(sessionID, std::shared_ptr<Filter>(audioFramedSource));
-
-  std::shared_ptr<Filter> videoFramedSource = streamer_->addSendVideo(sessionID, sendVideoPort);
-  fg_->sendVideoto(sessionID, std::shared_ptr<Filter>(videoFramedSource));
-
-}
-
-void MediaManager::createIncomingMedia(uint32_t sessionID, const std::shared_ptr<SDPMessageInfo> localInfo)
-{
-  uint16_t recvAudioPort = 0;
-  uint16_t recvVideoPort = 0;
-
-  for(auto media : localInfo->media)
-  {
-    if(media.type == "audio" && recvAudioPort == 0)
-    {
-      recvAudioPort = media.receivePort;
-    }
-    else if(media.type == "video" && recvVideoPort == 0)
-    {
-      recvVideoPort = media.receivePort;
-    }
-  }
-
-  if(recvAudioPort == 0 || recvVideoPort == 0)
-  {
-    qWarning() << "ERROR: Faulty peerInfo at mediamanager createOutgoingStreams";
-    return;
-  }
-
-
-  std::shared_ptr<Filter> videoSink = streamer_->addReceiveVideo(sessionID, recvVideoPort);
-  std::shared_ptr<Filter> audioSink = streamer_->addReceiveAudio(sessionID, recvAudioPort);
-
-  fg_->receiveVideoFrom(sessionID, std::shared_ptr<Filter>(videoSink), viewfactory_->getVideo(sessionID));
-  fg_->receiveAudioFrom(sessionID, std::shared_ptr<Filter>(audioSink));
-}
-
 void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> peerInfo,
                     const std::shared_ptr<SDPMessageInfo> localInfo)
 {
-  QHostAddress address;
-  address.setAddress(peerInfo->connection_address);
+  // TODO: support stop-time and start-time as recommended by RFC 4566 section 5.9
 
-  in_addr ip;
-  ip.S_un.S_addr = qToBigEndian(address.toIPv4Address());
-
-  // Open necessary ports and create filters for sending and receiving
-  if(!streamer_->addPeer(ip, sessionID))
+  if(peerInfo->startTime != 0 || localInfo->startTime != 0)
   {
-    qCritical() << "Error creating RTP peer. Simultaneous destruction?";
+    qWarning() << "ERROR: Non zero start-time not supported!";
+  }
+
+  if(peerInfo->stopTime != 0 || localInfo->stopTime != 0)
+  {
+    qWarning() << "ERROR: Non zero stop-time not supported!";
+  }
+
+  if(peerInfo->connection_nettype == "IN")
+  {
+    QHostAddress address;
+    address.setAddress(peerInfo->connection_address);
+
+    if(peerInfo->connection_addrtype == "IP4")
+    {
+      in_addr ip;
+      ip.S_un.S_addr = qToBigEndian(address.toIPv4Address());
+
+      // TODO: Make it possible to have a separate ip address for each mediastream by fixing this.
+      if(!streamer_->addPeer(ip, sessionID))
+      {
+        qCritical() << "Error creating RTP peer. Simultaneous destruction?";
+        return;
+      }
+    }
+    else if(peerInfo->connection_addrtype == "IP6")
+    {
+      qDebug() << "ERROR: IPv6 not supported in media creation";
+      return;
+    }
+  }
+  else
+  {
+    qWarning() << "ERROR: What are we using if not the internet!?";
     return;
   }
 
-  createOutgoingMedia(sessionID, peerInfo);
-  createIncomingMedia(sessionID, localInfo);
+  // create each agreed media stream
+  for(auto media : peerInfo->media)
+  {
+    createOutgoingMedia(sessionID, media);
+  }
+
+  for(auto media : localInfo->media)
+  {
+    createIncomingMedia(sessionID, media);
+  }
 
   fg_->print();
 }
 
+
+void MediaManager::createOutgoingMedia(uint32_t sessionID, const MediaInfo& media)
+{
+  std::shared_ptr<Filter> framedSource = streamer_->addSendStream(sessionID, media.receivePort,
+                                                                  media.codecs.at(0).codec, media.rtpNums.at(0));
+  if(media.type == "audio")
+  {
+    if(media.receivePort != 0 && !media.rtpNums.empty())
+    {
+      fg_->sendAudioTo(sessionID, std::shared_ptr<Filter>(framedSource));
+    }
+  }
+  else if(media.type == "video")
+  {
+    if(media.receivePort != 0 && !media.rtpNums.empty())
+    {
+      fg_->sendVideoto(sessionID, std::shared_ptr<Filter>(framedSource));
+    }
+    else
+    {
+      qWarning() << "ERROR: 0 as send videoport";
+    }
+
+  }
+  else
+  {
+    qDebug() << "ERROR: Unsupported media type in :" << media.type;
+  }
+}
+
+void MediaManager::createIncomingMedia(uint32_t sessionID, const MediaInfo &media)
+{
+  if(media.receivePort == 0)
+  {
+    qWarning() << "ERROR: Faulty peerInfo at mediamanager createOutgoingStreams";
+    return;
+  }
+  std::shared_ptr<Filter> rtpSink = streamer_->addReceiveStream(sessionID, media.receivePort,
+                                                                media.codecs.at(0).codec, media.rtpNums.at(0));
+
+  if(media.type == "video")
+  {
+    fg_->receiveVideoFrom(sessionID, std::shared_ptr<Filter>(rtpSink), viewfactory_->getVideo(sessionID));
+  }
+  else if(media.type == "audio")
+  {
+    fg_->receiveAudioFrom(sessionID, std::shared_ptr<Filter>(rtpSink));
+  }
+}
 
 void MediaManager::removeParticipant(uint32_t sessionID)
 {

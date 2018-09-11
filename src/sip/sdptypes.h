@@ -22,7 +22,7 @@ struct RTPMap
 struct MediaInfo
 {
   QString type; // for example audio or video or text
-  uint16_t receivePort; // rtcp reports are sent to +1
+  uint16_t receivePort; // rtcp is +1
   QString proto;
   QList<uint8_t> rtpNums;
   QString nettype;
@@ -59,8 +59,10 @@ struct SDPMessageInfo
   QString connection_address;
 
   // t=
+  // NTP time values since 1990 ( UNIX + 2208988800 )
+  // if 0 not in use.
   uint32_t startTime;
-  uint32_t endTime;
+  uint32_t stopTime;
 
   // m=
   QList<MediaInfo> media;

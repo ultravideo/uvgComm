@@ -42,7 +42,7 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
   sdp += "c=" + sdpInfo.connection_nettype + " " + sdpInfo.connection_addrtype +
       + " " + sdpInfo.connection_address + " " + lineEnd;
   sdp += "t=" + QString::number(sdpInfo.startTime) + " "
-      + QString::number(sdpInfo.endTime) + lineEnd;
+      + QString::number(sdpInfo.stopTime) + lineEnd;
 
   for(auto mediaStream : sdpInfo.media)
   {
@@ -142,7 +142,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
           return false;
 
         sdp.startTime = firstValue.toUInt();
-        sdp.endTime = words.at(1).toUInt();
+        sdp.stopTime = words.at(1).toUInt();
 
         timing = true;
         break;

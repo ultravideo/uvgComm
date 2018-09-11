@@ -311,45 +311,58 @@ bool RTPStreamer::checkSessionID(uint32_t sessionID)
       && peers_.at(sessionID - 1) != nullptr;
 }
 
-std::shared_ptr<Filter> RTPStreamer::addSendVideo(uint32_t peer, uint16_t port)
+
+
+std::shared_ptr<Filter> RTPStreamer::addSendStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum)
 {
   Q_ASSERT(checkSessionID(peer));
-  if(peers_.at(peer - 1)->videoSender)
-    destroySender(peers_.at(peer - 1)->videoSender);
 
-  peers_.at(peer - 1)->videoSender = addSender(peers_.at(peer - 1)->ip, port, HEVCVIDEO);
-  return peers_.at(peer - 1)->videoSender->sourcefilter;
+  DataType type = typeFromString(codec);
+
+  if(type == HEVCVIDEO)
+  {
+    if(peers_.at(peer - 1)->videoSender)
+      destroySender(peers_.at(peer - 1)->videoSender);
+
+    peers_.at(peer - 1)->videoSender = addSender(peers_.at(peer - 1)->ip, port, type, rtpNum);
+    return peers_.at(peer - 1)->videoSender->sourcefilter;
+  }
+  else if(type == OPUSAUDIO || type == RAWAUDIO)
+  {
+    if(peers_.at(peer - 1)->audioSender)
+      destroySender(peers_.at(peer - 1)->audioSender);
+
+    peers_.at(peer - 1)->audioSender = addSender(peers_.at(peer - 1)->ip, port, type, rtpNum);
+    return peers_.at(peer - 1)->audioSender->sourcefilter;
+  }
+
 }
 
-std::shared_ptr<Filter> RTPStreamer::addSendAudio(uint32_t peer, uint16_t port)
+
+std::shared_ptr<Filter> RTPStreamer::addReceiveStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum)
 {
   Q_ASSERT(checkSessionID(peer));
-  if(peers_.at(peer - 1)->audioSender)
-    destroySender(peers_.at(peer - 1)->audioSender);
 
-  peers_.at(peer - 1)->audioSender = addSender(peers_.at(peer - 1)->ip, port, OPUSAUDIO);
-  return peers_.at(peer - 1)->audioSender->sourcefilter;
+  DataType type = typeFromString(codec);
+
+  if(type == HEVCVIDEO)
+  {
+    if(peers_.at(peer - 1)->videoReceiver)
+      destroyReceiver(peers_.at(peer - 1)->videoReceiver);
+
+    peers_.at(peer - 1)->videoReceiver = addReceiver(peers_.at(peer - 1)->ip, port, type, rtpNum);
+    return peers_.at(peer - 1)->videoReceiver->sink;
+  }
+  else if(type == OPUSAUDIO || type == RAWAUDIO)
+  {
+    if(peers_.at(peer - 1)->audioReceiver)
+      destroyReceiver(peers_.at(peer - 1)->audioReceiver);
+
+    peers_.at(peer - 1)->audioReceiver = addReceiver(peers_.at(peer - 1)->ip, port, type, rtpNum);
+    return peers_.at(peer - 1)->audioReceiver->sink;
+  }
 }
 
-std::shared_ptr<Filter> RTPStreamer::addReceiveVideo(uint32_t peer, uint16_t port)
-{
-  Q_ASSERT(checkSessionID(peer));
-  if(peers_.at(peer - 1)->videoReceiver)
-    destroyReceiver(peers_.at(peer - 1)->videoReceiver);
-
-  peers_.at(peer - 1)->videoReceiver = addReceiver(peers_.at(peer - 1)->ip, port, HEVCVIDEO);
-  return peers_.at(peer - 1)->videoReceiver->sink;
-}
-
-std::shared_ptr<Filter> RTPStreamer::addReceiveAudio(uint32_t peer, uint16_t port)
-{
-  Q_ASSERT(checkSessionID(peer));
-  if(peers_.at(peer - 1)->audioReceiver)
-    destroyReceiver(peers_.at(peer - 1)->audioReceiver);
-
-  peers_.at(peer - 1)->audioReceiver = addReceiver(peers_.at(peer - 1)->ip, port, OPUSAUDIO);
-  return peers_.at(peer - 1)->audioReceiver->sink;
-}
 
 void RTPStreamer::removeSendVideo(uint32_t sessionID)
 {
@@ -394,7 +407,7 @@ void RTPStreamer::removeReceiveAudio(uint32_t sessionID)
     qWarning() << "WARNING: Tried to remove send video that did not exist.";
 }
 
-RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType type)
+RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType type, uint8_t rtpNum)
 {
   qDebug() << "Iniating send RTP/RTCP stream to port:" << port << "With type:" << type;
   Sender* sender = new Sender;
@@ -405,7 +418,7 @@ RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType 
   switch(type)
   {
   case HEVCVIDEO :
-    sender->sink = H265VideoRTPSink::createNew(*env_, sender->connection.rtpGroupsock, 96);
+    sender->sink = H265VideoRTPSink::createNew(*env_, sender->connection.rtpGroupsock, rtpNum);
     mediaName += "_HEVC";
     break;
   case RAWAUDIO :
@@ -414,7 +427,7 @@ RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType 
     mediaName += "_RAW_AUDIO";
     break;
   case OPUSAUDIO :
-    sender->sink = SimpleRTPSink::createNew(*env_, sender->connection.rtpGroupsock, 97,
+    sender->sink = SimpleRTPSink::createNew(*env_, sender->connection.rtpGroupsock, rtpNum,
                                             48000, "audio", "OPUS", 2, False);
     mediaName += "_OPUS";
     break;
@@ -483,7 +496,7 @@ RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType 
   return sender;
 }
 // TODO why name peerADDress
-RTPStreamer::Receiver* RTPStreamer::addReceiver(in_addr peerAddress, uint16_t port, DataType type)
+RTPStreamer::Receiver* RTPStreamer::addReceiver(in_addr peerAddress, uint16_t port, DataType type, uint8_t rtpNum)
 {
   qDebug() << "Iniating receive RTP/RTCP stream from port:" << port << "with type:" << type;
   Receiver *receiver = new Receiver;
@@ -495,16 +508,16 @@ RTPStreamer::Receiver* RTPStreamer::addReceiver(in_addr peerAddress, uint16_t po
   switch(type)
   {
   case HEVCVIDEO :
-    receiver->framedSource = H265VideoRTPSource::createNew(*env_, receiver->connection.rtpGroupsock, 96);
+    receiver->framedSource = H265VideoRTPSource::createNew(*env_, receiver->connection.rtpGroupsock, rtpNum);
     mediaName += "_HEVC";
     break;
   case RAWAUDIO :
-    receiver->framedSource = SimpleRTPSource::createNew(*env_, receiver->connection.rtpGroupsock, 0,
+    receiver->framedSource = SimpleRTPSource::createNew(*env_, receiver->connection.rtpGroupsock, rtpNum,
                                                         48000, "audio/PCM", 0, True);
     mediaName += "_RAW_AUDIO";
     break;
   case OPUSAUDIO :
-    receiver->framedSource = SimpleRTPSource::createNew(*env_, receiver->connection.rtpGroupsock, 97,
+    receiver->framedSource = SimpleRTPSource::createNew(*env_, receiver->connection.rtpGroupsock, rtpNum,
                                                         48000, "audio/OPUS", 0, True);
     estimatedSessionBandwidth = 200; // in kbps; for RTCP b/w share
     mediaName += "_OPUS";
@@ -601,4 +614,18 @@ void RTPStreamer::destroyConnection(Connection& connection)
     delete connection.rtcpPort;
     connection.rtcpPort = nullptr;
   }
+}
+
+DataType RTPStreamer::typeFromString(QString type)
+{
+  std::map<QString, DataType> xmap
+      = {{"pcm", RAWAUDIO}, {"opus", OPUSAUDIO},{"h265", HEVCVIDEO}};
+
+  if(xmap.find(type) == xmap.end())
+  {
+    qDebug() << "ERROR: Tried to use non-defined codec type in RTPSreamer.";
+    return NONE;
+  }
+
+  return xmap[type];
 }

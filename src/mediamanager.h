@@ -12,10 +12,8 @@
 #include <WinSock2.h>
 #endif
 
-
 // Manages the Media delivery and Media Processing and the interaction between the two
 // especially during construction.
-
 
 class VideoviewFactory;
 class StatisticsInterface;
@@ -24,6 +22,7 @@ class FilterGraph;
 class RTPStreamer;
 class MediaSession;
 struct SDPMessageInfo;
+struct MediaInfo;
 
 typedef int16_t PeerID;
 
@@ -79,9 +78,8 @@ signals:
 
 private:
 
-  void createOutgoingMedia(uint32_t sessionID, const std::shared_ptr<SDPMessageInfo> peerInfo);
-
-  void createIncomingMedia(uint32_t sessionID, const std::shared_ptr<SDPMessageInfo> localInfo);
+  void createOutgoingMedia(uint32_t sessionID, const MediaInfo& media);
+  void createIncomingMedia(uint32_t sessionID, const MediaInfo& media);
 
   StatisticsInterface* stats_;
 
