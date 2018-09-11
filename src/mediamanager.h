@@ -78,8 +78,10 @@ signals:
 
 private:
 
-  void createOutgoingMedia(uint32_t sessionID, const MediaInfo& media);
-  void createIncomingMedia(uint32_t sessionID, const MediaInfo& media);
+  void createOutgoingMedia(uint32_t sessionID, const MediaInfo& remoteMedia);
+  void createIncomingMedia(uint32_t sessionID, const MediaInfo& localMedia);
+
+  QString rtpNumberToCodec(const MediaInfo& info);
 
   StatisticsInterface* stats_;
 

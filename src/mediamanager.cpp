@@ -112,53 +112,79 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
   fg_->print();
 }
 
-
-void MediaManager::createOutgoingMedia(uint32_t sessionID, const MediaInfo& media)
+void MediaManager::createOutgoingMedia(uint32_t sessionID, const MediaInfo& remoteMedia)
 {
-  std::shared_ptr<Filter> framedSource = streamer_->addSendStream(sessionID, media.receivePort,
-                                                                  media.codecs.at(0).codec, media.rtpNums.at(0));
-  if(media.type == "audio")
+  if(remoteMedia.activity == A_RECVONLY || remoteMedia.activity == A_SENDRECV)
   {
-    if(media.receivePort != 0 && !media.rtpNums.empty())
+    Q_ASSERT(remoteMedia.receivePort);
+    Q_ASSERT(!remoteMedia.rtpNums.empty());
+
+    QString codec = rtpNumberToCodec(remoteMedia);
+
+    if(remoteMedia.proto == "RTP/AVP")
     {
-      fg_->sendAudioTo(sessionID, std::shared_ptr<Filter>(framedSource));
-    }
-  }
-  else if(media.type == "video")
-  {
-    if(media.receivePort != 0 && !media.rtpNums.empty())
-    {
-      fg_->sendVideoto(sessionID, std::shared_ptr<Filter>(framedSource));
+      std::shared_ptr<Filter> framedSource = streamer_->addSendStream(sessionID, remoteMedia.receivePort,
+                                                                      codec, remoteMedia.rtpNums.at(0));
+      if(remoteMedia.type == "audio")
+      {
+        fg_->sendAudioTo(sessionID, std::shared_ptr<Filter>(framedSource));
+      }
+      else if(remoteMedia.type == "video")
+      {
+        fg_->sendVideoto(sessionID, std::shared_ptr<Filter>(framedSource));
+      }
+      else
+      {
+        qDebug() << "ERROR: Unsupported media type in :" << remoteMedia.type;
+      }
     }
     else
     {
-      qWarning() << "ERROR: 0 as send videoport";
+      qDebug() << "ERROR: SDP transport protocol not supported.";
     }
-
   }
   else
   {
-    qDebug() << "ERROR: Unsupported media type in :" << media.type;
+    qDebug() << "Not creating media because they don't seem to want any according to attribute";
   }
 }
 
-void MediaManager::createIncomingMedia(uint32_t sessionID, const MediaInfo &media)
+void MediaManager::createIncomingMedia(uint32_t sessionID, const MediaInfo &localMedia)
 {
-  if(media.receivePort == 0)
+  if(localMedia.activity == A_RECVONLY || localMedia.activity == A_SENDRECV)
   {
-    qWarning() << "ERROR: Faulty peerInfo at mediamanager createOutgoingStreams";
-    return;
-  }
-  std::shared_ptr<Filter> rtpSink = streamer_->addReceiveStream(sessionID, media.receivePort,
-                                                                media.codecs.at(0).codec, media.rtpNums.at(0));
+    Q_ASSERT(localMedia.receivePort);
+    Q_ASSERT(!localMedia.rtpNums.empty());
 
-  if(media.type == "video")
-  {
-    fg_->receiveVideoFrom(sessionID, std::shared_ptr<Filter>(rtpSink), viewfactory_->getVideo(sessionID));
+    QString codec = rtpNumberToCodec(localMedia);
+
+    qDebug() << "Creating incoming media with codec:" << codec;
+
+    if(localMedia.proto == "RTP/AVP")
+    {
+      std::shared_ptr<Filter> rtpSink = streamer_->addReceiveStream(sessionID, localMedia.receivePort,
+                                                                    localMedia.codecs.at(0).codec, localMedia.rtpNums.at(0));
+      if(localMedia.type == "audio")
+      {
+        fg_->receiveAudioFrom(sessionID, std::shared_ptr<Filter>(rtpSink));
+      }
+      else if(localMedia.type == "video")
+      {
+        fg_->receiveVideoFrom(sessionID, std::shared_ptr<Filter>(rtpSink), viewfactory_->getVideo(sessionID));
+      }
+      else
+      {
+        qDebug() << "ERROR: Unsupported media type in :" << localMedia.type;
+      }
+    }
+    else
+    {
+      qDebug() << "ERROR: SDP transport protocol not supported.";
+    }
   }
-  else if(media.type == "audio")
+  else
   {
-    fg_->receiveAudioFrom(sessionID, std::shared_ptr<Filter>(rtpSink));
+    qDebug() << "Not creating media because they don't seem to want any according to attribute";
   }
 }
 
@@ -192,4 +218,20 @@ bool MediaManager::toggleCamera()
   camera_ = !camera_;
   fg_->camera(camera_);
   return camera_;
+}
+
+QString MediaManager::rtpNumberToCodec(const MediaInfo& info)
+{
+  // If we are not using raw.
+  // This is the place where all other preset audio video codec numbers should be set
+  // but its unlikely that we will support any besides raw pcmu.
+  if(info.rtpNums.at(0) != 0)
+  {
+    Q_ASSERT(!info.codecs.empty());
+    if(!info.codecs.empty())
+    {
+      return info.codecs.at(0).codec;
+    }
+  }
+  return "pcmu";
 }

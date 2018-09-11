@@ -185,7 +185,7 @@ bool RTPStreamer::addPeer(in_addr ip, uint32_t sessionID)
   return false;
 }
 
-void RTPStreamer::removePeer(int sessionID)
+void RTPStreamer::removePeer(uint32_t sessionID)
 {
   qDebug() << "Removing peer" << sessionID << "from RTPStreamer";
   if(peers_.at(sessionID - 1) != nullptr)

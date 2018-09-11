@@ -25,6 +25,8 @@ struct MediaInfo
   uint16_t receivePort; // rtcp is +1
   QString proto;
   QList<uint8_t> rtpNums;
+
+   // c=, media specific
   QString nettype;
   QString addrtype;
   QString address;
@@ -53,7 +55,7 @@ struct SDPMessageInfo
   QString email; // e= optional, not in use
   QString phone; // p= optional, not in use
 
-  // c=, either one global or one for each media.
+  // c=, global
   QString connection_nettype;
   QString connection_addrtype;
   QString connection_address;
