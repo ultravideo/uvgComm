@@ -109,7 +109,8 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
     createIncomingMedia(sessionID, media);
   }
 
-  fg_->print();
+  // crashes at the moment.
+  //fg_->print();
 }
 
 void MediaManager::createOutgoingMedia(uint32_t sessionID, const MediaInfo& remoteMedia)
