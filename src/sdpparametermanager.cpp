@@ -35,12 +35,12 @@ QList<RTPMap> SDPParameterManager::videoCodecs() const
 
 QString SDPParameterManager::sessionName() const
 {
-  return " ";
+  return "HEVC Video Call";
 }
 
 QString SDPParameterManager::sessionDescription() const
 {
-  return "A Kvazzup Video Conference";
+  return "A Kvazzup initiated video call";
 }
 
 

@@ -12,7 +12,7 @@ bool parseSDPMedia(QStringListIterator lineIterator, MediaInfo& media);
 // called for every new line in SDP parsing. Parses out the two first characters and gives the first value,
 // and the rest of the values are divided to separate words. The amount of words can be checked and
 // the first character is recorded to lineType.
-bool nextLine(QStringListIterator lineIterator, QStringList& words, char& lineType,
+bool nextLine(QStringListIterator &lineIterator, QStringList& words, char& lineType,
               QString& firstValue);
 
 // Some fields simply take all the fields and put them in value regardless of spaces.
@@ -88,7 +88,7 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
   return sdp;
 }
 
-bool nextLine(QStringListIterator lineIterator, QStringList& words, char& lineType,
+bool nextLine(QStringListIterator& lineIterator, QStringList& words, char& lineType,
               QString& firstValue)
 {
   if(lineIterator.hasNext())
@@ -177,6 +177,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
   sdp.connection_address = words.at(5);
 
   // s=
+  // TODO: accept single empty character
   if(!nextLine(lineIterator, words, type, firstValue) || type != 's')
   {
     return false;
