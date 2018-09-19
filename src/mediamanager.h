@@ -1,7 +1,10 @@
 #pragma once
 
+#include "sip/sdptypes.h"
+
 #include <QObject>
 #include <QMutex>
+#include <QList>
 
 #include <memory>
 #include <map>
@@ -21,7 +24,6 @@ class StatisticsInterface;
 class FilterGraph;
 class RTPStreamer;
 class MediaSession;
-struct SDPMessageInfo;
 struct MediaInfo;
 
 typedef int16_t PeerID;
@@ -82,6 +84,8 @@ private:
   void createIncomingMedia(uint32_t sessionID, const MediaInfo& localMedia);
 
   QString rtpNumberToCodec(const MediaInfo& info);
+
+  void transportAttributes(const QList<SDPAttributeType> &attributes, bool& send, bool& recv);
 
   StatisticsInterface* stats_;
 

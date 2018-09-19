@@ -59,15 +59,11 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
 {
   // TODO: support stop-time and start-time as recommended by RFC 4566 section 5.9
 
-  if(peerInfo->startTime != 0 || localInfo->startTime != 0)
+  if(peerInfo->timeDescriptions.at(0).startTime != 0 || localInfo->timeDescriptions.at(0).startTime != 0)
   {
     qWarning() << "ERROR: Non zero start-time not supported!";
   }
 
-  if(peerInfo->stopTime != 0 || localInfo->stopTime != 0)
-  {
-    qWarning() << "ERROR: Non zero stop-time not supported!";
-  }
 
   if(peerInfo->connection_nettype == "IN")
   {
@@ -113,9 +109,16 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
   //fg_->print();
 }
 
+
 void MediaManager::createOutgoingMedia(uint32_t sessionID, const MediaInfo& remoteMedia)
 {
-  if(remoteMedia.activity == A_RECVONLY || remoteMedia.activity == A_SENDRECV)
+  bool send = true;
+  bool recv = true;
+
+  transportAttributes(remoteMedia.attributes, send, recv);
+
+  // if they want to receive
+  if(recv)
   {
     Q_ASSERT(remoteMedia.receivePort);
     Q_ASSERT(!remoteMedia.rtpNums.empty());
@@ -152,7 +155,11 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID, const MediaInfo& remo
 
 void MediaManager::createIncomingMedia(uint32_t sessionID, const MediaInfo &localMedia)
 {
-  if(localMedia.activity == A_RECVONLY || localMedia.activity == A_SENDRECV)
+  bool send = true;
+  bool recv = true;
+
+  transportAttributes(localMedia.attributes, send, recv);
+  if(recv)
   {
     Q_ASSERT(localMedia.receivePort);
     Q_ASSERT(!localMedia.rtpNums.empty());
@@ -235,4 +242,34 @@ QString MediaManager::rtpNumberToCodec(const MediaInfo& info)
     }
   }
   return "pcmu";
+}
+
+void MediaManager::transportAttributes(const QList<SDPAttributeType>& attributes, bool& send, bool& recv)
+{
+  send = true;
+  recv = true;
+
+  for(SDPAttributeType attribute : attributes)
+  {
+    if(attribute == A_SENDRECV)
+    {
+      send = true;
+      recv = true;
+    }
+    else if(attribute == A_SENDONLY)
+    {
+      send = true;
+      recv = false;
+    }
+    else if(attribute == A_RECVONLY)
+    {
+      send = false;
+      recv = true;
+    }
+    else if(attribute == A_INACTIVE)
+    {
+      send = false;
+      recv = false;
+    }
+  }
 }

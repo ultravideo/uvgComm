@@ -57,6 +57,7 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP(QHostAddress localAd
   newInfo->sess_id = QDateTime::currentMSecsSinceEpoch();
   newInfo->sess_v = QDateTime::currentMSecsSinceEpoch();
   newInfo->host_nettype = "IN";
+  newInfo->host_address = localAddress.toString();
   if(localAddress.protocol() == QAbstractSocket::IPv6Protocol)
   {
     newInfo->host_addrtype = "IP6";
@@ -68,16 +69,13 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP(QHostAddress localAd
     newInfo->connection_addrtype = "IP4";
   }
 
-  newInfo->host_address = localAddress.toString();
-
   newInfo->sessionName = parameters_.sessionName();
   newInfo->sessionDescription = parameters_.sessionDescription();
 
   newInfo->connection_address = localAddress.toString();
   newInfo->connection_nettype = "IN";
 
-  newInfo->startTime = 0;
-  newInfo->stopTime = 0;
+  newInfo->timeDescriptions.push_back(TimeInfo{0,0, "", "", {}});
 
   MediaInfo audio;
   MediaInfo video;
@@ -117,8 +115,8 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP(QHostAddress localAd
   // just for completeness, we will probably never support any of the pre-set video types.
   video.rtpNums += parameters_.videoPayloadTypes();
 
-  audio.activity = A_SENDRECV;
-  video.activity = A_SENDRECV;
+  audio.attributes.push_back(A_SENDRECV);
+  video.attributes.push_back(A_SENDRECV);
 
   newInfo->media.push_back(audio);
   newInfo->media.push_back(video);
