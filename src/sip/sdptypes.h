@@ -50,9 +50,10 @@ struct MediaInfo
   // see RFC 4567 and RFC 4568 for more details.
   QString encryptionKey; // k=, optional
 
-  QList<RTPMap> codecs;
-  QList<SDPAttributeType> flagAttributes;
-  QList<SDPAttribute> valueAttributes;
+  // a=
+  QList<RTPMap> codecs; // mandatory if not preset rtpnumber
+  QList<SDPAttributeType> flagAttributes; // optional
+  QList<SDPAttribute> valueAttributes; // optional
 };
 
 struct TimeInfo
@@ -108,7 +109,9 @@ struct SDPMessageInfo
   // see RFC 4567 and RFC 4568 for more details.
   QString encryptionKey; // k=, optional
 
-  QStringList attributes; // a=, optional, global
+  // a=, optional, global
+  QList<SDPAttributeType> flagAttributes;
+  QList<SDPAttribute> valueAttributes;
 
   QList<MediaInfo> media;// m=, zero or more
 };

@@ -16,6 +16,9 @@ bool nextLine(QStringListIterator &lineIterator, QStringList& words, char& lineT
 // Called after nextLine for this situation.
 void gatherLine(QString& target, QString firstValue, QStringList& words);
 
+bool parseAttributes(QStringListIterator &lineIterator, char& type, QString& firstValue,
+                     QStringList &words, QList<SDPAttributeType> &flags, QList<SDPAttribute> &values, QList<RTPMap> &codecs);
+
 void parseFlagAttribute(SDPAttributeType type, QRegularExpressionMatch& match, QList<SDPAttributeType>& attributes);
 void parseValueAttribute(SDPAttributeType type, QRegularExpressionMatch& match, QList<SDPAttribute> valueAttributes);
 void parseRTPMap(QRegularExpressionMatch& match, QString secondWord, QList<RTPMap>& codecs);
@@ -375,24 +378,21 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
     }
   }
 
-  while(type == 'a')
+  QList<RTPMap> noCodecs;
+  if(!parseAttributes(lineIterator, type, firstValue, words, sdp.flagAttributes, sdp.valueAttributes, noCodecs))
   {
-    if(words.size() != 1)
-    {
-      return false;
-    }
+    return false;
+  }
 
-    sdp.attributes.push_back(firstValue);
-
-    // a=, m= or nothing.
-    if(!nextLine(lineIterator, words, type, firstValue))
-    {
-      return true;
-    }
+  if(!noCodecs.empty())
+  {
+    qDebug() << "Found rtpmap outside media";
+    return false;
   }
 
   while(type == 'm')
   {
+    qDebug() << "Found media:" << firstValue;
     if(words.size() < 4)
     {
       return false;
@@ -406,7 +406,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
       sdp.media.back().rtpNums.push_back(static_cast<uint8_t>(words.at(i).toUInt()));
     }
 
-    // m= or nothing.
+    // m=, i=, c=, b=,  or nothing.
     if(!nextLine(lineIterator, words, type, firstValue))
     {
       return true;
@@ -416,7 +416,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
     {
       gatherLine(sdp.media.back().title, firstValue, words);
 
-      // u=,e=,p=,c=,b= or t=
+      // u=,e=,p=,c=,b= or
       if(!nextLine(lineIterator, words, type, firstValue))
       {
         return true;
@@ -435,7 +435,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
       sdp.media.back().connection_address = words.at(2);
       globalConnection = true;
 
-      // b= or t=
+      // b=,
       if(!nextLine(lineIterator, words, type, firstValue))
       {
         return false;
@@ -476,149 +476,158 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
       }
     }
 
-    while(type == 'a')
+    if(!parseAttributes(lineIterator, type, firstValue, words,
+                        sdp.media.back().flagAttributes, sdp.media.back().valueAttributes, sdp.media.back().codecs))
     {
-      // ignore non recognized attributes.
+      return false;
+    }
 
-      QRegularExpression re_attribute("(\\w+)(:(\\S+))?");
-      QRegularExpressionMatch match = re_attribute.match(firstValue);
-      if(match.hasMatch() && match.lastCapturedIndex() >= 2)
-      {
-        QString attribute = match.captured(1);
+  } // m=
 
-        std::map<QString, SDPAttributeType> xmap
-            = {{"cat", A_CAT}, {"keywds", A_KEYWDS},{"tool", A_TOOL},{"ptime", A_PTIME},
-               {"maxptime", A_MAXPTIME},{"rtpmap", A_RTPMAP},{"recvonly", A_RECVONLY},
-               {"sendrecv", A_SENDRECV},{"sendonly", A_SENDONLY},{"inactive", A_INACTIVE},
-               {"orient", A_ORIENT},{"type", A_TYPE},{"charset", A_CHARSET},{"sdplang", A_SDPLANG},
-               {"lang", A_LANG},{"framerate", A_FRAMERATE},{"quality", A_QUALITY},{"fmtp", A_FMTP}};
+  return true;
+}
 
-          if(xmap.find(attribute) == xmap.end())
-          {
-            qDebug() << "Could not find the attribute.";
-          }
-          switch(xmap[attribute])
-          {
-          case A_CAT:
-          {
-            parseValueAttribute(A_CAT, match, sdp.media.back().valueAttributes);
-            break;
-          }
-          case A_KEYWDS:
-          {
-            parseValueAttribute(A_KEYWDS, match, sdp.media.back().valueAttributes);
-            break;
-          }
-          case A_TOOL:
-          {
-            parseValueAttribute(A_TOOL, match, sdp.media.back().valueAttributes);
-            break;
-          }
-          case A_PTIME:
-          {
-            parseValueAttribute(A_PTIME, match, sdp.media.back().valueAttributes);
-            break;
-          }
-          case A_MAXPTIME:
-          {
-            parseValueAttribute(A_MAXPTIME, match, sdp.media.back().valueAttributes);
-            break;
-          }
-          case A_RTPMAP:
-          {
-            if(words.size() != 2)
-            {
-              qDebug() << "Wrong amount of words in rtpmap " << words.size();
-              return false;
-            }
-            parseRTPMap(match, words.at(1), sdp.media.back().codecs);
-            break;
-          }
-          case A_RECVONLY:
-          {
-            parseFlagAttribute(A_RECVONLY, match, sdp.media.back().flagAttributes);
-            break;
-          }
-          case A_SENDRECV:
-          {
-            parseFlagAttribute(A_RECVONLY, match, sdp.media.back().flagAttributes);
-            break;
-          }
-          case A_SENDONLY:
-          {
-            parseFlagAttribute(A_RECVONLY, match, sdp.media.back().flagAttributes);
-            break;
-          }
-          case A_INACTIVE:
-          {
-            parseFlagAttribute(A_RECVONLY, match, sdp.media.back().flagAttributes);
-            break;
-          }
-          case A_ORIENT:
-          {
-            parseValueAttribute(A_ORIENT, match, sdp.media.back().valueAttributes);
-            break;
-          }
-          case A_TYPE:
-          {
-            parseValueAttribute(A_TYPE, match, sdp.media.back().valueAttributes);
-            break;
-          }
-          case A_CHARSET:
-          {
-            parseValueAttribute(A_CHARSET, match, sdp.media.back().valueAttributes);
-            break;
-          }
-          case A_SDPLANG:
-          {
-            parseValueAttribute(A_SDPLANG, match, sdp.media.back().valueAttributes);
-            break;
-          }
-          case A_LANG:
-          {
-            parseValueAttribute(A_LANG, match, sdp.media.back().valueAttributes);
-            break;
-          }
-          case A_FRAMERATE:
-          {
-            parseValueAttribute(A_FRAMERATE, match, sdp.media.back().valueAttributes);
-            break;
-          }
-          case A_QUALITY:
-          {
-            parseValueAttribute(A_QUALITY, match, sdp.media.back().valueAttributes);
-            break;
-          }
-          case A_FMTP:
-          {
-            parseValueAttribute(A_FMTP, match, sdp.media.back().valueAttributes);
-            break;
-          }
-          default:
-          {
-            qDebug() << "ERROR: Recognized SDP attribute type which is not implemented";
-            break;
-          }
-          }
+bool parseAttributes(QStringListIterator &lineIterator, char &type, QString &firstValue, QStringList& words,
+                     QList<SDPAttributeType>& flags, QList<SDPAttribute>& values, QList<RTPMap>& codecs)
+{
+  while(type == 'a')
+  {
+    // ignore non recognized attributes.
 
+    QRegularExpression re_attribute("(\\w+)(:(\\S+))?");
+    QRegularExpressionMatch match = re_attribute.match(firstValue);
+    if(match.hasMatch() && match.lastCapturedIndex() >= 2)
+    {
+      QString attribute = match.captured(1);
 
-        sdp.attributes.push_back(firstValue);
-      }
-      else
-      {
-        qDebug() << "Failed to parse attribute because of an unkown format: " << words;
-      }
+      std::map<QString, SDPAttributeType> xmap
+          = {{"cat", A_CAT}, {"keywds", A_KEYWDS},{"tool", A_TOOL},{"ptime", A_PTIME},
+             {"maxptime", A_MAXPTIME},{"rtpmap", A_RTPMAP},{"recvonly", A_RECVONLY},
+             {"sendrecv", A_SENDRECV},{"sendonly", A_SENDONLY},{"inactive", A_INACTIVE},
+             {"orient", A_ORIENT},{"type", A_TYPE},{"charset", A_CHARSET},{"sdplang", A_SDPLANG},
+             {"lang", A_LANG},{"framerate", A_FRAMERATE},{"quality", A_QUALITY},{"fmtp", A_FMTP}};
 
-      // TODO: Check that there are as many codecs as there are rtpnums
+        if(xmap.find(attribute) == xmap.end())
+        {
+          qDebug() << "Could not find the attribute.";
+        }
+        switch(xmap[attribute])
+        {
+        case A_CAT:
+        {
+          parseValueAttribute(A_CAT, match, values);
+          break;
+        }
+        case A_KEYWDS:
+        {
+          parseValueAttribute(A_KEYWDS, match, values);
+          break;
+        }
+        case A_TOOL:
+        {
+          parseValueAttribute(A_TOOL, match, values);
+          break;
+        }
+        case A_PTIME:
+        {
+          parseValueAttribute(A_PTIME, match, values);
+          break;
+        }
+        case A_MAXPTIME:
+        {
+          parseValueAttribute(A_MAXPTIME, match, values);
+          break;
+        }
+        case A_RTPMAP:
+        {
+          if(words.size() != 2)
+          {
+            qDebug() << "Wrong amount of words in rtpmap " << words.size() << "Expected 2";
+            return false;
+          }
+          parseRTPMap(match, words.at(1), codecs);
+          break;
+        }
+        case A_RECVONLY:
+        {
+          parseFlagAttribute(A_RECVONLY, match, flags);
+          break;
+        }
+        case A_SENDRECV:
+        {
+          parseFlagAttribute(A_RECVONLY, match, flags);
+          break;
+        }
+        case A_SENDONLY:
+        {
+          parseFlagAttribute(A_RECVONLY, match, flags);
+          break;
+        }
+        case A_INACTIVE:
+        {
+          parseFlagAttribute(A_RECVONLY, match, flags);
+          break;
+        }
+        case A_ORIENT:
+        {
+          parseValueAttribute(A_ORIENT, match, values);
+          break;
+        }
+        case A_TYPE:
+        {
+          parseValueAttribute(A_TYPE, match, values);
+          break;
+        }
+        case A_CHARSET:
+        {
+          parseValueAttribute(A_CHARSET, match, values);
+          break;
+        }
+        case A_SDPLANG:
+        {
+          parseValueAttribute(A_SDPLANG, match, values);
+          break;
+        }
+        case A_LANG:
+        {
+          parseValueAttribute(A_LANG, match, values);
+          break;
+        }
+        case A_FRAMERATE:
+        {
+          parseValueAttribute(A_FRAMERATE, match, values);
+          break;
+        }
+        case A_QUALITY:
+        {
+          parseValueAttribute(A_QUALITY, match, values);
+          break;
+        }
+        case A_FMTP:
+        {
+          parseValueAttribute(A_FMTP, match, values);
+          break;
+        }
+        default:
+        {
+          qDebug() << "ERROR: Recognized SDP attribute type which is not implemented";
+          break;
+        }
+        }
+    }
+    else
+    {
+      qDebug() << "Failed to parse attribute because of an unkown format: " << words;
+    }
 
-      // a=, m= or nothing.
-      if(!nextLine(lineIterator, words, type, firstValue))
-      {
-        return true;
-      }
+    // TODO: Check that there are as many codecs as there are rtpnums
+
+    // a=, m= or nothing
+    if(!nextLine(lineIterator, words, type, firstValue))
+    {
+      return true;
     }
   }
-
   return true;
 }
 
