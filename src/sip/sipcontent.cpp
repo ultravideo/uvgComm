@@ -6,18 +6,17 @@
 #include <QDebug>
 
 
-// called for every new line in SDP parsing. Parses out the two first characters and gives the first value,
-// and the rest of the values are divided to separate words. The amount of words can be checked and
-// the first character is recorded to lineType.
-bool nextLine(QStringListIterator &lineIterator, QStringList& words, char& lineType,
-              QString& firstValue);
+// called for every new line in SDP parsing. Parses out the two first characters
+// and gives the first value in first element of words, and the rest of the values are divided to separate words.
+// The first character is recorded to lineType.
+bool nextLine(QStringListIterator &lineIterator, QStringList& words, char& lineType);
 
 // Some fields simply take all the fields and put them in value regardless of spaces.
 // Called after nextLine for this situation.
-void gatherLine(QString& target, QString firstValue, QStringList& words);
+void gatherLine(QString& target, QStringList& words);
 
-bool parseAttributes(QStringListIterator &lineIterator, char& type, QString& firstValue,
-                     QStringList &words, QList<SDPAttributeType> &flags, QList<SDPAttribute> &values, QList<RTPMap> &codecs);
+bool parseAttributes(QStringListIterator &lineIterator, char& type, QStringList &words,
+                     QList<SDPAttributeType> &flags, QList<SDPAttribute> &values, QList<RTPMap> &codecs);
 
 void parseFlagAttribute(SDPAttributeType type, QRegularExpressionMatch& match, QList<SDPAttributeType>& attributes);
 void parseValueAttribute(SDPAttributeType type, QRegularExpressionMatch& match, QList<SDPAttribute> valueAttributes);
@@ -93,8 +92,7 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
   return sdp;
 }
 
-bool nextLine(QStringListIterator& lineIterator, QStringList& words, char& lineType,
-              QString& firstValue)
+bool nextLine(QStringListIterator& lineIterator, QStringList& words, char& lineType)
 {
   if(lineIterator.hasNext())
   {
@@ -110,7 +108,7 @@ bool nextLine(QStringListIterator& lineIterator, QStringList& words, char& lineT
     lineType = words.at(0).at(0).toLatin1();
 
     // skip first two characters of first word. (for example "v=")
-    firstValue = words.at(0).right(words.at(0).size() - 2);
+    words[0] = words.at(0).right(words.at(0).size() - 2);
 
     qDebug() << "Found: " << lineType << " SDP field";
     return true;
@@ -120,11 +118,11 @@ bool nextLine(QStringListIterator& lineIterator, QStringList& words, char& lineT
 }
 
 
-void gatherLine(QString& target, QString firstValue, QStringList& words)
+void gatherLine(QString& target, QStringList& words)
 {
   // a little bit clumsy, simply takes everything other than the letter and '='-mark
-  target = firstValue;
-  for(unsigned int i = 1; i < words.size(); ++i)
+  target = "";
+  for(int i = 0; i < words.size(); ++i)
   {
     target += words.at(i);
   }
@@ -139,13 +137,12 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
   QStringListIterator lineIterator(lines);
   QStringList words;
   char type = ' ';
-  QString firstValue = "";
 
   // the SDP must either have one global connection (c=)-field or each media must have its own.
   bool globalConnection = false;
 
   // v=
-  if(!nextLine(lineIterator, words, type, firstValue))
+  if(!nextLine(lineIterator, words, type))
   {
     return false;
   }
@@ -155,7 +152,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
     return false;
   }
 
-  sdp.version = firstValue.toUInt();
+  sdp.version = static_cast<uint8_t>(words.at(0).toUInt());
 
   if(sdp.version != 0)
   {
@@ -164,7 +161,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
   }
 
   // o=
-  if(!nextLine(lineIterator, words, type, firstValue))
+  if(!nextLine(lineIterator, words, type))
   {
     return false;
   }
@@ -174,7 +171,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
     return false;
   }
 
-  sdp.originator_username = firstValue;
+  sdp.originator_username = words.at(0);
   sdp.sess_id = words.at(1).toUInt();
   sdp.sess_v = words.at(2).toUInt();
   sdp.connection_nettype = words.at(3);
@@ -183,25 +180,25 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
 
   // s=
   // TODO: accept single empty character
-  if(!nextLine(lineIterator, words, type, firstValue) || type != 's')
+  if(!nextLine(lineIterator, words, type) || type != 's')
   {
     return false;
   }
 
-  gatherLine(sdp.sessionName, firstValue, words);
+  gatherLine(sdp.sessionName, words);
 
   // i=,u=,e=,p=,c=,b= or t=
-  if(!nextLine(lineIterator, words, type, firstValue))
+  if(!nextLine(lineIterator, words, type))
   {
     return false;
   }
 
   if(type == 'i')
   {
-    gatherLine(sdp.sessionDescription, firstValue, words);
+    gatherLine(sdp.sessionDescription, words);
 
     // u=,e=,p=,c=,b= or t=
-    if(!nextLine(lineIterator, words, type, firstValue))
+    if(!nextLine(lineIterator, words, type))
     {
       return false;
     }
@@ -216,10 +213,10 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
     }
 
     // there should be no spaces in URI.
-    sdp.uri = firstValue;
+    sdp.uri = words.at(0);
 
     // e=,p=,c=,b= or t=
-    if(!nextLine(lineIterator, words, type, firstValue))
+    if(!nextLine(lineIterator, words, type))
     {
       return false;
     }
@@ -233,10 +230,10 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
       return false;
     }
 
-    gatherLine(sdp.email, firstValue, words);
+    gatherLine(sdp.email, words);
 
     // p=,c=,b= or t=
-    if(!nextLine(lineIterator, words, type, firstValue))
+    if(!nextLine(lineIterator, words, type))
     {
       return false;
     }
@@ -250,10 +247,10 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
       return false;
     }
 
-    gatherLine(sdp.phone, firstValue, words);
+    gatherLine(sdp.phone, words);
 
     // c=,b= or t=
-    if(!nextLine(lineIterator, words, type, firstValue))
+    if(!nextLine(lineIterator, words, type))
     {
       return false;
     }
@@ -266,13 +263,13 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
       return false;
     }
 
-    sdp.connection_nettype = firstValue;
+    sdp.connection_nettype = words.at(0);
     sdp.connection_addrtype = words.at(1);
     sdp.connection_address = words.at(2);
     globalConnection = true;
 
     // b= or t=
-    if(!nextLine(lineIterator, words, type, firstValue))
+    if(!nextLine(lineIterator, words, type))
     {
       return false;
     }
@@ -285,12 +282,12 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
       return false;
     }
 
-    sdp.bitrate.push_back(firstValue);
+    sdp.bitrate.push_back(words.at(0));
 
     qDebug() << "WARNING: Received a bitrate field, which is currently unsupported by us.";
 
     // t=
-    if(!nextLine(lineIterator, words, type, firstValue))
+    if(!nextLine(lineIterator, words, type))
     {
       return false;
     }
@@ -307,10 +304,10 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
   {
     ++timeDescriptions;
 
-    sdp.timeDescriptions.push_back(TimeInfo{firstValue.toUInt(), words.at(1).toUInt(),"","",{}});
+    sdp.timeDescriptions.push_back(TimeInfo{words.at(0).toUInt(), words.at(1).toUInt(),"","",{}});
 
     // r=, t=, z=, k=, a=, m= or nothing
-    if(!nextLine(lineIterator, words, type, firstValue))
+    if(!nextLine(lineIterator, words, type))
     {
       // this could be the end since timeDescription is the last mandatory element.
       return true;
@@ -324,7 +321,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
         return false;
       }
 
-      sdp.timeDescriptions.last().repeatInterval = firstValue;
+      sdp.timeDescriptions.last().repeatInterval = words.at(0);
       sdp.timeDescriptions.last().activeDuration = words.at(1);
       sdp.timeDescriptions.last().offsets.push_back(words.at(2));
 
@@ -334,7 +331,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
       }
 
       // t=, z=, k=, a=, m= or nothing
-      if(!nextLine(lineIterator, words, type, firstValue))
+      if(!nextLine(lineIterator, words, type))
       {
         return true;
       }
@@ -348,7 +345,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
       return false;
     }
 
-    sdp.timezoneOffsets.push_back(TimezoneInfo{firstValue, words.at(1)});
+    sdp.timezoneOffsets.push_back(TimezoneInfo{words.at(0), words.at(1)});
 
     for(int i = 2; i + 1 < words.size(); i += 2)
     {
@@ -356,7 +353,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
     }
 
     // k=, a=, m= or nothing
-    if(!nextLine(lineIterator, words, type, firstValue))
+    if(!nextLine(lineIterator, words, type))
     {
       return true;
     }
@@ -369,17 +366,17 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
       return false;
     }
 
-    sdp.encryptionKey = firstValue;
+    sdp.encryptionKey = words.at(0);
 
     // a=, m= or nothing
-    if(!nextLine(lineIterator, words, type, firstValue))
+    if(!nextLine(lineIterator, words, type))
     {
       return true;
     }
   }
 
   QList<RTPMap> noCodecs;
-  if(!parseAttributes(lineIterator, type, firstValue, words, sdp.flagAttributes, sdp.valueAttributes, noCodecs))
+  if(!parseAttributes(lineIterator, type, words, sdp.flagAttributes, sdp.valueAttributes, noCodecs))
   {
     return false;
   }
@@ -392,13 +389,13 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
 
   while(type == 'm')
   {
-    qDebug() << "Found media:" << firstValue;
+    qDebug() << "Found media:" << words.at(0);
     if(words.size() < 4)
     {
       return false;
     }
 
-    sdp.media.push_back(MediaInfo{firstValue, static_cast<uint16_t>(words.at(1).toUInt()), words.at(2),
+    sdp.media.push_back(MediaInfo{words.at(0), static_cast<uint16_t>(words.at(1).toUInt()), words.at(2),
                                   {}, "","","", "", {}, "", {}, {},{}});
 
     for(int i = 3; i < words.size(); ++i)
@@ -407,17 +404,17 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
     }
 
     // m=, i=, c=, b=,  or nothing.
-    if(!nextLine(lineIterator, words, type, firstValue))
+    if(!nextLine(lineIterator, words, type))
     {
       return true;
     }
 
     if(type == 'i')
     {
-      gatherLine(sdp.media.back().title, firstValue, words);
+      gatherLine(sdp.media.back().title, words);
 
       // u=,e=,p=,c=,b= or
-      if(!nextLine(lineIterator, words, type, firstValue))
+      if(!nextLine(lineIterator, words, type))
       {
         return true;
       }
@@ -430,13 +427,13 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
         return false;
       }
 
-      sdp.media.back().connection_nettype = firstValue;
+      sdp.media.back().connection_nettype = words.at(0);
       sdp.media.back().connection_addrtype = words.at(1);
       sdp.media.back().connection_address = words.at(2);
       globalConnection = true;
 
       // b=,
-      if(!nextLine(lineIterator, words, type, firstValue))
+      if(!nextLine(lineIterator, words, type))
       {
         return false;
       }
@@ -449,12 +446,12 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
         return false;
       }
 
-      sdp.media.back().bitrate.push_back(firstValue);
+      sdp.media.back().bitrate.push_back(words.at(0));
 
       qDebug() << "WARNING: Received a bitrate field, which is currently unsupported by us.";
 
       // t=
-      if(!nextLine(lineIterator, words, type, firstValue))
+      if(!nextLine(lineIterator, words, type))
       {
         return false;
       }
@@ -467,16 +464,16 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
         return false;
       }
 
-      sdp.media.back().encryptionKey = firstValue;
+      sdp.media.back().encryptionKey = words.at(0);
 
       // a=, m= or nothing
-      if(!nextLine(lineIterator, words, type, firstValue))
+      if(!nextLine(lineIterator, words, type))
       {
         return true;
       }
     }
 
-    if(!parseAttributes(lineIterator, type, firstValue, words,
+    if(!parseAttributes(lineIterator, type, words,
                         sdp.media.back().flagAttributes, sdp.media.back().valueAttributes, sdp.media.back().codecs))
     {
       return false;
@@ -487,7 +484,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
   return true;
 }
 
-bool parseAttributes(QStringListIterator &lineIterator, char &type, QString &firstValue, QStringList& words,
+bool parseAttributes(QStringListIterator &lineIterator, char &type, QStringList& words,
                      QList<SDPAttributeType>& flags, QList<SDPAttribute>& values, QList<RTPMap>& codecs)
 {
   while(type == 'a')
@@ -495,7 +492,7 @@ bool parseAttributes(QStringListIterator &lineIterator, char &type, QString &fir
     // ignore non recognized attributes.
 
     QRegularExpression re_attribute("(\\w+)(:(\\S+))?");
-    QRegularExpressionMatch match = re_attribute.match(firstValue);
+    QRegularExpressionMatch match = re_attribute.match(words.at(0));
     if(match.hasMatch() && match.lastCapturedIndex() >= 2)
     {
       QString attribute = match.captured(1);
@@ -623,7 +620,7 @@ bool parseAttributes(QStringListIterator &lineIterator, char &type, QString &fir
     // TODO: Check that there are as many codecs as there are rtpnums
 
     // a=, m= or nothing
-    if(!nextLine(lineIterator, words, type, firstValue))
+    if(!nextLine(lineIterator, words, type))
     {
       return true;
     }
