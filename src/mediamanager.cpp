@@ -115,7 +115,7 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID, const MediaInfo& remo
   bool send = true;
   bool recv = true;
 
-  transportAttributes(remoteMedia.attributes, send, recv);
+  transportAttributes(remoteMedia.flagAttributes, send, recv);
 
   // if they want to receive
   if(recv)
@@ -158,7 +158,7 @@ void MediaManager::createIncomingMedia(uint32_t sessionID, const MediaInfo &loca
   bool send = true;
   bool recv = true;
 
-  transportAttributes(localMedia.attributes, send, recv);
+  transportAttributes(localMedia.flagAttributes, send, recv);
   if(recv)
   {
     Q_ASSERT(localMedia.receivePort);

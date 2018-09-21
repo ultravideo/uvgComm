@@ -115,8 +115,8 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP(QHostAddress localAd
   // just for completeness, we will probably never support any of the pre-set video types.
   video.rtpNums += parameters_.videoPayloadTypes();
 
-  audio.attributes.push_back(A_SENDRECV);
-  video.attributes.push_back(A_SENDRECV);
+  audio.flagAttributes.push_back(A_SENDRECV);
+  video.flagAttributes.push_back(A_SENDRECV);
 
   newInfo->media.push_back(audio);
   newInfo->media.push_back(video);

@@ -27,6 +27,7 @@ struct RTPMap
   uint8_t rtpNum;
   uint32_t clockFrequency;
   QString codec;
+  QString codecParameter;
 };
 
 // SDP media info
@@ -50,7 +51,7 @@ struct MediaInfo
   QString encryptionKey; // k=, optional
 
   QList<RTPMap> codecs;
-  QList<SDPAttributeType> attributes;
+  QList<SDPAttributeType> flagAttributes;
   QList<SDPAttribute> valueAttributes;
 };
 

@@ -6,9 +6,6 @@
 #include <QDebug>
 
 
-bool checkSDPLine(QStringList& line, uint8_t expectedLength, QString& firstValue);
-bool parseSDPMedia(QStringListIterator lineIterator, MediaInfo& media);
-
 // called for every new line in SDP parsing. Parses out the two first characters and gives the first value,
 // and the rest of the values are divided to separate words. The amount of words can be checked and
 // the first character is recorded to lineType.
@@ -18,6 +15,11 @@ bool nextLine(QStringListIterator &lineIterator, QStringList& words, char& lineT
 // Some fields simply take all the fields and put them in value regardless of spaces.
 // Called after nextLine for this situation.
 void gatherLine(QString& target, QString firstValue, QStringList& words);
+
+void parseFlagAttribute(SDPAttributeType type, QRegularExpressionMatch& match, QList<SDPAttributeType>& attributes);
+void parseValueAttribute(SDPAttributeType type, QRegularExpressionMatch& match, QList<SDPAttribute> valueAttributes);
+void parseRTPMap(QRegularExpressionMatch& match, QString secondWord, QList<RTPMap>& codecs);
+
 
 QString composeSDPContent(const SDPMessageInfo &sdpInfo)
 {
@@ -476,56 +478,138 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
 
     while(type == 'a')
     {
-      if(words.size() != 1)
-      {
-        // it must be an rtpmap
-      }
-      else if(words.size() == 1)
-      {
-
-      }
       // ignore non recognized attributes.
 
       QRegularExpression re_attribute("(\\w+)(:(\\S+))?");
       QRegularExpressionMatch match = re_attribute.match(firstValue);
-      if(match.hasMatch())
+      if(match.hasMatch() && match.lastCapturedIndex() >= 2)
       {
-        QString attribute = "";
-        QString value = "";
+        QString attribute = match.captured(1);
 
-        const int ATTRIBUTEINDEX = 2;
-        const int VALUEINDEX = 4;
-        if(match.lastCapturedIndex() == ATTRIBUTEINDEX || match.lastCapturedIndex() == VALUEINDEX)
-        {
-          attribute = match.captured(ATTRIBUTEINDEX - 1);
-
-          if(match.lastCapturedIndex() == VALUEINDEX)
-          {
-            value = match.captured(VALUEINDEX - 1);
-          }
-
-          std::map<QString, SDPAttributeType> xmap
-              = {{"cat", A_CAT}, {"keywds", A_KEYWDS},{"tool", A_TOOL},{"ptime", A_PTIME},
-                 {"maxptime", A_MAXPTIME},{"rtpmap", A_RTPMAP},{"recvonly", A_RECVONLY},
-                 {"sendrecv", A_SENDRECV},{"sendonly", A_SENDONLY},{"inactive", A_INACTIVE},
-                 {"orient", A_ORIENT},{"type", A_TYPE},{"charset", A_CHARSET},{"sdplang", A_SDPLANG},
-                 {"lang", A_LANG},{"framerate", A_FRAMERATE},{"quality", A_QUALITY},{"fmtp", A_FMTP}};
+        std::map<QString, SDPAttributeType> xmap
+            = {{"cat", A_CAT}, {"keywds", A_KEYWDS},{"tool", A_TOOL},{"ptime", A_PTIME},
+               {"maxptime", A_MAXPTIME},{"rtpmap", A_RTPMAP},{"recvonly", A_RECVONLY},
+               {"sendrecv", A_SENDRECV},{"sendonly", A_SENDONLY},{"inactive", A_INACTIVE},
+               {"orient", A_ORIENT},{"type", A_TYPE},{"charset", A_CHARSET},{"sdplang", A_SDPLANG},
+               {"lang", A_LANG},{"framerate", A_FRAMERATE},{"quality", A_QUALITY},{"fmtp", A_FMTP}};
 
           if(xmap.find(attribute) == xmap.end())
           {
             qDebug() << "Could not find the attribute.";
           }
-
           switch(xmap[attribute])
           {
-
+          case A_CAT:
+          {
+            parseValueAttribute(A_CAT, match, sdp.media.back().valueAttributes);
+            break;
+          }
+          case A_KEYWDS:
+          {
+            parseValueAttribute(A_KEYWDS, match, sdp.media.back().valueAttributes);
+            break;
+          }
+          case A_TOOL:
+          {
+            parseValueAttribute(A_TOOL, match, sdp.media.back().valueAttributes);
+            break;
+          }
+          case A_PTIME:
+          {
+            parseValueAttribute(A_PTIME, match, sdp.media.back().valueAttributes);
+            break;
+          }
+          case A_MAXPTIME:
+          {
+            parseValueAttribute(A_MAXPTIME, match, sdp.media.back().valueAttributes);
+            break;
+          }
+          case A_RTPMAP:
+          {
+            if(words.size() != 2)
+            {
+              qDebug() << "Wrong amount of words in rtpmap " << words.size();
+              return false;
+            }
+            parseRTPMap(match, words.at(1), sdp.media.back().codecs);
+            break;
+          }
+          case A_RECVONLY:
+          {
+            parseFlagAttribute(A_RECVONLY, match, sdp.media.back().flagAttributes);
+            break;
+          }
+          case A_SENDRECV:
+          {
+            parseFlagAttribute(A_RECVONLY, match, sdp.media.back().flagAttributes);
+            break;
+          }
+          case A_SENDONLY:
+          {
+            parseFlagAttribute(A_RECVONLY, match, sdp.media.back().flagAttributes);
+            break;
+          }
+          case A_INACTIVE:
+          {
+            parseFlagAttribute(A_RECVONLY, match, sdp.media.back().flagAttributes);
+            break;
+          }
+          case A_ORIENT:
+          {
+            parseValueAttribute(A_ORIENT, match, sdp.media.back().valueAttributes);
+            break;
+          }
+          case A_TYPE:
+          {
+            parseValueAttribute(A_TYPE, match, sdp.media.back().valueAttributes);
+            break;
+          }
+          case A_CHARSET:
+          {
+            parseValueAttribute(A_CHARSET, match, sdp.media.back().valueAttributes);
+            break;
+          }
+          case A_SDPLANG:
+          {
+            parseValueAttribute(A_SDPLANG, match, sdp.media.back().valueAttributes);
+            break;
+          }
+          case A_LANG:
+          {
+            parseValueAttribute(A_LANG, match, sdp.media.back().valueAttributes);
+            break;
+          }
+          case A_FRAMERATE:
+          {
+            parseValueAttribute(A_FRAMERATE, match, sdp.media.back().valueAttributes);
+            break;
+          }
+          case A_QUALITY:
+          {
+            parseValueAttribute(A_QUALITY, match, sdp.media.back().valueAttributes);
+            break;
+          }
+          case A_FMTP:
+          {
+            parseValueAttribute(A_FMTP, match, sdp.media.back().valueAttributes);
+            break;
+          }
+          default:
+          {
+            qDebug() << "ERROR: Recognized SDP attribute type which is not implemented";
+            break;
+          }
           }
 
-        }
 
         sdp.attributes.push_back(firstValue);
-
       }
+      else
+      {
+        qDebug() << "Failed to parse attribute because of an unkown format: " << words;
+      }
+
+      // TODO: Check that there are as many codecs as there are rtpnums
 
       // a=, m= or nothing.
       if(!nextLine(lineIterator, words, type, firstValue))
@@ -538,27 +622,56 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
   return true;
 }
 
-bool parseSDPMedia(QStringListIterator lineIterator, MediaInfo& media)
+void parseFlagAttribute(SDPAttributeType type, QRegularExpressionMatch& match, QList<SDPAttributeType>& attributes)
 {
-
+  if(match.lastCapturedIndex() == 2)
+  {
+    qDebug() << "Correctly matched a flag attribute";
+    attributes.push_back(type);
+  }
+  else
+  {
+    qDebug() << "Flag attribute did not match correctly";
+  }
 }
 
-bool checkSDPLine(QStringList& line, uint8_t expectedLength, QString& firstValue)
+void parseValueAttribute(SDPAttributeType type, QRegularExpressionMatch& match, QList<SDPAttribute> valueAttributes)
 {
-  Q_ASSERT(expectedLength != 0);
-
-  if(line.size() != expectedLength)
+  if(match.lastCapturedIndex() == 3)
   {
-    qDebug() << "SDP line:" << line << "not expected length:" << expectedLength;
-    return false;
+    qDebug() << "Correctly matched an SDP value attribute";
+    QString value = match.captured(2);
+    valueAttributes.push_back(SDPAttribute{type, value});
   }
-  if(line.at(0).length() < 3)
+  else
   {
-    qDebug() << "First word missing in SDP Line:" << line;
-    return false;
+    qDebug() << "Value attribute did not match correctly";
   }
+}
 
-  firstValue = line.at(0).right(line.at(0).size() - 2);
-
-  return true;
+void parseRTPMap(QRegularExpressionMatch& match, QString secondWord, QList<RTPMap>& codecs)
+{
+  if(match.hasMatch() && secondWord != "" && match.lastCapturedIndex() == 3)
+  {
+    QRegularExpression re_rtpParameters("(\\w+)\\/(\\w+)(\\/\\w+)?");
+    QRegularExpressionMatch parameter_match = re_rtpParameters.match(secondWord);
+    if(parameter_match.hasMatch() && (parameter_match.lastCapturedIndex() == 2 || parameter_match.lastCapturedIndex() == 3))
+    {
+      codecs.push_back(RTPMap{static_cast<uint8_t>(match.captured(3).toUInt()),
+                              parameter_match.captured(2).toUInt(), parameter_match.captured(1), ""});
+      if(parameter_match.lastCapturedIndex() == 3) // has codec parameters
+      {
+        codecs.back().codecParameter = parameter_match.captured(3);
+      }
+    }
+    else
+    {
+      qDebug() << "The second part in RTPMap did not match correctly for:" << secondWord
+               << "Got" << parameter_match.lastCapturedIndex() << "Expected 3 or 4";
+    }
+  }
+  else
+  {
+    qDebug() << "The first part of RTPMap did not match correctly:" << match.lastCapturedIndex() << "Expected: 4";
+  }
 }

@@ -25,12 +25,12 @@ QList<RTPMap> SDPParameterManager::audioCodecs() const
   // to make implementation simpler ( range 96...127 )
 
   // opus is always 48000, even if the actual sample rate is lower
-  return QList<RTPMap>{RTPMap{96, 48000, "opus"}};
+  return QList<RTPMap>{RTPMap{96, 48000, "opus", ""}}; // TODO: put number of channels in parameters.
 }
 
 QList<RTPMap> SDPParameterManager::videoCodecs() const
 {
-  return QList<RTPMap>{RTPMap{97, 90000, "h265"}};
+  return QList<RTPMap>{RTPMap{97, 90000, "h265", ""}};
 }
 
 QString SDPParameterManager::sessionName() const
