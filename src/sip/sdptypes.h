@@ -27,7 +27,7 @@ struct RTPMap
   uint8_t rtpNum;
   uint32_t clockFrequency;
   QString codec;
-  QString codecParameter;
+  QString codecParameter; // only for audio channel count
 };
 
 // SDP media info

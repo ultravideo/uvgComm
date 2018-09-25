@@ -15,6 +15,20 @@ bool nextLine(QStringListIterator &lineIterator, QStringList& words, char& lineT
 // Called after nextLine for this situation.
 void gatherLine(QString& target, QStringList& words);
 
+
+
+// c=
+bool parseConnection(QStringListIterator& lineIterator, char& type, QStringList& words,
+                     QString& nettype, QString& addrtype, QString& address);
+
+// b=
+bool parseBitrate(QStringListIterator& lineIterator, char& type, QStringList& words,
+                  QList<QString>& bitrates);
+
+// k=
+bool parseEncryptionKey(QStringListIterator& lineIterator, char& type, QStringList& words,
+                        QString& key);
+// a=
 bool parseAttributes(QStringListIterator &lineIterator, char& type, QStringList &words,
                      QList<SDPAttributeType> &flags, QList<SDPAttribute> &values, QList<RTPMap> &codecs);
 
@@ -144,11 +158,13 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
   // v=
   if(!nextLine(lineIterator, words, type))
   {
+    qDebug() << "Empty SDP message";
     return false;
   }
 
   if(type != 'v' || words.size() != 1)
   {
+    qDebug() << "First line malformed";
     return false;
   }
 
@@ -163,11 +179,13 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
   // o=
   if(!nextLine(lineIterator, words, type))
   {
+    qDebug() << "Only v= line present";
     return false;
   }
 
   if(type != 'o' || words.size() != 6)
   {
+    qDebug() << "o= line malformed";
     return false;
   }
 
@@ -182,6 +200,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
   // TODO: accept single empty character
   if(!nextLine(lineIterator, words, type) || type != 's')
   {
+    qDebug() << "Problem gettin s= line";
     return false;
   }
 
@@ -200,6 +219,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
     // u=,e=,p=,c=,b= or t=
     if(!nextLine(lineIterator, words, type))
     {
+      qDebug() << "Nothing after i=";
       return false;
     }
   }
@@ -218,6 +238,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
     // e=,p=,c=,b= or t=
     if(!nextLine(lineIterator, words, type))
     {
+      qDebug() << "Nothing after u=";
       return false;
     }
   }
@@ -235,6 +256,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
     // p=,c=,b= or t=
     if(!nextLine(lineIterator, words, type))
     {
+      qDebug() << "Nothing after e=";
       return false;
     }
   }
@@ -252,48 +274,27 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
     // c=,b= or t=
     if(!nextLine(lineIterator, words, type))
     {
+      qDebug() << "Nothing after p=";
       return false;
     }
   }
 
-  if(type == 'c')
+
+  if(!parseConnection(lineIterator, type, words,
+                      sdp.connection_nettype, sdp.connection_addrtype, sdp.connection_address))
   {
-    if(words.size() != 3)
-    {
-      return false;
-    }
-
-    sdp.connection_nettype = words.at(0);
-    sdp.connection_addrtype = words.at(1);
-    sdp.connection_address = words.at(2);
-    globalConnection = true;
-
-    // b= or t=
-    if(!nextLine(lineIterator, words, type))
-    {
-      return false;
-    }
+    return false;
   }
 
-  while(type == 'b')
+  // the connection field must be present in either global stage or one in each media.
+  globalConnection = sdp.connection_address != "";
+
+  if(!parseBitrate(lineIterator, type, words, sdp.bitrate) || !lineIterator.hasNext())
   {
-    if(words.size() != 1)
-    {
-      return false;
-    }
-
-    sdp.bitrate.push_back(words.at(0));
-
-    qDebug() << "WARNING: Received a bitrate field, which is currently unsupported by us.";
-
-    // t=
-    if(!nextLine(lineIterator, words, type))
-    {
-      return false;
-    }
+    return false;
   }
 
-  if(type!= 't' || words.size() != 2)
+  if(type!= 't')
   {
     qDebug() << "No timing field present in SDP.";
     return false;
@@ -302,6 +303,12 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
   int timeDescriptions = 0;
   while(type == 't')
   {
+    if(words.size() != 2)
+    {
+      qDebug() << "Wrong size for time description.";
+      return false;
+    }
+
     ++timeDescriptions;
 
     sdp.timeDescriptions.push_back(TimeInfo{words.at(0).toUInt(), words.at(1).toUInt(),"","",{}});
@@ -359,20 +366,9 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
     }
   }
 
-  if(type == 'k')
+  if(!parseEncryptionKey(lineIterator, type, words, sdp.encryptionKey))
   {
-    if(words.size() != 1)
-    {
-      return false;
-    }
-
-    sdp.encryptionKey = words.at(0);
-
-    // a=, m= or nothing
-    if(!nextLine(lineIterator, words, type))
-    {
-      return true;
-    }
+    return false;
   }
 
   QList<RTPMap> noCodecs;
@@ -420,62 +416,23 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
       }
     }
 
-    if(type == 'c')
+    if(!globalConnection && type != 'c')
     {
-      if(words.size() != 3)
-      {
-        return false;
-      }
-
-      sdp.media.back().connection_nettype = words.at(0);
-      sdp.media.back().connection_addrtype = words.at(1);
-      sdp.media.back().connection_address = words.at(2);
-      globalConnection = true;
-
-      // b=,
-      if(!nextLine(lineIterator, words, type))
-      {
-        return false;
-      }
+      qDebug() << "Not all media have a connection field!";
+      return false;
     }
 
-    while(type == 'b')
+    // parse c=, b=, k= and a= fields
+    if(!parseConnection(lineIterator, type, words, sdp.media.back().connection_nettype,
+                        sdp.media.back().connection_addrtype, sdp.media.back().connection_address)
+       || !parseBitrate(lineIterator, type, words, sdp.media.back().bitrate)
+       || !parseEncryptionKey(lineIterator, type, words, sdp.encryptionKey)
+       || !parseAttributes(lineIterator, type, words,
+                           sdp.media.back().flagAttributes,
+                           sdp.media.back().valueAttributes,
+                           sdp.media.back().codecs))
     {
-      if(words.size() != 1)
-      {
-        return false;
-      }
-
-      sdp.media.back().bitrate.push_back(words.at(0));
-
-      qDebug() << "WARNING: Received a bitrate field, which is currently unsupported by us.";
-
-      // t=
-      if(!nextLine(lineIterator, words, type))
-      {
-        return false;
-      }
-    }
-
-    if(type == 'k')
-    {
-      if(words.size() != 1)
-      {
-        return false;
-      }
-
-      sdp.media.back().encryptionKey = words.at(0);
-
-      // a=, m= or nothing
-      if(!nextLine(lineIterator, words, type))
-      {
-        return true;
-      }
-    }
-
-    if(!parseAttributes(lineIterator, type, words,
-                        sdp.media.back().flagAttributes, sdp.media.back().valueAttributes, sdp.media.back().codecs))
-    {
+      qDebug() << "Failed to parse some media fields";
       return false;
     }
 
@@ -680,4 +637,80 @@ void parseRTPMap(QRegularExpressionMatch& match, QString secondWord, QList<RTPMa
   {
     qDebug() << "The first part of RTPMap did not match correctly:" << match.lastCapturedIndex() << "Expected: 4";
   }
+}
+
+
+bool parseConnection(QStringListIterator& lineIterator, char& type, QStringList& words,
+                     QString& nettype, QString& addrtype, QString& address)
+{
+  if(type == 'c')
+  {
+    if(words.size() != 3)
+    {
+      qDebug() << "wrong number of values in connection:" << words.size() << "Expected 3";
+      return false;
+    }
+
+    nettype = words.at(0);
+    addrtype = words.at(1);
+    address = words.at(2);
+
+    // b= or t= if global
+    if(!nextLine(lineIterator, words, type))
+    {
+      return false;
+    }
+  }
+  return true;
+}
+
+
+bool parseBitrate(QStringListIterator& lineIterator, char& type, QStringList& words,
+                  QList<QString>& bitrates)
+{
+  while(type == 'b')
+  {
+    if(words.size() != 1)
+    {
+      qDebug() << "More than one value in bitrate.";
+      return false;
+    }
+
+    bitrates.push_back(words.at(0));
+
+    qDebug() << "WARNING: Received a bitrate field, which is currently unsupported by us.";
+
+    // t= if global
+    // k=, a=, m= or nothing if media.
+    if(!nextLine(lineIterator, words, type))
+    {
+      return true;
+    }
+  }
+  return true;
+}
+
+
+bool parseEncryptionKey(QStringListIterator& lineIterator, char& type, QStringList& words,
+                        QString& key)
+{
+  if(type == 'k')
+  {
+    if(words.size() != 1)
+    {
+      qDebug() << "More than one value in encryption key.";
+      return false;
+    }
+
+    key = words.at(0);
+
+    qDebug() << "WARNING: Received a encryption key field, which is currently unsupported by us.";
+
+    // a=, m= or nothing
+    if(!nextLine(lineIterator, words, type))
+    {
+      return true;
+    }
+  }
+  return true;
 }
