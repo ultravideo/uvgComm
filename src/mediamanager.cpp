@@ -7,6 +7,8 @@
 #include "rtpsinkfilter.h"
 #include "gui/videoviewfactory.h"
 #include "sip/sdptypes.h"
+#include "statisticsinterface.h"
+
 
 #include <QHostAddress>
 #include <QtEndian>
@@ -33,6 +35,7 @@ void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory, Statistic
   viewfactory_ = viewfactory;
   streamer_->init(stats);
   streamer_->start();
+  stats_ = stats;
   fg_->init(viewfactory_->getVideo(0), stats); // 0 is the selfview index. The view should be created by GUI
 }
 
@@ -43,6 +46,7 @@ void MediaManager::uninit()
   fg_->running(false);
   fg_->uninit();
 
+  stats_ = nullptr;
   streamer_->stop();
   streamer_->uninit();
 }
@@ -69,6 +73,11 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
   {
     QHostAddress address;
     address.setAddress(peerInfo->connection_address);
+
+    if(stats_ != nullptr)
+    {
+      stats_->addParticipant(peerInfo->connection_address, "0", "0");
+    }
 
     if(peerInfo->connection_addrtype == "IP4")
     {
