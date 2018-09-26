@@ -37,32 +37,62 @@ void parseValueAttribute(SDPAttributeType type, QRegularExpressionMatch& match, 
 void parseRTPMap(QRegularExpressionMatch& match, QString secondWord, QList<RTPMap>& codecs);
 
 
-QString composeSDPContent(const SDPMessageInfo &sdpInfo)
+bool checkSDPValidity(const SDPMessageInfo &sdpInfo)
 {
   if(sdpInfo.version != 0 ||
      sdpInfo.originator_username.isEmpty() ||
-     sdpInfo.host_nettype.isEmpty() ||
-     sdpInfo.host_addrtype.isEmpty() ||
-     sdpInfo.host_address.isEmpty() ||
      sdpInfo.sessionName.isEmpty() ||
-     sdpInfo.connection_nettype.isEmpty() ||
-     sdpInfo.connection_addrtype.isEmpty() ||
-     sdpInfo.connection_address.isEmpty() ||
      sdpInfo.timeDescriptions.empty() ||
      sdpInfo.media.empty())
   {
+    qWarning() << "Version: " << sdpInfo.version <<
+        "Originator: " << sdpInfo.originator_username <<
+        "Session name:" << sdpInfo.sessionName <<
+        "Number of time descriptions:" << sdpInfo.timeDescriptions.size() <<
+        "Number of medias:" << sdpInfo.media.size();
+    return false;
+  }
+
+  if(sdpInfo.host_nettype.isEmpty() ||
+     sdpInfo.host_addrtype.isEmpty() ||
+     sdpInfo.host_address.isEmpty())
+  {
+    qDebug() << "SDP Host address is empty.";
+    qDebug() << sdpInfo.host_nettype << " " << sdpInfo.host_addrtype << " " << sdpInfo.host_address;
+    return false;
+  }
+
+  if(sdpInfo.connection_nettype.isEmpty() ||
+     sdpInfo.connection_addrtype.isEmpty() ||
+     sdpInfo.connection_address.isEmpty())
+  {
+    qDebug() << "No Global address in SDP";
+    for(auto media: sdpInfo.media)
+    {
+      if(media.connection_address.isEmpty() ||
+         media.connection_addrtype.isEmpty() ||
+         media.connection_address.isEmpty())
+      {
+        qDebug() << "Missing global and media address. The SDP is not good";
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+
+QString composeSDPContent(const SDPMessageInfo &sdpInfo)
+{
+  if(!checkSDPValidity(sdpInfo))
+  {
     qCritical() << "WARNING: Bad SDPInfo in string formation";
-    qWarning() << sdpInfo.version <<
-        sdpInfo.originator_username <<
-        sdpInfo.host_nettype <<
-        sdpInfo.host_addrtype <<
-        sdpInfo.host_address <<
-        sdpInfo.sessionName <<
-        sdpInfo.connection_nettype <<
-        sdpInfo.connection_addrtype <<
-        sdpInfo.connection_address <<
-        sdpInfo.timeDescriptions.size();
     return "";
+  }
+  else
+  {
+    qDebug() << "Composed SDP checks out. Starting to compose";
   }
   QString sdp = "";
   QString lineEnd = "\r\n";
@@ -148,6 +178,13 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
 {
   // The SDP has strict ordering rules and the parsing follows those.
   QStringList lines = content.split("\r\n", QString::SkipEmptyParts);
+  if(lines.size() > 1000)
+  {
+    qDebug() << "WHOAH: Got over a thousand lines of SDP. "
+                "Not going to process this because of size: " << lines.size();
+    return false;
+  }
+
   QStringListIterator lineIterator(lines);
   QStringList words;
   char type = ' ';
@@ -192,9 +229,9 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
   sdp.originator_username = words.at(0);
   sdp.sess_id = words.at(1).toUInt();
   sdp.sess_v = words.at(2).toUInt();
-  sdp.connection_nettype = words.at(3);
-  sdp.connection_addrtype = words.at(4);
-  sdp.connection_address = words.at(5);
+  sdp.host_nettype = words.at(3);
+  sdp.host_addrtype = words.at(4);
+  sdp.host_address = words.at(5);
 
   // s=
   // TODO: accept single empty character
@@ -438,6 +475,16 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
 
   } // m=
 
+  if(!checkSDPValidity(sdp))
+  {
+    qCritical() << "ERROR: The parsing generated a bad SDP for some reason. The problem should be detected earlier.";
+    return false;
+  }
+  else
+  {
+    qDebug() << "Parsed SDP is valid.";
+  }
+
   return true;
 }
 
@@ -582,6 +629,7 @@ bool parseAttributes(QStringListIterator &lineIterator, char &type, QStringList&
       return true;
     }
   }
+
   return true;
 }
 
