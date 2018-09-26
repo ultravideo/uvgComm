@@ -28,7 +28,6 @@ void SIPTransactions::init(SIPTransactionUser *callControl)
       ? settings.value("local/Username").toString() : "anonymous";
 
   sdp_.setLocalInfo(username);
-  sdp_.setPortRange(21500, 22000, 42);
 }
 
 void SIPTransactions::uninit()
@@ -74,7 +73,7 @@ QList<uint32_t> SIPTransactions::startCall(QList<Contact> addresses)
   QList<uint32_t> calls;
   for(unsigned int i = 0; i < addresses.size(); ++i)
   {
-    if(!sdp_.enoughFreePorts())
+    if(!sdp_.canStartSession())
     {
       qDebug() << "Not enough ports to start a call";
       break;
@@ -95,7 +94,7 @@ QList<uint32_t> SIPTransactions::startCall(QList<Contact> addresses)
     {
       // check if we are already connected to their adddress
 
-      for(unsigned int j = 0; j < transports_.size(); ++j)
+      for(int j = 0; j < transports_.size(); ++j)
       {
         if(transports_.at(j) != nullptr &&
            transports_.at(j)->getRemoteAddress().toString() == addresses.at(i).remoteAddress)
@@ -184,7 +183,7 @@ void SIPTransactions::endAllCalls()
     }
   }
 
-  for(unsigned int i = 0; i < dialogs_.size(); ++i)
+  for(int i = 0; i < dialogs_.size(); ++i)
   {
     if(dialogs_.at(i) != nullptr)
     {
@@ -226,6 +225,8 @@ void SIPTransactions::receiveTCPConnection(TCPConnection *con)
 void SIPTransactions::connectionEstablished(quint32 transportID, QString localAddress,
                                             QString remoteAddress)
 {
+  // TODO: may get wrong transport ID?
+
   Q_ASSERT(transportID != 0);
   if(transportID == 0)
   {
@@ -254,7 +255,7 @@ void SIPTransactions::connectionEstablished(quint32 transportID, QString localAd
     qDebug() << "ERROR: Did not find dialog for transportID:" << transportID << "Existing IDs:";
     for(auto dialog : dialogs_)
     {
-      qDebug() << "TransportID: " << dialog->transportID;
+      qDebug().nospace() << dialog->transportID << " ";
     }
   }
 
@@ -298,7 +299,7 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
     {
       qDebug() << "Someone is trying to start a sip dialog with us!";
 
-      if(!sdp_.enoughFreePorts())
+      if(!sdp_.canStartSession())
       {
         qDebug() << "Not enough free media ports to accept new dialog";
         return;
@@ -348,7 +349,7 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
         if(!processSDP(foundSessionID, content, transports_.at(transportID - 1)->getLocalAddress()))
         {
           qDebug() << "Failed to find suitable SDP.";
-          foundDialog->server->setCurrentRequest(request);
+          foundDialog->server->setCurrentRequest(request); // TODO: crashes
           sendResponse(foundSessionID, SIP_DECLINE, request.type);
           return;
         }
