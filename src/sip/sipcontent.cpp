@@ -98,8 +98,8 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
   QString lineEnd = "\r\n";
   sdp += "v=" + QString::number(sdpInfo.version) + lineEnd;
   sdp += "o=" + sdpInfo.originator_username + " " + QString::number(sdpInfo.sess_id)  + " "
-      + QString::number(sdpInfo.sess_v) + " " + sdpInfo.connection_nettype + " "
-      + sdpInfo.connection_addrtype + " " + sdpInfo.connection_address + lineEnd;
+      + QString::number(sdpInfo.sess_v) + " " + sdpInfo.host_nettype + " "
+      + sdpInfo.host_addrtype + " " + sdpInfo.host_address + lineEnd;
 
   sdp += "s=" + sdpInfo.sessionName + lineEnd;
   sdp += "c=" + sdpInfo.connection_nettype + " " + sdpInfo.connection_addrtype +
@@ -119,16 +119,48 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
     }
     sdp += lineEnd;
 
+    if(!mediaStream.title.isEmpty())
+    {
+      sdp += "i=" + mediaStream.title;
+    }
+
     if(!mediaStream.connection_nettype.isEmpty())
     {
       sdp += "c=" + mediaStream.connection_nettype + " " + mediaStream.connection_addrtype + " "
           + mediaStream.connection_address + lineEnd;
     }
 
+    for(auto bitrate: mediaStream.bitrate)
+    {
+      sdp += "b=" + bitrate + lineEnd;
+    }
+
+    if(!mediaStream.encryptionKey.isEmpty())
+    {
+      sdp += "k=" + mediaStream.encryptionKey;
+    }
+
     for(auto rtpmap : mediaStream.codecs)
     {
       sdp += "a=rtpmap:" + QString::number(rtpmap.rtpNum) + " "
           + rtpmap.codec + "/" + QString::number(rtpmap.clockFrequency) + lineEnd;
+    }
+
+    for(SDPAttributeType flag : mediaStream.flagAttributes)
+    {
+      switch (flag)
+      {
+      case A_SENDRECV:
+      {
+        sdp += "a=sendrecv"  + lineEnd;
+        break;
+      }
+      default:
+      {
+        qDebug() << "ERROR: Trying to compose SDP flag attribute with unimplemented flag";
+        break;
+      }
+      }
     }
   }
 
