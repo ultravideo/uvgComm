@@ -10,8 +10,7 @@
 #include <deque>
 #include <memory>
 
-// This class holds the stat
-
+// This class generates the SDP messages and is capable of checking if proposed SDP is suitable.
 
 class GlobalSDPState
 {
@@ -47,8 +46,8 @@ private:
   // TODO: This should be moved to MediaManager.
   std::shared_ptr<SDPMessageInfo> generateSDP(QHostAddress localAddress);
 
-  MediaInfo generateAudioMedia();
-  MediaInfo generateVideoMedia();
+  bool generateAudioMedia(MediaInfo &audio);
+  bool generateVideoMedia(MediaInfo &video);
 
   bool checkSDPOffer(SDPMessageInfo& offer);
 

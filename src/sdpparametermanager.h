@@ -17,8 +17,8 @@ public:
   void setPortRange(uint16_t minport, uint16_t maxport, uint16_t maxRTPConnections);
 
   // use these if you want all the supported preset RTP payload type codecs ( 1..34 )
-  QList<uint8_t> audioPayloadTypes();
-  QList<uint8_t> videoPayloadTypes();
+  QList<uint8_t> audioPayloadTypes() const;
+  QList<uint8_t> videoPayloadTypes() const;
 
   // get supported codecs with dynamic RTP payload types ( 96..127 )
   QList<RTPMap> audioCodecs() const;
@@ -27,7 +27,7 @@ public:
   QString sessionName() const;
   QString sessionDescription() const;
 
-  bool enoughFreePorts()
+  bool enoughFreePorts() const
   {
     return remainingPorts_ >= 4;
   }

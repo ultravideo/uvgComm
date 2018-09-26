@@ -69,25 +69,29 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP(QHostAddress localAd
 
   MediaInfo audio;
   MediaInfo video;
-  audio.type = "audio";
-  video.type = "video";
-  audio.receivePort = parameters_.nextAvailablePortPair();
-  video.receivePort = parameters_.nextAvailablePortPair();
 
-  if(audio.receivePort == 0 || video.receivePort == 0)
+  if(!generateAudioMedia(audio) || !generateVideoMedia(video))
   {
-    parameters_.makePortPairAvailable(audio.receivePort);
-    parameters_.makePortPairAvailable(video.receivePort);
-    qWarning() << "WARNING: Ran out of ports to assign to SDP. Should be checked earlier.";
     return nullptr;
   }
-  audio.proto = "RTP/AVP";
-  video.proto = "RTP/AVP";
 
-  // we ignore nettype, addrtype and address, because we have a global c=
+  newInfo->media = {audio, video};
 
-  audio.codecs = parameters_.audioCodecs();
-  video.codecs = parameters_.videoCodecs();
+  return newInfo;
+}
+
+bool GlobalSDPState::generateAudioMedia(MediaInfo &audio)
+{
+  // we ignore nettype, addrtype and address, because we use a global c=
+  audio = {"audio", parameters_.nextAvailablePortPair(), "RTP/AVP", {},
+                     "", "", "", "", {},"", parameters_.audioCodecs(),{A_SENDRECV},{}};
+
+  if(audio.receivePort == 0)
+  {
+    parameters_.makePortPairAvailable(audio.receivePort);
+    qWarning() << "WARNING: Ran out of ports to assign to audio media in SDP. Should be checked earlier.";
+    return false;
+  }
 
   // add all the dynamic numbers first because we want to favor dynamic type codecs.
   for(RTPMap codec : audio.codecs)
@@ -96,6 +100,21 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP(QHostAddress localAd
   }
 
   audio.rtpNums += parameters_.audioPayloadTypes();
+  return true;
+}
+
+bool GlobalSDPState::generateVideoMedia(MediaInfo& video)
+{
+  // we ignore nettype, addrtype and address, because we use a global c=
+  video = {"video", parameters_.nextAvailablePortPair(), "RTP/AVP", {},
+           "", "", "", "", {},"", parameters_.videoCodecs(),{A_SENDRECV},{}};
+
+  if(video.receivePort == 0)
+  {
+    parameters_.makePortPairAvailable(video.receivePort);
+    qWarning() << "WARNING: Ran out of ports to assign to video media in SDP. Should be checked earlier.";
+    return false;
+  }
 
   for(RTPMap codec : video.codecs)
   {
@@ -104,24 +123,7 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP(QHostAddress localAd
 
   // just for completeness, we will probably never support any of the pre-set video types.
   video.rtpNums += parameters_.videoPayloadTypes();
-
-  audio.flagAttributes.push_back(A_SENDRECV);
-  video.flagAttributes.push_back(A_SENDRECV);
-
-  newInfo->media.push_back(audio);
-  newInfo->media.push_back(video);
-
-  return newInfo;
-}
-
-MediaInfo GlobalSDPState::generateAudioMedia()
-{
-
-}
-
-MediaInfo GlobalSDPState::generateVideoMedia()
-{
-
+  return true;
 }
 
 // returns nullptr if suitable could not be found

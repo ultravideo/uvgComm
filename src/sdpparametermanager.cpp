@@ -35,13 +35,13 @@ void SDPParameterManager::setPortRange(uint16_t minport, uint16_t maxport, uint1
 // for reference on rtp payload type numbers:
 // https://en.wikipedia.org/wiki/RTP_audio_video_profile
 
-QList<uint8_t> SDPParameterManager::audioPayloadTypes()
+QList<uint8_t> SDPParameterManager::audioPayloadTypes() const
 {
   // TODO: payload type 0 should always be supported!
   return QList<uint8_t>{};
 }
 
-QList<uint8_t> SDPParameterManager::videoPayloadTypes()
+QList<uint8_t> SDPParameterManager::videoPayloadTypes() const
 {
   return QList<uint8_t>{};
 }
