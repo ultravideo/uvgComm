@@ -2,11 +2,10 @@
 
 #include <QDateTime>
 
-#include <QUdpSocket>
+
 
 GlobalSDPState::GlobalSDPState():
-  localUsername_(""),
-  remainingPorts_(0)
+  localUsername_("")
 {}
 
 void GlobalSDPState::setLocalInfo(QString username)
@@ -14,15 +13,6 @@ void GlobalSDPState::setLocalInfo(QString username)
   localUsername_ = username;
 }
 
-void GlobalSDPState::setPortRange(uint16_t minport, uint16_t maxport, uint16_t maxRTPConnections)
-{
-  for(unsigned int i = minport; i < maxport; i += 2)
-  {
-    makePortPairAvailable(i);
-  }
-
-  remainingPorts_ = maxRTPConnections;
-}
 
 std::shared_ptr<SDPMessageInfo> GlobalSDPState::localSDPSuggestion(QHostAddress localAddress)
 {
@@ -44,9 +34,9 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP(QHostAddress localAd
     return nullptr;
   }
 
-  if(availablePorts_.size() <= 2)
+  if(!parameters_.enoughFreePorts())
   {
-    qDebug() << "Not enough free ports to create SDP:" << availablePorts_.size();
+    qDebug() << "Not enough free ports to create SDP";
     return nullptr;
   }
 
@@ -81,13 +71,13 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP(QHostAddress localAd
   MediaInfo video;
   audio.type = "audio";
   video.type = "video";
-  audio.receivePort = nextAvailablePortPair();
-  video.receivePort = nextAvailablePortPair();
+  audio.receivePort = parameters_.nextAvailablePortPair();
+  video.receivePort = parameters_.nextAvailablePortPair();
 
   if(audio.receivePort == 0 || video.receivePort == 0)
   {
-    makePortPairAvailable(audio.receivePort);
-    makePortPairAvailable(video.receivePort);
+    parameters_.makePortPairAvailable(audio.receivePort);
+    parameters_.makePortPairAvailable(video.receivePort);
     qWarning() << "WARNING: Ran out of ports to assign to SDP. Should be checked earlier.";
     return nullptr;
   }
@@ -123,6 +113,17 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP(QHostAddress localAd
 
   return newInfo;
 }
+
+MediaInfo GlobalSDPState::generateAudioMedia()
+{
+
+}
+
+MediaInfo GlobalSDPState::generateVideoMedia()
+{
+
+}
+
 // returns nullptr if suitable could not be found
 std::shared_ptr<SDPMessageInfo> GlobalSDPState::localFinalSDP(SDPMessageInfo &remoteSDP,
                                                               QHostAddress localAddress,
@@ -208,51 +209,7 @@ void GlobalSDPState::endSession(std::shared_ptr<SDPMessageInfo> sessionSDP)
   }
   for(auto mediaStream : sessionSDP->media)
   {
-    makePortPairAvailable(mediaStream.receivePort);
+    parameters_.makePortPairAvailable(mediaStream.receivePort);
   }
 }
 
-uint16_t GlobalSDPState::nextAvailablePortPair()
-{
-  // TODO: I'm suspecting this may sometimes hang Kvazzup at the start
-
-  uint16_t newLowerPort = 0;
-
-  portLock_.lock();
-  if(availablePorts_.size() >= 1 && remainingPorts_ >= 2)
-  {
-    QUdpSocket test_port1;
-    QUdpSocket test_port2;
-    do
-    {
-      newLowerPort = availablePorts_.at(0);
-      availablePorts_.pop_front();
-      remainingPorts_ -= 2;
-      qDebug() << "Trying to bind ports:" << newLowerPort << "and" << newLowerPort + 1;
-
-    } while(!test_port1.bind(newLowerPort) && !test_port2.bind(newLowerPort + 1));
-    test_port1.abort();
-    test_port2.abort();
-  }
-  else
-  {
-    qDebug() << "Could not reserve ports. Remaining ports:" << remainingPorts_
-             << "deque size:" << availablePorts_.size();
-  }
-  portLock_.unlock();
-
-  return newLowerPort;
-}
-
-void GlobalSDPState::makePortPairAvailable(uint16_t lowerPort)
-{
-  if(lowerPort != 0)
-  {
-    //qDebug() << "Freed ports:" << lowerPort << "/" << lowerPort + 1
-    //         << "Ports available:" << remainingPorts_;
-    portLock_.lock();
-    availablePorts_.push_back(lowerPort);
-    remainingPorts_ += 2;
-    portLock_.unlock();
-  }
-}
