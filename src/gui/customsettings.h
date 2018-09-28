@@ -21,7 +21,6 @@ public:
   // initializes the custom view
   void init(int deviceID);
 
-
   void changedDevice(uint16_t deviceIndex);
   void resetSettings(int deviceID);
 
@@ -41,6 +40,8 @@ public slots:
   // setup the resolution list with values
   void initializeResolutions(int index);
 
+  void serverStatusChange(QString status);
+
 private:
   // QSettings -> GUI
   void restoreAdvancedSettings();
@@ -57,6 +58,8 @@ private:
   void initializeFormat();
 
   bool checkVideoSettings();
+  bool checkAudioSettings();
+  bool checkSipSettings();
   bool checkMissingValues(); // TODO: in two places
 
   // simpler functions for checkbox management.

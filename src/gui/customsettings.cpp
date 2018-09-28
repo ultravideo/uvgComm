@@ -128,6 +128,16 @@ void CustomSettings::show()
   QWidget::show();
 }
 
+void CustomSettings::serverStatusChange(QString status)
+{
+  advancedUI_->StatusLabel->setText(status);
+
+  if(status == "Connected")
+  {
+    advancedUI_->connectButton->setText("Disconnect");
+  }
+}
+
 void CustomSettings::saveAdvancedSettings()
 {
   qDebug() << "Saving advanced Settings";
@@ -151,6 +161,13 @@ void CustomSettings::saveAdvancedSettings()
   settings_.setValue("audio/Channels",         QString::number(advancedUI_->channels->value()));
 
   saveCameraCapabilities(settings_.value("video/DeviceID").toInt());
+
+
+  // sip settings.
+  saveTextValue("sip/ServerAddress", advancedUI_->serverAddress->text());
+  saveCheckBox("sip/AutoConnect", advancedUI_->autoConnect);
+
+
   //settings.sync(); // TODO is this needed?
 }
 
@@ -195,7 +212,8 @@ void CustomSettings::saveCameraCapabilities(int deviceIndex)
 
 void CustomSettings::restoreAdvancedSettings()
 {
-  if(checkVideoSettings())
+  bool validSettings = checkMissingValues();
+  if(validSettings && checkVideoSettings())
   {
     qDebug() << "Restoring previous Advanced settings from file:" << settings_.fileName();
     int index = advancedUI_->preset->findText(settings_.value("video/Preset").toString());
@@ -229,6 +247,27 @@ void CustomSettings::restoreAdvancedSettings()
   {
     resetSettings(currentDevice_);
   }
+
+  if(validSettings && checkAudioSettings())
+  {
+    // TODO: implement audio settings.
+  }
+  else
+  {
+    // TODO: reset only audio settings.
+    resetSettings(currentDevice_);
+  }
+
+  if(validSettings && checkSipSettings())
+  {
+    restoreCheckBox("sip/AutoConnect", advancedUI_->autoConnect);
+    advancedUI_->serverAddress->setText        (settings_.value("sip/ServerAddress").toString());
+  }
+  else
+  {
+    resetSettings(currentDevice_);
+  }
+
 
   // TODO: check audio settings
   advancedUI_->channels->setValue(settings_.value("audio/Channels").toInt());
@@ -300,4 +339,15 @@ bool CustomSettings::checkVideoSettings()
       && settings_.contains("video/kvzThreads")
       && settings_.contains("video/yuvThreads")
       && settings_.contains("video/OPENHEVC_Threads");
+}
+
+bool CustomSettings::checkAudioSettings()
+{
+  return true;
+}
+
+bool CustomSettings::checkSipSettings()
+{
+  return settings_.contains("sip/ServerAddress")
+      && settings_.contains("sip/AutoConnect");
 }
