@@ -5,7 +5,7 @@
 #include <QSettings>
 
 
-SIPRegistration::SIPRegistration():
+SIPRegistration::SIPRegistration(QString serverAddress):
   localUri_(),
   initiated_(false)
 {}
@@ -43,6 +43,11 @@ void SIPRegistration::setHost(QString location)
 ViaInfo SIPRegistration::getLocalVia(QString localAddress)
 {
   return ViaInfo{TCP, "2.0", localAddress, QString("z9hG4bK" + generateRandomString(BRANCHLENGTH))};
+}
+
+bool SIPRegistration::isContactAtThisServer(QString serverAddress)
+{
+  return serverAddress == serverAddress_;
 }
 
 std::shared_ptr<SIPMessageInfo> SIPRegistration::generateRegisterRequest(QString localAddress)

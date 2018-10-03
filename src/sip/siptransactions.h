@@ -44,7 +44,7 @@ public:
   void init(SIPTransactionUser* callControl);
   void uninit();
 
-  void setServerAddress(QString server);
+  void bindToServer();
 
   // start a call with all addresses in the list. Returns generated sessionID:s
   QList<uint32_t> startCall(QList<Contact> addresses);
@@ -79,7 +79,7 @@ private slots:
 
 private:
 
-  // TODO: Transports should be separate from dialogs
+  enum CallConnectionType {PEERTOPEER, SIPSERVER, CONTACT};
 
   struct SIPDialogData
   {
@@ -92,6 +92,8 @@ private:
 
     bool proxyConnection_;
     quint32 transportID;
+
+    CallConnectionType connectionType;
   };
 
   std::shared_ptr<SIPTransport> createSIPTransport();
@@ -118,11 +120,10 @@ private:
   // TODO: separate dialog forming from dialog
 
   QList<std::shared_ptr<SIPDialogData>> dialogs_;
-
   QList<std::shared_ptr<SIPTransport>> transports_;
-  bool isConference_;
 
-  SIPRegistration registration_;
+  QList<QString> directContactAddresses_;
+  QList<SIPRegistration> sipServerRegistrations_;
 
   // used with non-dialog messages
   std::shared_ptr<SIPClientTransaction> generalClient;
@@ -130,11 +131,12 @@ private:
 
   GlobalSDPState sdp_;
 
-  ConnectionServer server_;
+  ConnectionServer tcpServer_;
   uint16_t sipPort_;
 
   // use this client to register us to a server
   std::shared_ptr<SIPClientTransaction> registerClient_;
 
   SIPTransactionUser* transactionUser_;
+  bool isConference_;
 };

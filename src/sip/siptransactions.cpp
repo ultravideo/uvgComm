@@ -18,17 +18,18 @@ void SIPTransactions::init(SIPTransactionUser *callControl)
 
   transactionUser_ = callControl;
 
-  QObject::connect(&server_, &ConnectionServer::newConnection,
+  QObject::connect(&tcpServer_, &ConnectionServer::newConnection,
                    this, &SIPTransactions::receiveTCPConnection);
 
   // listen to everything
-  server_.listen(QHostAddress("0.0.0.0"), sipPort_);
+  tcpServer_.listen(QHostAddress("0.0.0.0"), sipPort_);
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
   QString username = !settings.value("local/Username").isNull()
       ? settings.value("local/Username").toString() : "anonymous";
 
   sdp_.setLocalInfo(username);
 }
+
 
 void SIPTransactions::uninit()
 {
@@ -49,6 +50,13 @@ void SIPTransactions::uninit()
     }
   }
 }
+
+
+void SIPTransactions::bindToServer()
+{
+  // get server address from settings and bind to server.
+}
+
 
 void SIPTransactions::getSDPs(uint32_t sessionID,
                               std::shared_ptr<SDPMessageInfo>& localSDP,
@@ -77,6 +85,18 @@ QList<uint32_t> SIPTransactions::startCall(QList<Contact> addresses)
     {
       qDebug() << "Not enough ports to start a call";
       break;
+    }
+
+    // TODO: check if dialog already exists and use its contact address
+
+    bool isServer = false;
+    // check if address is located at a SIP server
+    for(auto server : sipServerRegistrations_)
+    {
+      if(server.isContactAtThisServer(addresses.at(i).remoteAddress))
+      {
+        isServer = true;
+      }
     }
 
     std::shared_ptr<SIPDialogData> dialogData;

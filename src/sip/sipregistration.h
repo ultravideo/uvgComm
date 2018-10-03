@@ -12,14 +12,17 @@
 class SIPRegistration
 {
 public:
-  SIPRegistration();
+  SIPRegistration(QString serverAddress);
 
   void initServer();
+
+  void updateAddressBook();
 
   void setHost(QString location);
 
   std::shared_ptr<SIPMessageInfo> generateRegisterRequest(QString localAddress);
 
+  bool isContactAtThisServer(QString serverAddress);
   bool isInitiated() const
   {
     return initiated_;
@@ -28,10 +31,10 @@ public:
 private:
 
   void initLocalURI();
-
   ViaInfo getLocalVia(QString localAddress);
 
   SIP_URI localUri_;
+  QString serverAddress_;
 
   bool initiated_;
   bool registered_;

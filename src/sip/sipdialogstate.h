@@ -57,6 +57,8 @@ private:
   SIP_URI localUri_;
   SIP_URI remoteUri_;
 
+  SIP_URI remoteContactURI_;
+
   // empty until first request is sent/received
   // cseq is used to determine the order of requests and must be sequential
   uint32_t localCSeq_;
