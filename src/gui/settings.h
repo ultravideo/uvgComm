@@ -7,6 +7,17 @@
 
 #include <memory>
 
+/* Settings in Kvazzup work as follows:
+ * 1) The settings view holds the setting information in a way that the user
+ * can modify it. 2) This Settings class monitors users modifications and
+ * records them to a file using QSettings. The file is loaded when the user
+ * opens the settings dialog. 3) The rest of the program may use these settings
+ * through QSettings class to change its behavior based on users choices.
+ *
+ * In other words this class synchronizes the settings between UI,
+ * QSettings and the settings file (through QSettings).
+ */
+
 namespace Ui {
 class BasicSettings;
 }

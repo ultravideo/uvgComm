@@ -109,6 +109,8 @@ private:
   void createDialog(std::shared_ptr<SIPDialogData>& dialog);
   void destroyDialog(uint32_t sessionID);
 
+  bool areWeTheDestination();
+
   // This mutex makes sure that the dialog has been added to the dialogs_ list
   // before we are accessing it when receiving messages
   QMutex connectionMutex_;

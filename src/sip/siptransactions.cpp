@@ -8,8 +8,8 @@
 
 
 SIPTransactions::SIPTransactions():
-  isConference_(false),
-  sipPort_(5060) // default for SIP, use 5061 for tls encrypted
+  sipPort_(5060), // default for SIP, use 5061 for tls encrypted
+  isConference_(false)
 {}
 
 void SIPTransactions::init(SIPTransactionUser *callControl)
@@ -55,6 +55,8 @@ void SIPTransactions::uninit()
 void SIPTransactions::bindToServer()
 {
   // get server address from settings and bind to server.
+
+
 }
 
 
