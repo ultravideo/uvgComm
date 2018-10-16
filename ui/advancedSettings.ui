@@ -749,88 +749,26 @@
        <string>Security</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_6">
-       <item row="2" column="0" colspan="3">
-        <widget class="Line" name="line_5">
+       <item row="7" column="0" colspan="2">
+        <spacer name="verticalSpacer_3">
          <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-        </widget>
-       </item>
-       <item row="11" column="2">
-        <spacer name="horizontalSpacer_3">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
+          <enum>Qt::Vertical</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>
-           <width>40</width>
-           <height>20</height>
+           <width>20</width>
+           <height>40</height>
           </size>
          </property>
         </spacer>
        </item>
-       <item row="6" column="2">
-        <spacer name="horizontalSpacer_2">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>40</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="4" column="0" colspan="3">
-        <widget class="QTableWidget" name="blockedUsers"/>
-       </item>
-       <item row="7" column="0" colspan="3">
-        <widget class="Line" name="line_6">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-        </widget>
-       </item>
-       <item row="9" column="0" colspan="3">
-        <widget class="QTableWidget" name="tableWidget"/>
+       <item row="6" column="0">
+        <widget class="QLineEdit" name="blockUser"/>
        </item>
        <item row="5" column="0">
         <widget class="QLabel" name="BlockUsernameLabel">
          <property name="text">
           <string>Block contacts from username</string>
-         </property>
-        </widget>
-       </item>
-       <item row="11" column="0">
-        <widget class="QLineEdit" name="blockIP"/>
-       </item>
-       <item row="6" column="0">
-        <widget class="QLineEdit" name="blockUser"/>
-       </item>
-       <item row="10" column="0">
-        <widget class="QLabel" name="BlockIPLabel">
-         <property name="text">
-          <string>Block contacts from IP address</string>
-         </property>
-        </widget>
-       </item>
-       <item row="11" column="1">
-        <widget class="QPushButton" name="pushButton_3">
-         <property name="text">
-          <string>Add</string>
-         </property>
-        </widget>
-       </item>
-       <item row="8" column="0">
-        <widget class="QLabel" name="BlockedIPLabel">
-         <property name="font">
-          <font>
-           <pointsize>16</pointsize>
-          </font>
-         </property>
-         <property name="text">
-          <string>Blocked IPs</string>
          </property>
         </widget>
        </item>
@@ -846,15 +784,24 @@
          </property>
         </widget>
        </item>
-       <item row="12" column="0" colspan="2">
-        <spacer name="verticalSpacer_3">
+       <item row="4" column="0" colspan="3">
+        <widget class="QTableWidget" name="blockedUsers">
+         <property name="columnCount">
+          <number>2</number>
+         </property>
+         <column/>
+         <column/>
+        </widget>
+       </item>
+       <item row="6" column="2">
+        <spacer name="horizontalSpacer_2">
          <property name="orientation">
-          <enum>Qt::Vertical</enum>
+          <enum>Qt::Horizontal</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>
-           <width>20</width>
-           <height>40</height>
+           <width>40</width>
+           <height>20</height>
           </size>
          </property>
         </spacer>
@@ -866,17 +813,24 @@
          </property>
         </widget>
        </item>
-       <item row="0" column="0">
-        <widget class="QCheckBox" name="Anon_contacts">
-         <property name="text">
-          <string>Disallow anonymous contacts</string>
+       <item row="2" column="0" colspan="3">
+        <widget class="Line" name="line_5">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
          </property>
         </widget>
        </item>
        <item row="6" column="1">
-        <widget class="QPushButton" name="pushButton">
+        <widget class="QPushButton" name="addUserBlock">
          <property name="text">
           <string>Add</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QCheckBox" name="Anon_contacts">
+         <property name="text">
+          <string>Disallow anonymous contacts</string>
          </property>
         </widget>
        </item>

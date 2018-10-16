@@ -4,6 +4,9 @@
 
 #include <video/camerainfo.h>
 
+#include <QTableWidgetItem>
+#include <QDateTime>
+
 #include <QDebug>
 
 CustomSettings::CustomSettings(QWidget* parent,
@@ -23,6 +26,14 @@ CustomSettings::CustomSettings(QWidget* parent,
 
 void CustomSettings::init(int deviceID)
 {
+  advancedUI_->blockedUsers->setColumnCount(2);
+  advancedUI_->blockedUsers->setHorizontalHeaderItem(0, new QTableWidgetItem(QString("Username")));
+  advancedUI_->blockedUsers->setHorizontalHeaderItem(1, new QTableWidgetItem(QString("Date")));
+
+  advancedUI_->blockedUsers->setColumnWidth(0, 240);
+  advancedUI_->blockedUsers->setColumnWidth(1, 240);
+
+
   currentDevice_ = deviceID;
   initializeFormat();
   restoreAdvancedSettings();
@@ -111,6 +122,42 @@ void CustomSettings::on_custom_ok_clicked()
   emit customSettingsChanged();
   emit hidden();
   hide();
+}
+
+void CustomSettings::on_addUserBlock_clicked()
+{
+
+
+  if(advancedUI_->blockUser->text() != "")
+  {
+    for(int i = 0; i < advancedUI_->blockedUsers->rowCount(); ++i)
+    {
+      if(advancedUI_->blockedUsers->item(i,0)->text() == advancedUI_->blockUser->text())
+      {
+        qDebug() << "Name already exists";
+        advancedUI_->BlockUsernameLabel->setText("Name already blocked");
+        return;
+      }
+    }
+
+    qDebug() << "Blocking an user";
+
+    QTableWidgetItem* itemUser = new QTableWidgetItem(advancedUI_->blockUser->text());
+    QTableWidgetItem* itemDate = new QTableWidgetItem(QDateTime::currentDateTime().toString("yyyy-mm-dd hh:mm"));
+
+    advancedUI_->blockedUsers->insertRow(advancedUI_->blockedUsers->rowCount());
+
+    advancedUI_->blockedUsers->setItem(advancedUI_->blockedUsers->rowCount() - 1, 0, itemUser);
+    advancedUI_->blockedUsers->setItem(advancedUI_->blockedUsers->rowCount() - 1, 1, itemDate);
+
+
+    advancedUI_->BlockUsernameLabel->setText("Block contacts from username:");
+    advancedUI_->blockUser->setText("");
+  }
+  else
+  {
+    advancedUI_->BlockUsernameLabel->setText("Write username below:");
+  }
 }
 
 void CustomSettings::on_custom_cancel_clicked()
