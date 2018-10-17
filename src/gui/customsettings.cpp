@@ -30,12 +30,11 @@ void CustomSettings::init(int deviceID)
   advancedUI_->blockedUsers->setHorizontalHeaderItem(0, new QTableWidgetItem(QString("Username")));
   advancedUI_->blockedUsers->setHorizontalHeaderItem(1, new QTableWidgetItem(QString("Date")));
 
-  advancedUI_->blockedUsers->setColumnWidth(0, 240);
-  advancedUI_->blockedUsers->setColumnWidth(1, 240);
-
+  advancedUI_->blockedUsers->setColumnWidth(0, 180);
+  advancedUI_->blockedUsers->setColumnWidth(1, 180);
+  advancedUI_->blockedUsers->setEditTriggers(QAbstractItemView::NoEditTriggers); // disallow editing of fields.
 
   currentDevice_ = deviceID;
-  initializeFormat();
   restoreAdvancedSettings();
 }
 
@@ -112,6 +111,7 @@ void CustomSettings::resetSettings(int deviceID)
   qDebug() << "Resetting custom settings from UI";
   currentDevice_ = deviceID;
   initializeFormat();
+  // TODO: should we do something to blocked list in settings?
   saveAdvancedSettings();
 }
 
@@ -126,15 +126,13 @@ void CustomSettings::on_custom_ok_clicked()
 
 void CustomSettings::on_addUserBlock_clicked()
 {
-
-
   if(advancedUI_->blockUser->text() != "")
   {
     for(int i = 0; i < advancedUI_->blockedUsers->rowCount(); ++i)
     {
       if(advancedUI_->blockedUsers->item(i,0)->text() == advancedUI_->blockUser->text())
       {
-        qDebug() << "Name already exists";
+        qDebug() << "Name already exists at row:" << i;
         advancedUI_->BlockUsernameLabel->setText("Name already blocked");
         return;
       }
@@ -142,14 +140,7 @@ void CustomSettings::on_addUserBlock_clicked()
 
     qDebug() << "Blocking an user";
 
-    QTableWidgetItem* itemUser = new QTableWidgetItem(advancedUI_->blockUser->text());
-    QTableWidgetItem* itemDate = new QTableWidgetItem(QDateTime::currentDateTime().toString("yyyy-mm-dd hh:mm"));
-
-    advancedUI_->blockedUsers->insertRow(advancedUI_->blockedUsers->rowCount());
-
-    advancedUI_->blockedUsers->setItem(advancedUI_->blockedUsers->rowCount() - 1, 0, itemUser);
-    advancedUI_->blockedUsers->setItem(advancedUI_->blockedUsers->rowCount() - 1, 1, itemDate);
-
+    addUsernameToList(advancedUI_->blockUser->text(), QDateTime::currentDateTime().toString("yyyy-mm-dd hh:mm"));
 
     advancedUI_->BlockUsernameLabel->setText("Block contacts from username:");
     advancedUI_->blockUser->setText("");
@@ -209,6 +200,7 @@ void CustomSettings::saveAdvancedSettings()
 
   saveCameraCapabilities(settings_.value("video/DeviceID").toInt());
 
+  writeListToSettings();
 
   // sip settings.
   saveTextValue("sip/ServerAddress", advancedUI_->serverAddress->text());
@@ -259,6 +251,9 @@ void CustomSettings::saveCameraCapabilities(int deviceIndex)
 
 void CustomSettings::restoreAdvancedSettings()
 {
+  initializeFormat();
+  initializeList();
+
   bool validSettings = checkMissingValues();
   if(validSettings && checkVideoSettings())
   {
@@ -397,4 +392,55 @@ bool CustomSettings::checkSipSettings()
 {
   return settings_.contains("sip/ServerAddress")
       && settings_.contains("sip/AutoConnect");
+}
+
+void CustomSettings::initializeList()
+{
+  //list_->setContextMenuPolicy(Qt::CustomContextMenu);
+  //connect(list, SIGNAL(customContextMenuRequested(QPoint)),
+  //        this, SLOT(showContextMenu(QPoint)));
+
+  advancedUI_->blockedUsers->clear();
+  advancedUI_->blockedUsers->setRowCount(0);
+
+  QSettings settings("blocklist.local", QSettings::IniFormat);
+
+  int size = settings.beginReadArray("blocklist");
+  qDebug() << "Reading blocklist with" << size << "usernames";
+  for (int i = 0; i < size; ++i) {
+    settings.setArrayIndex(i);
+    QString username = settings.value("userName").toString();
+    QString date = settings.value("date").toString();
+
+    addUsernameToList(username, date);
+  }
+  settings.endArray();
+}
+
+void CustomSettings::writeListToSettings()
+{
+  qDebug() << "Writing blocklist with" << advancedUI_->blockedUsers->rowCount()
+           << "items to settings.";
+
+  QSettings settings("blocklist.local", QSettings::IniFormat);
+
+  settings.beginWriteArray("blocklist");
+  for(int i = 0; i < advancedUI_->blockedUsers->rowCount(); ++i)
+  {
+    settings.setArrayIndex(i);
+    settings.setValue("username", advancedUI_->blockedUsers->item(i,0)->text());
+    settings.setValue("date", advancedUI_->blockedUsers->item(i,1)->text());
+  }
+  settings.endArray();
+}
+
+void CustomSettings::addUsernameToList(QString username, QString date)
+{
+  QTableWidgetItem* itemUser = new QTableWidgetItem(username);
+  QTableWidgetItem* itemDate = new QTableWidgetItem(date);
+
+  advancedUI_->blockedUsers->insertRow(advancedUI_->blockedUsers->rowCount());
+
+  advancedUI_->blockedUsers->setItem(advancedUI_->blockedUsers->rowCount() - 1, 0, itemUser);
+  advancedUI_->blockedUsers->setItem(advancedUI_->blockedUsers->rowCount() - 1, 1, itemDate);
 }

@@ -58,6 +58,11 @@ private:
   // initializes the UI with correct formats and resolutions
   void initializeFormat();
 
+  void initializeList();
+  void writeListToSettings();
+
+  void addUsernameToList(QString username, QString date);
+
   bool checkVideoSettings();
   bool checkAudioSettings();
   bool checkSipSettings();
