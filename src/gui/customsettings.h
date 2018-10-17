@@ -33,6 +33,9 @@ public slots:
 
   virtual void show();
 
+  void showContextMenu(const QPoint& pos);
+  void deleteListItem();
+
   // button slots, called automatically by Qt
   void on_custom_ok_clicked();
   void on_custom_cancel_clicked();

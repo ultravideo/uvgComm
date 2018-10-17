@@ -6,6 +6,7 @@
 
 #include <QTableWidgetItem>
 #include <QDateTime>
+#include <QMenu>
 
 #include <QDebug>
 
@@ -19,9 +20,30 @@ CustomSettings::CustomSettings(QWidget* parent,
   settings_("kvazzup.ini", QSettings::IniFormat)
 {
   advancedUI_->setupUi(this);
-  // the buttons are named so that the slots are called automatically
 
+  // the buttons are named so that the slots are called automatically
   QObject::connect(advancedUI_->format_box, SIGNAL(activated(int)), this, SLOT(initializeResolutions(int)));
+}
+
+void CustomSettings::showContextMenu(const QPoint& pos)
+{
+  qDebug() << "Showing context menu for blocked users.";
+
+  // Handle global position
+  QPoint globalPos = advancedUI_->blockedUsers->mapToGlobal(pos);
+
+  // Create menu and insert some actions
+  QMenu myMenu;
+  myMenu.addAction("Delete", this, SLOT(deleteListItem()));
+
+  // Show context menu at handling position
+  myMenu.exec(globalPos);
+}
+
+void CustomSettings::deleteListItem()
+{
+  qDebug() << "deleting row:" << advancedUI_->blockedUsers->currentRow();
+  advancedUI_->blockedUsers->removeRow(advancedUI_->blockedUsers->currentRow());
 }
 
 void CustomSettings::init(int deviceID)
@@ -30,11 +52,15 @@ void CustomSettings::init(int deviceID)
   advancedUI_->blockedUsers->setHorizontalHeaderItem(0, new QTableWidgetItem(QString("Username")));
   advancedUI_->blockedUsers->setHorizontalHeaderItem(1, new QTableWidgetItem(QString("Date")));
 
-  advancedUI_->blockedUsers->setColumnWidth(0, 180);
+  advancedUI_->blockedUsers->setColumnWidth(0, 240);
   advancedUI_->blockedUsers->setColumnWidth(1, 180);
   advancedUI_->blockedUsers->setEditTriggers(QAbstractItemView::NoEditTriggers); // disallow editing of fields.
 
   currentDevice_ = deviceID;
+  advancedUI_->blockedUsers->setContextMenuPolicy(Qt::CustomContextMenu);
+  connect(advancedUI_->blockedUsers, &QWidget::customContextMenuRequested,
+          this, &CustomSettings::showContextMenu);
+
   restoreAdvancedSettings();
 }
 
