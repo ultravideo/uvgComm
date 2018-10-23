@@ -20,7 +20,8 @@ public:
   void init(SIPTransactionUser* tu, uint32_t sessionID);
 
   // processes incoming request. Part of our server transaction
-  void processRequest(SIPRequest& request);
+  // returns whether we should continue this session
+  bool processRequest(SIPRequest& request);
 
   // inform the transaction that we have received a faulty request.
   void wrongRequestDestination();

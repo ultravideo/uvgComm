@@ -23,13 +23,13 @@ void SIPServerTransaction::setCurrentRequest(SIPRequest& request)
 }
 
 // processes incoming request
-void SIPServerTransaction::processRequest(SIPRequest &request)
+bool SIPServerTransaction::processRequest(SIPRequest &request)
 {
   Q_ASSERT(transactionUser_ && sessionID_);
   if(!transactionUser_ || sessionID_ == 0)
   {
     qWarning() << "WARNING: SIP Server transaction not initialized.";
-    return;
+    return false;
   }
 
   // TODO: check that the request is appropriate at this time.
@@ -58,11 +58,13 @@ void SIPServerTransaction::processRequest(SIPRequest &request)
   case BYE:
   {
     transactionUser_->endCall(sessionID_);
+    return false;
     break;
   }
   case CANCEL:
   {
     transactionUser_->cancelIncomingCall(sessionID_);
+    return false;
     break;
   }
   case OPTIONS:
@@ -83,6 +85,7 @@ void SIPServerTransaction::processRequest(SIPRequest &request)
     break;
   }
   }
+  return true;
 }
 
 void SIPServerTransaction::getResponseMessage(std::shared_ptr<SIPMessageInfo> &outMessage,

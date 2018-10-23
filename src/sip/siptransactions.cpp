@@ -402,7 +402,12 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
     }
   }
 
-  foundDialog->server->processRequest(request);
+  if(!foundDialog->server->processRequest(request))
+  {
+    qDebug() << "Ending session because server said to";
+    sdp_.endSession(foundDialog->localSdp_);
+    foundDialog->localSdp_ = nullptr;
+  }
 
   qDebug() << "Finished processing request:" << request.type << "Dialog:" << foundSessionID;
 }
@@ -602,6 +607,12 @@ void SIPTransactions::destroyDialog(uint32_t sessionID)
   dialog->state.reset();
   dialog->server.reset();
   dialog->client.reset();
+
+  if(dialog->localSdp_)
+  {
+    sdp_.endSession(dialog->localSdp_);
+  }
+
   dialog->localSdp_.reset();
   dialog->remoteSdp_.reset();
   dialogs_[sessionID - 1].reset();
