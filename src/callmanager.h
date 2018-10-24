@@ -9,6 +9,8 @@
 
 #include <QObject>
 
+#include <map>
+
 struct SDPMessageInfo;
 class StatisticsInterface;
 
@@ -28,6 +30,7 @@ public:
   // Call Control Interface used by SIP transaction
   virtual bool incomingCall(uint32_t sessionID, QString caller);
   virtual void callRinging(uint32_t sessionID);
+  virtual void callAccepted(uint32_t sessionID);
   virtual void callRejected(uint32_t sessionID);
   virtual void callNegotiated(uint32_t sessionID);
   virtual void callNegotiationFailed(uint32_t sessionID);
@@ -54,11 +57,18 @@ private slots:
 
 private:
 
+  void removeSession(uint32_t sessionID);
+
   struct PeerState
   {
     bool viewAdded;
     bool mediaAdded;
   };
+
+  // Call state is a non-dependant way
+  enum CallState{CALLRINGINGWITHUS, CALLINGTHEM, CALLRINGINWITHTHEM,
+                 CALLNEGOTIATING, CALLONGOING};
+  std::map<uint32_t, CallState> states_;
 
   MediaManager media_; // Media processing and delivery
   SIPTransactions sip_; // SIP

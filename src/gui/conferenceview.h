@@ -11,7 +11,7 @@
 
 // Does the mapping of calls to their streams and upkeeps the layout of stream widgets
 
-enum CallState {EMPTY, ASKINGUSER, WAITINGPEER, CALL_RINGING, CALL_ACTIVE};
+enum ViewState {VIEWASKING, VIEWWAITINGPEER, VIEWRINGING, VIEWVIDEO};
 
 class QGridLayout;
 class QWidget;
@@ -72,7 +72,7 @@ private:
   void nextSlot();
 
   void attachCallingWidget(QWidget* holder, QString text);
-  void addWidgetToLayout(CallState state, QWidget* widget, QString name, uint32_t sessionID);
+  void addWidgetToLayout(ViewState state, QWidget* widget, QString name, uint32_t sessionID);
 
   uint32_t findInvoker(QString buttonName);
 
@@ -92,7 +92,7 @@ private:
 
   struct CallInfo
   {
-    CallState state;
+    ViewState state;
     QString name;
     QLayoutItem* item;
 

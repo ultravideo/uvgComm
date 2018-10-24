@@ -22,6 +22,9 @@ class SIPTransactionUser
   // the call is ringing
   virtual void callRinging(uint32_t sessionID) = 0;
 
+  // the call has been accepted
+  virtual void callAccepted(uint32_t sessionID) = 0;
+
   // the call has been rejected
   virtual void callRejected(uint32_t sessionID) = 0;
 

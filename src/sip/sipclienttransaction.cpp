@@ -59,6 +59,12 @@ bool SIPClientTransaction::processResponse(SIPResponse &response)
   {
     qDebug() << "Got response. Stopping timout.";
     requestTimer_.stop();
+
+    if(response.message->transactionRequest == INVITE)
+    {
+      transactionUser_->callAccepted(sessionID_);
+    }
+
   }
 
   if(responseCode >= 300 && responseCode <= 399)
@@ -195,7 +201,7 @@ void SIPClientTransaction::requestSender(RequestType type)
       qDebug() << "Request timeout set to: " << TIMEOUT;
       requestTimer_.start(TIMEOUT);
     }
-    else if(type == INVITE)
+    else if(type == INVITE) // INVITE has longer timeout while waiting for peer
     {
       qDebug() << "INVITE timeout set to: " << INVITE_TIMEOUT;
       requestTimer_.start(INVITE_TIMEOUT);
@@ -213,7 +219,7 @@ void SIPClientTransaction::requestTimeOut()
 
   if(ongoingTransactionType_ == INVITE)
   {
-    sendRequest(sessionID_, BYE);
+    emit sendRequest(sessionID_, BYE);
     // TODO tell user we have failed
   }
 

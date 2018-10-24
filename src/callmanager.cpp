@@ -81,8 +81,11 @@ void CallManager::callToParticipant(QString name, QString username, QString ip)
   for(auto sessionID : sessionIDs)
   {
     window_.displayOutgoingCall(sessionID, name);
+    if(states_.find(sessionID) == states_.end())
+    {
+      states_[sessionID] = CALLINGTHEM;
+    }
   }
-
 }
 
 void CallManager::chatWithParticipant(QString name, QString username, QString ip)
@@ -92,51 +95,95 @@ void CallManager::chatWithParticipant(QString name, QString username, QString ip
 
 bool CallManager::incomingCall(uint32_t sessionID, QString caller)
 {
+  if(states_.find(sessionID) != states_.end())
+  {
+    qDebug() << "ERROR: Overwriting and existing session in CallManager!";
+  }
+
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
   int autoAccept = settings.value("local/Auto-Accept").toInt();
   if(autoAccept == 1)
   {
     acceptCall(sessionID);
+    states_[sessionID] = CALLNEGOTIATING;
     return true;
   }
   else
   {
     window_.displayIncomingCall(sessionID, caller);
+    states_[sessionID] = CALLRINGINGWITHUS;
   }
   return false;
 }
 
 void CallManager::callRinging(uint32_t sessionID)
 {
-  qDebug() << "Our call is ringing!";
-  window_.displayRinging(sessionID);
+  if(states_.find(sessionID) != states_.end() && states_[sessionID] == CALLINGTHEM)
+  {
+    qDebug() << "Our call is ringing!";
+    window_.displayRinging(sessionID);
+    states_[sessionID] = CALLRINGINWITHTHEM;
+  }
+  else
+  {
+    qDebug() << "PEER ERROR: Got call ringing for nonexisting call";
+  }
+}
+
+void CallManager::callAccepted(uint32_t sessionID)
+{
+  if(states_.find(sessionID) != states_.end()
+     && states_[sessionID] == CALLRINGINWITHTHEM)
+  {
+    states_[sessionID] = CALLNEGOTIATING;
+  }
+  else
+  {
+    qDebug() << "PEER ERROR: Got an accepted call even though we have not yet called them!";
+  }
 }
 
 void CallManager::callRejected(uint32_t sessionID)
 {
-  qDebug() << "Our call has been rejected!";
-  window_.removeParticipant(sessionID);
+  if(states_.find(sessionID) != states_.end() && states_[sessionID] == CALLINGTHEM)
+  {
+    qDebug() << "Our call has been rejected!";
+    window_.removeParticipant(sessionID);
+    removeSession(sessionID);
+  }
+  else
+  {
+    qDebug() << "PEER ERROR: Got reject for nonexisting call";
+  }
 }
 
 void CallManager::callNegotiated(uint32_t sessionID)
 {
-  qDebug() << "Call has been agreed upon with peer:" << sessionID;
-
-  window_.addVideoStream(sessionID);
-
-  std::shared_ptr<SDPMessageInfo> localSDP;
-  std::shared_ptr<SDPMessageInfo> remoteSDP;
-
-  sip_.getSDPs(sessionID,
-               localSDP,
-               remoteSDP);
-
-  if(localSDP == nullptr || remoteSDP == nullptr)
+  if(states_.find(sessionID) != states_.end() && states_[sessionID] == CALLNEGOTIATING)
   {
-    return;
-  }
+    qDebug() << "Call has been agreed upon with peer:" << sessionID;
 
-  media_.addParticipant(sessionID, remoteSDP, localSDP);
+    window_.addVideoStream(sessionID);
+
+    std::shared_ptr<SDPMessageInfo> localSDP;
+    std::shared_ptr<SDPMessageInfo> remoteSDP;
+
+    sip_.getSDPs(sessionID,
+                 localSDP,
+                 remoteSDP);
+
+    if(localSDP == nullptr || remoteSDP == nullptr)
+    {
+      return;
+    }
+
+    media_.addParticipant(sessionID, remoteSDP, localSDP);
+    states_[sessionID] = CALLONGOING;
+  }
+  else
+  {
+    qDebug() << "PEER ERROR: Got call succesful negotiation even though we are not there yet!";
+  }
 }
 
 void CallManager::callNegotiationFailed(uint32_t sessionID)
@@ -149,12 +196,20 @@ void CallManager::cancelIncomingCall(uint32_t sessionID)
 {
   // TODO: display a proper message to the user
   window_.removeParticipant(sessionID);
+  removeSession(sessionID);
 }
 
 void CallManager::endCall(uint32_t sessionID)
 {
-  media_.removeParticipant(sessionID);
+  if(states_.find(sessionID) != states_.end()
+     && states_[sessionID] == CALLONGOING)
+  {
+    media_.removeParticipant(sessionID);
+  }
+  // remove any kind of
   window_.removeParticipant(sessionID);
+
+  removeSession(sessionID);
 }
 
 void CallManager::registeredToServer()
@@ -172,12 +227,14 @@ void CallManager::registeringFailed()
 void CallManager::updateSettings()
 {
   media_.updateSettings();
+  //sip_.updateSettings(); // for blocking list
 }
 
 void CallManager::acceptCall(uint32_t sessionID)
 {
   qDebug() << "Sending accept";
   sip_.acceptCall(sessionID);
+  states_[sessionID] = CALLNEGOTIATING;
 }
 
 void CallManager::rejectCall(uint32_t sessionID)
@@ -185,6 +242,7 @@ void CallManager::rejectCall(uint32_t sessionID)
   qDebug() << "We have rejected their call";
   sip_.rejectCall(sessionID);
   window_.removeParticipant(sessionID);
+  states_[sessionID] = CALLNEGOTIATING;
 }
 
 void CallManager::endTheCall()
@@ -193,6 +251,8 @@ void CallManager::endTheCall()
   sip_.endAllCalls();
   media_.endAllCalls();
   window_.clearConferenceView();
+
+  states_.clear();
 }
 
 void CallManager::micState()
@@ -203,4 +263,14 @@ void CallManager::micState()
 void CallManager::cameraState()
 {
   window_.setCameraState(media_.toggleCamera());
+}
+
+
+void CallManager::removeSession(uint32_t sessionID)
+{
+  auto it = states_.find(sessionID);
+  if(it != states_.end())
+  {
+    states_.erase(it);
+  }
 }

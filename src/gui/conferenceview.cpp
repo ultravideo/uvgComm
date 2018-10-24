@@ -43,10 +43,10 @@ void ConferenceView::callingTo(uint32_t sessionID, QString name)
   label->setFont(font);
   label->setAlignment(Qt::AlignHCenter);
 
-  addWidgetToLayout(WAITINGPEER, label, name, sessionID);
+  addWidgetToLayout(VIEWWAITINGPEER, label, name, sessionID);
 }
 
-void ConferenceView::addWidgetToLayout(CallState state, QWidget* widget, QString name, uint32_t sessionID)
+void ConferenceView::addWidgetToLayout(ViewState state, QWidget* widget, QString name, uint32_t sessionID)
 {
   locMutex_.lock();
 
@@ -97,7 +97,7 @@ void ConferenceView::incomingCall(uint32_t sessionID, QString name)
   }
   qDebug() << "Displaying pop-up for somebody calling in slot:" << row_ << "," << column_;
   QWidget* holder = new QWidget;
-  addWidgetToLayout(ASKINGUSER, holder, name, sessionID);
+  addWidgetToLayout(VIEWASKING, holder, name, sessionID);
   attachCallingWidget(holder, name + " is calling..");
 }
 
@@ -136,17 +136,17 @@ void ConferenceView::addVideoStream(uint32_t sessionID, std::shared_ptr<Videovie
   if(activeCalls_.size() < sessionID || activeCalls_.at(sessionID - 1) == nullptr)
   {
     qDebug() << "Did not find asking widget. Assuming auto-accept and adding widget";
-    addWidgetToLayout(CALL_ACTIVE, nullptr, "Auto-Accept", sessionID);
+    addWidgetToLayout(VIEWVIDEO, nullptr, "Auto-Accept", sessionID);
   }
-  else if(activeCalls_[sessionID - 1]->state != ASKINGUSER
-          && activeCalls_[sessionID - 1]->state != WAITINGPEER)
+  else if(activeCalls_[sessionID - 1]->state != VIEWASKING
+          && activeCalls_[sessionID - 1]->state != VIEWWAITINGPEER)
   {
     qWarning() << "WARNING: activating stream with wrong state";
     return;
   }
 
   // add the widget in place of previous one
-  activeCalls_[sessionID - 1]->state = CALL_ACTIVE;
+  activeCalls_[sessionID - 1]->state = VIEWVIDEO;
 
   // TODO delete previous widget now instead of with parent.
   // Now they accumulate in memory until call has ended
@@ -190,9 +190,9 @@ bool ConferenceView::removeCaller(uint32_t sessionID)
     layoutMutex_.unlock();
   }
 
-  if(activeCalls_[sessionID - 1]->state == CALL_ACTIVE
-     || activeCalls_[sessionID - 1]->state == ASKINGUSER
-     || activeCalls_[sessionID - 1]->state == WAITINGPEER)
+  if(activeCalls_[sessionID - 1]->state == VIEWVIDEO
+     || activeCalls_[sessionID - 1]->state == VIEWASKING
+     || activeCalls_[sessionID - 1]->state == VIEWWAITINGPEER)
   {
     activeCalls_[sessionID - 1]->item->widget()->hide();
     delete activeCalls_[sessionID - 1]->item->widget();
