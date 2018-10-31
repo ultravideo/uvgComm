@@ -151,10 +151,11 @@ HEADERS  += \
 FORMS    += \
     ui/callwindow.ui \
     ui/statisticswindow.ui \
-    ui/callingwidget.ui \
     ui/about.ui \
     ui/advancedSettings.ui \
-    ui/settings.ui
+    ui/settings.ui \
+    ui/incomingcallwidget.ui \
+    ui/outgoingcallwidget.ui
 
 # just in case we sometimes like to support smaller qt versions.
 greaterThan(4, QT_MAJOR_VERSION)

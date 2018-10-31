@@ -22,10 +22,12 @@ public:
 
 signals:
 
+  // send message data forward.
   void messageAvailable(QByteArray message);
 
 private slots:
 
+  // read the data when it becomes available
   void readData();
 
 private:

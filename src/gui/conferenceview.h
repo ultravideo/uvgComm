@@ -18,9 +18,9 @@ class QWidget;
 class QLayoutItem;
 class VideoviewFactory;
 
-namespace Ui {
-class CallerWidget;
-}
+//namespace Ui {
+//class CallerWidget;
+//}
 
 // TODO: the view algorithm should be improved somehow to be nicer.
 
@@ -71,7 +71,8 @@ private:
   //TODO: also some way to keep track of freed positions
   void nextSlot();
 
-  void attachCallingWidget(QWidget* holder, QString text);
+  void attachIncomingCallWidget(QString name, uint32_t sessionID);
+  void attachOutgoingCallWidget(QString name, uint32_t sessionID);
   void addWidgetToLayout(ViewState state, QWidget* widget, QString name, uint32_t sessionID);
 
   uint32_t findInvoker(QString buttonName);

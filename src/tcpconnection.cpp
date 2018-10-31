@@ -79,6 +79,8 @@ void TCPConnection::connectLoop()
 {
   const int connectionTimeout = 2 * 1000; // 2 seconds
 
+  // TODO: close the connection just in case?
+
   if(socketDescriptor_ != 0)
   {
     qDebug() << "Getting socket:" << socketDescriptor_;
