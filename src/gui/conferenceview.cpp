@@ -111,7 +111,12 @@ void ConferenceView::attachIncomingCallWidget(QString name, uint32_t sessionID)
 
   calling->CallerLabel->setText(name + " is calling..");
   addWidgetToLayout(VIEWASKING, frame, name, sessionID);
+
+  calling->acceptButton->setProperty("sessionID", QVariant(sessionID));
+  calling->declineButton->setProperty("sessionID", QVariant(sessionID));
+
   frame->show();
+
 }
 
 void ConferenceView::attachOutgoingCallWidget(QString name, uint32_t sessionID)
@@ -285,51 +290,21 @@ void ConferenceView::close()
   locMutex_.unlock();
 }
 
-uint32_t ConferenceView::findInvoker(QString buttonName)
-{
-  // TODO: bug warning: what if a sessionID has left the call
-  // and the sessionID no longer matches the widget positions?
-
-  // TODO: replace this with setproperty and getproperty for qpushbutton.
-
-  uint32_t sessionID = 0;
-  QPushButton* button = qobject_cast<QPushButton*>(sender());
-  for(unsigned int i = 0; i < activeCalls_.size(); ++i)
-  {
-    if(activeCalls_.at(i) != nullptr)
-    {
-      if(!activeCalls_.at(i)->item->widget()->findChildren<QPushButton *>(buttonName).isEmpty())
-      {
-        QPushButton* pb = activeCalls_.at(i)->item->widget()->findChildren<QPushButton *>(buttonName).first();
-        if(pb == button)
-        {
-          sessionID = i + 1; // sessionID is never 0
-          qDebug() << "Found invoking" << buttonName << "Session ID:" << sessionID;
-        }
-      }
-    }
-  }
-
-  Q_ASSERT(sessionID != 0);
-  Q_ASSERT(sessionID <= activeCalls_.size());
-  return sessionID;
-}
-
 void ConferenceView::accept()
 {
-  uint32_t sessionID = findInvoker("AcceptButton");
+  uint32_t sessionID = sender()->property("sessionID").toUInt();
   if (sessionID != 0)
   {
     emit acceptCall(sessionID);
   }
   else
   {
-    qDebug() << "Couldn't find the invoker";
+    qCritical() << "ERROR: Couldn't find the invoker for accept";
   }
 }
 
 void ConferenceView::reject()
 {
-  uint32_t sessionID = findInvoker("DeclineButton");
+  uint32_t sessionID = sender()->property("sessionID").toUInt();
   emit rejectCall(sessionID);
 }

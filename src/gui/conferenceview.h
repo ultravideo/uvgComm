@@ -75,8 +75,6 @@ private:
   void attachOutgoingCallWidget(QString name, uint32_t sessionID);
   void addWidgetToLayout(ViewState state, QWidget* widget, QString name, uint32_t sessionID);
 
-  uint32_t findInvoker(QString buttonName);
-
   QWidget *parent_;
 
   QMutex layoutMutex_;
