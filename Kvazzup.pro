@@ -191,7 +191,8 @@ message("Using Visual Studio libraries in ../msvc_libs")
 }
 
 win32-g++{
-LIBS += -L$$PWD/../libs
+#LIBS += -L$$PWD/../lib32
+LIBS += -L$$PWD/../lib64
 LIBS += -llibkvazaar.dll
 LIBS += -llibopus.dll
 LIBS += -llibLibOpenHevcWrapper.dll

@@ -97,7 +97,6 @@ void ConferenceView::incomingCall(uint32_t sessionID, QString name)
 
 void ConferenceView::attachIncomingCallWidget(QString name, uint32_t sessionID)
 {
-  /*
   QFrame* frame = new QFrame;
   Ui::IncomingCall *calling = new Ui::IncomingCall;
 
@@ -106,46 +105,24 @@ void ConferenceView::attachIncomingCallWidget(QString name, uint32_t sessionID)
   frame->setMidLineWidth(1);
 
   calling->setupUi(frame);
+
   connect(calling->acceptButton, SIGNAL(clicked()), this, SLOT(accept()));
   connect(calling->declineButton, SIGNAL(clicked()), this, SLOT(reject()));
 
-  calling->callerLabel->setText(name + " is calling..");
-  addWidgetToLayout(VIEWASKING, frame, name, sessionID);
-  frame->show();
-
-
-  QWidget* holder = new QWidget;
-  Ui::OutgoingCall *calling = new Ui::OutgoingCall;
-
-  calling->setupUi(holder);
-  //connect(calling->acceptButton, SIGNAL(clicked()), this, SLOT(accept()));
-  //connect(calling->declineButton, SIGNAL(clicked()), this, SLOT(reject()));
-
-  //calling->->frame->calleeLabel->setText(name + " is calling..");
-  addWidgetToLayout(VIEWASKING, holder, name, sessionID);
-  holder->show();*/
-
-  QFrame* frame = new QFrame;
-  Ui::IncomingCall *calling = new Ui::IncomingCall;
-
-  calling->setupUi(frame);
-  //connect(calling->acceptButton, SIGNAL(clicked()), this, SLOT(accept()));
-  //connect(calling->declineButton, SIGNAL(clicked()), this, SLOT(reject()));
-
-  //calling->->frame->calleeLabel->setText(name + " is calling..");
+  calling->CallerLabel->setText(name + " is calling..");
   addWidgetToLayout(VIEWASKING, frame, name, sessionID);
   frame->show();
 }
 
 void ConferenceView::attachOutgoingCallWidget(QString name, uint32_t sessionID)
-{/*
-  QWidget* holder = new QWidget;
+{
+  QFrame* holder = new QFrame;
   Ui::OutgoingCall *widget = new Ui::OutgoingCall;
   widget->setupUi(holder);
   widget->CallingLabel->setText("Calling " + name);
 
   addWidgetToLayout(VIEWWAITINGPEER, holder, name, sessionID);
-  holder->show();*/
+  holder->show();
 }
 
 
