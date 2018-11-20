@@ -43,83 +43,63 @@ bool SIPClientTransaction::processResponse(SIPResponse &response)
 
   int responseCode = response.type;
 
-  if(responseCode >= 100 && responseCode <= 199)
+  // first process message type specific responses and the process general responses
+  if(response.message->transactionRequest == INVITE)
   {
-    qDebug() << "Got provisional response. Restarting timer.";
-    if(response.message->transactionRequest == INVITE)
+    if(responseCode == SIP_RINGING)
     {
+      qDebug() << "Got provisional response. Restarting timer.";
       requestTimer_.start(INVITE_TIMEOUT);
+      transactionUser_->callRinging(sessionID_);
+      return true;
     }
-    else
+    else if(responseCode == SIP_OK)
     {
-      requestTimer_.start(TIMEOUT);
-    }
-  }
-  else
-  {
-    qDebug() << "Got response. Stopping timout.";
-    requestTimer_.stop();
-
-    if(response.message->transactionRequest == INVITE)
-    {
+      qDebug() << "Got response. Stopping timout.";
+      requestTimer_.stop();
       transactionUser_->peerAccepted(sessionID_);
+      requestSender(ACK);
+      transactionUser_->callNegotiated(sessionID_);
+      return true;
     }
-
+    else if(responseCode == SIP_DECLINE)
+    {
+      requestTimer_.stop();
+      qDebug() << "Got a Global Failure Response Code for INVITE";
+      transactionUser_->peerRejected(sessionID_);
+      return false;
+    }
   }
 
   if(responseCode >= 300 && responseCode <= 399)
   {
     // TODO: 8.1.3.4 Processing 3xx Responses in RFC 3261
-    qDebug() << "Got a redirection response Code. Not implemented!";
-    return false;
+    qDebug() << "Got a redirection response Code. No processing implemented!";
   }
-
-  if(responseCode >= 400 && responseCode <= 499)
+  else if(responseCode >= 400 && responseCode <= 499)
   {
     // TODO: 8.1.3.5 Processing 4xx Responses in RFC 3261
-    qDebug() << "Got a Client Failure Response Code. Not implemented!";
+    qDebug() << "Got a Client Failure Response Code. No processing implemented!";
 
     // TODO: if the response is 481 or 408, terminate dialog
-    return false;
   }
-
-  if(responseCode >= 500 && responseCode <= 599)
+  else if(responseCode >= 500 && responseCode <= 599)
   {
-    qDebug() << "Got a Server Failure Response Code. Not implemented!";
-    return false;
+    qDebug() << "Got a Server Failure Response Code. No processing implemented!";
   }
-
-
-  if(ongoingTransactionType_ == INVITE)
+  else if(responseCode >= 600 && responseCode <= 699
+          && (response.message->transactionRequest != INVITE || responseCode != SIP_DECLINE))
   {
-    if(responseCode >= 600 && responseCode <= 699)
-    {
-      qDebug() << "Got a Global Failure Response Code for INVITE";
-      transactionUser_->peerRejected(sessionID_);
-      return false;
-    }
-    else
-    {
-      switch (response.type) {
-      case SIP_RINGING:
-        transactionUser_->callRinging(sessionID_);
-        break;
-      case SIP_OK:
-        // the sdp has been check by transaction layer before this.
-        requestSender(ACK);
-        transactionUser_->callNegotiated(sessionID_);
-        break;
-      default:
-        break;
-      }
-    }
+    qDebug() << "Got a Global Failure Response Code. No processing implemented!";
   }
-  if(responseCode >= 200)
+  else if(responseCode == SIP_TRYING || responseCode == SIP_FORWARDED
+          || responseCode == SIP_QUEUED)
   {
-    ongoingTransactionType_ = SIP_UNKNOWN_REQUEST;
+    requestTimer_.start(TIMEOUT);
+    return true;
   }
 
-  return true;
+  return false;
 }
 
 
