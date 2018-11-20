@@ -116,7 +116,6 @@ void ConferenceView::attachIncomingCallWidget(QString name, uint32_t sessionID)
   calling->declineButton->setProperty("sessionID", QVariant(sessionID));
 
   frame->show();
-
 }
 
 void ConferenceView::attachOutgoingCallWidget(QString name, uint32_t sessionID)
@@ -127,6 +126,10 @@ void ConferenceView::attachOutgoingCallWidget(QString name, uint32_t sessionID)
   widget->CallingLabel->setText("Calling " + name);
 
   addWidgetToLayout(VIEWWAITINGPEER, holder, name, sessionID);
+
+  widget->cancelCall->setProperty("sessionID", QVariant(sessionID));
+  connect(widget->cancelCall, SIGNAL(clicked()), this, SLOT(cancel()));
+
   holder->show();
 }
 
@@ -307,4 +310,10 @@ void ConferenceView::reject()
 {
   uint32_t sessionID = sender()->property("sessionID").toUInt();
   emit rejectCall(sessionID);
+}
+
+void ConferenceView::cancel()
+{
+  uint32_t sessionID = sender()->property("sessionID").toUInt();
+  emit cancelCall(sessionID);
 }

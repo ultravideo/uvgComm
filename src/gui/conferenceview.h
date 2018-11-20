@@ -54,6 +54,7 @@ signals:
   // user clicks a button in view.
   void acceptCall(uint32_t sessionID);
   void rejectCall(uint32_t sessionID);
+  void cancelCall(uint32_t sessionID);
 
 public slots:
 
@@ -65,6 +66,7 @@ private slots:
   // slots for accept/rejectu buttons. The invoker is searched.
   void accept();
   void reject();
+  void cancel();
 
 private:
 

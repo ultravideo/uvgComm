@@ -40,10 +40,52 @@
      <property name="maximumSize">
       <size>
        <width>240</width>
-       <height>180</height>
+       <height>260</height>
       </size>
      </property>
      <layout class="QGridLayout" name="gridLayout">
+      <item row="3" column="0" colspan="2">
+       <widget class="QLCDNumber" name="lcdNumber">
+        <property name="lineWidth">
+         <number>0</number>
+        </property>
+        <property name="smallDecimalPoint">
+         <bool>false</bool>
+        </property>
+        <property name="digitCount">
+         <number>2</number>
+        </property>
+        <property name="mode">
+         <enum>QLCDNumber::Hex</enum>
+        </property>
+        <property name="segmentStyle">
+         <enum>QLCDNumber::Flat</enum>
+        </property>
+        <property name="intValue" stdset="0">
+         <number>59</number>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0" colspan="2">
+       <widget class="QLabel" name="label_2">
+        <property name="text">
+         <string>seconds</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0" colspan="2">
+       <widget class="QLabel" name="CallerLabel">
+        <property name="text">
+         <string>Someone is calling</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+      </item>
       <item row="1" column="0">
        <widget class="QPushButton" name="acceptButton">
         <property name="sizePolicy">
@@ -73,16 +115,6 @@
         </property>
         <property name="text">
          <string>Accept</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="0" colspan="2">
-       <widget class="QLabel" name="CallerLabel">
-        <property name="text">
-         <string>Someone is calling</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignCenter</set>
         </property>
        </widget>
       </item>
@@ -118,28 +150,21 @@
         </property>
        </widget>
       </item>
-      <item row="2" column="0">
-       <widget class="QLCDNumber" name="lcdNumber">
-        <property name="digitCount">
-         <number>2</number>
+      <item row="2" column="0" colspan="2">
+       <spacer name="verticalSpacer_3">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
         </property>
-        <property name="mode">
-         <enum>QLCDNumber::Hex</enum>
+        <property name="sizeType">
+         <enum>QSizePolicy::Minimum</enum>
         </property>
-        <property name="segmentStyle">
-         <enum>QLCDNumber::Flat</enum>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>20</width>
+          <height>40</height>
+         </size>
         </property>
-        <property name="intValue" stdset="0">
-         <number>59</number>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="1">
-       <widget class="QLabel" name="label_2">
-        <property name="text">
-         <string>seconds</string>
-        </property>
-       </widget>
+       </spacer>
       </item>
      </layout>
     </widget>
