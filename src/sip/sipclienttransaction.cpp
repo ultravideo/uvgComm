@@ -62,7 +62,7 @@ bool SIPClientTransaction::processResponse(SIPResponse &response)
 
     if(response.message->transactionRequest == INVITE)
     {
-      transactionUser_->callAccepted(sessionID_);
+      transactionUser_->peerAccepted(sessionID_);
     }
 
   }
@@ -95,7 +95,7 @@ bool SIPClientTransaction::processResponse(SIPResponse &response)
     if(responseCode >= 600 && responseCode <= 699)
     {
       qDebug() << "Got a Global Failure Response Code for INVITE";
-      transactionUser_->callRejected(sessionID_);
+      transactionUser_->peerRejected(sessionID_);
       return false;
     }
     else
@@ -225,6 +225,6 @@ void SIPClientTransaction::requestTimeOut()
 
   requestSender(CANCEL);
   requestTimer_.stop();
-  transactionUser_->callRejected(sessionID_);
+  transactionUser_->peerRejected(sessionID_);
   ongoingTransactionType_ = SIP_UNKNOWN_REQUEST;
 }

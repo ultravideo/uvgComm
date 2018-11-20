@@ -27,8 +27,8 @@ void CallManager::init()
   QObject::connect(&window_, SIGNAL(endCall()), this, SLOT(endTheCall()));
   QObject::connect(&window_, SIGNAL(closed()), this, SLOT(windowClosed()));
 
-  QObject::connect(&window_, &CallWindow::callAccepted, this, &CallManager::acceptCall);
-  QObject::connect(&window_, &CallWindow::callRejected, this, &CallManager::rejectCall);
+  QObject::connect(&window_, &CallWindow::callAccepted, this, &CallManager::userAcceptsCall);
+  QObject::connect(&window_, &CallWindow::callRejected, this, &CallManager::userRejectsCall);
 
   stats_ = window_.createStatsWindow();
 
@@ -78,6 +78,8 @@ void CallManager::callToParticipant(QString name, QString username, QString ip)
 
   QList<uint32_t> sessionIDs = sip_.startCall(list);
 
+  qDebug() << "Started" << sessionIDs.size() << "calls:" << sessionIDs;
+
   for(auto sessionID : sessionIDs)
   {
     window_.displayOutgoingCall(sessionID, name);
@@ -104,7 +106,8 @@ bool CallManager::incomingCall(uint32_t sessionID, QString caller)
   int autoAccept = settings.value("local/Auto-Accept").toInt();
   if(autoAccept == 1)
   {
-    acceptCall(sessionID);
+    qDebug() << "Incoming call auto-accpeted!";
+    userAcceptsCall(sessionID);
     states_[sessionID] = CALLNEGOTIATING;
     return true;
   }
@@ -126,15 +129,16 @@ void CallManager::callRinging(uint32_t sessionID)
   }
   else
   {
-    qDebug() << "PEER ERROR: Got call ringing for nonexisting call";
+    qDebug() << "PEER ERROR: Got call ringing for nonexisting call:" << sessionID;
   }
 }
 
-void CallManager::callAccepted(uint32_t sessionID)
+void CallManager::peerAccepted(uint32_t sessionID)
 {
   if(states_.find(sessionID) != states_.end()
      && states_[sessionID] == CALLRINGINWITHTHEM)
   {
+    qDebug() << "They accepted our call!";
     states_[sessionID] = CALLNEGOTIATING;
   }
   else
@@ -143,17 +147,25 @@ void CallManager::callAccepted(uint32_t sessionID)
   }
 }
 
-void CallManager::callRejected(uint32_t sessionID)
+void CallManager::peerRejected(uint32_t sessionID)
 {
-  if(states_.find(sessionID) != states_.end() && states_[sessionID] == CALLINGTHEM)
+  if(states_.find(sessionID) != states_.end())
   {
-    qDebug() << "Our call has been rejected!";
-    window_.removeParticipant(sessionID);
-    removeSession(sessionID);
+    if(states_[sessionID] == CALLRINGINWITHTHEM)
+    {
+      qDebug() << "Our call has been rejected!";
+      window_.removeParticipant(sessionID);
+      removeSession(sessionID);
+    }
+    else
+    {
+      qDebug() << "PEER ERROR: Got reject when we weren't calling them:" << states_[sessionID];
+    }
   }
   else
   {
-    qDebug() << "PEER ERROR: Got reject for nonexisting call";
+    qDebug() << "PEER ERROR: Got reject for nonexisting call:" << sessionID;
+    qDebug() << "Number of ongoing sessions:" << states_.size();
   }
 }
 
@@ -189,7 +201,7 @@ void CallManager::callNegotiated(uint32_t sessionID)
 void CallManager::callNegotiationFailed(uint32_t sessionID)
 {
   // TODO: display a proper error for the user
-  callRejected(sessionID);
+  peerRejected(sessionID);
 }
 
 void CallManager::cancelIncomingCall(uint32_t sessionID)
@@ -230,19 +242,19 @@ void CallManager::updateSettings()
   //sip_.updateSettings(); // for blocking list
 }
 
-void CallManager::acceptCall(uint32_t sessionID)
+void CallManager::userAcceptsCall(uint32_t sessionID)
 {
   qDebug() << "Sending accept";
   sip_.acceptCall(sessionID);
   states_[sessionID] = CALLNEGOTIATING;
 }
 
-void CallManager::rejectCall(uint32_t sessionID)
+void CallManager::userRejectsCall(uint32_t sessionID)
 {
   qDebug() << "We have rejected their call";
   sip_.rejectCall(sessionID);
   window_.removeParticipant(sessionID);
-  states_[sessionID] = CALLNEGOTIATING;
+  removeSession(sessionID);
 }
 
 void CallManager::endTheCall()

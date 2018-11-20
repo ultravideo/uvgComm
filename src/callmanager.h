@@ -30,8 +30,8 @@ public:
   // Call Control Interface used by SIP transaction
   virtual bool incomingCall(uint32_t sessionID, QString caller);
   virtual void callRinging(uint32_t sessionID);
-  virtual void callAccepted(uint32_t sessionID);
-  virtual void callRejected(uint32_t sessionID);
+  virtual void peerAccepted(uint32_t sessionID);
+  virtual void peerRejected(uint32_t sessionID);
   virtual void callNegotiated(uint32_t sessionID);
   virtual void callNegotiationFailed(uint32_t sessionID);
   virtual void cancelIncomingCall(uint32_t sessionID);
@@ -47,8 +47,8 @@ public slots:
   void cameraState();    // change camera state
   void endTheCall();     // user wants to end the call
   void windowClosed();   // user has closed the window
-  void acceptCall(uint32_t sessionID); // user has accepted the incoming call
-  void rejectCall(uint32_t sessionID); // user has rejected the incoming call
+  void userAcceptsCall(uint32_t sessionID); // user has accepted the incoming call
+  void userRejectsCall(uint32_t sessionID); // user has rejected the incoming call
 
 private slots:
 
@@ -66,8 +66,8 @@ private:
   };
 
   // Call state is a non-dependant way
-  enum CallState{CALLRINGINGWITHUS, CALLINGTHEM, CALLRINGINWITHTHEM,
-                 CALLNEGOTIATING, CALLONGOING};
+  enum CallState{CALLRINGINGWITHUS = 0, CALLINGTHEM = 1, CALLRINGINWITHTHEM = 2,
+                 CALLNEGOTIATING = 3, CALLONGOING = 4};
   std::map<uint32_t, CallState> states_;
 
   MediaManager media_; // Media processing and delivery
