@@ -74,23 +74,23 @@ bool SIPClientTransaction::processResponse(SIPResponse &response)
   if(responseCode >= 300 && responseCode <= 399)
   {
     // TODO: 8.1.3.4 Processing 3xx Responses in RFC 3261
-    qDebug() << "Got a redirection response Code. No processing implemented!";
+    qDebug() << "Got a redirection response Code. No processing implemented. Terminating dialog.";
   }
   else if(responseCode >= 400 && responseCode <= 499)
   {
     // TODO: 8.1.3.5 Processing 4xx Responses in RFC 3261
-    qDebug() << "Got a Client Failure Response Code. No processing implemented!";
+    qDebug() << "Got a Client Failure Response Code. No processing implemented. Terminating dialog.";
 
     // TODO: if the response is 481 or 408, terminate dialog
   }
   else if(responseCode >= 500 && responseCode <= 599)
   {
-    qDebug() << "Got a Server Failure Response Code. No processing implemented!";
+    qDebug() << "Got a Server Failure Response Code. No processing implemented. Terminating dialog.";
   }
   else if(responseCode >= 600 && responseCode <= 699
           && (response.message->transactionRequest != INVITE || responseCode != SIP_DECLINE))
   {
-    qDebug() << "Got a Global Failure Response Code. No processing implemented!";
+    qDebug() << "Got a Global Failure Response Code. No processing implemented. Terminating dialog.";
   }
   else if(responseCode == SIP_TRYING || responseCode == SIP_FORWARDED
           || responseCode == SIP_QUEUED)
@@ -122,6 +122,11 @@ void SIPClientTransaction::endCall()
 {
   qDebug() << "Ending the call with BYE";
   requestSender(BYE);
+}
+
+void SIPClientTransaction::cancelCall()
+{
+  requestSender(CANCEL);
 }
 
 void SIPClientTransaction::registerToServer()
@@ -176,15 +181,11 @@ void SIPClientTransaction::requestSender(RequestType type)
     ongoingTransactionType_ = type;
     emit sendRequest(sessionID_, type);
 
-    if(type != INVITE && type != CANCEL && type != ACK)
+    // INVITE has the same timeout as rest of them. Only after RINGING reply do we increase timeout
+    if(type != CANCEL && type != ACK)
     {
       qDebug() << "Request timeout set to: " << TIMEOUT;
       requestTimer_.start(TIMEOUT);
-    }
-    else if(type == INVITE) // INVITE has longer timeout while waiting for peer
-    {
-      qDebug() << "INVITE timeout set to: " << INVITE_TIMEOUT;
-      requestTimer_.start(INVITE_TIMEOUT);
     }
     else
     {

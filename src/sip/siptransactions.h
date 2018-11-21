@@ -52,6 +52,8 @@ public:
   // transaction user wants something.
   void acceptCall(uint32_t sessionID);
   void rejectCall(uint32_t sessionID);
+  void cancelCall(uint32_t sessionID);
+
   void endCall(uint32_t sessionID);
   void endAllCalls();
 

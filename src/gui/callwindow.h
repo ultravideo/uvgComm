@@ -69,6 +69,7 @@ signals:
   // user reactions to incoming call.
   void callAccepted(uint32_t sessionID);
   void callRejected(uint32_t sessionID);
+  void callCancelled(uint32_t sessionID);
 
 public slots:
 

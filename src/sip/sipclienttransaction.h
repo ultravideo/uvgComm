@@ -41,6 +41,7 @@ public:
   // send a request
   bool startCall();
   void endCall();
+  void cancelCall();
   void registerToServer();
 
   // inform this transaction that the connection it is associated with has been established

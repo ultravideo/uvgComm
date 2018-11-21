@@ -29,6 +29,7 @@ void CallManager::init()
 
   QObject::connect(&window_, &CallWindow::callAccepted, this, &CallManager::userAcceptsCall);
   QObject::connect(&window_, &CallWindow::callRejected, this, &CallManager::userRejectsCall);
+  QObject::connect(&window_, &CallWindow::callCancelled, this, &CallManager::userCancelsCall);
 
   stats_ = window_.createStatsWindow();
 
@@ -154,7 +155,6 @@ void CallManager::peerRejected(uint32_t sessionID)
     if(states_[sessionID] == CALLRINGINWITHTHEM)
     {
       qDebug() << "Our call has been rejected!";
-      window_.removeParticipant(sessionID);
       removeSession(sessionID);
     }
     else
@@ -206,8 +206,7 @@ void CallManager::callNegotiationFailed(uint32_t sessionID)
 
 void CallManager::cancelIncomingCall(uint32_t sessionID)
 {
-  // TODO: display a proper message to the user
-  window_.removeParticipant(sessionID);
+  // TODO: display a proper message to the user that peer has cancelled their call
   removeSession(sessionID);
 }
 
@@ -218,9 +217,6 @@ void CallManager::endCall(uint32_t sessionID)
   {
     media_.removeParticipant(sessionID);
   }
-  // remove any kind of
-  window_.removeParticipant(sessionID);
-
   removeSession(sessionID);
 }
 
@@ -253,7 +249,13 @@ void CallManager::userRejectsCall(uint32_t sessionID)
 {
   qDebug() << "We have rejected their call";
   sip_.rejectCall(sessionID);
-  window_.removeParticipant(sessionID);
+  removeSession(sessionID);
+}
+
+void CallManager::userCancelsCall(uint32_t sessionID)
+{
+  qDebug() << "We have cancelled our call";
+  sip_.cancelCall(sessionID);
   removeSession(sessionID);
 }
 
@@ -277,9 +279,10 @@ void CallManager::cameraState()
   window_.setCameraState(media_.toggleCamera());
 }
 
-
 void CallManager::removeSession(uint32_t sessionID)
 {
+  window_.removeParticipant(sessionID);
+
   auto it = states_.find(sessionID);
   if(it != states_.end())
   {

@@ -49,6 +49,7 @@ public slots:
   void windowClosed();   // user has closed the window
   void userAcceptsCall(uint32_t sessionID); // user has accepted the incoming call
   void userRejectsCall(uint32_t sessionID); // user has rejected the incoming call
+  void userCancelsCall(uint32_t sessionID); // user has rejected the incoming call
 
 private slots:
 

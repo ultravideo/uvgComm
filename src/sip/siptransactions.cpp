@@ -91,13 +91,13 @@ QList<uint32_t> SIPTransactions::startCall(QList<Contact> addresses)
 
     // TODO: check if dialog already exists and use its contact address
 
-    bool isServer = false;
+    //bool isServer = false;
     // check if address is located at a SIP server
     for(auto server : sipServerRegistrations_)
     {
       if(server.isContactAtThisServer(addresses.at(i).remoteAddress))
       {
-        isServer = true;
+        //isServer = true;
       }
     }
 
@@ -194,6 +194,14 @@ void SIPTransactions::endCall(uint32_t sessionID)
   dialog->client->endCall();
   destroyDialog(sessionID);
 }
+
+void SIPTransactions::cancelCall(uint32_t sessionID)
+{
+  std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
+  dialog->client->cancelCall();
+  destroyDialog(sessionID);
+}
+
 
 void SIPTransactions::endAllCalls()
 {

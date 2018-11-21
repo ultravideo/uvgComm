@@ -74,6 +74,7 @@ void CallWindow::init(ParticipantInterface *partInt)
 
   QObject::connect(&conference_, &ConferenceView::acceptCall, this, &CallWindow::callAccepted);
   QObject::connect(&conference_, &ConferenceView::rejectCall, this, &CallWindow::callRejected);
+  QObject::connect(&conference_, &ConferenceView::cancelCall, this, &CallWindow::callCancelled);
 
   conference_.init(ui_->participantLayout, ui_->participants);
 
