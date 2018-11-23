@@ -18,9 +18,9 @@ class QWidget;
 class QLayoutItem;
 class VideoviewFactory;
 
-//namespace Ui {
 //class CallerWidget;
 //}
+//namespace Ui {
 
 // TODO: the view algorithm should be improved somehow to be nicer.
 
@@ -77,6 +77,22 @@ private:
   void attachOutgoingCallWidget(QString name, uint32_t sessionID);
   void addWidgetToLayout(ViewState state, QWidget* widget, QString name, uint32_t sessionID);
 
+  QLayoutItem* getSessionItem();
+
+  struct CallInfo
+  {
+    ViewState state;
+    QString name;
+    QLayoutItem* item;
+
+    uint16_t row;
+    uint16_t column;
+
+    //QWidget* holder;
+  };
+
+  void uninitCaller(std::unique_ptr<CallInfo> peer);
+
   QWidget *parent_;
 
   QMutex layoutMutex_;
@@ -91,22 +107,13 @@ private:
 
   uint16_t rowMaxLength_;
 
-  struct CallInfo
-  {
-    ViewState state;
-    QString name;
-    QLayoutItem* item;
 
-    uint16_t row;
-    uint16_t column;
-
-    //QWidget* holder;
-  };
 
   QMutex callsMutex_; // TODO: missing implementation
 
   // matches sessionID - 1, but is not the definitive source of sessionID.
-  QList<CallInfo*> activeCalls_;
+  std::map<uint32_t, std::unique_ptr<CallInfo>> activeCalls_;
+  //QList<CallInfo*> activeCalls_;
 
   // keeping track of freed places
   // TODO: update the whole layout with each added and removed participant. Use window width.

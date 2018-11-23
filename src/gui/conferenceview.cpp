@@ -32,7 +32,7 @@ void ConferenceView::init(QGridLayout* conferenceLayout, QWidget* layoutwidget)
 void ConferenceView::callingTo(uint32_t sessionID, QString name)
 {
   Q_ASSERT(sessionID);
-  if(activeCalls_.size() >= sessionID && activeCalls_.at(sessionID - 1) != nullptr)
+  if(activeCalls_.find(sessionID) != activeCalls_.end())
   {
     qWarning() << "WARNING: Outgoing call already has an allocated view";
     return;
@@ -63,13 +63,9 @@ void ConferenceView::addWidgetToLayout(ViewState state, QWidget* widget, QString
     layout_->addWidget(widget, row, column);
   }
 
-  while(activeCalls_.size() < sessionID)
-  {
-    activeCalls_.append(nullptr);
-  }
+  activeCalls_[sessionID] = std::unique_ptr<CallInfo>
+      (new CallInfo{state, name, layout_->itemAtPosition(row,column), row, column});
 
-  activeCalls_[sessionID - 1] = new CallInfo{state, name, layout_->itemAtPosition(row,column),
-                                             row, column};
   layoutMutex_.unlock();
 
   if(!freedLocs_.empty()){
@@ -84,10 +80,9 @@ void ConferenceView::addWidgetToLayout(ViewState state, QWidget* widget, QString
 
 void ConferenceView::incomingCall(uint32_t sessionID, QString name)
 {
-  if(activeCalls_.size() >= sessionID && activeCalls_.at(sessionID - 1) != nullptr)
+  if(activeCalls_.find(sessionID) != activeCalls_.end())
   {
-    qWarning() << "WARNING: Incoming call already has an allocated view. Session:" << sessionID
-               << "Slots:" << activeCalls_.size();
+    qWarning() << "WARNING: Incoming call already has an allocated view. Session:" << sessionID;
     return;
   }
   qDebug() << "Displaying pop-up for somebody calling in slot:" << row_ << "," << column_;
@@ -137,13 +132,13 @@ void ConferenceView::attachOutgoingCallWidget(QString name, uint32_t sessionID)
 void ConferenceView::attachWidget(uint32_t sessionID, QWidget* view)
 {
   layoutMutex_.lock();
-  if(activeCalls_[sessionID - 1]->item)
+  if(activeCalls_[sessionID]->item)
   {
-    layout_->removeItem(activeCalls_[sessionID - 1]->item);
+    layout_->removeItem(activeCalls_[sessionID]->item);
   }
-  layout_->addWidget(view, activeCalls_[sessionID - 1]->row, activeCalls_[sessionID - 1]->column);
-  activeCalls_[sessionID - 1]->item = layout_->itemAtPosition(activeCalls_[sessionID - 1]->row,
-                                                       activeCalls_[sessionID - 1]->column);
+  layout_->addWidget(view, activeCalls_[sessionID]->row, activeCalls_[sessionID]->column);
+  activeCalls_[sessionID]->item = layout_->itemAtPosition(activeCalls_[sessionID]->row,
+                                                       activeCalls_[sessionID]->column);
   layoutMutex_.unlock();
 }
 
@@ -153,27 +148,27 @@ void ConferenceView::addVideoStream(uint32_t sessionID, std::shared_ptr<Videovie
   factory->createWidget(sessionID, nullptr, this);
   QWidget* view = factory->getView(sessionID);
 
-  if(activeCalls_.size() < sessionID || activeCalls_.at(sessionID - 1) == nullptr)
+  if(activeCalls_.find(sessionID) == activeCalls_.end())
   {
     qDebug() << "Did not find asking widget. Assuming auto-accept and adding widget";
     addWidgetToLayout(VIEWVIDEO, nullptr, "Auto-Accept", sessionID);
   }
-  else if(activeCalls_[sessionID - 1]->state != VIEWASKING
-          && activeCalls_[sessionID - 1]->state != VIEWWAITINGPEER)
+  else if(activeCalls_[sessionID]->state != VIEWASKING
+          && activeCalls_[sessionID]->state != VIEWWAITINGPEER)
   {
     qWarning() << "WARNING: activating stream with wrong state";
     return;
   }
 
   // add the widget in place of previous one
-  activeCalls_[sessionID - 1]->state = VIEWVIDEO;
+  activeCalls_[sessionID]->state = VIEWVIDEO;
 
   // TODO delete previous widget now instead of with parent.
   // Now they accumulate in memory until call has ended
-  if(activeCalls_[sessionID - 1]->item != nullptr
-     && activeCalls_[sessionID - 1]->item->widget() != nullptr)
+  if(activeCalls_[sessionID]->item != nullptr
+     && activeCalls_[sessionID]->item->widget() != nullptr)
   {
-    delete activeCalls_[sessionID - 1]->item->widget();
+    delete activeCalls_[sessionID]->item->widget();
   }
 
   attachWidget(sessionID, view);
@@ -194,46 +189,16 @@ void ConferenceView::ringing(uint32_t sessionID)
 
 bool ConferenceView::removeCaller(uint32_t sessionID)
 {
-  qDebug() << "Removing call window. Session:"
-           << sessionID << "Total slots:" << activeCalls_.size();
-  if(activeCalls_.size() < sessionID
-     || activeCalls_[sessionID - 1] == nullptr)
+  if(activeCalls_.find(sessionID) == activeCalls_.end())
   {
-    qWarning() << "WARNING: Trying to remove nonexisting call from ConferenceView.";
-    return !activeCalls_.empty();
-  }
-
-  if(activeCalls_[sessionID - 1]->item != nullptr)
-  {
-    layoutMutex_.lock();
-    layout_->removeItem(activeCalls_[sessionID - 1]->item);
-    layoutMutex_.unlock();
-  }
-
-  if(activeCalls_[sessionID - 1]->state == VIEWVIDEO
-     || activeCalls_[sessionID - 1]->state == VIEWASKING
-     || activeCalls_[sessionID - 1]->state == VIEWWAITINGPEER)
-  {
-    activeCalls_[sessionID - 1]->item->widget()->hide();
-    delete activeCalls_[sessionID - 1]->item->widget();
-  }
-
-  locMutex_.lock();
-  if(activeCalls_.size() != 1)
-  {
-    freedLocs_.push_back({activeCalls_[sessionID - 1]->row, activeCalls_[sessionID - 1]->column});
+    Q_ASSERT(false);
+    qWarning() << "ERROR: Tried to remove the view of non-existing sessionID!";
   }
   else
   {
-    freedLocs_.clear();
-    row_ = 0;
-    column_ = 0;
-    rowMaxLength_ = 2;
-    qDebug() << "Removed last video view. Clearing previous data";
+    uninitCaller(std::move(activeCalls_[sessionID]));
+    activeCalls_.erase(sessionID);
   }
-  locMutex_.unlock();
-  delete activeCalls_.at(sessionID - 1);
-  activeCalls_[sessionID - 1] = nullptr;
 
   return !activeCalls_.empty();
 }
@@ -271,19 +236,14 @@ void ConferenceView::nextSlot()
 
 void ConferenceView::close()
 {
-  for(unsigned int i = 0; i < activeCalls_.size(); ++i)
+  for (std::map<uint32_t, std::unique_ptr<CallInfo>>::iterator view = activeCalls_.begin();
+       view != activeCalls_.end(); ++view)
   {
-    if(activeCalls_.at(i) != nullptr)
-    {
-      layoutMutex_.lock();
-      layout_->removeItem(activeCalls_.at(i)->item);
-      layoutMutex_.unlock();
-      removeCaller(i + 1);
-    }
+    uninitCaller(std::move(view->second));
   }
 
-  // not strictly needed, but just in case.
   activeCalls_.clear();
+  freedLocs_.clear();
 
   locMutex_.lock();
   row_ = 0;
@@ -292,6 +252,43 @@ void ConferenceView::close()
 
   locMutex_.unlock();
 }
+
+void ConferenceView::uninitCaller(std::unique_ptr<CallInfo> peer)
+{
+  if(peer->item != nullptr)
+  {
+    layoutMutex_.lock();
+    layout_->removeItem(peer->item);
+    layoutMutex_.unlock();
+  }
+
+  if(peer->state == VIEWVIDEO
+     || peer->state == VIEWASKING
+     || peer->state == VIEWWAITINGPEER)
+  {
+    peer->item->widget()->hide();
+    delete peer->item->widget();
+  }
+
+  locMutex_.lock();
+
+  // record the freed locations so we can later insert new views to them if need be
+  // TODO: Reorder the layout everytime a view is removed.
+  if(activeCalls_.size() != 1)
+  {
+    freedLocs_.push_back({peer->row, peer->column});
+  }
+  else
+  {
+    freedLocs_.clear();
+    row_ = 0;
+    column_ = 0;
+    rowMaxLength_ = 2;
+    qDebug() << "Removing last video view. Clearing previous data";
+  }
+  locMutex_.unlock();
+}
+
 
 void ConferenceView::accept()
 {
