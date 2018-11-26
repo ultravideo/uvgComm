@@ -15,10 +15,11 @@ ConferenceView::ConferenceView(QWidget *parent):
   parent_(parent),
   layout_(nullptr),
   layoutWidget_(nullptr),
+  activeCalls_(),
+  freedLocs_(),
   row_(0),
   column_(0),
-  rowMaxLength_(2),
-  activeCalls_()
+  rowMaxLength_(2)
 {}
 
 void ConferenceView::init(QGridLayout* conferenceLayout, QWidget* layoutwidget)
@@ -27,6 +28,8 @@ void ConferenceView::init(QGridLayout* conferenceLayout, QWidget* layoutwidget)
   layout_ = conferenceLayout;
   layoutMutex_.unlock();
   layoutWidget_ = layoutwidget;
+
+  connect(&timeoutTimer_, &QTimer::timeout, this, &ConferenceView::updateTimes);
 }
 
 void ConferenceView::callingTo(uint32_t sessionID, QString name)
@@ -62,9 +65,11 @@ void ConferenceView::addWidgetToLayout(ViewState state, QWidget* widget, QString
   {
     layout_->addWidget(widget, row, column);
   }
-
+  activeCallMutex_.lock();
   activeCalls_[sessionID] = std::unique_ptr<CallInfo>
-      (new CallInfo{state, name, layout_->itemAtPosition(row,column), row, column});
+      (new CallInfo{state, name, layout_->itemAtPosition(row,column),
+                    row, column, nullptr, nullptr});
+  activeCallMutex_.unlock();
 
   layoutMutex_.unlock();
 
@@ -93,22 +98,23 @@ void ConferenceView::incomingCall(uint32_t sessionID, QString name)
 void ConferenceView::attachIncomingCallWidget(QString name, uint32_t sessionID)
 {
   QFrame* frame = new QFrame;
-  Ui::IncomingCall *calling = new Ui::IncomingCall;
+  Ui::IncomingCall *in = new Ui::IncomingCall;
 
   frame->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
   frame->setLineWidth(2);
   frame->setMidLineWidth(1);
 
-  calling->setupUi(frame);
+  in->setupUi(frame);
 
-  connect(calling->acceptButton, SIGNAL(clicked()), this, SLOT(accept()));
-  connect(calling->declineButton, SIGNAL(clicked()), this, SLOT(reject()));
+  connect(in->acceptButton, SIGNAL(clicked()), this, SLOT(accept()));
+  connect(in->declineButton, SIGNAL(clicked()), this, SLOT(reject()));
 
-  calling->CallerLabel->setText(name + " is calling..");
+  in->NameLabel->setText(name + " is calling..");
   addWidgetToLayout(VIEWASKING, frame, name, sessionID);
+  activeCalls_[sessionID]->in = in;
 
-  calling->acceptButton->setProperty("sessionID", QVariant(sessionID));
-  calling->declineButton->setProperty("sessionID", QVariant(sessionID));
+  in->acceptButton->setProperty("sessionID", QVariant(sessionID));
+  in->declineButton->setProperty("sessionID", QVariant(sessionID));
 
   frame->show();
 }
@@ -116,18 +122,24 @@ void ConferenceView::attachIncomingCallWidget(QString name, uint32_t sessionID)
 void ConferenceView::attachOutgoingCallWidget(QString name, uint32_t sessionID)
 {
   QFrame* holder = new QFrame;
-  Ui::OutgoingCall *widget = new Ui::OutgoingCall;
-  widget->setupUi(holder);
-  widget->CallingLabel->setText("Calling " + name);
+  Ui::OutgoingCall *out = new Ui::OutgoingCall;
+  out->setupUi(holder);
+  out->NameLabel->setText(name);
+  out->StatusLabel->setText("Connecting ...");
+
+  if(!timeoutTimer_.isActive())
+  {
+    timeoutTimer_.start(1000);
+  }
 
   addWidgetToLayout(VIEWWAITINGPEER, holder, name, sessionID);
 
-  widget->cancelCall->setProperty("sessionID", QVariant(sessionID));
-  connect(widget->cancelCall, SIGNAL(clicked()), this, SLOT(cancel()));
+  activeCalls_[sessionID]->out = out;
+  out->cancelCall->setProperty("sessionID", QVariant(sessionID));
+  connect(out->cancelCall, SIGNAL(clicked()), this, SLOT(cancel()));
 
   holder->show();
 }
-
 
 void ConferenceView::attachWidget(uint32_t sessionID, QWidget* view)
 {
@@ -185,6 +197,22 @@ void ConferenceView::ringing(uint32_t sessionID)
 {
   // get widget from layout and change the text.
   qDebug() << sessionID << "call is ringing. TODO: display it to user";
+
+  if(activeCalls_.find(sessionID) == activeCalls_.end())
+  {
+    qWarning() << "ERROR: Ringing for nonexisting view. View should always exist if this function is called.";
+    return;
+  }
+  if (activeCalls_[sessionID]->in)
+  {
+    activeCallMutex_.lock();
+    activeCalls_[sessionID]->in->StatusLabel->setText("Call is ringing ...");
+    activeCallMutex_.unlock();
+  }
+  else
+  {
+    qWarning() << "ERROR: No incoming call widget exists when it should be ringing";
+  }
 }
 
 bool ConferenceView::removeCaller(uint32_t sessionID)
@@ -196,8 +224,10 @@ bool ConferenceView::removeCaller(uint32_t sessionID)
   }
   else
   {
+    activeCallMutex_.lock();
     uninitCaller(std::move(activeCalls_[sessionID]));
     activeCalls_.erase(sessionID);
+    activeCallMutex_.unlock();
   }
 
   return !activeCalls_.empty();
@@ -313,4 +343,25 @@ void ConferenceView::cancel()
 {
   uint32_t sessionID = sender()->property("sessionID").toUInt();
   emit cancelCall(sessionID);
+}
+
+void ConferenceView::updateTimes()
+{
+  bool countersRunning = false;
+  activeCallMutex_.lock();
+  for(std::map<uint32_t, std::unique_ptr<CallInfo>>::iterator i = activeCalls_.begin();
+      i != activeCalls_.end(); ++i)
+  {
+    if(i->second->out != nullptr)
+    {
+      i->second->out->timeout->display(i->second->out->timeout->intValue() - 1);
+      countersRunning = true;
+    }
+  }
+  activeCallMutex_.unlock();
+
+  if(!countersRunning)
+  {
+    timeoutTimer_.stop();
+  }
 }

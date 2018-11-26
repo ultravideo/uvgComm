@@ -3,6 +3,9 @@
 #include <QList>
 #include <QString>
 #include <QMutex>
+#include <QLabel>
+#include <QTimer>
+#include <QLCDNumber>
 
 #include <map>
 #include <deque>
@@ -10,6 +13,7 @@
 #include <memory>
 
 // Does the mapping of calls to their streams and upkeeps the layout of stream widgets
+// TODO: the view algorithm should be improved somehow to be nicer.
 
 enum ViewState {VIEWASKING, VIEWWAITINGPEER, VIEWRINGING, VIEWVIDEO};
 
@@ -18,11 +22,14 @@ class QWidget;
 class QLayoutItem;
 class VideoviewFactory;
 
-//class CallerWidget;
-//}
-//namespace Ui {
 
-// TODO: the view algorithm should be improved somehow to be nicer.
+
+namespace Ui {
+class OutgoingCall;
+class IncomingCall;
+}
+
+
 
 class ConferenceView : public QObject
 {
@@ -68,6 +75,8 @@ private slots:
   void reject();
   void cancel();
 
+  void updateTimes();
+
 private:
 
   //TODO: also some way to keep track of freed positions
@@ -75,7 +84,8 @@ private:
 
   void attachIncomingCallWidget(QString name, uint32_t sessionID);
   void attachOutgoingCallWidget(QString name, uint32_t sessionID);
-  void addWidgetToLayout(ViewState state, QWidget* widget, QString name, uint32_t sessionID);
+  void addWidgetToLayout(ViewState state, QWidget* widget,
+                         QString name, uint32_t sessionID);
 
   QLayoutItem* getSessionItem();
 
@@ -88,10 +98,13 @@ private:
     uint16_t row;
     uint16_t column;
 
-    //QWidget* holder;
+    Ui::OutgoingCall* out; // The view for outgoing call. May be NULL
+    Ui::IncomingCall*  in; // The view for incoming call. May be NULL
   };
 
   void uninitCaller(std::unique_ptr<CallInfo> peer);
+
+  QTimer timeoutTimer_;
 
   QWidget *parent_;
 
@@ -102,18 +115,10 @@ private:
   // dynamic widget adding to layout
   // mutex takes care of locations accessing and changes
   QMutex locMutex_;
-  uint16_t row_;
-  uint16_t column_;
-
-  uint16_t rowMaxLength_;
-
-
-
-  QMutex callsMutex_; // TODO: missing implementation
+  QMutex activeCallMutex_;
 
   // matches sessionID - 1, but is not the definitive source of sessionID.
   std::map<uint32_t, std::unique_ptr<CallInfo>> activeCalls_;
-  //QList<CallInfo*> activeCalls_;
 
   // keeping track of freed places
   // TODO: update the whole layout with each added and removed participant. Use window width.
@@ -124,4 +129,8 @@ private:
   };
 
   std::deque<LayoutLoc> freedLocs_;
+
+  uint16_t row_;
+  uint16_t column_;
+  uint16_t rowMaxLength_;
 };
