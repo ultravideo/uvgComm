@@ -10,6 +10,7 @@
 #include <QLabel>
 #include <QGridLayout>
 #include <QDebug>
+#include <QDir>
 
 ConferenceView::ConferenceView(QWidget *parent):
   parent_(parent),
@@ -109,12 +110,26 @@ void ConferenceView::attachIncomingCallWidget(QString name, uint32_t sessionID)
   connect(in->acceptButton, SIGNAL(clicked()), this, SLOT(accept()));
   connect(in->declineButton, SIGNAL(clicked()), this, SLOT(reject()));
 
-  in->NameLabel->setText(name + " is calling..");
+  in->NameLabel->setText(name);
+  in->StatusLabel->setText("is calling ...");
+
   addWidgetToLayout(VIEWASKING, frame, name, sessionID);
   activeCalls_[sessionID]->in = in;
 
   in->acceptButton->setProperty("sessionID", QVariant(sessionID));
   in->declineButton->setProperty("sessionID", QVariant(sessionID));
+
+  QPixmap pixmap(QDir::currentPath() + "/icons/end_call.svg");
+  QIcon ButtonIcon(pixmap);
+  in->declineButton->setIcon(ButtonIcon);
+  in->declineButton->setText("");
+  in->declineButton->setIconSize(QSize(35,35));
+
+  QPixmap pixmap2(QDir::currentPath() + "/icons/call.svg");
+  QIcon ButtonIcon2(pixmap2);
+  in->acceptButton->setIcon(ButtonIcon2);
+  in->acceptButton->setText("");
+  in->acceptButton->setIconSize(QSize(35,35));
 
   frame->show();
 }
@@ -137,6 +152,12 @@ void ConferenceView::attachOutgoingCallWidget(QString name, uint32_t sessionID)
   activeCalls_[sessionID]->out = out;
   out->cancelCall->setProperty("sessionID", QVariant(sessionID));
   connect(out->cancelCall, SIGNAL(clicked()), this, SLOT(cancel()));
+
+  QPixmap pixmap(QDir::currentPath() + "/icons/end_call.svg");
+  QIcon ButtonIcon(pixmap);
+  out->cancelCall->setIcon(ButtonIcon);
+  out->cancelCall->setText("");
+  out->cancelCall->setIconSize(QSize(35,35));
 
   holder->show();
 }
@@ -172,8 +193,11 @@ void ConferenceView::addVideoStream(uint32_t sessionID, std::shared_ptr<Videovie
     return;
   }
 
+  activeCallMutex_.lock();
   // add the widget in place of previous one
   activeCalls_[sessionID]->state = VIEWVIDEO;
+  activeCalls_[sessionID]->in = nullptr;
+  activeCalls_[sessionID]->out = nullptr;
 
   // TODO delete previous widget now instead of with parent.
   // Now they accumulate in memory until call has ended
@@ -182,6 +206,8 @@ void ConferenceView::addVideoStream(uint32_t sessionID, std::shared_ptr<Videovie
   {
     delete activeCalls_[sessionID]->item->widget();
   }
+  activeCallMutex_.unlock();
+
 
   attachWidget(sessionID, view);
 
@@ -203,15 +229,15 @@ void ConferenceView::ringing(uint32_t sessionID)
     qWarning() << "ERROR: Ringing for nonexisting view. View should always exist if this function is called.";
     return;
   }
-  if (activeCalls_[sessionID]->in)
+  if (activeCalls_[sessionID]->out != nullptr)
   {
     activeCallMutex_.lock();
-    activeCalls_[sessionID]->in->StatusLabel->setText("Call is ringing ...");
+    activeCalls_[sessionID]->out->StatusLabel->setText("Call is ringing ...");
     activeCallMutex_.unlock();
   }
   else
   {
-    qWarning() << "ERROR: No incoming call widget exists when it should be ringing";
+    qWarning() << "ERROR: No incoming call widget exists when it should be ringing:" << sessionID;
   }
 }
 

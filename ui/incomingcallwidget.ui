@@ -16,6 +16,12 @@
     <verstretch>0</verstretch>
    </sizepolicy>
   </property>
+  <property name="minimumSize">
+   <size>
+    <width>120</width>
+    <height>220</height>
+   </size>
+  </property>
   <property name="windowTitle">
    <string>Frame</string>
   </property>
@@ -29,25 +35,41 @@
    <item row="1" column="1" rowspan="2" colspan="2">
     <widget class="QWidget" name="widget" native="true">
      <property name="sizePolicy">
-      <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+      <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
      <property name="minimumSize">
       <size>
-       <width>120</width>
-       <height>60</height>
+       <width>220</width>
+       <height>160</height>
       </size>
      </property>
      <property name="maximumSize">
       <size>
-       <width>240</width>
+       <width>260</width>
        <height>260</height>
       </size>
      </property>
      <layout class="QGridLayout" name="gridLayout">
-      <item row="3" column="0" colspan="2">
+      <item row="2" column="0">
+       <spacer name="horizontalSpacer_3">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeType">
+         <enum>QSizePolicy::Preferred</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>5</width>
+          <height>5</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item row="3" column="1" colspan="2">
        <spacer name="verticalSpacer_3">
         <property name="orientation">
          <enum>Qt::Vertical</enum>
@@ -55,29 +77,29 @@
         <property name="sizeHint" stdset="0">
          <size>
           <width>20</width>
-          <height>40</height>
+          <height>20</height>
          </size>
         </property>
        </spacer>
       </item>
-      <item row="2" column="1">
+      <item row="2" column="2">
        <widget class="QPushButton" name="declineButton">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
         <property name="minimumSize">
          <size>
-          <width>120</width>
-          <height>80</height>
+          <width>60</width>
+          <height>60</height>
          </size>
         </property>
         <property name="maximumSize">
          <size>
-          <width>160</width>
-          <height>160</height>
+          <width>60</width>
+          <height>60</height>
          </size>
         </property>
         <property name="font">
@@ -92,24 +114,24 @@
         </property>
        </widget>
       </item>
-      <item row="2" column="0">
+      <item row="2" column="1">
        <widget class="QPushButton" name="acceptButton">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
         <property name="minimumSize">
          <size>
-          <width>120</width>
-          <height>80</height>
+          <width>60</width>
+          <height>60</height>
          </size>
         </property>
         <property name="maximumSize">
          <size>
-          <width>160</width>
-          <height>160</height>
+          <width>60</width>
+          <height>60</height>
          </size>
         </property>
         <property name="font">
@@ -124,7 +146,7 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="0" colspan="2">
+      <item row="1" column="1" colspan="2">
        <widget class="QLabel" name="StatusLabel">
         <property name="text">
          <string>Status</string>
@@ -134,7 +156,7 @@
         </property>
        </widget>
       </item>
-      <item row="0" column="0" colspan="2">
+      <item row="0" column="1" colspan="2">
        <widget class="QLabel" name="NameLabel">
         <property name="font">
          <font>
@@ -150,40 +172,24 @@
         </property>
        </widget>
       </item>
+      <item row="2" column="3">
+       <spacer name="horizontalSpacer_4">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeType">
+         <enum>QSizePolicy::Preferred</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>5</width>
+          <height>5</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
      </layout>
     </widget>
-   </item>
-   <item row="3" column="0" colspan="4">
-    <spacer name="verticalSpacer_2">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeType">
-      <enum>QSizePolicy::Preferred</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>40</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item row="0" column="0" colspan="4">
-    <spacer name="verticalSpacer">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeType">
-      <enum>QSizePolicy::Preferred</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>40</height>
-      </size>
-     </property>
-    </spacer>
    </item>
    <item row="1" column="0" rowspan="2">
     <spacer name="horizontalSpacer">
@@ -195,7 +201,7 @@
      </property>
      <property name="sizeHint" stdset="0">
       <size>
-       <width>40</width>
+       <width>20</width>
        <height>20</height>
       </size>
      </property>
@@ -211,8 +217,40 @@
      </property>
      <property name="sizeHint" stdset="0">
       <size>
-       <width>40</width>
+       <width>20</width>
        <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item row="3" column="1" colspan="2">
+    <spacer name="verticalSpacer_2">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Preferred</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item row="0" column="1" colspan="2">
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Preferred</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
       </size>
      </property>
     </spacer>

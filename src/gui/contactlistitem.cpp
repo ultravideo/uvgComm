@@ -25,9 +25,11 @@ void ContactListItem::init(ParticipantInterface *interface)
 
   callButton_ = new QPushButton();
   callButton_->setMaximumWidth(30);
+
   QPixmap pixmap(QDir::currentPath() + "/icons/call.svg");
   QIcon ButtonIcon(pixmap);
   callButton_->setIcon(ButtonIcon);
+
   layout_->addWidget(callButton_, 0, 1);
   QObject::connect(callButton_, SIGNAL(clicked()), this, SLOT(call()));
   callButton_->setObjectName("CallButton");
