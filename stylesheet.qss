@@ -1,51 +1,102 @@
+QFrame {
+    border-width: 2px;
+    border-color: rgb(120, 120, 120);
+}
 
+/* Define buttons */
 QPushButton,  QComboBox {
     border-style: outset;
-    border-width: 2px;
-    border-radius: 0px;
+    border-radius: 18px;
     font: bold 14px;
     min-width: 20px;
-	min-height: 20px;
+    min-height: 20px;
     padding: 1px;
-	background-color: rgb(100, 100, 100);
-	border-color: rgb(120, 120, 120);
-	color: rgb(255, 255, 255);
-	margin: 0px;
-	position: relative;
-	top: -10ex;
+    background-color: rgb(239, 113, 0);
+    border-color: rgb(185, 87, 0);
+    border-width: 4px;
+    color: rgb(255, 255, 255);
+    margin: 0px;
+    position: relative;
+    top: -10ex;
+}
+
+QPushButton:pressed {
+    background-color: rgb(185, 87, 0);
+    border-color: rgb(185, 87, 0);
+    border-style: inset;
+}
+
+QPushButton:disabled {
+    background-color: rgb(170, 170, 170);
+    border-color: rgb(170, 170, 170);
+    color: rgb(50, 50, 50);
+}
+
+/* red end call buttons */
+QWidget#EndCallButton, QWidget#declineButton, QWidget#cancelCall {
+    border-style: outset;
+    border-width: 4px;
+    border-radius: 18px;
+    font: bold 14px;
+    min-width: 20px;
+    min-height: 20px;
+    padding: 1px;
+    background-color: rgb(180, 60, 60);
+    border-color: rgb(170, 50, 50);
+}
+
+/* green start call buttons */
+QWidget#CallButton, QWidget#acceptButton {
+    border-style: outset;
+    border-width: 4px;
+    border-radius: 18px;
+    font: bold 14px;
+    min-width: 20px;
+    min-height: 20px;
+    padding: 1px;
+    background-color: rgb(42, 186, 42);
+    border-color: rgb(42, 176, 42);
+}
+
+/* because the contactlist button is so small, define separate borders. */
+QWidget#CallButton {
+    border-width: 2px;
+	border-radius: 5px;
+}
+
+/* set secondary background color */
+QMenuBar, QListWidget, QWidget#OutgoingCall, QWidget#IncomingCall  {
+	background-color: rgb(214, 252, 255);
+}
+
+/* Contactlist as well as in/out calling widgets. */
+QListWidget, QWidget#OutgoingCall, QWidget#IncomingCall {
+    border-style: outset;
+    border-width: 4px;
+    border-radius: 18px;
+	border-color: rgb(194, 250, 251);
+	border-top-color: rgb(100, 250, 251);
+	border-left-color: rgb(100, 250, 251);
+}
+
+QListWidget::item {
+    border-bottom: 1px solid rgb(180, 180, 180); 
+	background-image: url(dense6pattern.png);
+    background-repeat: repeat-xy;
 }
 
 QComboBox {
     border-radius: 5px;
 }
 
-QListWidget::item {
-    border-bottom: 1px solid rgb(180, 180, 180); 
-}
-QFrame {
-    border-width: 2px;
-	border-color: rgb(120, 120, 120);
-}
-
-QPushButton:pressed {
-    background-color: rgb(80, 80, 80);
-	border-color: rgb(70, 70, 70);
-    border-style: inset;
-}
-
-QPushButton:disabled {
-	background-color: rgb(170, 170, 170);
-	border-color: rgb(170, 170, 170);
-	color: rgb(50, 50, 50);
-}
 
 QMainWindow {
-    background-color: rgb(250, 250, 250);
+    background-color: rgb(255, 255, 255);
     border-style: inset;
 }
 
 QListWidget::item{
     margin: 0px;
-	position: relative;
+    position: relative;
 }
 
