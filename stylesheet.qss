@@ -22,7 +22,7 @@ Complementary blue to medium orange.
 rgb(44, 134, 199);
 
 Light background
-rgb(242, 242, 242);
+rgb(252, 251, 252);
 
 Dark background
 rgb(40, 12, 9)
@@ -31,15 +31,15 @@ rgb(40, 12, 9)
 
 1. primary brand color if its versatile enough to use on black and white backgrounds.
 Medium orange
-rgb(199, 99, 44);
+
 
 2. Low contrast neutral. On light and dark.
 Light background
-rgb(232, 232, 232);
+rgb(243, 242, 243);
 
 
 Dark background
-IGNORED
+rgb(210, 210, 210);
 
 
 3. Higher contrast neutral. On light and dark.
@@ -51,6 +51,7 @@ IGNORED
 
 4. Reduced contrast neutral = reverse of 2.
 Light background
+rgb(210, 210, 210);
 
 Dark background
 IGNORED
@@ -69,14 +70,19 @@ Dark background
 
 1. Choose one color. Can be a brand color.
 Color
+rgb(250, 158, 66); Medium orange
 
 lighter +1
+rgb(248, 215, 179);
 
 darker -1
+rgb(199, 99, 44);
 
 lighter +2
+rgb(248, 231, 209);
 
-darker +2
+darker -2
+rgb(128, 33, 19);
 
 */
 
@@ -90,13 +96,15 @@ QFrame {
 /* Define buttons */
 QPushButton,  QComboBox {
     border-style: solid;
-    border-radius: 18px;
+	border-radius: 6px;
     font: bold 14px;
     min-width: 20px;
     min-height: 20px;
     padding: 1px;
-    background-color: rgb(239, 113, 0);
-    border-color: rgb(185, 87, 0);
+    background-color: rgb(199, 99, 44);
+    border-color: rgb(199, 99, 44);
+	border-top-color: rgb(248, 215, 179);
+	border-bottom-color: rgb(128, 33, 19);
     border-width: 4px;
     color: rgb(255, 255, 255);
     margin: 0px;
@@ -120,47 +128,46 @@ QPushButton:disabled {
 QWidget#EndCallButton, QWidget#declineButton, QWidget#cancelCall {
     border-style: solid;
     border-width: 4px;
-    border-radius: 18px;
     font: bold 14px;
     min-width: 20px;
     min-height: 20px;
     padding: 1px;
     background-color: rgb(180, 60, 60);
-    border-color: rgb(170, 50, 50);
+	border-color: rgb(180, 60, 60);
 }
 
 /* green start call buttons */
 QWidget#CallButton, QWidget#acceptButton {
     border-style: solid;
     border-width: 4px;
-    border-radius: 18px;
     font: bold 14px;
     min-width: 20px;
     min-height: 20px;
     padding: 1px;
     background-color: rgb(42, 186, 42);
     border-color: rgb(42, 186, 42);
-	border-top-color: rgb(62, 226, 62);
-	border-bottom-color: rgb(32, 156, 32);
+	/*border-top-color: rgb(62, 226, 62);
+	border-bottom-color: rgb(32, 156, 32);*/
 }
 
 /* because the contactlist button is so small, define separate borders. */
 QWidget#CallButton {
     border-width: 2px;
-	border-radius: 5px;
 }
 
 /* set secondary background color */
 QMenuBar, QListWidget, QWidget#OutgoingCall, QWidget#IncomingCall  {
-	background-color: rgb(216, 215, 216);
+	background-color: rgb(243, 242, 243);
 }
 
 /* Contactlist as well as in/out calling widgets. */
 QListWidget, QWidget#OutgoingCall, QWidget#IncomingCall {
     border-style: solid;
+	border-radius: 0px;
     border-width: 4px;
-    border-radius: 18px;
-	border-color: rgb(166, 165, 166);
+	border-color: rgb(243, 242, 243);
+	/*border-top-color: rgb(252, 251, 252);
+	border-bottom-color: rgb(210, 210, 210);*/
 }
 
 QListWidget::item {
@@ -175,7 +182,7 @@ QComboBox {
 
 
 QMainWindow {
-    background-color: rgb(255, 255, 255);
+    background-color: rgb(252, 251, 252);
     border-style: inset;
 }
 
