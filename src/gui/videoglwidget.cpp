@@ -80,7 +80,7 @@ void VideoGLWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image)
                << "Deleting oldest image from viewBuffer in VideoGLWidget:" << sessionID_;
       viewBuffer_.pop_back();
       dataBuffer_.pop_back();
-      stats_->packetDropped("view" + QString::number(sessionID_));
+      //stats_->packetDropped("view" + QString::number(sessionID_));
     }
   }
 

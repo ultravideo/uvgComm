@@ -2,6 +2,8 @@
 
 #include "gui/videowidget.h"
 #include "gui/videoglwidget.h"
+#include "gui/videoyuvwidget.h"
+
 // this annoys me, but I can live with it. The only smart way to fix it would be to get signal connect working
 #include "conferenceview.h"
 
@@ -22,6 +24,16 @@ void VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent, Confere
   int opengl = settings.value("video/opengl").toInt();
 
   if(opengl == 1)
+  {
+    VideoYUVWidget* vw = new VideoYUVWidget(parent, sessionID);
+    widgets_[sessionID] = vw;
+    videos_[sessionID] = vw;
+
+    // couldn't get this to work with videointerface, so the videowidget is used.
+    // TODO: try qobject_cast to get the signal working for interface
+    QObject::connect(vw, &VideoYUVWidget::reattach, conf, &ConferenceView::attachWidget);
+  }
+  else if(false)
   {
     VideoGLWidget* vw = new VideoGLWidget(parent, sessionID);
     widgets_[sessionID] = vw;

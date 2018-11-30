@@ -1,4 +1,4 @@
-#include "videowidget.h"
+#include "videoyuvwidget.h"
 
 #include "statisticsinterface.h"
 
@@ -9,10 +9,10 @@
 #include <QKeyEvent>
 #include <QLayout>
 
-const uint16_t VIEWBUFFERSIZE = 5;
+const uint16_t GLVIEWBUFFERSIZE = 5;
 
-VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID, uint8_t borderSize)
-  : QFrame(parent),
+VideoYUVWidget::VideoYUVWidget(QWidget* parent, uint32_t sessionID, uint8_t borderSize)
+  : QOpenGLWidget(parent),
   firstImageReceived_(false),
   previousSize_(QSize(0,0)),
   stats_(nullptr),
@@ -29,11 +29,6 @@ VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID, uint8_t borderSize
 
   setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
 
-  QFrame::setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
-  QFrame::setLineWidth(borderSize_);
-  QFrame::setMidLineWidth(1);
-
-  //showFullScreen();
   setWindowState(Qt::WindowFullScreen);
 
   setUpdatesEnabled(true);
@@ -42,13 +37,13 @@ VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID, uint8_t borderSize
   QObject::connect(this, SIGNAL(newImage()), this, SLOT(repaint()));
 }
 
-VideoWidget::~VideoWidget()
+VideoYUVWidget::~VideoYUVWidget()
 {
   viewBuffer_.clear();
   dataBuffer_.clear();
 }
 
-void VideoWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image)
+void VideoYUVWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image)
 {
   drawMutex_.lock();
   // if the resolution has changed in video
@@ -79,16 +74,12 @@ void VideoWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image)
     }
 
     // delete oldes image if there is too much buffer
-    if(viewBuffer_.size() > VIEWBUFFERSIZE)
+    if(viewBuffer_.size() > GLVIEWBUFFERSIZE)
     {
-      qDebug() << "Buffer full:" << viewBuffer_.size() << "/" <<VIEWBUFFERSIZE
-               << "Deleting oldest image from viewBuffer in videowidget:" << sessionID_;
+      qDebug() << "Buffer full:" << viewBuffer_.size() << "/" <<GLVIEWBUFFERSIZE
+               << "Deleting oldest image from viewBuffer in VideoGLWidget:" << sessionID_;
       viewBuffer_.pop_back();
       dataBuffer_.pop_back();
-
-      setUpdatesEnabled(true);
-      // TODO: There is a possibility of image freezing
-
       //stats_->packetDropped("view" + QString::number(sessionID_));
     }
   }
@@ -99,60 +90,105 @@ void VideoWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image)
   drawMutex_.unlock();
 }
 
-void VideoWidget::paintEvent(QPaintEvent *event)
+void VideoYUVWidget::initializeGL()
 {
-  Q_UNUSED(event);
+  initializeOpenGLFunctions();
 
-  //qDebug() << "PaintEvent for widget:" << sessionID_;
-  QPainter painter(this);
+  glEnable(GL_TEXTURE_2D);
+  glGenTextures(1, &texture_);
+  glBindTexture(GL_TEXTURE_2D, texture_);
 
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  //glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+  //glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 1600, 896, 0,
+                GL_BGRA, GL_UNSIGNED_BYTE, nullptr);
+
+  //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, lastImage_.size().width(), lastImage_.size().height(), 0,
+  //              GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+
+  qDebug() << "Opengl Initialization:" << glGetError();
+  qDebug() << "Image size:" << lastImage_.size();
+}
+
+
+void VideoYUVWidget::drawOpenGL(bool updateImage)
+{
+  glClear(GL_COLOR_BUFFER_BIT);
+
+  glBindTexture(GL_TEXTURE_2D, texture_);
+
+  if(updateImage)
+  {
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1600, 896,
+                   GL_BGRA,  GL_UNSIGNED_BYTE, dataBuffer_.back().get());
+  }
+
+  //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, lastImage_.size().width(), lastImage_.size().height(),
+  //                 GL_RGB, GL_UNSIGNED_BYTE, dataBuffer_.back().get());
+
+  glBegin(GL_QUADS);              // Each set of 4 vertices form a quad
+
+  glTexCoord2f(1.0f, 0.0f);
+  glVertex2f(1.0f, 1.0f);
+
+  //Top-Left
+  glTexCoord2f(0.0f, 0.0f);
+  glVertex2f(-1.0f, 1.0f);
+
+  //Bottom-Left
+  glTexCoord2f(0.0f, 1.0f);
+  glVertex2f(-1.0f, -1.0f);
+
+  //Bottom-Right
+  glTexCoord2f(1.0f, 1.0f);
+  glVertex2f(1.0f, -1.0f);
+  glEnd();
+
+  glFlush();
+  //qDebug() << "Opengl Drawing:" << glGetError();
+}
+
+
+void VideoYUVWidget::paintGL()
+{
   if(firstImageReceived_)
   {
     drawMutex_.lock();
-    if(QFrame::frameRect() != newFrameRect_)
-    {
-      QFrame::setFrameRect(newFrameRect_);
-      QWidget::setMinimumHeight(newFrameRect_.height()*QWidget::minimumWidth()/newFrameRect_.width());
-    }
 
     if(!viewBuffer_.empty())
     {
-      painter.drawImage(targetRect_, viewBuffer_.back());
-      // sessionID 0 is the self display and we are not interested
-      // update stats only for each new image.
-      if(stats_ && sessionID_ != 0)
-      {
-        stats_->presentPackage(sessionID_, "Video");
-      }
+      //qDebug() << "Trying to draw image:" << viewBuffer_.back().size();
+
+      drawOpenGL(true);
+
       lastImage_ = viewBuffer_.back();
       lastImageData_ = std::move(dataBuffer_.back());
       viewBuffer_.pop_back();
       dataBuffer_.pop_back();
-
     }
     else
     {
-      painter.drawImage(targetRect_, lastImage_);
+      drawOpenGL(false);
     }
 
     drawMutex_.unlock();
   }
-  else
-  {
-    painter.fillRect(event->rect(), QBrush(QColor(0,0,0)));
-  }
 
-  QFrame::paintEvent(event);
 }
 
-void VideoWidget::resizeEvent(QResizeEvent *event)
+
+
+void VideoYUVWidget::resizeEvent(QResizeEvent *event)
 {
-  qDebug() << "VideoWidget resizeEvent:" << sessionID_;
-  QWidget::resizeEvent(event);
+  qDebug() << "VideoGLWidget resizeEvent:" << sessionID_;
+  QOpenGLWidget::resizeEvent(event); // its important to call this resize function, not the qwidget one.
   updateTargetRect();
 }
 
-void VideoWidget::updateTargetRect()
+void VideoYUVWidget::updateTargetRect()
 {
   if(firstImageReceived_)
   {
@@ -164,7 +200,7 @@ void VideoWidget::updateTargetRect()
     }
 
     QSize size = lastImage_.size();
-    QSize frameSize = QWidget::size() - QSize(borderSize_,borderSize_);
+    QSize frameSize = QWidget::size();
 
     if(frameSize.height() > size.height()
        && frameSize.width() > size.width())
@@ -178,18 +214,16 @@ void VideoWidget::updateTargetRect()
 
     targetRect_ = QRect(QPoint(0, 0), size);
     targetRect_.moveCenter(rect().center());
-    newFrameRect_ = QRect(QPoint(0, 0), size + QSize(borderSize_,borderSize_));
-    newFrameRect_.moveCenter(rect().center());
 
     previousSize_ = lastImage_.size();
   }
   else
   {
-    qDebug() << "VideoWidget: Tried updating target rect before picture";
+    qDebug() << "VideoGLWidget: Tried updating target rect before picture";
   }
 }
 
-void VideoWidget::keyPressEvent(QKeyEvent *event)
+void VideoYUVWidget::keyPressEvent(QKeyEvent *event)
 {
   if(event->key() == Qt::Key_Escape)
   {
@@ -205,8 +239,7 @@ void VideoWidget::keyPressEvent(QKeyEvent *event)
   }
 }
 
-
-void VideoWidget::mouseDoubleClickEvent(QMouseEvent *e) {
+void VideoYUVWidget::mouseDoubleClickEvent(QMouseEvent *e) {
   QWidget::mouseDoubleClickEvent(e);
   if(sessionID_ != 0)
   {
@@ -219,11 +252,9 @@ void VideoWidget::mouseDoubleClickEvent(QMouseEvent *e) {
   }
 }
 
-void VideoWidget::enterFullscreen()
+void VideoYUVWidget::enterFullscreen()
 {
-  qDebug() << "Setting videowidget fullscreen";
-
-  QFrame::setFrameStyle(QFrame::NoFrame);
+  qDebug() << "Setting VideoGLWidget fullscreen";
 
   tmpParent_ = QWidget::parentWidget();
   this->setParent(nullptr);
@@ -232,15 +263,13 @@ void VideoWidget::enterFullscreen()
   this->setWindowState(Qt::WindowFullScreen);
 }
 
-void VideoWidget::exitFullscreen()
+void VideoYUVWidget::exitFullscreen()
 {
-  qDebug() << "Returning video widget to original place.";
+  qDebug() << "Returning GL video widget to original place.";
   this->setParent(tmpParent_);
   //this->showMaximized();
   this->show();
   this->setWindowState(Qt::WindowMaximized);
-
-  QFrame::setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
 
   emit reattach(sessionID_, this);
 }

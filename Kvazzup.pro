@@ -80,7 +80,8 @@ SOURCES +=\
     src/gui/videoviewfactory.cpp \
     src/gui/videoglwidget.cpp \
     src/sdpparametermanager.cpp \
-    src/sip/connectionpolicy.cpp
+    src/sip/connectionpolicy.cpp \
+    src/gui/videoyuvwidget.cpp
 
 HEADERS  += \
     src/filter.h \
@@ -146,7 +147,8 @@ HEADERS  += \
     src/gui/videoviewfactory.h \
     src/gui/videoglwidget.h \
     src/sdpparametermanager.h \
-    src/sip/connectionpolicy.h
+    src/sip/connectionpolicy.h \
+    src/gui/videoyuvwidget.h
 
 FORMS    += \
     ui/callwindow.ui \
@@ -174,7 +176,7 @@ QT += opengl
 win32: QMAKE_CXXFLAGS += -msse4.1 -mavx2 -fopenmp
 
 # may need a rebuild
-#CONFIG += console
+# CONFIG += console
 
 INCLUDEPATH += $$PWD/../include/openhevc_dec
 INCLUDEPATH += $$PWD/../include/opus
