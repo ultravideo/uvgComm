@@ -34,6 +34,11 @@ public:
   // Takes ownership of the image data
   void inputImage(std::unique_ptr<uchar[]> data, QImage &image);
 
+  virtual VideoFormat supportedFormat()
+  {
+    return VIDEO_RGB32;
+  }
+
   static unsigned int number_;
 
 signals:

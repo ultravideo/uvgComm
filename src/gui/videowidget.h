@@ -30,6 +30,11 @@ public:
   // Takes ownership of the image data
   virtual void inputImage(std::unique_ptr<uchar[]> data, QImage &image);
 
+  virtual VideoFormat supportedFormat()
+  {
+    return VIDEO_RGB32;
+  }
+
 signals:
 
   void reattach(uint32_t sessionID_, QWidget* view);

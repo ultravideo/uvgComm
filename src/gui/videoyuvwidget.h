@@ -40,6 +40,11 @@ public:
 
   static unsigned int number_;
 
+  virtual VideoFormat supportedFormat()
+  {
+    return VIDEO_RGB32;
+  }
+
 signals:
 
   // for reattaching after fullscreenmode
