@@ -16,6 +16,14 @@ DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
   widget_(widget),
   peer_(peer)
 {
+  if(widget->supportedFormat() == VIDEO_RGB32)
+  {
+    input_ = RGB32VIDEO;
+  }
+  else if(widget->supportedFormat() == VIDEO_YUV420)
+  {
+    input_ = YUVVIDEO;
+  }
   widget_->setStats(stats);
   updateSettings();
 }
@@ -54,13 +62,16 @@ void DisplayFilter::process()
     case RGB32VIDEO:
       format = QImage::Format_RGB32;
       break;
+    case YUVVIDEO:
+      format = QImage::Format_Invalid;
+      break;
     default:
       qCritical() << "DispF: Wrong type of display input:" << input->type;
        format = QImage::Format_Invalid;
       break;
     }
 
-    if(format != QImage::Format_Invalid)
+    if(input->type == input_)
     {
       QImage image(
             input->data.get(),

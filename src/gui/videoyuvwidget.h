@@ -42,7 +42,8 @@ public:
 
   virtual VideoFormat supportedFormat()
   {
-    return VIDEO_RGB32;
+    //return VIDEO_RGB32;
+    return VIDEO_YUV420;
   }
 
 signals:
@@ -93,5 +94,9 @@ private:
   QWidget* tmpParent_;
   QLayout* ourLayout_;
 
-  GLuint texture_;
+  //GLuint texture_;
+  QOpenGLTexture* texture_;
+  QOpenGLShaderProgram prog_;
+
+  QOpenGLBuffer vbo_;
 };
