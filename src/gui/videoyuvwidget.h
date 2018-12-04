@@ -62,7 +62,7 @@ protected:
 
   virtual void initializeGL();
   virtual void paintGL();
-  //virtual void resizeGL();
+  virtual void resizeGL(int width, int height);
 
 private:
 
@@ -94,8 +94,8 @@ private:
   QWidget* tmpParent_;
   QLayout* ourLayout_;
 
-  //GLuint texture_;
-  QOpenGLTexture* texture_;
+  GLuint texture_;
+
   QOpenGLShaderProgram prog_;
 
   QOpenGLBuffer vbo_;

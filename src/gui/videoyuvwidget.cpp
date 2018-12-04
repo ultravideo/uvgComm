@@ -19,7 +19,7 @@ VideoYUVWidget::VideoYUVWidget(QWidget* parent, uint32_t sessionID, uint8_t bord
   sessionID_(sessionID),
   borderSize_(borderSize),
   tmpParent_(nullptr),
-  texture_(nullptr)
+  texture_(0)
 {
   setAutoFillBackground(false);
   setAttribute(Qt::WA_NoSystemBackground, true);
@@ -99,7 +99,8 @@ static const char *fragmentShaderSource =
         "float r = y +             1.402 * v;\n"
         "float g = y - 0.344 * u - 0.714 * v;\n"
         "float b = y + 1.772 * u;\n"
-        "gl_FragColor = vec4(r,g,b,1.0);\n"
+       // "gl_FragColor = vec4(r,g,b,1.0);\n"
+        "gl_FragColor = vec4(1.0,0.0,0.0,1.0);\n"
     "}\n";
 
 static const char *vertexShaderSource =
@@ -119,7 +120,7 @@ void VideoYUVWidget::initializeGL()
   if(!prog_.isLinked())
   {
     //static const GLfloat texCoords[] = { 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f };
-    static const GLfloat vertices[]= {-1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f };
+    static const GLfloat vertices[]= {1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f,  -1.0f, -1.0f };
 
     vbo_.create();
     vbo_.bind();
@@ -127,8 +128,10 @@ void VideoYUVWidget::initializeGL()
 
     prog_.addShaderFromSourceCode(QOpenGLShader::Vertex, vertexShaderSource);
     qDebug() << "Opengl:" << glGetError();
+
     prog_.addShaderFromSourceCode(QOpenGLShader::Fragment, fragmentShaderSource);
     qDebug() << "Opengl source:" << glGetError();
+
     prog_.bindAttributeLocation("vertex", 0);
     qDebug() << "Opengl attribute:" << glGetError();
 
@@ -136,39 +139,40 @@ void VideoYUVWidget::initializeGL()
     qDebug() << "Opengl Link:" << glGetError();
   }
 
-  if(texture_ == nullptr)
+  if(texture_ == 0)
   {
-    texture_ = new QOpenGLTexture(QOpenGLTexture::Target2D);
-
+    prog_.bind();
     qDebug() << "Opengl bind:" << glGetError();
 
     glEnable(GL_TEXTURE_2D);
     qDebug() << "Opengl:" << glGetError();
 
-    texture_->create();
-    //glGenTextures(1, &texture_);
+    glGenTextures(1, &texture_);
     qDebug() << "Opengl:" << glGetError();
-    texture_->bind();
-    //glBindTexture(GL_TEXTURE_2D, texture_);
+
+    glBindTexture(GL_TEXTURE_2D, texture_);
     qDebug() << "Opengl:" << glGetError();
+
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     qDebug() << "Opengl:" << glGetError();
+
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     qDebug() << "Opengl:" << glGetError();
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 1600, 896, 0,
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 1600, 1344, 0,
                  GL_BGRA, GL_UNSIGNED_BYTE, nullptr);
 
     //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, lastImage_.size().width(), lastImage_.size().height(), 0,
     //              GL_RGB, GL_UNSIGNED_BYTE, nullptr);
 
-    prog_.bind();
-
-    //int loc = prog_.uniformLocation("s_texture");
-    //prog_.setUniformValue(loc, texture_);
-    prog_.setUniformValue("s_texture", 0);
+    //prog_.bindAttributeLocation("vertex", 0);
+    int loc = prog_.uniformLocation("s_texture");
+    prog_.setUniformValue(loc, texture_);
 
     prog_.release();
   }
+
+  //glOrtho(-1.0, 1.0, -1.0, 1.0, 0.1, 50);
 
   qDebug() << "Opengl Initialization:" << glGetError() << ":" << prog_.log();
   qDebug() << "Image size:" << lastImage_.size();
@@ -177,21 +181,25 @@ void VideoYUVWidget::drawOpenGL(bool updateImage)
 {
   qDebug() << "Drawing with OpenGL --------------------------------------------------";
   glClear(GL_COLOR_BUFFER_BIT);
-  //glBindTexture(GL_TEXTURE_2D, texture_);
-  texture_->bind();
+  glBindTexture(GL_TEXTURE_2D, texture_);
 
   if(updateImage)
   {
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 800, 672,
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 400, 1344,
                    GL_BGRA,  GL_UNSIGNED_BYTE, dataBuffer_.back().get());
   }
+  prog_.bind();
 
   //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, lastImage_.size().width(), lastImage_.size().height(),
   //                 GL_RGB, GL_UNSIGNED_BYTE, dataBuffer_.back().get());
 
-  prog_.enableAttributeArray(0);
+  //prog_.enableAttributeArray(0);
+  //prog_.setAttributeBuffer(0, GL_FLOAT, 0, 2, 2*sizeof(GLfloat));
 
-  glDrawArrays(GL_TRIANGLES, 0, 1);
+  //glBindBuffer();
+  //glEnableVertexAttribArray();
+  //glVertexAttribPointer();
+  glDrawArrays(GL_TRIANGLES, 0, 3);
 
   /*
   glBegin(GL_QUADS);              // Each set of 4 vertices form a quad
@@ -227,7 +235,7 @@ void VideoYUVWidget::paintGL()
     {
       //qDebug() << "Trying to draw image:" << viewBuffer_.back().size();
 
-      drawOpenGL(false);
+      drawOpenGL(true);
 
       lastImage_ = viewBuffer_.back();
       lastImageData_ = std::move(dataBuffer_.back());
@@ -242,6 +250,12 @@ void VideoYUVWidget::paintGL()
     drawMutex_.unlock();
   }
 
+}
+
+void VideoYUVWidget::resizeGL(int width, int height)
+{
+  int side = qMin(width, height);
+  glViewport((width - side) / 2, (height - side) / 2, side, side);
 }
 
 void VideoYUVWidget::resizeEvent(QResizeEvent *event)
