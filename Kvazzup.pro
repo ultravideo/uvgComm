@@ -11,18 +11,17 @@ message("Minimum supported Qt version:" "5.4")
 
 greaterThan(QT_MAJOR_VERSION, 5)
 {
-greaterThan(QT_MINOR_VERSION, 4)
-{
-  message("Qt version is supported")
-  # this is because of qopenglwidget.
-}
+  greaterThan(QT_MINOR_VERSION, 4)
+  {
+    message("Qt version is supported")
+    # this is because of qopenglwidget.
+  }
 }
 
 TARGET = Kvazzup
 
 win32-g++:  TEMPLATE = app
-win32-msvc: TEMPLATE = vcapp
-
+win32-msvc: TEMPLATE = app # vcapp does not currently generate makefile
 
 INCLUDEPATH += src
 
@@ -162,8 +161,8 @@ FORMS    += \
 # just in case we sometimes like to support smaller qt versions.
 greaterThan(4, QT_MAJOR_VERSION)
 {
-QT += widgets
-QT += multimedia
+  QT += widgets
+  QT += multimedia
 }
 
 QT+=multimediawidgets
@@ -173,26 +172,39 @@ QT+=svg # for icons
 QT += opengl
 
 #win32-g++: QMAKE_CXXFLAGS += -std=c++11 -fopenmp
-win32: QMAKE_CXXFLAGS += -msse4.1 -mavx2 -fopenmp
+win32-g++: QMAKE_CXXFLAGS += -msse4.1 -mavx2 -fopenmp
 
 # may need a rebuild
-# CONFIG += console
+
+#debug {
+#    CONFIG += console
+#}
 
 INCLUDEPATH += $$PWD/../include/openhevc_dec
 INCLUDEPATH += $$PWD/../include/opus
-INCLUDEPATH += $$PWD/../include/live/liveMedia/include
-INCLUDEPATH += $$PWD/../include/live/groupsock/include
-INCLUDEPATH += $$PWD/../include/live/UsageEnvironment/include
-INCLUDEPATH += $$PWD/../include/live/BasicUsageEnvironment/include
 INCLUDEPATH += $$PWD/../include/
 
 
 win32-msvc{
+INCLUDEPATH += $$PWD/../include/live666/liveMedia/include
+INCLUDEPATH += $$PWD/../include/live666/groupsock/include
+INCLUDEPATH += $$PWD/../include/live666/UsageEnvironment/include
+INCLUDEPATH += $$PWD/../include/live666/BasicUsageEnvironment/include
+
 LIBS += -L$$PWD/../msvc_libs
+LIBS += -llive666
+LIBS += -lLibOpenHevcWrapper
+LIBS += -llibspeexdsp
+LIBS += -lopus
+LIBS += -lkvazaar_lib
 message("Using Visual Studio libraries in ../msvc_libs")
 }
 
 win32-g++{
+INCLUDEPATH += $$PWD/../include/live/liveMedia/include
+INCLUDEPATH += $$PWD/../include/live/groupsock/include
+INCLUDEPATH += $$PWD/../include/live/UsageEnvironment/include
+INCLUDEPATH += $$PWD/../include/live/BasicUsageEnvironment/include
 #LIBS += -L$$PWD/../lib32
 LIBS += -L$$PWD/../lib64
 LIBS += -llibkvazaar.dll
@@ -200,13 +212,12 @@ LIBS += -llibopus.dll
 LIBS += -llibLibOpenHevcWrapper.dll
 LIBS += -llivemedia.dll
 LIBS += -llibspeexdsp.dll
-LIBS += -fopenmp # TODO: Does msvc need this?
+LIBS += -fopenmp # TODO: Does msvc also need this?
 message("Using MinGW libraries in ../libs")
 }
 
 
 win32: LIBS += -lws2_32
-
 win32: LIBS += -lstrmiids
 win32: LIBS += -lole32
 win32: LIBS += -loleaut32
