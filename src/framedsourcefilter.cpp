@@ -60,7 +60,7 @@ void FramedSourceFilter::updateSettings()
       removeStartCodes_ = true;
     }
 
-     qDebug() << name_ << "updated buffersize to" << maxBufferSize_;
+     qDebug() << getName() << "updated buffersize to" << maxBufferSize_;
 
      if(settings.value("video/liveCopying").isValid())
      {
@@ -107,7 +107,7 @@ void FramedSourceFilter::start()
   if(separateInput_)
   {
     afterEvent_ = envir().taskScheduler().createEventTrigger((TaskFunc*)FramedSource::afterGetting);
-    qDebug() << "Creating trigger for framedSource:" << name_ << "Trigger ID: " << afterEvent_;
+    qDebug() << "Creating trigger for framedSource:" << getName() << "Trigger ID: " << afterEvent_;
   }
 
   Filter::start();

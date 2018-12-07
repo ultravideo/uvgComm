@@ -32,7 +32,7 @@ void KvazaarFilter::updateSettings()
   close();
   if(init())
   {
-    qDebug() << name_ << "Kvazaar resolution change successful";
+    qDebug() << getName() << "Kvazaar resolution change successful";
   }
   else
   {
@@ -44,7 +44,7 @@ void KvazaarFilter::updateSettings()
 
 bool KvazaarFilter::init()
 {
-  qDebug() << name_ << "iniating";
+  qDebug() << getName() << "iniating";
 
   // input picture should not exist at this point
   Q_ASSERT(!input_pic_ && !api_);
@@ -52,7 +52,7 @@ bool KvazaarFilter::init()
   api_ = kvz_api_get(8);
   if(!api_)
   {
-    qCritical() << name_ << "failed to retrieve Kvazaar API";
+    qCritical() << getName() << "failed to retrieve Kvazaar API";
     return false;
   }
   config_ = api_->config_alloc();
@@ -60,7 +60,7 @@ bool KvazaarFilter::init()
 
   if(!config_)
   {
-    qCritical() << name_ << "failed to allocate Kvazaar config";
+    qCritical() << getName() << "failed to allocate Kvazaar config";
     return false;
   }
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
@@ -98,7 +98,7 @@ bool KvazaarFilter::init()
 
   if(!enc_)
   {
-    qCritical() << name_ << "failed to open Kvazaar encoder";
+    qCritical() << getName() << "failed to open Kvazaar encoder";
     return false;
   }
 
@@ -106,11 +106,11 @@ bool KvazaarFilter::init()
 
   if(!input_pic_)
   {
-    qCritical() << name_ << "could not allocate input picture";
+    qCritical() << getName() << "could not allocate input picture";
     return false;
   }
 
-  qDebug() << name_ << "iniation success";
+  qDebug() << getName() << "iniation success";
   return true;
 }
 
@@ -127,7 +127,7 @@ void KvazaarFilter::close()
     input_pic_ = nullptr;
     api_ = nullptr;
   }
-  qDebug() << name_ << "Kvazaar closed";
+  qDebug() << getName() << "Kvazaar closed";
 
   pts_ = 0;
 }
@@ -143,7 +143,7 @@ void KvazaarFilter::process()
   {
     if(!input_pic_)
     {
-      qCritical() << name_ << "input picture was not allocated correctly";
+      qCritical() << getName() << "input picture was not allocated correctly";
       break;
     }
 
@@ -176,11 +176,11 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
      || config_->framerate_num != input->framerate)
   {
     // This should not happen.
-    qDebug() << name_ << "WARNING: Input resolution differs:"
+    qDebug() << getName() << "WARNING: Input resolution differs:"
              << config_->width << "x" << config_->height << "input:"
              << input->width << "x" << input->height;
 
-    qDebug() << name_ << "Framerates:" << config_->framerate_num << "input:" << input->framerate;
+    qDebug() << getName() << "Framerates:" << config_->framerate_num << "input:" << input->framerate;
 
     QSettings settings("kvazzup.ini", QSettings::IniFormat);
     settings.setValue("video/ResolutionWidth", input->width);

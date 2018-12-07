@@ -16,7 +16,7 @@ RTPSinkFilter::RTPSinkFilter(QString id, StatisticsInterface *stats, UsageEnviro
   addStartCodes_(false)
 {
   fReceiveBuffer = new u_int8_t[BUFFER_SIZE];
-  stats_->addFilter(name_, (uint64_t)currentThreadId());
+  stats_->addFilter(getName(), (uint64_t)currentThreadId());
 }
 
 RTPSinkFilter::~RTPSinkFilter()
@@ -29,7 +29,7 @@ void RTPSinkFilter::uninit()
   {
     qSleep(1);
   }
-  qDebug() << "Deleting RTPSink:" << name_ << "type:" << type_;
+  qDebug() << "Deleting RTPSink:" << getName() << "type:" << type_;
   delete fReceiveBuffer;
   fReceiveBuffer = nullptr;
 }

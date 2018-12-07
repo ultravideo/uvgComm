@@ -13,7 +13,7 @@ OpenHEVCFilter::OpenHEVCFilter(QString id, StatisticsInterface *stats):
 
 bool OpenHEVCFilter::init()
 {
-  qDebug() << name_ << "iniating";
+  qDebug() << getName() << "iniating";
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
 
   handle_ = libOpenHevcInit(settings.value("video/OPENHEVC_threads").toInt(), 1);
@@ -21,13 +21,13 @@ bool OpenHEVCFilter::init()
   libOpenHevcSetDebugMode(handle_, 0);
   if(libOpenHevcStartDecoder(handle_) == -1)
   {
-    qCritical() << name_ << "ERROR: failed to start decoder.";
+    qCritical() << getName() << "ERROR: failed to start decoder.";
     return false;
   }
   libOpenHevcSetTemporalLayer_id(handle_, 0);
   libOpenHevcSetActiveDecoders(handle_, 0);
   libOpenHevcSetViewLayers(handle_, 0);
-  qDebug() << name_ << "initiation success. Version: " << libOpenHevcVersion(handle_);
+  qDebug() << getName() << "initiation success. Version: " << libOpenHevcVersion(handle_);
 
   // This is because we don't know anything about the incoming stream
   maxBufferSize_ = -1; // no buffer limit
@@ -37,7 +37,7 @@ bool OpenHEVCFilter::init()
 
 void OpenHEVCFilter::uninit()
 {
-  qDebug() << name_ << "uniniating.";
+  qDebug() << getName() << "uniniating.";
   libOpenHevcFlush(handle_);
   libOpenHevcClose(handle_);
 }
@@ -81,7 +81,7 @@ std::unique_ptr<Data> OpenHEVCFilter::combineFrame()
   if(slices_ && sliceBuffer_.size() == 1)
   {
     slices_ = false;
-    qDebug() << name_ << "Detected no slices in incoming stream.";
+    qDebug() << getName() << "Detected no slices in incoming stream.";
     uninit();
     init();
   }
@@ -115,7 +115,7 @@ void OpenHEVCFilter::process()
     if(!parameterSets_ && (buff[4] >> 1) == 32)
     {
       parameterSets_ = true;
-      qDebug() << name_ << ": Parameter set found after" << waitFrames_ << "frames";
+      qDebug() << getName() << ": Parameter set found after" << waitFrames_ << "frames";
     }
 
     if(parameterSets_)
@@ -130,7 +130,7 @@ void OpenHEVCFilter::process()
         OpenHevc_Frame openHevcFrame;
         if( gotPicture == -1)
         {
-          qCritical() << name_ << " error while decoding.";
+          qCritical() << getName() << " error while decoding.";
         }
         else if(!gotPicture && frame->data_size >= 2)
         {
@@ -140,7 +140,7 @@ void OpenHEVCFilter::process()
         }
         else if( libOpenHevcGetOutput(handle_, gotPicture, &openHevcFrame) == -1 )
         {
-          qCritical() << name_ << " failed to get output.";
+          qCritical() << getName() << " failed to get output.";
         }
         else
         {

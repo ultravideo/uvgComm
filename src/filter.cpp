@@ -6,8 +6,8 @@
 
 Filter::Filter(QString id, QString name, StatisticsInterface *stats,
                DataType input, DataType output):
-  name_(id + name),
   stats_(stats),
+  name_(id + name),
   maxBufferSize_(10),
   input_(input),
   output_(output),
@@ -90,7 +90,7 @@ void Filter::putInput(std::unique_ptr<Data> data)
 
   if(inputTaken_%30 == 0)
   {
-    stats_->updateBufferStatus(name_, inBuffer_.size(), maxBufferSize_);
+    stats_->updateBufferStatus(getName(), inBuffer_.size(), maxBufferSize_);
   }
 
   inBuffer_.push_back(std::move(data));
@@ -227,7 +227,7 @@ void Filter::run()
     process();
   }
 
-  stats_->removeFilter(name_);
+  stats_->removeFilter(getName());
 }
 
 Data* Filter::shallowDataCopy(Data* original)
