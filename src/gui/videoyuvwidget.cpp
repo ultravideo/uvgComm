@@ -19,7 +19,8 @@ VideoYUVWidget::VideoYUVWidget(QWidget* parent, uint32_t sessionID, uint8_t bord
   sessionID_(sessionID),
   borderSize_(borderSize),
   tmpParent_(nullptr),
-  texture_(0)
+  texture_(0),
+  prog_(nullptr)
 {
   setAutoFillBackground(false);
   setAttribute(Qt::WA_NoSystemBackground, true);
@@ -46,6 +47,8 @@ VideoYUVWidget::~VideoYUVWidget()
 
 void VideoYUVWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image)
 {
+  Q_ASSERT(data != nullptr);
+
   drawMutex_.lock();
   // if the resolution has changed in video
 
@@ -54,7 +57,7 @@ void VideoYUVWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image)
     lastImage_ = image;
     lastImageData_ = std::move(data);
     firstImageReceived_ = true;
-    updateTargetRect();
+    //updateTargetRect();
   }
   else
   {
@@ -66,7 +69,7 @@ void VideoYUVWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image)
 
       viewBuffer_.push_front(image);
       dataBuffer_.push_front(std::move(data));
-      updateTargetRect();
+      //updateTargetRect();
     }
     else
     {
@@ -110,11 +113,52 @@ static const char *vertexShaderSource =
     "}\n";
 
 
+static const char *vertexShaderSource2 =
+    "attribute vec4 posAttr;\n"
+    "attribute lowp vec4 colAttr;\n"
+    "varying lowp vec4 col;\n"
+    "uniform mat4 matrix;\n"
+    "void main() {\n"
+    "   col = colAttr;\n"
+    "   gl_Position = matrix * posAttr;\n"
+    "}\n";
+
+static const char *fragmentShaderSource2 =
+    "varying lowp vec4 col;\n"
+    "void main() {\n"
+    "   gl_FragColor = col;\n"
+    "}\n";
+
+
 void VideoYUVWidget::initializeGL()
 {
+  initializeOpenGLFunctions();
+
+  if(prog_ == nullptr)
+  {
+    //makeCurrent();
+    qDebug() << "Initializing OpenGLProgram:" << glGetError();
+    prog_ = new QOpenGLShaderProgram();
+    prog_->addShaderFromSourceCode(QOpenGLShader::Vertex, vertexShaderSource2);
+    prog_->addShaderFromSourceCode(QOpenGLShader::Fragment, fragmentShaderSource2);
+    prog_->link();
+     qDebug() << "Opengl initialization linking:" << glGetError() << prog_->log();
+    m_posAttr = prog_->attributeLocation("posAttr");
+    qDebug() << "Opengl initialization:" << glGetError();
+    m_colAttr = prog_->attributeLocation("colAttr");
+    qDebug() << "Opengl initialization:" << glGetError();
+    m_matrixUniform = prog_->uniformLocation("matrix");
+    qDebug() << "Opengl initialization:" << glGetError();
+
+    m_frame = 0;
+    //doneCurrent();
+    qDebug() << "Opengl initialization:" << glGetError();
+  }
+
+  /*
   qDebug() << "=== Initializing YUV OpenGL drawing widget for sessionID:" << sessionID_;
 
-  initializeOpenGLFunctions();
+
   qDebug() << "Opengl:" << glGetError();
 
   if(!prog_.isLinked())
@@ -176,9 +220,11 @@ void VideoYUVWidget::initializeGL()
 
   qDebug() << "Opengl Initialization:" << glGetError() << ":" << prog_.log();
   qDebug() << "Image size:" << lastImage_.size();
+  */
 }
 void VideoYUVWidget::drawOpenGL(bool updateImage)
 {
+  /*
   qDebug() << "Drawing with OpenGL --------------------------------------------------";
   glClear(GL_COLOR_BUFFER_BIT);
   glBindTexture(GL_TEXTURE_2D, texture_);
@@ -189,7 +235,7 @@ void VideoYUVWidget::drawOpenGL(bool updateImage)
                    GL_BGRA,  GL_UNSIGNED_BYTE, dataBuffer_.back().get());
   }
   prog_.bind();
-
+*/
   //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, lastImage_.size().width(), lastImage_.size().height(),
   //                 GL_RGB, GL_UNSIGNED_BYTE, dataBuffer_.back().get());
 
@@ -199,29 +245,71 @@ void VideoYUVWidget::drawOpenGL(bool updateImage)
   //glBindBuffer();
   //glEnableVertexAttribArray();
   //glVertexAttribPointer();
+  //glDrawArrays(GL_TRIANGLES, 0, 3);
+
+  qDebug() << "Drawing with OpenGL shaders";
+
+  if(prog_ == nullptr)
+  {
+    initializeGL();
+  }
+
+ // makeCurrent();
+
+  const qreal retinaScale = devicePixelRatio();
+  glViewport(0, 0, width() * retinaScale, height() * retinaScale);
+  qDebug() << "Opengl:" << glGetError();
+
+  glClear(GL_COLOR_BUFFER_BIT);
+  qDebug() << "Opengl:" << glGetError();
+
+  prog_->bind();
+  qDebug() << "Opengl bind:" << glGetError();
+
+  QMatrix4x4 matrix;
+  matrix.perspective(60.0f, 4.0f/3.0f, 0.1f, 100.0f);
+  matrix.translate(0, 0, -2);
+  matrix.rotate(100.0f * m_frame / 30, 0, 1, 0);
+
+  prog_->setUniformValue(m_matrixUniform, matrix);
+  qDebug() << "Opengl:" << glGetError() << prog_->log();
+
+  GLfloat vertices[] = {
+      0.0f, 0.707f,
+      -0.5f, -0.5f,
+      0.5f, -0.5f
+  };
+
+  GLfloat colors[] = {
+      1.0f, 0.0f, 0.0f,
+      0.0f, 1.0f, 0.0f,
+      0.0f, 0.0f, 1.0f
+  };
+
+  glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, vertices);
+  qDebug() << "Opengl:" << glGetError();
+  glVertexAttribPointer(m_colAttr, 3, GL_FLOAT, GL_FALSE, 0, colors);
+  qDebug() << "Opengl:" << glGetError();
+
+  glEnableVertexAttribArray(0);
+  qDebug() << "Opengl:" << glGetError();
+  glEnableVertexAttribArray(1);
+  qDebug() << "Opengl:" << glGetError();
+
   glDrawArrays(GL_TRIANGLES, 0, 3);
+  qDebug() << "Opengl draw:" << glGetError();
 
-  /*
-  glBegin(GL_QUADS);              // Each set of 4 vertices form a quad
+  glDisableVertexAttribArray(1);
+  qDebug() << "Opengl:" << glGetError();
+  glDisableVertexAttribArray(0);
+  qDebug() << "Opengl:" << glGetError();
 
-  glTexCoord2f(1.0f, 0.0f);
-  glVertex2f(1.0f, 1.0f);
+  prog_->release();
 
-  //Top-Left
-  glTexCoord2f(0.0f, 0.0f);
-  glVertex2f(-1.0f, 1.0f);
+  ++m_frame;
 
-  //Bottom-Left
-  glTexCoord2f(0.0f, 1.0f);
-  glVertex2f(-1.0f, -1.0f);
-
-  //Bottom-Right
-  glTexCoord2f(1.0f, 1.0f);
-  glVertex2f(1.0f, -1.0f);
-  glEnd();
-
-  glFlush();*/
-  //qDebug() << "Opengl Drawing:" << glGetError();
+  //doneCurrent();
+  qDebug() << "Opengl done:" << glGetError();
 }
 
 
@@ -247,6 +335,8 @@ void VideoYUVWidget::paintGL()
       drawOpenGL(false);
     }
 
+    //context()->swapBuffers(this);
+
     drawMutex_.unlock();
   }
 
@@ -254,51 +344,16 @@ void VideoYUVWidget::paintGL()
 
 void VideoYUVWidget::resizeGL(int width, int height)
 {
-  int side = qMin(width, height);
-  glViewport((width - side) / 2, (height - side) / 2, side, side);
+  //int side = qMin(width, height);
+  //glViewport((width - side) / 2, (height - side) / 2, side, side);
 }
 
 void VideoYUVWidget::resizeEvent(QResizeEvent *event)
 {
   qDebug() << "VideoGLWidget resizeEvent:" << sessionID_;
   QOpenGLWidget::resizeEvent(event); // its important to call this resize function, not the qwidget one.
-  updateTargetRect();
 }
 
-void VideoYUVWidget::updateTargetRect()
-{
-  if(firstImageReceived_)
-  {
-    Q_ASSERT(lastImage_.data_ptr());
-    if(lastImage_.data_ptr() == nullptr)
-    {
-      qWarning() << "WARNING: Null pointer in current image!";
-      return;
-    }
-
-    QSize size = lastImage_.size();
-    QSize frameSize = QWidget::size();
-
-    if(frameSize.height() > size.height()
-       && frameSize.width() > size.width())
-    {
-      size.scale(frameSize.expandedTo(size), Qt::KeepAspectRatio);
-    }
-    else
-    {
-       size.scale(frameSize.boundedTo(size), Qt::KeepAspectRatio);
-    }
-
-    targetRect_ = QRect(QPoint(0, 0), size);
-    targetRect_.moveCenter(rect().center());
-
-    previousSize_ = lastImage_.size();
-  }
-  else
-  {
-    qDebug() << "VideoGLWidget: Tried updating target rect before picture";
-  }
-}
 
 void VideoYUVWidget::keyPressEvent(QKeyEvent *event)
 {

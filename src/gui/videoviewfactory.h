@@ -31,4 +31,6 @@ private:
 
   std::map<uint32_t, QWidget*> widgets_;
   std::map<uint32_t, VideoInterface*> videos_;
+
+  bool opengl_;
 };

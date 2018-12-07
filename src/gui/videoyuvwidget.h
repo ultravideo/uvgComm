@@ -22,7 +22,7 @@ class StatisticsInterface;
 
 // The normal QOpenGLFunctions provides access to ES API so the whole API is used instead
 
-class VideoYUVWidget : public QOpenGLWidget, public VideoInterface, protected QOpenGLFunctions_2_0
+class VideoYUVWidget : public QOpenGLWidget, public VideoInterface, protected QOpenGLFunctions
 {
   Q_OBJECT
   Q_INTERFACES(VideoInterface)
@@ -96,7 +96,12 @@ private:
 
   GLuint texture_;
 
-  QOpenGLShaderProgram prog_;
+  QOpenGLShaderProgram* prog_;
 
   QOpenGLBuffer vbo_;
+
+  GLuint m_posAttr;
+  GLuint m_colAttr;
+  GLuint m_matrixUniform;
+  int m_frame;
 };
