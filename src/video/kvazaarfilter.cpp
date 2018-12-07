@@ -223,8 +223,8 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out, uint32_t len_out
 
   uint32_t delay = QDateTime::currentMSecsSinceEpoch() -
       (encodedFrame->presentationTime.tv_sec * 1000 + encodedFrame->presentationTime.tv_usec/1000);
-  stats_->sendDelay("video", delay);
-  stats_->addEncodedPacket("video", len_out);
+  getStats()->sendDelay("video", delay);
+  getStats()->addEncodedPacket("video", len_out);
 
   std::unique_ptr<uchar[]> hevc_frame(new uchar[len_out]);
   uint8_t* writer = hevc_frame.get();

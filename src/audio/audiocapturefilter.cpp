@@ -40,9 +40,9 @@ bool AudioCaptureFilter::init()
   }
 
   if(format_.sampleRate() != -1)
-    stats_->audioInfo(format_.sampleRate(), format_.channelCount());
+    getStats()->audioInfo(format_.sampleRate(), format_.channelCount());
   else
-    stats_->audioInfo(0, 0);
+    getStats()->audioInfo(0, 0);
 
   if (device_)
     delete device_;

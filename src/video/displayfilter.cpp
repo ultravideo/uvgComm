@@ -90,7 +90,7 @@ void DisplayFilter::process()
       widget_->inputImage(std::move(input->data),image);
 
       if( peer_ != 1111)
-        stats_->receiveDelay(peer_, "Video", delay);
+        getStats()->receiveDelay(peer_, "Video", delay);
     }
     input = getInput();
   }

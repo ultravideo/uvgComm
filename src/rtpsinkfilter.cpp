@@ -16,7 +16,7 @@ RTPSinkFilter::RTPSinkFilter(QString id, StatisticsInterface *stats, UsageEnviro
   addStartCodes_(false)
 {
   fReceiveBuffer = new u_int8_t[BUFFER_SIZE];
-  stats_->addFilter(getName(), (uint64_t)currentThreadId());
+  getStats()->addFilter(getName(), (uint64_t)currentThreadId());
 }
 
 RTPSinkFilter::~RTPSinkFilter()
@@ -57,7 +57,7 @@ void RTPSinkFilter::afterGettingFrame(unsigned frameSize,
   // TODO increase buffer for large frames
   Q_ASSERT(numTruncatedBytes == 0);
 
-  stats_->addReceivePacket(frameSize);
+  getStats()->addReceivePacket(frameSize);
 
   if(addStartCodes_ && type_ == HEVCVIDEO)
   {

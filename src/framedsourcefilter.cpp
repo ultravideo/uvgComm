@@ -235,7 +235,7 @@ void FramedSourceFilter::copyFrameToBuffer(std::unique_ptr<Data> currentFrame)
       memcpy(fTo, currentFrame->data.get(), fFrameSize);
     }
 
-    stats_->addSendPacket(fFrameSize);
+    getStats()->addSendPacket(fFrameSize);
   }
 }
 

@@ -129,7 +129,12 @@ protected:
     waitMutex_->unlock();
   }
 
-  StatisticsInterface* stats_;
+  StatisticsInterface* getStats()
+  {
+    Q_ASSERT(stats_);
+    return stats_;
+  }
+
   // -1 disables buffer, but its not recommended because delay
   int maxBufferSize_;
 
@@ -139,6 +144,8 @@ protected:
 private:
 
   QString name_;
+
+  StatisticsInterface* stats_;
   QMutex *waitMutex_;
   QWaitCondition hasInput_;
 

@@ -179,7 +179,7 @@ void CameraFilter::process()
     {
       QCameraViewfinderSettings settings = camera_->viewfinderSettings();
 
-      stats_->videoInfo(settings.maximumFrameRate(), settings.resolution());
+      getStats()->videoInfo(settings.maximumFrameRate(), settings.resolution());
       framerate_ = settings.maximumFrameRate();
     }
 

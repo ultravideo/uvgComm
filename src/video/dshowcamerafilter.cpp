@@ -122,7 +122,7 @@ bool DShowCameraFilter::init()
     return false;
   }
 
-  stats_->videoInfo(list_[capabilityID_].fps, QSize(list_[capabilityID_].width, list_[capabilityID_].height));
+  getStats()->videoInfo(list_[capabilityID_].fps, QSize(list_[capabilityID_].width, list_[capabilityID_].height));
 
   qDebug() << "Starting DShow camera";
   dshow_startCapture();
