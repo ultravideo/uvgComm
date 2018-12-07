@@ -136,15 +136,21 @@ void CallManager::callRinging(uint32_t sessionID)
 
 void CallManager::peerAccepted(uint32_t sessionID)
 {
-  if(states_.find(sessionID) != states_.end()
-     && states_[sessionID] == CALLRINGINWITHTHEM)
+  if(states_.find(sessionID) != states_.end())
   {
-    qDebug() << "They accepted our call!";
-    states_[sessionID] = CALLNEGOTIATING;
+    if(states_[sessionID] == CALLRINGINWITHTHEM || true)
+    {
+      qDebug() << "They accepted our call!";
+      states_[sessionID] = CALLNEGOTIATING;
+    }
+    else
+    {
+      qDebug() << "PEER ERROR: Got an accepted call even though we have not yet called them!";
+    }
   }
   else
   {
-    qDebug() << "PEER ERROR: Got an accepted call even though we have not yet called them!";
+    qDebug() << "ERROR: Peer accepted a session which is not in Call manager";
   }
 }
 
@@ -171,30 +177,37 @@ void CallManager::peerRejected(uint32_t sessionID)
 
 void CallManager::callNegotiated(uint32_t sessionID)
 {
-  if(states_.find(sessionID) != states_.end() && states_[sessionID] == CALLNEGOTIATING)
+  if(states_.find(sessionID) != states_.end())
   {
-    qDebug() << "Call has been agreed upon with peer:" << sessionID;
-
-    window_.addVideoStream(sessionID);
-
-    std::shared_ptr<SDPMessageInfo> localSDP;
-    std::shared_ptr<SDPMessageInfo> remoteSDP;
-
-    sip_.getSDPs(sessionID,
-                 localSDP,
-                 remoteSDP);
-
-    if(localSDP == nullptr || remoteSDP == nullptr)
+    if(states_[sessionID] == CALLNEGOTIATING || true)
     {
-      return;
-    }
+      qDebug() << "Call has been agreed upon with peer:" << sessionID;
 
-    media_.addParticipant(sessionID, remoteSDP, localSDP);
-    states_[sessionID] = CALLONGOING;
+      window_.addVideoStream(sessionID);
+
+      std::shared_ptr<SDPMessageInfo> localSDP;
+      std::shared_ptr<SDPMessageInfo> remoteSDP;
+
+      sip_.getSDPs(sessionID,
+                   localSDP,
+                   remoteSDP);
+
+      if(localSDP == nullptr || remoteSDP == nullptr)
+      {
+        return;
+      }
+
+      media_.addParticipant(sessionID, remoteSDP, localSDP);
+      states_[sessionID] = CALLONGOING;
+    }
+    else
+    {
+       qDebug() << "PEER ERROR: Got call successful negotiation even though we are not there yet:" << states_[sessionID];
+    }
   }
   else
   {
-    qDebug() << "PEER ERROR: Got call succesful negotiation even though we are not there yet!";
+     qDebug() << "ERROR: This session does not exist in Call manager";
   }
 }
 
