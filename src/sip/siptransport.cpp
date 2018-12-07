@@ -330,10 +330,10 @@ void SIPTransport::parsePackage(QString package, QString& header, QString& body)
       header = package.left(headerEndIndex);
       body = package.mid(headerEndIndex, valueInt);
 
-      qDebug() << "Whole SIP message received ----------- ";
+      qDebug() << "\r\n" << "Whole SIP message received ----------- ";
       qDebug().noquote() << "Header:" << header;
       qDebug().noquote() << "Content:" << body;
-      qDebug() << "Left overs:" << partialMessage_;
+      qDebug() << "Left overs:" << partialMessage_ << "\r\n";
     }
   }
   else
@@ -366,6 +366,7 @@ bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPF
     // RFC3261_TODO: support input with unknown amounts of empty spaces
     QRegularExpression re_field("(\\S*): (.+)");
     QRegularExpressionMatch field_match = re_field.match(parameters.at(0));
+
 
     if(field_match.hasMatch() && field_match.lastCapturedIndex() == 2)
     {
@@ -423,7 +424,7 @@ bool SIPTransport::fieldsToMessage(QList<SIPField>& fields,
   message->maxForwards = 0;
   message->dialog = std::shared_ptr<SIPDialogInfo> (new SIPDialogInfo);
 
-  for(unsigned int i = 0; i < fields.size(); ++i)
+  for(int i = 0; i < fields.size(); ++i)
   {
     if(parsing.find(fields[i].name) == parsing.end())
     {

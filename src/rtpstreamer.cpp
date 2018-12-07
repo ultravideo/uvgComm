@@ -311,8 +311,6 @@ bool RTPStreamer::checkSessionID(uint32_t sessionID)
       && peers_.at(sessionID - 1) != nullptr;
 }
 
-
-
 std::shared_ptr<Filter> RTPStreamer::addSendStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum)
 {
   Q_ASSERT(checkSessionID(peer));
@@ -336,8 +334,8 @@ std::shared_ptr<Filter> RTPStreamer::addSendStream(uint32_t peer, uint16_t port,
     return peers_.at(peer - 1)->audioSender->sourcefilter;
   }
 
+  return nullptr;
 }
-
 
 std::shared_ptr<Filter> RTPStreamer::addReceiveStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum)
 {
@@ -361,6 +359,8 @@ std::shared_ptr<Filter> RTPStreamer::addReceiveStream(uint32_t peer, uint16_t po
     peers_.at(peer - 1)->audioReceiver = addReceiver(peers_.at(peer - 1)->ip, port, type, rtpNum);
     return peers_.at(peer - 1)->audioReceiver->sink;
   }
+
+  return nullptr;
 }
 
 
@@ -373,6 +373,7 @@ void RTPStreamer::removeSendVideo(uint32_t sessionID)
   }
   else
     qWarning() << "WARNING: Tried to remove send video that did not exist.";
+
 }
 void RTPStreamer::removeSendAudio(uint32_t sessionID)
 {

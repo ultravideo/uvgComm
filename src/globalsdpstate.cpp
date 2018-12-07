@@ -26,7 +26,7 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP(QHostAddress localAd
   qDebug() << "Generating new SDP message with our address as:" << localAddress;
 
   if(localAddress == QHostAddress::Null
-     || localAddress ==QHostAddress("0.0.0.0")
+     || localAddress == QHostAddress("0.0.0.0")
      || localUsername_ == "")
   {
     qWarning() << "WARNING: Necessary info not set for SDP generation:" << localAddress.toString()
