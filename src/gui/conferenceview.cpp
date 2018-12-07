@@ -2,7 +2,7 @@
 
 #include "ui_incomingcallwidget.h"
 #include "ui_outgoingcallwidget.h"
-#include "ui_popupholder.h"
+//#include "ui_popupholder.h"
 
 #include "gui/videoviewfactory.h"
 #include "gui/videowidget.h"
