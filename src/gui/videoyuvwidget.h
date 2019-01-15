@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui/videointerface.h"
+#include "videodrawhelper.h"
 
 #include <QOpenGLFunctions_2_0>
 
@@ -104,4 +105,6 @@ private:
   GLuint m_colAttr;
   GLuint m_matrixUniform;
   int m_frame;
+
+  VideoDrawHelper helper_;
 };

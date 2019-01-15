@@ -80,7 +80,8 @@ SOURCES +=\
     src/gui/videoglwidget.cpp \
     src/sdpparametermanager.cpp \
     src/sip/connectionpolicy.cpp \
-    src/gui/videoyuvwidget.cpp
+    src/gui/videoyuvwidget.cpp \
+    src/gui/videodrawhelper.cpp
 
 HEADERS  += \
     src/filter.h \
@@ -147,7 +148,8 @@ HEADERS  += \
     src/gui/videoglwidget.h \
     src/sdpparametermanager.h \
     src/sip/connectionpolicy.h \
-    src/gui/videoyuvwidget.h
+    src/gui/videoyuvwidget.h \
+    src/gui/videodrawhelper.h
 
 FORMS    += \
     ui/callwindow.ui \

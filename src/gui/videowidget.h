@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui/videointerface.h"
+#include "videodrawhelper.h"
 
 #include <QPainter>
 #include <QFrame>
@@ -74,4 +75,6 @@ private:
 
   QWidget* tmpParent_;
   QLayout* ourLayout_;
+
+  VideoDrawHelper helper_;
 };

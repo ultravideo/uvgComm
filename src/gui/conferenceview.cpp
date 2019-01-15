@@ -313,17 +313,20 @@ void ConferenceView::uninitCaller(std::unique_ptr<CallInfo> peer)
 {
   if(peer->item != nullptr)
   {
+    if(peer->state == VIEWVIDEO
+       || peer->state == VIEWASKING
+       || peer->state == VIEWWAITINGPEER)
+    {
+      if(peer->item->widget() != nullptr)
+      {
+        peer->item->widget()->hide();
+        delete peer->item->widget();
+      }
+    }
+
     layoutMutex_.lock();
     layout_->removeItem(peer->item);
     layoutMutex_.unlock();
-  }
-
-  if(peer->state == VIEWVIDEO
-     || peer->state == VIEWASKING
-     || peer->state == VIEWWAITINGPEER)
-  {
-    peer->item->widget()->hide();
-    delete peer->item->widget();
   }
 
   locMutex_.lock();

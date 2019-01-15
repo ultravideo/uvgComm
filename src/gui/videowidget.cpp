@@ -18,7 +18,8 @@ VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID, uint8_t borderSize
   stats_(nullptr),
   sessionID_(sessionID),
   borderSize_(borderSize),
-  tmpParent_(nullptr)
+  tmpParent_(nullptr),
+  helper_(sessionID)
 {
   setAutoFillBackground(false);
   setAttribute(Qt::WA_NoSystemBackground, true);
@@ -191,56 +192,11 @@ void VideoWidget::updateTargetRect()
 
 void VideoWidget::keyPressEvent(QKeyEvent *event)
 {
-  if(event->key() == Qt::Key_Escape)
-  {
-    qDebug() << "Esc key pressed";
-    if(isFullScreen() && sessionID_ != 0)
-    {
-      exitFullscreen();
-    }
-  }
-  else
-  {
-    qDebug() << "You Pressed Other Key";
-  }
+  helper_.keyPressEvent(this, event);
 }
 
 
 void VideoWidget::mouseDoubleClickEvent(QMouseEvent *e) {
   QWidget::mouseDoubleClickEvent(e);
-  if(sessionID_ != 0)
-  {
-    if(isFullScreen())
-    {
-      exitFullscreen();
-    } else {
-      enterFullscreen();
-    }
-  }
-}
-
-void VideoWidget::enterFullscreen()
-{
-  qDebug() << "Setting videowidget fullscreen";
-
-  QFrame::setFrameStyle(QFrame::NoFrame);
-
-  tmpParent_ = QWidget::parentWidget();
-  this->setParent(nullptr);
-  //this->showMaximized();
-  this->show();
-  this->setWindowState(Qt::WindowFullScreen);
-}
-
-void VideoWidget::exitFullscreen()
-{
-  qDebug() << "Returning video widget to original place.";
-  this->setParent(tmpParent_);
-  //this->showMaximized();
-  this->show();
-  this->setWindowState(Qt::WindowMaximized);
-
-  QFrame::setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
-
-  emit reattach(sessionID_, this);
+  helper_.mouseDoubleClickEvent(this, e);
 }

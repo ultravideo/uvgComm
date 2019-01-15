@@ -23,12 +23,10 @@ class QLayoutItem;
 class VideoviewFactory;
 
 
-
 namespace Ui {
 class OutgoingCall;
 class IncomingCall;
 }
-
 
 
 class ConferenceView : public QObject
