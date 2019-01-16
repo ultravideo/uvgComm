@@ -59,25 +59,10 @@ protected:
 
 private:
 
-  // update the rect in case the window or input has changed.
-  void updateTargetRect();
-
-  bool firstImageReceived_;
-
-  QRect targetRect_;
-
   QMutex drawMutex_;
-  QSize previousSize_;
-  std::deque<QImage> viewBuffer_;
-  std::deque<std::unique_ptr<uchar[]>> dataBuffer_;
-  QImage lastImage_;
-  std::unique_ptr<uchar[]> lastImageData_;
 
   StatisticsInterface* stats_;
-
   uint32_t sessionID_;
-
-  unsigned int borderSize_;
 
   VideoDrawHelper helper_;
 };

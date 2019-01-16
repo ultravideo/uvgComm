@@ -75,25 +75,12 @@ private:
 
   void drawOpenGL(bool updateImage);
 
-  bool firstImageReceived_;
-
-  QRect targetRect_;
-
   QMutex drawMutex_;
-  QSize previousSize_;
-  std::deque<QImage> viewBuffer_;
-  std::deque<std::unique_ptr<uchar[]>> dataBuffer_;
-  QImage lastImage_;
-  std::unique_ptr<uchar[]> lastImageData_;
 
   StatisticsInterface* stats_;
-
   uint32_t sessionID_;
 
-  unsigned int borderSize_;
-
-  QWidget* tmpParent_;
-  QLayout* ourLayout_;
+  VideoDrawHelper helper_;
 
   GLuint texture_;
 
@@ -105,6 +92,4 @@ private:
   GLuint m_colAttr;
   GLuint m_matrixUniform;
   int m_frame;
-
-  VideoDrawHelper helper_;
 };

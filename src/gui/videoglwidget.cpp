@@ -9,80 +9,27 @@
 #include <QKeyEvent>
 #include <QLayout>
 
-const uint16_t GLVIEWBUFFERSIZE = 5;
-
 VideoGLWidget::VideoGLWidget(QWidget* parent, uint32_t sessionID, uint8_t borderSize)
   : QOpenGLWidget(parent),
-  firstImageReceived_(false),
-  previousSize_(QSize(0,0)),
   stats_(nullptr),
   sessionID_(sessionID),
-  borderSize_(borderSize),
-  helper_(sessionID)
+  helper_(sessionID, borderSize)
 {
-  setAutoFillBackground(false);
-  setAttribute(Qt::WA_NoSystemBackground, true);
-
-  QPalette palette = this->palette();
-  palette.setColor(QPalette::Background, Qt::black);
-  setPalette(palette);
-
-  setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
-
-  setWindowState(Qt::WindowFullScreen);
-
-  setUpdatesEnabled(true);
+  helper_.initWidget(this);
 
   // the new syntax does not work for some reason (unresolved overloaded function type)
   QObject::connect(this, SIGNAL(newImage()), this, SLOT(repaint()));
 }
 
 VideoGLWidget::~VideoGLWidget()
-{
-  viewBuffer_.clear();
-  dataBuffer_.clear();
-}
+{}
 
 void VideoGLWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image)
 {
   drawMutex_.lock();
   // if the resolution has changed in video
 
-  if(!firstImageReceived_)
-  {
-    lastImage_ = image;
-    lastImageData_ = std::move(data);
-    firstImageReceived_ = true;
-    updateTargetRect();
-  }
-  else
-  {
-    if(previousSize_ != image.size())
-    {
-      qDebug() << "Video widget needs to update its target rectangle because of resolution change.";
-      viewBuffer_.clear();
-      dataBuffer_.clear();
-
-      viewBuffer_.push_front(image);
-      dataBuffer_.push_front(std::move(data));
-      updateTargetRect();
-    }
-    else
-    {
-      viewBuffer_.push_front(image);
-      dataBuffer_.push_front(std::move(data));
-    }
-
-    // delete oldes image if there is too much buffer
-    if(viewBuffer_.size() > GLVIEWBUFFERSIZE)
-    {
-      qDebug() << "Buffer full:" << viewBuffer_.size() << "/" <<GLVIEWBUFFERSIZE
-               << "Deleting oldest image from viewBuffer in VideoGLWidget:" << sessionID_;
-      viewBuffer_.pop_back();
-      dataBuffer_.pop_back();
-      //stats_->packetDropped("view" + QString::number(sessionID_));
-    }
-  }
+  helper_.inputImage(this, std::move(data), image);
 
   //update();
 
@@ -97,77 +44,37 @@ void VideoGLWidget::paintEvent(QPaintEvent *event)
   //qDebug() << "PaintEvent for widget:" << sessionID_;
   QPainter painter(this);
 
-  if(firstImageReceived_)
+  if(helper_.readyToDraw())
   {
     drawMutex_.lock();
 
-    if(!viewBuffer_.empty())
+    QImage frame;
+    if(helper_.getRecentImage(frame))
     {
-      painter.drawImage(targetRect_, viewBuffer_.back());
       // sessionID 0 is the self display and we are not interested
       // update stats only for each new image.
       if(stats_ && sessionID_ != 0)
       {
         stats_->presentPackage(sessionID_, "Video");
       }
-      lastImage_ = viewBuffer_.back();
-      lastImageData_ = std::move(dataBuffer_.back());
-      viewBuffer_.pop_back();
-      dataBuffer_.pop_back();
+    }
 
-    }
-    else
-    {
-      painter.drawImage(targetRect_, lastImage_);
-    }
+    painter.drawImage(helper_.getTargetRect(), frame);
     drawMutex_.unlock();
   }
   else
   {
     painter.fillRect(event->rect(), QBrush(QColor(0,0,0)));
   }
+
+  //QOpenGLWidget::paintEvent(event);
 }
 
 void VideoGLWidget::resizeEvent(QResizeEvent *event)
 {
   qDebug() << "VideoGLWidget resizeEvent:" << sessionID_;
   QOpenGLWidget::resizeEvent(event); // its important to call this resize function, not the qwidget one.
-  updateTargetRect();
-}
-
-void VideoGLWidget::updateTargetRect()
-{
-  if(firstImageReceived_)
-  {
-    Q_ASSERT(lastImage_.data_ptr());
-    if(lastImage_.data_ptr() == nullptr)
-    {
-      qWarning() << "WARNING: Null pointer in current image!";
-      return;
-    }
-
-    QSize size = lastImage_.size();
-    QSize frameSize = QWidget::size();
-
-    if(frameSize.height() > size.height()
-       && frameSize.width() > size.width())
-    {
-      size.scale(frameSize.expandedTo(size), Qt::KeepAspectRatio);
-    }
-    else
-    {
-       size.scale(frameSize.boundedTo(size), Qt::KeepAspectRatio);
-    }
-
-    targetRect_ = QRect(QPoint(0, 0), size);
-    targetRect_.moveCenter(rect().center());
-
-    previousSize_ = lastImage_.size();
-  }
-  else
-  {
-    qDebug() << "VideoGLWidget: Tried updating target rect before picture";
-  }
+  helper_.updateTargetRect(this);
 }
 
 void VideoGLWidget::keyPressEvent(QKeyEvent *event)
@@ -177,5 +84,5 @@ void VideoGLWidget::keyPressEvent(QKeyEvent *event)
 
 void VideoGLWidget::mouseDoubleClickEvent(QMouseEvent *e) {
   QWidget::mouseDoubleClickEvent(e);
-  helper_.mouseDoubleClickEvent(this, e);
+  helper_.mouseDoubleClickEvent(this);
 }
