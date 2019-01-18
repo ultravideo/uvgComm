@@ -17,6 +17,8 @@ class QKeyEvent;
  * for video view widgets. It also includes the buffer for images waiting to be drawn.
 */
 
+// This class could possibly be combined with displayfilter.
+
 
 class VideoDrawHelper : public QObject
 {
@@ -52,7 +54,7 @@ public:
 signals:
 
   void reattach(uint32_t sessionID_, QWidget* view);
-  void deattach(uint32_t sessionID_);
+  void deattach(uint32_t sessionID_, QWidget* view);
 
 private:
   void enterFullscreen(QWidget* widget);

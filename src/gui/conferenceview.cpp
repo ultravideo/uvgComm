@@ -17,6 +17,7 @@ ConferenceView::ConferenceView(QWidget *parent):
   layout_(nullptr),
   layoutWidget_(nullptr),
   activeCalls_(),
+  detachedWidgets_(),
   freedLocs_(),
   row_(0),
   column_(0),
@@ -172,6 +173,27 @@ void ConferenceView::attachWidget(uint32_t sessionID, QWidget* view)
   layout_->addWidget(view, activeCalls_[sessionID]->row, activeCalls_[sessionID]->column);
   activeCalls_[sessionID]->item = layout_->itemAtPosition(activeCalls_[sessionID]->row,
                                                        activeCalls_[sessionID]->column);
+  layoutMutex_.unlock();
+}
+
+void ConferenceView::deattachWidget(uint32_t sessionID, QWidget* view)
+{
+  layoutMutex_.lock();
+  if(activeCalls_.find(sessionID) != activeCalls_.end())
+  {
+    if(activeCalls_[sessionID]->item)
+    {
+      layout_->removeItem(activeCalls_[sessionID]->item);
+    }
+    layout_->removeWidget(view);
+    activeCalls_[sessionID]->item = nullptr;
+    detachedWidgets_[sessionID] = view;
+  }
+  else
+  {
+    qDebug() << "ERROR: Trying to deattach fullscreenview from the layout when the sessionID"
+             << sessionID << " does not exist in  conference view.";
+  }
   layoutMutex_.unlock();
 }
 

@@ -38,6 +38,7 @@ public:
 signals:
 
   void reattach(uint32_t sessionID_, QWidget* view);
+  void deattach(uint32_t sessionID_, QWidget* view);
 
   void newImage();
 protected:

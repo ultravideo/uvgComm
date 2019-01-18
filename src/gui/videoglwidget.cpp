@@ -19,6 +19,8 @@ VideoGLWidget::VideoGLWidget(QWidget* parent, uint32_t sessionID, uint8_t border
 
   // the new syntax does not work for some reason (unresolved overloaded function type)
   QObject::connect(this, SIGNAL(newImage()), this, SLOT(repaint()));
+  QObject::connect(&helper_, &VideoDrawHelper::deattach, this, &VideoGLWidget::deattach);
+  QObject::connect(&helper_, &VideoDrawHelper::reattach, this, &VideoGLWidget::reattach);
 }
 
 VideoGLWidget::~VideoGLWidget()

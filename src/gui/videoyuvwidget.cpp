@@ -22,6 +22,8 @@ VideoYUVWidget::VideoYUVWidget(QWidget* parent, uint32_t sessionID, uint8_t bord
 
   // the new syntax does not work for some reason (unresolved overloaded function type)
   QObject::connect(this, SIGNAL(newImage()), this, SLOT(repaint()));
+  QObject::connect(&helper_, &VideoDrawHelper::deattach, this, &VideoYUVWidget::deattach);
+  QObject::connect(&helper_, &VideoDrawHelper::reattach, this, &VideoYUVWidget::reattach);
 }
 
 VideoYUVWidget::~VideoYUVWidget()

@@ -182,12 +182,14 @@ void VideoDrawHelper::enterFullscreen(QWidget* widget)
   widget->show();
   widget->setWindowState(Qt::WindowFullScreen);
   widget->raise();
+
+  emit deattach(sessionID_, widget);
 }
 
 
 void VideoDrawHelper::exitFullscreen(QWidget* widget)
 {
-  qDebug() << "Returning GL video widget to original place.";
+  qDebug() << "Returning video widget" << sessionID_ << "to original place.";
   widget->setParent(tmpParent_);
   //this->showMaximized();
   widget->show();

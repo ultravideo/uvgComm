@@ -65,6 +65,7 @@ public slots:
 
   // this is currently connected by videoviewfactory
   void attachWidget(uint32_t sessionID, QWidget *view);
+  void deattachWidget(uint32_t sessionID, QWidget* view);
 
 private slots:
 
@@ -117,6 +118,7 @@ private:
 
   // matches sessionID - 1, but is not the definitive source of sessionID.
   std::map<uint32_t, std::unique_ptr<CallInfo>> activeCalls_;
+  std::map<uint32_t, QWidget*> detachedWidgets_;
 
   // keeping track of freed places
   // TODO: update the whole layout with each added and removed participant. Use window width.
