@@ -166,13 +166,21 @@ void ConferenceView::attachOutgoingCallWidget(QString name, uint32_t sessionID)
 void ConferenceView::attachWidget(uint32_t sessionID, QWidget* view)
 {
   layoutMutex_.lock();
-  if(activeCalls_[sessionID]->item)
+  if(activeCalls_.find(sessionID) != activeCalls_.end())
   {
-    layout_->removeItem(activeCalls_[sessionID]->item);
+    if(activeCalls_[sessionID]->item)
+    {
+      layout_->removeItem(activeCalls_[sessionID]->item);
+    }
+    layout_->addWidget(view, activeCalls_[sessionID]->row, activeCalls_[sessionID]->column);
+    activeCalls_[sessionID]->item = layout_->itemAtPosition(activeCalls_[sessionID]->row,
+                                                            activeCalls_[sessionID]->column);
+    detachedWidgets_.erase(sessionID);
   }
-  layout_->addWidget(view, activeCalls_[sessionID]->row, activeCalls_[sessionID]->column);
-  activeCalls_[sessionID]->item = layout_->itemAtPosition(activeCalls_[sessionID]->row,
-                                                       activeCalls_[sessionID]->column);
+  else {
+    qDebug() << "ERROR: Trying to attach fullscreenview back to layout when the sessionID"
+             << sessionID << " does not exist in conference view.";
+  }
   layoutMutex_.unlock();
 }
 
@@ -275,6 +283,9 @@ bool ConferenceView::removeCaller(uint32_t sessionID)
     activeCallMutex_.lock();
     uninitCaller(std::move(activeCalls_[sessionID]));
     activeCalls_.erase(sessionID);
+
+    uninitDetachedWidget(sessionID);
+
     activeCallMutex_.unlock();
   }
 
@@ -314,12 +325,20 @@ void ConferenceView::nextSlot()
 
 void ConferenceView::close()
 {
+  qDebug() << "Closing views of the call with" << detachedWidgets_.size() << "detached widgets";
   for (std::map<uint32_t, std::unique_ptr<CallInfo>>::iterator view = activeCalls_.begin();
        view != activeCalls_.end(); ++view)
   {
     uninitCaller(std::move(view->second));
   }
 
+  for (std::map<uint32_t, QWidget*>::iterator view = detachedWidgets_.begin();
+       view != detachedWidgets_.end(); ++view)
+  {
+    uninitDetachedWidget(view->first);
+  }
+
+  detachedWidgets_.clear();
   activeCalls_.clear();
   freedLocs_.clear();
 
@@ -370,6 +389,15 @@ void ConferenceView::uninitCaller(std::unique_ptr<CallInfo> peer)
   locMutex_.unlock();
 }
 
+void ConferenceView::uninitDetachedWidget(uint32_t sessionID)
+{
+  if(detachedWidgets_.find(sessionID) != detachedWidgets_.end())
+  {
+    qDebug() << "The widget was detached for sessionID" << sessionID << "so we destroy it.";
+    delete detachedWidgets_[sessionID];
+    detachedWidgets_.erase(sessionID);
+  }
+}
 
 void ConferenceView::accept()
 {

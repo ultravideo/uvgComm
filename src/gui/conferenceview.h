@@ -101,7 +101,9 @@ private:
     Ui::IncomingCall*  in; // The view for incoming call. May be NULL
   };
 
+  // low level function which handles the destruction of callInfo struct
   void uninitCaller(std::unique_ptr<CallInfo> peer);
+  void uninitDetachedWidget(uint32_t sessionID);
 
   QTimer timeoutTimer_;
 
