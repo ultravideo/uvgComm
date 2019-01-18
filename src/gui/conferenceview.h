@@ -65,7 +65,7 @@ public slots:
 
   // this is currently connected by videoviewfactory
   void attachWidget(uint32_t sessionID, QWidget *view);
-  void deattachWidget(uint32_t sessionID, QWidget* view);
+  void detachWidget(uint32_t sessionID, QWidget* view);
 
 private slots:
 

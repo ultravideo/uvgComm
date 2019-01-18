@@ -23,7 +23,7 @@ VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID, uint8_t borderSize
 
   // the new syntax does not work for some reason (unresolved overloaded function type)
   QObject::connect(this, SIGNAL(newImage()), this, SLOT(repaint()));
-  QObject::connect(&helper_, &VideoDrawHelper::deattach, this, &VideoWidget::deattach);
+  QObject::connect(&helper_, &VideoDrawHelper::detach, this, &VideoWidget::detach);
   QObject::connect(&helper_, &VideoDrawHelper::reattach, this, &VideoWidget::reattach);
 }
 

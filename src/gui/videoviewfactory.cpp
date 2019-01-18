@@ -35,7 +35,7 @@ void VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent, Confere
 
     // signals reattaching after fullscreen mode
     QObject::connect(vw, &VideoYUVWidget::reattach, conf, &ConferenceView::attachWidget);
-    QObject::connect(vw, &VideoYUVWidget::deattach, conf, &ConferenceView::deattachWidget);
+    QObject::connect(vw, &VideoYUVWidget::detach, conf, &ConferenceView::detachWidget);
 
     opengl_ = true;
   }
@@ -50,7 +50,7 @@ void VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent, Confere
 
     // signals reattaching after fullscreen mode
     QObject::connect(vw, &VideoGLWidget::reattach, conf, &ConferenceView::attachWidget);
-    QObject::connect(vw, &VideoGLWidget::deattach, conf, &ConferenceView::deattachWidget);
+    QObject::connect(vw, &VideoGLWidget::detach, conf, &ConferenceView::detachWidget);
   }
   else
   {
@@ -63,7 +63,7 @@ void VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent, Confere
 
     // signals reattaching after fullscreen mode
     QObject::connect(vw, &VideoWidget::reattach, conf, &ConferenceView::attachWidget);
-    QObject::connect(vw, &VideoWidget::deattach, conf, &ConferenceView::deattachWidget);
+    QObject::connect(vw, &VideoWidget::detach, conf, &ConferenceView::detachWidget);
   }
 }
 

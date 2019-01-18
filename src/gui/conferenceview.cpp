@@ -184,7 +184,7 @@ void ConferenceView::attachWidget(uint32_t sessionID, QWidget* view)
   layoutMutex_.unlock();
 }
 
-void ConferenceView::deattachWidget(uint32_t sessionID, QWidget* view)
+void ConferenceView::detachWidget(uint32_t sessionID, QWidget* view)
 {
   layoutMutex_.lock();
   if(activeCalls_.find(sessionID) != activeCalls_.end())
@@ -199,7 +199,7 @@ void ConferenceView::deattachWidget(uint32_t sessionID, QWidget* view)
   }
   else
   {
-    qDebug() << "ERROR: Trying to deattach fullscreenview from the layout when the sessionID"
+    qDebug() << "ERROR: Trying to detach fullscreenview from the layout when the sessionID"
              << sessionID << " does not exist in  conference view.";
   }
   layoutMutex_.unlock();

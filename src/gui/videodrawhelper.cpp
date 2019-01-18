@@ -183,7 +183,7 @@ void VideoDrawHelper::enterFullscreen(QWidget* widget)
   widget->setWindowState(Qt::WindowFullScreen);
   widget->raise();
 
-  emit deattach(sessionID_, widget);
+  emit detach(sessionID_, widget);
 }
 
 
