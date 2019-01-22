@@ -32,7 +32,6 @@ SOURCES +=\
     src/rtpsinkfilter.cpp \
     src/common.cpp \
     src/mediamanager.cpp \
-    src/callmanager.cpp \
     src/filter.cpp \
     src/filtergraph.cpp \
     src/audio/audiocapturedevice.cpp \
@@ -81,7 +80,8 @@ SOURCES +=\
     src/sdpparametermanager.cpp \
     src/sip/connectionpolicy.cpp \
     src/gui/videoyuvwidget.cpp \
-    src/gui/videodrawhelper.cpp
+    src/gui/videodrawhelper.cpp \
+    src/kvazzupcore.cpp
 
 HEADERS  += \
     src/filter.h \
@@ -93,7 +93,6 @@ HEADERS  += \
     src/common.h \
     src/mediamanager.h \
     src/participantinterface.h \
-    src/callmanager.h \
     src/video/dshow/capture_interface.h \
     src/video/dshow/SampleGrabber.h \
     src/audio/audiocapturedevice.h \
@@ -149,7 +148,8 @@ HEADERS  += \
     src/sdpparametermanager.h \
     src/sip/connectionpolicy.h \
     src/gui/videoyuvwidget.h \
-    src/gui/videodrawhelper.h
+    src/gui/videodrawhelper.h \
+    src/kvazzupcore.h
 
 FORMS    += \
     ui/callwindow.ui \

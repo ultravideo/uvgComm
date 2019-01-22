@@ -1,4 +1,4 @@
-#include "callmanager.h"
+#include "kvazzupcore.h"
 
 #include <QApplication>
 #include <QSettings>
@@ -37,8 +37,8 @@ int main(int argc, char *argv[])
   QString StyleSheet = QLatin1String(File.readAll());
   a.setStyleSheet(StyleSheet);
 
-  CallManager manager;
-  manager.init();
+  KvazzupCore core;
+  core.init();
 
   return a.exec();
 }

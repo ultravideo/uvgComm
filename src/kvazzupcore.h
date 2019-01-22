@@ -11,14 +11,20 @@
 
 #include <map>
 
+
+/* This is the core of the program and thus should control what the other modules
+ * do and in which order when something needs to be done.
+ */
+
+
 struct SDPMessageInfo;
 class StatisticsInterface;
 
-class CallManager : public QObject, public ParticipantInterface, public SIPTransactionUser
+class KvazzupCore : public QObject, public ParticipantInterface, public SIPTransactionUser
 {
   Q_OBJECT
 public:
-  CallManager();
+  KvazzupCore();
 
   void init();
   void uninit();
