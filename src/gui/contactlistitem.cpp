@@ -3,6 +3,7 @@
 #include "participantinterface.h"
 
 #include <QDir>
+#include <QDebug>
 
 ContactListItem::ContactListItem(QString name, QString username, QString ip):
   name_(name),
@@ -70,4 +71,10 @@ QString ContactListItem::getUserName()
 QString ContactListItem::getAddress()
 {
   return ip_;
+}
+
+void ContactListItem::mouseDoubleClickEvent(QMouseEvent *e)
+{
+  QWidget::mouseDoubleClickEvent(e);
+  call();
 }

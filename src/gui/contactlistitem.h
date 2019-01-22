@@ -26,6 +26,10 @@ public slots:
   void call();
   void chat();
 
+protected:
+
+  void mouseDoubleClickEvent(QMouseEvent *e);
+
 private:
 
   QString name_;
