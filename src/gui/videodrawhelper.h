@@ -19,6 +19,8 @@ class QKeyEvent;
 
 // This class could possibly be combined with displayfilter.
 
+// TODO: When the fullscreen mode is activated and there is another program on the background,
+// that another program will be on top of the fullscreen for some reason.
 
 class VideoDrawHelper : public QObject
 {
