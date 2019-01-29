@@ -42,7 +42,7 @@ public slots:
   void on_addUserBlock_clicked();
 
   // setup the resolution list with values
-  void initializeResolutions(int index);
+  void initializeResolutions(QString format);
 
   void serverStatusChange(QString status);
 
@@ -55,8 +55,6 @@ private:
   void saveAdvancedSettings();
 
   void saveCameraCapabilities(int deviceIndex);
-
-  int getFormatIndex();
 
   // initializes the UI with correct formats and resolutions
   void initializeFormat();

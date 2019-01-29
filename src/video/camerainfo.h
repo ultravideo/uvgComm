@@ -2,9 +2,12 @@
 
 #include <QStringList>
 #include <QSize>
+#include <QCamera>
 
-// A helper class for settings. Meant to be an interface which later to
-// replace with QCamera instead of ddshow, if possible
+#include <memory>
+
+
+// A helper class for settings.
 
 class CameraInfo
 {
@@ -14,17 +17,18 @@ public:
   // returns a list of devices. with devideID as the place in list
   QStringList getVideoDevices();
 
-  // get formats and resolutions for a particular device.
-  void getVideoCapabilities(int deviceID, QStringList& formats, QList<QStringList>& resolutions);
+  // get formats for a device.
+  // the for
+  void getVideoFormats(int deviceID, QStringList& formats);
 
-  // get exact capabilities of a particular capability choice. Can also be parsed from resolutions
-  void getCapability(int deviceIndex, int format, uint16_t resolutionIndex,
-                     QSize& resolution, double& framerate, QString &formatText);
+  // get resolutions for a format.
+  void getFormatResolutions(int deviceID, QString format, QStringList& resolutions);
 
-  // used by dshow camera to determine the index of capability
-  int formatToCapability(uint16_t device, int formatIndex, uint16_t resolutionIndex);
+  // get resolutions for a format.
+  void getFramerates(int deviceID, QString format, int resolutionID);
 
 private:
 
+  std::unique_ptr<QCamera> loadCamera(int deviceID);
 
 };

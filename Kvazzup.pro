@@ -41,7 +41,6 @@ SOURCES +=\
     src/video/camerafilter.cpp \
     src/video/cameraframegrabber.cpp \
     src/video/displayfilter.cpp \
-    src/video/dshowcamerafilter.cpp \
     src/video/kvazaarfilter.cpp \
     src/video/openhevcfilter.cpp \
     src/audio/opusdecoderfilter.cpp \
@@ -49,7 +48,6 @@ SOURCES +=\
     src/video/rgb32toyuv.cpp \
     src/audio/speexaecfilter.cpp \
     src/video/yuvtorgb32.cpp \
-    src/video/dshow/capture.cpp \
     src/connectionserver.cpp \
     src/gui/callwindow.cpp \
     src/gui/conferenceview.cpp \
@@ -93,10 +91,7 @@ HEADERS  += \
     src/common.h \
     src/mediamanager.h \
     src/participantinterface.h \
-    src/video/dshow/capture_interface.h \
-    src/video/dshow/SampleGrabber.h \
     src/audio/audiocapturedevice.h \
-    src/video/dshow/capture.h \
     src/video/cameraframegrabber.h \
     src/video/openhevcfilter.h \
     src/audio/opusdecoderfilter.h \
@@ -107,7 +102,6 @@ HEADERS  += \
     src/audio/audiocapturefilter.h \
     src/audio/audiooutput.h \
     src/audio/audiooutputdevice.h \
-    src/video/dshowcamerafilter.h \
     src/video/camerafilter.h \
     src/video/kvazaarfilter.h \
     src/video/optimized/rgb2yuv.h \

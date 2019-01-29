@@ -1,60 +1,66 @@
 #include "camerainfo.h"
 
-#include "video/dshow/capture_interface.h"
-
+#include <QCameraInfo>
 #include <QDebug>
+
 
 CameraInfo::CameraInfo()
 {
-  dshow_initCapture();
+  //dshow_initCapture();
 }
+
 
 QStringList CameraInfo::getVideoDevices()
 {
-  char** devices;
-  int8_t count = 0;
-  dshow_queryDevices(&devices, &count);
-
+  QList<QCameraInfo> cameras = QCameraInfo::availableCameras();
   QStringList list;
 
-  qDebug() << "Found " << (int)count << " devices: ";
-  for(int i = 0; i < count; ++i)
+  qDebug() << "Found" << cameras.size() << "cameras";
+  for (int i = 0; i < cameras.size(); ++i)
   {
-    qDebug() << "[" << i << "] " << devices[i];
-    list.push_back(devices[i]);
+    list.push_back(cameras.at(i).description());
   }
+
   return list;
 }
 
-void CameraInfo::getVideoCapabilities(int deviceID, QStringList& formats, QList<QStringList>& resolutions)
+
+void CameraInfo::getVideoFormats(int deviceID, QStringList& formats)
 {
   formats.clear();
-  resolutions.clear();
-  if (dshow_selectDevice(deviceID) || dshow_selectDevice(0))
-  {
-    int8_t count = 0;
-    deviceCapability *capList;
-    dshow_getDeviceCapabilities(&capList, &count);
 
-    qDebug() << "Found" << (int)count << "capabilities";
-    for(int i = 0; i < count; ++i)
-    {
-      if(formats.empty() || formats.back() != QString(capList[i].format))
-      {
-        formats.push_back(QString(capList[i].format));
-        resolutions.push_back(QStringList());
-      }
-      resolutions.back().push_back(QString::number(capList[i].width) + "x" +
-                     QString::number(capList[i].height) + " " +
-                     QString::number(capList[i].fps) + " fps");
-    }
+  std::unique_ptr<QCamera> camera = loadCamera(deviceID);
+
+  QList<QVideoFrame::PixelFormat> p_formats = camera->supportedViewfinderPixelFormats();
+  qDebug() << "Found" << p_formats.size() <<  "formats for deviceID:" << deviceID;
+}
+
+void CameraInfo::getFormatResolutions(int deviceID, QString format, QStringList &resolutions)
+{
+  resolutions.clear();
+
+  std::unique_ptr<QCamera> camera = loadCamera(deviceID);
+
+  QList<QSize> supporteResolutions = camera->supportedViewfinderResolutions();
+  qDebug() << "Found" << supporteResolutions.size() <<  "resolutions for deviceID:" << deviceID;
+
+  for (int i = 0; i < supporteResolutions.size(); ++i)
+  {
+    resolutions.push_back(QString::number(supporteResolutions[i].width()) + "x" +
+                          QString::number(supporteResolutions[i].height()));
   }
-  return;
+}
+
+
+void CameraInfo::getFramerates(int deviceID, QString format, int resolutionID)
+{
+
 }
 
 void CameraInfo::getCapability(int deviceIndex, int format, uint16_t resolutionIndex,
                                QSize& resolution, double& framerate, QString& formatText)
 {
+  /*
   int capabilityIndex = formatToCapability(deviceIndex, format, resolutionIndex);
   char **devices;
   int8_t count;
@@ -85,36 +91,22 @@ void CameraInfo::getCapability(int deviceIndex, int format, uint16_t resolutionI
   {
     qWarning() << "WARNING: Failed to select device for capacity information.";
   }
+  */
 }
 
-// used by dshow camera to determine the index of capability
-int CameraInfo::formatToCapability(uint16_t device, int formatIndex, uint16_t resolutionIndex)
+
+
+std::unique_ptr<QCamera> CameraInfo::loadCamera(int deviceID)
 {
-  QStringList formats;
-  QList<QStringList> resolutions;
-  getVideoCapabilities(device, formats, resolutions);
-
-  if(resolutionIndex == -1)
+  QList<QCameraInfo> cameras = QCameraInfo::availableCameras();
+  if(deviceID == -1 || deviceID >= cameras.size())
   {
-    qDebug() << "No current index set for resolution. Using first";
-    resolutionIndex = 0;
+    qDebug() << "ERROR: Invalid deviceID for getVideoCapabilities";
   }
 
-  if(formatIndex == -1)
-  {
-    qDebug() << "No current index set for format. Using first";
-    formatIndex = 0;
-  }
+  std::unique_ptr<QCamera> camera
+      = std::unique_ptr<QCamera>(new QCamera(cameras.at(deviceID)));
+  camera->load();
 
-  int currentIndex = 0;
-
-  // add all other resolutions to form currentindex
-  for(unsigned int i = 0; i < formatIndex && i < resolutions.size(); ++i)
-  {
-    currentIndex += resolutions.at(i).size();
-  }
-
-  currentIndex += resolutionIndex;
-
-  return currentIndex;
+  return camera;
 }
