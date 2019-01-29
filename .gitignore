@@ -1,8 +1,15 @@
 debug/
 release/
+
 ui_*
 Makefile*
+
 object_script.*
+
 *.dot
 /.qmake.stash
 /*.user
+
+kvazzup.ini
+blocklist.local
+contacts.local
