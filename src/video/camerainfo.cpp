@@ -69,6 +69,11 @@ void CameraInfo::getVideoFormats(int deviceID, QStringList& formats)
 
   QList<QVideoFrame::PixelFormat> p_formats = camera->supportedViewfinderPixelFormats();
   qDebug() << "Found" << p_formats.size() <<  "formats for deviceID:" << deviceID;
+
+  for(int i = 0; i < p_formats.size() ; ++i)
+  {
+    formats.push_back(pixelFormatStrings.at(p_formats.at(i)));
+  }
 }
 
 void CameraInfo::getFormatResolutions(int deviceID, QString format, QStringList &resolutions)
