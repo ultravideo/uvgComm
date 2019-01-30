@@ -47,6 +47,8 @@ public slots:
 private:
   // QSettings -> GUI
   void restoreAdvancedSettings();
+  void restoreFormat();
+
 
   // GUI -> QSettings
   void saveAdvancedSettings();

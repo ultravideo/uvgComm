@@ -37,7 +37,7 @@ CustomSettings::CustomSettings(QWidget* parent,
   advancedUI_->setupUi(this);
 
   // the buttons are named so that the slots are called automatically
-  QObject::connect(advancedUI_->format_box, SIGNAL(activated(int)), this, SLOT(initializeResolutions(int)));
+  QObject::connect(advancedUI_->format_box, SIGNAL(activated(QString)), this, SLOT(initializeResolutions(QString)));
 }
 
 
@@ -77,6 +77,7 @@ void CustomSettings::resetSettings(int deviceID)
   saveAdvancedSettings();
 }
 
+
 void CustomSettings::showBlocklistContextMenu(const QPoint& pos)
 {
   qDebug() << "Showing context menu for blocked users.";
@@ -91,6 +92,7 @@ void CustomSettings::showBlocklistContextMenu(const QPoint& pos)
   // Show context menu at handling position
   myMenu.exec(globalPos);
 }
+
 
 void CustomSettings::deleteBlocklistItem()
 {
@@ -292,6 +294,127 @@ void CustomSettings::restoreAdvancedSettings()
   advancedUI_->channels->setValue(settings_.value("audio/Channels").toInt());
 }
 
+void CustomSettings::restoreFormat()
+{
+  if(advancedUI_->format_box->count() > 0)
+  {
+    // initialize right format
+    QString format = "";
+    if(settings_.contains("video/InputFormat"))
+    {
+      format = settings_.value("video/InputFormat").toString();
+      int formatIndex = advancedUI_->format_box->findText(format);
+      qDebug() << "Trying to find format in camera:" << format << "Result index:" << formatIndex;
+
+      if(formatIndex != -1)
+      {
+        advancedUI_->format_box->setCurrentIndex(formatIndex);
+      }
+      else {
+        advancedUI_->format_box->setCurrentIndex(0);
+      }
+
+    }
+    else
+    {
+      advancedUI_->format_box->setCurrentIndex(0);
+    }
+  }
+}
+
+
+void CustomSettings::initializeFormat()
+{
+  qDebug() << "Initializing formats";
+  QStringList formats;
+
+  cam_->getVideoFormats(currentDevice_, formats);
+
+  advancedUI_->format_box->clear();
+  for(int i = 0; i < formats.size(); ++i)
+  {
+    advancedUI_->format_box->addItem(formats.at(i));
+  }
+  restoreFormat();
+}
+
+
+void CustomSettings::initializeResolutions(QString format)
+{
+  qDebug() << "Initializing resolutions";
+  advancedUI_->resolution->clear();
+  QStringList resolutions;
+
+  cam_->getFormatResolutions(currentDevice_, format, resolutions);
+
+  if(!resolutions.empty())
+  {
+    for(int i = 0; i < resolutions.size(); ++i)
+    {
+      advancedUI_->resolution->addItem(resolutions.at(i));
+    }
+  }
+
+  int resolutionID = settings_.value("video/ResolutionID").toInt();
+
+  advancedUI_->resolution->setCurrentIndex(resolutionID);
+}
+
+
+void CustomSettings::initializeBlocklist()
+{
+  //list_->setContextMenuPolicy(Qt::CustomContextMenu);
+  //connect(list, SIGNAL(customContextMenuRequested(QPoint)),
+  //        this, SLOT(showContextMenu(QPoint)));
+
+  advancedUI_->blockedUsers->clear();
+  advancedUI_->blockedUsers->setRowCount(0);
+
+  QSettings settings("blocklist.local", QSettings::IniFormat);
+
+  int size = settings.beginReadArray("blocklist");
+  qDebug() << "Reading blocklist with" << size << "usernames";
+  for (int i = 0; i < size; ++i) {
+    settings.setArrayIndex(i);
+    QString username = settings.value("userName").toString();
+    QString date = settings.value("date").toString();
+
+    addUsernameToList(username, date);
+  }
+  settings.endArray();
+}
+
+
+void CustomSettings::writeBlocklistToSettings()
+{
+  qDebug() << "Writing blocklist with" << advancedUI_->blockedUsers->rowCount()
+           << "items to settings.";
+
+  QSettings settings("blocklist.local", QSettings::IniFormat);
+
+  settings.beginWriteArray("blocklist");
+  for(int i = 0; i < advancedUI_->blockedUsers->rowCount(); ++i)
+  {
+    settings.setArrayIndex(i);
+    settings.setValue("username", advancedUI_->blockedUsers->item(i,0)->text());
+    settings.setValue("date", advancedUI_->blockedUsers->item(i,1)->text());
+  }
+  settings.endArray();
+}
+
+
+void CustomSettings::addUsernameToList(QString username, QString date)
+{
+  QTableWidgetItem* itemUser = new QTableWidgetItem(username);
+  QTableWidgetItem* itemDate = new QTableWidgetItem(date);
+
+  advancedUI_->blockedUsers->insertRow(advancedUI_->blockedUsers->rowCount());
+
+  advancedUI_->blockedUsers->setItem(advancedUI_->blockedUsers->rowCount() - 1, 0, itemUser);
+  advancedUI_->blockedUsers->setItem(advancedUI_->blockedUsers->rowCount() - 1, 1, itemDate);
+}
+
+
 void CustomSettings::restoreCheckBox(const QString settingValue, QCheckBox* box)
 {
   if(settings_.value(settingValue).toString() == "1")
@@ -368,116 +491,4 @@ bool CustomSettings::checkSipSettings()
 {
   return settings_.contains("sip/ServerAddress")
       && settings_.contains("sip/AutoConnect");
-}
-
-
-void CustomSettings::initializeFormat()
-{
-  qDebug() << "Initializing formats";
-  QStringList formats;
-
-  cam_->getVideoFormats(currentDevice_, formats);
-
-  advancedUI_->format_box->clear();
-  for(int i = 0; i < formats.size(); ++i)
-  {
-    advancedUI_->format_box->addItem(formats.at(i));
-  }
-  QString format = "";
-  if(settings_.contains("video/InputFormat"))
-  {
-    format = settings_.value("video/InputFormat").toString();
-    int formatIndex = advancedUI_->format_box->findText(format);
-    qDebug() << "Trying to find format in camera:" << format << "Result index:" << formatIndex;
-    if(formatIndex != -1)
-    {
-      advancedUI_->format_box->setCurrentIndex(formatIndex);
-    }
-    else if(formats.size() != 0){
-      advancedUI_->format_box->setCurrentIndex(0);
-    }
-
-  }
-  else
-  {
-    if(formats.size() != 0)
-    {
-      advancedUI_->format_box->setCurrentIndex(0);
-    }
-  }
-}
-
-
-void CustomSettings::initializeResolutions(QString format)
-{
-  qDebug() << "Initializing resolutions";
-  advancedUI_->resolution->clear();
-  QStringList resolutions;
-
-  cam_->getFormatResolutions(currentDevice_, format, resolutions);
-
-  if(!resolutions.empty())
-  {
-    for(int i = 0; i < resolutions.size(); ++i)
-    {
-      advancedUI_->resolution->addItem(resolutions.at(i));
-    }
-  }
-
-  int resolutionID = settings_.value("video/ResolutionID").toInt();
-
-  advancedUI_->resolution->setCurrentIndex(resolutionID);
-}
-
-
-void CustomSettings::initializeBlocklist()
-{
-  //list_->setContextMenuPolicy(Qt::CustomContextMenu);
-  //connect(list, SIGNAL(customContextMenuRequested(QPoint)),
-  //        this, SLOT(showContextMenu(QPoint)));
-
-  advancedUI_->blockedUsers->clear();
-  advancedUI_->blockedUsers->setRowCount(0);
-
-  QSettings settings("blocklist.local", QSettings::IniFormat);
-
-  int size = settings.beginReadArray("blocklist");
-  qDebug() << "Reading blocklist with" << size << "usernames";
-  for (int i = 0; i < size; ++i) {
-    settings.setArrayIndex(i);
-    QString username = settings.value("userName").toString();
-    QString date = settings.value("date").toString();
-
-    addUsernameToList(username, date);
-  }
-  settings.endArray();
-}
-
-
-void CustomSettings::writeBlocklistToSettings()
-{
-  qDebug() << "Writing blocklist with" << advancedUI_->blockedUsers->rowCount()
-           << "items to settings.";
-
-  QSettings settings("blocklist.local", QSettings::IniFormat);
-
-  settings.beginWriteArray("blocklist");
-  for(int i = 0; i < advancedUI_->blockedUsers->rowCount(); ++i)
-  {
-    settings.setArrayIndex(i);
-    settings.setValue("username", advancedUI_->blockedUsers->item(i,0)->text());
-    settings.setValue("date", advancedUI_->blockedUsers->item(i,1)->text());
-  }
-  settings.endArray();
-}
-
-void CustomSettings::addUsernameToList(QString username, QString date)
-{
-  QTableWidgetItem* itemUser = new QTableWidgetItem(username);
-  QTableWidgetItem* itemDate = new QTableWidgetItem(date);
-
-  advancedUI_->blockedUsers->insertRow(advancedUI_->blockedUsers->rowCount());
-
-  advancedUI_->blockedUsers->setItem(advancedUI_->blockedUsers->rowCount() - 1, 0, itemUser);
-  advancedUI_->blockedUsers->setItem(advancedUI_->blockedUsers->rowCount() - 1, 1, itemDate);
 }
