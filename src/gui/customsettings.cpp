@@ -386,9 +386,17 @@ void CustomSettings::initializeFormat()
   QString format = "";
   if(settings_.contains("video/InputFormat"))
   {
-    settings_.value("video/InputFormat").toString();
+    format = settings_.value("video/InputFormat").toString();
     int formatIndex = advancedUI_->format_box->findText(format);
-    advancedUI_->format_box->setCurrentIndex(formatIndex);
+    qDebug() << "Trying to find format in camera:" << format << "Result index:" << formatIndex;
+    if(formatIndex != -1)
+    {
+      advancedUI_->format_box->setCurrentIndex(formatIndex);
+    }
+    else if(formats.size() != 0){
+      advancedUI_->format_box->setCurrentIndex(0);
+    }
+
   }
   else
   {

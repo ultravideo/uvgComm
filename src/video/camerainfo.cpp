@@ -34,7 +34,7 @@ const std::map<QVideoFrame::PixelFormat, QString> pixelFormatStrings = {{QVideoF
                                                          {QVideoFrame::Format_IMC4, "IMC4"},
                                                          {QVideoFrame::Format_Y8, "Y8"},
                                                          {QVideoFrame::Format_Y16, "Y16"},
-                                                         {QVideoFrame::Format_Jpeg, "JPEG"},
+                                                         {QVideoFrame::Format_Jpeg, "MJPG"},
                                                          {QVideoFrame::Format_CameraRaw, "CameraRaw"},
                                                          {QVideoFrame::Format_AdobeDng, "AdobeDng"},
                                                          {QVideoFrame::Format_User, "User Defined"}};
