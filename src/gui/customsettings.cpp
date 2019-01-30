@@ -207,6 +207,7 @@ void CustomSettings::saveCameraCapabilities(int deviceIndex)
   if(formatIndex == -1)
   {
     formatIndex = 0;
+    resolutionIndex = 0;
   }
 
   if(resolutionIndex == -1)
@@ -217,13 +218,15 @@ void CustomSettings::saveCameraCapabilities(int deviceIndex)
   // TODO: cam_->getCapability(deviceIndex, formatIndex, resolutionIndex, resolution, fps, format);
   int32_t fps_int = static_cast<int>(fps);
 
+  QSize res = cam_->getResolution(currentDevice_, formatIndex, resolutionIndex);
+
   // since kvazaar requires resolution to be divisible by eight
   // TODO: Use QSize to record resolution
   settings_.setValue("video/ResolutionWidth",      resolution.width() - resolution.width()%8);
   settings_.setValue("video/ResolutionHeight",     resolution.height() - resolution.height()%8);
   settings_.setValue("video/ResolutionID",         resolutionIndex);
   settings_.setValue("video/Framerate",            fps_int);
-  settings_.setValue("video/InputFormat",          format);
+  settings_.setValue("video/InputFormat",          cam_->getFormat(currentDevice_, formatIndex));
 
   qDebug() << "Recorded the following video settings: Resolution:"
            << resolution.width() - resolution.width()%8 << "x" << resolution.height() - resolution.height()%8
@@ -367,7 +370,7 @@ void CustomSettings::initializeFormat()
 
 void CustomSettings::initializeResolutions(QString format)
 {
-  qDebug() << "Initializing resolutions";
+  qDebug() << "Initializing resolutions for format:" << format;
   advancedUI_->resolution->clear();
   QStringList resolutions;
 
