@@ -18,7 +18,7 @@ class CustomSettings  : public QDialog
 public:
   CustomSettings(QWidget* parent, std::shared_ptr<CameraInfo> info);
 
-  // initializes the custom view
+  // initializes the custom view with values from settings.
   void init(int deviceID);
 
   void changedDevice(uint16_t deviceIndex);
@@ -31,18 +31,16 @@ signals:
 
 public slots:
 
-  virtual void show();
+  // slots related to blocklist
+  void showBlocklistContextMenu(const QPoint& pos);
+  void deleteBlocklistItem();
 
-  void showContextMenu(const QPoint& pos);
-  void deleteListItem();
+  // button slot to add a user to list.
+  void on_addUserBlock_clicked();
 
   // button slots, called automatically by Qt
   void on_custom_ok_clicked();
   void on_custom_cancel_clicked();
-  void on_addUserBlock_clicked();
-
-  // setup the resolution list with values
-  void initializeResolutions(QString format);
 
   void serverStatusChange(QString status);
 
@@ -51,16 +49,15 @@ private:
   void restoreAdvancedSettings();
 
   // GUI -> QSettings
-  // permanently records GUI settings
   void saveAdvancedSettings();
 
   void saveCameraCapabilities(int deviceIndex);
 
   // initializes the UI with correct formats and resolutions
   void initializeFormat();
-
-  void initializeList();
-  void writeListToSettings();
+  void initializeResolutions(QString format);
+  void initializeBlocklist();
+  void writeBlocklistToSettings();
 
   void addUsernameToList(QString username, QString date);
 

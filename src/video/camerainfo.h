@@ -27,6 +27,8 @@ public:
   // get resolutions for a format.
   void getFramerates(int deviceID, QString format, int resolutionID);
 
+  QString videoFormatToString(QVideoFrame::PixelFormat format);
+
 private:
 
   std::unique_ptr<QCamera> loadCamera(int deviceID);
