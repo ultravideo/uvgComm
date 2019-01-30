@@ -5,6 +5,13 @@
 
 #include <memory>
 
+// The basic logic for this class goes as following:
+// 1) initialize fills UI elements with information so they can be interacted with
+// 2) restore reads the from QSettings and sets the GUI values
+// 3) save records the GUI values to QSettings.
+// 4) reset records the default GUI values to QSettings.
+
+
 namespace Ui {
 class AdvancedSettings;
 }
@@ -48,6 +55,7 @@ private:
   // QSettings -> GUI
   void restoreAdvancedSettings();
   void restoreFormat();
+  void restoreResolution();
 
 
   // GUI -> QSettings

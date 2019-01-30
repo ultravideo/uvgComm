@@ -238,6 +238,9 @@ void CustomSettings::restoreAdvancedSettings()
   bool validSettings = checkMissingValues();
   if(validSettings && checkVideoSettings())
   {
+    restoreFormat();
+    restoreResolution();
+
     qDebug() << "Restoring previous Advanced settings from file:" << settings_.fileName();
     int index = advancedUI_->preset->findText(settings_.value("video/Preset").toString());
     if(index != -1)
@@ -319,6 +322,24 @@ void CustomSettings::restoreFormat()
     {
       advancedUI_->format_box->setCurrentIndex(0);
     }
+
+    initializeResolutions(advancedUI_->format_box->currentText());
+  }
+}
+
+void CustomSettings::restoreResolution()
+{
+  if(advancedUI_->resolution->count() > 0)
+  {
+    int resolutionID = settings_.value("video/ResolutionID").toInt();
+
+    if(resolutionID >= 0)
+    {
+      advancedUI_->resolution->setCurrentIndex(resolutionID);
+    }
+    else {
+      advancedUI_->resolution->setCurrentIndex(0);
+    }
   }
 }
 
@@ -335,7 +356,12 @@ void CustomSettings::initializeFormat()
   {
     advancedUI_->format_box->addItem(formats.at(i));
   }
-  restoreFormat();
+
+  if(advancedUI_->format_box->count() > 0)
+  {
+    advancedUI_->format_box->setCurrentIndex(0);
+    initializeResolutions(advancedUI_->format_box->currentText());
+  }
 }
 
 
@@ -354,10 +380,6 @@ void CustomSettings::initializeResolutions(QString format)
       advancedUI_->resolution->addItem(resolutions.at(i));
     }
   }
-
-  int resolutionID = settings_.value("video/ResolutionID").toInt();
-
-  advancedUI_->resolution->setCurrentIndex(resolutionID);
 }
 
 
