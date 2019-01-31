@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gui/customSettings.h"
+#include "gui/customsettings.h"
 
 #include <QDialog>
 #include <QSettings>

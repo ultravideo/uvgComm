@@ -10,7 +10,11 @@
 #include <map>
 
 #ifndef _MSC_VER
+#ifdef _WIN32
 #include <inaddr.h>
+#else
+#include <netinet/ip.h>
+#endif
 #else
 #include <WinSock2.h>
 #endif

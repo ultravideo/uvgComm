@@ -82,7 +82,11 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
     if(peerInfo->connection_addrtype == "IP4")
     {
       in_addr ip;
+#ifdef _WIN32
       ip.S_un.S_addr = qToBigEndian(address.toIPv4Address());
+#else
+      ip.s_addr = qToBigEndian(address.toIPv4Address());
+#endif
 
       // TODO: Make it possible to have a separate ip address for each mediastream by fixing this.
       if(!streamer_->addPeer(ip, sessionID))
