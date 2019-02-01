@@ -1,4 +1,4 @@
-#include "callmanager.h"
+#include "kvazzupcore.h"
 
 #include "statisticsinterface.h"
 
@@ -7,13 +7,13 @@
 #include <QHostAddress>
 
 
-CallManager::CallManager():
+KvazzupCore::KvazzupCore():
     media_(),
     sip_(),
     window_(nullptr)
 {}
 
-void CallManager::init()
+void KvazzupCore::init()
 {
   window_.init(this);
   window_.show();
@@ -27,9 +27,9 @@ void CallManager::init()
   QObject::connect(&window_, SIGNAL(endCall()), this, SLOT(endTheCall()));
   QObject::connect(&window_, SIGNAL(closed()), this, SLOT(windowClosed()));
 
-  QObject::connect(&window_, &CallWindow::callAccepted, this, &CallManager::userAcceptsCall);
-  QObject::connect(&window_, &CallWindow::callRejected, this, &CallManager::userRejectsCall);
-  QObject::connect(&window_, &CallWindow::callCancelled, this, &CallManager::userCancelsCall);
+  QObject::connect(&window_, &CallWindow::callAccepted, this, &KvazzupCore::userAcceptsCall);
+  QObject::connect(&window_, &CallWindow::callRejected, this, &KvazzupCore::userRejectsCall);
+  QObject::connect(&window_, &CallWindow::callCancelled, this, &KvazzupCore::userCancelsCall);
 
   stats_ = window_.createStatsWindow();
 
@@ -40,29 +40,29 @@ void CallManager::init()
   //stun_.wantAddress("stun.l.google.com");
 }
 
-void CallManager::stunAddress(QHostAddress address)
+void KvazzupCore::stunAddress(QHostAddress address)
 {
   qDebug() << "Our stun address:" << address;
 }
 
-void CallManager::noStunAddress()
+void KvazzupCore::noStunAddress()
 {
   qDebug() << "Could not get STUN address";
 }
 
-void CallManager::uninit()
+void KvazzupCore::uninit()
 {
   endTheCall();
   sip_.uninit();
   media_.uninit();
 }
 
-void CallManager::windowClosed()
+void KvazzupCore::windowClosed()
 {
   uninit();
 }
 
-void CallManager::callToParticipant(QString name, QString username, QString ip)
+void KvazzupCore::callToParticipant(QString name, QString username, QString ip)
 {
   QString ip_str = ip;
 
@@ -91,16 +91,16 @@ void CallManager::callToParticipant(QString name, QString username, QString ip)
   }
 }
 
-void CallManager::chatWithParticipant(QString name, QString username, QString ip)
+void KvazzupCore::chatWithParticipant(QString name, QString username, QString ip)
 {
   qDebug() << "Chatting with:" << name << '(' << username << ") at ip:" << ip << ": Chat not implemented yet";
 }
 
-bool CallManager::incomingCall(uint32_t sessionID, QString caller)
+bool KvazzupCore::incomingCall(uint32_t sessionID, QString caller)
 {
   if(states_.find(sessionID) != states_.end())
   {
-    qDebug() << "ERROR: Overwriting and existing session in CallManager!";
+    qDebug() << "ERROR: Overwriting and existing session in the Kvazzup Core!";
   }
 
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
@@ -120,7 +120,7 @@ bool CallManager::incomingCall(uint32_t sessionID, QString caller)
   return false;
 }
 
-void CallManager::callRinging(uint32_t sessionID)
+void KvazzupCore::callRinging(uint32_t sessionID)
 {
   if(states_.find(sessionID) != states_.end() && states_[sessionID] == CALLINGTHEM)
   {
@@ -134,7 +134,7 @@ void CallManager::callRinging(uint32_t sessionID)
   }
 }
 
-void CallManager::peerAccepted(uint32_t sessionID)
+void KvazzupCore::peerAccepted(uint32_t sessionID)
 {
   if(states_.find(sessionID) != states_.end())
   {
@@ -154,7 +154,7 @@ void CallManager::peerAccepted(uint32_t sessionID)
   }
 }
 
-void CallManager::peerRejected(uint32_t sessionID)
+void KvazzupCore::peerRejected(uint32_t sessionID)
 {
   if(states_.find(sessionID) != states_.end())
   {
@@ -175,7 +175,7 @@ void CallManager::peerRejected(uint32_t sessionID)
   }
 }
 
-void CallManager::callNegotiated(uint32_t sessionID)
+void KvazzupCore::callNegotiated(uint32_t sessionID)
 {
   if(states_.find(sessionID) != states_.end())
   {
@@ -211,19 +211,19 @@ void CallManager::callNegotiated(uint32_t sessionID)
   }
 }
 
-void CallManager::callNegotiationFailed(uint32_t sessionID)
+void KvazzupCore::callNegotiationFailed(uint32_t sessionID)
 {
   // TODO: display a proper error for the user
   peerRejected(sessionID);
 }
 
-void CallManager::cancelIncomingCall(uint32_t sessionID)
+void KvazzupCore::cancelIncomingCall(uint32_t sessionID)
 {
   // TODO: display a proper message to the user that peer has cancelled their call
   removeSession(sessionID);
 }
 
-void CallManager::endCall(uint32_t sessionID)
+void KvazzupCore::endCall(uint32_t sessionID)
 {
   if(states_.find(sessionID) != states_.end()
      && states_[sessionID] == CALLONGOING)
@@ -233,46 +233,46 @@ void CallManager::endCall(uint32_t sessionID)
   removeSession(sessionID);
 }
 
-void CallManager::registeredToServer()
+void KvazzupCore::registeredToServer()
 {
   qDebug() << "Got info, that we have been registered to SIP server.";
   // TODO: indicate to user in some small detail
 }
 
-void CallManager::registeringFailed()
+void KvazzupCore::registeringFailed()
 {
   qDebug() << "Failed to register";
   // TODO: indicate error to user
 }
 
-void CallManager::updateSettings()
+void KvazzupCore::updateSettings()
 {
   media_.updateSettings();
   //sip_.updateSettings(); // for blocking list
 }
 
-void CallManager::userAcceptsCall(uint32_t sessionID)
+void KvazzupCore::userAcceptsCall(uint32_t sessionID)
 {
   qDebug() << "Sending accept";
   sip_.acceptCall(sessionID);
   states_[sessionID] = CALLNEGOTIATING;
 }
 
-void CallManager::userRejectsCall(uint32_t sessionID)
+void KvazzupCore::userRejectsCall(uint32_t sessionID)
 {
   qDebug() << "We have rejected their call";
   sip_.rejectCall(sessionID);
   removeSession(sessionID);
 }
 
-void CallManager::userCancelsCall(uint32_t sessionID)
+void KvazzupCore::userCancelsCall(uint32_t sessionID)
 {
   qDebug() << "We have cancelled our call";
   sip_.cancelCall(sessionID);
   removeSession(sessionID);
 }
 
-void CallManager::endTheCall()
+void KvazzupCore::endTheCall()
 {
   qDebug() << "Ending all calls";
   sip_.endAllCalls();
@@ -282,17 +282,17 @@ void CallManager::endTheCall()
   states_.clear();
 }
 
-void CallManager::micState()
+void KvazzupCore::micState()
 {
   window_.setMicState(media_.toggleMic());
 }
 
-void CallManager::cameraState()
+void KvazzupCore::cameraState()
 {
   window_.setCameraState(media_.toggleCamera());
 }
 
-void CallManager::removeSession(uint32_t sessionID)
+void KvazzupCore::removeSession(uint32_t sessionID)
 {
   window_.removeParticipant(sessionID);
 

@@ -32,7 +32,6 @@ SOURCES +=\
     src/rtpsinkfilter.cpp \
     src/common.cpp \
     src/mediamanager.cpp \
-    src/callmanager.cpp \
     src/filter.cpp \
     src/filtergraph.cpp \
     src/audio/audiocapturedevice.cpp \
@@ -42,7 +41,6 @@ SOURCES +=\
     src/video/camerafilter.cpp \
     src/video/cameraframegrabber.cpp \
     src/video/displayfilter.cpp \
-    src/video/dshowcamerafilter.cpp \
     src/video/kvazaarfilter.cpp \
     src/video/openhevcfilter.cpp \
     src/audio/opusdecoderfilter.cpp \
@@ -50,7 +48,6 @@ SOURCES +=\
     src/video/rgb32toyuv.cpp \
     src/audio/speexaecfilter.cpp \
     src/video/yuvtorgb32.cpp \
-    src/video/dshow/capture.cpp \
     src/connectionserver.cpp \
     src/gui/callwindow.cpp \
     src/gui/conferenceview.cpp \
@@ -81,7 +78,8 @@ SOURCES +=\
     src/sdpparametermanager.cpp \
     src/sip/connectionpolicy.cpp \
     src/gui/videoyuvwidget.cpp \
-    src/gui/videodrawhelper.cpp
+    src/gui/videodrawhelper.cpp \
+    src/kvazzupcore.cpp
 
 HEADERS  += \
     src/filter.h \
@@ -93,11 +91,7 @@ HEADERS  += \
     src/common.h \
     src/mediamanager.h \
     src/participantinterface.h \
-    src/callmanager.h \
-    src/video/dshow/capture_interface.h \
-    src/video/dshow/SampleGrabber.h \
     src/audio/audiocapturedevice.h \
-    src/video/dshow/capture.h \
     src/video/cameraframegrabber.h \
     src/video/openhevcfilter.h \
     src/audio/opusdecoderfilter.h \
@@ -108,7 +102,6 @@ HEADERS  += \
     src/audio/audiocapturefilter.h \
     src/audio/audiooutput.h \
     src/audio/audiooutputdevice.h \
-    src/video/dshowcamerafilter.h \
     src/video/camerafilter.h \
     src/video/kvazaarfilter.h \
     src/video/optimized/rgb2yuv.h \
@@ -149,7 +142,8 @@ HEADERS  += \
     src/sdpparametermanager.h \
     src/sip/connectionpolicy.h \
     src/gui/videoyuvwidget.h \
-    src/gui/videodrawhelper.h
+    src/gui/videodrawhelper.h \
+    src/kvazzupcore.h
 
 FORMS    += \
     ui/callwindow.ui \

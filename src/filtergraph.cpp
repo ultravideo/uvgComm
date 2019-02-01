@@ -6,7 +6,6 @@
 #include "video/openhevcfilter.h"
 #include "video/yuvtorgb32.h"
 #include "video/displayfilter.h"
-#include "video/dshowcamerafilter.h"
 #include "scalefilter.h"
 #include "audio/audiocapturefilter.h"
 #include "audio/audiooutputdevice.h"
@@ -120,15 +119,9 @@ void FilterGraph::initSelfView(VideoInterface *selfView)
   }
 
   // Sending video graph
-  // TODO: move to settings or remove one of these
-  if(DSHOW_ENABLED)
-  {
-    addToGraph(std::shared_ptr<Filter>(new DShowCameraFilter("", stats_)), videoSend_);
-  }
-  else
-  {
-    addToGraph(std::shared_ptr<Filter>(new CameraFilter("", stats_)), videoSend_);
-  }
+
+  addToGraph(std::shared_ptr<Filter>(new CameraFilter("", stats_)), videoSend_);
+
   if(selfView)
   {
     // connect scaling filter

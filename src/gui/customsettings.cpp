@@ -10,6 +10,21 @@
 
 #include <QDebug>
 
+
+const QStringList neededSettings = {"video/DeviceID",
+                                    "video/Device",
+                                    "video/ResolutionWidth",
+                                    "video/ResolutionHeight",
+                                    "video/WPP",
+                                    "video/Framerate",
+                                    "video/InputFormat",
+                                    "video/Slices",
+                                    "video/kvzThreads",
+                                    "video/yuvThreads",
+                                    "video/OPENHEVC_Threads"};
+
+
+
 CustomSettings::CustomSettings(QWidget* parent,
                                std::shared_ptr<CameraInfo> info)
   :
@@ -22,29 +37,9 @@ CustomSettings::CustomSettings(QWidget* parent,
   advancedUI_->setupUi(this);
 
   // the buttons are named so that the slots are called automatically
-  QObject::connect(advancedUI_->format_box, SIGNAL(activated(int)), this, SLOT(initializeResolutions(int)));
+  QObject::connect(advancedUI_->format_box, SIGNAL(activated(QString)), this, SLOT(initializeResolutions(QString)));
 }
 
-void CustomSettings::showContextMenu(const QPoint& pos)
-{
-  qDebug() << "Showing context menu for blocked users.";
-
-  // Handle global position
-  QPoint globalPos = advancedUI_->blockedUsers->mapToGlobal(pos);
-
-  // Create menu and insert some actions
-  QMenu myMenu;
-  myMenu.addAction("Delete", this, SLOT(deleteListItem()));
-
-  // Show context menu at handling position
-  myMenu.exec(globalPos);
-}
-
-void CustomSettings::deleteListItem()
-{
-  qDebug() << "deleting row:" << advancedUI_->blockedUsers->currentRow();
-  advancedUI_->blockedUsers->removeRow(advancedUI_->blockedUsers->currentRow());
-}
 
 void CustomSettings::init(int deviceID)
 {
@@ -59,71 +54,11 @@ void CustomSettings::init(int deviceID)
   currentDevice_ = deviceID;
   advancedUI_->blockedUsers->setContextMenuPolicy(Qt::CustomContextMenu);
   connect(advancedUI_->blockedUsers, &QWidget::customContextMenuRequested,
-          this, &CustomSettings::showContextMenu);
+          this, &CustomSettings::showBlocklistContextMenu);
 
   restoreAdvancedSettings();
 }
 
-void CustomSettings::initializeFormat()
-{
-  qDebug() << "Initializing formats";
-  QStringList formats;
-  QList<QStringList> resolutions;
-  cam_->getVideoCapabilities(currentDevice_, formats, resolutions);
-
-  advancedUI_->format_box->clear();
-  for(int i = 0; i < formats.size(); ++i)
-  {
-    advancedUI_->format_box->addItem( formats.at(i));
-  }
-  int formatIndex = getFormatIndex();
-  advancedUI_->format_box->setCurrentIndex(formatIndex);
-
-  initializeResolutions(formatIndex);
-}
-
-int CustomSettings::getFormatIndex()
-{
-  int formatIndex = advancedUI_->format_box->findText(settings_.value("video/InputFormat").toString());
-  int formatID = settings_.value("video/InputFormatID").toInt();
-
-  if(formatID != formatIndex)
-  {
-    qDebug() << "Resettings resolution and format, because the format index was not correct. Index:" << formatIndex
-             << "ID:" << formatID;
-    // the formats have changed (device has changed), reset both format and resolution.
-    settings_.setValue("video/InputFormatID",   formatIndex);
-    settings_.setValue("video/ResolutionID",    0);
-    settings_.setValue("video/CapabilityID",    cam_->formatToCapability(currentDevice_, formatIndex, 0));
-  }
-
-  if(formatIndex == -1)
-  {
-    formatIndex = 0;
-  }
-  return formatIndex;
-}
-
-void CustomSettings::initializeResolutions(int index)
-{
-  qDebug() << "Initializing resolutions";
-  advancedUI_->resolution->clear();
-  QStringList formats;
-  QList<QStringList> resolutions;
-  cam_->getVideoCapabilities(currentDevice_, formats, resolutions);
-
-  if(!resolutions.empty())
-  {
-    for(int i = 0; i < resolutions.at(index).size(); ++i)
-    {
-      advancedUI_->resolution->addItem(resolutions.at(index).at(i));
-    }
-  }
-
-  int resolutionID = settings_.value("video/ResolutionID").toInt();
-
-  advancedUI_->resolution->setCurrentIndex(resolutionID);
-}
 
 void CustomSettings::changedDevice(uint16_t deviceIndex)
 {
@@ -131,6 +66,7 @@ void CustomSettings::changedDevice(uint16_t deviceIndex)
   initializeFormat();
   saveCameraCapabilities(deviceIndex); // record the new camerasettings.
 }
+
 
 void CustomSettings::resetSettings(int deviceID)
 {
@@ -141,6 +77,30 @@ void CustomSettings::resetSettings(int deviceID)
   saveAdvancedSettings();
 }
 
+
+void CustomSettings::showBlocklistContextMenu(const QPoint& pos)
+{
+  qDebug() << "Showing context menu for blocked users.";
+
+  // Handle global position
+  QPoint globalPos = advancedUI_->blockedUsers->mapToGlobal(pos);
+
+  // Create menu and insert some actions
+  QMenu myMenu;
+  myMenu.addAction("Delete", this, SLOT(deleteBlocklistItem()));
+
+  // Show context menu at handling position
+  myMenu.exec(globalPos);
+}
+
+
+void CustomSettings::deleteBlocklistItem()
+{
+  qDebug() << "deleting row:" << advancedUI_->blockedUsers->currentRow();
+  advancedUI_->blockedUsers->removeRow(advancedUI_->blockedUsers->currentRow());
+}
+
+
 void CustomSettings::on_custom_ok_clicked()
 {
   qDebug() << "Saving advanced settings";
@@ -149,6 +109,16 @@ void CustomSettings::on_custom_ok_clicked()
   emit hidden();
   hide();
 }
+
+
+void CustomSettings::on_custom_cancel_clicked()
+{
+  qDebug() << "Cancelled modifying custom settings. Getting settings from system";
+  restoreAdvancedSettings();
+  hide();
+  emit hidden();
+}
+
 
 void CustomSettings::on_addUserBlock_clicked()
 {
@@ -177,20 +147,6 @@ void CustomSettings::on_addUserBlock_clicked()
   }
 }
 
-void CustomSettings::on_custom_cancel_clicked()
-{
-  qDebug() << "Cancelled modifying custom settings. Getting settings from system";
-  restoreAdvancedSettings();
-  hide();
-  emit hidden();
-}
-
-void CustomSettings::show()
-{
-  qDebug() << "Showing custom settings";
-  // no need to initialize format/resolutions because they only change when device is changed.
-  QWidget::show();
-}
 
 void CustomSettings::serverStatusChange(QString status)
 {
@@ -201,6 +157,7 @@ void CustomSettings::serverStatusChange(QString status)
     advancedUI_->connectButton->setText("Disconnect");
   }
 }
+
 
 void CustomSettings::saveAdvancedSettings()
 {
@@ -226,12 +183,11 @@ void CustomSettings::saveAdvancedSettings()
 
   saveCameraCapabilities(settings_.value("video/DeviceID").toInt());
 
-  writeListToSettings();
+  writeBlocklistToSettings();
 
   // sip settings.
   saveTextValue("sip/ServerAddress", advancedUI_->serverAddress->text());
   saveCheckBox("sip/AutoConnect", advancedUI_->autoConnect);
-
 
   //settings.sync(); // TODO is this needed?
 }
@@ -239,17 +195,19 @@ void CustomSettings::saveAdvancedSettings()
 void CustomSettings::saveCameraCapabilities(int deviceIndex)
 {
   qDebug() << "Recording capability settings for deviceIndex:" << deviceIndex;
-  QSize resolution = QSize(0,0);
   double fps = 0.0f;
-  QString format = "";
+
 
   int formatIndex = advancedUI_->format_box->currentIndex();
   int resolutionIndex = advancedUI_->resolution->currentIndex();
+
+  QString format = cam_->getFormat(currentDevice_, formatIndex);
 
   qDebug() << "Boxes in following positions: Format:" << formatIndex << "Resolution:" << resolutionIndex;
   if(formatIndex == -1)
   {
     formatIndex = 0;
+    resolutionIndex = 0;
   }
 
   if(resolutionIndex == -1)
@@ -257,32 +215,35 @@ void CustomSettings::saveCameraCapabilities(int deviceIndex)
     resolutionIndex = 0;
   }
 
-  cam_->getCapability(deviceIndex, formatIndex, resolutionIndex, resolution, fps, format);
+  // TODO: cam_->getCapability(deviceIndex, formatIndex, resolutionIndex, resolution, fps, format);
   int32_t fps_int = static_cast<int>(fps);
+
+  QSize res = cam_->getResolution(currentDevice_, formatIndex, resolutionIndex);
 
   // since kvazaar requires resolution to be divisible by eight
   // TODO: Use QSize to record resolution
-  settings_.setValue("video/ResolutionWidth",      resolution.width() - resolution.width()%8);
-  settings_.setValue("video/ResolutionHeight",     resolution.height() - resolution.height()%8);
+  settings_.setValue("video/ResolutionWidth",      res.width() - res.width()%8);
+  settings_.setValue("video/ResolutionHeight",     res.height() - res.height()%8);
   settings_.setValue("video/ResolutionID",         resolutionIndex);
-  settings_.setValue("video/CapabilityID",         cam_->formatToCapability(currentDevice_, formatIndex, resolutionIndex));
   settings_.setValue("video/Framerate",            fps_int);
   settings_.setValue("video/InputFormat",          format);
-  settings_.setValue("video/InputFormatID",        formatIndex);
 
   qDebug() << "Recorded the following video settings: Resolution:"
-           << resolution.width() - resolution.width()%8 << "x" << resolution.height() - resolution.height()%8
+           << res.width() - res.width()%8 << "x" << res.height() - res.height()%8
            << "fps:" << fps_int << "resolution index:" << resolutionIndex << "format" << format;
 }
 
 void CustomSettings::restoreAdvancedSettings()
 {
   initializeFormat();
-  initializeList();
+  initializeBlocklist();
 
   bool validSettings = checkMissingValues();
   if(validSettings && checkVideoSettings())
   {
+    restoreFormat();
+    restoreResolution();
+
     qDebug() << "Restoring previous Advanced settings from file:" << settings_.fileName();
     int index = advancedUI_->preset->findText(settings_.value("video/Preset").toString());
     if(index != -1)
@@ -300,8 +261,7 @@ void CustomSettings::restoreAdvancedSettings()
 
     restoreCheckBox("video/Slices", advancedUI_->slices);
 
-    int formatIndex = getFormatIndex();
-    advancedUI_->format_box->setCurrentIndex(formatIndex);
+    advancedUI_->format_box->setCurrentText(settings_.value("video/InputFormat").toString());
 
     int resolutionID = settings_.value("video/ResolutionID").toInt();
     advancedUI_->resolution->setCurrentIndex(resolutionID);
@@ -336,10 +296,149 @@ void CustomSettings::restoreAdvancedSettings()
     resetSettings(currentDevice_);
   }
 
-
   // TODO: check audio settings
   advancedUI_->channels->setValue(settings_.value("audio/Channels").toInt());
 }
+
+void CustomSettings::restoreFormat()
+{
+  if(advancedUI_->format_box->count() > 0)
+  {
+    // initialize right format
+    QString format = "";
+    if(settings_.contains("video/InputFormat"))
+    {
+      format = settings_.value("video/InputFormat").toString();
+      int formatIndex = advancedUI_->format_box->findText(format);
+      qDebug() << "Trying to find format in camera:" << format << "Result index:" << formatIndex;
+
+      if(formatIndex != -1)
+      {
+        advancedUI_->format_box->setCurrentIndex(formatIndex);
+      }
+      else {
+        advancedUI_->format_box->setCurrentIndex(0);
+      }
+
+    }
+    else
+    {
+      advancedUI_->format_box->setCurrentIndex(0);
+    }
+
+    initializeResolutions(advancedUI_->format_box->currentText());
+  }
+}
+
+void CustomSettings::restoreResolution()
+{
+  if(advancedUI_->resolution->count() > 0)
+  {
+    int resolutionID = settings_.value("video/ResolutionID").toInt();
+
+    if(resolutionID >= 0)
+    {
+      advancedUI_->resolution->setCurrentIndex(resolutionID);
+    }
+    else {
+      advancedUI_->resolution->setCurrentIndex(0);
+    }
+  }
+}
+
+
+void CustomSettings::initializeFormat()
+{
+  qDebug() << "Initializing formats";
+  QStringList formats;
+
+  cam_->getVideoFormats(currentDevice_, formats);
+
+  advancedUI_->format_box->clear();
+  for(int i = 0; i < formats.size(); ++i)
+  {
+    advancedUI_->format_box->addItem(formats.at(i));
+  }
+
+  if(advancedUI_->format_box->count() > 0)
+  {
+    advancedUI_->format_box->setCurrentIndex(0);
+    initializeResolutions(advancedUI_->format_box->currentText());
+  }
+}
+
+
+void CustomSettings::initializeResolutions(QString format)
+{
+  qDebug() << "Initializing resolutions for format:" << format;
+  advancedUI_->resolution->clear();
+  QStringList resolutions;
+
+  cam_->getFormatResolutions(currentDevice_, format, resolutions);
+
+  if(!resolutions.empty())
+  {
+    for(int i = 0; i < resolutions.size(); ++i)
+    {
+      advancedUI_->resolution->addItem(resolutions.at(i));
+    }
+  }
+}
+
+
+void CustomSettings::initializeBlocklist()
+{
+  //list_->setContextMenuPolicy(Qt::CustomContextMenu);
+  //connect(list, SIGNAL(customContextMenuRequested(QPoint)),
+  //        this, SLOT(showContextMenu(QPoint)));
+
+  advancedUI_->blockedUsers->clear();
+  advancedUI_->blockedUsers->setRowCount(0);
+
+  QSettings settings("blocklist.local", QSettings::IniFormat);
+
+  int size = settings.beginReadArray("blocklist");
+  qDebug() << "Reading blocklist with" << size << "usernames";
+  for (int i = 0; i < size; ++i) {
+    settings.setArrayIndex(i);
+    QString username = settings.value("userName").toString();
+    QString date = settings.value("date").toString();
+
+    addUsernameToList(username, date);
+  }
+  settings.endArray();
+}
+
+
+void CustomSettings::writeBlocklistToSettings()
+{
+  qDebug() << "Writing blocklist with" << advancedUI_->blockedUsers->rowCount()
+           << "items to settings.";
+
+  QSettings settings("blocklist.local", QSettings::IniFormat);
+
+  settings.beginWriteArray("blocklist");
+  for(int i = 0; i < advancedUI_->blockedUsers->rowCount(); ++i)
+  {
+    settings.setArrayIndex(i);
+    settings.setValue("username", advancedUI_->blockedUsers->item(i,0)->text());
+    settings.setValue("date", advancedUI_->blockedUsers->item(i,1)->text());
+  }
+  settings.endArray();
+}
+
+
+void CustomSettings::addUsernameToList(QString username, QString date)
+{
+  QTableWidgetItem* itemUser = new QTableWidgetItem(username);
+  QTableWidgetItem* itemDate = new QTableWidgetItem(date);
+
+  advancedUI_->blockedUsers->insertRow(advancedUI_->blockedUsers->rowCount());
+
+  advancedUI_->blockedUsers->setItem(advancedUI_->blockedUsers->rowCount() - 1, 0, itemUser);
+  advancedUI_->blockedUsers->setItem(advancedUI_->blockedUsers->rowCount() - 1, 1, itemDate);
+}
+
 
 void CustomSettings::restoreCheckBox(const QString settingValue, QCheckBox* box)
 {
@@ -395,18 +494,17 @@ bool CustomSettings::checkMissingValues()
 
 bool CustomSettings::checkVideoSettings()
 {
-  return checkMissingValues()
-      && settings_.contains("video/DeviceID")
-      && settings_.contains("video/Device")
-      && settings_.contains("video/ResolutionWidth")
-      && settings_.contains("video/ResolutionHeight")
-      && settings_.contains("video/WPP")
-      && settings_.contains("video/Framerate")
-      && settings_.contains("video/InputFormat")
-      && settings_.contains("video/Slices")
-      && settings_.contains("video/kvzThreads")
-      && settings_.contains("video/yuvThreads")
-      && settings_.contains("video/OPENHEVC_Threads");
+  bool everythingPresent = checkMissingValues();
+
+  for(auto need : neededSettings)
+  {
+    if(!settings_.contains(need))
+    {
+      qDebug() << "Missing setting for:" << need << "Resetting custom settings";
+      everythingPresent = false;
+    }
+  }
+  return everythingPresent;
 }
 
 bool CustomSettings::checkAudioSettings()
@@ -418,55 +516,4 @@ bool CustomSettings::checkSipSettings()
 {
   return settings_.contains("sip/ServerAddress")
       && settings_.contains("sip/AutoConnect");
-}
-
-void CustomSettings::initializeList()
-{
-  //list_->setContextMenuPolicy(Qt::CustomContextMenu);
-  //connect(list, SIGNAL(customContextMenuRequested(QPoint)),
-  //        this, SLOT(showContextMenu(QPoint)));
-
-  advancedUI_->blockedUsers->clear();
-  advancedUI_->blockedUsers->setRowCount(0);
-
-  QSettings settings("blocklist.local", QSettings::IniFormat);
-
-  int size = settings.beginReadArray("blocklist");
-  qDebug() << "Reading blocklist with" << size << "usernames";
-  for (int i = 0; i < size; ++i) {
-    settings.setArrayIndex(i);
-    QString username = settings.value("userName").toString();
-    QString date = settings.value("date").toString();
-
-    addUsernameToList(username, date);
-  }
-  settings.endArray();
-}
-
-void CustomSettings::writeListToSettings()
-{
-  qDebug() << "Writing blocklist with" << advancedUI_->blockedUsers->rowCount()
-           << "items to settings.";
-
-  QSettings settings("blocklist.local", QSettings::IniFormat);
-
-  settings.beginWriteArray("blocklist");
-  for(int i = 0; i < advancedUI_->blockedUsers->rowCount(); ++i)
-  {
-    settings.setArrayIndex(i);
-    settings.setValue("username", advancedUI_->blockedUsers->item(i,0)->text());
-    settings.setValue("date", advancedUI_->blockedUsers->item(i,1)->text());
-  }
-  settings.endArray();
-}
-
-void CustomSettings::addUsernameToList(QString username, QString date)
-{
-  QTableWidgetItem* itemUser = new QTableWidgetItem(username);
-  QTableWidgetItem* itemDate = new QTableWidgetItem(date);
-
-  advancedUI_->blockedUsers->insertRow(advancedUI_->blockedUsers->rowCount());
-
-  advancedUI_->blockedUsers->setItem(advancedUI_->blockedUsers->rowCount() - 1, 0, itemUser);
-  advancedUI_->blockedUsers->setItem(advancedUI_->blockedUsers->rowCount() - 1, 1, itemDate);
 }

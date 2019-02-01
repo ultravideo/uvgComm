@@ -9,9 +9,9 @@ const uint16_t VIEWBUFFERSIZE = 5;
 VideoDrawHelper::VideoDrawHelper(uint32_t sessionID, uint8_t borderSize):
   sessionID_(sessionID),
   tmpParent_(nullptr),
-  borderSize_(borderSize),
   firstImageReceived_(false),
-  previousSize_(QSize(0,0))
+  previousSize_(QSize(0,0)),
+  borderSize_(borderSize)
 {}
 
 VideoDrawHelper::~VideoDrawHelper()
@@ -181,9 +181,9 @@ void VideoDrawHelper::enterFullscreen(QWidget* widget)
   //this->showMaximized();
   widget->show();
   widget->setWindowState(Qt::WindowFullScreen);
-  widget->raise();
 
   emit detach(sessionID_, widget);
+  widget->raise();
 }
 
 

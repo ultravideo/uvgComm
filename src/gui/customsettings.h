@@ -5,6 +5,13 @@
 
 #include <memory>
 
+// The basic logic for this class goes as following:
+// 1) initialize fills UI elements with information so they can be interacted with
+// 2) restore reads the from QSettings and sets the GUI values
+// 3) save records the GUI values to QSettings.
+// 4) reset records the default GUI values to QSettings.
+
+
 namespace Ui {
 class AdvancedSettings;
 }
@@ -18,7 +25,7 @@ class CustomSettings  : public QDialog
 public:
   CustomSettings(QWidget* parent, std::shared_ptr<CameraInfo> info);
 
-  // initializes the custom view
+  // initializes the custom view with values from settings.
   void init(int deviceID);
 
   void changedDevice(uint16_t deviceIndex);
@@ -31,38 +38,38 @@ signals:
 
 public slots:
 
-  virtual void show();
+  // slots related to blocklist
+  void showBlocklistContextMenu(const QPoint& pos);
+  void deleteBlocklistItem();
 
-  void showContextMenu(const QPoint& pos);
-  void deleteListItem();
+  // button slot to add a user to list.
+  void on_addUserBlock_clicked();
 
   // button slots, called automatically by Qt
   void on_custom_ok_clicked();
   void on_custom_cancel_clicked();
-  void on_addUserBlock_clicked();
-
-  // setup the resolution list with values
-  void initializeResolutions(int index);
 
   void serverStatusChange(QString status);
+
+  void initializeResolutions(QString format);
 
 private:
   // QSettings -> GUI
   void restoreAdvancedSettings();
+  void restoreFormat();
+  void restoreResolution();
+
 
   // GUI -> QSettings
-  // permanently records GUI settings
   void saveAdvancedSettings();
 
   void saveCameraCapabilities(int deviceIndex);
 
-  int getFormatIndex();
-
   // initializes the UI with correct formats and resolutions
   void initializeFormat();
 
-  void initializeList();
-  void writeListToSettings();
+  void initializeBlocklist();
+  void writeBlocklistToSettings();
 
   void addUsernameToList(QString username, QString date);
 

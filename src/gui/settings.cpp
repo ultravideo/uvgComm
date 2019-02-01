@@ -16,7 +16,7 @@ Settings::Settings(QWidget *parent) :
   basicUI_->setupUi(this);
 
   // Checks that settings values are correct for the program to start. Also sets GUI.
-  getSettings(true);
+  getSettings(false);
 
   custom_.init(getVideoDeviceID());
 
