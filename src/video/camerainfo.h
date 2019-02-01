@@ -25,12 +25,11 @@ public:
   void getFormatResolutions(int deviceID, QString format, QStringList& resolutions);
 
   // get resolutions for a format.
-  void getFramerates(int deviceID, QString format, int resolutionID);
+  void getFramerates(int deviceID, QString format, int resolutionID, QStringList& ranges);
 
   QSize getResolution(int deviceID, int formatID, int resolutionID);
 
   QString getFormat(int deviceID, int formatID);
-
 
 private:
 

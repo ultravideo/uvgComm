@@ -16,12 +16,12 @@ const QStringList neededSettings = {"video/DeviceID",
                                     "video/ResolutionWidth",
                                     "video/ResolutionHeight",
                                     "video/WPP",
-                                    "video/Framerate",
                                     "video/InputFormat",
                                     "video/Slices",
                                     "video/kvzThreads",
                                     "video/yuvThreads",
-                                    "video/OPENHEVC_Threads"};
+                                    "video/OPENHEVC_Threads",
+                                    "video/FramerateID"};
 
 
 
@@ -38,6 +38,7 @@ CustomSettings::CustomSettings(QWidget* parent,
 
   // the buttons are named so that the slots are called automatically
   QObject::connect(advancedUI_->format_box, SIGNAL(activated(QString)), this, SLOT(initializeResolutions(QString)));
+  QObject::connect(advancedUI_->resolution, SIGNAL(activated(QString)), this, SLOT(initializeFramerates(QString)));
 }
 
 
@@ -195,8 +196,6 @@ void CustomSettings::saveAdvancedSettings()
 void CustomSettings::saveCameraCapabilities(int deviceIndex)
 {
   qDebug() << "Recording capability settings for deviceIndex:" << deviceIndex;
-  double fps = 0.0f;
-
 
   int formatIndex = advancedUI_->format_box->currentIndex();
   int resolutionIndex = advancedUI_->resolution->currentIndex();
@@ -225,7 +224,7 @@ void CustomSettings::saveCameraCapabilities(int deviceIndex)
   settings_.setValue("video/ResolutionWidth",      res.width() - res.width()%8);
   settings_.setValue("video/ResolutionHeight",     res.height() - res.height()%8);
   settings_.setValue("video/ResolutionID",         resolutionIndex);
-  settings_.setValue("video/Framerate",            fps_int);
+  settings_.setValue("video/FramerateID",          advancedUI_->framerate_box->currentIndex());
   settings_.setValue("video/InputFormat",          format);
 
   qDebug() << "Recorded the following video settings: Resolution:"
@@ -243,6 +242,7 @@ void CustomSettings::restoreAdvancedSettings()
   {
     restoreFormat();
     restoreResolution();
+    restoreFramerate();
 
     qDebug() << "Restoring previous Advanced settings from file:" << settings_.fileName();
     int index = advancedUI_->preset->findText(settings_.value("video/Preset").toString());
@@ -347,6 +347,23 @@ void CustomSettings::restoreResolution()
 }
 
 
+void CustomSettings::restoreFramerate()
+{
+  if(advancedUI_->framerate_box->count() > 0)
+  {
+    int framerateID = settings_.value("video/FramerateID").toInt();
+
+    if(framerateID < advancedUI_->framerate_box->count())
+    {
+      advancedUI_->framerate_box->setCurrentIndex(framerateID);
+    }
+    else {
+      advancedUI_->framerate_box->setCurrentIndex(advancedUI_->framerate_box->count() - 1);
+    }
+  }
+}
+
+
 void CustomSettings::initializeFormat()
 {
   qDebug() << "Initializing formats";
@@ -381,6 +398,29 @@ void CustomSettings::initializeResolutions(QString format)
     for(int i = 0; i < resolutions.size(); ++i)
     {
       advancedUI_->resolution->addItem(resolutions.at(i));
+    }
+  }
+
+  if(advancedUI_->resolution->count() > 0)
+  {
+    advancedUI_->resolution->setCurrentIndex(0);
+    initializeFramerates(format, 0);
+  }
+}
+
+void CustomSettings::initializeFramerates(QString format, int resolutionID)
+{
+  qDebug() << "Initializing resolutions for format:" << format;
+  advancedUI_->framerate_box->clear();
+  QStringList rates;
+
+  cam_->getFramerates(currentDevice_, format, resolutionID, rates);
+
+  if(!rates.empty())
+  {
+    for(int i = 0; i < rates.size(); ++i)
+    {
+      advancedUI_->framerate_box->addItem(rates.at(i));
     }
   }
 }

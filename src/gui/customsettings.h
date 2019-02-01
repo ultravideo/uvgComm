@@ -52,12 +52,14 @@ public slots:
   void serverStatusChange(QString status);
 
   void initializeResolutions(QString format);
+  void initializeFramerates(QString format, int resolutionID);
 
 private:
   // QSettings -> GUI
   void restoreAdvancedSettings();
   void restoreFormat();
   void restoreResolution();
+  void restoreFramerate();
 
 
   // GUI -> QSettings

@@ -97,9 +97,31 @@ void CameraInfo::getFormatResolutions(int deviceID, QString format, QStringList 
 }
 
 
-void CameraInfo::getFramerates(int deviceID, QString format, int resolutionID)
+void CameraInfo::getFramerates(int deviceID, QString format, int resolutionID, QStringList &ranges)
 {
+   std::unique_ptr<QCamera> camera = loadCamera(deviceID);
 
+  QCameraViewfinderSettings viewSettings;
+  viewSettings.setPixelFormat(stringToPixelFormat(format));
+  QList<QSize> resolutions  = camera->supportedViewfinderResolutions(viewSettings);
+  if(resolutionID < resolutions.size())
+  {
+    viewSettings.setResolution(resolutions.at(resolutionID));
+  }
+
+  QList<QCamera::FrameRateRange> framerates = camera->supportedViewfinderFrameRateRanges(viewSettings);
+
+  for(int i = 0; i < framerates.size(); ++i)
+  {
+    if(framerates.at(i).minimumFrameRate == framerates.at(i).maximumFrameRate)
+    {
+      ranges.push_back(QString::number(framerates.at(i).maximumFrameRate));
+    }
+    else {
+      ranges.push_back(QString::number(framerates.at(i).minimumFrameRate)
+                       + " to " + QString::number(framerates.at(i).maximumFrameRate));
+    }
+  }
 }
 
 
