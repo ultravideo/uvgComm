@@ -107,11 +107,18 @@ bool CameraFilter::init()
 
   printSupportedResolutions(viewSettings);
 
-  if(settings.value("video/ResolutionWidth").toInt() != 0 &&
-     settings.value("video/ResolutionHeight").toInt() != 0)
+  QList<QSize> resolutions = camera_->supportedViewfinderResolutions(viewSettings);
+
+  int resolutionID = settings.value("video/ResolutionID").toInt();
+
+  if(resolutions.size() >= resolutionID)
   {
-    viewSettings.setResolution(QSize(settings.value("video/ResolutionWidth").toInt(),
-                                     settings.value("video/ResolutionHeight").toInt()));
+    QSize resolution = resolutions.at(resolutionID);
+    viewSettings.setResolution(QSize(resolution.width(),
+                                     resolution.height()));
+  }
+  else {
+    viewSettings.setResolution(QSize(0,0));
   }
 
   viewSettings.setMaximumFrameRate(settings.value("video/Framerate").toInt());
