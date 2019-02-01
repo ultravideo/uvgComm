@@ -138,10 +138,25 @@ QVideoFrame::PixelFormat CameraInfo::stringToPixelFormat(QString format)
 }
 
 
-
 QSize CameraInfo::getResolution(int deviceID, int formatID, int resolutionID)
 {
+  std::unique_ptr<QCamera> camera = loadCamera(deviceID);
 
+  QString format = getFormat(deviceID, formatID);
+  QCameraViewfinderSettings viewSettings;
+  viewSettings.setPixelFormat(stringToPixelFormat(format));
+  QList<QSize> supporteResolutions = camera->supportedViewfinderResolutions(viewSettings);
+
+  if(supporteResolutions.size() > resolutionID)
+  {
+    return supporteResolutions.at(resolutionID);
+  }
+  else if(!supporteResolutions.empty())
+  {
+    supporteResolutions.at(0);
+  }
+
+  return QSize(0,0);
 }
 
 

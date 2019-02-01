@@ -189,19 +189,19 @@ void CustomSettings::saveAdvancedSettings()
   saveTextValue("sip/ServerAddress", advancedUI_->serverAddress->text());
   saveCheckBox("sip/AutoConnect", advancedUI_->autoConnect);
 
-
   //settings.sync(); // TODO is this needed?
 }
 
 void CustomSettings::saveCameraCapabilities(int deviceIndex)
 {
   qDebug() << "Recording capability settings for deviceIndex:" << deviceIndex;
-  QSize resolution = QSize(0,0);
   double fps = 0.0f;
-  QString format = "";
+
 
   int formatIndex = advancedUI_->format_box->currentIndex();
   int resolutionIndex = advancedUI_->resolution->currentIndex();
+
+  QString format = cam_->getFormat(currentDevice_, formatIndex);
 
   qDebug() << "Boxes in following positions: Format:" << formatIndex << "Resolution:" << resolutionIndex;
   if(formatIndex == -1)
@@ -222,14 +222,14 @@ void CustomSettings::saveCameraCapabilities(int deviceIndex)
 
   // since kvazaar requires resolution to be divisible by eight
   // TODO: Use QSize to record resolution
-  settings_.setValue("video/ResolutionWidth",      resolution.width() - resolution.width()%8);
-  settings_.setValue("video/ResolutionHeight",     resolution.height() - resolution.height()%8);
+  settings_.setValue("video/ResolutionWidth",      res.width() - res.width()%8);
+  settings_.setValue("video/ResolutionHeight",     res.height() - res.height()%8);
   settings_.setValue("video/ResolutionID",         resolutionIndex);
   settings_.setValue("video/Framerate",            fps_int);
-  settings_.setValue("video/InputFormat",          cam_->getFormat(currentDevice_, formatIndex));
+  settings_.setValue("video/InputFormat",          format);
 
   qDebug() << "Recorded the following video settings: Resolution:"
-           << resolution.width() - resolution.width()%8 << "x" << resolution.height() - resolution.height()%8
+           << res.width() - res.width()%8 << "x" << res.height() - res.height()%8
            << "fps:" << fps_int << "resolution index:" << resolutionIndex << "format" << format;
 }
 

@@ -51,6 +51,8 @@ public slots:
 
   void serverStatusChange(QString status);
 
+  void initializeResolutions(QString format);
+
 private:
   // QSettings -> GUI
   void restoreAdvancedSettings();
@@ -65,7 +67,7 @@ private:
 
   // initializes the UI with correct formats and resolutions
   void initializeFormat();
-  void initializeResolutions(QString format);
+
   void initializeBlocklist();
   void writeBlocklistToSettings();
 
