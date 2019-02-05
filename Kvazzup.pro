@@ -212,6 +212,19 @@ LIBS += -fopenmp # TODO: Does msvc also need this?
 message("Using MinGW libraries in ../libs")
 }
 
+unix {
+QMAKE_CXXFLAGS += -msse4.1 -mavx2 -fopenmp
+
+INCLUDEPATH += /usr/local/include/BasicUsageEnvironment/
+INCLUDEPATH += /usr/local/include/UsageEnvironment/
+INCLUDEPATH += /usr/local/include/groupsock/
+INCLUDEPATH += /usr/local/include/liveMedia/
+INCLUDEPATH += /usr/include/opus/
+
+LIBS += -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment
+LIBS += -lopus -lkvazaar -lspeex -lspeexdsp -lLibOpenHevcWrapper -lgomp
+}
+
 
 win32: LIBS += -lws2_32
 win32: LIBS += -lstrmiids

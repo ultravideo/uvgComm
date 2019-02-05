@@ -33,7 +33,11 @@ RTPStreamer::RTPStreamer():
   QString ip_str = "0.0.0.0";
   QHostAddress address;
   address.setAddress(ip_str);
+#ifdef _WIN32
   sessionAddress_.S_un.S_addr = qToBigEndian(address.toIPv4Address());
+#else
+  sessionAddress_.s_addr = qToBigEndian(address.toIPv4Address());
+#endif
 
   gethostname((char*)CNAME_, maxCNAMElen_);
   CNAME_[maxCNAMElen_] = '\0'; // just in case

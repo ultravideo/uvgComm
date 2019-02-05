@@ -110,7 +110,7 @@ bool CameraFilter::init()
   QList<QSize> resolutions = camera_->supportedViewfinderResolutions(viewSettings);
 
   int resolutionID = settings.value("video/ResolutionID").toInt();
-  if(resolutions.size() >= resolutionID)
+  if(resolutions.size() >= resolutionID && !resolutions.empty())
   {
     QSize resolution = resolutions.at(resolutionID);
     viewSettings.setResolution(QSize(resolution.width(),
@@ -124,14 +124,17 @@ bool CameraFilter::init()
 
   int framerateID = settings.value("video/FramerateID").toInt();
 
-  if(framerateID < framerates.size())
+  if (!framerates.empty())
   {
-    viewSettings.setMaximumFrameRate(framerates.at(framerateID).maximumFrameRate);
-    viewSettings.setMinimumFrameRate(framerates.at(framerateID).minimumFrameRate);
-  }
-  else {
-    viewSettings.setMaximumFrameRate(framerates.back().maximumFrameRate);
-    viewSettings.setMinimumFrameRate(framerates.back().minimumFrameRate);
+    if(framerateID < framerates.size())
+    {
+      viewSettings.setMaximumFrameRate(framerates.at(framerateID).maximumFrameRate);
+      viewSettings.setMinimumFrameRate(framerates.at(framerateID).minimumFrameRate);
+    }
+    else {
+      viewSettings.setMaximumFrameRate(framerates.back().maximumFrameRate);
+      viewSettings.setMinimumFrameRate(framerates.back().minimumFrameRate);
+    }
   }
 
   qDebug() << "Using following QCamera settings:";

@@ -1,6 +1,6 @@
 #include "customsettings.h"
 
-#include "ui_advancedsettings.h"
+#include "ui_advancedSettings.h"
 
 #include <video/camerainfo.h>
 
@@ -200,8 +200,6 @@ void CustomSettings::saveCameraCapabilities(int deviceIndex)
   int formatIndex = advancedUI_->format_box->currentIndex();
   int resolutionIndex = advancedUI_->resolution->currentIndex();
 
-  QString format = cam_->getFormat(currentDevice_, formatIndex);
-
   qDebug() << "Boxes in following positions: Format:" << formatIndex << "Resolution:" << resolutionIndex;
   if(formatIndex == -1)
   {
@@ -214,6 +212,7 @@ void CustomSettings::saveCameraCapabilities(int deviceIndex)
     resolutionIndex = 0;
   }
 
+  QString format = cam_->getFormat(currentDevice_, formatIndex);
   QSize res = cam_->getResolution(currentDevice_, formatIndex, resolutionIndex);
 
   // since kvazaar requires resolution to be divisible by eight
