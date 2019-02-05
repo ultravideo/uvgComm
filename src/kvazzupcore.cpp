@@ -19,6 +19,7 @@ void KvazzupCore::init()
   window_.show();
 
   sip_.init(this);
+  sip_.bindToServer();
 
   // register the GUI signals indicating GUI changes to be handled approrietly in a system wide manner
   QObject::connect(&window_, SIGNAL(settingsChanged()), this, SLOT(updateSettings()));
@@ -138,7 +139,7 @@ void KvazzupCore::peerAccepted(uint32_t sessionID)
 {
   if(states_.find(sessionID) != states_.end())
   {
-    if(states_[sessionID] == CALLRINGINWITHTHEM || true)
+    if(states_[sessionID] == CALLRINGINWITHTHEM)
     {
       qDebug() << "They accepted our call!";
       states_[sessionID] = CALLNEGOTIATING;
@@ -179,7 +180,7 @@ void KvazzupCore::callNegotiated(uint32_t sessionID)
 {
   if(states_.find(sessionID) != states_.end())
   {
-    if(states_[sessionID] == CALLNEGOTIATING || true)
+    if(states_[sessionID] == CALLNEGOTIATING)
     {
       qDebug() << "Call has been agreed upon with peer:" << sessionID;
 

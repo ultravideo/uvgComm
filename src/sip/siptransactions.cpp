@@ -56,6 +56,13 @@ void SIPTransactions::bindToServer()
 {
   // get server address from settings and bind to server.
 
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+
+  QString serverAddress = settings.value("sip/ServerAddress").toString();
+
+  sipServerRegistrations_.push_back(SIPRegistration(serverAddress));
+  sipServerRegistrations_.back().initServer();
+
 
 }
 
