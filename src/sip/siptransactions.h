@@ -113,6 +113,11 @@ private:
 
   bool areWeTheDestination();
 
+  void checkTasks(quint32 transportID);
+
+  void inviteTask();
+  void registerTask();
+
   // This mutex makes sure that the dialog has been added to the dialogs_ list
   // before we are accessing it when receiving messages
   QMutex connectionMutex_;
@@ -121,8 +126,10 @@ private:
   // keep track of dialogs. The CallID is not used because we could be calling ourselves
   // and using uint32_t is simpler than keeping track of tags
 
-  // TODO: separate dialog forming from dialog
+  // holds pending tasks. Check this after a connection is established.
+  std::map<quint32, RequestType> tasks_;
 
+  // TODO: separate dialog forming from dialog
   QList<std::shared_ptr<SIPDialogData>> dialogs_;
   QList<std::shared_ptr<SIPTransport>> transports_;
 

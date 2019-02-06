@@ -52,6 +52,39 @@ void SIPTransactions::uninit()
 }
 
 
+void SIPTransactions::checkTasks(quint32 transportID)
+{
+  if(tasks_.find(transportID) != tasks_.end())
+  {
+    switch(tasks_[transportID])
+    {
+    case INVITE:
+    {
+      inviteTask();
+      break;
+    }
+    case REGISTER:
+    {
+      registerTask();
+      break;
+    }
+    default:
+      qDebug() << "ERROR: Unknown Request type for pending task:" << tasks_[transportID];
+      break;
+    }
+  }
+}
+
+void SIPTransactions::inviteTask()
+{
+  qDebug() << "Intializing a new dialog with INVITE task";
+}
+
+void SIPTransactions::registerTask()
+{
+  qDebug() << "Registering us to a new SIP server with REGISTER task";
+}
+
 void SIPTransactions::bindToServer()
 {
   // get server address from settings and bind to server.
