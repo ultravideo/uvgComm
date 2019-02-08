@@ -15,6 +15,9 @@
 /* Some terms from RFC 3621:
  * Dialog = a SIP dialog constructed with INVITE-transaction
  * Session = a media session negotiated in INVITE-transaction
+ *
+ * SIP in Kvazzup follows the Transport, Transaction, Transaction User principle.
+ * This class represents the transaction layer.
  */
 
 
@@ -112,6 +115,8 @@ private:
   void destroyDialog(uint32_t sessionID);
 
   bool areWeTheDestination();
+
+  bool isConnected(QString remoteAddress, quint32& transportID);
 
   void checkTasks(quint32 transportID);
 

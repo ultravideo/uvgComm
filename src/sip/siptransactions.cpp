@@ -75,6 +75,20 @@ void SIPTransactions::checkTasks(quint32 transportID)
   }
 }
 
+bool SIPTransactions::isConnected(QString remoteAddress, quint32& transportID)
+{
+  for(int j = 0; j < transports_.size(); ++j)
+  {
+    if(transports_.at(j) != nullptr &&
+       transports_.at(j)->getRemoteAddress().toString() == remoteAddress)
+    {
+      transportID = j + 1;
+      return true;
+    }
+  }
+  return false;
+}
+
 void SIPTransactions::inviteTask()
 {
   qDebug() << "Intializing a new dialog with INVITE task";
@@ -96,9 +110,7 @@ void SIPTransactions::bindToServer()
   sipServerRegistrations_.push_back(SIPRegistration(serverAddress));
   sipServerRegistrations_.back().initServer();
 
-
 }
-
 
 void SIPTransactions::getSDPs(uint32_t sessionID,
                               std::shared_ptr<SDPMessageInfo>& localSDP,
@@ -117,6 +129,48 @@ void SIPTransactions::getSDPs(uint32_t sessionID,
   remoteSDP = dialogs_.at(sessionID - 1)->remoteSdp_;
 }
 
+/*
+QList<uint32_t> SIPTransactions::startCall(QList<Contact> addresses)
+{
+  // There should not exist a dialog for this user
+
+  QList<uint32_t> calls;
+  for(unsigned int i = 0; i < addresses.size(); ++i)
+  {
+    if(!sdp_.canStartSession())
+    {
+      qDebug() << "Not enough ports to start a call";
+      break;
+    }
+
+    // If the dialog did not exist check if the address is one of our servers
+
+    bool isServer = false;
+    // check if address is located at a SIP server
+    for(auto server : sipServerRegistrations_)
+    {
+      if(server.isContactAtThisServer(addresses.at(i).remoteAddress))
+      {
+        isServer = true;
+      }
+    }
+
+    if(!isServer)
+    {
+      // If we are not connected to the server, try to get the ip address and form a direct connection.
+
+
+
+    }
+    else {
+
+    }
+
+
+
+  }
+}
+*/
 
 QList<uint32_t> SIPTransactions::startCall(QList<Contact> addresses)
 {
@@ -155,18 +209,13 @@ QList<uint32_t> SIPTransactions::startCall(QList<Contact> addresses)
     if(!addresses.at(i).proxyConnection)
     {
       // check if we are already connected to their adddress
-
-      for(int j = 0; j < transports_.size(); ++j)
+      quint32 transportID = 0;
+      if(isConnected(addresses.at(i).remoteAddress, transportID))
       {
-        if(transports_.at(j) != nullptr &&
-           transports_.at(j)->getRemoteAddress().toString() == addresses.at(i).remoteAddress)
-        {
-          dialogData->transportID = j + 1;
-          dialogData->client->connectionReady(true); // sends the INVITE
-        }
+        dialogData->transportID = transportID;
+        dialogData->client->connectionReady(true); // sends the INVITE
       }
-
-      if(dialogData->transportID == 0)
+      else
       {
         std::shared_ptr<SIPTransport> transport = createSIPTransport();
         transport->createConnection(TCP, addresses.at(i).remoteAddress);
