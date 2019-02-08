@@ -5,7 +5,6 @@
 #include "gui/callwindow.h"
 #include "participantinterface.h"
 #include "sip/siptransactionuser.h"
-#include "stun.h"
 
 #include <QObject>
 
@@ -58,11 +57,6 @@ public slots:
   void userRejectsCall(uint32_t sessionID); // user has rejected the incoming call
   void userCancelsCall(uint32_t sessionID); // user has rejected the incoming call
 
-private slots:
-
-  void stunAddress(QHostAddress message);
-  void noStunAddress();
-
 private:
 
   void removeSession(uint32_t sessionID);
@@ -83,8 +77,4 @@ private:
   CallWindow window_; // GUI
 
   StatisticsInterface* stats_;
-
-  Stun stun_;
-
-
 };
