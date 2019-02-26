@@ -28,7 +28,6 @@ struct Contact
   QString username;
   QString realName;
   QString remoteAddress;
-  bool proxyConnection;
 };
 
 class SIPRouting;
@@ -50,6 +49,7 @@ public:
   void bindToServer();
 
   // start a call with all addresses in the list. Returns generated sessionID:s
+  void startCall(Contact& address);
   QList<uint32_t> startCall(QList<Contact> addresses);
 
   // transaction user wants something.
@@ -111,7 +111,7 @@ private:
 
   void createLocalDialog(QString remoteUsername, QString remoteAddress);
   void createRemoteDialog(TCPConnection* con);
-  void createDialog(std::shared_ptr<SIPDialogData>& dialog);
+  void createDialog(std::shared_ptr<SIPDialogData>& dialog, quint32 transportID);
   void destroyDialog(uint32_t sessionID);
 
   bool areWeTheDestination();
@@ -120,7 +120,7 @@ private:
 
   void checkTasks(quint32 transportID);
 
-  void inviteTask();
+  void inviteTask(quint32 transportID);
   void registerTask();
 
   // This mutex makes sure that the dialog has been added to the dialogs_ list

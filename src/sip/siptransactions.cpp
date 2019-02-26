@@ -51,16 +51,17 @@ void SIPTransactions::uninit()
   }
 }
 
-
 void SIPTransactions::checkTasks(quint32 transportID)
 {
+  qDebug() << "Checking tasks for transportID:" << transportID;
   if(tasks_.find(transportID) != tasks_.end())
   {
+    qDebug() << "Pending task:" << tasks_[transportID];
     switch(tasks_[transportID])
     {
     case INVITE:
     {
-      inviteTask();
+      inviteTask(transportID);
       break;
     }
     case REGISTER:
@@ -72,6 +73,9 @@ void SIPTransactions::checkTasks(quint32 transportID)
       qDebug() << "ERROR: Unknown Request type for pending task:" << tasks_[transportID];
       break;
     }
+  }
+  else {
+    qDebug() << "ERROR: No tasks found during check. Why were we checking??" << "Tasks:" << tasks_;
   }
 }
 
@@ -89,9 +93,18 @@ bool SIPTransactions::isConnected(QString remoteAddress, quint32& transportID)
   return false;
 }
 
-void SIPTransactions::inviteTask()
+void SIPTransactions::inviteTask(quint32 transportID)
 {
   qDebug() << "Intializing a new dialog with INVITE task";
+
+  std::shared_ptr<SIPDialogData> dialogData;
+  createDialog(dialogData, transportID);
+
+  // this start call will commence once the connection has been established
+  if(!dialogData->client->startCall())
+  {
+    qDebug() << "WARNING: Could not start a call according to session.";
+  }
 }
 
 void SIPTransactions::registerTask()
@@ -129,120 +142,61 @@ void SIPTransactions::getSDPs(uint32_t sessionID,
   remoteSDP = dialogs_.at(sessionID - 1)->remoteSdp_;
 }
 
-/*
-QList<uint32_t> SIPTransactions::startCall(QList<Contact> addresses)
+
+void SIPTransactions::startCall(Contact &address)
 {
   // There should not exist a dialog for this user
 
-  QList<uint32_t> calls;
-  for(unsigned int i = 0; i < addresses.size(); ++i)
+  if(!sdp_.canStartSession())
   {
-    if(!sdp_.canStartSession())
-    {
-      qDebug() << "Not enough ports to start a call";
-      break;
-    }
-
-    // If the dialog did not exist check if the address is one of our servers
-
-    bool isServer = false;
-    // check if address is located at a SIP server
-    for(auto server : sipServerRegistrations_)
-    {
-      if(server.isContactAtThisServer(addresses.at(i).remoteAddress))
-      {
-        isServer = true;
-      }
-    }
-
-    if(!isServer)
-    {
-      // If we are not connected to the server, try to get the ip address and form a direct connection.
-
-
-
-    }
-    else {
-
-    }
-
-
-
+    qDebug() << "Not enough ports to start a call";
+    return;
   }
-}
-*/
 
-QList<uint32_t> SIPTransactions::startCall(QList<Contact> addresses)
-{
-  QList<uint32_t> calls;
-  for(unsigned int i = 0; i < addresses.size(); ++i)
+  // If the dialog did not exist check if the address is one of our servers
+
+  bool isServer = false;
+  // check if address is located at a SIP server
+  for(auto server : sipServerRegistrations_)
   {
-    if(!sdp_.canStartSession())
+    if(server.isContactAtThisServer(address.remoteAddress))
     {
-      qDebug() << "Not enough ports to start a call";
-      break;
+      isServer = true;
     }
+  }
 
-    // TODO: check if dialog already exists and use its contact address
+  if(isServer)
+  {
+    qDebug() << "ERROR: Server connection not yet implemented";
+  }
+  else
+  {
+    // If we are not connected to the server, try to get the ip address and form a direct connection.
 
-    //bool isServer = false;
-    // check if address is located at a SIP server
-    for(auto server : sipServerRegistrations_)
+    // check if we are already connected to their adddress
+    quint32 transportID = 0;
+    if(isConnected(address.remoteAddress, transportID)) // sets the transportid
     {
-      if(server.isContactAtThisServer(addresses.at(i).remoteAddress))
-      {
-        //isServer = true;
-      }
-    }
-
-    std::shared_ptr<SIPDialogData> dialogData;
-    createDialog(dialogData);
-
-    dialogData->state->init(
-          SIP_URI{addresses.at(i).username, addresses.at(i).realName, addresses.at(i).remoteAddress});
-
-    dialogData->proxyConnection_ = addresses.at(i).proxyConnection;
-    calls.push_back(dialogs_.size());
-    // message is sent only after connection has been established so we know our address
-
-    dialogData->transportID = 0;
-    if(!addresses.at(i).proxyConnection)
-    {
-      // check if we are already connected to their adddress
-      quint32 transportID = 0;
-      if(isConnected(addresses.at(i).remoteAddress, transportID))
-      {
-        dialogData->transportID = transportID;
-        dialogData->client->connectionReady(true); // sends the INVITE
-      }
-      else
-      {
-        std::shared_ptr<SIPTransport> transport = createSIPTransport();
-        transport->createConnection(TCP, addresses.at(i).remoteAddress);
-        dialogData->transportID = transports_.size();
-      }
+      qDebug() << "Found existing connection to this address.";
+      inviteTask(transportID);
     }
     else
     {
-      qWarning() << "ERROR: Proxy connection not implemented yet";
-    }
+      std::shared_ptr<SIPTransport> transport = createSIPTransport();
+      transport->createConnection(TCP, address.remoteAddress);
+      tasks_[transport->getTransportID()] = INVITE;
 
-    qDebug() << "Added a new dialog. ID:" << dialogs_.size();
-
-    // this start call will commence once the connection has been established
-    if(!dialogData->client->startCall())
-    {
-      qDebug() << "WARNING: Could not start a call according to session.";
+      //dialogData->transportID = transports_.size();
     }
   }
-
-  return calls;
 }
 
-void SIPTransactions::createDialog(std::shared_ptr<SIPDialogData>& dialog)
+
+void SIPTransactions::createDialog(std::shared_ptr<SIPDialogData>& dialog, quint32 transportID)
 {
   dialog = std::shared_ptr<SIPDialogData> (new SIPDialogData);
   connectionMutex_.lock();
+  dialog->transportID = transportID;
   dialog->state = std::shared_ptr<SIPDialogState> (new SIPDialogState());
   dialog->client = std::shared_ptr<SIPClientTransaction> (new SIPClientTransaction);
   dialog->client->init(transactionUser_, dialogs_.size() + 1);
@@ -354,31 +308,10 @@ void SIPTransactions::connectionEstablished(quint32 transportID, QString localAd
   }
 
   qDebug() << "Establishing connection. Local Address:" << localAddress << "Remote Address:" << remoteAddress;
-  connectionMutex_.lock();
-  std::shared_ptr<SIPDialogData> foundDialog = nullptr;
-  for(auto dialog : dialogs_)
-  {
-    if(dialog != nullptr && dialog->transportID == transportID)
-    {
-      foundDialog = dialog;
-    }
-  }
-  connectionMutex_.unlock();
 
-  if(foundDialog != nullptr)
-  {
-    foundDialog->client->connectionReady(true);
-  }
-  else
-  {
-    qDebug() << "ERROR: Did not find dialog for transportID:" << transportID << "Existing IDs:";
-    for(auto dialog : dialogs_)
-    {
-      qDebug().nospace() << dialog->transportID << " ";
-    }
-  }
+  checkTasks(transportID);
 
-  qDebug() << "Connection" << transportID << "connected and dialog created."
+  qDebug() << "Connection" << transportID << "connected."
            << "From:" << localAddress
            << "To:" << remoteAddress;
 }
@@ -423,7 +356,7 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
         qDebug() << "Not enough free media ports to accept new dialog";
         return;
       }
-      createDialog(foundDialog);
+      createDialog(foundDialog, transportID);
       foundSessionID = dialogs_.size();
 
       foundDialog->state->init(
@@ -439,8 +372,6 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
 
       // Proxy TODO: somehow distinguish if this is a proxy connection
       foundDialog->proxyConnection_ = false;
-
-      foundDialog->transportID = transportID;
     }
     else
     {

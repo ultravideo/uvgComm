@@ -33,6 +33,11 @@ public:
   QHostAddress getLocalAddress();
   QHostAddress getRemoteAddress();
 
+  quint32 getTransportID()
+  {
+    return transportID_;
+  }
+
 public slots:
   // called when connection receives a message
   void networkPackage(QString package);
