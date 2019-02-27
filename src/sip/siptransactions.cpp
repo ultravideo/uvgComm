@@ -8,8 +8,7 @@
 
 
 SIPTransactions::SIPTransactions():
-  sipPort_(5060), // default for SIP, use 5061 for tls encrypted
-  isConference_(false)
+  sipPort_(5060) // default for SIP, use 5061 for tls encrypted
 {}
 
 void SIPTransactions::init(SIPTransactionUser *callControl)
@@ -56,12 +55,12 @@ void SIPTransactions::checkTasks(quint32 transportID)
   qDebug() << "Checking tasks for transportID:" << transportID;
   if(tasks_.find(transportID) != tasks_.end())
   {
-    qDebug() << "Pending task:" << tasks_[transportID];
-    switch(tasks_[transportID])
+    qDebug() << "Pending task:" << tasks_[transportID].request;
+    switch(tasks_[transportID].request)
     {
     case INVITE:
     {
-      inviteTask(transportID);
+      inviteTask(transportID, tasks_[transportID].username);
       break;
     }
     case REGISTER:
@@ -70,12 +69,12 @@ void SIPTransactions::checkTasks(quint32 transportID)
       break;
     }
     default:
-      qDebug() << "ERROR: Unknown Request type for pending task:" << tasks_[transportID];
+      qDebug() << "ERROR: Unknown Request type for pending task:" << tasks_[transportID].request;
       break;
     }
   }
   else {
-    qDebug() << "ERROR: No tasks found during check. Why were we checking??" << "Tasks:" << tasks_;
+    qDebug() << "No tasks found during check. Tasks:" << tasks_.size();
   }
 }
 
@@ -93,12 +92,12 @@ bool SIPTransactions::isConnected(QString remoteAddress, quint32& transportID)
   return false;
 }
 
-void SIPTransactions::inviteTask(quint32 transportID)
+void SIPTransactions::inviteTask(quint32 transportID, QString username)
 {
   qDebug() << "Intializing a new dialog with INVITE task";
 
   std::shared_ptr<SIPDialogData> dialogData;
-  createDialog(dialogData, transportID);
+  createDialog(dialogData, username, transportID);
 
   // this start call will commence once the connection has been established
   if(!dialogData->client->startCall())
@@ -178,13 +177,13 @@ void SIPTransactions::startCall(Contact &address)
     if(isConnected(address.remoteAddress, transportID)) // sets the transportid
     {
       qDebug() << "Found existing connection to this address.";
-      inviteTask(transportID);
+      inviteTask(transportID, address.username);
     }
     else
     {
       std::shared_ptr<SIPTransport> transport = createSIPTransport();
       transport->createConnection(TCP, address.remoteAddress);
-      tasks_[transport->getTransportID()] = INVITE;
+      tasks_[transport->getTransportID()] = PendingTask{INVITE, address.username};
 
       //dialogData->transportID = transports_.size();
     }
@@ -192,16 +191,23 @@ void SIPTransactions::startCall(Contact &address)
 }
 
 
-void SIPTransactions::createDialog(std::shared_ptr<SIPDialogData>& dialog, quint32 transportID)
+void SIPTransactions::createDialog(std::shared_ptr<SIPDialogData>& dialog, QString remoteUsername, quint32 transportID)
 {
+  Q_ASSERT(transportID < transports_.size());
+
   dialog = std::shared_ptr<SIPDialogData> (new SIPDialogData);
   connectionMutex_.lock();
   dialog->transportID = transportID;
+
   dialog->state = std::shared_ptr<SIPDialogState> (new SIPDialogState());
+  dialog->state->init(SIP_URI{remoteUsername,"", transports_.at(transportID - 1)->getRemoteAddress().toString()});
+
   dialog->client = std::shared_ptr<SIPClientTransaction> (new SIPClientTransaction);
   dialog->client->init(transactionUser_, dialogs_.size() + 1);
+
   dialog->server = std::shared_ptr<SIPServerTransaction> (new SIPServerTransaction);
   dialog->server->init(transactionUser_, dialogs_.size() + 1);
+
   dialog->localSdp_ = nullptr;
   dialog->remoteSdp_ = nullptr;
   QObject::connect(dialog->client.get(), &SIPClientTransaction::sendRequest,
@@ -356,16 +362,13 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
         qDebug() << "Not enough free media ports to accept new dialog";
         return;
       }
-      createDialog(foundDialog, transportID);
+      createDialog(foundDialog, request.message->from.username, transportID);
       foundSessionID = dialogs_.size();
 
       foundDialog->state->init(
             SIP_URI{request.message->from.username,
                     request.message->from.realname,
                     request.message->from.host});
-
-
-      foundDialog->client->connectionReady(true);
 
       foundDialog->state->processFirstINVITE(request.message);
       foundDialog->state->setHostname(transports_.at(transportID - 1)->getLocalAddress().toString());

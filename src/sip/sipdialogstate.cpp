@@ -114,7 +114,9 @@ void SIPDialogState::getRequestDialogInfo(RequestType type, QString localAddress
   if(localUri_.username == "" || localUri_.host == "" ||
      remoteUri_.username == "" || remoteUri_.host == "")
   {
-    qDebug() << "ERROR: The dialog state info has not been set, but we are using it.";
+    qDebug() << "ERROR: The dialog state info has not been set, but we are using it." <<
+                "username:" << localUri_.username << "host" << localUri_.host <<
+                "remote username:" << remoteUri_.username << "host:" << remoteUri_.host;
   }
 
 

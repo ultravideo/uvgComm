@@ -111,7 +111,7 @@ private:
 
   void createLocalDialog(QString remoteUsername, QString remoteAddress);
   void createRemoteDialog(TCPConnection* con);
-  void createDialog(std::shared_ptr<SIPDialogData>& dialog, quint32 transportID);
+  void createDialog(std::shared_ptr<SIPDialogData>& dialog, QString remoteUsername, quint32 transportID);
   void destroyDialog(uint32_t sessionID);
 
   bool areWeTheDestination();
@@ -120,7 +120,7 @@ private:
 
   void checkTasks(quint32 transportID);
 
-  void inviteTask(quint32 transportID);
+  void inviteTask(quint32 transportID, QString username);
   void registerTask();
 
   // This mutex makes sure that the dialog has been added to the dialogs_ list
@@ -131,8 +131,13 @@ private:
   // keep track of dialogs. The CallID is not used because we could be calling ourselves
   // and using uint32_t is simpler than keeping track of tags
 
+  struct PendingTask{
+    RequestType request;
+    QString username; // Optional
+  };
+
   // holds pending tasks. Check this after a connection is established.
-  std::map<quint32, RequestType> tasks_;
+  std::map<quint32, PendingTask> tasks_;
 
   // TODO: separate dialog forming from dialog
   QList<std::shared_ptr<SIPDialogData>> dialogs_;
@@ -154,5 +159,4 @@ private:
   std::shared_ptr<SIPClientTransaction> registerClient_;
 
   SIPTransactionUser* transactionUser_;
-  bool isConference_;
 };

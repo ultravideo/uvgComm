@@ -44,10 +44,6 @@ public:
   void cancelCall();
   void registerToServer();
 
-  // inform this transaction that the connection it is associated with has been established
-  // sends pending requests.
-  void connectionReady(bool ready);
-
 signals:
   // send messages to other end
   void sendRequest(uint32_t sessionID, RequestType type);
@@ -65,12 +61,8 @@ private:
   // TODO: Probably need to record the whole message and check that the details are ok.
 
   QTimer requestTimer_;
-  bool connected_;
 
   uint32_t sessionID_;
-
-  // waiting to be sent once the connection has been opened
-  RequestType pendingRequest_;
 
   SIPTransactionUser* transactionUser_;
 };
