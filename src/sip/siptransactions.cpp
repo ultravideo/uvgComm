@@ -44,37 +44,9 @@ void SIPTransactions::uninit()
   {
     if(transport != nullptr)
     {
-      transport->destroyConnection();
+      transport->cleanup();
       transport.reset();
     }
-  }
-}
-
-void SIPTransactions::checkTasks(quint32 transportID)
-{
-  qDebug() << "Checking tasks for transportID:" << transportID;
-  if(tasks_.find(transportID) != tasks_.end())
-  {
-    qDebug() << "Pending task:" << tasks_[transportID].request;
-    switch(tasks_[transportID].request)
-    {
-    case INVITE:
-    {
-      inviteTask(transportID, tasks_[transportID].username);
-      break;
-    }
-    case REGISTER:
-    {
-      registerTask();
-      break;
-    }
-    default:
-      qDebug() << "ERROR: Unknown Request type for pending task:" << tasks_[transportID].request;
-      break;
-    }
-  }
-  else {
-    qDebug() << "No tasks found during check. Tasks:" << tasks_.size();
   }
 }
 
@@ -92,12 +64,12 @@ bool SIPTransactions::isConnected(QString remoteAddress, quint32& transportID)
   return false;
 }
 
-void SIPTransactions::inviteTask(quint32 transportID, QString username)
+void SIPTransactions::inviteTask(quint32 transportID, Contact &remote)
 {
   qDebug() << "Intializing a new dialog with INVITE task";
 
   std::shared_ptr<SIPDialogData> dialogData;
-  createDialog(dialogData, username, transportID);
+  createDialog(dialogData, remote, transportID);
 
   // this start call will commence once the connection has been established
   if(!dialogData->client->startCall())
@@ -177,13 +149,13 @@ void SIPTransactions::startCall(Contact &address)
     if(isConnected(address.remoteAddress, transportID)) // sets the transportid
     {
       qDebug() << "Found existing connection to this address.";
-      inviteTask(transportID, address.username);
+      inviteTask(transportID, address);
     }
     else
     {
       std::shared_ptr<SIPTransport> transport = createSIPTransport();
       transport->createConnection(TCP, address.remoteAddress);
-      tasks_[transport->getTransportID()] = PendingTask{INVITE, address.username};
+      inviteTask(transports_.size(), address);
 
       //dialogData->transportID = transports_.size();
     }
@@ -191,16 +163,16 @@ void SIPTransactions::startCall(Contact &address)
 }
 
 
-void SIPTransactions::createDialog(std::shared_ptr<SIPDialogData>& dialog, QString remoteUsername, quint32 transportID)
+void SIPTransactions::createDialog(std::shared_ptr<SIPDialogData>& dialog, Contact &remote, quint32 transportID)
 {
-  Q_ASSERT(transportID < transports_.size());
+  Q_ASSERT(transportID <= transports_.size());
 
   dialog = std::shared_ptr<SIPDialogData> (new SIPDialogData);
   connectionMutex_.lock();
   dialog->transportID = transportID;
 
   dialog->state = std::shared_ptr<SIPDialogState> (new SIPDialogState());
-  dialog->state->init(SIP_URI{remoteUsername,"", transports_.at(transportID - 1)->getRemoteAddress().toString()});
+  dialog->state->createDialog(SIP_URI{remote.username, remote.username, remote.remoteAddress});
 
   dialog->client = std::shared_ptr<SIPClientTransaction> (new SIPClientTransaction);
   dialog->client->init(transactionUser_, dialogs_.size() + 1);
@@ -277,8 +249,6 @@ std::shared_ptr<SIPTransport> SIPTransactions::createSIPTransport()
   std::shared_ptr<SIPTransport> connection =
       std::shared_ptr<SIPTransport>(new SIPTransport(transports_.size() + 1));
 
-  QObject::connect(connection.get(), &SIPTransport::sipTransportEstablished,
-                   this, &SIPTransactions::connectionEstablished);
   QObject::connect(connection.get(), &SIPTransport::incomingSIPRequest,
                    this, &SIPTransactions::processSIPRequest);
   QObject::connect(connection.get(), &SIPTransport::incomingSIPResponse,
@@ -299,28 +269,6 @@ void SIPTransactions::receiveTCPConnection(TCPConnection *con)
   qDebug() << "Dialog with ID:" << dialogs_.size() << "created for received connection.";
 }
 
-// connection has been established. This enables for us to get the needed info
-// to form a SIP message
-void SIPTransactions::connectionEstablished(quint32 transportID, QString localAddress,
-                                            QString remoteAddress)
-{
-  // TODO: may get wrong transport ID?
-
-  Q_ASSERT(transportID != 0);
-  if(transportID == 0)
-  {
-    qDebug() << "ERROR: Bad transportID detected in connection Established";
-    return;
-  }
-
-  qDebug() << "Establishing connection. Local Address:" << localAddress << "Remote Address:" << remoteAddress;
-
-  checkTasks(transportID);
-
-  qDebug() << "Connection" << transportID << "connected."
-           << "From:" << localAddress
-           << "To:" << remoteAddress;
-}
 
 void SIPTransactions::processSIPRequest(SIPRequest request,
                        quint32 transportID, QVariant &content)
@@ -362,16 +310,13 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
         qDebug() << "Not enough free media ports to accept new dialog";
         return;
       }
-      createDialog(foundDialog, request.message->from.username, transportID);
+
+      Contact remoteContact = {request.message->from.username, request.message->from.realname, request.message->from.host};
+      createDialog(foundDialog, remoteContact, transportID);
       foundSessionID = dialogs_.size();
 
-      foundDialog->state->init(
-            SIP_URI{request.message->from.username,
-                    request.message->from.realname,
-                    request.message->from.host});
-
       foundDialog->state->processFirstINVITE(request.message);
-      foundDialog->state->setHostname(transports_.at(transportID - 1)->getLocalAddress().toString());
+      foundDialog->state->setPeerToPeerHostname(transports_.at(transportID - 1)->getLocalAddress().toString());
 
       // Proxy TODO: somehow distinguish if this is a proxy connection
       foundDialog->proxyConnection_ = false;
@@ -545,10 +490,9 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
   request.type = type;
 
   // if this is the session creation INVITE. Proxy sessions should be created earlier.
-  //TODO: Not working for re-INVITE
   if(request.type == INVITE && !dialogs_.at(sessionID - 1)->proxyConnection_)
   {
-    dialogs_.at(sessionID - 1)->state->createDialog(transport->getLocalAddress().toString());
+    // TODO: possibly set the local address with transport->getLocalAddress().toString() for peer-to-peer
   }
 
   // Get message info

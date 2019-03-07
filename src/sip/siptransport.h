@@ -19,12 +19,13 @@ public:
   SIPTransport(quint32 transportID);
   ~SIPTransport();
 
+  void cleanup();
+
   // TODO: separate non-dialog and dialog messages
 
   // functions for manipulating network connection
   void createConnection(ConnectionType type, QString target);
   void incomingTCPConnection(std::shared_ptr<TCPConnection> con);
-  void destroyConnection();
 
   // sending SIP messages
   void sendRequest(SIPRequest &request, QVariant& content);
@@ -81,6 +82,7 @@ private:
   QList<QHostAddress> parseIPAddress(QString address);
 
   void signalConnections();
+  void destroyConnection();
 
   QString partialMessage_;
 

@@ -18,46 +18,20 @@ SIPDialogState::SIPDialogState():
   secure_(false)
 {}
 
-void SIPDialogState::init(SIP_URI remoteURI)
+void SIPDialogState::createDialog(SIP_URI remoteURI)
 {
-  initLocalURI();
-  remoteUri_ = remoteURI;
-}
+  init(remoteURI);
 
-void SIPDialogState::createDialog(QString hostName)
-{
   localTag_ = generateRandomString(TAGLENGTH);
   callID_ = generateRandomString(CALLIDLENGTH);
-  if(hostName != "")
+  if(localUri_.host != "")
   {
-    callID_ += "@" + hostName;
-  }
-
-  // assume we are using a peer-to-peer connecion and don't know our host address until now
-  if(localUri_.host == "")
-  {
-    localUri_.host = hostName;
+    callID_ += "@" + localUri_.host;
   }
 
   qDebug() << "Local dialog created. CallID: " << callID_ << "Tag:" << localTag_ << "Cseq:" << localCSeq_;
 }
 
-void SIPDialogState::initLocalURI()
-{
-  // init stuff from the settings
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
-
-  localUri_.realname = settings.value("local/Name").toString();
-  localUri_.username = settings.value("local/Username").toString();
-
-  if(localUri_.username.isEmpty())
-  {
-    localUri_.username = "anonymous";
-  }
-
-  // TODO: Get server URI from settings
-  localUri_.host = "";
-}
 
 void SIPDialogState::processFirstINVITE(std::shared_ptr<SIPMessageInfo> &inMessage)
 {
@@ -65,6 +39,9 @@ void SIPDialogState::processFirstINVITE(std::shared_ptr<SIPMessageInfo> &inMessa
   Q_ASSERT(callID_ == "");
   Q_ASSERT(inMessage);
   Q_ASSERT(inMessage->dialog);
+
+  init(inMessage->from);
+
   if(callID_ != "")
   {
     if(correctRequestDialog(inMessage->dialog, INVITE, inMessage->cSeq))
@@ -77,8 +54,6 @@ void SIPDialogState::processFirstINVITE(std::shared_ptr<SIPMessageInfo> &inMessa
       qDebug() << "PEER_ERROR: Got a request not belonging to this dialog";
     }
   }
-
-  initLocalURI();
 
   remoteTag_ = inMessage->dialog->fromTag;
   if(remoteTag_ == "")
@@ -104,6 +79,27 @@ void SIPDialogState::processFirstINVITE(std::shared_ptr<SIPMessageInfo> &inMessa
   qDebug() << "Received a dialog creating INVITE. Creating dialog."
            << "CallID: " << callID_ << "OurTag:" << localTag_ << "Cseq:" << localCSeq_;
 }
+
+void SIPDialogState::init(SIP_URI remoteURI)
+{
+  remoteUri_ = remoteURI;
+
+  // init stuff from the settings
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+
+  localUri_.realname = settings.value("local/Name").toString();
+  localUri_.username = settings.value("local/Username").toString();
+  localUri_.host = settings.value("sip/ServerAddress").toString();
+
+  if(localUri_.username.isEmpty())
+  {
+    localUri_.username = "anonymous";
+  }
+
+  // TODO: Get server URI from settings
+  localUri_.host = "";
+}
+
 
 void SIPDialogState::getRequestDialogInfo(RequestType type, QString localAddress,
                                      std::shared_ptr<SIPMessageInfo>& outMessage)

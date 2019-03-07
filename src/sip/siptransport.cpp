@@ -48,6 +48,11 @@ SIPTransport::SIPTransport(quint32 transportID):
 SIPTransport::~SIPTransport()
 {}
 
+void SIPTransport::cleanup()
+{
+  destroyConnection();
+}
+
 QHostAddress SIPTransport::getLocalAddress()
 {
   Q_ASSERT(connection_);
