@@ -20,7 +20,6 @@
  * This class represents the transaction layer.
  */
 
-
 // TODO: some kind of address book class might be useful because the connection addresses can change.
 
 // Contact is basically the same as SIP_URI
@@ -72,13 +71,15 @@ public:
 private slots:
 
   void receiveTCPConnection(TCPConnection* con);
+  void connectionEstablished(quint32 transportID);
 
   // when sip connection has received a request/response it is handled here.
   void processSIPRequest(SIPRequest request, quint32 transportID, QVariant& content);
   void processSIPResponse(SIPResponse response, quint32 transportID, QVariant& content);
 
-  // used to send request/response
-  void sendRequest(uint32_t sessionID, RequestType type);
+  void sendDialogRequest(uint32_t sessionID, RequestType type);
+  void sendNonDialogMethod(SIP_URI& uri, RequestType type);
+
   void sendResponse(uint32_t sessionID, ResponseType type, RequestType originalRequest);
 
 private:
@@ -105,6 +106,9 @@ private:
                                                QString localAddress,
                                                QString remoteAddress, bool hostedSession);
 
+  // helper function that has the common parts of
+  void sendRequest(uint32_t sessionID, RequestType type);
+
   // returns whether we should continue with processing
   bool processSDP(uint32_t sessionID, QVariant &content, QHostAddress localAddress);
 
@@ -123,6 +127,24 @@ private:
   // This mutex makes sure that the dialog has been added to the dialogs_ list
   // before we are accessing it when receiving messages
   QMutex connectionMutex_;
+
+  struct DialogRequest
+  {
+    uint32_t sessionID;
+    RequestType type;
+  };
+
+  struct NonDialogRequest
+  {
+    SIP_URI request_uri;
+    RequestType type;
+  };
+
+  QMutex pendingConnectionMutex_;
+  // key is transportID
+  std::map<quint32, DialogRequest> pendingDialogRequests_;
+  std::map<quint32, NonDialogRequest> pendingNonDialogRequests_;
+
 
   // sessionID:s are positions in this list. SessionID:s are used in this program to
   // keep track of dialogs. The CallID is not used because we could be calling ourselves

@@ -183,7 +183,7 @@ void SIPTransactions::createDialog(std::shared_ptr<SIPDialogData>& dialog, Conta
   dialog->localSdp_ = nullptr;
   dialog->remoteSdp_ = nullptr;
   QObject::connect(dialog->client.get(), &SIPClientTransaction::sendRequest,
-                   this, &SIPTransactions::sendRequest);
+                   this, &SIPTransactions::sendDialogRequest);
 
   QObject::connect(dialog->server.get(), &SIPServerTransaction::sendResponse,
                    this, &SIPTransactions::sendResponse);
@@ -254,6 +254,8 @@ std::shared_ptr<SIPTransport> SIPTransactions::createSIPTransport()
   QObject::connect(connection.get(), &SIPTransport::incomingSIPResponse,
                    this, &SIPTransactions::processSIPResponse);
 
+  QObject::connect(connection.get(), &SIPTransport::sipTransportEstablished,
+                   this, &SIPTransactions::connectionEstablished);
   transports_.push_back(connection);
   return connection;
 }
@@ -269,6 +271,31 @@ void SIPTransactions::receiveTCPConnection(TCPConnection *con)
   qDebug() << "Dialog with ID:" << dialogs_.size() << "created for received connection.";
 }
 
+void SIPTransactions::connectionEstablished(quint32 transportID)
+{
+  pendingConnectionMutex_.lock();
+
+  bool pendingNonDialog = pendingNonDialogRequests_.find(transportID) != pendingNonDialogRequests_.end();
+  bool pendingDialog = pendingDialogRequests_.find(transportID) != pendingDialogRequests_.end();
+
+  pendingConnectionMutex_.unlock();
+
+  if(pendingNonDialog)
+  {
+    qDebug() << "We have a pending non-dialog request. Sending it!";
+    NonDialogRequest request = pendingNonDialogRequests_[transportID];
+    pendingNonDialogRequests_.erase(transportID);
+    // TODO
+  }
+
+  if(pendingDialog)
+  {
+    qDebug() << "We have a pending dialog request. Sending it!";
+    DialogRequest request = pendingDialogRequests_[transportID];
+    sendRequest(request.sessionID, request.type);
+    pendingDialogRequests_.erase(transportID);
+  }
+}
 
 void SIPTransactions::processSIPRequest(SIPRequest request,
                        quint32 transportID, QVariant &content)
@@ -478,24 +505,37 @@ bool SIPTransactions::processSDP(uint32_t sessionID, QVariant& content, QHostAdd
   return true;
 }
 
+void SIPTransactions::sendDialogRequest(uint32_t sessionID, RequestType type)
+{
+
+
+  sendRequest(sessionID, type);
+}
+
+void SIPTransactions::sendNonDialogMethod(SIP_URI& uri, RequestType type)
+{
+  // TODO
+}
+
 void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
 {
   qDebug() << "---- Iniated sending of a request:" << type << "----";
   Q_ASSERT(sessionID != 0 && sessionID <= dialogs_.size());
   // Get all the necessary information from different components.
 
-
   std::shared_ptr<SIPTransport> transport
       = transports_.at(dialogs_.at(sessionID - 1)->transportID - 1);
 
+  pendingConnectionMutex_.lock();
   if(!transport->isConnected())
   {
-    qDebug() << "The connection has not yet been established. Delaying sending of request";
+    qDebug() << "The connection has not yet been established. Delaying sending of request.";
 
-
-
+    pendingDialogRequests_[dialogs_.at(sessionID - 1)->transportID] = (DialogRequest{sessionID, type});
+    pendingConnectionMutex_.unlock();
     return;
   }
+  pendingConnectionMutex_.unlock();
 
   SIPRequest request;
   request.type = type;

@@ -44,7 +44,7 @@ public:
 
   bool isConnected() const
   {
-    return connected_;
+    return socket_->state() == QAbstractSocket::ConnectedState;
   }
 
   // TODO: Returns empty if we are not connected to anything.
@@ -97,7 +97,7 @@ private:
   QTcpSocket *socket_;
 
   bool shouldConnect_;
-  bool connected_;
+  bool connected_; // TODO: there ma be a bug with this
 
   QString destination_;
   uint16_t port_;
