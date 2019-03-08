@@ -42,6 +42,11 @@ public:
     });
   }
 
+  bool isConnected() const
+  {
+    return connected_;
+  }
+
   // TODO: Returns empty if we are not connected to anything.
   QHostAddress localAddress()
   {

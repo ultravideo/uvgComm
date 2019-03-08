@@ -31,6 +31,8 @@ public:
   void sendRequest(SIPRequest &request, QVariant& content);
   void sendResponse(SIPResponse &response, QVariant& content);
 
+  bool isConnected();
+
   QHostAddress getLocalAddress();
   QHostAddress getRemoteAddress();
 

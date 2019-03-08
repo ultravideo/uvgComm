@@ -484,8 +484,19 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
   Q_ASSERT(sessionID != 0 && sessionID <= dialogs_.size());
   // Get all the necessary information from different components.
 
+
   std::shared_ptr<SIPTransport> transport
       = transports_.at(dialogs_.at(sessionID - 1)->transportID - 1);
+
+  if(!transport->isConnected())
+  {
+    qDebug() << "The connection has not yet been established. Delaying sending of request";
+
+
+
+    return;
+  }
+
   SIPRequest request;
   request.type = type;
 
@@ -512,8 +523,12 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
     SDPMessageInfo sdp;
     if(type == INVITE)
     {
+      //dialogs_.at(sessionID - 1)->localSdp_
+      //    = sdp_.localSDPSuggestion(transport->getLocalAddress());
+
+      // TODO: fix
       dialogs_.at(sessionID - 1)->localSdp_
-          = sdp_.localSDPSuggestion(transport->getLocalAddress());
+          = sdp_.localSDPSuggestion(QHostAddress("127.0.0.1"));
       if(dialogs_.at(sessionID - 1)->localSdp_ != nullptr)
       {
         sdp = *dialogs_.at(sessionID - 1)->localSdp_.get();

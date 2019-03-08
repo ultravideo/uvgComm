@@ -95,9 +95,6 @@ void SIPDialogState::init(SIP_URI remoteURI)
   {
     localUri_.username = "anonymous";
   }
-
-  // TODO: Get server URI from settings
-  localUri_.host = "";
 }
 
 
@@ -106,6 +103,12 @@ void SIPDialogState::getRequestDialogInfo(RequestType type, QString localAddress
 {
   Q_ASSERT(localUri_.username != "" && localUri_.host != "");
   Q_ASSERT(remoteUri_.username != "" && remoteUri_.host != "");
+
+  if(localAddress == "")
+  {
+    qDebug() << "ERROR: No local address provided for requesting dialog info";
+    return;
+  }
 
   if(localUri_.username == "" || localUri_.host == "" ||
      remoteUri_.username == "" || remoteUri_.host == "")
