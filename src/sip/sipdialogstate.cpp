@@ -18,7 +18,24 @@ SIPDialogState::SIPDialogState():
   secure_(false)
 {}
 
-void SIPDialogState::createDialog(SIP_URI remoteURI)
+void SIPDialogState::init(SIP_URI remoteURI)
+{
+  remoteUri_ = remoteURI;
+
+  // init stuff from the settings
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+
+  localUri_.realname = settings.value("local/Name").toString();
+  localUri_.username = settings.value("local/Username").toString();
+  localUri_.host = settings.value("sip/ServerAddress").toString();
+
+  if(localUri_.username.isEmpty())
+  {
+    localUri_.username = "anonymous";
+  }
+}
+
+void SIPDialogState::createNewDialog(SIP_URI remoteURI)
 {
   init(remoteURI);
 
@@ -33,7 +50,7 @@ void SIPDialogState::createDialog(SIP_URI remoteURI)
 }
 
 
-void SIPDialogState::processFirstINVITE(std::shared_ptr<SIPMessageInfo> &inMessage)
+void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inMessage)
 {
   qDebug() << "Initializing SIP dialog with incoming INVITE.";
   Q_ASSERT(callID_ == "");
@@ -46,7 +63,7 @@ void SIPDialogState::processFirstINVITE(std::shared_ptr<SIPMessageInfo> &inMessa
   {
     if(correctRequestDialog(inMessage->dialog, INVITE, inMessage->cSeq))
     {
-      qDebug() << "Dialog: Got a Re-INVITE";
+      qDebug() << "ERROR: Re-INVITE should be processed differently.";
       return;
     }
     else
@@ -78,23 +95,6 @@ void SIPDialogState::processFirstINVITE(std::shared_ptr<SIPMessageInfo> &inMessa
 
   qDebug() << "Received a dialog creating INVITE. Creating dialog."
            << "CallID: " << callID_ << "OurTag:" << localTag_ << "Cseq:" << localCSeq_;
-}
-
-void SIPDialogState::init(SIP_URI remoteURI)
-{
-  remoteUri_ = remoteURI;
-
-  // init stuff from the settings
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
-
-  localUri_.realname = settings.value("local/Name").toString();
-  localUri_.username = settings.value("local/Username").toString();
-  localUri_.host = settings.value("sip/ServerAddress").toString();
-
-  if(localUri_.username.isEmpty())
-  {
-    localUri_.username = "anonymous";
-  }
 }
 
 
@@ -149,7 +149,7 @@ bool SIPDialogState::correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog,
     return false;
   }
 
-  // For backwards compability, this should be prepared for missing To-tag (or was it from tag) (RFC3261).
+  // TODO: For backwards compability, this should be prepared for missing To-tag (or was it from tag) (RFC3261).
   // if our tags and call-ID match the incoming requests, it belongs to this dialog
   if((dialog->toTag == localTag_) && dialog->fromTag == remoteTag_ &&
      ( dialog->callID == callID_))

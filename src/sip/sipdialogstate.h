@@ -25,10 +25,10 @@ public:
   }
 
   // creates dialog which is about to start from our end
-  void createDialog(SIP_URI remoteURI);
+  void createNewDialog(SIP_URI remoteURI);
 
   // creates the dialog from an incoming INVITE
-  void processFirstINVITE(std::shared_ptr<SIPMessageInfo> &inMessage);
+  void createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inMessage);
 
   // Generates the request message details
   void getRequestDialogInfo(RequestType type, QString localAddress, std::shared_ptr<SIPMessageInfo> &outMessage);

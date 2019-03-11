@@ -112,16 +112,16 @@ private:
   // returns whether we should continue with processing
   bool processSDP(uint32_t sessionID, QVariant &content, QHostAddress localAddress);
 
-  void createLocalDialog(QString remoteUsername, QString remoteAddress);
-  void createRemoteDialog(TCPConnection* con);
-  void createDialog(std::shared_ptr<SIPDialogData>& dialog, Contact& remote, quint32 transportID);
+  void startPeerToPeerCall(quint32 transportID, Contact& remote);
+  void createDialogFromINVITE(quint32 transportID,  std::shared_ptr<SIPMessageInfo> &invite,
+                              std::shared_ptr<SIPDialogData>& dialog);
+  void createBaseDialog(quint32 transportID, std::shared_ptr<SIPDialogData>& dialog);
   void destroyDialog(uint32_t sessionID);
 
   bool areWeTheDestination();
 
   bool isConnected(QString remoteAddress, quint32& transportID);
 
-  void inviteTask(quint32 transportID, Contact& remote);
   void registerTask();
 
   // This mutex makes sure that the dialog has been added to the dialogs_ list

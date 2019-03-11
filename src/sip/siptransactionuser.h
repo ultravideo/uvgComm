@@ -15,7 +15,7 @@ class SIPTransactionUser
 
   virtual ~SIPTransactionUser(){}
 
-  // The connection has been established
+  // We are calling someone
   virtual void outgoingCall(uint32_t sessionID, QString callee) = 0;
 
   // somebody is trying to call us

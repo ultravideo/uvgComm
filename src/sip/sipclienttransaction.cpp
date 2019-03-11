@@ -101,7 +101,7 @@ bool SIPClientTransaction::processResponse(SIPResponse &response)
 }
 
 
-bool SIPClientTransaction::startCall()
+bool SIPClientTransaction::startCall(QString callee)
 {
   qDebug() << "Starting a call and sending an INVITE in session";
   Q_ASSERT(sessionID_ != 0);
@@ -112,6 +112,8 @@ bool SIPClientTransaction::startCall()
   }
 
   requestSender(INVITE);
+
+  transactionUser_->outgoingCall(sessionID_, callee);
 
   return true;
 }

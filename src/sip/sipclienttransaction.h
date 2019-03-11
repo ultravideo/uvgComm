@@ -39,7 +39,7 @@ public:
   void responseIsError();
 
   // send a request
-  bool startCall();
+  bool startCall(QString callee);
   void endCall();
   void cancelCall();
   void registerToServer();

@@ -64,20 +64,6 @@ bool SIPTransactions::isConnected(QString remoteAddress, quint32& transportID)
   return false;
 }
 
-void SIPTransactions::inviteTask(quint32 transportID, Contact &remote)
-{
-  qDebug() << "Intializing a new dialog with INVITE task";
-
-  std::shared_ptr<SIPDialogData> dialogData;
-  createDialog(dialogData, remote, transportID);
-
-  // this start call will commence once the connection has been established
-  if(!dialogData->client->startCall())
-  {
-    qDebug() << "WARNING: Could not start a call according to session.";
-  }
-}
-
 void SIPTransactions::registerTask()
 {
   qDebug() << "Registering us to a new SIP server with REGISTER task";
@@ -149,21 +135,46 @@ void SIPTransactions::startCall(Contact &address)
     if(isConnected(address.remoteAddress, transportID)) // sets the transportid
     {
       qDebug() << "Found existing connection to this address.";
-      inviteTask(transportID, address);
+      startPeerToPeerCall(transportID, address);
     }
     else
     {
       std::shared_ptr<SIPTransport> transport = createSIPTransport();
       transport->createConnection(TCP, address.remoteAddress);
-      inviteTask(transports_.size(), address);
+      startPeerToPeerCall(transports_.size(), address);
 
       //dialogData->transportID = transports_.size();
     }
   }
 }
 
+void SIPTransactions::startPeerToPeerCall(quint32 transportID, Contact &remote)
+{
+  qDebug() << "Intializing a new dialog with INVITE task";
 
-void SIPTransactions::createDialog(std::shared_ptr<SIPDialogData>& dialog, Contact &remote, quint32 transportID)
+  std::shared_ptr<SIPDialogData> dialogData;
+  createBaseDialog(transportID, dialogData);
+  dialogData->state->createNewDialog(SIP_URI{remote.username, remote.username, remote.remoteAddress});
+
+  // this start call will commence once the connection has been established
+  if(!dialogData->client->startCall(remote.realName))
+  {
+    qDebug() << "WARNING: Could not start a call according to session.";
+  }
+}
+
+void SIPTransactions::createDialogFromINVITE(quint32 transportID, std::shared_ptr<SIPMessageInfo> &invite,
+                                             std::shared_ptr<SIPDialogData>& dialog)
+{
+  Q_ASSERT(invite);
+
+  createBaseDialog(transportID, dialog);
+
+  dialog->state->createDialogFromINVITE(invite);
+  dialog->state->setPeerToPeerHostname(transports_.at(transportID - 1)->getLocalAddress().toString());
+}
+
+void SIPTransactions::createBaseDialog( quint32 transportID, std::shared_ptr<SIPDialogData>& dialog)
 {
   Q_ASSERT(transportID <= transports_.size());
 
@@ -172,7 +183,6 @@ void SIPTransactions::createDialog(std::shared_ptr<SIPDialogData>& dialog, Conta
   dialog->transportID = transportID;
 
   dialog->state = std::shared_ptr<SIPDialogState> (new SIPDialogState());
-  dialog->state->createDialog(SIP_URI{remote.username, remote.username, remote.remoteAddress});
 
   dialog->client = std::shared_ptr<SIPClientTransaction> (new SIPClientTransaction);
   dialog->client->init(transactionUser_, dialogs_.size() + 1);
@@ -303,7 +313,7 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
   qDebug() << "Starting to process received SIP Request:" << request.type;
 
   // TODO: sessionID is now tranportID
-  // TODO: separate nondialog and dialog requests!
+  // TODO: separate non-dialog and dialog requests!
   connectionMutex_.lock();
 
   uint32_t foundSessionID = 0;
@@ -314,7 +324,7 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
                                                                 request.type,
                                                                 request.message->cSeq))
     {
-      qDebug() << "Found dialog matching the response";
+      qDebug() << "Found dialog matching for incoming request.";
       foundSessionID = sessionID;
     }
   }
@@ -338,12 +348,8 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
         return;
       }
 
-      Contact remoteContact = {request.message->from.username, request.message->from.realname, request.message->from.host};
-      createDialog(foundDialog, remoteContact, transportID);
+      createDialogFromINVITE(transportID, request.message, foundDialog);
       foundSessionID = dialogs_.size();
-
-      foundDialog->state->processFirstINVITE(request.message);
-      foundDialog->state->setPeerToPeerHostname(transports_.at(transportID - 1)->getLocalAddress().toString());
 
       // Proxy TODO: somehow distinguish if this is a proxy connection
       foundDialog->proxyConnection_ = false;
@@ -507,14 +513,12 @@ bool SIPTransactions::processSDP(uint32_t sessionID, QVariant& content, QHostAdd
 
 void SIPTransactions::sendDialogRequest(uint32_t sessionID, RequestType type)
 {
-
-
   sendRequest(sessionID, type);
 }
 
 void SIPTransactions::sendNonDialogMethod(SIP_URI& uri, RequestType type)
 {
-  // TODO
+  // TODO this
 }
 
 void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
@@ -535,6 +539,7 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
     pendingConnectionMutex_.unlock();
     return;
   }
+
   pendingConnectionMutex_.unlock();
 
   SIPRequest request;
@@ -548,6 +553,7 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
 
   // Get message info
   dialogs_.at(sessionID - 1)->client->getRequestMessageInfo(type, request.message);
+
   dialogs_.at(sessionID - 1)->state->getRequestDialogInfo(request.type,
                                                            transport->getLocalAddress().toString(),
                                                            request.message);
@@ -563,12 +569,9 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
     SDPMessageInfo sdp;
     if(type == INVITE)
     {
-      //dialogs_.at(sessionID - 1)->localSdp_
-      //    = sdp_.localSDPSuggestion(transport->getLocalAddress());
-
-      // TODO: fix
       dialogs_.at(sessionID - 1)->localSdp_
-          = sdp_.localSDPSuggestion(QHostAddress("127.0.0.1"));
+          = sdp_.localSDPSuggestion(transport->getLocalAddress());
+
       if(dialogs_.at(sessionID - 1)->localSdp_ != nullptr)
       {
         sdp = *dialogs_.at(sessionID - 1)->localSdp_.get();
