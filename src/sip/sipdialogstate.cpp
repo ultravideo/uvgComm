@@ -20,56 +20,50 @@ SIPDialogState::SIPDialogState():
 
 void SIPDialogState::init(SIP_URI remoteURI)
 {
-  initLocalURI();
   remoteUri_ = remoteURI;
-}
 
-void SIPDialogState::createDialog(QString hostName)
-{
-  localTag_ = generateRandomString(TAGLENGTH);
-  callID_ = generateRandomString(CALLIDLENGTH);
-  if(hostName != "")
-  {
-    callID_ += "@" + hostName;
-  }
-
-  // assume we are using a peer-to-peer connecion and don't know our host address until now
-  if(localUri_.host == "")
-  {
-    localUri_.host = hostName;
-  }
-
-  qDebug() << "Local dialog created. CallID: " << callID_ << "Tag:" << localTag_ << "Cseq:" << localCSeq_;
-}
-
-void SIPDialogState::initLocalURI()
-{
   // init stuff from the settings
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
 
   localUri_.realname = settings.value("local/Name").toString();
   localUri_.username = settings.value("local/Username").toString();
+  localUri_.host = settings.value("sip/ServerAddress").toString();
 
   if(localUri_.username.isEmpty())
   {
     localUri_.username = "anonymous";
   }
-
-  // TODO: Get server URI from settings
-  localUri_.host = "";
 }
 
-void SIPDialogState::processFirstINVITE(std::shared_ptr<SIPMessageInfo> &inMessage)
+void SIPDialogState::createNewDialog(SIP_URI remoteURI)
+{
+  init(remoteURI);
+
+  localTag_ = generateRandomString(TAGLENGTH);
+  callID_ = generateRandomString(CALLIDLENGTH);
+  if(localUri_.host != "")
+  {
+    callID_ += "@" + localUri_.host;
+  }
+
+  qDebug() << "Local dialog created. CallID: " << callID_ << "Tag:" << localTag_ << "Cseq:" << localCSeq_;
+}
+
+
+void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inMessage)
 {
   qDebug() << "Initializing SIP dialog with incoming INVITE.";
   Q_ASSERT(callID_ == "");
   Q_ASSERT(inMessage);
   Q_ASSERT(inMessage->dialog);
+
+  init(inMessage->from);
+
   if(callID_ != "")
   {
     if(correctRequestDialog(inMessage->dialog, INVITE, inMessage->cSeq))
     {
-      qDebug() << "Dialog: Got a Re-INVITE";
+      qDebug() << "ERROR: Re-INVITE should be processed differently.";
       return;
     }
     else
@@ -77,8 +71,6 @@ void SIPDialogState::processFirstINVITE(std::shared_ptr<SIPMessageInfo> &inMessa
       qDebug() << "PEER_ERROR: Got a request not belonging to this dialog";
     }
   }
-
-  initLocalURI();
 
   remoteTag_ = inMessage->dialog->fromTag;
   if(remoteTag_ == "")
@@ -105,16 +97,25 @@ void SIPDialogState::processFirstINVITE(std::shared_ptr<SIPMessageInfo> &inMessa
            << "CallID: " << callID_ << "OurTag:" << localTag_ << "Cseq:" << localCSeq_;
 }
 
+
 void SIPDialogState::getRequestDialogInfo(RequestType type, QString localAddress,
                                      std::shared_ptr<SIPMessageInfo>& outMessage)
 {
   Q_ASSERT(localUri_.username != "" && localUri_.host != "");
   Q_ASSERT(remoteUri_.username != "" && remoteUri_.host != "");
 
+  if(localAddress == "")
+  {
+    qDebug() << "ERROR: No local address provided for requesting dialog info";
+    return;
+  }
+
   if(localUri_.username == "" || localUri_.host == "" ||
      remoteUri_.username == "" || remoteUri_.host == "")
   {
-    qDebug() << "ERROR: The dialog state info has not been set, but we are using it.";
+    qDebug() << "ERROR: The dialog state info has not been set, but we are using it." <<
+                "username:" << localUri_.username << "host" << localUri_.host <<
+                "remote username:" << remoteUri_.username << "host:" << remoteUri_.host;
   }
 
 
@@ -148,7 +149,7 @@ bool SIPDialogState::correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog,
     return false;
   }
 
-  // For backwards compability, this should be prepared for missing To-tag (or was it from tag) (RFC3261).
+  // TODO: For backwards compability, this should be prepared for missing To-tag (or was it from tag) (RFC3261).
   // if our tags and call-ID match the incoming requests, it belongs to this dialog
   if((dialog->toTag == localTag_) && dialog->fromTag == remoteTag_ &&
      ( dialog->callID == callID_))

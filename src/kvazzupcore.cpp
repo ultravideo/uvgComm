@@ -19,6 +19,7 @@ void KvazzupCore::init()
   window_.show();
 
   sip_.init(this);
+  sip_.bindToServer();
 
   // register the GUI signals indicating GUI changes to be handled approrietly in a system wide manner
   QObject::connect(&window_, SIGNAL(settingsChanged()), this, SLOT(updateSettings()));
@@ -70,30 +71,26 @@ void KvazzupCore::callToParticipant(QString name, QString username, QString ip)
   con.remoteAddress = ip_str;
   con.realName = name;
   con.username = username;
-  con.proxyConnection = false;
-
-  QList<Contact> list;
-  list.append(con);
 
   //start negotiations for this connection
 
-  QList<uint32_t> sessionIDs = sip_.startCall(list);
+  sip_.startCall(con);
 
-  qDebug() << "Started" << sessionIDs.size() << "calls:" << sessionIDs;
-
-  for(auto sessionID : sessionIDs)
-  {
-    window_.displayOutgoingCall(sessionID, name);
-    if(states_.find(sessionID) == states_.end())
-    {
-      states_[sessionID] = CALLINGTHEM;
-    }
-  }
+  qDebug() << "Initiated call starting to" << con.realName;
 }
 
 void KvazzupCore::chatWithParticipant(QString name, QString username, QString ip)
 {
   qDebug() << "Chatting with:" << name << '(' << username << ") at ip:" << ip << ": Chat not implemented yet";
+}
+
+void KvazzupCore::outgoingCall(uint32_t sessionID, QString callee)
+{
+  window_.displayOutgoingCall(sessionID, callee);
+  if(states_.find(sessionID) == states_.end())
+  {
+    states_[sessionID] = CALLINGTHEM;
+  }
 }
 
 bool KvazzupCore::incomingCall(uint32_t sessionID, QString caller)
@@ -138,7 +135,7 @@ void KvazzupCore::peerAccepted(uint32_t sessionID)
 {
   if(states_.find(sessionID) != states_.end())
   {
-    if(states_[sessionID] == CALLRINGINWITHTHEM || true)
+    if(states_[sessionID] == CALLRINGINWITHTHEM)
     {
       qDebug() << "They accepted our call!";
       states_[sessionID] = CALLNEGOTIATING;
@@ -179,7 +176,7 @@ void KvazzupCore::callNegotiated(uint32_t sessionID)
 {
   if(states_.find(sessionID) != states_.end())
   {
-    if(states_[sessionID] == CALLNEGOTIATING || true)
+    if(states_[sessionID] == CALLNEGOTIATING)
     {
       qDebug() << "Call has been agreed upon with peer:" << sessionID;
 

@@ -18,8 +18,6 @@ public:
 
   void updateAddressBook();
 
-  void setHost(QString location);
-
   std::shared_ptr<SIPMessageInfo> generateRegisterRequest(QString localAddress);
 
   bool isContactAtThisServer(QString serverAddress);

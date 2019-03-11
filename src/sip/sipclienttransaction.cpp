@@ -11,9 +11,7 @@ const unsigned int INVITE_TIMEOUT = 60000;
 
 SIPClientTransaction::SIPClientTransaction():
   ongoingTransactionType_(SIP_UNKNOWN_REQUEST),
-  connected_(false),
   sessionID_(0),
-  pendingRequest_(SIP_UNKNOWN_REQUEST),
   transactionUser_(nullptr)
 {}
 
@@ -103,7 +101,7 @@ bool SIPClientTransaction::processResponse(SIPResponse &response)
 }
 
 
-bool SIPClientTransaction::startCall()
+bool SIPClientTransaction::startCall(QString callee)
 {
   qDebug() << "Starting a call and sending an INVITE in session";
   Q_ASSERT(sessionID_ != 0);
@@ -114,6 +112,8 @@ bool SIPClientTransaction::startCall()
   }
 
   requestSender(INVITE);
+
+  transactionUser_->outgoingCall(sessionID_, callee);
 
   return true;
 }
@@ -132,16 +132,6 @@ void SIPClientTransaction::cancelCall()
 void SIPClientTransaction::registerToServer()
 {
   requestSender(REGISTER);
-}
-
-void SIPClientTransaction::connectionReady(bool ready)
-{
-  connected_ = ready;
-  if(pendingRequest_ != SIP_UNKNOWN_REQUEST)
-  {
-    requestSender(pendingRequest_);
-    pendingRequest_ = SIP_UNKNOWN_REQUEST;
-  }
 }
 
 void SIPClientTransaction::getRequestMessageInfo(RequestType type,
@@ -170,27 +160,19 @@ void SIPClientTransaction::getRequestMessageInfo(RequestType type,
 
 void SIPClientTransaction::requestSender(RequestType type)
 {
-  if(!connected_)
+  qDebug() << "Client starts sending a request:" << type;
+  ongoingTransactionType_ = type;
+  emit sendRequest(sessionID_, type);
+
+  // INVITE has the same timeout as rest of them. Only after RINGING reply do we increase timeout
+  if(type != CANCEL && type != ACK)
   {
-    qDebug() << "Added a pending request:" << type;
-    pendingRequest_ = type;
+    qDebug() << "Request timeout set to: " << TIMEOUT;
+    requestTimer_.start(TIMEOUT);
   }
   else
   {
-    qDebug() << "Client starts sending a request:" << type;
-    ongoingTransactionType_ = type;
-    emit sendRequest(sessionID_, type);
-
-    // INVITE has the same timeout as rest of them. Only after RINGING reply do we increase timeout
-    if(type != CANCEL && type != ACK)
-    {
-      qDebug() << "Request timeout set to: " << TIMEOUT;
-      requestTimer_.start(TIMEOUT);
-    }
-    else
-    {
-      requestTimer_.stop();
-    }
+    requestTimer_.stop();
   }
 }
 

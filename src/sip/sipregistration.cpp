@@ -7,6 +7,7 @@
 
 SIPRegistration::SIPRegistration(QString serverAddress):
   localUri_(),
+  serverAddress_(serverAddress),
   initiated_(false)
 {}
 
@@ -31,13 +32,7 @@ void SIPRegistration::initLocalURI()
     localUri_.username = "anonymous";
   }
 
-  // TODO: Get server URI from settings
-  localUri_.host = "";
-}
-
-void SIPRegistration::setHost(QString location)
-{
-  localUri_.host = location;
+  localUri_.host = serverAddress_;
 }
 
 ViaInfo SIPRegistration::getLocalVia(QString localAddress)

@@ -15,17 +15,19 @@
 /* Some terms from RFC 3621:
  * Dialog = a SIP dialog constructed with INVITE-transaction
  * Session = a media session negotiated in INVITE-transaction
+ *
+ * SIP in Kvazzup follows the Transport, Transaction, Transaction User principle.
+ * This class represents the transaction layer.
  */
-
 
 // TODO: some kind of address book class might be useful because the connection addresses can change.
 
+// Contact is basically the same as SIP_URI
 struct Contact
 {
   QString username;
   QString realName;
   QString remoteAddress;
-  bool proxyConnection;
 };
 
 class SIPRouting;
@@ -47,6 +49,7 @@ public:
   void bindToServer();
 
   // start a call with all addresses in the list. Returns generated sessionID:s
+  void startCall(Contact& address);
   QList<uint32_t> startCall(QList<Contact> addresses);
 
   // transaction user wants something.
@@ -66,17 +69,17 @@ public:
                std::shared_ptr<SDPMessageInfo>& remoteSDP);
 
 private slots:
-  // connection has been established. This enables for us to get the needed info
-  // to form a SIP message
-  void connectionEstablished(quint32 transportID, QString localAddress, QString remoteAddress);
+
   void receiveTCPConnection(TCPConnection* con);
+  void connectionEstablished(quint32 transportID);
 
   // when sip connection has received a request/response it is handled here.
   void processSIPRequest(SIPRequest request, quint32 transportID, QVariant& content);
   void processSIPResponse(SIPResponse response, quint32 transportID, QVariant& content);
 
-  // used to send request/response
-  void sendRequest(uint32_t sessionID, RequestType type);
+  void sendDialogRequest(uint32_t sessionID, RequestType type);
+  void sendNonDialogMethod(SIP_URI& uri, RequestType type);
+
   void sendResponse(uint32_t sessionID, ResponseType type, RequestType originalRequest);
 
 private:
@@ -103,26 +106,51 @@ private:
                                                QString localAddress,
                                                QString remoteAddress, bool hostedSession);
 
+  // helper function that has the common parts of
+  void sendRequest(uint32_t sessionID, RequestType type);
+
   // returns whether we should continue with processing
   bool processSDP(uint32_t sessionID, QVariant &content, QHostAddress localAddress);
 
-  void createLocalDialog(QString remoteUsername, QString remoteAddress);
-  void createRemoteDialog(TCPConnection* con);
-  void createDialog(std::shared_ptr<SIPDialogData>& dialog);
+  void startPeerToPeerCall(quint32 transportID, Contact& remote);
+  void createDialogFromINVITE(quint32 transportID,  std::shared_ptr<SIPMessageInfo> &invite,
+                              std::shared_ptr<SIPDialogData>& dialog);
+  void createBaseDialog(quint32 transportID, std::shared_ptr<SIPDialogData>& dialog);
   void destroyDialog(uint32_t sessionID);
 
   bool areWeTheDestination();
 
+  bool isConnected(QString remoteAddress, quint32& transportID);
+
+  void registerTask();
+
   // This mutex makes sure that the dialog has been added to the dialogs_ list
   // before we are accessing it when receiving messages
   QMutex connectionMutex_;
+
+  struct DialogRequest
+  {
+    uint32_t sessionID;
+    RequestType type;
+  };
+
+  struct NonDialogRequest
+  {
+    SIP_URI request_uri;
+    RequestType type;
+  };
+
+  QMutex pendingConnectionMutex_;
+  // key is transportID
+  std::map<quint32, DialogRequest> pendingDialogRequests_;
+  std::map<quint32, NonDialogRequest> pendingNonDialogRequests_;
+
 
   // sessionID:s are positions in this list. SessionID:s are used in this program to
   // keep track of dialogs. The CallID is not used because we could be calling ourselves
   // and using uint32_t is simpler than keeping track of tags
 
   // TODO: separate dialog forming from dialog
-
   QList<std::shared_ptr<SIPDialogData>> dialogs_;
   QList<std::shared_ptr<SIPTransport>> transports_;
 
@@ -142,5 +170,4 @@ private:
   std::shared_ptr<SIPClientTransaction> registerClient_;
 
   SIPTransactionUser* transactionUser_;
-  bool isConference_;
 };

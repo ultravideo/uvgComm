@@ -142,6 +142,7 @@ bool includeViaFields(QList<SIPField> &fields,
   {
     Q_ASSERT(via.type != ANY);
     Q_ASSERT(via.branch != "");
+    Q_ASSERT(via.address != "");
 
     SIPField field;
     field.name = "Via";

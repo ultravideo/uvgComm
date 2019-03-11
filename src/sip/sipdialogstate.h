@@ -18,18 +18,17 @@ class SIPDialogState
 public:
   SIPDialogState();
 
-  void init(SIP_URI remoteURI);
-
-  // creates dialog which is about to start from our end
-  void createDialog(QString hostName);
-
-  void setHostname(QString hostName)
+  // TODO: set the correct address for peer-to-peer connection
+  void setPeerToPeerHostname(QString hostName)
   {
     localUri_.host = hostName;
   }
 
+  // creates dialog which is about to start from our end
+  void createNewDialog(SIP_URI remoteURI);
+
   // creates the dialog from an incoming INVITE
-  void processFirstINVITE(std::shared_ptr<SIPMessageInfo> &inMessage);
+  void createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inMessage);
 
   // Generates the request message details
   void getRequestDialogInfo(RequestType type, QString localAddress, std::shared_ptr<SIPMessageInfo> &outMessage);
@@ -45,8 +44,8 @@ public:
 
 private:
 
-  // TODO: This same function also exists in sipregistration
-  void initLocalURI();
+  void init(SIP_URI remoteURI);
+
   ViaInfo getLocalVia(QString localAddress);
 
   // SIP Dialog fields (section 12 in RFC 3261)

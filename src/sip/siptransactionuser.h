@@ -15,6 +15,9 @@ class SIPTransactionUser
 
   virtual ~SIPTransactionUser(){}
 
+  // We are calling someone
+  virtual void outgoingCall(uint32_t sessionID, QString callee) = 0;
+
   // somebody is trying to call us
   // returns true if this is auto-accepted
   virtual bool incomingCall(uint32_t sessionID, QString caller) = 0;

@@ -9,7 +9,7 @@ const uint32_t TOOMANYPACKETS = 100000;
 
 TCPConnection::TCPConnection()
   :
-    socket_(0),
+    socket_(nullptr),
     shouldConnect_(false),
     connected_(),
     destination_(),

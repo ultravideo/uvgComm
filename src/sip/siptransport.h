@@ -19,19 +19,27 @@ public:
   SIPTransport(quint32 transportID);
   ~SIPTransport();
 
+  void cleanup();
+
   // TODO: separate non-dialog and dialog messages
 
   // functions for manipulating network connection
   void createConnection(ConnectionType type, QString target);
   void incomingTCPConnection(std::shared_ptr<TCPConnection> con);
-  void destroyConnection();
 
   // sending SIP messages
   void sendRequest(SIPRequest &request, QVariant& content);
   void sendResponse(SIPResponse &response, QVariant& content);
 
+  bool isConnected();
+
   QHostAddress getLocalAddress();
   QHostAddress getRemoteAddress();
+
+  quint32 getTransportID()
+  {
+    return transportID_;
+  }
 
 public slots:
   // called when connection receives a message
@@ -76,6 +84,7 @@ private:
   QList<QHostAddress> parseIPAddress(QString address);
 
   void signalConnections();
+  void destroyConnection();
 
   QString partialMessage_;
 
