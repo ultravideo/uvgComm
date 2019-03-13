@@ -29,13 +29,14 @@ bool parseBitrate(QStringListIterator& lineIterator, char& type, QStringList& wo
 bool parseEncryptionKey(QStringListIterator& lineIterator, char& type, QStringList& words,
                         QString& key);
 // a=
-bool parseAttributes(QStringListIterator &lineIterator, char& type, QStringList &words,
-                     QList<SDPAttributeType> &flags, QList<SDPAttribute> &values, QList<RTPMap> &codecs);
+bool parseAttributes(QStringListIterator &lineIterator, char &type, QStringList& words,
+                     QList<SDPAttributeType>& flags, QList<SDPAttribute>& values,
+                     QList<RTPMap>& codecs, QList<ICEInfo *>& candidates);
 
 void parseFlagAttribute(SDPAttributeType type, QRegularExpressionMatch& match, QList<SDPAttributeType>& attributes);
 void parseValueAttribute(SDPAttributeType type, QRegularExpressionMatch& match, QList<SDPAttribute> valueAttributes);
 void parseRTPMap(QRegularExpressionMatch& match, QString secondWord, QList<RTPMap>& codecs);
-
+bool parseICECandidate(QStringList& words, QList<ICEInfo *>& candidates);
 
 bool checkSDPValidity(const SDPMessageInfo &sdpInfo)
 {
@@ -79,6 +80,12 @@ bool checkSDPValidity(const SDPMessageInfo &sdpInfo)
     }
   }
 
+  if (sdpInfo.candidates.isEmpty())
+  {
+    qDebug() << "PEER ERROR: Didn't receive any ICE candidates!";
+    return false;
+  }
+
   return true;
 }
 
@@ -94,6 +101,7 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
   {
     qDebug() << "Composed SDP checks out. Starting to compose";
   }
+
   QString sdp = "";
   QString lineEnd = "\r\n";
   sdp += "v=" + QString::number(sdpInfo.version) + lineEnd;
@@ -164,6 +172,15 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
     }
   }
 
+  for (ICEInfo *info : sdpInfo.candidates)
+  {
+    sdp += "a=candidate:"
+        + info->foundation + " " + QString::number(info->component) + " "
+        + info->transport  + " " + QString::number(info->priority)  + " "
+        + info->address    + " " + QString::number(info->port)      + " "
+        + "typ " + info->type + lineEnd;
+  }
+
   qDebug().noquote() << "Composed SDP string:" << sdp;
   return sdp;
 }
@@ -204,7 +221,6 @@ void gatherLine(QString& target, QStringList& words)
   }
 
 }
-
 
 bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
 {
@@ -441,7 +457,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
   }
 
   QList<RTPMap> noCodecs;
-  if(!parseAttributes(lineIterator, type, words, sdp.flagAttributes, sdp.valueAttributes, noCodecs))
+  if(!parseAttributes(lineIterator, type, words, sdp.flagAttributes, sdp.valueAttributes, noCodecs, sdp.candidates))
   {
     return false;
   }
@@ -499,7 +515,8 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
        || !parseAttributes(lineIterator, type, words,
                            sdp.media.back().flagAttributes,
                            sdp.media.back().valueAttributes,
-                           sdp.media.back().codecs))
+                           sdp.media.back().codecs,
+                           sdp.candidates))
     {
       qDebug() << "Failed to parse some media fields";
       return false;
@@ -521,7 +538,8 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
 }
 
 bool parseAttributes(QStringListIterator &lineIterator, char &type, QStringList& words,
-                     QList<SDPAttributeType>& flags, QList<SDPAttribute>& values, QList<RTPMap>& codecs)
+                     QList<SDPAttributeType>& flags, QList<SDPAttribute>& values,
+                     QList<RTPMap>& codecs, QList<ICEInfo *>& candidates)
 {
   while(type == 'a')
   {
@@ -533,12 +551,14 @@ bool parseAttributes(QStringListIterator &lineIterator, char &type, QStringList&
     {
       QString attribute = match.captured(1);
 
-      std::map<QString, SDPAttributeType> xmap
-          = {{"cat", A_CAT}, {"keywds", A_KEYWDS},{"tool", A_TOOL},{"ptime", A_PTIME},
-             {"maxptime", A_MAXPTIME},{"rtpmap", A_RTPMAP},{"recvonly", A_RECVONLY},
-             {"sendrecv", A_SENDRECV},{"sendonly", A_SENDONLY},{"inactive", A_INACTIVE},
-             {"orient", A_ORIENT},{"type", A_TYPE},{"charset", A_CHARSET},{"sdplang", A_SDPLANG},
-             {"lang", A_LANG},{"framerate", A_FRAMERATE},{"quality", A_QUALITY},{"fmtp", A_FMTP}};
+      std::map<QString, SDPAttributeType> xmap = {
+             {"cat",       A_CAT},      {"keywds",   A_KEYWDS},   {"tool",      A_TOOL},
+             {"maxptime",  A_MAXPTIME}, {"rtpmap",   A_RTPMAP},   {"recvonly",  A_RECVONLY},
+             {"sendrecv",  A_SENDRECV}, {"sendonly", A_SENDONLY}, {"inactive",  A_INACTIVE},
+             {"orient",    A_ORIENT},   {"type",     A_TYPE},     {"charset",   A_CHARSET},
+             {"sdplang",   A_SDPLANG},  {"lang",     A_LANG},     {"framerate", A_FRAMERATE},
+             {"quality",   A_QUALITY},  {"ptime",    A_PTIME},    {"fmtp",      A_FMTP},
+             {"candidate", A_CANDIDATE}};
 
         if(xmap.find(attribute) == xmap.end())
         {
@@ -639,6 +659,11 @@ bool parseAttributes(QStringListIterator &lineIterator, char &type, QStringList&
         case A_FMTP:
         {
           parseValueAttribute(A_FMTP, match, values);
+          break;
+        }
+        case A_CANDIDATE:
+        {
+          parseICECandidate(words, candidates);
           break;
         }
         default:
@@ -792,5 +817,28 @@ bool parseEncryptionKey(QStringListIterator& lineIterator, char& type, QStringLi
       return true;
     }
   }
+  return true;
+}
+
+bool parseICECandidate(QStringList& words, QList<ICEInfo *>& candidates)
+{
+  if (words.size() != 8)
+  {
+    return false;
+  }
+
+  ICEInfo *candidate = new ICEInfo;
+
+  candidate->foundation  = words.at(0).split(":").at(1);
+  candidate->component   = words.at(1).toInt();
+  candidate->transport   = words.at(2);
+  candidate->priority    = words.at(3).toInt();
+  candidate->address     = words.at(4);
+  candidate->port        = words.at(5).toInt();
+  candidate->type        = words.at(7); // discard word 6 (typ)
+  candidate->rel_address = "";
+
+  candidates.push_back(candidate);
+
   return true;
 }

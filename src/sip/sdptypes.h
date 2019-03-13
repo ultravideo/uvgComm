@@ -11,7 +11,22 @@
 enum SDPAttributeType{A_CAT, A_KEYWDS, A_TOOL, A_PTIME, A_MAXPTIME, A_RTPMAP,
                       A_RECVONLY, A_SENDRECV, A_SENDONLY, A_INACTIVE,
                       A_ORIENT, A_TYPE, A_CHARSET, A_SDPLANG, A_LANG,
-                      A_FRAMERATE, A_QUALITY, A_FMTP};
+                      A_FRAMERATE, A_QUALITY, A_FMTP, A_CANDIDATE};
+
+/* list of ICEInfo (candidates) is send during INVITE */
+struct ICEInfo
+{
+  QString foundation;  /* TODO:  */
+  int component;       /* 1 for RTP, 2 for RTCP */
+  QString transport;   /* UDP/TCP */
+  int priority;        /* TODO: */
+
+  QString address;
+  int port;
+
+  QString type;        /* host/relayed */
+  QString rel_address; /* for turn, not used (currently)  */
+};
 
 struct SDPAttribute
 {
@@ -114,6 +129,7 @@ struct SDPMessageInfo
   QList<SDPAttribute> valueAttributes;
 
   QList<MediaInfo> media;// m=, zero or more
+  QList<ICEInfo *> candidates;
 };
 
 Q_DECLARE_METATYPE(SDPMessageInfo); // used in qvariant for content

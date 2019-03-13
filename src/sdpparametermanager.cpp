@@ -3,8 +3,9 @@
 #include <QUdpSocket>
 #include <QDebug>
 
-const uint16_t MIN_SIP_PORT = 21500;
-const uint16_t MAX_SIP_PORT = 22000;
+const uint16_t MIN_SIP_PORT   = 21500;
+const uint16_t MAX_SIP_PORT   = 22000;
+const uint16_t ICE_PORT_START = 21900;
 
 const uint16_t MAX_PORTS = 42;
 

@@ -1,8 +1,8 @@
 #pragma once
 
-//#include "sip/siptypes.h"
 #include "sip/sdptypes.h"
 #include "sdpparametermanager.h"
+#include "ice.h"
 
 #include <QHostAddress>
 #include <QMutex>
@@ -36,6 +36,9 @@ public:
   // frees the ports when they are not needed in rest of the program
   void endSession(std::shared_ptr<SDPMessageInfo> sessionSDP);
 
+  void startICECandidateNegotiation(QList<ICEInfo *>& local, QList<ICEInfo *>& remote);
+  std::pair<ICEPair *, ICEPair *> getNominatedICECandidates();
+
   bool canStartSession()
   {
     return parameters_.enoughFreePorts();
@@ -44,7 +47,7 @@ public:
 private:
 
   // TODO: This should be moved to MediaManager.
-  std::shared_ptr<SDPMessageInfo> generateSDP(QHostAddress localAddress);
+  std::shared_ptr<SDPMessageInfo> generateSDP(QHostAddress localAddress, QList<ICEInfo *> *remoteCandidates);
 
   bool generateAudioMedia(MediaInfo &audio);
   bool generateVideoMedia(MediaInfo &video);
@@ -52,6 +55,8 @@ private:
   bool checkSDPOffer(SDPMessageInfo& offer);
 
   QString localUsername_;
+
+  std::unique_ptr<ICE> ice_;
 
   SDPParameterManager parameters_;
 };

@@ -8,18 +8,15 @@ UDPServer::UDPServer():
 
 bool UDPServer::bindSocket(const QHostAddress& address, quint16 port, bool raw)
 {
+  this->unbind();
+
   sendPort_ = port;
-
-  if (socket_)
-  {
-    delete socket_;
-  }
-
   socket_ = new QUdpSocket(this);
 
   if(!socket_->bind(address, port))
   {
     qDebug() << "Failed to bind UDP socket to " << address.toString();
+    qDebug() << socket_->error();
     return false;
   }
 
@@ -33,6 +30,19 @@ bool UDPServer::bindSocket(const QHostAddress& address, quint16 port, bool raw)
   }
 
   return true;
+}
+
+void UDPServer::unbind()
+{
+  sendPort_ = 0;
+
+  if (socket_)
+  {
+    socket_->blockSignals(true);
+    socket_->close();
+    delete socket_;
+    socket_ = nullptr;
+  }
 }
 
 void UDPServer::bind(const QHostAddress &address, quint16 port)

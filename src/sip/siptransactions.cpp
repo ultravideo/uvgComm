@@ -206,6 +206,11 @@ void SIPTransactions::acceptCall(uint32_t sessionID)
 {
   connectionMutex_.lock();
   std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
+
+  // start candiate nomination. This function won't block, negotiation happens in the background
+  // remoteFinalSDP() makes sure that a connection was in fact nominated
+  sdp_.startICECandidateNegotiation(dialog->localSdp_->candidates, dialog->remoteSdp_->candidates);
+
   connectionMutex_.unlock();
   dialog->server->acceptCall();
 }
@@ -395,10 +400,39 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
 
         SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
 
+        // remoteFinalSDP blocks until the ICE candidates has finished or failed
+        //
+        // After it returns, we add the nominated media connections to our local SDP
         if(!sdp_.remoteFinalSDP(retrieved))
         {
           qDebug() << "PEER_ERROR:" << "Their final sdp is not suitable. They should have followed our SDP!!!";
           return;
+        }
+        else
+        {
+          auto nominated = sdp_.getNominatedICECandidates();
+
+          if(foundDialog->localSdp_ != nullptr)
+          {
+            // RTP
+            foundDialog->localSdp_->media[0].connection_address = nominated.first->local->address;
+            foundDialog->localSdp_->media[0].receivePort = nominated.first->local->port;
+
+            // RTCP
+            foundDialog->localSdp_->media[1].connection_address = nominated.second->local->address;
+            foundDialog->localSdp_->media[1].receivePort = nominated.second->local->port;
+          }
+
+          if (foundDialog->remoteSdp_ != nullptr)
+          {
+            // RTP
+            foundDialog->remoteSdp_->media[0].connection_address = nominated.first->remote->address;
+            foundDialog->remoteSdp_->media[0].receivePort = nominated.first->remote->port;
+
+            // RTCP
+            foundDialog->remoteSdp_->media[1].connection_address = nominated.second->remote->address;
+            foundDialog->remoteSdp_->media[1].receivePort = nominated.second->remote->port;
+          }
         }
       }
     }

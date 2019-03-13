@@ -19,6 +19,8 @@ public:
   void bind(const QHostAddress& address, quint16 port);
   bool bindRaw(const QHostAddress& address, quint16 port);
 
+  void unbind();
+
   // sends the data using Qt UDP classes.
   void sendData(QByteArray& data, const QHostAddress &address, quint16 port, bool untilReply);
 
