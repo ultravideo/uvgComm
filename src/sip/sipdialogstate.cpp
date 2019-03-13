@@ -61,7 +61,7 @@ void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inM
 
   if(callID_ != "")
   {
-    if(correctRequestDialog(inMessage->dialog, INVITE, inMessage->cSeq))
+    if(correctRequestDialog(inMessage->dialog, SIP_INVITE, inMessage->cSeq))
     {
       qDebug() << "ERROR: Re-INVITE should be processed differently.";
       return;
@@ -119,7 +119,7 @@ void SIPDialogState::getRequestDialogInfo(RequestType type, QString localAddress
   }
 
 
-  if(type != ACK && type != CANCEL)
+  if(type != SIP_ACK && type != SIP_CANCEL)
   {
     ++localCSeq_;
   }
@@ -155,7 +155,7 @@ bool SIPDialogState::correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog,
      ( dialog->callID == callID_))
   {
     // The request cseq should be larger than our remotecseq.
-    if(remoteCSeq <= remoteCSeq_ && type != ACK && type != CANCEL)
+    if(remoteCSeq <= remoteCSeq_ && type != SIP_ACK && type != SIP_CANCEL)
     {
       qDebug() << "PEER_ERROR:" << "Their Cseq was smaller than their previous cseq which is not permitted!";
       // TODO: if remote cseq in message is lower than remote cseq, send 500

@@ -5,7 +5,8 @@
 #include <QTimer>
 #include <QObject>
 
-// A class for handling all sent requests and processing responses.
+// A class for handling all sent requests and processing responses. The purpose
+// of this class is to keep track of request transaction state on client side.
 // see RFC 3261 for more details.
 
 class SIPTransactionUser;
@@ -14,15 +15,15 @@ class SIPClientTransaction : public QObject
 {
   Q_OBJECT
 public:
-  SIPClientTransaction();
+  SIPClientTransaction(SIPTransactionUser* tu);
 
-  void init(SIPTransactionUser* tu, uint32_t sessionID);
+  void init();
 
   // have we sent this kind of request
   bool waitingResponse(RequestType requestType)
   {
     return ongoingTransactionType_ == requestType
-        && requestType != SIP_UNKNOWN_REQUEST;
+        && requestType != SIP_NO_REQUEST;
   }
 
   // constructs the SIP message info struct as much as possible
@@ -31,28 +32,48 @@ public:
 
   // processes incoming response. Part of our client transaction
   // returns whether we should destroy the dialog
-  bool processResponse(SIPResponse& response);
+  virtual bool processResponse(SIPResponse& response) = 0;
 
   // Not implemented. Should be used to notify transaction that there was an error with response.
   void wrongResponseDestination();
   void malformedResponse();
   void responseIsError();
 
-  // send a request
-  bool startCall(QString callee);
-  void endCall();
-  void cancelCall();
   void registerToServer();
 
-signals:
-  // send messages to other end
-  void sendRequest(uint32_t sessionID, RequestType type);
+protected:
+
+  // timeout is in milliseconds. Used for request timeout
+  void startTimeoutTimer(int timeout = 2000)
+  {
+    requestTimer_.start(timeout);
+  }
+
+  void stopTimeoutTimer()
+  {
+    requestTimer_.stop();
+  }
+
+  SIPTransactionUser* getTransactionUser()
+  {
+    return transactionUser_;
+  }
+
+  virtual void processTimeout();
+
+  RequestType getOngoingRequest()
+  {
+    return ongoingTransactionType_;
+  }
+
+  virtual void sendRequest(RequestType type) = 0;
+
+
 
 private slots:
   void requestTimeOut();
 
 private:
-  void requestSender(RequestType type);
   bool goodResponse(); // use this to filter out untimely/duplicate responses
 
   // used to determine what type of request the response is for
@@ -62,7 +83,6 @@ private:
 
   QTimer requestTimer_;
 
-  uint32_t sessionID_;
 
   SIPTransactionUser* transactionUser_;
 };

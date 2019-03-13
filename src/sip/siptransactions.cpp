@@ -3,7 +3,7 @@
 #include "sip/sipdialogstate.h"
 #include "sip/siptransport.h"
 
-#include "sip/sipclienttransaction.h"
+#include "sip/sipdialogclient.h"
 #include "sip/sipservertransaction.h"
 
 
@@ -184,15 +184,16 @@ void SIPTransactions::createBaseDialog( quint32 transportID, std::shared_ptr<SIP
 
   dialog->state = std::shared_ptr<SIPDialogState> (new SIPDialogState());
 
-  dialog->client = std::shared_ptr<SIPClientTransaction> (new SIPClientTransaction);
-  dialog->client->init(transactionUser_, dialogs_.size() + 1);
+  dialog->client = std::shared_ptr<SIPDialogClient> (new SIPDialogClient(transactionUser_));
+  dialog->client->init();
+  dialog->client->setSessionID(dialogs_.size() + 1);
 
   dialog->server = std::shared_ptr<SIPServerTransaction> (new SIPServerTransaction);
   dialog->server->init(transactionUser_, dialogs_.size() + 1);
 
   dialog->localSdp_ = nullptr;
   dialog->remoteSdp_ = nullptr;
-  QObject::connect(dialog->client.get(), &SIPClientTransaction::sendRequest,
+  QObject::connect(dialog->client.get(), &SIPDialogClient::sendDialogRequest,
                    this, &SIPTransactions::sendDialogRequest);
 
   QObject::connect(dialog->server.get(), &SIPServerTransaction::sendResponse,
@@ -338,7 +339,7 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
     qDebug() << "Could not find the dialog of the request.";
 
     // TODO: there is a problem if the sequence number did not match and the request type is INVITE
-    if(request.type == INVITE)
+    if(request.type == SIP_INVITE)
     {
       qDebug() << "Someone is trying to start a sip dialog with us!";
 
@@ -371,11 +372,11 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
   Q_ASSERT(foundDialog->state);
 
   // TODO: prechecks that the message is ok, then modify program state.
-  if(request.type == INVITE || request.type == ACK)
+  if(request.type == SIP_INVITE || request.type == SIP_ACK)
   {
     if(request.message->content.type == APPLICATION_SDP)
     {
-      if(request.type == INVITE)
+      if(request.type == SIP_INVITE)
       {
         if(!processSDP(foundSessionID, content, transports_.at(transportID - 1)->getLocalAddress()))
         {
@@ -467,7 +468,7 @@ void SIPTransactions::processSIPResponse(SIPResponse response,
   // TODO: if our request was INVITE and response is 2xx or 101-199, create dialog
   // TODO: prechecks that the response is ok, then modify program state.
 
-  if(response.message->transactionRequest == INVITE && response.type == SIP_OK)
+  if(response.message->transactionRequest == SIP_INVITE && response.type == SIP_OK)
   {
     if(response.message->content.type == APPLICATION_SDP)
     {
@@ -546,7 +547,7 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
   request.type = type;
 
   // if this is the session creation INVITE. Proxy sessions should be created earlier.
-  if(request.type == INVITE && !dialogs_.at(sessionID - 1)->proxyConnection_)
+  if(request.type == SIP_INVITE && !dialogs_.at(sessionID - 1)->proxyConnection_)
   {
     // TODO: possibly set the local address with transport->getLocalAddress().toString() for peer-to-peer
   }
@@ -562,12 +563,12 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
 
   QVariant content;
   request.message->content.length = 0;
-  if(type == INVITE || type == ACK)
+  if(type == SIP_INVITE || type == SIP_ACK)
   {
     qDebug() << "Adding SDP content to request:" << type;
     request.message->content.type = APPLICATION_SDP;
     SDPMessageInfo sdp;
-    if(type == INVITE)
+    if(type == SIP_INVITE)
     {
       dialogs_.at(sessionID - 1)->localSdp_
           = sdp_.localSDPSuggestion(transport->getLocalAddress());
@@ -614,7 +615,7 @@ void SIPTransactions::sendResponse(uint32_t sessionID, ResponseType type, Reques
   response.message->transactionRequest = originalRequest;
 
   QVariant content;
-  if(response.message->transactionRequest == INVITE && type == SIP_OK) // TODO: SDP in progress...
+  if(response.message->transactionRequest == SIP_INVITE && type == SIP_OK) // TODO: SDP in progress...
   {
     response.message->content.type = APPLICATION_SDP;
     SDPMessageInfo sdp = *dialogs_.at(sessionID - 1)->localSdp_.get();

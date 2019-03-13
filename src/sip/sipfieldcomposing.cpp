@@ -11,12 +11,12 @@ bool tryAddParameter(SIPField& field, QString parameterName, QString parameterVa
 
 bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
 {
-  if(request.type == SIP_UNKNOWN_REQUEST)
+  if(request.type == SIP_NO_REQUEST)
   {
     qDebug() << "WARNING: First request line failed";
     return false;
   }
-  if(request.type != REGISTER)
+  if(request.type != SIP_REGISTER)
   {
     line = requestToString(request.type) + " sip:"
         + request.message->to.username + "@" + request.message->to.host
@@ -97,8 +97,8 @@ bool includeFromField(QList<SIPField> &fields,
 bool includeCSeqField(QList<SIPField> &fields,
                       std::shared_ptr<SIPMessageInfo> message)
 {
-  Q_ASSERT(message->cSeq != 0 && message->transactionRequest != SIP_UNKNOWN_REQUEST);
-  if(message->cSeq == 0 || message->transactionRequest == SIP_UNKNOWN_REQUEST)
+  Q_ASSERT(message->cSeq != 0 && message->transactionRequest != SIP_NO_REQUEST);
+  if(message->cSeq == 0 || message->transactionRequest == SIP_NO_REQUEST)
   {
     qDebug() << "WARNING: cSeq field failed";
     return false;

@@ -34,7 +34,7 @@ class SIPRouting;
 class SIPDialogState;
 class SIPTransactionUser;
 class SIPServerTransaction;
-class SIPClientTransaction;
+class SIPDialogClient;
 
 class SIPTransactions : public QObject
 {
@@ -91,7 +91,7 @@ private:
     std::shared_ptr<SIPDialogState> state;
     // do not stop connection before responding to all requests
     std::shared_ptr<SIPServerTransaction> server;
-    std::shared_ptr<SIPClientTransaction> client;
+    std::shared_ptr<SIPDialogClient> client;
     std::shared_ptr<SDPMessageInfo> localSdp_;
     std::shared_ptr<SDPMessageInfo> remoteSdp_;
 
@@ -157,17 +157,10 @@ private:
   QList<QString> directContactAddresses_;
   QList<SIPRegistration> sipServerRegistrations_;
 
-  // used with non-dialog messages
-  std::shared_ptr<SIPClientTransaction> generalClient;
-  std::shared_ptr<SIPServerTransaction> generalServer;
-
   GlobalSDPState sdp_;
 
   ConnectionServer tcpServer_;
   uint16_t sipPort_;
-
-  // use this client to register us to a server
-  std::shared_ptr<SIPClientTransaction> registerClient_;
 
   SIPTransactionUser* transactionUser_;
 };

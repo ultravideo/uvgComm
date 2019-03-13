@@ -41,7 +41,7 @@ bool SIPServerTransaction::processRequest(SIPRequest &request)
 
   switch(request.type)
   {
-  case INVITE:
+  case SIP_INVITE:
   {
     if(!transactionUser_->incomingCall(sessionID_, request.message->from.realname))
     {
@@ -50,29 +50,29 @@ bool SIPServerTransaction::processRequest(SIPRequest &request)
     }
     break;
   }
-  case ACK:
+  case SIP_ACK:
   {
     transactionUser_->callNegotiated(sessionID_);
     break;
   }
-  case BYE:
+  case SIP_BYE:
   {
     transactionUser_->endCall(sessionID_);
     return false;
     break;
   }
-  case CANCEL:
+  case SIP_CANCEL:
   {
     transactionUser_->cancelIncomingCall(sessionID_);
     return false;
     break;
   }
-  case OPTIONS:
+  case SIP_OPTIONS:
   {
     qDebug() << "Don't know what to do with OPTIONS yet";
     break;
   }
-  case REGISTER:
+  case SIP_REGISTER:
   {
     qDebug() << "Why on earth are we receiving REGISTER methods?";
     responseSender(SIP_NOT_ALLOWED, true);

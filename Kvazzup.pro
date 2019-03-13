@@ -79,7 +79,8 @@ SOURCES +=\
     src/sip/connectionpolicy.cpp \
     src/gui/videoyuvwidget.cpp \
     src/gui/videodrawhelper.cpp \
-    src/kvazzupcore.cpp
+    src/kvazzupcore.cpp \
+    src/sip/sipdialogclient.cpp
 
 HEADERS  += \
     src/filter.h \
@@ -143,7 +144,8 @@ HEADERS  += \
     src/sip/connectionpolicy.h \
     src/gui/videoyuvwidget.h \
     src/gui/videodrawhelper.h \
-    src/kvazzupcore.h
+    src/kvazzupcore.h \
+    src/sip/sipdialogclient.h
 
 FORMS    += \
     ui/callwindow.ui \
