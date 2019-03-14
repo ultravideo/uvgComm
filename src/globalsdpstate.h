@@ -37,7 +37,9 @@ public:
   void endSession(std::shared_ptr<SDPMessageInfo> sessionSDP);
 
   void startICECandidateNegotiation(QList<ICEInfo *>& local, QList<ICEInfo *>& remote);
-  std::pair<ICEPair *, ICEPair *> getNominatedICECandidates();
+
+  // update the MediaInfo of remote and locals SDPs to include the nominated connections
+  void updateFinalSDPs(SDPMessageInfo& localSDP, SDPMessageInfo& remoteSDP);
 
   bool canStartSession()
   {

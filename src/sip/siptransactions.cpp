@@ -400,9 +400,9 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
 
         SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
 
-        // remoteFinalSDP blocks until the ICE candidates has finished or failed
+        // remoteFinalSDP blocks until the ICE has finished its job
         //
-        // After it returns, we add the nominated media connections to our local SDP
+        // After it returns, we add the nominated media connections to local and remote SDPs
         if(!sdp_.remoteFinalSDP(retrieved))
         {
           qDebug() << "PEER_ERROR:" << "Their final sdp is not suitable. They should have followed our SDP!!!";
@@ -410,29 +410,7 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
         }
         else
         {
-          auto nominated = sdp_.getNominatedICECandidates();
-
-          if(foundDialog->localSdp_ != nullptr)
-          {
-            // RTP
-            foundDialog->localSdp_->media[0].connection_address = nominated.first->local->address;
-            foundDialog->localSdp_->media[0].receivePort = nominated.first->local->port;
-
-            // RTCP
-            foundDialog->localSdp_->media[1].connection_address = nominated.second->local->address;
-            foundDialog->localSdp_->media[1].receivePort = nominated.second->local->port;
-          }
-
-          if (foundDialog->remoteSdp_ != nullptr)
-          {
-            // RTP
-            foundDialog->remoteSdp_->media[0].connection_address = nominated.first->remote->address;
-            foundDialog->remoteSdp_->media[0].receivePort = nominated.first->remote->port;
-
-            // RTCP
-            foundDialog->remoteSdp_->media[1].connection_address = nominated.second->remote->address;
-            foundDialog->remoteSdp_->media[1].receivePort = nominated.second->remote->port;
-          }
+          sdp_.updateFinalSDPs(*foundDialog->localSdp_, *foundDialog->remoteSdp_);
         }
       }
     }

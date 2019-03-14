@@ -261,7 +261,23 @@ void GlobalSDPState::startICECandidateNegotiation(QList<ICEInfo *>& local, QList
   ice_->startNomination(local, remote);
 }
 
-std::pair<ICEPair *, ICEPair *> GlobalSDPState::getNominatedICECandidates()
+void GlobalSDPState::updateFinalSDPs(SDPMessageInfo& localSDP, SDPMessageInfo& remoteSDP)
 {
-  return ice_->getNominated();
+  auto nominated = ice_->getNominated();
+
+  // local RTP
+  localSDP.media[0].connection_address = nominated.first->local->address;
+  localSDP.media[0].receivePort = nominated.first->local->port;
+
+  // local RTCP
+  localSDP.media[1].connection_address = nominated.second->local->address;
+  localSDP.media[1].receivePort = nominated.second->local->port;
+
+  // remote RTP
+  remoteSDP.media[0].connection_address = nominated.first->remote->address;
+  remoteSDP.media[0].receivePort = nominated.first->remote->port;
+
+  // remote RTCP
+  remoteSDP.media[1].connection_address = nominated.second->remote->address;
+  remoteSDP.media[1].receivePort = nominated.second->remote->port;
 }
