@@ -17,11 +17,6 @@ void SIPClientTransaction::init()
   connect(&requestTimer_, SIGNAL(timeout()), this, SLOT(requestTimeOut()));
 }
 
-void SIPClientTransaction::registerToServer()
-{
-  sendRequest(SIP_REGISTER);
-}
-
 void SIPClientTransaction::getRequestMessageInfo(RequestType type,
                                                  std::shared_ptr<SIPMessageInfo>& outMessage)
 {

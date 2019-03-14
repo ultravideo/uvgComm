@@ -80,7 +80,8 @@ SOURCES +=\
     src/gui/videoyuvwidget.cpp \
     src/gui/videodrawhelper.cpp \
     src/kvazzupcore.cpp \
-    src/sip/sipdialogclient.cpp
+    src/sip/sipdialogclient.cpp \
+    src/sip/sipnondialogclient.cpp
 
 HEADERS  += \
     src/filter.h \
@@ -145,7 +146,8 @@ HEADERS  += \
     src/gui/videoyuvwidget.h \
     src/gui/videodrawhelper.h \
     src/kvazzupcore.h \
-    src/sip/sipdialogclient.h
+    src/sip/sipdialogclient.h \
+    src/sip/sipnondialogclient.h
 
 FORMS    += \
     ui/callwindow.ui \

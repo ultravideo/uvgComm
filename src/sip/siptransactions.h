@@ -2,6 +2,7 @@
 
 #include "globalsdpstate.h"
 #include "sip/siptransport.h"
+#include "sip/sipnondialogclient.h"
 #include "sip/sipregistration.h"
 #include "connectionserver.h"
 
@@ -156,6 +157,8 @@ private:
 
   QList<QString> directContactAddresses_;
   QList<SIPRegistration> sipServerRegistrations_;
+
+  std::unique_ptr<SIPNonDialogClient> nonDialogClient_;
 
   GlobalSDPState sdp_;
 

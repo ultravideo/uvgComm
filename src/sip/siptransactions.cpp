@@ -8,7 +8,18 @@
 
 
 SIPTransactions::SIPTransactions():
-  sipPort_(5060) // default for SIP, use 5061 for tls encrypted
+  pendingConnectionMutex_(),
+  pendingDialogRequests_(),
+  pendingNonDialogRequests_(),
+  dialogs_(),
+  transports_(),
+  directContactAddresses_(),
+  sipServerRegistrations_(),
+  nonDialogClient_(),
+  sdp_(),
+  tcpServer_(),
+  sipPort_(5060), // default for SIP, use 5061 for tls encrypted
+  transactionUser_(nullptr)
 {}
 
 void SIPTransactions::init(SIPTransactionUser *callControl)
@@ -16,6 +27,7 @@ void SIPTransactions::init(SIPTransactionUser *callControl)
   qDebug() << "Iniating SIP Manager";
 
   transactionUser_ = callControl;
+  nonDialogClient_ = std::unique_ptr<SIPNonDialogClient>(new SIPNonDialogClient(callControl));
 
   QObject::connect(&tcpServer_, &ConnectionServer::newConnection,
                    this, &SIPTransactions::receiveTCPConnection);

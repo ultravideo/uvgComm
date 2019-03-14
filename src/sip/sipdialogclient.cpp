@@ -4,7 +4,6 @@
 
 #include <QDebug>
 
-
 // 1 minute for the user to react
 const unsigned int INVITE_TIMEOUT = 60000;
 

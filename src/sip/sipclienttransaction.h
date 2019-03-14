@@ -39,8 +39,6 @@ public:
   void malformedResponse();
   void responseIsError();
 
-  void registerToServer();
-
 protected:
 
   // timeout is in milliseconds. Used for request timeout
@@ -67,8 +65,6 @@ protected:
   }
 
   virtual void sendRequest(RequestType type) = 0;
-
-
 
 private slots:
   void requestTimeOut();
