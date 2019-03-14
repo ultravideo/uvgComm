@@ -40,7 +40,7 @@ class ICE : public QObject
     ICE();
     ~ICE();
 
-    QList<ICEInfo *> generateICECandidates(QList<ICEInfo *> *remoteCandidates);
+    QList<ICEInfo *> generateICECandidates();
 
     void addRemoteCandidate(const ICEInfo *candidate);
     bool connectionNominated();

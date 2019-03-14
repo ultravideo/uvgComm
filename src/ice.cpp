@@ -44,29 +44,16 @@ QString ICE::generateFoundation()
    return randomString;
 }
 
-QList<ICEInfo *> ICE::generateICECandidates(QList<ICEInfo *> *remoteCandidates)
+QList<ICEInfo *> ICE::generateICECandidates()
 {
   QList<ICEInfo *> candidates;
 
-  if (remoteCandidates != nullptr)
-  {
-    qDebug() << "\n\n\n\n\n\nGENERATE CANDIDATE BASED ON REMOTE'S CANDIDATES!\n\n\n\n\n\n";
-  }
-
-  // TODO actually generate list of candidates based on remote's list
   QTime time = QTime::currentTime();
   qsrand((uint)time.msec());
 
-  /* TODO: temporary hack, remove */
-  /* portPair = 51337 + qrand() % 100 + 10; */
-  /* portPair = 22000 + qrand() % 100 + 10; */
-  /* portPair = 22004; */
-
   foreach (const QHostAddress &address, QNetworkInterface::allAddresses())
   {
-    /* if (address.protocol() == QAbstractSocket::IPv4Protocol) */
     if (address.protocol() == QAbstractSocket::IPv4Protocol && address != QHostAddress(QHostAddress::LocalHost))
-    /* if (address.protocol() == QAbstractSocket::IPv4Protocol && address == QHostAddress(QHostAddress::LocalHost)) */
     {
       ICEInfo *entry_rtp  = new ICEInfo;
       ICEInfo *entry_rtcp = new ICEInfo;
@@ -100,59 +87,12 @@ QList<ICEInfo *> ICE::generateICECandidates(QList<ICEInfo *> *remoteCandidates)
     }
   }
 
+  // add previously created STUN candidates too
   candidates.push_back(stun_entry_rtp_);
   candidates.push_back(stun_entry_rtcp_);
 
-  /* TODO: this should not work! */
-#if 0
-  ICEInfo *entry_rtp  = new ICEInfo;
-  ICEInfo *entry_rtcp = new ICEInfo;
-
-  entry_rtp->address  = "12.34.56.78";
-  entry_rtcp->address = "12.34.56.78";
-
-  entry_rtp->port  = portPair++;
-  entry_rtcp->port = portPair++;
-
-  // for each RTP/RTCP pair foundation is the same
-  const QString foundation = generateFoundation();
-
-  entry_rtp->foundation  = foundation;
-  entry_rtcp->foundation = foundation;
-
-  entry_rtp->transport  = "UDP";
-  entry_rtcp->transport = "UDP";
-
-  entry_rtp->component  = RTP;
-  entry_rtcp->component = RTCP;
-
-  entry_rtp->priority  = calculatePriority(126, 1, RTP);
-  entry_rtcp->priority = calculatePriority(126, 1, RTCP);
-
-  entry_rtp->type  = "host";
-  entry_rtcp->type = "host";
-
-  candidates.push_back(entry_rtp);
-  candidates.push_back(entry_rtcp);
-#endif
-
   return candidates;
 }
-
-// TODO we don't need to allocate port pair for each connection
-//
-// one pair should be sufficient for every connection because aren't using multiple 
-// connection simultaenous
-//
-// another solution would be to allocate 2 * N ports (one for each connection) and
-// the recipient of our invite would choose a port pair that works for him.
-//
-// the first might be even standard-conforming but the probability of conflict increases
-//
-// the second solution is most likely not standard-compliant and it is quite hard to implement
-// because we have no way (no easy way that is) to find the remote's candidates when we're
-// constuction our own set of candidates
-
 
 void ICE::createSTUNCandidate(QHostAddress address)
 {

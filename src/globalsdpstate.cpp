@@ -75,7 +75,7 @@ GlobalSDPState::generateSDP(QHostAddress localAddress, QList<ICEInfo *> *remoteC
   }
 
   newInfo->media = {audio, video};
-  newInfo->candidates = ice_->generateICECandidates(remoteCandidates);
+  newInfo->candidates = ice_->generateICECandidates();
 
   return newInfo;
 }
