@@ -2,7 +2,8 @@
 #include "ice.h"
 
 FlowAgent::FlowAgent():
-  candidates_(nullptr)
+  candidates_(nullptr),
+  sessionID_(0)
 {
 }
 
@@ -18,6 +19,11 @@ void FlowAgent::setCandidates(QList<ICEPair *> *candidates)
   candidates_ = candidates;
 }
 
+void FlowAgent::setSessionID(uint32_t sessionID)
+{
+  sessionID_ = sessionID;
+}
+
 void FlowController::run()
 {
   Stun stun;
@@ -28,7 +34,7 @@ void FlowController::run()
   if (candidates_ == nullptr || candidates_->size() == 0)
   {
     qDebug() << "ERROR: invalid candidates, unable to perform ICE candidate negotiation!";
-    emit ready(nullptr, nullptr);
+    emit ready(nullptr, nullptr, sessionID_);
     return;
   }
 
@@ -95,7 +101,7 @@ end:
     }
   }
 
-  emit ready(cand_rtp, cand_rtcp);
+  emit ready(cand_rtp, cand_rtcp, sessionID_);
 }
 
 void FlowControllee::run()
@@ -108,7 +114,7 @@ void FlowControllee::run()
   if (candidates_ == nullptr || candidates_->size() == 0)
   {
     qDebug() << "ERROR: invalid candidates, unable to perform ICE candidate negotiation!";
-    emit ready(nullptr, nullptr);
+    emit ready(nullptr, nullptr, sessionID_);
     return;
   }
 
@@ -143,7 +149,7 @@ void FlowControllee::run()
   if (validPairs.size() < 2)
   {
     qDebug() << "ERROR: Failed to negotiate a list of valid candidates with remote!";
-    emit ready(nullptr, nullptr);
+    goto end;
   }
 
   // respond to RTP nomination
@@ -175,5 +181,5 @@ end:
     }
   }
 
-  emit ready(cand_rtp, cand_rtcp);
+  emit ready(cand_rtp, cand_rtcp, sessionID_);
 }

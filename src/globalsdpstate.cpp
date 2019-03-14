@@ -127,9 +127,9 @@ bool GlobalSDPState::generateVideoMedia(MediaInfo& video)
 }
 
 // returns nullptr if suitable could not be found
-std::shared_ptr<SDPMessageInfo> GlobalSDPState::localFinalSDP(SDPMessageInfo &remoteSDP,
-                                                              QHostAddress localAddress,
-                                                              std::shared_ptr<SDPMessageInfo> localSuggestion)
+std::shared_ptr<SDPMessageInfo>
+GlobalSDPState::localFinalSDP(SDPMessageInfo &remoteSDP, QHostAddress localAddress,
+                              std::shared_ptr<SDPMessageInfo> localSuggestion, uint32_t sessionID)
 {
   // check if suitable.
   if(!checkSDPOffer(remoteSDP))
@@ -156,20 +156,18 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::localFinalSDP(SDPMessageInfo &re
 
     // spawn ICE controller/controllee threads and start the candidate 
     // exchange and nomination
-    ice_->respondToNominations(sdp->candidates, remoteSDP.candidates);
+    ice_->respondToNominations(sdp->candidates, remoteSDP.candidates, sessionID);
 
     // wait until the nomination has finished (or failed)
     //
     // The call won't start until ICE has finished its job
-    if (!ice_->connectionNominated())
+    if (!ice_->callerConnectionNominated())
     {
       qDebug() << "ERROR: Failed to nominate ICE candidates!";
       return nullptr;
     }
 
-    qDebug() << "yyyyy CALL CAN SAFELY START!";
-
-    auto nominated = ice_->getNominated();
+    auto nominated = ice_->getNominated(sessionID);
 
     // RTP
     sdp->media[0].receivePort = nominated.first->local->port;
@@ -195,7 +193,7 @@ bool GlobalSDPState::remoteFinalSDP(SDPMessageInfo &remoteInviteSDP)
 {
   // this function blocks until a candidate is nominated or all candidates are considered
   // invalid in which case it returns false to indicate error
-  if (!ice_->connectionNominated())
+  if (!ice_->calleeConnectionNominated())
   {
     qDebug() << "ERROR: Failed to nominate ICE candidates!";
     return false;
@@ -256,14 +254,14 @@ void GlobalSDPState::endSession(std::shared_ptr<SDPMessageInfo> sessionSDP)
   }
 }
 
-void GlobalSDPState::startICECandidateNegotiation(QList<ICEInfo *>& local, QList<ICEInfo *>& remote)
+void GlobalSDPState::startICECandidateNegotiation(QList<ICEInfo *>& local, QList<ICEInfo *>& remote, uint32_t sessionID)
 {
-  ice_->startNomination(local, remote);
+  ice_->startNomination(local, remote, sessionID);
 }
 
-void GlobalSDPState::updateFinalSDPs(SDPMessageInfo& localSDP, SDPMessageInfo& remoteSDP)
+void GlobalSDPState::updateFinalSDPs(SDPMessageInfo& localSDP, SDPMessageInfo& remoteSDP, uint32_t sessionID)
 {
-  auto nominated = ice_->getNominated();
+  auto nominated = ice_->getNominated(sessionID);
 
   // local RTP
   localSDP.media[0].connection_address = nominated.first->local->address;

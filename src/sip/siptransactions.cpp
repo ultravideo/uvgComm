@@ -209,7 +209,7 @@ void SIPTransactions::acceptCall(uint32_t sessionID)
 
   // start candiate nomination. This function won't block, negotiation happens in the background
   // remoteFinalSDP() makes sure that a connection was in fact nominated
-  sdp_.startICECandidateNegotiation(dialog->localSdp_->candidates, dialog->remoteSdp_->candidates);
+  sdp_.startICECandidateNegotiation(dialog->localSdp_->candidates, dialog->remoteSdp_->candidates, sessionID);
 
   connectionMutex_.unlock();
   dialog->server->acceptCall();
@@ -410,7 +410,7 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
         }
         else
         {
-          sdp_.updateFinalSDPs(*foundDialog->localSdp_, *foundDialog->remoteSdp_);
+          sdp_.updateFinalSDPs(*foundDialog->localSdp_, *foundDialog->remoteSdp_, foundSessionID);
         }
       }
     }
@@ -510,7 +510,7 @@ bool SIPTransactions::processSDP(uint32_t sessionID, QVariant& content, QHostAdd
   SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
 
   dialogs_.at(sessionID - 1)->localSdp_
-      = sdp_.localFinalSDP(retrieved, localAddress, dialogs_.at(sessionID - 1)->localSdp_);
+      = sdp_.localFinalSDP(retrieved, localAddress, dialogs_.at(sessionID - 1)->localSdp_, sessionID);
 
   if(dialogs_.at(sessionID - 1)->localSdp_ == nullptr)
   {

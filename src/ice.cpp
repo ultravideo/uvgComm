@@ -1,6 +1,7 @@
 #include <QNetworkInterface>
 #include "ice.h"
 #include <QTime>
+#include <memory>
 
 ICE::ICE():
   portPair(22000),
@@ -157,21 +158,20 @@ QList<ICEPair *> *ICE::makeCandiatePairs(QList<ICEInfo *>& local, QList<ICEInfo 
 // response can be set as fast as possible and the remote can start respoding to our requests
 //
 // Thread spawned by startNomination() must keep track of which candidates failed and which succeeded
-void ICE::startNomination(QList<ICEInfo *>& local, QList<ICEInfo *>& remote)
+void ICE::startNomination(QList<ICEInfo *>& local, QList<ICEInfo *>& remote, uint32_t sessionID)
 {
-  qDebug() << "\n\n\nCANDIDATE NOMINATION STARTED";
-
   connectionNominated_ = false;
-  nominating_mtx.lock();
+  callee_mtx.lock();
 
   // this memory is release by FlowController
   QList<ICEPair *> *pairs = makeCandiatePairs(local, remote);
 
-  caller_ = new FlowController;
-  QObject::connect(caller_, &FlowController::ready, this, &ICE::handleEndOfNomination, Qt::DirectConnection);
+  FlowController *callee = new FlowController;
+  QObject::connect(callee, &FlowController::ready, this, &ICE::handleCalleeEndOfNomination, Qt::DirectConnection);
 
-  caller_->setCandidates(pairs);
-  caller_->start();
+  callee->setCandidates(pairs);
+  callee->setSessionID(sessionID);
+  callee->start();
 }
 
 // caller (flow controllee [TODO does that expression make sense?])
@@ -179,48 +179,66 @@ void ICE::startNomination(QList<ICEInfo *>& local, QList<ICEInfo *>& remote)
 // respondToNominations() spawns a control thread that starts testing all candidates
 // It doesn't do any external book keeping as it's responsible for only responding to STUN requets
 // When it has gone through all candidate pairs it exits
-void ICE::respondToNominations(QList<ICEInfo *>& local, QList<ICEInfo *>& remote)
+void ICE::respondToNominations(QList<ICEInfo *>& local, QList<ICEInfo *>& remote, uint32_t sessionID)
 {
-  qDebug() << "\n\n\nCANDIDATE NOMINATION RESPONDING STARTED";
-
   // this memory is released by FlowControllee
   QList<ICEPair *> *pairs = makeCandiatePairs(local, remote);
+  caller_mtx.lock();
 
-  FlowControllee *callee = new FlowControllee;
-  QObject::connect(callee, &FlowControllee::ready, this, &ICE::handleEndOfNomination, Qt::DirectConnection);
+  FlowControllee *caller = new FlowControllee;
+  QObject::connect(caller, &FlowControllee::ready, this, &ICE::handleCallerEndOfNomination, Qt::DirectConnection);
 
-  callee->setCandidates(pairs);
-  callee->start();
+  caller->setCandidates(pairs);
+  caller->setSessionID(sessionID);
+  caller->start();
 }
 
-bool ICE::connectionNominated()
+bool ICE::callerConnectionNominated()
 {
-  // nominating_mtx will stay locked until handleNomination() is called.
-  // handleNomination() is called when FlowController has
-  // processing the candidates
-  while (!nominating_mtx.try_lock_for(std::chrono::milliseconds(200)))
+  while (!caller_mtx.try_lock_for(std::chrono::milliseconds(200)))
     ;
 
   return connectionNominated_;
 }
 
-void ICE::handleEndOfNomination(struct ICEPair *candidateRTP, struct ICEPair *candidateRTCP)
+bool ICE::calleeConnectionNominated()
+{
+  while (!callee_mtx.try_lock_for(std::chrono::milliseconds(200)))
+    ;
+
+  return connectionNominated_;
+}
+
+void ICE::handleEndOfNomination(struct ICEPair *candidateRTP, struct ICEPair *candidateRTCP, uint32_t sessionID)
 {
   connectionNominated_ = (candidateRTP != nullptr && candidateRTCP != nullptr);
 
-  // TODO minne nominatedCandidate kuuluu tallentaa niin että video conferencing toimii??
-
   if (connectionNominated_)
   {
-    qDebug() << "CONNECTION NOMINATION DONE!";
-    nominated_rtp  = candidateRTP;
-    nominated_rtcp = candidateRTCP;
+    nominated_[sessionID] = std::make_pair<ICEPair *, ICEPair *>((ICEPair *)candidateRTP, (ICEPair *)candidateRTCP);
   }
-
-  nominating_mtx.unlock();
 }
 
-std::pair<ICEPair *, ICEPair *> ICE::getNominated()
+void ICE::handleCallerEndOfNomination(struct ICEPair *candidateRTP, struct ICEPair *candidateRTCP, uint32_t sessionID)
 {
-  return std::make_pair(nominated_rtp, nominated_rtcp);
+  this->handleEndOfNomination(candidateRTP, candidateRTCP, sessionID);
+  caller_mtx.unlock();
+}
+
+void ICE::handleCalleeEndOfNomination(struct ICEPair *candidateRTP, struct ICEPair *candidateRTCP, uint32_t sessionID)
+{
+  this->handleEndOfNomination(candidateRTP, candidateRTCP, sessionID);
+  callee_mtx.unlock();
+}
+
+std::pair<ICEPair *, ICEPair *> ICE::getNominated(uint32_t sessionID)
+{
+  if (nominated_.contains(sessionID))
+  {
+    return nominated_[sessionID];
+  }
+  else
+  {
+    return std::make_pair<ICEPair *, ICEPair *>(nullptr, nullptr);
+  }
 }

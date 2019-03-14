@@ -28,7 +28,7 @@ public:
   // returns nullptr if suitable could not be found
   // chooces what to use
   std::shared_ptr<SDPMessageInfo> localFinalSDP(SDPMessageInfo& remoteSDP, QHostAddress localAddress,
-                                                std::shared_ptr<SDPMessageInfo> localSuggestion = nullptr);
+                                                std::shared_ptr<SDPMessageInfo> localSuggestion, uint32_t sessionID);
 
   // return if the final SDP was suitable. It should be, but just to be sure
   bool remoteFinalSDP(SDPMessageInfo& remoteInviteSDP);
@@ -36,10 +36,10 @@ public:
   // frees the ports when they are not needed in rest of the program
   void endSession(std::shared_ptr<SDPMessageInfo> sessionSDP);
 
-  void startICECandidateNegotiation(QList<ICEInfo *>& local, QList<ICEInfo *>& remote);
+  void startICECandidateNegotiation(QList<ICEInfo *>& local, QList<ICEInfo *>& remote, uint32_t sessionID);
 
   // update the MediaInfo of remote and locals SDPs to include the nominated connections
-  void updateFinalSDPs(SDPMessageInfo& localSDP, SDPMessageInfo& remoteSDP);
+  void updateFinalSDPs(SDPMessageInfo& localSDP, SDPMessageInfo& remoteSDP, uint32_t sessionID);
 
   bool canStartSession()
   {

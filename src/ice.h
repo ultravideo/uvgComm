@@ -43,22 +43,38 @@ class ICE : public QObject
     QList<ICEInfo *> generateICECandidates();
 
     void addRemoteCandidate(const ICEInfo *candidate);
-    bool connectionNominated();
+    bool connectionNominated(bool caller);
 
     // TODO
-    void startNomination(QList<ICEInfo *>& local, QList<ICEInfo *>& remote);
+    void startNomination(QList<ICEInfo *>& local, QList<ICEInfo *>& remote, uint32_t sessionID);
 
     // TODO
-    void respondToNominations(QList<ICEInfo *>& local, QList<ICEInfo *>& remote);
+    void respondToNominations(QList<ICEInfo *>& local, QList<ICEInfo *>& remote, uint32_t sessionID);
 
-    // TODO
-    std::pair<ICEPair *, ICEPair *> getNominated();
+    // get nominated ICE pair using sessionID
+    std::pair<ICEPair *, ICEPair *> getNominated(uint32_t sessionID);
+
+    // caller must call this function to check if ICE has finished
+    bool callerConnectionNominated();
+
+    // callee should call this function to check if ICE has finished
+    bool calleeConnectionNominated();
 
   public slots:
-    void handleEndOfNomination(struct ICEPair *candidateRTP, struct ICEPair *candidateRTCP);
+    // when FlowControllee has finished its job, it emits "ready" signal which is caught by this slot function
+    // handleCallerEndOfNomination() check if the nomination succeeed, saves the nominated pair to hashmap and
+    // releases caller_mtx to signal that negotiation is done
+    void handleCallerEndOfNomination(struct ICEPair *candidateRTP, struct ICEPair *candidateRTCP, uint32_t sessionID);
+
+    // when FlowController has finished its job, it emits "ready" signal which is caught by this slot function
+    // handleCalleeEndOfNomination() check if the nomination succeeed, saves the nominated pair to hashmap and
+    // releases callee_mtx to signal that negotiation is done
+    void handleCalleeEndOfNomination(struct ICEPair *candidateRTP, struct ICEPair *candidateRTCP, uint32_t sessionID);
     void createSTUNCandidate(QHostAddress address);
 
   private:
+    void handleEndOfNomination(struct ICEPair *candidateRTP, struct ICEPair *candidateRTCP, uint32_t sessionID);
+
     int calculatePriority(int type, int local, int component);
     /* TODO: createCandidate */
     QString generateFoundation();
@@ -71,14 +87,16 @@ class ICE : public QObject
 
     Stun stun_;
 
-    QMutex nominating_mtx;
+    // separate mutexes for caller and callee to make localhost calls work
+    QMutex caller_mtx;
+    QMutex callee_mtx;
     QWaitCondition nominated_cond;
-
-    FlowController *caller_;
 
     ICEInfo *stun_entry_rtp_;
     ICEInfo *stun_entry_rtcp_;
 
     ICEPair *nominated_rtp;
     ICEPair *nominated_rtcp;
+
+    QMap<uint32_t, std::pair<ICEPair *, ICEPair *>> nominated_;
 };

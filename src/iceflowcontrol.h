@@ -17,15 +17,17 @@ public:
     FlowAgent();
     ~FlowAgent();
     void setCandidates(QList<struct ICEPair *> *candidates);
+    void setSessionID(uint32_t sessionID);
 
 signals:
-  void ready(struct ICEPair *candidateRTP, struct ICEPair *candidateRTCP);
+  void ready(struct ICEPair *candidateRTP, struct ICEPair *candidateRTCP, uint32_t sessionID);
 
 protected:
     void run();
 
 protected:
     QList<ICEPair_t *> *candidates_;
+    uint32_t sessionID_;
 };
 
 class FlowController : public FlowAgent
