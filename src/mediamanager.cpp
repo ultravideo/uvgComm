@@ -78,8 +78,16 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
   if(peerInfo->connection_nettype == "IN")
   {
     QHostAddress address;
-    //address.setAddress(peerInfo->connection_address);
-    address.setAddress(peerInfo->media[0].connection_address); // media[0] is RTP
+
+    if (peerInfo->media[0].connection_address.isEmpty())
+    {
+      address.setAddress(peerInfo->connection_address);
+    }
+    else
+    {
+      address.setAddress(peerInfo->media[0].connection_address); // media[0] is RTP
+    }
+
 
     if(stats_ != nullptr)
     {
