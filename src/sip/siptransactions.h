@@ -107,9 +107,6 @@ private:
                                                QString localAddress,
                                                QString remoteAddress, bool hostedSession);
 
-  // helper function that has the common parts of
-  void sendRequest(uint32_t sessionID, RequestType type);
-
   // returns whether we should continue with processing
   bool processSDP(uint32_t sessionID, QVariant &content, QHostAddress localAddress);
 

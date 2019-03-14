@@ -315,7 +315,7 @@ void SIPTransactions::connectionEstablished(quint32 transportID)
   {
     qDebug() << "We have a pending dialog request. Sending it!";
     DialogRequest request = pendingDialogRequests_[transportID];
-    sendRequest(request.sessionID, request.type);
+    sendDialogRequest(request.sessionID, request.type);
     pendingDialogRequests_.erase(transportID);
   }
 }
@@ -526,17 +526,7 @@ bool SIPTransactions::processSDP(uint32_t sessionID, QVariant& content, QHostAdd
 
 void SIPTransactions::sendDialogRequest(uint32_t sessionID, RequestType type)
 {
-  sendRequest(sessionID, type);
-}
-
-void SIPTransactions::sendNonDialogMethod(SIP_URI& uri, RequestType type)
-{
-  // TODO this
-}
-
-void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
-{
-  qDebug() << "---- Iniated sending of a request:" << type << "----";
+  qDebug() << "---- Iniated sending of a dialog request:" << type << "----";
   Q_ASSERT(sessionID != 0 && sessionID <= dialogs_.size());
   // Get all the necessary information from different components.
 
@@ -612,12 +602,17 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
   }
 
   transport->sendRequest(request, content);
-  qDebug() << "---- Finished sending of a request ---";
+  qDebug() << "---- Finished sending of a dialog request ---";
+}
+
+void SIPTransactions::sendNonDialogMethod(SIP_URI& uri, RequestType type)
+{
+  // TODO this
 }
 
 void SIPTransactions::sendResponse(uint32_t sessionID, ResponseType type, RequestType originalRequest)
 {
-  qDebug() << "---- Iniated sending of a request:" << type << "----";
+  qDebug() << "---- Iniated sending of a response:" << type << "----";
   Q_ASSERT(sessionID != 0 && sessionID <= dialogs_.size());
 
   // Get all the necessary information from different components.
