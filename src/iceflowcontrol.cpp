@@ -20,14 +20,17 @@ void FlowAgent::setCandidates(QList<ICEPair *> *candidates)
 
 void FlowController::run()
 {
+  Stun stun;
+  QList<ICEPair *> validPairs;
+  ICEPair *cand_rtp = nullptr;
+  ICEPair *cand_rtcp = nullptr;
+
   if (candidates_ == nullptr || candidates_->size() == 0)
   {
     qDebug() << "ERROR: invalid candidates, unable to perform ICE candidate negotiation!";
     emit ready(nullptr, nullptr);
+    return;
   }
-
-  Stun stun; 
-  QList<ICEPair *> validPairs;
 
   for (int i = 0; i < candidates_->size(); i += 2)
   {
@@ -46,6 +49,9 @@ void FlowController::run()
         // both RTP and RTCP must succeeed in order for this pair to be considered valid
         validPairs.push_back(candidates_->at(i + 0));
         validPairs.push_back(candidates_->at(i + 1));
+
+        cand_rtp  = candidates_->at(i + 0);
+        cand_rtcp = candidates_->at(i + 1);
         break;
       }
     }
@@ -57,7 +63,7 @@ void FlowController::run()
   if (validPairs.size() < 2)
   {
     qDebug() << "ERROR: Failed to negotiate a list of valid candidates with remote!";
-    emit ready(nullptr, nullptr);
+    goto end;
   }
 
   qDebug() << "[controller] STARTING NOMINATION!";
@@ -67,8 +73,8 @@ void FlowController::run()
                                   validPairs[0]->local->address,  validPairs[0]->local->port))
   {
     qDebug() << "[controller] RTP CANDIDATE FAILED";
-    emit ready(nullptr, nullptr);
-    return;
+    cand_rtp = nullptr;
+    goto end;
   }
 
   // nominate RTCP candidate
@@ -76,24 +82,35 @@ void FlowController::run()
                                   validPairs[1]->local->address,  validPairs[1]->local->port))
   {
     qDebug() << "[controller] RTCP CANDIDATE FAILED";
-    emit ready(nullptr, nullptr);
-    return;
+    cand_rtcp = nullptr;
   }
 
-  qDebug() << "[controller] NOMINATION OK!";
-  emit ready(validPairs[0], validPairs[1]);
+end:
+  // release all failed/frozen candidates
+  for (int i = 0; i < candidates_->size(); ++i)
+  {
+    if (candidates_->at(i)->state != PAIR_SUCCEEDED)
+    {
+      delete candidates_->at(i);
+    }
+  }
+
+  emit ready(cand_rtp, cand_rtcp);
 }
 
 void FlowControllee::run()
 {
+  Stun stun;
+  QList<ICEPair *> validPairs;
+  ICEPair *cand_rtp = nullptr;
+  ICEPair *cand_rtcp = nullptr;
+
   if (candidates_ == nullptr || candidates_->size() == 0)
   {
     qDebug() << "ERROR: invalid candidates, unable to perform ICE candidate negotiation!";
     emit ready(nullptr, nullptr);
+    return;
   }
-
-  Stun stun; 
-  QList<ICEPair *> validPairs;
 
   for (int i = 0; i < candidates_->size(); i += 2)
   {
@@ -112,6 +129,9 @@ void FlowControllee::run()
         // both RTP and RTCP must succeeed in order for this pair to be considered valid
         validPairs.push_back(candidates_->at(i + 0));
         validPairs.push_back(candidates_->at(i + 1));
+
+        cand_rtp  = candidates_->at(i + 0);
+        cand_rtcp = candidates_->at(i + 1);
         break;
       }
     }
@@ -126,26 +146,34 @@ void FlowControllee::run()
     emit ready(nullptr, nullptr);
   }
 
-  qDebug() << "[controllee] RESPONDING TO NOMINATION REQUEST!";
-
   // respond to RTP nomination
   if (!stun.sendNominationResponse(validPairs[0]->remote->address, validPairs[0]->remote->port,
-                                  validPairs[0]->local->address,  validPairs[0]->local->port))
+                                   validPairs[0]->local->address,  validPairs[0]->local->port))
   {
-    qDebug() << "[controllee] RTP CANDIDATE FAILED";
-    emit ready(nullptr, nullptr);
-    return;
+    qDebug() << "ERROR: RTP candidate nomination failed!";
+    cand_rtp = nullptr;
+    goto end;
   }
 
   // respond to RTCP nomination
   if (!stun.sendNominationResponse(validPairs[1]->remote->address, validPairs[1]->remote->port,
-                                  validPairs[1]->local->address,  validPairs[1]->local->port))
+                                   validPairs[1]->local->address,  validPairs[1]->local->port))
   {
-    qDebug() << "[controllee] RTCP CANDIDATE FAILED";
-    emit ready(nullptr, nullptr);
-    return;
+    qDebug() << "ERROR: RTCP candidate nomination failed!";
+    cand_rtcp = nullptr;
+    goto end;
   }
 
-  qDebug() << "[controllee] NOMINATION OK!";
-  emit ready(validPairs[0], validPairs[1]);
+
+end:
+  // release all failed/frozen candidates
+  for (int i = 0; i < candidates_->size(); ++i)
+  {
+    if (candidates_->at(i)->state != PAIR_SUCCEEDED)
+    {
+      delete candidates_->at(i);
+    }
+  }
+
+  emit ready(cand_rtp, cand_rtcp);
 }
