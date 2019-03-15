@@ -8,15 +8,15 @@
 SIPRegistration::SIPRegistration(QString serverAddress):
   localUri_(),
   serverAddress_(serverAddress),
-  initiated_(false)
+  registerCSeq_(1)
 {}
 
-void SIPRegistration::initServer()
+void SIPRegistration::initServer(quint32 transportID)
 {
-  Q_ASSERT(!initiated_);
+  Q_ASSERT(transportID);
 
   initLocalURI();
-  initiated_ = true;
+  transportID_ = transportID;
 }
 
 void SIPRegistration::initLocalURI()
@@ -45,7 +45,7 @@ bool SIPRegistration::isContactAtThisServer(QString serverAddress)
   return serverAddress == serverAddress_;
 }
 
-std::shared_ptr<SIPMessageInfo> SIPRegistration::generateRegisterRequest(QString localAddress)
+std::shared_ptr<SIPMessageInfo> SIPRegistration::fillRegisterRequest(QString localAddress)
 {
   Q_ASSERT(localUri_.username != "");
   if(localUri_.username == "")

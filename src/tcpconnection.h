@@ -44,6 +44,7 @@ public:
 
   bool isConnected() const
   {
+    Q_ASSERT(socket_);
     return socket_->state() == QAbstractSocket::ConnectedState;
   }
 

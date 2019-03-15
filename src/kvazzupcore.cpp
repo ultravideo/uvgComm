@@ -19,7 +19,14 @@ void KvazzupCore::init()
   window_.show();
 
   sip_.init(this);
-  sip_.bindToServer();
+
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+  int autoConnect = settings.value("sip/AutoConnect").toInt();
+
+  if(autoConnect == 1)
+  {
+    sip_.bindToServer();
+  }
 
   // register the GUI signals indicating GUI changes to be handled approrietly in a system wide manner
   QObject::connect(&window_, SIGNAL(settingsChanged()), this, SLOT(updateSettings()));

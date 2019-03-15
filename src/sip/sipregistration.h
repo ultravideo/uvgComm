@@ -14,16 +14,18 @@ class SIPRegistration
 public:
   SIPRegistration(QString serverAddress);
 
-  void initServer();
+  void initServer(quint32 transportID);
 
-  void updateAddressBook();
+  //void updateAddressBook();
 
-  std::shared_ptr<SIPMessageInfo> generateRegisterRequest(QString localAddress);
+  std::shared_ptr<SIPMessageInfo> fillRegisterRequest(QString localAddress);
 
   bool isContactAtThisServer(QString serverAddress);
-  bool isInitiated() const
+
+  quint32 getTransportID()
   {
-    return initiated_;
+    Q_ASSERT(transportID_);
+    return transportID_;
   }
 
 private:
@@ -34,6 +36,7 @@ private:
   SIP_URI localUri_;
   QString serverAddress_;
 
-  bool initiated_;
-  bool registered_;
+  uint32_t registerCSeq_;
+
+  quint32 transportID_;
 };

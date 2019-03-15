@@ -12,9 +12,9 @@ SIPTransactions::SIPTransactions():
   pendingDialogRequests_(),
   pendingNonDialogRequests_(),
   dialogs_(),
+  registrations_(),
   transports_(),
   directContactAddresses_(),
-  sipServerRegistrations_(),
   nonDialogClient_(),
   sdp_(),
   tcpServer_(),
@@ -84,14 +84,32 @@ void SIPTransactions::registerTask()
 void SIPTransactions::bindToServer()
 {
   // get server address from settings and bind to server.
-
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
 
   QString serverAddress = settings.value("sip/ServerAddress").toString();
 
-  sipServerRegistrations_.push_back(SIPRegistration(serverAddress));
-  sipServerRegistrations_.back().initServer();
+  if (serverAddress != "")
+  {
+    qDebug() << "Binding to SIP server at:" << serverAddress;
 
+    SIPRegistrationData data = {std::shared_ptr<SIPRegistration>(new SIPRegistration(serverAddress)),
+                                std::shared_ptr<SIPNonDialogClient> (new SIPNonDialogClient(transactionUser_))};
+    registrations_[serverAddress] = data;
+
+    std::shared_ptr<SIPTransport> transport = createSIPTransport();
+    transport->createConnection(TCP, serverAddress);
+
+    registrations_[serverAddress].state->initServer(transports_.size());
+    registrations_[serverAddress].client->init();
+
+    SIP_URI serverUri = {"","",serverAddress};
+    registrations_[serverAddress].client->set_remoteURI(serverUri);
+
+    sendNonDialogRequest(serverUri, SIP_REGISTER);
+  }
+  else {
+    qDebug() << "SIP server address was empty in settings";
+  }
 }
 
 void SIPTransactions::getSDPs(uint32_t sessionID,
@@ -122,17 +140,8 @@ void SIPTransactions::startCall(Contact &address)
     return;
   }
 
-  // If the dialog did not exist check if the address is one of our servers
-
-  bool isServer = false;
-  // check if address is located at a SIP server
-  for(auto server : sipServerRegistrations_)
-  {
-    if(server.isContactAtThisServer(address.remoteAddress))
-    {
-      isServer = true;
-    }
-  }
+  // is the address at one of the servers we are connected to
+  bool isServer = registrations_.find(address.remoteAddress) != registrations_.end();
 
   if(isServer)
   {
@@ -542,7 +551,6 @@ void SIPTransactions::sendDialogRequest(uint32_t sessionID, RequestType type)
     pendingConnectionMutex_.unlock();
     return;
   }
-
   pendingConnectionMutex_.unlock();
 
   SIPRequest request;
@@ -605,9 +613,37 @@ void SIPTransactions::sendDialogRequest(uint32_t sessionID, RequestType type)
   qDebug() << "---- Finished sending of a dialog request ---";
 }
 
-void SIPTransactions::sendNonDialogMethod(SIP_URI& uri, RequestType type)
+void SIPTransactions::sendNonDialogRequest(SIP_URI& uri, RequestType type)
 {
-  // TODO this
+  SIPRequest request;
+  request.type = type;
+
+  if (type == SIP_REGISTER)
+  {
+    if (registrations_.find(uri.host) == registrations_.end())
+    {
+      qDebug() << "ERROR: Registration information should have been created "
+                  "already before sending REGISTER message!";
+      return;
+    }
+
+    std::shared_ptr<SIPTransport> transport
+        = transports_.at(registrations_[uri.host].state->getTransportID() - 1);
+
+    pendingConnectionMutex_.lock();
+    if(!transport->isConnected())
+    {
+      qDebug() << "The connection has not yet been established. Delaying sending of request.";
+
+      pendingNonDialogRequests_[registrations_[uri.host].state->getTransportID()] = NonDialogRequest{uri, type};
+      pendingConnectionMutex_.unlock();
+      return;
+    }
+    pendingConnectionMutex_.unlock();
+
+    registrations_[uri.host].client->getRequestMessageInfo(request.type, request.message);
+    registrations_[uri.host].state->fillRegisterRequest(""); // TODO: get local address
+  }
 }
 
 void SIPTransactions::sendResponse(uint32_t sessionID, ResponseType type, RequestType originalRequest)

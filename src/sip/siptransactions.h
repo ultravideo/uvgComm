@@ -79,7 +79,7 @@ private slots:
   void processSIPResponse(SIPResponse response, quint32 transportID, QVariant& content);
 
   void sendDialogRequest(uint32_t sessionID, RequestType type);
-  void sendNonDialogMethod(SIP_URI& uri, RequestType type);
+  void sendNonDialogRequest(SIP_URI& uri, RequestType type);
 
   void sendResponse(uint32_t sessionID, ResponseType type, RequestType originalRequest);
 
@@ -100,6 +100,12 @@ private:
     quint32 transportID;
 
     CallConnectionType connectionType;
+  };
+
+  struct SIPRegistrationData
+  {
+    std::shared_ptr<SIPRegistration> state;
+    std::shared_ptr<SIPNonDialogClient> client;
   };
 
   std::shared_ptr<SIPTransport> createSIPTransport();
@@ -139,10 +145,10 @@ private:
   };
 
   QMutex pendingConnectionMutex_;
+
   // key is transportID
   std::map<quint32, DialogRequest> pendingDialogRequests_;
   std::map<quint32, NonDialogRequest> pendingNonDialogRequests_;
-
 
   // sessionID:s are positions in this list. SessionID:s are used in this program to
   // keep track of dialogs. The CallID is not used because we could be calling ourselves
@@ -150,10 +156,10 @@ private:
 
   // TODO: separate dialog forming from dialog
   QList<std::shared_ptr<SIPDialogData>> dialogs_;
+  std::map<QString, SIPRegistrationData> registrations_;
   QList<std::shared_ptr<SIPTransport>> transports_;
 
   QList<QString> directContactAddresses_;
-  QList<SIPRegistration> sipServerRegistrations_;
 
   std::unique_ptr<SIPNonDialogClient> nonDialogClient_;
 
