@@ -81,7 +81,8 @@ SOURCES +=\
     src/gui/videodrawhelper.cpp \
     src/kvazzupcore.cpp \
     src/ice.cpp \
-    src/iceflowcontrol.cpp
+    src/iceflowcontrol.cpp \
+    src/stunmsg.cpp
 
 HEADERS  += \
     src/filter.h \
@@ -147,7 +148,8 @@ HEADERS  += \
     src/gui/videodrawhelper.h \
     src/kvazzupcore.h \
     src/ice.h \
-    src/iceflowcontrol.h
+    src/iceflowcontrol.h \
+    src/stunmsg.h
 
 FORMS    += \
     ui/callwindow.ui \
