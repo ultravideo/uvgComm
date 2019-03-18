@@ -21,8 +21,7 @@ TCPConnection::TCPConnection()
     socketDescriptor_(0),
     buffer_(),
     sendMutex_(),
-    running_(false),
-    started_(false)
+    active_(false)
 {
   qDebug() << "Constructing TCP connection";
 }
@@ -30,9 +29,17 @@ TCPConnection::TCPConnection()
 void TCPConnection::init()
 {
   QObject::connect(this, &TCPConnection::error, this, &TCPConnection::printError);
-  running_ = true;
+  active_ = true;
 
-  start();
+  if(socket_ == nullptr)
+  {
+    socket_ = new QTcpSocket();
+    QObject::connect(socket_, SIGNAL(bytesWritten(qint64)),
+                     this, SLOT(printBytesWritten(qint64)));
+
+    QObject::connect(socket_, SIGNAL(readyRead()),
+                     this, SLOT(receivedMessage()));
+  }
 }
 
 void TCPConnection::establishConnection(const QString &destination, uint16_t port)
@@ -42,7 +49,7 @@ void TCPConnection::establishConnection(const QString &destination, uint16_t por
   destination_ = destination;
   port_ = port;
   shouldConnect_ = true;
-  init();
+  start();
 }
 
 void TCPConnection::setExistingConnection(qintptr socketDescriptor)
@@ -50,20 +57,19 @@ void TCPConnection::setExistingConnection(qintptr socketDescriptor)
   qDebug() << "Setting existing/incoming connection. SocketDesc:" << socketDescriptor;
   socketDescriptor_ = socketDescriptor;
   shouldConnect_ = true;
-  init();
+  start();
 }
 
 void TCPConnection::sendPacket(const QString &data)
 {
   qDebug() << "adding packet for sending";
-  if(running_)
+  if(active_)
   {
     sendMutex_.lock();
     buffer_.push(data);
     sendMutex_.unlock();
 
-    if(started_)
-      eventDispatcher()->wakeUp();
+    eventDispatcher()->wakeUp();
   }
   else
   {
@@ -74,9 +80,13 @@ void TCPConnection::sendPacket(const QString &data)
 void TCPConnection::receivedMessage()
 {
   qDebug() << "Socket ready to read";
-
-  if(started_)
+  if (active_ )
+  {
     eventDispatcher()->wakeUp();
+  }
+  else {
+    qDebug() << "";
+  }
 }
 
 bool TCPConnection::connectLoop()
@@ -91,26 +101,33 @@ bool TCPConnection::connectLoop()
 
   if(socketDescriptor_ != 0)
   {
-    qDebug() << "Getting socket:" << socketDescriptor_;
+    qDebug() << "Setting existing socket:" << socketDescriptor_;
     if(!socket_->setSocketDescriptor(socketDescriptor_))
     {
-      qCritical() << "ERROR: Could not get socket descriptor";
+      qCritical() << "ERROR: Could not set socket descriptor for existing connection";
       return false;
     }
   }
   else
   {
     qDebug() << "Connecting to address:" << destination_ << "Port:" << port_;
-    socket_->connectToHost(destination_, port_);
+
+    for(unsigned int i = 0; i < NUMBER_OF_RETRIES && socket_->state() != QAbstractSocket::ConnectedState; ++i)
+    {
+      qDebug() << "Current state:" << socket_->state() << "Trying to connect socket. Attempt:" << i + 1;
+      socket_->connectToHost(destination_, port_);
+      socket_->waitForConnected(CONNECTION_TIMEOUT);
+    }
   }
 
-  if (socket_->state() != QAbstractSocket::ConnectedState &&
-      !socket_->waitForConnected(CONNECTION_TIMEOUT)) {
-      emit error(socket_->error(), socket_->errorString());
-      return false;
+  if(socket_->state() != QAbstractSocket::ConnectedState)
+  {
+    emit error(socket_->error(), socket_->errorString());
+    return false;
   }
-  qDebug().nospace() << "Socket connected to our address: "
-                     << socket_->localAddress().toString() << ":" << socket_->peerPort()
+
+  qDebug().nospace() << "Connecting succeeded. Local address: "
+           << socket_->localAddress().toString() << ":" << socket_->peerPort()
            << " Remote address: " << socket_->peerAddress().toString()
            << ":" << socket_->peerPort();
 
@@ -121,34 +138,24 @@ bool TCPConnection::connectLoop()
 
 void TCPConnection::run()
 {
-  qDebug() << "Starting connection run loop";
+  qDebug() << "Started connection";
+  init();
 
-  // TODO: I'm pretty sure that the reconnecting after connection closes does not work.
-
-  started_ = true;
-
-  if(socket_ == nullptr)
-  {
-    socket_ = new QTcpSocket();
-    QObject::connect(socket_, SIGNAL(bytesWritten(qint64)),
-                     this, SLOT(printBytesWritten(qint64)));
-
-    QObject::connect(socket_, SIGNAL(readyRead()),
-                     this, SLOT(receivedMessage()));
-  }
 
   if(eventDispatcher() == nullptr)
   {
     qWarning() << "WARNING: Sorry no event dispatcher for this connection.";
     return;
   }
-
-  while(running_)
+  while(active_)
   {
     // TODO Stop trying if connection can't be established.
     if(socket_->state() != QAbstractSocket::ConnectedState && shouldConnect_)
     {
-      connectLoop();
+      if (!connectLoop())
+      {
+        qDebug() << "Failed to connect the TCP connection";
+      }
     }
 
     if(socket_->bytesToWrite() > 0)
@@ -185,9 +192,7 @@ void TCPConnection::run()
       sendMutex_.unlock();
     }
 
-    //qDebug() << "Connection thread waiting";
     eventDispatcher()->processEvents(QEventLoop::WaitForMoreEvents);
-    //qDebug() << "Connection thread woken";
   }
 
   while(buffer_.size() > 0 && socket_->state() == QAbstractSocket::ConnectedState)
@@ -195,7 +200,7 @@ void TCPConnection::run()
     bufferToSocket();
   }
 
-  eventDispatcher()->processEvents(QEventLoop::AllEvents);
+  eventDispatcher()->processEvents(QEventLoop::ExcludeUserInputEvents);
 
   qDebug() << "Disconnecting connection";
   disconnect();
@@ -231,7 +236,7 @@ void TCPConnection::bufferToSocket()
 
 void TCPConnection::disconnect()
 {
-  running_ = false;
+  active_ = false;
   shouldConnect_ = false;
   socket_->disconnectFromHost();
   if(socket_->state() == QAbstractSocket::UnconnectedState ||

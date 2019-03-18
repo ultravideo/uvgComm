@@ -18,7 +18,7 @@ public:
 
   void stopConnection()
   {
-    running_ = false;
+    active_ = false;
     eventDispatcher()->interrupt();
   }
 
@@ -44,8 +44,7 @@ public:
 
   bool isConnected() const
   {
-    Q_ASSERT(socket_);
-    return socket_->state() == QAbstractSocket::ConnectedState;
+    return socket_ && socket_->state() == QAbstractSocket::ConnectedState;
   }
 
   // TODO: Returns empty if we are not connected to anything.
@@ -111,8 +110,10 @@ private:
 
   QMutex sendMutex_;
 
-  bool running_;
-  bool started_;
+  // Indicates whether the connection is active or disconnected
+  bool active_;
+
+  QMutex readWriteMutex_;
 
   QString leftOvers_;
 };
