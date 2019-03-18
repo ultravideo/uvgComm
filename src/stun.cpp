@@ -12,15 +12,11 @@
 
 const uint16_t GOOGLE_STUN_PORT = 19302;
 const uint16_t STUN_PORT = 21000;
-bool controller_ = false;
 bool nominationOngoing = false;
 
-STUNMessage generateRequest();
-QByteArray toNetwork(STUNMessage request);
-STUNMessage fromNetwork(QByteArray& data, char **outRawAddress);
-
 Stun::Stun():
-  udp_()
+  udp_(),
+  stunmsg_()
 {}
 
 void Stun::wantAddress(QString stunServer)
@@ -47,110 +43,10 @@ void Stun::handleHostaddress(QHostInfo info)
   udp_.bind(QHostAddress::AnyIPv4, STUN_PORT);
   QObject::connect(&udp_, SIGNAL(messageAvailable(QByteArray)), this, SLOT(processReply(QByteArray)));
 
-  STUNMessage request = generateRequest();
-  for(unsigned int i = 0; i < 12; ++i)
-  {
-    transactionID_[i] = request.transactionID[i];
-  }
-  QByteArray message = toNetwork(request);
+  STUNMessage_ request_ = stunmsg_.createRequest();
+  QByteArray   message_ = stunmsg_.hostToNetwork(request_);
 
-  udp_.sendData(message, address, GOOGLE_STUN_PORT, false);
-}
-
-STUNMessage generateRequest()
-{
-  STUNMessage request = {
-    .type        = STUN_REQUEST,
-    .length      = 0,
-    .magicCookie = 0x2112A442
-  };
-
-  // TODO: crytographically random. see <random>
-  // no real reason for seed. Just to make it less obvious for collisions
-  qsrand(QDateTime::currentSecsSinceEpoch() / 2 + 1);
-
-  for (unsigned int i = 0; i < 12; ++i)
-  {
-    request.transactionID[i] = qToBigEndian(uint8_t(qrand() % 256));
-  }
-
-  return request;
-}
-
-STUNMessage *Stun::generateResponse(size_t payloadSize, void *payload)
-{
-  STUNMessage *response = (STUNMessage *)malloc(sizeof(STUNMessage) + payloadSize);
-
-  response->type        = STUN_RESPONSE;
-  response->length      = payloadSize;
-  response->magicCookie = 0x2112A442;
-
-  for (unsigned int i = 0; i < 12; ++i)
-  {
-    response->transactionID[i] = transactionID_[i];
-  }
-
-  if (payload != NULL)
-  {
-    memcpy(response->payload, payload, payloadSize);
-  }
-
-  return response;
-}
-
-QByteArray toNetwork(STUNMessage request)
-{
-  request.type        = qToBigEndian((short)request.type);
-  request.length      = qToBigEndian(request.length);
-  request.magicCookie = qToBigEndian(request.magicCookie);
-
-  for(unsigned int i = 0; i < 12; ++i)
-  {
-    request.transactionID[i] = qToBigEndian(request.transactionID[i]);
-  }
-
-  memcpy(&request.transactionID, &request.transactionID, sizeof(request.transactionID));
-  char *data = (char *)malloc(sizeof(request)); // TODO memory leak here?
-  memcpy(data, &request, sizeof(request));
-
-  return QByteArray(data, sizeof(request));
-}
-
-QByteArray toNetwork(STUNMessage *response)
-{
-  unsigned int len      = response->length;
-
-  response->type        = qToBigEndian((short)response->type);
-  response->length      = qToBigEndian(response->length);
-  response->magicCookie = qToBigEndian(response->magicCookie);
-
-  for (unsigned int i = 0; i < 12; ++i)
-  {
-    response->transactionID[i] = qToBigEndian(response->transactionID[i]);
-  }
-
-  for (unsigned int i = 0; i < len; ++i)
-  {
-    response->payload[i] = qToBigEndian(response->payload[i]);
-  }
-
-  memcpy(response->transactionID, response->transactionID, sizeof(response->transactionID));
-  memcpy(response->payload,       response->payload,       len);
-
-  return QByteArray((char *)response, sizeof(STUNMessage) + len);
-}
-
-// TODO give attributes for stun message as parameter for this function
-QByteArray Stun::generateMessage()
-{
-  STUNMessage request = generateRequest();
-
-  for (unsigned int i = 0; i < 12; ++i)
-  {
-    transactionID_[i] = request.transactionID[i];
-  }
-
-  return toNetwork(request);
+  udp_.sendData(message_, address, GOOGLE_STUN_PORT, false);
 }
 
 bool Stun::waitForStunResponse(unsigned long timeout)
@@ -168,9 +64,8 @@ bool Stun::waitForStunResponse(unsigned long timeout)
   return timer.isActive();
 }
 
-bool Stun::sendBindingRequest(QString addressRemote, int portRemote, QString addressLocal, int portLocal, bool  controller)
+bool Stun::sendBindingRequest(QString addressRemote, int portRemote, QString addressLocal, int portLocal, bool controller)
 {
-  controller_ = controller;
   qDebug() << "BINDING " << addressLocal << " TO PORT " << portLocal;
 
   if (!udp_.bindRaw(QHostAddress(addressLocal), portLocal))
@@ -181,12 +76,15 @@ bool Stun::sendBindingRequest(QString addressRemote, int portRemote, QString add
 
   connect(&udp_, &UDPServer::rawMessageAvailable, this, &Stun::recvStunMessage);
 
-  // TODO ICE_CONTROLLING jos controller == true, muuten ICE_CONTROLLED
-  QByteArray message = generateMessage(); 
+  STUNMessage_ request = stunmsg_.createRequest();
+  /* request.addAttribute(STUN_ATTR_PRIORITY); */
+  /* request.addAttribute(controller ? STUN_ATTR_ICE_CONTROLLING : STUN_ATTR_ICE_CONTROLLED); */
+
+  QByteArray message = stunmsg_.hostToNetwork(request);
 
   bool ok = false;
 
-  for (int i = 0; i < 10; ++i)
+  for (int i = 0; i < 250; ++i)
   {
     udp_.sendData(message, QHostAddress(addressRemote), portRemote, false);
 
@@ -205,113 +103,54 @@ bool Stun::sendBindingRequest(QString addressRemote, int portRemote, QString add
   return ok;
 }
 
+// TODO anna tälle parametriksi STUNMesage ja kopioi transactionID sieltä!
 bool Stun::sendBindingResponse(QString addressRemote, int portRemote)
 {
-  STUNMessage *responseMsg = generateResponse(addressRemote.size() + sizeof(int), NULL);
+  STUNMessage_ response = stunmsg_.createResponse();
+  /* response.setLength(1); */
 
-  // TODO attribute
-  uint16_t port    = ((uint16_t)port) ^ 0x2112;
-  uint32_t address = ((uint32_t)(QHostAddress(addressRemote).toIPv4Address())) ^ responseMsg->magicCookie;
+  /* response.addAttribute(STUN_ATTR_PRIORITY); */
 
-  memcpy(responseMsg->payload,                    &port,    sizeof(uint16_t));
-  memcpy(responseMsg->payload + sizeof(uint16_t), &address, sizeof(uint32_t));
+  // TODO find out whether we're controlling or being controlled
+  /* response.addAttribute(STUN_ATTR_ICE_CONTROLLED); */
 
-  QByteArray out = toNetwork(responseMsg);
+  // TODO add addressRemote and portRemote to payload (xor-mapped-address)
 
-  for (int i = 0; i < 10; ++i)
+  QByteArray message = stunmsg_.hostToNetwork(response);
+
+  for (int i = 0; i < 15; ++i)
   {
-    udp_.sendData(out, QHostAddress(addressRemote), portRemote, false);
+    udp_.sendData(message, QHostAddress(addressRemote), portRemote, false);
   }
-
-  free(responseMsg);
-}
-
-STUNMessage Stun::getStunMessage(QByteArray data)
-{
-  char *outRawAddress = nullptr;
-  STUNMessage response = fromNetwork(data, &outRawAddress);
-
-  return response;
-}
-
-bool Stun::validateStunMessage(QByteArray data, int type)
-{
-  if (data.size() < 20)
-  {
-    qDebug() << "Received too small response to STUN query!";
-    return false;
-  }
-
-  QString message = QString::fromStdString(data.toHex().toStdString());
-  /* qDebug() << "Got a STUN reply:" << message << "with size:" << data.size(); */
-
-  STUNMessage response = getStunMessage(data);
-
-  if(response.type != type)
-  {
-    qDebug() << "Unsuccessful STUN transaction!";
-    return false;
-  }
-
-  if ((response.length == 0 && response.type != STUN_REQUEST) || response.magicCookie != 0x2112A442)
-  {
-    qDebug() << "Something went wrong with STUN transaction values. Length:"
-             << response.length << "Magic cookie:" << response.magicCookie;
-    return false;
-  }
-
-  for(unsigned int i = 0; i < 12; ++i)
-  {
-    if(transactionID_[i] != response.transactionID[i])
-    {
-      /* qDebug() << "The transaction ID is not the same as sent!" << "Error at byte:" << i */
-      /*          << "sent:" << transactionID_[i] << "got:" << response.transactionID[i]; */
-      /* return false; */
-    }
-  }
-
-  /* qDebug() << "Valid STUN response. Decoding address"; */
-  return true;
-}
-
-bool Stun::validateStunResponse(QByteArray data)
-{
-  return validateStunMessage(data, STUN_RESPONSE);
-}
-
-bool Stun::validateStunRequest(QByteArray data)
-{
-  return validateStunMessage(data, STUN_REQUEST);
 }
 
 // either we got Stun binding request -> send binding response
 // or Stun binding response -> mark candidate as valid
 void Stun::recvStunMessage(QNetworkDatagram message)
 {
-  QByteArray data     = message.data();
-  STUNMessage stunMsg = getStunMessage(data);
+  QByteArray data      = message.data();
+  STUNMessage_ stunMsg = stunmsg_.networkToHost(data);
 
-  if (stunMsg.type == STUN_REQUEST)
+  if (stunMsg.getType() == STUN_REQUEST)
   {
-    if (!validateStunRequest(data))
+    if (stunmsg_.validateStunRequest(stunMsg))
     {
-      return;
+      // TODO check if USE_CANDIATE attribute has been set and if so, send nomination response??
+      // or can binding response be used??
+      sendBindingResponse(message.senderAddress().toString(), message.senderPort());
     }
-
-    // TODO check if USE_CANDIATE attribute has been set and if so, send nomination response??
-    // or can binding response be used??
-    sendBindingResponse(message.senderAddress().toString(), message.senderPort());
   }
-  else if (stunMsg.type == STUN_RESPONSE)
+  else if (stunMsg.getType() == STUN_RESPONSE)
   {
-    if (validateStunResponse(data))
+    if (stunmsg_.validateStunResponse(stunMsg))
     {
+      /* qDebug() << "negot. done for " << message.senderAddress().toString() << ":" << message.senderPort(); */
       emit parsingDone();
     }
   }
   else
   {
-    qDebug() << "WARNING: Got unkown STUN message, type: " << stunMsg.type
+    qDebug() << "WARNING: Got unkown STUN message, type: "      << stunMsg.getType()
              << " from " << message.senderAddress()      << ":" << message.senderPort()
              << " to"    << message.destinationAddress() << ":" << message.destinationPort();
     qDebug() << "\n\n\n\n";
@@ -334,12 +173,21 @@ bool Stun::sendNominationRequest(QString addressRemote, int portRemote, QString 
 
   connect(&udp_, &UDPServer::rawMessageAvailable, this, &Stun::recvStunMessage);
 
-  QByteArray outMessage = generateMessage();
+  STUNMessage_ request = stunmsg_.createRequest();
+
+  // TODO
+  /* request.addAttribute(STUN_ATTR_USE_CANDIATE); */
+  /* request.addAttribute(STUN_ATTR_ICE_CONTROLLING); */
+  /* request.addAttribute(STUN_ATTR_PRIORITY); */
+
+  QByteArray message = stunmsg_.hostToNetwork(request);
+
+  /* QByteArray outMessage = generateMessage(); */
   bool ok = false;
 
   for (int i = 0; i < 1000; ++i)
   {
-    udp_.sendData(outMessage, QHostAddress(addressRemote), portRemote, false);
+    udp_.sendData(message, QHostAddress(addressRemote), portRemote, false);
 
     if (waitForStunResponse(20))
     {
@@ -365,12 +213,16 @@ bool Stun::sendNominationResponse(QString addressRemote, int portRemote, QString
 
   connect(&udp_, &UDPServer::rawMessageAvailable, this, &Stun::recvStunMessage);
 
-  QByteArray outMessage = generateMessage();
+  /* STUNMessage_ response = stunmsg_.createResponse(); */
+  STUNMessage_ response = stunmsg_.createRequest();
+  /* response.addAttribute(STUN_ATTR_USE_CANDIATE); */
+
+  QByteArray message = stunmsg_.hostToNetwork(response);
   bool ok = false;
 
   for (int i = 0; i < 50; ++i)
   {
-    udp_.sendData(outMessage, QHostAddress(addressRemote), portRemote, false);
+    udp_.sendData(message, QHostAddress(addressRemote), portRemote, false);
 
     if (waitForStunResponse(50))
     {
@@ -384,31 +236,6 @@ bool Stun::sendNominationResponse(QString addressRemote, int portRemote, QString
   return ok;
 }
 
-STUNMessage fromNetwork(QByteArray& data, char** outRawAddress)
-{
-  STUNMessage response;
-  char *raw_data = data.data();
-
-  response.type        = qFromBigEndian(*((uint16_t *)&raw_data[0]));
-  response.length      = qFromBigEndian(*((uint16_t *)&raw_data[2]));
-  response.magicCookie = qFromBigEndian(*((uint32_t *)&raw_data[4]));
-
-  for (unsigned int i = 0; i < 12; ++i)
-  {
-    response.transactionID[i] = (uint8_t)raw_data[8 + i];
-  }
-
-  /* qDebug() << "Type:" << response.type */
-  /*          << "Length:" << response.length */
-  /*          << "Magic Cookie:" << response.magicCookie; */
-
-  *outRawAddress = (char*)malloc(response.length);
-
-  memcpy(*outRawAddress, (void*)&raw_data[20], response.length);
-
-  return response;
-}
-
 void Stun::processReply(QByteArray data)
 {
   if(data.size() < 20)
@@ -420,92 +247,39 @@ void Stun::processReply(QByteArray data)
   QString message = QString::fromStdString(data.toHex().toStdString());
   qDebug() << "Got a STUN reply:" << message << "with size:" << data.size();
 
-  char* outRawAddress = nullptr;
-  STUNMessage response = fromNetwork(data, &outRawAddress);
+  STUNMessage_ response = stunmsg_.networkToHost(data);
 
-  if(response.type != 0x0101)
+  if (response.getType() != STUN_RESPONSE)
   {
     qDebug() << "Unsuccessful STUN transaction!";
     emit stunError();
     return;
   }
 
-  if(response.length == 0 || response.magicCookie != 0x2112A442)
+  if (response.getLength() == 0 || response.getCookie() != STUN_MAGIC_COOKIE)
   {
     qDebug() << "Something went wrong with STUN transaction values. Length:"
-             << response.length << "Magic cookie:" << response.magicCookie;
+             << response.getLength() << "Magic cookie:" << response.getCookie();
     emit stunError();
     return;
   }
 
-  for(unsigned int i = 0; i < 12; ++i)
+  if (!stunmsg_.verifyTransactionID(response))
   {
-    if(transactionID_[i] != response.transactionID[i])
-    {
-      qDebug() << "The transaction ID is not the same as sent!" << "Error at byte:" << i
-               << "sent:" << transactionID_[i] << "got:" << response.transactionID[i];
-    }
+    qDebug() << "TransactionID is invalid!";
   }
+
   qDebug() << "Valid STUN response. Decoding address";
 
-  QHostAddress address;
+  std::pair<QHostAddress, uint16_t> addressInfo;
 
-  // enough for attribute
-  if(response.length >= 4)
+  if (response.getXorMappedAddress(addressInfo))
   {
-    uint16_t attr_type = qFromBigEndian(*((uint16_t*)&outRawAddress[0]));
-    uint16_t attr_length = qFromBigEndian(*((uint16_t*)&outRawAddress[2]));
-
-    if(attr_type == 0x0020)
-    {
-      if(attr_length >= 8)
-      {
-        // outRawAddress[4] is ignored according to RFC 5389
-        uint8_t ip_type = outRawAddress[5];
-
-        if(ip_type == 0x01)
-        {
-          if(attr_length == 8)
-          {
-            uint16_t port     = qFromBigEndian(*((uint16_t *)&outRawAddress[6])) ^ 0x2112;
-            uint32_t uAddress = qFromBigEndian(*((uint32_t *)&outRawAddress[8])) ^ response.magicCookie;
-
-            address.setAddress(uAddress);
-
-            qDebug() << "Got our address from STUN:" << address.toString() << ":" << port;
-
-            emit addressReceived(address);
-            return; // success
-          }
-          else
-          {
-            qDebug() << "the XOR_MAPPED IPv4 attribution length is not 8:" << attr_length;
-          }
-        }
-        else if(ip_type == 0x02)
-        {
-          // TODO: Add IPv6 support for STUN
-          qDebug() << "Received IPv6 address from STUN. Support not implemented yet.";
-        }
-        else
-        {
-          qDebug() << "Some crap in STUN ipv field";
-        }
-      }
-      else
-      {
-        qDebug() << "STUN XOR_MAPPED_ATTRIBUTE is too short:" << attr_length;
-      }
-    }
-    else
-    {
-      qDebug() << "Unsupproted STUN attribute:" << attr_type;
-    }
+    emit addressReceived(addressInfo.first);
   }
   else
   {
-    qDebug() << "Response length too short:" << response.length;
+    qDebug() << "DIDN'T GET XOR-MAPPED-ADDRESS!";
+    emit stunError();
   }
-
-  emit stunError();
 }

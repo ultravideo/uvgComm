@@ -110,7 +110,15 @@ public:
   // return true if the saved transaction id and message's transaction id match
   bool verifyTransactionID(STUNMessage_& message);
 
+  bool validateStunResponse(STUNMessage_& message);
+  bool validateStunRequest(STUNMessage_& message);
+
 private:
+  // validate all fields of STUNMessage_
+  //
+  // return true if message is valid, otherwise false
+  bool validateStunMessage(STUNMessage_& message, int type);
+
   // return the next attribute-value pair
   std::pair<uint16_t, uint16_t> getAttribute(uint16_t *ptr);
 };

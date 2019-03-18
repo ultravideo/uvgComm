@@ -187,8 +187,6 @@ STUNMessage_ StunMessageFactory::networkToHost(QByteArray& message)
   response.setLength(qFromBigEndian(*((uint16_t *)&raw_data[2])));
   response.setCookie(qFromBigEndian(*((uint32_t *)&raw_data[4])));
 
-  printf("0x%x\n", response.getCookie());
-
   for (i = 0; i < TRANSACTION_ID_SIZE; ++i)
   {
     // TODO ugly
@@ -267,4 +265,24 @@ std::pair<uint16_t, uint16_t> StunMessageFactory::getAttribute(uint16_t *ptr)
   uint16_t attrLen = ptr[1];
 
   return std::make_pair(qFromBigEndian(attr), qFromBigEndian(attrLen));
+}
+
+bool StunMessageFactory::validateStunMessage(STUNMessage_& message, int type)
+{
+  if (message.getCookie() != STUN_MAGIC_COOKIE)
+  {
+    return false;
+  }
+
+  return true;
+}
+
+bool StunMessageFactory::validateStunRequest(STUNMessage_& message)
+{
+  return this->validateStunMessage(message, STUN_REQUEST);
+}
+
+bool StunMessageFactory::validateStunResponse(STUNMessage_& message)
+{
+  return this->validateStunMessage(message, STUN_RESPONSE);
 }
