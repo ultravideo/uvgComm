@@ -5,13 +5,17 @@
 
 #include <stdint.h>
 
-const uint32_t TOOMANYPACKETS = 100000;
+const uint32_t TOO_LARGE_AMOUNT_OF_DATA = 100000;
+
+const uint8_t NUMBER_OF_RETRIES = 5;
+
+const uint16_t CONNECTION_TIMEOUT = 2000;
+
 
 TCPConnection::TCPConnection()
   :
     socket_(nullptr),
     shouldConnect_(false),
-    connected_(),
     destination_(),
     port_(0),
     socketDescriptor_(0),
@@ -75,11 +79,15 @@ void TCPConnection::receivedMessage()
     eventDispatcher()->wakeUp();
 }
 
-void TCPConnection::connectLoop()
+bool TCPConnection::connectLoop()
 {
-  const int connectionTimeout = 2 * 1000; // 2 seconds
+  Q_ASSERT(socket_);
 
-  // TODO: close the connection just in case?
+  if (!socket_)
+  {
+    qWarning() << "ERROR: Socket not initialized before connection";
+    return false;
+  }
 
   if(socketDescriptor_ != 0)
   {
@@ -87,6 +95,7 @@ void TCPConnection::connectLoop()
     if(!socket_->setSocketDescriptor(socketDescriptor_))
     {
       qCritical() << "ERROR: Could not get socket descriptor";
+      return false;
     }
   }
   else
@@ -96,17 +105,17 @@ void TCPConnection::connectLoop()
   }
 
   if (socket_->state() != QAbstractSocket::ConnectedState &&
-      !socket_->waitForConnected(connectionTimeout)) {
+      !socket_->waitForConnected(CONNECTION_TIMEOUT)) {
       emit error(socket_->error(), socket_->errorString());
-      return;
+      return false;
   }
-  connected_ = true;
   qDebug().nospace() << "Socket connected to our address: "
                      << socket_->localAddress().toString() << ":" << socket_->peerPort()
            << " Remote address: " << socket_->peerAddress().toString()
            << ":" << socket_->peerPort();
 
   emit socketConnected(socket_->localAddress().toString(), socket_->peerAddress().toString());
+  return true;
 }
 
 
@@ -118,7 +127,7 @@ void TCPConnection::run()
 
   started_ = true;
 
-  if(socket_ == 0)
+  if(socket_ == nullptr)
   {
     socket_ = new QTcpSocket();
     QObject::connect(socket_, SIGNAL(bytesWritten(qint64)),
@@ -128,7 +137,7 @@ void TCPConnection::run()
                      this, SLOT(receivedMessage()));
   }
 
-  if(eventDispatcher() == 0)
+  if(eventDispatcher() == nullptr)
   {
     qWarning() << "WARNING: Sorry no event dispatcher for this connection.";
     return;
@@ -137,7 +146,7 @@ void TCPConnection::run()
   while(running_)
   {
     // TODO Stop trying if connection can't be established.
-    if(!connected_ && shouldConnect_)
+    if(socket_->state() != QAbstractSocket::ConnectedState && shouldConnect_)
     {
       connectLoop();
     }
@@ -147,9 +156,9 @@ void TCPConnection::run()
       qDebug() << "Bytes to write:" << socket_->bytesToWrite() << "in state:" << socket_->state();
     }
 
-    if(connected_)
+    if(socket_->state() == QAbstractSocket::ConnectedState)
     {
-      if(socket_->isValid() && socket_->canReadLine() && socket_->bytesAvailable() < TOOMANYPACKETS)
+      if(socket_->isValid() && socket_->canReadLine() && socket_->bytesAvailable() < TOO_LARGE_AMOUNT_OF_DATA)
       {
         qDebug() << "Can read line with bytes available:" << socket_->bytesAvailable();
 
@@ -162,7 +171,7 @@ void TCPConnection::run()
 
         emit messageAvailable(message);
       }
-      else if(socket_->bytesAvailable() > TOOMANYPACKETS)
+      else if(socket_->bytesAvailable() > TOO_LARGE_AMOUNT_OF_DATA)
       {
         qWarning() << "Flushing the socket because of too much data!";
         socket_->flush();
@@ -191,15 +200,18 @@ void TCPConnection::run()
   qDebug() << "Disconnecting connection";
   disconnect();
 
-  if(socket_ != 0)
+  if(socket_ != nullptr)
+  {
     delete socket_;
+    socket_ = nullptr;
+  }
 }
 
 void TCPConnection::bufferToSocket()
 {
   qDebug() << "Sending packet with buffersize:" << buffer_.size();
 
-  if(buffer_.size() > TOOMANYPACKETS)
+  if(buffer_.size() > TOO_LARGE_AMOUNT_OF_DATA)
   {
     qWarning() << "We are sending too much stuff to the other end:" << buffer_.size();
   }
@@ -232,7 +244,6 @@ void TCPConnection::disconnect()
     emit error(socket_->error(), socket_->errorString());
     return;
   }
-  connected_ = false;
 }
 
 void TCPConnection::printError(int socketError, const QString &message)

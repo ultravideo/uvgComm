@@ -51,14 +51,16 @@ public:
   // TODO: Returns empty if we are not connected to anything.
   QHostAddress localAddress()
   {
-    Q_ASSERT(connected_);
+    Q_ASSERT(socket_);
+    Q_ASSERT(socket_->state() == QAbstractSocket::ConnectedState);
     Q_ASSERT(socket_->localAddress().toString() != "");
     return socket_->localAddress();
   }
 
   QHostAddress remoteAddress()
   {
-    Q_ASSERT(connected_);
+    Q_ASSERT(socket_);
+    Q_ASSERT(socket_->state() == QAbstractSocket::ConnectedState);
     Q_ASSERT(socket_->peerAddress().toString() != "");
     return socket_->peerAddress();
   }
@@ -81,11 +83,13 @@ protected:
 
 private:
 
+  // connects signals.
   void init();
 
   void printError(int socketError, const QString &message);
 
-  void connectLoop();
+  // return if succeeded
+  bool connectLoop();
   void receiveLoop();
   void sendLoop();
 
@@ -98,7 +102,6 @@ private:
   QTcpSocket *socket_;
 
   bool shouldConnect_;
-  bool connected_; // TODO: there ma be a bug with this
 
   QString destination_;
   uint16_t port_;
