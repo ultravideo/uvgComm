@@ -4,7 +4,7 @@
 
 #include "stunmsg.h"
 
-STUNMessage_::STUNMessage_():
+STUNMessage::STUNMessage():
   type_(0),
   length_(0),
   magicCookie_(STUN_MAGIC_COOKIE)
@@ -13,39 +13,39 @@ STUNMessage_::STUNMessage_():
   mappedAddr_.second = 0;
 }
 
-STUNMessage_::STUNMessage_(uint16_t type, uint16_t length):
-  STUNMessage_()
+STUNMessage::STUNMessage(uint16_t type, uint16_t length):
+  STUNMessage()
 {
   type_ = type;
   length_ = length;
 }
 
-STUNMessage_::STUNMessage_(uint16_t type):
-  STUNMessage_()
+STUNMessage::STUNMessage(uint16_t type):
+  STUNMessage()
 {
   type_ = type;
 }
 
-STUNMessage_::~STUNMessage_()
+STUNMessage::~STUNMessage()
 {
 }
 
-void STUNMessage_::setType(uint16_t type)
+void STUNMessage::setType(uint16_t type)
 {
   this->type_ = type;
 }
 
-void STUNMessage_::setLength(uint16_t length)
+void STUNMessage::setLength(uint16_t length)
 {
   this->length_ = length;
 }
 
-void STUNMessage_::setCookie(uint32_t cookie)
+void STUNMessage::setCookie(uint32_t cookie)
 {
   this->magicCookie_ = cookie;
 }
 
-void STUNMessage_::setTransactionID()
+void STUNMessage::setTransactionID()
 {
   for (int i = 0; i < TRANSACTION_ID_SIZE; ++i)
   {
@@ -53,7 +53,7 @@ void STUNMessage_::setTransactionID()
   }
 }
 
-void STUNMessage_::setTransactionID(uint8_t *transactionID)
+void STUNMessage::setTransactionID(uint8_t *transactionID)
 {
   if (!transactionID)
   {
@@ -66,45 +66,45 @@ void STUNMessage_::setTransactionID(uint8_t *transactionID)
   }
 }
 
-void STUNMessage_::addAttribute(uint16_t attribute)
+void STUNMessage::addAttribute(uint16_t attribute)
 {
   this->length_ += 2;
   this->attributes_.push_back(attribute);
 }
 
-void STUNMessage_::addAttributeValue(uint16_t attribute, uint16_t value)
+void STUNMessage::addAttributeValue(uint16_t attribute, uint16_t value)
 {
   this->length_ += 4;
   this->attributes_.push_back(attribute);
   this->attributes_.push_back(value);
 }
 
-uint16_t STUNMessage_::getType()
+uint16_t STUNMessage::getType()
 {
   return this->type_;
 }
 
-uint8_t *STUNMessage_::getTransactionID()
+uint8_t *STUNMessage::getTransactionID()
 {
   return this->transactionID_;
 }
 
-uint16_t STUNMessage_::getLength()
+uint16_t STUNMessage::getLength()
 {
   return this->length_;
 }
 
-uint32_t STUNMessage_::getCookie()
+uint32_t STUNMessage::getCookie()
 {
   return this->magicCookie_;
 }
 
-std::vector<uint16_t>& STUNMessage_::getAttributes()
+std::vector<uint16_t>& STUNMessage::getAttributes()
 {
   return this->attributes_;
 }
 
-bool STUNMessage_::getXorMappedAddress(std::pair<QHostAddress, uint16_t>& info)
+bool STUNMessage::getXorMappedAddress(std::pair<QHostAddress, uint16_t>& info)
 {
   if (this->mappedAddr_.first == QHostAddress("") || this->mappedAddr_.second == 0)
   {
@@ -117,7 +117,7 @@ bool STUNMessage_::getXorMappedAddress(std::pair<QHostAddress, uint16_t>& info)
   return true;
 }
 
-void STUNMessage_::setXorMappedAddress(QHostAddress address, uint16_t port)
+void STUNMessage::setXorMappedAddress(QHostAddress address, uint16_t port)
 {
   this->mappedAddr_.first  = address;
   this->mappedAddr_.second = port;
@@ -134,29 +134,29 @@ StunMessageFactory::~StunMessageFactory()
 {
 }
 
-STUNMessage_ StunMessageFactory::createRequest()
+STUNMessage StunMessageFactory::createRequest()
 {
-  STUNMessage_ request(STUN_REQUEST);
+  STUNMessage request(STUN_REQUEST);
   
   return request;
 }
 
-STUNMessage_ StunMessageFactory::createResponse()
+STUNMessage StunMessageFactory::createResponse()
 {
-  STUNMessage_ response(STUN_RESPONSE);
+  STUNMessage response(STUN_RESPONSE);
 
   return response;
 }
 
-STUNMessage_ StunMessageFactory::createResponse(STUNMessage_& request)
+STUNMessage StunMessageFactory::createResponse(STUNMessage& request)
 {
-  STUNMessage_ response(STUN_RESPONSE);
+  STUNMessage response(STUN_RESPONSE);
 
   response.setTransactionID(request.getTransactionID());
   return response;
 }
 
-QByteArray StunMessageFactory::hostToNetwork(STUNMessage_& message)
+QByteArray StunMessageFactory::hostToNetwork(STUNMessage& message)
 {
   STUNRawMessage rawMessage;
 
@@ -177,11 +177,11 @@ QByteArray StunMessageFactory::hostToNetwork(STUNMessage_& message)
   return QByteArray(rawMem.get(), sizeof(STUNRawMessage));
 }
 
-STUNMessage_ StunMessageFactory::networkToHost(QByteArray& message)
+STUNMessage StunMessageFactory::networkToHost(QByteArray& message)
 {
   int i = 0;
   char *raw_data = message.data();
-  STUNMessage_ response(STUN_RESPONSE);
+  STUNMessage response(STUN_RESPONSE);
 
   response.setType(qFromBigEndian(*((uint16_t *)&raw_data[0])));
   response.setLength(qFromBigEndian(*((uint16_t *)&raw_data[2])));
@@ -249,7 +249,7 @@ STUNMessage_ StunMessageFactory::networkToHost(QByteArray& message)
   return response;
 }
 
-bool StunMessageFactory::verifyTransactionID(STUNMessage_& message)
+bool StunMessageFactory::verifyTransactionID(STUNMessage& message)
 {
   return false;
 }
@@ -267,7 +267,7 @@ std::pair<uint16_t, uint16_t> StunMessageFactory::getAttribute(uint16_t *ptr)
   return std::make_pair(qFromBigEndian(attr), qFromBigEndian(attrLen));
 }
 
-bool StunMessageFactory::validateStunMessage(STUNMessage_& message, int type)
+bool StunMessageFactory::validateStunMessage(STUNMessage& message, int type)
 {
   if (message.getCookie() != STUN_MAGIC_COOKIE)
   {
@@ -277,12 +277,12 @@ bool StunMessageFactory::validateStunMessage(STUNMessage_& message, int type)
   return true;
 }
 
-bool StunMessageFactory::validateStunRequest(STUNMessage_& message)
+bool StunMessageFactory::validateStunRequest(STUNMessage& message)
 {
   return this->validateStunMessage(message, STUN_REQUEST);
 }
 
-bool StunMessageFactory::validateStunResponse(STUNMessage_& message)
+bool StunMessageFactory::validateStunResponse(STUNMessage& message)
 {
   return this->validateStunMessage(message, STUN_RESPONSE);
 }

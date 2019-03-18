@@ -25,16 +25,6 @@ enum STUN_ATTRIBUTES
   STUN_ATTR_ICE_CONTROLLING    = 0x802A,
 };
 
-struct STUNMessage
-{
-  uint16_t type;
-  uint16_t length;
-  uint32_t magicCookie;
-  uint8_t transactionID[TRANSACTION_ID_SIZE];
-  uint8_t payload[0];
-  /* std::vector<uint16_t> attributes_; */
-};
-
 struct STUNRawMessage
 {
   uint16_t type;
@@ -44,13 +34,13 @@ struct STUNRawMessage
   unsigned char payload[0];
 };
 
-class STUNMessage_
+class STUNMessage
 {
 public:
-  STUNMessage_();
-  STUNMessage_(uint16_t type, uint16_t length);
-  STUNMessage_(uint16_t type);
-  ~STUNMessage_();
+  STUNMessage();
+  STUNMessage(uint16_t type, uint16_t length);
+  STUNMessage(uint16_t type);
+  ~STUNMessage();
 
   void setType(uint16_t type);
   void setLength(uint16_t length);
@@ -93,31 +83,31 @@ public:
   ~StunMessageFactory();
 
   // Create STUN Binding Request message
-  STUNMessage_ createRequest();
+  STUNMessage createRequest();
 
   // Create empty (no transactionID) STUN Binding response message
-  STUNMessage_ createResponse();
+  STUNMessage createResponse();
 
   // Create STUN Binding response message
-  STUNMessage_ createResponse(STUNMessage_& request);
+  STUNMessage createResponse(STUNMessage& request);
 
   // Convert from little endian to big endian and return the given STUN message as byte array
-  QByteArray hostToNetwork(STUNMessage_& message);
+  QByteArray hostToNetwork(STUNMessage& message);
 
   // Conver from big endian to little endian and return the byte array as STUN message
-  STUNMessage_ networkToHost(QByteArray& message);
+  STUNMessage networkToHost(QByteArray& message);
 
   // return true if the saved transaction id and message's transaction id match
-  bool verifyTransactionID(STUNMessage_& message);
+  bool verifyTransactionID(STUNMessage& message);
 
-  bool validateStunResponse(STUNMessage_& message);
-  bool validateStunRequest(STUNMessage_& message);
+  bool validateStunResponse(STUNMessage& message);
+  bool validateStunRequest(STUNMessage& message);
 
 private:
-  // validate all fields of STUNMessage_
+  // validate all fields of STUNMessage
   //
   // return true if message is valid, otherwise false
-  bool validateStunMessage(STUNMessage_& message, int type);
+  bool validateStunMessage(STUNMessage& message, int type);
 
   // return the next attribute-value pair
   std::pair<uint16_t, uint16_t> getAttribute(uint16_t *ptr);

@@ -43,7 +43,7 @@ void Stun::handleHostaddress(QHostInfo info)
   udp_.bind(QHostAddress::AnyIPv4, STUN_PORT);
   QObject::connect(&udp_, SIGNAL(messageAvailable(QByteArray)), this, SLOT(processReply(QByteArray)));
 
-  STUNMessage_ request_ = stunmsg_.createRequest();
+  STUNMessage request_ = stunmsg_.createRequest();
   QByteArray   message_ = stunmsg_.hostToNetwork(request_);
 
   udp_.sendData(message_, address, GOOGLE_STUN_PORT, false);
@@ -76,7 +76,7 @@ bool Stun::sendBindingRequest(QString addressRemote, int portRemote, QString add
 
   connect(&udp_, &UDPServer::rawMessageAvailable, this, &Stun::recvStunMessage);
 
-  STUNMessage_ request = stunmsg_.createRequest();
+  STUNMessage request = stunmsg_.createRequest();
   /* request.addAttribute(STUN_ATTR_PRIORITY); */
   /* request.addAttribute(controller ? STUN_ATTR_ICE_CONTROLLING : STUN_ATTR_ICE_CONTROLLED); */
 
@@ -106,7 +106,7 @@ bool Stun::sendBindingRequest(QString addressRemote, int portRemote, QString add
 // TODO anna tälle parametriksi STUNMesage ja kopioi transactionID sieltä!
 bool Stun::sendBindingResponse(QString addressRemote, int portRemote)
 {
-  STUNMessage_ response = stunmsg_.createResponse();
+  STUNMessage response = stunmsg_.createResponse();
   /* response.setLength(1); */
 
   /* response.addAttribute(STUN_ATTR_PRIORITY); */
@@ -129,7 +129,7 @@ bool Stun::sendBindingResponse(QString addressRemote, int portRemote)
 void Stun::recvStunMessage(QNetworkDatagram message)
 {
   QByteArray data      = message.data();
-  STUNMessage_ stunMsg = stunmsg_.networkToHost(data);
+  STUNMessage stunMsg = stunmsg_.networkToHost(data);
 
   if (stunMsg.getType() == STUN_REQUEST)
   {
@@ -173,7 +173,7 @@ bool Stun::sendNominationRequest(QString addressRemote, int portRemote, QString 
 
   connect(&udp_, &UDPServer::rawMessageAvailable, this, &Stun::recvStunMessage);
 
-  STUNMessage_ request = stunmsg_.createRequest();
+  STUNMessage request = stunmsg_.createRequest();
 
   // TODO
   /* request.addAttribute(STUN_ATTR_USE_CANDIATE); */
@@ -213,8 +213,8 @@ bool Stun::sendNominationResponse(QString addressRemote, int portRemote, QString
 
   connect(&udp_, &UDPServer::rawMessageAvailable, this, &Stun::recvStunMessage);
 
-  /* STUNMessage_ response = stunmsg_.createResponse(); */
-  STUNMessage_ response = stunmsg_.createRequest();
+  /* STUNMessage response = stunmsg_.createResponse(); */
+  STUNMessage response = stunmsg_.createRequest();
   /* response.addAttribute(STUN_ATTR_USE_CANDIATE); */
 
   QByteArray message = stunmsg_.hostToNetwork(response);
@@ -247,7 +247,7 @@ void Stun::processReply(QByteArray data)
   QString message = QString::fromStdString(data.toHex().toStdString());
   qDebug() << "Got a STUN reply:" << message << "with size:" << data.size();
 
-  STUNMessage_ response = stunmsg_.networkToHost(data);
+  STUNMessage response = stunmsg_.networkToHost(data);
 
   if (response.getType() != STUN_RESPONSE)
   {
