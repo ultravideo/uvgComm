@@ -68,7 +68,6 @@ SOURCES +=\
     src/sip/sipservertransaction.cpp \
     src/sip/siptransport.cpp \
     src/sip/siptransactions.cpp \
-    src/sip/sipregistration.cpp \
     src/sip/sipdialogstate.cpp \
     src/scalefilter.cpp \
     src/video/camerainfo.cpp \
@@ -131,7 +130,6 @@ HEADERS  += \
     src/sip/siptransport.h \
     src/sip/siptypes.h \
     src/sip/siptransactions.h \
-    src/sip/sipregistration.h \
     src/sip/sipdialogstate.h \
     src/sip/sdptypes.h \
     src/scalefilter.h \

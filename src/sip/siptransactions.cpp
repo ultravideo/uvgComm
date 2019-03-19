@@ -646,7 +646,6 @@ void SIPTransactions::sendNonDialogRequest(SIP_URI& uri, RequestType type)
     pendingConnectionMutex_.unlock();
 
     registrations_[uri.host].client->getRequestMessageInfo(request.type, request.message);
-    //registrations_[uri.host].registration->fillRegisterRequest(request.message, transport->getLocalAddress().toString());
     registrations_[uri.host].state->getRequestDialogInfo(type, transport->getLocalAddress().toString(), request.message);
 
     QVariant content; // we dont have content in REGISTER

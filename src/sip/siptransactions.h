@@ -3,7 +3,6 @@
 #include "globalsdpstate.h"
 #include "sip/siptransport.h"
 #include "sip/sipnondialogclient.h"
-#include "sip/sipregistration.h"
 #include "connectionserver.h"
 
 #include "common.h"
