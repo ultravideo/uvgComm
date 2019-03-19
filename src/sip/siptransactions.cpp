@@ -92,17 +92,19 @@ void SIPTransactions::bindToServer()
   {
     qDebug() << "Binding to SIP server at:" << serverAddress;
 
-    SIPRegistrationData data = {std::shared_ptr<SIPRegistration>(new SIPRegistration(serverAddress)),
-                                std::shared_ptr<SIPNonDialogClient> (new SIPNonDialogClient(transactionUser_))};
+    SIPRegistrationData data = {std::shared_ptr<SIPNonDialogClient> (new SIPNonDialogClient(transactionUser_)),
+                               std::shared_ptr<SIPDialogState> (new SIPDialogState()), 0};
     registrations_[serverAddress] = data;
 
     std::shared_ptr<SIPTransport> transport = createSIPTransport();
     transport->createConnection(TCP, serverAddress);
 
-    registrations_[serverAddress].state->initServer(transports_.size());
+    registrations_[serverAddress].transportID = transports_.size();
+    SIP_URI serverUri = {"","",serverAddress};
+    registrations_[serverAddress].state->createNewDialog(serverUri, true);
     registrations_[serverAddress].client->init();
 
-    SIP_URI serverUri = {"","",serverAddress};
+
     registrations_[serverAddress].client->set_remoteURI(serverUri);
 
     sendNonDialogRequest(serverUri, SIP_REGISTER);
@@ -175,7 +177,7 @@ void SIPTransactions::startPeerToPeerCall(quint32 transportID, Contact &remote)
 
   std::shared_ptr<SIPDialogData> dialogData;
   createBaseDialog(transportID, dialogData);
-  dialogData->state->createNewDialog(SIP_URI{remote.username, remote.username, remote.remoteAddress});
+  dialogData->state->createNewDialog(SIP_URI{remote.username, remote.username, remote.remoteAddress}, false);
 
   // this start call will commence once the connection has been established
   if(!dialogData->client->startCall(remote.realName))
@@ -305,6 +307,7 @@ void SIPTransactions::receiveTCPConnection(TCPConnection *con)
 
 void SIPTransactions::connectionEstablished(quint32 transportID)
 {
+  qDebug() << "A SIP connection has been established as we wanted. TransportID:" << transportID;
   pendingConnectionMutex_.lock();
 
   bool pendingNonDialog = pendingNonDialogRequests_.find(transportID) != pendingNonDialogRequests_.end();
@@ -316,8 +319,8 @@ void SIPTransactions::connectionEstablished(quint32 transportID)
   {
     qDebug() << "We have a pending non-dialog request. Sending it!";
     NonDialogRequest request = pendingNonDialogRequests_[transportID];
+    sendNonDialogRequest(request.request_uri, request.type);
     pendingNonDialogRequests_.erase(transportID);
-    // TODO
   }
 
   if(pendingDialog)
@@ -615,6 +618,7 @@ void SIPTransactions::sendDialogRequest(uint32_t sessionID, RequestType type)
 
 void SIPTransactions::sendNonDialogRequest(SIP_URI& uri, RequestType type)
 {
+  qDebug() << "Start sending of a non-dialog request. Type:" << type;
   SIPRequest request;
   request.type = type;
 
@@ -628,21 +632,31 @@ void SIPTransactions::sendNonDialogRequest(SIP_URI& uri, RequestType type)
     }
 
     std::shared_ptr<SIPTransport> transport
-        = transports_.at(registrations_[uri.host].state->getTransportID() - 1);
+        = transports_.at(registrations_[uri.host].transportID - 1);
 
     pendingConnectionMutex_.lock();
     if(!transport->isConnected())
     {
       qDebug() << "The connection has not yet been established. Delaying sending of request.";
 
-      pendingNonDialogRequests_[registrations_[uri.host].state->getTransportID()] = NonDialogRequest{uri, type};
+      pendingNonDialogRequests_[registrations_[uri.host].transportID] = NonDialogRequest{uri, type};
       pendingConnectionMutex_.unlock();
       return;
     }
     pendingConnectionMutex_.unlock();
 
     registrations_[uri.host].client->getRequestMessageInfo(request.type, request.message);
-    registrations_[uri.host].state->fillRegisterRequest(""); // TODO: get local address
+    //registrations_[uri.host].registration->fillRegisterRequest(request.message, transport->getLocalAddress().toString());
+    registrations_[uri.host].state->getRequestDialogInfo(type, transport->getLocalAddress().toString(), request.message);
+
+    QVariant content; // we dont have content in REGISTER
+    transport->sendRequest(request, content);
+  }
+  else if (type == SIP_OPTIONS) {
+    qWarning() << "ERROR: Trying to send unimplemented non-dialog request OPTIONS!";
+  }
+  else {
+    qWarning() << "ERROR: Trying to send a non-dialog request of type which is a dialog request!";
   }
 }
 

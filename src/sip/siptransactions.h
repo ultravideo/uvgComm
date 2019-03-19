@@ -104,8 +104,10 @@ private:
 
   struct SIPRegistrationData
   {
-    std::shared_ptr<SIPRegistration> state;
     std::shared_ptr<SIPNonDialogClient> client;
+    std::shared_ptr<SIPDialogState> state;
+
+    quint32 transportID;
   };
 
   std::shared_ptr<SIPTransport> createSIPTransport();

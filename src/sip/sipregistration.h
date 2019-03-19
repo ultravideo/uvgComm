@@ -18,7 +18,8 @@ public:
 
   //void updateAddressBook();
 
-  std::shared_ptr<SIPMessageInfo> fillRegisterRequest(QString localAddress);
+  // message should be initialized before this.
+  void fillRegisterRequest(std::shared_ptr<SIPMessageInfo> &message, QString localAddress);
 
   bool isContactAtThisServer(QString serverAddress);
 

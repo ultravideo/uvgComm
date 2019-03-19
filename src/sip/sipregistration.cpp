@@ -4,11 +4,13 @@
 
 #include <QSettings>
 
+#include <QDateTime>
+
 
 SIPRegistration::SIPRegistration(QString serverAddress):
   localUri_(),
   serverAddress_(serverAddress),
-  registerCSeq_(1)
+  registerCSeq_(QDateTime::currentSecsSinceEpoch()%2147483647)
 {}
 
 void SIPRegistration::initServer(quint32 transportID)
@@ -45,25 +47,26 @@ bool SIPRegistration::isContactAtThisServer(QString serverAddress)
   return serverAddress == serverAddress_;
 }
 
-std::shared_ptr<SIPMessageInfo> SIPRegistration::fillRegisterRequest(QString localAddress)
+void SIPRegistration::fillRegisterRequest(std::shared_ptr<SIPMessageInfo>& message,
+                                          QString localAddress)
 {
+  Q_ASSERT(message);
   Q_ASSERT(localUri_.username != "");
-  if(localUri_.username == "")
+  if (message == nullptr)
+  {
+    qWarning() << "ERROR: Message has not been initialized before filling in SIP regisgtration";
+  }
+  if (localUri_.username == "")
   {
     qWarning() << "ERROR: SIP Helper has not been initialized";
-    return std::shared_ptr<SIPMessageInfo>(nullptr);
+    return;
   }
 
-  std::shared_ptr<SIPMessageInfo> mesg = std::shared_ptr<SIPMessageInfo>(new SIPMessageInfo);
-  mesg->version = "2.0";
-  mesg->maxForwards = 71;
-  mesg->dialog = nullptr;
-  mesg->from = localUri_;
-  mesg->to = localUri_;
-  mesg->contact = localUri_;
-  mesg->cSeq = 1;
-  mesg->senderReplyAddress.push_back(getLocalVia(localAddress));
-  mesg->dialog = std::shared_ptr<SIPDialogInfo> (new SIPDialogInfo{"", "", generateRandomString(16)});
+  message->from = localUri_;
+  message->to = localUri_;
+  message->contact = localUri_;
+  message->cSeq = registerCSeq_;
+  message->senderReplyAddress.push_back(getLocalVia(localAddress));
 
-  return mesg;
+  ++registerCSeq_;
 }

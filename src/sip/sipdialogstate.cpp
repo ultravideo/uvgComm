@@ -9,6 +9,7 @@
 
 
 SIPDialogState::SIPDialogState():
+  serverConnection_(false),
   localTag_(""),
   remoteTag_(""),
   callID_(""),
@@ -35,9 +36,11 @@ void SIPDialogState::init(SIP_URI remoteURI)
   }
 }
 
-void SIPDialogState::createNewDialog(SIP_URI remoteURI)
+void SIPDialogState::createNewDialog(SIP_URI remoteURI, bool serverConnection)
 {
   init(remoteURI);
+
+  serverConnection_ = serverConnection;
 
   localTag_ = generateRandomString(TAGLENGTH);
   callID_ = generateRandomString(CALLIDLENGTH);
@@ -102,7 +105,7 @@ void SIPDialogState::getRequestDialogInfo(RequestType type, QString localAddress
                                      std::shared_ptr<SIPMessageInfo>& outMessage)
 {
   Q_ASSERT(localUri_.username != "" && localUri_.host != "");
-  Q_ASSERT(remoteUri_.username != "" && remoteUri_.host != "");
+  Q_ASSERT((remoteUri_.username != "" || !serverConnection_) && remoteUri_.host != "");
 
   if(localAddress == "")
   {
@@ -111,7 +114,7 @@ void SIPDialogState::getRequestDialogInfo(RequestType type, QString localAddress
   }
 
   if(localUri_.username == "" || localUri_.host == "" ||
-     remoteUri_.username == "" || remoteUri_.host == "")
+     (remoteUri_.username == "" && !serverConnection_) || remoteUri_.host == "")
   {
     qDebug() << "ERROR: The dialog state info has not been set, but we are using it." <<
                 "username:" << localUri_.username << "host" << localUri_.host <<

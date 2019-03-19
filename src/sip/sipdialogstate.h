@@ -25,7 +25,7 @@ public:
   }
 
   // creates dialog which is about to start from our end
-  void createNewDialog(SIP_URI remoteURI);
+  void createNewDialog(SIP_URI remoteURI, bool serverConnection);
 
   // creates the dialog from an incoming INVITE
   void createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inMessage);
@@ -47,6 +47,8 @@ private:
   void init(SIP_URI remoteURI);
 
   ViaInfo getLocalVia(QString localAddress);
+
+  bool serverConnection_;
 
   // SIP Dialog fields (section 12 in RFC 3261)
   QString localTag_;

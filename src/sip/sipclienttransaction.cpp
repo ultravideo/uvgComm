@@ -39,6 +39,8 @@ void SIPClientTransaction::getRequestMessageInfo(RequestType type,
   outMessage->maxForwards = 71;
   outMessage->version = "2.0";
   outMessage->cSeq = 0; // invalid, should be set in dialog
+  outMessage->content.type = NO_CONTENT;
+  outMessage->content.length = 0;
 }
 
 
