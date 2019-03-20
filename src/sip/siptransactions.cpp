@@ -100,8 +100,9 @@ void SIPTransactions::bindToServer()
     transport->createConnection(TCP, serverAddress);
 
     registrations_[serverAddress].transportID = transports_.size();
+
     SIP_URI serverUri = {"","",serverAddress};
-    registrations_[serverAddress].state->createNewDialog(serverUri, true);
+    registrations_[serverAddress].state->createServerDialog(serverUri);
     registrations_[serverAddress].client->init();
 
 
@@ -177,7 +178,7 @@ void SIPTransactions::startPeerToPeerCall(quint32 transportID, Contact &remote)
 
   std::shared_ptr<SIPDialogData> dialogData;
   createBaseDialog(transportID, dialogData);
-  dialogData->state->createNewDialog(SIP_URI{remote.username, remote.username, remote.remoteAddress}, false);
+  dialogData->state->createNewDialog(SIP_URI{remote.username, remote.username, remote.remoteAddress});
 
   // this start call will commence once the connection has been established
   if(!dialogData->client->startCall(remote.realName))
@@ -568,9 +569,8 @@ void SIPTransactions::sendDialogRequest(uint32_t sessionID, RequestType type)
   // Get message info
   dialogs_.at(sessionID - 1)->client->getRequestMessageInfo(type, request.message);
 
-  dialogs_.at(sessionID - 1)->state->getRequestDialogInfo(request.type,
-                                                           transport->getLocalAddress().toString(),
-                                                           request.message);
+  dialogs_.at(sessionID - 1)->state->getRequestDialogInfo(request,
+                                                          transport->getLocalAddress().toString());
   Q_ASSERT(request.message != nullptr);
   Q_ASSERT(request.message->dialog != nullptr);
 
@@ -646,7 +646,7 @@ void SIPTransactions::sendNonDialogRequest(SIP_URI& uri, RequestType type)
     pendingConnectionMutex_.unlock();
 
     registrations_[uri.host].client->getRequestMessageInfo(request.type, request.message);
-    registrations_[uri.host].state->getRequestDialogInfo(type, transport->getLocalAddress().toString(), request.message);
+    registrations_[uri.host].state->getRequestDialogInfo(request, transport->getLocalAddress().toString());
 
     QVariant content; // we dont have content in REGISTER
     transport->sendRequest(request, content);

@@ -11,6 +11,12 @@ bool tryAddParameter(SIPField& field, QString parameterName, QString parameterVa
 
 bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
 {
+  if(request.requestURI.host == "")
+  {
+    qWarning() << "ERROR: Request URI host is empty when compising first line:"
+               << request.requestURI.host;
+  }
+
   if(request.type == SIP_NO_REQUEST)
   {
     qDebug() << "WARNING: First request line failed";
@@ -24,8 +30,10 @@ bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
   }
   else
   {
-    qDebug() << "WARNING: REGISTER first line composing not implemented.";
-    return false;
+
+    line = requestToString(request.type) + " sips:"
+        + request.requestURI.host
+        + " SIP/" + request.message->version + lineEnding;
   }
 
   return true;
@@ -50,7 +58,8 @@ bool includeToField(QList<SIPField> &fields,
   Q_ASSERT(message->to.username != "" && message->to.host != "");
   if(message->to.username == "" ||  message->to.host == "")
   {
-    qDebug() << "WARNING: To field failed";
+    qDebug() << "WARNING: Composing To-field failed because host is:"
+             << message->to.host << "and" << message->to.username;
     return false;
   }
 

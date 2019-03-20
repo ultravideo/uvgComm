@@ -25,13 +25,15 @@ public:
   }
 
   // creates dialog which is about to start from our end
-  void createNewDialog(SIP_URI remoteURI, bool serverConnection);
+  void createNewDialog(SIP_URI remoteURI);
+
+  void createServerDialog(SIP_URI requestURI);
 
   // creates the dialog from an incoming INVITE
   void createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inMessage);
 
   // Generates the request message details
-  void getRequestDialogInfo(RequestType type, QString localAddress, std::shared_ptr<SIPMessageInfo> &outMessage);
+  void getRequestDialogInfo(SIPRequest& outRequest, QString localAddress);
 
   // use this to check whether incoming request belongs to this dialog
   // responses should be checked by client which sent the request
@@ -44,11 +46,10 @@ public:
 
 private:
 
-  void init(SIP_URI remoteURI);
+  void initLocalURI();
+  void initCallInfo();
 
   ViaInfo getLocalVia(QString localAddress);
-
-  bool serverConnection_;
 
   // SIP Dialog fields (section 12 in RFC 3261)
   QString localTag_;
@@ -57,6 +58,7 @@ private:
 
   SIP_URI localUri_;
   SIP_URI remoteUri_;
+  SIP_URI requestUri_;
 
   SIP_URI remoteContactURI_;
 
@@ -67,6 +69,4 @@ private:
 
   // may be empty if there is no route
   QList<SIP_URI> route_;
-
-  bool secure_;
 };

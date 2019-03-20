@@ -9,20 +9,16 @@
 
 
 SIPDialogState::SIPDialogState():
-  serverConnection_(false),
   localTag_(""),
   remoteTag_(""),
   callID_(""),
   // cseq start value. For example 31-bits of 32-bit clock
   localCSeq_(QDateTime::currentSecsSinceEpoch()%2147483647),
-  remoteCSeq_(0),
-  secure_(false)
+  remoteCSeq_(0)
 {}
 
-void SIPDialogState::init(SIP_URI remoteURI)
+void SIPDialogState::initLocalURI()
 {
-  remoteUri_ = remoteURI;
-
   // init stuff from the settings
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
 
@@ -36,12 +32,8 @@ void SIPDialogState::init(SIP_URI remoteURI)
   }
 }
 
-void SIPDialogState::createNewDialog(SIP_URI remoteURI, bool serverConnection)
+void SIPDialogState::initCallInfo()
 {
-  init(remoteURI);
-
-  serverConnection_ = serverConnection;
-
   localTag_ = generateRandomString(TAGLENGTH);
   callID_ = generateRandomString(CALLIDLENGTH);
   if(localUri_.host != "")
@@ -52,6 +44,22 @@ void SIPDialogState::createNewDialog(SIP_URI remoteURI, bool serverConnection)
   qDebug() << "Local dialog created. CallID: " << callID_ << "Tag:" << localTag_ << "Cseq:" << localCSeq_;
 }
 
+void SIPDialogState::createNewDialog(SIP_URI remoteURI)
+{
+  initLocalURI();
+  remoteUri_ = remoteURI;
+  requestUri_ = remoteURI;
+  initCallInfo();
+}
+
+void SIPDialogState::createServerDialog(SIP_URI requestURI)
+{
+  initLocalURI();
+  remoteUri_ = localUri_;
+  requestUri_ = requestURI; // server has different request uri from remote
+  initCallInfo();
+}
+
 
 void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inMessage)
 {
@@ -60,7 +68,9 @@ void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inM
   Q_ASSERT(inMessage);
   Q_ASSERT(inMessage->dialog);
 
-  init(inMessage->from);
+  initLocalURI();
+  remoteUri_ = inMessage->from;
+  requestUri_ = inMessage->from;
 
   if(callID_ != "")
   {
@@ -101,11 +111,10 @@ void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inM
 }
 
 
-void SIPDialogState::getRequestDialogInfo(RequestType type, QString localAddress,
-                                     std::shared_ptr<SIPMessageInfo>& outMessage)
+void SIPDialogState::getRequestDialogInfo(SIPRequest &outRequest, QString localAddress)
 {
   Q_ASSERT(localUri_.username != "" && localUri_.host != "");
-  Q_ASSERT((remoteUri_.username != "" || !serverConnection_) && remoteUri_.host != "");
+  Q_ASSERT(remoteUri_.username != "" && remoteUri_.host != "");
 
   if(localAddress == "")
   {
@@ -114,27 +123,28 @@ void SIPDialogState::getRequestDialogInfo(RequestType type, QString localAddress
   }
 
   if(localUri_.username == "" || localUri_.host == "" ||
-     (remoteUri_.username == "" && !serverConnection_) || remoteUri_.host == "")
+     remoteUri_.username == "" || remoteUri_.host == "")
   {
     qDebug() << "ERROR: The dialog state info has not been set, but we are using it." <<
                 "username:" << localUri_.username << "host" << localUri_.host <<
                 "remote username:" << remoteUri_.username << "host:" << remoteUri_.host;
   }
 
+  outRequest.requestURI = requestUri_;
 
-  if(type != SIP_ACK && type != SIP_CANCEL)
+  if(outRequest.type != SIP_ACK && outRequest.type != SIP_CANCEL)
   {
     ++localCSeq_;
   }
 
-  outMessage->cSeq = localCSeq_;
-  outMessage->from = localUri_;
-  outMessage->to = remoteUri_;
-  outMessage->contact = localUri_;
-  outMessage->senderReplyAddress.push_back(getLocalVia(localAddress));
+  outRequest.message->cSeq = localCSeq_;
+  outRequest.message->from = localUri_;
+  outRequest.message->to = remoteUri_;
+  outRequest.message->contact = localUri_;
+  outRequest.message->senderReplyAddress.push_back(getLocalVia(localAddress));
 
   // SIPDialogInfo format: toTag, fromTag, CallID
-  outMessage->dialog
+  outRequest.message->dialog
       = std::shared_ptr<SIPDialogInfo> (new SIPDialogInfo{remoteTag_, localTag_, callID_});
 }
 

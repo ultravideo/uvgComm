@@ -87,6 +87,9 @@ enum ResponseType {SIP_UNKNOWN_RESPONSE = 0,
 
 enum ConnectionType {ANY, TCP, UDP, TLS};
 
+enum UriType {SIP, SIPS, TEL};
+
+
 // 7 is the length of preset string
 const uint32_t BRANCHLENGTH = 32 - 7;
 
@@ -104,6 +107,7 @@ struct SIP_URI
   QString username;
   QString realname;
   QString host;
+  UriType type;
 };
 
 enum ContentType {NO_CONTENT, APPLICATION_SDP, TEXT_PLAIN};
@@ -163,6 +167,7 @@ struct SIPMessageInfo
 struct SIPRequest
 {
   RequestType type;
+  SIP_URI requestURI;
   std::shared_ptr<SIPMessageInfo> message;
 };
 
