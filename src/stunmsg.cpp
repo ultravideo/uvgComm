@@ -68,15 +68,14 @@ void STUNMessage::setTransactionID(uint8_t *transactionID)
 
 void STUNMessage::addAttribute(uint16_t attribute)
 {
-  this->length_ += 2;
-  this->attributes_.push_back(attribute);
+  this->length_ += 2 * sizeof(uint16_t);
+  this->attributes_.push_back(std::make_tuple(attribute, 0, 0));
 }
 
-void STUNMessage::addAttributeValue(uint16_t attribute, uint16_t value)
+void STUNMessage::addAttribute(uint16_t attribute, uint32_t value)
 {
-  this->length_ += 4;
-  this->attributes_.push_back(attribute);
-  this->attributes_.push_back(value);
+  this->length_ += 2 * sizeof(uint16_t) + sizeof(uint32_t);
+  this->attributes_.push_back(std::make_tuple(attribute, 4, value));
 }
 
 uint16_t STUNMessage::getType()
@@ -99,7 +98,7 @@ uint32_t STUNMessage::getCookie()
   return this->magicCookie_;
 }
 
-std::vector<uint16_t>& STUNMessage::getAttributes()
+std::vector<std::tuple<uint16_t, uint16_t, uint32_t>>& STUNMessage::getAttributes()
 {
   return this->attributes_;
 }
@@ -123,6 +122,19 @@ void STUNMessage::setXorMappedAddress(QHostAddress address, uint16_t port)
   this->mappedAddr_.second = port;
 }
 
+bool STUNMessage::hasAttribute(uint16_t attrName)
+{
+  for (size_t i = 0; i < this->attributes_.size(); ++i)
+  {
+    if (std::get<0>(this->attributes_[i]) == attrName)
+    {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 // ----------------------------------------------------------------------------------------
 
 StunMessageFactory::StunMessageFactory()
@@ -137,7 +149,8 @@ StunMessageFactory::~StunMessageFactory()
 STUNMessage StunMessageFactory::createRequest()
 {
   STUNMessage request(STUN_REQUEST);
-  
+
+  request.setTransactionID();
   return request;
 }
 
@@ -158,23 +171,36 @@ STUNMessage StunMessageFactory::createResponse(STUNMessage& request)
 
 QByteArray StunMessageFactory::hostToNetwork(STUNMessage& message)
 {
-  STUNRawMessage rawMessage;
+  auto attrs = message.getAttributes();
+  const size_t MSG_SIZE = sizeof(STUNRawMessage) + message.getLength();
 
-  rawMessage.type        = qToBigEndian((short)message.getType());
-  rawMessage.length      = qToBigEndian(message.getLength());
-  rawMessage.magicCookie = qToBigEndian(message.getCookie());
+  auto ptr = std::unique_ptr<unsigned char[]>{ new unsigned char[MSG_SIZE] };
+  STUNRawMessage *rawMessage = static_cast<STUNRawMessage *>(static_cast<void *>(ptr.get()));
+
+  rawMessage->type        = qToBigEndian((short)message.getType());
+  rawMessage->length      = qToBigEndian(message.getLength());
+  rawMessage->magicCookie = qToBigEndian(message.getCookie());
 
   for (int i = 0; i < TRANSACTION_ID_SIZE; ++i)
   {
-    rawMessage.transactionID[i] = qToBigEndian(message.getTransactionID()[i]);
+    rawMessage->transactionID[i] = qToBigEndian(message.getTransactionID()[i]);
   }
 
-  memcpy(&rawMessage.transactionID, &rawMessage.transactionID, sizeof(rawMessage.transactionID));
+  uint16_t *attrPtr = (uint16_t *)rawMessage->payload;
 
-  auto rawMem = std::make_unique<char>(sizeof(STUNRawMessage));
-  memcpy(rawMem.get(), &rawMessage, sizeof(STUNRawMessage));
+  for (size_t i = 0, k = 0; i < attrs.size(); ++i, k += 2)
+  {
+    attrPtr[k + 0] = qToBigEndian(std::get<0>(attrs[i]));
+    attrPtr[k + 1] = qToBigEndian(std::get<1>(attrs[i]));
 
-  return QByteArray(rawMem.get(), sizeof(STUNRawMessage));
+    if (std::get<1>(attrs[i]) > 0)
+    {
+      ((uint32_t *)attrPtr)[k + 1] = qToBigEndian(std::get<2>(attrs[i]));
+      k += 2;
+    }
+  }
+
+  return QByteArray(static_cast<const char *>(static_cast<void *>(ptr.get())), MSG_SIZE);
 }
 
 STUNMessage StunMessageFactory::networkToHost(QByteArray& message)
@@ -233,6 +259,7 @@ STUNMessage StunMessageFactory::networkToHost(QByteArray& message)
         break;
 
       case STUN_ATTR_PRIORITY:
+        k += 2, payload += 2;
         response.addAttribute(STUN_ATTR_PRIORITY);
         break;
 
@@ -241,7 +268,7 @@ STUNMessage StunMessageFactory::networkToHost(QByteArray& message)
         break;
 
       default:
-        fprintf(stderr, "Invalid attribute: 0x%x\n", attrPair.first);
+        // TODO handle invalid message?
         break;
     }
   }

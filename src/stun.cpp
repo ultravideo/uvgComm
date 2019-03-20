@@ -95,8 +95,8 @@ bool Stun::sendBindingRequest(QString addressRemote, int portRemote, QString add
   connect(&udp_, &UDPServer::rawMessageAvailable, this, &Stun::recvStunMessage);
 
   STUNMessage request = stunmsg_.createRequest();
-  /* request.addAttribute(STUN_ATTR_PRIORITY); */
-  /* request.addAttribute(controller ? STUN_ATTR_ICE_CONTROLLING : STUN_ATTR_ICE_CONTROLLED); */
+  request.addAttribute(controller ? STUN_ATTR_ICE_CONTROLLING : STUN_ATTR_ICE_CONTROLLED);
+  request.addAttribute(STUN_ATTR_PRIORITY, 0x1337); // TODO how get priority from iceflowcontrol??
 
   QByteArray message = stunmsg_.hostToNetwork(request);
 
@@ -126,14 +126,11 @@ bool Stun::sendBindingRequest(QString addressRemote, int portRemote, QString add
 // TODO anna tälle parametriksi STUNMesage ja kopioi transactionID sieltä!
 bool Stun::sendBindingResponse(QString addressRemote, int portRemote)
 {
-  /* response.setLength(1); */
-  /* response.addAttribute(STUN_ATTR_PRIORITY); */
-  // TODO find out whether we're controlling or being controlled
-  /* response.addAttribute(STUN_ATTR_ICE_CONTROLLED); */
-  // TODO add addressRemote and portRemote to payload (xor-mapped-address)
-
   STUNMessage response = stunmsg_.createResponse();
-  QByteArray message   = stunmsg_.hostToNetwork(response);
+  response.addAttribute(STUN_ATTR_ICE_CONTROLLED); // TODO find out whether we're controlling or being controlled
+  response.addAttribute(STUN_ATTR_PRIORITY, 0x1338);
+
+  QByteArray message = stunmsg_.hostToNetwork(response);
 
   for (int i = 0; i < 5; ++i)
   {
@@ -152,11 +149,9 @@ void Stun::recvStunMessage(QNetworkDatagram message)
   {
     if (stunmsg_.validateStunRequest(stunMsg))
     {
-      /* TODO:  */
-      /* if (stunMsg.hasAttribute(STUN_ATTR_USE_CANDIATE)) */
-      if (nominationOngoing == true)
+      if (stunMsg.hasAttribute(STUN_ATTR_USE_CANDIATE))
       {
-        qDebug() << "MESSAGE HAS ATTRIBUTE USE_CANDIATE!";
+        /* qDebug() << "MESSAGE HAS ATTRIBUTE USE_CANDIATE!"; */
         emit nominationRecv();
       }
       else
@@ -197,6 +192,9 @@ bool Stun::sendNominationRequest(QString addressRemote, int portRemote, QString 
   connect(&udp_, &UDPServer::rawMessageAvailable, this, &Stun::recvStunMessage);
 
   STUNMessage request = stunmsg_.createRequest();
+  request.addAttribute(STUN_ATTR_ICE_CONTROLLING);
+  request.addAttribute(STUN_ATTR_USE_CANDIATE);
+
   QByteArray message  = stunmsg_.hostToNetwork(request);
 
   bool ok = false;
@@ -231,7 +229,9 @@ bool Stun::sendNominationResponse(QString addressRemote, int portRemote, QString
 
   // first send empty stun binding requests to remote to create a hole in the firewall
   // when the first nomination request is received (if any), start sending nomination response
-  STUNMessage request   = stunmsg_.createRequest();
+  STUNMessage request = stunmsg_.createRequest();
+  request.addAttribute(STUN_ATTR_ICE_CONTROLLED);
+
   QByteArray reqMessage = stunmsg_.hostToNetwork(request);
   bool nominationRecv   = false;
 
@@ -250,7 +250,10 @@ bool Stun::sendNominationResponse(QString addressRemote, int portRemote, QString
   {
     nominationRecv = false;
 
-    STUNMessage response   = stunmsg_.createResponse();
+    STUNMessage response  = stunmsg_.createResponse();
+    response.addAttribute(STUN_ATTR_ICE_CONTROLLED);
+    response.addAttribute(STUN_ATTR_USE_CANDIATE);
+
     QByteArray respMessage = stunmsg_.hostToNetwork(response);
 
     for (int i = 0; i < 25; ++i)

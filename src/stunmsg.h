@@ -5,10 +5,11 @@
 #include <QHostAddress>
 
 #include <vector>
+#include <tuple>
 #include <utility>
 
-const uint32_t STUN_MAGIC_COOKIE = 0x2112A442;
 const int TRANSACTION_ID_SIZE    = 12;
+const uint32_t STUN_MAGIC_COOKIE = 0x2112A442;
 
 enum STUN_TYPES
 {
@@ -57,10 +58,15 @@ public:
   uint8_t *getTransactionID();
 
   // get all message's attributes
-  std::vector<uint16_t>& getAttributes();
+  /* std::vector<std::pair<uint16_t, uint16_t>>& getAttributes(); */
+  std::vector<std::tuple<uint16_t, uint16_t, uint32_t>>& getAttributes();
 
   void addAttribute(uint16_t attribute);
-  void addAttributeValue(uint16_t attribute, uint16_t value);
+  void addAttribute(uint16_t attribute, uint32_t value);
+
+  // check if message has an attribute named "attrName" set
+  // return true if yes and false if not
+  bool hasAttribute(uint16_t attrName);
 
   // return true if the message contains xor-mapped-address and false if it doesn't
   // copy the address to info if possible
@@ -72,7 +78,7 @@ private:
   uint16_t length_;
   uint32_t magicCookie_;
   uint8_t transactionID_[TRANSACTION_ID_SIZE];
-  std::vector<uint16_t> attributes_;
+  std::vector<std::tuple<uint16_t, uint16_t, uint32_t>> attributes_;
   std::pair<QHostAddress, uint16_t> mappedAddr_;
 };
 
