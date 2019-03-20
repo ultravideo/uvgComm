@@ -43,6 +43,7 @@ signals:
   void addressReceived(QHostAddress address);
   void stunError();
   void parsingDone();
+  void nominationRecv();
 
 private slots:
   void handleHostaddress(QHostInfo info);
@@ -51,6 +52,7 @@ private slots:
 
 private:
   bool waitForStunResponse(unsigned long timeout);
+  bool waitForNominationRequest(unsigned long timeout);
 
   // TODO [Encryption] Use TLS to send packet
   UDPServer udp_;

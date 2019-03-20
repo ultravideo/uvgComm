@@ -60,6 +60,14 @@ void FlowController::run()
         cand_rtcp = candidates_->at(i + 1);
         break;
       }
+      else
+      {
+        qDebug() << "[controller] rtcp failed";
+      }
+    }
+    else
+    {
+      qDebug() << "[controller] rtp failed!";
     }
 
     candidates_->at(i + 0)->state = PAIR_FAILED;
@@ -72,7 +80,11 @@ void FlowController::run()
     goto end;
   }
 
-  qDebug() << "[controller] STARTING NOMINATION!";
+  /* qDebug() << "[controller] rtp valid pair:" << cand_rtp->local->address << ":" << cand_rtp->local->port; */
+  /* qDebug() << "[controller] rtp valid pair:" << cand_rtp->remote->address << ":" << cand_rtp->remote->port; */
+  /* qDebug() << "[controller] rtcp valid pair:" << cand_rtcp->local->address << ":" << cand_rtcp->local->port; */
+  /* qDebug() << "[controller] rtcp valid pair:" << cand_rtcp->remote->address << ":" << cand_rtcp->remote->port; */
+  /* qDebug() << "[controller] STARTING NOMINATION!"; */
 
   // nominate RTP candidate
   if (!stun.sendNominationRequest(validPairs[0]->remote->address, validPairs[0]->remote->port,
@@ -140,6 +152,14 @@ void FlowControllee::run()
         cand_rtcp = candidates_->at(i + 1);
         break;
       }
+      else
+      {
+        qDebug() << "[controllee] rtcp failed!";
+      }
+    }
+    else
+    {
+      qDebug() << "[controllee] rtp failed!";
     }
 
     candidates_->at(i + 0)->state = PAIR_FAILED;
@@ -151,6 +171,12 @@ void FlowControllee::run()
     qDebug() << "ERROR: Failed to negotiate a list of valid candidates with remote!";
     goto end;
   }
+
+  /* qDebug() << "[controllee] rtp valid pair:" << cand_rtp->local->address << ":" << cand_rtp->local->port; */
+  /* qDebug() << "[controllee] rtp valid pair:" << cand_rtp->remote->address << ":" << cand_rtp->remote->port; */
+  /* qDebug() << "[controllee] rtcp valid pair:" << cand_rtcp->local->address << ":" << cand_rtcp->local->port; */
+  /* qDebug() << "[controllee] rtcp valid pair:" << cand_rtcp->remote->address << ":" << cand_rtcp->remote->port; */
+  /* qDebug() << "[controllee] RESPONDING TO NOMINATIONS!"; */
 
   // respond to RTP nomination
   if (!stun.sendNominationResponse(validPairs[0]->remote->address, validPairs[0]->remote->port,
