@@ -169,6 +169,31 @@ STUNMessage StunMessageFactory::createResponse(STUNMessage& request)
   return response;
 }
 
+bool StunMessageFactory::verifyTransactionID(STUNMessage& message)
+{
+  return false;
+}
+
+bool StunMessageFactory::validateStunMessage(STUNMessage& message, int type)
+{
+  if (message.getCookie() != STUN_MAGIC_COOKIE)
+  {
+    return false;
+  }
+
+  return true;
+}
+
+bool StunMessageFactory::validateStunRequest(STUNMessage& message)
+{
+  return this->validateStunMessage(message, STUN_REQUEST);
+}
+
+bool StunMessageFactory::validateStunResponse(STUNMessage& message)
+{
+  return this->validateStunMessage(message, STUN_RESPONSE);
+}
+
 QByteArray StunMessageFactory::hostToNetwork(STUNMessage& message)
 {
   auto attrs = message.getAttributes();
@@ -205,7 +230,6 @@ QByteArray StunMessageFactory::hostToNetwork(STUNMessage& message)
 
 STUNMessage StunMessageFactory::networkToHost(QByteArray& message)
 {
-  int i = 0;
   char *raw_data = message.data();
   STUNMessage response(STUN_RESPONSE);
 
@@ -213,39 +237,28 @@ STUNMessage StunMessageFactory::networkToHost(QByteArray& message)
   response.setLength(qFromBigEndian(*((uint16_t *)&raw_data[2])));
   response.setCookie(qFromBigEndian(*((uint32_t *)&raw_data[4])));
 
-  for (i = 0; i < TRANSACTION_ID_SIZE; ++i)
+  for (int i = 0; i < TRANSACTION_ID_SIZE; ++i)
   {
-    // TODO ugly
     response.getTransactionID()[i] = (uint8_t)raw_data[8 + i];
   }
 
-  // parse payload (extract attributes and xor-mapped-address)
   std::pair<uint16_t, uint16_t> attrPair;
-  uint16_t *payload  = (uint16_t *)((raw_data + 8 + i));
+  uint16_t *payload  = (uint16_t *)((raw_data + 8 + TRANSACTION_ID_SIZE));
 
-  for (int k = 0; k < response.getLength(); ++k)
+  for (int k = 0; k < response.getLength(); )
   {
-    attrPair = getAttribute(payload);
-    payload += 2; k += 2;
+    attrPair = getAttribute(payload + k);
+    k += 2;
 
     switch (attrPair.first)
     {
-      // TODO ugly, refactor asap
       case STUN_ATTR_XOR_MAPPED_ADDRESS:
-        if (attrPair.second >= 8)
         {
-          if ((((*payload) >> 8) & 0xff) == 0x01)
+          auto xorMappedAddr = extractXorMappedAddress(attrPair.second, (uint8_t *)payload + k * sizeof(uint16_t));
+          if (xorMappedAddr.second != 0)
           {
-            payload++;
-
-            uint16_t port    = qFromBigEndian(*payload) ^ 0x2112;
-
-            payload++;
-
-            uint32_t address = qFromBigEndian(*(uint32_t *)payload) ^ response.getCookie();
-
-            response.setXorMappedAddress(QHostAddress(address), port);
-            k += attrPair.second + 1;
+            k += attrPair.second / sizeof(uint16_t);
+            response.setXorMappedAddress(xorMappedAddr.first, xorMappedAddr.second);
           }
         }
         break;
@@ -259,7 +272,7 @@ STUNMessage StunMessageFactory::networkToHost(QByteArray& message)
         break;
 
       case STUN_ATTR_PRIORITY:
-        k += 2, payload += 2;
+        k += 2; // skip the priority (for now at least)
         response.addAttribute(STUN_ATTR_PRIORITY);
         break;
 
@@ -276,11 +289,6 @@ STUNMessage StunMessageFactory::networkToHost(QByteArray& message)
   return response;
 }
 
-bool StunMessageFactory::verifyTransactionID(STUNMessage& message)
-{
-  return false;
-}
-
 std::pair<uint16_t, uint16_t> StunMessageFactory::getAttribute(uint16_t *ptr)
 {
   if (!ptr)
@@ -294,22 +302,20 @@ std::pair<uint16_t, uint16_t> StunMessageFactory::getAttribute(uint16_t *ptr)
   return std::make_pair(qFromBigEndian(attr), qFromBigEndian(attrLen));
 }
 
-bool StunMessageFactory::validateStunMessage(STUNMessage& message, int type)
+std::pair<QHostAddress, uint16_t> StunMessageFactory::extractXorMappedAddress(uint16_t payloadLen, uint8_t *payload)
 {
-  if (message.getCookie() != STUN_MAGIC_COOKIE)
+  if (payloadLen >= 8)
   {
-    return false;
+    // first byte (payload[0]) ignored according to RFC 5389
+    if (payload[1] == 0x01) // IPv4
+    {
+      // RFC 5389 page 33
+      uint16_t port    = qFromBigEndian(*(((uint16_t *)payload + 1))) ^ 0x2112;
+      uint32_t address = qFromBigEndian(*(((uint32_t *)payload + 1))) ^ STUN_MAGIC_COOKIE;
+
+      return std::make_pair(QHostAddress(address), port);
+    }
   }
 
-  return true;
-}
-
-bool StunMessageFactory::validateStunRequest(STUNMessage& message)
-{
-  return this->validateStunMessage(message, STUN_REQUEST);
-}
-
-bool StunMessageFactory::validateStunResponse(STUNMessage& message)
-{
-  return this->validateStunMessage(message, STUN_RESPONSE);
+  return std::make_pair(QHostAddress(""), 0);
 }
