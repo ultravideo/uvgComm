@@ -57,10 +57,10 @@ QList<ICEInfo *> ICE::generateICECandidates()
   foreach (const QHostAddress& address, QNetworkInterface::allAddresses())
   {
     if (address.protocol() == QAbstractSocket::IPv4Protocol &&
-        address != QHostAddress(QHostAddress::LocalHost)    &&
-        (address.toString().startsWith("10.") ||
-         address.toString().startsWith("192.") ||
-         address.toString().startsWith("172.")))
+        (address.toString().startsWith("10.")   ||
+         address.toString().startsWith("192.")  ||
+         address.toString().startsWith("172.")  ||
+         address == QHostAddress(QHostAddress::LocalHost)))
     {
       ICEInfo *entry_rtp  = new ICEInfo;
       ICEInfo *entry_rtcp = new ICEInfo;
