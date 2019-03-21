@@ -94,9 +94,15 @@ bool Stun::sendBindingRequest(ICEPair *pair, bool controller)
 
   connect(&udp_, &UDPServer::rawMessageAvailable, this, &Stun::recvStunMessage);
 
+  // TODO this code looks ugly -> refactor
+
   STUNMessage request = stunmsg_.createRequest();
   request.addAttribute(controller ? STUN_ATTR_ICE_CONTROLLING : STUN_ATTR_ICE_CONTROLLED);
-  request.addAttribute(STUN_ATTR_PRIORITY, 0x1337); // TODO how get priority from iceflowcontrol??
+  request.addAttribute(STUN_ATTR_PRIORITY, pair->priority);
+
+  // we expect a response to this message from remote, by caching the TransactionID
+  // and associated address port pair, we can succesfully validate the response TransactionID
+  stunmsg_.expectReplyFrom(request, pair->remote->address, pair->remote->port);
 
   QByteArray message = stunmsg_.hostToNetwork(request);
 
@@ -154,20 +160,24 @@ void Stun::recvStunMessage(QNetworkDatagram message)
   {
     if (stunmsg_.validateStunRequest(stunMsg))
     {
+      stunmsg_.cacheRequest(stunMsg);
+
       if (stunMsg.hasAttribute(STUN_ATTR_USE_CANDIATE))
       {
-        /* qDebug() << "MESSAGE HAS ATTRIBUTE USE_CANDIATE!"; */
+        sendBindingResponse(stunMsg, message.senderAddress().toString(), message.senderPort());
         emit nominationRecv();
       }
       else
       {
-        sendBindingResponse(message.senderAddress().toString(), message.senderPort());
+        sendBindingResponse(stunMsg, message.senderAddress().toString(), message.senderPort());
       }
     }
   }
   else if (stunMsg.getType() == STUN_RESPONSE)
   {
-    if (stunmsg_.validateStunResponse(stunMsg))
+    // if this message is a response to a request we just sent, its TransactionID should be cached
+    // if not, vertaa viimeksi lähetetyn TransactionID:tä vasten
+    if (stunmsg_.validateStunResponse(stunMsg, message.senderAddress(), message.senderPort()))
     {
       emit parsingDone();
     }
@@ -197,6 +207,9 @@ bool Stun::sendNominationRequest(QString addressRemote, int portRemote, QString 
   STUNMessage request = stunmsg_.createRequest();
   request.addAttribute(STUN_ATTR_ICE_CONTROLLING);
   request.addAttribute(STUN_ATTR_USE_CANDIATE);
+
+  // expect reply for this message from remote
+  stunmsg_.expectReplyFrom(request, addressRemote, portRemote);
 
   QByteArray message  = stunmsg_.hostToNetwork(request);
 
