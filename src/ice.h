@@ -21,15 +21,6 @@ enum COMPONENTS {
   RTCP = 2
 };
 
-
-struct ICEPair
-{
-  struct ICEInfo *local;
-  struct ICEInfo *remote;
-  int priority;
-  int state;
-};
-
 #include "iceflowcontrol.h"
 
 class ICE : public QObject

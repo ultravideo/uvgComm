@@ -25,24 +25,26 @@ ICE::~ICE()
  * @param component - */
 int ICE::calculatePriority(int type, int local, int component)
 {
+  // TODO speksin mukaan local pitää olal 0xffff ipv4-only hosteille
   // TODO explain these coefficients
-  return (16777216 * type)  + (256 * local) + component;
+  return (16777216 * type) + (256 * local) + component;
 }
 
 QString ICE::generateFoundation()
 {
-   const QString possibleCharacters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
-   const int randomStringLength = 15; // assuming you want random strings of 12 characters
+  const QString possibleCharacters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
+  const int randomStringLength = 15;
 
-   QString randomString;
-   for (int i = 0; i < randomStringLength; ++i)
-   {
-       int index = qrand() % possibleCharacters.length();
-       QChar nextChar = possibleCharacters.at(index);
-       randomString.append(nextChar);
-   }
+  QString randomString;
 
-   return randomString;
+  for (int i = 0; i < randomStringLength; ++i)
+  {
+    int index = qrand() % possibleCharacters.length();
+    QChar nextChar = possibleCharacters.at(index);
+    randomString.append(nextChar);
+  }
+
+  return randomString;
 }
 
 QList<ICEInfo *> ICE::generateICECandidates()
@@ -52,9 +54,13 @@ QList<ICEInfo *> ICE::generateICECandidates()
   QTime time = QTime::currentTime();
   qsrand((uint)time.msec());
 
-  foreach (const QHostAddress &address, QNetworkInterface::allAddresses())
+  foreach (const QHostAddress& address, QNetworkInterface::allAddresses())
   {
-    if (address.protocol() == QAbstractSocket::IPv4Protocol && address != QHostAddress(QHostAddress::LocalHost))
+    if (address.protocol() == QAbstractSocket::IPv4Protocol &&
+        address != QHostAddress(QHostAddress::LocalHost)    &&
+        (address.toString().startsWith("10.") ||
+         address.toString().startsWith("192.") ||
+         address.toString().startsWith("172.")))
     {
       ICEInfo *entry_rtp  = new ICEInfo;
       ICEInfo *entry_rtcp = new ICEInfo;
