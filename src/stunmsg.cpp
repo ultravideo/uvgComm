@@ -1,6 +1,5 @@
 #include <QDateTime>
 #include <QDebug>
-#include <memory>
 
 #include "stunmsg.h"
 
@@ -86,6 +85,16 @@ uint16_t STUNMessage::getType()
 uint8_t *STUNMessage::getTransactionID()
 {
   return this->transactionID_;
+}
+
+uint8_t STUNMessage::getTransactionIDAt(int index)
+{
+  if (index >= 0 && index < TRANSACTION_ID_SIZE)
+  {
+    return this->transactionID_[index];
+  }
+
+  return 0;
 }
 
 uint16_t STUNMessage::getLength()
@@ -181,6 +190,11 @@ bool StunMessageFactory::validateStunMessage(STUNMessage& message, int type)
     return false;
   }
 
+  if (message.getType() != type)
+  {
+    return false;
+  }
+
   return true;
 }
 
@@ -189,9 +203,75 @@ bool StunMessageFactory::validateStunRequest(STUNMessage& message)
   return this->validateStunMessage(message, STUN_REQUEST);
 }
 
-bool StunMessageFactory::validateStunResponse(STUNMessage& message)
+bool StunMessageFactory::validateStunResponse(STUNMessage& response, QHostAddress sender, uint16_t port)
 {
-  return this->validateStunMessage(message, STUN_RESPONSE);
+  if (expectedResponses_.contains(sender.toString()))
+  {
+      if (expectedResponses_[sender.toString()].contains(port))
+      {
+          auto cached = expectedResponses_[sender.toString()][port];
+
+          for (int i = 0; i < TRANSACTION_ID_SIZE; ++i)
+          {
+              if (cached[i] != response.getTransactionIDAt(i))
+              {
+                return false;
+              }
+          }
+          return true;
+      }
+    else
+    {
+      qDebug() << "port not reported";
+    }
+  }
+
+  // expected response address:port was not saved for whatever reason
+  // check the received response agains the latest request
+  return this->validateStunResponse(response);
+}
+
+bool StunMessageFactory::validateStunResponse(STUNMessage& response)
+{
+  if (this->validateStunMessage(response, STUN_RESPONSE))
+  {
+    uint8_t *responseTID = response.getTransactionID();
+    uint8_t *requestTID  = latestRequest_.getTransactionID();
+
+    for (int i = 0; i < TRANSACTION_ID_SIZE; ++i)
+    {
+      if (responseTID[i] != requestTID[i])
+      {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  return false;
+}
+
+void StunMessageFactory::expectReplyFrom(STUNMessage& request, QString address, uint16_t port)
+{
+  if (expectedResponses_.contains(address))
+  {
+    if (expectedResponses_[address].contains(port))
+    {
+      qDebug() << "Purging old entry for " << address << ":" << port;
+      expectedResponses_[address][port].clear();
+    }
+  }
+
+  for (int i = 0; i < TRANSACTION_ID_SIZE; ++i)
+  {
+    expectedResponses_[address][port].push_back(request.getTransactionIDAt(i));
+  }
+}
+
+void StunMessageFactory::cacheRequest(STUNMessage request)
+{
+  latestRequest_ = request;
 }
 
 QByteArray StunMessageFactory::hostToNetwork(STUNMessage& message)
@@ -208,7 +288,7 @@ QByteArray StunMessageFactory::hostToNetwork(STUNMessage& message)
 
   for (int i = 0; i < TRANSACTION_ID_SIZE; ++i)
   {
-    rawMessage->transactionID[i] = qToBigEndian(message.getTransactionID()[i]);
+    rawMessage->transactionID[i] = qToBigEndian(message.getTransactionIDAt(i));
   }
 
   uint16_t *attrPtr = (uint16_t *)rawMessage->payload;

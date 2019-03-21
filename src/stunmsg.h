@@ -7,6 +7,7 @@
 #include <vector>
 #include <tuple>
 #include <utility>
+#include <memory>
 
 const int TRANSACTION_ID_SIZE    = 12;
 const uint32_t STUN_MAGIC_COOKIE = 0x2112A442;
@@ -56,6 +57,7 @@ public:
 
   // return pointer to message's transactionID array
   uint8_t *getTransactionID();
+  uint8_t getTransactionIDAt(int index);
 
   // get all message's attributes
   /* std::vector<std::pair<uint16_t, uint16_t>>& getAttributes(); */
@@ -106,8 +108,25 @@ public:
   // return true if the saved transaction id and message's transaction id match
   bool verifyTransactionID(STUNMessage& message);
 
-  bool validateStunResponse(STUNMessage& message);
   bool validateStunRequest(STUNMessage& message);
+
+  // validate stun response based on the latest request we have sent
+  bool validateStunResponse(STUNMessage& response);
+
+  // validate response based on 
+  bool validateStunResponse(STUNMessage& response, QHostAddress sender, uint16_t port);
+
+  // cache request to memory
+  //
+  // this request is used to verify the transactionID of received response
+  void cacheRequest(STUNMessage request);
+
+  // if we know we're going to receive response from some address:port combination
+  // the transactionID can be saved to memory and then fetched for verification
+  // when the response arrives
+  //
+  // This greatly improves the reliability of transactionID verification
+  void expectReplyFrom(STUNMessage& request, QString address, uint16_t port);
 
 private:
   // validate all fields of STUNMessage
@@ -121,4 +140,9 @@ private:
   // extract host address and port learned from STUN binding request to google server
   // this is just to make the code look nicer
   std::pair<QHostAddress, uint16_t> extractXorMappedAddress(uint16_t payloadLen, uint8_t *payload);
+
+  // save transactionIDs by address and port
+  QMap<QString, QMap<uint16_t, std::vector<uint8_t>>> expectedResponses_;
+
+  STUNMessage latestRequest_;
 };
