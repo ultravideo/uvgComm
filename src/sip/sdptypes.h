@@ -28,6 +28,14 @@ struct ICEInfo
   QString rel_address; /* for turn, not used (currently)  */
 };
 
+struct ICEPair
+{
+  struct ICEInfo *local;
+  struct ICEInfo *remote;
+  int priority;
+  int state;
+};
+
 struct SDPAttribute
 {
   SDPAttributeType type;

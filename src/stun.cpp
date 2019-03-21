@@ -12,7 +12,6 @@
 
 const uint16_t GOOGLE_STUN_PORT = 19302;
 const uint16_t STUN_PORT = 21000;
-bool nominationOngoing = false;
 
 Stun::Stun():
   udp_(),
@@ -79,16 +78,17 @@ bool Stun::waitForNominationRequest(unsigned long timeout)
   return timer.isActive();
 }
 
-bool Stun::sendBindingRequest(QString addressRemote, int portRemote, QString addressLocal, int portLocal, bool controller)
+bool Stun::sendBindingRequest(ICEPair *pair, bool controller)
 {
   if (controller)
-    qDebug() << "[controller] BINDING " << addressLocal << " TO PORT " << portLocal;
+    qDebug() << "[controller] BINDING " << pair->local->address<< " TO PORT " << pair->local->port;
   else
-    qDebug() << "[controllee] BINDING " << addressLocal << " TO PORT " << portLocal;
+    qDebug() << "[controllee] BINDING " << pair->local->address << " TO PORT " << pair->local->port;
 
-  if (!udp_.bindRaw(QHostAddress(addressLocal), portLocal))
+  if (!udp_.bindRaw(QHostAddress(pair->local->address), pair->local->port))
   {
-    qDebug() << "Binding failed! Cannot send STUN Binding Requests to " << addressRemote << ":" << portRemote;
+    qDebug() << "Binding failed! Cannot send STUN Binding Requests to " 
+             << pair->remote->address << ":" << pair->remote->port;
     return false;
   }
 
@@ -104,7 +104,7 @@ bool Stun::sendBindingRequest(QString addressRemote, int portRemote, QString add
 
   for (int i = 0; i < 50; ++i)
   {
-    udp_.sendData(message, QHostAddress(addressRemote), portRemote, false);
+    udp_.sendData(message, QHostAddress(pair->remote->address), pair->remote->port, false);
 
     if (waitForStunResponse(20 * (i + 1)))
     {
@@ -123,16 +123,21 @@ bool Stun::sendBindingRequest(QString addressRemote, int portRemote, QString add
   return ok;
 }
 
-// TODO anna tälle parametriksi STUNMesage ja kopioi transactionID sieltä!
-bool Stun::sendBindingResponse(QString addressRemote, int portRemote)
+bool Stun::sendBindingResponse(STUNMessage& request, QString addressRemote, int portRemote)
 {
-  STUNMessage response = stunmsg_.createResponse();
-  response.addAttribute(STUN_ATTR_ICE_CONTROLLED); // TODO find out whether we're controlling or being controlled
-  response.addAttribute(STUN_ATTR_PRIORITY, 0x1338);
+  STUNMessage response = stunmsg_.createResponse(request);
+
+  response.addAttribute(STUN_ATTR_PRIORITY, 0x1337);
+
+  request.addAttribute(
+      request.hasAttribute(STUN_ATTR_ICE_CONTROLLED)
+      ? STUN_ATTR_ICE_CONTROLLING
+      : STUN_ATTR_ICE_CONTROLLED
+  );
 
   QByteArray message = stunmsg_.hostToNetwork(response);
 
-  for (int i = 0; i < 5; ++i)
+  for (int i = 0; i < 25; ++i)
   {
     udp_.sendData(message, QHostAddress(addressRemote), portRemote, false);
   }
@@ -179,8 +184,6 @@ void Stun::recvStunMessage(QNetworkDatagram message)
 
 bool Stun::sendNominationRequest(QString addressRemote, int portRemote, QString addressLocal, int portLocal)
 {
-  nominationOngoing = true;
-
   qDebug() << "[controller] BINDING " << addressLocal << " TO PORT " << portLocal;
 
   if (!udp_.bindRaw(QHostAddress(addressLocal), portLocal))
@@ -216,7 +219,6 @@ bool Stun::sendNominationRequest(QString addressRemote, int portRemote, QString 
 
 bool Stun::sendNominationResponse(QString addressRemote, int portRemote, QString addressLocal, int portLocal)
 {
-  nominationOngoing = true;
   qDebug() << "[controllee] BINDING " << addressLocal << " TO PORT " << portLocal;
 
   if (!udp_.bindRaw(QHostAddress(addressLocal), portLocal))
@@ -260,7 +262,7 @@ bool Stun::sendNominationResponse(QString addressRemote, int portRemote, QString
     {
       udp_.sendData(respMessage, QHostAddress(addressRemote), portRemote, false);
 
-      // when we no longer get nomination request it means that remote has either received
+      // when we no longer get nomination request it means that remote has received
       // our response message and end the nomination process
       //
       // We can stop sending nomination responses when the waitForNominationRequest() timeouts

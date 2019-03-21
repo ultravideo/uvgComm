@@ -41,13 +41,10 @@ void FlowController::run()
   for (int i = 0; i < candidates_->size(); i += 2)
   {
     // RTP
-    if (stun.sendBindingRequest(candidates_->at(i)->remote->address, candidates_->at(i)->remote->port,
-                                candidates_->at(i)->local->address,  candidates_->at(i)->local->port, true))
+    if (stun.sendBindingRequest(candidates_->at(i), true))
     {
-
       // RTCP
-      if (stun.sendBindingRequest(candidates_->at(i + 1)->remote->address, candidates_->at(i + 1)->remote->port,
-                                  candidates_->at(i + 1)->local->address,  candidates_->at(i + 1)->local->port, true))
+      if (stun.sendBindingRequest(candidates_->at(i + 1), true))
       {
         candidates_->at(i + 0)->state = PAIR_SUCCEEDED;
         candidates_->at(i + 1)->state = PAIR_SUCCEEDED;
@@ -84,7 +81,7 @@ void FlowController::run()
   /* qDebug() << "[controller] rtp valid pair:" << cand_rtp->remote->address << ":" << cand_rtp->remote->port; */
   /* qDebug() << "[controller] rtcp valid pair:" << cand_rtcp->local->address << ":" << cand_rtcp->local->port; */
   /* qDebug() << "[controller] rtcp valid pair:" << cand_rtcp->remote->address << ":" << cand_rtcp->remote->port; */
-  /* qDebug() << "[controller] STARTING NOMINATION!"; */
+  qDebug() << "[controller] STARTING NOMINATION!";
 
   // nominate RTP candidate
   if (!stun.sendNominationRequest(validPairs[0]->remote->address, validPairs[0]->remote->port,
@@ -113,6 +110,8 @@ end:
     }
   }
 
+  qDebug() << "[controller] END OF ICE\n";
+
   emit ready(cand_rtp, cand_rtcp, sessionID_);
 }
 
@@ -133,13 +132,11 @@ void FlowControllee::run()
   for (int i = 0; i < candidates_->size(); i += 2)
   {
     // RTP
-    if (stun.sendBindingRequest(candidates_->at(i)->remote->address, candidates_->at(i)->remote->port,
-                                candidates_->at(i)->local->address,  candidates_->at(i)->local->port, true))
+    if (stun.sendBindingRequest(candidates_->at(i), true))
     {
 
       // RTCP
-      if (stun.sendBindingRequest(candidates_->at(i + 1)->remote->address, candidates_->at(i + 1)->remote->port,
-                                  candidates_->at(i + 1)->local->address,  candidates_->at(i + 1)->local->port, true))
+      if (stun.sendBindingRequest(candidates_->at(i + 1), true))
       {
         candidates_->at(i + 0)->state = PAIR_SUCCEEDED;
         candidates_->at(i + 1)->state = PAIR_SUCCEEDED;
@@ -176,7 +173,7 @@ void FlowControllee::run()
   /* qDebug() << "[controllee] rtp valid pair:" << cand_rtp->remote->address << ":" << cand_rtp->remote->port; */
   /* qDebug() << "[controllee] rtcp valid pair:" << cand_rtcp->local->address << ":" << cand_rtcp->local->port; */
   /* qDebug() << "[controllee] rtcp valid pair:" << cand_rtcp->remote->address << ":" << cand_rtcp->remote->port; */
-  /* qDebug() << "[controllee] RESPONDING TO NOMINATIONS!"; */
+  qDebug() << "[controllee] RESPONDING TO NOMINATIONS!";
 
   // respond to RTP nomination
   if (!stun.sendNominationResponse(validPairs[0]->remote->address, validPairs[0]->remote->port,
@@ -206,6 +203,8 @@ end:
       delete candidates_->at(i);
     }
   }
+
+  qDebug() << "[controllee] END OF ICE\n";
 
   emit ready(cand_rtp, cand_rtcp, sessionID_);
 }

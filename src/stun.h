@@ -2,6 +2,7 @@
 
 #include "udpserver.h"
 #include "stunmsg.h"
+#include "sip/sdptypes.h"
 
 #include <QHostInfo>
 #include <QHostAddress>
@@ -19,10 +20,10 @@ public:
   //
   // return true if we got a response from remote and false if
   // after N tries the remote was silent
-  bool sendBindingRequest(QString addressRemote, int portRemote, QString addressLocal, int portLocal, bool controller);
+  bool sendBindingRequest(ICEPair *pair, bool controller);
 
   // TODO add comment
-  bool sendBindingResponse(QString addressRemote, int portRemote);
+  bool sendBindingResponse(STUNMessage& request, QString addressRemote, int portRemote);
 
   // Send the nominated candidate to ICE_CONTROLLED agent 
   bool sendNominationRequest(QString addressRemote, int portRemote, QString addressLocal, int portLocal);
