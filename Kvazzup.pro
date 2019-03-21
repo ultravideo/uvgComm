@@ -82,7 +82,8 @@ SOURCES +=\
     src/kvazzupcore.cpp \
     src/ice.cpp \
     src/iceflowcontrol.cpp \
-    src/stunmsg.cpp
+    src/stunmsg.cpp \
+    src/stunmsgfact.cpp
 
 HEADERS  += \
     src/filter.h \
@@ -149,7 +150,8 @@ HEADERS  += \
     src/kvazzupcore.h \
     src/ice.h \
     src/iceflowcontrol.h \
-    src/stunmsg.h
+    src/stunmsg.h \
+    src/stunmsgfact.h
 
 FORMS    += \
     ui/callwindow.ui \

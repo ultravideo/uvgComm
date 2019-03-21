@@ -2,6 +2,7 @@
 
 #include "udpserver.h"
 #include "stunmsg.h"
+#include "stunmsgfact.h"
 #include "sip/sdptypes.h"
 
 #include <QHostInfo>

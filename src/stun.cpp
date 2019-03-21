@@ -1,4 +1,5 @@
 #include "stun.h"
+#include "stunmsgfact.h"
 
 #include <QDnsLookup>
 #include <QHostInfo>
