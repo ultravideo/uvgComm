@@ -1,3 +1,7 @@
+#include <QEventLoop>
+#include <QTimer>
+
+#include "connectiontester.h"
 #include "iceflowcontrol.h"
 #include "ice.h"
 
@@ -24,12 +28,47 @@ void FlowAgent::setSessionID(uint32_t sessionID)
   sessionID_ = sessionID;
 }
 
+void FlowAgent::nominationDone(ICEPair *rtp, ICEPair *rtcp)
+{
+  if (nominated_mtx.try_lock())
+  {
+    nominated_rtp_  = rtp;
+    nominated_rtcp_ = rtcp;
+
+    qDebug() << "NOMINATED CONNECTION:";
+    qDebug() << rtp->local->address  << " " << rtp->local->port << "&&"
+             << rtp->remote->address << " " << rtp->remote->port;
+
+    qDebug() << rtcp->local->address  << " " << rtcp->local->port << "&&"
+             << rtcp->remote->address << " " << rtcp->remote->port;
+  }
+
+  emit endNomination();
+}
+
+bool FlowAgent::waitForResponses(unsigned long timeout)
+{
+  QTimer timer;
+  QEventLoop loop;
+
+  timer.setSingleShot(true);
+
+  connect(this,   &FlowAgent::endNomination, &loop, &QEventLoop::quit);
+  connect(&timer, &QTimer::timeout,          &loop, &QEventLoop::quit);
+
+  timer.start(20000);
+  loop.exec();
+
+  return timer.isActive();
+}
+
 void FlowController::run()
 {
   Stun stun;
-  QList<ICEPair *> validPairs;
-  ICEPair *cand_rtp = nullptr;
-  ICEPair *cand_rtcp = nullptr;
+
+  // TODO how long should we sleep???
+  for (volatile int i = 0; i < 10000000; ++i)
+    ;
 
   if (candidates_ == nullptr || candidates_->size() == 0)
   {
@@ -38,87 +77,55 @@ void FlowController::run()
     return;
   }
 
+  std::vector<std::unique_ptr<ConnectionTester>> workerThreads;
+
   for (int i = 0; i < candidates_->size(); i += 2)
   {
-    // RTP
-    if (stun.sendBindingRequest(candidates_->at(i), true))
-    {
-      // RTCP
-      if (stun.sendBindingRequest(candidates_->at(i + 1), true))
-      {
-        candidates_->at(i + 0)->state = PAIR_SUCCEEDED;
-        candidates_->at(i + 1)->state = PAIR_SUCCEEDED;
+    workerThreads.push_back(std::make_unique<ConnectionTester>());
 
-        // both RTP and RTCP must succeeed in order for this pair to be considered valid
-        validPairs.push_back(candidates_->at(i + 0));
-        validPairs.push_back(candidates_->at(i + 1));
+    connect(workerThreads.back().get(), &ConnectionTester::testingDone, this, &FlowAgent::nominationDone, Qt::DirectConnection);
 
-        cand_rtp  = candidates_->at(i + 0);
-        cand_rtcp = candidates_->at(i + 1);
-        break;
-      }
-      else
-      {
-        qDebug() << "[controller] rtcp failed";
-      }
-    }
-    else
-    {
-      qDebug() << "[controller] rtp failed!";
-    }
-
-    candidates_->at(i + 0)->state = PAIR_FAILED;
-    candidates_->at(i + 1)->state = PAIR_FAILED;
+    workerThreads.back()->setCandidatePair(candidates_->at(i), candidates_->at(i + 1));
+    workerThreads.back()->isController(true);
+    workerThreads.back()->start();
   }
 
-  if (validPairs.size() < 2)
+  // we've spawned threads for each candidate, wait for responses at most 10 seconds
+  if (!waitForResponses(10000))
   {
-    qDebug() << "ERROR: Failed to negotiate a list of valid candidates with remote!";
-    goto end;
+    qDebug() << "Remote didn't respond to our request in time!";
+    emit ready(nullptr, nullptr, sessionID_);
+    return;
   }
 
-  /* qDebug() << "[controller] rtp valid pair:" << cand_rtp->local->address << ":" << cand_rtp->local->port; */
-  /* qDebug() << "[controller] rtp valid pair:" << cand_rtp->remote->address << ":" << cand_rtp->remote->port; */
-  /* qDebug() << "[controller] rtcp valid pair:" << cand_rtcp->local->address << ":" << cand_rtcp->local->port; */
-  /* qDebug() << "[controller] rtcp valid pair:" << cand_rtcp->remote->address << ":" << cand_rtcp->remote->port; */
-  qDebug() << "[controller] STARTING NOMINATION!";
-
-  // nominate RTP candidate
-  if (!stun.sendNominationRequest(validPairs[0]))
+  // we got a response, suspend all threads and start nomination
+  for (size_t i = 0; i < workerThreads.size(); ++i)
   {
-    qDebug() << "[controller] RTP CANDIDATE FAILED";
-    cand_rtp = nullptr;
-    goto end;
+    workerThreads[i]->quit();
+    workerThreads[i]->wait();
   }
 
-  // nominate RTCP candidate
-  if (!stun.sendNominationRequest(validPairs[1]))
+  if (!stun.sendNominationRequest(nominated_rtp_))
   {
-    qDebug() << "[controller] RTCP CANDIDATE FAILED";
-    cand_rtcp = nullptr;
+    qDebug() << "Failed to nominate RTP candidate!";
+    emit ready(nullptr, nullptr, sessionID_);
+    return;
   }
 
-end:
-  // release all failed/frozen candidates
-  for (int i = 0; i < candidates_->size(); ++i)
+  if (!stun.sendNominationRequest(nominated_rtcp_))
   {
-    if (candidates_->at(i)->state != PAIR_SUCCEEDED)
-    {
-      delete candidates_->at(i);
-    }
+    qDebug() << "Failed to nominate RTCP candidate!";
+    emit ready(nominated_rtp_, nullptr, sessionID_);
+    return;
   }
 
-  qDebug() << "[controller] END OF ICE\n";
-
-  emit ready(cand_rtp, cand_rtcp, sessionID_);
+  emit ready(nominated_rtp_, nominated_rtcp_, sessionID_);
 }
 
 void FlowControllee::run()
 {
-  Stun stun;
-  QList<ICEPair *> validPairs;
-  ICEPair *cand_rtp = nullptr;
-  ICEPair *cand_rtcp = nullptr;
+  QTimer timer;
+  QEventLoop loop;
 
   if (candidates_ == nullptr || candidates_->size() == 0)
   {
@@ -127,80 +134,33 @@ void FlowControllee::run()
     return;
   }
 
+  std::vector<std::unique_ptr<ConnectionTester>> workerThreads;
+
   for (int i = 0; i < candidates_->size(); i += 2)
   {
-    // RTP
-    if (stun.sendBindingRequest(candidates_->at(i), true))
-    {
+    workerThreads.push_back(std::make_unique<ConnectionTester>());
 
-      // RTCP
-      if (stun.sendBindingRequest(candidates_->at(i + 1), true))
-      {
-        candidates_->at(i + 0)->state = PAIR_SUCCEEDED;
-        candidates_->at(i + 1)->state = PAIR_SUCCEEDED;
+    connect(workerThreads.back().get(), &ConnectionTester::testingDone, this, &FlowAgent::nominationDone, Qt::DirectConnection);
 
-        // both RTP and RTCP must succeeed in order for this pair to be considered valid
-        validPairs.push_back(candidates_->at(i + 0));
-        validPairs.push_back(candidates_->at(i + 1));
-
-        cand_rtp  = candidates_->at(i + 0);
-        cand_rtcp = candidates_->at(i + 1);
-        break;
-      }
-      else
-      {
-        qDebug() << "[controllee] rtcp failed!";
-      }
-    }
-    else
-    {
-      qDebug() << "[controllee] rtp failed!";
-    }
-
-    candidates_->at(i + 0)->state = PAIR_FAILED;
-    candidates_->at(i + 1)->state = PAIR_FAILED;
+    workerThreads.back()->setCandidatePair(candidates_->at(i), candidates_->at(i + 1));
+    workerThreads.back()->isController(false);
+    workerThreads.back()->start();
   }
 
-  if (validPairs.size() < 2)
+  // wait for nomination from remote, wait at most 20 seconds
+  if (!waitForResponses(20000))
   {
-    qDebug() << "ERROR: Failed to negotiate a list of valid candidates with remote!";
-    goto end;
+    qDebug() << "Nomination from remote was not received in time!";
+    emit ready(nullptr, nullptr, sessionID_);
+    return;
   }
 
-  /* qDebug() << "[controllee] rtp valid pair:" << cand_rtp->local->address << ":" << cand_rtp->local->port; */
-  /* qDebug() << "[controllee] rtp valid pair:" << cand_rtp->remote->address << ":" << cand_rtp->remote->port; */
-  /* qDebug() << "[controllee] rtcp valid pair:" << cand_rtcp->local->address << ":" << cand_rtcp->local->port; */
-  /* qDebug() << "[controllee] rtcp valid pair:" << cand_rtcp->remote->address << ":" << cand_rtcp->remote->port; */
-  qDebug() << "[controllee] RESPONDING TO NOMINATIONS!";
-
-  // respond to RTP nomination
-  if (!stun.sendNominationResponse(validPairs[0]))
+  // we got a nomination from remote, kill all threads and start the media transmission
+  for (size_t i = 0; i < workerThreads.size(); ++i)
   {
-    qDebug() << "ERROR: RTP candidate nomination failed!";
-    cand_rtp = nullptr;
-    goto end;
+    workerThreads[i]->quit();
+    workerThreads[i]->wait();
   }
 
-  // respond to RTCP nomination
-  if (!stun.sendNominationResponse(validPairs[1]))
-  {
-    qDebug() << "ERROR: RTCP candidate nomination failed!";
-    cand_rtcp = nullptr;
-    goto end;
-  }
-
-
-end:
-  // release all failed/frozen candidates
-  for (int i = 0; i < candidates_->size(); ++i)
-  {
-    if (candidates_->at(i)->state != PAIR_SUCCEEDED)
-    {
-      delete candidates_->at(i);
-    }
-  }
-
-  qDebug() << "[controllee] END OF ICE\n";
-
-  emit ready(cand_rtp, cand_rtcp, sessionID_);
+  emit ready(nominated_rtp_, nominated_rtcp_, sessionID_);
 }

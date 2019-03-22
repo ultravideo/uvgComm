@@ -1,7 +1,9 @@
 #include <QNetworkInterface>
-#include "ice.h"
 #include <QTime>
 #include <memory>
+
+#include "ice.h"
+#include "iceflowcontrol.h"
 
 ICE::ICE():
   portPair(22000),
