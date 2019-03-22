@@ -84,8 +84,7 @@ void FlowController::run()
   qDebug() << "[controller] STARTING NOMINATION!";
 
   // nominate RTP candidate
-  if (!stun.sendNominationRequest(validPairs[0]->remote->address, validPairs[0]->remote->port,
-                                  validPairs[0]->local->address,  validPairs[0]->local->port))
+  if (!stun.sendNominationRequest(validPairs[0]))
   {
     qDebug() << "[controller] RTP CANDIDATE FAILED";
     cand_rtp = nullptr;
@@ -93,8 +92,7 @@ void FlowController::run()
   }
 
   // nominate RTCP candidate
-  if (!stun.sendNominationRequest(validPairs[1]->remote->address, validPairs[1]->remote->port,
-                                  validPairs[1]->local->address,  validPairs[1]->local->port))
+  if (!stun.sendNominationRequest(validPairs[1]))
   {
     qDebug() << "[controller] RTCP CANDIDATE FAILED";
     cand_rtcp = nullptr;
@@ -176,8 +174,7 @@ void FlowControllee::run()
   qDebug() << "[controllee] RESPONDING TO NOMINATIONS!";
 
   // respond to RTP nomination
-  if (!stun.sendNominationResponse(validPairs[0]->remote->address, validPairs[0]->remote->port,
-                                   validPairs[0]->local->address,  validPairs[0]->local->port))
+  if (!stun.sendNominationResponse(validPairs[0]))
   {
     qDebug() << "ERROR: RTP candidate nomination failed!";
     cand_rtp = nullptr;
@@ -185,8 +182,7 @@ void FlowControllee::run()
   }
 
   // respond to RTCP nomination
-  if (!stun.sendNominationResponse(validPairs[1]->remote->address, validPairs[1]->remote->port,
-                                   validPairs[1]->local->address,  validPairs[1]->local->port))
+  if (!stun.sendNominationResponse(validPairs[1]))
   {
     qDebug() << "ERROR: RTCP candidate nomination failed!";
     cand_rtcp = nullptr;

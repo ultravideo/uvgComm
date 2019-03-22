@@ -27,7 +27,7 @@ public:
   bool sendBindingResponse(STUNMessage& request, QString addressRemote, int portRemote);
 
   // Send the nominated candidate to ICE_CONTROLLED agent 
-  bool sendNominationRequest(QString addressRemote, int portRemote, QString addressLocal, int portLocal);
+  bool sendNominationRequest(ICEPair *pair);
 
   // this function is called by the ICE_CONTROLLED agent
   //
@@ -37,7 +37,7 @@ public:
   //
   // ICE_CONTROLLED agent (caller of sendNominationResponse()) must send STUN Binding Requests
   // to all valid candidate address:port pairs to receive the nominations
-  bool sendNominationResponse(QString addressRemote, int portRemote, QString addressLocal, int portLocal);
+  bool sendNominationResponse(ICEPair *pair);
 
   void wantAddress(QString stunServer);
 

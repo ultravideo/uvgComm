@@ -193,13 +193,13 @@ void Stun::recvStunMessage(QNetworkDatagram message)
   }
 }
 
-bool Stun::sendNominationRequest(QString addressRemote, int portRemote, QString addressLocal, int portLocal)
+bool Stun::sendNominationRequest(ICEPair *pair)
 {
-  qDebug() << "[controller] BINDING " << addressLocal << " TO PORT " << portLocal;
+  qDebug() << "[controller] BINDING " << pair->local->address << " TO PORT " << pair->local->port;
 
-  if (!udp_.bindRaw(QHostAddress(addressLocal), portLocal))
+  if (!udp_.bindRaw(QHostAddress(pair->local->address), pair->local->port))
   {
-    qDebug() << "Binding failed! Cannot send STUN Binding Requests to " << addressRemote << ":" << portRemote;
+    qDebug() << "Binding failed! Cannot send STUN Binding Requests to " << pair->remote->address << ":" << pair->remote->address;
     return false;
   }
 
@@ -210,7 +210,7 @@ bool Stun::sendNominationRequest(QString addressRemote, int portRemote, QString 
   request.addAttribute(STUN_ATTR_USE_CANDIATE);
 
   // expect reply for this message from remote
-  stunmsg_.expectReplyFrom(request, addressRemote, portRemote);
+  stunmsg_.expectReplyFrom(request, pair->remote->address, pair->remote->port);
 
   QByteArray message  = stunmsg_.hostToNetwork(request);
 
@@ -218,7 +218,7 @@ bool Stun::sendNominationRequest(QString addressRemote, int portRemote, QString 
 
   for (int i = 0; i < 25; ++i)
   {
-    udp_.sendData(message, QHostAddress(addressRemote), portRemote, false);
+    udp_.sendData(message, QHostAddress(pair->remote->address), pair->remote->port, false);
 
     if (waitForStunResponse(20 * (i + 1)))
     {
@@ -231,13 +231,13 @@ bool Stun::sendNominationRequest(QString addressRemote, int portRemote, QString 
   return ok;
 }
 
-bool Stun::sendNominationResponse(QString addressRemote, int portRemote, QString addressLocal, int portLocal)
+bool Stun::sendNominationResponse(ICEPair *pair)
 {
-  qDebug() << "[controllee] BINDING " << addressLocal << " TO PORT " << portLocal;
+  qDebug() << "[controllee] BINDING " << pair->local->address << " TO PORT " << pair->local->port;
 
-  if (!udp_.bindRaw(QHostAddress(addressLocal), portLocal))
+  if (!udp_.bindRaw(QHostAddress(pair->local->address), pair->local->port))
   {
-    qDebug() << "Binding failed! Cannot send STUN Binding Requests to " << addressRemote << ":" << portRemote;
+    qDebug() << "Binding failed! Cannot send STUN Binding Requests to " << pair->remote->address << ":" << pair->remote->address;
     return false;
   }
 
@@ -253,7 +253,7 @@ bool Stun::sendNominationResponse(QString addressRemote, int portRemote, QString
 
   for (int i = 0; i < 25; ++i)
   {
-    udp_.sendData(reqMessage, QHostAddress(addressRemote), portRemote, false);
+    udp_.sendData(reqMessage, QHostAddress(pair->remote->address), pair->remote->port, false);
 
     if (waitForNominationRequest(20 * (i + 1)))
     {
@@ -274,7 +274,7 @@ bool Stun::sendNominationResponse(QString addressRemote, int portRemote, QString
 
     for (int i = 0; i < 25; ++i)
     {
-      udp_.sendData(respMessage, QHostAddress(addressRemote), portRemote, false);
+      udp_.sendData(respMessage, QHostAddress(pair->remote->address), pair->remote->port, false);
 
       // when we no longer get nomination request it means that remote has received
       // our response message and end the nomination process
