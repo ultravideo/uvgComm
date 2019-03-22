@@ -28,7 +28,6 @@ void ConnectionTester::run()
   if (rtp_pair_ == nullptr || rtcp_pair_ == nullptr)
   {
     qDebug() << "Unable to test connection, RTP or RTCP candidate is NULL!";
-    emit testingDone(nullptr, nullptr);
     return;
   }
 
@@ -74,14 +73,12 @@ void ConnectionTester::run()
   if (!stun.sendNominationResponse(rtp_pair_))
   {
     qDebug() << "failed to receive nomination for RTP!";
-    emit testingDone(nullptr, nullptr);
     return;
   }
 
   if (!stun.sendNominationResponse(rtcp_pair_))
   {
     qDebug() << "failed to receive nomination for RTCP!";
-    emit testingDone(rtp_pair_, nullptr);
     return;
   }
 

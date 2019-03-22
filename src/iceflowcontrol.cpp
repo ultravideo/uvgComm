@@ -34,13 +34,6 @@ void FlowAgent::nominationDone(ICEPair *rtp, ICEPair *rtcp)
   {
     nominated_rtp_  = rtp;
     nominated_rtcp_ = rtcp;
-
-    qDebug() << "NOMINATED CONNECTION:";
-    qDebug() << rtp->local->address  << " " << rtp->local->port << "&&"
-             << rtp->remote->address << " " << rtp->remote->port;
-
-    qDebug() << rtcp->local->address  << " " << rtcp->local->port << "&&"
-             << rtcp->remote->address << " " << rtcp->remote->port;
   }
 
   emit endNomination();
