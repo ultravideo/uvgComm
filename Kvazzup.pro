@@ -83,7 +83,8 @@ SOURCES +=\
     src/ice.cpp \
     src/iceflowcontrol.cpp \
     src/stunmsg.cpp \
-    src/stunmsgfact.cpp
+    src/stunmsgfact.cpp \
+    src/connectiontester.cpp
 
 HEADERS  += \
     src/filter.h \
@@ -151,7 +152,8 @@ HEADERS  += \
     src/ice.h \
     src/iceflowcontrol.h \
     src/stunmsg.h \
-    src/stunmsgfact.h
+    src/stunmsgfact.h \
+    src/connectiontester.h
 
 FORMS    += \
     ui/callwindow.ui \
