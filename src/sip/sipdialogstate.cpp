@@ -58,6 +58,7 @@ void SIPDialogState::createServerDialog(SIP_URI requestURI)
   remoteUri_ = localUri_;
   requestUri_ = requestURI; // server has different request uri from remote
   initCallInfo();
+  localCSeq_ = 0;
 }
 
 
