@@ -148,7 +148,7 @@ void SIPTransactions::startCall(Contact &address)
 
   if(isServer)
   {
-    qDebug() << "ERROR: Server connection not yet implemented";
+    qDebug() << "ERROR: Proxy calling has not been yet implemented";
   }
   else
   {

@@ -263,7 +263,7 @@ void ConferenceView::addVideoStream(uint32_t sessionID, std::shared_ptr<Videovie
 void ConferenceView::ringing(uint32_t sessionID)
 {
   // get widget from layout and change the text.
-  qDebug() << sessionID << "call is ringing. TODO: display it to user";
+  qDebug() << sessionID << "Call is ringing";
 
   if(activeCalls_.find(sessionID) == activeCalls_.end())
   {
