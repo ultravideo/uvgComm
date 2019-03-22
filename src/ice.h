@@ -7,21 +7,7 @@
 
 #include "stun.h"
 #include "sip/sdptypes.h"
-
-enum PAIR {
-  PAIR_WAITING     = 0,
-  PAIR_IN_PROGRESS = 1,
-  PAIR_SUCCEEDED   = 2,
-  PAIR_FAILED      = 3,
-  PAIR_FROZEN      = 4,
-};
-
-enum COMPONENTS {
-  RTP  = 1,
-  RTCP = 2
-};
-
-#include "iceflowcontrol.h"
+#include "icetypes.h"
 
 class ICE : public QObject
 {

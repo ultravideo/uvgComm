@@ -6,8 +6,7 @@
 #include <QList>
 
 #include "stun.h"
-
-typedef struct ICEPair ICEPair_t;
+#include "icetypes.h"
 
 class FlowAgent : public QThread
 {
@@ -16,17 +15,16 @@ class FlowAgent : public QThread
 public:
     FlowAgent();
     ~FlowAgent();
-    void setCandidates(QList<struct ICEPair *> *candidates);
+    void setCandidates(QList<ICEPair *> *candidates);
     void setSessionID(uint32_t sessionID);
 
 signals:
-  void ready(struct ICEPair *candidateRTP, struct ICEPair *candidateRTCP, uint32_t sessionID);
+  void ready(ICEPair *candidateRTP, ICEPair *candidateRTCP, uint32_t sessionID);
 
 protected:
     void run();
 
-protected:
-    QList<ICEPair_t *> *candidates_;
+    QList<ICEPair *> *candidates_;
     uint32_t sessionID_;
 };
 
