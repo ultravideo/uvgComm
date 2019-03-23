@@ -43,10 +43,12 @@ void Stun::handleHostaddress(QHostInfo info)
   udp_.bind(QHostAddress::AnyIPv4, STUN_PORT);
   QObject::connect(&udp_, SIGNAL(messageAvailable(QByteArray)), this, SLOT(processReply(QByteArray)));
 
-  STUNMessage request_ = stunmsg_.createRequest();
-  QByteArray   message_ = stunmsg_.hostToNetwork(request_);
+  STUNMessage request = stunmsg_.createRequest();
+  QByteArray message  = stunmsg_.hostToNetwork(request);
 
-  udp_.sendData(message_, address, GOOGLE_STUN_PORT, false);
+  stunmsg_.cacheRequest(request);
+
+  udp_.sendData(message, address, GOOGLE_STUN_PORT, false);
 }
 
 bool Stun::waitForStunResponse(unsigned long timeout)
@@ -309,27 +311,12 @@ void Stun::processReply(QByteArray data)
 
   STUNMessage response = stunmsg_.networkToHost(data);
 
-  if (response.getType() != STUN_RESPONSE)
+  if (!stunmsg_.validateStunResponse(response))
   {
-    qDebug() << "Unsuccessful STUN transaction!";
+    qDebug() << "Invalid STUN Response!";
     emit stunError();
     return;
   }
-
-  if (response.getLength() == 0 || response.getCookie() != STUN_MAGIC_COOKIE)
-  {
-    qDebug() << "Something went wrong with STUN transaction values. Length:"
-             << response.getLength() << "Magic cookie:" << response.getCookie();
-    emit stunError();
-    return;
-  }
-
-  if (!stunmsg_.verifyTransactionID(response))
-  {
-    qDebug() << "TransactionID is invalid!";
-  }
-
-  qDebug() << "Valid STUN response. Decoding address";
 
   std::pair<QHostAddress, uint16_t> addressInfo;
 
