@@ -9,6 +9,7 @@
 #include "stun.h"
 #include "sip/sdptypes.h"
 #include "icetypes.h"
+#include "sdpparametermanager.h"
 
 class FlowController;
 class FlowControllee;
@@ -38,10 +39,8 @@ class ICE : public QObject
     ICE();
     ~ICE();
 
+    // generate a list of local candidates for media streaming
     QList<ICEInfo *> generateICECandidates();
-
-    void addRemoteCandidate(const ICEInfo *candidate);
-    bool connectionNominated(bool caller);
 
     // TODO
     void startNomination(QList<ICEInfo *>& local, QList<ICEInfo *>& remote, uint32_t sessionID);
@@ -76,7 +75,6 @@ class ICE : public QObject
     void handleEndOfNomination(struct ICEPair *candidateRTP, struct ICEPair *candidateRTCP, uint32_t sessionID);
 
     int calculatePriority(int type, int local, int component);
-    /* TODO: createCandidate */
     QString generateFoundation();
     void printCandidate(ICEInfo *candidate);
     QList<ICEPair *> *makeCandiatePairs(QList<ICEInfo *>& local, QList<ICEInfo *>& remote);
@@ -90,4 +88,6 @@ class ICE : public QObject
     ICEInfo *stun_entry_rtcp_;
 
     QMap<uint32_t, struct nominationInfo> nominationInfo_;
+
+    SDPParameterManager parameters_;
 };

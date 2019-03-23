@@ -5,12 +5,19 @@
 #include "ice.h"
 #include "iceflowcontrol.h"
 
+const uint16_t MIN_ICE_PORT   = 22001;
+const uint16_t MAX_ICE_PORT   = 22500;
+const uint16_t MAX_PORTS      = 100;
+
 ICE::ICE():
   portPair(22000),
   stun_(),
   stun_entry_rtp_(new ICEInfo),
-  stun_entry_rtcp_(new ICEInfo)
+  stun_entry_rtcp_(new ICEInfo),
+  parameters_()
 {
+  parameters_.setPortRange(MIN_ICE_PORT, MAX_ICE_PORT, MAX_PORTS);
+
   QObject::connect(&stun_, SIGNAL(addressReceived(QHostAddress)), this, SLOT(createSTUNCandidate(QHostAddress)));
   stun_.wantAddress("stun.l.google.com");
 }
@@ -49,10 +56,10 @@ QString ICE::generateFoundation()
 
 QList<ICEInfo *> ICE::generateICECandidates()
 {
-  QList<ICEInfo *> candidates;
-
   QTime time = QTime::currentTime();
   qsrand((uint)time.msec());
+
+  QList<ICEInfo *> candidates;
 
   foreach (const QHostAddress& address, QNetworkInterface::allAddresses())
   {
@@ -68,8 +75,8 @@ QList<ICEInfo *> ICE::generateICECandidates()
       entry_rtp->address  = address.toString();
       entry_rtcp->address = address.toString();
 
-      entry_rtp->port  = portPair++;
-      entry_rtcp->port = portPair++;
+      entry_rtp->port  = parameters_.nextAvailablePortPair();
+      entry_rtcp->port = entry_rtp->port + 1;
 
       // for each RTP/RTCP pair foundation is the same
       const QString foundation = generateFoundation();
@@ -244,6 +251,18 @@ void ICE::handleEndOfNomination(struct ICEPair *candidateRTP, struct ICEPair *ca
   {
     if (pair->state != PAIR_NOMINATED)
     {
+      // pair->local cannot be freed here because we send final SDP
+      // to remote which contains our candidate offers but we can release
+      // pair->local->port (unless local is stun_entry_rtp_ or stun_entry_rtcp_)
+      //
+      // because ports are allocated in pairs (RTP is port X and RTCP is port X + 1),
+      // we need to call makePortPairAvailable() only for RTP candidate
+      if (pair->local != stun_entry_rtp_ && pair->local != stun_entry_rtcp_ && pair->local->component == RTP)
+      {
+        parameters_.makePortPairAvailable(pair->local->port);
+      }
+
+      delete pair->remote;
       delete pair;
     }
   }
