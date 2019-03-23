@@ -161,7 +161,7 @@ GlobalSDPState::localFinalSDP(SDPMessageInfo &remoteSDP, QHostAddress localAddre
     // wait until the nomination has finished (or failed)
     //
     // The call won't start until ICE has finished its job
-    if (!ice_->callerConnectionNominated())
+    if (!ice_->callerConnectionNominated(sessionID))
     {
       qDebug() << "ERROR: Failed to nominate ICE candidates!";
       return nullptr;
@@ -189,11 +189,11 @@ GlobalSDPState::localFinalSDP(SDPMessageInfo &remoteSDP, QHostAddress localAddre
   return sdp;
 }
 
-bool GlobalSDPState::remoteFinalSDP(SDPMessageInfo &remoteInviteSDP)
+bool GlobalSDPState::remoteFinalSDP(SDPMessageInfo &remoteInviteSDP, uint32_t sessionID)
 {
   // this function blocks until a candidate is nominated or all candidates are considered
   // invalid in which case it returns false to indicate error
-  if (!ice_->calleeConnectionNominated())
+  if (!ice_->calleeConnectionNominated(sessionID))
   {
     qDebug() << "ERROR: Failed to nominate ICE candidates!";
     return false;

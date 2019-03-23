@@ -31,7 +31,7 @@ public:
                                                 std::shared_ptr<SDPMessageInfo> localSuggestion, uint32_t sessionID);
 
   // return if the final SDP was suitable. It should be, but just to be sure
-  bool remoteFinalSDP(SDPMessageInfo& remoteInviteSDP);
+  bool remoteFinalSDP(SDPMessageInfo& remoteInviteSDP, uint32_t sessionID);
 
   // frees the ports when they are not needed in rest of the program
   void endSession(std::shared_ptr<SDPMessageInfo> sessionSDP);

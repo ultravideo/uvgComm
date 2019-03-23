@@ -4,10 +4,31 @@
 #include <QString>
 #include <QWaitCondition>
 #include <QMutex>
+#include <memory>
 
 #include "stun.h"
 #include "sip/sdptypes.h"
 #include "icetypes.h"
+
+class FlowController;
+class FlowControllee;
+
+struct nominationInfo
+{
+  QMutex *caller_mtx;
+  QMutex *callee_mtx;
+
+  FlowControllee *controllee;
+  FlowController *controller;
+
+  // list of all candidates, remote and local
+  // all but nominatedPair are freed in handleEndOfNomination()
+  QList<ICEPair *> *pairs;
+
+  std::pair<ICEPair *, ICEPair *> nominatedPair;
+
+  bool connectionNominated;
+};
 
 class ICE : public QObject
 {
@@ -32,10 +53,12 @@ class ICE : public QObject
     std::pair<ICEPair *, ICEPair *> getNominated(uint32_t sessionID);
 
     // caller must call this function to check if ICE has finished
-    bool callerConnectionNominated();
+    // sessionID must given so ICE can know which ongoing nomination should be checked
+    bool callerConnectionNominated(uint32_t sessionID);
 
     // callee should call this function to check if ICE has finished
-    bool calleeConnectionNominated();
+    // sessionID must given so ICE can know which ongoing nomination should be checked
+    bool calleeConnectionNominated(uint32_t sessionID);
 
   public slots:
     // when FlowControllee has finished its job, it emits "ready" signal which is caught by this slot function
@@ -59,21 +82,12 @@ class ICE : public QObject
     QList<ICEPair *> *makeCandiatePairs(QList<ICEInfo *>& local, QList<ICEInfo *>& remote);
 
     uint16_t portPair;
-    bool connectionNominated_;
     bool nominatingConnection_;
 
     Stun stun_;
 
-    // separate mutexes for caller and callee to make localhost calls work
-    QMutex caller_mtx;
-    QMutex callee_mtx;
-    QWaitCondition nominated_cond;
-
     ICEInfo *stun_entry_rtp_;
     ICEInfo *stun_entry_rtcp_;
 
-    ICEPair *nominated_rtp;
-    ICEPair *nominated_rtcp;
-
-    QMap<uint32_t, std::pair<ICEPair *, ICEPair *>> nominated_;
+    QMap<uint32_t, struct nominationInfo> nominationInfo_;
 };

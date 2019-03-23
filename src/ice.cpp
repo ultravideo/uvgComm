@@ -7,8 +7,6 @@
 
 ICE::ICE():
   portPair(22000),
-  connectionNominated_(false),
-  nominatingConnection_(false),
   stun_(),
   stun_entry_rtp_(new ICEInfo),
   stun_entry_rtcp_(new ICEInfo)
@@ -168,84 +166,100 @@ QList<ICEPair *> *ICE::makeCandiatePairs(QList<ICEInfo *>& local, QList<ICEInfo 
 // Thread spawned by startNomination() must keep track of which candidates failed and which succeeded
 void ICE::startNomination(QList<ICEInfo *>& local, QList<ICEInfo *>& remote, uint32_t sessionID)
 {
-  connectionNominated_ = false;
-  callee_mtx.lock();
+  // nomination-related memory is released when handleEndOfNomination() is called
+  nominationInfo_[sessionID].controller = new FlowController;
 
-  // this memory is release by FlowController
-  QList<ICEPair *> *pairs = makeCandiatePairs(local, remote);
+  nominationInfo_[sessionID].callee_mtx = new QMutex;
+  nominationInfo_[sessionID].callee_mtx->lock();
 
-  FlowController *callee = new FlowController;
+  nominationInfo_[sessionID].pairs = makeCandiatePairs(local, remote);
+  nominationInfo_[sessionID].connectionNominated = false;
+
+  FlowController *callee = nominationInfo_[sessionID].controller;
   QObject::connect(callee, &FlowController::ready, this, &ICE::handleCalleeEndOfNomination, Qt::DirectConnection);
 
-  callee->setCandidates(pairs);
+  callee->setCandidates(nominationInfo_[sessionID].pairs);
   callee->setSessionID(sessionID);
   callee->start();
 }
 
-// caller (flow controllee [TODO does that expression make sense?])
+// caller (flow controllee)
 //
 // respondToNominations() spawns a control thread that starts testing all candidates
 // It doesn't do any external book keeping as it's responsible for only responding to STUN requets
 // When it has gone through all candidate pairs it exits
 void ICE::respondToNominations(QList<ICEInfo *>& local, QList<ICEInfo *>& remote, uint32_t sessionID)
 {
-  // this memory is released by FlowControllee
-  QList<ICEPair *> *pairs = makeCandiatePairs(local, remote);
-  caller_mtx.lock();
+  // nomination-related memory is released when handleEndOfNomination() is called
+  nominationInfo_[sessionID].controllee = new FlowControllee;
 
-  FlowControllee *caller = new FlowControllee;
+  nominationInfo_[sessionID].caller_mtx = new QMutex;
+  nominationInfo_[sessionID].caller_mtx->lock();
+
+  nominationInfo_[sessionID].pairs = makeCandiatePairs(local, remote);
+  nominationInfo_[sessionID].connectionNominated = false;
+
+  FlowControllee *caller = nominationInfo_[sessionID].controllee;
   QObject::connect(caller, &FlowControllee::ready, this, &ICE::handleCallerEndOfNomination, Qt::DirectConnection);
 
-  caller->setCandidates(pairs);
+  caller->setCandidates(nominationInfo_[sessionID].pairs);
   caller->setSessionID(sessionID);
   caller->start();
 }
 
-bool ICE::callerConnectionNominated()
+bool ICE::callerConnectionNominated(uint32_t sessionID)
 {
-  while (!caller_mtx.try_lock_for(std::chrono::milliseconds(200)))
-    ;
+  while (!nominationInfo_[sessionID].caller_mtx->try_lock_for(std::chrono::milliseconds(200)))
+  {
+  }
 
-  caller_mtx.unlock();
-  return connectionNominated_;
+  nominationInfo_[sessionID].caller_mtx->unlock();
+  return nominationInfo_[sessionID].connectionNominated;
 }
 
-bool ICE::calleeConnectionNominated()
+bool ICE::calleeConnectionNominated(uint32_t sessionID)
 {
-  while (!callee_mtx.try_lock_for(std::chrono::milliseconds(200)))
-    ;
+  while (!nominationInfo_[sessionID].callee_mtx->try_lock_for(std::chrono::milliseconds(200)))
+  {
+  }
 
-  callee_mtx.unlock();
-  return connectionNominated_;
+  nominationInfo_[sessionID].callee_mtx->unlock();
+  return nominationInfo_[sessionID].connectionNominated;
 }
 
 void ICE::handleEndOfNomination(struct ICEPair *candidateRTP, struct ICEPair *candidateRTCP, uint32_t sessionID)
 {
-  connectionNominated_ = (candidateRTP != nullptr && candidateRTCP != nullptr);
+  nominationInfo_[sessionID].connectionNominated = (candidateRTP != nullptr && candidateRTCP != nullptr);
 
-  if (connectionNominated_)
+  if (nominationInfo_[sessionID].connectionNominated)
   {
-    nominated_[sessionID] = std::make_pair<ICEPair *, ICEPair *>((ICEPair *)candidateRTP, (ICEPair *)candidateRTCP);
+    nominationInfo_[sessionID].nominatedPair = std::make_pair((ICEPair *)candidateRTP, (ICEPair *)candidateRTCP);
   }
 }
 
 void ICE::handleCallerEndOfNomination(struct ICEPair *candidateRTP, struct ICEPair *candidateRTCP, uint32_t sessionID)
 {
   this->handleEndOfNomination(candidateRTP, candidateRTCP, sessionID);
-  caller_mtx.unlock();
+
+  nominationInfo_[sessionID].caller_mtx->unlock();
+  nominationInfo_[sessionID].controllee->quit();
+  nominationInfo_[sessionID].controllee->wait();
 }
 
 void ICE::handleCalleeEndOfNomination(struct ICEPair *candidateRTP, struct ICEPair *candidateRTCP, uint32_t sessionID)
 {
   this->handleEndOfNomination(candidateRTP, candidateRTCP, sessionID);
-  callee_mtx.unlock();
+
+  nominationInfo_[sessionID].callee_mtx->unlock();
+  nominationInfo_[sessionID].controller->quit();
+  nominationInfo_[sessionID].controller->wait();
 }
 
 std::pair<ICEPair *, ICEPair *> ICE::getNominated(uint32_t sessionID)
 {
-  if (nominated_.contains(sessionID))
+  if (nominationInfo_.contains(sessionID))
   {
-    return nominated_[sessionID];
+    return nominationInfo_[sessionID].nominatedPair;
   }
   else
   {

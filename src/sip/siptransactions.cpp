@@ -403,7 +403,7 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
         // remoteFinalSDP blocks until the ICE has finished its job
         //
         // After it returns, we add the nominated media connections to local and remote SDPs
-        if(!sdp_.remoteFinalSDP(retrieved))
+        if(!sdp_.remoteFinalSDP(retrieved, foundSessionID))
         {
           qDebug() << "PEER_ERROR:" << "Their final sdp is not suitable. They should have followed our SDP!!!";
           return;
