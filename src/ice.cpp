@@ -214,6 +214,8 @@ bool ICE::callerConnectionNominated(uint32_t sessionID)
   }
 
   nominationInfo_[sessionID].caller_mtx->unlock();
+  delete nominationInfo_[sessionID].caller_mtx;
+
   return nominationInfo_[sessionID].connectionNominated;
 }
 
@@ -224,6 +226,8 @@ bool ICE::calleeConnectionNominated(uint32_t sessionID)
   }
 
   nominationInfo_[sessionID].callee_mtx->unlock();
+  delete nominationInfo_[sessionID].callee_mtx;
+
   return nominationInfo_[sessionID].connectionNominated;
 }
 
@@ -235,24 +239,32 @@ void ICE::handleEndOfNomination(struct ICEPair *candidateRTP, struct ICEPair *ca
   {
     nominationInfo_[sessionID].nominatedPair = std::make_pair((ICEPair *)candidateRTP, (ICEPair *)candidateRTCP);
   }
+
+  foreach (ICEPair *pair, *nominationInfo_[sessionID].pairs)
+  {
+    if (pair->state != PAIR_NOMINATED)
+    {
+      delete pair;
+    }
+  }
+
+  delete nominationInfo_[sessionID].pairs;
 }
 
 void ICE::handleCallerEndOfNomination(struct ICEPair *candidateRTP, struct ICEPair *candidateRTCP, uint32_t sessionID)
 {
-  this->handleEndOfNomination(candidateRTP, candidateRTCP, sessionID);
-
   nominationInfo_[sessionID].caller_mtx->unlock();
   nominationInfo_[sessionID].controllee->quit();
-  nominationInfo_[sessionID].controllee->wait();
+
+  this->handleEndOfNomination(candidateRTP, candidateRTCP, sessionID);
 }
 
 void ICE::handleCalleeEndOfNomination(struct ICEPair *candidateRTP, struct ICEPair *candidateRTCP, uint32_t sessionID)
 {
-  this->handleEndOfNomination(candidateRTP, candidateRTCP, sessionID);
-
   nominationInfo_[sessionID].callee_mtx->unlock();
   nominationInfo_[sessionID].controller->quit();
-  nominationInfo_[sessionID].controller->wait();
+
+  this->handleEndOfNomination(candidateRTP, candidateRTCP, sessionID);
 }
 
 std::pair<ICEPair *, ICEPair *> ICE::getNominated(uint32_t sessionID)

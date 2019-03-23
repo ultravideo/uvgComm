@@ -6,6 +6,7 @@ enum PAIR {
   PAIR_SUCCEEDED   = 2,
   PAIR_FAILED      = 3,
   PAIR_FROZEN      = 4,
+  PAIR_NOMINATED   = 5,
 };
 
 enum COMPONENTS {

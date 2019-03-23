@@ -82,5 +82,8 @@ void ConnectionTester::run()
     return;
   }
 
+  rtp_pair_->state  = PAIR_NOMINATED;
+  rtcp_pair_->state = PAIR_NOMINATED;
+
   emit testingDone(rtp_pair_, rtcp_pair_);
 }

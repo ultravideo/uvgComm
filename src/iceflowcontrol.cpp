@@ -112,6 +112,9 @@ void FlowController::run()
     return;
   }
 
+  nominated_rtp_->state  = PAIR_NOMINATED;
+  nominated_rtcp_->state = PAIR_NOMINATED;
+
   emit ready(nominated_rtp_, nominated_rtcp_, sessionID_);
 }
 
