@@ -206,6 +206,7 @@ bool ICE::callerConnectionNominated()
   while (!caller_mtx.try_lock_for(std::chrono::milliseconds(200)))
     ;
 
+  caller_mtx.unlock();
   return connectionNominated_;
 }
 
@@ -214,6 +215,7 @@ bool ICE::calleeConnectionNominated()
   while (!callee_mtx.try_lock_for(std::chrono::milliseconds(200)))
     ;
 
+  callee_mtx.unlock();
   return connectionNominated_;
 }
 
