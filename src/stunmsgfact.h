@@ -52,9 +52,6 @@ private:
   // return true if message is valid, otherwise false
   bool validateStunMessage(STUNMessage& message, int type);
 
-  // return the next attribute-value pair
-  std::pair<uint16_t, uint16_t> getAttribute(uint16_t *ptr);
-
   // extract host address and port learned from STUN binding request to google server
   // this is just to make the code look nicer
   std::pair<QHostAddress, uint16_t> extractXorMappedAddress(uint16_t payloadLen, uint8_t *payload);

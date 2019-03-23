@@ -177,22 +177,21 @@ STUNMessage StunMessageFactory::networkToHost(QByteArray& message)
     response.getTransactionID()[i] = (uint8_t)raw_data[8 + i];
   }
 
-  std::pair<uint16_t, uint16_t> attrPair;
-  uint16_t *payload  = (uint16_t *)((raw_data + 8 + TRANSACTION_ID_SIZE));
+  uint32_t *payload  = (uint32_t *)((uint8_t *)raw_data + 8 + TRANSACTION_ID_SIZE);
 
-  for (int k = 0; k < response.getLength(); )
+  for (size_t i = 0; i < response.getLength(); i += 4)
   {
-    attrPair = getAttribute(payload + k);
-    k += 2;
+    uint32_t value     = qFromBigEndian(payload[i / 4]);
+    uint16_t attrName  = (value >> 16) & 0xffff;
+    uint16_t attrLen   = (value >>  0) & 0xffff;
 
-    switch (attrPair.first)
+    switch (attrName)
     {
       case STUN_ATTR_XOR_MAPPED_ADDRESS:
         {
-          auto xorMappedAddr = extractXorMappedAddress(attrPair.second, (uint8_t *)payload + k * sizeof(uint16_t));
+          auto xorMappedAddr = extractXorMappedAddress(attrLen, (uint8_t *)payload + 4);
           if (xorMappedAddr.second != 0)
           {
-            k += attrPair.second / sizeof(uint16_t);
             response.setXorMappedAddress(xorMappedAddr.first, xorMappedAddr.second);
           }
         }
@@ -207,8 +206,12 @@ STUNMessage StunMessageFactory::networkToHost(QByteArray& message)
         break;
 
       case STUN_ATTR_PRIORITY:
-        k += 2; // skip the priority (for now at least)
-        response.addAttribute(STUN_ATTR_PRIORITY);
+        {
+          i += 4;
+
+          uint32_t priority = qFromBigEndian(payload[i / 4]);
+          response.addAttribute(STUN_ATTR_PRIORITY, priority);
+        }
         break;
 
       case STUN_ATTR_USE_CANDIATE:
@@ -219,22 +222,11 @@ STUNMessage StunMessageFactory::networkToHost(QByteArray& message)
         // TODO handle invalid message?
         break;
     }
+
+    i += attrLen;
   }
 
   return response;
-}
-
-std::pair<uint16_t, uint16_t> StunMessageFactory::getAttribute(uint16_t *ptr)
-{
-  if (!ptr)
-  {
-    return std::make_pair(0, 0);
-  }
-
-  uint16_t attr    = ptr[0];
-  uint16_t attrLen = ptr[1];
-
-  return std::make_pair(qFromBigEndian(attr), qFromBigEndian(attrLen));
 }
 
 std::pair<QHostAddress, uint16_t> StunMessageFactory::extractXorMappedAddress(uint16_t payloadLen, uint8_t *payload)
