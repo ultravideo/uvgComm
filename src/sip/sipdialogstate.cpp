@@ -44,12 +44,21 @@ void SIPDialogState::initCallInfo()
   qDebug() << "Local dialog created. CallID: " << callID_ << "Tag:" << localTag_ << "Cseq:" << localCSeq_;
 }
 
+
+void SIPDialogState::setPeerToPeerHostname(QString hostName, bool setCallinfo)
+{
+  localUri_.host = hostName;
+  if (setCallinfo)
+  {
+    initCallInfo();
+  }
+}
+
 void SIPDialogState::createNewDialog(SIP_URI remoteURI)
 {
   initLocalURI();
   remoteUri_ = remoteURI;
   requestUri_ = remoteURI;
-  initCallInfo();
 }
 
 void SIPDialogState::createServerDialog(SIP_URI requestURI)
@@ -57,10 +66,9 @@ void SIPDialogState::createServerDialog(SIP_URI requestURI)
   initLocalURI();
   remoteUri_ = localUri_;
   requestUri_ = requestURI; // server has different request uri from remote
-  initCallInfo();
   localCSeq_ = 0;
+  initCallInfo();
 }
-
 
 void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inMessage)
 {
@@ -90,6 +98,7 @@ void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inM
   if(remoteTag_ == "")
   {
     qDebug() << "PEER_ERROR: They did not provide their tag in INVITE!";
+    // TODO: send an error response.
   }
 
   remoteCSeq_ = inMessage->cSeq;
@@ -116,12 +125,6 @@ void SIPDialogState::getRequestDialogInfo(SIPRequest &outRequest, QString localA
 {
   Q_ASSERT(localUri_.username != "" && localUri_.host != "");
   Q_ASSERT(remoteUri_.username != "" && remoteUri_.host != "");
-
-  if(localAddress == "")
-  {
-    qDebug() << "ERROR: No local address provided for requesting dialog info";
-    return;
-  }
 
   if(localUri_.username == "" || localUri_.host == "" ||
      remoteUri_.username == "" || remoteUri_.host == "")

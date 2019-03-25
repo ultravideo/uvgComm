@@ -19,10 +19,7 @@ public:
   SIPDialogState();
 
   // TODO: set the correct address for peer-to-peer connection
-  void setPeerToPeerHostname(QString hostName)
-  {
-    localUri_.host = hostName;
-  }
+  void setPeerToPeerHostname(QString hostName, bool setCallinfo = true);
 
   // creates dialog which is about to start from our end
   void createNewDialog(SIP_URI remoteURI);

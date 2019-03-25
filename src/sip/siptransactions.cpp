@@ -178,6 +178,7 @@ void SIPTransactions::startPeerToPeerCall(quint32 transportID, Contact &remote)
 
   std::shared_ptr<SIPDialogData> dialogData;
   createBaseDialog(transportID, dialogData);
+  dialogData->proxyConnection_ = false;
   dialogData->state->createNewDialog(SIP_URI{remote.username, remote.username, remote.remoteAddress});
 
   // this start call will commence once the connection has been established
@@ -195,7 +196,7 @@ void SIPTransactions::createDialogFromINVITE(quint32 transportID, std::shared_pt
   createBaseDialog(transportID, dialog);
 
   dialog->state->createDialogFromINVITE(invite);
-  dialog->state->setPeerToPeerHostname(transports_.at(transportID - 1)->getLocalAddress().toString());
+  dialog->state->setPeerToPeerHostname(transports_.at(transportID - 1)->getLocalAddress().toString(), false);
 }
 
 void SIPTransactions::createBaseDialog( quint32 transportID, std::shared_ptr<SIPDialogData>& dialog)
@@ -563,7 +564,7 @@ void SIPTransactions::sendDialogRequest(uint32_t sessionID, RequestType type)
   // if this is the session creation INVITE. Proxy sessions should be created earlier.
   if(request.type == SIP_INVITE && !dialogs_.at(sessionID - 1)->proxyConnection_)
   {
-    // TODO: possibly set the local address with transport->getLocalAddress().toString() for peer-to-peer
+    dialogs_.at(sessionID - 1)->state->setPeerToPeerHostname(transport->getLocalAddress().toString());
   }
 
   // Get message info
