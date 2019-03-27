@@ -39,6 +39,8 @@ public:
   void malformedResponse();
   void responseIsError();
 
+  void startTimer(RequestType type);
+
 protected:
 
   // timeout is in milliseconds. Used for request timeout

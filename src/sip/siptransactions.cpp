@@ -542,6 +542,7 @@ void SIPTransactions::sendDialogRequest(uint32_t sessionID, RequestType type)
 {
   qDebug() << "---- Iniated sending of a dialog request:" << type << "----";
   Q_ASSERT(sessionID != 0 && sessionID <= dialogs_.size());
+  Q_ASSERT(dialogs_.at(sessionID - 1)->transportID - 1 != 0);
   // Get all the necessary information from different components.
 
   std::shared_ptr<SIPTransport> transport
@@ -569,9 +570,11 @@ void SIPTransactions::sendDialogRequest(uint32_t sessionID, RequestType type)
 
   // Get message info
   dialogs_.at(sessionID - 1)->client->getRequestMessageInfo(type, request.message);
+  dialogs_.at(sessionID - 1)->client->startTimer(type);
 
   dialogs_.at(sessionID - 1)->state->getRequestDialogInfo(request,
                                                           transport->getLocalAddress().toString());
+
   Q_ASSERT(request.message != nullptr);
   Q_ASSERT(request.message->dialog != nullptr);
 

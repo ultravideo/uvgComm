@@ -43,19 +43,22 @@ void SIPClientTransaction::getRequestMessageInfo(RequestType type,
   outMessage->content.length = 0;
 }
 
-
-void SIPClientTransaction::sendRequest(RequestType type)
+void SIPClientTransaction::startTimer(RequestType type)
 {
-  qDebug() << "Client starts sending a request:" << type;
-  ongoingTransactionType_ = type;
-
-
   // INVITE has the same timeout as rest of them. Only after RINGING reply do we increase timeout
   if(type != SIP_CANCEL && type != SIP_ACK)
   {
     startTimeoutTimer();
   }
-  else
+
+}
+
+void SIPClientTransaction::sendRequest(RequestType type)
+{
+  //qDebug() << "Client starts sending a request of type:" << type;
+  ongoingTransactionType_ = type;
+
+  if (type == SIP_CANCEL || type == SIP_ACK)
   {
     stopTimeoutTimer();
   }
