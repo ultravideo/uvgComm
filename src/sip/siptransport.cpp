@@ -74,7 +74,7 @@ void SIPTransport::createConnection(ConnectionType type, QString target)
 {
   if(type == TCP)
   {
-    qDebug() << "Initiating TCP connection for sip connection number:" << transportID_;
+    qDebug() << "Connecting, SIP Transport: Initiating TCP connection for sip connection number:" << transportID_;
     connection_ = std::shared_ptr<TCPConnection>(new TCPConnection);
     signalConnections();
     connection_->establishConnection(target, SIP_PORT);

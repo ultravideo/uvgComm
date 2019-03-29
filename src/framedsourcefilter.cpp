@@ -60,7 +60,7 @@ void FramedSourceFilter::updateSettings()
       removeStartCodes_ = true;
     }
 
-     qDebug() << getName() << "updated buffersize to" << maxBufferSize_;
+     qDebug() << "Settings," << getName() << ": updated buffersize to" << maxBufferSize_;
 
      if(settings.value("video/liveCopying").isValid())
      {
@@ -107,7 +107,8 @@ void FramedSourceFilter::start()
   if(separateInput_)
   {
     afterEvent_ = envir().taskScheduler().createEventTrigger((TaskFunc*)FramedSource::afterGetting);
-    qDebug() << "Creating trigger for framedSource:" << getName() << "Trigger ID: " << afterEvent_;
+    qDebug() << "Iniating, FramedSource : Creating trigger for framedSource:"
+             << getName() << "Trigger ID: " << afterEvent_;
   }
 
   Filter::start();
@@ -127,19 +128,19 @@ void FramedSourceFilter::stop()
   while(!noMoreTasks_)
   {
     qSleep(waitTime);
-    qDebug() << "Waiting for no more tasks";
+    qDebug() << "Closing,"<< getName() << ": Waiting for no more tasks";
   }
 
   if(afterEvent_)
   {
-    qDebug() << "Removing trigger from live555:" << afterEvent_;
+    qDebug() << "Closing," << getName() << ": Removing trigger from live555:" << afterEvent_;
     envir().taskScheduler().deleteEventTrigger(afterEvent_);
     afterEvent_ = 0;
   }
 
   if(currentTask_)
   {
-    qDebug() << "Unscheduling delayed task from live555:" << currentTask_;
+    qDebug() << "Closing," << getName() << ":Unscheduling delayed task from live555:" << currentTask_;
     envir().taskScheduler().unscheduleDelayedTask(currentTask_);
     currentTask_ = nullptr;
   }
@@ -216,7 +217,7 @@ void FramedSourceFilter::copyFrameToBuffer(std::unique_ptr<Data> currentFrame)
     {
       fFrameSize = fMaxSize;
       fNumTruncatedBytes = currentFrame->data_size - fMaxSize;
-      qDebug() << "WARNING: Requested sending larger packet than possible:"
+      qDebug() << "WARNING, FramedSource : Requested sending larger packet than possible:"
                << currentFrame->data_size << "/" << fMaxSize;
     }
     else

@@ -22,9 +22,7 @@ TCPConnection::TCPConnection()
     buffer_(),
     sendMutex_(),
     active_(false)
-{
-  qDebug() << "Constructing TCP connection";
-}
+{}
 
 void TCPConnection::init()
 {
@@ -44,7 +42,7 @@ void TCPConnection::init()
 
 void TCPConnection::establishConnection(const QString &destination, uint16_t port)
 {
-  qDebug() << "Establishing connection to" << destination << ":" << port;
+  qDebug() << "Connecting: Establishing connection to" << destination << ":" << port;
 
   destination_ = destination;
   port_ = port;
@@ -62,7 +60,7 @@ void TCPConnection::setExistingConnection(qintptr socketDescriptor)
 
 void TCPConnection::sendPacket(const QString &data)
 {
-  qDebug() << "adding packet for sending";
+  qDebug() << "Sending: TO BUFFER.";
   if(active_)
   {
     sendMutex_.lock();
@@ -110,11 +108,10 @@ bool TCPConnection::connectLoop()
   }
   else
   {
-    qDebug() << "Connecting to address:" << destination_ << "Port:" << port_;
-
+    qDebug() << "Connecting: CHECK STATUS. Address:" << destination_ << "Port:" << port_;
     for(unsigned int i = 0; i < NUMBER_OF_RETRIES && socket_->state() != QAbstractSocket::ConnectedState; ++i)
     {
-      qDebug() << "Current state:" << socket_->state() << "Trying to connect socket. Attempt:" << i + 1;
+      qDebug() << "Connecting: ATTEMPT CONNECTION. State:" << "Attempt:" << i + 1;
       socket_->connectToHost(destination_, port_);
       socket_->waitForConnected(CONNECTION_TIMEOUT);
     }
@@ -126,7 +123,7 @@ bool TCPConnection::connectLoop()
     return false;
   }
 
-  qDebug().nospace() << "Connecting succeeded. Local address: "
+  qDebug().nospace() << "Connecting: SUCCESS. Local address: "
            << socket_->localAddress().toString() << ":" << socket_->peerPort()
            << " Remote address: " << socket_->peerAddress().toString()
            << ":" << socket_->peerPort();
@@ -138,7 +135,6 @@ bool TCPConnection::connectLoop()
 
 void TCPConnection::run()
 {
-  qDebug() << "Started connection";
   init();
 
 
@@ -160,7 +156,7 @@ void TCPConnection::run()
 
     if(socket_->bytesToWrite() > 0)
     {
-      qDebug() << "Bytes to write:" << socket_->bytesToWrite() << "in state:" << socket_->state();
+      qDebug() << "Sending: DETECT NEED TO SEND. Bytes to write:" << socket_->bytesToWrite() << "in state:" << socket_->state();
     }
 
     if(socket_->state() == QAbstractSocket::ConnectedState)
@@ -214,7 +210,7 @@ void TCPConnection::run()
 
 void TCPConnection::bufferToSocket()
 {
-  qDebug() << "Sending packet with buffersize:" << buffer_.size();
+  qDebug() << "Sending: START. Buffer size:" << buffer_.size();
 
   if(buffer_.size() > TOO_LARGE_AMOUNT_OF_DATA)
   {
@@ -231,7 +227,7 @@ void TCPConnection::bufferToSocket()
 
   qint64 sentBytes = socket_->write(block);
 
-  qDebug() << "Sent Bytes:" << sentBytes;
+  qDebug() << "Sending: SENT TO SOCKET. Sent bytes:" << sentBytes << "to" << remoteAddress();
 }
 
 void TCPConnection::disconnect()
@@ -259,5 +255,5 @@ void TCPConnection::printError(int socketError, const QString &message)
 
 void TCPConnection::printBytesWritten(qint64 bytes)
 {
-  qDebug() << bytes << "bytes written to socket for connection.";
+  qDebug() << "Sending: WRITTEN." << "Bytes:" << bytes;
 }

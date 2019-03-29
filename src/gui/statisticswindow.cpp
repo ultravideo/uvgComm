@@ -262,7 +262,7 @@ uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets, uint32_t i
     }
   }
 
-  //qDebug() << "Bitrate:" << bitrate << "timeInterval:"  << timeInterval;
+  //qDebug() << "Settings," << metaObject()->className() << ": Bitrate:" << bitrate << "timeInterval:"  << timeInterval;
   if(timeInterval)
   {
     framerate = 1000*(float)frames/timeInterval;
@@ -301,7 +301,7 @@ void StatisticsWindow::updateBufferStatus(QString filter, uint16_t buffersize, u
   }
   else
   {
-    qDebug() << "Couldn't find correct filter for buffer status:" << filter;
+    qDebug() << "Settings," << metaObject()->className() << "Couldn't find correct filter for buffer status:" << filter;
   }
   bufferMutex_.unlock();
 }
@@ -316,7 +316,7 @@ void StatisticsWindow::packetDropped(QString filter)
   }
   else
   {
-    qDebug() << "Couldn't find correct filter for dropped packet:" << filter;
+    qDebug() << "Settings," << metaObject()->className() << ": Couldn't find correct filter for dropped packet:" << filter;
   }
 }
 

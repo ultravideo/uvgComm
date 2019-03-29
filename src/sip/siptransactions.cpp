@@ -174,7 +174,7 @@ void SIPTransactions::startCall(Contact &address)
 
 void SIPTransactions::startPeerToPeerCall(quint32 transportID, Contact &remote)
 {
-  qDebug() << "Intializing a new dialog with INVITE task";
+  qDebug() << "SIP," << metaObject()->className() << ": Intializing a new dialog with INVITE";
 
   std::shared_ptr<SIPDialogData> dialogData;
   createBaseDialog(transportID, dialogData);
@@ -281,7 +281,6 @@ void SIPTransactions::endAllCalls()
 
 std::shared_ptr<SIPTransport> SIPTransactions::createSIPTransport()
 {
-  qDebug() << "Creating SIP transport";
   std::shared_ptr<SIPTransport> connection =
       std::shared_ptr<SIPTransport>(new SIPTransport(transports_.size() + 1));
 
@@ -551,7 +550,7 @@ void SIPTransactions::sendDialogRequest(uint32_t sessionID, RequestType type)
   pendingConnectionMutex_.lock();
   if(!transport->isConnected())
   {
-    qDebug() << "The connection has not yet been established. Delaying sending of request.";
+    qDebug() << "SIP," << metaObject()->className() << "The connection has not yet been established. Delaying sending of request.";
 
     pendingDialogRequests_[dialogs_.at(sessionID - 1)->transportID] = (DialogRequest{sessionID, type});
     pendingConnectionMutex_.unlock();

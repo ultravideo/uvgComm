@@ -43,7 +43,7 @@ void VideoGLWidget::paintEvent(QPaintEvent *event)
 {
   Q_UNUSED(event);
 
-  //qDebug() << "PaintEvent for widget:" << sessionID_;
+  //qDebug() << "Drawing," << metaObject()->className() << ": PaintEvent for widget:" << sessionID_;
   QPainter painter(this);
 
   if(helper_.readyToDraw())
@@ -74,7 +74,6 @@ void VideoGLWidget::paintEvent(QPaintEvent *event)
 
 void VideoGLWidget::resizeEvent(QResizeEvent *event)
 {
-  qDebug() << "VideoGLWidget resizeEvent:" << sessionID_;
   QOpenGLWidget::resizeEvent(event); // its important to call this resize function, not the qwidget one.
   helper_.updateTargetRect(this);
 }

@@ -23,19 +23,21 @@ AudioCaptureFilter::~AudioCaptureFilter(){}
 
 bool AudioCaptureFilter::init()
 {
-  qDebug() << "Initializing audio capture filter";
+  qDebug() << "Initiating," << metaObject()->className() << ": Initializing audio capture filter";
 
   QAudioDeviceInfo info(deviceInfo_);
 
   for(auto device : QAudioDeviceInfo::availableDevices(QAudio::AudioInput))
   {
-    qDebug() << "Audio Recording device:" << device.deviceName();
+    qDebug() << "Iniating," << metaObject()->className()
+             << ": Audio Recording device:" << device.deviceName();
   }
 
-  qDebug() << "Using device:" << info.deviceName();
+  qDebug() << "Iniating," << metaObject()->className()
+              << ": Device:" << info.deviceName();
 
   if (!info.isFormatSupported(format_)) {
-    qWarning() << "Default audio format not supported - trying to use nearest";
+    qWarning() << "WARNING: Default audio format not supported - trying to use nearest";
     format_ = info.nearestFormat(format_);
   }
 
@@ -49,14 +51,14 @@ bool AudioCaptureFilter::init()
   device_  = new AudioCaptureDevice(format_, this);
 
   createAudioInput();
-  qDebug() << "Audio initializing completed";
+  qDebug() << "Iniating," << metaObject()->className() << ": Audio initializing completed";
 
   return true;
 }
 
 void AudioCaptureFilter::createAudioInput()
 {
-  qDebug() << "Creating audio input";
+  qDebug() << "Iniating," << metaObject()->className() << ": Creating audio input";
   audioInput_ = new QAudioInput(deviceInfo_, format_, this);
 
   device_->start();
@@ -69,7 +71,7 @@ void AudioCaptureFilter::readMore()
 {
   if (!audioInput_)
   {
-    qWarning() << "No audio input in readMore";
+    qWarning() << "WARNING," << metaObject()->className() << ": No audio input in readMore";
     return;
   }
   qint64 len = audioInput_->bytesReady();
@@ -110,7 +112,7 @@ void AudioCaptureFilter::readMore()
 
 void AudioCaptureFilter::start()
 {
-  qDebug() << "Resuming audio input.";
+  qDebug() << "Audio," << metaObject()->className() << ": Resuming audio input.";
 
   if (audioInput_->state() == QAudio::SuspendedState
       || audioInput_->state() == QAudio::StoppedState)
@@ -121,7 +123,7 @@ void AudioCaptureFilter::start()
 
 void AudioCaptureFilter::stop()
 {
-  qDebug() << "Suspending audio input.";
+  qDebug() << "Audio," << metaObject()->className() << ": Suspending input.";
 
   if (audioInput_->state() == QAudio::ActiveState)
   {
@@ -131,7 +133,7 @@ void AudioCaptureFilter::stop()
   // just in case the filter part was running
   Filter::stop();
 
-  qDebug() << "Audio input suspended.";
+  qDebug() << "Audio," << metaObject()->className() << ": input suspended.";
 }
 
 // changing of audio device mid stream.

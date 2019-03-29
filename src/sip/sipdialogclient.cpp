@@ -92,7 +92,7 @@ bool SIPDialogClient::processResponse(SIPResponse &response)
 
 bool SIPDialogClient::startCall(QString callee)
 {
-  qDebug() << "Starting a call and sending an INVITE in session";
+  qDebug() << "SIP, Dialog client: Starting a call and sending an INVITE in session";
   Q_ASSERT(sessionID_ != 0);
   if(!sessionID_)
   {

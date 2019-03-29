@@ -45,7 +45,7 @@ void VideoWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image)
 
 void VideoWidget::paintEvent(QPaintEvent *event)
 {
-  //qDebug() << "PaintEvent for widget:" << sessionID_;
+  //qDebug() << "Drawing," << metaObject()->className() << ": PaintEvent for widget:" << sessionID_;
   QPainter painter(this);
 
   if(helper_.readyToDraw())
@@ -83,7 +83,6 @@ void VideoWidget::paintEvent(QPaintEvent *event)
 
 void VideoWidget::resizeEvent(QResizeEvent *event)
 {
-  qDebug() << "VideoWidget resizeEvent:" << sessionID_;
   QWidget::resizeEvent(event);
   helper_.updateTargetRect(this);
 }

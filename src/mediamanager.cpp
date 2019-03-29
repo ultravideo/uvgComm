@@ -31,7 +31,7 @@ MediaManager::~MediaManager()
 
 void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory, StatisticsInterface *stats)
 {
-  qDebug() << "Iniating media manager";
+  qDebug() << "Iniating: Media manager";
   viewfactory_ = viewfactory;
   streamer_->init(stats);
   streamer_->start();
@@ -41,7 +41,7 @@ void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory, Statistic
 
 void MediaManager::uninit()
 {
-  qDebug() << "Destroying media manager";
+  qDebug() << "Closing," << metaObject()->className();
   // first filter graph, then streamer because of the rtpfilters
   fg_->running(false);
   fg_->uninit();

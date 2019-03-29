@@ -71,7 +71,8 @@ void CustomSettings::changedDevice(uint16_t deviceIndex)
 
 void CustomSettings::resetSettings(int deviceID)
 {
-  qDebug() << "Resetting custom settings from UI";
+  qDebug() << "Settings," << metaObject()->className()
+           << "Resetting custom settings from UI";
   currentDevice_ = deviceID;
   initializeFormat();
   // TODO: should we do something to blocked list in settings?
@@ -81,7 +82,7 @@ void CustomSettings::resetSettings(int deviceID)
 
 void CustomSettings::showBlocklistContextMenu(const QPoint& pos)
 {
-  qDebug() << "Showing context menu for blocked users.";
+  qDebug() << "Settings," << metaObject()->className() << ": Showing context menu for blocked users.";
 
   // Handle global position
   QPoint globalPos = advancedUI_->blockedUsers->mapToGlobal(pos);
@@ -97,14 +98,14 @@ void CustomSettings::showBlocklistContextMenu(const QPoint& pos)
 
 void CustomSettings::deleteBlocklistItem()
 {
-  qDebug() << "deleting row:" << advancedUI_->blockedUsers->currentRow();
+  qDebug() << "Settings," << metaObject()->className() << ": deleting row:" << advancedUI_->blockedUsers->currentRow();
   advancedUI_->blockedUsers->removeRow(advancedUI_->blockedUsers->currentRow());
 }
 
 
 void CustomSettings::on_custom_ok_clicked()
 {
-  qDebug() << "Saving advanced settings";
+  qDebug() << "Settings," << metaObject()->className() << ": Saving advanced settings";
   saveAdvancedSettings();
   emit customSettingsChanged();
   emit hidden();
@@ -114,7 +115,7 @@ void CustomSettings::on_custom_ok_clicked()
 
 void CustomSettings::on_custom_cancel_clicked()
 {
-  qDebug() << "Cancelled modifying custom settings. Getting settings from system";
+  qDebug() << "Settings," << metaObject()->className() << ": Cancelled modifying custom settings. Getting settings from system";
   restoreAdvancedSettings();
   hide();
   emit hidden();
@@ -129,13 +130,13 @@ void CustomSettings::on_addUserBlock_clicked()
     {
       if(advancedUI_->blockedUsers->item(i,0)->text() == advancedUI_->blockUser->text())
       {
-        qDebug() << "Name already exists at row:" << i;
+        qDebug() << "Settings," << metaObject()->className() << ": Name already exists at row:" << i;
         advancedUI_->BlockUsernameLabel->setText("Name already blocked");
         return;
       }
     }
 
-    qDebug() << "Blocking an user";
+    qDebug() << "Settings," << metaObject()->className() << ":Blocking an user";
 
     addUsernameToList(advancedUI_->blockUser->text(), QDateTime::currentDateTime().toString("yyyy-mm-dd hh:mm"));
 
@@ -162,7 +163,7 @@ void CustomSettings::serverStatusChange(QString status)
 
 void CustomSettings::saveAdvancedSettings()
 {
-  qDebug() << "Saving advanced Settings";
+  qDebug() << "Settings," << metaObject()->className() << ": Saving advanced Settings";
 
   // Video settings
   saveTextValue("video/kvzThreads",            advancedUI_->kvz_threads->text());
@@ -195,12 +196,12 @@ void CustomSettings::saveAdvancedSettings()
 
 void CustomSettings::saveCameraCapabilities(int deviceIndex)
 {
-  qDebug() << "Recording capability settings for deviceIndex:" << deviceIndex;
+  qDebug() << "Settings," << metaObject()->className() << ": Recording capability settings for deviceIndex:" << deviceIndex;
 
   int formatIndex = advancedUI_->format_box->currentIndex();
   int resolutionIndex = advancedUI_->resolution->currentIndex();
 
-  qDebug() << "Boxes in following positions: Format:" << formatIndex << "Resolution:" << resolutionIndex;
+  qDebug() << "Settings," << metaObject()->className() << ": Boxes in following positions: Format:" << formatIndex << "Resolution:" << resolutionIndex;
   if(formatIndex == -1)
   {
     formatIndex = 0;
@@ -223,7 +224,7 @@ void CustomSettings::saveCameraCapabilities(int deviceIndex)
   settings_.setValue("video/FramerateID",          advancedUI_->framerate_box->currentIndex());
   settings_.setValue("video/InputFormat",          format);
 
-  qDebug() << "Recorded the following video settings: Resolution:"
+  qDebug() << "Settings," << metaObject()->className() << ": Recorded the following video settings: Resolution:"
            << res.width() - res.width()%8 << "x" << res.height() - res.height()%8
            << "resolution index:" << resolutionIndex << "format" << format;
 }
@@ -240,7 +241,7 @@ void CustomSettings::restoreAdvancedSettings()
     restoreResolution();
     restoreFramerate();
 
-    qDebug() << "Restoring previous Advanced settings from file:" << settings_.fileName();
+    qDebug() << "Settings," << metaObject()->className() << ": Restoring previous Advanced settings from file:" << settings_.fileName();
     int index = advancedUI_->preset->findText(settings_.value("video/Preset").toString());
     if(index != -1)
       advancedUI_->preset->setCurrentIndex(index);
@@ -306,7 +307,7 @@ void CustomSettings::restoreFormat()
     {
       format = settings_.value("video/InputFormat").toString();
       int formatIndex = advancedUI_->format_box->findText(format);
-      qDebug() << "Trying to find format in camera:" << format << "Result index:" << formatIndex;
+      qDebug() << "Settings," << metaObject()->className() << ": Trying to find format in camera:" << format << "Result index:" << formatIndex;
 
       if(formatIndex != -1)
       {
@@ -362,7 +363,7 @@ void CustomSettings::restoreFramerate()
 
 void CustomSettings::initializeFormat()
 {
-  qDebug() << "Initializing formats";
+  qDebug() << "Settings," << metaObject()->className() << "Initializing formats";
   QStringList formats;
 
   cam_->getVideoFormats(currentDevice_, formats);
@@ -383,7 +384,7 @@ void CustomSettings::initializeFormat()
 
 void CustomSettings::initializeResolutions(QString format)
 {
-  qDebug() << "Initializing resolutions for format:" << format;
+  qDebug() << "Settings," << metaObject()->className() << ": Initializing resolutions for format:" << format;
   advancedUI_->resolution->clear();
   QStringList resolutions;
 
@@ -406,7 +407,7 @@ void CustomSettings::initializeResolutions(QString format)
 
 void CustomSettings::initializeFramerates(QString format, int resolutionID)
 {
-  qDebug() << "Initializing resolutions for format:" << format;
+  qDebug() << "Settings,"  << metaObject()->className() << ": Initializing resolutions for format:" << format;
   advancedUI_->framerate_box->clear();
   QStringList rates;
 
@@ -434,7 +435,7 @@ void CustomSettings::initializeBlocklist()
   QSettings settings("blocklist.local", QSettings::IniFormat);
 
   int size = settings.beginReadArray("blocklist");
-  qDebug() << "Reading blocklist with" << size << "usernames";
+  qDebug() << "Settings,"  << metaObject()->className() << ": Reading blocklist with" << size << "usernames";
   for (int i = 0; i < size; ++i) {
     settings.setArrayIndex(i);
     QString username = settings.value("userName").toString();
@@ -448,7 +449,7 @@ void CustomSettings::initializeBlocklist()
 
 void CustomSettings::writeBlocklistToSettings()
 {
-  qDebug() << "Writing blocklist with" << advancedUI_->blockedUsers->rowCount()
+  qDebug() << "Settings," << metaObject()->className() << "Writing blocklist with" << advancedUI_->blockedUsers->rowCount()
            << "items to settings.";
 
   QSettings settings("blocklist.local", QSettings::IniFormat);
@@ -488,7 +489,8 @@ void CustomSettings::restoreCheckBox(const QString settingValue, QCheckBox* box)
   }
   else
   {
-    qDebug() << "Corrupted value for checkbox in settings file for:" << settingValue << "!!!";
+    qDebug() << "Settings," << metaObject()->className()
+             << ": Corrupted value for checkbox in settings file for:" << settingValue << "!!!";
   }
 }
 
@@ -521,7 +523,7 @@ bool CustomSettings::checkMissingValues()
   {
     if(settings_.value(key).isNull() || settings_.value(key) == "")
     {
-      qDebug() << "MISSING SETTING FOR:" << key;
+      qDebug() << "Settings," << metaObject()->className() << ": MISSING SETTING FOR:" << key;
       foundEverything = false;
     }
   }
@@ -536,7 +538,8 @@ bool CustomSettings::checkVideoSettings()
   {
     if(!settings_.contains(need))
     {
-      qDebug() << "Missing setting for:" << need << "Resetting custom settings";
+      qDebug() << "Settings," << metaObject()->className()
+               << "Missing setting for:" << need << "Resetting custom settings";
       everythingPresent = false;
     }
   }

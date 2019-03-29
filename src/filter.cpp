@@ -109,7 +109,7 @@ void Filter::putInput(std::unique_ptr<Data> data)
            && buff[3] == 1
            && (buff[4] >> 1) == 1))
         {
-          qDebug() << "Discarding" << i
+          qDebug() << "Processing," << metaObject()->className() << ": Discarding" << i
                    << "HEVC frames. Found non inter frame from buffer at :" << i;
           for(int j = i; j != 0; --j)
           {
@@ -123,7 +123,7 @@ void Filter::putInput(std::unique_ptr<Data> data)
     {
       if(inBuffer_[0]->type == OPUSAUDIO)
       {
-        qDebug() << "WARNING: Unimplented: Should input Null pointer to decoder";
+        qWarning() << "WARNING: Unimplented: Should input Null pointer to decoder";
       }
       inBuffer_.pop_front(); // discard the oldest
     }
@@ -132,10 +132,8 @@ void Filter::putInput(std::unique_ptr<Data> data)
     stats_->packetDropped(name_);
     if(inputDiscarded_ == 1 || inputDiscarded_%10 == 0)
     {
-      qDebug() << name_ << "buffer full. Discarded input:"
-               << inputDiscarded_
-               << "Total input:"
-               << inputTaken_;
+      qDebug() << "Processing," << name_ << "buffer full. Discarded input:"
+               << inputDiscarded_  << "Total input:" << inputTaken_;
     }
   }
   wakeUp();
@@ -217,7 +215,8 @@ void Filter::stop()
 void Filter::run()
 {
   stats_->addFilter(name_, (uint64_t)currentThreadId());
-  //qDebug() << "Running filter" << name_ << "with max buffer:" << maxBufferSize_;
+  //qDebug() << "Iniating," << metaObject()->className()
+    //<< Running filter" << name_ << "with max buffer:" << maxBufferSize_;
   running_ = true;
   while(running_)
   {

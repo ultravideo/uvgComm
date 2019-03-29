@@ -28,7 +28,7 @@ bool OpusDecoderFilter::init()
 
   if(error)
   {
-    qWarning() << "Failed to initialize opus decoder with errorcode:" << error;
+    qWarning() << "WARNING:" << metaObject()->className() << ": Failed to initialize opus decoder with errorcode:" << error;
     return false;
   }
   return true;
@@ -61,7 +61,7 @@ void OpusDecoderFilter::process()
     }
     else
     {
-      qWarning() << "Warning: Failed to encode audio frame. Error:" << len;
+      qWarning() << "WARNING," << metaObject()->className() << ":Failed to encode audio frame. Error:" << len;
     }
     input = getInput();
   }

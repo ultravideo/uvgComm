@@ -56,7 +56,7 @@ void FilterGraph::updateSettings()
   // if the video format has changed so that we need different conversions
   if(videoFormat_ != settings.value("video/InputFormat").toString())
   {
-    qDebug() << "The video format has been changed from " << videoFormat_
+    qDebug() << "Settings, FilterGraph :" << "The video format has been changed from " << videoFormat_
              << "to" << settings.value("video/InputFormat").toString() << "Video send graph has to be reconstructed.";
 
     // update selfview in case camera format has changed
@@ -111,7 +111,7 @@ void FilterGraph::updateSettings()
 
 void FilterGraph::initSelfView(VideoInterface *selfView)
 {
-  qDebug() << "Iniating camera and selfview";
+  qDebug() << "Iniating, FilterGraph : " << "Iniating camera and selfview";
 
   if(videoSend_.size() > 0)
   {
@@ -143,16 +143,16 @@ void FilterGraph::initSelfView(VideoInterface *selfView)
 
 void FilterGraph::initVideoSend()
 {
-  qDebug() << "Iniating video send";
+  qDebug() << "Session construction," << "FilterGraph :" << "Iniating video send";
 
   if(videoSend_.size() == 0)
   {
-    qDebug() << "WARNING: Camera was not iniated for video send";
+    qDebug() << "WARNING: FilterGraph : Camera was not iniated for video send";
     initSelfView(selfView_);
   }
   else if(videoSend_.size() > 3)
   {
-    qDebug() << "WARNING: Too many filters in videosend";
+    qDebug() << "WARNING: FilterGraph : Too many filters in videosend";
     destroyFilters(videoSend_);
   }
 
@@ -175,7 +175,7 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
   {
     if(graph.at(connectIndex)->outputType() != filter->inputType())
     {
-      qDebug() << "Filter output and input do not match for" << graph.at(connectIndex)->getName()
+      qDebug() << "FilterGraph : Filter output and input do not match for" << graph.at(connectIndex)->getName()
                << "->" << filter->getName() << "Trying to find an existing conversion:"
                << graph.at(connectIndex)->outputType() << "to" << filter->inputType();
 
@@ -186,20 +186,20 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
       if(graph.at(connectIndex)->outputType() == RGB32VIDEO &&
          filter->inputType() == YUVVIDEO)
       {
-        qDebug() << "Found RGB32 to YUV conversion needed";
+        qDebug() << "FilterGraph : Found RGB32 to YUV conversion needed";
         addToGraph(std::shared_ptr<Filter>(new RGB32toYUV("", stats_, conversionIndex_)), graph, connectIndex);
         ++conversionIndex_;
       }
       else if(graph.at(connectIndex)->outputType() == YUVVIDEO &&
               filter->inputType() == RGB32VIDEO)
       {
-        qDebug() << "Found RGB32 to YUV conversion needed";
+        qDebug() << "FilterGraph : Found RGB32 to YUV conversion needed";
         addToGraph(std::shared_ptr<Filter>(new YUVtoRGB32("", stats_, conversionIndex_)), graph, connectIndex);
         ++conversionIndex_;
       }
       else
       {
-        qWarning() << "WARNING: Could not find conversion for filter";
+        qWarning() << "WARNING, FilterGraph : Could not find conversion for filter";
         return false;
       }
       // the conversion filter has been added to the end
@@ -211,18 +211,18 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
   graph.push_back(filter);
   filter->init();
   filter->start();
-  qDebug() << "Added, iniated and started" << filter->getName();
+  qDebug() << "FilterGraph : Added, iniated and started" << filter->getName();
   return true;
 }
 
 bool FilterGraph::connectFilters(std::shared_ptr<Filter> filter, std::shared_ptr<Filter> previous)
 {
   Q_ASSERT(filter != nullptr && previous != nullptr);
-  qDebug() << "Connecting filters:" << previous->getName() << "->" << filter->getName();
+  qDebug() << "FilterGraph : Connecting filters:" << previous->getName() << "->" << filter->getName();
 
   if(previous->outputType() != filter->inputType())
   {
-    qWarning() << "WARNING: The connecting filter output and input DO NOT MATCH";
+    qWarning() << "WARNING, FilterGraph : The connecting filter output and input DO NOT MATCH";
     return false;
   }
   previous->addOutConnection(filter);
@@ -234,18 +234,18 @@ void FilterGraph::checkParticipant(uint32_t sessionID)
   Q_ASSERT(stats_);
   Q_ASSERT(sessionID);
 
-  //qDebug() << "Checking participant with session ID:" << sessionID;
+  //qDebug() << "FilterGraph : Checking participant with session ID:" << sessionID;
 
   if(peers_.size() >= sessionID)
   {
     if(peers_.at(sessionID - 1) != nullptr)
     {
-      qDebug() << "Filter graph: Peer exists for session ID:" << sessionID;
+      qDebug() << "FilterGraph: Peer exists for session ID:" << sessionID;
       return;
     }
     else
     {
-      qDebug() << "Filter graph: Replacing old participant with session ID:" << sessionID;
+      qDebug() << "FilterGraph: Replacing old participant with session ID:" << sessionID;
       peers_.at(sessionID - 1) = new Peer;
     }
   }
@@ -257,7 +257,7 @@ void FilterGraph::checkParticipant(uint32_t sessionID)
     }
     peers_.at(sessionID - 1) = new Peer();
 
-    qDebug() << "Filter graph: Adding participant to end with sessionID:" << sessionID;
+    qDebug() << "FilterGraph: Adding participant to end with sessionID:" << sessionID;
   }
 
   peers_.at(sessionID - 1)->output = nullptr;
@@ -270,7 +270,7 @@ void FilterGraph::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoF
   Q_ASSERT(sessionID);
   Q_ASSERT(videoFramedSource);
 
-  qDebug() << "Adding send video for peer:" << sessionID;
+  qDebug() << "Session construction, FilterGraph: Adding send video for peer:" << sessionID;
 
   // make sure we are generating video
   if(videoSend_.size() < 4)
@@ -283,7 +283,7 @@ void FilterGraph::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoF
 
   if(peers_.at(sessionID - 1)->videoFramedSource)
   {
-    qWarning() << "Warning: We are already sending video to participant.";
+    qWarning() << "WARNING: We are already sending video to participant.";
     return;
   }
 
@@ -304,7 +304,7 @@ void FilterGraph::receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> v
 
   if(!peers_.at(sessionID - 1)->videoReceive.empty())
   {
-    qWarning() << "Warning: We are receiving video from this participant:" << sessionID;
+    qWarning() << "WARNING: We are receiving video from this participant:" << sessionID;
     return;
   }
   addToGraph(videoSink, peers_.at(sessionID - 1)->videoReceive);
@@ -358,7 +358,7 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
 
   if(!peers_.at(sessionID - 1)->audioReceive.empty())
   {
-    qWarning() << "Warning: We are receiving video from this participant:" << sessionID;
+    qWarning() << "WARNING, FilterGraph : We are receiving video from this participant:" << sessionID;
     return;
   }
   addToGraph(audioSink, peers_.at(sessionID - 1)->audioReceive);
@@ -375,7 +375,7 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
   }
   else
   {
-    qWarning() << "WARNING: Did not attach echo cancellation";
+    qWarning() << "WARNING, FilterGraph : Did not attach echo cancellation";
   }
 
   peers_.at(sessionID - 1)->output = new AudioOutput(stats_, sessionID);
@@ -430,12 +430,12 @@ void FilterGraph::mic(bool state)
   {
     if(!state)
     {
-      qDebug() << "Stopping microphone";
+      qDebug() << "FilterGraph : Stopping microphone";
       audioSend_.at(0)->stop();
     }
     else
     {
-      qDebug() << "Starting microphone";
+      qDebug() << "FilterGraph : Starting microphone";
       audioSend_.at(0)->start();
     }
   }
@@ -447,12 +447,12 @@ void FilterGraph::camera(bool state)
   {
     if(!state)
     {
-      qDebug() << "Stopping camera";
+      qDebug() << "FilterGraph : Stopping camera";
       videoSend_.at(0)->stop();
     }
     else
     {
-      qDebug() << "Starting camera";
+      qDebug() << "FilterGraph : Starting camera";
       videoSend_.at(0)->start();
     }
   }
@@ -497,7 +497,8 @@ void FilterGraph::destroyFilters(std::vector<std::shared_ptr<Filter> > &filters)
 {
   if(filters.size() != 0)
   {
-    qDebug() << "Destroying filter graph with" << filters.size() << "filters.";
+    qDebug() << "Closing, FilterGraph :"
+             << "Destroying filter graph with" << filters.size() << "filters.";
   }
   for( std::shared_ptr<Filter> f : filters )
   {
@@ -509,7 +510,7 @@ void FilterGraph::destroyFilters(std::vector<std::shared_ptr<Filter> > &filters)
 
 void FilterGraph::destroyPeer(Peer* peer)
 {
-  qDebug() << "Destroying peer from Filter Graph";
+  qDebug() << "Remove participant, Filter Graph: Destroying peer from Filter Graph";
   if(peer->audioFramedSource)
   {
     audioSend_.back()->removeOutConnection(peer->audioFramedSource);
@@ -543,7 +544,7 @@ void FilterGraph::destroyPeer(Peer* peer)
 
 void FilterGraph::removeParticipant(uint32_t sessionID)
 {
-  qDebug() << "Removing peer:" << sessionID << "/" << peers_.size();
+  qDebug() << "Remove participant, FilterGraph : Removing peer:" << sessionID << "/" << peers_.size();
   Q_ASSERT(sessionID <= peers_.size());
   if(peers_.at(sessionID - 1) != nullptr)
     destroyPeer(peers_.at(sessionID - 1));

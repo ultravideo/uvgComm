@@ -89,10 +89,12 @@ void ConferenceView::incomingCall(uint32_t sessionID, QString name)
 {
   if(activeCalls_.find(sessionID) != activeCalls_.end())
   {
-    qWarning() << "WARNING: Incoming call already has an allocated view. Session:" << sessionID;
+    qWarning() << "WARNING," << metaObject()->className()
+               << "Incoming call already has an allocated view. Session:" << sessionID;
     return;
   }
-  qDebug() << "Displaying pop-up for somebody calling in slot:" << row_ << "," << column_;
+  qDebug() << "Incoming call," << metaObject()->className()
+           << "Displaying pop-up for somebody calling in slot:" << row_ << "," << column_;
 
   attachIncomingCallWidget(name, sessionID);
 }
@@ -183,7 +185,7 @@ void ConferenceView::attachWidget(uint32_t sessionID, QWidget* view)
     }
   }
   else {
-    qDebug() << "ERROR: Trying to attach fullscreenview back to layout when the sessionID"
+    qWarning() << "ERROR," << metaObject()->className() << ": Trying to attach fullscreenview back to layout when the sessionID"
              << sessionID << " does not exist in conference view.";
   }
   layoutMutex_.unlock();
@@ -209,8 +211,9 @@ void ConferenceView::detachWidget(uint32_t sessionID, QWidget* view)
   }
   else
   {
-    qDebug() << "ERROR: Trying to detach fullscreenview from the layout when the sessionID"
-             << sessionID << " does not exist in  conference view.";
+    qWarning() << "ERROR," << metaObject()->className()
+               << ": Trying to detach fullscreenview from the layout when the sessionID"
+               << sessionID << " does not exist in  conference view.";
   }
 
   layoutMutex_.unlock();
@@ -224,7 +227,8 @@ void ConferenceView::addVideoStream(uint32_t sessionID, std::shared_ptr<Videovie
 
   if(activeCalls_.find(sessionID) == activeCalls_.end())
   {
-    qDebug() << "Did not find asking widget. Assuming auto-accept and adding widget";
+    qDebug() << "Session construction," << metaObject()->className()
+             << ": Did not find asking widget. Assuming auto-accept and adding widget";
     addWidgetToLayout(VIEWVIDEO, nullptr, "Auto-Accept", sessionID);
   }
   else if(activeCalls_[sessionID]->state != VIEWASKING
@@ -263,7 +267,7 @@ void ConferenceView::addVideoStream(uint32_t sessionID, std::shared_ptr<Videovie
 void ConferenceView::ringing(uint32_t sessionID)
 {
   // get widget from layout and change the text.
-  qDebug() << sessionID << "Call is ringing";
+  qDebug() << "Ringing," << metaObject()->className() << ": Call is ringing. SessionID" << sessionID;
 
   if(activeCalls_.find(sessionID) == activeCalls_.end())
   {
@@ -336,7 +340,8 @@ void ConferenceView::nextSlot()
 
 void ConferenceView::close()
 {
-  qDebug() << "Closing views of the call with" << detachedWidgets_.size() << "detached widgets";
+  qDebug() << "End all calls," << metaObject()->className() << ": Closing views of the call with"
+           << detachedWidgets_.size() << "detached widgets";
   for (std::map<uint32_t, std::unique_ptr<CallInfo>>::iterator view = activeCalls_.begin();
        view != activeCalls_.end(); ++view)
   {
@@ -395,7 +400,7 @@ void ConferenceView::uninitCaller(std::unique_ptr<CallInfo> peer)
     row_ = 0;
     column_ = 0;
     rowMaxLength_ = 2;
-    qDebug() << "Removing last video view. Clearing previous data";
+    qDebug() << "Closing," << metaObject()->className() << ": Removing last video view. Clearing previous data";
   }
   locMutex_.unlock();
 }
@@ -404,7 +409,7 @@ void ConferenceView::uninitDetachedWidget(uint32_t sessionID)
 {
   if(detachedWidgets_.find(sessionID) != detachedWidgets_.end())
   {
-    qDebug() << "The widget was detached for sessionID" << sessionID << "so we destroy it.";
+    qDebug() << "Closing," << metaObject()->className() << ": The widget was detached for sessionID" << sessionID << "so we destroy it.";
     delete detachedWidgets_[sessionID];
     detachedWidgets_.erase(sessionID);
   }
@@ -419,7 +424,7 @@ void ConferenceView::accept()
   }
   else
   {
-    qCritical() << "ERROR: Couldn't find the invoker for accept";
+    qCritical() << "ERROR," << metaObject()->className() << "Couldn't find the invoker for accept";
   }
 }
 

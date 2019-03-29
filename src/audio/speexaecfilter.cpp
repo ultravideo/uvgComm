@@ -50,17 +50,19 @@ void SpeexAECFilter::process()
   {
     for(uint32_t i = 0; i < input->data_size; i += format_.bytesPerFrame()*numberOfSamples_)
     {
-      //qDebug() << "AEC audio input:" << input->data_size << "index:" << i << "samples:" << numberOfSamples_;
+      //qDebug() << "process," << metaObject()->className()
+          //<< ": audio input:" << input->data_size << "index:" << i << "samples:" << numberOfSamples_;
       if(input->source == LOCAL)
       {
         ++in_;
-        //qDebug() << "AEC: Getting input from mic:" << in_;
+        //qDebug() << "process," << metaObject()->className()
+         //<< "AEC: Getting input from mic:" << in_;
         speex_echo_playback(echo_state_, (int16_t*)input->data.get() + i/2);
       }
       else if( in_ >= out_)
       {
         ++out_;
-        //qDebug() << "AEC: Getting reply from outside:" << out_ << "in:" << in_;
+        //qDebug() << "process," << metaObject()->className() << ": Getting reply from outside:" << out_ << "in:" << in_;
 
         // TODO: implement more channels
         if(format_.channelCount() == 1)

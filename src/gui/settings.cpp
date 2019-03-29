@@ -40,7 +40,7 @@ void Settings::show()
 
 void Settings::on_ok_clicked()
 {
-  qDebug() << "Saving basic settings";
+  qDebug() << "Settings," << metaObject()->className() << ": Saving basic settings";
   // The UI values are saved to settings.
   saveSettings();
   emit settingsChanged(); // TODO: check have the settings actually been changed
@@ -49,7 +49,9 @@ void Settings::on_ok_clicked()
 
 void Settings::on_cancel_clicked()
 {
-  qDebug() << "Settings Cancel clicked. Getting settings from system";
+  qDebug() << "Settings," << metaObject()->className()
+           << ": Cancel clicked. Getting settings from system";
+
   // discard UI values and restore the settings from file
   getSettings(false);
   hide();
@@ -63,7 +65,7 @@ void Settings::on_advanced_settings_button_clicked()
 
 void Settings::initializeUIDeviceList()
 {
-  qDebug() << "Initialize device list";
+  qDebug() << "Settings," << metaObject()->className() << ": Initialize device list";
   basicUI_->videoDevice->clear();
   QStringList videoDevices = cam_->getVideoDevices();
   for(int i = 0; i < videoDevices.size(); ++i)
@@ -85,7 +87,7 @@ void Settings::initializeUIDeviceList()
 // records the settings
 void Settings::saveSettings()
 {
-  qDebug() << "Saving basic Settings";
+  qDebug() << "Settings," << metaObject()->className() << ": Saving basic Settings";
 
   // Local settings
   saveTextValue("local/Name", basicUI_->name_edit->text());
@@ -110,7 +112,8 @@ void Settings::saveSettings()
     // record index in all cases
     settings_.setValue("video/DeviceID",      currentIndex);
 
-    qDebug() << "Recording following device:" << basicUI_->videoDevice->currentText();
+    qDebug() << "Settings," << metaObject()->className()
+             << "Recording following device:" << basicUI_->videoDevice->currentText();
   }
 }
 
@@ -122,7 +125,7 @@ void Settings::getSettings(bool changedDevice)
   //get values from QSettings
   if(checkMissingValues() && checkUserSettings())
   {
-    qDebug() << "Restoring previous Basic settings from file:" << settings_.fileName();
+    qDebug() << "Settings," << metaObject()->className() << ": Restoring user settings from file:" << settings_.fileName();
     basicUI_->name_edit->setText      (settings_.value("local/Name").toString());
     basicUI_->username_edit->setText  (settings_.value("local/Username").toString());
     restoreCheckBox("local/Auto-Accept", basicUI_->auto_accept);
@@ -142,7 +145,8 @@ void Settings::getSettings(bool changedDevice)
 
 void Settings::resetFaultySettings()
 {
-  qDebug() << "Could not restore settings because they were corrupted!";
+  qDebug() << "WARNING," << metaObject()->className()
+           << ": Could not restore settings because they were corrupted!";
   // record GUI settings in hope that they are correct ( is case by default )
   saveSettings();
   custom_.resetSettings(getVideoDeviceID());
@@ -159,8 +163,9 @@ int Settings::getVideoDeviceID()
   int deviceIndex = basicUI_->videoDevice->findText(settings_.value("video/Device").toString());
   int deviceID = settings_.value("video/DeviceID").toInt();
 
-  qDebug() << "deviceIndex:" << deviceIndex << "deviceID:" << deviceID;
-  qDebug() << "deviceName:" << settings_.value("video/Device").toString();
+  qDebug() << "Settings," << metaObject()->className()
+           << "Get device id: Index:" << deviceIndex << "deviceID:"
+           << deviceID << "Name:" << settings_.value("video/Device").toString();
 
   // if the device exists in list
   if(deviceIndex != -1 && basicUI_->videoDevice->count() != 0)
@@ -205,7 +210,7 @@ bool Settings::checkMissingValues()
   {
     if(settings_.value(key).isNull() || settings_.value(key) == "")
     {
-      qDebug() << "MISSING SETTING FOR:" << key;
+      qDebug() << "WARNING," << metaObject()->className() << ": MISSING SETTING FOR:" << key;
       foundEverything = false;
     }
   }
@@ -233,7 +238,7 @@ void Settings::restoreCheckBox(const QString settingValue, QCheckBox* box)
   }
   else
   {
-    qDebug() << "Corrupted value for checkbox in settings file for:" << settingValue << "!!!";
+    qDebug() << "WARNING," << metaObject()->className() << "Corrupted value for checkbox in settings file for:" << settingValue << "!!!";
   }
 }
 
