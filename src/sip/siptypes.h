@@ -5,8 +5,8 @@
 
 #include <memory>
 
-enum RequestType {SIP_UNKNOWN_REQUEST, INVITE, ACK, BYE, CANCEL, OPTIONS, REGISTER}; // RFC 3261
- //PRACK,SUBSCRIBE, NOTIFY, PUBLISH, INFO, REFER, MESSAGE, UPDATE }; RFC 3262, 6665, 3903, 6086, 3515, 3428, 3311, 4916
+enum RequestType {SIP_NO_REQUEST, SIP_INVITE, SIP_ACK, SIP_BYE, SIP_CANCEL, SIP_OPTIONS, SIP_REGISTER}; // RFC 3261
+ //SIP_PRACK, SIP_SUBSCRIBE, SIP_NOTIFY, SIP_PUBLISH, SIP_INFO, SIP_REFER, SIP_MESSAGE, SIP_UPDATE }; RFC 3262, 6665, 3903, 6086, 3515, 3428, 3311, 4916
 
 // the phrase is for humans only, so we will ignore it when parsing and use the code instead
 enum ResponseType {SIP_UNKNOWN_RESPONSE = 0,
@@ -87,6 +87,9 @@ enum ResponseType {SIP_UNKNOWN_RESPONSE = 0,
 
 enum ConnectionType {ANY, TCP, UDP, TLS};
 
+enum UriType {SIP, SIPS, TEL};
+
+
 // 7 is the length of preset string
 const uint32_t BRANCHLENGTH = 32 - 7;
 
@@ -104,6 +107,7 @@ struct SIP_URI
   QString username;
   QString realname;
   QString host;
+  UriType type;
 };
 
 enum ContentType {NO_CONTENT, APPLICATION_SDP, TEXT_PLAIN};
@@ -163,6 +167,7 @@ struct SIPMessageInfo
 struct SIPRequest
 {
   RequestType type;
+  SIP_URI requestURI;
   std::shared_ptr<SIPMessageInfo> message;
 };
 

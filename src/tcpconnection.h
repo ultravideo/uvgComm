@@ -18,7 +18,7 @@ public:
 
   void stopConnection()
   {
-    running_ = false;
+    active_ = false;
     eventDispatcher()->interrupt();
   }
 
@@ -44,20 +44,22 @@ public:
 
   bool isConnected() const
   {
-    return socket_->state() == QAbstractSocket::ConnectedState;
+    return socket_ && socket_->state() == QAbstractSocket::ConnectedState;
   }
 
   // TODO: Returns empty if we are not connected to anything.
   QHostAddress localAddress()
   {
-    Q_ASSERT(connected_);
+    Q_ASSERT(socket_);
+    Q_ASSERT(socket_->state() == QAbstractSocket::ConnectedState);
     Q_ASSERT(socket_->localAddress().toString() != "");
     return socket_->localAddress();
   }
 
   QHostAddress remoteAddress()
   {
-    Q_ASSERT(connected_);
+    Q_ASSERT(socket_);
+    Q_ASSERT(socket_->state() == QAbstractSocket::ConnectedState);
     Q_ASSERT(socket_->peerAddress().toString() != "");
     return socket_->peerAddress();
   }
@@ -73,6 +75,7 @@ private slots:
   void receivedMessage();
   void printBytesWritten(qint64 bytes);
 
+  void disconnected();
 
 protected:
 
@@ -80,11 +83,13 @@ protected:
 
 private:
 
+  // connects signals.
   void init();
 
   void printError(int socketError, const QString &message);
 
-  void connectLoop();
+  // return if succeeded
+  bool connectLoop();
   void receiveLoop();
   void sendLoop();
 
@@ -97,7 +102,6 @@ private:
   QTcpSocket *socket_;
 
   bool shouldConnect_;
-  bool connected_; // TODO: there ma be a bug with this
 
   QString destination_;
   uint16_t port_;
@@ -107,8 +111,10 @@ private:
 
   QMutex sendMutex_;
 
-  bool running_;
-  bool started_;
+  // Indicates whether the connection is active or disconnected
+  bool active_;
+
+  QMutex readWriteMutex_;
 
   QString leftOvers_;
 };

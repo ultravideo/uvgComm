@@ -53,7 +53,7 @@ void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data,
   {
     if(previousSize_ != image.size())
     {
-      qDebug() << "Video widget needs to update its target rectangle because of resolution change.";
+      qDebug() << "Drawing," << metaObject()->className() << ": Video widget needs to update its target rectangle because of resolution change.";
       viewBuffer_.clear();
       dataBuffer_.clear();
 
@@ -71,7 +71,7 @@ void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data,
     // delete oldes image if there is too much buffer
     if(viewBuffer_.size() > VIEWBUFFERSIZE)
     {
-      qDebug() << "Buffer full:" << viewBuffer_.size() << "/" <<VIEWBUFFERSIZE
+      qDebug() << "Drawing," << metaObject()->className() << ": Buffer full:" << viewBuffer_.size() << "/" <<VIEWBUFFERSIZE
                << "Deleting oldest image from viewBuffer in videowidget:" << sessionID_;
       viewBuffer_.pop_back();
       dataBuffer_.pop_back();
@@ -139,7 +139,8 @@ void VideoDrawHelper::updateTargetRect(QWidget* widget)
   }
   else
   {
-    qDebug() << "VideoWidget: Tried updating target rect before picture";
+    qDebug() << "Drawing," << metaObject()->className()
+             << ": Tried updating target rect before picture";
   }
 }
 
@@ -148,7 +149,7 @@ void VideoDrawHelper::keyPressEvent(QWidget* widget, QKeyEvent *event)
 {
   if(event->key() == Qt::Key_Escape)
   {
-    qDebug() << "Esc key pressed";
+    qDebug() << "Drawing," << metaObject()->className() << ": Esc key pressed";
     if(widget->isFullScreen() && sessionID_ != 0)
     {
       exitFullscreen(widget);
@@ -156,7 +157,7 @@ void VideoDrawHelper::keyPressEvent(QWidget* widget, QKeyEvent *event)
   }
   else
   {
-    qDebug() << "You Pressed non-ESC Key";
+    qDebug() << "Drawing," << metaObject()->className() << ": You Pressed non-ESC Key";
   }
 }
 
@@ -174,7 +175,7 @@ void VideoDrawHelper::mouseDoubleClickEvent(QWidget* widget) {
 
 void VideoDrawHelper::enterFullscreen(QWidget* widget)
 {
-  qDebug() << "Setting VideoGLWidget fullscreen";
+  qDebug() << "Drawing," << metaObject()->className() << ": Setting VideoGLWidget fullscreen";
 
   tmpParent_ = widget->parentWidget();
   widget->setParent(nullptr);
@@ -189,7 +190,7 @@ void VideoDrawHelper::enterFullscreen(QWidget* widget)
 
 void VideoDrawHelper::exitFullscreen(QWidget* widget)
 {
-  qDebug() << "Returning video widget" << sessionID_ << "to original place.";
+  qDebug() << "Drawing," << metaObject()->className() << ": Returning video widget" << sessionID_ << "to original place.";
   widget->setParent(tmpParent_);
   //this->showMaximized();
   widget->show();

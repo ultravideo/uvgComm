@@ -2,7 +2,7 @@
 
 #include "globalsdpstate.h"
 #include "sip/siptransport.h"
-#include "sip/sipregistration.h"
+#include "sip/sipnondialogclient.h"
 #include "connectionserver.h"
 
 #include "common.h"
@@ -34,7 +34,7 @@ class SIPRouting;
 class SIPDialogState;
 class SIPTransactionUser;
 class SIPServerTransaction;
-class SIPClientTransaction;
+class SIPDialogClient;
 
 class SIPTransactions : public QObject
 {
@@ -78,7 +78,7 @@ private slots:
   void processSIPResponse(SIPResponse response, quint32 transportID, QVariant& content);
 
   void sendDialogRequest(uint32_t sessionID, RequestType type);
-  void sendNonDialogMethod(SIP_URI& uri, RequestType type);
+  void sendNonDialogRequest(SIP_URI& uri, RequestType type);
 
   void sendResponse(uint32_t sessionID, ResponseType type, RequestType originalRequest);
 
@@ -91,7 +91,7 @@ private:
     std::shared_ptr<SIPDialogState> state;
     // do not stop connection before responding to all requests
     std::shared_ptr<SIPServerTransaction> server;
-    std::shared_ptr<SIPClientTransaction> client;
+    std::shared_ptr<SIPDialogClient> client;
     std::shared_ptr<SDPMessageInfo> localSdp_;
     std::shared_ptr<SDPMessageInfo> remoteSdp_;
 
@@ -101,13 +101,18 @@ private:
     CallConnectionType connectionType;
   };
 
+  struct SIPRegistrationData
+  {
+    std::shared_ptr<SIPNonDialogClient> client;
+    std::shared_ptr<SIPDialogState> state;
+
+    quint32 transportID;
+  };
+
   std::shared_ptr<SIPTransport> createSIPTransport();
   std::shared_ptr<SIPRouting> createSIPRouting(QString remoteUsername,
                                                QString localAddress,
                                                QString remoteAddress, bool hostedSession);
-
-  // helper function that has the common parts of
-  void sendRequest(uint32_t sessionID, RequestType type);
 
   // returns whether we should continue with processing
   bool processSDP(uint32_t sessionID, QVariant &content, QHostAddress localAddress);
@@ -141,10 +146,10 @@ private:
   };
 
   QMutex pendingConnectionMutex_;
+
   // key is transportID
   std::map<quint32, DialogRequest> pendingDialogRequests_;
   std::map<quint32, NonDialogRequest> pendingNonDialogRequests_;
-
 
   // sessionID:s are positions in this list. SessionID:s are used in this program to
   // keep track of dialogs. The CallID is not used because we could be calling ourselves
@@ -152,22 +157,17 @@ private:
 
   // TODO: separate dialog forming from dialog
   QList<std::shared_ptr<SIPDialogData>> dialogs_;
+  std::map<QString, SIPRegistrationData> registrations_;
   QList<std::shared_ptr<SIPTransport>> transports_;
 
   QList<QString> directContactAddresses_;
-  QList<SIPRegistration> sipServerRegistrations_;
 
-  // used with non-dialog messages
-  std::shared_ptr<SIPClientTransaction> generalClient;
-  std::shared_ptr<SIPServerTransaction> generalServer;
+  std::unique_ptr<SIPNonDialogClient> nonDialogClient_;
 
   GlobalSDPState sdp_;
 
   ConnectionServer tcpServer_;
   uint16_t sipPort_;
-
-  // use this client to register us to a server
-  std::shared_ptr<SIPClientTransaction> registerClient_;
 
   SIPTransactionUser* transactionUser_;
 };

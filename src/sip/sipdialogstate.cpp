@@ -14,14 +14,11 @@ SIPDialogState::SIPDialogState():
   callID_(""),
   // cseq start value. For example 31-bits of 32-bit clock
   localCSeq_(QDateTime::currentSecsSinceEpoch()%2147483647),
-  remoteCSeq_(0),
-  secure_(false)
+  remoteCSeq_(0)
 {}
 
-void SIPDialogState::init(SIP_URI remoteURI)
+void SIPDialogState::initLocalURI()
 {
-  remoteUri_ = remoteURI;
-
   // init stuff from the settings
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
 
@@ -35,10 +32,8 @@ void SIPDialogState::init(SIP_URI remoteURI)
   }
 }
 
-void SIPDialogState::createNewDialog(SIP_URI remoteURI)
+void SIPDialogState::initCallInfo()
 {
-  init(remoteURI);
-
   localTag_ = generateRandomString(TAGLENGTH);
   callID_ = generateRandomString(CALLIDLENGTH);
   if(localUri_.host != "")
@@ -50,6 +45,31 @@ void SIPDialogState::createNewDialog(SIP_URI remoteURI)
 }
 
 
+void SIPDialogState::setPeerToPeerHostname(QString hostName, bool setCallinfo)
+{
+  localUri_.host = hostName;
+  if (setCallinfo)
+  {
+    initCallInfo();
+  }
+}
+
+void SIPDialogState::createNewDialog(SIP_URI remoteURI)
+{
+  initLocalURI();
+  remoteUri_ = remoteURI;
+  requestUri_ = remoteURI;
+}
+
+void SIPDialogState::createServerDialog(SIP_URI requestURI)
+{
+  initLocalURI();
+  remoteUri_ = localUri_;
+  requestUri_ = requestURI; // server has different request uri from remote
+  localCSeq_ = 0;
+  initCallInfo();
+}
+
 void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inMessage)
 {
   qDebug() << "Initializing SIP dialog with incoming INVITE.";
@@ -57,11 +77,13 @@ void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inM
   Q_ASSERT(inMessage);
   Q_ASSERT(inMessage->dialog);
 
-  init(inMessage->from);
+  initLocalURI();
+  remoteUri_ = inMessage->from;
+  requestUri_ = inMessage->from;
 
   if(callID_ != "")
   {
-    if(correctRequestDialog(inMessage->dialog, INVITE, inMessage->cSeq))
+    if(correctRequestDialog(inMessage->dialog, SIP_INVITE, inMessage->cSeq))
     {
       qDebug() << "ERROR: Re-INVITE should be processed differently.";
       return;
@@ -76,6 +98,7 @@ void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inM
   if(remoteTag_ == "")
   {
     qDebug() << "PEER_ERROR: They did not provide their tag in INVITE!";
+    // TODO: send an error response.
   }
 
   remoteCSeq_ = inMessage->cSeq;
@@ -98,17 +121,10 @@ void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inM
 }
 
 
-void SIPDialogState::getRequestDialogInfo(RequestType type, QString localAddress,
-                                     std::shared_ptr<SIPMessageInfo>& outMessage)
+void SIPDialogState::getRequestDialogInfo(SIPRequest &outRequest, QString localAddress)
 {
   Q_ASSERT(localUri_.username != "" && localUri_.host != "");
   Q_ASSERT(remoteUri_.username != "" && remoteUri_.host != "");
-
-  if(localAddress == "")
-  {
-    qDebug() << "ERROR: No local address provided for requesting dialog info";
-    return;
-  }
 
   if(localUri_.username == "" || localUri_.host == "" ||
      remoteUri_.username == "" || remoteUri_.host == "")
@@ -118,20 +134,21 @@ void SIPDialogState::getRequestDialogInfo(RequestType type, QString localAddress
                 "remote username:" << remoteUri_.username << "host:" << remoteUri_.host;
   }
 
+  outRequest.requestURI = requestUri_;
 
-  if(type != ACK && type != CANCEL)
+  if(outRequest.type != SIP_ACK && outRequest.type != SIP_CANCEL)
   {
     ++localCSeq_;
   }
 
-  outMessage->cSeq = localCSeq_;
-  outMessage->from = localUri_;
-  outMessage->to = remoteUri_;
-  outMessage->contact = localUri_;
-  outMessage->senderReplyAddress.push_back(getLocalVia(localAddress));
+  outRequest.message->cSeq = localCSeq_;
+  outRequest.message->from = localUri_;
+  outRequest.message->to = remoteUri_;
+  outRequest.message->contact = localUri_;
+  outRequest.message->senderReplyAddress.push_back(getLocalVia(localAddress));
 
   // SIPDialogInfo format: toTag, fromTag, CallID
-  outMessage->dialog
+  outRequest.message->dialog
       = std::shared_ptr<SIPDialogInfo> (new SIPDialogInfo{remoteTag_, localTag_, callID_});
 }
 
@@ -155,7 +172,7 @@ bool SIPDialogState::correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog,
      ( dialog->callID == callID_))
   {
     // The request cseq should be larger than our remotecseq.
-    if(remoteCSeq <= remoteCSeq_ && type != ACK && type != CANCEL)
+    if(remoteCSeq <= remoteCSeq_ && type != SIP_ACK && type != SIP_CANCEL)
     {
       qDebug() << "PEER_ERROR:" << "Their Cseq was smaller than their previous cseq which is not permitted!";
       // TODO: if remote cseq in message is lower than remote cseq, send 500

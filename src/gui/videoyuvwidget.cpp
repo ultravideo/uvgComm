@@ -298,7 +298,6 @@ void VideoYUVWidget::resizeGL(int width, int height)
 
 void VideoYUVWidget::resizeEvent(QResizeEvent *event)
 {
-  qDebug() << "VideoGLWidget resizeEvent:" << sessionID_;
   QOpenGLWidget::resizeEvent(event); // its important to call this resize function, not the qwidget one.
 }
 

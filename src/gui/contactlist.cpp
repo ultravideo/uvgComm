@@ -22,7 +22,9 @@ void ContactList::initializeList(QListWidget* list, ParticipantInterface* interf
   QSettings settings("contacts.local", QSettings::IniFormat);
 
   int size = settings.beginReadArray("contacts");
-  qDebug() << "Reading contact list with" << size << "contacts";
+  qDebug() << "Intiating," << metaObject()->className()
+           << ": Contact List: Reading with" << size << "contacts";
+
   for (int i = 0; i < size; ++i) {
     settings.setArrayIndex(i);
     QString name = settings.value("name").toString();
@@ -65,8 +67,9 @@ void ContactList::addContact(ParticipantInterface* interface,
 {
   Q_ASSERT(!address.isEmpty());
 
-  qDebug() << "Adding contact. Name:" << name << "username:" << username
-         << "address:" << address << "index:" << items_.size();
+  qDebug() << "Add contact," << metaObject()->className()
+           << ": Adding contact. Name:" << name << "username:" << username
+           << "address:" << address << "index:" << items_.size();
 
   if(name == "")
     name = "Anonymous";
@@ -79,7 +82,8 @@ void ContactList::addContact(ParticipantInterface* interface,
 
   if(index != -1)
   {
-    qDebug() << "User already exists at index:" << index;
+    qDebug() << "Add contact," << metaObject()->className()
+             << ": User already exists at index:" << index;
     return;
   }
 
@@ -91,7 +95,8 @@ void ContactList::addContact(ParticipantInterface* interface,
 
 void ContactList::writeListToSettings()
 {
-  qDebug() << "Writing contactList with" << items_.size() << "items to settings.";
+  qDebug() << "add/remove contact, " << metaObject()->className()
+           << ": Writing contactList with" << items_.size() << "items to settings.";
   QSettings settings("contacts.local", QSettings::IniFormat);
 
   settings.beginWriteArray("contacts");
@@ -132,11 +137,11 @@ void ContactList::removeContact(int index)
 {
   Q_ASSERT(index != -1 && index < items_.size());
 
-  qDebug() << "Removing contact from index:" << index;
+  qDebug() << "Remove contact," << metaObject()->className() << ": Removing contact from index:" << index;
 
   if(index == -1  || index >= items_.size())
   {
-    qWarning() << "WARNING: Tried to remove a nonexisting contact";
+    qWarning() << "WARNING," << metaObject()->className() << ": Tried to remove a nonexisting contact";
     return;
   }
 

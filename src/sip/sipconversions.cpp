@@ -2,19 +2,19 @@
 
 #include <QDebug>
 
-const std::map<QString, RequestType> requestTypes = {{"INVITE", INVITE},
-                                                     {"ACK", ACK},
-                                                     {"BYE", BYE},
-                                                     {"CANCEL", CANCEL},
-                                                     {"OPTIONS", OPTIONS},
-                                                     {"REGISTER", REGISTER}};
+const std::map<QString, RequestType> requestTypes = {{"INVITE", SIP_INVITE},
+                                                     {"ACK", SIP_ACK},
+                                                     {"BYE", SIP_BYE},
+                                                     {"CANCEL", SIP_CANCEL},
+                                                     {"OPTIONS", SIP_OPTIONS},
+                                                     {"REGISTER", SIP_REGISTER}};
 
-const std::map<RequestType, QString> requestStrings = {{INVITE, "INVITE"},
-                                                       {ACK, "ACK"},
-                                                       {BYE, "BYE"},
-                                                       {CANCEL, "CANCEL"},
-                                                       {OPTIONS, "OPTIONS"},
-                                                       {REGISTER, "REGISTER"}};
+const std::map<RequestType, QString> requestStrings = {{SIP_INVITE, "INVITE"},
+                                                       {SIP_ACK, "ACK"},
+                                                       {SIP_BYE, "BYE"},
+                                                       {SIP_CANCEL, "CANCEL"},
+                                                       {SIP_OPTIONS, "OPTIONS"},
+                                                       {SIP_REGISTER, "REGISTER"}};
 
 const std::map<ResponseType, QString> responsePhrases = {{SIP_UNKNOWN_RESPONSE, "UNKNOWN RESPONSE"},
                                                        {SIP_TRYING, "TRYING"},
@@ -34,15 +34,15 @@ RequestType stringToRequest(QString request)
   if(requestTypes.find(request) == requestTypes.end())
   {
     qDebug() << "Request type not listed in conversions.";
-    return SIP_UNKNOWN_REQUEST;
+    return SIP_NO_REQUEST;
   }
   return requestTypes.at(request);
 }
 
 QString requestToString(RequestType request)
 {
-  Q_ASSERT(request != SIP_UNKNOWN_REQUEST);
-  if(request == SIP_UNKNOWN_REQUEST)
+  Q_ASSERT(request != SIP_NO_REQUEST);
+  if(request == SIP_NO_REQUEST)
   {
     return "SIP_UNKNOWN_REQUEST";
   }

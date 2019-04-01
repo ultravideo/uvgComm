@@ -68,7 +68,6 @@ SOURCES +=\
     src/sip/sipservertransaction.cpp \
     src/sip/siptransport.cpp \
     src/sip/siptransactions.cpp \
-    src/sip/sipregistration.cpp \
     src/sip/sipdialogstate.cpp \
     src/scalefilter.cpp \
     src/video/camerainfo.cpp \
@@ -79,7 +78,9 @@ SOURCES +=\
     src/sip/connectionpolicy.cpp \
     src/gui/videoyuvwidget.cpp \
     src/gui/videodrawhelper.cpp \
-    src/kvazzupcore.cpp
+    src/kvazzupcore.cpp \
+    src/sip/sipdialogclient.cpp \
+    src/sip/sipnondialogclient.cpp
 
 HEADERS  += \
     src/filter.h \
@@ -129,7 +130,6 @@ HEADERS  += \
     src/sip/siptransport.h \
     src/sip/siptypes.h \
     src/sip/siptransactions.h \
-    src/sip/sipregistration.h \
     src/sip/sipdialogstate.h \
     src/sip/sdptypes.h \
     src/scalefilter.h \
@@ -143,7 +143,9 @@ HEADERS  += \
     src/sip/connectionpolicy.h \
     src/gui/videoyuvwidget.h \
     src/gui/videodrawhelper.h \
-    src/kvazzupcore.h
+    src/kvazzupcore.h \
+    src/sip/sipdialogclient.h \
+    src/sip/sipnondialogclient.h
 
 FORMS    += \
     ui/callwindow.ui \

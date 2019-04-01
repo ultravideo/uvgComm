@@ -74,7 +74,7 @@ void SIPTransport::createConnection(ConnectionType type, QString target)
 {
   if(type == TCP)
   {
-    qDebug() << "Initiating TCP connection for sip connection number:" << transportID_;
+    qDebug() << "Connecting, SIP Transport: Initiating TCP connection for sip connection number:" << transportID_;
     connection_ = std::shared_ptr<TCPConnection>(new TCPConnection);
     signalConnections();
     connection_->establishConnection(target, SIP_PORT);
@@ -133,11 +133,11 @@ void SIPTransport::destroyConnection()
 void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
 {
   qDebug() << "Composing SIP Request:" << requestToString(request.type);
-  Q_ASSERT((request.type != INVITE && request.type != ACK) ||
+  Q_ASSERT((request.type != SIP_INVITE && request.type != SIP_ACK) ||
       (request.message->content.type == APPLICATION_SDP && content.isValid()));
   Q_ASSERT(connection_ != nullptr);
 
-  if((request.type == INVITE || request.type == ACK) &&
+  if((request.type == SIP_INVITE || request.type == SIP_ACK) &&
      (request.message->content.type != APPLICATION_SDP || !content.isValid())
      || connection_ == nullptr)
   {
@@ -155,7 +155,7 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
   QString lineEnding = "\r\n";
   QString message = "";
   // adds content fields and converts the sdp to string if INVITE
-  QString sdp_str = addContent(fields, request.type == INVITE || request.type == ACK, content.value<SDPMessageInfo>());
+  QString sdp_str = addContent(fields, request.type == SIP_INVITE || request.type == SIP_ACK, content.value<SDPMessageInfo>());
   if(!getFirstRequestLine(message, request, lineEnding))
   {
     qDebug() << "WARNING: could not get first request line";
@@ -169,11 +169,11 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
 void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
 {
   qDebug() << "Composing SIP Response:" << responseToPhrase(response.type);
-  Q_ASSERT(response.message->transactionRequest != INVITE
+  Q_ASSERT(response.message->transactionRequest != SIP_INVITE
            || response.type != SIP_OK || (response.message->content.type == APPLICATION_SDP && content.isValid()));
   Q_ASSERT(connection_ != nullptr);
 
-  if(response.message->transactionRequest == INVITE && response.type == SIP_OK
+  if(response.message->transactionRequest == SIP_INVITE && response.type == SIP_OK
      && (!content.isValid() || response.message->content.type != APPLICATION_SDP)
      || connection_ == nullptr)
   {
@@ -194,7 +194,7 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
   QString lineEnding = "\r\n";
   QString message = "";
   // adds content fields and converts the sdp to string if INVITE
-  QString sdp_str = addContent(fields, response.message->transactionRequest == INVITE
+  QString sdp_str = addContent(fields, response.message->transactionRequest == SIP_INVITE
                                && response.type == SIP_OK, content.value<SDPMessageInfo>());
   if(!getFirstResponseLine(message, response, lineEnding))
   {
@@ -430,7 +430,7 @@ bool SIPTransport::fieldsToMessage(QList<SIPField>& fields,
 {
   message = std::shared_ptr<SIPMessageInfo> (new SIPMessageInfo);
   message->cSeq = 0;
-  message->transactionRequest = SIP_UNKNOWN_REQUEST;
+  message->transactionRequest = SIP_NO_REQUEST;
   message->maxForwards = 0;
   message->dialog = std::shared_ptr<SIPDialogInfo> (new SIPDialogInfo);
 
@@ -462,7 +462,7 @@ bool SIPTransport::parseRequest(QString requestString, QString version,
 
   message->version = version; // TODO: set only version not SIP/version
   RequestType requestType = stringToRequest(requestString);
-  if(requestType == SIP_UNKNOWN_REQUEST)
+  if(requestType == SIP_NO_REQUEST)
   {
     qDebug() << "Could not recognize request type!";
     return false;
@@ -476,7 +476,7 @@ bool SIPTransport::parseRequest(QString requestString, QString version,
     return false;
   }
 
-  if(requestType == INVITE && !isLinePresent("Contact", fields))
+  if(requestType == SIP_INVITE && !isLinePresent("Contact", fields))
   {
     qDebug() << "Contact header missing from INVITE request";
     return false;

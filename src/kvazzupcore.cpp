@@ -19,7 +19,14 @@ void KvazzupCore::init()
   window_.show();
 
   sip_.init(this);
-  sip_.bindToServer();
+
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+  int autoConnect = settings.value("sip/AutoConnect").toInt();
+
+  if(autoConnect == 1)
+  {
+    sip_.bindToServer();
+  }
 
   // register the GUI signals indicating GUI changes to be handled approrietly in a system wide manner
   QObject::connect(&window_, SIGNAL(settingsChanged()), this, SLOT(updateSettings()));
@@ -43,12 +50,12 @@ void KvazzupCore::init()
 
 void KvazzupCore::stunAddress(QHostAddress address)
 {
-  qDebug() << "Our stun address:" << address;
+  qDebug() << "STUN," << metaObject()->className() << ": Our stun address:" << address;
 }
 
 void KvazzupCore::noStunAddress()
 {
-  qDebug() << "Could not get STUN address";
+  qDebug() << "STUN," << metaObject()->className() << ": Could not get STUN address";
 }
 
 void KvazzupCore::uninit()
@@ -73,15 +80,15 @@ void KvazzupCore::callToParticipant(QString name, QString username, QString ip)
   con.username = username;
 
   //start negotiations for this connection
-
+  qDebug() << "Session Initiation," << metaObject()->className()
+           << ": Start Call," << metaObject()->className() << ": Initiated call starting to" << con.realName;
   sip_.startCall(con);
-
-  qDebug() << "Initiated call starting to" << con.realName;
 }
 
 void KvazzupCore::chatWithParticipant(QString name, QString username, QString ip)
 {
-  qDebug() << "Chatting with:" << name << '(' << username << ") at ip:" << ip << ": Chat not implemented yet";
+  qDebug() << "Chatting," << metaObject()->className()
+           << ": Chatting with:" << name << '(' << username << ") at ip:" << ip << ": Chat not implemented yet";
 }
 
 void KvazzupCore::outgoingCall(uint32_t sessionID, QString callee)
@@ -97,14 +104,14 @@ bool KvazzupCore::incomingCall(uint32_t sessionID, QString caller)
 {
   if(states_.find(sessionID) != states_.end())
   {
-    qDebug() << "ERROR: Overwriting and existing session in the Kvazzup Core!";
+    qDebug() << "Incoming call," << metaObject()->className() << ": ERROR: Overwriting and existing session in the Kvazzup Core!";
   }
 
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
   int autoAccept = settings.value("local/Auto-Accept").toInt();
   if(autoAccept == 1)
   {
-    qDebug() << "Incoming call auto-accpeted!";
+    qDebug() << "Incoming call," << metaObject()->className() << ": Incoming call auto-accepted!";
     userAcceptsCall(sessionID);
     states_[sessionID] = CALLNEGOTIATING;
     return true;
@@ -121,13 +128,13 @@ void KvazzupCore::callRinging(uint32_t sessionID)
 {
   if(states_.find(sessionID) != states_.end() && states_[sessionID] == CALLINGTHEM)
   {
-    qDebug() << "Our call is ringing!";
+    qDebug() << "Ringing," << metaObject()->className() << ": Our call is ringing!";
     window_.displayRinging(sessionID);
     states_[sessionID] = CALLRINGINWITHTHEM;
   }
   else
   {
-    qDebug() << "PEER ERROR: Got call ringing for nonexisting call:" << sessionID;
+    qDebug() << "Ringing," << metaObject()->className() << ": PEER ERROR: Got call ringing for nonexisting call:" << sessionID;
   }
 }
 
@@ -135,19 +142,19 @@ void KvazzupCore::peerAccepted(uint32_t sessionID)
 {
   if(states_.find(sessionID) != states_.end())
   {
-    if(states_[sessionID] == CALLRINGINWITHTHEM)
+    if(states_[sessionID] == CALLRINGINWITHTHEM || states_[sessionID] == CALLINGTHEM)
     {
-      qDebug() << "They accepted our call!";
+      qDebug() << "Accepting," << metaObject()->className() << ": They accepted our call!";
       states_[sessionID] = CALLNEGOTIATING;
     }
     else
     {
-      qDebug() << "PEER ERROR: Got an accepted call even though we have not yet called them!";
+      qDebug() << "PEER ERROR, accepting" << metaObject()->className() << ": Got an accepted call even though we have not yet called them!";
     }
   }
   else
   {
-    qDebug() << "ERROR: Peer accepted a session which is not in Call manager";
+    qDebug() << "ERROR, accepting" << metaObject()->className() << ": : Peer accepted a session which is not in Call manager";
   }
 }
 
@@ -157,18 +164,18 @@ void KvazzupCore::peerRejected(uint32_t sessionID)
   {
     if(states_[sessionID] == CALLRINGINWITHTHEM)
     {
-      qDebug() << "Our call has been rejected!";
+      qDebug() << "Rejection," << metaObject()->className() << ": Our call has been rejected!";
       removeSession(sessionID);
     }
     else
     {
-      qDebug() << "PEER ERROR: Got reject when we weren't calling them:" << states_[sessionID];
+      qDebug() << "Rejection," << metaObject()->className() << ": PEER ERROR: Got reject when we weren't calling them:" << states_[sessionID];
     }
   }
   else
   {
-    qDebug() << "PEER ERROR: Got reject for nonexisting call:" << sessionID;
-    qDebug() << "Number of ongoing sessions:" << states_.size();
+    qDebug() << "Rejection," << metaObject()->className() << ": PEER ERROR: Got reject for nonexisting call:" << sessionID;
+    qDebug() << "Rejection," << metaObject()->className() << ": Number of ongoing sessions:" << states_.size();
   }
 }
 
@@ -178,7 +185,7 @@ void KvazzupCore::callNegotiated(uint32_t sessionID)
   {
     if(states_[sessionID] == CALLNEGOTIATING)
     {
-      qDebug() << "Call has been agreed upon with peer:" << sessionID;
+      qDebug() << "Negotiation," << metaObject()->className() << ": Call has been agreed upon with peer:" << sessionID;
 
       window_.addVideoStream(sessionID);
 
@@ -199,12 +206,12 @@ void KvazzupCore::callNegotiated(uint32_t sessionID)
     }
     else
     {
-       qDebug() << "PEER ERROR: Got call successful negotiation even though we are not there yet:" << states_[sessionID];
+       qDebug() << "Negotiation," << metaObject()->className() << ": PEER ERROR: Got call successful negotiation even though we are not there yet:" << states_[sessionID];
     }
   }
   else
   {
-     qDebug() << "ERROR: This session does not exist in Call manager";
+     qDebug() << "Negotiation," << metaObject()->className() << ": ERROR: This session does not exist in Call manager";
   }
 }
 
@@ -232,13 +239,13 @@ void KvazzupCore::endCall(uint32_t sessionID)
 
 void KvazzupCore::registeredToServer()
 {
-  qDebug() << "Got info, that we have been registered to SIP server.";
+  qDebug() << "Core," << metaObject()->className() << ": Got info, that we have been registered to SIP server.";
   // TODO: indicate to user in some small detail
 }
 
 void KvazzupCore::registeringFailed()
 {
-  qDebug() << "Failed to register";
+  qDebug() << "Core," << metaObject()->className() << ": Failed to register";
   // TODO: indicate error to user
 }
 
@@ -250,28 +257,29 @@ void KvazzupCore::updateSettings()
 
 void KvazzupCore::userAcceptsCall(uint32_t sessionID)
 {
-  qDebug() << "Sending accept";
+  qDebug() << "Core," << metaObject()->className() << ": Sending accept";
   sip_.acceptCall(sessionID);
   states_[sessionID] = CALLNEGOTIATING;
 }
 
 void KvazzupCore::userRejectsCall(uint32_t sessionID)
 {
-  qDebug() << "We have rejected their call";
+  qDebug() << "Core," << metaObject()->className() << ": We have rejected their call";
   sip_.rejectCall(sessionID);
   removeSession(sessionID);
 }
 
 void KvazzupCore::userCancelsCall(uint32_t sessionID)
 {
-  qDebug() << "We have cancelled our call";
+  qDebug() << "Core," << metaObject()->className() << ": We have cancelled our call";
   sip_.cancelCall(sessionID);
   removeSession(sessionID);
 }
 
 void KvazzupCore::endTheCall()
 {
-  qDebug() << "Ending all calls";
+  qDebug() << "Core," << metaObject()->className() << ": End all call," << metaObject()->className()
+           << ": End all calls button pressed";
   sip_.endAllCalls();
   media_.endAllCalls();
   window_.clearConferenceView();

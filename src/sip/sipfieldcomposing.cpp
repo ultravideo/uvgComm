@@ -11,12 +11,18 @@ bool tryAddParameter(SIPField& field, QString parameterName, QString parameterVa
 
 bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
 {
-  if(request.type == SIP_UNKNOWN_REQUEST)
+  if(request.requestURI.host == "")
+  {
+    qWarning() << "ERROR: Request URI host is empty when compising first line:"
+               << request.requestURI.host;
+  }
+
+  if(request.type == SIP_NO_REQUEST)
   {
     qDebug() << "WARNING: First request line failed";
     return false;
   }
-  if(request.type != REGISTER)
+  if(request.type != SIP_REGISTER)
   {
     line = requestToString(request.type) + " sip:"
         + request.message->to.username + "@" + request.message->to.host
@@ -24,8 +30,10 @@ bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
   }
   else
   {
-    qDebug() << "WARNING: REGISTER first line composing not implemented.";
-    return false;
+
+    line = requestToString(request.type) + " sips:"
+        + request.requestURI.host
+        + " SIP/" + request.message->version + lineEnding;
   }
 
   return true;
@@ -50,7 +58,8 @@ bool includeToField(QList<SIPField> &fields,
   Q_ASSERT(message->to.username != "" && message->to.host != "");
   if(message->to.username == "" ||  message->to.host == "")
   {
-    qDebug() << "WARNING: To field failed";
+    qDebug() << "WARNING: Composing To-field failed because host is:"
+             << message->to.host << "and" << message->to.username;
     return false;
   }
 
@@ -97,8 +106,8 @@ bool includeFromField(QList<SIPField> &fields,
 bool includeCSeqField(QList<SIPField> &fields,
                       std::shared_ptr<SIPMessageInfo> message)
 {
-  Q_ASSERT(message->cSeq != 0 && message->transactionRequest != SIP_UNKNOWN_REQUEST);
-  if(message->cSeq == 0 || message->transactionRequest == SIP_UNKNOWN_REQUEST)
+  Q_ASSERT(message->cSeq != 0 && message->transactionRequest != SIP_NO_REQUEST);
+  if(message->cSeq == 0 || message->transactionRequest == SIP_NO_REQUEST)
   {
     qDebug() << "WARNING: cSeq field failed";
     return false;

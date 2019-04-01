@@ -57,7 +57,7 @@ void RTPStreamer::run()
   {
     init(stats_);
   }
-  qDebug() << "Live555 starting eventloop. TID:" << (uint64_t)currentThreadId();
+  qDebug() << "Iniating: Live555 starting eventloop. TID:" << (uint64_t)currentThreadId();
   stopRTP_ = 0;
 
   setPriority(QThread::HighestPriority);
@@ -66,15 +66,17 @@ void RTPStreamer::run()
   // returns when stopRTP_ is set to 1
   env_->taskScheduler().doEventLoop(&stopRTP_);
   isRunning_ = false;
-  qDebug() << "RTP streamer eventloop stopped. TID:" << (uint64_t)currentThreadId();
+  qDebug() << "Closing," << metaObject()->className() << ": RTP streamer eventloop stopped. TID:" << (uint64_t)currentThreadId();
 }
 
 void RTPStreamer::stop()
 {
-  qDebug() << "Stopping RTP Streamer";
+  qDebug() << "Closing," << metaObject()->className()
+           << "Stopping RTP Streamer";
+
   if(stopRTP_ == 0)
   {
-    qDebug() << "RTP Streamer was running as expected";
+    qDebug() << "Closing," << metaObject()->className() << "RTP Streamer was running as expected";
     stopRTP_ = 1;
   }
 }
@@ -84,9 +86,9 @@ void RTPStreamer::init(StatisticsInterface *stats)
   stats_ = stats;
 
   iniated_.lock();
-  qDebug() << "Iniating live555";
+  qDebug() << "Iniating: live555";
   QString sName(reinterpret_cast<char*>(CNAME_));
-  qDebug() << "Our hostname:" << sName;
+  qDebug() << "Iniating: Our hostname:" << sName;
 
   scheduler_ = BasicTaskScheduler::createNew();
   if(scheduler_)
@@ -101,7 +103,7 @@ void RTPStreamer::init(StatisticsInterface *stats)
 void RTPStreamer::uninit()
 {
   Q_ASSERT(stopRTP_);
-  qDebug() << "Uniniating RTP streamer";
+  qDebug() << "Closing," << metaObject()->className() << "Uniniating RTP streamer";
 
   if(isRunning_)
   {
@@ -120,12 +122,12 @@ void RTPStreamer::uninit()
   else
   {
     delete scheduler_;
-    qDebug() << "Successful reclaim of usage environment";
+    qDebug() << "Closing," << metaObject()->className() << ": Successful reclaim of usage environment";
   }
 
   isIniated_ = false;
 
-  qDebug() << "RTP streamer uninit completed";
+  qDebug() << "Closing,"<< metaObject()->className() << ": RTP streamer uninit completed";
 }
 
 void RTPStreamer::removeAllPeers()

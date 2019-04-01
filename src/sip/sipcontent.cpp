@@ -164,7 +164,7 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
     }
   }
 
-  qDebug().noquote() << "Composed SDP string:" << sdp;
+  qDebug().noquote() << "Sending, SIPContent :" << "Composed SDP string:" << sdp;
   return sdp;
 }
 

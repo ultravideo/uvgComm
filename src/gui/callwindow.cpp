@@ -110,7 +110,7 @@ void CallWindow::initButton(QString iconPath, QSize size, QSize iconSize, QPushB
   }
   else
   {
-    qDebug() << "Could not find icon:" << iconPath;
+    qDebug() << "WARNING," << metaObject()->className() << ": Could not find icon:" << iconPath;
   }
 }
 
@@ -155,7 +155,8 @@ void CallWindow::openStatistics()
   }
   else
   {
-    qDebug() << "WARNING: No stats window class initiated";
+    qDebug() << "WARNING," << metaObject()->className()
+             << ": No stats window class initiated";
   }
 }
 

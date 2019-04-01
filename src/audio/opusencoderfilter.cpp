@@ -71,7 +71,7 @@ void OpusEncoderFilter::process()
       u_copy->data = std::move(opus_frame);
       sendOutput(std::move(u_copy));
 
-      //qDebug() << "Audio input datasize:" << input->data_size
+      //qDebug() << "Process," << metaObject()->className() << input datasize:" << input->data_size
       // << "index:" << i << "pos:" << pos << "Encoded Opus audio. New framesize:" << len;
       pos += len;
     }

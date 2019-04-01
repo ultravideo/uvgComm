@@ -7,7 +7,7 @@ ConnectionServer::ConnectionServer()
 
 void ConnectionServer::incomingConnection(qintptr socketDescriptor)
 {
-  qDebug() << "Incoming TCP connection";
+  qDebug() << "TCP," << metaObject()->className() << ": Incoming TCP connection";
   // create connection
   TCPConnection* con = new TCPConnection();
 

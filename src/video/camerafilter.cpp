@@ -143,14 +143,12 @@ bool CameraFilter::init()
   viewSettings.setPixelFormat(QVideoFrame::Format_BGRA32);
   output_ = RGB32VIDEO;
 #endif
-
-  qDebug() << "Using following QCamera settings:";
-  qDebug() << "---------------------------------------";
-  qDebug() << "Format:" << viewSettings.pixelFormat();
-  qDebug() << "Resolution:" << viewSettings.resolution();
-  qDebug() << "FrameRate:" << viewSettings.minimumFrameRate() << "to" << viewSettings.maximumFrameRate();
-  qDebug() << "---------------------------------------";
-
+  qDebug() << "Iniating, CameraFilter: Using following QCamera settings:";
+  qDebug() << "Iniating, CameraFilter:---------------------------------------";
+  qDebug() << "Iniating, CameraFilter: Format:" << viewSettings.pixelFormat();
+  qDebug() << "Iniating, CameraFilter: Resolution:" << viewSettings.resolution();
+  qDebug() << "Iniating, CameraFilter: FrameRate:" << viewSettings.minimumFrameRate() << "to" << viewSettings.maximumFrameRate();
+  qDebug() << "Iniating, CameraFilter: ---------------------------------------";
   camera_->setViewfinderSettings(viewSettings);
   camera_->start();
 
@@ -160,7 +158,7 @@ bool CameraFilter::init()
 
 void CameraFilter::start()
 {
-  qDebug() << "Starting QCamera";
+  qDebug() << "Iniating, CameraFilter: Starting QCamera";
   if(camera_->state() == QCamera::LoadedState)
   {
     camera_->start();
@@ -260,19 +258,19 @@ void CameraFilter::process()
 void CameraFilter::printSupportedFormats()
 {
   QList<QVideoFrame::PixelFormat> formats = camera_->supportedViewfinderPixelFormats();
-  qDebug() << "Found" << formats.size() << "supported QCamera formats.";
+  qDebug() << "Iniating, CameraFilter: Found" << formats.size() << "supported QCamera formats.";
   for(auto format : formats)
   {
-    qDebug() << "QCamera supported format:" << format;
+    qDebug() << "Iniating, Camerafilter: QCamera supported format:" << format;
   }
 }
 
 void CameraFilter::printSupportedResolutions(QCameraViewfinderSettings& viewsettings)
 {
   QList<QSize> resolutions = camera_->supportedViewfinderResolutions(viewsettings);
-  qDebug() << "Found" << resolutions.size() << "supported QCamera resolutions.";
+  qDebug() << "Iniating, CameraFilter: Found" << resolutions.size() << "supported QCamera resolutions.";
   for(auto reso : resolutions)
   {
-    qDebug() << "QCamera supported resolutions:" << reso;
+    qDebug() << "Iniating, CameraFilter: QCamera supported resolutions:" << reso;
   }
 }

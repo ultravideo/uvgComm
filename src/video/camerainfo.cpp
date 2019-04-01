@@ -51,7 +51,7 @@ QStringList CameraInfo::getVideoDevices()
   QList<QCameraInfo> cameras = QCameraInfo::availableCameras();
   QStringList list;
 
-  qDebug() << "Found" << cameras.size() << "cameras";
+  qDebug() << "Settings, CameraInfo : Found" << cameras.size() << "cameras";
   for (int i = 0; i < cameras.size(); ++i)
   {
     list.push_back(cameras.at(i).description());
@@ -68,7 +68,7 @@ void CameraInfo::getVideoFormats(int deviceID, QStringList& formats)
   std::unique_ptr<QCamera> camera = loadCamera(deviceID);
 
   QList<QVideoFrame::PixelFormat> p_formats = camera->supportedViewfinderPixelFormats();
-  qDebug() << "Found" << p_formats.size() <<  "formats for deviceID:" << deviceID;
+  qDebug() << "Settings, CameraInfo : Found" << p_formats.size() <<  "formats for deviceID:" << deviceID;
 
   for(int i = 0; i < p_formats.size() ; ++i)
   {
@@ -87,7 +87,7 @@ void CameraInfo::getFormatResolutions(int deviceID, QString format, QStringList 
   std::unique_ptr<QCamera> camera = loadCamera(deviceID);
 
   QList<QSize> supporteResolutions = camera->supportedViewfinderResolutions(viewSettings);
-  qDebug() << "Found" << supporteResolutions.size() <<  "resolutions for deviceID:" << deviceID;
+  qDebug() << "Settings, CameraInfo : Found" << supporteResolutions.size() <<  "resolutions for deviceID:" << deviceID;
 
   for (int i = 0; i < supporteResolutions.size(); ++i)
   {

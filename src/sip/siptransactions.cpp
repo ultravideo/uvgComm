@@ -3,12 +3,23 @@
 #include "sip/sipdialogstate.h"
 #include "sip/siptransport.h"
 
-#include "sip/sipclienttransaction.h"
+#include "sip/sipdialogclient.h"
 #include "sip/sipservertransaction.h"
 
 
 SIPTransactions::SIPTransactions():
-  sipPort_(5060) // default for SIP, use 5061 for tls encrypted
+  pendingConnectionMutex_(),
+  pendingDialogRequests_(),
+  pendingNonDialogRequests_(),
+  dialogs_(),
+  registrations_(),
+  transports_(),
+  directContactAddresses_(),
+  nonDialogClient_(),
+  sdp_(),
+  tcpServer_(),
+  sipPort_(5060), // default for SIP, use 5061 for tls encrypted
+  transactionUser_(nullptr)
 {}
 
 void SIPTransactions::init(SIPTransactionUser *callControl)
@@ -16,12 +27,19 @@ void SIPTransactions::init(SIPTransactionUser *callControl)
   qDebug() << "Iniating SIP Manager";
 
   transactionUser_ = callControl;
+  nonDialogClient_ = std::unique_ptr<SIPNonDialogClient>(new SIPNonDialogClient(callControl));
 
   QObject::connect(&tcpServer_, &ConnectionServer::newConnection,
                    this, &SIPTransactions::receiveTCPConnection);
 
   // listen to everything
-  tcpServer_.listen(QHostAddress("0.0.0.0"), sipPort_);
+  if (!tcpServer_.listen(QHostAddress("0.0.0.0"), sipPort_))
+  {
+    qDebug() << "ERROR," << metaObject()->className() << "failed to listen to socket. Is it reserved?";
+    // TODO announce it to user!
+  }
+
+
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
   QString username = !settings.value("local/Username").isNull()
       ? settings.value("local/Username").toString() : "anonymous";
@@ -72,14 +90,35 @@ void SIPTransactions::registerTask()
 void SIPTransactions::bindToServer()
 {
   // get server address from settings and bind to server.
-
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
 
   QString serverAddress = settings.value("sip/ServerAddress").toString();
 
-  sipServerRegistrations_.push_back(SIPRegistration(serverAddress));
-  sipServerRegistrations_.back().initServer();
+  if (serverAddress != "")
+  {
+    qDebug() << "Binding to SIP server at:" << serverAddress;
 
+    SIPRegistrationData data = {std::shared_ptr<SIPNonDialogClient> (new SIPNonDialogClient(transactionUser_)),
+                               std::shared_ptr<SIPDialogState> (new SIPDialogState()), 0};
+    registrations_[serverAddress] = data;
+
+    std::shared_ptr<SIPTransport> transport = createSIPTransport();
+    transport->createConnection(TCP, serverAddress);
+
+    registrations_[serverAddress].transportID = transports_.size();
+
+    SIP_URI serverUri = {"","",serverAddress};
+    registrations_[serverAddress].state->createServerDialog(serverUri);
+    registrations_[serverAddress].client->init();
+
+
+    registrations_[serverAddress].client->set_remoteURI(serverUri);
+
+    sendNonDialogRequest(serverUri, SIP_REGISTER);
+  }
+  else {
+    qDebug() << "SIP server address was empty in settings";
+  }
 }
 
 void SIPTransactions::getSDPs(uint32_t sessionID,
@@ -110,21 +149,12 @@ void SIPTransactions::startCall(Contact &address)
     return;
   }
 
-  // If the dialog did not exist check if the address is one of our servers
-
-  bool isServer = false;
-  // check if address is located at a SIP server
-  for(auto server : sipServerRegistrations_)
-  {
-    if(server.isContactAtThisServer(address.remoteAddress))
-    {
-      isServer = true;
-    }
-  }
+  // is the address at one of the servers we are connected to
+  bool isServer = registrations_.find(address.remoteAddress) != registrations_.end();
 
   if(isServer)
   {
-    qDebug() << "ERROR: Server connection not yet implemented";
+    qDebug() << "ERROR: Proxy calling has not been yet implemented";
   }
   else
   {
@@ -150,10 +180,11 @@ void SIPTransactions::startCall(Contact &address)
 
 void SIPTransactions::startPeerToPeerCall(quint32 transportID, Contact &remote)
 {
-  qDebug() << "Intializing a new dialog with INVITE task";
+  qDebug() << "SIP," << metaObject()->className() << ": Intializing a new dialog with INVITE";
 
   std::shared_ptr<SIPDialogData> dialogData;
   createBaseDialog(transportID, dialogData);
+  dialogData->proxyConnection_ = false;
   dialogData->state->createNewDialog(SIP_URI{remote.username, remote.username, remote.remoteAddress});
 
   // this start call will commence once the connection has been established
@@ -171,7 +202,7 @@ void SIPTransactions::createDialogFromINVITE(quint32 transportID, std::shared_pt
   createBaseDialog(transportID, dialog);
 
   dialog->state->createDialogFromINVITE(invite);
-  dialog->state->setPeerToPeerHostname(transports_.at(transportID - 1)->getLocalAddress().toString());
+  dialog->state->setPeerToPeerHostname(transports_.at(transportID - 1)->getLocalAddress().toString(), false);
 }
 
 void SIPTransactions::createBaseDialog( quint32 transportID, std::shared_ptr<SIPDialogData>& dialog)
@@ -184,15 +215,16 @@ void SIPTransactions::createBaseDialog( quint32 transportID, std::shared_ptr<SIP
 
   dialog->state = std::shared_ptr<SIPDialogState> (new SIPDialogState());
 
-  dialog->client = std::shared_ptr<SIPClientTransaction> (new SIPClientTransaction);
-  dialog->client->init(transactionUser_, dialogs_.size() + 1);
+  dialog->client = std::shared_ptr<SIPDialogClient> (new SIPDialogClient(transactionUser_));
+  dialog->client->init();
+  dialog->client->setSessionID(dialogs_.size() + 1);
 
   dialog->server = std::shared_ptr<SIPServerTransaction> (new SIPServerTransaction);
   dialog->server->init(transactionUser_, dialogs_.size() + 1);
 
   dialog->localSdp_ = nullptr;
   dialog->remoteSdp_ = nullptr;
-  QObject::connect(dialog->client.get(), &SIPClientTransaction::sendRequest,
+  QObject::connect(dialog->client.get(), &SIPDialogClient::sendDialogRequest,
                    this, &SIPTransactions::sendDialogRequest);
 
   QObject::connect(dialog->server.get(), &SIPServerTransaction::sendResponse,
@@ -255,7 +287,6 @@ void SIPTransactions::endAllCalls()
 
 std::shared_ptr<SIPTransport> SIPTransactions::createSIPTransport()
 {
-  qDebug() << "Creating SIP transport";
   std::shared_ptr<SIPTransport> connection =
       std::shared_ptr<SIPTransport>(new SIPTransport(transports_.size() + 1));
 
@@ -283,6 +314,7 @@ void SIPTransactions::receiveTCPConnection(TCPConnection *con)
 
 void SIPTransactions::connectionEstablished(quint32 transportID)
 {
+  qDebug() << "A SIP connection has been established as we wanted. TransportID:" << transportID;
   pendingConnectionMutex_.lock();
 
   bool pendingNonDialog = pendingNonDialogRequests_.find(transportID) != pendingNonDialogRequests_.end();
@@ -294,15 +326,15 @@ void SIPTransactions::connectionEstablished(quint32 transportID)
   {
     qDebug() << "We have a pending non-dialog request. Sending it!";
     NonDialogRequest request = pendingNonDialogRequests_[transportID];
+    sendNonDialogRequest(request.request_uri, request.type);
     pendingNonDialogRequests_.erase(transportID);
-    // TODO
   }
 
   if(pendingDialog)
   {
     qDebug() << "We have a pending dialog request. Sending it!";
     DialogRequest request = pendingDialogRequests_[transportID];
-    sendRequest(request.sessionID, request.type);
+    sendDialogRequest(request.sessionID, request.type);
     pendingDialogRequests_.erase(transportID);
   }
 }
@@ -338,7 +370,7 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
     qDebug() << "Could not find the dialog of the request.";
 
     // TODO: there is a problem if the sequence number did not match and the request type is INVITE
-    if(request.type == INVITE)
+    if(request.type == SIP_INVITE)
     {
       qDebug() << "Someone is trying to start a sip dialog with us!";
 
@@ -371,11 +403,11 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
   Q_ASSERT(foundDialog->state);
 
   // TODO: prechecks that the message is ok, then modify program state.
-  if(request.type == INVITE || request.type == ACK)
+  if(request.type == SIP_INVITE || request.type == SIP_ACK)
   {
     if(request.message->content.type == APPLICATION_SDP)
     {
-      if(request.type == INVITE)
+      if(request.type == SIP_INVITE)
       {
         if(!processSDP(foundSessionID, content, transports_.at(transportID - 1)->getLocalAddress()))
         {
@@ -467,7 +499,7 @@ void SIPTransactions::processSIPResponse(SIPResponse response,
   // TODO: if our request was INVITE and response is 2xx or 101-199, create dialog
   // TODO: prechecks that the response is ok, then modify program state.
 
-  if(response.message->transactionRequest == INVITE && response.type == SIP_OK)
+  if(response.message->transactionRequest == SIP_INVITE && response.type == SIP_OK)
   {
     if(response.message->content.type == APPLICATION_SDP)
     {
@@ -513,18 +545,9 @@ bool SIPTransactions::processSDP(uint32_t sessionID, QVariant& content, QHostAdd
 
 void SIPTransactions::sendDialogRequest(uint32_t sessionID, RequestType type)
 {
-  sendRequest(sessionID, type);
-}
-
-void SIPTransactions::sendNonDialogMethod(SIP_URI& uri, RequestType type)
-{
-  // TODO this
-}
-
-void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
-{
-  qDebug() << "---- Iniated sending of a request:" << type << "----";
+  qDebug() << "---- Iniated sending of a dialog request:" << type << "----";
   Q_ASSERT(sessionID != 0 && sessionID <= dialogs_.size());
+  Q_ASSERT(dialogs_.at(sessionID - 1)->transportID != 0);
   // Get all the necessary information from different components.
 
   std::shared_ptr<SIPTransport> transport
@@ -533,41 +556,41 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
   pendingConnectionMutex_.lock();
   if(!transport->isConnected())
   {
-    qDebug() << "The connection has not yet been established. Delaying sending of request.";
+    qDebug() << "SIP," << metaObject()->className() << "The connection has not yet been established. Delaying sending of request.";
 
     pendingDialogRequests_[dialogs_.at(sessionID - 1)->transportID] = (DialogRequest{sessionID, type});
     pendingConnectionMutex_.unlock();
     return;
   }
-
   pendingConnectionMutex_.unlock();
 
   SIPRequest request;
   request.type = type;
 
   // if this is the session creation INVITE. Proxy sessions should be created earlier.
-  if(request.type == INVITE && !dialogs_.at(sessionID - 1)->proxyConnection_)
+  if(request.type == SIP_INVITE && !dialogs_.at(sessionID - 1)->proxyConnection_)
   {
-    // TODO: possibly set the local address with transport->getLocalAddress().toString() for peer-to-peer
+    dialogs_.at(sessionID - 1)->state->setPeerToPeerHostname(transport->getLocalAddress().toString());
   }
 
   // Get message info
   dialogs_.at(sessionID - 1)->client->getRequestMessageInfo(type, request.message);
+  dialogs_.at(sessionID - 1)->client->startTimer(type);
 
-  dialogs_.at(sessionID - 1)->state->getRequestDialogInfo(request.type,
-                                                           transport->getLocalAddress().toString(),
-                                                           request.message);
+  dialogs_.at(sessionID - 1)->state->getRequestDialogInfo(request,
+                                                          transport->getLocalAddress().toString());
+
   Q_ASSERT(request.message != nullptr);
   Q_ASSERT(request.message->dialog != nullptr);
 
   QVariant content;
   request.message->content.length = 0;
-  if(type == INVITE || type == ACK)
+  if(type == SIP_INVITE || type == SIP_ACK)
   {
     qDebug() << "Adding SDP content to request:" << type;
     request.message->content.type = APPLICATION_SDP;
     SDPMessageInfo sdp;
-    if(type == INVITE)
+    if(type == SIP_INVITE)
     {
       dialogs_.at(sessionID - 1)->localSdp_
           = sdp_.localSDPSuggestion(transport->getLocalAddress());
@@ -599,12 +622,55 @@ void SIPTransactions::sendRequest(uint32_t sessionID, RequestType type)
   }
 
   transport->sendRequest(request, content);
-  qDebug() << "---- Finished sending of a request ---";
+  qDebug() << "---- Finished sending of a dialog request ---";
+}
+
+void SIPTransactions::sendNonDialogRequest(SIP_URI& uri, RequestType type)
+{
+  qDebug() << "Start sending of a non-dialog request. Type:" << type;
+  SIPRequest request;
+  request.type = type;
+
+  if (type == SIP_REGISTER)
+  {
+    if (registrations_.find(uri.host) == registrations_.end())
+    {
+      qDebug() << "ERROR: Registration information should have been created "
+                  "already before sending REGISTER message!";
+      return;
+    }
+
+    std::shared_ptr<SIPTransport> transport
+        = transports_.at(registrations_[uri.host].transportID - 1);
+
+    pendingConnectionMutex_.lock();
+    if(!transport->isConnected())
+    {
+      qDebug() << "The connection has not yet been established. Delaying sending of request.";
+
+      pendingNonDialogRequests_[registrations_[uri.host].transportID] = NonDialogRequest{uri, type};
+      pendingConnectionMutex_.unlock();
+      return;
+    }
+    pendingConnectionMutex_.unlock();
+
+    registrations_[uri.host].client->getRequestMessageInfo(request.type, request.message);
+    registrations_[uri.host].state->getRequestDialogInfo(request, transport->getLocalAddress().toString());
+
+    QVariant content; // we dont have content in REGISTER
+    transport->sendRequest(request, content);
+  }
+  else if (type == SIP_OPTIONS) {
+    qWarning() << "ERROR: Trying to send unimplemented non-dialog request OPTIONS!";
+  }
+  else {
+    qWarning() << "ERROR: Trying to send a non-dialog request of type which is a dialog request!";
+  }
 }
 
 void SIPTransactions::sendResponse(uint32_t sessionID, ResponseType type, RequestType originalRequest)
 {
-  qDebug() << "---- Iniated sending of a request:" << type << "----";
+  qDebug() << "---- Iniated sending of a response:" << type << "----";
   Q_ASSERT(sessionID != 0 && sessionID <= dialogs_.size());
 
   // Get all the necessary information from different components.
@@ -614,7 +680,7 @@ void SIPTransactions::sendResponse(uint32_t sessionID, ResponseType type, Reques
   response.message->transactionRequest = originalRequest;
 
   QVariant content;
-  if(response.message->transactionRequest == INVITE && type == SIP_OK) // TODO: SDP in progress...
+  if(response.message->transactionRequest == SIP_INVITE && type == SIP_OK) // TODO: SDP in progress...
   {
     response.message->content.type = APPLICATION_SDP;
     SDPMessageInfo sdp = *dialogs_.at(sessionID - 1)->localSdp_.get();

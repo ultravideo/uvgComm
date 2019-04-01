@@ -19,19 +19,18 @@ public:
   SIPDialogState();
 
   // TODO: set the correct address for peer-to-peer connection
-  void setPeerToPeerHostname(QString hostName)
-  {
-    localUri_.host = hostName;
-  }
+  void setPeerToPeerHostname(QString hostName, bool setCallinfo = true);
 
   // creates dialog which is about to start from our end
   void createNewDialog(SIP_URI remoteURI);
+
+  void createServerDialog(SIP_URI requestURI);
 
   // creates the dialog from an incoming INVITE
   void createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inMessage);
 
   // Generates the request message details
-  void getRequestDialogInfo(RequestType type, QString localAddress, std::shared_ptr<SIPMessageInfo> &outMessage);
+  void getRequestDialogInfo(SIPRequest& outRequest, QString localAddress);
 
   // use this to check whether incoming request belongs to this dialog
   // responses should be checked by client which sent the request
@@ -44,7 +43,8 @@ public:
 
 private:
 
-  void init(SIP_URI remoteURI);
+  void initLocalURI();
+  void initCallInfo();
 
   ViaInfo getLocalVia(QString localAddress);
 
@@ -55,6 +55,7 @@ private:
 
   SIP_URI localUri_;
   SIP_URI remoteUri_;
+  SIP_URI requestUri_;
 
   SIP_URI remoteContactURI_;
 
@@ -65,6 +66,4 @@ private:
 
   // may be empty if there is no route
   QList<SIP_URI> route_;
-
-  bool secure_;
 };
