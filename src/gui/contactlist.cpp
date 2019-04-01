@@ -26,7 +26,7 @@ void ContactList::initializeList(QListWidget* list, ParticipantInterface* interf
   for (int i = 0; i < size; ++i) {
     settings.setArrayIndex(i);
     QString name = settings.value("name").toString();
-    QString username = settings.value("userName").toString();
+    QString username = settings.value("username").toString();
     QString address = settings.value("ip").toString();
 
     addContactToList(interface, name, username, address);
@@ -100,7 +100,7 @@ void ContactList::writeListToSettings()
   {
     settings.setArrayIndex(index);
     ++index;
-    settings.setValue("Name", contact->getName());
+    settings.setValue("name", contact->getName());
     settings.setValue("username", contact->getUserName());
     settings.setValue("ip", contact->getAddress());
   }

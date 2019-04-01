@@ -39,7 +39,7 @@ bool CameraFilter::init()
   int deviceID = settings.value("video/DeviceID").toInt();
 
   // if the deviceID has changed
-  if(deviceID < cameras.size() && cameras[deviceID].description() != deviceName)
+  if (deviceID < cameras.size() && cameras[deviceID].description() != deviceName)
   {
     // search for device with same name
     for(int i = 0; i < cameras.size(); ++i)
@@ -61,16 +61,15 @@ bool CameraFilter::init()
   camera_ = new QCamera(cameras.at(deviceID));
   cameraFrameGrabber_ = new CameraFrameGrabber();
 
+#ifndef __linux__
   camera_->load();
-
   while(camera_->state() != QCamera::LoadedState)
   {
     qSleep(5);
   }
-
+#endif
 
   Q_ASSERT(camera_ && cameraFrameGrabber_);
-
   camera_->setViewfinder(cameraFrameGrabber_);
 
   connect(cameraFrameGrabber_, SIGNAL(frameAvailable(QVideoFrame)), this, SLOT(handleFrame(QVideoFrame)));
@@ -136,6 +135,14 @@ bool CameraFilter::init()
       viewSettings.setMinimumFrameRate(framerates.back().minimumFrameRate);
     }
   }
+
+#ifdef __linux__
+  viewSettings.setMaximumFrameRate(30);
+  viewSettings.setMinimumFrameRate(30);
+  viewSettings.setResolution(QSize(640, 480));
+  viewSettings.setPixelFormat(QVideoFrame::Format_BGRA32);
+  output_ = RGB32VIDEO;
+#endif
 
   qDebug() << "Using following QCamera settings:";
   qDebug() << "---------------------------------------";
