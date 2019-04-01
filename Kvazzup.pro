@@ -79,6 +79,11 @@ SOURCES +=\
     src/gui/videoyuvwidget.cpp \
     src/gui/videodrawhelper.cpp \
     src/kvazzupcore.cpp \
+    src/ice.cpp \
+    src/iceflowcontrol.cpp \
+    src/stunmsg.cpp \
+    src/stunmsgfact.cpp \
+    src/connectiontester.cpp \
     src/sip/sipdialogclient.cpp \
     src/sip/sipnondialogclient.cpp
 
@@ -144,6 +149,11 @@ HEADERS  += \
     src/gui/videoyuvwidget.h \
     src/gui/videodrawhelper.h \
     src/kvazzupcore.h \
+    src/ice.h \
+    src/iceflowcontrol.h \
+    src/stunmsg.h \
+    src/stunmsgfact.h \
+    src/connectiontester.h \
     src/sip/sipdialogclient.h \
     src/sip/sipnondialogclient.h
 

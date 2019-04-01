@@ -42,20 +42,6 @@ void KvazzupCore::init()
   stats_ = window_.createStatsWindow();
 
   media_.init(window_.getViewFactory(), stats_);
-
-  QObject::connect(&stun_, SIGNAL(addressReceived(QHostAddress)), this, SLOT(stunAddress(QHostAddress)));
-  QObject::connect(&stun_, SIGNAL(error()), this, SLOT(noStunAddress()));
-  //stun_.wantAddress("stun.l.google.com");
-}
-
-void KvazzupCore::stunAddress(QHostAddress address)
-{
-  qDebug() << "STUN," << metaObject()->className() << ": Our stun address:" << address;
-}
-
-void KvazzupCore::noStunAddress()
-{
-  qDebug() << "STUN," << metaObject()->className() << ": Could not get STUN address";
 }
 
 void KvazzupCore::uninit()

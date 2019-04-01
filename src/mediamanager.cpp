@@ -68,11 +68,26 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
     qWarning() << "ERROR: Non zero start-time not supported!";
   }
 
+  qDebug() << "\n\n\nADDING PARTICIPANT!";
+  qDebug() << localInfo->media[0].connection_address << ":" << localInfo->media[0].receivePort;
+  qDebug() << localInfo->media[1].connection_address << ":" << localInfo->media[1].receivePort;
+  qDebug() << peerInfo->media[0].connection_address  << ":" << peerInfo->media[0].receivePort;
+  qDebug() << peerInfo->media[0].connection_address  << ":" << peerInfo->media[1].receivePort << "\n";
+
 
   if(peerInfo->connection_nettype == "IN")
   {
     QHostAddress address;
-    address.setAddress(peerInfo->connection_address);
+
+    if (peerInfo->media[0].connection_address.isEmpty())
+    {
+      address.setAddress(peerInfo->connection_address);
+    }
+    else
+    {
+      address.setAddress(peerInfo->media[0].connection_address); // media[0] is RTP
+    }
+
 
     if(stats_ != nullptr)
     {

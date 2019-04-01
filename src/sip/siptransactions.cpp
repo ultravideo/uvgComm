@@ -238,6 +238,11 @@ void SIPTransactions::acceptCall(uint32_t sessionID)
 {
   connectionMutex_.lock();
   std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
+
+  // start candiate nomination. This function won't block, negotiation happens in the background
+  // remoteFinalSDP() makes sure that a connection was in fact nominated
+  sdp_.startICECandidateNegotiation(dialog->localSdp_->candidates, dialog->remoteSdp_->candidates, sessionID);
+
   connectionMutex_.unlock();
   dialog->server->acceptCall();
 }
@@ -427,10 +432,17 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
 
         SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
 
-        if(!sdp_.remoteFinalSDP(retrieved))
+        // remoteFinalSDP blocks until the ICE has finished its job
+        //
+        // After it returns, we add the nominated media connections to local and remote SDPs
+        if(!sdp_.remoteFinalSDP(retrieved, foundSessionID))
         {
           qDebug() << "PEER_ERROR:" << "Their final sdp is not suitable. They should have followed our SDP!!!";
           return;
+        }
+        else
+        {
+          sdp_.updateFinalSDPs(*foundDialog->localSdp_, *foundDialog->remoteSdp_, foundSessionID);
         }
       }
     }
@@ -530,7 +542,7 @@ bool SIPTransactions::processSDP(uint32_t sessionID, QVariant& content, QHostAdd
   SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
 
   dialogs_.at(sessionID - 1)->localSdp_
-      = sdp_.localFinalSDP(retrieved, localAddress, dialogs_.at(sessionID - 1)->localSdp_);
+      = sdp_.localFinalSDP(retrieved, localAddress, dialogs_.at(sessionID - 1)->localSdp_, sessionID);
 
   if(dialogs_.at(sessionID - 1)->localSdp_ == nullptr)
   {
