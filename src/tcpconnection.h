@@ -75,6 +75,7 @@ private slots:
   void receivedMessage();
   void printBytesWritten(qint64 bytes);
 
+  void disconnected();
 
 protected:
 

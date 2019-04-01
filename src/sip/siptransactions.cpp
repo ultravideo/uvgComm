@@ -33,7 +33,13 @@ void SIPTransactions::init(SIPTransactionUser *callControl)
                    this, &SIPTransactions::receiveTCPConnection);
 
   // listen to everything
-  tcpServer_.listen(QHostAddress("0.0.0.0"), sipPort_);
+  if (!tcpServer_.listen(QHostAddress("0.0.0.0"), sipPort_))
+  {
+    qDebug() << "ERROR," << metaObject()->className() << "failed to listen to socket. Is it reserved?";
+    // TODO announce it to user!
+  }
+
+
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
   QString username = !settings.value("local/Username").isNull()
       ? settings.value("local/Username").toString() : "anonymous";
@@ -541,7 +547,7 @@ void SIPTransactions::sendDialogRequest(uint32_t sessionID, RequestType type)
 {
   qDebug() << "---- Iniated sending of a dialog request:" << type << "----";
   Q_ASSERT(sessionID != 0 && sessionID <= dialogs_.size());
-  Q_ASSERT(dialogs_.at(sessionID - 1)->transportID - 1 != 0);
+  Q_ASSERT(dialogs_.at(sessionID - 1)->transportID != 0);
   // Get all the necessary information from different components.
 
   std::shared_ptr<SIPTransport> transport

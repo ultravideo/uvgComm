@@ -111,7 +111,7 @@ bool KvazzupCore::incomingCall(uint32_t sessionID, QString caller)
   int autoAccept = settings.value("local/Auto-Accept").toInt();
   if(autoAccept == 1)
   {
-    qDebug() << "Incoming call," << metaObject()->className() << ": Incoming call auto-accpeted!";
+    qDebug() << "Incoming call," << metaObject()->className() << ": Incoming call auto-accepted!";
     userAcceptsCall(sessionID);
     states_[sessionID] = CALLNEGOTIATING;
     return true;
@@ -142,19 +142,19 @@ void KvazzupCore::peerAccepted(uint32_t sessionID)
 {
   if(states_.find(sessionID) != states_.end())
   {
-    if(states_[sessionID] == CALLRINGINWITHTHEM)
+    if(states_[sessionID] == CALLRINGINWITHTHEM || states_[sessionID] == CALLINGTHEM)
     {
       qDebug() << "Accepting," << metaObject()->className() << ": They accepted our call!";
       states_[sessionID] = CALLNEGOTIATING;
     }
     else
     {
-      qDebug() << "Accepting," << metaObject()->className() << ": PEER ERROR: Got an accepted call even though we have not yet called them!";
+      qDebug() << "PEER ERROR, accepting" << metaObject()->className() << ": Got an accepted call even though we have not yet called them!";
     }
   }
   else
   {
-    qDebug() << "Accpeting," << metaObject()->className() << ": ERROR: Peer accepted a session which is not in Call manager";
+    qDebug() << "ERROR, accepting" << metaObject()->className() << ": : Peer accepted a session which is not in Call manager";
   }
 }
 

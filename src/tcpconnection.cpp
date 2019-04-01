@@ -37,6 +37,8 @@ void TCPConnection::init()
 
     QObject::connect(socket_, SIGNAL(readyRead()),
                      this, SLOT(receivedMessage()));
+
+    QObject::connect(socket_, &QAbstractSocket::disconnected, this, &TCPConnection::disconnected);
   }
 }
 
@@ -111,7 +113,7 @@ bool TCPConnection::connectLoop()
     qDebug() << "Connecting: CHECK STATUS. Address:" << destination_ << "Port:" << port_;
     for(unsigned int i = 0; i < NUMBER_OF_RETRIES && socket_->state() != QAbstractSocket::ConnectedState; ++i)
     {
-      qDebug() << "Connecting: ATTEMPT CONNECTION. State:" << "Attempt:" << i + 1;
+      qDebug() << "Connecting: ATTEMPT CONNECTION. State:" << "Attempt:" << i + 1 << "State:" << socket_->state();
       socket_->connectToHost(destination_, port_);
       socket_->waitForConnected(CONNECTION_TIMEOUT);
     }
@@ -163,7 +165,8 @@ void TCPConnection::run()
     {
       if(socket_->isValid() && socket_->canReadLine() && socket_->bytesAvailable() < TOO_LARGE_AMOUNT_OF_DATA)
       {
-        qDebug() << "Can read line with bytes available:" << socket_->bytesAvailable();
+        qDebug() << "Receiving," << metaObject()->className() <<
+                    ": Can read line with bytes available:" << socket_->bytesAvailable();
 
         // TODO: maybe not create the data stream everytime.
         // TODO: Check that the bytes available makes sense and that we are no already processing SIP message.
@@ -245,6 +248,11 @@ void TCPConnection::disconnect()
     emit error(socket_->error(), socket_->errorString());
     return;
   }
+}
+
+void TCPConnection::disconnected()
+{
+  qDebug() << "End connection," << metaObject()->className() << ": Socket disconnected";
 }
 
 void TCPConnection::printError(int socketError, const QString &message)
