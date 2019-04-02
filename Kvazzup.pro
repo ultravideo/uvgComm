@@ -164,7 +164,8 @@ FORMS    += \
     ui/advancedSettings.ui \
     ui/settings.ui \
     ui/incomingcallwidget.ui \
-    ui/outgoingcallwidget.ui
+    ui/outgoingcallwidget.ui \
+    ui/customSettings.ui
 
 # just in case we sometimes like to support smaller qt versions.
 greaterThan(4, QT_MAJOR_VERSION)
