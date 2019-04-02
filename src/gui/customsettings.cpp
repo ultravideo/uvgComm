@@ -190,6 +190,7 @@ void CustomSettings::saveAdvancedSettings()
   // sip settings.
   saveTextValue("sip/ServerAddress", advancedUI_->serverAddress->text());
   saveCheckBox("sip/AutoConnect", advancedUI_->autoConnect);
+  saveCheckBox("sip/ice", advancedUI_->ice);
 
   //settings.sync(); // TODO is this needed?
 }
@@ -286,6 +287,7 @@ void CustomSettings::restoreAdvancedSettings()
   if(validSettings && checkSipSettings())
   {
     restoreCheckBox("sip/AutoConnect", advancedUI_->autoConnect);
+    restoreCheckBox("sip/ice", advancedUI_->ice);
     advancedUI_->serverAddress->setText        (settings_.value("sip/ServerAddress").toString());
   }
   else
