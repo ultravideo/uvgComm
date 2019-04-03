@@ -187,11 +187,9 @@ void Stun::recvStunMessage(QNetworkDatagram message)
   }
   else
   {
-    qDebug() << "WARNING: Got unkown STUN message, type: "      << stunMsg.getType()
+    qDebug() << "Got unknown STUN message, type: "      << stunMsg.getType()
              << " from " << message.senderAddress()      << ":" << message.senderPort()
              << " to"    << message.destinationAddress() << ":" << message.destinationPort();
-    qDebug() << "\n\n\n\n";
-    while (1);
   }
 }
 
