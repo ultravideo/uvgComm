@@ -36,12 +36,12 @@ void ConnectionTester::run()
   rtcp_pair_->state = PAIR_WAITING;
   rtp_pair_->state  = PAIR_IN_PROGRESS;
 
-  if (stun.sendBindingRequest(rtp_pair_, true))
+  if (stun.sendBindingRequest(rtp_pair_, controller_))
   {
     rtp_pair_->state = PAIR_SUCCEEDED;
     rtcp_pair_->state = PAIR_IN_PROGRESS;
 
-    if (stun.sendBindingRequest(rtcp_pair_, true))
+    if (stun.sendBindingRequest(rtcp_pair_, controller_))
     {
       rtcp_pair_->state = PAIR_SUCCEEDED;
     }
@@ -72,7 +72,9 @@ void ConnectionTester::run()
   // otherwise continue sending requests to remote to keep the hole in firewall open
   if (!stun.sendNominationResponse(rtp_pair_))
   {
-    qDebug() << "failed to receive nomination for RTP!";
+    qDebug() << "failed to receive nomination for RTP candidate:\n"
+             << "\tlocal:"  << rtp_pair_->local->address  << ":" << rtcp_pair_->local->port << "\n"
+             << "\tremote:" << rtp_pair_->remote->address << ":" << rtcp_pair_->remote->port;
     return;
   }
 
