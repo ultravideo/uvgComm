@@ -24,7 +24,7 @@ SIPTransactions::SIPTransactions():
 
 void SIPTransactions::init(SIPTransactionUser *callControl)
 {
-  qDebug() << "Iniating SIP Manager";
+  qDebug() << "Iniating SIP Transactions";
 
   transactionUser_ = callControl;
   nonDialogClient_ = std::unique_ptr<SIPNonDialogClient>(new SIPNonDialogClient(callControl));
@@ -32,13 +32,17 @@ void SIPTransactions::init(SIPTransactionUser *callControl)
   QObject::connect(&tcpServer_, &ConnectionServer::newConnection,
                    this, &SIPTransactions::receiveTCPConnection);
 
+  tcpServer_.setProxy(QNetworkProxy::NoProxy);
+
   // listen to everything
-  if (!tcpServer_.listen(QHostAddress("0.0.0.0"), sipPort_))
+  qDebug() << "Initiating," << metaObject()->className()
+           << ": Listening to SIP TCP connections on port:" << sipPort_;
+  if (!tcpServer_.listen(QHostAddress::Any, sipPort_))
   {
-    qDebug() << "ERROR," << metaObject()->className() << "failed to listen to socket. Is it reserved?";
+    qDebug() << "ERROR," << metaObject()->className()
+             << "failed to listen to socket. Is it reserved?";
     // TODO announce it to user!
   }
-
 
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
   QString username = !settings.value("local/Username").isNull()

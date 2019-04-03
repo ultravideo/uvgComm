@@ -116,6 +116,7 @@ void CallWindow::initButton(QString iconPath, QSize size, QSize iconSize, QPushB
 
 StatisticsInterface* CallWindow::createStatsWindow()
 {
+  qDebug() << "Initiating, CallWindow: Creating statistics window";
   statsWindow_ = new StatisticsWindow(this);
 
   // Stats GUI updates are handled solely by timer
