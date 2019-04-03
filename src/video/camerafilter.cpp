@@ -18,6 +18,7 @@ CameraFilter::CameraFilter(QString id, StatisticsInterface *stats):
   framerate_(0)
 {}
 
+
 CameraFilter::~CameraFilter()
 {
   delete camera_;
@@ -25,6 +26,19 @@ CameraFilter::~CameraFilter()
 }
 
 bool CameraFilter::init()
+{
+  cameraSetup();
+  return Filter::init();
+}
+
+
+void CameraFilter::run()
+{
+  Filter::run();
+}
+
+
+bool CameraFilter::cameraSetup()
 {
   QList<QCameraInfo> cameras = QCameraInfo::availableCameras();
 
@@ -143,28 +157,21 @@ bool CameraFilter::init()
   viewSettings.setPixelFormat(QVideoFrame::Format_BGRA32);
   output_ = RGB32VIDEO;
 #endif
-  qDebug() << "Iniating, CameraFilter: Using following QCamera settings:";
-  qDebug() << "Iniating, CameraFilter:---------------------------------------";
-  qDebug() << "Iniating, CameraFilter: Format:" << viewSettings.pixelFormat();
-  qDebug() << "Iniating, CameraFilter: Resolution:" << viewSettings.resolution();
-  qDebug() << "Iniating, CameraFilter: FrameRate:" << viewSettings.minimumFrameRate() << "to" << viewSettings.maximumFrameRate();
-  qDebug() << "Iniating, CameraFilter: ---------------------------------------";
+  qDebug() << "Iniating, CameraFilter : Using following QCamera settings:";
+  qDebug() << "Iniating, CameraFilter :---------------------------------------";
+  qDebug() << "Iniating, CameraFilter : Format:" << viewSettings.pixelFormat();
+  qDebug() << "Iniating, CameraFilter : Resolution:" << viewSettings.resolution();
+  qDebug() << "Iniating, CameraFilter : FrameRate:" << viewSettings.minimumFrameRate()
+           << "to" << viewSettings.maximumFrameRate();
+  qDebug() << "Iniating, CameraFilter : ---------------------------------------";
   camera_->setViewfinderSettings(viewSettings);
   camera_->start();
 
-  return Filter::init();
+  qDebug() << "Iniating, CameraFilter : Camera status:" << camera_->state();
+
+  return true;
 }
 
-
-void CameraFilter::start()
-{
-  qDebug() << "Iniating, CameraFilter: Starting QCamera";
-  if(camera_->state() == QCamera::LoadedState)
-  {
-    camera_->start();
-  }
-  Filter::start();
-}
 
 void CameraFilter::stop()
 {
@@ -175,6 +182,7 @@ void CameraFilter::stop()
   Filter::stop();
 }
 
+
 void CameraFilter::handleFrame(const QVideoFrame &frame)
 {
   frameMutex_.lock();
@@ -182,6 +190,7 @@ void CameraFilter::handleFrame(const QVideoFrame &frame)
   frameMutex_.unlock();
   wakeUp();
 }
+
 
 void CameraFilter::process()
 {
@@ -255,6 +264,7 @@ void CameraFilter::process()
   }
 }
 
+
 void CameraFilter::printSupportedFormats()
 {
   QList<QVideoFrame::PixelFormat> formats = camera_->supportedViewfinderPixelFormats();
@@ -264,6 +274,7 @@ void CameraFilter::printSupportedFormats()
     qDebug() << "Iniating, Camerafilter: QCamera supported format:" << format;
   }
 }
+
 
 void CameraFilter::printSupportedResolutions(QCameraViewfinderSettings& viewsettings)
 {

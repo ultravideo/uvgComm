@@ -17,8 +17,7 @@ public:
   // setup camera device
   virtual bool init();
 
-  // start/stop camera device and this filter.
-  virtual void start();
+  // stop camera device and this filter.
   virtual void stop();
 
 private slots:
@@ -28,12 +27,17 @@ private slots:
 
 protected:
 
+  void run();
+
   // this sends the video frame forward instead of handle frame, because
   // then we get the processing to a separate non GUI thread which
   // might be a problem with high resolutions.
   void process();
 
 private:
+
+  // setup camera device. For some reason this has to be called from main thread
+  bool cameraSetup();
 
   // debug print functions.
   void printSupportedFormats();
