@@ -11,6 +11,7 @@ Settings::Settings(QWidget *parent) :
   QDialog(parent),
   basicUI_(new Ui::BasicSettings),
   cam_(std::shared_ptr<CameraInfo> (new CameraInfo())),
+  advanced_(this),
   custom_(this, cam_),
   settings_("kvazzup.ini", QSettings::IniFormat)
 {
@@ -20,12 +21,16 @@ Settings::Settings(QWidget *parent) :
   getSettings(false);
 
   custom_.init(getVideoDeviceID());
+  advanced_.init();
 
   QObject::connect(basicUI_->ok, &QPushButton::clicked, this, &Settings::on_ok_clicked);
   QObject::connect(basicUI_->cancel, &QPushButton::clicked, this, &Settings::on_cancel_clicked);
 
   QObject::connect(&custom_, &CustomSettings::customSettingsChanged, this, &Settings::settingsChanged);
   QObject::connect(&custom_, &CustomSettings::hidden, this, &Settings::show);
+
+  QObject::connect(&advanced_, &AdvancedSettings::advancedSettingsChanged, this, &Settings::settingsChanged);
+  QObject::connect(&advanced_, &AdvancedSettings::hidden, this, &Settings::show);
 }
 
 Settings::~Settings()
@@ -61,8 +66,16 @@ void Settings::on_cancel_clicked()
 void Settings::on_advanced_settings_button_clicked()
 {
   on_ok_clicked(); // treat this the same as ok
+  advanced_.show();
+}
+
+
+void Settings::on_custom_settings_button_clicked()
+{
+  on_ok_clicked(); // treat this the same as ok
   custom_.show();
 }
+
 
 void Settings::initializeUIDeviceList()
 {

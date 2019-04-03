@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui/customsettings.h"
+#include "gui/advancedsettings.h"
 
 #include <QDialog>
 #include <QSettings>
@@ -48,6 +49,7 @@ public slots:
   void on_ok_clicked();
   void on_cancel_clicked();
   void on_advanced_settings_button_clicked();
+  void on_custom_settings_button_clicked();
 
 private:
   void initializeUIDeviceList();
@@ -77,6 +79,7 @@ private:
 
   std::shared_ptr<CameraInfo> cam_;
 
+  AdvancedSettings advanced_;
   CustomSettings custom_;
 
   QSettings settings_;
