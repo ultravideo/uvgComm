@@ -1,5 +1,6 @@
 #include <QNetworkInterface>
 #include <QTime>
+#include <QSettings>
 #include <memory>
 
 #include "ice.h"
@@ -20,6 +21,11 @@ ICE::ICE():
 
   QObject::connect(&stun_, SIGNAL(addressReceived(QHostAddress)), this, SLOT(createSTUNCandidate(QHostAddress)));
   stun_.wantAddress("stun.l.google.com");
+
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+  int ice = settings.value("sip/ice").toInt();
+
+  iceDisabled_ = (ice != 1) ? true : false;
 }
 
 ICE::~ICE()
@@ -186,6 +192,11 @@ QList<ICEPair *> *ICE::makeCandiatePairs(QList<ICEInfo *>& local, QList<ICEInfo 
 // Thread spawned by startNomination() must keep track of which candidates failed and which succeeded
 void ICE::startNomination(QList<ICEInfo *>& local, QList<ICEInfo *>& remote, uint32_t sessionID)
 {
+  if (iceDisabled_ == true)
+  {
+    return;
+  }
+
   // nomination-related memory is released when handleEndOfNomination() is called
   nominationInfo_[sessionID].controller = new FlowController;
 
@@ -210,6 +221,11 @@ void ICE::startNomination(QList<ICEInfo *>& local, QList<ICEInfo *>& remote, uin
 // When it has gone through all candidate pairs it exits
 void ICE::respondToNominations(QList<ICEInfo *>& local, QList<ICEInfo *>& remote, uint32_t sessionID)
 {
+  if (iceDisabled_ == true)
+  {
+    return;
+  }
+
   // nomination-related memory is released when handleEndOfNomination() is called
   nominationInfo_[sessionID].controllee = new FlowControllee;
 
@@ -229,6 +245,12 @@ void ICE::respondToNominations(QList<ICEInfo *>& local, QList<ICEInfo *>& remote
 
 bool ICE::callerConnectionNominated(uint32_t sessionID)
 {
+  // return immediately if ICE was disabled
+  if (iceDisabled_ == true)
+  {
+    return true;
+  }
+
   while (!nominationInfo_[sessionID].caller_mtx->try_lock_for(std::chrono::milliseconds(200)))
   {
   }
@@ -241,6 +263,12 @@ bool ICE::callerConnectionNominated(uint32_t sessionID)
 
 bool ICE::calleeConnectionNominated(uint32_t sessionID)
 {
+  // return immediately if ICE was disabled
+  if (iceDisabled_ == true)
+  {
+    return true;
+  }
+
   while (!nominationInfo_[sessionID].callee_mtx->try_lock_for(std::chrono::milliseconds(200)))
   {
   }
@@ -253,6 +281,12 @@ bool ICE::calleeConnectionNominated(uint32_t sessionID)
 
 void ICE::handleEndOfNomination(struct ICEPair *candidateRTP, struct ICEPair *candidateRTCP, uint32_t sessionID)
 {
+  // nothing needs to be cleaned if ICE was disabled
+  if (iceDisabled_ == true)
+  {
+    return;
+  }
+
   nominationInfo_[sessionID].connectionNominated = (candidateRTP != nullptr && candidateRTCP != nullptr);
 
   if (nominationInfo_[sessionID].connectionNominated)
@@ -301,7 +335,7 @@ void ICE::handleCalleeEndOfNomination(struct ICEPair *candidateRTP, struct ICEPa
 
 std::pair<ICEPair *, ICEPair *> ICE::getNominated(uint32_t sessionID)
 {
-  if (nominationInfo_.contains(sessionID))
+  if (nominationInfo_.contains(sessionID) && iceDisabled_ == false)
   {
     return nominationInfo_[sessionID].nominatedPair;
   }

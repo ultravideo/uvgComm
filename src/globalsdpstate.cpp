@@ -167,21 +167,26 @@ GlobalSDPState::localFinalSDP(SDPMessageInfo &remoteSDP, QHostAddress localAddre
       return nullptr;
     }
 
+    // getNominated() returns two (TODO: four!) valid candidate pairs if ICE succeeded
+    // (ie. ICE was not disabled and remote responded to our requests)
     auto nominated = ice_->getNominated(sessionID);
 
-    // RTP
-    sdp->media[0].receivePort = nominated.first->local->port;
-    sdp->media[0].connection_address = nominated.first->local->address;
+    if (nominated.first && nominated.second)
+    {
+      // RTP
+      sdp->media[0].receivePort = nominated.first->local->port;
+      sdp->media[0].connection_address = nominated.first->local->address;
 
-    remoteSDP.media[0].receivePort = nominated.first->remote->port;
-    remoteSDP.media[0].connection_address = nominated.first->remote->address;
+      remoteSDP.media[0].receivePort = nominated.first->remote->port;
+      remoteSDP.media[0].connection_address = nominated.first->remote->address;
 
-    // RTCP
-    sdp->media[1].receivePort = nominated.second->local->port;
-    sdp->media[1].connection_address = nominated.second->local->address;
+      // RTCP
+      sdp->media[1].receivePort = nominated.second->local->port;
+      sdp->media[1].connection_address = nominated.second->local->address;
 
-    remoteSDP.media[1].receivePort = nominated.second->remote->port;
-    remoteSDP.media[1].connection_address = nominated.second->remote->address;
+      remoteSDP.media[1].receivePort = nominated.second->remote->port;
+      remoteSDP.media[1].connection_address = nominated.second->remote->address;
+    }
   }
 
   sdp->sess_v = remoteSDP.sess_v + 1;
@@ -263,19 +268,22 @@ void GlobalSDPState::updateFinalSDPs(SDPMessageInfo& localSDP, SDPMessageInfo& r
 {
   auto nominated = ice_->getNominated(sessionID);
 
-  // local RTP
-  localSDP.media[0].connection_address = nominated.first->local->address;
-  localSDP.media[0].receivePort = nominated.first->local->port;
+  if (nominated.first && nominated.second)
+  {
+    // local RTP
+    localSDP.media[0].connection_address = nominated.first->local->address;
+    localSDP.media[0].receivePort = nominated.first->local->port;
 
-  // local RTCP
-  localSDP.media[1].connection_address = nominated.second->local->address;
-  localSDP.media[1].receivePort = nominated.second->local->port;
+    // local RTCP
+    localSDP.media[1].connection_address = nominated.second->local->address;
+    localSDP.media[1].receivePort = nominated.second->local->port;
 
-  // remote RTP
-  remoteSDP.media[0].connection_address = nominated.first->remote->address;
-  remoteSDP.media[0].receivePort = nominated.first->remote->port;
+    // remote RTP
+    remoteSDP.media[0].connection_address = nominated.first->remote->address;
+    remoteSDP.media[0].receivePort = nominated.first->remote->port;
 
-  // remote RTCP
-  remoteSDP.media[1].connection_address = nominated.second->remote->address;
-  remoteSDP.media[1].receivePort = nominated.second->remote->port;
+    // remote RTCP
+    remoteSDP.media[1].connection_address = nominated.second->remote->address;
+    remoteSDP.media[1].receivePort = nominated.second->remote->port;
+  }
 }

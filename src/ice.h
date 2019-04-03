@@ -81,6 +81,7 @@ class ICE : public QObject
 
     uint16_t portPair;
     bool nominatingConnection_;
+    bool iceDisabled_;
 
     Stun stun_;
 
