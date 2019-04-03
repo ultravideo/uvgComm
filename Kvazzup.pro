@@ -85,7 +85,9 @@ SOURCES +=\
     src/stunmsgfact.cpp \
     src/connectiontester.cpp \
     src/sip/sipdialogclient.cpp \
-    src/sip/sipnondialogclient.cpp
+    src/sip/sipnondialogclient.cpp \
+    src/gui/advancedsettings.cpp \
+    src/gui/settingshelper.cpp
 
 HEADERS  += \
     src/filter.h \
@@ -155,7 +157,9 @@ HEADERS  += \
     src/stunmsgfact.h \
     src/connectiontester.h \
     src/sip/sipdialogclient.h \
-    src/sip/sipnondialogclient.h
+    src/sip/sipnondialogclient.h \
+    src/gui/advancedsettings.h \
+    src/gui/settingshelper.h
 
 FORMS    += \
     ui/callwindow.ui \

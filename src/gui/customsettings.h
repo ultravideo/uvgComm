@@ -13,11 +13,10 @@
 
 
 namespace Ui {
-class AdvancedSettings;
+class CustomSettings;
 }
 
 class CameraInfo;
-class QCheckBox;
 
 class CustomSettings  : public QDialog
 {
@@ -38,58 +37,35 @@ signals:
 
 public slots:
 
-  // slots related to blocklist
-  void showBlocklistContextMenu(const QPoint& pos);
-  void deleteBlocklistItem();
-
-  // button slot to add a user to list.
-  void on_addUserBlock_clicked();
-
   // button slots, called automatically by Qt
   void on_custom_ok_clicked();
   void on_custom_cancel_clicked();
-
-  void serverStatusChange(QString status);
 
   void initializeResolutions(QString format);
   void initializeFramerates(QString format, int resolutionID);
 
 private:
   // QSettings -> GUI
-  void restoreAdvancedSettings();
+  void restoreCustomSettings();
   void restoreFormat();
   void restoreResolution();
   void restoreFramerate();
 
-
   // GUI -> QSettings
-  void saveAdvancedSettings();
+  void saveCustomSettings();
 
   void saveCameraCapabilities(int deviceIndex);
 
   // initializes the UI with correct formats and resolutions
   void initializeFormat();
 
-  void initializeBlocklist();
-  void writeBlocklistToSettings();
-
-  void addUsernameToList(QString username, QString date);
-
   bool checkVideoSettings();
   bool checkAudioSettings();
-  bool checkSipSettings();
-  bool checkMissingValues(); // TODO: in two places
 
-  // simpler functions for checkbox management.
-  void restoreCheckBox(const QString settingValue, QCheckBox* box);
-  void saveCheckBox(const QString settingValue, QCheckBox* box);
-
-  // TODO: this is now in two places
-  void saveTextValue(const QString settingValue, const QString &text);
 
   uint16_t currentDevice_;
 
-  Ui::AdvancedSettings *advancedUI_;
+  Ui::CustomSettings *customUI_;
 
   std::shared_ptr<CameraInfo> cam_;
 

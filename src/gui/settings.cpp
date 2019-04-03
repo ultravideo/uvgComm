@@ -3,6 +3,7 @@
 #include "ui_settings.h"
 
 #include <video/camerainfo.h>
+#include "settingshelper.h"
 
 #include <QDebug>
 
@@ -90,9 +91,9 @@ void Settings::saveSettings()
   qDebug() << "Settings," << metaObject()->className() << ": Saving basic Settings";
 
   // Local settings
-  saveTextValue("local/Name", basicUI_->name_edit->text());
-  saveTextValue("local/Username", basicUI_->username_edit->text());
-  saveCheckBox("local/Auto-Accept", basicUI_->auto_accept);
+  saveTextValue("local/Name", basicUI_->name_edit->text(), settings_);
+  saveTextValue("local/Username", basicUI_->username_edit->text(), settings_);
+  saveCheckBox("local/Auto-Accept", basicUI_->auto_accept, settings_);
 
   int currentIndex = basicUI_->videoDevice->currentIndex();
   if( currentIndex != -1)
@@ -128,7 +129,7 @@ void Settings::getSettings(bool changedDevice)
     qDebug() << "Settings," << metaObject()->className() << ": Restoring user settings from file:" << settings_.fileName();
     basicUI_->name_edit->setText      (settings_.value("local/Name").toString());
     basicUI_->username_edit->setText  (settings_.value("local/Username").toString());
-    restoreCheckBox("local/Auto-Accept", basicUI_->auto_accept);
+    restoreCheckBox("local/Auto-Accept", basicUI_->auto_accept, settings_);
 
     int currentIndex = getVideoDeviceID();
     if(changedDevice)
@@ -215,41 +216,4 @@ bool Settings::checkMissingValues()
     }
   }
   return foundEverything;
-}
-
-
-void Settings::saveTextValue(const QString settingValue, const QString &text)
-{
-  if(text != "")
-  {
-    settings_.setValue(settingValue,  text);
-  }
-}
-
-void Settings::restoreCheckBox(const QString settingValue, QCheckBox* box)
-{
-  if(settings_.value(settingValue).toString() == "1")
-  {
-    box->setChecked(true);
-  }
-  else if(settings_.value(settingValue).toString() == "0")
-  {
-    box->setChecked(false);
-  }
-  else
-  {
-    qDebug() << "WARNING," << metaObject()->className() << "Corrupted value for checkbox in settings file for:" << settingValue << "!!!";
-  }
-}
-
-void Settings::saveCheckBox(const QString settingValue, QCheckBox* box)
-{
-  if(box->isChecked())
-  {
-    settings_.setValue(settingValue,          "1");
-  }
-  else
-  {
-    settings_.setValue(settingValue,          "0");
-  }
 }

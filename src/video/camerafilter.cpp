@@ -123,6 +123,7 @@ bool CameraFilter::init()
 
   int framerateID = settings.value("video/FramerateID").toInt();
 
+#ifndef __linux__
   if (!framerates.empty())
   {
     if(framerateID < framerates.size())
@@ -136,13 +137,14 @@ bool CameraFilter::init()
     }
   }
 
-#ifdef __linux__
+#else
   viewSettings.setMaximumFrameRate(30);
   viewSettings.setMinimumFrameRate(30);
   viewSettings.setResolution(QSize(640, 480));
   viewSettings.setPixelFormat(QVideoFrame::Format_BGRA32);
   output_ = RGB32VIDEO;
 #endif
+
   qDebug() << "Iniating, CameraFilter: Using following QCamera settings:";
   qDebug() << "Iniating, CameraFilter:---------------------------------------";
   qDebug() << "Iniating, CameraFilter: Format:" << viewSettings.pixelFormat();

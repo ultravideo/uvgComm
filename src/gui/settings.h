@@ -57,10 +57,6 @@ private:
   bool checkUserSettings();
   bool checkMissingValues();
 
-  // simpler functions for checkbox management.
-  void restoreCheckBox(const QString settingValue, QCheckBox* box);
-  void saveCheckBox(const QString settingValue, QCheckBox* box);
-
   // QSettings -> GUI
   void getSettings(bool changedDevice);
 
@@ -76,8 +72,6 @@ private:
   int getVideoDeviceID();
 
   void resetFaultySettings();
-
-  void saveTextValue(const QString settingValue, const QString &text);
 
   Ui::BasicSettings *basicUI_;
 
