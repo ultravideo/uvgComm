@@ -12,8 +12,8 @@ const uint16_t MAX_PORTS      = 100;
 ICE::ICE():
   portPair(22000),
   stun_(),
-  stun_entry_rtp_(new ICEInfo),
-  stun_entry_rtcp_(new ICEInfo),
+  stun_entry_rtp_(nullptr),
+  stun_entry_rtcp_(nullptr),
   parameters_()
 {
   parameters_.setPortRange(MIN_ICE_PORT, MAX_ICE_PORT, MAX_PORTS);
@@ -24,6 +24,8 @@ ICE::ICE():
 
 ICE::~ICE()
 {
+  delete stun_entry_rtp_;
+  delete stun_entry_rtcp_;
 }
 
 // TODO lue speksi uudelleen tämä osalta
@@ -101,16 +103,27 @@ QList<ICEInfo *> ICE::generateICECandidates()
     }
   }
 
-  // add previously created STUN candidates too
-  candidates.push_back(stun_entry_rtp_);
-  candidates.push_back(stun_entry_rtcp_);
+  if (stun_entry_rtp_ != nullptr && stun_entry_rtcp_ != nullptr)
+  {
+    candidates.push_back(stun_entry_rtp_);
+    candidates.push_back(stun_entry_rtcp_);
+  }
 
   return candidates;
 }
 
 void ICE::createSTUNCandidate(QHostAddress address)
 {
+  if (address == QHostAddress(""))
+  {
+    qDebug() << "WARNING: Failed to resolve public IP! Server-reflexive candidates won't be created!";
+    return;
+  }
+
   qDebug() << "Creating STUN candidate...";
+
+  stun_entry_rtp_  = new ICEInfo;
+  stun_entry_rtcp_ = new ICEInfo;
 
   stun_entry_rtp_->address  = address.toString();
   stun_entry_rtcp_->address = address.toString();
