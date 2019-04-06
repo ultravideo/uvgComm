@@ -8,6 +8,7 @@
 #include <QMutex>
 #include <QWaitCondition>
 #include <QEventLoop>
+#include <QThread>
 
 #include <QtEndian>
 
@@ -66,6 +67,21 @@ bool Stun::waitForStunResponse(unsigned long timeout)
   return timer.isActive();
 }
 
+bool Stun::waitForStunRequest(unsigned long timeout)
+{
+  QTimer timer;
+  timer.setSingleShot(true);
+  QEventLoop loop;
+
+  connect(this,   &Stun::requestRecv, &loop, &QEventLoop::quit);
+  connect(&timer, &QTimer::timeout,   &loop, &QEventLoop::quit);
+
+  timer.start(timeout);
+  loop.exec();
+
+  return timer.isActive();
+}
+
 bool Stun::waitForNominationRequest(unsigned long timeout)
 {
   QTimer timer;
@@ -79,6 +95,139 @@ bool Stun::waitForNominationRequest(unsigned long timeout)
   loop.exec();
 
   return timer.isActive();
+}
+
+// if we're the controlling agent, sending binding request is rather straight-forward:
+// send request, wait for response and return
+bool Stun::controllerSendBindingRequest(ICEPair *pair)
+{
+  STUNMessage msg = stunmsg_.createRequest();
+  msg.addAttribute(STUN_ATTR_ICE_CONTROLLING);
+  msg.addAttribute(STUN_ATTR_PRIORITY, pair->priority);
+
+  // we expect a response to this message from remote, by caching the TransactionID
+  // and associated address/port pair, we can succesfully validate the response's TransactionID
+  stunmsg_.expectReplyFrom(msg, pair->remote->address, pair->remote->port);
+
+  QByteArray message = stunmsg_.hostToNetwork(msg);
+  bool msgReceived   = false;
+
+  for (int i = 0; i < 20; ++i)
+  {
+    udp_.sendData(message, QHostAddress(pair->remote->address), pair->remote->port, false);
+
+    if (waitForStunResponse(20 * (i + 1)))
+    {
+      qDebug() << "GOT RESPONSE!";
+      msgReceived = true;
+      break;
+    }
+  }
+
+  if (msgReceived == false)
+  {
+    qDebug() << "WARNING: Failed to receive STUN Binding Response from remote!";
+    qDebug() << "Remote: " << pair->remote->address << ":" << pair->remote->port;
+    udp_.unbind();
+    return false;
+  }
+
+  // the first part of connectivity check is done, now we must wait for
+  // remote's binding request and responed to them
+  msgReceived = false;
+
+  for (int i = 0; i < 20; ++i)
+  {
+    if (waitForStunRequest(20 * (i + 1)))
+    {
+      qDebug() << "[CONTROLLER] GOT STUN REQUEST!";
+
+      msg = stunmsg_.createResponse();
+      msg.addAttribute(STUN_ATTR_ICE_CONTROLLING);
+
+      message     = stunmsg_.hostToNetwork(msg);
+      msgReceived = true;
+
+      for (int i = 0; i < 5; ++i)
+      {
+        udp_.sendData(message, QHostAddress(pair->remote->address), pair->remote->port, false);
+        QThread::msleep(20);
+      }
+
+      break;
+    }
+  }
+
+  udp_.unbind();
+  return msgReceived;
+}
+
+bool Stun::controlleeSendBindingRequest(ICEPair *pair)
+{
+  Q_ASSERT(pair != nullptr);
+
+  bool msgReceived   = false;
+  QByteArray message = QByteArray("hole punch");
+  STUNMessage msg;
+
+  for (int i = 0; i < 20; ++i)
+  {
+    udp_.sendData(message, QHostAddress(pair->remote->address), pair->remote->port, false);
+
+    if (waitForStunRequest(20 * (i + 1)))
+    {
+      msg = stunmsg_.createResponse();
+      msg.addAttribute(STUN_ATTR_ICE_CONTROLLED);
+
+      message     = stunmsg_.hostToNetwork(msg);
+      msgReceived = true;
+
+      for (int i = 0; i < 3; ++i)
+      {
+        udp_.sendData(message, QHostAddress(pair->remote->address), pair->remote->port, false);
+        QThread::msleep(20);
+      }
+
+      break;
+    }
+  }
+
+  if (msgReceived == false)
+  {
+    qDebug() << "WARNING: Failed to receive STUN Binding Request from remote!";
+    qDebug() << "Remote: " << pair->remote->address << ":" << pair->remote->port;
+    udp_.unbind();
+    return false;
+  }
+
+  // the first part of connective check is done (remote sending us binding request)
+  // now we must do the same but this we're sending the request and they're responding
+  msgReceived = false;
+
+  // we've succesfully responded to remote's binding request, now it's our turn to
+  // send request and remote must respond to them
+  STUNMessage request = stunmsg_.createRequest();
+  request.addAttribute(STUN_ATTR_ICE_CONTROLLED);
+  request.addAttribute(STUN_ATTR_PRIORITY, pair->priority);
+
+  message = stunmsg_.hostToNetwork(request);
+
+  // we're expecting a response from remote to this request
+  stunmsg_.cacheRequest(request);
+
+  for (int i = 0; i < 20; ++i)
+  {
+    udp_.sendData(message, QHostAddress(pair->remote->address), pair->remote->port, false);
+
+    if (waitForStunResponse(20 * (i + 1)))
+    {
+      msgReceived = true;
+      break;
+    }
+  }
+
+  udp_.unbind();
+  return msgReceived;
 }
 
 bool Stun::sendBindingRequest(ICEPair *pair, bool controller)
@@ -97,48 +246,21 @@ bool Stun::sendBindingRequest(ICEPair *pair, bool controller)
 
   connect(&udp_, &UDPServer::rawMessageAvailable, this, &Stun::recvStunMessage);
 
-  // TODO this code looks ugly -> refactor
-
-  STUNMessage request = stunmsg_.createRequest();
-  request.addAttribute(controller ? STUN_ATTR_ICE_CONTROLLING : STUN_ATTR_ICE_CONTROLLED);
-  request.addAttribute(STUN_ATTR_PRIORITY, pair->priority);
-
-  // we expect a response to this message from remote, by caching the TransactionID
-  // and associated address port pair, we can succesfully validate the response TransactionID
-  stunmsg_.expectReplyFrom(request, pair->remote->address, pair->remote->port);
-
-  QByteArray message = stunmsg_.hostToNetwork(request);
-
-  bool ok = false;
-
-  for (int i = 0; i < 50; ++i)
+  if (controller)
   {
-    udp_.sendData(message, QHostAddress(pair->remote->address), pair->remote->port, false);
-
-    if (waitForStunResponse(20 * (i + 1)))
-    {
-      qDebug() << "got stun response!";
-      ok = true;
-      break;
-    }
+    return controllerSendBindingRequest(pair);
   }
 
-  if (waitForStunResponse(100))
-  {
-    ok = true;
-  }
-
-  udp_.unbind();
-  return ok;
+  return controlleeSendBindingRequest(pair);
 }
 
 bool Stun::sendBindingResponse(STUNMessage& request, QString addressRemote, int portRemote)
 {
   STUNMessage response = stunmsg_.createResponse(request);
 
-  response.addAttribute(STUN_ATTR_PRIORITY, 0x1337);
+  response.addAttribute(STUN_ATTR_PRIORITY, 1337);
 
-  request.addAttribute(
+  response.addAttribute(
       request.hasAttribute(STUN_ATTR_ICE_CONTROLLED)
       ? STUN_ATTR_ICE_CONTROLLING
       : STUN_ATTR_ICE_CONTROLLED
@@ -149,6 +271,11 @@ bool Stun::sendBindingResponse(STUNMessage& request, QString addressRemote, int 
   for (int i = 0; i < 25; ++i)
   {
     udp_.sendData(message, QHostAddress(addressRemote), portRemote, false);
+
+    if (!waitForStunRequest(20 * (i + 1)))
+    {
+      break;
+    }
   }
 }
 
@@ -167,13 +294,11 @@ void Stun::recvStunMessage(QNetworkDatagram message)
 
       if (stunMsg.hasAttribute(STUN_ATTR_USE_CANDIATE))
       {
-        sendBindingResponse(stunMsg, message.senderAddress().toString(), message.senderPort());
         emit nominationRecv();
+        return;
       }
-      else
-      {
-        sendBindingResponse(stunMsg, message.senderAddress().toString(), message.senderPort());
-      }
+
+      emit requestRecv();
     }
   }
   else if (stunMsg.getType() == STUN_RESPONSE)

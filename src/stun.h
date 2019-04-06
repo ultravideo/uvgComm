@@ -46,6 +46,7 @@ signals:
   void stunError();
   void parsingDone();
   void nominationRecv();
+  void requestRecv();
 
 private slots:
   void handleHostaddress(QHostInfo info);
@@ -54,7 +55,31 @@ private slots:
 
 private:
   bool waitForStunResponse(unsigned long timeout);
+  bool waitForStunRequest(unsigned long timeout);
   bool waitForNominationRequest(unsigned long timeout);
+
+  // If we're the controlling agent we start by sending STUN Binding Requests to remote
+  // When we receive a response to one of our STUN Binding Requests, we start listening to
+  // remote's STUN Binding Requests. When we receive one, we acknowledge it by sending STUN
+  // Binding Response to remote.
+  // Now the we've concluded that the communication works and we can stop testing.
+  //
+  // Return true if the testing succeeded, false otherwise
+  bool controllerSendBindingRequest(ICEPair *pair);
+
+  // if we're the controlled agent, we must first start sending "dummy" binding requests to
+  // make a hole in the firewall and after we've gotten a request from remote (controlling agent)
+  // we can switch to sending responses
+
+  // if we're the controlled agent, we start sending STUN Binding Requests to create a hole in the
+  // firewall. When we get a response from remote (the controlling agent) we acknowledge it by sending
+  // STUN Binding Request.
+  //
+  // After we've received a STUN Request from remote, we start listening to responses for our STUN Binding Requests.
+  // When we've received a response we mark this pair as valid as we've established that communication works to both directions
+  //
+  // Return true if the testing succeeded, false otherwise
+  bool controlleeSendBindingRequest(ICEPair *pair);
 
   // TODO [Encryption] Use TLS to send packet
   UDPServer udp_;
