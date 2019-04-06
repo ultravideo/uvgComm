@@ -60,8 +60,8 @@ void FlowController::run()
   Stun stun;
 
   // TODO how long should we sleep???
-  for (volatile int i = 0; i < 10000000; ++i)
-    ;
+  /* for (volatile int i = 0; i < 10000000; ++i) */
+  /*   ; */
 
   if (candidates_ == nullptr || candidates_->size() == 0)
   {
@@ -83,19 +83,21 @@ void FlowController::run()
     workerThreads.back()->start();
   }
 
-  // we've spawned threads for each candidate, wait for responses at most 10 seconds
-  if (!waitForResponses(10000))
-  {
-    qDebug() << "Remote didn't respond to our request in time!";
-    emit ready(nullptr, nullptr, sessionID_);
-    return;
-  }
+  bool nominationSucceeded = waitForResponses(10000);
 
   // we got a response, suspend all threads and start nomination
   for (size_t i = 0; i < workerThreads.size(); ++i)
   {
     workerThreads[i]->quit();
     workerThreads[i]->wait();
+  }
+
+  // we've spawned threads for each candidate, wait for responses at most 10 seconds
+  if (!nominationSucceeded)
+  {
+    qDebug() << "Remote didn't respond to our request in time!";
+    emit ready(nullptr, nullptr, sessionID_);
+    return;
   }
 
   if (!stun.sendNominationRequest(nominated_rtp_))
@@ -143,20 +145,24 @@ void FlowControllee::run()
     workerThreads.back()->start();
   }
 
-  // wait for nomination from remote, wait at most 20 seconds
-  if (!waitForResponses(20000))
-  {
-    qDebug() << "Nomination from remote was not received in time!";
-    emit ready(nullptr, nullptr, sessionID_);
-    return;
-  }
 
-  // we got a nomination from remote, kill all threads and start the media transmission
+  bool nominationSucceeded = waitForResponses(20000);
+
+  // kill all threads, regardless of whether nomination succeeded or not
   for (size_t i = 0; i < workerThreads.size(); ++i)
   {
     workerThreads[i]->quit();
     workerThreads[i]->wait();
   }
 
+  // wait for nomination from remote, wait at most 20 seconds
+  if (!nominationSucceeded)
+  {
+    qDebug() << "Nomination from remote was not received in time!";
+    emit ready(nullptr, nullptr, sessionID_);
+    return;
+  }
+
+  // media transmission can be started
   emit ready(nominated_rtp_, nominated_rtcp_, sessionID_);
 }
