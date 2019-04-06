@@ -20,6 +20,8 @@ public:
     // requests after it has concluded the candidate verification
     void isController(bool controller);
 
+    void printMessage(QString message);
+
 signals:
     // testingDone() is emitted when the connection testing has ended
     //

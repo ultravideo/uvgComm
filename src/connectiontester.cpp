@@ -23,6 +23,14 @@ void ConnectionTester::isController(bool controller)
   controller_ = controller;
 }
 
+void ConnectionTester::printMessage(QString message)
+{
+  if (controller_)
+    qDebug() << "[controller]" << message;
+  else
+    qDebug() << "[controllee]" << message;
+}
+
 void ConnectionTester::run()
 {
   if (rtp_pair_ == nullptr || rtcp_pair_ == nullptr)
@@ -36,22 +44,29 @@ void ConnectionTester::run()
   rtcp_pair_->state = PAIR_WAITING;
   rtp_pair_->state  = PAIR_IN_PROGRESS;
 
+  printMessage("STARTING");
+
   if (stun.sendBindingRequest(rtp_pair_, controller_))
   {
     rtp_pair_->state = PAIR_SUCCEEDED;
     rtcp_pair_->state = PAIR_IN_PROGRESS;
 
+    printMessage("RTP NOMINATED!!!");
+
     if (stun.sendBindingRequest(rtcp_pair_, controller_))
     {
+      printMessage("RTCP NOMINATED!");
       rtcp_pair_->state = PAIR_SUCCEEDED;
     }
     else
     {
+      printMessage("RTCP FAILED!");
       rtcp_pair_->state = PAIR_FAILED;
     }
   }
   else
   {
+    printMessage("RTP FAILED!");
     rtp_pair_->state = PAIR_FAILED;
   }
 
@@ -73,7 +88,7 @@ void ConnectionTester::run()
   if (!stun.sendNominationResponse(rtp_pair_))
   {
     qDebug() << "failed to receive nomination for RTP candidate:\n"
-             << "\tlocal:"  << rtp_pair_->local->address  << ":" << rtcp_pair_->local->port << "\n"
+             << "\t\local:"  << rtp_pair_->local->address  << ":" << rtcp_pair_->local->port << "\n"
              << "\tremote:" << rtp_pair_->remote->address << ":" << rtcp_pair_->remote->port;
     return;
   }
