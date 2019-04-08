@@ -6,6 +6,7 @@
 #include <QDateTime>
 #include <QDebug>
 
+
 #ifdef QT_CHARTS_LIB
 #include <QtCharts/QValueAxis>
 #include <QtCharts/QAbstractAxis>
@@ -14,6 +15,12 @@
 const int BUFFERSIZE = 65536;
 
 const int GRAPHSIZE = 60;
+
+
+enum TabType {
+  PARTICIPANT_TAB = 0, NETWORK_TAB = 1, MEDIA_TAB = 2, FILTER_TAB = 3
+};
+
 
 StatisticsWindow::StatisticsWindow(QWidget *parent) :
 QDialog(parent),
@@ -347,29 +354,24 @@ void StatisticsWindow::visualizeDataToSeries(std::deque<float>& data)
     series->append(i, data.at(i));
   }
 
-  //chart->createDefaultAxes();
-  /*
-  QtCharts::QValueAxis* xAxis = new QtCharts::QValueAxis();
-  xAxis->setRange(0,60);
-  QtCharts::QValueAxis* yAxis = new QtCharts::QValueAxis();
-  yAxis->setRange(0,60);
-  chart->setAxisX(xAxis);
-  chart->setAxisY(yAxis);
-*/
   chart->addSeries(series);
 
-  chart->createDefaultAxes();
+  // x-axis
+  QtCharts::QValueAxis* xAxis = new QtCharts::QValueAxis();
+  xAxis->setMin(0);
+  xAxis->setMax(60);
+  xAxis->setReverse(true);
+  //xAxis->setTitleText("seconds");
+  chart->addAxis(xAxis, Qt::AlignBottom);
+  series->attachAxis(xAxis);
 
-  QtCharts::QAbstractAxis* axis = chart->axisY();
-
-  axis->setMin(0);
-  axis->setMax(framerate_ + 10);
-
-  QtCharts::QAbstractAxis* axisx = chart->axisX();
-
-  axisx->setMin(0);
-  axisx->setMax(60);
-  axisx->setReverse(true);
+  // y-axis, framerate
+  QtCharts::QValueAxis* yAxis = new QtCharts::QValueAxis();
+  chart->addAxis(yAxis, Qt::AlignRight);
+  yAxis->setMin(0);
+  yAxis->setMax(framerate_ + 10);
+  //yAxis->setTitleText("fps");
+  series->attachAxis(yAxis);
 
   chart->legend()->hide();
   chart->setMinimumSize(480, 200);
@@ -389,7 +391,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
     // update only the tab which user is looking at.
     switch(ui_->Statistics_tabs->currentIndex())
     {
-    case 0:
+    case PARTICIPANT_TAB:
     {
       int index = 0;
       for(PeerInfo d : peers_)
@@ -409,7 +411,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
       }
       break;
     }
-    case 1:
+    case NETWORK_TAB:
     {
       ui_->packets_sent_value->setText( QString::number(sendPacketCount_));
       ui_->data_sent_value->setText( QString::number(transferredData_));
@@ -417,7 +419,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
       ui_->data_received_value->setText( QString::number(receivedData_));
       ui_->packets_skipped_value->setText(QString::number(packetsDropped_));
       break;
-    case 2:
+    case MEDIA_TAB:
         lastVideoBitrate_ = bitrate(videoPackets_, videoIndex_, lastVideoFrameRate_);
         ui_->video_bitrate_value->setText
             ( QString::number(lastVideoBitrate_) + " kbit/s" );
@@ -426,6 +428,10 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
             ( QString::number(lastVideoFrameRate_) + " fps" );
 
 #ifdef QT_CHARTS_LIB
+        if(lastTabIndex_ != MEDIA_TAB)
+        {
+          framerates_.clear();
+        }
         framerates_.push_front(lastVideoFrameRate_);
 
         if (framerates_.size() > GRAPHSIZE)
@@ -444,7 +450,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
             ( QString::number(lastAudioBitrate_) + " kbit/s" );
         break;
       }
-    case 3:
+    case FILTER_TAB:
     {
 
       if(dirtyBuffers_)
