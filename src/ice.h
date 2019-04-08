@@ -72,6 +72,10 @@ class ICE : public QObject
     void createSTUNCandidate(QHostAddress address);
 
   private:
+    // create media candidate (RTP and RTCP connection)
+    // "type" marks whether this candidate is host or server reflexive candidate (affects priority)
+    std::pair<ICEInfo *, ICEInfo *> makeCandidate(QHostAddress address, QString type);
+
     void handleEndOfNomination(struct ICEPair *candidateRTP, struct ICEPair *candidateRTCP, uint32_t sessionID);
 
     int calculatePriority(int type, int local, int component);
@@ -79,16 +83,12 @@ class ICE : public QObject
     void printCandidate(ICEInfo *candidate);
     QList<ICEPair *> *makeCandiatePairs(QList<ICEInfo *>& local, QList<ICEInfo *>& remote);
 
-    uint16_t portPair;
     bool nominatingConnection_;
     bool iceDisabled_;
 
     Stun stun_;
-
-    ICEInfo *stun_entry_rtp_;
-    ICEInfo *stun_entry_rtcp_;
+    QHostAddress stunAddress_;
+    SDPParameterManager parameters_;
 
     QMap<uint32_t, struct nominationInfo> nominationInfo_;
-
-    SDPParameterManager parameters_;
 };

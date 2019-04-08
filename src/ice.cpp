@@ -11,10 +11,8 @@ const uint16_t MAX_ICE_PORT   = 22500;
 const uint16_t MAX_PORTS      = 100;
 
 ICE::ICE():
-  portPair(22000),
   stun_(),
-  stun_entry_rtp_(nullptr),
-  stun_entry_rtcp_(nullptr),
+  stunAddress_(QHostAddress("")),
   parameters_()
 {
   parameters_.setPortRange(MIN_ICE_PORT, MAX_ICE_PORT, MAX_PORTS);
@@ -30,8 +28,6 @@ ICE::ICE():
 
 ICE::~ICE()
 {
-  delete stun_entry_rtp_;
-  delete stun_entry_rtcp_;
 }
 
 // TODO lue speksi uudelleen tämä osalta
@@ -68,6 +64,7 @@ QList<ICEInfo *> ICE::generateICECandidates()
   qsrand((uint)time.msec());
 
   QList<ICEInfo *> candidates;
+  std::pair<ICEInfo *, ICEInfo *> candidate;
 
   foreach (const QHostAddress& address, QNetworkInterface::allAddresses())
   {
@@ -77,45 +74,62 @@ QList<ICEInfo *> ICE::generateICECandidates()
          address.toString().startsWith("172.")  ||
          address == QHostAddress(QHostAddress::LocalHost)))
     {
-      ICEInfo *entry_rtp  = new ICEInfo;
-      ICEInfo *entry_rtcp = new ICEInfo;
+      candidate = makeCandidate(address, "host");
 
-      entry_rtp->address  = address.toString();
-      entry_rtcp->address = address.toString();
-
-      entry_rtp->port  = parameters_.nextAvailablePortPair();
-      entry_rtcp->port = entry_rtp->port + 1;
-
-      // for each RTP/RTCP pair foundation is the same
-      const QString foundation = generateFoundation();
-
-      entry_rtp->foundation  = foundation;
-      entry_rtcp->foundation = foundation;
-
-      entry_rtp->transport  = "UDP";
-      entry_rtcp->transport = "UDP";
-
-      entry_rtp->component  = RTP;
-      entry_rtcp->component = RTCP;
-
-      entry_rtp->priority  = calculatePriority(126, 1, RTP);
-      entry_rtcp->priority = calculatePriority(126, 1, RTCP);
-
-      entry_rtp->type  = "host";
-      entry_rtcp->type = "host";
-
-      candidates.push_back(entry_rtp);
-      candidates.push_back(entry_rtcp);
+      candidates.push_back(candidate.first);
+      candidates.push_back(candidate.second);
     }
   }
 
-  if (stun_entry_rtp_ != nullptr && stun_entry_rtcp_ != nullptr)
+  if (stunAddress_ != QHostAddress(""))
   {
-    candidates.push_back(stun_entry_rtp_);
-    candidates.push_back(stun_entry_rtcp_);
+    std::pair<ICEInfo *, ICEInfo *> cands = makeCandidate(stunAddress_, "srflx");
+
+    candidates.push_back(cands.first);
+    candidates.push_back(cands.second);
   }
 
   return candidates;
+}
+
+std::pair<ICEInfo *, ICEInfo *> ICE::makeCandidate(QHostAddress address, QString type)
+{
+  ICEInfo *entry_rtp  = new ICEInfo;
+  ICEInfo *entry_rtcp = new ICEInfo;
+
+  entry_rtp->address  = address.toString();
+  entry_rtcp->address = address.toString();
+
+  entry_rtp->port  = parameters_.nextAvailablePortPair();
+  entry_rtcp->port = entry_rtp->port + 1;
+
+  // for each RTP/RTCP pair foundation is the same
+  const QString foundation = generateFoundation();
+
+  entry_rtp->foundation  = foundation;
+  entry_rtcp->foundation = foundation;
+
+  entry_rtp->transport  = "UDP";
+  entry_rtcp->transport = "UDP";
+
+  entry_rtp->component  = RTP;
+  entry_rtcp->component = RTCP;
+
+  if (type == "host")
+  {
+    entry_rtp->priority  = calculatePriority(126, 1, RTP);
+    entry_rtcp->priority = calculatePriority(126, 1, RTCP);
+  }
+  else
+  {
+    entry_rtp->priority  = calculatePriority(0, 1, RTP);
+    entry_rtcp->priority = calculatePriority(0, 1, RTCP);
+  }
+
+  entry_rtp->type  = type;
+  entry_rtcp->type = type;
+
+  return std::make_pair(entry_rtp, entry_rtcp);
 }
 
 void ICE::createSTUNCandidate(QHostAddress address)
@@ -123,37 +137,9 @@ void ICE::createSTUNCandidate(QHostAddress address)
   if (address == QHostAddress(""))
   {
     qDebug() << "WARNING: Failed to resolve public IP! Server-reflexive candidates won't be created!";
-    return;
   }
 
-  qDebug() << "Creating STUN candidate...";
-
-  stun_entry_rtp_  = new ICEInfo;
-  stun_entry_rtcp_ = new ICEInfo;
-
-  stun_entry_rtp_->address  = address.toString();
-  stun_entry_rtcp_->address = address.toString();
-
-  stun_entry_rtp_->port  = portPair++;
-  stun_entry_rtcp_->port = portPair++;
-
-  // for each RTP/RTCP pair foundation is the same
-  const QString foundation = generateFoundation();
-
-  stun_entry_rtp_->foundation  = foundation;
-  stun_entry_rtcp_->foundation = foundation;
-
-  stun_entry_rtp_->transport  = "UDP";
-  stun_entry_rtcp_->transport = "UDP";
-
-  stun_entry_rtp_->component  = RTP;
-  stun_entry_rtcp_->component = RTCP;
-
-  stun_entry_rtp_->priority  = calculatePriority(126, 0, RTP);
-  stun_entry_rtcp_->priority = calculatePriority(126, 0, RTCP);
-
-  stun_entry_rtp_->type  = "srflx";
-  stun_entry_rtcp_->type = "srflx";
+  stunAddress_ = address;
 }
 
 void ICE::printCandidate(ICEInfo *candidate)
@@ -238,6 +224,7 @@ void ICE::respondToNominations(QList<ICEInfo *>& local, QList<ICEInfo *>& remote
   FlowControllee *caller = nominationInfo_[sessionID].controllee;
   QObject::connect(caller, &FlowControllee::ready, this, &ICE::handleCallerEndOfNomination, Qt::DirectConnection);
 
+  /* caller->setHevcCandidates( */
   caller->setCandidates(nominationInfo_[sessionID].pairs);
   caller->setSessionID(sessionID);
   caller->start();
@@ -304,7 +291,7 @@ void ICE::handleEndOfNomination(struct ICEPair *candidateRTP, struct ICEPair *ca
       //
       // because ports are allocated in pairs (RTP is port X and RTCP is port X + 1),
       // we need to call makePortPairAvailable() only for RTP candidate
-      if (pair->local != stun_entry_rtp_ && pair->local != stun_entry_rtcp_ && pair->local->component == RTP)
+      if (pair->local->component == RTP)
       {
         parameters_.makePortPairAvailable(pair->local->port);
       }
