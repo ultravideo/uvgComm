@@ -22,6 +22,7 @@ STUNMessage StunMessageFactory::createResponse()
 {
   STUNMessage response(STUN_RESPONSE);
 
+  response.setTransactionID(latestRequest_.getTransactionID());
   return response;
 }
 
