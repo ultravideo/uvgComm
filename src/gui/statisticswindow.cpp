@@ -6,7 +6,14 @@
 #include <QDateTime>
 #include <QDebug>
 
+#ifdef QT_CHARTS_LIB
+#include <QtCharts/QValueAxis>
+#include <QtCharts/QAbstractAxis>
+#endif
+
 const int BUFFERSIZE = 65536;
+
+const int GRAPHSIZE = 60;
 
 StatisticsWindow::StatisticsWindow(QWidget *parent) :
 QDialog(parent),
@@ -51,6 +58,10 @@ ui_(new Ui::StatisticsWindow),
   ui_->filterTable->setColumnWidth(0, 240);
 
   guiTimer_.start();
+
+#ifndef QT_CHARTS_LIB
+  ui_->fps_graph->hide();
+#endif
 }
 
 StatisticsWindow::~StatisticsWindow()
@@ -320,6 +331,53 @@ void StatisticsWindow::packetDropped(QString filter)
   }
 }
 
+#ifdef QT_CHARTS_LIB
+void StatisticsWindow::visualizeDataToSeries(std::deque<float>& data)
+{
+  ui_->fps_graph->setDragMode(QGraphicsView::NoDrag);
+  ui_->fps_graph->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+  ui_->fps_graph->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+  ui_->fps_graph->setScene(new QGraphicsScene);
+
+  QtCharts::QChart* chart = new QtCharts::QChart;
+  QtCharts::QLineSeries* series = new QtCharts::QLineSeries;
+
+  for (int i = data.size() -1; i >= 0; --i)
+  {
+    series->append(i, data.at(i));
+  }
+
+  //chart->createDefaultAxes();
+  /*
+  QtCharts::QValueAxis* xAxis = new QtCharts::QValueAxis();
+  xAxis->setRange(0,60);
+  QtCharts::QValueAxis* yAxis = new QtCharts::QValueAxis();
+  yAxis->setRange(0,60);
+  chart->setAxisX(xAxis);
+  chart->setAxisY(yAxis);
+*/
+  chart->addSeries(series);
+
+  chart->createDefaultAxes();
+
+  QtCharts::QAbstractAxis* axis = chart->axisY();
+
+  axis->setMin(0);
+  axis->setMax(framerate_ + 10);
+
+  QtCharts::QAbstractAxis* axisx = chart->axisX();
+
+  axisx->setMin(0);
+  axisx->setMax(60);
+  axisx->setReverse(true);
+
+  chart->legend()->hide();
+  chart->setMinimumSize(480, 200);
+
+  ui_->fps_graph->scene()->addItem(chart);
+}
+#endif
+
 void StatisticsWindow::paintEvent(QPaintEvent *event)
 {
   Q_UNUSED(event)
@@ -328,6 +386,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
     // no need to catch up if we are falling behind, instead just reset the clock
     lastDrawTime_ = guiTimer_.elapsed();
 
+    // update only the tab which user is looking at.
     switch(ui_->Statistics_tabs->currentIndex())
     {
     case 0:
@@ -366,6 +425,16 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
         ui_->encoded_framerate_value->setText
             ( QString::number(lastVideoFrameRate_) + " fps" );
 
+#ifdef QT_CHARTS_LIB
+        framerates_.push_front(lastVideoFrameRate_);
+
+        if (framerates_.size() > GRAPHSIZE)
+        {
+          framerates_.pop_back();
+        }
+
+        visualizeDataToSeries(framerates_);
+#endif
 
         ui_->encode_delay_value->setText( QString::number(videoEncDelay_) + " ms." );
         ui_->audio_delay_value->setText( QString::number(audioEncDelay_) + " ms." );
