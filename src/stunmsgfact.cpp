@@ -1,6 +1,15 @@
 #include "stunmsgfact.h"
 #include <QDateTime>
 
+// allocate 256 bytes of temporary memory for each outgoing STUN message
+// Usually the size of message is less than 100 bytes but just in case add
+// some wiggle room.
+//
+// This has to be done because 64-bit MinGW seems to call unique_ptr's
+// *destructor* when allocating space for the message. Allocating buffer large
+// enough fixes the problem
+const int STUN_MSG_MAX_SIZE = 256;
+
 StunMessageFactory::StunMessageFactory()
 {
   qsrand(QDateTime::currentSecsSinceEpoch() / 2 + 1);
@@ -135,7 +144,7 @@ QByteArray StunMessageFactory::hostToNetwork(STUNMessage& message)
   auto attrs = message.getAttributes();
   const size_t MSG_SIZE = sizeof(STUNRawMessage) + message.getLength();
 
-  auto ptr = std::unique_ptr<unsigned char[]>{ new unsigned char[MSG_SIZE] };
+  auto ptr = std::unique_ptr<unsigned char[]>{ new unsigned char[STUN_MSG_MAX_SIZE] };
   STUNRawMessage *rawMessage = static_cast<STUNRawMessage *>(static_cast<void *>(ptr.get()));
 
   rawMessage->type        = qToBigEndian((short)message.getType());
