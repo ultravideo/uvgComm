@@ -167,25 +167,19 @@ GlobalSDPState::localFinalSDP(SDPMessageInfo &remoteSDP, QHostAddress localAddre
       return nullptr;
     }
 
-    // getNominated() returns two (TODO: four!) valid candidate pairs if ICE succeeded
-    // (ie. ICE was not disabled and remote responded to our requests)
-    auto nominated = ice_->getNominated(sessionID);
+    ICEMediaInfo nominated = ice_->getNominated(sessionID);
 
-    if (nominated.first && nominated.second)
+    // first is RTP, second is RTCP
+    if (nominated.opus.first != nullptr && nominated.opus.second != nullptr)
     {
-      // RTP
-      sdp->media[0].receivePort = nominated.first->local->port;
-      sdp->media[0].connection_address = nominated.first->local->address;
+      setMediaPair(sdp->media[0],  nominated.opus.first->local);
+      setMediaPair(remoteSDP.media[0], nominated.opus.first->remote);
+    }
 
-      remoteSDP.media[0].receivePort = nominated.first->remote->port;
-      remoteSDP.media[0].connection_address = nominated.first->remote->address;
-
-      // RTCP
-      sdp->media[1].receivePort = nominated.second->local->port;
-      sdp->media[1].connection_address = nominated.second->local->address;
-
-      remoteSDP.media[1].receivePort = nominated.second->remote->port;
-      remoteSDP.media[1].connection_address = nominated.second->remote->address;
+    if (nominated.hevc.first != nullptr && nominated.hevc.second != nullptr)
+    {
+      setMediaPair(sdp->media[1],  nominated.hevc.first->local);
+      setMediaPair(remoteSDP.media[1], nominated.hevc.first->remote);
     }
   }
 
@@ -264,26 +258,31 @@ void GlobalSDPState::startICECandidateNegotiation(QList<ICEInfo *>& local, QList
   ice_->startNomination(local, remote, sessionID);
 }
 
+void GlobalSDPState::setMediaPair(MediaInfo& media, ICEInfo *mediaInfo)
+{
+  if (mediaInfo == nullptr)
+  {
+    return;
+  }
+
+  media.connection_address = mediaInfo->address;
+  media.receivePort        = mediaInfo->port;
+}
+
 void GlobalSDPState::updateFinalSDPs(SDPMessageInfo& localSDP, SDPMessageInfo& remoteSDP, uint32_t sessionID)
 {
-  auto nominated = ice_->getNominated(sessionID);
+  ICEMediaInfo nominated = ice_->getNominated(sessionID);
 
-  if (nominated.first && nominated.second)
+  // first is RTP, second is RTCP
+  if (nominated.opus.first != nullptr && nominated.opus.second != nullptr)
   {
-    // local RTP
-    localSDP.media[0].connection_address = nominated.first->local->address;
-    localSDP.media[0].receivePort = nominated.first->local->port;
+    setMediaPair(localSDP.media[0],  nominated.opus.first->local);
+    setMediaPair(remoteSDP.media[0], nominated.opus.first->remote);
+  }
 
-    // local RTCP
-    localSDP.media[1].connection_address = nominated.second->local->address;
-    localSDP.media[1].receivePort = nominated.second->local->port;
-
-    // remote RTP
-    remoteSDP.media[0].connection_address = nominated.first->remote->address;
-    remoteSDP.media[0].receivePort = nominated.first->remote->port;
-
-    // remote RTCP
-    remoteSDP.media[1].connection_address = nominated.second->remote->address;
-    remoteSDP.media[1].receivePort = nominated.second->remote->port;
+  if (nominated.hevc.first != nullptr && nominated.hevc.second != nullptr)
+  {
+    setMediaPair(localSDP.media[1],  nominated.hevc.first->local);
+    setMediaPair(remoteSDP.media[1], nominated.hevc.first->remote);
   }
 }

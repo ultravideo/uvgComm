@@ -56,6 +56,9 @@ private:
 
   bool checkSDPOffer(SDPMessageInfo& offer);
 
+  // update MediaInfo of SDP after ICE has finished
+  void setMediaPair(MediaInfo& media, ICEInfo *mediaInfo);
+
   QString localUsername_;
 
   std::unique_ptr<ICE> ice_;
