@@ -59,3 +59,17 @@ bool checkMissingValues(QSettings& settings)
   }
   return foundEverything;
 }
+
+
+void addFieldsToTable(QStringList& fields, QTableWidget* list)
+{
+  list->insertRow(list->rowCount());
+
+  for (int i = 0; i < fields.size(); ++i)
+  {
+    QString field = fields.at(i);
+    QTableWidgetItem* item = new QTableWidgetItem(field);
+
+    list->setItem(list->rowCount() - 1, i, item);
+  }
+}

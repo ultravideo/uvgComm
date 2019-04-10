@@ -2,6 +2,7 @@
 
 #include <QString>
 #include <QSettings>
+#include <QTableWidget>
 
 class QCheckBox;
 
@@ -13,3 +14,5 @@ void saveCheckBox(const QString settingValue, QCheckBox* box, QSettings& setting
 void saveTextValue(const QString settingValue, const QString &text, QSettings& settings);
 
 bool checkMissingValues(QSettings& settings);
+
+void addFieldsToTable(QStringList& fields, QTableWidget* list);

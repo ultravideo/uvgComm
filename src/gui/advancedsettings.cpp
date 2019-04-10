@@ -104,7 +104,9 @@ void AdvancedSettings::on_addUserBlock_clicked()
 
     qDebug() << "Settings," << metaObject()->className() << ":Blocking an user";
 
-    addUsernameToList(advancedUI_->blockUser->text(), QDateTime::currentDateTime().toString("yyyy-mm-dd hh:mm"));
+    QStringList list = QStringList() << advancedUI_->blockUser->text()
+                                     << QDateTime::currentDateTime().toString("yyyy-mm-dd hh:mm");
+    addFieldsToTable(list, advancedUI_->blockedUsers);
 
     advancedUI_->BlockUsernameLabel->setText("Block contacts from username:");
     advancedUI_->blockUser->setText("");
@@ -114,6 +116,7 @@ void AdvancedSettings::on_addUserBlock_clicked()
     advancedUI_->BlockUsernameLabel->setText("Write username below:");
   }
 }
+
 
 void AdvancedSettings::serverStatusChange(QString status)
 {
@@ -173,10 +176,10 @@ void AdvancedSettings::initializeBlocklist()
   qDebug() << "Settings,"  << metaObject()->className() << ": Reading blocklist with" << size << "usernames";
   for (int i = 0; i < size; ++i) {
     settings.setArrayIndex(i);
-    QString username = settings.value("userName").toString();
-    QString date = settings.value("date").toString();
 
-    addUsernameToList(username, date);
+    QStringList list = QStringList() << settings.value("userName").toString() << settings.value("date").toString();
+
+    addFieldsToTable(list, advancedUI_->blockedUsers);
   }
   settings.endArray();
 }
@@ -198,19 +201,6 @@ void AdvancedSettings::writeBlocklistToSettings()
   }
   settings.endArray();
 }
-
-
-void AdvancedSettings::addUsernameToList(QString username, QString date)
-{
-  QTableWidgetItem* itemUser = new QTableWidgetItem(username);
-  QTableWidgetItem* itemDate = new QTableWidgetItem(date);
-
-  advancedUI_->blockedUsers->insertRow(advancedUI_->blockedUsers->rowCount());
-
-  advancedUI_->blockedUsers->setItem(advancedUI_->blockedUsers->rowCount() - 1, 0, itemUser);
-  advancedUI_->blockedUsers->setItem(advancedUI_->blockedUsers->rowCount() - 1, 1, itemDate);
-}
-
 
 bool AdvancedSettings::checkSipSettings()
 {
