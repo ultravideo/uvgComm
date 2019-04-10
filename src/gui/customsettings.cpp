@@ -122,18 +122,22 @@ void CustomSettings::saveCustomSettings()
 
   settings_.setValue("audio/Channels",         QString::number(customUI_->channels->value()));
 
+  listGUIToSettings("kvazzup.ini", "parameters", QStringList() << "Name" << "Value", customUI_->custom_parameters);
+
   saveCameraCapabilities(settings_.value("video/DeviceID").toInt());
 }
 
 
 void CustomSettings::saveCameraCapabilities(int deviceIndex)
 {
-  qDebug() << "Settings," << metaObject()->className() << ": Recording capability settings for deviceIndex:" << deviceIndex;
+  qDebug() << "Settings," << metaObject()->className()
+           << ": Recording capability settings for deviceIndex:" << deviceIndex;
 
   int formatIndex = customUI_->format_box->currentIndex();
   int resolutionIndex = customUI_->resolution->currentIndex();
 
-  qDebug() << "Settings," << metaObject()->className() << ": Boxes in following positions: Format:" << formatIndex << "Resolution:" << resolutionIndex;
+  qDebug() << "Settings," << metaObject()->className()
+           << ": Boxes in following positions: Format:" << formatIndex << "Resolution:" << resolutionIndex;
   if(formatIndex == -1)
   {
     formatIndex = 0;
@@ -199,6 +203,8 @@ void CustomSettings::restoreCustomSettings()
     restoreCheckBox("video/flipViews", customUI_->flip, settings_);
     restoreCheckBox("video/liveCopying", customUI_->live555Copy, settings_);
 
+    listSettingsToGUI("kvazzup.ini", "parameters", QStringList() << "Name" << "Value",
+                      customUI_->custom_parameters);
   }
   else
   {
