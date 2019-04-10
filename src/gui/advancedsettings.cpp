@@ -19,11 +19,13 @@ AdvancedSettings::AdvancedSettings(QWidget* parent):
 void AdvancedSettings::init()
 {
   advancedUI_->blockedUsers->setColumnCount(2);
-  advancedUI_->blockedUsers->setHorizontalHeaderItem(0, new QTableWidgetItem(QString("Username")));
-  advancedUI_->blockedUsers->setHorizontalHeaderItem(1, new QTableWidgetItem(QString("Date")));
-
   advancedUI_->blockedUsers->setColumnWidth(0, 240);
   advancedUI_->blockedUsers->setColumnWidth(1, 180);
+
+  // TODO: Does not work for some reason.
+  QStringList longerList = (QStringList() << "Username" << "Date");
+  advancedUI_->blockedUsers->setHorizontalHeaderLabels(longerList);
+
   advancedUI_->blockedUsers->setEditTriggers(QAbstractItemView::NoEditTriggers); // disallow editing of fields.
 
   advancedUI_->blockedUsers->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -162,7 +164,7 @@ void AdvancedSettings::initializeBlocklist()
   //connect(list, SIGNAL(customContextMenuRequested(QPoint)),
   //        this, SLOT(showContextMenu(QPoint)));
 
-  advancedUI_->blockedUsers->clear();
+  //advancedUI_->blockedUsers->clear();
   advancedUI_->blockedUsers->setRowCount(0);
 
   QSettings settings("blocklist.local", QSettings::IniFormat);
