@@ -47,9 +47,6 @@ private:
   // GUI -> QSettings
   void saveAdvancedSettings();
 
-  void initializeBlocklist();
-  void writeBlocklistToSettings();
-
   void addUsernameToList(QString username, QString date);
 
   bool checkSipSettings();

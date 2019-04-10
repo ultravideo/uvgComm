@@ -133,7 +133,7 @@ void AdvancedSettings::saveAdvancedSettings()
 {
   qDebug() << "Settings," << metaObject()->className() << ": Saving advanced Settings";
 
-  writeBlocklistToSettings();
+  listGUIToSettings("blocklist.local", "blocklist", QStringList() << "userName" << "date", advancedUI_->blockedUsers);
 
   // sip settings.
   saveTextValue("sip/ServerAddress", advancedUI_->serverAddress->text(), settings_);
@@ -144,7 +144,7 @@ void AdvancedSettings::saveAdvancedSettings()
 
 void AdvancedSettings::restoreAdvancedSettings()
 {
-  initializeBlocklist();
+  listSettingsToGUI("blocklist.local", "blocklist", QStringList() << "userName" << "date", advancedUI_->blockedUsers);
 
   bool validSettings = checkMissingValues(settings_);
 
@@ -152,54 +152,12 @@ void AdvancedSettings::restoreAdvancedSettings()
   {
     restoreCheckBox("sip/AutoConnect", advancedUI_->autoConnect, settings_);
     restoreCheckBox("sip/ice", advancedUI_->ice, settings_);
-    advancedUI_->serverAddress->setText        (settings_.value("sip/ServerAddress").toString());
+    advancedUI_->serverAddress->setText(settings_.value("sip/ServerAddress").toString());
   }
   else
   {
     resetSettings();
   }
-}
-
-
-void AdvancedSettings::initializeBlocklist()
-{
-  //list_->setContextMenuPolicy(Qt::CustomContextMenu);
-  //connect(list, SIGNAL(customContextMenuRequested(QPoint)),
-  //        this, SLOT(showContextMenu(QPoint)));
-
-  //advancedUI_->blockedUsers->clear();
-  advancedUI_->blockedUsers->setRowCount(0);
-
-  QSettings settings("blocklist.local", QSettings::IniFormat);
-
-  int size = settings.beginReadArray("blocklist");
-  qDebug() << "Settings,"  << metaObject()->className() << ": Reading blocklist with" << size << "usernames";
-  for (int i = 0; i < size; ++i) {
-    settings.setArrayIndex(i);
-
-    QStringList list = QStringList() << settings.value("userName").toString() << settings.value("date").toString();
-
-    addFieldsToTable(list, advancedUI_->blockedUsers);
-  }
-  settings.endArray();
-}
-
-
-void AdvancedSettings::writeBlocklistToSettings()
-{
-  qDebug() << "Settings," << metaObject()->className() << "Writing blocklist with"
-           << advancedUI_->blockedUsers->rowCount() << "items to settings.";
-
-  QSettings settings("blocklist.local", QSettings::IniFormat);
-
-  settings.beginWriteArray("blocklist");
-  for(int i = 0; i < advancedUI_->blockedUsers->rowCount(); ++i)
-  {
-    settings.setArrayIndex(i);
-    settings.setValue("username", advancedUI_->blockedUsers->item(i,0)->text());
-    settings.setValue("date", advancedUI_->blockedUsers->item(i,1)->text());
-  }
-  settings.endArray();
 }
 
 bool AdvancedSettings::checkSipSettings()

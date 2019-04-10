@@ -29,7 +29,7 @@ void restoreCheckBox(const QString settingValue, QCheckBox* box, QSettings& sett
   }
   else
   {
-    qDebug() << "Settings, SettingsHelper: Corrupted value for checkbox in settings file for:"
+    qDebug() << "Settings, SettingsHelper : Corrupted value for checkbox in settings file for:"
              << settingValue << "!!!";
   }
 }
@@ -73,3 +73,50 @@ void addFieldsToTable(QStringList& fields, QTableWidget* list)
     list->setItem(list->rowCount() - 1, i, item);
   }
 }
+
+
+void listSettingsToGUI(QString filename, QString listName, QStringList values, QTableWidget* table)
+{
+  QSettings settings(filename, QSettings::IniFormat);
+
+  int size = settings.beginReadArray(listName);
+
+  qDebug() << "Settings, SettingsHelper : Reading" << listName << "from" << filename << "with"
+           << size << "items to GUI.";
+
+  for(int i = 0; i < size; ++i)
+  {
+    settings.setArrayIndex(i);
+
+    QStringList list;
+    for(int j = 0; j < values.size(); ++j)
+    {
+      list = list << settings.value(values.at(j)).toString();
+    }
+
+    addFieldsToTable(list, table);
+  }
+  settings.endArray();
+}
+
+
+void listGUIToSettings(QString filename, QString listName, QStringList values, QTableWidget* table)
+{
+  qDebug() << "Settings," << "SettingsHelper" << "Writing" << listName << "with"
+           << table->rowCount() << "items to settings.";
+
+  QSettings settings(filename, QSettings::IniFormat);
+
+  settings.beginWriteArray(listName);
+  for(int i = 0; i < table->rowCount(); ++i)
+  {
+    settings.setArrayIndex(i);
+
+    for (int j = 0; j < values.size(); ++j)
+    {
+      settings.setValue(values.at(j), table->item(i,j)->text());
+    }
+  }
+  settings.endArray();
+}
+

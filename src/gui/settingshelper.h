@@ -16,3 +16,8 @@ void saveTextValue(const QString settingValue, const QString &text, QSettings& s
 bool checkMissingValues(QSettings& settings);
 
 void addFieldsToTable(QStringList& fields, QTableWidget* list);
+
+void listSettingsToGUI(QString filename, QString listName, QStringList values, QTableWidget* table);
+
+void listGUIToSettings(QString filename, QString listName, QStringList values, QTableWidget* table);
+
