@@ -41,6 +41,8 @@ public slots:
   void on_custom_ok_clicked();
   void on_custom_cancel_clicked();
 
+  void on_add_parameter_clicked();
+
   void initializeResolutions(QString format);
   void initializeFramerates(QString format, int resolutionID);
 

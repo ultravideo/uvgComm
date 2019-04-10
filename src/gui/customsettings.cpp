@@ -79,12 +79,26 @@ void CustomSettings::on_custom_ok_clicked()
 
 void CustomSettings::on_custom_cancel_clicked()
 {
-  qDebug() << "Settings," << metaObject()->className() << ": Cancelled modifying custom settings. Getting settings from system";
+  qDebug() << "Settings," << metaObject()->className()
+           << ": Cancelled modifying custom settings. Getting settings from system";
   restoreCustomSettings();
   hide();
   emit hidden();
 }
 
+void CustomSettings::on_add_parameter_clicked()
+{
+  qDebug() << "Settings," << metaObject()->className() << ": Adding a custom parameter for kvazaar.";
+
+  if (customUI_->parameter_name->text() == "")
+  {
+    qDebug() << "Settings," << metaObject()->className() << ": parameter name not set";
+    return;
+  }
+
+  QStringList list = QStringList() << customUI_->parameter_name->text() << customUI_->parameter_value->text();
+  addFieldsToTable(list, customUI_->custom_parameters);
+}
 
 void CustomSettings::saveCustomSettings()
 {
