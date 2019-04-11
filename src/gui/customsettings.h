@@ -37,6 +37,10 @@ signals:
 
 public slots:
 
+  // Slots related to parameter list
+  void showParameterContextMenu(const QPoint& pos);
+  void deleteListParameter();
+
   // button slots, called automatically by Qt
   void on_custom_ok_clicked();
   void on_custom_cancel_clicked();

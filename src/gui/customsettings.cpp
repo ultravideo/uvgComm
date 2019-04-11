@@ -38,6 +38,10 @@ CustomSettings::CustomSettings(QWidget* parent,
   // the buttons are named so that the slots are called automatically
   QObject::connect(customUI_->format_box, SIGNAL(activated(QString)), this, SLOT(initializeResolutions(QString)));
   QObject::connect(customUI_->resolution, SIGNAL(activated(QString)), this, SLOT(initializeFramerates(QString)));
+
+  customUI_->custom_parameters->setContextMenuPolicy(Qt::CustomContextMenu);
+  connect(customUI_->custom_parameters, &QWidget::customContextMenuRequested,
+          this, &CustomSettings::showParameterContextMenu);
 }
 
 
@@ -46,6 +50,19 @@ void CustomSettings::init(int deviceID)
   currentDevice_ = deviceID;
 
   restoreCustomSettings();
+}
+
+
+void CustomSettings::showParameterContextMenu(const QPoint& pos)
+{
+  showContextMenu(pos, customUI_->custom_parameters,
+                  this, QStringList() << "Delete", QStringList() << SLOT(deleteListParameter()));
+}
+
+
+void CustomSettings::deleteListParameter()
+{
+  customUI_->custom_parameters->removeRow(customUI_->custom_parameters->currentRow());
 }
 
 
