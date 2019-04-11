@@ -5,7 +5,6 @@
 #include <kvazaar.h>
 #include <common.h>
 
-#include <QSettings>
 #include <QtDebug>
 #include <QTime>
 #include <QSize>
@@ -83,6 +82,7 @@ bool KvazaarFilter::init()
   config_->wpp = settings.value("video/WPP").toInt();
   config_->vps_period = settings.value("video/VPS").toInt();
   config_->intra_period = settings.value("video/Intra").toInt();
+  config_->framerate_num = 30;
   config_->framerate_denom = framerate_denom_;
   config_->hash = KVZ_HASH_NONE;
 #endif
@@ -104,6 +104,8 @@ bool KvazaarFilter::init()
 
   // TODO Maybe send parameter sets only when needed
   //config_->target_bitrate = target_bitrate;
+
+  customParameters(settings);
 
   enc_ = api_->encoder_open(config_);
 
@@ -175,6 +177,28 @@ void KvazaarFilter::process()
   }
 }
 
+void KvazaarFilter::customParameters(QSettings& settings)
+{
+
+
+  int size = settings.beginReadArray("parameters");
+
+  qDebug() << "Initialization," << metaObject()->className()
+           << "Getting custom Kvazaar options:" << size;
+
+  for(int i = 0; i < size; ++i)
+  {
+    settings.setArrayIndex(i);
+    QString name = settings.value("Name").toString();
+    QString value = settings.value("Value").toString();
+    if (api_->config_parse(config_, name.toStdString().c_str(), value.toStdString().c_str()) != 1)
+    {
+      qDebug() << "Initialization," << metaObject()->className() << ": Invalid custom parameter for kvazaar";
+    }
+  }
+  settings.endArray();
+}
+
 void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
 {
   kvz_picture *recon_pic = nullptr;
@@ -191,7 +215,7 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
              << config_->width << "x" << config_->height << "input:"
              << input->width << "x" << input->height;
 
-    qDebug() << getName() << "Framerates:" << config_->framerate_num << "input:" << input->framerate;
+    qDebug() << getName() << "Framerate:" << config_->framerate_num << "input:" << input->framerate;
 
     QSettings settings("kvazzup.ini", QSettings::IniFormat);
     settings.setValue("video/ResolutionWidth", input->width);
