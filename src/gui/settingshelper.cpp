@@ -1,5 +1,6 @@
 #include "settingshelper.h"
 
+#include <QMenu>
 #include <QCheckBox>
 #include <QDebug>
 
@@ -120,3 +121,29 @@ void listGUIToSettings(QString filename, QString listName, QStringList values, Q
   settings.endArray();
 }
 
+
+void showContextMenu(const QPoint& pos, QTableWidget* table, QObject* processor,
+                     QStringList actions, QStringList processSlots)
+{
+  qDebug() << "Settings," << "SettingsHelper" << ": Showing context menu for blocked users.";
+
+  if(actions.size() != processSlots.size())
+  {
+    qWarning() << "ERROR, SettingsHelper : Different amounts of actions and slots: "
+                  << actions.size() << "vs" << processSlots.size();
+    return;
+  }
+
+  // Handle global position
+  QPoint globalPos = table->mapToGlobal(pos);
+
+  // Create menu and insert some actions
+  QMenu myMenu;
+
+  for (int i = 0; i < actions.size(); ++i) {
+    myMenu.addAction(actions.at(i), processor, processSlots.at(i).toStdString().c_str());
+  }
+
+  // Show context menu at handling position
+  myMenu.exec(globalPos);
+}

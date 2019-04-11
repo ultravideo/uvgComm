@@ -3,7 +3,6 @@
 #include "ui_advancedSettings.h"
 #include "settingshelper.h"
 
-#include <QMenu>
 #include <QDateTime>
 #include <QDebug>
 
@@ -47,17 +46,7 @@ void AdvancedSettings::resetSettings()
 
 void AdvancedSettings::showBlocklistContextMenu(const QPoint& pos)
 {
-  qDebug() << "Settings," << metaObject()->className() << ": Showing context menu for blocked users.";
-
-  // Handle global position
-  QPoint globalPos = advancedUI_->blockedUsers->mapToGlobal(pos);
-
-  // Create menu and insert some actions
-  QMenu myMenu;
-  myMenu.addAction("Delete", this, SLOT(deleteBlocklistItem()));
-
-  // Show context menu at handling position
-  myMenu.exec(globalPos);
+  showContextMenu(pos, advancedUI_->blockedUsers, this, QStringList() << "Delete", QStringList() << SLOT(deleteBlocklistItem()));
 }
 
 
@@ -159,6 +148,7 @@ void AdvancedSettings::restoreAdvancedSettings()
     resetSettings();
   }
 }
+
 
 bool AdvancedSettings::checkSipSettings()
 {

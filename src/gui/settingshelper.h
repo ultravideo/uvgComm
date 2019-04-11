@@ -21,3 +21,5 @@ void listSettingsToGUI(QString filename, QString listName, QStringList values, Q
 
 void listGUIToSettings(QString filename, QString listName, QStringList values, QTableWidget* table);
 
+void showContextMenu(const QPoint& pos, QTableWidget* table, QObject* processor,
+                     QStringList actions, QStringList processSlots);
