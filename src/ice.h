@@ -26,7 +26,8 @@ struct nominationInfo
   // all but nominatedPair are freed in handleEndOfNomination()
   QList<ICEPair *> *pairs;
 
-  std::pair<ICEPair *, ICEPair *> nominatedPair;
+  std::pair<ICEPair *, ICEPair *> nominatedHEVC;
+  std::pair<ICEPair *, ICEPair *> nominatedOpus;
 
   bool connectionNominated;
 };
@@ -49,7 +50,8 @@ class ICE : public QObject
     void respondToNominations(QList<ICEInfo *>& local, QList<ICEInfo *>& remote, uint32_t sessionID);
 
     // get nominated ICE pair using sessionID
-    std::pair<ICEPair *, ICEPair *> getNominated(uint32_t sessionID);
+    /* std::pair<ICEPair *, ICEPair *> getNominated(uint32_t sessionID); */
+    ICEMediaInfo getNominated(uint32_t sessionID);
 
     // caller must call this function to check if ICE has finished
     // sessionID must given so ICE can know which ongoing nomination should be checked
@@ -63,12 +65,12 @@ class ICE : public QObject
     // when FlowControllee has finished its job, it emits "ready" signal which is caught by this slot function
     // handleCallerEndOfNomination() check if the nomination succeeed, saves the nominated pair to hashmap and
     // releases caller_mtx to signal that negotiation is done
-    void handleCallerEndOfNomination(struct ICEPair *candidateRTP, struct ICEPair *candidateRTCP, uint32_t sessionID);
+    void handleCallerEndOfNomination(ICEPair *candidateRTP, ICEPair *candidateRTCP, uint32_t sessionID);
 
     // when FlowController has finished its job, it emits "ready" signal which is caught by this slot function
     // handleCalleeEndOfNomination() check if the nomination succeeed, saves the nominated pair to hashmap and
     // releases callee_mtx to signal that negotiation is done
-    void handleCalleeEndOfNomination(struct ICEPair *candidateRTP, struct ICEPair *candidateRTCP, uint32_t sessionID);
+    void handleCalleeEndOfNomination(ICEPair *candidateRTP, ICEPair *candidateRTCP, uint32_t sessionID);
     void createSTUNCandidate(QHostAddress address);
 
   private:
@@ -76,7 +78,7 @@ class ICE : public QObject
     // "type" marks whether this candidate is host or server reflexive candidate (affects priority)
     std::pair<ICEInfo *, ICEInfo *> makeCandidate(QHostAddress address, QString type);
 
-    void handleEndOfNomination(struct ICEPair *candidateRTP, struct ICEPair *candidateRTCP, uint32_t sessionID);
+    void handleEndOfNomination(ICEPair *candidateRTP, ICEPair *candidateRTCP, uint32_t sessionID);
 
     int calculatePriority(int type, int local, int component);
     QString generateFoundation();

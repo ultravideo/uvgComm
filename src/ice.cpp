@@ -23,7 +23,7 @@ ICE::ICE():
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
   int ice = settings.value("sip/ice").toInt();
 
-  iceDisabled_ = (ice != 1) ? true : false;
+  iceDisabled_ = (ice == 1) ? true : false;
 }
 
 ICE::~ICE()
@@ -71,8 +71,7 @@ QList<ICEInfo *> ICE::generateICECandidates()
     if (address.protocol() == QAbstractSocket::IPv4Protocol &&
         (address.toString().startsWith("10.")   ||
          address.toString().startsWith("192.")  ||
-         address.toString().startsWith("172.")  ||
-         address == QHostAddress(QHostAddress::LocalHost)))
+         address.toString().startsWith("172.")))
     {
       candidate = makeCandidate(address, "host");
 
@@ -100,7 +99,7 @@ std::pair<ICEInfo *, ICEInfo *> ICE::makeCandidate(QHostAddress address, QString
   entry_rtp->address  = address.toString();
   entry_rtcp->address = address.toString();
 
-  entry_rtp->port  = parameters_.nextAvailablePortPair();
+  entry_rtp->port  = parameters_.allocateMediaPorts();
   entry_rtcp->port = entry_rtp->port + 1;
 
   // for each RTP/RTCP pair foundation is the same
@@ -266,7 +265,7 @@ bool ICE::calleeConnectionNominated(uint32_t sessionID)
   return nominationInfo_[sessionID].connectionNominated;
 }
 
-void ICE::handleEndOfNomination(struct ICEPair *candidateRTP, struct ICEPair *candidateRTCP, uint32_t sessionID)
+void ICE::handleEndOfNomination(ICEPair *candidateRTP, ICEPair *candidateRTCP, uint32_t sessionID)
 {
   // nothing needs to be cleaned if ICE was disabled
   if (iceDisabled_ == true)
@@ -274,11 +273,43 @@ void ICE::handleEndOfNomination(struct ICEPair *candidateRTP, struct ICEPair *ca
     return;
   }
 
-  nominationInfo_[sessionID].connectionNominated = (candidateRTP != nullptr && candidateRTCP != nullptr);
-
-  if (nominationInfo_[sessionID].connectionNominated)
+  if (candidateRTP == nullptr || candidateRTCP == nullptr)
   {
-    nominationInfo_[sessionID].nominatedPair = std::make_pair((ICEPair *)candidateRTP, (ICEPair *)candidateRTCP);
+    qDebug() << "ERROR: Nomination failed! Unable to start call.";
+    nominationInfo_[sessionID].connectionNominated = false;
+  }
+  else 
+  {
+    nominationInfo_[sessionID].connectionNominated = true;
+    nominationInfo_[sessionID].nominatedHEVC = std::make_pair((ICEPair *)candidateRTP, (ICEPair *)candidateRTCP);
+
+    // Create opus candidate on the fly. When this candidate (candidateRTP && candidateRTCP) was created
+    // we intentionally allocated 4 ports instead of 2 for use.
+    //
+    // This is because we don't actually need to test that both HEVC and Opus work separately. Insted we can just
+    // test HEVC and if that works we can assume that Opus works too (no reason why it shouldn't)
+    ICEPair *opusPairRTP  = new ICEPair;
+    opusPairRTP->local    = new ICEInfo;
+    opusPairRTP->remote   = new ICEInfo;
+
+    ICEPair *opusPairRTCP = new ICEPair;
+    opusPairRTCP->local   = new ICEInfo;
+    opusPairRTCP->remote  = new ICEInfo;
+
+    memcpy(opusPairRTP->local,  candidateRTP->local,  sizeof(ICEInfo));
+    memcpy(opusPairRTP->remote, candidateRTP->remote, sizeof(ICEInfo));
+
+    memcpy(opusPairRTCP->local,  candidateRTCP->local,  sizeof(ICEInfo));
+    memcpy(opusPairRTCP->remote, candidateRTCP->remote, sizeof(ICEInfo));
+
+    opusPairRTP->local->port  += 2; // hevc rtp, hevc rtcp and then opus rtp
+    opusPairRTCP->local->port += 2; // hevc rtp, hevc, rtcp, opus rtp and then opus rtcp
+
+    // same for remote candidate
+    opusPairRTP->remote->port  += 2; // hevc rtp, hevc rtcp and then opus rtp
+    opusPairRTCP->remote->port += 2; // hev rtp, hevc, rtcp, opus rtp and then opus rtcp
+
+    nominationInfo_[sessionID].nominatedOpus = std::make_pair((ICEPair *)opusPairRTP, (ICEPair *)opusPairRTCP);
   }
 
   foreach (ICEPair *pair, *nominationInfo_[sessionID].pairs)
@@ -320,14 +351,18 @@ void ICE::handleCalleeEndOfNomination(struct ICEPair *candidateRTP, struct ICEPa
   this->handleEndOfNomination(candidateRTP, candidateRTCP, sessionID);
 }
 
-std::pair<ICEPair *, ICEPair *> ICE::getNominated(uint32_t sessionID)
+ICEMediaInfo ICE::getNominated(uint32_t sessionID)
 {
   if (nominationInfo_.contains(sessionID) && iceDisabled_ == false)
   {
-    return nominationInfo_[sessionID].nominatedPair;
+    return {
+        nominationInfo_[sessionID].nominatedHEVC,
+        nominationInfo_[sessionID].nominatedOpus
+    };
   }
-  else
-  {
-    return std::make_pair<ICEPair *, ICEPair *>(nullptr, nullptr);
-  }
+
+  return {
+    std::make_pair(nullptr, nullptr),
+    std::make_pair(nullptr, nullptr)
+  };
 }

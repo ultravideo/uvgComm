@@ -37,3 +37,10 @@ struct ICEPair
   int state;
 };
 
+struct ICEMediaInfo
+{
+  // first ICEPair is for RTP, second for RTCP
+  // ICEPair contains both local and remote address/port pairs (see above)
+  std::pair<ICEPair *, ICEPair *> hevc;
+  std::pair<ICEPair *, ICEPair *> opus;
+};
