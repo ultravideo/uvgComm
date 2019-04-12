@@ -35,7 +35,7 @@ public slots:
 
   // button slots, called automatically by Qt if they are named correctly
   void on_advanced_ok_clicked();
-  void on_advanced_cancel_clicked();
+  void on_advanced_close_clicked();
 
   void serverStatusChange(QString status);
 

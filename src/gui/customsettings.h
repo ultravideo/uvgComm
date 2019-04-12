@@ -43,7 +43,7 @@ public slots:
 
   // button slots, called automatically by Qt
   void on_custom_ok_clicked();
-  void on_custom_cancel_clicked();
+  void on_custom_close_clicked();
 
   void on_add_parameter_clicked();
 

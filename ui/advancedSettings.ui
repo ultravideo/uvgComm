@@ -28,9 +28,9 @@
     </spacer>
    </item>
    <item row="2" column="2">
-    <widget class="QPushButton" name="advanced_cancel">
+    <widget class="QPushButton" name="advanced_close">
      <property name="text">
-      <string>Cancel</string>
+      <string>Close</string>
      </property>
     </widget>
    </item>
@@ -280,7 +280,7 @@
  <tabstops>
   <tabstop>Advanced</tabstop>
   <tabstop>advanced_ok</tabstop>
-  <tabstop>advanced_cancel</tabstop>
+  <tabstop>advanced_close</tabstop>
  </tabstops>
  <resources/>
  <connections/>

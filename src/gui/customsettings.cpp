@@ -89,12 +89,12 @@ void CustomSettings::on_custom_ok_clicked()
   qDebug() << "Settings," << metaObject()->className() << ": Saving advanced settings";
   saveCustomSettings();
   emit customSettingsChanged();
-  emit hidden();
-  hide();
+  //emit hidden();
+  //hide();
 }
 
 
-void CustomSettings::on_custom_cancel_clicked()
+void CustomSettings::on_custom_close_clicked()
 {
   qDebug() << "Settings," << metaObject()->className()
            << ": Cancelled modifying custom settings. Getting settings from system";
