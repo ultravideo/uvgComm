@@ -137,6 +137,7 @@ bool CameraFilter::cameraSetup()
 
   int framerateID = settings.value("video/FramerateID").toInt();
 
+#ifndef __linux__
   if (!framerates.empty())
   {
     if(framerateID < framerates.size())
@@ -150,7 +151,7 @@ bool CameraFilter::cameraSetup()
     }
   }
 
-#ifdef __linux__
+#else
   viewSettings.setMaximumFrameRate(30);
   viewSettings.setMinimumFrameRate(30);
   viewSettings.setResolution(QSize(640, 480));

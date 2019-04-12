@@ -5,6 +5,14 @@
 #include <QMutex>
 #include <QTime>
 
+#ifdef QT_CHARTS_LIB
+#include <QtCharts/QChartView>
+#include <QtCharts/QLineSeries>
+
+#include <deque>
+#endif
+
+
 class QStringListModel;
 
 namespace Ui {
@@ -62,6 +70,9 @@ private:
   uint32_t bitrate(std::vector<PacketInfo*>& packets, uint32_t index, float &framerate);
   void updateFramerateBuffer(std::vector<PacketInfo*>& packets, uint32_t& index, uint32_t size);
 
+#ifdef QT_CHARTS_LIB
+  void visualizeDataToSeries(std::deque<float>& data);
+#endif
 
   Ui::StatisticsWindow *ui_;
 
@@ -105,6 +116,10 @@ private:
 
   float lastVideoFrameRate_;
   float lastAudioFrameRate_;
+
+#ifdef QT_CHARTS_LIB
+  std::deque<float> framerates_;
+#endif
 
   uint16_t audioEncDelay_;
   uint16_t videoEncDelay_;

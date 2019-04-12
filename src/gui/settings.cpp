@@ -3,6 +3,7 @@
 #include "ui_settings.h"
 
 #include <video/camerainfo.h>
+#include "settingshelper.h"
 
 #include <QDebug>
 
@@ -10,6 +11,7 @@ Settings::Settings(QWidget *parent) :
   QDialog(parent),
   basicUI_(new Ui::BasicSettings),
   cam_(std::shared_ptr<CameraInfo> (new CameraInfo())),
+  advanced_(this),
   custom_(this, cam_),
   settings_("kvazzup.ini", QSettings::IniFormat)
 {
@@ -19,12 +21,16 @@ Settings::Settings(QWidget *parent) :
   getSettings(false);
 
   custom_.init(getVideoDeviceID());
+  advanced_.init();
 
   QObject::connect(basicUI_->ok, &QPushButton::clicked, this, &Settings::on_ok_clicked);
   QObject::connect(basicUI_->cancel, &QPushButton::clicked, this, &Settings::on_cancel_clicked);
 
   QObject::connect(&custom_, &CustomSettings::customSettingsChanged, this, &Settings::settingsChanged);
   QObject::connect(&custom_, &CustomSettings::hidden, this, &Settings::show);
+
+  QObject::connect(&advanced_, &AdvancedSettings::advancedSettingsChanged, this, &Settings::settingsChanged);
+  QObject::connect(&advanced_, &AdvancedSettings::hidden, this, &Settings::show);
 }
 
 Settings::~Settings()
@@ -60,8 +66,16 @@ void Settings::on_cancel_clicked()
 void Settings::on_advanced_settings_button_clicked()
 {
   on_ok_clicked(); // treat this the same as ok
+  advanced_.show();
+}
+
+
+void Settings::on_custom_settings_button_clicked()
+{
+  on_ok_clicked(); // treat this the same as ok
   custom_.show();
 }
+
 
 void Settings::initializeUIDeviceList()
 {
@@ -90,9 +104,9 @@ void Settings::saveSettings()
   qDebug() << "Settings," << metaObject()->className() << ": Saving basic Settings";
 
   // Local settings
-  saveTextValue("local/Name", basicUI_->name_edit->text());
-  saveTextValue("local/Username", basicUI_->username_edit->text());
-  saveCheckBox("local/Auto-Accept", basicUI_->auto_accept);
+  saveTextValue("local/Name", basicUI_->name_edit->text(), settings_);
+  saveTextValue("local/Username", basicUI_->username_edit->text(), settings_);
+  saveCheckBox("local/Auto-Accept", basicUI_->auto_accept, settings_);
 
   int currentIndex = basicUI_->videoDevice->currentIndex();
   if( currentIndex != -1)
@@ -128,7 +142,7 @@ void Settings::getSettings(bool changedDevice)
     qDebug() << "Settings," << metaObject()->className() << ": Restoring user settings from file:" << settings_.fileName();
     basicUI_->name_edit->setText      (settings_.value("local/Name").toString());
     basicUI_->username_edit->setText  (settings_.value("local/Username").toString());
-    restoreCheckBox("local/Auto-Accept", basicUI_->auto_accept);
+    restoreCheckBox("local/Auto-Accept", basicUI_->auto_accept, settings_);
 
     int currentIndex = getVideoDeviceID();
     if(changedDevice)
@@ -215,41 +229,4 @@ bool Settings::checkMissingValues()
     }
   }
   return foundEverything;
-}
-
-
-void Settings::saveTextValue(const QString settingValue, const QString &text)
-{
-  if(text != "")
-  {
-    settings_.setValue(settingValue,  text);
-  }
-}
-
-void Settings::restoreCheckBox(const QString settingValue, QCheckBox* box)
-{
-  if(settings_.value(settingValue).toString() == "1")
-  {
-    box->setChecked(true);
-  }
-  else if(settings_.value(settingValue).toString() == "0")
-  {
-    box->setChecked(false);
-  }
-  else
-  {
-    qDebug() << "WARNING," << metaObject()->className() << "Corrupted value for checkbox in settings file for:" << settingValue << "!!!";
-  }
-}
-
-void Settings::saveCheckBox(const QString settingValue, QCheckBox* box)
-{
-  if(box->isChecked())
-  {
-    settings_.setValue(settingValue,          "1");
-  }
-  else
-  {
-    settings_.setValue(settingValue,          "0");
-  }
 }

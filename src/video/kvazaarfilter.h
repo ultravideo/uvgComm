@@ -2,7 +2,7 @@
 #include "filter.h"
 
 #include <QSize>
-
+#include <QSettings>
 struct kvz_api;
 struct kvz_config;
 struct kvz_encoder;
@@ -24,6 +24,8 @@ protected:
   virtual void process();
 
 private:
+
+  void customParameters(QSettings& settings);
 
   // copy the frame data to kvazaar input in suitable format.
   void feedInput(std::unique_ptr<Data> input);

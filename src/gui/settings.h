@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui/customsettings.h"
+#include "gui/advancedsettings.h"
 
 #include <QDialog>
 #include <QSettings>
@@ -48,6 +49,7 @@ public slots:
   void on_ok_clicked();
   void on_cancel_clicked();
   void on_advanced_settings_button_clicked();
+  void on_custom_settings_button_clicked();
 
 private:
   void initializeUIDeviceList();
@@ -56,10 +58,6 @@ private:
   // TODO: display errors to user on ok click
   bool checkUserSettings();
   bool checkMissingValues();
-
-  // simpler functions for checkbox management.
-  void restoreCheckBox(const QString settingValue, QCheckBox* box);
-  void saveCheckBox(const QString settingValue, QCheckBox* box);
 
   // QSettings -> GUI
   void getSettings(bool changedDevice);
@@ -77,12 +75,11 @@ private:
 
   void resetFaultySettings();
 
-  void saveTextValue(const QString settingValue, const QString &text);
-
   Ui::BasicSettings *basicUI_;
 
   std::shared_ptr<CameraInfo> cam_;
 
+  AdvancedSettings advanced_;
   CustomSettings custom_;
 
   QSettings settings_;

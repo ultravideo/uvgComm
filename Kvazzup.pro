@@ -85,7 +85,9 @@ SOURCES +=\
     src/stunmsgfact.cpp \
     src/connectiontester.cpp \
     src/sip/sipdialogclient.cpp \
-    src/sip/sipnondialogclient.cpp
+    src/sip/sipnondialogclient.cpp \
+    src/gui/advancedsettings.cpp \
+    src/gui/settingshelper.cpp
 
 HEADERS  += \
     src/filter.h \
@@ -155,7 +157,9 @@ HEADERS  += \
     src/stunmsgfact.h \
     src/connectiontester.h \
     src/sip/sipdialogclient.h \
-    src/sip/sipnondialogclient.h
+    src/sip/sipnondialogclient.h \
+    src/gui/advancedsettings.h \
+    src/gui/settingshelper.h
 
 FORMS    += \
     ui/callwindow.ui \
@@ -164,7 +168,8 @@ FORMS    += \
     ui/advancedSettings.ui \
     ui/settings.ui \
     ui/incomingcallwidget.ui \
-    ui/outgoingcallwidget.ui
+    ui/outgoingcallwidget.ui \
+    ui/customSettings.ui
 
 # just in case we sometimes like to support smaller qt versions.
 greaterThan(4, QT_MAJOR_VERSION)
@@ -178,6 +183,11 @@ QT+=network
 QT+=svg # for icons
 
 QT += opengl
+
+qtHaveModule(charts)
+{
+  QT += charts
+}
 
 #win32-g++: QMAKE_CXXFLAGS += -std=c++11 -fopenmp
 win32-g++: QMAKE_CXXFLAGS += -msse4.1 -mavx2 -fopenmp
