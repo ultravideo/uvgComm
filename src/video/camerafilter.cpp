@@ -13,7 +13,7 @@
 
 CameraFilter::CameraFilter(QString id, StatisticsInterface *stats):
   Filter(id, "Camera", stats, NONE, RGB32VIDEO),
-  camera_(),
+  camera_(nullptr),
   cameraFrameGrabber_(),
   framerate_(0)
 {}
@@ -176,7 +176,7 @@ bool CameraFilter::cameraSetup()
 
 void CameraFilter::stop()
 {
-  if(camera_->state() == QCamera::ActiveState)
+  if(camera_ && camera_->state() == QCamera::ActiveState)
   {
     camera_->stop();
   }
