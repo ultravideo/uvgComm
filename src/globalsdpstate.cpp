@@ -1,10 +1,16 @@
 #include "globalsdpstate.h"
 #include <QDateTime>
 
+const uint16_t MIN_SIP_PORT   = 21500;
+const uint16_t MAX_SIP_PORT   = 22000;
+
+const uint16_t MAX_PORTS = 42;
+
 GlobalSDPState::GlobalSDPState():
   localUsername_("")
 {
   ice_ = std::make_unique<ICE>();
+  parameters_.setPortRange(MIN_SIP_PORT, MAX_SIP_PORT, MAX_PORTS);
 }
 
 void GlobalSDPState::setLocalInfo(QString username)

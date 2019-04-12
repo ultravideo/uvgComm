@@ -36,10 +36,11 @@ public:
   uint16_t nextAvailablePortPair();
   void makePortPairAvailable(uint16_t lowerPort);
 
+  // allocate contiguous port range
+  uint16_t allocateMediaPorts();
+  uint16_t deallocateMediaPorts(uint16_t start);
+
 private:
-
-
-
   uint16_t remainingPorts_;
 
   QMutex portLock_;

@@ -3,17 +3,11 @@
 #include <QUdpSocket>
 #include <QDebug>
 
-const uint16_t MIN_SIP_PORT   = 21500;
-const uint16_t MAX_SIP_PORT   = 22000;
-
-const uint16_t MAX_PORTS = 42;
 
 SDPParameterManager::SDPParameterManager()
   :remainingPorts_(0)
 {
-  setPortRange(MIN_SIP_PORT, MAX_SIP_PORT, MAX_PORTS);
 }
-
 
 void SDPParameterManager::setPortRange(uint16_t minport, uint16_t maxport, uint16_t maxRTPConnections)
 {
@@ -68,6 +62,31 @@ QString SDPParameterManager::sessionName() const
 QString SDPParameterManager::sessionDescription() const
 {
   return "A Kvazzup initiated video call";
+}
+
+uint16_t SDPParameterManager::allocateMediaPorts()
+{
+  if (remainingPorts_ < 4)
+  {
+    qDebug() << "ERROR: Not enough free ports, remaining:" << remainingPorts_;
+    return 0;
+  }
+
+  portLock_.lock();
+
+  uint16_t start = availablePorts_.at(0);
+
+  availablePorts_.pop_front();
+  availablePorts_.pop_front();
+  remainingPorts_ -= 4;
+
+  portLock_.unlock();
+
+  return start;
+}
+
+uint16_t SDPParameterManager::deallocateMediaPorts(uint16_t start)
+{
 }
 
 uint16_t SDPParameterManager::nextAvailablePortPair()
