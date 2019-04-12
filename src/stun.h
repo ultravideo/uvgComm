@@ -15,6 +15,7 @@ class Stun : public QObject
   Q_OBJECT
 public:
   Stun();
+  Stun(UDPServer *udp);
 
   // send stun binding request to remote 
   // this function is used to establish a gateway between clients
@@ -82,7 +83,7 @@ private:
   bool controlleeSendBindingRequest(ICEPair *pair);
 
   // TODO [Encryption] Use TLS to send packet
-  UDPServer udp_;
+  UDPServer *udp_;
 
   StunMessageFactory stunmsg_;
 
