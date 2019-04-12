@@ -36,8 +36,10 @@ CustomSettings::CustomSettings(QWidget* parent,
   customUI_->setupUi(this);
 
   // the buttons are named so that the slots are called automatically
-  QObject::connect(customUI_->format_box, SIGNAL(activated(QString)), this, SLOT(initializeResolutions(QString)));
-  QObject::connect(customUI_->resolution, SIGNAL(activated(QString)), this, SLOT(initializeFramerates(QString)));
+  QObject::connect(customUI_->format_box, SIGNAL(activated(QString)),
+                   this, SLOT(initializeResolutions(QString)));
+  QObject::connect(customUI_->resolution, SIGNAL(activated(QString)),
+                   this, SLOT(initializeFramerates(QString)));
 
   customUI_->custom_parameters->setContextMenuPolicy(Qt::CustomContextMenu);
   connect(customUI_->custom_parameters, &QWidget::customContextMenuRequested,
@@ -55,8 +57,11 @@ void CustomSettings::init(int deviceID)
 
 void CustomSettings::showParameterContextMenu(const QPoint& pos)
 {
-  showContextMenu(pos, customUI_->custom_parameters,
-                  this, QStringList() << "Delete", QStringList() << SLOT(deleteListParameter()));
+  if (customUI_->custom_parameters->rowCount() != 0)
+  {
+    showContextMenu(pos, customUI_->custom_parameters, this,
+                    QStringList() << "Delete", QStringList() << SLOT(deleteListParameter()));
+  }
 }
 
 
@@ -105,7 +110,8 @@ void CustomSettings::on_custom_close_clicked()
 
 void CustomSettings::on_add_parameter_clicked()
 {
-  qDebug() << "Settings," << metaObject()->className() << ": Adding a custom parameter for kvazaar.";
+  qDebug() << "Settings," << metaObject()->className()
+           << ": Adding a custom parameter for kvazaar.";
 
   if (customUI_->parameter_name->text() == "")
   {
@@ -113,7 +119,8 @@ void CustomSettings::on_add_parameter_clicked()
     return;
   }
 
-  QStringList list = QStringList() << customUI_->parameter_name->text() << customUI_->parameter_value->text();
+  QStringList list = QStringList() << customUI_->parameter_name->text()
+                                   << customUI_->parameter_value->text();
   addFieldsToTable(list, customUI_->custom_parameters);
 }
 

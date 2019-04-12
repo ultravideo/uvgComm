@@ -46,7 +46,11 @@ void AdvancedSettings::resetSettings()
 
 void AdvancedSettings::showBlocklistContextMenu(const QPoint& pos)
 {
-  showContextMenu(pos, advancedUI_->blockedUsers, this, QStringList() << "Delete", QStringList() << SLOT(deleteBlocklistItem()));
+  if (advancedUI_->blockedUsers->rowCount() != 0)
+  {
+    showContextMenu(pos, advancedUI_->blockedUsers, this,
+                    QStringList() << "Delete", QStringList() << SLOT(deleteBlocklistItem()));
+  }
 }
 
 
@@ -70,7 +74,8 @@ void AdvancedSettings::on_advanced_ok_clicked()
 
 void AdvancedSettings::on_advanced_close_clicked()
 {
-  qDebug() << "Settings," << metaObject()->className() << ": Cancelled modifying custom settings. Getting settings from system";
+  qDebug() << "Settings," << metaObject()->className()
+           << ": Cancelled modifying custom settings. Getting settings from system";
   restoreAdvancedSettings();
   hide();
   emit hidden();
