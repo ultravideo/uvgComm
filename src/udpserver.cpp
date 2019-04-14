@@ -1,12 +1,14 @@
 #include "udpserver.h"
 #include <QUdpSocket>
+#include <QMetaObject>
+#include "stun.h"
 
 UDPServer::UDPServer():
   socket_(nullptr),
   sendPort_(0)
 {}
 
-bool UDPServer::bindSocket(const QHostAddress& address, quint16 port, bool raw)
+bool UDPServer::bindSocket(const QHostAddress& address, quint16 port, enum SOCKET_TYPE type)
 {
   this->unbind();
 
@@ -20,13 +22,19 @@ bool UDPServer::bindSocket(const QHostAddress& address, quint16 port, bool raw)
     return false;
   }
 
-  if (raw)
+  switch (type)
   {
-    connect(socket_, &QUdpSocket::readyRead, this, &UDPServer::readRawData);
-  }
-  else
-  {
-    connect(socket_, &QUdpSocket::readyRead, this, &UDPServer::readData);
+    case SOCKET_NORMAL:
+      connect(socket_, &QUdpSocket::readyRead, this, &UDPServer::readData);
+      break;
+
+    case SOCKET_RAW:
+      connect(socket_, &QUdpSocket::readyRead, this, &UDPServer::readRawData);
+      break;
+
+    case SOCKET_MULTIPLEXED:
+      connect(socket_, &QUdpSocket::readyRead, this, &UDPServer::readMultiplexData);
+      break;
   }
 
   return true;
@@ -47,12 +55,17 @@ void UDPServer::unbind()
 
 void UDPServer::bind(const QHostAddress &address, quint16 port)
 {
-  (void)bindSocket(address, port, false);
+  (void)bindSocket(address, port, SOCKET_NORMAL);
 }
 
 bool UDPServer::bindRaw(const QHostAddress &address, quint16 port)
 {
-  return bindSocket(address, port, true);
+  return bindSocket(address, port, SOCKET_RAW);
+}
+
+bool UDPServer::bindMultiplexed(const QHostAddress& address, quint16 port)
+{
+  return bindSocket(address, port, SOCKET_MULTIPLEXED);
 }
 
 void UDPServer::sendData(QByteArray& data, const QHostAddress &address, quint16 port, bool untilReply)
@@ -98,4 +111,31 @@ void UDPServer::readRawData()
   {
     emit rawMessageAvailable(socket_->receiveDatagram());
   }
+}
+
+void UDPServer::readMultiplexData()
+{
+  while (socket_->hasPendingDatagrams())
+  {
+    QNetworkDatagram datagram = socket_->receiveDatagram();
+
+    // is anyone listening to  messages from this sender?
+    if (listeners_.contains(datagram.senderAddress().toString()))
+    {
+      if (listeners_[datagram.senderAddress().toString()].contains(datagram.senderPort()))
+      {
+        QMetaObject::invokeMethod(
+            listeners_[datagram.senderAddress().toString()][datagram.senderPort()],
+            "recvStunMessage",
+            Qt::DirectConnection,
+            Q_ARG(QNetworkDatagram, datagram)
+        );
+      }
+    }
+  }
+}
+
+void UDPServer::expectReplyFrom(Stun *stun, QString& address, quint16 port)
+{
+    listeners_[address][port] = stun;
 }
