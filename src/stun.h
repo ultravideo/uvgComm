@@ -87,5 +87,7 @@ private:
 
   StunMessageFactory stunmsg_;
 
-  uint8_t transactionID_[12];
+  // If multiplex_ is true, it means that the UDPServer has already been created for us
+  // and we shouldn't unbind/rebind it or attach listeners to it.
+  bool multiplex_;
 };

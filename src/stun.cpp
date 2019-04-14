@@ -17,13 +17,15 @@ const uint16_t STUN_PORT = 21000;
 
 Stun::Stun():
   udp_(new UDPServer),
-  stunmsg_()
+  stunmsg_(),
+  multiplex_(false)
 {
 }
 
 Stun::Stun(UDPServer *server):
   udp_(server),
-  stunmsg_()
+  stunmsg_(),
+  multiplex_(true)
 {
 }
 
@@ -135,7 +137,11 @@ bool Stun::controllerSendBindingRequest(ICEPair *pair)
   {
     qDebug() << "WARNING: Failed to receive STUN Binding Response from remote!";
     qDebug() << "Remote: " << pair->remote->address << ":" << pair->remote->port;
-    udp_->unbind();
+
+    if (multiplex_ == false)
+    {
+      udp_->unbind();
+    }
     return false;
   }
 
@@ -147,8 +153,6 @@ bool Stun::controllerSendBindingRequest(ICEPair *pair)
   {
     if (waitForStunRequest(20 * (i + 1)))
     {
-      qDebug() << "[CONTROLLER] GOT STUN REQUEST!";
-
       msg = stunmsg_.createResponse();
       msg.addAttribute(STUN_ATTR_ICE_CONTROLLING);
 
@@ -165,7 +169,10 @@ bool Stun::controllerSendBindingRequest(ICEPair *pair)
     }
   }
 
-  udp_->unbind();
+  if (multiplex_ == false)
+  {
+    udp_->unbind();
+  }
   return msgReceived;
 }
 
@@ -203,7 +210,11 @@ bool Stun::controlleeSendBindingRequest(ICEPair *pair)
   {
     qDebug() << "WARNING: Failed to receive STUN Binding Request from remote!";
     qDebug() << "Remote: " << pair->remote->address << ":" << pair->remote->port;
-    udp_->unbind();
+
+    if (multiplex_ == false)
+    {
+      udp_->unbind();
+    }
     return false;
   }
 
@@ -233,25 +244,26 @@ bool Stun::controlleeSendBindingRequest(ICEPair *pair)
     }
   }
 
-  udp_->unbind();
+  if (multiplex_ == false)
+  {
+    udp_->unbind();
+  }
   return msgReceived;
 }
 
 bool Stun::sendBindingRequest(ICEPair *pair, bool controller)
 {
-  if (controller)
-    qDebug() << "[controller] BINDING " << pair->local->address<< " TO PORT " << pair->local->port;
-  else
-    qDebug() << "[controllee] BINDING " << pair->local->address << " TO PORT " << pair->local->port;
-
-  if (!udp_->bindRaw(QHostAddress(pair->local->address), pair->local->port))
+  if (multiplex_ == false)
   {
-    qDebug() << "Binding failed! Cannot send STUN Binding Requests to " 
-             << pair->remote->address << ":" << pair->remote->port;
-    return false;
-  }
+    if (!udp_->bindRaw(QHostAddress(pair->local->address), pair->local->port))
+    {
+      qDebug() << "Binding failed! Cannot send STUN Binding Requests to " 
+               << pair->remote->address << ":" << pair->remote->port;
+      return false;
+    }
 
-  connect(udp_, &UDPServer::rawMessageAvailable, this, &Stun::recvStunMessage);
+    connect(udp_, &UDPServer::rawMessageAvailable, this, &Stun::recvStunMessage);
+  }
 
   if (controller)
   {
@@ -327,15 +339,18 @@ void Stun::recvStunMessage(QNetworkDatagram message)
 
 bool Stun::sendNominationRequest(ICEPair *pair)
 {
-  qDebug() << "[controller] BINDING " << pair->local->address << " TO PORT " << pair->local->port;
-
-  if (!udp_->bindRaw(QHostAddress(pair->local->address), pair->local->port))
+  if (multiplex_ == false)
   {
-    qDebug() << "Binding failed! Cannot send STUN Binding Requests to " << pair->remote->address << ":" << pair->remote->address;
-    return false;
-  }
+    qDebug() << "Binding" << pair->local->address << " to port " << pair->local->port;
 
-  connect(udp_, &UDPServer::rawMessageAvailable, this, &Stun::recvStunMessage);
+    if (!udp_->bindRaw(QHostAddress(pair->local->address), pair->local->port))
+    {
+      qDebug() << "Binding failed! Cannot send STUN Binding Requests to " << pair->remote->address << ":" << pair->remote->address;
+      return false;
+    }
+
+    connect(udp_, &UDPServer::rawMessageAvailable, this, &Stun::recvStunMessage);
+  }
 
   STUNMessage request = stunmsg_.createRequest();
   request.addAttribute(STUN_ATTR_ICE_CONTROLLING);
@@ -359,7 +374,10 @@ bool Stun::sendNominationRequest(ICEPair *pair)
     }
   }
 
-  udp_->unbind();
+  if (multiplex_ == false)
+  {
+    udp_->unbind();
+  }
   return ok;
 }
 
@@ -367,13 +385,16 @@ bool Stun::sendNominationResponse(ICEPair *pair)
 {
   qDebug() << "[controllee] BINDING " << pair->local->address << " TO PORT " << pair->local->port;
 
-  if (!udp_->bindRaw(QHostAddress(pair->local->address), pair->local->port))
+  if (multiplex_ == false)
   {
-    qDebug() << "Binding failed! Cannot send STUN Binding Requests to " << pair->remote->address << ":" << pair->remote->address;
-    return false;
-  }
+    if (!udp_->bindRaw(QHostAddress(pair->local->address), pair->local->port))
+    {
+      qDebug() << "Binding failed! Cannot send STUN Binding Requests to " << pair->remote->address << ":" << pair->remote->address;
+      return false;
+    }
 
-  connect(udp_, &UDPServer::rawMessageAvailable, this, &Stun::recvStunMessage);
+    connect(udp_, &UDPServer::rawMessageAvailable, this, &Stun::recvStunMessage);
+  }
 
   // first send empty stun binding requests to remote to create a hole in the firewall
   // when the first nomination request is received (if any), start sending nomination response
@@ -424,7 +445,10 @@ bool Stun::sendNominationResponse(ICEPair *pair)
     }
   }
 
-  udp_->unbind();
+  if (multiplex_ == false)
+  {
+    udp_->unbind();
+  }
   return nominationRecv;
 }
 
