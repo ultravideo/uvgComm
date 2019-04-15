@@ -117,7 +117,16 @@ void FlowController::run()
       // because we cannot modify create new objects from child threads (in this case new socket)
       // we must initialize both UDPServer and Stun objects here so that ConnectionTester doesn't have to do
       // anything but to test the connection
-      (void)buckets[bucketNum].server->bindMultiplexed(QHostAddress(candidates_->at(i)->local->address), candidates_->at(i)->local->port);
+      if (buckets[bucketNum].server->bindMultiplexed(QHostAddress(candidates_->at(i)->local->address), candidates_->at(i)->local->port) == false)
+      {
+        delete buckets[bucketNum].server;
+        buckets[bucketNum].server = nullptr;
+      }
+    }
+
+    if (buckets[bucketNum].server == nullptr)
+    {
+      continue;
     }
 
     buckets[bucketNum].pairs.push_back({
@@ -239,7 +248,18 @@ void FlowControllee::run()
       // because we cannot modify create new objects from child threads (in this case new socket)
       // we must initialize both UDPServer and Stun objects here so that ConnectionTester doesn't have to do
       // anything but to test the connection
-      (void)buckets[bucketNum].server->bindMultiplexed(QHostAddress(candidates_->at(i)->local->address), candidates_->at(i)->local->port);
+      //
+      // Binding might fail, if so happens no STUN objects are created for this socket
+      if (buckets[bucketNum].server->bindMultiplexed(QHostAddress(candidates_->at(i)->local->address), candidates_->at(i)->local->port) == false)
+      {
+        delete buckets[bucketNum].server;
+        buckets[bucketNum].server = nullptr;
+      }
+    }
+
+    if (buckets[bucketNum].server == nullptr)
+    {
+      continue;
     }
 
     buckets[bucketNum].pairs.push_back({
