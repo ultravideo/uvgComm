@@ -349,8 +349,8 @@ void ICE::handleEndOfNomination(ICEPair *candidateRTP, ICEPair *candidateRTCP, u
         parameters_.deallocateMediaPorts(pair->local->port);
       }
 
-      /* delete pair->remote; */
-      /* delete pair; */
+      delete pair->remote;
+      delete pair;
     }
   }
 

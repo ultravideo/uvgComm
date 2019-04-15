@@ -38,7 +38,7 @@ public:
 
   // allocate contiguous port range
   uint16_t allocateMediaPorts();
-  uint16_t deallocateMediaPorts(uint16_t start);
+  void deallocateMediaPorts(uint16_t start);
 
 private:
   uint16_t remainingPorts_;

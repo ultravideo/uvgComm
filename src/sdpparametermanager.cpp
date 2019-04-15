@@ -85,8 +85,15 @@ uint16_t SDPParameterManager::allocateMediaPorts()
   return start;
 }
 
-uint16_t SDPParameterManager::deallocateMediaPorts(uint16_t start)
+void SDPParameterManager::deallocateMediaPorts(uint16_t start)
 {
+  portLock_.lock();
+
+  availablePorts_.push_back(start);
+  availablePorts_.push_back(start + 2);
+  remainingPorts_ += 4;
+
+  portLock_.unlock();
 }
 
 uint16_t SDPParameterManager::nextAvailablePortPair()
