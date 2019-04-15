@@ -24,13 +24,20 @@ signals:
   void endNomination();
 
 public slots:
-  void nominationDone(ICEPair *rtp, ICEPair *rtcp);
+  void nominationDone(ICEPair *connection);
 
 protected:
     void run();
 
     QList<ICEPair *> *candidates_;
     uint32_t sessionID_;
+
+    // temporary storage for succeeded pairs, when both RTP and RTCP
+    // of some candidate pair succeeds, endNomination() signal is emitted
+    // and the succeeded pair is copied to nominated_rtp_ and nominated_rtcp_
+    //
+    // the first candidate pair that has both RTP and RTCP tested is chosen
+    QMap<QString, std::pair<ICEPair *, ICEPair *>> nominated_;
 
     ICEPair *nominated_rtp_;
     ICEPair *nominated_rtcp_;
