@@ -82,11 +82,18 @@ QList<ICEInfo *> ICE::generateICECandidates()
 
   if (stunAddress_ != QHostAddress(""))
   {
-    std::pair<ICEInfo *, ICEInfo *> cands = makeCandidate(stunAddress_, "srflx");
+    candidate = makeCandidate(stunAddress_, "srflx");
 
-    candidates.push_back(cands.first);
-    candidates.push_back(cands.second);
+    candidates.push_back(candidate.first);
+    candidates.push_back(candidate.second);
   }
+
+#if 0
+    candidate = makeCandidate(QHostAddress("172.17.0.1"), "host");
+
+    candidates.push_back(candidate.first);
+    candidates.push_back(candidate.second);
+#endif
 
   return candidates;
 }
@@ -147,23 +154,38 @@ void ICE::printCandidate(ICEInfo *candidate)
            << candidate->address    << ":" << candidate->port;
 }
 
-// TODO sort them by priority/type/whatever first and make sure ports match!!!
 QList<ICEPair *> *ICE::makeCandiatePairs(QList<ICEInfo *>& local, QList<ICEInfo *>& remote)
 {
   QList<ICEPair *> *pairs = new QList<ICEPair *>;
 
-  // create pairs
-  for (int i = 0; i < qMin(local.size(), remote.size()); ++i)
+  // match all host candidates with remote (remote does the same)
+  for (int i = 0; i < local.size(); ++i)
   {
-    ICEPair *pair = new ICEPair;
+    for (int k = 0; k < remote.size(); ++k)
+    {
+      // type (host/server reflexive) and component (RTP/RTCP) has to match
+      if (local[i]->type == remote[k]->type &&
+          local[i]->component == remote[k]->component)
+      {
+        ICEPair *pair = new ICEPair;
 
-    pair->local    = local[i];
-    pair->remote   = remote[i];
-    pair->priority = qMin(local[i]->priority, remote[i]->priority);
-    pair->state    = PAIR_FROZEN;
+        pair->local    = local[i];
+        pair->remote   = remote[k];
+        pair->priority = qMin(local[i]->priority, remote[k]->priority); // TODO spec
+        pair->state    = PAIR_FROZEN;
 
-    pairs->push_back(pair);
+        pairs->push_back(pair);
+      }
+    }
   }
+
+#if 0
+  for (int i = 0; i < pairs->size(); ++i)
+  {
+    qDebug() << pairs->at(i)->local->type << ":" << pairs->at(i)->local->address << ":" << pairs->at(i)->local->port
+             << pairs->at(i)->remote->address << ":" << pairs->at(i)->remote->port;
+  }
+#endif
 
   return pairs;
 }
@@ -324,11 +346,11 @@ void ICE::handleEndOfNomination(ICEPair *candidateRTP, ICEPair *candidateRTCP, u
       // we need to call makePortPairAvailable() only for RTP candidate
       if (pair->local->component == RTP)
       {
-        parameters_.makePortPairAvailable(pair->local->port);
+        parameters_.deallocateMediaPorts(pair->local->port);
       }
 
-      delete pair->remote;
-      delete pair;
+      /* delete pair->remote; */
+      /* delete pair; */
     }
   }
 
