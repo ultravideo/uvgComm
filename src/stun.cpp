@@ -106,6 +106,21 @@ bool Stun::waitForNominationRequest(unsigned long timeout)
   return timer.isActive();
 }
 
+bool Stun::waitForNominationResponse(unsigned long timeout)
+{
+  QTimer timer;
+  timer.setSingleShot(true);
+  QEventLoop loop;
+
+  connect(this,   &Stun::nominationRecv, &loop, &QEventLoop::quit);
+  connect(&timer, &QTimer::timeout,   &loop, &QEventLoop::quit);
+
+  timer.start(timeout);
+  loop.exec();
+
+  return timer.isActive();
+}
+
 // if we're the controlling agent, sending binding request is rather straight-forward:
 // send request, wait for response and return
 bool Stun::controllerSendBindingRequest(ICEPair *pair)
@@ -127,7 +142,6 @@ bool Stun::controllerSendBindingRequest(ICEPair *pair)
 
     if (waitForStunResponse(20 * (i + 1)))
     {
-      qDebug() << "GOT RESPONSE!";
       msgReceived = true;
       break;
     }
@@ -159,7 +173,7 @@ bool Stun::controllerSendBindingRequest(ICEPair *pair)
       message     = stunmsg_.hostToNetwork(msg);
       msgReceived = true;
 
-      for (int i = 0; i < 5; ++i)
+      for (int i = 0; i < 3; ++i)
       {
         udp_->sendData(message, QHostAddress(pair->remote->address), pair->remote->port, false);
         QThread::msleep(20);
@@ -181,7 +195,7 @@ bool Stun::controlleeSendBindingRequest(ICEPair *pair)
   Q_ASSERT(pair != nullptr);
 
   bool msgReceived   = false;
-  QByteArray message = QByteArray("hole punch");
+  QByteArray message = QByteArray("hole punch normal");
   STUNMessage msg;
 
   for (int i = 0; i < 20; ++i)
@@ -273,31 +287,6 @@ bool Stun::sendBindingRequest(ICEPair *pair, bool controller)
   return controlleeSendBindingRequest(pair);
 }
 
-bool Stun::sendBindingResponse(STUNMessage& request, QString addressRemote, int portRemote)
-{
-  STUNMessage response = stunmsg_.createResponse(request);
-
-  response.addAttribute(STUN_ATTR_PRIORITY, 1337);
-
-  response.addAttribute(
-      request.hasAttribute(STUN_ATTR_ICE_CONTROLLED)
-      ? STUN_ATTR_ICE_CONTROLLING
-      : STUN_ATTR_ICE_CONTROLLED
-  );
-
-  QByteArray message = stunmsg_.hostToNetwork(response);
-
-  for (int i = 0; i < 25; ++i)
-  {
-    udp_->sendData(message, QHostAddress(addressRemote), portRemote, false);
-
-    if (!waitForStunRequest(20 * (i + 1)))
-    {
-      break;
-    }
-  }
-}
-
 // either we got Stun binding request -> send binding response
 // or Stun binding response -> mark candidate as valid
 void Stun::recvStunMessage(QNetworkDatagram message)
@@ -322,9 +311,13 @@ void Stun::recvStunMessage(QNetworkDatagram message)
   }
   else if (stunMsg.getType() == STUN_RESPONSE)
   {
+    if (stunMsg.hasAttribute(STUN_ATTR_USE_CANDIATE))
+    {
+      emit nominationRecv();
+    }
     // if this message is a response to a request we just sent, its TransactionID should be cached
     // if not, vertaa viimeksi lähetetyn TransactionID:tä vasten
-    if (stunmsg_.validateStunResponse(stunMsg, message.senderAddress(), message.senderPort()))
+    else if (stunmsg_.validateStunResponse(stunMsg, message.senderAddress(), message.senderPort()))
     {
       emit parsingDone();
     }
@@ -367,9 +360,46 @@ bool Stun::sendNominationRequest(ICEPair *pair)
   {
     udp_->sendData(message, QHostAddress(pair->remote->address), pair->remote->port, false);
 
-    if (waitForStunResponse(20 * (i + 1)))
+    if (waitForNominationResponse(20 * (i + 1)))
     {
       ok = true;
+      break;
+    }
+  }
+
+  if (ok == false)
+  {
+    qDebug() << "WARNING: Failed to receive Nomination Response from remote!";
+    qDebug() << "Remote: " << pair->remote->address << ":" << pair->remote->port;
+
+    if (multiplex_ == false)
+    {
+      udp_->unbind();
+    }
+    return false;
+  }
+
+  // the first part of connectivity check is done, now we must wait for
+  // remote's binding request and responed to them
+  ok = false;
+
+  for (int i = 0; i < 20; ++i)
+  {
+    if (waitForNominationRequest(20 * (i + 1)))
+    {
+      STUNMessage msg = stunmsg_.createResponse();
+      msg.addAttribute(STUN_ATTR_ICE_CONTROLLING);
+      msg.addAttribute(STUN_ATTR_USE_CANDIATE);
+
+      message = stunmsg_.hostToNetwork(msg);
+      ok      = true;
+
+      for (int i = 0; i < 3; ++i)
+      {
+        udp_->sendData(message, QHostAddress(pair->remote->address), pair->remote->port, false);
+        QThread::msleep(20);
+      }
+
       break;
     }
   }
@@ -383,10 +413,10 @@ bool Stun::sendNominationRequest(ICEPair *pair)
 
 bool Stun::sendNominationResponse(ICEPair *pair)
 {
-  qDebug() << "[controllee] BINDING " << pair->local->address << " TO PORT " << pair->local->port;
-
   if (multiplex_ == false)
   {
+    qDebug() << "[controllee] BINDING " << pair->local->address << " TO PORT " << pair->local->port;
+
     if (!udp_->bindRaw(QHostAddress(pair->local->address), pair->local->port))
     {
       qDebug() << "Binding failed! Cannot send STUN Binding Requests to " << pair->remote->address << ":" << pair->remote->address;
@@ -396,52 +426,69 @@ bool Stun::sendNominationResponse(ICEPair *pair)
     connect(udp_, &UDPServer::rawMessageAvailable, this, &Stun::recvStunMessage);
   }
 
-  // first send empty stun binding requests to remote to create a hole in the firewall
-  // when the first nomination request is received (if any), start sending nomination response
-  STUNMessage request = stunmsg_.createRequest();
-  request.addAttribute(STUN_ATTR_ICE_CONTROLLED);
+  STUNMessage msg;
+  QByteArray message = QByteArray("hole punch nomination");
+  bool nominationRecv = false;
 
-  QByteArray reqMessage = stunmsg_.hostToNetwork(request);
-  bool nominationRecv   = false;
-
-  for (int i = 0; i < 25; ++i)
+  for (int i = 0; i < 128; ++i)
   {
-    udp_->sendData(reqMessage, QHostAddress(pair->remote->address), pair->remote->port, false);
+    udp_->sendData(message, QHostAddress(pair->remote->address), pair->remote->port, false);
 
     if (waitForNominationRequest(20 * (i + 1)))
     {
+      msg = stunmsg_.createResponse();
+      msg.addAttribute(STUN_ATTR_ICE_CONTROLLED);
+      msg.addAttribute(STUN_ATTR_USE_CANDIATE);
+
+      message = stunmsg_.hostToNetwork(msg);
       nominationRecv = true;
+
+      for (int i = 0; i < 3; ++i)
+      {
+        udp_->sendData(message, QHostAddress(pair->remote->address), pair->remote->port, false);
+        QThread::msleep(20);
+      }
+
       break;
     }
   }
 
-  if (nominationRecv)
+  if (nominationRecv == false)
   {
-    nominationRecv = false;
+    qDebug() << "WARNING: Failed to receive Nomination from remote!";
+    qDebug() << "Remote: " << pair->remote->address << ":" << pair->remote->port;
 
-    STUNMessage response  = stunmsg_.createResponse();
-    response.addAttribute(STUN_ATTR_ICE_CONTROLLED);
-    response.addAttribute(STUN_ATTR_USE_CANDIATE);
-
-    QByteArray respMessage = stunmsg_.hostToNetwork(response);
-
-    for (int i = 0; i < 25; ++i)
+    if (multiplex_ == false)
     {
-      udp_->sendData(respMessage, QHostAddress(pair->remote->address), pair->remote->port, false);
+      udp_->unbind();
+    }
+    return false;
+  }
 
-      // when we no longer get nomination request it means that remote has received
-      // our response message and end the nomination process
-      //
-      // We can stop sending nomination responses when the waitForNominationRequest() timeouts
-      //
-      // Because we got here (we received nomination request in the previous step) we can assume
-      // that the connection works in both ends and waitForNominationRequest() doesn't just timeout
-      // because it doesn't receive anything
-      if (!waitForNominationRequest(20 * (i + 1)))
-      {
-        nominationRecv = true;
-        break;
-      }
+  // the first part of connective check is done (remote sending us binding request)
+  // now we must do the same but this we're sending the request and they're responding
+  nominationRecv = false;
+
+  // we've succesfully responded to remote's binding request, now it's our turn to
+  // send request and remote must respond to them
+  STUNMessage request = stunmsg_.createRequest();
+  request.addAttribute(STUN_ATTR_ICE_CONTROLLED);
+  request.addAttribute(STUN_ATTR_PRIORITY, pair->priority);
+  request.addAttribute(STUN_ATTR_USE_CANDIATE);
+
+  message = stunmsg_.hostToNetwork(request);
+
+  // we're expecting a response from remote to this request
+  stunmsg_.cacheRequest(request);
+
+  for (int i = 0; i < 20; ++i)
+  {
+    udp_->sendData(message, QHostAddress(pair->remote->address), pair->remote->port, false);
+
+    if (waitForNominationResponse(20 * (i + 1)))
+    {
+      nominationRecv = true;
+      break;
     }
   }
 
@@ -449,6 +496,7 @@ bool Stun::sendNominationResponse(ICEPair *pair)
   {
     udp_->unbind();
   }
+
   return nominationRecv;
 }
 

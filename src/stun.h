@@ -58,6 +58,7 @@ private:
   bool waitForStunResponse(unsigned long timeout);
   bool waitForStunRequest(unsigned long timeout);
   bool waitForNominationRequest(unsigned long timeout);
+  bool waitForNominationResponse(unsigned long timeout);
 
   // If we're the controlling agent we start by sending STUN Binding Requests to remote
   // When we receive a response to one of our STUN Binding Requests, we start listening to
