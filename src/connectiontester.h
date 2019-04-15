@@ -2,6 +2,8 @@
 
 #include <QThread>
 #include "icetypes.h"
+#include "udpserver.h"
+#include "stun.h"
 
 class ConnectionTester : public QThread
 {
@@ -10,7 +12,8 @@ class ConnectionTester : public QThread
 public:
     ConnectionTester();
     ~ConnectionTester();
-    void setCandidatePair(ICEPair *pair_rtp, ICEPair *pair_rtcp);
+    void setStun(Stun *stun);
+    void setCandidatePair(ICEPair *pair);
 
     // controller_ defines the course of action after candiate pair has been validated.
     // If the ConnectionTester belongs to FlowController it terminates immediately after
@@ -26,16 +29,13 @@ signals:
     // testingDone() is emitted when the connection testing has ended
     //
     // if the tested candidate succeeded (remote responded to our requests),
-    // rtp and rtcp point to valid ICEPairs
-    //
-    // if something failed, rtp and rtcp are nullptr
-    void testingDone(ICEPair *rtp, ICEPair *rtcp);
+    // connection points to valid ICEPair, otherwise it's nullptr
+    void testingDone(ICEPair *connection);
 
 protected:
     void run();
 
-    ICEPair *rtp_pair_;
-    ICEPair *rtcp_pair_;
-
+    ICEPair *pair_;
     bool controller_;
+    Stun *stun_;
 };
