@@ -25,12 +25,19 @@ public:
 
     void printMessage(QString message);
 
+public slots:
+    void quit();
+
 signals:
     // testingDone() is emitted when the connection testing has ended
     //
     // if the tested candidate succeeded (remote responded to our requests),
     // connection points to valid ICEPair, otherwise it's nullptr
     void testingDone(ICEPair *connection);
+
+    // send signal to Stun object that it should terminate testing the candidate
+    // (break from the event loop associated with testing)
+    void stopTesting();
 
 protected:
     void run();

@@ -18,14 +18,16 @@ const uint16_t STUN_PORT = 21000;
 Stun::Stun():
   udp_(new UDPServer),
   stunmsg_(),
-  multiplex_(false)
+  multiplex_(false),
+  interrupted_(false)
 {
 }
 
 Stun::Stun(UDPServer *server):
   udp_(server),
   stunmsg_(),
-  multiplex_(true)
+  multiplex_(true),
+  interrupted_(false)
 {
 }
 
@@ -67,8 +69,9 @@ bool Stun::waitForStunResponse(unsigned long timeout)
   timer.setSingleShot(true);
   QEventLoop loop;
 
-  connect(this,   &Stun::parsingDone, &loop, &QEventLoop::quit);
-  connect(&timer, &QTimer::timeout,   &loop, &QEventLoop::quit);
+  connect(this,   &Stun::parsingDone,   &loop, &QEventLoop::quit);
+  connect(this,   &Stun::stopEventLoop, &loop, &QEventLoop::quit);
+  connect(&timer, &QTimer::timeout,     &loop, &QEventLoop::quit);
 
   timer.start(timeout);
   loop.exec();
@@ -82,8 +85,9 @@ bool Stun::waitForStunRequest(unsigned long timeout)
   timer.setSingleShot(true);
   QEventLoop loop;
 
-  connect(this,   &Stun::requestRecv, &loop, &QEventLoop::quit);
-  connect(&timer, &QTimer::timeout,   &loop, &QEventLoop::quit);
+  connect(this,   &Stun::requestRecv,   &loop, &QEventLoop::quit);
+  connect(this,   &Stun::stopEventLoop, &loop, &QEventLoop::quit);
+  connect(&timer, &QTimer::timeout,     &loop, &QEventLoop::quit);
 
   timer.start(timeout);
   loop.exec();
@@ -98,7 +102,8 @@ bool Stun::waitForNominationRequest(unsigned long timeout)
   QEventLoop loop;
 
   connect(this,   &Stun::nominationRecv, &loop, &QEventLoop::quit);
-  connect(&timer, &QTimer::timeout,   &loop, &QEventLoop::quit);
+  connect(this,   &Stun::stopEventLoop,  &loop, &QEventLoop::quit);
+  connect(&timer, &QTimer::timeout,      &loop, &QEventLoop::quit);
 
   timer.start(timeout);
   loop.exec();
@@ -113,7 +118,8 @@ bool Stun::waitForNominationResponse(unsigned long timeout)
   QEventLoop loop;
 
   connect(this,   &Stun::nominationRecv, &loop, &QEventLoop::quit);
-  connect(&timer, &QTimer::timeout,   &loop, &QEventLoop::quit);
+  connect(this,   &Stun::stopEventLoop,  &loop, &QEventLoop::quit);
+  connect(&timer, &QTimer::timeout,      &loop, &QEventLoop::quit);
 
   timer.start(timeout);
   loop.exec();
@@ -142,6 +148,11 @@ bool Stun::controllerSendBindingRequest(ICEPair *pair)
 
     if (waitForStunResponse(20 * (i + 1)))
     {
+      if (interrupted_)
+      {
+        return false;
+      }
+
       msgReceived = true;
       break;
     }
@@ -167,6 +178,11 @@ bool Stun::controllerSendBindingRequest(ICEPair *pair)
   {
     if (waitForStunRequest(20 * (i + 1)))
     {
+      if (interrupted_)
+      {
+        return false;
+      }
+
       msg = stunmsg_.createResponse();
       msg.addAttribute(STUN_ATTR_ICE_CONTROLLING);
 
@@ -204,6 +220,11 @@ bool Stun::controlleeSendBindingRequest(ICEPair *pair)
 
     if (waitForStunRequest(20 * (i + 1)))
     {
+      if (interrupted_)
+      {
+        return false;
+      }
+
       msg = stunmsg_.createResponse();
       msg.addAttribute(STUN_ATTR_ICE_CONTROLLED);
 
@@ -253,6 +274,11 @@ bool Stun::controlleeSendBindingRequest(ICEPair *pair)
 
     if (waitForStunResponse(20 * (i + 1)))
     {
+      if (interrupted_)
+      {
+        return false;
+      }
+
       msgReceived = true;
       break;
     }
@@ -362,6 +388,11 @@ bool Stun::sendNominationRequest(ICEPair *pair)
 
     if (waitForNominationResponse(20 * (i + 1)))
     {
+      if (interrupted_)
+      {
+        return false;
+      }
+
       ok = true;
       break;
     }
@@ -387,6 +418,11 @@ bool Stun::sendNominationRequest(ICEPair *pair)
   {
     if (waitForNominationRequest(20 * (i + 1)))
     {
+      if (interrupted_)
+      {
+        return false;
+      }
+
       STUNMessage msg = stunmsg_.createResponse();
       msg.addAttribute(STUN_ATTR_ICE_CONTROLLING);
       msg.addAttribute(STUN_ATTR_USE_CANDIATE);
@@ -436,6 +472,11 @@ bool Stun::sendNominationResponse(ICEPair *pair)
 
     if (waitForNominationRequest(20 * (i + 1)))
     {
+      if (interrupted_)
+      {
+        return false;
+      }
+
       msg = stunmsg_.createResponse();
       msg.addAttribute(STUN_ATTR_ICE_CONTROLLED);
       msg.addAttribute(STUN_ATTR_USE_CANDIATE);
@@ -487,6 +528,11 @@ bool Stun::sendNominationResponse(ICEPair *pair)
 
     if (waitForNominationResponse(20 * (i + 1)))
     {
+      if (interrupted_)
+      {
+        return false;
+      }
+
       nominationRecv = true;
       break;
     }
@@ -531,4 +577,10 @@ void Stun::processReply(QByteArray data)
     qDebug() << "DIDN'T GET XOR-MAPPED-ADDRESS!";
     emit stunError();
   }
+}
+
+void Stun::stopTesting()
+{
+  interrupted_ = true;
+  emit stopEventLoop();
 }

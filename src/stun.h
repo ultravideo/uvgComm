@@ -42,12 +42,16 @@ public:
 
   void wantAddress(QString stunServer);
 
+public slots:
+  void stopTesting();
+
 signals:
   void addressReceived(QHostAddress address);
   void stunError();
   void parsingDone();
   void nominationRecv();
   void requestRecv();
+  void stopEventLoop();
 
 private slots:
   void handleHostaddress(QHostInfo info);
@@ -91,4 +95,9 @@ private:
   // If multiplex_ is true, it means that the UDPServer has already been created for us
   // and we shouldn't unbind/rebind it or attach listeners to it.
   bool multiplex_;
+
+  // When waitFor(Stun|Nomination)(Request|Response) returns, the calling code should
+  // check whether interrupt flag has been set. It means that the running thread has
+  // decided to terminate processing and Stun shouln't continue with the process any further
+  bool interrupted_;
 };

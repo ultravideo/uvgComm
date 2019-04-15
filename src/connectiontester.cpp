@@ -24,6 +24,14 @@ void ConnectionTester::isController(bool controller)
 void ConnectionTester::setStun(Stun *stun)
 {
   stun_ = stun;
+
+  QObject::connect(this, &ConnectionTester::stopTesting, stun, &Stun::stopTesting);
+}
+
+void ConnectionTester::quit()
+{
+  emit stopTesting();
+  QThread::quit();
 }
 
 void ConnectionTester::run()
