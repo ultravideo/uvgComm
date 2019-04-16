@@ -82,7 +82,7 @@ bool KvazaarFilter::init()
   config_->wpp = settings.value("video/WPP").toInt();
   config_->vps_period = settings.value("video/VPS").toInt();
   config_->intra_period = settings.value("video/Intra").toInt();
-  config_->framerate_num = 30;
+  config_->framerate_num = settings.value("video/Framerate").toInt();
   config_->framerate_denom = framerate_denom_;
   config_->hash = KVZ_HASH_NONE;
 #endif
@@ -211,7 +211,7 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
      || config_->framerate_num != input->framerate)
   {
     // This should not happen.
-    qDebug() << getName() << "WARNING: Input resolution differs:"
+    qDebug() << getName() << "WARNING: Input resolution or framerate differs:"
              << config_->width << "x" << config_->height << "input:"
              << input->width << "x" << input->height;
 
@@ -223,6 +223,7 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
     settings.setValue("video/Framerate", input->framerate);
     updateSettings();
   }
+
 
   // copy input to kvazaar picture
   memcpy(input_pic_->y,
