@@ -1,6 +1,6 @@
 #include "customsettings.h"
 
-#include "ui_customsettings.h"
+#include "ui_customSettings.h"
 
 #include <video/camerainfo.h>
 #include "settingshelper.h"
@@ -354,6 +354,7 @@ void CustomSettings::initializeResolutions(QString format)
     initializeFramerates(format, 0);
   }
 }
+
 
 void CustomSettings::initializeFramerates(QString format, int resolutionID)
 {
