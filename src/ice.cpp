@@ -359,18 +359,18 @@ void ICE::handleEndOfNomination(ICEPair *candidateRTP, ICEPair *candidateRTCP, u
 
 void ICE::handleCallerEndOfNomination(struct ICEPair *candidateRTP, struct ICEPair *candidateRTCP, uint32_t sessionID)
 {
+  this->handleEndOfNomination(candidateRTP, candidateRTCP, sessionID);
+
   nominationInfo_[sessionID].caller_mtx->unlock();
   nominationInfo_[sessionID].controllee->quit();
-
-  this->handleEndOfNomination(candidateRTP, candidateRTCP, sessionID);
 }
 
 void ICE::handleCalleeEndOfNomination(struct ICEPair *candidateRTP, struct ICEPair *candidateRTCP, uint32_t sessionID)
 {
+  this->handleEndOfNomination(candidateRTP, candidateRTCP, sessionID);
+
   nominationInfo_[sessionID].callee_mtx->unlock();
   nominationInfo_[sessionID].controller->quit();
-
-  this->handleEndOfNomination(candidateRTP, candidateRTCP, sessionID);
 }
 
 ICEMediaInfo ICE::getNominated(uint32_t sessionID)
