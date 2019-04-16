@@ -41,7 +41,7 @@ const std::map<QString, std::function<bool(SIPField& field, std::shared_ptr<SIPM
 
 SIPTransport::SIPTransport(quint32 transportID):
   partialMessage_(""),
-  connection_(),
+  connection_(nullptr),
   transportID_(transportID)
 {}
 
@@ -55,7 +55,7 @@ void SIPTransport::cleanup()
 
 bool SIPTransport::isConnected()
 {
-  return connection_->isConnected();
+  return connection_ && connection_->isConnected();
 }
 
 QHostAddress SIPTransport::getLocalAddress()
