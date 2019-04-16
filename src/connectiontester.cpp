@@ -68,6 +68,5 @@ void ConnectionTester::run()
     return;
   }
 
-  pair_->state = PAIR_NOMINATED;
   emit testingDone(pair_);
 }

@@ -27,7 +27,6 @@ FlowAgent::FlowAgent():
 
 FlowAgent::~FlowAgent()
 {
-  delete candidates_;
 }
 
 void FlowAgent::run() { }
@@ -60,6 +59,10 @@ void FlowAgent::nominationDone(ICEPair *connection)
     {
       nominated_rtp_  = nominated_[connection->local->address].first;
       nominated_rtcp_ = nominated_[connection->local->address].second;
+
+      nominated_rtp_->state  = PAIR_NOMINATED;
+      nominated_rtcp_->state = PAIR_NOMINATED;
+
       emit endNomination();
     }
   }
