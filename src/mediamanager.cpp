@@ -94,7 +94,8 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
       stats_->addParticipant(peerInfo->connection_address, "0", "0");
     }
 
-    if(peerInfo->connection_addrtype == "IP4")
+    if(peerInfo->connection_addrtype == "IP4"
+       || (peerInfo->connection_addrtype == "IP6" && address.toString().left(7) == "::ffff:"))
     {
       in_addr ip;
 #ifdef _WIN32
@@ -110,9 +111,8 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
         return;
       }
     }
-    else if(peerInfo->connection_addrtype == "IP6")
-    {
-      qDebug() << "ERROR: IPv6 not supported in media creation";
+    else {
+      qDebug() << "ERROR:" << peerInfo->connection_addrtype << "not supported in media creation:" << address;
       return;
     }
   }
