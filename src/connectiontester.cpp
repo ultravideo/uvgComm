@@ -46,7 +46,9 @@ void ConnectionTester::run()
 
   if (!stun_->sendBindingRequest(pair_, controller_))
   {
-    qDebug() << "FAILED!";
+    qDebug() << "Connectivity checks failed for"
+             << pair_->local->address  << pair_->local->port
+             << pair_->remote->address << pair_->remote->port;
     return;
   }
 
