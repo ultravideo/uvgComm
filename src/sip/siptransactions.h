@@ -131,7 +131,7 @@ private:
 
   // This mutex makes sure that the dialog has been added to the dialogs_ list
   // before we are accessing it when receiving messages
-  QMutex connectionMutex_;
+  QMutex dialogMutex_;
 
   struct DialogRequest
   {

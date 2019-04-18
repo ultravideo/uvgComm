@@ -214,7 +214,7 @@ void SIPTransactions::createBaseDialog( quint32 transportID, std::shared_ptr<SIP
   Q_ASSERT(transportID <= transports_.size());
 
   dialog = std::shared_ptr<SIPDialogData> (new SIPDialogData);
-  connectionMutex_.lock();
+  dialogMutex_.lock();
   dialog->transportID = transportID;
 
   dialog->state = std::shared_ptr<SIPDialogState> (new SIPDialogState());
@@ -228,34 +228,36 @@ void SIPTransactions::createBaseDialog( quint32 transportID, std::shared_ptr<SIP
 
   dialog->localSdp_ = nullptr;
   dialog->remoteSdp_ = nullptr;
+
+  dialogs_.push_back(dialog);
+  dialogMutex_.unlock();
+
   QObject::connect(dialog->client.get(), &SIPDialogClient::sendDialogRequest,
                    this, &SIPTransactions::sendDialogRequest);
 
   QObject::connect(dialog->server.get(), &SIPServerTransaction::sendResponse,
                    this, &SIPTransactions::sendResponse);
 
-  dialogs_.push_back(dialog);
-  connectionMutex_.unlock();
 }
 
 void SIPTransactions::acceptCall(uint32_t sessionID)
 {
-  connectionMutex_.lock();
+  dialogMutex_.lock();
   std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
+  dialogMutex_.unlock();
 
   // start candiate nomination. This function won't block, negotiation happens in the background
   // remoteFinalSDP() makes sure that a connection was in fact nominated
   sdp_.startICECandidateNegotiation(dialog->localSdp_->candidates, dialog->remoteSdp_->candidates, sessionID);
 
-  connectionMutex_.unlock();
   dialog->server->acceptCall();
 }
 
 void SIPTransactions::rejectCall(uint32_t sessionID)
 {
-  connectionMutex_.lock();
+  dialogMutex_.lock();
   std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
-  connectionMutex_.unlock();
+  dialogMutex_.unlock();
   dialog->server->rejectCall();
   destroyDialog(sessionID);
 }
@@ -355,7 +357,7 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
 
   // TODO: sessionID is now tranportID
   // TODO: separate non-dialog and dialog requests!
-  connectionMutex_.lock();
+  dialogMutex_.lock();
 
   uint32_t foundSessionID = 0;
   for(unsigned int sessionID = 1; sessionID - 1 < dialogs_.size(); ++sessionID)
@@ -372,10 +374,10 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
 
   // find the dialog which corresponds to the callID and tags received in request
   std::shared_ptr<SIPDialogData> foundDialog;
-  connectionMutex_.unlock();
 
   if(foundSessionID == 0)
   {
+    dialogMutex_.unlock();
     qDebug() << "Could not find the dialog of the request.";
 
     // TODO: there is a problem if the sequence number did not match and the request type is INVITE
@@ -406,6 +408,7 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
   {
     Q_ASSERT(foundSessionID <= dialogs_.size());
     foundDialog = dialogs_.at(foundSessionID - 1);
+    dialogMutex_.unlock();
   }
 
   // check correct initialization
@@ -475,7 +478,7 @@ void SIPTransactions::processSIPResponse(SIPResponse response,
   // TODO: sessionID is now tranportID
   // TODO: separate nondialog and dialog requests!
   qDebug() << "Starting to process received SIP Response:" << response.type;
-  connectionMutex_.lock();
+  dialogMutex_.lock();
 
   // find the dialog which corresponds to the callID and tags received in response
   uint32_t foundSessionID = 0;
@@ -484,7 +487,7 @@ void SIPTransactions::processSIPResponse(SIPResponse response,
   {
     if(dialogs_.at(sessionID - 1) != nullptr &&
        dialogs_.at(sessionID - 1)->state->correctResponseDialog(response.message->dialog,
-                                             response.message->cSeq))
+                                                                response.message->cSeq))
     {
       // TODO: we should check that every single detail is as specified in rfc.
       if(dialogs_.at(sessionID - 1)->client->waitingResponse(response.message->transactionRequest))
@@ -510,7 +513,7 @@ void SIPTransactions::processSIPResponse(SIPResponse response,
   // check correct initialization
   Q_ASSERT(dialogs_.at(foundSessionID - 1)->state);
 
-  connectionMutex_.unlock();
+  dialogMutex_.unlock();
 
   // TODO: if our request was INVITE and response is 2xx or 101-199, create dialog
   // TODO: prechecks that the response is ok, then modify program state.
