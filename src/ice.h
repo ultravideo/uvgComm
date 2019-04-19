@@ -67,6 +67,9 @@ class ICE : public QObject
     // sessionID must given so ICE can know which ongoing nomination should be checked
     bool calleeConnectionNominated(uint32_t sessionID);
 
+    // free all ICE-related resources
+    void cleanupSession(uint32_t sessionID);
+
   public slots:
     // when FlowControllee has finished its job, it emits "ready" signal which is caught by this slot function
     // handleCallerEndOfNomination() check if the nomination succeeed, saves the nominated pair to hashmap and

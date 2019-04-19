@@ -264,6 +264,7 @@ void SIPTransactions::endCall(uint32_t sessionID)
 {
   std::shared_ptr<SIPDialogData> dialog = dialogs_.at(sessionID - 1);
   dialog->client->endCall();
+  sdp_.ICECleanup(sessionID);
   destroyDialog(sessionID);
 }
 
@@ -289,6 +290,7 @@ void SIPTransactions::endAllCalls()
   {
     if(dialogs_.at(i) != nullptr)
     {
+      sdp_.ICECleanup(i + 1);
       destroyDialog(i + 1);
     }
   }

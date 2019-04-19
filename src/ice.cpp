@@ -356,3 +356,20 @@ ICEMediaInfo ICE::getNominated(uint32_t sessionID)
     std::make_pair(nullptr, nullptr)
   };
 }
+
+void ICE::cleanupSession(uint32_t sessionID)
+{
+  if (nominationInfo_.contains(sessionID) && iceDisabled_ == false)
+  {
+    for (int i = 0; i < nominationInfo_[sessionID].pairs.size(); ++i)
+    {
+      if (nominationInfo_[sessionID].pairs.at(i)->local &&
+          nominationInfo_[sessionID].pairs.at(i)->local->component == RTP)
+      {
+        parameters_.deallocateMediaPorts(nominationInfo_[sessionID].pairs.at(i)->local->port);
+      }
+    }
+
+    nominationInfo_.remove(sessionID);
+  }
+}

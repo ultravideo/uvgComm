@@ -292,3 +292,8 @@ void GlobalSDPState::updateFinalSDPs(SDPMessageInfo& localSDP, SDPMessageInfo& r
     setMediaPair(remoteSDP.media[1], nominated.video.first->remote);
   }
 }
+
+void GlobalSDPState::ICECleanup(uint32_t sessionID)
+{
+  ice_->cleanupSession(sessionID);
+}

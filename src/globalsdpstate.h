@@ -38,6 +38,8 @@ public:
 
   void startICECandidateNegotiation(QList<std::shared_ptr<ICEInfo>>& local, QList<std::shared_ptr<ICEInfo>>& remote, uint32_t sessionID);
 
+  void ICECleanup(uint32_t sessionID);
+
   // update the MediaInfo of remote and locals SDPs to include the nominated connections
   void updateFinalSDPs(SDPMessageInfo& localSDP, SDPMessageInfo& remoteSDP, uint32_t sessionID);
 
