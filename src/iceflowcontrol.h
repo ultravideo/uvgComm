@@ -4,6 +4,7 @@
 #include <QMutex>
 #include <QThread>
 #include <QList>
+#include <memory>
 
 #include "stun.h"
 #include "icetypes.h"
@@ -15,21 +16,21 @@ class FlowAgent : public QThread
 public:
   FlowAgent();
   ~FlowAgent();
-  void setCandidates(QList<ICEPair *> *candidates);
+  void setCandidates(QList<std::shared_ptr<ICEPair>> *candidates);
   void setSessionID(uint32_t sessionID);
   bool waitForResponses(unsigned long timeout);
 
 signals:
-  void ready(ICEPair *candidateRTP, ICEPair *candidateRTCP, uint32_t sessionID);
+  void ready(std::shared_ptr<ICEPair> candidateRTP, std::shared_ptr<ICEPair> candidateRTCP, uint32_t sessionID);
   void endNomination();
 
 public slots:
-  void nominationDone(ICEPair *connection);
+  void nominationDone(std::shared_ptr<ICEPair> connection);
 
 protected:
     void run();
 
-    QList<ICEPair *> *candidates_;
+    QList<std::shared_ptr<ICEPair>> *candidates_;
     uint32_t sessionID_;
 
     // temporary storage for succeeded pairs, when both RTP and RTCP
@@ -37,10 +38,15 @@ protected:
     // and the succeeded pair is copied to nominated_rtp_ and nominated_rtcp_
     //
     // the first candidate pair that has both RTP and RTCP tested is chosen
-    QMap<QString, std::pair<ICEPair *, ICEPair *>> nominated_;
+    QMap<QString,
+      std::pair<
+        std::shared_ptr<ICEPair>,
+        std::shared_ptr<ICEPair>
+      >
+    > nominated_;
 
-    ICEPair *nominated_rtp_;
-    ICEPair *nominated_rtcp_;
+    std::shared_ptr<ICEPair> nominated_rtp_;
+    std::shared_ptr<ICEPair> nominated_rtcp_;
     QMutex nominated_mtx;
 };
 

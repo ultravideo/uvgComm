@@ -11,7 +11,7 @@ ConnectionTester::~ConnectionTester()
 {
 }
 
-void ConnectionTester::setCandidatePair(ICEPair *pair)
+void ConnectionTester::setCandidatePair(std::shared_ptr<ICEPair> pair)
 {
   pair_ = pair;
 }
@@ -44,7 +44,7 @@ void ConnectionTester::run()
 
   pair_->state = PAIR_IN_PROGRESS;
 
-  if (!stun_->sendBindingRequest(pair_, controller_))
+  if (!stun_->sendBindingRequest(pair_.get(), controller_))
   {
     qDebug() << "Connectivity checks failed for"
              << pair_->local->address  << pair_->local->port
@@ -61,7 +61,7 @@ void ConnectionTester::run()
     return;
   }
 
-  if (!stun_->sendNominationResponse(pair_))
+  if (!stun_->sendNominationResponse(pair_.get()))
   {
     qDebug() << "failed to receive nomination for candidate:\n"
              << "\tlocal:"  << pair_->local->address  << ":" << pair_->local->port << "\n"

@@ -23,11 +23,17 @@ struct nominationInfo
   FlowController *controller;
 
   // list of all candidates, remote and local
-  // all but nominatedPair are freed in handleEndOfNomination()
-  QList<ICEPair *> *pairs;
+  QList<std::shared_ptr<ICEPair>> pairs;
 
-  std::pair<ICEPair *, ICEPair *> nominatedHEVC;
-  std::pair<ICEPair *, ICEPair *> nominatedOpus;
+  std::pair<
+    std::shared_ptr<ICEPair>,
+    std::shared_ptr<ICEPair>
+  > nominatedVideo;
+
+  std::pair<
+    std::shared_ptr<ICEPair>,
+    std::shared_ptr<ICEPair>
+  > nominatedAudio;
 
   bool connectionNominated;
 };
@@ -41,13 +47,13 @@ class ICE : public QObject
     ~ICE();
 
     // generate a list of local candidates for media streaming
-    QList<ICEInfo *> generateICECandidates();
+    QList<std::shared_ptr<ICEInfo>> generateICECandidates();
 
     // TODO
-    void startNomination(QList<ICEInfo *>& local, QList<ICEInfo *>& remote, uint32_t sessionID);
+    void startNomination(QList<std::shared_ptr<ICEInfo>>& local, QList<std::shared_ptr<ICEInfo>>& remote, uint32_t sessionID);
 
     // TODO
-    void respondToNominations(QList<ICEInfo *>& local, QList<ICEInfo *>& remote, uint32_t sessionID);
+    void respondToNominations(QList<std::shared_ptr<ICEInfo>>& local, QList<std::shared_ptr<ICEInfo>>& remote, uint32_t sessionID);
 
     // get nominated ICE pair using sessionID
     /* std::pair<ICEPair *, ICEPair *> getNominated(uint32_t sessionID); */
@@ -65,25 +71,27 @@ class ICE : public QObject
     // when FlowControllee has finished its job, it emits "ready" signal which is caught by this slot function
     // handleCallerEndOfNomination() check if the nomination succeeed, saves the nominated pair to hashmap and
     // releases caller_mtx to signal that negotiation is done
-    void handleCallerEndOfNomination(ICEPair *candidateRTP, ICEPair *candidateRTCP, uint32_t sessionID);
+    void handleCallerEndOfNomination(std::shared_ptr<ICEPair> rtp, std::shared_ptr<ICEPair> rtcp, uint32_t sessionID);
 
     // when FlowController has finished its job, it emits "ready" signal which is caught by this slot function
     // handleCalleeEndOfNomination() check if the nomination succeeed, saves the nominated pair to hashmap and
     // releases callee_mtx to signal that negotiation is done
-    void handleCalleeEndOfNomination(ICEPair *candidateRTP, ICEPair *candidateRTCP, uint32_t sessionID);
+    void handleCalleeEndOfNomination(std::shared_ptr<ICEPair> rtp, std::shared_ptr<ICEPair> rtcp, uint32_t sessionID);
+
     void createSTUNCandidate(QHostAddress address);
 
   private:
     // create media candidate (RTP and RTCP connection)
     // "type" marks whether this candidate is host or server reflexive candidate (affects priority)
-    std::pair<ICEInfo *, ICEInfo *> makeCandidate(QHostAddress address, QString type);
+    std::pair<std::shared_ptr<ICEInfo>, std::shared_ptr<ICEInfo>> makeCandidate(QHostAddress address, QString type);
 
-    void handleEndOfNomination(ICEPair *candidateRTP, ICEPair *candidateRTCP, uint32_t sessionID);
+    void handleEndOfNomination(std::shared_ptr<ICEPair> rtp, std::shared_ptr<ICEPair> rtcp, uint32_t sessionID);
 
     int calculatePriority(int type, int local, int component);
     QString generateFoundation();
     void printCandidate(ICEInfo *candidate);
-    QList<ICEPair *> *makeCandiatePairs(QList<ICEInfo *>& local, QList<ICEInfo *>& remote);
+
+    QList<std::shared_ptr<ICEPair>> makeCandidatePairs(QList<std::shared_ptr<ICEInfo>>& local, QList<std::shared_ptr<ICEInfo>>& remote);
 
     bool nominatingConnection_;
     bool iceDisabled_;

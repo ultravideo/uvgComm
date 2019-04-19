@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 enum PAIR {
   PAIR_WAITING     = 0,
   PAIR_IN_PROGRESS = 1,
@@ -31,8 +33,8 @@ struct ICEInfo
 
 struct ICEPair
 {
-  struct ICEInfo *local;
-  struct ICEInfo *remote;
+  std::shared_ptr<ICEInfo> local;
+  std::shared_ptr<ICEInfo> remote;
   int priority;
   int state;
 };
@@ -41,6 +43,13 @@ struct ICEMediaInfo
 {
   // first ICEPair is for RTP, second for RTCP
   // ICEPair contains both local and remote address/port pairs (see above)
-  std::pair<ICEPair *, ICEPair *> hevc;
-  std::pair<ICEPair *, ICEPair *> opus;
+  std::pair<
+    std::shared_ptr<ICEPair>,
+    std::shared_ptr<ICEPair>
+  > video;
+
+  std::pair<
+    std::shared_ptr<ICEPair>,
+    std::shared_ptr<ICEPair>
+  > audio;
 };

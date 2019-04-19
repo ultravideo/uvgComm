@@ -1,6 +1,8 @@
 #pragma once
 
 #include <QThread>
+#include <memory>
+
 #include "icetypes.h"
 #include "udpserver.h"
 #include "stun.h"
@@ -13,7 +15,7 @@ public:
     ConnectionTester();
     ~ConnectionTester();
     void setStun(Stun *stun);
-    void setCandidatePair(ICEPair *pair);
+    void setCandidatePair(std::shared_ptr<ICEPair> pair);
 
     // controller_ defines the course of action after candiate pair has been validated.
     // If the ConnectionTester belongs to FlowController it terminates immediately after
@@ -33,7 +35,7 @@ signals:
     //
     // if the tested candidate succeeded (remote responded to our requests),
     // connection points to valid ICEPair, otherwise it's nullptr
-    void testingDone(ICEPair *connection);
+    void testingDone(std::shared_ptr<ICEPair> connection);
 
     // send signal to Stun object that it should terminate testing the candidate
     // (break from the event loop associated with testing)
@@ -42,7 +44,7 @@ signals:
 protected:
     void run();
 
-    ICEPair *pair_;
+    std::shared_ptr<ICEPair> pair_;
     bool controller_;
     Stun *stun_;
 };

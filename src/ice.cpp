@@ -23,7 +23,7 @@ ICE::ICE():
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
   int ice = settings.value("sip/ice").toInt();
 
-  iceDisabled_ = (ice == 1) ? true : false;
+  iceDisabled_ = (ice != 1) ? true : false;
 }
 
 ICE::~ICE()
@@ -58,13 +58,13 @@ QString ICE::generateFoundation()
   return randomString;
 }
 
-QList<ICEInfo *> ICE::generateICECandidates()
+QList<std::shared_ptr<ICEInfo>> ICE::generateICECandidates()
 {
   QTime time = QTime::currentTime();
   qsrand((uint)time.msec());
 
-  QList<ICEInfo *> candidates;
-  std::pair<ICEInfo *, ICEInfo *> candidate;
+  QList<std::shared_ptr<ICEInfo>> candidates;
+  std::pair<std::shared_ptr<ICEInfo>, std::shared_ptr<ICEInfo>> candidate;
 
   foreach (const QHostAddress& address, QNetworkInterface::allAddresses())
   {
@@ -98,10 +98,10 @@ QList<ICEInfo *> ICE::generateICECandidates()
   return candidates;
 }
 
-std::pair<ICEInfo *, ICEInfo *> ICE::makeCandidate(QHostAddress address, QString type)
+std::pair<std::shared_ptr<ICEInfo>, std::shared_ptr<ICEInfo>> ICE::makeCandidate(QHostAddress address, QString type)
 {
-  ICEInfo *entry_rtp  = new ICEInfo;
-  ICEInfo *entry_rtcp = new ICEInfo;
+  std::shared_ptr<ICEInfo> entry_rtp  = std::make_shared<ICEInfo>();
+  std::shared_ptr<ICEInfo> entry_rtcp = std::make_shared<ICEInfo>();
 
   entry_rtp->address  = address.toString();
   entry_rtcp->address = address.toString();
@@ -154,9 +154,9 @@ void ICE::printCandidate(ICEInfo *candidate)
            << candidate->address    << ":" << candidate->port;
 }
 
-QList<ICEPair *> *ICE::makeCandiatePairs(QList<ICEInfo *>& local, QList<ICEInfo *>& remote)
+QList<std::shared_ptr<ICEPair>> ICE::makeCandidatePairs(QList<std::shared_ptr<ICEInfo>>& local, QList<std::shared_ptr<ICEInfo>>& remote)
 {
-  QList<ICEPair *> *pairs = new QList<ICEPair *>;
+  QList<std::shared_ptr<ICEPair>> pairs;
 
   // match all host candidates with remote (remote does the same)
   for (int i = 0; i < local.size(); ++i)
@@ -167,29 +167,20 @@ QList<ICEPair *> *ICE::makeCandiatePairs(QList<ICEInfo *>& local, QList<ICEInfo 
       if (local[i]->type == remote[k]->type &&
           local[i]->component == remote[k]->component)
       {
-        ICEPair *pair = new ICEPair;
+        std::shared_ptr<ICEPair> pair = std::make_shared<ICEPair>();
 
         pair->local    = local[i];
         pair->remote   = remote[k];
         pair->priority = qMin(local[i]->priority, remote[k]->priority); // TODO spec
         pair->state    = PAIR_FROZEN;
 
-        pairs->push_back(pair);
+        pairs.push_back(pair);
       }
     }
   }
 
-#if 0
-  for (int i = 0; i < pairs->size(); ++i)
-  {
-    qDebug() << pairs->at(i)->local->type << ":" << pairs->at(i)->local->address << ":" << pairs->at(i)->local->port
-             << pairs->at(i)->remote->address << ":" << pairs->at(i)->remote->port;
-  }
-#endif
-
   return pairs;
 }
-
 
 // callee (flow controller)
 // 
@@ -197,7 +188,7 @@ QList<ICEPair *> *ICE::makeCandiatePairs(QList<ICEInfo *>& local, QList<ICEInfo 
 // response can be set as fast as possible and the remote can start respoding to our requests
 //
 // Thread spawned by startNomination() must keep track of which candidates failed and which succeeded
-void ICE::startNomination(QList<ICEInfo *>& local, QList<ICEInfo *>& remote, uint32_t sessionID)
+void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local, QList<std::shared_ptr<ICEInfo>>& remote, uint32_t sessionID)
 {
   if (iceDisabled_ == true)
   {
@@ -210,13 +201,13 @@ void ICE::startNomination(QList<ICEInfo *>& local, QList<ICEInfo *>& remote, uin
   nominationInfo_[sessionID].callee_mtx = new QMutex;
   nominationInfo_[sessionID].callee_mtx->lock();
 
-  nominationInfo_[sessionID].pairs = makeCandiatePairs(local, remote);
+  nominationInfo_[sessionID].pairs = makeCandidatePairs(local, remote);
   nominationInfo_[sessionID].connectionNominated = false;
 
   FlowController *callee = nominationInfo_[sessionID].controller;
   QObject::connect(callee, &FlowController::ready, this, &ICE::handleCalleeEndOfNomination, Qt::DirectConnection);
 
-  callee->setCandidates(nominationInfo_[sessionID].pairs);
+  callee->setCandidates(&nominationInfo_[sessionID].pairs);
   callee->setSessionID(sessionID);
   callee->start();
 }
@@ -226,7 +217,7 @@ void ICE::startNomination(QList<ICEInfo *>& local, QList<ICEInfo *>& remote, uin
 // respondToNominations() spawns a control thread that starts testing all candidates
 // It doesn't do any external book keeping as it's responsible for only responding to STUN requets
 // When it has gone through all candidate pairs it exits
-void ICE::respondToNominations(QList<ICEInfo *>& local, QList<ICEInfo *>& remote, uint32_t sessionID)
+void ICE::respondToNominations(QList<std::shared_ptr<ICEInfo>>& local, QList<std::shared_ptr<ICEInfo>>& remote, uint32_t sessionID)
 {
   if (iceDisabled_ == true)
   {
@@ -239,14 +230,13 @@ void ICE::respondToNominations(QList<ICEInfo *>& local, QList<ICEInfo *>& remote
   nominationInfo_[sessionID].caller_mtx = new QMutex;
   nominationInfo_[sessionID].caller_mtx->lock();
 
-  nominationInfo_[sessionID].pairs = makeCandiatePairs(local, remote);
+  nominationInfo_[sessionID].pairs = makeCandidatePairs(local, remote);
   nominationInfo_[sessionID].connectionNominated = false;
 
   FlowControllee *caller = nominationInfo_[sessionID].controllee;
   QObject::connect(caller, &FlowControllee::ready, this, &ICE::handleCallerEndOfNomination, Qt::DirectConnection);
 
-  /* caller->setHevcCandidates( */
-  caller->setCandidates(nominationInfo_[sessionID].pairs);
+  caller->setCandidates(&nominationInfo_[sessionID].pairs);
   caller->setSessionID(sessionID);
   caller->start();
 }
@@ -287,7 +277,7 @@ bool ICE::calleeConnectionNominated(uint32_t sessionID)
   return nominationInfo_[sessionID].connectionNominated;
 }
 
-void ICE::handleEndOfNomination(ICEPair *candidateRTP, ICEPair *candidateRTCP, uint32_t sessionID)
+void ICE::handleEndOfNomination(std::shared_ptr<ICEPair> rtp, std::shared_ptr<ICEPair> rtcp, uint32_t sessionID)
 {
   // nothing needs to be cleaned if ICE was disabled
   if (iceDisabled_ == true)
@@ -295,7 +285,7 @@ void ICE::handleEndOfNomination(ICEPair *candidateRTP, ICEPair *candidateRTCP, u
     return;
   }
 
-  if (candidateRTP == nullptr || candidateRTCP == nullptr)
+  if (rtp == nullptr || rtcp == nullptr)
   {
     qDebug() << "ERROR: Nomination failed! Unable to start call.";
     nominationInfo_[sessionID].connectionNominated = false;
@@ -303,71 +293,49 @@ void ICE::handleEndOfNomination(ICEPair *candidateRTP, ICEPair *candidateRTCP, u
   else 
   {
     nominationInfo_[sessionID].connectionNominated = true;
-    nominationInfo_[sessionID].nominatedHEVC = std::make_pair((ICEPair *)candidateRTP, (ICEPair *)candidateRTCP);
+    nominationInfo_[sessionID].nominatedVideo = std::make_pair(rtp, rtcp);
 
-    // Create opus candidate on the fly. When this candidate (candidateRTP && candidateRTCP) was created
+    // Create opus candidate on the fly. When this candidate (rtp && rtcp) was created
     // we intentionally allocated 4 ports instead of 2 for use.
     //
     // This is because we don't actually need to test that both HEVC and Opus work separately. Insted we can just
     // test HEVC and if that works we can assume that Opus works too (no reason why it shouldn't)
-    ICEPair *opusPairRTP  = new ICEPair;
-    opusPairRTP->local    = new ICEInfo;
-    opusPairRTP->remote   = new ICEInfo;
+    std::shared_ptr<ICEPair> opusPairRTP  = std::make_shared<ICEPair>();
+    std::shared_ptr<ICEPair> opusPairRTCP = std::make_shared<ICEPair>();
 
-    ICEPair *opusPairRTCP = new ICEPair;
-    opusPairRTCP->local   = new ICEInfo;
-    opusPairRTCP->remote  = new ICEInfo;
+    opusPairRTP->local  = std::make_shared<ICEInfo>();
+    opusPairRTP->remote = std::make_shared<ICEInfo>();
 
-    memcpy(opusPairRTP->local,  candidateRTP->local,  sizeof(ICEInfo));
-    memcpy(opusPairRTP->remote, candidateRTP->remote, sizeof(ICEInfo));
+    memcpy(opusPairRTP->local.get(),  rtp->local.get(),  sizeof(ICEInfo));
+    memcpy(opusPairRTP->remote.get(), rtp->remote.get(), sizeof(ICEInfo));
 
-    memcpy(opusPairRTCP->local,  candidateRTCP->local,  sizeof(ICEInfo));
-    memcpy(opusPairRTCP->remote, candidateRTCP->remote, sizeof(ICEInfo));
+    opusPairRTCP->local  = std::make_shared<ICEInfo>();
+    opusPairRTCP->remote = std::make_shared<ICEInfo>();
+
+    memcpy(opusPairRTCP->local.get(),  rtcp->local.get(),  sizeof(ICEInfo));
+    memcpy(opusPairRTCP->remote.get(), rtcp->remote.get(), sizeof(ICEInfo));
 
     opusPairRTP->local->port  += 2; // hevc rtp, hevc rtcp and then opus rtp
     opusPairRTCP->local->port += 2; // hevc rtp, hevc, rtcp, opus rtp and then opus rtcp
 
-    // same for remote candidate
     opusPairRTP->remote->port  += 2; // hevc rtp, hevc rtcp and then opus rtp
     opusPairRTCP->remote->port += 2; // hev rtp, hevc, rtcp, opus rtp and then opus rtcp
 
-    nominationInfo_[sessionID].nominatedOpus = std::make_pair((ICEPair *)opusPairRTP, (ICEPair *)opusPairRTCP);
+    nominationInfo_[sessionID].nominatedAudio = std::make_pair(opusPairRTP, opusPairRTCP);
   }
-
-  foreach (ICEPair *pair, *nominationInfo_[sessionID].pairs)
-  {
-    if (pair->state != PAIR_NOMINATED)
-    {
-      // pair->local cannot be freed here because we send final SDP
-      // to remote which contains our candidate offers but we can release
-      // pair->local->port (unless local is stun_entry_rtp_ or stun_entry_rtcp_)
-      //
-      // because ports are allocated in pairs (RTP is port X and RTCP is port X + 1),
-      // we need to call makePortPairAvailable() only for RTP candidate
-      if (pair->local->component == RTP)
-      {
-        parameters_.deallocateMediaPorts(pair->local->port);
-      }
-
-      delete pair->remote;
-      delete pair;
-    }
-  }
-
-  delete nominationInfo_[sessionID].pairs;
 }
 
-void ICE::handleCallerEndOfNomination(struct ICEPair *candidateRTP, struct ICEPair *candidateRTCP, uint32_t sessionID)
+void ICE::handleCallerEndOfNomination(std::shared_ptr<ICEPair> rtp, std::shared_ptr<ICEPair> rtcp, uint32_t sessionID)
 {
-  this->handleEndOfNomination(candidateRTP, candidateRTCP, sessionID);
+  this->handleEndOfNomination(rtp, rtcp, sessionID);
 
   nominationInfo_[sessionID].caller_mtx->unlock();
   nominationInfo_[sessionID].controllee->quit();
 }
 
-void ICE::handleCalleeEndOfNomination(struct ICEPair *candidateRTP, struct ICEPair *candidateRTCP, uint32_t sessionID)
+void ICE::handleCalleeEndOfNomination(std::shared_ptr<ICEPair> rtp, std::shared_ptr<ICEPair> rtcp, uint32_t sessionID)
 {
-  this->handleEndOfNomination(candidateRTP, candidateRTCP, sessionID);
+  this->handleEndOfNomination(rtp, rtcp, sessionID);
 
   nominationInfo_[sessionID].callee_mtx->unlock();
   nominationInfo_[sessionID].controller->quit();
@@ -378,8 +346,8 @@ ICEMediaInfo ICE::getNominated(uint32_t sessionID)
   if (nominationInfo_.contains(sessionID) && iceDisabled_ == false)
   {
     return {
-        nominationInfo_[sessionID].nominatedHEVC,
-        nominationInfo_[sessionID].nominatedOpus
+        nominationInfo_[sessionID].nominatedVideo,
+        nominationInfo_[sessionID].nominatedAudio
     };
   }
 

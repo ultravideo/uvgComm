@@ -9,7 +9,8 @@
 struct Pair
 {
   Stun *stun;
-  ICEPair *pair;
+  /* ICEPair *pair; */
+  std::shared_ptr<ICEPair> pair;
 };
 
 // TODO explain
@@ -31,7 +32,7 @@ FlowAgent::~FlowAgent()
 
 void FlowAgent::run() { }
 
-void FlowAgent::setCandidates(QList<ICEPair *> *candidates)
+void FlowAgent::setCandidates(QList<std::shared_ptr<ICEPair>> *candidates)
 {
   candidates_ = candidates;
 }
@@ -41,7 +42,7 @@ void FlowAgent::setSessionID(uint32_t sessionID)
   sessionID_ = sessionID;
 }
 
-void FlowAgent::nominationDone(ICEPair *connection)
+void FlowAgent::nominationDone(std::shared_ptr<ICEPair> connection)
 {
   nominated_mtx.lock();
 
@@ -200,14 +201,14 @@ void FlowController::run()
     return;
   }
 
-  if (!stun.sendNominationRequest(nominated_rtp_))
+  if (!stun.sendNominationRequest(nominated_rtp_.get()))
   {
     qDebug() << "Failed to nominate RTP candidate!";
     emit ready(nullptr, nullptr, sessionID_);
     return;
   }
 
-  if (!stun.sendNominationRequest(nominated_rtcp_))
+  if (!stun.sendNominationRequest(nominated_rtcp_.get()))
   {
     qDebug() << "Failed to nominate RTCP candidate!";
     emit ready(nominated_rtp_, nullptr, sessionID_);
@@ -296,6 +297,7 @@ void FlowControllee::run()
 
       connect(workerThreads.back().get(), &ConnectionTester::testingDone, this, &FlowAgent::nominationDone, Qt::DirectConnection);
 
+      buckets[i].pairs[k].stun->moveToThread(workerThreads.back().get());
       workerThreads.back()->setCandidatePair(buckets[i].pairs[k].pair);
       workerThreads.back()->setStun(buckets[i].pairs[k].stun);
       workerThreads.back()->isController(false);
