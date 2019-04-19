@@ -43,6 +43,8 @@ void FlowAgent::setSessionID(uint32_t sessionID)
 
 void FlowAgent::nominationDone(ICEPair *connection)
 {
+  nominated_mtx.lock();
+
   if (connection->local->component == RTP)
   {
     nominated_[connection->local->address].first = connection;
@@ -55,17 +57,18 @@ void FlowAgent::nominationDone(ICEPair *connection)
   if (nominated_[connection->local->address].first  != nullptr &&
       nominated_[connection->local->address].second != nullptr)
   {
-    if (nominated_mtx.try_lock())
-    {
-      nominated_rtp_  = nominated_[connection->local->address].first;
-      nominated_rtcp_ = nominated_[connection->local->address].second;
+    nominated_rtp_  = nominated_[connection->local->address].first;
+    nominated_rtcp_ = nominated_[connection->local->address].second;
 
-      nominated_rtp_->state  = PAIR_NOMINATED;
-      nominated_rtcp_->state = PAIR_NOMINATED;
+    nominated_rtp_->state  = PAIR_NOMINATED;
+    nominated_rtcp_->state = PAIR_NOMINATED;
 
-      emit endNomination();
-    }
+    // mutex need not to be unlocked here because this marks the end of nomination
+    emit endNomination();
+    return;
   }
+
+  nominated_mtx.unlock();
 }
 
 bool FlowAgent::waitForResponses(unsigned long timeout)
