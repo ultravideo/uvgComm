@@ -180,8 +180,11 @@ void FlowController::run()
   // deallocate all memory consumed by connection buckets
   for (int i = 0; i < buckets.size(); ++i)
   {
-    buckets[i].server->unbind();
-    delete buckets[i].server;
+    if (buckets[i].server)
+    {
+      buckets[i].server->unbind();
+      delete buckets[i].server;
+    }
 
     for (int k = 0; k < buckets[i].pairs.size(); ++k)
     {
@@ -312,7 +315,11 @@ void FlowControllee::run()
   // deallocate all memory consumed by connection buckets
   for (int i = 0; i < buckets.size(); ++i)
   {
-    delete buckets[i].server;
+    if (buckets[i].server)
+    {
+      buckets[i].server->unbind();
+      delete buckets[i].server;
+    }
 
     for (int k = 0; k < buckets[i].pairs.size(); ++k)
     {
