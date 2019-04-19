@@ -97,7 +97,7 @@ class ICE : public QObject
     QList<std::shared_ptr<ICEPair>> makeCandidatePairs(QList<std::shared_ptr<ICEInfo>>& local, QList<std::shared_ptr<ICEInfo>>& remote);
 
     bool nominatingConnection_;
-    bool iceDisabled_;
+    bool iceEnabled_;
 
     Stun stun_;
     QHostAddress stunAddress_;

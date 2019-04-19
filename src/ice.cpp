@@ -21,9 +21,15 @@ ICE::ICE():
   stun_.wantAddress("stun.l.google.com");
 
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
-  int ice = settings.value("sip/ice").toInt();
 
-  iceDisabled_ = (ice != 1) ? true : false;
+  if (settings.value("sip/ice").toInt() == 1)
+  {
+    iceEnabled_ = true;
+  }
+  else
+  {
+    iceEnabled_ = false;
+  }
 }
 
 ICE::~ICE()
@@ -190,7 +196,7 @@ QList<std::shared_ptr<ICEPair>> ICE::makeCandidatePairs(QList<std::shared_ptr<IC
 // Thread spawned by startNomination() must keep track of which candidates failed and which succeeded
 void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local, QList<std::shared_ptr<ICEInfo>>& remote, uint32_t sessionID)
 {
-  if (iceDisabled_ == true)
+  if (iceEnabled_ == false)
   {
     return;
   }
@@ -219,7 +225,7 @@ void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local, QList<std::sha
 // When it has gone through all candidate pairs it exits
 void ICE::respondToNominations(QList<std::shared_ptr<ICEInfo>>& local, QList<std::shared_ptr<ICEInfo>>& remote, uint32_t sessionID)
 {
-  if (iceDisabled_ == true)
+  if (iceEnabled_ == false)
   {
     return;
   }
@@ -244,7 +250,7 @@ void ICE::respondToNominations(QList<std::shared_ptr<ICEInfo>>& local, QList<std
 bool ICE::callerConnectionNominated(uint32_t sessionID)
 {
   // return immediately if ICE was disabled
-  if (iceDisabled_ == true)
+  if (iceEnabled_ == false)
   {
     return true;
   }
@@ -262,7 +268,7 @@ bool ICE::callerConnectionNominated(uint32_t sessionID)
 bool ICE::calleeConnectionNominated(uint32_t sessionID)
 {
   // return immediately if ICE was disabled
-  if (iceDisabled_ == true)
+  if (iceEnabled_ == false)
   {
     return true;
   }
@@ -280,7 +286,7 @@ bool ICE::calleeConnectionNominated(uint32_t sessionID)
 void ICE::handleEndOfNomination(std::shared_ptr<ICEPair> rtp, std::shared_ptr<ICEPair> rtcp, uint32_t sessionID)
 {
   // nothing needs to be cleaned if ICE was disabled
-  if (iceDisabled_ == true)
+  if (iceEnabled_ == false)
   {
     return;
   }
@@ -343,7 +349,7 @@ void ICE::handleCalleeEndOfNomination(std::shared_ptr<ICEPair> rtp, std::shared_
 
 ICEMediaInfo ICE::getNominated(uint32_t sessionID)
 {
-  if (nominationInfo_.contains(sessionID) && iceDisabled_ == false)
+  if (nominationInfo_.contains(sessionID) && iceEnabled_ == true)
   {
     return {
         nominationInfo_[sessionID].nominatedVideo,
@@ -359,7 +365,7 @@ ICEMediaInfo ICE::getNominated(uint32_t sessionID)
 
 void ICE::cleanupSession(uint32_t sessionID)
 {
-  if (nominationInfo_.contains(sessionID) && iceDisabled_ == false)
+  if (nominationInfo_.contains(sessionID) && iceEnabled_ == true)
   {
     for (int i = 0; i < nominationInfo_[sessionID].pairs.size(); ++i)
     {
