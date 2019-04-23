@@ -54,6 +54,7 @@ void ConnectionTester::run()
 
   pair_->state = PAIR_SUCCEEDED;
 
+  // controller performs the nomination process in FlowController so exit from ConnectionTester when this connection has been tested...
   if (controller_)
   {
     qDebug() << "pair success" << pair_->local->address << pair_->local->port << pair_->remote->address << pair_->remote->port << pair_->local->component;
@@ -61,6 +62,7 @@ void ConnectionTester::run()
     return;
   }
 
+  //... otherwise start waitin for nomination requests
   if (!stun_->sendNominationResponse(pair_.get()))
   {
     qDebug() << "failed to receive nomination for candidate:\n"

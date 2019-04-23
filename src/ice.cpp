@@ -6,9 +6,9 @@
 #include "ice.h"
 #include "iceflowcontrol.h"
 
-const uint16_t MIN_ICE_PORT   = 22001;
-const uint16_t MAX_ICE_PORT   = 22500;
-const uint16_t MAX_PORTS      = 100;
+const uint16_t MIN_ICE_PORT   = 23000;
+const uint16_t MAX_ICE_PORT   = 24000;
+const uint16_t MAX_PORTS      = 1000;
 
 ICE::ICE():
   stun_(),
@@ -30,20 +30,18 @@ ICE::ICE():
   {
     iceEnabled_ = false;
   }
+    iceEnabled_ = true;
 }
 
 ICE::~ICE()
 {
 }
 
-// TODO lue speksi uudelleen tämä osalta
-/* @param type - 0 for relayed, 126 for host (always 126 TODO is it really?)
- * @param local - local preference for selecting candidates (ie.
- * @param component - */
+/* @param type - 0 for relayed, 126 for host
+ * @param local - local preference for selecting candidates
+ * @param component - 1 for RTP, 2 for RTCP */
 int ICE::calculatePriority(int type, int local, int component)
 {
-  // TODO speksin mukaan local pitää olal 0xffff ipv4-only hosteille
-  // TODO explain these coefficients
   return (16777216 * type) + (256 * local) + component;
 }
 

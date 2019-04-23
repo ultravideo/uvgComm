@@ -49,14 +49,19 @@ class ICE : public QObject
     // generate a list of local candidates for media streaming
     QList<std::shared_ptr<ICEInfo>> generateICECandidates();
 
-    // TODO
+    // Callee calls this function to start the connectivity check/nomination process when the 200 OK SDP has been sent to remote
+    // startNomination() spawns a FlowController thread which is responsible for handling connectivity checks and nomination.
+    //
+    // When FlowController has finished (succeeed or failed), it sends a ready() signal which is caught by handleCalleeEndOfNomination slot
     void startNomination(QList<std::shared_ptr<ICEInfo>>& local, QList<std::shared_ptr<ICEInfo>>& remote, uint32_t sessionID);
 
-    // TODO
+    // When caller receives the 200 OK SDP, it should call this function to start the ICE process. respondToNominations() spawns
+    // a FlowControllee thread which in turn spawns ConnectionTester threads.
+    //
+    // When FlowController is finished, it sends ready() signal is is caught by handleCallerEndOfNomination slot
     void respondToNominations(QList<std::shared_ptr<ICEInfo>>& local, QList<std::shared_ptr<ICEInfo>>& remote, uint32_t sessionID);
 
     // get nominated ICE pair using sessionID
-    /* std::pair<ICEPair *, ICEPair *> getNominated(uint32_t sessionID); */
     ICEMediaInfo getNominated(uint32_t sessionID);
 
     // caller must call this function to check if ICE has finished
@@ -88,12 +93,17 @@ class ICE : public QObject
     // "type" marks whether this candidate is host or server reflexive candidate (affects priority)
     std::pair<std::shared_ptr<ICEInfo>, std::shared_ptr<ICEInfo>> makeCandidate(QHostAddress address, QString type);
 
+    // save nominated pair to hashmap so it can be fetched later on
     void handleEndOfNomination(std::shared_ptr<ICEPair> rtp, std::shared_ptr<ICEPair> rtcp, uint32_t sessionID);
 
     int calculatePriority(int type, int local, int component);
+
+    // generate string of random characters
     QString generateFoundation();
     void printCandidate(ICEInfo *candidate);
 
+    // makeCandidatePairs takes a list of local and remote candidates, matches them based on localilty (host/server-reflexive)
+    // and component (RTP/RTCP) and returns a list of ICEPairs used for connectivity checks
     QList<std::shared_ptr<ICEPair>> makeCandidatePairs(QList<std::shared_ptr<ICEInfo>>& local, QList<std::shared_ptr<ICEInfo>>& remote);
 
     bool nominatingConnection_;

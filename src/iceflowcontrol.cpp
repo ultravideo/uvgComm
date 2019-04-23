@@ -72,7 +72,7 @@ void FlowAgent::nominationDone(std::shared_ptr<ICEPair> connection)
   nominated_mtx.unlock();
 }
 
-bool FlowAgent::waitForResponses(unsigned long timeout)
+bool FlowAgent::waitForEndOfNomination(unsigned long timeout)
 {
   QTimer timer;
   QEventLoop loop;
@@ -169,7 +169,7 @@ void FlowController::run()
     }
   }
 
-  bool nominationSucceeded = waitForResponses(10000);
+  bool nominationSucceeded = waitForEndOfNomination(10000);
 
   // we got a response, suspend all threads and start nomination
   for (size_t i = 0; i < workerThreads.size(); ++i)
@@ -305,7 +305,7 @@ void FlowControllee::run()
     }
   }
 
-  bool nominationSucceeded = waitForResponses(20000);
+  bool nominationSucceeded = waitForEndOfNomination(20000);
 
   // kill all threads, regardless of whether nomination succeeded or not
   for (size_t i = 0; i < workerThreads.size(); ++i)

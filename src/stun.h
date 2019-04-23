@@ -24,7 +24,10 @@ public:
   // after N tries the remote was silent
   bool sendBindingRequest(ICEPair *pair, bool controller);
 
-  // TODO add comment
+  // Send STUN Binding Response to remote. Each message should be response to alraedy-received
+  // request and this is why the request we're responding to is given as parameter
+  //
+  // TransactionID from request is copied to response
   bool sendBindingResponse(STUNMessage& request, QString addressRemote, int portRemote);
 
   // Send the nominated candidate to ICE_CONTROLLED agent 
@@ -43,6 +46,11 @@ public:
   void wantAddress(QString stunServer);
 
 public slots:
+  // When FlowController/FlowControllee has one successfully nominated pair, it sends stopTesting()
+  // to Stun which indicates that Stun should stop doing whatever it is doing and return.
+  //
+  // This must be done because Stun has an even loop of it's own and simply calling QThread::quit() on
+  // ConnectionTester doesn't terminate the thread quite fast enough
   void stopTesting();
 
 signals:
@@ -59,10 +67,16 @@ private slots:
   void recvStunMessage(QNetworkDatagram message);
 
 private:
+  // waitForStunResponse() starts an even loop which listens to parsingDone() signal
+  // When the signal is received the event loop is stopped and waitForStunResponse() returns true
+  // If parsingDone() signal is not received in time, waitForStunResponse() returns false
   bool waitForStunResponse(unsigned long timeout);
+
+  // Same as waitForStunResponse() but this function listens to requestRecv() signal
   bool waitForStunRequest(unsigned long timeout);
+
+  // Same as waitForStunResponse/Request() but this waits for nominationRecv() signal
   bool waitForNominationRequest(unsigned long timeout);
-  bool waitForNominationResponse(unsigned long timeout);
 
   // If we're the controlling agent we start by sending STUN Binding Requests to remote
   // When we receive a response to one of our STUN Binding Requests, we start listening to

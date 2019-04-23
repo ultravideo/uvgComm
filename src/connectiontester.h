@@ -25,9 +25,9 @@ public:
     // requests after it has concluded the candidate verification
     void isController(bool controller);
 
-    void printMessage(QString message);
-
 public slots:
+    // Because the Stun object used by ConnectionTester has it's own event loop, we must
+    // override the default quit function, call Stun::stopTesting() and then exit from ConnectionTester
     void quit();
 
 signals:
@@ -42,6 +42,7 @@ signals:
     void stopTesting();
 
 protected:
+    void printMessage(QString message);
     void run();
 
     std::shared_ptr<ICEPair> pair_;
