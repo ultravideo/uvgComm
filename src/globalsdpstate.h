@@ -51,7 +51,7 @@ public:
 private:
 
   // TODO: This should be moved to MediaManager.
-  std::shared_ptr<SDPMessageInfo> generateSDP(QHostAddress localAddress, QList<std::shared_ptr<ICEInfo>> *remoteCandidates);
+  std::shared_ptr<SDPMessageInfo> generateSDP(QHostAddress localAddress);
 
   bool generateAudioMedia(MediaInfo &audio);
   bool generateVideoMedia(MediaInfo &video);

@@ -21,11 +21,10 @@ void GlobalSDPState::setLocalInfo(QString username)
 std::shared_ptr<SDPMessageInfo> GlobalSDPState::localSDPSuggestion(QHostAddress localAddress)
 {
   qDebug() << "Getting local SDP suggestion";
-  return generateSDP(localAddress, nullptr);
+  return generateSDP(localAddress);
 }
 
-std::shared_ptr<SDPMessageInfo>
-GlobalSDPState::generateSDP(QHostAddress localAddress, QList<std::shared_ptr<ICEInfo>> *remoteCandidates)
+std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP(QHostAddress localAddress)
 {
   // TODO: This should ask media manager, what options it supports.
   qDebug() << "Generating new SDP message with our address as:" << localAddress;
@@ -149,7 +148,7 @@ GlobalSDPState::localFinalSDP(SDPMessageInfo &remoteSDP, QHostAddress localAddre
   // if we have not made a suggestion, then base our final SDP on their suggestion.
   if(localSuggestion == nullptr)
   {
-    sdp = generateSDP(localAddress, &remoteSDP.candidates);
+    sdp = generateSDP(localAddress);
     sdp->sessionName = remoteSDP.sessionName;
 
     qDebug() << "\n\n\nHELLO HERE AGAIN!!\n\n\n";
