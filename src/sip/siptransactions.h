@@ -7,6 +7,9 @@
 
 #include "common.h"
 
+#include <QMap>
+
+
 /* This class manages the interactions between different components in
  * a SIP transaction. This class should implement as little functionality
  * as possible and only focus on interractions.
@@ -121,7 +124,7 @@ private:
   void createDialogFromINVITE(quint32 transportID,  std::shared_ptr<SIPMessageInfo> &invite,
                               std::shared_ptr<SIPDialogData>& dialog);
   void createBaseDialog(quint32 transportID, std::shared_ptr<SIPDialogData>& dialog);
-  void destroyDialog(uint32_t sessionID);
+  void destroyDialog(std::shared_ptr<SIPDialogData> dialog);
 
   bool areWeTheDestination();
 
@@ -155,8 +158,8 @@ private:
   // keep track of dialogs. The CallID is not used because we could be calling ourselves
   // and using uint32_t is simpler than keeping track of tags
 
-  // TODO: separate dialog forming from dialog
-  QList<std::shared_ptr<SIPDialogData>> dialogs_;
+  uint32_t nextSessionID_;
+  QMap<uint32_t, std::shared_ptr<SIPDialogData>> dialogs_;
   std::map<QString, SIPRegistrationData> registrations_;
   QList<std::shared_ptr<SIPTransport>> transports_;
 
