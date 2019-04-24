@@ -23,8 +23,8 @@ Settings::Settings(QWidget *parent) :
   custom_.init(getVideoDeviceID());
   advanced_.init();
 
-  QObject::connect(basicUI_->ok, &QPushButton::clicked, this, &Settings::on_ok_clicked);
-  QObject::connect(basicUI_->cancel, &QPushButton::clicked, this, &Settings::on_cancel_clicked);
+  //QObject::connect(basicUI_->save, &QPushButton::clicked, this, &Settings::on_ok_clicked);
+  //QObject::connect(basicUI_->close, &QPushButton::clicked, this, &Settings::on_cancel_clicked);
 
   QObject::connect(&custom_, &CustomSettings::customSettingsChanged, this, &Settings::settingsChanged);
   QObject::connect(&custom_, &CustomSettings::hidden, this, &Settings::show);
@@ -44,16 +44,15 @@ void Settings::show()
   QWidget::show();
 }
 
-void Settings::on_ok_clicked()
+void Settings::on_save_clicked()
 {
   qDebug() << "Settings," << metaObject()->className() << ": Saving basic settings";
   // The UI values are saved to settings.
   saveSettings();
   emit settingsChanged(); // TODO: check have the settings actually been changed
-  hide();
 }
 
-void Settings::on_cancel_clicked()
+void Settings::on_close_clicked()
 {
   qDebug() << "Settings," << metaObject()->className()
            << ": Cancel clicked. Getting settings from system";
@@ -65,14 +64,18 @@ void Settings::on_cancel_clicked()
 
 void Settings::on_advanced_settings_button_clicked()
 {
-  on_ok_clicked(); // treat this the same as ok
+  //on_ok_clicked(); // treat this the same as ok
+  saveSettings();
+  hide();
   advanced_.show();
 }
 
 
 void Settings::on_custom_settings_button_clicked()
 {
-  on_ok_clicked(); // treat this the same as ok
+  //on_ok_clicked(); // treat this the same as ok
+  saveSettings();
+  hide();
   custom_.show();
 }
 
