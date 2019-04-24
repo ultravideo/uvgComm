@@ -14,19 +14,26 @@
 CameraFilter::CameraFilter(QString id, StatisticsInterface *stats):
   Filter(id, "Camera", stats, NONE, RGB32VIDEO),
   camera_(nullptr),
-  cameraFrameGrabber_(),
+  cameraFrameGrabber_(nullptr),
   framerate_(0)
 {}
 
 
 CameraFilter::~CameraFilter()
 {
-  delete camera_;
-  delete cameraFrameGrabber_;
+  if (camera_ != nullptr)
+  {
+    delete camera_;
+  }
+  if(cameraFrameGrabber_ != nullptr)
+  {
+    delete cameraFrameGrabber_;
+  }
 }
 
 bool CameraFilter::init()
 {
+  initialCameraSetup();
   cameraSetup();
   return Filter::init();
 }
@@ -37,8 +44,7 @@ void CameraFilter::run()
   Filter::run();
 }
 
-
-bool CameraFilter::cameraSetup()
+bool CameraFilter::initialCameraSetup()
 {
   QList<QCameraInfo> cameras = QCameraInfo::availableCameras();
 
@@ -77,6 +83,14 @@ bool CameraFilter::cameraSetup()
 
 #ifndef __linux__
   camera_->load();
+#endif
+}
+
+
+bool CameraFilter::cameraSetup()
+{
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+#ifndef __linux__
   while(camera_->state() != QCamera::LoadedState)
   {
     qSleep(5);
