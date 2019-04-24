@@ -30,7 +30,6 @@ ICE::ICE():
   {
     iceEnabled_ = false;
   }
-    iceEnabled_ = true;
 }
 
 ICE::~ICE()
