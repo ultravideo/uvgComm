@@ -4,7 +4,7 @@
 #include <QSettings>
 
 OpenHEVCFilter::OpenHEVCFilter(QString id, StatisticsInterface *stats):
-  Filter(id, "OpenHEVC", stats, HEVCVIDEO, YUVVIDEO),
+  Filter(id, "OpenHEVC", stats, HEVCVIDEO, YUV420VIDEO),
   handle_(),
   parameterSets_(false),
   waitFrames_(0),
@@ -174,7 +174,7 @@ void OpenHEVCFilter::process()
 
           // TODO: put delay into deque, and set timestamp accordingly to get more accurate latency.
 
-          frame->type = YUVVIDEO;
+          frame->type = YUV420VIDEO;
           frame->data_size = finalDataSize;
           frame->data = std::move(yuv_frame);
 

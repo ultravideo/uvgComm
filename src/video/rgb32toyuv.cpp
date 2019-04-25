@@ -5,7 +5,7 @@
 #include <QtDebug>
 
 RGB32toYUV::RGB32toYUV(QString id, StatisticsInterface *stats, uint32_t peer) :
-  Filter(id, "RGB32toYUV_" + QString::number(peer), stats, RGB32VIDEO, YUVVIDEO),
+  Filter(id, "RGB32toYUV_" + QString::number(peer), stats, RGB32VIDEO, YUV420VIDEO),
   sse_(true)
 {}
 
@@ -56,7 +56,7 @@ void RGB32toYUV::process()
       }
     }
 
-    input->type = YUVVIDEO;
+    input->type = YUV420VIDEO;
     input->data = std::move(yuv_data);
     input->data_size = finalDataSize;
     sendOutput(std::move(input));

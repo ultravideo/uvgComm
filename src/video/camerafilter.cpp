@@ -129,7 +129,7 @@ bool CameraFilter::cameraSetup()
   else if(inputFormat == "YUV420P")
   {
     viewSettings.setPixelFormat(QVideoFrame::Format_YUV420P);
-    output_ = YUVVIDEO;
+    output_ = YUV420VIDEO;
   }
   else
   {

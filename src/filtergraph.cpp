@@ -184,13 +184,13 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
       // TODO: Check the out connections of connected filter for an already existing conversion.
 
       if(graph.at(connectIndex)->outputType() == RGB32VIDEO &&
-         filter->inputType() == YUVVIDEO)
+         filter->inputType() == YUV420VIDEO)
       {
         qDebug() << "FilterGraph : Found RGB32 to YUV conversion needed";
         addToGraph(std::shared_ptr<Filter>(new RGB32toYUV("", stats_, conversionIndex_)), graph, connectIndex);
         ++conversionIndex_;
       }
-      else if(graph.at(connectIndex)->outputType() == YUVVIDEO &&
+      else if(graph.at(connectIndex)->outputType() == YUV420VIDEO &&
               filter->inputType() == RGB32VIDEO)
       {
         qDebug() << "FilterGraph : Found RGB32 to YUV conversion needed";

@@ -22,7 +22,7 @@ DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
   }
   else if(widget->supportedFormat() == VIDEO_YUV420)
   {
-    input_ = YUVVIDEO;
+    input_ = YUV420VIDEO;
   }
   widget_->setStats(stats);
   updateSettings();
@@ -62,7 +62,7 @@ void DisplayFilter::process()
     case RGB32VIDEO:
       format = QImage::Format_RGB32;
       break;
-    case YUVVIDEO:
+    case YUV420VIDEO:
       format = QImage::Format_Invalid;
       break;
     default:
