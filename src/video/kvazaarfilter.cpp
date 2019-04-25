@@ -66,15 +66,7 @@ bool KvazaarFilter::init()
 
   api_->config_init(config_);
 
-#ifdef __linux__
-  api_->config_parse(config_, "preset", "ultrafast");
-
-  config_->width = 640;
-  config_->height = 480;
-  config_->framerate_num = 30;
-#else
   api_->config_parse(config_, "preset", settings.value("video/Preset").toString().toUtf8());
-
   config_->width = settings.value("video/ResolutionWidth").toInt();
   config_->height = settings.value("video/ResolutionHeight").toInt();
   config_->threads = settings.value("video/kvzThreads").toInt();
@@ -85,7 +77,6 @@ bool KvazaarFilter::init()
   config_->framerate_num = settings.value("video/Framerate").toInt();
   config_->framerate_denom = framerate_denom_;
   config_->hash = KVZ_HASH_NONE;
-#endif
 
   //config_->fme_level = 0;
 
@@ -191,9 +182,11 @@ void KvazaarFilter::customParameters(QSettings& settings)
     settings.setArrayIndex(i);
     QString name = settings.value("Name").toString();
     QString value = settings.value("Value").toString();
-    if (api_->config_parse(config_, name.toStdString().c_str(), value.toStdString().c_str()) != 1)
+    if (api_->config_parse(config_, name.toStdString().c_str(),
+                           value.toStdString().c_str()) != 1)
     {
-      qDebug() << "Initialization," << metaObject()->className() << ": Invalid custom parameter for kvazaar";
+      qDebug() << "Initialization," << metaObject()->className()
+               << ": Invalid custom parameter for kvazaar";
     }
   }
   settings.endArray();
@@ -252,7 +245,8 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
   }
 }
 
-void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out, uint32_t len_out, kvz_picture *recon_pic)
+void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
+                                      uint32_t len_out, kvz_picture *recon_pic)
 {
   std::unique_ptr<Data> encodedFrame = std::move(encodingFrames_.back());
   encodingFrames_.pop_back();
@@ -268,8 +262,8 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out, uint32_t len_out
 
   for (kvz_data_chunk *chunk = data_out; chunk != nullptr; chunk = chunk->next)
   {
-    if(chunk->len > 3 &&
-       chunk->data[0] == 0 && chunk->data[1] == 0  &&( chunk->data[2] == 1 || (chunk->data[2] == 0 && chunk->data[3] == 1 ))
+    if(chunk->len > 3 && chunk->data[0] == 0 && chunk->data[1] == 0
+       &&( chunk->data[2] == 1 || (chunk->data[2] == 0 && chunk->data[3] == 1 ))
        && dataWritten != 0 && config_->slices != KVZ_SLICES_NONE)
     {
       // send previous packet if this is not the first
@@ -295,8 +289,8 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out, uint32_t len_out
   sendEncodedFrame(std::move(encodedFrame), std::move(hevc_frame), dataWritten);
 }
 
-void KvazaarFilter::sendEncodedFrame(std::unique_ptr<Data> input, std::unique_ptr<uchar[]> hevc_frame,
-                                     uint32_t dataWritten)
+void KvazaarFilter::sendEncodedFrame(std::unique_ptr<Data> input,
+                                     std::unique_ptr<uchar[]> hevc_frame, uint32_t dataWritten)
 {
   input->type = HEVCVIDEO;
   input->data_size = dataWritten;
