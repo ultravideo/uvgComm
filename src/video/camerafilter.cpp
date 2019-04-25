@@ -105,35 +105,42 @@ bool CameraFilter::cameraSetup()
   QCameraViewfinderSettings viewSettings = camera_->viewfinderSettings();
   printSupportedFormats();
 
-  // TODO: this should be a temprary hack until dshow is replaced by qcamera
-  if(settings.value("video/InputFormat").toString() == "MJPG")
+  // TODO: this should be a temporary hack until dshow is replaced by qcamera
+  QString inputFormat = settings.value("video/InputFormat").toString();
+
+#ifndef __linux__
+  if(inputFormat == "MJPG")
   {
     viewSettings.setPixelFormat(QVideoFrame::Format_Jpeg);
     output_ = RGB32VIDEO;
   }
-  else if(settings.value("video/InputFormat").toString() == "YUY2")
+#else
+  if(inputFormat == "MJPG")
   {
-    viewSettings.setPixelFormat(QVideoFrame::Format_YUYV);
+    viewSettings.setPixelFormat(QVideoFrame::Format_RGB32);
     output_ = RGB32VIDEO;
   }
-  else if(settings.value("video/InputFormat").toString() == "NV12")
+#endif
+  else if(inputFormat == "RGB32")
   {
-    viewSettings.setPixelFormat(QVideoFrame::Format_NV12);
+    viewSettings.setPixelFormat(QVideoFrame::Format_RGB32);
     output_ = RGB32VIDEO;
   }
-  else if(settings.value("video/InputFormat").toString() == "I420")
+  else if(inputFormat == "YUV420P")
   {
     viewSettings.setPixelFormat(QVideoFrame::Format_YUV420P);
-    output_ = RGB32VIDEO;
+    output_ = YUVVIDEO;
   }
-  else if(settings.value("video/InputFormat").toString() == "YV12")
+  else
   {
-    viewSettings.setPixelFormat(QVideoFrame::Format_YV12);
-    output_ = RGB32VIDEO;
+    qDebug() << "Input format is not supported";
+    viewSettings.setPixelFormat(QVideoFrame::Format_Invalid);
+    output_ = NONE;
+    return false;
   }
-
   //printSupportedResolutions(viewSettings);
 
+#ifndef __linux__
   QList<QSize> resolutions = camera_->supportedViewfinderResolutions(viewSettings);
 
   int resolutionID = settings.value("video/ResolutionID").toInt();
@@ -146,6 +153,9 @@ bool CameraFilter::cameraSetup()
   else {
     viewSettings.setResolution(QSize(0,0));
   }
+#else
+  viewSettings.setResolution(QSize(640, 480));
+#endif
 
   QList<QCamera::FrameRateRange> framerates = camera_->supportedViewfinderFrameRateRanges(viewSettings);
 
@@ -164,14 +174,11 @@ bool CameraFilter::cameraSetup()
       viewSettings.setMinimumFrameRate(framerates.back().minimumFrameRate);
     }
   }
-
 #else
   viewSettings.setMaximumFrameRate(30);
   viewSettings.setMinimumFrameRate(30);
-  viewSettings.setResolution(QSize(640, 480));
-  viewSettings.setPixelFormat(QVideoFrame::Format_BGRA32);
-  output_ = RGB32VIDEO;
 #endif
+
   qDebug() << "Iniating, CameraFilter : Using following QCamera settings:";
   qDebug() << "Iniating, CameraFilter :---------------------------------------";
   qDebug() << "Iniating, CameraFilter : Format:" << viewSettings.pixelFormat();
