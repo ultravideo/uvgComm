@@ -2,6 +2,7 @@
 
 #include <QString>
 #include <QList>
+#include <memory>
 
 #include <stdint.h>
 #include "icetypes.h"
@@ -115,7 +116,7 @@ struct SDPMessageInfo
   QList<SDPAttribute> valueAttributes;
 
   QList<MediaInfo> media;// m=, zero or more
-  QList<ICEInfo *> candidates;
+  QList<std::shared_ptr<ICEInfo>> candidates;
 };
 
 Q_DECLARE_METATYPE(SDPMessageInfo); // used in qvariant for content

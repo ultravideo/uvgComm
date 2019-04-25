@@ -1,10 +1,16 @@
 #include "globalsdpstate.h"
 #include <QDateTime>
 
+const uint16_t MIN_SIP_PORT   = 21500;
+const uint16_t MAX_SIP_PORT   = 22000;
+
+const uint16_t MAX_PORTS = 42;
+
 GlobalSDPState::GlobalSDPState():
   localUsername_("")
 {
   ice_ = std::make_unique<ICE>();
+  parameters_.setPortRange(MIN_SIP_PORT, MAX_SIP_PORT, MAX_PORTS);
 }
 
 void GlobalSDPState::setLocalInfo(QString username)
@@ -15,11 +21,10 @@ void GlobalSDPState::setLocalInfo(QString username)
 std::shared_ptr<SDPMessageInfo> GlobalSDPState::localSDPSuggestion(QHostAddress localAddress)
 {
   qDebug() << "Getting local SDP suggestion";
-  return generateSDP(localAddress, nullptr);
+  return generateSDP(localAddress);
 }
 
-std::shared_ptr<SDPMessageInfo>
-GlobalSDPState::generateSDP(QHostAddress localAddress, QList<ICEInfo *> *remoteCandidates)
+std::shared_ptr<SDPMessageInfo> GlobalSDPState::generateSDP(QHostAddress localAddress)
 {
   // TODO: This should ask media manager, what options it supports.
   qDebug() << "Generating new SDP message with our address as:" << localAddress;
@@ -143,7 +148,7 @@ GlobalSDPState::localFinalSDP(SDPMessageInfo &remoteSDP, QHostAddress localAddre
   // if we have not made a suggestion, then base our final SDP on their suggestion.
   if(localSuggestion == nullptr)
   {
-    sdp = generateSDP(localAddress, &remoteSDP.candidates);
+    sdp = generateSDP(localAddress);
     sdp->sessionName = remoteSDP.sessionName;
 
     qDebug() << "\n\n\nHELLO HERE AGAIN!!\n\n\n";
@@ -167,25 +172,19 @@ GlobalSDPState::localFinalSDP(SDPMessageInfo &remoteSDP, QHostAddress localAddre
       return nullptr;
     }
 
-    // getNominated() returns two (TODO: four!) valid candidate pairs if ICE succeeded
-    // (ie. ICE was not disabled and remote responded to our requests)
-    auto nominated = ice_->getNominated(sessionID);
+    ICEMediaInfo nominated = ice_->getNominated(sessionID);
 
-    if (nominated.first && nominated.second)
+    // first is RTP, second is RTCP
+    if (nominated.audio.first != nullptr && nominated.audio.second != nullptr)
     {
-      // RTP
-      sdp->media[0].receivePort = nominated.first->local->port;
-      sdp->media[0].connection_address = nominated.first->local->address;
+      setMediaPair(sdp->media[0],      nominated.audio.first->local);
+      setMediaPair(remoteSDP.media[0], nominated.audio.first->remote);
+    }
 
-      remoteSDP.media[0].receivePort = nominated.first->remote->port;
-      remoteSDP.media[0].connection_address = nominated.first->remote->address;
-
-      // RTCP
-      sdp->media[1].receivePort = nominated.second->local->port;
-      sdp->media[1].connection_address = nominated.second->local->address;
-
-      remoteSDP.media[1].receivePort = nominated.second->remote->port;
-      remoteSDP.media[1].connection_address = nominated.second->remote->address;
+    if (nominated.video.first != nullptr && nominated.video.second != nullptr)
+    {
+      setMediaPair(sdp->media[1],      nominated.video.first->local);
+      setMediaPair(remoteSDP.media[1], nominated.video.first->remote);
     }
   }
 
@@ -259,31 +258,41 @@ void GlobalSDPState::endSession(std::shared_ptr<SDPMessageInfo> sessionSDP)
   }
 }
 
-void GlobalSDPState::startICECandidateNegotiation(QList<ICEInfo *>& local, QList<ICEInfo *>& remote, uint32_t sessionID)
+void GlobalSDPState::startICECandidateNegotiation(QList<std::shared_ptr<ICEInfo>>& local, QList<std::shared_ptr<ICEInfo>>& remote, uint32_t sessionID)
 {
   ice_->startNomination(local, remote, sessionID);
 }
 
+void GlobalSDPState::setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo)
+{
+  if (mediaInfo == nullptr)
+  {
+    return;
+  }
+
+  media.connection_address = mediaInfo->address;
+  media.receivePort        = mediaInfo->port;
+}
+
 void GlobalSDPState::updateFinalSDPs(SDPMessageInfo& localSDP, SDPMessageInfo& remoteSDP, uint32_t sessionID)
 {
-  auto nominated = ice_->getNominated(sessionID);
+  ICEMediaInfo nominated = ice_->getNominated(sessionID);
 
-  if (nominated.first && nominated.second)
+  // first is RTP, second is RTCP
+  if (nominated.audio.first != nullptr && nominated.audio.second != nullptr)
   {
-    // local RTP
-    localSDP.media[0].connection_address = nominated.first->local->address;
-    localSDP.media[0].receivePort = nominated.first->local->port;
-
-    // local RTCP
-    localSDP.media[1].connection_address = nominated.second->local->address;
-    localSDP.media[1].receivePort = nominated.second->local->port;
-
-    // remote RTP
-    remoteSDP.media[0].connection_address = nominated.first->remote->address;
-    remoteSDP.media[0].receivePort = nominated.first->remote->port;
-
-    // remote RTCP
-    remoteSDP.media[1].connection_address = nominated.second->remote->address;
-    remoteSDP.media[1].receivePort = nominated.second->remote->port;
+    setMediaPair(localSDP.media[0],  nominated.audio.first->local);
+    setMediaPair(remoteSDP.media[0], nominated.audio.first->remote);
   }
+
+  if (nominated.video.first != nullptr && nominated.video.second != nullptr)
+  {
+    setMediaPair(localSDP.media[1],  nominated.video.first->local);
+    setMediaPair(remoteSDP.media[1], nominated.video.first->remote);
+  }
+}
+
+void GlobalSDPState::ICECleanup(uint32_t sessionID)
+{
+  ice_->cleanupSession(sessionID);
 }

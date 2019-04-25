@@ -36,7 +36,9 @@ public:
   // frees the ports when they are not needed in rest of the program
   void endSession(std::shared_ptr<SDPMessageInfo> sessionSDP);
 
-  void startICECandidateNegotiation(QList<ICEInfo *>& local, QList<ICEInfo *>& remote, uint32_t sessionID);
+  void startICECandidateNegotiation(QList<std::shared_ptr<ICEInfo>>& local, QList<std::shared_ptr<ICEInfo>>& remote, uint32_t sessionID);
+
+  void ICECleanup(uint32_t sessionID);
 
   // update the MediaInfo of remote and locals SDPs to include the nominated connections
   void updateFinalSDPs(SDPMessageInfo& localSDP, SDPMessageInfo& remoteSDP, uint32_t sessionID);
@@ -49,12 +51,15 @@ public:
 private:
 
   // TODO: This should be moved to MediaManager.
-  std::shared_ptr<SDPMessageInfo> generateSDP(QHostAddress localAddress, QList<ICEInfo *> *remoteCandidates);
+  std::shared_ptr<SDPMessageInfo> generateSDP(QHostAddress localAddress);
 
   bool generateAudioMedia(MediaInfo &audio);
   bool generateVideoMedia(MediaInfo &video);
 
   bool checkSDPOffer(SDPMessageInfo& offer);
+
+  // update MediaInfo of SDP after ICE has finished
+  void setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo);
 
   QString localUsername_;
 

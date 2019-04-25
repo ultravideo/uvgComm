@@ -1,6 +1,6 @@
 #include "customsettings.h"
 
-#include "ui_customsettings.h"
+#include "ui_customSettings.h"
 
 #include <video/camerainfo.h>
 #include "settingshelper.h"

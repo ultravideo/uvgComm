@@ -1,7 +1,11 @@
 #pragma once
 
 #include <QThread>
+#include <memory>
+
 #include "icetypes.h"
+#include "udpserver.h"
+#include "stun.h"
 
 class ConnectionTester : public QThread
 {
@@ -10,7 +14,8 @@ class ConnectionTester : public QThread
 public:
     ConnectionTester();
     ~ConnectionTester();
-    void setCandidatePair(ICEPair *pair_rtp, ICEPair *pair_rtcp);
+    void setStun(Stun *stun);
+    void setCandidatePair(std::shared_ptr<ICEPair> pair);
 
     // controller_ defines the course of action after candiate pair has been validated.
     // If the ConnectionTester belongs to FlowController it terminates immediately after
@@ -20,20 +25,27 @@ public:
     // requests after it has concluded the candidate verification
     void isController(bool controller);
 
+public slots:
+    // Because the Stun object used by ConnectionTester has it's own event loop, we must
+    // override the default quit function, call Stun::stopTesting() and then exit from ConnectionTester
+    void quit();
+
 signals:
     // testingDone() is emitted when the connection testing has ended
     //
     // if the tested candidate succeeded (remote responded to our requests),
-    // rtp and rtcp point to valid ICEPairs
-    //
-    // if something failed, rtp and rtcp are nullptr
-    void testingDone(ICEPair *rtp, ICEPair *rtcp);
+    // connection points to valid ICEPair, otherwise it's nullptr
+    void testingDone(std::shared_ptr<ICEPair> connection);
+
+    // send signal to Stun object that it should terminate testing the candidate
+    // (break from the event loop associated with testing)
+    void stopTesting();
 
 protected:
+    void printMessage(QString message);
     void run();
 
-    ICEPair *rtp_pair_;
-    ICEPair *rtcp_pair_;
-
+    std::shared_ptr<ICEPair> pair_;
     bool controller_;
+    Stun *stun_;
 };

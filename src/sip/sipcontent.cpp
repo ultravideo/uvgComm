@@ -31,12 +31,12 @@ bool parseEncryptionKey(QStringListIterator& lineIterator, char& type, QStringLi
 // a=
 bool parseAttributes(QStringListIterator &lineIterator, char &type, QStringList& words,
                      QList<SDPAttributeType>& flags, QList<SDPAttribute>& values,
-                     QList<RTPMap>& codecs, QList<ICEInfo *>& candidates);
+                     QList<RTPMap>& codecs, QList<std::shared_ptr<ICEInfo>>& candidates);
 
 void parseFlagAttribute(SDPAttributeType type, QRegularExpressionMatch& match, QList<SDPAttributeType>& attributes);
 void parseValueAttribute(SDPAttributeType type, QRegularExpressionMatch& match, QList<SDPAttribute> valueAttributes);
 void parseRTPMap(QRegularExpressionMatch& match, QString secondWord, QList<RTPMap>& codecs);
-bool parseICECandidate(QStringList& words, QList<ICEInfo *>& candidates);
+bool parseICECandidate(QStringList& words, QList<std::shared_ptr<ICEInfo>>& candidates);
 
 bool checkSDPValidity(const SDPMessageInfo &sdpInfo)
 {
@@ -172,7 +172,7 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
     }
   }
 
-  for (ICEInfo *info : sdpInfo.candidates)
+  for (auto info : sdpInfo.candidates)
   {
     sdp += "a=candidate:"
         + info->foundation + " " + QString::number(info->component) + " "
@@ -538,7 +538,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
 
 bool parseAttributes(QStringListIterator &lineIterator, char &type, QStringList& words,
                      QList<SDPAttributeType>& flags, QList<SDPAttribute>& values,
-                     QList<RTPMap>& codecs, QList<ICEInfo *>& candidates)
+                     QList<RTPMap>& codecs, QList<std::shared_ptr<ICEInfo>>& candidates)
 {
   while(type == 'a')
   {
@@ -819,14 +819,14 @@ bool parseEncryptionKey(QStringListIterator& lineIterator, char& type, QStringLi
   return true;
 }
 
-bool parseICECandidate(QStringList& words, QList<ICEInfo *>& candidates)
+bool parseICECandidate(QStringList& words, QList<std::shared_ptr<ICEInfo>>& candidates)
 {
   if (words.size() != 8)
   {
     return false;
   }
 
-  ICEInfo *candidate = new ICEInfo;
+  std::shared_ptr<ICEInfo> candidate = std::make_shared<ICEInfo>();
 
   candidate->foundation  = words.at(0).split(":").at(1);
   candidate->component   = words.at(1).toInt();
