@@ -86,6 +86,7 @@ public:
 
   virtual void start()
   {
+    running_ = true;
     QThread::start();
   }
 
@@ -122,7 +123,7 @@ protected:
     waitMutex_->unlock();
   }
 
-  void sleep()
+  void waitForInput()
   {
     waitMutex_->lock();
     hasInput_.wait(waitMutex_);

@@ -217,10 +217,9 @@ void Filter::run()
   stats_->addFilter(name_, (uint64_t)currentThreadId());
   //qDebug() << "Iniating," << metaObject()->className()
     //<< Running filter" << name_ << "with max buffer:" << maxBufferSize_;
-  running_ = true;
   while(running_)
   {
-    sleep();
+    waitForInput();
     if(!running_) break;
 
     process();
