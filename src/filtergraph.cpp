@@ -28,7 +28,8 @@ FilterGraph::FilterGraph():
   selfView_(nullptr),
   stats_(nullptr),
   conversionIndex_(0),
-  format_()
+  format_(),
+  quitting_(false)
 {
   // TODO negotiate these values with all included filters and SDP
   // TODO move these to settings and manage them automatically
@@ -387,6 +388,7 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
 
 void FilterGraph::uninit()
 {
+  quitting_ = true;
   removeAllParticipants();
 
   destroyFilters(videoSend_);
@@ -561,7 +563,11 @@ void FilterGraph::removeParticipant(uint32_t sessionID)
   if(!peerPresent)
   {
     destroyFilters(videoSend_);
-    initSelfView(selfView_); // restore the self view.
+    if (!quitting_)
+    {
+      initSelfView(selfView_); // restore the self view.
+    }
+
     destroyFilters(audioSend_);
   }
 }
