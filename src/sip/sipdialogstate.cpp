@@ -152,12 +152,16 @@ void SIPDialogState::getRequestDialogInfo(SIPRequest &outRequest, QString localA
       = std::shared_ptr<SIPDialogInfo> (new SIPDialogInfo{remoteTag_, localTag_, callID_});
 }
 
+
 ViaInfo SIPDialogState::getLocalVia(QString localAddress)
 {
-  return ViaInfo{TCP, "2.0", localAddress, QString("z9hG4bK" + generateRandomString(BRANCHLENGTH))};
+  return ViaInfo{TCP, "2.0", localAddress,
+        QString("z9hG4bK" + generateRandomString(BRANCHLENGTH))};
 }
 
-bool SIPDialogState::correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog, RequestType type, uint32_t remoteCSeq)
+
+bool SIPDialogState::correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog,
+                                          RequestType type, uint32_t remoteCSeq)
 {
   Q_ASSERT(callID_ != "");
   if(callID_ == "")
@@ -185,6 +189,7 @@ bool SIPDialogState::correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog,
   return false;
 }
 
+
 bool SIPDialogState::correctResponseDialog(std::shared_ptr<SIPDialogInfo> dialog, uint32_t messageCSeq)
 {
   // For backwards compability, this should be prepared for missing To-tag (or was it from tag) (RFC3261).
@@ -195,7 +200,8 @@ bool SIPDialogState::correctResponseDialog(std::shared_ptr<SIPDialogInfo> dialog
     // The response cseq should be the same as our cseq
     if(messageCSeq != localCSeq_)
     {
-      qDebug() << "PEER_ERROR:" << "The message CSeq was not the same as our previous request!";
+      qDebug() << "PEER_ERROR:" << "The message CSeq was not the same as our previous request!"
+               << messageCSeq << "vs " << localCSeq_;
       // TODO: if remote cseq in message is lower than remote cseq, send 500
       return false;
     }
