@@ -14,6 +14,14 @@ Settings::Settings(QWidget *parent) :
   advanced_(this),
   custom_(this, cam_),
   settings_("kvazzup.ini", QSettings::IniFormat)
+{}
+
+Settings::~Settings()
+{
+  // I believe the UI:s are destroyed when parents are destroyed
+}
+
+void Settings::init()
 {
   basicUI_->setupUi(this);
 
@@ -31,11 +39,6 @@ Settings::Settings(QWidget *parent) :
 
   QObject::connect(&advanced_, &AdvancedSettings::advancedSettingsChanged, this, &Settings::settingsChanged);
   QObject::connect(&advanced_, &AdvancedSettings::hidden, this, &Settings::show);
-}
-
-Settings::~Settings()
-{
-  // I believe the UI:s are destroyed when parents are destroyed
 }
 
 void Settings::show()

@@ -36,6 +36,8 @@ public:
   explicit Settings(QWidget *parent = nullptr);
   ~Settings();
 
+  void init();
+
   void updateDevices();
 
 signals:
