@@ -46,7 +46,6 @@ void KvazzupCore::init()
 
 void KvazzupCore::uninit()
 {
-  endTheCall();
   sip_.uninit();
   media_.uninit();
 }
