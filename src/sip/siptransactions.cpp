@@ -247,6 +247,8 @@ void SIPTransactions::acceptCall(uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
 
+  qDebug() << "Accept, SIPTransaction" << "accepting call:" << sessionID;
+
   dialogMutex_.lock();
   std::shared_ptr<SIPDialogData> dialog = dialogs_[sessionID];
   dialogMutex_.unlock();
@@ -525,6 +527,7 @@ void SIPTransactions::processSIPResponse(SIPResponse response,
   {
     qDebug() << "PEER_ERROR: Could not find the suggested dialog in response!";
     qDebug() << "TransportID:" << transportID << "CallID:" << response.message->dialog->callID;
+    dialogMutex_.unlock();
     return;
   }
 
