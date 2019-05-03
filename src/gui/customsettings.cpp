@@ -337,7 +337,8 @@ void CustomSettings::initializeFormat()
 
 void CustomSettings::initializeResolutions(QString format)
 {
-  qDebug() << "Settings," << metaObject()->className() << ": Initializing resolutions for format:" << format;
+  qDebug() << "Settings," << metaObject()->className()
+           << ": Initializing resolutions for format:" << format;
   customUI_->resolution->clear();
   QStringList resolutions;
 
@@ -354,18 +355,20 @@ void CustomSettings::initializeResolutions(QString format)
   if(customUI_->resolution->count() > 0)
   {
     customUI_->resolution->setCurrentIndex(0);
-    initializeFramerates(format, 0);
+    initializeFramerates(customUI_->resolution->currentText());
   }
 }
 
 
-void CustomSettings::initializeFramerates(QString format, int resolutionID)
+void CustomSettings::initializeFramerates(QString resolution)
 {
-  qDebug() << "Settings,"  << metaObject()->className() << ": Initializing resolutions for format:" << format;
+  qDebug() << "Settings,"  << metaObject()->className() << ": Initializing framerates for resolution:"
+           << resolution;
   customUI_->framerate_box->clear();
   QStringList rates;
 
-  cam_->getFramerates(currentDevice_, format, resolutionID, rates);
+  cam_->getFramerates(currentDevice_, customUI_->format_box->currentText(),
+                      customUI_->resolution->currentIndex(), rates);
 
   if(!rates.empty())
   {
@@ -373,6 +376,8 @@ void CustomSettings::initializeFramerates(QString format, int resolutionID)
     {
       customUI_->framerate_box->addItem(rates.at(i));
     }
+    // use the highest framerate values as default selection.
+    customUI_->framerate_box->setCurrentIndex(customUI_->framerate_box->count() - 1);
   }
 }
 
