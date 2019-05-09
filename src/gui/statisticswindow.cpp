@@ -2,6 +2,8 @@
 
 #include "ui_statisticswindow.h"
 
+#include "common.h"
+
 #include <QCloseEvent>
 #include <QDateTime>
 #include <QDebug>
@@ -86,7 +88,7 @@ void StatisticsWindow::addNextInterface(StatisticsInterface* next)
 {
   Q_UNUSED(next)
   Q_ASSERT(false && "NOT IMPLEMENTED");
-  qWarning() << "WARNING: addNextInterface has not been implemented in stat window";
+  printDebugObject(DEBUG_ERROR, this, "Stats", "addNextInterface has not been implemented in stat window");
 }
 
 void StatisticsWindow::videoInfo(double framerate, QSize resolution)

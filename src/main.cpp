@@ -1,5 +1,7 @@
 #include "kvazzupcore.h"
 
+#include "common.h"
+
 #include <QApplication>
 #include <QSettings>
 #include <QFontDatabase>
@@ -11,7 +13,8 @@ int main(int argc, char *argv[])
 
   a.setApplicationName("Kvazzup");
 
-  qDebug() << "Starting Kvazzup in" << QDir::currentPath();
+  printDebug(DEBUG_NORMAL, "Main", "Startup", "Starting Kvazzup.",
+    {"Location"}, {QDir::currentPath()});
 
   // TODO move to GUI
   int id = QFontDatabase::addApplicationFont(QDir::currentPath() + "/fonts/OpenSans-Regular.ttf");
@@ -23,7 +26,7 @@ int main(int argc, char *argv[])
   }
   else
   {
-    qWarning() << "Could not find default font. Is the file missing?";
+    printDebug(DEBUG_WARNING, "Main", "Startup", "Could not find default font. Is the file missing?");
   }
 
   QCoreApplication::setOrganizationName("Ultra Video Group");

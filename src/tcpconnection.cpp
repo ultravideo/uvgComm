@@ -1,5 +1,7 @@
 #include "tcpconnection.h"
 
+#include "common.h"
+
 #include <QDataStream>
 #include <QtConcurrent/QtConcurrent>
 
@@ -73,7 +75,8 @@ void TCPConnection::sendPacket(const QString &data)
   }
   else
   {
-    qWarning() << "Warning: Not sending message, because sender has been shut down.";
+    printDebugObject(DEBUG_WARNING, this, "TCP Send",
+                     "Not sending message, because sender has been shut down.");
   }
 }
 
@@ -95,7 +98,7 @@ bool TCPConnection::connectLoop()
 
   if (!socket_)
   {
-    qWarning() << "ERROR: Socket not initialized before connection";
+    printDebugObject(DEBUG_ERROR, this, "TCP Connect", "Socket not initialized before connection");
     return false;
   }
 
@@ -105,6 +108,7 @@ bool TCPConnection::connectLoop()
     if(!socket_->setSocketDescriptor(socketDescriptor_))
     {
       qCritical() << "ERROR: Could not set socket descriptor for existing connection";
+      printDebugObject(DEBUG_ERROR, this, "Video Process", "Could not set socket descriptor for existing connection.");
       return false;
     }
   }
@@ -142,7 +146,7 @@ void TCPConnection::run()
 
   if(eventDispatcher() == nullptr)
   {
-    qWarning() << "WARNING: Sorry no event dispatcher for this connection.";
+    printDebugObject(DEBUG_WARNING, this, "TCP Connect", "No event dispatcher for this connection.");
     return;
   }
   while(active_)
@@ -179,7 +183,7 @@ void TCPConnection::run()
       }
       else if(socket_->bytesAvailable() > TOO_LARGE_AMOUNT_OF_DATA)
       {
-        qWarning() << "Flushing the socket because of too much data!";
+        printDebugObject(DEBUG_WARNING, this, "TCP Receive", "Flushing the socket because of too much data!");
         socket_->flush();
       }
 
@@ -217,7 +221,8 @@ void TCPConnection::bufferToSocket()
 
   if(buffer_.size() > TOO_LARGE_AMOUNT_OF_DATA)
   {
-    qWarning() << "We are sending too much stuff to the other end:" << buffer_.size();
+    printDebugObject(DEBUG_WARNING, this, "TCP Sending", "We are sending too much stuff to the other end",
+                    {"Buffer size"}, {QString::number(buffer_.size())});
   }
 
   QString message = buffer_.front();
@@ -259,6 +264,8 @@ void TCPConnection::printError(int socketError, const QString &message)
 {
   qWarning() << "ERROR. Socket error" << socketError
              << "Error:" << message;
+  printDebugObject(DEBUG_ERROR, this, "TCP", "Socket Error",
+                  {"Code", "Message"}, {QString::number(socketError), message});
 }
 
 void TCPConnection::printBytesWritten(qint64 bytes)

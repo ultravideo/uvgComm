@@ -1,5 +1,7 @@
 #include "scalefilter.h"
 
+#include "common.h"
+
 #include <QImage>
 #include <QDebug>
 
@@ -44,8 +46,9 @@ void ScaleFilter::process()
       }
       default:
       {
-        qCritical() << "ERROR: Wrong video format for scaler:" << input->type;
-         format = QImage::Format_Invalid;
+        printDebugObject(DEBUG_ERROR, this, "Video Process", "Wrong video format for scaler.",
+                        {"Input type"},{QString::number(input->type)});
+        format = QImage::Format_Invalid;
         break;
       }
     }

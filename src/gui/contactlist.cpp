@@ -3,6 +3,8 @@
 #include "contactlistitem.h"
 #include "participantinterface.h"
 
+#include "common.h"
+
 #include <QSettings>
 #include <QDebug>
 #include <QMenu>
@@ -141,7 +143,7 @@ void ContactList::removeContact(int index)
 
   if(index == -1  || index >= items_.size())
   {
-    qWarning() << "WARNING," << metaObject()->className() << ": Tried to remove a nonexisting contact";
+    printDebugObject(DEBUG_WARNING, this, "Remove Participant", "Tried to remove a nonexisting contact");
     return;
   }
 

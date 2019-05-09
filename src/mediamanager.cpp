@@ -9,6 +9,7 @@
 #include "sip/sdptypes.h"
 #include "statisticsinterface.h"
 
+#include "common.h"
 
 #include <QHostAddress>
 #include <QtEndian>
@@ -65,7 +66,7 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
 
   if(peerInfo->timeDescriptions.at(0).startTime != 0 || localInfo->timeDescriptions.at(0).startTime != 0)
   {
-    qWarning() << "ERROR: Non zero start-time not supported!";
+    printDebugObject(DEBUG_ERROR, this, "Add Participant", "Nonzero start-time not supported!");
   }
 
 #if 0
@@ -107,18 +108,19 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
       // TODO: Make it possible to have a separate ip address for each mediastream by fixing this.
       if(!streamer_->addPeer(ip, sessionID))
       {
-        qCritical() << "Error creating RTP peer. Simultaneous destruction?";
+        printDebugObject(DEBUG_ERROR, this, "Add Participant", "Error creating RTP peer. Simultaneous destruction?.");
         return;
       }
     }
     else {
-      qDebug() << "ERROR:" << peerInfo->connection_addrtype << "not supported in media creation:" << address;
+      printDebugObject(DEBUG_ERROR, this, "Add Participant", "Not supported in media creation.",
+                      {"Media type", "address"}, {peerInfo->connection_addrtype, address.toString()});
       return;
     }
   }
   else
   {
-    qWarning() << "ERROR: What are we using if not the internet!?";
+    printDebugObject(DEBUG_ERROR, this, "Add Participant", "What are we using if not the internet!?");
     return;
   }
 

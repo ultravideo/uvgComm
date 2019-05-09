@@ -7,6 +7,8 @@
 // this annoys me, but I can live with it. The only smart way to fix it would be to get signal connect working
 #include "conferenceview.h"
 
+#include "common.h"
+
 #include <QSettings>
 #include <QDebug>
 
@@ -77,7 +79,8 @@ QWidget* VideoviewFactory::getView(uint32_t sessionID)
 {
   if(widgets_.find(sessionID) == widgets_.end())
   {
-    qWarning() << "ERROR: Tried to get a video widget that doesn't exists:" << sessionID;
+    printDebug(DEBUG_ERROR, "VideoViewFactory", "Tried to get a video widget that doesn't exists",
+      {"SessionID"}, {QString::number(sessionID)});
     return nullptr;
   }
   return widgets_[sessionID];
@@ -87,7 +90,9 @@ VideoInterface* VideoviewFactory::getVideo(uint32_t sessionID)
 {
   if(videos_.find(sessionID) == videos_.end())
   {
-    qWarning() << "ERROR: Tried to get a video widget that doesn't exists:" << sessionID;
+    printDebug(DEBUG_ERROR, "VideoViewFactory", "Initiate",
+               "Tried to get a video widget that doesn't exists.",
+              {"SessionID"}, {QString::number(sessionID)});
     return nullptr;
   }
   return videos_[sessionID];

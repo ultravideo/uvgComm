@@ -1,6 +1,7 @@
 #include "sipservertransaction.h"
 
 #include "siptransactionuser.h"
+#include "common.h"
 
 #include <QDebug>
 
@@ -28,7 +29,7 @@ bool SIPServerTransaction::processRequest(SIPRequest &request)
   Q_ASSERT(transactionUser_ && sessionID_);
   if(!transactionUser_ || sessionID_ == 0)
   {
-    qWarning() << "WARNING: SIP Server transaction not initialized.";
+    printDebugObject(DEBUG_ERROR, this, "SIP Process Response", "SIP Server transaction not initialized.");
     return false;
   }
 
@@ -93,7 +94,7 @@ void SIPServerTransaction::getResponseMessage(std::shared_ptr<SIPMessageInfo> &o
 {
   if(receivedRequest_ == nullptr)
   {
-    qWarning() << "ERROR: The received request was not set before trying to use it!";
+    printDebugObject(DEBUG_ERROR, this, "SIP Send Response", "The received request was not set before trying to use it!");
     return;
   }
   copyMessageDetails(receivedRequest_, outMessage);

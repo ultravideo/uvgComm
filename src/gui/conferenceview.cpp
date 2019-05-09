@@ -7,9 +7,11 @@
 #include "gui/videoviewfactory.h"
 #include "gui/videowidget.h"
 
+#include "common.h"
+
+#include <QDebug>
 #include <QLabel>
 #include <QGridLayout>
-#include <QDebug>
 #include <QDir>
 
 ConferenceView::ConferenceView(QWidget *parent):
@@ -39,7 +41,7 @@ void ConferenceView::callingTo(uint32_t sessionID, QString name)
   Q_ASSERT(sessionID);
   if(activeCalls_.find(sessionID) != activeCalls_.end())
   {
-    qWarning() << "WARNING: Outgoing call already has an allocated view";
+    printDebugObject(DEBUG_WARNING, this, "Outgoing Call", "Outgoing call already has an allocated view.");
     return;
   }
 
@@ -89,8 +91,8 @@ void ConferenceView::incomingCall(uint32_t sessionID, QString name)
 {
   if(activeCalls_.find(sessionID) != activeCalls_.end())
   {
-    qWarning() << "WARNING," << metaObject()->className()
-               << "Incoming call already has an allocated view. Session:" << sessionID;
+    printDebugObject(DEBUG_WARNING, this, "Incoming Call", "Incoming call already has an allocated view.",
+      {"SessionID"}, {QString::number(sessionID)});
     return;
   }
   qDebug() << "Incoming call," << metaObject()->className()
@@ -185,8 +187,10 @@ void ConferenceView::attachWidget(uint32_t sessionID, QWidget* view)
     }
   }
   else {
-    qWarning() << "ERROR," << metaObject()->className() << ": Trying to attach fullscreenview back to layout when the sessionID"
-             << sessionID << " does not exist in conference view.";
+
+    printDebugObject(DEBUG_ERROR, this, "Incoming Call",
+                     "Trying to attach fullscreenview back to layout when sessionID does not exist in conference view.",
+                    {"SessionID"}, {QString::number(sessionID)});
   }
   layoutMutex_.unlock();
 }
@@ -211,9 +215,9 @@ void ConferenceView::detachWidget(uint32_t sessionID, QWidget* view)
   }
   else
   {
-    qWarning() << "ERROR," << metaObject()->className()
-               << ": Trying to detach fullscreenview from the layout when the sessionID"
-               << sessionID << " does not exist in  conference view.";
+    printDebugObject(DEBUG_ERROR, this, "Remove Participant",
+                     "Trying to detach fullscreenview from the layout when the sessionID does not exist in  conference view.",
+                    {"SessionID"}, {QString::number(sessionID)});
   }
 
   layoutMutex_.unlock();
@@ -234,7 +238,10 @@ void ConferenceView::addVideoStream(uint32_t sessionID, std::shared_ptr<Videovie
   else if(activeCalls_[sessionID]->state != VIEWASKING
           && activeCalls_[sessionID]->state != VIEWWAITINGPEER)
   {
-    qWarning() << "WARNING: activating stream with wrong state";
+    printDebugObject(DEBUG_WARNING, this, "Add Participant",
+                     "Activating stream with wrong state.",
+                    {"SessionID", "State"},
+                    {QString::number(sessionID), QString::number(activeCalls_[sessionID]->state)});
     return;
   }
 
@@ -271,7 +278,9 @@ void ConferenceView::ringing(uint32_t sessionID)
 
   if(activeCalls_.find(sessionID) == activeCalls_.end())
   {
-    qWarning() << "ERROR: Ringing for nonexisting view. View should always exist if this function is called.";
+    printDebugObject(DEBUG_ERROR, this, "Ringing",
+                     "Ringing for nonexisting view. View should always exist if this function is called.",
+                    {"SessionID"}, {QString::number(sessionID)});
     return;
   }
   if (activeCalls_[sessionID]->out != nullptr)
@@ -282,7 +291,8 @@ void ConferenceView::ringing(uint32_t sessionID)
   }
   else
   {
-    qWarning() << "ERROR: No incoming call widget exists when it should be ringing:" << sessionID;
+    printDebugObject(DEBUG_ERROR, this, "Ringing", "No incoming call widget exists when it should be ringing.",
+      {"SessionID"},{QString::number(sessionID)});
   }
 }
 
@@ -291,7 +301,8 @@ bool ConferenceView::removeCaller(uint32_t sessionID)
   if(activeCalls_.find(sessionID) == activeCalls_.end())
   {
     Q_ASSERT(false);
-    qWarning() << "ERROR: Tried to remove the view of non-existing sessionID!";
+    printDebugObject(DEBUG_ERROR, this, "Remove Participant",
+                     "Tried to remove the view of non-existing sessionID!");
   }
   else
   {
@@ -425,6 +436,7 @@ void ConferenceView::accept()
   else
   {
     qCritical() << "ERROR," << metaObject()->className() << "Couldn't find the invoker for accept";
+    printDebugObject(DEBUG_ERROR, this, "Accept", "Couldn't find the invoker for accept.");
   }
 }
 

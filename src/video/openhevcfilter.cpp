@@ -1,5 +1,7 @@
 #include "openhevcfilter.h"
 
+#include "common.h"
+
 #include <QDebug>
 #include <QSettings>
 
@@ -21,7 +23,7 @@ bool OpenHEVCFilter::init()
   libOpenHevcSetDebugMode(handle_, 0);
   if(libOpenHevcStartDecoder(handle_) == -1)
   {
-    qCritical() << getName() << "ERROR: failed to start decoder.";
+    printDebugObject(DEBUG_ERROR, this, "Iniating Video", "Failed to start decoder.");
     return false;
   }
   libOpenHevcSetTemporalLayer_id(handle_, 0);
@@ -130,17 +132,20 @@ void OpenHEVCFilter::process()
         OpenHevc_Frame openHevcFrame;
         if( gotPicture == -1)
         {
-          qCritical() << getName() << " error while decoding.";
+          printDebugObject(DEBUG_ERROR, this, "Video Incoming", "Error while decoding.");
         }
         else if(!gotPicture && frame->data_size >= 2)
         {
           const unsigned char *buff2 = frame->data.get();
           qWarning() << "Warning: Could not decode video frame. NAL type:" <<
                         buff2[0] << buff2[1] << buff2[2] << buff2[3] << (buff2[4] >> 1);
+          printDebugObject(DEBUG_WARNING, this, "Video incoming", "Could not decode video frame.",
+                          {"NAL type"}, {QString() + QString(buff2[0]) + QString(buff2[1])
+                                         + QString(buff2[2]) + QString(buff2[3]) + QString(buff2[4] >> 1) });
         }
         else if( libOpenHevcGetOutput(handle_, gotPicture, &openHevcFrame) == -1 )
         {
-          qCritical() << getName() << " failed to get output.";
+          printDebugObject(DEBUG_ERROR, this, "Video Incoming", "Failed to get output.");
         }
         else
         {

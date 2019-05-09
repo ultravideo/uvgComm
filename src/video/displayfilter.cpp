@@ -3,6 +3,8 @@
 #include "gui/videointerface.h"
 #include "statisticsinterface.h"
 
+#include "common.h"
+
 #include <QImage>
 #include <QtDebug>
 #include <QDateTime>
@@ -66,8 +68,9 @@ void DisplayFilter::process()
       format = QImage::Format_Invalid;
       break;
     default:
-      qCritical() << "DispF: Wrong type of display input:" << input->type;
-       format = QImage::Format_Invalid;
+      printDebugObject(DEBUG_ERROR, this, "Video",
+                       "Wrong type of display input.", {"Type"}, {QString::number(input->type)});
+      format = QImage::Format_Invalid;
       break;
     }
 

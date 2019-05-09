@@ -2,6 +2,8 @@
 
 #include "statisticsinterface.h"
 
+#include "common.h"
+
 #include <QDebug>
 
 Filter::Filter(QString id, QString name, StatisticsInterface *stats,
@@ -59,7 +61,7 @@ void Filter::removeOutConnection(std::shared_ptr<Filter> out)
 
   if(!removed)
   {
-    qWarning() << "WARNING: Did not succeed at removing outconnection.";
+    printDebugObject(DEBUG_WARNING, this, "Uninit", "Did not succeed at removing outconnection.");
   }
 }
 
@@ -80,7 +82,7 @@ void Filter::putInput(std::unique_ptr<Data> data)
      || data->type == NONE
      || data->data_size == 0)
   {
-    qWarning() << "Warning: Discarding bad data";
+    printDebugObject(DEBUG_WARNING, this, "Processing", "Discarding bad data.");
     return;
   }
 
@@ -123,7 +125,7 @@ void Filter::putInput(std::unique_ptr<Data> data)
     {
       if(inBuffer_[0]->type == OPUSAUDIO)
       {
-        qWarning() << "WARNING: Unimplented: Should input Null pointer to decoder";
+        printDebugObject(DEBUG_WARNING, this, "Processing", "Should input Null pointer to decoder.");
       }
       inBuffer_.pop_front(); // discard the oldest
     }
@@ -160,7 +162,7 @@ void Filter::sendOutput(std::unique_ptr<Data> output)
 
   if(outDataCallbacks_.size() == 0 && outConnections_.size() == 0)
   {
-    qWarning() << name_ << "trying to send output data without outconnections";
+    printDebugObject(DEBUG_WARNING, this, "Processing", "Trying to send output data without outconnections.");
     return;
   }
 
@@ -243,7 +245,7 @@ Data* Filter::shallowDataCopy(Data* original)
 
     return copy;
   }
-  qWarning() << "Warning: Trying to copy nullptr Data pointer";
+  printDebugObject(DEBUG_WARNING, this, "Processing", "Trying to copy nullptr Data pointer.");
   return nullptr;
 }
 
@@ -258,7 +260,7 @@ Data* Filter::deepDataCopy(Data* original)
 
     return copy;
   }
-  qWarning() << "Warning: Trying to copy nullptr Data pointer";
+  printDebugObject(DEBUG_WARNING, this, "Processing", "Trying to copy nullptr Data pointer.");
   return nullptr;
 }
 

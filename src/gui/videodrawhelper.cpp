@@ -1,5 +1,7 @@
 #include "videodrawhelper.h"
 
+#include "common.h"
+
 #include <QDebug>
 #include <QWidget>
 #include <QKeyEvent>
@@ -113,7 +115,7 @@ void VideoDrawHelper::updateTargetRect(QWidget* widget)
     Q_ASSERT(lastImage_.data_ptr());
     if(lastImage_.data_ptr() == nullptr)
     {
-      qWarning() << "WARNING: Null pointer in current image!";
+      printDebugObject(DEBUG_ERROR, this, "Drawing", "Null pointer in current image!");
       return;
     }
 

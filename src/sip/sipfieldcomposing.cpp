@@ -2,6 +2,8 @@
 
 #include "sipconversions.h"
 
+#include "common.h"
+
 #include <QDebug>
 
 
@@ -13,13 +15,12 @@ bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
 {
   if(request.requestURI.host == "")
   {
-    qWarning() << "ERROR: Request URI host is empty when compising first line:"
-               << request.requestURI.host;
+    printDebug(DEBUG_ERROR, "SIPComposing", "SIP Send", "Request URI host is empty when compising first line");
   }
 
   if(request.type == SIP_NO_REQUEST)
   {
-    qDebug() << "WARNING: First request line failed";
+    printDebug(DEBUG_ERROR, "SIPComposing", "SIP Send", "SIP_NO_REQUEST given.");
     return false;
   }
   if(request.type != SIP_REGISTER)
