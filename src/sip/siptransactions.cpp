@@ -312,8 +312,9 @@ void SIPTransactions::endAllCalls()
 
   for(auto i = dialogs_.begin(); i != dialogs_.end(); ++i)
   {
-    sdp_.ICECleanup(i + 1);
-    destroyDialog(i.value());  }
+    sdp_.ICECleanup(i.key());
+    destroyDialog(i.value());
+  }
   dialogs_.clear();
   nextSessionID_ = 1;
 }
