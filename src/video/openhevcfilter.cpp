@@ -137,11 +137,9 @@ void OpenHEVCFilter::process()
         else if(!gotPicture && frame->data_size >= 2)
         {
           const unsigned char *buff2 = frame->data.get();
-          //qWarning() << "Warning: Could not decode video frame. NAL type:" <<
-          //              buff2[0] << buff2[1] << buff2[2] << buff2[3] << (buff2[4] >> 1);
-          printDebug(DEBUG_WARNING, this, "Video incoming", "Could not decode video frame.",
-                          {"NAL type"}, {QString() + QString(buff2[0]) + QString(buff2[1])
-                                         + QString(buff2[2]) + QString(buff2[3]) + QString(buff2[4] >> 1) });
+          printDebug(DEBUG_WARNING, getName(), "Video incoming", "Could not decode video frame.",
+                     {"NAL type"}, {QString() + QString::number(buff2[0]) + QString::number(buff2[1])
+                     + QString::number(buff2[2]) + QString::number(buff2[3]) + QString::number(buff2[4] >> 1) });
         }
         else if( libOpenHevcGetOutput(handle_, gotPicture, &openHevcFrame) == -1 )
         {
