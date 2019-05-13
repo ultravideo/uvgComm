@@ -169,17 +169,19 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID, const MediaInfo& remo
       }
       else
       {
-        qDebug() << "ERROR: Unsupported media type in :" << remoteMedia.type;
+        printDebug(DEBUG_ERROR, this, "Add Participant", "Unsupported media type!",
+                  {"type"}, QStringList() << remoteMedia.type);
       }
     }
     else
     {
-      qDebug() << "ERROR: SDP transport protocol not supported.";
+      printDebug(DEBUG_ERROR, this, "Add Participant", "SDP transport protocol not supported.");
     }
   }
   else
   {
-    qDebug() << "Not creating media because they don't seem to want any according to attribute";
+    printDebug(DEBUG_NORMAL, this, "Add Participant",
+               "Not creating media because they don't seem to want any according to attribute.");
   }
 }
 
@@ -212,17 +214,19 @@ void MediaManager::createIncomingMedia(uint32_t sessionID, const MediaInfo &loca
       }
       else
       {
-        qDebug() << "ERROR: Unsupported media type in :" << localMedia.type;
+        printDebug(DEBUG_ERROR, this, "Add Participant", "Unsupported incoming media type!",
+                  {"type"}, QStringList() << localMedia.type);
       }
     }
     else
     {
-      qDebug() << "ERROR: SDP transport protocol not supported.";
+      printDebug(DEBUG_ERROR, this, "Add Participant", "Incoming SDP transport protocol not supported.");
     }
   }
   else
   {
-    qDebug() << "Not creating media because they don't seem to want any according to attribute";
+    printDebug(DEBUG_NORMAL, this, "Add Participant",
+               "Not creating media because they don't seem to want any according to attribute.");
   }
 }
 

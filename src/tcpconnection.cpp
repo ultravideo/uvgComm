@@ -261,8 +261,6 @@ void TCPConnection::disconnected()
 
 void TCPConnection::printError(int socketError, const QString &message)
 {
-  qWarning() << "ERROR. Socket error" << socketError
-             << "Error:" << message;
   printDebug(DEBUG_ERROR, this, "TCP", "Socket Error",
              {"Code", "Message"}, {QString::number(socketError), message});
 }

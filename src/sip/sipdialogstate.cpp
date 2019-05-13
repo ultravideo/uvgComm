@@ -85,19 +85,22 @@ void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inM
   {
     if(correctRequestDialog(inMessage->dialog, SIP_INVITE, inMessage->cSeq))
     {
-      qDebug() << "ERROR: Re-INVITE should be processed differently.";
+      printDebug(DEBUG_ERROR, "SIPDialogState", "SIP Create Dialog",
+                 "Re-INVITE should be processed differently.");
       return;
     }
     else
     {
-      qDebug() << "PEER_ERROR: Got a request not belonging to this dialog";
+      printDebug(DEBUG_PEER_ERROR, "SIPDialogState", "SIP Create Dialog",
+                 "Got a request not belonging to this dialog.");
     }
   }
 
   remoteTag_ = inMessage->dialog->fromTag;
   if(remoteTag_ == "")
   {
-    qDebug() << "PEER_ERROR: They did not provide their tag in INVITE!";
+    printDebug(DEBUG_PEER_ERROR, "SIPDialogState", "SIP Create Dialog",
+               "They did not provide their tag in INVITE!");
     // TODO: send an error response.
   }
 
@@ -129,9 +132,10 @@ void SIPDialogState::getRequestDialogInfo(SIPRequest &outRequest, QString localA
   if(localUri_.username == "" || localUri_.host == "" ||
      remoteUri_.username == "" || remoteUri_.host == "")
   {
-    qDebug() << "ERROR: The dialog state info has not been set, but we are using it." <<
-                "username:" << localUri_.username << "host" << localUri_.host <<
-                "remote username:" << remoteUri_.username << "host:" << remoteUri_.host;
+    printDebug(DEBUG_ERROR, "SIPDialogState", "SIP Send Request",
+               "The dialog state info has not been set, but we are using it.",
+                {"username", "host", "remote username", "remote host"},
+                {localUri_.username, localUri_.host, remoteUri_.username, remoteUri_.host});
   }
 
   outRequest.requestURI = requestUri_;

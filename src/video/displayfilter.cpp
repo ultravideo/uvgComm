@@ -42,7 +42,8 @@ void DisplayFilter::updateSettings()
   }
   else
   {
-    qDebug() << "ERROR: Missing settings value flip threads";
+    printDebug(DEBUG_ERROR, "CameraInfo", "SIP Send Request",
+               "Missing settings value flip threads.");
   }
 
   Filter::updateSettings();

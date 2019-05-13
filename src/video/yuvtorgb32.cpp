@@ -2,6 +2,8 @@
 
 #include "optimized/yuv2rgb.h"
 
+#include "common.h"
+
 #include <QSettings>
 #include <QDebug>
 
@@ -36,7 +38,8 @@ void YUVtoRGB32::updateSettings()
   }
   else
   {
-    qDebug() << "ERROR: Missing settings value YUV threads";
+    printDebug(DEBUG_ERROR, "CameraInfo", "SIP Send Request",
+               "Missing settings value YUV threads.");
   }
 
   Filter::updateSettings();

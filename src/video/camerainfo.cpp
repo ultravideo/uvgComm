@@ -1,8 +1,9 @@
 #include "camerainfo.h"
 
+#include "common.h"
+
 #include <QCameraInfo>
 #include <QDebug>
-
 
 const std::map<QVideoFrame::PixelFormat, QString> pixelFormatStrings = {{QVideoFrame::Format_Invalid, "INVALID"},
                                                          {QVideoFrame::Format_ARGB32, "ARGB32"},
@@ -149,7 +150,8 @@ std::unique_ptr<QCamera> CameraInfo::loadCamera(int deviceID)
   QList<QCameraInfo> cameras = QCameraInfo::availableCameras();
   if(deviceID == -1 || deviceID >= cameras.size())
   {
-    qDebug() << "ERROR: Invalid deviceID for getVideoCapabilities";
+    printDebug(DEBUG_ERROR, "CameraInfo", "SIP Send Request",
+               "Invalid deviceID for getVideoCapabilities");
     return std::unique_ptr<QCamera> (nullptr);
   }
 

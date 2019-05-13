@@ -40,8 +40,9 @@ void SIPTransactions::init(SIPTransactionUser *callControl)
            << ": Listening to SIP TCP connections on port:" << sipPort_;
   if (!tcpServer_.listen(QHostAddress::Any, sipPort_))
   {
-    qDebug() << "ERROR," << metaObject()->className()
-             << "failed to listen to socket. Is it reserved?";
+    printDebug(DEBUG_ERROR, this, "Initiate SIP",
+               "Failed to listen to socket. Is it reserved?");
+
     // TODO announce it to user!
   }
 
@@ -160,7 +161,8 @@ void SIPTransactions::startCall(Contact &address)
 
   if(isServer)
   {
-    qDebug() << "ERROR: Proxy calling has not been yet implemented";
+    printDebug(DEBUG_ERROR, this, "SIP Start Call",
+               "Proxy calling has not been yet implemented");
   }
   else
   {
@@ -196,7 +198,8 @@ void SIPTransactions::startPeerToPeerCall(quint32 transportID, Contact &remote)
   // this start call will commence once the connection has been established
   if(!dialogData->client->startCall(remote.realName))
   {
-    qDebug() << "WARNING: Could not start a call according to session.";
+    printDebug(DEBUG_WARNING, this, "SIP Start Call",
+               "Could not start a call according to session.");
   }
 }
 
@@ -655,7 +658,8 @@ void SIPTransactions::sendDialogRequest(uint32_t sessionID, RequestType type)
     {
       if(dialogs_[sessionID]->localSdp_ == nullptr)
       {
-        qDebug() << "ERROR: Missing local final SDP when its supposed to be sent.";
+        printDebug(DEBUG_ERROR, this, "SIP Send Request",
+                   "Missing local final SDP when its supposed to be sent.");
         // TODO: send client error.
         return;
       }
@@ -679,8 +683,10 @@ void SIPTransactions::sendNonDialogRequest(SIP_URI& uri, RequestType type)
   {
     if (registrations_.find(uri.host) == registrations_.end())
     {
-      qDebug() << "ERROR: Registration information should have been created "
-                  "already before sending REGISTER message!";
+      printDebug(DEBUG_ERROR, this, "SIP Send Request",
+                 "Registration information should have been created "
+                 "already before sending REGISTER message!");
+
       return;
     }
 

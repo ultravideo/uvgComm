@@ -4,6 +4,8 @@
 
 #include "globalsdpstate.h"
 
+#include "common.h"
+
 #include <QHostAddress>
 
 
@@ -129,17 +131,19 @@ void KvazzupCore::peerAccepted(uint32_t sessionID)
   {
     if(states_[sessionID] == CALLRINGINWITHTHEM || states_[sessionID] == CALLINGTHEM)
     {
-      qDebug() << "Accepting," << metaObject()->className() << ": They accepted our call!";
+      printDebug(DEBUG_NORMAL, this, "Accepting", "They accepted our call!");
       states_[sessionID] = CALLNEGOTIATING;
     }
     else
     {
-      qDebug() << "PEER ERROR, accepting" << metaObject()->className() << ": Got an accepted call even though we have not yet called them!";
+      printDebug(DEBUG_PEER_ERROR, this, "Accepting",
+                 "Got an accepted call even though we have not yet called them!");
     }
   }
   else
   {
-    qDebug() << "ERROR, accepting" << metaObject()->className() << ": : Peer accepted a session which is not in Call manager";
+    printDebug(DEBUG_ERROR, this, "Accepting",
+               "Peer accepted a session which is not in Core.");
   }
 }
 
