@@ -79,9 +79,6 @@ private:
 
   void destroyFilters(std::vector<std::shared_ptr<Filter>>& filters);
 
-  unsigned int camera_;
-  unsigned int kvazaar_;
-  unsigned int opusEncoder_;
 
   // id is also the index of the Peer in this vector
   std::vector<Peer*> peers_;
@@ -99,4 +96,6 @@ private:
   QAudioFormat format_;
 
   QString videoFormat_;
+
+  bool quitting_;
 };

@@ -2,6 +2,8 @@
 
 #include "siptransactionuser.h"
 
+#include "common.h"
+
 #include <QDebug>
 
 // 1 minute for the user to react
@@ -25,7 +27,7 @@ bool SIPDialogClient::processResponse(SIPResponse &response)
   qDebug() << "Client starts processing response";
   if(!sessionID_)
   {
-    qWarning() << "WARNING: SIP Client Transaction not initialized.";
+    printDebug(DEBUG_WARNING, this, "SIP Client Transaction not initialized.");
     return true;
   }
 
@@ -96,7 +98,7 @@ bool SIPDialogClient::startCall(QString callee)
   Q_ASSERT(sessionID_ != 0);
   if(!sessionID_)
   {
-    qWarning() << "WARNING: SIP Client Transaction not initialized";
+    printDebug(DEBUG_WARNING, this, "SIP Client Transaction not initialized.");
     return false;
   }
 

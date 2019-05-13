@@ -21,7 +21,7 @@
 // called filter graph. A class inherited from filter can do any sort of processing to the data it
 // receives. The filter sleeps when it does not have any input to process.
 
-enum DataType {NONE = 0, RGB32VIDEO, YUVVIDEO, RAWAUDIO, HEVCVIDEO, OPUSAUDIO};
+enum DataType {NONE = 0, RGB32VIDEO, YUV420VIDEO, RAWAUDIO, HEVCVIDEO, OPUSAUDIO};
 enum DataSource {UNKNOWN, LOCAL, REMOTE};
 
 // NOTE: remember to make changes to deepcopy, camera, audiocapture and RTPSinkFilter
@@ -86,6 +86,7 @@ public:
 
   virtual void start()
   {
+    running_ = true;
     QThread::start();
   }
 
@@ -122,7 +123,7 @@ protected:
     waitMutex_->unlock();
   }
 
-  void sleep()
+  void waitForInput()
   {
     waitMutex_->lock();
     hasInput_.wait(waitMutex_);

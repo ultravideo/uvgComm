@@ -48,7 +48,7 @@ public slots:
   void on_add_parameter_clicked();
 
   void initializeResolutions(QString format);
-  void initializeFramerates(QString format, int resolutionID);
+  void initializeFramerates(QString resolution);
 
 private:
   // QSettings -> GUI

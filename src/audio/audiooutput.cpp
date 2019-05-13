@@ -2,7 +2,7 @@
 
 #include "audiooutputdevice.h"
 
-#include <QDebug>
+#include "common.h"
 
 const int BufferSize      = 32768;
 
@@ -25,7 +25,7 @@ void AudioOutput::initializeAudio(QAudioFormat format)
 {
   QAudioDeviceInfo info(device_);
   if (!info.isFormatSupported(format)) {
-    qWarning() << "Default format not supported - trying to use nearest";
+    printDebug(DEBUG_WARNING, this, "Iniating", "Default format not supported - trying to use nearest.");
     format_ = info.nearestFormat(format);
   }
   else
@@ -57,7 +57,8 @@ void AudioOutput::createAudioOutput()
 
 void AudioOutput::deviceChanged(int index)
 {
-  qWarning() << "WARNING: audio output device change not implemented fully:" << index;
+  printDebug(DEBUG_WARNING, this, "Audio", "Audio output device change not implemented fully.",
+    {"Index"}, {QString::number(index)});
 
   //m_pushTimer->stop();
   source_->stop();

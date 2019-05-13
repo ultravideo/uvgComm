@@ -9,6 +9,7 @@
 #include "sip/sdptypes.h"
 #include "statisticsinterface.h"
 
+#include "common.h"
 
 #include <QHostAddress>
 #include <QtEndian>
@@ -65,7 +66,7 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
 
   if(peerInfo->timeDescriptions.at(0).startTime != 0 || localInfo->timeDescriptions.at(0).startTime != 0)
   {
-    qWarning() << "ERROR: Non zero start-time not supported!";
+    printDebug(DEBUG_ERROR, this, "Add Participant", "Nonzero start-time not supported!");
   }
 
 #if 0
@@ -94,7 +95,8 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
       stats_->addParticipant(peerInfo->connection_address, "0", "0");
     }
 
-    if(peerInfo->connection_addrtype == "IP4")
+    if(peerInfo->connection_addrtype == "IP4"
+       || (peerInfo->connection_addrtype == "IP6" && address.toString().left(7) == "::ffff:"))
     {
       in_addr ip;
 #ifdef _WIN32
@@ -106,19 +108,19 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
       // TODO: Make it possible to have a separate ip address for each mediastream by fixing this.
       if(!streamer_->addPeer(ip, sessionID))
       {
-        qCritical() << "Error creating RTP peer. Simultaneous destruction?";
+        printDebug(DEBUG_ERROR, this, "Add Participant", "Error creating RTP peer. Simultaneous destruction?.");
         return;
       }
     }
-    else if(peerInfo->connection_addrtype == "IP6")
-    {
-      qDebug() << "ERROR: IPv6 not supported in media creation";
+    else {
+      printDebug(DEBUG_ERROR, this, "Add Participant", "Not supported in media creation.",
+                      {"Media type", "address"}, {peerInfo->connection_addrtype, address.toString()});
       return;
     }
   }
   else
   {
-    qWarning() << "ERROR: What are we using if not the internet!?";
+    printDebug(DEBUG_ERROR, this, "Add Participant", "What are we using if not the internet!?");
     return;
   }
 
@@ -167,17 +169,19 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID, const MediaInfo& remo
       }
       else
       {
-        qDebug() << "ERROR: Unsupported media type in :" << remoteMedia.type;
+        printDebug(DEBUG_ERROR, this, "Add Participant", "Unsupported media type!",
+                  {"type"}, QStringList() << remoteMedia.type);
       }
     }
     else
     {
-      qDebug() << "ERROR: SDP transport protocol not supported.";
+      printDebug(DEBUG_ERROR, this, "Add Participant", "SDP transport protocol not supported.");
     }
   }
   else
   {
-    qDebug() << "Not creating media because they don't seem to want any according to attribute";
+    printDebug(DEBUG_NORMAL, this, "Add Participant",
+               "Not creating media because they don't seem to want any according to attribute.");
   }
 }
 
@@ -210,17 +214,19 @@ void MediaManager::createIncomingMedia(uint32_t sessionID, const MediaInfo &loca
       }
       else
       {
-        qDebug() << "ERROR: Unsupported media type in :" << localMedia.type;
+        printDebug(DEBUG_ERROR, this, "Add Participant", "Unsupported incoming media type!",
+                  {"type"}, QStringList() << localMedia.type);
       }
     }
     else
     {
-      qDebug() << "ERROR: SDP transport protocol not supported.";
+      printDebug(DEBUG_ERROR, this, "Add Participant", "Incoming SDP transport protocol not supported.");
     }
   }
   else
   {
-    qDebug() << "Not creating media because they don't seem to want any according to attribute";
+    printDebug(DEBUG_NORMAL, this, "Add Participant",
+               "Not creating media because they don't seem to want any according to attribute.");
   }
 }
 

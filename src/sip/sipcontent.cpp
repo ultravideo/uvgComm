@@ -2,8 +2,11 @@
 
 #include "sip/sdptypes.h"
 
-#include <QRegularExpression>
+#include "common.h"
+
 #include <QDebug>
+#include <QRegularExpression>
+
 
 
 // called for every new line in SDP parsing. Parses out the two first characters
@@ -46,11 +49,11 @@ bool checkSDPValidity(const SDPMessageInfo &sdpInfo)
      sdpInfo.timeDescriptions.empty() ||
      sdpInfo.media.empty())
   {
-    qWarning() << "Version: " << sdpInfo.version <<
-        "Originator: " << sdpInfo.originator_username <<
-        "Session name:" << sdpInfo.sessionName <<
-        "Number of time descriptions:" << sdpInfo.timeDescriptions.size() <<
-        "Number of medias:" << sdpInfo.media.size();
+    printDebug(DEBUG_WARNING, "SipContent", "Content", "Check failed",
+              {"Version", "Originator", "Session Name", "Number of time descriptions", "Number of medias"},
+              {QString(sdpInfo.version), sdpInfo.originator_username, sdpInfo.sessionName,
+                QString::number(sdpInfo.timeDescriptions.size()), QString::number(sdpInfo.media.size())});
+
     return false;
   }
 
@@ -94,12 +97,12 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
 {
   if(!checkSDPValidity(sdpInfo))
   {
-    qCritical() << "WARNING: Bad SDPInfo in string formation";
+    printDebug(DEBUG_ERROR, "SIPContent", "SDP", "Bad SDPInfo in string formation.");
     return "";
   }
   else
   {
-    qDebug() << "Composed SDP checks out. Starting to compose";
+    printDebug(DEBUG_NORMAL, "SIPContent", "SDP", "Composed SDP checks out. Starting to compose.");
   }
 
   QString sdp = "";
@@ -525,7 +528,8 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
 
   if(!checkSDPValidity(sdp))
   {
-    qCritical() << "ERROR: The parsing generated a bad SDP for some reason. The problem should be detected earlier.";
+    printDebug(DEBUG_ERROR, "SIPContent", "SDP Parsing",
+               "The parsing generated a bad SDP for some reason. The problem should be detected earlier.");
     return false;
   }
   else

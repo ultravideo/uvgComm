@@ -1,5 +1,7 @@
 #include "settingshelper.h"
 
+#include "common.h"
+
 #include <QMenu>
 #include <QCheckBox>
 #include <QDebug>
@@ -129,8 +131,8 @@ void showContextMenu(const QPoint& pos, QTableWidget* table, QObject* processor,
 
   if(actions.size() != processSlots.size())
   {
-    qWarning() << "ERROR, SettingsHelper : Different amounts of actions and slots: "
-                  << actions.size() << "vs" << processSlots.size();
+    printDebug(DEBUG_ERROR, "SettingsHelper", "Settings", "Different amounts of actions and slots",
+                    {"Actions", "Slots"}, {QString::number(actions.size()), QString::number(processSlots.size())});
     return;
   }
 

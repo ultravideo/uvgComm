@@ -1,5 +1,7 @@
 #include <sip/sipconversions.h>
 
+#include "common.h"
+
 #include <QDebug>
 
 const std::map<QString, RequestType> requestTypes = {{"INVITE", SIP_INVITE},
@@ -74,8 +76,9 @@ QString responseToPhrase(ResponseType response)
 {
   if(responsePhrases.find(response) == responsePhrases.end())
   {
-    qWarning() << "WARNING: Did not find response in phrase map. "
-                  "Maybe it has not been added yet.";
+    printDebug(DEBUG_WARNING, "SIPConversions", "SIP",
+                     "Did not find response in phrase map. Maybe it has not been added yet.");
+
     return "NO PHRASE";
   }
 

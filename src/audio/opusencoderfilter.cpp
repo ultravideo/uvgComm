@@ -2,7 +2,8 @@
 
 #include "statisticsinterface.h"
 
-#include <QDebug>
+#include "common.h"
+
 #include <QDateTime>
 
 // this is how many frames the audio capture seems to send
@@ -34,7 +35,8 @@ bool OpusEncoderFilter::init()
 
   if(error)
   {
-    qWarning() << "Failed to initialize opus encoder with errorcode:" << error;
+    printDebug(DEBUG_WARNING, this, "Iniating", "Failed to initialize opus encoder.",
+      {"Errorcode"}, {QString::number(error)});
     return false;
   }
 
@@ -58,7 +60,8 @@ void OpusEncoderFilter::process()
       len = opus_encode(enc_, (opus_int16*)input->data.get()+i/2, numberOfSamples_, opusOutput_ + pos, max_data_bytes_ - pos);
       if(len <= 0)
       {
-        qWarning() << "Warning: Failed to encode audio. Error:" << len;
+        printDebug(DEBUG_WARNING, this, "Process", "Failed to encode audio",
+          {"Errorcode:"}, {QString::number(len)});
         break;
       }
 
@@ -86,7 +89,8 @@ void OpusEncoderFilter::process()
     }
     else
     {
-      qWarning() << "Warning: Failed to encode audio frame. Length:" << input->data_size;
+      printDebug(DEBUG_WARNING, this, "Process", "Failed to encode audio frame.",
+        {"Frame length"}, {QString::number(input->data_size)});
     }
     input = getInput();
   }

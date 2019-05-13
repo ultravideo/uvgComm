@@ -1,10 +1,12 @@
 #include "openhevcfilter.h"
 
+#include "common.h"
+
 #include <QDebug>
 #include <QSettings>
 
 OpenHEVCFilter::OpenHEVCFilter(QString id, StatisticsInterface *stats):
-  Filter(id, "OpenHEVC", stats, HEVCVIDEO, YUVVIDEO),
+  Filter(id, "OpenHEVC", stats, HEVCVIDEO, YUV420VIDEO),
   handle_(),
   parameterSets_(false),
   waitFrames_(0),
@@ -21,7 +23,7 @@ bool OpenHEVCFilter::init()
   libOpenHevcSetDebugMode(handle_, 0);
   if(libOpenHevcStartDecoder(handle_) == -1)
   {
-    qCritical() << getName() << "ERROR: failed to start decoder.";
+    printDebug(DEBUG_ERROR, this, "Iniating Video", "Failed to start decoder.");
     return false;
   }
   libOpenHevcSetTemporalLayer_id(handle_, 0);
@@ -130,17 +132,20 @@ void OpenHEVCFilter::process()
         OpenHevc_Frame openHevcFrame;
         if( gotPicture == -1)
         {
-          qCritical() << getName() << " error while decoding.";
+          printDebug(DEBUG_ERROR, this, "Video Incoming", "Error while decoding.");
         }
         else if(!gotPicture && frame->data_size >= 2)
         {
           const unsigned char *buff2 = frame->data.get();
-          qWarning() << "Warning: Could not decode video frame. NAL type:" <<
-                        buff2[0] << buff2[1] << buff2[2] << buff2[3] << (buff2[4] >> 1);
+          //qWarning() << "Warning: Could not decode video frame. NAL type:" <<
+          //              buff2[0] << buff2[1] << buff2[2] << buff2[3] << (buff2[4] >> 1);
+          printDebug(DEBUG_WARNING, this, "Video incoming", "Could not decode video frame.",
+                          {"NAL type"}, {QString() + QString(buff2[0]) + QString(buff2[1])
+                                         + QString(buff2[2]) + QString(buff2[3]) + QString(buff2[4] >> 1) });
         }
         else if( libOpenHevcGetOutput(handle_, gotPicture, &openHevcFrame) == -1 )
         {
-          qCritical() << getName() << " failed to get output.";
+          printDebug(DEBUG_ERROR, this, "Video Incoming", "Failed to get output.");
         }
         else
         {
@@ -174,7 +179,7 @@ void OpenHEVCFilter::process()
 
           // TODO: put delay into deque, and set timestamp accordingly to get more accurate latency.
 
-          frame->type = YUVVIDEO;
+          frame->type = YUV420VIDEO;
           frame->data_size = finalDataSize;
           frame->data = std::move(yuv_frame);
 

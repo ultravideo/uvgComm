@@ -2,6 +2,8 @@
 
 #include "optimized/yuv2rgb.h"
 
+#include "common.h"
+
 #include <QSettings>
 #include <QDebug>
 
@@ -17,7 +19,7 @@ uint8_t clamp(int32_t input)
 }
 
 YUVtoRGB32::YUVtoRGB32(QString id, StatisticsInterface *stats, uint32_t peer) :
-  Filter(id, "YUVtoRGB32_" + QString::number(peer), stats, YUVVIDEO, RGB32VIDEO),
+  Filter(id, "YUVtoRGB32_" + QString::number(peer), stats, YUV420VIDEO, RGB32VIDEO),
   sse_(true),
   avx2_(true),
   threadCount_(0)
@@ -36,7 +38,8 @@ void YUVtoRGB32::updateSettings()
   }
   else
   {
-    qDebug() << "ERROR: Missing settings value YUV threads";
+    printDebug(DEBUG_ERROR, "CameraInfo", "SIP Send Request",
+               "Missing settings value YUV threads.");
   }
 
   Filter::updateSettings();

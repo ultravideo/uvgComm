@@ -21,7 +21,9 @@ CallWindow::CallWindow(QWidget *parent):
   conference_(this),
   partInt_(nullptr),
   timer_(new QTimer(this))
-{}
+{
+  ui_->setupUi(this);
+}
 
 CallWindow::~CallWindow()
 {
@@ -39,7 +41,6 @@ void CallWindow::init(ParticipantInterface *partInt)
 { 
   partInt_ = partInt;
 
-  ui_->setupUi(this);
   ui_->Add_contact_widget->setVisible(false);
 
   viewFactory_->setSelfview(ui_->SelfView, ui_->SelfView);
@@ -93,6 +94,8 @@ void CallWindow::init(ParticipantInterface *partInt)
   ui_->contactListContainer->layout()->setAlignment(ui_->addContact, Qt::AlignHCenter);
 
   ui_->EndCallButton->hide();
+
+  settingsView_.init();
 }
 
 void CallWindow::initButton(QString iconPath, QSize size, QSize iconSize, QPushButton* button)

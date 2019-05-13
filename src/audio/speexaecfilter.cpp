@@ -1,6 +1,6 @@
 #include "speexaecfilter.h"
 
-#include <QDebug>
+#include "common.h"
 
 // this is how many frames the audio capture seems to send
 const uint16_t FRAMESPERSECOND = 25;
@@ -74,7 +74,8 @@ void SpeexAECFilter::process()
       }
       else
       {
-        qWarning() << "Warning: AEC received too much output before input";
+        printDebug(DEBUG_WARNING, this, "Process", "AEC received too much output before input.",
+          {"input", "output"}, {QString::number(in_), QString::number(out_)});
         break;
       }
     }

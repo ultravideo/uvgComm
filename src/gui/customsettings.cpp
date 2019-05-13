@@ -182,6 +182,9 @@ void CustomSettings::saveCameraCapabilities(int deviceIndex)
   settings_.setValue("video/ResolutionHeight",     res.height() - res.height()%8);
   settings_.setValue("video/ResolutionID",         resolutionIndex);
   settings_.setValue("video/FramerateID",          customUI_->framerate_box->currentIndex());
+
+  // TODO: does not work if minimum and maximum framerates differ or if framerate is fractional
+  settings_.setValue("video/Framerate",            customUI_->framerate_box->currentText());
   settings_.setValue("video/InputFormat",          format);
 
   qDebug() << "Settings," << metaObject()->className() << ": Recorded the following video settings: Resolution:"
@@ -334,7 +337,8 @@ void CustomSettings::initializeFormat()
 
 void CustomSettings::initializeResolutions(QString format)
 {
-  qDebug() << "Settings," << metaObject()->className() << ": Initializing resolutions for format:" << format;
+  qDebug() << "Settings," << metaObject()->className()
+           << ": Initializing resolutions for format:" << format;
   customUI_->resolution->clear();
   QStringList resolutions;
 
@@ -351,17 +355,20 @@ void CustomSettings::initializeResolutions(QString format)
   if(customUI_->resolution->count() > 0)
   {
     customUI_->resolution->setCurrentIndex(0);
-    initializeFramerates(format, 0);
+    initializeFramerates(customUI_->resolution->currentText());
   }
 }
 
-void CustomSettings::initializeFramerates(QString format, int resolutionID)
+
+void CustomSettings::initializeFramerates(QString resolution)
 {
-  qDebug() << "Settings,"  << metaObject()->className() << ": Initializing resolutions for format:" << format;
+  qDebug() << "Settings,"  << metaObject()->className() << ": Initializing framerates for resolution:"
+           << resolution;
   customUI_->framerate_box->clear();
   QStringList rates;
 
-  cam_->getFramerates(currentDevice_, format, resolutionID, rates);
+  cam_->getFramerates(currentDevice_, customUI_->format_box->currentText(),
+                      customUI_->resolution->currentIndex(), rates);
 
   if(!rates.empty())
   {
@@ -369,6 +376,8 @@ void CustomSettings::initializeFramerates(QString format, int resolutionID)
     {
       customUI_->framerate_box->addItem(rates.at(i));
     }
+    // use the highest framerate values as default selection.
+    customUI_->framerate_box->setCurrentIndex(customUI_->framerate_box->count() - 1);
   }
 }
 

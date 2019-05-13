@@ -41,7 +41,7 @@ const std::map<QString, std::function<bool(SIPField& field, std::shared_ptr<SIPM
 
 SIPTransport::SIPTransport(quint32 transportID):
   partialMessage_(""),
-  connection_(),
+  connection_(nullptr),
   transportID_(transportID)
 {}
 
@@ -55,7 +55,7 @@ void SIPTransport::cleanup()
 
 bool SIPTransport::isConnected()
 {
-  return connection_->isConnected();
+  return connection_ && connection_->isConnected();
 }
 
 QHostAddress SIPTransport::getLocalAddress()
@@ -271,7 +271,8 @@ void SIPTransport::networkPackage(QString package)
 
     if(request_match.hasMatch() && response_match.hasMatch())
     {
-      qWarning() << "ERROR: Both the request and response matched, which should not be possible!";
+      printDebug(DEBUG_ERROR, this, "SIP Receive",
+                 "Both the request and response matched, which should not be possible!");
       return;
     }
 
@@ -589,7 +590,7 @@ QString SIPTransport::addContent(QList<SIPField>& fields, bool haveContent, cons
   }
   else if(!includeContentLengthField(fields, 0))
   {
-    qWarning() << "ERROR: Could not add content-length field to sip message!";
+    printDebug(DEBUG_ERROR, this, "SIP Send Content", "Could not add content-length field to sip message!");
   }
   return sdp_str;
 }

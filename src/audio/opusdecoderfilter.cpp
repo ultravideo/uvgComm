@@ -1,6 +1,6 @@
 #include "opusdecoderfilter.h"
 
-#include <QDebug>
+#include "common.h"
 
 OpusDecoderFilter::OpusDecoderFilter(QString id, QAudioFormat format, StatisticsInterface *stats):
   Filter(id, "Opus_Decoder", stats, OPUSAUDIO, RAWAUDIO),
@@ -28,7 +28,8 @@ bool OpusDecoderFilter::init()
 
   if(error)
   {
-    qWarning() << "WARNING:" << metaObject()->className() << ": Failed to initialize opus decoder with errorcode:" << error;
+    printDebug(DEBUG_WARNING, this, "Iniating", "Failed to initialize opus decoder.",
+      {"Errorcode"}, {QString::number(error)});
     return false;
   }
   return true;
@@ -61,7 +62,7 @@ void OpusDecoderFilter::process()
     }
     else
     {
-      qWarning() << "WARNING," << metaObject()->className() << ":Failed to encode audio frame. Error:" << len;
+      printDebug(DEBUG_WARNING, this, "Process", "Failed to encode audio frame.", {"Error"}, {QString::number(len)});
     }
     input = getInput();
   }

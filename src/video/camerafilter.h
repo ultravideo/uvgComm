@@ -36,6 +36,8 @@ protected:
 
 private:
 
+  bool initialCameraSetup();
+
   // setup camera device. For some reason this has to be called from main thread
   bool cameraSetup();
 

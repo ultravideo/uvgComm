@@ -36,6 +36,8 @@ public:
   explicit Settings(QWidget *parent = nullptr);
   ~Settings();
 
+  void init();
+
   void updateDevices();
 
 signals:
@@ -46,8 +48,8 @@ public slots:
   virtual void show();
 
   // button slots, called automatically by Qt
-  void on_ok_clicked();
-  void on_cancel_clicked();
+  void on_save_clicked();
+  void on_close_clicked();
   void on_advanced_settings_button_clicked();
   void on_custom_settings_button_clicked();
 
