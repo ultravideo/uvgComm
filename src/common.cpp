@@ -40,16 +40,15 @@ QString generateRandomString(uint32_t length)
 }
 
 
-void printDebugObject(DebugType type, QObject* object,
-                      QString context, QString description,
-                      QStringList valueNames, QStringList values)
+void printDebug(DebugType type, QObject* object,
+                QString context, QString description,
+                QStringList valueNames, QStringList values)
 {
   printDebug(type, object->metaObject()->className(), context, description, valueNames, values);
 }
 
 void printDebug(DebugType type, QString className, QString context, QString description, QStringList valueNames, QStringList values)
 {
-
   QString valueString = "";
   if (valueNames.size() == values.size())
   {
@@ -90,7 +89,7 @@ void printDebug(DebugType type, QString className, QString context, QString desc
     qWarning().nospace().noquote() << "WARNING: --------------------------------------------";
     qWarning().nospace().noquote() << context << ", " << className << ": "
                                  << description << " " << valueString;
-    qWarning().nospace().noquote() << "-------------------------------------------- WARNING";
+    qWarning().nospace() << "\r\n" << "-------------------------------------------- WARNING";
     break;
   }
   case DEBUG_PEER_ERROR:

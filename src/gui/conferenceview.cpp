@@ -41,7 +41,7 @@ void ConferenceView::callingTo(uint32_t sessionID, QString name)
   Q_ASSERT(sessionID);
   if(activeCalls_.find(sessionID) != activeCalls_.end())
   {
-    printDebugObject(DEBUG_WARNING, this, "Outgoing Call", "Outgoing call already has an allocated view.");
+    printDebug(DEBUG_WARNING, this, "Outgoing Call", "Outgoing call already has an allocated view.");
     return;
   }
 
@@ -91,7 +91,7 @@ void ConferenceView::incomingCall(uint32_t sessionID, QString name)
 {
   if(activeCalls_.find(sessionID) != activeCalls_.end())
   {
-    printDebugObject(DEBUG_WARNING, this, "Incoming Call", "Incoming call already has an allocated view.",
+    printDebug(DEBUG_WARNING, this, "Incoming Call", "Incoming call already has an allocated view.",
       {"SessionID"}, {QString::number(sessionID)});
     return;
   }
@@ -188,9 +188,9 @@ void ConferenceView::attachWidget(uint32_t sessionID, QWidget* view)
   }
   else {
 
-    printDebugObject(DEBUG_ERROR, this, "Incoming Call",
-                     "Trying to attach fullscreenview back to layout when sessionID does not exist in conference view.",
-                    {"SessionID"}, {QString::number(sessionID)});
+    printDebug(DEBUG_ERROR, this, "Incoming Call",
+               "Trying to attach fullscreenview back to layout when sessionID does not exist in conference view.",
+               {"SessionID"}, {QString::number(sessionID)});
   }
   layoutMutex_.unlock();
 }
@@ -215,9 +215,9 @@ void ConferenceView::detachWidget(uint32_t sessionID, QWidget* view)
   }
   else
   {
-    printDebugObject(DEBUG_ERROR, this, "Remove Participant",
-                     "Trying to detach fullscreenview from the layout when the sessionID does not exist in  conference view.",
-                    {"SessionID"}, {QString::number(sessionID)});
+    printDebug(DEBUG_ERROR, this, "Remove Participant",
+               "Trying to detach fullscreenview from the layout when the sessionID does not exist in  conference view.",
+               {"SessionID"}, {QString::number(sessionID)});
   }
 
   layoutMutex_.unlock();
@@ -238,7 +238,7 @@ void ConferenceView::addVideoStream(uint32_t sessionID, std::shared_ptr<Videovie
   else if(activeCalls_[sessionID]->state != VIEWASKING
           && activeCalls_[sessionID]->state != VIEWWAITINGPEER)
   {
-    printDebugObject(DEBUG_WARNING, this, "Add Participant",
+    printDebug(DEBUG_WARNING, this, "Add Participant",
                      "Activating stream with wrong state.",
                     {"SessionID", "State"},
                     {QString::number(sessionID), QString::number(activeCalls_[sessionID]->state)});
@@ -278,7 +278,7 @@ void ConferenceView::ringing(uint32_t sessionID)
 
   if(activeCalls_.find(sessionID) == activeCalls_.end())
   {
-    printDebugObject(DEBUG_ERROR, this, "Ringing",
+    printDebug(DEBUG_ERROR, this, "Ringing",
                      "Ringing for nonexisting view. View should always exist if this function is called.",
                     {"SessionID"}, {QString::number(sessionID)});
     return;
@@ -291,7 +291,7 @@ void ConferenceView::ringing(uint32_t sessionID)
   }
   else
   {
-    printDebugObject(DEBUG_ERROR, this, "Ringing", "No incoming call widget exists when it should be ringing.",
+    printDebug(DEBUG_ERROR, this, "Ringing", "No incoming call widget exists when it should be ringing.",
       {"SessionID"},{QString::number(sessionID)});
   }
 }
@@ -301,7 +301,7 @@ bool ConferenceView::removeCaller(uint32_t sessionID)
   if(activeCalls_.find(sessionID) == activeCalls_.end())
   {
     Q_ASSERT(false);
-    printDebugObject(DEBUG_ERROR, this, "Remove Participant",
+    printDebug(DEBUG_ERROR, this, "Remove Participant",
                      "Tried to remove the view of non-existing sessionID!");
   }
   else
@@ -435,8 +435,7 @@ void ConferenceView::accept()
   }
   else
   {
-    qCritical() << "ERROR," << metaObject()->className() << "Couldn't find the invoker for accept";
-    printDebugObject(DEBUG_ERROR, this, "Accept", "Couldn't find the invoker for accept.");
+    printDebug(DEBUG_ERROR, this, "Accept", "Couldn't find the invoker for accept.");
   }
 }
 

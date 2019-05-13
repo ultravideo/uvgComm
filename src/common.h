@@ -15,9 +15,9 @@ enum DebugType{DEBUG_NORMAL, DEBUG_ERROR, DEBUG_WARNING, DEBUG_PEER_ERROR};
 
 
 // use this if printing happens inside class derived from QObject which is most Qt-classes
-void printDebugObject(DebugType type, QObject* object,
-                      QString context = "", QString description = "",
-                      QStringList valueNames = {}, QStringList values = {});
+void printDebug(DebugType type, QObject* object,
+                QString context = "", QString description = "",
+                QStringList valueNames = {}, QStringList values = {});
 
 // print debug information
 // DEBUG_NORMAL is for one time informational debug printing.
@@ -27,3 +27,4 @@ void printDebugObject(DebugType type, QObject* object,
 void printDebug(DebugType type, QString className,
                 QString context = "", QString description = "",
                 QStringList valueNames = {}, QStringList values = {});
+

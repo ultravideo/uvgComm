@@ -66,7 +66,7 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
 
   if(peerInfo->timeDescriptions.at(0).startTime != 0 || localInfo->timeDescriptions.at(0).startTime != 0)
   {
-    printDebugObject(DEBUG_ERROR, this, "Add Participant", "Nonzero start-time not supported!");
+    printDebug(DEBUG_ERROR, this, "Add Participant", "Nonzero start-time not supported!");
   }
 
 #if 0
@@ -108,19 +108,19 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
       // TODO: Make it possible to have a separate ip address for each mediastream by fixing this.
       if(!streamer_->addPeer(ip, sessionID))
       {
-        printDebugObject(DEBUG_ERROR, this, "Add Participant", "Error creating RTP peer. Simultaneous destruction?.");
+        printDebug(DEBUG_ERROR, this, "Add Participant", "Error creating RTP peer. Simultaneous destruction?.");
         return;
       }
     }
     else {
-      printDebugObject(DEBUG_ERROR, this, "Add Participant", "Not supported in media creation.",
+      printDebug(DEBUG_ERROR, this, "Add Participant", "Not supported in media creation.",
                       {"Media type", "address"}, {peerInfo->connection_addrtype, address.toString()});
       return;
     }
   }
   else
   {
-    printDebugObject(DEBUG_ERROR, this, "Add Participant", "What are we using if not the internet!?");
+    printDebug(DEBUG_ERROR, this, "Add Participant", "What are we using if not the internet!?");
     return;
   }
 

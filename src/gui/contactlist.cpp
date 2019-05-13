@@ -143,7 +143,7 @@ void ContactList::removeContact(int index)
 
   if(index == -1  || index >= items_.size())
   {
-    printDebugObject(DEBUG_WARNING, this, "Remove Participant", "Tried to remove a nonexisting contact");
+    printDebug(DEBUG_WARNING, this, "Remove Participant", "Tried to remove a nonexisting contact");
     return;
   }
 

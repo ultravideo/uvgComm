@@ -74,7 +74,7 @@ void SpeexAECFilter::process()
       }
       else
       {
-        printDebugObject(DEBUG_WARNING, this, "Process", "AEC received too much output before input.",
+        printDebug(DEBUG_WARNING, this, "Process", "AEC received too much output before input.",
           {"input", "output"}, {QString::number(in_), QString::number(out_)});
         break;
       }

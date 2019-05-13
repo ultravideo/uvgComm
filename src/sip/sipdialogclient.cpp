@@ -27,7 +27,7 @@ bool SIPDialogClient::processResponse(SIPResponse &response)
   qDebug() << "Client starts processing response";
   if(!sessionID_)
   {
-    printDebugObject(DEBUG_WARNING, this, "SIP Client Transaction not initialized.");
+    printDebug(DEBUG_WARNING, this, "SIP Client Transaction not initialized.");
     return true;
   }
 
@@ -98,7 +98,7 @@ bool SIPDialogClient::startCall(QString callee)
   Q_ASSERT(sessionID_ != 0);
   if(!sessionID_)
   {
-    printDebugObject(DEBUG_WARNING, this, "SIP Client Transaction not initialized.");
+    printDebug(DEBUG_WARNING, this, "SIP Client Transaction not initialized.");
     return false;
   }
 

@@ -68,8 +68,8 @@ void DisplayFilter::process()
       format = QImage::Format_Invalid;
       break;
     default:
-      printDebugObject(DEBUG_ERROR, this, "Video",
-                       "Wrong type of display input.", {"Type"}, {QString::number(input->type)});
+      printDebug(DEBUG_ERROR, this, "Video",
+                 "Wrong type of display input.", {"Type"}, {QString::number(input->type)});
       format = QImage::Format_Invalid;
       break;
     }

@@ -46,7 +46,7 @@ void ScaleFilter::process()
       }
       default:
       {
-        printDebugObject(DEBUG_ERROR, this, "Video Process", "Wrong video format for scaler.",
+        printDebug(DEBUG_ERROR, this, "Video Process", "Wrong video format for scaler.",
                         {"Input type"},{QString::number(input->type)});
         format = QImage::Format_Invalid;
         break;
