@@ -27,28 +27,40 @@ INCLUDEPATH += src
 
 SOURCES +=\
     src/main.cpp \
-    src/rtpstreamer.cpp \
-    src/framedsourcefilter.cpp \
-    src/rtpsinkfilter.cpp \
+    src/media/delivery/framedsourcefilter.cpp \
+    src/media/delivery/rtpsinkfilter.cpp \
+    src/media/delivery/rtpstreamer.cpp \
+    src/media/mediamanager.cpp \
+    src/media/processing/audiocapturedevice.cpp \
+    src/media/processing/audiocapturefilter.cpp \
+    src/media/processing/audiooutput.cpp \
+    src/media/processing/audiooutputdevice.cpp \
+    src/media/processing/camerafilter.cpp \
+    src/media/processing/cameraframegrabber.cpp \
+    src/media/processing/camerainfo.cpp \
+    src/media/processing/displayfilter.cpp \
+    src/media/processing/filter.cpp \
+    src/media/processing/filtergraph.cpp \
+    src/media/processing/kvazaarfilter.cpp \
+    src/media/processing/openhevcfilter.cpp \
+    src/media/processing/opusdecoderfilter.cpp \
+    src/media/processing/opusencoderfilter.cpp \
+    src/media/processing/rgb32toyuv.cpp \
+    src/media/processing/scalefilter.cpp \
+    src/media/processing/speexaecfilter.cpp \
     src/common.cpp \
-    src/mediamanager.cpp \
-    src/filter.cpp \
-    src/filtergraph.cpp \
-    src/audio/audiocapturedevice.cpp \
-    src/audio/audiocapturefilter.cpp \
-    src/audio/audiooutput.cpp \
-    src/audio/audiooutputdevice.cpp \
-    src/video/camerafilter.cpp \
-    src/video/cameraframegrabber.cpp \
-    src/video/displayfilter.cpp \
-    src/video/kvazaarfilter.cpp \
-    src/video/openhevcfilter.cpp \
-    src/audio/opusdecoderfilter.cpp \
-    src/audio/opusencoderfilter.cpp \
-    src/video/rgb32toyuv.cpp \
-    src/audio/speexaecfilter.cpp \
-    src/video/yuvtorgb32.cpp \
-    src/connectionserver.cpp \
+    src/media/processing/yuvtorgb32.cpp \
+    src/sip/connectionserver.cpp \
+    src/sip/connectiontester.cpp \
+    src/sip/globalsdpstate.cpp \
+    src/sip/ice.cpp \
+    src/sip/iceflowcontrol.cpp \
+    src/sip/sdpparametermanager.cpp \
+    src/sip/stun.cpp \
+    src/sip/stunmsg.cpp \
+    src/sip/stunmsgfact.cpp \
+    src/sip/tcpconnection.cpp \
+    src/sip/udpserver.cpp \
     src/gui/callwindow.cpp \
     src/gui/conferenceview.cpp \
     src/gui/contactlist.cpp \
@@ -56,10 +68,6 @@ SOURCES +=\
     src/gui/settings.cpp \
     src/gui/statisticswindow.cpp \
     src/gui/videowidget.cpp \
-    src/udpserver.cpp \
-    src/stun.cpp \
-    src/globalsdpstate.cpp \
-    src/tcpconnection.cpp \
     src/sip/sipclienttransaction.cpp \
     src/sip/sipcontent.cpp \
     src/sip/sipconversions.cpp \
@@ -69,53 +77,57 @@ SOURCES +=\
     src/sip/siptransport.cpp \
     src/sip/siptransactions.cpp \
     src/sip/sipdialogstate.cpp \
-    src/scalefilter.cpp \
-    src/video/camerainfo.cpp \
     src/gui/customsettings.cpp \
     src/gui/videoviewfactory.cpp \
     src/gui/videoglwidget.cpp \
-    src/sdpparametermanager.cpp \
     src/sip/connectionpolicy.cpp \
     src/gui/videoyuvwidget.cpp \
     src/gui/videodrawhelper.cpp \
     src/kvazzupcore.cpp \
-    src/ice.cpp \
-    src/iceflowcontrol.cpp \
-    src/stunmsg.cpp \
-    src/stunmsgfact.cpp \
-    src/connectiontester.cpp \
     src/sip/sipdialogclient.cpp \
     src/sip/sipnondialogclient.cpp \
     src/gui/advancedsettings.cpp \
     src/gui/settingshelper.cpp
 
 HEADERS  += \
-    src/filter.h \
-    src/filtergraph.h \
-    src/rtpstreamer.h \
-    src/framedsourcefilter.h \
-    src/rtpsinkfilter.h \
+    src/media/delivery/framedsourcefilter.h \
+    src/media/delivery/rtpsinkfilter.h \
+    src/media/delivery/rtpstreamer.h \
+    src/media/mediamanager.h \
+    src/media/processing/audiocapturedevice.h \
+    src/media/processing/audiocapturefilter.h \
+    src/media/processing/audiooutput.h \
+    src/media/processing/audiooutputdevice.h \
+    src/media/processing/camerafilter.h \
+    src/media/processing/cameraframegrabber.h \
+    src/media/processing/camerainfo.h \
+    src/media/processing/displayfilter.h \
+    src/media/processing/filter.h \
+    src/media/processing/filtergraph.h \
+    src/media/processing/kvazaarfilter.h \
+    src/media/processing/openhevcfilter.h \
+    src/media/processing/optimized/rgb2yuv.h \
+    src/media/processing/optimized/yuv2rgb.h \
+    src/media/processing/opusdecoderfilter.h \
+    src/media/processing/opusencoderfilter.h \
+    src/media/processing/rgb32toyuv.h \
+    src/media/processing/scalefilter.h \
+    src/media/processing/speexaecfilter.h \
+    src/media/processing/yuvtorgb32.h \
+    src/sip/connectionserver.h \
+    src/sip/connectiontester.h \
+    src/sip/globalsdpstate.h \
+    src/sip/ice.h \
+    src/sip/iceflowcontrol.h \
+    src/sip/sdpparametermanager.h \
+    src/sip/stun.h \
+    src/sip/stunmsg.h \
+    src/sip/stunmsgfact.h \
+    src/sip/tcpconnection.h \
+    src/sip/udpserver.h \
     src/statisticsinterface.h \
     src/common.h \
-    src/mediamanager.h \
     src/participantinterface.h \
-    src/audio/audiocapturedevice.h \
-    src/video/cameraframegrabber.h \
-    src/video/openhevcfilter.h \
-    src/audio/opusdecoderfilter.h \
-    src/audio/opusencoderfilter.h \
-    src/video/rgb32toyuv.h \
-    src/video/yuvtorgb32.h \
-    src/audio/speexaecfilter.h \
-    src/audio/audiocapturefilter.h \
-    src/audio/audiooutput.h \
-    src/audio/audiooutputdevice.h \
-    src/video/camerafilter.h \
-    src/video/kvazaarfilter.h \
-    src/video/optimized/rgb2yuv.h \
-    src/video/optimized/yuv2rgb.h \
-    src/video/displayfilter.h \
-    src/connectionserver.h \
     src/gui/callwindow.h \
     src/gui/conferenceview.h \
     src/gui/contactlist.h \
@@ -123,10 +135,6 @@ HEADERS  += \
     src/gui/settings.h \
     src/gui/statisticswindow.h \
     src/gui/videowidget.h \
-    src/udpserver.h \
-    src/stun.h \
-    src/globalsdpstate.h \
-    src/tcpconnection.h \
     src/sip/sipclienttransaction.h \
     src/sip/sipfieldcomposing.h \
     src/sip/sipfieldparsing.h \
@@ -139,37 +147,29 @@ HEADERS  += \
     src/sip/siptransactions.h \
     src/sip/sipdialogstate.h \
     src/sip/sdptypes.h \
-    src/scalefilter.h \
     src/global.h \
-    src/video/camerainfo.h \
     src/gui/customsettings.h \
     src/gui/videointerface.h \
     src/gui/videoviewfactory.h \
     src/gui/videoglwidget.h \
-    src/sdpparametermanager.h \
     src/sip/connectionpolicy.h \
     src/gui/videoyuvwidget.h \
     src/gui/videodrawhelper.h \
     src/kvazzupcore.h \
-    src/ice.h \
-    src/iceflowcontrol.h \
-    src/stunmsg.h \
-    src/stunmsgfact.h \
-    src/connectiontester.h \
     src/sip/sipdialogclient.h \
     src/sip/sipnondialogclient.h \
     src/gui/advancedsettings.h \
     src/gui/settingshelper.h
 
 FORMS    += \
+    ui/advancedsettings.ui \
     ui/callwindow.ui \
+    ui/customsettings.ui \
     ui/statisticswindow.ui \
     ui/about.ui \
-    ui/advancedSettings.ui \
     ui/settings.ui \
     ui/incomingcallwidget.ui \
-    ui/outgoingcallwidget.ui \
-    ui/customSettings.ui
+    ui/outgoingcallwidget.ui
 
 # just in case we sometimes like to support smaller qt versions.
 greaterThan(4, QT_MAJOR_VERSION)
