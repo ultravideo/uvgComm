@@ -1,4 +1,4 @@
-#include "kvazzupcore.h"
+#include "kvazzupcontroller.h"
 
 #include "common.h"
 
@@ -40,8 +40,8 @@ int main(int argc, char *argv[])
   QString StyleSheet = QLatin1String(File.readAll());
   a.setStyleSheet(StyleSheet);
 
-  KvazzupCore core;
-  core.init();
+  KvazzupController controller;
+  controller.init();
 
   return a.exec();
 }

@@ -1,11 +1,12 @@
 #pragma once
-#include "filter.h"
+#include "media/processing/filter.h"
 
 #include <liveMedia.hh>
 #include <UsageEnvironment.hh>
 #include <GroupsockHelper.hh>
 
 #include <QThread>
+#include <QMutex>
 
 #include <vector>
 

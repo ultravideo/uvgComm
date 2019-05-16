@@ -1,5 +1,5 @@
 #pragma once
-#include "filter.h"
+#include "media/processing/filter.h"
 
 #include <FramedSource.hh>
 #include <QMutex>

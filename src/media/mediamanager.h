@@ -1,6 +1,6 @@
 #pragma once
 
-#include "sip/sdptypes.h"
+#include "initiation/negotiation/sdptypes.h"
 
 #include <QObject>
 #include <QMutex>

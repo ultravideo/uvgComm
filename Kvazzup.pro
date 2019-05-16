@@ -26,6 +26,30 @@ win32-msvc: TEMPLATE = app # vcapp does not currently generate makefile
 INCLUDEPATH += src
 
 SOURCES +=\
+    src/initiation/connectionpolicy.cpp \
+    src/initiation/negotiation/connectiontester.cpp \
+    src/initiation/negotiation/globalsdpstate.cpp \
+    src/initiation/negotiation/ice.cpp \
+    src/initiation/negotiation/iceflowcontrol.cpp \
+    src/initiation/negotiation/sdpparametermanager.cpp \
+    src/initiation/negotiation/sipcontent.cpp \
+    src/initiation/negotiation/stun.cpp \
+    src/initiation/negotiation/stunmsg.cpp \
+    src/initiation/negotiation/stunmsgfact.cpp \
+    src/initiation/negotiation/udpserver.cpp \
+    src/initiation/transaction/sipclienttransaction.cpp \
+    src/initiation/transaction/sipdialogclient.cpp \
+    src/initiation/transaction/sipdialogstate.cpp \
+    src/initiation/transaction/sipnondialogclient.cpp \
+    src/initiation/transaction/sipservertransaction.cpp \
+    src/initiation/transaction/siptransactions.cpp \
+    src/initiation/transport/connectionserver.cpp \
+    src/initiation/transport/sipconversions.cpp \
+    src/initiation/transport/sipfieldcomposing.cpp \
+    src/initiation/transport/sipfieldparsing.cpp \
+    src/initiation/transport/siptransport.cpp \
+    src/initiation/transport/tcpconnection.cpp \
+    src/kvazzupcontroller.cpp \
     src/main.cpp \
     src/media/delivery/framedsourcefilter.cpp \
     src/media/delivery/rtpsinkfilter.cpp \
@@ -50,46 +74,50 @@ SOURCES +=\
     src/media/processing/speexaecfilter.cpp \
     src/common.cpp \
     src/media/processing/yuvtorgb32.cpp \
-    src/sip/connectionserver.cpp \
-    src/sip/connectiontester.cpp \
-    src/sip/globalsdpstate.cpp \
-    src/sip/ice.cpp \
-    src/sip/iceflowcontrol.cpp \
-    src/sip/sdpparametermanager.cpp \
-    src/sip/stun.cpp \
-    src/sip/stunmsg.cpp \
-    src/sip/stunmsgfact.cpp \
-    src/sip/tcpconnection.cpp \
-    src/sip/udpserver.cpp \
-    src/gui/callwindow.cpp \
-    src/gui/conferenceview.cpp \
-    src/gui/contactlist.cpp \
-    src/gui/contactlistitem.cpp \
-    src/gui/settings.cpp \
-    src/gui/statisticswindow.cpp \
-    src/gui/videowidget.cpp \
-    src/sip/sipclienttransaction.cpp \
-    src/sip/sipcontent.cpp \
-    src/sip/sipconversions.cpp \
-    src/sip/sipfieldcomposing.cpp \
-    src/sip/sipfieldparsing.cpp \
-    src/sip/sipservertransaction.cpp \
-    src/sip/siptransport.cpp \
-    src/sip/siptransactions.cpp \
-    src/sip/sipdialogstate.cpp \
-    src/gui/customsettings.cpp \
-    src/gui/videoviewfactory.cpp \
-    src/gui/videoglwidget.cpp \
-    src/sip/connectionpolicy.cpp \
-    src/gui/videoyuvwidget.cpp \
-    src/gui/videodrawhelper.cpp \
-    src/kvazzupcore.cpp \
-    src/sip/sipdialogclient.cpp \
-    src/sip/sipnondialogclient.cpp \
-    src/gui/advancedsettings.cpp \
-    src/gui/settingshelper.cpp
+    src/ui/gui/callwindow.cpp \
+    src/ui/gui/conferenceview.cpp \
+    src/ui/gui/contactlist.cpp \
+    src/ui/gui/contactlistitem.cpp \
+    src/ui/gui/statisticswindow.cpp \
+    src/ui/gui/videodrawhelper.cpp \
+    src/ui/gui/videoglwidget.cpp \
+    src/ui/gui/videoviewfactory.cpp \
+    src/ui/gui/videowidget.cpp \
+    src/ui/gui/videoyuvwidget.cpp \
+    src/ui/settings/advancedsettings.cpp \
+    src/ui/settings/customsettings.cpp \
+    src/ui/settings/settings.cpp \
+    src/ui/settings/settingshelper.cpp
 
 HEADERS  += \
+    src/initiation/connectionpolicy.h \
+    src/initiation/negotiation/connectiontester.h \
+    src/initiation/negotiation/globalsdpstate.h \
+    src/initiation/negotiation/ice.h \
+    src/initiation/negotiation/iceflowcontrol.h \
+    src/initiation/negotiation/icetypes.h \
+    src/initiation/negotiation/sdpparametermanager.h \
+    src/initiation/negotiation/sdptypes.h \
+    src/initiation/negotiation/sipcontent.h \
+    src/initiation/negotiation/stun.h \
+    src/initiation/negotiation/stunmsg.h \
+    src/initiation/negotiation/stunmsgfact.h \
+    src/initiation/negotiation/udpserver.h \
+    src/initiation/siptransactionuser.h \
+    src/initiation/siptypes.h \
+    src/initiation/transaction/sipclienttransaction.h \
+    src/initiation/transaction/sipdialogclient.h \
+    src/initiation/transaction/sipdialogstate.h \
+    src/initiation/transaction/sipnondialogclient.h \
+    src/initiation/transaction/sipservertransaction.h \
+    src/initiation/transaction/siptransactions.h \
+    src/initiation/transport/connectionserver.h \
+    src/initiation/transport/sipconversions.h \
+    src/initiation/transport/sipfieldcomposing.h \
+    src/initiation/transport/sipfieldparsing.h \
+    src/initiation/transport/siptransport.h \
+    src/initiation/transport/tcpconnection.h \
+    src/kvazzupcontroller.h \
     src/media/delivery/framedsourcefilter.h \
     src/media/delivery/rtpsinkfilter.h \
     src/media/delivery/rtpstreamer.h \
@@ -114,52 +142,25 @@ HEADERS  += \
     src/media/processing/scalefilter.h \
     src/media/processing/speexaecfilter.h \
     src/media/processing/yuvtorgb32.h \
-    src/sip/connectionserver.h \
-    src/sip/connectiontester.h \
-    src/sip/globalsdpstate.h \
-    src/sip/ice.h \
-    src/sip/iceflowcontrol.h \
-    src/sip/sdpparametermanager.h \
-    src/sip/stun.h \
-    src/sip/stunmsg.h \
-    src/sip/stunmsgfact.h \
-    src/sip/tcpconnection.h \
-    src/sip/udpserver.h \
     src/statisticsinterface.h \
     src/common.h \
     src/participantinterface.h \
-    src/gui/callwindow.h \
-    src/gui/conferenceview.h \
-    src/gui/contactlist.h \
-    src/gui/contactlistitem.h \
-    src/gui/settings.h \
-    src/gui/statisticswindow.h \
-    src/gui/videowidget.h \
-    src/sip/sipclienttransaction.h \
-    src/sip/sipfieldcomposing.h \
-    src/sip/sipfieldparsing.h \
-    src/sip/sipcontent.h \
-    src/sip/sipconversions.h \
-    src/sip/sipservertransaction.h \
-    src/sip/siptransactionuser.h \
-    src/sip/siptransport.h \
-    src/sip/siptypes.h \
-    src/sip/siptransactions.h \
-    src/sip/sipdialogstate.h \
-    src/sip/sdptypes.h \
     src/global.h \
-    src/gui/customsettings.h \
-    src/gui/videointerface.h \
-    src/gui/videoviewfactory.h \
-    src/gui/videoglwidget.h \
-    src/sip/connectionpolicy.h \
-    src/gui/videoyuvwidget.h \
-    src/gui/videodrawhelper.h \
-    src/kvazzupcore.h \
-    src/sip/sipdialogclient.h \
-    src/sip/sipnondialogclient.h \
-    src/gui/advancedsettings.h \
-    src/gui/settingshelper.h
+    src/ui/gui/callwindow.h \
+    src/ui/gui/conferenceview.h \
+    src/ui/gui/contactlist.h \
+    src/ui/gui/contactlistitem.h \
+    src/ui/gui/statisticswindow.h \
+    src/ui/gui/videodrawhelper.h \
+    src/ui/gui/videoglwidget.h \
+    src/ui/gui/videointerface.h \
+    src/ui/gui/videoviewfactory.h \
+    src/ui/gui/videowidget.h \
+    src/ui/gui/videoyuvwidget.h \
+    src/ui/settings/advancedsettings.h \
+    src/ui/settings/customsettings.h \
+    src/ui/settings/settings.h \
+    src/ui/settings/settingshelper.h
 
 FORMS    += \
     ui/advancedsettings.ui \

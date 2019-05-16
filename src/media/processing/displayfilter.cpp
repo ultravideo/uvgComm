@@ -1,6 +1,6 @@
 #include "displayfilter.h"
 
-#include "gui/videointerface.h"
+#include "ui/gui/videointerface.h"
 #include "statisticsinterface.h"
 
 #include "common.h"
