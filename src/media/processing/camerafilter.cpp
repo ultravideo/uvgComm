@@ -95,12 +95,12 @@ bool CameraFilter::cameraSetup()
   if (camera_ && cameraFrameGrabber_)
   {
     QSettings settings("kvazzup.ini", QSettings::IniFormat);
-    //#ifndef __linux__
+#ifndef __linux__
     while(camera_->state() != QCamera::LoadedState)
     {
       qSleep(5);
     }
-    //#endif
+#endif
 
     camera_->setViewfinder(cameraFrameGrabber_);
 
@@ -112,19 +112,15 @@ bool CameraFilter::cameraSetup()
     // TODO: this should be a temporary hack until dshow is replaced by qcamera
     QString inputFormat = settings.value("video/InputFormat").toString();
 
-#ifndef __linux__
+#ifdef __linux__
+    viewSettings.setPixelFormat(QVideoFrame::Format_RGB32);
+    output_ = RGB32VIDEO;
+#else
     if(inputFormat == "MJPG")
     {
       viewSettings.setPixelFormat(QVideoFrame::Format_Jpeg);
       output_ = RGB32VIDEO;
     }
-#else
-    if(inputFormat == "MJPG")
-    {
-      viewSettings.setPixelFormat(QVideoFrame::Format_RGB32);
-      output_ = RGB32VIDEO;
-    }
-#endif
     else if(inputFormat == "RGB32")
     {
       viewSettings.setPixelFormat(QVideoFrame::Format_RGB32);
@@ -143,6 +139,7 @@ bool CameraFilter::cameraSetup()
       return false;
     }
     //printSupportedResolutions(viewSettings);
+#endif
 
 #ifndef __linux__
     QList<QSize> resolutions = camera_->supportedViewfinderResolutions(viewSettings);
@@ -158,7 +155,7 @@ bool CameraFilter::cameraSetup()
       viewSettings.setResolution(QSize(0,0));
     }
 #else
-    viewSettings.setResolution(QSize(1280, 720));
+    viewSettings.setResolution(QSize(640, 480));
 #endif
 
     QList<QCamera::FrameRateRange> framerates = camera_->supportedViewfinderFrameRateRanges(viewSettings);
