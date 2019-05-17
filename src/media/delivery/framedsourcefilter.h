@@ -1,21 +1,49 @@
 #pragma once
 #include "media/processing/filter.h"
-
 #include <FramedSource.hh>
 #include <QMutex>
 #include <QSemaphore>
 
-
-// This is the first step in sending data using RTP. Rest of the steps are inside live555.
+#include "filter.h"
+#include "../rtplib/src/writer.hh"
 
 class StatisticsInterface;
 
-class FramedSourceFilter : public FramedSource, public Filter
+class FramedSourceFilter : public Filter
 {
 public:
-  FramedSourceFilter(QString id, StatisticsInterface* stats,
-                     UsageEnvironment &env, DataType type,
-                     QString media, QMutex* triggerMutex, bool live555Copying);
+  FramedSourceFilter(QString id, StatisticsInterface *stats, DataType type, QString media, RTPWriter *writer);
+  ~FramedSourceFilter();
+
+  void updateSettings();
+
+  void start();
+  void stop();
+
+  void copyFrameToBuffer(std::unique_ptr<Data> currentFrame);
+
+protected:
+  void process();
+
+private:
+  DataType type_; // TODO use output_
+  bool stop_;
+  bool separateInput_;
+  bool removeStartCodes_;
+
+  RTPWriter *writer_;
+  uint64_t frame_;
+  rtp_format_t dataFormat_;
+};
+
+#if 0
+/* #ifdef _WIN32 */
+class FramedSourceFilter : public Filter
+{
+public:
+  FramedSourceFilter(QString id, StatisticsInterface *stats,
+                     DataType type, QString media, QMutex *triggerMutex,
+                     bool live555Copying);
 
   ~FramedSourceFilter();
 
@@ -63,3 +91,4 @@ private:
   bool stop_;
   bool noMoreTasks_;
 };
+#endif
