@@ -4,7 +4,6 @@
 #include <QMutex>
 #include <QSemaphore>
 
-#include "filter.h"
 #include "../rtplib/src/writer.hh"
 
 class StatisticsInterface;

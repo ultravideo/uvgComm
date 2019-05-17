@@ -1,6 +1,5 @@
 #pragma once
 #include "media/processing/filter.h"
-#include "filter.h"
 #include "../rtplib/src/reader.hh"
 
 // Receives RTP packets and sends them forward in filter graph.
