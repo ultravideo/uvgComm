@@ -61,7 +61,6 @@ SOURCES +=\
     src/media/processing/audiooutputdevice.cpp \
     src/media/processing/camerafilter.cpp \
     src/media/processing/cameraframegrabber.cpp \
-    src/media/processing/camerainfo.cpp \
     src/media/processing/displayfilter.cpp \
     src/media/processing/filter.cpp \
     src/media/processing/filtergraph.cpp \
@@ -85,6 +84,7 @@ SOURCES +=\
     src/ui/gui/videowidget.cpp \
     src/ui/gui/videoyuvwidget.cpp \
     src/ui/settings/advancedsettings.cpp \
+    src/ui/settings/camerainfo.cpp \
     src/ui/settings/customsettings.cpp \
     src/ui/settings/settings.cpp \
     src/ui/settings/settingshelper.cpp
@@ -128,7 +128,6 @@ HEADERS  += \
     src/media/processing/audiooutputdevice.h \
     src/media/processing/camerafilter.h \
     src/media/processing/cameraframegrabber.h \
-    src/media/processing/camerainfo.h \
     src/media/processing/displayfilter.h \
     src/media/processing/filter.h \
     src/media/processing/filtergraph.h \
@@ -158,6 +157,7 @@ HEADERS  += \
     src/ui/gui/videowidget.h \
     src/ui/gui/videoyuvwidget.h \
     src/ui/settings/advancedsettings.h \
+    src/ui/settings/camerainfo.h \
     src/ui/settings/customsettings.h \
     src/ui/settings/settings.h \
     src/ui/settings/settingshelper.h
