@@ -1,19 +1,24 @@
 #pragma once
 #include "media/processing/filter.h"
 
-#include <liveMedia.hh>
-#include <UsageEnvironment.hh>
-#include <GroupsockHelper.hh>
+/* #include <liveMedia.hh> */
+/* #include <UsageEnvironment.hh> */
+/* #include <GroupsockHelper.hh> */
 
 #include <QThread>
 #include <QMutex>
-
+#include <QHostAddress>
 #include <vector>
 
 class FramedSourceFilter;
 class RTPSinkFilter;
 class Filter;
 class StatisticsInterface;
+
+#include "../rtplib/src/lib.hh"
+#include "../rtplib/src/util.hh"
+#include "../rtplib/src/reader.hh"
+#include "../rtplib/src/writer.hh"
 
 class RTPStreamer : public QThread
 {
@@ -29,7 +34,7 @@ public:
 
   // init a session with sessionID to use with add/remove functions
   // returns whether operation was successful
-  bool addPeer(in_addr ip, uint32_t sessionID);
+  bool addPeer(QHostAddress address, uint32_t sessionID);
 
   // Returns filter to be attached to filter graph. ownership is not transferred.
   // removing the peer or stopping the streamer destroys these filters.
@@ -47,13 +52,85 @@ public:
   void removeAllPeers();
 
 private:
+  RTPContext rtp_ctx_;
 
+  struct Sender
+  {
+    RTPWriter *writer;
+    std::shared_ptr<FramedSourceFilter> sourcefilter; // receives stuff from filter graph
+  };
+
+  struct Receiver
+  {
+    RTPReader *reader;
+    std::shared_ptr<RTPSinkFilter> sink; // sends stuff to filter graph TODO mitä!??!?
+  };
+
+  struct Peer
+  {
+    struct in_addr ip; // TODO who's ip is this???
+    QHostAddress ip_str;
+
+    Sender *audioSender; // audio to this peer
+    Sender *videoSender; // video to this peer
+
+    Receiver *audioReceiver; // audio from this peer
+    Receiver *videoReceiver; // video from this peer
+  };
+
+  void destroySender(Sender *sender);
+  void destroyReceiver(Receiver *recv);
+  rtp_format_t typeFromString(QString type);
+
+  // returns whether peer corresponding to sessionID has been created. Debug
+  bool checkSessionID(uint32_t sessionID);
+
+  Sender *addSender(QHostAddress address, uint16_t port, rtp_format_t type, uint8_t rtpNum);
+  Receiver *addReceiver(QHostAddress ip, uint16_t port, rtp_format_t type, uint8_t rtpNum);
+
+  // private variables
+  QList<Peer *> peers_;
+
+  bool isIniated_;
+  bool isRunning_;
+
+  QMutex iniated_; // locks for duration of creation
+  QMutex destroyed_; // locks for duration of destruction
+
+  uint8_t ttl_;
+  struct in_addr sessionAddress_;
+
+  // TODO: ???
+  char stopRTP_; // char for stopping live555 taskscheduler
+  /* UsageEnvironment* env_; */
+  /* TaskScheduler* scheduler_; // pointer needed for proper destruction */
+
+  StatisticsInterface *stats_;
+
+  // TODO: ???
+  static const unsigned int maxCNAMElen_ = 100;
+  unsigned char CNAME_[maxCNAMElen_ + 1];
+
+  // TODO: ???
+  QMutex *triggerMutex_;
+
+#if 0
   struct Connection
   {
     Port* rtpPort;
     Port* rtcpPort;
     Groupsock* rtpGroupsock;
     Groupsock* rtcpGroupsock;
+  };
+
+  struct Receiver
+  {
+    Connection connection;
+
+    RTCPInstance* rtcp;
+
+    RTPSource* framedSource;
+    std::shared_ptr<RTPSinkFilter> sink; // sends stuff to filter graph
   };
 
   struct Sender
@@ -68,25 +145,6 @@ private:
     H265VideoStreamDiscreteFramer* framerSource;
   };
 
-  struct Receiver
-  {
-    Connection connection;
-
-    RTCPInstance* rtcp;
-
-    RTPSource* framedSource;
-    std::shared_ptr<RTPSinkFilter> sink; // sends stuff to filter graph
-  };
-
-  struct Peer
-  {
-    struct in_addr ip;
-    Sender* audioSender; // audio to this peer
-    Sender* videoSender; // video to this peer
-
-    Receiver* audioReceiver; // audio from this peer
-    Receiver* videoReceiver; // video from this peer
-  };
 
   void createConnection(Connection& connection,
                         struct in_addr ip, uint16_t portNum,
@@ -99,11 +157,6 @@ private:
 
   Sender* addSender(in_addr ip, uint16_t port, DataType type, uint8_t rtpNum);
   Receiver* addReceiver(in_addr peerAddress, uint16_t port, DataType type, uint8_t rtpNum);
-
-  void destroySender(Sender* sender);
-  void destroyReceiver(Receiver* recv);
-
-  DataType typeFromString(QString type);
 
   QList<Peer*> peers_;
 
@@ -126,4 +179,5 @@ private:
   unsigned char CNAME_[maxCNAMElen_ + 1];
 
   QMutex* triggerMutex_;
+#endif
 };

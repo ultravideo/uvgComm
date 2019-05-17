@@ -248,6 +248,7 @@ INCLUDEPATH += /usr/include/opus/
 
 LIBS += -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment
 LIBS += -lopus -lkvazaar -lspeex -lspeexdsp -lLibOpenHevcWrapper -lgomp
+LIBS += -L$$PWD/../rtplib -lrtp
 }
 
 

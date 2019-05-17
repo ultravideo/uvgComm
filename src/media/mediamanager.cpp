@@ -69,11 +69,13 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
     printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "Nonzero start-time not supported!");
   }
 
-#if 0
+#if 1
+  qDebug() << "\n\n\n";
   qDebug() << "local opus" << localInfo->media[0].connection_address << ":" << localInfo->media[0].receivePort;
   qDebug() << "local hevc" << localInfo->media[1].connection_address << ":" << localInfo->media[1].receivePort;
   qDebug() << "remote opus" << peerInfo->media[0].connection_address  << ":" << peerInfo->media[0].receivePort;
   qDebug() << "remote hevc" << peerInfo->media[0].connection_address  << ":" << peerInfo->media[1].receivePort << "\n";
+  qDebug() << "\n\n\n";
 #endif
 
   if(peerInfo->connection_nettype == "IN")
@@ -99,15 +101,8 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
        || (peerInfo->connection_addrtype == "IP6" && address.toString().left(7) == "::ffff:")
        || (QHostAddress(address.toIPv4Address()) == QHostAddress(address))) // address is ipv4 indeed
     {
-      in_addr ip;
-#ifdef _WIN32
-      ip.S_un.S_addr = qToBigEndian(address.toIPv4Address());
-#else
-      ip.s_addr = qToBigEndian(address.toIPv4Address());
-#endif
-
       // TODO: Make it possible to have a separate ip address for each mediastream by fixing this.
-      if(!streamer_->addPeer(ip, sessionID))
+      if(!streamer_->addPeer(address, sessionID))
       {
         printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "Error creating RTP peer. Simultaneous destruction?.");
         return;
@@ -125,16 +120,23 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
     return;
   }
 
+  qDebug() << "\n\nCREATING MEDIA...";
+
   // create each agreed media stream
   for(auto media : peerInfo->media)
   {
+    qDebug() << "\n\t\t\tcreating outgoing media for" << media.type << "\n";
     createOutgoingMedia(sessionID, media);
   }
 
   for(auto media : localInfo->media)
   {
+    qDebug() << "\n\t\t\tcreating incoming media for" << media.type << "\n";
     createIncomingMedia(sessionID, media);
   }
+
+  qDebug() << "DONE CREATING MEDIA\n\n";
+
 
   // crashes at the moment.
   //fg_->print();
@@ -162,10 +164,12 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID, const MediaInfo& remo
                                                                       codec, remoteMedia.rtpNums.at(0));
       if(remoteMedia.type == "audio")
       {
+        qDebug() << "\nSENDING AUDIO TO" << remoteMedia.receivePort;
         fg_->sendAudioTo(sessionID, std::shared_ptr<Filter>(framedSource));
       }
       else if(remoteMedia.type == "video")
       {
+        qDebug() << "\nSENDING VIDEO TO" << remoteMedia.receivePort;
         fg_->sendVideoto(sessionID, std::shared_ptr<Filter>(framedSource));
       }
       else
@@ -207,10 +211,12 @@ void MediaManager::createIncomingMedia(uint32_t sessionID, const MediaInfo &loca
                                                                     codec, localMedia.rtpNums.at(0));
       if(localMedia.type == "audio")
       {
+        qDebug() << "\nRECEIVING AUDIO FROM" << localMedia.receivePort;
         fg_->receiveAudioFrom(sessionID, std::shared_ptr<Filter>(rtpSink));
       }
       else if(localMedia.type == "video")
       {
+        qDebug() << "\nRECEIVING VIDEO FROM" << localMedia.receivePort;
         fg_->receiveVideoFrom(sessionID, std::shared_ptr<Filter>(rtpSink), viewfactory_->getVideo(sessionID));
       }
       else
