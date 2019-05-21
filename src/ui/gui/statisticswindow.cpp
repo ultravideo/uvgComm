@@ -88,7 +88,7 @@ void StatisticsWindow::addNextInterface(StatisticsInterface* next)
 {
   Q_UNUSED(next)
   Q_ASSERT(false && "NOT IMPLEMENTED");
-  printDebug(DEBUG_ERROR, this, "Stats", "addNextInterface has not been implemented in stat window");
+  printDebug(DEBUG_ERROR, this, DC_STARTUP, "addNextInterface has not been implemented in stat window");
 }
 
 void StatisticsWindow::videoInfo(double framerate, QSize resolution)

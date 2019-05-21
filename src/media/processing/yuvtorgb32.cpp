@@ -38,7 +38,7 @@ void YUVtoRGB32::updateSettings()
   }
   else
   {
-    printDebug(DEBUG_ERROR, "CameraInfo", "SIP Send Request",
+    printDebug(DEBUG_ERROR, "CameraInfo", DC_SETTINGS,
                "Missing settings value YUV threads.");
   }
 

@@ -271,7 +271,7 @@ void SIPTransport::networkPackage(QString package)
 
     if(request_match.hasMatch() && response_match.hasMatch())
     {
-      printDebug(DEBUG_ERROR, this, "SIP Receive",
+      printDebug(DEBUG_ERROR, this, DC_RECEIVE_SIP,
                  "Both the request and response matched, which should not be possible!");
       return;
     }
@@ -590,7 +590,7 @@ QString SIPTransport::addContent(QList<SIPField>& fields, bool haveContent, cons
   }
   else if(!includeContentLengthField(fields, 0))
   {
-    printDebug(DEBUG_ERROR, this, "SIP Send Content", "Could not add content-length field to sip message!");
+    printDebug(DEBUG_ERROR, this, DC_SIP_CONTENT, "Could not add content-length field to sip message!");
   }
   return sdp_str;
 }

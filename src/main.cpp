@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
 
   a.setApplicationName("Kvazzup");
 
-  printDebug(DEBUG_NORMAL, "Main", "Startup", "Starting Kvazzup.",
+  printDebug(DEBUG_NORMAL, "Main", DC_STARTUP, "Starting Kvazzup.",
     {"Location"}, {QDir::currentPath()});
 
   // TODO move to GUI
@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
   }
   else
   {
-    printDebug(DEBUG_WARNING, "Main", "Startup", "Could not find default font. Is the file missing?");
+    printDebug(DEBUG_WARNING, "Main", DC_STARTUP, "Could not find default font. Is the file missing?");
   }
 
   QCoreApplication::setOrganizationName("Ultra Video Group");

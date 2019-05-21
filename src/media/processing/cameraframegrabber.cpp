@@ -14,7 +14,7 @@ bool CameraFrameGrabber::present(const QVideoFrame &frame)
     emit frameAvailable(frame);
     return true;
   }
-  printDebug(DEBUG_WARNING, this, "Video process", "Not a valid frame");
+  printDebug(DEBUG_WARNING, this, DC_PROCESS_MEDIA, "Not a valid frame");
   return false;
 }
 

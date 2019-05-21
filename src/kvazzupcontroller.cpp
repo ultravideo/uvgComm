@@ -132,18 +132,18 @@ void KvazzupController::peerAccepted(uint32_t sessionID)
   {
     if(states_[sessionID] == CALLRINGINWITHTHEM || states_[sessionID] == CALLINGTHEM)
     {
-      printDebug(DEBUG_NORMAL, this, "Accepting", "They accepted our call!");
+      printDebug(DEBUG_NORMAL, this, DC_ACCEPT, "They accepted our call!");
       states_[sessionID] = CALLNEGOTIATING;
     }
     else
     {
-      printDebug(DEBUG_PEER_ERROR, this, "Accepting",
+      printDebug(DEBUG_PEER_ERROR, this, DC_ACCEPT,
                  "Got an accepted call even though we have not yet called them!");
     }
   }
   else
   {
-    printDebug(DEBUG_ERROR, this, "Accepting",
+    printDebug(DEBUG_ERROR, this, DC_ACCEPT,
                "Peer accepted a session which is not in Core.");
   }
 }

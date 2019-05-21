@@ -25,7 +25,7 @@ void AudioOutput::initializeAudio(QAudioFormat format)
 {
   QAudioDeviceInfo info(device_);
   if (!info.isFormatSupported(format)) {
-    printDebug(DEBUG_WARNING, this, "Iniating", "Default format not supported - trying to use nearest.");
+    printDebug(DEBUG_WARNING, this, DC_STARTUP, "Default format not supported - trying to use nearest.");
     format_ = info.nearestFormat(format);
   }
   else
@@ -57,7 +57,7 @@ void AudioOutput::createAudioOutput()
 
 void AudioOutput::deviceChanged(int index)
 {
-  printDebug(DEBUG_WARNING, this, "Audio", "Audio output device change not implemented fully.",
+  printDebug(DEBUG_WARNING, this, DC_AUDIO, "Audio output device change not implemented fully.",
     {"Index"}, {QString::number(index)});
 
   //m_pushTimer->stop();

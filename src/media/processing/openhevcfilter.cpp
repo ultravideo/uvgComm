@@ -23,7 +23,7 @@ bool OpenHEVCFilter::init()
   libOpenHevcSetDebugMode(handle_, 0);
   if(libOpenHevcStartDecoder(handle_) == -1)
   {
-    printDebug(DEBUG_ERROR, this, "Iniating Video", "Failed to start decoder.");
+    printDebug(DEBUG_ERROR, this, DC_STARTUP, "Failed to start decoder.");
     return false;
   }
   libOpenHevcSetTemporalLayer_id(handle_, 0);
@@ -132,18 +132,18 @@ void OpenHEVCFilter::process()
         OpenHevc_Frame openHevcFrame;
         if( gotPicture == -1)
         {
-          printDebug(DEBUG_ERROR, this, "Video Incoming", "Error while decoding.");
+          printDebug(DEBUG_ERROR, this, DC_PROCESS_MEDIA, "Error while decoding.");
         }
         else if(!gotPicture && frame->data_size >= 2)
         {
           const unsigned char *buff2 = frame->data.get();
-          printDebug(DEBUG_WARNING, getName(), "Video incoming", "Could not decode video frame.",
+          printDebug(DEBUG_WARNING, getName(), DC_PROCESS_MEDIA, "Could not decode video frame.",
                      {"NAL type"}, {QString() + QString::number(buff2[0]) + QString::number(buff2[1])
                      + QString::number(buff2[2]) + QString::number(buff2[3]) + QString::number(buff2[4] >> 1) });
         }
         else if( libOpenHevcGetOutput(handle_, gotPicture, &openHevcFrame) == -1 )
         {
-          printDebug(DEBUG_ERROR, this, "Video Incoming", "Failed to get output.");
+          printDebug(DEBUG_ERROR, this, DC_PROCESS_MEDIA, "Failed to get output.");
         }
         else
         {

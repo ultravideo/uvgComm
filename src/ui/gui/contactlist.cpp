@@ -139,11 +139,13 @@ void ContactList::removeContact(int index)
 {
   Q_ASSERT(index != -1 && index < items_.size());
 
-  qDebug() << "Remove contact," << metaObject()->className() << ": Removing contact from index:" << index;
+  qDebug() << "Remove contact," << metaObject()->className()
+           << ": Removing contact from index:" << index;
 
   if(index == -1  || index >= items_.size())
   {
-    printDebug(DEBUG_WARNING, this, "Remove Participant", "Tried to remove a nonexisting contact");
+    printDebug(DEBUG_WARNING, this, DC_CONTACTLIST,
+               "Tried to remove a nonexisting contact");
     return;
   }
 

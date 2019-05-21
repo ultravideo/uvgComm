@@ -25,17 +25,17 @@ AudioCaptureFilter::~AudioCaptureFilter(){}
 
 bool AudioCaptureFilter::init()
 {
-  printDebug(DEBUG_NORMAL, this, "Iniating", "Initializing audio capture filter.");
+  printDebug(DEBUG_NORMAL, this, DC_STARTUP, "Initializing audio capture filter.");
   QAudioDeviceInfo info(deviceInfo_);
 
   for(auto device : QAudioDeviceInfo::availableDevices(QAudio::AudioInput))
   {
-    printDebug(DEBUG_NORMAL, this, "Iniating", "", {"Available audio recording devices"}, {device.deviceName()});
+    printDebug(DEBUG_NORMAL, this, DC_STARTUP, "", {"Available audio recording devices"}, {device.deviceName()});
   }
-  printDebug(DEBUG_NORMAL, this, "Iniating", "", {"Chosen Device"}, {info.deviceName()});
+  printDebug(DEBUG_NORMAL, this, DC_STARTUP, "", {"Chosen Device"}, {info.deviceName()});
 
   if (!info.isFormatSupported(format_)) {
-    printDebug(DEBUG_WARNING, this, "Iniating", "Default audio format not supported - trying to use nearest");
+    printDebug(DEBUG_WARNING, this, DC_STARTUP, "Default audio format not supported - trying to use nearest");
     format_ = info.nearestFormat(format_);
   }
 
@@ -49,7 +49,7 @@ bool AudioCaptureFilter::init()
   device_  = new AudioCaptureDevice(format_, this);
 
   createAudioInput();
-  printDebug(DEBUG_NORMAL, this, "Iniating", "Audio initializing completed.");
+  printDebug(DEBUG_NORMAL, this, DC_STARTUP, "Audio initializing completed.");
   return true;
 }
 
@@ -68,7 +68,7 @@ void AudioCaptureFilter::readMore()
 {
   if (!audioInput_)
   {
-    printDebug(DEBUG_WARNING, this, "Audio input", "No audio input in readMore");
+    printDebug(DEBUG_WARNING, this, DC_PROCESS_MEDIA, "No audio input in readMore");
     return;
   }
   qint64 len = audioInput_->bytesReady();
@@ -136,7 +136,7 @@ void AudioCaptureFilter::stop()
 // changing of audio device mid stream.
 void AudioCaptureFilter::deviceChanged(int index)
 {
-  printDebug(DEBUG_WARNING, this, "Settings", "audiocapturefilter device change not implemented fully.");
+  printDebug(DEBUG_WARNING, this, DC_SETTINGS, "audiocapturefilter device change not implemented fully.");
 
   device_->stop();
   audioInput_->stop();

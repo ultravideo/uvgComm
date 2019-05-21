@@ -51,7 +51,7 @@ bool KvazaarFilter::init()
   api_ = kvz_api_get(8);
   if(!api_)
   {
-    printDebug(DEBUG_ERROR, this, "Initiate Video", "Failed to retrieve Kvazaar API.");
+    printDebug(DEBUG_ERROR, this, DC_STARTUP, "Failed to retrieve Kvazaar API.");
     return false;
   }
   config_ = api_->config_alloc();
@@ -59,7 +59,7 @@ bool KvazaarFilter::init()
 
   if(!config_)
   {
-    printDebug(DEBUG_ERROR, this, "Initiate Video", "Failed to allocate Kvazaar config.");
+    printDebug(DEBUG_ERROR, this, DC_STARTUP, "Failed to allocate Kvazaar config.");
     return false;
   }
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
@@ -109,7 +109,7 @@ bool KvazaarFilter::init()
 
   if(!enc_)
   {
-    printDebug(DEBUG_ERROR, this, "Video Process", "Failed to open Kvazaar encoder.");
+    printDebug(DEBUG_ERROR, this, DC_STARTUP, "Failed to open Kvazaar encoder.");
     return false;
   }
 
@@ -117,7 +117,7 @@ bool KvazaarFilter::init()
 
   if(!input_pic_)
   {
-    printDebug(DEBUG_ERROR, this, "Initiate Video", "Could not allocate input picture.");
+    printDebug(DEBUG_ERROR, this, DC_STARTUP, "Could not allocate input picture.");
     return false;
   }
 
@@ -154,7 +154,7 @@ void KvazaarFilter::process()
   {
     if(!input_pic_)
     {
-      printDebug(DEBUG_ERROR, this, "Video Process", "Input picture was not allocated correctly.");
+      printDebug(DEBUG_ERROR, this, DC_PROCESS_MEDIA, "Input picture was not allocated correctly.");
       break;
     }
 

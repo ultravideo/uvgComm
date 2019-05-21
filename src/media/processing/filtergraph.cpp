@@ -200,7 +200,8 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
       }
       else
       {
-        printDebug(DEBUG_WARNING, "FilterGraph", "Iniating", "Could not find conversion for filter.");
+        printDebug(DEBUG_WARNING, "FilterGraph", DC_STARTUP,
+                   "Could not find conversion for filter.");
         return false;
       }
       // the conversion filter has been added to the end
@@ -223,7 +224,8 @@ bool FilterGraph::connectFilters(std::shared_ptr<Filter> filter, std::shared_ptr
 
   if(previous->outputType() != filter->inputType())
   {
-    printDebug(DEBUG_WARNING, "FilterGraph", "Iniating", "The connecting filter output and input DO NOT MATCH.");
+    printDebug(DEBUG_WARNING, "FilterGraph", DC_STARTUP,
+               "The connecting filter output and input DO NOT MATCH.");
     return false;
   }
   previous->addOutConnection(filter);
@@ -284,7 +286,7 @@ void FilterGraph::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoF
 
   if(peers_.at(sessionID - 1)->videoFramedSource)
   {
-    printDebug(DEBUG_WARNING, "FilterGraph", "Add participant",
+    printDebug(DEBUG_WARNING, "FilterGraph", DC_ADD_MEDIA,
                "We are already sending video to participant.");
     return;
   }
@@ -306,7 +308,7 @@ void FilterGraph::receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> v
 
   if(!peers_.at(sessionID - 1)->videoReceive.empty())
   {
-    printDebug(DEBUG_WARNING, "FilterGraph", "Add Participant",
+    printDebug(DEBUG_WARNING, "FilterGraph", DC_ADD_MEDIA,
                "We are receiving video from this participant", {"SessionID"}, {QString::number(sessionID)});
     return;
   }
@@ -335,7 +337,8 @@ void FilterGraph::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioF
 
   if(peers_.at(sessionID - 1)->audioFramedSource)
   {
-    printDebug(DEBUG_WARNING, "FilterGraph", "Add Participant", "We are already sending audio to participant.",
+    printDebug(DEBUG_WARNING, "FilterGraph", DC_ADD_MEDIA,
+               "We are already sending audio to participant.",
       {"SessionID"}, {QString::number(sessionID)});
     return;
   }
@@ -362,7 +365,8 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
 
   if(!peers_.at(sessionID - 1)->audioReceive.empty())
   {
-    printDebug(DEBUG_WARNING, "FilterGraph", "Add Participant", "We are receiving video from this participant.",
+    printDebug(DEBUG_WARNING, "FilterGraph", DC_ADD_MEDIA,
+               "We are receiving video from this participant.",
       {"SessionID"}, {QString::number(sessionID)});
     return;
   }
@@ -380,7 +384,8 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
   }
   else
   {
-    printDebug(DEBUG_WARNING, "FilterGraph", "Add Participant", "Did not attach echo cancellation");
+    printDebug(DEBUG_WARNING, "FilterGraph", DC_ADD_MEDIA,
+               "Did not attach echo cancellation");
   }
 
   peers_.at(sessionID - 1)->output = new AudioOutput(stats_, sessionID);

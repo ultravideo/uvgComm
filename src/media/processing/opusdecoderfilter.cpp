@@ -28,7 +28,7 @@ bool OpusDecoderFilter::init()
 
   if(error)
   {
-    printDebug(DEBUG_WARNING, this, "Iniating", "Failed to initialize opus decoder.",
+    printDebug(DEBUG_WARNING, this, DC_STARTUP, "Failed to initialize opus decoder.",
       {"Errorcode"}, {QString::number(error)});
     return false;
   }
@@ -62,7 +62,8 @@ void OpusDecoderFilter::process()
     }
     else
     {
-      printDebug(DEBUG_WARNING, this, "Process", "Failed to encode audio frame.", {"Error"}, {QString::number(len)});
+      printDebug(DEBUG_WARNING, this, DC_PROCESS_MEDIA,
+                 "Failed to encode audio frame.", {"Error"}, {QString::number(len)});
     }
     input = getInput();
   }

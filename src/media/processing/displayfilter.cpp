@@ -42,7 +42,7 @@ void DisplayFilter::updateSettings()
   }
   else
   {
-    printDebug(DEBUG_ERROR, "CameraInfo", "SIP Send Request",
+    printDebug(DEBUG_ERROR, "CameraInfo", DC_SETTINGS,
                "Missing settings value flip threads.");
   }
 
@@ -69,7 +69,7 @@ void DisplayFilter::process()
       format = QImage::Format_Invalid;
       break;
     default:
-      printDebug(DEBUG_ERROR, this, "Video",
+      printDebug(DEBUG_ERROR, this, DC_PROCESS_MEDIA,
                  "Wrong type of display input.", {"Type"}, {QString::number(input->type)});
       format = QImage::Format_Invalid;
       break;

@@ -40,14 +40,41 @@ QString generateRandomString(uint32_t length)
 }
 
 
+const std::map<DebugContext, QString> contextToString = {{DC_NO_CONTEXT, ""},
+                                         {DC_STARTUP, "Startup"},
+                                         {DC_SHUTDOWN, "Shutdown"},
+                                         {DC_SETTINGS, "Settings"},
+                                         {DC_START_CALL, "Starting call"},
+                                         {DC_END_CALL, "Ending a call"},
+                                         {DC_RINGING, "Ringing"},
+                                         {DC_ACCEPT, "Accepting"},
+                                         {DC_NEGOTIATING, "Negotiating the call"},
+                                         {DC_SIP_CONTENT, "SIP Content"},
+                                         {DC_ADD_MEDIA, "Creating Media"},
+                                         {DC_REMOVE_MEDIA, "Removing Media"},
+                                         {DC_PROCESS_MEDIA, "Processing Media"},
+                                         {DC_AUDIO, "Audio"},
+                                         {DC_FULLSCREEN, "Fullscreen"},
+                                         {DC_DRAWING, "Drawing"},
+                                         {DC_TCP, "TCP connection"},
+                                         {DC_SEND_SIP, "Sending SIP"},
+                                         {DC_SEND_SIP_REQUEST, "Sending SIP Request"},
+                                         {DC_SEND_SIP_RESPONSE, "Sending SIP Response"},
+                                         {DC_RECEIVE_SIP, "Receiving SIP"},
+                                         {DC_RECEIVE_SIP_REQUEST, "Receiving SIP Request"},
+                                         {DC_RECEIVE_SIP_RESPONSE, "Receiving SIP Response"}};
+
+
+
 void printDebug(DebugType type, QObject* object,
-                QString context, QString description,
+                DebugContext context, QString description,
                 QStringList valueNames, QStringList values)
 {
   printDebug(type, object->metaObject()->className(), context, description, valueNames, values);
 }
 
-void printDebug(DebugType type, QString className, QString context, QString description, QStringList valueNames, QStringList values)
+void printDebug(DebugType type, QString className, DebugContext context,
+                QString description, QStringList valueNames, QStringList values)
 {
   QString valueString = "";
   if (valueNames.size() == values.size())
@@ -67,19 +94,26 @@ void printDebug(DebugType type, QString className, QString context, QString desc
     qDebug() << "Value printing failed";
   }
 
+  QString contextString = "No context";
+
+  if (contextToString.find(context) != contextToString.end())
+  {
+    contextString = contextToString.at(context);
+  }
+
   // This could be reduced, but it might change so not worth probably at the moment.
   // Choose which text to print based on type.
   switch (type) {
   case DEBUG_NORMAL:
   {
-    qDebug().nospace().noquote() << context << ", " << className << ": "
+    qDebug().nospace().noquote() << contextString << ", " << className << ": "
                                  << description << " " << valueString;
     break;
   }
   case DEBUG_ERROR:
   {
     qCritical().nospace().noquote() << "ERROR: --------------------------------------------";
-    qCritical().nospace().noquote() << context << ", " << className << ": "
+    qCritical().nospace().noquote() << contextString << ", " << className << ": "
                                  << description << " " << valueString;
     qCritical().nospace().noquote() << "-------------------------------------------- ERROR";
     break;
@@ -87,7 +121,7 @@ void printDebug(DebugType type, QString className, QString context, QString desc
   case DEBUG_WARNING:
   {
     qWarning().nospace().noquote() << "WARNING: --------------------------------------------";
-    qWarning().nospace().noquote() << context << ", " << className << ": "
+    qWarning().nospace().noquote() << contextString << ", " << className << ": "
                                  << description << " " << valueString;
     qWarning().nospace() << "\r\n" << "-------------------------------------------- WARNING";
     break;
@@ -95,7 +129,7 @@ void printDebug(DebugType type, QString className, QString context, QString desc
   case DEBUG_PEER_ERROR:
   {
     qWarning().nospace().noquote() << "PEER ERROR: --------------------------------------------";
-    qWarning().nospace().noquote() << context << ", " << className << ": "
+    qWarning().nospace().noquote() << contextString << ", " << className << ": "
                                  << description << " " << valueString;
     qWarning().nospace().noquote() << "-------------------------------------------- PEER ERROR";
     break;
