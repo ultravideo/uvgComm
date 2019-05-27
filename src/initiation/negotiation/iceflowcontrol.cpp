@@ -64,8 +64,8 @@ void FlowAgent::nominationDone(std::shared_ptr<ICEPair> connection)
     nominated_rtp_->state  = PAIR_NOMINATED;
     nominated_rtcp_->state = PAIR_NOMINATED;
 
-    // mutex need not to be unlocked here because this marks the end of nomination
     emit endNomination();
+    nominated_mtx.unlock();
     return;
   }
 
