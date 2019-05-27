@@ -1,3 +1,4 @@
+#include "common.h"
 #include "stunmsgfact.h"
 #include <QDateTime>
 
@@ -91,7 +92,9 @@ bool StunMessageFactory::validateStunResponse(
       }
     else
     {
-      qDebug() << "port not reported";
+      printDebug(DEBUG_WARNING, "StunMessageFactory",
+                 DC_NEGOTIATING, "port not reported!"
+      );
     }
   }
 
@@ -131,7 +134,6 @@ void StunMessageFactory::expectReplyFrom(
   {
     if (expectedResponses_[address].contains(port))
     {
-      qDebug() << "Purging old entry for " << address << ":" << port;
       expectedResponses_[address][port].clear();
     }
   }

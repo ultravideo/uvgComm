@@ -2,6 +2,7 @@
 #include <QTimer>
 #include <QThread>
 
+#include "common.h"
 #include "connectiontester.h"
 #include "iceflowcontrol.h"
 #include "ice.h"
@@ -112,7 +113,8 @@ void FlowController::run()
 
   if (candidates_ == nullptr || candidates_->size() == 0)
   {
-    qDebug() << "ERROR: invalid candidates, unable to perform ICE candidate negotiation!";
+    printDebug(DEBUG_ERROR, "FlowAgent", DC_NEGOTIATING,
+        "Invalid candidates, unable to perform ICE candidate negotiation!");
     emit ready(nullptr, nullptr, sessionID_);
     return;
   }
@@ -223,21 +225,22 @@ void FlowController::run()
   // we've spawned threads for each candidate, wait for responses at most 10 seconds
   if (!nominationSucceeded)
   {
-    qDebug() << "Remote didn't respond to our request in time!";
+    printDebug(DEBUG_ERROR, "FlowAgent", DC_NEGOTIATING,
+        "Remote didn't respond to our request in time, nomination failed!");
     emit ready(nullptr, nullptr, sessionID_);
     return;
   }
 
   if (!stun.sendNominationRequest(nominated_rtp_.get()))
   {
-    qDebug() << "Failed to nominate RTP candidate!";
+    printDebug(DEBUG_ERROR, "FlowAgent", DC_NEGOTIATING, "Failed to nominate RTP candidate!");
     emit ready(nullptr, nullptr, sessionID_);
     return;
   }
 
   if (!stun.sendNominationRequest(nominated_rtcp_.get()))
   {
-    qDebug() << "Failed to nominate RTCP candidate!";
+    printDebug(DEBUG_ERROR, "FlowAgent", DC_NEGOTIATING, "Failed to nominate RTCP candidate!");
     emit ready(nominated_rtp_, nullptr, sessionID_);
     return;
   }
@@ -255,7 +258,8 @@ void FlowControllee::run()
 
   if (candidates_ == nullptr || candidates_->size() == 0)
   {
-    qDebug() << "ERROR: invalid candidates, unable to perform ICE candidate negotiation!";
+    printDebug(DEBUG_ERROR, "FlowAgent", DC_NEGOTIATING,
+        "Invalid candidates, unable to perform ICE candidate negotiation!");
     emit ready(nullptr, nullptr, sessionID_);
     return;
   }
@@ -368,7 +372,8 @@ void FlowControllee::run()
   // wait for nomination from remote, wait at most 20 seconds
   if (!nominationSucceeded)
   {
-    qDebug() << "Nomination from remote was not received in time!";
+    printDebug(DEBUG_ERROR, "FlowAgent", DC_NEGOTIATING,
+        "Nomination from remote was not received in time!");
     emit ready(nullptr, nullptr, sessionID_);
     return;
   }

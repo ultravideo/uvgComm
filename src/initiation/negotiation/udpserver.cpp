@@ -1,3 +1,4 @@
+#include "common.h"
 #include "udpserver.h"
 #include <QUdpSocket>
 #include <QMetaObject>
@@ -17,8 +18,8 @@ bool UDPServer::bindSocket(const QHostAddress& address, quint16 port, enum SOCKE
 
   if(!socket_->bind(address, port))
   {
-    qDebug() << "Failed to bind UDP socket to " << address.toString();
-    qDebug() << socket_->error();
+    printDebug(DEBUG_ERROR, "UDPServer", DC_NEGOTIATING,
+        "Failed to bind UDP Socket to", { address.toString() });
     return false;
   }
 
@@ -80,24 +81,24 @@ void UDPServer::sendData(
 
   if(data.size() > 512)
   {
-    qWarning() << "Sending too large UDP packet!";
+    printDebug(DEBUG_WARNING, "UDPServer",
+               DC_NEGOTIATING, "Sending too large UDP packet!");
    // TODO do something maybe
   }
   else if (data.size() == 0)
   {
-    qWarning() << "WARNING: Trying to send an empty UDP packet!";
+    printDebug(DEBUG_WARNING, "UDPServer",
+               DC_NEGOTIATING, "Trying to send an empty UDP packet!");
     return;
   }
 
   QNetworkDatagram datagram = QNetworkDatagram(data, address, port);
   datagram.setSender(QHostAddress::AnyIPv4, (quint16)sendPort_);
 
-  /* qDebug() << "Sending UDP packet to:" << address.toString() << ":" << port */
-  /*          << "from port:" << datagram.senderPort(); */
-
   if (socket_->writeDatagram(datagram) < 0)
   {
-    qDebug() << "FAILED TO SEND DATA!";
+    printDebug(DEBUG_ERROR, "UDPServer",
+               DC_NEGOTIATING, "Failed to send UDP datagram!");
   }
 }
 

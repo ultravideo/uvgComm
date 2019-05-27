@@ -1,3 +1,4 @@
+#include "common.h"
 #include "stun.h"
 #include "stunmsgfact.h"
 
@@ -44,12 +45,9 @@ void Stun::handleHostaddress(QHostInfo info)
   if(addresses.size() != 0)
   {
     address = addresses.at(0);
-    qDebug() << "Found" << addresses.size()
-             << "stun server addresses. Using:" << address.toString();
   }
   else
   {
-    qDebug() << "Did not find any addresses";
     return;
   }
 
@@ -157,8 +155,11 @@ bool Stun::controllerSendBindingRequest(ICEPair *pair)
 
   if (msgReceived == false)
   {
-    qDebug() << "WARNING: Failed to receive STUN Binding Response from remote!";
-    qDebug() << "Remote: " << pair->remote->address << ":" << pair->remote->port;
+    printDebug(DEBUG_WARNING, "STUN", DC_NEGOTIATING,
+        "Failed to receive STUN Binding Response from remote!", {
+          pair->remote->address, QString(pair->remote->port)
+        }
+    );
 
     if (multiplex_ == false)
     {
@@ -255,8 +256,11 @@ bool Stun::controlleeSendBindingRequest(ICEPair *pair)
 
   if (msgReceived == false)
   {
-    qDebug() << "WARNING: Failed to receive STUN Binding Request from remote!";
-    qDebug() << "Remote: " << pair->remote->address << ":" << pair->remote->port;
+    printDebug(DEBUG_WARNING, "STUN", DC_NEGOTIATING,
+        "Failed to receive STUN Binding Request from remote!", {
+          pair->remote->address, QString(pair->remote->port)
+        }
+    );
 
     if (multiplex_ == false)
     {
@@ -316,8 +320,12 @@ bool Stun::sendBindingRequest(ICEPair *pair, bool controller)
   {
     if (!udp_->bindRaw(QHostAddress(pair->local->address), pair->local->port))
     {
-      qDebug() << "Binding failed! Cannot send STUN Binding Requests to " 
-               << pair->remote->address << ":" << pair->remote->port;
+      printDebug(DEBUG_ERROR, "STUN", DC_NEGOTIATING,
+          "Binding failed! Cannot send STUN Binding Requests to", {
+            pair->remote->address, QString(pair->remote->port)
+          }
+      );
+
       return false;
     }
 
@@ -339,13 +347,14 @@ bool Stun::sendNominationRequest(ICEPair *pair)
 
   if (multiplex_ == false)
   {
-    qDebug() << "[ICE-CONTROLLING] Binding" << pair->local->address
-             << " to port " << pair->local->port;
-
     if (!udp_->bindRaw(QHostAddress(pair->local->address), pair->local->port))
     {
-      qDebug() << "Binding failed! Cannot send STUN Binding Requests to "
-               << pair->remote->address << ":" << pair->remote->address;
+      printDebug(DEBUG_ERROR, "STUN", DC_NEGOTIATING,
+          "Binding failed! Cannot send STUN Binding Requests to", {
+            pair->remote->address, QString(pair->remote->port)
+          }
+      );
+
       return false;
     }
 
@@ -386,8 +395,11 @@ bool Stun::sendNominationRequest(ICEPair *pair)
 
   if (responseRecv == false)
   {
-    qDebug() << "WARNING: Failed to receive Nomination Response from remote!";
-    qDebug() << "Remote: " << pair->remote->address << ":" << pair->remote->port;
+    printDebug(DEBUG_WARNING, "STUN", DC_NEGOTIATING,
+        "Failed to receive Nomination Response from remote!", {
+          pair->remote->address, QString(pair->remote->port)
+        }
+    );
 
     if (multiplex_ == false)
     {
@@ -409,13 +421,13 @@ bool Stun::sendNominationResponse(ICEPair *pair)
 
   if (multiplex_ == false)
   {
-    qDebug() << "[ICE-CONTROLLED] Binding" << pair->local->address
-             << " TO PORT " << pair->local->port;
-
     if (!udp_->bindRaw(QHostAddress(pair->local->address), pair->local->port))
     {
-      qDebug() << "Binding failed! Cannot send STUN Binding Requests to "
-               << pair->remote->address << ":" << pair->remote->address;
+      printDebug(DEBUG_ERROR, "STUN", DC_NEGOTIATING,
+          "Binding failed! Cannot send STUN Binding Requests to", {
+            pair->remote->address, QString(pair->remote->port)
+          }
+      );
       return false;
     }
 
@@ -465,8 +477,11 @@ bool Stun::sendNominationResponse(ICEPair *pair)
 
   if (nominationRecv == false)
   {
-    qDebug() << "WARNING: Failed to receive Nomination from remote!";
-    qDebug() << "Remote: " << pair->remote->address << ":" << pair->remote->port;
+    printDebug(DEBUG_WARNING, "STUN", DC_NEGOTIATING,
+        "Failed to receive Nomination Request from remote!", {
+          pair->remote->address, QString(pair->remote->port)
+        }
+    );
 
     if (multiplex_ == false)
     {
@@ -487,18 +502,18 @@ void Stun::processReply(QByteArray data)
 {
   if(data.size() < 20)
   {
-    qDebug() << "Received too small response to STUN query!";
+    printDebug(DEBUG_WARNING, "STUN", DC_NEGOTIATING,
+        "Received too small response to STUN query!");
     return;
   }
 
   QString message = QString::fromStdString(data.toHex().toStdString());
-  qDebug() << "Got a STUN reply:" << message << "with size:" << data.size();
 
   STUNMessage response = stunmsg_.networkToHost(data);
 
   if (!stunmsg_.validateStunResponse(response))
   {
-    qDebug() << "Invalid STUN Response!";
+    printDebug(DEBUG_WARNING, "STUN", DC_NEGOTIATING, "Invalid STUN Response!");
     emit stunError();
     return;
   }
@@ -511,7 +526,7 @@ void Stun::processReply(QByteArray data)
   }
   else
   {
-    qDebug() << "DIDN'T GET XOR-MAPPED-ADDRESS!";
+    printDebug(DEBUG_WARNING, "STUN", DC_NEGOTIATING, "DIDN'T GET XOR-MAPPED-ADDRESS!");
     emit stunError();
   }
 }
@@ -556,12 +571,11 @@ void Stun::recvStunMessage(QNetworkDatagram message)
   }
   else
   {
-    qDebug() << "Got unknown STUN message, type: "
-             << stunMsg.getType()
-             << " from " << message.senderAddress()
-             << ":"      << message.senderPort()
-             << " to"    << message.destinationAddress()
-             << ":"      << message.destinationPort();
+    /* TODO:  */
+    /* printDebug(DEBUG_WARNING, "STUN", DC_NEGOTIATING, */
+    /*     { "type", "from", "to" }, */
+    /*     { stunMsg.getType(), QString(message.senderAddress()) + QString(message.senderPort()), */
+    /*       QString(message.destinationAddress()) + QString(message.destinationPort())}); */
   }
 }
 

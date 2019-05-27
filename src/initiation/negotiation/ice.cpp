@@ -131,7 +131,8 @@ void ICE::createSTUNCandidate(QHostAddress address)
 {
   if (address == QHostAddress(""))
   {
-    qDebug() << "WARNING: Failed to resolve public IP! Server-reflexive candidates won't be created!";
+    printDebug(DEBUG_WARNING, "ICE", DC_NEGOTIATING,
+       "Failed to resolve public IP! Server-reflexive candidates won't be created!");
   }
 
   stunAddress_ = address;
@@ -315,7 +316,7 @@ void ICE::handleEndOfNomination(
 
   if (rtp == nullptr || rtcp == nullptr)
   {
-    qDebug() << "ERROR: Nomination failed! Unable to start call.";
+    printDebug(DEBUG_ERROR, "ICE", DC_NEGOTIATING, "Failed to nominate RTP/RTCP candidates!");
     nominationInfo_[sessionID].connectionNominated = false;
   }
   else 
