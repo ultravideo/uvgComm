@@ -15,7 +15,7 @@ QString generateRandomString(uint32_t length);
 
 // DEBUG_NORMAL is for one time informational debug printing.
 // DEBUG_WARNING is for events that should not be able to happen in Kvazzup which do not cause problems.
-// DEBUG_ERROR is for events that should not be able to happen in Kvazzup and results in problems.
+// DEBUG_ERROR is for events that should not be able to happen in Kvazzup.
 // DEBUG_PEER_ERROR is for events that are errors in behavior of entities that are not us.
 enum DebugType{DEBUG_NORMAL, DEBUG_ERROR, DEBUG_WARNING, DEBUG_PEER_ERROR};
 
@@ -28,6 +28,7 @@ enum DebugContext{DC_NO_CONTEXT,
                   DC_END_CALL,
                   DC_RINGING,
                   DC_ACCEPT,
+                  DC_REJECT,
                   DC_NEGOTIATING,
                   DC_SIP_CONTENT,
                   DC_ADD_MEDIA,
