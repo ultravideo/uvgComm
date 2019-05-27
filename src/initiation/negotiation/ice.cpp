@@ -96,13 +96,6 @@ QList<std::shared_ptr<ICEInfo>> ICE::generateICECandidates()
     candidates.push_back(candidate.second);
   }
 
-#if 0
-    candidate = makeCandidate(QHostAddress("172.17.0.1"), "host");
-
-    candidates.push_back(candidate.first);
-    candidates.push_back(candidate.second);
-#endif
-
   return candidates;
 }
 
