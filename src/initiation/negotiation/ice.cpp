@@ -17,7 +17,12 @@ ICE::ICE():
 {
   parameters_.setPortRange(MIN_ICE_PORT, MAX_ICE_PORT, MAX_PORTS);
 
-  QObject::connect(&stun_, SIGNAL(addressReceived(QHostAddress)), this, SLOT(createSTUNCandidate(QHostAddress)));
+  QObject::connect(
+      &stun_,
+      SIGNAL(addressReceived(QHostAddress)),
+      this,
+      SLOT(createSTUNCandidate(QHostAddress))
+  );
   stun_.wantAddress("stun.l.google.com");
 
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
@@ -101,7 +106,8 @@ QList<std::shared_ptr<ICEInfo>> ICE::generateICECandidates()
   return candidates;
 }
 
-std::pair<std::shared_ptr<ICEInfo>, std::shared_ptr<ICEInfo>> ICE::makeCandidate(QHostAddress address, QString type)
+std::pair<std::shared_ptr<ICEInfo>, std::shared_ptr<ICEInfo>>
+ICE::makeCandidate(QHostAddress address, QString type)
 {
   std::shared_ptr<ICEInfo> entry_rtp  = std::make_shared<ICEInfo>();
   std::shared_ptr<ICEInfo> entry_rtcp = std::make_shared<ICEInfo>();
@@ -157,7 +163,10 @@ void ICE::printCandidate(ICEInfo *candidate)
            << candidate->address    << ":" << candidate->port;
 }
 
-QList<std::shared_ptr<ICEPair>> ICE::makeCandidatePairs(QList<std::shared_ptr<ICEInfo>>& local, QList<std::shared_ptr<ICEInfo>>& remote)
+QList<std::shared_ptr<ICEPair>> ICE::makeCandidatePairs(
+    QList<std::shared_ptr<ICEInfo>>& local,
+    QList<std::shared_ptr<ICEInfo>>& remote
+)
 {
   QList<std::shared_ptr<ICEPair>> pairs;
 
@@ -191,7 +200,11 @@ QList<std::shared_ptr<ICEPair>> ICE::makeCandidatePairs(QList<std::shared_ptr<IC
 // response can be set as fast as possible and the remote can start respoding to our requests
 //
 // Thread spawned by startNomination() must keep track of which candidates failed and which succeeded
-void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local, QList<std::shared_ptr<ICEInfo>>& remote, uint32_t sessionID)
+void ICE::startNomination(
+    QList<std::shared_ptr<ICEInfo>>& local,
+    QList<std::shared_ptr<ICEInfo>>& remote,
+    uint32_t sessionID
+)
 {
   if (iceEnabled_ == false)
   {
@@ -208,7 +221,13 @@ void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local, QList<std::sha
   nominationInfo_[sessionID].connectionNominated = false;
 
   FlowController *callee = nominationInfo_[sessionID].controller;
-  QObject::connect(callee, &FlowController::ready, this, &ICE::handleCalleeEndOfNomination, Qt::DirectConnection);
+  QObject::connect(
+      callee,
+      &FlowController::ready,
+      this,
+      &ICE::handleCalleeEndOfNomination,
+      Qt::DirectConnection
+  );
 
   callee->setCandidates(&nominationInfo_[sessionID].pairs);
   callee->setSessionID(sessionID);
@@ -220,7 +239,11 @@ void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local, QList<std::sha
 // respondToNominations() spawns a control thread that starts testing all candidates
 // It doesn't do any external book keeping as it's responsible for only responding to STUN requets
 // When it has gone through all candidate pairs it exits
-void ICE::respondToNominations(QList<std::shared_ptr<ICEInfo>>& local, QList<std::shared_ptr<ICEInfo>>& remote, uint32_t sessionID)
+void ICE::respondToNominations(
+    QList<std::shared_ptr<ICEInfo>>& local,
+    QList<std::shared_ptr<ICEInfo>>& remote,
+    uint32_t sessionID
+)
 {
   if (iceEnabled_ == false)
   {
@@ -237,7 +260,13 @@ void ICE::respondToNominations(QList<std::shared_ptr<ICEInfo>>& local, QList<std
   nominationInfo_[sessionID].connectionNominated = false;
 
   FlowControllee *caller = nominationInfo_[sessionID].controllee;
-  QObject::connect(caller, &FlowControllee::ready, this, &ICE::handleCallerEndOfNomination, Qt::DirectConnection);
+  QObject::connect(
+      caller,
+      &FlowControllee::ready,
+      this,
+      &ICE::handleCallerEndOfNomination,
+      Qt::DirectConnection
+  );
 
   caller->setCandidates(&nominationInfo_[sessionID].pairs);
   caller->setSessionID(sessionID);
@@ -252,7 +281,8 @@ bool ICE::callerConnectionNominated(uint32_t sessionID)
     return true;
   }
 
-  while (!nominationInfo_[sessionID].caller_mtx->try_lock_for(std::chrono::milliseconds(200)))
+  while (!nominationInfo_[sessionID].caller_mtx
+            ->try_lock_for(std::chrono::milliseconds(200)))
   {
   }
 
@@ -270,7 +300,8 @@ bool ICE::calleeConnectionNominated(uint32_t sessionID)
     return true;
   }
 
-  while (!nominationInfo_[sessionID].callee_mtx->try_lock_for(std::chrono::milliseconds(200)))
+  while (!nominationInfo_[sessionID].callee_mtx
+            ->try_lock_for(std::chrono::milliseconds(200)))
   {
   }
 
@@ -280,7 +311,11 @@ bool ICE::calleeConnectionNominated(uint32_t sessionID)
   return nominationInfo_[sessionID].connectionNominated;
 }
 
-void ICE::handleEndOfNomination(std::shared_ptr<ICEPair> rtp, std::shared_ptr<ICEPair> rtcp, uint32_t sessionID)
+void ICE::handleEndOfNomination(
+    std::shared_ptr<ICEPair> rtp,
+    std::shared_ptr<ICEPair> rtcp,
+    uint32_t sessionID
+)
 {
   // nothing needs to be cleaned if ICE was disabled
   if (iceEnabled_ == false)
@@ -324,11 +359,16 @@ void ICE::handleEndOfNomination(std::shared_ptr<ICEPair> rtp, std::shared_ptr<IC
     opusPairRTP->remote->port  += 2; // hevc rtp, hevc rtcp and then opus rtp
     opusPairRTCP->remote->port += 2; // hev rtp, hevc, rtcp, opus rtp and then opus rtcp
 
-    nominationInfo_[sessionID].nominatedAudio = std::make_pair(opusPairRTP, opusPairRTCP);
+    nominationInfo_[sessionID].nominatedAudio =
+      std::make_pair(opusPairRTP, opusPairRTCP);
   }
 }
 
-void ICE::handleCallerEndOfNomination(std::shared_ptr<ICEPair> rtp, std::shared_ptr<ICEPair> rtcp, uint32_t sessionID)
+void ICE::handleCallerEndOfNomination(
+    std::shared_ptr<ICEPair> rtp,
+    std::shared_ptr<ICEPair> rtcp,
+    uint32_t sessionID
+)
 {
   this->handleEndOfNomination(rtp, rtcp, sessionID);
 
@@ -336,7 +376,11 @@ void ICE::handleCallerEndOfNomination(std::shared_ptr<ICEPair> rtp, std::shared_
   nominationInfo_[sessionID].controllee->quit();
 }
 
-void ICE::handleCalleeEndOfNomination(std::shared_ptr<ICEPair> rtp, std::shared_ptr<ICEPair> rtcp, uint32_t sessionID)
+void ICE::handleCalleeEndOfNomination(
+    std::shared_ptr<ICEPair> rtp,
+    std::shared_ptr<ICEPair> rtcp,
+    uint32_t sessionID
+)
 {
   this->handleEndOfNomination(rtp, rtcp, sessionID);
 
@@ -369,7 +413,9 @@ void ICE::cleanupSession(uint32_t sessionID)
       if (nominationInfo_[sessionID].pairs.at(i)->local &&
           nominationInfo_[sessionID].pairs.at(i)->local->component == RTP)
       {
-        parameters_.deallocateMediaPorts(nominationInfo_[sessionID].pairs.at(i)->local->port);
+        parameters_.deallocateMediaPorts(
+            nominationInfo_[sessionID].pairs.at(i)->local->port
+        );
       }
     }
 

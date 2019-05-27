@@ -25,7 +25,13 @@ void ConnectionTester::setStun(Stun *stun)
 {
   stun_ = stun;
 
-  QObject::connect(this, &ConnectionTester::stopTesting, stun, &Stun::stopTesting);
+  QObject::connect(
+      this,
+      &ConnectionTester::stopTesting,
+      stun,
+      &Stun::stopTesting,
+      Qt::DirectConnection
+  );
 }
 
 void ConnectionTester::quit()

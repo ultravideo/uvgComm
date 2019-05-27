@@ -68,7 +68,12 @@ bool UDPServer::bindMultiplexed(const QHostAddress& address, quint16 port)
   return bindSocket(address, port, SOCKET_MULTIPLEXED);
 }
 
-void UDPServer::sendData(QByteArray& data, const QHostAddress &address, quint16 port, bool untilReply)
+void UDPServer::sendData(
+    QByteArray& data,
+    const QHostAddress& address,
+    quint16 port,
+    bool untilReply
+)
 {
   /* qDebug() << "Sending the following UDP data:" << QString::fromStdString(data.toHex().toStdString()) */
   /*          << "with size:" << data.size(); */
@@ -122,7 +127,8 @@ void UDPServer::readMultiplexData()
     // is anyone listening to  messages from this sender?
     if (listeners_.contains(datagram.senderAddress().toString()))
     {
-      if (listeners_[datagram.senderAddress().toString()].contains(datagram.senderPort()))
+      if (listeners_[datagram.senderAddress().toString()]
+          .contains(datagram.senderPort()))
       {
         QMetaObject::invokeMethod(
             listeners_[datagram.senderAddress().toString()][datagram.senderPort()],

@@ -68,7 +68,11 @@ bool StunMessageFactory::validateStunRequest(STUNMessage& message)
   return this->validateStunMessage(message, STUN_REQUEST);
 }
 
-bool StunMessageFactory::validateStunResponse(STUNMessage& response, QHostAddress sender, uint16_t port)
+bool StunMessageFactory::validateStunResponse(
+    STUNMessage& response,
+    QHostAddress sender,
+    uint16_t port
+)
 {
   if (expectedResponses_.contains(sender.toString()))
   {
@@ -117,7 +121,11 @@ bool StunMessageFactory::validateStunResponse(STUNMessage& response)
   return false;
 }
 
-void StunMessageFactory::expectReplyFrom(STUNMessage& request, QString address, uint16_t port)
+void StunMessageFactory::expectReplyFrom(
+    STUNMessage& request,
+    QString address,
+    uint16_t port
+)
 {
   if (expectedResponses_.contains(address))
   {
@@ -144,8 +152,12 @@ QByteArray StunMessageFactory::hostToNetwork(STUNMessage& message)
   auto attrs = message.getAttributes();
   const size_t MSG_SIZE = sizeof(STUNRawMessage) + message.getLength();
 
-  auto ptr = std::unique_ptr<unsigned char[]>{ new unsigned char[STUN_MSG_MAX_SIZE] };
-  STUNRawMessage *rawMessage = static_cast<STUNRawMessage *>(static_cast<void *>(ptr.get()));
+  auto ptr = std::unique_ptr<unsigned char[]>{
+    new unsigned char[STUN_MSG_MAX_SIZE]
+  };
+
+  STUNRawMessage *rawMessage =
+    static_cast<STUNRawMessage *>(static_cast<void *>(ptr.get()));
 
   rawMessage->type        = qToBigEndian((short)message.getType());
   rawMessage->length      = qToBigEndian(message.getLength());
@@ -170,7 +182,9 @@ QByteArray StunMessageFactory::hostToNetwork(STUNMessage& message)
     }
   }
 
-  return QByteArray(static_cast<const char *>(static_cast<void *>(ptr.get())), MSG_SIZE);
+  return QByteArray(static_cast<const char *>(
+        static_cast<void *>(ptr.get())), MSG_SIZE
+  );
 }
 
 STUNMessage StunMessageFactory::networkToHost(QByteArray& message)
@@ -239,7 +253,10 @@ STUNMessage StunMessageFactory::networkToHost(QByteArray& message)
   return response;
 }
 
-std::pair<QHostAddress, uint16_t> StunMessageFactory::extractXorMappedAddress(uint16_t payloadLen, uint8_t *payload)
+std::pair<QHostAddress, uint16_t> StunMessageFactory::extractXorMappedAddress(
+    uint16_t payloadLen,
+    uint8_t *payload
+)
 {
   if (payloadLen >= 8)
   {

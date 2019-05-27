@@ -79,8 +79,21 @@ bool FlowAgent::waitForEndOfNomination(unsigned long timeout)
 
   timer.setSingleShot(true);
 
-  connect(this,   &FlowAgent::endNomination, &loop, &QEventLoop::quit);
-  connect(&timer, &QTimer::timeout,          &loop, &QEventLoop::quit);
+  QObject::connect(
+      this,
+      &FlowAgent::endNomination,
+      &loop,
+      &QEventLoop::quit,
+      Qt::DirectConnection
+  );
+
+  QObject::connect(
+      &timer,
+      &QTimer::timeout,
+      &loop,
+      &QEventLoop::quit,
+      Qt::DirectConnection
+  );
 
   timer.start(timeout);
   loop.exec();
@@ -113,7 +126,8 @@ void FlowController::run()
 
   for (int i = 0; i < candidates_->size(); ++i)
   {
-    if (candidates_->at(i)->local->address != prevAddr || candidates_->at(i)->local->port != prevPort)
+    if (candidates_->at(i)->local->address != prevAddr ||
+        candidates_->at(i)->local->port != prevPort)
     {
       bucketNum++;
       buckets.push_back({
@@ -124,7 +138,9 @@ void FlowController::run()
       // because we cannot modify create new objects from child threads (in this case new socket)
       // we must initialize both UDPServer and Stun objects here so that ConnectionTester doesn't have to do
       // anything but to test the connection
-      if (buckets[bucketNum].server->bindMultiplexed(QHostAddress(candidates_->at(i)->local->address), candidates_->at(i)->local->port) == false)
+      if (buckets[bucketNum].server->bindMultiplexed(
+              QHostAddress(candidates_->at(i)->local->address),
+              candidates_->at(i)->local->port) == false)
       {
         delete buckets[bucketNum].server;
         buckets[bucketNum].server = nullptr;
@@ -159,7 +175,13 @@ void FlowController::run()
     {
       workerThreads.push_back(std::make_unique<ConnectionTester>());
 
-      connect(workerThreads.back().get(), &ConnectionTester::testingDone, this, &FlowAgent::nominationDone, Qt::DirectConnection);
+      QObject::connect(
+          workerThreads.back().get(),
+          &ConnectionTester::testingDone,
+          this,
+          &FlowAgent::nominationDone,
+          Qt::DirectConnection
+      );
 
       buckets[i].pairs[k].stun->moveToThread(workerThreads.back().get());
       workerThreads.back()->setCandidatePair(buckets[i].pairs[k].pair);
@@ -247,7 +269,8 @@ void FlowControllee::run()
 
   for (int i = 0; i < candidates_->size(); ++i)
   {
-    if (candidates_->at(i)->local->address != prevAddr || candidates_->at(i)->local->port != prevPort)
+    if (candidates_->at(i)->local->address != prevAddr ||
+        candidates_->at(i)->local->port != prevPort)
     {
       bucketNum++;
       buckets.push_back({
@@ -260,7 +283,9 @@ void FlowControllee::run()
       // anything but to test the connection
       //
       // Binding might fail, if so happens no STUN objects are created for this socket
-      if (buckets[bucketNum].server->bindMultiplexed(QHostAddress(candidates_->at(i)->local->address), candidates_->at(i)->local->port) == false)
+      if (buckets[bucketNum].server->bindMultiplexed(
+            QHostAddress(candidates_->at(i)->local->address),
+            candidates_->at(i)->local->port) == false)
       {
         delete buckets[bucketNum].server;
         buckets[bucketNum].server = nullptr;
@@ -295,7 +320,13 @@ void FlowControllee::run()
     {
       workerThreads.push_back(std::make_unique<ConnectionTester>());
 
-      connect(workerThreads.back().get(), &ConnectionTester::testingDone, this, &FlowAgent::nominationDone, Qt::DirectConnection);
+      QObject::connect(
+          workerThreads.back().get(),
+          &ConnectionTester::testingDone,
+          this,
+          &FlowAgent::nominationDone,
+          Qt::DirectConnection
+      );
 
       buckets[i].pairs[k].stun->moveToThread(workerThreads.back().get());
       workerThreads.back()->setCandidatePair(buckets[i].pairs[k].pair);
