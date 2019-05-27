@@ -3,6 +3,7 @@
 #include <QSettings>
 #include <memory>
 
+#include "common.h"
 #include "ice.h"
 #include "iceflowcontrol.h"
 
@@ -47,23 +48,6 @@ ICE::~ICE()
 int ICE::calculatePriority(int type, int local, int component)
 {
   return (16777216 * type) + (256 * local) + component;
-}
-
-QString ICE::generateFoundation()
-{
-  const QString possibleCharacters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
-  const int randomStringLength = 15;
-
-  QString randomString;
-
-  for (int i = 0; i < randomStringLength; ++i)
-  {
-    int index = qrand() % possibleCharacters.length();
-    QChar nextChar = possibleCharacters.at(index);
-    randomString.append(nextChar);
-  }
-
-  return randomString;
 }
 
 QList<std::shared_ptr<ICEInfo>> ICE::generateICECandidates()
@@ -112,7 +96,7 @@ ICE::makeCandidate(QHostAddress address, QString type)
   entry_rtcp->port = entry_rtp->port + 1;
 
   // for each RTP/RTCP pair foundation is the same
-  const QString foundation = generateFoundation();
+  const QString foundation = generateRandomString(15);
 
   entry_rtp->foundation  = foundation;
   entry_rtcp->foundation = foundation;

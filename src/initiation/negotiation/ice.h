@@ -98,8 +98,6 @@ class ICE : public QObject
 
     int calculatePriority(int type, int local, int component);
 
-    // generate string of random characters
-    QString generateFoundation();
     void printCandidate(ICEInfo *candidate);
 
     // makeCandidatePairs takes a list of local and remote candidates, matches them based on localilty (host/server-reflexive)
