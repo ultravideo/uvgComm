@@ -121,6 +121,8 @@ bool Stun::waitForNominationRequest(unsigned long timeout)
 // send request, wait for response and return
 bool Stun::controllerSendBindingRequest(ICEPair *pair)
 {
+  Q_ASSERT(pair != nullptr);
+
   STUNMessage msg = stunmsg_.createRequest();
   msg.addAttribute(STUN_ATTR_ICE_CONTROLLING);
   msg.addAttribute(STUN_ATTR_PRIORITY, pair->priority);
@@ -308,6 +310,8 @@ bool Stun::controlleeSendBindingRequest(ICEPair *pair)
 
 bool Stun::sendBindingRequest(ICEPair *pair, bool controller)
 {
+  Q_ASSERT(pair != nullptr);
+
   if (multiplex_ == false)
   {
     if (!udp_->bindRaw(QHostAddress(pair->local->address), pair->local->port))
@@ -331,6 +335,8 @@ bool Stun::sendBindingRequest(ICEPair *pair, bool controller)
 
 bool Stun::sendNominationRequest(ICEPair *pair)
 {
+  Q_ASSERT(pair != nullptr);
+
   if (multiplex_ == false)
   {
     qDebug() << "[ICE-CONTROLLING] Binding" << pair->local->address
@@ -399,6 +405,8 @@ bool Stun::sendNominationRequest(ICEPair *pair)
 
 bool Stun::sendNominationResponse(ICEPair *pair)
 {
+  Q_ASSERT(pair != nullptr);
+
   if (multiplex_ == false)
   {
     qDebug() << "[ICE-CONTROLLED] Binding" << pair->local->address

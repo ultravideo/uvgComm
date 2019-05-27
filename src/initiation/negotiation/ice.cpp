@@ -47,6 +47,9 @@ ICE::~ICE()
  * @param component - 1 for RTP, 2 for RTCP */
 int ICE::calculatePriority(int type, int local, int component)
 {
+  Q_ASSERT(type      == HOST || type      == RELAYED);
+  Q_ASSERT(component == RTP  || component == RTCP);
+
   return (16777216 * type) + (256 * local) + component;
 }
 
@@ -136,6 +139,8 @@ void ICE::createSTUNCandidate(QHostAddress address)
 
 void ICE::printCandidate(ICEInfo *candidate)
 {
+  Q_ASSERT(candidate != nullptr);
+
   qDebug() << candidate->foundation << " " << candidate->priority << ": "
            << candidate->address    << ":" << candidate->port;
 }
@@ -258,6 +263,8 @@ bool ICE::callerConnectionNominated(uint32_t sessionID)
     return true;
   }
 
+  Q_ASSERT(sessionID != 0);
+
   while (!nominationInfo_[sessionID].caller_mtx
             ->try_lock_for(std::chrono::milliseconds(200)))
   {
@@ -276,6 +283,8 @@ bool ICE::calleeConnectionNominated(uint32_t sessionID)
   {
     return true;
   }
+
+  Q_ASSERT(sessionID != 0);
 
   while (!nominationInfo_[sessionID].callee_mtx
             ->try_lock_for(std::chrono::milliseconds(200)))
@@ -299,6 +308,10 @@ void ICE::handleEndOfNomination(
   {
     return;
   }
+
+  Q_ASSERT(sessionID != 0);
+  Q_ASSERT(rtp != nullptr);
+  Q_ASSERT(rtcp != nullptr);
 
   if (rtp == nullptr || rtcp == nullptr)
   {
@@ -347,6 +360,10 @@ void ICE::handleCallerEndOfNomination(
     uint32_t sessionID
 )
 {
+  Q_ASSERT(sessionID != 0);
+  Q_ASSERT(rtp != nullptr);
+  Q_ASSERT(rtcp != nullptr);
+
   this->handleEndOfNomination(rtp, rtcp, sessionID);
 
   nominationInfo_[sessionID].caller_mtx->unlock();
@@ -359,6 +376,10 @@ void ICE::handleCalleeEndOfNomination(
     uint32_t sessionID
 )
 {
+  Q_ASSERT(sessionID != 0);
+  Q_ASSERT(rtp != nullptr);
+  Q_ASSERT(rtcp != nullptr);
+
   this->handleEndOfNomination(rtp, rtcp, sessionID);
 
   nominationInfo_[sessionID].callee_mtx->unlock();
@@ -367,6 +388,8 @@ void ICE::handleCalleeEndOfNomination(
 
 ICEMediaInfo ICE::getNominated(uint32_t sessionID)
 {
+  Q_ASSERT(sessionID != 0);
+
   if (nominationInfo_.contains(sessionID) && iceEnabled_ == true)
   {
     return {
@@ -383,6 +406,8 @@ ICEMediaInfo ICE::getNominated(uint32_t sessionID)
 
 void ICE::cleanupSession(uint32_t sessionID)
 {
+  Q_ASSERT(sessionID != 0);
+
   if (nominationInfo_.contains(sessionID) && iceEnabled_ == true)
   {
     for (int i = 0; i < nominationInfo_[sessionID].pairs.size(); ++i)

@@ -13,6 +13,8 @@ ConnectionTester::~ConnectionTester()
 
 void ConnectionTester::setCandidatePair(std::shared_ptr<ICEPair> pair)
 {
+  Q_ASSERT(pair != nullptr);
+
   pair_ = pair;
 }
 
@@ -23,6 +25,8 @@ void ConnectionTester::isController(bool controller)
 
 void ConnectionTester::setStun(Stun *stun)
 {
+  Q_ASSERT(stun != nullptr);
+
   stun_ = stun;
 
   QObject::connect(

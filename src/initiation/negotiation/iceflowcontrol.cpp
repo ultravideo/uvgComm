@@ -9,11 +9,10 @@
 struct Pair
 {
   Stun *stun;
-  /* ICEPair *pair; */
   std::shared_ptr<ICEPair> pair;
 };
 
-// TODO explain
+/* the concept of ConnectionBucket is explained below */
 struct ConnectionBucket
 {
   UDPServer *server;
@@ -34,16 +33,22 @@ void FlowAgent::run() { }
 
 void FlowAgent::setCandidates(QList<std::shared_ptr<ICEPair>> *candidates)
 {
+  Q_ASSERT(candidates != nullptr);
+
   candidates_ = candidates;
 }
 
 void FlowAgent::setSessionID(uint32_t sessionID)
 {
+  Q_ASSERT(sessionID != 0);
+
   sessionID_ = sessionID;
 }
 
 void FlowAgent::nominationDone(std::shared_ptr<ICEPair> connection)
 {
+  Q_ASSERT(connection != nullptr);
+
   nominated_mtx.lock();
 
   if (connection->local->component == RTP)
