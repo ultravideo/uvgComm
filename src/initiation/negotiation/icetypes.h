@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <QString>
 
 enum PAIR {
   PAIR_WAITING     = 0,
@@ -14,6 +15,11 @@ enum PAIR {
 enum COMPONENTS {
   RTP  = 1,
   RTCP = 2
+};
+
+enum HOSTS {
+  RELAYED = 0,
+  HOST    = 126
 };
 
 /* list of ICEInfo (candidates) is send during INVITE */

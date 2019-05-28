@@ -2,6 +2,7 @@
 #include <QTimer>
 #include <QThread>
 
+#include "common.h"
 #include "connectiontester.h"
 #include "iceflowcontrol.h"
 #include "ice.h"
@@ -9,11 +10,10 @@
 struct Pair
 {
   Stun *stun;
-  /* ICEPair *pair; */
   std::shared_ptr<ICEPair> pair;
 };
 
-// TODO explain
+/* the concept of ConnectionBucket is explained below */
 struct ConnectionBucket
 {
   UDPServer *server;
@@ -34,16 +34,22 @@ void FlowAgent::run() { }
 
 void FlowAgent::setCandidates(QList<std::shared_ptr<ICEPair>> *candidates)
 {
+  Q_ASSERT(candidates != nullptr);
+
   candidates_ = candidates;
 }
 
 void FlowAgent::setSessionID(uint32_t sessionID)
 {
+  Q_ASSERT(sessionID != 0);
+
   sessionID_ = sessionID;
 }
 
 void FlowAgent::nominationDone(std::shared_ptr<ICEPair> connection)
 {
+  Q_ASSERT(connection != nullptr);
+
   nominated_mtx.lock();
 
   if (connection->local->component == RTP)
@@ -64,8 +70,8 @@ void FlowAgent::nominationDone(std::shared_ptr<ICEPair> connection)
     nominated_rtp_->state  = PAIR_NOMINATED;
     nominated_rtcp_->state = PAIR_NOMINATED;
 
-    // mutex need not to be unlocked here because this marks the end of nomination
     emit endNomination();
+    nominated_mtx.unlock();
     return;
   }
 
@@ -79,8 +85,21 @@ bool FlowAgent::waitForEndOfNomination(unsigned long timeout)
 
   timer.setSingleShot(true);
 
-  connect(this,   &FlowAgent::endNomination, &loop, &QEventLoop::quit);
-  connect(&timer, &QTimer::timeout,          &loop, &QEventLoop::quit);
+  QObject::connect(
+      this,
+      &FlowAgent::endNomination,
+      &loop,
+      &QEventLoop::quit,
+      Qt::DirectConnection
+  );
+
+  QObject::connect(
+      &timer,
+      &QTimer::timeout,
+      &loop,
+      &QEventLoop::quit,
+      Qt::DirectConnection
+  );
 
   timer.start(timeout);
   loop.exec();
@@ -94,7 +113,8 @@ void FlowController::run()
 
   if (candidates_ == nullptr || candidates_->size() == 0)
   {
-    qDebug() << "ERROR: invalid candidates, unable to perform ICE candidate negotiation!";
+    printDebug(DEBUG_ERROR, "FlowAgent", DC_NEGOTIATING,
+        "Invalid candidates, unable to perform ICE candidate negotiation!");
     emit ready(nullptr, nullptr, sessionID_);
     return;
   }
@@ -113,7 +133,8 @@ void FlowController::run()
 
   for (int i = 0; i < candidates_->size(); ++i)
   {
-    if (candidates_->at(i)->local->address != prevAddr || candidates_->at(i)->local->port != prevPort)
+    if (candidates_->at(i)->local->address != prevAddr ||
+        candidates_->at(i)->local->port != prevPort)
     {
       bucketNum++;
       buckets.push_back({
@@ -124,7 +145,9 @@ void FlowController::run()
       // because we cannot modify create new objects from child threads (in this case new socket)
       // we must initialize both UDPServer and Stun objects here so that ConnectionTester doesn't have to do
       // anything but to test the connection
-      if (buckets[bucketNum].server->bindMultiplexed(QHostAddress(candidates_->at(i)->local->address), candidates_->at(i)->local->port) == false)
+      if (buckets[bucketNum].server->bindMultiplexed(
+              QHostAddress(candidates_->at(i)->local->address),
+              candidates_->at(i)->local->port) == false)
       {
         delete buckets[bucketNum].server;
         buckets[bucketNum].server = nullptr;
@@ -159,7 +182,13 @@ void FlowController::run()
     {
       workerThreads.push_back(std::make_unique<ConnectionTester>());
 
-      connect(workerThreads.back().get(), &ConnectionTester::testingDone, this, &FlowAgent::nominationDone, Qt::DirectConnection);
+      QObject::connect(
+          workerThreads.back().get(),
+          &ConnectionTester::testingDone,
+          this,
+          &FlowAgent::nominationDone,
+          Qt::DirectConnection
+      );
 
       buckets[i].pairs[k].stun->moveToThread(workerThreads.back().get());
       workerThreads.back()->setCandidatePair(buckets[i].pairs[k].pair);
@@ -196,21 +225,22 @@ void FlowController::run()
   // we've spawned threads for each candidate, wait for responses at most 10 seconds
   if (!nominationSucceeded)
   {
-    qDebug() << "Remote didn't respond to our request in time!";
+    printDebug(DEBUG_ERROR, "FlowAgent", DC_NEGOTIATING,
+        "Remote didn't respond to our request in time, nomination failed!");
     emit ready(nullptr, nullptr, sessionID_);
     return;
   }
 
   if (!stun.sendNominationRequest(nominated_rtp_.get()))
   {
-    qDebug() << "Failed to nominate RTP candidate!";
+    printDebug(DEBUG_ERROR, "FlowAgent", DC_NEGOTIATING, "Failed to nominate RTP candidate!");
     emit ready(nullptr, nullptr, sessionID_);
     return;
   }
 
   if (!stun.sendNominationRequest(nominated_rtcp_.get()))
   {
-    qDebug() << "Failed to nominate RTCP candidate!";
+    printDebug(DEBUG_ERROR, "FlowAgent", DC_NEGOTIATING, "Failed to nominate RTCP candidate!");
     emit ready(nominated_rtp_, nullptr, sessionID_);
     return;
   }
@@ -228,7 +258,8 @@ void FlowControllee::run()
 
   if (candidates_ == nullptr || candidates_->size() == 0)
   {
-    qDebug() << "ERROR: invalid candidates, unable to perform ICE candidate negotiation!";
+    printDebug(DEBUG_ERROR, "FlowAgent", DC_NEGOTIATING,
+        "Invalid candidates, unable to perform ICE candidate negotiation!");
     emit ready(nullptr, nullptr, sessionID_);
     return;
   }
@@ -247,7 +278,8 @@ void FlowControllee::run()
 
   for (int i = 0; i < candidates_->size(); ++i)
   {
-    if (candidates_->at(i)->local->address != prevAddr || candidates_->at(i)->local->port != prevPort)
+    if (candidates_->at(i)->local->address != prevAddr ||
+        candidates_->at(i)->local->port != prevPort)
     {
       bucketNum++;
       buckets.push_back({
@@ -260,7 +292,9 @@ void FlowControllee::run()
       // anything but to test the connection
       //
       // Binding might fail, if so happens no STUN objects are created for this socket
-      if (buckets[bucketNum].server->bindMultiplexed(QHostAddress(candidates_->at(i)->local->address), candidates_->at(i)->local->port) == false)
+      if (buckets[bucketNum].server->bindMultiplexed(
+            QHostAddress(candidates_->at(i)->local->address),
+            candidates_->at(i)->local->port) == false)
       {
         delete buckets[bucketNum].server;
         buckets[bucketNum].server = nullptr;
@@ -295,7 +329,13 @@ void FlowControllee::run()
     {
       workerThreads.push_back(std::make_unique<ConnectionTester>());
 
-      connect(workerThreads.back().get(), &ConnectionTester::testingDone, this, &FlowAgent::nominationDone, Qt::DirectConnection);
+      QObject::connect(
+          workerThreads.back().get(),
+          &ConnectionTester::testingDone,
+          this,
+          &FlowAgent::nominationDone,
+          Qt::DirectConnection
+      );
 
       buckets[i].pairs[k].stun->moveToThread(workerThreads.back().get());
       workerThreads.back()->setCandidatePair(buckets[i].pairs[k].pair);
@@ -332,7 +372,8 @@ void FlowControllee::run()
   // wait for nomination from remote, wait at most 20 seconds
   if (!nominationSucceeded)
   {
-    qDebug() << "Nomination from remote was not received in time!";
+    printDebug(DEBUG_ERROR, "FlowAgent", DC_NEGOTIATING,
+        "Nomination from remote was not received in time!");
     emit ready(nullptr, nullptr, sessionID_);
     return;
   }

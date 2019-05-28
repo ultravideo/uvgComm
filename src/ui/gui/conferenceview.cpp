@@ -429,8 +429,13 @@ void ConferenceView::uninitDetachedWidget(uint32_t sessionID)
 void ConferenceView::accept()
 {
   uint32_t sessionID = sender()->property("sessionID").toUInt();
-  if (sessionID != 0)
+  if (sessionID != 0
+      && activeCalls_.find(sessionID) != activeCalls_.end()
+      && activeCalls_[sessionID]->state == VIEWASKING
+      && activeCalls_[sessionID]->in != nullptr)
   {
+    activeCalls_[sessionID]->in->acceptButton->hide();
+    activeCalls_[sessionID]->in->declineButton->hide();
     emit acceptCall(sessionID);
   }
   else
@@ -443,7 +448,20 @@ void ConferenceView::accept()
 void ConferenceView::reject()
 {
   uint32_t sessionID = sender()->property("sessionID").toUInt();
-  emit rejectCall(sessionID);
+  if (sessionID != 0
+      && activeCalls_.find(sessionID) != activeCalls_.end()
+      && activeCalls_[sessionID]->state == VIEWASKING
+      && activeCalls_[sessionID]->in != nullptr)
+  {
+    activeCalls_[sessionID]->in->acceptButton->hide();
+    activeCalls_[sessionID]->in->declineButton->hide();
+    emit rejectCall(sessionID);
+  }
+  else
+  {
+    printDebug(DEBUG_ERROR, this, DC_REJECT,
+               "Couldn't find the invoker for reject.");
+  }
 }
 
 void ConferenceView::cancel()

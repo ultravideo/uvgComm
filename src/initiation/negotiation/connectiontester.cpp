@@ -1,3 +1,4 @@
+#include "common.h"
 #include "connectiontester.h"
 #include "stun.h"
 
@@ -13,6 +14,8 @@ ConnectionTester::~ConnectionTester()
 
 void ConnectionTester::setCandidatePair(std::shared_ptr<ICEPair> pair)
 {
+  Q_ASSERT(pair != nullptr);
+
   pair_ = pair;
 }
 
@@ -23,9 +26,17 @@ void ConnectionTester::isController(bool controller)
 
 void ConnectionTester::setStun(Stun *stun)
 {
+  Q_ASSERT(stun != nullptr);
+
   stun_ = stun;
 
-  QObject::connect(this, &ConnectionTester::stopTesting, stun, &Stun::stopTesting);
+  QObject::connect(
+      this,
+      &ConnectionTester::stopTesting,
+      stun,
+      &Stun::stopTesting,
+      Qt::DirectConnection
+  );
 }
 
 void ConnectionTester::quit()
@@ -38,7 +49,8 @@ void ConnectionTester::run()
 {
   if (pair_ == nullptr)
   {
-    qDebug() << "Unable to test connection, candidate is NULL!";
+    printDebug(DEBUG_ERROR, "ConnectionTester", DC_NEGOTIATING,
+        "Unable to test connection, candidate is NULL!");
     return;
   }
 
@@ -46,18 +58,21 @@ void ConnectionTester::run()
 
   if (!stun_->sendBindingRequest(pair_.get(), controller_))
   {
-    qDebug() << "Connectivity checks failed for"
-             << pair_->local->address  << pair_->local->port
-             << pair_->remote->address << pair_->remote->port;
+    printDebug(DEBUG_ERROR, "ConnectionTester", DC_NEGOTIATING,
+        "Connectivity checks failed for", {
+            pair_->local->address,  QString(pair_->local->port),
+            pair_->remote->address, QString(pair_->remote->port)
+          }
+    );
     return;
   }
 
   pair_->state = PAIR_SUCCEEDED;
 
-  // controller performs the nomination process in FlowController so exit from ConnectionTester when this connection has been tested...
+  // controller performs the nomination process in FlowController
+  // so exit from ConnectionTester when this connection has been tested...
   if (controller_)
   {
-    qDebug() << "pair success" << pair_->local->address << pair_->local->port << pair_->remote->address << pair_->remote->port << pair_->local->component;
     emit testingDone(pair_);
     return;
   }
@@ -65,9 +80,12 @@ void ConnectionTester::run()
   //... otherwise start waitin for nomination requests
   if (!stun_->sendNominationResponse(pair_.get()))
   {
-    qDebug() << "failed to receive nomination for candidate:\n"
-             << "\tlocal:"  << pair_->local->address  << ":" << pair_->local->port << "\n"
-             << "\tremote:" << pair_->remote->address << ":" << pair_->remote->port;
+    printDebug(DEBUG_ERROR, "ConnectionTester", DC_NEGOTIATING,
+        "Failed to receive nomination for candidate: ", {
+            pair_->local->address,  QString(pair_->local->port),
+            pair_->remote->address, QString(pair_->remote->port)
+          }
+    );
     pair_->state = PAIR_FAILED;
     return;
   }

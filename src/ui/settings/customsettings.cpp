@@ -2,7 +2,7 @@
 
 #include "ui_customSettings.h"
 
-#include <media/processing/camerainfo.h>
+#include <ui/settings/camerainfo.h>
 #include "settingshelper.h"
 
 #include <QTableWidgetItem>

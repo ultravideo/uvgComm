@@ -2,7 +2,7 @@
 
 #include "ui_settings.h"
 
-#include <media/processing/camerainfo.h>
+#include <ui/settings/camerainfo.h>
 #include "settingshelper.h"
 
 #include <QDebug>

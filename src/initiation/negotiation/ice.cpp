@@ -3,6 +3,7 @@
 #include <QSettings>
 #include <memory>
 
+#include "common.h"
 #include "ice.h"
 #include "iceflowcontrol.h"
 
@@ -17,7 +18,12 @@ ICE::ICE():
 {
   parameters_.setPortRange(MIN_ICE_PORT, MAX_ICE_PORT, MAX_PORTS);
 
-  QObject::connect(&stun_, SIGNAL(addressReceived(QHostAddress)), this, SLOT(createSTUNCandidate(QHostAddress)));
+  QObject::connect(
+      &stun_,
+      SIGNAL(addressReceived(QHostAddress)),
+      this,
+      SLOT(createSTUNCandidate(QHostAddress))
+  );
   stun_.wantAddress("stun.l.google.com");
 
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
@@ -41,24 +47,10 @@ ICE::~ICE()
  * @param component - 1 for RTP, 2 for RTCP */
 int ICE::calculatePriority(int type, int local, int component)
 {
+  Q_ASSERT(type      == HOST || type      == RELAYED);
+  Q_ASSERT(component == RTP  || component == RTCP);
+
   return (16777216 * type) + (256 * local) + component;
-}
-
-QString ICE::generateFoundation()
-{
-  const QString possibleCharacters("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
-  const int randomStringLength = 15;
-
-  QString randomString;
-
-  for (int i = 0; i < randomStringLength; ++i)
-  {
-    int index = qrand() % possibleCharacters.length();
-    QChar nextChar = possibleCharacters.at(index);
-    randomString.append(nextChar);
-  }
-
-  return randomString;
 }
 
 QList<std::shared_ptr<ICEInfo>> ICE::generateICECandidates()
@@ -71,10 +63,7 @@ QList<std::shared_ptr<ICEInfo>> ICE::generateICECandidates()
 
   foreach (const QHostAddress& address, QNetworkInterface::allAddresses())
   {
-    if (address.protocol() == QAbstractSocket::IPv4Protocol &&
-        (address.toString().startsWith("10.")   ||
-         address.toString().startsWith("192.")  ||
-         address.toString().startsWith("172.")))
+    if (address.protocol() == QAbstractSocket::IPv4Protocol && isPrivateNetwork(address))
     {
       candidate = makeCandidate(address, "host");
 
@@ -91,17 +80,11 @@ QList<std::shared_ptr<ICEInfo>> ICE::generateICECandidates()
     candidates.push_back(candidate.second);
   }
 
-#if 0
-    candidate = makeCandidate(QHostAddress("172.17.0.1"), "host");
-
-    candidates.push_back(candidate.first);
-    candidates.push_back(candidate.second);
-#endif
-
   return candidates;
 }
 
-std::pair<std::shared_ptr<ICEInfo>, std::shared_ptr<ICEInfo>> ICE::makeCandidate(QHostAddress address, QString type)
+std::pair<std::shared_ptr<ICEInfo>, std::shared_ptr<ICEInfo>>
+ICE::makeCandidate(QHostAddress address, QString type)
 {
   std::shared_ptr<ICEInfo> entry_rtp  = std::make_shared<ICEInfo>();
   std::shared_ptr<ICEInfo> entry_rtcp = std::make_shared<ICEInfo>();
@@ -113,7 +96,7 @@ std::pair<std::shared_ptr<ICEInfo>, std::shared_ptr<ICEInfo>> ICE::makeCandidate
   entry_rtcp->port = entry_rtp->port + 1;
 
   // for each RTP/RTCP pair foundation is the same
-  const QString foundation = generateFoundation();
+  const QString foundation = generateRandomString(15);
 
   entry_rtp->foundation  = foundation;
   entry_rtcp->foundation = foundation;
@@ -145,7 +128,8 @@ void ICE::createSTUNCandidate(QHostAddress address)
 {
   if (address == QHostAddress(""))
   {
-    qDebug() << "WARNING: Failed to resolve public IP! Server-reflexive candidates won't be created!";
+    printDebug(DEBUG_WARNING, "ICE", DC_NEGOTIATING,
+       "Failed to resolve public IP! Server-reflexive candidates won't be created!");
   }
 
   stunAddress_ = address;
@@ -153,11 +137,16 @@ void ICE::createSTUNCandidate(QHostAddress address)
 
 void ICE::printCandidate(ICEInfo *candidate)
 {
+  Q_ASSERT(candidate != nullptr);
+
   qDebug() << candidate->foundation << " " << candidate->priority << ": "
            << candidate->address    << ":" << candidate->port;
 }
 
-QList<std::shared_ptr<ICEPair>> ICE::makeCandidatePairs(QList<std::shared_ptr<ICEInfo>>& local, QList<std::shared_ptr<ICEInfo>>& remote)
+QList<std::shared_ptr<ICEPair>> ICE::makeCandidatePairs(
+    QList<std::shared_ptr<ICEInfo>>& local,
+    QList<std::shared_ptr<ICEInfo>>& remote
+)
 {
   QList<std::shared_ptr<ICEPair>> pairs;
 
@@ -191,7 +180,11 @@ QList<std::shared_ptr<ICEPair>> ICE::makeCandidatePairs(QList<std::shared_ptr<IC
 // response can be set as fast as possible and the remote can start respoding to our requests
 //
 // Thread spawned by startNomination() must keep track of which candidates failed and which succeeded
-void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local, QList<std::shared_ptr<ICEInfo>>& remote, uint32_t sessionID)
+void ICE::startNomination(
+    QList<std::shared_ptr<ICEInfo>>& local,
+    QList<std::shared_ptr<ICEInfo>>& remote,
+    uint32_t sessionID
+)
 {
   if (iceEnabled_ == false)
   {
@@ -208,7 +201,13 @@ void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local, QList<std::sha
   nominationInfo_[sessionID].connectionNominated = false;
 
   FlowController *callee = nominationInfo_[sessionID].controller;
-  QObject::connect(callee, &FlowController::ready, this, &ICE::handleCalleeEndOfNomination, Qt::DirectConnection);
+  QObject::connect(
+      callee,
+      &FlowController::ready,
+      this,
+      &ICE::handleCalleeEndOfNomination,
+      Qt::DirectConnection
+  );
 
   callee->setCandidates(&nominationInfo_[sessionID].pairs);
   callee->setSessionID(sessionID);
@@ -220,7 +219,11 @@ void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local, QList<std::sha
 // respondToNominations() spawns a control thread that starts testing all candidates
 // It doesn't do any external book keeping as it's responsible for only responding to STUN requets
 // When it has gone through all candidate pairs it exits
-void ICE::respondToNominations(QList<std::shared_ptr<ICEInfo>>& local, QList<std::shared_ptr<ICEInfo>>& remote, uint32_t sessionID)
+void ICE::respondToNominations(
+    QList<std::shared_ptr<ICEInfo>>& local,
+    QList<std::shared_ptr<ICEInfo>>& remote,
+    uint32_t sessionID
+)
 {
   if (iceEnabled_ == false)
   {
@@ -237,7 +240,13 @@ void ICE::respondToNominations(QList<std::shared_ptr<ICEInfo>>& local, QList<std
   nominationInfo_[sessionID].connectionNominated = false;
 
   FlowControllee *caller = nominationInfo_[sessionID].controllee;
-  QObject::connect(caller, &FlowControllee::ready, this, &ICE::handleCallerEndOfNomination, Qt::DirectConnection);
+  QObject::connect(
+      caller,
+      &FlowControllee::ready,
+      this,
+      &ICE::handleCallerEndOfNomination,
+      Qt::DirectConnection
+  );
 
   caller->setCandidates(&nominationInfo_[sessionID].pairs);
   caller->setSessionID(sessionID);
@@ -252,7 +261,10 @@ bool ICE::callerConnectionNominated(uint32_t sessionID)
     return true;
   }
 
-  while (!nominationInfo_[sessionID].caller_mtx->try_lock_for(std::chrono::milliseconds(200)))
+  Q_ASSERT(sessionID != 0);
+
+  while (!nominationInfo_[sessionID].caller_mtx
+            ->try_lock_for(std::chrono::milliseconds(200)))
   {
   }
 
@@ -270,7 +282,10 @@ bool ICE::calleeConnectionNominated(uint32_t sessionID)
     return true;
   }
 
-  while (!nominationInfo_[sessionID].callee_mtx->try_lock_for(std::chrono::milliseconds(200)))
+  Q_ASSERT(sessionID != 0);
+
+  while (!nominationInfo_[sessionID].callee_mtx
+            ->try_lock_for(std::chrono::milliseconds(200)))
   {
   }
 
@@ -280,7 +295,11 @@ bool ICE::calleeConnectionNominated(uint32_t sessionID)
   return nominationInfo_[sessionID].connectionNominated;
 }
 
-void ICE::handleEndOfNomination(std::shared_ptr<ICEPair> rtp, std::shared_ptr<ICEPair> rtcp, uint32_t sessionID)
+void ICE::handleEndOfNomination(
+    std::shared_ptr<ICEPair> rtp,
+    std::shared_ptr<ICEPair> rtcp,
+    uint32_t sessionID
+)
 {
   // nothing needs to be cleaned if ICE was disabled
   if (iceEnabled_ == false)
@@ -288,9 +307,13 @@ void ICE::handleEndOfNomination(std::shared_ptr<ICEPair> rtp, std::shared_ptr<IC
     return;
   }
 
+  Q_ASSERT(sessionID != 0);
+  Q_ASSERT(rtp != nullptr);
+  Q_ASSERT(rtcp != nullptr);
+
   if (rtp == nullptr || rtcp == nullptr)
   {
-    qDebug() << "ERROR: Nomination failed! Unable to start call.";
+    printDebug(DEBUG_ERROR, "ICE", DC_NEGOTIATING, "Failed to nominate RTP/RTCP candidates!");
     nominationInfo_[sessionID].connectionNominated = false;
   }
   else 
@@ -324,20 +347,37 @@ void ICE::handleEndOfNomination(std::shared_ptr<ICEPair> rtp, std::shared_ptr<IC
     opusPairRTP->remote->port  += 2; // hevc rtp, hevc rtcp and then opus rtp
     opusPairRTCP->remote->port += 2; // hev rtp, hevc, rtcp, opus rtp and then opus rtcp
 
-    nominationInfo_[sessionID].nominatedAudio = std::make_pair(opusPairRTP, opusPairRTCP);
+    nominationInfo_[sessionID].nominatedAudio =
+      std::make_pair(opusPairRTP, opusPairRTCP);
   }
 }
 
-void ICE::handleCallerEndOfNomination(std::shared_ptr<ICEPair> rtp, std::shared_ptr<ICEPair> rtcp, uint32_t sessionID)
+void ICE::handleCallerEndOfNomination(
+    std::shared_ptr<ICEPair> rtp,
+    std::shared_ptr<ICEPair> rtcp,
+    uint32_t sessionID
+)
 {
+  Q_ASSERT(sessionID != 0);
+  Q_ASSERT(rtp != nullptr);
+  Q_ASSERT(rtcp != nullptr);
+
   this->handleEndOfNomination(rtp, rtcp, sessionID);
 
   nominationInfo_[sessionID].caller_mtx->unlock();
   nominationInfo_[sessionID].controllee->quit();
 }
 
-void ICE::handleCalleeEndOfNomination(std::shared_ptr<ICEPair> rtp, std::shared_ptr<ICEPair> rtcp, uint32_t sessionID)
+void ICE::handleCalleeEndOfNomination(
+    std::shared_ptr<ICEPair> rtp,
+    std::shared_ptr<ICEPair> rtcp,
+    uint32_t sessionID
+)
 {
+  Q_ASSERT(sessionID != 0);
+  Q_ASSERT(rtp != nullptr);
+  Q_ASSERT(rtcp != nullptr);
+
   this->handleEndOfNomination(rtp, rtcp, sessionID);
 
   nominationInfo_[sessionID].callee_mtx->unlock();
@@ -346,6 +386,8 @@ void ICE::handleCalleeEndOfNomination(std::shared_ptr<ICEPair> rtp, std::shared_
 
 ICEMediaInfo ICE::getNominated(uint32_t sessionID)
 {
+  Q_ASSERT(sessionID != 0);
+
   if (nominationInfo_.contains(sessionID) && iceEnabled_ == true)
   {
     return {
@@ -362,6 +404,8 @@ ICEMediaInfo ICE::getNominated(uint32_t sessionID)
 
 void ICE::cleanupSession(uint32_t sessionID)
 {
+  Q_ASSERT(sessionID != 0);
+
   if (nominationInfo_.contains(sessionID) && iceEnabled_ == true)
   {
     for (int i = 0; i < nominationInfo_[sessionID].pairs.size(); ++i)
@@ -369,10 +413,35 @@ void ICE::cleanupSession(uint32_t sessionID)
       if (nominationInfo_[sessionID].pairs.at(i)->local &&
           nominationInfo_[sessionID].pairs.at(i)->local->component == RTP)
       {
-        parameters_.deallocateMediaPorts(nominationInfo_[sessionID].pairs.at(i)->local->port);
+        parameters_.deallocateMediaPorts(
+            nominationInfo_[sessionID].pairs.at(i)->local->port
+        );
       }
     }
 
     nominationInfo_.remove(sessionID);
   }
+}
+
+/* https://en.wikipedia.org/wiki/Private_network#Private_IPv4_addresses */
+bool ICE::isPrivateNetwork(const QHostAddress& address)
+{
+  const QString addr = address.toString();
+
+  if (addr.startsWith("10.") || addr.startsWith("192.168"))
+  {
+    return true;
+  }
+
+  if (addr.startsWith("172."))
+  {
+    int octet = addr.split(".")[1].toInt();
+
+    if (octet >= 16 && octet <= 31)
+    {
+      return true;
+    }
+  }
+
+  return false;
 }

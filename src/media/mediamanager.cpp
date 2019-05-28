@@ -96,7 +96,8 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
     }
 
     if(peerInfo->connection_addrtype == "IP4"
-       || (peerInfo->connection_addrtype == "IP6" && address.toString().left(7) == "::ffff:"))
+       || (peerInfo->connection_addrtype == "IP6" && address.toString().left(7) == "::ffff:")
+       || (QHostAddress(address.toIPv4Address()) == QHostAddress(address))) // address is ipv4 indeed
     {
       in_addr ip;
 #ifdef _WIN32
