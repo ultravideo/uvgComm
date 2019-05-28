@@ -63,10 +63,7 @@ QList<std::shared_ptr<ICEInfo>> ICE::generateICECandidates()
 
   foreach (const QHostAddress& address, QNetworkInterface::allAddresses())
   {
-    if (address.protocol() == QAbstractSocket::IPv4Protocol &&
-        (address.toString().startsWith("10.")   ||
-         address.toString().startsWith("192.")  ||
-         address.toString().startsWith("172.")))
+    if (address.protocol() == QAbstractSocket::IPv4Protocol && isPrivateNetwork(address))
     {
       candidate = makeCandidate(address, "host");
 
@@ -424,4 +421,27 @@ void ICE::cleanupSession(uint32_t sessionID)
 
     nominationInfo_.remove(sessionID);
   }
+}
+
+/* https://en.wikipedia.org/wiki/Private_network#Private_IPv4_addresses */
+bool ICE::isPrivateNetwork(const QHostAddress& address)
+{
+  const QString addr = address.toString();
+
+  if (addr.startsWith("10.") || addr.startsWith("192.168"))
+  {
+    return true;
+  }
+
+  if (addr.startsWith("172."))
+  {
+    int octet = addr.split(".")[1].toInt();
+
+    if (octet >= 16 && octet <= 31)
+    {
+      return true;
+    }
+  }
+
+  return false;
 }
