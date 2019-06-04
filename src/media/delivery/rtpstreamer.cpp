@@ -303,13 +303,13 @@ RTPStreamer::Sender *RTPStreamer::addSender(QHostAddress ip, uint16_t port, rtp_
 
   /* TODO: source port (1337 is not valid!) */
 
-  sender->writer = rtp_ctx_.createWriter(ip.toString().toStdString(), port, 1337, type);
+  sender->writer = rtp_ctx_.create_writer(ip.toString().toStdString(), port, 1337, type);
   sender->writer->start();
 
   // TODO is this necessary????
   QString mediaName = QString::number(port);
   DataType realType = NONE;
-  RTPOpus::OpusConfig *config;
+  kvz_rtp::opus::opus_config *config;
 
   switch (type)
   {
@@ -319,12 +319,12 @@ RTPStreamer::Sender *RTPStreamer::addSender(QHostAddress ip, uint16_t port, rtp_
       break;
 
     case RTP_FORMAT_OPUS:
-      config = new RTPOpus::OpusConfig;
+      config = new kvz_rtp::opus::opus_config;
 
       config->channels = 2;
       config->samplerate = 48000;
-      config->configurationNumber = 15; // Hydrib | FB | 20 ms
-      sender->writer->setConfig(config);
+      config->config_number = 15; // Hydrib | FB | 20 ms
+      sender->writer->set_config(config);
 
       mediaName += "_OPUS";
       realType = OPUSAUDIO;
@@ -359,7 +359,7 @@ RTPStreamer::Receiver *RTPStreamer::addReceiver(QHostAddress ip, uint16_t port, 
   qDebug() << "Iniating send RTP/RTCP stream to port:" << port << "With type:" << type;
 
   Receiver *receiver = new Receiver;
-  receiver->reader   = rtp_ctx_.createReader(ip.toString().toStdString(), port, type);
+  receiver->reader   = rtp_ctx_.create_reader(ip.toString().toStdString(), port, type);
   receiver->reader->start();
 
   /* unsigned int estimatedSessionBandwidth = 10000; // in kbps; for RTCP b/w share */

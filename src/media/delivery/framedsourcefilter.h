@@ -11,7 +11,7 @@ class StatisticsInterface;
 class FramedSourceFilter : public Filter
 {
 public:
-  FramedSourceFilter(QString id, StatisticsInterface *stats, DataType type, QString media, RTPWriter *writer);
+  FramedSourceFilter(QString id, StatisticsInterface *stats, DataType type, QString media, kvz_rtp::writer *writer);
   ~FramedSourceFilter();
 
   void updateSettings();
@@ -30,7 +30,7 @@ private:
   bool separateInput_;
   bool removeStartCodes_;
 
-  RTPWriter *writer_;
+  kvz_rtp::writer *writer_;
   uint64_t frame_;
   rtp_format_t dataFormat_;
 };

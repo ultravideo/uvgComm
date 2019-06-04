@@ -7,10 +7,10 @@
 class RTPSinkFilter : public Filter
 {
 public:
-  RTPSinkFilter(QString id, StatisticsInterface *stats, DataType type, QString media, RTPReader *reader);
+  RTPSinkFilter(QString id, StatisticsInterface *stats, DataType type, QString media, kvz_rtp::reader *reader);
   ~RTPSinkFilter();
 
-  void receiveHook(RTPGeneric::GenericFrame *frame);
+  void receiveHook(kvz_rtp::frame::rtp_frame *frame);
 
   void uninit();
   void start();
@@ -24,12 +24,7 @@ private:
   DataType type_;
   bool addStartCodes_;
 
-  RTPReader *reader_;
-
-  uint8_t fragFrame_[16384];
-
-  std::vector<RTPGeneric::GenericFrame *> fragBuf_;
-  size_t fragSize_;
+  kvz_rtp::reader *reader_;
 };
 
 #if 0

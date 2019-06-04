@@ -52,17 +52,17 @@ public:
   void removeAllPeers();
 
 private:
-  RTPContext rtp_ctx_;
+  kvz_rtp::context rtp_ctx_;
 
   struct Sender
   {
-    RTPWriter *writer;
+    kvz_rtp::writer *writer;
     std::shared_ptr<FramedSourceFilter> sourcefilter; // receives stuff from filter graph
   };
 
   struct Receiver
   {
-    RTPReader *reader;
+    kvz_rtp::reader *reader;
     std::shared_ptr<RTPSinkFilter> sink; // sends stuff to filter graph TODO mitä!??!?
   };
 

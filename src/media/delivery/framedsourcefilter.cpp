@@ -8,7 +8,7 @@
 #include "../rtplib/src/util.hh"
 
 FramedSourceFilter::FramedSourceFilter(QString id, StatisticsInterface *stats,
-                                       DataType type, QString media, RTPWriter *writer):
+                                       DataType type, QString media, kvz_rtp::writer *writer):
   Filter(id, "Framed_Source_" + media, stats, type, NONE),
   type_(type),
   stop_(false),
@@ -133,7 +133,7 @@ void FramedSourceFilter::process()
       /* sendFrame(); */
 
       frame_++;
-      if (writer_->pushFrame(currentFrame->data.get(), currentFrame->data_size, dataFormat_, (90000 / 24) * frame_) < 0)
+      if (writer_->push_frame(currentFrame->data.get(), currentFrame->data_size, dataFormat_, (90000 / 24) * frame_) < 0)
       {
         qDebug() << "failed to send data!";
         break;
