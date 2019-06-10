@@ -35,10 +35,6 @@ RTPSinkFilter::~RTPSinkFilter()
 {
 }
 
-void RTPSinkFilter::uninit()
-{
-}
-
 void RTPSinkFilter::process()
 {
 }
