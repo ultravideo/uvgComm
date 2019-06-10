@@ -30,21 +30,18 @@ RTPStreamer::~RTPStreamer()
 
 void RTPStreamer::init(StatisticsInterface *stats)
 {
-  /* qDebug() << "\n\n\nDUMMY INIT\n\n\n"; */
-
   stats_ = stats;
   isIniated_ = true;
 }
 
 void RTPStreamer::uninit()
 {
-  qDebug() << "\n\n\nDUMMY UNINIT\n\n\n";
+  removeAllPeers();
+  isIniated_ = false;
 }
 
 void RTPStreamer::run()
 {
-  qDebug() << "\n\n\nDUMMY RUN\n\n\n";
-
   if (!isIniated_)
   {
     init(stats_);
@@ -53,17 +50,15 @@ void RTPStreamer::run()
 
 void RTPStreamer::stop()
 {
-  qDebug() << "\n\n\nDUMMY STOP\n\n\n";
+  isRunning_ = false;
 }
 
 bool RTPStreamer::addPeer(QHostAddress address, uint32_t sessionID)
 {
-  /* qDebug() << "\n\n\nDUMMY ADDPEER\n\n\n"; */
-
   Q_ASSERT(sessionID != 0);
 
   // not being destroyed
-  if(destroyed_.tryLock(0))
+  if (destroyed_.tryLock(0))
   {
     iniated_.lock(); // not being iniated
 
@@ -170,122 +165,134 @@ std::shared_ptr<Filter> RTPStreamer::addReceiveStream(uint32_t peer, uint16_t po
 
 void RTPStreamer::removeSendVideo(uint32_t sessionID)
 {
-  qDebug() << "\n\n\nDUMMY REMOVESENDVIDEO\n\n\n";
+  if (peers_.at(sessionID - 1) && peers_.at(sessionID)->videoSender)
+  {
+      destroySender(peers_.at(sessionID - 1)->videoSender);
+      peers_[sessionID - 1]->videoSender = nullptr;
+  }
+  else
+  {
+    printDebug(DEBUG_WARNING, this, DC_REMOVE_MEDIA, "Tried to remove videoSender that doesn't exist!");
+  }
 }
 
 void RTPStreamer::removeSendAudio(uint32_t sessionID)
 {
-  qDebug() << "\n\n\nDUMMY REMOVESENDAUDIO\n\n\n";
+  if (peers_.at(sessionID - 1) && peers_.at(sessionID)->audioSender)
+  {
+      destroySender(peers_.at(sessionID - 1)->audioSender);
+      peers_[sessionID - 1]->audioSender = nullptr;
+  }
+  else
+  {
+    printDebug(DEBUG_WARNING, this, DC_REMOVE_MEDIA, "Tried to remove audioSender that doesn't exist!");
+  }
 }
 
 void RTPStreamer::removeReceiveVideo(uint32_t sessionID)
 {
-  qDebug() << "\n\n\nDUMMY REMOVERECEIVEVIDEO\n\n\n";
+  if (peers_.at(sessionID - 1) && peers_.at(sessionID)->videoReceiver)
+  {
+      destroyReceiver(peers_.at(sessionID - 1)->videoReceiver);
+      peers_[sessionID - 1]->videoReceiver = nullptr;
+  }
+  else
+  {
+    printDebug(DEBUG_WARNING, this, DC_REMOVE_MEDIA, "Tried to remove videoReceiver that doesn't exist!");
+  }
 }
 
 void RTPStreamer::removeReceiveAudio(uint32_t sessionID)
 {
-  qDebug() << "\n\n\nDUMMY REMOVERECEIVEAUDIO\n\n\n";
+  if (peers_.at(sessionID - 1) && peers_.at(sessionID)->audioReceiver)
+  {
+      destroyReceiver(peers_.at(sessionID - 1)->audioReceiver);
+      peers_[sessionID - 1]->audioReceiver = nullptr;
+  }
+  else
+  {
+    printDebug(DEBUG_WARNING, this, DC_REMOVE_MEDIA, "Tried to remove audioReceiver that doesn't exist!");
+  }
 }
 
 void RTPStreamer::removePeer(uint32_t sessionID)
 {
-  qDebug() << "\n\n\nDUMMY REMOVEPEER\n\n\n";
+  qDebug() << "Removing peer" << sessionID << "from RTPStreamer";
+
+  if (peers_.at(sessionID - 1) != nullptr)
+  {
+    if (peers_.at(sessionID -1 )->audioSender)
+      destroySender(peers_.at(sessionID - 1)->audioSender);
+
+    if (peers_.at(sessionID - 1)->videoSender)
+      destroySender(peers_.at(sessionID - 1)->videoSender);
+
+    if (peers_.at(sessionID - 1)->audioReceiver)
+      destroyReceiver(peers_.at(sessionID - 1)->audioReceiver);
+
+    if (peers_.at(sessionID - 1)->videoReceiver)
+      destroyReceiver(peers_.at(sessionID - 1)->videoReceiver);
+
+    delete peers_.at(sessionID - 1);
+    peers_[sessionID - 1] = nullptr;
+  }
+  else
+  {
+    printDebug(DEBUG_WARNING, this, DC_REMOVE_MEDIA, "Tried to destroy an already freed peer",
+              { "SessionID" }, { QString(sessionID) });
+  }
 }
 
 void RTPStreamer::removeAllPeers()
 {
-  qDebug() << "\n\n\nDUMMY REMOVEALLPEERS\n\n\n";
+  for (int i = 0; i < peers_.size(); ++i)
+  {
+    if (peers_.at(i) != nullptr)
+    {
+      removePeer(i + 1);
+    }
+  }
 }
 
-void RTPStreamer::destroySender(Sender* sender)
+void RTPStreamer::destroySender(Sender *sender)
 {
-  qDebug() << "\n\n\nDUMMY DESTROYSENDER\n\n\n";
-
   Q_ASSERT(sender);
-  if(sender)
+
+  if (sender)
   {
-    qDebug() << "Destroying sender:" << sender;
+    printDebug(DEBUG_NORMAL, this, DC_REMOVE_MEDIA, "Destroying sender");
 
-    // order of destruction is important!
-#if 0
-    if(sender->sink)
+    if (rtp_ctx_.destroy_writer(sender->writer) != RTP_OK)
     {
-      sender->sink->stopPlaying();
-    }
-    if(sender->rtcp)
-    {
-      RTCPInstance::close(sender->rtcp);
-    }
-    if(sender->sink)
-    {
-      Medium::close(sender->sink);
-    }
-    if(sender->framerSource)
-    {
-      Medium::close(sender->framerSource);
-    }
-    if(sender->sourcefilter)
-    {
-      // the shared_ptr was initialized not to delete the pointer
-      // I don't like live555
-      Medium::close(sender->sourcefilter.get());
+      printDebug(DEBUG_ERROR, this, DC_REMOVE_MEDIA, "Failed to destroy RTP Writer");
     }
 
-    destroyConnection(sender->connection);
     delete sender;
-#endif
   }
   else
-    qWarning() << "Warning: Tried to delete sender a second time";
-}
-void RTPStreamer::destroyReceiver(Receiver* recv)
-{
-  qDebug() << "\n\n\nDUMMY DESTROYRECEIVER\n\n\n";
-
-  Q_ASSERT(recv);
-  if(recv)
   {
-    qDebug() << "Destroying receiver:" << recv;
+    printDebug(DEBUG_WARNING, this, DC_REMOVE_MEDIA, "Tried to delete sender a second time");
+  }
+}
+void RTPStreamer::destroyReceiver(Receiver *recv)
+{
+  Q_ASSERT(recv);
 
-#if 0
-    // order of destruction is important!
-    if(recv->framedSource)
-    {
-      recv->framedSource->stopGettingFrames();
-      recv->framedSource->handleClosure();
-    }
-    if(recv->sink)
-    {
-      recv->sink->stopPlaying();
-      recv->sink->emptyBuffer();
-      recv->sink->stop();
-    }
+  if (recv)
+  {
+    printDebug(DEBUG_NORMAL, this, DC_REMOVE_MEDIA, "Destroying receiver");
 
-    if(recv->rtcp)
+    if (rtp_ctx_.destroy_reader(recv->reader) != RTP_OK)
     {
-      RTCPInstance::close(recv->rtcp);
+      printDebug(DEBUG_ERROR, this, DC_REMOVE_MEDIA, "Failed to destroy RTP Reader");
     }
-    if(recv->sink)
-    {
-      recv->sink->uninit();
-      // the shared_ptr was initialized not to delete the pointer
-      // I don't like live555
-      Medium::close(recv->sink.get());
-    }
-    if(recv->framedSource)
-    {
-      Medium::close(recv->framedSource);
-      recv->framedSource = nullptr;
-    }
-
-    destroyConnection(recv->connection);
 
     delete recv;
-#endif
   }
   else
-    qWarning() << "Warning: Tried to delete receiver a second time";
+  {
+    printDebug(DEBUG_WARNING, this, DC_REMOVE_MEDIA, "Tried to delete receiver a second time");
+  }
 }
 
 bool RTPStreamer::checkSessionID(uint32_t sessionID)
@@ -295,8 +302,6 @@ bool RTPStreamer::checkSessionID(uint32_t sessionID)
 
 RTPStreamer::Sender *RTPStreamer::addSender(QHostAddress ip, uint16_t port, rtp_format_t type, uint8_t rtpNum)
 {
-  /* qDebug() << "\n\n\nDUMMY ADDSENDER\n\n\n"; */
-
   qDebug() << "Iniating send RTP/RTCP stream to port:" << port << "With type:" << type;
 
   Sender *sender = new Sender;

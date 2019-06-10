@@ -85,7 +85,7 @@ private:
   // returns whether peer corresponding to sessionID has been created. Debug
   bool checkSessionID(uint32_t sessionID);
 
-  Sender *addSender(QHostAddress address, uint16_t port, rtp_format_t type, uint8_t rtpNum);
+  Sender     *addSender(QHostAddress ip, uint16_t port, rtp_format_t type, uint8_t rtpNum);
   Receiver *addReceiver(QHostAddress ip, uint16_t port, rtp_format_t type, uint8_t rtpNum);
 
   // private variables
@@ -100,84 +100,5 @@ private:
   uint8_t ttl_;
   struct in_addr sessionAddress_;
 
-  // TODO: ???
-  char stopRTP_; // char for stopping live555 taskscheduler
-  /* UsageEnvironment* env_; */
-  /* TaskScheduler* scheduler_; // pointer needed for proper destruction */
-
   StatisticsInterface *stats_;
-
-  // TODO: ???
-  static const unsigned int maxCNAMElen_ = 100;
-  unsigned char CNAME_[maxCNAMElen_ + 1];
-
-  // TODO: ???
-  QMutex *triggerMutex_;
-
-#if 0
-  struct Connection
-  {
-    Port* rtpPort;
-    Port* rtcpPort;
-    Groupsock* rtpGroupsock;
-    Groupsock* rtcpGroupsock;
-  };
-
-  struct Receiver
-  {
-    Connection connection;
-
-    RTCPInstance* rtcp;
-
-    RTPSource* framedSource;
-    std::shared_ptr<RTPSinkFilter> sink; // sends stuff to filter graph
-  };
-
-  struct Sender
-  {
-    Connection connection;
-
-    RTCPInstance* rtcp;
-
-    RTPSink* sink;
-    std::shared_ptr<FramedSourceFilter> sourcefilter; // receives stuff from filter graph
-    //H265VideoStreamFramer* framerSource;
-    H265VideoStreamDiscreteFramer* framerSource;
-  };
-
-
-  void createConnection(Connection& connection,
-                        struct in_addr ip, uint16_t portNum,
-                        bool reservePorts);
-
-  void destroyConnection(Connection& connection);
-
-  // returns whether peer corresponding to sessionID has been created. Debug
-  bool checkSessionID(uint32_t sessionID);
-
-  Sender* addSender(in_addr ip, uint16_t port, DataType type, uint8_t rtpNum);
-  Receiver* addReceiver(in_addr peerAddress, uint16_t port, DataType type, uint8_t rtpNum);
-
-  QList<Peer*> peers_;
-
-  bool isIniated_;
-  bool isRunning_;
-
-  QMutex iniated_; // locks for duration of creation
-  QMutex destroyed_; // locks for duration of destruction
-
-  uint8_t ttl_;
-  struct in_addr sessionAddress_;
-
-  char stopRTP_; // char for stopping live555 taskscheduler
-  UsageEnvironment* env_;
-  TaskScheduler* scheduler_; // pointer needed for proper destruction
-
-  StatisticsInterface* stats_;
-
-  static const unsigned int maxCNAMElen_ = 100;
-  unsigned char CNAME_[maxCNAMElen_ + 1];
-
-  QMutex* triggerMutex_;
-#endif
 };
