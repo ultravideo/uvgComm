@@ -1,51 +1,51 @@
 #pragma once
 #include "media/processing/filter.h"
+#include "media/delivery/irtpstreamer.h"
 
 #include <QThread>
 #include <QMutex>
 #include <QHostAddress>
 #include <vector>
 
+#include <kvzrtp/reader.hh>
+#include <kvzrtp/lib.hh>
+
+class StatisticsInterface;
 class FramedSourceFilter;
 class RTPSinkFilter;
 class Filter;
-class StatisticsInterface;
 
-#include <kvzrtp/lib.hh>
-#include <kvzrtp/util.hh>
-#include <kvzrtp/reader.hh>
-#include <kvzrtp/writer.hh>
-
-class RTPStreamer : public QThread
+class RTPStreamer : public QThread, public IRTPStreamer
 {
   Q_OBJECT
 
 public:
   RTPStreamer();
   ~RTPStreamer();
-  void init(StatisticsInterface* stats);
-  void uninit();
-  void run();
-  void stop();
+
+   void init(StatisticsInterface *stats);
+   void uninit();
+   void run();
+   void stop();
 
   // init a session with sessionID to use with add/remove functions
   // returns whether operation was successful
-  bool addPeer(QHostAddress address, uint32_t sessionID);
+   bool addPeer(QHostAddress address, uint32_t sessionID);
 
   // Returns filter to be attached to filter graph. ownership is not transferred.
   // removing the peer or stopping the streamer destroys these filters.
-  std::shared_ptr<Filter> addSendStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum);
-  std::shared_ptr<Filter> addReceiveStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum);
+   std::shared_ptr<Filter> addSendStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum);
+   std::shared_ptr<Filter> addReceiveStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum);
 
-  void removeSendVideo(uint32_t sessionID);
-  void removeSendAudio(uint32_t sessionID);
-  void removeReceiveVideo(uint32_t sessionID);
-  void removeReceiveAudio(uint32_t sessionID);
+   void removeSendVideo(uint32_t sessionID);
+   void removeSendAudio(uint32_t sessionID);
+   void removeReceiveVideo(uint32_t sessionID);
+   void removeReceiveAudio(uint32_t sessionID);
 
   // removes everything related to this peer
-  void removePeer(uint32_t sessionID);
+   void removePeer(uint32_t sessionID);
 
-  void removeAllPeers();
+   void removeAllPeers();
 
 private:
   kvz_rtp::context rtp_ctx_;
@@ -59,7 +59,7 @@ private:
   struct Receiver
   {
     kvz_rtp::reader *reader;
-    std::shared_ptr<RTPSinkFilter> sink; // sends stuff to filter graph TODO mitä!??!?
+    std::shared_ptr<RTPSinkFilter> sink; // sends stuff to filter graph
   };
 
   struct Peer
@@ -83,6 +83,8 @@ private:
 
   Sender     *addSender(QHostAddress ip, uint16_t port, rtp_format_t type, uint8_t rtpNum);
   Receiver *addReceiver(QHostAddress ip, uint16_t port, rtp_format_t type, uint8_t rtpNum);
+#if 0
+#endif
 
   // private variables
   QList<Peer *> peers_;

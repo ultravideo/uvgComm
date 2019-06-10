@@ -1,19 +1,24 @@
 #include "mediamanager.h"
-
 #include "media/processing/filtergraph.h"
 #include "media/processing/filter.h"
-#include "media/delivery/rtpstreamer.h"
-#include "media/delivery/framedsourcefilter.h"
-#include "media/delivery/rtpsinkfilter.h"
 #include "ui/gui/videoviewfactory.h"
 #include "initiation/negotiation/sdptypes.h"
 #include "statisticsinterface.h"
-
 #include "common.h"
 
 #include <QHostAddress>
 #include <QtEndian>
 #include <QDebug>
+
+#ifdef __KVZRTP__
+#include "media/delivery/kvzrtp/rtpstreamer.h"
+#include "media/delivery/kvzrtp/framedsourcefilter.h"
+#include "media/delivery/kvzrtp/rtpsinkfilter.h"
+#else
+#include "media/delivery/live555/rtpstreamer.h"
+#include "media/delivery/live555/framedsourcefilter.h"
+#include "media/delivery/live555/rtpsinkfilter.h"
+#endif
 
 MediaManager::MediaManager():
   stats_(nullptr),

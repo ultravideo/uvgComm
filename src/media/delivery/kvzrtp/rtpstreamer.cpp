@@ -1,5 +1,6 @@
+#include "media/delivery/irtpstreamer.h"
+#include "media/delivery/kvzrtp/rtpstreamer.h"
 #include "rtpstreamer.h"
-
 #include "framedsourcefilter.h"
 #include "rtpsinkfilter.h"
 #include "common.h"
@@ -11,6 +12,10 @@
 #include <kvzrtp/rtp_opus.hh>
 
 #include <iostream>
+
+IRTPStreamer::~IRTPStreamer()
+{
+}
 
 RTPStreamer::RTPStreamer():
   rtp_ctx_(),
