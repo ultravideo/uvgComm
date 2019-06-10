@@ -20,11 +20,11 @@ greaterThan(QT_MAJOR_VERSION, 5)
 
 TARGET = Kvazzup
 
-RTP_LIBRARY     = kvzrtp
-QMAKE_CXXFLAGS += -D__KVZRTP__
+#RTP_LIBRARY     = kvzrtp
+#QMAKE_CXXFLAGS += -D__KVZRTP__
 
-#RTP_LIBRARY     = live555
-#QMAKE_CXXFLAGS += __LIVE555__
+RTP_LIBRARY     = live555
+QMAKE_CXXFLAGS += -D__LIVE555__
 
 win32-g++:  TEMPLATE = app
 win32-msvc: TEMPLATE = app # vcapp does not currently generate makefile
