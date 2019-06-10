@@ -1,10 +1,8 @@
 #pragma once
 #include "media/processing/filter.h"
-#include <FramedSource.hh>
 #include <QMutex>
 #include <QSemaphore>
-
-#include "../rtplib/src/writer.hh"
+#include <kvzrtp/writer.hh>
 
 class StatisticsInterface;
 

@@ -1,8 +1,7 @@
 #pragma once
-#include "media/processing/filter.h"
-#include "../rtplib/src/reader.hh"
 
-// Receives RTP packets and sends them forward in filter graph.
+#include <kvzrtp/reader.hh>
+#include "media/processing/filter.h"
 
 class RTPSinkFilter : public Filter
 {

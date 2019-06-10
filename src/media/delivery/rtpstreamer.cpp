@@ -4,19 +4,13 @@
 #include "rtpsinkfilter.h"
 #include "common.h"
 
-/* #include <liveMedia.hh> */
-/* #include <UsageEnvironment.hh> */
-/* #include <GroupsockHelper.hh> */
-/* #include <BasicUsageEnvironment.hh> */
-
 #include <QtEndian>
 #include <QHostInfo>
 #include <QDebug>
 
-#include <iostream>
+#include <kvzrtp/rtp_opus.hh>
 
-#include "../rtplib/src/util.hh"
-#include "../rtplib/src/rtp_opus.hh"
+#include <iostream>
 
 RTPStreamer::RTPStreamer():
   rtp_ctx_(),

@@ -5,8 +5,6 @@
 #include "statisticsinterface.h"
 #include "common.h"
 
-#include "../rtplib/src/util.hh"
-
 FramedSourceFilter::FramedSourceFilter(QString id, StatisticsInterface *stats,
                                        DataType type, QString media, kvz_rtp::writer *writer):
   Filter(id, "Framed_Source_" + media, stats, type, NONE),

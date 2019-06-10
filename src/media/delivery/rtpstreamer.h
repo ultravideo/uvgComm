@@ -1,10 +1,6 @@
 #pragma once
 #include "media/processing/filter.h"
 
-/* #include <liveMedia.hh> */
-/* #include <UsageEnvironment.hh> */
-/* #include <GroupsockHelper.hh> */
-
 #include <QThread>
 #include <QMutex>
 #include <QHostAddress>
@@ -15,10 +11,10 @@ class RTPSinkFilter;
 class Filter;
 class StatisticsInterface;
 
-#include "../rtplib/src/lib.hh"
-#include "../rtplib/src/util.hh"
-#include "../rtplib/src/reader.hh"
-#include "../rtplib/src/writer.hh"
+#include <kvzrtp/lib.hh>
+#include <kvzrtp/util.hh>
+#include <kvzrtp/reader.hh>
+#include <kvzrtp/writer.hh>
 
 class RTPStreamer : public QThread
 {
