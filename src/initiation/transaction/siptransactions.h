@@ -44,8 +44,8 @@ class SIPTransactions : public QObject
   Q_OBJECT
 public:
   SIPTransactions();
-
-  // TODO: this hangs sometimes for a long time
+  
+  // start listening to incoming 
   void init(SIPTransactionUser* callControl);
   void uninit();
 
@@ -125,6 +125,7 @@ private:
                               std::shared_ptr<SIPDialogData>& dialog);
   void createBaseDialog(quint32 transportID, std::shared_ptr<SIPDialogData>& dialog);
   void destroyDialog(std::shared_ptr<SIPDialogData> dialog);
+  void removeDialog(uint32_t sessionID);
 
   bool areWeTheDestination();
 

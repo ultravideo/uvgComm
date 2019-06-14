@@ -272,7 +272,7 @@ void SIPTransactions::rejectCall(uint32_t sessionID)
   dialogMutex_.unlock();
   dialog->server->rejectCall();
   destroyDialog(dialog);
-  dialogs_.erase(dialogs_.find(sessionID));
+  removeDialog(sessionID);
 }
 
 void SIPTransactions::endCall(uint32_t sessionID)
@@ -281,13 +281,10 @@ void SIPTransactions::endCall(uint32_t sessionID)
 
   std::shared_ptr<SIPDialogData> dialog = dialogs_[sessionID];
   dialog->client->endCall();
-  sdp_.ICECleanup(sessionID);  destroyDialog(dialog);
-  dialogs_.erase(dialogs_.find(sessionID));
-
-  if (dialogs_.empty())
-  {
-    nextSessionID_ = 1;
-  }}
+  sdp_.ICECleanup(sessionID);
+  destroyDialog(dialog);
+  removeDialog(sessionID);
+}
 
 void SIPTransactions::cancelCall(uint32_t sessionID)
 {
@@ -296,7 +293,7 @@ void SIPTransactions::cancelCall(uint32_t sessionID)
   std::shared_ptr<SIPDialogData> dialog = dialogs_[sessionID];
   dialog->client->cancelCall();
   destroyDialog(dialog);
-  dialogs_.erase(dialogs_.find(sessionID));
+  removeDialog(sessionID);
 }
 
 
@@ -559,7 +556,7 @@ void SIPTransactions::processSIPResponse(SIPResponse response,
   {
     // destroy dialog
     destroyDialog(dialogs_[foundSessionID]);
-    dialogs_.erase(dialogs_.find(foundSessionID));
+    removeDialog(foundSessionID);
   }
   qDebug() << "Response processing finished:" << response.type << "Dialog:" << foundSessionID;
 }
@@ -582,7 +579,7 @@ bool SIPTransactions::processSDP(uint32_t sessionID, QVariant& content, QHostAdd
   {
     qDebug() << "Remote SDP not suitable or we have no ports to assign";
     destroyDialog(dialogs_[sessionID]);
-    dialogs_.erase(dialogs_.find(sessionID));
+    removeDialog(sessionID);
     return false;
   }
   dialogs_[sessionID]->remoteSdp_ = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
@@ -723,7 +720,7 @@ void SIPTransactions::sendNonDialogRequest(SIP_URI& uri, RequestType type)
 void SIPTransactions::sendResponse(uint32_t sessionID, ResponseType type, RequestType originalRequest)
 {
   qDebug() << "---- Iniated sending of a response:" << type << "----";
-  Q_ASSERT(sessionID != 0 && sessionID <= dialogs_.size());
+  Q_ASSERT(sessionID != 0 && dialogs_.find(sessionID) != dialogs_.end());
 
   // Get all the necessary information from different components.
   SIPResponse response;
@@ -749,7 +746,7 @@ void SIPTransactions::destroyDialog(std::shared_ptr<SIPDialogData> dialog)
   if(dialog == nullptr)
   {
     printDebug(DEBUG_ERROR, this, DC_END_CALL,
-                     "Bad sessionID for destruction.");
+               "Bad sessionID for destruction.");
     return;
   }
   qDebug() << "Destroying dialog:";
@@ -766,4 +763,13 @@ void SIPTransactions::destroyDialog(std::shared_ptr<SIPDialogData> dialog)
 
   dialog->localSdp_.reset();
   dialog->remoteSdp_.reset();
+}
+
+void SIPTransactions::removeDialog(uint32_t sessionID)
+{
+  dialogs_.erase(dialogs_.find(sessionID));
+  if (dialogs_.empty())
+  {
+    nextSessionID_ = 1;
+  }
 }
