@@ -22,6 +22,11 @@ public:
   // construct the widget
   void init(ParticipantInterface* interface);
 
+  void setActive();
+  void setPlusOne();
+  void setInactive();
+
+
 public slots:
   void call();
   void chat();
@@ -31,6 +36,8 @@ protected:
   void mouseDoubleClickEvent(QMouseEvent *e);
 
 private:
+
+  void switchButtonIcon(QString iconLocation);
 
   QString name_;
   QString username_;

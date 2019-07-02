@@ -27,9 +27,7 @@ void ContactListItem::init(ParticipantInterface *interface)
   callButton_ = new QPushButton();
   callButton_->setMaximumWidth(30);
 
-  QPixmap pixmap(QDir::currentPath() + "/icons/call.svg");
-  QIcon ButtonIcon(pixmap);
-  callButton_->setIcon(ButtonIcon);
+  switchButtonIcon(QDir::currentPath() + "/icons/call.svg");
 
   layout_->addWidget(callButton_, 0, 1);
   QObject::connect(callButton_, SIGNAL(clicked()), this, SLOT(call()));
@@ -46,10 +44,33 @@ void ContactListItem::init(ParticipantInterface *interface)
 */
 }
 
+
+void ContactListItem::setActive()
+{
+  callButton_->hide();
+  setDisabled(true);
+}
+
+
+void ContactListItem::setPlusOne()
+{
+  callButton_->show();
+  switchButtonIcon(QDir::currentPath() + "/icons/plus.svg");
+}
+
+void ContactListItem::setInactive()
+{
+  callButton_->show();
+  switchButtonIcon(QDir::currentPath() + "/icons/call.svg");
+  setDisabled(false);
+}
+
+
 void ContactListItem::call()
 {
   Q_ASSERT(interface_);
   interface_->callToParticipant(name_, username_, ip_);
+  //setActive();
 }
 
 void ContactListItem::chat()
@@ -77,4 +98,12 @@ void ContactListItem::mouseDoubleClickEvent(QMouseEvent *e)
 {
   QWidget::mouseDoubleClickEvent(e);
   call();
+}
+
+
+void ContactListItem::switchButtonIcon(QString iconLocation)
+{
+  QPixmap pixmap(iconLocation);
+  QIcon ButtonIcon(pixmap);
+  callButton_->setIcon(ButtonIcon);
 }
