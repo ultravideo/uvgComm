@@ -19,13 +19,17 @@ public:
   QString getUserName();
   QString getAddress();
 
+  uint32_t getActiveSessionID()
+  {
+    return  activeSessionID_;
+  }
+
   // construct the widget
   void init(ParticipantInterface* interface);
 
-  void setActive();
+  void SetInaccessible(uint32_t sessionID);
   void setPlusOne();
-  void setInactive();
-
+  void setAccesssible();
 
 public slots:
   void call();
@@ -51,4 +55,5 @@ private:
 
   ParticipantInterface* interface_;
 
+  uint32_t activeSessionID_;
 };

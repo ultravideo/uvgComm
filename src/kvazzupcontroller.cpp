@@ -58,7 +58,7 @@ void KvazzupController::windowClosed()
   uninit();
 }
 
-void KvazzupController::callToParticipant(QString name, QString username, QString ip)
+uint32_t KvazzupController::callToParticipant(QString name, QString username, QString ip)
 {
   QString ip_str = ip;
 
@@ -70,10 +70,10 @@ void KvazzupController::callToParticipant(QString name, QString username, QStrin
   //start negotiations for this connection
   qDebug() << "Session Initiation," << metaObject()->className()
            << ": Start Call," << metaObject()->className() << ": Initiated call starting to" << con.realName;
-  sip_.startCall(con);
+  return sip_.startCall(con);
 }
 
-void KvazzupController::chatWithParticipant(QString name, QString username, QString ip)
+uint32_t KvazzupController::chatWithParticipant(QString name, QString username, QString ip)
 {
   qDebug() << "Chatting," << metaObject()->className()
            << ": Chatting with:" << name << '(' << username << ") at ip:" << ip << ": Chat not implemented yet";

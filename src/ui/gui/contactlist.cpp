@@ -38,6 +38,48 @@ void ContactList::initializeList(QListWidget* list, ParticipantInterface* interf
   settings.endArray();
 }
 
+
+void ContactList::turnAllItemsToPlus()
+{
+  for (auto item : items_)
+  {
+    item->setPlusOne();
+  }
+}
+
+
+void ContactList::setAccessibleAll()
+{
+  for (auto item : items_)
+  {
+    item->setAccesssible();
+  }
+}
+
+
+void ContactList::setAccessible(uint32_t sessionID)
+{
+  for (auto item : items_)
+  {
+    if (item->getActiveSessionID() == sessionID)
+    {
+      item->setAccesssible();
+      return;
+    }
+  }
+}
+
+
+void ContactList::setInaccessibleAll()
+{
+  for (auto item : items_)
+  {
+    // 0 means that this cannot be restored by a call cancellation
+    item->SetInaccessible(0);
+  }
+}
+
+
 void ContactList::showContextMenu(const QPoint& pos)
 {
   // Handle global position
@@ -94,6 +136,7 @@ void ContactList::addContact(ParticipantInterface* interface,
   // not the fastest, just the simplest way to do this
   writeListToSettings();
 }
+
 
 void ContactList::writeListToSettings()
 {

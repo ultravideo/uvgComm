@@ -9,7 +9,8 @@ ContactListItem::ContactListItem(QString name, QString username, QString ip):
   name_(name),
   username_(username),
   ip_(ip),
-  interface_(nullptr)
+  interface_(nullptr),
+  activeSessionID_(0)
 {}
 
 void ContactListItem::init(ParticipantInterface *interface)
@@ -45,32 +46,33 @@ void ContactListItem::init(ParticipantInterface *interface)
 }
 
 
-void ContactListItem::setActive()
+void ContactListItem::SetInaccessible(uint32_t sessionID)
 {
   callButton_->hide();
   setDisabled(true);
+  activeSessionID_ = sessionID;
 }
 
 
 void ContactListItem::setPlusOne()
 {
-  callButton_->show();
+  //callButton_->show();
   switchButtonIcon(QDir::currentPath() + "/icons/plus.svg");
 }
 
-void ContactListItem::setInactive()
+void ContactListItem::setAccesssible()
 {
   callButton_->show();
   switchButtonIcon(QDir::currentPath() + "/icons/call.svg");
   setDisabled(false);
+  activeSessionID_ = 0;
 }
 
 
 void ContactListItem::call()
 {
   Q_ASSERT(interface_);
-  interface_->callToParticipant(name_, username_, ip_);
-  //setActive();
+  SetInaccessible(interface_->callToParticipant(name_, username_, ip_));
 }
 
 void ContactListItem::chat()

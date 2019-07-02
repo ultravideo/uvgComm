@@ -51,9 +51,8 @@ public:
 
   void bindToServer();
 
-  // start a call with all addresses in the list. Returns generated sessionID:s
-  void startCall(Contact& address);
-  QList<uint32_t> startCall(QList<Contact> addresses);
+  // start a call with address. Returns generated sessionID
+  uint32_t startCall(Contact& address);
 
   // transaction user wants something.
   void acceptCall(uint32_t sessionID);
@@ -120,10 +119,10 @@ private:
   // returns whether we should continue with processing
   bool processSDP(uint32_t sessionID, QVariant &content, QHostAddress localAddress);
 
-  void startPeerToPeerCall(quint32 transportID, Contact& remote);
-  void createDialogFromINVITE(quint32 transportID,  std::shared_ptr<SIPMessageInfo> &invite,
+  uint32_t startPeerToPeerCall(quint32 transportID, Contact& remote);
+  uint32_t createDialogFromINVITE(quint32 transportID,  std::shared_ptr<SIPMessageInfo> &invite,
                               std::shared_ptr<SIPDialogData>& dialog);
-  void createBaseDialog(quint32 transportID, std::shared_ptr<SIPDialogData>& dialog);
+  uint32_t createBaseDialog(quint32 transportID, std::shared_ptr<SIPDialogData>& dialog);
   void destroyDialog(std::shared_ptr<SIPDialogData> dialog);
   void removeDialog(uint32_t sessionID);
 

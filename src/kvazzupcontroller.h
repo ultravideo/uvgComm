@@ -29,8 +29,8 @@ public:
   void uninit();
 
   // participant interface funtions used to start a call or a chat.
-  virtual void callToParticipant(QString name, QString username, QString ip);
-  virtual void chatWithParticipant(QString name, QString username, QString ip);
+  virtual uint32_t callToParticipant(QString name, QString username, QString ip);
+  virtual uint32_t chatWithParticipant(QString name, QString username, QString ip);
 
   // Call Control Interface used by SIP transaction
   virtual void outgoingCall(uint32_t sessionID, QString callee);

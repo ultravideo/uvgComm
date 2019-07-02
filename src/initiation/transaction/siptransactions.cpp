@@ -146,18 +146,19 @@ void SIPTransactions::getSDPs(uint32_t sessionID,
 }
 
 
-void SIPTransactions::startCall(Contact &address)
+uint32_t SIPTransactions::startCall(Contact &address)
 {
   // There should not exist a dialog for this user
 
   if(!sdp_.canStartSession())
   {
     qDebug() << "Not enough ports to start a call";
-    return;
+    return 0;
   }
 
   // is the address at one of the servers we are connected to
   bool isServer = registrations_.find(address.remoteAddress) != registrations_.end();
+  uint32_t sessionID = 0;
 
   if(isServer)
   {
@@ -173,25 +174,27 @@ void SIPTransactions::startCall(Contact &address)
     if(isConnected(address.remoteAddress, transportID)) // sets the transportid
     {
       qDebug() << "Found existing connection to this address.";
-      startPeerToPeerCall(transportID, address);
+      sessionID = startPeerToPeerCall(transportID, address);
     }
     else
     {
       std::shared_ptr<SIPTransport> transport = createSIPTransport();
       transport->createConnection(TCP, address.remoteAddress);
-      startPeerToPeerCall(transports_.size(), address);
+      sessionID = startPeerToPeerCall(transports_.size(), address);
 
       //dialogData->transportID = transports_.size();
     }
   }
+
+  return sessionID;
 }
 
-void SIPTransactions::startPeerToPeerCall(quint32 transportID, Contact &remote)
+uint32_t SIPTransactions::startPeerToPeerCall(quint32 transportID, Contact &remote)
 {
   qDebug() << "SIP," << metaObject()->className() << ": Intializing a new dialog with INVITE";
 
   std::shared_ptr<SIPDialogData> dialogData;
-  createBaseDialog(transportID, dialogData);
+  uint32_t sessionID = createBaseDialog(transportID, dialogData);
   dialogData->proxyConnection_ = false;
   dialogData->state->createNewDialog(SIP_URI{remote.username, remote.username, remote.remoteAddress});
 
@@ -201,22 +204,28 @@ void SIPTransactions::startPeerToPeerCall(quint32 transportID, Contact &remote)
     printDebug(DEBUG_WARNING, this, DC_START_CALL,
                "Could not start a call according to session.");
   }
+  return sessionID;
 }
 
-void SIPTransactions::createDialogFromINVITE(quint32 transportID, std::shared_ptr<SIPMessageInfo> &invite,
+uint32_t SIPTransactions::createDialogFromINVITE(quint32 transportID, std::shared_ptr<SIPMessageInfo> &invite,
                                              std::shared_ptr<SIPDialogData>& dialog)
 {
   Q_ASSERT(invite);
 
-  createBaseDialog(transportID, dialog);
+  uint32_t sessionID = createBaseDialog(transportID, dialog);
 
   dialog->state->createDialogFromINVITE(invite);
   dialog->state->setPeerToPeerHostname(transports_.at(transportID - 1)->getLocalAddress().toString(), false);
+
+  return sessionID;
 }
 
-void SIPTransactions::createBaseDialog( quint32 transportID, std::shared_ptr<SIPDialogData>& dialog)
+uint32_t SIPTransactions::createBaseDialog( quint32 transportID, std::shared_ptr<SIPDialogData>& dialog)
 {
   Q_ASSERT(transportID <= transports_.size());
+
+  uint32_t sessionID = nextSessionID_;
+  ++nextSessionID_;
 
   dialog = std::shared_ptr<SIPDialogData> (new SIPDialogData);
   dialogMutex_.lock();
@@ -226,16 +235,16 @@ void SIPTransactions::createBaseDialog( quint32 transportID, std::shared_ptr<SIP
 
   dialog->client = std::shared_ptr<SIPDialogClient> (new SIPDialogClient(transactionUser_));
   dialog->client->init();
-  dialog->client->setSessionID(nextSessionID_);
+  dialog->client->setSessionID(sessionID);
 
   dialog->server = std::shared_ptr<SIPServerTransaction> (new SIPServerTransaction);
-  dialog->server->init(transactionUser_, nextSessionID_);
+  dialog->server->init(transactionUser_, sessionID);
 
   dialog->localSdp_ = nullptr;
   dialog->remoteSdp_ = nullptr;
 
-  dialogs_[nextSessionID_] = dialog;
-  ++nextSessionID_;
+  dialogs_[sessionID] = dialog;
+
   dialogMutex_.unlock();
 
   QObject::connect(dialog->client.get(), &SIPDialogClient::sendDialogRequest,
@@ -244,6 +253,7 @@ void SIPTransactions::createBaseDialog( quint32 transportID, std::shared_ptr<SIP
   QObject::connect(dialog->server.get(), &SIPServerTransaction::sendResponse,
                    this, &SIPTransactions::sendResponse);
 
+  return sessionID;
 }
 
 void SIPTransactions::acceptCall(uint32_t sessionID)
