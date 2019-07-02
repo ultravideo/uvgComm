@@ -138,7 +138,7 @@ void CallWindow::addContact()
 
 void CallWindow::displayOutgoingCall(uint32_t sessionID, QString name)
 {
-  //contacts_.turnAllItemsToPlus();
+  contacts_.turnAllItemsToPlus();
   conference_.callingTo(sessionID, name); // TODO get name from contact list
 }
 
@@ -223,6 +223,7 @@ void CallWindow::removeParticipant(uint32_t sessionID)
   {
     ui_->EndCallButton->setEnabled(false);
     ui_->EndCallButton->hide();
+    contacts_.setAccessibleAll();
   }
 
   contacts_.setAccessible(sessionID);
