@@ -37,6 +37,7 @@ SOURCES +=\
     src/initiation/negotiation/stunmsg.cpp \
     src/initiation/negotiation/stunmsgfact.cpp \
     src/initiation/negotiation/udpserver.cpp \
+    src/initiation/sipmanager.cpp \
     src/initiation/transaction/sipclienttransaction.cpp \
     src/initiation/transaction/sipdialogclient.cpp \
     src/initiation/transaction/sipdialogstate.cpp \
@@ -103,6 +104,7 @@ HEADERS  += \
     src/initiation/negotiation/stunmsg.h \
     src/initiation/negotiation/stunmsgfact.h \
     src/initiation/negotiation/udpserver.h \
+    src/initiation/sipmanager.h \
     src/initiation/siptransactionuser.h \
     src/initiation/siptypes.h \
     src/initiation/transaction/sipclienttransaction.h \

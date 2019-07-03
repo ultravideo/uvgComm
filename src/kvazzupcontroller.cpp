@@ -21,14 +21,14 @@ void KvazzupController::init()
   window_.init(this);
   window_.show();
 
-  sip_.init(this);
+  sip_.init(this, sipT_);
 
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
   int autoConnect = settings.value("sip/AutoConnect").toInt();
 
   if(autoConnect == 1)
   {
-    sip_.bindToServer();
+    sipT_.bindToServer();
   }
 
   // register the GUI signals indicating GUI changes to be handled approrietly in a system wide manner
@@ -49,7 +49,7 @@ void KvazzupController::init()
 
 void KvazzupController::uninit()
 {
-  sip_.uninit();
+  sip_.uninit(sipT_);
   media_.uninit();
 }
 
@@ -70,7 +70,7 @@ uint32_t KvazzupController::callToParticipant(QString name, QString username, QS
   //start negotiations for this connection
   qDebug() << "Session Initiation," << metaObject()->className()
            << ": Start Call," << metaObject()->className() << ": Initiated call starting to" << con.realName;
-  return sip_.startCall(con);
+  return sipT_.startCall(con);
 }
 
 uint32_t KvazzupController::chatWithParticipant(QString name, QString username, QString ip)
@@ -182,7 +182,7 @@ void KvazzupController::callNegotiated(uint32_t sessionID)
       std::shared_ptr<SDPMessageInfo> localSDP;
       std::shared_ptr<SDPMessageInfo> remoteSDP;
 
-      sip_.getSDPs(sessionID,
+      sipT_.getSDPs(sessionID,
                    localSDP,
                    remoteSDP);
 
@@ -248,21 +248,21 @@ void KvazzupController::updateSettings()
 void KvazzupController::userAcceptsCall(uint32_t sessionID)
 {
   qDebug() << "Core," << metaObject()->className() << ": Sending accept";
-  sip_.acceptCall(sessionID);
+  sipT_.acceptCall(sessionID);
   states_[sessionID] = CALLNEGOTIATING;
 }
 
 void KvazzupController::userRejectsCall(uint32_t sessionID)
 {
   qDebug() << "Core," << metaObject()->className() << ": We have rejected their call";
-  sip_.rejectCall(sessionID);
+  sipT_.rejectCall(sessionID);
   removeSession(sessionID);
 }
 
 void KvazzupController::userCancelsCall(uint32_t sessionID)
 {
   qDebug() << "Core," << metaObject()->className() << ": We have cancelled our call";
-  sip_.cancelCall(sessionID);
+  sipT_.cancelCall(sessionID);
   removeSession(sessionID);
 }
 
@@ -270,7 +270,7 @@ void KvazzupController::endTheCall()
 {
   qDebug() << "Core," << metaObject()->className() << ": End all call," << metaObject()->className()
            << ": End all calls button pressed";
-  sip_.endAllCalls();
+  sipT_.endAllCalls();
   media_.endAllCalls();
   window_.clearConferenceView();
 

@@ -3,7 +3,7 @@
 #include "initiation/negotiation/globalsdpstate.h"
 #include "initiation/transaction/sipnondialogclient.h"
 #include "initiation/transport/siptransport.h"
-#include "initiation/transport/connectionserver.h"
+
 
 #include "common.h"
 
@@ -70,10 +70,13 @@ public:
                std::shared_ptr<SDPMessageInfo>& localSDP,
                std::shared_ptr<SDPMessageInfo>& remoteSDP);
 
-private slots:
+public slots:
 
   void receiveTCPConnection(TCPConnection* con);
   void connectionEstablished(quint32 transportID);
+
+private slots:
+
 
   // when sip connection has received a request/response it is handled here.
   void processSIPRequest(SIPRequest request, quint32 transportID, QVariant& content);
@@ -168,9 +171,6 @@ private:
   std::unique_ptr<SIPNonDialogClient> nonDialogClient_;
 
   GlobalSDPState sdp_;
-
-  ConnectionServer tcpServer_;
-  uint16_t sipPort_;
 
   SIPTransactionUser* transactionUser_;
 };

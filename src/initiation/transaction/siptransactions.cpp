@@ -18,8 +18,7 @@ SIPTransactions::SIPTransactions():
   directContactAddresses_(),
   nonDialogClient_(),
   sdp_(),
-  tcpServer_(),
-  sipPort_(5060), // default for SIP, use 5061 for tls encrypted
+
   transactionUser_(nullptr)
 {}
 
@@ -29,22 +28,6 @@ void SIPTransactions::init(SIPTransactionUser *callControl)
 
   transactionUser_ = callControl;
   nonDialogClient_ = std::unique_ptr<SIPNonDialogClient>(new SIPNonDialogClient(callControl));
-
-  QObject::connect(&tcpServer_, &ConnectionServer::newConnection,
-                   this, &SIPTransactions::receiveTCPConnection);
-
-  tcpServer_.setProxy(QNetworkProxy::NoProxy);
-
-  // listen to everything
-  qDebug() << "Initiating," << metaObject()->className()
-           << ": Listening to SIP TCP connections on port:" << sipPort_;
-  if (!tcpServer_.listen(QHostAddress::Any, sipPort_))
-  {
-    printDebug(DEBUG_ERROR, this, DC_STARTUP,
-               "Failed to listen to socket. Is it reserved?");
-
-    // TODO announce it to user!
-  }
 
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
   QString username = !settings.value("local/Username").isNull()

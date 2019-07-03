@@ -2,9 +2,10 @@
 
 #include "media/mediamanager.h"
 #include "initiation/transaction/siptransactions.h"
+#include "initiation/sipmanager.h"
+#include "initiation/siptransactionuser.h"
 #include "ui/gui/callwindow.h"
 #include "participantinterface.h"
-#include "initiation/siptransactionuser.h"
 
 #include <QObject>
 
@@ -73,7 +74,8 @@ private:
   std::map<uint32_t, CallState> states_;
 
   MediaManager media_; // Media processing and delivery
-  SIPTransactions sip_; // SIP
+  SIPTransactions sipT_; // SIP
+  SIPManager sip_; // SIP
   CallWindow window_; // GUI
 
   StatisticsInterface* stats_;
