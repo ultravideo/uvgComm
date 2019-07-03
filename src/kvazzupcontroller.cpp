@@ -21,14 +21,14 @@ void KvazzupController::init()
   window_.init(this);
   window_.show();
 
-  sip_.init(this, sipT_);
+  sip_.init(this);
 
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
   int autoConnect = settings.value("sip/AutoConnect").toInt();
 
   if(autoConnect == 1)
   {
-    sipT_.bindToServer();
+    sip_.bindToServer();
   }
 
   // register the GUI signals indicating GUI changes to be handled approrietly in a system wide manner
@@ -49,7 +49,7 @@ void KvazzupController::init()
 
 void KvazzupController::uninit()
 {
-  sip_.uninit(sipT_);
+  sip_.uninit();
   media_.uninit();
 }
 
@@ -70,13 +70,15 @@ uint32_t KvazzupController::callToParticipant(QString name, QString username, QS
   //start negotiations for this connection
   qDebug() << "Session Initiation," << metaObject()->className()
            << ": Start Call," << metaObject()->className() << ": Initiated call starting to" << con.realName;
-  return sipT_.startCall(con);
+  return sip_.startCall(con);
 }
 
 uint32_t KvazzupController::chatWithParticipant(QString name, QString username, QString ip)
 {
   qDebug() << "Chatting," << metaObject()->className()
            << ": Chatting with:" << name << '(' << username << ") at ip:" << ip << ": Chat not implemented yet";
+
+  return 0;
 }
 
 void KvazzupController::outgoingCall(uint32_t sessionID, QString callee)
@@ -182,7 +184,7 @@ void KvazzupController::callNegotiated(uint32_t sessionID)
       std::shared_ptr<SDPMessageInfo> localSDP;
       std::shared_ptr<SDPMessageInfo> remoteSDP;
 
-      sipT_.getSDPs(sessionID,
+      sip_.getSDPs(sessionID,
                    localSDP,
                    remoteSDP);
 
@@ -248,21 +250,21 @@ void KvazzupController::updateSettings()
 void KvazzupController::userAcceptsCall(uint32_t sessionID)
 {
   qDebug() << "Core," << metaObject()->className() << ": Sending accept";
-  sipT_.acceptCall(sessionID);
+  sip_.acceptCall(sessionID);
   states_[sessionID] = CALLNEGOTIATING;
 }
 
 void KvazzupController::userRejectsCall(uint32_t sessionID)
 {
   qDebug() << "Core," << metaObject()->className() << ": We have rejected their call";
-  sipT_.rejectCall(sessionID);
+  sip_.rejectCall(sessionID);
   removeSession(sessionID);
 }
 
 void KvazzupController::userCancelsCall(uint32_t sessionID)
 {
   qDebug() << "Core," << metaObject()->className() << ": We have cancelled our call";
-  sipT_.cancelCall(sessionID);
+  sip_.cancelCall(sessionID);
   removeSession(sessionID);
 }
 
@@ -270,7 +272,7 @@ void KvazzupController::endTheCall()
 {
   qDebug() << "Core," << metaObject()->className() << ": End all call," << metaObject()->className()
            << ": End all calls button pressed";
-  sipT_.endAllCalls();
+  sip_.endAllCalls();
   media_.endAllCalls();
   window_.clearConferenceView();
 
