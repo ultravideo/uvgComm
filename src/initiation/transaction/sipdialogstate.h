@@ -53,8 +53,11 @@ private:
   QString remoteTag_;
   QString callID_;
 
-  SIP_URI localUri_;
-  SIP_URI remoteUri_;
+
+  // address-of-record is the SIP address if one exists. If we are not connected to server we use local
+  // IP address.
+  SIP_URI localUri_; // local address-of-record.
+  SIP_URI remoteUri_; // remote address-of-record.
   SIP_URI requestUri_;
 
   SIP_URI remoteContactURI_;

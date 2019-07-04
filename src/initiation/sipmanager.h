@@ -34,11 +34,29 @@ public:
                std::shared_ptr<SDPMessageInfo>& localSDP,
                std::shared_ptr<SDPMessageInfo>& remoteSDP);
 
+private slots:
+
+  void receiveTCPConnection(TCPConnection* con);
+  void connectionEstablished(quint32 transportID);
+
+  void transportRequest(quint32 transportID, SIPRequest &request, QVariant& content);
+  void transportResponse(quint32 transportID, SIPResponse &response, QVariant& content);
+
 private:
 
-  ConnectionServer tcpServer_;
+  std::shared_ptr<SIPTransport> createSIPTransport();
 
+  bool isConnected(QString remoteAddress, quint32& transportID);
+
+  ConnectionServer tcpServer_;
   uint16_t sipPort_;
+  QMap<quint32, std::shared_ptr<SIPTransport>> transports_;
+  quint32 nextTransportID_;
 
   SIPTransactions transactions_;
+
+  //std::map<uint32_t, quint32> sessionToTransportID_;
+
+  std::map<quint32, Contact> waitingToStart_;
+  std::map<quint32, QString> waitingToBind_;
 };
