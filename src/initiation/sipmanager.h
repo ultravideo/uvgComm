@@ -18,7 +18,6 @@ public:
 
   // REGISTER our information to SIP-registrar
   void bindToServer();
-
   // start a call with address. Returns generated sessionID
   uint32_t startCall(Contact& address);
 
@@ -57,6 +56,12 @@ private:
 
   //std::map<uint32_t, quint32> sessionToTransportID_;
 
-  std::map<quint32, Contact> waitingToStart_;
+  struct WaitingStart
+  {
+    uint32_t sessionID;
+    Contact contact;
+  };
+
+  std::map<quint32, WaitingStart> waitingToStart_;
   std::map<quint32, QString> waitingToBind_;
 };

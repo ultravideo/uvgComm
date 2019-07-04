@@ -56,11 +56,20 @@ public:
     return registrations_.find(query.remoteAddress) != registrations_.end();
   }
 
+  // reserve sessionID for a future call
+  uint32_t reserveSessionID()
+  {
+    ++nextSessionID_;
+    return nextSessionID_ - 1;
+  }
+
   // start a call with address. Returns generated sessionID
-  uint32_t startDirectCall(Contact& address, QHostAddress localAddress, quint32 transportID);
+  void startDirectCall(Contact& address, QHostAddress localAddress,
+                       quint32 transportID, uint32_t sessionID);
 
   // TODO: not implemented
-  uint32_t startProxyCall(Contact& address, QHostAddress localAddress, quint32 transportID);
+  void startProxyCall(Contact& address, QHostAddress localAddress,
+                          quint32 transportID, uint32_t sessionID);
 
   // transaction user wants something.
   void acceptCall(uint32_t sessionID);
@@ -133,10 +142,10 @@ private:
   // returns whether we should continue with processing
   bool processSDP(uint32_t sessionID, QVariant &content, QHostAddress localAddress);
 
-  uint32_t startPeerToPeerCall(quint32 transportID, QHostAddress localAddress, Contact& remote);
+  void startPeerToPeerCall(quint32 transportID, uint32_t sessionID, QHostAddress localAddress, Contact& remote);
   uint32_t createDialogFromINVITE(quint32 transportID, QHostAddress localAddress,  std::shared_ptr<SIPMessageInfo> &invite,
-                              std::shared_ptr<SIPDialogData>& dialog);
-  uint32_t createBaseDialog(quint32 transportID, QHostAddress &localAddress, std::shared_ptr<SIPDialogData>& dialog);
+                                  std::shared_ptr<SIPDialogData>& dialog);
+  void createBaseDialog(quint32 transportID, uint32_t sessionID, QHostAddress &localAddress, std::shared_ptr<SIPDialogData>& dialog);
   void destroyDialog(std::shared_ptr<SIPDialogData> dialog);
   void removeDialog(uint32_t sessionID);
 

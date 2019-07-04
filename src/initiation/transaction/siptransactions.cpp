@@ -97,38 +97,39 @@ void SIPTransactions::getSDPs(uint32_t sessionID,
 }
 
 
-uint32_t SIPTransactions::startDirectCall(Contact &address, QHostAddress localAddress, quint32 transportID)
+void SIPTransactions::startDirectCall(Contact &address, QHostAddress localAddress,
+                                      quint32 transportID, uint32_t sessionID)
 {
   // There should not exist a dialog for this user
-
   if(!sdp_.canStartSession())
   {
     qDebug() << "Not enough ports to start a call";
-    return 0;
+    return;
   }
 
-  return startPeerToPeerCall(transportID, localAddress, address);
+  startPeerToPeerCall(transportID, sessionID, localAddress, address);
 }
 
-uint32_t SIPTransactions::startProxyCall(Contact& address, QHostAddress localAddress, quint32 transportID)
+void SIPTransactions::startProxyCall(Contact& address, QHostAddress localAddress,
+                                         quint32 transportID, uint32_t sessionID)
 {
   Q_UNUSED(address);
   Q_UNUSED(localAddress);
   Q_UNUSED(transportID);
+  Q_UNUSED(sessionID);
   printDebug(DEBUG_ERROR, this, DC_START_CALL,
              "Proxy calling has not been yet implemented");
-
-  return 0;
 }
 
-uint32_t SIPTransactions::startPeerToPeerCall(quint32 transportID, QHostAddress localAddress, Contact &remote)
+void SIPTransactions::startPeerToPeerCall(quint32 transportID, uint32_t sessionID,
+                                          QHostAddress localAddress, Contact &remote)
 {
   qDebug() << "SIP," << metaObject()->className() << ": Intializing a new dialog with INVITE";
 
   std::shared_ptr<SIPDialogData> dialogData;
-  uint32_t sessionID = createBaseDialog(transportID, localAddress, dialogData);
+  createBaseDialog(transportID, sessionID, localAddress, dialogData);
   dialogData->proxyConnection_ = false;
-  dialogData->state->createNewDialog(SIP_URI{remote.username, remote.username, remote.remoteAddress});
+  dialogData->state->createNewDialog(SIP_URI{remote.username, remote.username, remote.remoteAddress, SIP});
 
   // this start call will commence once the connection has been established
   if(!dialogData->client->startCall(remote.realName))
@@ -136,7 +137,6 @@ uint32_t SIPTransactions::startPeerToPeerCall(quint32 transportID, QHostAddress 
     printDebug(DEBUG_WARNING, this, DC_START_CALL,
                "Could not start a call according to session.");
   }
-  return sessionID;
 }
 
 uint32_t SIPTransactions::createDialogFromINVITE(quint32 transportID, QHostAddress localAddress,
@@ -145,20 +145,19 @@ uint32_t SIPTransactions::createDialogFromINVITE(quint32 transportID, QHostAddre
 {
   Q_ASSERT(invite);
 
-  uint32_t sessionID = createBaseDialog(transportID, localAddress, dialog);
+  uint32_t sessionID = reserveSessionID();
+
+  createBaseDialog(transportID, sessionID, localAddress, dialog);
 
   dialog->state->createDialogFromINVITE(invite);
   dialog->state->setPeerToPeerHostname(localAddress.toString(), false);
-
   return sessionID;
 }
 
-uint32_t SIPTransactions::createBaseDialog(quint32 transportID, QHostAddress& localAddress,
+void SIPTransactions::createBaseDialog(quint32 transportID, uint32_t sessionID,
+                                           QHostAddress& localAddress,
                                            std::shared_ptr<SIPDialogData>& dialog)
 {
-  uint32_t sessionID = nextSessionID_;
-  ++nextSessionID_;
-
   dialog = std::shared_ptr<SIPDialogData> (new SIPDialogData);
   dialogMutex_.lock();
   dialog->transportID = transportID;
@@ -185,8 +184,6 @@ uint32_t SIPTransactions::createBaseDialog(quint32 transportID, QHostAddress& lo
 
   QObject::connect(dialog->server.get(), &SIPServerTransaction::sendResponse,
                    this, &SIPTransactions::sendResponse);
-
-  return sessionID;
 }
 
 void SIPTransactions::acceptCall(uint32_t sessionID)
@@ -301,8 +298,7 @@ void SIPTransactions::processSIPRequest(SIPRequest request, quint32 transportID,
         return;
       }
 
-      createDialogFromINVITE(transportID, localAddress, request.message, foundDialog);
-      foundSessionID = nextSessionID_ - 1;
+      foundSessionID = createDialogFromINVITE(transportID, localAddress, request.message, foundDialog);
 
       // Proxy TODO: somehow distinguish if this is a proxy connection
       foundDialog->proxyConnection_ = false;
@@ -632,6 +628,9 @@ void SIPTransactions::removeDialog(uint32_t sessionID)
   dialogs_.erase(dialogs_.find(sessionID));
   if (dialogs_.empty())
   {
+    // TODO: This may cause problems if we have reserved a sessionID, but have not yet
+    // started a new one. Maybe remove this when statistics has been updated with new
+    // map for tracking sessions.
     nextSessionID_ = FIRSTSESSIONID;
   }
 }

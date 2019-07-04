@@ -80,7 +80,7 @@ void SIPManager::bindToServer()
 uint32_t SIPManager::startCall(Contact& address)
 {
   quint32 transportID = 0;
-
+  uint32_t sessionID = transactions_.reserveSessionID();
   // TODO: should first check if we have a server connection already.
   if (!isConnected(address.remoteAddress, transportID))
   {
@@ -88,16 +88,16 @@ uint32_t SIPManager::startCall(Contact& address)
     transport->createConnection(TCP, address.remoteAddress);
     transportID = transport->getTransportID();
 
-    waitingToStart_[transportID] = address;
+    waitingToStart_[transportID] = {sessionID, address};
   }
   else {
     // we have an existing connection already. Send SIP message and start call.
-    return transactions_.startDirectCall(address,
-                                         transports_[transportID]->getLocalAddress(),
-                                         transportID);
+    transactions_.startDirectCall(address,
+                                  transports_[transportID]->getLocalAddress(),
+                                  transportID, sessionID);
   }
 
-  return 0;
+  return sessionID;
 }
 
 
@@ -153,9 +153,9 @@ void SIPManager::connectionEstablished(quint32 transportID)
 {
   if (waitingToStart_.find(transportID) != waitingToStart_.end())
   {
-    transactions_.startDirectCall(waitingToStart_[transportID],
+    transactions_.startDirectCall(waitingToStart_[transportID].contact,
                                   transports_[transportID]->getLocalAddress(),
-                                  transportID);
+                                  transportID, waitingToStart_[transportID].sessionID);
   }
 
   if(waitingToBind_.find(transportID) != waitingToBind_.end())
