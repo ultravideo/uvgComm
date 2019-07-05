@@ -23,7 +23,12 @@
  * This class represents the transaction layer.
  */
 
-// TODO: some kind of address book class might be useful because the connection addresses can change.
+// TODO: some kind of address book class might be useful
+// because the connection addresses can change.
+
+// TODO: This class might be more versatile if it only had one transaction in it
+// and SIPManager would manage all transactions. The question who recognizes
+// which session a message belongs to should be in this case taken into consideration.
 
 // Contact is basically the same as SIP_URI
 struct Contact
@@ -49,7 +54,7 @@ public:
   void init(SIPTransactionUser* callControl);
   void uninit();
 
-  void bindToServer(QString serverAddress, QHostAddress localAddress, quint32 transportID);
+  void bindToServer(QString serverAddress, QHostAddress localAddress, uint32_t sessionID);
 
   bool locatedAtServer(Contact& query) const
   {
@@ -65,11 +70,11 @@ public:
 
   // start a call with address. Returns generated sessionID
   void startDirectCall(Contact& address, QHostAddress localAddress,
-                       quint32 transportID, uint32_t sessionID);
+                       uint32_t sessionID);
 
   // TODO: not implemented
   void startProxyCall(Contact& address, QHostAddress localAddress,
-                          quint32 transportID, uint32_t sessionID);
+                      uint32_t sessionID);
 
   // transaction user wants something.
   void acceptCall(uint32_t sessionID);
@@ -86,16 +91,18 @@ public:
   void failedToSendMessage();
   void updateAddress();
 
+
 signals:
 
-  void transportRequest(quint32 transportID, SIPRequest &request, QVariant& content);
-  void transportResponse(quint32 transportID, SIPResponse &response, QVariant& content);
+  void transportRequest(uint32_t sessionID, SIPRequest &request, QVariant& content);
+  void transportResponse(uint32_t sessionID, SIPResponse &response, QVariant& content);
 
 public slots:
 
   // when sip connection has received a request/response it is handled here.
-  void processSIPRequest(SIPRequest request, quint32 transportID, QHostAddress localAddress, QVariant& content);
-  void processSIPResponse(SIPResponse response, quint32 transportID, QHostAddress localAddress, QVariant& content);
+  bool identifySession(SIPRequest request, QHostAddress localAddress, uint32_t& out_sessionID);
+  void processSIPRequest(SIPRequest request, QHostAddress localAddress, QVariant& content, uint32_t sessionID);
+  void processSIPResponse(SIPResponse response, QHostAddress localAddress, QVariant& content);
 
 private slots:
 
@@ -119,7 +126,6 @@ private:
 
     bool proxyConnection_;
 
-    quint32 transportID;
     QHostAddress localAddress;
 
     CallConnectionType connectionType;
@@ -130,7 +136,7 @@ private:
     std::shared_ptr<SIPNonDialogClient> client;
     std::shared_ptr<SIPDialogState> state;
 
-    quint32 transportID;
+    uint32_t sessionID;
     QHostAddress localAddress;
   };
 
@@ -142,10 +148,9 @@ private:
   // returns whether we should continue with processing
   bool processSDP(uint32_t sessionID, QVariant &content, QHostAddress localAddress);
 
-  void startPeerToPeerCall(quint32 transportID, uint32_t sessionID, QHostAddress localAddress, Contact& remote);
-  uint32_t createDialogFromINVITE(quint32 transportID, QHostAddress localAddress,  std::shared_ptr<SIPMessageInfo> &invite,
-                                  std::shared_ptr<SIPDialogData>& dialog);
-  void createBaseDialog(quint32 transportID, uint32_t sessionID, QHostAddress &localAddress, std::shared_ptr<SIPDialogData>& dialog);
+  void startPeerToPeerCall(uint32_t sessionID, QHostAddress localAddress, Contact& remote);
+  uint32_t createDialogFromINVITE(QHostAddress localAddress,  std::shared_ptr<SIPMessageInfo> &invite);
+  void createBaseDialog(uint32_t sessionID, QHostAddress &localAddress, std::shared_ptr<SIPDialogData>& dialog);
   void destroyDialog(std::shared_ptr<SIPDialogData> dialog);
   void removeDialog(uint32_t sessionID);
 
@@ -171,13 +176,11 @@ private:
 
   QMutex pendingConnectionMutex_;
 
-  // key is transportID
-  std::map<quint32, DialogRequest> pendingDialogRequests_;
-  std::map<quint32, NonDialogRequest> pendingNonDialogRequests_;
-
   // SessionID:s are used in this program to keep track of dialogs.
   // The CallID is not used because we could be calling ourselves
   // and using uint32_t is simpler than keeping track of tags.
+
+  // TODO: sessionID should be called dialogID
 
   uint32_t nextSessionID_;
   QMap<uint32_t, std::shared_ptr<SIPDialogData>> dialogs_;

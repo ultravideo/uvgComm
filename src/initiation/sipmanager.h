@@ -38,8 +38,11 @@ private slots:
   void receiveTCPConnection(TCPConnection* con);
   void connectionEstablished(quint32 transportID);
 
-  void transportRequest(quint32 transportID, SIPRequest &request, QVariant& content);
-  void transportResponse(quint32 transportID, SIPResponse &response, QVariant& content);
+  void transportRequest(uint32_t sessionID, SIPRequest &request, QVariant& content);
+  void transportResponse(uint32_t sessionID, SIPResponse &response, QVariant& content);
+
+  void processSIPRequest(SIPRequest &request, QHostAddress localAddress,
+                         QVariant& content, quint32 transportID);
 
 private:
 
@@ -54,7 +57,7 @@ private:
 
   SIPTransactions transactions_;
 
-  //std::map<uint32_t, quint32> sessionToTransportID_;
+  std::map<uint32_t, quint32> sessionToTransportID_;
 
   struct WaitingStart
   {
