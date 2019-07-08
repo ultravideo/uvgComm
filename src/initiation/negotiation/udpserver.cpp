@@ -97,8 +97,8 @@ void UDPServer::sendData(
 
   if (socket_->writeDatagram(datagram) < 0)
   {
-    printDebug(DEBUG_ERROR, "UDPServer",
-               DC_NEGOTIATING, "Failed to send UDP datagram!");
+    //printDebug(DEBUG_ERROR, "UDPServer",
+    //           DC_NEGOTIATING, "Failed to send UDP datagram!");
   }
 }
 

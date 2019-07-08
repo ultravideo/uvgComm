@@ -188,7 +188,7 @@ void ConferenceView::attachWidget(uint32_t sessionID, QWidget* view)
   }
   else {
 
-    printDebug(DEBUG_ERROR, this, DC_FULLSCREEN,
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_FULLSCREEN,
                "Trying to attach fullscreenview back to layout when sessionID does not exist in conference view.",
                {"SessionID"}, {QString::number(sessionID)});
   }
@@ -215,7 +215,7 @@ void ConferenceView::detachWidget(uint32_t sessionID, QWidget* view)
   }
   else
   {
-    printDebug(DEBUG_ERROR, this, DC_FULLSCREEN,
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_FULLSCREEN,
                "Trying to detach fullscreenview from the layout when the sessionID does not exist in conference view.",
                {"SessionID"}, {QString::number(sessionID)});
   }
@@ -278,7 +278,7 @@ void ConferenceView::ringing(uint32_t sessionID)
 
   if(activeCalls_.find(sessionID) == activeCalls_.end())
   {
-    printDebug(DEBUG_ERROR, this, DC_RINGING,
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_RINGING,
                      "Ringing for nonexisting view. View should always exist if this function is called.",
                     {"SessionID"}, {QString::number(sessionID)});
     return;
@@ -291,7 +291,7 @@ void ConferenceView::ringing(uint32_t sessionID)
   }
   else
   {
-    printDebug(DEBUG_ERROR, this, DC_RINGING, "No incoming call widget exists when it should be ringing.",
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_RINGING, "No incoming call widget exists when it should be ringing.",
       {"SessionID"},{QString::number(sessionID)});
   }
 }
@@ -301,7 +301,7 @@ bool ConferenceView::removeCaller(uint32_t sessionID)
   if(activeCalls_.find(sessionID) == activeCalls_.end())
   {
     Q_ASSERT(false);
-    printDebug(DEBUG_ERROR, this, DC_END_CALL,
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_END_CALL,
                      "Tried to remove the view of non-existing sessionID!");
   }
   else
@@ -440,7 +440,7 @@ void ConferenceView::accept()
   }
   else
   {
-    printDebug(DEBUG_ERROR, this, DC_ACCEPT,
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_ACCEPT,
                "Couldn't find the invoker for accept.");
   }
 }
@@ -459,7 +459,7 @@ void ConferenceView::reject()
   }
   else
   {
-    printDebug(DEBUG_ERROR, this, DC_REJECT,
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_REJECT,
                "Couldn't find the invoker for reject.");
   }
 }

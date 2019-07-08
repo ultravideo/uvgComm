@@ -161,7 +161,7 @@ void SIPTransactions::startCall(Contact &address)
 
   if(isServer)
   {
-    printDebug(DEBUG_ERROR, this, DC_START_CALL,
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_START_CALL,
                "Proxy calling has not been yet implemented");
   }
   else
@@ -453,7 +453,7 @@ void SIPTransactions::processSIPRequest(SIPRequest request,
       {
         if(!content.isValid())
         {
-          printDebug(DEBUG_ERROR, this, DC_RECEIVE_SIP_REQUEST,
+          printDebug(DEBUG_PROGRAM_ERROR, this, DC_RECEIVE_SIP_REQUEST,
                            "The SDP content is not valid at processing. Should be detected earlier.");
           return;
         }
@@ -565,7 +565,7 @@ bool SIPTransactions::processSDP(uint32_t sessionID, QVariant& content, QHostAdd
 {
   if(!content.isValid() || dialogs_.find(sessionID) == dialogs_.end())
   {
-    printDebug(DEBUG_ERROR, this, DC_SIP_CONTENT,
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_SIP_CONTENT,
                      "The SDP content is not valid at processing. Should be detected earlier.");
     return false;
   }
@@ -655,7 +655,7 @@ void SIPTransactions::sendDialogRequest(uint32_t sessionID, RequestType type)
     {
       if(dialogs_[sessionID]->localSdp_ == nullptr)
       {
-        printDebug(DEBUG_ERROR, this, DC_SEND_SIP_REQUEST,
+        printDebug(DEBUG_PROGRAM_ERROR, this, DC_SEND_SIP_REQUEST,
                    "Missing local final SDP when its supposed to be sent.");
         // TODO: send client error.
         return;
@@ -680,7 +680,7 @@ void SIPTransactions::sendNonDialogRequest(SIP_URI& uri, RequestType type)
   {
     if (registrations_.find(uri.host) == registrations_.end())
     {
-      printDebug(DEBUG_ERROR, this, DC_SEND_SIP_REQUEST,
+      printDebug(DEBUG_PROGRAM_ERROR, this, DC_SEND_SIP_REQUEST,
                  "Registration information should have been created "
                  "already before sending REGISTER message!");
 
@@ -708,11 +708,11 @@ void SIPTransactions::sendNonDialogRequest(SIP_URI& uri, RequestType type)
     transport->sendRequest(request, content);
   }
   else if (type == SIP_OPTIONS) {
-    printDebug(DEBUG_ERROR, this, DC_SEND_SIP_REQUEST,
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_SEND_SIP_REQUEST,
                      "Trying to send unimplemented non-dialog request OPTIONS!");
   }
   else {
-    printDebug(DEBUG_ERROR, this, DC_SEND_SIP_REQUEST,
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_SEND_SIP_REQUEST,
                      "Trying to send a non-dialog request of type which is a dialog request!");
   }
 }
@@ -745,7 +745,7 @@ void SIPTransactions::destroyDialog(std::shared_ptr<SIPDialogData> dialog)
   Q_ASSERT(dialog != nullptr);
   if(dialog == nullptr)
   {
-    printDebug(DEBUG_ERROR, this, DC_END_CALL,
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_END_CALL,
                "Bad sessionID for destruction.");
     return;
   }

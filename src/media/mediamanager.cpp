@@ -66,7 +66,7 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
 
   if(peerInfo->timeDescriptions.at(0).startTime != 0 || localInfo->timeDescriptions.at(0).startTime != 0)
   {
-    printDebug(DEBUG_ERROR, this, DC_ADD_MEDIA, "Nonzero start-time not supported!");
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "Nonzero start-time not supported!");
   }
 
 #if 0
@@ -109,19 +109,19 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
       // TODO: Make it possible to have a separate ip address for each mediastream by fixing this.
       if(!streamer_->addPeer(ip, sessionID))
       {
-        printDebug(DEBUG_ERROR, this, DC_ADD_MEDIA, "Error creating RTP peer. Simultaneous destruction?.");
+        printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "Error creating RTP peer. Simultaneous destruction?.");
         return;
       }
     }
     else {
-      printDebug(DEBUG_ERROR, this, DC_ADD_MEDIA, "Not supported in media creation.",
+      printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "Not supported in media creation.",
                       {"Media type", "address"}, {peerInfo->connection_addrtype, address.toString()});
       return;
     }
   }
   else
   {
-    printDebug(DEBUG_ERROR, this, DC_ADD_MEDIA, "What are we using if not the internet!?");
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "What are we using if not the internet!?");
     return;
   }
 
@@ -170,13 +170,13 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID, const MediaInfo& remo
       }
       else
       {
-        printDebug(DEBUG_ERROR, this, DC_ADD_MEDIA, "Unsupported media type!",
+        printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "Unsupported media type!",
                   {"type"}, QStringList() << remoteMedia.type);
       }
     }
     else
     {
-      printDebug(DEBUG_ERROR, this, DC_ADD_MEDIA, "SDP transport protocol not supported.");
+      printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "SDP transport protocol not supported.");
     }
   }
   else
@@ -215,13 +215,13 @@ void MediaManager::createIncomingMedia(uint32_t sessionID, const MediaInfo &loca
       }
       else
       {
-        printDebug(DEBUG_ERROR, this, DC_ADD_MEDIA, "Unsupported incoming media type!",
+        printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "Unsupported incoming media type!",
                   {"type"}, QStringList() << localMedia.type);
       }
     }
     else
     {
-      printDebug(DEBUG_ERROR, this, DC_ADD_MEDIA, "Incoming SDP transport protocol not supported.");
+      printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "Incoming SDP transport protocol not supported.");
     }
   }
   else

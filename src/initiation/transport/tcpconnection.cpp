@@ -98,7 +98,7 @@ bool TCPConnection::connectLoop()
 
   if (!socket_)
   {
-    printDebug(DEBUG_ERROR, this, DC_TCP, "Socket not initialized before connection");
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_TCP, "Socket not initialized before connection");
     return false;
   }
 
@@ -107,7 +107,7 @@ bool TCPConnection::connectLoop()
     qDebug() << "Setting existing socket:" << socketDescriptor_;
     if(!socket_->setSocketDescriptor(socketDescriptor_))
     {
-      printDebug(DEBUG_ERROR, this, DC_TCP, "Could not set socket descriptor for existing connection.");
+      printDebug(DEBUG_PROGRAM_ERROR, this, DC_TCP, "Could not set socket descriptor for existing connection.");
       return false;
     }
   }

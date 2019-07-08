@@ -143,7 +143,7 @@ void KvazzupController::peerAccepted(uint32_t sessionID)
   }
   else
   {
-    printDebug(DEBUG_ERROR, this, DC_ACCEPT,
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_ACCEPT,
                "Peer accepted a session which is not in Core.");
   }
 }

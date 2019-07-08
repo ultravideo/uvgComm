@@ -77,7 +77,7 @@ void printDebug(DebugType type, QString className, DebugContext context,
                 QString description, QStringList valueNames, QStringList values)
 {
   QString valueString = "";
-  if (valueNames.size() == values.size())
+  if (valueNames.size() == values.size()) // equal number of names and values
   {
     for (int i = 0; i < valueNames.size(); ++i)
     {
@@ -90,8 +90,27 @@ void printDebug(DebugType type, QString className, DebugContext context,
       }
     }
   }
+  else if (valueNames.size() == 1) // if we have one name, add it
+  {
+    valueString.append(valueNames.at(0));
+    valueString.append(": ");
+  }
+
+  if (valueNames.empty() || valueNames.size() == 1) // print values
+  {
+    for (int i = 0; i < values.size(); ++i)
+    {
+      valueString.append(values.at(i));
+      if (i != values.size() - 1)
+      {
+        valueString.append(", ");
+      }
+    }
+    valueString.append("\r\n");
+  }
   else {
-    qDebug() << "Value printing failed";
+    qDebug() << "Debug printing could not figure how to print error values." << "Names:" << valueNames.size()
+             << "values: " << values.size();
   }
 
   QString contextString = "No context";
@@ -112,18 +131,12 @@ void printDebug(DebugType type, QString className, DebugContext context,
   }
   case DEBUG_ERROR:
   {
-    qCritical().nospace().noquote() << "ERROR: --------------------------------------------";
-    qCritical().nospace().noquote() << contextString << ", " << className << ": "
-                                 << description << " " << valueString;
-    qCritical().nospace().noquote() << "-------------------------------------------- ERROR";
+    qCritical() << "ERROR: " << description;
     break;
   }
   case DEBUG_WARNING:
   {
-    qWarning().nospace().noquote() << "WARNING: --------------------------------------------";
-    qWarning().nospace().noquote() << contextString << ", " << className << ": "
-                                 << description << " " << valueString;
-    qWarning().nospace() << "\r\n" << "-------------------------------------------- WARNING";
+    qCritical() << "Warning: " << description;
     break;
   }
   case DEBUG_PEER_ERROR:
@@ -134,6 +147,21 @@ void printDebug(DebugType type, QString className, DebugContext context,
     qWarning().nospace().noquote() << "-------------------------------------------- PEER ERROR";
     break;
   }
-
+  case DEBUG_PROGRAM_ERROR:
+  {
+    qCritical().nospace().noquote() << "BUG DETECTED: --------------------------------------------";
+    qCritical().nospace().noquote() << contextString << ", " << className << ": "
+                                 << description << " " << valueString;
+    qCritical().nospace().noquote() << "-------------------------------------------- BUG";
+    break;
+  }
+  case DEBUG_PROGRAM_WARNING:
+  {
+    qWarning().nospace().noquote() << "MINOR BUG DETECTED: --------------------------------------------";
+    qWarning().nospace().noquote() << contextString << ", " << className << ": "
+                                 << description << " " << valueString;
+    qWarning().nospace() << "\r\n" << "-------------------------------------------- MINOR BUG";
+    break;
+  }
   }
 }

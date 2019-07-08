@@ -19,14 +19,14 @@ public:
 
   void setLocalInfo(QString username);
 
-  // when sending an invite, use this
+  // When sending an INVITE, use this
   // generates the next suitable SDP message with all possible options
   std::shared_ptr<SDPMessageInfo> localSDPSuggestion(QHostAddress localAddress);
 
-  // checks if invite message is acceptable
-  // use for getting our answer and for getting our final to be used
-  // returns nullptr if suitable could not be found
-  // chooces what to use
+  // Checks if invite message is acceptable.
+  // Use for getting our answer and for getting our final to be used.
+  // returns nullptr if suitable could not be found.
+  // chooces what to use.
   std::shared_ptr<SDPMessageInfo> localFinalSDP(SDPMessageInfo& remoteSDP, QHostAddress localAddress,
                                                 std::shared_ptr<SDPMessageInfo> localSuggestion, uint32_t sessionID);
 

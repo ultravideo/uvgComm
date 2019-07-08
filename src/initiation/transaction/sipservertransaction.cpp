@@ -29,7 +29,7 @@ bool SIPServerTransaction::processRequest(SIPRequest &request)
   Q_ASSERT(transactionUser_ && sessionID_);
   if(!transactionUser_ || sessionID_ == 0)
   {
-    printDebug(DEBUG_ERROR, this, DC_RECEIVE_SIP_RESPONSE, "SIP Server transaction not initialized.");
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_RECEIVE_SIP_RESPONSE, "SIP Server transaction not initialized.");
     return false;
   }
 
@@ -94,7 +94,7 @@ void SIPServerTransaction::getResponseMessage(std::shared_ptr<SIPMessageInfo> &o
 {
   if(receivedRequest_ == nullptr)
   {
-    printDebug(DEBUG_ERROR, this, DC_SEND_SIP_RESPONSE, "The received request was not set before trying to use it!");
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_SEND_SIP_RESPONSE, "The received request was not set before trying to use it!");
     return;
   }
   copyMessageDetails(receivedRequest_, outMessage);

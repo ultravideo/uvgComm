@@ -69,7 +69,7 @@ void DisplayFilter::process()
       format = QImage::Format_Invalid;
       break;
     default:
-      printDebug(DEBUG_ERROR, this, DC_PROCESS_MEDIA,
+      printDebug(DEBUG_PROGRAM_ERROR, this, DC_PROCESS_MEDIA,
                  "Wrong type of display input.", {"Type"}, {QString::number(input->type)});
       format = QImage::Format_Invalid;
       break;

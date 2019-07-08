@@ -150,8 +150,6 @@ GlobalSDPState::localFinalSDP(SDPMessageInfo &remoteSDP, QHostAddress localAddre
   {
     sdp = generateSDP(localAddress);
     sdp->sessionName = remoteSDP.sessionName;
-
-    qDebug() << "\n\n\nHELLO HERE AGAIN!!\n\n\n";
   }
   else
   {
