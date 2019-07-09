@@ -273,6 +273,7 @@ bool SIPTransactions::identifySession(SIPRequest request, QHostAddress localAddr
   // find the dialog which corresponds to the callID and tags received in request
   std::shared_ptr<SIPDialogData> foundDialog;
 
+  // we did not find existing dialog for this request
   if(out_sessionID == 0)
   {
     qDebug() << "Could not find the dialog of the request.";
@@ -280,7 +281,7 @@ bool SIPTransactions::identifySession(SIPRequest request, QHostAddress localAddr
     // TODO: there is a problem if the sequence number did not match and the request type is INVITE
     if(request.type == SIP_INVITE)
     {
-      qDebug() << "Someone is trying to start a sip dialog with us!";
+      qDebug() << "Someone is trying to start a SIP dialog with us!";
 
       if(!sdp_.canStartSession())
       {
@@ -347,7 +348,7 @@ void SIPTransactions::processSIPRequest(SIPRequest request, QHostAddress localAd
         // remoteFinalSDP blocks until the ICE has finished its job
         //
         // After it returns, we add the nominated media connections to local and remote SDPs
-        if(!sdp_.remoteFinalSDP(retrieved, sessionID))
+        if(!sdp_.verifyResponseSDP(retrieved, sessionID))
         {
           qDebug() << "PEER_ERROR:" << "Their final sdp is not suitable. They should have followed our SDP!!!";
           return;
@@ -459,7 +460,7 @@ bool SIPTransactions::processSDP(uint32_t sessionID, QVariant& content, QHostAdd
   SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
 
   dialogs_[sessionID]->localSdp_
-      = sdp_.localFinalSDP(retrieved, localAddress, dialogs_[sessionID]->localSdp_, sessionID);
+      = sdp_.generateResponseSDP(retrieved, localAddress, dialogs_[sessionID]->localSdp_, sessionID);
 
   if(dialogs_[sessionID]->localSdp_ == nullptr)
   {
@@ -468,6 +469,7 @@ bool SIPTransactions::processSDP(uint32_t sessionID, QVariant& content, QHostAdd
     removeDialog(sessionID);
     return false;
   }
+
   dialogs_[sessionID]->remoteSdp_ = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
   *dialogs_[sessionID]->remoteSdp_ = retrieved;
   return true;
@@ -500,7 +502,7 @@ void SIPTransactions::sendDialogRequest(uint32_t sessionID, RequestType type)
 
   QVariant content;
   request.message->content.length = 0;
-  if(type == SIP_INVITE || type == SIP_ACK)
+  if(type == SIP_INVITE || type == SIP_ACK) // TODO: Only one of these requires and SDP
   {
     qDebug() << "Adding SDP content to request:" << type;
     request.message->content.type = APPLICATION_SDP;
@@ -508,7 +510,7 @@ void SIPTransactions::sendDialogRequest(uint32_t sessionID, RequestType type)
     if(type == SIP_INVITE)
     {
       dialogs_[sessionID]->localSdp_
-          = sdp_.localSDPSuggestion(dialogs_[sessionID]->localAddress);
+          = sdp_.generateInitialSDP(dialogs_[sessionID]->localAddress);
 
       if(dialogs_[sessionID]->localSdp_ != nullptr)
       {

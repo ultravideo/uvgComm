@@ -19,24 +19,27 @@ public:
 
   void setLocalInfo(QString username);
 
-  // When sending an INVITE, use this
-  // generates the next suitable SDP message with all possible options
-  std::shared_ptr<SDPMessageInfo> localSDPSuggestion(QHostAddress localAddress);
+  // Use this to generate the first SDP offer of the negotiation.
+  // Includes all the media codecs suitable to us in preferred order.
+  std::shared_ptr<SDPMessageInfo> generateInitialSDP(QHostAddress localAddress);
 
-  // Checks if invite message is acceptable.
-  // Use for getting our answer and for getting our final to be used.
+  // Use this to generate our response to their SDP suggestion.
+  // Sets unacceptable media streams port number to 0.
+  // Selects a subset of acceptable payload types from each media.
   // returns nullptr if suitable could not be found.
-  // chooces what to use.
-  std::shared_ptr<SDPMessageInfo> localFinalSDP(SDPMessageInfo& remoteSDP, QHostAddress localAddress,
-                                                std::shared_ptr<SDPMessageInfo> localSuggestion, uint32_t sessionID);
+  std::shared_ptr<SDPMessageInfo> generateResponseSDP(SDPMessageInfo& sdpOffer,
+                                                      QHostAddress localAddress,
+                                                      std::shared_ptr<SDPMessageInfo> localSuggestion,
+                                                      uint32_t sessionID);
 
-  // return if the final SDP was suitable. It should be, but just to be sure
-  bool remoteFinalSDP(SDPMessageInfo& remoteInviteSDP, uint32_t sessionID);
+  // check if their response is still valid.
+  bool verifyResponseSDP(SDPMessageInfo& remoteInviteSDP, uint32_t sessionID);
 
   // frees the ports when they are not needed in rest of the program
   void endSession(std::shared_ptr<SDPMessageInfo> sessionSDP);
 
-  void startICECandidateNegotiation(QList<std::shared_ptr<ICEInfo>>& local, QList<std::shared_ptr<ICEInfo>>& remote, uint32_t sessionID);
+  void startICECandidateNegotiation(QList<std::shared_ptr<ICEInfo>>& local,
+                                    QList<std::shared_ptr<ICEInfo>>& remote, uint32_t sessionID);
 
   void ICECleanup(uint32_t sessionID);
 
@@ -56,6 +59,7 @@ private:
   bool generateAudioMedia(MediaInfo &audio);
   bool generateVideoMedia(MediaInfo &video);
 
+  // Checks if SDP is acceptable to us.
   bool checkSDPOffer(SDPMessageInfo& offer);
 
   // update MediaInfo of SDP after ICE has finished
