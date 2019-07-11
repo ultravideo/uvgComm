@@ -139,7 +139,7 @@ void SIPManager::endAllCalls()
 
 void SIPManager::getSDPs(uint32_t sessionID,
              std::shared_ptr<SDPMessageInfo>& localSDP,
-             std::shared_ptr<SDPMessageInfo>& remoteSDP)
+             std::shared_ptr<SDPMessageInfo>& remoteSDP) const
 {
   transactions_.getSDPs(sessionID, localSDP, remoteSDP);
 }

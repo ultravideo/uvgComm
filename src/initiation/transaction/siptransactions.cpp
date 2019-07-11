@@ -42,7 +42,7 @@ void SIPTransactions::uninit()
   //TODO: delete all dialogs
   for(auto i = dialogs_.begin(); i != dialogs_.end(); ++i)
   {
-    destroyDialog(i.value());
+    destroyDialog(i.key());
   }
 
   dialogs_.clear();
@@ -74,25 +74,9 @@ void SIPTransactions::bindToServer(QString serverAddress, QHostAddress localAddr
   sendNonDialogRequest(serverUri, SIP_REGISTER);
 }
 
-void SIPTransactions::getSDPs(uint32_t sessionID,
-                              std::shared_ptr<SDPMessageInfo>& localSDP,
-                              std::shared_ptr<SDPMessageInfo>& remoteSDP)
-{
-  Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
 
-  if(dialogs_[sessionID]->localSdp_ == nullptr ||
-     dialogs_[sessionID]->remoteSdp_ == nullptr)
-  {
-    qDebug() << "getSDP: Both SDP:s are not present for some reason."
-             << "Maybe the call has ended before starting?";
-  }
-
-  localSDP = dialogs_[sessionID]->localSdp_;
-  remoteSDP = dialogs_[sessionID]->remoteSdp_;
-}
-
-
-void SIPTransactions::startDirectCall(Contact &address, QHostAddress localAddress, uint32_t sessionID)
+void SIPTransactions::startDirectCall(Contact &address, QHostAddress localAddress,
+                                      uint32_t sessionID)
 {
   // There should not exist a dialog for this user
   if(!sdp_.canStartSession())
@@ -104,7 +88,8 @@ void SIPTransactions::startDirectCall(Contact &address, QHostAddress localAddres
   startPeerToPeerCall(sessionID, localAddress, address);
 }
 
-void SIPTransactions::startProxyCall(Contact& address, QHostAddress localAddress, uint32_t sessionID)
+void SIPTransactions::startProxyCall(Contact& address, QHostAddress localAddress,
+                                     uint32_t sessionID)
 {
   Q_UNUSED(address);
   Q_UNUSED(localAddress);
@@ -163,9 +148,6 @@ void SIPTransactions::createBaseDialog(uint32_t sessionID,
   dialog->server = std::shared_ptr<SIPServerTransaction> (new SIPServerTransaction);
   dialog->server->init(transactionUser_, sessionID);
 
-  dialog->localSdp_ = nullptr;
-  dialog->remoteSdp_ = nullptr;
-
   dialog->proxyConnection_ = false;
 
   dialogs_[sessionID] = dialog;
@@ -191,7 +173,7 @@ void SIPTransactions::acceptCall(uint32_t sessionID)
 
   // start candiate nomination. This function won't block, negotiation happens in the background
   // remoteFinalSDP() makes sure that a connection was in fact nominated
-  sdp_.startICECandidateNegotiation(dialog->localSdp_->candidates, dialog->remoteSdp_->candidates, sessionID);
+  sdp_.startICECandidateNegotiation(sessionID);
 
   dialog->server->acceptCall();
 }
@@ -199,23 +181,24 @@ void SIPTransactions::acceptCall(uint32_t sessionID)
 void SIPTransactions::rejectCall(uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
-
   dialogMutex_.lock();
   std::shared_ptr<SIPDialogData> dialog = dialogs_[sessionID];
   dialogMutex_.unlock();
   dialog->server->rejectCall();
-  destroyDialog(dialog);
+
+  destroyDialog(sessionID);
   removeDialog(sessionID);
 }
 
 void SIPTransactions::endCall(uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
-
+  dialogMutex_.lock();
   std::shared_ptr<SIPDialogData> dialog = dialogs_[sessionID];
+  dialogMutex_.unlock();
   dialog->client->endCall();
-  sdp_.ICECleanup(sessionID);
-  destroyDialog(dialog);
+
+  destroyDialog(sessionID);
   removeDialog(sessionID);
 }
 
@@ -225,7 +208,8 @@ void SIPTransactions::cancelCall(uint32_t sessionID)
 
   std::shared_ptr<SIPDialogData> dialog = dialogs_[sessionID];
   dialog->client->cancelCall();
-  destroyDialog(dialog);
+
+  destroyDialog(sessionID);
   removeDialog(sessionID);
 }
 
@@ -242,11 +226,20 @@ void SIPTransactions::endAllCalls()
 
   for(auto i = dialogs_.begin(); i != dialogs_.end(); ++i)
   {
-    sdp_.ICECleanup(i.key());
-    destroyDialog(i.value());
+    destroyDialog(i.key());
   }
   dialogs_.clear();
   nextSessionID_ = FIRSTSESSIONID;
+}
+
+
+void SIPTransactions::getSDPs(uint32_t sessionID,
+                              std::shared_ptr<SDPMessageInfo>& localSDP,
+                              std::shared_ptr<SDPMessageInfo>& remoteSDP) const
+{
+  Q_ASSERT(sessionID);
+  localSDP = sdp_.getLocalSDP(sessionID);
+  remoteSDP = sdp_.getRemoteSDP(sessionID);
 }
 
 
@@ -355,7 +348,7 @@ void SIPTransactions::processSIPRequest(SIPRequest request, QHostAddress localAd
         }
         else
         {
-          sdp_.updateFinalSDPs(*foundDialog->localSdp_, *foundDialog->remoteSdp_, sessionID);
+          sdp_.setICEPorts(sessionID);
         }
       }
     }
@@ -371,8 +364,7 @@ void SIPTransactions::processSIPRequest(SIPRequest request, QHostAddress localAd
   if(!foundDialog->server->processRequest(request))
   {
     qDebug() << "Ending session because server said to";
-    sdp_.endSession(foundDialog->localSdp_);
-    foundDialog->localSdp_ = nullptr;
+    sdp_.endSession(sessionID);
   }
 
   qDebug() << "Finished processing request:" << request.type << "Dialog:" << sessionID;
@@ -442,7 +434,7 @@ void SIPTransactions::processSIPResponse(SIPResponse response,
   if(!dialogs_[foundSessionID]->client->processResponse(response))
   {
     // destroy dialog
-    destroyDialog(dialogs_[foundSessionID]);
+    destroyDialog(foundSessionID);
     removeDialog(foundSessionID);
   }
   qDebug() << "Response processing finished:" << response.type << "Dialog:" << foundSessionID;
@@ -459,19 +451,13 @@ bool SIPTransactions::processSDP(uint32_t sessionID, QVariant& content, QHostAdd
 
   SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
 
-  dialogs_[sessionID]->localSdp_
-      = sdp_.generateResponseSDP(retrieved, localAddress, dialogs_[sessionID]->localSdp_, sessionID);
-
-  if(dialogs_[sessionID]->localSdp_ == nullptr)
+  if(!sdp_.generateResponseSDP(retrieved, localAddress, sessionID))
   {
     qDebug() << "Remote SDP not suitable or we have no ports to assign";
-    destroyDialog(dialogs_[sessionID]);
+    destroyDialog(sessionID);
     removeDialog(sessionID);
     return false;
   }
-
-  dialogs_[sessionID]->remoteSdp_ = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
-  *dialogs_[sessionID]->remoteSdp_ = retrieved;
   return true;
 }
 
@@ -502,19 +488,17 @@ void SIPTransactions::sendDialogRequest(uint32_t sessionID, RequestType type)
 
   QVariant content;
   request.message->content.length = 0;
-  if(type == SIP_INVITE || type == SIP_ACK) // TODO: Only one of these requires and SDP
+  if(type == SIP_INVITE)
   {
     qDebug() << "Adding SDP content to request:" << type;
     request.message->content.type = APPLICATION_SDP;
     SDPMessageInfo sdp;
+
     if(type == SIP_INVITE)
     {
-      dialogs_[sessionID]->localSdp_
-          = sdp_.generateInitialSDP(dialogs_[sessionID]->localAddress);
-
-      if(dialogs_[sessionID]->localSdp_ != nullptr)
+      if(sdp_.generateInitialSDP(dialogs_[sessionID]->localAddress, sessionID))
       {
-        sdp = *dialogs_[sessionID]->localSdp_.get();
+        sdp = *sdp_.getLocalSDP(sessionID);
       }
       else
       {
@@ -523,18 +507,6 @@ void SIPTransactions::sendDialogRequest(uint32_t sessionID, RequestType type)
 
         return;
       }
-    }
-    else
-    {
-      if(dialogs_[sessionID]->localSdp_ == nullptr)
-      {
-        printDebug(DEBUG_PROGRAM_ERROR, this, DC_SEND_SIP_REQUEST,
-                   "Missing local final SDP when its supposed to be sent.");
-        // TODO: send client error.
-        return;
-      }
-
-      sdp = *dialogs_[sessionID]->localSdp_.get();
     }
     content.setValue(sdp);
   }
@@ -591,17 +563,22 @@ void SIPTransactions::sendResponse(uint32_t sessionID, ResponseType type, Reques
   if(response.message->transactionRequest == SIP_INVITE && type == SIP_OK) // TODO: SDP in progress...
   {
     response.message->content.type = APPLICATION_SDP;
-    SDPMessageInfo sdp = *dialogs_[sessionID]->localSdp_.get();
-    content.setValue(sdp);
+    std::shared_ptr<SDPMessageInfo> sdp = sdp_.getLocalSDP(sessionID);
+    content.setValue(*sdp);
   }
 
   emit transportResponse(sessionID, response, content);
   qDebug() << "---- Finished sending of a response ---";
 }
 
-void SIPTransactions::destroyDialog(std::shared_ptr<SIPDialogData> dialog)
+void SIPTransactions::destroyDialog(uint32_t sessionID)
 {
-  Q_ASSERT(dialog != nullptr);
+  Q_ASSERT(sessionID);
+  Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
+  dialogMutex_.lock();
+  std::shared_ptr<SIPDialogData> dialog = dialogs_[sessionID];
+  dialogMutex_.unlock();
+
   if(dialog == nullptr)
   {
     printDebug(DEBUG_PROGRAM_ERROR, this, DC_END_CALL,
@@ -610,18 +587,10 @@ void SIPTransactions::destroyDialog(std::shared_ptr<SIPDialogData> dialog)
   }
   qDebug() << "Destroying dialog:";
 
-  sdp_.endSession(dialog->localSdp_);
+  sdp_.endSession(sessionID);
   dialog->state.reset();
   dialog->server.reset();
   dialog->client.reset();
-
-  if(dialog->localSdp_)
-  {
-    sdp_.endSession(dialog->localSdp_);
-  }
-
-  dialog->localSdp_.reset();
-  dialog->remoteSdp_.reset();
 }
 
 void SIPTransactions::removeDialog(uint32_t sessionID)

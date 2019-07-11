@@ -86,10 +86,9 @@ public:
 
   void getSDPs(uint32_t sessionID,
                std::shared_ptr<SDPMessageInfo>& localSDP,
-               std::shared_ptr<SDPMessageInfo>& remoteSDP);
+               std::shared_ptr<SDPMessageInfo>& remoteSDP) const;
 
   void failedToSendMessage();
-  void updateAddress();
 
 
 signals:
@@ -100,9 +99,14 @@ signals:
 public slots:
 
   // when sip connection has received a request/response it is handled here.
-  bool identifySession(SIPRequest request, QHostAddress localAddress, uint32_t& out_sessionID);
-  void processSIPRequest(SIPRequest request, QHostAddress localAddress, QVariant& content, uint32_t sessionID);
-  void processSIPResponse(SIPResponse response, QHostAddress localAddress, QVariant& content);
+  bool identifySession(SIPRequest request, QHostAddress localAddress,
+                       uint32_t& out_sessionID);
+
+  void processSIPRequest(SIPRequest request, QHostAddress localAddress,
+                         QVariant& content, uint32_t sessionID);
+
+  void processSIPResponse(SIPResponse response, QHostAddress localAddress,
+                          QVariant& content);
 
 private slots:
 
@@ -121,8 +125,6 @@ private:
     // do not stop connection before responding to all requests
     std::shared_ptr<SIPServerTransaction> server;
     std::shared_ptr<SIPDialogClient> client;
-    std::shared_ptr<SDPMessageInfo> localSdp_;
-    std::shared_ptr<SDPMessageInfo> remoteSdp_;
 
     bool proxyConnection_;
 
@@ -151,7 +153,7 @@ private:
   void startPeerToPeerCall(uint32_t sessionID, QHostAddress localAddress, Contact& remote);
   uint32_t createDialogFromINVITE(QHostAddress localAddress,  std::shared_ptr<SIPMessageInfo> &invite);
   void createBaseDialog(uint32_t sessionID, QHostAddress &localAddress, std::shared_ptr<SIPDialogData>& dialog);
-  void destroyDialog(std::shared_ptr<SIPDialogData> dialog);
+  void destroyDialog(uint32_t sessionID);
   void removeDialog(uint32_t sessionID);
 
   bool areWeTheDestination();
