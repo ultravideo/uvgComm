@@ -8,7 +8,8 @@
 SIPServerTransaction::SIPServerTransaction():
   sessionID_(0),
   receivedRequest_(nullptr),
-  transactionUser_(nullptr)
+  transactionUser_(nullptr),
+  sessionStarted_(false)
 {}
 
 void SIPServerTransaction::init(SIPTransactionUser* tu, uint32_t sessionID)
@@ -42,12 +43,17 @@ bool SIPServerTransaction::processRequest(SIPRequest &request)
 
   switch(request.type)
   {
-  case SIP_INVITE: // TODO: re-INVITE case?
+  case SIP_INVITE:
   {
-    if(!transactionUser_->incomingCall(sessionID_, request.message->from.realname))
+    if (!sessionStarted_)
     {
-      // if we did not auto-accept
-      responseSender(SIP_RINGING, false);
+      if (!transactionUser_->incomingCall(sessionID_, request.message->from.realname))
+      {
+        // if we did not auto-accept
+        responseSender(SIP_RINGING, false);
+      }
+
+      sessionStarted_ = true;
     }
     break;
   }
@@ -59,6 +65,7 @@ bool SIPServerTransaction::processRequest(SIPRequest &request)
   case SIP_BYE:
   {
     transactionUser_->endCall(sessionID_);
+    sessionStarted_ = false;
     return false;
   }
   case SIP_CANCEL:

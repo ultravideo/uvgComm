@@ -59,4 +59,7 @@ private:
   std::shared_ptr<SIPMessageInfo> receivedRequest_;
 
   SIPTransactionUser* transactionUser_;
+
+  // whether we have received an INVITE. Used to find ou if this is a re-INVITE
+  bool sessionStarted_;
 };
