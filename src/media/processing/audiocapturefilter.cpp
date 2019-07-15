@@ -136,6 +136,7 @@ void AudioCaptureFilter::stop()
 // changing of audio device mid stream.
 void AudioCaptureFilter::deviceChanged(int index)
 {
+  Q_UNUSED(index); // TODO
   printDebug(DEBUG_WARNING, this, DC_SETTINGS, "audiocapturefilter device change not implemented fully.");
 
   device_->stop();

@@ -95,7 +95,7 @@ private:
   // should the buffervalue be updated in next paintEvent
   bool dirtyBuffers_;
 
-  uint16_t framerate_; // rounded down currently
+  double framerate_; // rounded down currently
 
   uint32_t videoIndex_;
   std::vector<PacketInfo*> videoPackets_;
@@ -125,9 +125,9 @@ private:
   uint16_t videoEncDelay_;
 
   QTime guiTimer_;
-  uint32_t lastDrawTime_;
+  int lastDrawTime_;
   uint32_t guiFrequency_;
 
   // for updating the tab as fast as possible
-  uint8_t lastTabIndex_;
+  int lastTabIndex_;
 };
