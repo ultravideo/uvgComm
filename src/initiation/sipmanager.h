@@ -38,17 +38,24 @@ private slots:
   void receiveTCPConnection(TCPConnection* con);
   void connectionEstablished(quint32 transportID);
 
-  void transportRequest(uint32_t sessionID, SIPRequest &request, QVariant& content);
-  void transportResponse(uint32_t sessionID, SIPResponse &response, QVariant& content);
+  void transportRequest(uint32_t sessionID, SIPRequest &request);
+  void transportResponse(uint32_t sessionID, SIPResponse &response);
 
   void processSIPRequest(SIPRequest &request, QHostAddress localAddress,
                          QVariant& content, quint32 transportID);
+  void processSIPResponse(SIPResponse &response, QVariant& content);
 
 private:
 
   std::shared_ptr<SIPTransport> createSIPTransport();
 
   bool isConnected(QString remoteAddress, quint32& transportID);
+
+  bool SDPOfferToContent(QVariant &content, QHostAddress localAddress, uint32_t sessionID);
+  bool processOfferSDP(uint32_t sessionID, QVariant &content, QHostAddress localAddress);
+  bool SDPAnswerToContent(QVariant &content, uint32_t sessionID);
+  bool processAnswerSDP(uint32_t sessionID, QVariant &content);
+
 
   ConnectionServer tcpServer_;
   uint16_t sipPort_;
@@ -67,4 +74,7 @@ private:
 
   std::map<quint32, WaitingStart> waitingToStart_;
   std::map<quint32, QString> waitingToBind_;
+
+
+  GlobalSDPState sdp_;
 };

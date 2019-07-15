@@ -13,6 +13,9 @@
 // This class generates the SDP messages and is capable of checking if proposed
 // SDP is suitable.
 
+// SDP in SIP is based on offer/answer model where one side sends an offer to
+// which the other side responds with an asnwer.
+
 class GlobalSDPState
 {
 public:
@@ -23,17 +26,18 @@ public:
 
   // Use this to generate the first SDP offer of the negotiation.
   // Includes all the media codecs suitable to us in preferred order.
-  bool generateInitialSDP(QHostAddress localAddress, uint32_t sessionID);
+  bool generateOfferSDP(QHostAddress localAddress, uint32_t sessionID);
 
   // Use this to generate our response to their SDP suggestion.
   // Sets unacceptable media streams port number to 0.
   // Selects a subset of acceptable payload types from each media.
-  bool generateResponseSDP(SDPMessageInfo& sdpOffer,
-                           QHostAddress localAddress,
-                           uint32_t sessionID);
+  // TODO: Do as described
+  bool generateAnswerSDP(SDPMessageInfo& remoteSDPOffer,
+                         QHostAddress localAddress,
+                         uint32_t sessionID);
 
-  // check if their response is still valid.
-  bool verifyResponseSDP(SDPMessageInfo& remoteInviteSDP, uint32_t sessionID);
+  // process their response SDP.
+  bool processAnswerSDP(SDPMessageInfo& remoteSDPAnswer, uint32_t sessionID);
 
   // frees the ports when they are not needed in rest of the program
   void endSession(uint32_t sessionID);

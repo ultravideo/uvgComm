@@ -20,7 +20,7 @@ void GlobalSDPState::setLocalInfo(QString username)
   localUsername_ = username;
 }
 
-bool GlobalSDPState::generateInitialSDP(QHostAddress localAddress,
+bool GlobalSDPState::generateOfferSDP(QHostAddress localAddress,
                                         uint32_t sessionID)
 {
   Q_ASSERT(sessionID);
@@ -31,6 +31,7 @@ bool GlobalSDPState::generateInitialSDP(QHostAddress localAddress,
   if(localInfo != nullptr)
   {
     sdps_[sessionID].first = localInfo;
+    sdps_[sessionID].second = nullptr;
   }
   return localInfo != nullptr;
 }
@@ -148,14 +149,14 @@ bool GlobalSDPState::generateVideoMedia(MediaInfo& video)
 }
 
 
-bool GlobalSDPState::generateResponseSDP(SDPMessageInfo &sdpOffer,
+bool GlobalSDPState::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
                                         QHostAddress localAddress,
                                         uint32_t sessionID)
 {
   Q_ASSERT(sessionID);
 
   // check if suitable.
-  if(!checkSDPOffer(sdpOffer))
+  if(!checkSDPOffer(remoteSDPOffer))
   {
     qDebug() << "Incoming SDP did not have Opus and H265 in their offer.";
     return false;
@@ -167,7 +168,7 @@ bool GlobalSDPState::generateResponseSDP(SDPMessageInfo &sdpOffer,
 
 
   std::shared_ptr<SDPMessageInfo> remoteSDP = std::shared_ptr<SDPMessageInfo>(new SDPMessageInfo);
-  *remoteSDP = sdpOffer;
+  *remoteSDP = remoteSDPOffer;
 
   // TODO: modify the their SDP to match our accepted configuration
   sdps_[sessionID].first = localSDP;
@@ -209,7 +210,7 @@ bool GlobalSDPState::generateResponseSDP(SDPMessageInfo &sdpOffer,
   return true;
 }
 
-bool GlobalSDPState::verifyResponseSDP(SDPMessageInfo &remoteInviteSDP, uint32_t sessionID)
+bool GlobalSDPState::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer, uint32_t sessionID)
 {
   // this function blocks until a candidate is nominated or all candidates are considered
   // invalid in which case it returns false to indicate error
@@ -221,7 +222,7 @@ bool GlobalSDPState::verifyResponseSDP(SDPMessageInfo &remoteInviteSDP, uint32_t
 
   setICEPorts(sessionID);
 
-  return checkSDPOffer(remoteInviteSDP);
+  return checkSDPOffer(remoteSDPAnswer);
 }
 
 
@@ -362,12 +363,12 @@ bool GlobalSDPState::checkSessionValidity(uint32_t sessionID, bool remotePresent
 
   Q_ASSERT(sdps_.find(sessionID) != sdps_.end());
   Q_ASSERT(sdps_.at(sessionID).first != nullptr);
-  Q_ASSERT(sdps_.at(sessionID).second != nullptr);
+  Q_ASSERT(sdps_.at(sessionID).second != nullptr || !remotePresent);
 
   if(sessionID == 0 ||
-     sdps_.find(sessionID) != sdps_.end() ||
-     sdps_.at(sessionID).first != nullptr ||
-     (sdps_.at(sessionID).second != nullptr && remotePresent))
+     sdps_.find(sessionID) == sdps_.end() ||
+     sdps_.at(sessionID).first == nullptr ||
+     (sdps_.at(sessionID).second == nullptr && remotePresent))
   {
     printDebug(DEBUG_PROGRAM_ERROR, "GlobalSDPState", DC_NEGOTIATING,
                "Attempting to use GlobalSDPState without setting SessionID correctly");

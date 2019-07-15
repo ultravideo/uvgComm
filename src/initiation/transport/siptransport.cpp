@@ -133,17 +133,18 @@ void SIPTransport::destroyConnection()
 void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
 {
   qDebug() << "Composing SIP Request:" << requestToString(request.type);
-  Q_ASSERT((request.type != SIP_INVITE && request.type != SIP_ACK) ||
+  Q_ASSERT((request.type != SIP_INVITE) ||
       (request.message->content.type == APPLICATION_SDP && content.isValid()));
   Q_ASSERT(connection_ != nullptr);
 
-  if((request.type == SIP_INVITE || request.type == SIP_ACK) &&
+  if((request.type == SIP_INVITE) &&
      (request.message->content.type != APPLICATION_SDP || !content.isValid())
      || connection_ == nullptr)
   {
     qDebug() << "WARNING: SDP nullptr or connection does not exist in sendRequest";
     return;
   }
+
   QList<SIPField> fields;
   if(!composeMandatoryFields(fields, request.message) ||
      !includeContactField(fields, request.message))
@@ -155,7 +156,7 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
   QString lineEnding = "\r\n";
   QString message = "";
   // adds content fields and converts the sdp to string if INVITE
-  QString sdp_str = addContent(fields, request.type == SIP_INVITE || request.type == SIP_ACK, content.value<SDPMessageInfo>());
+  QString sdp_str = addContent(fields, request.type == SIP_INVITE, content.value<SDPMessageInfo>());
   if(!getFirstRequestLine(message, request, lineEnding))
   {
     qDebug() << "WARNING: could not get first request line";
@@ -423,6 +424,7 @@ bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPF
     qDebug() << "All mandatory header lines not present!";
     return false;
   }
+  return true;
 }
 
 
@@ -510,7 +512,7 @@ bool SIPTransport::parseResponse(QString responseString, QString version,
   response.type = type;
   response.message = message;
 
-  emit incomingSIPResponse(response, getLocalAddress(), content);
+  emit incomingSIPResponse(response, content);
 
   return true;
 }

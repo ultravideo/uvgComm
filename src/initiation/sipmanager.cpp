@@ -10,7 +10,8 @@ SIPManager::SIPManager():
   sipPort_(5060), // default for SIP, use 5061 for tls encrypted
   transports_(),
   nextTransportID_(FIRSTTRANSPORTID),
-  transactions_()
+  transactions_(),
+  sdp_()
 {}
 
 
@@ -34,6 +35,12 @@ void SIPManager::init(SIPTransactionUser* callControl)
   }
 
   transactions_.init(callControl);
+
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+  QString username = !settings.value("local/Username").isNull()
+      ? settings.value("local/Username").toString() : "anonymous";
+
+  sdp_.setLocalInfo(username);
 
   QObject::connect(&transactions_, &SIPTransactions::transportRequest,
                    this, &SIPManager::transportRequest);
@@ -84,6 +91,13 @@ uint32_t SIPManager::startCall(Contact& address)
   quint32 transportID = 0;
   uint32_t sessionID = transactions_.reserveSessionID();
 
+  // There should not exist a dialog for this user
+  if(!sdp_.canStartSession())
+  {
+    printDebug(DEBUG_WARNING, this, DC_START_CALL, "Not enough ports to start a call.");
+    return 0;
+  }
+
   // check if we are already connected to remoteaddress and set transportID
   if (!isConnected(address.remoteAddress, transportID))
   {
@@ -109,6 +123,11 @@ uint32_t SIPManager::startCall(Contact& address)
 
 void SIPManager::acceptCall(uint32_t sessionID)
 {
+
+  // start candiate nomination. This function won't block, negotiation happens in the background
+  // remoteFinalSDP() makes sure that a connection was in fact nominated
+  sdp_.startICECandidateNegotiation(sessionID);
+
   transactions_.acceptCall(sessionID);
 }
 
@@ -141,7 +160,9 @@ void SIPManager::getSDPs(uint32_t sessionID,
              std::shared_ptr<SDPMessageInfo>& localSDP,
              std::shared_ptr<SDPMessageInfo>& remoteSDP) const
 {
-  transactions_.getSDPs(sessionID, localSDP, remoteSDP);
+  Q_ASSERT(sessionID);
+  localSDP = sdp_.getLocalSDP(sessionID);
+  remoteSDP = sdp_.getRemoteSDP(sessionID);
 }
 
 
@@ -173,8 +194,7 @@ void SIPManager::connectionEstablished(quint32 transportID)
 }
 
 
-void SIPManager::transportRequest(uint32_t sessionID, SIPRequest &request,
-                                  QVariant& content)
+void SIPManager::transportRequest(uint32_t sessionID, SIPRequest &request)
 {
   if (sessionToTransportID_.find(sessionID) != sessionToTransportID_.end())
   {
@@ -182,6 +202,22 @@ void SIPManager::transportRequest(uint32_t sessionID, SIPRequest &request,
 
     if (transports_.find(transportID) != transports_.end())
     {
+      QVariant content;
+      if(request.type == SIP_INVITE)
+      {
+        request.message->content.length = 0;
+        qDebug() << "Adding SDP content to request:" << request.type;
+        request.message->content.type = APPLICATION_SDP;
+
+        if (!SDPOfferToContent(content,
+                               transports_[transportID]->getLocalAddress(),
+                               sessionID))
+        {
+          return;
+        }
+      }
+
+
       transports_[transportID]->sendRequest(request, content);
     }
     else {
@@ -195,8 +231,8 @@ void SIPManager::transportRequest(uint32_t sessionID, SIPRequest &request,
   }
 }
 
-void SIPManager::transportResponse(uint32_t sessionID, SIPResponse &response,
-                                   QVariant& content)
+
+void SIPManager::transportResponse(uint32_t sessionID, SIPResponse &response)
 {
   if (sessionToTransportID_.find(sessionID) != sessionToTransportID_.end())
   {
@@ -204,6 +240,19 @@ void SIPManager::transportResponse(uint32_t sessionID, SIPResponse &response,
 
     if (transports_.find(transportID) != transports_.end())
     {
+      QVariant content;
+      if (response.type == SIP_OK
+          && response.message->transactionRequest == SIP_INVITE)
+      {
+        response.message->content.length = 0;
+        qDebug() << "Adding SDP content to request:" << response.type;
+        response.message->content.type = APPLICATION_SDP;
+        if (!SDPAnswerToContent(content, sessionID))
+        {
+          return;
+        }
+      }
+
       transports_[transportID]->sendResponse(response, content);
     }
     else {
@@ -222,29 +271,96 @@ void SIPManager::transportResponse(uint32_t sessionID, SIPResponse &response,
 void SIPManager::processSIPRequest(SIPRequest& request, QHostAddress localAddress,
                                    QVariant& content, quint32 transportID)
 {
+  if(request.type == SIP_INVITE && !sdp_.canStartSession())
+  {
+    printDebug(DEBUG_ERROR, this, DC_RECEIVE_SIP_REQUEST, "Got INVITE, but unable to start a call");
+    return;
+  }
+
   uint32_t sessionID = 0;
+
+  // sets the sessionID if session exists or creates a new session if INVITE
+  // returns true if either was successful.
   if (transactions_.identifySession(request, localAddress, sessionID))
   {
+    Q_ASSERT(sessionID);
     if (sessionID != 0)
     {
       sessionToTransportID_[sessionID] = transportID;
-      transactions_.processSIPRequest(request, localAddress, content, sessionID);
+
+      // TODO: prechecks that the message is ok, then modify program state.
+      if(request.type == SIP_INVITE)
+      {
+        if(request.message->content.type == APPLICATION_SDP)
+        {
+          if(request.type == SIP_INVITE)
+          {
+            if(!processOfferSDP(sessionID, content, localAddress))
+            {
+              qDebug() << "Failed to find suitable SDP.";
+
+              // TODO: Announce to transactions that we could not process their SDP
+              printDebug(DEBUG_PROGRAM_ERROR, this, DC_RECEIVE_SIP_REQUEST,
+                         "Failure to process SDP offer not implemented.");
+
+              //foundDialog->server->setCurrentRequest(request); // TODO: crashes
+              //sendResponse(sessionID, SIP_DECLINE, request.type);
+
+              return;
+            }
+          }
+        }
+        else
+        {
+          qDebug() << "PEER ERROR: No SDP in" << request.type;
+          // TODO: tell SIP transactions that they did not have an SDP
+          // sendResponse(sessionID, SIP_DECLINE, request.type);
+          return;
+        }
+      }
+
+
+      transactions_.processSIPRequest(request, sessionID);
     }
-    else {
-      printDebug(DEBUG_ERROR, metaObject()->className(),
-                 DC_RECEIVE_SIP_REQUEST, "transactions did not set new sessionID");
-    }
-  }
-  else {
-    if (sessionID != 0)
+    else
     {
-      transactions_.processSIPRequest(request, localAddress,content, sessionID);
-    }
-    else {
-      printDebug(DEBUG_WARNING, metaObject()->className(),
-                 DC_RECEIVE_SIP_REQUEST, "transactions could not identify session");
+      printDebug(DEBUG_PROGRAM_ERROR, metaObject()->className(),
+                 DC_RECEIVE_SIP_REQUEST, "transactions did not set new sessionID.");
     }
   }
+  else
+  {
+    printDebug(DEBUG_PEER_ERROR, metaObject()->className(),
+               DC_RECEIVE_SIP_REQUEST, "transactions could not identify session.");
+  }
+}
+
+
+void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
+{
+  uint32_t sessionID = 0;
+
+  if(!transactions_.identifySession(response, sessionID))
+  {
+    printDebug(DEBUG_PEER_ERROR, this, DC_RECEIVE_SIP_RESPONSE, "Could not identify response session");
+    return;
+  }
+
+  if(response.message->transactionRequest == SIP_INVITE && response.type == SIP_OK)
+  {
+    if(response.message->content.type == APPLICATION_SDP)
+    {
+      if(!processAnswerSDP(sessionID, content))
+      {
+        qDebug() << "PEER_ERROR:" << "Their final sdp is not suitable. They should have followed our SDP!!!";
+        return;
+      }
+
+      sdp_.setICEPorts(sessionID);
+    }
+  }
+
+  transactions_.processSIPResponse(response, sessionID);
 }
 
 
@@ -258,8 +374,9 @@ std::shared_ptr<SIPTransport> SIPManager::createSIPTransport()
 
   QObject::connect(connection.get(), &SIPTransport::incomingSIPRequest,
                    this, &SIPManager::processSIPRequest);
+
   QObject::connect(connection.get(), &SIPTransport::incomingSIPResponse,
-                   &transactions_, &SIPTransactions::processSIPResponse);
+                   this, &SIPManager::processSIPResponse);
 
   QObject::connect(connection.get(), &SIPTransport::sipTransportEstablished,
                    this, &SIPManager::connectionEstablished);
@@ -281,4 +398,72 @@ bool SIPManager::isConnected(QString remoteAddress, quint32& transportID)
     }
   }
   return false;
+}
+
+
+bool SIPManager::SDPOfferToContent(QVariant& content, QHostAddress localAddress,
+                                   uint32_t sessionID)
+{
+  SDPMessageInfo sdp;
+
+  if(!sdp_.generateOfferSDP(localAddress, sessionID))
+  {
+    qDebug() << "Failed to generate SDP Suggestion while sending: "
+                "Possibly because we ran out of ports to assign";
+    return false;
+  }
+
+  std::shared_ptr<SDPMessageInfo> pointer = sdp_.getLocalSDP(sessionID);
+  sdp = *pointer;
+  content.setValue(sdp);
+  return true;
+}
+
+
+bool SIPManager::processOfferSDP(uint32_t sessionID, QVariant& content, QHostAddress localAddress)
+{
+  if(!content.isValid())
+  {
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_SIP_CONTENT,
+                     "The SDP content is not valid at processing. Should be detected earlier.");
+    return false;
+  }
+
+  SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
+  if(!sdp_.generateAnswerSDP(retrieved, localAddress, sessionID))
+  {
+    qDebug() << "Remote SDP not suitable or we have no ports to assign";
+    sdp_.endSession(sessionID);
+    return false;
+  }
+  return true;
+}
+
+
+bool SIPManager::SDPAnswerToContent(QVariant &content, uint32_t sessionID)
+{
+  SDPMessageInfo sdp;
+  std::shared_ptr<SDPMessageInfo> pointer = sdp_.getRemoteSDP(sessionID);
+  sdp = *pointer;
+  content.setValue(sdp);
+  return true;
+}
+
+
+bool SIPManager::processAnswerSDP(uint32_t sessionID, QVariant &content)
+{
+  SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
+  if (!content.isValid())
+  {
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_NEGOTIATING, "SDP not valid when processing. Should be detected earlier.");
+    return false;
+  }
+
+  if(!sdp_.processAnswerSDP(retrieved, sessionID))
+  {
+    return false;
+  }
+
+
+  return true;
 }

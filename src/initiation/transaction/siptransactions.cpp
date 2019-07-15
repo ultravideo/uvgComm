@@ -17,8 +17,6 @@ SIPTransactions::SIPTransactions():
   registrations_(),
   directContactAddresses_(),
   nonDialogClient_(),
-  sdp_(),
-
   transactionUser_(nullptr)
 {}
 
@@ -29,11 +27,6 @@ void SIPTransactions::init(SIPTransactionUser *callControl)
   transactionUser_ = callControl;
   nonDialogClient_ = std::unique_ptr<SIPNonDialogClient>(new SIPNonDialogClient(callControl));
 
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
-  QString username = !settings.value("local/Username").isNull()
-      ? settings.value("local/Username").toString() : "anonymous";
-
-  sdp_.setLocalInfo(username);
 }
 
 
@@ -78,13 +71,6 @@ void SIPTransactions::bindToServer(QString serverAddress, QHostAddress localAddr
 void SIPTransactions::startDirectCall(Contact &address, QHostAddress localAddress,
                                       uint32_t sessionID)
 {
-  // There should not exist a dialog for this user
-  if(!sdp_.canStartSession())
-  {
-    qDebug() << "Not enough ports to start a call";
-    return;
-  }
-
   startPeerToPeerCall(sessionID, localAddress, address);
 }
 
@@ -171,10 +157,6 @@ void SIPTransactions::acceptCall(uint32_t sessionID)
   std::shared_ptr<SIPDialogData> dialog = dialogs_[sessionID];
   dialogMutex_.unlock();
 
-  // start candiate nomination. This function won't block, negotiation happens in the background
-  // remoteFinalSDP() makes sure that a connection was in fact nominated
-  sdp_.startICECandidateNegotiation(sessionID);
-
   dialog->server->acceptCall();
 }
 
@@ -233,20 +215,10 @@ void SIPTransactions::endAllCalls()
 }
 
 
-void SIPTransactions::getSDPs(uint32_t sessionID,
-                              std::shared_ptr<SDPMessageInfo>& localSDP,
-                              std::shared_ptr<SDPMessageInfo>& remoteSDP) const
-{
-  Q_ASSERT(sessionID);
-  localSDP = sdp_.getLocalSDP(sessionID);
-  remoteSDP = sdp_.getRemoteSDP(sessionID);
-}
-
-
 bool SIPTransactions::identifySession(SIPRequest request, QHostAddress localAddress,
                                       uint32_t& out_sessionID)
 {
-  qDebug() << "Starting to process received SIP Request:" << request.type;
+  qDebug() << "Starting to process identifying SIP Request session:" << request.type;
 
   out_sessionID = 0;
 
@@ -276,28 +248,47 @@ bool SIPTransactions::identifySession(SIPRequest request, QHostAddress localAddr
     {
       qDebug() << "Someone is trying to start a SIP dialog with us!";
 
-      if(!sdp_.canStartSession())
-      {
-        qDebug() << "Not enough free media ports to accept new dialog";
-        return false;
-      }
-
       out_sessionID = createDialogFromINVITE(localAddress, request.message);
       return true;
     }
-    else
-    {
-      //printDebug(DEBUG_PEER_ERROR, metaObject()->className(),
-      //           DC_RECEIVE_SIP_REQUEST,"Couldn't find the correct dialog!");
-      return false;
-    }
+    return false;
   }
-  return false;
+  return true;
 }
 
 
-void SIPTransactions::processSIPRequest(SIPRequest request, QHostAddress localAddress,
-                                        QVariant &content, uint32_t sessionID)
+bool SIPTransactions::identifySession(SIPResponse response, uint32_t& out_sessionID)
+{
+  qDebug() << "Starting to process identifying SIP response session:" << response.type;
+
+  out_sessionID = 0;
+  // find the dialog which corresponds to the callID and tags received in response
+  for (auto i = dialogs_.begin(); i != dialogs_.end(); ++i)
+  {
+    if(i.value() != nullptr &&
+       i.value()->state->correctResponseDialog(response.message->dialog,
+                                               response.message->cSeq))
+    {
+      // TODO: we should check that every single detail is as specified in rfc.
+      if(i.value()->client->waitingResponse(response.message->transactionRequest))
+      {
+        qDebug() << "Found dialog matching the response";
+        out_sessionID = i.key();
+        break;
+      }
+      else
+      {
+        qDebug() << "PEER_ERROR: Found the dialog, but we have not sent a request to their response.";
+        return false;
+      }
+    }
+  }
+
+  return out_sessionID != 0;
+}
+
+
+void SIPTransactions::processSIPRequest(SIPRequest request, uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
   qDebug() << "Starting to process received SIP Request:" << request.type;
@@ -312,154 +303,48 @@ void SIPTransactions::processSIPRequest(SIPRequest request, QHostAddress localAd
   // check correct initialization
   Q_ASSERT(foundDialog->state);
 
-  // TODO: prechecks that the message is ok, then modify program state.
-  if(request.type == SIP_INVITE || request.type == SIP_ACK)
-  {
-    if(request.message->content.type == APPLICATION_SDP)
-    {
-      if(request.type == SIP_INVITE)
-      {
-        if(!processSDP(sessionID, content, localAddress))
-        {
-          qDebug() << "Failed to find suitable SDP.";
-          foundDialog->server->setCurrentRequest(request); // TODO: crashes
-          sendResponse(sessionID, SIP_DECLINE, request.type);
-          return;
-        }
-      }
-      else //ACK
-      {
-        if(!content.isValid())
-        {
-          printDebug(DEBUG_PROGRAM_ERROR, this, DC_RECEIVE_SIP_REQUEST,
-                           "The SDP content is not valid at processing. Should be detected earlier.");
-          return;
-        }
-
-        SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
-
-        // remoteFinalSDP blocks until the ICE has finished its job
-        //
-        // After it returns, we add the nominated media connections to local and remote SDPs
-        if(!sdp_.verifyResponseSDP(retrieved, sessionID))
-        {
-          qDebug() << "PEER_ERROR:" << "Their final sdp is not suitable. They should have followed our SDP!!!";
-          return;
-        }
-        else
-        {
-          sdp_.setICEPorts(sessionID);
-        }
-      }
-    }
-    else
-    {
-      qDebug() << "PEER ERROR: No SDP in" << request.type;
-      // TODO: set the request details to serverTransaction
-      sendResponse(sessionID, SIP_DECLINE, request.type);
-      return;
-    }
-  }
 
   if(!foundDialog->server->processRequest(request))
   {
-    qDebug() << "Ending session because server said to";
-    sdp_.endSession(sessionID);
+    qDebug() << "Ending session because server Transaction said to.";
+
+    // TODO: SHould we do something?
   }
 
   qDebug() << "Finished processing request:" << request.type << "Dialog:" << sessionID;
 }
 
 
-void SIPTransactions::processSIPResponse(SIPResponse response,
-                                         QHostAddress localAddress,
-                                         QVariant &content)
+void SIPTransactions::processSIPResponse(SIPResponse response, uint32_t sessionID)
 {
-  // TODO: sessionID is now tranportID
-  // TODO: separate nondialog and dialog requests!
-  qDebug() << "Starting to process received SIP Response:" << response.type;
-  dialogMutex_.lock();
-
-  // find the dialog which corresponds to the callID and tags received in response
-  uint32_t foundSessionID = 0;
-
-  for (auto i = dialogs_.begin(); i != dialogs_.end(); ++i)
+  Q_ASSERT(sessionID);
+  if (sessionID == 0)
   {
-    if(i.value() != nullptr &&
-       i.value()->state->correctResponseDialog(response.message->dialog,
-                                               response.message->cSeq))
-    {
-      // TODO: we should check that every single detail is as specified in rfc.
-      if(i.value()->client->waitingResponse(response.message->transactionRequest))
-      {
-        qDebug() << "Found dialog matching the response";
-        foundSessionID = i.key();
-        break;
-      }
-      else
-      {
-        qDebug() << "PEER_ERROR: Found the dialog, but we have not sent a request to their response.";
-      }
-    }
-  }
-
-  if(foundSessionID == 0)
-  {
-    qDebug() << "PEER_ERROR: Could not find the suggested dialog in response!";
-    qDebug() << "CallID:" << response.message->dialog->callID;
-    dialogMutex_.unlock();
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_RECEIVE_SIP_RESPONSE,
+               "SessionID was 0 in processSIPResponse. Should be detected earlier.");
     return;
   }
 
+  qDebug() << "Starting to process received SIP Response:" << response.type;
+  dialogMutex_.lock();
+
   // check correct initialization
-  Q_ASSERT(dialogs_[foundSessionID]->state);
+  Q_ASSERT(dialogs_[sessionID]->state);
 
   dialogMutex_.unlock();
 
   // TODO: if our request was INVITE and response is 2xx or 101-199, create dialog
   // TODO: prechecks that the response is ok, then modify program state.
 
-  if(response.message->transactionRequest == SIP_INVITE && response.type == SIP_OK)
-  {
-    if(response.message->content.type == APPLICATION_SDP)
-    {
-      if(!processSDP(foundSessionID, content, localAddress))
-      {
-        qDebug() << "Failed to find suitable SDP in INVITE response.";
-        return;
-      }
-    }
-  }
-
-  if(!dialogs_[foundSessionID]->client->processResponse(response))
+  if(!dialogs_[sessionID]->client->processResponse(response))
   {
     // destroy dialog
-    destroyDialog(foundSessionID);
-    removeDialog(foundSessionID);
-  }
-  qDebug() << "Response processing finished:" << response.type << "Dialog:" << foundSessionID;
-}
-
-bool SIPTransactions::processSDP(uint32_t sessionID, QVariant& content, QHostAddress localAddress)
-{
-  if(!content.isValid() || dialogs_.find(sessionID) == dialogs_.end())
-  {
-    printDebug(DEBUG_PROGRAM_ERROR, this, DC_SIP_CONTENT,
-                     "The SDP content is not valid at processing. Should be detected earlier.");
-    return false;
-  }
-
-  SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
-
-  if(!sdp_.generateResponseSDP(retrieved, localAddress, sessionID))
-  {
-    qDebug() << "Remote SDP not suitable or we have no ports to assign";
     destroyDialog(sessionID);
     removeDialog(sessionID);
-    return false;
   }
-  return true;
+  qDebug() << "Response processing finished:" << response.type << "Dialog:" << sessionID;
 }
+
 
 void SIPTransactions::sendDialogRequest(uint32_t sessionID, RequestType type)
 {
@@ -486,32 +371,9 @@ void SIPTransactions::sendDialogRequest(uint32_t sessionID, RequestType type)
   Q_ASSERT(request.message != nullptr);
   Q_ASSERT(request.message->dialog != nullptr);
 
-  QVariant content;
-  request.message->content.length = 0;
-  if(type == SIP_INVITE)
-  {
-    qDebug() << "Adding SDP content to request:" << type;
-    request.message->content.type = APPLICATION_SDP;
-    SDPMessageInfo sdp;
 
-    if(type == SIP_INVITE)
-    {
-      if(sdp_.generateInitialSDP(dialogs_[sessionID]->localAddress, sessionID))
-      {
-        sdp = *sdp_.getLocalSDP(sessionID);
-      }
-      else
-      {
-        qDebug() << "Failed to generate SDP Suggestion while sending: " << type <<
-                    "Possibly because we ran out of ports to assign";
 
-        return;
-      }
-    }
-    content.setValue(sdp);
-  }
-
-  emit transportRequest(sessionID, request, content);
+  emit transportRequest(sessionID, request);
   qDebug() << "---- Finished sending of a dialog request ---";
 }
 
@@ -536,7 +398,7 @@ void SIPTransactions::sendNonDialogRequest(SIP_URI& uri, RequestType type)
     registrations_[uri.host].state->getRequestDialogInfo(request, registrations_[uri.host].localAddress.toString());
 
     QVariant content; // we dont have content in REGISTER
-    emit transportRequest(registrations_[uri.host].sessionID, request, content);
+    emit transportRequest(registrations_[uri.host].sessionID, request);
   }
   else if (type == SIP_OPTIONS) {
     printDebug(DEBUG_PROGRAM_ERROR, this, DC_SEND_SIP_REQUEST,
@@ -559,15 +421,7 @@ void SIPTransactions::sendResponse(uint32_t sessionID, ResponseType type, Reques
   dialogs_[sessionID]->server->getResponseMessage(response.message, type);
   response.message->transactionRequest = originalRequest;
 
-  QVariant content;
-  if(response.message->transactionRequest == SIP_INVITE && type == SIP_OK) // TODO: SDP in progress...
-  {
-    response.message->content.type = APPLICATION_SDP;
-    std::shared_ptr<SDPMessageInfo> sdp = sdp_.getLocalSDP(sessionID);
-    content.setValue(*sdp);
-  }
-
-  emit transportResponse(sessionID, response, content);
+  emit transportResponse(sessionID, response);
   qDebug() << "---- Finished sending of a response ---";
 }
 
@@ -587,7 +441,6 @@ void SIPTransactions::destroyDialog(uint32_t sessionID)
   }
   qDebug() << "Destroying dialog:";
 
-  sdp_.endSession(sessionID);
   dialog->state.reset();
   dialog->server.reset();
   dialog->client.reset();

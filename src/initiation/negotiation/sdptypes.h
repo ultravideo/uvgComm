@@ -10,6 +10,7 @@
 // see RFC 4566 for details.
 
 // sendrecv is default, if none present.
+// Note that RTCP is still send in case of RECVONLY, SENDONLY and INACTIVE
 enum SDPAttributeType{A_CAT, A_KEYWDS, A_TOOL, A_PTIME, A_MAXPTIME, A_RTPMAP,
                       A_RECVONLY, A_SENDRECV, A_SENDONLY, A_INACTIVE,
                       A_ORIENT, A_TYPE, A_CHARSET, A_SDPLANG, A_LANG,

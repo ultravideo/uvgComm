@@ -84,29 +84,24 @@ public:
   void endCall(uint32_t sessionID);
   void endAllCalls();
 
-  void getSDPs(uint32_t sessionID,
-               std::shared_ptr<SDPMessageInfo>& localSDP,
-               std::shared_ptr<SDPMessageInfo>& remoteSDP) const;
-
   void failedToSendMessage();
 
-
-signals:
-
-  void transportRequest(uint32_t sessionID, SIPRequest &request, QVariant& content);
-  void transportResponse(uint32_t sessionID, SIPResponse &response, QVariant& content);
-
-public slots:
-
-  // when sip connection has received a request/response it is handled here.
   bool identifySession(SIPRequest request, QHostAddress localAddress,
                        uint32_t& out_sessionID);
 
-  void processSIPRequest(SIPRequest request, QHostAddress localAddress,
-                         QVariant& content, uint32_t sessionID);
+  bool identifySession(SIPResponse response,
+                       uint32_t& out_sessionID);
 
-  void processSIPResponse(SIPResponse response, QHostAddress localAddress,
-                          QVariant& content);
+  // when sip connection has received a request/response it is handled here.
+  // TODO: some sort of SDP situation should also be included.
+  void processSIPRequest(SIPRequest request, uint32_t sessionID);
+
+  void processSIPResponse(SIPResponse response, uint32_t sessionID);
+
+signals:
+
+  void transportRequest(uint32_t sessionID, SIPRequest &request);
+  void transportResponse(uint32_t sessionID, SIPResponse &response);
 
 private slots:
 
@@ -147,8 +142,6 @@ private:
                                                QString localAddress,
                                                QString remoteAddress, bool hostedSession);
 
-  // returns whether we should continue with processing
-  bool processSDP(uint32_t sessionID, QVariant &content, QHostAddress localAddress);
 
   void startPeerToPeerCall(uint32_t sessionID, QHostAddress localAddress, Contact& remote);
   uint32_t createDialogFromINVITE(QHostAddress localAddress,  std::shared_ptr<SIPMessageInfo> &invite);
@@ -192,8 +185,6 @@ private:
   QList<QString> directContactAddresses_;
 
   std::unique_ptr<SIPNonDialogClient> nonDialogClient_;
-
-  GlobalSDPState sdp_;
 
   SIPTransactionUser* transactionUser_;
 };
