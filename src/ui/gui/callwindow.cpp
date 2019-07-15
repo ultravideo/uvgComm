@@ -138,6 +138,7 @@ void CallWindow::addContact()
 
 void CallWindow::displayOutgoingCall(uint32_t sessionID, QString name)
 {
+  contacts_.turnAllItemsToPlus();
   conference_.callingTo(sessionID, name); // TODO get name from contact list
 }
 
@@ -210,11 +211,22 @@ void CallWindow::setCameraState(bool on)
 
 void CallWindow::removeParticipant(uint32_t sessionID)
 {
+  Q_ASSERT(sessionID != 0);
+
+  if (sessionID == 0)
+  {
+    //printDebug();
+    return;
+  }
+
   if(!conference_.removeCaller(sessionID))
   {
     ui_->EndCallButton->setEnabled(false);
     ui_->EndCallButton->hide();
+    contacts_.setAccessibleAll();
   }
+
+  contacts_.setAccessible(sessionID);
 }
 
 void CallWindow::on_settings_button_clicked()
@@ -232,4 +244,6 @@ void CallWindow::clearConferenceView()
   ui_->EndCallButton->setEnabled(false);
   ui_->EndCallButton->hide();
   conference_.close();
+
+  contacts_.setAccessibleAll();
 }

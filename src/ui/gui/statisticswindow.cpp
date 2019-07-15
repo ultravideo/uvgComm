@@ -127,7 +127,7 @@ void StatisticsWindow::addParticipant(QString ip, QString audioPort, QString vid
   ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 4, new QTableWidgetItem("- ms"));
   ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 5, new QTableWidgetItem("-"));
 
-  peers_.push_back({0, std::vector<PacketInfo*>(BUFFERSIZE,0), 0, 0,true});
+  peers_.push_back({0, std::vector<PacketInfo*>(BUFFERSIZE, nullptr), 0, 0,true});
   initMutex_.unlock();
 }
 
@@ -385,7 +385,8 @@ void StatisticsWindow::visualizeDataToSeries(std::deque<float>& data)
 void StatisticsWindow::paintEvent(QPaintEvent *event)
 {
   Q_UNUSED(event)
-  if(lastTabIndex_ != ui_->Statistics_tabs->currentIndex() || lastDrawTime_ + guiFrequency_ < guiTimer_.elapsed())
+  if(lastTabIndex_ != ui_->Statistics_tabs->currentIndex()
+     || lastDrawTime_ + guiFrequency_ < guiTimer_.elapsed())
   {
     // no need to catch up if we are falling behind, instead just reset the clock
     lastDrawTime_ = guiTimer_.elapsed();
@@ -402,11 +403,17 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
         // also tells whether the slot for this participant exists
         if(d.active)
         {
-          ui_->participantTable->setItem(index, 3, new QTableWidgetItem( QString::number(d.audioDelay) + " ms"));
-          ui_->participantTable->setItem(index, 4, new QTableWidgetItem( QString::number(d.videoDelay) + " ms"));
+          ui_->participantTable->setItem
+              (index, 3, new QTableWidgetItem( QString::number(d.audioDelay) + " ms"));
+          ui_->participantTable->setItem
+              (index, 4, new QTableWidgetItem( QString::number(d.videoDelay) + " ms"));
+
           float framerate = 0;
           uint32_t videoBitrate = bitrate(d.videoPackets, d.videoIndex, framerate);
-          ui_->participantTable->setItem(index, 5, new QTableWidgetItem( QString::number(framerate)));
+          Q_UNUSED(videoBitrate);
+
+          ui_->participantTable->setItem
+              (index, 5, new QTableWidgetItem( QString::number(framerate)));
 
           ++index;
         }

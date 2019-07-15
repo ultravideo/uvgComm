@@ -42,7 +42,7 @@ bool SIPServerTransaction::processRequest(SIPRequest &request)
 
   switch(request.type)
   {
-  case SIP_INVITE:
+  case SIP_INVITE: // TODO: re-INVITE case?
   {
     if(!transactionUser_->incomingCall(sessionID_, request.message->from.realname))
     {
@@ -60,13 +60,11 @@ bool SIPServerTransaction::processRequest(SIPRequest &request)
   {
     transactionUser_->endCall(sessionID_);
     return false;
-    break;
   }
   case SIP_CANCEL:
   {
     transactionUser_->cancelIncomingCall(sessionID_);
     return false;
-    break;
   }
   case SIP_OPTIONS:
   {
@@ -100,7 +98,7 @@ void SIPServerTransaction::getResponseMessage(std::shared_ptr<SIPMessageInfo> &o
   copyMessageDetails(receivedRequest_, outMessage);
   outMessage->maxForwards = 71;
   outMessage->version = "2.0";
-  outMessage->contact = SIP_URI{"","",""}; // No contact for reply?
+  outMessage->contact = SIP_URI{"","","", SIP}; // No contact for reply?
   outMessage->content.length = 0;
   outMessage->content.type = NO_CONTENT;
 

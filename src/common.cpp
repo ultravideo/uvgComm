@@ -109,7 +109,8 @@ void printDebug(DebugType type, QString className, DebugContext context,
     valueString.append("\r\n");
   }
   else {
-    qDebug() << "Debug printing could not figure how to print error values." << "Names:" << valueNames.size()
+    qDebug() << "Debug printing could not figure how to print error values."
+             << "Names:" << valueNames.size()
              << "values: " << values.size();
   }
 
@@ -131,12 +132,12 @@ void printDebug(DebugType type, QString className, DebugContext context,
   }
   case DEBUG_ERROR:
   {
-    qCritical() << "ERROR: " << description;
+    qCritical() << "ERROR: " << description << " " << valueString;
     break;
   }
   case DEBUG_WARNING:
   {
-    qCritical() << "Warning: " << description;
+    qCritical() << "Warning: " << description << " " << valueString;
     break;
   }
   case DEBUG_PEER_ERROR:

@@ -1,10 +1,10 @@
 #pragma once
 
 #include "media/mediamanager.h"
-#include "initiation/transaction/siptransactions.h"
+#include "initiation/sipmanager.h"
+#include "initiation/siptransactionuser.h"
 #include "ui/gui/callwindow.h"
 #include "participantinterface.h"
-#include "initiation/siptransactionuser.h"
 
 #include <QObject>
 
@@ -29,8 +29,8 @@ public:
   void uninit();
 
   // participant interface funtions used to start a call or a chat.
-  virtual void callToParticipant(QString name, QString username, QString ip);
-  virtual void chatWithParticipant(QString name, QString username, QString ip);
+  virtual uint32_t callToParticipant(QString name, QString username, QString ip);
+  virtual uint32_t chatWithParticipant(QString name, QString username, QString ip);
 
   // Call Control Interface used by SIP transaction
   virtual void outgoingCall(uint32_t sessionID, QString callee);
@@ -73,7 +73,7 @@ private:
   std::map<uint32_t, CallState> states_;
 
   MediaManager media_; // Media processing and delivery
-  SIPTransactions sip_; // SIP
+  SIPManager sip_; // SIP
   CallWindow window_; // GUI
 
   StatisticsInterface* stats_;

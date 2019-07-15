@@ -9,7 +9,8 @@ ContactListItem::ContactListItem(QString name, QString username, QString ip):
   name_(name),
   username_(username),
   ip_(ip),
-  interface_(nullptr)
+  interface_(nullptr),
+  activeSessionID_(0)
 {}
 
 void ContactListItem::init(ParticipantInterface *interface)
@@ -27,9 +28,7 @@ void ContactListItem::init(ParticipantInterface *interface)
   callButton_ = new QPushButton();
   callButton_->setMaximumWidth(30);
 
-  QPixmap pixmap(QDir::currentPath() + "/icons/call.svg");
-  QIcon ButtonIcon(pixmap);
-  callButton_->setIcon(ButtonIcon);
+  switchButtonIcon(QDir::currentPath() + "/icons/call.svg");
 
   layout_->addWidget(callButton_, 0, 1);
   QObject::connect(callButton_, SIGNAL(clicked()), this, SLOT(call()));
@@ -46,10 +45,34 @@ void ContactListItem::init(ParticipantInterface *interface)
 */
 }
 
+
+void ContactListItem::SetInaccessible(uint32_t sessionID)
+{
+  callButton_->hide();
+  setDisabled(true);
+  activeSessionID_ = sessionID;
+}
+
+
+void ContactListItem::setPlusOne()
+{
+  //callButton_->show();
+  switchButtonIcon(QDir::currentPath() + "/icons/plus.svg");
+}
+
+void ContactListItem::setAccesssible()
+{
+  callButton_->show();
+  switchButtonIcon(QDir::currentPath() + "/icons/call.svg");
+  setDisabled(false);
+  activeSessionID_ = 0;
+}
+
+
 void ContactListItem::call()
 {
   Q_ASSERT(interface_);
-  interface_->callToParticipant(name_, username_, ip_);
+  SetInaccessible(interface_->callToParticipant(name_, username_, ip_));
 }
 
 void ContactListItem::chat()
@@ -77,4 +100,12 @@ void ContactListItem::mouseDoubleClickEvent(QMouseEvent *e)
 {
   QWidget::mouseDoubleClickEvent(e);
   call();
+}
+
+
+void ContactListItem::switchButtonIcon(QString iconLocation)
+{
+  QPixmap pixmap(iconLocation);
+  QIcon ButtonIcon(pixmap);
+  callButton_->setIcon(ButtonIcon);
 }

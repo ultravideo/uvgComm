@@ -9,15 +9,21 @@
 // TODO use _sleep?
 void qSleep(int ms);
 
-// generates a random string of length. TODO: Not yet secure, but should be
+// generates a random string of length.
+// TODO: Not yet cryptographically secure, but should be
 QString generateRandomString(uint32_t length);
 
 
 // DEBUG_NORMAL is for one time informational debug printing.
-// DEBUG_WARNING is for events that should not be able to happen in Kvazzup which do not cause problems.
-// DEBUG_ERROR is for events that should not be able to happen in Kvazzup.
+// DEBUG_WARNING is for events that may lead to problems in future.
+// DEBUG_ERROR is for events that will cause problems for the functionality of the Kvazzup.
 // DEBUG_PEER_ERROR is for events that are errors in behavior of entities that are not us.
-enum DebugType{DEBUG_NORMAL, DEBUG_ERROR, DEBUG_WARNING, DEBUG_PEER_ERROR, DEBUG_PROGRAM_ERROR, DEBUG_PROGRAM_WARNING};
+// DEBUG_PROGRAM_ERROR is for events which are impossible in Kvazzup and can only be cause by bugs.
+// DEBUG_PROGRAM_WARNING is for events which are impossible, but don't affect the
+//                       functionality of Kvazzup.
+
+enum DebugType{DEBUG_NORMAL, DEBUG_ERROR, DEBUG_WARNING,
+               DEBUG_PEER_ERROR, DEBUG_PROGRAM_ERROR, DEBUG_PROGRAM_WARNING};
 
 
 enum DebugContext{DC_NO_CONTEXT,
