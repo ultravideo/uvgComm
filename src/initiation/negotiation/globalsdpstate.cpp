@@ -166,7 +166,6 @@ bool GlobalSDPState::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
   // TODO: generate our SDP based on their offer.
   std::shared_ptr<SDPMessageInfo> localSDP = generateSDP(localAddress);
 
-
   std::shared_ptr<SDPMessageInfo> remoteSDP = std::shared_ptr<SDPMessageInfo>(new SDPMessageInfo);
   *remoteSDP = remoteSDPOffer;
 
@@ -176,8 +175,6 @@ bool GlobalSDPState::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
 
   localSDP->sessionName = remoteSDP->sessionName;
   localSDP->sess_v = remoteSDP->sess_v + 1;
-
-  // TODO: This crashes sometimes
 
   // spawn ICE controller/controllee threads and start the candidate
   // exchange and nomination
@@ -212,6 +209,11 @@ bool GlobalSDPState::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
 
 bool GlobalSDPState::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer, uint32_t sessionID)
 {
+  if (!checkSessionValidity(sessionID, false))
+  {
+    return false;
+  }
+
   // this function blocks until a candidate is nominated or all candidates are considered
   // invalid in which case it returns false to indicate error
   if (!ice_->calleeConnectionNominated(sessionID))
@@ -220,9 +222,17 @@ bool GlobalSDPState::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer, uint32_t 
     return false;
   }
 
-  setICEPorts(sessionID);
+  if (checkSDPOffer(remoteSDPAnswer))
+  {
+    std::shared_ptr<SDPMessageInfo> remoteSDP = std::shared_ptr<SDPMessageInfo>(new SDPMessageInfo);
+    *remoteSDP = remoteSDPAnswer;
+    sdps_[sessionID].second = remoteSDP;
 
-  return checkSDPOffer(remoteSDPAnswer);
+    setICEPorts(sessionID);
+    return true;
+  }
+
+  return false;
 }
 
 
@@ -371,7 +381,8 @@ bool GlobalSDPState::checkSessionValidity(uint32_t sessionID, bool remotePresent
      (sdps_.at(sessionID).second == nullptr && remotePresent))
   {
     printDebug(DEBUG_PROGRAM_ERROR, "GlobalSDPState", DC_NEGOTIATING,
-               "Attempting to use GlobalSDPState without setting SessionID correctly");
+               "Attempting to use GlobalSDPState without setting SessionID correctly",
+              {"sessionID"},{QString::number(sessionID)});
     return false;
   }
   return true;

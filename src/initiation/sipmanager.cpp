@@ -303,7 +303,7 @@ void SIPManager::processSIPRequest(SIPRequest& request, QHostAddress localAddres
               printDebug(DEBUG_PROGRAM_ERROR, this, DC_RECEIVE_SIP_REQUEST,
                          "Failure to process SDP offer not implemented.");
 
-              //foundDialog->server->setCurrentRequest(request); // TODO: crashes
+              //foundDialog->server->setCurrentRequest(request); // TODO
               //sendResponse(sessionID, SIP_DECLINE, request.type);
 
               return;
@@ -443,7 +443,7 @@ bool SIPManager::processOfferSDP(uint32_t sessionID, QVariant& content, QHostAdd
 bool SIPManager::SDPAnswerToContent(QVariant &content, uint32_t sessionID)
 {
   SDPMessageInfo sdp;
-  std::shared_ptr<SDPMessageInfo> pointer = sdp_.getRemoteSDP(sessionID);
+  std::shared_ptr<SDPMessageInfo> pointer = sdp_.getLocalSDP(sessionID);
   sdp = *pointer;
   content.setValue(sdp);
   return true;
@@ -463,7 +463,6 @@ bool SIPManager::processAnswerSDP(uint32_t sessionID, QVariant &content)
   {
     return false;
   }
-
 
   return true;
 }
