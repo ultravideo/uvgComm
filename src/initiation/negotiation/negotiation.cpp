@@ -166,7 +166,8 @@ bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
   // TODO: generate our SDP based on their offer.
   std::shared_ptr<SDPMessageInfo> localSDP = generateSDP(localAddress);
 
-  std::shared_ptr<SDPMessageInfo> remoteSDP = std::shared_ptr<SDPMessageInfo>(new SDPMessageInfo);
+  std::shared_ptr<SDPMessageInfo> remoteSDP
+      = std::shared_ptr<SDPMessageInfo>(new SDPMessageInfo);
   *remoteSDP = remoteSDPOffer;
 
   // TODO: modify the their SDP to match our accepted configuration
@@ -224,7 +225,8 @@ bool Negotiation::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer, uint32_t ses
 
   if (checkSDPOffer(remoteSDPAnswer))
   {
-    std::shared_ptr<SDPMessageInfo> remoteSDP = std::shared_ptr<SDPMessageInfo>(new SDPMessageInfo);
+    std::shared_ptr<SDPMessageInfo> remoteSDP
+        = std::shared_ptr<SDPMessageInfo>(new SDPMessageInfo);
     *remoteSDP = remoteSDPAnswer;
     sdps_[sessionID].second = remoteSDP;
 

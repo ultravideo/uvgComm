@@ -1,6 +1,5 @@
 #pragma once
 
-#include "initiation/negotiation/globalsdpstate.h"
 #include "initiation/transaction/sipnondialogclient.h"
 #include "initiation/transport/siptransport.h"
 

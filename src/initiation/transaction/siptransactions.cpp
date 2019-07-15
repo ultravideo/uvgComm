@@ -26,7 +26,6 @@ void SIPTransactions::init(SIPTransactionUser *callControl)
 
   transactionUser_ = callControl;
   nonDialogClient_ = std::unique_ptr<SIPNonDialogClient>(new SIPNonDialogClient(callControl));
-
 }
 
 
@@ -47,6 +46,7 @@ void SIPTransactions::registerTask()
 {
   qDebug() << "Registering us to a new SIP server with REGISTER task";
 }
+
 
 void SIPTransactions::bindToServer(QString serverAddress, QHostAddress localAddress, uint32_t sessionID)
 {

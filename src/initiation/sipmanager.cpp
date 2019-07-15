@@ -124,8 +124,9 @@ uint32_t SIPManager::startCall(Contact& address)
 void SIPManager::acceptCall(uint32_t sessionID)
 {
 
-  // start candiate nomination. This function won't block, negotiation happens in the background
-  // remoteFinalSDP() makes sure that a connection was in fact nominated
+  // Start candiate nomination. This function won't block,
+  // negotiation happens in the background remoteFinalSDP()
+  // makes sure that a connection was in fact nominated
   negotiation_.startICECandidateNegotiation(sessionID);
 
   transactions_.acceptCall(sessionID);
@@ -273,7 +274,8 @@ void SIPManager::processSIPRequest(SIPRequest& request, QHostAddress localAddres
 {
   if(request.type == SIP_INVITE && !negotiation_.canStartSession())
   {
-    printDebug(DEBUG_ERROR, this, DC_RECEIVE_SIP_REQUEST, "Got INVITE, but unable to start a call");
+    printDebug(DEBUG_ERROR, this, DC_RECEIVE_SIP_REQUEST,
+               "Got INVITE, but unable to start a call");
     return;
   }
 
@@ -342,7 +344,8 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
 
   if(!transactions_.identifySession(response, sessionID))
   {
-    printDebug(DEBUG_PEER_ERROR, this, DC_RECEIVE_SIP_RESPONSE, "Could not identify response session");
+    printDebug(DEBUG_PEER_ERROR, this, DC_RECEIVE_SIP_RESPONSE,
+               "Could not identify response session");
     return;
   }
 
@@ -352,7 +355,8 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
     {
       if(!processAnswerSDP(sessionID, content))
       {
-        qDebug() << "PEER_ERROR:" << "Their final sdp is not suitable. They should have followed our SDP!!!";
+        qDebug() << "PEER_ERROR:"
+                 << "Their final sdp is not suitable. They should have followed our SDP!!!";
         return;
       }
 
@@ -420,12 +424,14 @@ bool SIPManager::SDPOfferToContent(QVariant& content, QHostAddress localAddress,
 }
 
 
-bool SIPManager::processOfferSDP(uint32_t sessionID, QVariant& content, QHostAddress localAddress)
+bool SIPManager::processOfferSDP(uint32_t sessionID, QVariant& content,
+                                 QHostAddress localAddress)
 {
   if(!content.isValid())
   {
     printDebug(DEBUG_PROGRAM_ERROR, this, DC_SIP_CONTENT,
-                     "The SDP content is not valid at processing. Should be detected earlier.");
+                     "The SDP content is not valid at processing. "
+                     "Should be detected earlier.");
     return false;
   }
 
@@ -455,7 +461,8 @@ bool SIPManager::processAnswerSDP(uint32_t sessionID, QVariant &content)
   SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
   if (!content.isValid())
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this, DC_NEGOTIATING, "SDP not valid when processing. Should be detected earlier.");
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_NEGOTIATING,
+               "SDP not valid when processing. Should be detected earlier.");
     return false;
   }
 
