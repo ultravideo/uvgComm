@@ -16,13 +16,12 @@
 // SDP in SIP is based on offer/answer model where one side sends an offer to
 // which the other side responds with an asnwer.
 
-class GlobalSDPState
+class Negotiation
 {
 public:
-  GlobalSDPState();
+  Negotiation();
 
   void setLocalInfo(QString username);
-
 
   // Use this to generate the first SDP offer of the negotiation.
   // Includes all the media codecs suitable to us in preferred order.

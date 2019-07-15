@@ -11,7 +11,7 @@ SIPManager::SIPManager():
   transports_(),
   nextTransportID_(FIRSTTRANSPORTID),
   transactions_(),
-  sdp_()
+  negotiation_()
 {}
 
 
@@ -40,7 +40,7 @@ void SIPManager::init(SIPTransactionUser* callControl)
   QString username = !settings.value("local/Username").isNull()
       ? settings.value("local/Username").toString() : "anonymous";
 
-  sdp_.setLocalInfo(username);
+  negotiation_.setLocalInfo(username);
 
   QObject::connect(&transactions_, &SIPTransactions::transportRequest,
                    this, &SIPManager::transportRequest);
@@ -92,7 +92,7 @@ uint32_t SIPManager::startCall(Contact& address)
   uint32_t sessionID = transactions_.reserveSessionID();
 
   // There should not exist a dialog for this user
-  if(!sdp_.canStartSession())
+  if(!negotiation_.canStartSession())
   {
     printDebug(DEBUG_WARNING, this, DC_START_CALL, "Not enough ports to start a call.");
     return 0;
@@ -126,7 +126,7 @@ void SIPManager::acceptCall(uint32_t sessionID)
 
   // start candiate nomination. This function won't block, negotiation happens in the background
   // remoteFinalSDP() makes sure that a connection was in fact nominated
-  sdp_.startICECandidateNegotiation(sessionID);
+  negotiation_.startICECandidateNegotiation(sessionID);
 
   transactions_.acceptCall(sessionID);
 }
@@ -161,8 +161,8 @@ void SIPManager::getSDPs(uint32_t sessionID,
              std::shared_ptr<SDPMessageInfo>& remoteSDP) const
 {
   Q_ASSERT(sessionID);
-  localSDP = sdp_.getLocalSDP(sessionID);
-  remoteSDP = sdp_.getRemoteSDP(sessionID);
+  localSDP = negotiation_.getLocalSDP(sessionID);
+  remoteSDP = negotiation_.getRemoteSDP(sessionID);
 }
 
 
@@ -271,7 +271,7 @@ void SIPManager::transportResponse(uint32_t sessionID, SIPResponse &response)
 void SIPManager::processSIPRequest(SIPRequest& request, QHostAddress localAddress,
                                    QVariant& content, quint32 transportID)
 {
-  if(request.type == SIP_INVITE && !sdp_.canStartSession())
+  if(request.type == SIP_INVITE && !negotiation_.canStartSession())
   {
     printDebug(DEBUG_ERROR, this, DC_RECEIVE_SIP_REQUEST, "Got INVITE, but unable to start a call");
     return;
@@ -356,7 +356,7 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
         return;
       }
 
-      sdp_.setICEPorts(sessionID);
+      negotiation_.setICEPorts(sessionID);
     }
   }
 
@@ -406,14 +406,14 @@ bool SIPManager::SDPOfferToContent(QVariant& content, QHostAddress localAddress,
 {
   SDPMessageInfo sdp;
 
-  if(!sdp_.generateOfferSDP(localAddress, sessionID))
+  if(!negotiation_.generateOfferSDP(localAddress, sessionID))
   {
     qDebug() << "Failed to generate SDP Suggestion while sending: "
                 "Possibly because we ran out of ports to assign";
     return false;
   }
 
-  std::shared_ptr<SDPMessageInfo> pointer = sdp_.getLocalSDP(sessionID);
+  std::shared_ptr<SDPMessageInfo> pointer = negotiation_.getLocalSDP(sessionID);
   sdp = *pointer;
   content.setValue(sdp);
   return true;
@@ -430,10 +430,10 @@ bool SIPManager::processOfferSDP(uint32_t sessionID, QVariant& content, QHostAdd
   }
 
   SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
-  if(!sdp_.generateAnswerSDP(retrieved, localAddress, sessionID))
+  if(!negotiation_.generateAnswerSDP(retrieved, localAddress, sessionID))
   {
     qDebug() << "Remote SDP not suitable or we have no ports to assign";
-    sdp_.endSession(sessionID);
+    negotiation_.endSession(sessionID);
     return false;
   }
   return true;
@@ -443,7 +443,7 @@ bool SIPManager::processOfferSDP(uint32_t sessionID, QVariant& content, QHostAdd
 bool SIPManager::SDPAnswerToContent(QVariant &content, uint32_t sessionID)
 {
   SDPMessageInfo sdp;
-  std::shared_ptr<SDPMessageInfo> pointer = sdp_.getLocalSDP(sessionID);
+  std::shared_ptr<SDPMessageInfo> pointer = negotiation_.getLocalSDP(sessionID);
   sdp = *pointer;
   content.setValue(sdp);
   return true;
@@ -459,7 +459,7 @@ bool SIPManager::processAnswerSDP(uint32_t sessionID, QVariant &content)
     return false;
   }
 
-  if(!sdp_.processAnswerSDP(retrieved, sessionID))
+  if(!negotiation_.processAnswerSDP(retrieved, sessionID))
   {
     return false;
   }

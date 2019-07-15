@@ -1,4 +1,4 @@
-#include "globalsdpstate.h"
+#include "negotiation.h"
 #include <QDateTime>
 
 #include "common.h"
@@ -8,19 +8,19 @@ const uint16_t MAX_SIP_PORT   = 22000;
 
 const uint16_t MAX_PORTS = 42;
 
-GlobalSDPState::GlobalSDPState():
+Negotiation::Negotiation():
   localUsername_("")
 {
   ice_ = std::make_unique<ICE>();
   parameters_.setPortRange(MIN_SIP_PORT, MAX_SIP_PORT, MAX_PORTS);
 }
 
-void GlobalSDPState::setLocalInfo(QString username)
+void Negotiation::setLocalInfo(QString username)
 {
   localUsername_ = username;
 }
 
-bool GlobalSDPState::generateOfferSDP(QHostAddress localAddress,
+bool Negotiation::generateOfferSDP(QHostAddress localAddress,
                                         uint32_t sessionID)
 {
   Q_ASSERT(sessionID);
@@ -36,7 +36,7 @@ bool GlobalSDPState::generateOfferSDP(QHostAddress localAddress,
   return localInfo != nullptr;
 }
 
-std::shared_ptr<SDPMessageInfo>  GlobalSDPState::generateSDP(QHostAddress localAddress)
+std::shared_ptr<SDPMessageInfo>  Negotiation::generateSDP(QHostAddress localAddress)
 {
   // TODO: This should ask media manager, what options it supports.
   qDebug() << "Generating new SDP message with our address as:" << localAddress;
@@ -99,7 +99,7 @@ std::shared_ptr<SDPMessageInfo>  GlobalSDPState::generateSDP(QHostAddress localA
 }
 
 
-bool GlobalSDPState::generateAudioMedia(MediaInfo &audio)
+bool Negotiation::generateAudioMedia(MediaInfo &audio)
 {
   // we ignore nettype, addrtype and address, because we use a global c=
   audio = {"audio", parameters_.nextAvailablePortPair(), "RTP/AVP", {},
@@ -124,7 +124,7 @@ bool GlobalSDPState::generateAudioMedia(MediaInfo &audio)
 }
 
 
-bool GlobalSDPState::generateVideoMedia(MediaInfo& video)
+bool Negotiation::generateVideoMedia(MediaInfo& video)
 {
   // we ignore nettype, addrtype and address, because we use a global c=
   video = {"video", parameters_.nextAvailablePortPair(), "RTP/AVP", {},
@@ -149,7 +149,7 @@ bool GlobalSDPState::generateVideoMedia(MediaInfo& video)
 }
 
 
-bool GlobalSDPState::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
+bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
                                         QHostAddress localAddress,
                                         uint32_t sessionID)
 {
@@ -207,7 +207,7 @@ bool GlobalSDPState::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
   return true;
 }
 
-bool GlobalSDPState::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer, uint32_t sessionID)
+bool Negotiation::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer, uint32_t sessionID)
 {
   if (!checkSessionValidity(sessionID, false))
   {
@@ -236,7 +236,7 @@ bool GlobalSDPState::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer, uint32_t 
 }
 
 
-std::shared_ptr<SDPMessageInfo> GlobalSDPState::getLocalSDP(uint32_t sessionID) const
+std::shared_ptr<SDPMessageInfo> Negotiation::getLocalSDP(uint32_t sessionID) const
 {
   if(!checkSessionValidity(sessionID, false))
   {
@@ -245,7 +245,7 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::getLocalSDP(uint32_t sessionID) 
   return sdps_.at(sessionID).first;
 }
 
-std::shared_ptr<SDPMessageInfo> GlobalSDPState::getRemoteSDP(uint32_t sessionID) const
+std::shared_ptr<SDPMessageInfo> Negotiation::getRemoteSDP(uint32_t sessionID) const
 {
   if(!checkSessionValidity(sessionID, true))
   {
@@ -256,7 +256,7 @@ std::shared_ptr<SDPMessageInfo> GlobalSDPState::getRemoteSDP(uint32_t sessionID)
 }
 
 
-bool GlobalSDPState::checkSDPOffer(SDPMessageInfo &offer)
+bool Negotiation::checkSDPOffer(SDPMessageInfo &offer)
 {
   // TODO: check everything.
 
@@ -296,7 +296,7 @@ bool GlobalSDPState::checkSDPOffer(SDPMessageInfo &offer)
 }
 
 // frees the ports when they are not needed in rest of the program
-void GlobalSDPState::endSession(uint32_t sessionID)
+void Negotiation::endSession(uint32_t sessionID)
 {
   if(sdps_.find(sessionID) != sdps_.end())
   {
@@ -315,7 +315,7 @@ void GlobalSDPState::endSession(uint32_t sessionID)
 }
 
 
-void GlobalSDPState::startICECandidateNegotiation(uint32_t sessionID)
+void Negotiation::startICECandidateNegotiation(uint32_t sessionID)
 {
   if(!checkSessionValidity(sessionID, true))
   {
@@ -328,7 +328,7 @@ void GlobalSDPState::startICECandidateNegotiation(uint32_t sessionID)
 }
 
 
-void GlobalSDPState::setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo)
+void Negotiation::setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo)
 {
   if (mediaInfo == nullptr)
   {
@@ -340,7 +340,7 @@ void GlobalSDPState::setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> med
 }
 
 
-void GlobalSDPState::setICEPorts(uint32_t sessionID)
+void Negotiation::setICEPorts(uint32_t sessionID)
 {
   if(!checkSessionValidity(sessionID, true))
   {
@@ -367,7 +367,7 @@ void GlobalSDPState::setICEPorts(uint32_t sessionID)
 }
 
 
-bool GlobalSDPState::checkSessionValidity(uint32_t sessionID, bool remotePresent) const
+bool Negotiation::checkSessionValidity(uint32_t sessionID, bool remotePresent) const
 {
   Q_ASSERT(sessionID);
 

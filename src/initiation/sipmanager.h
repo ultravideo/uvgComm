@@ -2,6 +2,8 @@
 
 #include "initiation/transport/connectionserver.h"
 #include "initiation/transaction/siptransactions.h"
+#include "initiation/negotiation/negotiation.h"
+
 
 class SIPTransactionUser;
 
@@ -76,5 +78,5 @@ private:
   std::map<quint32, QString> waitingToBind_;
 
 
-  GlobalSDPState sdp_;
+  Negotiation negotiation_;
 };
