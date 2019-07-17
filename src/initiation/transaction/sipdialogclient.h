@@ -3,6 +3,8 @@
 #pragma once
 
 
+// Sending SIP Requests and processing of SIP responses that belong to a dialog.
+
 class SIPDialogClient : public SIPClientTransaction
 {
   Q_OBJECT

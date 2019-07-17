@@ -3,31 +3,21 @@
 #include "initiation/transaction/sipnondialogclient.h"
 #include "initiation/transport/siptransport.h"
 
-
 #include "common.h"
 
 #include <QMap>
 
 
-/* This class manages the interactions between different components in
- * a SIP transaction. This class should implement as little functionality
- * as possible and only focus on interractions.
+/* SIP in Kvazzup follows the Transport, Transaction, Transaction User principle.
+ * This class represents the SIP Transaction layer. It uses separate classes for
+ * client transactions and server transactions as well as holding the current state
+ * of SIP dialog
  */
 
 /* Some terms from RFC 3621:
  * Dialog = a SIP dialog constructed with INVITE-transaction
  * Session = a media session negotiated in INVITE-transaction
- *
- * SIP in Kvazzup follows the Transport, Transaction, Transaction User principle.
- * This class represents the transaction layer.
  */
-
-// TODO: some kind of address book class might be useful
-// because the connection addresses can change.
-
-// TODO: This class might be more versatile if it only had one transaction in it
-// and SIPManager would manage all transactions. The question who recognizes
-// which session a message belongs to should be in this case taken into consideration.
 
 // Contact is basically the same as SIP_URI
 struct Contact

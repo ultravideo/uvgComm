@@ -390,14 +390,14 @@ std::shared_ptr<SIPTransport> SIPManager::createSIPTransport()
 }
 
 
-bool SIPManager::isConnected(QString remoteAddress, quint32& transportID)
+bool SIPManager::isConnected(QString remoteAddress, quint32& outTransportID)
 {
   for(auto transport : transports_)
   {
     if(transport != nullptr &&
        transport->getRemoteAddress().toString() == remoteAddress)
     {
-      transportID = transport->getTransportID();
+      outTransportID = transport->getTransportID();
       return true;
     }
   }
