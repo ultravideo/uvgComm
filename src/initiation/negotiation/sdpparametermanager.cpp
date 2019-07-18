@@ -25,7 +25,6 @@ void SDPParameterManager::setPortRange(uint16_t minport, uint16_t maxport, uint1
 }
 
 
-
 // for reference on rtp payload type numbers:
 // https://en.wikipedia.org/wiki/RTP_audio_video_profile
 
@@ -54,14 +53,19 @@ QList<RTPMap> SDPParameterManager::videoCodecs() const
   return QList<RTPMap>{RTPMap{97, 90000, "h265", ""}};
 }
 
-QString SDPParameterManager::sessionName() const
+QString SDPParameterManager::callSessionName() const
 {
   return "HEVC Video Call";
 }
 
+QString SDPParameterManager::conferenceSessionName() const
+{
+  return "HEVC Video Conference";
+}
+
 QString SDPParameterManager::sessionDescription() const
 {
-  return "A Kvazzup initiated video call";
+  return "A Kvazzup initiated video communication";
 }
 
 uint16_t SDPParameterManager::allocateMediaPorts()

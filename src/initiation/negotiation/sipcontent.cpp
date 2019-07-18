@@ -6,6 +6,7 @@
 
 #include <QDebug>
 #include <QRegularExpression>
+#include <QSettings>
 
 
 
@@ -83,7 +84,9 @@ bool checkSDPValidity(const SDPMessageInfo &sdpInfo)
     }
   }
 
-  if (sdpInfo.candidates.isEmpty())
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+
+  if (settings.value("sip/ice").toInt() == 1 && sdpInfo.candidates.isEmpty())
   {
     qDebug() << "PEER ERROR: Didn't receive any ICE candidates!";
     return false;
@@ -123,6 +126,13 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
   {
     sdp += "m=" + mediaStream.type + " " + QString::number(mediaStream.receivePort)
         + " " + mediaStream.proto;
+
+    if (mediaStream.rtpNums.empty())
+    {
+      printDebug(DEBUG_PROGRAM_ERROR, "SIPContent", DC_SIP_CONTENT,
+                 "There was no RTP num included in SDP media!");
+      return "";
+    }
 
     for(uint8_t rtpNum : mediaStream.rtpNums)
     {
@@ -296,6 +306,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
   // i=,u=,e=,p=,c=,b= or t=
   if(!nextLine(lineIterator, words, type))
   {
+    qDebug() << "SDP ended without all mandatory lines!";
     return false;
   }
 
@@ -370,6 +381,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
   if(!parseConnection(lineIterator, type, words,
                       sdp.connection_nettype, sdp.connection_addrtype, sdp.connection_address))
   {
+    qDebug() << "Failed to parse connection";
     return false;
   }
 
@@ -412,6 +424,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
       // must have at least three values.
       if(words.size() < 3)
       {
+        qDebug() << "Failed to parse repeat interval (r=) line";
         return false;
       }
 
@@ -436,6 +449,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
   {
     if(words.size() >= 2)
     {
+      qDebug() << "Failed to parse time offset (z=) line";
       return false;
     }
 
@@ -455,12 +469,14 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
 
   if(!parseEncryptionKey(lineIterator, type, words, sdp.encryptionKey))
   {
+    qDebug() << "Failed to parse encryption key.";
     return false;
   }
 
   QList<RTPMap> noCodecs;
   if(!parseAttributes(lineIterator, type, words, sdp.flagAttributes, sdp.valueAttributes, noCodecs, sdp.candidates))
   {
+    qDebug() << "Failed to parse attributes";
     return false;
   }
 
@@ -475,6 +491,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
     qDebug() << "Found media:" << words.at(0);
     if(words.size() < 4)
     {
+      qDebug() << "Failed to parse media because its has too few words";
       return false;
     }
 

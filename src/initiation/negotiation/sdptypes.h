@@ -1,11 +1,13 @@
 #pragma once
 
+#include "icetypes.h"
+
 #include <QString>
 #include <QList>
-#include <memory>
 
+#include <memory>
 #include <stdint.h>
-#include "icetypes.h"
+
 
 // see RFC 4566 for details.
 
@@ -36,10 +38,10 @@ struct RTPMap
 // SDP media info
 struct MediaInfo
 {
-  QString type; // for example audio or video or text
-  uint16_t receivePort; // rtcp is +1
-  QString proto;
-  QList<uint8_t> rtpNums;
+  QString type; // for example audio, video or text
+  uint16_t receivePort; // for rtp, rtcp is +1
+  QString proto; // usually RTP/AVP
+  QList<uint8_t> rtpNums; // stores both constant and dynamic rtp numbers
 
    // c=, media specific
   QString connection_nettype;
@@ -48,10 +50,10 @@ struct MediaInfo
 
   QString title;
 
-  QList<QString> bitrate;            // b=, optional
+  QList<QString> bitrate;       // b=, optional
 
   // see RFC 4567 and RFC 4568 for more details.
-  QString encryptionKey; // k=, optional
+  QString encryptionKey;        // k=, optional
 
   // a=
   QList<RTPMap> codecs; // mandatory if not preset rtpnumber

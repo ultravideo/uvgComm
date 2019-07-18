@@ -583,7 +583,8 @@ QString SIPTransport::addContent(QList<SIPField>& fields, bool haveContent, cons
   if(haveContent)
   {
     sdp_str = composeSDPContent(sdp);
-    if(!includeContentLengthField(fields, sdp_str.length()) ||
+    if(sdp_str == "" ||
+       !includeContentLengthField(fields, sdp_str.length()) ||
        !includeContentTypeField(fields, "application/sdp"))
     {
       qDebug() << "WARNING: Could not add sdp fields to request";

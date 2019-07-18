@@ -67,19 +67,15 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
   if(peerInfo->timeDescriptions.at(0).startTime != 0 || localInfo->timeDescriptions.at(0).startTime != 0)
   {
     printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "Nonzero start-time not supported!");
+    return;
   }
-
-#if 0
-  qDebug() << "local opus" << localInfo->media[0].connection_address << ":" << localInfo->media[0].receivePort;
-  qDebug() << "local hevc" << localInfo->media[1].connection_address << ":" << localInfo->media[1].receivePort;
-  qDebug() << "remote opus" << peerInfo->media[0].connection_address  << ":" << peerInfo->media[0].receivePort;
-  qDebug() << "remote hevc" << peerInfo->media[0].connection_address  << ":" << peerInfo->media[1].receivePort << "\n";
-#endif
 
   if(peerInfo->connection_nettype == "IN")
   {
     QHostAddress address;
 
+    // determine if we want to use SDP address or the address in media
+    // TODO: this should be fixed so that each media can have a different address.
     if (peerInfo->media[0].connection_address.isEmpty())
     {
       address.setAddress(peerInfo->connection_address);
@@ -183,6 +179,8 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID, const MediaInfo& remo
   {
     printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA,
                "Not creating media because they don't seem to want any according to attribute.");
+
+    // TODO: Spec says we should still send RTCP
   }
 }
 

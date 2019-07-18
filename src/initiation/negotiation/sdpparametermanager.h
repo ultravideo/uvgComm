@@ -24,7 +24,8 @@ public:
   QList<RTPMap> audioCodecs() const;
   QList<RTPMap> videoCodecs() const;
 
-  QString sessionName() const;
+  QString callSessionName() const;
+  QString conferenceSessionName() const;
   QString sessionDescription() const;
 
   bool enoughFreePorts() const
@@ -33,6 +34,8 @@ public:
   }
 
   // return the lower port of the pair and removes both from list of available ports
+
+  // TODO: update this to be based on sessionID as well so we can release the ports
   uint16_t nextAvailablePortPair();
   void makePortPairAvailable(uint16_t lowerPort);
 

@@ -10,11 +10,14 @@
 #include <deque>
 #include <memory>
 
-// This class generates the SDP messages and is capable of checking if proposed
-// SDP is suitable.
+/* This class generates the SDP messages and is capable of checking if proposed
+ * SDP is suitable.
 
-// SDP in SIP is based on offer/answer model where one side sends an offer to
-// which the other side responds with an asnwer.
+ * SDP in SIP is based on offer/answer model where one side sends an offer to
+ * which the other side responds with an answer.
+
+ * See RFC 3264 for details.
+ */
 
 class Negotiation
 {
@@ -59,8 +62,19 @@ private:
 
   std::shared_ptr<SDPMessageInfo> generateSDP(QHostAddress localAddress);
 
+  std::shared_ptr<SDPMessageInfo> negotiateSDP(SDPMessageInfo& remoteSDPOffer,
+                                               QHostAddress localAddress);
+
+  void generateOrigin(std::shared_ptr<SDPMessageInfo> sdp, QHostAddress localAddress);
+  void setConnectionAddress(std::shared_ptr<SDPMessageInfo> sdp, QHostAddress localAddress);
+
   bool generateAudioMedia(MediaInfo &audio);
   bool generateVideoMedia(MediaInfo &video);
+
+
+  bool selectBestCodec(QList<uint8_t>& remoteNums,       QList<RTPMap>& remoteCodecs,
+                       QList<uint8_t>& supportedNums,    QList<RTPMap>& supportedCodecs,
+                       QList<uint8_t>& outMatchingNums,  QList<RTPMap>& outMatchingCodecs);
 
   // Checks if SDP is acceptable to us.
   bool checkSDPOffer(SDPMessageInfo& offer);
@@ -78,5 +92,6 @@ private:
   SDPParameterManager parameters_;
 
   // maps sessionID to pair of SDP:s. Local and remote in that order.
-  std::map<uint32_t, std::pair<std::shared_ptr<SDPMessageInfo>,std::shared_ptr<SDPMessageInfo> > > sdps_;
+  std::map<uint32_t, std::pair<std::shared_ptr<SDPMessageInfo>,
+                               std::shared_ptr<SDPMessageInfo> > > sdps_;
 };

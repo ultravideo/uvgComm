@@ -462,7 +462,8 @@ bool SIPManager::processAnswerSDP(uint32_t sessionID, QVariant &content)
   if (!content.isValid())
   {
     printDebug(DEBUG_PROGRAM_ERROR, this, DC_NEGOTIATING,
-               "SDP not valid when processing. Should be detected earlier.");
+               "Content is not valid when processing SDP. "
+               "Should be detected earlier.");
     return false;
   }
 
