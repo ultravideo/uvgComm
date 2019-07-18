@@ -76,38 +76,40 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
 
 #if 1
   qDebug() << "\n\n\n";
-  qDebug() << "local opus" << localInfo->media[0].connection_address << ":" << localInfo->media[0].receivePort;
-  qDebug() << "local hevc" << localInfo->media[1].connection_address << ":" << localInfo->media[1].receivePort;
-  qDebug() << "remote opus" << peerInfo->media[0].connection_address  << ":" << peerInfo->media[0].receivePort;
-  qDebug() << "remote hevc" << peerInfo->media[0].connection_address  << ":" << peerInfo->media[1].receivePort << "\n";
+  qDebug() << "local audio" << localInfo->media[0].connection_address << ":" << localInfo->media[0].receivePort;
+  qDebug() << "local video" << localInfo->media[1].connection_address << ":" << localInfo->media[1].receivePort;
+  qDebug() << "remote audio" << peerInfo->media[0].connection_address  << ":" << peerInfo->media[0].receivePort;
+  qDebug() << "remote video" << peerInfo->media[1].connection_address  << ":" << peerInfo->media[1].receivePort << "\n";
   qDebug() << "\n\n\n";
 #endif
 
   if(peerInfo->connection_nettype == "IN")
   {
-    QHostAddress address;
+    QHostAddress audio_addr(peerInfo->connection_address);
+    QHostAddress video_addr(peerInfo->connection_address);
 
-    if (peerInfo->media[0].connection_address.isEmpty())
+    if (!peerInfo->media[0].connection_address.isEmpty())
     {
-      address.setAddress(peerInfo->connection_address);
-    }
-    else
-    {
-      address.setAddress(peerInfo->media[0].connection_address); // media[0] is RTP
+      audio_addr.setAddress(peerInfo->media[0].connection_address);
     }
 
+    if (!peerInfo->media[1].connection_address.isEmpty())
+    {
+      video_addr.setAddress(peerInfo->media[1].connection_address);
+    }
 
-    if(stats_ != nullptr)
+    if (stats_ != nullptr)
     {
       stats_->addParticipant(peerInfo->connection_address, "0", "0");
     }
 
-    if(peerInfo->connection_addrtype == "IP4"
-       || (peerInfo->connection_addrtype == "IP6" && address.toString().left(7) == "::ffff:")
-       || (QHostAddress(address.toIPv4Address()) == QHostAddress(address))) // address is ipv4 indeed
+    if (peerInfo->connection_addrtype == "IP4"
+       || ((peerInfo->connection_addrtype == "IP6" && video_addr.toString().left(7) == "::ffff:") &&
+           (peerInfo->connection_addrtype == "IP6" && audio_addr.toString().left(7) == "::ffff:"))
+       || ((QHostAddress(video_addr.toIPv4Address()) == QHostAddress(video_addr)) &&
+           (QHostAddress(audio_addr.toIPv4Address()) == QHostAddress(audio_addr)))) // address is ipv4 indeed
     {
-      // TODO: Make it possible to have a separate ip address for each mediastream by fixing this.
-      if(!streamer_->addPeer(address, sessionID))
+      if(!streamer_->addPeer(sessionID, video_addr, audio_addr))
       {
         printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "Error creating RTP peer. Simultaneous destruction?.");
         return;
@@ -115,7 +117,8 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
     }
     else {
       printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "Not supported in media creation.",
-                      {"Media type", "address"}, {peerInfo->connection_addrtype, address.toString()});
+                 { "Media type", "video address", "audio address" },
+                 { peerInfo->connection_addrtype, video_addr.toString(), audio_addr.toString() });
       return;
     }
   }

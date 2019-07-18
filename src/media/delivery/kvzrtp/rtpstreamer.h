@@ -30,7 +30,7 @@ public:
 
   // init a session with sessionID to use with add/remove functions
   // returns whether operation was successful
-   bool addPeer(QHostAddress address, uint32_t sessionID);
+   bool addPeer(uint32_t sessionID, QHostAddress video_ip, QHostAddress audio_ip);
 
   // Returns filter to be attached to filter graph. ownership is not transferred.
   // removing the peer or stopping the streamer destroys these filters.
@@ -64,8 +64,8 @@ private:
 
   struct Peer
   {
-    struct in_addr ip; // TODO who's ip is this???
-    QHostAddress ip_str;
+    QHostAddress video_ip;
+    QHostAddress audio_ip;
 
     Sender *audioSender; // audio to this peer
     Sender *videoSender; // video to this peer

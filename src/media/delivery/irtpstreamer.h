@@ -15,7 +15,7 @@ public:
 
   // init a session with sessionID to use with add/remove functions
   // returns whether operation was successful
-  virtual bool addPeer(QHostAddress address, uint32_t sessionID) = 0;
+  virtual bool addPeer(uint32_t sessionID, QHostAddress video_ip, QHostAddress audio_ip) = 0;
 
   // Returns filter to be attached to filter graph. ownership is not transferred.
   // removing the peer or stopping the streamer destroys these filters.
