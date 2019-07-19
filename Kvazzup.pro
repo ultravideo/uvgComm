@@ -240,6 +240,7 @@ LIBS += -llibopus.dll
 LIBS += -llibLibOpenHevcWrapper.dll
 LIBS += -llivemedia.dll
 LIBS += -llibspeexdsp.dll
+LIBS += -lkvzrtp
 LIBS += -fopenmp # TODO: Does msvc also need this?
 message("Using MinGW libraries in ../libs")
 }
