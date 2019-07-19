@@ -56,6 +56,17 @@ bool RTPStreamer::addPeer(uint32_t sessionID, QHostAddress video_ip, QHostAddres
 {
   Q_ASSERT(sessionID != 0);
 
+  // check if the IP addresses start with ::ffff: and remove it, kvzrtp only accepts IPv4 addresses
+  if (video_ip.toString().left(7) == "::ffff:")
+  {
+    video_ip = QHostAddress(video_ip.toString().mid(7));
+  }
+
+  if (audio_ip.toString().left(7) == "::ffff:")
+  {
+    audio_ip = QHostAddress(audio_ip.toString().mid(7));
+  }
+
   // not being destroyed
   if (destroyed_.tryLock(0))
   {
