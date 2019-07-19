@@ -33,13 +33,18 @@ public:
   // Use this to generate our response to their SDP suggestion.
   // Sets unacceptable media streams port number to 0.
   // Selects a subset of acceptable payload types from each media.
-  // TODO: Do as described
   bool generateAnswerSDP(SDPMessageInfo& remoteSDPOffer,
                          QHostAddress localAddress,
                          uint32_t sessionID);
 
   // process their response SDP.
   bool processAnswerSDP(SDPMessageInfo& remoteSDPAnswer, uint32_t sessionID);
+
+  // Includes the medias for all the participants for conference as sendonly
+  bool initialConferenceOfferSDP(uint32_t sessionID);
+
+  // the full sendrecv medias of the conference
+  bool finalConferenceOfferSDP(uint32_t sessionID);
 
   // frees the ports when they are not needed in rest of the program
   void endSession(uint32_t sessionID);
@@ -58,9 +63,12 @@ public:
   std::shared_ptr<SDPMessageInfo> getLocalSDP(uint32_t sessionID) const;
   std::shared_ptr<SDPMessageInfo> getRemoteSDP(uint32_t sessionID) const;
 
+  std::shared_ptr<SDPMessageInfo> getInitialConferenceOffer(uint32_t sessionID) const;
+  std::shared_ptr<SDPMessageInfo> getFinalConferenceOffer(uint32_t sessionID) const;
+
 private:
 
-  std::shared_ptr<SDPMessageInfo> generateSDP(QHostAddress localAddress);
+  std::shared_ptr<SDPMessageInfo> generateLocalSDP(QHostAddress localAddress);
 
   std::shared_ptr<SDPMessageInfo> negotiateSDP(SDPMessageInfo& remoteSDPOffer,
                                                QHostAddress localAddress);
@@ -94,4 +102,11 @@ private:
   // maps sessionID to pair of SDP:s. Local and remote in that order.
   std::map<uint32_t, std::pair<std::shared_ptr<SDPMessageInfo>,
                                std::shared_ptr<SDPMessageInfo> > > sdps_;
+
+  // same but includes receiveports for all the media of the conference
+  std::map<uint32_t, std::shared_ptr<SDPMessageInfo>> recvConferenceSdps_;
+
+
+  // same but includes all the media for the conference
+  std::map<uint32_t, std::shared_ptr<SDPMessageInfo> > finalConferenceSdps_;
 };

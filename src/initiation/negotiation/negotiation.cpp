@@ -29,7 +29,7 @@ bool Negotiation::generateOfferSDP(QHostAddress localAddress,
   Q_ASSERT(sessionID);
 
   qDebug() << "Getting local SDP suggestion";
-  std::shared_ptr<SDPMessageInfo> localInfo = generateSDP(localAddress);
+  std::shared_ptr<SDPMessageInfo> localInfo = generateLocalSDP(localAddress);
 
   if(localInfo != nullptr)
   {
@@ -38,6 +38,86 @@ bool Negotiation::generateOfferSDP(QHostAddress localAddress,
   }
   return localInfo != nullptr;
 }
+
+// Includes the medias for all the participants for conference
+bool Negotiation::initialConferenceOfferSDP(uint32_t sessionID)
+{
+  std::shared_ptr<SDPMessageInfo> newInfo = sdps_.at(sessionID).first;
+  // go through every media and include it in our conference offer so we get a
+  // response port for each media in conference for them.
+  for (auto callSession : sdps_)
+  {
+    // don't include their own address
+    if (callSession.first != sessionID)
+    {
+      for (auto media : callSession.second.second->media)
+      {
+        media.connection_address = callSession.second.second->connection_address;
+        media.connection_nettype = callSession.second.second->connection_nettype;
+        media.connection_addrtype = callSession.second.second->connection_addrtype;
+
+        newInfo->media.append(media);
+        // we use sendunly because we don't know the receive port of other conference
+        // participants.
+        media.flagAttributes = {A_SENDONLY};
+      }
+    }
+  }
+
+  recvConferenceSdps_[sessionID] = newInfo;
+
+  return true;
+}
+
+
+// Includes the medias for all the participants for conference
+bool Negotiation::finalConferenceOfferSDP(uint32_t sessionID)
+{
+  if (!checkSessionValidity(sessionID, true))
+  {
+    return false;
+  }
+
+  std::shared_ptr<SDPMessageInfo> newInfo = sdps_.at(sessionID).first;
+
+  // include receive port for every media
+
+  QString remoteAddress = sdps_.at(sessionID).second->connection_address;
+
+  for (auto sdp : recvConferenceSdps_)
+  {
+    for (auto media : sdp.second->media)
+    {
+      if (media.connection_address == remoteAddress)
+      {
+        newInfo->media.append(media);
+        media.flagAttributes = {A_SENDRECV};
+      }
+    }
+  }
+
+  finalConferenceSdps_[sessionID] = newInfo;
+  return false;
+}
+
+
+std::shared_ptr<SDPMessageInfo> Negotiation::getInitialConferenceOffer(uint32_t sessionID) const
+{
+  Q_ASSERT(sessionID);
+  Q_ASSERT(recvConferenceSdps_.find(sessionID) != recvConferenceSdps_.end());
+
+  return recvConferenceSdps_.at(sessionID);
+}
+
+
+std::shared_ptr<SDPMessageInfo> Negotiation::getFinalConferenceOffer(uint32_t sessionID) const
+{
+  Q_ASSERT(sessionID);
+  Q_ASSERT(finalConferenceSdps_.find(sessionID) != finalConferenceSdps_.end());
+
+  return finalConferenceSdps_.at(sessionID);
+}
+
 
 
 bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
@@ -121,7 +201,7 @@ bool Negotiation::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer, uint32_t ses
 }
 
 
-std::shared_ptr<SDPMessageInfo>  Negotiation::generateSDP(QHostAddress localAddress)
+std::shared_ptr<SDPMessageInfo>  Negotiation::generateLocalSDP(QHostAddress localAddress)
 {
   // TODO: This should ask media manager, what options it supports.
   qDebug() << "Generating new SDP message with our address as:" << localAddress;
@@ -192,6 +272,21 @@ std::shared_ptr<SDPMessageInfo> Negotiation::negotiateSDP(SDPMessageInfo& remote
     ourMedia.receivePort = parameters_.nextAvailablePortPair();
     ourMedia.proto = remoteMedia.proto;
     ourMedia.title = remoteMedia.title;
+    if (remoteMedia.flagAttributes.empty())
+    {
+      ourMedia.flagAttributes = {A_SENDRECV};
+    }
+    else if (remoteMedia.flagAttributes.back() == A_SENDONLY)
+    {
+      ourMedia.flagAttributes = {A_RECVONLY};
+    }
+    else if (remoteMedia.flagAttributes.back() == A_RECVONLY)
+    {
+      ourMedia.flagAttributes = {A_SENDONLY};
+    }
+    else {
+      ourMedia.flagAttributes = remoteMedia.flagAttributes;
+    }
 
     // set our bitrate, not implemented
     // set our encryptionKey, not implemented
