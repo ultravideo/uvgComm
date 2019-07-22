@@ -260,6 +260,7 @@ std::shared_ptr<SDPMessageInfo> Negotiation::negotiateSDP(SDPMessageInfo& remote
   generateOrigin(newInfo, localAddress);
   setConnectionAddress(newInfo, localAddress);
 
+  newInfo->version = 0;
   newInfo->sessionName = remoteSDPOffer.sessionName;
   newInfo->sessionDescription = remoteSDPOffer.sessionDescription;
   newInfo->timeDescriptions = remoteSDPOffer.timeDescriptions;
