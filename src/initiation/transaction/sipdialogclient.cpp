@@ -120,6 +120,10 @@ void SIPDialogClient::cancelCall()
   sendRequest(SIP_CANCEL);
 }
 
+void SIPDialogClient::renegotiateCall()
+{
+  sendRequest(SIP_INVITE);
+}
 
 void SIPDialogClient::processTimeout()
 {

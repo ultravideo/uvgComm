@@ -20,6 +20,8 @@ public:
   void endCall();
   void cancelCall();
 
+  void renegotiateCall();
+
 protected:
   virtual void processTimeout();
 

@@ -84,6 +84,16 @@ void SIPTransactions::startProxyCall(Contact& address, QHostAddress localAddress
              "Proxy calling has not been yet implemented");
 }
 
+
+void SIPTransactions::renegotiateCall(uint32_t sessionID)
+{
+  printDebug(DEBUG_NORMAL, "SIP Transactions", DC_NEGOTIATING,
+             "Start the process of sending a re-INVITE");
+
+  dialogs_[sessionID]->client->renegotiateCall();
+}
+
+
 void SIPTransactions::startPeerToPeerCall(uint32_t sessionID,
                                           QHostAddress localAddress, Contact &remote)
 {

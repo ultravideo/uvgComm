@@ -65,6 +65,11 @@ public:
   void startProxyCall(Contact& address, QHostAddress localAddress,
                       uint32_t sessionID);
 
+  // sends a re-INVITE
+  void renegotiateCall(uint32_t sessionID);
+
+  void renegotiateAllCalls();
+
   // transaction user wants something.
   void acceptCall(uint32_t sessionID);
   void rejectCall(uint32_t sessionID);
