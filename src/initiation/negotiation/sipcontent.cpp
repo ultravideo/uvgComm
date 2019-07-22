@@ -98,6 +98,7 @@ bool checkSDPValidity(const SDPMessageInfo &sdpInfo)
 
 QString composeSDPContent(const SDPMessageInfo &sdpInfo)
 {
+  Q_ASSERT(checkSDPValidity(sdpInfo));
   if(!checkSDPValidity(sdpInfo))
   {
     printDebug(DEBUG_PROGRAM_ERROR, "SIPContent", DC_SIP_CONTENT, "Bad SDPInfo in string formation.");

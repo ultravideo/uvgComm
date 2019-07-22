@@ -173,6 +173,7 @@ bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
 
 bool Negotiation::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer, uint32_t sessionID)
 {
+  printDebug(DEBUG_NORMAL, "Negotiation", DC_NEGOTIATING, "Starting to process answer SDP.");
   if (!checkSessionValidity(sessionID, false))
   {
     return false;
@@ -589,18 +590,18 @@ void Negotiation::setICEPorts(uint32_t sessionID)
 }
 
 
-bool Negotiation::checkSessionValidity(uint32_t sessionID, bool remotePresent) const
+bool Negotiation::checkSessionValidity(uint32_t sessionID, bool checkRemote) const
 {
   Q_ASSERT(sessionID);
 
   Q_ASSERT(sdps_.find(sessionID) != sdps_.end());
   Q_ASSERT(sdps_.at(sessionID).first != nullptr);
-  Q_ASSERT(sdps_.at(sessionID).second != nullptr || !remotePresent);
+  Q_ASSERT(sdps_.at(sessionID).second != nullptr || !checkRemote);
 
   if(sessionID == 0 ||
      sdps_.find(sessionID) == sdps_.end() ||
      sdps_.at(sessionID).first == nullptr ||
-     (sdps_.at(sessionID).second == nullptr && remotePresent))
+     (sdps_.at(sessionID).second == nullptr && checkRemote))
   {
     printDebug(DEBUG_PROGRAM_ERROR, "GlobalSDPState", DC_NEGOTIATING,
                "Attempting to use GlobalSDPState without setting SessionID correctly",

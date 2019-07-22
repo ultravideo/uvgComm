@@ -91,7 +91,7 @@ private:
   void setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo);
 
   // Is the internal state of this class correct for this sessionID
-  bool checkSessionValidity(uint32_t sessionID, bool remotePresent) const;
+  bool checkSessionValidity(uint32_t sessionID, bool checkRemote) const;
 
   QString localUsername_;
 

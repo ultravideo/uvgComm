@@ -342,10 +342,11 @@ void SIPTransport::parsePackage(QString package, QString& header, QString& body)
       header = package.left(headerEndIndex);
       body = package.mid(headerEndIndex, valueInt);
 
-      qDebug() << "\r\n" << "Whole SIP message received ----------- ";
+      qDebug().noquote() << "\r\n";
+      qDebug().noquote() << "Whole SIP message received ----------- " << "\r\n";
       qDebug().noquote() << "Header:" << header;
       qDebug().noquote() << "Content:" << body;
-      qDebug() << "Left overs:" << partialMessage_ << "\r\n";
+      qDebug().noquote() << "Left overs:" << partialMessage_ << "\r\n";
     }
   }
   else

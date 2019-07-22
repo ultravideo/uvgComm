@@ -1,13 +1,14 @@
 #include "sdpparametermanager.h"
 
+#include "common.h"
+
 #include <QUdpSocket>
 #include <QDebug>
 
 
 SDPParameterManager::SDPParameterManager()
   :remainingPorts_(0)
-{
-}
+{}
 
 void SDPParameterManager::setPortRange(uint16_t minport, uint16_t maxport, uint16_t maxRTPConnections)
 {
@@ -128,6 +129,9 @@ uint16_t SDPParameterManager::nextAvailablePortPair()
              << "deque size:" << availablePorts_.size();
   }
   portLock_.unlock();
+
+  printDebug(DEBUG_NORMAL, "SDP Parameter Manager", DC_NEGOTIATING,
+             "Binding finished", {"Bound lower port"}, {QString::number(newLowerPort)});
 
   return newLowerPort;
 }
