@@ -22,6 +22,9 @@ public:
   virtual std::shared_ptr<Filter> addSendStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum) = 0;
   virtual std::shared_ptr<Filter> addReceiveStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum) = 0;
 
+  virtual std::shared_ptr<Filter> addSendStream(uint32_t peer, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum) = 0;
+  virtual std::shared_ptr<Filter> addReceiveStream(uint32_t peer, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum) = 0;
+
   virtual void removeSendVideo(uint32_t sessionID) = 0;
   virtual void removeSendAudio(uint32_t sessionID) = 0;
   virtual void removeReceiveVideo(uint32_t sessionID) = 0;

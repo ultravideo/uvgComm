@@ -323,6 +323,66 @@ bool RTPStreamer::checkSessionID(uint32_t sessionID)
       && peers_.at(sessionID - 1) != nullptr;
 }
 
+std::shared_ptr<Filter> addSendStream(uint32_t peer, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum)
+{
+  Q_ASSERT(checkSessionID(peer));
+
+  DataType type = typeFromString(codec);
+
+  struct in_addr ip_addr;
+  ip_addr.S_un.S_addr = qToBigEndian(ip.toIPv4Address());
+
+  if(type == HEVCVIDEO)
+  {
+    if(peers_.at(peer - 1)->videoSender)
+      destroySender(peers_.at(peer - 1)->videoSender);
+
+    peers_.at(peer - 1)->videoSender = addSender(ip_addr, port, type, rtpNum);
+    return peers_.at(peer - 1)->videoSender->sourcefilter;
+  }
+  else if(type == OPUSAUDIO || type == RAWAUDIO)
+  {
+    if(peers_.at(peer - 1)->audioSender)
+      destroySender(peers_.at(peer - 1)->audioSender);
+
+    peers_.at(peer - 1)->audioSender = addSender(ip_addr, port, type, rtpNum);
+    return peers_.at(peer - 1)->audioSender->sourcefilter;
+  }
+
+  return nullptr;
+
+}
+
+std::shared_ptr<Filter> addReceiveStream(uint32_t peer, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum)
+{
+  Q_ASSERT(checkSessionID(peer));
+
+  DataType type = typeFromString(codec);
+
+  struct in_addr ip_addr;
+  ip_addr.S_un.S_addr = qToBigEndian(ip.toIPv4Address());
+
+  if(type == HEVCVIDEO)
+  {
+    if(peers_.at(peer - 1)->videoReceiver)
+      destroyReceiver(peers_.at(peer - 1)->videoReceiver);
+
+    peers_.at(peer - 1)->videoReceiver = addReceiver(ip_addr, port, type, rtpNum);
+    return peers_.at(peer - 1)->videoReceiver->sink;
+  }
+  else if(type == OPUSAUDIO || type == RAWAUDIO)
+  {
+    if(peers_.at(peer - 1)->audioReceiver)
+      destroyReceiver(peers_.at(peer - 1)->audioReceiver);
+
+    peers_.at(peer - 1)->audioReceiver = addReceiver(ip_addr, port, type, rtpNum);
+    return peers_.at(peer - 1)->audioReceiver->sink;
+  }
+
+  return nullptr;
+
+}
+
 std::shared_ptr<Filter> RTPStreamer::addSendStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum)
 {
   Q_ASSERT(checkSessionID(peer));
