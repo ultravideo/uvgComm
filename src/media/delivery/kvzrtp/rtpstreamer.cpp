@@ -112,61 +112,33 @@ bool RTPStreamer::addPeer(uint32_t sessionID, QHostAddress video_ip, QHostAddres
 std::shared_ptr<Filter> RTPStreamer::addSendStream(uint32_t peer, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum)
 {
   Q_ASSERT(checkSessionID(peer));
+  Q_UNUSED(peer);
 
-  rtp_format_t type = typeFromString(codec);
+  RTPStreamer::Sender *sender = addSender(ip, port, typeFromString(codec), rtpNum);
 
-  if (type == RTP_FORMAT_HEVC)
+  if (sender == nullptr)
   {
-    if (peers_.at(peer - 1)->videoSender)
-    {
-      destroySender(peers_.at(peer - 1)->videoSender);
-    }
-
-    peers_.at(peer - 1)->videoSender = addSender(ip, port, type, rtpNum);
-    return peers_.at(peer - 1)->videoSender->sourcefilter;
-  }
-  else if (type == RTP_FORMAT_OPUS || type == RTP_FORMAT_GENERIC)
-  {
-    if (peers_.at(peer - 1)->audioSender)
-    {
-      destroySender(peers_.at(peer - 1)->audioSender);
-    }
-
-    peers_.at(peer - 1)->audioSender = addSender(ip, port, type, rtpNum);
-    return peers_.at(peer - 1)->audioSender->sourcefilter;
+    return nullptr;
   }
 
-  return nullptr;
+  senders_.push_back(sender);
+  return sender->sourcefilter;
 }
 
 std::shared_ptr<Filter> RTPStreamer::addReceiveStream(uint32_t peer, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum)
 {
   Q_ASSERT(checkSessionID(peer));
+  Q_UNUSED(peer);
 
-  rtp_format_t type = typeFromString(codec);
+  RTPStreamer::Receiver *receiver = addReceiver(ip, port, typeFromString(codec), rtpNum);
 
-  if (type == RTP_FORMAT_HEVC)
+  if (receiver == nullptr)
   {
-    if (peers_.at(peer - 1)->videoReceiver)
-    {
-      destroyReceiver(peers_.at(peer - 1)->videoReceiver);
-    }
-
-    peers_.at(peer - 1)->videoReceiver = addReceiver(ip, port, type, rtpNum);
-    return peers_.at(peer - 1)->videoReceiver->sink;
-  }
-  else if (type == RTP_FORMAT_OPUS || type == RTP_FORMAT_GENERIC)
-  {
-    if (peers_.at(peer - 1)->audioReceiver)
-    {
-      destroyReceiver(peers_.at(peer - 1)->audioReceiver);
-    }
-
-    peers_.at(peer - 1)->audioReceiver = addReceiver(ip, port, type, rtpNum);
-    return peers_.at(peer - 1)->audioReceiver->sink;
+    return nullptr;
   }
 
-  return nullptr;
+  receivers_.push_back(receiver);
+  return receiver->sink;
 }
 
 std::shared_ptr<Filter> RTPStreamer::addSendStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum)

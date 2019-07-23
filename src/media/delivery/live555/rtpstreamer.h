@@ -114,6 +114,9 @@ private:
 
   QList<Peer*> peers_;
 
+  std::vector<RTPStreamer::Sender *> senders_;
+  std::vector<RTPStreamer::Receiver *> receivers_;
+
   bool isIniated_;
   bool isRunning_;
 

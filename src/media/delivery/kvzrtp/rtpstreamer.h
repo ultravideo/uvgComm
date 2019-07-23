@@ -86,11 +86,12 @@ private:
 
   Sender     *addSender(QHostAddress ip, uint16_t port, rtp_format_t type, uint8_t rtpNum);
   Receiver *addReceiver(QHostAddress ip, uint16_t port, rtp_format_t type, uint8_t rtpNum);
-#if 0
-#endif
 
   // private variables
   QList<Peer *> peers_;
+
+  std::vector<RTPStreamer::Sender *> senders_;
+  std::vector<RTPStreamer::Receiver *> receivers_;
 
   bool isIniated_;
   bool isRunning_;
