@@ -39,6 +39,9 @@ public:
   void endCall(uint32_t sessionID);
   void endAllCalls();
 
+  void negotiateReceivePorts();
+  void negotiateConference();
+
   // Get the negotiated session media session descriptions. Use after call
   // has been negotiated.
   void getSDPs(uint32_t sessionID,
@@ -104,4 +107,13 @@ private:
 
   // Negotiation with SDP and ICE
   Negotiation negotiation_;
+
+
+  enum NegotiateState {
+    INDIVIDUAL,
+    RECEIVE_PORTS,
+    WHOLE_CONFERENCE
+  };
+
+  NegotiateState state_;
 };

@@ -51,11 +51,7 @@ public:
   }
 
   // reserve sessionID for a future call
-  uint32_t reserveSessionID()
-  {
-    ++nextSessionID_;
-    return nextSessionID_ - 1;
-  }
+  uint32_t reserveSessionID();
 
   // start a call with address. Returns generated sessionID
   void startDirectCall(Contact& address, QHostAddress localAddress,
@@ -172,7 +168,7 @@ private:
   // TODO: sessionID should be called dialogID
 
   uint32_t nextSessionID_;
-  QMap<uint32_t, std::shared_ptr<SIPDialogData>> dialogs_;
+  std::map<uint32_t, std::shared_ptr<SIPDialogData>> dialogs_;
   std::map<QString, SIPRegistrationData> registrations_;
 
 

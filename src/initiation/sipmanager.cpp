@@ -11,7 +11,8 @@ SIPManager::SIPManager():
   transports_(),
   nextTransportID_(FIRSTTRANSPORTID),
   transactions_(),
-  negotiation_()
+  negotiation_(),
+  state_(INDIVIDUAL)
 {}
 
 
@@ -88,6 +89,7 @@ void SIPManager::bindToServer()
 
 uint32_t SIPManager::startCall(Contact& address)
 {
+  state_ = INDIVIDUAL;
   quint32 transportID = 0;
   uint32_t sessionID = transactions_.reserveSessionID();
 
@@ -154,6 +156,20 @@ void SIPManager::endCall(uint32_t sessionID)
 void SIPManager::endAllCalls()
 {
   transactions_.endAllCalls();
+}
+
+
+void SIPManager::negotiateReceivePorts()
+{
+  state_ = RECEIVE_PORTS;
+  transactions_.renegotiateAllCalls();
+}
+
+
+void SIPManager::negotiateConference()
+{
+  state_ = WHOLE_CONFERENCE;
+  transactions_.renegotiateAllCalls();
 }
 
 
@@ -410,12 +426,41 @@ bool SIPManager::SDPOfferToContent(QVariant& content, QHostAddress localAddress,
 {
   SDPMessageInfo sdp;
 
-  if(!negotiation_.generateOfferSDP(localAddress, sessionID))
+  switch (state_)
   {
-    qDebug() << "Failed to generate SDP Suggestion while sending: "
-                "Possibly because we ran out of ports to assign";
-    return false;
+    case INDIVIDUAL:
+    {
+      if(!negotiation_.generateOfferSDP(localAddress, sessionID))
+      {
+        qDebug() << "Failed to generate SDP Suggestion while sending: "
+                    "Possibly because we ran out of ports to assign";
+        return false;
+      }
+      break;
+    }
+    case RECEIVE_PORTS:
+    {
+      if(!negotiation_.initialConferenceOfferSDP(sessionID))
+      {
+        qDebug() << "Failed to generate SDP Suggestion while sending: "
+                    "Possibly because we ran out of ports to assign";
+        return false;
+      }
+      break;
+    }
+    case WHOLE_CONFERENCE:
+    {
+      if(!negotiation_.finalConferenceOfferSDP(sessionID))
+      {
+        qDebug() << "Failed to generate SDP Suggestion while sending: "
+                    "Possibly because we ran out of ports to assign";
+        return false;
+      }
+      break;
+    }
   }
+
+
 
   std::shared_ptr<SDPMessageInfo> pointer = negotiation_.getLocalSDP(sessionID);
   sdp = *pointer;

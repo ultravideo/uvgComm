@@ -61,6 +61,8 @@ private:
 
   void removeSession(uint32_t sessionID);
 
+  void createSingleCall(uint32_t sessionID);
+
   struct PeerState
   {
     bool viewAdded;
@@ -68,9 +70,25 @@ private:
   };
 
   // Call state is a non-dependant way
-  enum CallState{CALLRINGINGWITHUS = 0, CALLINGTHEM = 1, CALLRINGINWITHTHEM = 2,
-                 CALLNEGOTIATING = 3, CALLONGOING = 4};
+  enum CallState {
+    CALLRINGINGWITHUS = 0,
+    CALLINGTHEM = 1,
+    CALLRINGINWITHTHEM = 2,
+    CALLNEGOTIATING = 3,
+    CALLONGOING = 4
+  };
+
   std::map<uint32_t, CallState> states_;
+
+  enum ConferenceState {
+    SINGLE_CONNECTIONS,
+    RECEIVE_PORTS,
+    WHOLE_CONFERENCE,
+    CONFERENCE_ACTIVE
+  };
+
+  uint32_t phaseReady_; // how many sessions have completed this phase
+  ConferenceState conference_;
 
   MediaManager media_; // Media processing and delivery
   SIPManager sip_; // SIP

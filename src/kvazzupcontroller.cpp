@@ -9,6 +9,8 @@
 
 
 KvazzupController::KvazzupController():
+    phaseReady_(0),
+    conference_(SINGLE_CONNECTIONS),
     media_(),
     sip_(),
     window_(nullptr)
@@ -69,6 +71,7 @@ uint32_t KvazzupController::callToParticipant(QString name, QString username, QS
   qDebug() << "Session Initiation," << metaObject()->className()
            << ": Start Call," << metaObject()->className()
            << ": Initiated call starting to" << con.realName;
+
   return sip_.startCall(con);
 }
 
@@ -88,6 +91,7 @@ void KvazzupController::outgoingCall(uint32_t sessionID, QString callee)
   if(states_.find(sessionID) == states_.end())
   {
     states_[sessionID] = CALLINGTHEM;
+    conference_ = SINGLE_CONNECTIONS;
   }
 }
 
@@ -186,27 +190,49 @@ void KvazzupController::callNegotiated(uint32_t sessionID)
   {
     if(states_[sessionID] == CALLNEGOTIATING)
     {
-      qDebug() << "Negotiation," << metaObject()->className()
-               << ": Call has been agreed upon with peer:" << sessionID;
+      ++phaseReady_;
 
-      window_.addVideoStream(sessionID);
-
-      std::shared_ptr<SDPMessageInfo> localSDP;
-      std::shared_ptr<SDPMessageInfo> remoteSDP;
-
-      sip_.getSDPs(sessionID,
-                   localSDP,
-                   remoteSDP);
-
-      if(localSDP == nullptr || remoteSDP == nullptr)
+      if (states_.size() > 1)
       {
-        printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA,
-                   "Failed to get SDP. Error should be detected earlier.");
-        return;
+        // can we proceed to next phase
+        if (phaseReady_ == states_.size())
+        {
+          switch (conference_)
+          {
+            case SINGLE_CONNECTIONS:
+            {
+              conference_ = RECEIVE_PORTS;
+              sip_.negotiateReceivePorts();
+              phaseReady_ = 0;
+              break;
+            }
+            case RECEIVE_PORTS:
+            {
+              conference_ = WHOLE_CONFERENCE;
+              sip_.negotiateConference();
+              phaseReady_ = 0;
+              break;
+            }
+            case WHOLE_CONFERENCE:
+            {
+              for (auto session : states_)
+              {
+                createSingleCall(session.first);
+              }
+              conference_ = CONFERENCE_ACTIVE;
+              break;
+            }
+            default:
+            {
+              printDebug(DEBUG_PROGRAM_ERROR, this, DC_NEGOTIATING,
+                         "Conference negotiated, it was already active");
+            }
+          }
+        }
       }
-
-      media_.addParticipant(sessionID, remoteSDP, localSDP);
-      states_[sessionID] = CALLONGOING;
+      else {
+        createSingleCall(sessionID);
+      }
     }
     else
     {
@@ -221,6 +247,33 @@ void KvazzupController::callNegotiated(uint32_t sessionID)
               << ": ERROR: This session does not exist in Call manager";
   }
 }
+
+
+void KvazzupController::createSingleCall(uint32_t sessionID)
+{
+  qDebug() << "Negotiation," << metaObject()->className()
+           << ": Call has been agreed upon with peer:" << sessionID;
+
+  window_.addVideoStream(sessionID);
+
+  std::shared_ptr<SDPMessageInfo> localSDP;
+  std::shared_ptr<SDPMessageInfo> remoteSDP;
+
+  sip_.getSDPs(sessionID,
+               localSDP,
+               remoteSDP);
+
+  if(localSDP == nullptr || remoteSDP == nullptr)
+  {
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA,
+               "Failed to get SDP. Error should be detected earlier.");
+    return;
+  }
+
+  media_.addParticipant(sessionID, remoteSDP, localSDP);
+  states_[sessionID] = CALLONGOING;
+}
+
 
 void KvazzupController::callNegotiationFailed(uint32_t sessionID)
 {
@@ -293,6 +346,8 @@ void KvazzupController::endTheCall()
   media_.endAllCalls();
   window_.clearConferenceView();
 
+  conference_ = SINGLE_CONNECTIONS;
+  phaseReady_ = 0;
   states_.clear();
 }
 

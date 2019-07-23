@@ -34,11 +34,19 @@ void SIPTransactions::uninit()
   //TODO: delete all dialogs
   for(auto i = dialogs_.begin(); i != dialogs_.end(); ++i)
   {
-    destroyDialog(i.key());
+    destroyDialog(i->first);
   }
 
   dialogs_.clear();
   nextSessionID_ = FIRSTSESSIONID;
+}
+
+
+// reserve sessionID for a future call
+uint32_t SIPTransactions::reserveSessionID()
+{
+  ++nextSessionID_;
+  return nextSessionID_ - 1;
 }
 
 
@@ -91,6 +99,14 @@ void SIPTransactions::renegotiateCall(uint32_t sessionID)
              "Start the process of sending a re-INVITE");
 
   dialogs_[sessionID]->client->renegotiateCall();
+}
+
+
+void SIPTransactions::renegotiateAllCalls()
+{
+  for (auto dialog : dialogs_) {
+    renegotiateCall(dialog.first);
+  }
 }
 
 
@@ -210,15 +226,15 @@ void SIPTransactions::endAllCalls()
 {
   for(auto dialog : dialogs_)
   {
-    if(dialog != nullptr)
+    if(dialog.second != nullptr)
     {
-      dialog->client->endCall();
+      dialog.second->client->endCall();
     }
   }
 
   for(auto i = dialogs_.begin(); i != dialogs_.end(); ++i)
   {
-    destroyDialog(i.key());
+    destroyDialog(i->first);
   }
   dialogs_.clear();
   nextSessionID_ = FIRSTSESSIONID;
@@ -235,12 +251,12 @@ bool SIPTransactions::identifySession(SIPRequest request, QHostAddress localAddr
   dialogMutex_.lock();
   for (auto i = dialogs_.begin(); i != dialogs_.end(); ++i)
   {
-    if(i.value() != nullptr &&
-       i.value()->state->correctRequestDialog(request.message->dialog,
+    if(i->second != nullptr &&
+       i->second->state->correctRequestDialog(request.message->dialog,
                                               request.type, request.message->cSeq))
     {
       qDebug() << "Found dialog matching for incoming request.";
-      out_sessionID = i.key();
+      out_sessionID = i->first;
     }
   }
   dialogMutex_.unlock();
@@ -275,15 +291,15 @@ bool SIPTransactions::identifySession(SIPResponse response, uint32_t& out_sessio
   // find the dialog which corresponds to the callID and tags received in response
   for (auto i = dialogs_.begin(); i != dialogs_.end(); ++i)
   {
-    if(i.value() != nullptr &&
-       i.value()->state->correctResponseDialog(response.message->dialog,
+    if(i->second != nullptr &&
+       i->second->state->correctResponseDialog(response.message->dialog,
                                                response.message->cSeq))
     {
       // TODO: we should check that every single detail is as specified in rfc.
-      if(i.value()->client->waitingResponse(response.message->transactionRequest))
+      if(i->second->client->waitingResponse(response.message->transactionRequest))
       {
         qDebug() << "Found dialog matching the response";
-        out_sessionID = i.key();
+        out_sessionID = i->first;
         break;
       }
       else
