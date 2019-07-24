@@ -424,8 +424,7 @@ bool SIPManager::isConnected(QString remoteAddress, quint32& outTransportID)
 bool SIPManager::SDPOfferToContent(QVariant& content, QHostAddress localAddress,
                                    uint32_t sessionID)
 {
-  SDPMessageInfo sdp;
-
+  std::shared_ptr<SDPMessageInfo> pointer;
   switch (state_)
   {
     case INDIVIDUAL:
@@ -436,6 +435,7 @@ bool SIPManager::SDPOfferToContent(QVariant& content, QHostAddress localAddress,
         qDebug() << "Failed to generate first SDP offer while sending.";
         return false;
       }
+       pointer = negotiation_.getLocalSDP(sessionID);
       break;
     }
     case RECEIVE_PORTS:
@@ -446,6 +446,7 @@ bool SIPManager::SDPOfferToContent(QVariant& content, QHostAddress localAddress,
         qDebug() << "Failed to generate initial conference SDP offer while sending.";
         return false;
       }
+      pointer = negotiation_.getInitialConferenceOffer(sessionID);
       break;
     }
     case WHOLE_CONFERENCE:
@@ -456,12 +457,13 @@ bool SIPManager::SDPOfferToContent(QVariant& content, QHostAddress localAddress,
         qDebug() << "Failed to generate final conference SDP offer while sending.";
         return false;
       }
+      pointer = negotiation_.getFinalConferenceOffer(sessionID);
       break;
     }
   }
+  Q_ASSERT(pointer != nullptr);
 
-  std::shared_ptr<SDPMessageInfo> pointer = negotiation_.getLocalSDP(sessionID);
-  sdp = *pointer;
+  SDPMessageInfo sdp = *pointer;
   content.setValue(sdp);
   return true;
 }
