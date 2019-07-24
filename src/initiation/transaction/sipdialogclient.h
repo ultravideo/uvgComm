@@ -14,8 +14,7 @@ public:
   void setSessionID(uint32_t sessionID);
 
   virtual bool processResponse(SIPResponse& response,
-                               bool inSessionActive,
-                               bool& outSessionActivated);
+                               std::shared_ptr<SIPDialogState> state);
 
   // send a request
   bool startCall(QString callee);

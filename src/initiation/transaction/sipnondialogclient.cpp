@@ -12,8 +12,7 @@ void SIPNonDialogClient::set_remoteURI(SIP_URI& uri)
 }
 
 bool SIPNonDialogClient::processResponse(SIPResponse& response,
-                                         bool inSessionActive,
-                                         bool &outSessionActivated)
+                                         std::shared_ptr<SIPDialogState> state)
 {
   // TODO
   Q_UNUSED(response);

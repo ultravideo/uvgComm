@@ -1,6 +1,7 @@
 #include "sipdialogclient.h"
 
 #include "initiation/siptransactionuser.h"
+#include "initiation/transaction/sipdialogstate.h"
 
 #include "common.h"
 
@@ -20,9 +21,8 @@ void SIPDialogClient::setSessionID(uint32_t sessionID)
 }
 
 //processes incoming response
-bool SIPDialogClient::processResponse(SIPResponse &response,
-                                      bool inSessionActive,
-                                      bool &outSessionActivated)
+bool SIPDialogClient::processResponse(SIPResponse& response,
+                                      std::shared_ptr<SIPDialogState> state)
 {
   Q_ASSERT(sessionID_ != 0);
 
@@ -40,7 +40,7 @@ bool SIPDialogClient::processResponse(SIPResponse &response,
   {
     if(responseCode == SIP_RINGING)
     {
-      if (!inSessionActive)
+      if (!state->getState())
       {
         qDebug() << "Got provisional response. Restarting timer.";
         startTimeoutTimer(INVITE_TIMEOUT);
@@ -53,13 +53,13 @@ bool SIPDialogClient::processResponse(SIPResponse &response,
       qDebug() << "Got response. Stopping timout.";
       stopTimeoutTimer();
 
-      if (!inSessionActive)
+      if (!state->getState())
       {
         getTransactionUser()->peerAccepted(sessionID_);
       }
       sendRequest(SIP_ACK);
+      state->setState(true);
       getTransactionUser()->callNegotiated(sessionID_);
-      outSessionActivated = true;
       return true;
     }
     else if(responseCode == SIP_DECLINE)

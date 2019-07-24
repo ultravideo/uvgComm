@@ -1,6 +1,8 @@
 #include "sipservertransaction.h"
 
 #include "initiation/siptransactionuser.h"
+#include "initiation/transaction/sipdialogstate.h"
+
 #include "common.h"
 
 #include <QDebug>
@@ -8,8 +10,7 @@
 SIPServerTransaction::SIPServerTransaction():
   sessionID_(0),
   receivedRequest_(nullptr),
-  transactionUser_(nullptr),
-  sessionStarted_(false)
+  transactionUser_(nullptr)
 {}
 
 void SIPServerTransaction::init(SIPTransactionUser* tu, uint32_t sessionID)
@@ -26,14 +27,14 @@ void SIPServerTransaction::setCurrentRequest(SIPRequest& request)
 
 
 // processes incoming request
-bool SIPServerTransaction::processRequest(SIPRequest &request,
-                                          bool inSessionActive,
-                                          bool& outSessionActivated)
+bool SIPServerTransaction::processRequest(SIPRequest& request,
+                                          std::shared_ptr<SIPDialogState> state)
 {
   Q_ASSERT(transactionUser_ && sessionID_);
   if(!transactionUser_ || sessionID_ == 0)
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this, DC_RECEIVE_SIP_RESPONSE, "SIP Server transaction not initialized.");
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_RECEIVE_SIP_RESPONSE,
+               "SIP Server transaction not initialized.");
     return false;
   }
 
@@ -48,7 +49,7 @@ bool SIPServerTransaction::processRequest(SIPRequest &request,
   {
   case SIP_INVITE:
   {
-    if (!inSessionActive)
+    if (!state->getState())
     {
       if (!transactionUser_->incomingCall(sessionID_, request.message->from.realname))
       {
@@ -56,18 +57,21 @@ bool SIPServerTransaction::processRequest(SIPRequest &request,
         responseSender(SIP_RINGING, false);
       }
     }
+    else {
+      responseSender(SIP_OK, true);
+    }
     break;
   }
   case SIP_ACK:
   {
-    outSessionActivated = true;
+    state->setState(true);
     transactionUser_->callNegotiated(sessionID_);
     break;
   }
   case SIP_BYE:
   {
+    state->setState(false);
     transactionUser_->endCall(sessionID_);
-    sessionStarted_ = false;
     return false;
   }
   case SIP_CANCEL:

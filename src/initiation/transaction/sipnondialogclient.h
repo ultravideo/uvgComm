@@ -16,8 +16,7 @@ public:
   void set_remoteURI(SIP_URI& uri);
 
   virtual bool processResponse(SIPResponse& response,
-                               bool inSessionActive,
-                               bool &outSessionActivated);
+                               std::shared_ptr<SIPDialogState> state);
 
   virtual void sendRequest(RequestType type);
 
