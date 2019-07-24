@@ -97,7 +97,7 @@ bool Negotiation::finalConferenceOfferSDP(uint32_t sessionID)
   }
 
   finalConferenceSdps_[sessionID] = newInfo;
-  return false;
+  return true;
 }
 
 
