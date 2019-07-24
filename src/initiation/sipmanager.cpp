@@ -430,37 +430,35 @@ bool SIPManager::SDPOfferToContent(QVariant& content, QHostAddress localAddress,
   {
     case INDIVIDUAL:
     {
+      printDebug(DEBUG_NORMAL, this, DC_NEGOTIATING, "Adding one-to-one SDP.");
       if(!negotiation_.generateOfferSDP(localAddress, sessionID))
       {
-        qDebug() << "Failed to generate SDP Suggestion while sending: "
-                    "Possibly because we ran out of ports to assign";
+        qDebug() << "Failed to generate first SDP offer while sending.";
         return false;
       }
       break;
     }
     case RECEIVE_PORTS:
     {
+      printDebug(DEBUG_NORMAL, this, DC_NEGOTIATING, "Adding conferencing receive SDP.");
       if(!negotiation_.initialConferenceOfferSDP(sessionID))
       {
-        qDebug() << "Failed to generate SDP Suggestion while sending: "
-                    "Possibly because we ran out of ports to assign";
+        qDebug() << "Failed to generate initial conference SDP offer while sending.";
         return false;
       }
       break;
     }
     case WHOLE_CONFERENCE:
     {
+      printDebug(DEBUG_NORMAL, this, DC_NEGOTIATING, "Adding conferencing final SDP.");
       if(!negotiation_.finalConferenceOfferSDP(sessionID))
       {
-        qDebug() << "Failed to generate SDP Suggestion while sending: "
-                    "Possibly because we ran out of ports to assign";
+        qDebug() << "Failed to generate final conference SDP offer while sending.";
         return false;
       }
       break;
     }
   }
-
-
 
   std::shared_ptr<SDPMessageInfo> pointer = negotiation_.getLocalSDP(sessionID);
   sdp = *pointer;

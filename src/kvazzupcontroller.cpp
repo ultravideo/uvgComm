@@ -192,6 +192,13 @@ void KvazzupController::callNegotiated(uint32_t sessionID)
     {
       ++phaseReady_;
 
+      printDebug(DEBUG_NORMAL, this, DC_NEGOTIATING, "Call negotiated.",
+        {"sessionID", "Ready sessions", "Total sessions"},
+        {QString::number(sessionID),
+         QString::number(phaseReady_),
+         QString::number(states_.size())});
+
+
       if (states_.size() > 1)
       {
         // can we proceed to next phase
@@ -342,6 +349,7 @@ void KvazzupController::endTheCall()
   qDebug() << "Core," << metaObject()->className()
            << ": End all call," << metaObject()->className()
            << ": End all calls button pressed";
+
   sip_.endAllCalls();
   media_.endAllCalls();
   window_.clearConferenceView();

@@ -19,7 +19,10 @@
 struct SDPMessageInfo;
 class StatisticsInterface;
 
-class KvazzupController : public QObject, public ParticipantInterface, public SIPTransactionUser
+class KvazzupController :
+    public QObject,
+    public ParticipantInterface,
+    public SIPTransactionUser
 {
   Q_OBJECT
 public:
@@ -95,4 +98,5 @@ private:
   CallWindow window_; // GUI
 
   StatisticsInterface* stats_;
+
 };

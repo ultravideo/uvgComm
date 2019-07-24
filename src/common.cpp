@@ -22,8 +22,7 @@ void qSleep(int ms)
 }
 
 
-const int BEGIN_LENGTH = 30;
-
+const int BEGIN_LENGTH = 40;
 
 
 //TODO use cryptographically secure callID generation to avoid collisions.
@@ -90,6 +89,7 @@ void printDebug(DebugType type, QString className, DebugContext context,
     {
       for (int i = 0; i < valueNames.size(); ++i)
       {
+        valueString.append("-- ");
         valueString.append(valueNames.at(i));
         valueString.append(": ");
         valueString.append(values.at(i));
@@ -155,6 +155,19 @@ void printDebug(DebugType type, QString className, DebugContext context,
     }
     break;
   }
+  case DEBUG_IMPORTANT:
+  {
+    // TODO: Center text in middle.
+
+    qDebug() << "==============================================================";
+    qDebug().nospace().noquote() << beginString << description;
+    if (!valueString.isEmpty())
+    {
+      qDebug().nospace().noquote() << valueString;
+    }
+    qDebug() << "==============================================================";
+    break;
+  }
   case DEBUG_ERROR:
   {
     qCritical() << "ERROR: " << description << " " << valueString;
@@ -162,7 +175,7 @@ void printDebug(DebugType type, QString className, DebugContext context,
   }
   case DEBUG_WARNING:
   {
-    qCritical() << "Warning: " << description << " " << valueString;
+    qWarning() << "Warning: " << description << " " << valueString;
     break;
   }
   case DEBUG_PEER_ERROR:

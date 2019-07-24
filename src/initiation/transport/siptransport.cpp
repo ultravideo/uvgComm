@@ -372,6 +372,7 @@ bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPF
   // RFC3261_TODO: Support comma(,) separated header fields. (expect for some field types)
 
   // parse lines to fields.
+  QStringList debugLineNames = {};
   for(int i = 1; i < lines.size(); ++i)
   {
     QStringList parameters = lines.at(i).split(";", QString::SkipEmptyParts);
@@ -386,7 +387,7 @@ bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPF
       // RFC3261_TODO: Uniformalize case formatting. Make everything big or small case expect quotes.
 
       SIPField field = {field_match.captured(1),field_match.captured(2),nullptr};
-      qDebug() << "Found field: " << field.name;
+      debugLineNames << field.name;
       if(parameters.size() > 1)
       {
         for(int j = 1; j < parameters.size(); ++j)
@@ -414,6 +415,8 @@ bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPF
       qDebug() << "Failed to parse line:" << lines.at(i) << "Matches:" << field_match.lastCapturedIndex();
     }
   }
+
+  qDebug() << "Found following SIP fields:" << debugLineNames;
 
   // check that all required header lines are present
   if(!isLinePresent("To", fields)
