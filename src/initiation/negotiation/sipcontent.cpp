@@ -177,6 +177,21 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
         sdp += "a=sendrecv"  + lineEnd;
         break;
       }
+      case A_SENDONLY:
+      {
+        sdp += "a=sendonly"  + lineEnd;
+        break;
+      }
+      case A_RECVONLY:
+      {
+        sdp += "a=recvonly"  + lineEnd;
+        break;
+      }
+      case A_INACTIVE:
+      {
+        sdp += "a=inactive"  + lineEnd;
+        break;
+      }
       default:
       {
         qDebug() << "ERROR: Trying to compose SDP flag attribute with unimplemented flag";
@@ -215,8 +230,8 @@ bool nextLine(QStringListIterator& lineIterator, QStringList& words, char& lineT
 
     // skip first two characters of first word. (for example "v=")
     words[0] = words.at(0).right(words.at(0).size() - 2);
-
-    qDebug() << "Found: " << lineType << " SDP field";
+    // TODO: print the line type somehow
+    //qDebug().nospace().noquote() << lineType << ", ";
     return true;
   }
 
@@ -252,6 +267,8 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
 
   // the SDP must either have one global connection (c=)-field or each media must have its own.
   bool globalConnection = false;
+
+  // TODO: Print all recognized lines on one line.
 
   // v=
   if(!nextLine(lineIterator, words, type))
@@ -568,7 +585,7 @@ bool parseAttributes(QStringListIterator &lineIterator, char &type, QStringList&
 
     QRegularExpression re_attribute("(\\w+)(:(\\S+))?");
     QRegularExpressionMatch match = re_attribute.match(words.at(0));
-    if(match.hasMatch() && match.lastCapturedIndex() >= 2)
+    if(match.hasMatch() && match.lastCapturedIndex() >= 1)
     {
       QString attribute = match.captured(1);
 
@@ -581,122 +598,124 @@ bool parseAttributes(QStringListIterator &lineIterator, char &type, QStringList&
              {"quality",   A_QUALITY},  {"ptime",    A_PTIME},    {"fmtp",      A_FMTP},
              {"candidate", A_CANDIDATE}};
 
-        if(xmap.find(attribute) == xmap.end())
+        if(xmap.find(attribute) != xmap.end())
         {
-          qDebug() << "Could not find the attribute.";
-        }
-        switch(xmap[attribute])
-        {
-        case A_CAT:
-        {
-          parseValueAttribute(A_CAT, match, values);
-          break;
-        }
-        case A_KEYWDS:
-        {
-          parseValueAttribute(A_KEYWDS, match, values);
-          break;
-        }
-        case A_TOOL:
-        {
-          parseValueAttribute(A_TOOL, match, values);
-          break;
-        }
-        case A_PTIME:
-        {
-          parseValueAttribute(A_PTIME, match, values);
-          break;
-        }
-        case A_MAXPTIME:
-        {
-          parseValueAttribute(A_MAXPTIME, match, values);
-          break;
-        }
-        case A_RTPMAP:
-        {
-          if(words.size() != 2)
+          switch(xmap[attribute])
           {
-            qDebug() << "Wrong amount of words in rtpmap " << words.size() << "Expected 2";
-            return false;
+          case A_CAT:
+          {
+            parseValueAttribute(A_CAT, match, values);
+            break;
           }
-          parseRTPMap(match, words.at(1), codecs);
-          break;
+          case A_KEYWDS:
+          {
+            parseValueAttribute(A_KEYWDS, match, values);
+            break;
+          }
+          case A_TOOL:
+          {
+            parseValueAttribute(A_TOOL, match, values);
+            break;
+          }
+          case A_PTIME:
+          {
+            parseValueAttribute(A_PTIME, match, values);
+            break;
+          }
+          case A_MAXPTIME:
+          {
+            parseValueAttribute(A_MAXPTIME, match, values);
+            break;
+          }
+          case A_RTPMAP:
+          {
+            if(words.size() != 2)
+            {
+              qDebug() << "Wrong amount of words in rtpmap " << words.size() << "Expected 2";
+              return false;
+            }
+            parseRTPMap(match, words.at(1), codecs);
+            break;
+          }
+          case A_RECVONLY:
+          {
+            parseFlagAttribute(A_RECVONLY, match, flags);
+            break;
+          }
+          case A_SENDRECV:
+          {
+            parseFlagAttribute(A_SENDRECV, match, flags);
+            break;
+          }
+          case A_SENDONLY:
+          {
+            parseFlagAttribute(A_SENDONLY, match, flags);
+            break;
+          }
+          case A_INACTIVE:
+          {
+            parseFlagAttribute(A_INACTIVE, match, flags);
+            break;
+          }
+          case A_ORIENT:
+          {
+            parseValueAttribute(A_ORIENT, match, values);
+            break;
+          }
+          case A_TYPE:
+          {
+            parseValueAttribute(A_TYPE, match, values);
+            break;
+          }
+          case A_CHARSET:
+          {
+            parseValueAttribute(A_CHARSET, match, values);
+            break;
+          }
+          case A_SDPLANG:
+          {
+            parseValueAttribute(A_SDPLANG, match, values);
+            break;
+          }
+          case A_LANG:
+          {
+            parseValueAttribute(A_LANG, match, values);
+            break;
+          }
+          case A_FRAMERATE:
+          {
+            parseValueAttribute(A_FRAMERATE, match, values);
+            break;
+          }
+          case A_QUALITY:
+          {
+            parseValueAttribute(A_QUALITY, match, values);
+            break;
+          }
+          case A_FMTP:
+          {
+            parseValueAttribute(A_FMTP, match, values);
+            break;
+          }
+          case A_CANDIDATE:
+          {
+            parseICECandidate(words, candidates);
+            break;
+          }
+          default:
+          {
+            qDebug() << "ERROR: Recognized SDP attribute type which is not implemented";
+            break;
+          }
+          }
         }
-        case A_RECVONLY:
-        {
-          parseFlagAttribute(A_RECVONLY, match, flags);
-          break;
-        }
-        case A_SENDRECV:
-        {
-          parseFlagAttribute(A_RECVONLY, match, flags);
-          break;
-        }
-        case A_SENDONLY:
-        {
-          parseFlagAttribute(A_RECVONLY, match, flags);
-          break;
-        }
-        case A_INACTIVE:
-        {
-          parseFlagAttribute(A_RECVONLY, match, flags);
-          break;
-        }
-        case A_ORIENT:
-        {
-          parseValueAttribute(A_ORIENT, match, values);
-          break;
-        }
-        case A_TYPE:
-        {
-          parseValueAttribute(A_TYPE, match, values);
-          break;
-        }
-        case A_CHARSET:
-        {
-          parseValueAttribute(A_CHARSET, match, values);
-          break;
-        }
-        case A_SDPLANG:
-        {
-          parseValueAttribute(A_SDPLANG, match, values);
-          break;
-        }
-        case A_LANG:
-        {
-          parseValueAttribute(A_LANG, match, values);
-          break;
-        }
-        case A_FRAMERATE:
-        {
-          parseValueAttribute(A_FRAMERATE, match, values);
-          break;
-        }
-        case A_QUALITY:
-        {
-          parseValueAttribute(A_QUALITY, match, values);
-          break;
-        }
-        case A_FMTP:
-        {
-          parseValueAttribute(A_FMTP, match, values);
-          break;
-        }
-        case A_CANDIDATE:
-        {
-          parseICECandidate(words, candidates);
-          break;
-        }
-        default:
-        {
-          qDebug() << "ERROR: Recognized SDP attribute type which is not implemented";
-          break;
-        }
+        else {
+          qDebug() << "Could not find the attribute.";
         }
     }
     else
     {
-      qDebug() << "Failed to parse attribute because of an unkown format: " << words;
+      qDebug() << "Failed to parse attribute because of an unknown format: " << words;
     }
 
     // TODO: Check that there are as many codecs as there are rtpnums
@@ -713,9 +732,9 @@ bool parseAttributes(QStringListIterator &lineIterator, char &type, QStringList&
 
 void parseFlagAttribute(SDPAttributeType type, QRegularExpressionMatch& match, QList<SDPAttributeType>& attributes)
 {
-  if(match.lastCapturedIndex() == 2)
+  if(match.lastCapturedIndex() == 1)
   {
-    qDebug() << "Correctly matched a flag attribute";
+    qDebug() << "Correctly matched a flag attribute: " << match.captured(0);
     attributes.push_back(type);
   }
   else

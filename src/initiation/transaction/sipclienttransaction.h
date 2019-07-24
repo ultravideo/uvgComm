@@ -46,7 +46,7 @@ public:
 protected:
 
   // timeout is in milliseconds. Used for request timeout
-  void startTimeoutTimer(int timeout = 2000)
+  void startTimeoutTimer(int timeout = 20000)
   {
     requestTimer_.start(timeout);
   }
