@@ -42,7 +42,9 @@ bool Negotiation::generateOfferSDP(QHostAddress localAddress,
 // Includes the medias for all the participants for conference
 bool Negotiation::initialConferenceOfferSDP(uint32_t sessionID)
 {
-  std::shared_ptr<SDPMessageInfo> newInfo = sdps_.at(sessionID).first;
+  std::shared_ptr<SDPMessageInfo> newInfo = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
+  newInfo = sdps_.at(sessionID).first;
+
   // go through every media and include it in our conference offer so we get a
   // response port for each media in conference for them.
   for (auto callSession : sdps_)
@@ -57,9 +59,10 @@ bool Negotiation::initialConferenceOfferSDP(uint32_t sessionID)
         media.connection_addrtype = callSession.second.second->connection_addrtype;
 
         newInfo->media.append(media);
-        // we use sendunly because we don't know the receive port of other conference
+
+        // we use sendonly because we don't know the receive port of other conference
         // participants.
-        media.flagAttributes = {A_SENDONLY};
+        newInfo->media.back().flagAttributes = {A_SENDONLY};
       }
     }
   }
@@ -78,7 +81,15 @@ bool Negotiation::finalConferenceOfferSDP(uint32_t sessionID)
     return false;
   }
 
-  std::shared_ptr<SDPMessageInfo> newInfo = sdps_.at(sessionID).first;
+  std::shared_ptr<SDPMessageInfo> newInfo = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
+  *newInfo = *(sdps_.at(sessionID).first);
+
+  for (int i = 0; i < newInfo->media.size(); ++i)
+  {
+    newInfo->media[i].flagAttributes.clear();
+    newInfo->media[i].flagAttributes.append(A_SENDRECV);
+
+  }
 
   // include receive port for every media
 
@@ -88,10 +99,12 @@ bool Negotiation::finalConferenceOfferSDP(uint32_t sessionID)
   {
     for (auto media : sdp.second->media)
     {
+
+      // TODO: SHould this be unequal?
       if (media.connection_address == remoteAddress)
       {
         newInfo->media.append(media);
-        media.flagAttributes = {A_SENDRECV};
+        newInfo->media.back().flagAttributes = {A_SENDRECV};
       }
     }
   }
@@ -481,22 +494,26 @@ bool Negotiation::checkSDPOffer(SDPMessageInfo &offer)
     return false;
   }
 
+  QStringList debugCodecsFound = {};
   for(MediaInfo media : offer.media)
   {
     for(RTPMap rtp : media.codecs)
     {
       if(rtp.codec == "opus")
       {
-        qDebug() << "Found Opus in SDP offer.";
+        debugCodecsFound << "opus";
         hasOpus = true;
       }
       else if(rtp.codec == "h265")
       {
-        qDebug() << "Found H265 in SDP offer.";
+        debugCodecsFound << "h265";
         hasH265 = true;
       }
     }
   }
+
+  printDebug(DEBUG_NORMAL, "Negotiation", DC_NEGOTIATING,
+             "Found following codecs in SDP", {"Codecs"}, debugCodecsFound);
 
   if (offer.timeDescriptions.size() >= 1)
   {
