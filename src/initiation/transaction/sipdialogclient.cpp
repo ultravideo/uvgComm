@@ -20,7 +20,9 @@ void SIPDialogClient::setSessionID(uint32_t sessionID)
 }
 
 //processes incoming response
-bool SIPDialogClient::processResponse(SIPResponse &response)
+bool SIPDialogClient::processResponse(SIPResponse &response,
+                                      bool inSessionActive,
+                                      bool &outSessionActivated)
 {
   Q_ASSERT(sessionID_ != 0);
 
@@ -38,18 +40,26 @@ bool SIPDialogClient::processResponse(SIPResponse &response)
   {
     if(responseCode == SIP_RINGING)
     {
-      qDebug() << "Got provisional response. Restarting timer.";
-      startTimeoutTimer(INVITE_TIMEOUT);
-      getTransactionUser()->callRinging(sessionID_);
+      if (!inSessionActive)
+      {
+        qDebug() << "Got provisional response. Restarting timer.";
+        startTimeoutTimer(INVITE_TIMEOUT);
+        getTransactionUser()->callRinging(sessionID_);
+      }
       return true;
     }
     else if(responseCode == SIP_OK)
     {
       qDebug() << "Got response. Stopping timout.";
       stopTimeoutTimer();
-      getTransactionUser()->peerAccepted(sessionID_);
+
+      if (!inSessionActive)
+      {
+        getTransactionUser()->peerAccepted(sessionID_);
+      }
       sendRequest(SIP_ACK);
       getTransactionUser()->callNegotiated(sessionID_);
+      outSessionActivated = true;
       return true;
     }
     else if(responseCode == SIP_DECLINE)

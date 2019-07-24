@@ -11,8 +11,6 @@
  */
 
 
-enum DialogState {NONACTIVE, INIATING, ACTIVE};
-
 class SIPDialogState
 {
 public:
@@ -36,6 +34,18 @@ public:
   // responses should be checked by client which sent the request
   bool correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog, RequestType type, uint32_t remoteCSeq);
   bool correctResponseDialog(std::shared_ptr<SIPDialogInfo> dialog, uint32_t messageCSeq);
+
+
+  // set and get session activity state
+  bool getState() const
+  {
+    return sessionState_;
+  }
+
+  void setState(bool state)
+  {
+    sessionState_ = state;
+  }
 
   // forbid copy and assignment
   SIPDialogState(const SIPDialogState& copied) = delete;
@@ -69,4 +79,6 @@ private:
 
   // may be empty if there is no route
   QList<SIP_URI> route_;
+
+  bool sessionState_;
 };

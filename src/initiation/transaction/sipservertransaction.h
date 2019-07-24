@@ -21,7 +21,9 @@ public:
 
   // processes incoming request. Part of our server transaction
   // returns whether we should continue this session
-  bool processRequest(SIPRequest& request);
+  bool processRequest(SIPRequest& request,
+                      bool inSessionActive,
+                      bool& outSessionActivated);
 
   // inform the transaction that we have received a faulty request.
   void wrongRequestDestination();
@@ -60,6 +62,6 @@ private:
 
   SIPTransactionUser* transactionUser_;
 
-  // whether we have received an INVITE. Used to find ou if this is a re-INVITE
+  // whether we have received an INVITE. Used to determine if this is a re-INVITE.
   bool sessionStarted_;
 };

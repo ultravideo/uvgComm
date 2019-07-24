@@ -14,7 +14,8 @@ SIPDialogState::SIPDialogState():
   callID_(""),
   // cseq start value. For example 31-bits of 32-bit clock
   localCSeq_(QDateTime::currentSecsSinceEpoch()%2147483647),
-  remoteCSeq_(0)
+  remoteCSeq_(0),
+  sessionState_(false)
 {}
 
 void SIPDialogState::initLocalURI()

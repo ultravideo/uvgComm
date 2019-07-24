@@ -24,8 +24,11 @@ void SIPServerTransaction::setCurrentRequest(SIPRequest& request)
   copyMessageDetails(request.message, receivedRequest_);
 }
 
+
 // processes incoming request
-bool SIPServerTransaction::processRequest(SIPRequest &request)
+bool SIPServerTransaction::processRequest(SIPRequest &request,
+                                          bool inSessionActive,
+                                          bool& outSessionActivated)
 {
   Q_ASSERT(transactionUser_ && sessionID_);
   if(!transactionUser_ || sessionID_ == 0)
@@ -45,20 +48,19 @@ bool SIPServerTransaction::processRequest(SIPRequest &request)
   {
   case SIP_INVITE:
   {
-    if (!sessionStarted_)
+    if (!inSessionActive)
     {
       if (!transactionUser_->incomingCall(sessionID_, request.message->from.realname))
       {
         // if we did not auto-accept
         responseSender(SIP_RINGING, false);
       }
-
-      sessionStarted_ = true;
     }
     break;
   }
   case SIP_ACK:
   {
+    outSessionActivated = true;
     transactionUser_->callNegotiated(sessionID_);
     break;
   }

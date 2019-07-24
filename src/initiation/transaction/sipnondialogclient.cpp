@@ -11,10 +11,13 @@ void SIPNonDialogClient::set_remoteURI(SIP_URI& uri)
   remoteUri_ = uri;
 }
 
-bool SIPNonDialogClient::processResponse(SIPResponse& response)
+bool SIPNonDialogClient::processResponse(SIPResponse& response,
+                                         bool inSessionActive,
+                                         bool &outSessionActivated)
 {
   // TODO
   Q_UNUSED(response);
+
   if (getOngoingRequest() == SIP_REGISTER)
   {
     qDebug() << "Got a response for REGISTER! TODO: Processing not implemented!";

@@ -32,7 +32,9 @@ public:
 
   // processes incoming response. Part of our client transaction
   // returns whether we should destroy the dialog
-  virtual bool processResponse(SIPResponse& response) = 0;
+  virtual bool processResponse(SIPResponse& response,
+                               bool inSessionActive,
+                               bool& outSessionActivated) = 0;
 
   // Not implemented. Should be used to notify transaction that there was an error with response.
   void wrongResponseDestination();

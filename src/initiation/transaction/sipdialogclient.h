@@ -13,7 +13,9 @@ public:
 
   void setSessionID(uint32_t sessionID);
 
-  virtual bool processResponse(SIPResponse& response);
+  virtual bool processResponse(SIPResponse& response,
+                               bool inSessionActive,
+                               bool& outSessionActivated);
 
   // send a request
   bool startCall(QString callee);

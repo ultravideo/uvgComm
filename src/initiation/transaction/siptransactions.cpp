@@ -244,7 +244,7 @@ void SIPTransactions::endAllCalls()
 bool SIPTransactions::identifySession(SIPRequest request, QHostAddress localAddress,
                                       uint32_t& out_sessionID)
 {
-  qDebug() << "Starting to process identifying SIP Request session:" << request.type;
+  qDebug() << "Starting to process identifying SIP Request session for type:" << request.type;
 
   out_sessionID = 0;
 
@@ -317,7 +317,7 @@ bool SIPTransactions::identifySession(SIPResponse response, uint32_t& out_sessio
 void SIPTransactions::processSIPRequest(SIPRequest request, uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
-  qDebug() << "Starting to process received SIP Request:" << request.type;
+  qDebug() << "Starting to process received SIP Request type:" << request.type;
 
   dialogMutex_.lock();
 
@@ -330,11 +330,16 @@ void SIPTransactions::processSIPRequest(SIPRequest request, uint32_t sessionID)
   Q_ASSERT(foundDialog->state);
 
 
-  if(!foundDialog->server->processRequest(request))
+  bool newState = false;
+  if(!foundDialog->server->processRequest(request, foundDialog->state->getState(),
+                                          newState))
   {
     qDebug() << "Ending session because server Transaction said to.";
 
     // TODO: SHould we do something?
+  }
+  else {
+    foundDialog->state->setState(newState);
   }
 
   qDebug() << "Finished processing request:" << request.type << "Dialog:" << sessionID;
@@ -362,12 +367,18 @@ void SIPTransactions::processSIPResponse(SIPResponse response, uint32_t sessionI
   // TODO: if our request was INVITE and response is 2xx or 101-199, create dialog
   // TODO: prechecks that the response is ok, then modify program state.
 
-  if(!dialogs_[sessionID]->client->processResponse(response))
+  bool sessionState = false;
+  if(!dialogs_[sessionID]->client->processResponse(response, dialogs_[sessionID]->state->getState(), sessionState))
   {
     // destroy dialog
     destroyDialog(sessionID);
     removeDialog(sessionID);
   }
+  else {
+    dialogs_[sessionID]->state->setState(sessionState);
+  }
+
+
   qDebug() << "Response processing finished:" << response.type << "Dialog:" << sessionID;
 }
 
@@ -465,7 +476,8 @@ void SIPTransactions::destroyDialog(uint32_t sessionID)
                "Bad sessionID for destruction.");
     return;
   }
-  qDebug() << "Destroying dialog:";
+  printDebug(DEBUG_NORMAL, this, DC_END_CALL, "Destroying SIP dialog",
+                {"SessionID"}, {QString::number(sessionID)});
 
   dialog->state.reset();
   dialog->server.reset();

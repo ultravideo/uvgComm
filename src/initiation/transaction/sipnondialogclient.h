@@ -15,7 +15,9 @@ public:
 
   void set_remoteURI(SIP_URI& uri);
 
-  virtual bool processResponse(SIPResponse& response);
+  virtual bool processResponse(SIPResponse& response,
+                               bool inSessionActive,
+                               bool &outSessionActivated);
 
   virtual void sendRequest(RequestType type);
 
