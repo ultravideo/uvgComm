@@ -66,12 +66,14 @@ private:
 
   struct Peer
   {
-    // lists of filters which send media, but are not connected to each other
+    // Arrays of filters which send media, but are not connected to each other.
     std::vector<std::shared_ptr<Filter>> audioSenders; // sends audio
     std::vector<std::shared_ptr<Filter>> videoSenders; // sends video
 
-    GraphSegment videoReceivers;
-    GraphSegment audioReceivers;
+    // Arrays of filters which receive media.
+    // Each graphsegment receives one mediastream.
+    std::vector<std::shared_ptr<GraphSegment>> videoReceivers;
+    std::vector<std::shared_ptr<GraphSegment>> audioReceivers;
 
     AudioOutput* output; // plays audio coming from this peer
   };
