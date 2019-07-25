@@ -18,7 +18,7 @@ VideoviewFactory::VideoviewFactory():
   opengl_(false)
 {}
 
-void VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent, ConferenceView* conf)
+uint32_t VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent, ConferenceView* conf)
 {
   qDebug() << "View, VideoFactory : Creating videowidget for sessionID:" << sessionID;
 
@@ -76,15 +76,18 @@ void VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent, Confere
     sessionIDtoWidgetlist_[sessionID]->push_back(vw);
     sessionIDtoVideolist_[sessionID]->push_back(video);
   }
+
+  return sessionIDtoWidgetlist_[sessionID]->size() - 1;
 }
 
 
-void VideoviewFactory::setSelfview(VideoInterface *video, QWidget *view)
+uint32_t VideoviewFactory::setSelfview(VideoInterface *video, QWidget *view)
 {
   checkInitializations(0);
 
   sessionIDtoWidgetlist_[0]->push_back(view);
   sessionIDtoVideolist_[0]->push_back(video);
+  return sessionIDtoVideolist_[0]->size() - 1;
 }
 
 
