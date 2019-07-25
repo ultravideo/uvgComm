@@ -179,7 +179,14 @@ void SIPManager::getSDPs(uint32_t sessionID,
 {
   Q_ASSERT(sessionID);
   localSDP = negotiation_.getLocalSDP(sessionID);
-  remoteSDP = negotiation_.getRemoteSDP(sessionID);
+
+  if (state_ == WHOLE_CONFERENCE)
+  {
+    remoteSDP = negotiation_.getRemoteConferenceSDP(sessionID);
+  }
+  else {
+    remoteSDP = negotiation_.getRemoteSDP(sessionID);
+  }
 }
 
 

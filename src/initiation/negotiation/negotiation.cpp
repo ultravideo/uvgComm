@@ -475,6 +475,13 @@ std::shared_ptr<SDPMessageInfo> Negotiation::getRemoteSDP(uint32_t sessionID) co
 }
 
 
+std::shared_ptr<SDPMessageInfo> Negotiation::getRemoteConferenceSDP(uint32_t sessionID) const
+{
+  return finalConferenceSdps_.at(sessionID);
+}
+
+
+
 bool Negotiation::checkSDPOffer(SDPMessageInfo &offer)
 {
   // TODO: check everything.

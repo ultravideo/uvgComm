@@ -63,6 +63,10 @@ public:
   std::shared_ptr<SDPMessageInfo> getLocalSDP(uint32_t sessionID) const;
   std::shared_ptr<SDPMessageInfo> getRemoteSDP(uint32_t sessionID) const;
 
+  // call this after the corresponding conference SDP has been generated
+  std::shared_ptr<SDPMessageInfo> getRemoteConferenceSDP(uint32_t sessionID) const;
+
+
   std::shared_ptr<SDPMessageInfo> getInitialConferenceOffer(uint32_t sessionID) const;
   std::shared_ptr<SDPMessageInfo> getFinalConferenceOffer(uint32_t sessionID) const;
 
