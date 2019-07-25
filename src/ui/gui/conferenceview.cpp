@@ -227,7 +227,7 @@ void ConferenceView::detachWidget(uint32_t sessionID, QWidget* view)
 void ConferenceView::addVideoStream(uint32_t sessionID, std::shared_ptr<VideoviewFactory> factory)
 {
   factory->createWidget(sessionID, nullptr, this);
-  QWidget* view = factory->getView(sessionID);
+  QWidget* view = factory->getView(sessionID, 0);
 
   if(activeCalls_.find(sessionID) == activeCalls_.end())
   {

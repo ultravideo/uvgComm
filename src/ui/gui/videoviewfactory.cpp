@@ -13,8 +13,8 @@
 #include <QDebug>
 
 VideoviewFactory::VideoviewFactory():
-  widgets_(),
-  videos_(),
+  sessionIDtoWidgetlist_(),
+  sessionIDtoVideolist_(),
   opengl_(false)
 {}
 
@@ -26,74 +26,110 @@ void VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent, Confere
 
   int opengl = settings.value("video/opengl").toInt();
 
+  QWidget* vw = nullptr;
+  VideoInterface* video = nullptr;
+
   if(false && !opengl_)
   {
-    VideoYUVWidget* vw = new VideoYUVWidget(parent, sessionID);
-    widgets_[sessionID] = vw;
-    videos_[sessionID] = vw;
+    VideoYUVWidget* yuv = new VideoYUVWidget(parent, sessionID);
+    vw = yuv;
+    video = yuv;
 
     // couldn't get this to work with videointerface, so the videowidget is used.
     // TODO: try qobject_cast to get the signal working for interface
 
     // signals reattaching after fullscreen mode
-    QObject::connect(vw, &VideoYUVWidget::reattach, conf, &ConferenceView::attachWidget);
-    QObject::connect(vw, &VideoYUVWidget::detach, conf, &ConferenceView::detachWidget);
+    QObject::connect(yuv, &VideoYUVWidget::reattach, conf, &ConferenceView::attachWidget);
+    QObject::connect(yuv, &VideoYUVWidget::detach, conf, &ConferenceView::detachWidget);
 
     opengl_ = true;
   }
   else if(opengl == 1)
   {
-    VideoGLWidget* vw = new VideoGLWidget(parent, sessionID);
-    widgets_[sessionID] = vw;
-    videos_[sessionID] = vw;
+    VideoGLWidget* opengl = new VideoGLWidget(parent, sessionID);
+    vw = opengl;
+    video = opengl;
 
     // couldn't get this to work with videointerface, so the videowidget is used.
     // TODO: try qobject_cast to get the signal working for interface
 
     // signals reattaching after fullscreen mode
-    QObject::connect(vw, &VideoGLWidget::reattach, conf, &ConferenceView::attachWidget);
-    QObject::connect(vw, &VideoGLWidget::detach, conf, &ConferenceView::detachWidget);
+    QObject::connect(opengl, &VideoGLWidget::reattach, conf, &ConferenceView::attachWidget);
+    QObject::connect(opengl, &VideoGLWidget::detach, conf, &ConferenceView::detachWidget);
   }
   else
   {
-    VideoWidget* vw = new VideoWidget(parent, sessionID);
-    widgets_[sessionID] = vw;
-    videos_[sessionID] = vw;
-
+    VideoWidget* normal = new VideoWidget(parent, sessionID);
+    vw = normal;
+    video = normal;
     // couldn't get this to work with videointerface, so the videowidget is used.
     // TODO: try qobject_cast to get the signal working for interface
 
     // signals reattaching after fullscreen mode
-    QObject::connect(vw, &VideoWidget::reattach, conf, &ConferenceView::attachWidget);
-    QObject::connect(vw, &VideoWidget::detach, conf, &ConferenceView::detachWidget);
+    QObject::connect(normal, &VideoWidget::reattach, conf, &ConferenceView::attachWidget);
+    QObject::connect(normal, &VideoWidget::detach, conf, &ConferenceView::detachWidget);
+  }
+
+  if (vw != nullptr && video != nullptr)
+  {
+    checkInitializations(sessionID);
+    sessionIDtoWidgetlist_[sessionID]->push_back(vw);
+    sessionIDtoVideolist_[sessionID]->push_back(video);
   }
 }
 
+
 void VideoviewFactory::setSelfview(VideoInterface *video, QWidget *view)
 {
-  widgets_[0] = view;
-  videos_[0] = video;
+  checkInitializations(0);
+
+  sessionIDtoWidgetlist_[0]->push_back(view);
+  sessionIDtoVideolist_[0]->push_back(video);
 }
 
-QWidget* VideoviewFactory::getView(uint32_t sessionID)
+
+QWidget* VideoviewFactory::getView(uint32_t sessionID, uint32_t viewID)
 {
-  if(widgets_.find(sessionID) == widgets_.end())
+  if(sessionIDtoWidgetlist_.find(sessionID) == sessionIDtoWidgetlist_.end()
+     || sessionIDtoWidgetlist_[sessionID]->size() <= viewID)
   {
+    Q_ASSERT(false);
     printDebug(DEBUG_PROGRAM_ERROR, "VideoViewFactory", DC_NO_CONTEXT, "Tried to get a video widget that doesn't exists",
       {"SessionID"}, {QString::number(sessionID)});
     return nullptr;
   }
-  return widgets_[sessionID];
+  return sessionIDtoWidgetlist_[sessionID]->at(viewID);
 }
 
-VideoInterface* VideoviewFactory::getVideo(uint32_t sessionID)
+
+VideoInterface* VideoviewFactory::getVideo(uint32_t sessionID, uint32_t videoID)
 {
-  if(videos_.find(sessionID) == videos_.end())
+  if(sessionIDtoVideolist_.find(sessionID) == sessionIDtoVideolist_.end()
+     || sessionIDtoVideolist_[sessionID]->size() <= videoID)
   {
+    Q_ASSERT(false);
     printDebug(DEBUG_PROGRAM_ERROR, "VideoViewFactory", DC_STARTUP,
                "Tried to get a video widget that doesn't exists.",
               {"SessionID"}, {QString::number(sessionID)});
     return nullptr;
   }
-  return videos_[sessionID];
+  return sessionIDtoVideolist_[sessionID]->at(videoID);
+}
+
+
+void VideoviewFactory::checkInitializations(uint32_t sessionID)
+{
+  if(sessionIDtoWidgetlist_.find(sessionID) == sessionIDtoWidgetlist_.end())
+  {
+    std::shared_ptr<std::vector<QWidget*>> widgets;
+    widgets = std::shared_ptr<std::vector<QWidget*>>(new std::vector<QWidget*>);
+    sessionIDtoWidgetlist_[sessionID] = widgets;
+  }
+
+  if (sessionIDtoVideolist_.find(sessionID) == sessionIDtoVideolist_.end())
+  {
+    std::shared_ptr<std::vector<VideoInterface*>> videos;
+    videos = std::shared_ptr<std::vector<VideoInterface*>>(new std::vector<VideoInterface*>);
+    sessionIDtoVideolist_[sessionID] = videos;
+  }
 }

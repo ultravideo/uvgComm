@@ -37,7 +37,7 @@ void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory, Statistic
   streamer_->init(stats);
   streamer_->start();
   stats_ = stats;
-  fg_->init(viewfactory_->getVideo(0), stats); // 0 is the selfview index. The view should be created by GUI
+  fg_->init(viewfactory_->getVideo(0, 0), stats); // 0 is the selfview index. The view should be created by GUI
 }
 
 void MediaManager::uninit()
@@ -209,7 +209,7 @@ void MediaManager::createIncomingMedia(uint32_t sessionID, const MediaInfo &loca
       }
       else if(localMedia.type == "video")
       {
-        fg_->receiveVideoFrom(sessionID, std::shared_ptr<Filter>(rtpSink), viewfactory_->getVideo(sessionID));
+        fg_->receiveVideoFrom(sessionID, std::shared_ptr<Filter>(rtpSink), viewfactory_->getVideo(sessionID, 0));
       }
       else
       {

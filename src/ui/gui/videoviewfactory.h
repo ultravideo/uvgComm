@@ -3,6 +3,8 @@
 #include <stdint.h>
 
 #include <map>
+#include <vector>
+#include <memory>
 
 // handles creating and managing the view components.
 
@@ -22,15 +24,17 @@ public:
   // set self view which is part of the
   void setSelfview(VideoInterface* video, QWidget* view);
 
-  // nullptr is for selfview
-  QWidget* getView(uint32_t sessionID);
-
-  VideoInterface* getVideo(uint32_t sessionID);
+  // 0 in sessionID is for selfview
+  // id is the index of that view or video
+  QWidget* getView(uint32_t sessionID, uint32_t viewID);
+  VideoInterface* getVideo(uint32_t sessionID, uint32_t videoID);
 
 private:
 
-  std::map<uint32_t, QWidget*> widgets_;
-  std::map<uint32_t, VideoInterface*> videos_;
+  void checkInitializations(uint32_t sessionID);
+
+  std::map<uint32_t, std::shared_ptr<std::vector<QWidget*>>> sessionIDtoWidgetlist_;
+  std::map<uint32_t, std::shared_ptr<std::vector<VideoInterface*>>> sessionIDtoVideolist_;
 
   bool opengl_;
 };
