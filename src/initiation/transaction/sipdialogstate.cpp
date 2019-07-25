@@ -122,6 +122,8 @@ void SIPDialogState::getRequestDialogInfo(SIPRequest &outRequest, QString localA
   if(outRequest.type != SIP_ACK && outRequest.type != SIP_CANCEL)
   {
     ++localCSeq_;
+    printDebug(DEBUG_NORMAL, "SIPDialogState", DC_SEND_SIP_REQUEST, "Increasing CSeq",
+              {"CSeq"}, {QString::number(localCSeq_)});
   }
 
   outRequest.message->cSeq = localCSeq_;
@@ -161,7 +163,7 @@ bool SIPDialogState::correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog,
     // The request cseq should be larger than our remotecseq.
     if(remoteCSeq <= remoteCSeq_ && type != SIP_ACK && type != SIP_CANCEL)
     {
-      qDebug() << "PEER_ERROR:" << "Their Cseq was smaller than their previous cseq which is not permitted!";
+      qDebug() << "PEER_ERROR:" << "Their request Cseq was smaller than their previous cseq which is not permitted!";
       // TODO: if remote cseq in message is lower than remote cseq, send 500
       return false;
     }
@@ -183,8 +185,8 @@ bool SIPDialogState::correctResponseDialog(std::shared_ptr<SIPDialogInfo> dialog
     // The response cseq should be the same as our cseq
     if(messageCSeq != localCSeq_)
     {
-      qDebug() << "PEER_ERROR:" << "The message CSeq was not the same as our previous request!"
-               << messageCSeq << "vs " << localCSeq_;
+      qDebug() << "PEER_ERROR:" << "The response CSeq was not the same as our previous request!"
+               << messageCSeq << "vs local" << localCSeq_;
       // TODO: if remote cseq in message is lower than remote cseq, send 500
       return false;
     }

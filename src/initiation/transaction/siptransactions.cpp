@@ -308,7 +308,8 @@ bool SIPTransactions::identifySession(SIPResponse response, uint32_t& out_sessio
       }
       else
       {
-        qDebug() << "PEER_ERROR: Found the dialog, but we have not sent a request to their response.";
+        qDebug() << "PEER_ERROR: Found the dialog, "
+                    "but we have not sent a request to their response.";
         return false;
       }
     }
@@ -442,7 +443,8 @@ void SIPTransactions::sendNonDialogRequest(SIP_URI& uri, RequestType type)
   }
 }
 
-void SIPTransactions::sendResponse(uint32_t sessionID, ResponseType type, RequestType originalRequest)
+
+void SIPTransactions::sendResponse(uint32_t sessionID, ResponseType type)
 {
   qDebug() << "---- Iniated sending of a response:" << type << "----";
   Q_ASSERT(sessionID != 0 && dialogs_.find(sessionID) != dialogs_.end());
@@ -451,11 +453,11 @@ void SIPTransactions::sendResponse(uint32_t sessionID, ResponseType type, Reques
   SIPResponse response;
   response.type = type;
   dialogs_[sessionID]->server->getResponseMessage(response.message, type);
-  response.message->transactionRequest = originalRequest;
 
   emit transportResponse(sessionID, response);
   qDebug() << "---- Finished sending of a response ---";
 }
+
 
 void SIPTransactions::destroyDialog(uint32_t sessionID)
 {

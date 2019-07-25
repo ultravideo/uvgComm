@@ -98,7 +98,7 @@ private slots:
   void sendDialogRequest(uint32_t sessionID, RequestType type);
   void sendNonDialogRequest(SIP_URI& uri, RequestType type);
 
-  void sendResponse(uint32_t sessionID, ResponseType type, RequestType originalRequest);
+  void sendResponse(uint32_t sessionID, ResponseType type);
 
 private:
 

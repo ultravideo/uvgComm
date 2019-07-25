@@ -19,12 +19,12 @@ void SIPServerTransaction::init(SIPTransactionUser* tu, uint32_t sessionID)
   sessionID_ = sessionID;
 }
 
-
+/*
 void SIPServerTransaction::setCurrentRequest(SIPRequest& request)
 {
   copyMessageDetails(request.message, receivedRequest_);
 }
-
+*/
 
 // processes incoming request
 bool SIPServerTransaction::processRequest(SIPRequest& request,
@@ -40,9 +40,16 @@ bool SIPServerTransaction::processRequest(SIPRequest& request,
 
   // TODO: check that the request is appropriate at this time.
 
-  if(receivedRequest_ == nullptr)
+  if((receivedRequest_ == nullptr && request.type != SIP_ACK) || request.type == SIP_BYE)
   {
     copyMessageDetails(request.message, receivedRequest_);
+  }
+  else if (request.type != SIP_ACK)
+  {
+    printDebug(DEBUG_PEER_ERROR, "SIP Server Transaction", DC_RECEIVE_SIP_REQUEST,
+               "They sent us a new SIP request even though we have the old one still saved.",
+                {"SessionID"}, {QString::number(sessionID_)});
+    return false;
   }
 
   switch(request.type)
@@ -54,11 +61,11 @@ bool SIPServerTransaction::processRequest(SIPRequest& request,
       if (!transactionUser_->incomingCall(sessionID_, request.message->from.realname))
       {
         // if we did not auto-accept
-        responseSender(SIP_RINGING, false);
+        responseSender(SIP_RINGING);
       }
     }
     else {
-      responseSender(SIP_OK, true);
+      responseSender(SIP_OK);
     }
     break;
   }
@@ -87,13 +94,13 @@ bool SIPServerTransaction::processRequest(SIPRequest& request,
   case SIP_REGISTER:
   {
     qDebug() << "Why on earth are we receiving REGISTER methods?";
-    responseSender(SIP_NOT_ALLOWED, true);
+    responseSender(SIP_NOT_ALLOWED);
     break;
   }
   default:
   {
     qDebug() << "Unsupported request type received";
-    responseSender(SIP_NOT_ALLOWED, true);
+    responseSender(SIP_NOT_ALLOWED);
     break;
   }
   }
@@ -105,7 +112,8 @@ void SIPServerTransaction::getResponseMessage(std::shared_ptr<SIPMessageInfo> &o
 {
   if(receivedRequest_ == nullptr)
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this, DC_SEND_SIP_RESPONSE, "The received request was not set before trying to use it!");
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_SEND_SIP_RESPONSE,
+               "The received request was not set before trying to use it!");
     return;
   }
   copyMessageDetails(receivedRequest_, outMessage);
@@ -118,30 +126,30 @@ void SIPServerTransaction::getResponseMessage(std::shared_ptr<SIPMessageInfo> &o
   int responseCode = type;
   if(responseCode >= 200)
   {
+    printDebug(DEBUG_NORMAL, this, DC_SEND_SIP_RESPONSE,
+               "Sending a final response. Deleting request details.",
+               {"SessionID", "Code", "Cseq"},
+               {QString::number(sessionID_), QString::number(responseCode),
+                QString::number(receivedRequest_->cSeq)});
     receivedRequest_.reset();
+    receivedRequest_ = nullptr;
   }
 }
 
 void SIPServerTransaction::acceptCall()
 {
-  responseSender(SIP_OK, true);
+  responseSender(SIP_OK);
 }
 
 void SIPServerTransaction::rejectCall()
 {
-  responseSender(SIP_DECLINE, true);
+  responseSender(SIP_DECLINE);
 }
 
-void SIPServerTransaction::responseSender(ResponseType type, bool finalResponse)
+void SIPServerTransaction::responseSender(ResponseType type)
 {
   Q_ASSERT(receivedRequest_ != nullptr);
-  emit sendResponse(sessionID_, type, receivedRequest_->transactionRequest);
-
-  // this might only be a provisional response and not the final one.
-  if(finalResponse)
-  {
-    receivedRequest_ = nullptr;
-  }
+  emit sendResponse(sessionID_, type);
 }
 
 void SIPServerTransaction::copyMessageDetails(std::shared_ptr<SIPMessageInfo>& inMessage,

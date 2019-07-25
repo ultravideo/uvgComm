@@ -44,11 +44,11 @@ public:
 signals:
 
   // a signal that response of the following type should be sent.
-  void sendResponse(uint32_t sessionID, ResponseType type, RequestType originalRequest);
+  void sendResponse(uint32_t sessionID, ResponseType type);
 
 private:
 
-  void responseSender(ResponseType type, bool finalResponse);
+  void responseSender(ResponseType type);
   bool goodRequest(); // use this to filter out untimely/duplicate requests
 
   // copies the necessary details from
