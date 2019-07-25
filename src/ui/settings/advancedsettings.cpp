@@ -1,6 +1,6 @@
 #include "advancedsettings.h"
 
-#include "ui_advancedSettings.h"
+#include "ui_advancedsettings.h"
 #include "settingshelper.h"
 
 #include <QDateTime>
@@ -131,6 +131,7 @@ void AdvancedSettings::saveAdvancedSettings()
   saveTextValue("sip/ServerAddress", advancedUI_->serverAddress->text(), settings_);
   saveCheckBox("sip/AutoConnect", advancedUI_->autoConnect, settings_);
   saveCheckBox("sip/ice", advancedUI_->ice, settings_);
+  saveCheckBox("sip/conference", advancedUI_->conference, settings_);
 }
 
 
@@ -144,6 +145,7 @@ void AdvancedSettings::restoreAdvancedSettings()
   {
     restoreCheckBox("sip/AutoConnect", advancedUI_->autoConnect, settings_);
     restoreCheckBox("sip/ice", advancedUI_->ice, settings_);
+    restoreCheckBox("sip/conference", advancedUI_->conference, settings_);
     advancedUI_->serverAddress->setText(settings_.value("sip/ServerAddress").toString());
   }
   else

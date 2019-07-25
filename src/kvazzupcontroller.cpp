@@ -198,8 +198,14 @@ void KvazzupController::callNegotiated(uint32_t sessionID)
          QString::number(phaseReady_),
          QString::number(states_.size())});
 
+      QSettings settings("kvazzup.ini", QSettings::IniFormat);
+      int conference = settings.value("sip/conference").toInt();
 
-      if (states_.size() > 1)
+      if (conference == 0 || states_.size() == 1)
+      {
+        createSingleCall(sessionID);
+      }
+      else
       {
         // can we proceed to next phase
         if (phaseReady_ == states_.size())
@@ -236,9 +242,6 @@ void KvazzupController::callNegotiated(uint32_t sessionID)
             }
           }
         }
-      }
-      else {
-        createSingleCall(sessionID);
       }
     }
     else
