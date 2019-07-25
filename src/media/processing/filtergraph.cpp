@@ -73,7 +73,10 @@ void FilterGraph::updateSettings()
       {
         if(peer != nullptr)
         {
-          videoProcessing_.back()->addOutConnection(peer->videoSenders);
+          for (auto senderFilter : peer->videoSenders)
+          {
+            videoProcessing_.back()->addOutConnection(senderFilter);
+          }
         }
       }
     }
@@ -93,8 +96,14 @@ void FilterGraph::updateSettings()
   {
     if(peer != nullptr)
     {
-      peer->audioSenders->updateSettings();
-      peer->videoSenders->updateSettings();
+      for (auto senderFilter : peer->videoSenders)
+      {
+        senderFilter->updateSettings();
+      }
+      for (auto senderFilter : peer->audioSenders)
+      {
+        senderFilter->updateSettings();
+      }
 
       // decode and display settings
       for(auto video : peer->videoReceivers)
@@ -264,8 +273,8 @@ void FilterGraph::checkParticipant(uint32_t sessionID)
   }
 
   peers_.at(sessionID - 1)->output = nullptr;
-  peers_.at(sessionID - 1)->audioSenders = nullptr;
-  peers_.at(sessionID - 1)->videoSenders = nullptr;
+  peers_.at(sessionID - 1)->audioSenders.clear();
+  peers_.at(sessionID - 1)->videoSenders.clear();
 }
 
 void FilterGraph::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoFramedSource)
@@ -284,14 +293,7 @@ void FilterGraph::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoF
   // add participant if necessary
   checkParticipant(sessionID);
 
-  if(peers_.at(sessionID - 1)->videoSenders)
-  {
-    printDebug(DEBUG_WARNING, "FilterGraph", DC_ADD_MEDIA,
-               "We are already sending video to participant.");
-    return;
-  }
-
-  peers_.at(sessionID - 1)->videoSenders = videoFramedSource;
+  peers_.at(sessionID - 1)->videoSenders.push_back(videoFramedSource);
 
   videoProcessing_.back()->addOutConnection(videoFramedSource);
   videoFramedSource->start();
@@ -335,15 +337,8 @@ void FilterGraph::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioF
   // add participant if necessary
   checkParticipant(sessionID);
 
-  if(peers_.at(sessionID - 1)->audioSenders)
-  {
-    printDebug(DEBUG_WARNING, "FilterGraph", DC_ADD_MEDIA,
-               "We are already sending audio to participant.",
-      {"SessionID"}, {QString::number(sessionID)});
-    return;
-  }
 
-  peers_.at(sessionID - 1)->audioSenders = audioFramedSource;
+  peers_.at(sessionID - 1)->audioSenders.push_back(audioFramedSource);
 
   audioProcessing_.back()->addOutConnection(audioFramedSource);
   audioFramedSource->start();
@@ -484,14 +479,22 @@ void FilterGraph::running(bool state)
   {
     if(p != nullptr)
     {
-      if(p->audioSenders)
+      for (auto senderFilter : p->audioSenders)
       {
-        changeState(p->audioSenders, state);
+        if(senderFilter)
+        {
+          changeState(senderFilter, state);
+        }
       }
-      if(p->videoSenders)
+
+      for (auto senderFilter : p->videoSenders)
       {
-        changeState(p->videoSenders, state);
+        if(senderFilter)
+        {
+          changeState(senderFilter, state);
+        }
       }
+
       for(std::shared_ptr<Filter> f : p->audioReceivers)
       {
         changeState(f, state);
@@ -522,24 +525,25 @@ void FilterGraph::destroyFilters(std::vector<std::shared_ptr<Filter> > &filters)
 void FilterGraph::destroyPeer(Peer* peer)
 {
   qDebug() << "Remove participant, Filter Graph: Destroying peer from Filter Graph";
-  if(peer->audioSenders)
+
+  for (auto audioSender : peer->audioSenders)
   {
-    audioProcessing_.back()->removeOutConnection(peer->audioSenders);
+    audioProcessing_.back()->removeOutConnection(audioSender);
     //peer->audioFramedSource is destroyed by RTPStreamer
-    changeState(peer->audioSenders, false);
-    peer->audioSenders = nullptr;
+    changeState(audioSender, false);
+    audioSender = nullptr;
 
     if(AEC_ENABLED)
     {
       audioProcessing_.at(0)->removeOutConnection(peer->audioReceivers.back());
     }
   }
-  if(peer->videoSenders)
+  for (auto videoSender : peer->videoSenders)
   {
-    videoProcessing_.back()->removeOutConnection(peer->videoSenders);
-    changeState(peer->videoSenders, false);
+    videoProcessing_.back()->removeOutConnection(videoSender);
+    changeState(videoSender, false);
     //peer->videoFramedSource is destroyed by RTPStreamer
-    peer->videoSenders = nullptr;
+    videoSender = nullptr;
   }
 
   destroyFilters(peer->audioReceivers);
@@ -598,8 +602,10 @@ void FilterGraph::print()
       {
         audioDotFile += f->printOutputs();
       }
-
-      audioDotFile += peers_.at(i)->audioSenders->printOutputs();
+      for (auto audioSender : peers_.at(i)->audioSenders)
+      {
+        audioDotFile += audioSender->printOutputs();
+      }
     }
   }
   audioDotFile += "}";
@@ -619,8 +625,10 @@ void FilterGraph::print()
       {
         videoDotFile += f->printOutputs();
       }
-
-      videoDotFile += peers_.at(i)->videoSenders->printOutputs();
+      for (auto videoSender : peers_.at(i)->videoSenders)
+      {
+        audioDotFile += videoSender->printOutputs();
+      }
     }
   }
   videoDotFile += "}";

@@ -66,8 +66,9 @@ private:
 
   struct Peer
   {
-    std::shared_ptr<Filter> audioSenders; // sends audio
-    std::shared_ptr<Filter> videoSenders; // sends video
+    // lists of filters which send media, but are not connected to each other
+    std::vector<std::shared_ptr<Filter>> audioSenders; // sends audio
+    std::vector<std::shared_ptr<Filter>> videoSenders; // sends video
 
     GraphSegment videoReceivers;
     GraphSegment audioReceivers;
@@ -82,6 +83,7 @@ private:
 
 
   // id is also the index of the Peer in this vector
+  // TODO: Change this to map
   std::vector<Peer*> peers_;
 
   GraphSegment videoProcessing_;
