@@ -264,14 +264,22 @@ void KvazzupController::createSingleCall(uint32_t sessionID)
   qDebug() << "Negotiation," << metaObject()->className()
            << ": Call has been agreed upon with peer:" << sessionID;
 
-  window_.addVideoStream(sessionID);
-
   std::shared_ptr<SDPMessageInfo> localSDP;
   std::shared_ptr<SDPMessageInfo> remoteSDP;
 
   sip_.getSDPs(sessionID,
                localSDP,
                remoteSDP);
+
+  for (auto media : localSDP->media)
+  {
+    if (media.type == "video" && (media.flagAttributes.empty()
+                                  || media.flagAttributes.at(0) == A_SENDRECV
+                                  || media.flagAttributes.at(0) == A_RECVONLY))
+    {
+      window_.addVideoStream(sessionID);
+    }
+  }
 
   if(localSDP == nullptr || remoteSDP == nullptr)
   {
