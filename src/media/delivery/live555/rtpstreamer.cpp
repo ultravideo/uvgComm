@@ -141,7 +141,7 @@ void Live555RTP::removeAllPeers()
   }
 }
 
-bool Live555RTP::addPeer(uint32_t sessionID, QHostAddress video_ip, QHostAddress audio_ip)
+bool Live555RTP::addPeer(uint32_t sessionID)
 {
   Q_ASSERT(sessionID != 0);
 
@@ -150,17 +150,10 @@ bool Live555RTP::addPeer(uint32_t sessionID, QHostAddress video_ip, QHostAddress
   {
     iniated_.lock(); // not being iniated
 
-    qDebug() << "Adding peer to following IP: " << video_ip.toString() << audio_ip.toString();
+    qDebug() << "Adding peer";
 
     Peer* peer = new Peer;
 
-#ifdef _WIN32
-    peer->video_ip.S_un.S_addr = qToBigEndian(video_ip.toIPv4Address());
-    peer->audio_ip.S_un.S_addr = qToBigEndian(audio_ip.toIPv4Address());
-#else
-    peer->video_ip.s_addr = qToBigEndian(video_ip.toIPv4Address());
-    peer->audio_ip.s_addr = qToBigEndian(audio_ip.toIPv4Address());
-#endif
 
     peer->videoSender = nullptr;
     peer->videoReceiver = nullptr;
@@ -364,58 +357,6 @@ std::shared_ptr<Filter> Live555RTP::addReceiveStream(uint32_t peer, QHostAddress
 
   receivers_.push_back(receiver);
   return receiver->sink;
-}
-
-std::shared_ptr<Filter> Live555RTP::addSendStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum)
-{
-  Q_ASSERT(checkSessionID(peer));
-
-  DataType type = typeFromString(codec);
-
-  if(type == HEVCVIDEO)
-  {
-    if(peers_.at(peer - 1)->videoSender)
-      destroySender(peers_.at(peer - 1)->videoSender);
-
-    peers_.at(peer - 1)->videoSender = addSender(peers_.at(peer - 1)->video_ip, port, type, rtpNum);
-    return peers_.at(peer - 1)->videoSender->sourcefilter;
-  }
-  else if(type == OPUSAUDIO || type == RAWAUDIO)
-  {
-    if(peers_.at(peer - 1)->audioSender)
-      destroySender(peers_.at(peer - 1)->audioSender);
-
-    peers_.at(peer - 1)->audioSender = addSender(peers_.at(peer - 1)->audio_ip, port, type, rtpNum);
-    return peers_.at(peer - 1)->audioSender->sourcefilter;
-  }
-
-  return nullptr;
-}
-
-std::shared_ptr<Filter> Live555RTP::addReceiveStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum)
-{
-  Q_ASSERT(checkSessionID(peer));
-
-  DataType type = typeFromString(codec);
-
-  if(type == HEVCVIDEO)
-  {
-    if(peers_.at(peer - 1)->videoReceiver)
-      destroyReceiver(peers_.at(peer - 1)->videoReceiver);
-
-    peers_.at(peer - 1)->videoReceiver = addReceiver(peers_.at(peer - 1)->video_ip, port, type, rtpNum);
-    return peers_.at(peer - 1)->videoReceiver->sink;
-  }
-  else if(type == OPUSAUDIO || type == RAWAUDIO)
-  {
-    if(peers_.at(peer - 1)->audioReceiver)
-      destroyReceiver(peers_.at(peer - 1)->audioReceiver);
-
-    peers_.at(peer - 1)->audioReceiver = addReceiver(peers_.at(peer - 1)->audio_ip, port, type, rtpNum);
-    return peers_.at(peer - 1)->audioReceiver->sink;
-  }
-
-  return nullptr;
 }
 
 

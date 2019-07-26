@@ -31,13 +31,10 @@ public:
 
   // init a session with sessionID to use with add/remove functions
   // returns whether operation was successful
-  bool addPeer(uint32_t sessionID, QHostAddress video_ip, QHostAddress audio_ip);
+  bool addPeer(uint32_t sessionID);
 
   // Returns filter to be attached to filter graph. ownership is not transferred.
   // removing the peer or stopping the streamer destroys these filters.
-  std::shared_ptr<Filter> addSendStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum);
-  std::shared_ptr<Filter> addReceiveStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum);
-
   std::shared_ptr<Filter> addSendStream(uint32_t peer, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum);
   std::shared_ptr<Filter> addReceiveStream(uint32_t peer, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum);
 

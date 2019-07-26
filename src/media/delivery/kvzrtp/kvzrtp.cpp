@@ -48,33 +48,18 @@ void KvzRTP::stop()
   isRunning_ = false;
 }
 
-bool KvzRTP::addPeer(uint32_t sessionID, QHostAddress video_ip, QHostAddress audio_ip)
+bool KvzRTP::addPeer(uint32_t sessionID)
 {
   Q_ASSERT(sessionID != 0);
-
-  // check if the IP addresses start with ::ffff: and remove it, kvzrtp only accepts IPv4 addresses
-  if (video_ip.toString().left(7) == "::ffff:")
-  {
-    video_ip = QHostAddress(video_ip.toString().mid(7));
-  }
-
-  if (audio_ip.toString().left(7) == "::ffff:")
-  {
-    audio_ip = QHostAddress(audio_ip.toString().mid(7));
-  }
 
   // not being destroyed
   if (destroyed_.tryLock(0))
   {
     iniated_.lock(); // not being iniated
 
-    printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Adding new peer",
-        { "Video IP", "Audio IP" }, { video_ip.toString(), audio_ip.toString() });
+    printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Adding new peer");
 
     Peer *peer = new Peer;
-
-    peer->video_ip = video_ip;
-    peer->audio_ip = audio_ip;
     peer->videoSender = nullptr;
     peer->videoReceiver = nullptr;
     peer->audioSender = nullptr;
@@ -111,6 +96,12 @@ std::shared_ptr<Filter> KvzRTP::addSendStream(uint32_t peer, QHostAddress ip, ui
   Q_ASSERT(checkSessionID(peer));
   Q_UNUSED(peer);
 
+  // check if the IP addresses start with ::ffff: and remove it, kvzrtp only accepts IPv4 addresses
+  if (ip.toString().left(7) == "::ffff:")
+  {
+    ip = QHostAddress(ip.toString().mid(7));
+  }
+
   KvzRTP::Sender *sender = addSender(ip, port, typeFromString(codec), rtpNum);
 
   if (sender == nullptr)
@@ -127,6 +118,12 @@ std::shared_ptr<Filter> KvzRTP::addReceiveStream(uint32_t peer, QHostAddress ip,
   Q_ASSERT(checkSessionID(peer));
   Q_UNUSED(peer);
 
+  // check if the IP addresses start with ::ffff: and remove it, kvzrtp only accepts IPv4 addresses
+  if (ip.toString().left(7) == "::ffff:")
+  {
+    ip = QHostAddress(ip.toString().mid(7));
+  }
+
   KvzRTP::Receiver *receiver = addReceiver(ip, port, typeFromString(codec), rtpNum);
 
   if (receiver == nullptr)
@@ -138,65 +135,7 @@ std::shared_ptr<Filter> KvzRTP::addReceiveStream(uint32_t peer, QHostAddress ip,
   return receiver->sink;
 }
 
-std::shared_ptr<Filter> KvzRTP::addSendStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum)
-{
-  Q_ASSERT(checkSessionID(peer));
 
-  rtp_format_t type = typeFromString(codec);
-
-  if (type == RTP_FORMAT_HEVC)
-  {
-    if (peers_.at(peer - 1)->videoSender)
-    {
-      destroySender(peers_.at(peer - 1)->videoSender);
-    }
-
-    peers_.at(peer - 1)->videoSender = addSender(peers_.at(peer - 1)->video_ip, port, type, rtpNum);
-    return peers_.at(peer - 1)->videoSender->sourcefilter;
-  }
-  else if (type == RTP_FORMAT_OPUS || type == RTP_FORMAT_GENERIC)
-  {
-    if (peers_.at(peer - 1)->audioSender)
-    {
-      destroySender(peers_.at(peer - 1)->audioSender);
-    }
-
-    peers_.at(peer - 1)->audioSender = addSender(peers_.at(peer - 1)->audio_ip, port, type, rtpNum);
-    return peers_.at(peer - 1)->audioSender->sourcefilter;
-  }
-
-  return nullptr;
-}
-
-std::shared_ptr<Filter> KvzRTP::addReceiveStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum)
-{
-  Q_ASSERT(checkSessionID(peer));
-
-  rtp_format_t type = typeFromString(codec);
-
-  if (type == RTP_FORMAT_HEVC)
-  {
-    if (peers_.at(peer - 1)->videoReceiver)
-    {
-      destroyReceiver(peers_.at(peer - 1)->videoReceiver);
-    }
-
-    peers_.at(peer - 1)->videoReceiver = addReceiver(peers_.at(peer - 1)->video_ip, port, type, rtpNum);
-    return peers_.at(peer - 1)->videoReceiver->sink;
-  }
-  else if (type == RTP_FORMAT_OPUS || type == RTP_FORMAT_GENERIC)
-  {
-    if (peers_.at(peer - 1)->audioReceiver)
-    {
-      destroyReceiver(peers_.at(peer - 1)->audioReceiver);
-    }
-
-    peers_.at(peer - 1)->audioReceiver = addReceiver(peers_.at(peer - 1)->audio_ip, port, type, rtpNum);
-    return peers_.at(peer - 1)->audioReceiver->sink;
-  }
-
-  return nullptr;
-}
 
 void KvzRTP::removeSendVideo(uint32_t sessionID)
 {
