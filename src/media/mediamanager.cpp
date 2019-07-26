@@ -81,7 +81,8 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
     QHostAddress video_addr(peerInfo->connection_address);
 
     // determine if we want to use SDP address or the address in media
-    // TODO: this should be fixed so that each media can have a different address.    if (!peerInfo->media[0].connection_address.isEmpty())    {
+    // TODO: this should be fixed so that each media can have a different address.
+    if (!peerInfo->media[0].connection_address.isEmpty())    {
       audio_addr.setAddress(peerInfo->media[0].connection_address);
     }
 
