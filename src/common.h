@@ -65,6 +65,7 @@ enum DebugContext{DC_NO_CONTEXT,
 // context is a general context that makes it easier to link different prints to one another.
 // TODO: The order of parameters would be more logical/easier with the enums at the beginning.
 // TODO: Fix different threads printing at the same time.
+// TODO: Make into a template
 void printDebug(DebugType type, QString className,
                 DebugContext context, QString description = "",
                 QStringList valueNames = {}, QStringList values = {});

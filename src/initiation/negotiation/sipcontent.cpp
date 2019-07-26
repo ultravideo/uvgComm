@@ -106,7 +106,7 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
   }
   else
   {
-    printDebug(DEBUG_NORMAL, "SIPContent", DC_SIP_CONTENT, "Composed SDP checks out. Starting to compose.");
+    printDebug(DEBUG_NORMAL, "SIPContent", DC_SIP_CONTENT, "Parameter SDP is valid. Starting to compose to string.");
   }
 
   QString sdp = "";

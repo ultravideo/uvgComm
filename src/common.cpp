@@ -148,10 +148,11 @@ void printDebug(DebugType type, QString className, DebugContext context,
   switch (type) {
   case DEBUG_NORMAL:
   {
-    qDebug().nospace().noquote() << beginString << description;
+    QDebug printing = qDebug().nospace().noquote();
+    printing << beginString << description;
     if (!valueString.isEmpty())
     {
-      qDebug().nospace().noquote() << valueString;
+      printing << "\r\n" << valueString;
     }
     break;
   }

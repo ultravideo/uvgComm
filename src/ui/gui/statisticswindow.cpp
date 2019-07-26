@@ -154,9 +154,21 @@ void StatisticsWindow::addFilter(QString filter, uint64_t TID)
 
 void StatisticsWindow::removeFilter(QString filter)
 {
-  initMutex_.lock();
-  ui_->filterTable->removeRow(ui_->filterTable->rowCount() - 1);
-  initMutex_.unlock();
+  /*
+  printDebug(DEBUG_NORMAL, "Statistics window", DC_REMOVE_MEDIA, "Removing Statistics filtertable row",
+            {"Filter name", "Current row count"},
+            {filter, QString::number(ui_->filterTable->rowCount())});*/
+
+  if (ui_->filterTable->rowCount() > 0)
+  {
+    initMutex_.lock();
+    ui_->filterTable->removeRow(ui_->filterTable->rowCount() - 1);
+    initMutex_.unlock();
+  }
+  else {
+    printDebug(DEBUG_PROGRAM_WARNING, "StatisticsWindow", DC_REMOVE_MEDIA,
+               "The filter table was already empty when removing filter.");
+  }
 
   buffers_.erase(filter);
 }
@@ -167,7 +179,7 @@ void StatisticsWindow::removeParticipant(QString ip)
   initMutex_.lock();
   for(int i = 0; i < ui_->participantTable->rowCount(); ++i)
   {
-    if(ui_->participantTable->item(i, 0)->text() == ip )
+    if(ui_->participantTable->item(i, 0)->text() == ip)
     {
       ui_->participantTable->removeRow(i);
       peers_.at(i).active = false;
