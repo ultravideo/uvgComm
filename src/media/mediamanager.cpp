@@ -87,6 +87,11 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
 
   if(peerInfo->connection_nettype == "IN")
   {
+    if (stats_ != nullptr)
+    {
+      stats_->addParticipant(peerInfo->connection_address, "0", "0");
+    }
+
     if(!streamer_->addPeer(sessionID))
     {
       printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "Error creating RTP peer. Simultaneous destruction?.");
