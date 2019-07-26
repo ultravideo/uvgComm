@@ -68,7 +68,8 @@ bool KvzRTP::addPeer(uint32_t sessionID, QHostAddress video_ip, QHostAddress aud
   {
     iniated_.lock(); // not being iniated
 
-    qDebug() << "Adding peer to following IP: " << video_ip.toString() << audio_ip.toString();
+    printDebug(DEBUG_NORMAL, this, DC_MEDIA, "Adding new peer",
+        { "Video IP", "Audio IP" }, { video_ip.toString(), audio_ip.toString(); });
 
     Peer *peer = new Peer;
 
@@ -96,11 +97,11 @@ bool KvzRTP::addPeer(uint32_t sessionID, QHostAddress video_ip, QHostAddress aud
     iniated_.unlock();
     destroyed_.unlock();
 
-    qDebug() << "RTP streamer: SessionID #" << sessionID << "added to rtp streamer.";
+    printDebug(DEBUG_NORMAL, this, DC_MEDIA, "RTP streamer", { "SessionID" }, { sessionID });
 
     return true;
   }
-  qWarning() <<  "Trying to add peer while RTP was being destroyed.";
+  printDebug(DEBUG_WARNING, this, DC_MEDIA, "Trying to add peer while RTP was being destroyed.");
 
   return false;
 }
@@ -336,7 +337,7 @@ bool KvzRTP::checkSessionID(uint32_t sessionID)
 
 KvzRTP::Sender *KvzRTP::addSender(QHostAddress ip, uint16_t port, rtp_format_t type, uint8_t rtpNum)
 {
-  qDebug() << "Iniating send RTP/RTCP stream to port:" << port << "With type:" << type;
+  printDebug(DEBUG_NORMAL, this, DC_MEDIA, "Iniating send RTP/RTCP stream", { "Port", "Type" }, { port, type });
 
   Sender *sender = new Sender;
 
@@ -375,7 +376,7 @@ KvzRTP::Sender *KvzRTP::addSender(QHostAddress ip, uint16_t port, rtp_format_t t
       break;
 
     default :
-      qWarning() << "Warning: RTP support not implemented for this format";
+      printDebug(DEBUG_ERROR, this, DC_MEDIA, "Warning: RTP support not implemented for this format");
       mediaName += "_UNKNOWN";
       break;
   }
@@ -395,7 +396,7 @@ KvzRTP::Sender *KvzRTP::addSender(QHostAddress ip, uint16_t port, rtp_format_t t
 
 KvzRTP::Receiver *KvzRTP::addReceiver(QHostAddress ip, uint16_t port, rtp_format_t type, uint8_t rtpNum)
 {
-  qDebug() << "Iniating send RTP/RTCP stream to port:" << port << "With type:" << type;
+  printDebug(DEBUG_NORMAL, this, DC_MEDIA, "Iniating receive RTP/RTCP stream", { "Port", "Type" }, { port, type });
 
   Receiver *receiver = new Receiver;
   receiver->reader   = rtp_ctx_.create_reader(ip.toString().toStdString(), port, type);
@@ -425,7 +426,8 @@ KvzRTP::Receiver *KvzRTP::addReceiver(QHostAddress ip, uint16_t port, rtp_format
       break;
     
     default :
-      qWarning() << "Warning: RTP support not implemented for this format";
+      printDebug(DEBUG_ERROR, this, DC_MEDIA, "Warning: RTP support not implemented for this format");
+      mediaName += "_UNKNOWN";
       break;
   }
 
@@ -453,7 +455,7 @@ rtp_format_t KvzRTP::typeFromString(QString type)
 
   if (xmap.find(type) == xmap.end())
   {
-    qDebug() << "ERROR: Tried to use non-defined codec type in RTPSreamer.";
+    printDebug(DEBUG_ERROR, this, DC_MEDIA, "Tried to use non-defined codec type in RTPSreamer.");
     return RTP_FORMAT_GENERIC;
   }
 

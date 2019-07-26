@@ -25,7 +25,6 @@ KvzRTPReceiver::KvzRTPReceiver(QString id, StatisticsInterface *stats, DataType 
   addStartCodes_(true),
   reader_(reader)
 {
-  qDebug() << "\n\n\nCREATING RTPSinkFilter!!\n\n\n";
   getStats()->addFilter(getName(), (uint64_t)currentThreadId());
 
   reader_->install_recv_hook(this, __receiveHook);

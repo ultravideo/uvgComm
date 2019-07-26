@@ -66,7 +66,7 @@ void KvzRTPSender::updateSettings()
       removeStartCodes_ = true;
     }
 
-     qDebug() << "Settings," << getName() << ": updated buffersize to" << maxBufferSize_;
+    printDebug(DEBUG_NORMAL, this, DC_MEDIA, "Updated buffersize", {"Size"}, {QString::number(maxbufferSize_)})
   }
 }
 
@@ -97,7 +97,6 @@ void KvzRTPSender::process()
       if (ret != RTP_OK)
       {
         printDebug(DEBUG_ERROR, this, DC_PROCESS_MEDIA, "Failed to send data", { "Error" }, { QString(ret) });
-        qDebug() << "failed to send data!";
         break;
       }
 
