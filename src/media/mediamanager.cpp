@@ -42,7 +42,7 @@ void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory, Statistic
   streamer_->init(stats);
   streamer_->start();
   stats_ = stats;
-  fg_->init(viewfactory_->getVideo(0), stats); // 0 is the selfview index. The view should be created by GUI
+  fg_->init(viewfactory_->getVideo(0, 0), stats); // 0 is the selfview index. The view should be created by GUI
 }
 
 void MediaManager::uninit()
@@ -72,24 +72,16 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
   if(peerInfo->timeDescriptions.at(0).startTime != 0 || localInfo->timeDescriptions.at(0).startTime != 0)
   {
     printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "Nonzero start-time not supported!");
+    return;
   }
-
-#if 1
-  qDebug() << "\n\n\n";
-  qDebug() << "local audio" << localInfo->media[0].connection_address << ":" << localInfo->media[0].receivePort;
-  qDebug() << "local video" << localInfo->media[1].connection_address << ":" << localInfo->media[1].receivePort;
-  qDebug() << "remote audio" << peerInfo->media[0].connection_address  << ":" << peerInfo->media[0].receivePort;
-  qDebug() << "remote video" << peerInfo->media[1].connection_address  << ":" << peerInfo->media[1].receivePort << "\n";
-  qDebug() << "\n\n\n";
-#endif
 
   if(peerInfo->connection_nettype == "IN")
   {
     QHostAddress audio_addr(peerInfo->connection_address);
     QHostAddress video_addr(peerInfo->connection_address);
 
-    if (!peerInfo->media[0].connection_address.isEmpty())
-    {
+    // determine if we want to use SDP address or the address in media
+    // TODO: this should be fixed so that each media can have a different address.    if (!peerInfo->media[0].connection_address.isEmpty())    {
       audio_addr.setAddress(peerInfo->media[0].connection_address);
     }
 
@@ -195,6 +187,8 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID, const MediaInfo& remo
   {
     printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA,
                "Not creating media because they don't seem to want any according to attribute.");
+
+    // TODO: Spec says we should still send RTCP
   }
 }
 
@@ -224,8 +218,7 @@ void MediaManager::createIncomingMedia(uint32_t sessionID, const MediaInfo &loca
       }
       else if(localMedia.type == "video")
       {
-        qDebug() << "\nRECEIVING VIDEO FROM" << localMedia.receivePort;
-        fg_->receiveVideoFrom(sessionID, std::shared_ptr<Filter>(rtpSink), viewfactory_->getVideo(sessionID));
+        fg_->receiveVideoFrom(sessionID, std::shared_ptr<Filter>(rtpSink), viewfactory_->getVideo(sessionID, 0));
       }
       else
       {

@@ -10,6 +10,8 @@
 
 
 class SIPTransactionUser;
+class SIPDialogState;
+
 
 class SIPServerTransaction : public QObject
 {
@@ -21,7 +23,8 @@ public:
 
   // processes incoming request. Part of our server transaction
   // returns whether we should continue this session
-  bool processRequest(SIPRequest& request);
+  bool processRequest(SIPRequest& request,
+                      std::shared_ptr<SIPDialogState> state);
 
   // inform the transaction that we have received a faulty request.
   void wrongRequestDestination();
@@ -41,11 +44,11 @@ public:
 signals:
 
   // a signal that response of the following type should be sent.
-  void sendResponse(uint32_t sessionID, ResponseType type, RequestType originalRequest);
+  void sendResponse(uint32_t sessionID, ResponseType type);
 
 private:
 
-  void responseSender(ResponseType type, bool finalResponse);
+  void responseSender(ResponseType type);
   bool goodRequest(); // use this to filter out untimely/duplicate requests
 
   // copies the necessary details from

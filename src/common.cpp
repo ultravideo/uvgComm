@@ -22,6 +22,9 @@ void qSleep(int ms)
 }
 
 
+const int BEGIN_LENGTH = 40;
+
+
 //TODO use cryptographically secure callID generation to avoid collisions.
 const QString alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                          "abcdefghijklmnopqrstuvwxyz"
@@ -77,43 +80,52 @@ void printDebug(DebugType type, QString className, DebugContext context,
                 QString description, QStringList valueNames, QStringList values)
 {
   QString valueString = "";
-  if (valueNames.size() == values.size()) // equal number of names and values
+
+  // do we have values.
+  if( values.size() != 0)
   {
-    for (int i = 0; i < valueNames.size(); ++i)
+    // Add "name: value" because equal number of both.
+    if (valueNames.size() == values.size()) // equal number of names and values
     {
-      valueString.append(valueNames.at(i));
+      for (int i = 0; i < valueNames.size(); ++i)
+      {
+        valueString.append("-- ");
+        valueString.append(valueNames.at(i));
+        valueString.append(": ");
+        valueString.append(values.at(i));
+        if (i != valueNames.size() - 1)
+        {
+          valueString.append("\r\n");
+        }
+      }
+    }
+    else if (valueNames.size() == 1) // if we have one name, add it
+    {
+      valueString.append(valueNames.at(0));
       valueString.append(": ");
-      valueString.append(values.at(i));
-      if (i != valueNames.size() - 1)
-      {
-        valueString.append("\r\n");
-      }
     }
-  }
-  else if (valueNames.size() == 1) // if we have one name, add it
-  {
-    valueString.append(valueNames.at(0));
-    valueString.append(": ");
-  }
 
-  if (valueNames.empty() || valueNames.size() == 1) // print values
-  {
-    for (int i = 0; i < values.size(); ++i)
+    // If we have one or zero names, just add all values, unless we have 1 of both
+    // in which case they were added earlier.
+    if (valueNames.empty() || (valueNames.size() == 1 && values.size() != 1))
     {
-      valueString.append(values.at(i));
-      if (i != values.size() - 1)
+      for (int i = 0; i < values.size(); ++i)
       {
-        valueString.append(", ");
+        valueString.append(values.at(i));
+        if (i != values.size() - 1)
+        {
+          valueString.append(", ");
+        }
       }
+      valueString.append("\r\n");
     }
-    valueString.append("\r\n");
+    else if (valueNames.size() != values.size())
+    {
+      qDebug() << "Debug printing could not figure how to print error values."
+               << "Names:" << valueNames.size()
+               << "values: " << values.size();
+    }
   }
-  else {
-    qDebug() << "Debug printing could not figure how to print error values."
-             << "Names:" << valueNames.size()
-             << "values: " << values.size();
-  }
-
   QString contextString = "No context";
 
   if (contextToString.find(context) != contextToString.end())
@@ -121,13 +133,39 @@ void printDebug(DebugType type, QString className, DebugContext context,
     contextString = contextToString.at(context);
   }
 
+  // TODO: Set a constant length for everything before description.
+
+
+  QString beginString = contextString + ", " + className + ": ";
+
+  if (beginString.length() < BEGIN_LENGTH)
+  {
+    beginString = beginString.leftJustified(BEGIN_LENGTH, ' ');
+  }
+
   // This could be reduced, but it might change so not worth probably at the moment.
   // Choose which text to print based on type.
   switch (type) {
   case DEBUG_NORMAL:
   {
-    qDebug().nospace().noquote() << contextString << ", " << className << ": "
-                                 << description << " " << valueString;
+    qDebug().nospace().noquote() << beginString << description;
+    if (!valueString.isEmpty())
+    {
+      qDebug().nospace().noquote() << valueString;
+    }
+    break;
+  }
+  case DEBUG_IMPORTANT:
+  {
+    // TODO: Center text in middle.
+
+    qDebug() << "==============================================================";
+    qDebug().nospace().noquote() << beginString << description;
+    if (!valueString.isEmpty())
+    {
+      qDebug().nospace().noquote() << valueString;
+    }
+    qDebug() << "==============================================================";
     break;
   }
   case DEBUG_ERROR:
@@ -137,30 +175,39 @@ void printDebug(DebugType type, QString className, DebugContext context,
   }
   case DEBUG_WARNING:
   {
-    qCritical() << "Warning: " << description << " " << valueString;
+    qWarning() << "Warning: " << description << " " << valueString;
     break;
   }
   case DEBUG_PEER_ERROR:
   {
     qWarning().nospace().noquote() << "PEER ERROR: --------------------------------------------";
-    qWarning().nospace().noquote() << contextString << ", " << className << ": "
-                                 << description << " " << valueString;
+    qWarning().nospace().noquote() << beginString << description;
+    if (!valueString.isEmpty())
+    {
+      qWarning().nospace().noquote() << valueString;
+    }
     qWarning().nospace().noquote() << "-------------------------------------------- PEER ERROR";
     break;
   }
   case DEBUG_PROGRAM_ERROR:
   {
     qCritical().nospace().noquote() << "BUG DETECTED: --------------------------------------------";
-    qCritical().nospace().noquote() << contextString << ", " << className << ": "
-                                 << description << " " << valueString;
+    qCritical().nospace().noquote() << beginString << description;
+    if (!valueString.isEmpty())
+    {
+      qCritical().nospace().noquote() << valueString;
+    }
     qCritical().nospace().noquote() << "-------------------------------------------- BUG";
     break;
   }
   case DEBUG_PROGRAM_WARNING:
   {
     qWarning().nospace().noquote() << "MINOR BUG DETECTED: --------------------------------------------";
-    qWarning().nospace().noquote() << contextString << ", " << className << ": "
-                                 << description << " " << valueString;
+    qWarning().nospace().noquote() << beginString << description;
+    if (!valueString.isEmpty())
+    {
+      qWarning().nospace().noquote() << valueString;
+    }
     qWarning().nospace() << "\r\n" << "-------------------------------------------- MINOR BUG";
     break;
   }

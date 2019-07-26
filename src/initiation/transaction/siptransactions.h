@@ -3,31 +3,21 @@
 #include "initiation/transaction/sipnondialogclient.h"
 #include "initiation/transport/siptransport.h"
 
-
 #include "common.h"
 
 #include <QMap>
 
 
-/* This class manages the interactions between different components in
- * a SIP transaction. This class should implement as little functionality
- * as possible and only focus on interractions.
+/* SIP in Kvazzup follows the Transport, Transaction, Transaction User principle.
+ * This class represents the SIP Transaction layer. It uses separate classes for
+ * client transactions and server transactions as well as holding the current state
+ * of SIP dialog
  */
 
 /* Some terms from RFC 3621:
  * Dialog = a SIP dialog constructed with INVITE-transaction
  * Session = a media session negotiated in INVITE-transaction
- *
- * SIP in Kvazzup follows the Transport, Transaction, Transaction User principle.
- * This class represents the transaction layer.
  */
-
-// TODO: some kind of address book class might be useful
-// because the connection addresses can change.
-
-// TODO: This class might be more versatile if it only had one transaction in it
-// and SIPManager would manage all transactions. The question who recognizes
-// which session a message belongs to should be in this case taken into consideration.
 
 // Contact is basically the same as SIP_URI
 struct Contact
@@ -61,11 +51,7 @@ public:
   }
 
   // reserve sessionID for a future call
-  uint32_t reserveSessionID()
-  {
-    ++nextSessionID_;
-    return nextSessionID_ - 1;
-  }
+  uint32_t reserveSessionID();
 
   // start a call with address. Returns generated sessionID
   void startDirectCall(Contact& address, QHostAddress localAddress,
@@ -74,6 +60,11 @@ public:
   // TODO: not implemented
   void startProxyCall(Contact& address, QHostAddress localAddress,
                       uint32_t sessionID);
+
+  // sends a re-INVITE
+  void renegotiateCall(uint32_t sessionID);
+
+  void renegotiateAllCalls();
 
   // transaction user wants something.
   void acceptCall(uint32_t sessionID);
@@ -107,7 +98,7 @@ private slots:
   void sendDialogRequest(uint32_t sessionID, RequestType type);
   void sendNonDialogRequest(SIP_URI& uri, RequestType type);
 
-  void sendResponse(uint32_t sessionID, ResponseType type, RequestType originalRequest);
+  void sendResponse(uint32_t sessionID, ResponseType type);
 
 private:
 
@@ -177,7 +168,7 @@ private:
   // TODO: sessionID should be called dialogID
 
   uint32_t nextSessionID_;
-  QMap<uint32_t, std::shared_ptr<SIPDialogData>> dialogs_;
+  std::map<uint32_t, std::shared_ptr<SIPDialogData>> dialogs_;
   std::map<QString, SIPRegistrationData> registrations_;
 
 

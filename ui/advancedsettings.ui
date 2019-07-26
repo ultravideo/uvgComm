@@ -118,7 +118,7 @@
          </property>
         </widget>
        </item>
-       <item row="5" column="1">
+       <item row="6" column="1">
         <spacer name="verticalSpacer">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -135,6 +135,13 @@
         <widget class="QLabel" name="StatusLabel">
          <property name="text">
           <string>Status:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QCheckBox" name="ice">
+         <property name="text">
+          <string>enable ICE</string>
          </property>
         </widget>
        </item>
@@ -172,10 +179,10 @@
          </property>
         </widget>
        </item>
-       <item row="4" column="0">
-        <widget class="QCheckBox" name="ice">
+       <item row="5" column="0">
+        <widget class="QCheckBox" name="conference">
          <property name="text">
-          <string>enable ICE</string>
+          <string>Automatic conference</string>
          </property>
         </widget>
        </item>

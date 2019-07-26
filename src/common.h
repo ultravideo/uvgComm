@@ -4,7 +4,11 @@
 #include <QObject>
 #include <stdint.h>
 
-// A module for functions used multiple times across the whole program
+// A module for functions used multiple times across the whole program.
+// Try to keep printing of same information consequatively to a minimum and
+// instead try to combine the string to more information rich statement.
+
+// TODO: Implement partial printing of information.
 
 // TODO use _sleep?
 void qSleep(int ms);
@@ -14,15 +18,18 @@ void qSleep(int ms);
 QString generateRandomString(uint32_t length);
 
 
-// DEBUG_NORMAL is for one time informational debug printing.
-// DEBUG_WARNING is for events that may lead to problems in future.
-// DEBUG_ERROR is for events that will cause problems for the functionality of the Kvazzup.
-// DEBUG_PEER_ERROR is for events that are errors in behavior of entities that are not us.
-// DEBUG_PROGRAM_ERROR is for events which are impossible in Kvazzup and can only be cause by bugs.
-// DEBUG_PROGRAM_WARNING is for events which are impossible, but don't affect the
+// DEBUG_NORMAL: for one time informational debug printing.
+// DEBUG_IMPORTANT: for important one time events such as receiving a message
+//                  or creating a session.
+// DEBUG_WARNING: for events that may lead to problems in future.
+// DEBUG_ERROR: for events that will cause problems for the functionality of the Kvazzup.
+// DEBUG_PEER_ERROR: for errors in behavior of entities that are not us.
+//                   Most commonly a protocol error.
+// DEBUG_PROGRAM_ERROR: for events which are impossible and are cause by bugs.
+// DEBUG_PROGRAM_WARNING: for events which are impossible, but don't affect the
 //                       functionality of Kvazzup.
 
-enum DebugType{DEBUG_NORMAL, DEBUG_ERROR, DEBUG_WARNING,
+enum DebugType{DEBUG_NORMAL, DEBUG_IMPORTANT, DEBUG_ERROR, DEBUG_WARNING,
                DEBUG_PEER_ERROR, DEBUG_PROGRAM_ERROR, DEBUG_PROGRAM_WARNING};
 
 
@@ -56,6 +63,8 @@ enum DebugContext{DC_NO_CONTEXT,
 
 // Print debug information with custom class name. Use this and getname with filters.
 // context is a general context that makes it easier to link different prints to one another.
+// TODO: The order of parameters would be more logical/easier with the enums at the beginning.
+// TODO: Fix different threads printing at the same time.
 void printDebug(DebugType type, QString className,
                 DebugContext context, QString description = "",
                 QStringList valueNames = {}, QStringList values = {});

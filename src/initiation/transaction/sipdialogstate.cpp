@@ -1,7 +1,8 @@
 #include "sipdialogstate.h"
-#include "common.h"
 
 #include "initiation/siptransactionuser.h"
+
+#include "common.h"
 
 #include <QDateTime>
 #include <QDebug>
@@ -14,39 +15,13 @@ SIPDialogState::SIPDialogState():
   callID_(""),
   // cseq start value. For example 31-bits of 32-bit clock
   localCSeq_(QDateTime::currentSecsSinceEpoch()%2147483647),
-  remoteCSeq_(0)
+  remoteCSeq_(0),
+  sessionState_(false)
 {}
-
-void SIPDialogState::initLocalURI()
-{
-  // init stuff from the settings
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
-
-  localUri_.realname = settings.value("local/Name").toString();
-  localUri_.username = settings.value("local/Username").toString();
-  localUri_.host = settings.value("sip/ServerAddress").toString();
-
-  if(localUri_.username.isEmpty())
-  {
-    localUri_.username = "anonymous";
-  }
-}
-
-void SIPDialogState::initCallInfo()
-{
-  localTag_ = generateRandomString(TAGLENGTH);
-  callID_ = generateRandomString(CALLIDLENGTH);
-  if(localUri_.host != "")
-  {
-    callID_ += "@" + localUri_.host;
-  }
-
-  qDebug() << "Local dialog created. CallID: " << callID_ << "Tag:" << localTag_ << "Cseq:" << localCSeq_;
-}
-
 
 void SIPDialogState::setPeerToPeerHostname(QString hostName, bool setCallinfo)
 {
+  printDebug(DEBUG_NORMAL, "SIPDialogState", DC_START_CALL, "Setting info for new dialog.");
   localUri_.host = hostName;
   if (setCallinfo)
   {
@@ -56,6 +31,8 @@ void SIPDialogState::setPeerToPeerHostname(QString hostName, bool setCallinfo)
 
 void SIPDialogState::createNewDialog(SIP_URI remoteURI)
 {
+  printDebug(DEBUG_NORMAL, "SIPDialogState", DC_START_CALL, "Creating a new dialog. "
+                                                            "CallID and tags generated later");
   initLocalURI();
   remoteUri_ = remoteURI;
   requestUri_ = remoteURI;
@@ -63,6 +40,7 @@ void SIPDialogState::createNewDialog(SIP_URI remoteURI)
 
 void SIPDialogState::createServerDialog(SIP_URI requestURI)
 {
+  printDebug(DEBUG_NORMAL, "SIPDialogState", DC_START_CALL, "Creating a SIP Server dialog.");
   initLocalURI();
   remoteUri_ = localUri_;
   requestUri_ = requestURI; // server has different request uri from remote
@@ -72,7 +50,8 @@ void SIPDialogState::createServerDialog(SIP_URI requestURI)
 
 void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inMessage)
 {
-  qDebug() << "Initializing SIP dialog with incoming INVITE.";
+  printDebug(DEBUG_NORMAL, "SIPDialogState", DC_START_CALL,
+             "Creating a dialog from incoming INVITE.");
   Q_ASSERT(callID_ == "");
   Q_ASSERT(inMessage);
   Q_ASSERT(inMessage->dialog);
@@ -143,6 +122,8 @@ void SIPDialogState::getRequestDialogInfo(SIPRequest &outRequest, QString localA
   if(outRequest.type != SIP_ACK && outRequest.type != SIP_CANCEL)
   {
     ++localCSeq_;
+    printDebug(DEBUG_NORMAL, "SIPDialogState", DC_SEND_SIP_REQUEST, "Increasing CSeq",
+              {"CSeq"}, {QString::number(localCSeq_)});
   }
 
   outRequest.message->cSeq = localCSeq_;
@@ -182,7 +163,7 @@ bool SIPDialogState::correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog,
     // The request cseq should be larger than our remotecseq.
     if(remoteCSeq <= remoteCSeq_ && type != SIP_ACK && type != SIP_CANCEL)
     {
-      qDebug() << "PEER_ERROR:" << "Their Cseq was smaller than their previous cseq which is not permitted!";
+      qDebug() << "PEER_ERROR:" << "Their request Cseq was smaller than their previous cseq which is not permitted!";
       // TODO: if remote cseq in message is lower than remote cseq, send 500
       return false;
     }
@@ -204,8 +185,8 @@ bool SIPDialogState::correctResponseDialog(std::shared_ptr<SIPDialogInfo> dialog
     // The response cseq should be the same as our cseq
     if(messageCSeq != localCSeq_)
     {
-      qDebug() << "PEER_ERROR:" << "The message CSeq was not the same as our previous request!"
-               << messageCSeq << "vs " << localCSeq_;
+      qDebug() << "PEER_ERROR:" << "The response CSeq was not the same as our previous request!"
+               << messageCSeq << "vs local" << localCSeq_;
       // TODO: if remote cseq in message is lower than remote cseq, send 500
       return false;
     }
@@ -219,5 +200,33 @@ bool SIPDialogState::correctResponseDialog(std::shared_ptr<SIPDialogInfo> dialog
     return true;
   }
   return false;
+}
+
+
+void SIPDialogState::initLocalURI()
+{
+  // init stuff from the settings
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+
+  localUri_.realname = settings.value("local/Name").toString();
+  localUri_.username = settings.value("local/Username").toString();
+  localUri_.host = settings.value("sip/ServerAddress").toString();
+
+  if(localUri_.username.isEmpty())
+  {
+    localUri_.username = "anonymous";
+  }
+}
+
+void SIPDialogState::initCallInfo()
+{
+  localTag_ = generateRandomString(TAGLENGTH);
+  callID_ = generateRandomString(CALLIDLENGTH);
+  if(localUri_.host != "")
+  {
+    callID_ += "@" + localUri_.host;
+  }
+
+  qDebug() << "Local dialog created. CallID: " << callID_ << "Tag:" << localTag_ << "Cseq:" << localCSeq_;
 }
 

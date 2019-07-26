@@ -23,8 +23,8 @@
 
 FilterGraph::FilterGraph():
   peers_(),
-  videoSend_(),
-  audioSend_(),
+  videoProcessing_(),
+  audioProcessing_(),
   selfView_(nullptr),
   stats_(nullptr),
   conversionIndex_(0),
@@ -73,19 +73,22 @@ void FilterGraph::updateSettings()
       {
         if(peer != nullptr)
         {
-          videoSend_.back()->addOutConnection(peer->videoFramedSource);
+          for (auto senderFilter : peer->videoSenders)
+          {
+            videoProcessing_.back()->addOutConnection(senderFilter);
+          }
         }
       }
     }
   }
   else
   {
-    for(auto filter : videoSend_)
+    for(auto filter : videoProcessing_)
     {
       filter->updateSettings();
     }
   }
-  for(auto filter : audioSend_)
+  for(auto filter : audioProcessing_)
   {
     filter->updateSettings();
   }
@@ -93,18 +96,30 @@ void FilterGraph::updateSettings()
   {
     if(peer != nullptr)
     {
-      peer->audioFramedSource->updateSettings();
-      peer->videoFramedSource->updateSettings();
+      for (auto senderFilter : peer->videoSenders)
+      {
+        senderFilter->updateSettings();
+      }
+      for (auto senderFilter : peer->audioSenders)
+      {
+        senderFilter->updateSettings();
+      }
 
       // decode and display settings
-      for(auto video : peer->videoReceive)
+      for(auto videoReceivers : peer->videoReceivers)
       {
-        video->updateSettings();
+        for (auto filter : *videoReceivers)
+        {
+          filter->updateSettings();
+        }
       }
-      // decoding and playback settings
-      for(auto audio : peer->audioReceive)
+
+      for(auto audioReceivers : peer->audioReceivers)
       {
-        audio->updateSettings();
+        for (auto filter : *audioReceivers)
+        {
+          filter->updateSettings();
+        }
       }
     }
   }
@@ -114,14 +129,14 @@ void FilterGraph::initSelfView(VideoInterface *selfView)
 {
   qDebug() << "Iniating, FilterGraph : " << "Iniating camera and selfview";
 
-  if(videoSend_.size() > 0)
+  if(videoProcessing_.size() > 0)
   {
-    destroyFilters(videoSend_);
+    destroyFilters(videoProcessing_);
   }
 
   // Sending video graph
 
-  addToGraph(std::shared_ptr<Filter>(new CameraFilter("", stats_)), videoSend_);
+  addToGraph(std::shared_ptr<Filter>(new CameraFilter("", stats_)), videoProcessing_);
 
   if(selfView)
   {
@@ -137,8 +152,8 @@ void FilterGraph::initSelfView(VideoInterface *selfView)
     DisplayFilter* selfviewFilter = new DisplayFilter("Self_", stats_, selfView, 1111);
     // the self view rotation depends on which conversions are use as some of the optimizations
     // do the mirroring. Note: mirroring is slow with Qt
-    selfviewFilter->setProperties(true, videoSend_.at(0)->outputType() == RGB32VIDEO);
-    addToGraph(std::shared_ptr<Filter>(selfviewFilter), videoSend_);
+    selfviewFilter->setProperties(true, videoProcessing_.at(0)->outputType() == RGB32VIDEO);
+    addToGraph(std::shared_ptr<Filter>(selfviewFilter), videoProcessing_);
   }
 }
 
@@ -146,29 +161,29 @@ void FilterGraph::initVideoSend()
 {
   qDebug() << "Session construction," << "FilterGraph :" << "Iniating video send";
 
-  if(videoSend_.size() == 0)
+  if(videoProcessing_.size() == 0)
   {
     qDebug() << "WARNING: FilterGraph : Camera was not iniated for video send";
     initSelfView(selfView_);
   }
-  else if(videoSend_.size() > 3)
+  else if(videoProcessing_.size() > 3)
   {
     qDebug() << "WARNING: FilterGraph : Too many filters in videosend";
-    destroyFilters(videoSend_);
+    destroyFilters(videoProcessing_);
   }
 
-  addToGraph(std::shared_ptr<Filter>(new KvazaarFilter("", stats_)), videoSend_, 0);
+  addToGraph(std::shared_ptr<Filter>(new KvazaarFilter("", stats_)), videoProcessing_, 0);
 }
 
 void FilterGraph::initAudioSend()
 {
   // Do this before adding participants, otherwise AEC filter wont get attached
-  addToGraph(std::shared_ptr<Filter>(new AudioCaptureFilter("", format_, stats_)), audioSend_);
-  addToGraph(std::shared_ptr<Filter>(new OpusEncoderFilter("", format_, stats_)), audioSend_, 0);
+  addToGraph(std::shared_ptr<Filter>(new AudioCaptureFilter("", format_, stats_)), audioProcessing_);
+  addToGraph(std::shared_ptr<Filter>(new OpusEncoderFilter("", format_, stats_)), audioProcessing_, 0);
 }
 
 bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
-                             std::vector<std::shared_ptr<Filter> > &graph,
+                             GraphSegment &graph,
                              unsigned int connectIndex)
 {
   // // check if we need some sort of conversion and connect to index
@@ -264,8 +279,8 @@ void FilterGraph::checkParticipant(uint32_t sessionID)
   }
 
   peers_.at(sessionID - 1)->output = nullptr;
-  peers_.at(sessionID - 1)->audioFramedSource = nullptr;
-  peers_.at(sessionID - 1)->videoFramedSource = nullptr;
+  peers_.at(sessionID - 1)->audioSenders.clear();
+  peers_.at(sessionID - 1)->videoSenders.clear();
 }
 
 void FilterGraph::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoFramedSource)
@@ -276,7 +291,7 @@ void FilterGraph::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoF
   qDebug() << "Session construction, FilterGraph: Adding send video for peer:" << sessionID;
 
   // make sure we are generating video
-  if(videoSend_.size() < 4)
+  if(videoProcessing_.size() < 4)
   {
     initVideoSend();
   }
@@ -284,16 +299,9 @@ void FilterGraph::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoF
   // add participant if necessary
   checkParticipant(sessionID);
 
-  if(peers_.at(sessionID - 1)->videoFramedSource)
-  {
-    printDebug(DEBUG_WARNING, "FilterGraph", DC_ADD_MEDIA,
-               "We are already sending video to participant.");
-    return;
-  }
+  peers_.at(sessionID - 1)->videoSenders.push_back(videoFramedSource);
 
-  peers_.at(sessionID - 1)->videoFramedSource = videoFramedSource;
-
-  videoSend_.back()->addOutConnection(videoFramedSource);
+  videoProcessing_.back()->addOutConnection(videoFramedSource);
   videoFramedSource->start();
 }
 
@@ -303,22 +311,18 @@ void FilterGraph::receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> v
   Q_ASSERT(sessionID);
   Q_ASSERT(videoSink);
 
-  // add participant if necessary
   checkParticipant(sessionID);
 
-  if(!peers_.at(sessionID - 1)->videoReceive.empty())
-  {
-    printDebug(DEBUG_WARNING, "FilterGraph", DC_ADD_MEDIA,
-               "We are receiving video from this participant", {"SessionID"}, {QString::number(sessionID)});
-    return;
-  }
-  addToGraph(videoSink, peers_.at(sessionID - 1)->videoReceive);
+  std::shared_ptr<GraphSegment> graph = std::shared_ptr<GraphSegment> (new GraphSegment);
+  peers_.at(sessionID - 1)->videoReceivers.push_back(graph);
+
+  addToGraph(videoSink, *graph);
   addToGraph(std::shared_ptr<Filter>(new OpenHEVCFilter(QString::number(sessionID) + "_", stats_)),
-             peers_.at(sessionID - 1)->videoReceive, 0);
+             *graph, 0);
 
   addToGraph(std::shared_ptr<Filter>(new DisplayFilter(QString::number(sessionID) + "_", stats_,
                                                        view, sessionID)),
-             peers_.at(sessionID - 1)->videoReceive, 1);
+             *graph, 1);
 }
 
 void FilterGraph::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioFramedSource)
@@ -327,7 +331,7 @@ void FilterGraph::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioF
   Q_ASSERT(audioFramedSource);
 
   // just in case it is wanted later. AEC filter has to be attached
-  if(audioSend_.size() == 0)
+  if(audioProcessing_.size() == 0)
   {
     initAudioSend();
   }
@@ -335,17 +339,10 @@ void FilterGraph::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioF
   // add participant if necessary
   checkParticipant(sessionID);
 
-  if(peers_.at(sessionID - 1)->audioFramedSource)
-  {
-    printDebug(DEBUG_WARNING, "FilterGraph", DC_ADD_MEDIA,
-               "We are already sending audio to participant.",
-      {"SessionID"}, {QString::number(sessionID)});
-    return;
-  }
 
-  peers_.at(sessionID - 1)->audioFramedSource = audioFramedSource;
+  peers_.at(sessionID - 1)->audioSenders.push_back(audioFramedSource);
 
-  audioSend_.back()->addOutConnection(audioFramedSource);
+  audioProcessing_.back()->addOutConnection(audioFramedSource);
   audioFramedSource->start();
 }
 
@@ -355,7 +352,7 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
   Q_ASSERT(audioSink);
 
   // just in case it is wanted later. AEC filter has to be attached
-  if(AEC_ENABLED && audioSend_.size() == 0)
+  if(AEC_ENABLED && audioProcessing_.size() == 0)
   {
     initAudioSend();
   }
@@ -363,24 +360,20 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
   // add participant if necessary
   checkParticipant(sessionID);
 
-  if(!peers_.at(sessionID - 1)->audioReceive.empty())
-  {
-    printDebug(DEBUG_WARNING, "FilterGraph", DC_ADD_MEDIA,
-               "We are receiving video from this participant.",
-      {"SessionID"}, {QString::number(sessionID)});
-    return;
-  }
-  addToGraph(audioSink, peers_.at(sessionID - 1)->audioReceive);
-  addToGraph(std::shared_ptr<Filter>(new OpusDecoderFilter(QString::number(sessionID) + "_", format_, stats_)),
-                                     peers_.at(sessionID - 1)->audioReceive, 0);
+  std::shared_ptr<GraphSegment> graph = std::shared_ptr<GraphSegment> (new GraphSegment);
+  peers_.at(sessionID - 1)->audioReceivers.push_back(graph);
 
-  if(audioSend_.size() > 0 && AEC_ENABLED)
+  addToGraph(audioSink, *graph);
+  addToGraph(std::shared_ptr<Filter>(new OpusDecoderFilter(QString::number(sessionID) + "_", format_, stats_)),
+                                     *graph, 0);
+
+  if(audioProcessing_.size() > 0 && AEC_ENABLED)
   {
     addToGraph(std::shared_ptr<Filter>(new SpeexAECFilter(QString::number(sessionID) + "_", stats_, format_)),
-               peers_.at(sessionID - 1)->audioReceive, 1);
+               *graph, 1);
 
     //connect to capture filter to remove echo
-    audioSend_.at(0)->addOutConnection(peers_.at(sessionID - 1)->audioReceive.back());
+    audioProcessing_.at(0)->addOutConnection(graph->back());
   }
   else
   {
@@ -392,7 +385,7 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
   peers_.at(sessionID - 1)->output->initializeAudio(format_);
   AudioOutputDevice* outputModule = peers_.at(sessionID - 1)->output->getOutputModule();
 
-  outputModule->init(peers_.at(sessionID - 1)->audioReceive.back());
+  outputModule->init(graph->back());
 }
 
 void FilterGraph::uninit()
@@ -400,8 +393,8 @@ void FilterGraph::uninit()
   quitting_ = true;
   removeAllParticipants();
 
-  destroyFilters(videoSend_);
-  destroyFilters(audioSend_);
+  destroyFilters(videoProcessing_);
+  destroyFilters(audioProcessing_);
 }
 
 void FilterGraph::removeAllParticipants()
@@ -437,45 +430,45 @@ void changeState(std::shared_ptr<Filter> f, bool state)
 
 void FilterGraph::mic(bool state)
 {
-  if(audioSend_.size() > 0)
+  if(audioProcessing_.size() > 0)
   {
     if(!state)
     {
       qDebug() << "FilterGraph : Stopping microphone";
-      audioSend_.at(0)->stop();
+      audioProcessing_.at(0)->stop();
     }
     else
     {
       qDebug() << "FilterGraph : Starting microphone";
-      audioSend_.at(0)->start();
+      audioProcessing_.at(0)->start();
     }
   }
 }
 
 void FilterGraph::camera(bool state)
 {
-  if(videoSend_.size() > 0)
+  if(videoProcessing_.size() > 0)
   {
     if(!state)
     {
       qDebug() << "FilterGraph : Stopping camera";
-      videoSend_.at(0)->stop();
+      videoProcessing_.at(0)->stop();
     }
     else
     {
       qDebug() << "FilterGraph : Starting camera";
-      videoSend_.at(0)->start();
+      videoProcessing_.at(0)->start();
     }
   }
 }
 
 void FilterGraph::running(bool state)
 {
-  for(std::shared_ptr<Filter> f : videoSend_)
+  for(std::shared_ptr<Filter> f : videoProcessing_)
   {
     changeState(f, state);
   }
-  for(std::shared_ptr<Filter> f : audioSend_)
+  for(std::shared_ptr<Filter> f : audioProcessing_)
   {
     changeState(f, state);
   }
@@ -484,21 +477,36 @@ void FilterGraph::running(bool state)
   {
     if(p != nullptr)
     {
-      if(p->audioFramedSource)
+      for (auto senderFilter : p->audioSenders)
       {
-        changeState(p->audioFramedSource, state);
+        if(senderFilter)
+        {
+          changeState(senderFilter, state);
+        }
       }
-      if(p->videoFramedSource)
+
+      for (auto senderFilter : p->videoSenders)
       {
-        changeState(p->videoFramedSource, state);
+        if(senderFilter)
+        {
+          changeState(senderFilter, state);
+        }
       }
-      for(std::shared_ptr<Filter> f : p->audioReceive)
+
+      for (auto graph : p->audioReceivers)
       {
-        changeState(f, state);
+        for(std::shared_ptr<Filter> f : *graph)
+        {
+          changeState(f, state);
+        }
       }
-      for(std::shared_ptr<Filter> f : p->videoReceive)
+
+      for (auto graph : p->videoReceivers)
       {
-        changeState(f, state);
+        for(std::shared_ptr<Filter> f : *graph)
+        {
+          changeState(f, state);
+        }
       }
     }
   }
@@ -522,28 +530,38 @@ void FilterGraph::destroyFilters(std::vector<std::shared_ptr<Filter> > &filters)
 void FilterGraph::destroyPeer(Peer* peer)
 {
   qDebug() << "Remove participant, Filter Graph: Destroying peer from Filter Graph";
-  if(peer->audioFramedSource)
+
+  for (auto audioSender : peer->audioSenders)
   {
-    audioSend_.back()->removeOutConnection(peer->audioFramedSource);
+    audioProcessing_.back()->removeOutConnection(audioSender);
     //peer->audioFramedSource is destroyed by RTPStreamer
-    changeState(peer->audioFramedSource, false);
-    peer->audioFramedSource = nullptr;
+    changeState(audioSender, false);
+    audioSender = nullptr;
 
     if(AEC_ENABLED)
     {
-      audioSend_.at(0)->removeOutConnection(peer->audioReceive.back());
+      for (auto graph : peer->audioReceivers)
+      {
+        audioProcessing_.at(0)->removeOutConnection(graph->back());
+      }
     }
   }
-  if(peer->videoFramedSource)
+  for (auto videoSender : peer->videoSenders)
   {
-    videoSend_.back()->removeOutConnection(peer->videoFramedSource);
-    changeState(peer->videoFramedSource, false);
+    videoProcessing_.back()->removeOutConnection(videoSender);
+    changeState(videoSender, false);
     //peer->videoFramedSource is destroyed by RTPStreamer
-    peer->videoFramedSource = nullptr;
+    videoSender = nullptr;
+  }
+  for (auto graph : peer->audioReceivers)
+  {
+    destroyFilters(*graph);
   }
 
-  destroyFilters(peer->audioReceive);
-  destroyFilters(peer->videoReceive);
+  for (auto graph : peer->videoReceivers)
+  {
+    destroyFilters(*graph);
+  }
 
   if(peer->output)
   {
@@ -571,13 +589,13 @@ void FilterGraph::removeParticipant(uint32_t sessionID)
 
   if(!peerPresent)
   {
-    destroyFilters(videoSend_);
+    destroyFilters(videoProcessing_);
     if (!quitting_)
     {
       initSelfView(selfView_); // restore the self view.
     }
 
-    destroyFilters(audioSend_);
+    destroyFilters(audioProcessing_);
   }
 }
 
@@ -585,7 +603,7 @@ void FilterGraph::print()
 {
   QString audioDotFile = "digraph AudioGraph {\r\n";
 
-  for(auto f : audioSend_)
+  for(auto f : audioProcessing_)
   {
     audioDotFile += f->printOutputs();
   }
@@ -594,19 +612,25 @@ void FilterGraph::print()
   {
     if(peers_.at(i) != nullptr)
     {
-      for(auto f : peers_.at(i)->audioReceive)
+      for(auto graph : peers_.at(i)->audioReceivers)
       {
-        audioDotFile += f->printOutputs();
-      }
+        for (auto filter : *graph)
+        {
+          audioDotFile += filter->printOutputs();
+        }
 
-      audioDotFile += peers_.at(i)->audioFramedSource->printOutputs();
+      }
+      for (auto audioSender : peers_.at(i)->audioSenders)
+      {
+        audioDotFile += audioSender->printOutputs();
+      }
     }
   }
   audioDotFile += "}";
 
   QString videoDotFile = "digraph VideoGraph {\r\n";
 
-  for(auto f : videoSend_)
+  for(auto f : videoProcessing_)
   {
     videoDotFile += f->printOutputs();
   }
@@ -615,12 +639,18 @@ void FilterGraph::print()
   {
     if(peers_.at(i) != nullptr)
     {
-      for(auto f : peers_.at(i)->videoReceive)
+      for(auto graph : peers_.at(i)->videoReceivers)
       {
-        videoDotFile += f->printOutputs();
+        for (auto filter : *graph)
+        {
+          videoDotFile += filter->printOutputs();
+        }
       }
 
-      videoDotFile += peers_.at(i)->videoFramedSource->printOutputs();
+      for (auto videoSender : peers_.at(i)->videoSenders)
+      {
+        audioDotFile += videoSender->printOutputs();
+      }
     }
   }
   videoDotFile += "}";

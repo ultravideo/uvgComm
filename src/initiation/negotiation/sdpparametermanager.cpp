@@ -1,13 +1,14 @@
 #include "sdpparametermanager.h"
 
+#include "common.h"
+
 #include <QUdpSocket>
 #include <QDebug>
 
 
 SDPParameterManager::SDPParameterManager()
   :remainingPorts_(0)
-{
-}
+{}
 
 void SDPParameterManager::setPortRange(uint16_t minport, uint16_t maxport, uint16_t maxRTPConnections)
 {
@@ -23,7 +24,6 @@ void SDPParameterManager::setPortRange(uint16_t minport, uint16_t maxport, uint1
 
   remainingPorts_ = maxRTPConnections;
 }
-
 
 
 // for reference on rtp payload type numbers:
@@ -54,14 +54,19 @@ QList<RTPMap> SDPParameterManager::videoCodecs() const
   return QList<RTPMap>{RTPMap{97, 90000, "h265", ""}};
 }
 
-QString SDPParameterManager::sessionName() const
+QString SDPParameterManager::callSessionName() const
 {
   return "HEVC Video Call";
 }
 
+QString SDPParameterManager::conferenceSessionName() const
+{
+  return "HEVC Video Conference";
+}
+
 QString SDPParameterManager::sessionDescription() const
 {
-  return "A Kvazzup initiated video call";
+  return "A Kvazzup initiated video communication";
 }
 
 uint16_t SDPParameterManager::allocateMediaPorts()
@@ -124,6 +129,9 @@ uint16_t SDPParameterManager::nextAvailablePortPair()
              << "deque size:" << availablePorts_.size();
   }
   portLock_.unlock();
+
+  printDebug(DEBUG_NORMAL, "SDP Parameter Manager", DC_NEGOTIATING,
+             "Binding finished", {"Bound lower port"}, {QString::number(newLowerPort)});
 
   return newLowerPort;
 }

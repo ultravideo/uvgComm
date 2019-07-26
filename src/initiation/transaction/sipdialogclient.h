@@ -3,6 +3,8 @@
 #pragma once
 
 
+// Sending SIP Requests and processing of SIP responses that belong to a dialog.
+
 class SIPDialogClient : public SIPClientTransaction
 {
   Q_OBJECT
@@ -11,12 +13,15 @@ public:
 
   void setSessionID(uint32_t sessionID);
 
-  virtual bool processResponse(SIPResponse& response);
+  virtual bool processResponse(SIPResponse& response,
+                               std::shared_ptr<SIPDialogState> state);
 
   // send a request
   bool startCall(QString callee);
   void endCall();
   void cancelCall();
+
+  void renegotiateCall();
 
 protected:
   virtual void processTimeout();

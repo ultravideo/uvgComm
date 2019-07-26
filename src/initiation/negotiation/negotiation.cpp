@@ -3,6 +3,7 @@
 
 #include "common.h"
 
+// Port ranges used for media port allocation.
 const uint16_t MIN_SIP_PORT   = 21500;
 const uint16_t MAX_SIP_PORT   = 22000;
 
@@ -15,10 +16,12 @@ Negotiation::Negotiation():
   parameters_.setPortRange(MIN_SIP_PORT, MAX_SIP_PORT, MAX_PORTS);
 }
 
+
 void Negotiation::setLocalInfo(QString username)
 {
   localUsername_ = username;
 }
+
 
 bool Negotiation::generateOfferSDP(QHostAddress localAddress,
                                         uint32_t sessionID)
@@ -26,7 +29,7 @@ bool Negotiation::generateOfferSDP(QHostAddress localAddress,
   Q_ASSERT(sessionID);
 
   qDebug() << "Getting local SDP suggestion";
-  std::shared_ptr<SDPMessageInfo> localInfo = generateSDP(localAddress);
+  std::shared_ptr<SDPMessageInfo> localInfo = generateLocalSDP(localAddress);
 
   if(localInfo != nullptr)
   {
@@ -36,7 +39,183 @@ bool Negotiation::generateOfferSDP(QHostAddress localAddress,
   return localInfo != nullptr;
 }
 
-std::shared_ptr<SDPMessageInfo>  Negotiation::generateSDP(QHostAddress localAddress)
+// Includes the medias for all the participants for conference
+bool Negotiation::initialConferenceOfferSDP(uint32_t sessionID)
+{
+  std::shared_ptr<SDPMessageInfo> newInfo = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
+  newInfo = sdps_.at(sessionID).first;
+
+  // go through every media and include it in our conference offer so we get a
+  // response port for each media in conference for them.
+  for (auto callSession : sdps_)
+  {
+    // don't include their own address
+    if (callSession.first != sessionID)
+    {
+      for (auto media : callSession.second.second->media)
+      {
+        media.connection_address = callSession.second.second->connection_address;
+        media.connection_nettype = callSession.second.second->connection_nettype;
+        media.connection_addrtype = callSession.second.second->connection_addrtype;
+
+        newInfo->media.append(media);
+
+        // we use sendonly because we don't know the receive port of other conference
+        // participants.
+        newInfo->media.back().flagAttributes = {A_SENDONLY};
+      }
+    }
+  }
+
+  recvConferenceSdps_[sessionID] = newInfo;
+
+  return true;
+}
+
+
+// Includes the medias for all the participants for conference
+bool Negotiation::finalConferenceOfferSDP(uint32_t sessionID)
+{
+  if (!checkSessionValidity(sessionID, true))
+  {
+    return false;
+  }
+
+  std::shared_ptr<SDPMessageInfo> newInfo = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
+  *newInfo = *(sdps_.at(sessionID).first);
+
+  for (int i = 0; i < newInfo->media.size(); ++i)
+  {
+    newInfo->media[i].flagAttributes.clear();
+    newInfo->media[i].flagAttributes.append(A_SENDRECV);
+
+  }
+
+  // include receive port for every media
+
+  QString remoteAddress = sdps_.at(sessionID).second->connection_address;
+
+  for (auto sdp : recvConferenceSdps_)
+  {
+    for (auto media : sdp.second->media)
+    {
+
+      // TODO: SHould this be unequal?
+      if (media.connection_address == remoteAddress)
+      {
+        newInfo->media.append(media);
+        newInfo->media.back().flagAttributes = {A_SENDRECV};
+      }
+    }
+  }
+
+  finalConferenceSdps_[sessionID] = newInfo;
+  return true;
+}
+
+
+std::shared_ptr<SDPMessageInfo> Negotiation::getInitialConferenceOffer(uint32_t sessionID) const
+{
+  Q_ASSERT(sessionID);
+  Q_ASSERT(recvConferenceSdps_.find(sessionID) != recvConferenceSdps_.end());
+
+  return recvConferenceSdps_.at(sessionID);
+}
+
+
+std::shared_ptr<SDPMessageInfo> Negotiation::getFinalConferenceOffer(uint32_t sessionID) const
+{
+  Q_ASSERT(sessionID);
+  Q_ASSERT(finalConferenceSdps_.find(sessionID) != finalConferenceSdps_.end());
+
+  return finalConferenceSdps_.at(sessionID);
+}
+
+
+
+bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
+                                    QHostAddress localAddress,
+                                    uint32_t sessionID)
+{
+  Q_ASSERT(sessionID);
+
+  // check if suitable.
+  if(!checkSDPOffer(remoteSDPOffer))
+  {
+    qDebug() << "Incoming SDP did not have Opus and H265 in their offer.";
+    return false;
+  }
+
+  // TODO: check that we dont already have an SDP for them in which case we should deallocate those ports.
+
+  // generate our SDP.
+  std::shared_ptr<SDPMessageInfo> localSDP = negotiateSDP(remoteSDPOffer, localAddress);
+
+  if (localSDP == nullptr)
+  {
+    printDebug(DEBUG_PROGRAM_ERROR, "Negotiation", DC_NEGOTIATING,
+               "Failed to generate our answer to their offer."
+               "Suitability should be detected earlier in checkOffer.");
+    return false;
+  }
+
+  std::shared_ptr<SDPMessageInfo> remoteSDP
+      = std::shared_ptr<SDPMessageInfo>(new SDPMessageInfo);
+  *remoteSDP = remoteSDPOffer;
+
+  sdps_[sessionID].first = localSDP;
+  sdps_[sessionID].second = remoteSDP;
+
+  // spawn ICE controller/controllee threads and start the candidate
+  // exchange and nomination
+  ice_->respondToNominations(localSDP->candidates, remoteSDP->candidates, sessionID);
+
+  // wait until the nomination has finished (or failed)
+  //
+  // The call won't start until ICE has finished its job
+  if (!ice_->callerConnectionNominated(sessionID))
+  {
+    qDebug() << "ERROR: Failed to nominate ICE candidates!";
+    return false;
+  }
+
+  setICEPorts(sessionID);
+  return true;
+}
+
+
+bool Negotiation::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer, uint32_t sessionID)
+{
+  printDebug(DEBUG_NORMAL, "Negotiation", DC_NEGOTIATING, "Starting to process answer SDP.");
+  if (!checkSessionValidity(sessionID, false))
+  {
+    return false;
+  }
+
+  // this function blocks until a candidate is nominated or all candidates are considered
+  // invalid in which case it returns false to indicate error
+  if (!ice_->calleeConnectionNominated(sessionID))
+  {
+    qDebug() << "ERROR: Failed to nominate ICE candidates!";
+    return false;
+  }
+
+  if (checkSDPOffer(remoteSDPAnswer))
+  {
+    std::shared_ptr<SDPMessageInfo> remoteSDP
+        = std::shared_ptr<SDPMessageInfo>(new SDPMessageInfo);
+    *remoteSDP = remoteSDPAnswer;
+    sdps_[sessionID].second = remoteSDP;
+
+    setICEPorts(sessionID);
+    return true;
+  }
+
+  return false;
+}
+
+
+std::shared_ptr<SDPMessageInfo>  Negotiation::generateLocalSDP(QHostAddress localAddress)
 {
   // TODO: This should ask media manager, what options it supports.
   qDebug() << "Generating new SDP message with our address as:" << localAddress;
@@ -60,27 +239,11 @@ std::shared_ptr<SDPMessageInfo>  Negotiation::generateSDP(QHostAddress localAddr
   // TODO: Get suitable SDP from media manager
   std::shared_ptr<SDPMessageInfo> newInfo = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
   newInfo->version = 0;
-  newInfo->originator_username = localUsername_;
-  newInfo->sess_id = QDateTime::currentMSecsSinceEpoch();
-  newInfo->sess_v = QDateTime::currentMSecsSinceEpoch();
-  newInfo->host_nettype = "IN";
-  newInfo->host_address = localAddress.toString();
-  if(localAddress.protocol() == QAbstractSocket::IPv6Protocol)
-  {
-    newInfo->host_addrtype = "IP6";
-    newInfo->connection_addrtype = "IP6";
-  }
-  else
-  {
-    newInfo->host_addrtype = "IP4";
-    newInfo->connection_addrtype = "IP4";
-  }
+  generateOrigin(newInfo, localAddress);
+  setConnectionAddress(newInfo, localAddress);
 
-  newInfo->sessionName = parameters_.sessionName();
+  newInfo->sessionName = parameters_.callSessionName();
   newInfo->sessionDescription = parameters_.sessionDescription();
-
-  newInfo->connection_address = localAddress.toString();
-  newInfo->connection_nettype = "IN";
 
   newInfo->timeDescriptions.push_back(TimeInfo{0,0, "", "", {}});
 
@@ -98,6 +261,149 @@ std::shared_ptr<SDPMessageInfo>  Negotiation::generateSDP(QHostAddress localAddr
   return newInfo;
 }
 
+
+std::shared_ptr<SDPMessageInfo> Negotiation::negotiateSDP(SDPMessageInfo& remoteSDPOffer,
+                                                          QHostAddress localAddress)
+{
+  // At this point we should have checked if their offer is acceptable.
+  // Now we just have to generate our answer.
+
+  std::shared_ptr<SDPMessageInfo> newInfo = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
+
+  // we assume our answer will be different so new origin
+  generateOrigin(newInfo, localAddress);
+  setConnectionAddress(newInfo, localAddress);
+
+  newInfo->version = 0;
+  newInfo->sessionName = remoteSDPOffer.sessionName;
+  newInfo->sessionDescription = remoteSDPOffer.sessionDescription;
+  newInfo->timeDescriptions = remoteSDPOffer.timeDescriptions;
+
+  // Now the hard part. Select best codecs and set our corresponding media ports.
+  for (auto remoteMedia : remoteSDPOffer.media)
+  {
+    MediaInfo ourMedia;
+    ourMedia.type = remoteMedia.type;
+    ourMedia.receivePort = parameters_.nextAvailablePortPair();
+    ourMedia.proto = remoteMedia.proto;
+    ourMedia.title = remoteMedia.title;
+    if (remoteMedia.flagAttributes.empty())
+    {
+      ourMedia.flagAttributes = {A_SENDRECV};
+    }
+    else if (remoteMedia.flagAttributes.back() == A_SENDONLY)
+    {
+      ourMedia.flagAttributes = {A_RECVONLY};
+    }
+    else if (remoteMedia.flagAttributes.back() == A_RECVONLY)
+    {
+      ourMedia.flagAttributes = {A_SENDONLY};
+    }
+    else {
+      ourMedia.flagAttributes = remoteMedia.flagAttributes;
+    }
+
+    // set our bitrate, not implemented
+    // set our encryptionKey, not implemented
+
+    if (remoteMedia.type == "audio")
+    {
+      QList<uint8_t> supportedNums = parameters_.audioPayloadTypes();
+      QList<RTPMap> supportedCodecs = parameters_.audioCodecs();
+
+      selectBestCodec(remoteMedia.rtpNums, remoteMedia.codecs,
+                      supportedNums, supportedCodecs,
+                      ourMedia.rtpNums, ourMedia.codecs);
+
+    }
+    else if (remoteMedia.type == "video")
+    {
+      QList<uint8_t> supportedNums = parameters_.videoPayloadTypes();
+      QList<RTPMap> supportedCodecs = parameters_.videoCodecs();
+
+      selectBestCodec(remoteMedia.rtpNums, remoteMedia.codecs,
+                      supportedNums, supportedCodecs,
+                      ourMedia.rtpNums, ourMedia.codecs);
+    }
+    newInfo->media.append(ourMedia);
+  }
+
+  return newInfo;
+}
+
+
+bool Negotiation::selectBestCodec(QList<uint8_t>& remoteNums,       QList<RTPMap> &remoteCodecs,
+                                  QList<uint8_t>& supportedNums,    QList<RTPMap> &supportedCodecs,
+                                  QList<uint8_t>& outMatchingNums,  QList<RTPMap> &outMatchingCodecs)
+{
+  for (auto remoteCodec : remoteCodecs)
+  {
+    for (auto supportedCodec : supportedCodecs)
+    {
+      if(remoteCodec.codec == supportedCodec.codec)
+      {
+        outMatchingCodecs.append(remoteCodec);
+        printDebug(DEBUG_NORMAL, "Negotiation", DC_NEGOTIATING, "Found suitable codec.");
+
+        outMatchingNums.push_back(remoteCodec.rtpNum);
+
+        return true;
+      }
+    }
+  }
+
+  for (auto rtpNumber : remoteNums)
+  {
+    for (auto supportedNum : supportedNums)
+    {
+      if(rtpNumber == supportedNum)
+      {
+        outMatchingNums.append(rtpNumber);
+        printDebug(DEBUG_NORMAL, "Negotiation", DC_NEGOTIATING, "Found suitable RTP number.");
+        return true;
+      }
+    }
+  }
+
+  printDebug(DEBUG_ERROR, "Negotiation", DC_NEGOTIATING,
+             "Could not find suitable codec or RTP number for media.");
+
+  return false;
+}
+
+
+void Negotiation::generateOrigin(std::shared_ptr<SDPMessageInfo> sdp,
+                                 QHostAddress localAddress)
+{
+  sdp->originator_username = localUsername_;
+  sdp->sess_id = QDateTime::currentMSecsSinceEpoch();
+  sdp->sess_v = QDateTime::currentMSecsSinceEpoch();
+  sdp->host_nettype = "IN";
+  sdp->host_address = localAddress.toString();
+  if(localAddress.protocol() == QAbstractSocket::IPv6Protocol)
+  {
+    sdp->host_addrtype = "IP6";
+  }
+  else {
+    sdp->host_addrtype = "IP4";
+  }
+}
+
+
+void Negotiation::setConnectionAddress(std::shared_ptr<SDPMessageInfo> sdp,
+                                       QHostAddress localAddress)
+{
+  sdp->connection_address = localAddress.toString();
+  sdp->connection_nettype = "IN";
+  if(localAddress.protocol() == QAbstractSocket::IPv6Protocol)
+  {
+    sdp->connection_addrtype = "IP6";
+  }
+  else
+  {
+    sdp->connection_addrtype = "IP4";
+  }
+}
 
 bool Negotiation::generateAudioMedia(MediaInfo &audio)
 {
@@ -149,95 +455,6 @@ bool Negotiation::generateVideoMedia(MediaInfo& video)
 }
 
 
-bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
-                                        QHostAddress localAddress,
-                                        uint32_t sessionID)
-{
-  Q_ASSERT(sessionID);
-
-  // check if suitable.
-  if(!checkSDPOffer(remoteSDPOffer))
-  {
-    qDebug() << "Incoming SDP did not have Opus and H265 in their offer.";
-    return false;
-  }
-
-  // generate our SDP.
-  // TODO: generate our SDP based on their offer.
-  std::shared_ptr<SDPMessageInfo> localSDP = generateSDP(localAddress);
-
-  std::shared_ptr<SDPMessageInfo> remoteSDP
-      = std::shared_ptr<SDPMessageInfo>(new SDPMessageInfo);
-  *remoteSDP = remoteSDPOffer;
-
-  // TODO: modify the their SDP to match our accepted configuration
-  sdps_[sessionID].first = localSDP;
-  sdps_[sessionID].second = remoteSDP;
-
-  localSDP->sessionName = remoteSDP->sessionName;
-  localSDP->sess_v = remoteSDP->sess_v + 1;
-
-  // spawn ICE controller/controllee threads and start the candidate
-  // exchange and nomination
-  ice_->respondToNominations(localSDP->candidates, remoteSDP->candidates, sessionID);
-
-  // wait until the nomination has finished (or failed)
-  //
-  // The call won't start until ICE has finished its job
-  if (!ice_->callerConnectionNominated(sessionID))
-  {
-    qDebug() << "ERROR: Failed to nominate ICE candidates!";
-    return false;
-  }
-
-  ICEMediaInfo nominated = ice_->getNominated(sessionID);
-
-  // first is RTP, second is RTCP
-  if (nominated.audio.first != nullptr && nominated.audio.second != nullptr)
-  {
-    setMediaPair(localSDP->media[0],      nominated.audio.first->local);
-    setMediaPair(remoteSDP->media[0], nominated.audio.first->remote);
-  }
-
-  if (nominated.video.first != nullptr && nominated.video.second != nullptr)
-  {
-    setMediaPair(localSDP->media[1],      nominated.video.first->local);
-    setMediaPair(remoteSDP->media[1], nominated.video.first->remote);
-  }
-
-  return true;
-}
-
-bool Negotiation::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer, uint32_t sessionID)
-{
-  if (!checkSessionValidity(sessionID, false))
-  {
-    return false;
-  }
-
-  // this function blocks until a candidate is nominated or all candidates are considered
-  // invalid in which case it returns false to indicate error
-  if (!ice_->calleeConnectionNominated(sessionID))
-  {
-    qDebug() << "ERROR: Failed to nominate ICE candidates!";
-    return false;
-  }
-
-  if (checkSDPOffer(remoteSDPAnswer))
-  {
-    std::shared_ptr<SDPMessageInfo> remoteSDP
-        = std::shared_ptr<SDPMessageInfo>(new SDPMessageInfo);
-    *remoteSDP = remoteSDPAnswer;
-    sdps_[sessionID].second = remoteSDP;
-
-    setICEPorts(sessionID);
-    return true;
-  }
-
-  return false;
-}
-
-
 std::shared_ptr<SDPMessageInfo> Negotiation::getLocalSDP(uint32_t sessionID) const
 {
   if(!checkSessionValidity(sessionID, false))
@@ -256,6 +473,13 @@ std::shared_ptr<SDPMessageInfo> Negotiation::getRemoteSDP(uint32_t sessionID) co
 
   return sdps_.at(sessionID).second;
 }
+
+
+std::shared_ptr<SDPMessageInfo> Negotiation::getRemoteConferenceSDP(uint32_t sessionID) const
+{
+  return finalConferenceSdps_.at(sessionID);
+}
+
 
 
 bool Negotiation::checkSDPOffer(SDPMessageInfo &offer)
@@ -277,22 +501,43 @@ bool Negotiation::checkSDPOffer(SDPMessageInfo &offer)
     return false;
   }
 
+  QStringList debugCodecsFound = {};
   for(MediaInfo media : offer.media)
   {
     for(RTPMap rtp : media.codecs)
     {
       if(rtp.codec == "opus")
       {
-        qDebug() << "Found Opus in SDP offer.";
+        debugCodecsFound << "opus";
         hasOpus = true;
       }
       else if(rtp.codec == "h265")
       {
-        qDebug() << "Found H265 in SDP offer.";
+        debugCodecsFound << "h265";
         hasH265 = true;
       }
     }
   }
+
+  printDebug(DEBUG_NORMAL, "Negotiation", DC_NEGOTIATING,
+             "Found following codecs in SDP", {"Codecs"}, debugCodecsFound);
+
+  if (offer.timeDescriptions.size() >= 1)
+  {
+    if (offer.timeDescriptions.at(0).startTime != 0 ||
+        offer.timeDescriptions.at(0).stopTime != 0)
+    {
+      printDebug(DEBUG_ERROR, "Negotiation", DC_NEGOTIATING,
+                 "They offered us a session with limits. Unsupported.");
+      return false;
+    }
+  }
+  else {
+    printDebug(DEBUG_PROGRAM_ERROR, "Negotiation", DC_NEGOTIATING,
+               "they included wrong number of Time Descriptions. Should be detected earlier.");
+    return false;
+  }
+
 
   return hasOpus && hasH265;
 }
@@ -369,18 +614,18 @@ void Negotiation::setICEPorts(uint32_t sessionID)
 }
 
 
-bool Negotiation::checkSessionValidity(uint32_t sessionID, bool remotePresent) const
+bool Negotiation::checkSessionValidity(uint32_t sessionID, bool checkRemote) const
 {
   Q_ASSERT(sessionID);
 
   Q_ASSERT(sdps_.find(sessionID) != sdps_.end());
   Q_ASSERT(sdps_.at(sessionID).first != nullptr);
-  Q_ASSERT(sdps_.at(sessionID).second != nullptr || !remotePresent);
+  Q_ASSERT(sdps_.at(sessionID).second != nullptr || !checkRemote);
 
   if(sessionID == 0 ||
      sdps_.find(sessionID) == sdps_.end() ||
      sdps_.at(sessionID).first == nullptr ||
-     (sdps_.at(sessionID).second == nullptr && remotePresent))
+     (sdps_.at(sessionID).second == nullptr && checkRemote))
   {
     printDebug(DEBUG_PROGRAM_ERROR, "GlobalSDPState", DC_NEGOTIATING,
                "Attempting to use GlobalSDPState without setting SessionID correctly",

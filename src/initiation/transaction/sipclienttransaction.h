@@ -10,6 +10,7 @@
 // see RFC 3261 for more details.
 
 class SIPTransactionUser;
+class SIPDialogState;
 
 class SIPClientTransaction : public QObject
 {
@@ -32,7 +33,8 @@ public:
 
   // processes incoming response. Part of our client transaction
   // returns whether we should destroy the dialog
-  virtual bool processResponse(SIPResponse& response) = 0;
+  virtual bool processResponse(SIPResponse& response,
+                               std::shared_ptr<SIPDialogState> state) = 0;
 
   // Not implemented. Should be used to notify transaction that there was an error with response.
   void wrongResponseDestination();
@@ -44,7 +46,7 @@ public:
 protected:
 
   // timeout is in milliseconds. Used for request timeout
-  void startTimeoutTimer(int timeout = 2000)
+  void startTimeoutTimer(int timeout = 20000)
   {
     requestTimer_.start(timeout);
   }

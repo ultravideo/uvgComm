@@ -11,6 +11,7 @@ class StatisticsInterface;
 class AudioOutput;
 class Filter;
 
+typedef std::vector<std::shared_ptr<Filter>> GraphSegment;
 
 class FilterGraph
 {
@@ -45,7 +46,7 @@ private:
   // adds fitler to graph and connects it to connectIndex unless this is the first filter in graph.
   // adds format conversion if needed.
   bool addToGraph(std::shared_ptr<Filter> filter,
-                  std::vector<std::shared_ptr<Filter>>& graph,
+                  GraphSegment& graph,
                   unsigned int connectIndex = 0);
 
   // connects the two filters and checks for any problems
@@ -65,11 +66,14 @@ private:
 
   struct Peer
   {
-    std::shared_ptr<Filter> audioFramedSource; // sends audio
-    std::shared_ptr<Filter> videoFramedSource; // sends video
+    // Arrays of filters which send media, but are not connected to each other.
+    std::vector<std::shared_ptr<Filter>> audioSenders; // sends audio
+    std::vector<std::shared_ptr<Filter>> videoSenders; // sends video
 
-    std::vector<std::shared_ptr<Filter>> videoReceive;
-    std::vector<std::shared_ptr<Filter>> audioReceive;
+    // Arrays of filters which receive media.
+    // Each graphsegment receives one mediastream.
+    std::vector<std::shared_ptr<GraphSegment>> videoReceivers;
+    std::vector<std::shared_ptr<GraphSegment>> audioReceivers;
 
     AudioOutput* output; // plays audio coming from this peer
   };
@@ -81,10 +85,11 @@ private:
 
 
   // id is also the index of the Peer in this vector
+  // TODO: Change this to map
   std::vector<Peer*> peers_;
 
-  std::vector<std::shared_ptr<Filter>> videoSend_;
-  std::vector<std::shared_ptr<Filter>> audioSend_;
+  GraphSegment videoProcessing_;
+  GraphSegment audioProcessing_;
 
   VideoInterface *selfView_;
 

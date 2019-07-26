@@ -34,11 +34,19 @@ void SIPTransactions::uninit()
   //TODO: delete all dialogs
   for(auto i = dialogs_.begin(); i != dialogs_.end(); ++i)
   {
-    destroyDialog(i.key());
+    destroyDialog(i->first);
   }
 
   dialogs_.clear();
   nextSessionID_ = FIRSTSESSIONID;
+}
+
+
+// reserve sessionID for a future call
+uint32_t SIPTransactions::reserveSessionID()
+{
+  ++nextSessionID_;
+  return nextSessionID_ - 1;
 }
 
 
@@ -83,6 +91,24 @@ void SIPTransactions::startProxyCall(Contact& address, QHostAddress localAddress
   printDebug(DEBUG_ERROR, this, DC_START_CALL,
              "Proxy calling has not been yet implemented");
 }
+
+
+void SIPTransactions::renegotiateCall(uint32_t sessionID)
+{
+  printDebug(DEBUG_NORMAL, "SIP Transactions", DC_NEGOTIATING,
+             "Start the process of sending a re-INVITE");
+
+  dialogs_[sessionID]->client->renegotiateCall();
+}
+
+
+void SIPTransactions::renegotiateAllCalls()
+{
+  for (auto dialog : dialogs_) {
+    renegotiateCall(dialog.first);
+  }
+}
+
 
 void SIPTransactions::startPeerToPeerCall(uint32_t sessionID,
                                           QHostAddress localAddress, Contact &remote)
@@ -200,37 +226,40 @@ void SIPTransactions::endAllCalls()
 {
   for(auto dialog : dialogs_)
   {
-    if(dialog != nullptr)
+    if(dialog.second != nullptr)
     {
-      dialog->client->endCall();
+      dialog.second->client->endCall();
     }
   }
 
   for(auto i = dialogs_.begin(); i != dialogs_.end(); ++i)
   {
-    destroyDialog(i.key());
+    destroyDialog(i->first);
   }
   dialogs_.clear();
   nextSessionID_ = FIRSTSESSIONID;
 }
 
 
-bool SIPTransactions::identifySession(SIPRequest request, QHostAddress localAddress,
+bool SIPTransactions::identifySession(SIPRequest request,
+                                      QHostAddress localAddress,
                                       uint32_t& out_sessionID)
 {
-  qDebug() << "Starting to process identifying SIP Request session:" << request.type;
+  qDebug() << "Starting to process identifying SIP Request session for type:"
+           << request.type;
 
   out_sessionID = 0;
 
   dialogMutex_.lock();
   for (auto i = dialogs_.begin(); i != dialogs_.end(); ++i)
   {
-    if(i.value() != nullptr &&
-       i.value()->state->correctRequestDialog(request.message->dialog,
-                                              request.type, request.message->cSeq))
+    if(i->second != nullptr &&
+       i->second->state->correctRequestDialog(request.message->dialog,
+                                              request.type,
+                                              request.message->cSeq))
     {
       qDebug() << "Found dialog matching for incoming request.";
-      out_sessionID = i.key();
+      out_sessionID = i->first;
     }
   }
   dialogMutex_.unlock();
@@ -243,7 +272,8 @@ bool SIPTransactions::identifySession(SIPRequest request, QHostAddress localAddr
   {
     qDebug() << "Could not find the dialog of the request.";
 
-    // TODO: there is a problem if the sequence number did not match and the request type is INVITE
+    // TODO: there is a problem if the sequence number did not match
+    // and the request type is INVITE
     if(request.type == SIP_INVITE)
     {
       qDebug() << "Someone is trying to start a SIP dialog with us!";
@@ -265,20 +295,21 @@ bool SIPTransactions::identifySession(SIPResponse response, uint32_t& out_sessio
   // find the dialog which corresponds to the callID and tags received in response
   for (auto i = dialogs_.begin(); i != dialogs_.end(); ++i)
   {
-    if(i.value() != nullptr &&
-       i.value()->state->correctResponseDialog(response.message->dialog,
+    if(i->second != nullptr &&
+       i->second->state->correctResponseDialog(response.message->dialog,
                                                response.message->cSeq))
     {
       // TODO: we should check that every single detail is as specified in rfc.
-      if(i.value()->client->waitingResponse(response.message->transactionRequest))
+      if(i->second->client->waitingResponse(response.message->transactionRequest))
       {
         qDebug() << "Found dialog matching the response";
-        out_sessionID = i.key();
+        out_sessionID = i->first;
         break;
       }
       else
       {
-        qDebug() << "PEER_ERROR: Found the dialog, but we have not sent a request to their response.";
+        qDebug() << "PEER_ERROR: Found the dialog, "
+                    "but we have not sent a request to their response.";
         return false;
       }
     }
@@ -291,7 +322,7 @@ bool SIPTransactions::identifySession(SIPResponse response, uint32_t& out_sessio
 void SIPTransactions::processSIPRequest(SIPRequest request, uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
-  qDebug() << "Starting to process received SIP Request:" << request.type;
+  qDebug() << "Starting to process received SIP Request type:" << request.type;
 
   dialogMutex_.lock();
 
@@ -303,8 +334,7 @@ void SIPTransactions::processSIPRequest(SIPRequest request, uint32_t sessionID)
   // check correct initialization
   Q_ASSERT(foundDialog->state);
 
-
-  if(!foundDialog->server->processRequest(request))
+  if(!foundDialog->server->processRequest(request, foundDialog->state))
   {
     qDebug() << "Ending session because server Transaction said to.";
 
@@ -336,12 +366,13 @@ void SIPTransactions::processSIPResponse(SIPResponse response, uint32_t sessionI
   // TODO: if our request was INVITE and response is 2xx or 101-199, create dialog
   // TODO: prechecks that the response is ok, then modify program state.
 
-  if(!dialogs_[sessionID]->client->processResponse(response))
+  if(!dialogs_[sessionID]->client->processResponse(response, dialogs_[sessionID]->state))
   {
     // destroy dialog
     destroyDialog(sessionID);
     removeDialog(sessionID);
   }
+
   qDebug() << "Response processing finished:" << response.type << "Dialog:" << sessionID;
 }
 
@@ -356,8 +387,11 @@ void SIPTransactions::sendDialogRequest(uint32_t sessionID, RequestType type)
   request.type = type;
 
   // if this is the session creation INVITE. Proxy sessions should be created earlier.
-  if(request.type == SIP_INVITE && !dialogs_[sessionID]->proxyConnection_)
+  if(request.type == SIP_INVITE && !dialogs_[sessionID]->proxyConnection_
+     && !dialogs_[sessionID]->state->getState())
   {
+    printDebug(DEBUG_NORMAL, this, DC_SEND_SIP_REQUEST,
+               "Setting peer hostname before sending an INVITE.");
     dialogs_[sessionID]->state->setPeerToPeerHostname(dialogs_[sessionID]->localAddress.toString());
   }
 
@@ -370,7 +404,6 @@ void SIPTransactions::sendDialogRequest(uint32_t sessionID, RequestType type)
 
   Q_ASSERT(request.message != nullptr);
   Q_ASSERT(request.message->dialog != nullptr);
-
 
 
   emit transportRequest(sessionID, request);
@@ -410,7 +443,8 @@ void SIPTransactions::sendNonDialogRequest(SIP_URI& uri, RequestType type)
   }
 }
 
-void SIPTransactions::sendResponse(uint32_t sessionID, ResponseType type, RequestType originalRequest)
+
+void SIPTransactions::sendResponse(uint32_t sessionID, ResponseType type)
 {
   qDebug() << "---- Iniated sending of a response:" << type << "----";
   Q_ASSERT(sessionID != 0 && dialogs_.find(sessionID) != dialogs_.end());
@@ -419,11 +453,11 @@ void SIPTransactions::sendResponse(uint32_t sessionID, ResponseType type, Reques
   SIPResponse response;
   response.type = type;
   dialogs_[sessionID]->server->getResponseMessage(response.message, type);
-  response.message->transactionRequest = originalRequest;
 
   emit transportResponse(sessionID, response);
   qDebug() << "---- Finished sending of a response ---";
 }
+
 
 void SIPTransactions::destroyDialog(uint32_t sessionID)
 {
@@ -439,7 +473,8 @@ void SIPTransactions::destroyDialog(uint32_t sessionID)
                "Bad sessionID for destruction.");
     return;
   }
-  qDebug() << "Destroying dialog:";
+  printDebug(DEBUG_NORMAL, this, DC_END_CALL, "Destroying SIP dialog",
+                {"SessionID"}, {QString::number(sessionID)});
 
   dialog->state.reset();
   dialog->server.reset();

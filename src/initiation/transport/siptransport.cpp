@@ -342,10 +342,11 @@ void SIPTransport::parsePackage(QString package, QString& header, QString& body)
       header = package.left(headerEndIndex);
       body = package.mid(headerEndIndex, valueInt);
 
-      qDebug() << "\r\n" << "Whole SIP message received ----------- ";
+      qDebug().noquote() << "\r\n";
+      qDebug().noquote() << "Whole SIP message received ----------- " << "\r\n";
       qDebug().noquote() << "Header:" << header;
       qDebug().noquote() << "Content:" << body;
-      qDebug() << "Left overs:" << partialMessage_ << "\r\n";
+      qDebug().noquote() << "Left overs:" << partialMessage_ << "\r\n";
     }
   }
   else
@@ -371,6 +372,7 @@ bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPF
   // RFC3261_TODO: Support comma(,) separated header fields. (expect for some field types)
 
   // parse lines to fields.
+  QStringList debugLineNames = {};
   for(int i = 1; i < lines.size(); ++i)
   {
     QStringList parameters = lines.at(i).split(";", QString::SkipEmptyParts);
@@ -385,7 +387,7 @@ bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPF
       // RFC3261_TODO: Uniformalize case formatting. Make everything big or small case expect quotes.
 
       SIPField field = {field_match.captured(1),field_match.captured(2),nullptr};
-      qDebug() << "Found field: " << field.name;
+      debugLineNames << field.name;
       if(parameters.size() > 1)
       {
         for(int j = 1; j < parameters.size(); ++j)
@@ -413,6 +415,8 @@ bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPF
       qDebug() << "Failed to parse line:" << lines.at(i) << "Matches:" << field_match.lastCapturedIndex();
     }
   }
+
+  qDebug() << "Found following SIP fields:" << debugLineNames;
 
   // check that all required header lines are present
   if(!isLinePresent("To", fields)
@@ -583,7 +587,8 @@ QString SIPTransport::addContent(QList<SIPField>& fields, bool haveContent, cons
   if(haveContent)
   {
     sdp_str = composeSDPContent(sdp);
-    if(!includeContentLengthField(fields, sdp_str.length()) ||
+    if(sdp_str == "" ||
+       !includeContentLengthField(fields, sdp_str.length()) ||
        !includeContentTypeField(fields, "application/sdp"))
     {
       qDebug() << "WARNING: Could not add sdp fields to request";

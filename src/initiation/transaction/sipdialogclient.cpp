@@ -1,6 +1,7 @@
 #include "sipdialogclient.h"
 
 #include "initiation/siptransactionuser.h"
+#include "initiation/transaction/sipdialogstate.h"
 
 #include "common.h"
 
@@ -20,7 +21,8 @@ void SIPDialogClient::setSessionID(uint32_t sessionID)
 }
 
 //processes incoming response
-bool SIPDialogClient::processResponse(SIPResponse &response)
+bool SIPDialogClient::processResponse(SIPResponse& response,
+                                      std::shared_ptr<SIPDialogState> state)
 {
   Q_ASSERT(sessionID_ != 0);
 
@@ -38,17 +40,25 @@ bool SIPDialogClient::processResponse(SIPResponse &response)
   {
     if(responseCode == SIP_RINGING)
     {
-      qDebug() << "Got provisional response. Restarting timer.";
-      startTimeoutTimer(INVITE_TIMEOUT);
-      getTransactionUser()->callRinging(sessionID_);
+      if (!state->getState())
+      {
+        qDebug() << "Got provisional response. Restarting timer.";
+        startTimeoutTimer(INVITE_TIMEOUT);
+        getTransactionUser()->callRinging(sessionID_);
+      }
       return true;
     }
     else if(responseCode == SIP_OK)
     {
       qDebug() << "Got response. Stopping timout.";
       stopTimeoutTimer();
-      getTransactionUser()->peerAccepted(sessionID_);
+
+      if (!state->getState())
+      {
+        getTransactionUser()->peerAccepted(sessionID_);
+      }
       sendRequest(SIP_ACK);
+      state->setState(true);
       getTransactionUser()->callNegotiated(sessionID_);
       return true;
     }
@@ -120,6 +130,10 @@ void SIPDialogClient::cancelCall()
   sendRequest(SIP_CANCEL);
 }
 
+void SIPDialogClient::renegotiateCall()
+{
+  sendRequest(SIP_INVITE);
+}
 
 void SIPDialogClient::processTimeout()
 {

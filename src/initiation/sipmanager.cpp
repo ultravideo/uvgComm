@@ -11,7 +11,8 @@ SIPManager::SIPManager():
   transports_(),
   nextTransportID_(FIRSTTRANSPORTID),
   transactions_(),
-  negotiation_()
+  negotiation_(),
+  state_(INDIVIDUAL)
 {}
 
 
@@ -88,6 +89,7 @@ void SIPManager::bindToServer()
 
 uint32_t SIPManager::startCall(Contact& address)
 {
+  state_ = INDIVIDUAL;
   quint32 transportID = 0;
   uint32_t sessionID = transactions_.reserveSessionID();
 
@@ -157,13 +159,34 @@ void SIPManager::endAllCalls()
 }
 
 
+void SIPManager::negotiateReceivePorts()
+{
+  state_ = RECEIVE_PORTS;
+  transactions_.renegotiateAllCalls();
+}
+
+
+void SIPManager::negotiateConference()
+{
+  state_ = WHOLE_CONFERENCE;
+  transactions_.renegotiateAllCalls();
+}
+
+
 void SIPManager::getSDPs(uint32_t sessionID,
              std::shared_ptr<SDPMessageInfo>& localSDP,
              std::shared_ptr<SDPMessageInfo>& remoteSDP) const
 {
   Q_ASSERT(sessionID);
   localSDP = negotiation_.getLocalSDP(sessionID);
-  remoteSDP = negotiation_.getRemoteSDP(sessionID);
+
+  if (state_ == WHOLE_CONFERENCE)
+  {
+    remoteSDP = negotiation_.getRemoteConferenceSDP(sessionID);
+  }
+  else {
+    remoteSDP = negotiation_.getRemoteSDP(sessionID);
+  }
 }
 
 
@@ -390,14 +413,14 @@ std::shared_ptr<SIPTransport> SIPManager::createSIPTransport()
 }
 
 
-bool SIPManager::isConnected(QString remoteAddress, quint32& transportID)
+bool SIPManager::isConnected(QString remoteAddress, quint32& outTransportID)
 {
   for(auto transport : transports_)
   {
     if(transport != nullptr &&
        transport->getRemoteAddress().toString() == remoteAddress)
     {
-      transportID = transport->getTransportID();
+      outTransportID = transport->getTransportID();
       return true;
     }
   }
@@ -408,17 +431,46 @@ bool SIPManager::isConnected(QString remoteAddress, quint32& transportID)
 bool SIPManager::SDPOfferToContent(QVariant& content, QHostAddress localAddress,
                                    uint32_t sessionID)
 {
-  SDPMessageInfo sdp;
-
-  if(!negotiation_.generateOfferSDP(localAddress, sessionID))
+  std::shared_ptr<SDPMessageInfo> pointer;
+  switch (state_)
   {
-    qDebug() << "Failed to generate SDP Suggestion while sending: "
-                "Possibly because we ran out of ports to assign";
-    return false;
+    case INDIVIDUAL:
+    {
+      printDebug(DEBUG_NORMAL, this, DC_NEGOTIATING, "Adding one-to-one SDP.");
+      if(!negotiation_.generateOfferSDP(localAddress, sessionID))
+      {
+        qDebug() << "Failed to generate first SDP offer while sending.";
+        return false;
+      }
+       pointer = negotiation_.getLocalSDP(sessionID);
+      break;
+    }
+    case RECEIVE_PORTS:
+    {
+      printDebug(DEBUG_NORMAL, this, DC_NEGOTIATING, "Adding conferencing receive SDP.");
+      if(!negotiation_.initialConferenceOfferSDP(sessionID))
+      {
+        qDebug() << "Failed to generate initial conference SDP offer while sending.";
+        return false;
+      }
+      pointer = negotiation_.getInitialConferenceOffer(sessionID);
+      break;
+    }
+    case WHOLE_CONFERENCE:
+    {
+      printDebug(DEBUG_NORMAL, this, DC_NEGOTIATING, "Adding conferencing final SDP.");
+      if(!negotiation_.finalConferenceOfferSDP(sessionID))
+      {
+        qDebug() << "Failed to generate final conference SDP offer while sending.";
+        return false;
+      }
+      pointer = negotiation_.getFinalConferenceOffer(sessionID);
+      break;
+    }
   }
+  Q_ASSERT(pointer != nullptr);
 
-  std::shared_ptr<SDPMessageInfo> pointer = negotiation_.getLocalSDP(sessionID);
-  sdp = *pointer;
+  SDPMessageInfo sdp = *pointer;
   content.setValue(sdp);
   return true;
 }
@@ -462,7 +514,8 @@ bool SIPManager::processAnswerSDP(uint32_t sessionID, QVariant &content)
   if (!content.isValid())
   {
     printDebug(DEBUG_PROGRAM_ERROR, this, DC_NEGOTIATING,
-               "SDP not valid when processing. Should be detected earlier.");
+               "Content is not valid when processing SDP. "
+               "Should be detected earlier.");
     return false;
   }
 
