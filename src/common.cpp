@@ -152,7 +152,7 @@ void printDebug(DebugType type, QString className, DebugContext context,
     printing << beginString << description;
     if (!valueString.isEmpty())
     {
-      printing << "\r\n" << valueString;
+      printing << "\r\n" << valueString << "\r\n";
     }
     break;
   }

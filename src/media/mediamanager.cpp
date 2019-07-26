@@ -8,7 +8,6 @@
 
 #include <QHostAddress>
 #include <QtEndian>
-#include <QDebug>
 #include <QSettings>
 
 #include "media/delivery/kvzrtp/kvzrtp.h"
@@ -31,8 +30,7 @@ MediaManager::~MediaManager()
 
 void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory, StatisticsInterface *stats)
 {
-
-  qDebug() << "Iniating: Media manager";
+  printDebug(DEBUG_NORMAL, this, DC_STARTUP, "Initiating");
   viewfactory_ = viewfactory;
 
   stats_ = stats;
@@ -41,7 +39,7 @@ void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory, Statistic
 
 void MediaManager::uninit()
 {
-  qDebug() << "Closing," << metaObject()->className();
+  printDebug(DEBUG_NORMAL, this, DC_SHUTDOWN, "Closing");
   // first filter graph, then streamer because of the rtpfilters
   fg_->running(false);
   fg_->uninit();
@@ -101,6 +99,8 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
     return;
   }
 
+  printDebug(DEBUG_NORMAL, this, DC_STARTUP, "Start creating media.", {"Outgoing media", "Incoming media"},
+            {QString::number(peerInfo->media.size()), QString::number(localInfo->media.size())});
 
   // create each agreed media stream
   for(auto media : peerInfo->media)
@@ -125,7 +125,7 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID, const MediaInfo& remo
   transportAttributes(remoteMedia.flagAttributes, send, recv);
 
   // if they want to receive
-  if(recv)
+  if(recv && remoteMedia.receivePort != 0)
   {
     Q_ASSERT(remoteMedia.receivePort);
     Q_ASSERT(!remoteMedia.rtpNums.empty());
@@ -137,8 +137,11 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID, const MediaInfo& remo
       QHostAddress address =  QHostAddress(globalAddress);
       if (remoteMedia.connection_address != "")
       {
-        printDebug(DEBUG_NORMAL, "Media Manager", DC_ADD_MEDIA, "Using media specific address");
+        printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Using media specific address.", {"Address"}, {address.toString()});
         address.setAddress(remoteMedia.connection_address);
+      }
+      else {
+        printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Using global address.", {"Address"}, {address.toString()});
       }
 
       std::shared_ptr<Filter> framedSource = streamer_->addSendStream(sessionID, address, remoteMedia.receivePort,
@@ -194,7 +197,14 @@ void MediaManager::createIncomingMedia(uint32_t sessionID, const MediaInfo &loca
       QHostAddress address =  QHostAddress(globalAddress);
       if (localMedia.connection_address != "")
       {
+        printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Using media specific address for incoming.",
+                  {"Type", "Address"}, {localMedia.type, address.toString()});
         address.setAddress(localMedia.connection_address);
+      }
+      else
+      {
+        printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Using global address for incoming.",
+                   {"Type", "Address"}, {localMedia.type, address.toString()});
       }
 
       std::shared_ptr<Filter> rtpSink = streamer_->addReceiveStream(sessionID, address, localMedia.receivePort,
@@ -232,7 +242,8 @@ void MediaManager::removeParticipant(uint32_t sessionID)
   fg_->camera(camera_); // if the last participant was destroyed, restore camera state
   fg_->mic(mic_);
   streamer_->removePeer(sessionID);
-  qDebug() << "Session " << sessionID << " media removed.";
+  printDebug(DEBUG_NORMAL, "Media Manager", DC_REMOVE_MEDIA, "Session media removed",
+            {"SessionID"}, {QString::number(sessionID)});
 }
 
 void MediaManager::endAllCalls()
