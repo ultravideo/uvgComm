@@ -66,7 +66,7 @@ void KvzRTPSender::updateSettings()
       removeStartCodes_ = true;
     }
 
-    printDebug(DEBUG_NORMAL, this, DC_MEDIA, "Updated buffersize", {"Size"}, {QString::number(maxbufferSize_)})
+    printDebug(DEBUG_NORMAL, this, DC_PROCESS_MEDIA, "Updated buffersize", {"Size"}, {QString::number(maxBufferSize_)});
   }
 }
 
