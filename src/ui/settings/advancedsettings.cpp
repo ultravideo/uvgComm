@@ -132,6 +132,7 @@ void AdvancedSettings::saveAdvancedSettings()
   saveCheckBox("sip/AutoConnect", advancedUI_->autoConnect, settings_);
   saveCheckBox("sip/ice", advancedUI_->ice, settings_);
   saveCheckBox("sip/conference", advancedUI_->conference, settings_);
+  saveCheckBox("sip/kvzRTP", advancedUI_->kvzRTP, settings_);
 }
 
 
@@ -146,6 +147,7 @@ void AdvancedSettings::restoreAdvancedSettings()
     restoreCheckBox("sip/AutoConnect", advancedUI_->autoConnect, settings_);
     restoreCheckBox("sip/ice", advancedUI_->ice, settings_);
     restoreCheckBox("sip/conference", advancedUI_->conference, settings_);
+    restoreCheckBox("sip/kvzrtp", advancedUI_->kvzRTP, settings_);
     advancedUI_->serverAddress->setText(settings_.value("sip/ServerAddress").toString());
   }
   else

@@ -9,7 +9,7 @@
 #include <QHostAddress>
 #include <QtEndian>
 #include <QDebug>
-
+#include <QSettings>
 
 #include "media/delivery/kvzrtp/kvzrtp.h"
 #include "media/delivery/live555/rtpstreamer.h"
@@ -18,7 +18,7 @@ MediaManager::MediaManager():
   stats_(nullptr),
   fg_(new FilterGraph()),
   session_(nullptr),
-  streamer_(),
+  streamer_(nullptr),
   mic_(true),
   camera_(true)
 {}
@@ -32,12 +32,9 @@ MediaManager::~MediaManager()
 void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory, StatisticsInterface *stats)
 {
 
-  streamer_ = std::unique_ptr<IRTPStreamer> (new Live555RTP());
-
   qDebug() << "Iniating: Media manager";
   viewfactory_ = viewfactory;
-  streamer_->init(stats);
-  streamer_->start();
+
   stats_ = stats;
   fg_->init(viewfactory_->getVideo(0, 0), stats); // 0 is the selfview index. The view should be created by GUI
 }
@@ -70,6 +67,24 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
   {
     printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "Nonzero start-time not supported!");
     return;
+  }
+
+  if (streamer_ == nullptr)
+  {
+    QSettings settings("kvazzup.ini", QSettings::IniFormat);
+    int kvzrtp = settings.value("sip/kvzrtp").toInt();
+
+    if (kvzrtp == 1)
+    {
+      streamer_ = std::unique_ptr<IRTPStreamer> (new KvzRTP());
+    }
+    else
+    {
+      streamer_ = std::unique_ptr<IRTPStreamer> (new Live555RTP());
+    }
+
+    streamer_->init(stats_);
+    streamer_->start();
   }
 
   if(peerInfo->connection_nettype == "IN")
