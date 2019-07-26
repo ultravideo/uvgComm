@@ -2,7 +2,7 @@
 #include <cstdio>
 
 #include "statisticsinterface.h"
-#include "rtpsinkfilter.h"
+#include "kvzrtpreceiver.h"
 #include "common.h"
 
 const uint32_t BUFFER_SIZE = 10 * 65536;
@@ -14,11 +14,11 @@ static void __receiveHook(void *arg, kvz_rtp::frame::rtp_frame *frame)
 {
   if (arg && frame)
   {
-    static_cast<RTPSinkFilter *>(arg)->receiveHook(frame);
+    static_cast<KvzRTPReceiver *>(arg)->receiveHook(frame);
   }
 }
 
-RTPSinkFilter::RTPSinkFilter(QString id, StatisticsInterface *stats, DataType type,
+KvzRTPReceiver::KvzRTPReceiver(QString id, StatisticsInterface *stats, DataType type,
                              QString media, kvz_rtp::reader *reader):
   Filter(id, "RTP_Sink_" + media, stats, NONE, type),
   type_(type),
@@ -31,19 +31,19 @@ RTPSinkFilter::RTPSinkFilter(QString id, StatisticsInterface *stats, DataType ty
   reader_->install_recv_hook(this, __receiveHook);
 }
 
-RTPSinkFilter::~RTPSinkFilter()
+KvzRTPReceiver::~KvzRTPReceiver()
 {
 }
 
-void RTPSinkFilter::process()
+void KvzRTPReceiver::process()
 {
 }
 
-void RTPSinkFilter::start()
+void KvzRTPReceiver::start()
 {
 }
 
-void RTPSinkFilter::receiveHook(kvz_rtp::frame::rtp_frame *frame)
+void KvzRTPReceiver::receiveHook(kvz_rtp::frame::rtp_frame *frame)
 {
   /* TODO: payload len? */
   getStats()->addReceivePacket(frame->payload_len);

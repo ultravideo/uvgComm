@@ -1,8 +1,8 @@
 #include "media/delivery/irtpstreamer.h"
-#include "media/delivery/kvzrtp/rtpstreamer.h"
-#include "rtpstreamer.h"
-#include "framedsourcefilter.h"
-#include "rtpsinkfilter.h"
+#include "media/delivery/kvzrtp/kvzrtp.h"
+#include "kvzrtp.h"
+#include "kvzrtpsender.h"
+#include "kvzrtpreceiver.h"
 #include "common.h"
 
 #include <QtEndian>
@@ -13,33 +13,29 @@
 
 #include <iostream>
 
-IRTPStreamer::~IRTPStreamer()
-{
-}
-
-RTPStreamer::RTPStreamer():
+KvzRTP::KvzRTP():
   rtp_ctx_(),
   isIniated_(false)
 {
 }
 
-RTPStreamer::~RTPStreamer()
+KvzRTP::~KvzRTP()
 {
 }
 
-void RTPStreamer::init(StatisticsInterface *stats)
+void KvzRTP::init(StatisticsInterface *stats)
 {
   stats_ = stats;
   isIniated_ = true;
 }
 
-void RTPStreamer::uninit()
+void KvzRTP::uninit()
 {
   removeAllPeers();
   isIniated_ = false;
 }
 
-void RTPStreamer::run()
+void KvzRTP::run()
 {
   if (!isIniated_)
   {
@@ -47,12 +43,12 @@ void RTPStreamer::run()
   }
 }
 
-void RTPStreamer::stop()
+void KvzRTP::stop()
 {
   isRunning_ = false;
 }
 
-bool RTPStreamer::addPeer(uint32_t sessionID, QHostAddress video_ip, QHostAddress audio_ip)
+bool KvzRTP::addPeer(uint32_t sessionID, QHostAddress video_ip, QHostAddress audio_ip)
 {
   Q_ASSERT(sessionID != 0);
 
@@ -109,12 +105,12 @@ bool RTPStreamer::addPeer(uint32_t sessionID, QHostAddress video_ip, QHostAddres
   return false;
 }
 
-std::shared_ptr<Filter> RTPStreamer::addSendStream(uint32_t peer, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum)
+std::shared_ptr<Filter> KvzRTP::addSendStream(uint32_t peer, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum)
 {
   Q_ASSERT(checkSessionID(peer));
   Q_UNUSED(peer);
 
-  RTPStreamer::Sender *sender = addSender(ip, port, typeFromString(codec), rtpNum);
+  KvzRTP::Sender *sender = addSender(ip, port, typeFromString(codec), rtpNum);
 
   if (sender == nullptr)
   {
@@ -125,12 +121,12 @@ std::shared_ptr<Filter> RTPStreamer::addSendStream(uint32_t peer, QHostAddress i
   return sender->sourcefilter;
 }
 
-std::shared_ptr<Filter> RTPStreamer::addReceiveStream(uint32_t peer, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum)
+std::shared_ptr<Filter> KvzRTP::addReceiveStream(uint32_t peer, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum)
 {
   Q_ASSERT(checkSessionID(peer));
   Q_UNUSED(peer);
 
-  RTPStreamer::Receiver *receiver = addReceiver(ip, port, typeFromString(codec), rtpNum);
+  KvzRTP::Receiver *receiver = addReceiver(ip, port, typeFromString(codec), rtpNum);
 
   if (receiver == nullptr)
   {
@@ -141,7 +137,7 @@ std::shared_ptr<Filter> RTPStreamer::addReceiveStream(uint32_t peer, QHostAddres
   return receiver->sink;
 }
 
-std::shared_ptr<Filter> RTPStreamer::addSendStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum)
+std::shared_ptr<Filter> KvzRTP::addSendStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum)
 {
   Q_ASSERT(checkSessionID(peer));
 
@@ -171,7 +167,7 @@ std::shared_ptr<Filter> RTPStreamer::addSendStream(uint32_t peer, uint16_t port,
   return nullptr;
 }
 
-std::shared_ptr<Filter> RTPStreamer::addReceiveStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum)
+std::shared_ptr<Filter> KvzRTP::addReceiveStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum)
 {
   Q_ASSERT(checkSessionID(peer));
 
@@ -201,7 +197,7 @@ std::shared_ptr<Filter> RTPStreamer::addReceiveStream(uint32_t peer, uint16_t po
   return nullptr;
 }
 
-void RTPStreamer::removeSendVideo(uint32_t sessionID)
+void KvzRTP::removeSendVideo(uint32_t sessionID)
 {
   if (peers_.at(sessionID - 1) && peers_.at(sessionID)->videoSender)
   {
@@ -214,7 +210,7 @@ void RTPStreamer::removeSendVideo(uint32_t sessionID)
   }
 }
 
-void RTPStreamer::removeSendAudio(uint32_t sessionID)
+void KvzRTP::removeSendAudio(uint32_t sessionID)
 {
   if (peers_.at(sessionID - 1) && peers_.at(sessionID)->audioSender)
   {
@@ -227,7 +223,7 @@ void RTPStreamer::removeSendAudio(uint32_t sessionID)
   }
 }
 
-void RTPStreamer::removeReceiveVideo(uint32_t sessionID)
+void KvzRTP::removeReceiveVideo(uint32_t sessionID)
 {
   if (peers_.at(sessionID - 1) && peers_.at(sessionID)->videoReceiver)
   {
@@ -240,7 +236,7 @@ void RTPStreamer::removeReceiveVideo(uint32_t sessionID)
   }
 }
 
-void RTPStreamer::removeReceiveAudio(uint32_t sessionID)
+void KvzRTP::removeReceiveAudio(uint32_t sessionID)
 {
   if (peers_.at(sessionID - 1) && peers_.at(sessionID)->audioReceiver)
   {
@@ -253,7 +249,7 @@ void RTPStreamer::removeReceiveAudio(uint32_t sessionID)
   }
 }
 
-void RTPStreamer::removePeer(uint32_t sessionID)
+void KvzRTP::removePeer(uint32_t sessionID)
 {
   qDebug() << "Removing peer" << sessionID << "from RTPStreamer";
 
@@ -281,7 +277,7 @@ void RTPStreamer::removePeer(uint32_t sessionID)
   }
 }
 
-void RTPStreamer::removeAllPeers()
+void KvzRTP::removeAllPeers()
 {
   for (int i = 0; i < peers_.size(); ++i)
   {
@@ -292,7 +288,7 @@ void RTPStreamer::removeAllPeers()
   }
 }
 
-void RTPStreamer::destroySender(Sender *sender)
+void KvzRTP::destroySender(Sender *sender)
 {
   Q_ASSERT(sender);
 
@@ -312,7 +308,7 @@ void RTPStreamer::destroySender(Sender *sender)
     printDebug(DEBUG_WARNING, this, DC_REMOVE_MEDIA, "Tried to delete sender a second time");
   }
 }
-void RTPStreamer::destroyReceiver(Receiver *recv)
+void KvzRTP::destroyReceiver(Receiver *recv)
 {
   Q_ASSERT(recv);
 
@@ -333,12 +329,12 @@ void RTPStreamer::destroyReceiver(Receiver *recv)
   }
 }
 
-bool RTPStreamer::checkSessionID(uint32_t sessionID)
+bool KvzRTP::checkSessionID(uint32_t sessionID)
 {
   return (uint32_t)peers_.size() >= sessionID && peers_.at(sessionID - 1) != nullptr;
 }
 
-RTPStreamer::Sender *RTPStreamer::addSender(QHostAddress ip, uint16_t port, rtp_format_t type, uint8_t rtpNum)
+KvzRTP::Sender *KvzRTP::addSender(QHostAddress ip, uint16_t port, rtp_format_t type, uint8_t rtpNum)
 {
   qDebug() << "Iniating send RTP/RTCP stream to port:" << port << "With type:" << type;
 
@@ -384,8 +380,8 @@ RTPStreamer::Sender *RTPStreamer::addSender(QHostAddress ip, uint16_t port, rtp_
       break;
   }
 
-  sender->sourcefilter = std::shared_ptr<FramedSourceFilter>(
-      new FramedSourceFilter(
+  sender->sourcefilter = std::shared_ptr<KvzRTPSender>(
+      new KvzRTPSender(
         ip.toString() + "_",
         stats_,
         realType,
@@ -397,7 +393,7 @@ RTPStreamer::Sender *RTPStreamer::addSender(QHostAddress ip, uint16_t port, rtp_
   return sender;
 }
 
-RTPStreamer::Receiver *RTPStreamer::addReceiver(QHostAddress ip, uint16_t port, rtp_format_t type, uint8_t rtpNum)
+KvzRTP::Receiver *KvzRTP::addReceiver(QHostAddress ip, uint16_t port, rtp_format_t type, uint8_t rtpNum)
 {
   qDebug() << "Iniating send RTP/RTCP stream to port:" << port << "With type:" << type;
 
@@ -434,8 +430,8 @@ RTPStreamer::Receiver *RTPStreamer::addReceiver(QHostAddress ip, uint16_t port, 
   }
 
   // shared_ptr which does not release
-  receiver->sink = std::shared_ptr<RTPSinkFilter>(
-      new RTPSinkFilter(
+  receiver->sink = std::shared_ptr<KvzRTPReceiver>(
+      new KvzRTPReceiver(
         ip.toString() + "_",
         stats_,
         realType,
@@ -447,7 +443,7 @@ RTPStreamer::Receiver *RTPStreamer::addReceiver(QHostAddress ip, uint16_t port, 
   return receiver;
 }
 
-rtp_format_t RTPStreamer::typeFromString(QString type)
+rtp_format_t KvzRTP::typeFromString(QString type)
 {
   std::map<QString, rtp_format_t> xmap = {
       { "pcm",  RTP_FORMAT_GENERIC },

@@ -15,11 +15,7 @@
 
 #include <iostream>
 
-IRTPStreamer::~IRTPStreamer()
-{
-}
-
-RTPStreamer::RTPStreamer():
+Live555RTP::Live555RTP():
   peers_(),
   isIniated_(false),
   isRunning_(false),
@@ -49,13 +45,13 @@ RTPStreamer::RTPStreamer():
   triggerMutex_ = new QMutex;
 }
 
-RTPStreamer::~RTPStreamer()
+Live555RTP::~Live555RTP()
 {
   delete triggerMutex_;
 }
 
  // QThread run function
-void RTPStreamer::run()
+void Live555RTP::run()
 {
   if(!isIniated_)
   {
@@ -73,7 +69,7 @@ void RTPStreamer::run()
   qDebug() << "Closing," << metaObject()->className() << ": RTP streamer eventloop stopped. TID:" << (uint64_t)currentThreadId();
 }
 
-void RTPStreamer::stop()
+void Live555RTP::stop()
 {
   qDebug() << "Closing," << metaObject()->className()
            << "Stopping RTP Streamer";
@@ -85,7 +81,7 @@ void RTPStreamer::stop()
   }
 }
 
-void RTPStreamer::init(StatisticsInterface *stats)
+void Live555RTP::init(StatisticsInterface *stats)
 {
   stats_ = stats;
 
@@ -104,7 +100,7 @@ void RTPStreamer::init(StatisticsInterface *stats)
   iniated_.unlock();
 }
 
-void RTPStreamer::uninit()
+void Live555RTP::uninit()
 {
   Q_ASSERT(stopRTP_);
   qDebug() << "Closing," << metaObject()->className() << "Uniniating RTP streamer";
@@ -134,7 +130,7 @@ void RTPStreamer::uninit()
   qDebug() << "Closing,"<< metaObject()->className() << ": RTP streamer uninit completed";
 }
 
-void RTPStreamer::removeAllPeers()
+void Live555RTP::removeAllPeers()
 {
   for(int i = 0; i < peers_.size(); ++i)
   {
@@ -145,7 +141,7 @@ void RTPStreamer::removeAllPeers()
   }
 }
 
-bool RTPStreamer::addPeer(uint32_t sessionID, QHostAddress video_ip, QHostAddress audio_ip)
+bool Live555RTP::addPeer(uint32_t sessionID, QHostAddress video_ip, QHostAddress audio_ip)
 {
   Q_ASSERT(sessionID != 0);
 
@@ -197,7 +193,7 @@ bool RTPStreamer::addPeer(uint32_t sessionID, QHostAddress video_ip, QHostAddres
   return false;
 }
 
-void RTPStreamer::removePeer(uint32_t sessionID)
+void Live555RTP::removePeer(uint32_t sessionID)
 {
   qDebug() << "Removing peer" << sessionID << "from RTPStreamer";
   if(peers_.at(sessionID - 1) != nullptr)
@@ -235,7 +231,7 @@ void RTPStreamer::removePeer(uint32_t sessionID)
   }
 }
 
-void RTPStreamer::destroySender(Sender* sender)
+void Live555RTP::destroySender(Sender* sender)
 {
   Q_ASSERT(sender);
   if(sender)
@@ -263,6 +259,7 @@ void RTPStreamer::destroySender(Sender* sender)
     {
       // the shared_ptr was initialized not to delete the pointer
       // I don't like live555
+      sender->sourcefilter->stop();
       Medium::close(sender->sourcefilter.get());
     }
 
@@ -272,7 +269,7 @@ void RTPStreamer::destroySender(Sender* sender)
   else
     qWarning() << "Warning: Tried to delete sender a second time";
 }
-void RTPStreamer::destroyReceiver(Receiver* recv)
+void Live555RTP::destroyReceiver(Receiver* recv)
 {
   Q_ASSERT(recv);
   if(recv)
@@ -317,13 +314,13 @@ void RTPStreamer::destroyReceiver(Receiver* recv)
     qWarning() << "Warning: Tried to delete receiver a second time";
 }
 
-bool RTPStreamer::checkSessionID(uint32_t sessionID)
+bool Live555RTP::checkSessionID(uint32_t sessionID)
 {
   return peers_.size() >= sessionID
       && peers_.at(sessionID - 1) != nullptr;
 }
 
-std::shared_ptr<Filter> RTPStreamer::addSendStream(uint32_t peer, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum)
+std::shared_ptr<Filter> Live555RTP::addSendStream(uint32_t peer, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum)
 {
   Q_UNUSED(peer);
 
@@ -335,7 +332,7 @@ std::shared_ptr<Filter> RTPStreamer::addSendStream(uint32_t peer, QHostAddress i
   ip_addr.s_addr = qToBigEndian(ip.toIPv4Address());
 #endif
 
-  RTPStreamer::Sender *sender = addSender(ip_addr, port, typeFromString(codec), rtpNum);
+  Live555RTP::Sender *sender = addSender(ip_addr, port, typeFromString(codec), rtpNum);
 
   if (sender == nullptr)
   {
@@ -346,7 +343,7 @@ std::shared_ptr<Filter> RTPStreamer::addSendStream(uint32_t peer, QHostAddress i
   return sender->sourcefilter;
 }
 
-std::shared_ptr<Filter> RTPStreamer::addReceiveStream(uint32_t peer, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum)
+std::shared_ptr<Filter> Live555RTP::addReceiveStream(uint32_t peer, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum)
 {
   Q_UNUSED(peer);
 
@@ -358,7 +355,7 @@ std::shared_ptr<Filter> RTPStreamer::addReceiveStream(uint32_t peer, QHostAddres
   ip_addr.s_addr = qToBigEndian(ip.toIPv4Address());
 #endif
 
-  RTPStreamer::Receiver *receiver = addReceiver(ip_addr, port, typeFromString(codec), rtpNum);
+  Live555RTP::Receiver *receiver = addReceiver(ip_addr, port, typeFromString(codec), rtpNum);
 
   if (receiver == nullptr)
   {
@@ -369,7 +366,7 @@ std::shared_ptr<Filter> RTPStreamer::addReceiveStream(uint32_t peer, QHostAddres
   return receiver->sink;
 }
 
-std::shared_ptr<Filter> RTPStreamer::addSendStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum)
+std::shared_ptr<Filter> Live555RTP::addSendStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum)
 {
   Q_ASSERT(checkSessionID(peer));
 
@@ -395,7 +392,7 @@ std::shared_ptr<Filter> RTPStreamer::addSendStream(uint32_t peer, uint16_t port,
   return nullptr;
 }
 
-std::shared_ptr<Filter> RTPStreamer::addReceiveStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum)
+std::shared_ptr<Filter> Live555RTP::addReceiveStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum)
 {
   Q_ASSERT(checkSessionID(peer));
 
@@ -422,7 +419,7 @@ std::shared_ptr<Filter> RTPStreamer::addReceiveStream(uint32_t peer, uint16_t po
 }
 
 
-void RTPStreamer::removeSendVideo(uint32_t sessionID)
+void Live555RTP::removeSendVideo(uint32_t sessionID)
 {
   if(peers_.at(sessionID - 1)->videoSender)
   {
@@ -433,7 +430,7 @@ void RTPStreamer::removeSendVideo(uint32_t sessionID)
     qWarning() << "WARNING: Tried to remove send video that did not exist.";
 
 }
-void RTPStreamer::removeSendAudio(uint32_t sessionID)
+void Live555RTP::removeSendAudio(uint32_t sessionID)
 {
   if(peers_.at(sessionID - 1)->audioSender)
   {
@@ -445,7 +442,7 @@ void RTPStreamer::removeSendAudio(uint32_t sessionID)
     qWarning() << "WARNING: Tried to remove send video that did not exist.";
 }
 
-void RTPStreamer::removeReceiveVideo(uint32_t sessionID)
+void Live555RTP::removeReceiveVideo(uint32_t sessionID)
 {
   if(peers_.at(sessionID)->videoReceiver)
   {
@@ -455,7 +452,7 @@ void RTPStreamer::removeReceiveVideo(uint32_t sessionID)
   else
     qWarning() << "WARNING: Tried to remove send video that did not exist.";
 }
-void RTPStreamer::removeReceiveAudio(uint32_t sessionID)
+void Live555RTP::removeReceiveAudio(uint32_t sessionID)
 {
   if(peers_.at(sessionID - 1)->audioReceiver)
   {
@@ -466,7 +463,7 @@ void RTPStreamer::removeReceiveAudio(uint32_t sessionID)
     qWarning() << "WARNING: Tried to remove send video that did not exist.";
 }
 
-RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType type, uint8_t rtpNum)
+Live555RTP::Sender* Live555RTP::addSender(in_addr ip, uint16_t port, DataType type, uint8_t rtpNum)
 {
   qDebug() << "Iniating send RTP/RTCP stream to port:" << port << "With type:" << type;
   Sender* sender = new Sender;
@@ -555,7 +552,7 @@ RTPStreamer::Sender* RTPStreamer::addSender(in_addr ip, uint16_t port, DataType 
   return sender;
 }
 // TODO why name peerADDress
-RTPStreamer::Receiver* RTPStreamer::addReceiver(in_addr peerAddress, uint16_t port, DataType type, uint8_t rtpNum)
+Live555RTP::Receiver* Live555RTP::addReceiver(in_addr peerAddress, uint16_t port, DataType type, uint8_t rtpNum)
 {
   qDebug() << "Iniating receive RTP/RTCP stream from port:" << port << "with type:" << type;
   Receiver *receiver = new Receiver;
@@ -621,7 +618,7 @@ RTPStreamer::Receiver* RTPStreamer::addReceiver(in_addr peerAddress, uint16_t po
   return receiver;
 }
 
-void RTPStreamer::createConnection(Connection& connection, struct in_addr ip,
+void Live555RTP::createConnection(Connection& connection, struct in_addr ip,
                                    uint16_t portNum, bool reservePorts)
 {
   // TODO: Sending should not reserve ports.
@@ -648,7 +645,7 @@ void RTPStreamer::createConnection(Connection& connection, struct in_addr ip,
   }
 }
 
-void RTPStreamer::destroyConnection(Connection& connection)
+void Live555RTP::destroyConnection(Connection& connection)
 {
   if(connection.rtpGroupsock)
   {
@@ -675,7 +672,7 @@ void RTPStreamer::destroyConnection(Connection& connection)
   }
 }
 
-DataType RTPStreamer::typeFromString(QString type)
+DataType Live555RTP::typeFromString(QString type)
 {
   std::map<QString, DataType> xmap
       = {{"pcm", RAWAUDIO}, {"opus", OPUSAUDIO},{"h265", HEVCVIDEO}};

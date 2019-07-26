@@ -3,11 +3,11 @@
 #include <kvzrtp/reader.hh>
 #include "media/processing/filter.h"
 
-class RTPSinkFilter : public Filter
+class KvzRTPReceiver : public Filter
 {
 public:
-  RTPSinkFilter(QString id, StatisticsInterface *stats, DataType type, QString media, kvz_rtp::reader *reader);
-  ~RTPSinkFilter();
+  KvzRTPReceiver(QString id, StatisticsInterface *stats, DataType type, QString media, kvz_rtp::reader *reader);
+  ~KvzRTPReceiver();
 
   void receiveHook(kvz_rtp::frame::rtp_frame *frame);
 

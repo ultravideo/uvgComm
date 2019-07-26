@@ -17,13 +17,13 @@ class RTPSinkFilter;
 class Filter;
 class StatisticsInterface;
 
-class RTPStreamer : public QThread, public IRTPStreamer
+class Live555RTP : public IRTPStreamer
 {
   Q_OBJECT
 
 public:
-  RTPStreamer();
-  ~RTPStreamer();
+  Live555RTP();
+  ~Live555RTP();
   void init(StatisticsInterface* stats);
   void uninit();
   void run();
@@ -114,8 +114,8 @@ private:
 
   QList<Peer*> peers_;
 
-  std::vector<RTPStreamer::Sender *> senders_;
-  std::vector<RTPStreamer::Receiver *> receivers_;
+  std::vector<Live555RTP::Sender *> senders_;
+  std::vector<Live555RTP::Receiver *> receivers_;
 
   bool isIniated_;
   bool isRunning_;

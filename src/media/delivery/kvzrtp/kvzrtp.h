@@ -11,17 +11,17 @@
 #include <kvzrtp/lib.hh>
 
 class StatisticsInterface;
-class FramedSourceFilter;
-class RTPSinkFilter;
+class KvzRTPSender;
+class KvzRTPReceiver;
 class Filter;
 
-class RTPStreamer : public QThread, public IRTPStreamer
+class KvzRTP : public IRTPStreamer
 {
   Q_OBJECT
 
 public:
-  RTPStreamer();
-  ~RTPStreamer();
+  KvzRTP();
+  ~KvzRTP();
 
    void init(StatisticsInterface *stats);
    void uninit();
@@ -56,13 +56,13 @@ private:
   struct Sender
   {
     kvz_rtp::writer *writer;
-    std::shared_ptr<FramedSourceFilter> sourcefilter; // receives stuff from filter graph
+    std::shared_ptr<KvzRTPSender> sourcefilter; // receives stuff from filter graph
   };
 
   struct Receiver
   {
     kvz_rtp::reader *reader;
-    std::shared_ptr<RTPSinkFilter> sink; // sends stuff to filter graph
+    std::shared_ptr<KvzRTPReceiver> sink; // sends stuff to filter graph
   };
 
   struct Peer
@@ -90,8 +90,8 @@ private:
   // private variables
   QList<Peer *> peers_;
 
-  std::vector<RTPStreamer::Sender *> senders_;
-  std::vector<RTPStreamer::Receiver *> receivers_;
+  std::vector<KvzRTP::Sender *> senders_;
+  std::vector<KvzRTP::Receiver *> receivers_;
 
   bool isIniated_;
   bool isRunning_;

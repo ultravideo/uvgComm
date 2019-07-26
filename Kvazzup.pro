@@ -20,12 +20,6 @@ greaterThan(QT_MAJOR_VERSION, 5)
 
 TARGET = Kvazzup
 
-RTP_LIBRARY     = kvzrtp
-QMAKE_CXXFLAGS += -D__KVZRTP__
-
-#RTP_LIBRARY     = live555
-#QMAKE_CXXFLAGS += -D__LIVE555__
-
 win32-g++:  TEMPLATE = app
 win32-msvc: TEMPLATE = app # vcapp does not currently generate makefile
 
@@ -58,9 +52,12 @@ SOURCES +=\
     src/initiation/transport/tcpconnection.cpp \
     src/kvazzupcontroller.cpp \
     src/main.cpp \
-    src/media/delivery/$$RTP_LIBRARY/framedsourcefilter.cpp \
-    src/media/delivery/$$RTP_LIBRARY/rtpsinkfilter.cpp \
-    src/media/delivery/$$RTP_LIBRARY/rtpstreamer.cpp \
+    src/media/delivery/kvzrtp/kvzrtp.cpp \
+    src/media/delivery/kvzrtp/kvzrtpreceiver.cpp \
+    src/media/delivery/kvzrtp/kvzrtpsender.cpp \
+    src/media/delivery/live555/framedsourcefilter.cpp \
+    src/media/delivery/live555/rtpsinkfilter.cpp \
+    src/media/delivery/live555/rtpstreamer.cpp \
     src/media/mediamanager.cpp \
     src/media/processing/audiocapturedevice.cpp \
     src/media/processing/audiocapturefilter.cpp \
@@ -126,9 +123,12 @@ HEADERS  += \
     src/initiation/transport/siptransport.h \
     src/initiation/transport/tcpconnection.h \
     src/kvazzupcontroller.h \
-    src/media/delivery/$$RTP_LIBRARY/framedsourcefilter.h \
-    src/media/delivery/$$RTP_LIBRARY/rtpsinkfilter.h \
-    src/media/delivery/$$RTP_LIBRARY/rtpstreamer.h \
+    src/media/delivery/kvzrtp/kvzrtp.h \
+    src/media/delivery/kvzrtp/kvzrtpreceiver.h \
+    src/media/delivery/kvzrtp/kvzrtpsender.h \
+    src/media/delivery/live555/framedsourcefilter.h \
+    src/media/delivery/live555/rtpsinkfilter.h \
+    src/media/delivery/live555/rtpstreamer.h \
     src/media/delivery/irtpstreamer.h \
     src/media/mediamanager.h \
     src/media/processing/audiocapturedevice.h \

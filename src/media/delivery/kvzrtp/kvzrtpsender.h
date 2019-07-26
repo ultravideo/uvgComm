@@ -6,11 +6,12 @@
 
 class StatisticsInterface;
 
-class FramedSourceFilter : public Filter
+class KvzRTPSender : public Filter
 {
 public:
-  FramedSourceFilter(QString id, StatisticsInterface *stats, DataType type, QString media, kvz_rtp::writer *writer);
-  ~FramedSourceFilter();
+  KvzRTPSender(QString id, StatisticsInterface *stats, DataType type,
+               QString media, kvz_rtp::writer *writer);
+  ~KvzRTPSender();
 
   void updateSettings();
 

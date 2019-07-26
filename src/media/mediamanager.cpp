@@ -10,21 +10,15 @@
 #include <QtEndian>
 #include <QDebug>
 
-#ifdef __KVZRTP__
-#include "media/delivery/kvzrtp/rtpstreamer.h"
-#include "media/delivery/kvzrtp/framedsourcefilter.h"
-#include "media/delivery/kvzrtp/rtpsinkfilter.h"
-#else
+
+#include "media/delivery/kvzrtp/kvzrtp.h"
 #include "media/delivery/live555/rtpstreamer.h"
-#include "media/delivery/live555/framedsourcefilter.h"
-#include "media/delivery/live555/rtpsinkfilter.h"
-#endif
 
 MediaManager::MediaManager():
   stats_(nullptr),
   fg_(new FilterGraph()),
   session_(nullptr),
-  streamer_(new RTPStreamer()),
+  streamer_(),
   mic_(true),
   camera_(true)
 {}
@@ -37,6 +31,9 @@ MediaManager::~MediaManager()
 
 void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory, StatisticsInterface *stats)
 {
+
+  streamer_ = std::unique_ptr<IRTPStreamer> (new Live555RTP());
+
   qDebug() << "Iniating: Media manager";
   viewfactory_ = viewfactory;
   streamer_->init(stats);

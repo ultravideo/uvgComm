@@ -3,10 +3,10 @@
 
 #include <QHostAddress>
 
-class IRTPStreamer
+class IRTPStreamer : public QThread
 {
 public:
-  virtual ~IRTPStreamer();
+  virtual ~IRTPStreamer(){}
 
   virtual void init(StatisticsInterface *stats) = 0;
   virtual void uninit() = 0;

@@ -24,9 +24,9 @@
 
 class VideoviewFactory;
 class StatisticsInterface;
+class IRTPStreamer;
 
 class FilterGraph;
-class RTPStreamer;
 class MediaSession;
 struct MediaInfo;
 
@@ -97,7 +97,7 @@ private:
 
   MediaSession* session_;
 
-  std::unique_ptr<RTPStreamer> streamer_;
+  std::unique_ptr<IRTPStreamer> streamer_;
 
   std::shared_ptr<VideoviewFactory> viewfactory_;
 

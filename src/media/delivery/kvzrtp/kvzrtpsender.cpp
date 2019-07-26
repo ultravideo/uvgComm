@@ -1,11 +1,11 @@
 #include <QSettings>
 #include <QDebug>
 
-#include "framedsourcefilter.h"
+#include "kvzrtpsender.h"
 #include "statisticsinterface.h"
 #include "common.h"
 
-FramedSourceFilter::FramedSourceFilter(QString id, StatisticsInterface *stats,
+KvzRTPSender::KvzRTPSender(QString id, StatisticsInterface *stats,
                                        DataType type, QString media, kvz_rtp::writer *writer):
   Filter(id, "Framed_Source_" + media, stats, type, NONE),
   type_(type),
@@ -31,11 +31,11 @@ FramedSourceFilter::FramedSourceFilter(QString id, StatisticsInterface *stats,
   }
 }
 
-FramedSourceFilter::~FramedSourceFilter()
+KvzRTPSender::~KvzRTPSender()
 {
 }
 
-void FramedSourceFilter::updateSettings()
+void KvzRTPSender::updateSettings()
 {
   // called in case we later decide to add some settings to filter
   Filter::updateSettings();
@@ -70,18 +70,18 @@ void FramedSourceFilter::updateSettings()
   }
 }
 
-void FramedSourceFilter::start()
+void KvzRTPSender::start()
 {
   Filter::start();
 }
 
-void FramedSourceFilter::stop()
+void KvzRTPSender::stop()
 {
   Filter::stop();
   stop_ = true;
 }
 
-void FramedSourceFilter::process()
+void KvzRTPSender::process()
 {
   rtp_error_t ret;
   std::unique_ptr<Data> currentFrame;
