@@ -13,10 +13,13 @@ void SIPNonDialogClient::set_remoteURI(SIP_URI& uri)
 
 bool SIPNonDialogClient::processResponse(SIPResponse& response)
 {
+  // TODO
+  Q_UNUSED(response);
   if (getOngoingRequest() == SIP_REGISTER)
   {
     qDebug() << "Got a response for REGISTER! TODO: Processing not implemented!";
   }
+  return false;
 }
 
 void SIPNonDialogClient::sendRequest(RequestType type)

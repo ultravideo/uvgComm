@@ -20,6 +20,13 @@ public:
   // initialize contact list from settings.
   void initializeList(QListWidget *list, ParticipantInterface* interface);
 
+  void turnAllItemsToPlus();
+
+  void setAccessibleAll();
+  void setAccessible(uint32_t sessionID);
+
+  void setInaccessibleAll();
+
 public slots:
 
   // deletes a name from the list and settings.
@@ -30,9 +37,6 @@ public slots:
 
   void addContact(ParticipantInterface* interface,
                   QString name, QString username, QString address);
-signals:
-  void callTo(QString name, QString username, QString address);
-  void openChatWith(QString name, QString username, QString address);
 
 private:
 

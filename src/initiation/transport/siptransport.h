@@ -54,8 +54,9 @@ signals:
   void sipTransportEstablished(quint32 transportID, QString localAddress, QString remoteAddress);
 
   // signals that output parsed sip messages
-  void incomingSIPRequest(SIPRequest request, quint32 transportID, QVariant& content);
-  void incomingSIPResponse(SIPResponse response, quint32 transportID, QVariant& content);
+  void incomingSIPRequest(SIPRequest& request, QHostAddress localAddress,
+                          QVariant& content, quint32 transportID);
+  void incomingSIPResponse(SIPResponse& response, QVariant& content);
 
   // we got a message, but could not parse it.
   void parsingError(ResponseType errorResponse, quint32 transportID);

@@ -87,6 +87,8 @@ enum ResponseType {SIP_UNKNOWN_RESPONSE = 0,
 
 enum ConnectionType {ANY, TCP, UDP, TLS};
 
+// SIP is not secured
+// SIPS is TLS secured
 enum UriType {SIP, SIPS, TEL};
 
 

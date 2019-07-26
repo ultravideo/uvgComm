@@ -23,7 +23,7 @@ bool OpenHEVCFilter::init()
   libOpenHevcSetDebugMode(handle_, 0);
   if(libOpenHevcStartDecoder(handle_) == -1)
   {
-    printDebug(DEBUG_ERROR, this, DC_STARTUP, "Failed to start decoder.");
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_STARTUP, "Failed to start decoder.");
     return false;
   }
   libOpenHevcSetTemporalLayer_id(handle_, 0);

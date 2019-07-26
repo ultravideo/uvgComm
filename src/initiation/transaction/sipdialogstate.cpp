@@ -85,7 +85,7 @@ void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inM
   {
     if(correctRequestDialog(inMessage->dialog, SIP_INVITE, inMessage->cSeq))
     {
-      printDebug(DEBUG_ERROR, "SIPDialogState", DC_START_CALL,
+      printDebug(DEBUG_PROGRAM_ERROR, "SIPDialogState", DC_START_CALL,
                  "Re-INVITE should be processed differently.");
       return;
     }
@@ -132,7 +132,7 @@ void SIPDialogState::getRequestDialogInfo(SIPRequest &outRequest, QString localA
   if(localUri_.username == "" || localUri_.host == "" ||
      remoteUri_.username == "" || remoteUri_.host == "")
   {
-    printDebug(DEBUG_ERROR, "SIPDialogState", DC_SEND_SIP_REQUEST,
+    printDebug(DEBUG_PROGRAM_ERROR, "SIPDialogState", DC_SEND_SIP_REQUEST,
                "The dialog state info has not been set, but we are using it.",
                 {"username", "host", "remote username", "remote host"},
                 {localUri_.username, localUri_.host, remoteUri_.username, remoteUri_.host});

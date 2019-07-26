@@ -131,7 +131,7 @@ void showContextMenu(const QPoint& pos, QTableWidget* table, QObject* processor,
 
   if(actions.size() != processSlots.size())
   {
-    printDebug(DEBUG_ERROR, "SettingsHelper", DC_SETTINGS, "Different amounts of actions and slots",
+    printDebug(DEBUG_PROGRAM_ERROR, "SettingsHelper", DC_SETTINGS, "Different amounts of actions and slots",
                     {"Actions", "Slots"}, {QString::number(actions.size()), QString::number(processSlots.size())});
     return;
   }

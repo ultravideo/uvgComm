@@ -15,6 +15,10 @@
 
 #include <iostream>
 
+IRTPStreamer::~IRTPStreamer()
+{
+}
+
 RTPStreamer::RTPStreamer():
   peers_(),
   isIniated_(false),
@@ -141,9 +145,8 @@ void RTPStreamer::removeAllPeers()
   }
 }
 
-bool RTPStreamer::addPeer(in_addr ip, uint32_t sessionID)
+bool RTPStreamer::addPeer(uint32_t sessionID, QHostAddress video_ip, QHostAddress audio_ip)
 {
-  //Q_ASSERT(!checkSessionID(sessionID));
   Q_ASSERT(sessionID != 0);
 
   // not being destroyed
@@ -151,15 +154,18 @@ bool RTPStreamer::addPeer(in_addr ip, uint32_t sessionID)
   {
     iniated_.lock(); // not being iniated
 
-    qDebug() << "Adding peer to following IP: "
-             << static_cast<uint8_t>((ip.s_addr) & 0xff) << "."
-             << static_cast<uint8_t>((ip.s_addr >> 8) & 0xff) << "."
-             << static_cast<uint8_t>((ip.s_addr >> 16) & 0xff) << "."
-             << static_cast<uint8_t>((ip.s_addr >> 24) & 0xff);
+    qDebug() << "Adding peer to following IP: " << video_ip.toString() << audio_ip.toString();
 
     Peer* peer = new Peer;
 
-    peer->ip = ip;
+#ifdef _WIN32
+    peer->video_ip.S_un.S_addr = qToBigEndian(video_ip.toIPv4Address());
+    peer->audio_ip.S_un.S_addr = qToBigEndian(audio_ip.toIPv4Address());
+#else
+    peer->video_ip.s_addr = qToBigEndian(video_ip.toIPv4Address());
+    peer->audio_ip.s_addr = qToBigEndian(audio_ip.toIPv4Address());
+#endif
+
     peer->videoSender = nullptr;
     peer->videoReceiver = nullptr;
     peer->audioSender = nullptr;
@@ -317,6 +323,52 @@ bool RTPStreamer::checkSessionID(uint32_t sessionID)
       && peers_.at(sessionID - 1) != nullptr;
 }
 
+std::shared_ptr<Filter> RTPStreamer::addSendStream(uint32_t peer, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum)
+{
+  Q_UNUSED(peer);
+
+  struct in_addr ip_addr;
+
+#ifdef _WIN32
+  ip_addr.S_un.S_addr = qToBigEndian(ip.toIPv4Address());
+#else
+  ip_addr.s_addr = qToBigEndian(ip.toIPv4Address());
+#endif
+
+  RTPStreamer::Sender *sender = addSender(ip_addr, port, typeFromString(codec), rtpNum);
+
+  if (sender == nullptr)
+  {
+    return nullptr;
+  }
+
+  senders_.push_back(sender);
+  return sender->sourcefilter;
+}
+
+std::shared_ptr<Filter> RTPStreamer::addReceiveStream(uint32_t peer, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum)
+{
+  Q_UNUSED(peer);
+
+  struct in_addr ip_addr;
+
+#ifdef _WIN32
+  ip_addr.S_un.S_addr = qToBigEndian(ip.toIPv4Address());
+#else
+  ip_addr.s_addr = qToBigEndian(ip.toIPv4Address());
+#endif
+
+  RTPStreamer::Receiver *receiver = addReceiver(ip_addr, port, typeFromString(codec), rtpNum);
+
+  if (receiver == nullptr)
+  {
+    return nullptr;
+  }
+
+  receivers_.push_back(receiver);
+  return receiver->sink;
+}
+
 std::shared_ptr<Filter> RTPStreamer::addSendStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum)
 {
   Q_ASSERT(checkSessionID(peer));
@@ -328,7 +380,7 @@ std::shared_ptr<Filter> RTPStreamer::addSendStream(uint32_t peer, uint16_t port,
     if(peers_.at(peer - 1)->videoSender)
       destroySender(peers_.at(peer - 1)->videoSender);
 
-    peers_.at(peer - 1)->videoSender = addSender(peers_.at(peer - 1)->ip, port, type, rtpNum);
+    peers_.at(peer - 1)->videoSender = addSender(peers_.at(peer - 1)->video_ip, port, type, rtpNum);
     return peers_.at(peer - 1)->videoSender->sourcefilter;
   }
   else if(type == OPUSAUDIO || type == RAWAUDIO)
@@ -336,7 +388,7 @@ std::shared_ptr<Filter> RTPStreamer::addSendStream(uint32_t peer, uint16_t port,
     if(peers_.at(peer - 1)->audioSender)
       destroySender(peers_.at(peer - 1)->audioSender);
 
-    peers_.at(peer - 1)->audioSender = addSender(peers_.at(peer - 1)->ip, port, type, rtpNum);
+    peers_.at(peer - 1)->audioSender = addSender(peers_.at(peer - 1)->audio_ip, port, type, rtpNum);
     return peers_.at(peer - 1)->audioSender->sourcefilter;
   }
 
@@ -354,7 +406,7 @@ std::shared_ptr<Filter> RTPStreamer::addReceiveStream(uint32_t peer, uint16_t po
     if(peers_.at(peer - 1)->videoReceiver)
       destroyReceiver(peers_.at(peer - 1)->videoReceiver);
 
-    peers_.at(peer - 1)->videoReceiver = addReceiver(peers_.at(peer - 1)->ip, port, type, rtpNum);
+    peers_.at(peer - 1)->videoReceiver = addReceiver(peers_.at(peer - 1)->video_ip, port, type, rtpNum);
     return peers_.at(peer - 1)->videoReceiver->sink;
   }
   else if(type == OPUSAUDIO || type == RAWAUDIO)
@@ -362,7 +414,7 @@ std::shared_ptr<Filter> RTPStreamer::addReceiveStream(uint32_t peer, uint16_t po
     if(peers_.at(peer - 1)->audioReceiver)
       destroyReceiver(peers_.at(peer - 1)->audioReceiver);
 
-    peers_.at(peer - 1)->audioReceiver = addReceiver(peers_.at(peer - 1)->ip, port, type, rtpNum);
+    peers_.at(peer - 1)->audioReceiver = addReceiver(peers_.at(peer - 1)->audio_ip, port, type, rtpNum);
     return peers_.at(peer - 1)->audioReceiver->sink;
   }
 

@@ -19,8 +19,17 @@ public:
   QString getUserName();
   QString getAddress();
 
+  uint32_t getActiveSessionID()
+  {
+    return  activeSessionID_;
+  }
+
   // construct the widget
   void init(ParticipantInterface* interface);
+
+  void SetInaccessible(uint32_t sessionID);
+  void setPlusOne();
+  void setAccesssible();
 
 public slots:
   void call();
@@ -31,6 +40,8 @@ protected:
   void mouseDoubleClickEvent(QMouseEvent *e);
 
 private:
+
+  void switchButtonIcon(QString iconLocation);
 
   QString name_;
   QString username_;
@@ -44,4 +55,5 @@ private:
 
   ParticipantInterface* interface_;
 
+  uint32_t activeSessionID_;
 };

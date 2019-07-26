@@ -1,5 +1,6 @@
 #pragma once
 #include "media/processing/filter.h"
+#include "media/delivery/irtpstreamer.h"
 
 #include <liveMedia.hh>
 #include <UsageEnvironment.hh>
@@ -7,6 +8,7 @@
 
 #include <QThread>
 #include <QMutex>
+#include <QHostAddress>
 
 #include <vector>
 
@@ -15,7 +17,7 @@ class RTPSinkFilter;
 class Filter;
 class StatisticsInterface;
 
-class RTPStreamer : public QThread
+class RTPStreamer : public QThread, public IRTPStreamer
 {
   Q_OBJECT
 
@@ -29,12 +31,15 @@ public:
 
   // init a session with sessionID to use with add/remove functions
   // returns whether operation was successful
-  bool addPeer(in_addr ip, uint32_t sessionID);
+  bool addPeer(uint32_t sessionID, QHostAddress video_ip, QHostAddress audio_ip);
 
   // Returns filter to be attached to filter graph. ownership is not transferred.
   // removing the peer or stopping the streamer destroys these filters.
   std::shared_ptr<Filter> addSendStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum);
   std::shared_ptr<Filter> addReceiveStream(uint32_t peer, uint16_t port, QString codec, uint8_t rtpNum);
+
+  std::shared_ptr<Filter> addSendStream(uint32_t peer, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum);
+  std::shared_ptr<Filter> addReceiveStream(uint32_t peer, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum);
 
   void removeSendVideo(uint32_t sessionID);
   void removeSendAudio(uint32_t sessionID);
@@ -80,7 +85,9 @@ private:
 
   struct Peer
   {
-    struct in_addr ip;
+    struct in_addr video_ip;
+    struct in_addr audio_ip;
+
     Sender* audioSender; // audio to this peer
     Sender* videoSender; // video to this peer
 
@@ -106,6 +113,9 @@ private:
   DataType typeFromString(QString type);
 
   QList<Peer*> peers_;
+
+  std::vector<RTPStreamer::Sender *> senders_;
+  std::vector<RTPStreamer::Receiver *> receivers_;
 
   bool isIniated_;
   bool isRunning_;

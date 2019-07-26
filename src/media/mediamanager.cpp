@@ -1,19 +1,24 @@
 #include "mediamanager.h"
-
 #include "media/processing/filtergraph.h"
 #include "media/processing/filter.h"
-#include "media/delivery/rtpstreamer.h"
-#include "media/delivery/framedsourcefilter.h"
-#include "media/delivery/rtpsinkfilter.h"
 #include "ui/gui/videoviewfactory.h"
 #include "initiation/negotiation/sdptypes.h"
 #include "statisticsinterface.h"
-
 #include "common.h"
 
 #include <QHostAddress>
 #include <QtEndian>
 #include <QDebug>
+
+#ifdef __KVZRTP__
+#include "media/delivery/kvzrtp/rtpstreamer.h"
+#include "media/delivery/kvzrtp/framedsourcefilter.h"
+#include "media/delivery/kvzrtp/rtpsinkfilter.h"
+#else
+#include "media/delivery/live555/rtpstreamer.h"
+#include "media/delivery/live555/framedsourcefilter.h"
+#include "media/delivery/live555/rtpsinkfilter.h"
+#endif
 
 MediaManager::MediaManager():
   stats_(nullptr),
@@ -66,75 +71,80 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
 
   if(peerInfo->timeDescriptions.at(0).startTime != 0 || localInfo->timeDescriptions.at(0).startTime != 0)
   {
-    printDebug(DEBUG_ERROR, this, DC_ADD_MEDIA, "Nonzero start-time not supported!");
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "Nonzero start-time not supported!");
   }
 
-#if 0
-  qDebug() << "local opus" << localInfo->media[0].connection_address << ":" << localInfo->media[0].receivePort;
-  qDebug() << "local hevc" << localInfo->media[1].connection_address << ":" << localInfo->media[1].receivePort;
-  qDebug() << "remote opus" << peerInfo->media[0].connection_address  << ":" << peerInfo->media[0].receivePort;
-  qDebug() << "remote hevc" << peerInfo->media[0].connection_address  << ":" << peerInfo->media[1].receivePort << "\n";
+#if 1
+  qDebug() << "\n\n\n";
+  qDebug() << "local audio" << localInfo->media[0].connection_address << ":" << localInfo->media[0].receivePort;
+  qDebug() << "local video" << localInfo->media[1].connection_address << ":" << localInfo->media[1].receivePort;
+  qDebug() << "remote audio" << peerInfo->media[0].connection_address  << ":" << peerInfo->media[0].receivePort;
+  qDebug() << "remote video" << peerInfo->media[1].connection_address  << ":" << peerInfo->media[1].receivePort << "\n";
+  qDebug() << "\n\n\n";
 #endif
 
   if(peerInfo->connection_nettype == "IN")
   {
-    QHostAddress address;
+    QHostAddress audio_addr(peerInfo->connection_address);
+    QHostAddress video_addr(peerInfo->connection_address);
 
-    if (peerInfo->media[0].connection_address.isEmpty())
+    if (!peerInfo->media[0].connection_address.isEmpty())
     {
-      address.setAddress(peerInfo->connection_address);
-    }
-    else
-    {
-      address.setAddress(peerInfo->media[0].connection_address); // media[0] is RTP
+      audio_addr.setAddress(peerInfo->media[0].connection_address);
     }
 
+    if (!peerInfo->media[1].connection_address.isEmpty())
+    {
+      video_addr.setAddress(peerInfo->media[1].connection_address);
+    }
 
-    if(stats_ != nullptr)
+    if (stats_ != nullptr)
     {
       stats_->addParticipant(peerInfo->connection_address, "0", "0");
     }
 
-    if(peerInfo->connection_addrtype == "IP4"
-       || (peerInfo->connection_addrtype == "IP6" && address.toString().left(7) == "::ffff:")
-       || (QHostAddress(address.toIPv4Address()) == QHostAddress(address))) // address is ipv4 indeed
+    if (peerInfo->connection_addrtype == "IP4"
+       || ((peerInfo->connection_addrtype == "IP6" && video_addr.toString().left(7) == "::ffff:") &&
+           (peerInfo->connection_addrtype == "IP6" && audio_addr.toString().left(7) == "::ffff:"))
+       || ((QHostAddress(video_addr.toIPv4Address()) == QHostAddress(video_addr)) &&
+           (QHostAddress(audio_addr.toIPv4Address()) == QHostAddress(audio_addr)))) // address is ipv4 indeed
     {
-      in_addr ip;
-#ifdef _WIN32
-      ip.S_un.S_addr = qToBigEndian(address.toIPv4Address());
-#else
-      ip.s_addr = qToBigEndian(address.toIPv4Address());
-#endif
-
-      // TODO: Make it possible to have a separate ip address for each mediastream by fixing this.
-      if(!streamer_->addPeer(ip, sessionID))
+      if(!streamer_->addPeer(sessionID, video_addr, audio_addr))
       {
-        printDebug(DEBUG_ERROR, this, DC_ADD_MEDIA, "Error creating RTP peer. Simultaneous destruction?.");
+        printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "Error creating RTP peer. Simultaneous destruction?.");
         return;
       }
     }
     else {
-      printDebug(DEBUG_ERROR, this, DC_ADD_MEDIA, "Not supported in media creation.",
-                      {"Media type", "address"}, {peerInfo->connection_addrtype, address.toString()});
+      printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "Not supported in media creation.",
+                 { "Media type", "video address", "audio address" },
+                 { peerInfo->connection_addrtype, video_addr.toString(), audio_addr.toString() });
       return;
     }
   }
   else
   {
-    printDebug(DEBUG_ERROR, this, DC_ADD_MEDIA, "What are we using if not the internet!?");
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "What are we using if not the internet!?");
     return;
   }
+
+  qDebug() << "\n\nCREATING MEDIA...";
 
   // create each agreed media stream
   for(auto media : peerInfo->media)
   {
+    qDebug() << "\n\t\t\tcreating outgoing media for" << media.type << "\n";
     createOutgoingMedia(sessionID, media);
   }
 
   for(auto media : localInfo->media)
   {
+    qDebug() << "\n\t\t\tcreating incoming media for" << media.type << "\n";
     createIncomingMedia(sessionID, media);
   }
+
+  qDebug() << "DONE CREATING MEDIA\n\n";
+
 
   // crashes at the moment.
   //fg_->print();
@@ -162,21 +172,23 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID, const MediaInfo& remo
                                                                       codec, remoteMedia.rtpNums.at(0));
       if(remoteMedia.type == "audio")
       {
+        qDebug() << "\nSENDING AUDIO TO" << remoteMedia.receivePort;
         fg_->sendAudioTo(sessionID, std::shared_ptr<Filter>(framedSource));
       }
       else if(remoteMedia.type == "video")
       {
+        qDebug() << "\nSENDING VIDEO TO" << remoteMedia.receivePort;
         fg_->sendVideoto(sessionID, std::shared_ptr<Filter>(framedSource));
       }
       else
       {
-        printDebug(DEBUG_ERROR, this, DC_ADD_MEDIA, "Unsupported media type!",
+        printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "Unsupported media type!",
                   {"type"}, QStringList() << remoteMedia.type);
       }
     }
     else
     {
-      printDebug(DEBUG_ERROR, this, DC_ADD_MEDIA, "SDP transport protocol not supported.");
+      printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "SDP transport protocol not supported.");
     }
   }
   else
@@ -207,21 +219,23 @@ void MediaManager::createIncomingMedia(uint32_t sessionID, const MediaInfo &loca
                                                                     codec, localMedia.rtpNums.at(0));
       if(localMedia.type == "audio")
       {
+        qDebug() << "\nRECEIVING AUDIO FROM" << localMedia.receivePort;
         fg_->receiveAudioFrom(sessionID, std::shared_ptr<Filter>(rtpSink));
       }
       else if(localMedia.type == "video")
       {
+        qDebug() << "\nRECEIVING VIDEO FROM" << localMedia.receivePort;
         fg_->receiveVideoFrom(sessionID, std::shared_ptr<Filter>(rtpSink), viewfactory_->getVideo(sessionID));
       }
       else
       {
-        printDebug(DEBUG_ERROR, this, DC_ADD_MEDIA, "Unsupported incoming media type!",
+        printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "Unsupported incoming media type!",
                   {"type"}, QStringList() << localMedia.type);
       }
     }
     else
     {
-      printDebug(DEBUG_ERROR, this, DC_ADD_MEDIA, "Incoming SDP transport protocol not supported.");
+      printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "Incoming SDP transport protocol not supported.");
     }
   }
   else

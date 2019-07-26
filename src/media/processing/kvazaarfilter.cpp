@@ -51,7 +51,7 @@ bool KvazaarFilter::init()
   api_ = kvz_api_get(8);
   if(!api_)
   {
-    printDebug(DEBUG_ERROR, this, DC_STARTUP, "Failed to retrieve Kvazaar API.");
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_STARTUP, "Failed to retrieve Kvazaar API.");
     return false;
   }
   config_ = api_->config_alloc();
@@ -59,7 +59,7 @@ bool KvazaarFilter::init()
 
   if(!config_)
   {
-    printDebug(DEBUG_ERROR, this, DC_STARTUP, "Failed to allocate Kvazaar config.");
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_STARTUP, "Failed to allocate Kvazaar config.");
     return false;
   }
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
@@ -68,9 +68,13 @@ bool KvazaarFilter::init()
 
 #ifdef __linux__
   api_->config_parse(config_, "preset", "ultrafast");
-	config_->width = 640;
-	config_->height = 480;
-	config_->framerate_num = 30;
+  config_->width = 640;
+  config_->height = 480;
+  config_->framerate_num = 30;
+  config_->intra_period = 5;
+  config_->vps_period = 1;
+  config_->qp = 32;
+  config_->hash = KVZ_HASH_NONE;
 #else
   api_->config_parse(config_, "preset", settings.value("video/Preset").toString().toUtf8());
   config_->width = settings.value("video/ResolutionWidth").toInt();
@@ -87,6 +91,7 @@ bool KvazaarFilter::init()
 
   //config_->fme_level = 0;
 
+#if 0
   if(settings.value("video/Slices").toInt() == 1)
   {
     if(config_->wpp == 0)
@@ -99,6 +104,7 @@ bool KvazaarFilter::init()
       config_->slices = KVZ_SLICES_WPP;
     }
   }
+#endif
 
   // TODO Maybe send parameter sets only when needed
   //config_->target_bitrate = target_bitrate;
@@ -109,7 +115,7 @@ bool KvazaarFilter::init()
 
   if(!enc_)
   {
-    printDebug(DEBUG_ERROR, this, DC_STARTUP, "Failed to open Kvazaar encoder.");
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_STARTUP, "Failed to open Kvazaar encoder.");
     return false;
   }
 
@@ -117,7 +123,7 @@ bool KvazaarFilter::init()
 
   if(!input_pic_)
   {
-    printDebug(DEBUG_ERROR, this, DC_STARTUP, "Could not allocate input picture.");
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_STARTUP, "Could not allocate input picture.");
     return false;
   }
 
@@ -154,7 +160,7 @@ void KvazaarFilter::process()
   {
     if(!input_pic_)
     {
-      printDebug(DEBUG_ERROR, this, DC_PROCESS_MEDIA, "Input picture was not allocated correctly.");
+      printDebug(DEBUG_PROGRAM_ERROR, this, DC_PROCESS_MEDIA, "Input picture was not allocated correctly.");
       break;
     }
 

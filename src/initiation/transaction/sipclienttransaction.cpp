@@ -2,6 +2,8 @@
 
 #include "initiation/siptransactionuser.h"
 
+#include "common.h"
+
 #include <QDebug>
 
 
@@ -11,11 +13,13 @@ SIPClientTransaction::SIPClientTransaction(SIPTransactionUser* tu):
   transactionUser_(tu)
 {}
 
+
 void SIPClientTransaction::init()
 {
   requestTimer_.setSingleShot(true);
   connect(&requestTimer_, SIGNAL(timeout()), this, SLOT(requestTimeOut()));
 }
+
 
 void SIPClientTransaction::getRequestMessageInfo(RequestType type,
                                                  std::shared_ptr<SIPMessageInfo>& outMessage)
@@ -43,6 +47,7 @@ void SIPClientTransaction::getRequestMessageInfo(RequestType type,
   outMessage->content.length = 0;
 }
 
+
 void SIPClientTransaction::startTimer(RequestType type)
 {
   // INVITE has the same timeout as rest of them. Only after RINGING reply do we increase timeout
@@ -53,9 +58,11 @@ void SIPClientTransaction::startTimer(RequestType type)
 
 }
 
+
 void SIPClientTransaction::sendRequest(RequestType type)
 {
-  //qDebug() << "Client starts sending a request of type:" << type;
+  printDebug(DEBUG_NORMAL, this, DC_SEND_SIP_REQUEST,
+             "Client starts sending a request.", {"Type"}, {QString::number(type)});
   ongoingTransactionType_ = type;
 
   if (type == SIP_CANCEL || type == SIP_ACK)
@@ -74,6 +81,6 @@ void SIPClientTransaction::processTimeout()
 
 void SIPClientTransaction::requestTimeOut()
 {
-  qDebug() << "No response. Request timed out";
+  printDebug(DEBUG_NORMAL, this, DC_SEND_SIP, "No response. Request timed out.");
   processTimeout();
 }
