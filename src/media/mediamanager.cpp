@@ -113,9 +113,15 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
     createOutgoingMedia(sessionID, media, peerInfo->connection_address);
   }
 
+  uint32_t videoID = 0;
   for(auto media : localInfo->media)
   {
-    createIncomingMedia(sessionID, media, localInfo->connection_address);
+    createIncomingMedia(sessionID, media, localInfo->connection_address, videoID);
+
+    if (media.type == "video" )
+    {
+      ++videoID;
+    }
   }
   // crashes at the moment.
   //fg_->print();
@@ -182,7 +188,7 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID, const MediaInfo& remo
   }
 }
 
-void MediaManager::createIncomingMedia(uint32_t sessionID, const MediaInfo &localMedia, QString globalAddress)
+void MediaManager::createIncomingMedia(uint32_t sessionID, const MediaInfo &localMedia, QString globalAddress, uint32_t videoID)
 {
   bool send = true;
   bool recv = true;
@@ -221,7 +227,7 @@ void MediaManager::createIncomingMedia(uint32_t sessionID, const MediaInfo &loca
       }
       else if(localMedia.type == "video")
       {
-        fg_->receiveVideoFrom(sessionID, std::shared_ptr<Filter>(rtpSink), viewfactory_->getVideo(sessionID, 0));
+        fg_->receiveVideoFrom(sessionID, std::shared_ptr<Filter>(rtpSink), viewfactory_->getVideo(sessionID, videoID));
       }
       else
       {
