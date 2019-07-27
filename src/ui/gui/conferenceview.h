@@ -88,7 +88,7 @@ private:
 
   QLayoutItem* getSessionItem();
 
-  struct CallInfo
+  struct ViewInfo
   {
     ViewState state;
     QString name;
@@ -101,8 +101,9 @@ private:
     Ui::IncomingCall*  in; // The view for incoming call. May be NULL
   };
 
+
   // low level function which handles the destruction of callInfo struct
-  void uninitCaller(std::unique_ptr<CallInfo> peer);
+  void uninitCaller(std::unique_ptr<ViewInfo> peer);
   void uninitDetachedWidget(uint32_t sessionID);
 
   QTimer timeoutTimer_;
@@ -116,10 +117,10 @@ private:
   // dynamic widget adding to layout
   // mutex takes care of locations accessing and changes
   QMutex locMutex_;
-  QMutex activeCallMutex_;
+  QMutex viewMutex_;
 
   // matches sessionID - 1, but is not the definitive source of sessionID.
-  std::map<uint32_t, std::unique_ptr<CallInfo>> activeCalls_;
+  std::map<uint32_t, std::unique_ptr<ViewInfo>> activeViews_;
   std::map<uint32_t, QWidget*> detachedWidgets_;
 
   // keeping track of freed places
