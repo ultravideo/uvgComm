@@ -68,8 +68,9 @@ signals:
 public slots:
 
   // this is currently connected by videoviewfactory
-  void attachWidget(uint32_t sessionID, QWidget *view);
-  void detachWidget(uint32_t sessionID, QWidget* view);
+  // slots for attaching and detaching view to/from layout
+  void reattachWidget(uint32_t sessionID);
+  void detachWidget(uint32_t sessionID, QWidget *view);
 
 private slots:
 
@@ -85,6 +86,8 @@ private:
   //TODO: also some way to keep track of freed positions
   void nextSlot();
 
+  void attachWidget(uint32_t sessionID, uint32_t index, QWidget *view);
+
   void attachIncomingCallWidget(QString name, uint32_t sessionID);
   void attachOutgoingCallWidget(QString name, uint32_t sessionID);
   void addWidgetToLayout(SessionViewState state, QWidget* widget,
@@ -92,23 +95,36 @@ private:
 
   QLayoutItem* getSessionItem();
 
+  void resetFreedLocations();
+
   struct ViewInfo
   {
-    SessionViewState state;
-    QString name;
     QLayoutItem* item;
 
     uint16_t row;
     uint16_t column;
+  };
+
+  struct SessionViews
+  {
+    SessionViewState state;
+    QString name;
+
+    std::vector<ViewInfo> views_;
 
     Ui::OutgoingCall* out; // The view for outgoing call. May be NULL
     Ui::IncomingCall*  in; // The view for incoming call. May be NULL
   };
 
-
   // low level function which handles the destruction of callInfo struct
-  void uninitCaller(std::unique_ptr<ViewInfo> peer);
   void uninitDetachedWidget(uint32_t sessionID);
+
+  void uninitializeView(ViewInfo& view);
+
+  // return true if session is exists and is initialized correctly
+  bool checkSession(uint32_t sessionID, uint32_t minViewCount = 0);
+  void initializeSession(uint32_t sessionID, QString name);
+  void unitializeSession(std::unique_ptr<SessionViews> peer);
 
   QTimer timeoutTimer_;
 
@@ -123,9 +139,15 @@ private:
   QMutex locMutex_;
   QMutex viewMutex_;
 
+  struct DetachedWidget
+  {
+    QWidget* widget;
+    uint32_t index;
+  };
+
   // matches sessionID - 1, but is not the definitive source of sessionID.
-  std::map<uint32_t, std::unique_ptr<ViewInfo>> activeViews_;
-  std::map<uint32_t, QWidget*> detachedWidgets_;
+  std::map<uint32_t, std::unique_ptr<SessionViews>> activeViews_;
+  std::map<uint32_t, DetachedWidget> detachedWidgets_;
 
   // keeping track of freed places
   // TODO: update the whole layout with each added and removed participant. Use window width.

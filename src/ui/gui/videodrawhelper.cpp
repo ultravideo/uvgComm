@@ -198,5 +198,5 @@ void VideoDrawHelper::exitFullscreen(QWidget* widget)
   widget->show();
   widget->setWindowState(Qt::WindowMaximized);
 
-  emit reattach(sessionID_, widget);
+  emit reattach(sessionID_);
 }

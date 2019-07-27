@@ -55,7 +55,7 @@ public:
 
 signals:
 
-  void reattach(uint32_t sessionID_, QWidget* view);
+  void reattach(uint32_t sessionID_);
   void detach(uint32_t sessionID_, QWidget* view);
 
 private:

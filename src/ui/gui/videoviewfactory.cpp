@@ -39,7 +39,7 @@ uint32_t VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent, Con
     // TODO: try qobject_cast to get the signal working for interface
 
     // signals reattaching after fullscreen mode
-    QObject::connect(yuv, &VideoYUVWidget::reattach, conf, &ConferenceView::attachWidget);
+    QObject::connect(yuv, &VideoYUVWidget::reattach, conf, &ConferenceView::reattachWidget);
     QObject::connect(yuv, &VideoYUVWidget::detach, conf, &ConferenceView::detachWidget);
 
     opengl_ = true;
@@ -54,7 +54,7 @@ uint32_t VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent, Con
     // TODO: try qobject_cast to get the signal working for interface
 
     // signals reattaching after fullscreen mode
-    QObject::connect(opengl, &VideoGLWidget::reattach, conf, &ConferenceView::attachWidget);
+    QObject::connect(opengl, &VideoGLWidget::reattach, conf, &ConferenceView::reattachWidget);
     QObject::connect(opengl, &VideoGLWidget::detach, conf, &ConferenceView::detachWidget);
   }
   else
@@ -66,7 +66,7 @@ uint32_t VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent, Con
     // TODO: try qobject_cast to get the signal working for interface
 
     // signals reattaching after fullscreen mode
-    QObject::connect(normal, &VideoWidget::reattach, conf, &ConferenceView::attachWidget);
+    QObject::connect(normal, &VideoWidget::reattach, conf, &ConferenceView::reattachWidget);
     QObject::connect(normal, &VideoWidget::detach, conf, &ConferenceView::detachWidget);
   }
 
