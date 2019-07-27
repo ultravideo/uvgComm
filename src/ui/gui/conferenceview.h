@@ -130,14 +130,14 @@ private:
 
   QWidget *parent_;
 
-  QMutex layoutMutex_;
+  QMutex layoutMutex_; // prevent modifying the layout at the same time
   QGridLayout* layout_;
   QWidget* layoutWidget_;
 
   // dynamic widget adding to layout
   // mutex takes care of locations accessing and changes
-  QMutex locMutex_;
-  QMutex viewMutex_;
+  QMutex locMutex_; // prevent reserving same location by two threads
+  QMutex viewMutex_; // prevent modifying activeViews at the same time
 
   struct DetachedWidget
   {

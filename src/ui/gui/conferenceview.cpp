@@ -51,10 +51,10 @@ void ConferenceView::callingTo(uint32_t sessionID, QString name)
 void ConferenceView::addWidgetToLayout(SessionViewState state, QWidget* widget,
                                        QString name, uint32_t sessionID)
 {
-  locMutex_.lock();
+
 
   // TODO: more checks if something goes wrong. There is some kind of bug when adding the caller
-
+  locMutex_.lock();
   uint16_t row = row_;
   uint16_t column = column_;
 
@@ -62,13 +62,19 @@ void ConferenceView::addWidgetToLayout(SessionViewState state, QWidget* widget,
   {
     row = freedLocs_.front().row;
     column = freedLocs_.front().column;
+    freedLocs_.pop_front();
   }
-
-  layoutMutex_.lock();
+  else
+  {
+    nextSlot();
+  }
+  locMutex_.unlock();
 
   if(widget != nullptr)
   {
+    layoutMutex_.lock();
     layout_->addWidget(widget, row, column);
+    layoutMutex_.unlock();
   }
 
   if (!checkSession(sessionID))
@@ -78,24 +84,17 @@ void ConferenceView::addWidgetToLayout(SessionViewState state, QWidget* widget,
 
   if (activeViews_[sessionID]->state != VIEW_VIDEO)
   {
+    for (auto view : activeViews_[sessionID]->views_)
+    {
+      uninitializeView(view);
+    }
+
     activeViews_[sessionID]->views_.clear();
   }
 
   activeViews_[sessionID]->state = state;
-
   activeViews_[sessionID]->views_.push_back({layout_->itemAtPosition(row,column),
                                              row, column});
-
-  layoutMutex_.unlock();
-
-  if(!freedLocs_.empty()){
-    freedLocs_.pop_front();
-  }
-  else
-  {
-    nextSlot();
-  }
-  locMutex_.unlock();
 }
 
 void ConferenceView::incomingCall(uint32_t sessionID, QString name)
