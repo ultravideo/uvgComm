@@ -15,7 +15,11 @@
 // Does the mapping of calls to their streams and upkeeps the layout of stream widgets
 // TODO: the view algorithm should be improved somehow to be nicer.
 
-enum ViewState {VIEWASKING, VIEWWAITINGPEER, VIEWRINGING, VIEWVIDEO};
+enum SessionViewState {VIEW_INACTIVE,
+                       VIEW_ASKING,
+                       VIEW_WAITING_PEER,
+                       VIEW_RINGING,
+                       VIEW_VIDEO};
 
 class QGridLayout;
 class QWidget;
@@ -83,14 +87,14 @@ private:
 
   void attachIncomingCallWidget(QString name, uint32_t sessionID);
   void attachOutgoingCallWidget(QString name, uint32_t sessionID);
-  void addWidgetToLayout(ViewState state, QWidget* widget,
+  void addWidgetToLayout(SessionViewState state, QWidget* widget,
                          QString name, uint32_t sessionID);
 
   QLayoutItem* getSessionItem();
 
   struct ViewInfo
   {
-    ViewState state;
+    SessionViewState state;
     QString name;
     QLayoutItem* item;
 

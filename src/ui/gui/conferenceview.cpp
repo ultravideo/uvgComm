@@ -48,7 +48,7 @@ void ConferenceView::callingTo(uint32_t sessionID, QString name)
   attachOutgoingCallWidget(name, sessionID);
 }
 
-void ConferenceView::addWidgetToLayout(ViewState state, QWidget* widget, QString name, uint32_t sessionID)
+void ConferenceView::addWidgetToLayout(SessionViewState state, QWidget* widget, QString name, uint32_t sessionID)
 {
   locMutex_.lock();
 
@@ -118,7 +118,7 @@ void ConferenceView::attachIncomingCallWidget(QString name, uint32_t sessionID)
   in->NameLabel->setText(name);
   in->StatusLabel->setText("is calling ...");
 
-  addWidgetToLayout(VIEWASKING, frame, name, sessionID);
+  addWidgetToLayout(VIEW_ASKING, frame, name, sessionID);
   activeViews_[sessionID]->in = in;
 
   in->acceptButton->setProperty("sessionID", QVariant(sessionID));
@@ -152,7 +152,7 @@ void ConferenceView::attachOutgoingCallWidget(QString name, uint32_t sessionID)
     timeoutTimer_.start(1000);
   }
 
-  addWidgetToLayout(VIEWWAITINGPEER, holder, name, sessionID);
+  addWidgetToLayout(VIEW_WAITING_PEER, holder, name, sessionID);
 
   activeViews_[sessionID]->out = out;
   out->cancelCall->setProperty("sessionID", QVariant(sessionID));
@@ -233,10 +233,10 @@ void ConferenceView::addVideoStream(uint32_t sessionID, std::shared_ptr<Videovie
   {
     qDebug() << "Session construction," << metaObject()->className()
              << ": Did not find asking widget. Assuming auto-accept and adding widget";
-    addWidgetToLayout(VIEWVIDEO, nullptr, "Auto-Accept", sessionID);
+    addWidgetToLayout(VIEW_VIDEO, nullptr, "Auto-Accept", sessionID);
   }
-  else if(activeViews_[sessionID]->state != VIEWASKING
-          && activeViews_[sessionID]->state != VIEWWAITINGPEER)
+  else if(activeViews_[sessionID]->state != VIEW_ASKING
+          && activeViews_[sessionID]->state != VIEW_WAITING_PEER)
   {
     printDebug(DEBUG_WARNING, this, DC_ADD_MEDIA,
                      "Activating stream with wrong state.",
@@ -247,7 +247,7 @@ void ConferenceView::addVideoStream(uint32_t sessionID, std::shared_ptr<Videovie
 
   viewMutex_.lock();
   // add the widget in place of previous one
-  activeViews_[sessionID]->state = VIEWVIDEO;
+  activeViews_[sessionID]->state = VIEW_VIDEO;
   activeViews_[sessionID]->in = nullptr;
   activeViews_[sessionID]->out = nullptr;
 
@@ -381,9 +381,9 @@ void ConferenceView::uninitCaller(std::unique_ptr<ViewInfo> peer)
 {
   if(peer->item != nullptr)
   {
-    if(peer->state == VIEWVIDEO
-       || peer->state == VIEWASKING
-       || peer->state == VIEWWAITINGPEER)
+    if(peer->state == VIEW_VIDEO
+       || peer->state == VIEW_ASKING
+       || peer->state == VIEW_WAITING_PEER)
     {
       if(peer->item->widget() != nullptr)
       {
@@ -431,7 +431,7 @@ void ConferenceView::accept()
   uint32_t sessionID = sender()->property("sessionID").toUInt();
   if (sessionID != 0
       && activeViews_.find(sessionID) != activeViews_.end()
-      && activeViews_[sessionID]->state == VIEWASKING
+      && activeViews_[sessionID]->state == VIEW_ASKING
       && activeViews_[sessionID]->in != nullptr)
   {
     activeViews_[sessionID]->in->acceptButton->hide();
@@ -450,7 +450,7 @@ void ConferenceView::reject()
   uint32_t sessionID = sender()->property("sessionID").toUInt();
   if (sessionID != 0
       && activeViews_.find(sessionID) != activeViews_.end()
-      && activeViews_[sessionID]->state == VIEWASKING
+      && activeViews_[sessionID]->state == VIEW_ASKING
       && activeViews_[sessionID]->in != nullptr)
   {
     activeViews_[sessionID]->in->acceptButton->hide();
