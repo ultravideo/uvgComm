@@ -83,26 +83,35 @@ private slots:
 
 private:
 
-  //TODO: also some way to keep track of freed positions
-  void nextSlot();
+  // Locations in the layout
+  struct LayoutLoc
+  {
+    uint16_t row;
+    uint16_t column;
+  };
 
+  // functions for getting and freeing a location in layout
+  LayoutLoc nextSlot();
+  void freeSlot(LayoutLoc& location);
+  void resetSlots();
+
+  // attach widget to layout
   void attachWidget(uint32_t sessionID, uint32_t index, QWidget *view);
 
+  // attach widget to display that someone is calling us
   void attachIncomingCallWidget(QString name, uint32_t sessionID);
+
+  // attach widget to display that we are calling somebody
   void attachOutgoingCallWidget(QString name, uint32_t sessionID);
   void addWidgetToLayout(SessionViewState state, QWidget* widget,
                          QString name, uint32_t sessionID);
 
   QLayoutItem* getSessionItem();
 
-  void resetFreedLocations();
-
   struct ViewInfo
   {
     QLayoutItem* item;
-
-    uint16_t row;
-    uint16_t column;
+    LayoutLoc location;
   };
 
   struct SessionViews
@@ -136,7 +145,6 @@ private:
 
   // dynamic widget adding to layout
   // mutex takes care of locations accessing and changes
-  QMutex locMutex_; // prevent reserving same location by two threads
   QMutex viewMutex_; // prevent modifying activeViews at the same time
 
   struct DetachedWidget
@@ -151,15 +159,9 @@ private:
 
   // keeping track of freed places
   // TODO: update the whole layout with each added and removed participant. Use window width.
-  struct LayoutLoc
-  {
-    uint16_t row;
-    uint16_t column;
-  };
 
+  QMutex locMutex_; // prevent reserving same location by two threads
   std::deque<LayoutLoc> freedLocs_;
-
-  uint16_t row_;
-  uint16_t column_;
+  LayoutLoc nextLocation_;
   uint16_t rowMaxLength_;
 };

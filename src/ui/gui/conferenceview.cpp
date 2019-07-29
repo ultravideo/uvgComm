@@ -21,8 +21,7 @@ ConferenceView::ConferenceView(QWidget *parent):
   activeViews_(),
   detachedWidgets_(),
   freedLocs_(),
-  row_(0),
-  column_(0),
+  nextLocation_({0,0}),
   rowMaxLength_(2)
 {}
 
@@ -51,29 +50,15 @@ void ConferenceView::callingTo(uint32_t sessionID, QString name)
 void ConferenceView::addWidgetToLayout(SessionViewState state, QWidget* widget,
                                        QString name, uint32_t sessionID)
 {
-
-
-  // TODO: more checks if something goes wrong. There is some kind of bug when adding the caller
   locMutex_.lock();
-  uint16_t row = row_;
-  uint16_t column = column_;
+  LayoutLoc location = nextSlot();
 
-  if(!freedLocs_.empty())
-  {
-    row = freedLocs_.front().row;
-    column = freedLocs_.front().column;
-    freedLocs_.pop_front();
-  }
-  else
-  {
-    nextSlot();
-  }
   locMutex_.unlock();
 
   if(widget != nullptr)
   {
     layoutMutex_.lock();
-    layout_->addWidget(widget, row, column);
+    layout_->addWidget(widget, location.row, location.column);
     layoutMutex_.unlock();
   }
 
@@ -93,8 +78,8 @@ void ConferenceView::addWidgetToLayout(SessionViewState state, QWidget* widget,
   }
 
   activeViews_[sessionID]->state = state;
-  activeViews_[sessionID]->views_.push_back({layout_->itemAtPosition(row,column),
-                                             row, column});
+  activeViews_[sessionID]->views_.push_back({layout_->itemAtPosition(location.row, location.column),
+                                             location});
 }
 
 void ConferenceView::incomingCall(uint32_t sessionID, QString name)
@@ -106,7 +91,8 @@ void ConferenceView::incomingCall(uint32_t sessionID, QString name)
     return;
   }
   qDebug() << "Incoming call," << metaObject()->className()
-           << "Displaying pop-up for somebody calling in slot:" << row_ << "," << column_;
+           << "Displaying pop-up for somebody. Next layout location: "
+           << nextLocation_.row << "," << nextLocation_.column;
 
   attachIncomingCallWidget(name, sessionID);
 }
@@ -188,12 +174,12 @@ void ConferenceView::attachWidget(uint32_t sessionID, uint32_t index, QWidget *v
     }
 
     layout_->addWidget(view,
-                       activeViews_[sessionID]->views_.at(index).row,
-                       activeViews_[sessionID]->views_.at(index).column);
+                       activeViews_[sessionID]->views_.at(index).location.row,
+                       activeViews_[sessionID]->views_.at(index).location.column);
 
     activeViews_[sessionID]->views_.at(index).item =
-        layout_->itemAtPosition(activeViews_[sessionID]->views_.at(index).row,
-                                activeViews_[sessionID]->views_.at(index).column);
+        layout_->itemAtPosition(activeViews_[sessionID]->views_.at(index).location.row,
+                                activeViews_[sessionID]->views_.at(index).location.column);
 
     detachedWidgets_.erase(sessionID);
 
@@ -367,35 +353,59 @@ bool ConferenceView::removeCaller(uint32_t sessionID)
   return !activeViews_.empty();
 }
 
-void ConferenceView::nextSlot()
+ConferenceView::LayoutLoc ConferenceView::nextSlot()
 {
-  ++column_;
-  if(column_ == rowMaxLength_)
+  LayoutLoc location = {0,0};
+
+  // give a freed up slot
+  if(!freedLocs_.empty())
   {
-    // move to first row, third place
-    if(row_ == 1 && column_ == 2)
+    location = freedLocs_.front();
+    freedLocs_.pop_front();
+  }
+  else // get the next slot
+  {
+    location = nextLocation_;
+
+    // update the values for next slot
+    ++nextLocation_.column;
+    if(nextLocation_.column == rowMaxLength_)
     {
-      rowMaxLength_ = 3;
-      row_ = 0;
-      column_ = 2;
-    }
-    // move to second row, third place
-    else if(row_ == 0 && column_ == 3)
-    {
-      row_ = 1;
-      column_ = 2;
-    }
-    else if(row_ == 2 && column_ == 3)
-    {
-      ++row_;
-      column_ = 1;
-    }
-    else // move forward
-    {
-      column_ = 0;
-      ++row_;
+      // move to first row, third place
+      if(nextLocation_.row == 1 && nextLocation_.column == 2)
+      {
+        rowMaxLength_ = 3;
+        nextLocation_.row = 0;
+        nextLocation_.column = 2;
+      }
+      // move to second row, third place
+      else if(nextLocation_.row == 0 && nextLocation_.column == 3)
+      {
+        nextLocation_.row = 1;
+        nextLocation_.column = 2;
+      }
+      else if(nextLocation_.row == 2 && nextLocation_.column == 3)
+      {
+        ++nextLocation_.row;
+        nextLocation_.column = 1;
+      }
+      else // move forward
+      {
+        nextLocation_.column = 0;
+        ++nextLocation_.row;
+      }
     }
   }
+  return location;
+}
+
+
+void ConferenceView::freeSlot(LayoutLoc &location)
+{
+  locMutex_.lock();
+  freedLocs_.push_back(location);
+  // TODO: reorder these
+  locMutex_.unlock();
 }
 
 void ConferenceView::close()
@@ -416,14 +426,8 @@ void ConferenceView::close()
 
   detachedWidgets_.clear();
   activeViews_.clear();
-  freedLocs_.clear();
 
-  locMutex_.lock();
-  row_ = 0;
-  column_ = 0;
-  rowMaxLength_ = 2;
-
-  locMutex_.unlock();
+  resetSlots();
 }
 
 void ConferenceView::unitializeSession(std::unique_ptr<SessionViews> peer)
@@ -440,16 +444,15 @@ void ConferenceView::unitializeSession(std::unique_ptr<SessionViews> peer)
   // TODO: Reorder the layout everytime a view is removed.
   if(activeViews_.size() == 1)
   {
-    resetFreedLocations();
+    resetSlots();
   }
 }
 
-void ConferenceView::resetFreedLocations()
+void ConferenceView::resetSlots()
 {
   locMutex_.lock();
   freedLocs_.clear();
-  row_ = 0;
-  column_ = 0;
+  nextLocation_ = {0,0};
   rowMaxLength_ = 2;
   locMutex_.unlock();
   qDebug() << "Closing," << metaObject()->className() << ": Removing last video view. Clearing previous data";
@@ -469,9 +472,7 @@ void ConferenceView::uninitializeView(ViewInfo& view)
     layout_->removeItem(view.item);
     layoutMutex_.unlock();
 
-    locMutex_.lock();
-    freedLocs_.push_back({view.row, view.column});
-    locMutex_.unlock();
+    freeSlot(view.location);
 
     view.item = nullptr;
   }
@@ -557,7 +558,8 @@ void ConferenceView::updateTimes()
 bool ConferenceView::checkSession(uint32_t sessionID, uint32_t minViewCount)
 {
   if (activeViews_.find(sessionID) == activeViews_.end() ||
-      (activeViews_[sessionID]->state != VIEW_INACTIVE && activeViews_[sessionID]->views_.empty())
+      (activeViews_[sessionID]->state != VIEW_INACTIVE
+       && activeViews_[sessionID]->views_.empty())
       || activeViews_[sessionID]->views_.size() < minViewCount)
   {
     return false;
