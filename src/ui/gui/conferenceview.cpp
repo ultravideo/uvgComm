@@ -37,6 +37,10 @@ void ConferenceView::init(QGridLayout* conferenceLayout, QWidget* layoutwidget)
 
 void ConferenceView::callingTo(uint32_t sessionID, QString name)
 {
+  printDebug(DEBUG_NORMAL, this, DC_START_CALL,
+             "Adding widget to display that we are calling someone.",
+              {"SessionID"}, {QString::number(sessionID)});
+
   Q_ASSERT(sessionID);
   if(activeViews_.find(sessionID) != activeViews_.end())
   {
@@ -47,43 +51,47 @@ void ConferenceView::callingTo(uint32_t sessionID, QString name)
   attachOutgoingCallWidget(name, sessionID);
 }
 
-void ConferenceView::addWidgetToLayout(SessionViewState state, QWidget* widget,
-                                       QString name, uint32_t sessionID)
+void ConferenceView::updateSessionState(SessionViewState state, QWidget* widget, uint32_t sessionID,
+                                       QString name)
 {
-  locMutex_.lock();
   LayoutLoc location = nextSlot();
 
-  locMutex_.unlock();
-
-  if(widget != nullptr)
-  {
-    layoutMutex_.lock();
-    layout_->addWidget(widget, location.row, location.column);
-    layoutMutex_.unlock();
-  }
-
+  // initialize if session has not been initialized
   if (!checkSession(sessionID))
   {
     initializeSession(sessionID, name);
   }
 
+  viewMutex_.lock();
+  // remove all previous widgets if they are not videostreams
   if (activeViews_[sessionID]->state != VIEW_VIDEO)
   {
+    printDebug(DEBUG_NORMAL, this, DC_START_CALL,
+               "Clearing all previous views.");
     for (auto view : activeViews_[sessionID]->views_)
     {
       uninitializeView(view);
     }
 
     activeViews_[sessionID]->views_.clear();
+
+    activeViews_[sessionID]->in = nullptr;
+    activeViews_[sessionID]->out = nullptr;
   }
+  viewMutex_.unlock();
 
   activeViews_[sessionID]->state = state;
-  activeViews_[sessionID]->views_.push_back({layout_->itemAtPosition(location.row, location.column),
-                                             location});
+  activeViews_[sessionID]->views_.push_back({nullptr, location}); // item is set by attachwidget
+
+  attachWidget(sessionID, activeViews_[sessionID]->views_.size() - 1, widget);
 }
 
 void ConferenceView::incomingCall(uint32_t sessionID, QString name)
 {
+  printDebug(DEBUG_NORMAL, this, DC_START_CALL,
+             "Adding widget to display that someone is calling us.",
+              {"SessionID"}, {QString::number(sessionID)});
+
   if(activeViews_.find(sessionID) != activeViews_.end())
   {
     printDebug(DEBUG_WARNING, this, DC_START_CALL, "Incoming call already has an allocated view.",
@@ -114,7 +122,7 @@ void ConferenceView::attachIncomingCallWidget(QString name, uint32_t sessionID)
   in->NameLabel->setText(name);
   in->StatusLabel->setText("is calling ...");
 
-  addWidgetToLayout(VIEW_ASKING, frame, name, sessionID);
+  updateSessionState(VIEW_ASKING, frame, sessionID, name);
   activeViews_[sessionID]->in = in;
 
   in->acceptButton->setProperty("sessionID", QVariant(sessionID));
@@ -148,7 +156,7 @@ void ConferenceView::attachOutgoingCallWidget(QString name, uint32_t sessionID)
     timeoutTimer_.start(1000);
   }
 
-  addWidgetToLayout(VIEW_WAITING_PEER, holder, name, sessionID);
+  updateSessionState(VIEW_WAITING_PEER, holder, sessionID, name);
 
   activeViews_[sessionID]->out = out;
   out->cancelCall->setProperty("sessionID", QVariant(sessionID));
@@ -168,25 +176,21 @@ void ConferenceView::attachWidget(uint32_t sessionID, uint32_t index, QWidget *v
   layoutMutex_.lock();
   if(checkSession(sessionID, index + 1))
   {
+    // remove this item from previous position if it has one
     if(activeViews_[sessionID]->views_.at(index).item)
     {
       layout_->removeItem(activeViews_[sessionID]->views_.at(index).item);
     }
 
+    // add to layout
     layout_->addWidget(view,
                        activeViews_[sessionID]->views_.at(index).location.row,
                        activeViews_[sessionID]->views_.at(index).location.column);
 
+    // get the layoutitem
     activeViews_[sessionID]->views_.at(index).item =
         layout_->itemAtPosition(activeViews_[sessionID]->views_.at(index).location.row,
                                 activeViews_[sessionID]->views_.at(index).location.column);
-
-    detachedWidgets_.erase(sessionID);
-
-    if(detachedWidgets_.empty())
-    {
-      parent_->show();
-    }
   }
   else {
 
@@ -202,6 +206,15 @@ void ConferenceView::reattachWidget(uint32_t sessionID)
   if (detachedWidgets_.find(sessionID) != detachedWidgets_.end())
   {
     attachWidget(sessionID, detachedWidgets_[sessionID].index, detachedWidgets_[sessionID].widget);
+
+    // remove from detached widgets
+    detachedWidgets_.erase(sessionID);
+
+    // if there are no detached widgets blocking the view, then show the window
+    if(detachedWidgets_.empty())
+    {
+      parent_->show();
+    }
   }
   else {
     printDebug(DEBUG_PROGRAM_WARNING, this, DC_FULLSCREEN,
@@ -256,55 +269,35 @@ void ConferenceView::detachWidget(uint32_t sessionID, QWidget *view)
   layoutMutex_.unlock();
 }
 
+
 // if our call is accepted or we accepted their call
-void ConferenceView::addVideoStream(uint32_t sessionID, std::shared_ptr<VideoviewFactory> factory)
+void ConferenceView::addVideoStream(uint32_t sessionID,
+                                    std::shared_ptr<VideoviewFactory> factory)
 {
-
-
-  if(checkSession(sessionID))
-  {
-    qDebug() << "Session construction," << metaObject()->className()
-             << ": Did not find asking widget. Assuming auto-accept and adding widget";
-    addWidgetToLayout(VIEW_VIDEO, nullptr, "Auto-Accept", sessionID);
-  }
-  else if(activeViews_[sessionID]->state != VIEW_ASKING
-          && activeViews_[sessionID]->state != VIEW_WAITING_PEER)
-  {
-    printDebug(DEBUG_WARNING, this, DC_ADD_MEDIA,
-                     "Activating stream with wrong state.",
-                    {"SessionID", "State"},
-                    {QString::number(sessionID), QString::number(activeViews_[sessionID]->state)});
-    return;
-  }
-
-  viewMutex_.lock();
-  // add the widget in place of previous one
-  activeViews_[sessionID]->state = VIEW_VIDEO;
-  activeViews_[sessionID]->in = nullptr;
-  activeViews_[sessionID]->out = nullptr;
-
-  // TODO delete previous widget now instead of with parent.
-  // Now they accumulate in memory until call has ended
-  if(activeViews_[sessionID]->views_.back().item != nullptr
-     && activeViews_[sessionID]->views_.back().item->widget() != nullptr)
-  {
-    uninitializeView(activeViews_[sessionID]->views_.back());
-  }
-  viewMutex_.unlock();
+  printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA,
+             "Adding Videostream.", {"SessionID"}, {QString::number(sessionID)});
 
   // create the view
   uint32_t id = factory->createWidget(sessionID, nullptr, this);
   QWidget* view = factory->getView(sessionID, id);
 
-  attachWidget(sessionID, activeViews_[sessionID]->views_.size() - 1, view);
+  if(!checkSession(sessionID))
+  {
+    printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA,
+               "Did not find previous session. Assuming auto-accept and adding widget anyway",
+              {"SessionID"}, {QString::number(sessionID)});
+  }
+  else if(activeViews_[sessionID]->state == VIEW_INACTIVE)
+  {
+    printDebug(DEBUG_PROGRAM_WARNING, this, DC_ADD_MEDIA,
+                     "Activating video view for session state which should not be possible.",
+                    {"SessionID"}, {QString::number(sessionID)});
+  }
 
-  //view->setParent(0);
-  //view->showMaximized();
-  //view->show();
-  //view->setWindowFlags(Qt::CustomizeWindowHint | Qt::FramelessWindowHint);
-
+  updateSessionState(VIEW_VIDEO, view, sessionID);
   view->show();
 }
+
 
 void ConferenceView::ringing(uint32_t sessionID)
 {
@@ -356,7 +349,7 @@ bool ConferenceView::removeCaller(uint32_t sessionID)
 ConferenceView::LayoutLoc ConferenceView::nextSlot()
 {
   LayoutLoc location = {0,0};
-
+  locMutex_.lock();
   // give a freed up slot
   if(!freedLocs_.empty())
   {
@@ -396,6 +389,7 @@ ConferenceView::LayoutLoc ConferenceView::nextSlot()
       }
     }
   }
+  locMutex_.unlock();
   return location;
 }
 
@@ -462,15 +456,15 @@ void ConferenceView::uninitializeView(ViewInfo& view)
 {
   if(view.item != nullptr)
   {
+    layoutMutex_.lock();
+    layout_->removeItem(view.item);
+    layoutMutex_.unlock();
+
     if(view.item->widget() != nullptr)
     {
       view.item->widget()->hide();
       delete view.item->widget();
     }
-
-    layoutMutex_.lock();
-    layout_->removeItem(view.item);
-    layoutMutex_.unlock();
 
     freeSlot(view.location);
 

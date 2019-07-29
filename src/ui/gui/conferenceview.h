@@ -69,12 +69,13 @@ public slots:
 
   // this is currently connected by videoviewfactory
   // slots for attaching and detaching view to/from layout
+  // Currently only one widget can be detached for one sessionID
   void reattachWidget(uint32_t sessionID);
   void detachWidget(uint32_t sessionID, QWidget *view);
 
 private slots:
 
-  // slots for accept/rejectu buttons. The invoker is searched.
+  // slots for accept/reject buttons. The invoker is searched.
   void accept();
   void reject();
   void cancel();
@@ -103,8 +104,10 @@ private:
 
   // attach widget to display that we are calling somebody
   void attachOutgoingCallWidget(QString name, uint32_t sessionID);
-  void addWidgetToLayout(SessionViewState state, QWidget* widget,
-                         QString name, uint32_t sessionID);
+
+  // update session state and attach widget.
+  void updateSessionState(SessionViewState state, QWidget* widget,
+                          uint32_t sessionID, QString name = "");
 
   QLayoutItem* getSessionItem();
 
