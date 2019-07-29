@@ -54,17 +54,16 @@ void ConferenceView::callingTo(uint32_t sessionID, QString name)
 void ConferenceView::updateSessionState(SessionViewState state, QWidget* widget, uint32_t sessionID,
                                        QString name)
 {
-  LayoutLoc location = nextSlot();
-
   // initialize if session has not been initialized
   if (!checkSession(sessionID))
   {
     initializeSession(sessionID, name);
   }
 
-  viewMutex_.lock();
   // remove all previous widgets if they are not videostreams
-  if (activeViews_[sessionID]->state != VIEW_VIDEO)
+  if (activeViews_[sessionID]->state != VIEW_VIDEO &&
+      activeViews_[sessionID]->state != VIEW_INACTIVE &&
+      !activeViews_[sessionID]->views_.empty())
   {
     printDebug(DEBUG_NORMAL, this, DC_START_CALL,
                "Clearing all previous views.");
@@ -78,10 +77,9 @@ void ConferenceView::updateSessionState(SessionViewState state, QWidget* widget,
     activeViews_[sessionID]->in = nullptr;
     activeViews_[sessionID]->out = nullptr;
   }
-  viewMutex_.unlock();
 
   activeViews_[sessionID]->state = state;
-  activeViews_[sessionID]->views_.push_back({nullptr, location}); // item is set by attachwidget
+  activeViews_[sessionID]->views_.push_back({nullptr, nextSlot()}); // item is set by attachwidget
 
   attachWidget(sessionID, activeViews_[sessionID]->views_.size() - 1, widget);
 }
@@ -384,8 +382,8 @@ ConferenceView::LayoutLoc ConferenceView::nextSlot()
       }
       else // move forward
       {
-        nextLocation_.column = 0;
         ++nextLocation_.row;
+        nextLocation_.column = 0;
       }
     }
   }
