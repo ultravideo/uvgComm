@@ -35,7 +35,10 @@ void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory, Statistic
 
   stats_ = stats;
   fg_->init(viewfactory_->getVideo(0, 0), stats); // 0 is the selfview index. The view should be created by GUI
+
+  setRTPLibrary();
 }
+
 
 void MediaManager::uninit()
 {
@@ -45,15 +48,54 @@ void MediaManager::uninit()
   fg_->uninit();
 
   stats_ = nullptr;
-  streamer_->stop();
-  streamer_->uninit();
+  if (streamer_ != nullptr)
+  {
+    stopRTPLibrary();
+  }
 }
+
 
 void MediaManager::updateSettings()
 {
   fg_->updateSettings();
   fg_->camera(camera_); // kind of a hack to make sure the camera/mic state is preserved
   fg_->mic(mic_);
+  setRTPLibrary();
+}
+
+
+void MediaManager::stopRTPLibrary()
+{
+  streamer_->stop();
+  streamer_->uninit();
+  streamer_.reset();
+  streamer_ = nullptr;
+}
+
+
+void MediaManager::setRTPLibrary()
+{
+  // delete old libarary if it exists
+  // TODO: Should first check if we actually need change
+  if (streamer_ != nullptr)
+  {
+    stopRTPLibrary();
+  }
+
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+  int kvzrtp = settings.value("sip/kvzrtp").toInt();
+
+  if (kvzrtp == 1)
+  {
+    streamer_ = std::unique_ptr<IRTPStreamer> (new KvzRTP());
+  }
+  else
+  {
+    streamer_ = std::unique_ptr<IRTPStreamer> (new Live555RTP());
+  }
+
+  streamer_->init(stats_);
+  streamer_->start();
 }
 
 void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> peerInfo,
@@ -65,24 +107,6 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
   {
     printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "Nonzero start-time not supported!");
     return;
-  }
-
-  if (streamer_ == nullptr)
-  {
-    QSettings settings("kvazzup.ini", QSettings::IniFormat);
-    int kvzrtp = settings.value("sip/kvzrtp").toInt();
-
-    if (kvzrtp == 1)
-    {
-      streamer_ = std::unique_ptr<IRTPStreamer> (new KvzRTP());
-    }
-    else
-    {
-      streamer_ = std::unique_ptr<IRTPStreamer> (new Live555RTP());
-    }
-
-    streamer_->init(stats_);
-    streamer_->start();
   }
 
   if(peerInfo->connection_nettype == "IN")

@@ -91,6 +91,9 @@ private:
 
   void transportAttributes(const QList<SDPAttributeType> &attributes, bool& send, bool& recv);
 
+  void setRTPLibrary();
+  void stopRTPLibrary();
+
   StatisticsInterface* stats_;
 
   std::unique_ptr<FilterGraph> fg_;
