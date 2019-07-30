@@ -152,7 +152,8 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
 }
 
 
-void MediaManager::createOutgoingMedia(uint32_t sessionID, const MediaInfo& remoteMedia, QString globalAddress)
+void MediaManager::createOutgoingMedia(uint32_t sessionID, const MediaInfo& remoteMedia,
+                                       QString globalAddress)
 {
   bool send = true;
   bool recv = true;
@@ -172,11 +173,16 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID, const MediaInfo& remo
       QHostAddress address =  QHostAddress(globalAddress);
       if (remoteMedia.connection_address != "")
       {
-        printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Using media specific address.", {"Address"}, {address.toString()});
+        printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Using media specific address for outgoing media.",
+                  {"Type", "Address", "Port"},
+                  {remoteMedia.type, address.toString(), QString::number(remoteMedia.receivePort)});
+
         address.setAddress(remoteMedia.connection_address);
       }
       else {
-        printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Using global address.", {"Address"}, {address.toString()});
+        printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Using global address for outgoing media.",
+                  {"Type", "Address", "Port"},
+                  {remoteMedia.type, address.toString(), QString::number(remoteMedia.receivePort)});
       }
 
       std::shared_ptr<Filter> framedSource = streamer_->addSendStream(sessionID, address, remoteMedia.receivePort,
@@ -233,13 +239,15 @@ void MediaManager::createIncomingMedia(uint32_t sessionID, const MediaInfo &loca
       if (localMedia.connection_address != "")
       {
         printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Using media specific address for incoming.",
-                  {"Type", "Address"}, {localMedia.type, address.toString()});
+                  {"Type", "Address", "Port"},
+                  {localMedia.type, address.toString(), QString::number(localMedia.receivePort)});
         address.setAddress(localMedia.connection_address);
       }
       else
       {
         printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Using global address for incoming.",
-                   {"Type", "Address"}, {localMedia.type, address.toString()});
+                   {"Type", "Address", "Port"},
+                   {localMedia.type, address.toString(), QString::number(localMedia.receivePort)});
       }
 
       std::shared_ptr<Filter> rtpSink = streamer_->addReceiveStream(sessionID, address, localMedia.receivePort,
@@ -283,6 +291,7 @@ void MediaManager::removeParticipant(uint32_t sessionID)
 
 void MediaManager::endAllCalls()
 {
+  printDebug(DEBUG_NORMAL, "Media Manager", DC_END_CALL, "Ending all calls.");
   fg_->removeAllParticipants();
   streamer_->removeAllPeers();
 
