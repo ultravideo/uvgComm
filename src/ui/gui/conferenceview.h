@@ -142,19 +142,19 @@ private:
 
   QWidget *parent_;
 
+  // dynamic widget adding to layout
+  // mutex takes care of locations accessing and changes
   QMutex layoutMutex_; // prevent modifying the layout at the same time
   QGridLayout* layout_;
   QWidget* layoutWidget_;
-
-  // dynamic widget adding to layout
-  // mutex takes care of locations accessing and changes
-  QMutex viewMutex_; // prevent modifying activeViews at the same time
 
   struct DetachedWidget
   {
     QWidget* widget;
     uint32_t index;
   };
+
+  QMutex viewMutex_; // prevent modifying activeViews at the same time
 
   // matches sessionID - 1, but is not the definitive source of sessionID.
   std::map<uint32_t, std::unique_ptr<SessionViews>> activeViews_;

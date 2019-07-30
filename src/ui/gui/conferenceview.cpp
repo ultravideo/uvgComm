@@ -42,12 +42,14 @@ void ConferenceView::callingTo(uint32_t sessionID, QString name)
               {"SessionID"}, {QString::number(sessionID)});
 
   Q_ASSERT(sessionID);
+  viewMutex_.lock();
   if(activeViews_.find(sessionID) != activeViews_.end())
   {
+    viewMutex_.unlock();
     printDebug(DEBUG_WARNING, this, DC_START_CALL, "Outgoing call already has an allocated view.");
     return;
   }
-
+  viewMutex_.unlock();
   attachOutgoingCallWidget(name, sessionID);
 }
 
@@ -60,6 +62,7 @@ void ConferenceView::updateSessionState(SessionViewState state, QWidget* widget,
     initializeSession(sessionID, name);
   }
 
+  viewMutex_.lock();
   // remove all previous widgets if they are not videostreams
   if (activeViews_[sessionID]->state != VIEW_VIDEO &&
       activeViews_[sessionID]->state != VIEW_INACTIVE &&
@@ -79,7 +82,8 @@ void ConferenceView::updateSessionState(SessionViewState state, QWidget* widget,
   }
 
   activeViews_[sessionID]->state = state;
-  activeViews_[sessionID]->views_.push_back({nullptr, nextSlot()}); // item is set by attachwidget
+  activeViews_[sessionID]->views_.push_back({nullptr, nextSlot()}); // item is set by attachWidget
+  viewMutex_.unlock();
 
   attachWidget(sessionID, activeViews_[sessionID]->views_.size() - 1, widget);
 }
@@ -90,12 +94,15 @@ void ConferenceView::incomingCall(uint32_t sessionID, QString name)
              "Adding widget to display that someone is calling us.",
               {"SessionID"}, {QString::number(sessionID)});
 
+  viewMutex_.lock();
   if(activeViews_.find(sessionID) != activeViews_.end())
   {
+    viewMutex_.unlock();
     printDebug(DEBUG_WARNING, this, DC_START_CALL, "Incoming call already has an allocated view.",
       {"SessionID"}, {QString::number(sessionID)});
     return;
   }
+  viewMutex_.unlock();
   qDebug() << "Incoming call," << metaObject()->className()
            << "Displaying pop-up for somebody. Next layout location: "
            << nextLocation_.row << "," << nextLocation_.column;
@@ -121,7 +128,10 @@ void ConferenceView::attachIncomingCallWidget(QString name, uint32_t sessionID)
   in->StatusLabel->setText("is calling ...");
 
   updateSessionState(VIEW_ASKING, frame, sessionID, name);
+
+  viewMutex_.lock();
   activeViews_[sessionID]->in = in;
+  viewMutex_.unlock();
 
   in->acceptButton->setProperty("sessionID", QVariant(sessionID));
   in->declineButton->setProperty("sessionID", QVariant(sessionID));
@@ -156,7 +166,10 @@ void ConferenceView::attachOutgoingCallWidget(QString name, uint32_t sessionID)
 
   updateSessionState(VIEW_WAITING_PEER, holder, sessionID, name);
 
+  viewMutex_.lock();
   activeViews_[sessionID]->out = out;
+  viewMutex_.unlock();
+
   out->cancelCall->setProperty("sessionID", QVariant(sessionID));
   connect(out->cancelCall, SIGNAL(clicked()), this, SLOT(cancel()));
 
@@ -171,29 +184,33 @@ void ConferenceView::attachOutgoingCallWidget(QString name, uint32_t sessionID)
 
 void ConferenceView::attachWidget(uint32_t sessionID, uint32_t index, QWidget *view)
 {
+  Q_ASSERT(view != nullptr);
+  Q_ASSERT(sessionID != 0);
   layoutMutex_.lock();
   if(checkSession(sessionID, index + 1))
   {
+    viewMutex_.lock();
     // remove this item from previous position if it has one
-    if(activeViews_[sessionID]->views_.at(index).item)
+    if(activeViews_[sessionID]->views_.at(index).item != nullptr)
     {
       layout_->removeItem(activeViews_[sessionID]->views_.at(index).item);
     }
 
+    LayoutLoc location = activeViews_[sessionID]->views_.at(index).location;
+
     // add to layout
-    layout_->addWidget(view,
-                       activeViews_[sessionID]->views_.at(index).location.row,
-                       activeViews_[sessionID]->views_.at(index).location.column);
+    layout_->addWidget(view, location.row,location.column);
 
     // get the layoutitem
     activeViews_[sessionID]->views_.at(index).item =
-        layout_->itemAtPosition(activeViews_[sessionID]->views_.at(index).location.row,
-                                activeViews_[sessionID]->views_.at(index).location.column);
+        layout_->itemAtPosition(location.row,location.column);
+    viewMutex_.unlock();
   }
   else {
 
     printDebug(DEBUG_PROGRAM_ERROR, this, DC_FULLSCREEN,
-               "Trying to attach fullscreenview back to layout when sessionID does not exist in conference view.",
+               "Trying to attach fullscreenview back to "
+               "layout when sessionID does not exist in conference view.",
                {"SessionID"}, {QString::number(sessionID)});
   }
   layoutMutex_.unlock();
@@ -201,9 +218,12 @@ void ConferenceView::attachWidget(uint32_t sessionID, uint32_t index, QWidget *v
 
 void ConferenceView::reattachWidget(uint32_t sessionID)
 {
+  Q_ASSERT(sessionID != 0);
   if (detachedWidgets_.find(sessionID) != detachedWidgets_.end())
   {
-    attachWidget(sessionID, detachedWidgets_[sessionID].index, detachedWidgets_[sessionID].widget);
+    attachWidget(sessionID,
+                 detachedWidgets_[sessionID].index,
+                 detachedWidgets_[sessionID].widget);
 
     // remove from detached widgets
     detachedWidgets_.erase(sessionID);
@@ -220,14 +240,19 @@ void ConferenceView::reattachWidget(uint32_t sessionID)
   }
 }
 
+
 void ConferenceView::detachWidget(uint32_t sessionID, QWidget *view)
 {
+  Q_ASSERT(view != nullptr);
+  Q_ASSERT(sessionID != 0);
+
   layoutMutex_.lock();
 
-  if(checkSession(sessionID))
+  if(checkSession(sessionID) && view != nullptr)
   {
     uint32_t index = 0;
     bool found = false;
+    viewMutex_.lock();
     for (unsigned int i = 0; i < activeViews_[sessionID]->views_.size(); ++i)
     {
       if (activeViews_[sessionID]->views_.at(i).item != nullptr &&
@@ -240,7 +265,9 @@ void ConferenceView::detachWidget(uint32_t sessionID, QWidget *view)
 
     if (!found)
     {
-      printDebug(DEBUG_PROGRAM_ERROR, this, DC_FULLSCREEN, "Could not find widget to be detached");
+      viewMutex_.unlock();
+      printDebug(DEBUG_PROGRAM_ERROR, this, DC_FULLSCREEN,
+                 "Could not find widget to be detached");
       return;
     }
 
@@ -248,8 +275,11 @@ void ConferenceView::detachWidget(uint32_t sessionID, QWidget *view)
     {
       layout_->removeItem(activeViews_[sessionID]->views_.at(index).item);
     }
+
     layout_->removeWidget(view);
     activeViews_[sessionID]->views_.at(index).item = nullptr;
+    viewMutex_.unlock();
+
     detachedWidgets_[sessionID] = {view, index};
 
     if(detachedWidgets_.size() == 1)
@@ -302,8 +332,10 @@ void ConferenceView::ringing(uint32_t sessionID)
   // get widget from layout and change the text.
   qDebug() << "Ringing," << metaObject()->className() << ": Call is ringing. SessionID" << sessionID;
 
+  viewMutex_.lock();
   if(activeViews_.find(sessionID) == activeViews_.end())
   {
+    viewMutex_.unlock();
     printDebug(DEBUG_PROGRAM_ERROR, this, DC_RINGING,
                      "Ringing for nonexisting view. View should always exist if this function is called.",
                     {"SessionID"}, {QString::number(sessionID)});
@@ -311,19 +343,20 @@ void ConferenceView::ringing(uint32_t sessionID)
   }
   if (activeViews_[sessionID]->out != nullptr)
   {
-    viewMutex_.lock();
     activeViews_[sessionID]->out->StatusLabel->setText("Call is ringing ...");
-    viewMutex_.unlock();
   }
   else
   {
+
     printDebug(DEBUG_PROGRAM_ERROR, this, DC_RINGING, "No incoming call widget exists when it should be ringing.",
       {"SessionID"},{QString::number(sessionID)});
   }
+  viewMutex_.unlock();
 }
 
 bool ConferenceView::removeCaller(uint32_t sessionID)
 {
+  viewMutex_.lock();
   if(activeViews_.find(sessionID) == activeViews_.end())
   {
     Q_ASSERT(false);
@@ -332,15 +365,13 @@ bool ConferenceView::removeCaller(uint32_t sessionID)
   }
   else
   {
-    viewMutex_.lock();
     unitializeSession(std::move(activeViews_[sessionID]));
     activeViews_.erase(sessionID);
 
     uninitDetachedWidget(sessionID);
-
-    viewMutex_.unlock();
   }
 
+  viewMutex_.unlock();
   return !activeViews_.empty();
 }
 
@@ -404,11 +435,14 @@ void ConferenceView::close()
 {
   qDebug() << "End all calls," << metaObject()->className() << ": Closing views of the call with"
            << detachedWidgets_.size() << "detached widgets";
+
+  viewMutex_.lock();
   for (std::map<uint32_t, std::unique_ptr<SessionViews>>::iterator view = activeViews_.begin();
        view != activeViews_.end(); ++view)
   {
     unitializeSession(std::move(view->second));
   }
+  viewMutex_.unlock();
 
   for (std::map<uint32_t, DetachedWidget>::iterator view = detachedWidgets_.begin();
        view != detachedWidgets_.end(); ++view)
@@ -417,7 +451,10 @@ void ConferenceView::close()
   }
 
   detachedWidgets_.clear();
+
+  viewMutex_.lock();
   activeViews_.clear();
+  viewMutex_.unlock();
 
   resetSlots();
 }
@@ -430,13 +467,6 @@ void ConferenceView::unitializeSession(std::unique_ptr<SessionViews> peer)
     {
       uninitializeView(view);
     }
-  }
-
-  // record the freed locations so we can later insert new views to them if need be
-  // TODO: Reorder the layout everytime a view is removed.
-  if(activeViews_.size() == 1)
-  {
-    resetSlots();
   }
 }
 
@@ -483,6 +513,7 @@ void ConferenceView::uninitDetachedWidget(uint32_t sessionID)
 void ConferenceView::accept()
 {
   uint32_t sessionID = sender()->property("sessionID").toUInt();
+  viewMutex_.lock();
   if (sessionID != 0
       && activeViews_.find(sessionID) != activeViews_.end()
       && activeViews_[sessionID]->state == VIEW_ASKING
@@ -490,10 +521,12 @@ void ConferenceView::accept()
   {
     activeViews_[sessionID]->in->acceptButton->hide();
     activeViews_[sessionID]->in->declineButton->hide();
+    viewMutex_.unlock();
     emit acceptCall(sessionID);
   }
   else
   {
+    viewMutex_.unlock();
     printDebug(DEBUG_PROGRAM_ERROR, this, DC_ACCEPT,
                "Couldn't find the invoker for accept.");
   }
@@ -502,6 +535,8 @@ void ConferenceView::accept()
 void ConferenceView::reject()
 {
   uint32_t sessionID = sender()->property("sessionID").toUInt();
+
+  viewMutex_.lock();
   if (sessionID != 0
       && activeViews_.find(sessionID) != activeViews_.end()
       && activeViews_[sessionID]->state == VIEW_ASKING
@@ -509,6 +544,8 @@ void ConferenceView::reject()
   {
     activeViews_[sessionID]->in->acceptButton->hide();
     activeViews_[sessionID]->in->declineButton->hide();
+    viewMutex_.unlock();
+
     emit rejectCall(sessionID);
   }
   else
@@ -549,14 +586,17 @@ void ConferenceView::updateTimes()
 // return true if session is exists and is initialized correctly
 bool ConferenceView::checkSession(uint32_t sessionID, uint32_t minViewCount)
 {
+  viewMutex_.lock();
   if (activeViews_.find(sessionID) == activeViews_.end() ||
       (activeViews_[sessionID]->state != VIEW_INACTIVE
        && activeViews_[sessionID]->views_.empty())
       || activeViews_[sessionID]->views_.size() < minViewCount)
   {
+    viewMutex_.unlock();
     return false;
   }
 
+  viewMutex_.unlock();
   return true;
 }
 
