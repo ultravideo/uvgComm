@@ -153,13 +153,6 @@ bool Live555RTP::addPeer(uint32_t sessionID)
     qDebug() << "Adding peer";
 
     Peer* peer = new Peer;
-
-
-    peer->videoSender = nullptr;
-    peer->videoReceiver = nullptr;
-    peer->audioSender = nullptr;
-    peer->audioReceiver = nullptr;
-
     if(peers_.size() >= sessionID && peers_.at(sessionID - 1) == nullptr)
     {
       peers_[sessionID - 1] = peer;
@@ -197,14 +190,19 @@ void Live555RTP::removePeer(uint32_t sessionID)
       qSleep(1);
     }
 
-    if(peers_.at(sessionID - 1)->audioSender)
-      destroySender(peers_.at(sessionID - 1)->audioSender);
-    if(peers_.at(sessionID - 1)->videoSender)
-      destroySender(peers_.at(sessionID - 1)->videoSender);
-    if(peers_.at(sessionID - 1)->audioReceiver)
-      destroyReceiver(peers_.at(sessionID - 1)->audioReceiver);
-    if(peers_.at(sessionID - 1)->videoReceiver)
-      destroyReceiver(peers_.at(sessionID - 1)->videoReceiver);
+    for (auto sender : peers_.at(sessionID - 1)->senders)
+    {
+      destroySender(sender);
+      sender = nullptr;
+    }
+    peers_.at(sessionID - 1)->senders.clear();
+
+    for (auto receiver : peers_.at(sessionID - 1)->receivers)
+    {
+      destroyReceiver(receiver);
+      receiver = nullptr;
+    }
+    peers_.at(sessionID - 1)->receivers.clear();
 
     delete peers_.at(sessionID - 1);
     peers_[sessionID - 1] = nullptr;
@@ -313,9 +311,12 @@ bool Live555RTP::checkSessionID(uint32_t sessionID)
       && peers_.at(sessionID - 1) != nullptr;
 }
 
-std::shared_ptr<Filter> Live555RTP::addSendStream(uint32_t peer, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum)
+std::shared_ptr<Filter> Live555RTP::addSendStream(uint32_t sessionID, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum)
 {
-  Q_UNUSED(peer);
+  Q_ASSERT(sessionID);
+  Q_ASSERT(peers_.size() >= sessionID);
+
+  Peer* peer = peers_.at(sessionID - 1);
 
   struct in_addr ip_addr;
 
@@ -332,13 +333,16 @@ std::shared_ptr<Filter> Live555RTP::addSendStream(uint32_t peer, QHostAddress ip
     return nullptr;
   }
 
-  senders_.push_back(sender);
+  peer->senders.push_back(sender);
   return sender->sourcefilter;
 }
 
-std::shared_ptr<Filter> Live555RTP::addReceiveStream(uint32_t peer, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum)
+std::shared_ptr<Filter> Live555RTP::addReceiveStream(uint32_t sessionID, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum)
 {
-  Q_UNUSED(peer);
+  Q_ASSERT(sessionID);
+  Q_ASSERT(peers_.size() >= sessionID);
+
+  Peer* peer = peers_.at(sessionID - 1);
 
   struct in_addr ip_addr;
 
@@ -355,54 +359,10 @@ std::shared_ptr<Filter> Live555RTP::addReceiveStream(uint32_t peer, QHostAddress
     return nullptr;
   }
 
-  receivers_.push_back(receiver);
+  peer->receivers.push_back(receiver);
   return receiver->sink;
 }
 
-
-void Live555RTP::removeSendVideo(uint32_t sessionID)
-{
-  if(peers_.at(sessionID - 1)->videoSender)
-  {
-    destroySender(peers_.at(sessionID - 1)->videoSender);
-    peers_.at(sessionID - 1)->videoSender = nullptr;
-  }
-  else
-    qWarning() << "WARNING: Tried to remove send video that did not exist.";
-
-}
-void Live555RTP::removeSendAudio(uint32_t sessionID)
-{
-  if(peers_.at(sessionID - 1)->audioSender)
-  {
-    destroySender(peers_.at(sessionID - 1)->audioSender);
-    peers_.at(sessionID - 1)->audioSender = nullptr;
-  }
-
-  else
-    qWarning() << "WARNING: Tried to remove send video that did not exist.";
-}
-
-void Live555RTP::removeReceiveVideo(uint32_t sessionID)
-{
-  if(peers_.at(sessionID)->videoReceiver)
-  {
-    destroyReceiver(peers_.at(sessionID - 1)->videoReceiver);
-    peers_.at(sessionID - 1)->videoReceiver = nullptr;
-  }
-  else
-    qWarning() << "WARNING: Tried to remove send video that did not exist.";
-}
-void Live555RTP::removeReceiveAudio(uint32_t sessionID)
-{
-  if(peers_.at(sessionID - 1)->audioReceiver)
-  {
-    destroyReceiver(peers_.at(sessionID - 1)->audioReceiver);
-    peers_.at(sessionID - 1)->audioReceiver = nullptr;
-  }
-  else
-    qWarning() << "WARNING: Tried to remove send video that did not exist.";
-}
 
 Live555RTP::Sender* Live555RTP::addSender(in_addr ip, uint16_t port, DataType type, uint8_t rtpNum)
 {

@@ -38,10 +38,6 @@ public:
   std::shared_ptr<Filter> addSendStream(uint32_t peer, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum);
   std::shared_ptr<Filter> addReceiveStream(uint32_t peer, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum);
 
-  void removeSendVideo(uint32_t sessionID);
-  void removeSendAudio(uint32_t sessionID);
-  void removeReceiveVideo(uint32_t sessionID);
-  void removeReceiveAudio(uint32_t sessionID);
 
   // removes everything related to this peer
   void removePeer(uint32_t sessionID);
@@ -82,14 +78,8 @@ private:
 
   struct Peer
   {
-    struct in_addr video_ip;
-    struct in_addr audio_ip;
-
-    Sender* audioSender; // audio to this peer
-    Sender* videoSender; // video to this peer
-
-    Receiver* audioReceiver; // audio from this peer
-    Receiver* videoReceiver; // video from this peer
+    std::vector<Live555RTP::Sender *> senders;
+    std::vector<Live555RTP::Receiver *> receivers;
   };
 
   void createConnection(Connection& connection,
@@ -110,9 +100,6 @@ private:
   DataType typeFromString(QString type);
 
   QList<Peer*> peers_;
-
-  std::vector<Live555RTP::Sender *> senders_;
-  std::vector<Live555RTP::Receiver *> receivers_;
 
   bool isIniated_;
   bool isRunning_;
