@@ -104,7 +104,7 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
 {
   // TODO: support stop-time and start-time as recommended by RFC 4566 section 5.9
 
-  Q_ASSERT(peerInfo->media.size() != localInfo->media.size());
+  Q_ASSERT(peerInfo->media.size() == localInfo->media.size());
   if (peerInfo->media.size() != localInfo->media.size())
   {
     printDebug(DEBUG_PROGRAM_ERROR, "Media manager", DC_ADD_MEDIA,

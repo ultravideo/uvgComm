@@ -188,7 +188,7 @@ void KvazzupController::callNegotiated(uint32_t sessionID)
 {
   if(states_.find(sessionID) != states_.end())
   {
-    if(states_[sessionID] == CALLNEGOTIATING)
+    if(states_[sessionID] == CALLNEGOTIATING || states_[sessionID] == CALLONGOING)
     {
       ++phaseReady_;
 
