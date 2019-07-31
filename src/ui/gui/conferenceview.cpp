@@ -241,46 +241,26 @@ void ConferenceView::reattachWidget(uint32_t sessionID)
 }
 
 
-void ConferenceView::detachWidget(uint32_t sessionID, QWidget *view)
+void ConferenceView::detachWidget(uint32_t sessionID, uint32_t index, QWidget* widget)
 {
-  Q_ASSERT(view != nullptr);
   Q_ASSERT(sessionID != 0);
+  Q_ASSERT(activeViews_[sessionID]->views_.size() >index);
 
   layoutMutex_.lock();
-
-  if(checkSession(sessionID) && view != nullptr)
+  if(checkSession(sessionID))
   {
-    uint32_t index = 0;
-    bool found = false;
     viewMutex_.lock();
-    for (unsigned int i = 0; i < activeViews_[sessionID]->views_.size(); ++i)
-    {
-      if (activeViews_[sessionID]->views_.at(i).item != nullptr &&
-          activeViews_[sessionID]->views_.at(i).item->widget() == view)
-      {
-        index = i;
-        found = true;
-      }
-    }
-
-    if (!found)
-    {
-      viewMutex_.unlock();
-      printDebug(DEBUG_PROGRAM_ERROR, this, DC_FULLSCREEN,
-                 "Could not find widget to be detached");
-      return;
-    }
-
     if(activeViews_[sessionID]->views_.at(index).item)
     {
       layout_->removeItem(activeViews_[sessionID]->views_.at(index).item);
     }
+    layout_->removeWidget(widget);
 
-    layout_->removeWidget(view);
+
     activeViews_[sessionID]->views_.at(index).item = nullptr;
     viewMutex_.unlock();
 
-    detachedWidgets_[sessionID] = {view, index};
+    detachedWidgets_[sessionID] = {widget, index};
 
     if(detachedWidgets_.size() == 1)
     {
@@ -305,25 +285,41 @@ void ConferenceView::addVideoStream(uint32_t sessionID,
   printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA,
              "Adding Videostream.", {"SessionID"}, {QString::number(sessionID)});
 
-  // create the view
-  uint32_t id = factory->createWidget(sessionID, nullptr, this);
-  QWidget* view = factory->getView(sessionID, id);
+  uint32_t existingViews = 0;
+
 
   if(!checkSession(sessionID))
   {
     printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA,
                "Did not find previous session. Assuming auto-accept and adding widget anyway",
               {"SessionID"}, {QString::number(sessionID)});
+    existingViews = 0;
   }
   else if(activeViews_[sessionID]->state == VIEW_INACTIVE)
   {
     printDebug(DEBUG_PROGRAM_WARNING, this, DC_ADD_MEDIA,
                      "Activating video view for session state which should not be possible.",
                     {"SessionID"}, {QString::number(sessionID)});
+    existingViews = activeViews_[sessionID]->views_.size();
+  }
+  else {
+    existingViews = activeViews_[sessionID]->views_.size();
   }
 
-  updateSessionState(VIEW_VIDEO, view, sessionID);
-  view->show();
+  // create the view
+  uint32_t id = factory->createWidget(sessionID, nullptr, this, existingViews);
+  QWidget* view = factory->getView(sessionID, id);
+
+  if (view != nullptr)
+  {
+    updateSessionState(VIEW_VIDEO, view, sessionID);
+    view->show();
+  }
+  else
+  {
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA,
+                     "Failed to create view.");
+  }
 }
 
 

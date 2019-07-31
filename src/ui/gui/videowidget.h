@@ -19,7 +19,8 @@ class VideoWidget : public QFrame, public VideoInterface
   Q_OBJECT
   Q_INTERFACES(VideoInterface)
 public:
-  VideoWidget(QWidget* parent = nullptr, uint32_t sessionID = 0, uint8_t borderSize = 1);
+  VideoWidget(QWidget* parent = nullptr, uint32_t sessionID = 0, uint32_t index = 0,
+              uint8_t borderSize = 1);
   ~VideoWidget();
 
   virtual void setStats(StatisticsInterface* stats)
@@ -38,7 +39,7 @@ public:
 signals:
 
   void reattach(uint32_t sessionID_);
-  void detach(uint32_t sessionID_, QWidget* view);
+  void detach(uint32_t sessionID_, uint32_t index, QWidget* widget);
 
   void newImage();
 protected:
@@ -57,6 +58,7 @@ private:
 
   StatisticsInterface* stats_;
   uint32_t sessionID_;
+  uint32_t index_;
 
   VideoDrawHelper helper_;
 };

@@ -18,7 +18,8 @@ VideoviewFactory::VideoviewFactory():
   opengl_(false)
 {}
 
-uint32_t VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent, ConferenceView* conf)
+uint32_t VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent,
+                                        ConferenceView* conf, uint32_t index)
 {
   qDebug() << "View, VideoFactory : Creating videowidget for sessionID:" << sessionID;
 
@@ -29,7 +30,7 @@ uint32_t VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent, Con
   QWidget* vw = nullptr;
   VideoInterface* video = nullptr;
 
-  if(false && !opengl_)
+  if(false && !opengl_) // YUV widget not working yet
   {
     VideoYUVWidget* yuv = new VideoYUVWidget(parent, sessionID);
     vw = yuv;

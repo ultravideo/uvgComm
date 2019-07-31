@@ -71,7 +71,7 @@ public slots:
   // slots for attaching and detaching view to/from layout
   // Currently only one widget can be detached for one sessionID
   void reattachWidget(uint32_t sessionID);
-  void detachWidget(uint32_t sessionID, QWidget *view);
+  void detachWidget(uint32_t sessionID, uint32_t index, QWidget *widget);
 
 private slots:
 
