@@ -88,7 +88,7 @@ void KvzRTPSender::process()
 
   while (!stop_)
   {
-    while ((currentFrame = getInput()) != nullptr)
+    while ((currentFrame = getInput()))
     {
       ret = writer_->push_frame(currentFrame->data.get(),
                                 currentFrame->data_size,
@@ -102,5 +102,6 @@ void KvzRTPSender::process()
 
       getStats()->addSendPacket(currentFrame->data_size);
     }
+    return;
   }
 }
