@@ -244,6 +244,6 @@ void CallWindow::clearConferenceView()
   ui_->EndCallButton->setEnabled(false);
   ui_->EndCallButton->hide();
   conference_.close();
-
+  viewFactory_->clearWidgets();
   contacts_.setAccessibleAll();
 }

@@ -16,7 +16,6 @@
 MediaManager::MediaManager():
   stats_(nullptr),
   fg_(new FilterGraph()),
-  session_(nullptr),
   streamer_(nullptr),
   mic_(true),
   camera_(true)
@@ -35,7 +34,10 @@ void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory, Statistic
 
   stats_ = stats;
   fg_->init(viewfactory_->getVideo(0, 0), stats); // 0 is the selfview index. The view should be created by GUI
+
+  setRTPLibrary();
 }
+
 
 void MediaManager::uninit()
 {
@@ -45,44 +47,81 @@ void MediaManager::uninit()
   fg_->uninit();
 
   stats_ = nullptr;
-  streamer_->stop();
-  streamer_->uninit();
+  if (streamer_ != nullptr)
+  {
+    stopRTPLibrary();
+  }
 }
+
 
 void MediaManager::updateSettings()
 {
   fg_->updateSettings();
   fg_->camera(camera_); // kind of a hack to make sure the camera/mic state is preserved
   fg_->mic(mic_);
+  setRTPLibrary();
 }
+
+
+void MediaManager::stopRTPLibrary()
+{
+  streamer_->stop();
+
+  while (streamer_->isRunning())
+  {
+    qSleep(3);
+  }
+
+  streamer_->uninit();
+  streamer_ = nullptr;
+}
+
+
+void MediaManager::setRTPLibrary()
+{
+  // delete old libarary if it exists
+  // TODO: Should first check if we actually need change
+  if (streamer_ != nullptr)
+  {
+    stopRTPLibrary();
+  }
+
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+  int kvzrtp = settings.value("sip/kvzrtp").toInt();
+
+  if (kvzrtp == 1)
+  {
+    streamer_ = std::unique_ptr<IRTPStreamer> (new KvzRTP());
+  }
+  else
+  {
+    streamer_ = std::unique_ptr<IRTPStreamer> (new Live555RTP());
+  }
+
+  streamer_->init(stats_);
+  streamer_->start();
+}
+
 
 void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> peerInfo,
                     const std::shared_ptr<SDPMessageInfo> localInfo)
 {
   // TODO: support stop-time and start-time as recommended by RFC 4566 section 5.9
 
+  Q_ASSERT(peerInfo->media.size() == localInfo->media.size());
+  if (peerInfo->media.size() != localInfo->media.size())
+  {
+    printDebug(DEBUG_PROGRAM_ERROR, "Media manager", DC_ADD_MEDIA,
+               "Addparticipant, number of media in localInfo and peerInfo don't match.",
+                {"LocalInfo", "PeerInfo"},
+                {QString::number(localInfo->media.size()), QString::number(peerInfo->media.size())});
+    return;
+  }
+
   if(peerInfo->timeDescriptions.at(0).startTime != 0 || localInfo->timeDescriptions.at(0).startTime != 0)
   {
     printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "Nonzero start-time not supported!");
     return;
-  }
-
-  if (streamer_ == nullptr)
-  {
-    QSettings settings("kvazzup.ini", QSettings::IniFormat);
-    int kvzrtp = settings.value("sip/kvzrtp").toInt();
-
-    if (kvzrtp == 1)
-    {
-      streamer_ = std::unique_ptr<IRTPStreamer> (new KvzRTP());
-    }
-    else
-    {
-      streamer_ = std::unique_ptr<IRTPStreamer> (new Live555RTP());
-    }
-
-    streamer_->init(stats_);
-    streamer_->start();
   }
 
   if(peerInfo->connection_nettype == "IN")
@@ -110,19 +149,28 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
   // create each agreed media stream
   for(auto media : peerInfo->media)
   {
-    createOutgoingMedia(sessionID, media, peerInfo->connection_address);
+    createOutgoingMedia(sessionID, peerInfo->connection_address, media);
   }
 
-  for(auto media : localInfo->media)
+  // TODO: THis should be got from somewhere instead of guessed.
+  uint32_t videoID = 0;
+  for(unsigned int i = 0; i < localInfo->media.size(); ++i)
   {
-    createIncomingMedia(sessionID, media, localInfo->connection_address);
+    createIncomingMedia(sessionID, peerInfo->connection_address, peerInfo->media.at(i),
+                        localInfo->media.at(i), videoID);
+
+    if (localInfo->media.at(i).type == "video" )
+    {
+      ++videoID;
+    }
   }
   // crashes at the moment.
   //fg_->print();
 }
 
 
-void MediaManager::createOutgoingMedia(uint32_t sessionID, const MediaInfo& remoteMedia, QString globalAddress)
+void MediaManager::createOutgoingMedia(uint32_t sessionID,
+                                       QString globalAddress, const MediaInfo& remoteMedia)
 {
   bool send = true;
   bool recv = true;
@@ -135,18 +183,37 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID, const MediaInfo& remo
     Q_ASSERT(remoteMedia.receivePort);
     Q_ASSERT(!remoteMedia.rtpNums.empty());
 
+
     QString codec = rtpNumberToCodec(remoteMedia);
 
     if(remoteMedia.proto == "RTP/AVP")
     {
-      QHostAddress address =  QHostAddress(globalAddress);
-      if (remoteMedia.connection_address != "")
+      bool globalAddressPresent = globalAddress != "" && !globalAddress.isNull();
+      bool specificAddressPresent = remoteMedia.connection_address != ""
+           && !remoteMedia.connection_address.isNull();
+
+      QHostAddress address;
+      if (specificAddressPresent)
       {
-        printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Using media specific address.", {"Address"}, {address.toString()});
         address.setAddress(remoteMedia.connection_address);
+
+        printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Using media specific address for outgoing media.",
+                  {"Type", "Address", "Port"},
+                  {remoteMedia.type, address.toString(), QString::number(remoteMedia.receivePort)});
       }
-      else {
-        printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Using global address.", {"Address"}, {address.toString()});
+      else if (globalAddressPresent)
+      {
+        address.setAddress(globalAddress);
+        printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Using global address for outgoing media.",
+                  {"Type", "Address", "Port"},
+                  {remoteMedia.type, address.toString(), QString::number(remoteMedia.receivePort)});
+      }
+      else
+      {
+        printDebug(DEBUG_ERROR, this, DC_ADD_MEDIA, "Creating outgoing media. "
+                                                    "No viable connection address in mediainfo. "
+                                                    "Should be detected earlier.");
+        return;
       }
 
       std::shared_ptr<Filter> framedSource = streamer_->addSendStream(sessionID, address, remoteMedia.receivePort,
@@ -182,7 +249,8 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID, const MediaInfo& remo
   }
 }
 
-void MediaManager::createIncomingMedia(uint32_t sessionID, const MediaInfo &localMedia, QString globalAddress)
+void MediaManager::createIncomingMedia(uint32_t sessionID, QString globalAddress, const MediaInfo &remoteMedia,
+                                       const MediaInfo &localMedia, uint32_t videoID)
 {
   bool send = true;
   bool recv = true;
@@ -199,17 +267,32 @@ void MediaManager::createIncomingMedia(uint32_t sessionID, const MediaInfo &loca
 
     if(localMedia.proto == "RTP/AVP")
     {
-      QHostAddress address =  QHostAddress(globalAddress);
-      if (localMedia.connection_address != "")
+      bool globalAddressPresent = globalAddress != "" && !globalAddress.isNull();
+      bool specificAddressPresent = remoteMedia.connection_address != ""
+           && !remoteMedia.connection_address.isNull();
+
+      QHostAddress address;
+      if (specificAddressPresent)
       {
+        address.setAddress(remoteMedia.connection_address);
         printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Using media specific address for incoming.",
-                  {"Type", "Address"}, {localMedia.type, address.toString()});
-        address.setAddress(localMedia.connection_address);
+                  {"Type", "Address", "Port"},
+                  {localMedia.type, address.toString(), QString::number(localMedia.receivePort)});
+
+      }
+      else if (globalAddressPresent)
+      {
+        address.setAddress(globalAddress);
+        printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Using global address for incoming.",
+                   {"Type", "Address", "Port"},
+                   {localMedia.type, address.toString(), QString::number(localMedia.receivePort)});
       }
       else
       {
-        printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Using global address for incoming.",
-                   {"Type", "Address"}, {localMedia.type, address.toString()});
+        printDebug(DEBUG_ERROR, this, DC_ADD_MEDIA, "Creating incoming media. "
+                                                    "No viable connection address in mediainfo. "
+                                                    "Should be detected earlier.");
+        return;
       }
 
       std::shared_ptr<Filter> rtpSink = streamer_->addReceiveStream(sessionID, address, localMedia.receivePort,
@@ -221,7 +304,7 @@ void MediaManager::createIncomingMedia(uint32_t sessionID, const MediaInfo &loca
       }
       else if(localMedia.type == "video")
       {
-        fg_->receiveVideoFrom(sessionID, std::shared_ptr<Filter>(rtpSink), viewfactory_->getVideo(sessionID, 0));
+        fg_->receiveVideoFrom(sessionID, std::shared_ptr<Filter>(rtpSink), viewfactory_->getVideo(sessionID, videoID));
       }
       else
       {
@@ -253,6 +336,7 @@ void MediaManager::removeParticipant(uint32_t sessionID)
 
 void MediaManager::endAllCalls()
 {
+  printDebug(DEBUG_NORMAL, "Media Manager", DC_END_CALL, "Ending all calls.");
   fg_->removeAllParticipants();
   streamer_->removeAllPeers();
 

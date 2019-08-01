@@ -26,7 +26,7 @@ class VideoDrawHelper : public QObject
 {
   Q_OBJECT
 public:
-  VideoDrawHelper(uint32_t sessionID, uint8_t borderSize);
+  VideoDrawHelper(uint32_t sessionID, uint32_t index, uint8_t borderSize);
   ~VideoDrawHelper();
 
   void initWidget(QWidget* widget);
@@ -55,8 +55,8 @@ public:
 
 signals:
 
-  void reattach(uint32_t sessionID_, QWidget* view);
-  void detach(uint32_t sessionID_, QWidget* view);
+  void reattach(uint32_t sessionID_);
+  void detach(uint32_t sessionID_, uint32_t index, QWidget* widget);
 
 private:
   void enterFullscreen(QWidget* widget);
@@ -65,6 +65,7 @@ private:
 
 
   uint32_t sessionID_;
+  uint32_t index_;
 
   QWidget* tmpParent_;
 

@@ -9,11 +9,11 @@
 #include <QKeyEvent>
 #include <QLayout>
 
-VideoGLWidget::VideoGLWidget(QWidget* parent, uint32_t sessionID, uint8_t borderSize)
+VideoGLWidget::VideoGLWidget(QWidget* parent, uint32_t sessionID, uint32_t index, uint8_t borderSize)
   : QOpenGLWidget(parent),
   stats_(nullptr),
   sessionID_(sessionID),
-  helper_(sessionID, borderSize)
+  helper_(sessionID, index, borderSize)
 {
   helper_.initWidget(this);
 

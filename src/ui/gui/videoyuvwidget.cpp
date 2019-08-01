@@ -9,11 +9,12 @@
 #include <QKeyEvent>
 #include <QLayout>
 
-VideoYUVWidget::VideoYUVWidget(QWidget* parent, uint32_t sessionID, uint8_t borderSize)
+VideoYUVWidget::VideoYUVWidget(QWidget* parent, uint32_t sessionID,
+                               uint32_t index, uint8_t borderSize)
   : QOpenGLWidget(parent),
   stats_(nullptr),
   sessionID_(sessionID),
-  helper_(sessionID, borderSize),
+  helper_(sessionID, index, borderSize),
   texture_(0),
   prog_(nullptr)
 

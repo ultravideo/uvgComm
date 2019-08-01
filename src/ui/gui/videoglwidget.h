@@ -24,7 +24,8 @@ class VideoGLWidget : public QOpenGLWidget, public VideoInterface
   Q_OBJECT
   Q_INTERFACES(VideoInterface)
 public:
-  VideoGLWidget(QWidget* parent = nullptr, uint32_t sessionID = 0, uint8_t borderSize = 1);
+  VideoGLWidget(QWidget* parent = nullptr, uint32_t sessionID = 0,
+                uint32_t index = 0, uint8_t borderSize = 1);
   ~VideoGLWidget();
 
   void setStats(StatisticsInterface* stats)
@@ -45,8 +46,8 @@ public:
 signals:
 
   // for reattaching after fullscreenmode
-  void reattach(uint32_t sessionID_, QWidget* view);
-  void detach(uint32_t sessionID_, QWidget* view);
+  void reattach(uint32_t sessionID_);
+  void detach(uint32_t sessionID_, uint32_t index, QWidget* widget);
 
   void newImage();
 protected:

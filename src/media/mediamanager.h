@@ -84,19 +84,20 @@ signals:
 
 private:
 
-  void createOutgoingMedia(uint32_t sessionID, const MediaInfo& remoteMedia, QString globalAddress);
-  void createIncomingMedia(uint32_t sessionID, const MediaInfo& localMedia, QString globalAddress);
+  void createOutgoingMedia(uint32_t sessionID, QString globalAddress, const MediaInfo& remoteMedia);
+  void createIncomingMedia(uint32_t sessionID, QString globalAddress, const MediaInfo& remoteMedia,
+                           const MediaInfo& localMedia,  uint32_t videoID);
 
   QString rtpNumberToCodec(const MediaInfo& info);
 
   void transportAttributes(const QList<SDPAttributeType> &attributes, bool& send, bool& recv);
 
+  void setRTPLibrary();
+  void stopRTPLibrary();
+
   StatisticsInterface* stats_;
 
   std::unique_ptr<FilterGraph> fg_;
-
-  MediaSession* session_;
-
   std::unique_ptr<IRTPStreamer> streamer_;
 
   std::shared_ptr<VideoviewFactory> viewfactory_;

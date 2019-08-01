@@ -20,7 +20,7 @@ public:
   // conferenceview is needed for connecting reattach signal, because I couldn't get the
   // the interface signal connected for some reason.
   // returns viewID which is also videoID
-  uint32_t createWidget(uint32_t sessionID, QWidget* parent, ConferenceView* conf);
+  uint32_t createWidget(uint32_t sessionID, QWidget* parent, ConferenceView* conf, uint32_t index);
 
   // set self view which is part of the
   // returns viewID which is also videoID
@@ -31,10 +31,14 @@ public:
   QWidget* getView(uint32_t sessionID, uint32_t viewID);
   VideoInterface* getVideo(uint32_t sessionID, uint32_t videoID);
 
+  // Does not clear selfview
+  void clearWidgets();
+
 private:
 
   void checkInitializations(uint32_t sessionID);
 
+  //TODO: make shared ptr so they get deleted
   std::map<uint32_t, std::shared_ptr<std::vector<QWidget*>>> sessionIDtoWidgetlist_;
   std::map<uint32_t, std::shared_ptr<std::vector<VideoInterface*>>> sessionIDtoVideolist_;
 

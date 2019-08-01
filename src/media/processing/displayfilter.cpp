@@ -18,15 +18,23 @@ DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
   widget_(widget),
   peer_(peer)
 {
-  if(widget->supportedFormat() == VIDEO_RGB32)
+  if (widget != nullptr)
   {
-    input_ = RGB32VIDEO;
+    if(widget->supportedFormat() == VIDEO_RGB32)
+    {
+      input_ = RGB32VIDEO;
+    }
+    else if(widget->supportedFormat() == VIDEO_YUV420)
+    {
+      input_ = YUV420VIDEO;
+    }
+    widget_->setStats(stats);
   }
-  else if(widget->supportedFormat() == VIDEO_YUV420)
-  {
-    input_ = YUV420VIDEO;
+  else {
+    Q_ASSERT(false);
+    printDebug(DEBUG_PROGRAM_ERROR, "Display Filter", DC_ADD_MEDIA,
+               "Gived nonexistant widget");
   }
-  widget_->setStats(stats);
   updateSettings();
 }
 
