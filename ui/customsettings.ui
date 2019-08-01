@@ -30,7 +30,7 @@
    <item row="2" column="1">
     <widget class="QPushButton" name="custom_ok">
      <property name="text">
-      <string>Save</string>
+      <string>Apply</string>
      </property>
     </widget>
    </item>
@@ -424,16 +424,16 @@
          <property name="columnCount">
           <number>2</number>
          </property>
-         <attribute name="horizontalHeaderDefaultSectionSize">
-          <number>200</number>
-         </attribute>
          <attribute name="horizontalHeaderMinimumSectionSize">
           <number>50</number>
          </attribute>
-         <attribute name="verticalHeaderDefaultSectionSize">
-          <number>50</number>
+         <attribute name="horizontalHeaderDefaultSectionSize">
+          <number>200</number>
          </attribute>
          <attribute name="verticalHeaderMinimumSectionSize">
+          <number>50</number>
+         </attribute>
+         <attribute name="verticalHeaderDefaultSectionSize">
           <number>50</number>
          </attribute>
          <column>
