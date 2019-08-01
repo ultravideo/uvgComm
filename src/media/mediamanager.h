@@ -98,9 +98,6 @@ private:
   StatisticsInterface* stats_;
 
   std::unique_ptr<FilterGraph> fg_;
-
-  MediaSession* session_;
-
   std::unique_ptr<IRTPStreamer> streamer_;
 
   std::shared_ptr<VideoviewFactory> viewfactory_;

@@ -16,7 +16,6 @@
 MediaManager::MediaManager():
   stats_(nullptr),
   fg_(new FilterGraph()),
-  session_(nullptr),
   streamer_(nullptr),
   mic_(true),
   camera_(true)
@@ -153,6 +152,7 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
     createOutgoingMedia(sessionID, peerInfo->connection_address, media);
   }
 
+  // TODO: THis should be got from somewhere instead of guessed.
   uint32_t videoID = 0;
   for(unsigned int i = 0; i < localInfo->media.size(); ++i)
   {
@@ -195,18 +195,18 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
       QHostAddress address;
       if (specificAddressPresent)
       {
+        address.setAddress(remoteMedia.connection_address);
+
         printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Using media specific address for outgoing media.",
                   {"Type", "Address", "Port"},
                   {remoteMedia.type, address.toString(), QString::number(remoteMedia.receivePort)});
-
-        address.setAddress(remoteMedia.connection_address);
       }
       else if (globalAddressPresent)
       {
+        address.setAddress(globalAddress);
         printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Using global address for outgoing media.",
                   {"Type", "Address", "Port"},
                   {remoteMedia.type, address.toString(), QString::number(remoteMedia.receivePort)});
-        address.setAddress(globalAddress);
       }
       else
       {
@@ -255,8 +255,6 @@ void MediaManager::createIncomingMedia(uint32_t sessionID, QString globalAddress
   bool send = true;
   bool recv = true;
 
-
-
   transportAttributes(localMedia.flagAttributes, send, recv);
   if(recv)
   {
@@ -276,18 +274,18 @@ void MediaManager::createIncomingMedia(uint32_t sessionID, QString globalAddress
       QHostAddress address;
       if (specificAddressPresent)
       {
+        address.setAddress(remoteMedia.connection_address);
         printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Using media specific address for incoming.",
                   {"Type", "Address", "Port"},
                   {localMedia.type, address.toString(), QString::number(localMedia.receivePort)});
-        address.setAddress(remoteMedia.connection_address);
+
       }
       else if (globalAddressPresent)
       {
+        address.setAddress(globalAddress);
         printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Using global address for incoming.",
                    {"Type", "Address", "Port"},
                    {localMedia.type, address.toString(), QString::number(localMedia.receivePort)});
-
-        address.setAddress(globalAddress);
       }
       else
       {
