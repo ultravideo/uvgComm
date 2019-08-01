@@ -190,6 +190,13 @@ void KvazzupController::callNegotiated(uint32_t sessionID)
   {
     if(states_[sessionID] == CALLNEGOTIATING || states_[sessionID] == CALLONGOING)
     {
+      if (states_[sessionID] == CALLONGOING)
+      {
+        // we have to remove previous media so we do not double them.
+        media_.removeParticipant(sessionID);
+        window_.removeParticipant(sessionID);
+      }
+
       ++phaseReady_;
 
       printDebug(DEBUG_NORMAL, this, DC_NEGOTIATING, "Call negotiated.",
@@ -247,7 +254,8 @@ void KvazzupController::callNegotiated(uint32_t sessionID)
     else
     {
        qDebug() << "Negotiation," << metaObject()->className()
-                << ": PEER ERROR: Got call successful negotiation even though we are not there yet:"
+                << ": PEER ERROR: Got call successful negotiation "
+                   "even though we are not there yet:"
                 << states_[sessionID];
     }
   }
