@@ -105,6 +105,8 @@ void Live555RTP::uninit()
   Q_ASSERT(stopRTP_);
   qDebug() << "Closing," << metaObject()->className() << "Uniniating RTP streamer";
 
+  removeAllPeers();
+
   if(isRunning_)
   {
     stop();
@@ -112,8 +114,6 @@ void Live555RTP::uninit()
 
   while(isRunning_)
     qSleep(1);
-
-  removeAllPeers();
 
   if(!env_->reclaim())
   {
@@ -251,6 +251,13 @@ void Live555RTP::destroySender(Sender* sender)
       // the shared_ptr was initialized not to delete the pointer
       // I don't like live555
       sender->sourcefilter->stop();
+      sender->sourcefilter->emptyBuffer();
+
+      while(sender->sourcefilter->isRunning())
+      {
+        qSleep(1);
+      }
+
       Medium::close(sender->sourcefilter.get());
     }
 
@@ -289,6 +296,14 @@ void Live555RTP::destroyReceiver(Receiver* recv)
       recv->sink->uninit();
       // the shared_ptr was initialized not to delete the pointer
       // I don't like live555
+      recv->sink->stop();
+      recv->sink->emptyBuffer();
+
+      while(recv->sink->isRunning())
+      {
+        qSleep(1);
+      }
+
       Medium::close(recv->sink.get());
     }
     if(recv->framedSource)

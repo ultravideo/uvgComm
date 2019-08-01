@@ -67,8 +67,13 @@ void MediaManager::updateSettings()
 void MediaManager::stopRTPLibrary()
 {
   streamer_->stop();
+
+  while (streamer_->isRunning())
+  {
+    qSleep(3);
+  }
+
   streamer_->uninit();
-  streamer_.reset();
   streamer_ = nullptr;
 }
 
