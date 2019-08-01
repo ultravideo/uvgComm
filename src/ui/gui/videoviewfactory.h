@@ -31,10 +31,14 @@ public:
   QWidget* getView(uint32_t sessionID, uint32_t viewID);
   VideoInterface* getVideo(uint32_t sessionID, uint32_t videoID);
 
+  // Does not clear selfview
+  void clearWidgets();
+
 private:
 
   void checkInitializations(uint32_t sessionID);
 
+  //TODO: make shared ptr so they get deleted
   std::map<uint32_t, std::shared_ptr<std::vector<QWidget*>>> sessionIDtoWidgetlist_;
   std::map<uint32_t, std::shared_ptr<std::vector<VideoInterface*>>> sessionIDtoVideolist_;
 

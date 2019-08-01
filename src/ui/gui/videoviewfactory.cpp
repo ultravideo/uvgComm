@@ -121,6 +121,13 @@ VideoInterface* VideoviewFactory::getVideo(uint32_t sessionID, uint32_t videoID)
 }
 
 
+void VideoviewFactory::clearWidgets()
+{
+  sessionIDtoWidgetlist_.clear();
+  sessionIDtoVideolist_.clear();
+}
+
+
 void VideoviewFactory::checkInitializations(uint32_t sessionID)
 {
   if(sessionIDtoWidgetlist_.find(sessionID) == sessionIDtoWidgetlist_.end())
