@@ -123,8 +123,14 @@ VideoInterface* VideoviewFactory::getVideo(uint32_t sessionID, uint32_t videoID)
 
 void VideoviewFactory::clearWidgets()
 {
-  sessionIDtoWidgetlist_.clear();
-  sessionIDtoVideolist_.clear();
+  if (sessionIDtoWidgetlist_.size() == sessionIDtoVideolist_.size())
+  {
+    for (unsigned int i = 1; i < sessionIDtoWidgetlist_.size(); ++i)
+    {
+      sessionIDtoWidgetlist_.erase(i);
+      sessionIDtoVideolist_.erase(i);
+    }
+  }
 }
 
 

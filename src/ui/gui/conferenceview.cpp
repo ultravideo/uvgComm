@@ -53,8 +53,10 @@ void ConferenceView::callingTo(uint32_t sessionID, QString name)
   attachOutgoingCallWidget(name, sessionID);
 }
 
-void ConferenceView::updateSessionState(SessionViewState state, QWidget* widget, uint32_t sessionID,
-                                       QString name)
+void ConferenceView::updateSessionState(SessionViewState state,
+                                        QWidget* widget,
+                                        uint32_t sessionID,
+                                        QString name)
 {
   // initialize if session has not been initialized
   if (!checkSession(sessionID))
@@ -254,7 +256,6 @@ void ConferenceView::detachWidget(uint32_t sessionID, uint32_t index, QWidget* w
     {
       layout_->removeItem(activeViews_[sessionID]->views_.at(index).item);
     }
-    layout_->removeWidget(widget);
 
 
     activeViews_[sessionID]->views_.at(index).item = nullptr;
@@ -286,7 +287,6 @@ void ConferenceView::addVideoStream(uint32_t sessionID,
              "Adding Videostream.", {"SessionID"}, {QString::number(sessionID)});
 
   uint32_t existingViews = 0;
-
 
   if(!checkSession(sessionID))
   {
@@ -487,9 +487,8 @@ void ConferenceView::uninitializeView(ViewInfo& view)
     if(view.item->widget() != nullptr)
     {
       view.item->widget()->hide();
-      delete view.item->widget();
+      //delete view.item->widget();
     }
-
     freeSlot(view.location);
 
     view.item = nullptr;
@@ -583,12 +582,26 @@ void ConferenceView::updateTimes()
 bool ConferenceView::checkSession(uint32_t sessionID, uint32_t minViewCount)
 {
   viewMutex_.lock();
-  if (activeViews_.find(sessionID) == activeViews_.end() ||
-      (activeViews_[sessionID]->state != VIEW_INACTIVE
-       && activeViews_[sessionID]->views_.empty())
-      || activeViews_[sessionID]->views_.size() < minViewCount)
+  if (activeViews_.find(sessionID) == activeViews_.end())
   {
     viewMutex_.unlock();
+    printDebug(DEBUG_NORMAL, this, DC_NO_CONTEXT,
+               "Checks session: SessionID does not exist");
+    return false;
+  }
+  else if ((activeViews_[sessionID]->state != VIEW_INACTIVE
+          && activeViews_[sessionID]->views_.empty()))
+  {
+    viewMutex_.unlock();
+    printDebug(DEBUG_PROGRAM_WARNING, this, DC_NO_CONTEXT,
+               "Checks session: Views present in an inactive session");
+    return false;
+  }
+  else if (activeViews_[sessionID]->views_.size() < minViewCount)
+  {
+    viewMutex_.unlock();
+    printDebug(DEBUG_PROGRAM_WARNING, this, DC_NO_CONTEXT,
+               "Checks session: Invalid index.");
     return false;
   }
 
@@ -605,6 +618,9 @@ void ConferenceView::initializeSession(uint32_t sessionID, QString name)
                "Tried to initialize an already initialized view session");
     return;
   }
+
+  printDebug(DEBUG_NORMAL, this, DC_START_CALL,
+             "Initializing session", {"SessionID"}, {QString::number(sessionID)});
 
   viewMutex_.lock();
   activeViews_[sessionID] = std::unique_ptr<SessionViews>
