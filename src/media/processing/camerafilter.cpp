@@ -33,9 +33,12 @@ CameraFilter::~CameraFilter()
 
 bool CameraFilter::init()
 {
-  initialCameraSetup();
-  cameraSetup();
-  return Filter::init();
+  if (initialCameraSetup())
+  {
+    cameraSetup();
+    return Filter::init();
+  }
+  return false;
 }
 
 

@@ -226,8 +226,10 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
   }
 
   graph.push_back(filter);
-  filter->init();
-  filter->start();
+  if(filter->init())
+  {
+    filter->start();
+  }
   qDebug() << "FilterGraph : Added, iniated and started" << filter->getName();
   return true;
 }
