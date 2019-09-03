@@ -35,6 +35,8 @@ bool Negotiation::generateOfferSDP(QHostAddress localAddress,
   {
     sdps_[sessionID].first = localInfo;
     sdps_[sessionID].second = nullptr;
+
+    negotiationStates_[sessionID] = NEG_OFFER_GENERATED;
   }
   return localInfo != nullptr;
 }
@@ -68,6 +70,7 @@ bool Negotiation::initialConferenceOfferSDP(uint32_t sessionID)
   }
 
   recvConferenceSdps_[sessionID] = newInfo;
+  negotiationStates_[sessionID] = NEG_OFFER_GENERATED;
 
   return true;
 }
@@ -82,13 +85,12 @@ bool Negotiation::finalConferenceOfferSDP(uint32_t sessionID)
   }
 
   std::shared_ptr<SDPMessageInfo> newInfo = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
-  *newInfo = *(sdps_.at(sessionID).first);
+  *newInfo = *(recvConferenceSdps_.at(sessionID));
 
   for (int i = 0; i < newInfo->media.size(); ++i)
   {
     newInfo->media[i].flagAttributes.clear();
     newInfo->media[i].flagAttributes.append(A_SENDRECV);
-
   }
 
   // include receive port for every media
@@ -110,6 +112,7 @@ bool Negotiation::finalConferenceOfferSDP(uint32_t sessionID)
   }
 
   finalConferenceSdps_[sessionID] = newInfo;
+  negotiationStates_[sessionID] = NEG_OFFER_GENERATED;
   return true;
 }
 
@@ -180,6 +183,7 @@ bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
   }
 
   setICEPorts(sessionID);
+  negotiationStates_[sessionID] = NEG_ANSWER_GENERATED;
   return true;
 }
 
@@ -189,6 +193,12 @@ bool Negotiation::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer, uint32_t ses
   printDebug(DEBUG_NORMAL, "Negotiation", DC_NEGOTIATING, "Starting to process answer SDP.");
   if (!checkSessionValidity(sessionID, false))
   {
+    return false;
+  }
+
+  if (getState(sessionID) == NEG_NO_STATE)
+  {
+    printDebug(DEBUG_WARNING, "Negotiation", DC_NEGOTIATING, "Processing SDP answer without hacing sent an offer!");
     return false;
   }
 
@@ -208,6 +218,7 @@ bool Negotiation::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer, uint32_t ses
     sdps_[sessionID].second = remoteSDP;
 
     setICEPorts(sessionID);
+    negotiationStates_[sessionID] = NEG_FINISHED;
     return true;
   }
 
@@ -633,4 +644,15 @@ bool Negotiation::checkSessionValidity(uint32_t sessionID, bool checkRemote) con
     return false;
   }
   return true;
+}
+
+
+NegotiationState Negotiation::getState(uint32_t sessionID)
+{
+  if (negotiationStates_.find(sessionID) == negotiationStates_.end())
+  {
+    return NEG_NO_STATE;
+  }
+
+  return negotiationStates_[sessionID];
 }

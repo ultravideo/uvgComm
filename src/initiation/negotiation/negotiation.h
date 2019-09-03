@@ -19,6 +19,15 @@
  * See RFC 3264 for details.
  */
 
+
+// State tells what is the next step for this sessionID.
+// State is needed to accomidate software with different
+// negotiation order from ours.
+enum NegotiationState {NEG_NO_STATE,
+                       NEG_OFFER_GENERATED,
+                       NEG_ANSWER_GENERATED,
+                       NEG_FINISHED};
+
 class Negotiation
 {
 public:
@@ -70,6 +79,8 @@ public:
   std::shared_ptr<SDPMessageInfo> getInitialConferenceOffer(uint32_t sessionID) const;
   std::shared_ptr<SDPMessageInfo> getFinalConferenceOffer(uint32_t sessionID) const;
 
+  NegotiationState getState(uint32_t sessionID);
+
 private:
 
   std::shared_ptr<SDPMessageInfo> generateLocalSDP(QHostAddress localAddress);
@@ -113,4 +124,6 @@ private:
 
   // same but includes all the media for the conference
   std::map<uint32_t, std::shared_ptr<SDPMessageInfo> > finalConferenceSdps_;
+
+  std::map<uint32_t, NegotiationState> negotiationStates_;
 };
