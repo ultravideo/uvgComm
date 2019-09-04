@@ -129,7 +129,8 @@ void SIPManager::acceptCall(uint32_t sessionID)
   // Start candiate nomination. This function won't block,
   // negotiation happens in the background remoteFinalSDP()
   // makes sure that a connection was in fact nominated
-  negotiation_.startICECandidateNegotiation(sessionID);
+
+  //negotiation_.startICECandidateNegotiation(sessionID);
 
   transactions_.acceptCall(sessionID);
 }
@@ -315,37 +316,50 @@ void SIPManager::processSIPRequest(SIPRequest& request, QHostAddress localAddres
     {
       sessionToTransportID_[sessionID] = transportID;
 
-      // TODO: prechecks that the message is ok, then modify program state.
-      if(request.type == SIP_INVITE)
+      if((request.type == SIP_INVITE || request.type == SIP_ACK)
+         && request.message->content.type == APPLICATION_SDP)
       {
-        if(request.message->content.type == APPLICATION_SDP)
+        switch (negotiation_.getState(sessionID))
         {
-          if(request.type == SIP_INVITE)
+        case NEG_NO_STATE:
+        {
+          printDebug(DEBUG_NORMAL, this, DC_RECEIVE_SIP_REQUEST,
+                     "Got first SDP offer.");
+          if(!processOfferSDP(sessionID, content, transports_[transportID]->getLocalAddress()))
           {
-            if(!processOfferSDP(sessionID, content, localAddress))
-            {
-              qDebug() << "Failed to find suitable SDP.";
+             printDebug(DEBUG_PROGRAM_ERROR, this, DC_RECEIVE_SIP_REQUEST,
+                        "Failure to process SDP offer not implemented.");
 
-              // TODO: Announce to transactions that we could not process their SDP
-              printDebug(DEBUG_PROGRAM_ERROR, this, DC_RECEIVE_SIP_REQUEST,
-                         "Failure to process SDP offer not implemented.");
-
-              //foundDialog->server->setCurrentRequest(request); // TODO
-              //sendResponse(sessionID, SIP_DECLINE, request.type);
-
-              return;
-            }
+             //foundDialog->server->setCurrentRequest(request); // TODO
+             //sendResponse(sessionID, SIP_DECLINE, request.type);
+             return;
           }
+          break;
         }
-        else
+        case NEG_OFFER_GENERATED:
         {
-          qDebug() << "PEER ERROR: No SDP in" << request.type;
-          // TODO: tell SIP transactions that they did not have an SDP
-          // sendResponse(sessionID, SIP_DECLINE, request.type);
-          return;
+          printDebug(DEBUG_NORMAL, this, DC_RECEIVE_SIP_REQUEST,
+                     "Got an SDP answer.");
+          processAnswerSDP(sessionID, content);
+          break;
         }
-      }
+        case NEG_ANSWER_GENERATED: // TODO: Not sure if these make any sense
+        {
+          printDebug(DEBUG_NORMAL, this, DC_RECEIVE_SIP_REQUEST,
+                     "They sent us another SDP offer.");
+          processOfferSDP(sessionID, content, transports_[transportID]->getLocalAddress());
+          break;
+        }
+        case NEG_FINISHED:
+        {
+          printDebug(DEBUG_NORMAL, this, DC_RECEIVE_SIP_REQUEST,
+                     "Got a new SDP offer in response.");
+          processOfferSDP(sessionID, content, transports_[transportID]->getLocalAddress());
+          break;
+        }
+        }
 
+      }
 
       transactions_.processSIPRequest(request, sessionID);
     }
@@ -378,12 +392,55 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
   {
     if(response.message->content.type == APPLICATION_SDP)
     {
-      if(!processAnswerSDP(sessionID, content))
+      if(sessionToTransportID_.find(sessionID) == sessionToTransportID_.end())
       {
-        qDebug() << "PEER_ERROR:"
-                 << "Their final sdp is not suitable. They should have followed our SDP!!!";
+        printDebug(DEBUG_WARNING, this, DC_RECEIVE_SIP_RESPONSE,
+                   "Could not identify transport for session");
         return;
       }
+
+      quint32 transportID = sessionToTransportID_[sessionID];
+
+      switch (negotiation_.getState(sessionID))
+      {
+      case NEG_NO_STATE:
+      {
+        printDebug(DEBUG_NORMAL, this, DC_RECEIVE_SIP_RESPONSE,
+                   "Got first SDP offer.");
+        if(!processOfferSDP(sessionID, content, transports_[transportID]->getLocalAddress()))
+        {
+           printDebug(DEBUG_PROGRAM_ERROR, this, DC_RECEIVE_SIP_RESPONSE,
+                      "Failure to process SDP offer not implemented.");
+
+           //foundDialog->server->setCurrentRequest(request); // TODO
+           //sendResponse(sessionID, SIP_DECLINE, request.type);
+           return;
+        }
+        break;
+      }
+      case NEG_OFFER_GENERATED:
+      {
+        printDebug(DEBUG_NORMAL, this, DC_RECEIVE_SIP_RESPONSE,
+                   "Got an SDP answer.");
+        processAnswerSDP(sessionID, content);
+        break;
+      }
+      case NEG_ANSWER_GENERATED: // TODO: Not sure if these make any sense
+      {
+        printDebug(DEBUG_NORMAL, this, DC_RECEIVE_SIP_RESPONSE,
+                   "They sent us another SDP offer.");
+        processOfferSDP(sessionID, content, transports_[transportID]->getLocalAddress());
+        break;
+      }
+      case NEG_FINISHED:
+      {
+        printDebug(DEBUG_NORMAL, this, DC_RECEIVE_SIP_RESPONSE,
+                   "Got a new SDP offer in response.");
+        processOfferSDP(sessionID, content, transports_[transportID]->getLocalAddress());
+        break;
+      }
+      }
+
 
       negotiation_.setICEPorts(sessionID);
     }
