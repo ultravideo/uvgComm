@@ -31,5 +31,5 @@ private:
   // Owned by Conference view
   VideoInterface* widget_;
 
-  uint32_t peer_;
+  uint32_t sessionID_;
 };

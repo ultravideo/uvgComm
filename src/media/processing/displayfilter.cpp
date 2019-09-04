@@ -11,12 +11,12 @@
 #include <QSettings>
 
 DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
-                             VideoInterface *widget, uint32_t peer):
+                             VideoInterface *widget, uint32_t sessionID):
   Filter(id, "Display", stats, RGB32VIDEO, NONE),
   horizontalMirroring_(false),
   verticalMirroring_(false),
   widget_(widget),
-  peer_(peer)
+  sessionID_(sessionID)
 {
   if (widget != nullptr)
   {
@@ -101,8 +101,8 @@ void DisplayFilter::process()
 
       widget_->inputImage(std::move(input->data),image);
 
-      if( peer_ != 1111)
-        getStats()->receiveDelay(peer_, "Video", delay);
+      if( sessionID_ != 1111)
+        getStats()->receiveDelay(sessionID_, "Video", delay);
     }
     input = getInput();
   }
