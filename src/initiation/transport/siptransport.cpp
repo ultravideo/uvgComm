@@ -133,12 +133,10 @@ void SIPTransport::destroyConnection()
 void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
 {
   qDebug() << "Composing SIP Request:" << requestToString(request.type);
-  Q_ASSERT((request.type != SIP_INVITE) ||
-      (request.message->content.type == APPLICATION_SDP && content.isValid()));
+  Q_ASSERT(request.message->content.type == NO_CONTENT || content.isValid());
   Q_ASSERT(connection_ != nullptr);
 
-  if(((request.type == SIP_INVITE) &&
-     (request.message->content.type != APPLICATION_SDP || !content.isValid()))
+  if((request.message->content.type == APPLICATION_SDP && !content.isValid())
      || connection_ == nullptr)
   {
     qDebug() << "WARNING: SDP nullptr or connection does not exist in sendRequest";
@@ -156,7 +154,10 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
   QString lineEnding = "\r\n";
   QString message = "";
   // adds content fields and converts the sdp to string if INVITE
-  QString sdp_str = addContent(fields, request.type == SIP_INVITE, content.value<SDPMessageInfo>());
+  QString sdp_str = addContent(fields,
+                               request.message->content.type != NO_CONTENT,
+                               content.value<SDPMessageInfo>());
+
   if(!getFirstRequestLine(message, request, lineEnding))
   {
     qDebug() << "WARNING: could not get first request line";
