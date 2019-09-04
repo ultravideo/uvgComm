@@ -58,6 +58,8 @@ public:
   // frees the ports when they are not needed in rest of the program
   void endSession(uint32_t sessionID);
 
+  void endAllSessions();
+
   void startICECandidateNegotiation(uint32_t sessionID);
 
   // update the MediaInfo of remote and locals SDPs to include the nominated connections

@@ -150,12 +150,14 @@ void SIPManager::cancelCall(uint32_t sessionID)
 void SIPManager::endCall(uint32_t sessionID)
 {
   transactions_.endCall(sessionID);
+  negotiation_.endSession(sessionID);
 }
 
 
 void SIPManager::endAllCalls()
 {
   transactions_.endAllCalls();
+  negotiation_.endAllSessions();
 }
 
 

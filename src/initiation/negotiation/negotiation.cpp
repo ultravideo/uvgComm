@@ -553,7 +553,7 @@ bool Negotiation::checkSDPOffer(SDPMessageInfo &offer)
   return hasOpus && hasH265;
 }
 
-// frees the ports when they are not needed in rest of the program
+
 void Negotiation::endSession(uint32_t sessionID)
 {
   if(sdps_.find(sessionID) != sdps_.end())
@@ -569,7 +569,29 @@ void Negotiation::endSession(uint32_t sessionID)
     sdps_.erase(sessionID);
   }
 
+  if (negotiationStates_.find(sessionID) != negotiationStates_.end())
+  {
+    negotiationStates_.erase(sessionID);
+  }
+
   ice_->cleanupSession(sessionID);
+}
+
+
+void Negotiation::endAllSessions()
+{
+  QList<uint32_t> sessions;
+
+  for (auto i : negotiationStates_)
+  {
+    sessions.push_back(i.first);
+
+  }
+
+  for (auto i : sessions)
+  {
+    endSession(i);
+  }
 }
 
 
