@@ -230,15 +230,13 @@ void SIPManager::transportRequest(uint32_t sessionID, SIPRequest &request)
     if (transports_.find(transportID) != transports_.end())
     {
       QVariant content;
-      if(request.type == SIP_INVITE)
+      if(request.type == SIP_ACK && negotiation_.getState(sessionID) == NEG_ANSWER_GENERATED)
       {
         request.message->content.length = 0;
         qDebug() << "Adding SDP content to request:" << request.type;
         request.message->content.type = APPLICATION_SDP;
 
-        if (!SDPOfferToContent(content,
-                               transports_[transportID]->getLocalAddress(),
-                               sessionID))
+        if (!SDPAnswerToContent(content, sessionID))
         {
           return;
         }
@@ -269,10 +267,22 @@ void SIPManager::transportResponse(uint32_t sessionID, SIPResponse &response)
     {
       QVariant content;
       if (response.type == SIP_OK
-          && response.message->transactionRequest == SIP_INVITE)
+          && response.message->transactionRequest == SIP_INVITE
+          && negotiation_.getState(sessionID) == NEG_NO_STATE)
       {
-        response.message->content.length = 0;
         qDebug() << "Adding SDP content to request:" << response.type;
+        response.message->content.length = 0;
+        response.message->content.type = APPLICATION_SDP;
+        if (!SDPOfferToContent(content, transports_[transportID]->getLocalAddress(), sessionID))
+        {
+          return;
+        }
+      }
+      // if they sent an offer in their INVITE
+      else if (negotiation_.getState(sessionID) == NEG_ANSWER_GENERATED)
+      {
+        qDebug() << "Adding SDP answer to request:" << response.type;
+        response.message->content.length = 0;
         response.message->content.type = APPLICATION_SDP;
         if (!SDPAnswerToContent(content, sessionID))
         {
