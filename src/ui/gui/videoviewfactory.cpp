@@ -22,7 +22,6 @@ uint32_t VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent,
                                         ConferenceView* conf, uint32_t index)
 {
   qDebug() << "View, VideoFactory : Creating videowidget for sessionID:" << sessionID;
-
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
 
   int opengl = settings.value("video/opengl").toInt();
@@ -76,6 +75,12 @@ uint32_t VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent,
     checkInitializations(sessionID);
     sessionIDtoWidgetlist_[sessionID]->push_back(vw);
     sessionIDtoVideolist_[sessionID]->push_back(video);
+    printDebug(DEBUG_NORMAL, "VideoviewFactory", DC_ADD_MEDIA, "Created video widget.", {"SessionID", "View Number"},
+        {QString::number(sessionID), QString::number(sessionIDtoWidgetlist_[sessionID]->size())});
+  }
+  else
+  {
+    printDebug(DEBUG_PROGRAM_ERROR, "VideoviewFactory", DC_ADD_MEDIA, "Failed to create view widget.");
   }
 
   return sessionIDtoWidgetlist_[sessionID]->size() - 1;
@@ -84,6 +89,7 @@ uint32_t VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent,
 
 uint32_t VideoviewFactory::setSelfview(VideoInterface *video, QWidget *view)
 {
+  qDebug() << "Setting self view";
   checkInitializations(0);
 
   sessionIDtoWidgetlist_[0]->push_back(view);
@@ -123,14 +129,22 @@ VideoInterface* VideoviewFactory::getVideo(uint32_t sessionID, uint32_t videoID)
 
 void VideoviewFactory::clearWidgets()
 {
+  printDebug(DEBUG_NORMAL, "VideoviewFactory", DC_END_CALL, "Clearing all widgets.");
   if (sessionIDtoWidgetlist_.size() == sessionIDtoVideolist_.size())
   {
-    for (unsigned int i = 1; i < sessionIDtoWidgetlist_.size(); ++i)
-    {
-      sessionIDtoWidgetlist_.erase(i);
-      sessionIDtoVideolist_.erase(i);
-    }
+    printDebug(DEBUG_PROGRAM_ERROR, "VideoviewFactory", DC_ADD_MEDIA, "Internal state not correct!");
   }
+
+  for (unsigned int i = sessionIDtoWidgetlist_.size(); i > 0; --i)
+  {
+    sessionIDtoWidgetlist_.erase(i);
+  }
+
+  for (unsigned int i = sessionIDtoVideolist_.size(); i > 0; --i)
+  {
+    sessionIDtoVideolist_.erase(i);
+  }
+
 }
 
 

@@ -304,7 +304,15 @@ void MediaManager::createIncomingMedia(uint32_t sessionID, QString globalAddress
       }
       else if(localMedia.type == "video")
       {
-        fg_->receiveVideoFrom(sessionID, std::shared_ptr<Filter>(rtpSink), viewfactory_->getVideo(sessionID, videoID));
+        VideoInterface *view = viewfactory_->getVideo(sessionID, videoID);
+        Q_ASSERT(view);
+        if (view != nullptr)
+        {
+          fg_->receiveVideoFrom(sessionID, std::shared_ptr<Filter>(rtpSink), view);
+        }
+        else {
+          printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "Failed to get view from viewFactory");
+        }
       }
       else
       {
