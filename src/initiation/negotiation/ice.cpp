@@ -194,9 +194,6 @@ void ICE::startNomination(
   // nomination-related memory is released when handleEndOfNomination() is called
   nominationInfo_[sessionID].controller = new FlowController;
 
-  nominationInfo_[sessionID].callee_mtx = new QMutex;
-  nominationInfo_[sessionID].callee_mtx->lock();
-
   nominationInfo_[sessionID].pairs = makeCandidatePairs(local, remote);
   nominationInfo_[sessionID].connectionNominated = false;
 
@@ -233,9 +230,6 @@ void ICE::respondToNominations(
   // nomination-related memory is released when handleEndOfNomination() is called
   nominationInfo_[sessionID].controllee = new FlowControllee;
 
-  nominationInfo_[sessionID].caller_mtx = new QMutex;
-  nominationInfo_[sessionID].caller_mtx->lock();
-
   nominationInfo_[sessionID].pairs = makeCandidatePairs(local, remote);
   nominationInfo_[sessionID].connectionNominated = false;
 
@@ -251,48 +245,6 @@ void ICE::respondToNominations(
   caller->setCandidates(&nominationInfo_[sessionID].pairs);
   caller->setSessionID(sessionID);
   caller->start();
-}
-
-bool ICE::callerConnectionNominated(uint32_t sessionID)
-{
-  // return immediately if ICE was disabled
-  if (iceEnabled_ == false)
-  {
-    return true;
-  }
-
-  Q_ASSERT(sessionID != 0);
-
-  while (!nominationInfo_[sessionID].caller_mtx
-            ->try_lock_for(std::chrono::milliseconds(200)))
-  {
-  }
-
-  nominationInfo_[sessionID].caller_mtx->unlock();
-  delete nominationInfo_[sessionID].caller_mtx;
-
-  return nominationInfo_[sessionID].connectionNominated;
-}
-
-bool ICE::calleeConnectionNominated(uint32_t sessionID)
-{
-  // return immediately if ICE was disabled
-  if (iceEnabled_ == false)
-  {
-    return true;
-  }
-
-  Q_ASSERT(sessionID != 0);
-
-  while (!nominationInfo_[sessionID].callee_mtx
-            ->try_lock_for(std::chrono::milliseconds(200)))
-  {
-  }
-
-  nominationInfo_[sessionID].callee_mtx->unlock();
-  delete nominationInfo_[sessionID].callee_mtx;
-
-  return nominationInfo_[sessionID].connectionNominated;
 }
 
 void ICE::handleEndOfNomination(
@@ -315,6 +267,7 @@ void ICE::handleEndOfNomination(
   {
     printDebug(DEBUG_ERROR, "ICE", DC_NEGOTIATING, "Failed to nominate RTP/RTCP candidates!");
     nominationInfo_[sessionID].connectionNominated = false;
+    emit nominationFailed(sessionID);
   }
   else 
   {
@@ -349,6 +302,8 @@ void ICE::handleEndOfNomination(
 
     nominationInfo_[sessionID].nominatedAudio =
       std::make_pair(opusPairRTP, opusPairRTCP);
+
+    emit nominationSucceeded(sessionID);
   }
 }
 
@@ -364,7 +319,6 @@ void ICE::handleCallerEndOfNomination(
 
   this->handleEndOfNomination(rtp, rtcp, sessionID);
 
-  nominationInfo_[sessionID].caller_mtx->unlock();
   nominationInfo_[sessionID].controllee->quit();
 }
 
@@ -380,7 +334,6 @@ void ICE::handleCalleeEndOfNomination(
 
   this->handleEndOfNomination(rtp, rtcp, sessionID);
 
-  nominationInfo_[sessionID].callee_mtx->unlock();
   nominationInfo_[sessionID].controller->quit();
 }
 
