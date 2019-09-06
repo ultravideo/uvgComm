@@ -26,6 +26,15 @@ ICE::ICE():
   );
   stun_.wantAddress("stun.l.google.com");
 
+  checkICEstatus();
+}
+
+ICE::~ICE()
+{
+}
+
+void ICE::checkICEstatus()
+{
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
 
   if (settings.value("sip/ice").toInt() == 1)
@@ -36,10 +45,6 @@ ICE::ICE():
   {
     iceEnabled_ = false;
   }
-}
-
-ICE::~ICE()
-{
 }
 
 /* @param type - 0 for relayed, 126 for host
@@ -55,6 +60,8 @@ int ICE::calculatePriority(int type, int local, int component)
 
 QList<std::shared_ptr<ICEInfo>> ICE::generateICECandidates()
 {
+  checkICEstatus();
+
   QTime time = QTime::currentTime();
   qsrand((uint)time.msec());
 
