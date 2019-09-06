@@ -60,11 +60,15 @@ public slots:
   void userRejectsCall(uint32_t sessionID); // user has rejected the incoming call
   void userCancelsCall(uint32_t sessionID); // user has rejected the incoming call
 
+  void startCall(uint32_t sessionID);
+  void abortCall(uint32_t sessionID);
+
 private:
 
   void removeSession(uint32_t sessionID);
 
   void createSingleCall(uint32_t sessionID);
+  void setupConference();
 
   struct PeerState
   {

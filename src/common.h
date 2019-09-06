@@ -75,3 +75,7 @@ void printDebug(DebugType type, QString className,
 void printDebug(DebugType type, QObject* object,
                 DebugContext context, QString description = "",
                 QStringList valueNames = {}, QStringList values = {});
+
+
+
+bool settingEnalbled(QString parameter);

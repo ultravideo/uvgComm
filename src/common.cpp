@@ -7,6 +7,8 @@
 #include <windows.h> // for Sleep
 #endif
 
+
+#include <QSettings>
 #include <QDebug>
 
 // TODO move this to a different file from common.h
@@ -213,4 +215,12 @@ void printDebug(DebugType type, QString className, DebugContext context,
     break;
   }
   }
+}
+
+
+
+bool settingEnalbled(QString parameter)
+{
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+  return settings.value(parameter).toInt() == 1;
 }

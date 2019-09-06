@@ -186,6 +186,15 @@ void KvazzupController::peerRejected(uint32_t sessionID)
 
 void KvazzupController::callNegotiated(uint32_t sessionID)
 {
+  if (!settingEnalbled("sip/ice"))
+  {
+    startCall(sessionID);
+  }
+}
+
+
+void KvazzupController::startCall(uint32_t sessionID)
+{
   if(states_.find(sessionID) != states_.end())
   {
     if(states_[sessionID] == CALLNEGOTIATING || states_[sessionID] == CALLONGOING)
@@ -205,50 +214,13 @@ void KvazzupController::callNegotiated(uint32_t sessionID)
          QString::number(phaseReady_),
          QString::number(states_.size())});
 
-      QSettings settings("kvazzup.ini", QSettings::IniFormat);
-      int conference = settings.value("sip/conference").toInt();
-
-      if (conference == 0 || states_.size() == 1)
+      if (!settingEnalbled("sip/conference") || states_.size() == 1)
       {
         createSingleCall(sessionID);
       }
       else
       {
-        // can we proceed to next phase
-        if (phaseReady_ == states_.size())
-        {
-          switch (conference_)
-          {
-            case SINGLE_CONNECTIONS:
-            {
-              conference_ = RECEIVE_PORTS;
-              sip_.negotiateReceivePorts();
-              phaseReady_ = 0;
-              break;
-            }
-            case RECEIVE_PORTS:
-            {
-              conference_ = WHOLE_CONFERENCE;
-              sip_.negotiateConference();
-              phaseReady_ = 0;
-              break;
-            }
-            case WHOLE_CONFERENCE:
-            {
-              for (auto session : states_)
-              {
-                createSingleCall(session.first);
-              }
-              conference_ = CONFERENCE_ACTIVE;
-              break;
-            }
-            default:
-            {
-              printDebug(DEBUG_PROGRAM_ERROR, this, DC_NEGOTIATING,
-                         "Conference negotiated, it was already active");
-            }
-          }
-        }
+        setupConference();
       }
     }
     else
@@ -264,6 +236,13 @@ void KvazzupController::callNegotiated(uint32_t sessionID)
      qDebug() << "Negotiation," << metaObject()->className()
               << ": ERROR: This session does not exist in Call manager";
   }
+}
+
+
+void KvazzupController::abortCall(uint32_t sessionID)
+{
+  // TODO: Tell sip manager to send an error for ICE
+  endCall(sessionID);
 }
 
 
@@ -298,6 +277,45 @@ void KvazzupController::createSingleCall(uint32_t sessionID)
 
   media_.addParticipant(sessionID, remoteSDP, localSDP);
   states_[sessionID] = CALLONGOING;
+}
+
+void KvazzupController::setupConference()
+{
+  // can we proceed to next phase
+  if (phaseReady_ == states_.size())
+  {
+    switch (conference_)
+    {
+      case SINGLE_CONNECTIONS:
+      {
+        conference_ = RECEIVE_PORTS;
+        sip_.negotiateReceivePorts();
+        phaseReady_ = 0;
+        break;
+      }
+      case RECEIVE_PORTS:
+      {
+        conference_ = WHOLE_CONFERENCE;
+        sip_.negotiateConference();
+        phaseReady_ = 0;
+        break;
+      }
+      case WHOLE_CONFERENCE:
+      {
+        for (auto session : states_)
+        {
+          createSingleCall(session.first);
+        }
+        conference_ = CONFERENCE_ACTIVE;
+        break;
+      }
+      default:
+      {
+        printDebug(DEBUG_PROGRAM_ERROR, this, DC_NEGOTIATING,
+                   "Conference negotiated, it was already active");
+      }
+    }
+  }
 }
 
 
