@@ -169,20 +169,6 @@ bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
   sdps_[sessionID].first = localSDP;
   sdps_[sessionID].second = remoteSDP;
 
-  // spawn ICE controller/controllee threads and start the candidate
-  // exchange and nomination
-  ice_->respondToNominations(localSDP->candidates, remoteSDP->candidates, sessionID);
-
-  // wait until the nomination has finished (or failed)
-  //
-  // The call won't start until ICE has finished its job
-  if (!ice_->callerConnectionNominated(sessionID))
-  {
-    qDebug() << "ERROR: Failed to nominate ICE candidates!";
-    return false;
-  }
-
-  setICEPorts(sessionID);
   negotiationStates_[sessionID] = NEG_ANSWER_GENERATED;
   return true;
 }
@@ -204,12 +190,6 @@ bool Negotiation::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer, uint32_t ses
 
   // this function blocks until a candidate is nominated or all candidates are considered
   // invalid in which case it returns false to indicate error
-  if (!ice_->calleeConnectionNominated(sessionID))
-  {
-    qDebug() << "ERROR: Failed to nominate ICE candidates!";
-    return false;
-  }
-
   if (checkSDPOffer(remoteSDPAnswer))
   {
     std::shared_ptr<SDPMessageInfo> remoteSDP
@@ -339,6 +319,7 @@ std::shared_ptr<SDPMessageInfo> Negotiation::negotiateSDP(SDPMessageInfo& remote
     newInfo->media.append(ourMedia);
   }
 
+  newInfo->candidates = ice_->generateICECandidates();
   return newInfo;
 }
 
@@ -594,6 +575,18 @@ void Negotiation::endAllSessions()
   }
 }
 
+void Negotiation::respondToICECandidateNominations(uint32_t sessionID)
+{
+  if (!checkSessionValidity(sessionID, true))
+  {
+    return;
+  }
+
+  std::shared_ptr<SDPMessageInfo> localSDP = sdps_.at(sessionID).first;
+  std::shared_ptr<SDPMessageInfo> remoteSDP = sdps_.at(sessionID).second;
+
+  ice_->respondToNominations(localSDP->candidates, remoteSDP->candidates, sessionID);
+}
 
 void Negotiation::startICECandidateNegotiation(uint32_t sessionID)
 {
@@ -601,6 +594,7 @@ void Negotiation::startICECandidateNegotiation(uint32_t sessionID)
   {
     return;
   }
+
   std::shared_ptr<SDPMessageInfo> localSDP = sdps_.at(sessionID).first;
   std::shared_ptr<SDPMessageInfo> remoteSDP = sdps_.at(sessionID).second;
 

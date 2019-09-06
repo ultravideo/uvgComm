@@ -35,6 +35,7 @@ void FlowAgent::run() { }
 void FlowAgent::setCandidates(QList<std::shared_ptr<ICEPair>> *candidates)
 {
   Q_ASSERT(candidates != nullptr);
+  Q_ASSERT(candidates->size() != 0);
 
   candidates_ = candidates;
 }
@@ -114,7 +115,7 @@ void FlowController::run()
   if (candidates_ == nullptr || candidates_->size() == 0)
   {
     printDebug(DEBUG_ERROR, "FlowAgent", DC_NEGOTIATING,
-        "Invalid candidates, unable to perform ICE candidate negotiation!");
+        "FlowController: Invalid candidates, unable to perform ICE candidate negotiation!");
     emit ready(nullptr, nullptr, sessionID_);
     return;
   }
@@ -259,7 +260,7 @@ void FlowControllee::run()
   if (candidates_ == nullptr || candidates_->size() == 0)
   {
     printDebug(DEBUG_ERROR, "FlowAgent", DC_NEGOTIATING,
-        "Invalid candidates, unable to perform ICE candidate negotiation!");
+        "FlowControllee: Invalid candidates, unable to perform ICE candidate negotiation!");
     emit ready(nullptr, nullptr, sessionID_);
     return;
   }

@@ -61,6 +61,7 @@ public:
   void endAllSessions();
 
   void startICECandidateNegotiation(uint32_t sessionID);
+  void respondToICECandidateNominations(uint32_t sessionID);
 
   // update the MediaInfo of remote and locals SDPs to include the nominated connections
   void setICEPorts(uint32_t sessionID);

@@ -125,13 +125,6 @@ uint32_t SIPManager::startCall(Contact& address)
 
 void SIPManager::acceptCall(uint32_t sessionID)
 {
-
-  // Start candiate nomination. This function won't block,
-  // negotiation happens in the background remoteFinalSDP()
-  // makes sure that a connection was in fact nominated
-
-  //negotiation_.startICECandidateNegotiation(sessionID);
-
   transactions_.acceptCall(sessionID);
 }
 
@@ -563,6 +556,12 @@ bool SIPManager::processOfferSDP(uint32_t sessionID, QVariant& content,
     negotiation_.endSession(sessionID);
     return false;
   }
+
+  // Start candiate nomination. This function won't block,
+  // negotiation happens in the background remoteFinalSDP()
+  // makes sure that a connection was in fact nominated
+  negotiation_.startICECandidateNegotiation(sessionID);
+
   return true;
 }
 
@@ -592,6 +591,13 @@ bool SIPManager::processAnswerSDP(uint32_t sessionID, QVariant &content)
   {
     return false;
   }
+
+  // spawn ICE controller/controllee threads and start the candidate
+  // exchange and nomination
+  //
+  // This will return immediately and Controller is responsible
+  // for blocking the call start until the nomination is ready
+  negotiation_.respondToICECandidateNominations(sessionID);
 
   return true;
 }
