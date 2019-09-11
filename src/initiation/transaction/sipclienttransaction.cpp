@@ -65,6 +65,7 @@ void SIPClientTransaction::sendRequest(RequestType type)
              "Client starts sending a request.", {"Type"}, {QString::number(type)});
   ongoingTransactionType_ = type;
 
+  // we do not expect a response for these requests.
   if (type == SIP_CANCEL || type == SIP_ACK)
   {
     stopTimeoutTimer();

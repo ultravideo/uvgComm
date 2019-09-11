@@ -11,6 +11,18 @@ void SIPNonDialogClient::set_remoteURI(SIP_URI& uri)
   remoteUri_ = uri;
 }
 
+void SIPNonDialogClient::getRequestMessageInfo(RequestType type,
+                                               std::shared_ptr<SIPMessageInfo>& outMessage)
+{
+  SIPClientTransaction::getRequestMessageInfo(type, outMessage);
+
+  if (type == SIP_REGISTER)
+  {
+    outMessage->expires = 600; // TODO: Implement resending
+  }
+}
+
+
 bool SIPNonDialogClient::processResponse(SIPResponse& response,
                                          std::shared_ptr<SIPDialogState> state)
 {
@@ -26,7 +38,6 @@ bool SIPNonDialogClient::processResponse(SIPResponse& response,
 
 void SIPNonDialogClient::sendRequest(RequestType type)
 {
-  emit sendNonDialogRequest(remoteUri_, type);
   SIPClientTransaction::sendRequest(type);
 }
 

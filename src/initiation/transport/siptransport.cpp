@@ -151,6 +151,14 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
     return;
   }
 
+  if (request.type == SIP_REGISTER &&
+      !includeExpiresField(fields, request.message->expires))
+  {
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_SEND_SIP_REQUEST, "Failed to add expires-field");
+    return;
+  }
+
+
   QString lineEnding = "\r\n";
   QString message = "";
   // adds content fields and converts the sdp to string if INVITE

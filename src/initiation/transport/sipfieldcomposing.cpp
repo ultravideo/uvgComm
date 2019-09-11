@@ -243,6 +243,15 @@ bool includeContentLengthField(QList<SIPField> &fields,
   return true;
 }
 
+
+bool includeExpiresField(QList<SIPField>& fields,
+                         uint32_t expires)
+{
+  fields.push_back({"Expires", QString::number(expires), nullptr});
+  return true;
+}
+
+
 bool tryAddParameter(SIPField& field, QString parameterName, QString parameterValue)
 {
   if(parameterValue == "")

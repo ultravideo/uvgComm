@@ -37,3 +37,6 @@ bool includeContentTypeField(QList<SIPField>& fields,
 
 bool includeContentLengthField(QList<SIPField>& fields,
                                uint32_t contentLenght);
+
+bool includeExpiresField(QList<SIPField>& fields,
+                         uint32_t expires);

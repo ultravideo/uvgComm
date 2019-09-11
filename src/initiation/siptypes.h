@@ -172,6 +172,8 @@ struct SIPMessageInfo
   uint32_t cSeq; // must be less than 2^31
   RequestType transactionRequest;
 
+  uint32_t expires;
+
   ContentInfo content;
 };
 
