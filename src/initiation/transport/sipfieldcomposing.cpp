@@ -10,6 +10,24 @@
 // a function used within this file to add a parameter
 bool tryAddParameter(SIPField& field, QString parameterName, QString parameterValue);
 
+QString composeUritype(UriType type);
+
+QString composeUritype(UriType type)
+{
+  if (type == SIP)
+  {
+    return "sip";
+  }
+  else if (type == SIPS)
+  {
+    return "sips";
+  }
+  else if (type == TEL)
+  {
+    return "tel";
+  }
+  return "";
+}
 
 bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
 {
@@ -23,19 +41,23 @@ bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
     printDebug(DEBUG_PROGRAM_ERROR, "SIPComposing", DC_SEND_SIP_REQUEST, "SIP_NO_REQUEST given.");
     return false;
   }
+
+  QString type = "";
+  QString target = "";
+
   if(request.type != SIP_REGISTER)
   {
-    line = requestToString(request.type) + " sip:"
-        + request.message->to.username + "@" + request.message->to.host
-        + " SIP/" + request.message->version + lineEnding;
+    type = composeUritype(request.message->to.type);
+    target = request.message->to.username + "@" + request.message->to.host;
   }
-  else
+  else // REGISTER first line does not have username.
   {
-
-    line = requestToString(request.type) + " sips:"
-        + request.requestURI.host
-        + " SIP/" + request.message->version + lineEnding;
+    type = composeUritype(request.requestURI.type);
+    target = request.requestURI.host;
   }
+
+  line = requestToString(request.type) + " " + type + ":"
+      + target + " SIP/" + request.message->version + lineEnding;
 
   return true;
 }

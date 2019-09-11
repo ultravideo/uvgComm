@@ -16,6 +16,8 @@ bool parseUint(QString values, uint& number);
 bool parseURI(QString values, SIP_URI& uri)
 {
   // RFC3261_TODO: Try to understand other than sip: addresses such as "tel:" and give error?
+
+  // TLS TODO: Support sips
   QRegularExpression re_field("(\\w+ )?<sip:(\\w+)@([\\w\.:]+)>");
   QRegularExpressionMatch field_match = re_field.match(values);
 
