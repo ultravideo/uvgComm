@@ -77,6 +77,7 @@ void SIPManager::bindToServer()
     std::shared_ptr<SIPTransport> transport = createSIPTransport();
     transport->createConnection(TCP, serverAddress);
 
+    // TODO: server doesn't have sessionID
     sessionToTransportID_[transactions_.reserveSessionID()] = transport->getTransportID();
 
     waitingToBind_[transport->getTransportID()] = serverAddress;
