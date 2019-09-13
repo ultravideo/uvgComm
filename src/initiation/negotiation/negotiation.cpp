@@ -1,5 +1,6 @@
 #include "negotiation.h"
 #include <QDateTime>
+#include <QObject>
 
 #include "common.h"
 
@@ -14,6 +15,20 @@ Negotiation::Negotiation():
 {
   ice_ = std::make_unique<ICE>();
   parameters_.setPortRange(MIN_SIP_PORT, MAX_SIP_PORT, MAX_PORTS);
+
+  QObject::connect(
+    ice_.get(),
+    &ICE::nominationSucceeded,
+    this,
+    &Negotiation::iceNominationSucceeded
+  );
+
+  QObject::connect(
+    ice_.get(),
+    &ICE::nominationFailed,
+    this,
+    &Negotiation::iceNominationFailed
+  );
 }
 
 

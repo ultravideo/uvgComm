@@ -48,6 +48,10 @@ public:
                std::shared_ptr<SDPMessageInfo>& localSDP,
                std::shared_ptr<SDPMessageInfo>& remoteSDP) const;
 
+signals:
+  void nominationSucceeded(quint32 sessionID);
+  void nominationFailed(quint32 sessionID);
+
 private slots:
 
   // somebody established a TCP connection with us

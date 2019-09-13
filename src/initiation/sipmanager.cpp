@@ -47,6 +47,10 @@ void SIPManager::init(SIPTransactionUser* callControl)
                    this, &SIPManager::transportRequest);
   QObject::connect(&transactions_, &SIPTransactions::transportResponse,
                    this, &SIPManager::transportResponse);
+  QObject::connect(&negotiation_, &Negotiation::iceNominationSucceeded,
+                    this, &SIPManager::nominationSucceeded);
+  QObject::connect(&negotiation_, &Negotiation::iceNominationFailed,
+                    this, &SIPManager::nominationFailed);
 }
 
 

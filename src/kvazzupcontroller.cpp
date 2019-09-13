@@ -42,6 +42,9 @@ void KvazzupController::init()
   QObject::connect(&window_, &CallWindow::callRejected, this, &KvazzupController::userRejectsCall);
   QObject::connect(&window_, &CallWindow::callCancelled, this, &KvazzupController::userCancelsCall);
 
+  QObject::connect(&sip_, &SIPManager::nominationSucceeded, this, &KvazzupController::startCall);
+  QObject::connect(&sip_, &SIPManager::nominationFailed,    this, &KvazzupController::abortCall);
+
   stats_ = window_.createStatsWindow();
 
   media_.init(window_.getViewFactory(), stats_);

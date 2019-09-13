@@ -28,8 +28,9 @@ enum NegotiationState {NEG_NO_STATE,
                        NEG_ANSWER_GENERATED,
                        NEG_FINISHED};
 
-class Negotiation
+class Negotiation : public QObject
 {
+  Q_OBJECT
 public:
   Negotiation();
 
@@ -83,6 +84,10 @@ public:
   std::shared_ptr<SDPMessageInfo> getFinalConferenceOffer(uint32_t sessionID) const;
 
   NegotiationState getState(uint32_t sessionID);
+
+signals:
+  void iceNominationSucceeded(quint32 sessionID);
+  void iceNominationFailed(quint32 sessionID);
 
 private:
 

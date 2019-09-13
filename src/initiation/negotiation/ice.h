@@ -64,8 +64,8 @@ class ICE : public QObject
     void cleanupSession(uint32_t sessionID);
 
 signals:
-    void nominationFailed(uint32_t sessionID);
-    void nominationSucceeded(uint32_t sessionID);
+    void nominationFailed(quint32 sessionID);
+    void nominationSucceeded(quint32 sessionID);
 
   public slots:
     // when FlowControllee has finished its job, it emits "ready" signal which is caught by this slot function
