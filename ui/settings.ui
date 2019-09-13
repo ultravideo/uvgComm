@@ -119,7 +119,7 @@
        <item row="9" column="0">
         <widget class="QPushButton" name="advanced_settings_button">
          <property name="text">
-          <string>Advanced</string>
+          <string>Advanced Settings</string>
          </property>
         </widget>
        </item>
@@ -213,7 +213,7 @@
           <bool>true</bool>
          </property>
          <property name="text">
-          <string>Custom Options</string>
+          <string>Custom Media Settings</string>
          </property>
         </widget>
        </item>

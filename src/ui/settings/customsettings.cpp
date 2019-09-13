@@ -184,7 +184,14 @@ void CustomSettings::saveCameraCapabilities(int deviceIndex)
   settings_.setValue("video/FramerateID",          customUI_->framerate_box->currentIndex());
 
   // TODO: does not work if minimum and maximum framerates differ or if framerate is fractional
-  settings_.setValue("video/Framerate",            customUI_->framerate_box->currentText());
+  if (!customUI_->framerate_box->currentText().isEmpty())
+  {
+    settings_.setValue("video/Framerate",            customUI_->framerate_box->currentText());
+  }
+  else {
+    settings_.setValue("video/Framerate",            0);
+  }
+
   settings_.setValue("video/InputFormat",          format);
 
   qDebug() << "Settings," << metaObject()->className() << ": Recorded the following video settings: Resolution:"
