@@ -89,6 +89,9 @@ signals:
   void iceNominationSucceeded(quint32 sessionID);
   void iceNominationFailed(quint32 sessionID);
 
+public slots:
+  void nominationSucceeded(quint32 sessionID);
+
 private:
 
   std::shared_ptr<SDPMessageInfo> generateLocalSDP(QHostAddress localAddress);

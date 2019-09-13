@@ -447,9 +447,6 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
         break;
       }
       }
-
-
-      negotiation_.setICEPorts(sessionID);
     }
   }
 

@@ -20,7 +20,7 @@ Negotiation::Negotiation():
     ice_.get(),
     &ICE::nominationSucceeded,
     this,
-    &Negotiation::iceNominationSucceeded
+    &Negotiation::nominationSucceeded
   );
 
   QObject::connect(
@@ -212,7 +212,6 @@ bool Negotiation::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer, uint32_t ses
     *remoteSDP = remoteSDPAnswer;
     sdps_[sessionID].second = remoteSDP;
 
-    setICEPorts(sessionID);
     negotiationStates_[sessionID] = NEG_FINISHED;
     return true;
   }
@@ -628,10 +627,9 @@ void Negotiation::setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaI
   media.receivePort        = mediaInfo->port;
 }
 
-
-void Negotiation::setICEPorts(uint32_t sessionID)
+void Negotiation::nominationSucceeded(quint32 sessionID)
 {
-  if(!checkSessionValidity(sessionID, true))
+  if (!checkSessionValidity(sessionID, true))
   {
     return;
   }
@@ -653,8 +651,9 @@ void Negotiation::setICEPorts(uint32_t sessionID)
     setMediaPair(localSDP->media[1],  nominated.video.first->local);
     setMediaPair(remoteSDP->media[1], nominated.video.first->remote);
   }
-}
 
+  emit iceNominationSucceeded(sessionID);
+}
 
 bool Negotiation::checkSessionValidity(uint32_t sessionID, bool checkRemote) const
 {
