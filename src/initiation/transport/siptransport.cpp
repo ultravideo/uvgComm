@@ -314,11 +314,9 @@ void SIPTransport::networkPackage(QString package)
 }
 
 
-void SIPTransport::parsePackage(QString package, QString& header, QString& body)
+bool SIPTransport::parsePackage(QString package, QString& header, QString& body)
 {
-  qDebug() << "Parsing package to header and body.";
-
-  // RFC3261_TODO: make this work also without content length.
+  // get any parts which have been received before
   if(partialMessage_.length() > 0)
   {
     package = partialMessage_ + package;
@@ -328,41 +326,52 @@ void SIPTransport::parsePackage(QString package, QString& header, QString& body)
   int headerEndIndex = package.indexOf("\r\n\r\n", 0, Qt::CaseInsensitive) + 4;
   int contentLengthIndex = package.indexOf("content-length", 0, Qt::CaseInsensitive);
 
-  qDebug() << "header end at:" << headerEndIndex
-           << "and content-length at:" << contentLengthIndex;
+  printDebug(DEBUG_NORMAL, this, DC_RECEIVE_SIP, "Parsing package to header and body",
+    {"Header end index", "content-length index"},
+    {QString::number(headerEndIndex), QString::number(contentLengthIndex)});
 
-  if(contentLengthIndex != -1 && headerEndIndex != -1)
+  // did we get the whole header
+  if (headerEndIndex <= 0)
+  {
+    // We did not. Wait for more rest.
+    partialMessage_ = package;
+    return false;
+  }
+
+  int contentLength = 0;
+  // did we find the contact-length field and is it before end of header.
+  if (contentLengthIndex != -1 && contentLengthIndex < headerEndIndex)
   {
     int contentLengthLineEndIndex = package.indexOf("\r\n", contentLengthIndex, Qt::CaseInsensitive);
-
     QString value = package.mid(contentLengthIndex + 16, contentLengthLineEndIndex - (contentLengthIndex + 16));
 
-    int valueInt= value.toInt();
-
-    qDebug() << "Content-length:" <<  valueInt;
-
-    if(package.length() < headerEndIndex + valueInt)
+    contentLength = value.toInt();
+    if (contentLength < 0)
     {
-      partialMessage_ = package;
-    }
-    else
-    {
-      partialMessage_ = package.right(package.length() - (headerEndIndex + valueInt));
-      header = package.left(headerEndIndex);
-      body = package.mid(headerEndIndex, valueInt);
-
-      qDebug().noquote() << "\r\n";
-      qDebug().noquote() << "Whole SIP message received ----------- " << "\r\n";
-      qDebug().noquote() << "Header:" << header;
-      qDebug().noquote() << "Content:" << body;
-      qDebug().noquote() << "Left overs:" << partialMessage_ << "\r\n";
+      // TODO: Warn the user maybe. Maybe also ban the user at least temporarily.
+      printDebug(DEBUG_PEER_ERROR, this, DC_RECEIVE_SIP,
+                 "Got negative content-length! Peer is doing something very strange.");
+      return false;
     }
   }
-  else
+  qDebug() << "Content-length:" <<  contentLength;
+
+  // if we have the whole message
+  if(package.length() >= headerEndIndex + contentLength)
   {
-    qDebug() << "Message was not received fully";
-    partialMessage_.append(package);
+    partialMessage_ = package.right(package.length() - (headerEndIndex + contentLength));
+    header = package.left(headerEndIndex);
+    body = package.mid(headerEndIndex, contentLength);
+
+    qDebug() << "Whole SIP message received ----------- ";
+    qDebug().noquote() << "Package:" << package;
+
+    return true;
   }
+
+  // did not get all of content.
+  partialMessage_ = package;
+  return false;
 }
 
 bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPField>& fields)

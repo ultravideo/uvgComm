@@ -68,8 +68,9 @@ private:
   QString fieldsToString(QList<SIPField>& fields, QString lineEnding);
   QString addContent(QList<SIPField>& fields, bool haveContent, const SDPMessageInfo& sdp);
 
-  // parsing
-  void parsePackage(QString package, QString& header, QString& body);
+  // parsing functions
+  // returs true if the whole message was received
+  bool parsePackage(QString package, QString& header, QString& body);
   bool headerToFields(QString header, QString& firstLine, QList<SIPField>& fields);
   bool fieldsToMessage(QList<SIPField>& fields, std::shared_ptr<SIPMessageInfo> &message);
   bool parseRequest(QString requestString, QString version,
