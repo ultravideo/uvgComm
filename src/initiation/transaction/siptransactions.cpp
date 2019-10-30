@@ -58,7 +58,7 @@ void SIPTransactions::registerTask()
 
 void SIPTransactions::bindToServer(QString serverAddress, QHostAddress localAddress, uint32_t sessionID)
 {
-  qDebug() << "Binding to SIP server at:" << serverAddress;
+  qDebug() << "Binding to SIP server at:" << serverAddress << "and sessionID:" << sessionID;
 
   SIPRegistrationData data = {std::shared_ptr<SIPNonDialogClient> (new SIPNonDialogClient(transactionUser_)),
                              std::shared_ptr<SIPDialogState> (new SIPDialogState()), sessionID, localAddress};
@@ -289,7 +289,8 @@ bool SIPTransactions::identifySession(SIPRequest request,
 
 bool SIPTransactions::identifySession(SIPResponse response, uint32_t& out_sessionID)
 {
-  qDebug() << "Starting to process identifying SIP response session:" << response.type;
+  qDebug() << "Attempting to identify SIP response session. Response type:"
+           << response.type;
 
   out_sessionID = 0;
   // find the dialog which corresponds to the callID and tags received in response
@@ -311,6 +312,31 @@ bool SIPTransactions::identifySession(SIPResponse response, uint32_t& out_sessio
         qDebug() << "PEER_ERROR: Found the dialog, "
                     "but we have not sent a request to their response.";
         return false;
+      }
+    }
+  }
+
+  // check if this is a response from the server.
+  if (out_sessionID == 0)
+  {
+    for (auto i = registrations_.begin(); i != registrations_.end(); ++i)
+    {
+      if(i->second.state->correctResponseDialog(response.message->dialog,
+                                                response.message->cSeq))
+      {
+        // TODO: we should check that every single detail is as specified in rfc.
+        if(i->second.client->waitingResponse(response.message->transactionRequest))
+        {
+          qDebug() << "Found dialog matching the response";
+          out_sessionID = i->second.sessionID;
+          break;
+        }
+        else
+        {
+          qDebug() << "PEER_ERROR: Found the server dialog, "
+                      "but we have not sent a request to their response.";
+          return false;
+        }
       }
     }
   }
