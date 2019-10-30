@@ -59,7 +59,7 @@ void SIPClientTransaction::startTimer(RequestType type)
 }
 
 
-void SIPClientTransaction::sendRequest(RequestType type)
+void SIPClientTransaction::startTransaction(RequestType type)
 {
   printDebug(DEBUG_NORMAL, this, DC_SEND_SIP_REQUEST,
              "Client starts sending a request.", {"Type"}, {QString::number(type)});

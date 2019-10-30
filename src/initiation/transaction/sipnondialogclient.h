@@ -22,7 +22,7 @@ public:
   virtual bool processResponse(SIPResponse& response,
                                std::shared_ptr<SIPDialogState> state);
 
-  virtual void sendRequest(RequestType type);
+  virtual void startTransaction(RequestType type);
 
   void registerToServer();
 

@@ -36,12 +36,12 @@ bool SIPNonDialogClient::processResponse(SIPResponse& response,
   return false;
 }
 
-void SIPNonDialogClient::sendRequest(RequestType type)
+void SIPNonDialogClient::startTransaction(RequestType type)
 {
-  SIPClientTransaction::sendRequest(type);
+  SIPClientTransaction::startTransaction(type);
 }
 
 void SIPNonDialogClient::registerToServer()
 {
-  sendRequest(SIP_REGISTER);
+  startTransaction(SIP_REGISTER);
 }

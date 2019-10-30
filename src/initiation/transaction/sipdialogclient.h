@@ -26,7 +26,7 @@ public:
 protected:
   virtual void processTimeout();
 
-  virtual void sendRequest(RequestType type);
+  virtual void startTransaction(RequestType type);
 
 signals:
   // send messages to other end

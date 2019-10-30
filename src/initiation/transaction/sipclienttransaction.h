@@ -68,7 +68,8 @@ protected:
     return ongoingTransactionType_;
   }
 
-  virtual void sendRequest(RequestType type) = 0;
+  // set the internal state of client to such that we have sent a request.
+  virtual void startTransaction(RequestType type) = 0;
 
 private slots:
   void requestTimeOut();
