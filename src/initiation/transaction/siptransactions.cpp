@@ -63,16 +63,17 @@ void SIPTransactions::bindToServer(QString serverAddress, QHostAddress localAddr
   SIPRegistrationData data = {std::shared_ptr<SIPNonDialogClient> (new SIPNonDialogClient(transactionUser_)),
                              std::shared_ptr<SIPDialogState> (new SIPDialogState()), sessionID, localAddress};
 
+  SIP_URI serverUri = {"","",serverAddress, SIP};
+  data.state->createServerDialog(serverUri);
+  data.client->init();
+  data.client->set_remoteURI(serverUri);
   registrations_[serverAddress] = data;
 
-  SIP_URI serverUri = {"","",serverAddress, SIP};
-  registrations_[serverAddress].state->createServerDialog(serverUri);
-  registrations_[serverAddress].client->init();
+  QObject::connect(registrations_[serverAddress].client.get(),
+                         &SIPNonDialogClient::sendNondialogRequest,
+                   this, &SIPTransactions::sendNonDialogRequest);
 
-
-  registrations_[serverAddress].client->set_remoteURI(serverUri);
-
-  sendNonDialogRequest(serverUri, SIP_REGISTER);
+  registrations_[serverAddress].client->registerToServer();
 }
 
 
@@ -435,6 +436,7 @@ void SIPTransactions::sendDialogRequest(uint32_t sessionID, RequestType type)
   emit transportRequest(sessionID, request);
   qDebug() << "---- Finished sending of a dialog request ---";
 }
+
 
 void SIPTransactions::sendNonDialogRequest(SIP_URI& uri, RequestType type)
 {

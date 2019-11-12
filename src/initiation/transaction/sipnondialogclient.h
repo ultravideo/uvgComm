@@ -26,6 +26,8 @@ public:
 
   void registerToServer();
 
+signals:
+  void sendNondialogRequest(SIP_URI& uri, RequestType type);
 
 private:
 
