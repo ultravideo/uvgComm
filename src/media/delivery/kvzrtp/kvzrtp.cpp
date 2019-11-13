@@ -9,7 +9,7 @@
 #include <QHostInfo>
 #include <QDebug>
 
-#include <kvzrtp/rtp_opus.hh>
+#include <kvzrtp/formats/opus.hh>
 
 #include <iostream>
 

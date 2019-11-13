@@ -233,6 +233,7 @@ INCLUDEPATH += $$PWD/../include/live/liveMedia/include
 INCLUDEPATH += $$PWD/../include/live/groupsock/include
 INCLUDEPATH += $$PWD/../include/live/UsageEnvironment/include
 INCLUDEPATH += $$PWD/../include/live/BasicUsageEnvironment/include
+INCLUDEPATH += $$PWD/../include/kvzrtp
 #LIBS += -L$$PWD/../lib32
 LIBS += -L$$PWD/../lib64
 LIBS += -llibkvazaar.dll
@@ -253,6 +254,8 @@ INCLUDEPATH += /usr/local/include/UsageEnvironment/
 INCLUDEPATH += /usr/local/include/groupsock/
 INCLUDEPATH += /usr/local/include/liveMedia/
 INCLUDEPATH += /usr/include/opus/
+INCLUDEPATH += /usr/local/include/kvzrtp/
+INCLUDEPATH += /usr/local/include/kvzrtp/formats
 
 LIBS += -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment
 LIBS += -lopus -lkvazaar -lspeex -lspeexdsp -lLibOpenHevcWrapper -lgomp -lkvzrtp

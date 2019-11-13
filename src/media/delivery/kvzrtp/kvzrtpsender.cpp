@@ -90,9 +90,7 @@ void KvzRTPSender::process()
   {
     while ((currentFrame = getInput()))
     {
-      ret = writer_->push_frame(currentFrame->data.get(),
-                                currentFrame->data_size,
-                                dataFormat_, (90000 / 24) * ++frame_);
+      ret = writer_->push_frame(std::move(currentFrame->data), currentFrame->data_size, RTP_NO_FLAGS);
 
       if (ret != RTP_OK)
       {
