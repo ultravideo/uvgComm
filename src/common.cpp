@@ -49,6 +49,7 @@ const std::map<DebugContext, QString> contextToString = {{DC_NO_CONTEXT, ""},
                                          {DC_STARTUP, "Startup"},
                                          {DC_SHUTDOWN, "Shutdown"},
                                          {DC_SETTINGS, "Settings"},
+                                         {DC_REGISTRATION, "Registration"},
                                          {DC_START_CALL, "Starting call"},
                                          {DC_END_CALL, "Ending a call"},
                                          {DC_RINGING, "Ringing"},
@@ -76,6 +77,18 @@ void printDebug(DebugType type, QObject* object,
                 QStringList valueNames, QStringList values)
 {
   printDebug(type, object->metaObject()->className(), context, description, valueNames, values);
+}
+
+void printNormalDebug(QObject* object, DebugContext context, QString description,
+                      QString valueName, QString value)
+{
+  printDebug(DEBUG_NORMAL, object, context, description, {valueName}, {value});
+}
+
+void printPErrorDebug(QObject* object, DebugContext context, QString description,
+                      QString valueName, QString value)
+{
+  printDebug(DEBUG_PROGRAM_ERROR, object, context, description, {valueName}, {value});
 }
 
 void printDebug(DebugType type, QString className, DebugContext context,

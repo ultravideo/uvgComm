@@ -2,6 +2,7 @@
 
 #include "initiation/transport/connectionserver.h"
 #include "initiation/transaction/siptransactions.h"
+#include "initiation/transaction/sipregistrations.h"
 #include "initiation/negotiation/negotiation.h"
 
 /* This is a manager class that manages interactions between all the different
@@ -55,9 +56,12 @@ private slots:
   // our outbound TCP connection was established.
   void connectionEstablished(quint32 transportID);
 
-  // send the SIP message with transport layer. Attaches SDP message if needed.
+  // send the SIP message to a SIP User agent with transport layer. Attaches SDP message if needed.
   void transportRequest(uint32_t sessionID, SIPRequest &request);
   void transportResponse(uint32_t sessionID, SIPResponse &response);
+
+  // send the SIP request to a proxy with transport layer.
+  void transportToProxy(QString serverAddress, SIPRequest &request);
 
   // Process incoming SIP message. May create session if INVITE.
   void processSIPRequest(SIPRequest &request, QHostAddress localAddress,
@@ -88,13 +92,18 @@ private:
 
   // SIP Transport layer
   QMap<quint32, std::shared_ptr<SIPTransport>> transports_;
-  quint32 nextTransportID_; // this class is responsible for generating TransportID:s
+  quint32 nextTransportID_; // the next free transportID to be allocated
 
   // SIP Transactions layer
   SIPTransactions transactions_;
 
+  SIPRegistrations registrations_;
+
   // mapping of which sessionID uses which TransportID
   std::map<uint32_t, quint32> sessionToTransportID_;
+
+  // mapping of which SIP proxy uses which TransportID
+  std::map<QString, quint32> serverToTransportID_;
 
   // if we want to do something, but the TCP connection has not yet been established
   struct WaitingStart

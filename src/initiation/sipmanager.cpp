@@ -36,6 +36,7 @@ void SIPManager::init(SIPTransactionUser* callControl)
   }
 
   transactions_.init(callControl);
+  registrations_.init(callControl);
 
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
   QString username = !settings.value("local/Username").isNull()
@@ -47,6 +48,9 @@ void SIPManager::init(SIPTransactionUser* callControl)
                    this, &SIPManager::transportRequest);
   QObject::connect(&transactions_, &SIPTransactions::transportResponse,
                    this, &SIPManager::transportResponse);
+
+  QObject::connect(&registrations_, &SIPRegistrations::transportProxyRequest,
+                   this, &SIPManager::transportToProxy);
 }
 
 
@@ -77,8 +81,7 @@ void SIPManager::bindToServer()
     std::shared_ptr<SIPTransport> transport = createSIPTransport();
     transport->createConnection(TCP, serverAddress);
 
-    // TODO: server doesn't have sessionID
-    sessionToTransportID_[transactions_.reserveSessionID()] = transport->getTransportID();
+    serverToTransportID_[serverAddress] = transport->getTransportID();
 
     waitingToBind_[transport->getTransportID()] = serverAddress;
   }
@@ -215,9 +218,8 @@ void SIPManager::connectionEstablished(quint32 transportID)
 
   if(waitingToBind_.find(transportID) != waitingToBind_.end())
   {
-    transactions_.bindToServer(waitingToBind_[transportID],
-                               transports_[transportID]->getLocalAddress(),
-                               transportID);
+    registrations_.bindToServer(waitingToBind_[transportID],
+                                transports_[transportID]->getLocalAddress());
   }
 }
 
@@ -243,7 +245,6 @@ void SIPManager::transportRequest(uint32_t sessionID, SIPRequest &request)
         }
       }
 
-
       transports_[transportID]->sendRequest(request, content);
     }
     else {
@@ -266,6 +267,7 @@ void SIPManager::transportResponse(uint32_t sessionID, SIPResponse &response)
 
     if (transports_.find(transportID) != transports_.end())
     {
+      // determine if we to attach SDP to our response
       QVariant content;
       if (response.type == SIP_OK
           && response.message->transactionRequest == SIP_INVITE
@@ -291,6 +293,7 @@ void SIPManager::transportResponse(uint32_t sessionID, SIPResponse &response)
         }
       }
 
+      // send the request with or without SDP
       transports_[transportID]->sendResponse(response, content);
     }
     else {
@@ -302,6 +305,22 @@ void SIPManager::transportResponse(uint32_t sessionID, SIPResponse &response)
   else {
     printDebug(DEBUG_ERROR, metaObject()->className(), DC_SEND_SIP_RESPONSE,
                 "No mapping from sessionID to transportID");
+  }
+}
+
+
+void SIPManager::transportToProxy(QString serverAddress, SIPRequest &request)
+{
+  if (serverToTransportID_.find(serverAddress) != serverToTransportID_.end())
+  {
+    quint32 transportID = serverToTransportID_[serverAddress];
+
+    if (transports_.find(transportID) != transports_.end())
+    {
+      // send the request without content
+      QVariant content;
+      transports_[transportID]->sendRequest(request, content);
+    }
   }
 }
 
@@ -369,7 +388,6 @@ void SIPManager::processSIPRequest(SIPRequest& request, QHostAddress localAddres
           break;
         }
         }
-
       }
 
       transactions_.processSIPRequest(request, sessionID);

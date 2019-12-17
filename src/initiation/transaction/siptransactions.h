@@ -27,7 +27,6 @@ struct Contact
   QString remoteAddress;
 };
 
-class SIPRouting;
 class SIPDialogState;
 class SIPTransactionUser;
 class SIPServerTransaction;
@@ -39,16 +38,8 @@ class SIPTransactions : public QObject
 public:
   SIPTransactions();
   
-  // start listening to incoming 
   void init(SIPTransactionUser* callControl);
   void uninit();
-
-  void bindToServer(QString serverAddress, QHostAddress localAddress, uint32_t sessionID);
-
-  bool locatedAtServer(Contact& query) const
-  {
-    return registrations_.find(query.remoteAddress) != registrations_.end();
-  }
 
   // reserve sessionID for a future call
   uint32_t reserveSessionID();
@@ -76,6 +67,7 @@ public:
 
   void failedToSendMessage();
 
+  // returns true if the identification was successful
   bool identifySession(SIPRequest request, QHostAddress localAddress,
                        uint32_t& out_sessionID);
 
@@ -96,7 +88,6 @@ signals:
 private slots:
 
   void sendDialogRequest(uint32_t sessionID, RequestType type);
-  void sendNonDialogRequest(SIP_URI& uri, RequestType type);
 
   void sendResponse(uint32_t sessionID, ResponseType type);
 
@@ -117,20 +108,6 @@ private:
 
     CallConnectionType connectionType;
   };
-
-  struct SIPRegistrationData
-  {
-    std::shared_ptr<SIPNonDialogClient> client;
-    std::shared_ptr<SIPDialogState> state;
-
-    uint32_t sessionID;
-    QHostAddress localAddress;
-  };
-
-
-  std::shared_ptr<SIPRouting> createSIPRouting(QString remoteUsername,
-                                               QString localAddress,
-                                               QString remoteAddress, bool hostedSession);
 
 
   void startPeerToPeerCall(uint32_t sessionID, QHostAddress localAddress, Contact& remote);
@@ -169,12 +146,8 @@ private:
 
   uint32_t nextSessionID_;
   std::map<uint32_t, std::shared_ptr<SIPDialogData>> dialogs_;
-  std::map<QString, SIPRegistrationData> registrations_;
-
 
   QList<QString> directContactAddresses_;
-
-  std::unique_ptr<SIPNonDialogClient> nonDialogClient_;
 
   SIPTransactionUser* transactionUser_;
 };

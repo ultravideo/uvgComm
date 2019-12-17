@@ -14,18 +14,14 @@ SIPTransactions::SIPTransactions():
   pendingConnectionMutex_(),
   nextSessionID_(FIRSTSESSIONID),
   dialogs_(),
-  registrations_(),
   directContactAddresses_(),
-  nonDialogClient_(),
   transactionUser_(nullptr)
 {}
 
 void SIPTransactions::init(SIPTransactionUser *callControl)
 {
   qDebug() << "Iniating SIP Transactions";
-
   transactionUser_ = callControl;
-  nonDialogClient_ = std::unique_ptr<SIPNonDialogClient>(new SIPNonDialogClient(callControl));
 }
 
 
@@ -53,27 +49,6 @@ uint32_t SIPTransactions::reserveSessionID()
 void SIPTransactions::registerTask()
 {
   qDebug() << "Registering us to a new SIP server with REGISTER task";
-}
-
-
-void SIPTransactions::bindToServer(QString serverAddress, QHostAddress localAddress, uint32_t sessionID)
-{
-  qDebug() << "Binding to SIP server at:" << serverAddress << "and sessionID:" << sessionID;
-
-  SIPRegistrationData data = {std::shared_ptr<SIPNonDialogClient> (new SIPNonDialogClient(transactionUser_)),
-                             std::shared_ptr<SIPDialogState> (new SIPDialogState()), sessionID, localAddress};
-
-  SIP_URI serverUri = {"","",serverAddress, SIP};
-  data.state->createServerDialog(serverUri);
-  data.client->init();
-  data.client->set_remoteURI(serverUri);
-  registrations_[serverAddress] = data;
-
-  QObject::connect(registrations_[serverAddress].client.get(),
-                         &SIPNonDialogClient::sendNondialogRequest,
-                   this, &SIPTransactions::sendNonDialogRequest);
-
-  registrations_[serverAddress].client->registerToServer();
 }
 
 
@@ -317,31 +292,6 @@ bool SIPTransactions::identifySession(SIPResponse response, uint32_t& out_sessio
     }
   }
 
-  // check if this is a response from the server.
-  if (out_sessionID == 0)
-  {
-    for (auto i = registrations_.begin(); i != registrations_.end(); ++i)
-    {
-      if(i->second.state->correctResponseDialog(response.message->dialog,
-                                                response.message->cSeq))
-      {
-        // TODO: we should check that every single detail is as specified in rfc.
-        if(i->second.client->waitingResponse(response.message->transactionRequest))
-        {
-          qDebug() << "Found dialog matching the response";
-          out_sessionID = i->second.sessionID;
-          break;
-        }
-        else
-        {
-          qDebug() << "PEER_ERROR: Found the server dialog, "
-                      "but we have not sent a request to their response.";
-          return false;
-        }
-      }
-    }
-  }
-
   return out_sessionID != 0;
 }
 
@@ -435,40 +385,6 @@ void SIPTransactions::sendDialogRequest(uint32_t sessionID, RequestType type)
 
   emit transportRequest(sessionID, request);
   qDebug() << "---- Finished sending of a dialog request ---";
-}
-
-
-void SIPTransactions::sendNonDialogRequest(SIP_URI& uri, RequestType type)
-{
-  qDebug() << "Start sending of a non-dialog request. Type:" << type;
-  SIPRequest request;
-  request.type = type;
-
-  if (type == SIP_REGISTER)
-  {
-    if (registrations_.find(uri.host) == registrations_.end())
-    {
-      printDebug(DEBUG_PROGRAM_ERROR, this, DC_SEND_SIP_REQUEST,
-                 "Registration information should have been created "
-                 "already before sending REGISTER message!");
-
-      return;
-    }
-
-    registrations_[uri.host].client->getRequestMessageInfo(request.type, request.message);
-    registrations_[uri.host].state->getRequestDialogInfo(request, registrations_[uri.host].localAddress.toString());
-
-    QVariant content; // we dont have content in REGISTER
-    emit transportRequest(registrations_[uri.host].sessionID, request);
-  }
-  else if (type == SIP_OPTIONS) {
-    printDebug(DEBUG_PROGRAM_ERROR, this, DC_SEND_SIP_REQUEST,
-                     "Trying to send unimplemented non-dialog request OPTIONS!");
-  }
-  else {
-    printDebug(DEBUG_PROGRAM_ERROR, this, DC_SEND_SIP_REQUEST,
-                     "Trying to send a non-dialog request of type which is a dialog request!");
-  }
 }
 
 

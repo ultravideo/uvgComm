@@ -42,6 +42,7 @@ SOURCES +=\
     src/initiation/transaction/sipdialogclient.cpp \
     src/initiation/transaction/sipdialogstate.cpp \
     src/initiation/transaction/sipnondialogclient.cpp \
+    src/initiation/transaction/sipregistrations.cpp \
     src/initiation/transaction/sipservertransaction.cpp \
     src/initiation/transaction/siptransactions.cpp \
     src/initiation/transport/connectionserver.cpp \
@@ -114,6 +115,7 @@ HEADERS  += \
     src/initiation/transaction/sipdialogclient.h \
     src/initiation/transaction/sipdialogstate.h \
     src/initiation/transaction/sipnondialogclient.h \
+    src/initiation/transaction/sipregistrations.h \
     src/initiation/transaction/sipservertransaction.h \
     src/initiation/transaction/siptransactions.h \
     src/initiation/transport/connectionserver.h \
