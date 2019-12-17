@@ -408,6 +408,16 @@ void SIPManager::processSIPRequest(SIPRequest& request, QHostAddress localAddres
 
 void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
 {
+  QString possibleServerAddress = "";
+  if(registrations_.identifyRegistration(response, possibleServerAddress))
+  {
+    printNormalDebug(this, DC_RECEIVE_SIP_RESPONSE, "Got a response to server message!");
+    registrations_.processNonDialogResponse(response);
+    return;
+  }
+
+
+
   uint32_t sessionID = 0;
 
   if(!transactions_.identifySession(response, sessionID))

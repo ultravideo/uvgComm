@@ -19,9 +19,9 @@ public:
 
   void bindToServer(QString serverAddress, QHostAddress localAddress);
 
-  bool identifyRegistration(SIPResponse response, QString address);
+  bool identifyRegistration(SIPResponse& response, QString &outAddress);
 
-  void processNonDialogResponse();
+  void processNonDialogResponse(SIPResponse& response);
 
   void sendNonDialogRequest(SIP_URI& uri, RequestType type);
 

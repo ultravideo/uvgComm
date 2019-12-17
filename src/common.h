@@ -69,6 +69,7 @@ void printNormalDebug(QObject* object, DebugContext context, QString description
 void printPErrorDebug(QObject* object, DebugContext context, QString description = "",
                       QString valueName  = "", QString value = "");
 
+void printUnimplemented(QObject* object, QString whatIsNotImplemented);
 
 // Print debug information with custom class name. Use this and getname with filters.
 // context is a general context that makes it easier to link different prints to one another.
@@ -84,6 +85,8 @@ void printDebug(DebugType type, QString className,
 void printDebug(DebugType type, QObject* object,
                 DebugContext context, QString description = "",
                 QStringList valueNames = {}, QStringList values = {});
+
+
 
 
 bool settingEnalbled(QString parameter);

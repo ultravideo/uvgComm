@@ -76,20 +76,42 @@ void printDebug(DebugType type, QObject* object,
                 DebugContext context, QString description,
                 QStringList valueNames, QStringList values)
 {
-  printDebug(type, object->metaObject()->className(), context, description, valueNames, values);
+  printDebug(type, object->metaObject()->className(),
+             context, description,
+             valueNames, values);
 }
+
 
 void printNormalDebug(QObject* object, DebugContext context, QString description,
                       QString valueName, QString value)
 {
-  printDebug(DEBUG_NORMAL, object, context, description, {valueName}, {value});
+  QStringList names;
+  if (valueName != "")
+  {
+    names.push_back(valueName);
+  }
+  QStringList values;
+  if (value != "")
+  {
+    values.push_back(value);
+  }
+  printDebug(DEBUG_NORMAL, object, context, description, names, values);
 }
+
 
 void printPErrorDebug(QObject* object, DebugContext context, QString description,
                       QString valueName, QString value)
 {
   printDebug(DEBUG_PROGRAM_ERROR, object, context, description, {valueName}, {value});
 }
+
+
+void printUnimplemented(QObject* object, QString whatIsNotImplemented)
+{
+  printDebug(DEBUG_PROGRAM_ERROR, object, DC_NO_CONTEXT,
+             QString("NOT IMPLEMENTED: ") + whatIsNotImplemented);
+}
+
 
 void printDebug(DebugType type, QString className, DebugContext context,
                 QString description, QStringList valueNames, QStringList values)

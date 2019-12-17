@@ -15,7 +15,7 @@ SIPRegistrations::SIPRegistrations()
 
 void SIPRegistrations::init(SIPTransactionUser *callControl)
 {
-  qDebug() << "Iniating SIP Transactions";
+  printNormalDebug(this, DC_STARTUP, "Initiatin Registrations");
   transactionUser_ = callControl;
 }
 
@@ -50,7 +50,7 @@ void SIPRegistrations::bindToServer(QString serverAddress, QHostAddress localAdd
 }
 
 
-bool SIPRegistrations::identifyRegistration(SIPResponse response, QString &outAddress)
+bool SIPRegistrations::identifyRegistration(SIPResponse& response, QString &outAddress)
 {
   outAddress = "";
 
@@ -75,6 +75,27 @@ bool SIPRegistrations::identifyRegistration(SIPResponse response, QString &outAd
     }
   }
   return outAddress != "";
+}
+
+
+void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
+{
+  if (response.message->transactionRequest == SIP_REGISTER)
+  {
+    if (response.type == SIP_OK)
+    {
+      printNormalDebug(this, DC_REGISTRATION,
+                       "Registration was succesful. TODO: update data structures");
+    }
+    else
+    {
+      printDebug(DEBUG_ERROR, this, DC_REGISTRATION, "REGISTER-request failed");
+    }
+  }
+  else
+  {
+    printUnimplemented(this, "Processing of Non-REGISTER requests");
+  }
 }
 
 
