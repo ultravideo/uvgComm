@@ -25,6 +25,8 @@ void ContactListItem::init(ParticipantInterface *interface)
   nameLabel_ = new QLabel(name_);
   layout_->addWidget(nameLabel_, 0,0);
 
+  setToolTip(username_ + "@" + address);
+
   callButton_ = new QPushButton();
   callButton_->setMaximumWidth(30);
 
@@ -33,7 +35,6 @@ void ContactListItem::init(ParticipantInterface *interface)
   layout_->addWidget(callButton_, 0, 1);
   QObject::connect(callButton_, SIGNAL(clicked()), this, SLOT(call()));
   callButton_->setObjectName("CallButton");
-
 /*
   chatButton_ = new QPushButton();
   chatButton_->setMaximumWidth(30);
