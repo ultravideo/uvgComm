@@ -35,7 +35,8 @@ const std::map<QString, std::function<bool(SIPField& field, std::shared_ptr<SIPM
     {"Max-Forwards", parseMaxForwardsField},
     {"Contact", parseContactField},
     {"Content-Type", parseContentTypeField},
-    {"Content-Length", parseContentLengthField}
+    {"Content-Length", parseContentLengthField},
+    {"Server", parseServerField}
 };
 
 

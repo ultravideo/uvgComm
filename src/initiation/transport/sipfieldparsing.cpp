@@ -194,6 +194,17 @@ bool parseContentLengthField(SIPField& field,
   return parseUint(field.values, message->content.length);
 }
 
+
+bool parseServerField(SIPField& field,
+                  std::shared_ptr<SIPMessageInfo> message)
+{
+  Q_ASSERT(message);
+  message->server = field.values;
+
+  return true;
+}
+
+
 bool isLinePresent(QString name, QList<SIPField>& fields)
 {
   for(SIPField field : fields)

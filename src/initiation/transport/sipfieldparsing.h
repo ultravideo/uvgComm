@@ -35,6 +35,8 @@ bool parseContentTypeField(SIPField& field,
 bool parseContentLengthField(SIPField& field,
                   std::shared_ptr<SIPMessageInfo> message);
 
+bool parseServerField(SIPField& field,
+                  std::shared_ptr<SIPMessageInfo> message);
 
 
 

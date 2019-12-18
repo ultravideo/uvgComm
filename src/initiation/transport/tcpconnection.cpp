@@ -179,7 +179,7 @@ void TCPConnection::run()
 
         emit messageAvailable(message);
 
-        qDebug() << "Message received:" << message;
+        qDebug().noquote() << message;
       }
       else if(socket_->bytesAvailable() > TOO_LARGE_AMOUNT_OF_DATA)
       {
