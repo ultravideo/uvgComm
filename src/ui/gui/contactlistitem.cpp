@@ -8,7 +8,7 @@
 ContactListItem::ContactListItem(QString name, QString username, QString ip):
   name_(name),
   username_(username),
-  ip_(ip),
+  address(ip),
   interface_(nullptr),
   activeSessionID_(0)
 {}
@@ -72,13 +72,13 @@ void ContactListItem::setAccesssible()
 void ContactListItem::call()
 {
   Q_ASSERT(interface_);
-  SetInaccessible(interface_->callToParticipant(name_, username_, ip_));
+  SetInaccessible(interface_->callToParticipant(name_, username_, address));
 }
 
 void ContactListItem::chat()
 {
   Q_ASSERT(interface_);
-  interface_->chatWithParticipant(name_, username_, ip_);
+  interface_->chatWithParticipant(name_, username_, address);
 }
 
 QString ContactListItem::getName()
@@ -93,7 +93,7 @@ QString ContactListItem::getUserName()
 
 QString ContactListItem::getAddress()
 {
-  return ip_;
+  return address;
 }
 
 void ContactListItem::mouseDoubleClickEvent(QMouseEvent *e)
