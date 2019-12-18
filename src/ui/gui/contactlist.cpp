@@ -120,7 +120,10 @@ void ContactList::addContact(ParticipantInterface* interface,
   if(username == "")
     username = "anonymous";
   if(address == "")
+  {
+    printNormalDebug(this, DC_CONTACTLIST, "Please input address!");
     return;
+  }
 
   int index = doesAddressExist(address);
 
