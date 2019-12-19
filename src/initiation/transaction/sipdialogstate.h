@@ -22,7 +22,7 @@ public:
   // creates dialog which is about to start from our end
   void createNewDialog(SIP_URI remoteURI);
 
-  void createServerDialog(SIP_URI requestURI);
+  void createServerDialog(SIP_URI requestURI, QString ourContactAddress);
 
   // creates the dialog from an incoming INVITE
   void createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inMessage);
@@ -67,10 +67,12 @@ private:
   // address-of-record is the SIP address if one exists. If we are not connected to server we use local
   // IP address.
   SIP_URI localUri_; // local address-of-record.
+  SIP_URI localContactUri_;
   SIP_URI remoteUri_; // remote address-of-record.
+  SIP_URI remoteContactURI_;
   SIP_URI requestUri_;
 
-  SIP_URI remoteContactURI_;
+
 
   // empty until first request is sent/received
   // cseq is used to determine the order of requests and must be sequential

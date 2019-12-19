@@ -32,7 +32,7 @@ void SIPRegistrations::bindToServer(QString serverAddress, QHostAddress localAdd
                                 std::shared_ptr<SIPDialogState> (new SIPDialogState()), localAddress};
 
     SIP_URI serverUri = {"","",serverAddress, SIP};
-    data.state->createServerDialog(serverUri);
+    data.state->createServerDialog(serverUri, localAddress.toString());
     data.client->init();
     data.client->set_remoteURI(serverUri);
     registrations_[serverAddress] = data;
@@ -117,7 +117,8 @@ void SIPRegistrations::sendNonDialogRequest(SIP_URI& uri, RequestType type)
     }
 
     registrations_[uri.host].client->getRequestMessageInfo(request.type, request.message);
-    registrations_[uri.host].state->getRequestDialogInfo(request, registrations_[uri.host].localAddress.toString());
+    registrations_[uri.host].state->getRequestDialogInfo(request,
+                                         registrations_[uri.host].localAddress.toString());
 
     QVariant content; // we dont have content in REGISTER
     emit transportProxyRequest(uri.host, request);

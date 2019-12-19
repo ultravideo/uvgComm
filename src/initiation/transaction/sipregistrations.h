@@ -19,6 +19,7 @@ public:
 
   void bindToServer(QString serverAddress, QHostAddress localAddress);
 
+  // Identify if this reponse is to our REGISTER-request
   bool identifyRegistration(SIPResponse& response, QString &outAddress);
 
   void processNonDialogResponse(SIPResponse& response);

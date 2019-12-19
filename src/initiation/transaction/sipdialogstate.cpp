@@ -38,12 +38,14 @@ void SIPDialogState::createNewDialog(SIP_URI remoteURI)
   requestUri_ = remoteURI;
 }
 
-void SIPDialogState::createServerDialog(SIP_URI requestURI)
+void SIPDialogState::createServerDialog(SIP_URI requestURI, QString ourContactAddress)
 {
   printDebug(DEBUG_NORMAL, "SIPDialogState", DC_START_CALL, "Creating a SIP Server dialog.");
   initLocalURI();
+
   remoteUri_ = localUri_;
   requestUri_ = requestURI; // server has different request uri from remote
+  localContactUri_.host = ourContactAddress;
   localCSeq_ = 0;
   initCallInfo();
 }
@@ -129,7 +131,7 @@ void SIPDialogState::getRequestDialogInfo(SIPRequest &outRequest, QString localA
   outRequest.message->cSeq = localCSeq_;
   outRequest.message->from = localUri_;
   outRequest.message->to = remoteUri_;
-  outRequest.message->contact = localUri_;
+  outRequest.message->contact = localContactUri_;
   outRequest.message->senderReplyAddress.push_back(getLocalVia(localAddress));
 
   // SIPDialogInfo format: toTag, fromTag, CallID
@@ -211,6 +213,7 @@ void SIPDialogState::initLocalURI()
   localUri_.realname = settings.value("local/Name").toString();
   localUri_.username = settings.value("local/Username").toString();
   localUri_.host = settings.value("sip/ServerAddress").toString();
+  localContactUri_ = localUri_;
 
   if(localUri_.username.isEmpty())
   {
