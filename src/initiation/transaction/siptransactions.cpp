@@ -52,20 +52,10 @@ void SIPTransactions::registerTask()
 }
 
 
-void SIPTransactions::startDirectCall(Contact &address, QHostAddress localAddress,
+void SIPTransactions::startCall(Contact &address, QHostAddress localAddress,
                                       uint32_t sessionID)
 {
   startPeerToPeerCall(sessionID, localAddress, address);
-}
-
-void SIPTransactions::startProxyCall(Contact& address, QHostAddress localAddress,
-                                     uint32_t sessionID)
-{
-  Q_UNUSED(address);
-  Q_UNUSED(localAddress);
-  Q_UNUSED(sessionID);
-  printDebug(DEBUG_ERROR, this, DC_START_CALL,
-             "Proxy calling has not been yet implemented");
 }
 
 

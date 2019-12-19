@@ -45,12 +45,8 @@ public:
   uint32_t reserveSessionID();
 
   // start a call with address. Returns generated sessionID
-  void startDirectCall(Contact& address, QHostAddress localAddress,
-                       uint32_t sessionID);
-
-  // TODO: not implemented
-  void startProxyCall(Contact& address, QHostAddress localAddress,
-                      uint32_t sessionID);
+  void startCall(Contact& address, QHostAddress localAddress,
+                 uint32_t sessionID);
 
   // sends a re-INVITE
   void renegotiateCall(uint32_t sessionID);
