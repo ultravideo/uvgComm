@@ -106,7 +106,6 @@ private:
   };
 
 
-  void startPeerToPeerCall(uint32_t sessionID, QHostAddress localAddress, Contact& remote);
   uint32_t createDialogFromINVITE(QHostAddress localAddress,  std::shared_ptr<SIPMessageInfo> &invite);
   void createBaseDialog(uint32_t sessionID, QHostAddress &localAddress, std::shared_ptr<SIPDialogData>& dialog);
   void destroyDialog(uint32_t sessionID);

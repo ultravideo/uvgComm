@@ -19,26 +19,19 @@ SIPDialogState::SIPDialogState():
   sessionState_(false)
 {}
 
-void SIPDialogState::setPeerToPeerHostname(QString hostName, bool setCallinfo)
-{
-  printDebug(DEBUG_NORMAL, "SIPDialogState", DC_START_CALL, "Setting info for new dialog.");
-  localUri_.host = hostName;
-  if (setCallinfo)
-  {
-    initCallInfo();
-  }
-}
 
-void SIPDialogState::createNewDialog(SIP_URI remoteURI)
+void SIPDialogState::createNewDialog(SIP_URI remoteURI, QString hostName)
 {
   printDebug(DEBUG_NORMAL, "SIPDialogState", DC_START_CALL, "Creating a new dialog. "
                                                             "CallID and tags generated later");
   initLocalURI();
   remoteUri_ = remoteURI;
   requestUri_ = remoteURI;
+  localUri_.host = hostName;
+  initCallInfo();
 }
 
-void SIPDialogState::createServerDialog(SIP_URI requestURI, QString ourContactAddress)
+void SIPDialogState::createServerConnection(SIP_URI requestURI, QString ourContactAddress)
 {
   printDebug(DEBUG_NORMAL, "SIPDialogState", DC_START_CALL, "Creating a SIP Server dialog.");
   initLocalURI();
@@ -46,11 +39,12 @@ void SIPDialogState::createServerDialog(SIP_URI requestURI, QString ourContactAd
   remoteUri_ = localUri_;
   requestUri_ = requestURI; // server has different request uri from remote
   localContactUri_.host = ourContactAddress;
-  localCSeq_ = 0;
+  localCSeq_ = 0; //
   initCallInfo();
 }
 
-void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inMessage)
+void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inMessage,
+                                            QString hostName)
 {
   printDebug(DEBUG_NORMAL, "SIPDialogState", DC_START_CALL,
              "Creating a dialog from incoming INVITE.");
@@ -61,6 +55,8 @@ void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inM
   initLocalURI();
   remoteUri_ = inMessage->from;
   requestUri_ = inMessage->from;
+
+  localUri_.host = hostName;
 
   if(callID_ != "")
   {

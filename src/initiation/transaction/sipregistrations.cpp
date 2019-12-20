@@ -27,12 +27,11 @@ void SIPRegistrations::bindToServer(QString serverAddress, QHostAddress localAdd
   Q_ASSERT(transactionUser_);
   if(transactionUser_)
   {
-
     SIPRegistrationData data = {std::shared_ptr<SIPNonDialogClient> (new SIPNonDialogClient(transactionUser_)),
                                 std::shared_ptr<SIPDialogState> (new SIPDialogState()), localAddress};
 
     SIP_URI serverUri = {"","",serverAddress, SIP};
-    data.state->createServerDialog(serverUri, localAddress.toString());
+    data.state->createServerConnection(serverUri, localAddress.toString());
     data.client->init();
     data.client->set_remoteURI(serverUri);
     registrations_[serverAddress] = data;

@@ -16,16 +16,14 @@ class SIPDialogState
 public:
   SIPDialogState();
 
-  // TODO: set the correct address for peer-to-peer connection
-  void setPeerToPeerHostname(QString hostName, bool setCallinfo = true);
-
   // creates dialog which is about to start from our end
-  void createNewDialog(SIP_URI remoteURI);
+  void createNewDialog(SIP_URI remoteURI, QString hostName);
 
-  void createServerDialog(SIP_URI requestURI, QString ourContactAddress);
+  void createServerConnection(SIP_URI requestURI, QString ourContactAddress);
 
   // creates the dialog from an incoming INVITE
-  void createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inMessage);
+  void createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inMessage,
+                              QString hostName);
 
   // Generates the request message details
   void getRequestDialogInfo(SIPRequest& outRequest, QString localAddress);

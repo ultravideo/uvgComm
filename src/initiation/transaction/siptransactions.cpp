@@ -53,9 +53,22 @@ void SIPTransactions::registerTask()
 
 
 void SIPTransactions::startCall(Contact &address, QHostAddress localAddress,
-                                      uint32_t sessionID)
+                                uint32_t sessionID)
 {
-  startPeerToPeerCall(sessionID, localAddress, address);
+  qDebug() << "SIP," << metaObject()->className() << ": Intializing a new dialog with INVITE";
+
+  std::shared_ptr<SIPDialogData> dialogData;
+  createBaseDialog(sessionID, localAddress, dialogData);
+  dialogData->proxyConnection_ = false;
+  dialogData->state->createNewDialog(SIP_URI{address.username, address.username,
+                                             address.remoteAddress, SIP}, localAddress.toString());
+
+  // this start call will commence once the connection has been established
+  if(!dialogData->client->startCall(address.realName))
+  {
+    printDebug(DEBUG_WARNING, this, DC_START_CALL,
+               "Could not start a call according to session.");
+  }
 }
 
 
@@ -76,24 +89,6 @@ void SIPTransactions::renegotiateAllCalls()
 }
 
 
-void SIPTransactions::startPeerToPeerCall(uint32_t sessionID,
-                                          QHostAddress localAddress, Contact &remote)
-{
-  qDebug() << "SIP," << metaObject()->className() << ": Intializing a new dialog with INVITE";
-
-  std::shared_ptr<SIPDialogData> dialogData;
-  createBaseDialog(sessionID, localAddress, dialogData);
-  dialogData->proxyConnection_ = false;
-  dialogData->state->createNewDialog(SIP_URI{remote.username, remote.username, remote.remoteAddress, SIP});
-
-  // this start call will commence once the connection has been established
-  if(!dialogData->client->startCall(remote.realName))
-  {
-    printDebug(DEBUG_WARNING, this, DC_START_CALL,
-               "Could not start a call according to session.");
-  }
-}
-
 uint32_t SIPTransactions::createDialogFromINVITE(QHostAddress localAddress,
                                                  std::shared_ptr<SIPMessageInfo> &invite)
 {
@@ -104,8 +99,7 @@ uint32_t SIPTransactions::createDialogFromINVITE(QHostAddress localAddress,
   std::shared_ptr<SIPDialogData> dialog;
   createBaseDialog(sessionID, localAddress, dialog);
 
-  dialog->state->createDialogFromINVITE(invite);
-  dialog->state->setPeerToPeerHostname(localAddress.toString(), false);
+  dialog->state->createDialogFromINVITE(invite, localAddress.toString());
   return sessionID;
 }
 
@@ -353,19 +347,11 @@ void SIPTransactions::sendDialogRequest(uint32_t sessionID, RequestType type)
   SIPRequest request;
   request.type = type;
 
-  // if this is the session creation INVITE. Proxy sessions should be created earlier.
-  if(request.type == SIP_INVITE && !dialogs_[sessionID]->proxyConnection_
-     && !dialogs_[sessionID]->state->getState())
-  {
-    printDebug(DEBUG_NORMAL, this, DC_SEND_SIP_REQUEST,
-               "Setting peer hostname before sending an INVITE.");
-    dialogs_[sessionID]->state->setPeerToPeerHostname(dialogs_[sessionID]->localAddress.toString());
-  }
-
   // Get message info
   dialogs_[sessionID]->client->getRequestMessageInfo(type, request.message);
   dialogs_[sessionID]->client->startTimer(type);
 
+  // TODO: maybe get the local address from dialogState contact address instead?
   dialogs_[sessionID]->state->getRequestDialogInfo(request,
                                                    dialogs_[sessionID]->localAddress.toString());
 
