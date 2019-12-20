@@ -28,7 +28,7 @@ void SIPRegistrations::bindToServer(QString serverAddress, QHostAddress localAdd
   if(transactionUser_)
   {
     SIPRegistrationData data = {std::shared_ptr<SIPNonDialogClient> (new SIPNonDialogClient(transactionUser_)),
-                                std::shared_ptr<SIPDialogState> (new SIPDialogState()), localAddress};
+                                std::shared_ptr<SIPDialogState> (new SIPDialogState()), localAddress, false};
 
     SIP_URI serverUri = {"","",serverAddress, SIP};
     data.state->createServerConnection(serverUri, localAddress.toString());
@@ -83,8 +83,32 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
   {
     if (response.type == SIP_OK)
     {
-      printNormalDebug(this, DC_REGISTRATION,
-                       "Registration was succesful. TODO: update data structures");
+      bool foundRegistration = false;
+
+      for (auto i : registrations_)
+      {
+        if (i.first == response.message->to.host)
+        {
+          if (i.second.client->processResponse(response, i.second.state))
+          {
+            qDebug() << "SHOULD DELETE REGISTRATION!?!?!?!";
+          }
+
+          i.second.active = true;
+
+          foundRegistration = true;
+
+
+          printNormalDebug(this, DC_REGISTRATION,
+                           "Registration was succesful.");
+        }
+      }
+
+      if (!foundRegistration)
+      {
+        qDebug() << "PEER ERROR: Got a resonse to REGISTRATION we didn't send";
+      }
+
     }
     else
     {
@@ -95,6 +119,22 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
   {
     printUnimplemented(this, "Processing of Non-REGISTER requests");
   }
+}
+
+
+bool SIPRegistrations::haveWeRegistered()
+{
+  bool registered = false;
+
+  for (auto i : registrations_)
+  {
+    if (i.second.active)
+    {
+      registered = true;
+    }
+  }
+
+  return registered;
 }
 
 

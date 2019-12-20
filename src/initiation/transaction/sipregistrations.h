@@ -26,6 +26,8 @@ public:
 
   void sendNonDialogRequest(SIP_URI& uri, RequestType type);
 
+  bool haveWeRegistered();
+
 signals:
 
   void transportProxyRequest(QString& address, SIPRequest& request);
@@ -38,6 +40,10 @@ private:
     std::shared_ptr<SIPDialogState> state;
 
     QHostAddress localAddress;
+
+    bool active;
+
+    // TODO: refresh the registration
   };
 
   std::map<QString, SIPRegistrationData> registrations_;
