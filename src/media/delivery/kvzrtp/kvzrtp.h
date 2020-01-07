@@ -48,7 +48,7 @@ public:
    void removeAllPeers();
 
 private:
-  kvz_rtp::context rtp_ctx_;
+  kvz_rtp::context *rtp_ctx_;
 
   struct Sender
   {

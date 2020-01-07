@@ -10,13 +10,14 @@
 #include <QDebug>
 
 #include <kvzrtp/formats/opus.hh>
+#include <kvzrtp/lib.hh>
 
 #include <iostream>
 
-KvzRTP::KvzRTP():
-  rtp_ctx_(),
-  isIniated_(false)
+KvzRTP::KvzRTP()
 {
+  isIniated_ = false;
+  rtp_ctx_ = new kvz_rtp::context(RTP_CTX_NO_FLAGS);
 }
 
 KvzRTP::~KvzRTP()
@@ -236,7 +237,7 @@ void KvzRTP::destroySender(Sender *sender)
   {
     printDebug(DEBUG_NORMAL, this, DC_REMOVE_MEDIA, "Destroying sender");
 
-    if (rtp_ctx_.destroy_writer(sender->writer) != RTP_OK)
+    if (rtp_ctx_->destroy_writer(sender->writer) != RTP_OK)
     {
       printDebug(DEBUG_ERROR, this, DC_REMOVE_MEDIA, "Failed to destroy RTP Writer");
     }
@@ -256,7 +257,7 @@ void KvzRTP::destroyReceiver(Receiver *recv)
   {
     printDebug(DEBUG_NORMAL, this, DC_REMOVE_MEDIA, "Destroying receiver");
 
-    if (rtp_ctx_.destroy_reader(recv->reader) != RTP_OK)
+    if (rtp_ctx_->destroy_reader(recv->reader) != RTP_OK)
     {
       printDebug(DEBUG_ERROR, this, DC_REMOVE_MEDIA, "Failed to destroy RTP Reader");
     }
@@ -283,7 +284,7 @@ KvzRTP::Sender *KvzRTP::addSender(QHostAddress ip, uint16_t port, rtp_format_t t
 
   /* TODO: source port (1337 is not valid!) */
 
-  sender->writer = rtp_ctx_.create_writer(ip.toString().toStdString(), port, 1337, type);
+  sender->writer = rtp_ctx_->create_writer(ip.toString().toStdString(), port, 1337, type);
   sender->writer->start();
 
   // TODO is this necessary????
@@ -340,7 +341,7 @@ KvzRTP::Receiver *KvzRTP::addReceiver(QHostAddress ip, uint16_t port, rtp_format
       { "Port", "Type" }, { QString::number(port), QString::number(type) });
 
   Receiver *receiver = new Receiver;
-  receiver->reader   = rtp_ctx_.create_reader(ip.toString().toStdString(), port, type);
+  receiver->reader   = rtp_ctx_->create_reader(ip.toString().toStdString(), port, type);
   receiver->reader->start();
 
   /* unsigned int estimatedSessionBandwidth = 10000; // in kbps; for RTCP b/w share */
