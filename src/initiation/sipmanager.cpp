@@ -47,6 +47,10 @@ void SIPManager::init(SIPTransactionUser* callControl)
                    this, &SIPManager::transportRequest);
   QObject::connect(&transactions_, &SIPTransactions::transportResponse,
                    this, &SIPManager::transportResponse);
+  QObject::connect(&negotiation_, &Negotiation::iceNominationSucceeded,
+                    this, &SIPManager::nominationSucceeded);
+  QObject::connect(&negotiation_, &Negotiation::iceNominationFailed,
+                    this, &SIPManager::nominationFailed);
 }
 
 
@@ -125,13 +129,6 @@ uint32_t SIPManager::startCall(Contact& address)
 
 void SIPManager::acceptCall(uint32_t sessionID)
 {
-
-  // Start candiate nomination. This function won't block,
-  // negotiation happens in the background remoteFinalSDP()
-  // makes sure that a connection was in fact nominated
-
-  //negotiation_.startICECandidateNegotiation(sessionID);
-
   transactions_.acceptCall(sessionID);
 }
 
@@ -450,9 +447,6 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
         break;
       }
       }
-
-
-      negotiation_.setICEPorts(sessionID);
     }
   }
 
@@ -563,6 +557,12 @@ bool SIPManager::processOfferSDP(uint32_t sessionID, QVariant& content,
     negotiation_.endSession(sessionID);
     return false;
   }
+
+  // Start candiate nomination. This function won't block,
+  // negotiation happens in the background remoteFinalSDP()
+  // makes sure that a connection was in fact nominated
+  negotiation_.startICECandidateNegotiation(sessionID);
+
   return true;
 }
 
@@ -592,6 +592,13 @@ bool SIPManager::processAnswerSDP(uint32_t sessionID, QVariant &content)
   {
     return false;
   }
+
+  // spawn ICE controller/controllee threads and start the candidate
+  // exchange and nomination
+  //
+  // This will return immediately and Controller is responsible
+  // for blocking the call start until the nomination is ready
+  negotiation_.respondToICECandidateNominations(sessionID);
 
   return true;
 }

@@ -28,8 +28,9 @@ enum NegotiationState {NEG_NO_STATE,
                        NEG_ANSWER_GENERATED,
                        NEG_FINISHED};
 
-class Negotiation
+class Negotiation : public QObject
 {
+  Q_OBJECT
 public:
   Negotiation();
 
@@ -61,6 +62,7 @@ public:
   void endAllSessions();
 
   void startICECandidateNegotiation(uint32_t sessionID);
+  void respondToICECandidateNominations(uint32_t sessionID);
 
   // update the MediaInfo of remote and locals SDPs to include the nominated connections
   void setICEPorts(uint32_t sessionID);
@@ -82,6 +84,13 @@ public:
   std::shared_ptr<SDPMessageInfo> getFinalConferenceOffer(uint32_t sessionID) const;
 
   NegotiationState getState(uint32_t sessionID);
+
+signals:
+  void iceNominationSucceeded(quint32 sessionID);
+  void iceNominationFailed(quint32 sessionID);
+
+public slots:
+  void nominationSucceeded(quint32 sessionID);
 
 private:
 

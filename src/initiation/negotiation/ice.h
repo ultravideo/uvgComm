@@ -3,7 +3,6 @@
 #include <QHostAddress>
 #include <QString>
 #include <QWaitCondition>
-#include <QMutex>
 #include <memory>
 
 #include "stun.h"
@@ -16,9 +15,6 @@ class FlowControllee;
 
 struct nominationInfo
 {
-  QMutex *caller_mtx;
-  QMutex *callee_mtx;
-
   FlowControllee *controllee;
   FlowController *controller;
 
@@ -64,16 +60,12 @@ class ICE : public QObject
     // get nominated ICE pair using sessionID
     ICEMediaInfo getNominated(uint32_t sessionID);
 
-    // caller must call this function to check if ICE has finished
-    // sessionID must given so ICE can know which ongoing nomination should be checked
-    bool callerConnectionNominated(uint32_t sessionID);
-
-    // callee should call this function to check if ICE has finished
-    // sessionID must given so ICE can know which ongoing nomination should be checked
-    bool calleeConnectionNominated(uint32_t sessionID);
-
     // free all ICE-related resources
     void cleanupSession(uint32_t sessionID);
+
+signals:
+    void nominationFailed(quint32 sessionID);
+    void nominationSucceeded(quint32 sessionID);
 
   public slots:
     // when FlowControllee has finished its job, it emits "ready" signal which is caught by this slot function
@@ -101,6 +93,9 @@ class ICE : public QObject
     void printCandidate(ICEInfo *candidate);
 
     bool isPrivateNetwork(const QHostAddress& address);
+
+    /* Check the status of ICE from settings and adjust iceEnabled_ accordingly */
+    void checkICEstatus();
 
     // makeCandidatePairs takes a list of local and remote candidates, matches them based on localilty (host/server-reflexive)
     // and component (RTP/RTCP) and returns a list of ICEPairs used for connectivity checks
