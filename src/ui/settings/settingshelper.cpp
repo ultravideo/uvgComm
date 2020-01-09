@@ -52,7 +52,7 @@ bool checkMissingValues(QSettings& settings)
   QStringList list = settings.allKeys();
 
   bool foundEverything = true;
-  for(auto key : list)
+  for(auto& key : list)
   {
     if(settings.value(key).isNull() || settings.value(key) == "")
     {

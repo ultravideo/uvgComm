@@ -147,7 +147,7 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
             {QString::number(peerInfo->media.size()), QString::number(localInfo->media.size())});
 
   // create each agreed media stream
-  for(auto media : peerInfo->media)
+  for(auto& media : peerInfo->media)
   {
     createOutgoingMedia(sessionID, peerInfo->connection_address, media);
   }

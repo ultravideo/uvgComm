@@ -84,7 +84,7 @@ void SIPTransactions::renegotiateCall(uint32_t sessionID)
 
 void SIPTransactions::renegotiateAllCalls()
 {
-  for (auto dialog : dialogs_) {
+  for (auto& dialog : dialogs_) {
     renegotiateCall(dialog.first);
   }
 }
@@ -185,7 +185,7 @@ void SIPTransactions::cancelCall(uint32_t sessionID)
 
 void SIPTransactions::endAllCalls()
 {
-  for(auto dialog : dialogs_)
+  for(auto& dialog : dialogs_)
   {
     if(dialog.second != nullptr)
     {

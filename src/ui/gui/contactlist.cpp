@@ -41,7 +41,7 @@ void ContactList::initializeList(QListWidget* list, ParticipantInterface* interf
 
 void ContactList::turnAllItemsToPlus()
 {
-  for (auto item : items_)
+  for (auto& item : items_)
   {
     item->setPlusOne();
   }
@@ -50,7 +50,7 @@ void ContactList::turnAllItemsToPlus()
 
 void ContactList::setAccessibleAll()
 {
-  for (auto item : items_)
+  for (auto& item : items_)
   {
     item->setAccesssible();
   }
@@ -59,7 +59,7 @@ void ContactList::setAccessibleAll()
 
 void ContactList::setAccessible(uint32_t sessionID)
 {
-  for (auto item : items_)
+  for (auto& item : items_)
   {
     if (item->getActiveSessionID() == sessionID)
     {
@@ -72,7 +72,7 @@ void ContactList::setAccessible(uint32_t sessionID)
 
 void ContactList::setInaccessibleAll()
 {
-  for (auto item : items_)
+  for (auto& item : items_)
   {
     // 0 means that this cannot be restored by a call cancellation
     item->SetInaccessible(0);
@@ -149,7 +149,7 @@ void ContactList::writeListToSettings()
 
   settings.beginWriteArray("contacts");
   int index = 0;
-  for(auto contact : items_)
+  for(auto& contact : items_)
   {
     settings.setArrayIndex(index);
     ++index;

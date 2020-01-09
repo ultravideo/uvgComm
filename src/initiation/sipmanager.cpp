@@ -514,7 +514,7 @@ std::shared_ptr<SIPTransport> SIPManager::createSIPTransport()
 
 bool SIPManager::isConnected(QString remoteAddress, quint32& outTransportID)
 {
-  for(auto transport : transports_)
+  for(auto& transport : transports_)
   {
     if(transport != nullptr &&
        transport->getRemoteAddress().toString() == remoteAddress)

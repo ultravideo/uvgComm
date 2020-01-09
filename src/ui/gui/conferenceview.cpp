@@ -72,7 +72,7 @@ void ConferenceView::updateSessionState(SessionViewState state,
   {
     printDebug(DEBUG_NORMAL, this, DC_START_CALL,
                "Clearing all previous views.");
-    for (auto view : activeViews_[sessionID]->views_)
+    for (auto& view : activeViews_[sessionID]->views_)
     {
       uninitializeView(view);
     }
@@ -459,7 +459,7 @@ void ConferenceView::unitializeSession(std::unique_ptr<SessionViews> peer)
 {
   if(peer->state != VIEW_INACTIVE)
   {
-    for (auto view : peer->views_)
+    for (auto& view : peer->views_)
     {
       uninitializeView(view);
     }

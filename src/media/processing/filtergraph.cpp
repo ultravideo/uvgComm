@@ -73,7 +73,7 @@ void FilterGraph::updateSettings()
       {
         if(peer != nullptr)
         {
-          for (auto senderFilter : peer->videoSenders)
+          for (auto& senderFilter : peer->videoSenders)
           {
             videoProcessing_.back()->addOutConnection(senderFilter);
           }
@@ -83,12 +83,12 @@ void FilterGraph::updateSettings()
   }
   else
   {
-    for(auto filter : videoProcessing_)
+    for(auto& filter : videoProcessing_)
     {
       filter->updateSettings();
     }
   }
-  for(auto filter : audioProcessing_)
+  for(auto& filter : audioProcessing_)
   {
     filter->updateSettings();
   }
@@ -96,27 +96,27 @@ void FilterGraph::updateSettings()
   {
     if(peer != nullptr)
     {
-      for (auto senderFilter : peer->videoSenders)
+      for (auto& senderFilter : peer->videoSenders)
       {
         senderFilter->updateSettings();
       }
-      for (auto senderFilter : peer->audioSenders)
+      for (auto& senderFilter : peer->audioSenders)
       {
         senderFilter->updateSettings();
       }
 
       // decode and display settings
-      for(auto videoReceivers : peer->videoReceivers)
+      for(auto& videoReceivers : peer->videoReceivers)
       {
-        for (auto filter : *videoReceivers)
+        for (auto& filter : *videoReceivers)
         {
           filter->updateSettings();
         }
       }
 
-      for(auto audioReceivers : peer->audioReceivers)
+      for(auto& audioReceivers : peer->audioReceivers)
       {
-        for (auto filter : *audioReceivers)
+        for (auto& filter : *audioReceivers)
         {
           filter->updateSettings();
         }
@@ -479,7 +479,7 @@ void FilterGraph::running(bool state)
   {
     if(p != nullptr)
     {
-      for (auto senderFilter : p->audioSenders)
+      for (auto& senderFilter : p->audioSenders)
       {
         if(senderFilter)
         {
@@ -487,7 +487,7 @@ void FilterGraph::running(bool state)
         }
       }
 
-      for (auto senderFilter : p->videoSenders)
+      for (auto& senderFilter : p->videoSenders)
       {
         if(senderFilter)
         {
@@ -495,7 +495,7 @@ void FilterGraph::running(bool state)
         }
       }
 
-      for (auto graph : p->audioReceivers)
+      for (auto& graph : p->audioReceivers)
       {
         for(std::shared_ptr<Filter> f : *graph)
         {
@@ -503,7 +503,7 @@ void FilterGraph::running(bool state)
         }
       }
 
-      for (auto graph : p->videoReceivers)
+      for (auto& graph : p->videoReceivers)
       {
         for(std::shared_ptr<Filter> f : *graph)
         {
@@ -533,7 +533,7 @@ void FilterGraph::destroyPeer(Peer* peer)
 {
   qDebug() << "Remove participant, Filter Graph: Destroying peer from Filter Graph";
 
-  for (auto audioSender : peer->audioSenders)
+  for (auto& audioSender : peer->audioSenders)
   {
     audioProcessing_.back()->removeOutConnection(audioSender);
     //peer->audioFramedSource is destroyed by RTPStreamer
@@ -542,25 +542,25 @@ void FilterGraph::destroyPeer(Peer* peer)
 
     if(AEC_ENABLED)
     {
-      for (auto graph : peer->audioReceivers)
+      for (auto& graph : peer->audioReceivers)
       {
         audioProcessing_.at(0)->removeOutConnection(graph->back());
       }
     }
   }
-  for (auto videoSender : peer->videoSenders)
+  for (auto& videoSender : peer->videoSenders)
   {
     videoProcessing_.back()->removeOutConnection(videoSender);
     changeState(videoSender, false);
     //peer->videoFramedSource is destroyed by RTPStreamer
     videoSender = nullptr;
   }
-  for (auto graph : peer->audioReceivers)
+  for (auto& graph : peer->audioReceivers)
   {
     destroyFilters(*graph);
   }
 
-  for (auto graph : peer->videoReceivers)
+  for (auto& graph : peer->videoReceivers)
   {
     destroyFilters(*graph);
   }
@@ -583,7 +583,7 @@ void FilterGraph::removeParticipant(uint32_t sessionID)
 
     // destroy send graphs if this was the last peer
   bool peerPresent = false;
-  for(auto peer : peers_)
+  for(auto& peer : peers_)
   {
     if (peer != nullptr)
       peerPresent = true;
@@ -605,7 +605,7 @@ void FilterGraph::print()
 {
   QString audioDotFile = "digraph AudioGraph {\r\n";
 
-  for(auto f : audioProcessing_)
+  for(auto& f : audioProcessing_)
   {
     audioDotFile += f->printOutputs();
   }
@@ -614,15 +614,15 @@ void FilterGraph::print()
   {
     if(peers_.at(i) != nullptr)
     {
-      for(auto graph : peers_.at(i)->audioReceivers)
+      for(auto& graph : peers_.at(i)->audioReceivers)
       {
-        for (auto filter : *graph)
+        for (auto& filter : *graph)
         {
           audioDotFile += filter->printOutputs();
         }
 
       }
-      for (auto audioSender : peers_.at(i)->audioSenders)
+      for (auto& audioSender : peers_.at(i)->audioSenders)
       {
         audioDotFile += audioSender->printOutputs();
       }
@@ -632,7 +632,7 @@ void FilterGraph::print()
 
   QString videoDotFile = "digraph VideoGraph {\r\n";
 
-  for(auto f : videoProcessing_)
+  for(auto& f : videoProcessing_)
   {
     videoDotFile += f->printOutputs();
   }
@@ -641,15 +641,15 @@ void FilterGraph::print()
   {
     if(peers_.at(i) != nullptr)
     {
-      for(auto graph : peers_.at(i)->videoReceivers)
+      for(auto&graph : peers_.at(i)->videoReceivers)
       {
-        for (auto filter : *graph)
+        for (auto&filter : *graph)
         {
           videoDotFile += filter->printOutputs();
         }
       }
 
-      for (auto videoSender : peers_.at(i)->videoSenders)
+      for (auto&videoSender : peers_.at(i)->videoSenders)
       {
         audioDotFile += videoSender->printOutputs();
       }

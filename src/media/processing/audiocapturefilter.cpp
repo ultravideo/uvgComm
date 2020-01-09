@@ -28,7 +28,7 @@ bool AudioCaptureFilter::init()
   printDebug(DEBUG_NORMAL, this, DC_STARTUP, "Initializing audio capture filter.");
   QAudioDeviceInfo info(deviceInfo_);
 
-  for(auto device : QAudioDeviceInfo::availableDevices(QAudio::AudioInput))
+  for(auto& device : QAudioDeviceInfo::availableDevices(QAudio::AudioInput))
   {
     printDebug(DEBUG_NORMAL, this, DC_STARTUP, "", {"Available audio recording devices"}, {device.deviceName()});
   }

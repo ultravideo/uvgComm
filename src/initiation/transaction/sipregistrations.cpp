@@ -85,7 +85,7 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
     {
       bool foundRegistration = false;
 
-      for (auto i : registrations_)
+      for (auto& i : registrations_)
       {
         if (i.first == response.message->to.host)
         {
@@ -126,7 +126,7 @@ bool SIPRegistrations::haveWeRegistered()
 {
   bool registered = false;
 
-  for (auto i : registrations_)
+  for (auto& i : registrations_)
   {
     if (i.second.active)
     {

@@ -226,7 +226,7 @@ bool Settings::checkMissingValues()
   QStringList list = settings_.allKeys();
 
   bool foundEverything = true;
-  for(auto key : list)
+  for(auto& key : list)
   {
     if(settings_.value(key).isNull() || settings_.value(key) == "")
     {

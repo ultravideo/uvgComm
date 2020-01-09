@@ -170,7 +170,7 @@ QString CameraInfo::videoFormatToString(QVideoFrame::PixelFormat format)
 
 QVideoFrame::PixelFormat CameraInfo::stringToPixelFormat(QString format)
 {
-  for(auto type : pixelFormatStrings)
+  for(auto& type : pixelFormatStrings)
   {
     if(type.second == format)
     {

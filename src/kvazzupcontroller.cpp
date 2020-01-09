@@ -258,7 +258,7 @@ void KvazzupController::createSingleCall(uint32_t sessionID)
                localSDP,
                remoteSDP);
 
-  for (auto media : localSDP->media)
+  for (auto& media : localSDP->media)
   {
     if (media.type == "video" && (media.flagAttributes.empty()
                                   || media.flagAttributes.at(0) == A_SENDRECV
@@ -302,7 +302,7 @@ void KvazzupController::setupConference()
       }
       case WHOLE_CONFERENCE:
       {
-        for (auto session : states_)
+        for (auto& session : states_)
         {
           createSingleCall(session.first);
         }

@@ -49,12 +49,12 @@ bool Negotiation::initialConferenceOfferSDP(uint32_t sessionID)
 
   // go through every media and include it in our conference offer so we get a
   // response port for each media in conference for them.
-  for (auto callSession : sdps_)
+  for (auto& callSession : sdps_)
   {
     // don't include their own address
     if (callSession.first != sessionID)
     {
-      for (auto media : callSession.second.second->media)
+      for (auto& media : callSession.second.second->media)
       {
         media.connection_address = callSession.second.second->connection_address;
         media.connection_nettype = callSession.second.second->connection_nettype;
@@ -97,9 +97,9 @@ bool Negotiation::finalConferenceOfferSDP(uint32_t sessionID)
 
   QString remoteAddress = sdps_.at(sessionID).second->connection_address;
 
-  for (auto sdp : recvConferenceSdps_)
+  for (auto& sdp : recvConferenceSdps_)
   {
-    for (auto media : sdp.second->media)
+    for (auto& media : sdp.second->media)
     {
 
       // TODO: SHould this be unequal?
@@ -291,7 +291,7 @@ std::shared_ptr<SDPMessageInfo> Negotiation::negotiateSDP(SDPMessageInfo& remote
   newInfo->timeDescriptions = remoteSDPOffer.timeDescriptions;
 
   // Now the hard part. Select best codecs and set our corresponding media ports.
-  for (auto remoteMedia : remoteSDPOffer.media)
+  for (auto& remoteMedia : remoteSDPOffer.media)
   {
     MediaInfo ourMedia;
     ourMedia.type = remoteMedia.type;
@@ -347,9 +347,9 @@ bool Negotiation::selectBestCodec(QList<uint8_t>& remoteNums,       QList<RTPMap
                                   QList<uint8_t>& supportedNums,    QList<RTPMap> &supportedCodecs,
                                   QList<uint8_t>& outMatchingNums,  QList<RTPMap> &outMatchingCodecs)
 {
-  for (auto remoteCodec : remoteCodecs)
+  for (auto& remoteCodec : remoteCodecs)
   {
-    for (auto supportedCodec : supportedCodecs)
+    for (auto& supportedCodec : supportedCodecs)
     {
       if(remoteCodec.codec == supportedCodec.codec)
       {
@@ -363,9 +363,9 @@ bool Negotiation::selectBestCodec(QList<uint8_t>& remoteNums,       QList<RTPMap
     }
   }
 
-  for (auto rtpNumber : remoteNums)
+  for (auto& rtpNumber : remoteNums)
   {
-    for (auto supportedNum : supportedNums)
+    for (auto& supportedNum : supportedNums)
     {
       if(rtpNumber == supportedNum)
       {
@@ -561,7 +561,7 @@ void Negotiation::endSession(uint32_t sessionID)
     if (sdps_.at(sessionID).first != nullptr)
     {
       std::shared_ptr<SDPMessageInfo> localSDP = sdps_.at(sessionID).first;
-      for(auto mediaStream : localSDP->media)
+      for(auto& mediaStream : localSDP->media)
       {
         parameters_.makePortPairAvailable(mediaStream.receivePort);
       }
@@ -582,13 +582,13 @@ void Negotiation::endAllSessions()
 {
   QList<uint32_t> sessions;
 
-  for (auto i : negotiationStates_)
+  for (auto& i : negotiationStates_)
   {
     sessions.push_back(i.first);
 
   }
 
-  for (auto i : sessions)
+  for (auto& i : sessions)
   {
     endSession(i);
   }
