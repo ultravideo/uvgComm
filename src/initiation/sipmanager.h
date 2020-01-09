@@ -5,9 +5,9 @@
 #include "initiation/transaction/sipregistrations.h"
 #include "initiation/negotiation/negotiation.h"
 
-/* This is a manager class that manages interactions between all the different
+/* This is a manager class that manages interactions between different
  * components in Session Initiation Protocol (SIP). This class should implement
- * as little functionality as possible and focus on interactions.
+ * as little functionality as possible.
  *
  * SIP consists of Transaction layer, Transport Layer and Transaction User (TU).
  * SIP uses Session Description Protocol (SDP) for negotiating the call session
@@ -40,7 +40,12 @@ public:
   void endCall(uint32_t sessionID);
   void endAllCalls();
 
+  // second step of non-working conferencing implementation.
+  // NOTE: This will probably be removed in the future
   void negotiateReceivePorts();
+
+  // third step of the non-working conferencing implementation
+  // NOTE: This will probably be removed in the future
   void negotiateConference();
 
   // Get the negotiated session media session descriptions. Use after call
@@ -63,13 +68,14 @@ private slots:
   // send the SIP request to a proxy with transport layer.
   void transportToProxy(QString serverAddress, SIPRequest &request);
 
-  // Process incoming SIP message. May create session if INVITE.
+  // Process incoming SIP message. May create session if it's an INVITE.
   void processSIPRequest(SIPRequest &request, QHostAddress localAddress,
                          QVariant& content, quint32 transportID);
   void processSIPResponse(SIPResponse &response, QVariant& content);
 
 private:
 
+  // helper function which handles all steps related to creation of new transport
   std::shared_ptr<SIPTransport> createSIPTransport();
 
   // Goes through our current connections and returns if we are already connected
@@ -111,12 +117,11 @@ private:
     uint32_t sessionID;
     Contact contact;
   };
-  std::map<quint32, WaitingStart> waitingToStart_; // INVITE
-  std::map<quint32, QString> waitingToBind_; // REGISTER
+  std::map<quint32, WaitingStart> waitingToStart_; // INVITE after connect
+  std::map<quint32, QString> waitingToBind_; // REGISTER after connect
 
   // Negotiation with SDP and ICE
   Negotiation negotiation_;
-
 
   enum NegotiateState {
     INDIVIDUAL,

@@ -53,7 +53,7 @@ void SIPTransactions::registerTask()
 
 
 void SIPTransactions::startCall(Contact &address, QHostAddress localAddress,
-                                uint32_t sessionID)
+                                uint32_t sessionID, bool registered)
 {
   qDebug() << "SIP," << metaObject()->className() << ": Intializing a new dialog with INVITE";
 
@@ -61,7 +61,8 @@ void SIPTransactions::startCall(Contact &address, QHostAddress localAddress,
   createBaseDialog(sessionID, localAddress, dialogData);
   dialogData->proxyConnection_ = false;
   dialogData->state->createNewDialog(SIP_URI{address.username, address.username,
-                                             address.remoteAddress, SIP}, localAddress.toString());
+                                             address.remoteAddress, SIP},
+                                     localAddress.toString(), registered);
 
   // this start call will commence once the connection has been established
   if(!dialogData->client->startCall(address.realName))

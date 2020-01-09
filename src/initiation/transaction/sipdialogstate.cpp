@@ -20,14 +20,18 @@ SIPDialogState::SIPDialogState():
 {}
 
 
-void SIPDialogState::createNewDialog(SIP_URI remoteURI, QString hostName)
+void SIPDialogState::createNewDialog(SIP_URI remoteURI, QString localAddress, bool registered)
 {
-  printDebug(DEBUG_NORMAL, "SIPDialogState", DC_START_CALL, "Creating a new dialog. "
-                                                            "CallID and tags generated later");
+  printDebug(DEBUG_NORMAL, "SIPDialogState", DC_START_CALL, "Creating a new dialog.");
   initLocalURI();
   remoteUri_ = remoteURI;
   requestUri_ = remoteURI;
-  localUri_.host = hostName;
+  localContactUri_.host = localAddress;
+  if(!registered)
+  {
+    printDebug(DEBUG_NORMAL, "SIPDialogState", DC_START_CALL, "Setting peer-to-peer address.");
+    localUri_.host = localAddress;
+  }
   initCallInfo();
 }
 

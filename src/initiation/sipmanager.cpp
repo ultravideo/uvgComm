@@ -119,8 +119,8 @@ uint32_t SIPManager::startCall(Contact& address)
     sessionToTransportID_[sessionID] = transportID;
     // we have an existing connection already. Send SIP message and start call.
     transactions_.startCall(address,
-                                  transports_[transportID]->getLocalAddress(),
-                                  sessionID);
+                            transports_[transportID]->getLocalAddress(),
+                            sessionID, registrations_.haveWeRegistered());
   }
 
   return sessionID;
@@ -212,8 +212,9 @@ void SIPManager::connectionEstablished(quint32 transportID)
   if (waitingToStart_.find(transportID) != waitingToStart_.end())
   {
     transactions_.startCall(waitingToStart_[transportID].contact,
-                                  transports_[transportID]->getLocalAddress(),
-                                  waitingToStart_[transportID].sessionID);
+                            transports_[transportID]->getLocalAddress(),
+                            waitingToStart_[transportID].sessionID,
+                            registrations_.haveWeRegistered());
   }
 
   if(waitingToBind_.find(transportID) != waitingToBind_.end())

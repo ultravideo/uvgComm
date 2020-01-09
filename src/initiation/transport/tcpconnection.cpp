@@ -142,7 +142,6 @@ void TCPConnection::run()
 {
   init();
 
-
   if(eventDispatcher() == nullptr)
   {
     printDebug(DEBUG_WARNING, this, DC_TCP, "No event dispatcher for this connection.");
@@ -179,7 +178,7 @@ void TCPConnection::run()
 
         emit messageAvailable(message);
 
-        qDebug().noquote() << message;
+        //qDebug().noquote() << message;
       }
       else if(socket_->bytesAvailable() > TOO_LARGE_AMOUNT_OF_DATA)
       {

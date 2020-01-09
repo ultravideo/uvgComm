@@ -17,7 +17,7 @@ public:
   SIPDialogState();
 
   // creates dialog which is about to start from our end
-  void createNewDialog(SIP_URI remoteURI, QString hostName);
+  void createNewDialog(SIP_URI remoteURI, QString localAddress, bool registered);
 
   void createServerConnection(SIP_URI requestURI, QString ourContactAddress);
 

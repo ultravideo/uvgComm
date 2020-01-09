@@ -46,7 +46,7 @@ public:
 
   // start a call with address. Returns generated sessionID
   void startCall(Contact& address, QHostAddress localAddress,
-                 uint32_t sessionID);
+                 uint32_t sessionID, bool registered);
 
   // sends a re-INVITE
   void renegotiateCall(uint32_t sessionID);
