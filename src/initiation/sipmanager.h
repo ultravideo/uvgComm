@@ -15,7 +15,7 @@
  */
 
 class SIPTransactionUser;
-
+class StatisticsInterface;
 
 class SIPManager : public QObject
 {
@@ -24,7 +24,7 @@ public:
   SIPManager();
 
   // start listening to incoming SIP messages
-  void init(SIPTransactionUser* callControl);
+  void init(SIPTransactionUser* callControl, StatisticsInterface *stats);
   void uninit();
 
   // REGISTER our information to SIP-registrar
@@ -130,4 +130,6 @@ private:
   };
 
   NegotiateState state_;
+
+  StatisticsInterface *stats_;
 };

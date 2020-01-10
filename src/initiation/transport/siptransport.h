@@ -12,11 +12,13 @@
 // This class primarily deals with checking that the incoming messages are valid, parsing them
 // and composing outgoing messages.
 
+class StatisticsInterface;
+
 class SIPTransport : public QObject
 {
   Q_OBJECT
 public:
-  SIPTransport(quint32 transportID);
+  SIPTransport(quint32 transportID, StatisticsInterface *stats);
   ~SIPTransport();
 
   void cleanup();
@@ -92,4 +94,6 @@ private:
 
   std::shared_ptr<TCPConnection> connection_;
   quint32 transportID_;
+
+  StatisticsInterface *stats_;
 };

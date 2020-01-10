@@ -17,10 +17,12 @@ SIPManager::SIPManager():
 
 
 // start listening to incoming
-void SIPManager::init(SIPTransactionUser* callControl)
+void SIPManager::init(SIPTransactionUser* callControl, StatisticsInterface *stats)
 {
   QObject::connect(&tcpServer_, &ConnectionServer::newConnection,
                    this, &SIPManager::receiveTCPConnection);
+
+  stats_ = stats;
 
   tcpServer_.setProxy(QNetworkProxy::NoProxy);
 
@@ -492,11 +494,13 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
 
 std::shared_ptr<SIPTransport> SIPManager::createSIPTransport()
 {
+  Q_ASSERT(stats_);
+
   quint32 transportID = nextTransportID_;
   ++nextTransportID_;
 
   std::shared_ptr<SIPTransport> connection =
-      std::shared_ptr<SIPTransport>(new SIPTransport(transportID));
+      std::shared_ptr<SIPTransport>(new SIPTransport(transportID, stats_));
 
   QObject::connect(connection.get(), &SIPTransport::incomingSIPRequest,
                    this, &SIPManager::processSIPRequest);

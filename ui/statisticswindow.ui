@@ -34,6 +34,61 @@
      <property name="currentIndex">
       <number>0</number>
      </property>
+     <widget class="QWidget" name="sip_tab">
+      <attribute name="title">
+       <string>SIP</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <widget class="QLabel" name="message_label">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Sent SIP Messages</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QListWidget" name="sent_list">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Received SIP Messages</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QListWidget" name="received_list">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
      <widget class="QWidget" name="Participants">
       <attribute name="title">
        <string>Participants</string>

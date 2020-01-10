@@ -4,6 +4,7 @@
 #include "sipfieldparsing.h"
 #include "sipfieldcomposing.h"
 #include "initiation/negotiation/sipcontent.h"
+#include "statisticsinterface.h"
 #include "common.h"
 
 #include <QRegularExpression>
@@ -40,10 +41,11 @@ const std::map<QString, std::function<bool(SIPField& field, std::shared_ptr<SIPM
 };
 
 
-SIPTransport::SIPTransport(quint32 transportID):
+SIPTransport::SIPTransport(quint32 transportID, StatisticsInterface *stats):
   partialMessage_(""),
   connection_(nullptr),
-  transportID_(transportID)
+  transportID_(transportID),
+  stats_(stats)
 {}
 
 SIPTransport::~SIPTransport()
@@ -76,7 +78,7 @@ void SIPTransport::createConnection(ConnectionType type, QString target)
   if(type == TCP)
   {
     qDebug() << "Connecting, SIP Transport: Initiating TCP connection for sip connection number:" << transportID_;
-    connection_ = std::shared_ptr<TCPConnection>(new TCPConnection);
+    connection_ = std::shared_ptr<TCPConnection>(new TCPConnection());
     signalConnections();
     connection_->establishConnection(target, SIP_PORT);
   }
@@ -172,8 +174,12 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
     qDebug() << "WARNING: could not get first request line";
     return;
   }
+  // print the first line
+  stats_->addSentSIPMessage(message);
+
   message += fieldsToString(fields, lineEnding) + lineEnding;
   message += sdp_str;
+
   connection_->sendPacket(message);
 }
 
@@ -212,8 +218,11 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
     qDebug() << "WARNING: could not get first request line";
     return;
   }
+  stats_->addSentSIPMessage(message);
+
   message += fieldsToString(fields, lineEnding) + lineEnding;
   message += sdp_str;
+
   connection_->sendPacket(message);
 }
 
@@ -252,6 +261,9 @@ void SIPTransport::networkPackage(QString package)
   // parse to header and body
   QString header = "";
   QString body = "";
+
+  stats_->addReceivedSIPMessage(package);
+
   parsePackage(package, header, body);
 
   QList<SIPField> fields;

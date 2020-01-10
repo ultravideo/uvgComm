@@ -20,8 +20,9 @@ void KvazzupController::init()
 {
   window_.init(this);
   window_.show();
+  stats_ = window_.createStatsWindow();
 
-  sip_.init(this);
+  sip_.init(this, stats_);
 
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
   int autoConnect = settings.value("sip/AutoConnect").toInt();
@@ -41,8 +42,6 @@ void KvazzupController::init()
   QObject::connect(&window_, &CallWindow::callAccepted, this, &KvazzupController::userAcceptsCall);
   QObject::connect(&window_, &CallWindow::callRejected, this, &KvazzupController::userRejectsCall);
   QObject::connect(&window_, &CallWindow::callCancelled, this, &KvazzupController::userCancelsCall);
-
-  stats_ = window_.createStatsWindow();
 
   media_.init(window_.getViewFactory(), stats_);
 }

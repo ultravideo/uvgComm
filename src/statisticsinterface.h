@@ -61,4 +61,8 @@ public:
 
   // Tracking of packets dropped due to buffer overflow
   virtual void packetDropped(QString filter) = 0;
+
+  // Tracking of sent and received SIP Messages
+  virtual void addSentSIPMessage(QString message) = 0;
+  virtual void addReceivedSIPMessage(QString message) = 0;
 };

@@ -505,3 +505,31 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
     lastTabIndex_ = ui_->Statistics_tabs->currentIndex();
   }
 }
+
+
+void StatisticsWindow::addSentSIPMessage(QString message)
+{
+  QWidget* widget = new QWidget;
+  widget->setLayout(new QVBoxLayout);
+  widget->layout()->addWidget(new QLabel(message));
+
+  QListWidgetItem* item = new QListWidgetItem(ui_->sent_list);
+  item->setSizeHint(QSize(150, 40));
+
+  ui_->sent_list->addItem(item);
+  ui_->sent_list->setItemWidget(item, widget);
+}
+
+
+void StatisticsWindow::addReceivedSIPMessage(QString message)
+{
+  QWidget* widget = new QWidget;
+  widget->setLayout(new QVBoxLayout);
+  widget->layout()->addWidget(new QLabel(message));
+
+  QListWidgetItem* item = new QListWidgetItem(ui_->received_list);
+  item->setSizeHint(QSize(150, 40));
+
+  ui_->received_list->addItem(item);
+  ui_->received_list->setItemWidget(item, widget);
+}

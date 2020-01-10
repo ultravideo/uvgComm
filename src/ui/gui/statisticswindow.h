@@ -46,6 +46,9 @@ public:
   virtual void removeFilter(QString filter);
   virtual void updateBufferStatus(QString filter, uint16_t buffersize, uint16_t maxBufferSize);
   virtual void packetDropped(QString filter);
+  virtual void addSentSIPMessage(QString message);
+  virtual void addReceivedSIPMessage(QString message);
+
 
 private:
 
