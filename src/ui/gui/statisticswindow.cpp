@@ -507,29 +507,32 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 }
 
 
-void StatisticsWindow::addSentSIPMessage(QString message)
+void StatisticsWindow::addSentSIPMessage(QString type, QString message, QString address)
 {
-  QWidget* widget = new QWidget;
-  widget->setLayout(new QVBoxLayout);
-  widget->layout()->addWidget(new QLabel(message));
-
-  QListWidgetItem* item = new QListWidgetItem(ui_->sent_list);
-  item->setSizeHint(QSize(150, 40));
-
-  ui_->sent_list->addItem(item);
-  ui_->sent_list->setItemWidget(item, widget);
+  addSIPMessageToList(ui_->sent_list, type, message, address);
 }
 
 
-void StatisticsWindow::addReceivedSIPMessage(QString message)
+void StatisticsWindow::addReceivedSIPMessage(QString type, QString message, QString address)
+{
+  addSIPMessageToList(ui_->received_list, type, message, address);
+}
+
+
+void StatisticsWindow::addSIPMessageToList(QListWidget* list, QString type, QString message, QString address)
 {
   QWidget* widget = new QWidget;
-  widget->setLayout(new QVBoxLayout);
-  widget->layout()->addWidget(new QLabel(message));
+  QGridLayout* layout = new QGridLayout(widget);
+  widget->setLayout(layout);
 
-  QListWidgetItem* item = new QListWidgetItem(ui_->received_list);
+  layout->addWidget(new QLabel(type), 0, 0);
+  layout->addWidget(new QLabel(address), 0, 1);
+
+  widget->setToolTip(message);
+
+  QListWidgetItem* item = new QListWidgetItem(list);
   item->setSizeHint(QSize(150, 40));
 
-  ui_->received_list->addItem(item);
-  ui_->received_list->setItemWidget(item, widget);
+  list->addItem(item);
+  list->setItemWidget(item, widget);
 }

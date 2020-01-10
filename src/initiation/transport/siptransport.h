@@ -75,6 +75,7 @@ private:
   bool parsePackage(QString package, QString& header, QString& body);
   bool headerToFields(QString header, QString& firstLine, QList<SIPField>& fields);
   bool fieldsToMessage(QList<SIPField>& fields, std::shared_ptr<SIPMessageInfo> &message);
+
   bool parseRequest(QString requestString, QString version,
                     std::shared_ptr<SIPMessageInfo> message,
                     QList<SIPField>& fields, QVariant& content);

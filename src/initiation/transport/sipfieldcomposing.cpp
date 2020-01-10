@@ -50,7 +50,7 @@ bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
     type = composeUritype(request.message->to.type);
     target = request.message->to.username + "@" + request.message->to.host;
   }
-  else // REGISTER first line does not have username.
+  else // REGISTER first line does not contain username.
   {
     type = composeUritype(request.requestURI.type);
     target = request.requestURI.host;

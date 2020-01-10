@@ -63,6 +63,6 @@ public:
   virtual void packetDropped(QString filter) = 0;
 
   // Tracking of sent and received SIP Messages
-  virtual void addSentSIPMessage(QString message) = 0;
-  virtual void addReceivedSIPMessage(QString message) = 0;
+  virtual void addSentSIPMessage(QString type, QString message, QString address) = 0;
+  virtual void addReceivedSIPMessage(QString type, QString message, QString address) = 0;
 };

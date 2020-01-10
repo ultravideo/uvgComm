@@ -174,11 +174,14 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
     qDebug() << "WARNING: could not get first request line";
     return;
   }
-  // print the first line
-  stats_->addSentSIPMessage(message);
 
   message += fieldsToString(fields, lineEnding) + lineEnding;
   message += sdp_str;
+
+  // print the first line
+  stats_->addSentSIPMessage(requestToString(request.type),
+                            message,
+                            connection_->localAddress().toString());
 
   connection_->sendPacket(message);
 }
@@ -218,10 +221,15 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
     qDebug() << "WARNING: could not get first request line";
     return;
   }
-  stats_->addSentSIPMessage(message);
 
   message += fieldsToString(fields, lineEnding) + lineEnding;
   message += sdp_str;
+
+  stats_->addSentSIPMessage(QString::number(responseToCode(response.type))
+                            + " " + responseToPhrase(response.type),
+                            message,
+                            connection_->localAddress().toString());
+
 
   connection_->sendPacket(message);
 }
@@ -262,8 +270,6 @@ void SIPTransport::networkPackage(QString package)
   QString header = "";
   QString body = "";
 
-  stats_->addReceivedSIPMessage(package);
-
   parsePackage(package, header, body);
 
   QList<SIPField> fields;
@@ -301,6 +307,7 @@ void SIPTransport::networkPackage(QString package)
 
     if(request_match.hasMatch() && request_match.lastCapturedIndex() == 3)
     {
+      stats_->addReceivedSIPMessage(request_match.captured(1), package, connection_->localAddress().toString());
       if(!parseRequest(request_match.captured(1), request_match.captured(3), message, fields, content))
       {
         qDebug() << "Failed to parse request";
@@ -308,9 +315,10 @@ void SIPTransport::networkPackage(QString package)
     }
     else if(response_match.hasMatch() && response_match.lastCapturedIndex() == 3)
     {
+      stats_->addReceivedSIPMessage(response_match.captured(2), package, connection_->localAddress().toString());
       if(!parseResponse(response_match.captured(2), response_match.captured(1), message, content))
       {
-        qDebug() << "Failed to parse response: " << response_match.captured(2);
+        qDebug() << "ERROR: Failed to parse response: " << response_match.captured(2);
       }
     }
     else
@@ -464,7 +472,7 @@ bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPF
 
 
 bool SIPTransport::fieldsToMessage(QList<SIPField>& fields,
-                                    std::shared_ptr<SIPMessageInfo>& message)
+                                   std::shared_ptr<SIPMessageInfo>& message)
 {
   message = std::shared_ptr<SIPMessageInfo> (new SIPMessageInfo);
   message->cSeq = 0;
@@ -493,13 +501,14 @@ bool SIPTransport::fieldsToMessage(QList<SIPField>& fields,
 
 
 bool SIPTransport::parseRequest(QString requestString, QString version,
-                                 std::shared_ptr<SIPMessageInfo> message,
-                                 QList<SIPField> &fields, QVariant &content)
+                                std::shared_ptr<SIPMessageInfo> message,
+                                QList<SIPField> &fields, QVariant &content)
 {
   qDebug() << "Request detected:" << requestString;
 
   message->version = version; // TODO: set only version not SIP/version
   RequestType requestType = stringToRequest(requestString);
+
   if(requestType == SIP_NO_REQUEST)
   {
     qDebug() << "Could not recognize request type!";
@@ -531,7 +540,8 @@ bool SIPTransport::parseRequest(QString requestString, QString version,
 
 
 bool SIPTransport::parseResponse(QString responseString, QString version,
-                                  std::shared_ptr<SIPMessageInfo> message, QVariant &content)
+                                 std::shared_ptr<SIPMessageInfo> message,
+                                 QVariant &content)
 {
   qDebug() << "Response detected:" << responseString;
   message->version = version; // TODO: set only version not SIP/version
