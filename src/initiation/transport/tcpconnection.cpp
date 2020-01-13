@@ -129,7 +129,7 @@ bool TCPConnection::connectLoop()
   }
 
   qDebug().nospace() << "Connecting: SUCCESS. Local address: "
-           << socket_->localAddress().toString() << ":" << socket_->peerPort()
+           << socket_->localAddress().toString() << ":" << socket_->localPort()
            << " Remote address: " << socket_->peerAddress().toString()
            << ":" << socket_->peerPort();
 

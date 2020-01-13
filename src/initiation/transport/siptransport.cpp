@@ -181,7 +181,7 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
   // print the first line
   stats_->addSentSIPMessage(requestToString(request.type),
                             message,
-                            connection_->localAddress().toString());
+                            connection_->remoteAddress().toString());
 
   connection_->sendPacket(message);
 }
@@ -228,7 +228,7 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
   stats_->addSentSIPMessage(QString::number(responseToCode(response.type))
                             + " " + responseToPhrase(response.type),
                             message,
-                            connection_->localAddress().toString());
+                            connection_->remoteAddress().toString());
 
 
   connection_->sendPacket(message);
@@ -307,7 +307,7 @@ void SIPTransport::networkPackage(QString package)
 
     if(request_match.hasMatch() && request_match.lastCapturedIndex() == 3)
     {
-      stats_->addReceivedSIPMessage(request_match.captured(1), package, connection_->localAddress().toString());
+      stats_->addReceivedSIPMessage(request_match.captured(1), package, connection_->remoteAddress().toString());
       if(!parseRequest(request_match.captured(1), request_match.captured(3), message, fields, content))
       {
         qDebug() << "Failed to parse request";
@@ -315,7 +315,7 @@ void SIPTransport::networkPackage(QString package)
     }
     else if(response_match.hasMatch() && response_match.lastCapturedIndex() == 3)
     {
-      stats_->addReceivedSIPMessage(response_match.captured(2), package, connection_->localAddress().toString());
+      stats_->addReceivedSIPMessage(response_match.captured(2), package, connection_->remoteAddress().toString());
       if(!parseResponse(response_match.captured(2), response_match.captured(1), message, content))
       {
         qDebug() << "ERROR: Failed to parse response: " << response_match.captured(2);
