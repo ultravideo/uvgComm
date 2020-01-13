@@ -20,7 +20,7 @@ void SIPRegistrations::init(SIPTransactionUser *callControl)
 }
 
 
-void SIPRegistrations::bindToServer(QString serverAddress, QHostAddress localAddress)
+void SIPRegistrations::bindToServer(QString serverAddress, QHostAddress localAddress, uint16_t localPort)
 {
   qDebug() << "Binding to SIP server at:" << serverAddress;
 
@@ -30,8 +30,8 @@ void SIPRegistrations::bindToServer(QString serverAddress, QHostAddress localAdd
     SIPRegistrationData data = {std::shared_ptr<SIPNonDialogClient> (new SIPNonDialogClient(transactionUser_)),
                                 std::shared_ptr<SIPDialogState> (new SIPDialogState()), localAddress, false};
 
-    SIP_URI serverUri = {"","",serverAddress, SIP};
-    data.state->createServerConnection(serverUri, localAddress.toString());
+    SIP_URI serverUri = {"","",serverAddress, SIP, 0};
+    data.state->createServerConnection(serverUri, localAddress.toString(), localPort);
     data.client->init();
     data.client->set_remoteURI(serverUri);
     registrations_[serverAddress] = data;

@@ -56,6 +56,13 @@ public:
     return socket_->localAddress();
   }
 
+  uint16_t localPort() const
+  {
+    Q_ASSERT(socket_);
+    Q_ASSERT(socket_->state() == QAbstractSocket::ConnectedState);
+    return socket_->localPort();
+  }
+
   QHostAddress remoteAddress()
   {
     Q_ASSERT(socket_);

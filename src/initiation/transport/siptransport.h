@@ -38,6 +38,8 @@ public:
   QHostAddress getLocalAddress();
   QHostAddress getRemoteAddress();
 
+  uint16_t getLocalPort();
+
   quint32 getTransportID()
   {
     return transportID_;

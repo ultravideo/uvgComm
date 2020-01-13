@@ -222,7 +222,8 @@ void SIPManager::connectionEstablished(quint32 transportID)
   if(waitingToBind_.find(transportID) != waitingToBind_.end())
   {
     registrations_.bindToServer(waitingToBind_[transportID],
-                                transports_[transportID]->getLocalAddress());
+                                transports_[transportID]->getLocalAddress(),
+                                transports_[transportID]->getLocalPort());
   }
 }
 

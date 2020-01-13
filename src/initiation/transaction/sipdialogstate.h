@@ -19,7 +19,8 @@ public:
   // creates dialog which is about to start from our end
   void createNewDialog(SIP_URI remoteURI, QString localAddress, bool registered);
 
-  void createServerConnection(SIP_URI requestURI, QString ourContactAddress);
+  void createServerConnection(SIP_URI requestURI, QString ourContactAddress,
+                              uint16_t contactPort);
 
   // creates the dialog from an incoming INVITE
   void createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inMessage,

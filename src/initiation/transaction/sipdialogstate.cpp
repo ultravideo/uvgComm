@@ -35,7 +35,8 @@ void SIPDialogState::createNewDialog(SIP_URI remoteURI, QString localAddress, bo
   initCallInfo();
 }
 
-void SIPDialogState::createServerConnection(SIP_URI requestURI, QString ourContactAddress)
+void SIPDialogState::createServerConnection(SIP_URI requestURI, QString ourContactAddress,
+                                            uint16_t contactPort)
 {
   printDebug(DEBUG_NORMAL, "SIPDialogState", DC_START_CALL, "Creating a SIP Server dialog.");
   initLocalURI();
@@ -43,6 +44,7 @@ void SIPDialogState::createServerConnection(SIP_URI requestURI, QString ourConta
   remoteUri_ = localUri_;
   requestUri_ = requestURI; // server has different request uri from remote
   localContactUri_.host = ourContactAddress;
+  localContactUri_.port = contactPort;
   localCSeq_ = 0; //
   initCallInfo();
 }

@@ -120,6 +120,7 @@ struct SIP_URI
   QString realname;
   QString host;
   UriType type;
+  uint16_t port; // if port is 0, it is ignored and default is used
 };
 
 enum ContentType {NO_CONTENT, APPLICATION_SDP, TEXT_PLAIN};

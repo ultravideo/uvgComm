@@ -119,7 +119,7 @@ void SIPServerTransaction::getResponseMessage(std::shared_ptr<SIPMessageInfo> &o
   copyMessageDetails(receivedRequest_, outMessage);
   outMessage->maxForwards = 71;
   outMessage->version = "2.0";
-  outMessage->contact = SIP_URI{"","","", SIP}; // No contact for reply?
+  outMessage->contact = SIP_URI{"","","", SIP, 0}; // TODO: No contact for reply?
   outMessage->content.length = 0;
   outMessage->content.type = NO_CONTENT;
 

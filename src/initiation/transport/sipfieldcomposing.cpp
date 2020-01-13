@@ -217,7 +217,15 @@ bool includeContactField(QList<SIPField> &fields,
 
   SIPField field;
   field.name = "Contact";
-  field.values = "<sip:" + message->contact.username + "@" + message->contact.host + ">";
+
+  QString portString = "";
+
+  if (message->contact.port != 0)
+  {
+    portString = ":" + QString::number(message->contact.port);
+  }
+
+  field.values = "<sip:" + message->contact.username + "@" + message->contact.host + portString + ">";
   field.parameters = nullptr;
   fields.push_back(field);
   return true;
