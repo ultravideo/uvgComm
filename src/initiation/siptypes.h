@@ -95,12 +95,7 @@ enum ResponseType {SIP_UNKNOWN_RESPONSE = 0,
                    SIP_NOT_ACCEPTABLE = 606,
                    SIP_UNWANTED = 607}; // RFC 3261
 
-enum ConnectionType {ANY, TCP, UDP, TLS};
-
-// SIP is not secured
-// SIPS is TLS secured
-enum UriType {SIP, SIPS, TEL};
-
+enum ConnectionType {ANY, TCP, UDP, TLS, TEL};
 
 // 7 is the length of preset string
 const uint32_t BRANCHLENGTH = 32 - 7;
@@ -119,7 +114,7 @@ struct SIP_URI
   QString username;
   QString realname;
   QString host;
-  UriType type;
+  ConnectionType connection;
   uint16_t port; // if port is 0, it is ignored and default is used
 };
 

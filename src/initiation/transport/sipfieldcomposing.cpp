@@ -10,15 +10,15 @@
 // a function used within this file to add a parameter
 bool tryAddParameter(SIPField& field, QString parameterName, QString parameterValue);
 
-QString composeUritype(UriType type);
+QString composeUritype(ConnectionType type);
 
-QString composeUritype(UriType type)
+QString composeUritype(ConnectionType type)
 {
-  if (type == SIP)
+  if (type == TCP)
   {
     return "sip";
   }
-  else if (type == SIPS)
+  else if (type == TLS)
   {
     return "sips";
   }
@@ -47,12 +47,12 @@ bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
 
   if(request.type != SIP_REGISTER)
   {
-    type = composeUritype(request.message->to.type);
+    type = composeUritype(request.message->to.connection);
     target = request.message->to.username + "@" + request.message->to.host;
   }
   else // REGISTER first line does not contain username.
   {
-    type = composeUritype(request.requestURI.type);
+    type = composeUritype(request.requestURI.connection);
     target = request.requestURI.host;
   }
 
