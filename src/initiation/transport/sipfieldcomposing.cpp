@@ -121,7 +121,13 @@ bool includeToField(QList<SIPField> &fields,
     field.values = message->to.realname + " ";
   }
 
-  field.values += "<" + composeSIPUri(message->to) + ">";
+  QString uri = composeSIPUri(message->to);
+  if (uri == "")
+  {
+    return false;
+  }
+
+  field.values += "<" + uri + ">";
   field.parameters = nullptr;
 
   tryAddParameter(field, "tag", message->dialog->toTag);
@@ -146,7 +152,15 @@ bool includeFromField(QList<SIPField> &fields,
   {
     field.values = message->from.realname + " ";
   }
-  field.values += "<" + composeSIPUri(message->from) + ">";
+
+  QString uri = composeSIPUri(message->from);
+
+  if (uri == "")
+  {
+    return false;
+  }
+
+  field.values += "<" + uri + ">";
   field.parameters = nullptr;
 
   tryAddParameter(field, "tag", message->dialog->fromTag);
