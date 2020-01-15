@@ -106,6 +106,11 @@ struct ViaInfo
   QString version;
   QString address;
   QString branch;
+  uint16_t port = 0;              // omitted if 0
+  bool alias = false;             // does parameter exist
+  bool rport = false;             // does parameter exist
+  uint16_t rportValue = 0;        // omitted if 0
+  QString receivedParameter = ""; // omitted if empty
 };
 
 // usually in format: "realname <sip:username@host>". realname may be empty and should be omitted if so
@@ -115,7 +120,7 @@ struct SIP_URI
   QString realname;
   QString host;
   ConnectionType connection;
-  uint16_t port; // if port is 0, it is ignored and default is used
+  uint16_t port = 0; // omitted if 0
 };
 
 enum ContentType {NO_CONTENT, APPLICATION_SDP, TEXT_PLAIN};

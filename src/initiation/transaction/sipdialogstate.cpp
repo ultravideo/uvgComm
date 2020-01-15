@@ -215,6 +215,7 @@ void SIPDialogState::initLocalURI()
   localUri_.realname = settings.value("local/Name").toString();
   localUri_.username = settings.value("local/Username").toString();
   localUri_.host = settings.value("sip/ServerAddress").toString();
+  localUri_.connection = TCP; // TODO: Implement TLS
   localContactUri_ = localUri_;
 
   if(localUri_.username.isEmpty())

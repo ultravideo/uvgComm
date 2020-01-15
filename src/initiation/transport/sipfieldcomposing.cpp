@@ -16,24 +16,52 @@ QString composeUritype(ConnectionType type)
 {
   if (type == TCP)
   {
-    return "sip";
+    return "sip:";
   }
   else if (type == TLS)
   {
-    return "sips";
+    return "sips:";
   }
   else if (type == TEL)
   {
-    return "tel";
+    return "tel:";
   }
+  else
+  {
+    qDebug() << "ERROR:  Unset connection type detected while composing SIP message";
+  }
+
   return "";
 }
+
+QString composePortString(uint16_t port)
+{
+  QString portString = "";
+
+  if (port != 0)
+  {
+    portString = ":" + QString::number(port);
+  }
+  return portString;
+}
+
+QString composeSIPUri(SIP_URI& uri)
+{
+  QString message = composeUritype(uri.connection);
+  if (message != "")
+  {
+    message += uri.username + "@" + uri.host + composePortString(uri.port);
+  }
+  return message;
+}
+
 
 bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
 {
   if(request.requestURI.host == "")
   {
-    printDebug(DEBUG_PROGRAM_ERROR, "SIPComposing", DC_SEND_SIP_REQUEST, "Request URI host is empty when comprising the first line.");
+    printDebug(DEBUG_PROGRAM_ERROR, "SIPComposing", DC_SEND_SIP_REQUEST,
+               "Request URI host is empty when comprising the first line.");
   }
 
   if(request.type == SIP_NO_REQUEST)
@@ -56,7 +84,7 @@ bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
     target = request.requestURI.host;
   }
 
-  line = requestToString(request.type) + " " + type + ":"
+  line = requestToString(request.type) + " " + type
       + target + " SIP/" + request.message->version + lineEnding;
 
   return true;
@@ -92,7 +120,8 @@ bool includeToField(QList<SIPField> &fields,
   {
     field.values = message->to.realname + " ";
   }
-  field.values += "<sip:" + message->to.username + "@" + message->to.host + ">";
+
+  field.values += "<" + composeSIPUri(message->to) + ">";
   field.parameters = nullptr;
 
   tryAddParameter(field, "tag", message->dialog->toTag);
@@ -117,7 +146,7 @@ bool includeFromField(QList<SIPField> &fields,
   {
     field.values = message->from.realname + " ";
   }
-  field.values += "<sip:" + message->from.username + "@" + message->from.host + ">";
+  field.values += "<" + composeSIPUri(message->from) + ">";
   field.parameters = nullptr;
 
   tryAddParameter(field, "tag", message->dialog->fromTag);
@@ -179,13 +208,15 @@ bool includeViaFields(QList<SIPField> &fields,
     SIPField field;
     field.name = "Via";
 
-    field.values = "SIP/" + via.version +"/" + connectionToString(via.type) + " " + via.address;
+    field.values = "SIP/" + via.version +"/" + connectionToString(via.type)
+        + " " + via.address + composePortString(via.port); //";alias;rport";
 
     if(!tryAddParameter(field, "branch", via.branch))
     {
       qDebug() << "WARNING: Via field failed";
       return false;
     }
+
     fields.push_back(field);
   }
   return true;
