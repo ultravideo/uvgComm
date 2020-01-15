@@ -206,14 +206,14 @@ bool includeCallIDField(QList<SIPField> &fields,
 bool includeViaFields(QList<SIPField> &fields,
                       std::shared_ptr<SIPMessageInfo> message)
 {
-  Q_ASSERT(!message->senderReplyAddress.empty());
-  if(message->senderReplyAddress.empty())
+  Q_ASSERT(!message->vias.empty());
+  if(message->vias.empty())
   {
     qDebug() << "WARNING: Via field failed";
     return false;
   }
 
-  for(ViaInfo via : message->senderReplyAddress)
+  for(ViaInfo via : message->vias)
   {
     Q_ASSERT(via.type != ANY);
     Q_ASSERT(via.branch != "");
@@ -272,6 +272,12 @@ bool includeContactField(QList<SIPField> &fields,
 
   field.values = "<sip:" + message->contact.username + "@" + message->contact.host + portString + ">";
   field.parameters = nullptr;
+
+  if (message->contact.connection == TCP)
+  {
+    tryAddParameter(field, "transport", "tcp");
+  }
+
   fields.push_back(field);
   return true;
 }

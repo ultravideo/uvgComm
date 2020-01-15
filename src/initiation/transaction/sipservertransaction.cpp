@@ -172,9 +172,9 @@ void SIPServerTransaction::copyMessageDetails(std::shared_ptr<SIPMessageInfo>& i
   copy->transactionRequest = inMessage->transactionRequest;
 
   // Via- fields in same order
-  for(ViaInfo via : inMessage->senderReplyAddress)
+  for(ViaInfo via : inMessage->vias)
   {
-    copy->senderReplyAddress.push_back(via);
+    copy->vias.push_back(via);
   }
 
   // To field, expect if To tag is missing, in which case it should be added

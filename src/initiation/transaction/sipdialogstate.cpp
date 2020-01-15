@@ -134,7 +134,7 @@ void SIPDialogState::getRequestDialogInfo(SIPRequest &outRequest, QString localA
   outRequest.message->from = localUri_;
   outRequest.message->to = remoteUri_;
   outRequest.message->contact = localContactUri_;
-  outRequest.message->senderReplyAddress.push_back(getLocalVia(localAddress));
+  outRequest.message->vias.push_back(getLocalVia(localAddress, 0)); // TODO: port
 
   // SIPDialogInfo format: toTag, fromTag, CallID
   outRequest.message->dialog

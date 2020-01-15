@@ -180,7 +180,7 @@ bool parseViaField(SIPField& field,
                    field_match.captured(3), ""};
 
     parseParameterNameToValue(field.parameters, "branch", via.branch);
-    message->senderReplyAddress.push_back(via);
+    message->vias.push_back(via);
   }
   else
   {
