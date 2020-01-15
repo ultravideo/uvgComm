@@ -61,7 +61,7 @@ void SIPTransactions::startCall(Contact &address, QHostAddress localAddress,
   createBaseDialog(sessionID, localAddress, dialogData);
   dialogData->state->createNewDialog(SIP_URI{address.username, address.username,
                                              address.remoteAddress, TCP, 0},
-                                     localAddress.toString(), registered);
+                                     localAddress.toString(), registered, 0);
 
   // this start call will commence once the connection has been established
   if(!dialogData->client->startCall(address.realName))

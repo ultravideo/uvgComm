@@ -17,7 +17,8 @@ public:
   SIPDialogState();
 
   // creates dialog which is about to start from our end
-  void createNewDialog(SIP_URI remoteURI, QString localAddress, bool registered);
+  void createNewDialog(SIP_URI remoteURI, QString localAddress,
+                       uint16_t localPort, bool registered);
 
   void createServerConnection(SIP_URI requestURI, QString ourContactAddress,
                               uint16_t contactPort);
@@ -52,10 +53,16 @@ public:
 
 private:
 
+  // Call init without callID if we are responsible for creating the dialog
+  void initDialog(QString localAddress, uint16_t localPort);
+  // call this if dialog was created by peer
+  void initDialog(QString localAddress, uint16_t localPort, QString callID);
+
   void initLocalURI();
+  void initContactURI(QString localAddress, uint16_t localPort);
   void initCallInfo();
 
-  ViaInfo getLocalVia(QString localAddress);
+  ViaInfo getLocalVia(QString localAddress, uint16_t port);
 
   // SIP Dialog fields (section 12 in RFC 3261)
   QString localTag_;
@@ -65,13 +72,13 @@ private:
 
   // address-of-record is the SIP address if one exists. If we are not connected to server we use local
   // IP address.
-  SIP_URI localUri_; // local address-of-record.
+  SIP_URI localURI_; // local address-of-record.
   SIP_URI localContactUri_;
-  SIP_URI remoteUri_; // remote address-of-record.
+  SIP_URI remoteURI_; // remote address-of-record.
   SIP_URI remoteContactURI_;
   SIP_URI requestUri_;
 
-
+  ViaInfo localVia_;
 
   // empty until first request is sent/received
   // cseq is used to determine the order of requests and must be sequential
