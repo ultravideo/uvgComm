@@ -8,6 +8,7 @@
 
 // TODO: Support SIPS uri scheme. Needed for TLS
 bool parseURI(QString values, SIP_URI& uri);
+ConnectionType parseUritype(QString type);
 bool parseParameterNameToValue(std::shared_ptr<QList<SIPParameter>> parameters,
                                QString name, QString& value);
 bool parseUint(QString values, uint& number);
@@ -15,23 +16,56 @@ bool parseUint(QString values, uint& number);
 
 bool parseURI(QString values, SIP_URI& uri)
 {
-  // RFC3261_TODO: Try to understand other than sip: addresses such as "tel:" and give error?
+  // TODO: parse quotation marks in real name
 
-  // TLS TODO: Support sips
-  QRegularExpression re_field("(\\w+ )?<sip:(\\w+)@([\\w\.:]+)>");
+  QRegularExpression re_field("(\\w+ )?<(\\w+):(\\w+)@([\\w\.:]+)>");
   QRegularExpressionMatch field_match = re_field.match(values);
 
-  if(field_match.hasMatch() && (field_match.lastCapturedIndex() == 4
-          || field_match.lastCapturedIndex() == 3))
+  // number of matches depends whether real name was given
+  if (field_match.hasMatch())
   {
-    uri.realname = field_match.captured(1);
-    uri.username = field_match.captured(2);
-    uri.host = field_match.captured(3);
-    return true;
+    if (field_match.lastCapturedIndex() == 4)
+    {
+      uri.realname = field_match.captured(1);
+      uri.connection = parseUritype(field_match.captured(2));
+      uri.username = field_match.captured(3);
+      uri.host = field_match.captured(4);
+    }
+    else if(field_match.lastCapturedIndex() == 3)
+    {
+      uri.connection = parseUritype(field_match.captured(1));
+      uri.username = field_match.captured(2);
+      uri.host = field_match.captured(3);
+    }
+    return uri.connection != ANY;
   }
 
   return false;
 }
+
+
+ConnectionType parseUritype(QString type)
+{
+  if (type == "sip")
+  {
+    return TCP;
+  }
+  else if (type == "sips")
+  {
+    return TLS;
+  }
+  else if (type == "tel")
+  {
+    return TEL;
+  }
+  else
+  {
+    qDebug() << "ERROR:  Could not identify connection type:" << type;
+  }
+
+  return ANY;
+}
+
 
 bool parseParameterNameToValue(std::shared_ptr<QList<SIPParameter>> parameters,
                                QString name, QString& value)
