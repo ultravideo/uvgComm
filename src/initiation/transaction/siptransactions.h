@@ -98,8 +98,6 @@ private:
     std::shared_ptr<SIPServerTransaction> server;
     std::shared_ptr<SIPDialogClient> client;
 
-    bool proxyConnection_;
-
     QHostAddress localAddress;
 
     CallConnectionType connectionType;

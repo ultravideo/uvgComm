@@ -59,7 +59,6 @@ void SIPTransactions::startCall(Contact &address, QHostAddress localAddress,
 
   std::shared_ptr<SIPDialogData> dialogData;
   createBaseDialog(sessionID, localAddress, dialogData);
-  dialogData->proxyConnection_ = false;
   dialogData->state->createNewDialog(SIP_URI{address.username, address.username,
                                              address.remoteAddress, TCP, 0},
                                      localAddress.toString(), registered);
@@ -120,8 +119,6 @@ void SIPTransactions::createBaseDialog(uint32_t sessionID,
 
   dialog->server = std::shared_ptr<SIPServerTransaction> (new SIPServerTransaction);
   dialog->server->init(transactionUser_, sessionID);
-
-  dialog->proxyConnection_ = false;
 
   dialogs_[sessionID] = dialog;
 
