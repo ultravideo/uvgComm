@@ -21,22 +21,49 @@ bool parseURI(QString values, SIP_URI& uri)
   QRegularExpression re_field("(\\w+ )?<(\\w+):(\\w+)@([\\w.:]+)>");
   QRegularExpressionMatch field_match = re_field.match(values);
 
-  // number of matches depends whether real name was given
-  if (field_match.hasMatch())
+  // number of matches depends whether real name or the port were given
+  if (field_match.hasMatch() &&
+      field_match.lastCapturedIndex() >= 3 &&
+      field_match.lastCapturedIndex() <= 4 )
   {
+    QString addressString = "";
+
     if (field_match.lastCapturedIndex() == 4)
     {
       uri.realname = field_match.captured(1);
       uri.connectionType = parseUritype(field_match.captured(2));
       uri.username = field_match.captured(3);
-      uri.host = field_match.captured(4);
+      addressString = field_match.captured(4);
     }
     else if(field_match.lastCapturedIndex() == 3)
     {
       uri.connectionType = parseUritype(field_match.captured(1));
       uri.username = field_match.captured(2);
-      uri.host = field_match.captured(3);
+      addressString = field_match.captured(3);
     }
+
+    QRegularExpression re_address("([\\w.]+):?(\\d*)");
+    QRegularExpressionMatch address_match = re_address.match(addressString);
+
+    if(address_match.hasMatch() &&
+       address_match.lastCapturedIndex() >= 1 &&
+      address_match.lastCapturedIndex() <= 2)
+    {
+      uri.host = address_match.captured(1);
+      if(address_match.lastCapturedIndex() == 2)
+      {
+        uri.port = address_match.captured(2).toUInt();
+      }
+      else
+      {
+        uri.port = 0;
+      }
+    }
+    else
+    {
+      return false;
+    }
+
     return uri.connectionType != NONE;
   }
 
@@ -166,18 +193,25 @@ bool parseViaField(SIPField& field,
 {
   Q_ASSERT(message);
 
-  QRegularExpression re_field("SIP/(\\d.\\d)/(\\w+) ([\\w.:]+)");
+  QRegularExpression re_field("SIP/(\\d.\\d)/(\\w+) ([\\w.]+):?(\\d*)");
   QRegularExpressionMatch field_match = re_field.match(field.values);
 
   if(!field_match.hasMatch() || field_match.lastCapturedIndex() < 3)
   {
     return false;
   }
-  else if(field_match.lastCapturedIndex() == 3)
+  else if(field_match.lastCapturedIndex() == 3 ||
+          field_match.lastCapturedIndex() == 4)
   {
     ViaInfo via = {stringToConnection(field_match.captured(2)),
                    field_match.captured(1),
                    field_match.captured(3), 0, ""}; // TODO: set port
+
+    if (field_match.lastCapturedIndex() == 4)
+    {
+      via.port = field_match.captured(4).toUInt();
+    }
+
 
     parseParameterNameToValue(field.parameters, "branch", via.branch);
     message->vias.push_back(via);
