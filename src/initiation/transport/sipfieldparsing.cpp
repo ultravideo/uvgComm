@@ -27,17 +27,17 @@ bool parseURI(QString values, SIP_URI& uri)
     if (field_match.lastCapturedIndex() == 4)
     {
       uri.realname = field_match.captured(1);
-      uri.connection = parseUritype(field_match.captured(2));
+      uri.connectionType = parseUritype(field_match.captured(2));
       uri.username = field_match.captured(3);
       uri.host = field_match.captured(4);
     }
     else if(field_match.lastCapturedIndex() == 3)
     {
-      uri.connection = parseUritype(field_match.captured(1));
+      uri.connectionType = parseUritype(field_match.captured(1));
       uri.username = field_match.captured(2);
       uri.host = field_match.captured(3);
     }
-    return uri.connection != ANY;
+    return uri.connectionType != NONE;
   }
 
   return false;
@@ -63,7 +63,7 @@ ConnectionType parseUritype(QString type)
     qDebug() << "ERROR:  Could not identify connection type:" << type;
   }
 
-  return ANY;
+  return NONE;
 }
 
 
@@ -177,7 +177,7 @@ bool parseViaField(SIPField& field,
   {
     ViaInfo via = {stringToConnection(field_match.captured(2)),
                    field_match.captured(1),
-                   field_match.captured(3), ""};
+                   field_match.captured(3), 0, ""}; // TODO: set port
 
     parseParameterNameToValue(field.parameters, "branch", via.branch);
     message->vias.push_back(via);

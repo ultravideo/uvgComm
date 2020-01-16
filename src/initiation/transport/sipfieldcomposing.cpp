@@ -47,7 +47,7 @@ QString composePortString(uint16_t port)
 
 QString composeSIPUri(SIP_URI& uri)
 {
-  QString message = composeUritype(uri.connection);
+  QString message = composeUritype(uri.connectionType);
   if (message != "")
   {
     message += uri.username + "@" + uri.host + composePortString(uri.port);
@@ -66,7 +66,8 @@ bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
 
   if(request.type == SIP_NO_REQUEST)
   {
-    printDebug(DEBUG_PROGRAM_ERROR, "SIPComposing", DC_SEND_SIP_REQUEST, "SIP_NO_REQUEST given.");
+    printDebug(DEBUG_PROGRAM_ERROR, "SIPComposing",
+               DC_SEND_SIP_REQUEST, "SIP_NO_REQUEST given.");
     return false;
   }
 
@@ -75,12 +76,12 @@ bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
 
   if(request.type != SIP_REGISTER)
   {
-    type = composeUritype(request.message->to.connection);
+    type = composeUritype(request.message->to.connectionType);
     target = request.message->to.username + "@" + request.message->to.host;
   }
   else // REGISTER first line does not contain username.
   {
-    type = composeUritype(request.requestURI.connection);
+    type = composeUritype(request.requestURI.connectionType);
     target = request.requestURI.host;
   }
 
@@ -90,7 +91,8 @@ bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
   return true;
 }
 
-bool getFirstResponseLine(QString& line, SIPResponse& response, QString lineEnding)
+bool getFirstResponseLine(QString& line, SIPResponse& response,
+                          QString lineEnding)
 {
   if(response.type == SIP_UNKNOWN_RESPONSE)
   {
@@ -215,14 +217,14 @@ bool includeViaFields(QList<SIPField> &fields,
 
   for(ViaInfo via : message->vias)
   {
-    Q_ASSERT(via.type != ANY);
+    Q_ASSERT(via.connectionType != NONE);
     Q_ASSERT(via.branch != "");
     Q_ASSERT(via.address != "");
 
     SIPField field;
     field.name = "Via";
 
-    field.values = "SIP/" + via.version +"/" + connectionToString(via.type)
+    field.values = "SIP/" + via.version +"/" + connectionToString(via.connectionType)
         + " " + via.address + composePortString(via.port); //";alias;rport";
 
     if(!tryAddParameter(field, "branch", via.branch))
@@ -273,7 +275,7 @@ bool includeContactField(QList<SIPField> &fields,
   field.values = "<sip:" + message->contact.username + "@" + message->contact.host + portString + ">";
   field.parameters = nullptr;
 
-  if (message->contact.connection == TCP)
+  if (message->contact.connectionType == TCP)
   {
     tryAddParameter(field, "transport", "tcp");
   }

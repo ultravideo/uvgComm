@@ -95,7 +95,7 @@ enum ResponseType {SIP_UNKNOWN_RESPONSE = 0,
                    SIP_NOT_ACCEPTABLE = 606,
                    SIP_UNWANTED = 607}; // RFC 3261
 
-enum ConnectionType {ANY, TCP, UDP, TLS, TEL};
+enum ConnectionType {NONE, TCP, UDP, TLS, TEL};
 
 // Defines the type of connection in use for SIP
 const ConnectionType TRANSPORTTYPE = TCP;
@@ -105,11 +105,11 @@ const uint32_t BRANCHLENGTH = 32 - 7;
 
 struct ViaInfo
 {
-  ConnectionType type;
+  ConnectionType connectionType;
   QString version;
   QString address;
-  QString branch;
   uint16_t port = 0;              // omitted if 0
+  QString branch;
   bool alias = false;             // does parameter exist
   bool rport = false;             // does parameter exist
   uint16_t rportValue = 0;        // omitted if 0
@@ -119,10 +119,10 @@ struct ViaInfo
 // usually in format: "realname <sip:username@host>". realname may be empty and should be omitted if so
 struct SIP_URI
 {
+  ConnectionType connectionType;
   QString username;
   QString realname;
   QString host;
-  ConnectionType connection;
   uint16_t port = 0; // omitted if 0
 };
 

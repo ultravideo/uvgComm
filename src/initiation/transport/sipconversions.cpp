@@ -104,7 +104,7 @@ ConnectionType stringToConnection(QString type)
   {
     qDebug() << "Unrecognized connection protocol:" << type;
   }
-  return ANY;
+  return NONE;
 }
 
 QString connectionToString(ConnectionType connection)

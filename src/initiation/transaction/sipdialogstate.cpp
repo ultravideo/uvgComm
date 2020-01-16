@@ -233,7 +233,7 @@ void SIPDialogState::initLocalURI()
   localURI_.realname = settings.value("local/Name").toString();
   localURI_.username = settings.value("local/Username").toString();
   localURI_.host = settings.value("sip/ServerAddress").toString();
-  localURI_.connection = TRANSPORTTYPE;
+  localURI_.connectionType = TRANSPORTTYPE;
   localURI_.port = 0; // port is added later if needed
 
   if(localURI_.username.isEmpty())

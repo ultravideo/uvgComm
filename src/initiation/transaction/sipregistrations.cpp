@@ -30,7 +30,7 @@ void SIPRegistrations::bindToServer(QString serverAddress, QHostAddress localAdd
     SIPRegistrationData data = {std::shared_ptr<SIPNonDialogClient> (new SIPNonDialogClient(transactionUser_)),
                                 std::shared_ptr<SIPDialogState> (new SIPDialogState()), localAddress, false};
 
-    SIP_URI serverUri = {"","",serverAddress, TRANSPORTTYPE, 0};
+    SIP_URI serverUri = {TRANSPORTTYPE, "", "", serverAddress, 0};
     data.state->createServerConnection(serverUri);
     data.client->init();
     data.client->set_remoteURI(serverUri);
