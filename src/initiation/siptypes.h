@@ -113,7 +113,7 @@ struct ViaInfo
   bool alias = false;             // does parameter exist
   bool rport = false;             // does parameter exist
   uint16_t rportValue = 0;        // omitted if 0
-  QString receivedParameter = ""; // omitted if empty
+  QString receivedAddress = ""; // omitted if empty
 };
 
 // usually in format: "realname <sip:username@host>". realname may be empty and should be omitted if so

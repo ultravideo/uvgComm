@@ -24,7 +24,7 @@ bool parseURI(QString values, SIP_URI& uri)
   // number of matches depends whether real name or the port were given
   if (field_match.hasMatch() &&
       field_match.lastCapturedIndex() >= 3 &&
-      field_match.lastCapturedIndex() <= 4 )
+      field_match.lastCapturedIndex() <= 4)
   {
     QString addressString = "";
 
@@ -205,15 +205,30 @@ bool parseViaField(SIPField& field,
   {
     ViaInfo via = {stringToConnection(field_match.captured(2)),
                    field_match.captured(1),
-                   field_match.captured(3), 0, ""}; // TODO: set port
+                   field_match.captured(3), 0, "", false, false, 0, ""};
 
     if (field_match.lastCapturedIndex() == 4)
     {
       via.port = field_match.captured(4).toUInt();
     }
 
-
     parseParameterNameToValue(field.parameters, "branch", via.branch);
+
+    parseParameterNameToValue(field.parameters, "received", via.receivedAddress);
+
+    QString rportValue = "";
+    if (parseParameterNameToValue(field.parameters, "rport", rportValue))
+    {
+      bool ok = false;
+      via.rportValue = rportValue.toUInt(&ok);
+
+      if (!ok)
+      {
+        via.rportValue = 0;
+      }
+
+    }
+
     message->vias.push_back(via);
   }
   else
