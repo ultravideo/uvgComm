@@ -28,6 +28,7 @@ bool SIPNonDialogClient::processResponse(SIPResponse& response,
 {
   // TODO
   Q_UNUSED(response);
+  Q_UNUSED(state);
 
   if (getOngoingRequest() == SIP_REGISTER)
   {

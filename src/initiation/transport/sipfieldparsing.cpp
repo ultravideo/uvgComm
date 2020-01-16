@@ -18,7 +18,7 @@ bool parseURI(QString values, SIP_URI& uri)
 {
   // TODO: parse quotation marks in real name
 
-  QRegularExpression re_field("(\\w+ )?<(\\w+):(\\w+)@([\\w\.:]+)>");
+  QRegularExpression re_field("(\\w+ )?<(\\w+):(\\w+)@([\\w.:]+)>");
   QRegularExpressionMatch field_match = re_field.match(values);
 
   // number of matches depends whether real name was given
@@ -166,7 +166,7 @@ bool parseViaField(SIPField& field,
 {
   Q_ASSERT(message);
 
-  QRegularExpression re_field("SIP\/(\\d\.\\d)\/(\\w+) ([\\w\.:]+)");
+  QRegularExpression re_field("SIP/(\\d.\\d)/(\\w+) ([\\w.:]+)");
   QRegularExpressionMatch field_match = re_field.match(field.values);
 
   if(!field_match.hasMatch() || field_match.lastCapturedIndex() < 3)

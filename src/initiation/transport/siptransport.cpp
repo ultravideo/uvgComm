@@ -311,8 +311,8 @@ void SIPTransport::networkPackage(QString package)
       parseContent(content, message->content.type, body);
     }
 
-    QRegularExpression requestRE("^(\\w+) (sip:\\S+@\\S+) (SIP\/2\.0)");
-    QRegularExpression responseRE("^(SIP\/2\.0) (\\d\\d\\d) (\\w| )+");
+    QRegularExpression requestRE("^(\\w+) (sip:\\S+@\\S+) (SIP/2.0)");
+    QRegularExpression responseRE("^(SIP/2.0) (\\d\\d\\d) (\\w| )+");
     QRegularExpressionMatch request_match = requestRE.match(firstLine);
     QRegularExpressionMatch response_match = responseRE.match(firstLine);
 

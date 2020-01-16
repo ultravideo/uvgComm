@@ -174,6 +174,7 @@ void VideoYUVWidget::initializeGL()
 }
 void VideoYUVWidget::drawOpenGL(bool updateImage)
 {
+  Q_UNUSED(updateImage);
   /*
   qDebug() << "Drawing with OpenGL --------------------------------------------------";
   glClear(GL_COLOR_BUFFER_BIT);
@@ -293,6 +294,9 @@ void VideoYUVWidget::paintGL()
 
 void VideoYUVWidget::resizeGL(int width, int height)
 {
+  Q_UNUSED(width);
+  Q_UNUSED(height);
+
   //int side = qMin(width, height);
   //glViewport((width - side) / 2, (height - side) / 2, side, side);
 }
