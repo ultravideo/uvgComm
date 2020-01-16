@@ -19,6 +19,12 @@ void SIPNonDialogClient::getRequestMessageInfo(RequestType type,
   if (type == SIP_REGISTER)
   {
     outMessage->expires = 600; // TODO: Implement resending
+
+    if (!outMessage->vias.empty())
+    {
+      outMessage->vias.back().alias = true;
+      outMessage->vias.back().rport = true;
+    }
   }
 }
 
