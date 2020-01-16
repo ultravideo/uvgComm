@@ -286,13 +286,19 @@ bool includeContactField(QList<SIPField> &fields,
     portString = ":" + QString::number(message->contact.port);
   }
 
-  field.values = "<sip:" + message->contact.username + "@" + message->contact.host + portString + ">";
-  field.parameters = nullptr;
+  QString transportString = "";
 
   if (message->contact.connectionType == TCP)
   {
-    tryAddParameter(field, "transport", "tcp");
+    transportString = ";transport=tcp";
   }
+
+  field.values = "<sip:" + message->contact.username + "@"
+      + message->contact.host + portString + transportString + ">";
+
+  field.parameters = nullptr;
+
+
 
   fields.push_back(field);
   return true;
