@@ -9,6 +9,7 @@
 
 // a function used within this file to add a parameter
 bool tryAddParameter(SIPField& field, QString parameterName, QString parameterValue);
+bool tryAddParameter(SIPField& field, QString parameterName);
 
 QString composeUritype(ConnectionType type);
 
@@ -233,6 +234,19 @@ bool includeViaFields(QList<SIPField> &fields,
       return false;
     }
 
+    if(via.alias && !tryAddParameter(field, "alias"))
+    {
+      qDebug() << "WARNING: Via field failed";
+      return false;
+    }
+
+    if(via.rport && !tryAddParameter(field, "rport"))
+    {
+      qDebug() << "WARNING: Via field failed";
+      return false;
+    }
+
+
     fields.push_back(field);
   }
   return true;
@@ -315,7 +329,7 @@ bool includeExpiresField(QList<SIPField>& fields,
 
 bool tryAddParameter(SIPField& field, QString parameterName, QString parameterValue)
 {
-  if(parameterValue == "")
+  if(parameterValue == "" || parameterName == "")
   {
     return false;
   }
@@ -325,6 +339,23 @@ bool tryAddParameter(SIPField& field, QString parameterName, QString parameterVa
     field.parameters = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
   }
   field.parameters->append({parameterName, parameterValue});
+
+  return true;
+}
+
+
+bool tryAddParameter(SIPField& field, QString parameterName)
+{
+  if(parameterName == "")
+  {
+    return false;
+  }
+
+  if(field.parameters == nullptr)
+  {
+    field.parameters = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
+  }
+  field.parameters->append({parameterName, ""});
 
   return true;
 }

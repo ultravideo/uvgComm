@@ -270,9 +270,16 @@ QString SIPTransport::fieldsToString(QList<SIPField>& fields, QString lineEnding
     message += field.name + ": " + field.values;
     if(field.parameters != nullptr)
     {
-      for(SIPParameter parameter : *field.parameters)
+      for(SIPParameter& parameter : *field.parameters)
       {
-        message += ";" + parameter.name + "=" + parameter.value;
+        if (parameter.value != "")
+        {
+          message += ";" + parameter.name + "=" + parameter.value;
+        }
+        else
+        {
+          message += ";" + parameter.name;
+        }
       }
     }
     message += lineEnding;
