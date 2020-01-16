@@ -81,7 +81,7 @@ void SIPManager::bindToServer()
   if (serverAddress != "")
   {
     std::shared_ptr<SIPTransport> transport = createSIPTransport();
-    transport->createConnection(TCP, serverAddress);
+    transport->createConnection(TRANSPORTTYPE, serverAddress);
 
     serverToTransportID_[serverAddress] = transport->getTransportID();
 
@@ -113,7 +113,7 @@ uint32_t SIPManager::startCall(Contact& address)
     std::shared_ptr<SIPTransport> transport = createSIPTransport();
     transportID = transport->getTransportID(); // Get new transportID
     sessionToTransportID_[sessionID] = transportID;
-    transport->createConnection(TCP, address.remoteAddress);
+    transport->createConnection(TRANSPORTTYPE, address.remoteAddress);
     waitingToStart_[transportID] = {sessionID, address};
   }
   else {
@@ -222,8 +222,7 @@ void SIPManager::connectionEstablished(quint32 transportID)
   if(waitingToBind_.find(transportID) != waitingToBind_.end())
   {
     registrations_.bindToServer(waitingToBind_[transportID],
-                                transports_[transportID]->getLocalAddress(),
-                                transports_[transportID]->getLocalPort());
+                                transports_[transportID]->getLocalAddress());
   }
 }
 
@@ -237,7 +236,8 @@ void SIPManager::transportRequest(uint32_t sessionID, SIPRequest &request)
     if (transports_.find(transportID) != transports_.end())
     {
       QVariant content;
-      if(request.type == SIP_ACK && negotiation_.getState(sessionID) == NEG_ANSWER_GENERATED)
+      if(request.type == SIP_ACK && negotiation_.getState(sessionID)
+         == NEG_ANSWER_GENERATED)
       {
         request.message->content.length = 0;
         qDebug() << "Adding SDP content to request:" << request.type;
@@ -393,7 +393,6 @@ void SIPManager::processSIPRequest(SIPRequest& request, QHostAddress localAddres
         }
         }
       }
-
       transactions_.processSIPRequest(request, sessionID);
     }
     else

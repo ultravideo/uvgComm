@@ -45,6 +45,10 @@ void SIPClientTransaction::getRequestMessageInfo(RequestType type,
   outMessage->cSeq = 0; // invalid, should be set in dialog
   outMessage->content.type = NO_CONTENT;
   outMessage->content.length = 0;
+
+  ViaInfo via = ViaInfo{TRANSPORTTYPE, "2.0", "",
+          QString("z9hG4bK" + generateRandomString(BRANCHLENGTH)), 0};
+  outMessage->vias.push_back(via);
 }
 
 
@@ -55,7 +59,6 @@ void SIPClientTransaction::startTimer(RequestType type)
   {
     startTimeoutTimer();
   }
-
 }
 
 

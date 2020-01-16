@@ -97,15 +97,11 @@ private:
     // do not stop connection before responding to all requests
     std::shared_ptr<SIPServerTransaction> server;
     std::shared_ptr<SIPDialogClient> client;
-
-    QHostAddress localAddress;
-
-    CallConnectionType connectionType;
   };
 
 
   uint32_t createDialogFromINVITE(QHostAddress localAddress,  std::shared_ptr<SIPMessageInfo> &invite);
-  void createBaseDialog(uint32_t sessionID, QHostAddress &localAddress, std::shared_ptr<SIPDialogData>& dialog);
+  void createBaseDialog(uint32_t sessionID, std::shared_ptr<SIPDialogData>& dialog);
   void destroyDialog(uint32_t sessionID);
   void removeDialog(uint32_t sessionID);
 

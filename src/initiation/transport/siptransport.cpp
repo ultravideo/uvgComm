@@ -153,6 +153,17 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
     return;
   }
 
+  // set our addresses for these fields.
+  if (!request.message->vias.empty())
+  {
+    request.message->vias.back().address = getLocalAddress().toString();
+    request.message->vias.back().port = getLocalPort();
+  }
+  request.message->contact.host = getLocalAddress().toString();
+  request.message->contact.port = getLocalPort();
+
+  // start composing the request.
+  // First we turn the struct to fields which are then turned to string
   QList<SIPField> fields;
   if(!composeMandatoryFields(fields, request.message) ||
      !includeContactField(fields, request.message))

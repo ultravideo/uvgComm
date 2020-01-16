@@ -17,7 +17,7 @@ public:
 
   void init(SIPTransactionUser* callControl);
 
-  void bindToServer(QString serverAddress, QHostAddress localAddress, uint16_t localPort);
+  void bindToServer(QString serverAddress, QHostAddress localAddress);
 
   // Identify if this reponse is to our REGISTER-request
   bool identifyRegistration(SIPResponse& response, QString &outAddress);

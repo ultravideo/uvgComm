@@ -97,6 +97,9 @@ enum ResponseType {SIP_UNKNOWN_RESPONSE = 0,
 
 enum ConnectionType {ANY, TCP, UDP, TLS, TEL};
 
+// Defines the type of connection in use for SIP
+const ConnectionType TRANSPORTTYPE = TCP;
+
 // 7 is the length of preset string
 const uint32_t BRANCHLENGTH = 32 - 7;
 

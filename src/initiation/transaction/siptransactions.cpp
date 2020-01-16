@@ -58,10 +58,10 @@ void SIPTransactions::startCall(Contact &address, QHostAddress localAddress,
   qDebug() << "SIP," << metaObject()->className() << ": Intializing a new dialog with INVITE";
 
   std::shared_ptr<SIPDialogData> dialogData;
-  createBaseDialog(sessionID, localAddress, dialogData);
+  createBaseDialog(sessionID, dialogData);
   dialogData->state->createNewDialog(SIP_URI{address.username, address.username,
-                                             address.remoteAddress, TCP, 0},
-                                     localAddress.toString(), registered, 0);
+                                             address.remoteAddress, TRANSPORTTYPE, 0},
+                                     localAddress.toString(), registered);
 
   // this start call will commence once the connection has been established
   if(!dialogData->client->startCall(address.realName))
@@ -97,19 +97,17 @@ uint32_t SIPTransactions::createDialogFromINVITE(QHostAddress localAddress,
   uint32_t sessionID = reserveSessionID();
 
   std::shared_ptr<SIPDialogData> dialog;
-  createBaseDialog(sessionID, localAddress, dialog);
+  createBaseDialog(sessionID, dialog);
 
   dialog->state->createDialogFromINVITE(invite, localAddress.toString());
   return sessionID;
 }
 
 void SIPTransactions::createBaseDialog(uint32_t sessionID,
-                                       QHostAddress& localAddress,
                                        std::shared_ptr<SIPDialogData>& dialog)
 {
   dialog = std::shared_ptr<SIPDialogData> (new SIPDialogData);
   dialogMutex_.lock();
-  dialog->localAddress = localAddress;
 
   dialog->state = std::shared_ptr<SIPDialogState> (new SIPDialogState());
 
@@ -350,8 +348,7 @@ void SIPTransactions::sendDialogRequest(uint32_t sessionID, RequestType type)
   dialogs_[sessionID]->client->startTimer(type);
 
   // TODO: maybe get the local address from dialogState contact address instead?
-  dialogs_[sessionID]->state->getRequestDialogInfo(request,
-                                                   dialogs_[sessionID]->localAddress.toString());
+  dialogs_[sessionID]->state->getRequestDialogInfo(request);
 
   Q_ASSERT(request.message != nullptr);
   Q_ASSERT(request.message->dialog != nullptr);
