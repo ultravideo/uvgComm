@@ -454,7 +454,16 @@ bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPF
       debugLineNames << field.name;
       if(parameters.size() > 1)
       {
-        for(int j = 1; j < parameters.size(); ++j)
+        int startIndex = 1;
+
+        // if the parameter is attached to an URI, we add it to values instead of general parameters.
+        if( parameters[startIndex].back() == ">")
+        {
+          field.values += parameters[startIndex];
+          startIndex += 1;
+        }
+
+        for(int j = startIndex; j < parameters.size(); ++j)
         {
           SIPParameter parameter;
           // TODO: check that parameter does not already exist

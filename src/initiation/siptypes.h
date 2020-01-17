@@ -203,7 +203,7 @@ struct SIPResponse
 struct SIPParameter
 {
   QString name;
-  QString value;
+  QString value; // optional
 };
 
 struct SIPField

@@ -18,7 +18,7 @@ bool parseURI(QString values, SIP_URI& uri)
 {
   // TODO: parse quotation marks in real name
 
-  QRegularExpression re_field("(\\w+ )?<(\\w+):(\\w+)@([\\w.:]+)>");
+  QRegularExpression re_field("(\\w+ )?<(\\w+):(\\w+)@([\\w.:;=]+)>");
   QRegularExpressionMatch field_match = re_field.match(values);
 
   // number of matches depends whether real name or the port were given
@@ -42,21 +42,35 @@ bool parseURI(QString values, SIP_URI& uri)
       addressString = field_match.captured(3);
     }
 
-    QRegularExpression re_address("([\\w.]+):?(\\d*)");
+    // Try to see what matches
+    QRegularExpression re_address("([\\w.]+):?(\\d*);?([\\w]*)=?(\\w*)");
     QRegularExpressionMatch address_match = re_address.match(addressString);
 
     if(address_match.hasMatch() &&
        address_match.lastCapturedIndex() >= 1 &&
-      address_match.lastCapturedIndex() <= 2)
+      address_match.lastCapturedIndex() <= 4)
     {
       uri.host = address_match.captured(1);
-      if(address_match.lastCapturedIndex() == 2)
+
+      if (address_match.captured(2) != "")
       {
         uri.port = address_match.captured(2).toUInt();
       }
       else
       {
         uri.port = 0;
+      }
+
+      if (address_match.captured(3) == "transport")
+      {
+        if (address_match.captured(4) == "tcp")
+        {
+          uri.connectionType = TCP;
+        }
+        else
+        {
+          qDebug() << "WARNING: Unsupported conneciton type";
+        }
       }
     }
     else
@@ -303,12 +317,18 @@ bool isLinePresent(QString name, QList<SIPField>& fields)
 
 bool parseParameter(QString text, SIPParameter& parameter)
 {
-  QRegularExpression re_parameter("([^=]+)=([^;]+)");
+  QRegularExpression re_parameter("([^=]+)=?([^;]*)");
   QRegularExpressionMatch parameter_match = re_parameter.match(text);
+
   if(parameter_match.hasMatch() && parameter_match.lastCapturedIndex() == 2)
   {
     parameter.name = parameter_match.captured(1);
-    parameter.value = parameter_match.captured(2);
+
+    if (parameter_match.captured(2) != "")
+    {
+      parameter.value = parameter_match.captured(2);
+    }
+
     return true;
   }
 
