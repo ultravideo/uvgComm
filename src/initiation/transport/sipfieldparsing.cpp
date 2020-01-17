@@ -301,6 +301,15 @@ bool parseServerField(SIPField& field,
   return true;
 }
 
+bool parseUserAgentField(SIPField& field,
+                  std::shared_ptr<SIPMessageInfo> message)
+{
+  Q_ASSERT(message);
+  message->userAgent = field.values;
+
+  return true;
+}
+
 
 bool isLinePresent(QString name, QList<SIPField>& fields)
 {

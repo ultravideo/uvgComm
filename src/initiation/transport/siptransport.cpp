@@ -37,7 +37,8 @@ const std::map<QString, std::function<bool(SIPField& field, std::shared_ptr<SIPM
     {"Contact", parseContactField},
     {"Content-Type", parseContentTypeField},
     {"Content-Length", parseContentLengthField},
-    {"Server", parseServerField}
+    {"Server", parseServerField},
+    {"User-Agent", parseUserAgentField}
 };
 
 
@@ -214,7 +215,8 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
 {
   qDebug() << "Composing SIP Response:" << responseToPhrase(response.type);
   Q_ASSERT(response.message->transactionRequest != SIP_INVITE
-           || response.type != SIP_OK || (response.message->content.type == APPLICATION_SDP && content.isValid()));
+      || response.type != SIP_OK
+      || (response.message->content.type == APPLICATION_SDP && content.isValid()));
   Q_ASSERT(connection_ != nullptr);
 
   if((response.message->transactionRequest == SIP_INVITE && response.type == SIP_OK

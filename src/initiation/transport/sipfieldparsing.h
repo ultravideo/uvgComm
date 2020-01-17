@@ -38,6 +38,9 @@ bool parseContentLengthField(SIPField& field,
 bool parseServerField(SIPField& field,
                   std::shared_ptr<SIPMessageInfo> message);
 
+bool parseUserAgentField(SIPField& field,
+                  std::shared_ptr<SIPMessageInfo> message);
+
 
 
 // tell whether a particular field is present in list.

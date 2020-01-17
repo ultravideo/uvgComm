@@ -178,6 +178,7 @@ struct SIPMessageInfo
 
   uint32_t expires;
 
+  QString userAgent;
   QString server;
 
   ContentInfo content;
