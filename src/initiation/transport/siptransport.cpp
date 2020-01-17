@@ -165,11 +165,17 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
   // start composing the request.
   // First we turn the struct to fields which are then turned to string
   QList<SIPField> fields;
-  if(!composeMandatoryFields(fields, request.message) ||
-     !includeContactField(fields, request.message))
+  if (!composeMandatoryFields(fields, request.message))
   {
     qDebug() << "WARNING: Failed to add all the fields. Probably because of missing values.";
     return;
+  }
+
+  if ((request.type == SIP_INVITE || request.type == SIP_REGISTER) &&
+      !includeContactField(fields, request.message))
+  {
+   qDebug() << "WARNING: Failed to add Contact field. Probably because of missing values.";
+   return;
   }
 
   if (request.type == SIP_REGISTER &&

@@ -26,11 +26,7 @@ void SIPClientTransaction::getRequestMessageInfo(RequestType type,
 {
   outMessage = std::shared_ptr<SIPMessageInfo> (new SIPMessageInfo);
 
-  if(type == SIP_ACK)
-  {
-    outMessage->transactionRequest = SIP_INVITE;
-  }
-  else if(type == SIP_CANCEL)
+  if(type == SIP_CANCEL)
   {
     outMessage->transactionRequest = ongoingTransactionType_;
   }
