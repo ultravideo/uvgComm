@@ -467,6 +467,7 @@ bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPF
         // if the parameter is attached to an URI, we add it to values instead of general parameters.
         if( parameters[startIndex].back() == ">")
         {
+          field.values += ";";
           field.values += parameters[startIndex];
           startIndex += 1;
         }

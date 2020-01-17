@@ -17,7 +17,7 @@ bool parseUint(QString values, uint& number);
 bool parseURI(QString values, SIP_URI& uri)
 {
   // TODO: parse quotation marks in real name
-
+  // TODO: support URI's without <>
   QRegularExpression re_field("(\\w+ )?<(\\w+):(\\w+)@([\\w.:;=]+)>");
   QRegularExpressionMatch field_match = re_field.match(values);
 
@@ -42,40 +42,43 @@ bool parseURI(QString values, SIP_URI& uri)
       addressString = field_match.captured(3);
     }
 
-    // Try to see what matches
-    QRegularExpression re_address("([\\w.]+):?(\\d*);?([\\w]*)=?(\\w*)");
-    QRegularExpressionMatch address_match = re_address.match(addressString);
+    QStringList parameters = addressString.split(";", QString::SkipEmptyParts);
 
-    if(address_match.hasMatch() &&
-       address_match.lastCapturedIndex() >= 1 &&
-      address_match.lastCapturedIndex() <= 4)
+    if (!parameters.empty())
     {
-      uri.host = address_match.captured(1);
-
-      if (address_match.captured(2) != "")
+      const int firstParameterIndex = 1;
+      if (parameters.size() > firstParameterIndex)
       {
-        uri.port = address_match.captured(2).toUInt();
-      }
-      else
-      {
-        uri.port = 0;
-      }
-
-      if (address_match.captured(3) == "transport")
-      {
-        if (address_match.captured(4) == "tcp")
+        for (int i = firstParameterIndex; i < parameters.size(); ++i)
         {
-          uri.connectionType = TCP;
+          // currently parsing doesn't do any further processing on URI parameters
+          uri.parameters.push_back(SIPParameter());
+          parseParameter(parameters.at(i), uri.parameters.back());
+        }
+      }
+
+      QRegularExpression re_address("([\\w.]+):?(\\d*)");
+      QRegularExpressionMatch address_match = re_address.match(parameters.first());
+
+      if(address_match.hasMatch() &&
+         address_match.lastCapturedIndex() >= 1 &&
+         address_match.lastCapturedIndex() <= 2)
+      {
+        uri.host = address_match.captured(1);
+
+        if (address_match.lastCapturedIndex() == 2 && address_match.captured(2) != "")
+        {
+          uri.port = address_match.captured(2).toUInt();
         }
         else
         {
-          qDebug() << "WARNING: Unsupported conneciton type";
+          uri.port = 0;
         }
       }
-    }
-    else
-    {
-      return false;
+      else
+      {
+        return false;
+      }
     }
 
     return uri.connectionType != NONE;
@@ -125,6 +128,7 @@ bool parseParameterNameToValue(std::shared_ptr<QList<SIPParameter>> parameters,
   return false;
 }
 
+
 bool parseUint(QString values, uint& number)
 {
   QRegularExpression re_field("(\\d+)");
@@ -137,6 +141,7 @@ bool parseUint(QString values, uint& number)
   }
   return false;
 }
+
 
 bool parseToField(SIPField& field,
                   std::shared_ptr<SIPMessageInfo> message)
@@ -153,6 +158,7 @@ bool parseToField(SIPField& field,
   return true;
 }
 
+
 bool parseFromField(SIPField& field,
                     std::shared_ptr<SIPMessageInfo> message)
 {
@@ -166,6 +172,7 @@ bool parseFromField(SIPField& field,
   parseParameterNameToValue(field.parameters, "tag", message->dialog->fromTag);
   return true;
 }
+
 
 bool parseCSeqField(SIPField& field,
                   std::shared_ptr<SIPMessageInfo> message)
@@ -184,6 +191,7 @@ bool parseCSeqField(SIPField& field,
   return false;
 }
 
+
 bool parseCallIDField(SIPField& field,
                       std::shared_ptr<SIPMessageInfo> message)
 {
@@ -201,6 +209,7 @@ bool parseCallIDField(SIPField& field,
 
   return false;
 }
+
 
 bool parseViaField(SIPField& field,
                    std::shared_ptr<SIPMessageInfo> message)
@@ -252,6 +261,7 @@ bool parseViaField(SIPField& field,
   return true;
 }
 
+
 bool parseMaxForwardsField(SIPField& field,
                            std::shared_ptr<SIPMessageInfo> message)
 {
@@ -260,13 +270,14 @@ bool parseMaxForwardsField(SIPField& field,
   return parseUint(field.values, message->maxForwards);
 }
 
+
 bool parseContactField(SIPField& field,
                        std::shared_ptr<SIPMessageInfo> message)
 {
   Q_ASSERT(message);
-
   return parseURI(field.values, message->contact);
 }
+
 
 bool parseContentTypeField(SIPField& field,
                            std::shared_ptr<SIPMessageInfo> message)
@@ -284,6 +295,7 @@ bool parseContentTypeField(SIPField& field,
   return false;
 }
 
+
 bool parseContentLengthField(SIPField& field,
                              std::shared_ptr<SIPMessageInfo> message)
 {
@@ -300,6 +312,7 @@ bool parseServerField(SIPField& field,
 
   return true;
 }
+
 
 bool parseUserAgentField(SIPField& field,
                   std::shared_ptr<SIPMessageInfo> message)
@@ -323,6 +336,7 @@ bool isLinePresent(QString name, QList<SIPField>& fields)
   qDebug() << "Did not find header:" << name;
   return false;
 }
+
 
 bool parseParameter(QString text, SIPParameter& parameter)
 {

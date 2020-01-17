@@ -14,6 +14,20 @@
 // See RFC 6086 for INFO
 // See RFC 6665 for SUBSCRIBE and NOTIFY
 
+// SIPParameter and SIPField are used as an intermediary step in composing and parsing SIP messages
+struct SIPParameter
+{
+  QString name;
+  QString value; // optional
+};
+
+struct SIPField
+{
+  QString name;
+  QString values;
+  std::shared_ptr<QList<SIPParameter>> parameters;
+};
+
 
 enum RequestType {SIP_NO_REQUEST, SIP_INVITE, SIP_ACK, SIP_BYE, SIP_CANCEL, SIP_OPTIONS, SIP_REGISTER};
 // SIP_PRACK, SIP_SUBSCRIBE, SIP_NOTIFY, SIP_PUBLISH, SIP_INFO, SIP_REFER, SIP_MESSAGE, SIP_UPDATE };
@@ -124,6 +138,9 @@ struct SIP_URI
   QString realname;
   QString host;
   uint16_t port = 0; // omitted if 0
+
+  // currently we have no need to know the parameters.
+  QList<SIPParameter> parameters;
 };
 
 enum ContentType {NO_CONTENT, APPLICATION_SDP, TEXT_PLAIN};
@@ -182,6 +199,8 @@ struct SIPMessageInfo
   QString server;
 
   ContentInfo content;
+
+  QList<SIP_URI> recordRoutes;
 };
 
 // data in a request
@@ -200,16 +219,3 @@ struct SIPResponse
 };
 
 
-// SIPParameter and SIPField are used as an intermediary step in composing and parsing SIP messages
-struct SIPParameter
-{
-  QString name;
-  QString value; // optional
-};
-
-struct SIPField
-{
-  QString name;
-  QString values;
-  std::shared_ptr<QList<SIPParameter>> parameters;
-};
