@@ -498,8 +498,7 @@ bool SIPTransport::parseLineToField(QString& line, QList<SIPField>& fields)
 
   QStringList parameters = line.split(";", QString::SkipEmptyParts);
 
-  // RFC3261_TODO: support input with unknown amounts of empty spaces
-  QRegularExpression re_field("(\\S*): (.+)");
+  QRegularExpression re_field("(\\S*):\\s+(.+)");
   QRegularExpressionMatch field_match = re_field.match(parameters.at(0));
 
   if(field_match.hasMatch() && field_match.lastCapturedIndex() == 2)
