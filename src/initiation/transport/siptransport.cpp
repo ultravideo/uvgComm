@@ -87,7 +87,8 @@ void SIPTransport::createConnection(ConnectionType type, QString target)
 {
   if(type == TCP)
   {
-    qDebug() << "Connecting, SIP Transport: Initiating TCP connection for sip connection number:" << transportID_;
+    qDebug() << "Connecting, SIP Transport: Initiating TCP connection for sip connection number:"
+             << transportID_;
     connection_ = std::shared_ptr<TCPConnection>(new TCPConnection());
     signalConnections();
     connection_->establishConnection(target, SIP_PORT);
@@ -262,7 +263,8 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
   connection_->sendPacket(message);
 }
 
-bool SIPTransport::composeMandatoryFields(QList<SIPField>& fields, std::shared_ptr<SIPMessageInfo> message)
+bool SIPTransport::composeMandatoryFields(QList<SIPField>& fields,
+                                          std::shared_ptr<SIPMessageInfo> message)
 {
   return includeViaFields(fields, message) &&
          includeMaxForwardsField(fields, message) &&
@@ -398,8 +400,10 @@ bool SIPTransport::parsePackage(QString package, QString& header, QString& body)
   // did we find the contact-length field and is it before end of header.
   if (contentLengthIndex != -1 && contentLengthIndex < headerEndIndex)
   {
-    int contentLengthLineEndIndex = package.indexOf("\r\n", contentLengthIndex, Qt::CaseInsensitive);
-    QString value = package.mid(contentLengthIndex + 16, contentLengthLineEndIndex - (contentLengthIndex + 16));
+    int contentLengthLineEndIndex = package.indexOf("\r\n", contentLengthIndex,
+                                                    Qt::CaseInsensitive);
+    QString value = package.mid(contentLengthIndex + 16,
+                                contentLengthLineEndIndex - (contentLengthIndex + 16));
 
     contentLength = value.toInt();
     if (contentLength < 0)
@@ -460,7 +464,7 @@ bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPF
     {
       // RFC3261_TODO: Uniformalize case formatting. Make everything big or small case expect quotes.
 
-      SIPField field = {field_match.captured(1),field_match.captured(2),nullptr};
+      SIPField field = {field_match.captured(1), field_match.captured(2), nullptr};
       debugLineNames << field.name;
       if(parameters.size() > 1)
       {
@@ -628,45 +632,9 @@ void SIPTransport::parseContent(QVariant& content, ContentType type, QString& bo
   }
 }
 
-void SIPTransport::parseSIPaddress(QString address, QString& user, QString& location)
-{
-  QStringList splitAddress = address.split("@");
 
-  if(splitAddress.size() != 2)
-  {
-    user = "";
-    location = "";
-    return;
-  }
-
-  user = splitAddress.at(0).right(splitAddress.at(0).length() - 5);
-  location = splitAddress.at(1).left(splitAddress.at(1).length() - 1);
-}
-
-
-QList<QHostAddress> SIPTransport::parseIPAddress(QString address)
-{
-  QList<QHostAddress> ipAddresses;
-
-  QRegularExpression re("\\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\\.|$)){4}\\b");
-  if(re.match(address).hasMatch())
-  {
-    qDebug() << "Found IPv4 address:" << address;
-    ipAddresses.append(QHostAddress(address));
-  }
-  else
-  {
-    qDebug() << "Did not find IPv4 address:" << address;
-    QHostInfo hostInfo;
-    hostInfo.setHostName(address);
-
-    ipAddresses.append(hostInfo.addresses());
-  }
-  return ipAddresses;
-}
-
-
-QString SIPTransport::addContent(QList<SIPField>& fields, bool haveContent, const SDPMessageInfo &sdp)
+QString SIPTransport::addContent(QList<SIPField>& fields, bool haveContent,
+                                 const SDPMessageInfo &sdp)
 {
   QString sdp_str = "";
 
@@ -683,7 +651,8 @@ QString SIPTransport::addContent(QList<SIPField>& fields, bool haveContent, cons
   }
   else if(!includeContentLengthField(fields, 0))
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this, DC_SIP_CONTENT, "Could not add content-length field to sip message!");
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_SIP_CONTENT,
+               "Could not add content-length field to sip message!");
   }
   return sdp_str;
 }

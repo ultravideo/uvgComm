@@ -87,9 +87,6 @@ private:
 
   void parseContent(QVariant &content, ContentType type, QString &body);
 
-  void parseSIPaddress(QString address, QString& user, QString& location);
-  QList<QHostAddress> parseIPAddress(QString address);
-
   void signalConnections();
   void destroyConnection();
 
