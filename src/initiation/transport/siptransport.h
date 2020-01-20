@@ -85,6 +85,7 @@ private:
                      std::shared_ptr<SIPMessageInfo> message,
                      QVariant& content);
 
+  bool combineContinuationLines(QStringList& lines);
   bool parseLineToField(QString& line, QList<SIPField>& fields);
 
   void parseContent(QVariant &content, ContentType type, QString &body);

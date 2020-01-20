@@ -445,6 +445,8 @@ bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPF
     qDebug() << "No first line present in SIP header!";
     return false;
   }
+
+  combineContinuationLines(lines);
   firstLine = lines.at(0);
 
   QStringList debugLineNames = {};
@@ -468,6 +470,24 @@ bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPF
     qDebug() << "All mandatory header lines not present!";
     return false;
   }
+  return true;
+}
+
+
+bool SIPTransport::combineContinuationLines(QStringList& lines)
+{
+  for (int i = 1; i < lines.size(); ++i)
+  {
+    // combine current line with previous
+    if (lines.at(i).front().isSpace())
+    {
+      printNormalDebug(this, DC_RECEIVE_SIP, "Found a continuation line");
+      lines[i - 1].append(lines.at(i));
+      lines.erase(lines.begin() + i);
+      --i;
+    }
+  }
+
   return true;
 }
 
