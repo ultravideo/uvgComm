@@ -304,6 +304,15 @@ bool parseContentLengthField(SIPField& field,
 }
 
 
+bool parseRecordRouteField(SIPField& field,
+                  std::shared_ptr<SIPMessageInfo> message)
+{
+  Q_ASSERT(message);
+  message->recordRoutes.push_back(SIP_URI{});
+  return parseURI(field.values, message->recordRoutes.back());
+}
+
+
 bool parseServerField(SIPField& field,
                   std::shared_ptr<SIPMessageInfo> message)
 {

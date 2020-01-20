@@ -26,7 +26,8 @@ const uint16_t SIP_PORT = 5060;
 
 // RFC3261_TODO: support compact forms (7.3.3)
 
-const std::map<QString, std::function<bool(SIPField& field, std::shared_ptr<SIPMessageInfo>)>> parsing =
+const std::map<QString, std::function<bool(SIPField& field,
+                                           std::shared_ptr<SIPMessageInfo>)>> parsing =
 {
     {"To", parseToField},
     {"From", parseFromField},
@@ -38,7 +39,8 @@ const std::map<QString, std::function<bool(SIPField& field, std::shared_ptr<SIPM
     {"Content-Type", parseContentTypeField},
     {"Content-Length", parseContentLengthField},
     {"Server", parseServerField},
-    {"User-Agent", parseUserAgentField}
+    {"User-Agent", parseUserAgentField},
+    {"Record-Route", parseRecordRouteField}
 };
 
 
