@@ -528,6 +528,8 @@ bool SIPTransport::fieldsToMessage(QList<SIPField>& fields,
   message->transactionRequest = SIP_NO_REQUEST;
   message->maxForwards = 0;
   message->dialog = std::shared_ptr<SIPDialogInfo> (new SIPDialogInfo);
+  message->content.type = NO_CONTENT;
+  message->content.length = 0;
 
   for(int i = 0; i < fields.size(); ++i)
   {
