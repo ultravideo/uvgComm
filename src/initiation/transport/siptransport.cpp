@@ -447,60 +447,12 @@ bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPF
   }
   firstLine = lines.at(0);
 
-  // RFC3261_TODO: Support comma(,) separated header fields. (expect for some field types)
-
-  // parse lines to fields.
   QStringList debugLineNames = {};
   for(int i = 1; i < lines.size(); ++i)
   {
-    QStringList parameters = lines.at(i).split(";", QString::SkipEmptyParts);
-
-    // RFC3261_TODO: support input with unknown amounts of empty spaces
-    QRegularExpression re_field("(\\S*): (.+)");
-    QRegularExpressionMatch field_match = re_field.match(parameters.at(0));
-
-
-    if(field_match.hasMatch() && field_match.lastCapturedIndex() == 2)
+    if (parseLineToField(lines[i], fields))
     {
-      // RFC3261_TODO: Uniformalize case formatting. Make everything big or small case expect quotes.
-
-      SIPField field = {field_match.captured(1), field_match.captured(2), nullptr};
-      debugLineNames << field.name;
-      if(parameters.size() > 1)
-      {
-        int startIndex = 1;
-
-        // if the parameter is attached to an URI, we add it to values instead of general parameters.
-        if( parameters[startIndex].back() == ">")
-        {
-          field.values += ";";
-          field.values += parameters[startIndex];
-          startIndex += 1;
-        }
-
-        for(int j = startIndex; j < parameters.size(); ++j)
-        {
-          SIPParameter parameter;
-          // TODO: check that parameter does not already exist
-          if(parseParameter(parameters[j], parameter))
-          {
-            if(field.parameters == nullptr)
-            {
-              field.parameters = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
-            }
-            field.parameters->append(parameter);
-          }
-          else
-          {
-            qDebug() << "Failed to parse SIP parameter:" << parameters[j];
-          }
-        }
-      }
-      fields.append(field);
-    }
-    else
-    {
-      qDebug() << "Failed to parse line:" << lines.at(i) << "Matches:" << field_match.lastCapturedIndex();
+       debugLineNames << fields.back().name;
     }
   }
 
@@ -514,6 +466,63 @@ bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPF
      | !isLinePresent("Via", fields))
   {
     qDebug() << "All mandatory header lines not present!";
+    return false;
+  }
+  return true;
+}
+
+
+bool SIPTransport::parseLineToField(QString& line, QList<SIPField>& fields)
+{
+  // RFC3261_TODO: Support comma(,) separated header fields. (expect for some field types)
+
+  QStringList parameters = line.split(";", QString::SkipEmptyParts);
+
+  // RFC3261_TODO: support input with unknown amounts of empty spaces
+  QRegularExpression re_field("(\\S*): (.+)");
+  QRegularExpressionMatch field_match = re_field.match(parameters.at(0));
+
+  if(field_match.hasMatch() && field_match.lastCapturedIndex() == 2)
+  {
+    // RFC3261_TODO: Uniformalize case formatting. Make everything big or small case expect quotes.
+
+    SIPField field = {field_match.captured(1), field_match.captured(2), nullptr};
+
+    if(parameters.size() > 1)
+    {
+      int startIndex = 1;
+
+      // if the parameter is attached to an URI, we add it to values instead of general parameters.
+      if( parameters[startIndex].back() == ">")
+      {
+        field.values += ";";
+        field.values += parameters[startIndex];
+        startIndex += 1;
+      }
+
+      for(int j = startIndex; j < parameters.size(); ++j)
+      {
+        SIPParameter parameter;
+        // TODO: check that parameter does not already exist
+        if(parseParameter(parameters[j], parameter))
+        {
+          if(field.parameters == nullptr)
+          {
+            field.parameters = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
+          }
+          field.parameters->append(parameter);
+        }
+        else
+        {
+          qDebug() << "Failed to parse SIP parameter:" << parameters[j];
+        }
+      }
+    }
+    fields.append(field);
+  }
+  else
+  {
+    qDebug() << "Failed to parse line:" << line << "Matches:" << field_match.lastCapturedIndex();
     return false;
   }
   return true;
