@@ -14,21 +14,6 @@
 // See RFC 6086 for INFO
 // See RFC 6665 for SUBSCRIBE and NOTIFY
 
-// SIPParameter and SIPField are used as an intermediary step in composing and parsing SIP messages
-struct SIPParameter
-{
-  QString name;
-  QString value; // optional
-};
-
-struct SIPField
-{
-  QString name;
-  QString values;
-  std::shared_ptr<QList<SIPParameter>> parameters;
-};
-
-
 enum RequestType {SIP_NO_REQUEST, SIP_INVITE, SIP_ACK, SIP_BYE, SIP_CANCEL, SIP_OPTIONS, SIP_REGISTER};
 // SIP_PRACK, SIP_SUBSCRIBE, SIP_NOTIFY, SIP_PUBLISH, SIP_INFO, SIP_REFER, SIP_MESSAGE, SIP_UPDATE };
 
@@ -55,7 +40,7 @@ enum ResponseType {SIP_UNKNOWN_RESPONSE = 0,
                    SIP_NOT_FOUND = 404,
                    SIP_NOT_ALLOWED = 405,
                    SIP_HEADER_NOT_ACCEPTABLE = 406,
-                   SIP_PROXY_AUTEHTICATION_REQUIRED = 407,
+                   SIP_PROXY_AUTHENTICATION_REQUIRED = 407,
                    SIP_REQUEST_TIMEOUT = 408,
                    SIP_CONFICT = 409, // obsolete
                    SIP_GONE = 410,
@@ -117,17 +102,20 @@ const ConnectionType TRANSPORTTYPE = TCP;
 // 7 is the length of preset string
 const uint32_t BRANCHLENGTH = 32 - 7;
 
-struct ViaInfo
+
+
+// SIPParameter and SIPField are used as an intermediary step in composing and parsing SIP messages
+struct SIPParameter
 {
-  ConnectionType connectionType;
-  QString version;
-  QString address;
-  uint16_t port = 0;              // omitted if 0
-  QString branch;
-  bool alias = false;             // does parameter exist
-  bool rport = false;             // does parameter exist
-  uint16_t rportValue = 0;        // omitted if 0
-  QString receivedAddress = ""; // omitted if empty
+  QString name;
+  QString value; // optional
+};
+
+struct SIPField
+{
+  QString name;
+  QString values;
+  std::shared_ptr<QList<SIPParameter>> parameters;
 };
 
 // usually in format: "realname <sip:username@host>". realname may be empty and should be omitted if so
@@ -141,6 +129,19 @@ struct SIP_URI
 
   // currently we have no need to know the parameters.
   QList<SIPParameter> parameters;
+};
+
+struct ViaInfo
+{
+  ConnectionType connectionType;
+  QString version;
+  QString address;
+  uint16_t port = 0;              // omitted if 0
+  QString branch;
+  bool alias = false;             // does parameter exist
+  bool rport = false;             // does parameter exist
+  uint16_t rportValue = 0;        // omitted if 0
+  QString receivedAddress = ""; // omitted if empty
 };
 
 enum ContentType {NO_CONTENT, APPLICATION_SDP, TEXT_PLAIN};
