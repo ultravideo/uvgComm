@@ -494,46 +494,59 @@ bool SIPTransport::combineContinuationLines(QStringList& lines)
 
 bool SIPTransport::parseLineToField(QString& line, QList<SIPField>& fields)
 {
-  // RFC3261_TODO: Support comma(,) separated header fields. (expect for some field types)
-
-  QStringList parameters = line.split(";", QString::SkipEmptyParts);
-
   QRegularExpression re_field("(\\S*):\\s+(.+)");
-  QRegularExpressionMatch field_match = re_field.match(parameters.at(0));
+  QRegularExpressionMatch field_match = re_field.match(line);
 
+  SIPField field = {"", "", nullptr};
+
+  // separate name from rest
   if(field_match.hasMatch() && field_match.lastCapturedIndex() == 2)
   {
-    // RFC3261_TODO: Uniformalize case formatting. Make everything big or small case expect quotes.
+    field.name = field_match.captured(1);
 
-    SIPField field = {field_match.captured(1), field_match.captured(2), nullptr};
+    QRegularExpression re_values("([^,]+)");
+    QRegularExpressionMatch values_match = re_values.match(field_match.captured(2));
 
-    if(parameters.size() > 1)
+    // separate value sections by commas
+    if(values_match.hasMatch() && values_match.lastCapturedIndex() >= 1)
     {
-      int startIndex = 1;
-
-      // if the parameter is attached to an URI, we add it to values instead of general parameters.
-      if( parameters[startIndex].back() == ">")
+      for (int i = 0; i < values_match.lastCapturedIndex(); ++i)
       {
-        field.values += ";";
-        field.values += parameters[startIndex];
-        startIndex += 1;
-      }
+        QStringList words = values_match.captured(i).split(";", QString::SkipEmptyParts);
+        // RFC3261_TODO: Uniformalize case formatting. Make everything big or small case expect quotes.
 
-      for(int j = startIndex; j < parameters.size(); ++j)
-      {
-        SIPParameter parameter;
-        // TODO: check that parameter does not already exist
-        if(parseParameter(parameters[j], parameter))
+        field.values = words.at(0);
+
+        if(words.size() >= 2)
         {
-          if(field.parameters == nullptr)
+          int startIndex = 1;
+
+          // if the parameter is attached to an URI, we add it to values instead of general parameters.
+          if( words[startIndex].back() == ">")
           {
-            field.parameters = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
+            field.values += ";";
+            field.values += words[startIndex];
+            startIndex += 1;
           }
-          field.parameters->append(parameter);
-        }
-        else
-        {
-          qDebug() << "Failed to parse SIP parameter:" << parameters[j];
+
+          for(int j = startIndex; j < words.size(); ++j)
+          {
+            SIPParameter parameter;
+            // TODO: check that parameter does not already exist
+            if(parseParameter(words[j], parameter))
+            {
+              if(field.parameters == nullptr)
+              {
+                field.parameters = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
+              }
+
+              field.parameters->append(parameter);
+            }
+            else
+            {
+              qDebug() << "Failed to parse SIP parameter:" << words[j];
+            }
+          }
         }
       }
     }
