@@ -504,15 +504,17 @@ bool SIPTransport::parseLineToField(QString& line, QList<SIPField>& fields)
   {
     field.name = field_match.captured(1);
 
-    QRegularExpression re_values("([^,]+)");
-    QRegularExpressionMatch values_match = re_values.match(field_match.captured(2));
-
     // separate value sections by commas
-    if(values_match.hasMatch() && values_match.lastCapturedIndex() >= 1)
+    QStringList values = field_match.captured(2).split(",", QString::SkipEmptyParts);
+
+    if(!values.empty())
     {
-      for (int i = 0; i < values_match.lastCapturedIndex(); ++i)
+      // TODO: Process comma separated fields separately. Now the parameters are all added,
+      // but values are only from last.
+
+      for (int i = 0; i < values.size(); ++i)
       {
-        QStringList words = values_match.captured(i).split(";", QString::SkipEmptyParts);
+        QStringList words = values.at(i).split(";", QString::SkipEmptyParts);
         // RFC3261_TODO: Uniformalize case formatting. Make everything big or small case expect quotes.
 
         field.values = words.at(0);
