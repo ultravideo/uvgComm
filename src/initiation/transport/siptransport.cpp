@@ -456,11 +456,25 @@ bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPF
   for(int i = 1; i < lines.size(); ++i)
   {
     SIPField field = {"", "", {}};
+    QStringList valueSets;
+
     if (parseFieldName(lines[i], field) &&
-        parseFieldValues(lines[i], field))
+        parseFieldValueSets(lines[i], valueSets))
     {
-       debugLineNames << field.name;
-       fields.push_back(field);
+      for (QString& value : valueSets)
+      {
+        if (!parseFieldValue(value, field))
+        {
+          return false;
+        }
+      }
+
+      debugLineNames << field.name;
+      fields.push_back(field);
+    }
+    else
+    {
+      return false;
     }
   }
 
@@ -517,63 +531,57 @@ bool SIPTransport::parseFieldName(QString& line, SIPField& field)
 }
 
 
-bool SIPTransport::parseFieldValues(QString& line, SIPField& field)
+bool SIPTransport::parseFieldValueSets(QString& line, QStringList& outValueSets)
 {
   // separate value sections by commas
-  QStringList values = line.split(",", QString::SkipEmptyParts);
+  outValueSets = line.split(",", QString::SkipEmptyParts);
+  return !outValueSets.empty();
+}
 
-  if(!values.empty())
+
+bool SIPTransport::parseFieldValue(QString& valueSet, SIPField& field)
+{
+  // TODO: Process comma separated fields separately. Now the parameters are all added,
+  // but values are only from last.
+
+  QStringList words = valueSet.split(";", QString::SkipEmptyParts);
+  // RFC3261_TODO: Uniformalize case formatting. Make everything big or small case expect quotes.
+
+  field.values = words.at(0);
+
+  if(words.size() >= 2)
   {
-    // TODO: Process comma separated fields separately. Now the parameters are all added,
-    // but values are only from last.
+    int startIndex = 1;
 
-    for (int i = 0; i < values.size(); ++i)
+    // if the parameter is attached to an URI, we add it to values instead of general parameters.
+    if( words[startIndex].back() == ">")
     {
-      QStringList words = values.at(i).split(";", QString::SkipEmptyParts);
-      // RFC3261_TODO: Uniformalize case formatting. Make everything big or small case expect quotes.
+      field.values += ";";
+      field.values += words[startIndex];
+      startIndex += 1;
+    }
 
-      field.values = words.at(0);
-
-      if(words.size() >= 2)
+    for(int j = startIndex; j < words.size(); ++j)
+    {
+      SIPParameter parameter;
+      // TODO: check that parameter does not already exist
+      if(parseParameter(words[j], parameter))
       {
-        int startIndex = 1;
-
-        // if the parameter is attached to an URI, we add it to values instead of general parameters.
-        if( words[startIndex].back() == ">")
+        if(field.parameters == nullptr)
         {
-          field.values += ";";
-          field.values += words[startIndex];
-          startIndex += 1;
+          field.parameters = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
         }
 
-        for(int j = startIndex; j < words.size(); ++j)
-        {
-          SIPParameter parameter;
-          // TODO: check that parameter does not already exist
-          if(parseParameter(words[j], parameter))
-          {
-            if(field.parameters == nullptr)
-            {
-              field.parameters = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
-            }
-
-            field.parameters->append(parameter);
-          }
-          else
-          {
-            qDebug() << "Failed to parse SIP parameter:" << words[j];
-          }
-        }
+        field.parameters->append(parameter);
+      }
+      else
+      {
+        qDebug() << "Failed to parse SIP parameter:" << words[j];
       }
     }
   }
-  else
-  {
-    return false;
-  }
   return true;
 }
-
 
 bool SIPTransport::fieldsToMessage(QList<SIPField>& fields,
                                    std::shared_ptr<SIPMessageInfo>& message)

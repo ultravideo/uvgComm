@@ -86,8 +86,9 @@ private:
                      QVariant& content);
 
   bool combineContinuationLines(QStringList& lines);
-  bool parseFieldValues(QString& line, SIPField& field);
   bool parseFieldName(QString& line, SIPField &field);
+  bool parseFieldValueSets(QString& line, QStringList &outValueSets);
+  bool parseFieldValue(QString& valueSet, SIPField& field);
 
   void parseContent(QVariant &content, ContentType type, QString &body);
 
