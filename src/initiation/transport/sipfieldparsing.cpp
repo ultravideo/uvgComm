@@ -148,13 +148,14 @@ bool parseToField(SIPField& field,
 {
   Q_ASSERT(message);
   Q_ASSERT(message->dialog);
+  Q_ASSERT(!field.valueSets.empty());
 
-  if(!parseURI(field.values, message->to))
+  if(!parseURI(field.valueSets[0].values, message->to))
   {
     return false;
   }
 
-  parseParameterNameToValue(field.parameters, "tag", message->dialog->toTag);
+  parseParameterNameToValue(field.valueSets[0].parameters, "tag", message->dialog->toTag);
   return true;
 }
 
@@ -164,12 +165,13 @@ bool parseFromField(SIPField& field,
 {
   Q_ASSERT(message);
   Q_ASSERT(message->dialog);
+  Q_ASSERT(!field.valueSets.empty());
 
-  if(!parseURI(field.values, message->from))
+  if(!parseURI(field.valueSets[0].values, message->from))
   {
     return false;
   }
-  parseParameterNameToValue(field.parameters, "tag", message->dialog->fromTag);
+  parseParameterNameToValue(field.valueSets[0].parameters, "tag", message->dialog->fromTag);
   return true;
 }
 
@@ -178,9 +180,10 @@ bool parseCSeqField(SIPField& field,
                   std::shared_ptr<SIPMessageInfo> message)
 {
   Q_ASSERT(message);
+  Q_ASSERT(!field.valueSets.empty());
 
   QRegularExpression re_field("(\\d+) (\\w+)");
-  QRegularExpressionMatch field_match = re_field.match(field.values);
+  QRegularExpressionMatch field_match = re_field.match(field.valueSets[0].values);
 
   if(field_match.hasMatch() && field_match.lastCapturedIndex() == 2)
   {
@@ -197,13 +200,14 @@ bool parseCallIDField(SIPField& field,
 {
   Q_ASSERT(message);
   Q_ASSERT(message->dialog);
+  Q_ASSERT(!field.valueSets.empty());
 
   QRegularExpression re_field("(\\S+)");
-  QRegularExpressionMatch field_match = re_field.match(field.values);
+  QRegularExpressionMatch field_match = re_field.match(field.valueSets[0].values);
 
   if(field_match.hasMatch() && field_match.lastCapturedIndex() == 1)
   {
-    message->dialog->callID = field.values;
+    message->dialog->callID = field.valueSets[0].values;
     return true;
   }
 
@@ -215,9 +219,10 @@ bool parseViaField(SIPField& field,
                    std::shared_ptr<SIPMessageInfo> message)
 {
   Q_ASSERT(message);
+  Q_ASSERT(!field.valueSets.empty());
 
   QRegularExpression re_field("SIP/(\\d.\\d)/(\\w+) ([\\w.]+):?(\\d*)");
-  QRegularExpressionMatch field_match = re_field.match(field.values);
+  QRegularExpressionMatch field_match = re_field.match(field.valueSets[0].values);
 
   if(!field_match.hasMatch() || field_match.lastCapturedIndex() < 3)
   {
@@ -235,12 +240,12 @@ bool parseViaField(SIPField& field,
       via.port = field_match.captured(4).toUInt();
     }
 
-    parseParameterNameToValue(field.parameters, "branch", via.branch);
+    parseParameterNameToValue(field.valueSets[0].parameters, "branch", via.branch);
 
-    parseParameterNameToValue(field.parameters, "received", via.receivedAddress);
+    parseParameterNameToValue(field.valueSets[0].parameters, "received", via.receivedAddress);
 
     QString rportValue = "";
-    if (parseParameterNameToValue(field.parameters, "rport", rportValue))
+    if (parseParameterNameToValue(field.valueSets[0].parameters, "rport", rportValue))
     {
       bool ok = false;
       via.rportValue = rportValue.toUInt(&ok);
@@ -266,8 +271,9 @@ bool parseMaxForwardsField(SIPField& field,
                            std::shared_ptr<SIPMessageInfo> message)
 {
   Q_ASSERT(message);
+  Q_ASSERT(!field.valueSets.empty());
 
-  return parseUint(field.values, message->maxForwards);
+  return parseUint(field.valueSets[0].values, message->maxForwards);
 }
 
 
@@ -275,7 +281,8 @@ bool parseContactField(SIPField& field,
                        std::shared_ptr<SIPMessageInfo> message)
 {
   Q_ASSERT(message);
-  return parseURI(field.values, message->contact);
+  Q_ASSERT(!field.valueSets.empty());
+  return parseURI(field.valueSets[0].values, message->contact);
 }
 
 
@@ -283,9 +290,10 @@ bool parseContentTypeField(SIPField& field,
                            std::shared_ptr<SIPMessageInfo> message)
 {
   Q_ASSERT(message);
+  Q_ASSERT(!field.valueSets.empty());
 
   QRegularExpression re_field("(\\w+/\\w+)");
-  QRegularExpressionMatch field_match = re_field.match(field.values);
+  QRegularExpressionMatch field_match = re_field.match(field.valueSets[0].values);
 
   if(field_match.hasMatch() && field_match.lastCapturedIndex() == 1)
   {
@@ -300,7 +308,8 @@ bool parseContentLengthField(SIPField& field,
                              std::shared_ptr<SIPMessageInfo> message)
 {
   Q_ASSERT(message);
-  return parseUint(field.values, message->content.length);
+  Q_ASSERT(!field.valueSets.empty());
+  return parseUint(field.valueSets[0].values, message->content.length);
 }
 
 
@@ -308,8 +317,9 @@ bool parseRecordRouteField(SIPField& field,
                   std::shared_ptr<SIPMessageInfo> message)
 {
   Q_ASSERT(message);
+  Q_ASSERT(!field.valueSets.empty());
   message->recordRoutes.push_back(SIP_URI{});
-  return parseURI(field.values, message->recordRoutes.back());
+  return parseURI(field.valueSets[0].values, message->recordRoutes.back());
 }
 
 
@@ -317,7 +327,8 @@ bool parseServerField(SIPField& field,
                   std::shared_ptr<SIPMessageInfo> message)
 {
   Q_ASSERT(message);
-  message->server = field.values;
+  Q_ASSERT(!field.valueSets.empty());
+  message->server = field.valueSets[0].values;
 
   return true;
 }
@@ -327,7 +338,8 @@ bool parseUserAgentField(SIPField& field,
                   std::shared_ptr<SIPMessageInfo> message)
 {
   Q_ASSERT(message);
-  message->userAgent = field.values;
+  Q_ASSERT(!field.valueSets.empty());
+  message->userAgent = field.valueSets[0].values;
 
   return true;
 }

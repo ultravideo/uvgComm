@@ -277,24 +277,39 @@ bool SIPTransport::composeMandatoryFields(QList<SIPField>& fields,
 QString SIPTransport::fieldsToString(QList<SIPField>& fields, QString lineEnding)
 {
   QString message = "";
-  for(SIPField field : fields)
+  for(SIPField& field : fields)
   {
-    message += field.name + ": " + field.values;
-    if(field.parameters != nullptr)
+    message += field.name + ": ";
+
+    for (int i = 0; i < field.valueSets.size(); ++i)
     {
-      for(SIPParameter& parameter : *field.parameters)
+      message += field.valueSets.at(i).values;
+
+      if(field.valueSets.at(i).parameters != nullptr)
       {
-        if (parameter.value != "")
+        for(SIPParameter& parameter : *field.valueSets.at(i).parameters)
         {
-          message += ";" + parameter.name + "=" + parameter.value;
-        }
-        else
-        {
-          message += ";" + parameter.name;
+          if (parameter.value != "")
+          {
+            message += ";" + parameter.name + "=" + parameter.value;
+          }
+          else
+          {
+            message += ";" + parameter.name;
+          }
         }
       }
+
+      // should we add a comma(,) or end of line
+      if (i != field.valueSets.size() - 1)
+      {
+        message += ",";
+      }
+      else
+      {
+        message += lineEnding;
+      }
     }
-    message += lineEnding;
   }
   return message;
 }
@@ -455,12 +470,32 @@ bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPF
   QStringList debugLineNames = {};
   for(int i = 1; i < lines.size(); ++i)
   {
-    SIPField field = {"", "", {}};
+    SIPField field = {"", {}};
     QStringList valueSets;
 
     if (parseFieldName(lines[i], field) &&
         parseFieldValueSets(lines[i], valueSets))
     {
+      // Check the correct number of valueSets for Field
+
+      if (field.name != "Contact")
+      {
+        if (valueSets.size() != 1)
+        {
+          printDebug(DEBUG_PEER_ERROR, this, DC_RECEIVE_SIP,
+                     "Incorrect amount of comma separated sets in field",
+                      {"Amount"}, {QString::number(valueSets.size())});
+          return false;
+        }
+      }
+      else if (valueSets.size() == 0 || valueSets.size() > 100)
+      {
+        printDebug(DEBUG_PEER_ERROR, this, DC_RECEIVE_SIP,
+                   "Incorrect amount of comma separated sets in field",
+                    {"Field", "Amount"}, {field.name, QString::number(valueSets.size())});
+        return false;
+      }
+
       for (QString& value : valueSets)
       {
         if (!parseFieldValue(value, field))
@@ -541,13 +576,11 @@ bool SIPTransport::parseFieldValueSets(QString& line, QStringList& outValueSets)
 
 bool SIPTransport::parseFieldValue(QString& valueSet, SIPField& field)
 {
-  // TODO: Process comma separated fields separately. Now the parameters are all added,
-  // but values are only from last.
-
   QStringList words = valueSet.split(";", QString::SkipEmptyParts);
   // RFC3261_TODO: Uniformalize case formatting. Make everything big or small case expect quotes.
+  ValueSet set = ValueSet{"", nullptr};
 
-  field.values = words.at(0);
+  set.values = words.at(0);
 
   if(words.size() >= 2)
   {
@@ -556,8 +589,8 @@ bool SIPTransport::parseFieldValue(QString& valueSet, SIPField& field)
     // if the parameter is attached to an URI, we add it to values instead of general parameters.
     if( words[startIndex].back() == ">")
     {
-      field.values += ";";
-      field.values += words[startIndex];
+      set.values += ";";
+      set.values += words[startIndex];
       startIndex += 1;
     }
 
@@ -567,12 +600,12 @@ bool SIPTransport::parseFieldValue(QString& valueSet, SIPField& field)
       // TODO: check that parameter does not already exist
       if(parseParameter(words[j], parameter))
       {
-        if(field.parameters == nullptr)
+        if(set.parameters == nullptr)
         {
-          field.parameters = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
+          set.parameters = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
         }
 
-        field.parameters->append(parameter);
+        set.parameters->append(parameter);
       }
       else
       {
@@ -580,8 +613,12 @@ bool SIPTransport::parseFieldValue(QString& valueSet, SIPField& field)
       }
     }
   }
+
+  field.valueSets.push_back(set);
+
   return true;
 }
+
 
 bool SIPTransport::fieldsToMessage(QList<SIPField>& fields,
                                    std::shared_ptr<SIPMessageInfo>& message)
@@ -605,7 +642,7 @@ bool SIPTransport::fieldsToMessage(QList<SIPField>& fields,
       if(!parsing.at(fields.at(i).name)(fields[i], message))
       {
         qDebug() << "Failed to parse following field:" << fields.at(i).name;
-        qDebug() << "Values:" << fields.at(i).values;
+        //qDebug() << "Values:" << fields.at(i).valueSets.at(0).values;
         return false;
       }
     }

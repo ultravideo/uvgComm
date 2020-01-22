@@ -111,11 +111,17 @@ struct SIPParameter
   QString value; // optional
 };
 
+// one set of values for a SIP field. Separated by commas
+struct ValueSet
+{
+  QString values;
+  std::shared_ptr<QList<SIPParameter>> parameters;
+};
+
 struct SIPField
 {
   QString name;
-  QString values;
-  std::shared_ptr<QList<SIPParameter>> parameters;
+  QList<ValueSet> valueSets; // separated by comma(,)
 };
 
 // usually in format: "realname <sip:username@host>". realname may be empty and should be omitted if so
@@ -178,6 +184,8 @@ struct SIPDialogInfo
   QString fromTag;
   QString callID; // in form callid@host
 };
+
+// TODO: Enable recording of several valuesets in SIPMessage
 
 // Identifies the SIP message and the transaction it belongs to as well as participants
 struct SIPMessageInfo
