@@ -125,7 +125,7 @@ void ContactList::addContact(ParticipantInterface* interface,
     return;
   }
 
-  int index = doesAddressExist(address);
+  int index = doesAddressExist(username, address);
 
   if(index != -1)
   {
@@ -160,6 +160,7 @@ void ContactList::writeListToSettings()
   settings.endArray();
 }
 
+
 void ContactList::addContactToList(ParticipantInterface *interface,
                                    QString name, QString username, QString address)
 {
@@ -171,11 +172,13 @@ void ContactList::addContactToList(ParticipantInterface *interface,
   addToWidgetList(items_.back());
 }
 
-int ContactList::doesAddressExist(QString address)
+
+int ContactList::doesAddressExist(QString username, QString address)
 {
   for(int i = 0; i < items_.size(); ++i)
   {
-    if(items_.at(i)->getAddress() == address)
+    if(items_.at(i)->getAddress() == address
+       && items_.at(i)->getUserName() == username)
       return i;
   }
   return -1;
@@ -203,6 +206,7 @@ void ContactList::removeContact(int index)
   }
   writeListToSettings();
 }
+
 
 void ContactList::addToWidgetList(ContactListItem* cItem)
 {

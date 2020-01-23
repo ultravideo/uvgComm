@@ -54,7 +54,7 @@ private:
   void addToWidgetList(ContactListItem* cItem);
 
   // return -1 if it does not exist, otherwise returns the index
-  int doesAddressExist(QString address);
+  int doesAddressExist(QString username, QString address);
 
   QAction *deleteAction_;
   // = new QAction("Reset",this);
