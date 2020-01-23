@@ -605,13 +605,14 @@ bool SIPTransport::parseFieldValue(QString& valueSet, SIPField& field)
   for (QChar& character : valueSet)
   {
     // add character to word if it is not parsed out
-    if (character != " "
+    if (isURI ||
+        (character != " "
         && character != "\""
         && character != ";"
         && character != "="
         && character != "("
         && character != ")"
-        && !comments)
+        && !comments))
     {
       currentWord += character;
     }

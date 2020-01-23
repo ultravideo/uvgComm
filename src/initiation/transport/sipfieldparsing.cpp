@@ -30,7 +30,7 @@ bool parseURI(QStringList& words, SIP_URI& uri)
     uriIndex = 1;
   }
 
-  QRegularExpression re_field("<(\\w+):(\\w+)@(.+)>");
+  QRegularExpression re_field("<(\\w+):(?:(\\w+)@)?(.+)>");
   QRegularExpressionMatch field_match = re_field.match(words.at(uriIndex));
 
   // number of matches depends whether real name or the port were given
