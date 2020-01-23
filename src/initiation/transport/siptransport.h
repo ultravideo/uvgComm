@@ -95,6 +95,10 @@ private:
   void signalConnections();
   void destroyConnection();
 
+  void addParameterToSet(SIPParameter& currentParameter, QString& currentWord,
+                    ValueSet& valueSet);
+
+
   QString partialMessage_;
 
   std::shared_ptr<TCPConnection> connection_;

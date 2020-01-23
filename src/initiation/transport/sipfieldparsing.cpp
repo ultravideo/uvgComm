@@ -7,35 +7,39 @@
 
 
 // TODO: Support SIPS uri scheme. Needed for TLS
-bool parseURI(QString values, SIP_URI& uri);
+bool parseURI(QStringList &words, SIP_URI& uri);
 ConnectionType parseUritype(QString type);
 bool parseParameterNameToValue(std::shared_ptr<QList<SIPParameter>> parameters,
                                QString name, QString& value);
 bool parseUint(QString values, uint& number);
 
 
-bool parseURI(QString values, SIP_URI& uri)
+bool parseURI(QStringList& words, SIP_URI& uri)
 {
-  // TODO: parse quotation marks in real name
-  // TODO: support URI's without <>
-  QRegularExpression re_field("(\\w+ )?<(\\w+):(\\w+)@([\\w.:;=]+)>");
-  QRegularExpressionMatch field_match = re_field.match(values);
+  if (words.size() == 0 || words.size() > 2)
+  {
+    qDebug() << "PEER ERROR: Wrong amount of words in words list for URI. Expected 1-2. Got:"
+             << words;
+    return false;
+  }
+
+  int uriIndex = 0;
+  if (words.size() == 2)
+  {
+    uri.realname = words.at(0);
+    uriIndex = 1;
+  }
+
+  QRegularExpression re_field("<(\\w+):(\\w+)@(.+)>");
+  QRegularExpressionMatch field_match = re_field.match(words.at(uriIndex));
 
   // number of matches depends whether real name or the port were given
   if (field_match.hasMatch() &&
-      field_match.lastCapturedIndex() >= 3 &&
-      field_match.lastCapturedIndex() <= 4)
+      field_match.lastCapturedIndex() == 3)
   {
     QString addressString = "";
 
-    if (field_match.lastCapturedIndex() == 4)
-    {
-      uri.realname = field_match.captured(1);
-      uri.connectionType = parseUritype(field_match.captured(2));
-      uri.username = field_match.captured(3);
-      addressString = field_match.captured(4);
-    }
-    else if(field_match.lastCapturedIndex() == 3)
+    if(field_match.lastCapturedIndex() == 3)
     {
       uri.connectionType = parseUritype(field_match.captured(1));
       uri.username = field_match.captured(2);
@@ -150,7 +154,8 @@ bool parseToField(SIPField& field,
   Q_ASSERT(message->dialog);
   Q_ASSERT(!field.valueSets.empty());
 
-  if(!parseURI(field.valueSets[0].values, message->to))
+  if (field.valueSets[0].words.size() >= 1 &&
+      !parseURI(field.valueSets[0].words, message->to))
   {
     return false;
   }
@@ -167,10 +172,12 @@ bool parseFromField(SIPField& field,
   Q_ASSERT(message->dialog);
   Q_ASSERT(!field.valueSets.empty());
 
-  if(!parseURI(field.valueSets[0].values, message->from))
+  if (field.valueSets[0].words.size() >= 1 &&
+      !parseURI(field.valueSets[0].words, message->from))
   {
     return false;
   }
+
   parseParameterNameToValue(field.valueSets[0].parameters, "tag", message->dialog->fromTag);
   return true;
 }
@@ -182,16 +189,16 @@ bool parseCSeqField(SIPField& field,
   Q_ASSERT(message);
   Q_ASSERT(!field.valueSets.empty());
 
-  QRegularExpression re_field("(\\d+) (\\w+)");
-  QRegularExpressionMatch field_match = re_field.match(field.valueSets[0].values);
-
-  if(field_match.hasMatch() && field_match.lastCapturedIndex() == 2)
+  if (field.valueSets[0].words.size() != 2)
   {
-    message->cSeq = field_match.captured(1).toUInt();
-    message->transactionRequest = stringToRequest(field_match.captured(2));
-    return true;
+    return false;
   }
-  return false;
+
+  bool ok = false;
+
+  message->cSeq = field.valueSets[0].words[0].toUInt(&ok);
+  message->transactionRequest = stringToRequest(field.valueSets[0].words[1]);
+  return message->transactionRequest != SIP_NO_REQUEST && ok;
 }
 
 
@@ -202,16 +209,13 @@ bool parseCallIDField(SIPField& field,
   Q_ASSERT(message->dialog);
   Q_ASSERT(!field.valueSets.empty());
 
-  QRegularExpression re_field("(\\S+)");
-  QRegularExpressionMatch field_match = re_field.match(field.valueSets[0].values);
-
-  if(field_match.hasMatch() && field_match.lastCapturedIndex() == 1)
+  if (field.valueSets[0].words.size() != 1)
   {
-    message->dialog->callID = field.valueSets[0].values;
-    return true;
+    return false;
   }
 
-  return false;
+  message->dialog->callID = field.valueSets[0].words[0];
+  return true;
 }
 
 
@@ -221,48 +225,56 @@ bool parseViaField(SIPField& field,
   Q_ASSERT(message);
   Q_ASSERT(!field.valueSets.empty());
 
-  QRegularExpression re_field("SIP/(\\d.\\d)/(\\w+) ([\\w.]+):?(\\d*)");
-  QRegularExpressionMatch field_match = re_field.match(field.valueSets[0].values);
-
-  if(!field_match.hasMatch() || field_match.lastCapturedIndex() < 3)
+  if (field.valueSets[0].words.size() != 2)
   {
     return false;
   }
-  else if(field_match.lastCapturedIndex() == 3 ||
-          field_match.lastCapturedIndex() == 4)
-  {
-    ViaInfo via = {stringToConnection(field_match.captured(2)),
-                   field_match.captured(1),
-                   field_match.captured(3), 0, "", false, false, 0, ""};
 
-    if (field_match.lastCapturedIndex() == 4)
-    {
-      via.port = field_match.captured(4).toUInt();
-    }
+  ViaInfo via = {NONE, "", "", 0, "", false, false, 0, ""};
 
-    parseParameterNameToValue(field.valueSets[0].parameters, "branch", via.branch);
+  QRegularExpression re_first("SIP/(\\d.\\d)/(\\w+)");
+  QRegularExpressionMatch first_match = re_first.match(field.valueSets[0].words[0]);
 
-    parseParameterNameToValue(field.valueSets[0].parameters, "received", via.receivedAddress);
-
-    QString rportValue = "";
-    if (parseParameterNameToValue(field.valueSets[0].parameters, "rport", rportValue))
-    {
-      bool ok = false;
-      via.rportValue = rportValue.toUInt(&ok);
-
-      if (!ok)
-      {
-        via.rportValue = 0;
-      }
-
-    }
-
-    message->vias.push_back(via);
-  }
-  else
+  if(!first_match.hasMatch() || first_match.lastCapturedIndex() != 2)
   {
     return false;
   }
+
+  via.connectionType = stringToConnection(first_match.captured(2));
+  via.version = first_match.captured(1);
+
+  QRegularExpression re_second("([\\w.]+):?(\\d*)");
+  QRegularExpressionMatch second_match = re_second.match(field.valueSets[0].words[1]);
+
+  if(!second_match.hasMatch() || second_match.lastCapturedIndex() > 2)
+  {
+    return false;
+  }
+
+  via.address = second_match.captured(1);
+
+  if (second_match.lastCapturedIndex() == 2)
+  {
+    via.port = second_match.captured(2).toUInt();
+  }
+
+  parseParameterNameToValue(field.valueSets[0].parameters, "branch", via.branch);
+  parseParameterNameToValue(field.valueSets[0].parameters, "received", via.receivedAddress);
+
+  QString rportValue = "";
+  if (parseParameterNameToValue(field.valueSets[0].parameters, "rport", rportValue))
+  {
+    bool ok = false;
+    via.rportValue = rportValue.toUInt(&ok);
+
+    if (!ok)
+    {
+      via.rportValue = 0;
+    }
+  }
+
+  message->vias.push_back(via);
+
   return true;
 }
 
@@ -273,7 +285,8 @@ bool parseMaxForwardsField(SIPField& field,
   Q_ASSERT(message);
   Q_ASSERT(!field.valueSets.empty());
 
-  return parseUint(field.valueSets[0].values, message->maxForwards);
+  return field.valueSets[0].words.size() == 1 &&
+      parseUint(field.valueSets[0].words[0], message->maxForwards);
 }
 
 
@@ -282,7 +295,10 @@ bool parseContactField(SIPField& field,
 {
   Q_ASSERT(message);
   Q_ASSERT(!field.valueSets.empty());
-  return parseURI(field.valueSets[0].values, message->contact);
+  return field.valueSets[0].words.size() == 1 &&
+      parseURI(field.valueSets[0].words, message->contact);
+
+  // TODO: parse expires parameter
 }
 
 
@@ -293,7 +309,7 @@ bool parseContentTypeField(SIPField& field,
   Q_ASSERT(!field.valueSets.empty());
 
   QRegularExpression re_field("(\\w+/\\w+)");
-  QRegularExpressionMatch field_match = re_field.match(field.valueSets[0].values);
+  QRegularExpressionMatch field_match = re_field.match(field.valueSets[0].words[0]);
 
   if(field_match.hasMatch() && field_match.lastCapturedIndex() == 1)
   {
@@ -309,7 +325,8 @@ bool parseContentLengthField(SIPField& field,
 {
   Q_ASSERT(message);
   Q_ASSERT(!field.valueSets.empty());
-  return parseUint(field.valueSets[0].values, message->content.length);
+  return field.valueSets[0].words.size() == 1 &&
+      parseUint(field.valueSets[0].words[0], message->content.length);
 }
 
 
@@ -319,7 +336,7 @@ bool parseRecordRouteField(SIPField& field,
   Q_ASSERT(message);
   Q_ASSERT(!field.valueSets.empty());
   message->recordRoutes.push_back(SIP_URI{});
-  return parseURI(field.valueSets[0].values, message->recordRoutes.back());
+  return parseURI(field.valueSets[0].words, message->recordRoutes.back());
 }
 
 
@@ -328,8 +345,14 @@ bool parseServerField(SIPField& field,
 {
   Q_ASSERT(message);
   Q_ASSERT(!field.valueSets.empty());
-  message->server = field.valueSets[0].values;
 
+  if (field.valueSets[0].words.size() < 1
+      || field.valueSets[0].words.size() > 100)
+  {
+    return false;
+  }
+
+  message->server = field.valueSets[0].words[0];
   return true;
 }
 
@@ -339,8 +362,14 @@ bool parseUserAgentField(SIPField& field,
 {
   Q_ASSERT(message);
   Q_ASSERT(!field.valueSets.empty());
-  message->userAgent = field.valueSets[0].values;
 
+  if (field.valueSets[0].words.size() < 1
+      || field.valueSets[0].words.size() > 100)
+  {
+    return false;
+  }
+
+  message->userAgent = field.valueSets[0].words[0];
   return true;
 }
 

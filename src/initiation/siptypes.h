@@ -114,7 +114,7 @@ struct SIPParameter
 // one set of values for a SIP field. Separated by commas
 struct ValueSet
 {
-  QString values;
+  QStringList words;
   std::shared_ptr<QList<SIPParameter>> parameters;
 };
 
@@ -158,8 +158,8 @@ struct ContentInfo
   uint32_t length;  // set by SIPTransport
 };
 
-/* notes on expansion of the SIP structures such as SIPDialogInfo, SIPMessageInfo, SIPRequest and SIPResponse
- * with new SIP message extensions.
+/* notes on expansion of the SIP structures such as SIPDialogInfo,
+ * SIPMessageInfo, SIPRequest and SIPResponse with new SIP message extensions.
 
  * If you want to add support for a new parameter to SIP message:
  * 1) add the parameter to desired struct,

@@ -283,8 +283,19 @@ QString SIPTransport::fieldsToString(QList<SIPField>& fields, QString lineEnding
 
     for (int i = 0; i < field.valueSets.size(); ++i)
     {
-      message += field.valueSets.at(i).values;
 
+      // add words.
+      for (int j = 0; j < field.valueSets.at(i).words.size(); ++j)
+      {
+        message += field.valueSets.at(i).words.at(j);
+
+        if (j != field.valueSets.at(i).words.size() - 1)
+        {
+          message += " ";
+        }
+      }
+
+      // add parameters
       if(field.valueSets.at(i).parameters != nullptr)
       {
         for(SIPParameter& parameter : *field.valueSets.at(i).parameters)
@@ -327,7 +338,10 @@ void SIPTransport::networkPackage(QString package)
   QList<SIPField> fields;
   QString firstLine = "";
 
-  headerToFields(header, firstLine, fields);
+  if (!headerToFields(header, firstLine, fields))
+  {
+    qDebug() << "Parsing error converting header to fields.";
+  }
 
   if(header != "" && firstLine != "" && !fields.empty())
   {
@@ -500,6 +514,7 @@ bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPF
       {
         if (!parseFieldValue(value, field))
         {
+          qDebug() << "Failed to parse field:" << field.name;
           return false;
         }
       }
@@ -576,42 +591,131 @@ bool SIPTransport::parseFieldValueSets(QString& line, QStringList& outValueSets)
 
 bool SIPTransport::parseFieldValue(QString& valueSet, SIPField& field)
 {
-  QStringList words = valueSet.split(";", QString::SkipEmptyParts);
   // RFC3261_TODO: Uniformalize case formatting. Make everything big or small case expect quotes.
-  ValueSet set = ValueSet{"", nullptr};
+  ValueSet set = ValueSet{{}, nullptr};
 
-  set.values = words.at(0);
+  QString currentWord = "";
+  bool isQuotation = false;
+  bool isURI = false;
+  bool isParameter = false;
+  int comments = 0;
 
-  if(words.size() >= 2)
+  SIPParameter parameter;
+
+  for (QChar& character : valueSet)
   {
-    int startIndex = 1;
-
-    // if the parameter is attached to an URI, we add it to values instead of general parameters.
-    if( words[startIndex].back() == ">")
+    // add character to word if it is not parsed out
+    if (character != " "
+        && character != "\""
+        && character != ";"
+        && character != "="
+        && character != "("
+        && character != ")"
+        && !comments)
     {
-      set.values += ";";
-      set.values += words[startIndex];
-      startIndex += 1;
+      currentWord += character;
     }
 
-    for(int j = startIndex; j < words.size(); ++j)
+    // push current word if it ended
+    if (!comments)
     {
-      SIPParameter parameter;
-      // TODO: check that parameter does not already exist
-      if(parseParameter(words[j], parameter))
+      if ((character == "\"" && isQuotation) ||
+          (character == ">" && isURI) ||
+          (character == " " && !isQuotation))
       {
-        if(set.parameters == nullptr)
+        if (!isParameter)
         {
-          set.parameters = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
+          set.words.push_back(currentWord);
+          currentWord = "";
         }
-
-        set.parameters->append(parameter);
+        else
+        {
+          return false;
+        }
       }
-      else
+      else if((character == "=" && isParameter) ||
+         (character == ";" && !isURI))
       {
-        qDebug() << "Failed to parse SIP parameter:" << words[j];
+        if (!isParameter)
+        {
+          if (character == ";" && currentWord != "")
+          {
+            // last word before parameters
+            set.words.push_back(currentWord);
+            currentWord = "";
+          }
+        }
+        else // isParameter
+        {
+          if (character == "=")
+          {
+            if (parameter.name != "")
+            {
+              return false; // got name when we already have one
+            }
+            else
+            {
+              parameter.name = currentWord;
+              currentWord = "";
+            }
+          }
+          else if (character == ";")
+          {
+            addParameterToSet(parameter, currentWord, set);
+          }
+        }
       }
     }
+
+    // change the state of parsing
+    if (character == "\"") // quote
+    {
+      isQuotation = !isQuotation;
+    }
+    else if (character == "<") // start of URI
+    {
+      if (isQuotation || isURI)
+      {
+        return false;
+      }
+      isURI = true;
+    }
+    else if (character == ">") // end of URI
+    {
+      if (!isURI || isQuotation)
+      {
+        return false;
+      }
+      isURI = false;
+    }
+    else if (character == "(")
+    {
+      ++comments;
+    }
+    else if (character == ")")
+    {
+      if (!comments)
+      {
+        return false;
+      }
+
+      --comments;
+    }
+    else if (!isURI && !isQuotation && character == ";") // parameter
+    {
+      isParameter = true;
+    }
+  }
+
+  // add last word
+  if (isParameter)
+  {
+    addParameterToSet(parameter, currentWord, set);
+  }
+  else if (currentWord != "")
+  {
+    set.words.push_back(currentWord);
+    currentWord = "";
   }
 
   field.valueSets.push_back(set);
@@ -619,6 +723,27 @@ bool SIPTransport::parseFieldValue(QString& valueSet, SIPField& field)
   return true;
 }
 
+
+void SIPTransport::addParameterToSet(SIPParameter& currentParameter, QString &currentWord,
+                  ValueSet& valueSet)
+{
+  if (currentParameter.name == "")
+  {
+    currentParameter.name = currentWord;
+  }
+  else
+  {
+    currentParameter.value = currentWord;
+  }
+  currentWord = "";
+
+  if (valueSet.parameters == nullptr)
+  {
+    valueSet.parameters = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
+  }
+  valueSet.parameters->push_back(currentParameter);
+  currentParameter = SIPParameter{"",""};
+}
 
 bool SIPTransport::fieldsToMessage(QList<SIPField>& fields,
                                    std::shared_ptr<SIPMessageInfo>& message)

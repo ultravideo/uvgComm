@@ -119,11 +119,11 @@ bool includeToField(QList<SIPField> &fields,
     return false;
   }
 
-  SIPField field = {"To", QList<ValueSet>{ValueSet{"", nullptr}}};
+  SIPField field = {"To", QList<ValueSet>{ValueSet{{}, nullptr}}};
 
   if(message->to.realname != "")
   {
-    field.valueSets[0].values = message->to.realname + " ";
+    field.valueSets[0].words.push_back(message->to.realname);
   }
 
   QString uri = composeSIPUri(message->to);
@@ -132,7 +132,7 @@ bool includeToField(QList<SIPField> &fields,
     return false;
   }
 
-  field.valueSets[0].values += "<" + uri + ">";
+  field.valueSets[0].words.push_back("<" + uri + ">");
   field.valueSets[0].parameters = nullptr;
 
   tryAddParameter(field.valueSets[0].parameters, "tag", message->dialog->toTag);
@@ -151,11 +151,11 @@ bool includeFromField(QList<SIPField> &fields,
     return false;
   }
 
-  SIPField field = {"From", QList<ValueSet>{ValueSet{"", nullptr}}};
+  SIPField field = {"From", QList<ValueSet>{ValueSet{{}, nullptr}}};
 
   if(message->from.realname != "")
   {
-    field.valueSets[0].values = message->from.realname + " ";
+    field.valueSets[0].words.push_back(message->from.realname);
   }
 
   QString uri = composeSIPUri(message->from);
@@ -165,7 +165,7 @@ bool includeFromField(QList<SIPField> &fields,
     return false;
   }
 
-  field.valueSets[0].values += "<" + uri + ">";
+  field.valueSets[0].words.push_back("<" + uri + ">");
   field.valueSets[0].parameters = nullptr;
 
   tryAddParameter(field.valueSets[0].parameters, "tag", message->dialog->fromTag);
@@ -184,9 +184,10 @@ bool includeCSeqField(QList<SIPField> &fields,
     return false;
   }
 
-  SIPField field = {"CSeq", QList<ValueSet>{ValueSet{"", nullptr}}};
+  SIPField field = {"CSeq", QList<ValueSet>{ValueSet{{}, nullptr}}};
 
-  field.valueSets[0].values = QString::number(message->cSeq) + " " + requestToString(message->transactionRequest);
+  field.valueSets[0].words.push_back(QString::number(message->cSeq));
+  field.valueSets[0].words.push_back(requestToString(message->transactionRequest));
   field.valueSets[0].parameters = nullptr;
 
   fields.push_back(field);
@@ -203,7 +204,7 @@ bool includeCallIDField(QList<SIPField> &fields,
     return false;
   }
 
-  SIPField field = {"Call-ID", QList<ValueSet>{ValueSet{message->dialog->callID, nullptr}}};
+  SIPField field = {"Call-ID", QList<ValueSet>{ValueSet{{message->dialog->callID}, nullptr}}};
   fields.push_back(field);
   return true;
 }
@@ -224,10 +225,10 @@ bool includeViaFields(QList<SIPField> &fields,
     Q_ASSERT(via.branch != "");
     Q_ASSERT(via.address != "");
 
-    SIPField field = {"Via", QList<ValueSet>{ValueSet{"", nullptr}}};
+    SIPField field = {"Via", QList<ValueSet>{ValueSet{{}, nullptr}}};
 
-    field.valueSets[0].values = "SIP/" + via.version +"/" + connectionToString(via.connectionType)
-        + " " + via.address + composePortString(via.port); //";alias;rport";
+    field.valueSets[0].words.push_back("SIP/" + via.version +"/" + connectionToString(via.connectionType));
+    field.valueSets[0].words.push_back(via.address + composePortString(via.port));
 
     if(!tryAddParameter(field.valueSets[0].parameters, "branch", via.branch))
     {
@@ -264,7 +265,7 @@ bool includeMaxForwardsField(QList<SIPField> &fields,
   }
 
   SIPField field = {"Max-Forwards",
-                    QList<ValueSet>{ValueSet{QString::number(message->maxForwards), nullptr}}};
+                    QList<ValueSet>{ValueSet{{QString::number(message->maxForwards)}, nullptr}}};
   fields.push_back(field);
   return true;
 }
@@ -279,7 +280,7 @@ bool includeContactField(QList<SIPField> &fields,
     return false;
   }
 
-  SIPField field = {"Contact", QList<ValueSet>{ValueSet{"", nullptr}}};
+  SIPField field = {"Contact", QList<ValueSet>{ValueSet{{}, nullptr}}};
 
   QString portString = "";
 
@@ -295,8 +296,8 @@ bool includeContactField(QList<SIPField> &fields,
     transportString = ";transport=tcp";
   }
 
-  field.valueSets[0].values = "<sip:" + message->contact.username + "@"
-      + message->contact.host + portString + transportString + ">";
+  field.valueSets[0].words.push_back("<sip:" + message->contact.username + "@"
+      + message->contact.host + portString + transportString + ">");
 
   field.valueSets[0].parameters = nullptr;
 
@@ -314,7 +315,7 @@ bool includeContentTypeField(QList<SIPField> &fields,
     return false;
   }
   SIPField field = {"Content-Type",
-                    QList<ValueSet>{ValueSet{contentType, nullptr}}};
+                    QList<ValueSet>{ValueSet{{contentType}, nullptr}}};
   fields.push_back(field);
   return true;
 }
@@ -323,7 +324,7 @@ bool includeContentLengthField(QList<SIPField> &fields,
                                uint32_t contentLenght)
 {
   SIPField field = {"Content-Length",
-                    QList<ValueSet>{ValueSet{QString::number(contentLenght), nullptr}}};
+                    QList<ValueSet>{ValueSet{{QString::number(contentLenght)}, nullptr}}};
   fields.push_back(field);
   return true;
 }
@@ -333,7 +334,7 @@ bool includeExpiresField(QList<SIPField>& fields,
                          uint32_t expires)
 {
   SIPField field = {"Expires",
-                    QList<ValueSet>{ValueSet{QString::number(expires), nullptr}}};
+                    QList<ValueSet>{ValueSet{{QString::number(expires)}, nullptr}}};
   fields.push_back(field);
   return true;
 }
