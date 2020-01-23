@@ -330,6 +330,11 @@ void SIPTransactions::processSIPResponse(SIPResponse response, uint32_t sessionI
     removeDialog(sessionID);
   }
 
+  if (!response.message->recordRoutes.empty())
+  {
+    dialogs_[sessionID]->state->setRoute(response.message->recordRoutes);
+  }
+
   qDebug() << "Response processing finished:" << response.type << "Dialog:" << sessionID;
 }
 

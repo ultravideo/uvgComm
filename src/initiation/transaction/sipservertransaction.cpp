@@ -171,6 +171,8 @@ void SIPServerTransaction::copyMessageDetails(std::shared_ptr<SIPMessageInfo>& i
   copy->cSeq = inMessage->cSeq;
   copy->transactionRequest = inMessage->transactionRequest;
 
+  copy->recordRoutes = inMessage->recordRoutes;
+
   // Via- fields in same order
   for(ViaInfo via : inMessage->vias)
   {

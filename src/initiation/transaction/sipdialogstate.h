@@ -32,6 +32,8 @@ public:
   // Generates the request message details
   void getRequestDialogInfo(SIPRequest& outRequest);
 
+  void setRoute(QList<SIP_URI>& route);
+
   // use this to check whether incoming request belongs to this dialog
   // responses should be checked by client which sent the request
   bool correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog,

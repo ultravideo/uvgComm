@@ -16,6 +16,7 @@ SIPDialogState::SIPDialogState():
   // cseq start value. For example 31-bits of 32-bit clock
   localCSeq_(QDateTime::currentSecsSinceEpoch()%2147483647),
   remoteCSeq_(0),
+  route_(),
   sessionState_(false)
 {}
 
@@ -97,6 +98,8 @@ void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inM
     inMessage->dialog->toTag = localTag_;
   }
 
+  route_ = inMessage->recordRoutes;
+
   qDebug() << "Received a dialog creating INVITE. Creating dialog."
            << "CallID: " << callID_ << "OurTag:" << localTag_ << "Cseq:" << localCSeq_;
 }
@@ -129,6 +132,8 @@ void SIPDialogState::getRequestDialogInfo(SIPRequest &outRequest)
   outRequest.message->from = localURI_;
   outRequest.message->to = remoteURI_;
   outRequest.message->contact = localURI_;
+
+  outRequest.message->routes = route_;
 
   // SIPDialogInfo format: toTag, fromTag, CallID
   outRequest.message->dialog
@@ -240,4 +245,10 @@ void SIPDialogState::initLocalURI()
   {
     localURI_.username = "anonymous";
   }
+}
+
+
+void SIPDialogState::setRoute(QList<SIP_URI>& route)
+{
+  route_ = route;
 }
