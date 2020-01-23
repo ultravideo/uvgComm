@@ -60,7 +60,7 @@ void SIPTransactions::startCall(Contact &address, QHostAddress localAddress,
   std::shared_ptr<SIPDialogData> dialogData;
   createBaseDialog(sessionID, dialogData);
   dialogData->state->createNewDialog(SIP_URI{TRANSPORTTYPE, address.username, address.username,
-                                             address.remoteAddress,  0},
+                                             address.remoteAddress,  0, {}},
                                      localAddress.toString(), registered);
 
   // this start call will commence once the connection has been established
