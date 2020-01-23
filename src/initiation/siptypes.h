@@ -124,7 +124,8 @@ struct SIPField
   QList<ValueSet> valueSets; // separated by comma(,)
 };
 
-// usually in format: "realname <sip:username@host>". realname may be empty and should be omitted if so
+// usually in format: "realname <sip:username@host>".
+// realname may be empty and should be omitted if so
 struct SIP_URI
 {
   ConnectionType connectionType;
@@ -210,6 +211,7 @@ struct SIPMessageInfo
   ContentInfo content;
 
   QList<SIP_URI> recordRoutes;
+  QList<SIP_URI> routes;
 };
 
 // data in a request

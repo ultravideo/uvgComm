@@ -175,6 +175,11 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
     return;
   }
 
+  if (!includeRouteField(fields, request.message))
+  {
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_SEND_SIP_REQUEST, "Failed to add Route-fields");
+  }
+
   if ((request.type == SIP_INVITE || request.type == SIP_REGISTER) &&
       !includeContactField(fields, request.message))
   {
@@ -235,6 +240,11 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
   {
     qDebug() << "WARNING: Failed to add mandatory fields. Probably because of missing values.";
     return;
+  }
+
+  if (!includeRecordRouteField(fields, response.message))
+  {
+    printDebug(DEBUG_PROGRAM_ERROR, this, DC_SEND_SIP_REQUEST, "Failed to add RecordRoute-fields");
   }
 
   // TODO: if the response is 405 SIP_NOT_ALLOWED we must include an allow header field.

@@ -338,6 +338,42 @@ bool includeExpiresField(QList<SIPField>& fields,
 }
 
 
+bool includeRecordRouteField(QList<SIPField>& fields,
+                             std::shared_ptr<SIPMessageInfo> message)
+{
+  for (auto& record : message->recordRoutes)
+  {
+    SIPField field = {"Record-Route",
+                      QList<ValueSet>{ValueSet{{}, nullptr}}};
+
+    if (!composeSIPUri(record, field.valueSets[0].words))
+    {
+      return false;
+    }
+    fields.push_back(field);
+  }
+  return true;
+}
+
+
+bool includeRouteField(QList<SIPField>& fields,
+                       std::shared_ptr<SIPMessageInfo> message)
+{
+  for (auto& route : message->routes)
+  {
+    SIPField field = {"Route",
+                      QList<ValueSet>{ValueSet{{}, nullptr}}};
+
+    if (!composeSIPUri(route, field.valueSets[0].words))
+    {
+      return false;
+    }
+    fields.push_back(field);
+  }
+  return true;
+}
+
+
 bool tryAddParameter(std::shared_ptr<QList<SIPParameter>>& parameters,
                      QString parameterName, QString parameterValue)
 {
