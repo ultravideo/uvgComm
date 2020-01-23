@@ -48,14 +48,34 @@ QString composePortString(uint16_t port)
   return portString;
 }
 
-QString composeSIPUri(SIP_URI& uri)
+bool composeSIPUri(SIP_URI& uri, QStringList& words)
 {
-  QString message = composeUritype(uri.connectionType);
-  if (message != "")
+  if (uri.realname != "")
   {
-    message += uri.username + "@" + uri.host + composePortString(uri.port);
+    words.push_back(uri.realname);
   }
-  return message;
+
+  QString uriString = "<" + composeUritype(uri.connectionType);
+  if (uriString != "")
+  {
+    QString parameters = "";
+
+    for (auto& parameter : uri.parameters)
+    {
+      parameters += ";" + parameter.name;
+      if (parameter.value != "")
+      {
+        parameters += "=" + parameter.value;
+      }
+    }
+
+    uriString += uri.username + "@" + uri.host + composePortString(uri.port) + parameters + ">";
+
+    words.push_back(uriString);
+
+    return true;
+  }
+  return false;
 }
 
 
@@ -121,18 +141,11 @@ bool includeToField(QList<SIPField> &fields,
 
   SIPField field = {"To", QList<ValueSet>{ValueSet{{}, nullptr}}};
 
-  if(message->to.realname != "")
-  {
-    field.valueSets[0].words.push_back(message->to.realname);
-  }
-
-  QString uri = composeSIPUri(message->to);
-  if (uri == "")
+  if (!composeSIPUri(message->to, field.valueSets[0].words))
   {
     return false;
   }
 
-  field.valueSets[0].words.push_back("<" + uri + ">");
   field.valueSets[0].parameters = nullptr;
 
   tryAddParameter(field.valueSets[0].parameters, "tag", message->dialog->toTag);
@@ -153,19 +166,11 @@ bool includeFromField(QList<SIPField> &fields,
 
   SIPField field = {"From", QList<ValueSet>{ValueSet{{}, nullptr}}};
 
-  if(message->from.realname != "")
-  {
-    field.valueSets[0].words.push_back(message->from.realname);
-  }
-
-  QString uri = composeSIPUri(message->from);
-
-  if (uri == "")
+  if (!composeSIPUri(message->from, field.valueSets[0].words))
   {
     return false;
   }
 
-  field.valueSets[0].words.push_back("<" + uri + ">");
   field.valueSets[0].parameters = nullptr;
 
   tryAddParameter(field.valueSets[0].parameters, "tag", message->dialog->fromTag);
@@ -282,22 +287,15 @@ bool includeContactField(QList<SIPField> &fields,
 
   SIPField field = {"Contact", QList<ValueSet>{ValueSet{{}, nullptr}}};
 
-  QString portString = "";
-
-  if (message->contact.port != 0)
-  {
-    portString = ":" + QString::number(message->contact.port);
-  }
-
   QString transportString = "";
 
-  if (message->contact.connectionType == TCP)
-  {
-    transportString = ";transport=tcp";
-  }
+  message->contact.realname = "";
+  message->contact.parameters.push_back({"transport", "tcp"});
 
-  field.valueSets[0].words.push_back("<sip:" + message->contact.username + "@"
-      + message->contact.host + portString + transportString + ">");
+  if (!composeSIPUri(message->contact, field.valueSets[0].words))
+  {
+    return false;
+  }
 
   field.valueSets[0].parameters = nullptr;
 
