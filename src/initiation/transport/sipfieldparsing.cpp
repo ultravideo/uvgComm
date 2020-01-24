@@ -61,7 +61,7 @@ bool parseURI(QStringList& words, SIP_URI& uri)
         }
       }
 
-      QRegularExpression re_address("([\\w.]+):?(\\d*)");
+      QRegularExpression re_address("(\\[.+\\]|[\\w.]+):?(\\d*)");
       QRegularExpressionMatch address_match = re_address.match(parameters.first());
 
       if(address_match.hasMatch() &&
