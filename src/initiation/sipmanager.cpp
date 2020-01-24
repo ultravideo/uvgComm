@@ -141,7 +141,7 @@ void SIPManager::acceptCall(uint32_t sessionID)
   quint32 transportID = sessionToTransportID_[sessionID];
 
   transactions_.acceptCall(sessionID,
-                           transports_[transportID]->getLocalAddress().toString(),
+                           transports_[transportID]->getLocalAddress(),
                            transports_[transportID]->getLocalPort());
 }
 
@@ -334,7 +334,7 @@ void SIPManager::transportToProxy(QString serverAddress, SIPRequest &request)
 }
 
 
-void SIPManager::processSIPRequest(SIPRequest& request, QHostAddress localAddress,
+void SIPManager::processSIPRequest(SIPRequest& request, QString localAddress,
                                    QVariant& content, quint32 transportID)
 {
   if(request.type == SIP_INVITE && !negotiation_.canStartSession())
@@ -526,7 +526,7 @@ bool SIPManager::isConnected(QString remoteAddress, quint32& outTransportID)
   for(auto& transport : transports_)
   {
     if(transport != nullptr &&
-       transport->getRemoteAddress().toString() == remoteAddress)
+       transport->getRemoteAddress() == remoteAddress)
     {
       outTransportID = transport->getTransportID();
       return true;
@@ -536,7 +536,7 @@ bool SIPManager::isConnected(QString remoteAddress, quint32& outTransportID)
 }
 
 
-bool SIPManager::SDPOfferToContent(QVariant& content, QHostAddress localAddress,
+bool SIPManager::SDPOfferToContent(QVariant& content, QString localAddress,
                                    uint32_t sessionID)
 {
   std::shared_ptr<SDPMessageInfo> pointer;
@@ -585,7 +585,7 @@ bool SIPManager::SDPOfferToContent(QVariant& content, QHostAddress localAddress,
 
 
 bool SIPManager::processOfferSDP(uint32_t sessionID, QVariant& content,
-                                 QHostAddress localAddress)
+                                 QString localAddress)
 {
   if(!content.isValid())
   {

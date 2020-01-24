@@ -3,7 +3,6 @@
 #include "initiation/siptypes.h"
 
 #include <QObject>
-#include <QHostAddress>
 
 class SIPNonDialogClient;
 class SIPDialogState;
@@ -17,7 +16,7 @@ public:
 
   void init(SIPTransactionUser* callControl);
 
-  void bindToServer(QString serverAddress, QHostAddress localAddress,
+  void bindToServer(QString serverAddress, QString localAddress,
                     uint16_t port);
 
   // Identify if this reponse is to our REGISTER-request
@@ -40,7 +39,7 @@ private:
     std::shared_ptr<SIPNonDialogClient> client;
     std::shared_ptr<SIPDialogState> state;
 
-    QHostAddress localAddress;
+    QString localAddress;
     uint16_t localPort;
 
     bool active;

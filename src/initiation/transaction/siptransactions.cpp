@@ -52,7 +52,7 @@ void SIPTransactions::registerTask()
 }
 
 
-void SIPTransactions::startCall(Contact &address, QHostAddress localAddress,
+void SIPTransactions::startCall(Contact &address, QString localAddress,
                                 uint32_t sessionID, bool registered)
 {
   qDebug() << "SIP," << metaObject()->className() << ": Intializing a new dialog with INVITE";
@@ -61,7 +61,7 @@ void SIPTransactions::startCall(Contact &address, QHostAddress localAddress,
   createBaseDialog(sessionID, dialogData);
   dialogData->state->createNewDialog(SIP_URI{TRANSPORTTYPE, address.username, address.username,
                                              address.remoteAddress,  0, {}},
-                                     localAddress.toString(), registered);
+                                     localAddress, registered);
 
   // this start call will commence once the connection has been established
   if(!dialogData->client->startCall(address.realName))
@@ -89,7 +89,7 @@ void SIPTransactions::renegotiateAllCalls()
 }
 
 
-uint32_t SIPTransactions::createDialogFromINVITE(QHostAddress localAddress,
+uint32_t SIPTransactions::createDialogFromINVITE(QString localAddress,
                                                  std::shared_ptr<SIPMessageInfo> &invite)
 {
   Q_ASSERT(invite);
@@ -99,7 +99,7 @@ uint32_t SIPTransactions::createDialogFromINVITE(QHostAddress localAddress,
   std::shared_ptr<SIPDialogData> dialog;
   createBaseDialog(sessionID, dialog);
 
-  dialog->state->createDialogFromINVITE(invite, localAddress.toString());
+  dialog->state->createDialogFromINVITE(invite, localAddress);
   return sessionID;
 }
 
@@ -201,7 +201,7 @@ void SIPTransactions::endAllCalls()
 
 
 bool SIPTransactions::identifySession(SIPRequest request,
-                                      QHostAddress localAddress,
+                                      QString localAddress,
                                       uint32_t& out_sessionID)
 {
   qDebug() << "Starting to process identifying SIP Request session for type:"

@@ -69,7 +69,7 @@ private slots:
   void transportToProxy(QString serverAddress, SIPRequest &request);
 
   // Process incoming SIP message. May create session if it's an INVITE.
-  void processSIPRequest(SIPRequest &request, QHostAddress localAddress,
+  void processSIPRequest(SIPRequest &request, QString localAddress,
                          QVariant& content, quint32 transportID);
   void processSIPResponse(SIPResponse &response, QVariant& content);
 
@@ -85,9 +85,9 @@ private:
   // Helper functions for SDP management.
 
   // When sending an SDP offer
-  bool SDPOfferToContent(QVariant &content, QHostAddress localAddress, uint32_t sessionID);
+  bool SDPOfferToContent(QVariant &content, QString localAddress, uint32_t sessionID);
   // When receiving an SDP offer
-  bool processOfferSDP(uint32_t sessionID, QVariant &content, QHostAddress localAddress);
+  bool processOfferSDP(uint32_t sessionID, QVariant &content, QString localAddress);
   // When sending an SDP answer
   bool SDPAnswerToContent(QVariant &content, uint32_t sessionID);
   // When receiving an SDP answer

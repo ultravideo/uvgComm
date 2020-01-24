@@ -6,6 +6,8 @@
 
 #include "common.h"
 
+#include <QDebug>
+
 
 SIPRegistrations::SIPRegistrations()
 {
@@ -20,7 +22,7 @@ void SIPRegistrations::init(SIPTransactionUser *callControl)
 }
 
 
-void SIPRegistrations::bindToServer(QString serverAddress, QHostAddress localAddress,
+void SIPRegistrations::bindToServer(QString serverAddress, QString localAddress,
                                     uint16_t port)
 {
   qDebug() << "Binding to SIP server at:" << serverAddress;

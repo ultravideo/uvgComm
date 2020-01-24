@@ -23,7 +23,7 @@ void Negotiation::setLocalInfo(QString username)
 }
 
 
-bool Negotiation::generateOfferSDP(QHostAddress localAddress,
+bool Negotiation::generateOfferSDP(QString localAddress,
                                         uint32_t sessionID)
 {
   Q_ASSERT(sessionID);
@@ -137,7 +137,7 @@ std::shared_ptr<SDPMessageInfo> Negotiation::getFinalConferenceOffer(uint32_t se
 
 
 bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
-                                    QHostAddress localAddress,
+                                    QString localAddress,
                                     uint32_t sessionID)
 {
   Q_ASSERT(sessionID);
@@ -226,17 +226,17 @@ bool Negotiation::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer, uint32_t ses
 }
 
 
-std::shared_ptr<SDPMessageInfo>  Negotiation::generateLocalSDP(QHostAddress localAddress)
+std::shared_ptr<SDPMessageInfo>  Negotiation::generateLocalSDP(QString localAddress)
 {
   // TODO: This should ask media manager, what options it supports.
   qDebug() << "Generating new SDP message with our address as:" << localAddress;
 
-  if(localAddress == QHostAddress::Null
-     || localAddress == QHostAddress("0.0.0.0")
+  if(localAddress == ""
+     || localAddress == "0.0.0.0"
      || localUsername_ == "")
   {
     qWarning() << "WARNING: Necessary info not set for SDP generation:"
-               << localAddress.toString()
+               << localAddress
                << localUsername_;
     return nullptr;
   }
@@ -274,7 +274,7 @@ std::shared_ptr<SDPMessageInfo>  Negotiation::generateLocalSDP(QHostAddress loca
 
 
 std::shared_ptr<SDPMessageInfo> Negotiation::negotiateSDP(SDPMessageInfo& remoteSDPOffer,
-                                                          QHostAddress localAddress)
+                                                          QString localAddress)
 {
   // At this point we should have checked if their offer is acceptable.
   // Now we just have to generate our answer.
@@ -384,15 +384,16 @@ bool Negotiation::selectBestCodec(QList<uint8_t>& remoteNums,       QList<RTPMap
 
 
 void Negotiation::generateOrigin(std::shared_ptr<SDPMessageInfo> sdp,
-                                 QHostAddress localAddress)
+                                 QString localAddress)
 {
   sdp->originator_username = localUsername_;
   sdp->sess_id = QDateTime::currentMSecsSinceEpoch();
   sdp->sess_v = QDateTime::currentMSecsSinceEpoch();
   sdp->host_nettype = "IN";
-  sdp->host_address = localAddress.toString();
-  if(localAddress.protocol() == QAbstractSocket::IPv6Protocol)
+  sdp->host_address = localAddress;
+  if (localAddress.front() == "[")
   {
+    sdp->host_address = localAddress.mid(1, localAddress.size() - 2);
     sdp->host_addrtype = "IP6";
   }
   else {
@@ -402,12 +403,13 @@ void Negotiation::generateOrigin(std::shared_ptr<SDPMessageInfo> sdp,
 
 
 void Negotiation::setConnectionAddress(std::shared_ptr<SDPMessageInfo> sdp,
-                                       QHostAddress localAddress)
+                                       QString localAddress)
 {
-  sdp->connection_address = localAddress.toString();
+  sdp->connection_address = localAddress;
   sdp->connection_nettype = "IN";
-  if(localAddress.protocol() == QAbstractSocket::IPv6Protocol)
+  if (localAddress.front() == "[")
   {
+    sdp->connection_address = localAddress.mid(1, localAddress.size() - 2);
     sdp->connection_addrtype = "IP6";
   }
   else

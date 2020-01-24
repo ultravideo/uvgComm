@@ -64,16 +64,30 @@ bool SIPTransport::isConnected()
   return connection_ && connection_->isConnected();
 }
 
-QHostAddress SIPTransport::getLocalAddress()
+QString SIPTransport::getLocalAddress()
 {
   Q_ASSERT(connection_);
-  return connection_->localAddress();
+
+  QString address = connection_->localAddress().toString();
+  if (connection_->localAddress().protocol() == QAbstractSocket::IPv6Protocol)
+  {
+    address = "[" + address + "]";
+  }
+
+  return address;
 }
 
-QHostAddress SIPTransport::getRemoteAddress()
+QString SIPTransport::getRemoteAddress()
 {
   Q_ASSERT(connection_);
-  return connection_->remoteAddress();
+
+  QString address = connection_->remoteAddress().toString();
+  if (connection_->remoteAddress().protocol() == QAbstractSocket::IPv6Protocol)
+  {
+    address = "[" + address + "]";
+  }
+
+  return address;
 }
 
 uint16_t SIPTransport::getLocalPort()
@@ -160,10 +174,10 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
   // set our addresses for these fields.
   if (!request.message->vias.empty())
   {
-    request.message->vias.back().address = getLocalAddress().toString();
+    request.message->vias.back().address = getLocalAddress();
     request.message->vias.back().port = getLocalPort();
   }
-  request.message->contact.host = getLocalAddress().toString();
+  request.message->contact.host = getLocalAddress();
   request.message->contact.port = getLocalPort();
 
   // start composing the request.

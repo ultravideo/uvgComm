@@ -45,7 +45,7 @@ public:
   uint32_t reserveSessionID();
 
   // start a call with address. Returns generated sessionID
-  void startCall(Contact& address, QHostAddress localAddress,
+  void startCall(Contact& address, QString localAddress,
                  uint32_t sessionID, bool registered);
 
   // sends a re-INVITE
@@ -65,7 +65,7 @@ public:
   void failedToSendMessage();
 
   // returns true if the identification was successful
-  bool identifySession(SIPRequest request, QHostAddress localAddress,
+  bool identifySession(SIPRequest request, QString localAddress,
                        uint32_t& out_sessionID);
 
   bool identifySession(SIPResponse response,
@@ -101,7 +101,7 @@ private:
   };
 
 
-  uint32_t createDialogFromINVITE(QHostAddress localAddress,
+  uint32_t createDialogFromINVITE(QString localAddress,
                                   std::shared_ptr<SIPMessageInfo> &invite);
   void createBaseDialog(uint32_t sessionID,
                         std::shared_ptr<SIPDialogData>& dialog);

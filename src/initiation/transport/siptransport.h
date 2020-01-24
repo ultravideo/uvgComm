@@ -35,8 +35,8 @@ public:
 
   bool isConnected();
 
-  QHostAddress getLocalAddress();
-  QHostAddress getRemoteAddress();
+  QString getLocalAddress();
+  QString getRemoteAddress();
 
   uint16_t getLocalPort();
 
@@ -58,7 +58,7 @@ signals:
   void sipTransportEstablished(quint32 transportID, QString localAddress, QString remoteAddress);
 
   // signals that output parsed sip messages
-  void incomingSIPRequest(SIPRequest& request, QHostAddress localAddress,
+  void incomingSIPRequest(SIPRequest& request, QString localAddress,
                           QVariant& content, quint32 transportID);
   void incomingSIPResponse(SIPResponse& response, QVariant& content);
 
