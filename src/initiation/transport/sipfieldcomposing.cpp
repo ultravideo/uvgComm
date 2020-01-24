@@ -100,14 +100,14 @@ bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
 
   if (request.requestURI.port != 0)
   {
-    port = ":" + QString::number(request.requestURI.port);
+    port = ":" + QString::number(request.requestURI.port) + ";transport=tcp";
   }
 
 
   if(request.type != SIP_REGISTER)
   {
-    type = composeUritype(request.message->to.connectionType);
-    target = request.message->to.username + "@" + request.message->to.host;
+    type = composeUritype(request.requestURI.connectionType);
+    target = request.requestURI.username + "@" + request.requestURI.host;
   }
   else // REGISTER first line does not contain username.
   {
