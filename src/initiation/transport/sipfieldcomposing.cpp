@@ -96,6 +96,13 @@ bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
 
   QString type = "";
   QString target = "";
+  QString port = "";
+
+  if (request.requestURI.port != 0)
+  {
+    port = ":" + QString::number(request.requestURI.port);
+  }
+
 
   if(request.type != SIP_REGISTER)
   {
@@ -109,7 +116,7 @@ bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
   }
 
   line = requestToString(request.type) + " " + type
-      + target + " SIP/" + request.message->version + lineEnding;
+      + target + port + " SIP/" + request.message->version + lineEnding;
 
   return true;
 }
