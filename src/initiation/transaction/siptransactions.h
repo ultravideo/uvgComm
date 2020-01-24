@@ -54,7 +54,8 @@ public:
   void renegotiateAllCalls();
 
   // transaction user wants something.
-  void acceptCall(uint32_t sessionID);
+  void acceptCall(uint32_t sessionID, QString contactAddress,
+                  uint16_t contactPort);
   void rejectCall(uint32_t sessionID);
   void cancelCall(uint32_t sessionID);
 
@@ -100,8 +101,10 @@ private:
   };
 
 
-  uint32_t createDialogFromINVITE(QHostAddress localAddress,  std::shared_ptr<SIPMessageInfo> &invite);
-  void createBaseDialog(uint32_t sessionID, std::shared_ptr<SIPDialogData>& dialog);
+  uint32_t createDialogFromINVITE(QHostAddress localAddress,
+                                  std::shared_ptr<SIPMessageInfo> &invite);
+  void createBaseDialog(uint32_t sessionID,
+                        std::shared_ptr<SIPDialogData>& dialog);
   void destroyDialog(uint32_t sessionID);
   void removeDialog(uint32_t sessionID);
 

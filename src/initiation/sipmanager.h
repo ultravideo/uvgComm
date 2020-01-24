@@ -97,6 +97,7 @@ private:
   uint16_t sipPort_;
 
   // SIP Transport layer
+  // Key is transportID
   QMap<quint32, std::shared_ptr<SIPTransport>> transports_;
   quint32 nextTransportID_; // the next free transportID to be allocated
 

@@ -138,7 +138,11 @@ void SIPManager::acceptCall(uint32_t sessionID)
 
   //negotiation_.startICECandidateNegotiation(sessionID);
 
-  transactions_.acceptCall(sessionID);
+  quint32 transportID = sessionToTransportID_[sessionID];
+
+  transactions_.acceptCall(sessionID,
+                           transports_[transportID]->getLocalAddress().toString(),
+                           transports_[transportID]->getLocalPort());
 }
 
 
@@ -222,7 +226,8 @@ void SIPManager::connectionEstablished(quint32 transportID)
   if(waitingToBind_.find(transportID) != waitingToBind_.end())
   {
     registrations_.bindToServer(waitingToBind_[transportID],
-                                transports_[transportID]->getLocalAddress());
+                                transports_[transportID]->getLocalAddress(),
+                                transports_[transportID]->getLocalPort());
   }
 }
 

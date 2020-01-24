@@ -247,6 +247,13 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
     printDebug(DEBUG_PROGRAM_ERROR, this, DC_SEND_SIP_REQUEST, "Failed to add RecordRoute-fields");
   }
 
+  if (response.message->transactionRequest == SIP_INVITE && response.type == SIP_OK &&
+      !includeContactField(fields, response.message))
+  {
+    qDebug() << "ERROR: Failed to compose contact field for SIP OK response.";
+  }
+
+
   // TODO: if the response is 405 SIP_NOT_ALLOWED we must include an allow header field.
   // lists allowed methods.
 
@@ -502,7 +509,9 @@ bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPF
     {
       // Check the correct number of valueSets for Field
 
-      if (field.name != "Contact")
+      if (field.name != "Contact" &&
+          field.name != "Supported" &&
+          field.name != "Allow")
       {
         if (valueSets.size() != 1)
         {
@@ -634,7 +643,7 @@ bool SIPTransport::parseFieldValue(QString& valueSet, SIPField& field)
           (character == ">" && isURI) ||
           (character == " " && !isQuotation))
       {
-        if (!isParameter)
+        if (!isParameter && currentWord != "")
         {
           set.words.push_back(currentWord);
           currentWord = "";

@@ -17,7 +17,8 @@ public:
 
   void init(SIPTransactionUser* callControl);
 
-  void bindToServer(QString serverAddress, QHostAddress localAddress);
+  void bindToServer(QString serverAddress, QHostAddress localAddress,
+                    uint16_t port);
 
   // Identify if this reponse is to our REGISTER-request
   bool identifyRegistration(SIPResponse& response, QString &outAddress);
@@ -40,6 +41,7 @@ private:
     std::shared_ptr<SIPDialogState> state;
 
     QHostAddress localAddress;
+    uint16_t localPort;
 
     bool active;
 
