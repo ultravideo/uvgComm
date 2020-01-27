@@ -177,8 +177,13 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
     request.message->vias.back().address = getLocalAddress();
     request.message->vias.back().port = getLocalPort();
   }
-  request.message->contact.host = getLocalAddress();
-  request.message->contact.port = getLocalPort();
+
+  // TODO: This is a hack. Set contact address some way else
+  if (request.message->setContactAddress)
+  {
+    request.message->contact.host = getLocalAddress();
+    request.message->contact.port = getLocalPort();
+  }
 
   // start composing the request.
   // First we turn the struct to fields which are then turned to string

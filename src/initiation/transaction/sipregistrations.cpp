@@ -31,7 +31,8 @@ void SIPRegistrations::bindToServer(QString serverAddress, QString localAddress,
   if(transactionUser_)
   {
     SIPRegistrationData data = {std::shared_ptr<SIPNonDialogClient> (new SIPNonDialogClient(transactionUser_)),
-                                std::shared_ptr<SIPDialogState> (new SIPDialogState()), localAddress, port, false};
+                                std::shared_ptr<SIPDialogState> (new SIPDialogState()),
+                                localAddress, port, false, false};
 
     SIP_URI serverUri = {TRANSPORTTYPE, "", "", serverAddress, 0, {}};
     data.state->createServerConnection(serverUri);
@@ -82,6 +83,8 @@ bool SIPRegistrations::identifyRegistration(SIPResponse& response, QString &outA
 
 void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
 {
+  // REGISTER response must not create route. In other words ignore all record-routes
+
   if (response.message->transactionRequest == SIP_REGISTER)
   {
     if (response.type == SIP_OK)
@@ -108,9 +111,10 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
             qDebug() << "Detected that we are behind NAT! Sending a second REGISTER";
             i.second.state->setOurContactAddress(response.message->vias.at(0).receivedAddress,
                                                  response.message->vias.at(0).rportValue);
-            i.second.client->registerToServer(); // re-REGISTER with correct address and port
-          }
 
+            i.second.behindNAT = true;
+            i.second.client->registerToServer(); // re-REGISTER with NAT address and port
+          }
 
           printNormalDebug(this, DC_REGISTRATION,
                            "Registration was succesful.");
@@ -170,6 +174,8 @@ void SIPRegistrations::sendNonDialogRequest(SIP_URI& uri, RequestType type)
 
     registrations_[uri.host].client->getRequestMessageInfo(request.type, request.message);
     registrations_[uri.host].state->getRequestDialogInfo(request);
+
+    request.message->setContactAddress = !registrations_[uri.host].behindNAT;
 
     QVariant content; // we dont have content in REGISTER
     emit transportProxyRequest(uri.host, request);
