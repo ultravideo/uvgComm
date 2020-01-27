@@ -1,5 +1,7 @@
 #pragma once
 
+#include <QObject>
+
 #include "initiation/siptypes.h"
 
 /* This class implements the behavior defined in RFC3261 for component

@@ -1,5 +1,7 @@
 #include "filtergraph.h"
 
+#include <QFile>
+
 #include "media/processing/camerafilter.h"
 #include "media/processing/kvazaarfilter.h"
 #include "media/processing/rgb32toyuv.h"
