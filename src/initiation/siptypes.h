@@ -145,9 +145,9 @@ struct ViaInfo
   QString address;
   uint16_t port = 0;              // omitted if 0
   QString branch;
-  bool alias = false;             // does parameter exist
-  bool rport = false;             // does parameter exist
-  uint16_t rportValue = 0;        // omitted if 0
+  bool alias = false;             // does the flag parameter exist
+  bool rport = false;             // does the flag parameter exist
+  uint16_t rportValue = 0;        // value parameter, omitted if 0
   QString receivedAddress = ""; // omitted if empty
 };
 

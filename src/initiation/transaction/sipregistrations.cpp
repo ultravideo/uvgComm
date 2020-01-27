@@ -104,8 +104,10 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
 
           foundRegistration = true;
 
-          if (i.second.localAddress != response.message->vias.at(0).receivedAddress ||
-              i.second.localPort != response.message->vias.at(0).rportValue)
+          if (response.message->vias.at(0).receivedAddress != "" &&
+              response.message->vias.at(0).rportValue != 0 &&
+              (i.second.localAddress != response.message->vias.at(0).receivedAddress ||
+              i.second.localPort != response.message->vias.at(0).rportValue))
           {
 
             qDebug() << "Detected that we are behind NAT! Sending a second REGISTER";

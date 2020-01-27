@@ -259,7 +259,19 @@ bool includeViaFields(QList<SIPField> &fields,
       qDebug() << "WARNING: Via field failed";
       return false;
     }
+    else if(via.rportValue !=0 && !tryAddParameter(field.valueSets[0].parameters,
+                                                   "rport", QString::number(via.rportValue)))
+    {
+      qDebug() << "WARNING: Via field failed";
+      return false;
+    }
 
+    if (via.receivedAddress != "" && !tryAddParameter(field.valueSets[0].parameters,
+                                                      "received", via.receivedAddress))
+    {
+      qDebug() << "WARNING: Via field failed";
+      return false;
+    }
 
     fields.push_back(field);
   }

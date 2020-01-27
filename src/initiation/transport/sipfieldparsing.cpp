@@ -271,10 +271,6 @@ bool parseViaField(SIPField& field,
     {
       via.rportValue = 0;
     }
-    else
-    {
-      via.rport = true;
-    }
   }
 
   message->vias.push_back(via);
