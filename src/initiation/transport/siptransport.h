@@ -3,6 +3,7 @@
 #include "initiation/siptypes.h"
 #include "initiation/negotiation/sdptypes.h"
 #include "tcpconnection.h"
+#include "siprouting.h"
 #include <QHostAddress>
 #include <QString>
 
@@ -55,7 +56,8 @@ public slots:
 
 signals:
   // signal that ads transportID to connectionEstablished slot
-  void sipTransportEstablished(quint32 transportID, QString localAddress, QString remoteAddress);
+  void sipTransportEstablished(quint32 transportID, QString localAddress,
+                               QString remoteAddress);
 
   // signals that output parsed sip messages
   void incomingSIPRequest(SIPRequest& request, QString localAddress,
@@ -105,4 +107,6 @@ private:
   quint32 transportID_;
 
   StatisticsInterface *stats_;
+
+  SIPRouting routing_;
 };

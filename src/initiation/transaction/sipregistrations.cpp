@@ -32,7 +32,7 @@ void SIPRegistrations::bindToServer(QString serverAddress, QString localAddress,
   {
     SIPRegistrationData data = {std::shared_ptr<SIPNonDialogClient> (new SIPNonDialogClient(transactionUser_)),
                                 std::shared_ptr<SIPDialogState> (new SIPDialogState()),
-                                localAddress, port, false, false};
+                                localAddress, port, false};
 
     SIP_URI serverUri = {TRANSPORTTYPE, "", "", serverAddress, 0, {}};
     data.state->createServerConnection(serverUri);
@@ -112,7 +112,6 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
             i.second.state->setOurContactAddress(response.message->vias.at(0).receivedAddress,
                                                  response.message->vias.at(0).rportValue);
 
-            i.second.behindNAT = true;
             i.second.client->registerToServer(); // re-REGISTER with NAT address and port
           }
 
@@ -174,8 +173,6 @@ void SIPRegistrations::sendNonDialogRequest(SIP_URI& uri, RequestType type)
 
     registrations_[uri.host].client->getRequestMessageInfo(request.type, request.message);
     registrations_[uri.host].state->getRequestDialogInfo(request);
-
-    request.message->setContactAddress = !registrations_[uri.host].behindNAT;
 
     QVariant content; // we dont have content in REGISTER
     emit transportProxyRequest(uri.host, request);

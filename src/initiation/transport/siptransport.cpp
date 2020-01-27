@@ -122,6 +122,9 @@ void SIPTransport::incomingTCPConnection(std::shared_ptr<TCPConnection> con)
   }
   connection_ = con;
 
+  routing_.connectionEstablished(connection_->localAddress().toString(),
+                                 connection_->localPort());
+
   signalConnections();
 }
 
@@ -137,6 +140,9 @@ void SIPTransport::signalConnections()
 
 void SIPTransport::connectionEstablished(QString localAddress, QString remoteAddress)
 {
+  routing_.connectionEstablished(localAddress,
+                                 connection_->localPort());
+
   emit sipTransportEstablished(transportID_,
                                 localAddress,
                                 remoteAddress);
@@ -171,19 +177,7 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
     return;
   }
 
-  // set our addresses for these fields.
-  if (!request.message->vias.empty())
-  {
-    request.message->vias.back().address = getLocalAddress();
-    request.message->vias.back().port = getLocalPort();
-  }
-
-  // TODO: This is a hack. Set contact address some way else
-  if (request.message->setContactAddress)
-  {
-    request.message->contact.host = getLocalAddress();
-    request.message->contact.port = getLocalPort();
-  }
+  routing_.getRequestRouting(request.message);
 
   // start composing the request.
   // First we turn the struct to fields which are then turned to string
@@ -266,6 +260,7 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
     printDebug(DEBUG_PROGRAM_ERROR, this, DC_SEND_SIP_REQUEST, "Failed to add RecordRoute-fields");
   }
 
+  routing_.getResponseContact(response.message);
   if (response.message->transactionRequest == SIP_INVITE && response.type == SIP_OK &&
       !includeContactField(fields, response.message))
   {
@@ -871,6 +866,8 @@ bool SIPTransport::parseResponse(QString responseString, QString version,
   SIPResponse response;
   response.type = type;
   response.message = message;
+
+  routing_.processResponseViaFields(message->vias);
 
   emit incomingSIPResponse(response, content);
 

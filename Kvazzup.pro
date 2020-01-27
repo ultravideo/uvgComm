@@ -6,8 +6,8 @@
 
 QT       += core gui
 
-message("Parsing project file. Qt version:" "$$QT_MAJOR_VERSION"."$$QT_MINOR_VERSION" ------------------------------)
-message("Minimum supported Qt version:" "5.4")
+message("Parsing project file.")
+message("Qt version:" "$$QT_MAJOR_VERSION"."$$QT_MINOR_VERSION" "Min: 5.4")
 
 greaterThan(QT_MAJOR_VERSION, 5)
 {
@@ -49,6 +49,7 @@ SOURCES +=\
     src/initiation/transport/sipconversions.cpp \
     src/initiation/transport/sipfieldcomposing.cpp \
     src/initiation/transport/sipfieldparsing.cpp \
+    src/initiation/transport/siprouting.cpp \
     src/initiation/transport/siptransport.cpp \
     src/initiation/transport/tcpconnection.cpp \
     src/kvazzupcontroller.cpp \
@@ -122,6 +123,7 @@ HEADERS  += \
     src/initiation/transport/sipconversions.h \
     src/initiation/transport/sipfieldcomposing.h \
     src/initiation/transport/sipfieldparsing.h \
+    src/initiation/transport/siprouting.h \
     src/initiation/transport/siptransport.h \
     src/initiation/transport/tcpconnection.h \
     src/kvazzupcontroller.h \

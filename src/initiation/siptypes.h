@@ -199,8 +199,6 @@ struct SIPMessageInfo
 
   QList<ViaInfo> vias;   // from via-fields. Send responses here by copying these.
 
-  // TODO: program flow information does not belong in SIP structure
-  bool setContactAddress = true;
   SIP_URI contact;  // Contact field. Send requests here. Mandatory in INVITE requests
 
   uint32_t cSeq; // must be less than 2^31

@@ -44,8 +44,6 @@ private:
 
     bool active;
 
-    bool behindNAT;
-
     // TODO: refresh the registration
   };
 
