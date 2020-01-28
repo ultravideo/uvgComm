@@ -122,9 +122,6 @@ void SIPTransport::incomingTCPConnection(std::shared_ptr<TCPConnection> con)
   }
   connection_ = con;
 
-  routing_.connectionEstablished(connection_->localAddress().toString(),
-                                 connection_->localPort());
-
   signalConnections();
 }
 
@@ -140,9 +137,6 @@ void SIPTransport::signalConnections()
 
 void SIPTransport::connectionEstablished(QString localAddress, QString remoteAddress)
 {
-  routing_.connectionEstablished(localAddress,
-                                 connection_->localPort());
-
   emit sipTransportEstablished(transportID_,
                                 localAddress,
                                 remoteAddress);
@@ -177,7 +171,9 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
     return;
   }
 
-  routing_.getRequestRouting(request.message);
+  routing_.getViaAndContact(request.message,
+                            connection_->localAddress().toString(),
+                            connection_->localPort());
 
   // start composing the request.
   // First we turn the struct to fields which are then turned to string
@@ -260,7 +256,10 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
     printDebug(DEBUG_PROGRAM_ERROR, this, DC_SEND_SIP_REQUEST, "Failed to add RecordRoute-fields");
   }
 
-  routing_.getResponseContact(response.message);
+  routing_.getContactAddress(response.message,
+                             connection_->localAddress().toString(),
+                             connection_->localPort(), TCP);
+
   if (response.message->transactionRequest == SIP_INVITE && response.type == SIP_OK &&
       !includeContactField(fields, response.message))
   {
@@ -867,7 +866,9 @@ bool SIPTransport::parseResponse(QString responseString, QString version,
   response.type = type;
   response.message = message;
 
-  routing_.processResponseViaFields(message->vias);
+  routing_.processResponseViaFields(message->vias,
+                                    connection_->localAddress().toString(),
+                                    connection_->localPort());
 
   emit incomingSIPResponse(response, content);
 

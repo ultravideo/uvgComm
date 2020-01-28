@@ -32,20 +32,8 @@ public:
   // Generates the request message details
   void getRequestDialogInfo(SIPRequest& outRequest);
 
-  SIP_URI getResponseContactURI()
+  void setRequestUri(SIP_URI& remoteContact)
   {
-    return localContact_;
-  }
-
-  void setOurContactAddress(QString address, uint16_t localPort)
-  {
-    localContact_.host = address;
-    localContact_.port = localPort;
-  }
-
-  void setRemoteContactAddress(SIP_URI& remoteContact)
-  {
-    remoteContact_ = remoteContact;
     requestUri_ = remoteContact;
   }
 
@@ -92,11 +80,8 @@ private:
   // address-of-record is the SIP address if one exists. If we have not registered to
   // server we use our local IP address.
   SIP_URI localURI_; // local address-of-record.
-  SIP_URI localContact_; // may be different from AOR if behind NAT
   SIP_URI remoteURI_; // remote address-of-record.
 
-  // TODO: Could these be combined?
-  SIP_URI remoteContact_; // may be different from AOR if behind NAT
   SIP_URI requestUri_;
 
   // empty until first request is sent/received

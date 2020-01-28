@@ -28,7 +28,6 @@ void SIPDialogState::createNewDialog(SIP_URI remoteURI, QString localAddress,
   initDialog();
 
   remoteURI_ = remoteURI;
-  remoteContact_ = remoteURI;
   requestUri_ = remoteURI;
   if(!registered)
   {
@@ -46,7 +45,6 @@ void SIPDialogState::createServerConnection(SIP_URI requestURI)
   initDialog();
 
   remoteURI_ = localURI_;
-  remoteContact_ = remoteURI_;
   requestUri_ = requestURI; // server has different request uri from remote
   localCSeq_ = 0; //
 }
@@ -80,7 +78,8 @@ void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inM
   setDialog(inMessage->dialog->callID); // TODO: port
 
   remoteURI_ = inMessage->from;
-  remoteContact_ = inMessage->contact;
+
+  // in future we will address our requests to their contact address
   requestUri_ = inMessage->contact;
 
   localURI_.host = hostName;
@@ -134,7 +133,6 @@ void SIPDialogState::getRequestDialogInfo(SIPRequest &outRequest)
   outRequest.message->cSeq = localCSeq_;
   outRequest.message->from = localURI_;
   outRequest.message->to = remoteURI_;
-  outRequest.message->contact = localContact_;
 
   outRequest.message->routes = route_;
 
@@ -247,8 +245,6 @@ void SIPDialogState::initLocalURI()
   {
     localURI_.username = "anonymous";
   }
-
-  localContact_ = localURI_;
 }
 
 

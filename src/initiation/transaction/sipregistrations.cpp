@@ -111,8 +111,6 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
           {
 
             qDebug() << "Detected that we are behind NAT! Sending a second REGISTER";
-            i.second.state->setOurContactAddress(response.message->vias.at(0).receivedAddress,
-                                                 response.message->vias.at(0).rportValue);
 
             i.second.client->registerToServer(); // re-REGISTER with NAT address and port
           }

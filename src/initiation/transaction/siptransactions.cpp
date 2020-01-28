@@ -130,8 +130,7 @@ void SIPTransactions::createBaseDialog(uint32_t sessionID,
                    this, &SIPTransactions::sendResponse);
 }
 
-void SIPTransactions::acceptCall(uint32_t sessionID, QString contactAddress,
-                                 uint16_t contactPort)
+void SIPTransactions::acceptCall(uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
 
@@ -141,7 +140,6 @@ void SIPTransactions::acceptCall(uint32_t sessionID, QString contactAddress,
   std::shared_ptr<SIPDialogData> dialog = dialogs_[sessionID];
   dialogMutex_.unlock();
 
-  dialog->state->setOurContactAddress(contactAddress, contactPort);
   dialog->server->acceptCall();
 }
 
@@ -328,7 +326,7 @@ void SIPTransactions::processSIPResponse(SIPResponse response, uint32_t sessionI
 
   if (response.type == SIP_OK && response.message->transactionRequest == SIP_INVITE)
   {
-    dialogs_[sessionID]->state->setRemoteContactAddress(response.message->contact);
+    dialogs_[sessionID]->state->setRequestUri(response.message->contact);
   }
 
   if(!dialogs_[sessionID]->client->processResponse(response, dialogs_[sessionID]->state))
@@ -381,11 +379,6 @@ void SIPTransactions::sendResponse(uint32_t sessionID, ResponseType type)
   SIPResponse response;
   response.type = type;
   dialogs_[sessionID]->server->getResponseMessage(response.message, type);
-
-  if (type == SIP_OK && response.message->transactionRequest == SIP_INVITE)
-  {
-    response.message->contact = dialogs_[sessionID]->state->getResponseContactURI();
-  }
 
   emit transportResponse(sessionID, response);
   qDebug() << "---- Finished sending of a response ---";

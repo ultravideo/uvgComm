@@ -14,23 +14,26 @@ class SIPRouting
 public:
   SIPRouting();
 
-  // set our via address when we know what is our address
-  void connectionEstablished(QString localAddress, uint16_t localPort);
 
   // check the rport value if
-  void processResponseViaFields(QList<ViaInfo> &vias);
+  void processResponseViaFields(QList<ViaInfo> &vias,
+                                QString localAddress,
+                                uint16_t localPort);
 
   // sets the via and contact addresses of the request
-  void getRequestRouting(std::shared_ptr<SIPMessageInfo> message);
+  void getViaAndContact(std::shared_ptr<SIPMessageInfo> message,
+                         QString localAddress,
+                         uint16_t localPort);
 
-  // set response contact-address
-  void getResponseContact(std::shared_ptr<SIPMessageInfo> message);
+  // modifies the just the contact-address. Use with responses
+  void getContactAddress(std::shared_ptr<SIPMessageInfo> message,
+                          QString localAddress,
+                          uint16_t localPort, ConnectionType type);
 
 private:
 
-  QString viaAddress_;
-  uint16_t viaPort_;
+  QString getUsername();
 
-  QString contactAddress;
+  QString contactAddress_;
   uint16_t contactPort_;
 };

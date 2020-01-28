@@ -138,11 +138,7 @@ void SIPManager::acceptCall(uint32_t sessionID)
 
   //negotiation_.startICECandidateNegotiation(sessionID);
 
-  quint32 transportID = sessionToTransportID_[sessionID];
-
-  transactions_.acceptCall(sessionID,
-                           transports_[transportID]->getLocalAddress(),
-                           transports_[transportID]->getLocalPort());
+  transactions_.acceptCall(sessionID);
 }
 
 

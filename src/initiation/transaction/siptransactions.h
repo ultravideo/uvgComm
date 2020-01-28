@@ -54,8 +54,7 @@ public:
   void renegotiateAllCalls();
 
   // transaction user wants something.
-  void acceptCall(uint32_t sessionID, QString contactAddress,
-                  uint16_t contactPort);
+  void acceptCall(uint32_t sessionID);
   void rejectCall(uint32_t sessionID);
   void cancelCall(uint32_t sessionID);
 

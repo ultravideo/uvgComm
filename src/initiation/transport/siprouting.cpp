@@ -1,40 +1,31 @@
 #include "siprouting.h"
 
+#include <QSettings>
 #include <QDebug>
 
 
 SIPRouting::SIPRouting():
-  viaAddress_(""),
-  viaPort_(0),
-  contactAddress(""),
+  contactAddress_(""),
   contactPort_(0)
 {}
 
-
-void SIPRouting::connectionEstablished(QString localAddress, uint16_t localPort)
-{
-  viaAddress_ = localAddress;
-  viaPort_ = localPort;
-
-  contactAddress = localAddress;
-  contactPort_ = localPort;
-}
-
-
-void SIPRouting::processResponseViaFields(QList<ViaInfo>& vias)
+void SIPRouting::processResponseViaFields(QList<ViaInfo>& vias,
+                                          QString localAddress,
+                                          uint16_t localPort)
 {
   // find the via with our address and port
 
   for (ViaInfo& via : vias)
   {
-    if (via.address == viaAddress_ && via.port == viaPort_)
+    if (via.address == localAddress && via.port == localPort)
     {
       qDebug() << "Found our via!";
 
       if (via.rportValue != 0 && via.receivedAddress != "")
       {
-        qDebug() << "Found rport:" << via.receivedAddress << ":" << via.rportValue;
-        contactAddress = via.receivedAddress;
+        qDebug().nospace().noquote() << "Found rport: " << via.receivedAddress
+                                     << ":" << via.rportValue;
+        contactAddress_ = via.receivedAddress;
         contactPort_ = via.rportValue;
       }
       return;
@@ -43,26 +34,50 @@ void SIPRouting::processResponseViaFields(QList<ViaInfo>& vias)
 }
 
 
-void SIPRouting::getRequestRouting(std::shared_ptr<SIPMessageInfo> message)
+void SIPRouting::getViaAndContact(std::shared_ptr<SIPMessageInfo> message,
+                                   QString localAddress,
+                                   uint16_t localPort)
 {
-  Q_ASSERT(viaPort_ != 0);
-
   // set via-address
   if (!message->vias.empty())
   {
-    message->vias.back().address = viaAddress_;
-    message->vias.back().port = viaPort_;
+    message->vias.back().address = localAddress;
+    message->vias.back().port = localPort;
   }
 
-  // set contact address
-  message->contact.host = contactAddress;
-  message->contact.port = contactPort_;
+  getContactAddress(message, localAddress, localPort, TCP);
 }
 
 
-void SIPRouting::getResponseContact(std::shared_ptr<SIPMessageInfo> message)
+void SIPRouting::getContactAddress(std::shared_ptr<SIPMessageInfo> message,
+                                   QString localAddress, uint16_t localPort, ConnectionType type)
 {
-  // set contact address
-  message->contact.host = contactAddress;
-  message->contact.port = contactPort_;
+  message->contact = {type, getUsername(), "", "", 0, {}};
+
+    // use rport address and port if we have them, otherwise use localaddress
+  if (contactAddress_ != "")
+  {
+    message->contact.host = contactAddress_;
+  }
+  else
+  {
+    message->contact.host = localAddress;
+  }
+
+  if (contactPort_ != 0)
+  {
+    message->contact.port = contactPort_;
+  }
+  else
+  {
+    message->contact.port = localPort;
+  }
+}
+
+
+QString SIPRouting::getUsername()
+{
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+
+  return settings.value("local/Username").toString();
 }
