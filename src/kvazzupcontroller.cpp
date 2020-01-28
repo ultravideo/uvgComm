@@ -20,8 +20,9 @@ void KvazzupController::init()
 {
   window_.init(this);
   window_.show();
+  stats_ = window_.createStatsWindow();
 
-  sip_.init(this);
+  sip_.init(this, stats_);
 
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
   int autoConnect = settings.value("sip/AutoConnect").toInt();
@@ -44,9 +45,6 @@ void KvazzupController::init()
 
   QObject::connect(&sip_, &SIPManager::nominationSucceeded, this, &KvazzupController::startCall);
   QObject::connect(&sip_, &SIPManager::nominationFailed,    this, &KvazzupController::abortCall);
-
-  stats_ = window_.createStatsWindow();
-
   media_.init(window_.getViewFactory(), stats_);
 }
 
@@ -261,7 +259,7 @@ void KvazzupController::createSingleCall(uint32_t sessionID)
                localSDP,
                remoteSDP);
 
-  for (auto media : localSDP->media)
+  for (auto& media : localSDP->media)
   {
     if (media.type == "video" && (media.flagAttributes.empty()
                                   || media.flagAttributes.at(0) == A_SENDRECV
@@ -305,7 +303,7 @@ void KvazzupController::setupConference()
       }
       case WHOLE_CONFERENCE:
       {
-        for (auto session : states_)
+        for (auto& session : states_)
         {
           createSingleCall(session.first);
         }

@@ -133,7 +133,28 @@ StatisticsInterface* CallWindow::createStatsWindow()
 
 void CallWindow::addContact()
 {
-  contacts_.addContact(partInt_, ui_->peerName->text(), "anonymous", ui_->ip->text());
+  // TODO: Check ip legality as an address
+
+  // has the user inputted correct information
+  if (ui_->address->text().isEmpty())
+  {
+    ui_->addressLabel->setText("Please set address!");
+    ui_->addressLabel->setStyleSheet("QLabel { color : red; }");
+  }
+  else
+  {
+    contacts_.addContact(partInt_, ui_->peerName->text(), ui_->username->text(), ui_->address->text());
+
+    // Clean the add menu after successful add
+    ui_->peerName->clear();
+    ui_->username->clear();
+    ui_->address->clear();
+    ui_->addressLabel->setText("Address");
+    ui_->addressLabel->setStyleSheet("QLabel { color : black; }");
+    ui_->Add_contact_widget->hide();
+
+    ui_->addContact->show();
+  }
 }
 
 void CallWindow::displayOutgoingCall(uint32_t sessionID, QString name)

@@ -14,7 +14,6 @@
 // See RFC 6086 for INFO
 // See RFC 6665 for SUBSCRIBE and NOTIFY
 
-
 enum RequestType {SIP_NO_REQUEST, SIP_INVITE, SIP_ACK, SIP_BYE, SIP_CANCEL, SIP_OPTIONS, SIP_REGISTER};
 // SIP_PRACK, SIP_SUBSCRIBE, SIP_NOTIFY, SIP_PUBLISH, SIP_INFO, SIP_REFER, SIP_MESSAGE, SIP_UPDATE };
 
@@ -41,7 +40,7 @@ enum ResponseType {SIP_UNKNOWN_RESPONSE = 0,
                    SIP_NOT_FOUND = 404,
                    SIP_NOT_ALLOWED = 405,
                    SIP_HEADER_NOT_ACCEPTABLE = 406,
-                   SIP_PROXY_AUTEHTICATION_REQUIRED = 407,
+                   SIP_PROXY_AUTHENTICATION_REQUIRED = 407,
                    SIP_REQUEST_TIMEOUT = 408,
                    SIP_CONFICT = 409, // obsolete
                    SIP_GONE = 410,
@@ -95,31 +94,61 @@ enum ResponseType {SIP_UNKNOWN_RESPONSE = 0,
                    SIP_NOT_ACCEPTABLE = 606,
                    SIP_UNWANTED = 607}; // RFC 3261
 
-enum ConnectionType {ANY, TCP, UDP, TLS};
+enum ConnectionType {NONE, TCP, UDP, TLS, TEL};
 
-// SIP is not secured
-// SIPS is TLS secured
-enum UriType {SIP, SIPS, TEL};
-
+// Defines the type of connection in use for SIP
+const ConnectionType TRANSPORTTYPE = TCP;
 
 // 7 is the length of preset string
 const uint32_t BRANCHLENGTH = 32 - 7;
 
-struct ViaInfo
+
+
+// SIPParameter and SIPField are used as an intermediary step in composing and parsing SIP messages
+struct SIPParameter
 {
-  ConnectionType type;
-  QString version;
-  QString address;
-  QString branch;
+  QString name;
+  QString value; // optional
 };
 
-// usually in format: "realname <sip:username@host>". realname may be empty and should be omitted if so
+// one set of values for a SIP field. Separated by commas
+struct ValueSet
+{
+  QStringList words;
+  std::shared_ptr<QList<SIPParameter>> parameters;
+};
+
+struct SIPField
+{
+  QString name;
+  QList<ValueSet> valueSets; // separated by comma(,)
+};
+
+// usually in format: "realname <sip:username@host>".
+// realname may be empty and should be omitted if so
 struct SIP_URI
 {
+  ConnectionType connectionType;
   QString username;
   QString realname;
   QString host;
-  UriType type;
+  uint16_t port = 0; // omitted if 0
+
+  // currently we have no need to know the parameters.
+  QList<SIPParameter> parameters;
+};
+
+struct ViaInfo
+{
+  ConnectionType connectionType;
+  QString version;
+  QString address;
+  uint16_t port = 0;              // omitted if 0
+  QString branch;
+  bool alias = false;             // does the flag parameter exist
+  bool rport = false;             // does the flag parameter exist
+  uint16_t rportValue = 0;        // value parameter, omitted if 0
+  QString receivedAddress = ""; // omitted if empty
 };
 
 enum ContentType {NO_CONTENT, APPLICATION_SDP, TEXT_PLAIN};
@@ -130,8 +159,8 @@ struct ContentInfo
   uint32_t length;  // set by SIPTransport
 };
 
-/* notes on expansion of the SIP structures such as SIPDialogInfo, SIPMessageInfo, SIPRequest and SIPResponse
- * with new SIP message extensions.
+/* notes on expansion of the SIP structures such as SIPDialogInfo,
+ * SIPMessageInfo, SIPRequest and SIPResponse with new SIP message extensions.
 
  * If you want to add support for a new parameter to SIP message:
  * 1) add the parameter to desired struct,
@@ -157,6 +186,8 @@ struct SIPDialogInfo
   QString callID; // in form callid@host
 };
 
+// TODO: Enable recording of several valuesets in SIPMessage
+
 // Identifies the SIP message and the transaction it belongs to as well as participants
 struct SIPMessageInfo
 {
@@ -166,13 +197,22 @@ struct SIPMessageInfo
   SIP_URI from; // For dialog requests, use SIPDialog. Otherwise use SIPInfo
   SIP_URI to;
 
-  QList<ViaInfo> senderReplyAddress;   // from via-fields. Send responses here by copying these.
+  QList<ViaInfo> vias;   // from via-fields. Send responses here by copying these.
+
   SIP_URI contact;  // Contact field. Send requests here. Mandatory in INVITE requests
 
   uint32_t cSeq; // must be less than 2^31
   RequestType transactionRequest;
 
+  uint32_t expires;
+
+  QString userAgent;
+  QString server;
+
   ContentInfo content;
+
+  QList<SIP_URI> recordRoutes;
+  QList<SIP_URI> routes;
 };
 
 // data in a request
@@ -191,16 +231,3 @@ struct SIPResponse
 };
 
 
-// SIPParameter and SIPField are used as an intermediary step in composing and parsing SIP messages
-struct SIPParameter
-{
-  QString name;
-  QString value;
-};
-
-struct SIPField
-{
-  QString name;
-  QString values;
-  std::shared_ptr<QList<SIPParameter>> parameters;
-};

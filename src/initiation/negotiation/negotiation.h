@@ -4,7 +4,6 @@
 #include "sdpparametermanager.h"
 #include "ice.h"
 
-#include <QHostAddress>
 #include <QMutex>
 
 #include <deque>
@@ -38,13 +37,13 @@ public:
 
   // Use this to generate the first SDP offer of the negotiation.
   // Includes all the media codecs suitable to us in preferred order.
-  bool generateOfferSDP(QHostAddress localAddress, uint32_t sessionID);
+  bool generateOfferSDP(QString localAddress, uint32_t sessionID);
 
   // Use this to generate our response to their SDP suggestion.
   // Sets unacceptable media streams port number to 0.
   // Selects a subset of acceptable payload types from each media.
   bool generateAnswerSDP(SDPMessageInfo& remoteSDPOffer,
-                         QHostAddress localAddress,
+                         QString localAddress,
                          uint32_t sessionID);
 
   // process their response SDP.
@@ -94,13 +93,13 @@ public slots:
 
 private:
 
-  std::shared_ptr<SDPMessageInfo> generateLocalSDP(QHostAddress localAddress);
+  std::shared_ptr<SDPMessageInfo> generateLocalSDP(QString localAddress);
 
   std::shared_ptr<SDPMessageInfo> negotiateSDP(SDPMessageInfo& remoteSDPOffer,
-                                               QHostAddress localAddress);
+                                               QString localAddress);
 
-  void generateOrigin(std::shared_ptr<SDPMessageInfo> sdp, QHostAddress localAddress);
-  void setConnectionAddress(std::shared_ptr<SDPMessageInfo> sdp, QHostAddress localAddress);
+  void generateOrigin(std::shared_ptr<SDPMessageInfo> sdp, QString localAddress);
+  void setConnectionAddress(std::shared_ptr<SDPMessageInfo> sdp, QString localAddress);
 
   bool generateAudioMedia(MediaInfo &audio);
   bool generateVideoMedia(MediaInfo &video);

@@ -190,14 +190,14 @@ void Live555RTP::removePeer(uint32_t sessionID)
       qSleep(1);
     }
 
-    for (auto sender : peers_.at(sessionID - 1)->senders)
+    for (auto& sender : peers_.at(sessionID - 1)->senders)
     {
       destroySender(sender);
       sender = nullptr;
     }
     peers_.at(sessionID - 1)->senders.clear();
 
-    for (auto receiver : peers_.at(sessionID - 1)->receivers)
+    for (auto& receiver : peers_.at(sessionID - 1)->receivers)
     {
       destroyReceiver(receiver);
       receiver = nullptr;

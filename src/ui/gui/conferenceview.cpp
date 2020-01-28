@@ -72,7 +72,7 @@ void ConferenceView::updateSessionState(SessionViewState state,
   {
     printDebug(DEBUG_NORMAL, this, DC_START_CALL,
                "Clearing all previous views.");
-    for (auto view : activeViews_[sessionID]->views_)
+    for (auto& view : activeViews_[sessionID]->views_)
     {
       uninitializeView(view);
     }
@@ -286,28 +286,21 @@ void ConferenceView::addVideoStream(uint32_t sessionID,
   printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA,
              "Adding Videostream.", {"SessionID"}, {QString::number(sessionID)});
 
-  uint32_t existingViews = 0;
-
   if(!checkSession(sessionID))
   {
     printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA,
                "Did not find previous session. Assuming auto-accept and adding widget anyway",
               {"SessionID"}, {QString::number(sessionID)});
-    existingViews = 0;
   }
   else if(activeViews_[sessionID]->state == VIEW_INACTIVE)
   {
     printDebug(DEBUG_PROGRAM_WARNING, this, DC_ADD_MEDIA,
                      "Activating video view for session state which should not be possible.",
                     {"SessionID"}, {QString::number(sessionID)});
-    existingViews = activeViews_[sessionID]->views_.size();
-  }
-  else {
-    existingViews = activeViews_[sessionID]->views_.size();
   }
 
   // create the view
-  uint32_t id = factory->createWidget(sessionID, nullptr, this, existingViews);
+  uint32_t id = factory->createWidget(sessionID, nullptr, this);
   QWidget* view = factory->getView(sessionID, id);
 
   if (view != nullptr)
@@ -459,7 +452,7 @@ void ConferenceView::unitializeSession(std::unique_ptr<SessionViews> peer)
 {
   if(peer->state != VIEW_INACTIVE)
   {
-    for (auto view : peer->views_)
+    for (auto& view : peer->views_)
     {
       uninitializeView(view);
     }

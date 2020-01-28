@@ -45,7 +45,7 @@ private:
 
   QString name_;
   QString username_;
-  QString ip_;
+  QString address;
 
   QGridLayout* layout_;
 

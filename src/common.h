@@ -37,6 +37,7 @@ enum DebugContext{DC_NO_CONTEXT,
                   DC_STARTUP,
                   DC_SHUTDOWN,
                   DC_SETTINGS,
+                  DC_REGISTRATION,
                   DC_START_CALL,
                   DC_END_CALL,
                   DC_RINGING,
@@ -61,6 +62,15 @@ enum DebugContext{DC_NO_CONTEXT,
                  };
 
 
+
+void printNormalDebug(QObject* object, DebugContext context, QString description = "",
+                      QString valueName = "", QString value = "");
+
+void printPErrorDebug(QObject* object, DebugContext context, QString description = "",
+                      QString valueName  = "", QString value = "");
+
+void printUnimplemented(QObject* object, QString whatIsNotImplemented);
+
 // Print debug information with custom class name. Use this and getname with filters.
 // context is a general context that makes it easier to link different prints to one another.
 // TODO: The order of parameters would be more logical/easier with the enums at the beginning.
@@ -75,6 +85,7 @@ void printDebug(DebugType type, QString className,
 void printDebug(DebugType type, QObject* object,
                 DebugContext context, QString description = "",
                 QStringList valueNames = {}, QStringList values = {});
+
 
 
 

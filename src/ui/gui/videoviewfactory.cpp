@@ -19,7 +19,7 @@ VideoviewFactory::VideoviewFactory():
 {}
 
 uint32_t VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent,
-                                        ConferenceView* conf, uint32_t index)
+                                        ConferenceView* conf)
 {
   qDebug() << "View, VideoFactory : Creating videowidget for sessionID:" << sessionID;
   QSettings settings("kvazzup.ini", QSettings::IniFormat);

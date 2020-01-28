@@ -393,7 +393,7 @@ bool CustomSettings::checkVideoSettings()
 {
   bool everythingPresent = checkMissingValues(settings_);
 
-  for(auto need : neededSettings)
+  for(auto& need : neededSettings)
   {
     if(!settings_.contains(need))
     {

@@ -119,7 +119,7 @@ void SIPServerTransaction::getResponseMessage(std::shared_ptr<SIPMessageInfo> &o
   copyMessageDetails(receivedRequest_, outMessage);
   outMessage->maxForwards = 71;
   outMessage->version = "2.0";
-  outMessage->contact = SIP_URI{"","","", SIP}; // No contact for reply?
+  outMessage->contact = SIP_URI{TRANSPORTTYPE, "", "", "", 0, {}};
   outMessage->content.length = 0;
   outMessage->content.type = NO_CONTENT;
 
@@ -171,10 +171,12 @@ void SIPServerTransaction::copyMessageDetails(std::shared_ptr<SIPMessageInfo>& i
   copy->cSeq = inMessage->cSeq;
   copy->transactionRequest = inMessage->transactionRequest;
 
+  copy->recordRoutes = inMessage->recordRoutes;
+
   // Via- fields in same order
-  for(ViaInfo via : inMessage->senderReplyAddress)
+  for(ViaInfo via : inMessage->vias)
   {
-    copy->senderReplyAddress.push_back(via);
+    copy->vias.push_back(via);
   }
 
   // To field, expect if To tag is missing, in which case it should be added

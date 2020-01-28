@@ -20,6 +20,22 @@ void SIPDialogClient::setSessionID(uint32_t sessionID)
   sessionID_ = sessionID;
 }
 
+
+void SIPDialogClient::getRequestMessageInfo(RequestType type,
+                           std::shared_ptr<SIPMessageInfo> &outMessage)
+{
+  SIPClientTransaction::getRequestMessageInfo(type, outMessage);
+
+  if (type == SIP_INVITE || type == SIP_ACK)
+  {
+    if (!outMessage->vias.empty())
+    {
+      outMessage->vias.back().rport = true;
+    }
+  }
+}
+
+
 //processes incoming response
 bool SIPDialogClient::processResponse(SIPResponse& response,
                                       std::shared_ptr<SIPDialogState> state)
@@ -57,7 +73,7 @@ bool SIPDialogClient::processResponse(SIPResponse& response,
       {
         getTransactionUser()->peerAccepted(sessionID_);
       }
-      sendRequest(SIP_ACK);
+      startTransaction(SIP_ACK);
       state->setState(true);
       getTransactionUser()->callNegotiated(sessionID_);
       return true;
@@ -112,7 +128,7 @@ bool SIPDialogClient::startCall(QString callee)
     return false;
   }
 
-  sendRequest(SIP_INVITE);
+  startTransaction(SIP_INVITE);
 
   getTransactionUser()->outgoingCall(sessionID_, callee);
 
@@ -122,17 +138,17 @@ bool SIPDialogClient::startCall(QString callee)
 void SIPDialogClient::endCall()
 {
   qDebug() << "Ending the call with BYE";
-  sendRequest(SIP_BYE);
+  startTransaction(SIP_BYE);
 }
 
 void SIPDialogClient::cancelCall()
 {
-  sendRequest(SIP_CANCEL);
+  startTransaction(SIP_CANCEL);
 }
 
 void SIPDialogClient::renegotiateCall()
 {
-  sendRequest(SIP_INVITE);
+  startTransaction(SIP_INVITE);
 }
 
 void SIPDialogClient::processTimeout()
@@ -141,15 +157,15 @@ void SIPDialogClient::processTimeout()
   {
     emit sendDialogRequest(sessionID_, SIP_BYE);
     // TODO tell user we have failed
-    sendRequest(SIP_CANCEL);
+    startTransaction(SIP_CANCEL);
     getTransactionUser()->peerRejected(sessionID_);
   }
 
   SIPClientTransaction::processTimeout();
 }
 
-void SIPDialogClient::sendRequest(RequestType type)
+void SIPDialogClient::startTransaction(RequestType type)
 {
   emit sendDialogRequest(sessionID_, type);
-  SIPClientTransaction::sendRequest(type);
+  SIPClientTransaction::startTransaction(type);
 }

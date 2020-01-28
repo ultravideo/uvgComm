@@ -273,11 +273,11 @@ QString Filter::printOutputs()
 {
   QString outs = "";
 
-  for(auto out : outConnections_)
+  for(auto& out : outConnections_)
   {
     outs += "   \"" + name_ + "\" -> \"" + out->name_ + "\";" + "\r\n";
   }
-  for(auto out : outDataCallbacks_)
+  for(auto& out : outDataCallbacks_)
   {
     outs += "   \"" + name_ + "\" -> \" All_outputs \";" + "\r\n";
   }

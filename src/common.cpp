@@ -49,6 +49,7 @@ const std::map<DebugContext, QString> contextToString = {{DC_NO_CONTEXT, ""},
                                          {DC_STARTUP, "Startup"},
                                          {DC_SHUTDOWN, "Shutdown"},
                                          {DC_SETTINGS, "Settings"},
+                                         {DC_REGISTRATION, "Registration"},
                                          {DC_START_CALL, "Starting call"},
                                          {DC_END_CALL, "Ending a call"},
                                          {DC_RINGING, "Ringing"},
@@ -75,8 +76,42 @@ void printDebug(DebugType type, QObject* object,
                 DebugContext context, QString description,
                 QStringList valueNames, QStringList values)
 {
-  printDebug(type, object->metaObject()->className(), context, description, valueNames, values);
+  printDebug(type, object->metaObject()->className(),
+             context, description,
+             valueNames, values);
 }
+
+
+void printNormalDebug(QObject* object, DebugContext context, QString description,
+                      QString valueName, QString value)
+{
+  QStringList names;
+  if (valueName != "")
+  {
+    names.push_back(valueName);
+  }
+  QStringList values;
+  if (value != "")
+  {
+    values.push_back(value);
+  }
+  printDebug(DEBUG_NORMAL, object, context, description, names, values);
+}
+
+
+void printPErrorDebug(QObject* object, DebugContext context, QString description,
+                      QString valueName, QString value)
+{
+  printDebug(DEBUG_PROGRAM_ERROR, object, context, description, {valueName}, {value});
+}
+
+
+void printUnimplemented(QObject* object, QString whatIsNotImplemented)
+{
+  printDebug(DEBUG_PROGRAM_ERROR, object, DC_NO_CONTEXT,
+             QString("NOT IMPLEMENTED: ") + whatIsNotImplemented);
+}
+
 
 void printDebug(DebugType type, QString className, DebugContext context,
                 QString description, QStringList valueNames, QStringList values)

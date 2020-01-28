@@ -38,7 +38,7 @@ void Negotiation::setLocalInfo(QString username)
 }
 
 
-bool Negotiation::generateOfferSDP(QHostAddress localAddress,
+bool Negotiation::generateOfferSDP(QString localAddress,
                                         uint32_t sessionID)
 {
   Q_ASSERT(sessionID);
@@ -64,12 +64,12 @@ bool Negotiation::initialConferenceOfferSDP(uint32_t sessionID)
 
   // go through every media and include it in our conference offer so we get a
   // response port for each media in conference for them.
-  for (auto callSession : sdps_)
+  for (auto& callSession : sdps_)
   {
     // don't include their own address
     if (callSession.first != sessionID)
     {
-      for (auto media : callSession.second.second->media)
+      for (auto& media : callSession.second.second->media)
       {
         media.connection_address = callSession.second.second->connection_address;
         media.connection_nettype = callSession.second.second->connection_nettype;
@@ -112,9 +112,9 @@ bool Negotiation::finalConferenceOfferSDP(uint32_t sessionID)
 
   QString remoteAddress = sdps_.at(sessionID).second->connection_address;
 
-  for (auto sdp : recvConferenceSdps_)
+  for (auto& sdp : recvConferenceSdps_)
   {
-    for (auto media : sdp.second->media)
+    for (auto& media : sdp.second->media)
     {
 
       // TODO: SHould this be unequal?
@@ -152,7 +152,7 @@ std::shared_ptr<SDPMessageInfo> Negotiation::getFinalConferenceOffer(uint32_t se
 
 
 bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
-                                    QHostAddress localAddress,
+                                    QString localAddress,
                                     uint32_t sessionID)
 {
   Q_ASSERT(sessionID);
@@ -220,17 +220,17 @@ bool Negotiation::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer, uint32_t ses
 }
 
 
-std::shared_ptr<SDPMessageInfo>  Negotiation::generateLocalSDP(QHostAddress localAddress)
+std::shared_ptr<SDPMessageInfo>  Negotiation::generateLocalSDP(QString localAddress)
 {
   // TODO: This should ask media manager, what options it supports.
   qDebug() << "Generating new SDP message with our address as:" << localAddress;
 
-  if(localAddress == QHostAddress::Null
-     || localAddress == QHostAddress("0.0.0.0")
+  if(localAddress == ""
+     || localAddress == "0.0.0.0"
      || localUsername_ == "")
   {
     qWarning() << "WARNING: Necessary info not set for SDP generation:"
-               << localAddress.toString()
+               << localAddress
                << localUsername_;
     return nullptr;
   }
@@ -268,7 +268,7 @@ std::shared_ptr<SDPMessageInfo>  Negotiation::generateLocalSDP(QHostAddress loca
 
 
 std::shared_ptr<SDPMessageInfo> Negotiation::negotiateSDP(SDPMessageInfo& remoteSDPOffer,
-                                                          QHostAddress localAddress)
+                                                          QString localAddress)
 {
   // At this point we should have checked if their offer is acceptable.
   // Now we just have to generate our answer.
@@ -285,7 +285,7 @@ std::shared_ptr<SDPMessageInfo> Negotiation::negotiateSDP(SDPMessageInfo& remote
   newInfo->timeDescriptions = remoteSDPOffer.timeDescriptions;
 
   // Now the hard part. Select best codecs and set our corresponding media ports.
-  for (auto remoteMedia : remoteSDPOffer.media)
+  for (auto& remoteMedia : remoteSDPOffer.media)
   {
     MediaInfo ourMedia;
     ourMedia.type = remoteMedia.type;
@@ -342,9 +342,9 @@ bool Negotiation::selectBestCodec(QList<uint8_t>& remoteNums,       QList<RTPMap
                                   QList<uint8_t>& supportedNums,    QList<RTPMap> &supportedCodecs,
                                   QList<uint8_t>& outMatchingNums,  QList<RTPMap> &outMatchingCodecs)
 {
-  for (auto remoteCodec : remoteCodecs)
+  for (auto& remoteCodec : remoteCodecs)
   {
-    for (auto supportedCodec : supportedCodecs)
+    for (auto& supportedCodec : supportedCodecs)
     {
       if(remoteCodec.codec == supportedCodec.codec)
       {
@@ -358,9 +358,9 @@ bool Negotiation::selectBestCodec(QList<uint8_t>& remoteNums,       QList<RTPMap
     }
   }
 
-  for (auto rtpNumber : remoteNums)
+  for (auto& rtpNumber : remoteNums)
   {
-    for (auto supportedNum : supportedNums)
+    for (auto& supportedNum : supportedNums)
     {
       if(rtpNumber == supportedNum)
       {
@@ -379,15 +379,16 @@ bool Negotiation::selectBestCodec(QList<uint8_t>& remoteNums,       QList<RTPMap
 
 
 void Negotiation::generateOrigin(std::shared_ptr<SDPMessageInfo> sdp,
-                                 QHostAddress localAddress)
+                                 QString localAddress)
 {
   sdp->originator_username = localUsername_;
   sdp->sess_id = QDateTime::currentMSecsSinceEpoch();
   sdp->sess_v = QDateTime::currentMSecsSinceEpoch();
   sdp->host_nettype = "IN";
-  sdp->host_address = localAddress.toString();
-  if(localAddress.protocol() == QAbstractSocket::IPv6Protocol)
+  sdp->host_address = localAddress;
+  if (localAddress.front() == "[")
   {
+    sdp->host_address = localAddress.mid(1, localAddress.size() - 2);
     sdp->host_addrtype = "IP6";
   }
   else {
@@ -397,12 +398,13 @@ void Negotiation::generateOrigin(std::shared_ptr<SDPMessageInfo> sdp,
 
 
 void Negotiation::setConnectionAddress(std::shared_ptr<SDPMessageInfo> sdp,
-                                       QHostAddress localAddress)
+                                       QString localAddress)
 {
-  sdp->connection_address = localAddress.toString();
+  sdp->connection_address = localAddress;
   sdp->connection_nettype = "IN";
-  if(localAddress.protocol() == QAbstractSocket::IPv6Protocol)
+  if (localAddress.front() == "[")
   {
+    sdp->connection_address = localAddress.mid(1, localAddress.size() - 2);
     sdp->connection_addrtype = "IP6";
   }
   else
@@ -556,7 +558,7 @@ void Negotiation::endSession(uint32_t sessionID)
     if (sdps_.at(sessionID).first != nullptr)
     {
       std::shared_ptr<SDPMessageInfo> localSDP = sdps_.at(sessionID).first;
-      for(auto mediaStream : localSDP->media)
+      for(auto& mediaStream : localSDP->media)
       {
         parameters_.makePortPairAvailable(mediaStream.receivePort);
       }
@@ -577,13 +579,13 @@ void Negotiation::endAllSessions()
 {
   QList<uint32_t> sessions;
 
-  for (auto i : negotiationStates_)
+  for (auto& i : negotiationStates_)
   {
     sessions.push_back(i.first);
 
   }
 
-  for (auto i : sessions)
+  for (auto& i : sessions)
   {
     endSession(i);
   }

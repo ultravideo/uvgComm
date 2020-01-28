@@ -14,6 +14,7 @@
 
 
 class QStringListModel;
+class QListWidget;
 
 namespace Ui {
 class StatisticsWindow;
@@ -46,6 +47,9 @@ public:
   virtual void removeFilter(QString filter);
   virtual void updateBufferStatus(QString filter, uint16_t buffersize, uint16_t maxBufferSize);
   virtual void packetDropped(QString filter);
+  virtual void addSentSIPMessage(QString type, QString message, QString address);
+  virtual void addReceivedSIPMessage(QString type, QString message, QString address);
+
 
 private:
 
@@ -69,6 +73,8 @@ private:
   uint32_t totalBuffers();
   uint32_t bitrate(std::vector<PacketInfo*>& packets, uint32_t index, float &framerate);
   void updateFramerateBuffer(std::vector<PacketInfo*>& packets, uint32_t& index, uint32_t size);
+
+  void addSIPMessageToList(QListWidget* list, QString type, QString message, QString address);
 
 #ifdef QT_CHARTS_LIB
   void visualizeDataToSeries(std::deque<float>& data);

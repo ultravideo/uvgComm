@@ -8,39 +8,128 @@
 
 
 // a function used within this file to add a parameter
-bool tryAddParameter(SIPField& field, QString parameterName, QString parameterValue);
+bool tryAddParameter(std::shared_ptr<QList<SIPParameter> > &parameters,
+                     QString parameterName, QString parameterValue);
+bool tryAddParameter(std::shared_ptr<QList<SIPParameter> > &parameters,
+                     QString parameterName);
+
+QString composeUritype(ConnectionType type);
+
+QString composeUritype(ConnectionType type)
+{
+  if (type == TCP)
+  {
+    return "sip:";
+  }
+  else if (type == TLS)
+  {
+    return "sips:";
+  }
+  else if (type == TEL)
+  {
+    return "tel:";
+  }
+  else
+  {
+    qDebug() << "ERROR:  Unset connection type detected while composing SIP message";
+  }
+
+  return "";
+}
+
+QString composePortString(uint16_t port)
+{
+  QString portString = "";
+
+  if (port != 0)
+  {
+    portString = ":" + QString::number(port);
+  }
+  return portString;
+}
+
+bool composeSIPUri(SIP_URI& uri, QStringList& words)
+{
+  if (uri.realname != "")
+  {
+    words.push_back(uri.realname);
+  }
+
+  QString uriString = "<" + composeUritype(uri.connectionType);
+  if (uriString != "")
+  {
+    QString parameters = "";
+
+    for (auto& parameter : uri.parameters)
+    {
+      parameters += ";" + parameter.name;
+      if (parameter.value != "")
+      {
+        parameters += "=" + parameter.value;
+      }
+    }
+
+    QString usernameString = "";
+
+    if (uri.username != "")
+    {
+      usernameString = uri.username + "@";
+    }
+
+    uriString += usernameString + uri.host + composePortString(uri.port) + parameters + ">";
+
+    words.push_back(uriString);
+
+    return true;
+  }
+  return false;
+}
 
 
 bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
 {
   if(request.requestURI.host == "")
   {
-    printDebug(DEBUG_PROGRAM_ERROR, "SIPComposing", DC_SEND_SIP_REQUEST, "Request URI host is empty when comprising the first line.");
+    printDebug(DEBUG_PROGRAM_ERROR, "SIPComposing", DC_SEND_SIP_REQUEST,
+               "Request URI host is empty when comprising the first line.");
   }
 
   if(request.type == SIP_NO_REQUEST)
   {
-    printDebug(DEBUG_PROGRAM_ERROR, "SIPComposing", DC_SEND_SIP_REQUEST, "SIP_NO_REQUEST given.");
+    printDebug(DEBUG_PROGRAM_ERROR, "SIPComposing",
+               DC_SEND_SIP_REQUEST, "SIP_NO_REQUEST given.");
     return false;
   }
+
+  QString type = "";
+  QString target = "";
+  QString port = "";
+
+  if (request.requestURI.port != 0)
+  {
+    port = ":" + QString::number(request.requestURI.port) + ";transport=tcp";
+  }
+
+
   if(request.type != SIP_REGISTER)
   {
-    line = requestToString(request.type) + " sip:"
-        + request.message->to.username + "@" + request.message->to.host
-        + " SIP/" + request.message->version + lineEnding;
+    type = composeUritype(request.requestURI.connectionType);
+    target = request.requestURI.username + "@" + request.requestURI.host;
   }
-  else
+  else // REGISTER first line does not contain username.
   {
-
-    line = requestToString(request.type) + " sips:"
-        + request.requestURI.host
-        + " SIP/" + request.message->version + lineEnding;
+    type = composeUritype(request.requestURI.connectionType);
+    target = request.requestURI.host;
   }
+
+  line = requestToString(request.type) + " " + type
+      + target + port + " SIP/" + request.message->version + lineEnding;
 
   return true;
 }
 
-bool getFirstResponseLine(QString& line, SIPResponse& response, QString lineEnding)
+bool getFirstResponseLine(QString& line, SIPResponse& response,
+                          QString lineEnding)
 {
   if(response.type == SIP_UNKNOWN_RESPONSE)
   {
@@ -64,16 +153,16 @@ bool includeToField(QList<SIPField> &fields,
     return false;
   }
 
-  SIPField field;
-  field.name = "To";
-  if(message->to.realname != "")
-  {
-    field.values = message->to.realname + " ";
-  }
-  field.values += "<sip:" + message->to.username + "@" + message->to.host + ">";
-  field.parameters = nullptr;
+  SIPField field = {"To", QList<ValueSet>{ValueSet{{}, nullptr}}};
 
-  tryAddParameter(field, "tag", message->dialog->toTag);
+  if (!composeSIPUri(message->to, field.valueSets[0].words))
+  {
+    return false;
+  }
+
+  field.valueSets[0].parameters = nullptr;
+
+  tryAddParameter(field.valueSets[0].parameters, "tag", message->dialog->toTag);
 
   fields.push_back(field);
   return true;
@@ -89,16 +178,16 @@ bool includeFromField(QList<SIPField> &fields,
     return false;
   }
 
-  SIPField field;
-  field.name = "From";
-  if(message->from.realname != "")
-  {
-    field.values = message->from.realname + " ";
-  }
-  field.values += "<sip:" + message->from.username + "@" + message->from.host + ">";
-  field.parameters = nullptr;
+  SIPField field = {"From", QList<ValueSet>{ValueSet{{}, nullptr}}};
 
-  tryAddParameter(field, "tag", message->dialog->fromTag);
+  if (!composeSIPUri(message->from, field.valueSets[0].words))
+  {
+    return false;
+  }
+
+  field.valueSets[0].parameters = nullptr;
+
+  tryAddParameter(field.valueSets[0].parameters, "tag", message->dialog->fromTag);
 
   fields.push_back(field);
   return true;
@@ -114,11 +203,11 @@ bool includeCSeqField(QList<SIPField> &fields,
     return false;
   }
 
-  SIPField field;
-  field.name = "CSeq";
+  SIPField field = {"CSeq", QList<ValueSet>{ValueSet{{}, nullptr}}};
 
-  field.values = QString::number(message->cSeq) + " " + requestToString(message->transactionRequest);
-  field.parameters = nullptr;
+  field.valueSets[0].words.push_back(QString::number(message->cSeq));
+  field.valueSets[0].words.push_back(requestToString(message->transactionRequest));
+  field.valueSets[0].parameters = nullptr;
 
   fields.push_back(field);
   return true;
@@ -134,36 +223,63 @@ bool includeCallIDField(QList<SIPField> &fields,
     return false;
   }
 
-  fields.push_back({"Call-ID", message->dialog->callID, nullptr});
+  SIPField field = {"Call-ID", QList<ValueSet>{ValueSet{{message->dialog->callID}, nullptr}}};
+  fields.push_back(field);
   return true;
 }
 
 bool includeViaFields(QList<SIPField> &fields,
                       std::shared_ptr<SIPMessageInfo> message)
 {
-  Q_ASSERT(!message->senderReplyAddress.empty());
-  if(message->senderReplyAddress.empty())
+  Q_ASSERT(!message->vias.empty());
+  if(message->vias.empty())
   {
     qDebug() << "WARNING: Via field failed";
     return false;
   }
 
-  for(ViaInfo via : message->senderReplyAddress)
+  for(ViaInfo via : message->vias)
   {
-    Q_ASSERT(via.type != ANY);
+    Q_ASSERT(via.connectionType != NONE);
     Q_ASSERT(via.branch != "");
     Q_ASSERT(via.address != "");
 
-    SIPField field;
-    field.name = "Via";
+    SIPField field = {"Via", QList<ValueSet>{ValueSet{{}, nullptr}}};
 
-    field.values = "SIP/" + via.version +"/" + connectionToString(via.type) + " " + via.address;
+    field.valueSets[0].words.push_back("SIP/" + via.version +"/" + connectionToString(via.connectionType));
+    field.valueSets[0].words.push_back(via.address + composePortString(via.port));
 
-    if(!tryAddParameter(field, "branch", via.branch))
+    if(!tryAddParameter(field.valueSets[0].parameters, "branch", via.branch))
     {
       qDebug() << "WARNING: Via field failed";
       return false;
     }
+
+    if(via.alias && !tryAddParameter(field.valueSets[0].parameters, "alias"))
+    {
+      qDebug() << "WARNING: Via field failed";
+      return false;
+    }
+
+    if(via.rport && !tryAddParameter(field.valueSets[0].parameters, "rport"))
+    {
+      qDebug() << "WARNING: Via field failed";
+      return false;
+    }
+    else if(via.rportValue !=0 && !tryAddParameter(field.valueSets[0].parameters,
+                                                   "rport", QString::number(via.rportValue)))
+    {
+      qDebug() << "WARNING: Via field failed";
+      return false;
+    }
+
+    if (via.receivedAddress != "" && !tryAddParameter(field.valueSets[0].parameters,
+                                                      "received", via.receivedAddress))
+    {
+      qDebug() << "WARNING: Via field failed";
+      return false;
+    }
+
     fields.push_back(field);
   }
   return true;
@@ -179,7 +295,9 @@ bool includeMaxForwardsField(QList<SIPField> &fields,
     return false;
   }
 
-  fields.push_back({"Max-Forwards", QString::number(message->maxForwards), nullptr});
+  SIPField field = {"Max-Forwards",
+                    QList<ValueSet>{ValueSet{{QString::number(message->maxForwards)}, nullptr}}};
+  fields.push_back(field);
   return true;
 }
 
@@ -193,10 +311,20 @@ bool includeContactField(QList<SIPField> &fields,
     return false;
   }
 
-  SIPField field;
-  field.name = "Contact";
-  field.values = "<sip:" + message->contact.username + "@" + message->contact.host + ">";
-  field.parameters = nullptr;
+  SIPField field = {"Contact", QList<ValueSet>{ValueSet{{}, nullptr}}};
+
+  QString transportString = "";
+
+  message->contact.realname = "";
+  message->contact.parameters.push_back({"transport", "tcp"});
+
+  if (!composeSIPUri(message->contact, field.valueSets[0].words))
+  {
+    return false;
+  }
+
+  field.valueSets[0].parameters = nullptr;
+
   fields.push_back(field);
   return true;
 }
@@ -210,29 +338,99 @@ bool includeContentTypeField(QList<SIPField> &fields,
     qDebug() << "WARNING: Content-type field failed";
     return false;
   }
-  fields.push_back({"Content-Type", contentType, nullptr});
+  SIPField field = {"Content-Type",
+                    QList<ValueSet>{ValueSet{{contentType}, nullptr}}};
+  fields.push_back(field);
   return true;
 }
 
 bool includeContentLengthField(QList<SIPField> &fields,
                                uint32_t contentLenght)
 {
-  fields.push_back({"Content-Length", QString::number(contentLenght), nullptr});
+  SIPField field = {"Content-Length",
+                    QList<ValueSet>{ValueSet{{QString::number(contentLenght)}, nullptr}}};
+  fields.push_back(field);
   return true;
 }
 
-bool tryAddParameter(SIPField& field, QString parameterName, QString parameterValue)
+
+bool includeExpiresField(QList<SIPField>& fields,
+                         uint32_t expires)
 {
-  if(parameterValue == "")
+  SIPField field = {"Expires",
+                    QList<ValueSet>{ValueSet{{QString::number(expires)}, nullptr}}};
+  fields.push_back(field);
+  return true;
+}
+
+
+bool includeRecordRouteField(QList<SIPField>& fields,
+                             std::shared_ptr<SIPMessageInfo> message)
+{
+  for (auto& record : message->recordRoutes)
+  {
+    SIPField field = {"Record-Route",
+                      QList<ValueSet>{ValueSet{{}, nullptr}}};
+
+    if (!composeSIPUri(record, field.valueSets[0].words))
+    {
+      return false;
+    }
+    fields.push_back(field);
+  }
+  return true;
+}
+
+
+bool includeRouteField(QList<SIPField>& fields,
+                       std::shared_ptr<SIPMessageInfo> message)
+{
+  for (auto& route : message->routes)
+  {
+    SIPField field = {"Route",
+                      QList<ValueSet>{ValueSet{{}, nullptr}}};
+
+    if (!composeSIPUri(route, field.valueSets[0].words))
+    {
+      return false;
+    }
+    fields.push_back(field);
+  }
+  return true;
+}
+
+
+bool tryAddParameter(std::shared_ptr<QList<SIPParameter>>& parameters,
+                     QString parameterName, QString parameterValue)
+{
+  if (parameterValue == "" || parameterName == "")
   {
     return false;
   }
 
-  if(field.parameters == nullptr)
+  if (parameters == nullptr)
   {
-    field.parameters = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
+    parameters = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
   }
-  field.parameters->append({parameterName, parameterValue});
+  parameters->append({parameterName, parameterValue});
+
+  return true;
+}
+
+
+bool tryAddParameter(std::shared_ptr<QList<SIPParameter>>& parameters,
+                     QString parameterName)
+{
+  if (parameterName == "")
+  {
+    return false;
+  }
+
+  if (parameters == nullptr)
+  {
+    parameters = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
+  }
+  parameters->append({parameterName, ""});
 
   return true;
 }

@@ -20,7 +20,7 @@ public:
   // conferenceview is needed for connecting reattach signal, because I couldn't get the
   // the interface signal connected for some reason.
   // returns viewID which is also videoID
-  uint32_t createWidget(uint32_t sessionID, QWidget* parent, ConferenceView* conf, uint32_t index);
+  uint32_t createWidget(uint32_t sessionID, QWidget* parent, ConferenceView* conf);
 
   // set self view which is part of the
   // returns viewID which is also videoID

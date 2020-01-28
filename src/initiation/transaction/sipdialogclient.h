@@ -13,6 +13,9 @@ public:
 
   void setSessionID(uint32_t sessionID);
 
+  virtual void getRequestMessageInfo(RequestType type,
+                                     std::shared_ptr<SIPMessageInfo> &outMessage);
+
   virtual bool processResponse(SIPResponse& response,
                                std::shared_ptr<SIPDialogState> state);
 
@@ -26,7 +29,7 @@ public:
 protected:
   virtual void processTimeout();
 
-  virtual void sendRequest(RequestType type);
+  virtual void startTransaction(RequestType type);
 
 signals:
   // send messages to other end

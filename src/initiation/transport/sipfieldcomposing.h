@@ -37,3 +37,12 @@ bool includeContentTypeField(QList<SIPField>& fields,
 
 bool includeContentLengthField(QList<SIPField>& fields,
                                uint32_t contentLenght);
+
+bool includeExpiresField(QList<SIPField>& fields,
+                         uint32_t expires);
+
+bool includeRecordRouteField(QList<SIPField>& fields,
+                             std::shared_ptr<SIPMessageInfo> message);
+
+bool includeRouteField(QList<SIPField>& fields,
+                       std::shared_ptr<SIPMessageInfo> message);

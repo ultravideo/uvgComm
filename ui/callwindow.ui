@@ -383,21 +383,8 @@
           </size>
          </property>
          <layout class="QGridLayout" name="gridLayout">
-          <item row="2" column="0">
-           <widget class="QLabel" name="addressLabel">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="text">
-             <string>Address</string>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="0">
-           <widget class="QLineEdit" name="ip">
+          <item row="5" column="0">
+           <widget class="QLineEdit" name="address">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
               <horstretch>0</horstretch>
@@ -412,6 +399,29 @@
             </property>
             <property name="text">
              <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="7" column="0">
+           <widget class="QPushButton" name="cancelcontact">
+            <property name="text">
+             <string>Cancel</string>
+            </property>
+            <property name="autoDefault">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="0">
+           <widget class="QLabel" name="addressLabel">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>Address</string>
             </property>
            </widget>
           </item>
@@ -444,17 +454,14 @@
             </property>
            </widget>
           </item>
-          <item row="5" column="0">
-           <widget class="QPushButton" name="cancelcontact">
+          <item row="2" column="0">
+           <widget class="QLabel" name="usernameLabel">
             <property name="text">
-             <string>Cancel</string>
-            </property>
-            <property name="autoDefault">
-             <bool>true</bool>
+             <string>Username</string>
             </property>
            </widget>
           </item>
-          <item row="4" column="0">
+          <item row="6" column="0">
            <widget class="QPushButton" name="ok_contact">
             <property name="text">
              <string>Ok</string>
@@ -464,6 +471,16 @@
             </property>
             <property name="flat">
              <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLineEdit" name="username">
+            <property name="maximumSize">
+             <size>
+              <width>200</width>
+              <height>16777215</height>
+             </size>
             </property>
            </widget>
           </item>
@@ -555,7 +572,7 @@
      <x>0</x>
      <y>0</y>
      <width>1280</width>
-     <height>21</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuConference">
@@ -605,16 +622,17 @@
   </customwidget>
  </customwidgets>
  <tabstops>
+  <tabstop>contactList</tabstop>
   <tabstop>addContact</tabstop>
   <tabstop>peerName</tabstop>
-  <tabstop>ip</tabstop>
+  <tabstop>username</tabstop>
+  <tabstop>address</tabstop>
   <tabstop>ok_contact</tabstop>
   <tabstop>cancelcontact</tabstop>
   <tabstop>settings_button</tabstop>
   <tabstop>mic</tabstop>
   <tabstop>camera</tabstop>
   <tabstop>EndCallButton</tabstop>
-  <tabstop>contactList</tabstop>
  </tabstops>
  <resources/>
  <connections>
@@ -749,7 +767,7 @@
   <connection>
    <sender>cancelcontact</sender>
    <signal>clicked()</signal>
-   <receiver>ip</receiver>
+   <receiver>address</receiver>
    <slot>clear()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -759,70 +777,6 @@
     <hint type="destinationlabel">
      <x>141</x>
      <y>495</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>ok_contact</sender>
-   <signal>clicked()</signal>
-   <receiver>ip</receiver>
-   <slot>clear()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>141</x>
-     <y>523</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>141</x>
-     <y>495</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>ok_contact</sender>
-   <signal>clicked()</signal>
-   <receiver>peerName</receiver>
-   <slot>clear()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>141</x>
-     <y>523</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>141</x>
-     <y>430</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>ok_contact</sender>
-   <signal>clicked()</signal>
-   <receiver>Add_contact_widget</receiver>
-   <slot>hide()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>141</x>
-     <y>523</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>141</x>
-     <y>472</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>ok_contact</sender>
-   <signal>clicked()</signal>
-   <receiver>addContact</receiver>
-   <slot>show()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>141</x>
-     <y>523</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>141</x>
-     <y>594</y>
     </hint>
    </hints>
   </connection>

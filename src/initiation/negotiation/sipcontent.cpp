@@ -58,25 +58,25 @@ bool checkSDPValidity(const SDPMessageInfo &sdpInfo)
     return false;
   }
 
-  if(sdpInfo.host_nettype.isEmpty() ||
-     sdpInfo.host_addrtype.isEmpty() ||
-     sdpInfo.host_address.isEmpty())
+  if (sdpInfo.host_nettype.isEmpty() ||
+      sdpInfo.host_addrtype.isEmpty() ||
+      sdpInfo.host_address.isEmpty())
   {
     qDebug() << "SDP Host address is empty.";
     qDebug() << sdpInfo.host_nettype << " " << sdpInfo.host_addrtype << " " << sdpInfo.host_address;
     return false;
   }
 
-  if(sdpInfo.connection_nettype.isEmpty() ||
-     sdpInfo.connection_addrtype.isEmpty() ||
-     sdpInfo.connection_address.isEmpty())
+  if (sdpInfo.connection_nettype.isEmpty() ||
+      sdpInfo.connection_addrtype.isEmpty() ||
+      sdpInfo.connection_address.isEmpty())
   {
     qDebug() << "No Global address in SDP";
-    for(auto media: sdpInfo.media)
+    for (auto& media: sdpInfo.media)
     {
-      if(media.connection_address.isEmpty() ||
-         media.connection_addrtype.isEmpty() ||
-         media.connection_address.isEmpty())
+      if (media.connection_address.isEmpty() ||
+          media.connection_addrtype.isEmpty() ||
+          media.connection_address.isEmpty())
       {
         qDebug() << "Missing global and media address. The SDP is not good";
         return false;
@@ -123,7 +123,7 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
   sdp += "t=" + QString::number(sdpInfo.timeDescriptions.at(0).startTime) + " "
       + QString::number(sdpInfo.timeDescriptions.at(0).stopTime) + lineEnd;
 
-  for(auto mediaStream : sdpInfo.media)
+  for(auto& mediaStream : sdpInfo.media)
   {
     sdp += "m=" + mediaStream.type + " " + QString::number(mediaStream.receivePort)
         + " " + mediaStream.proto;
@@ -152,23 +152,23 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
           + mediaStream.connection_address + lineEnd;
     }
 
-    for(auto bitrate: mediaStream.bitrate)
+    for (auto& bitrate: mediaStream.bitrate)
     {
       sdp += "b=" + bitrate + lineEnd;
     }
 
-    if(!mediaStream.encryptionKey.isEmpty())
+    if (!mediaStream.encryptionKey.isEmpty())
     {
       sdp += "k=" + mediaStream.encryptionKey;
     }
 
-    for(auto rtpmap : mediaStream.codecs)
+    for (auto& rtpmap : mediaStream.codecs)
     {
       sdp += "a=rtpmap:" + QString::number(rtpmap.rtpNum) + " "
           + rtpmap.codec + "/" + QString::number(rtpmap.clockFrequency) + lineEnd;
     }
 
-    for(SDPAttributeType flag : mediaStream.flagAttributes)
+    for (SDPAttributeType flag : mediaStream.flagAttributes)
     {
       switch (flag)
       {
@@ -201,7 +201,7 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
     }
   }
 
-  for (auto info : sdpInfo.candidates)
+  for (auto& info : sdpInfo.candidates)
   {
     sdp += "a=candidate:"
         + info->foundation + " " + QString::number(info->component) + " "

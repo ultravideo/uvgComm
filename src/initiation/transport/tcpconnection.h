@@ -9,6 +9,8 @@
 
 // handles one connection
 // TODO: Implement a keep-alive CRLF sending.
+// TODO: This class is a bit wonky at the moment,
+// needs general improvement in functionality
 
 class TCPConnection : public QThread
 {
@@ -54,6 +56,13 @@ public:
     Q_ASSERT(socket_->state() == QAbstractSocket::ConnectedState);
     Q_ASSERT(socket_->localAddress().toString() != "");
     return socket_->localAddress();
+  }
+
+  uint16_t localPort() const
+  {
+    Q_ASSERT(socket_);
+    Q_ASSERT(socket_->state() == QAbstractSocket::ConnectedState);
+    return socket_->localPort();
   }
 
   QHostAddress remoteAddress()

@@ -6,8 +6,8 @@
 
 QT       += core gui
 
-message("Parsing project file. Qt version:" "$$QT_MAJOR_VERSION"."$$QT_MINOR_VERSION" ------------------------------)
-message("Minimum supported Qt version:" "5.4")
+message("Parsing project file.")
+message("Qt version:" "$$QT_MAJOR_VERSION"."$$QT_MINOR_VERSION" "Min: 5.4")
 
 greaterThan(QT_MAJOR_VERSION, 5)
 {
@@ -42,12 +42,14 @@ SOURCES +=\
     src/initiation/transaction/sipdialogclient.cpp \
     src/initiation/transaction/sipdialogstate.cpp \
     src/initiation/transaction/sipnondialogclient.cpp \
+    src/initiation/transaction/sipregistrations.cpp \
     src/initiation/transaction/sipservertransaction.cpp \
     src/initiation/transaction/siptransactions.cpp \
     src/initiation/transport/connectionserver.cpp \
     src/initiation/transport/sipconversions.cpp \
     src/initiation/transport/sipfieldcomposing.cpp \
     src/initiation/transport/sipfieldparsing.cpp \
+    src/initiation/transport/siprouting.cpp \
     src/initiation/transport/siptransport.cpp \
     src/initiation/transport/tcpconnection.cpp \
     src/kvazzupcontroller.cpp \
@@ -114,12 +116,14 @@ HEADERS  += \
     src/initiation/transaction/sipdialogclient.h \
     src/initiation/transaction/sipdialogstate.h \
     src/initiation/transaction/sipnondialogclient.h \
+    src/initiation/transaction/sipregistrations.h \
     src/initiation/transaction/sipservertransaction.h \
     src/initiation/transaction/siptransactions.h \
     src/initiation/transport/connectionserver.h \
     src/initiation/transport/sipconversions.h \
     src/initiation/transport/sipfieldcomposing.h \
     src/initiation/transport/sipfieldparsing.h \
+    src/initiation/transport/siprouting.h \
     src/initiation/transport/siptransport.h \
     src/initiation/transport/tcpconnection.h \
     src/kvazzupcontroller.h \
@@ -234,6 +238,7 @@ INCLUDEPATH += $$PWD/../include/live/groupsock/include
 INCLUDEPATH += $$PWD/../include/live/UsageEnvironment/include
 INCLUDEPATH += $$PWD/../include/live/BasicUsageEnvironment/include
 INCLUDEPATH += $$PWD/../include/kvzrtp
+
 #LIBS += -L$$PWD/../lib32
 LIBS += -L$$PWD/../lib64
 LIBS += -llibkvazaar.dll

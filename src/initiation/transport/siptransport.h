@@ -3,6 +3,7 @@
 #include "initiation/siptypes.h"
 #include "initiation/negotiation/sdptypes.h"
 #include "tcpconnection.h"
+#include "siprouting.h"
 #include <QHostAddress>
 #include <QString>
 
@@ -12,11 +13,13 @@
 // This class primarily deals with checking that the incoming messages are valid, parsing them
 // and composing outgoing messages.
 
+class StatisticsInterface;
+
 class SIPTransport : public QObject
 {
   Q_OBJECT
 public:
-  SIPTransport(quint32 transportID);
+  SIPTransport(quint32 transportID, StatisticsInterface *stats);
   ~SIPTransport();
 
   void cleanup();
@@ -33,8 +36,10 @@ public:
 
   bool isConnected();
 
-  QHostAddress getLocalAddress();
-  QHostAddress getRemoteAddress();
+  QString getLocalAddress();
+  QString getRemoteAddress();
+
+  uint16_t getLocalPort();
 
   quint32 getTransportID()
   {
@@ -51,10 +56,11 @@ public slots:
 
 signals:
   // signal that ads transportID to connectionEstablished slot
-  void sipTransportEstablished(quint32 transportID, QString localAddress, QString remoteAddress);
+  void sipTransportEstablished(quint32 transportID, QString localAddress,
+                               QString remoteAddress);
 
   // signals that output parsed sip messages
-  void incomingSIPRequest(SIPRequest& request, QHostAddress localAddress,
+  void incomingSIPRequest(SIPRequest& request, QString localAddress,
                           QVariant& content, quint32 transportID);
   void incomingSIPResponse(SIPResponse& response, QVariant& content);
 
@@ -68,10 +74,12 @@ private:
   QString fieldsToString(QList<SIPField>& fields, QString lineEnding);
   QString addContent(QList<SIPField>& fields, bool haveContent, const SDPMessageInfo& sdp);
 
-  // parsing
-  void parsePackage(QString package, QString& header, QString& body);
+  // parsing functions
+  // returs true if the whole message was received
+  bool parsePackage(QString package, QString& header, QString& body);
   bool headerToFields(QString header, QString& firstLine, QList<SIPField>& fields);
   bool fieldsToMessage(QList<SIPField>& fields, std::shared_ptr<SIPMessageInfo> &message);
+
   bool parseRequest(QString requestString, QString version,
                     std::shared_ptr<SIPMessageInfo> message,
                     QList<SIPField>& fields, QVariant& content);
@@ -79,16 +87,26 @@ private:
                      std::shared_ptr<SIPMessageInfo> message,
                      QVariant& content);
 
-  void parseContent(QVariant &content, ContentType type, QString &body);
+  bool combineContinuationLines(QStringList& lines);
+  bool parseFieldName(QString& line, SIPField &field);
+  bool parseFieldValueSets(QString& line, QStringList &outValueSets);
+  bool parseFieldValue(QString& valueSet, SIPField& field);
 
-  void parseSIPaddress(QString address, QString& user, QString& location);
-  QList<QHostAddress> parseIPAddress(QString address);
+  void parseContent(QVariant &content, ContentType type, QString &body);
 
   void signalConnections();
   void destroyConnection();
+
+  void addParameterToSet(SIPParameter& currentParameter, QString& currentWord,
+                    ValueSet& valueSet);
+
 
   QString partialMessage_;
 
   std::shared_ptr<TCPConnection> connection_;
   quint32 transportID_;
+
+  StatisticsInterface *stats_;
+
+  SIPRouting routing_;
 };

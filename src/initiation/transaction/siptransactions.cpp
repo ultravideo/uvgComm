@@ -14,18 +14,14 @@ SIPTransactions::SIPTransactions():
   pendingConnectionMutex_(),
   nextSessionID_(FIRSTSESSIONID),
   dialogs_(),
-  registrations_(),
   directContactAddresses_(),
-  nonDialogClient_(),
   transactionUser_(nullptr)
 {}
 
 void SIPTransactions::init(SIPTransactionUser *callControl)
 {
   qDebug() << "Iniating SIP Transactions";
-
   transactionUser_ = callControl;
-  nonDialogClient_ = std::unique_ptr<SIPNonDialogClient>(new SIPNonDialogClient(callControl));
 }
 
 
@@ -56,40 +52,23 @@ void SIPTransactions::registerTask()
 }
 
 
-void SIPTransactions::bindToServer(QString serverAddress, QHostAddress localAddress, uint32_t sessionID)
+void SIPTransactions::startCall(Contact &address, QString localAddress,
+                                uint32_t sessionID, bool registered)
 {
-  qDebug() << "Binding to SIP server at:" << serverAddress;
+  qDebug() << "SIP," << metaObject()->className() << ": Intializing a new dialog with INVITE";
 
-  SIPRegistrationData data = {std::shared_ptr<SIPNonDialogClient> (new SIPNonDialogClient(transactionUser_)),
-                             std::shared_ptr<SIPDialogState> (new SIPDialogState()), sessionID, localAddress};
+  std::shared_ptr<SIPDialogData> dialogData;
+  createBaseDialog(sessionID, dialogData);
+  dialogData->state->createNewDialog(SIP_URI{TRANSPORTTYPE, address.username, address.username,
+                                             address.remoteAddress,  0, {}},
+                                     localAddress, registered);
 
-  registrations_[serverAddress] = data;
-
-  SIP_URI serverUri = {"","",serverAddress, SIP};
-  registrations_[serverAddress].state->createServerDialog(serverUri);
-  registrations_[serverAddress].client->init();
-
-
-  registrations_[serverAddress].client->set_remoteURI(serverUri);
-
-  sendNonDialogRequest(serverUri, SIP_REGISTER);
-}
-
-
-void SIPTransactions::startDirectCall(Contact &address, QHostAddress localAddress,
-                                      uint32_t sessionID)
-{
-  startPeerToPeerCall(sessionID, localAddress, address);
-}
-
-void SIPTransactions::startProxyCall(Contact& address, QHostAddress localAddress,
-                                     uint32_t sessionID)
-{
-  Q_UNUSED(address);
-  Q_UNUSED(localAddress);
-  Q_UNUSED(sessionID);
-  printDebug(DEBUG_ERROR, this, DC_START_CALL,
-             "Proxy calling has not been yet implemented");
+  // this start call will commence once the connection has been established
+  if(!dialogData->client->startCall(address.realName))
+  {
+    printDebug(DEBUG_WARNING, this, DC_START_CALL,
+               "Could not start a call according to session.");
+  }
 }
 
 
@@ -104,31 +83,13 @@ void SIPTransactions::renegotiateCall(uint32_t sessionID)
 
 void SIPTransactions::renegotiateAllCalls()
 {
-  for (auto dialog : dialogs_) {
+  for (auto& dialog : dialogs_) {
     renegotiateCall(dialog.first);
   }
 }
 
 
-void SIPTransactions::startPeerToPeerCall(uint32_t sessionID,
-                                          QHostAddress localAddress, Contact &remote)
-{
-  qDebug() << "SIP," << metaObject()->className() << ": Intializing a new dialog with INVITE";
-
-  std::shared_ptr<SIPDialogData> dialogData;
-  createBaseDialog(sessionID, localAddress, dialogData);
-  dialogData->proxyConnection_ = false;
-  dialogData->state->createNewDialog(SIP_URI{remote.username, remote.username, remote.remoteAddress, SIP});
-
-  // this start call will commence once the connection has been established
-  if(!dialogData->client->startCall(remote.realName))
-  {
-    printDebug(DEBUG_WARNING, this, DC_START_CALL,
-               "Could not start a call according to session.");
-  }
-}
-
-uint32_t SIPTransactions::createDialogFromINVITE(QHostAddress localAddress,
+uint32_t SIPTransactions::createDialogFromINVITE(QString localAddress,
                                                  std::shared_ptr<SIPMessageInfo> &invite)
 {
   Q_ASSERT(invite);
@@ -136,20 +97,18 @@ uint32_t SIPTransactions::createDialogFromINVITE(QHostAddress localAddress,
   uint32_t sessionID = reserveSessionID();
 
   std::shared_ptr<SIPDialogData> dialog;
-  createBaseDialog(sessionID, localAddress, dialog);
+  createBaseDialog(sessionID, dialog);
 
-  dialog->state->createDialogFromINVITE(invite);
-  dialog->state->setPeerToPeerHostname(localAddress.toString(), false);
+  dialog->state->createDialogFromINVITE(invite, localAddress);
   return sessionID;
 }
 
+
 void SIPTransactions::createBaseDialog(uint32_t sessionID,
-                                       QHostAddress& localAddress,
                                        std::shared_ptr<SIPDialogData>& dialog)
 {
   dialog = std::shared_ptr<SIPDialogData> (new SIPDialogData);
   dialogMutex_.lock();
-  dialog->localAddress = localAddress;
 
   dialog->state = std::shared_ptr<SIPDialogState> (new SIPDialogState());
 
@@ -159,8 +118,6 @@ void SIPTransactions::createBaseDialog(uint32_t sessionID,
 
   dialog->server = std::shared_ptr<SIPServerTransaction> (new SIPServerTransaction);
   dialog->server->init(transactionUser_, sessionID);
-
-  dialog->proxyConnection_ = false;
 
   dialogs_[sessionID] = dialog;
 
@@ -224,7 +181,7 @@ void SIPTransactions::cancelCall(uint32_t sessionID)
 
 void SIPTransactions::endAllCalls()
 {
-  for(auto dialog : dialogs_)
+  for(auto& dialog : dialogs_)
   {
     if(dialog.second != nullptr)
     {
@@ -242,7 +199,7 @@ void SIPTransactions::endAllCalls()
 
 
 bool SIPTransactions::identifySession(SIPRequest request,
-                                      QHostAddress localAddress,
+                                      QString localAddress,
                                       uint32_t& out_sessionID)
 {
   qDebug() << "Starting to process identifying SIP Request session for type:"
@@ -289,7 +246,8 @@ bool SIPTransactions::identifySession(SIPRequest request,
 
 bool SIPTransactions::identifySession(SIPResponse response, uint32_t& out_sessionID)
 {
-  qDebug() << "Starting to process identifying SIP response session:" << response.type;
+  qDebug() << "Attempting to identify SIP response session. Response type:"
+           << response.type;
 
   out_sessionID = 0;
   // find the dialog which corresponds to the callID and tags received in response
@@ -366,11 +324,21 @@ void SIPTransactions::processSIPResponse(SIPResponse response, uint32_t sessionI
   // TODO: if our request was INVITE and response is 2xx or 101-199, create dialog
   // TODO: prechecks that the response is ok, then modify program state.
 
+  if (response.type == SIP_OK && response.message->transactionRequest == SIP_INVITE)
+  {
+    dialogs_[sessionID]->state->setRequestUri(response.message->contact);
+  }
+
   if(!dialogs_[sessionID]->client->processResponse(response, dialogs_[sessionID]->state))
   {
     // destroy dialog
     destroyDialog(sessionID);
     removeDialog(sessionID);
+  }
+
+  if (!response.message->recordRoutes.empty())
+  {
+    dialogs_[sessionID]->state->setRoute(response.message->recordRoutes);
   }
 
   qDebug() << "Response processing finished:" << response.type << "Dialog:" << sessionID;
@@ -386,21 +354,12 @@ void SIPTransactions::sendDialogRequest(uint32_t sessionID, RequestType type)
   SIPRequest request;
   request.type = type;
 
-  // if this is the session creation INVITE. Proxy sessions should be created earlier.
-  if(request.type == SIP_INVITE && !dialogs_[sessionID]->proxyConnection_
-     && !dialogs_[sessionID]->state->getState())
-  {
-    printDebug(DEBUG_NORMAL, this, DC_SEND_SIP_REQUEST,
-               "Setting peer hostname before sending an INVITE.");
-    dialogs_[sessionID]->state->setPeerToPeerHostname(dialogs_[sessionID]->localAddress.toString());
-  }
-
   // Get message info
   dialogs_[sessionID]->client->getRequestMessageInfo(type, request.message);
   dialogs_[sessionID]->client->startTimer(type);
 
-  dialogs_[sessionID]->state->getRequestDialogInfo(request,
-                                                   dialogs_[sessionID]->localAddress.toString());
+  // TODO: maybe get the local address from dialogState contact address instead?
+  dialogs_[sessionID]->state->getRequestDialogInfo(request);
 
   Q_ASSERT(request.message != nullptr);
   Q_ASSERT(request.message->dialog != nullptr);
@@ -408,39 +367,6 @@ void SIPTransactions::sendDialogRequest(uint32_t sessionID, RequestType type)
 
   emit transportRequest(sessionID, request);
   qDebug() << "---- Finished sending of a dialog request ---";
-}
-
-void SIPTransactions::sendNonDialogRequest(SIP_URI& uri, RequestType type)
-{
-  qDebug() << "Start sending of a non-dialog request. Type:" << type;
-  SIPRequest request;
-  request.type = type;
-
-  if (type == SIP_REGISTER)
-  {
-    if (registrations_.find(uri.host) == registrations_.end())
-    {
-      printDebug(DEBUG_PROGRAM_ERROR, this, DC_SEND_SIP_REQUEST,
-                 "Registration information should have been created "
-                 "already before sending REGISTER message!");
-
-      return;
-    }
-
-    registrations_[uri.host].client->getRequestMessageInfo(request.type, request.message);
-    registrations_[uri.host].state->getRequestDialogInfo(request, registrations_[uri.host].localAddress.toString());
-
-    QVariant content; // we dont have content in REGISTER
-    emit transportRequest(registrations_[uri.host].sessionID, request);
-  }
-  else if (type == SIP_OPTIONS) {
-    printDebug(DEBUG_PROGRAM_ERROR, this, DC_SEND_SIP_REQUEST,
-                     "Trying to send unimplemented non-dialog request OPTIONS!");
-  }
-  else {
-    printDebug(DEBUG_PROGRAM_ERROR, this, DC_SEND_SIP_REQUEST,
-                     "Trying to send a non-dialog request of type which is a dialog request!");
-  }
 }
 
 

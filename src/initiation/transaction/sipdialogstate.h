@@ -16,24 +16,35 @@ class SIPDialogState
 public:
   SIPDialogState();
 
-  // TODO: set the correct address for peer-to-peer connection
-  void setPeerToPeerHostname(QString hostName, bool setCallinfo = true);
-
   // creates dialog which is about to start from our end
-  void createNewDialog(SIP_URI remoteURI);
+  // needs local address in case we have not registered
+  // and this is a peer-to-peer dialog
+  void createNewDialog(SIP_URI remoteURI, QString localAddress, bool registered);
 
-  void createServerDialog(SIP_URI requestURI);
+  // create a connection to server to be used for sending the REGISTER request
+  // does not actually create dialog.
+  void createServerConnection(SIP_URI requestURI);
 
   // creates the dialog from an incoming INVITE
-  void createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inMessage);
+  void createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inMessage,
+                              QString hostName);
 
   // Generates the request message details
-  void getRequestDialogInfo(SIPRequest& outRequest, QString localAddress);
+  void getRequestDialogInfo(SIPRequest& outRequest);
+
+  void setRequestUri(SIP_URI& remoteContact)
+  {
+    requestUri_ = remoteContact;
+  }
+
+  void setRoute(QList<SIP_URI>& route);
 
   // use this to check whether incoming request belongs to this dialog
   // responses should be checked by client which sent the request
-  bool correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog, RequestType type, uint32_t remoteCSeq);
-  bool correctResponseDialog(std::shared_ptr<SIPDialogInfo> dialog, uint32_t messageCSeq);
+  bool correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog,
+                            RequestType type, uint32_t remoteCSeq);
+  bool correctResponseDialog(std::shared_ptr<SIPDialogInfo> dialog,
+                             uint32_t messageCSeq, bool recordToTag = true);
 
 
   // set and get session activity state
@@ -53,24 +64,25 @@ public:
 
 private:
 
-  void initLocalURI();
-  void initCallInfo();
+  // set our information as well as generate callID and tags
+  void initDialog();
+  // set our information, callID and tags
+  // generate our own tag if needed.
+  void setDialog(QString callID);
 
-  ViaInfo getLocalVia(QString localAddress);
+  void initLocalURI();
 
   // SIP Dialog fields (section 12 in RFC 3261)
   QString localTag_;
   QString remoteTag_;
   QString callID_;
 
+  // address-of-record is the SIP address if one exists. If we have not registered to
+  // server we use our local IP address.
+  SIP_URI localURI_; // local address-of-record.
+  SIP_URI remoteURI_; // remote address-of-record.
 
-  // address-of-record is the SIP address if one exists. If we are not connected to server we use local
-  // IP address.
-  SIP_URI localUri_; // local address-of-record.
-  SIP_URI remoteUri_; // remote address-of-record.
   SIP_URI requestUri_;
-
-  SIP_URI remoteContactURI_;
 
   // empty until first request is sent/received
   // cseq is used to determine the order of requests and must be sequential

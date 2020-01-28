@@ -28,8 +28,8 @@ public:
   }
 
   // constructs the SIP message info struct as much as possible
-  void getRequestMessageInfo(RequestType type,
-                             std::shared_ptr<SIPMessageInfo> &outMessage);
+  virtual void getRequestMessageInfo(RequestType type,
+                                     std::shared_ptr<SIPMessageInfo> &outMessage);
 
   // processes incoming response. Part of our client transaction
   // returns whether we should destroy the dialog
@@ -68,7 +68,8 @@ protected:
     return ongoingTransactionType_;
   }
 
-  virtual void sendRequest(RequestType type) = 0;
+  // set the internal state of client to such that we have sent a request.
+  virtual void startTransaction(RequestType type) = 0;
 
 private slots:
   void requestTimeOut();

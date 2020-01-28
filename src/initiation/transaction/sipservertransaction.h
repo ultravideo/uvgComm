@@ -1,5 +1,7 @@
 #pragma once
 
+#include <QObject>
+
 #include "initiation/siptypes.h"
 
 /* This class implements the behavior defined in RFC3261 for component
@@ -51,7 +53,8 @@ private:
   void responseSender(ResponseType type);
   bool goodRequest(); // use this to filter out untimely/duplicate requests
 
-  // copies the necessary details from
+  // Copies the fields of to a response which are direct copies of the request.
+  // includes at least via, to, from, CallID and cseq
   void copyMessageDetails(std::shared_ptr<SIPMessageInfo> &inMessage,
                           std::shared_ptr<SIPMessageInfo> &copy);
 

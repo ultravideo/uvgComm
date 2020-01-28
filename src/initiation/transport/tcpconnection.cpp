@@ -129,7 +129,7 @@ bool TCPConnection::connectLoop()
   }
 
   qDebug().nospace() << "Connecting: SUCCESS. Local address: "
-           << socket_->localAddress().toString() << ":" << socket_->peerPort()
+           << socket_->localAddress().toString() << ":" << socket_->localPort()
            << " Remote address: " << socket_->peerAddress().toString()
            << ":" << socket_->peerPort();
 
@@ -141,7 +141,6 @@ bool TCPConnection::connectLoop()
 void TCPConnection::run()
 {
   init();
-
 
   if(eventDispatcher() == nullptr)
   {
@@ -173,12 +172,13 @@ void TCPConnection::run()
 
         // TODO: maybe not create the data stream everytime.
         // TODO: Check that the bytes available makes sense and that we are no already processing SIP message.
-        QDataStream in(socket_);
-        in.setVersion(QDataStream::Qt_5_0);
+        QTextStream in(socket_);
         QString message;
-        in >> message;
+        message = in.read(10000);
 
         emit messageAvailable(message);
+
+        //qDebug().noquote() << message;
       }
       else if(socket_->bytesAvailable() > TOO_LARGE_AMOUNT_OF_DATA)
       {
@@ -227,14 +227,19 @@ void TCPConnection::bufferToSocket()
   QString message = buffer_.front();
   buffer_.pop();
 
+  QTextStream stream (socket_);
+  stream << message;
+  /*
   QByteArray block;
-  QDataStream out(&block, QIODevice::WriteOnly);
-  out.setVersion(QDataStream::Qt_4_0);
+  QTextStream out(&block, QIODevice::WriteOnly);
+  //out.setVersion(QDataStream::Qt_5_0);
   out << message;
 
   qint64 sentBytes = socket_->write(block);
+  */
 
-  qDebug() << "Sending: SENT TO SOCKET. Sent bytes:" << sentBytes << "to" << remoteAddress();
+  //qDebug() << "Sending: SENT TO SOCKET. Sent bytes:" << sentBytes << "to" << remoteAddress();
+  qDebug().noquote() << message;
 }
 
 void TCPConnection::disconnect()

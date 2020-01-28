@@ -26,11 +26,7 @@ void SIPClientTransaction::getRequestMessageInfo(RequestType type,
 {
   outMessage = std::shared_ptr<SIPMessageInfo> (new SIPMessageInfo);
 
-  if(type == SIP_ACK)
-  {
-    outMessage->transactionRequest = SIP_INVITE;
-  }
-  else if(type == SIP_CANCEL)
+  if(type == SIP_CANCEL)
   {
     outMessage->transactionRequest = ongoingTransactionType_;
   }
@@ -45,6 +41,10 @@ void SIPClientTransaction::getRequestMessageInfo(RequestType type,
   outMessage->cSeq = 0; // invalid, should be set in dialog
   outMessage->content.type = NO_CONTENT;
   outMessage->content.length = 0;
+
+  ViaInfo via = ViaInfo{TRANSPORTTYPE, "2.0", "", 0,
+          QString("z9hG4bK" + generateRandomString(BRANCHLENGTH)), false, false, 0, ""};
+  outMessage->vias.push_back(via);
 }
 
 
@@ -55,16 +55,16 @@ void SIPClientTransaction::startTimer(RequestType type)
   {
     startTimeoutTimer();
   }
-
 }
 
 
-void SIPClientTransaction::sendRequest(RequestType type)
+void SIPClientTransaction::startTransaction(RequestType type)
 {
   printDebug(DEBUG_NORMAL, this, DC_SEND_SIP_REQUEST,
              "Client starts sending a request.", {"Type"}, {QString::number(type)});
   ongoingTransactionType_ = type;
 
+  // we do not expect a response for these requests.
   if (type == SIP_CANCEL || type == SIP_ACK)
   {
     stopTimeoutTimer();
