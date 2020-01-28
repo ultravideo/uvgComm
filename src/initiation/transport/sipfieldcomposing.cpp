@@ -69,7 +69,14 @@ bool composeSIPUri(SIP_URI& uri, QStringList& words)
       }
     }
 
-    uriString += uri.username + "@" + uri.host + composePortString(uri.port) + parameters + ">";
+    QString usernameString = "";
+
+    if (uri.username != "")
+    {
+      usernameString = uri.username + "@";
+    }
+
+    uriString += usernameString + uri.host + composePortString(uri.port) + parameters + ">";
 
     words.push_back(uriString);
 
