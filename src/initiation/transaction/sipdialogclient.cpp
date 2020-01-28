@@ -20,6 +20,22 @@ void SIPDialogClient::setSessionID(uint32_t sessionID)
   sessionID_ = sessionID;
 }
 
+
+void SIPDialogClient::getRequestMessageInfo(RequestType type,
+                           std::shared_ptr<SIPMessageInfo> &outMessage)
+{
+  SIPClientTransaction::getRequestMessageInfo(type, outMessage);
+
+  if (type == SIP_INVITE || type == SIP_ACK)
+  {
+    if (!outMessage->vias.empty())
+    {
+      outMessage->vias.back().rport = true;
+    }
+  }
+}
+
+
 //processes incoming response
 bool SIPDialogClient::processResponse(SIPResponse& response,
                                       std::shared_ptr<SIPDialogState> state)

@@ -13,6 +13,9 @@ public:
 
   void setSessionID(uint32_t sessionID);
 
+  virtual void getRequestMessageInfo(RequestType type,
+                                     std::shared_ptr<SIPMessageInfo> &outMessage);
+
   virtual bool processResponse(SIPResponse& response,
                                std::shared_ptr<SIPDialogState> state);
 
