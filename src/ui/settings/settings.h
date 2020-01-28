@@ -17,6 +17,9 @@
  *
  * In other words this class synchronizes the settings between UI,
  * QSettings and the settings file (through QSettings).
+ *
+ * Modifying the settings are done in these settings classes and reading can
+ * be done anywhere in the program.
  */
 
 namespace Ui {
@@ -41,6 +44,8 @@ public:
   void updateDevices();
 
 signals:
+
+  // announces to rest of the program that they should reload their settings
   void settingsChanged();
 
 public slots:
