@@ -44,7 +44,7 @@ public:
   bool correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog,
                             RequestType type, uint32_t remoteCSeq);
   bool correctResponseDialog(std::shared_ptr<SIPDialogInfo> dialog,
-                             uint32_t messageCSeq);
+                             uint32_t messageCSeq, bool recordToTag = true);
 
 
   // set and get session activity state

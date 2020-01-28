@@ -152,7 +152,8 @@ bool SIPDialogState::correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog,
     return false;
   }
 
-  // TODO: For backwards compability, this should be prepared for missing To-tag (or was it from tag) (RFC3261).
+  // TODO: For backwards compability, this should be prepared for missing To-tag (or was it from-tag) (RFC3261).
+
   // if our tags and call-ID match the incoming requests, it belongs to this dialog
   if((dialog->toTag == localTag_) && dialog->fromTag == remoteTag_ &&
      ( dialog->callID == callID_))
@@ -174,7 +175,7 @@ bool SIPDialogState::correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog,
 
 
 bool SIPDialogState::correctResponseDialog(std::shared_ptr<SIPDialogInfo> dialog,
-                                           uint32_t messageCSeq)
+                                           uint32_t messageCSeq, bool recordToTag)
 {
   // For backwards compability, this should be prepared for missing To-tag (or was it from tag) (RFC3261).
   // if our tags and call-ID match the incoming requests, it belongs to this dialog
@@ -190,7 +191,7 @@ bool SIPDialogState::correctResponseDialog(std::shared_ptr<SIPDialogInfo> dialog
       return false;
     }
 
-    if(remoteTag_ == "")
+    if(remoteTag_ == "" && recordToTag)
     {
       qDebug() << "We don't yet have their remote Tag. Using the one in response.";
       remoteTag_ = dialog->toTag;

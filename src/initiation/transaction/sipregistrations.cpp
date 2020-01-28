@@ -61,7 +61,7 @@ bool SIPRegistrations::identifyRegistration(SIPResponse& response, QString &outA
   for (auto i = registrations_.begin(); i != registrations_.end(); ++i)
   {
     if(i->second.state->correctResponseDialog(response.message->dialog,
-                                              response.message->cSeq))
+                                              response.message->cSeq, false))
     {
       // TODO: we should check that every single detail is as specified in rfc.
       if(i->second.client->waitingResponse(response.message->transactionRequest))
