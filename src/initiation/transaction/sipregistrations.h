@@ -39,10 +39,11 @@ private:
     std::shared_ptr<SIPNonDialogClient> client;
     std::shared_ptr<SIPDialogState> state;
 
-    QString localAddress;
-    uint16_t localPort;
+    QString contactAddress;
+    uint16_t contactPort;
 
     bool active;
+    bool updatedContact;
 
     // TODO: refresh the registration
   };

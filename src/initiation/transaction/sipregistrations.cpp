@@ -32,7 +32,7 @@ void SIPRegistrations::bindToServer(QString serverAddress, QString localAddress,
   {
     SIPRegistrationData data = {std::shared_ptr<SIPNonDialogClient> (new SIPNonDialogClient(transactionUser_)),
                                 std::shared_ptr<SIPDialogState> (new SIPDialogState()),
-                                localAddress, port, false};
+                                localAddress, port, false, false};
 
     SIP_URI serverUri = {TRANSPORTTYPE, "", "", serverAddress, 0, {}};
     data.state->createServerConnection(serverUri);
@@ -104,13 +104,20 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
 
           foundRegistration = true;
 
-          if (response.message->vias.at(0).receivedAddress != "" &&
+          if (!i.second.updatedContact &&
+              response.message->vias.at(0).receivedAddress != "" &&
               response.message->vias.at(0).rportValue != 0 &&
-              (i.second.localAddress != response.message->vias.at(0).receivedAddress ||
-              i.second.localPort != response.message->vias.at(0).rportValue))
+              (i.second.contactAddress != response.message->vias.at(0).receivedAddress ||
+              i.second.contactPort != response.message->vias.at(0).rportValue))
           {
 
             qDebug() << "Detected that we are behind NAT! Sending a second REGISTER";
+
+            i.second.contactAddress = response.message->contact.host;
+            i.second.contactPort = response.message->contact.port;
+
+            // makes sure we don't end up in infinite loop if the address doesn't match
+            i.second.updatedContact = true;
 
             i.second.client->registerToServer(); // re-REGISTER with NAT address and port
           }
