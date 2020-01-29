@@ -30,19 +30,25 @@ void KvazzupController::init()
     sip_.bindToServer();
   }
 
-  // register the GUI signals indicating GUI changes to be handled approrietly in a system wide manner
+  // register the GUI signals indicating GUI changes to be handled
+  // approrietly in a system wide manner
   QObject::connect(&window_, SIGNAL(settingsChanged()), this, SLOT(updateSettings()));
   QObject::connect(&window_, SIGNAL(micStateSwitch()), this, SLOT(micState()));
   QObject::connect(&window_, SIGNAL(cameraStateSwitch()), this, SLOT(cameraState()));
   QObject::connect(&window_, SIGNAL(endCall()), this, SLOT(endTheCall()));
   QObject::connect(&window_, SIGNAL(closed()), this, SLOT(windowClosed()));
 
-  QObject::connect(&window_, &CallWindow::callAccepted, this, &KvazzupController::userAcceptsCall);
-  QObject::connect(&window_, &CallWindow::callRejected, this, &KvazzupController::userRejectsCall);
-  QObject::connect(&window_, &CallWindow::callCancelled, this, &KvazzupController::userCancelsCall);
+  QObject::connect(&window_, &CallWindow::callAccepted,
+                   this, &KvazzupController::userAcceptsCall);
+  QObject::connect(&window_, &CallWindow::callRejected,
+                   this, &KvazzupController::userRejectsCall);
+  QObject::connect(&window_, &CallWindow::callCancelled,
+                   this, &KvazzupController::userCancelsCall);
 
-  QObject::connect(&sip_, &SIPManager::nominationSucceeded, this, &KvazzupController::startCall);
-  QObject::connect(&sip_, &SIPManager::nominationFailed,    this, &KvazzupController::abortCall);
+  QObject::connect(&sip_, &SIPManager::nominationSucceeded,
+                   this, &KvazzupController::iceCompleted);
+  QObject::connect(&sip_, &SIPManager::nominationFailed,
+                   this, &KvazzupController::abortCall);
   media_.init(window_.getViewFactory(), stats_);
 }
 
@@ -182,49 +188,56 @@ void KvazzupController::peerRejected(uint32_t sessionID)
   }
 }
 
-void KvazzupController::callNegotiated(uint32_t sessionID)
+
+void KvazzupController::iceCompleted(quint32 sessionID)
 {
-  if (!settingEnalbled("sip/ice"))
-  {
-    startCall(sessionID);
-  }
+  startCall(sessionID, true);
 }
 
 
-void KvazzupController::startCall(uint32_t sessionID)
+void KvazzupController::callNegotiated(uint32_t sessionID)
 {
-  if(states_.find(sessionID) != states_.end())
-  {
-    if(states_[sessionID] == CALLNEGOTIATING || states_[sessionID] == CALLONGOING)
-    {
-      if (states_[sessionID] == CALLONGOING)
-      {
-        // we have to remove previous media so we do not double them.
-        media_.removeParticipant(sessionID);
-        window_.removeParticipant(sessionID);
-      }
+  startCall(sessionID, false);
+}
 
-      if (!settingEnalbled("sip/conference") || states_.size() == 1)
+
+void KvazzupController::startCall(uint32_t sessionID, bool iceNominationComplete)
+{
+  if (iceNominationComplete || !settingEnalbled("sip/ice"))
+  {
+    if(states_.find(sessionID) != states_.end())
+    {
+      if(states_[sessionID] == CALLNEGOTIATING || states_[sessionID] == CALLONGOING)
       {
-        createSingleCall(sessionID);
+        if (states_[sessionID] == CALLONGOING)
+        {
+          // we have to remove previous media so we do not double them.
+          media_.removeParticipant(sessionID);
+          window_.removeParticipant(sessionID);
+        }
+
+        if (!settingEnalbled("sip/conference") || states_.size() == 1)
+        {
+          createSingleCall(sessionID);
+        }
+        else
+        {
+          setupConference();
+        }
       }
       else
       {
-        setupConference();
+        qDebug() << "Negotiation," << metaObject()->className()
+                 << ": PEER ERROR: Got call successful negotiation "
+                    "even though we are not there yet:"
+                 << states_[sessionID];
       }
     }
     else
     {
-       qDebug() << "Negotiation," << metaObject()->className()
-                << ": PEER ERROR: Got call successful negotiation "
-                   "even though we are not there yet:"
-                << states_[sessionID];
+      qDebug() << "Negotiation," << metaObject()->className()
+               << ": ERROR: This session does not exist in Call manager";
     }
-  }
-  else
-  {
-     qDebug() << "Negotiation," << metaObject()->className()
-              << ": ERROR: This session does not exist in Call manager";
   }
 }
 
