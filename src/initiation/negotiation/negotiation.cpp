@@ -48,8 +48,8 @@ bool Negotiation::generateOfferSDP(QString localAddress,
 
   if(localInfo != nullptr)
   {
-    sdps_[sessionID].first = localInfo;
-    sdps_[sessionID].second = nullptr;
+    sdps_[sessionID].localSDP = localInfo;
+    sdps_[sessionID].remoteSDP = nullptr;
 
     negotiationStates_[sessionID] = NEG_OFFER_GENERATED;
   }
@@ -87,8 +87,8 @@ bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
       = std::shared_ptr<SDPMessageInfo>(new SDPMessageInfo);
   *remoteSDP = remoteSDPOffer;
 
-  sdps_[sessionID].first = localSDP;
-  sdps_[sessionID].second = remoteSDP;
+  sdps_[sessionID].localSDP = localSDP;
+  sdps_[sessionID].remoteSDP = remoteSDP;
 
   negotiationStates_[sessionID] = NEG_ANSWER_GENERATED;
   return true;
@@ -116,7 +116,7 @@ bool Negotiation::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer, uint32_t ses
     std::shared_ptr<SDPMessageInfo> remoteSDP
         = std::shared_ptr<SDPMessageInfo>(new SDPMessageInfo);
     *remoteSDP = remoteSDPAnswer;
-    sdps_[sessionID].second = remoteSDP;
+    sdps_[sessionID].remoteSDP = remoteSDP;
 
     negotiationStates_[sessionID] = NEG_FINISHED;
     return true;
@@ -375,17 +375,20 @@ std::shared_ptr<SDPMessageInfo> Negotiation::getLocalSDP(uint32_t sessionID) con
   {
     return nullptr;
   }
-  return sdps_.at(sessionID).first;
+  return sdps_.at(sessionID).localSDP;
 }
 
-std::shared_ptr<SDPMessageInfo> Negotiation::getRemoteSDP(uint32_t sessionID) const
+std::shared_ptr<SDPMessageInfo> Negotiation::getRemoteSDP(uint32_t sessionID,
+                                                          QList<uint16_t>& sendPorts) const
 {
   if(!checkSessionValidity(sessionID, true))
   {
     return nullptr;
   }
 
-  return sdps_.at(sessionID).second;
+  sendPorts = sdps_.at(sessionID).sendports;
+
+  return sdps_.at(sessionID).remoteSDP;
 }
 
 
@@ -454,9 +457,9 @@ void Negotiation::endSession(uint32_t sessionID)
 {
   if(sdps_.find(sessionID) != sdps_.end())
   {
-    if (sdps_.at(sessionID).first != nullptr)
+    if (sdps_.at(sessionID).localSDP != nullptr)
     {
-      std::shared_ptr<SDPMessageInfo> localSDP = sdps_.at(sessionID).first;
+      std::shared_ptr<SDPMessageInfo> localSDP = sdps_.at(sessionID).localSDP;
       for(auto& mediaStream : localSDP->media)
       {
         parameters_.makePortPairAvailable(mediaStream.receivePort);
@@ -497,8 +500,8 @@ void Negotiation::respondToICECandidateNominations(uint32_t sessionID)
     return;
   }
 
-  std::shared_ptr<SDPMessageInfo> localSDP = sdps_.at(sessionID).first;
-  std::shared_ptr<SDPMessageInfo> remoteSDP = sdps_.at(sessionID).second;
+  std::shared_ptr<SDPMessageInfo> localSDP = sdps_.at(sessionID).localSDP;
+  std::shared_ptr<SDPMessageInfo> remoteSDP = sdps_.at(sessionID).remoteSDP;
 
   ice_->respondToNominations(localSDP->candidates, remoteSDP->candidates, sessionID);
 }
@@ -510,8 +513,8 @@ void Negotiation::startICECandidateNegotiation(uint32_t sessionID)
     return;
   }
 
-  std::shared_ptr<SDPMessageInfo> localSDP = sdps_.at(sessionID).first;
-  std::shared_ptr<SDPMessageInfo> remoteSDP = sdps_.at(sessionID).second;
+  std::shared_ptr<SDPMessageInfo> localSDP = sdps_.at(sessionID).localSDP;
+  std::shared_ptr<SDPMessageInfo> remoteSDP = sdps_.at(sessionID).remoteSDP;
 
   ice_->startNomination(localSDP->candidates, remoteSDP->candidates, sessionID);
 }
@@ -537,8 +540,8 @@ void Negotiation::nominationSucceeded(quint32 sessionID)
 
   ICEMediaInfo nominated = ice_->getNominated(sessionID);
 
-  std::shared_ptr<SDPMessageInfo> localSDP = sdps_.at(sessionID).first;
-  std::shared_ptr<SDPMessageInfo> remoteSDP = sdps_.at(sessionID).second;
+  std::shared_ptr<SDPMessageInfo> localSDP = sdps_.at(sessionID).localSDP;
+  std::shared_ptr<SDPMessageInfo> remoteSDP = sdps_.at(sessionID).remoteSDP;
 
   // first is RTP, second is RTCP
   if (nominated.audio.first != nullptr && nominated.audio.second != nullptr)
@@ -561,13 +564,13 @@ bool Negotiation::checkSessionValidity(uint32_t sessionID, bool checkRemote) con
   Q_ASSERT(sessionID);
 
   Q_ASSERT(sdps_.find(sessionID) != sdps_.end());
-  Q_ASSERT(sdps_.at(sessionID).first != nullptr);
-  Q_ASSERT(sdps_.at(sessionID).second != nullptr || !checkRemote);
+  Q_ASSERT(sdps_.at(sessionID).localSDP != nullptr);
+  Q_ASSERT(sdps_.at(sessionID).remoteSDP != nullptr || !checkRemote);
 
   if(sessionID == 0 ||
      sdps_.find(sessionID) == sdps_.end() ||
-     sdps_.at(sessionID).first == nullptr ||
-     (sdps_.at(sessionID).second == nullptr && checkRemote))
+     sdps_.at(sessionID).localSDP == nullptr ||
+     (sdps_.at(sessionID).remoteSDP == nullptr && checkRemote))
   {
     printDebug(DEBUG_PROGRAM_ERROR, "GlobalSDPState", DC_NEGOTIATING,
                "Attempting to use GlobalSDPState without setting SessionID correctly",
