@@ -34,8 +34,11 @@ public:
 
   // Returns filter to be attached to filter graph. ownership is not transferred.
   // removing the peer or stopping the streamer destroys these filters.
-  std::shared_ptr<Filter> addSendStream(uint32_t peer, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum);
-  std::shared_ptr<Filter> addReceiveStream(uint32_t peer, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum);
+  std::shared_ptr<Filter> addSendStream(uint32_t peer, QHostAddress ip,
+                                        uint16_t dst_port, uint16_t src_port,
+                                        QString codec, uint8_t rtpNum);
+  std::shared_ptr<Filter> addReceiveStream(uint32_t peer, QHostAddress ip,
+                                           uint16_t port, QString codec, uint8_t rtpNum);
 
    void removeSendVideo(uint32_t sessionID);
    void removeSendAudio(uint32_t sessionID);
@@ -81,7 +84,8 @@ private:
   // returns whether peer corresponding to sessionID has been created. Debug
   bool checkSessionID(uint32_t sessionID);
 
-  Sender     *addSender(QHostAddress ip, uint16_t port, rtp_format_t type, uint8_t rtpNum);
+  Sender   *addSender(QHostAddress ip, uint16_t dst_port, uint16_t src_port,
+                      rtp_format_t type, uint8_t rtpNum);
   Receiver *addReceiver(QHostAddress ip, uint16_t port, rtp_format_t type, uint8_t rtpNum);
 
   // private variables

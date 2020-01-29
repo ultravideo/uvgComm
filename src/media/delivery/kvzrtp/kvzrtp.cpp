@@ -83,16 +83,20 @@ bool KvzRTP::addPeer(uint32_t sessionID)
     iniated_.unlock();
     destroyed_.unlock();
 
-    printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "RTP streamer", { "SessionID" }, { QString::number(sessionID) });
+    printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "RTP streamer", { "SessionID" },
+    { QString::number(sessionID) });
 
     return true;
   }
-  printDebug(DEBUG_WARNING, this, DC_ADD_MEDIA, "Trying to add peer while RTP was being destroyed.");
+  printDebug(DEBUG_WARNING, this, DC_ADD_MEDIA,
+             "Trying to add peer while RTP was being destroyed.");
 
   return false;
 }
 
-std::shared_ptr<Filter> KvzRTP::addSendStream(uint32_t peer, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum)
+std::shared_ptr<Filter> KvzRTP::addSendStream(uint32_t peer, QHostAddress ip,
+                                              uint16_t dst_port, uint16_t src_port,
+                                              QString codec, uint8_t rtpNum)
 {
   Q_ASSERT(checkSessionID(peer));
   Q_UNUSED(peer);
@@ -103,7 +107,7 @@ std::shared_ptr<Filter> KvzRTP::addSendStream(uint32_t peer, QHostAddress ip, ui
     ip = QHostAddress(ip.toString().mid(7));
   }
 
-  KvzRTP::Sender *sender = addSender(ip, port, typeFromString(codec), rtpNum);
+  KvzRTP::Sender *sender = addSender(ip, dst_port, src_port, typeFromString(codec), rtpNum);
 
   if (sender == nullptr)
   {
@@ -114,7 +118,8 @@ std::shared_ptr<Filter> KvzRTP::addSendStream(uint32_t peer, QHostAddress ip, ui
   return sender->sourcefilter;
 }
 
-std::shared_ptr<Filter> KvzRTP::addReceiveStream(uint32_t peer, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum)
+std::shared_ptr<Filter> KvzRTP::addReceiveStream(uint32_t peer, QHostAddress ip, uint16_t port,
+                                                 QString codec, uint8_t rtpNum)
 {
   Q_ASSERT(checkSessionID(peer));
   Q_UNUSED(peer);
@@ -275,20 +280,19 @@ bool KvzRTP::checkSessionID(uint32_t sessionID)
   return (uint32_t)peers_.size() >= sessionID && peers_.at(sessionID - 1) != nullptr;
 }
 
-KvzRTP::Sender *KvzRTP::addSender(QHostAddress ip, uint16_t port, rtp_format_t type, uint8_t rtpNum)
+KvzRTP::Sender *KvzRTP::addSender(QHostAddress ip, uint16_t dst_port,
+                                  uint16_t src_port, rtp_format_t type, uint8_t rtpNum)
 {
   printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Iniating send RTP/RTCP stream",
-      { "Port", "Type" }, { QString::number(port), QString::number(type) });
+      { "Port", "Type" }, { QString::number(dst_port), QString::number(type) });
 
   Sender *sender = new Sender;
 
-  /* TODO: source port (1337 is not valid!) */
-
-  sender->writer = rtp_ctx_->create_writer(ip.toString().toStdString(), port, 1337, type);
+  sender->writer = rtp_ctx_->create_writer(ip.toString().toStdString(), dst_port, src_port, type);
   sender->writer->start();
 
   // TODO is this necessary????
-  QString mediaName = QString::number(port);
+  QString mediaName = QString::number(dst_port);
   DataType realType = NONE;
   kvz_rtp::opus::opus_config *config;
 

@@ -326,7 +326,9 @@ bool Live555RTP::checkSessionID(uint32_t sessionID)
       && peers_.at(sessionID - 1) != nullptr;
 }
 
-std::shared_ptr<Filter> Live555RTP::addSendStream(uint32_t sessionID, QHostAddress ip, uint16_t port, QString codec, uint8_t rtpNum)
+std::shared_ptr<Filter> Live555RTP::addSendStream(uint32_t sessionID, QHostAddress ip,
+                                                  uint16_t dst_port, uint16_t src_port,
+                                                  QString codec, uint8_t rtpNum)
 {
   Q_ASSERT(sessionID);
   Q_ASSERT(peers_.size() >= sessionID);
@@ -341,7 +343,7 @@ std::shared_ptr<Filter> Live555RTP::addSendStream(uint32_t sessionID, QHostAddre
   ip_addr.s_addr = qToBigEndian(ip.toIPv4Address());
 #endif
 
-  Live555RTP::Sender *sender = addSender(ip_addr, port, typeFromString(codec), rtpNum);
+  Live555RTP::Sender *sender = addSender(ip_addr, dst_port, typeFromString(codec), rtpNum);
 
   if (sender == nullptr)
   {

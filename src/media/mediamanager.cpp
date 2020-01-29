@@ -133,7 +133,8 @@ void MediaManager::addParticipant(uint32_t sessionID, std::shared_ptr<SDPMessage
 
     if(!streamer_->addPeer(sessionID))
     {
-      printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "Error creating RTP peer. Simultaneous destruction?.");
+      printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA,
+                 "Error creating RTP peer. Simultaneous destruction?");
       return;
     }
   }
@@ -216,7 +217,8 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
         return;
       }
 
-      std::shared_ptr<Filter> framedSource = streamer_->addSendStream(sessionID, address, remoteMedia.receivePort,
+      std::shared_ptr<Filter> framedSource = streamer_->addSendStream(sessionID, address,
+                                                                      remoteMedia.receivePort, 1337,
                                                                       codec, remoteMedia.rtpNums.at(0));
 
       Q_ASSERT(framedSource != nullptr);
