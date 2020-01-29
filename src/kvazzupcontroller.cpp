@@ -9,8 +9,6 @@
 
 
 KvazzupController::KvazzupController():
-    phaseReady_(0),
-    conference_(SINGLE_CONNECTIONS),
     media_(),
     sip_(),
     window_(nullptr)
@@ -92,7 +90,6 @@ void KvazzupController::outgoingCall(uint32_t sessionID, QString callee)
   if(states_.find(sessionID) == states_.end())
   {
     states_[sessionID] = CALLINGTHEM;
-    conference_ = SINGLE_CONNECTIONS;
   }
 }
 
@@ -207,14 +204,6 @@ void KvazzupController::startCall(uint32_t sessionID)
         window_.removeParticipant(sessionID);
       }
 
-      ++phaseReady_;
-
-      printDebug(DEBUG_NORMAL, this, DC_NEGOTIATING, "Call negotiated.",
-        {"sessionID", "Ready sessions", "Total sessions"},
-        {QString::number(sessionID),
-         QString::number(phaseReady_),
-         QString::number(states_.size())});
-
       if (!settingEnalbled("sip/conference") || states_.size() == 1)
       {
         createSingleCall(sessionID);
@@ -282,41 +271,7 @@ void KvazzupController::createSingleCall(uint32_t sessionID)
 
 void KvazzupController::setupConference()
 {
-  // can we proceed to next phase
-  if (phaseReady_ == states_.size())
-  {
-    switch (conference_)
-    {
-      case SINGLE_CONNECTIONS:
-      {
-        conference_ = RECEIVE_PORTS;
-        sip_.negotiateReceivePorts();
-        phaseReady_ = 0;
-        break;
-      }
-      case RECEIVE_PORTS:
-      {
-        conference_ = WHOLE_CONFERENCE;
-        sip_.negotiateConference();
-        phaseReady_ = 0;
-        break;
-      }
-      case WHOLE_CONFERENCE:
-      {
-        for (auto& session : states_)
-        {
-          createSingleCall(session.first);
-        }
-        conference_ = CONFERENCE_ACTIVE;
-        break;
-      }
-      default:
-      {
-        printDebug(DEBUG_PROGRAM_ERROR, this, DC_NEGOTIATING,
-                   "Conference negotiated, it was already active");
-      }
-    }
-  }
+  // TODO
 }
 
 
@@ -392,8 +347,6 @@ void KvazzupController::endTheCall()
   media_.endAllCalls();
   window_.clearConferenceView();
 
-  conference_ = SINGLE_CONNECTIONS;
-  phaseReady_ = 0;
   states_.clear();
 }
 

@@ -87,16 +87,6 @@ private:
 
   std::map<uint32_t, CallState> states_;
 
-  enum ConferenceState {
-    SINGLE_CONNECTIONS,
-    RECEIVE_PORTS,
-    WHOLE_CONFERENCE,
-    CONFERENCE_ACTIVE
-  };
-
-  uint32_t phaseReady_; // how many sessions have completed this phase
-  ConferenceState conference_;
-
   MediaManager media_; // Media processing and delivery
   SIPManager sip_; // SIP
   CallWindow window_; // GUI

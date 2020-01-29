@@ -56,100 +56,6 @@ bool Negotiation::generateOfferSDP(QString localAddress,
   return localInfo != nullptr;
 }
 
-// Includes the medias for all the participants for conference
-bool Negotiation::initialConferenceOfferSDP(uint32_t sessionID)
-{
-  std::shared_ptr<SDPMessageInfo> newInfo = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
-  newInfo = sdps_.at(sessionID).first;
-
-  // go through every media and include it in our conference offer so we get a
-  // response port for each media in conference for them.
-  for (auto& callSession : sdps_)
-  {
-    // don't include their own address
-    if (callSession.first != sessionID)
-    {
-      for (auto& media : callSession.second.second->media)
-      {
-        media.connection_address = callSession.second.second->connection_address;
-        media.connection_nettype = callSession.second.second->connection_nettype;
-        media.connection_addrtype = callSession.second.second->connection_addrtype;
-
-        newInfo->media.append(media);
-
-        // we use sendonly because we don't know the receive port of other conference
-        // participants.
-        newInfo->media.back().flagAttributes = {A_SENDONLY};
-      }
-    }
-  }
-
-  recvConferenceSdps_[sessionID] = newInfo;
-  negotiationStates_[sessionID] = NEG_OFFER_GENERATED;
-
-  return true;
-}
-
-
-// Includes the medias for all the participants for conference
-bool Negotiation::finalConferenceOfferSDP(uint32_t sessionID)
-{
-  if (!checkSessionValidity(sessionID, true))
-  {
-    return false;
-  }
-
-  std::shared_ptr<SDPMessageInfo> newInfo = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
-  *newInfo = *(recvConferenceSdps_.at(sessionID));
-
-  for (int i = 0; i < newInfo->media.size(); ++i)
-  {
-    newInfo->media[i].flagAttributes.clear();
-    newInfo->media[i].flagAttributes.append(A_SENDRECV);
-  }
-
-  // include receive port for every media
-
-  QString remoteAddress = sdps_.at(sessionID).second->connection_address;
-
-  for (auto& sdp : recvConferenceSdps_)
-  {
-    for (auto& media : sdp.second->media)
-    {
-
-      // TODO: SHould this be unequal?
-      if (media.connection_address == remoteAddress)
-      {
-        newInfo->media.append(media);
-        newInfo->media.back().flagAttributes = {A_SENDRECV};
-      }
-    }
-  }
-
-  finalConferenceSdps_[sessionID] = newInfo;
-  negotiationStates_[sessionID] = NEG_OFFER_GENERATED;
-  return true;
-}
-
-
-std::shared_ptr<SDPMessageInfo> Negotiation::getInitialConferenceOffer(uint32_t sessionID) const
-{
-  Q_ASSERT(sessionID);
-  Q_ASSERT(recvConferenceSdps_.find(sessionID) != recvConferenceSdps_.end());
-
-  return recvConferenceSdps_.at(sessionID);
-}
-
-
-std::shared_ptr<SDPMessageInfo> Negotiation::getFinalConferenceOffer(uint32_t sessionID) const
-{
-  Q_ASSERT(sessionID);
-  Q_ASSERT(finalConferenceSdps_.find(sessionID) != finalConferenceSdps_.end());
-
-  return finalConferenceSdps_.at(sessionID);
-}
-
-
 
 bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
                                     QString localAddress,
@@ -481,13 +387,6 @@ std::shared_ptr<SDPMessageInfo> Negotiation::getRemoteSDP(uint32_t sessionID) co
 
   return sdps_.at(sessionID).second;
 }
-
-
-std::shared_ptr<SDPMessageInfo> Negotiation::getRemoteConferenceSDP(uint32_t sessionID) const
-{
-  return finalConferenceSdps_.at(sessionID);
-}
-
 
 
 bool Negotiation::checkSDPOffer(SDPMessageInfo &offer)

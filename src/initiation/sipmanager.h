@@ -40,14 +40,6 @@ public:
   void endCall(uint32_t sessionID);
   void endAllCalls();
 
-  // second step of non-working conferencing implementation.
-  // NOTE: This will probably be removed in the future
-  void negotiateReceivePorts();
-
-  // third step of the non-working conferencing implementation
-  // NOTE: This will probably be removed in the future
-  void negotiateConference();
-
   // Get the negotiated session media session descriptions. Use after call
   // has been negotiated.
   void getSDPs(uint32_t sessionID,
@@ -127,14 +119,6 @@ private:
 
   // Negotiation with SDP and ICE
   Negotiation negotiation_;
-
-  enum NegotiateState {
-    INDIVIDUAL,
-    RECEIVE_PORTS,
-    WHOLE_CONFERENCE
-  };
-
-  NegotiateState state_;
 
   StatisticsInterface *stats_;
 };
