@@ -276,5 +276,15 @@ win32: LIBS += -loleaut32
 INCLUDEPATH += $$PWD/../
 DEPENDPATH += $$PWD/../
 
+copydata.commands = $(COPY_DIR) $$shell_path($$PWD/stylesheet.qss) $$shell_path($$OUT_PWD) &&
+copydata.commands += $(COPY_DIR) $$shell_path($$PWD/fonts) $$shell_path($$OUT_PWD/fonts) &&
+copydata.commands += $(COPY_DIR) $$shell_path($$PWD/icons) $$shell_path($$OUT_PWD/icons)
+
+first.depends = $(first) copydata
+export(first.depends)
+export(copydata.commands)
+QMAKE_EXTRA_TARGETS += first copydata
+
+
 DISTFILES += \
     .gitignore
