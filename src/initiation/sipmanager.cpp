@@ -389,7 +389,7 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
   QString possibleServerAddress = "";
   if(registrations_.identifyRegistration(response, possibleServerAddress))
   {
-    printNormalDebug(this, "Got a response to server message!");
+    printNormal(this, "Got a response to server message!");
     registrations_.processNonDialogResponse(response);
     return;
   }

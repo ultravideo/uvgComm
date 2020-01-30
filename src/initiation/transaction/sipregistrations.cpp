@@ -17,7 +17,7 @@ SIPRegistrations::SIPRegistrations()
 
 void SIPRegistrations::init(SIPTransactionUser *callControl)
 {
-  printNormalDebug(this, "Initiatin Registrations");
+  printNormal(this, "Initiatin Registrations");
   transactionUser_ = callControl;
 }
 
@@ -48,7 +48,7 @@ void SIPRegistrations::bindToServer(QString serverAddress, QString localAddress,
   }
   else
   {
-    printPErrorDebug(this, "Not initialized with transaction user");
+    printProgramError(this, "Not initialized with transaction user");
   }
 }
 
@@ -122,7 +122,7 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
             i.second.client->registerToServer(); // re-REGISTER with NAT address and port
           }
 
-          printNormalDebug(this, "Registration was succesful.");
+          printNormal(this, "Registration was succesful.");
         }
       }
 

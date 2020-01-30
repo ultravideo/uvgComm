@@ -53,35 +53,62 @@ void printDebug(DebugType type, QObject* object, QString description,
 }
 
 
-void printNormalDebug(QObject* object, QString description,
+void printNormal(QObject* object, QString description,
                       QString valueName, QString value)
 {
-  QStringList names;
-  if (valueName != "")
-  {
-    names.push_back(valueName);
-  }
-  QStringList values;
-  if (value != "")
-  {
-    values.push_back(value);
-  }
-  printDebug(DEBUG_NORMAL, object, description, names, values);
+  printDebug(DEBUG_NORMAL, object, description, {valueName}, {value});
 }
 
 
-void printPErrorDebug(QObject* object, QString description,
+void printImportant(QObject* object, QString description,
+                   QString valueName, QString value)
+{
+  printDebug(DEBUG_IMPORTANT, object, description, {valueName}, {value});
+}
+
+
+void printWarning(QObject* object, QString description,
+                  QString valueName, QString value)
+{
+  printDebug(DEBUG_WARNING, object, description, {valueName}, {value});
+}
+
+
+void printError(QObject* object, QString description,
+                QString valueName, QString value)
+{
+  printDebug(DEBUG_ERROR, object, description, {valueName}, {value});
+}
+
+
+void printProgramError(QObject* object, QString description,
                       QString valueName, QString value)
 {
   printDebug(DEBUG_PROGRAM_ERROR, object, description, {valueName}, {value});
 }
 
 
+void printProgramWarning(QObject* object, QString description,
+                         QString valueName, QString value)
+{
+  printDebug(DEBUG_PROGRAM_WARNING, object, description, {valueName}, {value});
+}
+
+
+void printPeerError(QObject* object, QString description,
+                    QString valueName, QString value)
+{
+  printDebug(DEBUG_PEER_ERROR, object, description, {valueName}, {value});
+}
+
+
 void printUnimplemented(QObject* object, QString whatIsNotImplemented)
 {
-  printDebug(DEBUG_PROGRAM_ERROR, object,
+  printDebug(DEBUG_PROGRAM_WARNING, object,
              QString("NOT IMPLEMENTED: ") + whatIsNotImplemented);
 }
+
+
 
 
 void printDebug(DebugType type, QString className,

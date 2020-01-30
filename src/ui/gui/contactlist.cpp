@@ -121,7 +121,7 @@ void ContactList::addContact(ParticipantInterface* interface,
     username = "anonymous";
   if(address == "")
   {
-    printNormalDebug(this, "Please input address!");
+    printNormal(this, "Please input address!");
     return;
   }
 

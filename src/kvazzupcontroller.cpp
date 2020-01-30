@@ -16,6 +16,7 @@ KvazzupController::KvazzupController():
 
 void KvazzupController::init()
 {
+  printImportant(this, "Kvazzup initiation Started");
   window_.init(this);
   window_.show();
   stats_ = window_.createStatsWindow();
@@ -50,6 +51,8 @@ void KvazzupController::init()
   QObject::connect(&sip_, &SIPManager::nominationFailed,
                    this, &KvazzupController::abortCall);
   media_.init(window_.getViewFactory(), stats_);
+
+  printImportant(this, "Kvazzup initiation finished");
 }
 
 void KvazzupController::uninit()
@@ -73,9 +76,8 @@ uint32_t KvazzupController::callToParticipant(QString name, QString username, QS
   con.username = username;
 
   //start negotiations for this connection
-  qDebug() << "Session Initiation," << metaObject()->className()
-           << ": Start Call," << metaObject()->className()
-           << ": Initiated call starting to" << con.realName;
+
+  printNormal(this, "Starting call with contact", {"Contact"}, {con.realName});
 
   return sip_.startCall(con);
 }
@@ -83,10 +85,8 @@ uint32_t KvazzupController::callToParticipant(QString name, QString username, QS
 uint32_t KvazzupController::chatWithParticipant(QString name, QString username,
                                                 QString ip)
 {
-  qDebug() << "Chatting," << metaObject()->className()
-           << ": Chatting with:" << name
-           << '(' << username << ") at ip:" << ip << ": Chat not implemented yet";
-
+  printDebug(DEBUG_NORMAL, this, "Starting a chat with contact",
+            {"ip", "Name", "Username"}, {ip, name, username});
   return 0;
 }
 
@@ -103,22 +103,22 @@ bool KvazzupController::incomingCall(uint32_t sessionID, QString caller)
 {
   if(states_.find(sessionID) != states_.end())
   {
-    qDebug() << "Incoming call," << metaObject()->className()
-             << ": ERROR: Overwriting and existing session in the Kvazzup Core!";
+    printProgramError(this, "Incoming call is overwriting an existing session!");
   }
 
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
   int autoAccept = settings.value("local/Auto-Accept").toInt();
   if(autoAccept == 1)
-  {
-    qDebug() << "Incoming call," << metaObject()->className()
-             << ": Incoming call auto-accepted!";
+  { 
+    printNormal(this, "Incoming call auto-accepted");
+
     userAcceptsCall(sessionID);
     states_[sessionID] = CALLNEGOTIATING;
     return true;
   }
   else
   {
+    printNormal(this, "Showing incoming call");
     window_.displayIncomingCall(sessionID, caller);
     states_[sessionID] = CALLRINGINGWITHUS;
   }
@@ -129,14 +129,14 @@ void KvazzupController::callRinging(uint32_t sessionID)
 {
   if(states_.find(sessionID) != states_.end() && states_[sessionID] == CALLINGTHEM)
   {
-    qDebug() << "Ringing," << metaObject()->className() << ": Our call is ringing!";
+    printNormal(this, "Our call is ringing");
     window_.displayRinging(sessionID);
     states_[sessionID] = CALLRINGINWITHTHEM;
   }
   else
   {
-    qDebug() << "Ringing," << metaObject()->className()
-             << ": PEER ERROR: Got call ringing for nonexisting call:" << sessionID;
+    printPeerError(this, "Got call ringing for nonexisting call",
+                  {"SessionID"}, {sessionID});
   }
 }
 
@@ -146,19 +146,17 @@ void KvazzupController::peerAccepted(uint32_t sessionID)
   {
     if(states_[sessionID] == CALLRINGINWITHTHEM || states_[sessionID] == CALLINGTHEM)
     {
-      printDebug(DEBUG_NORMAL, this, "They accepted our call!");
+      printImportant(this, "They accepted our call!");
       states_[sessionID] = CALLNEGOTIATING;
     }
     else
     {
-      printDebug(DEBUG_PEER_ERROR, this,
-                 "Got an accepted call even though we have not yet called them!");
+      printPeerError(this, "Got an accepted call even though we have not yet called them!");
     }
   }
   else
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this,
-               "Peer accepted a session which is not in Core.");
+    printPeerError(this, "Peer accepted a session which is not in Controller.");
   }
 }
 
@@ -168,23 +166,18 @@ void KvazzupController::peerRejected(uint32_t sessionID)
   {
     if(states_[sessionID] == CALLRINGINWITHTHEM)
     {
-      qDebug() << "Rejection," << metaObject()->className()
-               << ": Our call has been rejected!";
+      printImportant(this, "Our call has been rejected!");
       removeSession(sessionID);
     }
     else
     {
-      qDebug() << "Rejection," << metaObject()->className()
-               << ": PEER ERROR: Got reject when we weren't calling them:"
-               << states_[sessionID];
+      printPeerError(this, "Got reject when we weren't calling them", "SessionID", {sessionID});
     }
   }
   else
   {
-    qDebug() << "Rejection," << metaObject()->className()
-             << ": PEER ERROR: Got reject for nonexisting call:" << sessionID;
-    qDebug() << "Rejection," << metaObject()->className()
-             << ": Number of ongoing sessions:" << states_.size();
+    printPeerError(this, "Got reject for nonexisting call", "SessionID", {sessionID});
+    printPeerError(this, "", "Ongoing sessions", {QString::number(states_.size())});
   }
 }
 
@@ -227,16 +220,16 @@ void KvazzupController::startCall(uint32_t sessionID, bool iceNominationComplete
       }
       else
       {
-        qDebug() << "Negotiation," << metaObject()->className()
-                 << ": PEER ERROR: Got call successful negotiation "
-                    "even though we are not there yet:"
-                 << states_[sessionID];
+        printPeerError(this, "Got call successful negotiation "
+                             "even though we are not there yet, "
+                             "State",
+                             {states_[sessionID]});
       }
     }
     else
     {
-      qDebug() << "Negotiation," << metaObject()->className()
-               << ": ERROR: This session does not exist in Call manager";
+      printProgramError(this, "The call state does not exist when starting the call.",
+                        {"SessionID"}, {sessionID});
     }
   }
 }
@@ -245,14 +238,16 @@ void KvazzupController::startCall(uint32_t sessionID, bool iceNominationComplete
 void KvazzupController::abortCall(uint32_t sessionID)
 {
   // TODO: Tell sip manager to send an error for ICE
+
+  printUnimplemented(this, "Send SIP error code for ICE failure");
   endCall(sessionID);
 }
 
 
 void KvazzupController::createSingleCall(uint32_t sessionID)
 {
-  qDebug() << "Negotiation," << metaObject()->className()
-           << ": Call has been agreed upon with peer:" << sessionID;
+  printNormal(this, "Call has been agreed upon with peer.",
+              "SessionID", {sessionID});
 
   std::shared_ptr<SDPMessageInfo> localSDP;
   std::shared_ptr<SDPMessageInfo> remoteSDP;
@@ -275,8 +270,7 @@ void KvazzupController::createSingleCall(uint32_t sessionID)
 
   if(localSDP == nullptr || remoteSDP == nullptr)
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this,
-               "Failed to get SDP. Error should be detected earlier.");
+    printError(this, "Failed to get SDP. Error should be detected earlier.");
     return;
   }
 
@@ -286,77 +280,85 @@ void KvazzupController::createSingleCall(uint32_t sessionID)
 
 void KvazzupController::setupConference()
 {
-  // TODO
+  printUnimplemented(this, "Setup conference.");
 }
 
 
 void KvazzupController::callNegotiationFailed(uint32_t sessionID)
 {
-  // TODO: display a proper error for the user
+  // TODO: display a proper message to the user the negotiation has failed
+  printUnimplemented(this, "Tell user that the negotiation has failed.");
   peerRejected(sessionID);
 }
+
 
 void KvazzupController::cancelIncomingCall(uint32_t sessionID)
 {
   // TODO: display a proper message to the user that peer has cancelled their call
+  printUnimplemented(this, "Tell user that the call has been cancelled.");
   removeSession(sessionID);
 }
 
+
 void KvazzupController::endCall(uint32_t sessionID)
 {
-  if(states_.find(sessionID) != states_.end()
-     && states_[sessionID] == CALLONGOING)
+  if (states_.find(sessionID) != states_.end() &&
+      states_[sessionID] == CALLONGOING)
   {
     media_.removeParticipant(sessionID);
   }
   removeSession(sessionID);
 }
 
+
 void KvazzupController::registeredToServer()
 {
-  qDebug() << "Core," << metaObject()->className()
-           << ": Got info, that we have been registered to SIP server.";
+  printImportant(this, "We have been registered to a SIP server.");
   // TODO: indicate to user in some small detail
 }
 
+
 void KvazzupController::registeringFailed()
 {
-  qDebug() << "Core," << metaObject()->className() << ": Failed to register";
+  printError(this, "Failed to register to a SIP server.");
   // TODO: indicate error to user
 }
+
 
 void KvazzupController::updateSettings()
 {
   media_.updateSettings();
-  //sip_.updateSettings(); // for blocking list
+  // TODO: sip_.updateSettings();
 }
+
 
 void KvazzupController::userAcceptsCall(uint32_t sessionID)
 {
-  qDebug() << "Core," << metaObject()->className() << ": Sending accept";
+  printNormal(this, "We accept");
   sip_.acceptCall(sessionID);
   states_[sessionID] = CALLNEGOTIATING;
 }
 
+
 void KvazzupController::userRejectsCall(uint32_t sessionID)
 {
-  qDebug() << "Core," << metaObject()->className() << ": We have rejected their call";
+  printNormal(this, "We reject");
   sip_.rejectCall(sessionID);
   removeSession(sessionID);
 }
 
+
 void KvazzupController::userCancelsCall(uint32_t sessionID)
 {
-  qDebug() << "Core," << metaObject()->className() << ": We have cancelled our call";
+  printNormal(this, "We cancel our call");
   sip_.cancelCall(sessionID);
   removeSession(sessionID);
 }
 
+
 void KvazzupController::endTheCall()
 {
-  qDebug() << "Core," << metaObject()->className()
-           << ": End all call," << metaObject()->className()
-           << ": End all calls button pressed";
+  printNormal(this, "We end the call");
 
   sip_.endAllCalls();
   media_.endAllCalls();
@@ -365,15 +367,18 @@ void KvazzupController::endTheCall()
   states_.clear();
 }
 
+
 void KvazzupController::micState()
 {
   window_.setMicState(media_.toggleMic());
 }
 
+
 void KvazzupController::cameraState()
 {
   window_.setCameraState(media_.toggleCamera());
 }
+
 
 void KvazzupController::removeSession(uint32_t sessionID)
 {

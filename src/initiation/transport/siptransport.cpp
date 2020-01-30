@@ -583,7 +583,7 @@ bool SIPTransport::combineContinuationLines(QStringList& lines)
     // combine current line with previous
     if (lines.at(i).front().isSpace())
     {
-      printNormalDebug(this,  "Found a continuation line");
+      printNormal(this,  "Found a continuation line");
       lines[i - 1].append(lines.at(i));
       lines.erase(lines.begin() + i);
       --i;
