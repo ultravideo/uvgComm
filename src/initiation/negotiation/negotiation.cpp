@@ -538,6 +538,8 @@ void Negotiation::nominationSucceeded(quint32 sessionID)
     return;
   }
 
+  printNormal(this, "ICE nomination has succeeded", {"SessionID"}, {sessionID});
+
   ICEMediaInfo nominated = ice_->getNominated(sessionID);
 
   std::shared_ptr<SDPMessageInfo> localSDP = sdps_.at(sessionID).localSDP;

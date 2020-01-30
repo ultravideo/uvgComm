@@ -124,17 +124,20 @@ void printDebug(DebugType type, QString className,
     {
       for (int i = 0; i < valueNames.size(); ++i)
       {
-        valueString.append("-- ");
-        valueString.append(valueNames.at(i));
-        valueString.append(": ");
-        valueString.append(values.at(i));
-        if (i != valueNames.size() - 1)
+        if (valueNames.at(i) != "" && values.at(i) != "")
         {
-          valueString.append("\r\n");
+          valueString.append("-- ");
+          valueString.append(valueNames.at(i));
+          valueString.append(": ");
+          valueString.append(values.at(i));
+          if (i != valueNames.size() - 1)
+          {
+            valueString.append("\r\n");
+          }
         }
       }
     }
-    else if (valueNames.size() == 1) // if we have one name, add it
+    else if (valueNames.size() == 1 && valueNames.at(0) != "") // if we have one name, add it
     {
       valueString.append(valueNames.at(0));
       valueString.append(": ");

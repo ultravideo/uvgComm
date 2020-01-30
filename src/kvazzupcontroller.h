@@ -61,7 +61,7 @@ public slots:
   void userCancelsCall(uint32_t sessionID); // user has rejected the incoming call
 
   void iceCompleted(quint32 sessionID);
-  void abortCall(quint32 sessionID);
+  void iceFailed(quint32 sessionID);
 
 private:
   void startCall(quint32 sessionID, bool iceNominationComplete);

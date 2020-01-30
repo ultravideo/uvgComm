@@ -49,7 +49,7 @@ void KvazzupController::init()
   QObject::connect(&sip_, &SIPManager::nominationSucceeded,
                    this, &KvazzupController::iceCompleted);
   QObject::connect(&sip_, &SIPManager::nominationFailed,
-                   this, &KvazzupController::abortCall);
+                   this, &KvazzupController::iceFailed);
   media_.init(window_.getViewFactory(), stats_);
 
   printImportant(this, "Kvazzup initiation finished");
@@ -184,12 +184,15 @@ void KvazzupController::peerRejected(uint32_t sessionID)
 
 void KvazzupController::iceCompleted(quint32 sessionID)
 {
+  printNormal(this, "ICE has been successfully completed",
+            {"SessionID"}, {sessionID});
   startCall(sessionID, true);
 }
 
 
 void KvazzupController::callNegotiated(uint32_t sessionID)
 {
+  printNormal(this, "Call negotiated");
   startCall(sessionID, false);
 }
 
@@ -232,13 +235,16 @@ void KvazzupController::startCall(uint32_t sessionID, bool iceNominationComplete
                         {"SessionID"}, {sessionID});
     }
   }
+
+  printNormal(this, "Waiting for the ICE to finish before starting the call.");
 }
 
 
-void KvazzupController::abortCall(uint32_t sessionID)
+void KvazzupController::iceFailed(uint32_t sessionID)
 {
-  // TODO: Tell sip manager to send an error for ICE
+  printError(this, "ICE has failed");
 
+  // TODO: Tell sip manager to send an error for ICE
   printUnimplemented(this, "Send SIP error code for ICE failure");
   endCall(sessionID);
 }
@@ -280,6 +286,7 @@ void KvazzupController::createSingleCall(uint32_t sessionID)
 
 void KvazzupController::setupConference()
 {
+  // TODO: conferencing
   printUnimplemented(this, "Setup conference.");
 }
 
@@ -302,6 +309,7 @@ void KvazzupController::cancelIncomingCall(uint32_t sessionID)
 
 void KvazzupController::endCall(uint32_t sessionID)
 {
+  printNormal(this, "Ending the call", {"SessionID"}, {sessionID});
   if (states_.find(sessionID) != states_.end() &&
       states_[sessionID] == CALLONGOING)
   {
