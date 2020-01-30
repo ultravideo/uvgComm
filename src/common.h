@@ -33,40 +33,10 @@ enum DebugType{DEBUG_NORMAL, DEBUG_IMPORTANT, DEBUG_ERROR, DEBUG_WARNING,
                DEBUG_PEER_ERROR, DEBUG_PROGRAM_ERROR, DEBUG_PROGRAM_WARNING};
 
 
-enum DebugContext{DC_NO_CONTEXT,
-                  DC_STARTUP,
-                  DC_SHUTDOWN,
-                  DC_SETTINGS,
-                  DC_REGISTRATION,
-                  DC_START_CALL,
-                  DC_END_CALL,
-                  DC_RINGING,
-                  DC_ACCEPT,
-                  DC_REJECT,
-                  DC_NEGOTIATING,
-                  DC_SIP_CONTENT,
-                  DC_ADD_MEDIA,
-                  DC_REMOVE_MEDIA,
-                  DC_PROCESS_MEDIA,
-                  DC_AUDIO,
-                  DC_FULLSCREEN,
-                  DC_DRAWING,
-                  DC_CONTACTLIST,
-                  DC_TCP,
-                  DC_SEND_SIP,
-                  DC_SEND_SIP_REQUEST,
-                  DC_SEND_SIP_RESPONSE,
-                  DC_RECEIVE_SIP,
-                  DC_RECEIVE_SIP_REQUEST,
-                  DC_RECEIVE_SIP_RESPONSE,
-                 };
-
-
-
-void printNormalDebug(QObject* object, DebugContext context, QString description = "",
+void printNormalDebug(QObject* object, QString description = "",
                       QString valueName = "", QString value = "");
 
-void printPErrorDebug(QObject* object, DebugContext context, QString description = "",
+void printPErrorDebug(QObject* object, QString description = "",
                       QString valueName  = "", QString value = "");
 
 void printUnimplemented(QObject* object, QString whatIsNotImplemented);
@@ -76,17 +46,15 @@ void printUnimplemented(QObject* object, QString whatIsNotImplemented);
 // TODO: The order of parameters would be more logical/easier with the enums at the beginning.
 // TODO: Fix different threads printing at the same time.
 // TODO: Make into a template
-void printDebug(DebugType type, QString className,
-                DebugContext context, QString description = "",
+void printDebug(DebugType type, QString className, QString description = "",
                 QStringList valueNames = {}, QStringList values = {});
 
 
 // use this if printing is inside class derived from QObject which is most classes in Kvazzup
-void printDebug(DebugType type, QObject* object,
-                DebugContext context, QString description = "",
+void printDebug(DebugType type, QObject* object, QString description = "",
                 QStringList valueNames = {}, QStringList values = {});
 
 
 
 
-bool settingEnalbled(QString parameter);
+bool settingEnabled(QString parameter);

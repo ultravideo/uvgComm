@@ -76,7 +76,7 @@ QString responseToPhrase(ResponseType response)
 {
   if(responsePhrases.find(response) == responsePhrases.end())
   {
-    printDebug(DEBUG_WARNING, "SIPConversions", DC_SEND_SIP_RESPONSE,
+    printDebug(DEBUG_WARNING, "SIPConversions",
                      "Did not find response in phrase map. Maybe it has not been added yet.");
 
     return "NO PHRASE";

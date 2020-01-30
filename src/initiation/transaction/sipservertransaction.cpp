@@ -33,7 +33,7 @@ bool SIPServerTransaction::processRequest(SIPRequest& request,
   Q_ASSERT(transactionUser_ && sessionID_);
   if(!transactionUser_ || sessionID_ == 0)
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this, DC_RECEIVE_SIP_RESPONSE,
+    printDebug(DEBUG_PROGRAM_ERROR, this,
                "SIP Server transaction not initialized.");
     return false;
   }
@@ -46,7 +46,7 @@ bool SIPServerTransaction::processRequest(SIPRequest& request,
   }
   else if (request.type != SIP_ACK)
   {
-    printDebug(DEBUG_PEER_ERROR, "SIP Server Transaction", DC_RECEIVE_SIP_REQUEST,
+    printDebug(DEBUG_PEER_ERROR, "SIP Server Transaction",
                "They sent us a new SIP request even though we have the old one still saved.",
                 {"SessionID"}, {QString::number(sessionID_)});
     return false;
@@ -112,7 +112,7 @@ void SIPServerTransaction::getResponseMessage(std::shared_ptr<SIPMessageInfo> &o
 {
   if(receivedRequest_ == nullptr)
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this, DC_SEND_SIP_RESPONSE,
+    printDebug(DEBUG_PROGRAM_ERROR, this, 
                "The received request was not set before trying to use it!");
     return;
   }
@@ -126,7 +126,7 @@ void SIPServerTransaction::getResponseMessage(std::shared_ptr<SIPMessageInfo> &o
   int responseCode = type;
   if(responseCode >= 200)
   {
-    printDebug(DEBUG_NORMAL, this, DC_SEND_SIP_RESPONSE,
+    printDebug(DEBUG_NORMAL, this, 
                "Sending a final response. Deleting request details.",
                {"SessionID", "Code", "Cseq"},
                {QString::number(sessionID_), QString::number(responseCode),

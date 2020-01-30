@@ -50,7 +50,7 @@ bool checkSDPValidity(const SDPMessageInfo &sdpInfo)
      sdpInfo.timeDescriptions.empty() ||
      sdpInfo.media.empty())
   {
-    printDebug(DEBUG_PROGRAM_WARNING, "SipContent", DC_SIP_CONTENT, "SDP is not valid",
+    printDebug(DEBUG_PROGRAM_WARNING, "SipContent", "SDP is not valid",
               {"Version", "Originator", "Session Name", "Number of time descriptions", "Number of medias"},
               {QString(sdpInfo.version), sdpInfo.originator_username, sdpInfo.sessionName,
                 QString::number(sdpInfo.timeDescriptions.size()), QString::number(sdpInfo.media.size())});
@@ -101,12 +101,12 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
   Q_ASSERT(checkSDPValidity(sdpInfo));
   if(!checkSDPValidity(sdpInfo))
   {
-    printDebug(DEBUG_PROGRAM_ERROR, "SIPContent", DC_SIP_CONTENT, "Bad SDPInfo in string formation.");
+    printDebug(DEBUG_PROGRAM_ERROR, "SIPContent",  "Bad SDPInfo in string formation.");
     return "";
   }
   else
   {
-    printDebug(DEBUG_NORMAL, "SIPContent", DC_SIP_CONTENT, "Parameter SDP is valid. Starting to compose to string.");
+    printDebug(DEBUG_NORMAL, "SIPContent",  "Parameter SDP is valid. Starting to compose to string.");
   }
 
   QString sdp = "";
@@ -130,7 +130,7 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
 
     if (mediaStream.rtpNums.empty())
     {
-      printDebug(DEBUG_PROGRAM_ERROR, "SIPContent", DC_SIP_CONTENT,
+      printDebug(DEBUG_PROGRAM_ERROR, "SIPContent",
                  "There was no RTP num included in SDP media!");
       return "";
     }
@@ -563,7 +563,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
 
   if(!checkSDPValidity(sdp))
   {
-    printDebug(DEBUG_PROGRAM_ERROR, "SIPContent", DC_SIP_CONTENT,
+    printDebug(DEBUG_PROGRAM_ERROR, "SIPContent",
                "The parsing generated a bad SDP for some reason. The problem should be detected earlier.");
     return false;
   }

@@ -88,7 +88,7 @@ void StatisticsWindow::addNextInterface(StatisticsInterface* next)
 {
   Q_UNUSED(next)
   Q_ASSERT(false && "NOT IMPLEMENTED");
-  printDebug(DEBUG_PROGRAM_ERROR, this, DC_STARTUP, "addNextInterface has not been implemented in stat window");
+  printDebug(DEBUG_PROGRAM_ERROR, this, "addNextInterface has not been implemented in stat window");
 }
 
 void StatisticsWindow::videoInfo(double framerate, QSize resolution)
@@ -155,7 +155,7 @@ void StatisticsWindow::addFilter(QString filter, uint64_t TID)
 void StatisticsWindow::removeFilter(QString filter)
 {
   /*
-  printDebug(DEBUG_NORMAL, "Statistics window", DC_REMOVE_MEDIA, "Removing Statistics filtertable row",
+  printDebug(DEBUG_NORMAL, "Statistics window", "Removing Statistics filtertable row",
             {"Filter name", "Current row count"},
             {filter, QString::number(ui_->filterTable->rowCount())});*/
 
@@ -166,7 +166,7 @@ void StatisticsWindow::removeFilter(QString filter)
     initMutex_.unlock();
   }
   else {
-    printDebug(DEBUG_PROGRAM_WARNING, "StatisticsWindow", DC_REMOVE_MEDIA,
+    printDebug(DEBUG_PROGRAM_WARNING, "StatisticsWindow",
                "The filter table was already empty when removing filter.");
   }
 

@@ -45,44 +45,15 @@ QString generateRandomString(uint32_t length)
 }
 
 
-const std::map<DebugContext, QString> contextToString = {{DC_NO_CONTEXT, ""},
-                                         {DC_STARTUP, "Startup"},
-                                         {DC_SHUTDOWN, "Shutdown"},
-                                         {DC_SETTINGS, "Settings"},
-                                         {DC_REGISTRATION, "Registration"},
-                                         {DC_START_CALL, "Starting call"},
-                                         {DC_END_CALL, "Ending a call"},
-                                         {DC_RINGING, "Ringing"},
-                                         {DC_ACCEPT, "Accepting"},
-                                         {DC_NEGOTIATING, "Negotiating the call"},
-                                         {DC_SIP_CONTENT, "SIP Content"},
-                                         {DC_ADD_MEDIA, "Creating Media"},
-                                         {DC_REMOVE_MEDIA, "Removing Media"},
-                                         {DC_PROCESS_MEDIA, "Processing Media"},
-                                         {DC_AUDIO, "Audio"},
-                                         {DC_FULLSCREEN, "Fullscreen"},
-                                         {DC_DRAWING, "Drawing"},
-                                         {DC_TCP, "TCP connection"},
-                                         {DC_SEND_SIP, "Sending SIP"},
-                                         {DC_SEND_SIP_REQUEST, "Sending SIP Request"},
-                                         {DC_SEND_SIP_RESPONSE, "Sending SIP Response"},
-                                         {DC_RECEIVE_SIP, "Receiving SIP"},
-                                         {DC_RECEIVE_SIP_REQUEST, "Receiving SIP Request"},
-                                         {DC_RECEIVE_SIP_RESPONSE, "Receiving SIP Response"}};
-
-
-
-void printDebug(DebugType type, QObject* object,
-                DebugContext context, QString description,
+void printDebug(DebugType type, QObject* object, QString description,
                 QStringList valueNames, QStringList values)
 {
   printDebug(type, object->metaObject()->className(),
-             context, description,
-             valueNames, values);
+             description, valueNames, values);
 }
 
 
-void printNormalDebug(QObject* object, DebugContext context, QString description,
+void printNormalDebug(QObject* object, QString description,
                       QString valueName, QString value)
 {
   QStringList names;
@@ -95,25 +66,25 @@ void printNormalDebug(QObject* object, DebugContext context, QString description
   {
     values.push_back(value);
   }
-  printDebug(DEBUG_NORMAL, object, context, description, names, values);
+  printDebug(DEBUG_NORMAL, object, description, names, values);
 }
 
 
-void printPErrorDebug(QObject* object, DebugContext context, QString description,
+void printPErrorDebug(QObject* object, QString description,
                       QString valueName, QString value)
 {
-  printDebug(DEBUG_PROGRAM_ERROR, object, context, description, {valueName}, {value});
+  printDebug(DEBUG_PROGRAM_ERROR, object, description, {valueName}, {value});
 }
 
 
 void printUnimplemented(QObject* object, QString whatIsNotImplemented)
 {
-  printDebug(DEBUG_PROGRAM_ERROR, object, DC_NO_CONTEXT,
+  printDebug(DEBUG_PROGRAM_ERROR, object,
              QString("NOT IMPLEMENTED: ") + whatIsNotImplemented);
 }
 
 
-void printDebug(DebugType type, QString className, DebugContext context,
+void printDebug(DebugType type, QString className,
                 QString description, QStringList valueNames, QStringList values)
 {
   QString valueString = "";
@@ -163,17 +134,10 @@ void printDebug(DebugType type, QString className, DebugContext context,
                << "values: " << values.size();
     }
   }
-  QString contextString = "No context";
-
-  if (contextToString.find(context) != contextToString.end())
-  {
-    contextString = contextToString.at(context);
-  }
 
   // TODO: Set a constant length for everything before description.
 
-
-  QString beginString = contextString + ", " + className + ": ";
+  QString beginString = className + ": ";
 
   if (beginString.length() < BEGIN_LENGTH)
   {
@@ -253,8 +217,7 @@ void printDebug(DebugType type, QString className, DebugContext context,
 }
 
 
-
-bool settingEnalbled(QString parameter)
+bool settingEnabled(QString parameter)
 {
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
   return settings.value(parameter).toInt() == 1;

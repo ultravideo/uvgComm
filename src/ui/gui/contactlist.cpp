@@ -121,7 +121,7 @@ void ContactList::addContact(ParticipantInterface* interface,
     username = "anonymous";
   if(address == "")
   {
-    printNormalDebug(this, DC_CONTACTLIST, "Please input address!");
+    printNormalDebug(this, "Please input address!");
     return;
   }
 
@@ -193,7 +193,7 @@ void ContactList::removeContact(int index)
 
   if(index == -1  || index >= items_.size())
   {
-    printDebug(DEBUG_WARNING, this, DC_CONTACTLIST,
+    printDebug(DEBUG_WARNING, this,
                "Tried to remove a nonexisting contact");
     return;
   }

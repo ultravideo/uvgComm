@@ -90,14 +90,14 @@ bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
 {
   if(request.requestURI.host == "")
   {
-    printDebug(DEBUG_PROGRAM_ERROR, "SIPComposing", DC_SEND_SIP_REQUEST,
+    printDebug(DEBUG_PROGRAM_ERROR, "SIPComposing", 
                "Request URI host is empty when comprising the first line.");
   }
 
   if(request.type == SIP_NO_REQUEST)
   {
     printDebug(DEBUG_PROGRAM_ERROR, "SIPComposing",
-               DC_SEND_SIP_REQUEST, "SIP_NO_REQUEST given.");
+                "SIP_NO_REQUEST given.");
     return false;
   }
 

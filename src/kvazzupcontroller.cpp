@@ -146,18 +146,18 @@ void KvazzupController::peerAccepted(uint32_t sessionID)
   {
     if(states_[sessionID] == CALLRINGINWITHTHEM || states_[sessionID] == CALLINGTHEM)
     {
-      printDebug(DEBUG_NORMAL, this, DC_ACCEPT, "They accepted our call!");
+      printDebug(DEBUG_NORMAL, this, "They accepted our call!");
       states_[sessionID] = CALLNEGOTIATING;
     }
     else
     {
-      printDebug(DEBUG_PEER_ERROR, this, DC_ACCEPT,
+      printDebug(DEBUG_PEER_ERROR, this,
                  "Got an accepted call even though we have not yet called them!");
     }
   }
   else
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this, DC_ACCEPT,
+    printDebug(DEBUG_PROGRAM_ERROR, this,
                "Peer accepted a session which is not in Core.");
   }
 }
@@ -203,7 +203,7 @@ void KvazzupController::callNegotiated(uint32_t sessionID)
 
 void KvazzupController::startCall(uint32_t sessionID, bool iceNominationComplete)
 {
-  if (iceNominationComplete || !settingEnalbled("sip/ice"))
+  if (iceNominationComplete || !settingEnabled("sip/ice"))
   {
     if(states_.find(sessionID) != states_.end())
     {
@@ -216,7 +216,7 @@ void KvazzupController::startCall(uint32_t sessionID, bool iceNominationComplete
           window_.removeParticipant(sessionID);
         }
 
-        if (!settingEnalbled("sip/conference") || states_.size() == 1)
+        if (!settingEnabled("sip/conference") || states_.size() == 1)
         {
           createSingleCall(sessionID);
         }
@@ -275,7 +275,7 @@ void KvazzupController::createSingleCall(uint32_t sessionID)
 
   if(localSDP == nullptr || remoteSDP == nullptr)
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA,
+    printDebug(DEBUG_PROGRAM_ERROR, this,
                "Failed to get SDP. Error should be detected earlier.");
     return;
   }

@@ -116,7 +116,7 @@ void VideoDrawHelper::updateTargetRect(QWidget* widget)
     Q_ASSERT(lastImage_.data_ptr());
     if(lastImage_.data_ptr() == nullptr)
     {
-      printDebug(DEBUG_PROGRAM_ERROR, this, DC_DRAWING, "Null pointer in current image!");
+      printDebug(DEBUG_PROGRAM_ERROR, this, "Null pointer in current image!");
       return;
     }
 

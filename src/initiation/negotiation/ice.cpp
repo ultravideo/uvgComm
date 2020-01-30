@@ -135,7 +135,7 @@ void ICE::createSTUNCandidate(QHostAddress address)
 {
   if (address == QHostAddress(""))
   {
-    printDebug(DEBUG_WARNING, "ICE", DC_NEGOTIATING,
+    printDebug(DEBUG_WARNING, "ICE", 
        "Failed to resolve public IP! Server-reflexive candidates won't be created!");
   }
 
@@ -272,7 +272,7 @@ void ICE::handleEndOfNomination(
 
   if (rtp == nullptr || rtcp == nullptr)
   {
-    printDebug(DEBUG_ERROR, "ICE", DC_NEGOTIATING, "Failed to nominate RTP/RTCP candidates!");
+    printDebug(DEBUG_ERROR, "ICE",  "Failed to nominate RTP/RTCP candidates!");
     nominationInfo_[sessionID].connectionNominated = false;
     emit nominationFailed(sessionID);
   }

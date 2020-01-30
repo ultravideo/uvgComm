@@ -17,7 +17,7 @@ SIPRegistrations::SIPRegistrations()
 
 void SIPRegistrations::init(SIPTransactionUser *callControl)
 {
-  printNormalDebug(this, DC_STARTUP, "Initiatin Registrations");
+  printNormalDebug(this, "Initiatin Registrations");
   transactionUser_ = callControl;
 }
 
@@ -48,7 +48,7 @@ void SIPRegistrations::bindToServer(QString serverAddress, QString localAddress,
   }
   else
   {
-    printPErrorDebug(this, DC_REGISTRATION, "Not initialized with transaction user");
+    printPErrorDebug(this, "Not initialized with transaction user");
   }
 }
 
@@ -122,8 +122,7 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
             i.second.client->registerToServer(); // re-REGISTER with NAT address and port
           }
 
-          printNormalDebug(this, DC_REGISTRATION,
-                           "Registration was succesful.");
+          printNormalDebug(this, "Registration was succesful.");
         }
       }
 
@@ -135,7 +134,7 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
     }
     else
     {
-      printDebug(DEBUG_ERROR, this, DC_REGISTRATION, "REGISTER-request failed");
+      printDebug(DEBUG_ERROR, this, "REGISTER-request failed");
     }
   }
   else
@@ -171,7 +170,7 @@ void SIPRegistrations::sendNonDialogRequest(SIP_URI& uri, RequestType type)
   {
     if (registrations_.find(uri.host) == registrations_.end())
     {
-      printDebug(DEBUG_PROGRAM_ERROR, this, DC_SEND_SIP_REQUEST,
+      printDebug(DEBUG_PROGRAM_ERROR, this,
                  "Registration information should have been created "
                  "already before sending REGISTER message!");
 
@@ -185,11 +184,11 @@ void SIPRegistrations::sendNonDialogRequest(SIP_URI& uri, RequestType type)
     emit transportProxyRequest(uri.host, request);
   }
   else if (type == SIP_OPTIONS) {
-    printDebug(DEBUG_PROGRAM_ERROR, this, DC_SEND_SIP_REQUEST,
+    printDebug(DEBUG_PROGRAM_ERROR, this,
                      "Trying to send unimplemented non-dialog request OPTIONS!");
   }
   else {
-    printDebug(DEBUG_PROGRAM_ERROR, this, DC_SEND_SIP_REQUEST,
+    printDebug(DEBUG_PROGRAM_ERROR, this,
                      "Trying to send a non-dialog request of type which is a dialog request!");
   }
 }

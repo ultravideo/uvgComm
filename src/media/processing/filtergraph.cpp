@@ -217,7 +217,7 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
       }
       else
       {
-        printDebug(DEBUG_WARNING, "FilterGraph", DC_STARTUP,
+        printDebug(DEBUG_WARNING, "FilterGraph", 
                    "Could not find conversion for filter.");
         return false;
       }
@@ -243,7 +243,7 @@ bool FilterGraph::connectFilters(std::shared_ptr<Filter> filter, std::shared_ptr
 
   if(previous->outputType() != filter->inputType())
   {
-    printDebug(DEBUG_WARNING, "FilterGraph", DC_STARTUP,
+    printDebug(DEBUG_WARNING, "FilterGraph", 
                "The connecting filter output and input DO NOT MATCH.");
     return false;
   }
@@ -381,7 +381,7 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
   }
   else
   {
-    printDebug(DEBUG_WARNING, "FilterGraph", DC_ADD_MEDIA,
+    printDebug(DEBUG_WARNING, "FilterGraph",
                "Did not attach echo cancellation");
   }
 

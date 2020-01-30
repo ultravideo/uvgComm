@@ -93,7 +93,7 @@ bool StunMessageFactory::validateStunResponse(
     else
     {
       printDebug(DEBUG_WARNING, "StunMessageFactory",
-                 DC_NEGOTIATING, "port not reported!"
+                  "port not reported!"
       );
     }
   }

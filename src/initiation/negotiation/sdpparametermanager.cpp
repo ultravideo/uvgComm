@@ -130,7 +130,7 @@ uint16_t SDPParameterManager::nextAvailablePortPair()
   }
   portLock_.unlock();
 
-  printDebug(DEBUG_NORMAL, "SDP Parameter Manager", DC_NEGOTIATING,
+  printDebug(DEBUG_NORMAL, "SDP Parameter Manager",
              "Binding finished", {"Bound lower port"}, {QString::number(newLowerPort)});
 
   return newLowerPort;

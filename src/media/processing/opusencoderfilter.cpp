@@ -35,7 +35,7 @@ bool OpusEncoderFilter::init()
 
   if(error)
   {
-    printDebug(DEBUG_WARNING, this, DC_STARTUP, "Failed to initialize opus encoder.",
+    printDebug(DEBUG_WARNING, this, "Failed to initialize opus encoder.",
       {"Errorcode"}, {QString::number(error)});
     return false;
   }
@@ -60,7 +60,7 @@ void OpusEncoderFilter::process()
       len = opus_encode(enc_, (opus_int16*)input->data.get()+i/2, numberOfSamples_, opusOutput_ + pos, max_data_bytes_ - pos);
       if(len <= 0)
       {
-        printDebug(DEBUG_WARNING, this, DC_PROCESS_MEDIA, "Failed to encode audio",
+        printDebug(DEBUG_WARNING, this,  "Failed to encode audio",
           {"Errorcode:"}, {QString::number(len)});
         break;
       }
@@ -89,7 +89,7 @@ void OpusEncoderFilter::process()
     }
     else
     {
-      printDebug(DEBUG_WARNING, this, DC_PROCESS_MEDIA, "Failed to encode audio frame.",
+      printDebug(DEBUG_WARNING, this,  "Failed to encode audio frame.",
         {"Frame length"}, {QString::number(input->data_size)});
     }
     input = getInput();

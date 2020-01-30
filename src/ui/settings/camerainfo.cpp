@@ -150,7 +150,7 @@ std::unique_ptr<QCamera> CameraInfo::loadCamera(int deviceID)
   QList<QCameraInfo> cameras = QCameraInfo::availableCameras();
   if(deviceID == -1 || deviceID >= cameras.size())
   {
-    printDebug(DEBUG_ERROR, "CameraInfo", DC_STARTUP,
+    printDebug(DEBUG_ERROR, "CameraInfo", 
                "Invalid deviceID for getVideoCapabilities");
     return std::unique_ptr<QCamera> (nullptr);
   }

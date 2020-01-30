@@ -77,7 +77,7 @@ bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
 
   if (localSDP == nullptr)
   {
-    printDebug(DEBUG_PROGRAM_ERROR, "Negotiation", DC_NEGOTIATING,
+    printDebug(DEBUG_PROGRAM_ERROR, "Negotiation", 
                "Failed to generate our answer to their offer."
                "Suitability should be detected earlier in checkOffer.");
     return false;
@@ -97,7 +97,7 @@ bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
 
 bool Negotiation::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer, uint32_t sessionID)
 {
-  printDebug(DEBUG_NORMAL, "Negotiation", DC_NEGOTIATING, "Starting to process answer SDP.");
+  printDebug(DEBUG_NORMAL, "Negotiation",  "Starting to process answer SDP.");
   if (!checkSessionValidity(sessionID, false))
   {
     return false;
@@ -105,7 +105,7 @@ bool Negotiation::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer, uint32_t ses
 
   if (getState(sessionID) == NEG_NO_STATE)
   {
-    printDebug(DEBUG_WARNING, "Negotiation", DC_NEGOTIATING, "Processing SDP answer without hacing sent an offer!");
+    printDebug(DEBUG_WARNING, "Negotiation",  "Processing SDP answer without hacing sent an offer!");
     return false;
   }
 
@@ -255,7 +255,7 @@ bool Negotiation::selectBestCodec(QList<uint8_t>& remoteNums,       QList<RTPMap
       if(remoteCodec.codec == supportedCodec.codec)
       {
         outMatchingCodecs.append(remoteCodec);
-        printDebug(DEBUG_NORMAL, "Negotiation", DC_NEGOTIATING, "Found suitable codec.");
+        printDebug(DEBUG_NORMAL, "Negotiation",  "Found suitable codec.");
 
         outMatchingNums.push_back(remoteCodec.rtpNum);
 
@@ -271,13 +271,13 @@ bool Negotiation::selectBestCodec(QList<uint8_t>& remoteNums,       QList<RTPMap
       if(rtpNumber == supportedNum)
       {
         outMatchingNums.append(rtpNumber);
-        printDebug(DEBUG_NORMAL, "Negotiation", DC_NEGOTIATING, "Found suitable RTP number.");
+        printDebug(DEBUG_NORMAL, "Negotiation",  "Found suitable RTP number.");
         return true;
       }
     }
   }
 
-  printDebug(DEBUG_ERROR, "Negotiation", DC_NEGOTIATING,
+  printDebug(DEBUG_ERROR, "Negotiation", 
              "Could not find suitable codec or RTP number for media.");
 
   return false;
@@ -429,7 +429,7 @@ bool Negotiation::checkSDPOffer(SDPMessageInfo &offer)
     }
   }
 
-  printDebug(DEBUG_NORMAL, "Negotiation", DC_NEGOTIATING,
+  printDebug(DEBUG_NORMAL, "Negotiation", 
              "Found following codecs in SDP", {"Codecs"}, debugCodecsFound);
 
   if (offer.timeDescriptions.size() >= 1)
@@ -437,13 +437,13 @@ bool Negotiation::checkSDPOffer(SDPMessageInfo &offer)
     if (offer.timeDescriptions.at(0).startTime != 0 ||
         offer.timeDescriptions.at(0).stopTime != 0)
     {
-      printDebug(DEBUG_ERROR, "Negotiation", DC_NEGOTIATING,
+      printDebug(DEBUG_ERROR, "Negotiation", 
                  "They offered us a session with limits. Unsupported.");
       return false;
     }
   }
   else {
-    printDebug(DEBUG_PROGRAM_ERROR, "Negotiation", DC_NEGOTIATING,
+    printDebug(DEBUG_PROGRAM_ERROR, "Negotiation", 
                "they included wrong number of Time Descriptions. Should be detected earlier.");
     return false;
   }
@@ -572,7 +572,7 @@ bool Negotiation::checkSessionValidity(uint32_t sessionID, bool checkRemote) con
      sdps_.at(sessionID).localSDP == nullptr ||
      (sdps_.at(sessionID).remoteSDP == nullptr && checkRemote))
   {
-    printDebug(DEBUG_PROGRAM_ERROR, "GlobalSDPState", DC_NEGOTIATING,
+    printDebug(DEBUG_PROGRAM_ERROR, "GlobalSDPState", 
                "Attempting to use GlobalSDPState without setting SessionID correctly",
               {"sessionID"},{QString::number(sessionID)});
     return false;

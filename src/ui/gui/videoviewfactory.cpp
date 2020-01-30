@@ -75,12 +75,12 @@ uint32_t VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent,
     checkInitializations(sessionID);
     sessionIDtoWidgetlist_[sessionID]->push_back(vw);
     sessionIDtoVideolist_[sessionID]->push_back(video);
-    printDebug(DEBUG_NORMAL, "VideoviewFactory", DC_ADD_MEDIA, "Created video widget.", {"SessionID", "View Number"},
+    printDebug(DEBUG_NORMAL, "VideoviewFactory", "Created video widget.", {"SessionID", "View Number"},
         {QString::number(sessionID), QString::number(sessionIDtoWidgetlist_[sessionID]->size())});
   }
   else
   {
-    printDebug(DEBUG_PROGRAM_ERROR, "VideoviewFactory", DC_ADD_MEDIA, "Failed to create view widget.");
+    printDebug(DEBUG_PROGRAM_ERROR, "VideoviewFactory", "Failed to create view widget.");
   }
 
   return sessionIDtoWidgetlist_[sessionID]->size() - 1;
@@ -104,7 +104,7 @@ QWidget* VideoviewFactory::getView(uint32_t sessionID, uint32_t viewID)
      || sessionIDtoWidgetlist_[sessionID]->size() <= viewID)
   {
     Q_ASSERT(false);
-    printDebug(DEBUG_PROGRAM_ERROR, "VideoViewFactory", DC_NO_CONTEXT, "Tried to get a video widget that doesn't exists",
+    printDebug(DEBUG_PROGRAM_ERROR, "VideoViewFactory", "Tried to get a video widget that doesn't exists",
       {"SessionID"}, {QString::number(sessionID)});
     return nullptr;
   }
@@ -118,7 +118,7 @@ VideoInterface* VideoviewFactory::getVideo(uint32_t sessionID, uint32_t videoID)
      || sessionIDtoVideolist_[sessionID]->size() <= videoID)
   {
     Q_ASSERT(false);
-    printDebug(DEBUG_PROGRAM_ERROR, "VideoViewFactory", DC_STARTUP,
+    printDebug(DEBUG_PROGRAM_ERROR, "VideoViewFactory", 
                "Tried to get a video widget that doesn't exists.",
               {"SessionID"}, {QString::number(sessionID)});
     return nullptr;
@@ -129,10 +129,10 @@ VideoInterface* VideoviewFactory::getVideo(uint32_t sessionID, uint32_t videoID)
 
 void VideoviewFactory::clearWidgets()
 {
-  printDebug(DEBUG_NORMAL, "VideoviewFactory", DC_END_CALL, "Clearing all widgets.");
+  printDebug(DEBUG_NORMAL, "VideoviewFactory",  "Clearing all widgets.");
   if (sessionIDtoWidgetlist_.size() == sessionIDtoVideolist_.size())
   {
-    printDebug(DEBUG_PROGRAM_ERROR, "VideoviewFactory", DC_ADD_MEDIA, "Internal state not correct!");
+    printDebug(DEBUG_PROGRAM_ERROR, "VideoviewFactory", "Internal state not correct!");
   }
 
   for (unsigned int i = sessionIDtoWidgetlist_.size(); i > 0; --i)

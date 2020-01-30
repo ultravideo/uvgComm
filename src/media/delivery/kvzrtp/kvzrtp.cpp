@@ -58,7 +58,7 @@ bool KvzRTP::addPeer(uint32_t sessionID)
   {
     iniated_.lock(); // not being iniated
 
-    printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Adding new peer");
+    printDebug(DEBUG_NORMAL, this, "Adding new peer");
 
     Peer *peer = new Peer;
     peer->videoSender = nullptr;
@@ -83,12 +83,12 @@ bool KvzRTP::addPeer(uint32_t sessionID)
     iniated_.unlock();
     destroyed_.unlock();
 
-    printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "RTP streamer", { "SessionID" },
+    printDebug(DEBUG_NORMAL, this, "RTP streamer", { "SessionID" },
     { QString::number(sessionID) });
 
     return true;
   }
-  printDebug(DEBUG_WARNING, this, DC_ADD_MEDIA,
+  printDebug(DEBUG_WARNING, this,
              "Trying to add peer while RTP was being destroyed.");
 
   return false;
@@ -152,7 +152,7 @@ void KvzRTP::removeSendVideo(uint32_t sessionID)
   }
   else
   {
-    printDebug(DEBUG_WARNING, this, DC_REMOVE_MEDIA, "Tried to remove videoSender that doesn't exist!");
+    printDebug(DEBUG_WARNING, this, "Tried to remove videoSender that doesn't exist!");
   }
 }
 
@@ -165,7 +165,7 @@ void KvzRTP::removeSendAudio(uint32_t sessionID)
   }
   else
   {
-    printDebug(DEBUG_WARNING, this, DC_REMOVE_MEDIA, "Tried to remove audioSender that doesn't exist!");
+    printDebug(DEBUG_WARNING, this, "Tried to remove audioSender that doesn't exist!");
   }
 }
 
@@ -178,7 +178,7 @@ void KvzRTP::removeReceiveVideo(uint32_t sessionID)
   }
   else
   {
-    printDebug(DEBUG_WARNING, this, DC_REMOVE_MEDIA, "Tried to remove videoReceiver that doesn't exist!");
+    printDebug(DEBUG_WARNING, this, "Tried to remove videoReceiver that doesn't exist!");
   }
 }
 
@@ -191,7 +191,7 @@ void KvzRTP::removeReceiveAudio(uint32_t sessionID)
   }
   else
   {
-    printDebug(DEBUG_WARNING, this, DC_REMOVE_MEDIA, "Tried to remove audioReceiver that doesn't exist!");
+    printDebug(DEBUG_WARNING, this, "Tried to remove audioReceiver that doesn't exist!");
   }
 }
 
@@ -218,7 +218,7 @@ void KvzRTP::removePeer(uint32_t sessionID)
   }
   else
   {
-    printDebug(DEBUG_WARNING, this, DC_REMOVE_MEDIA, "Tried to destroy an already freed peer",
+    printDebug(DEBUG_WARNING, this, "Tried to destroy an already freed peer",
               { "SessionID" }, { QString(sessionID) });
   }
 }
@@ -240,18 +240,18 @@ void KvzRTP::destroySender(Sender *sender)
 
   if (sender)
   {
-    printDebug(DEBUG_NORMAL, this, DC_REMOVE_MEDIA, "Destroying sender");
+    printDebug(DEBUG_NORMAL, this, "Destroying sender");
 
     if (rtp_ctx_->destroy_writer(sender->writer) != RTP_OK)
     {
-      printDebug(DEBUG_ERROR, this, DC_REMOVE_MEDIA, "Failed to destroy RTP Writer");
+      printDebug(DEBUG_ERROR, this, "Failed to destroy RTP Writer");
     }
 
     delete sender;
   }
   else
   {
-    printDebug(DEBUG_WARNING, this, DC_REMOVE_MEDIA, "Tried to delete sender a second time");
+    printDebug(DEBUG_WARNING, this, "Tried to delete sender a second time");
   }
 }
 void KvzRTP::destroyReceiver(Receiver *recv)
@@ -260,18 +260,18 @@ void KvzRTP::destroyReceiver(Receiver *recv)
 
   if (recv)
   {
-    printDebug(DEBUG_NORMAL, this, DC_REMOVE_MEDIA, "Destroying receiver");
+    printDebug(DEBUG_NORMAL, this, "Destroying receiver");
 
     if (rtp_ctx_->destroy_reader(recv->reader) != RTP_OK)
     {
-      printDebug(DEBUG_ERROR, this, DC_REMOVE_MEDIA, "Failed to destroy RTP Reader");
+      printDebug(DEBUG_ERROR, this, "Failed to destroy RTP Reader");
     }
 
     delete recv;
   }
   else
   {
-    printDebug(DEBUG_WARNING, this, DC_REMOVE_MEDIA, "Tried to delete receiver a second time");
+    printDebug(DEBUG_WARNING, this, "Tried to delete receiver a second time");
   }
 }
 
@@ -283,7 +283,7 @@ bool KvzRTP::checkSessionID(uint32_t sessionID)
 KvzRTP::Sender *KvzRTP::addSender(QHostAddress ip, uint16_t dst_port,
                                   uint16_t src_port, rtp_format_t type, uint8_t rtpNum)
 {
-  printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Iniating send RTP/RTCP stream",
+  printDebug(DEBUG_NORMAL, this, "Iniating send RTP/RTCP stream",
       { "Port", "Type" }, { QString::number(dst_port), QString::number(type) });
 
   Sender *sender = new Sender;
@@ -321,7 +321,7 @@ KvzRTP::Sender *KvzRTP::addSender(QHostAddress ip, uint16_t dst_port,
       break;
 
     default :
-      printDebug(DEBUG_ERROR, this, DC_ADD_MEDIA, "Warning: RTP support not implemented for this format");
+      printDebug(DEBUG_ERROR, this, "Warning: RTP support not implemented for this format");
       mediaName += "_UNKNOWN";
       break;
   }
@@ -341,7 +341,7 @@ KvzRTP::Sender *KvzRTP::addSender(QHostAddress ip, uint16_t dst_port,
 
 KvzRTP::Receiver *KvzRTP::addReceiver(QHostAddress ip, uint16_t port, rtp_format_t type, uint8_t rtpNum)
 {
-  printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Iniating receive RTP/RTCP stream",
+  printDebug(DEBUG_NORMAL, this, "Iniating receive RTP/RTCP stream",
       { "Port", "Type" }, { QString::number(port), QString::number(type) });
 
   Receiver *receiver = new Receiver;
@@ -372,7 +372,7 @@ KvzRTP::Receiver *KvzRTP::addReceiver(QHostAddress ip, uint16_t port, rtp_format
       break;
     
     default :
-      printDebug(DEBUG_ERROR, this, DC_ADD_MEDIA, "Warning: RTP support not implemented for this format");
+      printDebug(DEBUG_ERROR, this, "Warning: RTP support not implemented for this format");
       mediaName += "_UNKNOWN";
       break;
   }
@@ -401,7 +401,7 @@ rtp_format_t KvzRTP::typeFromString(QString type)
 
   if (xmap.find(type) == xmap.end())
   {
-    printDebug(DEBUG_ERROR, this, DC_ADD_MEDIA, "Tried to use non-defined codec type in RTPSreamer.");
+    printDebug(DEBUG_ERROR, this, "Tried to use non-defined codec type in RTPSreamer.");
     return RTP_FORMAT_GENERIC;
   }
 

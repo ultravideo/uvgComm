@@ -18,7 +18,7 @@ bool UDPServer::bindSocket(const QHostAddress& address, quint16 port, enum SOCKE
 
   if(!socket_->bind(address, port))
   {
-    printDebug(DEBUG_ERROR, "UDPServer", DC_NEGOTIATING,
+    printDebug(DEBUG_ERROR, "UDPServer", 
         "Failed to bind UDP Socket to", { address.toString() });
     return false;
   }
@@ -82,13 +82,13 @@ void UDPServer::sendData(
   if(data.size() > 512)
   {
     printDebug(DEBUG_WARNING, "UDPServer",
-               DC_NEGOTIATING, "Sending too large UDP packet!");
+                "Sending too large UDP packet!");
    // TODO do something maybe
   }
   else if (data.size() == 0)
   {
     printDebug(DEBUG_WARNING, "UDPServer",
-               DC_NEGOTIATING, "Trying to send an empty UDP packet!");
+                "Trying to send an empty UDP packet!");
     return;
   }
 

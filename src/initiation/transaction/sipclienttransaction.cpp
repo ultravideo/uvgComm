@@ -60,7 +60,7 @@ void SIPClientTransaction::startTimer(RequestType type)
 
 void SIPClientTransaction::startTransaction(RequestType type)
 {
-  printDebug(DEBUG_NORMAL, this, DC_SEND_SIP_REQUEST,
+  printDebug(DEBUG_NORMAL, this,
              "Client starts sending a request.", {"Type"}, {QString::number(type)});
   ongoingTransactionType_ = type;
 
@@ -81,6 +81,6 @@ void SIPClientTransaction::processTimeout()
 
 void SIPClientTransaction::requestTimeOut()
 {
-  printDebug(DEBUG_NORMAL, this, DC_SEND_SIP, "No response. Request timed out.");
+  printDebug(DEBUG_NORMAL, this, "No response. Request timed out.");
   processTimeout();
 }

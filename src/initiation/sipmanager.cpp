@@ -30,7 +30,7 @@ void SIPManager::init(SIPTransactionUser* callControl, StatisticsInterface *stat
            << ": Listening to SIP TCP connections on port:" << sipPort_;
   if (!tcpServer_.listen(QHostAddress::Any, sipPort_))
   {
-    printDebug(DEBUG_ERROR, this, DC_STARTUP,
+    printDebug(DEBUG_ERROR, this,
                "Failed to listen to socket. Is it reserved?");
 
     // TODO announce it to user!
@@ -102,7 +102,7 @@ uint32_t SIPManager::startCall(Contact& address)
   // There should not exist a dialog for this user
   if(!negotiation_.canStartSession())
   {
-    printDebug(DEBUG_WARNING, this, DC_START_CALL, "Not enough ports to start a call.");
+    printDebug(DEBUG_WARNING, this, "Not enough ports to start a call.");
     return 0;
   }
 
@@ -227,12 +227,12 @@ void SIPManager::transportRequest(uint32_t sessionID, SIPRequest &request)
       transports_[transportID]->sendRequest(request, content);
     }
     else {
-      printDebug(DEBUG_ERROR,  metaObject()->className(), DC_SEND_SIP_REQUEST,
+      printDebug(DEBUG_ERROR,  metaObject()->className(), 
                  "Tried to send request with invalid transportID");
     }
   }
   else {
-    printDebug(DEBUG_ERROR, metaObject()->className(), DC_SEND_SIP_REQUEST,
+    printDebug(DEBUG_ERROR, metaObject()->className(), 
                 "No mapping from sessionID to transportID");
   }
 }
@@ -276,13 +276,13 @@ void SIPManager::transportResponse(uint32_t sessionID, SIPResponse &response)
       transports_[transportID]->sendResponse(response, content);
     }
     else {
-      printDebug(DEBUG_ERROR, metaObject()->className(), DC_SEND_SIP_RESPONSE,
+      printDebug(DEBUG_ERROR, metaObject()->className(), 
                  "Tried to send response with invalid.", {"transportID"},
       {QString::number(transportID)});
     }
   }
   else {
-    printDebug(DEBUG_ERROR, metaObject()->className(), DC_SEND_SIP_RESPONSE,
+    printDebug(DEBUG_ERROR, metaObject()->className(), 
                 "No mapping from sessionID to transportID");
   }
 }
@@ -309,7 +309,7 @@ void SIPManager::processSIPRequest(SIPRequest& request, QString localAddress,
 {
   if(request.type == SIP_INVITE && !negotiation_.canStartSession())
   {
-    printDebug(DEBUG_ERROR, this, DC_RECEIVE_SIP_REQUEST,
+    printDebug(DEBUG_ERROR, this, 
                "Got INVITE, but unable to start a call");
     return;
   }
@@ -332,11 +332,11 @@ void SIPManager::processSIPRequest(SIPRequest& request, QString localAddress,
         {
         case NEG_NO_STATE:
         {
-          printDebug(DEBUG_NORMAL, this, DC_RECEIVE_SIP_REQUEST,
+          printDebug(DEBUG_NORMAL, this, 
                      "Got first SDP offer.");
           if(!processOfferSDP(sessionID, content, transports_[transportID]->getLocalAddress()))
           {
-             printDebug(DEBUG_PROGRAM_ERROR, this, DC_RECEIVE_SIP_REQUEST,
+             printDebug(DEBUG_PROGRAM_ERROR, this, 
                         "Failure to process SDP offer not implemented.");
 
              //foundDialog->server->setCurrentRequest(request); // TODO
@@ -347,21 +347,21 @@ void SIPManager::processSIPRequest(SIPRequest& request, QString localAddress,
         }
         case NEG_OFFER_GENERATED:
         {
-          printDebug(DEBUG_NORMAL, this, DC_RECEIVE_SIP_REQUEST,
+          printDebug(DEBUG_NORMAL, this, 
                      "Got an SDP answer.");
           processAnswerSDP(sessionID, content);
           break;
         }
         case NEG_ANSWER_GENERATED: // TODO: Not sure if these make any sense
         {
-          printDebug(DEBUG_NORMAL, this, DC_RECEIVE_SIP_REQUEST,
+          printDebug(DEBUG_NORMAL, this, 
                      "They sent us another SDP offer.");
           processOfferSDP(sessionID, content, transports_[transportID]->getLocalAddress());
           break;
         }
         case NEG_FINISHED:
         {
-          printDebug(DEBUG_NORMAL, this, DC_RECEIVE_SIP_REQUEST,
+          printDebug(DEBUG_NORMAL, this, 
                      "Got a new SDP offer in response.");
           processOfferSDP(sessionID, content, transports_[transportID]->getLocalAddress());
           break;
@@ -373,13 +373,13 @@ void SIPManager::processSIPRequest(SIPRequest& request, QString localAddress,
     else
     {
       printDebug(DEBUG_PROGRAM_ERROR, metaObject()->className(),
-                 DC_RECEIVE_SIP_REQUEST, "transactions did not set new sessionID.");
+                  "transactions did not set new sessionID.");
     }
   }
   else
   {
     printDebug(DEBUG_PEER_ERROR, metaObject()->className(),
-               DC_RECEIVE_SIP_REQUEST, "transactions could not identify session.");
+                "transactions could not identify session.");
   }
 }
 
@@ -389,7 +389,7 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
   QString possibleServerAddress = "";
   if(registrations_.identifyRegistration(response, possibleServerAddress))
   {
-    printNormalDebug(this, DC_RECEIVE_SIP_RESPONSE, "Got a response to server message!");
+    printNormalDebug(this, "Got a response to server message!");
     registrations_.processNonDialogResponse(response);
     return;
   }
@@ -398,7 +398,7 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
 
   if(!transactions_.identifySession(response, sessionID))
   {
-    printDebug(DEBUG_PEER_ERROR, this, DC_RECEIVE_SIP_RESPONSE,
+    printDebug(DEBUG_PEER_ERROR, this, 
                "Could not identify response session");
     return;
   }
@@ -409,7 +409,7 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
     {
       if(sessionToTransportID_.find(sessionID) == sessionToTransportID_.end())
       {
-        printDebug(DEBUG_WARNING, this, DC_RECEIVE_SIP_RESPONSE,
+        printDebug(DEBUG_WARNING, this, 
                    "Could not identify transport for session");
         return;
       }
@@ -420,11 +420,11 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
       {
       case NEG_NO_STATE:
       {
-        printDebug(DEBUG_NORMAL, this, DC_RECEIVE_SIP_RESPONSE,
+        printDebug(DEBUG_NORMAL, this, 
                    "Got first SDP offer.");
         if(!processOfferSDP(sessionID, content, transports_[transportID]->getLocalAddress()))
         {
-           printDebug(DEBUG_PROGRAM_ERROR, this, DC_RECEIVE_SIP_RESPONSE,
+           printDebug(DEBUG_PROGRAM_ERROR, this, 
                       "Failure to process SDP offer not implemented.");
 
            //foundDialog->server->setCurrentRequest(request); // TODO
@@ -435,21 +435,21 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
       }
       case NEG_OFFER_GENERATED:
       {
-        printDebug(DEBUG_NORMAL, this, DC_RECEIVE_SIP_RESPONSE,
+        printDebug(DEBUG_NORMAL, this, 
                    "Got an SDP answer.");
         processAnswerSDP(sessionID, content);
         break;
       }
       case NEG_ANSWER_GENERATED: // TODO: Not sure if these make any sense
       {
-        printDebug(DEBUG_NORMAL, this, DC_RECEIVE_SIP_RESPONSE,
+        printDebug(DEBUG_NORMAL, this, 
                    "They sent us another SDP offer.");
         processOfferSDP(sessionID, content, transports_[transportID]->getLocalAddress());
         break;
       }
       case NEG_FINISHED:
       {
-        printDebug(DEBUG_NORMAL, this, DC_RECEIVE_SIP_RESPONSE,
+        printDebug(DEBUG_NORMAL, this, 
                    "Got a new SDP offer in response.");
         processOfferSDP(sessionID, content, transports_[transportID]->getLocalAddress());
         break;
@@ -506,7 +506,7 @@ bool SIPManager::SDPOfferToContent(QVariant& content, QString localAddress,
 {
   std::shared_ptr<SDPMessageInfo> pointer;
 
-  printDebug(DEBUG_NORMAL, this, DC_NEGOTIATING, "Adding one-to-one SDP.");
+  printDebug(DEBUG_NORMAL, this,  "Adding one-to-one SDP.");
   if(!negotiation_.generateOfferSDP(localAddress, sessionID))
   {
     qDebug() << "Failed to generate first SDP offer while sending.";
@@ -527,7 +527,7 @@ bool SIPManager::processOfferSDP(uint32_t sessionID, QVariant& content,
 {
   if(!content.isValid())
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this, DC_SIP_CONTENT,
+    printDebug(DEBUG_PROGRAM_ERROR, this, 
                      "The SDP content is not valid at processing. "
                      "Should be detected earlier.");
     return false;
@@ -565,7 +565,7 @@ bool SIPManager::processAnswerSDP(uint32_t sessionID, QVariant &content)
   SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
   if (!content.isValid())
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this, DC_NEGOTIATING,
+    printDebug(DEBUG_PROGRAM_ERROR, this, 
                "Content is not valid when processing SDP. "
                "Should be detected earlier.");
     return false;

@@ -29,7 +29,7 @@ MediaManager::~MediaManager()
 
 void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory, StatisticsInterface *stats)
 {
-  printDebug(DEBUG_NORMAL, this, DC_STARTUP, "Initiating");
+  printDebug(DEBUG_NORMAL, this, "Initiating");
   viewfactory_ = viewfactory;
 
   stats_ = stats;
@@ -41,7 +41,7 @@ void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory, Statistic
 
 void MediaManager::uninit()
 {
-  printDebug(DEBUG_NORMAL, this, DC_SHUTDOWN, "Closing");
+  printDebug(DEBUG_NORMAL, this, "Closing");
   // first filter graph, then streamer because of the rtpfilters
   fg_->running(false);
   fg_->uninit();
@@ -113,7 +113,7 @@ void MediaManager::addParticipant(uint32_t sessionID,
   Q_ASSERT(peerInfo->media.size() == localInfo->media.size());
   if (peerInfo->media.size() != localInfo->media.size())
   {
-    printDebug(DEBUG_PROGRAM_ERROR, "Media manager", DC_ADD_MEDIA,
+    printDebug(DEBUG_PROGRAM_ERROR, "Media manager",
                "Addparticipant, number of media in localInfo and peerInfo don't match.",
                 {"LocalInfo", "PeerInfo"},
                 {QString::number(localInfo->media.size()), QString::number(peerInfo->media.size())});
@@ -122,7 +122,7 @@ void MediaManager::addParticipant(uint32_t sessionID,
 
   if(peerInfo->timeDescriptions.at(0).startTime != 0 || localInfo->timeDescriptions.at(0).startTime != 0)
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "Nonzero start-time not supported!");
+    printDebug(DEBUG_PROGRAM_ERROR, this, "Nonzero start-time not supported!");
     return;
   }
 
@@ -135,18 +135,18 @@ void MediaManager::addParticipant(uint32_t sessionID,
 
     if(!streamer_->addPeer(sessionID))
     {
-      printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA,
+      printDebug(DEBUG_PROGRAM_ERROR, this,
                  "Error creating RTP peer. Simultaneous destruction?");
       return;
     }
   }
   else
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "What are we using if not the internet!?");
+    printDebug(DEBUG_PROGRAM_ERROR, this, "What are we using if not the internet!?");
     return;
   }
 
-  printDebug(DEBUG_NORMAL, this, DC_STARTUP, "Start creating media.", {"Outgoing media", "Incoming media"},
+  printDebug(DEBUG_NORMAL, this, "Start creating media.", {"Outgoing media", "Incoming media"},
             {QString::number(peerInfo->media.size()), QString::number(localInfo->media.size())});
 
   // create each agreed media stream
@@ -210,20 +210,20 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
       {
         address.setAddress(remoteMedia.connection_address);
 
-        printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Using media specific address for outgoing media.",
+        printDebug(DEBUG_NORMAL, this, "Using media specific address for outgoing media.",
                   {"Type", "Address", "Port"},
                   {remoteMedia.type, address.toString(), QString::number(remoteMedia.receivePort)});
       }
       else if (globalAddressPresent)
       {
         address.setAddress(globalAddress);
-        printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Using global address for outgoing media.",
+        printDebug(DEBUG_NORMAL, this, "Using global address for outgoing media.",
                   {"Type", "Address", "Port"},
                   {remoteMedia.type, address.toString(), QString::number(remoteMedia.receivePort)});
       }
       else
       {
-        printDebug(DEBUG_ERROR, this, DC_ADD_MEDIA, "Creating outgoing media. "
+        printDebug(DEBUG_ERROR, this, "Creating outgoing media. "
                                                     "No viable connection address in mediainfo. "
                                                     "Should be detected earlier.");
         return;
@@ -245,18 +245,18 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
       }
       else
       {
-        printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "Unsupported media type!",
+        printDebug(DEBUG_PROGRAM_ERROR, this, "Unsupported media type!",
                   {"type"}, QStringList() << remoteMedia.type);
       }
     }
     else
     {
-      printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "SDP transport protocol not supported.");
+      printDebug(DEBUG_PROGRAM_ERROR, this, "SDP transport protocol not supported.");
     }
   }
   else
   {
-    printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA,
+    printDebug(DEBUG_NORMAL, this,
                "Not creating media because they don't seem to want any according to attribute.");
 
     // TODO: Spec says we should still send RTCP
@@ -289,7 +289,7 @@ void MediaManager::createIncomingMedia(uint32_t sessionID, QString globalAddress
       if (specificAddressPresent)
       {
         address.setAddress(remoteMedia.connection_address);
-        printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Using media specific address for incoming.",
+        printDebug(DEBUG_NORMAL, this, "Using media specific address for incoming.",
                   {"Type", "Address", "Port"},
                   {localMedia.type, address.toString(), QString::number(localMedia.receivePort)});
 
@@ -297,13 +297,13 @@ void MediaManager::createIncomingMedia(uint32_t sessionID, QString globalAddress
       else if (globalAddressPresent)
       {
         address.setAddress(globalAddress);
-        printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA, "Using global address for incoming.",
+        printDebug(DEBUG_NORMAL, this, "Using global address for incoming.",
                    {"Type", "Address", "Port"},
                    {localMedia.type, address.toString(), QString::number(localMedia.receivePort)});
       }
       else
       {
-        printDebug(DEBUG_ERROR, this, DC_ADD_MEDIA, "Creating incoming media. "
+        printDebug(DEBUG_ERROR, this, "Creating incoming media. "
                                                     "No viable connection address in mediainfo. "
                                                     "Should be detected earlier.");
         return;
@@ -325,23 +325,23 @@ void MediaManager::createIncomingMedia(uint32_t sessionID, QString globalAddress
           fg_->receiveVideoFrom(sessionID, std::shared_ptr<Filter>(rtpSink), view);
         }
         else {
-          printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "Failed to get view from viewFactory");
+          printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to get view from viewFactory");
         }
       }
       else
       {
-        printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "Unsupported incoming media type!",
+        printDebug(DEBUG_PROGRAM_ERROR, this, "Unsupported incoming media type!",
                   {"type"}, QStringList() << localMedia.type);
       }
     }
     else
     {
-      printDebug(DEBUG_PROGRAM_ERROR, this, DC_ADD_MEDIA, "Incoming SDP transport protocol not supported.");
+      printDebug(DEBUG_PROGRAM_ERROR, this, "Incoming SDP transport protocol not supported.");
     }
   }
   else
   {
-    printDebug(DEBUG_NORMAL, this, DC_ADD_MEDIA,
+    printDebug(DEBUG_NORMAL, this,
                "Not creating media because they don't seem to want any according to attribute.");
   }
 }
@@ -352,13 +352,13 @@ void MediaManager::removeParticipant(uint32_t sessionID)
   fg_->camera(camera_); // if the last participant was destroyed, restore camera state
   fg_->mic(mic_);
   streamer_->removePeer(sessionID);
-  printDebug(DEBUG_NORMAL, "Media Manager", DC_REMOVE_MEDIA, "Session media removed",
+  printDebug(DEBUG_NORMAL, "Media Manager", "Session media removed",
             {"SessionID"}, {QString::number(sessionID)});
 }
 
 void MediaManager::endAllCalls()
 {
-  printDebug(DEBUG_NORMAL, "Media Manager", DC_END_CALL, "Ending all calls.");
+  printDebug(DEBUG_NORMAL, "Media Manager",  "Ending all calls.");
   fg_->removeAllParticipants();
   streamer_->removeAllPeers();
 

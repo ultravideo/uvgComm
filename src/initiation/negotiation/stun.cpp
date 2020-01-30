@@ -155,7 +155,7 @@ bool Stun::controllerSendBindingRequest(ICEPair *pair)
 
   if (msgReceived == false)
   {
-    printDebug(DEBUG_WARNING, "STUN", DC_NEGOTIATING,
+    printDebug(DEBUG_WARNING, "STUN",
         "Failed to receive STUN Binding Response from remote!", {
           pair->remote->address, QString(pair->remote->port)
         }
@@ -256,7 +256,7 @@ bool Stun::controlleeSendBindingRequest(ICEPair *pair)
 
   if (msgReceived == false)
   {
-    printDebug(DEBUG_WARNING, "STUN", DC_NEGOTIATING,
+    printDebug(DEBUG_WARNING, "STUN",
         "Failed to receive STUN Binding Request from remote!", {
           pair->remote->address, QString(pair->remote->port)
         }
@@ -320,7 +320,7 @@ bool Stun::sendBindingRequest(ICEPair *pair, bool controller)
   {
     if (!udp_->bindRaw(QHostAddress(pair->local->address), pair->local->port))
     {
-      printDebug(DEBUG_ERROR, "STUN", DC_NEGOTIATING,
+      printDebug(DEBUG_ERROR, "STUN",
           "Binding failed! Cannot send STUN Binding Requests to", {
             pair->remote->address, QString(pair->remote->port)
           }
@@ -349,7 +349,7 @@ bool Stun::sendNominationRequest(ICEPair *pair)
   {
     if (!udp_->bindRaw(QHostAddress(pair->local->address), pair->local->port))
     {
-      printDebug(DEBUG_ERROR, "STUN", DC_NEGOTIATING,
+      printDebug(DEBUG_ERROR, "STUN",
           "Binding failed! Cannot send STUN Binding Requests to", {
             pair->remote->address, QString(pair->remote->port)
           }
@@ -395,7 +395,7 @@ bool Stun::sendNominationRequest(ICEPair *pair)
 
   if (responseRecv == false)
   {
-    printDebug(DEBUG_WARNING, "STUN", DC_NEGOTIATING,
+    printDebug(DEBUG_WARNING, "STUN",
         "Failed to receive Nomination Response from remote!", {
           pair->remote->address, QString(pair->remote->port)
         }
@@ -423,7 +423,7 @@ bool Stun::sendNominationResponse(ICEPair *pair)
   {
     if (!udp_->bindRaw(QHostAddress(pair->local->address), pair->local->port))
     {
-      printDebug(DEBUG_ERROR, "STUN", DC_NEGOTIATING,
+      printDebug(DEBUG_ERROR, "STUN",
           "Binding failed! Cannot send STUN Binding Requests to", {
             pair->remote->address, QString(pair->remote->port)
           }
@@ -477,7 +477,7 @@ bool Stun::sendNominationResponse(ICEPair *pair)
 
   if (nominationRecv == false)
   {
-    printDebug(DEBUG_WARNING, "STUN", DC_NEGOTIATING,
+    printDebug(DEBUG_WARNING, "STUN",
         "Failed to receive Nomination Request from remote!", {
           pair->remote->address, QString(pair->remote->port)
         }
@@ -502,7 +502,7 @@ void Stun::processReply(QByteArray data)
 {
   if(data.size() < 20)
   {
-    printDebug(DEBUG_WARNING, "STUN", DC_NEGOTIATING,
+    printDebug(DEBUG_WARNING, "STUN",
         "Received too small response to STUN query!");
     return;
   }
@@ -513,7 +513,7 @@ void Stun::processReply(QByteArray data)
 
   if (!stunmsg_.validateStunResponse(response))
   {
-    printDebug(DEBUG_WARNING, "STUN", DC_NEGOTIATING, "Invalid STUN Response!");
+    printDebug(DEBUG_WARNING, "STUN",  "Invalid STUN Response!");
     emit stunError();
     return;
   }
@@ -526,7 +526,7 @@ void Stun::processReply(QByteArray data)
   }
   else
   {
-    printDebug(DEBUG_WARNING, "STUN", DC_NEGOTIATING, "DIDN'T GET XOR-MAPPED-ADDRESS!");
+    printDebug(DEBUG_WARNING, "STUN",  "DIDN'T GET XOR-MAPPED-ADDRESS!");
     emit stunError();
   }
 }

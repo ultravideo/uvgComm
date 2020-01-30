@@ -32,7 +32,7 @@ DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
   }
   else {
     Q_ASSERT(false);
-    printDebug(DEBUG_PROGRAM_ERROR, "Display Filter", DC_ADD_MEDIA,
+    printDebug(DEBUG_PROGRAM_ERROR, "Display Filter",
                "Gived nonexistant widget");
   }
   updateSettings();
@@ -50,7 +50,7 @@ void DisplayFilter::updateSettings()
   }
   else
   {
-    printDebug(DEBUG_ERROR, "CameraInfo", DC_SETTINGS,
+    printDebug(DEBUG_ERROR, "CameraInfo", 
                "Missing settings value flip threads.");
   }
 
@@ -77,7 +77,7 @@ void DisplayFilter::process()
       format = QImage::Format_Invalid;
       break;
     default:
-      printDebug(DEBUG_PROGRAM_ERROR, this, DC_PROCESS_MEDIA,
+      printDebug(DEBUG_PROGRAM_ERROR, this, 
                  "Wrong type of display input.", {"Type"}, {QString::number(input->type)});
       format = QImage::Format_Invalid;
       break;

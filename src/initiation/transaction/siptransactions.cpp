@@ -66,7 +66,7 @@ void SIPTransactions::startCall(Contact &address, QString localAddress,
   // this start call will commence once the connection has been established
   if(!dialogData->client->startCall(address.realName))
   {
-    printDebug(DEBUG_WARNING, this, DC_START_CALL,
+    printDebug(DEBUG_WARNING, this, 
                "Could not start a call according to session.");
   }
 }
@@ -74,7 +74,7 @@ void SIPTransactions::startCall(Contact &address, QString localAddress,
 
 void SIPTransactions::renegotiateCall(uint32_t sessionID)
 {
-  printDebug(DEBUG_NORMAL, "SIP Transactions", DC_NEGOTIATING,
+  printDebug(DEBUG_NORMAL, "SIP Transactions", 
              "Start the process of sending a re-INVITE");
 
   dialogs_[sessionID]->client->renegotiateCall();
@@ -308,7 +308,7 @@ void SIPTransactions::processSIPResponse(SIPResponse response, uint32_t sessionI
   Q_ASSERT(sessionID);
   if (sessionID == 0)
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this, DC_RECEIVE_SIP_RESPONSE,
+    printDebug(DEBUG_PROGRAM_ERROR, this, 
                "SessionID was 0 in processSIPResponse. Should be detected earlier.");
     return;
   }
@@ -395,11 +395,11 @@ void SIPTransactions::destroyDialog(uint32_t sessionID)
 
   if(dialog == nullptr)
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this, DC_END_CALL,
+    printDebug(DEBUG_PROGRAM_ERROR, this,
                "Bad sessionID for destruction.");
     return;
   }
-  printDebug(DEBUG_NORMAL, this, DC_END_CALL, "Destroying SIP dialog",
+  printDebug(DEBUG_NORMAL, this,  "Destroying SIP dialog",
                 {"SessionID"}, {QString::number(sessionID)});
 
   dialog->state.reset();

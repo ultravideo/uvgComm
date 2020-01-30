@@ -186,7 +186,7 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
 
   if (!includeRouteField(fields, request.message))
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this, DC_SEND_SIP_REQUEST, "Failed to add Route-fields");
+    printDebug(DEBUG_PROGRAM_ERROR, this,  "Failed to add Route-fields");
   }
 
   if ((request.type == SIP_INVITE || request.type == SIP_REGISTER) &&
@@ -199,7 +199,7 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
   if (request.type == SIP_REGISTER &&
       !includeExpiresField(fields, request.message->expires))
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this, DC_SEND_SIP_REQUEST, "Failed to add expires-field");
+    printDebug(DEBUG_PROGRAM_ERROR, this,  "Failed to add expires-field");
     return;
   }
 
@@ -253,7 +253,7 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
 
   if (!includeRecordRouteField(fields, response.message))
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this, DC_SEND_SIP_REQUEST, "Failed to add RecordRoute-fields");
+    printDebug(DEBUG_PROGRAM_ERROR, this,  "Failed to add RecordRoute-fields");
   }
 
   routing_.getContactAddress(response.message,
@@ -396,7 +396,7 @@ void SIPTransport::networkPackage(QString package)
 
     if(request_match.hasMatch() && response_match.hasMatch())
     {
-      printDebug(DEBUG_PROGRAM_ERROR, this, DC_RECEIVE_SIP,
+      printDebug(DEBUG_PROGRAM_ERROR, this,
                  "Both the request and response matched, which should not be possible!");
       return;
     }
@@ -443,7 +443,7 @@ bool SIPTransport::parsePackage(QString package, QString& header, QString& body)
   int headerEndIndex = package.indexOf("\r\n\r\n", 0, Qt::CaseInsensitive) + 4;
   int contentLengthIndex = package.indexOf("content-length", 0, Qt::CaseInsensitive);
 
-  printDebug(DEBUG_NORMAL, this, DC_RECEIVE_SIP, "Parsing package to header and body",
+  printDebug(DEBUG_NORMAL, this,  "Parsing package to header and body",
     {"Header end index", "content-length index"},
     {QString::number(headerEndIndex), QString::number(contentLengthIndex)});
 
@@ -468,7 +468,7 @@ bool SIPTransport::parsePackage(QString package, QString& header, QString& body)
     if (contentLength < 0)
     {
       // TODO: Warn the user maybe. Maybe also ban the user at least temporarily.
-      printDebug(DEBUG_PEER_ERROR, this, DC_RECEIVE_SIP,
+      printDebug(DEBUG_PEER_ERROR, this,
                  "Got negative content-length! Peer is doing something very strange.");
       return false;
     }
@@ -528,7 +528,7 @@ bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPF
       {
         if (valueSets.size() != 1)
         {
-          printDebug(DEBUG_PEER_ERROR, this, DC_RECEIVE_SIP,
+          printDebug(DEBUG_PEER_ERROR, this,
                      "Incorrect amount of comma separated sets in field",
                       {"Amount"}, {QString::number(valueSets.size())});
           return false;
@@ -536,7 +536,7 @@ bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPF
       }
       else if (valueSets.size() == 0 || valueSets.size() > 100)
       {
-        printDebug(DEBUG_PEER_ERROR, this, DC_RECEIVE_SIP,
+        printDebug(DEBUG_PEER_ERROR, this,
                    "Incorrect amount of comma separated sets in field",
                     {"Field", "Amount"}, {field.name, QString::number(valueSets.size())});
         return false;
@@ -583,7 +583,7 @@ bool SIPTransport::combineContinuationLines(QStringList& lines)
     // combine current line with previous
     if (lines.at(i).front().isSpace())
     {
-      printNormalDebug(this, DC_RECEIVE_SIP, "Found a continuation line");
+      printNormalDebug(this,  "Found a continuation line");
       lines[i - 1].append(lines.at(i));
       lines.erase(lines.begin() + i);
       --i;
@@ -915,7 +915,7 @@ QString SIPTransport::addContent(QList<SIPField>& fields, bool haveContent,
   }
   else if(!includeContentLengthField(fields, 0))
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this, DC_SIP_CONTENT,
+    printDebug(DEBUG_PROGRAM_ERROR, this, 
                "Could not add content-length field to sip message!");
   }
   return sdp_str;

@@ -49,7 +49,7 @@ void ConnectionTester::run()
 {
   if (pair_ == nullptr)
   {
-    printDebug(DEBUG_ERROR, "ConnectionTester", DC_NEGOTIATING,
+    printDebug(DEBUG_ERROR, "ConnectionTester",
         "Unable to test connection, candidate is NULL!");
     return;
   }
@@ -58,7 +58,7 @@ void ConnectionTester::run()
 
   if (!stun_->sendBindingRequest(pair_.get(), controller_))
   {
-    printDebug(DEBUG_ERROR, "ConnectionTester", DC_NEGOTIATING,
+    printDebug(DEBUG_ERROR, "ConnectionTester",
         "Connectivity checks failed for", {
             pair_->local->address,  QString(pair_->local->port),
             pair_->remote->address, QString(pair_->remote->port)
@@ -80,7 +80,7 @@ void ConnectionTester::run()
   //... otherwise start waitin for nomination requests
   if (!stun_->sendNominationResponse(pair_.get()))
   {
-    printDebug(DEBUG_ERROR, "ConnectionTester", DC_NEGOTIATING,
+    printDebug(DEBUG_ERROR, "ConnectionTester",
         "Failed to receive nomination for candidate: ", {
             pair_->local->address,  QString(pair_->local->port),
             pair_->remote->address, QString(pair_->remote->port)
