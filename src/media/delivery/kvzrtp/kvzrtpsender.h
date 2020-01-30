@@ -23,7 +23,6 @@ protected:
 
 private:
   DataType type_;
-  bool stop_;
   bool removeStartCodes_;
 
   kvz_rtp::writer *writer_;

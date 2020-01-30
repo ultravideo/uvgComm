@@ -44,7 +44,15 @@ void KvzRTPReceiver::start()
 
 void KvzRTPReceiver::receiveHook(kvz_rtp::frame::rtp_frame *frame)
 {
-  /* TODO: payload len? */
+  Q_ASSERT(frame && frame->payload != nullptr);
+
+  if (frame == nullptr || frame->payload == nullptr)
+  {
+    printPErrorDebug(this, DC_PROCESS_MEDIA, "Received a nullptr frame from kvzRTP");
+    return;
+  }
+
+  // TODO: payload len?
   getStats()->addReceivePacket(frame->payload_len);
 
   if (addStartCodes_ && type_ == HEVCVIDEO)
@@ -56,7 +64,7 @@ void KvzRTPReceiver::receiveHook(kvz_rtp::frame::rtp_frame *frame)
   received_picture->data_size = frame->payload_len;
   received_picture->type = type_;
   received_picture->data = std::unique_ptr<uchar[]>(new uchar[received_picture->data_size]);
-  received_picture->width = 0; // not know at this point. Decoder tells the correct resolution
+  received_picture->width = 0; // not known at this point. Decoder tells the correct resolution
   received_picture->height = 0;
   received_picture->framerate = 0;
   received_picture->source = REMOTE;

@@ -9,7 +9,6 @@ KvzRTPSender::KvzRTPSender(QString id, StatisticsInterface *stats,
                                        DataType type, QString media, kvz_rtp::writer *writer):
   Filter(id, "Framed_Source_" + media, stats, type, NONE),
   type_(type),
-  stop_(false),
   writer_(writer),
   frame_(0)
 {
@@ -78,28 +77,24 @@ void KvzRTPSender::start()
 void KvzRTPSender::stop()
 {
   Filter::stop();
-  stop_ = true;
 }
 
 void KvzRTPSender::process()
 {
   rtp_error_t ret;
-  std::unique_ptr<Data> currentFrame;
+  std::unique_ptr<Data> input = getInput();
 
-  while (!stop_)
+  while (input)
   {
-    while ((currentFrame = getInput()))
+    ret = writer_->push_frame(std::move(input->data), input->data_size, RTP_NO_FLAGS);
+
+    if (ret != RTP_OK)
     {
-      ret = writer_->push_frame(std::move(currentFrame->data), currentFrame->data_size, RTP_NO_FLAGS);
-
-      if (ret != RTP_OK)
-      {
-        printDebug(DEBUG_ERROR, this, DC_PROCESS_MEDIA, "Failed to send data", { "Error" }, { QString(ret) });
-        break;
-      }
-
-      getStats()->addSendPacket(currentFrame->data_size);
+      printDebug(DEBUG_ERROR, this, DC_PROCESS_MEDIA, "Failed to send data", { "Error" }, { QString(ret) });
     }
-    return;
+
+    getStats()->addSendPacket(input->data_size);
+
+    input = getInput();
   }
 }
