@@ -81,6 +81,8 @@ public slots:
   void on_settings_button_clicked();
   void on_about_clicked();
 
+  void changedSIPText(const QString &text);
+
 private:
 
   // helper for setting icons to buttons.
