@@ -111,17 +111,23 @@
        <string>SIP</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_4">
-       <item row="0" column="0">
-        <widget class="QLabel" name="ServerLabel">
-         <property name="text">
-          <string>Server Address</string>
+       <item row="8" column="1">
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
          </property>
-        </widget>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
        </item>
-       <item row="0" column="1">
-        <widget class="QLineEdit" name="serverAddress">
+       <item row="3" column="0">
+        <widget class="QPushButton" name="connectButton">
          <property name="text">
-          <string>130.230.52.149</string>
+          <string>Connect</string>
          </property>
         </widget>
        </item>
@@ -129,13 +135,6 @@
         <widget class="QCheckBox" name="conference">
          <property name="text">
           <string>Automatic conference</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0">
-        <widget class="QPushButton" name="connectButton">
-         <property name="text">
-          <string>Connect</string>
          </property>
         </widget>
        </item>
@@ -166,23 +165,17 @@
          </property>
         </widget>
        </item>
-       <item row="7" column="1">
-        <spacer name="verticalSpacer">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>40</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="1" column="0">
-        <widget class="QLabel" name="StatusLabel">
+       <item row="0" column="0">
+        <widget class="QLabel" name="ServerLabel">
          <property name="text">
-          <string>Status:</string>
+          <string>Server Address</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLineEdit" name="serverAddress">
+         <property name="text">
+          <string>130.230.52.149</string>
          </property>
         </widget>
        </item>
@@ -193,6 +186,20 @@
          </property>
          <property name="checked">
           <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="StatusLabel">
+         <property name="text">
+          <string>Status:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="0">
+        <widget class="QCheckBox" name="auto_accept">
+         <property name="text">
+          <string>Auto-Accept calls</string>
          </property>
         </widget>
        </item>

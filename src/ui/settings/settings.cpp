@@ -112,7 +112,7 @@ void Settings::saveSettings()
   // Local settings
   saveTextValue("local/Name", basicUI_->name_edit->text(), settings_);
   saveTextValue("local/Username", basicUI_->username_edit->text(), settings_);
-  saveCheckBox("local/Auto-Accept", basicUI_->auto_accept, settings_);
+
 
   int currentIndex = basicUI_->videoDevice->currentIndex();
   if( currentIndex != -1)
@@ -148,7 +148,6 @@ void Settings::getSettings(bool changedDevice)
     qDebug() << "Settings," << metaObject()->className() << ": Restoring user settings from file:" << settings_.fileName();
     basicUI_->name_edit->setText      (settings_.value("local/Name").toString());
     basicUI_->username_edit->setText  (settings_.value("local/Username").toString());
-    restoreCheckBox("local/Auto-Accept", basicUI_->auto_accept, settings_);
 
     int currentIndex = getVideoDeviceID();
     if(changedDevice)
@@ -217,8 +216,7 @@ int Settings::getVideoDeviceID()
 bool Settings::checkUserSettings()
 {
   return settings_.contains("local/Name")
-      && settings_.contains("local/Username")
-      && settings_.contains("local/Auto-Accept");
+      && settings_.contains("local/Username");
 }
 
 bool Settings::checkMissingValues()
