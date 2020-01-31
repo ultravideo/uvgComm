@@ -133,12 +133,14 @@ StatisticsInterface* CallWindow::createStatsWindow()
 
 void CallWindow::addContact()
 {
-  // TODO: Check ip legality as an address
+  // TODO: support dns
+  QRegularExpression re_ip ("\\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\\.|$)){4}\\b");
+  QRegularExpressionMatch ip_match = re_ip.match(ui_->address->text());
 
   // has the user inputted correct information
-  if (ui_->address->text().isEmpty())
+  if (!ip_match.hasMatch())
   {
-    ui_->addressLabel->setText("Please set address!");
+    ui_->addressLabel->setText("Please set IP address!");
     ui_->addressLabel->setStyleSheet("QLabel { color : red; }");
   }
   else
