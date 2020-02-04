@@ -116,7 +116,7 @@ void AdvancedSettings::saveAdvancedSettings()
   listGUIToSettings("blocklist.local", "blocklist", QStringList() << "userName" << "date", advancedUI_->blockedUsers);
 
   // sip settings.
-  saveCheckBox("sip/AutoConnect", advancedUI_->autoConnect, settings_);
+
   saveCheckBox("sip/ice", advancedUI_->ice, settings_);
   //saveCheckBox("sip/conference", advancedUI_->conference, settings_);
 
@@ -126,13 +126,13 @@ void AdvancedSettings::saveAdvancedSettings()
 
 void AdvancedSettings::restoreAdvancedSettings()
 {
-  listSettingsToGUI("blocklist.local", "blocklist", QStringList() << "userName" << "date", advancedUI_->blockedUsers);
+  listSettingsToGUI("blocklist.local", "blocklist", QStringList()
+                    << "userName" << "date", advancedUI_->blockedUsers);
 
   bool validSettings = checkMissingValues(settings_);
 
   if(validSettings && checkSipSettings())
   {
-    restoreCheckBox("sip/AutoConnect", advancedUI_->autoConnect, settings_);
     restoreCheckBox("sip/ice", advancedUI_->ice, settings_);
     //restoreCheckBox("sip/conference", advancedUI_->conference, settings_);
 

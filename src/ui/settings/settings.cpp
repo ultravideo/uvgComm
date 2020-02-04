@@ -16,10 +16,12 @@ Settings::Settings(QWidget *parent) :
   settings_("kvazzup.ini", QSettings::IniFormat)
 {}
 
+
 Settings::~Settings()
 {
   // I believe the UI:s are destroyed when parents are destroyed
 }
+
 
 void Settings::init()
 {
@@ -47,11 +49,13 @@ void Settings::init()
                    this, &Settings::changedSIPText);
 }
 
+
 void Settings::show()
 {
   initializeUIDeviceList(); // initialize everytime in case they have changed
   QWidget::show();
 }
+
 
 void Settings::on_save_clicked()
 {
@@ -60,6 +64,7 @@ void Settings::on_save_clicked()
   saveSettings();
   emit settingsChanged(); // TODO: check have the settings actually been changed
 }
+
 
 void Settings::on_close_clicked()
 {
@@ -71,9 +76,9 @@ void Settings::on_close_clicked()
   hide();
 }
 
+
 void Settings::on_advanced_settings_button_clicked()
 {
-  //on_ok_clicked(); // treat this the same as ok
   saveSettings();
   hide();
   advanced_.show();
@@ -82,7 +87,6 @@ void Settings::on_advanced_settings_button_clicked()
 
 void Settings::on_custom_settings_button_clicked()
 {
-  //on_ok_clicked(); // treat this the same as ok
   saveSettings();
   hide();
   custom_.show();
@@ -110,6 +114,7 @@ void Settings::initializeUIDeviceList()
   }
 }
 
+
 // records the settings
 void Settings::saveSettings()
 {
@@ -119,6 +124,8 @@ void Settings::saveSettings()
   saveTextValue("local/Name", basicUI_->name_edit->text(), settings_);
   saveTextValue("local/Username", basicUI_->username->text(), settings_);
   saveTextValue("sip/ServerAddress", basicUI_->serverAddress->text(), settings_);
+
+  saveCheckBox("sip/AutoConnect", basicUI_->autoConnect, settings_);
 
   saveCheckBox("sip/kvzRTP", basicUI_->kvzRTP, settings_);
 
@@ -145,6 +152,7 @@ void Settings::saveSettings()
   }
 }
 
+
 // restores recorded settings
 void Settings::getSettings(bool changedDevice)
 {
@@ -158,6 +166,8 @@ void Settings::getSettings(bool changedDevice)
     basicUI_->username->setText  (settings_.value("local/Username").toString());
 
     basicUI_->serverAddress->setText(settings_.value("sip/ServerAddress").toString());
+
+    restoreCheckBox("sip/AutoConnect", basicUI_->autoConnect, settings_);
 
     // updates the sip text label
     changedSIPText("");
@@ -177,6 +187,7 @@ void Settings::getSettings(bool changedDevice)
   }
 }
 
+
 void Settings::resetFaultySettings()
 {
   qDebug() << "WARNING," << metaObject()->className()
@@ -186,11 +197,13 @@ void Settings::resetFaultySettings()
   custom_.resetSettings(getVideoDeviceID());
 }
 
+
 QStringList Settings::getAudioDevices()
 {
   //TODO
   return QStringList();
 }
+
 
 int Settings::getVideoDeviceID()
 {
@@ -268,7 +281,6 @@ void Settings::updateServerStatus(ServerStatus status)
       break;
     }
   }
-
 }
 
 
@@ -277,6 +289,7 @@ bool Settings::checkUserSettings()
   return settings_.contains("local/Name")
       && settings_.contains("local/Username");
 }
+
 
 bool Settings::checkMissingValues()
 {
