@@ -37,8 +37,6 @@ public slots:
   void on_advanced_ok_clicked();
   void on_advanced_close_clicked();
 
-  void serverStatusChange(QString status);
-
 private:
 
   // QSettings -> GUI

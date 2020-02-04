@@ -71,6 +71,13 @@ void CallWindow::init(ParticipantInterface *partInt)
   QObject::connect(ui_->actionClose, SIGNAL(triggered()),
                    this, SIGNAL(closed()));
 
+  QObject::connect(ui_->address, &QLineEdit::textChanged,
+                   this, &CallWindow::changedSIPText);
+
+  QObject::connect(ui_->username, &QLineEdit::textChanged,
+                   this, &CallWindow::changedSIPText);
+
+
   QMainWindow::show();
 
   QObject::connect(&conference_, &ConferenceView::acceptCall, this, &CallWindow::callAccepted);
@@ -133,12 +140,14 @@ StatisticsInterface* CallWindow::createStatsWindow()
 
 void CallWindow::addContact()
 {
-  // TODO: Check ip legality as an address
+  // TODO: support dns
+  QRegularExpression re_ip ("\\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\\.|$)){4}\\b");
+  QRegularExpressionMatch ip_match = re_ip.match(ui_->address->text());
 
   // has the user inputted correct information
-  if (ui_->address->text().isEmpty())
+  if (!ip_match.hasMatch())
   {
-    ui_->addressLabel->setText("Please set address!");
+    ui_->addressLabel->setText("Please set an IP address!");
     ui_->addressLabel->setStyleSheet("QLabel { color : red; }");
   }
   else
@@ -156,6 +165,8 @@ void CallWindow::addContact()
     ui_->addContact->show();
   }
 }
+
+
 
 void CallWindow::displayOutgoingCall(uint32_t sessionID, QString name)
 {
@@ -267,4 +278,11 @@ void CallWindow::clearConferenceView()
   conference_.close();
   viewFactory_->clearWidgets();
   contacts_.setAccessibleAll();
+}
+
+
+void CallWindow::changedSIPText(const QString &text)
+{
+  Q_UNUSED(text);
+  ui_->sipAddress->setText("sip:" + ui_->username->text() + "@" + ui_->address->text());
 }
