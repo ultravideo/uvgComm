@@ -24,7 +24,8 @@ public:
   SIPManager();
 
   // start listening to incoming SIP messages
-  void init(SIPTransactionUser* callControl, StatisticsInterface *stats);
+  void init(SIPTransactionUser* callControl, StatisticsInterface *stats,
+            ServerStatusView *statusView);
   void uninit();
 
   // REGISTER our information to SIP-registrar

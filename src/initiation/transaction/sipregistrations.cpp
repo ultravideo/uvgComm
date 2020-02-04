@@ -5,6 +5,7 @@
 #include "initiation/transaction/sipnondialogclient.h"
 
 #include "common.h"
+#include "serverstatusview.h"
 
 #include <QDebug>
 
@@ -15,10 +16,11 @@ SIPRegistrations::SIPRegistrations()
 }
 
 
-void SIPRegistrations::init(SIPTransactionUser *callControl)
+void SIPRegistrations::init(SIPTransactionUser *callControl, ServerStatusView *statusView)
 {
   printNormal(this, "Initiatin Registrations");
   transactionUser_ = callControl;
+  statusView_ = statusView;
 }
 
 
@@ -43,6 +45,7 @@ void SIPRegistrations::bindToServer(QString serverAddress, QString localAddress,
     QObject::connect(registrations_[serverAddress].client.get(),
                      &SIPNonDialogClient::sendNondialogRequest,
                      this, &SIPRegistrations::sendNonDialogRequest);
+    statusView_->updateServerStatus(ServerStatus::IN_PROCESS);
 
     registrations_[serverAddress].client->registerToServer();
   }
@@ -119,7 +122,13 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
             // makes sure we don't end up in infinite loop if the address doesn't match
             i.second.updatedContact = true;
 
+            statusView_->updateServerStatus(ServerStatus::BEHIND_NAT);
+
             i.second.client->registerToServer(); // re-REGISTER with NAT address and port
+          }
+          else
+          {
+            statusView_->updateServerStatus(ServerStatus::REGISTERED);
           }
 
           printNormal(this, "Registration was succesful.");
@@ -135,6 +144,7 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
     else
     {
       printDebug(DEBUG_ERROR, this, "REGISTER-request failed");
+      statusView_->updateServerStatus(ServerStatus::SERVER_FAILED);
     }
   }
   else

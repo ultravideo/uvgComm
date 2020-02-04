@@ -232,7 +232,43 @@ int Settings::getVideoDeviceID()
 void Settings::changedSIPText(const QString &text)
 {
   Q_UNUSED(text);
-  basicUI_->sipAddress->setText("sip:" + basicUI_->username->text() + "@" + basicUI_->serverAddress->text());
+  basicUI_->sipAddress->setText("sip:" + basicUI_->username->text()
+                                + "@" + basicUI_->serverAddress->text());
+}
+
+
+void Settings::updateServerStatus(ServerStatus status)
+{
+
+  switch (status)
+  {
+    case DISCONNECTED:
+    {
+      basicUI_->status->setText("Disconnected");
+      break;
+    }
+    case IN_PROCESS:
+    {
+      basicUI_->status->setText("Connecting...");
+      break;
+    }
+    case BEHIND_NAT:
+    {
+      basicUI_->status->setText("Online, but behind NAT");
+      break;
+    }
+    case REGISTERED:
+    {
+      basicUI_->status->setText("Online");
+      break;
+    }
+    case SERVER_FAILED:
+    {
+      basicUI_->status->setText("Failed to register");
+      break;
+    }
+  }
+
 }
 
 

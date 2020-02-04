@@ -16,7 +16,8 @@ SIPManager::SIPManager():
 
 
 // start listening to incoming
-void SIPManager::init(SIPTransactionUser* callControl, StatisticsInterface *stats)
+void SIPManager::init(SIPTransactionUser* callControl, StatisticsInterface *stats,
+                      ServerStatusView *statusView)
 {
   QObject::connect(&tcpServer_, &ConnectionServer::newConnection,
                    this, &SIPManager::receiveTCPConnection);
@@ -37,7 +38,7 @@ void SIPManager::init(SIPTransactionUser* callControl, StatisticsInterface *stat
   }
 
   transactions_.init(callControl);
-  registrations_.init(callControl);
+  registrations_.init(callControl, statusView);
 
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
   QString username = !settings.value("local/Username").isNull()

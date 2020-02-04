@@ -7,6 +7,7 @@
 class SIPNonDialogClient;
 class SIPDialogState;
 class SIPTransactionUser;
+class ServerStatusView;
 
 class SIPRegistrations : public QObject
 {
@@ -14,7 +15,7 @@ class SIPRegistrations : public QObject
 public:
   SIPRegistrations();
 
-  void init(SIPTransactionUser* callControl);
+  void init(SIPTransactionUser* callControl, ServerStatusView* statusView);
 
   void bindToServer(QString serverAddress, QString localAddress,
                     uint16_t port);
@@ -51,4 +52,5 @@ private:
   std::map<QString, SIPRegistrationData> registrations_;
 
   SIPTransactionUser* transactionUser_;
+  ServerStatusView* statusView_;
 };

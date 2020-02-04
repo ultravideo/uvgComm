@@ -8,6 +8,8 @@
 
 #include <memory>
 
+#include "serverstatusview.h"
+
 /* Settings in Kvazzup work as follows:
  * 1) The settings view holds the setting information in a way that the user
  * can modify it. 2) This Settings class monitors users modifications and
@@ -31,7 +33,7 @@ class CameraInfo;
 class QCheckBox;
 
 // TODO: Settings of SIP server
-class Settings : public QDialog
+class Settings : public QDialog, public ServerStatusView
 {
   Q_OBJECT
 
@@ -42,6 +44,8 @@ public:
   void init();
 
   void updateDevices();
+
+  void updateServerStatus(ServerStatus status);
 
 signals:
 

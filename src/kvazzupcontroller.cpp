@@ -21,7 +21,7 @@ void KvazzupController::init()
   window_.show();
   stats_ = window_.createStatsWindow();
 
-  sip_.init(this, stats_);
+  sip_.init(this, stats_, window_.getStatusView());
 
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
   int autoConnect = settings.value("sip/AutoConnect").toInt();

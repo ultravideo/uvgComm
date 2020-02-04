@@ -13,6 +13,8 @@
 
 class StatisticsWindow;
 class StatisticsInterface;
+class ServerStatusView;
+
 
 namespace Ui {
 class CallWindow;
@@ -55,6 +57,11 @@ public:
   std::shared_ptr<VideoviewFactory> getViewFactory() const
   {
     return viewFactory_;
+  }
+
+  ServerStatusView* getStatusView()
+  {
+    return &settingsView_;
   }
 
 signals:
