@@ -214,18 +214,11 @@ bool Stun::controlleeSendBindingRequest(ICEPair *pair)
   Q_ASSERT(pair != nullptr);
 
   bool msgReceived   = false;
-  QByteArray message = QByteArray("hole punch normal");
+  QByteArray message;
   STUNMessage msg;
 
   for (int i = 0; i < 20; ++i)
   {
-    udp_->sendData(
-        message,
-        QHostAddress(pair->remote->address),
-        pair->remote->port,
-        false
-    );
-
     if (waitForStunRequest(20 * (i + 1)))
     {
       if (interrupted_)
@@ -435,18 +428,11 @@ bool Stun::sendNominationResponse(ICEPair *pair)
   }
 
   STUNMessage msg;
-  QByteArray message = QByteArray("hole punch nomination");
+  QByteArray message;
   bool nominationRecv = false;
 
   for (int i = 0; i < 128; ++i)
   {
-    udp_->sendData(
-        message,
-        QHostAddress(pair->remote->address),
-        pair->remote->port,
-        false
-    );
-
     if (waitForNominationRequest(20 * (i + 1)))
     {
       if (interrupted_)
@@ -508,7 +494,6 @@ void Stun::processReply(QByteArray data)
   }
 
   QString message = QString::fromStdString(data.toHex().toStdString());
-
   STUNMessage response = stunmsg_.networkToHost(data);
 
   if (!stunmsg_.validateStunResponse(response))
@@ -541,7 +526,7 @@ void Stun::stopTesting()
 // or Stun binding response -> mark candidate as valid
 void Stun::recvStunMessage(QNetworkDatagram message)
 {
-  QByteArray data      = message.data();
+  QByteArray data     = message.data();
   STUNMessage stunMsg = stunmsg_.networkToHost(data);
 
   if (stunMsg.getType() == STUN_REQUEST)

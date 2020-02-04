@@ -46,6 +46,8 @@ STUNMessage StunMessageFactory::createResponse(STUNMessage& request)
 
 bool StunMessageFactory::verifyTransactionID(STUNMessage& message)
 {
+  (void)message;
+
   return false;
 }
 
@@ -165,10 +167,7 @@ QByteArray StunMessageFactory::hostToNetwork(STUNMessage& message)
   rawMessage->length      = qToBigEndian(message.getLength());
   rawMessage->magicCookie = qToBigEndian(message.getCookie());
 
-  for (int i = 0; i < TRANSACTION_ID_SIZE; ++i)
-  {
-    rawMessage->transactionID[i] = qToBigEndian(message.getTransactionIDAt(i));
-  }
+  memcpy(rawMessage->transactionID, message.getTransactionID(), TRANSACTION_ID_SIZE);
 
   uint16_t *attrPtr = (uint16_t *)rawMessage->payload;
 
@@ -198,18 +197,17 @@ STUNMessage StunMessageFactory::networkToHost(QByteArray& message)
   response.setLength(qFromBigEndian(*((uint16_t *)&raw_data[2])));
   response.setCookie(qFromBigEndian(*((uint32_t *)&raw_data[4])));
 
-  for (int i = 0; i < TRANSACTION_ID_SIZE; ++i)
-  {
-    response.getTransactionID()[i] = (uint8_t)raw_data[8 + i];
-  }
+  memcpy(response.getTransactionID(), (uint8_t *)raw_data + 8, TRANSACTION_ID_SIZE);
+
+  Q_ASSERT(response.getLength() + 8 + TRANSACTION_ID_SIZE == message.size());
 
   uint32_t *payload  = (uint32_t *)((uint8_t *)raw_data + 8 + TRANSACTION_ID_SIZE);
+  uint32_t length    = response.getLength();
 
-  for (size_t i = 0; i < response.getLength(); i += 4)
-  {
-    uint32_t value     = qFromBigEndian(payload[i / 4]);
-    uint16_t attrName  = (value >> 16) & 0xffff;
-    uint16_t attrLen   = (value >>  0) & 0xffff;
+  for (size_t i = 0; i < length / 4; ++i) {
+    uint32_t value    = qFromBigEndian(payload[i]);
+    uint16_t attrName = (value >> 16) & 0xffff;
+    uint16_t attrLen  = (value >>  0) & 0xffff;
 
     switch (attrName)
     {
@@ -223,19 +221,17 @@ STUNMessage StunMessageFactory::networkToHost(QByteArray& message)
         }
         break;
 
-      case STUN_ATTR_ICE_CONTROLLED:
         response.addAttribute(STUN_ATTR_ICE_CONTROLLED);
         break;
 
       case STUN_ATTR_ICE_CONTROLLING:
+      case STUN_ATTR_ICE_CONTROLLED:
         response.addAttribute(STUN_ATTR_ICE_CONTROLLING);
         break;
 
       case STUN_ATTR_PRIORITY:
         {
-          i += 4;
-
-          uint32_t priority = qFromBigEndian(payload[i / 4]);
+          uint32_t priority = qFromBigEndian(payload[i + 1]);
           response.addAttribute(STUN_ATTR_PRIORITY, priority);
         }
         break;
@@ -249,7 +245,7 @@ STUNMessage StunMessageFactory::networkToHost(QByteArray& message)
         break;
     }
 
-    i += attrLen;
+    i += (attrLen / 4);
   }
 
   return response;
