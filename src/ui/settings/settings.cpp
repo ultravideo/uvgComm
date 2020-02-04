@@ -39,6 +39,12 @@ void Settings::init()
 
   QObject::connect(&advanced_, &AdvancedSettings::advancedSettingsChanged, this, &Settings::settingsChanged);
   QObject::connect(&advanced_, &AdvancedSettings::hidden, this, &Settings::show);
+
+  QObject::connect(basicUI_->serverAddress, &QLineEdit::textChanged,
+                   this, &Settings::changedSIPText);
+
+  QObject::connect(basicUI_->username, &QLineEdit::textChanged,
+                   this, &Settings::changedSIPText);
 }
 
 void Settings::show()
@@ -111,8 +117,7 @@ void Settings::saveSettings()
 
   // Local settings
   saveTextValue("local/Name", basicUI_->name_edit->text(), settings_);
-  saveTextValue("local/Username", basicUI_->username_edit->text(), settings_);
-
+  saveTextValue("local/Username", basicUI_->username->text(), settings_);
   saveTextValue("sip/ServerAddress", basicUI_->serverAddress->text(), settings_);
 
   saveCheckBox("sip/kvzRTP", basicUI_->kvzRTP, settings_);
@@ -150,9 +155,12 @@ void Settings::getSettings(bool changedDevice)
   {
     qDebug() << "Settings," << metaObject()->className() << ": Restoring user settings from file:" << settings_.fileName();
     basicUI_->name_edit->setText      (settings_.value("local/Name").toString());
-    basicUI_->username_edit->setText  (settings_.value("local/Username").toString());
+    basicUI_->username->setText  (settings_.value("local/Username").toString());
 
     basicUI_->serverAddress->setText(settings_.value("sip/ServerAddress").toString());
+
+    // updates the sip text label
+    changedSIPText("");
 
     restoreCheckBox("sip/kvzrtp", basicUI_->kvzRTP, settings_);
 
@@ -219,6 +227,14 @@ int Settings::getVideoDeviceID()
   // no devices attached
   return -1;
 }
+
+
+void Settings::changedSIPText(const QString &text)
+{
+  Q_UNUSED(text);
+  basicUI_->sipAddress->setText("sip:" + basicUI_->username->text() + "@" + basicUI_->serverAddress->text());
+}
+
 
 bool Settings::checkUserSettings()
 {

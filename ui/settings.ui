@@ -69,6 +69,9 @@
          <property name="text">
           <string>sip:user@server</string>
          </property>
+         <property name="textInteractionFlags">
+          <set>Qt::TextSelectableByMouse</set>
+         </property>
         </widget>
        </item>
        <item row="1" column="0">
@@ -109,7 +112,7 @@
         </widget>
        </item>
        <item row="2" column="1">
-        <widget class="QLineEdit" name="username_edit">
+        <widget class="QLineEdit" name="username">
          <property name="maximumSize">
           <size>
            <width>256</width>

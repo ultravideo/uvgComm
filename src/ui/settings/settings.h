@@ -58,6 +58,8 @@ public slots:
   void on_advanced_settings_button_clicked();
   void on_custom_settings_button_clicked();
 
+  void changedSIPText(const QString &text);
+
 private:
   void initializeUIDeviceList();
 

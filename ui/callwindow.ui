@@ -415,7 +415,7 @@
              </sizepolicy>
             </property>
             <property name="text">
-             <string>Name</string>
+             <string>Display Name</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -503,6 +503,9 @@
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
+            </property>
+            <property name="textInteractionFlags">
+             <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
             </property>
            </widget>
           </item>
