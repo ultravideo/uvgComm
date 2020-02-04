@@ -109,18 +109,6 @@ void AdvancedSettings::on_addUserBlock_clicked()
   }
 }
 
-
-void AdvancedSettings::serverStatusChange(QString status)
-{
-  advancedUI_->StatusLabel->setText(status);
-
-  if(status == "Connected")
-  {
-    advancedUI_->connectButton->setText("Disconnect");
-  }
-}
-
-
 void AdvancedSettings::saveAdvancedSettings()
 {
   qDebug() << "Settings," << metaObject()->className() << ": Saving advanced Settings";
@@ -128,11 +116,10 @@ void AdvancedSettings::saveAdvancedSettings()
   listGUIToSettings("blocklist.local", "blocklist", QStringList() << "userName" << "date", advancedUI_->blockedUsers);
 
   // sip settings.
-  saveTextValue("sip/ServerAddress", advancedUI_->serverAddress->text(), settings_);
   saveCheckBox("sip/AutoConnect", advancedUI_->autoConnect, settings_);
   saveCheckBox("sip/ice", advancedUI_->ice, settings_);
-  saveCheckBox("sip/conference", advancedUI_->conference, settings_);
-  saveCheckBox("sip/kvzRTP", advancedUI_->kvzRTP, settings_);
+  //saveCheckBox("sip/conference", advancedUI_->conference, settings_);
+
   saveCheckBox("local/Auto-Accept", advancedUI_->auto_accept, settings_);
 }
 
@@ -147,9 +134,8 @@ void AdvancedSettings::restoreAdvancedSettings()
   {
     restoreCheckBox("sip/AutoConnect", advancedUI_->autoConnect, settings_);
     restoreCheckBox("sip/ice", advancedUI_->ice, settings_);
-    restoreCheckBox("sip/conference", advancedUI_->conference, settings_);
-    restoreCheckBox("sip/kvzrtp", advancedUI_->kvzRTP, settings_);
-    advancedUI_->serverAddress->setText(settings_.value("sip/ServerAddress").toString());
+    //restoreCheckBox("sip/conference", advancedUI_->conference, settings_);
+
     restoreCheckBox("local/Auto-Accept", advancedUI_->auto_accept, settings_);
   }
   else

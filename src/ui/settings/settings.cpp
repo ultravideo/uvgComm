@@ -113,6 +113,9 @@ void Settings::saveSettings()
   saveTextValue("local/Name", basicUI_->name_edit->text(), settings_);
   saveTextValue("local/Username", basicUI_->username_edit->text(), settings_);
 
+  saveTextValue("sip/ServerAddress", basicUI_->serverAddress->text(), settings_);
+
+  saveCheckBox("sip/kvzRTP", basicUI_->kvzRTP, settings_);
 
   int currentIndex = basicUI_->videoDevice->currentIndex();
   if( currentIndex != -1)
@@ -148,6 +151,10 @@ void Settings::getSettings(bool changedDevice)
     qDebug() << "Settings," << metaObject()->className() << ": Restoring user settings from file:" << settings_.fileName();
     basicUI_->name_edit->setText      (settings_.value("local/Name").toString());
     basicUI_->username_edit->setText  (settings_.value("local/Username").toString());
+
+    basicUI_->serverAddress->setText(settings_.value("sip/ServerAddress").toString());
+
+    restoreCheckBox("sip/kvzrtp", basicUI_->kvzRTP, settings_);
 
     int currentIndex = getVideoDeviceID();
     if(changedDevice)
