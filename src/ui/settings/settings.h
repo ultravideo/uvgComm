@@ -65,7 +65,9 @@ public slots:
   void changedSIPText(const QString &text);
 
 private:
-  void initializeUIDeviceList();
+  void initializeUIDeviceList(QComboBox* deviceSelector,
+                              QString settingID,
+                              QString settingsDevice);
 
   // checks if user settings make sense
   // TODO: display errors to user on ok click

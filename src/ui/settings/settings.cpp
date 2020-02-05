@@ -54,7 +54,7 @@ void Settings::init()
 
 void Settings::show()
 {
-  initializeUIDeviceList(); // initialize everytime in case they have changed
+  initializeUIDeviceList(basicUI_->videoDevice, "video/DeviceID", "video/Device"); // initialize everytime in case they have changed
   QWidget::show();
 }
 
@@ -95,24 +95,26 @@ void Settings::on_custom_settings_button_clicked()
 }
 
 
-void Settings::initializeUIDeviceList()
+void Settings::initializeUIDeviceList(QComboBox* deviceSelector,
+                                      QString settingID,
+                                      QString settingsDevice)
 {
   qDebug() << "Settings," << metaObject()->className() << ": Initialize device list";
-  basicUI_->videoDevice->clear();
+  deviceSelector->clear();
   QStringList videoDevices = cam_->getVideoDevices();
   for(int i = 0; i < videoDevices.size(); ++i)
   {
-    basicUI_->videoDevice->addItem( videoDevices[i]);
+    deviceSelector->addItem( videoDevices[i]);
   }
-  int deviceIndex = getDeviceID(basicUI_->videoDevice, "video/DeviceID", "video/Device");
+  int deviceIndex = getDeviceID(deviceSelector, settingID, settingsDevice);
 
-  if(deviceIndex >= basicUI_->videoDevice->count())
+  if(deviceIndex >= deviceSelector->count())
   {
-    basicUI_->videoDevice->setCurrentIndex(0);
+    deviceSelector->setCurrentIndex(0);
   }
   else
   {
-    basicUI_->videoDevice->setCurrentIndex(deviceIndex);
+    deviceSelector->setCurrentIndex(deviceIndex);
   }
 }
 
@@ -158,7 +160,7 @@ void Settings::saveSettings()
 // restores recorded settings
 void Settings::getSettings(bool changedDevice)
 {
-  initializeUIDeviceList();
+  initializeUIDeviceList(basicUI_->videoDevice, "video/DeviceID", "video/Device");
 
   //get values from QSettings
   if(checkMissingValues() && checkUserSettings())
