@@ -178,7 +178,7 @@
         </widget>
        </item>
        <item row="8" column="0">
-        <widget class="QLabel" name="VideoDeviceLabel">
+        <widget class="QLabel" name="label_VideoDevice">
          <property name="font">
           <font>
            <pointsize>12</pointsize>
@@ -205,14 +205,14 @@
          </property>
         </widget>
        </item>
-       <item row="9" column="0">
+       <item row="10" column="0">
         <widget class="QCheckBox" name="kvzRTP">
          <property name="text">
           <string>Enable kvzRTP</string>
          </property>
         </widget>
        </item>
-       <item row="11" column="0">
+       <item row="12" column="0">
         <widget class="QPushButton" name="custom_settings_button">
          <property name="enabled">
           <bool>true</bool>
@@ -222,14 +222,14 @@
          </property>
         </widget>
        </item>
-       <item row="12" column="0">
+       <item row="13" column="0">
         <widget class="QPushButton" name="advanced_settings_button">
          <property name="text">
           <string>SIP Settings</string>
          </property>
         </widget>
        </item>
-       <item row="10" column="0" colspan="2">
+       <item row="11" column="0" colspan="2">
         <spacer name="verticalSpacer_2">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -241,6 +241,28 @@
           </size>
          </property>
         </spacer>
+       </item>
+       <item row="9" column="0">
+        <widget class="QLabel" name="label_audioDevice">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
+         <property name="text">
+          <string>Audio Device</string>
+         </property>
+        </widget>
+       </item>
+       <item row="9" column="1">
+        <widget class="QComboBox" name="audioDevice">
+         <property name="maximumSize">
+          <size>
+           <width>256</width>
+           <height>16777215</height>
+          </size>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>

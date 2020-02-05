@@ -29,6 +29,8 @@ class BasicSettings;
 }
 
 class CameraInfo;
+class MicrophoneInfo;
+class DeviceInfoInterface;
 class QCheckBox;
 class QComboBox;
 
@@ -65,9 +67,16 @@ public slots:
   void changedSIPText(const QString &text);
 
 private:
-  void initializeUIDeviceList(QComboBox* deviceSelector,
-                              QString settingID,
-                              QString settingsDevice);
+
+  // Make sure the UI video devices are initialized before calling this.
+  // This function tries to get the best guess at what is the current device
+  // even in case devices have dissappeared/appeared since recording of information.
+  int getDeviceID(QComboBox *deviceSelector, QString settingID, QString settingsDevice);
+
+  void initDeviceSelector(QComboBox* deviceSelector, QString settingID,
+                          QString settingsDevice, std::shared_ptr<DeviceInfoInterface> interface);
+
+  void saveDevice(QComboBox* deviceSelector, QString settingsID, QString settingsDevice, bool video);
 
   // checks if user settings make sense
   // TODO: display errors to user on ok click
@@ -81,18 +90,14 @@ private:
   // permanently records GUI settings
   void saveSettings();
 
-  QStringList getAudioDevices();
 
-  // Make sure the UI video devices are initialized before calling this.
-  // This function tries to get the best guess at what is the current device
-  // even in case devices have dissappeared/appeared since recording of information.
-  int getDeviceID(QComboBox *deviceSelector, QString settingID, QString settingsDevice);
 
   void resetFaultySettings();
 
   Ui::BasicSettings *basicUI_;
 
   std::shared_ptr<CameraInfo> cam_;
+  std::shared_ptr<MicrophoneInfo> mic_;
 
   AdvancedSettings advanced_;
   CustomSettings custom_;

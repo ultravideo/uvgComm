@@ -3,6 +3,7 @@
 #include "ui_settings.h"
 
 #include <ui/settings/camerainfo.h>
+#include <ui/settings/microphoneinfo.h>
 #include "settingshelper.h"
 
 #include <QDebug>
@@ -11,6 +12,7 @@ Settings::Settings(QWidget *parent) :
   QDialog(parent),
   basicUI_(new Ui::BasicSettings),
   cam_(std::shared_ptr<CameraInfo> (new CameraInfo())),
+  mic_(std::shared_ptr<MicrophoneInfo> (new MicrophoneInfo())),
   advanced_(this),
   custom_(this, cam_),
   settings_("kvazzup.ini", QSettings::IniFormat)
@@ -54,7 +56,8 @@ void Settings::init()
 
 void Settings::show()
 {
-  initializeUIDeviceList(basicUI_->videoDevice, "video/DeviceID", "video/Device"); // initialize everytime in case they have changed
+  initDeviceSelector(basicUI_->videoDevice, "video/DeviceID", "video/Device", cam_); // initialize everytime in case they have changed
+  initDeviceSelector(basicUI_->audioDevice, "audio/DeviceID", "audio/Device", mic_); // initialize everytime in case they have changed
   QWidget::show();
 }
 
@@ -95,29 +98,6 @@ void Settings::on_custom_settings_button_clicked()
 }
 
 
-void Settings::initializeUIDeviceList(QComboBox* deviceSelector,
-                                      QString settingID,
-                                      QString settingsDevice)
-{
-  qDebug() << "Settings," << metaObject()->className() << ": Initialize device list";
-  deviceSelector->clear();
-  QStringList videoDevices = cam_->getVideoDevices();
-  for(int i = 0; i < videoDevices.size(); ++i)
-  {
-    deviceSelector->addItem( videoDevices[i]);
-  }
-  int deviceIndex = getDeviceID(deviceSelector, settingID, settingsDevice);
-
-  if(deviceIndex >= deviceSelector->count())
-  {
-    deviceSelector->setCurrentIndex(0);
-  }
-  else
-  {
-    deviceSelector->setCurrentIndex(deviceIndex);
-  }
-}
-
 
 // records the settings
 void Settings::saveSettings()
@@ -133,34 +113,16 @@ void Settings::saveSettings()
 
   saveCheckBox("sip/kvzRTP", basicUI_->kvzRTP, settings_);
 
-  int currentIndex = basicUI_->videoDevice->currentIndex();
-  if( currentIndex != -1)
-  {
-    if(basicUI_->videoDevice->currentText() != settings_.value("video/Device"))
-    {
-      settings_.setValue("video/Device",        basicUI_->videoDevice->currentText());
-      // set capability to first
-
-      custom_.changedDevice(currentIndex);
-    }
-    else if(basicUI_->videoDevice->currentIndex() != settings_.value("video/DeviceID"))
-    {
-      custom_.changedDevice(currentIndex);
-    }
-
-    // record index in all cases
-    settings_.setValue("video/DeviceID",      currentIndex);
-
-    qDebug() << "Settings," << metaObject()->className()
-             << "Recording following device:" << basicUI_->videoDevice->currentText();
-  }
+  saveDevice(basicUI_->videoDevice, "video/DeviceID", "video/Device", true);
+  saveDevice(basicUI_->audioDevice, "audio/DeviceID", "audio/Device", false);
 }
 
 
 // restores recorded settings
 void Settings::getSettings(bool changedDevice)
 {
-  initializeUIDeviceList(basicUI_->videoDevice, "video/DeviceID", "video/Device");
+  initDeviceSelector(basicUI_->videoDevice, "video/DeviceID", "video/Device", cam_);
+  initDeviceSelector(basicUI_->videoDevice, "audio/DeviceID", "audio/Device", mic_);
 
   //get values from QSettings
   if(checkMissingValues() && checkUserSettings())
@@ -179,12 +141,15 @@ void Settings::getSettings(bool changedDevice)
 
     restoreCheckBox("sip/kvzrtp", basicUI_->kvzRTP, settings_);
 
-    int currentIndex = getDeviceID(basicUI_->videoDevice, "video/DeviceID", "video/Device");
+    int videoIndex = getDeviceID(basicUI_->videoDevice, "video/DeviceID", "video/Device");
     if(changedDevice)
     {
-      custom_.changedDevice(currentIndex);
+      custom_.changedDevice(videoIndex);
     }
-    basicUI_->videoDevice->setCurrentIndex(currentIndex);
+    basicUI_->videoDevice->setCurrentIndex(videoIndex);
+
+    int audioIndex = getDeviceID(basicUI_->audioDevice, "audio/DeviceID", "audio/Device");
+    basicUI_->audioDevice->setCurrentIndex(audioIndex);
   }
   else
   {
@@ -203,10 +168,28 @@ void Settings::resetFaultySettings()
 }
 
 
-QStringList Settings::getAudioDevices()
+void Settings::initDeviceSelector(QComboBox* deviceSelector,
+                                      QString settingID,
+                                      QString settingsDevice,
+                                      std::shared_ptr<DeviceInfoInterface> interface)
 {
-  //TODO
-  return QStringList();
+  qDebug() << "Settings," << metaObject()->className() << ": Initialize device list";
+  deviceSelector->clear();
+  QStringList devices = interface->getDeviceList();
+  for(int i = 0; i < devices.size(); ++i)
+  {
+    deviceSelector->addItem( devices[i]);
+  }
+  int deviceIndex = getDeviceID(deviceSelector, settingID, settingsDevice);
+
+  if(deviceIndex >= deviceSelector->count())
+  {
+    deviceSelector->setCurrentIndex(0);
+  }
+  else
+  {
+    deviceSelector->setCurrentIndex(deviceIndex);
+  }
 }
 
 
@@ -244,6 +227,35 @@ int Settings::getDeviceID(QComboBox* deviceSelector, QString settingID, QString 
 
   // no devices attached
   return -1;
+}
+
+
+void Settings::saveDevice(QComboBox* deviceSelector, QString settingsID, QString settingsDevice, bool video)
+{
+  int currentIndex = deviceSelector->currentIndex();
+  if( currentIndex != -1)
+  {
+    if(deviceSelector->currentText() != settings_.value(settingsDevice))
+    {
+      settings_.setValue(settingsDevice,        deviceSelector->currentText());
+      // set capability to first
+
+      if (video)
+      {
+        custom_.changedDevice(currentIndex);
+      }
+    }
+    else if(basicUI_->videoDevice->currentIndex() != settings_.value(settingsID))
+    {
+      if (video)
+      {
+        custom_.changedDevice(currentIndex);
+      }
+    }
+
+    // record index in all cases
+    settings_.setValue(settingsID,      currentIndex);
+  }
 }
 
 

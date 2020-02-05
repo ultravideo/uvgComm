@@ -6,16 +6,17 @@
 
 #include <memory>
 
+#include "deviceinfointerface.h"
 
 // A helper class for settings.
 
-class CameraInfo
+class CameraInfo : public DeviceInfoInterface
 {
 public:
   CameraInfo();
 
-  // returns a list of devices. with devideID as the place in list
-  QStringList getVideoDevices();
+  // returns a list of devices.
+  virtual QStringList getDeviceList();
 
   // get formats for a device.
   // the for

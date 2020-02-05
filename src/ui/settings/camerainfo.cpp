@@ -48,7 +48,7 @@ CameraInfo::CameraInfo()
 {}
 
 
-QStringList CameraInfo::getVideoDevices()
+QStringList CameraInfo::getDeviceList()
 {
   QList<QCameraInfo> cameras = QCameraInfo::availableCameras();
   QStringList list;

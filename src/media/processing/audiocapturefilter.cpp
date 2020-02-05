@@ -8,12 +8,13 @@
 #include <QAudioInput>
 #include <QDebug>
 #include <QTime>
+#include <QSettings>
 
 const int AUDIO_BUFFER_SIZE = 65536;
 
 AudioCaptureFilter::AudioCaptureFilter(QString id, QAudioFormat format, StatisticsInterface *stats) :
   Filter(id, "Audio_Capture", stats, NONE, RAWAUDIO),
-  deviceInfo_(QAudioDeviceInfo::defaultInputDevice()),
+  deviceInfo_(),
   device_(nullptr),
   format_(format),
   audioInput_(nullptr),
@@ -26,12 +27,43 @@ AudioCaptureFilter::~AudioCaptureFilter(){}
 bool AudioCaptureFilter::init()
 {
   printDebug(DEBUG_NORMAL, this, "Initializing audio capture filter.");
+
+  QList<QAudioDeviceInfo> microphones = QAudioDeviceInfo::availableDevices(QAudio::AudioInput);
+
+  if (microphones.empty())
+  {
+    printWarning(this, "No microphone detected!");
+    return false;
+  }
+
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+  QString deviceName = settings.value("audio/Device").toString();
+  int deviceID = settings.value("audio/DeviceID").toInt();
+
+  // if the device has changed between recording the settings and now.
+  if (deviceID < microphones.size()
+      && microphones[deviceID].deviceName() != deviceName)
+  {
+    // search for device with same name
+    for(int i = 0; i < microphones.size(); ++i)
+    {
+      if(microphones.at(i).deviceName() == deviceName)
+      {
+        qDebug() << "Found mic with name:" << microphones.at(i).deviceName()
+                 << "and id:" << i;
+        deviceID = i;
+        break;
+      }
+    }
+    // previous camera could not be found, use first.
+    qDebug() << "Did not find microphone name:" << deviceName << " Using first";
+    deviceID = 0;
+  }
+
+  deviceInfo_ = microphones.at(deviceID);
+
   QAudioDeviceInfo info(deviceInfo_);
 
-  for(auto& device : QAudioDeviceInfo::availableDevices(QAudio::AudioInput))
-  {
-    printDebug(DEBUG_NORMAL, this, "", {"Available audio recording devices"}, {device.deviceName()});
-  }
   printDebug(DEBUG_NORMAL, this, "", {"Chosen Device"}, {info.deviceName()});
 
   if (!info.isFormatSupported(format_)) {
