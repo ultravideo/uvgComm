@@ -30,21 +30,23 @@ void Settings::init()
   // Checks that settings values are correct for the program to start. Also sets GUI.
   getSettings(false);
 
-  custom_.init(getVideoDeviceID());
+  custom_.init(getDeviceID(basicUI_->videoDevice, "video/DeviceID", "video/Device"));
   advanced_.init();
 
   //QObject::connect(basicUI_->save, &QPushButton::clicked, this, &Settings::on_ok_clicked);
   //QObject::connect(basicUI_->close, &QPushButton::clicked, this, &Settings::on_cancel_clicked);
 
-  QObject::connect(&custom_, &CustomSettings::customSettingsChanged, this, &Settings::settingsChanged);
+  QObject::connect(&custom_, &CustomSettings::customSettingsChanged,
+                   this, &Settings::settingsChanged);
   QObject::connect(&custom_, &CustomSettings::hidden, this, &Settings::show);
 
-  QObject::connect(&advanced_, &AdvancedSettings::advancedSettingsChanged, this, &Settings::settingsChanged);
-  QObject::connect(&advanced_, &AdvancedSettings::hidden, this, &Settings::show);
+  QObject::connect(&advanced_, &AdvancedSettings::advancedSettingsChanged,
+                   this, &Settings::settingsChanged);
+  QObject::connect(&advanced_, &AdvancedSettings::hidden,
+                   this, &Settings::show);
 
   QObject::connect(basicUI_->serverAddress, &QLineEdit::textChanged,
                    this, &Settings::changedSIPText);
-
   QObject::connect(basicUI_->username, &QLineEdit::textChanged,
                    this, &Settings::changedSIPText);
 }
@@ -102,7 +104,7 @@ void Settings::initializeUIDeviceList()
   {
     basicUI_->videoDevice->addItem( videoDevices[i]);
   }
-  int deviceIndex = getVideoDeviceID();
+  int deviceIndex = getDeviceID(basicUI_->videoDevice, "video/DeviceID", "video/Device");
 
   if(deviceIndex >= basicUI_->videoDevice->count())
   {
@@ -161,7 +163,8 @@ void Settings::getSettings(bool changedDevice)
   //get values from QSettings
   if(checkMissingValues() && checkUserSettings())
   {
-    qDebug() << "Settings," << metaObject()->className() << ": Restoring user settings from file:" << settings_.fileName();
+    qDebug() << "Settings," << metaObject()->className()
+             << ": Restoring user settings from file:" << settings_.fileName();
     basicUI_->name_edit->setText      (settings_.value("local/Name").toString());
     basicUI_->username->setText  (settings_.value("local/Username").toString());
 
@@ -174,7 +177,7 @@ void Settings::getSettings(bool changedDevice)
 
     restoreCheckBox("sip/kvzrtp", basicUI_->kvzRTP, settings_);
 
-    int currentIndex = getVideoDeviceID();
+    int currentIndex = getDeviceID(basicUI_->videoDevice, "video/DeviceID", "video/Device");
     if(changedDevice)
     {
       custom_.changedDevice(currentIndex);
@@ -194,7 +197,7 @@ void Settings::resetFaultySettings()
            << ": Could not restore settings because they were corrupted!";
   // record GUI settings in hope that they are correct ( is case by default )
   saveSettings();
-  custom_.resetSettings(getVideoDeviceID());
+  custom_.resetSettings(getDeviceID(basicUI_->videoDevice, "video/DeviceID", "video/Device"));
 }
 
 
@@ -205,35 +208,35 @@ QStringList Settings::getAudioDevices()
 }
 
 
-int Settings::getVideoDeviceID()
+int Settings::getDeviceID(QComboBox* deviceSelector, QString settingID, QString settingsDevice)
 {
-  int deviceIndex = basicUI_->videoDevice->findText(settings_.value("video/Device").toString());
-  int deviceID = settings_.value("video/DeviceID").toInt();
+  int deviceIndex = deviceSelector->findText(settings_.value(settingsDevice).toString());
+  int deviceID = settings_.value(settingID).toInt();
 
   qDebug() << "Settings," << metaObject()->className()
            << "Get device id: Index:" << deviceIndex << "deviceID:"
-           << deviceID << "Name:" << settings_.value("video/Device").toString();
+           << deviceID << "Name:" << settings_.value(settingsDevice).toString();
 
   // if the device exists in list
-  if(deviceIndex != -1 && basicUI_->videoDevice->count() != 0)
+  if(deviceIndex != -1 && deviceSelector->count() != 0)
   {
     // if we have multiple devices with same name we use id
     if(deviceID != deviceIndex
-       && basicUI_->videoDevice->itemText(deviceID) == settings_.value("video/Device").toString())
+       && deviceSelector->itemText(deviceID) == settings_.value(settingsDevice).toString())
     {
       return deviceID;
     }
     else
     {
       // the recorded info was false and our found device is chosen
-      settings_.setValue("video/DeviceID", deviceIndex);
+      settings_.setValue(settingID, deviceIndex);
       return deviceIndex;
     }
   } // if there are devices available, use first
-  else if(basicUI_->videoDevice->count() != 0)
+  else if(deviceSelector->count() != 0)
   {
     // could not find the device. Choosing first one
-    settings_.setValue("video/DeviceID", 0);
+    settings_.setValue(settingID, 0);
     return 0;
   }
 

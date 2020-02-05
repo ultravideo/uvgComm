@@ -29,8 +29,8 @@ class BasicSettings;
 }
 
 class CameraInfo;
-
 class QCheckBox;
+class QComboBox;
 
 // TODO: Settings of SIP server
 class Settings : public QDialog, public ServerStatusView
@@ -84,7 +84,7 @@ private:
   // Make sure the UI video devices are initialized before calling this.
   // This function tries to get the best guess at what is the current device
   // even in case devices have dissappeared/appeared since recording of information.
-  int getVideoDeviceID();
+  int getDeviceID(QComboBox *deviceSelector, QString settingID, QString settingsDevice);
 
   void resetFaultySettings();
 
