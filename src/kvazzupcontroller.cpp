@@ -329,7 +329,7 @@ void KvazzupController::registeringFailed()
 void KvazzupController::updateSettings()
 {
   media_.updateSettings();
-  // TODO: sip_.updateSettings();
+  sip_.updateSettings();
 }
 
 

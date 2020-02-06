@@ -115,6 +115,7 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
         if (!i.second.client->processResponse(response, i.second.state))
         {
           printWarning(this, "Got a failure response to our REGISTER");
+          i.second.active = false;
           return;
         }
 

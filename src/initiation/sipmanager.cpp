@@ -89,6 +89,18 @@ void SIPManager::uninit()
 }
 
 
+void SIPManager::updateSettings()
+{
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+
+  int autoConnect = settings.value("sip/AutoConnect").toInt();
+  if(autoConnect == 1)
+  {
+    bindToServer();
+  }
+}
+
+
 void SIPManager::bindToServer()
 {
   // get server address from settings and bind to server.
@@ -96,7 +108,7 @@ void SIPManager::bindToServer()
 
   QString serverAddress = settings.value("sip/ServerAddress").toString();
 
-  if (serverAddress != "")
+  if (serverAddress != "" && !registrations_.haveWeRegistered())
   {
     std::shared_ptr<SIPTransport> transport = createSIPTransport();
     transport->createConnection(TRANSPORTTYPE, serverAddress);

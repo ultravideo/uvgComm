@@ -28,8 +28,7 @@ public:
             ServerStatusView *statusView);
   void uninit();
 
-  // REGISTER our information to SIP-registrar
-  void bindToServer();
+  void updateSettings();
 
   // start a call with address. Returns generated sessionID
   uint32_t startCall(Contact& address);
@@ -72,6 +71,9 @@ private slots:
   void processSIPResponse(SIPResponse &response, QVariant& content);
 
 private:
+
+  // REGISTER our information to SIP-registrar
+  void bindToServer();
 
   // helper function which handles all steps related to creation of new transport
   std::shared_ptr<SIPTransport> createSIPTransport();
