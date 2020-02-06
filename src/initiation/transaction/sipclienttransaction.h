@@ -41,8 +41,6 @@ public:
   void malformedResponse();
   void responseIsError();
 
-  void startTimer(RequestType type);
-
 protected:
 
   bool checkTransactionType(RequestType transactionRequest)
@@ -51,7 +49,7 @@ protected:
   }
 
   // timeout is in milliseconds. Used for request timeout
-  void startTimeoutTimer(int timeout = 20000)
+  void startTimeoutTimer(int timeout = 2000)
   {
     requestTimer_.start(timeout);
   }

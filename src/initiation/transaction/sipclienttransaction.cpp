@@ -106,11 +106,7 @@ void SIPClientTransaction::getRequestMessageInfo(RequestType type,
   ViaInfo via = ViaInfo{TRANSPORTTYPE, "2.0", "", 0,
           QString("z9hG4bK" + generateRandomString(BRANCHLENGTH)), false, false, 0, ""};
   outMessage->vias.push_back(via);
-}
 
-
-void SIPClientTransaction::startTimer(RequestType type)
-{
   // INVITE has the same timeout as rest of them. Only after RINGING reply do we increase timeout
   if(type != SIP_CANCEL && type != SIP_ACK)
   {
