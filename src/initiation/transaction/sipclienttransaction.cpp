@@ -6,7 +6,8 @@
 
 #include <QDebug>
 
-
+// 1 minute for the user to react
+const unsigned int INVITE_TIMEOUT = 60000;
 
 SIPClientTransaction::SIPClientTransaction(SIPTransactionUser* tu):
   ongoingTransactionType_(SIP_NO_REQUEST),
@@ -18,6 +19,66 @@ void SIPClientTransaction::init()
 {
   requestTimer_.setSingleShot(true);
   connect(&requestTimer_, SIGNAL(timeout()), this, SLOT(requestTimeOut()));
+}
+
+
+bool SIPClientTransaction::processResponse(SIPResponse& response,
+                                           std::shared_ptr<SIPDialogState> state)
+{
+  int responseCode = response.type;
+
+  if (!checkTransactionType(response.message->transactionRequest))
+  {
+    printPeerError(this, "Their response transaction type "
+                         "is not the same as our request!");
+    return false;
+  }
+
+  // provisional response, continuing
+  if (responseCode >= 100 && responseCode <= 199)
+  {
+    printNormal(this, "Got a provisional response. Restarting timer.");
+    if (response.message->transactionRequest == SIP_INVITE &&
+        responseCode == SIP_RINGING)
+    {
+      startTimeoutTimer(INVITE_TIMEOUT);
+    }
+    else
+    {
+      startTimeoutTimer();
+    }
+  }
+
+  // the transaction ends
+  if (responseCode >= 200)
+  {
+    ongoingTransactionType_ = SIP_NO_REQUEST;
+    stopTimeoutTimer();
+  }
+
+  if (responseCode >= 300 && responseCode <= 399)
+  {
+    // TODO: 8.1.3.4 Processing 3xx Responses in RFC 3261
+    printWarning(this, "Got a Redirection Response.");
+  }
+  else if (responseCode >= 400 && responseCode <= 499)
+  {
+    // TODO: 8.1.3.5 Processing 4xx Responses in RFC 3261
+    printWarning(this, "Got a Failure Response.");
+
+    // TODO: if the response is 481 or 408, terminate dialog
+  }
+  else if (responseCode >= 500 && responseCode <= 599)
+  {
+    printWarning(this, "Got a Server Failure Response.");
+  }
+  else if (responseCode >= 600 && responseCode <= 699)
+  {
+    printWarning(this, "Got a Global Failure Response.");
+  }
+
+  //
+  return responseCode >= 100 && responseCode <= 299;
 }
 
 

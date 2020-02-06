@@ -47,7 +47,7 @@ public:
                              uint32_t messageCSeq, bool recordToTag = true);
 
 
-  // set and get session activity state
+  // set and get whether the dialog is active
   bool getState() const
   {
     return sessionState_;

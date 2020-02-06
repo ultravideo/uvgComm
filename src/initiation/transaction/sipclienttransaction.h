@@ -32,7 +32,7 @@ public:
                                      std::shared_ptr<SIPMessageInfo> &outMessage);
 
   // processes incoming response. Part of our client transaction
-  // returns whether we should destroy the dialog
+  // returns whether we should keep the dialog alive
   virtual bool processResponse(SIPResponse& response,
                                std::shared_ptr<SIPDialogState> state) = 0;
 
@@ -44,6 +44,11 @@ public:
   void startTimer(RequestType type);
 
 protected:
+
+  bool checkTransactionType(RequestType transactionRequest)
+  {
+    return transactionRequest == ongoingTransactionType_;
+  }
 
   // timeout is in milliseconds. Used for request timeout
   void startTimeoutTimer(int timeout = 20000)
@@ -83,7 +88,6 @@ private:
   // TODO: Probably need to record the whole message and check that the details are ok.
 
   QTimer requestTimer_;
-
 
   SIPTransactionUser* transactionUser_;
 };
