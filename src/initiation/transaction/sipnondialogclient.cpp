@@ -32,15 +32,7 @@ void SIPNonDialogClient::getRequestMessageInfo(RequestType type,
 bool SIPNonDialogClient::processResponse(SIPResponse& response,
                                          std::shared_ptr<SIPDialogState> state)
 {
-  // TODO
-  Q_UNUSED(response);
-  Q_UNUSED(state);
-
-  if (getOngoingRequest() == SIP_REGISTER)
-  {
-    qDebug() << "Got a response for REGISTER! TODO: Processing not implemented!";
-  }
-  return false;
+  return SIPClientTransaction::processResponse(response, state);
 }
 
 
