@@ -223,7 +223,8 @@ void printDebug(DebugType type, QString className,
   }
   case DEBUG_PROGRAM_ERROR:
   {
-    qCritical().nospace().noquote() << "BUG DETECTED: --------------------------------------------";
+    qCritical().nospace().noquote()
+        << "BUG DETECTED: --------------------------------------------";
     qCritical().nospace().noquote() << beginString << description;
     if (!valueString.isEmpty())
     {
@@ -234,7 +235,8 @@ void printDebug(DebugType type, QString className,
   }
   case DEBUG_PROGRAM_WARNING:
   {
-    qWarning().nospace().noquote() << "MINOR BUG DETECTED: --------------------------------------------";
+    qWarning().nospace().noquote()
+        << "MINOR BUG DETECTED: --------------------------------------------";
     qWarning().nospace().noquote() << beginString << description;
     if (!valueString.isEmpty())
     {
@@ -244,6 +246,26 @@ void printDebug(DebugType type, QString className,
     break;
   }
   }
+}
+
+
+bool checkError(QObject* object, bool check, DebugType type,
+                QString description, QStringList values)
+{
+  Q_ASSERT(check);
+
+  if (!check)
+  {
+    QStringList names;
+    for (int i = 0; i < values.size(); ++i)
+    {
+      names.push_back("Value " + QString::number(i+1));
+    }
+
+    printDebug(type, object, description, names, values);
+  }
+
+  return check;
 }
 
 

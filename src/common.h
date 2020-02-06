@@ -54,6 +54,10 @@ void printUnimplemented(QObject* object, QString whatIsNotImplemented);
 enum DebugType{DEBUG_NORMAL, DEBUG_IMPORTANT, DEBUG_ERROR, DEBUG_WARNING,
                DEBUG_PEER_ERROR, DEBUG_PROGRAM_ERROR, DEBUG_PROGRAM_WARNING};
 
+bool checkError(QObject* object, bool check, DebugType type = DEBUG_ERROR,
+                QString description = "", QStringList values = {});
+
+
 // Print debug information with custom class name. Use this and getname with filters.
 // context is a general context that makes it easier to link different prints to one another.
 // TODO: Fix different threads printing at the same time.
