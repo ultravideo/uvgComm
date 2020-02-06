@@ -24,6 +24,21 @@ void SIPRegistrations::init(SIPTransactionUser *callControl, ServerStatusView *s
 }
 
 
+bool SIPRegistrations::uninit()
+{
+  for (auto& registration : registrations_)
+  {
+    if (registration.second.client->waitingResponse(SIP_REGISTER))
+    {
+      printWarning(this, "Cannot delete because of an ongoing Registration.");
+      return false;
+    }
+  }
+
+  printNormal(this, "Successfully uninited registrations");
+  return true;
+}
+
 void SIPRegistrations::bindToServer(QString serverAddress, QString localAddress,
                                     uint16_t port)
 {
@@ -90,19 +105,21 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
 
   if (response.message->transactionRequest == SIP_REGISTER)
   {
-    if (response.type == SIP_OK)
+
+    bool foundRegistration = false;
+
+    for (auto& i : registrations_)
     {
-      bool foundRegistration = false;
-
-      for (auto& i : registrations_)
+      if (i.first == response.message->to.host)
       {
-        if (i.first == response.message->to.host)
+        if (!i.second.client->processResponse(response, i.second.state))
         {
-          if (i.second.client->processResponse(response, i.second.state))
-          {
-            qDebug() << "SHOULD DELETE REGISTRATION!?!?!?!";
-          }
+          printWarning(this, "Got a failure response to our REGISTER");
+          return;
+        }
 
+        if (response.type == SIP_OK)
+        {
           i.second.active = true;
 
           foundRegistration = true;
@@ -111,7 +128,7 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
               response.message->vias.at(0).receivedAddress != "" &&
               response.message->vias.at(0).rportValue != 0 &&
               (i.second.contactAddress != response.message->vias.at(0).receivedAddress ||
-              i.second.contactPort != response.message->vias.at(0).rportValue))
+               i.second.contactPort != response.message->vias.at(0).rportValue))
           {
 
             qDebug() << "Detected that we are behind NAT! Sending a second REGISTER";
@@ -133,18 +150,17 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
 
           printNormal(this, "Registration was succesful.");
         }
+        else
+        {
+          printDebug(DEBUG_ERROR, this, "REGISTER-request failed");
+          statusView_->updateServerStatus(ServerStatus::SERVER_FAILED);
+        }
       }
 
       if (!foundRegistration)
       {
         qDebug() << "PEER ERROR: Got a resonse to REGISTRATION we didn't send";
       }
-
-    }
-    else
-    {
-      printDebug(DEBUG_ERROR, this, "REGISTER-request failed");
-      statusView_->updateServerStatus(ServerStatus::SERVER_FAILED);
     }
   }
   else

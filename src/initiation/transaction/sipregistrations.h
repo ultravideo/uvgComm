@@ -17,6 +17,9 @@ public:
 
   void init(SIPTransactionUser* callControl, ServerStatusView* statusView);
 
+  // return if we can delete
+  bool uninit();
+
   void bindToServer(QString serverAddress, QString localAddress,
                     uint16_t port);
 

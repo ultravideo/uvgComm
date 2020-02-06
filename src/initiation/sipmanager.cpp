@@ -55,12 +55,28 @@ void SIPManager::init(SIPTransactionUser* callControl, StatisticsInterface *stat
   QObject::connect(&negotiation_, &Negotiation::iceNominationFailed,
                     this, &SIPManager::nominationFailed);  QObject::connect(&registrations_, &SIPRegistrations::transportProxyRequest,
                    this, &SIPManager::transportToProxy);
+
+  int autoConnect = settings.value("sip/AutoConnect").toInt();
+
+  if(autoConnect == 1)
+  {
+    bindToServer();
+  }
 }
 
 
 void SIPManager::uninit()
 {
+  printNormal(this, "Uninting SIP Manager");
+
   transactions_.uninit();
+
+  int attempts = 20;
+  while (!registrations_.uninit() && attempts > 0)
+  {
+    --attempts;
+    qSleep(10);
+  }
 
   for(std::shared_ptr<SIPTransport> transport : transports_)
   {
