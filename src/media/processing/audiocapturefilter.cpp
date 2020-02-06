@@ -9,6 +9,8 @@
 #include <QDebug>
 #include <QTime>
 #include <QSettings>
+#include <QRegularExpression>
+
 
 const int AUDIO_BUFFER_SIZE = 65536;
 
@@ -40,24 +42,37 @@ bool AudioCaptureFilter::init()
   QString deviceName = settings.value("audio/Device").toString();
   int deviceID = settings.value("audio/DeviceID").toInt();
 
-  // if the device has changed between recording the settings and now.
-  if (deviceID < microphones.size()
-      && microphones[deviceID].deviceName() != deviceName)
+  if (deviceID < microphones.size())
   {
-    // search for device with same name
-    for(int i = 0; i < microphones.size(); ++i)
+    QString parsedName = microphones[deviceID].deviceName();
+    // take only the device name from: "Microphone (device name)"
+    QRegularExpression re_mic (".*\\((.+)\\).*");
+    QRegularExpressionMatch mic_match = re_mic.match(microphones[deviceID].deviceName());
+
+    if (mic_match.hasMatch() && mic_match.lastCapturedIndex() == 1)
     {
-      if(microphones.at(i).deviceName() == deviceName)
-      {
-        qDebug() << "Found mic with name:" << microphones.at(i).deviceName()
-                 << "and id:" << i;
-        deviceID = i;
-        break;
-      }
+      // parsed extra text succesfully
+      parsedName = mic_match.captured(1);
     }
-    // previous camera could not be found, use first.
-    qDebug() << "Did not find microphone name:" << deviceName << " Using first";
-    deviceID = 0;
+
+    // if the device has changed between recording the settings and now.
+    if (parsedName != deviceName)
+    {
+      // search for device with same name
+      for(int i = 0; i < microphones.size(); ++i)
+      {
+        if(parsedName == deviceName)
+        {
+          qDebug() << "Found mic with name:" << microphones.at(i).deviceName()
+                   << "and id:" << i;
+          deviceID = i;
+          break;
+        }
+      }
+      // previous camera could not be found, use first.
+      qDebug() << "Did not find microphone name:" << deviceName << " Using first";
+      deviceID = 0;
+    }
   }
 
   deviceInfo_ = microphones.at(deviceID);
@@ -166,10 +181,9 @@ void AudioCaptureFilter::stop()
 }
 
 // changing of audio device mid stream.
-void AudioCaptureFilter::deviceChanged(int index)
+void AudioCaptureFilter::updateSettings()
 {
-  Q_UNUSED(index); // TODO
-  printDebug(DEBUG_WARNING, this, "audiocapturefilter device change not implemented fully.");
+  printNormal(this, "Updating audio settings");
 
   device_->stop();
   audioInput_->stop();

@@ -18,6 +18,7 @@ public:
   virtual ~AudioCaptureFilter();
 
   virtual bool init(); // setups audio device and parameters.
+  virtual void updateSettings(); // changes the selected audio device
   virtual void start(); // resumes audio input
   virtual void stop(); // suspends audio input
 
@@ -35,7 +36,6 @@ private slots:
 
 private:
 
-  void deviceChanged(int index);
   void createAudioInput();
 
   QAudioDeviceInfo deviceInfo_;
