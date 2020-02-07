@@ -214,11 +214,18 @@ bool Stun::controlleeSendBindingRequest(ICEPair *pair)
   Q_ASSERT(pair != nullptr);
 
   bool msgReceived   = false;
-  QByteArray message;
-  STUNMessage msg;
+  STUNMessage msg     = stunmsg_.createRequest();
+  QByteArray message = stunmsg_.hostToNetwork(msg);
 
   for (int i = 0; i < 20; ++i)
   {
+    udp_->sendData(
+      message,
+      QHostAddress(pair->remote->address),
+      pair->remote->port,
+      false
+    );
+
     if (waitForStunRequest(20 * (i + 1)))
     {
       if (interrupted_)
@@ -327,9 +334,11 @@ bool Stun::sendBindingRequest(ICEPair *pair, bool controller)
 
   if (controller)
   {
+    qDebug() << "controller binding requssts\n\n\n\n";
     return controllerSendBindingRequest(pair);
   }
 
+    qDebug() << "controlleeeeeeeee binding requssts\n\n\n\n";
   return controlleeSendBindingRequest(pair);
 }
 
@@ -427,12 +436,19 @@ bool Stun::sendNominationResponse(ICEPair *pair)
     connect(udp_, &UDPServer::rawMessageAvailable, this, &Stun::recvStunMessage);
   }
 
-  STUNMessage msg;
-  QByteArray message;
   bool nominationRecv = false;
+  STUNMessage msg     = stunmsg_.createRequest();
+  QByteArray message = stunmsg_.hostToNetwork(msg);
 
   for (int i = 0; i < 128; ++i)
   {
+    udp_->sendData(
+      message,
+      QHostAddress(pair->remote->address),
+      pair->remote->port,
+      false
+    );
+
     if (waitForNominationRequest(20 * (i + 1)))
     {
       if (interrupted_)
