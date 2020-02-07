@@ -1,4 +1,4 @@
-#include "advancedsettings.h"
+#include "sipsettings.h"
 
 #include "ui_advancedsettings.h"
 #include "settingshelper.h"
@@ -6,7 +6,7 @@
 #include <QDateTime>
 #include <QDebug>
 
-AdvancedSettings::AdvancedSettings(QWidget* parent):
+SIPSettings::SIPSettings(QWidget* parent):
   QDialog (parent),
   advancedUI_(new Ui::AdvancedSettings),
   settings_("kvazzup.ini", QSettings::IniFormat)
@@ -15,7 +15,7 @@ AdvancedSettings::AdvancedSettings(QWidget* parent):
 }
 
 
-void AdvancedSettings::init()
+void SIPSettings::init()
 {
   advancedUI_->blockedUsers->setColumnCount(2);
   advancedUI_->blockedUsers->setColumnWidth(0, 240);
@@ -29,13 +29,13 @@ void AdvancedSettings::init()
 
   advancedUI_->blockedUsers->setContextMenuPolicy(Qt::CustomContextMenu);
   connect(advancedUI_->blockedUsers, &QWidget::customContextMenuRequested,
-          this, &AdvancedSettings::showBlocklistContextMenu);
+          this, &SIPSettings::showBlocklistContextMenu);
 
   restoreAdvancedSettings();
 }
 
 
-void AdvancedSettings::resetSettings()
+void SIPSettings::resetSettings()
 {
   qDebug() << "Settings," << metaObject()->className()
            << "Resetting Advanced settings from UI";
@@ -44,7 +44,7 @@ void AdvancedSettings::resetSettings()
 }
 
 
-void AdvancedSettings::showBlocklistContextMenu(const QPoint& pos)
+void SIPSettings::showBlocklistContextMenu(const QPoint& pos)
 {
   if (advancedUI_->blockedUsers->rowCount() != 0)
   {
@@ -54,7 +54,7 @@ void AdvancedSettings::showBlocklistContextMenu(const QPoint& pos)
 }
 
 
-void AdvancedSettings::deleteBlocklistItem()
+void SIPSettings::deleteBlocklistItem()
 {
   qDebug() << "Settings," << metaObject()->className()
            << ": deleting row:" << advancedUI_->blockedUsers->currentRow();
@@ -62,7 +62,7 @@ void AdvancedSettings::deleteBlocklistItem()
 }
 
 
-void AdvancedSettings::on_advanced_ok_clicked()
+void SIPSettings::on_advanced_ok_clicked()
 {
   qDebug() << "Settings," << metaObject()->className() << ": Saving advanced settings";
   saveAdvancedSettings();
@@ -70,7 +70,7 @@ void AdvancedSettings::on_advanced_ok_clicked()
 }
 
 
-void AdvancedSettings::on_advanced_close_clicked()
+void SIPSettings::on_advanced_close_clicked()
 {
   qDebug() << "Settings," << metaObject()->className()
            << ": Cancelled modifying custom settings. Getting settings from system";
@@ -80,7 +80,7 @@ void AdvancedSettings::on_advanced_close_clicked()
 }
 
 
-void AdvancedSettings::on_addUserBlock_clicked()
+void SIPSettings::on_addUserBlock_clicked()
 {
   if(advancedUI_->blockUser->text() != "")
   {
@@ -109,7 +109,7 @@ void AdvancedSettings::on_addUserBlock_clicked()
   }
 }
 
-void AdvancedSettings::saveAdvancedSettings()
+void SIPSettings::saveAdvancedSettings()
 {
   qDebug() << "Settings," << metaObject()->className() << ": Saving advanced Settings";
 
@@ -124,7 +124,7 @@ void AdvancedSettings::saveAdvancedSettings()
 }
 
 
-void AdvancedSettings::restoreAdvancedSettings()
+void SIPSettings::restoreAdvancedSettings()
 {
   listSettingsToGUI("blocklist.local", "blocklist", QStringList()
                     << "userName" << "date", advancedUI_->blockedUsers);
@@ -145,7 +145,7 @@ void AdvancedSettings::restoreAdvancedSettings()
 }
 
 
-bool AdvancedSettings::checkSipSettings()
+bool SIPSettings::checkSipSettings()
 {
   return settings_.contains("sip/ServerAddress")
       && settings_.contains("sip/AutoConnect")

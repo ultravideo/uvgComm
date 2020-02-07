@@ -1,4 +1,4 @@
-#include "customsettings.h"
+#include "mediasettings.h"
 
 #include "ui_customSettings.h"
 
@@ -24,7 +24,7 @@ const QStringList neededSettings = {"video/DeviceID",
                                     "video/FramerateID"};
 
 
-CustomSettings::CustomSettings(QWidget* parent,
+MediaSettings::MediaSettings(QWidget* parent,
                                std::shared_ptr<CameraInfo> info)
   :
   QDialog(parent),
@@ -43,11 +43,11 @@ CustomSettings::CustomSettings(QWidget* parent,
 
   customUI_->custom_parameters->setContextMenuPolicy(Qt::CustomContextMenu);
   connect(customUI_->custom_parameters, &QWidget::customContextMenuRequested,
-          this, &CustomSettings::showParameterContextMenu);
+          this, &MediaSettings::showParameterContextMenu);
 }
 
 
-void CustomSettings::init(int deviceID)
+void MediaSettings::init(int deviceID)
 {
   currentDevice_ = deviceID;
 
@@ -55,7 +55,7 @@ void CustomSettings::init(int deviceID)
 }
 
 
-void CustomSettings::showParameterContextMenu(const QPoint& pos)
+void MediaSettings::showParameterContextMenu(const QPoint& pos)
 {
   if (customUI_->custom_parameters->rowCount() != 0)
   {
@@ -65,13 +65,13 @@ void CustomSettings::showParameterContextMenu(const QPoint& pos)
 }
 
 
-void CustomSettings::deleteListParameter()
+void MediaSettings::deleteListParameter()
 {
   customUI_->custom_parameters->removeRow(customUI_->custom_parameters->currentRow());
 }
 
 
-void CustomSettings::changedDevice(uint16_t deviceIndex)
+void MediaSettings::changedDevice(uint16_t deviceIndex)
 {
   currentDevice_ = deviceIndex;
   initializeFormat();
@@ -79,7 +79,7 @@ void CustomSettings::changedDevice(uint16_t deviceIndex)
 }
 
 
-void CustomSettings::resetSettings(int deviceID)
+void MediaSettings::resetSettings(int deviceID)
 {
   qDebug() << "Settings," << metaObject()->className()
            << "Resetting custom settings from UI";
@@ -89,7 +89,7 @@ void CustomSettings::resetSettings(int deviceID)
 }
 
 
-void CustomSettings::on_custom_ok_clicked()
+void MediaSettings::on_custom_ok_clicked()
 {
   qDebug() << "Settings," << metaObject()->className() << ": Saving advanced settings";
   saveCustomSettings();
@@ -99,7 +99,7 @@ void CustomSettings::on_custom_ok_clicked()
 }
 
 
-void CustomSettings::on_custom_close_clicked()
+void MediaSettings::on_custom_close_clicked()
 {
   qDebug() << "Settings," << metaObject()->className()
            << ": Cancelled modifying custom settings. Getting settings from system";
@@ -108,7 +108,7 @@ void CustomSettings::on_custom_close_clicked()
   emit hidden();
 }
 
-void CustomSettings::on_add_parameter_clicked()
+void MediaSettings::on_add_parameter_clicked()
 {
   qDebug() << "Settings," << metaObject()->className()
            << ": Adding a custom parameter for kvazaar.";
@@ -124,7 +124,7 @@ void CustomSettings::on_add_parameter_clicked()
   addFieldsToTable(list, customUI_->custom_parameters);
 }
 
-void CustomSettings::saveCustomSettings()
+void MediaSettings::saveCustomSettings()
 {
   qDebug() << "Settings," << metaObject()->className() << ": Saving advanced Settings";
 
@@ -152,7 +152,7 @@ void CustomSettings::saveCustomSettings()
 }
 
 
-void CustomSettings::saveCameraCapabilities(int deviceIndex)
+void MediaSettings::saveCameraCapabilities(int deviceIndex)
 {
   qDebug() << "Settings," << metaObject()->className()
            << ": Recording capability settings for deviceIndex:" << deviceIndex;
@@ -200,7 +200,7 @@ void CustomSettings::saveCameraCapabilities(int deviceIndex)
 }
 
 
-void CustomSettings::restoreCustomSettings()
+void MediaSettings::restoreCustomSettings()
 {
   initializeFormat();
 
@@ -257,7 +257,7 @@ void CustomSettings::restoreCustomSettings()
   }
 }
 
-void CustomSettings::restoreFormat()
+void MediaSettings::restoreFormat()
 {
   if(customUI_->format_box->count() > 0)
   {
@@ -287,7 +287,7 @@ void CustomSettings::restoreFormat()
   }
 }
 
-void CustomSettings::restoreResolution()
+void MediaSettings::restoreResolution()
 {
   if(customUI_->resolution->count() > 0)
   {
@@ -304,7 +304,7 @@ void CustomSettings::restoreResolution()
 }
 
 
-void CustomSettings::restoreFramerate()
+void MediaSettings::restoreFramerate()
 {
   if(customUI_->framerate_box->count() > 0)
   {
@@ -321,7 +321,7 @@ void CustomSettings::restoreFramerate()
 }
 
 
-void CustomSettings::initializeFormat()
+void MediaSettings::initializeFormat()
 {
   qDebug() << "Settings," << metaObject()->className() << "Initializing formats";
   QStringList formats;
@@ -342,7 +342,7 @@ void CustomSettings::initializeFormat()
 }
 
 
-void CustomSettings::initializeResolutions(QString format)
+void MediaSettings::initializeResolutions(QString format)
 {
   qDebug() << "Settings," << metaObject()->className()
            << ": Initializing resolutions for format:" << format;
@@ -367,7 +367,7 @@ void CustomSettings::initializeResolutions(QString format)
 }
 
 
-void CustomSettings::initializeFramerates(QString resolution)
+void MediaSettings::initializeFramerates(QString resolution)
 {
   qDebug() << "Settings,"  << metaObject()->className() << ": Initializing framerates for resolution:"
            << resolution;
@@ -389,7 +389,7 @@ void CustomSettings::initializeFramerates(QString resolution)
 }
 
 
-bool CustomSettings::checkVideoSettings()
+bool MediaSettings::checkVideoSettings()
 {
   bool everythingPresent = checkMissingValues(settings_);
 
@@ -405,7 +405,7 @@ bool CustomSettings::checkVideoSettings()
   return everythingPresent;
 }
 
-bool CustomSettings::checkAudioSettings()
+bool MediaSettings::checkAudioSettings()
 {
   return true;
 }

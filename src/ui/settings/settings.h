@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ui/settings/customsettings.h"
-#include "ui/settings/advancedsettings.h"
+#include "ui/settings/mediasettings.h"
+#include "ui/settings/sipsettings.h"
 
 #include <QDialog>
 #include <QSettings>
@@ -34,7 +34,7 @@ class DeviceInfoInterface;
 class QCheckBox;
 class QComboBox;
 
-// TODO: Settings of SIP server
+
 class Settings : public QDialog, public ServerStatusView
 {
   Q_OBJECT
@@ -99,8 +99,8 @@ private:
   std::shared_ptr<CameraInfo> cam_;
   std::shared_ptr<MicrophoneInfo> mic_;
 
-  AdvancedSettings advanced_;
-  CustomSettings custom_;
+  SIPSettings sipSettings_;
+  MediaSettings mediaSettings_;
 
   QSettings settings_;
 };

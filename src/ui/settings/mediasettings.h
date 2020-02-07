@@ -18,11 +18,11 @@ class CustomSettings;
 
 class CameraInfo;
 
-class CustomSettings  : public QDialog
+class MediaSettings  : public QDialog
 {
   Q_OBJECT
 public:
-  CustomSettings(QWidget* parent, std::shared_ptr<CameraInfo> info);
+  MediaSettings(QWidget* parent, std::shared_ptr<CameraInfo> info);
 
   // initializes the custom view with values from settings.
   void init(int deviceID);

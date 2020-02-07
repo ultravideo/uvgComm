@@ -9,11 +9,11 @@ class AdvancedSettings;
 
 class QCheckBox;
 
-class AdvancedSettings : public QDialog
+class SIPSettings : public QDialog
 {
   Q_OBJECT
 public:
-  AdvancedSettings(QWidget* parent);
+  SIPSettings(QWidget* parent);
 
   // initializes the custom view with values from settings.
   void init();

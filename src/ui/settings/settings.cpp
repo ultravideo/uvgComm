@@ -13,8 +13,8 @@ Settings::Settings(QWidget *parent) :
   basicUI_(new Ui::BasicSettings),
   cam_(std::shared_ptr<CameraInfo> (new CameraInfo())),
   mic_(std::shared_ptr<MicrophoneInfo> (new MicrophoneInfo())),
-  advanced_(this),
-  custom_(this, cam_),
+  sipSettings_(this),
+  mediaSettings_(this, cam_),
   settings_("kvazzup.ini", QSettings::IniFormat)
 {}
 
@@ -32,19 +32,19 @@ void Settings::init()
   // Checks that settings values are correct for the program to start. Also sets GUI.
   getSettings(false);
 
-  custom_.init(getDeviceID(basicUI_->videoDevice, "video/DeviceID", "video/Device"));
-  advanced_.init();
+  mediaSettings_.init(getDeviceID(basicUI_->videoDevice, "video/DeviceID", "video/Device"));
+  sipSettings_.init();
 
   //QObject::connect(basicUI_->save, &QPushButton::clicked, this, &Settings::on_ok_clicked);
   //QObject::connect(basicUI_->close, &QPushButton::clicked, this, &Settings::on_cancel_clicked);
 
-  QObject::connect(&custom_, &CustomSettings::customSettingsChanged,
+  QObject::connect(&mediaSettings_, &MediaSettings::customSettingsChanged,
                    this, &Settings::settingsChanged);
-  QObject::connect(&custom_, &CustomSettings::hidden, this, &Settings::show);
+  QObject::connect(&mediaSettings_, &MediaSettings::hidden, this, &Settings::show);
 
-  QObject::connect(&advanced_, &AdvancedSettings::advancedSettingsChanged,
+  QObject::connect(&sipSettings_, &SIPSettings::advancedSettingsChanged,
                    this, &Settings::settingsChanged);
-  QObject::connect(&advanced_, &AdvancedSettings::hidden,
+  QObject::connect(&sipSettings_, &SIPSettings::hidden,
                    this, &Settings::show);
 
   QObject::connect(basicUI_->serverAddress, &QLineEdit::textChanged,
@@ -56,8 +56,9 @@ void Settings::init()
 
 void Settings::show()
 {
-  initDeviceSelector(basicUI_->videoDevice, "video/DeviceID", "video/Device", cam_); // initialize everytime in case they have changed
-  initDeviceSelector(basicUI_->audioDevice, "audio/DeviceID", "audio/Device", mic_); // initialize everytime in case they have changed
+  // initialize everytime in case they have changed
+  initDeviceSelector(basicUI_->videoDevice, "video/DeviceID", "video/Device", cam_);
+  initDeviceSelector(basicUI_->audioDevice, "audio/DeviceID", "audio/Device", mic_);
   QWidget::show();
 }
 
@@ -86,7 +87,7 @@ void Settings::on_advanced_settings_button_clicked()
 {
   saveSettings();
   hide();
-  advanced_.show();
+  sipSettings_.show();
 }
 
 
@@ -94,7 +95,7 @@ void Settings::on_custom_settings_button_clicked()
 {
   saveSettings();
   hide();
-  custom_.show();
+  mediaSettings_.show();
 }
 
 
@@ -144,7 +145,7 @@ void Settings::getSettings(bool changedDevice)
     int videoIndex = getDeviceID(basicUI_->videoDevice, "video/DeviceID", "video/Device");
     if(changedDevice)
     {
-      custom_.changedDevice(videoIndex);
+      mediaSettings_.changedDevice(videoIndex);
     }
     basicUI_->videoDevice->setCurrentIndex(videoIndex);
 
@@ -164,7 +165,7 @@ void Settings::resetFaultySettings()
            << ": Could not restore settings because they were corrupted!";
   // record GUI settings in hope that they are correct ( is case by default )
   saveSettings();
-  custom_.resetSettings(getDeviceID(basicUI_->videoDevice, "video/DeviceID", "video/Device"));
+  mediaSettings_.resetSettings(getDeviceID(basicUI_->videoDevice, "video/DeviceID", "video/Device"));
 }
 
 
@@ -242,14 +243,14 @@ void Settings::saveDevice(QComboBox* deviceSelector, QString settingsID, QString
 
       if (video)
       {
-        custom_.changedDevice(currentIndex);
+        mediaSettings_.changedDevice(currentIndex);
       }
     }
     else if(basicUI_->videoDevice->currentIndex() != settings_.value(settingsID))
     {
       if (video)
       {
-        custom_.changedDevice(currentIndex);
+        mediaSettings_.changedDevice(currentIndex);
       }
     }
 
