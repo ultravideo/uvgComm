@@ -51,29 +51,6 @@
        <string>User</string>
       </attribute>
       <layout class="QFormLayout" name="formLayout">
-       <item row="0" column="0">
-        <widget class="QLabel" name="label_sip">
-         <property name="text">
-          <string>Your SIP address:</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
-        <widget class="QLabel" name="sipAddress">
-         <property name="maximumSize">
-          <size>
-           <width>256</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>sip:user@server</string>
-         </property>
-         <property name="textInteractionFlags">
-          <set>Qt::TextSelectableByMouse</set>
-         </property>
-        </widget>
-       </item>
        <item row="1" column="0">
         <widget class="QLabel" name="Name">
          <property name="font">
@@ -99,7 +76,7 @@
          </property>
         </widget>
        </item>
-       <item row="2" column="0">
+       <item row="3" column="0">
         <widget class="QLabel" name="Username">
          <property name="font">
           <font>
@@ -111,7 +88,7 @@
          </property>
         </widget>
        </item>
-       <item row="2" column="1">
+       <item row="3" column="1">
         <widget class="QLineEdit" name="username">
          <property name="maximumSize">
           <size>
@@ -124,7 +101,7 @@
          </property>
         </widget>
        </item>
-       <item row="3" column="0">
+       <item row="4" column="0">
         <widget class="QLabel" name="label_server">
          <property name="font">
           <font>
@@ -136,7 +113,7 @@
          </property>
         </widget>
        </item>
-       <item row="3" column="1">
+       <item row="4" column="1">
         <widget class="QLineEdit" name="serverAddress">
          <property name="maximumSize">
           <size>
@@ -149,35 +126,58 @@
          </property>
         </widget>
        </item>
-       <item row="4" column="0">
+       <item row="5" column="0">
+        <widget class="QLabel" name="label_sip">
+         <property name="text">
+          <string>Your SIP address:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
+        <widget class="QLabel" name="sipAddress">
+         <property name="maximumSize">
+          <size>
+           <width>256</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>sip:user@server</string>
+         </property>
+         <property name="textInteractionFlags">
+          <set>Qt::TextSelectableByMouse</set>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="0">
         <widget class="QLabel" name="label_status">
          <property name="text">
           <string>Status:</string>
          </property>
         </widget>
        </item>
-       <item row="4" column="1">
+       <item row="6" column="1">
         <widget class="QLabel" name="status">
          <property name="text">
           <string>Disconnected</string>
          </property>
         </widget>
        </item>
-       <item row="5" column="0">
+       <item row="7" column="0">
         <widget class="QCheckBox" name="autoConnect">
          <property name="text">
           <string>Connect to server</string>
          </property>
         </widget>
        </item>
-       <item row="6" column="0" colspan="2">
+       <item row="8" column="0" colspan="2">
         <widget class="Line" name="line">
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
          </property>
         </widget>
        </item>
-       <item row="8" column="0">
+       <item row="10" column="0">
         <widget class="QLabel" name="label_VideoDevice">
          <property name="font">
           <font>
@@ -185,11 +185,11 @@
           </font>
          </property>
          <property name="text">
-          <string>Video Device</string>
+          <string>Camera</string>
          </property>
         </widget>
        </item>
-       <item row="8" column="1">
+       <item row="10" column="1">
         <widget class="QComboBox" name="videoDevice">
          <property name="minimumSize">
           <size>
@@ -205,31 +205,36 @@
          </property>
         </widget>
        </item>
-       <item row="10" column="0">
+       <item row="11" column="0">
+        <widget class="QLabel" name="label_audioDevice">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
+         <property name="text">
+          <string>Microphone</string>
+         </property>
+        </widget>
+       </item>
+       <item row="11" column="1">
+        <widget class="QComboBox" name="audioDevice">
+         <property name="maximumSize">
+          <size>
+           <width>256</width>
+           <height>16777215</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item row="12" column="0">
         <widget class="QCheckBox" name="kvzRTP">
          <property name="text">
           <string>Enable kvzRTP</string>
          </property>
         </widget>
        </item>
-       <item row="12" column="0">
-        <widget class="QPushButton" name="custom_settings_button">
-         <property name="enabled">
-          <bool>true</bool>
-         </property>
-         <property name="text">
-          <string>Media Settings</string>
-         </property>
-        </widget>
-       </item>
-       <item row="13" column="0">
-        <widget class="QPushButton" name="advanced_settings_button">
-         <property name="text">
-          <string>SIP Settings</string>
-         </property>
-        </widget>
-       </item>
-       <item row="11" column="0" colspan="2">
+       <item row="13" column="0" colspan="2">
         <spacer name="verticalSpacer_2">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -242,27 +247,38 @@
          </property>
         </spacer>
        </item>
-       <item row="9" column="0">
-        <widget class="QLabel" name="label_audioDevice">
-         <property name="font">
-          <font>
-           <pointsize>12</pointsize>
-          </font>
+       <item row="14" column="0">
+        <widget class="QPushButton" name="custom_settings_button">
+         <property name="enabled">
+          <bool>true</bool>
          </property>
          <property name="text">
-          <string>Audio Device</string>
+          <string>Media Settings</string>
          </property>
         </widget>
        </item>
-       <item row="9" column="1">
-        <widget class="QComboBox" name="audioDevice">
-         <property name="maximumSize">
-          <size>
-           <width>256</width>
-           <height>16777215</height>
-          </size>
+       <item row="15" column="0">
+        <widget class="QPushButton" name="advanced_settings_button">
+         <property name="text">
+          <string>SIP Settings</string>
          </property>
         </widget>
+       </item>
+       <item row="2" column="0" colspan="2">
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Minimum</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
        </item>
       </layout>
      </widget>
