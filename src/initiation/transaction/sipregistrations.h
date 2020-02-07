@@ -3,6 +3,8 @@
 #include "initiation/siptypes.h"
 
 #include <QObject>
+#include <QTimer>
+
 
 class SIPNonDialogClient;
 class SIPDialogState;
@@ -32,9 +34,14 @@ public:
 
   bool haveWeRegistered();
 
+
 signals:
 
   void transportProxyRequest(QString& address, SIPRequest& request);
+
+private slots:
+
+  void refreshRegistrations();
 
 private:
 
@@ -48,12 +55,12 @@ private:
 
     bool active;
     bool updatedContact;
-
-    // TODO: refresh the registration
   };
 
   std::map<QString, SIPRegistrationData> registrations_;
 
   SIPTransactionUser* transactionUser_;
   ServerStatusView* statusView_;
+
+ QTimer retryTimer_;
 };

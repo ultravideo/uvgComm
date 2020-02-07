@@ -9,6 +9,9 @@ const QString APPLICATIONNAME = "Kvazzup";
 // TODO fix AEC bugs and faulty operating.
 const bool AEC_ENABLED = false;
 
+// how often registrations are sent in seconds
+const int REGISTER_INTERVAL = 600;
+
 // this macro checks the condition and quits in debug mode and exits the current function in
 
 #define CHECKERROR(condition, errorString, errorReturnValue) \
@@ -22,3 +25,4 @@ const bool AEC_ENABLED = false;
 #ifndef __cplusplus
 #error A C++ compiler is required!
 #endif
+

@@ -6,14 +6,17 @@
 
 #include "common.h"
 #include "serverstatusview.h"
+#include "global.h"
+
 
 #include <QDebug>
 
+const int REGISTER_SEND_PERIOD = (REGISTER_INTERVAL - 5)*1000;
 
-SIPRegistrations::SIPRegistrations()
-{
 
-}
+SIPRegistrations::SIPRegistrations():
+  retryTimer_(nullptr)
+{}
 
 
 void SIPRegistrations::init(SIPTransactionUser *callControl, ServerStatusView *statusView)
@@ -21,6 +24,12 @@ void SIPRegistrations::init(SIPTransactionUser *callControl, ServerStatusView *s
   printNormal(this, "Initiatin Registrations");
   transactionUser_ = callControl;
   statusView_ = statusView;
+
+  QObject::connect(&retryTimer_, &QTimer::timeout,
+                   this, &SIPRegistrations::refreshRegistrations);
+
+  retryTimer_.setInterval(REGISTER_SEND_PERIOD); // have 5 seconds extra to reach registrar
+  retryTimer_.setSingleShot(false);
 }
 
 
@@ -60,6 +69,7 @@ void SIPRegistrations::bindToServer(QString serverAddress, QString localAddress,
     QObject::connect(registrations_[serverAddress].client.get(),
                      &SIPNonDialogClient::sendNondialogRequest,
                      this, &SIPRegistrations::sendNonDialogRequest);
+
     statusView_->updateServerStatus(ServerStatus::IN_PROCESS);
 
     registrations_[serverAddress].client->registerToServer();
@@ -149,6 +159,11 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
             statusView_->updateServerStatus(ServerStatus::REGISTERED);
           }
 
+          if (!retryTimer_.isActive())
+          {
+            retryTimer_.start(REGISTER_SEND_PERIOD);
+          }
+
           printNormal(this, "Registration was succesful.");
         }
         else
@@ -167,6 +182,27 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
   else
   {
     printUnimplemented(this, "Processing of Non-REGISTER requests");
+  }
+}
+
+
+void SIPRegistrations::refreshRegistrations()
+{
+  // no need to continue refreshing if we have no active registrations
+  if (!haveWeRegistered())
+  {
+    printWarning(this, "Not refreshing our registrations, because we have none!");
+    retryTimer_.stop();
+    return;
+  }
+
+  for (auto& i : registrations_)
+  {
+    if (i.second.active)
+    {
+      statusView_->updateServerStatus(ServerStatus::IN_PROCESS);
+      i.second.client->registerToServer();
+    }
   }
 }
 

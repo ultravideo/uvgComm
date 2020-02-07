@@ -1,5 +1,7 @@
 #include "sipnondialogclient.h"
 
+#include "global.h"
+
 #include <QDebug>
 
 
@@ -18,7 +20,7 @@ void SIPNonDialogClient::getRequestMessageInfo(RequestType type,
 
   if (type == SIP_REGISTER)
   {
-    outMessage->expires = 600; // TODO: Implement resending
+    outMessage->expires = REGISTER_INTERVAL;
 
     if (!outMessage->vias.empty())
     {
