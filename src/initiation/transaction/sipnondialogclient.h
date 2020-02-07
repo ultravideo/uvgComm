@@ -25,6 +25,7 @@ public:
   virtual void startTransaction(RequestType type);
 
   void registerToServer();
+  void unRegister();
 
 signals:
   void sendNondialogRequest(SIP_URI& uri, RequestType type);
@@ -32,4 +33,6 @@ signals:
 private:
 
   SIP_URI remoteUri_;
+
+  unsigned int expires_;
 };

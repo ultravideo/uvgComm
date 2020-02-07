@@ -70,13 +70,7 @@ void SIPManager::uninit()
   printNormal(this, "Uninting SIP Manager");
 
   transactions_.uninit();
-
-  int attempts = 20;
-  while (!registrations_.uninit() && attempts > 0)
-  {
-    --attempts;
-    qSleep(10);
-  }
+  registrations_.uninit();
 
   for(std::shared_ptr<SIPTransport> transport : transports_)
   {
@@ -118,7 +112,8 @@ void SIPManager::bindToServer()
     waitingToBind_[transport->getTransportID()] = serverAddress;
   }
   else {
-    qDebug() << "SIP server address was empty in settings";
+    printWarning(this, "SIP Registrar was empty "
+                       "or we have already registered. No registering.");
   }
 }
 

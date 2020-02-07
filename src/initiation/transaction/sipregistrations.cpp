@@ -33,19 +33,19 @@ void SIPRegistrations::init(SIPTransactionUser *callControl, ServerStatusView *s
 }
 
 
-bool SIPRegistrations::uninit()
+void SIPRegistrations::uninit()
 {
   for (auto& registration : registrations_)
   {
-    if (registration.second.client->waitingResponse(SIP_REGISTER))
+    if (registration.second.active)
     {
-      printWarning(this, "Cannot delete because of an ongoing Registration.");
-      return false;
+      registration.second.client->unRegister();
+      registration.second.active = false;
     }
   }
 
-  printNormal(this, "Successfully uninited registrations");
-  return true;
+  printNormal(this, "Finished uniniating ");
+  return;
 }
 
 void SIPRegistrations::bindToServer(QString serverAddress, QString localAddress,

@@ -5,7 +5,9 @@
 #include <QDebug>
 
 
-SIPNonDialogClient::SIPNonDialogClient(SIPTransactionUser *tu): SIPClientTransaction (tu)
+SIPNonDialogClient::SIPNonDialogClient(SIPTransactionUser *tu):
+  SIPClientTransaction (tu),
+  expires_(REGISTER_INTERVAL)
 {}
 
 void SIPNonDialogClient::set_remoteURI(SIP_URI& uri)
@@ -20,7 +22,7 @@ void SIPNonDialogClient::getRequestMessageInfo(RequestType type,
 
   if (type == SIP_REGISTER)
   {
-    outMessage->expires = REGISTER_INTERVAL;
+    outMessage->expires = expires_;
 
     if (!outMessage->vias.empty())
     {
@@ -46,6 +48,15 @@ void SIPNonDialogClient::startTransaction(RequestType type)
 
 void SIPNonDialogClient::registerToServer()
 {
+  expires_ = REGISTER_INTERVAL;
+  startTransaction(SIP_REGISTER);
+  emit sendNondialogRequest(remoteUri_, SIP_REGISTER);
+}
+
+
+void SIPNonDialogClient::unRegister()
+{
+  expires_ = 0;
   startTransaction(SIP_REGISTER);
   emit sendNondialogRequest(remoteUri_, SIP_REGISTER);
 }
