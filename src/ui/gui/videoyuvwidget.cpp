@@ -43,6 +43,8 @@ void VideoYUVWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image)
   emit newImage();
   drawMutex_.unlock();
 }
+
+/*
 static const char *fragmentShaderSource =
     "uniform sampler2D s_texture;\n"
     "void main() {\n"
@@ -55,13 +57,15 @@ static const char *fragmentShaderSource =
        // "gl_FragColor = vec4(r,g,b,1.0);\n"
         "gl_FragColor = vec4(1.0,0.0,0.0,1.0);\n"
     "}\n";
+*/
 
+/*
 static const char *vertexShaderSource =
     "attribute vec4 vertex;\n"
     "void main() {\n"
     "   gl_Position = vertex;\n"
     "}\n";
-
+*/
 
 static const char *vertexShaderSource2 =
     "attribute vec4 posAttr;\n"

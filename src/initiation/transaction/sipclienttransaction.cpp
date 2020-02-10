@@ -25,6 +25,8 @@ void SIPClientTransaction::init()
 bool SIPClientTransaction::processResponse(SIPResponse& response,
                                            std::shared_ptr<SIPDialogState> state)
 {
+  Q_UNUSED(state);
+
   int responseCode = response.type;
 
   if (!checkTransactionType(response.message->transactionRequest))
@@ -138,6 +140,7 @@ void SIPClientTransaction::processTimeout()
 
 void SIPClientTransaction::requestTimeOut()
 {
-  printDebug(DEBUG_NORMAL, this, "No response. Request timed out.");
+  printWarning(this, "No response. Request timed out.",
+    {"Ongoing transaction"}, {QString::number(ongoingTransactionType_)});
   processTimeout();
 }

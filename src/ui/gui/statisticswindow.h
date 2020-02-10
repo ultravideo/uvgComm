@@ -3,7 +3,7 @@
 
 #include <QDialog>
 #include <QMutex>
-#include <QTime>
+#include <QElapsedTimer>
 
 #ifdef QT_CHARTS_LIB
 #include <QtCharts/QChartView>
@@ -130,9 +130,9 @@ private:
   uint16_t audioEncDelay_;
   uint16_t videoEncDelay_;
 
-  QTime guiTimer_;
+  QElapsedTimer guiTimer_;
   int lastDrawTime_;
-  uint32_t guiFrequency_;
+  int32_t guiFrequency_;
 
   // for updating the tab as fast as possible
   int lastTabIndex_;

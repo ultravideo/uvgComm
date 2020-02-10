@@ -277,9 +277,7 @@ QString Filter::printOutputs()
   {
     outs += "   \"" + name_ + "\" -> \"" + out->name_ + "\";" + "\r\n";
   }
-  for(auto& out : outDataCallbacks_)
-  {
-    outs += "   \"" + name_ + "\" -> \" All_outputs \";" + "\r\n";
-  }
+
+  outs += "plus " + QString::number(outDataCallbacks_.size()) + " callbacks";
   return outs;
 }

@@ -73,11 +73,11 @@ std::unique_ptr<Data> ScaleFilter::scaleFrame(std::unique_ptr<Data> input)
   if(newSize_.width() * newSize_.height()
      > input->width * input->height)
   {
-    input->data = std::unique_ptr<uchar[]>(new uchar[scaled.byteCount()]);
+    input->data = std::unique_ptr<uchar[]>(new uchar[scaled.sizeInBytes()]);
   }
-  memcpy(input->data.get(), scaled.bits(), scaled.byteCount());
+  memcpy(input->data.get(), scaled.bits(), scaled.sizeInBytes());
   input->width = newSize_.width();
   input->height = newSize_.height();
-  input->data_size = scaled.byteCount();
-  return std::move(input);
+  input->data_size = scaled.sizeInBytes();
+  return input;
 }
