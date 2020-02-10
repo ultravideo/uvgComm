@@ -76,7 +76,7 @@ private:
 
   // parsing functions
   // returs true if the whole message was received
-  bool parsePackage(QString package, QString& header, QString& body);
+  bool parsePackage(QString package, QStringList &headers, QStringList &bodies);
   bool headerToFields(QString header, QString& firstLine, QList<SIPField>& fields);
   bool fieldsToMessage(QList<SIPField>& fields, std::shared_ptr<SIPMessageInfo> &message);
 

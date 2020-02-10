@@ -360,78 +360,88 @@ void SIPTransport::networkPackage(QString package)
 {
   qDebug() << "Received a network package for SIP Connection";
   // parse to header and body
-  QString header = "";
-  QString body = "";
+  QStringList headers;
+  QStringList bodies;
 
-  parsePackage(package, header, body);
-
-  QList<SIPField> fields;
-  QString firstLine = "";
-
-  if (!headerToFields(header, firstLine, fields))
+  if (!parsePackage(package, headers, bodies) ||  headers.size() != bodies.size())
   {
-    qDebug() << "Parsing error converting header to fields.";
+    printWarning(this, "Failed to parse received SIP packet");
+    return;
   }
 
-  if(header != "" && firstLine != "" && !fields.empty())
+  for (unsigned int i = 0; i < headers.size(); ++i)
   {
-    std::shared_ptr<SIPMessageInfo> message;
-    if(!fieldsToMessage(fields, message))
+    QString header = headers.at(i);
+    QString body = bodies.at(i);
+
+    QList<SIPField> fields;
+    QString firstLine = "";
+
+    if (!headerToFields(header, firstLine, fields))
     {
-      qDebug() << "The received message was not correct. ";
-      emit parsingError(SIP_BAD_REQUEST, transportID_); // RFC3261_TODO support other possible error types
-      return;
+      qDebug() << "Parsing error converting header to fields.";
     }
 
-    QVariant content;
-    if(body != "" && message->content.type != NO_CONTENT)
+    if(header != "" && firstLine != "" && !fields.empty())
     {
-      parseContent(content, message->content.type, body);
-    }
-
-    QRegularExpression requestRE("^(\\w+) (sip:\\S+@\\S+) (SIP/2.0)");
-    QRegularExpression responseRE("^(SIP/2.0) (\\d\\d\\d) (\\w| )+");
-    QRegularExpressionMatch request_match = requestRE.match(firstLine);
-    QRegularExpressionMatch response_match = responseRE.match(firstLine);
-
-    if(request_match.hasMatch() && response_match.hasMatch())
-    {
-      printDebug(DEBUG_PROGRAM_ERROR, this,
-                 "Both the request and response matched, which should not be possible!");
-      return;
-    }
-
-    if(request_match.hasMatch() && request_match.lastCapturedIndex() == 3)
-    {
-      stats_->addReceivedSIPMessage(request_match.captured(1), package, connection_->remoteAddress().toString());
-      if(!parseRequest(request_match.captured(1), request_match.captured(3), message, fields, content))
+      std::shared_ptr<SIPMessageInfo> message;
+      if(!fieldsToMessage(fields, message))
       {
-        qDebug() << "Failed to parse request";
+        qDebug() << "The received message was not correct. ";
+        emit parsingError(SIP_BAD_REQUEST, transportID_); // RFC3261_TODO support other possible error types
+        return;
       }
-    }
-    else if(response_match.hasMatch() && response_match.lastCapturedIndex() == 3)
-    {
-      stats_->addReceivedSIPMessage(response_match.captured(2), package, connection_->remoteAddress().toString());
-      if(!parseResponse(response_match.captured(2), response_match.captured(1), message, content))
+
+      QVariant content;
+      if(body != "" && message->content.type != NO_CONTENT)
       {
-        qDebug() << "ERROR: Failed to parse response: " << response_match.captured(2);
+        parseContent(content, message->content.type, body);
+      }
+
+      QRegularExpression requestRE("^(\\w+) (sip:\\S+@\\S+) (SIP/2.0)");
+      QRegularExpression responseRE("^(SIP/2.0) (\\d\\d\\d) (\\w| )+");
+      QRegularExpressionMatch request_match = requestRE.match(firstLine);
+      QRegularExpressionMatch response_match = responseRE.match(firstLine);
+
+      if(request_match.hasMatch() && response_match.hasMatch())
+      {
+        printDebug(DEBUG_PROGRAM_ERROR, this,
+                   "Both the request and response matched, which should not be possible!");
+        return;
+      }
+
+      if(request_match.hasMatch() && request_match.lastCapturedIndex() == 3)
+      {
+        stats_->addReceivedSIPMessage(request_match.captured(1), package, connection_->remoteAddress().toString());
+        if(!parseRequest(request_match.captured(1), request_match.captured(3), message, fields, content))
+        {
+          qDebug() << "Failed to parse request";
+        }
+      }
+      else if(response_match.hasMatch() && response_match.lastCapturedIndex() == 3)
+      {
+        stats_->addReceivedSIPMessage(response_match.captured(2), package, connection_->remoteAddress().toString());
+        if(!parseResponse(response_match.captured(2), response_match.captured(1), message, content))
+        {
+          qDebug() << "ERROR: Failed to parse response: " << response_match.captured(2);
+        }
+      }
+      else
+      {
+        qDebug() << "Failed to parse first line of SIP message:" << firstLine
+                 << "Request index:" << request_match.lastCapturedIndex()
+                 << "response index:" << response_match.lastCapturedIndex();
       }
     }
     else
     {
-      qDebug() << "Failed to parse first line of SIP message:" << firstLine
-               << "Request index:" << request_match.lastCapturedIndex()
-               << "response index:" << response_match.lastCapturedIndex();
+      qDebug() << "The whole message was not received";
     }
-  }
-  else
-  {
-    qDebug() << "The whole message was not received";
   }
 }
 
 
-bool SIPTransport::parsePackage(QString package, QString& header, QString& body)
+bool SIPTransport::parsePackage(QString package, QStringList& headers, QStringList& bodies)
 {
   // get any parts which have been received before
   if(partialMessage_.length() > 0)
@@ -479,8 +489,8 @@ bool SIPTransport::parsePackage(QString package, QString& header, QString& body)
   if(package.length() >= headerEndIndex + contentLength)
   {
     partialMessage_ = package.right(package.length() - (headerEndIndex + contentLength));
-    header = package.left(headerEndIndex);
-    body = package.mid(headerEndIndex, contentLength);
+    headers.push_back(package.left(headerEndIndex));
+    bodies.push_back(package.mid(headerEndIndex, contentLength));
 
     qDebug() << "Whole SIP message received ----------- ";
     qDebug().noquote() << "Package:" << package;
