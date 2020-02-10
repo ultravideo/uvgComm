@@ -365,11 +365,11 @@ void SIPTransport::networkPackage(QString package)
 
   if (!parsePackage(package, headers, bodies) ||  headers.size() != bodies.size())
   {
-    printWarning(this, "Failed to parse received SIP packet");
+    printWarning(this, "Did not receive the whole SIP message");
     return;
   }
 
-  for (unsigned int i = 0; i < headers.size(); ++i)
+  for (int i = 0; i < headers.size(); ++i)
   {
     QString header = headers.at(i);
     QString body = bodies.at(i);
@@ -382,10 +382,10 @@ void SIPTransport::networkPackage(QString package)
       qDebug() << "Parsing error converting header to fields.";
     }
 
-    if(header != "" && firstLine != "" && !fields.empty())
+    if (header != "" && firstLine != "" && !fields.empty())
     {
       std::shared_ptr<SIPMessageInfo> message;
-      if(!fieldsToMessage(fields, message))
+      if (!fieldsToMessage(fields, message))
       {
         qDebug() << "The received message was not correct. ";
         emit parsingError(SIP_BAD_REQUEST, transportID_); // RFC3261_TODO support other possible error types
@@ -393,7 +393,7 @@ void SIPTransport::networkPackage(QString package)
       }
 
       QVariant content;
-      if(body != "" && message->content.type != NO_CONTENT)
+      if (body != "" && message->content.type != NO_CONTENT)
       {
         parseContent(content, message->content.type, body);
       }
@@ -403,25 +403,25 @@ void SIPTransport::networkPackage(QString package)
       QRegularExpressionMatch request_match = requestRE.match(firstLine);
       QRegularExpressionMatch response_match = responseRE.match(firstLine);
 
-      if(request_match.hasMatch() && response_match.hasMatch())
+      if (request_match.hasMatch() && response_match.hasMatch())
       {
         printDebug(DEBUG_PROGRAM_ERROR, this,
                    "Both the request and response matched, which should not be possible!");
         return;
       }
 
-      if(request_match.hasMatch() && request_match.lastCapturedIndex() == 3)
+      if (request_match.hasMatch() && request_match.lastCapturedIndex() == 3)
       {
         stats_->addReceivedSIPMessage(request_match.captured(1), package, connection_->remoteAddress().toString());
-        if(!parseRequest(request_match.captured(1), request_match.captured(3), message, fields, content))
+        if (!parseRequest(request_match.captured(1), request_match.captured(3), message, fields, content))
         {
           qDebug() << "Failed to parse request";
         }
       }
-      else if(response_match.hasMatch() && response_match.lastCapturedIndex() == 3)
+      else if (response_match.hasMatch() && response_match.lastCapturedIndex() == 3)
       {
         stats_->addReceivedSIPMessage(response_match.captured(2), package, connection_->remoteAddress().toString());
-        if(!parseResponse(response_match.captured(2), response_match.captured(1), message, content))
+        if (!parseResponse(response_match.captured(2), response_match.captured(1), message, content))
         {
           qDebug() << "ERROR: Failed to parse response: " << response_match.captured(2);
         }
@@ -453,54 +453,52 @@ bool SIPTransport::parsePackage(QString package, QStringList& headers, QStringLi
   int headerEndIndex = package.indexOf("\r\n\r\n", 0, Qt::CaseInsensitive) + 4;
   int contentLengthIndex = package.indexOf("content-length", 0, Qt::CaseInsensitive);
 
-  printDebug(DEBUG_NORMAL, this,  "Parsing package to header and body",
-    {"Header end index", "content-length index"},
-    {QString::number(headerEndIndex), QString::number(contentLengthIndex)});
-
-  // did we get the whole header
-  if (headerEndIndex <= 0)
+  // read maximum of 20 messages. 3 is -1 + 4
+  for (int i = 0; i < 20 && headerEndIndex != 3; ++i)
   {
-    // We did not. Wait for more rest.
-    partialMessage_ = package;
-    return false;
-  }
+    printDebug(DEBUG_NORMAL, this,  "Parsing package to header and body",
+                {"Messages parsed so far", "Header end index", "content-length index"},
+    {QString::number(i), QString::number(headerEndIndex), QString::number(contentLengthIndex)});
 
-  int contentLength = 0;
-  // did we find the contact-length field and is it before end of header.
-  if (contentLengthIndex != -1 && contentLengthIndex < headerEndIndex)
-  {
-    int contentLengthLineEndIndex = package.indexOf("\r\n", contentLengthIndex,
-                                                    Qt::CaseInsensitive);
-    QString value = package.mid(contentLengthIndex + 16,
-                                contentLengthLineEndIndex - (contentLengthIndex + 16));
-
-    contentLength = value.toInt();
-    if (contentLength < 0)
+    int contentLength = 0;
+    // did we find the contact-length field and is it before end of header.
+    if (contentLengthIndex != -1 && contentLengthIndex < headerEndIndex)
     {
-      // TODO: Warn the user maybe. Maybe also ban the user at least temporarily.
-      printDebug(DEBUG_PEER_ERROR, this,
-                 "Got negative content-length! Peer is doing something very strange.");
-      return false;
+      int contentLengthLineEndIndex = package.indexOf("\r\n", contentLengthIndex,
+                                                      Qt::CaseInsensitive);
+      QString value = package.mid(contentLengthIndex + 16,
+                                  contentLengthLineEndIndex - (contentLengthIndex + 16));
+
+      contentLength = value.toInt();
+      if (contentLength < 0)
+      {
+        // TODO: Warn the user maybe. Maybe also ban the user at least temporarily.
+        printDebug(DEBUG_PEER_ERROR, this,
+                   "Got negative content-length! Peer is doing something very strange.");
+        return false;
+      }
     }
+
+    printNormal(this, "Parsed Content-length", {"Content-length"}, {QString::number(contentLength)});
+
+    // if we have the whole message
+    if(package.length() >= headerEndIndex + contentLength)
+    {
+      headers.push_back(package.left(headerEndIndex));
+      bodies.push_back(package.mid(headerEndIndex, contentLength));
+
+      printDebug(DEBUG_IMPORTANT,this, "Whole SIP message Received",
+                  {"Body", "Content"}, {headers.last(), bodies.last()});
+
+      package = package.right(package.length() - (headerEndIndex + contentLength));
+    }
+
+    headerEndIndex = package.indexOf("\r\n\r\n", 0, Qt::CaseInsensitive) + 4;
+    contentLengthIndex = package.indexOf("content-length", 0, Qt::CaseInsensitive);
   }
-  qDebug() << "Content-length:" <<  contentLength;
 
-  // if we have the whole message
-  if(package.length() >= headerEndIndex + contentLength)
-  {
-    partialMessage_ = package.right(package.length() - (headerEndIndex + contentLength));
-    headers.push_back(package.left(headerEndIndex));
-    bodies.push_back(package.mid(headerEndIndex, contentLength));
-
-    qDebug() << "Whole SIP message received ----------- ";
-    qDebug().noquote() << "Package:" << package;
-
-    return true;
-  }
-
-  // did not get all of content.
   partialMessage_ = package;
-  return false;
+  return !headers.empty() && headers.size() == bodies.size();
 }
 
 
