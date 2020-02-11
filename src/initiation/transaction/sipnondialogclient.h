@@ -22,8 +22,6 @@ public:
   virtual bool processResponse(SIPResponse& response,
                                std::shared_ptr<SIPDialogState> state);
 
-  virtual void startTransaction(RequestType type);
-
   void registerToServer();
   void unRegister();
 

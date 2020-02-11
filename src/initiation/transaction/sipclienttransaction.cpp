@@ -31,8 +31,7 @@ bool SIPClientTransaction::processResponse(SIPResponse& response,
 
   if (!checkTransactionType(response.message->transactionRequest))
   {
-    printPeerError(this, "Their response transaction type "
-                         "is not the same as our request!");
+    printPeerError(this, "Their response transaction type is not the same as our request!");
     return false;
   }
 
@@ -117,17 +116,35 @@ void SIPClientTransaction::getRequestMessageInfo(RequestType type,
 }
 
 
-void SIPClientTransaction::startTransaction(RequestType type)
+bool SIPClientTransaction::startTransaction(RequestType type)
 {
   printDebug(DEBUG_NORMAL, this,
              "Client starts sending a request.", {"Type"}, {QString::number(type)});
-  ongoingTransactionType_ = type;
+
+  if (ongoingTransactionType_ != SIP_NO_REQUEST && type != SIP_CANCEL)
+  {
+    printProgramWarning(this, "Tried to send a request "
+                              "while previous transaction has not finished");
+    return false;
+  }
+  else if (ongoingTransactionType_ != SIP_NO_REQUEST && type == SIP_CANCEL)
+  {
+    printProgramWarning(this, "Tried to cancel a transaction that does not exist!");
+    return false;
+  }
 
   // we do not expect a response for these requests.
   if (type == SIP_CANCEL || type == SIP_ACK)
   {
     stopTimeoutTimer();
   }
+  else
+  {
+    // cancel and ack don't start a transaction
+    ongoingTransactionType_ = type;
+  }
+
+  return true;
 }
 
 

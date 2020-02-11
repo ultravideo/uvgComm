@@ -29,7 +29,7 @@ public:
 protected:
   virtual void processTimeout();
 
-  virtual void startTransaction(RequestType type);
+  virtual bool startTransaction(RequestType type);
 
 signals:
   // send messages to other end

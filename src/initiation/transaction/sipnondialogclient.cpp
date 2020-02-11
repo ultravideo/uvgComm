@@ -40,23 +40,21 @@ bool SIPNonDialogClient::processResponse(SIPResponse& response,
 }
 
 
-void SIPNonDialogClient::startTransaction(RequestType type)
-{
-  SIPClientTransaction::startTransaction(type);
-}
-
-
 void SIPNonDialogClient::registerToServer()
 {
   expires_ = REGISTER_INTERVAL;
-  startTransaction(SIP_REGISTER);
-  emit sendNondialogRequest(remoteUri_, SIP_REGISTER);
+  if (startTransaction(SIP_REGISTER))
+  {
+    emit sendNondialogRequest(remoteUri_, SIP_REGISTER);
+  }
 }
 
 
 void SIPNonDialogClient::unRegister()
 {
   expires_ = 0;
-  startTransaction(SIP_REGISTER);
-  emit sendNondialogRequest(remoteUri_, SIP_REGISTER);
+  if (startTransaction(SIP_REGISTER))
+  {
+    emit sendNondialogRequest(remoteUri_, SIP_REGISTER);
+  }
 }

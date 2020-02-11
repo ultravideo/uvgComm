@@ -66,13 +66,14 @@ protected:
 
   virtual void processTimeout();
 
-  RequestType getOngoingRequest()
+  RequestType getOngoingRequest() const
   {
     return ongoingTransactionType_;
   }
 
   // set the internal state of client to such that we have sent a request.
-  virtual void startTransaction(RequestType type) = 0;
+  // returns whether we should actually send the message
+  virtual bool startTransaction(RequestType type);
 
 private slots:
   void requestTimeOut();
@@ -80,10 +81,9 @@ private slots:
 private:
   bool goodResponse(); // use this to filter out untimely/duplicate responses
 
-  // used to determine what type of request the response is for
+  // used to keep track of our current transaction. This means it is used to
+  // determine what request the response is responding to.
   RequestType ongoingTransactionType_;
-
-  // TODO: Probably need to record the whole message and check that the details are ok.
 
   QTimer requestTimer_;
 

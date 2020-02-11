@@ -55,7 +55,22 @@ bool SIPDialogClient::processResponse(SIPResponse& response,
     return false;
   }
 
-  // first process message type specific responses and the process general responses
+  // tell user about any failures
+  if(response.type == SIP_DECLINE)
+  {
+    qDebug() << "Got a Global Failure Response Code for INVITE";
+    getTransactionUser()->peerRejected(sessionID_);
+  }
+
+  // check if this is failure that requires shutdown of session
+  if (!SIPClientTransaction::processResponse(response, state))
+  {
+    return false;
+  }
+
+  // process anything that is not a failure and may cause a new request to be sent.
+  // this must be done after the SIPClientTransaction processResponse, because that checks our
+  // current active transaction and may modify it.
   if(response.message->transactionRequest == SIP_INVITE)
   {
     if(response.type == SIP_RINGING)
@@ -71,18 +86,16 @@ bool SIPDialogClient::processResponse(SIPResponse& response,
       {
         getTransactionUser()->peerAccepted(sessionID_);
       }
-      startTransaction(SIP_ACK);
-      state->setState(true);
-      getTransactionUser()->callNegotiated(sessionID_);
-    }
-    else if(response.type == SIP_DECLINE)
-    {
-      qDebug() << "Got a Global Failure Response Code for INVITE";
-      getTransactionUser()->peerRejected(sessionID_);
+
+      if (startTransaction(SIP_ACK))
+      {
+        state->setState(true);
+        getTransactionUser()->callNegotiated(sessionID_);
+      }
     }
   }
 
-  return SIPClientTransaction::processResponse(response, state);
+  return true;
 }
 
 
@@ -96,9 +109,10 @@ bool SIPDialogClient::startCall(QString callee)
     return false;
   }
 
-  startTransaction(SIP_INVITE);
-
-  getTransactionUser()->outgoingCall(sessionID_, callee);
+  if (startTransaction(SIP_INVITE))
+  {
+    getTransactionUser()->outgoingCall(sessionID_, callee);
+  }
 
   return true;
 }
@@ -137,8 +151,12 @@ void SIPDialogClient::processTimeout()
 }
 
 
-void SIPDialogClient::startTransaction(RequestType type)
+bool SIPDialogClient::startTransaction(RequestType type)
 {
-  emit sendDialogRequest(sessionID_, type);
-  SIPClientTransaction::startTransaction(type);
+  if (SIPClientTransaction::startTransaction(type))
+  {
+    emit sendDialogRequest(sessionID_, type);
+    return true;
+  }
+  return false;
 }
