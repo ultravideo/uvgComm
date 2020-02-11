@@ -84,7 +84,6 @@ signals:
 private slots:
 
   void sendDialogRequest(uint32_t sessionID, RequestType type);
-
   void sendResponse(uint32_t sessionID, ResponseType type);
 
 private:
@@ -97,8 +96,9 @@ private:
     // do not stop connection before responding to all requests
     std::shared_ptr<SIPServerTransaction> server;
     std::shared_ptr<SIPDialogClient> client;
-  };
 
+    QTimer endTimer;
+  };
 
   uint32_t createDialogFromINVITE(QString localAddress,
                                   std::shared_ptr<SIPMessageInfo> &invite);
@@ -107,25 +107,9 @@ private:
   void destroyDialog(uint32_t sessionID);
   void removeDialog(uint32_t sessionID);
 
-  bool areWeTheDestination();
-
-  void registerTask();
-
   // This mutex makes sure that the dialog has been added to the dialogs_ list
   // before we are accessing it when receiving messages
   QMutex dialogMutex_;
-
-  struct DialogRequest
-  {
-    uint32_t sessionID;
-    RequestType type;
-  };
-
-  struct NonDialogRequest
-  {
-    SIP_URI request_uri;
-    RequestType type;
-  };
 
   QMutex pendingConnectionMutex_;
 
@@ -137,8 +121,6 @@ private:
 
   uint32_t nextSessionID_;
   std::map<uint32_t, std::shared_ptr<SIPDialogData>> dialogs_;
-
-  QList<QString> directContactAddresses_;
 
   SIPTransactionUser* transactionUser_;
 };

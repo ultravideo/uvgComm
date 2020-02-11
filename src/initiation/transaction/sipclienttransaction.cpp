@@ -66,8 +66,6 @@ bool SIPClientTransaction::processResponse(SIPResponse& response,
   {
     // TODO: 8.1.3.5 Processing 4xx Responses in RFC 3261
     printWarning(this, "Got a Failure Response.");
-
-    // TODO: if the response is 481 or 408, terminate dialog
   }
   else if (responseCode >= 500 && responseCode <= 599)
   {
@@ -78,7 +76,9 @@ bool SIPClientTransaction::processResponse(SIPResponse& response,
     printWarning(this, "Got a Global Failure Response.");
   }
 
-  //
+  // delete dialog if response was not provisional or success.
+  // TODO: this is a very simple logic. More complex logic could handle different
+  // situations
   return responseCode >= 100 && responseCode <= 299;
 }
 

@@ -515,7 +515,7 @@ bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPF
   }
 
   // The message may contain fields that extend more than one line.
-  // Combine them so field is only presenton one line
+  // Combine them so field is only present on one line
   combineContinuationLines(lines);
   firstLine = lines.at(0);
 

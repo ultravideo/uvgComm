@@ -14,7 +14,6 @@ SIPTransactions::SIPTransactions():
   pendingConnectionMutex_(),
   nextSessionID_(FIRSTSESSIONID),
   dialogs_(),
-  directContactAddresses_(),
   transactionUser_(nullptr)
 {}
 
@@ -43,12 +42,6 @@ uint32_t SIPTransactions::reserveSessionID()
 {
   ++nextSessionID_;
   return nextSessionID_ - 1;
-}
-
-
-void SIPTransactions::registerTask()
-{
-  qDebug() << "Registering us to a new SIP server with REGISTER task";
 }
 
 
@@ -335,8 +328,7 @@ void SIPTransactions::processSIPResponse(SIPResponse response, uint32_t sessionI
     destroyDialog(sessionID);
     removeDialog(sessionID);
   }
-
-  if (!response.message->recordRoutes.empty())
+  else if (!response.message->recordRoutes.empty())
   {
     dialogs_[sessionID]->state->setRoute(response.message->recordRoutes);
   }
