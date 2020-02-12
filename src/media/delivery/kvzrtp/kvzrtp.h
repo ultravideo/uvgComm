@@ -7,7 +7,6 @@
 #include <QHostAddress>
 #include <vector>
 
-#include <kvzrtp/reader.hh>
 #include <kvzrtp/lib.hh>
 
 class StatisticsInterface;
@@ -37,8 +36,17 @@ public:
   std::shared_ptr<Filter> addSendStream(uint32_t peer, QHostAddress ip,
                                         uint16_t dst_port, uint16_t src_port,
                                         QString codec, uint8_t rtpNum);
+
   std::shared_ptr<Filter> addReceiveStream(uint32_t peer, QHostAddress ip,
                                            uint16_t port, QString codec, uint8_t rtpNum);
+
+  /* Source is "first", sink is "second" */
+  std::pair<
+    std::shared_ptr<Filter>,
+    std::shared_ptr<Filter>
+  >
+  addMediaStream(uint32_t peer, QHostAddress ip, uint16_t src_port,
+                 uint16_t dst_port, QString codec);
 
    void removeSendVideo(uint32_t sessionID);
    void removeSendAudio(uint32_t sessionID);
@@ -53,16 +61,12 @@ public:
 private:
   kvz_rtp::context *rtp_ctx_;
 
-  struct Sender
+  struct MediaStream
   {
-    kvz_rtp::writer *writer;
-    std::shared_ptr<KvzRTPSender> sourcefilter; // receives stuff from filter graph
-  };
+    kvz_rtp::media_stream *stream;
 
-  struct Receiver
-  {
-    kvz_rtp::reader *reader;
-    std::shared_ptr<KvzRTPReceiver> sink; // sends stuff to filter graph
+    std::shared_ptr<KvzRTPSender> source;
+    std::shared_ptr<KvzRTPReceiver> sink;
   };
 
   struct Peer
@@ -70,29 +74,19 @@ private:
     QHostAddress video_ip;
     QHostAddress audio_ip;
 
-    Sender *audioSender; // audio to this peer
-    Sender *videoSender; // video to this peer
+    kvz_rtp::session *session;
 
-    Receiver *audioReceiver; // audio from this peer
-    Receiver *videoReceiver; // video from this peer
+    MediaStream *video;
+    MediaStream *audio;
   };
 
-  void destroySender(Sender *sender);
-  void destroyReceiver(Receiver *recv);
   rtp_format_t typeFromString(QString type);
 
   // returns whether peer corresponding to sessionID has been created. Debug
   bool checkSessionID(uint32_t sessionID);
 
-  Sender   *addSender(QHostAddress ip, uint16_t dst_port, uint16_t src_port,
-                      rtp_format_t type, uint8_t rtpNum);
-  Receiver *addReceiver(QHostAddress ip, uint16_t port, rtp_format_t type, uint8_t rtpNum);
-
   // private variables
   QList<Peer *> peers_;
-
-  std::vector<KvzRTP::Sender *> senders_;
-  std::vector<KvzRTP::Receiver *> receivers_;
 
   bool isIniated_;
   bool isRunning_;

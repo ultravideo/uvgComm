@@ -6,10 +6,10 @@
 #include "common.h"
 
 KvzRTPSender::KvzRTPSender(QString id, StatisticsInterface *stats,
-                                       DataType type, QString media, kvz_rtp::writer *writer):
+                           DataType type, QString media, kvz_rtp::media_stream *mstream):
   Filter(id, "Framed_Source_" + media, stats, type, NONE),
   type_(type),
-  writer_(writer),
+  mstream_(mstream),
   frame_(0)
 {
   updateSettings();
@@ -86,7 +86,7 @@ void KvzRTPSender::process()
 
   while (input)
   {
-    ret = writer_->push_frame(std::move(input->data), input->data_size, RTP_NO_FLAGS);
+    ret = mstream_->push_frame(std::move(input->data), input->data_size, RTP_NO_FLAGS);
 
     if (ret != RTP_OK)
     {

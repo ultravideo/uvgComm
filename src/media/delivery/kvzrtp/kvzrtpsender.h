@@ -2,7 +2,7 @@
 #include "media/processing/filter.h"
 #include <QMutex>
 #include <QSemaphore>
-#include <kvzrtp/writer.hh>
+#include <kvzrtp/lib.hh>
 
 class StatisticsInterface;
 
@@ -10,7 +10,7 @@ class KvzRTPSender : public Filter
 {
 public:
   KvzRTPSender(QString id, StatisticsInterface *stats, DataType type,
-               QString media, kvz_rtp::writer *writer);
+               QString media, kvz_rtp::media_stream *mstream);
   ~KvzRTPSender();
 
   void updateSettings();
@@ -25,7 +25,7 @@ private:
   DataType type_;
   bool removeStartCodes_;
 
-  kvz_rtp::writer *writer_;
+  kvz_rtp::media_stream *mstream_;
   uint64_t frame_;
   rtp_format_t dataFormat_;
 };

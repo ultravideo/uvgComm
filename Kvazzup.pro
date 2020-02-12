@@ -283,7 +283,7 @@ INCLUDEPATH += /usr/local/include/kvzrtp/
 INCLUDEPATH += /usr/local/include/kvzrtp/formats
 
 LIBS += -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment
-LIBS += -lopus -lkvazaar -lspeex -lspeexdsp -lLibOpenHevcWrapper -lgomp -lkvzrtp
+LIBS += -lopus -lkvazaar -lspeex -lspeexdsp -lLibOpenHevcWrapper -lgomp -lkvzrtp -lcryptopp
 }
 
 

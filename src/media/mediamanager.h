@@ -89,6 +89,10 @@ private:
   void createIncomingMedia(uint32_t sessionID, QString globalAddress, const MediaInfo& remoteMedia,
                            const MediaInfo& localMedia,  uint32_t videoID);
 
+  /* Create bidirectional media stream (kvzRTP only) */
+  void createMediaStream(uint32_t sessionID, QString globalAddress, const MediaInfo& remoteMedia,
+                         const MediaInfo& localMedia, uint32_t videoID);
+
   QString rtpNumberToCodec(const MediaInfo& info);
 
   void transportAttributes(const QList<SDPAttributeType> &attributes, bool& send, bool& recv);
@@ -107,4 +111,5 @@ private:
 
   bool mic_;
   bool camera_;
+  int kvzrtp_;
 };
