@@ -16,6 +16,9 @@ void SIPDialog::init(uint32_t sessionID, SIPTransactionUser* tu)
   QObject::connect(&client_, &SIPDialogClient::sendDialogRequest,
                    this, &SIPDialog::generateRequest);
 
+  QObject::connect(&client_, &SIPDialogClient::BYETimeout,
+                   this, &SIPDialog::dialogEnds);
+
   QObject::connect(&server_, &SIPServer::sendResponse,
                    this, &SIPDialog::generateResponse);
 }

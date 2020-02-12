@@ -79,6 +79,8 @@ bool SIPServer::processRequest(SIPRequest& request,
   {
     state.setState(false);
     transactionUser_->endCall(sessionID_);
+    responseSender(SIP_OK);
+
     return false;
   }
   case SIP_CANCEL:
@@ -88,18 +90,18 @@ bool SIPServer::processRequest(SIPRequest& request,
   }
   case SIP_OPTIONS:
   {
-    qDebug() << "Don't know what to do with OPTIONS yet";
+    printUnimplemented(this, "OPTIONS-request not implemented yet");
     break;
   }
   case SIP_REGISTER:
   {
-    qDebug() << "Why on earth are we receiving REGISTER methods?";
+    printPeerError(this, "REGISTER-method detected at server. Why?");
     responseSender(SIP_NOT_ALLOWED);
     break;
   }
   default:
   {
-    qDebug() << "Unsupported request type received";
+    printUnimplemented(this, "Unsupported request type received");
     responseSender(SIP_NOT_ALLOWED);
     break;
   }

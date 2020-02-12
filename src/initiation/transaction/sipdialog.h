@@ -44,7 +44,7 @@ public:
 
 signals:
 
-  //void dialogEnds();
+  void dialogEnds(uint32_t sessionID);
 
   void sendRequest(uint32_t sessionID, SIPRequest& request);
   void sendResponse(uint32_t sessionID, SIPResponse& response);

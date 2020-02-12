@@ -360,13 +360,9 @@ void KvazzupController::userCancelsCall(uint32_t sessionID)
 
 void KvazzupController::endTheCall()
 {
-  printNormal(this, "We end the call");
+  printImportant(this, "We end the call");
 
   sip_.endAllCalls();
-  media_.endAllCalls();
-  window_.clearConferenceView();
-
-  states_.clear();
 }
 
 

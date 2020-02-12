@@ -35,7 +35,7 @@ signals:
   // send messages to other end
   void sendDialogRequest(uint32_t sessionID, RequestType type);
 
-  void destroyDialog();
+  void BYETimeout(uint32_t sessionID);
 
 private:
   uint32_t sessionID_;

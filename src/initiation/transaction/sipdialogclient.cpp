@@ -150,6 +150,12 @@ void SIPDialogClient::processTimeout()
   }
 
   SIPClient::processTimeout();
+
+  // destroys the whole dialog
+  if (getOngoingRequest() == SIP_BYE)
+  {
+    emit BYETimeout(sessionID_);
+  }
 }
 
 

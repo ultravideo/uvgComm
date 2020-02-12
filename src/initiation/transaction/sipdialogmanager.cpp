@@ -86,6 +86,9 @@ void SIPDialogManager::createDialog(uint32_t sessionID)
   QObject::connect(dialog.get(), &SIPDialog::sendResponse,
                    this, &SIPDialogManager::transportResponse);
 
+  QObject::connect(dialog.get(), &SIPDialog::dialogEnds,
+                   this, &SIPDialogManager::removeDialog);
+
   dialogMutex_.lock();
   dialogs_[sessionID] = dialog;
   dialogMutex_.unlock();
@@ -147,7 +150,6 @@ void SIPDialogManager::endAllCalls()
     }
   }
 
-  dialogs_.clear();
   nextSessionID_ = FIRSTSESSIONID;
 }
 
@@ -232,7 +234,8 @@ void SIPDialogManager::processSIPRequest(SIPRequest request, uint32_t sessionID)
 
   if(!foundDialog->processRequest(request))
   {
-    printUnimplemented(this, "Ending session as a results of request. Most likely BYE.");
+    printNormal(this, "Ending session as a results of request.");
+    removeDialog(sessionID);
   }
 
   printNormal(this, "Finished processing request.",
