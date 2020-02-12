@@ -1,13 +1,13 @@
 #pragma once
 
-#include "sipclienttransaction.h"
+#include "sipclient.h"
 
 // Sending SIP Requests and processing of SIP responses that don't belong to
 // a dialog. Typical example is the REGISTER-method. OPTIONS can also sent
 // without a dialog.
 
 
-class SIPNonDialogClient : public SIPClientTransaction
+class SIPNonDialogClient : public SIPClient
 {
   Q_OBJECT
 public:

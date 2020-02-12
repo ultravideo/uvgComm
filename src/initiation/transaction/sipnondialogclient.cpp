@@ -6,7 +6,7 @@
 
 
 SIPNonDialogClient::SIPNonDialogClient():
-  SIPClientTransaction (),
+  SIPClient (),
   expires_(REGISTER_INTERVAL)
 {}
 
@@ -18,7 +18,7 @@ void SIPNonDialogClient::set_remoteURI(SIP_URI& uri)
 void SIPNonDialogClient::getRequestMessageInfo(RequestType type,
                                                std::shared_ptr<SIPMessageInfo>& outMessage)
 {
-  SIPClientTransaction::getRequestMessageInfo(type, outMessage);
+  SIPClient::getRequestMessageInfo(type, outMessage);
 
   if (type == SIP_REGISTER)
   {
@@ -36,7 +36,7 @@ void SIPNonDialogClient::getRequestMessageInfo(RequestType type,
 bool SIPNonDialogClient::processResponse(SIPResponse& response,
                                          SIPDialogState &state)
 {
-  return SIPClientTransaction::processResponse(response, state);
+  return SIPClient::processResponse(response, state);
 }
 
 

@@ -26,7 +26,7 @@ void SIPDialogClient::init(SIPTransactionUser* tu, uint32_t sessionID)
 void SIPDialogClient::getRequestMessageInfo(RequestType type,
                                             std::shared_ptr<SIPMessageInfo> &outMessage)
 {
-  SIPClientTransaction::getRequestMessageInfo(type, outMessage);
+  SIPClient::getRequestMessageInfo(type, outMessage);
 
   if (type == SIP_INVITE || type == SIP_ACK)
   {
@@ -65,7 +65,7 @@ bool SIPDialogClient::processResponse(SIPResponse& response,
   }
 
   // check if this is failure that requires shutdown of session
-  if (!SIPClientTransaction::processResponse(response, state))
+  if (!SIPClient::processResponse(response, state))
   {
     return false;
   }
@@ -149,13 +149,13 @@ void SIPDialogClient::processTimeout()
     transactionUser_->peerRejected(sessionID_);
   }
 
-  SIPClientTransaction::processTimeout();
+  SIPClient::processTimeout();
 }
 
 
 bool SIPDialogClient::startTransaction(RequestType type)
 {
-  if (SIPClientTransaction::startTransaction(type))
+  if (SIPClient::startTransaction(type))
   {
     emit sendDialogRequest(sessionID_, type);
     return true;

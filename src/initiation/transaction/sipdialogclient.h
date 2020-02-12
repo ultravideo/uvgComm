@@ -1,11 +1,11 @@
-#include "sipclienttransaction.h"
+#include "sipclient.h"
 
 #pragma once
 
 
 // Sending SIP Requests and processing of SIP responses that belong to a dialog.
 
-class SIPDialogClient : public SIPClientTransaction
+class SIPDialogClient : public SIPClient
 {
   Q_OBJECT
 public:

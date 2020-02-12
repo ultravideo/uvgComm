@@ -1,7 +1,7 @@
 #pragma once
 
 #include "initiation/transport/connectionserver.h"
-#include "initiation/transaction/siptransactions.h"
+#include "initiation/transaction/sipdialogmanager.h"
 #include "initiation/transaction/sipregistrations.h"
 #include "initiation/negotiation/negotiation.h"
 
@@ -102,7 +102,7 @@ private:
   quint32 nextTransportID_; // the next free transportID to be allocated
 
   // SIP Transactions layer
-  SIPTransactions transactions_;
+  SIPDialogManager dialogManager_;
 
   SIPRegistrations registrations_;
 

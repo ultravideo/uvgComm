@@ -1,4 +1,4 @@
-#include "sipservertransaction.h"
+#include "sipserver.h"
 
 #include "initiation/siptransactionuser.h"
 #include "initiation/transaction/sipdialogstate.h"
@@ -7,13 +7,13 @@
 
 #include <QDebug>
 
-SIPServerTransaction::SIPServerTransaction():
+SIPServer::SIPServer():
   sessionID_(0),
   receivedRequest_(nullptr),
   transactionUser_(nullptr)
 {}
 
-void SIPServerTransaction::init(SIPTransactionUser* tu, uint32_t sessionID)
+void SIPServer::init(SIPTransactionUser* tu, uint32_t sessionID)
 {
   transactionUser_ = tu;
   sessionID_ = sessionID;
@@ -27,7 +27,7 @@ void SIPServerTransaction::setCurrentRequest(SIPRequest& request)
 */
 
 // processes incoming request
-bool SIPServerTransaction::processRequest(SIPRequest& request,
+bool SIPServer::processRequest(SIPRequest& request,
                                           SIPDialogState &state)
 {
   Q_ASSERT(transactionUser_ && sessionID_);
@@ -107,7 +107,7 @@ bool SIPServerTransaction::processRequest(SIPRequest& request,
   return true;
 }
 
-void SIPServerTransaction::getResponseMessage(std::shared_ptr<SIPMessageInfo> &outMessage,
+void SIPServer::getResponseMessage(std::shared_ptr<SIPMessageInfo> &outMessage,
                                               ResponseType type)
 {
   if(receivedRequest_ == nullptr)
@@ -136,23 +136,23 @@ void SIPServerTransaction::getResponseMessage(std::shared_ptr<SIPMessageInfo> &o
   }
 }
 
-void SIPServerTransaction::responseAccept()
+void SIPServer::responseAccept()
 {
   responseSender(SIP_OK);
 }
 
-void SIPServerTransaction::respondReject()
+void SIPServer::respondReject()
 {
   responseSender(SIP_DECLINE);
 }
 
-void SIPServerTransaction::responseSender(ResponseType type)
+void SIPServer::responseSender(ResponseType type)
 {
   Q_ASSERT(receivedRequest_ != nullptr);
   emit sendResponse(sessionID_, type);
 }
 
-void SIPServerTransaction::copyMessageDetails(std::shared_ptr<SIPMessageInfo>& inMessage,
+void SIPServer::copyMessageDetails(std::shared_ptr<SIPMessageInfo>& inMessage,
                         std::shared_ptr<SIPMessageInfo>& copy)
 {
   Q_ASSERT(inMessage);

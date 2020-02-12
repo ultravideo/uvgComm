@@ -1,4 +1,4 @@
-#include "sipclienttransaction.h"
+#include "sipclient.h"
 
 #include "initiation/siptransactionuser.h"
 
@@ -9,7 +9,7 @@
 // 1 minute for the user to react
 const unsigned int INVITE_TIMEOUT = 60000;
 
-SIPClientTransaction::SIPClientTransaction():
+SIPClient::SIPClient():
   ongoingTransactionType_(SIP_NO_REQUEST)
 {
   requestTimer_.setSingleShot(true);
@@ -17,7 +17,7 @@ SIPClientTransaction::SIPClientTransaction():
 }
 
 
-bool SIPClientTransaction::processResponse(SIPResponse& response,
+bool SIPClient::processResponse(SIPResponse& response,
                                            SIPDialogState &state)
 {
   Q_UNUSED(state);
@@ -78,7 +78,7 @@ bool SIPClientTransaction::processResponse(SIPResponse& response,
 }
 
 
-void SIPClientTransaction::getRequestMessageInfo(RequestType type,
+void SIPClient::getRequestMessageInfo(RequestType type,
                                                  std::shared_ptr<SIPMessageInfo>& outMessage)
 {
   outMessage = std::shared_ptr<SIPMessageInfo> (new SIPMessageInfo);
@@ -111,7 +111,7 @@ void SIPClientTransaction::getRequestMessageInfo(RequestType type,
 }
 
 
-bool SIPClientTransaction::startTransaction(RequestType type)
+bool SIPClient::startTransaction(RequestType type)
 {
   printDebug(DEBUG_NORMAL, this,
              "Client starts sending a request.", {"Type"}, {QString::number(type)});
@@ -143,14 +143,14 @@ bool SIPClientTransaction::startTransaction(RequestType type)
 }
 
 
-void SIPClientTransaction::processTimeout()
+void SIPClient::processTimeout()
 {
   requestTimer_.stop();
   ongoingTransactionType_ = SIP_NO_REQUEST;
 }
 
 
-void SIPClientTransaction::requestTimeOut()
+void SIPClient::requestTimeOut()
 {
   printWarning(this, "No response. Request timed out.",
     {"Ongoing transaction"}, {QString::number(ongoingTransactionType_)});

@@ -1,4 +1,4 @@
-#include "initiation/transaction/siptransactions.h"
+#include "initiation/transaction/sipdialogmanager.h"
 
 #include "initiation/transaction/sipdialog.h"
 
@@ -6,21 +6,21 @@
 const uint32_t FIRSTSESSIONID = 1;
 
 
-SIPTransactions::SIPTransactions():
+SIPDialogManager::SIPDialogManager():
   pendingConnectionMutex_(),
   nextSessionID_(FIRSTSESSIONID),
   dialogs_(),
   transactionUser_(nullptr)
 {}
 
-void SIPTransactions::init(SIPTransactionUser *callControl)
+void SIPDialogManager::init(SIPTransactionUser *callControl)
 {
   qDebug() << "Iniating SIP Transactions";
   transactionUser_ = callControl;
 }
 
 
-void SIPTransactions::uninit()
+void SIPDialogManager::uninit()
 {
   dialogs_.clear();
   nextSessionID_ = FIRSTSESSIONID;
@@ -28,14 +28,14 @@ void SIPTransactions::uninit()
 
 
 // reserve sessionID for a future call
-uint32_t SIPTransactions::reserveSessionID()
+uint32_t SIPDialogManager::reserveSessionID()
 {
   ++nextSessionID_;
   return nextSessionID_ - 1;
 }
 
 
-void SIPTransactions::startCall(SIP_URI &address, QString localAddress,
+void SIPDialogManager::startCall(SIP_URI &address, QString localAddress,
                                 uint32_t sessionID, bool registered)
 {
   printNormal(this, "Intializing a new dialog by sending an INVITE");
@@ -44,7 +44,7 @@ void SIPTransactions::startCall(SIP_URI &address, QString localAddress,
 }
 
 
-void SIPTransactions::renegotiateCall(uint32_t sessionID)
+void SIPDialogManager::renegotiateCall(uint32_t sessionID)
 {
   printDebug(DEBUG_NORMAL, "SIP Transactions", 
              "Start the process of sending a re-INVITE");
@@ -53,7 +53,7 @@ void SIPTransactions::renegotiateCall(uint32_t sessionID)
 }
 
 
-void SIPTransactions::renegotiateAllCalls()
+void SIPDialogManager::renegotiateAllCalls()
 {
   for (auto& dialog : dialogs_) {
     renegotiateCall(dialog.first);
@@ -61,7 +61,7 @@ void SIPTransactions::renegotiateAllCalls()
 }
 
 
-uint32_t SIPTransactions::createDialogFromINVITE(QString localAddress,
+uint32_t SIPDialogManager::createDialogFromINVITE(QString localAddress,
                                                  std::shared_ptr<SIPMessageInfo> &invite)
 {
   Q_ASSERT(invite);
@@ -74,24 +74,24 @@ uint32_t SIPTransactions::createDialogFromINVITE(QString localAddress,
 }
 
 
-void SIPTransactions::createDialog(uint32_t sessionID)
+void SIPDialogManager::createDialog(uint32_t sessionID)
 {
   std::shared_ptr<SIPDialog> dialog = std::shared_ptr<SIPDialog> (new SIPDialog);
   dialog->init(sessionID, transactionUser_);
 
 
   QObject::connect(dialog.get(), &SIPDialog::sendRequest,
-                   this, &SIPTransactions::transportRequest);
+                   this, &SIPDialogManager::transportRequest);
 
   QObject::connect(dialog.get(), &SIPDialog::sendResponse,
-                   this, &SIPTransactions::transportResponse);
+                   this, &SIPDialogManager::transportResponse);
 
   dialogMutex_.lock();
   dialogs_[sessionID] = dialog;
   dialogMutex_.unlock();
 }
 
-void SIPTransactions::acceptCall(uint32_t sessionID)
+void SIPDialogManager::acceptCall(uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
 
@@ -104,7 +104,7 @@ void SIPTransactions::acceptCall(uint32_t sessionID)
   dialog->acceptCall();
 }
 
-void SIPTransactions::rejectCall(uint32_t sessionID)
+void SIPDialogManager::rejectCall(uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
   dialogMutex_.lock();
@@ -115,7 +115,7 @@ void SIPTransactions::rejectCall(uint32_t sessionID)
   removeDialog(sessionID);
 }
 
-void SIPTransactions::endCall(uint32_t sessionID)
+void SIPDialogManager::endCall(uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
   dialogMutex_.lock();
@@ -126,7 +126,7 @@ void SIPTransactions::endCall(uint32_t sessionID)
   removeDialog(sessionID);
 }
 
-void SIPTransactions::cancelCall(uint32_t sessionID)
+void SIPDialogManager::cancelCall(uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
 
@@ -137,7 +137,7 @@ void SIPTransactions::cancelCall(uint32_t sessionID)
 }
 
 
-void SIPTransactions::endAllCalls()
+void SIPDialogManager::endAllCalls()
 {
   for(auto& dialog : dialogs_)
   {
@@ -152,7 +152,7 @@ void SIPTransactions::endAllCalls()
 }
 
 
-bool SIPTransactions::identifySession(SIPRequest request,
+bool SIPDialogManager::identifySession(SIPRequest request,
                                       QString localAddress,
                                       uint32_t& out_sessionID)
 {
@@ -196,7 +196,7 @@ bool SIPTransactions::identifySession(SIPRequest request,
 }
 
 
-bool SIPTransactions::identifySession(SIPResponse response, uint32_t& out_sessionID)
+bool SIPDialogManager::identifySession(SIPResponse response, uint32_t& out_sessionID)
 {
   qDebug() << "Attempting to identify SIP response session. Response type:"
            << response.type;
@@ -218,7 +218,7 @@ bool SIPTransactions::identifySession(SIPResponse response, uint32_t& out_sessio
 }
 
 
-void SIPTransactions::processSIPRequest(SIPRequest request, uint32_t sessionID)
+void SIPDialogManager::processSIPRequest(SIPRequest request, uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
   qDebug() << "Starting to process received SIP Request type:" << request.type;
@@ -240,7 +240,7 @@ void SIPTransactions::processSIPRequest(SIPRequest request, uint32_t sessionID)
 }
 
 
-void SIPTransactions::processSIPResponse(SIPResponse response, uint32_t sessionID)
+void SIPDialogManager::processSIPResponse(SIPResponse response, uint32_t sessionID)
 {
   Q_ASSERT(sessionID);
   if (sessionID == 0)
@@ -267,7 +267,7 @@ void SIPTransactions::processSIPResponse(SIPResponse response, uint32_t sessionI
 }
 
 
-void SIPTransactions::removeDialog(uint32_t sessionID)
+void SIPDialogManager::removeDialog(uint32_t sessionID)
 {
   dialogs_.erase(dialogs_.find(sessionID));
   if (dialogs_.empty())

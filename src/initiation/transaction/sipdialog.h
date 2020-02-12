@@ -4,7 +4,7 @@
 
 #include "sipdialogstate.h"
 #include "sipdialogclient.h"
-#include "sipservertransaction.h"
+#include "sipserver.h"
 
 #include <QString>
 #include <QObject>
@@ -58,5 +58,5 @@ private:
 
   SIPDialogState state_;
   SIPDialogClient client_;
-  SIPServerTransaction server_;
+  SIPServer server_;
 };

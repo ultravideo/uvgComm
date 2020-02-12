@@ -21,11 +21,11 @@ class SIPTransactionUser;
 class SIPDialogClient;
 class SIPDialog;
 
-class SIPTransactions : public QObject
+class SIPDialogManager : public QObject
 {
   Q_OBJECT
 public:
-  SIPTransactions();
+  SIPDialogManager();
   
   void init(SIPTransactionUser* callControl);
   void uninit();

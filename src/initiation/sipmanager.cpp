@@ -10,7 +10,7 @@ SIPManager::SIPManager():
   sipPort_(5060), // default for SIP, use 5061 for tls encrypted
   transports_(),
   nextTransportID_(FIRSTTRANSPORTID),
-  transactions_(),
+  dialogManager_(),
   negotiation_()
 {}
 
@@ -37,7 +37,7 @@ void SIPManager::init(SIPTransactionUser* callControl, StatisticsInterface *stat
     // TODO announce it to user!
   }
 
-  transactions_.init(callControl);
+  dialogManager_.init(callControl);
   registrations_.init(statusView);
 
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
@@ -46,9 +46,9 @@ void SIPManager::init(SIPTransactionUser* callControl, StatisticsInterface *stat
 
   negotiation_.setLocalInfo(username);
 
-  QObject::connect(&transactions_, &SIPTransactions::transportRequest,
+  QObject::connect(&dialogManager_, &SIPDialogManager::transportRequest,
                    this, &SIPManager::transportRequest);
-  QObject::connect(&transactions_, &SIPTransactions::transportResponse,
+  QObject::connect(&dialogManager_, &SIPDialogManager::transportResponse,
                    this, &SIPManager::transportResponse);
   QObject::connect(&negotiation_, &Negotiation::iceNominationSucceeded,
                     this, &SIPManager::nominationSucceeded);
@@ -69,7 +69,7 @@ void SIPManager::uninit()
 {
   printNormal(this, "Uninting SIP Manager");
 
-  transactions_.uninit();
+  dialogManager_.uninit();
   registrations_.uninit();
 
   for(std::shared_ptr<SIPTransport> transport : transports_)
@@ -121,7 +121,7 @@ void SIPManager::bindToServer()
 uint32_t SIPManager::startCall(SIP_URI &address)
 {
   quint32 transportID = 0;
-  uint32_t sessionID = transactions_.reserveSessionID();
+  uint32_t sessionID = dialogManager_.reserveSessionID();
 
   // There should not exist a dialog for this user
   if(!negotiation_.canStartSession())
@@ -144,7 +144,7 @@ uint32_t SIPManager::startCall(SIP_URI &address)
     // associate this sessionID with existing transportID
     sessionToTransportID_[sessionID] = transportID;
     // we have an existing connection already. Send SIP message and start call.
-    transactions_.startCall(address,
+    dialogManager_.startCall(address,
                             transports_[transportID]->getLocalAddress(),
                             sessionID, registrations_.haveWeRegistered());
   }
@@ -155,32 +155,32 @@ uint32_t SIPManager::startCall(SIP_URI &address)
 
 void SIPManager::acceptCall(uint32_t sessionID)
 {
-  transactions_.acceptCall(sessionID);
+  dialogManager_.acceptCall(sessionID);
 }
 
 
 void SIPManager::rejectCall(uint32_t sessionID)
 {
-  transactions_.rejectCall(sessionID);
+  dialogManager_.rejectCall(sessionID);
 }
 
 
 void SIPManager::cancelCall(uint32_t sessionID)
 {
-  transactions_.cancelCall(sessionID);
+  dialogManager_.cancelCall(sessionID);
 }
 
 
 void SIPManager::endCall(uint32_t sessionID)
 {
-  transactions_.endCall(sessionID);
+  dialogManager_.endCall(sessionID);
   negotiation_.endSession(sessionID);
 }
 
 
 void SIPManager::endAllCalls()
 {
-  transactions_.endAllCalls();
+  dialogManager_.endAllCalls();
   negotiation_.endAllSessions();
 }
 
@@ -211,7 +211,7 @@ void SIPManager::connectionEstablished(quint32 transportID)
 {
   if (waitingToStart_.find(transportID) != waitingToStart_.end())
   {
-    transactions_.startCall(waitingToStart_[transportID].contact,
+    dialogManager_.startCall(waitingToStart_[transportID].contact,
                             transports_[transportID]->getLocalAddress(),
                             waitingToStart_[transportID].sessionID,
                             registrations_.haveWeRegistered());
@@ -342,7 +342,7 @@ void SIPManager::processSIPRequest(SIPRequest& request, QString localAddress,
 
   // sets the sessionID if session exists or creates a new session if INVITE
   // returns true if either was successful.
-  if (transactions_.identifySession(request, localAddress, sessionID))
+  if (dialogManager_.identifySession(request, localAddress, sessionID))
   {
     Q_ASSERT(sessionID);
     if (sessionID != 0)
@@ -392,7 +392,7 @@ void SIPManager::processSIPRequest(SIPRequest& request, QString localAddress,
         }
         }
       }
-      transactions_.processSIPRequest(request, sessionID);
+      dialogManager_.processSIPRequest(request, sessionID);
     }
     else
     {
@@ -420,7 +420,7 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
 
   uint32_t sessionID = 0;
 
-  if(!transactions_.identifySession(response, sessionID))
+  if(!dialogManager_.identifySession(response, sessionID))
   {
     printDebug(DEBUG_PEER_ERROR, this, 
                "Could not identify response session");
@@ -482,7 +482,7 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
     }
   }
 
-  transactions_.processSIPResponse(response, sessionID);
+  dialogManager_.processSIPResponse(response, sessionID);
 }
 
 

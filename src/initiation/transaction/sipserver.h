@@ -7,7 +7,7 @@
 /* This class implements the behavior defined in RFC3261 for component
  * User Agent Server (UAS). See section 8.2 for details.
  *
- * Server transaction handles processing received requests and sending correct responses.
+ * Server handles processing received requests and sending correct responses.
  */
 
 
@@ -15,11 +15,11 @@ class SIPTransactionUser;
 class SIPDialogState;
 
 
-class SIPServerTransaction : public QObject
+class SIPServer : public QObject
 {
    Q_OBJECT
 public:
-  SIPServerTransaction();
+  SIPServer();
 
   void init(SIPTransactionUser* tu, uint32_t sessionID);
 

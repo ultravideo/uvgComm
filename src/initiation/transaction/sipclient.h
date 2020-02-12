@@ -12,11 +12,11 @@
 class SIPTransactionUser;
 class SIPDialogState;
 
-class SIPClientTransaction : public QObject
+class SIPClient : public QObject
 {
   Q_OBJECT
 public:
-  SIPClientTransaction();
+  SIPClient();
 
   // have we sent this kind of request
   bool waitingResponse(RequestType requestType)
