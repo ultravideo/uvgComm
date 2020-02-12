@@ -28,7 +28,7 @@ void SIPServerTransaction::setCurrentRequest(SIPRequest& request)
 
 // processes incoming request
 bool SIPServerTransaction::processRequest(SIPRequest& request,
-                                          std::shared_ptr<SIPDialogState> state)
+                                          SIPDialogState &state)
 {
   Q_ASSERT(transactionUser_ && sessionID_);
   if(!transactionUser_ || sessionID_ == 0)
@@ -56,7 +56,7 @@ bool SIPServerTransaction::processRequest(SIPRequest& request,
   {
   case SIP_INVITE:
   {
-    if (!state->getState())
+    if (!state.getState())
     {
       if (!transactionUser_->incomingCall(sessionID_, request.message->from.realname))
       {
@@ -71,13 +71,13 @@ bool SIPServerTransaction::processRequest(SIPRequest& request,
   }
   case SIP_ACK:
   {
-    state->setState(true);
+    state.setState(true);
     transactionUser_->callNegotiated(sessionID_);
     break;
   }
   case SIP_BYE:
   {
-    state->setState(false);
+    state.setState(false);
     transactionUser_->endCall(sessionID_);
     return false;
   }
@@ -136,12 +136,12 @@ void SIPServerTransaction::getResponseMessage(std::shared_ptr<SIPMessageInfo> &o
   }
 }
 
-void SIPServerTransaction::acceptCall()
+void SIPServerTransaction::responseAccept()
 {
   responseSender(SIP_OK);
 }
 
-void SIPServerTransaction::rejectCall()
+void SIPServerTransaction::respondReject()
 {
   responseSender(SIP_DECLINE);
 }

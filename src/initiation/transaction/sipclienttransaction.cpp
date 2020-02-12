@@ -9,13 +9,8 @@
 // 1 minute for the user to react
 const unsigned int INVITE_TIMEOUT = 60000;
 
-SIPClientTransaction::SIPClientTransaction(SIPTransactionUser* tu):
-  ongoingTransactionType_(SIP_NO_REQUEST),
-  transactionUser_(tu)
-{}
-
-
-void SIPClientTransaction::init()
+SIPClientTransaction::SIPClientTransaction():
+  ongoingTransactionType_(SIP_NO_REQUEST)
 {
   requestTimer_.setSingleShot(true);
   connect(&requestTimer_, SIGNAL(timeout()), this, SLOT(requestTimeOut()));
@@ -23,7 +18,7 @@ void SIPClientTransaction::init()
 
 
 bool SIPClientTransaction::processResponse(SIPResponse& response,
-                                           std::shared_ptr<SIPDialogState> state)
+                                           SIPDialogState &state)
 {
   Q_UNUSED(state);
 

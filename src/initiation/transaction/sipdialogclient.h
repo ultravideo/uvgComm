@@ -9,22 +9,22 @@ class SIPDialogClient : public SIPClientTransaction
 {
   Q_OBJECT
 public:
-  SIPDialogClient(SIPTransactionUser* tu);
+  SIPDialogClient();
 
-  void setSessionID(uint32_t sessionID);
+  void init(SIPTransactionUser* tu, uint32_t sessionID);
 
   virtual void getRequestMessageInfo(RequestType type,
                                      std::shared_ptr<SIPMessageInfo> &outMessage);
 
   virtual bool processResponse(SIPResponse& response,
-                               std::shared_ptr<SIPDialogState> state);
+                               SIPDialogState& state);
 
   // send a request
   bool startCall(QString callee);
-  void endCall();
-  void cancelCall();
+  void requestEnd();
+  void requestCancel();
 
-  void renegotiateCall();
+  void requestRenegotiation();
 
 protected:
   virtual void processTimeout();
@@ -39,4 +39,6 @@ signals:
 
 private:
   uint32_t sessionID_;
+
+  SIPTransactionUser* transactionUser_;
 };

@@ -19,10 +19,9 @@ SIPRegistrations::SIPRegistrations():
 {}
 
 
-void SIPRegistrations::init(SIPTransactionUser *callControl, ServerStatusView *statusView)
+void SIPRegistrations::init(ServerStatusView *statusView)
 {
   printNormal(this, "Initiatin Registrations");
-  transactionUser_ = callControl;
   statusView_ = statusView;
 
   QObject::connect(&retryTimer_, &QTimer::timeout,
@@ -37,10 +36,10 @@ void SIPRegistrations::uninit()
 {
   for (auto& registration : registrations_)
   {
-    if (registration.second.active)
+    if (registration.second->active)
     {
-      registration.second.client->unRegister();
-      registration.second.active = false;
+      registration.second->client.unRegister();
+      registration.second->active = false;
     }
   }
 
@@ -53,31 +52,22 @@ void SIPRegistrations::bindToServer(QString serverAddress, QString localAddress,
 {
   qDebug() << "Binding to SIP server at:" << serverAddress;
 
-  Q_ASSERT(transactionUser_);
-  if(transactionUser_)
-  {
-    SIPRegistrationData data = {std::shared_ptr<SIPNonDialogClient> (new SIPNonDialogClient(transactionUser_)),
-                                std::shared_ptr<SIPDialogState> (new SIPDialogState()),
-                                localAddress, port, false, false};
+  std::shared_ptr<SIPRegistrationData> data
+      = std::shared_ptr<SIPRegistrationData>
+      (new SIPRegistrationData{{}, {}, localAddress, port, false, false});
 
-    SIP_URI serverUri = {TRANSPORTTYPE, "", "", serverAddress, 0, {}};
-    data.state->createServerConnection(serverUri);
-    data.client->init();
-    data.client->set_remoteURI(serverUri);
-    registrations_[serverAddress] = data;
+  SIP_URI serverUri = {TRANSPORTTYPE, "", "", serverAddress, 0, {}};
+  data->state.createServerConnection(serverUri);
+  data->client.set_remoteURI(serverUri);
+  registrations_[serverAddress] = data;
 
-    QObject::connect(registrations_[serverAddress].client.get(),
-                     &SIPNonDialogClient::sendNondialogRequest,
-                     this, &SIPRegistrations::sendNonDialogRequest);
+  QObject::connect(&registrations_[serverAddress]->client,
+                   &SIPNonDialogClient::sendNondialogRequest,
+                   this, &SIPRegistrations::sendNonDialogRequest);
 
-    statusView_->updateServerStatus(ServerStatus::IN_PROCESS);
+  statusView_->updateServerStatus(ServerStatus::IN_PROCESS);
 
-    registrations_[serverAddress].client->registerToServer();
-  }
-  else
-  {
-    printProgramError(this, "Not initialized with transaction user");
-  }
+  registrations_[serverAddress]->client.registerToServer();
 }
 
 
@@ -88,11 +78,11 @@ bool SIPRegistrations::identifyRegistration(SIPResponse& response, QString &outA
   // check if this is a response from the server.
   for (auto i = registrations_.begin(); i != registrations_.end(); ++i)
   {
-    if(i->second.state->correctResponseDialog(response.message->dialog,
+    if(i->second->state.correctResponseDialog(response.message->dialog,
                                               response.message->cSeq, false))
     {
       // TODO: we should check that every single detail is as specified in rfc.
-      if(i->second.client->waitingResponse(response.message->transactionRequest))
+      if(i->second->client.waitingResponse(response.message->transactionRequest))
       {
         qDebug() << "Found dialog matching the response";
         outAddress = i->first;
@@ -122,37 +112,37 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
     {
       if (i.first == response.message->to.host)
       {
-        if (!i.second.client->processResponse(response, i.second.state))
+        if (!i.second->client.processResponse(response, i.second->state))
         {
           printWarning(this, "Got a failure response to our REGISTER");
-          i.second.active = false;
+          i.second->active = false;
           return;
         }
 
         if (response.type == SIP_OK)
         {
-          i.second.active = true;
+          i.second->active = true;
 
           foundRegistration = true;
 
-          if (!i.second.updatedContact &&
+          if (!i.second->updatedContact &&
               response.message->vias.at(0).receivedAddress != "" &&
               response.message->vias.at(0).rportValue != 0 &&
-              (i.second.contactAddress != response.message->vias.at(0).receivedAddress ||
-               i.second.contactPort != response.message->vias.at(0).rportValue))
+              (i.second->contactAddress != response.message->vias.at(0).receivedAddress ||
+               i.second->contactPort != response.message->vias.at(0).rportValue))
           {
 
             qDebug() << "Detected that we are behind NAT! Sending a second REGISTER";
 
-            i.second.contactAddress = response.message->contact.host;
-            i.second.contactPort = response.message->contact.port;
+            i.second->contactAddress = response.message->contact.host;
+            i.second->contactPort = response.message->contact.port;
 
             // makes sure we don't end up in infinite loop if the address doesn't match
-            i.second.updatedContact = true;
+            i.second->updatedContact = true;
 
             statusView_->updateServerStatus(ServerStatus::BEHIND_NAT);
 
-            i.second.client->registerToServer(); // re-REGISTER with NAT address and port
+            i.second->client.registerToServer(); // re-REGISTER with NAT address and port
           }
           else
           {
@@ -198,10 +188,10 @@ void SIPRegistrations::refreshRegistrations()
 
   for (auto& i : registrations_)
   {
-    if (i.second.active)
+    if (i.second->active)
     {
       statusView_->updateServerStatus(ServerStatus::IN_PROCESS);
-      i.second.client->registerToServer();
+      i.second->client.registerToServer();
     }
   }
 }
@@ -213,7 +203,7 @@ bool SIPRegistrations::haveWeRegistered()
 
   for (auto& i : registrations_)
   {
-    if (i.second.active)
+    if (i.second->active)
     {
       registered = true;
     }
@@ -240,8 +230,8 @@ void SIPRegistrations::sendNonDialogRequest(SIP_URI& uri, RequestType type)
       return;
     }
 
-    registrations_[uri.host].client->getRequestMessageInfo(request.type, request.message);
-    registrations_[uri.host].state->getRequestDialogInfo(request);
+    registrations_[uri.host]->client.getRequestMessageInfo(request.type, request.message);
+    registrations_[uri.host]->state.getRequestDialogInfo(request);
 
     QVariant content; // we dont have content in REGISTER
     emit transportProxyRequest(uri.host, request);

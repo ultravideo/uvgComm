@@ -1,10 +1,6 @@
 #include "initiation/transaction/siptransactions.h"
 
-#include "initiation/transaction/sipdialogstate.h"
-#include "initiation/transport/siptransport.h"
-
-#include "initiation/transaction/sipdialogclient.h"
-#include "initiation/transaction/sipservertransaction.h"
+#include "initiation/transaction/sipdialog.h"
 
 
 const uint32_t FIRSTSESSIONID = 1;
@@ -26,12 +22,6 @@ void SIPTransactions::init(SIPTransactionUser *callControl)
 
 void SIPTransactions::uninit()
 {
-  //TODO: delete all dialogs
-  for(auto i = dialogs_.begin(); i != dialogs_.end(); ++i)
-  {
-    destroyDialog(i->first);
-  }
-
   dialogs_.clear();
   nextSessionID_ = FIRSTSESSIONID;
 }
@@ -45,23 +35,12 @@ uint32_t SIPTransactions::reserveSessionID()
 }
 
 
-void SIPTransactions::startCall(Contact &address, QString localAddress,
+void SIPTransactions::startCall(SIP_URI &address, QString localAddress,
                                 uint32_t sessionID, bool registered)
 {
-  qDebug() << "SIP," << metaObject()->className() << ": Intializing a new dialog with INVITE";
-
-  std::shared_ptr<SIPDialogData> dialogData;
-  createBaseDialog(sessionID, dialogData);
-  dialogData->state->createNewDialog(SIP_URI{TRANSPORTTYPE, address.username, address.username,
-                                             address.remoteAddress,  0, {}},
-                                     localAddress, registered);
-
-  // this start call will commence once the connection has been established
-  if(!dialogData->client->startCall(address.realName))
-  {
-    printDebug(DEBUG_WARNING, this, 
-               "Could not start a call according to session.");
-  }
+  printNormal(this, "Intializing a new dialog by sending an INVITE");
+  createDialog(sessionID);
+  dialogs_[sessionID]->startCall(address, localAddress, registered);
 }
 
 
@@ -70,7 +49,7 @@ void SIPTransactions::renegotiateCall(uint32_t sessionID)
   printDebug(DEBUG_NORMAL, "SIP Transactions", 
              "Start the process of sending a re-INVITE");
 
-  dialogs_[sessionID]->client->renegotiateCall();
+  dialogs_[sessionID]->renegotiateCall();
 }
 
 
@@ -88,39 +67,28 @@ uint32_t SIPTransactions::createDialogFromINVITE(QString localAddress,
   Q_ASSERT(invite);
 
   uint32_t sessionID = reserveSessionID();
+  createDialog(sessionID);
 
-  std::shared_ptr<SIPDialogData> dialog;
-  createBaseDialog(sessionID, dialog);
-
-  dialog->state->createDialogFromINVITE(invite, localAddress);
+  dialogs_[sessionID]->createDialogFromINVITE(invite, localAddress);
   return sessionID;
 }
 
 
-void SIPTransactions::createBaseDialog(uint32_t sessionID,
-                                       std::shared_ptr<SIPDialogData>& dialog)
+void SIPTransactions::createDialog(uint32_t sessionID)
 {
-  dialog = std::shared_ptr<SIPDialogData> (new SIPDialogData);
+  std::shared_ptr<SIPDialog> dialog = std::shared_ptr<SIPDialog> (new SIPDialog);
+  dialog->init(sessionID, transactionUser_);
+
+
+  QObject::connect(dialog.get(), &SIPDialog::sendRequest,
+                   this, &SIPTransactions::transportRequest);
+
+  QObject::connect(dialog.get(), &SIPDialog::sendResponse,
+                   this, &SIPTransactions::transportResponse);
+
   dialogMutex_.lock();
-
-  dialog->state = std::shared_ptr<SIPDialogState> (new SIPDialogState());
-
-  dialog->client = std::shared_ptr<SIPDialogClient> (new SIPDialogClient(transactionUser_));
-  dialog->client->init();
-  dialog->client->setSessionID(sessionID);
-
-  dialog->server = std::shared_ptr<SIPServerTransaction> (new SIPServerTransaction);
-  dialog->server->init(transactionUser_, sessionID);
-
   dialogs_[sessionID] = dialog;
-
   dialogMutex_.unlock();
-
-  QObject::connect(dialog->client.get(), &SIPDialogClient::sendDialogRequest,
-                   this, &SIPTransactions::sendDialogRequest);
-
-  QObject::connect(dialog->server.get(), &SIPServerTransaction::sendResponse,
-                   this, &SIPTransactions::sendResponse);
 }
 
 void SIPTransactions::acceptCall(uint32_t sessionID)
@@ -130,21 +98,20 @@ void SIPTransactions::acceptCall(uint32_t sessionID)
   qDebug() << "Accept, SIPTransaction" << "accepting call:" << sessionID;
 
   dialogMutex_.lock();
-  std::shared_ptr<SIPDialogData> dialog = dialogs_[sessionID];
+  std::shared_ptr<SIPDialog> dialog = dialogs_[sessionID];
   dialogMutex_.unlock();
 
-  dialog->server->acceptCall();
+  dialog->acceptCall();
 }
 
 void SIPTransactions::rejectCall(uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
   dialogMutex_.lock();
-  std::shared_ptr<SIPDialogData> dialog = dialogs_[sessionID];
+  std::shared_ptr<SIPDialog> dialog = dialogs_[sessionID];
   dialogMutex_.unlock();
-  dialog->server->rejectCall();
+  dialog->rejectCall();
 
-  destroyDialog(sessionID);
   removeDialog(sessionID);
 }
 
@@ -152,11 +119,10 @@ void SIPTransactions::endCall(uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
   dialogMutex_.lock();
-  std::shared_ptr<SIPDialogData> dialog = dialogs_[sessionID];
+  std::shared_ptr<SIPDialog> dialog = dialogs_[sessionID];
   dialogMutex_.unlock();
-  dialog->client->endCall();
+  dialog->endCall();
 
-  destroyDialog(sessionID);
   removeDialog(sessionID);
 }
 
@@ -164,10 +130,9 @@ void SIPTransactions::cancelCall(uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
 
-  std::shared_ptr<SIPDialogData> dialog = dialogs_[sessionID];
-  dialog->client->cancelCall();
+  std::shared_ptr<SIPDialog> dialog = dialogs_[sessionID];
+  dialog->cancelCall();
 
-  destroyDialog(sessionID);
   removeDialog(sessionID);
 }
 
@@ -178,14 +143,10 @@ void SIPTransactions::endAllCalls()
   {
     if(dialog.second != nullptr)
     {
-      dialog.second->client->endCall();
+      dialog.second->endCall();
     }
   }
 
-  for(auto i = dialogs_.begin(); i != dialogs_.end(); ++i)
-  {
-    destroyDialog(i->first);
-  }
   dialogs_.clear();
   nextSessionID_ = FIRSTSESSIONID;
 }
@@ -204,9 +165,7 @@ bool SIPTransactions::identifySession(SIPRequest request,
   for (auto i = dialogs_.begin(); i != dialogs_.end(); ++i)
   {
     if(i->second != nullptr &&
-       i->second->state->correctRequestDialog(request.message->dialog,
-                                              request.type,
-                                              request.message->cSeq))
+       i->second->isThisYours(request))
     {
       qDebug() << "Found dialog matching for incoming request.";
       out_sessionID = i->first;
@@ -215,7 +174,7 @@ bool SIPTransactions::identifySession(SIPRequest request,
   dialogMutex_.unlock();
 
   // find the dialog which corresponds to the callID and tags received in request
-  std::shared_ptr<SIPDialogData> foundDialog;
+  std::shared_ptr<SIPDialog> foundDialog;
 
   // we did not find existing dialog for this request
   if(out_sessionID == 0)
@@ -247,26 +206,15 @@ bool SIPTransactions::identifySession(SIPResponse response, uint32_t& out_sessio
   for (auto i = dialogs_.begin(); i != dialogs_.end(); ++i)
   {
     if(i->second != nullptr &&
-       i->second->state->correctResponseDialog(response.message->dialog,
-                                               response.message->cSeq))
+       i->second->isThisYours(response))
     {
-      // TODO: we should check that every single detail is as specified in rfc.
-      if(i->second->client->waitingResponse(response.message->transactionRequest))
-      {
-        qDebug() << "Found dialog matching the response";
-        out_sessionID = i->first;
-        break;
-      }
-      else
-      {
-        qDebug() << "PEER_ERROR: Found the dialog, "
-                    "but we have not sent a request to their response.";
-        return false;
-      }
+      qDebug() << "Found dialog matching the response";
+      out_sessionID = i->first;
+      return true;
     }
   }
 
-  return out_sessionID != 0;
+  return false;
 }
 
 
@@ -278,21 +226,17 @@ void SIPTransactions::processSIPRequest(SIPRequest request, uint32_t sessionID)
   dialogMutex_.lock();
 
   // find the dialog which corresponds to the callID and tags received in request
-  std::shared_ptr<SIPDialogData> foundDialog;
+  std::shared_ptr<SIPDialog> foundDialog;
   foundDialog = dialogs_[sessionID];
   dialogMutex_.unlock();
 
-  // check correct initialization
-  Q_ASSERT(foundDialog->state);
-
-  if(!foundDialog->server->processRequest(request, foundDialog->state))
+  if(!foundDialog->processRequest(request))
   {
-    qDebug() << "Ending session because server Transaction said to.";
-
-    // TODO: SHould we do something?
+    printUnimplemented(this, "Ending session as a results of request. Most likely BYE.");
   }
 
-  qDebug() << "Finished processing request:" << request.type << "Dialog:" << sessionID;
+  printNormal(this, "Finished processing request.",
+    {"SessionID"}, {QString::number(sessionID)});
 }
 
 
@@ -306,98 +250,22 @@ void SIPTransactions::processSIPResponse(SIPResponse response, uint32_t sessionI
     return;
   }
 
-  qDebug() << "Starting to process received SIP Response:" << response.type;
   dialogMutex_.lock();
 
-  // check correct initialization
-  Q_ASSERT(dialogs_[sessionID]->state);
-
+  // find the dialog which corresponds to the callID and tags received in request
+  std::shared_ptr<SIPDialog> foundDialog;
+  foundDialog = dialogs_[sessionID];
   dialogMutex_.unlock();
 
-  // TODO: if our request was INVITE and response is 2xx or 101-199, create dialog
-  // TODO: prechecks that the response is ok, then modify program state.
-
-  if (response.type == SIP_OK && response.message->transactionRequest == SIP_INVITE)
+  if (!foundDialog->processResponse(response))
   {
-    dialogs_[sessionID]->state->setRequestUri(response.message->contact);
-  }
-
-  if(!dialogs_[sessionID]->client->processResponse(response, dialogs_[sessionID]->state))
-  {
-    // destroy dialog
-    destroyDialog(sessionID);
     removeDialog(sessionID);
   }
-  else if (!response.message->recordRoutes.empty())
-  {
-    dialogs_[sessionID]->state->setRoute(response.message->recordRoutes);
-  }
 
-  qDebug() << "Response processing finished:" << response.type << "Dialog:" << sessionID;
+  printNormal(this, "Response processing finished",
+      {"SessionID"}, {QString::number(sessionID)});
 }
 
-
-void SIPTransactions::sendDialogRequest(uint32_t sessionID, RequestType type)
-{
-  qDebug() << "---- Iniated sending of a dialog request:" << type << "----";
-  Q_ASSERT(sessionID != 0 && dialogs_.find(sessionID) != dialogs_.end());
-  // Get all the necessary information from different components.
-
-  SIPRequest request;
-  request.type = type;
-
-  // Get message info
-  dialogs_[sessionID]->client->getRequestMessageInfo(type, request.message);
-  dialogs_[sessionID]->client->startTimer(type);
-
-  // TODO: maybe get the local address from dialogState contact address instead?
-  dialogs_[sessionID]->state->getRequestDialogInfo(request);
-
-  Q_ASSERT(request.message != nullptr);
-  Q_ASSERT(request.message->dialog != nullptr);
-
-
-  emit transportRequest(sessionID, request);
-  qDebug() << "---- Finished sending of a dialog request ---";
-}
-
-
-void SIPTransactions::sendResponse(uint32_t sessionID, ResponseType type)
-{
-  qDebug() << "---- Iniated sending of a response:" << type << "----";
-  Q_ASSERT(sessionID != 0 && dialogs_.find(sessionID) != dialogs_.end());
-
-  // Get all the necessary information from different components.
-  SIPResponse response;
-  response.type = type;
-  dialogs_[sessionID]->server->getResponseMessage(response.message, type);
-
-  emit transportResponse(sessionID, response);
-  qDebug() << "---- Finished sending of a response ---";
-}
-
-
-void SIPTransactions::destroyDialog(uint32_t sessionID)
-{
-  Q_ASSERT(sessionID);
-  Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
-  dialogMutex_.lock();
-  std::shared_ptr<SIPDialogData> dialog = dialogs_[sessionID];
-  dialogMutex_.unlock();
-
-  if(dialog == nullptr)
-  {
-    printDebug(DEBUG_PROGRAM_ERROR, this,
-               "Bad sessionID for destruction.");
-    return;
-  }
-  printDebug(DEBUG_NORMAL, this,  "Destroying SIP dialog",
-                {"SessionID"}, {QString::number(sessionID)});
-
-  dialog->state.reset();
-  dialog->server.reset();
-  dialog->client.reset();
-}
 
 void SIPTransactions::removeDialog(uint32_t sessionID)
 {

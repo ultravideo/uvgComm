@@ -38,7 +38,7 @@ void SIPManager::init(SIPTransactionUser* callControl, StatisticsInterface *stat
   }
 
   transactions_.init(callControl);
-  registrations_.init(callControl, statusView);
+  registrations_.init(statusView);
 
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
   QString username = !settings.value("local/Username").isNull()
@@ -118,7 +118,7 @@ void SIPManager::bindToServer()
 }
 
 
-uint32_t SIPManager::startCall(Contact& address)
+uint32_t SIPManager::startCall(SIP_URI &address)
 {
   quint32 transportID = 0;
   uint32_t sessionID = transactions_.reserveSessionID();
@@ -131,13 +131,13 @@ uint32_t SIPManager::startCall(Contact& address)
   }
 
   // check if we are already connected to remoteaddress and set transportID
-  if (!isConnected(address.remoteAddress, transportID))
+  if (!isConnected(address.host, transportID))
   {
     // we are not yet connected to them. Form a connection by creating the transport layer
     std::shared_ptr<SIPTransport> transport = createSIPTransport();
     transportID = transport->getTransportID(); // Get new transportID
     sessionToTransportID_[sessionID] = transportID;
-    transport->createConnection(TRANSPORTTYPE, address.remoteAddress);
+    transport->createConnection(TRANSPORTTYPE, address.host);
     waitingToStart_[transportID] = {sessionID, address};
   }
   else {

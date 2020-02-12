@@ -11,7 +11,7 @@ class SIPNonDialogClient : public SIPClientTransaction
 {
   Q_OBJECT
 public:
-  SIPNonDialogClient(SIPTransactionUser* tu);
+  SIPNonDialogClient();
 
   void set_remoteURI(SIP_URI& uri);
 
@@ -20,7 +20,7 @@ public:
                              std::shared_ptr<SIPMessageInfo> &outMessage);
 
   virtual bool processResponse(SIPResponse& response,
-                               std::shared_ptr<SIPDialogState> state);
+                               SIPDialogState& state);
 
   void registerToServer();
   void unRegister();

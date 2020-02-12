@@ -1,5 +1,8 @@
 #pragma once
 
+#include "initiation/transaction/sipnondialogclient.h"
+#include "initiation/transaction/sipdialogstate.h"
+
 #include "initiation/siptypes.h"
 
 #include <QObject>
@@ -17,7 +20,7 @@ class SIPRegistrations : public QObject
 public:
   SIPRegistrations();
 
-  void init(SIPTransactionUser* callControl, ServerStatusView* statusView);
+  void init(ServerStatusView* statusView);
 
   // return if we can delete
   void uninit();
@@ -47,8 +50,8 @@ private:
 
   struct SIPRegistrationData
   {
-    std::shared_ptr<SIPNonDialogClient> client;
-    std::shared_ptr<SIPDialogState> state;
+    SIPNonDialogClient client;
+    SIPDialogState state;
 
     QString contactAddress;
     uint16_t contactPort;
@@ -57,10 +60,8 @@ private:
     bool updatedContact;
   };
 
-  std::map<QString, SIPRegistrationData> registrations_;
+  std::map<QString, std::shared_ptr<SIPRegistrationData>> registrations_;
 
-  SIPTransactionUser* transactionUser_;
   ServerStatusView* statusView_;
-
- QTimer retryTimer_;
+  QTimer retryTimer_;
 };

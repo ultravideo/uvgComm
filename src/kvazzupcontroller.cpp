@@ -63,16 +63,17 @@ uint32_t KvazzupController::callToParticipant(QString name, QString username, QS
 {
   QString ip_str = ip;
 
-  Contact con;
-  con.remoteAddress = ip_str;
-  con.realName = name;
-  con.username = username;
+  SIP_URI uri;
+  uri.host = ip_str;
+  uri.realname = name;
+  uri.username = username;
+  uri.port = 0;
 
   //start negotiations for this connection
 
-  printNormal(this, "Starting call with contact", {"Contact"}, {con.realName});
+  printNormal(this, "Starting call with contact", {"Contact"}, {uri.realname});
 
-  return sip_.startCall(con);
+  return sip_.startCall(uri);
 }
 
 uint32_t KvazzupController::chatWithParticipant(QString name, QString username,

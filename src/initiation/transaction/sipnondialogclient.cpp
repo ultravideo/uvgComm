@@ -5,8 +5,8 @@
 #include <QDebug>
 
 
-SIPNonDialogClient::SIPNonDialogClient(SIPTransactionUser *tu):
-  SIPClientTransaction (tu),
+SIPNonDialogClient::SIPNonDialogClient():
+  SIPClientTransaction (),
   expires_(REGISTER_INTERVAL)
 {}
 
@@ -34,7 +34,7 @@ void SIPNonDialogClient::getRequestMessageInfo(RequestType type,
 
 
 bool SIPNonDialogClient::processResponse(SIPResponse& response,
-                                         std::shared_ptr<SIPDialogState> state)
+                                         SIPDialogState &state)
 {
   return SIPClientTransaction::processResponse(response, state);
 }

@@ -9,15 +9,17 @@
 
 
 
-SIPDialogClient::SIPDialogClient(SIPTransactionUser* tu):SIPClientTransaction(tu),
-  sessionID_(0)
+SIPDialogClient::SIPDialogClient():
+  sessionID_(0),
+  transactionUser_(nullptr)
 {}
 
-
-void SIPDialogClient::setSessionID(uint32_t sessionID)
+void SIPDialogClient::init(SIPTransactionUser* tu, uint32_t sessionID)
 {
   Q_ASSERT(sessionID != 0);
   sessionID_ = sessionID;
+
+  transactionUser_ = tu;
 }
 
 
@@ -38,7 +40,7 @@ void SIPDialogClient::getRequestMessageInfo(RequestType type,
 
 //processes incoming response
 bool SIPDialogClient::processResponse(SIPResponse& response,
-                                      std::shared_ptr<SIPDialogState> state)
+                                      SIPDialogState &state)
 {
   printNormal(this, "Client starts processing response");
   Q_ASSERT(sessionID_ != 0);
@@ -59,7 +61,7 @@ bool SIPDialogClient::processResponse(SIPResponse& response,
   if(response.type == SIP_DECLINE)
   {
     qDebug() << "Got a Global Failure Response Code for INVITE";
-    getTransactionUser()->peerRejected(sessionID_);
+    transactionUser_->peerRejected(sessionID_);
   }
 
   // check if this is failure that requires shutdown of session
@@ -75,22 +77,22 @@ bool SIPDialogClient::processResponse(SIPResponse& response,
   {
     if(response.type == SIP_RINGING)
     {
-      if (!state->getState())
+      if (!state.getState())
       {
-        getTransactionUser()->callRinging(sessionID_);
+        transactionUser_->callRinging(sessionID_);
       }
     }
     else if(response.type == SIP_OK)
     {
-      if (!state->getState())
+      if (!state.getState())
       {
-        getTransactionUser()->peerAccepted(sessionID_);
+        transactionUser_->peerAccepted(sessionID_);
       }
 
       if (startTransaction(SIP_ACK))
       {
-        state->setState(true);
-        getTransactionUser()->callNegotiated(sessionID_);
+        state.setState(true);
+        transactionUser_->callNegotiated(sessionID_);
       }
     }
   }
@@ -111,27 +113,27 @@ bool SIPDialogClient::startCall(QString callee)
 
   if (startTransaction(SIP_INVITE))
   {
-    getTransactionUser()->outgoingCall(sessionID_, callee);
+    transactionUser_->outgoingCall(sessionID_, callee);
   }
 
   return true;
 }
 
 
-void SIPDialogClient::endCall()
+void SIPDialogClient::requestEnd()
 {
   qDebug() << "Ending the call with BYE";
   startTransaction(SIP_BYE);
 }
 
 
-void SIPDialogClient::cancelCall()
+void SIPDialogClient::requestCancel()
 {
   startTransaction(SIP_CANCEL);
 }
 
 
-void SIPDialogClient::renegotiateCall()
+void SIPDialogClient::requestRenegotiation()
 {
   startTransaction(SIP_INVITE);
 }
@@ -144,7 +146,7 @@ void SIPDialogClient::processTimeout()
     emit sendDialogRequest(sessionID_, SIP_BYE);
     // TODO tell user we have failed
     startTransaction(SIP_CANCEL);
-    getTransactionUser()->peerRejected(sessionID_);
+    transactionUser_->peerRejected(sessionID_);
   }
 
   SIPClientTransaction::processTimeout();

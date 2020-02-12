@@ -26,7 +26,7 @@ public:
   // processes incoming request. Part of our server transaction
   // returns whether we should continue this session
   bool processRequest(SIPRequest& request,
-                      std::shared_ptr<SIPDialogState> state);
+                      SIPDialogState& state);
 
   // inform the transaction that we have received a faulty request.
   void wrongRequestDestination();
@@ -40,8 +40,8 @@ public:
   void setCurrentRequest(SIPRequest& request);
 
   // send a accept/reject response to received request according to user.
-  void acceptCall();
-  void rejectCall();
+  void responseAccept();
+  void respondReject();
 
 signals:
 

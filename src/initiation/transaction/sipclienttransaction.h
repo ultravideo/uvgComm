@@ -16,9 +16,7 @@ class SIPClientTransaction : public QObject
 {
   Q_OBJECT
 public:
-  SIPClientTransaction(SIPTransactionUser* tu);
-
-  void init();
+  SIPClientTransaction();
 
   // have we sent this kind of request
   bool waitingResponse(RequestType requestType)
@@ -34,7 +32,7 @@ public:
   // processes incoming response. Part of our client transaction
   // returns whether we should keep the dialog alive
   virtual bool processResponse(SIPResponse& response,
-                               std::shared_ptr<SIPDialogState> state) = 0;
+                               SIPDialogState& state) = 0;
 
   // Not implemented. Should be used to notify transaction that there was an error with response.
   void wrongResponseDestination();
@@ -59,11 +57,6 @@ protected:
     requestTimer_.stop();
   }
 
-  SIPTransactionUser* getTransactionUser()
-  {
-    return transactionUser_;
-  }
-
   virtual void processTimeout();
 
   RequestType getOngoingRequest() const
@@ -86,6 +79,4 @@ private:
   RequestType ongoingTransactionType_;
 
   QTimer requestTimer_;
-
-  SIPTransactionUser* transactionUser_;
 };

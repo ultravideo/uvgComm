@@ -39,6 +39,7 @@ SOURCES +=\
     src/initiation/negotiation/udpserver.cpp \
     src/initiation/sipmanager.cpp \
     src/initiation/transaction/sipclienttransaction.cpp \
+    src/initiation/transaction/sipdialog.cpp \
     src/initiation/transaction/sipdialogclient.cpp \
     src/initiation/transaction/sipdialogstate.cpp \
     src/initiation/transaction/sipnondialogclient.cpp \
@@ -114,6 +115,7 @@ HEADERS  += \
     src/initiation/siptransactionuser.h \
     src/initiation/siptypes.h \
     src/initiation/transaction/sipclienttransaction.h \
+    src/initiation/transaction/sipdialog.h \
     src/initiation/transaction/sipdialogclient.h \
     src/initiation/transaction/sipdialogstate.h \
     src/initiation/transaction/sipnondialogclient.h \
