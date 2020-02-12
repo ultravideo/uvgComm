@@ -44,7 +44,7 @@ bool SIPServer::processRequest(SIPRequest& request,
   {
     copyMessageDetails(request.message, receivedRequest_);
   }
-  else if (request.type != SIP_ACK)
+  else if (request.type != SIP_ACK && request.type != SIP_CANCEL)
   {
     printDebug(DEBUG_PEER_ERROR, "SIP Server Transaction",
                "They sent us a new SIP request even though we have the old one still saved.",

@@ -122,7 +122,7 @@ bool SIPClient::startTransaction(RequestType type)
                               "while previous transaction has not finished");
     return false;
   }
-  else if (ongoingTransactionType_ != SIP_NO_REQUEST && type == SIP_CANCEL)
+  else if (ongoingTransactionType_ == SIP_NO_REQUEST && type == SIP_CANCEL)
   {
     printProgramWarning(this, "Tried to cancel a transaction that does not exist!");
     return false;
