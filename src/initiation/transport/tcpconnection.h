@@ -17,6 +17,7 @@ class TCPConnection : public QThread
   Q_OBJECT
 public:
   TCPConnection();
+  ~TCPConnection();
 
   void stopConnection()
   {
@@ -70,6 +71,12 @@ public:
     Q_ASSERT(socket_);
     Q_ASSERT(socket_->state() == QAbstractSocket::ConnectedState);
     Q_ASSERT(socket_->peerAddress().toString() != "");
+
+    if (!socket_)
+    {
+      return QHostAddress();
+    }
+
     return socket_->peerAddress();
   }
 
@@ -94,6 +101,7 @@ private:
 
   // connects signals.
   void init();
+  void uninit();
 
   void printError(int socketError, const QString &message);
 
