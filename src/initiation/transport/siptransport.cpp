@@ -48,7 +48,8 @@ SIPTransport::SIPTransport(quint32 transportID, StatisticsInterface *stats):
   partialMessage_(""),
   connection_(nullptr),
   transportID_(transportID),
-  stats_(stats)
+  stats_(stats),
+  processingInProgress_(0)
 {}
 
 SIPTransport::~SIPTransport()
@@ -146,20 +147,41 @@ void SIPTransport::destroyConnection()
 {
   if(connection_ == nullptr)
   {
-    qDebug() << "Trying to destroy an already destroyed connection";
+    printProgramWarning(this, "Trying to destroy an already destroyed connection");
     return;
   }
+
+  if (processingInProgress_ > 0)
+  {
+     printNormal(this, "Processing in progress while trying to destroy transport");
+
+     while (processingInProgress_ > 0)
+     {
+       qSleep(5);
+     }
+  }
+
+  QObject::disconnect(connection_.get(), &TCPConnection::messageAvailable,
+                      this, &SIPTransport::networkPackage);
+
+  QObject::disconnect(connection_.get(), &TCPConnection::socketConnected,
+                      this, &SIPTransport::connectionEstablished);
+
   connection_->exit(0); // stops qthread
   connection_->stopConnection(); // exits run loop
   while(connection_->isRunning())
   {
     qSleep(5);
   }
+
   connection_.reset();
+
+  printNormal(this, "Destroyed SIP Transport connection");
 }
 
 void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
 {
+  ++processingInProgress_;
   qDebug() << "Composing SIP Request:" << requestToString(request.type);
   Q_ASSERT(request.message->content.type == NO_CONTENT || content.isValid());
   Q_ASSERT(connection_ != nullptr);
@@ -226,10 +248,12 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
                             connection_->remoteAddress().toString());
 
   connection_->sendPacket(message);
+  --processingInProgress_;
 }
 
 void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
 {
+  ++processingInProgress_;
   qDebug() << "Composing SIP Response:" << responseToPhrase(response.type);
   Q_ASSERT(response.message->transactionRequest != SIP_INVITE
       || response.type != SIP_OK
@@ -291,6 +315,7 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
 
 
   connection_->sendPacket(message);
+  --processingInProgress_;
 }
 
 bool SIPTransport::composeMandatoryFields(QList<SIPField>& fields,
@@ -358,6 +383,13 @@ QString SIPTransport::fieldsToString(QList<SIPField>& fields, QString lineEnding
 
 void SIPTransport::networkPackage(QString package)
 {
+  if (!isConnected())
+  {
+    printWarning(this, "Connection not open. Discarding received message");
+    return;
+  }
+
+  ++processingInProgress_;
   qDebug() << "Received a network package for SIP Connection";
   // parse to header and body
   QStringList headers;
@@ -366,6 +398,7 @@ void SIPTransport::networkPackage(QString package)
   if (!parsePackage(package, headers, bodies) ||  headers.size() != bodies.size())
   {
     printWarning(this, "Did not receive the whole SIP message");
+    --processingInProgress_;
     return;
   }
 
@@ -389,6 +422,7 @@ void SIPTransport::networkPackage(QString package)
       {
         qDebug() << "The received message was not correct. ";
         emit parsingError(SIP_BAD_REQUEST, transportID_); // RFC3261_TODO support other possible error types
+        --processingInProgress_;
         return;
       }
 
@@ -407,12 +441,18 @@ void SIPTransport::networkPackage(QString package)
       {
         printDebug(DEBUG_PROGRAM_ERROR, this,
                    "Both the request and response matched, which should not be possible!");
+        --processingInProgress_;
         return;
       }
 
       if (request_match.hasMatch() && request_match.lastCapturedIndex() == 3)
       {
-        stats_->addReceivedSIPMessage(request_match.captured(1), package, connection_->remoteAddress().toString());
+        if (isConnected())
+        {
+          stats_->addReceivedSIPMessage(request_match.captured(1),
+                                        package, connection_->remoteAddress().toString());
+        }
+
         if (!parseRequest(request_match.captured(1), request_match.captured(3), message, fields, content))
         {
           qDebug() << "Failed to parse request";
@@ -420,7 +460,12 @@ void SIPTransport::networkPackage(QString package)
       }
       else if (response_match.hasMatch() && response_match.lastCapturedIndex() == 3)
       {
-        stats_->addReceivedSIPMessage(response_match.captured(2), package, connection_->remoteAddress().toString());
+        if (isConnected())
+        {
+          stats_->addReceivedSIPMessage(response_match.captured(2),
+                                        package, connection_->remoteAddress().toString());
+        }
+
         if (!parseResponse(response_match.captured(2), response_match.captured(1), message, content))
         {
           qDebug() << "ERROR: Failed to parse response: " << response_match.captured(2);
@@ -438,6 +483,7 @@ void SIPTransport::networkPackage(QString package)
       qDebug() << "The whole message was not received";
     }
   }
+  --processingInProgress_;
 }
 
 
@@ -786,6 +832,7 @@ void SIPTransport::addParameterToSet(SIPParameter& currentParameter, QString &cu
   currentParameter = SIPParameter{"",""};
 }
 
+
 bool SIPTransport::fieldsToMessage(QList<SIPField>& fields,
                                    std::shared_ptr<SIPMessageInfo>& message)
 {
@@ -820,7 +867,7 @@ bool SIPTransport::fieldsToMessage(QList<SIPField>& fields,
 bool SIPTransport::parseRequest(QString requestString, QString version,
                                 std::shared_ptr<SIPMessageInfo> message,
                                 QList<SIPField> &fields, QVariant &content)
-{
+{  
   qDebug() << "Request detected:" << requestString;
 
   message->version = version; // TODO: set only version not SIP/version
@@ -866,7 +913,7 @@ bool SIPTransport::parseResponse(QString responseString, QString version,
 
   if(type == SIP_UNKNOWN_RESPONSE)
   {
-    qDebug() << "Could not recognize response type!";
+    printWarning(this, "Could not recognize response type!");
     return false;
   }
 
@@ -874,14 +921,23 @@ bool SIPTransport::parseResponse(QString responseString, QString version,
   response.type = type;
   response.message = message;
 
-  routing_.processResponseViaFields(message->vias,
-                                    connection_->localAddress().toString(),
-                                    connection_->localPort());
+  if (isConnected())
+  {
+    routing_.processResponseViaFields(message->vias,
+                                      connection_->localAddress().toString(),
+                                      connection_->localPort());
+  }
+  else
+  {
+    printWarning(this, "Disconnected while parsing response");
+    return false;
+  }
 
   emit incomingSIPResponse(response, content);
 
   return true;
 }
+
 
 void SIPTransport::parseContent(QVariant& content, ContentType type, QString& body)
 {

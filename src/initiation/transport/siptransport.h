@@ -109,4 +109,6 @@ private:
   StatisticsInterface *stats_;
 
   SIPRouting routing_;
+
+  int processingInProgress_;
 };
