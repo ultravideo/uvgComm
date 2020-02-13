@@ -1,6 +1,6 @@
 #include "sipsettings.h"
 
-#include "ui_advancedsettings.h"
+#include "ui_sipsettings.h"
 #include "settingshelper.h"
 
 #include <QDateTime>

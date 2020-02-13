@@ -1,6 +1,6 @@
 #include "mediasettings.h"
 
-#include "ui_customSettings.h"
+#include "ui_mediasettings.h"
 
 #include <ui/settings/camerainfo.h>
 #include "settingshelper.h"
@@ -144,7 +144,7 @@ void MediaSettings::saveCustomSettings()
   saveCheckBox("video/flipViews",              customUI_->flip, settings_);
   saveCheckBox("video/liveCopying",            customUI_->live555Copy, settings_);
 
-  settings_.setValue("audio/Channels",         QString::number(customUI_->channels->value()));
+  //settings_.setValue("audio/Channels",         QString::number(customUI_->channels->value()));
 
   listGUIToSettings("kvazzup.ini", "parameters", QStringList() << "Name" << "Value", customUI_->custom_parameters);
 
@@ -248,7 +248,7 @@ void MediaSettings::restoreCustomSettings()
   if(validSettings && checkAudioSettings())
   {
     // TODO: implement audio settings.
-    customUI_->channels->setValue(settings_.value("audio/Channels").toInt());
+    //customUI_->channels->setValue(settings_.value("audio/Channels").toInt());
   }
   else
   {
