@@ -43,7 +43,9 @@ void SIPRegistrations::uninit()
     }
   }
 
-  printNormal(this, "Finished uniniating ");
+  printNormal(this, "Finished uniniating");
+
+  // we don't wait for the OK reply so we can quit faster.
   return;
 }
 

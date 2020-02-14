@@ -190,14 +190,15 @@ void printDebug(DebugType type, QString className,
   case DEBUG_IMPORTANT:
   {
     // TODO: Center text in middle.
-
-    qDebug() << "==============================================================";
+    qDebug();
+    qDebug() << "=============================================================================";
     qDebug().nospace().noquote() << beginString << description;
     if (!valueString.isEmpty())
     {
       qDebug().nospace().noquote() << valueString;
     }
-    qDebug() << "==============================================================";
+    qDebug() << "=============================================================================";
+    qDebug();
     break;
   }
   case DEBUG_ERROR:
