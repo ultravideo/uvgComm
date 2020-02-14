@@ -33,6 +33,8 @@ int main(int argc, char *argv[])
   QCoreApplication::setOrganizationDomain("ultravideo.cs.tut.fi");
   QCoreApplication::setApplicationName("Kvazzup");
 
+  QGuiApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+
   QSettings::setPath(QSettings::IniFormat, QSettings::SystemScope, ".");
 
   QFile File("stylesheet.qss");
@@ -43,5 +45,5 @@ int main(int argc, char *argv[])
   KvazzupController controller;
   controller.init();
 
-  return a.exec();
+  return a.exec(); // starts main thread
 }
