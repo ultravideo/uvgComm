@@ -30,7 +30,7 @@
    <item row="2" column="1">
     <widget class="QPushButton" name="advanced_ok">
      <property name="text">
-      <string>Apply</string>
+      <string>Save</string>
      </property>
     </widget>
    </item>
