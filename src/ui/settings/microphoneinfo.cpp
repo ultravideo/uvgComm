@@ -3,6 +3,8 @@
 #include <QAudioDeviceInfo>
 #include <QRegularExpression>
 
+#include <common.h>
+
 
 MicrophoneInfo::MicrophoneInfo()
 {}
@@ -14,6 +16,9 @@ QStringList MicrophoneInfo::getDeviceList()
       = QAudioDeviceInfo::availableDevices(QAudio::AudioInput);
 
   QStringList list;
+
+  printDebug(DEBUG_NORMAL, "Microphone Info", "Get microhone list",
+            {"Microphones"}, {QString::number(microphones.size())});
 
   for (int i = 0; i < microphones.size(); ++i)
   {
