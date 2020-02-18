@@ -6,7 +6,7 @@
 #include <ui/settings/microphoneinfo.h>
 #include "settingshelper.h"
 
-#include <QDebug>
+#include <common.h>
 
 Settings::Settings(QWidget *parent) :
   QDialog(parent),
@@ -32,7 +32,9 @@ void Settings::init()
   // Checks that settings values are correct for the program to start. Also sets GUI.
   getSettings(false);
 
-  mediaSettings_.init(getDeviceID(basicUI_->videoDevice, "video/DeviceID", "video/Device"));
+  int videoID = getDeviceID(basicUI_->videoDevice, "video/DeviceID", "video/Device");
+
+  mediaSettings_.init(videoID);
   sipSettings_.init();
 
   //QObject::connect(basicUI_->save, &QPushButton::clicked, this, &Settings::on_ok_clicked);
@@ -65,7 +67,7 @@ void Settings::show()
 
 void Settings::on_save_clicked()
 {
-  qDebug() << "Settings," << metaObject()->className() << ": Saving basic settings";
+  printNormal(this, "Saving settings");
   // The UI values are saved to settings.
   saveSettings();
   emit settingsChanged(); // TODO: check have the settings actually been changed
@@ -74,8 +76,7 @@ void Settings::on_save_clicked()
 
 void Settings::on_close_clicked()
 {
-  qDebug() << "Settings," << metaObject()->className()
-           << ": Cancel clicked. Getting settings from system";
+  printNormal(this, "Closing. Gettings recorded settings");
 
   // discard UI values and restore the settings from file
   getSettings(false);
@@ -103,7 +104,7 @@ void Settings::on_custom_settings_button_clicked()
 // records the settings
 void Settings::saveSettings()
 {
-  qDebug() << "Settings," << metaObject()->className() << ": Saving basic Settings";
+  printNormal(this, "Recording settings");
 
   // Local settings
   saveTextValue("local/Name", basicUI_->name_edit->text(), settings_);
@@ -174,6 +175,9 @@ void Settings::resetFaultySettings()
 {
   qDebug() << "WARNING," << metaObject()->className()
            << ": Could not restore settings because they were corrupted!";
+
+  printWarning(this, "Resettings settings from UI");
+
   // record GUI settings in hope that they are correct ( is case by default )
   saveSettings();
   mediaSettings_.resetSettings(getDeviceID(basicUI_->videoDevice, "video/DeviceID", "video/Device"));
@@ -181,11 +185,10 @@ void Settings::resetFaultySettings()
 
 
 void Settings::initDeviceSelector(QComboBox* deviceSelector,
-                                      QString settingID,
-                                      QString settingsDevice,
-                                      std::shared_ptr<DeviceInfoInterface> interface)
+                                  QString settingID,
+                                  QString settingsDevice,
+                                  std::shared_ptr<DeviceInfoInterface> interface)
 {
-  qDebug() << "Settings," << metaObject()->className() << ": Initialize device list";
   deviceSelector->clear();
   QStringList devices = interface->getDeviceList();
   for(int i = 0; i < devices.size(); ++i)
@@ -202,17 +205,23 @@ void Settings::initDeviceSelector(QComboBox* deviceSelector,
   {
     deviceSelector->setCurrentIndex(deviceIndex);
   }
+
+  printDebug(DEBUG_NORMAL, this, "Added devices to selector",
+      {"Number of items", "SettingsID"}, {QString::number(deviceSelector->count()), settingID});
 }
 
 
 int Settings::getDeviceID(QComboBox* deviceSelector, QString settingID, QString settingsDevice)
 {
-  int deviceIndex = deviceSelector->findText(settings_.value(settingsDevice).toString());
+  Q_ASSERT(deviceSelector);
+  QString deviceName = settings_.value(settingsDevice).toString();
+
+  int deviceIndex = deviceSelector->findText(deviceName);
   int deviceID = settings_.value(settingID).toInt();
 
-  qDebug() << "Settings," << metaObject()->className()
-           << "Get device id: Index:" << deviceIndex << "deviceID:"
-           << deviceID << "Name:" << settings_.value(settingsDevice).toString();
+  printDebug(DEBUG_NORMAL, this, "Getting device ID from selector list",
+      {"SettingsID", "DeviceName", "List Index", "Number of items"},
+      {settingID, deviceName, QString::number(deviceIndex), QString::number(deviceSelector->count())});
 
   // if the device exists in list
   if(deviceIndex != -1 && deviceSelector->count() != 0)
@@ -329,7 +338,7 @@ bool Settings::checkMissingValues()
   {
     if(settings_.value(key).isNull() || settings_.value(key) == "")
     {
-      qDebug() << "WARNING," << metaObject()->className() << ": MISSING SETTING FOR:" << key;
+      printWarning(this, "Missing settings value", {"Key"}, {key});
       foundEverything = false;
     }
   }
