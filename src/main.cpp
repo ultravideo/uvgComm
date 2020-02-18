@@ -9,6 +9,8 @@
 
 int main(int argc, char *argv[])
 {
+  QGuiApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+
   QApplication a(argc, argv);
 
   a.setApplicationName("Kvazzup");
@@ -32,8 +34,6 @@ int main(int argc, char *argv[])
   QCoreApplication::setOrganizationName("Ultra Video Group");
   QCoreApplication::setOrganizationDomain("ultravideo.cs.tut.fi");
   QCoreApplication::setApplicationName("Kvazzup");
-
-  QGuiApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 
   QSettings::setPath(QSettings::IniFormat, QSettings::SystemScope, ".");
 
