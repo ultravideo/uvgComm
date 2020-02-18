@@ -69,7 +69,7 @@ private:
   bool checkAudioSettings();
 
 
-  uint16_t currentDevice_;
+  int currentDevice_;
 
   Ui::CustomSettings *customUI_;
 
