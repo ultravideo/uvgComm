@@ -123,7 +123,7 @@ void Settings::saveSettings()
 void Settings::getSettings(bool changedDevice)
 {
   initDeviceSelector(basicUI_->videoDevice, "video/DeviceID", "video/Device", cam_);
-  initDeviceSelector(basicUI_->videoDevice, "audio/DeviceID", "audio/Device", mic_);
+  initDeviceSelector(basicUI_->audioDevice, "audio/DeviceID", "audio/Device", mic_);
 
   //get values from QSettings
   if(checkMissingValues() && checkUserSettings())
@@ -149,8 +149,19 @@ void Settings::getSettings(bool changedDevice)
     }
     basicUI_->videoDevice->setCurrentIndex(videoIndex);
 
+    // set correct entry for microphone selector
     int audioIndex = getDeviceID(basicUI_->audioDevice, "audio/DeviceID", "audio/Device");
-    basicUI_->audioDevice->setCurrentIndex(audioIndex);
+    if (basicUI_->audioDevice->count() != 0)
+    {
+      if (audioIndex != -1)
+      {
+        basicUI_->audioDevice->setCurrentIndex(audioIndex);
+      }
+      else
+      {
+        basicUI_->audioDevice->setCurrentIndex(0);
+      }
+    }
   }
   else
   {
