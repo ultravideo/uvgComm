@@ -231,7 +231,7 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
       }
 
       std::shared_ptr<Filter> framedSource = streamer_->addSendStream(sessionID, address,
-                                                                      remoteMedia.receivePort, sendPort,
+                                                                      sendPort, remoteMedia.receivePort,
                                                                       codec, remoteMedia.rtpNums.at(0));
 
       Q_ASSERT(framedSource != nullptr);
@@ -312,6 +312,7 @@ void MediaManager::createIncomingMedia(uint32_t sessionID, QString globalAddress
       }
 
       std::shared_ptr<Filter> rtpSink = streamer_->addReceiveStream(sessionID, address, localMedia.receivePort,
+                                                                    remoteMedia.receivePort,
                                                                     codec, localMedia.rtpNums.at(0));
       Q_ASSERT(rtpSink != nullptr);
       if(localMedia.type == "audio")

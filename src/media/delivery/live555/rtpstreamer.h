@@ -36,12 +36,12 @@ public:
   // Returns filter to be attached to filter graph. ownership is not transferred.
   // removing the peer or stopping the streamer destroys these filters.
   std::shared_ptr<Filter> addSendStream(uint32_t peer, QHostAddress ip,
-                                        uint16_t dst_port, uint16_t src_port,
+                                        uint16_t localPort, uint16_t peerPort,
                                         QString codec, uint8_t rtpNum);
 
   std::shared_ptr<Filter> addReceiveStream(uint32_t peer, QHostAddress ip,
-                                           uint16_t port, QString codec,
-                                           uint8_t rtpNum);
+                                           uint16_t localPort, uint16_t peerPort,
+                                           QString codec, uint8_t rtpNum);
 
   // removes everything related to this peer
   void removePeer(uint32_t sessionID);

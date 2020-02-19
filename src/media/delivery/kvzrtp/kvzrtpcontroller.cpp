@@ -134,7 +134,7 @@ void KvzRTPController::parseCodecString(QString codec, uint16_t dst_port,
 
 
 std::shared_ptr<Filter> KvzRTPController::addSendStream(uint32_t peer, QHostAddress ip,
-                                              uint16_t dst_port, uint16_t src_port,
+                                              uint16_t localPort, uint16_t peerPort,
                                               QString codec, uint8_t rtpNum)
 {
   Q_ASSERT(checkSessionID(peer));
@@ -147,13 +147,13 @@ std::shared_ptr<Filter> KvzRTPController::addSendStream(uint32_t peer, QHostAddr
   DataType type = NONE;
   QString mediaName = "";
 
-  parseCodecString(codec, dst_port, fmt, type, mediaName);
+  parseCodecString(codec, localPort, fmt, type, mediaName);
 
   if (fmt == RTP_FORMAT_HEVC)
   {
     if (peers_[peer]->video == nullptr)
     {
-      addVideoMediaStream(peer, ip, src_port, dst_port, type, mediaName, fmt);
+      addVideoMediaStream(peer, ip, localPort, peerPort, type, mediaName, fmt);
     }
 
     return peers_[peer]->video->sender;
@@ -162,7 +162,7 @@ std::shared_ptr<Filter> KvzRTPController::addSendStream(uint32_t peer, QHostAddr
   {
     if (peers_[peer]->audio == nullptr)
     {
-      addAudioMediaStream(peer, ip, src_port, dst_port, type, mediaName, fmt);
+      addAudioMediaStream(peer, ip, peerPort, localPort, type, mediaName, fmt);
     }
 
     return peers_[peer]->audio->sender;
@@ -172,7 +172,7 @@ std::shared_ptr<Filter> KvzRTPController::addSendStream(uint32_t peer, QHostAddr
 }
 
 
-std::shared_ptr<Filter> KvzRTPController::addReceiveStream(uint32_t peer, QHostAddress ip, uint16_t port,
+std::shared_ptr<Filter> KvzRTPController::addReceiveStream(uint32_t peer, QHostAddress ip, uint16_t localPort, uint16_t peerPort,
                                                  QString codec, uint8_t rtpNum)
 {
   Q_ASSERT(checkSessionID(peer));
@@ -185,13 +185,13 @@ std::shared_ptr<Filter> KvzRTPController::addReceiveStream(uint32_t peer, QHostA
   DataType type = NONE;
   QString mediaName = "";
 
-  parseCodecString(codec, port, fmt, type, mediaName);
+  parseCodecString(codec, localPort, fmt, type, mediaName);
 
   if (fmt == RTP_FORMAT_HEVC)
   {
     if (peers_[peer]->video == nullptr)
     {
-      addVideoMediaStream(peer, ip, port, port, type, mediaName, fmt);
+      addVideoMediaStream(peer, ip, localPort, peerPort, type, mediaName, fmt);
     }
     return peers_[peer]->video->receiver;
   }
@@ -199,7 +199,7 @@ std::shared_ptr<Filter> KvzRTPController::addReceiveStream(uint32_t peer, QHostA
   {
     if (peers_[peer]->audio == nullptr)
     {
-      addAudioMediaStream(peer, ip, port, port, type, mediaName, fmt);
+      addAudioMediaStream(peer, ip, localPort, peerPort, type, mediaName, fmt);
 
     }
     return peers_[peer]->audio->receiver;
