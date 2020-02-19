@@ -43,14 +43,6 @@ public:
                                            uint16_t port, QString codec,
                                            uint8_t rtpNum);
 
-  /* NOTE: not implemented by Live555 */
-  std::pair<
-    std::shared_ptr<Filter>,
-    std::shared_ptr<Filter>
-  >
-  addMediaStream(uint32_t peer, QHostAddress ip, uint16_t src_port,
-                                         uint16_t dst_port, QString codec);
-
   // removes everything related to this peer
   void removePeer(uint32_t sessionID);
 

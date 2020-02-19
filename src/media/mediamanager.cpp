@@ -87,9 +87,9 @@ void MediaManager::setRTPLibrary()
   }
 
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
-  kvzrtp_ = settings.value("sip/kvzrtp").toInt();
+  int kvzRTP = settings.value("sip/kvzrtp").toInt();
 
-  if (kvzrtp_ == 1)
+  if (kvzRTP == 1)
   {
     streamer_ = std::unique_ptr<IRTPStreamer> (new KvzRTP());
   }
@@ -151,47 +151,31 @@ void MediaManager::addParticipant(uint32_t sessionID,
     sdpToStats(sessionID, localInfo, true);
   }
 
-  if (kvzrtp_ == 1)
-  {
-    uint32_t videoID = 0;
+  // create each agreed media stream
+  for(int i = 0; i <peerInfo->media.size(); ++i)  {
+    uint16_t sendPort = 0;
 
-    for (int i = 0; i < localInfo->media.size(); ++i)
+    if (i < sendports.size())
     {
-      if (localInfo->media.at(i).type == "video")
-      {
-      createMediaStream(sessionID, peerInfo->connection_address, peerInfo->media.at(i), localInfo->media.at(i), videoID);
-        ++videoID;
-      }
+      sendPort = sendports.at(i);
+    }
+
+    createOutgoingMedia(sessionID, peerInfo->connection_address, peerInfo->media.at(i), sendPort);
+  }
+
+  // TODO: THis should be got from somewhere instead of guessed.
+  uint32_t videoID = 0;
+  for (int i = 0; i < localInfo->media.size(); ++i)
+  {
+    createIncomingMedia(sessionID, peerInfo->connection_address, peerInfo->media.at(i),
+                        localInfo->media.at(i), videoID);
+
+    if (localInfo->media.at(i).type == "video" )
+    {
+      ++videoID;
     }
   }
-  else
-  {
-    // create each agreed media stream
-    for(int i = 0; i <peerInfo->media.size(); ++i)
-    {
-      uint16_t sendPort = 0;
 
-      if (i < sendports.size())
-      {
-        sendPort = sendports.at(i);
-      }
-
-      createOutgoingMedia(sessionID, peerInfo->connection_address, peerInfo->media.at(i), sendPort);
-    }
-
-    // TODO: THis should be got from somewhere instead of guessed.
-    uint32_t videoID = 0;
-    for (int i = 0; i < localInfo->media.size(); ++i)
-    {
-      createIncomingMedia(sessionID, peerInfo->connection_address, peerInfo->media.at(i),
-                          localInfo->media.at(i), videoID);
-
-      if (localInfo->media.at(i).type == "video" )
-      {
-        ++videoID;
-      }
-    }
-  }
   // TODO: crashes at the moment.
   //fg_->print();
 }
@@ -279,6 +263,7 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
     // TODO: Spec says we should still send RTCP
   }
 }
+
 
 void MediaManager::createIncomingMedia(uint32_t sessionID, QString globalAddress, const MediaInfo &remoteMedia,
                                        const MediaInfo &localMedia, uint32_t videoID)
@@ -374,49 +359,6 @@ void MediaManager::removeParticipant(uint32_t sessionID)
             {"SessionID"}, {QString::number(sessionID)});
 }
 
-void MediaManager::createMediaStream(uint32_t sessionID, QString globalAddress, const MediaInfo& remoteMedia,
-                                     const MediaInfo& localMedia, uint32_t videoID)
-{
-  Q_ASSERT(kvzrtp_ == 1);
-
-  /* filters.first is source and filters.second is sink */
-  auto filters = streamer_->addMediaStream(sessionID, QHostAddress(globalAddress), localMedia.receivePort,
-                                           remoteMedia.receivePort, rtpNumberToCodec(localMedia));
-
-  Q_ASSERT(filters.first  != nullptr);
-  Q_ASSERT(filters.second != nullptr);
-
-  if (remoteMedia.type == "audio")
-  {
-    fg_->sendAudioTo(sessionID, filters.first);
-  }
-  else if (remoteMedia.type == "video")
-  {
-    fg_->sendVideoto(sessionID, filters.first);
-  }
-
-  if (localMedia.type == "audio")
-  {
-    fg_->receiveAudioFrom(sessionID, filters.second);
-  }
-  else if (localMedia.type == "video")
-  {
-    VideoInterface *view = viewfactory_->getVideo(sessionID, videoID);
-    Q_ASSERT(view);
-    if (view != nullptr)
-    {
-      fg_->receiveVideoFrom(sessionID, filters.second, view);
-    }
-    else {
-      printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to get view from viewFactory");
-    }
-  }
-  else
-  {
-    printDebug(DEBUG_PROGRAM_ERROR, this, "Unsupported incoming media type!",
-              {"type"}, QStringList() << localMedia.type);
-  }
-}
 
 bool MediaManager::toggleMic()
 {

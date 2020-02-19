@@ -320,24 +320,13 @@ void Live555RTP::destroyReceiver(Receiver* recv)
     qWarning() << "Warning: Tried to delete receiver a second time";
 }
 
+
 bool Live555RTP::checkSessionID(uint32_t sessionID)
 {
   return peers_.size() >= sessionID
       && peers_.at(sessionID - 1) != nullptr;
 }
 
-std::pair<
-  std::shared_ptr<Filter>,
-  std::shared_ptr<Filter>
->
-Live555RTP::addMediaStream(uint32_t peer, QHostAddress ip, uint16_t src_port,
-                                                   uint16_t dst_port, QString codec)
-{
-  Q_UNUSED(peer);     Q_UNUSED(ip);    Q_UNUSED(src_port);
-  Q_UNUSED(dst_port); Q_UNUSED(codec);
-
-  return std::make_pair(nullptr, nullptr);
-}
 
 std::shared_ptr<Filter> Live555RTP::addSendStream(uint32_t sessionID, QHostAddress ip,
                                                   uint16_t dst_port, uint16_t src_port,
