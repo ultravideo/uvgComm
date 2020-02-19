@@ -65,7 +65,7 @@ bool KvzRTPController::addPeer(uint32_t sessionID)
 
     printDebug(DEBUG_NORMAL, this, "Adding new peer");
 
-    std::shared_ptr<Peer> peer = std::shared_ptr<Peer> (new Peer{{},{},nullptr,nullptr,nullptr});
+    std::shared_ptr<Peer> peer = std::shared_ptr<Peer> (new Peer{nullptr,nullptr,nullptr});
     peers_[sessionID] = peer;
 
     iniated_.unlock();
@@ -212,7 +212,6 @@ std::shared_ptr<Filter> KvzRTPController::addReceiveStream(uint32_t peer, QHostA
 void KvzRTPController::addAudioMediaStream(uint32_t peer, QHostAddress ip, uint16_t src_port,
                                  uint16_t dst_port, DataType realType, QString mediaName, rtp_format_t fmt)
 {
-  peers_[peer]->audio_ip = ip;
   peers_[peer]->audio    = new MediaStream;
 
   peers_[peer]->audio->stream =
@@ -245,7 +244,6 @@ void KvzRTPController::addAudioMediaStream(uint32_t peer, QHostAddress ip, uint1
 void KvzRTPController::addVideoMediaStream(uint32_t peer, QHostAddress ip, uint16_t src_port,
                                  uint16_t dst_port, DataType realType, QString mediaName, rtp_format_t fmt)
 {
-  peers_[peer]->video_ip = ip;
   peers_[peer]->video    = new MediaStream;
 
   peers_[peer]->video->stream =

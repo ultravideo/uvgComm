@@ -73,9 +73,6 @@ private:
 
   struct Peer
   {
-    QHostAddress video_ip;
-    QHostAddress audio_ip;
-
     kvz_rtp::session *session;
 
     MediaStream *video;
