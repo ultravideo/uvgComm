@@ -5,6 +5,8 @@
 #include <QDebug>
 #include <QSettings>
 
+enum OHThreadType {OH_THREAD_FRAME  = 1, OH_THREAD_SLICE  = 2, OH_THREAD_FRAMESLICE  = 3};
+
 OpenHEVCFilter::OpenHEVCFilter(QString id, StatisticsInterface *stats):
   Filter(id, "OpenHEVC", stats, HEVCVIDEO, YUV420VIDEO),
   handle_(),
@@ -18,7 +20,7 @@ bool OpenHEVCFilter::init()
   qDebug() << getName() << "iniating";
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
 
-  handle_ = libOpenHevcInit(settings.value("video/OPENHEVC_threads").toInt(), 1);
+  handle_ = libOpenHevcInit(settings.value("video/OPENHEVC_threads").toInt(), OH_THREAD_FRAME);
 
   libOpenHevcSetDebugMode(handle_, 0);
   if(libOpenHevcStartDecoder(handle_) == -1)
@@ -54,15 +56,15 @@ void OpenHEVCFilter::run()
   Filter::run();
 }
 
-std::unique_ptr<Data> OpenHEVCFilter::combineFrame()
+void OpenHEVCFilter::combineFrame(std::unique_ptr<Data>& combinedFrame)
 {
   if(sliceBuffer_.size() == 0)
   {
     qDebug() << "No previous slices";
-    return std::unique_ptr<Data>();
+    return;
   }
 
-  std::unique_ptr<Data> combinedFrame(shallowDataCopy(sliceBuffer_.at(0).get()));
+  combinedFrame = std::unique_ptr<Data>(shallowDataCopy(sliceBuffer_.at(0).get()));
   combinedFrame->data_size = 0;
 
   for(unsigned int i = 0; i < sliceBuffer_.size(); ++i)
@@ -90,7 +92,7 @@ std::unique_ptr<Data> OpenHEVCFilter::combineFrame()
 
   sliceBuffer_.clear();
 
-  return std::move(combinedFrame);
+  return;
 }
 
 void OpenHEVCFilter::process()
@@ -124,7 +126,13 @@ void OpenHEVCFilter::process()
     {
       if(nextSlice && sliceBuffer_.size() != 0)
       {
-        std::unique_ptr<Data> frame = combineFrame();
+        std::unique_ptr<Data> frame;
+        combineFrame(frame);
+
+        if (frame == nullptr)
+        {
+          break;
+        }
 
         int64_t pts = frame->presentationTime.tv_sec*90000 + frame->presentationTime.tv_usec*90000/1000000;
         int gotPicture = libOpenHevcDecode(handle_, frame->data.get(), frame->data_size, pts);

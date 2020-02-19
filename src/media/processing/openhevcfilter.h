@@ -18,7 +18,7 @@ protected:
 private:
 
   // combine the slices to a frame.
-  std::unique_ptr<Data> combineFrame();
+  void combineFrame(std::unique_ptr<Data> &combinedFrame);
 
   OpenHevc_Handle handle_;
 
