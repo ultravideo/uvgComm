@@ -378,15 +378,12 @@ std::shared_ptr<SDPMessageInfo> Negotiation::getLocalSDP(uint32_t sessionID) con
   return sdps_.at(sessionID).localSDP;
 }
 
-std::shared_ptr<SDPMessageInfo> Negotiation::getRemoteSDP(uint32_t sessionID,
-                                                          QList<uint16_t>& sendPorts) const
+std::shared_ptr<SDPMessageInfo> Negotiation::getRemoteSDP(uint32_t sessionID) const
 {
   if(!checkSessionValidity(sessionID, true))
   {
     return nullptr;
   }
-
-  sendPorts = sdps_.at(sessionID).sendports;
 
   return sdps_.at(sessionID).remoteSDP;
 }

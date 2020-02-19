@@ -188,13 +188,12 @@ void SIPManager::endAllCalls()
 
 void SIPManager::getSDPs(uint32_t sessionID,
                          std::shared_ptr<SDPMessageInfo>& localSDP,
-                         std::shared_ptr<SDPMessageInfo>& remoteSDP,
-                         QList<uint16_t>& sendports) const
+                         std::shared_ptr<SDPMessageInfo>& remoteSDP) const
 {
   Q_ASSERT(sessionID);
   localSDP = negotiation_.getLocalSDP(sessionID);
 
-  remoteSDP = negotiation_.getRemoteSDP(sessionID, sendports);
+  remoteSDP = negotiation_.getRemoteSDP(sessionID);
 }
 
 

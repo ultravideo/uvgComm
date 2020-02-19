@@ -105,8 +105,7 @@ void MediaManager::setRTPLibrary()
 
 void MediaManager::addParticipant(uint32_t sessionID,
                                   std::shared_ptr<SDPMessageInfo> peerInfo,
-                                  const std::shared_ptr<SDPMessageInfo> localInfo,
-                                  QList<uint16_t>& sendports)
+                                  const std::shared_ptr<SDPMessageInfo> localInfo)
 {
   // TODO: support stop-time and start-time as recommended by RFC 4566 section 5.9
 
@@ -153,14 +152,8 @@ void MediaManager::addParticipant(uint32_t sessionID,
 
   // create each agreed media stream
   for(int i = 0; i <peerInfo->media.size(); ++i)  {
-    uint16_t sendPort = 0;
-
-    if (i < sendports.size())
-    {
-      sendPort = sendports.at(i);
-    }
-
-    createOutgoingMedia(sessionID, peerInfo->connection_address, peerInfo->media.at(i), sendPort);
+    // TODO: I don't like that we match
+    createOutgoingMedia(sessionID, peerInfo->connection_address, peerInfo->media.at(i), localInfo->media.at(i));
   }
 
   // TODO: THis should be got from somewhere instead of guessed.
@@ -183,8 +176,8 @@ void MediaManager::addParticipant(uint32_t sessionID,
 
 void MediaManager::createOutgoingMedia(uint32_t sessionID,
                                        QString globalAddress,
-                                       const MediaInfo& remoteMedia,
-                                       uint16_t sendPort)
+                                       const MediaInfo& localMedia,
+                                       const MediaInfo& remoteMedia)
 {
   bool send = true;
   bool recv = true;
@@ -231,7 +224,7 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
       }
 
       std::shared_ptr<Filter> framedSource = streamer_->addSendStream(sessionID, address,
-                                                                      sendPort, remoteMedia.receivePort,
+                                                                      localMedia.receivePort, remoteMedia.receivePort,
                                                                       codec, remoteMedia.rtpNums.at(0));
 
       Q_ASSERT(framedSource != nullptr);
@@ -265,8 +258,9 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
 }
 
 
-void MediaManager::createIncomingMedia(uint32_t sessionID, QString globalAddress, const MediaInfo &remoteMedia,
-                                       const MediaInfo &localMedia, uint32_t videoID)
+void MediaManager::createIncomingMedia(uint32_t sessionID, QString globalAddress,
+                                       const MediaInfo &localMedia,
+                                       const MediaInfo &remoteMedia, uint32_t videoID)
 {
   bool send = true;
   bool recv = true;

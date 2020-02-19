@@ -44,8 +44,7 @@ public:
   // has been negotiated.
   void getSDPs(uint32_t sessionID,
                std::shared_ptr<SDPMessageInfo>& localSDP,
-               std::shared_ptr<SDPMessageInfo>& remoteSDP,
-               QList<uint16_t> &sendports) const;
+               std::shared_ptr<SDPMessageInfo>& remoteSDP) const;
 
 signals:
   void nominationSucceeded(quint32 sessionID);
