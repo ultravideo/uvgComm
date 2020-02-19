@@ -1,6 +1,6 @@
 #include "media/delivery/irtpstreamer.h"
-#include "media/delivery/kvzrtp/kvzrtp.h"
-#include "kvzrtp.h"
+#include "media/delivery/kvzrtp/kvzrtpcontroller.h"
+#include "kvzrtpcontroller.h"
 #include "kvzrtpsender.h"
 #include "kvzrtpreceiver.h"
 #include "common.h"
@@ -14,29 +14,29 @@
 
 #include <iostream>
 
-KvzRTP::KvzRTP()
+KvzRTPController::KvzRTPController()
 {
   isIniated_ = false;
   rtp_ctx_ = new kvz_rtp::context;
 }
 
-KvzRTP::~KvzRTP()
+KvzRTPController::~KvzRTPController()
 {
 }
 
-void KvzRTP::init(StatisticsInterface *stats)
+void KvzRTPController::init(StatisticsInterface *stats)
 {
   stats_ = stats;
   isIniated_ = true;
 }
 
-void KvzRTP::uninit()
+void KvzRTPController::uninit()
 {
   removeAllPeers();
   isIniated_ = false;
 }
 
-void KvzRTP::run()
+void KvzRTPController::run()
 {
   if (!isIniated_)
   {
@@ -44,17 +44,17 @@ void KvzRTP::run()
   }
 }
 
-void KvzRTP::stop()
+void KvzRTPController::stop()
 {
   isRunning_ = false;
 }
 
-bool KvzRTP::checkSessionID(uint32_t sessionID)
+bool KvzRTPController::checkSessionID(uint32_t sessionID)
 {
   return peers_.find(sessionID) != peers_.end();
 }
 
-bool KvzRTP::addPeer(uint32_t sessionID)
+bool KvzRTPController::addPeer(uint32_t sessionID)
 {
   Q_ASSERT(sessionID != 0);
 
@@ -83,7 +83,7 @@ bool KvzRTP::addPeer(uint32_t sessionID)
 }
 
 
-rtp_format_t KvzRTP::typeFromString(QString type)
+rtp_format_t KvzRTPController::typeFromString(QString type)
 {
   std::map<QString, rtp_format_t> xmap = {
       { "pcm",  RTP_FORMAT_GENERIC },
@@ -101,7 +101,7 @@ rtp_format_t KvzRTP::typeFromString(QString type)
 }
 
 
-void KvzRTP::parseCodecString(QString codec, uint16_t dst_port,
+void KvzRTPController::parseCodecString(QString codec, uint16_t dst_port,
                       rtp_format_t& fmt, DataType& type, QString& mediaName)
 {
   fmt  = typeFromString(codec);
@@ -133,7 +133,7 @@ void KvzRTP::parseCodecString(QString codec, uint16_t dst_port,
 }
 
 
-std::shared_ptr<Filter> KvzRTP::addSendStream(uint32_t peer, QHostAddress ip,
+std::shared_ptr<Filter> KvzRTPController::addSendStream(uint32_t peer, QHostAddress ip,
                                               uint16_t dst_port, uint16_t src_port,
                                               QString codec, uint8_t rtpNum)
 {
@@ -169,10 +169,10 @@ std::shared_ptr<Filter> KvzRTP::addSendStream(uint32_t peer, QHostAddress ip,
   }
 
   return nullptr;
-
 }
 
-std::shared_ptr<Filter> KvzRTP::addReceiveStream(uint32_t peer, QHostAddress ip, uint16_t port,
+
+std::shared_ptr<Filter> KvzRTPController::addReceiveStream(uint32_t peer, QHostAddress ip, uint16_t port,
                                                  QString codec, uint8_t rtpNum)
 {
   Q_ASSERT(checkSessionID(peer));
@@ -209,7 +209,7 @@ std::shared_ptr<Filter> KvzRTP::addReceiveStream(uint32_t peer, QHostAddress ip,
 }
 
 
-void KvzRTP::addAudioMediaStream(uint32_t peer, QHostAddress ip, uint16_t src_port,
+void KvzRTPController::addAudioMediaStream(uint32_t peer, QHostAddress ip, uint16_t src_port,
                                  uint16_t dst_port, DataType realType, QString mediaName, rtp_format_t fmt)
 {
   peers_[peer]->audio_ip = ip;
@@ -242,7 +242,7 @@ void KvzRTP::addAudioMediaStream(uint32_t peer, QHostAddress ip, uint16_t src_po
 }
 
 
-void KvzRTP::addVideoMediaStream(uint32_t peer, QHostAddress ip, uint16_t src_port,
+void KvzRTPController::addVideoMediaStream(uint32_t peer, QHostAddress ip, uint16_t src_port,
                                  uint16_t dst_port, DataType realType, QString mediaName, rtp_format_t fmt)
 {
   peers_[peer]->video_ip = ip;
@@ -275,7 +275,7 @@ void KvzRTP::addVideoMediaStream(uint32_t peer, QHostAddress ip, uint16_t src_po
 }
 
 
-void KvzRTP::removePeer(uint32_t sessionID)
+void KvzRTPController::removePeer(uint32_t sessionID)
 {
   Q_ASSERT(sessionID && checkSessionID(sessionID));
 
@@ -319,7 +319,7 @@ void KvzRTP::removePeer(uint32_t sessionID)
 }
 
 
-void KvzRTP::removeAllPeers()
+void KvzRTPController::removeAllPeers()
 {
   std::vector<uint32_t> ids;
 

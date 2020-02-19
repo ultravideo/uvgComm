@@ -74,7 +74,7 @@ SOURCES +=\
     src/initiation/transport/tcpconnection.cpp \
     src/kvazzupcontroller.cpp \
     src/main.cpp \
-    src/media/delivery/kvzrtp/kvzrtp.cpp \
+    src/media/delivery/kvzrtp/kvzrtpcontroller.cpp \
     src/media/delivery/kvzrtp/kvzrtpreceiver.cpp \
     src/media/delivery/kvzrtp/kvzrtpsender.cpp \
     src/media/delivery/live555/framedsourcefilter.cpp \
@@ -149,7 +149,7 @@ HEADERS  += \
     src/initiation/transport/siptransport.h \
     src/initiation/transport/tcpconnection.h \
     src/kvazzupcontroller.h \
-    src/media/delivery/kvzrtp/kvzrtp.h \
+    src/media/delivery/kvzrtp/kvzrtpcontroller.h \
     src/media/delivery/kvzrtp/kvzrtpreceiver.h \
     src/media/delivery/kvzrtp/kvzrtpsender.h \
     src/media/delivery/live555/framedsourcefilter.h \
