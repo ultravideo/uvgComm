@@ -1,6 +1,6 @@
 #include "media/delivery/irtpstreamer.h"
-#include "media/delivery/kvzrtp/kvzrtpcontroller.h"
-#include "kvzrtpcontroller.h"
+#include "media/delivery/kvzrtp/delivery.h"
+#include "delivery.h"
 #include "kvzrtpsender.h"
 #include "kvzrtpreceiver.h"
 #include "common.h"
@@ -14,35 +14,35 @@
 
 #include <iostream>
 
-KvzRTPController::KvzRTPController():
+Delivery::Delivery():
   rtp_ctx_(new kvz_rtp::context)
 {}
 
-KvzRTPController::~KvzRTPController()
+Delivery::~Delivery()
 {
 }
 
-void KvzRTPController::init(StatisticsInterface *stats)
+void Delivery::init(StatisticsInterface *stats)
 {
   stats_ = stats;
 }
 
 
-void KvzRTPController::uninit()
+void Delivery::uninit()
 {
   removeAllPeers();
 }
 
 
-void KvzRTPController::run()
+void Delivery::run()
 {}
 
 
-void KvzRTPController::stop()
+void Delivery::stop()
 {}
 
 
-bool KvzRTPController::addPeer(uint32_t sessionID, QString peerAddress)
+bool Delivery::addPeer(uint32_t sessionID, QString peerAddress)
 {
   Q_ASSERT(sessionID != 0);
 
@@ -76,7 +76,7 @@ bool KvzRTPController::addPeer(uint32_t sessionID, QString peerAddress)
 }
 
 
-void KvzRTPController::parseCodecString(QString codec, uint16_t dst_port,
+void Delivery::parseCodecString(QString codec, uint16_t dst_port,
                       rtp_format_t& fmt, DataType& type, QString& mediaName)
 {
   // TODO: This function should better facilitate additional type
@@ -123,7 +123,7 @@ void KvzRTPController::parseCodecString(QString codec, uint16_t dst_port,
 }
 
 
-std::shared_ptr<Filter> KvzRTPController::addSendStream(uint32_t sessionID, QHostAddress ip,
+std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID, QHostAddress ip,
                                                         uint16_t localPort, uint16_t peerPort,
                                                         QString codec, uint8_t rtpNum)
 {
@@ -155,7 +155,7 @@ std::shared_ptr<Filter> KvzRTPController::addSendStream(uint32_t sessionID, QHos
 }
 
 
-std::shared_ptr<Filter> KvzRTPController::addReceiveStream(uint32_t sessionID, QHostAddress ip,
+std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID, QHostAddress ip,
                                                            uint16_t localPort, uint16_t peerPort,
                                                            QString codec, uint8_t rtpNum)
 {
@@ -189,7 +189,7 @@ std::shared_ptr<Filter> KvzRTPController::addReceiveStream(uint32_t sessionID, Q
 }
 
 
-bool KvzRTPController::initializeStream(uint32_t sessionID, QHostAddress peerAddress,
+bool Delivery::initializeStream(uint32_t sessionID, QHostAddress peerAddress,
                                         uint16_t localPort, uint16_t peerPort,
                                         rtp_format_t fmt)
 {
@@ -214,7 +214,7 @@ bool KvzRTPController::initializeStream(uint32_t sessionID, QHostAddress peerAdd
 }
 
 
-bool KvzRTPController::addMediaStream(uint32_t sessionID, uint16_t localPort, uint16_t peerPort,
+bool Delivery::addMediaStream(uint32_t sessionID, uint16_t localPort, uint16_t peerPort,
                                       rtp_format_t fmt)
 {
   if (peers_.find(sessionID) == peers_.end())
@@ -249,7 +249,7 @@ bool KvzRTPController::addMediaStream(uint32_t sessionID, uint16_t localPort, ui
 }
 
 
-void KvzRTPController::removeMediaStream(uint32_t sessionID, uint16_t localPort)
+void Delivery::removeMediaStream(uint32_t sessionID, uint16_t localPort)
 {
   printNormal(this, "Creating remove mediastream");
 
@@ -268,7 +268,7 @@ void KvzRTPController::removeMediaStream(uint32_t sessionID, uint16_t localPort)
 }
 
 
-void KvzRTPController::removePeer(uint32_t sessionID)
+void Delivery::removePeer(uint32_t sessionID)
 {
   if (peers_.find(sessionID) != peers_.end())
   {
@@ -298,7 +298,7 @@ void KvzRTPController::removePeer(uint32_t sessionID)
 }
 
 
-void KvzRTPController::removeAllPeers()
+void Delivery::removeAllPeers()
 {
   std::vector<uint32_t> ids;
 
@@ -315,7 +315,7 @@ void KvzRTPController::removeAllPeers()
   }
 }
 
-void KvzRTPController::ipv6to4(QHostAddress& address)
+void Delivery::ipv6to4(QHostAddress& address)
 {
   // check if the IP addresses start with ::ffff: and remove it, kvzrtp only accepts IPv4 addresses
   if (address.toString().left(7) == "::ffff:")
@@ -324,7 +324,7 @@ void KvzRTPController::ipv6to4(QHostAddress& address)
   }
 }
 
-void KvzRTPController::ipv6to4(QString &address)
+void Delivery::ipv6to4(QString &address)
 {
   // check if the IP addresses start with ::ffff: and remove it, kvzrtp only accepts IPv4 addresses
   if (address.left(7) == "::ffff:")

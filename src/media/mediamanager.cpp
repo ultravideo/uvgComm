@@ -10,7 +10,7 @@
 #include <QtEndian>
 #include <QSettings>
 
-#include "media/delivery/kvzrtp/kvzrtpcontroller.h"
+#include "media/delivery/kvzrtp/delivery.h"
 #include "media/delivery/live555/rtpstreamer.h"
 
 MediaManager::MediaManager():
@@ -91,7 +91,7 @@ void MediaManager::setRTPLibrary()
 
   if (kvzRTP == 1)
   {
-    streamer_ = std::unique_ptr<IRTPStreamer> (new KvzRTPController());
+    streamer_ = std::unique_ptr<IRTPStreamer> (new Delivery());
   }
   else
   {

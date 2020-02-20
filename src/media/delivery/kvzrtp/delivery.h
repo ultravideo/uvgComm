@@ -14,13 +14,13 @@ class KvzRTPSender;
 class KvzRTPReceiver;
 class Filter;
 
-class KvzRTPController : public IRTPStreamer
+class Delivery : public IRTPStreamer
 {
   Q_OBJECT
 
 public:
-  KvzRTPController();
-  ~KvzRTPController();
+  Delivery();
+  ~Delivery();
 
    void init(StatisticsInterface *stats);
    void uninit();
