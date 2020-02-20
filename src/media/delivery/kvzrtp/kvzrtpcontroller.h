@@ -88,9 +88,6 @@ private:
   // private variables
   std::map<uint32_t, std::shared_ptr<Peer>> peers_;
 
-  bool isIniated_;
-  bool isRunning_;
-
   QMutex iniated_; // locks for duration of creation
   QMutex destroyed_; // locks for duration of destruction
 

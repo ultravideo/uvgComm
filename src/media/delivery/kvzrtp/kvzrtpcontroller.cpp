@@ -14,11 +14,9 @@
 
 #include <iostream>
 
-KvzRTPController::KvzRTPController()
-{
-  isIniated_ = false;
-  rtp_ctx_ = new kvz_rtp::context;
-}
+KvzRTPController::KvzRTPController():
+  rtp_ctx_(new kvz_rtp::context)
+{}
 
 KvzRTPController::~KvzRTPController()
 {
@@ -27,32 +25,28 @@ KvzRTPController::~KvzRTPController()
 void KvzRTPController::init(StatisticsInterface *stats)
 {
   stats_ = stats;
-  isIniated_ = true;
 }
+
 
 void KvzRTPController::uninit()
 {
   removeAllPeers();
-  isIniated_ = false;
 }
+
 
 void KvzRTPController::run()
-{
-  if (!isIniated_)
-  {
-    init(stats_);
-  }
-}
+{}
+
 
 void KvzRTPController::stop()
-{
-  isRunning_ = false;
-}
+{}
+
 
 bool KvzRTPController::checkSessionID(uint32_t sessionID)
 {
   return peers_.find(sessionID) != peers_.end();
 }
+
 
 bool KvzRTPController::addPeer(uint32_t sessionID, QString peerAddress)
 {
@@ -201,7 +195,6 @@ std::shared_ptr<Filter> KvzRTPController::addReceiveStream(uint32_t peer, QHostA
     if (peers_[peer]->audio == nullptr)
     {
       addAudioMediaStream(peer, ip, localPort, peerPort, type, mediaName, fmt);
-
     }
     return peers_[peer]->audio->receiver;
   }
@@ -216,27 +209,33 @@ void KvzRTPController::addAudioMediaStream(uint32_t peer, QHostAddress ip, uint1
   peers_[peer]->audio    = new MediaStream;
   peers_[peer]->audio->stream = peers_[peer]->session->create_stream(src_port, dst_port, fmt, 0);
 
-  (void)peers_[peer]->audio->stream->init();
+  if (peers_[peer]->audio->stream != nullptr)
+  {
+    peers_[peer]->audio->sender = std::shared_ptr<KvzRTPSender>(
+          new KvzRTPSender(
+            ip.toString() + "_",
+            stats_,
+            realType,
+            mediaName,
+            peers_[peer]->audio->stream
+            )
+          );
 
-  peers_[peer]->audio->sender = std::shared_ptr<KvzRTPSender>(
-    new KvzRTPSender(
-      ip.toString() + "_",
-      stats_,
-      realType,
-      mediaName,
-      peers_[peer]->audio->stream
-    )
-  );
+    peers_[peer]->audio->receiver = std::shared_ptr<KvzRTPReceiver>(
+          new KvzRTPReceiver(
+            ip.toString() + "_",
+            stats_,
+            realType,
+            mediaName,
+            peers_[peer]->audio->stream
+            )
+          );
+  }
+  else
+  {
+    printError(this, "Failed to create kvzRTP mediastream");
+  }
 
-  peers_[peer]->audio->receiver = std::shared_ptr<KvzRTPReceiver>(
-      new KvzRTPReceiver(
-        ip.toString() + "_",
-        stats_,
-        realType,
-        mediaName,
-        peers_[peer]->audio->stream
-      )
-  );
 }
 
 
@@ -246,27 +245,32 @@ void KvzRTPController::addVideoMediaStream(uint32_t peer, QHostAddress ip, uint1
   peers_[peer]->video    = new MediaStream;
   peers_[peer]->video->stream = peers_[peer]->session->create_stream(src_port, dst_port, fmt, 0);
 
-  (void)peers_[peer]->video->stream->init();
-
-  peers_[peer]->video->sender = std::shared_ptr<KvzRTPSender>(
-    new KvzRTPSender(
-      ip.toString() + "_",
-      stats_,
-      realType,
-      mediaName,
-      peers_[peer]->video->stream
-    )
-  );
-
-  peers_[peer]->video->receiver = std::shared_ptr<KvzRTPReceiver>(
-      new KvzRTPReceiver(
+  if (peers_[peer]->audio->stream != nullptr)
+  {
+    peers_[peer]->video->sender = std::shared_ptr<KvzRTPSender>(
+      new KvzRTPSender(
         ip.toString() + "_",
         stats_,
         realType,
         mediaName,
         peers_[peer]->video->stream
       )
-  );
+    );
+
+    peers_[peer]->video->receiver = std::shared_ptr<KvzRTPReceiver>(
+        new KvzRTPReceiver(
+          ip.toString() + "_",
+          stats_,
+          realType,
+          mediaName,
+          peers_[peer]->video->stream
+        )
+    );
+  }
+  else
+  {
+    printError(this, "Failed to create kvzRTP mediastream");
+  }
 }
 
 
