@@ -31,7 +31,7 @@ public:
 
   // init a session with sessionID to use with add/remove functions
   // returns whether operation was successful
-  bool addPeer(uint32_t sessionID);
+  bool addPeer(uint32_t sessionID, QString peerAddress);
 
   // Returns filter to be attached to filter graph. ownership is not transferred.
   // removing the peer or stopping the streamer destroys these filters.

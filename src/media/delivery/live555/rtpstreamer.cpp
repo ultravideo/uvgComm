@@ -141,7 +141,7 @@ void Live555RTP::removeAllPeers()
   }
 }
 
-bool Live555RTP::addPeer(uint32_t sessionID)
+bool Live555RTP::addPeer(uint32_t sessionID, QString peerAddress)
 {
   Q_ASSERT(sessionID != 0);
 

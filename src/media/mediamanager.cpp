@@ -128,7 +128,7 @@ void MediaManager::addParticipant(uint32_t sessionID,
   if(peerInfo->connection_nettype == "IN")
   {
 
-    if(!streamer_->addPeer(sessionID))
+    if(!streamer_->addPeer(sessionID, peerInfo->host_address))
     {
       printDebug(DEBUG_PROGRAM_ERROR, this,
                  "Error creating RTP peer. Simultaneous destruction?");

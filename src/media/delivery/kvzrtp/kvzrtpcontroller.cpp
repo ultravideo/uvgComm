@@ -54,7 +54,7 @@ bool KvzRTPController::checkSessionID(uint32_t sessionID)
   return peers_.find(sessionID) != peers_.end();
 }
 
-bool KvzRTPController::addPeer(uint32_t sessionID)
+bool KvzRTPController::addPeer(uint32_t sessionID, QString peerAddress)
 {
   Q_ASSERT(sessionID != 0);
 
@@ -67,6 +67,7 @@ bool KvzRTPController::addPeer(uint32_t sessionID)
 
     std::shared_ptr<Peer> peer = std::shared_ptr<Peer> (new Peer{nullptr,nullptr,nullptr});
     peers_[sessionID] = peer;
+    peers_[sessionID]->session = rtp_ctx_->create_session(peerAddress.toStdString());
 
     iniated_.unlock();
     destroyed_.unlock();
@@ -213,9 +214,7 @@ void KvzRTPController::addAudioMediaStream(uint32_t peer, QHostAddress ip, uint1
                                  uint16_t dst_port, DataType realType, QString mediaName, rtp_format_t fmt)
 {
   peers_[peer]->audio    = new MediaStream;
-
-  peers_[peer]->audio->stream =
-    new kvz_rtp::media_stream(ip.toString().toStdString(), src_port, dst_port, fmt, 0);
+  peers_[peer]->audio->stream = peers_[peer]->session->create_stream(src_port, dst_port, fmt, 0);
 
   (void)peers_[peer]->audio->stream->init();
 
@@ -245,9 +244,7 @@ void KvzRTPController::addVideoMediaStream(uint32_t peer, QHostAddress ip, uint1
                                  uint16_t dst_port, DataType realType, QString mediaName, rtp_format_t fmt)
 {
   peers_[peer]->video    = new MediaStream;
-
-  peers_[peer]->video->stream =
-    new kvz_rtp::media_stream(ip.toString().toStdString(), src_port, dst_port, fmt, 0);
+  peers_[peer]->video->stream = peers_[peer]->session->create_stream(src_port, dst_port, fmt, 0);
 
   (void)peers_[peer]->video->stream->init();
 
