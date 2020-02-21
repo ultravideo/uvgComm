@@ -89,6 +89,8 @@ private:
     QString TID;
     uint32_t bufferSize;
     uint32_t dropped;
+
+    int tableIndex;
   };
 
   std::map<QString, FilterStatus> buffers_;
