@@ -34,50 +34,51 @@ bool AudioCaptureFilter::init()
 
   QList<QAudioDeviceInfo> microphones = QAudioDeviceInfo::availableDevices(QAudio::AudioInput);
 
-  if (microphones.empty())
+  if (!microphones.empty())
   {
-    printWarning(this, "No microphone detected!");
-    return false;
-  }
+    QSettings settings("kvazzup.ini", QSettings::IniFormat);
+    QString deviceName = settings.value("audio/Device").toString();
+    int deviceID = settings.value("audio/DeviceID").toInt();
 
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
-  QString deviceName = settings.value("audio/Device").toString();
-  int deviceID = settings.value("audio/DeviceID").toInt();
-
-  if (deviceID < microphones.size())
-  {
-    QString parsedName = microphones[deviceID].deviceName();
-    // take only the device name from: "Microphone (device name)"
-    QRegularExpression re_mic (".*\\((.+)\\).*");
-    QRegularExpressionMatch mic_match = re_mic.match(microphones[deviceID].deviceName());
-
-    if (mic_match.hasMatch() && mic_match.lastCapturedIndex() == 1)
+    if (deviceID < microphones.size())
     {
-      // parsed extra text succesfully
-      parsedName = mic_match.captured(1);
-    }
+      QString parsedName = microphones[deviceID].deviceName();
+      // take only the device name from: "Microphone (device name)"
+      QRegularExpression re_mic (".*\\((.+)\\).*");
+      QRegularExpressionMatch mic_match = re_mic.match(microphones[deviceID].deviceName());
 
-    // if the device has changed between recording the settings and now.
-    if (parsedName != deviceName)
-    {
-      // search for device with same name
-      for(int i = 0; i < microphones.size(); ++i)
+      if (mic_match.hasMatch() && mic_match.lastCapturedIndex() == 1)
       {
-        if(parsedName == deviceName)
-        {
-          qDebug() << "Found mic with name:" << microphones.at(i).deviceName()
-                   << "and id:" << i;
-          deviceID = i;
-          break;
-        }
+        // parsed extra text succesfully
+        parsedName = mic_match.captured(1);
       }
-      // previous camera could not be found, use first.
-      qDebug() << "Did not find microphone name:" << deviceName << " Using first";
-      deviceID = 0;
-    }
-  }
 
-  deviceInfo_ = microphones.at(deviceID);
+      // if the device has changed between recording the settings and now.
+      if (parsedName != deviceName)
+      {
+        // search for device with same name
+        for(int i = 0; i < microphones.size(); ++i)
+        {
+          if(parsedName == deviceName)
+          {
+            qDebug() << "Found mic with name:" << microphones.at(i).deviceName()
+                     << "and id:" << i;
+            deviceID = i;
+            break;
+          }
+        }
+        // previous camera could not be found, use first.
+        qDebug() << "Did not find microphone name:" << deviceName << " Using first";
+        deviceID = 0;
+      }
+    }
+    deviceInfo_ = microphones.at(deviceID);
+  }
+  else
+  {
+    printWarning(this, "No available microphones found. Trying default");
+    deviceInfo_ = QAudioDeviceInfo::defaultInputDevice();
+  }
 
   QAudioDeviceInfo info(deviceInfo_);
 
@@ -98,7 +99,7 @@ bool AudioCaptureFilter::init()
   device_  = new AudioCaptureDevice(format_, this);
 
   createAudioInput();
-  printDebug(DEBUG_NORMAL, this, "Audio initializing completed.");
+  printNormal(this, "Audio initializing completed.");
   return true;
 }
 
