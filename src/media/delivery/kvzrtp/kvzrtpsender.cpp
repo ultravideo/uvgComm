@@ -69,15 +69,6 @@ void KvzRTPSender::updateSettings()
   }
 }
 
-void KvzRTPSender::start()
-{
-  Filter::start();
-}
-
-void KvzRTPSender::stop()
-{
-  Filter::stop();
-}
 
 void KvzRTPSender::process()
 {

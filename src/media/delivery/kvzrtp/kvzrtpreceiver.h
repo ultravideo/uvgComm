@@ -12,7 +12,6 @@ public:
   void receiveHook(kvz_rtp::frame::rtp_frame *frame);
 
   void uninit();
-  void start();
 
 protected:
   void process();

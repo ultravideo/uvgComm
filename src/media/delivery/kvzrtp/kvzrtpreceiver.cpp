@@ -36,9 +36,6 @@ void KvzRTPReceiver::process()
 {
 }
 
-void KvzRTPReceiver::start()
-{
-}
 
 void KvzRTPReceiver::receiveHook(kvz_rtp::frame::rtp_frame *frame)
 {

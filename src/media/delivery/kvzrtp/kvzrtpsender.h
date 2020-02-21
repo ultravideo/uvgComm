@@ -15,9 +15,6 @@ public:
 
   void updateSettings();
 
-  void start();
-  void stop();
-
 protected:
   void process();
 
