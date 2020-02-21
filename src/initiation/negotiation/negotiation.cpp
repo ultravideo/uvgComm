@@ -538,7 +538,7 @@ void Negotiation::nominationSucceeded(quint32 sessionID)
     return;
   }
 
-  printNormal(this, "ICE nomination has succeeded", {"SessionID"}, {sessionID});
+  printNormal(this, "ICE nomination has succeeded", {"SessionID"}, {QString::number(sessionID)});
 
   ICEMediaInfo nominated = ice_->getNominated(sessionID);
 

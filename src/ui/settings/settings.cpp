@@ -219,9 +219,9 @@ int Settings::getDeviceID(QComboBox* deviceSelector, QString settingID, QString 
   int deviceIndex = deviceSelector->findText(deviceName);
   int deviceID = settings_.value(settingID).toInt();
 
-  printDebug(DEBUG_NORMAL, this, "Getting device ID from selector list",
-      {"SettingsID", "DeviceName", "List Index", "Number of items"},
-      {settingID, deviceName, QString::number(deviceIndex), QString::number(deviceSelector->count())});
+//  printDebug(DEBUG_NORMAL, this, "Getting device ID from selector list",
+//      {"SettingsID", "DeviceName", "List Index", "Number of items"},
+//      {settingID, deviceName, QString::number(deviceIndex), QString::number(deviceSelector->count())});
 
   // if the device exists in list
   if(deviceIndex != -1 && deviceSelector->count() != 0)

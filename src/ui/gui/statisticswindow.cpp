@@ -167,7 +167,7 @@ void StatisticsWindow::removeFilter(QString filter)
   }
   else {
     printDebug(DEBUG_PROGRAM_WARNING, "StatisticsWindow",
-               "The filter table was already empty when removing filter.");
+               "The filter table was already empty when removing filter.", {"Filter"}, {filter});
   }
 
   buffers_.erase(filter);
@@ -396,6 +396,7 @@ void StatisticsWindow::visualizeDataToSeries(std::deque<float>& data)
 
 void StatisticsWindow::paintEvent(QPaintEvent *event)
 {
+  qDebug() << "Paint";
   Q_UNUSED(event)
   if(lastTabIndex_ != ui_->Statistics_tabs->currentIndex()
      || lastDrawTime_ + guiFrequency_ < guiTimer_.elapsed())

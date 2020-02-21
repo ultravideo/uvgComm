@@ -179,7 +179,7 @@ void KvazzupController::peerRejected(uint32_t sessionID)
 void KvazzupController::iceCompleted(quint32 sessionID)
 {
   printNormal(this, "ICE has been successfully completed",
-            {"SessionID"}, {sessionID});
+            {"SessionID"}, {QString::number(sessionID)});
   startCall(sessionID, true);
 }
 
@@ -247,7 +247,7 @@ void KvazzupController::iceFailed(uint32_t sessionID)
 void KvazzupController::createSingleCall(uint32_t sessionID)
 {
   printNormal(this, "Call has been agreed upon with peer.",
-              "SessionID", {sessionID});
+              "SessionID", {QString::number(sessionID)});
 
   std::shared_ptr<SDPMessageInfo> localSDP;
   std::shared_ptr<SDPMessageInfo> remoteSDP;

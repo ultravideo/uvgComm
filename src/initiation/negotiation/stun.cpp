@@ -334,11 +334,10 @@ bool Stun::sendBindingRequest(ICEPair *pair, bool controller)
 
   if (controller)
   {
-    qDebug() << "controller binding requssts\n\n\n\n";
+    printNormal(this, "Controller sends binding request");
     return controllerSendBindingRequest(pair);
   }
-
-    qDebug() << "controlleeeeeeeee binding requssts\n\n\n\n";
+  printNormal(this, "Non-controller sends binding request");
   return controlleeSendBindingRequest(pair);
 }
 

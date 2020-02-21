@@ -116,6 +116,8 @@ void printDebug(DebugType type, QString className,
 {
   QString valueString = "";
 
+
+
   // do we have values.
   if( values.size() != 0)
   {
@@ -126,11 +128,16 @@ void printDebug(DebugType type, QString className,
       {
         if (valueNames.at(i) != "" && values.at(i) != "")
         {
-          valueString.append("-- ");
+          if (valueNames.size() != 1)
+          {
+            valueString.append(QString(BEGIN_LENGTH, ' '));
+            valueString.append("-- ");
+          }
           valueString.append(valueNames.at(i));
           valueString.append(": ");
           valueString.append(values.at(i));
-          if (i != valueNames.size() - 1)
+
+          if (valueNames.size() != 1)
           {
             valueString.append("\r\n");
           }
@@ -155,7 +162,6 @@ void printDebug(DebugType type, QString className,
           valueString.append(", ");
         }
       }
-      valueString.append("\r\n");
     }
     else if (valueNames.size() != values.size())
     {
@@ -183,7 +189,15 @@ void printDebug(DebugType type, QString className,
     printing << beginString << description;
     if (!valueString.isEmpty())
     {
-      printing << "\r\n" << valueString << "\r\n";
+      // print one value on same line
+      if (valueNames.size() == 1)
+      {
+        printing << " (" << valueString << ")";
+      }
+      else // pring each value on separate line
+      {
+        printing << "\r\n" << valueString;
+      }
     }
     break;
   }
