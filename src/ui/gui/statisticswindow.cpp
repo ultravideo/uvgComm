@@ -50,6 +50,7 @@ ui_(new Ui::StatisticsWindow),
   lastTabIndex_(254) // an invalid value so we will update the tab immediately
 {
   ui_->setupUi(this);
+  participantMutex_.lock();
   ui_->participantTable->setColumnCount(6);
   ui_->participantTable->setHorizontalHeaderItem(0, new QTableWidgetItem(QString("IP")));
   ui_->participantTable->setHorizontalHeaderItem(1, new QTableWidgetItem(QString("AudioPort")));
@@ -57,7 +58,9 @@ ui_(new Ui::StatisticsWindow),
   ui_->participantTable->setHorizontalHeaderItem(3, new QTableWidgetItem(QString("Audio delay")));
   ui_->participantTable->setHorizontalHeaderItem(4, new QTableWidgetItem(QString("Video delay")));
   ui_->participantTable->setHorizontalHeaderItem(5, new QTableWidgetItem(QString("Video fps")));
+  participantMutex_.unlock();
 
+  filterTableMutex_.lock();
   ui_->filterTable->setColumnCount(4);
   ui_->filterTable->setHorizontalHeaderItem(0, new QTableWidgetItem(QString("Filter")));
   ui_->filterTable->setHorizontalHeaderItem(1, new QTableWidgetItem(QString("TID")));
@@ -65,6 +68,7 @@ ui_(new Ui::StatisticsWindow),
   ui_->filterTable->setHorizontalHeaderItem(3, new QTableWidgetItem(QString("Dropped")));
 
   ui_->filterTable->setColumnWidth(0, 240);
+  filterTableMutex_.unlock();
 
   guiTimer_.start();
 
@@ -118,7 +122,7 @@ void StatisticsWindow::audioInfo(uint32_t sampleRate, uint16_t channelCount)
 void StatisticsWindow::addParticipant(uint32_t sessionID, QString ip,
                                       QString audioPort, QString videoPort)
 {
-  initMutex_.lock();
+  participantMutex_.lock();
   ui_->participantTable->insertRow(ui_->participantTable->rowCount());
   // add cells to table
   ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 0, new QTableWidgetItem(ip));
@@ -129,28 +133,31 @@ void StatisticsWindow::addParticipant(uint32_t sessionID, QString ip,
   ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 5, new QTableWidgetItem("-"));
 
   peers_[sessionID] = {0, std::vector<PacketInfo*>(BUFFERSIZE, nullptr),
-  initMutex_.unlock();
+                       0, 0,true};
+
+  participantMutex_.unlock();
 }
 
 void StatisticsWindow::addFilter(QString filter, uint64_t TID)
 {
+  bufferMutex_.lock();
   if(buffers_.find(filter) == buffers_.end())
   {
-    bufferMutex_.lock();
     buffers_[filter] = FilterStatus{0,QString::number(TID),0,0};
-    bufferMutex_.unlock();
   }
   else
   {
+    bufferMutex_.unlock();
     return;
   }
+  bufferMutex_.unlock();
 
-  initMutex_.lock();
+  filterTableMutex_.lock();
   ui_->filterTable->insertRow(ui_->filterTable->rowCount());
   ui_->filterTable->setItem(ui_->filterTable->rowCount() -1, 0, new QTableWidgetItem(filter));
   ui_->filterTable->setItem(ui_->filterTable->rowCount() -1, 1, new QTableWidgetItem(QString::number(TID)));
   ui_->filterTable->setItem(ui_->filterTable->rowCount() -1, 3, new QTableWidgetItem(QString::number(0)));
-  initMutex_.unlock();
+  filterTableMutex_.unlock();
 }
 
 void StatisticsWindow::removeFilter(QString filter)
@@ -160,24 +167,26 @@ void StatisticsWindow::removeFilter(QString filter)
             {"Filter name", "Current row count"},
             {filter, QString::number(ui_->filterTable->rowCount())});*/
 
+  filterTableMutex_.lock();
   if (ui_->filterTable->rowCount() > 0)
   {
-    initMutex_.lock();
     ui_->filterTable->removeRow(ui_->filterTable->rowCount() - 1);
-    initMutex_.unlock();
   }
   else {
     printDebug(DEBUG_PROGRAM_WARNING, "StatisticsWindow",
                "The filter table was already empty when removing filter.", {"Filter"}, {filter});
   }
+  filterTableMutex_.unlock();
 
+  bufferMutex_.lock();
   buffers_.erase(filter);
+  bufferMutex_.unlock();
 }
 
 // TODO: Does not work when callling ourselves with same address.
 void StatisticsWindow::removeParticipant(QString ip)
 {
-  initMutex_.lock();
+  participantMutex_.lock();
   for(int i = 0; i < ui_->participantTable->rowCount(); ++i)
   {
     if(ui_->participantTable->item(i, 0)->text() == ip)
@@ -186,7 +195,7 @@ void StatisticsWindow::removeParticipant(QString ip)
       peers_.at(i).active = false;
     }
   }
-  initMutex_.unlock();
+  participantMutex_.unlock();
 }
 
 void StatisticsWindow::sendDelay(QString type, uint32_t delay)
@@ -342,6 +351,7 @@ void StatisticsWindow::updateBufferStatus(QString filter, uint16_t buffersize, u
 void StatisticsWindow::packetDropped(QString filter)
 {
   ++packetsDropped_;
+  bufferMutex_.lock();
   if(buffers_.find(filter) != buffers_.end())
   {
     ++buffers_[filter].dropped;
@@ -351,6 +361,7 @@ void StatisticsWindow::packetDropped(QString filter)
   {
     qDebug() << "Settings," << metaObject()->className() << ": Couldn't find correct filter for dropped packet:" << filter;
   }
+  bufferMutex_.unlock();
 }
 
 #ifdef QT_CHARTS_LIB
@@ -421,6 +432,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
         // also tells whether the slot for this participant exists
         if(d.second.active)
         {
+          participantMutex_.lock();
           ui_->participantTable->setItem
               (index, 3, new QTableWidgetItem( QString::number(d.second.audioDelay) + " ms"));
           ui_->participantTable->setItem
@@ -432,6 +444,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 
           ui_->participantTable->setItem
               (index, 5, new QTableWidgetItem( QString::number(framerate)));
+          participantMutex_.unlock();
 
           ++index;
         }
@@ -440,10 +453,15 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
     }
     case NETWORK_TAB:
     {
+      sendMutex_.lock();
       ui_->packets_sent_value->setText( QString::number(sendPacketCount_));
       ui_->data_sent_value->setText( QString::number(transferredData_));
+      sendMutex_.unlock();
+      receiveMutex_.lock();
       ui_->packets_received_value->setText( QString::number(receivePacketCount_));
       ui_->data_received_value->setText( QString::number(receivedData_));
+      receiveMutex_.unlock();
+
       ui_->packets_skipped_value->setText(QString::number(packetsDropped_));
       break;
     case MEDIA_TAB:
@@ -482,18 +500,20 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 
       if(dirtyBuffers_)
       {
-        bufferMutex_.lock();
-
         uint32_t totalBuffers = 0;
         uint32_t row = 0;
+
+        bufferMutex_.lock();
         for(auto& it : buffers_)
         {
           totalBuffers += it.second.bufferStatus;
+          filterTableMutex_.lock();
           ui_->filterTable->setItem(row, 0,new QTableWidgetItem(it.first));
           ui_->filterTable->setItem(row, 1,new QTableWidgetItem(it.second.TID));
           ui_->filterTable->setItem(row, 2,new QTableWidgetItem(QString::number(it.second.bufferStatus) +
                                                                 "/" + QString::number(it.second.bufferSize)));
           ui_->filterTable->setItem(row, 3,new QTableWidgetItem(QString::number(it.second.dropped)));
+          filterTableMutex_.unlock();
           ++row;
         }
 

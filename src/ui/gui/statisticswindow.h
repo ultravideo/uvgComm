@@ -93,7 +93,9 @@ private:
   std::map<QString, FilterStatus> buffers_;
 
   // mutexes to prevent simultanious recording of certain statistics
-  QMutex initMutex_;
+  QMutex participantMutex_;
+  QMutex filterTableMutex_;
+
   QMutex receiveMutex_;
   QMutex sendMutex_;
   QMutex bufferMutex_;
