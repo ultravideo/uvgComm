@@ -46,7 +46,7 @@ ui_(new Ui::StatisticsWindow),
   videoEncDelay_(0),
   guiTimer_(),
   guiUpdates_(0),
-  guiFrequency_(500),
+  guiFrequency_(1000),
   lastTabIndex_(254) // an invalid value so we will update the tab immediately
 {
   ui_->setupUi(this);
@@ -115,7 +115,8 @@ void StatisticsWindow::audioInfo(uint32_t sampleRate, uint16_t channelCount)
   }
 }
 
-void StatisticsWindow::addParticipant(QString ip, QString audioPort, QString videoPort)
+void StatisticsWindow::addParticipant(uint32_t sessionID, QString ip,
+                                      QString audioPort, QString videoPort)
 {
   initMutex_.lock();
   ui_->participantTable->insertRow(ui_->participantTable->rowCount());
@@ -127,7 +128,7 @@ void StatisticsWindow::addParticipant(QString ip, QString audioPort, QString vid
   ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 4, new QTableWidgetItem("- ms"));
   ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 5, new QTableWidgetItem("-"));
 
-  peers_.push_back({0, std::vector<PacketInfo*>(BUFFERSIZE, nullptr), 0, 0,true});
+  peers_[sessionID] = {0, std::vector<PacketInfo*>(BUFFERSIZE, nullptr),
   initMutex_.unlock();
 }
 
@@ -200,29 +201,29 @@ void StatisticsWindow::sendDelay(QString type, uint32_t delay)
   }
 }
 
-void StatisticsWindow::receiveDelay(uint32_t peer, QString type, int32_t delay)
+void StatisticsWindow::receiveDelay(uint32_t sessionID, QString type, int32_t delay)
 {
-  if(peer <= peers_.size())
+  if(peers_.find(sessionID) != peers_.end())
   {
     if(type == "video" || type == "Video")
     {
-      peers_.at(peer - 1).videoDelay = delay;
+      peers_.at(sessionID).videoDelay = delay;
     }
     else if(type == "audio" || type == "Audio")
     {
-      peers_.at(peer - 1).audioDelay = delay;
+      peers_.at(sessionID).audioDelay = delay;
     }
   }
 }
 
-void StatisticsWindow::presentPackage(uint32_t peer, QString type)
+void StatisticsWindow::presentPackage(uint32_t sessionID, QString type)
 {
-  Q_ASSERT(peers_.size() >= peer);
-  if(peer <= peers_.size())
+  Q_ASSERT(peers_.find(sessionID) != peers_.end());
+  if(peers_.find(sessionID) != peers_.end())
   {
     if(type == "video" || type == "Video")
     {
-      updateFramerateBuffer(peers_.at(peer - 1).videoPackets, peers_.at(peer - 1).videoIndex, 0);
+      updateFramerateBuffer(peers_.at(sessionID).videoPackets, peers_.at(sessionID).videoIndex, 0);
     }
   }
 }
@@ -406,22 +407,27 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
     // update only the tab which user is looking at.
     switch(ui_->Statistics_tabs->currentIndex())
     {
+    case SIP_TAB:
+    {
+      // do nothing since this is not continous data
+      break;
+    }
     case PARTICIPANT_TAB:
     {
       int index = 0;
-      for(PeerInfo d : peers_)
+      for(auto& d : peers_)
       {
         // if this participant has not yet been removed
         // also tells whether the slot for this participant exists
-        if(d.active)
+        if(d.second.active)
         {
           ui_->participantTable->setItem
-              (index, 3, new QTableWidgetItem( QString::number(d.audioDelay) + " ms"));
+              (index, 3, new QTableWidgetItem( QString::number(d.second.audioDelay) + " ms"));
           ui_->participantTable->setItem
-              (index, 4, new QTableWidgetItem( QString::number(d.videoDelay) + " ms"));
+              (index, 4, new QTableWidgetItem( QString::number(d.second.videoDelay) + " ms"));
 
           float framerate = 0;
-          uint32_t videoBitrate = bitrate(d.videoPackets, d.videoIndex, framerate);
+          uint32_t videoBitrate = bitrate(d.second.videoPackets, d.second.videoIndex, framerate);
           Q_UNUSED(videoBitrate);
 
           ui_->participantTable->setItem

@@ -130,7 +130,7 @@ void MediaManager::addParticipant(uint32_t sessionID,
   {
     if (stats_ != nullptr)
     {
-      stats_->addParticipant(peerInfo->connection_address, "0", "0");
+      stats_->addParticipant(sessionID, peerInfo->connection_address, "0", "0");
     }
 
     if(!streamer_->addPeer(sessionID))

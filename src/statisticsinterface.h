@@ -26,7 +26,7 @@ public:
 
   // adds participant information. May in future be extended to include
   // RTP tracking fo each participant individually with ID
-  virtual void addParticipant(QString ip, QString audioPort, QString videoPort) = 0;
+  virtual void addParticipant(uint32_t sessionID, QString ip, QString audioPort, QString videoPort) = 0;
 
   // adds participant information. May in future be extended to include
   // RTP tracking fo each participant individually with ID
@@ -36,10 +36,10 @@ public:
   virtual void sendDelay(QString type, uint32_t delay) = 0;
 
   // the delay until the presentation of the packet
-  virtual void receiveDelay(uint32_t peer, QString type, int32_t delay) = 0;
+  virtual void receiveDelay(uint32_t sessionID, QString type, int32_t delay) = 0;
 
   // one packet has been presented to user
-  virtual void presentPackage(uint32_t peer, QString type) = 0;
+  virtual void presentPackage(uint32_t sessionID, QString type) = 0;
 
   // For tracking of encoding bitrate and possibly other information.
   virtual void addEncodedPacket(QString type, uint32_t size) = 0;
