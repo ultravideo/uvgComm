@@ -36,7 +36,7 @@ public:
   virtual void videoInfo(double framerate, QSize resolution);
   virtual void audioInfo(uint32_t sampleRate, uint16_t channelCount);
   virtual void addParticipant(uint32_t sessionID, QString ip, QString audioPort, QString videoPort);
-  virtual void removeParticipant(QString ip);
+  virtual void removeParticipant(uint32_t sessionID);
   virtual void sendDelay(QString type, uint32_t delay);
   virtual void presentPackage(uint32_t sessionID, QString type);
   virtual void receiveDelay(uint32_t sessionID, QString type, int32_t delay);
@@ -65,7 +65,8 @@ private:
     std::vector<PacketInfo*> videoPackets;
     int32_t videoDelay;
     int32_t audioDelay;
-    bool active;
+
+    int participantIndex;
   };
 
   std::map<uint32_t, PeerInfo> peers_;

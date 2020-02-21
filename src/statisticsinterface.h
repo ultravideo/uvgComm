@@ -28,9 +28,9 @@ public:
   // RTP tracking fo each participant individually with ID
   virtual void addParticipant(uint32_t sessionID, QString ip, QString audioPort, QString videoPort) = 0;
 
-  // adds participant information. May in future be extended to include
+  // remove participant information. May in future be extended to include
   // RTP tracking fo each participant individually with ID
-  virtual void removeParticipant(QString ip) = 0;
+  virtual void removeParticipant(uint32_t sessionID) = 0;
 
   // the delay it takes from input to the point when input is encoded
   virtual void sendDelay(QString type, uint32_t delay) = 0;

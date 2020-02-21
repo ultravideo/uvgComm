@@ -133,7 +133,7 @@ void StatisticsWindow::addParticipant(uint32_t sessionID, QString ip,
   ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 5, new QTableWidgetItem("-"));
 
   peers_[sessionID] = {0, std::vector<PacketInfo*>(BUFFERSIZE, nullptr),
-                       0, 0,true};
+                       0, 0, ui_->participantTable->rowCount() - 1};
 
   participantMutex_.unlock();
 }
@@ -183,18 +183,38 @@ void StatisticsWindow::removeFilter(QString filter)
   bufferMutex_.unlock();
 }
 
-// TODO: Does not work when callling ourselves with same address.
-void StatisticsWindow::removeParticipant(QString ip)
+// TODO: Does not work when calling ourselves with same address.
+void StatisticsWindow::removeParticipant(uint32_t sessionID)
 {
-  participantMutex_.lock();
-  for(int i = 0; i < ui_->participantTable->rowCount(); ++i)
+  if (peers_.find(sessionID) == peers_.end())
   {
-    if(ui_->participantTable->item(i, 0)->text() == ip)
+    printProgramWarning(this, "Tried to remove a participant that doesn't exist");
+    return;
+  }
+
+  participantMutex_.lock();
+
+  int participantIndex = peers_[sessionID].participantIndex;
+
+  if (ui_->participantTable->rowCount() <= participantIndex)
+  {
+    participantMutex_.unlock();
+    printProgramWarning(this, "Missing participant row for participant");
+    return;
+  }
+
+  // remove row from UI
+  ui_->participantTable->removeRow(participantIndex);
+
+  // adjust the rest of the peers if needed
+  for (auto &peer : peers_)
+  {
+    if (peer.second.participantIndex > participantIndex)
     {
-      ui_->participantTable->removeRow(i);
-      peers_.at(i).active = false;
+      peer.second.participantIndex -= 1;
     }
   }
+
   participantMutex_.unlock();
 }
 
@@ -425,29 +445,28 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
     }
     case PARTICIPANT_TAB:
     {
-      int index = 0;
       for(auto& d : peers_)
       {
-        // if this participant has not yet been removed
-        // also tells whether the slot for this participant exists
-        if(d.second.active)
+        participantMutex_.lock();
+        if (d.second.participantIndex >= ui_->participantTable->rowCount())
         {
-          participantMutex_.lock();
-          ui_->participantTable->setItem
-              (index, 3, new QTableWidgetItem( QString::number(d.second.audioDelay) + " ms"));
-          ui_->participantTable->setItem
-              (index, 4, new QTableWidgetItem( QString::number(d.second.videoDelay) + " ms"));
-
-          float framerate = 0;
-          uint32_t videoBitrate = bitrate(d.second.videoPackets, d.second.videoIndex, framerate);
-          Q_UNUSED(videoBitrate);
-
-          ui_->participantTable->setItem
-              (index, 5, new QTableWidgetItem( QString::number(framerate)));
           participantMutex_.unlock();
-
-          ++index;
+          printProgramError(this, "Faulty pariticipantIndex detected in peer!");
+          return;
         }
+
+        ui_->participantTable->setItem
+            (d.second.participantIndex, 3, new QTableWidgetItem( QString::number(d.second.audioDelay) + " ms"));
+        ui_->participantTable->setItem
+            (d.second.participantIndex, 4, new QTableWidgetItem( QString::number(d.second.videoDelay) + " ms"));
+
+        float framerate = 0;
+        uint32_t videoBitrate = bitrate(d.second.videoPackets, d.second.videoIndex, framerate);
+        Q_UNUSED(videoBitrate);
+
+        ui_->participantTable->setItem
+            (d.second.participantIndex, 5, new QTableWidgetItem( QString::number(framerate)));
+        participantMutex_.unlock();
       }
       break;
     }
