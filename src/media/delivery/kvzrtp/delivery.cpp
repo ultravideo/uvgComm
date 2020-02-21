@@ -253,15 +253,7 @@ void Delivery::removeMediaStream(uint32_t sessionID, uint16_t localPort)
 {
   printNormal(this, "Creating remove mediastream");
 
-  // delete existing streams
-  for (auto & stream : peers_[sessionID]->streams)
-  {
-    if (stream.second != nullptr)
-    {
-      delete stream.second;
-    }
-  }
-
+  peers_[sessionID]->session->destroy_stream(peers_[sessionID]->streams[localPort]->stream);
   delete peers_[sessionID]->streams[localPort];
   peers_[sessionID]->streams[localPort] = nullptr;
   peers_[sessionID]->streams.erase(localPort);
