@@ -24,11 +24,13 @@ AudioCaptureFilter::AudioCaptureFilter(QString id, QAudioFormat format, Statisti
   buffer_(AUDIO_BUFFER_SIZE, 0)
 {}
 
+
 AudioCaptureFilter::~AudioCaptureFilter(){}
+
 
 bool AudioCaptureFilter::init()
 {
-  printDebug(DEBUG_NORMAL, this, "Initializing audio capture filter.");
+  printNormal(this, "Initializing audio capture filter.");
 
   QList<QAudioDeviceInfo> microphones = QAudioDeviceInfo::availableDevices(QAudio::AudioInput);
 
@@ -100,16 +102,21 @@ bool AudioCaptureFilter::init()
   return true;
 }
 
+
 void AudioCaptureFilter::createAudioInput()
 {
   qDebug() << "Iniating," << metaObject()->className() << ": Creating audio input";
   audioInput_ = new QAudioInput(deviceInfo_, format_, this);
 
-  device_->start();
+  if (device_)
+    device_->start();
 
-  input_ = audioInput_->start();
-  connect(input_, SIGNAL(readyRead()), SLOT(readMore()));
+  if (audioInput_)
+    input_ = audioInput_->start();
+  if (input_)
+    connect(input_, SIGNAL(readyRead()), SLOT(readMore()));
 }
+
 
 void AudioCaptureFilter::readMore()
 {
@@ -123,9 +130,12 @@ void AudioCaptureFilter::readMore()
   {
     len = AUDIO_BUFFER_SIZE;
   }
-  qint64 l = input_->read(buffer_.data(), len);
+  quint64 l = 0;
 
-  if (l > 0)
+  if (input_)
+    l = input_->read(buffer_.data(), len);
+
+  if (l > 0 && device_)
   {
     device_->write(buffer_.constData(), l);
 
@@ -154,22 +164,24 @@ void AudioCaptureFilter::readMore()
   }
 }
 
+
 void AudioCaptureFilter::start()
 {
   qDebug() << "Audio," << metaObject()->className() << ": Resuming audio input.";
 
-  if (audioInput_->state() == QAudio::SuspendedState
-      || audioInput_->state() == QAudio::StoppedState)
+  if (audioInput_ && (audioInput_->state() == QAudio::SuspendedState
+      || audioInput_->state() == QAudio::StoppedState))
   {
     audioInput_->resume();
   }
 }
 
+
 void AudioCaptureFilter::stop()
 {
   qDebug() << "Audio," << metaObject()->className() << ": Suspending input.";
 
-  if (audioInput_->state() == QAudio::ActiveState)
+  if (audioInput_ && audioInput_->state() == QAudio::ActiveState)
   {
     audioInput_->suspend();
   }
@@ -180,18 +192,24 @@ void AudioCaptureFilter::stop()
   qDebug() << "Audio," << metaObject()->className() << ": input suspended.";
 }
 
+
 // changing of audio device mid stream.
 void AudioCaptureFilter::updateSettings()
 {
   printNormal(this, "Updating audio settings");
+  if (device_)
+    device_->stop();
 
-  device_->stop();
-  audioInput_->stop();
-  audioInput_->disconnect(this);
-  delete audioInput_;
+  if (audioInput_)
+  {
+    audioInput_->stop();
+    audioInput_->disconnect(this);
+   delete audioInput_;
+  }
 
   init();
 }
+
 
 void AudioCaptureFilter::volumeChanged(int value)
 {
@@ -200,6 +218,7 @@ void AudioCaptureFilter::volumeChanged(int value)
     audioInput_->setVolume(qreal(value) / 100);
   }
 }
+
 
 void AudioCaptureFilter::process()
 {}
