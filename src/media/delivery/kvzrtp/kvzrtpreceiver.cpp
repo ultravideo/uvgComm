@@ -5,8 +5,6 @@
 #include "kvzrtpreceiver.h"
 #include "common.h"
 
-const uint32_t BUFFER_SIZE = 10 * 65536;
-
 #define RTP_HEADER_SIZE 2
 #define FU_HEADER_SIZE  1
 
@@ -68,6 +66,7 @@ void KvzRTPReceiver::receiveHook(kvz_rtp::frame::rtp_frame *frame)
   received_picture->height = 0;
   received_picture->framerate = 0;
   received_picture->source = REMOTE;
+  received_picture->presentationTime = {0,0}; // TODO
 
   // TODO: This copying should be done in separate thread as in
   // framedsource if we want to receive 4K with less powerful thread (like in Xeon)

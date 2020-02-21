@@ -131,8 +131,8 @@ private:
   uint16_t videoEncDelay_;
 
   QElapsedTimer guiTimer_;
-  int lastDrawTime_;
-  int32_t guiFrequency_;
+  qint64 guiUpdates_;
+  qint64 guiFrequency_;
 
   // for updating the tab as fast as possible
   int lastTabIndex_;

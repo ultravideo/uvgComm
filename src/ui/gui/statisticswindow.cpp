@@ -20,7 +20,7 @@ const int GRAPHSIZE = 60;
 
 
 enum TabType {
-  PARTICIPANT_TAB = 0, NETWORK_TAB = 1, MEDIA_TAB = 2, FILTER_TAB = 3
+  SIP_TAB = 0, PARTICIPANT_TAB = 1, NETWORK_TAB = 2, MEDIA_TAB = 3, FILTER_TAB = 4
 };
 
 
@@ -45,8 +45,8 @@ ui_(new Ui::StatisticsWindow),
   audioEncDelay_(0),
   videoEncDelay_(0),
   guiTimer_(),
-  lastDrawTime_(0),
-  guiFrequency_(1000),
+  guiUpdates_(0),
+  guiFrequency_(500),
   lastTabIndex_(254) // an invalid value so we will update the tab immediately
 {
   ui_->setupUi(this);
@@ -396,13 +396,12 @@ void StatisticsWindow::visualizeDataToSeries(std::deque<float>& data)
 
 void StatisticsWindow::paintEvent(QPaintEvent *event)
 {
-  qDebug() << "Paint";
-  Q_UNUSED(event)
+  Q_UNUSED(event);
+
   if(lastTabIndex_ != ui_->Statistics_tabs->currentIndex()
-     || lastDrawTime_ + guiFrequency_ < guiTimer_.elapsed())
+     || guiUpdates_*guiFrequency_ < guiTimer_.elapsed())
   {
-    // no need to catch up if we are falling behind, instead just reset the clock
-    lastDrawTime_ = guiTimer_.elapsed();
+    ++guiUpdates_;
 
     // update only the tab which user is looking at.
     switch(ui_->Statistics_tabs->currentIndex())
