@@ -38,10 +38,6 @@ ui_(new Ui::StatisticsWindow),
   receivePacketCount_(0),
   receivedData_(0),
   packetsDropped_(0),
-  lastVideoBitrate_(0),
-  lastAudioBitrate_(0),
-  lastVideoFrameRate_(0.0f),
-  lastAudioFrameRate_(0.0f),
   audioEncDelay_(0),
   videoEncDelay_(0),
   guiTimer_(),
@@ -50,6 +46,8 @@ ui_(new Ui::StatisticsWindow),
   lastTabIndex_(254) // an invalid value so we will update the tab immediately
 {
   ui_->setupUi(this);
+
+  // init headers of participant table
   participantMutex_.lock();
   ui_->participantTable->setColumnCount(6);
   ui_->participantTable->setHorizontalHeaderItem(0, new QTableWidgetItem(QString("IP")));
@@ -60,6 +58,7 @@ ui_(new Ui::StatisticsWindow),
   ui_->participantTable->setHorizontalHeaderItem(5, new QTableWidgetItem(QString("Video fps")));
   participantMutex_.unlock();
 
+  // init headers of filter table
   filterTableMutex_.lock();
   ui_->filterTable->setColumnCount(4);
   ui_->filterTable->setHorizontalHeaderItem(0, new QTableWidgetItem(QString("Filter")));
@@ -70,6 +69,7 @@ ui_(new Ui::StatisticsWindow),
   ui_->filterTable->setColumnWidth(0, 240);
   filterTableMutex_.unlock();
 
+  // start refresh timer
   guiTimer_.start();
 
 #ifndef QT_CHARTS_LIB
@@ -77,10 +77,12 @@ ui_(new Ui::StatisticsWindow),
 #endif
 }
 
+
 StatisticsWindow::~StatisticsWindow()
 {
   delete ui_;
 }
+
 
 void StatisticsWindow::closeEvent(QCloseEvent *event)
 {
@@ -88,12 +90,13 @@ void StatisticsWindow::closeEvent(QCloseEvent *event)
   accept();
 }
 
+
 void StatisticsWindow::addNextInterface(StatisticsInterface* next)
 {
   Q_UNUSED(next)
-  Q_ASSERT(false && "NOT IMPLEMENTED");
-  printDebug(DEBUG_PROGRAM_ERROR, this, "addNextInterface has not been implemented in stat window");
+  printUnimplemented(this, "addNextInterface has not been implemented in stat window");
 }
+
 
 void StatisticsWindow::videoInfo(double framerate, QSize resolution)
 {
@@ -103,6 +106,7 @@ void StatisticsWindow::videoInfo(double framerate, QSize resolution)
   ui_->resolution_value->setText( QString::number(resolution.width()) + "x"
                           + QString::number(resolution.height()));
 }
+
 
 void StatisticsWindow::audioInfo(uint32_t sampleRate, uint16_t channelCount)
 {
@@ -118,6 +122,7 @@ void StatisticsWindow::audioInfo(uint32_t sampleRate, uint16_t channelCount)
     ui_->sample_rate_value->setText(QString::number(sampleRate) + " Hz");
   }
 }
+
 
 void StatisticsWindow::addParticipant(uint32_t sessionID, QString ip,
                                       QString audioPort, QString videoPort)
@@ -137,6 +142,7 @@ void StatisticsWindow::addParticipant(uint32_t sessionID, QString ip,
 
   participantMutex_.unlock();
 }
+
 
 void StatisticsWindow::addFilter(QString filter, uint64_t TID)
 {
@@ -161,9 +167,8 @@ void StatisticsWindow::addFilter(QString filter, uint64_t TID)
     return;
   }
   bufferMutex_.unlock();
-
-
 }
+
 
 void StatisticsWindow::removeFilter(QString filter)
 {
@@ -201,9 +206,10 @@ void StatisticsWindow::removeFilter(QString filter)
   bufferMutex_.unlock();
 }
 
-// TODO: Does not work when calling ourselves with same address.
+
 void StatisticsWindow::removeParticipant(uint32_t sessionID)
 {
+  // check that peer exists
   if (peers_.find(sessionID) == peers_.end())
   {
     printProgramWarning(this, "Tried to remove a participant that doesn't exist");
@@ -214,6 +220,7 @@ void StatisticsWindow::removeParticipant(uint32_t sessionID)
 
   int participantIndex = peers_[sessionID].participantIndex;
 
+  // check that index points to a valid row
   if (ui_->participantTable->rowCount() <= participantIndex)
   {
     participantMutex_.unlock();
@@ -236,6 +243,7 @@ void StatisticsWindow::removeParticipant(uint32_t sessionID)
   participantMutex_.unlock();
 }
 
+
 void StatisticsWindow::sendDelay(QString type, uint32_t delay)
 {
   if(type == "video" || type == "Video")
@@ -247,6 +255,7 @@ void StatisticsWindow::sendDelay(QString type, uint32_t delay)
     audioEncDelay_ = delay;
   }
 }
+
 
 void StatisticsWindow::receiveDelay(uint32_t sessionID, QString type, int32_t delay)
 {
@@ -263,6 +272,7 @@ void StatisticsWindow::receiveDelay(uint32_t sessionID, QString type, int32_t de
   }
 }
 
+
 void StatisticsWindow::presentPackage(uint32_t sessionID, QString type)
 {
   Q_ASSERT(peers_.find(sessionID) != peers_.end());
@@ -274,6 +284,7 @@ void StatisticsWindow::presentPackage(uint32_t sessionID, QString type)
     }
   }
 }
+
 
 void StatisticsWindow::addEncodedPacket(QString type, uint32_t size)
 {
@@ -287,8 +298,10 @@ void StatisticsWindow::addEncodedPacket(QString type, uint32_t size)
   }
 }
 
+
 void StatisticsWindow::updateFramerateBuffer(std::vector<PacketInfo*>& packets, uint32_t& index, uint32_t size)
 {
+  // delete previous value from ring-buffer
   if(packets[index%BUFFERSIZE])
   {
     delete packets.at(index%BUFFERSIZE);
@@ -297,6 +310,7 @@ void StatisticsWindow::updateFramerateBuffer(std::vector<PacketInfo*>& packets, 
   packets[index%BUFFERSIZE] = new PacketInfo{QDateTime::currentMSecsSinceEpoch(), size};
   ++index;
 }
+
 
 uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets, uint32_t index, float& framerate)
 {
@@ -309,6 +323,8 @@ uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets, uint32_t i
   uint16_t frames = 0;
   uint32_t currentTs = 0;
   uint32_t previousTs = index - 2;
+
+  // set timestamp indexes to ringbuffer
   if(index == 0)
   {
     currentTs = BUFFERSIZE - 1;
@@ -316,7 +332,7 @@ uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets, uint32_t i
   }
   else if (index == 1)
   {
-    currentTs = index - 1;
+    currentTs = index - 1; // equals to 0
     previousTs = BUFFERSIZE - 1;
   }
   else
@@ -325,6 +341,7 @@ uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets, uint32_t i
     previousTs = index - 2;
   }
 
+  // sum all bytes and time intervals in ring-buffer for specified timeperiod
   while(packets[previousTs%BUFFERSIZE] && timeInterval < bitrateInterval)
   {
     timeInterval += packets[currentTs%BUFFERSIZE]->timestamp - packets[previousTs%BUFFERSIZE]->timestamp;
@@ -342,7 +359,7 @@ uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets, uint32_t i
     }
   }
 
-  //qDebug() << "Settings," << metaObject()->className() << ": Bitrate:" << bitrate << "timeInterval:"  << timeInterval;
+  // calculate framerate and the average amount of bits per timeinterval (bitrate)
   if(timeInterval)
   {
     framerate = 1000*(float)frames/timeInterval;
@@ -350,6 +367,7 @@ uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets, uint32_t i
   }
   return 0;
 }
+
 
 void StatisticsWindow::addSendPacket(uint16_t size)
 {
@@ -359,6 +377,7 @@ void StatisticsWindow::addSendPacket(uint16_t size)
   sendMutex_.unlock();
 }
 
+
 void StatisticsWindow::addReceivePacket(uint16_t size)
 {
   receiveMutex_.lock();
@@ -366,6 +385,7 @@ void StatisticsWindow::addReceivePacket(uint16_t size)
   receivedData_ += size;
   receiveMutex_.unlock();
 }
+
 
 void StatisticsWindow::updateBufferStatus(QString filter, uint16_t buffersize, uint16_t maxBufferSize)
 {
@@ -386,6 +406,7 @@ void StatisticsWindow::updateBufferStatus(QString filter, uint16_t buffersize, u
   bufferMutex_.unlock();
 }
 
+
 void StatisticsWindow::packetDropped(QString filter)
 {
   ++packetsDropped_;
@@ -401,6 +422,7 @@ void StatisticsWindow::packetDropped(QString filter)
   }
   bufferMutex_.unlock();
 }
+
 
 #ifdef QT_CHARTS_LIB
 void StatisticsWindow::visualizeDataToSeries(std::deque<float>& data)
@@ -444,6 +466,7 @@ void StatisticsWindow::visualizeDataToSeries(std::deque<float>& data)
 }
 #endif
 
+
 void StatisticsWindow::paintEvent(QPaintEvent *event)
 {
   Q_UNUSED(event);
@@ -453,7 +476,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
   {
     ++guiUpdates_;
 
-    // update only the tab which user is looking at.
+    // update only the tab which is visible to reduce processing
     switch(ui_->Statistics_tabs->currentIndex())
     {
     case SIP_TAB:
@@ -502,19 +525,20 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
       ui_->packets_skipped_value->setText(QString::number(packetsDropped_));
       break;
     case MEDIA_TAB:
-        lastVideoBitrate_ = bitrate(videoPackets_, videoIndex_, lastVideoFrameRate_);
+        float framerate = 0.0f;
+        uint32_t videoBitrate = bitrate(videoPackets_, videoIndex_, framerate);
         ui_->video_bitrate_value->setText
-            ( QString::number(lastVideoBitrate_) + " kbit/s" );
+            ( QString::number(videoBitrate) + " kbit/s" );
 
         ui_->encoded_framerate_value->setText
-            ( QString::number(lastVideoFrameRate_) + " fps" );
+            ( QString::number(framerate) + " fps" );
 
 #ifdef QT_CHARTS_LIB
         if(lastTabIndex_ != MEDIA_TAB)
         {
           framerates_.clear();
         }
-        framerates_.push_front(lastVideoFrameRate_);
+        framerates_.push_front(framerate);
 
         if (framerates_.size() > GRAPHSIZE)
         {
@@ -527,9 +551,10 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
         ui_->encode_delay_value->setText( QString::number(videoEncDelay_) + " ms." );
         ui_->audio_delay_value->setText( QString::number(audioEncDelay_) + " ms." );
 
-        lastAudioBitrate_ = bitrate(audioPackets_, audioIndex_, lastAudioFrameRate_);
+        float audioFramerate = 0.0f; // not interested in this at the moment.
+        uint32_t audioBitrate = bitrate(audioPackets_, audioIndex_, audioFramerate);
         ui_->audio_bitrate_value->setText
-            ( QString::number(lastAudioBitrate_) + " kbit/s" );
+            ( QString::number(audioBitrate) + " kbit/s" );
         break;
       }
     case FILTER_TAB:

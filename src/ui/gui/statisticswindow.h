@@ -28,6 +28,7 @@ public:
   explicit StatisticsWindow(QWidget *parent);
   virtual ~StatisticsWindow();
 
+  // renders the UI based on which tab is open.
   void paintEvent(QPaintEvent *event);
   void closeEvent(QCloseEvent *event);
 
@@ -53,6 +54,7 @@ public:
 
 private:
 
+  // info about one packet for calculating bitrate
   struct PacketInfo
   {
     int64_t timestamp;
@@ -71,7 +73,6 @@ private:
 
   std::map<uint32_t, PeerInfo> peers_;
 
-  uint32_t totalBuffers();
   uint32_t bitrate(std::vector<PacketInfo*>& packets, uint32_t index, float &framerate);
   void updateFramerateBuffer(std::vector<PacketInfo*>& packets, uint32_t& index, uint32_t size);
 
@@ -108,25 +109,21 @@ private:
 
   double framerate_; // rounded down currently
 
+
+  // ring-buffer and its current index
   uint32_t videoIndex_;
   std::vector<PacketInfo*> videoPackets_;
 
+  // ring-buffer and its current index
   uint32_t audioIndex_;
   std::vector<PacketInfo*> audioPackets_;
 
   uint64_t sendPacketCount_;
   uint64_t transferredData_;
-
   uint64_t receivePacketCount_;
   uint64_t receivedData_;
 
   uint64_t packetsDropped_;
-
-  uint32_t lastVideoBitrate_;
-  uint32_t lastAudioBitrate_;
-
-  float lastVideoFrameRate_;
-  float lastAudioFrameRate_;
 
 #ifdef QT_CHARTS_LIB
   std::deque<float> framerates_;
@@ -135,6 +132,7 @@ private:
   uint16_t audioEncDelay_;
   uint16_t videoEncDelay_;
 
+  // a timer for reducing number of gui updates and making it more readable
   QElapsedTimer guiTimer_;
   qint64 guiUpdates_;
   qint64 guiFrequency_;
