@@ -18,6 +18,8 @@ const int BUFFERSIZE = 65536;
 
 const int GRAPHSIZE = 60;
 
+const int FPSPRECISION = 4;
+
 
 enum TabType {
   SIP_TAB = 0, PARTICIPANT_TAB = 1, NETWORK_TAB = 2, MEDIA_TAB = 3, FILTER_TAB = 4
@@ -102,7 +104,7 @@ void StatisticsWindow::videoInfo(double framerate, QSize resolution)
 {
   // done only once, so setting ui directly is ok.
   framerate_ = framerate;
-  ui_->framerate_value->setText( QString::number(framerate)+" fps");
+  ui_->framerate_value->setText( QString::number(framerate, 'g', FPSPRECISION)+" fps");
   ui_->resolution_value->setText( QString::number(resolution.width()) + "x"
                           + QString::number(resolution.height()));
 }
@@ -506,7 +508,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
         Q_UNUSED(videoBitrate);
 
         ui_->participantTable->setItem
-            (d.second.participantIndex, 5, new QTableWidgetItem( QString::number(framerate)));
+            (d.second.participantIndex, 5, new QTableWidgetItem( QString::number(framerate, 'g', FPSPRECISION)));
         participantMutex_.unlock();
       }
       break;
@@ -531,7 +533,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
             ( QString::number(videoBitrate) + " kbit/s" );
 
         ui_->encoded_framerate_value->setText
-            ( QString::number(framerate) + " fps" );
+            ( QString::number(framerate, 'g', FPSPRECISION) + " fps" );
 
 #ifdef QT_CHARTS_LIB
         if(lastTabIndex_ != MEDIA_TAB)
