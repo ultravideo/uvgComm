@@ -167,7 +167,13 @@ void StatisticsWindow::addFilter(QString filter, uint64_t TID)
   rowIndex = ui_->filterTable->rowCount() - 1;
   ui_->filterTable->setItem(ui_->filterTable->rowCount() -1, 0, new QTableWidgetItem(filter));
   ui_->filterTable->setItem(ui_->filterTable->rowCount() -1, 1, new QTableWidgetItem(QString::number(TID)));
+  ui_->filterTable->setItem(ui_->filterTable->rowCount() -1, 2, new QTableWidgetItem("-/-"));
   ui_->filterTable->setItem(ui_->filterTable->rowCount() -1, 3, new QTableWidgetItem(QString::number(0)));
+
+  ui_->filterTable->item(ui_->filterTable->rowCount() -1, 0)->setTextAlignment(Qt::AlignHCenter);
+  ui_->filterTable->item(ui_->filterTable->rowCount() -1, 1)->setTextAlignment(Qt::AlignHCenter);
+  ui_->filterTable->item(ui_->filterTable->rowCount() -1, 2)->setTextAlignment(Qt::AlignHCenter);
+  ui_->filterTable->item(ui_->filterTable->rowCount() -1, 3)->setTextAlignment(Qt::AlignHCenter);
   filterTableMutex_.unlock();
 
   bufferMutex_.lock();
@@ -545,7 +551,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
       ui_->data_received_value->setText( QString::number(receivedData_));
       receiveMutex_.unlock();
 
-      ui_->packets_skipped_value->setText(QString::number(packetsDropped_));
+
       break;
     case MEDIA_TAB:
         float framerate = 0.0f;
@@ -600,15 +606,17 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
           }
 
           filterTableMutex_.lock();
-          ui_->filterTable->setItem(it.second.tableIndex, 0,new QTableWidgetItem(it.first));
-          ui_->filterTable->setItem(it.second.tableIndex, 1,new QTableWidgetItem(it.second.TID));
           ui_->filterTable->setItem(it.second.tableIndex, 2,new QTableWidgetItem(QString::number(it.second.bufferStatus) +
                                                                 "/" + QString::number(it.second.bufferSize)));
           ui_->filterTable->setItem(it.second.tableIndex, 3,new QTableWidgetItem(QString::number(it.second.dropped)));
+
+          ui_->filterTable->item(it.second.tableIndex, 2)->setTextAlignment(Qt::AlignHCenter);
+          ui_->filterTable->item(it.second.tableIndex, 3)->setTextAlignment(Qt::AlignHCenter);
           filterTableMutex_.unlock();
         }
 
-        ui_->buffer_sizes_value->setText(QString::number(totalBuffers));
+        ui_->value_buffers->setText(QString::number(totalBuffers));
+        ui_->value_dropped->setText(QString::number(packetsDropped_));
         dirtyBuffers_ = false;
         bufferMutex_.unlock();
       }
