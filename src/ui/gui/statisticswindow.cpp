@@ -114,8 +114,8 @@ void StatisticsWindow::videoInfo(double framerate, QSize resolution)
 {
   // done only once, so setting ui directly is ok.
   framerate_ = framerate;
-  ui_->framerate_value->setText( QString::number(framerate, 'g', FPSPRECISION)+" fps");
-  ui_->resolution_value->setText( QString::number(resolution.width()) + "x"
+  ui_->value_framerate->setText( QString::number(framerate, 'g', FPSPRECISION)+" fps");
+  ui_->value_resolution->setText( QString::number(resolution.width()) + "x"
                           + QString::number(resolution.height()));
 }
 
@@ -125,13 +125,13 @@ void StatisticsWindow::audioInfo(uint32_t sampleRate, uint16_t channelCount)
   //ui_->a_framerate_value->setText(QString::number(framerate)+"fps");
   if(sampleRate == 0 || sampleRate == 4294967295)
   {
-    ui_->channels_value->setText("No Audio");
-    ui_->sample_rate_value->setText("No Audio");
+    ui_->value_channels->setText("No Audio");
+    ui_->value_samplerate->setText("No Audio");
   }
   else
   {
-    ui_->channels_value->setText(QString::number(channelCount));
-    ui_->sample_rate_value->setText(QString::number(sampleRate) + " Hz");
+    ui_->value_channels->setText(QString::number(channelCount));
+    ui_->value_samplerate->setText(QString::number(sampleRate) + " Hz");
   }
 }
 
