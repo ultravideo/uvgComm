@@ -20,6 +20,7 @@ const int GRAPHSIZE = 60;
 
 const int FPSPRECISION = 4;
 
+const int UPDATEFREQUENCY = 1000;
 
 enum TabType {
   SIP_TAB = 0, PARTICIPANT_TAB = 1, NETWORK_TAB = 2, MEDIA_TAB = 3, FILTER_TAB = 4
@@ -44,7 +45,6 @@ ui_(new Ui::StatisticsWindow),
   videoEncDelay_(0),
   guiTimer_(),
   guiUpdates_(0),
-  guiFrequency_(1000),
   lastTabIndex_(254) // an invalid value so we will update the tab immediately
 {
   ui_->setupUi(this);
@@ -71,8 +71,7 @@ ui_(new Ui::StatisticsWindow),
   ui_->filterTable->setColumnWidth(0, 240);
   filterTableMutex_.unlock();
 
-  // start refresh timer
-  guiTimer_.start();
+
 
 #ifndef QT_CHARTS_LIB
   ui_->fps_graph->hide();
@@ -85,6 +84,14 @@ StatisticsWindow::~StatisticsWindow()
   delete ui_;
 }
 
+
+void StatisticsWindow::showEvent(QShowEvent * event)
+{
+  Q_UNUSED(event)
+  // start refresh timer
+  guiTimer_.start();
+  guiUpdates_ = 0;
+}
 
 void StatisticsWindow::closeEvent(QCloseEvent *event)
 {
@@ -132,12 +139,18 @@ void StatisticsWindow::addParticipant(uint32_t sessionID, QString ip,
   participantMutex_.lock();
   ui_->participantTable->insertRow(ui_->participantTable->rowCount());
   // add cells to table
-  ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 0, new QTableWidgetItem(ip));
-  ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 1, new QTableWidgetItem(audioPort));
-  ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 2, new QTableWidgetItem(videoPort));
-  ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 3, new QTableWidgetItem("- ms"));
-  ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 4, new QTableWidgetItem("- ms"));
-  ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 5, new QTableWidgetItem("-"));
+  ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 0,
+                                 new QTableWidgetItem(ip));
+  ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 1,
+                                 new QTableWidgetItem(audioPort));
+  ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 2,
+                                 new QTableWidgetItem(videoPort));
+  ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 3,
+                                 new QTableWidgetItem("- ms"));
+  ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 4,
+                                 new QTableWidgetItem("- ms"));
+  ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 5,
+                                 new QTableWidgetItem("-"));
 
   peers_[sessionID] = {0, std::vector<PacketInfo*>(BUFFERSIZE, nullptr),
                        0, 0, ui_->participantTable->rowCount() - 1};
@@ -474,7 +487,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
   Q_UNUSED(event);
 
   if(lastTabIndex_ != ui_->Statistics_tabs->currentIndex()
-     || guiUpdates_*guiFrequency_ < guiTimer_.elapsed())
+     || guiUpdates_*UPDATEFREQUENCY < guiTimer_.elapsed())
   {
     ++guiUpdates_;
 
@@ -498,10 +511,10 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
           return;
         }
 
-        ui_->participantTable->setItem
-            (d.second.participantIndex, 3, new QTableWidgetItem( QString::number(d.second.audioDelay) + " ms"));
-        ui_->participantTable->setItem
-            (d.second.participantIndex, 4, new QTableWidgetItem( QString::number(d.second.videoDelay) + " ms"));
+        ui_->participantTable->setItem(d.second.participantIndex, 3,
+                                       new QTableWidgetItem(QString::number(d.second.audioDelay) + " ms"));
+        ui_->participantTable->setItem(d.second.participantIndex, 4,
+                                       new QTableWidgetItem(QString::number(d.second.videoDelay) + " ms"));
 
         float framerate = 0;
         uint32_t videoBitrate = bitrate(d.second.videoPackets, d.second.videoIndex, framerate);
@@ -600,6 +613,8 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
     }
     lastTabIndex_ = ui_->Statistics_tabs->currentIndex();
   }
+
+  QDialog::paintEvent(event);
 }
 
 
