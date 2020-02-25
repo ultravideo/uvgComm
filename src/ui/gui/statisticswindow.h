@@ -70,7 +70,8 @@ private:
     int32_t videoDelay;
     int32_t audioDelay;
 
-    int participantIndex;
+    // index for all UI tables this peer is part of
+    int tableIndex;
   };
 
   std::map<uint32_t, PeerInfo> peers_;

@@ -6,7 +6,6 @@
 
 #include <QCloseEvent>
 #include <QDateTime>
-#include <QDebug>
 
 
 #ifdef QT_CHARTS_LIB
@@ -51,9 +50,12 @@ ui_(new Ui::StatisticsWindow),
 
   // init headers of participant table
 
-  fillTableHeaders(ui_->participantTable, participantMutex_, {"IP", "Audio Port", "Video Port"});
-  fillTableHeaders(ui_->filterTable, filterTableMutex_, {"Filter", "TID", "Buffer Size", "Dropped"});
-  fillTableHeaders(ui_->performance_table, participantMutex_, {"Name", "Audio delay", "Video delay", "Video fps"});
+  fillTableHeaders(ui_->participantTable, participantMutex_,
+                          {"IP", "Audio Port", "Video Port"});
+  fillTableHeaders(ui_->filterTable, filterTableMutex_,
+                          {"Filter", "TID", "Buffer Size", "Dropped"});
+  fillTableHeaders(ui_->performance_table, participantMutex_,
+                          {"Name", "Audio delay", "Video delay", "Video fps"});
 
 #ifndef QT_CHARTS_LIB
   ui_->fps_graph->hide();
@@ -118,8 +120,10 @@ void StatisticsWindow::audioInfo(uint32_t sampleRate, uint16_t channelCount)
 void StatisticsWindow::addParticipant(uint32_t sessionID, QString ip,
                                       QString audioPort, QString videoPort)
 {
-  int rowIndex = addTableRow(ui_->participantTable, participantMutex_, {ip, audioPort, videoPort});
-  int rowIndex2 = addTableRow(ui_->performance_table, participantMutex_, {ip, "- ms", "- ms", "- fps"});
+  int rowIndex = addTableRow(ui_->participantTable, participantMutex_,
+                                    {ip, audioPort, videoPort});
+  int rowIndex2 = addTableRow(ui_->performance_table, participantMutex_,
+                                    {ip, "- ms", "- ms", "- fps"});
 
   Q_ASSERT(rowIndex == rowIndex2);
 
@@ -130,7 +134,8 @@ void StatisticsWindow::addParticipant(uint32_t sessionID, QString ip,
 
 void StatisticsWindow::addFilter(QString filter, uint64_t TID)
 {
-  int rowIndex = addTableRow(ui_->filterTable, filterTableMutex_, {filter, QString::number(TID), "-/-", "0"});
+  int rowIndex = addTableRow(ui_->filterTable, filterTableMutex_,
+                                  {filter, QString::number(TID), "-/-", "0"});
 
   bufferMutex_.lock();
   if(buffers_.find(filter) == buffers_.end())
@@ -153,7 +158,8 @@ void StatisticsWindow::removeFilter(QString filter)
   if (buffers_.find(filter) == buffers_.end())
   {
     bufferMutex_.unlock();
-    printProgramWarning(this, "Tried to remove non-existing filter.", {"Name"}, {filter});
+    printProgramWarning(this, "Tried to remove non-existing filter.",
+                          {"Name"}, {filter});
     return;
   }
   bufferMutex_.unlock();
@@ -161,7 +167,8 @@ void StatisticsWindow::removeFilter(QString filter)
   filterTableMutex_.lock();
   if (ui_->filterTable->rowCount() <= buffers_[filter].tableIndex)
   {
-    printProgramWarning(this, "Filter doesn't exist in filter table when removing.", {"Name"}, {filter});
+    printProgramWarning(this, "Filter doesn't exist in filter table when removing.",
+                          {"Name"}, {filter});
     filterTableMutex_.unlock();
     return;
   }
@@ -195,7 +202,7 @@ void StatisticsWindow::removeParticipant(uint32_t sessionID)
 
   participantMutex_.lock();
 
-  int participantIndex = peers_[sessionID].participantIndex;
+  int participantIndex = peers_[sessionID].tableIndex;
 
   // check that index points to a valid row
   if (ui_->participantTable->rowCount() <= participantIndex ||
@@ -213,9 +220,9 @@ void StatisticsWindow::removeParticipant(uint32_t sessionID)
   // adjust the rest of the peers if needed
   for (auto &peer : peers_)
   {
-    if (peer.second.participantIndex > participantIndex)
+    if (peer.second.tableIndex > participantIndex)
     {
-      peer.second.participantIndex -= 1;
+      peer.second.tableIndex -= 1;
     }
   }
 
@@ -259,7 +266,8 @@ void StatisticsWindow::presentPackage(uint32_t sessionID, QString type)
   {
     if(type == "video" || type == "Video")
     {
-      updateFramerateBuffer(peers_.at(sessionID).videoPackets, peers_.at(sessionID).videoIndex, 0);
+      updateFramerateBuffer(peers_.at(sessionID).videoPackets,
+                            peers_.at(sessionID).videoIndex, 0);
     }
   }
 }
@@ -278,7 +286,8 @@ void StatisticsWindow::addEncodedPacket(QString type, uint32_t size)
 }
 
 
-void StatisticsWindow::updateFramerateBuffer(std::vector<PacketInfo*>& packets, uint32_t& index, uint32_t size)
+void StatisticsWindow::updateFramerateBuffer(std::vector<PacketInfo*>& packets,
+                                             uint32_t& index, uint32_t size)
 {
   // delete previous value from ring-buffer
   if(packets[index%BUFFERSIZE])
@@ -291,7 +300,8 @@ void StatisticsWindow::updateFramerateBuffer(std::vector<PacketInfo*>& packets, 
 }
 
 
-uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets, uint32_t index, float& framerate)
+uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets,
+                                   uint32_t index, float& framerate)
 {
   if(index == 0)
     return 0;
@@ -323,7 +333,8 @@ uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets, uint32_t i
   // sum all bytes and time intervals in ring-buffer for specified timeperiod
   while(packets[previousTs%BUFFERSIZE] && timeInterval < bitrateInterval)
   {
-    timeInterval += packets[currentTs%BUFFERSIZE]->timestamp - packets[previousTs%BUFFERSIZE]->timestamp;
+    timeInterval += packets[currentTs%BUFFERSIZE]->timestamp
+                      - packets[previousTs%BUFFERSIZE]->timestamp;
 
     bitrate += packets[currentTs%BUFFERSIZE]->size;
     ++frames;
@@ -366,12 +377,14 @@ void StatisticsWindow::addReceivePacket(uint16_t size)
 }
 
 
-void StatisticsWindow::updateBufferStatus(QString filter, uint16_t buffersize, uint16_t maxBufferSize)
+void StatisticsWindow::updateBufferStatus(QString filter, uint16_t buffersize,
+                                          uint16_t maxBufferSize)
 {
   bufferMutex_.lock();
   if(buffers_.find(filter) != buffers_.end())
   {
-    if(buffers_[filter].bufferStatus != buffersize || buffers_[filter].bufferSize != maxBufferSize)
+    if(buffers_[filter].bufferStatus != buffersize ||
+       buffers_[filter].bufferSize != maxBufferSize)
     {
       dirtyBuffers_ = true;
       buffers_[filter].bufferStatus = buffersize;
@@ -380,7 +393,8 @@ void StatisticsWindow::updateBufferStatus(QString filter, uint16_t buffersize, u
   }
   else
   {
-    qDebug() << "Settings," << metaObject()->className() << "Couldn't find correct filter for buffer status:" << filter;
+    printProgramWarning(this, "Couldn't find correct filter for buffer status",
+                        "Filter", filter);
   }
   bufferMutex_.unlock();
 }
@@ -397,7 +411,8 @@ void StatisticsWindow::packetDropped(QString filter)
   }
   else
   {
-    qDebug() << "Settings," << metaObject()->className() << ": Couldn't find correct filter for dropped packet:" << filter;
+    printProgramWarning(this, "Couldn't find correct filter for dropped packet",
+                        "Filter", filter);
   }
   bufferMutex_.unlock();
 }
@@ -460,12 +475,12 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
     {
     case SIP_TAB:
     {
-      // do nothing since this is not continous data
+      // do nothing since SIP has no continous data
       break;
     }
     case PARAMETERS_TAB:
     {
-      // do nothing since parameters are not changing cintinously
+      // do nothing since parameters have no continous data
       break;
     }
     case DELIVERY_TAB:
@@ -478,7 +493,6 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
       ui_->packets_received_value->setText( QString::number(receivePacketCount_));
       ui_->data_received_value->setText( QString::number(receivedData_));
       receiveMutex_.unlock();
-
 
       break;
     case PERFORMANCE_TAB:
@@ -517,7 +531,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
         for(auto& d : peers_)
         {
           participantMutex_.lock();
-          if (d.second.participantIndex >= ui_->performance_table->rowCount())
+          if (d.second.tableIndex >= ui_->performance_table->rowCount())
           {
             participantMutex_.unlock();
             printProgramError(this, "Faulty pariticipantIndex detected in peer!");
@@ -532,21 +546,21 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
           QString videoUnit = "ms";
           delayMsConversion(videoDelay, videoUnit);
 
-          ui_->performance_table->setItem(d.second.participantIndex, 1,
-                                         new QTableWidgetItem(QString::number(audioDelay) + " " + audioUnit));
-          ui_->performance_table->setItem(d.second.participantIndex, 2,
-                                         new QTableWidgetItem(QString::number(videoDelay) + " " + videoUnit));
+          ui_->performance_table->setItem(d.second.tableIndex, 1,
+                            new QTableWidgetItem(QString::number(audioDelay) + " " + audioUnit));
+          ui_->performance_table->setItem(d.second.tableIndex, 2,
+                            new QTableWidgetItem(QString::number(videoDelay) + " " + videoUnit));
 
           float framerate = 0;
           uint32_t videoBitrate = bitrate(d.second.videoPackets, d.second.videoIndex, framerate);
           Q_UNUSED(videoBitrate);
 
-          ui_->performance_table->setItem
-              (d.second.participantIndex, 3, new QTableWidgetItem( QString::number(framerate, 'g', FPSPRECISION)));
+          ui_->performance_table->setItem(d.second.tableIndex, 3,
+                             new QTableWidgetItem( QString::number(framerate, 'g', FPSPRECISION)));
 
-          ui_->performance_table->item(d.second.participantIndex, 1)->setTextAlignment(Qt::AlignHCenter);
-          ui_->performance_table->item(d.second.participantIndex, 2)->setTextAlignment(Qt::AlignHCenter);
-          ui_->performance_table->item(d.second.participantIndex, 3)->setTextAlignment(Qt::AlignHCenter);
+          ui_->performance_table->item(d.second.tableIndex, 1)->setTextAlignment(Qt::AlignHCenter);
+          ui_->performance_table->item(d.second.tableIndex, 2)->setTextAlignment(Qt::AlignHCenter);
+          ui_->performance_table->item(d.second.tableIndex, 3)->setTextAlignment(Qt::AlignHCenter);
           participantMutex_.unlock();
         }
 
@@ -571,9 +585,11 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
           }
 
           filterTableMutex_.lock();
-          ui_->filterTable->setItem(it.second.tableIndex, 2,new QTableWidgetItem(QString::number(it.second.bufferStatus) +
-                                                                "/" + QString::number(it.second.bufferSize)));
-          ui_->filterTable->setItem(it.second.tableIndex, 3,new QTableWidgetItem(QString::number(it.second.dropped)));
+          ui_->filterTable->setItem(it.second.tableIndex, 2,
+                                    new QTableWidgetItem(QString::number(it.second.bufferStatus) +
+                                                         "/" + QString::number(it.second.bufferSize)));
+          ui_->filterTable->setItem(it.second.tableIndex, 3,
+                                    new QTableWidgetItem(QString::number(it.second.dropped)));
 
           ui_->filterTable->item(it.second.tableIndex, 2)->setTextAlignment(Qt::AlignHCenter);
           ui_->filterTable->item(it.second.tableIndex, 3)->setTextAlignment(Qt::AlignHCenter);
@@ -599,19 +615,22 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 }
 
 
-void StatisticsWindow::addSentSIPMessage(QString type, QString message, QString address)
+void StatisticsWindow::addSentSIPMessage(QString type, QString message,
+                                         QString address)
 {
   addSIPMessageToList(ui_->sent_list, type, message, address);
 }
 
 
-void StatisticsWindow::addReceivedSIPMessage(QString type, QString message, QString address)
+void StatisticsWindow::addReceivedSIPMessage(QString type, QString message,
+                                             QString address)
 {
   addSIPMessageToList(ui_->received_list, type, message, address);
 }
 
 
-void StatisticsWindow::addSIPMessageToList(QListWidget* list, QString type, QString message, QString address)
+void StatisticsWindow::addSIPMessageToList(QListWidget* list, QString type,
+                                           QString message, QString address)
 {
   QWidget* widget = new QWidget;
   QGridLayout* layout = new QGridLayout(widget);
@@ -629,6 +648,7 @@ void StatisticsWindow::addSIPMessageToList(QListWidget* list, QString type, QStr
   list->setItemWidget(item, widget);
 }
 
+
 void StatisticsWindow::delayMsConversion(int& delay, QString& unit)
 {
   if (delay > 1000)
@@ -642,7 +662,9 @@ void StatisticsWindow::delayMsConversion(int& delay, QString& unit)
   }
 }
 
-void StatisticsWindow::fillTableHeaders(QTableWidget* table, QMutex& mutex, QStringList headers)
+
+void StatisticsWindow::fillTableHeaders(QTableWidget* table, QMutex& mutex,
+                                        QStringList headers)
 {
   if (!table)
   {
@@ -664,7 +686,8 @@ void StatisticsWindow::fillTableHeaders(QTableWidget* table, QMutex& mutex, QStr
 }
 
 
-int StatisticsWindow::addTableRow(QTableWidget* table, QMutex& mutex, QStringList fields)
+int StatisticsWindow::addTableRow(QTableWidget* table, QMutex& mutex,
+                                  QStringList fields)
 {
   mutex.lock();
   table->insertRow(table->rowCount());
