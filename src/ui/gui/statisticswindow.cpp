@@ -23,7 +23,7 @@ const int FPSPRECISION = 4;
 const int UPDATEFREQUENCY = 1000;
 
 enum TabType {
-  SIP_TAB = 0, PARTICIPANT_TAB = 1, NETWORK_TAB = 2, MEDIA_TAB = 3, FILTER_TAB = 4
+  SIP_TAB = 0, PARAMETERS_TAB = 1, DELIVERY_TAB = 2, FILTER_TAB = 3, PERFORMANCE_TAB = 4
 };
 
 
@@ -515,7 +515,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
       // do nothing since this is not continous data
       break;
     }
-    case PARTICIPANT_TAB:
+    case PARAMETERS_TAB:
     {
       for(auto& d : peers_)
       {
@@ -554,7 +554,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
       }
       break;
     }
-    case NETWORK_TAB:
+    case DELIVERY_TAB:
     {
       sendMutex_.lock();
       ui_->packets_sent_value->setText( QString::number(sendPacketCount_));
@@ -567,7 +567,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 
 
       break;
-    case MEDIA_TAB:
+    case PERFORMANCE_TAB:
         float framerate = 0.0f;
         uint32_t videoBitrate = bitrate(videoPackets_, videoIndex_, framerate);
         ui_->video_bitrate_value->setText
@@ -577,7 +577,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
             ( QString::number(framerate, 'g', FPSPRECISION) + " fps" );
 
 #ifdef QT_CHARTS_LIB
-        if(lastTabIndex_ != MEDIA_TAB)
+        if(lastTabIndex_ != PERFORMANCE_TAB)
         {
           framerates_.clear();
         }
