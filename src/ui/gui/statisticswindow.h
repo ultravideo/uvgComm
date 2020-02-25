@@ -79,6 +79,8 @@ private:
 
   void addSIPMessageToList(QListWidget* list, QString type, QString message, QString address);
 
+  void delayMsConversion(int& delay, QString& unit);
+
 #ifdef QT_CHARTS_LIB
   void visualizeDataToSeries(std::deque<float>& data);
 #endif

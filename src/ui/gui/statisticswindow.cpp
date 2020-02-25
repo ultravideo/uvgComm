@@ -511,10 +511,18 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
           return;
         }
 
+        int audioDelay = d.second.audioDelay;
+        QString audioUnit = "ms";
+        delayMsConversion(audioDelay, audioUnit);
+
+        int videoDelay = d.second.videoDelay;
+        QString videoUnit = "ms";
+        delayMsConversion(videoDelay, videoUnit);
+
         ui_->participantTable->setItem(d.second.participantIndex, 3,
-                                       new QTableWidgetItem(QString::number(d.second.audioDelay) + " ms"));
+                                       new QTableWidgetItem(QString::number(audioDelay) + " " + audioUnit));
         ui_->participantTable->setItem(d.second.participantIndex, 4,
-                                       new QTableWidgetItem(QString::number(d.second.videoDelay) + " ms"));
+                                       new QTableWidgetItem(QString::number(videoDelay) + " " + videoUnit));
 
         float framerate = 0;
         uint32_t videoBitrate = bitrate(d.second.videoPackets, d.second.videoIndex, framerate);
@@ -646,4 +654,17 @@ void StatisticsWindow::addSIPMessageToList(QListWidget* list, QString type, QStr
 
   list->addItem(item);
   list->setItemWidget(item, widget);
+}
+
+void StatisticsWindow::delayMsConversion(int& delay, QString& unit)
+{
+  if (delay > 1000)
+  {
+    delay = (delay + 500)/1000;
+    unit = "s";
+  }
+  else
+  {
+    unit = "ms";
+  }
 }
