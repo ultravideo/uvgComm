@@ -58,6 +58,9 @@ ui_(new Ui::StatisticsWindow),
   ui_->participantTable->setHorizontalHeaderItem(3, new QTableWidgetItem(QString("Audio delay")));
   ui_->participantTable->setHorizontalHeaderItem(4, new QTableWidgetItem(QString("Video delay")));
   ui_->participantTable->setHorizontalHeaderItem(5, new QTableWidgetItem(QString("Video fps")));
+  ui_->participantTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+  //ui_->participantTable->horizontalHeader()->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum));
+  ui_->participantTable->horizontalHeader()->setMinimumHeight(40);
   participantMutex_.unlock();
 
   // init headers of filter table
@@ -68,9 +71,9 @@ ui_(new Ui::StatisticsWindow),
   ui_->filterTable->setHorizontalHeaderItem(2, new QTableWidgetItem(QString("Buffer Size")));
   ui_->filterTable->setHorizontalHeaderItem(3, new QTableWidgetItem(QString("Dropped")));
 
-  ui_->filterTable->setColumnWidth(0, 240);
+  ui_->filterTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+  ui_->filterTable->horizontalHeader()->setMinimumHeight(40);
   filterTableMutex_.unlock();
-
 
 
 #ifndef QT_CHARTS_LIB
@@ -151,6 +154,13 @@ void StatisticsWindow::addParticipant(uint32_t sessionID, QString ip,
                                  new QTableWidgetItem("- ms"));
   ui_->participantTable->setItem(ui_->participantTable->rowCount() -1, 5,
                                  new QTableWidgetItem("-"));
+
+  ui_->participantTable->item(ui_->participantTable->rowCount() -1, 0)->setTextAlignment(Qt::AlignHCenter);
+  ui_->participantTable->item(ui_->participantTable->rowCount() -1, 1)->setTextAlignment(Qt::AlignHCenter);
+  ui_->participantTable->item(ui_->participantTable->rowCount() -1, 2)->setTextAlignment(Qt::AlignHCenter);
+  ui_->participantTable->item(ui_->participantTable->rowCount() -1, 3)->setTextAlignment(Qt::AlignHCenter);
+  ui_->participantTable->item(ui_->participantTable->rowCount() -1, 4)->setTextAlignment(Qt::AlignHCenter);
+  ui_->participantTable->item(ui_->participantTable->rowCount() -1, 5)->setTextAlignment(Qt::AlignHCenter);
 
   peers_[sessionID] = {0, std::vector<PacketInfo*>(BUFFERSIZE, nullptr),
                        0, 0, ui_->participantTable->rowCount() - 1};
@@ -536,6 +546,10 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 
         ui_->participantTable->setItem
             (d.second.participantIndex, 5, new QTableWidgetItem( QString::number(framerate, 'g', FPSPRECISION)));
+
+        ui_->participantTable->item(d.second.participantIndex, 3)->setTextAlignment(Qt::AlignHCenter);
+        ui_->participantTable->item(d.second.participantIndex, 4)->setTextAlignment(Qt::AlignHCenter);
+        ui_->participantTable->item(d.second.participantIndex, 5)->setTextAlignment(Qt::AlignHCenter);
         participantMutex_.unlock();
       }
       break;
