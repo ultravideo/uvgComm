@@ -15,6 +15,7 @@
 
 class QStringListModel;
 class QListWidget;
+class QTableWidget;
 
 namespace Ui {
 class StatisticsWindow;
@@ -80,6 +81,11 @@ private:
   void addSIPMessageToList(QListWidget* list, QString type, QString message, QString address);
 
   void delayMsConversion(int& delay, QString& unit);
+
+  void fillTableHeaders(QTableWidget* table, QMutex& mutex, QStringList headers);
+
+  // returns the index of added row
+  int addTableRow(QTableWidget* table, QMutex& mutex, QStringList fields);
 
 #ifdef QT_CHARTS_LIB
   void visualizeDataToSeries(std::deque<float>& data);
