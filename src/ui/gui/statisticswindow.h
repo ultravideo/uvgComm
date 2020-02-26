@@ -79,14 +79,12 @@ private:
   uint32_t bitrate(std::vector<PacketInfo*>& packets, uint32_t index, float &framerate);
   void updateFramerateBuffer(std::vector<PacketInfo*>& packets, uint32_t& index, uint32_t size);
 
-  void addSIPMessageToList(QListWidget* list, QString type, QString message, QString address);
-
   void delayMsConversion(int& delay, QString& unit);
 
   void fillTableHeaders(QTableWidget* table, QMutex& mutex, QStringList headers);
 
   // returns the index of added row
-  int addTableRow(QTableWidget* table, QMutex& mutex, QStringList fields);
+  int addTableRow(QTableWidget* table, QMutex& mutex, QStringList fields, QString tooltip = "");
 
 #ifdef QT_CHARTS_LIB
   void visualizeDataToSeries(std::deque<float>& data);
@@ -109,6 +107,7 @@ private:
   // mutexes to prevent simultanious recording of certain statistics
   QMutex participantMutex_;
   QMutex filterTableMutex_;
+  QMutex sipMutex_;
 
   QMutex receiveMutex_;
   QMutex sendMutex_;

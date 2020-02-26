@@ -74,14 +74,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QListWidget" name="sent_list">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-        </widget>
+        <widget class="QTableWidget" name="sent_list"/>
        </item>
        <item>
         <widget class="QLabel" name="label">
@@ -101,14 +94,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QListWidget" name="received_list">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-        </widget>
+        <widget class="QTableWidget" name="received_list"/>
        </item>
       </layout>
      </widget>

@@ -56,6 +56,10 @@ ui_(new Ui::StatisticsWindow),
                           {"Filter", "TID", "Buffer Size", "Dropped"});
   fillTableHeaders(ui_->performance_table, participantMutex_,
                           {"Name", "Audio delay", "Video delay", "Video fps"});
+  fillTableHeaders(ui_->sent_list, sipMutex_,
+                          {"Type", "Destination"});
+  fillTableHeaders(ui_->received_list, sipMutex_,
+                          {"Type", "Source"});
 
 #ifndef QT_CHARTS_LIB
   ui_->fps_graph->hide();
@@ -618,42 +622,27 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 void StatisticsWindow::addSentSIPMessage(QString type, QString message,
                                          QString address)
 {
-  addSIPMessageToList(ui_->sent_list, type, message, address);
+  addTableRow(ui_->sent_list, sipMutex_, {type, address}, message);
 }
 
 
 void StatisticsWindow::addReceivedSIPMessage(QString type, QString message,
                                              QString address)
 {
-  addSIPMessageToList(ui_->received_list, type, message, address);
-}
-
-
-void StatisticsWindow::addSIPMessageToList(QListWidget* list, QString type,
-                                           QString message, QString address)
-{
-  QWidget* widget = new QWidget;
-  QGridLayout* layout = new QGridLayout(widget);
-  widget->setLayout(layout);
-
-  layout->addWidget(new QLabel(type), 0, 0);
-  layout->addWidget(new QLabel(address), 0, 1);
-
-  widget->setToolTip(message);
-
-  QListWidgetItem* item = new QListWidgetItem(list);
-  item->setSizeHint(QSize(150, 40));
-
-  list->addItem(item);
-  list->setItemWidget(item, widget);
+  addTableRow(ui_->received_list, sipMutex_, {type, address}, message);
 }
 
 
 void StatisticsWindow::delayMsConversion(int& delay, QString& unit)
 {
-  if (delay > 1000)
+  if (delay >= 1000)
   {
     delay = (delay + 500)/1000;
+    unit = "s";
+  }
+  else if (delay <= -1000)
+  {
+    delay = (delay - 500)/1000;
     unit = "s";
   }
   else
@@ -687,15 +676,21 @@ void StatisticsWindow::fillTableHeaders(QTableWidget* table, QMutex& mutex,
 
 
 int StatisticsWindow::addTableRow(QTableWidget* table, QMutex& mutex,
-                                  QStringList fields)
+                                  QStringList fields, QString tooltip)
 {
   mutex.lock();
   table->insertRow(table->rowCount());
 
   for (int i = 0; i < fields.size(); ++i)
   {
-    table->setItem(table->rowCount() -1, i, new QTableWidgetItem(fields.at(i)));
-    table->item(table->rowCount() -1, i)->setTextAlignment(Qt::AlignHCenter);
+    QTableWidgetItem* item = new QTableWidgetItem(fields.at(i));
+    item->setTextAlignment(Qt::AlignHCenter);
+    if (tooltip != "")
+    {
+      item->setToolTip(tooltip);
+    }
+    item->setFlags(item->flags() & ~(Qt::ItemIsEditable | Qt::ItemIsSelectable));
+    table->setItem(table->rowCount() -1, i, item);
   }
 
   int index = table->rowCount() - 1;
