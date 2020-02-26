@@ -387,6 +387,4 @@ void KvazzupController::removeSession(uint32_t sessionID)
   {
     states_.erase(it);
   }
-
-  stats_->removeParticipant(sessionID);
 }

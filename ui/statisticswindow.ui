@@ -103,6 +103,27 @@
        <string>Call Parameters</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_2">
+       <item row="4" column="0">
+        <widget class="QLabel" name="label_channels">
+         <property name="text">
+          <string>Audio Channels</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QLabel" name="value_samplerate">
+         <property name="text">
+          <string>0</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="label_samplerate">
+         <property name="text">
+          <string>Audio Samplerate</string>
+         </property>
+        </widget>
+       </item>
        <item row="1" column="0">
         <widget class="QLabel" name="label_framerate">
          <property name="sizePolicy">
@@ -116,24 +137,20 @@
          </property>
         </widget>
        </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="label_resolution">
-         <property name="text">
-          <string>Camera Resolution:</string>
+       <item row="7" column="0" colspan="2">
+        <widget class="QLabel" name="label_outgoing">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
          </property>
-        </widget>
-       </item>
-       <item row="2" column="1">
-        <widget class="QLabel" name="value_resolution">
          <property name="text">
-          <string>0x0</string>
+          <string>Outgoing Streams</string>
          </property>
-        </widget>
-       </item>
-       <item row="4" column="0">
-        <widget class="QLabel" name="label_channels">
-         <property name="text">
-          <string>Audio Channels</string>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
          </property>
         </widget>
        </item>
@@ -145,13 +162,6 @@
            <verstretch>0</verstretch>
           </sizepolicy>
          </property>
-         <property name="text">
-          <string>0</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="1">
-        <widget class="QLabel" name="value_samplerate">
          <property name="text">
           <string>0</string>
          </property>
@@ -174,8 +184,19 @@
          </property>
         </widget>
        </item>
-       <item row="6" column="0" colspan="2">
-        <widget class="QTableWidget" name="participantTable"/>
+       <item row="2" column="0">
+        <widget class="QLabel" name="label_resolution">
+         <property name="text">
+          <string>Camera Resolution:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QLabel" name="value_resolution">
+         <property name="text">
+          <string>0x0</string>
+         </property>
+        </widget>
        </item>
        <item row="4" column="1">
         <widget class="QLabel" name="value_channels">
@@ -184,15 +205,8 @@
          </property>
         </widget>
        </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="label_samplerate">
-         <property name="text">
-          <string>Audio Samplerate</string>
-         </property>
-        </widget>
-       </item>
        <item row="5" column="0" colspan="2">
-        <widget class="QLabel" name="label_7">
+        <widget class="QLabel" name="label_incoming">
          <property name="font">
           <font>
            <pointsize>12</pointsize>
@@ -201,12 +215,18 @@
           </font>
          </property>
          <property name="text">
-          <string>Media Streams</string>
+          <string>Incoming Streams</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
          </property>
         </widget>
+       </item>
+       <item row="6" column="0" colspan="2">
+        <widget class="QTableWidget" name="table_incoming"/>
+       </item>
+       <item row="8" column="0" colspan="2">
+        <widget class="QTableWidget" name="table_outgoing"/>
        </item>
       </layout>
      </widget>

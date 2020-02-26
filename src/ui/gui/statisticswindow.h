@@ -35,24 +35,33 @@ public:
   void closeEvent(QCloseEvent *event);
 
   // see statisticsInterface for details
-  virtual void addNextInterface(StatisticsInterface* next);
+  // use these for inputting data. Some of these record fields to be later
+  // set to UI and some of these modify UI directly.
   virtual void videoInfo(double framerate, QSize resolution);
   virtual void audioInfo(uint32_t sampleRate, uint16_t channelCount);
-  virtual void addParticipant(uint32_t sessionID, QString ip, QString audioPort, QString videoPort);
-  virtual void removeParticipant(uint32_t sessionID);
+
+  virtual void addSession(uint32_t sessionID);
+  virtual void removeSession(uint32_t sessionID);
+
+  virtual void incomingMedia(uint32_t sessionID, QStringList& ipList,
+                             QStringList& audioPorts, QStringList& videoPorts);
+  virtual void outgoingMedia(uint32_t sessionID, QStringList& ipList,
+                             QStringList& audioPorts, QStringList& videoPorts);
+
   virtual void sendDelay(QString type, uint32_t delay);
-  virtual void presentPackage(uint32_t sessionID, QString type);
   virtual void receiveDelay(uint32_t sessionID, QString type, int32_t delay);
+
+  virtual void presentPackage(uint32_t sessionID, QString type);
   virtual void addEncodedPacket(QString type, uint32_t size);
   virtual void addSendPacket(uint16_t size);
   virtual void addReceivePacket(uint16_t size);
   virtual void addFilter(QString filter, uint64_t TID);
   virtual void removeFilter(QString filter);
-  virtual void updateBufferStatus(QString filter, uint16_t buffersize, uint16_t maxBufferSize);
+  virtual void updateBufferStatus(QString filter, uint16_t buffersize,
+                                  uint16_t maxBufferSize);
   virtual void packetDropped(QString filter);
   virtual void addSentSIPMessage(QString type, QString message, QString address);
   virtual void addReceivedSIPMessage(QString type, QString message, QString address);
-
 
 private:
 
@@ -62,19 +71,6 @@ private:
     int64_t timestamp;
     uint32_t size;
   };
-
-  struct PeerInfo
-  {
-    uint32_t videoIndex;
-    std::vector<PacketInfo*> videoPackets;
-    int32_t videoDelay;
-    int32_t audioDelay;
-
-    // index for all UI tables this peer is part of
-    int tableIndex;
-  };
-
-  std::map<uint32_t, PeerInfo> peers_;
 
   uint32_t bitrate(std::vector<PacketInfo*>& packets, uint32_t index, float &framerate);
   void updateFramerateBuffer(std::vector<PacketInfo*>& packets, uint32_t& index, uint32_t size);
@@ -86,11 +82,27 @@ private:
   // returns the index of added row
   int addTableRow(QTableWidget* table, QMutex& mutex, QStringList fields, QString tooltip = "");
 
+  void addMedia(QTableWidget* table, uint32_t sessionID, QStringList& ipList,
+                QStringList audioPorts, QStringList videoPorts);
+  QString combineList(QStringList& list);
+
 #ifdef QT_CHARTS_LIB
   void visualizeDataToSeries(std::deque<float>& data);
 #endif
 
-  Ui::StatisticsWindow *ui_;
+
+  struct SessionInfo
+  {
+    uint32_t videoIndex;
+    std::vector<PacketInfo*> videoPackets;
+    int32_t videoDelay;
+    int32_t audioDelay;
+
+    // index for all UI tables this peer is part of
+    int tableIndex;
+  };
+
+  std::map<uint32_t, SessionInfo> sessions_;
 
   struct FilterStatus
   {
@@ -104,8 +116,10 @@ private:
 
   std::map<QString, FilterStatus> buffers_;
 
+  Ui::StatisticsWindow *ui_;
+
   // mutexes to prevent simultanious recording of certain statistics
-  QMutex participantMutex_;
+  QMutex sessionMutex_;
   QMutex filterTableMutex_;
   QMutex sipMutex_;
 

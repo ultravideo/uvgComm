@@ -15,22 +15,21 @@ class StatisticsInterface
 public:
   virtual ~StatisticsInterface(){}
 
-  // Next interface if there are more than one way of processing statistics
-  virtual void addNextInterface(StatisticsInterface* next) = 0;
-
   // basic information on video. Can be called in case information changes.
   virtual void videoInfo(double framerate, QSize resolution) = 0;
 
   // basic information on audio. Can be called in case information changes.
   virtual void audioInfo(uint32_t sampleRate, uint16_t channelCount) = 0;
 
-  // adds participant information. May in future be extended to include
-  // RTP tracking fo each participant individually with ID
-  virtual void addParticipant(uint32_t sessionID, QString ip, QString audioPort, QString videoPort) = 0;
+  // add/remove session information or log the start/end of session.
+  virtual void addSession(uint32_t sessionID) = 0;
+  virtual void removeSession(uint32_t sessionID) = 0;
 
-  // remove participant information. May in future be extended to include
-  // RTP tracking fo each participant individually with ID
-  virtual void removeParticipant(uint32_t sessionID) = 0;
+  // basic call info for incoming and outgoing medias
+  virtual void incomingMedia(uint32_t sessionID, QStringList& ipList,
+                             QStringList& audioPorts, QStringList& videoPorts) = 0;
+  virtual void outgoingMedia(uint32_t sessionID, QStringList& ipList,
+                             QStringList& audioPorts, QStringList& videoPorts) = 0;
 
   // the delay it takes from input to the point when input is encoded
   virtual void sendDelay(QString type, uint32_t delay) = 0;

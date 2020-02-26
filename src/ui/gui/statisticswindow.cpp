@@ -29,7 +29,8 @@ enum TabType {
 StatisticsWindow::StatisticsWindow(QWidget *parent) :
 QDialog(parent),
 StatisticsInterface(),
-ui_(new Ui::StatisticsWindow),
+  sessions_(),
+  ui_(new Ui::StatisticsWindow),
   framerate_(0),
   videoIndex_(0), // ringbuffer index
   videoPackets_(BUFFERSIZE,nullptr), // ringbuffer
@@ -50,11 +51,13 @@ ui_(new Ui::StatisticsWindow),
 
   // init headers of participant table
 
-  fillTableHeaders(ui_->participantTable, participantMutex_,
-                          {"IP", "Audio Port", "Video Port"});
+  fillTableHeaders(ui_->table_outgoing, sessionMutex_,
+                          {"IP", "Audio Ports", "Video Ports"});
+  fillTableHeaders(ui_->table_incoming, sessionMutex_,
+                          {"IP", "Audio Ports", "Video Ports"});
   fillTableHeaders(ui_->filterTable, filterTableMutex_,
                           {"Filter", "TID", "Buffer Size", "Dropped"});
-  fillTableHeaders(ui_->performance_table, participantMutex_,
+  fillTableHeaders(ui_->performance_table, sessionMutex_,
                           {"Name", "Audio delay", "Video delay", "Video fps"});
   fillTableHeaders(ui_->sent_list, sipMutex_,
                           {"Type", "Destination"});
@@ -88,13 +91,6 @@ void StatisticsWindow::closeEvent(QCloseEvent *event)
 }
 
 
-void StatisticsWindow::addNextInterface(StatisticsInterface* next)
-{
-  Q_UNUSED(next)
-  printUnimplemented(this, "addNextInterface has not been implemented in stat window");
-}
-
-
 void StatisticsWindow::videoInfo(double framerate, QSize resolution)
 {
   // done only once, so setting ui directly is ok.
@@ -120,21 +116,84 @@ void StatisticsWindow::audioInfo(uint32_t sampleRate, uint16_t channelCount)
   }
 }
 
-
-void StatisticsWindow::addParticipant(uint32_t sessionID, QString ip,
-                                      QString audioPort, QString videoPort)
+void StatisticsWindow::addSession(uint32_t sessionID)
 {
-  int rowIndex = addTableRow(ui_->participantTable, participantMutex_,
-                                    {ip, audioPort, videoPort});
-  int rowIndex2 = addTableRow(ui_->performance_table, participantMutex_,
-                                    {ip, "- ms", "- ms", "- fps"});
+  if (sessions_.find(sessionID) != sessions_.end())
+  {
+    printProgramError(this, "Session already exists");
+    return;
+  }
 
-  Q_ASSERT(rowIndex == rowIndex2);
-
-  peers_[sessionID] = {0, std::vector<PacketInfo*>(BUFFERSIZE, nullptr),
-                       0, 0, rowIndex};
+  sessions_[sessionID] = {0, std::vector<PacketInfo*>(BUFFERSIZE, nullptr),
+                          0, 0, -1};
 }
 
+
+void StatisticsWindow::incomingMedia(uint32_t sessionID, QStringList& ipList,
+                                     QStringList &audioPorts, QStringList &videoPorts)
+{
+  if (ipList.size() == 0)
+  {
+    return;
+  }
+
+  addMedia(ui_->table_incoming, sessionID, ipList, audioPorts, videoPorts);
+
+  addTableRow(ui_->performance_table, sessionMutex_,
+             {ipList.at(0), "- ms", "- ms", "- fps"});
+}
+
+
+void StatisticsWindow::outgoingMedia(uint32_t sessionID, QStringList& ipList,
+                                     QStringList& audioPorts, QStringList& videoPorts)
+{
+  addMedia(ui_->table_outgoing, sessionID, ipList, audioPorts, videoPorts);
+}
+
+
+void StatisticsWindow::addMedia(QTableWidget* table, uint32_t sessionID, QStringList& ipList,
+                                QStringList audioPorts, QStringList videoPorts)
+{
+  if (sessions_.find(sessionID) == sessions_.end())
+  {
+    printProgramError(this, "Session for media doesn't exist");
+    return;
+  }
+
+  int index = addTableRow(table, sessionMutex_,
+                          {combineList(ipList), combineList(audioPorts), combineList(videoPorts)});
+
+  if (sessions_[sessionID].tableIndex == -1 || sessions_[sessionID].tableIndex == index)
+  {
+    sessions_[sessionID].tableIndex = index;
+  }
+  else
+  {
+    printProgramError(this, "Wrong table index detected in sessions for media!");
+    return;
+  }
+}
+
+QString StatisticsWindow::combineList(QStringList &list)
+{
+  QString listed = "";
+
+  for (int i = list.size() - 1; i >= 0; --i)
+  {
+    // don't record anything if we have to of the same strings
+    if (i > 0 && list[i] != list[i - 1])
+    {
+      listed += list[i];
+      listed += ", ";
+    }
+    else if (i == 0)
+    {
+      listed += list[i];
+    }
+  }
+
+  return listed;
+}
 
 void StatisticsWindow::addFilter(QString filter, uint64_t TID)
 {
@@ -195,42 +254,44 @@ void StatisticsWindow::removeFilter(QString filter)
 }
 
 
-void StatisticsWindow::removeParticipant(uint32_t sessionID)
+void StatisticsWindow::removeSession(uint32_t sessionID)
 {
   // check that peer exists
-  if (peers_.find(sessionID) == peers_.end())
+  if (sessions_.find(sessionID) == sessions_.end())
   {
     printProgramWarning(this, "Tried to remove a participant that doesn't exist");
     return;
   }
 
-  participantMutex_.lock();
+  sessionMutex_.lock();
 
-  int participantIndex = peers_[sessionID].tableIndex;
+  int index = sessions_[sessionID].tableIndex;
 
   // check that index points to a valid row
-  if (ui_->participantTable->rowCount() <= participantIndex ||
-      ui_->performance_table->rowCount() <= participantIndex)
+  if (ui_->table_incoming->rowCount() <= index ||
+      ui_->table_outgoing->rowCount() <= index ||
+      ui_->performance_table->rowCount() <= index)
   {
-    participantMutex_.unlock();
+    sessionMutex_.unlock();
     printProgramWarning(this, "Missing participant row for participant");
     return;
   }
 
   // remove row from UI
-  ui_->participantTable->removeRow(participantIndex);
-  ui_->performance_table->removeRow(participantIndex);
+  ui_->table_incoming->removeRow(index);
+  ui_->table_outgoing->removeRow(index);
+  ui_->performance_table->removeRow(index);
 
   // adjust the rest of the peers if needed
-  for (auto &peer : peers_)
+  for (auto &peer : sessions_)
   {
-    if (peer.second.tableIndex > participantIndex)
+    if (peer.second.tableIndex > index)
     {
       peer.second.tableIndex -= 1;
     }
   }
 
-  participantMutex_.unlock();
+  sessionMutex_.unlock();
 }
 
 
@@ -249,15 +310,15 @@ void StatisticsWindow::sendDelay(QString type, uint32_t delay)
 
 void StatisticsWindow::receiveDelay(uint32_t sessionID, QString type, int32_t delay)
 {
-  if(peers_.find(sessionID) != peers_.end())
+  if(sessions_.find(sessionID) != sessions_.end())
   {
     if(type == "video" || type == "Video")
     {
-      peers_.at(sessionID).videoDelay = delay;
+      sessions_.at(sessionID).videoDelay = delay;
     }
     else if(type == "audio" || type == "Audio")
     {
-      peers_.at(sessionID).audioDelay = delay;
+      sessions_.at(sessionID).audioDelay = delay;
     }
   }
 }
@@ -265,13 +326,13 @@ void StatisticsWindow::receiveDelay(uint32_t sessionID, QString type, int32_t de
 
 void StatisticsWindow::presentPackage(uint32_t sessionID, QString type)
 {
-  Q_ASSERT(peers_.find(sessionID) != peers_.end());
-  if(peers_.find(sessionID) != peers_.end())
+  Q_ASSERT(sessions_.find(sessionID) != sessions_.end());
+  if(sessions_.find(sessionID) != sessions_.end())
   {
     if(type == "video" || type == "Video")
     {
-      updateFramerateBuffer(peers_.at(sessionID).videoPackets,
-                            peers_.at(sessionID).videoIndex, 0);
+      updateFramerateBuffer(sessions_.at(sessionID).videoPackets,
+                            sessions_.at(sessionID).videoIndex, 0);
     }
   }
 }
@@ -532,13 +593,14 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
             ( QString::number(audioBitrate) + " kbit/s" );
 
         // fill table
-        for(auto& d : peers_)
+        for(auto& d : sessions_)
         {
-          participantMutex_.lock();
-          if (d.second.tableIndex >= ui_->performance_table->rowCount())
+          sessionMutex_.lock();
+          if (d.second.tableIndex >= ui_->performance_table->rowCount() ||
+              d.second.tableIndex == -1)
           {
-            participantMutex_.unlock();
-            printProgramError(this, "Faulty pariticipantIndex detected in peer!");
+            sessionMutex_.unlock();
+            printProgramError(this, "Faulty table index detected in peer!");
             return;
           }
 
@@ -565,7 +627,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
           ui_->performance_table->item(d.second.tableIndex, 1)->setTextAlignment(Qt::AlignHCenter);
           ui_->performance_table->item(d.second.tableIndex, 2)->setTextAlignment(Qt::AlignHCenter);
           ui_->performance_table->item(d.second.tableIndex, 3)->setTextAlignment(Qt::AlignHCenter);
-          participantMutex_.unlock();
+          sessionMutex_.unlock();
         }
 
         break;
@@ -581,7 +643,8 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
         {
           totalBuffers += it.second.bufferStatus;
 
-          if (it.second.tableIndex >= ui_->filterTable->rowCount())
+          if (it.second.tableIndex >= ui_->filterTable->rowCount() ||
+              it.second.tableIndex == -1)
           {
             bufferMutex_.unlock();
             printProgramError(this, "Invalid filtertable index detected!", {"Name"}, {it.first});
