@@ -9,7 +9,6 @@
 
 
 #ifdef QT_CHARTS_LIB
-#include <QtCharts/QValueAxis>
 #include <QtCharts/QAbstractAxis>
 #endif
 
@@ -66,6 +65,33 @@ StatisticsInterface(),
 
 #ifndef QT_CHARTS_LIB
   ui_->fps_graph->hide();
+#else
+  ui_->fps_graph->setDragMode(QGraphicsView::NoDrag);
+  ui_->fps_graph->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+  ui_->fps_graph->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+  ui_->fps_graph->setScene(new QGraphicsScene);
+
+  chart_ = new QtCharts::QChart;
+
+  chart_->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
+
+  chart_->setMinimumSize(480, 200);
+
+  ui_->fps_graph->scene()->addItem(chart_);
+  chart_->legend()->hide();
+
+  // x-axis, time
+  xAxis_ = new QtCharts::QValueAxis();
+  xAxis_->setMin(0);
+  xAxis_->setMax(60);
+  xAxis_->setReverse(true);
+  chart_->addAxis(xAxis_, Qt::AlignBottom);
+
+  // y-axis, framerate
+  yAxis_ = new QtCharts::QValueAxis();
+  yAxis_->setMin(0);
+  yAxis_->setMax(120);
+  chart_->addAxis(yAxis_, Qt::AlignRight);
 #endif
 }
 
@@ -486,12 +512,8 @@ void StatisticsWindow::packetDropped(QString filter)
 #ifdef QT_CHARTS_LIB
 void StatisticsWindow::visualizeDataToSeries(std::deque<float>& data)
 {
-  ui_->fps_graph->setDragMode(QGraphicsView::NoDrag);
-  ui_->fps_graph->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-  ui_->fps_graph->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-  ui_->fps_graph->setScene(new QGraphicsScene);
+  ui_->fps_graph->scene()->items();
 
-  QtCharts::QChart* chart = new QtCharts::QChart;
   QtCharts::QLineSeries* series = new QtCharts::QLineSeries;
 
   for (int i = data.size() -1; i >= 0; --i)
@@ -499,29 +521,13 @@ void StatisticsWindow::visualizeDataToSeries(std::deque<float>& data)
     series->append(i, data.at(i));
   }
 
-  chart->addSeries(series);
+  chart_->removeAllSeries();
+  chart_->addSeries(series);
 
-  // x-axis
-  QtCharts::QValueAxis* xAxis = new QtCharts::QValueAxis();
-  xAxis->setMin(0);
-  xAxis->setMax(60);
-  xAxis->setReverse(true);
-  //xAxis->setTitleText("seconds");
-  chart->addAxis(xAxis, Qt::AlignBottom);
-  series->attachAxis(xAxis);
+  yAxis_->setMax(framerate_ + 10);
 
-  // y-axis, framerate
-  QtCharts::QValueAxis* yAxis = new QtCharts::QValueAxis();
-  chart->addAxis(yAxis, Qt::AlignRight);
-  yAxis->setMin(0);
-  yAxis->setMax(framerate_ + 10);
-  //yAxis->setTitleText("fps");
-  series->attachAxis(yAxis);
-
-  chart->legend()->hide();
-  chart->setMinimumSize(480, 200);
-
-  ui_->fps_graph->scene()->addItem(chart);
+  series->attachAxis(xAxis_);
+  series->attachAxis(yAxis_);
 }
 #endif
 

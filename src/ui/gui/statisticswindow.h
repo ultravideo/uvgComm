@@ -8,6 +8,7 @@
 #ifdef QT_CHARTS_LIB
 #include <QtCharts/QChartView>
 #include <QtCharts/QLineSeries>
+#include <QtCharts/QValueAxis>
 
 #include <deque>
 #endif
@@ -16,6 +17,7 @@
 class QStringListModel;
 class QListWidget;
 class QTableWidget;
+
 
 namespace Ui {
 class StatisticsWindow;
@@ -150,6 +152,10 @@ private:
 
 #ifdef QT_CHARTS_LIB
   std::deque<float> framerates_;
+
+  QtCharts::QChart* chart_;
+  QtCharts::QValueAxis* xAxis_;
+  QtCharts::QValueAxis* yAxis_;
 #endif
 
   uint16_t audioEncDelay_;
