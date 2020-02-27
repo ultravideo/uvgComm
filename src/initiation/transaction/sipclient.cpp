@@ -18,7 +18,7 @@ SIPClient::SIPClient():
 
 
 bool SIPClient::processResponse(SIPResponse& response,
-                                           SIPDialogState &state)
+                                SIPDialogState &state)
 {
   Q_UNUSED(state);
 

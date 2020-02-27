@@ -132,11 +132,6 @@ void VideoviewFactory::clearWidgets(uint32_t sessionID)
   printDebug(DEBUG_NORMAL, "VideoviewFactory",  "Clearing widgets",
               {"SessionID"}, {QString::number(sessionID)});
 
-  if (sessionIDtoWidgetlist_.size() == sessionIDtoVideolist_.size())
-  {
-    printDebug(DEBUG_PROGRAM_ERROR, "VideoviewFactory", "Internal state not correct!");
-  }
-
   if (sessionIDtoWidgetlist_.find(sessionID) != sessionIDtoWidgetlist_.end())
   {
     sessionIDtoWidgetlist_.erase(sessionID);

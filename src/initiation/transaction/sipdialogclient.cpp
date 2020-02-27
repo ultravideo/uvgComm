@@ -57,16 +57,11 @@ bool SIPDialogClient::processResponse(SIPResponse& response,
     return false;
   }
 
-  // tell user about any failures
-  if(response.type == SIP_DECLINE)
-  {
-    qDebug() << "Got a Global Failure Response Code for INVITE";
-    transactionUser_->peerRejected(sessionID_);
-  }
-
   // check if this is failure that requires shutdown of session
   if (!SIPClient::processResponse(response, state))
   {
+    printWarning(this, "Got a failure response!");
+    transactionUser_->failure(sessionID_);
     return false;
   }
 
@@ -146,7 +141,7 @@ void SIPDialogClient::processTimeout()
     emit sendDialogRequest(sessionID_, SIP_BYE);
     // TODO tell user we have failed
     startTransaction(SIP_CANCEL);
-    transactionUser_->peerRejected(sessionID_);
+    transactionUser_->failure(sessionID_);
   }
 
   SIPClient::processTimeout();

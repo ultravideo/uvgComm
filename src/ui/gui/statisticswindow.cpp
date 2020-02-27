@@ -245,7 +245,6 @@ void StatisticsWindow::removeSession(uint32_t sessionID)
   // check that peer exists
   if (sessions_.find(sessionID) == sessions_.end())
   {
-    printProgramWarning(this, "Tried to remove a participant that doesn't exist");
     return;
   }
 
@@ -602,7 +601,6 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
       break;
     }
     }
-    lastTabIndex_ = ui_->Statistics_tabs->currentIndex();
   }
 
   QDialog::paintEvent(event);

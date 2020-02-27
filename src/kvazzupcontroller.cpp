@@ -154,27 +154,6 @@ void KvazzupController::peerAccepted(uint32_t sessionID)
   }
 }
 
-void KvazzupController::peerRejected(uint32_t sessionID)
-{
-  if(states_.find(sessionID) != states_.end())
-  {
-    if(states_[sessionID] == CALLRINGINWITHTHEM)
-    {
-      printImportant(this, "Our call has been rejected!");
-      removeSession(sessionID);
-    }
-    else
-    {
-      printPeerError(this, "Got reject when we weren't calling them", "SessionID", {sessionID});
-    }
-  }
-  else
-  {
-    printPeerError(this, "Got reject for nonexisting call", "SessionID", {sessionID});
-    printPeerError(this, "", "Ongoing sessions", {QString::number(states_.size())});
-  }
-}
-
 
 void KvazzupController::iceCompleted(quint32 sessionID)
 {
@@ -290,14 +269,6 @@ void KvazzupController::setupConference()
 }
 
 
-void KvazzupController::callNegotiationFailed(uint32_t sessionID)
-{
-  // TODO: display a proper message to the user the negotiation has failed
-  printUnimplemented(this, "Tell user that the negotiation has failed.");
-  peerRejected(sessionID);
-}
-
-
 void KvazzupController::cancelIncomingCall(uint32_t sessionID)
 {
   // TODO: display a proper message to the user that peer has cancelled their call
@@ -315,6 +286,32 @@ void KvazzupController::endCall(uint32_t sessionID)
     media_.removeParticipant(sessionID);
   }
   removeSession(sessionID);
+}
+
+
+void KvazzupController::failure(uint32_t sessionID)
+{
+  if (states_.find(sessionID) != states_.end())
+  {
+    if (states_[sessionID] == CALLINGTHEM)
+    {
+      printImportant(this, "Our call failed. Invalid sip address?");
+    }
+    else if(states_[sessionID] == CALLRINGINWITHTHEM)
+    {
+      printImportant(this, "Our call has been rejected!");
+    }
+    else
+    {
+      printPeerError(this, "Got reject when we weren't calling them", "SessionID", {sessionID});
+    }
+    removeSession(sessionID);
+  }
+  else
+  {
+    printPeerError(this, "Got reject for nonexisting call", "SessionID", {sessionID});
+    printPeerError(this, "", "Ongoing sessions", {QString::number(states_.size())});
+  }
 }
 
 

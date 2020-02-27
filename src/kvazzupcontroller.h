@@ -40,11 +40,10 @@ public:
   virtual bool incomingCall(uint32_t sessionID, QString caller);
   virtual void callRinging(uint32_t sessionID);
   virtual void peerAccepted(uint32_t sessionID);
-  virtual void peerRejected(uint32_t sessionID);
   virtual void callNegotiated(uint32_t sessionID);
-  virtual void callNegotiationFailed(uint32_t sessionID);
   virtual void cancelIncomingCall(uint32_t sessionID);
   virtual void endCall(uint32_t sessionID);
+  virtual void failure(uint32_t sessionID);
   virtual void registeredToServer();
   virtual void registeringFailed();
 
