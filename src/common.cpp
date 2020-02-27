@@ -33,6 +33,9 @@ const QString alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                          "0123456789";
 
 
+void printHelper(QString beginString, QString valueString, QString description, int valuenames);
+
+
 QString generateRandomString(uint32_t length)
 {
   // TODO make this cryptographically secure to avoid collisions
@@ -185,20 +188,7 @@ void printDebug(DebugType type, QString className,
   switch (type) {
   case DEBUG_NORMAL:
   {
-    QDebug printing = qDebug().nospace().noquote();
-    printing << beginString << description;
-    if (!valueString.isEmpty())
-    {
-      // print one value on same line
-      if (valueNames.size() == 1)
-      {
-        printing << " (" << valueString << ")";
-      }
-      else // pring each value on separate line
-      {
-        printing << "\r\n" << valueString;
-      }
-    }
+    printHelper(beginString, valueString, description, valueNames.size());
     break;
   }
   case DEBUG_IMPORTANT:
@@ -206,33 +196,25 @@ void printDebug(DebugType type, QString className,
     // TODO: Center text in middle.
     qDebug();
     qDebug() << "=============================================================================";
-    qDebug().nospace().noquote() << beginString << description;
-    if (!valueString.isEmpty())
-    {
-      qDebug().nospace().noquote() << valueString;
-    }
+    printHelper(beginString, valueString, description, valueNames.size());
     qDebug() << "=============================================================================";
     qDebug();
     break;
   }
   case DEBUG_ERROR:
   {
-    qCritical() << "ERROR: " << description << " " << valueString;
+    printHelper("ERROR! " + beginString, valueString, description, valueNames.size());
     break;
   }
   case DEBUG_WARNING:
   {
-    qWarning() << "Warning: " << description << " " << valueString;
+    printHelper("Warning! " + beginString, valueString, description, valueNames.size());
     break;
   }
   case DEBUG_PEER_ERROR:
   {
     qWarning().nospace().noquote() << "PEER ERROR: --------------------------------------------";
-    qWarning().nospace().noquote() << beginString << description;
-    if (!valueString.isEmpty())
-    {
-      qWarning().nospace().noquote() << valueString;
-    }
+    printHelper(beginString, valueString, description, valueNames.size());
     qWarning().nospace().noquote() << "-------------------------------------------- PEER ERROR";
     break;
   }
@@ -240,11 +222,7 @@ void printDebug(DebugType type, QString className,
   {
     qCritical().nospace().noquote()
         << "BUG DETECTED: --------------------------------------------";
-    qCritical().nospace().noquote() << beginString << description;
-    if (!valueString.isEmpty())
-    {
-      qCritical().nospace().noquote() << valueString;
-    }
+    printHelper(beginString, valueString, description, valueNames.size());
     qCritical().nospace().noquote() << "-------------------------------------------- BUG";
     break;
   }
@@ -252,11 +230,7 @@ void printDebug(DebugType type, QString className,
   {
     qWarning().nospace().noquote()
         << "MINOR BUG DETECTED: --------------------------------------------";
-    qWarning().nospace().noquote() << beginString << description;
-    if (!valueString.isEmpty())
-    {
-      qWarning().nospace().noquote() << valueString;
-    }
+    printHelper(beginString, valueString, description, valueNames.size());
     qWarning().nospace() << "\r\n" << "-------------------------------------------- MINOR BUG";
     break;
   }
@@ -288,4 +262,23 @@ bool settingEnabled(QString parameter)
 {
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
   return settings.value(parameter).toInt() == 1;
+}
+
+
+void printHelper(QString beginString, QString valueString, QString description, int valuenames)
+{
+  QDebug printing = qDebug().nospace().noquote();
+  printing << beginString << description;
+  if (!valueString.isEmpty())
+  {
+    // print one value on same line
+    if (valuenames == 1)
+    {
+      printing << " (" << valueString << ")";
+    }
+    else // pring each value on separate line
+    {
+      printing << "\r\n" << valueString;
+    }
+  }
 }
