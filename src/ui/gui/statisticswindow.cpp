@@ -477,7 +477,12 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
   if(lastTabIndex_ != ui_->Statistics_tabs->currentIndex()
      || guiUpdates_*UPDATEFREQUENCY < guiTimer_.elapsed())
   {
-    ++guiUpdates_;
+    if (lastTabIndex_ == ui_->Statistics_tabs->currentIndex())
+    {
+      ++guiUpdates_;
+    }
+
+    lastTabIndex_ = ui_->Statistics_tabs->currentIndex();
 
     // update only the tab which is visible to reduce processing
     switch(ui_->Statistics_tabs->currentIndex())
