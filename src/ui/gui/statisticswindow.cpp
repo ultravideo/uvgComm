@@ -8,13 +8,7 @@
 #include <QDateTime>
 
 
-#ifdef QT_CHARTS_LIB
-#include <QtCharts/QAbstractAxis>
-#endif
-
 const int BUFFERSIZE = 65536;
-
-const int GRAPHSIZE = 60;
 
 const int FPSPRECISION = 4;
 
@@ -62,37 +56,6 @@ StatisticsInterface(),
                           {"Type", "Destination"});
   fillTableHeaders(ui_->received_list, sipMutex_,
                           {"Type", "Source"});
-
-#ifndef QT_CHARTS_LIB
-  ui_->fps_graph->hide();
-#else
-  ui_->fps_graph->setDragMode(QGraphicsView::NoDrag);
-  ui_->fps_graph->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-  ui_->fps_graph->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-  ui_->fps_graph->setScene(new QGraphicsScene);
-
-  chart_ = new QtCharts::QChart;
-
-  chart_->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
-
-  chart_->setMinimumSize(480, 200);
-
-  ui_->fps_graph->scene()->addItem(chart_);
-  chart_->legend()->hide();
-
-  // x-axis, time
-  xAxis_ = new QtCharts::QValueAxis();
-  xAxis_->setMin(0);
-  xAxis_->setMax(60);
-  xAxis_->setReverse(true);
-  chart_->addAxis(xAxis_, Qt::AlignBottom);
-
-  // y-axis, framerate
-  yAxis_ = new QtCharts::QValueAxis();
-  yAxis_->setMin(0);
-  yAxis_->setMax(120);
-  chart_->addAxis(yAxis_, Qt::AlignRight);
-#endif
 }
 
 
@@ -509,29 +472,6 @@ void StatisticsWindow::packetDropped(QString filter)
 }
 
 
-#ifdef QT_CHARTS_LIB
-void StatisticsWindow::visualizeDataToSeries(std::deque<float>& data)
-{
-  ui_->fps_graph->scene()->items();
-
-  QtCharts::QLineSeries* series = new QtCharts::QLineSeries;
-
-  for (int i = data.size() -1; i >= 0; --i)
-  {
-    series->append(i, data.at(i));
-  }
-
-  chart_->removeAllSeries();
-  chart_->addSeries(series);
-
-  yAxis_->setMax(framerate_ + 10);
-
-  series->attachAxis(xAxis_);
-  series->attachAxis(yAxis_);
-}
-#endif
-
-
 void StatisticsWindow::paintEvent(QPaintEvent *event)
 {
   Q_UNUSED(event);
@@ -574,21 +514,6 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 
         ui_->encoded_framerate_value->setText
             ( QString::number(framerate, 'g', FPSPRECISION) + " fps" );
-
-#ifdef QT_CHARTS_LIB
-        if(lastTabIndex_ != PERFORMANCE_TAB)
-        {
-          framerates_.clear();
-        }
-        framerates_.push_front(framerate);
-
-        if (framerates_.size() > GRAPHSIZE)
-        {
-          framerates_.pop_back();
-        }
-
-        visualizeDataToSeries(framerates_);
-#endif
 
         ui_->encode_delay_value->setText( QString::number(videoEncDelay_) + " ms." );
         ui_->audio_delay_value->setText( QString::number(audioEncDelay_) + " ms." );

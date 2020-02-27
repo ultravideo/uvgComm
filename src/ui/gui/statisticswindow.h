@@ -5,14 +5,6 @@
 #include <QMutex>
 #include <QElapsedTimer>
 
-#ifdef QT_CHARTS_LIB
-#include <QtCharts/QChartView>
-#include <QtCharts/QLineSeries>
-#include <QtCharts/QValueAxis>
-
-#include <deque>
-#endif
-
 
 class QStringListModel;
 class QListWidget;
@@ -88,11 +80,6 @@ private:
                 QStringList audioPorts, QStringList videoPorts);
   QString combineList(QStringList& list);
 
-#ifdef QT_CHARTS_LIB
-  void visualizeDataToSeries(std::deque<float>& data);
-#endif
-
-
   struct SessionInfo
   {
     uint32_t videoIndex;
@@ -134,7 +121,6 @@ private:
 
   double framerate_; // rounded down currently
 
-
   // ring-buffer and its current index
   uint32_t videoIndex_;
   std::vector<PacketInfo*> videoPackets_;
@@ -149,14 +135,6 @@ private:
   uint64_t receivedData_;
 
   uint64_t packetsDropped_;
-
-#ifdef QT_CHARTS_LIB
-  std::deque<float> framerates_;
-
-  QtCharts::QChart* chart_;
-  QtCharts::QValueAxis* xAxis_;
-  QtCharts::QValueAxis* yAxis_;
-#endif
 
   uint16_t audioEncDelay_;
   uint16_t videoEncDelay_;
