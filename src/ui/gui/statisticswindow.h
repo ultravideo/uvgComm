@@ -109,17 +109,12 @@ private:
 
   // mutexes to prevent simultanious recording of certain statistics
   QMutex sessionMutex_;
-  QMutex filterTableMutex_;
+  QMutex filterMutex_;
   QMutex sipMutex_;
-
-  QMutex receiveMutex_;
-  QMutex sendMutex_;
-  QMutex bufferMutex_;
+  QMutex deliveryMutex_;
 
   // should the buffervalue be updated in next paintEvent
   bool dirtyBuffers_;
-
-  double framerate_; // rounded down currently
 
   // ring-buffer and its current index
   uint32_t videoIndex_;

@@ -24,7 +24,11 @@ QDialog(parent),
 StatisticsInterface(),
   sessions_(),
   ui_(new Ui::StatisticsWindow),
-  framerate_(0),
+  sessionMutex_(),
+  filterMutex_(),
+  sipMutex_(),
+  deliveryMutex_(),
+  dirtyBuffers_(false),
   videoIndex_(0), // ringbuffer index
   videoPackets_(BUFFERSIZE,nullptr), // ringbuffer
   audioIndex_(0), // ringbuffer index
@@ -48,7 +52,7 @@ StatisticsInterface(),
                           {"IP", "Audio Ports", "Video Ports"});
   fillTableHeaders(ui_->table_incoming, sessionMutex_,
                           {"IP", "Audio Ports", "Video Ports"});
-  fillTableHeaders(ui_->filterTable, filterTableMutex_,
+  fillTableHeaders(ui_->filterTable, filterMutex_,
                           {"Filter", "TID", "Buffer Size", "Dropped"});
   fillTableHeaders(ui_->performance_table, sessionMutex_,
                           {"Name", "Audio delay", "Video delay", "Video fps"});
@@ -83,7 +87,6 @@ void StatisticsWindow::closeEvent(QCloseEvent *event)
 void StatisticsWindow::videoInfo(double framerate, QSize resolution)
 {
   // done only once, so setting ui directly is ok.
-  framerate_ = framerate;
   ui_->value_framerate->setText( QString::number(framerate, 'g', FPSPRECISION)+" fps");
   ui_->value_resolution->setText( QString::number(resolution.width()) + "x"
                           + QString::number(resolution.height()));
@@ -92,7 +95,6 @@ void StatisticsWindow::videoInfo(double framerate, QSize resolution)
 
 void StatisticsWindow::audioInfo(uint32_t sampleRate, uint16_t channelCount)
 {
-  //ui_->a_framerate_value->setText(QString::number(framerate)+"fps");
   if(sampleRate == 0 || sampleRate == 4294967295)
   {
     ui_->value_channels->setText("No Audio");
@@ -186,49 +188,44 @@ QString StatisticsWindow::combineList(QStringList &list)
 
 void StatisticsWindow::addFilter(QString filter, uint64_t TID)
 {
-  int rowIndex = addTableRow(ui_->filterTable, filterTableMutex_,
+  int rowIndex = addTableRow(ui_->filterTable, filterMutex_,
                                   {filter, QString::number(TID), "-/-", "0"});
 
-  bufferMutex_.lock();
+  filterMutex_.lock();
   if(buffers_.find(filter) == buffers_.end())
   {
     buffers_[filter] = FilterStatus{0,QString::number(TID), 0, 0, rowIndex};
   }
   else
   {
-    bufferMutex_.unlock();
+    filterMutex_.unlock();
     printProgramWarning(this, "Tried to add a new filter with same name as previous");
     return;
   }
-  bufferMutex_.unlock();
+  filterMutex_.unlock();
 }
 
 
 void StatisticsWindow::removeFilter(QString filter)
 {
-  bufferMutex_.lock();
+  filterMutex_.lock();
   if (buffers_.find(filter) == buffers_.end())
   {
-    bufferMutex_.unlock();
+    filterMutex_.unlock();
     printProgramWarning(this, "Tried to remove non-existing filter.",
                           {"Name"}, {filter});
     return;
   }
-  bufferMutex_.unlock();
-
-  filterTableMutex_.lock();
   if (ui_->filterTable->rowCount() <= buffers_[filter].tableIndex)
   {
+    filterMutex_.unlock();
     printProgramWarning(this, "Filter doesn't exist in filter table when removing.",
                           {"Name"}, {filter});
-    filterTableMutex_.unlock();
     return;
   }
 
   ui_->filterTable->removeRow(buffers_[filter].tableIndex);
-  filterTableMutex_.unlock();
 
-  bufferMutex_.lock();
   // adjust all existing indexes
   for (auto& buffer: buffers_)
   {
@@ -239,7 +236,7 @@ void StatisticsWindow::removeFilter(QString filter)
   }
 
   buffers_.erase(filter);
-  bufferMutex_.unlock();
+  filterMutex_.unlock();
 }
 
 
@@ -415,26 +412,26 @@ uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets,
 
 void StatisticsWindow::addSendPacket(uint16_t size)
 {
-  sendMutex_.lock();
+  deliveryMutex_.lock();
   ++sendPacketCount_;
   transferredData_ += size;
-  sendMutex_.unlock();
+  deliveryMutex_.unlock();
 }
 
 
 void StatisticsWindow::addReceivePacket(uint16_t size)
 {
-  receiveMutex_.lock();
+  deliveryMutex_.lock();
   ++receivePacketCount_;
   receivedData_ += size;
-  receiveMutex_.unlock();
+  deliveryMutex_.unlock();
 }
 
 
 void StatisticsWindow::updateBufferStatus(QString filter, uint16_t buffersize,
                                           uint16_t maxBufferSize)
 {
-  bufferMutex_.lock();
+  filterMutex_.lock();
   if(buffers_.find(filter) != buffers_.end())
   {
     if(buffers_[filter].bufferStatus != buffersize ||
@@ -450,14 +447,14 @@ void StatisticsWindow::updateBufferStatus(QString filter, uint16_t buffersize,
     printProgramWarning(this, "Couldn't find correct filter for buffer status",
                         "Filter", filter);
   }
-  bufferMutex_.unlock();
+  filterMutex_.unlock();
 }
 
 
 void StatisticsWindow::packetDropped(QString filter)
 {
   ++packetsDropped_;
-  bufferMutex_.lock();
+  filterMutex_.lock();
   if(buffers_.find(filter) != buffers_.end())
   {
     ++buffers_[filter].dropped;
@@ -468,7 +465,7 @@ void StatisticsWindow::packetDropped(QString filter)
     printProgramWarning(this, "Couldn't find correct filter for dropped packet",
                         "Filter", filter);
   }
-  bufferMutex_.unlock();
+  filterMutex_.unlock();
 }
 
 
@@ -496,14 +493,12 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
     }
     case DELIVERY_TAB:
     {
-      sendMutex_.lock();
+      deliveryMutex_.lock();
       ui_->packets_sent_value->setText( QString::number(sendPacketCount_));
       ui_->data_sent_value->setText( QString::number(transferredData_));
-      sendMutex_.unlock();
-      receiveMutex_.lock();
       ui_->packets_received_value->setText( QString::number(receivePacketCount_));
       ui_->data_received_value->setText( QString::number(receivedData_));
-      receiveMutex_.unlock();
+      deliveryMutex_.unlock();
 
       break;
     case PERFORMANCE_TAB:
@@ -569,7 +564,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
       {
         uint32_t totalBuffers = 0;
 
-        bufferMutex_.lock();
+        filterMutex_.lock();
         for(auto& it : buffers_)
         {
           totalBuffers += it.second.bufferStatus;
@@ -577,12 +572,11 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
           if (it.second.tableIndex >= ui_->filterTable->rowCount() ||
               it.second.tableIndex == -1)
           {
-            bufferMutex_.unlock();
+            filterMutex_.unlock();
             printProgramError(this, "Invalid filtertable index detected!", {"Name"}, {it.first});
             return;
           }
 
-          filterTableMutex_.lock();
           ui_->filterTable->setItem(it.second.tableIndex, 2,
                                     new QTableWidgetItem(QString::number(it.second.bufferStatus) +
                                                          "/" + QString::number(it.second.bufferSize)));
@@ -591,13 +585,13 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 
           ui_->filterTable->item(it.second.tableIndex, 2)->setTextAlignment(Qt::AlignHCenter);
           ui_->filterTable->item(it.second.tableIndex, 3)->setTextAlignment(Qt::AlignHCenter);
-          filterTableMutex_.unlock();
         }
+        filterMutex_.unlock();
 
         ui_->value_buffers->setText(QString::number(totalBuffers));
         ui_->value_dropped->setText(QString::number(packetsDropped_));
         dirtyBuffers_ = false;
-        bufferMutex_.unlock();
+
       }
       break;
     }
