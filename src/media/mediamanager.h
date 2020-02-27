@@ -53,7 +53,6 @@ public:
                       QList<uint16_t>& sendports);
 
   void removeParticipant(uint32_t sessionID);
-  void endAllCalls();
 
   // Functions that enable using Kvazzup as just a streming client for whatever reason.
   void streamToIP(in_addr ip, uint16_t port);

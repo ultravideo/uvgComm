@@ -44,7 +44,6 @@ public:
 
   // removes caller from view
   void removeParticipant(uint32_t sessionID);
-  void clearConferenceView();
 
   // set GUI to reflect state
   void setMicState(bool on);

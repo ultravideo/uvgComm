@@ -29,7 +29,6 @@ public:
 
   // removes participant and all its associated filter from filter graph.
   void removeParticipant(uint32_t sessionID);
-  void removeAllParticipants();
 
   void mic(bool state);
   void camera(bool state);
@@ -63,6 +62,8 @@ private:
 
   // iniates encoder and attaches it
   void initAudioSend();
+
+  void removeAllParticipants();
 
   struct Peer
   {

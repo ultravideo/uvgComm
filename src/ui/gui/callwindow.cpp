@@ -241,6 +241,7 @@ void CallWindow::setCameraState(bool on)
   }
 }
 
+
 void CallWindow::removeParticipant(uint32_t sessionID)
 {
   Q_ASSERT(sessionID != 0);
@@ -261,23 +262,16 @@ void CallWindow::removeParticipant(uint32_t sessionID)
   contacts_.setAccessible(sessionID);
 }
 
+
 void CallWindow::on_settings_button_clicked()
 {
   settingsView_.show();
 }
 
+
 void CallWindow::on_about_clicked()
 {
   about_.show();
-}
-
-void CallWindow::clearConferenceView()
-{
-  ui_->EndCallButton->setEnabled(false);
-  ui_->EndCallButton->hide();
-  conference_.close();
-  viewFactory_->clearWidgets();
-  contacts_.setAccessibleAll();
 }
 
 

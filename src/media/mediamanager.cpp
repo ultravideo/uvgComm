@@ -359,15 +359,6 @@ void MediaManager::removeParticipant(uint32_t sessionID)
             {"SessionID"}, {QString::number(sessionID)});
 }
 
-void MediaManager::endAllCalls()
-{
-  printDebug(DEBUG_NORMAL, "Media Manager",  "Ending all calls.");
-  fg_->removeAllParticipants();
-  streamer_->removeAllPeers();
-
-  fg_->camera(camera_); // if the last participant was destroyed, restore camera state
-  fg_->mic(mic_);
-}
 
 bool MediaManager::toggleMic()
 {
