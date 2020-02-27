@@ -178,11 +178,6 @@ void printDebug(DebugType type, QString className,
 
   QString beginString = className + ": ";
 
-  if (beginString.length() < BEGIN_LENGTH)
-  {
-    beginString = beginString.leftJustified(BEGIN_LENGTH, ' ');
-  }
-
   // This could be reduced, but it might change so not worth probably at the moment.
   // Choose which text to print based on type.
   switch (type) {
@@ -267,6 +262,11 @@ bool settingEnabled(QString parameter)
 
 void printHelper(QString beginString, QString valueString, QString description, int valuenames)
 {
+  if (beginString.length() < BEGIN_LENGTH)
+  {
+    beginString = beginString.leftJustified(BEGIN_LENGTH, ' ');
+  }
+
   QDebug printing = qDebug().nospace().noquote();
   printing << beginString << description;
   if (!valueString.isEmpty())
