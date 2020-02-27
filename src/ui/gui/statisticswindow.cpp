@@ -268,6 +268,8 @@ void StatisticsWindow::removeSession(uint32_t sessionID)
   ui_->table_outgoing->removeRow(index);
   ui_->performance_table->removeRow(index);
 
+  sessions_.erase(sessionID);
+
   // adjust the rest of the peers if needed
   for (auto &peer : sessions_)
   {

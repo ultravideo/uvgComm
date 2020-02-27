@@ -147,7 +147,6 @@ void MediaManager::addParticipant(uint32_t sessionID,
 
   if (stats_ != nullptr)
   {
-    stats_->addSession(sessionID);
     sdpToStats(sessionID, peerInfo, false);
     sdpToStats(sessionID, localInfo, true);
   }
@@ -355,11 +354,6 @@ void MediaManager::removeParticipant(uint32_t sessionID)
   fg_->camera(camera_); // if the last participant was destroyed, restore camera state
   fg_->mic(mic_);
   streamer_->removePeer(sessionID);
-
-  if (stats_)
-  {
-    stats_->removeSession(sessionID);
-  }
 
   printDebug(DEBUG_NORMAL, "Media Manager", "Session media removed",
             {"SessionID"}, {QString::number(sessionID)});

@@ -274,6 +274,11 @@ void KvazzupController::createSingleCall(uint32_t sessionID)
     return;
   }
 
+  if (stats_)
+  {
+    stats_->addSession(sessionID);
+  }
+
   media_.addParticipant(sessionID, remoteSDP, localSDP, sendports);
   states_[sessionID] = CALLONGOING;
 }
@@ -386,5 +391,10 @@ void KvazzupController::removeSession(uint32_t sessionID)
   if(it != states_.end())
   {
     states_.erase(it);
+  }
+
+  if (stats_)
+  {
+    stats_->removeSession(sessionID);
   }
 }
