@@ -260,6 +260,8 @@ void CallWindow::removeParticipant(uint32_t sessionID)
   }
 
   contacts_.setAccessible(sessionID);
+
+  viewFactory_->clearWidgets(sessionID);
 }
 
 

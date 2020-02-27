@@ -127,24 +127,25 @@ VideoInterface* VideoviewFactory::getVideo(uint32_t sessionID, uint32_t videoID)
 }
 
 
-void VideoviewFactory::clearWidgets()
+void VideoviewFactory::clearWidgets(uint32_t sessionID)
 {
-  printDebug(DEBUG_NORMAL, "VideoviewFactory",  "Clearing all widgets.");
+  printDebug(DEBUG_NORMAL, "VideoviewFactory",  "Clearing widgets",
+              {"SessionID"}, {QString::number(sessionID)});
+
   if (sessionIDtoWidgetlist_.size() == sessionIDtoVideolist_.size())
   {
     printDebug(DEBUG_PROGRAM_ERROR, "VideoviewFactory", "Internal state not correct!");
   }
 
-  for (unsigned int i = sessionIDtoWidgetlist_.size(); i > 0; --i)
+  if (sessionIDtoWidgetlist_.find(sessionID) != sessionIDtoWidgetlist_.end())
   {
-    sessionIDtoWidgetlist_.erase(i);
+    sessionIDtoWidgetlist_.erase(sessionID);
   }
 
-  for (unsigned int i = sessionIDtoVideolist_.size(); i > 0; --i)
+  if (sessionIDtoVideolist_.find(sessionID) != sessionIDtoVideolist_.end())
   {
-    sessionIDtoVideolist_.erase(i);
+    sessionIDtoVideolist_.erase(sessionID);
   }
-
 }
 
 

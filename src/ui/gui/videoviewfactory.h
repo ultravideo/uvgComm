@@ -32,7 +32,7 @@ public:
   VideoInterface* getVideo(uint32_t sessionID, uint32_t videoID);
 
   // Does not clear selfview
-  void clearWidgets();
+  void clearWidgets(uint32_t sessionID);
 
 private:
 

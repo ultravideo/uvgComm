@@ -74,8 +74,10 @@ void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data,
     // delete oldes image if there is too much buffer
     if(viewBuffer_.size() > VIEWBUFFERSIZE)
     {
-      qDebug() << "Drawing," << metaObject()->className() << ": Buffer full:" << viewBuffer_.size() << "/" <<VIEWBUFFERSIZE
-               << "Deleting oldest image from viewBuffer in videowidget:" << sessionID_;
+      printDebug(DEBUG_WARNING, this, "Buffer full when inputting image", {"Buffer status", "SessionID"},
+                        {QString::number(viewBuffer_.size()) + "/" + QString::number(VIEWBUFFERSIZE),
+                         QString::number(sessionID_)});
+
       viewBuffer_.pop_back();
       dataBuffer_.pop_back();
 
