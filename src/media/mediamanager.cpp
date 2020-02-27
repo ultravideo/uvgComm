@@ -128,10 +128,6 @@ void MediaManager::addParticipant(uint32_t sessionID,
 
   if(peerInfo->connection_nettype == "IN")
   {
-    if (stats_ != nullptr)
-    {
-      stats_->addParticipant(peerInfo->connection_address, "0", "0");
-    }
 
     if(!streamer_->addPeer(sessionID))
     {
@@ -149,6 +145,13 @@ void MediaManager::addParticipant(uint32_t sessionID,
   printDebug(DEBUG_NORMAL, this, "Start creating media.", {"Outgoing media", "Incoming media"},
             {QString::number(peerInfo->media.size()), QString::number(localInfo->media.size())});
 
+  if (stats_ != nullptr)
+  {
+    stats_->addSession(sessionID);
+    sdpToStats(sessionID, peerInfo, false);
+    sdpToStats(sessionID, localInfo, true);
+  }
+
   // create each agreed media stream
   for(int i = 0; i <peerInfo->media.size(); ++i)
   {
@@ -162,7 +165,7 @@ void MediaManager::addParticipant(uint32_t sessionID,
     createOutgoingMedia(sessionID, peerInfo->connection_address, peerInfo->media.at(i), sendPort);
   }
 
-  // TODO: THis should be got from somewhere instead of guessed.
+  // TODO: VideoID should be got from somewhere instead of guessed.
   uint32_t videoID = 0;
   for (int i = 0; i < localInfo->media.size(); ++i)
   {
@@ -352,6 +355,12 @@ void MediaManager::removeParticipant(uint32_t sessionID)
   fg_->camera(camera_); // if the last participant was destroyed, restore camera state
   fg_->mic(mic_);
   streamer_->removePeer(sessionID);
+
+  if (stats_)
+  {
+    stats_->removeSession(sessionID);
+  }
+
   printDebug(DEBUG_NORMAL, "Media Manager", "Session media removed",
             {"SessionID"}, {QString::number(sessionID)});
 }
@@ -422,6 +431,49 @@ void MediaManager::transportAttributes(const QList<SDPAttributeType>& attributes
     {
       send = false;
       recv = false;
+    }
+  }
+}
+
+
+void MediaManager::sdpToStats(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> sdp, bool incoming)
+{
+  // TODO: This feels like a hack to this here. Instead we should give stats the whole SDP
+  QStringList ipList;
+  QStringList audioPorts;
+  QStringList videoPorts;
+
+  // create each agreed media stream
+  for (auto& media : sdp->media)
+  {
+    if (media.type == "audio")
+    {
+      audioPorts.append(QString::number(media.receivePort));
+    }
+    else if (media.type == "video")
+    {
+      videoPorts.append(QString::number(media.receivePort));
+    }
+
+    if (media.connection_address != "")
+    {
+      ipList.append(media.connection_address);
+    }
+    else
+    {
+      ipList.append(sdp->connection_address);
+    }
+  }
+
+  if (stats_)
+  {
+    if (incoming)
+    {
+      stats_->incomingMedia(sessionID, ipList, audioPorts, videoPorts);
+    }
+    else
+    {
+      stats_->outgoingMedia(sessionID, ipList, audioPorts, videoPorts);
     }
   }
 }

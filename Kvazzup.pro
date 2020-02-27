@@ -204,11 +204,6 @@ QT+=svg # for icons
 
 QT += opengl
 
-qtHaveModule(charts)
-{
-  QT += charts
-}
-
 #win32-g++: QMAKE_CXXFLAGS += -std=c++11 -fopenmp
 win32-g++: QMAKE_CXXFLAGS += -msse4.1 -mavx2 -fopenmp
 

@@ -97,6 +97,8 @@ private:
   void setRTPLibrary();
   void stopRTPLibrary();
 
+  void sdpToStats(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> sdp, bool incoming);
+
   StatisticsInterface* stats_;
 
   std::unique_ptr<FilterGraph> fg_;
