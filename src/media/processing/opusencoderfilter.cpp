@@ -24,7 +24,7 @@ OpusEncoderFilter::~OpusEncoderFilter()
 {
   opus_encoder_destroy(enc_);
   enc_ = nullptr;
-  delete opusOutput_;
+  delete[] opusOutput_;
   opusOutput_ = nullptr;
 }
 
