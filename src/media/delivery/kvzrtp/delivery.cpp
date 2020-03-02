@@ -19,8 +19,7 @@ Delivery::Delivery():
 {}
 
 Delivery::~Delivery()
-{
-}
+{}
 
 void Delivery::init(StatisticsInterface *stats)
 {
@@ -77,7 +76,7 @@ bool Delivery::addPeer(uint32_t sessionID, QString peerAddress)
 
 
 void Delivery::parseCodecString(QString codec, uint16_t dst_port,
-                      rtp_format_t& fmt, DataType& type, QString& mediaName)
+                                rtp_format_t& fmt, DataType& type, QString& mediaName)
 {
   // TODO: This function should better facilitate additional type
 
@@ -124,8 +123,8 @@ void Delivery::parseCodecString(QString codec, uint16_t dst_port,
 
 
 std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID, QHostAddress ip,
-                                                        uint16_t localPort, uint16_t peerPort,
-                                                        QString codec, uint8_t rtpNum)
+                                                uint16_t localPort, uint16_t peerPort,
+                                                QString codec, uint8_t rtpNum)
 {
   rtp_format_t fmt;
   DataType type = NONE;
@@ -135,6 +134,7 @@ std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID, QHostAddress
 
   if (!initializeStream(sessionID, ip, localPort, peerPort, fmt))
   {
+    printError(this, "Failed to initialize stream");
     return nullptr;
   }
 
@@ -156,8 +156,8 @@ std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID, QHostAddress
 
 
 std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID, QHostAddress ip,
-                                                           uint16_t localPort, uint16_t peerPort,
-                                                           QString codec, uint8_t rtpNum)
+                                                   uint16_t localPort, uint16_t peerPort,
+                                                   QString codec, uint8_t rtpNum)
 {
   rtp_format_t fmt;
   DataType type = NONE;
@@ -190,8 +190,8 @@ std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID, QHostAddr
 
 
 bool Delivery::initializeStream(uint32_t sessionID, QHostAddress peerAddress,
-                                        uint16_t localPort, uint16_t peerPort,
-                                        rtp_format_t fmt)
+                                uint16_t localPort, uint16_t peerPort,
+                                rtp_format_t fmt)
 {
   ipv6to4(peerAddress);
 
