@@ -23,6 +23,25 @@ TARGET = Kvazzup
 win32-g++:  TEMPLATE = app
 win32-msvc: TEMPLATE = app # vcapp does not currently generate makefile
 
+
+# Copies the given files to the destination directory
+defineTest(copyToDestination) {
+    files = $$1
+
+    for(FILE, files) {
+        DDIR = $$2
+
+        # Replace slashes in paths with backslashes for Windows
+        win32:FILE ~= s,/,\\,g
+        win32:DDIR ~= s,/,\\,g
+        mkpath($${DDIR}) # done immediately
+        QMAKE_POST_LINK += $(COPY_DIR) $$shell_quote($$FILE) $$shell_quote($$DDIR) $$escape_expand(\\n\\t)
+    }
+
+    export(QMAKE_POST_LINK)
+}
+
+
 INCLUDEPATH += src
 
 SOURCES +=\
@@ -201,24 +220,23 @@ greaterThan(4, QT_MAJOR_VERSION)
 QT+=multimediawidgets
 QT+=network
 QT+=svg # for icons
-
 QT += opengl
 
 #win32-g++: QMAKE_CXXFLAGS += -std=c++11 -fopenmp
 win32-g++: QMAKE_CXXFLAGS += -msse4.1 -mavx2 -fopenmp
 
-# may need a rebuild
-
+# Uses console window instead of IDE. Activates after linking.
 #debug {
 #    CONFIG += console
 #}
+
 
 INCLUDEPATH += $$PWD/../include/openhevc_dec
 INCLUDEPATH += $$PWD/../include/opus
 INCLUDEPATH += $$PWD/../include/
 
-
 win32-msvc{
+# on msvc we use live666 because it compiles
 INCLUDEPATH += $$PWD/../include/live666/liveMedia/include
 INCLUDEPATH += $$PWD/../include/live666/groupsock/include
 INCLUDEPATH += $$PWD/../include/live666/UsageEnvironment/include
@@ -230,6 +248,7 @@ LIBS += -lLibOpenHevcWrapper
 LIBS += -llibspeexdsp
 LIBS += -lopus
 LIBS += -lkvazaar_lib
+LIBS += -lkvzrtp
 message("Using Visual Studio libraries in ../msvc_libs")
 }
 
@@ -263,30 +282,74 @@ INCLUDEPATH += /usr/include/opus/
 INCLUDEPATH += /usr/local/include/kvzrtp/
 INCLUDEPATH += /usr/local/include/kvzrtp/formats
 
-LIBS += -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment
-LIBS += -lopus -lkvazaar -lspeex -lspeexdsp -lLibOpenHevcWrapper -lgomp -lkvzrtp
-}
+# live555
+LIBS += -lliveMedia
+LIBS += -lgroupsock
+LIBS += -lBasicUsageEnvironment
+LIBS += -lUsageEnvironment
+LIBS += -lopus
+LIBS += -lkvazaar
+LIBS += -lspeex
+LIBS += -lspeexdsp
+LIBS += -lLibOpenHevcWrapper
+LIBS += -lgomp
+LIBS += -lkvzrtp
 
+message("Using Unix libraries")
+}
 
 win32: LIBS += -lws2_32
 win32: LIBS += -lstrmiids
 win32: LIBS += -lole32
 win32: LIBS += -loleaut32
 
-
 INCLUDEPATH += $$PWD/../
 DEPENDPATH += $$PWD/../
 
 
-# copy assets to build folder
-copydata.commands = $(COPY_DIR) $$shell_path($$PWD/stylesheet.qss) $$shell_path($$OUT_PWD) &&
-copydata.commands += $(COPY_DIR) $$shell_path($$PWD/fonts) $$shell_path($$OUT_PWD/fonts) &&
-copydata.commands += $(COPY_DIR) $$shell_path($$PWD/icons) $$shell_path($$OUT_PWD/icons)
+# copy assets to build folder so we have them when running from QtCreator
+copyToDestination($$PWD/stylesheet.qss, $$OUT_PWD)
+copyToDestination($$PWD/fonts, $$OUT_PWD/fonts)
+copyToDestination($$PWD/icons, $$OUT_PWD/icons)
 
-first.depends = $(first) copydata
-export(first.depends)
-export(copydata.commands)
-QMAKE_EXTRA_TARGETS += first copydata
+
+# deploying portable version
+# Copies only Qt libararies. OpenMP is not copied.
+# OpenMP is located in Tools folder of Qt
+CONFIG(false){
+  isEmpty(TARGET_EXT) {
+      win32 {
+          TARGET_CUSTOM_EXT = .exe
+      }
+      macx {
+          TARGET_CUSTOM_EXT = .app
+      }
+  } else {
+      TARGET_CUSTOM_EXT = $${TARGET_EXT}
+  }
+
+  win32 {
+      DEPLOY_COMMAND = windeployqt
+  }
+  macx {
+      DEPLOY_COMMAND = macdeployqt
+  }
+
+  DEPLOY_TARGET = $$shell_quote($$shell_path($${OUT_PWD}/$${TARGET}$${TARGET_CUSTOM_EXT}))
+  OUTPUT_DIR =    $$shell_quote($$shell_path($${PWD}/portable))
+  message("Enabled deployment to" $${OUTPUT_DIR})
+
+  # copy Kvazzup.exe
+  copyToDestination($$DEPLOY_TARGET, $$OUTPUT_DIR)
+
+  # Copy assets
+  # uses OUT_PWD to avoid cyclic copy error
+  copyToDestination($$OUT_PWD/stylesheet.qss, $$OUTPUT_DIR)
+  copyToDestination($$PWD/fonts, $$OUTPUT_DIR/fonts)
+  copyToDestination($$PWD/icons, $$OUTPUT_DIR/icons)
+  # Add deploy command to after linking
+  QMAKE_POST_LINK += $${DEPLOY_COMMAND} $${OUTPUT_DIR} $$escape_expand(\\n\\t)
+}
 
 
 DISTFILES += \

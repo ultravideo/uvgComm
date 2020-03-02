@@ -1,5 +1,6 @@
 debug/
 release/
+portable/
 
 ui_*
 Makefile*
