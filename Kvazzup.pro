@@ -23,6 +23,25 @@ TARGET = Kvazzup
 win32-g++:  TEMPLATE = app
 win32-msvc: TEMPLATE = app # vcapp does not currently generate makefile
 
+
+# Copies the given files to the destination directory
+defineTest(copyToDestination) {
+    files = $$1
+
+    for(FILE, files) {
+        DDIR = $$2
+
+        # Replace slashes in paths with backslashes for Windows
+        win32:FILE ~= s,/,\\,g
+        win32:DDIR ~= s,/,\\,g
+        mkpath($${DDIR}) # done immediately
+        QMAKE_POST_LINK += $(COPY_DIR) $$shell_quote($$FILE) $$shell_quote($$DDIR) $$escape_expand(\\n\\t)
+    }
+
+    export(QMAKE_POST_LINK)
+}
+
+
 INCLUDEPATH += src
 
 SOURCES +=\
@@ -277,16 +296,42 @@ win32: LIBS += -loleaut32
 INCLUDEPATH += $$PWD/../
 DEPENDPATH += $$PWD/../
 
+copyToDestination($$PWD/stylesheet.qss, $$OUT_PWD)
+copyToDestination($$PWD/fonts, $$OUT_PWD/fonts)
+copyToDestination($$PWD/icons, $$OUT_PWD/fonts)
 
-# copy assets to build folder
-copydata.commands = $(COPY_DIR) $$shell_path($$PWD/stylesheet.qss) $$shell_path($$OUT_PWD) &&
-copydata.commands += $(COPY_DIR) $$shell_path($$PWD/fonts) $$shell_path($$OUT_PWD/fonts) &&
-copydata.commands += $(COPY_DIR) $$shell_path($$PWD/icons) $$shell_path($$OUT_PWD/icons)
+CONFIG(false){
 
-first.depends = $(first) copydata
-export(first.depends)
-export(copydata.commands)
-QMAKE_EXTRA_TARGETS += first copydata
+  isEmpty(TARGET_EXT) {
+      win32 {
+          TARGET_CUSTOM_EXT = .exe
+      }
+      macx {
+          TARGET_CUSTOM_EXT = .app
+      }
+  } else {
+      TARGET_CUSTOM_EXT = $${TARGET_EXT}
+  }
+
+  win32 {
+      DEPLOY_COMMAND = windeployqt
+  }
+  macx {
+      DEPLOY_COMMAND = macdeployqt
+  }
+
+  DEPLOY_TARGET = $$shell_quote($$shell_path($${OUT_PWD}/$${TARGET}$${TARGET_CUSTOM_EXT}))
+  OUTPUT_DIR =    $$shell_quote($$shell_path($${PWD}/portable))
+  message("Enabled deployment to" $${OUTPUT_DIR})
+
+  copyToDestination($$DEPLOY_TARGET, $$OUTPUT_DIR)
+
+  # uses output_pwd to avoid cyclic copy error
+  copyToDestination($$OUT_PWD/stylesheet.qss, $$OUTPUT_DIR)
+  copyToDestination($$PWD/fonts, $$OUTPUT_DIR/fonts)
+  copyToDestination($$PWD/icons, $$OUTPUT_DIR/icons)
+  QMAKE_POST_LINK += $${DEPLOY_COMMAND} $${OUTPUT_DIR}
+}
 
 
 DISTFILES += \
