@@ -43,7 +43,7 @@ public:
   virtual void callNegotiated(uint32_t sessionID);
   virtual void cancelIncomingCall(uint32_t sessionID);
   virtual void endCall(uint32_t sessionID);
-  virtual void failure(uint32_t sessionID);
+  virtual void failure(uint32_t sessionID, QString error);
   virtual void registeredToServer();
   virtual void registeringFailed();
 

@@ -37,8 +37,8 @@ class SIPTransactionUser
   // the call has ended
   virtual void endCall(uint32_t sessionID) = 0;
 
-  // som kind of failure has happened and the session is no longer valid
-  virtual void failure(uint32_t sessionID) = 0;
+  // some kind of failure has happened and the session is no longer valid
+  virtual void failure(uint32_t sessionID, QString error) = 0;
 
   // we have succesfully registered to the server
   virtual void registeredToServer() = 0;

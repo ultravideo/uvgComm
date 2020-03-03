@@ -83,7 +83,7 @@ private:
   bool parseRequest(QString requestString, QString version,
                     std::shared_ptr<SIPMessageInfo> message,
                     QList<SIPField>& fields, QVariant& content);
-  bool parseResponse(QString responseString, QString version,
+  bool parseResponse(QString responseString, QString version, QString text,
                      std::shared_ptr<SIPMessageInfo> message,
                      QVariant& content);
 

@@ -289,8 +289,9 @@ void KvazzupController::endCall(uint32_t sessionID)
 }
 
 
-void KvazzupController::failure(uint32_t sessionID)
+void KvazzupController::failure(uint32_t sessionID, QString error)
 {
+  Q_UNUSED(error);
   if (states_.find(sessionID) != states_.end())
   {
     if (states_[sessionID] == CALLINGTHEM)

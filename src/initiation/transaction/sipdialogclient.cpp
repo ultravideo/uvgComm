@@ -61,7 +61,7 @@ bool SIPDialogClient::processResponse(SIPResponse& response,
   if (!SIPClient::processResponse(response, state))
   {
     printWarning(this, "Got a failure response!");
-    transactionUser_->failure(sessionID_);
+    transactionUser_->failure(sessionID_, response.text);
     return false;
   }
 
@@ -141,7 +141,7 @@ void SIPDialogClient::processTimeout()
     emit sendDialogRequest(sessionID_, SIP_BYE);
     // TODO tell user we have failed
     startTransaction(SIP_CANCEL);
-    transactionUser_->failure(sessionID_);
+    transactionUser_->failure(sessionID_, "No response. Request timed out");
   }
 
   SIPClient::processTimeout();

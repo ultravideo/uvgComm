@@ -434,7 +434,7 @@ void SIPTransport::networkPackage(QString package)
       }
 
       QRegularExpression requestRE("^(\\w+) (sip:\\S+@\\S+) (SIP/2.0)");
-      QRegularExpression responseRE("^(SIP/2.0) (\\d\\d\\d) (\\w| )+");
+      QRegularExpression responseRE("^(SIP/2.0) (\\d\\d\\d) (.+)");
       QRegularExpressionMatch request_match = requestRE.match(firstLine);
       QRegularExpressionMatch response_match = responseRE.match(firstLine);
 
@@ -467,7 +467,8 @@ void SIPTransport::networkPackage(QString package)
                                         package, connection_->remoteAddress().toString());
         }
 
-        if (!parseResponse(response_match.captured(2), response_match.captured(1), message, content))
+        if (!parseResponse(response_match.captured(2), response_match.captured(1), response_match.captured(3),
+                           message, content))
         {
           qDebug() << "ERROR: Failed to parse response: " << response_match.captured(2);
         }
@@ -912,6 +913,7 @@ bool SIPTransport::parseRequest(QString requestString, QString version,
 
 
 bool SIPTransport::parseResponse(QString responseString, QString version,
+                                 QString text,
                                  std::shared_ptr<SIPMessageInfo> message,
                                  QVariant &content)
 {
@@ -928,6 +930,7 @@ bool SIPTransport::parseResponse(QString responseString, QString version,
   SIPResponse response;
   response.type = type;
   response.message = message;
+  response.text = text;
 
   if (isConnected())
   {

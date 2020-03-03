@@ -227,6 +227,7 @@ struct SIPRequest
 struct SIPResponse
 {
   ResponseType type;
+  QString text;
   std::shared_ptr<SIPMessageInfo> message;
 };
 
