@@ -47,7 +47,7 @@ public:
 
   void updateDevices();
 
-  void updateServerStatus(ServerStatus status);
+  void updateServerStatus(QString status);
 
 signals:
 

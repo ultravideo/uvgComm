@@ -67,7 +67,7 @@ void SIPRegistrations::bindToServer(QString serverAddress, QString localAddress,
                    &SIPNonDialogClient::sendNondialogRequest,
                    this, &SIPRegistrations::sendNonDialogRequest);
 
-  statusView_->updateServerStatus(ServerStatus::IN_PROCESS);
+  statusView_->updateServerStatus("Request sent. Waiting response...");
 
   registrations_[serverAddress]->client.registerToServer();
 }
@@ -107,7 +107,6 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
 
   if (response.message->transactionRequest == SIP_REGISTER)
   {
-
     bool foundRegistration = false;
 
     for (auto& i : registrations_)
@@ -142,13 +141,13 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
             // makes sure we don't end up in infinite loop if the address doesn't match
             i.second->updatedContact = true;
 
-            statusView_->updateServerStatus(ServerStatus::BEHIND_NAT);
+            statusView_->updateServerStatus("Behind NAT, updating address...");
 
             i.second->client.registerToServer(); // re-REGISTER with NAT address and port
           }
           else
           {
-            statusView_->updateServerStatus(ServerStatus::REGISTERED);
+            statusView_->updateServerStatus("Registered");
           }
 
           if (!retryTimer_.isActive())
@@ -156,12 +155,12 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
             retryTimer_.start(REGISTER_SEND_PERIOD);
           }
 
-          printNormal(this, "Registration was succesful.");
+          printNormal(this, "Registration was successful.");
         }
         else
         {
           printDebug(DEBUG_ERROR, this, "REGISTER-request failed");
-          statusView_->updateServerStatus(ServerStatus::SERVER_FAILED);
+          statusView_->updateServerStatus(response.text);
         }
       }
 
@@ -192,7 +191,7 @@ void SIPRegistrations::refreshRegistrations()
   {
     if (i.second->active)
     {
-      statusView_->updateServerStatus(ServerStatus::IN_PROCESS);
+      statusView_->updateServerStatus("Second request sent. Waiting response...");
       i.second->client.registerToServer();
     }
   }

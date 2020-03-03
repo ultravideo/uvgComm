@@ -133,10 +133,16 @@ void SIPDialogManager::cancelCall(uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
 
-  std::shared_ptr<SIPDialog> dialog = dialogs_[sessionID];
-  dialog->cancelCall();
-
-  removeDialog(sessionID);
+  if (dialogs_.find(sessionID) != dialogs_.end())
+  {
+    std::shared_ptr<SIPDialog> dialog = dialogs_[sessionID];
+    dialog->cancelCall();
+    removeDialog(sessionID);
+  }
+  else
+  {
+    printProgramWarning(this, "Tried to remove a non-existing dialog");
+  }
 }
 
 

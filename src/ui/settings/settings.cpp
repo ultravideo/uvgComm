@@ -288,37 +288,9 @@ void Settings::changedSIPText(const QString &text)
 }
 
 
-void Settings::updateServerStatus(ServerStatus status)
+void Settings::updateServerStatus(QString status)
 {
-
-  switch (status)
-  {
-    case DISCONNECTED:
-    {
-      basicUI_->status->setText("Disconnected");
-      break;
-    }
-    case IN_PROCESS:
-    {
-      basicUI_->status->setText("Connecting...");
-      break;
-    }
-    case BEHIND_NAT:
-    {
-      basicUI_->status->setText("Online, but behind NAT");
-      break;
-    }
-    case REGISTERED:
-    {
-      basicUI_->status->setText("Online");
-      break;
-    }
-    case SERVER_FAILED:
-    {
-      basicUI_->status->setText("Failed to register");
-      break;
-    }
-  }
+  basicUI_->status->setText(status);
 }
 
 
