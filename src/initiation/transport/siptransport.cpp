@@ -412,7 +412,8 @@ void SIPTransport::networkPackage(QString package)
 
     if (!headerToFields(header, firstLine, fields))
     {
-      qDebug() << "Parsing error converting header to fields.";
+      printError(this, "Parsing error converting header to fields.");
+      return;
     }
 
     if (header != "" && firstLine != "" && !fields.empty())
@@ -691,7 +692,7 @@ bool SIPTransport::parseFieldValue(QString& valueSet, SIPField& field)
   for (QChar& character : valueSet)
   {
     // add character to word if it is not parsed out
-    if (isURI ||
+    if (isURI || (isQuotation && character != "\"") ||
         (character != " "
         && character != "\""
         && character != ";"
@@ -707,8 +708,7 @@ bool SIPTransport::parseFieldValue(QString& valueSet, SIPField& field)
     if (!comments)
     {
       if ((character == "\"" && isQuotation) ||
-          (character == ">" && isURI) ||
-          (character == " " && !isQuotation))
+          (character == ">" && isURI))
       {
         if (!isParameter && currentWord != "")
         {
@@ -719,6 +719,14 @@ bool SIPTransport::parseFieldValue(QString& valueSet, SIPField& field)
         {
           return false;
         }
+      }
+      else if (character == " " && !isQuotation)
+      {
+        if (!isParameter && currentWord != "")
+        {
+          set.words.push_back(currentWord);
+        }
+        currentWord = "";
       }
       else if((character == "=" && isParameter) ||
          (character == ";" && !isURI))

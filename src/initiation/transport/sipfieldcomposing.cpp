@@ -52,7 +52,7 @@ bool composeSIPUri(SIP_URI& uri, QStringList& words)
 {
   if (uri.realname != "")
   {
-    words.push_back(uri.realname);
+    words.push_back("\"" + uri.realname + "\"");
   }
 
   QString uriString = "<" + composeUritype(uri.connectionType);
