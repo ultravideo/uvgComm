@@ -18,18 +18,18 @@ const std::map<RequestType, QString> requestStrings = {{SIP_INVITE, "INVITE"},
                                                        {SIP_OPTIONS, "OPTIONS"},
                                                        {SIP_REGISTER, "REGISTER"}};
 
-const std::map<ResponseType, QString> responsePhrases = {{SIP_UNKNOWN_RESPONSE, "UNKNOWN RESPONSE"},
-                                                       {SIP_TRYING, "TRYING"},
-                                                       {SIP_RINGING, "RINGING"},
-                                                       {SIP_FORWARDED, "SIP FORWARDED"},
-                                                       {SIP_QUEUED, "SIP QUEUED"},
-                                                       {SIP_SESSION_IN_PROGRESS, "SESSION IN PROGRESS"},
-                                                       {SIP_EARLY_DIALOG_TERMINATED, "EARLY DIALOG TERMINATED"},
-                                                       {SIP_OK, "OK"},
-                                                       {SIP_NO_NOTIFICATION, "NO NOTIFICATION"},
-                                                       {SIP_BAD_REQUEST, "BAD REQUEST"},
-                                                       {SIP_BUSY_HERE, "BUSY_HERE"},
-                                                       {SIP_DECLINE, "DECLINE"}}; // TODO: finish this
+const std::map<ResponseType, QString> responsePhrases = {{SIP_UNKNOWN_RESPONSE, "Unknown response"},
+                                                       {SIP_TRYING, "Trying"},
+                                                       {SIP_RINGING, "Ringing"},
+                                                       {SIP_FORWARDED, "Forwarded"},
+                                                       {SIP_QUEUED, "Queued"},
+                                                       {SIP_SESSION_IN_PROGRESS, "Sesssion in progress"},
+                                                       {SIP_EARLY_DIALOG_TERMINATED, "Early dialog terminated"},
+                                                       {SIP_OK, "Ok"},
+                                                       {SIP_NO_NOTIFICATION, "No notification"},
+                                                       {SIP_BAD_REQUEST, "Bad Request"},
+                                                       {SIP_BUSY_HERE, "Busy"},
+                                                       {SIP_DECLINE, "Call declined"}}; // TODO: finish this
 
 RequestType stringToRequest(QString request)
 {

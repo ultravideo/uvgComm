@@ -203,6 +203,7 @@ HEADERS  += \
 FORMS    += \
     ui/callwindow.ui \
     ui/mediasettings.ui \
+    ui/messagewidget.ui \
     ui/sipsettings.ui \
     ui/statisticswindow.ui \
     ui/about.ui \

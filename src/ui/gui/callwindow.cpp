@@ -231,13 +231,13 @@ void CallWindow::setCameraState(bool on)
 {
   if(on)
   {
-    initButton(QDir::currentPath() + "/icons/photo-camera.svg", QSize(60,60), QSize(35,35), ui_->camera);
-    //ui_->camera->setText("Camera off");
+    initButton(QDir::currentPath() + "/icons/photo-camera.svg",
+               QSize(60,60), QSize(35,35), ui_->camera);
   }
   else
   {
-    initButton(QDir::currentPath() + "/icons/no_photo-camera.svg", QSize(60,60), QSize(35,35), ui_->camera);
-    //ui_->camera->setText("Camera on");
+    initButton(QDir::currentPath() + "/icons/no_photo-camera.svg",
+               QSize(60,60), QSize(35,35), ui_->camera);
   }
 }
 
@@ -260,8 +260,14 @@ void CallWindow::removeParticipant(uint32_t sessionID)
   }
 
   contacts_.setAccessible(sessionID);
-
   viewFactory_->clearWidgets(sessionID);
+}
+
+
+void CallWindow::removeWithMessage(uint32_t sessionID, QString message, bool temporaryMessage)
+{
+  removeParticipant(sessionID);
+  conference_.attachMessageWidget(message, temporaryMessage);
 }
 
 

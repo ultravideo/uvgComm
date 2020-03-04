@@ -64,7 +64,7 @@ public slots:
 
 private:
   void startCall(quint32 sessionID, bool iceNominationComplete);
-  void removeSession(uint32_t sessionID);
+  void removeSession(uint32_t sessionID, QString message, bool temporaryMessage);
 
   void createSingleCall(uint32_t sessionID);
   void setupConference();

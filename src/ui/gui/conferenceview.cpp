@@ -2,7 +2,7 @@
 
 #include "ui_incomingcallwidget.h"
 #include "ui_outgoingcallwidget.h"
-//#include "ui_popupholder.h"
+#include "ui_messagewidget.h"
 
 #include "ui/gui/videoviewfactory.h"
 #include "ui/gui/videowidget.h"
@@ -184,6 +184,36 @@ void ConferenceView::attachOutgoingCallWidget(QString name, uint32_t sessionID)
   holder->show();
 }
 
+void ConferenceView::attachMessageWidget(QString text, bool timeout)
+{
+  QFrame* holder = new QFrame;
+  Ui::MessageWidget *message = new Ui::MessageWidget;
+  message->setupUi(holder);
+  message->message_text->setText(text);
+  LayoutLoc loc = nextSlot();
+  layout_->addWidget(holder, loc.row, loc.column);
+
+  message->ok_button->setProperty("row", QVariant(loc.row));
+  message->ok_button->setProperty("column", QVariant(loc.column));
+  connect(message->ok_button, SIGNAL(clicked()), this, SLOT(removeMessage()));
+
+  holder->show();
+}
+
+void ConferenceView::removeMessage()
+{
+  LayoutLoc loc;
+  loc.row = sender()->property("row").toUInt();
+  loc.column = sender()->property("column").toUInt();
+  QLayoutItem* item = layout_->itemAtPosition(loc.row, loc.column);
+  QWidget* widget = item->widget();
+  widget->hide();
+  layout_->removeItem(item);
+  freeSlot(loc);
+  delete item;
+  delete widget;
+}
+
 void ConferenceView::attachWidget(uint32_t sessionID, uint32_t index, QWidget *view)
 {
   Q_ASSERT(view != nullptr);
@@ -201,7 +231,7 @@ void ConferenceView::attachWidget(uint32_t sessionID, uint32_t index, QWidget *v
     LayoutLoc location = activeViews_[sessionID]->views_.at(index).location;
 
     // add to layout
-    layout_->addWidget(view, location.row,location.column);
+    layout_->addWidget(view, location.row, location.column);
 
     // get the layoutitem
     activeViews_[sessionID]->views_.at(index).item =

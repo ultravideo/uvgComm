@@ -56,6 +56,8 @@ public:
   // return whether there are still participants left in call view
   bool removeCaller(uint32_t sessionID);
 
+  void attachMessageWidget(QString text, bool timeout);
+
   void close();
 
 signals:
@@ -81,6 +83,8 @@ private slots:
   void cancel();
 
   void updateTimes();
+
+  void removeMessage();
 
 private:
 
@@ -156,7 +160,7 @@ private:
 
   QMutex viewMutex_; // prevent modifying activeViews at the same time
 
-  // matches sessionID - 1, but is not the definitive source of sessionID.
+  // key is sessionID
   std::map<uint32_t, std::unique_ptr<SessionViews>> activeViews_;
   std::map<uint32_t, DetachedWidget> detachedWidgets_;
 

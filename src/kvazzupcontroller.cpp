@@ -184,22 +184,13 @@ void KvazzupController::startCall(uint32_t sessionID, bool iceNominationComplete
           media_.removeParticipant(sessionID);
           window_.removeParticipant(sessionID);
         }
-
-        if (!settingEnabled("sip/conference") || states_.size() == 1)
-        {
-          createSingleCall(sessionID);
-        }
-        else
-        {
-          setupConference();
-        }
+        createSingleCall(sessionID);
       }
       else
       {
         printPeerError(this, "Got call successful negotiation "
-                             "even though we are not there yet, "
-                             "State",
-                             {states_[sessionID]});
+                             "even though we are not there yet.",
+                             "State", {states_[sessionID]});
       }
     }
     else
@@ -262,18 +253,10 @@ void KvazzupController::createSingleCall(uint32_t sessionID)
   states_[sessionID] = CALLONGOING;
 }
 
-void KvazzupController::setupConference()
-{
-  // TODO: conferencing
-  printUnimplemented(this, "Setup conference.");
-}
-
 
 void KvazzupController::cancelIncomingCall(uint32_t sessionID)
 {
-  // TODO: display a proper message to the user that peer has cancelled their call
-  printUnimplemented(this, "Tell user that the call has been cancelled.");
-  removeSession(sessionID);
+  removeSession(sessionID, "They cancelled", true);
 }
 
 
@@ -285,13 +268,12 @@ void KvazzupController::endCall(uint32_t sessionID)
   {
     media_.removeParticipant(sessionID);
   }
-  removeSession(sessionID);
+  removeSession(sessionID, "Call ended", true);
 }
 
 
 void KvazzupController::failure(uint32_t sessionID, QString error)
 {
-  Q_UNUSED(error);
   if (states_.find(sessionID) != states_.end())
   {
     if (states_[sessionID] == CALLINGTHEM)
@@ -306,7 +288,7 @@ void KvazzupController::failure(uint32_t sessionID, QString error)
     {
       printPeerError(this, "Got reject when we weren't calling them", "SessionID", {sessionID});
     }
-    removeSession(sessionID);
+    removeSession(sessionID, error, false);
   }
   else
   {
@@ -349,7 +331,7 @@ void KvazzupController::userRejectsCall(uint32_t sessionID)
 {
   printNormal(this, "We reject");
   sip_.rejectCall(sessionID);
-  removeSession(sessionID);
+  removeSession(sessionID, "Rejected", true);
 }
 
 
@@ -357,7 +339,7 @@ void KvazzupController::userCancelsCall(uint32_t sessionID)
 {
   printNormal(this, "We cancel our call");
   sip_.cancelCall(sessionID);
-  removeSession(sessionID);
+  removeSession(sessionID, "Cancelled", true);
 }
 
 
@@ -381,9 +363,16 @@ void KvazzupController::cameraState()
 }
 
 
-void KvazzupController::removeSession(uint32_t sessionID)
+void KvazzupController::removeSession(uint32_t sessionID, QString message, bool temporaryMessage)
 {
-  window_.removeParticipant(sessionID);
+  if (message == "" || message.isEmpty())
+  {
+    window_.removeParticipant(sessionID);
+  }
+  else
+  {
+    window_.removeWithMessage(sessionID, message, temporaryMessage);
+  }
 
   auto it = states_.find(sessionID);
   if(it != states_.end())
