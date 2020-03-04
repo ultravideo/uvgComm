@@ -25,6 +25,7 @@ ConferenceView::ConferenceView(QWidget *parent):
   rowMaxLength_(2)
 {}
 
+
 void ConferenceView::init(QGridLayout* conferenceLayout, QWidget* layoutwidget)
 {
   layoutMutex_.lock();
@@ -34,6 +35,7 @@ void ConferenceView::init(QGridLayout* conferenceLayout, QWidget* layoutwidget)
 
   connect(&timeoutTimer_, &QTimer::timeout, this, &ConferenceView::updateTimes);
 }
+
 
 void ConferenceView::callingTo(uint32_t sessionID, QString name)
 {
@@ -52,6 +54,7 @@ void ConferenceView::callingTo(uint32_t sessionID, QString name)
   viewMutex_.unlock();
   attachOutgoingCallWidget(name, sessionID);
 }
+
 
 void ConferenceView::updateSessionState(SessionViewState state,
                                         QWidget* widget,
@@ -90,6 +93,7 @@ void ConferenceView::updateSessionState(SessionViewState state,
   attachWidget(sessionID, activeViews_[sessionID]->views_.size() - 1, widget);
 }
 
+
 void ConferenceView::incomingCall(uint32_t sessionID, QString name)
 {
   printDebug(DEBUG_NORMAL, this, 
@@ -111,6 +115,7 @@ void ConferenceView::incomingCall(uint32_t sessionID, QString name)
 
   attachIncomingCallWidget(name, sessionID);
 }
+
 
 void ConferenceView::attachIncomingCallWidget(QString name, uint32_t sessionID)
 {
@@ -153,6 +158,7 @@ void ConferenceView::attachIncomingCallWidget(QString name, uint32_t sessionID)
   frame->show();
 }
 
+
 void ConferenceView::attachOutgoingCallWidget(QString name, uint32_t sessionID)
 {
   QFrame* holder = new QFrame;
@@ -184,6 +190,7 @@ void ConferenceView::attachOutgoingCallWidget(QString name, uint32_t sessionID)
   holder->show();
 }
 
+
 void ConferenceView::attachMessageWidget(QString text, bool timeout)
 {
   QFrame* holder = new QFrame;
@@ -193,26 +200,62 @@ void ConferenceView::attachMessageWidget(QString text, bool timeout)
   LayoutLoc loc = nextSlot();
   layout_->addWidget(holder, loc.row, loc.column);
 
-  message->ok_button->setProperty("row", QVariant(loc.row));
-  message->ok_button->setProperty("column", QVariant(loc.column));
-  connect(message->ok_button, SIGNAL(clicked()), this, SLOT(removeMessage()));
+  if (timeout)
+  {
+    expiringWidgets_.push_back(loc);
+    message->ok_button->hide();
+    removeMessageTimer_.setSingleShot(true);
+    removeMessageTimer_.start(3000);
+
+    connect(&removeMessageTimer_, &QTimer::timeout, this, &ConferenceView::expireMessages);
+  }
+  else
+  {
+    message->ok_button->setProperty("row", QVariant(loc.row));
+    message->ok_button->setProperty("column", QVariant(loc.column));
+    connect(message->ok_button, SIGNAL(clicked()), this, SLOT(removeMessage()));
+  }
 
   holder->show();
 }
 
+
 void ConferenceView::removeMessage()
 {
-  LayoutLoc loc;
-  loc.row = sender()->property("row").toUInt();
-  loc.column = sender()->property("column").toUInt();
-  QLayoutItem* item = layout_->itemAtPosition(loc.row, loc.column);
+  QVariant row = sender()->property("row");
+  QVariant column = sender()->property("column");
+
+  if (row.isValid() && column.isValid())
+  {
+    LayoutLoc loc;
+    loc.row = row.toUInt();
+    loc.column = column.toUInt();
+    removeWidget(loc);
+  }
+}
+
+
+void ConferenceView::expireMessages()
+{
+  for (auto& location : expiringWidgets_)
+  {
+    removeWidget(location);
+  }
+  expiringWidgets_.clear();
+}
+
+
+void ConferenceView::removeWidget(LayoutLoc& location)
+{
+  QLayoutItem* item = layout_->itemAtPosition(location.row, location.column);
   QWidget* widget = item->widget();
   widget->hide();
   layout_->removeItem(item);
-  freeSlot(loc);
+  freeSlot(location);
   delete item;
   delete widget;
 }
+
 
 void ConferenceView::attachWidget(uint32_t sessionID, uint32_t index, QWidget *view)
 {
@@ -247,6 +290,7 @@ void ConferenceView::attachWidget(uint32_t sessionID, uint32_t index, QWidget *v
   }
   layoutMutex_.unlock();
 }
+
 
 void ConferenceView::reattachWidget(uint32_t sessionID)
 {
@@ -373,6 +417,7 @@ void ConferenceView::ringing(uint32_t sessionID)
   viewMutex_.unlock();
 }
 
+
 bool ConferenceView::removeCaller(uint32_t sessionID)
 {
   viewMutex_.lock();
@@ -393,6 +438,7 @@ bool ConferenceView::removeCaller(uint32_t sessionID)
   viewMutex_.unlock();
   return !activeViews_.empty();
 }
+
 
 ConferenceView::LayoutLoc ConferenceView::nextSlot()
 {
@@ -450,6 +496,7 @@ void ConferenceView::freeSlot(LayoutLoc &location)
   locMutex_.unlock();
 }
 
+
 void ConferenceView::close()
 {
   qDebug() << "End all calls," << metaObject()->className() << ": Closing views of the call with"
@@ -478,6 +525,7 @@ void ConferenceView::close()
   resetSlots();
 }
 
+
 void ConferenceView::unitializeSession(std::unique_ptr<SessionViews> peer)
 {
   if(peer->state != VIEW_INACTIVE)
@@ -489,6 +537,7 @@ void ConferenceView::unitializeSession(std::unique_ptr<SessionViews> peer)
   }
 }
 
+
 void ConferenceView::resetSlots()
 {
   locMutex_.lock();
@@ -498,6 +547,7 @@ void ConferenceView::resetSlots()
   locMutex_.unlock();
   qDebug() << "Closing," << metaObject()->className() << ": Removing last video view. Clearing previous data";
 }
+
 
 void ConferenceView::uninitializeView(ViewInfo& view)
 {
@@ -518,6 +568,7 @@ void ConferenceView::uninitializeView(ViewInfo& view)
   }
 }
 
+
 void ConferenceView::uninitDetachedWidget(uint32_t sessionID)
 {
   if(detachedWidgets_.find(sessionID) != detachedWidgets_.end())
@@ -527,6 +578,7 @@ void ConferenceView::uninitDetachedWidget(uint32_t sessionID)
     detachedWidgets_.erase(sessionID);
   }
 }
+
 
 void ConferenceView::accept()
 {
@@ -549,6 +601,7 @@ void ConferenceView::accept()
                "Couldn't find the invoker for accept.");
   }
 }
+
 
 void ConferenceView::reject()
 {
@@ -573,11 +626,13 @@ void ConferenceView::reject()
   }
 }
 
+
 void ConferenceView::cancel()
 {
   uint32_t sessionID = sender()->property("sessionID").toUInt();
   emit cancelCall(sessionID);
 }
+
 
 void ConferenceView::updateTimes()
 {

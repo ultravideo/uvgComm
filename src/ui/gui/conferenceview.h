@@ -84,6 +84,7 @@ private slots:
 
   void updateTimes();
 
+  void expireMessages();
   void removeMessage();
 
 private:
@@ -137,12 +138,17 @@ private:
 
   void uninitializeView(ViewInfo& view);
 
+  void removeWidget(LayoutLoc& location);
+
   // return true if session is exists and is initialized correctly
   bool checkSession(uint32_t sessionID, uint32_t minViewCount = 0);
   void initializeSession(uint32_t sessionID, QString name);
   void unitializeSession(std::unique_ptr<SessionViews> peer);
 
   QTimer timeoutTimer_;
+  QTimer removeMessageTimer_;
+
+  QList<LayoutLoc> expiringWidgets_;
 
   QWidget *parent_;
 
