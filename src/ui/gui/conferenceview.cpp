@@ -149,7 +149,7 @@ void ConferenceView::attachIncomingCallWidget(QString name, uint32_t sessionID)
   in->declineButton->setText("");
   in->declineButton->setIconSize(QSize(35,35));
 
-  QPixmap pixmap2(QDir::currentPath() + "/icons/call.svg");
+  QPixmap pixmap2(QDir::currentPath() + "/icons/start_call.svg");
   QIcon ButtonIcon2(pixmap2);
   in->acceptButton->setIcon(ButtonIcon2);
   in->acceptButton->setText("");

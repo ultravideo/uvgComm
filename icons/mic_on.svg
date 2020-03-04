@@ -9,15 +9,15 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="190.5mm"
-   height="105.25mm"
-   viewBox="0 0 190.5 105.25"
+   width="206.63066mm"
+   height="215.67668mm"
+   viewBox="0 0 206.63066 215.67668"
    version="1.1"
-   id="svg4538"
+   id="svg8"
    inkscape:version="0.92.3 (2405546, 2018-03-11)"
-   sodipodi:docname="end_call.svg">
+   sodipodi:docname="mic_on.svg">
   <defs
-     id="defs4532" />
+     id="defs2" />
   <sodipodi:namedview
      id="base"
      pagecolor="#ffffff"
@@ -25,17 +25,17 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.98994949"
-     inkscape:cx="411.07049"
-     inkscape:cy="127.97918"
+     inkscape:zoom="0.7"
+     inkscape:cx="191.73358"
+     inkscape:cy="731.87183"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="true"
      inkscape:pagecheckerboard="true"
-     inkscape:window-width="1200"
-     inkscape:window-height="1857"
-     inkscape:window-x="-8"
-     inkscape:window-y="-8"
+     inkscape:window-width="2560"
+     inkscape:window-height="1377"
+     inkscape:window-x="1192"
+     inkscape:window-y="147"
      inkscape:window-maximized="1"
      fit-margin-top="0"
      fit-margin-left="0"
@@ -43,14 +43,14 @@
      fit-margin-bottom="0">
     <inkscape:grid
        type="xygrid"
-       id="grid4540"
+       id="grid815"
        spacingx="2.1166667"
        spacingy="2.1166667"
-       originx="-10.583333"
-       originy="-79.666667" />
+       originx="-69.49394"
+       originy="-27.60099" />
   </sodipodi:namedview>
   <metadata
-     id="metadata4535">
+     id="metadata5">
     <rdf:RDF>
       <cc:Work
          rdf:about="">
@@ -65,16 +65,33 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(-10.583333,-112.08333)">
+     transform="translate(-4.59642,-59.305652)">
+    <ellipse
+       style="fill:none;stroke:#ffffff;stroke-width:10;stroke-opacity:1"
+       id="path817"
+       cx="144.5013"
+       cy="124.17855"
+       r="26.458332" />
     <path
-       style="fill:none;stroke:#ffffff;stroke-width:10;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m 21.166668,180.58333 h 42.333333 v -21.16667 c 0,0 0,-10.58333 42.333329,-10.58333 42.33334,0 42.33334,10.58333 42.33334,10.58333 v 21.16667 H 190.5 v -21.16667 c 0,0 0,-42.33333 -84.66667,-42.33333 -84.666662,0 -84.666662,42.33333 -84.666662,42.33333 z"
-       id="path4550"
+       style="fill:none;stroke:#ffffff;stroke-width:6;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 49.402483,220.03332 -21.166668,21.16667 c 0,0 -31.7500002,21.16667 0,21.16667 31.750001,0 10.583332,0 42.333334,0 31.750001,0 31.750001,-42.33334 31.750001,-42.33334 0,0 0,-42.33333 42.33333,-10.58333 42.33333,31.75 42.33333,31.75 42.33333,31.75 v 0 0 0"
+       id="path823"
        inkscape:connector-curvature="0" />
     <path
        style="fill:none;stroke:#ffffff;stroke-width:10;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="M 10.583333,212.33333 H 201.08333"
-       id="path5099"
+       d="m 40.935813,217.91665 10.583336,10.58334 84.666661,-74.08334 -21.16666,-21.16666 z"
+       id="path825"
        inkscape:connector-curvature="0" />
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:8;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 125.60248,101.49999 c 0,0 6.35,35.98333 42.33333,42.33333"
+       id="path843"
+       inkscape:connector-curvature="0" />
+    <circle
+       style="fill:none;stroke:#ffffff;stroke-width:10;stroke-opacity:1"
+       id="path822"
+       cx="146.76915"
+       cy="122.66666"
+       r="31.75" />
   </g>
 </svg>
