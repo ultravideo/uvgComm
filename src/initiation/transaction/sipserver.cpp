@@ -86,6 +86,7 @@ bool SIPServer::processRequest(SIPRequest& request,
   case SIP_CANCEL:
   {
     transactionUser_->cancelIncomingCall(sessionID_);
+    // TODO: send 487
     return false;
   }
   case SIP_OPTIONS:
@@ -186,4 +187,11 @@ void SIPServer::copyMessageDetails(std::shared_ptr<SIPMessageInfo>& inMessage,
   Q_ASSERT(inMessage->dialog->toTag != "");
   copy->to = inMessage->to;
   copy->dialog->toTag = inMessage->dialog->toTag;
+}
+
+
+bool SIPServer::isCancelYours(std::shared_ptr<SIPMessageInfo> cancel)
+{
+  // TODO: Check more info
+  return receivedRequest_->vias.first().branch == cancel->vias.first().branch;
 }

@@ -82,15 +82,7 @@ void SIPClient::getRequestMessageInfo(RequestType type,
                                                  std::shared_ptr<SIPMessageInfo>& outMessage)
 {
   outMessage = std::shared_ptr<SIPMessageInfo> (new SIPMessageInfo);
-
-  if(type == SIP_CANCEL)
-  {
-    outMessage->transactionRequest = ongoingTransactionType_;
-  }
-  else
-  {
-    outMessage->transactionRequest = type;
-  }
+  outMessage->transactionRequest = type;
 
   outMessage->dialog = nullptr;
   outMessage->maxForwards = 71;

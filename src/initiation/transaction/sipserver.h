@@ -28,10 +28,6 @@ public:
   bool processRequest(SIPRequest& request,
                       SIPDialogState& state);
 
-  // inform the transaction that we have received a faulty request.
-  void wrongRequestDestination();
-  void malformedRequest();
-
   void getResponseMessage(std::shared_ptr<SIPMessageInfo> &outMessage,
                           ResponseType type);
 
@@ -42,6 +38,8 @@ public:
   // send a accept/reject response to received request according to user.
   void responseAccept();
   void respondReject();
+
+  bool isCancelYours(std::shared_ptr<SIPMessageInfo> cancel);
 
 signals:
 

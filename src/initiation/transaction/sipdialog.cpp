@@ -77,6 +77,10 @@ void SIPDialog::cancelCall()
 
 bool SIPDialog::isThisYours(SIPRequest& request)
 {
+  if (request.type == SIP_CANCEL)
+  {
+    return server_.isCancelYours(request.message);
+  }
   return state_.correctRequestDialog(request.message->dialog,
                                      request.type,
                                      request.message->cSeq);
@@ -125,16 +129,28 @@ void SIPDialog::generateRequest(uint32_t sessionID, RequestType type)
 
   // Get all the necessary information from different components.
   SIPRequest request;
-  request.type = type;
+  if (type != SIP_CANCEL)
+  {
+    request.type = type;
 
-  // Get message info
-  client_.getRequestMessageInfo(type, request.message);
-  client_.startTimer(type);
+    // Get message info
+    client_.getRequestMessageInfo(type, request.message);
+    client_.startTimer(type);
 
-  state_.getRequestDialogInfo(request);
+    state_.getRequestDialogInfo(request);
 
-  Q_ASSERT(request.message != nullptr);
-  Q_ASSERT(request.message->dialog != nullptr);
+    Q_ASSERT(request.message != nullptr);
+    Q_ASSERT(request.message->dialog != nullptr);
+
+    client_.recordRequest(request);
+  }
+  else
+  {
+    request = client_.getRecordedRequest();
+
+    request.type = SIP_CANCEL;
+    request.message->transactionRequest = SIP_CANCEL;
+  }
 
   emit sendRequest(sessionID, request);
   printImportant(this, "Finished sending of a dialog request");

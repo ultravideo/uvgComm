@@ -34,10 +34,17 @@ public:
   virtual bool processResponse(SIPResponse& response,
                                SIPDialogState& state) = 0;
 
-  // Not implemented. Should be used to notify transaction that there was an error with response.
-  void wrongResponseDestination();
-  void malformedResponse();
-  void responseIsError();
+  // used to record request in case we want to cancel it
+  void recordRequest(SIPRequest& request)
+  {
+    sentRequest_ = request;
+  }
+
+  // get request we want to cancel
+  SIPRequest& getRecordedRequest()
+  {
+    return sentRequest_;
+  }
 
 protected:
 
@@ -77,6 +84,7 @@ private:
   // used to keep track of our current transaction. This means it is used to
   // determine what request the response is responding to.
   RequestType ongoingTransactionType_;
+  SIPRequest sentRequest_;
 
   QTimer requestTimer_;
 };

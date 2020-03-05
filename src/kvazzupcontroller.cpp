@@ -121,6 +121,9 @@ bool KvazzupController::incomingCall(uint32_t sessionID, QString caller)
 
 void KvazzupController::callRinging(uint32_t sessionID)
 {
+  // TODO_RFC 3261: Enable cancelling the request at this point
+  // to make sure the original request has been received
+
   if(states_.find(sessionID) != states_.end() && states_[sessionID] == CALLINGTHEM)
   {
     printNormal(this, "Our call is ringing");
