@@ -113,7 +113,7 @@ void Settings::saveSettings()
 
   saveCheckBox("sip/AutoConnect", basicUI_->autoConnect, settings_);
 
-  saveCheckBox("sip/kvzRTP", basicUI_->kvzRTP, settings_);
+  saveCheckBox("sip/kvzrtp", basicUI_->kvzRTP, settings_);
 
   saveDevice(basicUI_->videoDevice, "video/DeviceID", "video/Device", true);
   saveDevice(basicUI_->audioDevice, "audio/DeviceID", "audio/Device", false);
