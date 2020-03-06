@@ -34,7 +34,7 @@ defineTest(copyToDestination) {
         # Replace slashes in paths with backslashes for Windows
         win32:FILE ~= s,/,\\,g
         win32:DDIR ~= s,/,\\,g
-        mkpath($${DDIR}) # done immediately
+        win32:mkpath($${DDIR}) # done immediately
         QMAKE_POST_LINK += $(COPY_DIR) $$shell_quote($$FILE) $$shell_quote($$DDIR) $$escape_expand(\\n\\t)
     }
 
