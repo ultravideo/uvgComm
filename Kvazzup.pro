@@ -81,7 +81,6 @@ SOURCES +=\
     src/media/delivery/live555/rtpsinkfilter.cpp \
     src/media/delivery/live555/rtpstreamer.cpp \
     src/media/mediamanager.cpp \
-    src/media/processing/audiocapturedevice.cpp \
     src/media/processing/audiocapturefilter.cpp \
     src/media/processing/audiooutput.cpp \
     src/media/processing/audiooutputdevice.cpp \
@@ -157,7 +156,6 @@ HEADERS  += \
     src/media/delivery/live555/rtpstreamer.h \
     src/media/delivery/irtpstreamer.h \
     src/media/mediamanager.h \
-    src/media/processing/audiocapturedevice.h \
     src/media/processing/audiocapturefilter.h \
     src/media/processing/audiooutput.h \
     src/media/processing/audiooutputdevice.h \

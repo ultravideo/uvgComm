@@ -1,6 +1,5 @@
 #include "audiocapturefilter.h"
 
-#include "audiocapturedevice.h"
 #include "statisticsinterface.h"
 
 #include "common.h"
@@ -17,7 +16,6 @@ const int AUDIO_BUFFER_SIZE = 65536;
 AudioCaptureFilter::AudioCaptureFilter(QString id, QAudioFormat format, StatisticsInterface *stats) :
   Filter(id, "Audio_Capture", stats, NONE, RAWAUDIO),
   deviceInfo_(),
-  device_(nullptr),
   format_(format),
   audioInput_(nullptr),
   input_(nullptr),
@@ -94,10 +92,6 @@ bool AudioCaptureFilter::init()
   else
     getStats()->audioInfo(0, 0);
 
-  if (device_)
-    delete device_;
-  device_  = new AudioCaptureDevice(format_, this);
-
   createAudioInput();
   printNormal(this, "Audio initializing completed.");
   return true;
@@ -108,9 +102,6 @@ void AudioCaptureFilter::createAudioInput()
 {
   qDebug() << "Iniating," << metaObject()->className() << ": Creating audio input";
   audioInput_ = new QAudioInput(deviceInfo_, format_, this);
-
-  if (device_)
-    device_->start();
 
   if (audioInput_)
     input_ = audioInput_->start();
@@ -136,9 +127,8 @@ void AudioCaptureFilter::readMore()
   if (input_)
     l = input_->read(buffer_.data(), len);
 
-  if (l > 0 && device_)
+  if (l > 0)
   {
-    device_->write(buffer_.constData(), l);
 
     Data* newSample = new Data;
 
@@ -198,8 +188,6 @@ void AudioCaptureFilter::stop()
 void AudioCaptureFilter::updateSettings()
 {
   printNormal(this, "Updating audio settings");
-  if (device_)
-    device_->stop();
 
   if (audioInput_)
   {

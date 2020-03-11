@@ -6,7 +6,6 @@
 
 //TODO: this class would not have to be a filter, just needs to send data to one
 
-class AudioCaptureDevice;
 class QAudioInput;
 class QIODevice;
 
@@ -39,7 +38,6 @@ private:
   void createAudioInput();
 
   QAudioDeviceInfo deviceInfo_;
-  AudioCaptureDevice* device_;
   QAudioFormat format_;
   QAudioInput *audioInput_;
   QIODevice *input_;
