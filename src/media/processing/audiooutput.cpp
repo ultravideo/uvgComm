@@ -10,16 +10,18 @@ AudioOutput::AudioOutput(StatisticsInterface *stats, uint32_t peer):
   QObject(),
   stats_(stats),
   device_(QAudioDeviceInfo::defaultOutputDevice()),
-  source_(0),
-  audioOutput_(0),
-  output_(0),
+  source_(nullptr),
+  audioOutput_(nullptr),
+  output_(nullptr),
   format_(),
   buffer_(BufferSize, 0),
   peer_(peer)
 {}
 
+
 AudioOutput::~AudioOutput()
 {}
+
 
 void AudioOutput::initializeAudio(QAudioFormat format)
 {
@@ -43,6 +45,7 @@ void AudioOutput::initializeAudio(QAudioFormat format)
   createAudioOutput();
 }
 
+
 void AudioOutput::createAudioOutput()
 {
   if(audioOutput_)
@@ -54,6 +57,7 @@ void AudioOutput::createAudioOutput()
   // pull mode
   output_ = audioOutput_->start();
 }
+
 
 void AudioOutput::deviceChanged(int index)
 {
@@ -68,11 +72,13 @@ void AudioOutput::deviceChanged(int index)
   initializeAudio(format_);
 }
 
+
 void AudioOutput::volumeChanged(int value)
 {
   if (audioOutput_)
     audioOutput_->setVolume(qreal(value/100.0f));
 }
+
 
 void AudioOutput::receiveInput()
 {
@@ -90,6 +96,7 @@ void AudioOutput::receiveInput()
   }
 }
 
+
 void AudioOutput::start()
 {
   if(audioOutput_->state() == QAudio::SuspendedState
@@ -98,6 +105,7 @@ void AudioOutput::start()
     audioOutput_->resume();
   }
 }
+
 
 void AudioOutput::stop()
 {

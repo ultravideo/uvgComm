@@ -5,7 +5,6 @@
 #include "common.h"
 
 #include <QAudioInput>
-#include <QDebug>
 #include <QTime>
 #include <QSettings>
 #include <QRegularExpression>
@@ -59,14 +58,15 @@ bool AudioCaptureFilter::init()
         {
           if(parsedName == deviceName)
           {
-            qDebug() << "Found mic with name:" << microphones.at(i).deviceName()
-                     << "and id:" << i;
             deviceID = i;
+            printDebug(DEBUG_NORMAL, this, "Found Mic.", {"Name", "ID"},
+                        {microphones.at(i).deviceName(), QString::number(deviceID)});
             break;
           }
         }
         // previous camera could not be found, use first.
-        qDebug() << "Did not find microphone name:" << deviceName << " Using first";
+        printWarning(this, "Did not find selected microphone. Using first.",
+                    {"Device name"}, {deviceName});
         deviceID = 0;
       }
     }
@@ -74,7 +74,7 @@ bool AudioCaptureFilter::init()
   }
   else
   {
-    printWarning(this, "No available microphones found. Trying default");
+    printWarning(this, "No available microphones found. Trying default.");
     deviceInfo_ = QAudioDeviceInfo::defaultInputDevice();
   }
 
@@ -100,7 +100,7 @@ bool AudioCaptureFilter::init()
 
 void AudioCaptureFilter::createAudioInput()
 {
-  qDebug() << "Iniating," << metaObject()->className() << ": Creating audio input";
+  printNormal(this, "Creating audio input.");
   audioInput_ = new QAudioInput(deviceInfo_, format_, this);
 
   if (audioInput_)
@@ -114,7 +114,7 @@ void AudioCaptureFilter::readMore()
 {
   if (!audioInput_)
   {
-    printDebug(DEBUG_WARNING, this,  "No audio input in readMore");
+    printWarning(this,  "No audio input in readMore");
     return;
   }
   qint64 len = audioInput_->bytesReady();
@@ -151,14 +151,14 @@ void AudioCaptureFilter::readMore()
     std::unique_ptr<Data> u_newSample( newSample );
     sendOutput(std::move(u_newSample));
 
-    //qDebug() << "Audio capture: Generated sample with size:" << l;
+    // printNormal(this, "Generated sample", {"Size"}, {QString::number(l)});
   }
 }
 
 
 void AudioCaptureFilter::start()
 {
-  qDebug() << "Audio," << metaObject()->className() << ": Resuming audio input.";
+  printNormal(this, "Resuming audio input.");
 
   if (audioInput_ && (audioInput_->state() == QAudio::SuspendedState
       || audioInput_->state() == QAudio::StoppedState))
@@ -170,7 +170,7 @@ void AudioCaptureFilter::start()
 
 void AudioCaptureFilter::stop()
 {
-  qDebug() << "Audio," << metaObject()->className() << ": Suspending input.";
+  printNormal(this, "Suspending input.");
 
   if (audioInput_ && audioInput_->state() == QAudio::ActiveState)
   {
@@ -179,8 +179,7 @@ void AudioCaptureFilter::stop()
 
   // just in case the filter part was running
   Filter::stop();
-
-  qDebug() << "Audio," << metaObject()->className() << ": input suspended.";
+  printNormal(this, "Input suspended.");
 }
 
 

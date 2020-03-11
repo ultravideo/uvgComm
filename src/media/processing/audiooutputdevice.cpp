@@ -3,7 +3,6 @@
 #include "statisticsinterface.h"
 #include "filter.h"
 
-#include <QDebug>
 #include <QDateTime>
 
 

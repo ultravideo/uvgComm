@@ -12,6 +12,7 @@ OpusDecoderFilter::OpusDecoderFilter(QString id, QAudioFormat format, Statistics
   pcmOutput_ = new int16_t[max_data_bytes_];
 }
 
+
 OpusDecoderFilter::~OpusDecoderFilter()
 {
   if(pcmOutput_)
@@ -21,6 +22,7 @@ OpusDecoderFilter::~OpusDecoderFilter()
   pcmOutput_ = nullptr;
 }
 
+
 bool OpusDecoderFilter::init()
 {
   int error = 0;
@@ -28,12 +30,13 @@ bool OpusDecoderFilter::init()
 
   if(error)
   {
-    printDebug(DEBUG_WARNING, this, "Failed to initialize opus decoder.",
+    printWarning(this, "Failed to initialize opus decoder.",
       {"Errorcode"}, {QString::number(error)});
     return false;
   }
   return true;
 }
+
 
 void OpusDecoderFilter::process()
 {
@@ -49,7 +52,8 @@ void OpusDecoderFilter::process()
 
     uint32_t datasize = len*format_.channelCount()*sizeof(opus_int16);
 
-    //qDebug() << "Decoded Opus audio. Datasize:" << input->data_size << "New framesize:" << datasize;
+    //printDebug(DEBUG_NORMAL, this, "Decoded Opus audio.", {"Input size", "Output size"},
+              //{QString::number(input->data_size), QString::number(datasize)};
 
     if(len > -1)
     {
@@ -62,8 +66,7 @@ void OpusDecoderFilter::process()
     }
     else
     {
-      printDebug(DEBUG_WARNING, this, 
-                 "Failed to encode audio frame.", {"Error"}, {QString::number(len)});
+      printWarning(this, "Failed to encode audio frame.", {"Error"}, {QString::number(len)});
     }
     input = getInput();
   }

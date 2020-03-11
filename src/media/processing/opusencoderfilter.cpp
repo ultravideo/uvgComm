@@ -20,6 +20,7 @@ OpusEncoderFilter::OpusEncoderFilter(QString id, QAudioFormat format, Statistics
   opusOutput_ = new uchar[max_data_bytes_];
 }
 
+
 OpusEncoderFilter::~OpusEncoderFilter()
 {
   opus_encoder_destroy(enc_);
@@ -28,6 +29,7 @@ OpusEncoderFilter::~OpusEncoderFilter()
   opusOutput_ = nullptr;
 }
 
+
 bool OpusEncoderFilter::init()
 {
   int error = 0;
@@ -35,14 +37,15 @@ bool OpusEncoderFilter::init()
 
   if(error)
   {
-    printDebug(DEBUG_WARNING, this, "Failed to initialize opus encoder.",
-      {"Errorcode"}, {QString::number(error)});
+    printWarning(this, "Failed to initialize opus encoder.",
+                  {"Errorcode"}, {QString::number(error)});
     return false;
   }
 
   numberOfSamples_ = format_.sampleRate()/FRAMESPERSECOND;
   return true;
 }
+
 
 void OpusEncoderFilter::process()
 {
@@ -60,7 +63,7 @@ void OpusEncoderFilter::process()
       len = opus_encode(enc_, (opus_int16*)input->data.get()+i/2, numberOfSamples_, opusOutput_ + pos, max_data_bytes_ - pos);
       if(len <= 0)
       {
-        printDebug(DEBUG_WARNING, this,  "Failed to encode audio",
+        printWarning(this,  "Failed to encode audio",
           {"Errorcode:"}, {QString::number(len)});
         break;
       }
@@ -74,8 +77,10 @@ void OpusEncoderFilter::process()
       u_copy->data = std::move(opus_frame);
       sendOutput(std::move(u_copy));
 
-      //qDebug() << "Process," << metaObject()->className() << input datasize:" << input->data_size
-      // << "index:" << i << "pos:" << pos << "Encoded Opus audio. New framesize:" << len;
+      /*printDebug(DEBUG_NORMAL, this, "Encoded Opus Audio.",
+                {"Input size", "Index", "Position", "Output size"},
+                {QString::number(input->data_size), QString::number(i),
+                 QString::number(pos), QString::number(len)});*/
       pos += len;
     }
 
@@ -89,7 +94,7 @@ void OpusEncoderFilter::process()
     }
     else
     {
-      printDebug(DEBUG_WARNING, this,  "Failed to encode audio frame.",
+      printWarning(this,  "Failed to encode audio frame.",
         {"Frame length"}, {QString::number(input->data_size)});
     }
     input = getInput();
