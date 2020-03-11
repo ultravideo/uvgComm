@@ -356,12 +356,14 @@ void KvazzupController::endTheCall()
 
 void KvazzupController::micState()
 {
+  // TODO: Get this to change the icon faster
   window_.setMicState(media_.toggleMic());
 }
 
 
 void KvazzupController::cameraState()
 {
+  // TODO: Get this to change the icon faster
   window_.setCameraState(media_.toggleCamera());
 }
 
