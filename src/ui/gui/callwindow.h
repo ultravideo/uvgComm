@@ -71,6 +71,7 @@ signals:
   void settingsChanged();
   void micStateSwitch();
   void cameraStateSwitch();
+  void shareStateSwitch();
   void endCall();
   void closed();
 

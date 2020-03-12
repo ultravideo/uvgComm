@@ -124,7 +124,7 @@
           </size>
          </property>
          <property name="toolTip">
-          <string extracomment="Mic off"/>
+          <string extracomment="Mic off">Mic</string>
          </property>
          <property name="text">
           <string>Mic off</string>
@@ -156,7 +156,7 @@
           </size>
          </property>
          <property name="toolTip">
-          <string/>
+          <string>Camera</string>
          </property>
          <property name="text">
           <string>Camera off</string>
@@ -178,6 +178,22 @@
           </size>
          </property>
         </spacer>
+       </item>
+       <item>
+        <widget class="QPushButton" name="screen_share">
+         <property name="minimumSize">
+          <size>
+           <width>50</width>
+           <height>50</height>
+          </size>
+         </property>
+         <property name="toolTip">
+          <string>Share Screen</string>
+         </property>
+         <property name="text">
+          <string>Screen Share</string>
+         </property>
+        </widget>
        </item>
        <item>
         <widget class="QWidget" name="endcallHolder" native="true">
@@ -209,6 +225,19 @@
           <property name="bottomMargin">
            <number>0</number>
           </property>
+          <item>
+           <spacer name="horizontalSpacer_9">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
           <item>
            <widget class="QPushButton" name="EndCallButton">
             <property name="enabled">
@@ -597,7 +626,7 @@
      <x>0</x>
      <y>0</y>
      <width>1280</width>
-     <height>22</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuConference">

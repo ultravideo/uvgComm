@@ -18,7 +18,8 @@ MediaManager::MediaManager():
   fg_(new FilterGraph()),
   streamer_(nullptr),
   mic_(true),
-  camera_(true)
+  camera_(true),
+  screenShare_(false)
 {}
 
 MediaManager::~MediaManager()
@@ -372,6 +373,13 @@ bool MediaManager::toggleCamera()
   camera_ = !camera_;
   fg_->camera(camera_);
   return camera_;
+}
+
+bool MediaManager::toggleScreenShare()
+{
+  screenShare_ = !screenShare_;
+  fg_->screenShare(screenShare_, camera_);
+  return screenShare_;
 }
 
 QString MediaManager::rtpNumberToCodec(const MediaInfo& info)

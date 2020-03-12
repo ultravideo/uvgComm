@@ -65,6 +65,9 @@ void CallWindow::init(ParticipantInterface *partInt)
   QObject::connect(ui_->camera, SIGNAL(clicked()),
                    this, SIGNAL(cameraStateSwitch()));
 
+  QObject::connect(ui_->screen_share, SIGNAL(clicked()),
+                   this, SIGNAL(shareStateSwitch()));
+
   QObject::connect(ui_->EndCallButton, SIGNAL(clicked()),
                    this, SIGNAL(endCall()));
 
@@ -91,12 +94,14 @@ void CallWindow::init(ParticipantInterface *partInt)
   initButton(QDir::currentPath() + "/icons/video_on.svg", QSize(60,60), QSize(35,35), ui_->camera);
   initButton(QDir::currentPath() + "/icons/mic_on.svg", QSize(60,60), QSize(35,35), ui_->mic);
   initButton(QDir::currentPath() + "/icons/end_call.svg", QSize(60,60), QSize(35,35), ui_->EndCallButton);
+  initButton(QDir::currentPath() + "/icons/screen_share.svg", QSize(60,60), QSize(35,35), ui_->screen_share);
 
   ui_->buttonContainer->layout()->setAlignment(ui_->endcallHolder, Qt::AlignBottom);
   ui_->buttonContainer->layout()->setAlignment(ui_->settings_button, Qt::AlignBottom);
   ui_->buttonContainer->layout()->setAlignment(ui_->mic, Qt::AlignBottom);
   ui_->buttonContainer->layout()->setAlignment(ui_->camera, Qt::AlignBottom);
   ui_->buttonContainer->layout()->setAlignment(ui_->SelfView, Qt::AlignBottom);
+  ui_->buttonContainer->layout()->setAlignment(ui_->screen_share, Qt::AlignBottom);
 
   ui_->contactListContainer->layout()->setAlignment(ui_->addContact, Qt::AlignHCenter);
 
