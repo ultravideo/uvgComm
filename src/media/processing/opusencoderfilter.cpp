@@ -7,7 +7,7 @@
 #include <QDateTime>
 
 // this is how many frames the audio capture seems to send
-const uint16_t FRAMESPERSECOND = 25;
+const uint16_t FRAMESPERSECOND = 25; // TODO: Seems risky
 
 OpusEncoderFilter::OpusEncoderFilter(QString id, QAudioFormat format, StatisticsInterface* stats):
   Filter(id, "Opus_Encoder", stats, RAWAUDIO, OPUSAUDIO),

@@ -80,10 +80,10 @@ bool AudioCaptureFilter::init()
 
   QAudioDeviceInfo info(deviceInfo_);
 
-  printDebug(DEBUG_NORMAL, this, "", {"Chosen Device"}, {info.deviceName()});
+  printNormal(this, "A microphone chosen.", {"Device name"}, {info.deviceName()});
 
   if (!info.isFormatSupported(format_)) {
-    printDebug(DEBUG_WARNING, this, "Default audio format not supported - trying to use nearest");
+    printWarning(this, "Default audio format not supported - trying to use nearest");
     format_ = info.nearestFormat(format_);
   }
 
@@ -100,43 +100,45 @@ bool AudioCaptureFilter::init()
 
 void AudioCaptureFilter::createAudioInput()
 {
-  printNormal(this, "Creating audio input.");
-  audioInput_ = new QAudioInput(deviceInfo_, format_, this);
 
+  audioInput_ = new QAudioInput(deviceInfo_, format_, this);
   if (audioInput_)
+  {
     input_ = audioInput_->start();
-  if (input_)
-    connect(input_, SIGNAL(readyRead()), SLOT(readMore()));
+    if (input_)
+    {
+      connect(input_, SIGNAL(readyRead()), SLOT(readMore()));
+    }
+  }
+
+  printNormal(this, "Creating audio input.", {"Notify interval (ms)"},
+              {QString::number(audioInput_->notifyInterval())});
 }
 
 
 void AudioCaptureFilter::readMore()
 {
-  if (!audioInput_)
+  if (!audioInput_ || !input_)
   {
-    printWarning(this,  "No audio input in readMore");
+    printProgramWarning(this,  "No audio input in readMore");
     return;
   }
   qint64 len = audioInput_->bytesReady();
   if (len > AUDIO_BUFFER_SIZE)
   {
+    printWarning(this, "More data available than our buffer size!", {"Data available"},
+                {QString::number(len) + "/" + QString::number(AUDIO_BUFFER_SIZE)});
     len = AUDIO_BUFFER_SIZE;
   }
-  quint64 l = 0;
+  qint64 readData = input_->read(buffer_.data(), len);
 
-  if (input_)
-    l = input_->read(buffer_.data(), len);
-
-  if (l > 0)
+  if (readData > 0)
   {
-
     Data* newSample = new Data;
 
     // create audio data packet to be sent to filter graph
-    timeval present_time;
-    present_time.tv_sec = QDateTime::currentMSecsSinceEpoch()/1000;
-    present_time.tv_usec = (QDateTime::currentMSecsSinceEpoch()%1000) * 1000;
-    newSample->presentationTime = present_time;
+    newSample->presentationTime.tv_sec = QDateTime::currentMSecsSinceEpoch()/1000;
+    newSample->presentationTime.tv_usec = (QDateTime::currentMSecsSinceEpoch()%1000) * 1000;
     newSample->type = RAWAUDIO;
     newSample->data = std::unique_ptr<uint8_t[]>(new uint8_t[len]);
 
@@ -151,7 +153,16 @@ void AudioCaptureFilter::readMore()
     std::unique_ptr<Data> u_newSample( newSample );
     sendOutput(std::move(u_newSample));
 
-    // printNormal(this, "Generated sample", {"Size"}, {QString::number(l)});
+    //printNormal(this, "sent forward audio sample", {"Size"}, {QString::number(readData)});
+  }
+  else if (readData == 0)
+  {
+    printNormal(this, "No data given from microphone. Maybe the stream ended?");
+  }
+  else if (readData == -1)
+  {
+    printWarning(this, "Error reading data from mic IODevice!",
+                  {"Amount"}, {QString::number(len)});
   }
 }
 
@@ -186,13 +197,14 @@ void AudioCaptureFilter::stop()
 // changing of audio device mid stream.
 void AudioCaptureFilter::updateSettings()
 {
-  printNormal(this, "Updating audio settings");
+  printNormal(this, "Updating audio capture settings");
 
   if (audioInput_)
   {
     audioInput_->stop();
     audioInput_->disconnect(this);
-   delete audioInput_;
+    delete audioInput_;
+    input_ = nullptr;
   }
 
   init();
