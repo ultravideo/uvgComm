@@ -203,6 +203,16 @@ bool CameraFilter::cameraSetup()
 }
 
 
+void CameraFilter::start()
+{
+  Filter::start();
+  if(camera_)
+  {
+    camera_->start();
+  }
+}
+
+
 void CameraFilter::stop()
 {
   if(camera_)

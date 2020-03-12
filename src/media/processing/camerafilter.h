@@ -17,6 +17,8 @@ public:
   // setup camera device
   virtual bool init();
 
+  virtual void start();
+
   // stop camera device and this filter.
   virtual void stop();
 
