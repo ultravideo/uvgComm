@@ -3,6 +3,7 @@
 #include <QFile>
 
 #include "media/processing/camerafilter.h"
+#include "media/processing/screensharefilter.h"
 #include "media/processing/kvazaarfilter.h"
 #include "media/processing/rgb32toyuv.h"
 #include "media/processing/openhevcfilter.h"
@@ -25,7 +26,8 @@
 
 FilterGraph::FilterGraph():
   peers_(),
-  videoProcessing_(),
+  cameraGraph_(),
+  screenShareGraph_(),
   audioProcessing_(),
   selfView_(nullptr),
   stats_(nullptr),
@@ -79,7 +81,7 @@ void FilterGraph::updateSettings()
         {
           for (auto& senderFilter : peer->videoSenders)
           {
-            videoProcessing_.back()->addOutConnection(senderFilter);
+            cameraGraph_.back()->addOutConnection(senderFilter);
           }
         }
       }
@@ -87,7 +89,7 @@ void FilterGraph::updateSettings()
   }
   else
   {
-    for(auto& filter : videoProcessing_)
+    for(auto& filter : cameraGraph_)
     {
       filter->updateSettings();
     }
@@ -136,14 +138,20 @@ void FilterGraph::initSelfView(VideoInterface *selfView)
 {
   qDebug() << "Iniating, FilterGraph : " << "Iniating camera and selfview";
 
-  if(videoProcessing_.size() > 0)
+  if(cameraGraph_.size() > 0)
   {
-    destroyFilters(videoProcessing_);
+    destroyFilters(cameraGraph_);
   }
 
   // Sending video graph
 
-  addToGraph(std::shared_ptr<Filter>(new CameraFilter("", stats_)), videoProcessing_);
+  addToGraph(std::shared_ptr<Filter>(new CameraFilter("", stats_)), cameraGraph_);
+
+  if(screenShareGraph_.size() == 0)
+  {
+    addToGraph(std::shared_ptr<Filter>(new ScreenShareFilter("", stats_)), screenShareGraph_);
+    screenShareGraph_.at(0)->stop();
+  }
 
   if(selfView)
   {
@@ -156,11 +164,12 @@ void FilterGraph::initSelfView(VideoInterface *selfView)
     */
 
     // connect selfview to camera
-    DisplayFilter* selfviewFilter = new DisplayFilter("Self_", stats_, selfView, 1111);
+    std::shared_ptr<DisplayFilter> selfviewFilter = std::shared_ptr<DisplayFilter>(new DisplayFilter("Self_", stats_, selfView, 1111));
     // the self view rotation depends on which conversions are use as some of the optimizations
     // do the mirroring. Note: mirroring is slow with Qt
-    selfviewFilter->setProperties(true, videoProcessing_.at(0)->outputType() == RGB32VIDEO);
-    addToGraph(std::shared_ptr<Filter>(selfviewFilter), videoProcessing_);
+    selfviewFilter->setProperties(true, cameraGraph_.at(0)->outputType() == RGB32VIDEO);
+    addToGraph(selfviewFilter, cameraGraph_);
+    addToGraph(selfviewFilter, screenShareGraph_);
   }
 }
 
@@ -169,18 +178,20 @@ void FilterGraph::initVideoSend()
 {
   qDebug() << "Session construction," << "FilterGraph :" << "Iniating video send";
 
-  if(videoProcessing_.size() == 0)
+  if(cameraGraph_.size() == 0)
   {
     qDebug() << "WARNING: FilterGraph : Camera was not iniated for video send";
     initSelfView(selfView_);
   }
-  else if(videoProcessing_.size() > 3)
+  else if(cameraGraph_.size() > 3)
   {
     qDebug() << "WARNING: FilterGraph : Too many filters in videosend";
-    destroyFilters(videoProcessing_);
+    destroyFilters(cameraGraph_);
   }
 
-  addToGraph(std::shared_ptr<Filter>(new KvazaarFilter("", stats_)), videoProcessing_, 0);
+  std::shared_ptr<Filter> kvazaar = std::shared_ptr<Filter>(new KvazaarFilter("", stats_));
+  addToGraph(kvazaar, cameraGraph_, 0);
+  addToGraph(cameraGraph_.back(), screenShareGraph_, 0);
 }
 
 
@@ -306,7 +317,7 @@ void FilterGraph::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoF
   qDebug() << "Session construction, FilterGraph: Adding send video for peer:" << sessionID;
 
   // make sure we are generating video
-  if(videoProcessing_.size() < 4)
+  if(cameraGraph_.size() < 4)
   {
     initVideoSend();
   }
@@ -316,7 +327,7 @@ void FilterGraph::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoF
 
   peers_.at(sessionID - 1)->videoSenders.push_back(videoFramedSource);
 
-  videoProcessing_.back()->addOutConnection(videoFramedSource);
+  cameraGraph_.back()->addOutConnection(videoFramedSource);
   videoFramedSource->start();
 }
 
@@ -412,7 +423,8 @@ void FilterGraph::uninit()
   quitting_ = true;
   removeAllParticipants();
 
-  destroyFilters(videoProcessing_);
+  destroyFilters(cameraGraph_);
+  destroyFilters(screenShareGraph_);
   destroyFilters(audioProcessing_);
 }
 
@@ -470,17 +482,37 @@ void FilterGraph::mic(bool state)
 
 void FilterGraph::camera(bool state)
 {
-  if(videoProcessing_.size() > 0)
+  if(cameraGraph_.size() > 0)
   {
     if(!state)
     {
       qDebug() << "FilterGraph : Stopping camera";
-      videoProcessing_.at(0)->stop();
+      cameraGraph_.at(0)->stop();
     }
     else
     {
       qDebug() << "FilterGraph : Starting camera";
-      videoProcessing_.at(0)->start();
+      cameraGraph_.at(0)->start();
+    }
+  }
+}
+
+
+void FilterGraph::screenShare(bool shareState, bool cameraState)
+{
+  if(cameraGraph_.size() > 0 && screenShareGraph_.size() > 0)
+  {
+    if(shareState)
+    {
+      qDebug() << "FilterGraph : Starting to share screen";
+      screenShareGraph_.at(0)->start();
+      cameraGraph_.at(0)->stop();
+    }
+    else
+    {
+      qDebug() << "FilterGraph : Stopping to share screen";
+      screenShareGraph_.at(0)->stop();
+      camera(cameraState);
     }
   }
 }
@@ -488,13 +520,18 @@ void FilterGraph::camera(bool state)
 
 void FilterGraph::running(bool state)
 {
-  for(std::shared_ptr<Filter> f : videoProcessing_)
+  for(std::shared_ptr<Filter> f : cameraGraph_)
   {
     changeState(f, state);
   }
   for(std::shared_ptr<Filter> f : audioProcessing_)
   {
     changeState(f, state);
+  }
+
+  if (screenShareGraph_.size() > 0)
+  {
+    changeState(screenShareGraph_.at(0), state);
   }
 
   for(Peer* p : peers_)
@@ -574,7 +611,7 @@ void FilterGraph::destroyPeer(Peer* peer)
   }
   for (auto& videoSender : peer->videoSenders)
   {
-    videoProcessing_.back()->removeOutConnection(videoSender);
+    cameraGraph_.back()->removeOutConnection(videoSender);
     changeState(videoSender, false);
     //peer->videoFramedSource is destroyed by RTPStreamer
     videoSender = nullptr;
@@ -616,7 +653,7 @@ void FilterGraph::removeParticipant(uint32_t sessionID)
 
   if(!peerPresent)
   {
-    destroyFilters(videoProcessing_);
+    destroyFilters(cameraGraph_);
     if (!quitting_)
     {
       initSelfView(selfView_); // restore the self view.
@@ -658,7 +695,7 @@ void FilterGraph::print()
 
   QString videoDotFile = "digraph VideoGraph {\r\n";
 
-  for(auto& f : videoProcessing_)
+  for(auto& f : cameraGraph_)
   {
     videoDotFile += f->printOutputs();
   }

@@ -10,6 +10,7 @@ class VideoInterface;
 class StatisticsInterface;
 class AudioOutput;
 class Filter;
+class ScreenShareFilter;
 
 typedef std::vector<std::shared_ptr<Filter>> GraphSegment;
 
@@ -33,6 +34,7 @@ public:
   void mic(bool state);
   void camera(bool state);
   void running(bool state);
+  void screenShare(bool shareState, bool cameraState);
 
   // print the filter graph to a dot file to be drawn as a graph
   void print();
@@ -89,7 +91,9 @@ private:
   // TODO: Change this to map
   std::vector<Peer*> peers_;
 
-  GraphSegment videoProcessing_;
+ // std::shared_ptr<ScreenShareFilter> screenShare_;
+  GraphSegment cameraGraph_;
+  GraphSegment screenShareGraph_;
   GraphSegment audioProcessing_;
 
   VideoInterface *selfView_;

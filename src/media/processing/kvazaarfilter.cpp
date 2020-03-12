@@ -46,88 +46,90 @@ bool KvazaarFilter::init()
   qDebug() << getName() << "iniating";
 
   // input picture should not exist at this point
-  Q_ASSERT(!input_pic_ && !api_);
-
-  api_ = kvz_api_get(8);
-  if(!api_)
+  if(!input_pic_ && !api_)
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to retrieve Kvazaar API.");
-    return false;
-  }
-  config_ = api_->config_alloc();
-  enc_ = nullptr;
 
-  if(!config_)
-  {
-    printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to allocate Kvazaar config.");
-    return false;
-  }
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+    api_ = kvz_api_get(8);
+    if(!api_)
+    {
+      printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to retrieve Kvazaar API.");
+      return false;
+    }
+    config_ = api_->config_alloc();
+    enc_ = nullptr;
 
-  api_->config_init(config_);
+    if(!config_)
+    {
+      printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to allocate Kvazaar config.");
+      return false;
+    }
+    QSettings settings("kvazzup.ini", QSettings::IniFormat);
+
+    api_->config_init(config_);
 
 #ifdef __linux__
-  api_->config_parse(config_, "preset", "ultrafast");
-  config_->width = 640;
-  config_->height = 480;
-  config_->framerate_num = 30;
-  config_->intra_period = 5;
-  config_->vps_period = 1;
-  config_->qp = 32;
-  config_->hash = KVZ_HASH_NONE;
+    api_->config_parse(config_, "preset", "ultrafast");
+    config_->width = 640;
+    config_->height = 480;
+    config_->framerate_num = 30;
+    config_->intra_period = 5;
+    config_->vps_period = 1;
+    config_->qp = 32;
+    config_->hash = KVZ_HASH_NONE;
 #else
-  api_->config_parse(config_, "preset", settings.value("video/Preset").toString().toUtf8());
-  config_->width = settings.value("video/ResolutionWidth").toInt();
-  config_->height = settings.value("video/ResolutionHeight").toInt();
-  config_->threads = settings.value("video/kvzThreads").toInt();
-  config_->qp = settings.value("video/QP").toInt();
-  config_->wpp = settings.value("video/WPP").toInt();
-  config_->vps_period = settings.value("video/VPS").toInt();
-  config_->intra_period = settings.value("video/Intra").toInt();
-  config_->framerate_num = settings.value("video/Framerate").toInt();
-  config_->framerate_denom = framerate_denom_;
-  config_->hash = KVZ_HASH_NONE;
+    api_->config_parse(config_, "preset", settings.value("video/Preset").toString().toUtf8());
+    config_->width = settings.value("video/ResolutionWidth").toInt();
+    config_->height = settings.value("video/ResolutionHeight").toInt();
+    config_->threads = settings.value("video/kvzThreads").toInt();
+    config_->qp = settings.value("video/QP").toInt();
+    config_->wpp = settings.value("video/WPP").toInt();
+    config_->vps_period = settings.value("video/VPS").toInt();
+    config_->intra_period = settings.value("video/Intra").toInt();
+    config_->framerate_num = settings.value("video/Framerate").toInt();
+    config_->framerate_denom = framerate_denom_;
+    config_->hash = KVZ_HASH_NONE;
 #endif
 
-  //config_->fme_level = 0;
+    //config_->fme_level = 0;
 
 #if 0
-  if(settings.value("video/Slices").toInt() == 1)
-  {
-    if(config_->wpp == 0)
+    if(settings.value("video/Slices").toInt() == 1)
     {
-      api_->config_parse(config_, "tiles", "2x2");
-      config_->slices = KVZ_SLICES_TILES;
+      if(config_->wpp == 0)
+      {
+        api_->config_parse(config_, "tiles", "2x2");
+        config_->slices = KVZ_SLICES_TILES;
+      }
+      else
+      {
+        config_->slices = KVZ_SLICES_WPP;
+      }
     }
-    else
-    {
-      config_->slices = KVZ_SLICES_WPP;
-    }
-  }
 #endif
 
-  // TODO Maybe send parameter sets only when needed
-  //config_->target_bitrate = target_bitrate;
+    // TODO Maybe send parameter sets only when needed
+    //config_->target_bitrate = target_bitrate;
 
-  customParameters(settings);
+    customParameters(settings);
 
-  enc_ = api_->encoder_open(config_);
+    enc_ = api_->encoder_open(config_);
 
-  if(!enc_)
-  {
-    printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to open Kvazaar encoder.");
-    return false;
+    if(!enc_)
+    {
+      printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to open Kvazaar encoder.");
+      return false;
+    }
+
+    input_pic_ = api_->picture_alloc(config_->width, config_->height);
+
+    if(!input_pic_)
+    {
+      printDebug(DEBUG_PROGRAM_ERROR, this, "Could not allocate input picture.");
+      return false;
+    }
+
+    qDebug() << getName() << "iniation succeeded.";
   }
-
-  input_pic_ = api_->picture_alloc(config_->width, config_->height);
-
-  if(!input_pic_)
-  {
-    printDebug(DEBUG_PROGRAM_ERROR, this, "Could not allocate input picture.");
-    return false;
-  }
-
-  qDebug() << getName() << "iniation succeeded.";
   return true;
 }
 
