@@ -112,6 +112,7 @@ SOURCES +=\
     src/ui/settings/camerainfo.cpp \
     src/ui/settings/mediasettings.cpp \
     src/ui/settings/microphoneinfo.cpp \
+    src/ui/settings/screeninfo.cpp \
     src/ui/settings/settings.cpp \
     src/ui/settings/settingshelper.cpp \
     src/ui/settings/sipsettings.cpp
@@ -196,6 +197,7 @@ HEADERS  += \
     src/ui/settings/deviceinfointerface.h \
     src/ui/settings/mediasettings.h \
     src/ui/settings/microphoneinfo.h \
+    src/ui/settings/screeninfo.h \
     src/ui/settings/settings.h \
     src/ui/settings/settingshelper.h \
     src/ui/settings/sipsettings.h

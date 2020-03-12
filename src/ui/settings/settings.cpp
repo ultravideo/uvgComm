@@ -4,6 +4,7 @@
 
 #include <ui/settings/camerainfo.h>
 #include <ui/settings/microphoneinfo.h>
+#include <ui/settings/screeninfo.h>
 #include "settingshelper.h"
 
 #include <common.h>
@@ -13,6 +14,7 @@ Settings::Settings(QWidget *parent) :
   basicUI_(new Ui::BasicSettings),
   cam_(std::shared_ptr<CameraInfo> (new CameraInfo())),
   mic_(std::shared_ptr<MicrophoneInfo> (new MicrophoneInfo())),
+  screen_(std::shared_ptr<ScreenInfo> (new ScreenInfo())),
   sipSettings_(this),
   mediaSettings_(this, cam_),
   settings_("kvazzup.ini", QSettings::IniFormat)
@@ -61,6 +63,8 @@ void Settings::show()
   // initialize everytime in case they have changed
   initDeviceSelector(basicUI_->videoDevice, "video/DeviceID", "video/Device", cam_);
   initDeviceSelector(basicUI_->audioDevice, "audio/DeviceID", "audio/Device", mic_);
+  initDeviceSelector(basicUI_->screenDevice, "user/ScreenID", "user/Screen", screen_);
+
   QWidget::show();
 }
 
@@ -100,7 +104,6 @@ void Settings::on_custom_settings_button_clicked()
 }
 
 
-
 // records the settings
 void Settings::saveSettings()
 {
@@ -117,6 +120,7 @@ void Settings::saveSettings()
 
   saveDevice(basicUI_->videoDevice, "video/DeviceID", "video/Device", true);
   saveDevice(basicUI_->audioDevice, "audio/DeviceID", "audio/Device", false);
+  saveDevice(basicUI_->screenDevice, "user/ScreenID", "user/Screen", false);
 }
 
 
@@ -125,6 +129,7 @@ void Settings::getSettings(bool changedDevice)
 {
   initDeviceSelector(basicUI_->videoDevice, "video/DeviceID", "video/Device", cam_);
   initDeviceSelector(basicUI_->audioDevice, "audio/DeviceID", "audio/Device", mic_);
+  initDeviceSelector(basicUI_->screenDevice, "user/ScreenID", "user/Screen", screen_);
 
   //get values from QSettings
   if(checkMissingValues() && checkUserSettings())
@@ -143,6 +148,7 @@ void Settings::getSettings(bool changedDevice)
 
     restoreCheckBox("sip/kvzrtp", basicUI_->kvzRTP, settings_);
 
+    // set index for camera
     int videoIndex = getDeviceID(basicUI_->videoDevice, "video/DeviceID", "video/Device");
     if(changedDevice)
     {
@@ -161,6 +167,20 @@ void Settings::getSettings(bool changedDevice)
       else
       {
         basicUI_->audioDevice->setCurrentIndex(0);
+      }
+    }
+
+    // set index for screen
+    int screenIndex = getDeviceID(basicUI_->screenDevice, "user/ScreenID", "user/Screen");
+    if (basicUI_->screenDevice->count() != 0)
+    {
+      if (screenIndex != -1)
+      {
+        basicUI_->screenDevice->setCurrentIndex(screenIndex);
+      }
+      else
+      {
+        basicUI_->screenDevice->setCurrentIndex(0);
       }
     }
   }

@@ -30,6 +30,7 @@ class BasicSettings;
 
 class CameraInfo;
 class MicrophoneInfo;
+class ScreenInfo;
 class DeviceInfoInterface;
 class QCheckBox;
 class QComboBox;
@@ -98,6 +99,7 @@ private:
 
   std::shared_ptr<CameraInfo> cam_;
   std::shared_ptr<MicrophoneInfo> mic_;
+  std::shared_ptr<ScreenInfo> screen_;
 
   SIPSettings sipSettings_;
   MediaSettings mediaSettings_;
