@@ -225,12 +225,10 @@ void KvazzupController::createSingleCall(uint32_t sessionID)
 
   std::shared_ptr<SDPMessageInfo> localSDP;
   std::shared_ptr<SDPMessageInfo> remoteSDP;
-  QList<uint16_t> sendports;
 
   sip_.getSDPs(sessionID,
                localSDP,
-               remoteSDP,
-               sendports);
+               remoteSDP);
 
   for (auto& media : localSDP->media)
   {
@@ -252,9 +250,7 @@ void KvazzupController::createSingleCall(uint32_t sessionID)
   {
     stats_->addSession(sessionID);
   }
-
-  media_.addParticipant(sessionID, remoteSDP, localSDP, sendports);
-  states_[sessionID] = CALLONGOING;
+  media_.addParticipant(sessionID, remoteSDP, localSDP);  states_[sessionID] = CALLONGOING;
 }
 
 

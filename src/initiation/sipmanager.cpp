@@ -53,7 +53,8 @@ void SIPManager::init(SIPTransactionUser* callControl, StatisticsInterface *stat
   QObject::connect(&negotiation_, &Negotiation::iceNominationSucceeded,
                     this, &SIPManager::nominationSucceeded);
   QObject::connect(&negotiation_, &Negotiation::iceNominationFailed,
-                    this, &SIPManager::nominationFailed);  QObject::connect(&registrations_, &SIPRegistrations::transportProxyRequest,
+                    this, &SIPManager::nominationFailed);
+  QObject::connect(&registrations_, &SIPRegistrations::transportProxyRequest,
                    this, &SIPManager::transportToProxy);
 
   int autoConnect = settings.value("sip/AutoConnect").toInt();
@@ -67,7 +68,7 @@ void SIPManager::init(SIPTransactionUser* callControl, StatisticsInterface *stat
 
 void SIPManager::uninit()
 {
-  printNormal(this, "Uninting SIP Manager");
+  printNormal(this, "Uninit SIP Manager");
 
   dialogManager_.uninit();
   registrations_.uninit();
@@ -187,13 +188,12 @@ void SIPManager::endAllCalls()
 
 void SIPManager::getSDPs(uint32_t sessionID,
                          std::shared_ptr<SDPMessageInfo>& localSDP,
-                         std::shared_ptr<SDPMessageInfo>& remoteSDP,
-                         QList<uint16_t>& sendports) const
+                         std::shared_ptr<SDPMessageInfo>& remoteSDP) const
 {
   Q_ASSERT(sessionID);
   localSDP = negotiation_.getLocalSDP(sessionID);
 
-  remoteSDP = negotiation_.getRemoteSDP(sessionID, sendports);
+  remoteSDP = negotiation_.getRemoteSDP(sessionID);
 }
 
 

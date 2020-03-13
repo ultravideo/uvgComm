@@ -92,7 +92,6 @@ bool KvazaarFilter::init()
 
     //config_->fme_level = 0;
 
-#if 0
     if(settings.value("video/Slices").toInt() == 1)
     {
       if(config_->wpp == 0)
@@ -105,7 +104,6 @@ bool KvazaarFilter::init()
         config_->slices = KVZ_SLICES_WPP;
       }
     }
-#endif
 
     // TODO Maybe send parameter sets only when needed
     //config_->target_bitrate = target_bitrate;

@@ -17,15 +17,15 @@ static void __receiveHook(void *arg, kvz_rtp::frame::rtp_frame *frame)
 }
 
 KvzRTPReceiver::KvzRTPReceiver(QString id, StatisticsInterface *stats, DataType type,
-                             QString media, kvz_rtp::reader *reader):
+                               QString media, kvz_rtp::media_stream *mstream):
   Filter(id, "RTP_Sink_" + media, stats, NONE, type),
   type_(type),
   addStartCodes_(true),
-  reader_(reader)
+  mstream_(mstream)
 {
   getStats()->addFilter(getName(), (uint64_t)currentThreadId());
 
-  reader_->install_recv_hook(this, __receiveHook);
+  mstream_->install_receive_hook(this, __receiveHook);
 }
 
 KvzRTPReceiver::~KvzRTPReceiver()
@@ -36,9 +36,6 @@ void KvzRTPReceiver::process()
 {
 }
 
-void KvzRTPReceiver::start()
-{
-}
 
 void KvzRTPReceiver::receiveHook(kvz_rtp::frame::rtp_frame *frame)
 {

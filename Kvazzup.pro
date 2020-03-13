@@ -74,7 +74,7 @@ SOURCES +=\
     src/initiation/transport/tcpconnection.cpp \
     src/kvazzupcontroller.cpp \
     src/main.cpp \
-    src/media/delivery/kvzrtp/kvzrtp.cpp \
+    src/media/delivery/kvzrtp/delivery.cpp \
     src/media/delivery/kvzrtp/kvzrtpreceiver.cpp \
     src/media/delivery/kvzrtp/kvzrtpsender.cpp \
     src/media/delivery/live555/framedsourcefilter.cpp \
@@ -150,7 +150,7 @@ HEADERS  += \
     src/initiation/transport/siptransport.h \
     src/initiation/transport/tcpconnection.h \
     src/kvazzupcontroller.h \
-    src/media/delivery/kvzrtp/kvzrtp.h \
+    src/media/delivery/kvzrtp/delivery.h \
     src/media/delivery/kvzrtp/kvzrtpreceiver.h \
     src/media/delivery/kvzrtp/kvzrtpsender.h \
     src/media/delivery/live555/framedsourcefilter.h \
@@ -290,6 +290,7 @@ LIBS += -lliveMedia
 LIBS += -lgroupsock
 LIBS += -lBasicUsageEnvironment
 LIBS += -lUsageEnvironment
+
 LIBS += -lopus
 LIBS += -lkvazaar
 LIBS += -lspeex
@@ -297,6 +298,7 @@ LIBS += -lspeexdsp
 LIBS += -lLibOpenHevcWrapper
 LIBS += -lgomp
 LIBS += -lkvzrtp
+LIBS += -lcryptopp
 
 message("Using Unix libraries")
 }

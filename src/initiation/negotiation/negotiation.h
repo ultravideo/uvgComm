@@ -66,8 +66,7 @@ public:
 
   // call these only after the corresponding SDP has been generated
   std::shared_ptr<SDPMessageInfo> getLocalSDP(uint32_t sessionID) const;
-  std::shared_ptr<SDPMessageInfo> getRemoteSDP(uint32_t sessionID,
-                                               QList<uint16_t> &sendPorts) const;
+  std::shared_ptr<SDPMessageInfo> getRemoteSDP(uint32_t sessionID) const;
 
   NegotiationState getState(uint32_t sessionID);
 
@@ -114,7 +113,6 @@ private:
   {
     std::shared_ptr<SDPMessageInfo> localSDP;
     std::shared_ptr<SDPMessageInfo> remoteSDP;
-    QList<uint16_t> sendports;
   };
 
   // maps sessionID to pair of SDP:s. Local and remote in that order.
