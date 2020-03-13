@@ -303,8 +303,8 @@
          <property name="text">
           <string>Shared Screen Number</string>
          </property>
-         <property name="checked">
-          <bool>true</bool>
+         <property name="checked" stdset="0">
+          <bool>false</bool>
          </property>
         </widget>
        </item>
