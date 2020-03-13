@@ -248,6 +248,9 @@
          <property name="text">
           <string>Enable kvzRTP</string>
          </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
         </widget>
        </item>
        <item row="15" column="0">
