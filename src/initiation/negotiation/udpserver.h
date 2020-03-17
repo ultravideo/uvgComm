@@ -10,7 +10,6 @@
 
 enum SOCKET_TYPE
 {
-  SOCKET_NORMAL      = 0,
   SOCKET_RAW         = 1,
   SOCKET_MULTIPLEXED = 2,
 };
@@ -24,8 +23,7 @@ class UDPServer : public QObject
 public:
   UDPServer();
 
-  void bind(const QHostAddress& address, quint16 port);
-  bool bindRaw(const QHostAddress& address, quint16 port);
+  bool bind(const QHostAddress& address, quint16 port);
   bool bindMultiplexed(const QHostAddress& address, quint16 port);
 
   void unbind();
@@ -38,15 +36,12 @@ public:
 
 signals:
   // send message data forward.
-  void messageAvailable(QByteArray message);
-  void rawMessageAvailable(QNetworkDatagram message);
+  void datagramAvailable(QNetworkDatagram message);
 
 private slots:
-  // read the data when it becomes available
-  void readData();
 
   // read the data when it becomes available
-  void readRawData();
+  void readDatagram();
 
   // read datagram and return it to caller who is listening connection from sender
   void readMultiplexData();

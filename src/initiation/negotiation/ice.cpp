@@ -18,12 +18,8 @@ ICE::ICE():
 {
   parameters_.setPortRange(MIN_ICE_PORT, MAX_ICE_PORT, MAX_PORTS);
 
-  QObject::connect(
-      &stun_,
-      SIGNAL(addressReceived(QHostAddress)),
-      this,
-      SLOT(createSTUNCandidate(QHostAddress))
-  );
+  QObject::connect( &stun_, &Stun::addressReceived,
+                    this,  &ICE::createSTUNCandidate);
 
   // TODO: Probably best way to do this is periodically every 10 minutes or so.
   // That way we get our current STUN address
@@ -144,6 +140,8 @@ void ICE::createSTUNCandidate(QHostAddress address)
 
   printNormal(this, "Created ICE STUN candidate", {"Address"}, address.toString());
 
+  // TODO: Even though unlikely, this should probably be prepared for
+  // multiple addresses.
   stunAddress_ = address;
 }
 

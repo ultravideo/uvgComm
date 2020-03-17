@@ -32,12 +32,8 @@ bool UDPServer::bindSocket(const QHostAddress& address, quint16 port, enum SOCKE
 
   switch (type)
   {
-    case SOCKET_NORMAL:
-      connect(socket_, &QUdpSocket::readyRead, this, &UDPServer::readData);
-      break;
-
     case SOCKET_RAW:
-      connect(socket_, &QUdpSocket::readyRead, this, &UDPServer::readRawData);
+      connect(socket_, &QUdpSocket::readyRead, this, &UDPServer::readDatagram);
       break;
 
     case SOCKET_MULTIPLEXED:
@@ -61,15 +57,11 @@ void UDPServer::unbind()
   }
 }
 
-void UDPServer::bind(const QHostAddress &address, quint16 port)
-{
-  (void)bindSocket(address, port, SOCKET_NORMAL);
-}
-
-bool UDPServer::bindRaw(const QHostAddress &address, quint16 port)
+bool UDPServer::bind(const QHostAddress &address, quint16 port)
 {
   return bindSocket(address, port, SOCKET_RAW);
 }
+
 
 bool UDPServer::bindMultiplexed(const QHostAddress& address, quint16 port)
 {
@@ -108,22 +100,15 @@ void UDPServer::sendData(QByteArray& data, const QHostAddress &local,
   }
 }
 
-void UDPServer::readData()
+
+void UDPServer::readDatagram()
 {
   while (socket_->hasPendingDatagrams())
   {
-    QNetworkDatagram datagram = socket_->receiveDatagram();
-    emit messageAvailable(datagram.data());
+    emit datagramAvailable(socket_->receiveDatagram());
   }
 }
 
-void UDPServer::readRawData()
-{
-  while (socket_->hasPendingDatagrams())
-  {
-    emit rawMessageAvailable(socket_->receiveDatagram());
-  }
-}
 
 void UDPServer::readMultiplexData()
 {

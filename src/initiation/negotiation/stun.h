@@ -63,7 +63,7 @@ signals:
 
 private slots:
   void handleHostaddress(QHostInfo info);
-  void processReply(QByteArray data);
+  void processReply(const QNetworkDatagram &packet);
   void recvStunMessage(QNetworkDatagram message);
 
 private:

@@ -56,12 +56,8 @@ void Stun::handleHostaddress(QHostInfo info)
 
   udp_->bind(QHostAddress::AnyIPv4, STUN_PORT);
 
-  QObject::connect(
-      udp_,
-      SIGNAL(messageAvailable(QByteArray)),
-      this,
-      SLOT(processReply(QByteArray))
-  );
+  QObject::connect(udp_,   &UDPServer::datagramAvailable,
+                   this,   &Stun::processReply);
 
   STUNMessage request = stunmsg_.createRequest();
   QByteArray message  = stunmsg_.hostToNetwork(request);
@@ -290,7 +286,7 @@ bool Stun::sendBindingRequest(ICEPair *pair, bool controller)
 
   if (multiplex_ == false)
   {
-    if (!udp_->bindRaw(QHostAddress(pair->local->address), pair->local->port))
+    if (!udp_->bind(QHostAddress(pair->local->address), pair->local->port))
     {
       printDebug(DEBUG_ERROR, "STUN",
           "Binding failed! Cannot send STUN Binding Requests to", {
@@ -301,7 +297,7 @@ bool Stun::sendBindingRequest(ICEPair *pair, bool controller)
       return false;
     }
 
-    connect(udp_, &UDPServer::rawMessageAvailable, this, &Stun::recvStunMessage);
+    connect(udp_, &UDPServer::datagramAvailable, this, &Stun::recvStunMessage);
   }
 
   if (controller)
@@ -320,7 +316,7 @@ bool Stun::sendNominationRequest(ICEPair *pair)
 
   if (multiplex_ == false)
   {
-    if (!udp_->bindRaw(QHostAddress(pair->local->address), pair->local->port))
+    if (!udp_->bind(QHostAddress(pair->local->address), pair->local->port))
     {
       printDebug(DEBUG_ERROR, "STUN",
           "Binding failed! Cannot send STUN Binding Requests to", {
@@ -331,7 +327,7 @@ bool Stun::sendNominationRequest(ICEPair *pair)
       return false;
     }
 
-    connect(udp_, &UDPServer::rawMessageAvailable, this, &Stun::recvStunMessage);
+    connect(udp_, &UDPServer::datagramAvailable, this, &Stun::recvStunMessage);
   }
 
   STUNMessage request = stunmsg_.createRequest();
@@ -358,7 +354,7 @@ bool Stun::sendNominationResponse(ICEPair *pair)
 
   if (multiplex_ == false)
   {
-    if (!udp_->bindRaw(QHostAddress(pair->local->address), pair->local->port))
+    if (!udp_->bind(QHostAddress(pair->local->address), pair->local->port))
     {
       printDebug(DEBUG_ERROR, "STUN",
           "Binding failed! Cannot send STUN Binding Requests to", {
@@ -368,7 +364,7 @@ bool Stun::sendNominationResponse(ICEPair *pair)
       return false;
     }
 
-    connect(udp_, &UDPServer::rawMessageAvailable, this, &Stun::recvStunMessage);
+    connect(udp_, &UDPServer::datagramAvailable, this, &Stun::recvStunMessage);
   }
 
   bool nominationRecv = false;
@@ -435,14 +431,15 @@ bool Stun::sendNominationResponse(ICEPair *pair)
   return nominationRecv;
 }
 
-void Stun::processReply(QByteArray data)
+void Stun::processReply(const QNetworkDatagram& packet)
 {
-  if(data.size() < 20)
+  if(packet.data().size() < 20)
   {
     printDebug(DEBUG_WARNING, "STUN",
         "Received too small response to STUN query!");
     return;
   }
+  QByteArray data = packet.data();
 
   QString message = QString::fromStdString(data.toHex().toStdString());
   STUNMessage response = stunmsg_.networkToHost(data);
