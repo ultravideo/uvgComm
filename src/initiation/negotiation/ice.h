@@ -78,7 +78,7 @@ signals:
     // releases callee_mtx to signal that negotiation is done
     void handleCalleeEndOfNomination(std::shared_ptr<ICEPair> rtp, std::shared_ptr<ICEPair> rtcp, uint32_t sessionID);
 
-    void createSTUNCandidate(QHostAddress address);
+    void createSTUNCandidate(QHostAddress local, quint16 localPort, QHostAddress stun, quint16 stunPort);
 
   private:
     // create media candidate (RTP and RTCP connection)

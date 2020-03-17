@@ -43,7 +43,7 @@ public:
   // to all valid candidate address:port pairs to receive the nominations
   bool sendNominationResponse(ICEPair *pair);
 
-  void wantAddress(QString stunServer);
+  void wantAddress(QString stunServer, uint16_t port);
 
 public slots:
   // When FlowController/FlowControllee has one successfully nominated pair, it sends stopTesting()
@@ -54,7 +54,8 @@ public slots:
   void stopTesting();
 
 signals:
-  void addressReceived(QHostAddress address);
+  void stunAddressReceived(QHostAddress local, quint16 localPort,
+                           QHostAddress stun, quint16 stunPort);
   void stunError();
   void parsingDone();
   void nominationRecv();
@@ -116,4 +117,6 @@ private:
   // check whether interrupt flag has been set. It means that the running thread has
   // decided to terminate processing and Stun shouln't continue with the process any further
   bool interrupted_;
+
+  uint16_t stunPort_;
 };

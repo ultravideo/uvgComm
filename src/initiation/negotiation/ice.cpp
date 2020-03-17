@@ -11,6 +11,8 @@ const uint16_t MIN_ICE_PORT   = 23000;
 const uint16_t MAX_ICE_PORT   = 24000;
 const uint16_t MAX_PORTS      = 1000;
 
+const uint16_t STUN_PORT       = 21000;
+
 ICE::ICE():
   stun_(),
   stunAddress_(QHostAddress("")),
@@ -18,12 +20,12 @@ ICE::ICE():
 {
   parameters_.setPortRange(MIN_ICE_PORT, MAX_ICE_PORT, MAX_PORTS);
 
-  QObject::connect( &stun_, &Stun::addressReceived,
+  QObject::connect( &stun_, &Stun::stunAddressReceived,
                     this,  &ICE::createSTUNCandidate);
 
   // TODO: Probably best way to do this is periodically every 10 minutes or so.
   // That way we get our current STUN address
-  stun_.wantAddress("stun.l.google.com");
+  stun_.wantAddress("stun.l.google.com", STUN_PORT);
 
   checkICEstatus();
 }
@@ -130,19 +132,23 @@ ICE::makeCandidate(QHostAddress address, QString type)
   return std::make_pair(entry_rtp, entry_rtcp);
 }
 
-void ICE::createSTUNCandidate(QHostAddress address)
+void ICE::createSTUNCandidate(QHostAddress local, quint16 localPort,
+                              QHostAddress stun, quint16 stunPort)
 {
-  if (address == QHostAddress(""))
+  if (stun == QHostAddress(""))
   {
     printDebug(DEBUG_WARNING, "ICE", 
        "Failed to resolve public IP! Server-reflexive candidates won't be created!");
+    return;
   }
 
-  printNormal(this, "Created ICE STUN candidate", {"Address"}, address.toString());
+  printDebug(DEBUG_NORMAL, this, "Created ICE STUN candidate", {"LocalAddress", "STUN address"},
+            {local.toString() + ":" + QString::number(localPort),
+             stun.toString() + ":" + QString::number(stunPort)});
 
   // TODO: Even though unlikely, this should probably be prepared for
   // multiple addresses.
-  stunAddress_ = address;
+  stunAddress_ = stun;
 }
 
 void ICE::printCandidate(ICEInfo *candidate)

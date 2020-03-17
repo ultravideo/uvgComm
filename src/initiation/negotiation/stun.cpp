@@ -16,13 +16,13 @@
 #include <QNetworkInterface>
 
 const uint16_t GOOGLE_STUN_PORT = 19302;
-const uint16_t STUN_PORT = 21000;
 
 Stun::Stun():
   udp_(new UDPServer),
   stunmsg_(),
   multiplex_(false),
-  interrupted_(false)
+  interrupted_(false),
+  stunPort_(0)
 {
 }
 
@@ -34,14 +34,21 @@ Stun::Stun(UDPServer *server):
 {
 }
 
-void Stun::wantAddress(QString stunServer)
+void Stun::wantAddress(QString stunServer, uint16_t port)
 {
+  stunPort_ = port;
   // To find the IP address of qt-project.org
   QHostInfo::lookupHost(stunServer, this, SLOT(handleHostaddress(QHostInfo)));
 }
 
 void Stun::handleHostaddress(QHostInfo info)
 {
+  if (stunPort_ == 0)
+  {
+    printProgramError(this, "Not Stun port set. Can't get STUN address.");
+    return;
+  }
+
   const auto addresses = info.addresses();
   QHostAddress address;
   if(addresses.size() != 0)
@@ -52,9 +59,10 @@ void Stun::handleHostaddress(QHostInfo info)
   {
     return;
   }
-  printNormal(this, "Got STUN server address. Sending STUN request", {"Address"}, {address.toString()});
+  printNormal(this, "Got STUN server address. Sending STUN request",
+              {"Address"}, {address.toString()});
 
-  udp_->bind(QHostAddress::AnyIPv4, STUN_PORT);
+  udp_->bind(QHostAddress::AnyIPv4, stunPort_);
 
   QObject::connect(udp_,   &UDPServer::datagramAvailable,
                    this,   &Stun::processReply);
@@ -64,8 +72,8 @@ void Stun::handleHostaddress(QHostInfo info)
 
   stunmsg_.cacheRequest(request);
 
-  // Send STUN-Request through all the interfaces, since we don't know which is connected to the internet.
-  // Most of them will fail.
+  // Send STUN-Request through all the interfaces, since we don't know which is
+  // connected to the internet. Most of them will fail.
   QList<QHostAddress> interfaces =  QNetworkInterface::allAddresses();
   for (auto interface : interfaces)
   {
@@ -455,11 +463,12 @@ void Stun::processReply(const QNetworkDatagram& packet)
 
   if (response.getXorMappedAddress(addressInfo))
   {
-    emit addressReceived(addressInfo.first);
+    emit stunAddressReceived(packet.destinationAddress(), packet.destinationPort(),
+                             addressInfo.first, addressInfo.second);
   }
   else
   {
-    printDebug(DEBUG_WARNING, "STUN",  "DIDN'T GET XOR-MAPPED-ADDRESS!");
+    printWarning(this, "DIDN'T GET XOR-MAPPED-ADDRESS!");
     emit stunError();
   }
 }
