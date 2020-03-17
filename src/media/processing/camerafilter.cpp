@@ -33,9 +33,8 @@ CameraFilter::~CameraFilter()
 
 bool CameraFilter::init()
 {
-  if (initialCameraSetup())
+  if (initialCameraSetup() && cameraSetup())
   {
-    cameraSetup();
     return Filter::init();
   }
   return false;
@@ -136,7 +135,7 @@ bool CameraFilter::cameraSetup()
     }
     else
     {
-      qDebug() << "Input format is not supported";
+      printError(this, "Input format not supported");
       viewSettings.setPixelFormat(QVideoFrame::Format_Invalid);
       output_ = NONE;
       return false;

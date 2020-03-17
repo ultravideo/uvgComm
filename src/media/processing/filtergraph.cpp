@@ -145,12 +145,19 @@ void FilterGraph::initSelfView(VideoInterface *selfView)
 
   // Sending video graph
 
-  addToGraph(std::shared_ptr<Filter>(new CameraFilter("", stats_)), cameraGraph_);
+  if (!addToGraph(std::shared_ptr<Filter>(new CameraFilter("", stats_)), cameraGraph_))
+  {
+    // camera failed
+    printDebug(DEBUG_ERROR, "Filter Graph", "Failed to add camera. Does it have supported formats.");
+    return; // TODO: return false that we failed so user can fix camera selection
+  }
 
   if(screenShareGraph_.size() == 0)
   {
-    addToGraph(std::shared_ptr<Filter>(new ScreenShareFilter("", stats_)), screenShareGraph_);
-    screenShareGraph_.at(0)->stop();
+    if (addToGraph(std::shared_ptr<Filter>(new ScreenShareFilter("", stats_)), screenShareGraph_))
+    {
+      screenShareGraph_.at(0)->stop();
+    }
   }
 
   if(selfView)
@@ -250,6 +257,10 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
   if(filter->init())
   {
     filter->start();
+  }
+  else
+  {
+    return false;
   }
   qDebug() << "FilterGraph : Added, iniated and started" << filter->getName();
   return true;
