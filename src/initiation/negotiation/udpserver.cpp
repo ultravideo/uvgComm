@@ -16,11 +16,18 @@ bool UDPServer::bindSocket(const QHostAddress& address, quint16 port, enum SOCKE
   sendPort_ = port;
   socket_ = new QUdpSocket(this);
 
+  QString addressDebug = address.toString() + ":" + QString::number(port);
+
   if(!socket_->bind(address, port))
   {
     printDebug(DEBUG_ERROR, "UDPServer", 
-        "Failed to bind UDP Socket to", { address.toString() });
+        "Failed to bind UDP Socket to", {"Address"},
+          {addressDebug});
     return false;
+  }
+  else
+  {
+    printNormal(this, "Binded UDP Port", {"Address"}, addressDebug);
   }
 
   switch (type)
@@ -69,12 +76,10 @@ bool UDPServer::bindMultiplexed(const QHostAddress& address, quint16 port)
   return bindSocket(address, port, SOCKET_MULTIPLEXED);
 }
 
-void UDPServer::sendData(
-    QByteArray& data,
-    const QHostAddress& address,
-    quint16 port,
-    bool untilReply
-)
+void UDPServer::sendData(QByteArray& data, const QHostAddress &local,
+                         const QHostAddress& remote,
+                         quint16 remotePort,
+                         bool untilReply)
 {
   /* qDebug() << "Sending the following UDP data:" << QString::fromStdString(data.toHex().toStdString()) */
   /*          << "with size:" << data.size(); */
@@ -92,13 +97,14 @@ void UDPServer::sendData(
     return;
   }
 
-  QNetworkDatagram datagram = QNetworkDatagram(data, address, port);
-  datagram.setSender(QHostAddress::AnyIPv4, (quint16)sendPort_);
+  QNetworkDatagram datagram = QNetworkDatagram(data, remote, remotePort);
+  datagram.setSender(local, (quint16)sendPort_);
 
   if (socket_->writeDatagram(datagram) < 0)
   {
-    //printDebug(DEBUG_ERROR, "UDPServer",
-    //           DC_NEGOTIATING, "Failed to send UDP datagram!");
+    printDebug(DEBUG_ERROR, "UDPServer", "Failed to send UDP datagram!", {"Local", "Remote"},
+              {local.toString() + ":" + QString::number(sendPort_),
+               remote.toString() + ":" + QString::number(remotePort)});
   }
 }
 

@@ -31,7 +31,8 @@ public:
   void unbind();
 
   // sends the data using Qt UDP classes.
-  void sendData(QByteArray& data, const QHostAddress &address, quint16 port, bool untilReply);
+  void sendData(QByteArray& data, const QHostAddress &local,
+                const QHostAddress &remote, quint16 remotePort, bool untilReply);
 
   void expectReplyFrom(Stun *stun, QString& address, quint16 port);
 

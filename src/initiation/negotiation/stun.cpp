@@ -13,6 +13,8 @@
 
 #include <QtEndian>
 
+#include <QNetworkInterface>
+
 const uint16_t GOOGLE_STUN_PORT = 19302;
 const uint16_t STUN_PORT = 21000;
 
@@ -50,8 +52,10 @@ void Stun::handleHostaddress(QHostInfo info)
   {
     return;
   }
+  printNormal(this, "Got STUN server address. Sending STUN request", {"Address"}, {address.toString()});
 
   udp_->bind(QHostAddress::AnyIPv4, STUN_PORT);
+
   QObject::connect(
       udp_,
       SIGNAL(messageAvailable(QByteArray)),
@@ -64,7 +68,16 @@ void Stun::handleHostaddress(QHostInfo info)
 
   stunmsg_.cacheRequest(request);
 
-  udp_->sendData(message, address, GOOGLE_STUN_PORT, false);
+  // Send STUN-Request through all the interfaces, since we don't know which is connected to the internet.
+  // Most of them will fail.
+  QList<QHostAddress> interfaces =  QNetworkInterface::allAddresses();
+  for (auto interface : interfaces)
+  {
+    if (!interface.isLoopback())
+    {
+      udp_->sendData(message, interface, address, GOOGLE_STUN_PORT, false);
+    }
+  }
 }
 
 bool Stun::waitForStunResponse(unsigned long timeout)
@@ -136,6 +149,7 @@ bool Stun::controllerSendBindingRequest(ICEPair *pair)
   {
     udp_->sendData(
         message,
+        QHostAddress(pair->local->address),
         QHostAddress(pair->remote->address),
         pair->remote->port,
         false
@@ -191,6 +205,7 @@ bool Stun::controllerSendBindingRequest(ICEPair *pair)
       {
         udp_->sendData(
             message,
+            QHostAddress(pair->local->address),
             QHostAddress(pair->remote->address),
             pair->remote->port,
             false
@@ -221,6 +236,7 @@ bool Stun::controlleeSendBindingRequest(ICEPair *pair)
   {
     udp_->sendData(
       message,
+      QHostAddress(pair->local->address),
       QHostAddress(pair->remote->address),
       pair->remote->port,
       false
@@ -243,6 +259,7 @@ bool Stun::controlleeSendBindingRequest(ICEPair *pair)
       {
         udp_->sendData(
             message,
+            QHostAddress(pair->local->address),
             QHostAddress(pair->remote->address),
             pair->remote->port,
             false
@@ -288,6 +305,7 @@ bool Stun::controlleeSendBindingRequest(ICEPair *pair)
   {
     udp_->sendData(
         message,
+        QHostAddress(pair->local->address),
         QHostAddress(pair->remote->address),
         pair->remote->port,
         false
@@ -377,6 +395,7 @@ bool Stun::sendNominationRequest(ICEPair *pair)
   {
     udp_->sendData(
         message,
+        QHostAddress(pair->local->address),
         QHostAddress(pair->remote->address),
         pair->remote->port,
         false
@@ -443,6 +462,7 @@ bool Stun::sendNominationResponse(ICEPair *pair)
   {
     udp_->sendData(
       message,
+      QHostAddress(pair->local->address),
       QHostAddress(pair->remote->address),
       pair->remote->port,
       false
@@ -465,6 +485,7 @@ bool Stun::sendNominationResponse(ICEPair *pair)
       {
         udp_->sendData(
             message,
+            QHostAddress(pair->local->address),
             QHostAddress(pair->remote->address),
             pair->remote->port,
             false

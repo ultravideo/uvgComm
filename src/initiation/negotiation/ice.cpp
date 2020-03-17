@@ -24,6 +24,9 @@ ICE::ICE():
       this,
       SLOT(createSTUNCandidate(QHostAddress))
   );
+
+  // TODO: Probably best way to do this is periodically every 10 minutes or so.
+  // That way we get our current STUN address
   stun_.wantAddress("stun.l.google.com");
 
   checkICEstatus();
@@ -138,6 +141,8 @@ void ICE::createSTUNCandidate(QHostAddress address)
     printDebug(DEBUG_WARNING, "ICE", 
        "Failed to resolve public IP! Server-reflexive candidates won't be created!");
   }
+
+  printNormal(this, "Created ICE STUN candidate", {"Address"}, address.toString());
 
   stunAddress_ = address;
 }
