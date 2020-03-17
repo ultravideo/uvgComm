@@ -91,6 +91,10 @@ bool SIPDialogClient::processResponse(SIPResponse& response,
       }
     }
   }
+  else if(response.message->transactionRequest == SIP_BYE)
+  {
+    transactionUser_->endCall(sessionID_);
+  }
 
   return true;
 }
