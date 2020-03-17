@@ -143,39 +143,10 @@ bool Stun::controllerSendBindingRequest(ICEPair *pair)
   stunmsg_.expectReplyFrom(msg, pair->remote->address, pair->remote->port);
 
   QByteArray message = stunmsg_.hostToNetwork(msg);
-  bool msgReceived   = false;
 
-  for (int i = 0; i < 20; ++i)
+  if (!sendRequestWaitResponse(pair, message, 20, 20))
   {
-    udp_->sendData(
-        message,
-        QHostAddress(pair->local->address),
-        QHostAddress(pair->remote->address),
-        pair->remote->port,
-        false
-    );
-
-    if (waitForStunResponse(20 * (i + 1)))
-    {
-      if (interrupted_)
-      {
-        return false;
-      }
-
-      msgReceived = true;
-      break;
-    }
-  }
-
-  if (msgReceived == false)
-  {
-    printDebug(DEBUG_WARNING, "STUN",
-        "Failed to receive STUN Binding Response from remote!", {
-          pair->remote->address, QString(pair->remote->port)
-        }
-    );
-
-    if (multiplex_ == false)
+    if (!multiplex_)
     {
       udp_->unbind();
     }
@@ -184,7 +155,7 @@ bool Stun::controllerSendBindingRequest(ICEPair *pair)
 
   // the first part of connectivity check is done, now we must wait for
   // remote's binding request and responed to them
-  msgReceived = false;
+  bool msgReceived = false;
 
   for (int i = 0; i < 20; ++i)
   {
@@ -192,6 +163,10 @@ bool Stun::controllerSendBindingRequest(ICEPair *pair)
     {
       if (interrupted_)
       {
+        if (!multiplex_)
+        {
+          udp_->unbind();
+        }
         return false;
       }
 
@@ -288,7 +263,6 @@ bool Stun::controlleeSendBindingRequest(ICEPair *pair)
 
   // the first part of connective check is done (remote sending us binding request)
   // now we must do the same but this we're sending the request and they're responding
-  msgReceived = false;
 
   // we've succesfully responded to remote's binding request, now it's our turn to
   // send request and remote must respond to them
@@ -301,29 +275,9 @@ bool Stun::controlleeSendBindingRequest(ICEPair *pair)
   // we're expecting a response from remote to this request
   stunmsg_.cacheRequest(request);
 
-  for (int i = 0; i < 20; ++i)
-  {
-    udp_->sendData(
-        message,
-        QHostAddress(pair->local->address),
-        QHostAddress(pair->remote->address),
-        pair->remote->port,
-        false
-    );
+  msgReceived = sendRequestWaitResponse(pair, message, 20, 20);
 
-    if (waitForStunResponse(20 * (i + 1)))
-    {
-      if (interrupted_)
-      {
-        return false;
-      }
-
-      msgReceived = true;
-      break;
-    }
-  }
-
-  if (multiplex_ == false)
+  if (!multiplex_)
   {
     udp_->unbind();
   }
@@ -389,44 +343,7 @@ bool Stun::sendNominationRequest(ICEPair *pair)
 
   QByteArray message  = stunmsg_.hostToNetwork(request);
 
-  bool responseRecv = false;
-
-  for (int i = 0; i < 25; ++i)
-  {
-    udp_->sendData(
-        message,
-        QHostAddress(pair->local->address),
-        QHostAddress(pair->remote->address),
-        pair->remote->port,
-        false
-    );
-
-    if (waitForStunResponse(20 * (i + 1)))
-    {
-      if (interrupted_)
-      {
-        return false;
-      }
-
-      responseRecv = true;
-      break;
-    }
-  }
-
-  if (responseRecv == false)
-  {
-    printDebug(DEBUG_WARNING, "STUN",
-        "Failed to receive Nomination Response from remote!", {
-          pair->remote->address, QString(pair->remote->port)
-        }
-    );
-
-    if (multiplex_ == false)
-    {
-      udp_->unbind();
-    }
-    return false;
-  }
+  bool responseRecv = sendRequestWaitResponse(pair, message, 25, 20);
 
   if (multiplex_ == false)
   {
@@ -500,10 +417,8 @@ bool Stun::sendNominationResponse(ICEPair *pair)
   if (nominationRecv == false)
   {
     printDebug(DEBUG_WARNING, "STUN",
-        "Failed to receive Nomination Request from remote!", {
-          pair->remote->address, QString(pair->remote->port)
-        }
-    );
+               "Failed to receive STUN Nomination Request from remote!", {"Remote"},
+               {pair->remote->address + ":" + QString(pair->remote->port)});
 
     if (multiplex_ == false)
     {
@@ -592,11 +507,45 @@ void Stun::recvStunMessage(QNetworkDatagram message)
   }
   else
   {
-    /* TODO:  */
-    /* printDebug(DEBUG_WARNING, "STUN", DC_NEGOTIATING, */
-    /*     { "type", "from", "to" }, */
-    /*     { stunMsg.getType(), QString(message.senderAddress()) + QString(message.senderPort()), */
-    /*       QString(message.destinationAddress()) + QString(message.destinationPort())}); */
+     printDebug(DEBUG_WARNING, "STUN",  "Received message with unknown type", { "type", "from", "to" },
+         { QString::number(stunMsg.getType()), message.senderAddress().toString() + ":" + QString::number(message.senderPort()),
+           message.destinationAddress().toString() + ":" + QString::number(message.destinationPort())});
   }
 }
 
+
+bool Stun::sendRequestWaitResponse(ICEPair* pair, QByteArray& request,
+                                   int retries, int baseTimeout)
+{
+  bool msgReceived = false;
+  for (int i = 0; i < retries; ++i)
+  {
+    udp_->sendData(
+        request,
+        QHostAddress(pair->local->address),
+        QHostAddress(pair->remote->address),
+        pair->remote->port,
+        false
+    );
+
+    if (waitForStunResponse(baseTimeout * (i + 1)))
+    {
+      if (interrupted_)
+      {
+        return false;
+      }
+
+      msgReceived = true;
+      break;
+    }
+  }
+
+  if (!msgReceived)
+  {
+    printDebug(DEBUG_WARNING, "STUN",
+               "Failed to receive STUN Binding Response from remote!", {"Remote"},
+               {pair->remote->address + ":" + QString(pair->remote->port)});
+  }
+
+  return msgReceived;
+}

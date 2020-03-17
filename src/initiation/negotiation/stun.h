@@ -101,6 +101,8 @@ private:
   // Return true if the testing succeeded, false otherwise
   bool controlleeSendBindingRequest(ICEPair *pair);
 
+  bool sendRequestWaitResponse(ICEPair *pair, QByteArray &request, int retries, int baseTimeout);
+
   // TODO [Encryption] Use TLS to send packet
   UDPServer *udp_;
 
