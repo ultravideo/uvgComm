@@ -61,24 +61,29 @@ public slots:
   void nominationDone(std::shared_ptr<ICEPair> connection);
 
 protected:
-    void run() = 0;
+  virtual void run();
 
-    QList<std::shared_ptr<ICEPair>> *candidates_;
-    uint32_t sessionID_;
+  // runs end of nomination if needed.
+  virtual void nominationAction() = 0;
+  virtual int getTimeout() = 0;
+  virtual bool isController() = 0;
 
-    // temporary storage for succeeded pairs, when both RTP and RTCP
-    // of some candidate pair succeeds, endNomination() signal is emitted
-    // and the succeeded pair is copied to nominated_rtp_ and nominated_rtcp_
-    //
-    // the first candidate pair that has both RTP and RTCP tested is chosen
-    QMap<QString,
-      std::pair<
-        std::shared_ptr<ICEPair>,
-        std::shared_ptr<ICEPair>
-      >
-    > nominated_;
+  QList<std::shared_ptr<ICEPair>> *candidates_;
+  uint32_t sessionID_;
 
-    std::shared_ptr<ICEPair> nominated_rtp_;
-    std::shared_ptr<ICEPair> nominated_rtcp_;
-    QMutex nominated_mtx;
+  // temporary storage for succeeded pairs, when both RTP and RTCP
+  // of some candidate pair succeeds, endNomination() signal is emitted
+  // and the succeeded pair is copied to nominated_rtp_ and nominated_rtcp_
+  //
+  // the first candidate pair that has both RTP and RTCP tested is chosen
+  QMap<QString,
+    std::pair<
+      std::shared_ptr<ICEPair>,
+      std::shared_ptr<ICEPair>
+    >
+  > nominated_;
+
+  std::shared_ptr<ICEPair> nominated_rtp_;
+  std::shared_ptr<ICEPair> nominated_rtcp_;
+  QMutex nominated_mtx;
 };

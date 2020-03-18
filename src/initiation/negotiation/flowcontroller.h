@@ -9,5 +9,15 @@ public:
   FlowController();
 
 protected:
-    void run();
+  virtual void nominationAction();
+
+  int getTimeout()
+  {
+    return 10000;
+  }
+
+  bool isController()
+  {
+    return true;
+  }
 };
