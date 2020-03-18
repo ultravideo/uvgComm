@@ -9,6 +9,28 @@
 #include "stun.h"
 #include "icetypes.h"
 
+struct STUNCandidateBinding
+{
+  QHostAddress stunAddress;
+  quint16 stunPort;
+
+  QHostAddress bindAddress;
+  quint16 bindPort;
+};
+
+struct PairStunInstance
+{
+  Stun *stun;
+  std::shared_ptr<ICEPair> pair;
+};
+
+/* the concept of ConnectionBucket is explained elsewhere */
+struct ConnectionBucket
+{
+  UDPServer *server;
+  QList<PairStunInstance> pairs;
+};
+
 class FlowAgent : public QThread
 {
   Q_OBJECT
@@ -39,7 +61,7 @@ public slots:
   void nominationDone(std::shared_ptr<ICEPair> connection);
 
 protected:
-    void run();
+    void run() = 0;
 
     QList<std::shared_ptr<ICEPair>> *candidates_;
     uint32_t sessionID_;
@@ -59,20 +81,4 @@ protected:
     std::shared_ptr<ICEPair> nominated_rtp_;
     std::shared_ptr<ICEPair> nominated_rtcp_;
     QMutex nominated_mtx;
-};
-
-class FlowController : public FlowAgent
-{
-  Q_OBJECT
-
-protected:
-    void run();
-};
-
-class FlowControllee : public FlowAgent
-{
-  Q_OBJECT
-
-protected:
-    void run();
 };

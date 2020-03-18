@@ -48,6 +48,8 @@ SOURCES +=\
     src/initiation/connectionpolicy.cpp \
     src/initiation/negotiation/connectiontester.cpp \
     src/initiation/negotiation/flowagent.cpp \
+    src/initiation/negotiation/flowcontrollee.cpp \
+    src/initiation/negotiation/flowcontroller.cpp \
     src/initiation/negotiation/ice.cpp \
     src/initiation/negotiation/negotiation.cpp \
     src/initiation/negotiation/sdpparametermanager.cpp \
@@ -121,6 +123,8 @@ HEADERS  += \
     src/initiation/connectionpolicy.h \
     src/initiation/negotiation/connectiontester.h \
     src/initiation/negotiation/flowagent.h \
+    src/initiation/negotiation/flowcontrollee.h \
+    src/initiation/negotiation/flowcontroller.h \
     src/initiation/negotiation/ice.h \
     src/initiation/negotiation/icetypes.h \
     src/initiation/negotiation/negotiation.h \

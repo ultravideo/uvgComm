@@ -5,7 +5,8 @@
 
 #include "common.h"
 #include "ice.h"
-#include "flowagent.h"
+#include "flowcontroller.h"
+#include "flowcontrollee.h"
 
 const uint16_t MIN_ICE_PORT   = 23000;
 const uint16_t MAX_ICE_PORT   = 24000;
