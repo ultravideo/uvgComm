@@ -14,8 +14,7 @@ class FlowAgent;
 
 struct nominationInfo
 {
-  FlowAgent *controllee;
-  FlowAgent *controller;
+  FlowAgent *agent;
 
   // list of all candidates, remote and local
   QList<std::shared_ptr<ICEPair>> pairs;
@@ -47,14 +46,10 @@ class ICE : public QObject
     // Callee calls this function to start the connectivity check/nomination process when the 200 OK SDP has been sent to remote
     // startNomination() spawns a FlowAgent thread which is responsible for handling connectivity checks and nomination.
     //
-    // When FlowAgent has finished (succeeed or failed), it sends a ready() signal which is caught by handleCalleeEndOfNomination slot
-    void startNomination(QList<std::shared_ptr<ICEInfo>>& local, QList<std::shared_ptr<ICEInfo>>& remote, uint32_t sessionID);
-
-    // When caller receives the 200 OK SDP, it should call this function to start the ICE process. respondToNominations() spawns
-    // a FlowAgent thread which in turn spawns ConnectionTester threads.
-    //
-    // When FlowAgent is finished, it sends ready() signal is is caught by handleCallerEndOfNomination slot
-    void respondToNominations(QList<std::shared_ptr<ICEInfo>>& local, QList<std::shared_ptr<ICEInfo>>& remote, uint32_t sessionID);
+    // When FlowAgent has finished (succeed or failed), it sends a ready() signal which is caught by handleCalleeEndOfNomination slot
+    void startNomination(QList<std::shared_ptr<ICEInfo>>& local,
+                         QList<std::shared_ptr<ICEInfo>>& remote,
+                         uint32_t sessionID, bool flowController);
 
     // get nominated ICE pair using sessionID
     ICEMediaInfo getNominated(uint32_t sessionID);
@@ -67,25 +62,20 @@ signals:
     void nominationSucceeded(quint32 sessionID);
 
   public slots:
+
+    void createSTUNCandidate(QHostAddress local, quint16 localPort, QHostAddress stun, quint16 stunPort);
+
+private slots:
     // when FlowAgent has finished its job, it emits "ready" signal which is caught by this slot function
     // handleCallerEndOfNomination() check if the nomination succeeed, saves the nominated pair to hashmap and
     // releases caller_mtx to signal that negotiation is done
-    void handleCallerEndOfNomination(std::shared_ptr<ICEPair> rtp, std::shared_ptr<ICEPair> rtcp, uint32_t sessionID);
-
-    // when FlowAgent has finished its job, it emits "ready" signal which is caught by this slot function
-    // handleCalleeEndOfNomination() check if the nomination succeeed, saves the nominated pair to hashmap and
-    // releases callee_mtx to signal that negotiation is done
-    void handleCalleeEndOfNomination(std::shared_ptr<ICEPair> rtp, std::shared_ptr<ICEPair> rtcp, uint32_t sessionID);
-
-    void createSTUNCandidate(QHostAddress local, quint16 localPort, QHostAddress stun, quint16 stunPort);
+    // save nominated pair to hashmap so it can be fetched later on
+    void handleEndOfNomination(std::shared_ptr<ICEPair> rtp, std::shared_ptr<ICEPair> rtcp, uint32_t sessionID);
 
   private:
     // create media candidate (RTP and RTCP connection)
     // "type" marks whether this candidate is host or server reflexive candidate (affects priority)
     std::pair<std::shared_ptr<ICEInfo>, std::shared_ptr<ICEInfo>> makeCandidate(QHostAddress address, QString type);
-
-    // save nominated pair to hashmap so it can be fetched later on
-    void handleEndOfNomination(std::shared_ptr<ICEPair> rtp, std::shared_ptr<ICEPair> rtcp, uint32_t sessionID);
 
     int calculatePriority(int type, int local, int component);
 

@@ -195,72 +195,45 @@ QList<std::shared_ptr<ICEPair>> ICE::makeCandidatePairs(
 // response can be set as fast as possible and the remote can start respoding to our requests
 //
 // Thread spawned by startNomination() must keep track of which candidates failed and which succeeded
-void ICE::startNomination(
-    QList<std::shared_ptr<ICEInfo>>& local,
+void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local,
     QList<std::shared_ptr<ICEInfo>>& remote,
-    uint32_t sessionID
-)
+    uint32_t sessionID, bool flowController)
 {
-  if (iceEnabled_ == false)
+  if (!iceEnabled_)
   {
     return;
   }
 
+  printImportant(this, "Starting ICE nomination");
+
   // nomination-related memory is released when handleEndOfNomination() is called
-  nominationInfo_[sessionID].controller = new FlowAgent(true, 10000);
-
-  nominationInfo_[sessionID].pairs = makeCandidatePairs(local, remote);
-  nominationInfo_[sessionID].connectionNominated = false;
-
-  FlowAgent *callee = nominationInfo_[sessionID].controller;
-  QObject::connect(
-      callee,
-      &FlowAgent::ready,
-      this,
-      &ICE::handleCalleeEndOfNomination,
-      Qt::DirectConnection
-  );
-
-  callee->setCandidates(&nominationInfo_[sessionID].pairs);
-  callee->setSessionID(sessionID);
-  callee->start();
-}
-
-// caller (flow controllee)
-//
-// respondToNominations() spawns a control thread that starts testing all candidates
-// It doesn't do any external book keeping as it's responsible for only responding to STUN requests
-// When it has gone through all candidate pairs it exits
-void ICE::respondToNominations(
-    QList<std::shared_ptr<ICEInfo>>& local,
-    QList<std::shared_ptr<ICEInfo>>& remote,
-    uint32_t sessionID
-)
-{
-  if (iceEnabled_ == false)
+  if (flowController)
   {
-    return;
+    nominationInfo_[sessionID].agent = new FlowAgent(true, 10000);
+  }
+  else
+  {
+    nominationInfo_[sessionID].agent = new FlowAgent(false, 20000);
   }
 
-  // nomination-related memory is released when handleEndOfNomination() is called
-  nominationInfo_[sessionID].controllee = new FlowAgent(false, 20000);
 
   nominationInfo_[sessionID].pairs = makeCandidatePairs(local, remote);
   nominationInfo_[sessionID].connectionNominated = false;
 
-  FlowAgent *caller = nominationInfo_[sessionID].controllee;
+  FlowAgent *agent = nominationInfo_[sessionID].agent;
   QObject::connect(
-      caller,
+      agent,
       &FlowAgent::ready,
       this,
-      &ICE::handleCallerEndOfNomination,
+      &ICE::handleEndOfNomination,
       Qt::DirectConnection
   );
 
-  caller->setCandidates(&nominationInfo_[sessionID].pairs);
-  caller->setSessionID(sessionID);
-  caller->start();
+  agent->setCandidates(&nominationInfo_[sessionID].pairs);
+  agent->setSessionID(sessionID);
+  agent->start();
 }
+
 
 void ICE::handleEndOfNomination(
     std::shared_ptr<ICEPair> rtp,
@@ -320,37 +293,12 @@ void ICE::handleEndOfNomination(
 
     emit nominationSucceeded(sessionID);
   }
+
+  // TODO: Please call this before emitting the signal that we are ready
+  // This way the UDP sending process stops before media is created.
+  nominationInfo_[sessionID].agent->quit();
 }
 
-void ICE::handleCallerEndOfNomination(
-    std::shared_ptr<ICEPair> rtp,
-    std::shared_ptr<ICEPair> rtcp,
-    uint32_t sessionID
-)
-{
-  Q_ASSERT(sessionID != 0);
-  Q_ASSERT(rtp != nullptr);
-  Q_ASSERT(rtcp != nullptr);
-
-  this->handleEndOfNomination(rtp, rtcp, sessionID);
-
-  nominationInfo_[sessionID].controllee->quit();
-}
-
-void ICE::handleCalleeEndOfNomination(
-    std::shared_ptr<ICEPair> rtp,
-    std::shared_ptr<ICEPair> rtcp,
-    uint32_t sessionID
-)
-{
-  Q_ASSERT(sessionID != 0);
-  Q_ASSERT(rtp != nullptr);
-  Q_ASSERT(rtcp != nullptr);
-
-  this->handleEndOfNomination(rtp, rtcp, sessionID);
-
-  nominationInfo_[sessionID].controller->quit();
-}
 
 ICEMediaInfo ICE::getNominated(uint32_t sessionID)
 {

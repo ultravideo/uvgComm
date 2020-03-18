@@ -500,7 +500,7 @@ void Negotiation::respondToICECandidateNominations(uint32_t sessionID)
   std::shared_ptr<SDPMessageInfo> localSDP = sdps_.at(sessionID).localSDP;
   std::shared_ptr<SDPMessageInfo> remoteSDP = sdps_.at(sessionID).remoteSDP;
 
-  ice_->respondToNominations(localSDP->candidates, remoteSDP->candidates, sessionID);
+  ice_->startNomination(localSDP->candidates, remoteSDP->candidates, sessionID, false);
 }
 
 void Negotiation::startICECandidateNegotiation(uint32_t sessionID)
@@ -513,7 +513,7 @@ void Negotiation::startICECandidateNegotiation(uint32_t sessionID)
   std::shared_ptr<SDPMessageInfo> localSDP = sdps_.at(sessionID).localSDP;
   std::shared_ptr<SDPMessageInfo> remoteSDP = sdps_.at(sessionID).remoteSDP;
 
-  ice_->startNomination(localSDP->candidates, remoteSDP->candidates, sessionID);
+  ice_->startNomination(localSDP->candidates, remoteSDP->candidates, sessionID, true);
 }
 
 
