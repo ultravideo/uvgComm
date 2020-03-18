@@ -1,6 +1,6 @@
 #include "stun.h"
 
-#include "stunmsgfact.h"
+#include "stunmessagefactory.h"
 #include "common.h"
 
 #include <QDnsLookup>

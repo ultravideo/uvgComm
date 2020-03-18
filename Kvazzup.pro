@@ -47,14 +47,14 @@ INCLUDEPATH += src
 SOURCES +=\
     src/initiation/connectionpolicy.cpp \
     src/initiation/negotiation/connectiontester.cpp \
+    src/initiation/negotiation/flowagent.cpp \
     src/initiation/negotiation/ice.cpp \
-    src/initiation/negotiation/iceflowcontrol.cpp \
     src/initiation/negotiation/negotiation.cpp \
     src/initiation/negotiation/sdpparametermanager.cpp \
     src/initiation/negotiation/sipcontent.cpp \
     src/initiation/negotiation/stun.cpp \
-    src/initiation/negotiation/stunmsg.cpp \
-    src/initiation/negotiation/stunmsgfact.cpp \
+    src/initiation/negotiation/stunmessage.cpp \
+    src/initiation/negotiation/stunmessagefactory.cpp \
     src/initiation/negotiation/udpserver.cpp \
     src/initiation/sipmanager.cpp \
     src/initiation/transaction/sipclient.cpp \
@@ -120,16 +120,16 @@ SOURCES +=\
 HEADERS  += \
     src/initiation/connectionpolicy.h \
     src/initiation/negotiation/connectiontester.h \
+    src/initiation/negotiation/flowagent.h \
     src/initiation/negotiation/ice.h \
-    src/initiation/negotiation/iceflowcontrol.h \
     src/initiation/negotiation/icetypes.h \
     src/initiation/negotiation/negotiation.h \
     src/initiation/negotiation/sdpparametermanager.h \
     src/initiation/negotiation/sdptypes.h \
     src/initiation/negotiation/sipcontent.h \
     src/initiation/negotiation/stun.h \
-    src/initiation/negotiation/stunmsg.h \
-    src/initiation/negotiation/stunmsgfact.h \
+    src/initiation/negotiation/stunmessage.h \
+    src/initiation/negotiation/stunmessagefactory.h \
     src/initiation/negotiation/udpserver.h \
     src/initiation/sipmanager.h \
     src/initiation/siptransactionuser.h \

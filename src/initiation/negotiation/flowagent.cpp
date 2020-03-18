@@ -4,7 +4,7 @@
 
 #include "common.h"
 #include "connectiontester.h"
-#include "iceflowcontrol.h"
+#include "flowagent.h"
 #include "ice.h"
 
 struct Pair

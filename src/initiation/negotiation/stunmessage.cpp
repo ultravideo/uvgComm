@@ -1,6 +1,6 @@
 #include <QDateTime>
 
-#include "stunmsg.h"
+#include "stunmessage.h"
 
 STUNMessage::STUNMessage():
   type_(0),

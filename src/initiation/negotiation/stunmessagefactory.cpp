@@ -1,5 +1,5 @@
 #include "common.h"
-#include "stunmsgfact.h"
+#include "stunmessagefactory.h"
 #include <QDateTime>
 
 // allocate 256 bytes of temporary memory for each outgoing STUN message

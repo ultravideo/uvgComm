@@ -1,8 +1,8 @@
 #pragma once
 
 #include "udpserver.h"
-#include "stunmsg.h"
-#include "stunmsgfact.h"
+#include "stunmessage.h"
+#include "stunmessagefactory.h"
 #include "initiation/negotiation/sdptypes.h"
 
 #include <QHostInfo>
