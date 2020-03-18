@@ -17,8 +17,8 @@ QStringList MicrophoneInfo::getDeviceList()
 
   QStringList list;
 
-  printDebug(DEBUG_NORMAL, "Microphone Info", "Get microhone list",
-            {"Microphones"}, {QString::number(microphones.size())});
+  //printDebug(DEBUG_NORMAL, "Microphone Info", "Get microhone list",
+  //          {"Microphones"}, {QString::number(microphones.size())});
 
   for (int i = 0; i < microphones.size(); ++i)
   {

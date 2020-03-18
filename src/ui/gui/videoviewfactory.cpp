@@ -88,8 +88,7 @@ uint32_t VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent,
 
 
 uint32_t VideoviewFactory::setSelfview(VideoInterface *video, QWidget *view)
-{
-  qDebug() << "Setting self view";
+{ 
   checkInitializations(0);
 
   sessionIDtoWidgetlist_[0]->push_back(view);

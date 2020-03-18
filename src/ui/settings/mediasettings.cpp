@@ -5,6 +5,8 @@
 #include <ui/settings/camerainfo.h>
 #include "settingshelper.h"
 
+#include "common.h"
+
 #include <QTableWidgetItem>
 
 
@@ -323,7 +325,7 @@ void MediaSettings::restoreFramerate()
 
 void MediaSettings::initializeFormat()
 {
-  qDebug() << "Settings," << metaObject()->className() << "Initializing formats";
+  printNormal(this, "Initializing formats");
   QStringList formats;
 
   cam_->getVideoFormats(currentDevice_, formats);

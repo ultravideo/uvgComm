@@ -2,8 +2,6 @@
 
 #include "global.h"
 
-#include <QDebug>
-
 
 SIPNonDialogClient::SIPNonDialogClient():
   SIPClient (),

@@ -24,8 +24,8 @@ void ContactList::initializeList(QListWidget* list, ParticipantInterface* interf
   QSettings settings("contacts.local", QSettings::IniFormat);
 
   int size = settings.beginReadArray("contacts");
-  qDebug() << "Intiating," << metaObject()->className()
-           << ": Contact List: Reading with" << size << "contacts";
+
+  printNormal(this, "Reading contact list", {"# of contacts"}, {QString::number(size)});
 
   for (int i = 0; i < size; ++i) {
     settings.setArrayIndex(i);

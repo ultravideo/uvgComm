@@ -7,7 +7,6 @@
 
 #include <QtEndian>
 #include <QHostInfo>
-#include <QDebug>
 
 #include <kvzrtp/formats/opus.hh>
 #include <kvzrtp/lib.hh>

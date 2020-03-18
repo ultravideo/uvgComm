@@ -1,5 +1,4 @@
 #include <QSettings>
-#include <QDebug>
 
 #include "kvzrtpsender.h"
 #include "statisticsinterface.h"

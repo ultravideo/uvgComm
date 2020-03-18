@@ -298,11 +298,7 @@ void CameraFilter::process()
 void CameraFilter::printSupportedFormats()
 {
   QList<QVideoFrame::PixelFormat> formats = camera_->supportedViewfinderPixelFormats();
-  qDebug() << "Iniating, CameraFilter: Found" << formats.size() << "supported QCamera formats.";
-  for(auto& format : formats)
-  {
-    qDebug() << "Iniating, Camerafilter: QCamera supported format:" << format;
-  }
+  qDebug() << "Iniating, Camerafilter: QCamera supported formats:" << formats;
 }
 
 

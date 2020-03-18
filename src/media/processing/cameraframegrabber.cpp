@@ -2,8 +2,6 @@
 
 #include "common.h"
 
-#include <QDebug>
-
 CameraFrameGrabber::CameraFrameGrabber(QObject *parent) :
   QAbstractVideoSurface(parent)
 {}

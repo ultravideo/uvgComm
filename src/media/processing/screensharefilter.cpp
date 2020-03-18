@@ -4,7 +4,6 @@
 #include <QScreen>
 #include <QGuiApplication>
 #include <QDateTime>
-#include <QDebug>
 
 const int FRAMERATE = 5;
 
@@ -15,7 +14,6 @@ ScreenShareFilter::ScreenShareFilter(QString id, StatisticsInterface *stats):
 
 bool ScreenShareFilter::init()
 {
-  qDebug() << "Init SCREEN SHARE";
   sendTimer_.setSingleShot(false);
   sendTimer_.setInterval(1000/FRAMERATE);
   connect(&sendTimer_, &QTimer::timeout, this, &ScreenShareFilter::sendScreen);

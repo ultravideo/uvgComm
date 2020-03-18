@@ -81,7 +81,7 @@ void TCPConnection::setExistingConnection(qintptr socketDescriptor)
 
 void TCPConnection::sendPacket(const QString &data)
 {
-  printNormal(this, "Adding to send buffer");
+  //printNormal(this, "Adding to send buffer");
 
   if(active_)
   {
@@ -99,7 +99,7 @@ void TCPConnection::sendPacket(const QString &data)
 
 void TCPConnection::receivedMessage()
 {
-  printNormal(this, "Socket ready to read.");
+  //printNormal(this, "Socket ready to read.");
   if (active_ )
   {
     eventDispatcher()->wakeUp();
@@ -133,15 +133,14 @@ bool TCPConnection::connectLoop()
   }
   else
   {
-    printDebug(DEBUG_NORMAL, this, "Checking status",
-                {"Address", "Port"}, {destination_, QString::number(port_)});
+    printNormal(this, "Checking status",
+                {"Address"}, {destination_ + ":" + QString::number(port_)});
 
     for(unsigned int i = 0; i < NUMBER_OF_RETRIES &&
         socket_->state() != QAbstractSocket::ConnectedState; ++i)
     {
       printDebug(DEBUG_NORMAL, this, "Attempting to connect",
-              {"Attempt", "State"},
-              {QString::number(i + 1), QString::number(socket_->state())});
+                {"Attempt"}, {QString::number(i + 1)});
 
       socket_->connectToHost(destination_, port_);
       socket_->waitForConnected(CONNECTION_TIMEOUT);
@@ -154,8 +153,8 @@ bool TCPConnection::connectLoop()
     return false;
   }
 
-  printDebug(DEBUG_NORMAL, this, "Connected succesfully", {"Local address", "Remote Address"},
-              {socket_->localAddress().toString() + ":" + QString::number(socket_->localPort()),
+  printNormal( this, "Connected succesfully", {"Connection"},
+              {socket_->localAddress().toString() + ":" + QString::number(socket_->localPort()) + " <-> " +
                socket_->peerAddress().toString() + ":" + QString::number(socket_->peerPort())});
 
 
@@ -240,7 +239,7 @@ void TCPConnection::run()
 
 void TCPConnection::bufferToSocket()
 {
-  printNormal(this, "Writing buffer to socket",
+  printNormal(this, "Writing buffer to TCP socket",
               {"Buffer size"}, {QString::number(buffer_.size())});
 
   if(buffer_.size() > TOO_LARGE_AMOUNT_OF_DATA)
@@ -255,7 +254,7 @@ void TCPConnection::bufferToSocket()
   QTextStream stream (socket_);
   stream << message;
 
-  printNormal(this, "Received TCP message", {"Content"}, {message});
+  //printNormal(this, "Sending TCP message", {"Content"}, {message});
 }
 
 void TCPConnection::disconnect()

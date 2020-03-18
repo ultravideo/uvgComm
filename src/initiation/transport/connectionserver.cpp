@@ -2,12 +2,14 @@
 
 #include "tcpconnection.h"
 
+#include "common.h"
+
 ConnectionServer::ConnectionServer()
 {}
 
 void ConnectionServer::incomingConnection(qintptr socketDescriptor)
 {
-  qDebug() << "TCP," << metaObject()->className() << ": Incoming TCP connection";
+  printNormal(this, "Incoming TCP connection");
   // create connection
   TCPConnection* con = new TCPConnection();
 

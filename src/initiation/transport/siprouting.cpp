@@ -1,7 +1,8 @@
 #include "siprouting.h"
 
 #include <QSettings>
-#include <QDebug>
+
+#include "common.h"
 
 
 SIPRouting::SIPRouting():
@@ -19,12 +20,13 @@ void SIPRouting::processResponseViaFields(QList<ViaInfo>& vias,
   {
     if (via.address == localAddress && via.port == localPort)
     {
-      qDebug() << "Found our via!";
+      printDebug(DEBUG_NORMAL, "SIPRouting", "Found our via. This is meant for us!");
 
       if (via.rportValue != 0 && via.receivedAddress != "")
       {
-        qDebug().nospace().noquote() << "Found rport: " << via.receivedAddress
-                                     << ":" << via.rportValue;
+        printDebug(DEBUG_NORMAL, "SIPRouting", "Found our received address and rport",
+                  {"Address"}, {via.receivedAddress + ":" + via.rportValue});
+
         contactAddress_ = via.receivedAddress;
         contactPort_ = via.rportValue;
       }

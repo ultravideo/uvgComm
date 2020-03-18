@@ -3,7 +3,6 @@
 #include "participantinterface.h"
 
 #include <QDir>
-#include <QDebug>
 
 ContactListItem::ContactListItem(QString name, QString username, QString ip):
   name_(name),

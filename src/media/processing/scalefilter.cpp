@@ -3,7 +3,6 @@
 #include "common.h"
 
 #include <QImage>
-#include <QDebug>
 
 ScaleFilter::ScaleFilter(QString id, StatisticsInterface *stats):
   Filter(id, "Scaler", stats, RGB32VIDEO, RGB32VIDEO),

@@ -73,8 +73,6 @@ void UDPServer::sendData(QByteArray& data, const QHostAddress &local,
                          quint16 remotePort,
                          bool untilReply)
 {
-  /* qDebug() << "Sending the following UDP data:" << QString::fromStdString(data.toHex().toStdString()) */
-  /*          << "with size:" << data.size(); */
 
   if(data.size() > 512)
   {
@@ -94,8 +92,14 @@ void UDPServer::sendData(QByteArray& data, const QHostAddress &local,
 
   if (socket_->writeDatagram(datagram) < 0)
   {
-    printDebug(DEBUG_ERROR, "UDPServer", "Failed to send UDP datagram!", {"Local", "Remote"},
-              {local.toString() + ":" + QString::number(sendPort_),
+    printWarning(this, "Failed to send UDP datagram!", {"Path"},
+              {local.toString() + ":" + QString::number(sendPort_) + " -> " +
+               remote.toString() + ":" + QString::number(remotePort)});
+  }
+  else
+  {
+    printNormal(this, "Successfully sent UDP datagram!", {"Path"},
+              {local.toString() + ":" + QString::number(sendPort_) + " -> " +
                remote.toString() + ":" + QString::number(remotePort)});
   }
 }

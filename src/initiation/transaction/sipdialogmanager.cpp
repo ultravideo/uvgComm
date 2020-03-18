@@ -216,7 +216,7 @@ bool SIPDialogManager::identifySession(SIPResponse response, uint32_t& out_sessi
     if(i->second != nullptr &&
        i->second->isThisYours(response))
     {
-      qDebug() << "Found dialog matching the response";
+      printNormal(this, "Found dialog matching the response");
       out_sessionID = i->first;
       return true;
     }

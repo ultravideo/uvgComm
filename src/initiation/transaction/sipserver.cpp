@@ -5,8 +5,6 @@
 
 #include "common.h"
 
-#include <QDebug>
-
 SIPServer::SIPServer():
   sessionID_(0),
   receivedRequest_(nullptr),

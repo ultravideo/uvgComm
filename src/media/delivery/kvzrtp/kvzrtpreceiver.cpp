@@ -1,4 +1,4 @@
-#include <QDebug>
+
 #include <cstdio>
 
 #include "statisticsinterface.h"

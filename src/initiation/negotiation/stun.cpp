@@ -1,11 +1,11 @@
-#include "common.h"
 #include "stun.h"
+
 #include "stunmsgfact.h"
+#include "common.h"
 
 #include <QDnsLookup>
 #include <QHostInfo>
 #include <QDateTime>
-#include <QDebug>
 #include <QMutex>
 #include <QWaitCondition>
 #include <QEventLoop>
@@ -14,6 +14,8 @@
 #include <QtEndian>
 
 #include <QNetworkInterface>
+
+
 
 const uint16_t GOOGLE_STUN_PORT = 19302;
 

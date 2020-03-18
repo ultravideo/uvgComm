@@ -102,8 +102,8 @@ void SIPTransport::createConnection(ConnectionType type, QString target)
 {
   if(type == TCP)
   {
-    qDebug() << "Connecting, SIP Transport: Initiating TCP connection for sip connection number:"
-             << transportID_;
+    printNormal(this, "Initiating TCP connection for sip connection",
+                {"TransportID"}, QString::number(transportID_));
     connection_ = std::shared_ptr<TCPConnection>(new TCPConnection());
     signalConnections();
     connection_->establishConnection(target, SIP_PORT);
@@ -182,7 +182,7 @@ void SIPTransport::destroyConnection()
 void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
 {
   ++processingInProgress_;
-  qDebug() << "Composing SIP Request:" << requestToString(request.type);
+  printNormal(this, "Composing SIP Request:", {"Type"}, requestToString(request.type));
   Q_ASSERT(request.message->content.type == NO_CONTENT || content.isValid());
   Q_ASSERT(connection_ != nullptr);
 
@@ -390,7 +390,6 @@ void SIPTransport::networkPackage(QString package)
   }
 
   ++processingInProgress_;
-  qDebug() << "Received a network package for SIP Connection";
   // parse to header and body
   QStringList headers;
   QStringList bodies;
@@ -535,8 +534,8 @@ bool SIPTransport::parsePackage(QString package, QStringList& headers, QStringLi
       headers.push_back(package.left(headerEndIndex));
       bodies.push_back(package.mid(headerEndIndex, contentLength));
 
-      printDebug(DEBUG_IMPORTANT,this, "Whole SIP message Received",
-                  {"Body", "Content"}, {headers.last(), bodies.last()});
+      //printDebug(DEBUG_IMPORTANT,this, "Whole SIP message Received",
+      //            {"Body", "Content"}, {headers.last(), bodies.last()});
 
       package = package.right(package.length() - (headerEndIndex + contentLength));
     }

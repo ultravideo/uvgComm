@@ -1,5 +1,4 @@
 #include <QDateTime>
-#include <QDebug>
 
 #include "stunmsg.h"
 

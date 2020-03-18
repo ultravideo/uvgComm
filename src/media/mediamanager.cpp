@@ -274,8 +274,6 @@ void MediaManager::createIncomingMedia(uint32_t sessionID, QString globalAddress
 
     QString codec = rtpNumberToCodec(localMedia);
 
-    /* qDebug() << "Creating incoming media with codec:" << codec; */
-
     if(localMedia.proto == "RTP/AVP")
     {
       bool globalAddressPresent = globalAddress != "" && !globalAddress.isNull();

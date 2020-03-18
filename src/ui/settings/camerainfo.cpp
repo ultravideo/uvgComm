@@ -52,8 +52,8 @@ QStringList CameraInfo::getDeviceList()
   QList<QCameraInfo> cameras = QCameraInfo::availableCameras();
   QStringList list;
 
-  printDebug(DEBUG_NORMAL, "Camera Info", "Get camera list",
-            {"Cameras"}, {QString::number(cameras.size())});
+  //printDebug(DEBUG_NORMAL, "Camera Info", "Get camera list",
+  //          {"Cameras"}, {QString::number(cameras.size())});
 
   for (int i = 0; i < cameras.size(); ++i)
   {
@@ -74,8 +74,8 @@ void CameraInfo::getVideoFormats(int deviceID, QStringList& formats)
     QList<QVideoFrame::PixelFormat> p_formats = camera->supportedViewfinderPixelFormats();
     camera->unload();
 
-    printDebug(DEBUG_NORMAL, "Camera Info", "Getting video formats strings", {"Formats", "DeviceID"},
-        {QString::number(p_formats.size()), QString::number(deviceID)});
+    printDebug(DEBUG_NORMAL, "Camera Info", "Getting text of " + QString::number(p_formats.size()) + " video formats",
+              {"DeviceID"}, {QString::number(deviceID)});
 
     for(int i = 0; i < p_formats.size() ; ++i)
     {
@@ -105,8 +105,8 @@ void CameraInfo::getFormatResolutions(int deviceID, QString format, QStringList 
     QList<QSize> supportedResolutions = camera->supportedViewfinderResolutions(viewSettings);
     camera->unload();
 
-    printDebug(DEBUG_NORMAL, "Camera Info", "Getting video resolution strings", {"# resolutions", "DeviceID"},
-        {QString::number(supportedResolutions.size()), QString::number(deviceID)});
+    printDebug(DEBUG_NORMAL, "Camera Info", "Getting text of " + QString::number(supportedResolutions.size()) + " video resolution strings",
+              {"DeviceID"},  {QString::number(deviceID)});
 
     for (int i = 0; i < supportedResolutions.size(); ++i)
     {

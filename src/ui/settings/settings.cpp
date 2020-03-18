@@ -134,8 +134,8 @@ void Settings::getSettings(bool changedDevice)
   //get values from QSettings
   if(checkMissingValues() && checkUserSettings())
   {
-    qDebug() << "Settings," << metaObject()->className()
-             << ": Restoring user settings from file:" << settings_.fileName();
+    printNormal(this, "Loading settings from file", {"File"}, {settings_.fileName()});
+
     basicUI_->name_edit->setText      (settings_.value("local/Name").toString());
     basicUI_->username->setText  (settings_.value("local/Username").toString());
 
@@ -193,10 +193,7 @@ void Settings::getSettings(bool changedDevice)
 
 void Settings::resetFaultySettings()
 {
-  qDebug() << "WARNING," << metaObject()->className()
-           << ": Could not restore settings because they were corrupted!";
-
-  printWarning(this, "Resettings settings from UI");
+  printWarning(this, "Could not restore settings because they were corrupted! Resetting settings from UI");
 
   // record GUI settings in hope that they are correct ( is case by default )
   saveSettings();
@@ -226,8 +223,8 @@ void Settings::initDeviceSelector(QComboBox* deviceSelector,
     deviceSelector->setCurrentIndex(deviceIndex);
   }
 
-  printDebug(DEBUG_NORMAL, this, "Added devices to selector",
-      {"Number of items", "SettingsID"}, {QString::number(deviceSelector->count()), settingID});
+  printNormal(this, "Added " + QString::number(deviceSelector->count()) + " devices to selector",
+      {"SettingsID"}, {settingID});
 }
 
 

@@ -199,7 +199,7 @@ void StatisticsWindow::addFilter(QString filter, uint64_t TID)
   else
   {
     filterMutex_.unlock();
-    printProgramWarning(this, "Tried to add a new filter with same name as previous");
+    printProgramWarning(this, "Tried to add a new filter with same name as previous", {"Name"}, filter);
     return;
   }
   filterMutex_.unlock();

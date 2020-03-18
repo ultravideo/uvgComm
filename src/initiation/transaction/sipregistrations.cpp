@@ -86,7 +86,7 @@ bool SIPRegistrations::identifyRegistration(SIPResponse& response, QString &outA
       // TODO: we should check that every single detail is as specified in rfc.
       if(i->second->client.waitingResponse(response.message->transactionRequest))
       {
-        qDebug() << "Found dialog matching the response";
+        printNormal(this, "Found registration matching the response");
         outAddress = i->first;
       }
       else
@@ -133,7 +133,7 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
                i.second->contactPort != response.message->vias.at(0).rportValue))
           {
 
-            qDebug() << "Detected that we are behind NAT! Sending a second REGISTER";
+            printNormal(this, "Detected that we are behind NAT! Sending a second REGISTER");
 
             i.second->contactAddress = response.message->contact.host;
             i.second->contactPort = response.message->contact.port;

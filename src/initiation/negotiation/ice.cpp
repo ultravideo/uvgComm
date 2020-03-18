@@ -154,9 +154,8 @@ void ICE::createSTUNCandidate(QHostAddress local, quint16 localPort,
 void ICE::printCandidate(ICEInfo *candidate)
 {
   Q_ASSERT(candidate != nullptr);
-
-  qDebug() << candidate->foundation << " " << candidate->priority << ": "
-           << candidate->address    << ":" << candidate->port;
+  printNormal(this, "Candidate: " + candidate->foundation + " " + candidate->priority + ": "
+              + candidate->address    + ":" + candidate->port);
 }
 
 QList<std::shared_ptr<ICEPair>> ICE::makeCandidatePairs(
