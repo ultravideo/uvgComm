@@ -46,7 +46,7 @@ public:
   void wantAddress(QString stunServer, uint16_t port);
 
 public slots:
-  // When FlowController/FlowControllee has one successfully nominated pair, it sends stopTesting()
+  // When FlowAgent has one successfully nominated pair, it sends stopTesting()
   // to Stun which indicates that Stun should stop doing whatever it is doing and return.
   //
   // This must be done because Stun has an even loop of it's own and simply calling QThread::quit() on

@@ -5,8 +5,7 @@
 
 #include "common.h"
 #include "ice.h"
-#include "flowcontroller.h"
-#include "flowcontrollee.h"
+#include "flowagent.h"
 
 const uint16_t MIN_ICE_PORT   = 23000;
 const uint16_t MAX_ICE_PORT   = 24000;
@@ -208,15 +207,15 @@ void ICE::startNomination(
   }
 
   // nomination-related memory is released when handleEndOfNomination() is called
-  nominationInfo_[sessionID].controller = new FlowController;
+  nominationInfo_[sessionID].controller = new FlowAgent(true, 10000);
 
   nominationInfo_[sessionID].pairs = makeCandidatePairs(local, remote);
   nominationInfo_[sessionID].connectionNominated = false;
 
-  FlowController *callee = nominationInfo_[sessionID].controller;
+  FlowAgent *callee = nominationInfo_[sessionID].controller;
   QObject::connect(
       callee,
-      &FlowController::ready,
+      &FlowAgent::ready,
       this,
       &ICE::handleCalleeEndOfNomination,
       Qt::DirectConnection
@@ -230,7 +229,7 @@ void ICE::startNomination(
 // caller (flow controllee)
 //
 // respondToNominations() spawns a control thread that starts testing all candidates
-// It doesn't do any external book keeping as it's responsible for only responding to STUN requets
+// It doesn't do any external book keeping as it's responsible for only responding to STUN requests
 // When it has gone through all candidate pairs it exits
 void ICE::respondToNominations(
     QList<std::shared_ptr<ICEInfo>>& local,
@@ -244,15 +243,15 @@ void ICE::respondToNominations(
   }
 
   // nomination-related memory is released when handleEndOfNomination() is called
-  nominationInfo_[sessionID].controllee = new FlowControllee;
+  nominationInfo_[sessionID].controllee = new FlowAgent(false, 20000);
 
   nominationInfo_[sessionID].pairs = makeCandidatePairs(local, remote);
   nominationInfo_[sessionID].connectionNominated = false;
 
-  FlowControllee *caller = nominationInfo_[sessionID].controllee;
+  FlowAgent *caller = nominationInfo_[sessionID].controllee;
   QObject::connect(
       caller,
-      &FlowControllee::ready,
+      &FlowAgent::ready,
       this,
       &ICE::handleCallerEndOfNomination,
       Qt::DirectConnection

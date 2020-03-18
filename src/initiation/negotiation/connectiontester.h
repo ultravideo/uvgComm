@@ -18,10 +18,10 @@ public:
     void setCandidatePair(std::shared_ptr<ICEPair> pair);
 
     // controller_ defines the course of action after candiate pair has been validated.
-    // If the ConnectionTester belongs to FlowController it terminates immediately after
-    // confirming the validity of pair and FlowController can start the nomination process
+    // If the ConnectionTester belongs to FlowAgent it terminates immediately after
+    // confirming the validity of pair and FlowAgent can start the nomination process
     //
-    // If the owner is instead FlowControllee, ConnectionTester start responding to nomination
+    // If the owner is instead FlowAgent, ConnectionTester start responding to nomination
     // requests after it has concluded the candidate verification
     void isController(bool controller);
 

@@ -36,7 +36,7 @@ class FlowAgent : public QThread
   Q_OBJECT
 
 public:
-  FlowAgent();
+  FlowAgent(bool controller, int timeout);
   ~FlowAgent();
   void setCandidates(QList<std::shared_ptr<ICEPair>> *candidates);
   void setSessionID(uint32_t sessionID);
@@ -63,13 +63,13 @@ public slots:
 protected:
   virtual void run();
 
-  // runs end of nomination if needed.
-  virtual void nominationAction() = 0;
-  virtual int getTimeout() = 0;
-  virtual bool isController() = 0;
+private:
 
   QList<std::shared_ptr<ICEPair>> *candidates_;
   uint32_t sessionID_;
+
+  bool controller_;
+  int timeout_;
 
   // temporary storage for succeeded pairs, when both RTP and RTCP
   // of some candidate pair succeeds, endNomination() signal is emitted

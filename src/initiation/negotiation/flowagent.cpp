@@ -8,9 +8,11 @@
 #include "ice.h"
 
 
-FlowAgent::FlowAgent():
+FlowAgent::FlowAgent(bool controller, int timeout):
   candidates_(nullptr),
-  sessionID_(0)
+  sessionID_(0),
+  controller_(controller),
+  timeout_(timeout)
 {
 }
 
@@ -99,8 +101,8 @@ void FlowAgent::run()
 {
   if (candidates_ == nullptr || candidates_->size() == 0)
   {
-    printDebug(DEBUG_ERROR, "FlowAgent",
-        "FlowControllee: Invalid candidates, unable to perform ICE candidate negotiation!");
+    printDebug(DEBUG_ERROR, this,
+               "Invalid candidates, unable to perform ICE candidate negotiation!");
     emit ready(nullptr, nullptr, sessionID_);
     return;
   }
@@ -181,12 +183,12 @@ void FlowAgent::run()
       buckets[i].pairs[k].stun->moveToThread(workerThreads.back().get());
       workerThreads.back()->setCandidatePair(buckets[i].pairs[k].pair);
       workerThreads.back()->setStun(buckets[i].pairs[k].stun);
-      workerThreads.back()->isController(isController());
+      workerThreads.back()->isController(controller_);
       workerThreads.back()->start();
     }
   }
 
-  bool nominationSucceeded = waitForEndOfNomination(getTimeout());
+  bool nominationSucceeded = waitForEndOfNomination(timeout_);
 
   // kill all threads, regardless of whether nomination succeeded or not
   for (size_t i = 0; i < workerThreads.size(); ++i)
@@ -218,5 +220,26 @@ void FlowAgent::run()
     return;
   }
 
-  nominationAction();
+  if (controller_)
+  {
+    Stun stun;
+    if (!stun.sendNominationRequest(nominated_rtp_.get()))
+    {
+      printDebug(DEBUG_ERROR, "FlowAgent",  "Failed to nominate RTP candidate!");
+      emit ready(nullptr, nullptr, sessionID_);
+      return;
+    }
+
+    if (!stun.sendNominationRequest(nominated_rtcp_.get()))
+    {
+      printDebug(DEBUG_ERROR, "FlowAgent",  "Failed to nominate RTCP candidate!");
+      emit ready(nominated_rtp_, nullptr, sessionID_);
+      return;
+    }
+
+    nominated_rtp_->state  = PAIR_NOMINATED;
+    nominated_rtcp_->state = PAIR_NOMINATED;
+  }
+
+  emit ready(nominated_rtp_, nominated_rtcp_, sessionID_);
 }

@@ -10,13 +10,12 @@
 #include "icetypes.h"
 #include "sdpparametermanager.h"
 
-class FlowController;
-class FlowControllee;
+class FlowAgent;
 
 struct nominationInfo
 {
-  FlowControllee *controllee;
-  FlowController *controller;
+  FlowAgent *controllee;
+  FlowAgent *controller;
 
   // list of all candidates, remote and local
   QList<std::shared_ptr<ICEPair>> pairs;
@@ -46,15 +45,15 @@ class ICE : public QObject
     QList<std::shared_ptr<ICEInfo>> generateICECandidates();
 
     // Callee calls this function to start the connectivity check/nomination process when the 200 OK SDP has been sent to remote
-    // startNomination() spawns a FlowController thread which is responsible for handling connectivity checks and nomination.
+    // startNomination() spawns a FlowAgent thread which is responsible for handling connectivity checks and nomination.
     //
-    // When FlowController has finished (succeeed or failed), it sends a ready() signal which is caught by handleCalleeEndOfNomination slot
+    // When FlowAgent has finished (succeeed or failed), it sends a ready() signal which is caught by handleCalleeEndOfNomination slot
     void startNomination(QList<std::shared_ptr<ICEInfo>>& local, QList<std::shared_ptr<ICEInfo>>& remote, uint32_t sessionID);
 
     // When caller receives the 200 OK SDP, it should call this function to start the ICE process. respondToNominations() spawns
-    // a FlowControllee thread which in turn spawns ConnectionTester threads.
+    // a FlowAgent thread which in turn spawns ConnectionTester threads.
     //
-    // When FlowController is finished, it sends ready() signal is is caught by handleCallerEndOfNomination slot
+    // When FlowAgent is finished, it sends ready() signal is is caught by handleCallerEndOfNomination slot
     void respondToNominations(QList<std::shared_ptr<ICEInfo>>& local, QList<std::shared_ptr<ICEInfo>>& remote, uint32_t sessionID);
 
     // get nominated ICE pair using sessionID
@@ -68,12 +67,12 @@ signals:
     void nominationSucceeded(quint32 sessionID);
 
   public slots:
-    // when FlowControllee has finished its job, it emits "ready" signal which is caught by this slot function
+    // when FlowAgent has finished its job, it emits "ready" signal which is caught by this slot function
     // handleCallerEndOfNomination() check if the nomination succeeed, saves the nominated pair to hashmap and
     // releases caller_mtx to signal that negotiation is done
     void handleCallerEndOfNomination(std::shared_ptr<ICEPair> rtp, std::shared_ptr<ICEPair> rtcp, uint32_t sessionID);
 
-    // when FlowController has finished its job, it emits "ready" signal which is caught by this slot function
+    // when FlowAgent has finished its job, it emits "ready" signal which is caught by this slot function
     // handleCalleeEndOfNomination() check if the nomination succeeed, saves the nominated pair to hashmap and
     // releases callee_mtx to signal that negotiation is done
     void handleCalleeEndOfNomination(std::shared_ptr<ICEPair> rtp, std::shared_ptr<ICEPair> rtcp, uint32_t sessionID);

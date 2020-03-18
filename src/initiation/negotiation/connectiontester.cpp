@@ -66,7 +66,7 @@ void ConnectionTester::run()
 
   pair_->state = PAIR_SUCCEEDED;
 
-  // controller performs the nomination process in FlowController
+  // controller performs the nomination process in FlowAgent
   // so exit from ConnectionTester when this connection has been tested...
   if (controller_)
   {
