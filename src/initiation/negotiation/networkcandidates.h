@@ -1,5 +1,6 @@
 #pragma once
 
+#include "stun.h"
 #include "sdptypes.h"
 
 #include <QStringList>
@@ -7,10 +8,11 @@
 
 #include <deque>
 
-// This class handles the port management for each candidate of ICE.
+// This class handles the reservation of ports for ICE candidates.
 
-class NetworkCandidates
+class NetworkCandidates : public QObject
 {
+  Q_OBJECT
 public:
   NetworkCandidates();
 
@@ -20,6 +22,23 @@ public:
   {
     return remainingPorts_ >= 4;
   }
+
+  std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> localCandidates(uint8_t streams,
+                                                            uint32_t sessionID);
+  std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> globalCandidates(uint8_t streams,
+                                                            uint32_t sessionID);
+  std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> stunCandidates(uint8_t streams,
+                                                            uint32_t sessionID);
+  std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> turnCandidates(uint8_t streams,
+                                                            uint32_t sessionID);
+
+  void cleanupSession(uint32_t sessionID);
+
+public slots:
+
+  void createSTUNCandidate(QHostAddress local, quint16 localPort,
+                           QHostAddress stun, quint16 stunPort);
+private:
 
   // return the lower port of the pair and removes both from list of available ports
 
@@ -31,7 +50,11 @@ public:
   uint16_t allocateMediaPorts();
   void deallocateMediaPorts(uint16_t start);
 
-private:
+  bool isPrivateNetwork(const QString &address);
+
+  Stun stun_;
+  QHostAddress stunAddress_;
+
   uint16_t remainingPorts_;
 
   QMutex portLock_;

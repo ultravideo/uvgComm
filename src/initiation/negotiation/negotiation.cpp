@@ -4,21 +4,28 @@
 
 #include "common.h"
 
-Negotiation::Negotiation()
+const uint16_t MIN_ICE_PORT   = 23000;
+const uint16_t MAX_ICE_PORT   = 24000;
+const uint16_t MAX_PORTS      = 1000;
+
+
+Negotiation::Negotiation():
+  nCandidates_(),
+  ice_(std::make_unique<ICE>())
+{}
+
+
+void Negotiation::init(QString username)
 {
-  ice_ = std::make_unique<ICE>();
+  negotiator_.setLocalInfo(username);
 
   QObject::connect(ice_.get(), &ICE::nominationSucceeded,
                    this,       &Negotiation::nominationSucceeded);
 
   QObject::connect(ice_.get(), &ICE::nominationFailed,
                    this,       &Negotiation::iceNominationFailed);
-}
 
-
-void Negotiation::init(QString username)
-{
-  negotiator_.setLocalInfo(username);
+  nCandidates_.setPortRange(MIN_ICE_PORT, MAX_ICE_PORT, MAX_PORTS);
 }
 
 
@@ -30,7 +37,10 @@ bool Negotiation::generateOfferSDP(QString localAddress,
   qDebug() << "Getting local SDP suggestion";
   std::shared_ptr<SDPMessageInfo> localSDP = negotiator_.generateLocalSDP(localAddress);
   // TODO: Set also media sdp parameters.
-  localSDP->candidates = ice_->generateICECandidates();
+  localSDP->candidates = ice_->generateICECandidates(nCandidates_.localCandidates(1, sessionID),
+                                                     nCandidates_.globalCandidates(1, sessionID),
+                                                     nCandidates_.stunCandidates(1, sessionID),
+                                                     nCandidates_.turnCandidates(1, sessionID));
 
   if(localSDP != nullptr)
   {
@@ -60,7 +70,10 @@ bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
 
   // generate our SDP.
   std::shared_ptr<SDPMessageInfo> localSDP = negotiator_.negotiateSDP(remoteSDPOffer, localAddress);
-  localSDP->candidates = ice_->generateICECandidates();
+  localSDP->candidates = ice_->generateICECandidates(nCandidates_.localCandidates(1, sessionID),
+                                                     nCandidates_.globalCandidates(1, sessionID),
+                                                     nCandidates_.stunCandidates(1, sessionID),
+                                                     nCandidates_.turnCandidates(1, sessionID));
 
   if (localSDP == nullptr)
   {

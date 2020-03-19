@@ -71,7 +71,7 @@ private:
   // Is the internal state of this class correct for this sessionID
   bool checkSessionValidity(uint32_t sessionID, bool checkRemote) const;
 
-
+  NetworkCandidates nCandidates_;
   std::unique_ptr<ICE> ice_;
 
   struct CallParameters

@@ -7,26 +7,9 @@
 #include "ice.h"
 #include "flowagent.h"
 
-const uint16_t MIN_ICE_PORT   = 23000;
-const uint16_t MAX_ICE_PORT   = 24000;
-const uint16_t MAX_PORTS      = 1000;
 
-const uint16_t STUN_PORT       = 21000;
-
-ICE::ICE():
-  stun_(),
-  stunAddress_(QHostAddress("")),
-  parameters_()
-{
-  parameters_.setPortRange(MIN_ICE_PORT, MAX_ICE_PORT, MAX_PORTS);
-
-  QObject::connect( &stun_, &Stun::stunAddressReceived,
-                    this,  &ICE::createSTUNCandidate);
-
-  // TODO: Probably best way to do this is periodically every 10 minutes or so.
-  // That way we get our current STUN address
-  stun_.wantAddress("stun.l.google.com", STUN_PORT);
-}
+ICE::ICE()
+{}
 
 ICE::~ICE()
 {}
@@ -43,47 +26,52 @@ int ICE::calculatePriority(int type, int local, int component)
   return (16777216 * type) + (256 * local) + component;
 }
 
-QList<std::shared_ptr<ICEInfo>> ICE::generateICECandidates()
+
+QList<std::shared_ptr<ICEInfo>> ICE::generateICECandidates(
+    std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > localCandidates,
+    std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > globalCandidates,
+    std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > stunCandidates,
+    std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > turnCandidates)
 {
   QTime time = QTime::currentTime();
   qsrand((uint)time.msec());
 
-  QList<std::shared_ptr<ICEInfo>> candidates;
-  std::pair<std::shared_ptr<ICEInfo>, std::shared_ptr<ICEInfo>> candidate;
+  QList<std::shared_ptr<ICEInfo>> iceCandidates;
 
-  foreach (const QHostAddress& address, QNetworkInterface::allAddresses())
-  {
-    if (address.protocol() == QAbstractSocket::IPv4Protocol && isPrivateNetwork(address))
-    {
-      candidate = makeCandidate(address, "host");
+  addCandidates(localCandidates, "host", iceCandidates);
+  addCandidates(globalCandidates, "host", iceCandidates);
+  addCandidates(stunCandidates, "srflx", iceCandidates);
+  addCandidates(turnCandidates, "relay", iceCandidates);
 
-      candidates.push_back(candidate.first);
-      candidates.push_back(candidate.second);
-    }
-    // TODO: WHERE ARE ALL THE PUBLIC ADDRESSES?
-  }
-
-  if (stunAddress_ != QHostAddress(""))
-  {
-    candidate = makeCandidate(stunAddress_, "srflx");
-
-    candidates.push_back(candidate.first);
-    candidates.push_back(candidate.second);
-  }
-
-  return candidates;
+  return iceCandidates;
 }
 
+
+void ICE::addCandidates(std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > addresses,
+                        const QString &candidatesType,
+                        QList<std::shared_ptr<ICEInfo>>& candidates)
+{
+  for (auto& address : *addresses)
+  {
+    std::pair<std::shared_ptr<ICEInfo>, std::shared_ptr<ICEInfo>> rtpCandidate
+        = makeCandidate(address, candidatesType);
+
+    candidates.push_back(rtpCandidate.first);
+    candidates.push_back(rtpCandidate.second);
+  }
+}
+
+
 std::pair<std::shared_ptr<ICEInfo>, std::shared_ptr<ICEInfo>>
-ICE::makeCandidate(QHostAddress address, QString type)
+  ICE::makeCandidate(const std::pair<QHostAddress, uint16_t>& addressPort, QString type)
 {
   std::shared_ptr<ICEInfo> entry_rtp  = std::make_shared<ICEInfo>();
   std::shared_ptr<ICEInfo> entry_rtcp = std::make_shared<ICEInfo>();
 
-  entry_rtp->address  = address.toString();
-  entry_rtcp->address = address.toString();
+  entry_rtp->address  = addressPort.first.toString();
+  entry_rtcp->address = addressPort.first.toString();
 
-  entry_rtp->port  = parameters_.allocateMediaPorts();
+  entry_rtp->port  = addressPort.second;
   entry_rtcp->port = entry_rtp->port + 1;
 
   // for each RTP/RTCP pair foundation is the same
@@ -115,24 +103,6 @@ ICE::makeCandidate(QHostAddress address, QString type)
   return std::make_pair(entry_rtp, entry_rtcp);
 }
 
-void ICE::createSTUNCandidate(QHostAddress local, quint16 localPort,
-                              QHostAddress stun, quint16 stunPort)
-{
-  if (stun == QHostAddress(""))
-  {
-    printDebug(DEBUG_WARNING, "ICE", 
-       "Failed to resolve public IP! Server-reflexive candidates won't be created!");
-    return;
-  }
-
-  printDebug(DEBUG_NORMAL, this, "Created ICE STUN candidate", {"LocalAddress", "STUN address"},
-            {local.toString() + ":" + QString::number(localPort),
-             stun.toString() + ":" + QString::number(stunPort)});
-
-  // TODO: Even though unlikely, this should probably be prepared for
-  // multiple addresses.
-  stunAddress_ = stun;
-}
 
 void ICE::printCandidate(ICEInfo *candidate)
 {
@@ -301,40 +271,7 @@ void ICE::cleanupSession(uint32_t sessionID)
 
   if (nominationInfo_.contains(sessionID))
   {
-    for (int i = 0; i < nominationInfo_[sessionID].pairs.size(); ++i)
-    {
-      if (nominationInfo_[sessionID].pairs.at(i)->local &&
-          nominationInfo_[sessionID].pairs.at(i)->local->component == RTP)
-      {
-        parameters_.deallocateMediaPorts(
-            nominationInfo_[sessionID].pairs.at(i)->local->port
-        );
-      }
-    }
-
     nominationInfo_.remove(sessionID);
   }
 }
 
-/* https://en.wikipedia.org/wiki/Private_network#Private_IPv4_addresses */
-bool ICE::isPrivateNetwork(const QHostAddress& address)
-{
-  const QString addr = address.toString();
-
-  if (addr.startsWith("10.") || addr.startsWith("192.168"))
-  {
-    return true;
-  }
-
-  if (addr.startsWith("172."))
-  {
-    int octet = addr.split(".")[1].toInt();
-
-    if (octet >= 16 && octet <= 31)
-    {
-      return true;
-    }
-  }
-
-  return false;
-}
