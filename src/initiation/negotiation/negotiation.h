@@ -53,10 +53,6 @@ public:
 
   void endAllSessions();
 
-  // TODO: These don't need to be separate functions
-  void startICECandidateNegotiation(uint32_t sessionID);
-  void respondToICECandidateNominations(uint32_t sessionID);
-
   // call these only after the corresponding SDP has been generated
   std::shared_ptr<SDPMessageInfo> getLocalSDP(uint32_t sessionID) const;
   std::shared_ptr<SDPMessageInfo> getRemoteSDP(uint32_t sessionID) const;

@@ -555,10 +555,6 @@ bool SIPManager::processOfferSDP(uint32_t sessionID, QVariant& content,
     return false;
   }
 
-  // Start candiate nomination. This function won't block,
-  // negotiation happens in the background
-  negotiation_.startICECandidateNegotiation(sessionID);
-
   return true;
 }
 
@@ -588,13 +584,6 @@ bool SIPManager::processAnswerSDP(uint32_t sessionID, QVariant &content)
   {
     return false;
   }
-
-  // spawn ICE controller/controllee threads and start the candidate
-  // exchange and nomination
-  //
-  // This will start the ICE nomination process. After it has finished,
-  // it will send a signal which indicates its state and if successful, the call may start.
-  negotiation_.respondToICECandidateNominations(sessionID);
 
   return true;
 }

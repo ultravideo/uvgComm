@@ -8,19 +8,11 @@ Negotiation::Negotiation()
 {
   ice_ = std::make_unique<ICE>();
 
-  QObject::connect(
-    ice_.get(),
-    &ICE::nominationSucceeded,
-    this,
-    &Negotiation::nominationSucceeded
-  );
+  QObject::connect(ice_.get(), &ICE::nominationSucceeded,
+                   this,       &Negotiation::nominationSucceeded);
 
-  QObject::connect(
-    ice_.get(),
-    &ICE::nominationFailed,
-    this,
-    &Negotiation::iceNominationFailed
-  );
+  QObject::connect(ice_.get(), &ICE::nominationFailed,
+                   this,       &Negotiation::iceNominationFailed);
 }
 
 
@@ -86,6 +78,11 @@ bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
   sdps_[sessionID].remoteSDP = remoteSDP;
 
   negotiationStates_[sessionID] = NEG_ANSWER_GENERATED;
+
+  // Start candiate nomination. This function won't block,
+  // negotiation happens in the background
+  ice_->startNomination(localSDP->candidates, remoteSDP->candidates, sessionID, true);
+
   return true;
 }
 
@@ -114,12 +111,19 @@ bool Negotiation::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer, uint32_t ses
     sdps_[sessionID].remoteSDP = remoteSDP;
 
     negotiationStates_[sessionID] = NEG_FINISHED;
+
+    // spawn ICE controllee threads and start the candidate
+    // exchange and nomination
+    //
+    // This will start the ICE nomination process. After it has finished,
+    // it will send a signal which indicates its state and if successful, the call may start.
+    ice_->startNomination(sdps_[sessionID].localSDP->candidates, remoteSDP->candidates, sessionID, false);
+
     return true;
   }
 
   return false;
 }
-
 
 
 std::shared_ptr<SDPMessageInfo> Negotiation::getLocalSDP(uint32_t sessionID) const
@@ -130,6 +134,7 @@ std::shared_ptr<SDPMessageInfo> Negotiation::getLocalSDP(uint32_t sessionID) con
   }
   return sdps_.at(sessionID).localSDP;
 }
+
 
 std::shared_ptr<SDPMessageInfo> Negotiation::getRemoteSDP(uint32_t sessionID) const
 {
@@ -173,7 +178,6 @@ void Negotiation::endAllSessions()
   for (auto& i : negotiationStates_)
   {
     sessions.push_back(i.first);
-
   }
 
   for (auto& i : sessions)
@@ -181,33 +185,6 @@ void Negotiation::endAllSessions()
     endSession(i);
   }
 }
-
-void Negotiation::respondToICECandidateNominations(uint32_t sessionID)
-{
-  if (!checkSessionValidity(sessionID, true))
-  {
-    return;
-  }
-
-  std::shared_ptr<SDPMessageInfo> localSDP = sdps_.at(sessionID).localSDP;
-  std::shared_ptr<SDPMessageInfo> remoteSDP = sdps_.at(sessionID).remoteSDP;
-
-  ice_->startNomination(localSDP->candidates, remoteSDP->candidates, sessionID, false);
-}
-
-void Negotiation::startICECandidateNegotiation(uint32_t sessionID)
-{
-  if(!checkSessionValidity(sessionID, true))
-  {
-    return;
-  }
-
-  std::shared_ptr<SDPMessageInfo> localSDP = sdps_.at(sessionID).localSDP;
-  std::shared_ptr<SDPMessageInfo> remoteSDP = sdps_.at(sessionID).remoteSDP;
-
-  ice_->startNomination(localSDP->candidates, remoteSDP->candidates, sessionID, true);
-}
-
 
 
 void Negotiation::nominationSucceeded(quint32 sessionID)
