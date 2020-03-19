@@ -78,6 +78,7 @@ QList<std::shared_ptr<ICEInfo>> ICE::generateICECandidates()
       candidates.push_back(candidate.first);
       candidates.push_back(candidate.second);
     }
+    // TODO: WHERE ARE ALL THE PUBLIC ADDRESSES?
   }
 
   if (stunAddress_ != QHostAddress(""))
@@ -199,6 +200,11 @@ void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local,
     QList<std::shared_ptr<ICEInfo>>& remote,
     uint32_t sessionID, bool flowController)
 {
+  // Spawns a FlowAgent thread which is responsible for handling
+  // connectivity checks and nomination.
+  // When FlowAgent has finished (succeed or failed), it sends a ready() signal
+  // which is caught by handleCalleeEndOfNomination slot
+
   if (!iceEnabled_)
   {
     return;

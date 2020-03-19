@@ -9,7 +9,9 @@
 #include "stun.h"
 #include "icetypes.h"
 
-struct STUNCandidateBinding
+
+// tells which address each stun candidate bind should be called
+struct STUNBinding
 {
   QHostAddress stunAddress;
   quint16 stunPort;
@@ -18,18 +20,6 @@ struct STUNCandidateBinding
   quint16 bindPort;
 };
 
-struct PairStunInstance
-{
-  Stun *stun;
-  std::shared_ptr<ICEPair> pair;
-};
-
-/* the concept of ConnectionBucket is explained elsewhere */
-struct ConnectionBucket
-{
-  UDPServer *server;
-  QList<PairStunInstance> pairs;
-};
 
 class FlowAgent : public QThread
 {
@@ -38,7 +28,12 @@ class FlowAgent : public QThread
 public:
   FlowAgent(bool controller, int timeout);
   ~FlowAgent();
+
   void setCandidates(QList<std::shared_ptr<ICEPair>> *candidates);
+
+  //void setCandidates(QList<std::shared_ptr<ICEPair>> *candidates,
+  //                   QList<std::shared_ptr<STUNBinding>> *stunBindings);
+
   void setSessionID(uint32_t sessionID);
 
   // wait for endNomination() signal and return true if it's received (meaning the nomination succeeded)
@@ -66,6 +61,7 @@ protected:
 private:
 
   QList<std::shared_ptr<ICEPair>> *candidates_;
+  QList<std::shared_ptr<STUNBinding>> *stunBindings_;
   uint32_t sessionID_;
 
   bool controller_;

@@ -12,26 +12,6 @@
 
 class FlowAgent;
 
-struct nominationInfo
-{
-  FlowAgent *agent;
-
-  // list of all candidates, remote and local
-  QList<std::shared_ptr<ICEPair>> pairs;
-
-  std::pair<
-    std::shared_ptr<ICEPair>,
-    std::shared_ptr<ICEPair>
-  > nominatedVideo;
-
-  std::pair<
-    std::shared_ptr<ICEPair>,
-    std::shared_ptr<ICEPair>
-  > nominatedAudio;
-
-  bool connectionNominated;
-};
-
 class ICE : public QObject
 {
   Q_OBJECT
@@ -43,10 +23,8 @@ class ICE : public QObject
     // generate a list of local candidates for media streaming
     QList<std::shared_ptr<ICEInfo>> generateICECandidates();
 
-    // Callee calls this function to start the connectivity check/nomination process when the 200 OK SDP has been sent to remote
-    // startNomination() spawns a FlowAgent thread which is responsible for handling connectivity checks and nomination.
-    //
-    // When FlowAgent has finished (succeed or failed), it sends a ready() signal which is caught by handleCalleeEndOfNomination slot
+    // Call this function to start the connectivity check/nomination process.
+    // Does not block
     void startNomination(QList<std::shared_ptr<ICEInfo>>& local,
                          QList<std::shared_ptr<ICEInfo>>& remote,
                          uint32_t sessionID, bool flowController);
@@ -97,5 +75,26 @@ private slots:
     QHostAddress stunAddress_;
     SDPParameterManager parameters_;
 
-    QMap<uint32_t, struct nominationInfo> nominationInfo_;
+    struct NominationInfo
+    {
+      FlowAgent *agent;
+
+      // list of all candidates, remote and local
+      QList<std::shared_ptr<ICEPair>> pairs;
+
+      std::pair<
+        std::shared_ptr<ICEPair>,
+        std::shared_ptr<ICEPair>
+      > nominatedVideo;
+
+      std::pair<
+        std::shared_ptr<ICEPair>,
+        std::shared_ptr<ICEPair>
+      > nominatedAudio;
+
+      bool connectionNominated;
+    };
+
+    // key is sessionID
+    QMap<uint32_t, struct NominationInfo> nominationInfo_;
 };

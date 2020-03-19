@@ -8,8 +8,23 @@
 #include "ice.h"
 
 
+struct PairStunInstance
+{
+  Stun *stun;
+  std::shared_ptr<ICEPair> pair;
+};
+
+/* the concept of ConnectionBucket is explained elsewhere */
+struct ConnectionBucket
+{
+  UDPServer *server;
+  QList<PairStunInstance> pairs;
+};
+
+
 FlowAgent::FlowAgent(bool controller, int timeout):
   candidates_(nullptr),
+  stunBindings_(nullptr),
   sessionID_(0),
   controller_(controller),
   timeout_(timeout)
@@ -26,6 +41,7 @@ void FlowAgent::setCandidates(QList<std::shared_ptr<ICEPair>> *candidates)
   Q_ASSERT(candidates->size() != 0);
 
   candidates_ = candidates;
+  //stunBindings_ = stunBindings;
 }
 
 void FlowAgent::setSessionID(uint32_t sessionID)
