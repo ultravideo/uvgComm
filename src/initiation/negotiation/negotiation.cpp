@@ -2,6 +2,8 @@
 #include <QDateTime>
 #include <QObject>
 
+#include "mediacapabilities.h"
+
 #include "common.h"
 
 // Port ranges used for media port allocation.
@@ -14,7 +16,6 @@ Negotiation::Negotiation():
   localUsername_("")
 {
   ice_ = std::make_unique<ICE>();
-  parameters_.setPortRange(MIN_SIP_PORT, MAX_SIP_PORT, MAX_PORTS);
 
   QObject::connect(
     ice_.get(),
@@ -141,20 +142,14 @@ std::shared_ptr<SDPMessageInfo>  Negotiation::generateLocalSDP(QString localAddr
     return nullptr;
   }
 
-  if(!parameters_.enoughFreePorts())
-  {
-    qDebug() << "Not enough free ports to create SDP";
-    return nullptr;
-  }
-
   // TODO: Get suitable SDP from media manager
   std::shared_ptr<SDPMessageInfo> newInfo = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
   newInfo->version = 0;
   generateOrigin(newInfo, localAddress);
   setConnectionAddress(newInfo, localAddress);
 
-  newInfo->sessionName = parameters_.callSessionName();
-  newInfo->sessionDescription = parameters_.sessionDescription();
+  newInfo->sessionName = SESSION_NAME;
+  newInfo->sessionDescription = SESSION_DESCRIPTION;
 
   newInfo->timeDescriptions.push_back(TimeInfo{0,0, "", "", {}});
 
@@ -195,7 +190,7 @@ std::shared_ptr<SDPMessageInfo> Negotiation::negotiateSDP(SDPMessageInfo& remote
   {
     MediaInfo ourMedia;
     ourMedia.type = remoteMedia.type;
-    ourMedia.receivePort = parameters_.nextAvailablePortPair();
+    ourMedia.receivePort = 0; // TODO: ICE Should set this to one of its candidates
     ourMedia.proto = remoteMedia.proto;
     ourMedia.title = remoteMedia.title;
     if (remoteMedia.flagAttributes.empty())
@@ -219,8 +214,8 @@ std::shared_ptr<SDPMessageInfo> Negotiation::negotiateSDP(SDPMessageInfo& remote
 
     if (remoteMedia.type == "audio")
     {
-      QList<uint8_t> supportedNums = parameters_.audioPayloadTypes();
-      QList<RTPMap> supportedCodecs = parameters_.audioCodecs();
+      QList<uint8_t> supportedNums = PREDEFINED_AUDIO_CODECS;
+      QList<RTPMap> supportedCodecs = DYNAMIC_AUDIO_CODECS;
 
       selectBestCodec(remoteMedia.rtpNums, remoteMedia.codecs,
                       supportedNums, supportedCodecs,
@@ -229,8 +224,8 @@ std::shared_ptr<SDPMessageInfo> Negotiation::negotiateSDP(SDPMessageInfo& remote
     }
     else if (remoteMedia.type == "video")
     {
-      QList<uint8_t> supportedNums = parameters_.videoPayloadTypes();
-      QList<RTPMap> supportedCodecs = parameters_.videoCodecs();
+      QList<uint8_t> supportedNums = PREDEFINED_VIDEO_CODECS;
+      QList<RTPMap> supportedCodecs = DYNAMIC_VIDEO_CODECS;
 
       selectBestCodec(remoteMedia.rtpNums, remoteMedia.codecs,
                       supportedNums, supportedCodecs,
@@ -239,6 +234,7 @@ std::shared_ptr<SDPMessageInfo> Negotiation::negotiateSDP(SDPMessageInfo& remote
     newInfo->media.append(ourMedia);
   }
 
+  // TODO: Set also media sdp parameters.
   newInfo->candidates = ice_->generateICECandidates();
   return newInfo;
 }
@@ -322,16 +318,8 @@ void Negotiation::setConnectionAddress(std::shared_ptr<SDPMessageInfo> sdp,
 bool Negotiation::generateAudioMedia(MediaInfo &audio)
 {
   // we ignore nettype, addrtype and address, because we use a global c=
-  audio = {"audio", parameters_.nextAvailablePortPair(), "RTP/AVP", {},
-           "", "", "", "", {},"", parameters_.audioCodecs(),{A_SENDRECV},{}};
-
-  if(audio.receivePort == 0)
-  {
-    parameters_.makePortPairAvailable(audio.receivePort);
-    qWarning() << "WARNING: Ran out of ports to assign to audio media in SDP. "
-                  "Should be checked earlier.";
-    return false;
-  }
+  audio = {"audio", 0, "RTP/AVP", {},
+           "", "", "", "", {},"", DYNAMIC_AUDIO_CODECS, {A_SENDRECV}, {}};
 
   // add all the dynamic numbers first because we want to favor dynamic type codecs.
   for(RTPMap codec : audio.codecs)
@@ -339,7 +327,7 @@ bool Negotiation::generateAudioMedia(MediaInfo &audio)
     audio.rtpNums.push_back(codec.rtpNum);
   }
 
-  audio.rtpNums += parameters_.audioPayloadTypes();
+  audio.rtpNums += PREDEFINED_AUDIO_CODECS;
   return true;
 }
 
@@ -347,16 +335,8 @@ bool Negotiation::generateAudioMedia(MediaInfo &audio)
 bool Negotiation::generateVideoMedia(MediaInfo& video)
 {
   // we ignore nettype, addrtype and address, because we use a global c=
-  video = {"video", parameters_.nextAvailablePortPair(), "RTP/AVP", {},
-           "", "", "", "", {},"", parameters_.videoCodecs(),{A_SENDRECV},{}};
-
-  if(video.receivePort == 0)
-  {
-    parameters_.makePortPairAvailable(video.receivePort);
-    qWarning() << "WARNING: Ran out of ports to assign to video media in SDP. "
-                  "Should be checked earlier.";
-    return false;
-  }
+  video = {"video", 0, "RTP/AVP", {},
+           "", "", "", "", {},"", DYNAMIC_VIDEO_CODECS, {A_SENDRECV}, {}};
 
   for(RTPMap codec : video.codecs)
   {
@@ -364,7 +344,7 @@ bool Negotiation::generateVideoMedia(MediaInfo& video)
   }
 
   // just for completeness, we will probably never support any of the pre-set video types.
-  video.rtpNums += parameters_.videoPayloadTypes();
+  video.rtpNums += PREDEFINED_VIDEO_CODECS;
   return true;
 }
 
@@ -459,7 +439,7 @@ void Negotiation::endSession(uint32_t sessionID)
       std::shared_ptr<SDPMessageInfo> localSDP = sdps_.at(sessionID).localSDP;
       for(auto& mediaStream : localSDP->media)
       {
-        parameters_.makePortPairAvailable(mediaStream.receivePort);
+        // TODO: parameters_.makePortPairAvailable(mediaStream.receivePort);
       }
     }
     sdps_.erase(sessionID);

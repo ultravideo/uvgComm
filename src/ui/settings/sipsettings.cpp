@@ -116,8 +116,6 @@ void SIPSettings::saveAdvancedSettings()
   listGUIToSettings("blocklist.local", "blocklist", QStringList() << "userName" << "date", advancedUI_->blockedUsers);
 
   // sip settings.
-
-  saveCheckBox("sip/ice", advancedUI_->ice, settings_);
   //saveCheckBox("sip/conference", advancedUI_->conference, settings_);
 
   saveCheckBox("local/Auto-Accept", advancedUI_->auto_accept, settings_);
@@ -133,7 +131,6 @@ void SIPSettings::restoreAdvancedSettings()
 
   if(validSettings && checkSipSettings())
   {
-    restoreCheckBox("sip/ice", advancedUI_->ice, settings_);
     //restoreCheckBox("sip/conference", advancedUI_->conference, settings_);
 
     restoreCheckBox("local/Auto-Accept", advancedUI_->auto_accept, settings_);

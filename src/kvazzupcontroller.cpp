@@ -176,7 +176,7 @@ void KvazzupController::callNegotiated(uint32_t sessionID)
 
 void KvazzupController::startCall(uint32_t sessionID, bool iceNominationComplete)
 {
-  if (iceNominationComplete || !settingEnabled("sip/ice"))
+  if (iceNominationComplete)
   {
     if(states_.find(sessionID) != states_.end())
     {

@@ -124,12 +124,7 @@ uint32_t SIPManager::startCall(SIP_URI &address)
   quint32 transportID = 0;
   uint32_t sessionID = dialogManager_.reserveSessionID();
 
-  // There should not exist a dialog for this user
-  if(!negotiation_.canStartSession())
-  {
-    printDebug(DEBUG_WARNING, this, "Not enough ports to start a call.");
-    return 0;
-  }
+  // TODO: ask network interface if we can start session
 
   // check if we are already connected to remoteaddress and set transportID
   if (!isConnected(address.host, transportID))
@@ -331,12 +326,7 @@ void SIPManager::transportToProxy(QString serverAddress, SIPRequest &request)
 void SIPManager::processSIPRequest(SIPRequest& request, QString localAddress,
                                    QVariant& content, quint32 transportID)
 {
-  if(request.type == SIP_INVITE && !negotiation_.canStartSession())
-  {
-    printDebug(DEBUG_ERROR, this, 
-               "Got INVITE, but unable to start a call");
-    return;
-  }
+  // TODO: ask network interface if we can start session
 
   uint32_t sessionID = 0;
 
@@ -603,8 +593,8 @@ bool SIPManager::processAnswerSDP(uint32_t sessionID, QVariant &content)
   // spawn ICE controller/controllee threads and start the candidate
   // exchange and nomination
   //
-  // This will return immediately and Controller is responsible
-  // for blocking the call start until the nomination is ready
+  // This will start the ICE nomination process. After it has finished,
+  // it will send a signal which indicates its state and if successful, the call may start.
   negotiation_.respondToICECandidateNominations(sessionID);
 
   return true;

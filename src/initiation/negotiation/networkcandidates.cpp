@@ -1,4 +1,4 @@
-#include "sdpparametermanager.h"
+#include "networkcandidates.h"
 
 #include "common.h"
 
@@ -6,11 +6,11 @@
 #include <QDebug>
 
 
-SDPParameterManager::SDPParameterManager()
+NetworkCandidates::NetworkCandidates()
   :remainingPorts_(0)
 {}
 
-void SDPParameterManager::setPortRange(uint16_t minport, uint16_t maxport, uint16_t maxRTPConnections)
+void NetworkCandidates::setPortRange(uint16_t minport, uint16_t maxport, uint16_t maxRTPConnections)
 {
   if(minport >= maxport)
   {
@@ -26,50 +26,7 @@ void SDPParameterManager::setPortRange(uint16_t minport, uint16_t maxport, uint1
 }
 
 
-// for reference on rtp payload type numbers:
-// https://en.wikipedia.org/wiki/RTP_audio_video_profile
-
-QList<uint8_t> SDPParameterManager::audioPayloadTypes() const
-{
-  // TODO: payload type 0 should always be supported!
-  return QList<uint8_t>{};
-}
-
-QList<uint8_t> SDPParameterManager::videoPayloadTypes() const
-{
-  return QList<uint8_t>{};
-}
-
-QList<RTPMap> SDPParameterManager::audioCodecs() const
-{
-  // currently we just use a different dynamic rtp payload number for each codec
-  // to make implementation simpler ( range 96...127 )
-
-  // opus is always 48000, even if the actual sample rate is lower
-  return QList<RTPMap>{RTPMap{96, 48000, "opus", ""}}; // TODO: put number of channels in parameters.
-}
-
-QList<RTPMap> SDPParameterManager::videoCodecs() const
-{
-  return QList<RTPMap>{RTPMap{97, 90000, "h265", ""}};
-}
-
-QString SDPParameterManager::callSessionName() const
-{
-  return "HEVC Video Call";
-}
-
-QString SDPParameterManager::conferenceSessionName() const
-{
-  return "HEVC Video Conference";
-}
-
-QString SDPParameterManager::sessionDescription() const
-{
-  return "A Kvazzup initiated video communication";
-}
-
-uint16_t SDPParameterManager::allocateMediaPorts()
+uint16_t NetworkCandidates::allocateMediaPorts()
 {
   if (remainingPorts_ < 4)
   {
@@ -90,7 +47,7 @@ uint16_t SDPParameterManager::allocateMediaPorts()
   return start;
 }
 
-void SDPParameterManager::deallocateMediaPorts(uint16_t start)
+void NetworkCandidates::deallocateMediaPorts(uint16_t start)
 {
   portLock_.lock();
 
@@ -101,7 +58,7 @@ void SDPParameterManager::deallocateMediaPorts(uint16_t start)
   portLock_.unlock();
 }
 
-uint16_t SDPParameterManager::nextAvailablePortPair()
+uint16_t NetworkCandidates::nextAvailablePortPair()
 {
   // TODO: I'm suspecting this may sometimes hang Kvazzup at the start
 
@@ -136,7 +93,7 @@ uint16_t SDPParameterManager::nextAvailablePortPair()
   return newLowerPort;
 }
 
-void SDPParameterManager::makePortPairAvailable(uint16_t lowerPort)
+void NetworkCandidates::makePortPairAvailable(uint16_t lowerPort)
 {
   if(lowerPort != 0)
   {

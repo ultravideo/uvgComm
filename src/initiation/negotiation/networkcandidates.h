@@ -7,26 +7,14 @@
 
 #include <deque>
 
-// This class has the capability to tell what SDP parameters are suitable for us.
+// This class handles the port management for each candidate of ICE.
 
-class SDPParameterManager
+class NetworkCandidates
 {
 public:
-  SDPParameterManager();
+  NetworkCandidates();
 
   void setPortRange(uint16_t minport, uint16_t maxport, uint16_t maxRTPConnections);
-
-  // use these if you want all the supported preset RTP payload type codecs ( 1..34 )
-  QList<uint8_t> audioPayloadTypes() const;
-  QList<uint8_t> videoPayloadTypes() const;
-
-  // get supported codecs with dynamic RTP payload types ( 96..127 )
-  QList<RTPMap> audioCodecs() const;
-  QList<RTPMap> videoCodecs() const;
-
-  QString callSessionName() const;
-  QString conferenceSessionName() const;
-  QString sessionDescription() const;
 
   bool enoughFreePorts() const
   {
@@ -49,5 +37,4 @@ private:
   QMutex portLock_;
   //keeps a list of all available ports. Has only every other port because of rtcp
   std::deque<uint16_t> availablePorts_;
-
 };

@@ -86,7 +86,7 @@ bool checkSDPValidity(const SDPMessageInfo &sdpInfo)
 
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
 
-  if (settings.value("sip/ice").toInt() == 1 && sdpInfo.candidates.isEmpty())
+  if (sdpInfo.candidates.isEmpty())
   {
     qDebug() << "PEER ERROR: Didn't receive any ICE candidates!";
     return false;

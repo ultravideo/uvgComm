@@ -50,7 +50,7 @@ SOURCES +=\
     src/initiation/negotiation/flowagent.cpp \
     src/initiation/negotiation/ice.cpp \
     src/initiation/negotiation/negotiation.cpp \
-    src/initiation/negotiation/sdpparametermanager.cpp \
+    src/initiation/negotiation/networkcandidates.cpp \
     src/initiation/negotiation/sipcontent.cpp \
     src/initiation/negotiation/stun.cpp \
     src/initiation/negotiation/stunmessage.cpp \
@@ -123,8 +123,9 @@ HEADERS  += \
     src/initiation/negotiation/flowagent.h \
     src/initiation/negotiation/ice.h \
     src/initiation/negotiation/icetypes.h \
+    src/initiation/negotiation/mediacapabilities.h \
     src/initiation/negotiation/negotiation.h \
-    src/initiation/negotiation/sdpparametermanager.h \
+    src/initiation/negotiation/networkcandidates.h \
     src/initiation/negotiation/sdptypes.h \
     src/initiation/negotiation/sipcontent.h \
     src/initiation/negotiation/stun.h \

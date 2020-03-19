@@ -8,7 +8,7 @@
 #include "stun.h"
 #include "sdptypes.h"
 #include "icetypes.h"
-#include "sdpparametermanager.h"
+#include "networkcandidates.h"
 
 class FlowAgent;
 
@@ -61,19 +61,15 @@ private slots:
 
     bool isPrivateNetwork(const QHostAddress& address);
 
-    /* Check the status of ICE from settings and adjust iceEnabled_ accordingly */
-    void checkICEstatus();
-
     // makeCandidatePairs takes a list of local and remote candidates, matches them based on localilty (host/server-reflexive)
     // and component (RTP/RTCP) and returns a list of ICEPairs used for connectivity checks
     QList<std::shared_ptr<ICEPair>> makeCandidatePairs(QList<std::shared_ptr<ICEInfo>>& local, QList<std::shared_ptr<ICEInfo>>& remote);
 
     bool nominatingConnection_;
-    bool iceEnabled_;
 
     Stun stun_;
     QHostAddress stunAddress_;
-    SDPParameterManager parameters_;
+    NetworkCandidates parameters_;
 
     struct NominationInfo
     {

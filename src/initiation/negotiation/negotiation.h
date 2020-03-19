@@ -1,7 +1,6 @@
 #pragma once
 
 #include "initiation/negotiation/sdptypes.h"
-#include "sdpparametermanager.h"
 #include "ice.h"
 
 #include <QMutex>
@@ -59,11 +58,6 @@ public:
   // update the MediaInfo of remote and locals SDPs to include the nominated connections
   void setICEPorts(uint32_t sessionID);
 
-  bool canStartSession()
-  {
-    return parameters_.enoughFreePorts();
-  }
-
   // call these only after the corresponding SDP has been generated
   std::shared_ptr<SDPMessageInfo> getLocalSDP(uint32_t sessionID) const;
   std::shared_ptr<SDPMessageInfo> getRemoteSDP(uint32_t sessionID) const;
@@ -106,8 +100,6 @@ private:
   QString localUsername_;
 
   std::unique_ptr<ICE> ice_;
-
-  SDPParameterManager parameters_;
 
   struct CallParameters
   {

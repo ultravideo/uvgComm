@@ -26,27 +26,11 @@ ICE::ICE():
   // TODO: Probably best way to do this is periodically every 10 minutes or so.
   // That way we get our current STUN address
   stun_.wantAddress("stun.l.google.com", STUN_PORT);
-
-  checkICEstatus();
 }
 
 ICE::~ICE()
-{
-}
+{}
 
-void ICE::checkICEstatus()
-{
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
-
-  if (settings.value("sip/ice").toInt() == 1)
-  {
-    iceEnabled_ = true;
-  }
-  else
-  {
-    iceEnabled_ = false;
-  }
-}
 
 /* @param type - 0 for relayed, 126 for host
  * @param local - local preference for selecting candidates
@@ -61,8 +45,6 @@ int ICE::calculatePriority(int type, int local, int component)
 
 QList<std::shared_ptr<ICEInfo>> ICE::generateICECandidates()
 {
-  checkICEstatus();
-
   QTime time = QTime::currentTime();
   qsrand((uint)time.msec());
 
@@ -205,11 +187,6 @@ void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local,
   // When FlowAgent has finished (succeed or failed), it sends a ready() signal
   // which is caught by handleCalleeEndOfNomination slot
 
-  if (!iceEnabled_)
-  {
-    return;
-  }
-
   printImportant(this, "Starting ICE nomination");
 
   // nomination-related memory is released when handleEndOfNomination() is called
@@ -247,12 +224,6 @@ void ICE::handleEndOfNomination(
     uint32_t sessionID
 )
 {
-  // nothing needs to be cleaned if ICE was disabled
-  if (iceEnabled_ == false)
-  {
-    return;
-  }
-
   Q_ASSERT(sessionID != 0);
   Q_ASSERT(rtp != nullptr);
   Q_ASSERT(rtcp != nullptr);
@@ -310,7 +281,7 @@ ICEMediaInfo ICE::getNominated(uint32_t sessionID)
 {
   Q_ASSERT(sessionID != 0);
 
-  if (nominationInfo_.contains(sessionID) && iceEnabled_ == true)
+  if (nominationInfo_.contains(sessionID))
   {
     return {
         nominationInfo_[sessionID].nominatedVideo,
@@ -328,7 +299,7 @@ void ICE::cleanupSession(uint32_t sessionID)
 {
   Q_ASSERT(sessionID != 0);
 
-  if (nominationInfo_.contains(sessionID) && iceEnabled_ == true)
+  if (nominationInfo_.contains(sessionID))
   {
     for (int i = 0; i < nominationInfo_[sessionID].pairs.size(); ++i)
     {
