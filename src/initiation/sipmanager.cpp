@@ -44,7 +44,7 @@ void SIPManager::init(SIPTransactionUser* callControl, StatisticsInterface *stat
   QString username = !settings.value("local/Username").isNull()
       ? settings.value("local/Username").toString() : "anonymous";
 
-  negotiation_.setLocalInfo(username);
+  negotiation_.init(username);
 
   QObject::connect(&dialogManager_, &SIPDialogManager::transportRequest,
                    this, &SIPManager::transportRequest);
@@ -556,8 +556,7 @@ bool SIPManager::processOfferSDP(uint32_t sessionID, QVariant& content,
   }
 
   // Start candiate nomination. This function won't block,
-  // negotiation happens in the background remoteFinalSDP()
-  // makes sure that a connection was in fact nominated
+  // negotiation happens in the background
   negotiation_.startICECandidateNegotiation(sessionID);
 
   return true;

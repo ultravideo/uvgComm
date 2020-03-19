@@ -1,7 +1,8 @@
 #pragma once
 
-#include "initiation/negotiation/sdptypes.h"
+#include "sdpnegotiator.h"
 #include "ice.h"
+#include "initiation/negotiation/sdptypes.h"
 
 #include <QMutex>
 
@@ -31,7 +32,7 @@ class Negotiation : public QObject
 public:
   Negotiation();
 
-  void setLocalInfo(QString username);
+  void init(QString username);
 
   // Use this to generate the first SDP offer of the negotiation.
   // Includes all the media codecs suitable to us in preferred order.
@@ -52,11 +53,9 @@ public:
 
   void endAllSessions();
 
+  // TODO: These don't need to be separate functions
   void startICECandidateNegotiation(uint32_t sessionID);
   void respondToICECandidateNominations(uint32_t sessionID);
-
-  // update the MediaInfo of remote and locals SDPs to include the nominated connections
-  void setICEPorts(uint32_t sessionID);
 
   // call these only after the corresponding SDP has been generated
   std::shared_ptr<SDPMessageInfo> getLocalSDP(uint32_t sessionID) const;
@@ -73,31 +72,9 @@ public slots:
 
 private:
 
-  std::shared_ptr<SDPMessageInfo> generateLocalSDP(QString localAddress);
-
-  std::shared_ptr<SDPMessageInfo> negotiateSDP(SDPMessageInfo& remoteSDPOffer,
-                                               QString localAddress);
-
-  void generateOrigin(std::shared_ptr<SDPMessageInfo> sdp, QString localAddress);
-  void setConnectionAddress(std::shared_ptr<SDPMessageInfo> sdp, QString localAddress);
-
-  bool generateAudioMedia(MediaInfo &audio);
-  bool generateVideoMedia(MediaInfo &video);
-
-  bool selectBestCodec(QList<uint8_t>& remoteNums,       QList<RTPMap>& remoteCodecs,
-                       QList<uint8_t>& supportedNums,    QList<RTPMap>& supportedCodecs,
-                       QList<uint8_t>& outMatchingNums,  QList<RTPMap>& outMatchingCodecs);
-
-  // Checks if SDP is acceptable to us.
-  bool checkSDPOffer(SDPMessageInfo& offer);
-
-  // update MediaInfo of SDP after ICE has finished
-  void setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo);
-
   // Is the internal state of this class correct for this sessionID
   bool checkSessionValidity(uint32_t sessionID, bool checkRemote) const;
 
-  QString localUsername_;
 
   std::unique_ptr<ICE> ice_;
 
@@ -111,4 +88,6 @@ private:
   std::map<uint32_t, CallParameters> sdps_;
 
   std::map<uint32_t, NegotiationState> negotiationStates_;
+
+  SDPNegotiator negotiator_;
 };
