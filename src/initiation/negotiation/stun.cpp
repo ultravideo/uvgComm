@@ -16,75 +16,21 @@
 #include <QNetworkInterface>
 
 
-
-const uint16_t GOOGLE_STUN_PORT = 19302;
-
 Stun::Stun():
   udp_(new UDPServer),
   stunmsg_(),
   multiplex_(false),
-  interrupted_(false),
-  stunPort_(0)
-{
-}
+  interrupted_(false)
+{}
+
 
 Stun::Stun(UDPServer *server):
   udp_(server),
   stunmsg_(),
   multiplex_(true),
   interrupted_(false)
-{
-}
+{}
 
-void Stun::wantAddress(QString stunServer, uint16_t port)
-{
-  stunPort_ = port;
-  // To find the IP address of qt-project.org
-  QHostInfo::lookupHost(stunServer, this, SLOT(handleHostaddress(QHostInfo)));
-}
-
-void Stun::handleHostaddress(QHostInfo info)
-{
-  if (stunPort_ == 0)
-  {
-    printProgramError(this, "Not Stun port set. Can't get STUN address.");
-    return;
-  }
-
-  const auto addresses = info.addresses();
-  QHostAddress address;
-  if(addresses.size() != 0)
-  {
-    address = addresses.at(0);
-  }
-  else
-  {
-    return;
-  }
-  printNormal(this, "Got STUN server address. Sending STUN request",
-              {"Address"}, {address.toString()});
-
-  udp_->bind(QHostAddress::AnyIPv4, stunPort_);
-
-  QObject::connect(udp_,   &UDPServer::datagramAvailable,
-                   this,   &Stun::processReply);
-
-  STUNMessage request = stunmsg_.createRequest();
-  QByteArray message  = stunmsg_.hostToNetwork(request);
-
-  stunmsg_.cacheRequest(request);
-
-  // Send STUN-Request through all the interfaces, since we don't know which is
-  // connected to the internet. Most of them will fail.
-  QList<QHostAddress> interfaces =  QNetworkInterface::allAddresses();
-  for (auto interface : interfaces)
-  {
-    if (!interface.isLoopback())
-    {
-      udp_->sendData(message, interface, address, GOOGLE_STUN_PORT, false);
-    }
-  }
-}
 
 bool Stun::waitForStunResponse(unsigned long timeout)
 {
@@ -441,45 +387,13 @@ bool Stun::sendNominationResponse(ICEPair *pair)
   return nominationRecv;
 }
 
-void Stun::processReply(const QNetworkDatagram& packet)
-{
-  if(packet.data().size() < 20)
-  {
-    printDebug(DEBUG_WARNING, "STUN",
-        "Received too small response to STUN query!");
-    return;
-  }
-  QByteArray data = packet.data();
-
-  QString message = QString::fromStdString(data.toHex().toStdString());
-  STUNMessage response = stunmsg_.networkToHost(data);
-
-  if (!stunmsg_.validateStunResponse(response))
-  {
-    printDebug(DEBUG_WARNING, "STUN",  "Invalid STUN Response!");
-    emit stunError();
-    return;
-  }
-
-  std::pair<QHostAddress, uint16_t> addressInfo;
-
-  if (response.getXorMappedAddress(addressInfo))
-  {
-    emit stunAddressReceived(packet.destinationAddress(), packet.destinationPort(),
-                             addressInfo.first, addressInfo.second);
-  }
-  else
-  {
-    printWarning(this, "DIDN'T GET XOR-MAPPED-ADDRESS!");
-    emit stunError();
-  }
-}
 
 void Stun::stopTesting()
 {
   interrupted_ = true;
   emit stopEventLoop();
 }
+
 
 // either we got Stun binding request -> send binding response
 // or Stun binding response -> mark candidate as valid

@@ -43,8 +43,6 @@ public:
   // to all valid candidate address:port pairs to receive the nominations
   bool sendNominationResponse(ICEPair *pair);
 
-  void wantAddress(QString stunServer, uint16_t port);
-
 public slots:
   // When FlowAgent has one successfully nominated pair, it sends stopTesting()
   // to Stun which indicates that Stun should stop doing whatever it is doing and return.
@@ -54,8 +52,6 @@ public slots:
   void stopTesting();
 
 signals:
-  void stunAddressReceived(QHostAddress local, quint16 localPort,
-                           QHostAddress stun, quint16 stunPort);
   void stunError();
   void parsingDone();
   void nominationRecv();
@@ -63,8 +59,7 @@ signals:
   void stopEventLoop();
 
 private slots:
-  void handleHostaddress(QHostInfo info);
-  void processReply(const QNetworkDatagram &packet);
+
   void recvStunMessage(QNetworkDatagram message);
 
 private:
@@ -117,6 +112,4 @@ private:
   // check whether interrupt flag has been set. It means that the running thread has
   // decided to terminate processing and Stun shouln't continue with the process any further
   bool interrupted_;
-
-  uint16_t stunPort_;
 };

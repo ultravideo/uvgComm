@@ -15,6 +15,7 @@ class NetworkCandidates : public QObject
   Q_OBJECT
 public:
   NetworkCandidates();
+  ~NetworkCandidates();
 
   void setPortRange(uint16_t minport, uint16_t maxport);
 
@@ -29,21 +30,25 @@ public:
 
   void cleanupSession(uint32_t sessionID);
 
-public slots:
+private slots:
+  void processReply(const QNetworkDatagram &packet);
+  void sendSTUNserverRequest(QHostInfo info);
 
-  void createSTUNCandidate(QHostAddress local, quint16 localPort,
-                           QHostAddress stun, quint16 stunPort);
 private:
 
-  // return the lower port of the pair and removes both from list of available ports
+  void wantAddress(QString stunServer);
+  void createSTUNCandidate(QHostAddress local, quint16 localPort,
+                           QHostAddress stun, quint16 stunPort);
 
+  // return the lower port of the pair and removes both from list of available ports
   uint16_t nextAvailablePortPair(QString interface, uint32_t sessionID);
   void makePortPairAvailable(QString interface, uint16_t lowerPort);
 
   bool isPrivateNetwork(const QString &address);
 
-  Stun stun_;
   QHostAddress stunAddress_;
+  UDPServer *udp_;
+  StunMessageFactory stunmsg_;
 
   QMutex portLock_;
 
