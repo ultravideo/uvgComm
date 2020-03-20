@@ -9,9 +9,13 @@
 const uint16_t GOOGLE_STUN_PORT = 19302;
 
 
-NetworkCandidates::NetworkCandidates()
-: stunAddress_(QHostAddress("")),
-  requests_()
+NetworkCandidates::NetworkCandidates():
+  requests_(),
+  stunAddresses_(),
+  stunBindings_(),
+  portLock_(),
+  availablePorts_(),
+  reservedPorts_()
 {}
 
 
@@ -63,9 +67,8 @@ void NetworkCandidates::createSTUNCandidate(QHostAddress local, quint16 localPor
             {local.toString() + ":" + QString::number(localPort),
              stun.toString() + ":" + QString::number(stunPort)});
 
-  // TODO: Even though unlikely, this should probably be prepared for
-  // multiple addresses.
-  stunAddress_ = stun;
+  stunAddresses_.push_back({stun, stunPort});
+  stunBindings_.push_back({local, localPort});
 }
 
 
@@ -111,6 +114,25 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::stu
 {
   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> addresses
       =   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> (new QList<std::pair<QHostAddress, uint16_t>>());
+
+  addresses->push_back(stunAddresses_.front());
+  stunAddresses_.pop_front();
+
+  // TODO: Move reservedports reservation from stun to sessionID
+
+  return addresses;
+}
+
+
+std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::stunBindings(
+    uint8_t streams, uint32_t sessionID)
+{
+  std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> addresses
+      =   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> (new QList<std::pair<QHostAddress, uint16_t>>());
+
+  addresses->push_back(stunBindings_.front());
+  stunBindings_.pop_front();
+
   return addresses;
 }
 

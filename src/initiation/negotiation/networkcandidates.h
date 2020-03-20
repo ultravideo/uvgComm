@@ -31,8 +31,12 @@ public:
                                                             uint32_t sessionID);
   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> stunCandidates(uint8_t streams,
                                                             uint32_t sessionID);
+  std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> stunBindings(uint8_t streams,
+                                                            uint32_t sessionID);
   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> turnCandidates(uint8_t streams,
                                                             uint32_t sessionID);
+
+
 
   void cleanupSession(uint32_t sessionID);
 
@@ -55,23 +59,15 @@ private:
 
   bool isPrivateNetwork(const QString &address);
 
-  QHostAddress stunAddress_;
-
   std::map<QString, std::shared_ptr<STUNRequest>> requests_;
 
+  std::deque<std::pair<QHostAddress, uint16_t>> stunAddresses_;
+  std::deque<std::pair<QHostAddress, uint16_t>> stunBindings_;
+
   QMutex portLock_;
-
-  // TODO: use pointers to reduce copying
-
   // Keeps a list of all available ports. Has only every other port because of rtcp
   // Key is the ip address of network interface.
   std::map<QString, std::deque<uint16_t>> availablePorts_;
-
-  // indicates which stun port corresponds to which interface/port pair
-  typedef std::map<uint16_t, std::pair<QString, uint16_t>> STUNEntry;
-
-  // key is stun address
-  std::map<QString, STUNEntry> stunPorts_;
 
   // key is sessionID, 0 is STUN
   std::map<uint32_t, QList<std::pair<QString, uint16_t>>> reservedPorts_;
