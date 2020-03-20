@@ -16,12 +16,7 @@ class NetworkCandidates : public QObject
 public:
   NetworkCandidates();
 
-  void setPortRange(uint16_t minport, uint16_t maxport, uint16_t maxRTPConnections);
-
-  bool enoughFreePorts() const
-  {
-    return remainingPorts_ >= 4;
-  }
+  void setPortRange(uint16_t minport, uint16_t maxport);
 
   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> localCandidates(uint8_t streams,
                                                             uint32_t sessionID);
@@ -42,22 +37,26 @@ private:
 
   // return the lower port of the pair and removes both from list of available ports
 
-  // TODO: update this to be based on sessionID as well so we can release the ports
-  uint16_t nextAvailablePortPair();
-  void makePortPairAvailable(uint16_t lowerPort);
-
-  // allocate contiguous port range
-  uint16_t allocateMediaPorts();
-  void deallocateMediaPorts(uint16_t start);
+  uint16_t nextAvailablePortPair(QString interface, uint32_t sessionID);
+  void makePortPairAvailable(QString interface, uint16_t lowerPort);
 
   bool isPrivateNetwork(const QString &address);
 
   Stun stun_;
   QHostAddress stunAddress_;
 
-  uint16_t remainingPorts_;
-
   QMutex portLock_;
-  //keeps a list of all available ports. Has only every other port because of rtcp
-  std::deque<uint16_t> availablePorts_;
+
+  // Keeps a list of all available ports. Has only every other port because of rtcp
+  // Key is the ip address of network interface.
+  std::map<QString, std::deque<uint16_t>> availablePorts_;
+
+  // indicates which stun port corresponds to which interface/port pair
+  typedef std::map<uint16_t, std::pair<QString, uint16_t>> STUNEntry;
+
+  // key is stun address
+  std::map<QString, STUNEntry> stunPorts_;
+
+  // key is sessionID
+  std::map<uint32_t, QList<std::pair<QString, uint16_t>>> reservedPorts_;
 };

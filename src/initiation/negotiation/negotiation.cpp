@@ -6,7 +6,6 @@
 
 const uint16_t MIN_ICE_PORT   = 23000;
 const uint16_t MAX_ICE_PORT   = 24000;
-const uint16_t MAX_PORTS      = 1000;
 
 
 Negotiation::Negotiation():
@@ -25,7 +24,7 @@ void Negotiation::init(QString username)
   QObject::connect(ice_.get(), &ICE::nominationFailed,
                    this,       &Negotiation::iceNominationFailed);
 
-  nCandidates_.setPortRange(MIN_ICE_PORT, MAX_ICE_PORT, MAX_PORTS);
+  nCandidates_.setPortRange(MIN_ICE_PORT, MAX_ICE_PORT);
 }
 
 

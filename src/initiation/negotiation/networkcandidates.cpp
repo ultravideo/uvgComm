@@ -11,25 +11,30 @@ const uint16_t STUN_PORT       = 21000;
 
 NetworkCandidates::NetworkCandidates()
 : stun_(),
-  stunAddress_(QHostAddress("")),
-  remainingPorts_(0)
+  stunAddress_(QHostAddress(""))
 {}
 
 void NetworkCandidates::setPortRange(uint16_t minport,
-                                     uint16_t maxport,
-                                     uint16_t maxRTPConnections)
+                                     uint16_t maxport)
 {
   if(minport >= maxport)
   {
-    qDebug() << "ERROR: Min port is smaller or equal to max port for SDP";
+    printProgramError(this, "Min port is smaller or equal to max port");
   }
 
-  for(uint16_t i = minport; i < maxport; i += 2)
+  foreach (const QHostAddress& address, QNetworkInterface::allAddresses())
   {
-    makePortPairAvailable(i);
-  }
+    if (address.protocol() == QAbstractSocket::IPv4Protocol &&
+        !address.isLoopback())
+    {
+      availablePorts_.insert(std::pair<QString, std::deque<uint16_t>>(address.toString(),{}));
 
-  remainingPorts_ = maxRTPConnections;
+      for(uint16_t i = minport; i < maxport; i += 2)
+      {
+        makePortPairAvailable(address.toString(), i);
+      }
+    }
+  }
 
   QObject::connect( &stun_, &Stun::stunAddressReceived,
                     this,  &NetworkCandidates::createSTUNCandidate);
@@ -63,16 +68,18 @@ void NetworkCandidates::createSTUNCandidate(QHostAddress local, quint16 localPor
 std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::localCandidates(
     uint8_t streams, uint32_t sessionID)
 {
-    std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> addresses
-        =   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> (new QList<std::pair<QHostAddress, uint16_t>>());
-  foreach (const QHostAddress& address, QNetworkInterface::allAddresses())
+  std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> addresses
+      =   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> (new QList<std::pair<QHostAddress, uint16_t>>());
+
+  for (auto& interface : availablePorts_)
   {
-    if (address.protocol() == QAbstractSocket::IPv4Protocol &&
-        isPrivateNetwork(address.toString()))
+    if (isPrivateNetwork(interface.first))
     {
-      addresses->push_back({address, allocateMediaPorts()});
+      addresses->push_back({QHostAddress(interface.first),
+                            nextAvailablePortPair(interface.first, sessionID)});
     }
   }
+
   return addresses;
 }
 
@@ -83,12 +90,12 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::glo
   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> addresses
       =   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> (new QList<std::pair<QHostAddress, uint16_t>>());
 
-  foreach (const QHostAddress& address, QNetworkInterface::allAddresses())
+  for (auto& interface : availablePorts_)
   {
-    if (address.protocol() == QAbstractSocket::IPv4Protocol &&
-        !isPrivateNetwork(address.toString()))
+    if (!isPrivateNetwork(interface.first))
     {
-      addresses->push_back({address, allocateMediaPorts()});
+      addresses->push_back({QHostAddress(interface.first),
+                            nextAvailablePortPair(interface.first, sessionID)});
     }
   }
   return addresses;
@@ -118,46 +125,33 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::tur
 }
 
 
-uint16_t NetworkCandidates::allocateMediaPorts()
+uint16_t NetworkCandidates::nextAvailablePortPair(QString interface, uint32_t sessionID)
 {
-  if (remainingPorts_ < 4)
-  {
-    qDebug() << "ERROR: Not enough free ports, remaining:" << remainingPorts_;
-    return 0;
-  }
 
-  portLock_.lock();
-
-  uint16_t start = availablePorts_.at(0);
-
-  availablePorts_.pop_front();
-  availablePorts_.pop_front();
-  remainingPorts_ -= 4;
-
-  portLock_.unlock();
-
-  return start;
-}
-
-void NetworkCandidates::deallocateMediaPorts(uint16_t start)
-{
-  portLock_.lock();
-
-  availablePorts_.push_back(start);
-  availablePorts_.push_back(start + 2);
-  remainingPorts_ += 4;
-
-  portLock_.unlock();
-}
-
-uint16_t NetworkCandidates::nextAvailablePortPair()
-{
-  // TODO: I'm suspecting this may sometimes hang Kvazzup at the start
 
   uint16_t newLowerPort = 0;
 
   portLock_.lock();
-  if(availablePorts_.size() >= 1 && remainingPorts_ >= 2)
+
+  if (availablePorts_.find(interface) == availablePorts_.end() ||
+      availablePorts_[interface].size() == 0)
+  {
+    portLock_.unlock();
+    printWarning(this, "Either couldn't find interface or "
+                       "this interface has run out of ports");
+    return 0;
+  }
+
+  newLowerPort = availablePorts_[interface].at(0);
+  availablePorts_[interface].pop_front();
+
+  // This is because of a hack in ICE which uses upper ports for opus instead of allocating new ones
+  // TODO: Remove once ice supports any amount of media streams.
+  availablePorts_[interface].pop_front();
+
+  /*
+  // TODO: I'm suspecting this may sometimes hang Kvazzup at the start
+  if(availablePorts_.size() >= 1)
   {
     QUdpSocket test_port1;
     QUdpSocket test_port2;
@@ -165,7 +159,6 @@ uint16_t NetworkCandidates::nextAvailablePortPair()
     {
       newLowerPort = availablePorts_.at(0);
       availablePorts_.pop_front();
-      remainingPorts_ -= 2;
       qDebug() << "Trying to bind ports:" << newLowerPort << "and" << newLowerPort + 1;
 
     } while(!test_port1.bind(newLowerPort) && !test_port2.bind(newLowerPort + 1));
@@ -174,9 +167,9 @@ uint16_t NetworkCandidates::nextAvailablePortPair()
   }
   else
   {
-    qDebug() << "Could not reserve ports. Remaining ports:" << remainingPorts_
-             << "deque size:" << availablePorts_.size();
+    qDebug() << "Could not reserve ports. Ports available:" << availablePorts_.size();
   }
+  */
   portLock_.unlock();
 
   printDebug(DEBUG_NORMAL, "SDP Parameter Manager",
@@ -185,15 +178,22 @@ uint16_t NetworkCandidates::nextAvailablePortPair()
   return newLowerPort;
 }
 
-void NetworkCandidates::makePortPairAvailable(uint16_t lowerPort)
+void NetworkCandidates::makePortPairAvailable(QString interface, uint16_t lowerPort)
 {
+
+
   if(lowerPort != 0)
   {
-    //qDebug() << "Freed ports:" << lowerPort << "/" << lowerPort + 1
-    //         << "Ports available:" << remainingPorts_;
     portLock_.lock();
-    availablePorts_.push_back(lowerPort);
-    remainingPorts_ += 2;
+    if (availablePorts_.find(interface) == availablePorts_.end())
+    {
+      portLock_.unlock();
+      printWarning(this, "Couldn't find interface when making ports available.");
+      return;
+    }
+    //qDebug() << "Freed ports:" << lowerPort << "/" << lowerPort + 1;
+
+    availablePorts_[interface].push_back(lowerPort);
     portLock_.unlock();
   }
 }
