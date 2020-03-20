@@ -9,6 +9,12 @@
 #include <deque>
 
 // This class handles the reservation of ports for ICE candidates.
+struct STUNRequest
+{
+  UDPServer udp;
+  StunMessageFactory message;
+};
+
 
 class NetworkCandidates : public QObject
 {
@@ -32,10 +38,13 @@ public:
 
 private slots:
   void processReply(const QNetworkDatagram &packet);
-  void sendSTUNserverRequest(QHostInfo info);
+
+  // sends STUN request through each of our interfaces
+  void handleStunHostLookup(QHostInfo info);
 
 private:
-
+  void sendSTUNserverRequest(QHostAddress localAddress, uint16_t localPort,
+                             QHostAddress serverAddress, uint16_t serverPort);
   void wantAddress(QString stunServer);
   void createSTUNCandidate(QHostAddress local, quint16 localPort,
                            QHostAddress stun, quint16 stunPort);
@@ -47,8 +56,8 @@ private:
   bool isPrivateNetwork(const QString &address);
 
   QHostAddress stunAddress_;
-  UDPServer *udp_;
-  StunMessageFactory stunmsg_;
+
+  std::map<QString, std::shared_ptr<STUNRequest>> requests_;
 
   QMutex portLock_;
 
@@ -64,6 +73,6 @@ private:
   // key is stun address
   std::map<QString, STUNEntry> stunPorts_;
 
-  // key is sessionID
+  // key is sessionID, 0 is STUN
   std::map<uint32_t, QList<std::pair<QString, uint16_t>>> reservedPorts_;
 };

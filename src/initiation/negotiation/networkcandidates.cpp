@@ -6,22 +6,18 @@
 #include <QUdpSocket>
 #include <QDebug>
 
-
-const uint16_t STUN_PORT        = 21000;
 const uint16_t GOOGLE_STUN_PORT = 19302;
 
 
 NetworkCandidates::NetworkCandidates()
 : stunAddress_(QHostAddress("")),
-  udp_(new UDPServer),
-  stunmsg_()
+  requests_()
 {}
 
 
 NetworkCandidates::~NetworkCandidates()
 {
-  delete udp_;
-  udp_ = nullptr;
+  requests_.clear();
 }
 
 
@@ -250,53 +246,72 @@ void NetworkCandidates::cleanupSession(uint32_t sessionID)
 void NetworkCandidates::wantAddress(QString stunServer)
 {
   // To find the IP address of qt-project.org
-  QHostInfo::lookupHost(stunServer, this, SLOT(sendSTUNserverRequest(QHostInfo)));
+  QHostInfo::lookupHost(stunServer, this, SLOT(handleStunHostLookup(QHostInfo)));
 }
 
 
-
-void NetworkCandidates::sendSTUNserverRequest(QHostInfo info)
+void NetworkCandidates::handleStunHostLookup(QHostInfo info)
 {
-  if (STUN_PORT == 0)
+  if (availablePorts_.empty())
   {
-    printProgramError(this, "Not Stun port set. Can't get STUN address.");
+    printProgramError(this, "Interfaces have not been set before sending STUN requests");
     return;
   }
 
   const auto addresses = info.addresses();
-  QHostAddress address;
+  QHostAddress serverAddress;
   if(addresses.size() != 0)
   {
-    address = addresses.at(0);
+    serverAddress = addresses.at(0);
   }
   else
   {
     return;
   }
-  printNormal(this, "Got STUN server address. Sending STUN request",
-              {"Address"}, {address.toString()});
-
-  udp_->bind(QHostAddress::AnyIPv4, STUN_PORT);
-
-  QObject::connect(udp_,   &UDPServer::datagramAvailable,
-                   this,   &NetworkCandidates::processReply);
-
-  STUNMessage request = stunmsg_.createRequest();
-  QByteArray message  = stunmsg_.hostToNetwork(request);
-
-  stunmsg_.cacheRequest(request);
 
   // Send STUN-Request through all the interfaces, since we don't know which is
   // connected to the internet. Most of them will fail.
-  QList<QHostAddress> interfaces =  QNetworkInterface::allAddresses();
-  for (auto interface : interfaces)
+
+  for (auto& interface : availablePorts_)
   {
-    if (!interface.isLoopback())
-    {
-      udp_->sendData(message, interface, address, GOOGLE_STUN_PORT, false);
-    }
+    uint16_t interfacePort = nextAvailablePortPair(interface.first, 0); // use 0 as STUN sessionID
+    sendSTUNserverRequest(QHostAddress(interface.first), interfacePort,
+                          serverAddress,                 GOOGLE_STUN_PORT);
   }
 }
+
+
+void NetworkCandidates::sendSTUNserverRequest(QHostAddress localAddress,
+                                              uint16_t localPort,
+                                              QHostAddress serverAddress,
+                                              uint16_t serverPort)
+{
+  if (localPort == 0 || serverPort == 0)
+  {
+    printProgramError(this, "Not port set. Can't get STUN address.");
+    return;
+  }
+
+  printNormal(this, "Sending STUN server request", {"Path"},
+          {localAddress.toString() + ":" + QString::number(localPort) + " -> " +
+           serverAddress.toString() + ":" + QString::number(serverPort)});
+
+  requests_[localAddress.toString()] = std::shared_ptr<STUNRequest>(new STUNRequest);
+  requests_[localAddress.toString()]->udp.bind(localAddress, localPort);
+
+  QObject::connect(&requests_[localAddress.toString()]->udp, &UDPServer::datagramAvailable,
+                   this,              &NetworkCandidates::processReply);
+
+  STUNMessage request = requests_[localAddress.toString()]->message.createRequest();
+  QByteArray message  = requests_[localAddress.toString()]->message.hostToNetwork(request);
+
+  requests_[localAddress.toString()]->message.cacheRequest(request);
+
+  // udp_ records localport when binding so we don't hate specify it here
+  requests_[localAddress.toString()]->udp.sendData(message, localAddress,
+                                                   serverAddress, serverPort, false);
+}
+
 
 void NetworkCandidates::processReply(const QNetworkDatagram& packet)
 {
@@ -306,14 +321,22 @@ void NetworkCandidates::processReply(const QNetworkDatagram& packet)
         "Received too small response to STUN query!");
     return;
   }
+
+  if (requests_.find(packet.destinationAddress().toString()) == requests_.end())
+  {
+    printWarning(this, "Got stun request to an interface which has not sent one!",
+    {"Interface"}, {packet.destinationAddress().toString() + ":" + QString::number(packet.destinationPort())});
+    return;
+  }
+
   QByteArray data = packet.data();
 
   QString message = QString::fromStdString(data.toHex().toStdString());
-  STUNMessage response = stunmsg_.networkToHost(data);
+  STUNMessage response = requests_[packet.destinationAddress().toString()]->message.networkToHost(data);
 
-  if (!stunmsg_.validateStunResponse(response))
+  if (!requests_[packet.destinationAddress().toString()]->message.validateStunResponse(response))
   {
-    printWarning(this, "Invalid STUN response from server!");
+    printWarning(this, "Invalid STUN response from server!", {"Message"}, {message});
     return;
   }
 

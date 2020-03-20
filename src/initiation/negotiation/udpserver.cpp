@@ -27,7 +27,7 @@ bool UDPServer::bindSocket(const QHostAddress& address, quint16 port, enum SOCKE
   }
   else
   {
-    printNormal(this, "Binded UDP Port", {"Address"}, addressDebug);
+    //printNormal(this, "Binded UDP Port", {"Address"}, addressDebug);
   }
 
   switch (type)
