@@ -8,6 +8,7 @@
 
 const uint16_t GOOGLE_STUN_PORT = 19302;
 
+const uint16_t STUNADDRESSPOOL = 5;
 
 NetworkCandidates::NetworkCandidates():
   requests_(),
@@ -69,6 +70,8 @@ void NetworkCandidates::createSTUNCandidate(QHostAddress local, quint16 localPor
 
   stunAddresses_.push_back({stun, stunPort});
   stunBindings_.push_back({local, localPort});
+
+  //moreSTUNCandidates();
 }
 
 
@@ -114,11 +117,19 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::stu
 {
   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> addresses
       =   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> (new QList<std::pair<QHostAddress, uint16_t>>());
+  if (!stunAddresses_.empty())
+  {
+    addresses->push_back(stunAddresses_.front());
+    stunAddresses_.pop_front();
 
-  addresses->push_back(stunAddresses_.front());
-  stunAddresses_.pop_front();
+    // TODO: Move reservedports reservation from stun to sessionID
 
-  // TODO: Move reservedports reservation from stun to sessionID
+    //moreSTUNCandidates();
+  }
+  else
+  {
+    printWarning(this, "No STUN candidates found!");
+  }
 
   return addresses;
 }
@@ -130,8 +141,15 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::stu
   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> addresses
       =   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> (new QList<std::pair<QHostAddress, uint16_t>>());
 
-  addresses->push_back(stunBindings_.front());
-  stunBindings_.pop_front();
+  if (!stunBindings_.empty())
+  {
+    addresses->push_back(stunBindings_.front());
+    stunBindings_.pop_front();
+  }
+  else
+  {
+    printWarning(this, "No STUN bindings added!");
+  }
 
   return addresses;
 }
@@ -200,8 +218,8 @@ uint16_t NetworkCandidates::nextAvailablePortPair(QString interface, uint32_t se
   */
   portLock_.unlock();
 
-  printDebug(DEBUG_NORMAL, "SDP Parameter Manager",
-             "Binding finished", {"Bound lower port"}, {QString::number(newLowerPort)});
+  //printDebug(DEBUG_NORMAL, "SDP Parameter Manager",
+  //           "Binding finished", {"Bound lower port"}, {QString::number(newLowerPort)});
 
   return newLowerPort;
 }
@@ -281,10 +299,9 @@ void NetworkCandidates::handleStunHostLookup(QHostInfo info)
   }
 
   const auto addresses = info.addresses();
-  QHostAddress serverAddress;
   if(addresses.size() != 0)
   {
-    serverAddress = addresses.at(0);
+    stunServerAddress_ = addresses.at(0);
   }
   else
   {
@@ -294,11 +311,26 @@ void NetworkCandidates::handleStunHostLookup(QHostInfo info)
   // Send STUN-Request through all the interfaces, since we don't know which is
   // connected to the internet. Most of them will fail.
 
-  for (auto& interface : availablePorts_)
+  moreSTUNCandidates();
+}
+
+void NetworkCandidates::moreSTUNCandidates()
+{
+  if (!stunServerAddress_.isNull())
   {
-    uint16_t interfacePort = nextAvailablePortPair(interface.first, 0); // use 0 as STUN sessionID
-    sendSTUNserverRequest(QHostAddress(interface.first), interfacePort,
-                          serverAddress,                 GOOGLE_STUN_PORT);
+    if(stunAddresses_.size() < STUNADDRESSPOOL)
+    {
+      for (auto& interface : availablePorts_)
+      {
+        // use 0 as STUN sessionID
+        sendSTUNserverRequest(QHostAddress(interface.first), nextAvailablePortPair(interface.first, 0),
+                              stunServerAddress_,                 GOOGLE_STUN_PORT);
+      }
+    }
+  }
+  else
+  {
+    printProgramError(this, "STUN server address not set!");
   }
 }
 
@@ -318,7 +350,11 @@ void NetworkCandidates::sendSTUNserverRequest(QHostAddress localAddress,
           {localAddress.toString() + ":" + QString::number(localPort) + " -> " +
            serverAddress.toString() + ":" + QString::number(serverPort)});
 
-  requests_[localAddress.toString()] = std::shared_ptr<STUNRequest>(new STUNRequest);
+  if (requests_.find(localAddress.toString()) == requests_.end())
+  {
+    requests_[localAddress.toString()] = std::shared_ptr<STUNRequest>(new STUNRequest);
+  }
+
   requests_[localAddress.toString()]->udp.bind(localAddress, localPort);
 
   QObject::connect(&requests_[localAddress.toString()]->udp, &UDPServer::datagramAvailable,

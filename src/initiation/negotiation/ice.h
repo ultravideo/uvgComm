@@ -24,6 +24,7 @@ class ICE : public QObject
         generateICECandidates(std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> localCandidates,
                               std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> globalCandidates,
                               std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> stunCandidates,
+                              std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> stunBindings,
                               std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> turnCandidates);
 
     // Call this function to start the connectivity check/nomination process.

@@ -39,6 +39,7 @@ bool Negotiation::generateOfferSDP(QString localAddress,
   localSDP->candidates = ice_->generateICECandidates(nCandidates_.localCandidates(1, sessionID),
                                                      nCandidates_.globalCandidates(1, sessionID),
                                                      nCandidates_.stunCandidates(1, sessionID),
+                                                     nCandidates_.stunBindings(1, sessionID),
                                                      nCandidates_.turnCandidates(1, sessionID));
 
   if(localSDP != nullptr)
@@ -72,6 +73,7 @@ bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
   localSDP->candidates = ice_->generateICECandidates(nCandidates_.localCandidates(1, sessionID),
                                                      nCandidates_.globalCandidates(1, sessionID),
                                                      nCandidates_.stunCandidates(1, sessionID),
+                                                     nCandidates_.stunBindings(1, sessionID),
                                                      nCandidates_.turnCandidates(1, sessionID));
 
   if (localSDP == nullptr)

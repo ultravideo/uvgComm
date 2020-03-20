@@ -36,8 +36,6 @@ public:
   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> turnCandidates(uint8_t streams,
                                                             uint32_t sessionID);
 
-
-
   void cleanupSession(uint32_t sessionID);
 
 private slots:
@@ -53,11 +51,15 @@ private:
   void createSTUNCandidate(QHostAddress local, quint16 localPort,
                            QHostAddress stun, quint16 stunPort);
 
+  void moreSTUNCandidates();
+
   // return the lower port of the pair and removes both from list of available ports
   uint16_t nextAvailablePortPair(QString interface, uint32_t sessionID);
   void makePortPairAvailable(QString interface, uint16_t lowerPort);
 
   bool isPrivateNetwork(const QString &address);
+
+  QHostAddress stunServerAddress_;
 
   std::map<QString, std::shared_ptr<STUNRequest>> requests_;
 

@@ -31,8 +31,17 @@ QList<std::shared_ptr<ICEInfo>> ICE::generateICECandidates(
     std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > localCandidates,
     std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > globalCandidates,
     std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > stunCandidates,
+    std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > stunBindings,
     std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > turnCandidates)
 {
+  printDebug(DEBUG_NORMAL, this, "Start Generating ICE candidates", {"Local", "Global", "STUN", "STUN bindings", "TURN"},
+            {QString::number(localCandidates->size()),
+             QString::number(globalCandidates->size()),
+             QString::number(stunCandidates->size()),
+             QString::number(stunBindings->size()),
+             QString::number(turnCandidates->size())});
+
+
   QTime time = QTime::currentTime();
   qsrand((uint)time.msec());
 
@@ -123,9 +132,11 @@ QList<std::shared_ptr<ICEPair>> ICE::makeCandidatePairs(
   {
     for (int k = 0; k < remote.size(); ++k)
     {
+      // TODO: What restriction should the pairings have?
+      // the global addresses should at least be matched to stun addresses
+
       // type (host/server reflexive) and component (RTP/RTCP) has to match
-      if (local[i]->type == remote[k]->type &&
-          local[i]->component == remote[k]->component)
+      if (local[i]->component == remote[k]->component)
       {
         std::shared_ptr<ICEPair> pair = std::make_shared<ICEPair>();
 
@@ -139,6 +150,7 @@ QList<std::shared_ptr<ICEPair>> ICE::makeCandidatePairs(
     }
   }
 
+  printNormal(this, "Created" + QString::number(pairs.size()) + " candidate pairs");
   return pairs;
 }
 
