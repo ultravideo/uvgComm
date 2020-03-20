@@ -144,10 +144,12 @@ uint16_t NetworkCandidates::nextAvailablePortPair(QString interface, uint32_t se
 
   newLowerPort = availablePorts_[interface].at(0);
   availablePorts_[interface].pop_front();
+  reservedPorts_[sessionID].push_back(std::pair<QString, uint16_t>(interface, newLowerPort));
 
   // This is because of a hack in ICE which uses upper ports for opus instead of allocating new ones
   // TODO: Remove once ice supports any amount of media streams.
   availablePorts_[interface].pop_front();
+  reservedPorts_[sessionID].push_back(std::pair<QString, uint16_t>(interface, newLowerPort + 2));
 
   /*
   // TODO: I'm suspecting this may sometimes hang Kvazzup at the start
@@ -218,4 +220,20 @@ bool NetworkCandidates::isPrivateNetwork(const QString& address)
   }
 
   return false;
+}
+
+
+void NetworkCandidates::cleanupSession(uint32_t sessionID)
+{
+  if (reservedPorts_.find(sessionID) == reservedPorts_.end())
+  {
+    printWarning(this, "Tried to cleanup session with no reserved ports");
+    return;
+  }
+
+  for(auto& session : reservedPorts_[sessionID])
+  {
+    makePortPairAvailable(session.first, session.second);
+  }
+  reservedPorts_.erase(sessionID);
 }

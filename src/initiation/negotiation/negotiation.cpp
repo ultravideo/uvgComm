@@ -180,6 +180,7 @@ void Negotiation::endSession(uint32_t sessionID)
   }
 
   ice_->cleanupSession(sessionID);
+  nCandidates_.cleanupSession(sessionID);
 }
 
 

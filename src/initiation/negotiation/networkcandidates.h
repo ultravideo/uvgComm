@@ -47,6 +47,8 @@ private:
 
   QMutex portLock_;
 
+  // TODO: use pointers to reduce copying
+
   // Keeps a list of all available ports. Has only every other port because of rtcp
   // Key is the ip address of network interface.
   std::map<QString, std::deque<uint16_t>> availablePorts_;
