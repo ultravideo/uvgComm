@@ -58,8 +58,8 @@ void ConnectionTester::run()
 
   if (!stun_->sendBindingRequest(pair_.get(), controller_))
   {
-    printDebug(DEBUG_ERROR, this,   "Connectivity checks failed.", {"Local", "Remote"},
-    {pair_->local->address + ":" + QString::number(pair_->local->port),
+    printNormal(this,   "No connection found.", {"Path"},
+    {pair_->local->address + ":" + QString::number(pair_->local->port) + " -> " +
      pair_->remote->address + ":" + QString::number(pair_->remote->port)});
     return;
   }
@@ -74,7 +74,7 @@ void ConnectionTester::run()
     return;
   }
 
-  //... otherwise start waitin for nomination requests
+  //... otherwise start waiting for nomination requests
   if (!stun_->sendNominationResponse(pair_.get()))
   {
     printDebug(DEBUG_ERROR, this,  "Failed to receive nomination for candidate: ",

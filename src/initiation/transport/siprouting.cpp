@@ -25,7 +25,7 @@ void SIPRouting::processResponseViaFields(QList<ViaInfo>& vias,
       if (via.rportValue != 0 && via.receivedAddress != "")
       {
         printDebug(DEBUG_NORMAL, "SIPRouting", "Found our received address and rport",
-                  {"Address"}, {via.receivedAddress + ":" + via.rportValue});
+                  {"Address"}, {via.receivedAddress + ":" + QString::number(via.rportValue)});
 
         contactAddress_ = via.receivedAddress;
         contactPort_ = via.rportValue;

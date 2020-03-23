@@ -1,7 +1,8 @@
 #pragma once
 
-#include <memory>
 #include <QString>
+
+#include <memory>
 
 enum PAIR {
   PAIR_WAITING     = 0,
@@ -31,7 +32,7 @@ struct ICEInfo
   int priority;        /* TODO: */
 
   QString address;
-  int port;
+  quint16 port;
 
   QString type;        /* host/relayed */
   QString rel_address; /* for turn, not used (currently)  */

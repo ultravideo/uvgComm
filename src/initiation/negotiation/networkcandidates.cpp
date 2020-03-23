@@ -358,7 +358,7 @@ void NetworkCandidates::sendSTUNserverRequest(QHostAddress localAddress,
     requests_[localAddress.toString()] = std::shared_ptr<STUNRequest>(new STUNRequest);
   }
 
-  requests_[localAddress.toString()]->udp.bind(localAddress, localPort);
+  requests_[localAddress.toString()]->udp.bindSocket(localAddress, localPort, false);
 
   QObject::connect(&requests_[localAddress.toString()]->udp, &UDPServer::datagramAvailable,
                    this,              &NetworkCandidates::processReply);
@@ -370,7 +370,7 @@ void NetworkCandidates::sendSTUNserverRequest(QHostAddress localAddress,
 
   // udp_ records localport when binding so we don't hate specify it here
   requests_[localAddress.toString()]->udp.sendData(message, localAddress,
-                                                   serverAddress, serverPort, false);
+                                                   serverAddress, serverPort);
 }
 
 

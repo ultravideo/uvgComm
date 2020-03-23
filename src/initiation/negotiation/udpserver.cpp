@@ -9,7 +9,7 @@ UDPServer::UDPServer():
   sendPort_(0)
 {}
 
-bool UDPServer::bindSocket(const QHostAddress& address, quint16 port, enum SOCKET_TYPE type)
+bool UDPServer::bindSocket(const QHostAddress& address, quint16 port, bool multiplexed)
 {
   this->unbind();
 
@@ -17,32 +17,28 @@ bool UDPServer::bindSocket(const QHostAddress& address, quint16 port, enum SOCKE
   socket_ = new QUdpSocket(this);
 
   QString addressDebug = address.toString() + ":" + QString::number(port);
-
   if(!socket_->bind(address, port))
   {
-    printDebug(DEBUG_ERROR, "UDPServer", 
-        "Failed to bind UDP Socket to", {"Address"},
-          {addressDebug});
+    printError(this, "Failed to bind UDP Socket to", {"Interface"}, {addressDebug});
     return false;
   }
   else
   {
-    //printNormal(this, "Binded UDP Port", {"Address"}, addressDebug);
+    printNormal(this, "Binded UDP Port", {"Interface"}, addressDebug);
   }
 
-  switch (type)
+  if (!multiplexed)
   {
-    case SOCKET_RAW:
-      connect(socket_, &QUdpSocket::readyRead, this, &UDPServer::readDatagram);
-      break;
-
-    case SOCKET_MULTIPLEXED:
-      connect(socket_, &QUdpSocket::readyRead, this, &UDPServer::readMultiplexData);
-      break;
+    connect(socket_, &QUdpSocket::readyRead, this, &UDPServer::readDatagram);
+  }
+  else
+  {
+    connect(socket_, &QUdpSocket::readyRead, this, &UDPServer::readMultiplexData);
   }
 
   return true;
 }
+
 
 void UDPServer::unbind()
 {
@@ -57,33 +53,15 @@ void UDPServer::unbind()
   }
 }
 
-bool UDPServer::bind(const QHostAddress &address, quint16 port)
-{
-  return bindSocket(address, port, SOCKET_RAW);
-}
-
-
-bool UDPServer::bindMultiplexed(const QHostAddress& address, quint16 port)
-{
-  return bindSocket(address, port, SOCKET_MULTIPLEXED);
-}
 
 bool UDPServer::sendData(QByteArray& data, const QHostAddress &local,
                          const QHostAddress& remote,
-                         quint16 remotePort,
-                         bool untilReply)
+                         quint16 remotePort)
 {
-
-  if(data.size() > 512)
+  if(data.size() > 512 || data.size() == 0)
   {
-    printDebug(DEBUG_WARNING, "UDPServer",
-                "Sending too large UDP packet!");
-   // TODO do something maybe
-  }
-  else if (data.size() == 0)
-  {
-    printDebug(DEBUG_WARNING, "UDPServer",
-                "Trying to send an empty UDP packet!");
+    printProgramError(this, "Sending UDP packet with invalid size. Acceptable: 1 - 512",
+            {"Size"}, {QString::number(data.size())});
     return false;
   }
 
@@ -97,9 +75,6 @@ bool UDPServer::sendData(QByteArray& data, const QHostAddress &local,
                remote.toString() + ":" + QString::number(remotePort)});
     return false;
   }
-  //printNormal(this, "Successfully sent UDP datagram!", {"Path"},
-  //          {local.toString() + ":" + QString::number(sendPort_) + " -> " +
-  //           remote.toString() + ":" + QString::number(remotePort)});
 
   return true;
 }
@@ -120,23 +95,28 @@ void UDPServer::readMultiplexData()
   {
     QNetworkDatagram datagram = socket_->receiveDatagram();
 
-    // is anyone listening to  messages from this sender?
-    if (listeners_.contains(datagram.senderAddress().toString()))
+    // is anyone listening to messages from this sender?
+    if (listeners_.contains(datagram.senderAddress().toString()) &&
+        listeners_[datagram.senderAddress().toString()].contains(datagram.senderPort()))
     {
-      if (listeners_[datagram.senderAddress().toString()]
-          .contains(datagram.senderPort()))
-      {
-        QMetaObject::invokeMethod(
-            listeners_[datagram.senderAddress().toString()][datagram.senderPort()],
-            "recvStunMessage",
-            Qt::DirectConnection,
-            Q_ARG(QNetworkDatagram, datagram)
-        );
-      }
+      QMetaObject::invokeMethod(
+          listeners_[datagram.senderAddress().toString()][datagram.senderPort()],
+          "recvStunMessage",
+          Qt::DirectConnection,
+          Q_ARG(QNetworkDatagram, datagram)
+      );
+    }
+    else
+    {
+      printError(this, "Could not find listener for data", {"Address"}, {
+                   datagram.senderAddress().toString() + "<-" + QString::number(datagram.senderPort())});
     }
   }
 }
 
+
+// TODO: This function creates a cross-dependency between UDPServer and Stun.
+// This is not recommended. This class should not know anything about Stun.
 void UDPServer::expectReplyFrom(Stun *stun, QString& address, quint16 port)
 {
     listeners_[address][port] = stun;

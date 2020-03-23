@@ -8,12 +8,6 @@
 
 #include <stdint.h>
 
-enum SOCKET_TYPE
-{
-  SOCKET_RAW         = 1,
-  SOCKET_MULTIPLEXED = 2,
-};
-
 class QUdpSocket;
 class Stun;
 
@@ -23,14 +17,13 @@ class UDPServer : public QObject
 public:
   UDPServer();
 
-  bool bind(const QHostAddress& address, quint16 port);
-  bool bindMultiplexed(const QHostAddress& address, quint16 port);
+  bool bindSocket(const QHostAddress& address, quint16 port, bool multiplexed);
 
   void unbind();
 
   // sends the data using Qt UDP classes.
   bool sendData(QByteArray& data, const QHostAddress &local,
-                const QHostAddress &remote, quint16 remotePort, bool untilReply);
+                const QHostAddress &remote, quint16 remotePort);
 
   void expectReplyFrom(Stun *stun, QString& address, quint16 port);
 
@@ -47,8 +40,6 @@ private slots:
   void readMultiplexData();
 
 private:
-  bool bindSocket(const QHostAddress& address, quint16 port, enum SOCKET_TYPE type);
-
   QUdpSocket* socket_;
 
   QMap<QString, QMap<quint16, Stun *>> listeners_;

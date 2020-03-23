@@ -270,7 +270,9 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
 bool FilterGraph::connectFilters(std::shared_ptr<Filter> filter, std::shared_ptr<Filter> previous)
 {
   Q_ASSERT(filter != nullptr && previous != nullptr);
-  qDebug() << "FilterGraph : Connecting filters:" << previous->getName() << "->" << filter->getName();
+
+  printDebug(DEBUG_NORMAL, "FilterGraph", "Connecting filters",
+              {"Connection"}, {previous->getName() + " -> " + filter->getName()});
 
   if(previous->outputType() != filter->inputType())
   {

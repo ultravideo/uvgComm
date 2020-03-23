@@ -151,9 +151,9 @@ void FlowAgent::run()
       // anything but to test the connection
       //
       // Binding might fail, if so happens no STUN objects are created for this socket
-      if (buckets[bucketNum].server->bindMultiplexed(
+      if (!buckets[bucketNum].server->bindSocket(
             QHostAddress(candidates_->at(i)->local->address),
-            candidates_->at(i)->local->port) == false)
+            candidates_->at(i)->local->port, true))
       {
         delete buckets[bucketNum].server;
         buckets[bucketNum].server = nullptr;
