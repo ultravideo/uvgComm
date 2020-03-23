@@ -361,7 +361,7 @@ void NetworkCandidates::sendSTUNserverRequest(QHostAddress localAddress,
   requests_[localAddress.toString()]->udp.bindSocket(localAddress, localPort, false);
 
   QObject::connect(&requests_[localAddress.toString()]->udp, &UDPServer::datagramAvailable,
-                   this,              &NetworkCandidates::processReply);
+                   this,              &NetworkCandidates::processSTUNReply);
 
   STUNMessage request = requests_[localAddress.toString()]->message.createRequest();
   QByteArray message  = requests_[localAddress.toString()]->message.hostToNetwork(request);
@@ -374,7 +374,7 @@ void NetworkCandidates::sendSTUNserverRequest(QHostAddress localAddress,
 }
 
 
-void NetworkCandidates::processReply(const QNetworkDatagram& packet)
+void NetworkCandidates::processSTUNReply(const QNetworkDatagram& packet)
 {
   if(packet.data().size() < 20)
   {
@@ -386,7 +386,7 @@ void NetworkCandidates::processReply(const QNetworkDatagram& packet)
   if (requests_.find(packet.destinationAddress().toString()) == requests_.end())
   {
     printWarning(this, "Got stun request to an interface which has not sent one!",
-    {"Interface"}, {packet.destinationAddress().toString() + ":" + QString::number(packet.destinationPort())});
+      {"Interface"}, {packet.destinationAddress().toString() + ":" + QString::number(packet.destinationPort())});
     return;
   }
 
@@ -394,6 +394,8 @@ void NetworkCandidates::processReply(const QNetworkDatagram& packet)
 
   QString message = QString::fromStdString(data.toHex().toStdString());
   STUNMessage response = requests_[packet.destinationAddress().toString()]->message.networkToHost(data);
+  // free socket for further use
+  requests_[packet.destinationAddress().toString()]->udp.unbind();
 
   if (!requests_[packet.destinationAddress().toString()]->message.validateStunResponse(response))
   {

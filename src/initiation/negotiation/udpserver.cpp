@@ -82,7 +82,7 @@ bool UDPServer::sendData(QByteArray& data, const QHostAddress &local,
 
 void UDPServer::readDatagram()
 {
-  while (socket_->hasPendingDatagrams())
+  while (socket_ && socket_->hasPendingDatagrams())
   {
     emit datagramAvailable(socket_->receiveDatagram());
   }
@@ -109,7 +109,13 @@ void UDPServer::readMultiplexData()
     else
     {
       printError(this, "Could not find listener for data", {"Address"}, {
-                   datagram.senderAddress().toString() + "<-" + QString::number(datagram.senderPort())});
+                   datagram.destinationAddress().toString() + ":" + QString::number(datagram.destinationPort()) + " <- " +
+                   datagram.senderAddress().toString() + ":" + QString::number(datagram.senderPort())});
+      if (socket_)
+      {
+        printError(this, "Socket", {"Interface"}, {
+                     socket_->localAddress().toString() + ":" + QString::number(socket_->localPort())});
+      }
     }
   }
 }

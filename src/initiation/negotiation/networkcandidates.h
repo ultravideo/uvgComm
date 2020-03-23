@@ -39,7 +39,7 @@ public:
   void cleanupSession(uint32_t sessionID);
 
 private slots:
-  void processReply(const QNetworkDatagram &packet);
+  void processSTUNReply(const QNetworkDatagram &packet);
 
   // sends STUN request through each of our interfaces
   void handleStunHostLookup(QHostInfo info);
