@@ -141,10 +141,7 @@ void FlowAgent::run()
         candidates_->at(i)->local->port != prevPort)
     {
       bucketNum++;
-      buckets.push_back({
-          .server = new UDPServer,
-          .pairs  = QList<PairStunInstance>()
-      });
+      buckets.push_back({new UDPServer, QList<PairStunInstance>()});
 
       // because we cannot modify create new objects from child threads (in this case new socket)
       // we must initialize both UDPServer and Stun objects here so that ConnectionTester doesn't have to do
@@ -165,10 +162,8 @@ void FlowAgent::run()
       continue;
     }
 
-    buckets[bucketNum].pairs.push_back({
-        .stun = new Stun(buckets[bucketNum].server),
-        .pair = candidates_->at(i)
-    });
+    buckets[bucketNum].pairs.push_back({new Stun(buckets[bucketNum].server),
+                                        candidates_->at(i)});
 
     // when the UDPServer receives a datagram from remote->address:remote->port,
     // it will send a signal containing the datagram to this Stun object

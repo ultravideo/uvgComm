@@ -243,10 +243,15 @@ INCLUDEPATH += $$PWD/../include/
 
 win32-msvc{
 # on msvc we use live666 because it compiles
+# available at https://github.com/MobotixAG/live666
 INCLUDEPATH += $$PWD/../include/live666/liveMedia/include
 INCLUDEPATH += $$PWD/../include/live666/groupsock/include
 INCLUDEPATH += $$PWD/../include/live666/UsageEnvironment/include
 INCLUDEPATH += $$PWD/../include/live666/BasicUsageEnvironment/include
+
+INCLUDEPATH += $$PWD/../include/kvzrtp
+INCLUDEPATH += $$PWD/../include/kvzrtp/formats
+
 
 LIBS += -L$$PWD/../msvc_libs
 LIBS += -llive666
