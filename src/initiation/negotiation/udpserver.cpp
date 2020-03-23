@@ -27,13 +27,13 @@ bool UDPServer::bindSocket(const QHostAddress& address, quint16 port, bool multi
     printNormal(this, "Binded UDP Port", {"Interface"}, addressDebug);
   }
 
-  if (!multiplexed)
+  if (multiplexed)
   {
-    connect(socket_, &QUdpSocket::readyRead, this, &UDPServer::readDatagram);
+    connect(socket_, &QUdpSocket::readyRead, this, &UDPServer::readMultiplexData);
   }
   else
   {
-    connect(socket_, &QUdpSocket::readyRead, this, &UDPServer::readMultiplexData);
+    connect(socket_, &QUdpSocket::readyRead, this, &UDPServer::readDatagram);
   }
 
   return true;

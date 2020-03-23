@@ -146,7 +146,7 @@ bool Stun::controllerSendBindingRequest(ICEPair *pair)
     }
   }
 
-  if (multiplex_ == false)
+  if (!multiplex_)
   {
     udp_->unbind();
   }
@@ -200,12 +200,11 @@ bool Stun::controlleeSendBindingRequest(ICEPair *pair)
     }
   }
 
-  if (msgReceived)
+  if (!msgReceived)
   {
-    printDebug(DEBUG_WARNING, "STUN",
-        "Failed to receive STUN Binding Request from remote!", {"Path"},
-    {pair->local->address + ":" + QString::number(pair->local->port) + " <- " +
-     pair->remote->address + ":" + QString::number(pair->remote->port)});
+    printWarning(this, "Failed to receive STUN Binding Request from remote!", {"Path"},
+          {pair->local->address + ":" + QString::number(pair->local->port) + " <- " +
+           pair->remote->address + ":" + QString::number(pair->remote->port)});
 
     if (!multiplex_)
     {
