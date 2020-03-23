@@ -207,8 +207,6 @@ void ICE::handleEndOfNomination(
 )
 {
   Q_ASSERT(sessionID != 0);
-  Q_ASSERT(rtp != nullptr);
-  Q_ASSERT(rtcp != nullptr);
 
   if (rtp == nullptr || rtcp == nullptr)
   {
