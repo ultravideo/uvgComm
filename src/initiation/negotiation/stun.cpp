@@ -130,13 +130,15 @@ bool Stun::controllerSendBindingRequest(ICEPair *pair)
 
       for (int k = 0; k < 3; ++k)
       {
-        udp_->sendData(
+        if (!udp_->sendData(
             message,
             QHostAddress(pair->local->address),
             QHostAddress(pair->remote->address),
             pair->remote->port,
-            false
-        );
+            false))
+        {
+          break;
+        }
         QThread::msleep(20);
       }
 
@@ -161,13 +163,15 @@ bool Stun::controlleeSendBindingRequest(ICEPair *pair)
 
   for (int i = 0; i < 20; ++i)
   {
-    udp_->sendData(
+    if(!udp_->sendData(
       message,
       QHostAddress(pair->local->address),
       QHostAddress(pair->remote->address),
       pair->remote->port,
-      false
-    );
+      false))
+    {
+      break;
+    }
 
     if (waitForStunRequest(20 * (i + 1)))
     {
@@ -442,13 +446,15 @@ bool Stun::sendRequestWaitResponse(ICEPair* pair, QByteArray& request,
   bool msgReceived = false;
   for (int i = 0; i < retries; ++i)
   {
-    udp_->sendData(
+    if(!udp_->sendData(
         request,
         QHostAddress(pair->local->address),
         QHostAddress(pair->remote->address),
         pair->remote->port,
-        false
-    );
+        false))
+    {
+      return false;
+    }
 
     if (waitForStunResponse(baseTimeout * (i + 1)))
     {

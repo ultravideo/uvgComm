@@ -68,7 +68,7 @@ bool UDPServer::bindMultiplexed(const QHostAddress& address, quint16 port)
   return bindSocket(address, port, SOCKET_MULTIPLEXED);
 }
 
-void UDPServer::sendData(QByteArray& data, const QHostAddress &local,
+bool UDPServer::sendData(QByteArray& data, const QHostAddress &local,
                          const QHostAddress& remote,
                          quint16 remotePort,
                          bool untilReply)
@@ -84,7 +84,7 @@ void UDPServer::sendData(QByteArray& data, const QHostAddress &local,
   {
     printDebug(DEBUG_WARNING, "UDPServer",
                 "Trying to send an empty UDP packet!");
-    return;
+    return false;
   }
 
   QNetworkDatagram datagram = QNetworkDatagram(data, remote, remotePort);
@@ -95,13 +95,13 @@ void UDPServer::sendData(QByteArray& data, const QHostAddress &local,
     printWarning(this, "Failed to send UDP datagram!", {"Path"},
               {local.toString() + ":" + QString::number(sendPort_) + " -> " +
                remote.toString() + ":" + QString::number(remotePort)});
+    return false;
   }
-  else
-  {
-    printNormal(this, "Successfully sent UDP datagram!", {"Path"},
-              {local.toString() + ":" + QString::number(sendPort_) + " -> " +
-               remote.toString() + ":" + QString::number(remotePort)});
-  }
+  //printNormal(this, "Successfully sent UDP datagram!", {"Path"},
+  //          {local.toString() + ":" + QString::number(sendPort_) + " -> " +
+  //           remote.toString() + ":" + QString::number(remotePort)});
+
+  return true;
 }
 
 
