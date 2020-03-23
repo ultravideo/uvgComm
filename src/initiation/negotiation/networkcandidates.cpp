@@ -39,11 +39,14 @@ void NetworkCandidates::setPortRange(uint16_t minport,
     if (address.protocol() == QAbstractSocket::IPv4Protocol &&
         !address.isLoopback())
     {
-      availablePorts_.insert(std::pair<QString, std::deque<uint16_t>>(address.toString(),{}));
-
-      for(uint16_t i = minport; i < maxport; i += 2)
+      if (sanityCheck(address, minport))
       {
-        makePortPairAvailable(address.toString(), i);
+        availablePorts_.insert(std::pair<QString, std::deque<uint16_t>>(address.toString(),{}));
+
+        for(uint16_t i = minport; i < maxport; i += 2)
+        {
+          makePortPairAvailable(address.toString(), i);
+        }
       }
     }
   }
@@ -410,3 +413,34 @@ void NetworkCandidates::processReply(const QNetworkDatagram& packet)
     printError(this, "STUN response sent by server was not Xor-mapped! Discarding...");
   }
 }
+
+
+// Tries to bind to port and send a UDP packet just to check
+// if it is worth including in candidates
+bool NetworkCandidates::sanityCheck(QHostAddress interface, uint16_t port)
+{
+  QUdpSocket testSocket;
+
+  if (!testSocket.bind(interface, port))
+  {
+    printNormal(this, "Could not bind to socket. Not adding to candidates", {"Port"}, {
+                  interface.toString() + ":" + QString::number(port)});
+    return false;
+  }
+  QByteArray data = QString("TestString").toLatin1();
+  QNetworkDatagram datagram = QNetworkDatagram(data, interface, port + 1);
+  datagram.setSender(interface, port);
+
+  if (testSocket.writeDatagram(datagram) < 0)
+  {
+    testSocket.abort();
+    printNormal(this, "Could not send data with socket. Not adding to candidates", {"Port"}, {
+                  interface.toString() + ":" + QString::number(port)});
+    return false;
+  }
+
+  testSocket.abort();
+
+  return true;
+}
+

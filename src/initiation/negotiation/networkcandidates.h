@@ -59,6 +59,10 @@ private:
 
   bool isPrivateNetwork(const QString &address);
 
+  // Tries to bind to port and send a UDP packet just to check
+  // if it is worth including in candidates
+  bool sanityCheck(QHostAddress interface, uint16_t port);
+
   QHostAddress stunServerAddress_;
 
   std::map<QString, std::shared_ptr<STUNRequest>> requests_;
