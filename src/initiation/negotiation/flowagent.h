@@ -10,17 +10,6 @@
 #include "icetypes.h"
 
 
-// tells which address each stun candidate bind should be called
-struct STUNBinding
-{
-  QHostAddress stunAddress;
-  quint16 stunPort;
-
-  QHostAddress bindAddress;
-  quint16 bindPort;
-};
-
-
 class FlowAgent : public QThread
 {
   Q_OBJECT
@@ -30,9 +19,6 @@ public:
   ~FlowAgent();
 
   void setCandidates(QList<std::shared_ptr<ICEPair>> *candidates);
-
-  //void setCandidates(QList<std::shared_ptr<ICEPair>> *candidates,
-  //                   QList<std::shared_ptr<STUNBinding>> *stunBindings);
 
   void setSessionID(uint32_t sessionID);
 
@@ -61,7 +47,7 @@ protected:
 private:
 
   QList<std::shared_ptr<ICEPair>> *candidates_;
-  QList<std::shared_ptr<STUNBinding>> *stunBindings_;
+
   uint32_t sessionID_;
 
   bool controller_;

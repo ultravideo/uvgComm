@@ -24,7 +24,6 @@ struct ConnectionBucket
 
 FlowAgent::FlowAgent(bool controller, int timeout):
   candidates_(nullptr),
-  stunBindings_(nullptr),
   sessionID_(0),
   controller_(controller),
   timeout_(timeout)
@@ -38,10 +37,8 @@ FlowAgent::~FlowAgent()
 void FlowAgent::setCandidates(QList<std::shared_ptr<ICEPair>> *candidates)
 {
   Q_ASSERT(candidates != nullptr);
-  Q_ASSERT(candidates->size() != 0);
 
   candidates_ = candidates;
-  //stunBindings_ = stunBindings;
 }
 
 void FlowAgent::setSessionID(uint32_t sessionID)
@@ -258,3 +255,6 @@ void FlowAgent::run()
 
   emit ready(nominated_rtp_, nominated_rtcp_, sessionID_);
 }
+
+
+

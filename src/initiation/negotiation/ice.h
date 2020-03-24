@@ -64,8 +64,6 @@ private slots:
 
     void printCandidate(ICEInfo *candidate);
 
-
-
     // makeCandidatePairs takes a list of local and remote candidates, matches them based on localilty (host/server-reflexive)
     // and component (RTP/RTCP) and returns a list of ICEPairs used for connectivity checks
     QList<std::shared_ptr<ICEPair>> makeCandidatePairs(QList<std::shared_ptr<ICEInfo>>& local,
@@ -74,6 +72,8 @@ private slots:
     void addCandidates(std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> addresses,
                        const QString& candidatesType,
                        QList<std::shared_ptr<ICEInfo>>& candidates);
+
+    void transformBindingCandidates(QList<std::shared_ptr<ICEPair> > &pairs);
 
     bool nominatingConnection_;
 
@@ -99,4 +99,17 @@ private slots:
 
     // key is sessionID
     QMap<uint32_t, struct NominationInfo> nominationInfo_;
+
+    // tells which address each stun candidate bind should be called
+    struct STUNBinding
+    {
+      QHostAddress stunAddress;
+      quint16 stunPort;
+
+      QHostAddress bindAddress;
+      quint16 bindPort;
+    };
+
+    // TODO: This is never emptied meaning it will grow as long as program is running
+    QList<std::shared_ptr<STUNBinding>> stunBindings_;
 };

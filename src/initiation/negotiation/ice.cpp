@@ -50,7 +50,26 @@ QList<std::shared_ptr<ICEInfo>> ICE::generateICECandidates(
 
   addCandidates(localCandidates, "host", iceCandidates);
   addCandidates(globalCandidates, "host", iceCandidates);
-  addCandidates(stunCandidates, "srflx", iceCandidates);
+
+  if (stunCandidates->size() == stunBindings->size())
+  {
+    for (int i = 0; i < stunCandidates->size(); ++i)
+    {
+      // rtp
+      stunBindings_.push_back(std::shared_ptr<STUNBinding>(
+                                new STUNBinding{stunCandidates->at(i).first, stunCandidates->at(i).second,
+                                                stunBindings->at(i).first,   stunBindings->at(i).second}));
+
+      // rtcp
+      stunBindings_.push_back(std::shared_ptr<STUNBinding>(
+                                new STUNBinding{stunCandidates->at(i).first, stunCandidates->at(i).second,
+                                                stunBindings->at(i).first,   stunBindings->at(i).second}));
+      stunBindings_.back()->bindPort += 1;
+      stunBindings_.back()->stunPort += 1;
+    }
+
+    addCandidates(stunCandidates, "srflx", iceCandidates);
+  }
   addCandidates(turnCandidates, "relay", iceCandidates);
 
   return iceCandidates;
@@ -195,6 +214,10 @@ void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local,
       Qt::DirectConnection
   );
 
+  // modify values if we use STUN ports, because they require
+  // different binding for their address.
+  transformBindingCandidates(nominationInfo_[sessionID].pairs);
+
   agent->setCandidates(&nominationInfo_[sessionID].pairs);
   agent->setSessionID(sessionID);
   agent->start();
@@ -276,6 +299,7 @@ ICEMediaInfo ICE::getNominated(uint32_t sessionID)
   };
 }
 
+
 void ICE::cleanupSession(uint32_t sessionID)
 {
   Q_ASSERT(sessionID != 0);
@@ -286,3 +310,22 @@ void ICE::cleanupSession(uint32_t sessionID)
   }
 }
 
+
+void ICE::transformBindingCandidates(QList<std::shared_ptr<ICEPair>>& pairs)
+{
+  for  (auto& pair : pairs)
+  {
+    for (auto& binding : stunBindings_)
+    {
+      if (pair->local->address == binding->stunAddress.toString() &&
+          pair->local->port == binding->stunPort)
+      {
+        pair->local->address = binding->bindAddress.toString();
+        pair->local->port = binding->bindPort;
+        printNormal(this, "Found stun binding, using different address", {"Change"},
+        {binding->stunAddress.toString() + ":" + QString::number(binding->stunPort) + " >> " +
+         binding->bindAddress.toString() + ":" + QString::number(binding->bindPort)});
+      }
+    }
+  }
+}
