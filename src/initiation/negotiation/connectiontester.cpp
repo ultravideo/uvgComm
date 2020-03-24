@@ -70,6 +70,10 @@ void ConnectionTester::run()
   // so exit from ConnectionTester when this connection has been tested...
   if (controller_)
   {
+    printNormal(this, "Controller testing succeeded", {"Pair"}, {
+                  pair_->local->address + ":" + QString::number(pair_->local->port) + " <-> " +
+                  pair_->remote->address + ":" + QString::number(pair_->remote->port)});
+
     emit testingDone(pair_);
     return;
   }
@@ -84,6 +88,10 @@ void ConnectionTester::run()
     pair_->state = PAIR_FAILED;
     return;
   }
+
+  printNormal(this, "Non-Controller testing succeeded", {"Pair"}, {
+                pair_->local->address + ":" + QString::number(pair_->local->port) + " <-> " +
+                pair_->remote->address + ":" + QString::number(pair_->remote->port)});
 
   emit testingDone(pair_);
 }

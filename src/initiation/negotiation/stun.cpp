@@ -243,13 +243,13 @@ bool Stun::sendBindingRequest(ICEPair *pair, bool controller)
 
   if (controller)
   {
-    printNormal(this, "Controller starts testing path.", {"Path"}, {
+    printNormal(this, "Controller starts testing.", {"Pair"}, {
                   pair->local->address + ":" + QString::number(pair->local->port) + " -> " +
                   pair->remote->address + ":" + QString::number(pair->remote->port)});
   }
   else
   {
-    printNormal(this, "Non-controller starts testing path.", {"Path"}, {
+    printNormal(this, "Non-controller starts testing.", {"Pair"}, {
                   pair->local->address + ":" + QString::number(pair->local->port) + " -> " +
                   pair->remote->address + ":" + QString::number(pair->remote->port)});
   }
@@ -468,7 +468,7 @@ bool Stun::sendRequestWaitResponse(ICEPair* pair, QByteArray& request,
   if (!msgReceived)
   {
     printWarning(this, "Failed to receive STUN Binding Response from remote!", {"Remote"}, {
-                   pair->remote->address + ":" + QString(pair->remote->port)});
+                   pair->remote->address + ":" + QString::number(pair->remote->port)});
   }
 
   return msgReceived;

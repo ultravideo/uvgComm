@@ -252,5 +252,9 @@ void FlowAgent::run()
     nominated_rtcp_->state = PAIR_NOMINATED;
   }
 
+  printImportant(this, "Nomination finished", {"Winning pair"}, {
+                   nominated_rtp_->local->address  + ":" + QString::number(nominated_rtp_->local->port) + " <-> " +
+                   nominated_rtp_->remote->address + ":" + QString::number(nominated_rtp_->remote->port)});
+
   emit ready(nominated_rtp_, nominated_rtcp_, sessionID_);
 }

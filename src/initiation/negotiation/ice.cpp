@@ -34,7 +34,8 @@ QList<std::shared_ptr<ICEInfo>> ICE::generateICECandidates(
     std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > stunBindings,
     std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > turnCandidates)
 {
-  printDebug(DEBUG_NORMAL, this, "Start Generating ICE candidates", {"Local", "Global", "STUN", "STUN bindings", "TURN"},
+  printDebug(DEBUG_NORMAL, this, "Start Generating ICE candidates", {
+               "Local", "Global", "STUN", "STUN bindings", "TURN"},
             {QString::number(localCandidates->size()),
              QString::number(globalCandidates->size()),
              QString::number(stunCandidates->size()),
@@ -150,7 +151,7 @@ QList<std::shared_ptr<ICEPair>> ICE::makeCandidatePairs(
     }
   }
 
-  printNormal(this, "Created" + QString::number(pairs.size()) + " candidate pairs");
+  printNormal(this, "Created " + QString::number(pairs.size()) + " candidate pairs");
   return pairs;
 }
 
