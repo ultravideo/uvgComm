@@ -383,7 +383,9 @@ void NetworkCandidates::processSTUNReply(const QNetworkDatagram& packet)
     return;
   }
 
-  if (requests_.find(packet.destinationAddress().toString()) == requests_.end())
+  QString destinationAddress = packet.destinationAddress().toString();
+
+  if (requests_.find(destinationAddress) == requests_.end())
   {
     printWarning(this, "Got stun request to an interface which has not sent one!",
       {"Interface"}, {packet.destinationAddress().toString() + ":" + QString::number(packet.destinationPort())});
@@ -393,11 +395,11 @@ void NetworkCandidates::processSTUNReply(const QNetworkDatagram& packet)
   QByteArray data = packet.data();
 
   QString message = QString::fromStdString(data.toHex().toStdString());
-  STUNMessage response = requests_[packet.destinationAddress().toString()]->message.networkToHost(data);
+  STUNMessage response = requests_[destinationAddress]->message.networkToHost(data);
   // free socket for further use
-  requests_[packet.destinationAddress().toString()]->udp.unbind();
 
-  if (!requests_[packet.destinationAddress().toString()]->message.validateStunResponse(response))
+
+  if (!requests_[destinationAddress]->message.validateStunResponse(response))
   {
     printWarning(this, "Invalid STUN response from server!", {"Message"}, {message});
     return;
@@ -414,6 +416,12 @@ void NetworkCandidates::processSTUNReply(const QNetworkDatagram& packet)
   {
     printError(this, "STUN response sent by server was not Xor-mapped! Discarding...");
   }
+
+
+  // TODO: Modified after it was freed. Probably because the freed socket sent this packet
+  //requests_[destinationAddress]->udp.unbind();
+
+  printNormal(this, "STUN reply processed");
 }
 
 
