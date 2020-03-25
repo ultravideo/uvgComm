@@ -3,7 +3,6 @@
 #include <QThread>
 
 #include "common.h"
-#include "connectiontester.h"
 #include "interfacetester.h"
 #include "flowagent.h"
 #include "ice.h"
@@ -176,29 +175,19 @@ void FlowAgent::run()
 
   if (controller_)
   {
-    ConnectionTester tester(new UDPServer, false);
-
-    if (!tester.sendNominationRequest(nominated_rtp_.get()))
+    InterfaceTester tester;
+    if (!tester.performNomination(nominated_rtp_, nominated_rtcp_))
     {
-      printDebug(DEBUG_ERROR, "FlowAgent",  "Failed to nominate RTP candidate!");
       emit ready(nullptr, nullptr, sessionID_);
       return;
     }
-
-    if (!tester.sendNominationRequest(nominated_rtcp_.get()))
-    {
-      printDebug(DEBUG_ERROR, "FlowAgent",  "Failed to nominate RTCP candidate!");
-      emit ready(nominated_rtp_, nullptr, sessionID_);
-      return;
-    }
-
-    nominated_rtp_->state  = PAIR_NOMINATED;
-    nominated_rtcp_->state = PAIR_NOMINATED;
   }
 
   printImportant(this, "Nomination finished", {"Winning pair"}, {
-                   nominated_rtp_->local->address  + ":" + QString::number(nominated_rtp_->local->port) + " <-> " +
-                   nominated_rtp_->remote->address + ":" + QString::number(nominated_rtp_->remote->port)});
+                   nominated_rtp_->local->address  + ":" +
+                   QString::number(nominated_rtp_->local->port) + " <-> " +
+                   nominated_rtp_->remote->address + ":" +
+                   QString::number(nominated_rtp_->remote->port)});
 
   emit ready(nominated_rtp_, nominated_rtcp_, sessionID_);
 }

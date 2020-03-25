@@ -24,6 +24,9 @@ public:
 
   void endTests();
 
+  bool performNomination(std::shared_ptr<ICEPair> rtp,
+                         std::shared_ptr<ICEPair> rtcp);
+
 signals:
   void candidateFound(std::shared_ptr<ICEPair> connection);
 

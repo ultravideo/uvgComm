@@ -60,6 +60,30 @@ void InterfaceTester::endTests()
 }
 
 
+bool InterfaceTester::performNomination(std::shared_ptr<ICEPair> rtp,
+                                        std::shared_ptr<ICEPair> rtcp)
+{
+  ConnectionTester tester(new UDPServer, false);
+
+  if (!tester.sendNominationRequest(rtp.get()))
+  {
+    printError(this,  "Failed to nominate RTP candidate!");
+    return false;
+  }
+
+  if (!tester.sendNominationRequest(rtcp.get()))
+  {
+    printError(this,  "Failed to nominate RTCP candidate!");
+    return false;
+  }
+
+  rtp->state  = PAIR_NOMINATED;
+  rtcp->state = PAIR_NOMINATED;
+
+  return true;
+}
+
+
 void InterfaceTester::routeDatagram(QNetworkDatagram message)
 {
   // is anyone listening to messages from this sender?
@@ -89,3 +113,5 @@ void InterfaceTester::expectReplyFrom(std::shared_ptr<ConnectionTester> ct,
 {
     listeners_[address][port] = ct;
 }
+
+
