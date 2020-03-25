@@ -9,7 +9,7 @@
 #include <stdint.h>
 
 class QUdpSocket;
-class Stun;
+class ConnectionTester;
 
 class UDPServer : public QObject
 {
@@ -25,7 +25,7 @@ public:
   bool sendData(QByteArray& data, const QHostAddress &local,
                 const QHostAddress &remote, quint16 remotePort);
 
-  void expectReplyFrom(Stun *stun, QString& address, quint16 port);
+  void expectReplyFrom(std::shared_ptr<ConnectionTester> ct, QString& address, quint16 port);
 
 signals:
   // send message data forward.
@@ -42,7 +42,7 @@ private slots:
 private:
   QUdpSocket* socket_;
 
-  QMap<QString, QMap<quint16, Stun *>> listeners_;
+  QMap<QString, QMap<quint16, std::shared_ptr<ConnectionTester>>> listeners_;
 
   QTimer resendTimer_;
   bool waitingReply_;

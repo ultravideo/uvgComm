@@ -1,8 +1,11 @@
-#include "common.h"
 #include "udpserver.h"
+
+#include "connectiontester.h"
+
+#include "common.h"
+
 #include <QUdpSocket>
 #include <QMetaObject>
-#include "stun.h"
 
 UDPServer::UDPServer():
   socket_(nullptr),
@@ -100,7 +103,7 @@ void UDPServer::readMultiplexData()
         listeners_[datagram.senderAddress().toString()].contains(datagram.senderPort()))
     {
       QMetaObject::invokeMethod(
-          listeners_[datagram.senderAddress().toString()][datagram.senderPort()],
+          listeners_[datagram.senderAddress().toString()][datagram.senderPort()].get(),
           "recvStunMessage",
           Qt::DirectConnection,
           Q_ARG(QNetworkDatagram, datagram)
@@ -123,7 +126,7 @@ void UDPServer::readMultiplexData()
 
 // TODO: This function creates a cross-dependency between UDPServer and Stun.
 // This is not recommended. This class should not know anything about Stun.
-void UDPServer::expectReplyFrom(Stun *stun, QString& address, quint16 port)
+void UDPServer::expectReplyFrom(std::shared_ptr<ConnectionTester> ct, QString& address, quint16 port)
 {
-    listeners_[address][port] = stun;
+    listeners_[address][port] = ct;
 }

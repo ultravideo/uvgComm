@@ -53,7 +53,6 @@ SOURCES +=\
     src/initiation/negotiation/networkcandidates.cpp \
     src/initiation/negotiation/sdpnegotiator.cpp \
     src/initiation/negotiation/sipcontent.cpp \
-    src/initiation/negotiation/stun.cpp \
     src/initiation/negotiation/stunmessage.cpp \
     src/initiation/negotiation/stunmessagefactory.cpp \
     src/initiation/negotiation/udpserver.cpp \
@@ -130,7 +129,6 @@ HEADERS  += \
     src/initiation/negotiation/sdpnegotiator.h \
     src/initiation/negotiation/sdptypes.h \
     src/initiation/negotiation/sipcontent.h \
-    src/initiation/negotiation/stun.h \
     src/initiation/negotiation/stunmessage.h \
     src/initiation/negotiation/stunmessagefactory.h \
     src/initiation/negotiation/udpserver.h \

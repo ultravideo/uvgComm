@@ -1,10 +1,12 @@
 #pragma once
 
-#include "stun.h"
 #include "sdptypes.h"
+#include "udpserver.h"
+#include "stunmessagefactory.h"
 
 #include <QStringList>
 #include <QMutex>
+#include <QHostInfo>
 
 #include <deque>
 

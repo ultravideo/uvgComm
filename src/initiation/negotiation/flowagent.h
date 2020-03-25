@@ -1,13 +1,15 @@
 #pragma once
 
+#include "icetypes.h"
+
 #include <QWaitCondition>
 #include <QMutex>
 #include <QThread>
 #include <QList>
+#include <QMap>
+
 #include <memory>
 
-#include "stun.h"
-#include "icetypes.h"
 
 
 class FlowAgent : public QThread
@@ -58,12 +60,7 @@ private:
   // and the succeeded pair is copied to nominated_rtp_ and nominated_rtcp_
   //
   // the first candidate pair that has both RTP and RTCP tested is chosen
-  QMap<QString,
-    std::pair<
-      std::shared_ptr<ICEPair>,
-      std::shared_ptr<ICEPair>
-    >
-  > nominated_;
+  QMap<QString, std::pair<std::shared_ptr<ICEPair>, std::shared_ptr<ICEPair>>> nominated_;
 
   std::shared_ptr<ICEPair> nominated_rtp_;
   std::shared_ptr<ICEPair> nominated_rtcp_;
