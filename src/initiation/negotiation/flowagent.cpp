@@ -122,7 +122,6 @@ void FlowAgent::run()
   std::vector<std::shared_ptr<ConnectionTester>> workerThreads;
   QList<ConnectionBucket> buckets;
 
-  int bucketNum     = -1;
   QString prevAddr  = "";
   uint16_t prevPort = 0;
 
@@ -131,7 +130,6 @@ void FlowAgent::run()
     if (candidates_->at(i)->local->address != prevAddr ||
         candidates_->at(i)->local->port != prevPort)
     {
-      bucketNum++;
       buckets.push_back({new UDPServer, QList<std::shared_ptr<ICEPair>>()});
 
       // because we cannot modify create new objects from child threads (in this case new socket)
@@ -139,22 +137,19 @@ void FlowAgent::run()
       // anything but to test the connection
       //
       // Binding might fail, if so happens no STUN objects are created for this socket
-      if (!buckets[bucketNum].server->bindSocket(
+      if (!buckets.back().server->bindSocket(
             QHostAddress(candidates_->at(i)->local->address),
             candidates_->at(i)->local->port, true))
       {
-        delete buckets[bucketNum].server;
-        buckets[bucketNum].server = nullptr;
+        delete buckets.back().server;
+        buckets.back().server = nullptr;
+        continue;
       }
     }
 
-    if (buckets[bucketNum].server == nullptr)
-    {
-      continue;
-    }
+    buckets.back().pairs.push_back({candidates_->at(i)});
 
-    buckets[bucketNum].pairs.push_back({candidates_->at(i)});
-
+    // this keeps the code from crashing using magic. Do not move.
     prevAddr = candidates_->at(i)->local->address;
     prevPort = candidates_->at(i)->local->port;
   }
