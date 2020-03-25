@@ -4,16 +4,10 @@
 
 #include "common.h"
 #include "connectiontester.h"
+#include "interfacetester.h"
 #include "flowagent.h"
 #include "ice.h"
 
-
-/* the concept of ConnectionBucket is explained elsewhere */
-struct ConnectionBucket
-{
-  UDPServer *server;
-  QList<std::shared_ptr<ICEPair>> pairs;
-};
 
 
 FlowAgent::FlowAgent(bool controller, int timeout):
@@ -21,12 +15,12 @@ FlowAgent::FlowAgent(bool controller, int timeout):
   sessionID_(0),
   controller_(controller),
   timeout_(timeout)
-{
-}
+{}
+
 
 FlowAgent::~FlowAgent()
-{
-}
+{}
+
 
 void FlowAgent::setCandidates(QList<std::shared_ptr<ICEPair>> *candidates)
 {
@@ -35,12 +29,14 @@ void FlowAgent::setCandidates(QList<std::shared_ptr<ICEPair>> *candidates)
   candidates_ = candidates;
 }
 
+
 void FlowAgent::setSessionID(uint32_t sessionID)
 {
   Q_ASSERT(sessionID != 0);
 
   sessionID_ = sessionID;
 }
+
 
 void FlowAgent::nominationDone(std::shared_ptr<ICEPair> connection)
 {
@@ -73,6 +69,7 @@ void FlowAgent::nominationDone(std::shared_ptr<ICEPair> connection)
 
   nominated_mtx.unlock();
 }
+
 
 bool FlowAgent::waitForEndOfNomination(unsigned long timeout)
 {
@@ -115,90 +112,58 @@ void FlowAgent::run()
   }
 
   // because we can only bind to a port once (no multithreaded access), we must divide
-  // the candidates into "buckets" and each ConnectionTester is responsible for testing the bucket
-  //
-  // Each bucket contains all candidates for one interface.
-  // ConnectionTester then binds to this interface and takes care of sending the STUN Binding requests
-  std::vector<std::shared_ptr<ConnectionTester>> workerThreads;
-  QList<ConnectionBucket> buckets;
+  // the candidates into interfaces
+  // InterfaceTester then binds to this interface and takes care of sending the STUN Binding requests
+
+  QList<std::shared_ptr<InterfaceTester>> interfaces;
 
   QString prevAddr  = "";
   uint16_t prevPort = 0;
 
-  for (int i = 0; i < candidates_->size(); ++i)
+  for (auto& candidate : *candidates_)
   {
-    if (candidates_->at(i)->local->address != prevAddr ||
-        candidates_->at(i)->local->port != prevPort)
+    if (candidate->local->address != prevAddr ||
+        candidate->local->port != prevPort)
     {
-      buckets.push_back({new UDPServer, QList<std::shared_ptr<ICEPair>>()});
+      interfaces.push_back(std::shared_ptr<InterfaceTester>(new InterfaceTester));
 
       // because we cannot modify create new objects from child threads (in this case new socket)
       // we must initialize both UDPServer and Stun objects here so that ConnectionTester doesn't have to do
       // anything but to test the connection
       //
       // Binding might fail, if so happens no STUN objects are created for this socket
-      if (!buckets.back().server->bindSocket(
-            QHostAddress(candidates_->at(i)->local->address),
-            candidates_->at(i)->local->port, true))
+      if (!interfaces.back()->bindInterface(QHostAddress(candidate->local->address),
+            candidate->local->port))
       {
-        delete buckets.back().server;
-        buckets.back().server = nullptr;
         continue;
       }
     }
 
-    buckets.back().pairs.push_back({candidates_->at(i)});
+    interfaces.back()->addCandidate(candidate);
 
     // this keeps the code from crashing using magic. Do not move.
-    prevAddr = candidates_->at(i)->local->address;
-    prevPort = candidates_->at(i)->local->port;
+    prevAddr = candidate->local->address;
+    prevPort = candidate->local->port;
   }
 
-  for (int i = 0; i < buckets.size(); ++i)
+  for (auto& interface : interfaces)
   {
-    for (int j = 0; j < buckets[i].pairs.size(); ++j)
-    {
-      workerThreads.push_back(std::shared_ptr<ConnectionTester>(new ConnectionTester(buckets[i].server, true)));
+    QObject::connect(
+        interface.get(),
+        &InterfaceTester::candidateFound,
+        this,
+        &FlowAgent::nominationDone,
+        Qt::DirectConnection
+    );
 
-      // when the UDPServer receives a datagram from remote->address:remote->port,
-      // it will send a signal containing the datagram to this Stun object
-      //
-      // This way multiple Stun instances can listen to same socket
-      buckets[i].server->expectReplyFrom(workerThreads.back(),
-                                         buckets[i].pairs.at(j)->remote->address,
-                                         buckets[i].pairs.at(j)->remote->port);
-
-      QObject::connect(
-          workerThreads.back().get(),
-          &ConnectionTester::testingDone,
-          this,
-          &FlowAgent::nominationDone,
-          Qt::DirectConnection
-      );
-
-      workerThreads.back()->setCandidatePair(buckets[i].pairs[j]);
-      workerThreads.back()->isController(controller_);
-      workerThreads.back()->start();
-    }
+    interface->startTestingPairs(controller_);
   }
 
   bool nominationSucceeded = waitForEndOfNomination(timeout_);
 
-  // kill all threads, regardless of whether nomination succeeded or not
-  for (size_t i = 0; i < workerThreads.size(); ++i)
+  for (auto& interface : interfaces)
   {
-    workerThreads[i]->quit();
-    workerThreads[i]->wait();
-  }
-
-  // deallocate all memory consumed by connection buckets
-  for (int i = 0; i < buckets.size(); ++i)
-  {
-    if (buckets[i].server)
-    {
-      buckets[i].server->unbind();
-      delete buckets[i].server;
-    }
+    interface->endTests();
   }
 
   // wait for nomination from remote, wait at most 20 seconds

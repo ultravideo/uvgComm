@@ -49,6 +49,7 @@ SOURCES +=\
     src/initiation/negotiation/connectiontester.cpp \
     src/initiation/negotiation/flowagent.cpp \
     src/initiation/negotiation/ice.cpp \
+    src/initiation/negotiation/interfacetester.cpp \
     src/initiation/negotiation/negotiation.cpp \
     src/initiation/negotiation/networkcandidates.cpp \
     src/initiation/negotiation/sdpnegotiator.cpp \
@@ -123,6 +124,7 @@ HEADERS  += \
     src/initiation/negotiation/flowagent.h \
     src/initiation/negotiation/ice.h \
     src/initiation/negotiation/icetypes.h \
+    src/initiation/negotiation/interfacetester.h \
     src/initiation/negotiation/mediacapabilities.h \
     src/initiation/negotiation/negotiation.h \
     src/initiation/negotiation/networkcandidates.h \
