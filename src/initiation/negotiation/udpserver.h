@@ -17,15 +17,13 @@ class UDPServer : public QObject
 public:
   UDPServer();
 
-  bool bindSocket(const QHostAddress& address, quint16 port, bool multiplexed);
+  bool bindSocket(const QHostAddress& address, quint16 port);
 
   void unbind();
 
   // sends the data using Qt UDP classes.
   bool sendData(QByteArray& data, const QHostAddress &local,
                 const QHostAddress &remote, quint16 remotePort);
-
-  void expectReplyFrom(std::shared_ptr<ConnectionTester> ct, QString& address, quint16 port);
 
 signals:
   // send message data forward.
@@ -36,13 +34,8 @@ private slots:
   // read the data when it becomes available
   void readDatagram();
 
-  // read datagram and return it to caller who is listening connection from sender
-  void readMultiplexData();
-
 private:
   QUdpSocket* socket_;
-
-  QMap<QString, QMap<quint16, std::shared_ptr<ConnectionTester>>> listeners_;
 
   QTimer resendTimer_;
   bool waitingReply_;

@@ -27,9 +27,18 @@ public:
 signals:
   void candidateFound(std::shared_ptr<ICEPair> connection);
 
+private slots:
+  void routeDatagram(QNetworkDatagram message);
+
 private:
+
+  void expectReplyFrom(std::shared_ptr<ConnectionTester> ct,
+                       QString& address, quint16 port);
+
   UDPServer udp_;
   QList<std::shared_ptr<ICEPair>> pairs_;
 
   std::vector<std::shared_ptr<ConnectionTester>> workerThreads_;
+
+  QMap<QString, QMap<quint16, std::shared_ptr<ConnectionTester>>> listeners_;
 };

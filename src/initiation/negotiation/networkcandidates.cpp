@@ -358,7 +358,7 @@ void NetworkCandidates::sendSTUNserverRequest(QHostAddress localAddress,
     requests_[localAddress.toString()] = std::shared_ptr<STUNRequest>(new STUNRequest);
   }
 
-  requests_[localAddress.toString()]->udp.bindSocket(localAddress, localPort, false);
+  requests_[localAddress.toString()]->udp.bindSocket(localAddress, localPort);
 
   QObject::connect(&requests_[localAddress.toString()]->udp, &UDPServer::datagramAvailable,
                    this,              &NetworkCandidates::processSTUNReply);

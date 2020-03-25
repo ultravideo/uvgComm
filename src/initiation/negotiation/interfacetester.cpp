@@ -2,19 +2,23 @@
 
 #include "connectiontester.h"
 
+#include "common.h"
+
 InterfaceTester::InterfaceTester()
 {}
 
 
 bool InterfaceTester::bindInterface(QHostAddress interface, quint16 port)
 {
-  return udp_.bindSocket(interface, port, true);
+  QObject::connect(&udp_, &UDPServer::datagramAvailable,
+                   this, &InterfaceTester::routeDatagram);
+
+  return udp_.bindSocket(interface, port);
 }
 
 
 void InterfaceTester::startTestingPairs(bool controller)
 {
-
   for (auto& pair : pairs_)
   {
     workerThreads_.push_back(std::shared_ptr<ConnectionTester>(new ConnectionTester(&udp_, true)));
@@ -30,9 +34,9 @@ void InterfaceTester::startTestingPairs(bool controller)
     //
     // This way multiple Stun instances can listen to same socket
     // TODO: Does not work with STUN candidates
-    udp_.expectReplyFrom(workerThreads_.back(),
-                         pair->remote->address,
-                         pair->remote->port);
+    expectReplyFrom(workerThreads_.back(),
+                    pair->remote->address,
+                    pair->remote->port);
 
     workerThreads_.back()->setCandidatePair(pair);
     workerThreads_.back()->isController(controller);
@@ -50,5 +54,38 @@ void InterfaceTester::endTests()
     workerThreads_[i]->wait();
   }
 
+  workerThreads_.clear();
+
   udp_.unbind();
+}
+
+
+void InterfaceTester::routeDatagram(QNetworkDatagram message)
+{
+  // is anyone listening to messages from this sender?
+  if (listeners_.contains(message.senderAddress().toString()) &&
+      listeners_[message.senderAddress().toString()].contains(message.senderPort()))
+  {
+    QMetaObject::invokeMethod(
+        listeners_[message.senderAddress().toString()][message.senderPort()].get(),
+        "recvStunMessage",
+        Qt::DirectConnection,
+        Q_ARG(QNetworkDatagram, message)
+    );
+  }
+  else
+  {
+    printError(this, "Could not find listener for data", {"Address"}, {
+                 message.destinationAddress().toString() + ":" +
+                 QString::number(message.destinationPort()) + " <- " +
+                 message.senderAddress().toString() + ":" +
+                 QString::number(message.senderPort())});
+  }
+}
+
+
+void InterfaceTester::expectReplyFrom(std::shared_ptr<ConnectionTester> ct,
+                                      QString& address, quint16 port)
+{
+    listeners_[address][port] = ct;
 }

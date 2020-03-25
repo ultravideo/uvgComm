@@ -317,7 +317,7 @@ bool ConnectionTester::sendBindingRequest(ICEPair *pair, bool controller)
 
   if (!multiplex_)
   {
-    if (!udp_->bindSocket(QHostAddress(pair->local->address), pair->local->port, false))
+    if (!udp_->bindSocket(QHostAddress(pair->local->address), pair->local->port))
     {
       printDebug(DEBUG_ERROR, "STUN",
           "Binding failed! Cannot send STUN Binding Requests to", {
@@ -346,7 +346,7 @@ bool ConnectionTester::sendNominationRequest(ICEPair *pair)
 
   if (!multiplex_)
   {
-    if (!udp_->bindSocket(QHostAddress(pair->local->address), pair->local->port, false))
+    if (!udp_->bindSocket(QHostAddress(pair->local->address), pair->local->port))
     {
       printDebug(DEBUG_ERROR, "STUN",
           "Binding failed! Cannot send STUN Binding Requests to", {
@@ -385,7 +385,7 @@ bool ConnectionTester::sendNominationResponse(ICEPair *pair)
 
   if (!multiplex_)
   {
-    if (!udp_->bindSocket(QHostAddress(pair->local->address), pair->local->port, false))
+    if (!udp_->bindSocket(QHostAddress(pair->local->address), pair->local->port))
     {
       printError(this, "Binding failed! Cannot send STUN Binding Requests to", {"Interface:"}, {
                    pair->remote->address + ":" + QString::number(pair->remote->port)});
@@ -489,8 +489,10 @@ void ConnectionTester::recvStunMessage(QNetworkDatagram message)
      printDebug(DEBUG_WARNING, "STUN",  "Received message with unknown type", {
                   "type", "from", "to" }, {
                   QString::number(stunMsg.getType()),
-                  message.senderAddress().toString() + ":" + QString::number(message.senderPort()),
-                  message.destinationAddress().toString() + ":" + QString::number(message.destinationPort())});
+                  message.senderAddress().toString() + ":" +
+                  QString::number(message.senderPort()),
+                  message.destinationAddress().toString() + ":" +
+                  QString::number(message.destinationPort())});
   }
 }
 

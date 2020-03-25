@@ -12,7 +12,7 @@ UDPServer::UDPServer():
   sendPort_(0)
 {}
 
-bool UDPServer::bindSocket(const QHostAddress& address, quint16 port, bool multiplexed)
+bool UDPServer::bindSocket(const QHostAddress& address, quint16 port)
 {
   this->unbind();
 
@@ -30,14 +30,7 @@ bool UDPServer::bindSocket(const QHostAddress& address, quint16 port, bool multi
     printNormal(this, "Binded UDP Port", {"Interface"}, addressDebug);
   }
 
-  if (multiplexed)
-  {
-    connect(socket_, &QUdpSocket::readyRead, this, &UDPServer::readMultiplexData);
-  }
-  else
-  {
-    connect(socket_, &QUdpSocket::readyRead, this, &UDPServer::readDatagram);
-  }
+  connect(socket_, &QUdpSocket::readyRead, this, &UDPServer::readDatagram);
 
   return true;
 }
@@ -91,42 +84,3 @@ void UDPServer::readDatagram()
   }
 }
 
-
-void UDPServer::readMultiplexData()
-{
-  while (socket_->hasPendingDatagrams())
-  {
-    QNetworkDatagram datagram = socket_->receiveDatagram();
-
-    // is anyone listening to messages from this sender?
-    if (listeners_.contains(datagram.senderAddress().toString()) &&
-        listeners_[datagram.senderAddress().toString()].contains(datagram.senderPort()))
-    {
-      QMetaObject::invokeMethod(
-          listeners_[datagram.senderAddress().toString()][datagram.senderPort()].get(),
-          "recvStunMessage",
-          Qt::DirectConnection,
-          Q_ARG(QNetworkDatagram, datagram)
-      );
-    }
-    else
-    {
-      printError(this, "Could not find listener for data", {"Address"}, {
-                   datagram.destinationAddress().toString() + ":" + QString::number(datagram.destinationPort()) + " <- " +
-                   datagram.senderAddress().toString() + ":" + QString::number(datagram.senderPort())});
-      if (socket_)
-      {
-        printError(this, "Socket", {"Interface"}, {
-                     socket_->localAddress().toString() + ":" + QString::number(socket_->localPort())});
-      }
-    }
-  }
-}
-
-
-// TODO: This function creates a cross-dependency between UDPServer and Stun.
-// This is not recommended. This class should not know anything about Stun.
-void UDPServer::expectReplyFrom(std::shared_ptr<ConnectionTester> ct, QString& address, quint16 port)
-{
-    listeners_[address][port] = ct;
-}
