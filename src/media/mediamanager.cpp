@@ -80,11 +80,9 @@ void MediaManager::stopRTPLibrary()
 
 void MediaManager::setRTPLibrary()
 {
-  // delete old libarary if it exists
-  // TODO: Should first check if we actually need change
-  if (streamer_ != nullptr)
+  if (streamer_)
   {
-    stopRTPLibrary();
+    return;
   }
 
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
