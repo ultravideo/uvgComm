@@ -37,7 +37,9 @@ FilterGraph::FilterGraph():
 {
   // TODO negotiate these values with all included filters and SDP
   // TODO move these to settings and manage them automatically
-  format_.setSampleRate(48000);
+  // TODO: at the moment kvzRTP does not support larger audio frames for pcm
+  format_.setSampleRate(16000); 
+  //format_.setSampleRate(48000);
   format_.setChannelCount(1);
   format_.setSampleSize(16);
   format_.setSampleType(QAudioFormat::SignedInt);
@@ -202,11 +204,14 @@ void FilterGraph::initVideoSend()
 }
 
 
-void FilterGraph::initAudioSend()
+void FilterGraph::initAudioSend(bool opus)
 {
   // Do this before adding participants, otherwise AEC filter wont get attached
   addToGraph(std::shared_ptr<Filter>(new AudioCaptureFilter("", format_, stats_)), audioProcessing_);
-  addToGraph(std::shared_ptr<Filter>(new OpusEncoderFilter("", format_, stats_)), audioProcessing_, 0);
+  if (opus)
+  {
+    addToGraph(std::shared_ptr<Filter>(new OpusEncoderFilter("", format_, stats_)), audioProcessing_, 0);
+  }
 }
 
 
@@ -374,7 +379,7 @@ void FilterGraph::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioF
   // just in case it is wanted later. AEC filter has to be attached
   if(audioProcessing_.size() == 0)
   {
-    initAudioSend();
+    initAudioSend(audioFramedSource->inputType() == OPUSAUDIO);
   }
 
   // add participant if necessary
@@ -396,7 +401,7 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
   // just in case it is wanted later. AEC filter has to be attached
   if(AEC_ENABLED && audioProcessing_.size() == 0)
   {
-    initAudioSend();
+    initAudioSend(audioSink->outputType() == OPUSAUDIO);
   }
 
   // add participant if necessary
@@ -406,8 +411,11 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
   peers_.at(sessionID - 1)->audioReceivers.push_back(graph);
 
   addToGraph(audioSink, *graph);
-  addToGraph(std::shared_ptr<Filter>(new OpusDecoderFilter(QString::number(sessionID) + "_", format_, stats_)),
-                                     *graph, 0);
+  if (audioSink->outputType() == OPUSAUDIO)
+  {
+    addToGraph(std::shared_ptr<Filter>(new OpusDecoderFilter(QString::number(sessionID) + "_", format_, stats_)),
+               *graph, 0);
+  }
 
   if(audioProcessing_.size() > 0 && AEC_ENABLED)
   {

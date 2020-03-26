@@ -386,7 +386,7 @@ QString MediaManager::rtpNumberToCodec(const MediaInfo& info)
       return info.codecs.at(0).codec;
     }
   }
-  return "pcmu";
+  return "pcm";
 }
 
 void MediaManager::transportAttributes(const QList<SDPAttributeType>& attributes, bool& send, bool& recv)

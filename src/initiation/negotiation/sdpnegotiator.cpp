@@ -131,8 +131,8 @@ std::shared_ptr<SDPMessageInfo> SDPNegotiator::negotiateSDP(SDPMessageInfo& remo
 
 
 bool SDPNegotiator::selectBestCodec(QList<uint8_t>& remoteNums,       QList<RTPMap> &remoteCodecs,
-                                  QList<uint8_t>& supportedNums,    QList<RTPMap> &supportedCodecs,
-                                  QList<uint8_t>& outMatchingNums,  QList<RTPMap> &outMatchingCodecs)
+                                    QList<uint8_t>& supportedNums,    QList<RTPMap> &supportedCodecs,
+                                    QList<uint8_t>& outMatchingNums,  QList<RTPMap> &outMatchingCodecs)
 {
   for (auto& remoteCodec : remoteCodecs)
   {
@@ -141,7 +141,7 @@ bool SDPNegotiator::selectBestCodec(QList<uint8_t>& remoteNums,       QList<RTPM
       if(remoteCodec.codec == supportedCodec.codec)
       {
         outMatchingCodecs.append(remoteCodec);
-        printDebug(DEBUG_NORMAL, "Negotiation",  "Found suitable codec.");
+        printDebug(DEBUG_NORMAL, "SDPNegotiator",  "Found suitable codec.");
 
         outMatchingNums.push_back(remoteCodec.rtpNum);
 
@@ -157,13 +157,13 @@ bool SDPNegotiator::selectBestCodec(QList<uint8_t>& remoteNums,       QList<RTPM
       if(rtpNumber == supportedNum)
       {
         outMatchingNums.append(rtpNumber);
-        printDebug(DEBUG_NORMAL, "Negotiation",  "Found suitable RTP number.");
+        printDebug(DEBUG_NORMAL, "SDPNegotiator",  "Found suitable RTP number.");
         return true;
       }
     }
   }
 
-  printDebug(DEBUG_ERROR, "Negotiation",
+  printDebug(DEBUG_ERROR, "SDPNegotiator",
              "Could not find suitable codec or RTP number for media.");
 
   return false;
@@ -243,7 +243,7 @@ bool SDPNegotiator::checkSDPOffer(SDPMessageInfo &offer)
 {
   // TODO: check everything.
 
-  bool hasOpus = false;
+  bool hasAudio = false;
   bool hasH265 = false;
 
   if(offer.connection_address == "0.0.0.0")
@@ -261,12 +261,18 @@ bool SDPNegotiator::checkSDPOffer(SDPMessageInfo &offer)
   QStringList debugCodecsFound = {};
   for(MediaInfo media : offer.media)
   {
+    if(!media.rtpNums.empty() && media.rtpNums.first() == 0)
+    {
+      debugCodecsFound << "pcm";
+      hasAudio = true;
+    }
+
     for(RTPMap rtp : media.codecs)
     {
       if(rtp.codec == "opus")
       {
         debugCodecsFound << "opus";
-        hasOpus = true;
+        hasAudio = true;
       }
       else if(rtp.codec == "h265")
       {
@@ -296,7 +302,7 @@ bool SDPNegotiator::checkSDPOffer(SDPMessageInfo &offer)
   }
 
 
-  return hasOpus && hasH265;
+  return hasAudio && hasH265;
 }
 
 

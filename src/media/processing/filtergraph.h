@@ -63,7 +63,7 @@ private:
   void initVideoSend();
 
   // iniates encoder and attaches it
-  void initAudioSend();
+  void initAudioSend(bool opus);
 
   void removeAllParticipants();
 
