@@ -133,11 +133,17 @@ std::pair<std::shared_ptr<ICEInfo>, std::shared_ptr<ICEInfo>>
 }
 
 
-void ICE::printCandidate(ICEInfo *candidate)
+void ICE::printCandidates(QList<std::shared_ptr<ICEInfo>>& candidates)
 {
-  Q_ASSERT(candidate != nullptr);
-  printNormal(this, "Candidate: " + candidate->foundation + " " + candidate->priority + ": "
-              + candidate->address    + ":" + candidate->port);
+  QStringList candidateNames;
+  QStringList candidateStrings;
+  for (auto& candidate : candidates)
+  {
+    candidateNames.push_back(candidate->address + ":");
+    candidateStrings.push_back("Foundation: " + candidate->foundation + " Priority: " + candidate->priority);
+  }
+
+  printDebug(DEBUG_NORMAL, this, "Generated the following ICE candidates", candidateNames, candidateStrings);
 }
 
 QList<std::shared_ptr<ICEPair>> ICE::makeCandidatePairs(
