@@ -166,7 +166,11 @@ QList<std::shared_ptr<ICEPair>> ICE::makeCandidatePairs(
       {
         std::shared_ptr<ICEPair> pair = std::make_shared<ICEPair>();
 
-        pair->local    = local[i];
+        // we copy local because we modify it later with stun bindings and
+        // we don't want to modify our sent candidates
+        pair->local = std::shared_ptr<ICEInfo> (new ICEInfo);
+        *(pair->local)    = *local[i];
+
         pair->remote   = remote[k];
         pair->priority = qMin(local[i]->priority, remote[k]->priority); // TODO spec
         pair->state    = PAIR_FROZEN;
