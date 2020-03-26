@@ -15,6 +15,7 @@ struct STUNRequest
 {
   UDPServer udp;
   StunMessageFactory message;
+  bool finished;
 };
 
 
@@ -45,6 +46,8 @@ private slots:
 
   // sends STUN request through each of our interfaces
   void handleStunHostLookup(QHostInfo info);
+
+  void refreshSTUN();
 
 private:
   void sendSTUNserverRequest(QHostAddress localAddress, uint16_t localPort,
@@ -79,4 +82,6 @@ private:
 
   // key is sessionID, 0 is STUN
   std::map<uint32_t, QList<std::pair<QString, uint16_t>>> reservedPorts_;
+
+  QTimer refreshSTUNTimer_;
 };

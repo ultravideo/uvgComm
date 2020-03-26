@@ -6,9 +6,10 @@
 #include <QUdpSocket>
 #include <QDebug>
 
+const QString STUN_SERVER = "stun.l.google.com";
 const uint16_t GOOGLE_STUN_PORT = 19302;
-
 const uint16_t STUNADDRESSPOOL = 5;
+
 
 NetworkCandidates::NetworkCandidates():
   requests_(),
@@ -51,9 +52,49 @@ void NetworkCandidates::setPortRange(uint16_t minport,
     }
   }
 
+  // get ip address of stun server
+  wantAddress(STUN_SERVER);
+
+  QObject::connect(&refreshSTUNTimer_,  &QTimer::timeout,
+                   this,                &NetworkCandidates::refreshSTUN);
+
   // TODO: Probably best way to do this is periodically every 10 minutes or so.
   // That way we get our current STUN address
-  wantAddress("stun.l.google.com");
+  refreshSTUNTimer_.setInterval(100);
+  refreshSTUNTimer_.setSingleShot(false);
+  refreshSTUNTimer_.start();
+}
+
+
+void NetworkCandidates::refreshSTUN()
+{
+  if (!stunServerAddress_.isNull() &&
+      stunAddresses_.size() + requests_.size() < STUNADDRESSPOOL)
+  {
+    // Send STUN-Request through all the interfaces, since we don't know which is
+    // connected to the internet. Most of them will fail.
+    moreSTUNCandidates();
+  }
+
+  // The socket unbinding cannot happen in processreply, because that would destroy the socket
+  // leading to heap corruption. Instead we do the unbinding here.
+
+  QStringList removed;
+  for (auto& request : requests_)
+  {
+    if (request.second->finished)
+    {
+      request.second->udp.unbind();
+      removed.push_back(request.first);
+    }
+  }
+
+  // remove requests so we know how many reaquests we have going on.
+  for (auto& removal : removed)
+  {
+    requests_.erase(removal);
+    //printNormal(this, "Removed", {"Left"}, {QString::number(requests_.size())});
+  }
 }
 
 
@@ -67,14 +108,12 @@ void NetworkCandidates::createSTUNCandidate(QHostAddress local, quint16 localPor
     return;
   }
 
-  printDebug(DEBUG_NORMAL, this, "Created ICE STUN candidate", {"LocalAddress", "STUN address"},
-            {local.toString() + ":" + QString::number(localPort),
+  printNormal(this, "Created ICE STUN candidate", {"STUN Translation"},
+            {local.toString() + ":" + QString::number(localPort) + " << " +
              stun.toString() + ":" + QString::number(stunPort)});
 
   stunAddresses_.push_back({stun, stunPort});
   stunBindings_.push_back({local, localPort});
-
-  //moreSTUNCandidates();
 }
 
 
@@ -126,8 +165,6 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::stu
     stunAddresses_.pop_front();
 
     // TODO: Move reservedports reservation from stun to sessionID
-
-    //moreSTUNCandidates();
   }
   else
   {
@@ -310,11 +347,6 @@ void NetworkCandidates::handleStunHostLookup(QHostInfo info)
   {
     return;
   }
-
-  // Send STUN-Request through all the interfaces, since we don't know which is
-  // connected to the internet. Most of them will fail.
-
-  moreSTUNCandidates();
 }
 
 void NetworkCandidates::moreSTUNCandidates()
@@ -349,28 +381,39 @@ void NetworkCandidates::sendSTUNserverRequest(QHostAddress localAddress,
     return;
   }
 
-  printNormal(this, "Sending STUN server request", {"Path"},
-          {localAddress.toString() + ":" + QString::number(localPort) + " -> " +
-           serverAddress.toString() + ":" + QString::number(serverPort)});
+  //printNormal(this, "Sending STUN server request", {"Path"},
+  //        {localAddress.toString() + ":" + QString::number(localPort) + " -> " +
+  //         serverAddress.toString() + ":" + QString::number(serverPort)});
 
-  if (requests_.find(localAddress.toString()) == requests_.end())
+  QString key = localAddress.toString() + ":" + QString::number(localPort);
+
+  if (requests_.find(key) == requests_.end())
   {
-    requests_[localAddress.toString()] = std::shared_ptr<STUNRequest>(new STUNRequest);
+    requests_[key] = std::shared_ptr<STUNRequest>(new STUNRequest);
+    requests_[key]->finished = false;
   }
 
-  requests_[localAddress.toString()]->udp.bindSocket(localAddress, localPort);
-
-  QObject::connect(&requests_[localAddress.toString()]->udp, &UDPServer::datagramAvailable,
+  QObject::connect(&requests_[key]->udp, &UDPServer::datagramAvailable,
                    this,              &NetworkCandidates::processSTUNReply);
 
-  STUNMessage request = requests_[localAddress.toString()]->message.createRequest();
-  QByteArray message  = requests_[localAddress.toString()]->message.hostToNetwork(request);
+  if (!requests_[key]->udp.bindSocket(localAddress, localPort))
+  {
+    requests_.erase(key);
+    return;
+  }
 
-  requests_[localAddress.toString()]->message.cacheRequest(request);
+
+  STUNMessage request = requests_[key]->message.createRequest();
+  QByteArray message  = requests_[key]->message.hostToNetwork(request);
+
+  requests_[key]->message.cacheRequest(request);
 
   // udp_ records localport when binding so we don't hate specify it here
-  requests_[localAddress.toString()]->udp.sendData(message, localAddress,
-                                                   serverAddress, serverPort);
+  if(!requests_[key]->udp.sendData(message, localAddress,
+                                   serverAddress, serverPort))
+  {
+    requests_.erase(key);
+  }
 }
 
 
@@ -383,23 +426,25 @@ void NetworkCandidates::processSTUNReply(const QNetworkDatagram& packet)
     return;
   }
 
-  QString destinationAddress = packet.destinationAddress().toString();
+  QString key = packet.destinationAddress().toString() + ":"
+      + QString::number(packet.destinationPort());
 
-  if (requests_.find(destinationAddress) == requests_.end())
+  if (requests_.find(key) == requests_.end())
   {
     printWarning(this, "Got stun request to an interface which has not sent one!",
-      {"Interface"}, {packet.destinationAddress().toString() + ":" + QString::number(packet.destinationPort())});
+      {"Interface"}, {packet.destinationAddress().toString() + ":" +
+                      QString::number(packet.destinationPort())});
     return;
   }
 
   QByteArray data = packet.data();
 
   QString message = QString::fromStdString(data.toHex().toStdString());
-  STUNMessage response = requests_[destinationAddress]->message.networkToHost(data);
+  STUNMessage response = requests_[key]->message.networkToHost(data);
   // free socket for further use
 
 
-  if (!requests_[destinationAddress]->message.validateStunResponse(response))
+  if (!requests_[key]->message.validateStunResponse(response))
   {
     printWarning(this, "Invalid STUN response from server!", {"Message"}, {message});
     return;
@@ -417,11 +462,9 @@ void NetworkCandidates::processSTUNReply(const QNetworkDatagram& packet)
     printError(this, "STUN response sent by server was not Xor-mapped! Discarding...");
   }
 
+  requests_[key]->finished = true;
 
-  // TODO: Modified after it was freed. Probably because the freed socket sent this packet
-  //requests_[destinationAddress]->udp.unbind();
-
-  printNormal(this, "STUN reply processed");
+  //printNormal(this, "STUN reply processed");
 }
 
 
@@ -453,4 +496,3 @@ bool NetworkCandidates::sanityCheck(QHostAddress interface, uint16_t port)
 
   return true;
 }
-
