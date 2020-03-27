@@ -100,7 +100,8 @@ void IceSessionTester::run()
   {
     printDebug(DEBUG_ERROR, this,
                "Invalid candidates, unable to perform ICE candidate negotiation!");
-    emit ready(nullptr, nullptr, sessionID_);
+    QList<std::shared_ptr<ICEPair>> no_streams;
+    emit ready(no_streams, sessionID_);
     return;
   }
 
@@ -159,11 +160,13 @@ void IceSessionTester::run()
     interface->endTests();
   }
 
+  QList<std::shared_ptr<ICEPair>> streams;
+
   // wait for nomination from remote, wait at most 20 seconds
   if (!nominationSucceeded)
   {
     printError(this, "Nomination from remote was not received in time!");
-    emit ready(nullptr, nullptr, sessionID_);
+    emit ready(streams, sessionID_);
     return;
   }
 
@@ -172,7 +175,7 @@ void IceSessionTester::run()
     IceCandidateTester tester;
     if (!tester.performNomination(nominated_rtp_, nominated_rtcp_))
     {
-      emit ready(nullptr, nullptr, sessionID_);
+      emit ready(streams, sessionID_);
       return;
     }
   }
@@ -183,5 +186,6 @@ void IceSessionTester::run()
                    nominated_rtp_->remote->address + ":" +
                    QString::number(nominated_rtp_->remote->port)});
 
-  emit ready(nominated_rtp_, nominated_rtcp_, sessionID_);
+  streams = {nominated_rtp_, nominated_rtcp_};
+  emit ready(streams, sessionID_);
 }

@@ -23,14 +23,12 @@ public:
   void init(QList<std::shared_ptr<ICEPair>> *candidates,
             uint32_t sessionID);
 
-  // wait for endNomination() signal and return true if it's received (meaning the nomination succeeded)
-  // if the endNomination() is not received in time the function returns false
-  bool waitForEndOfNomination(unsigned long timeout);
-
 signals:
-  // When FlowAgent finishes, it sends a ready signal to main thread (ICE). If the nomination succeeded,
-  // both candidateRTP and candidateRTCP are valid pointers, otherwise nullptr
-  void ready(std::shared_ptr<ICEPair> candidateRTP, std::shared_ptr<ICEPair> candidateRTCP, uint32_t sessionID);
+  // When FlowAgent finishes, it sends a ready signal to main thread (ICE).
+  // If the nomination succeeded, both candidateRTP and candidateRTCP are valid pointers,
+  // otherwise nullptr.
+  void ready(QList<std::shared_ptr<ICEPair>>& streams,
+             uint32_t sessionID);
 
   // when both RTP and RTCP of any address succeeds, sends endNomination() signal to FlowAgent (sent by ConnectionTester)
   // so it knows to stop all other ConnectionTester and return the succeeded pair to ICE
@@ -46,6 +44,10 @@ protected:
   virtual void run();
 
 private:
+
+  // wait for endNomination() signal and return true if it's received (meaning the nomination succeeded)
+  // if the endNomination() is not received in time the function returns false
+  bool waitForEndOfNomination(unsigned long timeout);
 
   QList<std::shared_ptr<ICEPair>> *candidates_;
 

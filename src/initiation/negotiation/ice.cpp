@@ -233,15 +233,14 @@ void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local,
 }
 
 
-void ICE::handleEndOfNomination(
-    std::shared_ptr<ICEPair> rtp,
-    std::shared_ptr<ICEPair> rtcp,
-    uint32_t sessionID
-)
+void ICE::handleEndOfNomination(QList<std::shared_ptr<ICEPair>>& streams,
+                                uint32_t sessionID)
 {
   Q_ASSERT(sessionID != 0);
 
-  if (rtp == nullptr || rtcp == nullptr)
+  if (streams.size() != 2 ||
+      streams.at(0) == nullptr ||
+      streams.at(1) == nullptr)
   {
     printDebug(DEBUG_ERROR, "ICE",  "Failed to nominate RTP/RTCP candidates!");
     nominationInfo_[sessionID].connectionNominated = false;
@@ -250,7 +249,7 @@ void ICE::handleEndOfNomination(
   else 
   {
     nominationInfo_[sessionID].connectionNominated = true;
-    nominationInfo_[sessionID].nominatedVideo = std::make_pair(rtp, rtcp);
+    nominationInfo_[sessionID].nominatedVideo = std::make_pair(streams.at(0), streams.at(1));
 
     // Create opus candidate on the fly. When this candidate (rtp && rtcp) was created
     // we intentionally allocated 4 ports instead of 2 for use.
@@ -263,14 +262,14 @@ void ICE::handleEndOfNomination(
     opusPairRTP->local  = std::make_shared<ICEInfo>();
     opusPairRTP->remote = std::make_shared<ICEInfo>();
 
-    memcpy(opusPairRTP->local.get(),  rtp->local.get(),  sizeof(ICEInfo));
-    memcpy(opusPairRTP->remote.get(), rtp->remote.get(), sizeof(ICEInfo));
+    memcpy(opusPairRTP->local.get(),  streams.at(0)->local.get(),  sizeof(ICEInfo));
+    memcpy(opusPairRTP->remote.get(), streams.at(0)->remote.get(), sizeof(ICEInfo));
 
     opusPairRTCP->local  = std::make_shared<ICEInfo>();
     opusPairRTCP->remote = std::make_shared<ICEInfo>();
 
-    memcpy(opusPairRTCP->local.get(),  rtcp->local.get(),  sizeof(ICEInfo));
-    memcpy(opusPairRTCP->remote.get(), rtcp->remote.get(), sizeof(ICEInfo));
+    memcpy(opusPairRTCP->local.get(),  streams.at(1)->local.get(),  sizeof(ICEInfo));
+    memcpy(opusPairRTCP->remote.get(), streams.at(1)->remote.get(), sizeof(ICEInfo));
 
     opusPairRTP->local->port  += 2; // hevc rtp, hevc rtcp and then opus rtp
     opusPairRTCP->local->port += 2; // hevc rtp, hevc, rtcp, opus rtp and then opus rtcp
