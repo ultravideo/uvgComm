@@ -32,8 +32,7 @@ public:
                                                             uint32_t sessionID);
   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> globalCandidates(uint8_t streams,
                                                             uint32_t sessionID);
-  std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> stunCandidates(uint8_t streams,
-                                                            uint32_t sessionID);
+  std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> stunCandidates(uint8_t streams);
   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> stunBindings(uint8_t streams,
                                                             uint32_t sessionID);
   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> turnCandidates(uint8_t streams,

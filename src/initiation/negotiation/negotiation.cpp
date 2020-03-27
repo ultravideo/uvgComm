@@ -38,7 +38,7 @@ bool Negotiation::generateOfferSDP(QString localAddress,
   // TODO: Set also media sdp parameters.
   localSDP->candidates = ice_->generateICECandidates(nCandidates_.localCandidates(1, sessionID),
                                                      nCandidates_.globalCandidates(1, sessionID),
-                                                     nCandidates_.stunCandidates(1, sessionID),
+                                                     nCandidates_.stunCandidates(1),
                                                      nCandidates_.stunBindings(1, sessionID),
                                                      nCandidates_.turnCandidates(1, sessionID));
 
@@ -72,7 +72,7 @@ bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
   std::shared_ptr<SDPMessageInfo> localSDP = negotiator_.negotiateSDP(remoteSDPOffer, localAddress);
   localSDP->candidates = ice_->generateICECandidates(nCandidates_.localCandidates(1, sessionID),
                                                      nCandidates_.globalCandidates(1, sessionID),
-                                                     nCandidates_.stunCandidates(1, sessionID),
+                                                     nCandidates_.stunCandidates(1),
                                                      nCandidates_.stunBindings(1, sessionID),
                                                      nCandidates_.turnCandidates(1, sessionID));
 

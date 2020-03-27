@@ -127,8 +127,11 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::loc
   {
     if (isPrivateNetwork(interface.first))
     {
-      addresses->push_back({QHostAddress(interface.first),
-                            nextAvailablePortPair(interface.first, sessionID)});
+      for (unsigned int i = 0; i < streams; ++i)
+      {
+        addresses->push_back({QHostAddress(interface.first),
+                              nextAvailablePortPair(interface.first, sessionID)});
+      }
     }
   }
 
@@ -146,8 +149,11 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::glo
   {
     if (!isPrivateNetwork(interface.first))
     {
-      addresses->push_back({QHostAddress(interface.first),
-                            nextAvailablePortPair(interface.first, sessionID)});
+      for (unsigned int i = 0; i < streams; ++i)
+      {
+        addresses->push_back({QHostAddress(interface.first),
+                              nextAvailablePortPair(interface.first, sessionID)});
+      }
     }
   }
   return addresses;
@@ -155,16 +161,19 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::glo
 
 
 std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::stunCandidates(
-    uint8_t streams, uint32_t sessionID)
-{
+    uint8_t streams)
+{ 
   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> addresses
       =   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> (new QList<std::pair<QHostAddress, uint16_t>>());
   if (!stunAddresses_.empty())
   {
-    addresses->push_back(stunAddresses_.front());
-    stunAddresses_.pop_front();
+    for (unsigned int i = 0; i < streams; ++i)
+    {
+      std::pair<QHostAddress, uint16_t> address = stunAddresses_.front();
+      stunAddresses_.pop_front();
+      addresses->push_back(address);
+    }
 
-    // TODO: Move reservedports reservation from stun to sessionID
   }
   else
   {
@@ -183,8 +192,16 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::stu
 
   if (!stunBindings_.empty())
   {
-    addresses->push_back(stunBindings_.front());
-    stunBindings_.pop_front();
+    for (unsigned int i = 0; i < streams; ++i)
+    {
+      std::pair<QHostAddress, uint16_t> address = stunBindings_.front();
+      stunBindings_.pop_front();
+
+      addresses->push_back(address);
+
+      reservedPorts_[sessionID].push_back(
+            std::pair<QString, uint16_t>({address.first.toString(), address.second}));
+    }
   }
   else
   {
