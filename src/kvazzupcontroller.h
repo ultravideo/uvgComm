@@ -63,6 +63,7 @@ public slots:
   void iceCompleted(quint32 sessionID);
   void iceFailed(quint32 sessionID);
 
+  void delayedAutoAccept();
 private:
   void startCall(quint32 sessionID, bool iceNominationComplete);
   void removeSession(uint32_t sessionID, QString message, bool temporaryMessage);
@@ -93,4 +94,6 @@ private:
 
   StatisticsInterface* stats_;
 
+  QTimer delayAutoAccept_;
+  uint32_t delayedAutoAccept_;
 };

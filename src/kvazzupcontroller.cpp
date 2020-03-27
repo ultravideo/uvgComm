@@ -9,9 +9,13 @@
 
 
 KvazzupController::KvazzupController():
-    media_(),
-    sip_(),
-    window_(nullptr)
+  states_(),
+  media_(),
+  sip_(),
+  window_(nullptr),
+  stats_(nullptr),
+  delayAutoAccept_(),
+  delayedAutoAccept_(0)
 {}
 
 void KvazzupController::init()
@@ -104,20 +108,32 @@ bool KvazzupController::incomingCall(uint32_t sessionID, QString caller)
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
   int autoAccept = settings.value("local/Auto-Accept").toInt();
   if(autoAccept == 1)
-  { 
+  {
     printNormal(this, "Incoming call auto-accepted");
 
-    userAcceptsCall(sessionID);
-    states_[sessionID] = CALLNEGOTIATING;
-    return true;
+    // make sure there are no ongoing auto-accepts
+    while (delayedAutoAccept_ != 0)
+    {
+      qSleep(10);
+    }
+
+    delayedAutoAccept_ = sessionID;
+    delayAutoAccept_.singleShot(100, this, &KvazzupController::delayedAutoAccept);
+    return false;
   }
   else
   {
     printNormal(this, "Showing incoming call");
-    window_.displayIncomingCall(sessionID, caller);
     states_[sessionID] = CALLRINGINGWITHUS;
+    window_.displayIncomingCall(sessionID, caller);
   }
   return false;
+}
+
+void KvazzupController::delayedAutoAccept()
+{
+  userAcceptsCall(delayedAutoAccept_);
+  delayedAutoAccept_ = 0;
 }
 
 void KvazzupController::callRinging(uint32_t sessionID)
@@ -322,8 +338,8 @@ void KvazzupController::updateSettings()
 void KvazzupController::userAcceptsCall(uint32_t sessionID)
 {
   printNormal(this, "We accept");
-  sip_.acceptCall(sessionID);
   states_[sessionID] = CALLNEGOTIATING;
+  sip_.acceptCall(sessionID);
 }
 
 
@@ -371,7 +387,8 @@ void KvazzupController::shareState()
 }
 
 
-void KvazzupController::removeSession(uint32_t sessionID, QString message, bool temporaryMessage)
+void KvazzupController::removeSession(uint32_t sessionID, QString message,
+                                      bool temporaryMessage)
 {
   if (message == "" || message.isEmpty())
   {
