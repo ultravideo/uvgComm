@@ -209,24 +209,30 @@ void Negotiation::nominationSucceeded(quint32 sessionID)
     return;
   }
 
-  printNormal(this, "ICE nomination has succeeded", {"SessionID"}, {QString::number(sessionID)});
+  QList<std::shared_ptr<ICEPair>> streams = ice_->getNominated(sessionID);
 
-  ICEMediaInfo nominated = ice_->getNominated(sessionID);
+  if (streams.size() != 4)
+  {
+    return;
+  }
+
+  printNormal(this, "ICE nomination has succeeded", {"SessionID"}, {QString::number(sessionID)});
 
   std::shared_ptr<SDPMessageInfo> localSDP = sdps_.at(sessionID).localSDP;
   std::shared_ptr<SDPMessageInfo> remoteSDP = sdps_.at(sessionID).remoteSDP;
 
-  // first is RTP, second is RTCP
-  if (nominated.audio.first != nullptr && nominated.audio.second != nullptr)
+  // Video. 0 is RTP, 1 is RTCP
+  if (streams.at(0) != nullptr && streams.at(1) != nullptr)
   {
-    negotiator_.setMediaPair(localSDP->media[0],  nominated.audio.first->local);
-    negotiator_.setMediaPair(remoteSDP->media[0], nominated.audio.first->remote);
+    negotiator_.setMediaPair(localSDP->media[1],  streams.at(0)->local);
+    negotiator_.setMediaPair(remoteSDP->media[1], streams.at(0)->remote);
   }
 
-  if (nominated.video.first != nullptr && nominated.video.second != nullptr)
+  // Audio. 2 is RTP, 3 is RTCP
+  if (streams.at(2) != nullptr && streams.at(3) != nullptr)
   {
-    negotiator_.setMediaPair(localSDP->media[1],  nominated.video.first->local);
-    negotiator_.setMediaPair(remoteSDP->media[1], nominated.video.first->remote);
+    negotiator_.setMediaPair(localSDP->media[0],  streams.at(2)->local);
+    negotiator_.setMediaPair(remoteSDP->media[0], streams.at(2)->remote);
   }
 
   emit iceNominationSucceeded(sessionID);

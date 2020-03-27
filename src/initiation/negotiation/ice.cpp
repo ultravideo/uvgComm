@@ -233,8 +233,7 @@ void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local,
 }
 
 
-void ICE::handleEndOfNomination(QList<std::shared_ptr<ICEPair>>& streams,
-                                uint32_t sessionID)
+void ICE::handleEndOfNomination(QList<std::shared_ptr<ICEPair> > &streams, uint32_t sessionID)
 {
   Q_ASSERT(sessionID != 0);
 
@@ -249,7 +248,6 @@ void ICE::handleEndOfNomination(QList<std::shared_ptr<ICEPair>>& streams,
   else 
   {
     nominationInfo_[sessionID].connectionNominated = true;
-    nominationInfo_[sessionID].nominatedVideo = std::make_pair(streams.at(0), streams.at(1));
 
     // Create opus candidate on the fly. When this candidate (rtp && rtcp) was created
     // we intentionally allocated 4 ports instead of 2 for use.
@@ -277,9 +275,8 @@ void ICE::handleEndOfNomination(QList<std::shared_ptr<ICEPair>>& streams,
     opusPairRTP->remote->port  += 2; // hevc rtp, hevc rtcp and then opus rtp
     opusPairRTCP->remote->port += 2; // hev rtp, hevc, rtcp, opus rtp and then opus rtcp
 
-    nominationInfo_[sessionID].nominatedAudio =
-      std::make_pair(opusPairRTP, opusPairRTCP);
-
+    nominationInfo_[sessionID].selectedPairs = {streams.at(0), streams.at(1),
+                                                opusPairRTP, opusPairRTCP};
     emit nominationSucceeded(sessionID);
   }
 
@@ -289,22 +286,14 @@ void ICE::handleEndOfNomination(QList<std::shared_ptr<ICEPair>>& streams,
 }
 
 
-ICEMediaInfo ICE::getNominated(uint32_t sessionID)
+QList<std::shared_ptr<ICEPair>> ICE::getNominated(uint32_t sessionID)
 {
-  Q_ASSERT(sessionID != 0);
-
-  if (nominationInfo_.contains(sessionID))
+  if (nominationInfo_.find(sessionID) != nominationInfo_.end())
   {
-    return {
-        nominationInfo_[sessionID].nominatedVideo,
-        nominationInfo_[sessionID].nominatedAudio
-    };
+    return nominationInfo_[sessionID].selectedPairs;
   }
-
-  return {
-    std::make_pair(nullptr, nullptr),
-    std::make_pair(nullptr, nullptr)
-  };
+  printProgramError(this, "No selected ICE candidatse stored");
+  return QList<std::shared_ptr<ICEPair>>();
 }
 
 

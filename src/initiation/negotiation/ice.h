@@ -33,8 +33,8 @@ class ICE : public QObject
                          QList<std::shared_ptr<ICEInfo>>& remote,
                          uint32_t sessionID, bool flowController);
 
-    // get nominated ICE pair using sessionID
-    ICEMediaInfo getNominated(uint32_t sessionID);
+    // get nominated ICE pairs using sessionID
+    QList<std::shared_ptr<ICEPair> > getNominated(uint32_t sessionID);
 
     // free all ICE-related resources
     void cleanupSession(uint32_t sessionID);
@@ -42,8 +42,6 @@ class ICE : public QObject
 signals:
     void nominationFailed(quint32 sessionID);
     void nominationSucceeded(quint32 sessionID);
-
-
 
 private slots:
     // when FlowAgent has finished its job, it emits "ready" signal which is caught by this slot function
@@ -69,7 +67,8 @@ private slots:
     QList<std::shared_ptr<ICEPair>> makeCandidatePairs(QList<std::shared_ptr<ICEInfo>>& local,
                                                        QList<std::shared_ptr<ICEInfo>>& remote);
 
-    void addCandidates(std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> addresses,
+    void addCandidates(std::shared_ptr<QList<std::pair<QHostAddress,
+                       uint16_t>>> addresses,
                        const QString& candidatesType,
                        QList<std::shared_ptr<ICEInfo>>& candidates);
 
@@ -84,15 +83,7 @@ private slots:
       // list of all candidates, remote and local
       QList<std::shared_ptr<ICEPair>> pairs;
 
-      std::pair<
-        std::shared_ptr<ICEPair>,
-        std::shared_ptr<ICEPair>
-      > nominatedVideo;
-
-      std::pair<
-        std::shared_ptr<ICEPair>,
-        std::shared_ptr<ICEPair>
-      > nominatedAudio;
+      QList<std::shared_ptr<ICEPair>> selectedPairs;
 
       bool connectionNominated;
     };
