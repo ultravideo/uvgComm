@@ -1,32 +1,32 @@
-#include "interfacetester.h"
+#include "icecandidatetester.h"
 
-#include "connectiontester.h"
+#include "icepairtester.h"
 
 #include "common.h"
 
-InterfaceTester::InterfaceTester()
+IceCandidateTester::IceCandidateTester()
 {}
 
 
-bool InterfaceTester::bindInterface(QHostAddress interface, quint16 port)
+bool IceCandidateTester::bindInterface(QHostAddress interface, quint16 port)
 {
   QObject::connect(&udp_, &UDPServer::datagramAvailable,
-                   this, &InterfaceTester::routeDatagram);
+                   this, &IceCandidateTester::routeDatagram);
 
   return udp_.bindSocket(interface, port);
 }
 
 
-void InterfaceTester::startTestingPairs(bool controller)
+void IceCandidateTester::startTestingPairs(bool controller)
 {
   for (auto& pair : pairs_)
   {
-    workerThreads_.push_back(std::shared_ptr<ConnectionTester>(new ConnectionTester(&udp_, true)));
+    workerThreads_.push_back(std::shared_ptr<IcePairTester>(new IcePairTester(&udp_, true)));
 
     QObject::connect(workerThreads_.back().get(),
-                     &ConnectionTester::testingDone,
+                     &IcePairTester::testingDone,
                      this,
-                     &InterfaceTester::candidateFound,
+                     &IceCandidateTester::candidateFound,
                      Qt::DirectConnection);
 
     // when the UDPServer receives a datagram from remote->address:remote->port,
@@ -45,7 +45,7 @@ void InterfaceTester::startTestingPairs(bool controller)
 }
 
 
-void InterfaceTester::endTests()
+void IceCandidateTester::endTests()
 {
   // kill all threads, regardless of whether nomination succeeded or not
   for (size_t i = 0; i < workerThreads_.size(); ++i)
@@ -60,10 +60,10 @@ void InterfaceTester::endTests()
 }
 
 
-bool InterfaceTester::performNomination(std::shared_ptr<ICEPair> rtp,
+bool IceCandidateTester::performNomination(std::shared_ptr<ICEPair> rtp,
                                         std::shared_ptr<ICEPair> rtcp)
 {
-  ConnectionTester tester(new UDPServer, false);
+  IcePairTester tester(new UDPServer, false);
 
   if (!tester.sendNominationRequest(rtp.get()))
   {
@@ -84,7 +84,7 @@ bool InterfaceTester::performNomination(std::shared_ptr<ICEPair> rtp,
 }
 
 
-void InterfaceTester::routeDatagram(QNetworkDatagram message)
+void IceCandidateTester::routeDatagram(QNetworkDatagram message)
 {
   // is anyone listening to messages from this sender?
   if (listeners_.contains(message.senderAddress().toString()) &&
@@ -108,7 +108,7 @@ void InterfaceTester::routeDatagram(QNetworkDatagram message)
 }
 
 
-void InterfaceTester::expectReplyFrom(std::shared_ptr<ConnectionTester> ct,
+void IceCandidateTester::expectReplyFrom(std::shared_ptr<IcePairTester> ct,
                                       QString& address, quint16 port)
 {
     listeners_[address][port] = ct;

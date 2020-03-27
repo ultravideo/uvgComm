@@ -7,13 +7,13 @@
 #include <QThread>
 #include <memory>
 
-class ConnectionTester : public QThread
+class IcePairTester : public QThread
 {
   Q_OBJECT
 
 public:
-  ConnectionTester(UDPServer *server, bool multiplex);
-  ~ConnectionTester();
+  IcePairTester(UDPServer *server, bool multiplex);
+  ~IcePairTester();
   void setCandidatePair(std::shared_ptr<ICEPair> pair);
 
   // controller_ defines the course of action after candiate pair has been validated.

@@ -3,13 +3,13 @@
 #include <QThread>
 
 #include "common.h"
-#include "interfacetester.h"
-#include "flowagent.h"
+#include "icecandidatetester.h"
+#include "icesessiontester.h"
 #include "ice.h"
 
 
 
-FlowAgent::FlowAgent(bool controller, int timeout):
+IceSessionTester::IceSessionTester(bool controller, int timeout):
   candidates_(nullptr),
   sessionID_(0),
   controller_(controller),
@@ -17,27 +17,21 @@ FlowAgent::FlowAgent(bool controller, int timeout):
 {}
 
 
-FlowAgent::~FlowAgent()
+IceSessionTester::~IceSessionTester()
 {}
 
 
-void FlowAgent::setCandidates(QList<std::shared_ptr<ICEPair>> *candidates)
+void IceSessionTester::init(QList<std::shared_ptr<ICEPair>> *candidates,
+                            uint32_t sessionID)
 {
   Q_ASSERT(candidates != nullptr);
-
-  candidates_ = candidates;
-}
-
-
-void FlowAgent::setSessionID(uint32_t sessionID)
-{
   Q_ASSERT(sessionID != 0);
-
+  candidates_ = candidates;
   sessionID_ = sessionID;
 }
 
 
-void FlowAgent::nominationDone(std::shared_ptr<ICEPair> connection)
+void IceSessionTester::nominationDone(std::shared_ptr<ICEPair> connection)
 {
   Q_ASSERT(connection != nullptr);
 
@@ -70,7 +64,7 @@ void FlowAgent::nominationDone(std::shared_ptr<ICEPair> connection)
 }
 
 
-bool FlowAgent::waitForEndOfNomination(unsigned long timeout)
+bool IceSessionTester::waitForEndOfNomination(unsigned long timeout)
 {
   QTimer timer;
   QEventLoop loop;
@@ -79,7 +73,7 @@ bool FlowAgent::waitForEndOfNomination(unsigned long timeout)
 
   QObject::connect(
       this,
-      &FlowAgent::endNomination,
+      &IceSessionTester::endNomination,
       &loop,
       &QEventLoop::quit,
       Qt::DirectConnection
@@ -100,7 +94,7 @@ bool FlowAgent::waitForEndOfNomination(unsigned long timeout)
 }
 
 
-void FlowAgent::run()
+void IceSessionTester::run()
 {
   if (candidates_ == nullptr || candidates_->size() == 0)
   {
@@ -114,7 +108,7 @@ void FlowAgent::run()
   // the candidates into interfaces
   // InterfaceTester then binds to this interface and takes care of sending the STUN Binding requests
 
-  QList<std::shared_ptr<InterfaceTester>> interfaces;
+  QList<std::shared_ptr<IceCandidateTester>> interfaces;
 
   QString prevAddr  = "";
   uint16_t prevPort = 0;
@@ -124,7 +118,7 @@ void FlowAgent::run()
     if (candidate->local->address != prevAddr ||
         candidate->local->port != prevPort)
     {
-      interfaces.push_back(std::shared_ptr<InterfaceTester>(new InterfaceTester));
+      interfaces.push_back(std::shared_ptr<IceCandidateTester>(new IceCandidateTester));
 
       // because we cannot modify create new objects from child threads (in this case new socket)
       // we must initialize both UDPServer and Stun objects here so that ConnectionTester doesn't have to do
@@ -149,9 +143,9 @@ void FlowAgent::run()
   {
     QObject::connect(
         interface.get(),
-        &InterfaceTester::candidateFound,
+        &IceCandidateTester::candidateFound,
         this,
-        &FlowAgent::nominationDone,
+        &IceSessionTester::nominationDone,
         Qt::DirectConnection
     );
 
@@ -175,7 +169,7 @@ void FlowAgent::run()
 
   if (controller_)
   {
-    InterfaceTester tester;
+    IceCandidateTester tester;
     if (!tester.performNomination(nominated_rtp_, nominated_rtcp_))
     {
       emit ready(nullptr, nullptr, sessionID_);

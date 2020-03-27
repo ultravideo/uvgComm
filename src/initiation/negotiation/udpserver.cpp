@@ -1,7 +1,5 @@
 #include "udpserver.h"
 
-#include "connectiontester.h"
-
 #include "common.h"
 
 #include <QUdpSocket>

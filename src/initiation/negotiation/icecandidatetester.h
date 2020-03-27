@@ -6,12 +6,13 @@
 #include <QList>
 #include <QHostAddress>
 
+class IcePairTester;
 
-class InterfaceTester : public QObject
+class IceCandidateTester : public QObject
 {
   Q_OBJECT
 public:
-  InterfaceTester();
+  IceCandidateTester();
 
   bool bindInterface(QHostAddress interface, quint16 port);
 
@@ -35,13 +36,13 @@ private slots:
 
 private:
 
-  void expectReplyFrom(std::shared_ptr<ConnectionTester> ct,
+  void expectReplyFrom(std::shared_ptr<IcePairTester> ct,
                        QString& address, quint16 port);
 
   UDPServer udp_;
   QList<std::shared_ptr<ICEPair>> pairs_;
 
-  std::vector<std::shared_ptr<ConnectionTester>> workerThreads_;
+  std::vector<std::shared_ptr<IcePairTester>> workerThreads_;
 
-  QMap<QString, QMap<quint16, std::shared_ptr<ConnectionTester>>> listeners_;
+  QMap<QString, QMap<quint16, std::shared_ptr<IcePairTester>>> listeners_;
 };

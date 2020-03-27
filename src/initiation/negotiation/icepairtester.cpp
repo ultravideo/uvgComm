@@ -1,12 +1,12 @@
 #include "common.h"
-#include "connectiontester.h"
+#include "icepairtester.h"
 
 #include "stunmessage.h"
 #include "common.h"
 
 #include <QEventLoop>
 
-ConnectionTester::ConnectionTester(UDPServer* server, bool multiplex):
+IcePairTester::IcePairTester(UDPServer* server, bool multiplex):
   pair_(nullptr),
   controller_(false),
   udp_(server),
@@ -16,11 +16,11 @@ ConnectionTester::ConnectionTester(UDPServer* server, bool multiplex):
 {}
 
 
-ConnectionTester::~ConnectionTester()
+IcePairTester::~IcePairTester()
 {}
 
 
-void ConnectionTester::setCandidatePair(std::shared_ptr<ICEPair> pair)
+void IcePairTester::setCandidatePair(std::shared_ptr<ICEPair> pair)
 {
   Q_ASSERT(pair != nullptr);
 
@@ -28,13 +28,13 @@ void ConnectionTester::setCandidatePair(std::shared_ptr<ICEPair> pair)
 }
 
 
-void ConnectionTester::isController(bool controller)
+void IcePairTester::isController(bool controller)
 {
   controller_ = controller;
 }
 
 
-void ConnectionTester::quit()
+void IcePairTester::quit()
 {
   interrupted_ = true;
   emit stopEventLoop();
@@ -42,7 +42,7 @@ void ConnectionTester::quit()
 }
 
 
-void ConnectionTester::run()
+void IcePairTester::run()
 {
   if (pair_ == nullptr)
   {
@@ -93,14 +93,14 @@ void ConnectionTester::run()
 }
 
 
-bool ConnectionTester::waitForStunResponse(unsigned long timeout)
+bool IcePairTester::waitForStunResponse(unsigned long timeout)
 {
   QTimer timer;
   timer.setSingleShot(true);
   QEventLoop loop;
 
-  connect(this,   &ConnectionTester::parsingDone,   &loop, &QEventLoop::quit, Qt::DirectConnection);
-  connect(this,   &ConnectionTester::stopEventLoop, &loop, &QEventLoop::quit, Qt::DirectConnection);
+  connect(this,   &IcePairTester::parsingDone,   &loop, &QEventLoop::quit, Qt::DirectConnection);
+  connect(this,   &IcePairTester::stopEventLoop, &loop, &QEventLoop::quit, Qt::DirectConnection);
   connect(&timer, &QTimer::timeout,     &loop, &QEventLoop::quit, Qt::DirectConnection);
 
   timer.start(timeout);
@@ -110,14 +110,14 @@ bool ConnectionTester::waitForStunResponse(unsigned long timeout)
 }
 
 
-bool ConnectionTester::waitForStunRequest(unsigned long timeout)
+bool IcePairTester::waitForStunRequest(unsigned long timeout)
 {
   QTimer timer;
   timer.setSingleShot(true);
   QEventLoop loop;
 
-  connect(this,   &ConnectionTester::requestRecv,   &loop, &QEventLoop::quit, Qt::DirectConnection);
-  connect(this,   &ConnectionTester::stopEventLoop, &loop, &QEventLoop::quit, Qt::DirectConnection);
+  connect(this,   &IcePairTester::requestRecv,   &loop, &QEventLoop::quit, Qt::DirectConnection);
+  connect(this,   &IcePairTester::stopEventLoop, &loop, &QEventLoop::quit, Qt::DirectConnection);
   connect(&timer, &QTimer::timeout,     &loop, &QEventLoop::quit, Qt::DirectConnection);
 
   timer.start(timeout);
@@ -127,14 +127,14 @@ bool ConnectionTester::waitForStunRequest(unsigned long timeout)
 }
 
 
-bool ConnectionTester::waitForNominationRequest(unsigned long timeout)
+bool IcePairTester::waitForNominationRequest(unsigned long timeout)
 {
   QTimer timer;
   timer.setSingleShot(true);
   QEventLoop loop;
 
-  connect(this,   &ConnectionTester::nominationRecv, &loop, &QEventLoop::quit, Qt::DirectConnection);
-  connect(this,   &ConnectionTester::stopEventLoop,  &loop, &QEventLoop::quit, Qt::DirectConnection);
+  connect(this,   &IcePairTester::nominationRecv, &loop, &QEventLoop::quit, Qt::DirectConnection);
+  connect(this,   &IcePairTester::stopEventLoop,  &loop, &QEventLoop::quit, Qt::DirectConnection);
   connect(&timer, &QTimer::timeout,      &loop, &QEventLoop::quit, Qt::DirectConnection);
 
   timer.start(timeout);
@@ -146,7 +146,7 @@ bool ConnectionTester::waitForNominationRequest(unsigned long timeout)
 
 // if we're the controlling agent, sending binding request is rather straight-forward:
 // send request, wait for response and return
-bool ConnectionTester::controllerSendBindingRequest(ICEPair *pair)
+bool IcePairTester::controllerSendBindingRequest(ICEPair *pair)
 {
   Q_ASSERT(pair != nullptr);
 
@@ -215,7 +215,7 @@ bool ConnectionTester::controllerSendBindingRequest(ICEPair *pair)
 }
 
 
-bool ConnectionTester::controlleeSendBindingRequest(ICEPair *pair)
+bool IcePairTester::controlleeSendBindingRequest(ICEPair *pair)
 {
   Q_ASSERT(pair != nullptr);
 
@@ -298,7 +298,7 @@ bool ConnectionTester::controlleeSendBindingRequest(ICEPair *pair)
 }
 
 
-bool ConnectionTester::sendBindingRequest(ICEPair *pair, bool controller)
+bool IcePairTester::sendBindingRequest(ICEPair *pair, bool controller)
 {
   Q_ASSERT(pair != nullptr);
 
@@ -328,7 +328,7 @@ bool ConnectionTester::sendBindingRequest(ICEPair *pair, bool controller)
       return false;
     }
 
-    connect(udp_, &UDPServer::datagramAvailable, this, &ConnectionTester::recvStunMessage);
+    connect(udp_, &UDPServer::datagramAvailable, this, &IcePairTester::recvStunMessage);
   }
 
   if (controller)
@@ -340,7 +340,7 @@ bool ConnectionTester::sendBindingRequest(ICEPair *pair, bool controller)
 }
 
 
-bool ConnectionTester::sendNominationRequest(ICEPair *pair)
+bool IcePairTester::sendNominationRequest(ICEPair *pair)
 {
   Q_ASSERT(pair != nullptr);
 
@@ -357,7 +357,7 @@ bool ConnectionTester::sendNominationRequest(ICEPair *pair)
       return false;
     }
 
-    connect(udp_, &UDPServer::datagramAvailable, this, &ConnectionTester::recvStunMessage);
+    connect(udp_, &UDPServer::datagramAvailable, this, &IcePairTester::recvStunMessage);
   }
 
   STUNMessage request = stunmsg_.createRequest();
@@ -379,7 +379,7 @@ bool ConnectionTester::sendNominationRequest(ICEPair *pair)
 }
 
 
-bool ConnectionTester::sendNominationResponse(ICEPair *pair)
+bool IcePairTester::sendNominationResponse(ICEPair *pair)
 {
   Q_ASSERT(pair != nullptr);
 
@@ -391,7 +391,7 @@ bool ConnectionTester::sendNominationResponse(ICEPair *pair)
                    pair->remote->address + ":" + QString::number(pair->remote->port)});
       return false;
     }
-    connect(udp_, &UDPServer::datagramAvailable, this, &ConnectionTester::recvStunMessage);
+    connect(udp_, &UDPServer::datagramAvailable, this, &IcePairTester::recvStunMessage);
   }
 
   bool nominationRecv = false;
@@ -455,7 +455,7 @@ bool ConnectionTester::sendNominationResponse(ICEPair *pair)
 
 // either we got Stun binding request -> send binding response
 // or Stun binding response -> mark candidate as valid
-void ConnectionTester::recvStunMessage(QNetworkDatagram message)
+void IcePairTester::recvStunMessage(QNetworkDatagram message)
 {
   QByteArray data     = message.data();
   STUNMessage stunMsg = stunmsg_.networkToHost(data);
@@ -497,7 +497,7 @@ void ConnectionTester::recvStunMessage(QNetworkDatagram message)
 }
 
 
-bool ConnectionTester::sendRequestWaitResponse(ICEPair* pair, QByteArray& request,
+bool IcePairTester::sendRequestWaitResponse(ICEPair* pair, QByteArray& request,
                                    int retries, int baseTimeout)
 {
   bool msgReceived = false;

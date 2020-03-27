@@ -12,17 +12,16 @@
 
 
 
-class FlowAgent : public QThread
+class IceSessionTester : public QThread
 {
   Q_OBJECT
 
 public:
-  FlowAgent(bool controller, int timeout);
-  ~FlowAgent();
+  IceSessionTester(bool controller, int timeout);
+  ~IceSessionTester();
 
-  void setCandidates(QList<std::shared_ptr<ICEPair>> *candidates);
-
-  void setSessionID(uint32_t sessionID);
+  void init(QList<std::shared_ptr<ICEPair>> *candidates,
+            uint32_t sessionID);
 
   // wait for endNomination() signal and return true if it's received (meaning the nomination succeeded)
   // if the endNomination() is not received in time the function returns false

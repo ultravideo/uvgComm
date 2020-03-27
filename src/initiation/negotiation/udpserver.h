@@ -9,7 +9,6 @@
 #include <stdint.h>
 
 class QUdpSocket;
-class ConnectionTester;
 
 class UDPServer : public QObject
 {
@@ -36,10 +35,5 @@ private slots:
 
 private:
   QUdpSocket* socket_;
-
-  QTimer resendTimer_;
-  bool waitingReply_;
-
-  int tryNumber_;
   uint16_t sendPort_;
 };

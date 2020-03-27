@@ -5,7 +5,7 @@
 
 #include "common.h"
 #include "ice.h"
-#include "flowagent.h"
+#include "icesessiontester.h"
 
 
 ICE::ICE()
@@ -204,21 +204,21 @@ void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local,
   // nomination-related memory is released when handleEndOfNomination() is called
   if (flowController)
   {
-    nominationInfo_[sessionID].agent = new FlowAgent(true, 10000);
+    nominationInfo_[sessionID].agent = new IceSessionTester(true, 10000);
   }
   else
   {
-    nominationInfo_[sessionID].agent = new FlowAgent(false, 20000);
+    nominationInfo_[sessionID].agent = new IceSessionTester(false, 20000);
   }
 
 
   nominationInfo_[sessionID].pairs = makeCandidatePairs(local, remote);
   nominationInfo_[sessionID].connectionNominated = false;
 
-  FlowAgent *agent = nominationInfo_[sessionID].agent;
+  IceSessionTester *agent = nominationInfo_[sessionID].agent;
   QObject::connect(
       agent,
-      &FlowAgent::ready,
+      &IceSessionTester::ready,
       this,
       &ICE::handleEndOfNomination,
       Qt::DirectConnection
@@ -228,8 +228,7 @@ void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local,
   // different binding for their address.
   transformBindingCandidates(nominationInfo_[sessionID].pairs);
 
-  agent->setCandidates(&nominationInfo_[sessionID].pairs);
-  agent->setSessionID(sessionID);
+  agent->init(&nominationInfo_[sessionID].pairs, sessionID);
   agent->start();
 }
 

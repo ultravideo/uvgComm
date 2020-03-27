@@ -9,7 +9,7 @@
 #include "icetypes.h"
 #include "networkcandidates.h"
 
-class FlowAgent;
+class IceSessionTester;
 
 class ICE : public QObject
 {
@@ -79,7 +79,7 @@ private slots:
 
     struct NominationInfo
     {
-      FlowAgent *agent;
+      IceSessionTester *agent;
 
       // list of all candidates, remote and local
       QList<std::shared_ptr<ICEPair>> pairs;
