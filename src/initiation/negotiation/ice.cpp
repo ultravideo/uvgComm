@@ -129,6 +129,12 @@ std::pair<std::shared_ptr<ICEInfo>, std::shared_ptr<ICEInfo>>
   entry_rtp->type  = type;
   entry_rtcp->type = type;
 
+  entry_rtp->rel_address = "";
+  entry_rtcp->rel_address = "";
+
+  entry_rtp->rel_port = 0;
+  entry_rtcp->rel_port = 0;
+
   return std::make_pair(entry_rtp, entry_rtcp);
 }
 

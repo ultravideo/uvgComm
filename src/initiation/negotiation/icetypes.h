@@ -35,7 +35,8 @@ struct ICEInfo
   quint16 port;
 
   QString type;        /* host/relayed */
-  QString rel_address; /* for turn, not used (currently)  */
+  QString rel_address; /* for relay, srflx and prflx */
+  quint16 rel_port;
 };
 
 struct ICEPair

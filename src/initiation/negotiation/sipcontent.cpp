@@ -207,7 +207,15 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
         + info->foundation + " " + QString::number(info->component) + " "
         + info->transport  + " " + QString::number(info->priority)  + " "
         + info->address    + " " + QString::number(info->port)      + " "
-        + "typ " + info->type + lineEnd;
+        + "typ " + info->type;
+
+    if (info->rel_address != "" && info->rel_port != 0)
+    {
+      sdp += " raddr " + info->rel_address +
+          " rport " + QString::number(info->rel_port);
+    }
+
+    sdp += lineEnd;
   }
 
   qDebug().noquote() << "Sending, SIPContent :" << "Composed SDP string:" << sdp;  return sdp;
@@ -862,7 +870,7 @@ bool parseEncryptionKey(QStringListIterator& lineIterator, char& type, QStringLi
 
 bool parseICECandidate(QStringList& words, QList<std::shared_ptr<ICEInfo>>& candidates)
 {
-  if (words.size() != 8)
+  if (words.size() < 8 || words.at(6) != "typ")
   {
     return false;
   }
@@ -876,7 +884,12 @@ bool parseICECandidate(QStringList& words, QList<std::shared_ptr<ICEInfo>>& cand
   candidate->address     = words.at(4);
   candidate->port        = words.at(5).toInt();
   candidate->type        = words.at(7); // discard word 6 (typ)
-  candidate->rel_address = "";
+
+  if (words.size() >= 12 && words.at(8) == "raddr" && words.at(10) == "rport")
+  {
+    candidate->rel_address = words.at(9);
+    candidate->rel_port = words.at(11).toInt();
+  }
 
   candidates.push_back(candidate);
 
