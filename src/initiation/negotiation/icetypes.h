@@ -13,13 +13,15 @@ enum PAIR {
   PAIR_NOMINATED   = 5,
 };
 
-enum COMPONENTS {
+enum ICEComponent {
   RTP  = 1,
   RTCP = 2
 };
 
-enum HOSTS {
-  RELAYED = 0,
+enum CandidateType {
+  RELAY = 0,
+  SERVER_REFLEXIVE = 1,
+  PEER_REFLEXIVE = 2,
   HOST    = 126
 };
 
@@ -34,7 +36,7 @@ struct ICEInfo
   QString address;
   quint16 port;
 
-  QString type;        /* host/relayed */
+  QString type;        /* host, prflx, srflx or relayed */
   QString rel_address; /* for relay, srflx and prflx */
   quint16 rel_port;
 };

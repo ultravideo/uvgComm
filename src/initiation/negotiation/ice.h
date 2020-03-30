@@ -54,11 +54,16 @@ private slots:
   private:
     // create media candidate (RTP and RTCP connection)
     // "type" marks whether this candidate is host or server reflexive candidate (affects priority)
-    std::pair<std::shared_ptr<ICEInfo>,
-              std::shared_ptr<ICEInfo>> makeCandidate(const std::pair<QHostAddress, uint16_t>& addressPort,
-                                                      QString type);
+    std::shared_ptr<ICEInfo> makeCandidate(uint32_t foundation,
+                                           CandidateType type,
+                                           ICEComponent component,
+                                           const QHostAddress address,
+                                           quint16 port,
+                                           const QHostAddress relayAddress,
+                                           quint16 relayPort,
+                                           quint16 localPriority);
 
-    int calculatePriority(int type, int local, int component);
+    int calculatePriority(CandidateType type, quint16 local, ICEComponent component);
 
     void printCandidates(QList<std::shared_ptr<ICEInfo>>& candidates);
 
@@ -68,8 +73,8 @@ private slots:
                                                        QList<std::shared_ptr<ICEInfo>>& remote);
 
     void addCandidates(std::shared_ptr<QList<std::pair<QHostAddress,
-                       uint16_t>>> addresses,
-                       const QString& candidatesType,
+                       uint16_t>>> addresses, quint32 foundation,
+                       CandidateType type, quint16 localPriority,
                        QList<std::shared_ptr<ICEInfo>>& candidates);
 
     void transformBindingCandidates(QList<std::shared_ptr<ICEPair> > &pairs);

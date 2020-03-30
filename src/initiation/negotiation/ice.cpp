@@ -18,11 +18,8 @@ ICE::~ICE()
 /* @param type - 0 for relayed, 126 for host
  * @param local - local preference for selecting candidates
  * @param component - 1 for RTP, 2 for RTCP */
-int ICE::calculatePriority(int type, int local, int component)
+int ICE::calculatePriority(CandidateType type, quint16 local, ICEComponent component)
 {
-  Q_ASSERT(type      == HOST || type      == RELAYED);
-  Q_ASSERT(component == RTP  || component == RTCP);
-
   return (16777216 * type) + (256 * local) + component;
 }
 
@@ -48,8 +45,8 @@ QList<std::shared_ptr<ICEInfo>> ICE::generateICECandidates(
 
   QList<std::shared_ptr<ICEInfo>> iceCandidates;
 
-  addCandidates(localCandidates, "host", iceCandidates);
-  addCandidates(globalCandidates, "host", iceCandidates);
+  addCandidates(localCandidates, 1, HOST, 65535, iceCandidates);
+  addCandidates(globalCandidates, 2, HOST, 65534, iceCandidates);
 
   if (stunCandidates->size() == stunBindings->size())
   {
@@ -68,74 +65,81 @@ QList<std::shared_ptr<ICEInfo>> ICE::generateICECandidates(
       stunBindings_.back()->stunPort += 1;
     }
 
-    addCandidates(stunCandidates, "srflx", iceCandidates);
+    addCandidates(stunCandidates, 3, SERVER_REFLEXIVE, 65535, iceCandidates);
   }
-  addCandidates(turnCandidates, "relay", iceCandidates);
+  addCandidates(turnCandidates, 4, RELAY, 0, iceCandidates);
 
   return iceCandidates;
 }
 
 
 void ICE::addCandidates(std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > addresses,
-                        const QString &candidatesType,
+                        quint32 foundation, CandidateType type, quint16 localPriority,
                         QList<std::shared_ptr<ICEInfo>>& candidates)
 {
-  for (auto& address : *addresses)
+  if (addresses->size() >= 1)
   {
-    std::pair<std::shared_ptr<ICEInfo>, std::shared_ptr<ICEInfo>> rtpCandidate
-        = makeCandidate(address, candidatesType);
-
-    candidates.push_back(rtpCandidate.first);
-    candidates.push_back(rtpCandidate.second);
+    candidates.push_back(makeCandidate(foundation, type, RTP,
+                                       addresses->at(0).first,
+                                       addresses->at(0).second,
+                                       QHostAddress(""), 0, localPriority));
+    candidates.push_back(makeCandidate(foundation, type, RTCP,
+                                       addresses->at(0).first,
+                                       addresses->at(0).second + 1,
+                                       QHostAddress(""), 0, localPriority));
   }
 }
 
 
-std::pair<std::shared_ptr<ICEInfo>, std::shared_ptr<ICEInfo>>
-  ICE::makeCandidate(const std::pair<QHostAddress, uint16_t>& addressPort, QString type)
+std::shared_ptr<ICEInfo> ICE::makeCandidate(uint32_t foundation,
+                                            CandidateType type,
+                                            ICEComponent component,
+                                            const QHostAddress address,
+                                            quint16 port,
+                                            const QHostAddress relayAddress,
+                                            quint16 relayPort,
+                                            quint16 localPriority)
 {
-  std::shared_ptr<ICEInfo> entry_rtp  = std::make_shared<ICEInfo>();
-  std::shared_ptr<ICEInfo> entry_rtcp = std::make_shared<ICEInfo>();
+  std::shared_ptr<ICEInfo> candidate  = std::make_shared<ICEInfo>();
 
-  entry_rtp->address  = addressPort.first.toString();
-  entry_rtcp->address = addressPort.first.toString();
+  candidate->address  = address.toString();
+  candidate->port  = port;
+  candidate->foundation  = QString::number(foundation);
+  candidate->transport  = "UDP";
+  candidate->component  = component;
+  candidate->priority  = calculatePriority(type, localPriority, component);
 
-  entry_rtp->port  = addressPort.second;
-  entry_rtcp->port = entry_rtp->port + 1;
+  QString typeString = "";
+  candidate->rel_address = "";
+  candidate->rel_port = 0;
 
-  // for each RTP/RTCP pair foundation is the same
-  const QString foundation = generateRandomString(15);
-
-  entry_rtp->foundation  = foundation;
-  entry_rtcp->foundation = foundation;
-
-  entry_rtp->transport  = "UDP";
-  entry_rtcp->transport = "UDP";
-
-  entry_rtp->component  = RTP;
-  entry_rtcp->component = RTCP;
-
-  if (type == "host")
+  if (type != HOST && !relayAddress.isNull() && relayPort != 0)
   {
-    entry_rtp->priority  = calculatePriority(126, 1, RTP);
-    entry_rtcp->priority = calculatePriority(126, 1, RTCP);
+    candidate->rel_address = relayAddress.toString();
+    candidate->rel_port = relayPort;
+  }
+
+  if (type == HOST)
+  {
+    typeString = "host";
+  }
+  else if (type == SERVER_REFLEXIVE)
+  {
+    typeString = "srflx";
+  }
+  else if (type == RELAY)
+  {
+    typeString = "relay";
   }
   else
   {
-    entry_rtp->priority  = calculatePriority(0, 1, RTP);
-    entry_rtcp->priority = calculatePriority(0, 1, RTCP);
+    printProgramError(this, "Peer reflexive candidates not possible at this point");
+    return nullptr;
   }
 
-  entry_rtp->type  = type;
-  entry_rtcp->type = type;
+  candidate->type = typeString;
 
-  entry_rtp->rel_address = "";
-  entry_rtcp->rel_address = "";
-
-  entry_rtp->rel_port = 0;
-  entry_rtcp->rel_port = 0;
-
-  return std::make_pair(entry_rtp, entry_rtcp);
+  return candidate;
 }
 
 
