@@ -114,6 +114,7 @@ void IceSessionTester::run()
   QString prevAddr  = "";
   uint16_t prevPort = 0;
 
+  // TODO: This should be done based on foundation, not address
   for (auto& candidate : *candidates_)
   {
     if (candidate->local->address != prevAddr ||
@@ -126,8 +127,25 @@ void IceSessionTester::run()
       // anything but to test the connection
       //
       // Binding might fail, if so happens no STUN objects are created for this socket
-      if (!interfaces.back()->bindInterface(QHostAddress(candidate->local->address),
-            candidate->local->port))
+
+      QHostAddress bindAddress = QHostAddress(candidate->local->address);
+      quint16 bindPort = candidate->local->port;
+
+
+      // use relayport if it is set
+      if (candidate->local->type != "host" &&
+          candidate->local->rel_address != "" &&
+          candidate->local->rel_port != 0)
+      {
+        printDebug(DEBUG_NORMAL, this, "Using relay address", {"Candidate address", "Relay address"}, {
+                      candidate->local->address + ":" + QString::number(candidate->local->port),
+                      candidate->local->rel_address + ":" + QString::number(candidate->local->rel_port)});
+
+        bindAddress = QHostAddress(candidate->local->rel_address);
+        bindPort = candidate->local->rel_port;
+      }
+
+      if (!interfaces.back()->bindInterface(bindAddress, bindPort))
       {
         continue;
       }
