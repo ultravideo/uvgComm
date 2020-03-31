@@ -70,7 +70,6 @@ bool KvazaarFilter::init()
 
 #ifdef __linux__
     // On Linux the Camerafilter seems to have a Qt bug that causes not being able to set resolution
-    api_->config_parse(config_, "preset", "ultrafast");
     config_->width = 640;
     config_->height = 480;
     config_->framerate_num = 30;
@@ -79,7 +78,6 @@ bool KvazaarFilter::init()
     config_->height = settings.value("video/ResolutionHeight").toInt();
     config_->framerate_num = settings.value("video/Framerate").toInt();
 #endif
-
     config_->threads = settings.value("video/kvzThreads").toInt();
     config_->qp = settings.value("video/QP").toInt();
     config_->wpp = settings.value("video/WPP").toInt();
@@ -90,6 +88,7 @@ bool KvazaarFilter::init()
 
     //config_->fme_level = 0;
 
+    // this does not work with kvzRTP at the moment. Avoid using slices.
     if(settings.value("video/Slices").toInt() == 1)
     {
       if(config_->wpp == 0)
