@@ -21,7 +21,7 @@ void IceCandidateTester::startTestingPairs(bool controller)
 {
   for (auto& pair : pairs_)
   {
-    workerThreads_.push_back(std::shared_ptr<IcePairTester>(new IcePairTester(&udp_, true)));
+    workerThreads_.push_back(std::shared_ptr<IcePairTester>(new IcePairTester(&udp_)));
 
     QObject::connect(workerThreads_.back().get(),
                      &IcePairTester::testingDone,
@@ -63,19 +63,36 @@ void IceCandidateTester::endTests()
 bool IceCandidateTester::performNomination(std::shared_ptr<ICEPair> rtp,
                                         std::shared_ptr<ICEPair> rtcp)
 {
-  IcePairTester tester(new UDPServer, false);
+  std::unique_ptr<UDPServer> server = std::make_unique<UDPServer>();
+  IcePairTester tester(server.get());
+
+  if (!server->bindSocket(QHostAddress(rtp->local->address), rtp->local->port))
+  {
+    return false;
+  }
+
+  connect(server.get(), &UDPServer::datagramAvailable, &tester, &IcePairTester::recvStunMessage);
 
   if (!tester.sendNominationRequest(rtp.get()))
   {
+    server->unbind();
     printError(this,  "Failed to nominate RTP candidate!");
+    return false;
+  }
+
+  server->unbind();
+  if (!server->bindSocket(QHostAddress(rtcp->local->address), rtcp->local->port))
+  {
     return false;
   }
 
   if (!tester.sendNominationRequest(rtcp.get()))
   {
+    server->unbind();
     printError(this,  "Failed to nominate RTCP candidate!");
     return false;
   }
+  server->unbind();
 
   rtp->state  = PAIR_NOMINATED;
   rtcp->state = PAIR_NOMINATED;
@@ -90,12 +107,7 @@ void IceCandidateTester::routeDatagram(QNetworkDatagram message)
   if (listeners_.contains(message.senderAddress().toString()) &&
       listeners_[message.senderAddress().toString()].contains(message.senderPort()))
   {
-    QMetaObject::invokeMethod(
-        listeners_[message.senderAddress().toString()][message.senderPort()].get(),
-        "recvStunMessage",
-        Qt::DirectConnection,
-        Q_ARG(QNetworkDatagram, message)
-    );
+    listeners_[message.senderAddress().toString()][message.senderPort()]->recvStunMessage(message);
   }
   else
   {
@@ -109,7 +121,7 @@ void IceCandidateTester::routeDatagram(QNetworkDatagram message)
 
 
 void IceCandidateTester::expectReplyFrom(std::shared_ptr<IcePairTester> ct,
-                                      QString& address, quint16 port)
+                                         QString& address, quint16 port)
 {
     listeners_[address][port] = ct;
 }

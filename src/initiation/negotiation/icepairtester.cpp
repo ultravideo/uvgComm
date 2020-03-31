@@ -6,12 +6,11 @@
 
 #include <QEventLoop>
 
-IcePairTester::IcePairTester(UDPServer* server, bool multiplex):
+IcePairTester::IcePairTester(UDPServer* server):
   pair_(nullptr),
   controller_(false),
   udp_(server),
   stunmsg_(),
-  multiplex_(multiplex),
   interrupted_(false)
 {}
 
@@ -162,10 +161,6 @@ bool IcePairTester::controllerSendBindingRequest(ICEPair *pair)
 
   if (!sendRequestWaitResponse(pair, message, 20, 20))
   {
-    if (!multiplex_)
-    {
-      udp_->unbind();
-    }
     return false;
   }
 
@@ -179,10 +174,6 @@ bool IcePairTester::controllerSendBindingRequest(ICEPair *pair)
     {
       if (interrupted_)
       {
-        if (!multiplex_)
-        {
-          udp_->unbind();
-        }
         return false;
       }
 
@@ -207,10 +198,6 @@ bool IcePairTester::controllerSendBindingRequest(ICEPair *pair)
     }
   }
 
-  if (!multiplex_)
-  {
-    udp_->unbind();
-  }
   return msgReceived;
 }
 
@@ -267,10 +254,6 @@ bool IcePairTester::controlleeSendBindingRequest(ICEPair *pair)
           {pair->local->address + ":" + QString::number(pair->local->port) + " <- " +
            pair->remote->address + ":" + QString::number(pair->remote->port)});
 
-    if (!multiplex_)
-    {
-      udp_->unbind();
-    }
     return false;
   }
 
@@ -290,10 +273,6 @@ bool IcePairTester::controlleeSendBindingRequest(ICEPair *pair)
 
   msgReceived = sendRequestWaitResponse(pair, message, 20, 20);
 
-  if (!multiplex_)
-  {
-    udp_->unbind();
-  }
   return msgReceived;
 }
 
@@ -315,22 +294,6 @@ bool IcePairTester::sendBindingRequest(ICEPair *pair, bool controller)
                   pair->remote->address + ":" + QString::number(pair->remote->port)});
   }
 
-  if (!multiplex_)
-  {
-    if (!udp_->bindSocket(QHostAddress(pair->local->address), pair->local->port))
-    {
-      printDebug(DEBUG_ERROR, "STUN",
-          "Binding failed! Cannot send STUN Binding Requests to", {
-            pair->remote->address, QString(pair->remote->port)
-          }
-      );
-
-      return false;
-    }
-
-    connect(udp_, &UDPServer::datagramAvailable, this, &IcePairTester::recvStunMessage);
-  }
-
   if (controller)
   {
     return controllerSendBindingRequest(pair);
@@ -344,22 +307,6 @@ bool IcePairTester::sendNominationRequest(ICEPair *pair)
 {
   Q_ASSERT(pair != nullptr);
 
-  if (!multiplex_)
-  {
-    if (!udp_->bindSocket(QHostAddress(pair->local->address), pair->local->port))
-    {
-      printDebug(DEBUG_ERROR, "STUN",
-          "Binding failed! Cannot send STUN Binding Requests to", {
-            pair->remote->address, QString(pair->remote->port)
-          }
-      );
-
-      return false;
-    }
-
-    connect(udp_, &UDPServer::datagramAvailable, this, &IcePairTester::recvStunMessage);
-  }
-
   STUNMessage request = stunmsg_.createRequest();
   request.addAttribute(STUN_ATTR_ICE_CONTROLLING);
   request.addAttribute(STUN_ATTR_USE_CANDIATE);
@@ -371,10 +318,6 @@ bool IcePairTester::sendNominationRequest(ICEPair *pair)
 
   bool responseRecv = sendRequestWaitResponse(pair, message, 25, 20);
 
-  if (!multiplex_)
-  {
-    udp_->unbind();
-  }
   return responseRecv;
 }
 
@@ -382,17 +325,6 @@ bool IcePairTester::sendNominationRequest(ICEPair *pair)
 bool IcePairTester::sendNominationResponse(ICEPair *pair)
 {
   Q_ASSERT(pair != nullptr);
-
-  if (!multiplex_)
-  {
-    if (!udp_->bindSocket(QHostAddress(pair->local->address), pair->local->port))
-    {
-      printError(this, "Binding failed! Cannot send STUN Binding Requests to", {"Interface:"}, {
-                   pair->remote->address + ":" + QString::number(pair->remote->port)});
-      return false;
-    }
-    connect(udp_, &UDPServer::datagramAvailable, this, &IcePairTester::recvStunMessage);
-  }
 
   bool nominationRecv = false;
   STUNMessage msg     = stunmsg_.createRequest();
@@ -436,17 +368,7 @@ bool IcePairTester::sendNominationResponse(ICEPair *pair)
   {
     printWarning(this, "Failed to receive STUN Nomination Request from remote!", {"Remote"}, {
                    pair->remote->address + ":" + QString(pair->remote->port)});
-
-    if (!multiplex_)
-    {
-      udp_->unbind();
-    }
     return false;
-  }
-
-  if (!multiplex_)
-  {
-    udp_->unbind();
   }
 
   return nominationRecv;

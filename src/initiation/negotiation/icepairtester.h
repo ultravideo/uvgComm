@@ -12,7 +12,7 @@ class IcePairTester : public QThread
   Q_OBJECT
 
 public:
-  IcePairTester(UDPServer *server, bool multiplex);
+  IcePairTester(UDPServer *server);
   ~IcePairTester();
   void setCandidatePair(std::shared_ptr<ICEPair> pair);
 
@@ -26,6 +26,8 @@ public:
 
   // Send the nominated candidate to ICE_CONTROLLED agent
   bool sendNominationRequest(ICEPair *pair);
+
+  void recvStunMessage(QNetworkDatagram message);
 
 public slots:
   // Because the Stun object used by ConnectionTester has it's own event loop, we must
@@ -48,9 +50,6 @@ signals:
 protected:
   void printMessage(QString message);
   void run();
-
-private slots:
-  void recvStunMessage(QNetworkDatagram message);
 
 private:
 
@@ -123,10 +122,6 @@ private:
   UDPServer *udp_;
 
   StunMessageFactory stunmsg_;
-
-  // If multiplex_ is true, it means that the UDPServer has already been created for us
-  // and we shouldn't unbind/rebind it or attach listeners to it.
-  bool multiplex_;
 
   // When waitFor(Stun|Nomination)(Request|Response) returns, the calling code should
   // check whether interrupt flag has been set. It means that the running thread has
