@@ -104,7 +104,7 @@ void ICE::addCandidates(std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> 
     candidates.push_back(makeCandidate(foundation, type, RTCP,
                                        addresses->at(currentIndex).first,
                                        addresses->at(currentIndex).second + 1,
-                                       relayAddress, relayPort, localPriority));
+                                       relayAddress, relayPort + 1, localPriority));
 
     ++foundation;
   }
@@ -282,7 +282,7 @@ void ICE::handleEndOfNomination(QList<std::shared_ptr<ICEPair> > &streams, uint3
     // Create opus candidate on the fly. When this candidate (rtp && rtcp) was created
     // we intentionally allocated 4 ports instead of 2 for use.
     //
-    // This is because we don't actually need to test that both HEVC and Opus work separately. Insted we can just
+    // This is because we don't actually need to test that both HEVC and Opus work separately. Instead we can just
     // test HEVC and if that works we can assume that Opus works too (no reason why it shouldn't)
     std::shared_ptr<ICEPair> opusPairRTP  = std::make_shared<ICEPair>();
     std::shared_ptr<ICEPair> opusPairRTCP = std::make_shared<ICEPair>();
