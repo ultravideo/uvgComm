@@ -19,6 +19,29 @@ IcePairTester::~IcePairTester()
 {}
 
 
+QHostAddress IcePairTester::getLocalAddress(std::shared_ptr<ICEInfo> info)
+{
+  if (info->type != "host" &&
+      info->rel_address != "" &&
+      info->rel_port != 0)
+  {
+    return QHostAddress(info->rel_address);
+  }
+  return QHostAddress(info->address);
+}
+
+
+quint16 IcePairTester::getLocalPort(std::shared_ptr<ICEInfo> info)
+{
+  if (info->type != "host" &&
+      info->rel_address != "" &&
+      info->rel_port != 0)
+  {
+    return info->rel_port;
+  }
+  return info->port;
+}
+
 void IcePairTester::setCandidatePair(std::shared_ptr<ICEPair> pair)
 {
   Q_ASSERT(pair != nullptr);
@@ -186,7 +209,7 @@ bool IcePairTester::controllerSendBindingRequest(ICEPair *pair)
       for (int k = 0; k < 3; ++k)
       {
         if (!udp_->sendData(message,
-                            QHostAddress(pair->local->address),
+                            getLocalAddress(pair->local),
                             QHostAddress(pair->remote->address),
                             pair->remote->port))
         {
@@ -214,7 +237,7 @@ bool IcePairTester::controlleeSendBindingRequest(ICEPair *pair)
   {
     if(!udp_->sendData(
       message,
-      QHostAddress(pair->local->address),
+      getLocalAddress(pair->local),
       QHostAddress(pair->remote->address),
       pair->remote->port))
     {
@@ -237,7 +260,7 @@ bool IcePairTester::controlleeSendBindingRequest(ICEPair *pair)
       for (int k = 0; k < 3; ++k)
       {
         udp_->sendData(message,
-                       QHostAddress(pair->local->address),
+                       getLocalAddress(pair->local),
                        QHostAddress(pair->remote->address),
                        pair->remote->port);
 
@@ -333,7 +356,7 @@ bool IcePairTester::sendNominationResponse(ICEPair *pair)
   for (int i = 0; i < 128; ++i)
   {
     udp_->sendData(message,
-                   QHostAddress(pair->local->address),
+                   getLocalAddress(pair->local),
                    QHostAddress(pair->remote->address),
                    pair->remote->port);
 
@@ -353,7 +376,7 @@ bool IcePairTester::sendNominationResponse(ICEPair *pair)
       for (int i = 0; i < 5; ++i)
       {
         udp_->sendData(message,
-                       QHostAddress(pair->local->address),
+                       getLocalAddress(pair->local),
                        QHostAddress(pair->remote->address),
                        pair->remote->port);
 
@@ -426,7 +449,7 @@ bool IcePairTester::sendRequestWaitResponse(ICEPair* pair, QByteArray& request,
   for (int i = 0; i < retries; ++i)
   {
     if(!udp_->sendData(request,
-                       QHostAddress(pair->local->address),
+                       getLocalAddress(pair->local),
                        QHostAddress(pair->remote->address),
                        pair->remote->port))
     {

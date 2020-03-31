@@ -29,6 +29,9 @@ public:
 
   void recvStunMessage(QNetworkDatagram message);
 
+  QHostAddress getLocalAddress(std::shared_ptr<ICEInfo> info);
+  quint16 getLocalPort(std::shared_ptr<ICEInfo> info);
+
 public slots:
   // Because the Stun object used by ConnectionTester has it's own event loop, we must
   // override the default quit function, call Stun::stopTesting() and then exit from ConnectionTester
@@ -52,6 +55,7 @@ protected:
   void run();
 
 private:
+
 
   // send stun binding request to remote
   // this function is used to establish a gateway between clients

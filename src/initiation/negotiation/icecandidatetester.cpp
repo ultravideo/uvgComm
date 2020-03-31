@@ -66,7 +66,7 @@ bool IceCandidateTester::performNomination(std::shared_ptr<ICEPair> rtp,
   std::unique_ptr<UDPServer> server = std::make_unique<UDPServer>();
   IcePairTester tester(server.get());
 
-  if (!server->bindSocket(QHostAddress(rtp->local->address), rtp->local->port))
+  if (!server->bindSocket(tester.getLocalAddress(rtp->local), tester.getLocalPort(rtp->local)))
   {
     return false;
   }
@@ -81,7 +81,7 @@ bool IceCandidateTester::performNomination(std::shared_ptr<ICEPair> rtp,
   }
 
   server->unbind();
-  if (!server->bindSocket(QHostAddress(rtcp->local->address), rtcp->local->port))
+  if (!server->bindSocket(tester.getLocalAddress(rtcp->local), tester.getLocalPort(rtcp->local)))
   {
     return false;
   }

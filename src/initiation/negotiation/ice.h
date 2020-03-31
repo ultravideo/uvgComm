@@ -77,8 +77,6 @@ private slots:
                        CandidateType type, quint16 localPriority,
                        QList<std::shared_ptr<ICEInfo>>& candidates);
 
-    void transformBindingCandidates(QList<std::shared_ptr<ICEPair> > &pairs);
-
     bool nominatingConnection_;
 
     struct NominationInfo
@@ -105,7 +103,4 @@ private slots:
       QHostAddress bindAddress;
       quint16 bindPort;
     };
-
-    // TODO: This is never emptied meaning it will grow as long as program is running
-    QList<std::shared_ptr<STUNBinding>> stunBindings_;
 };
