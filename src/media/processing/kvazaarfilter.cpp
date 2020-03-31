@@ -66,29 +66,27 @@ bool KvazaarFilter::init()
     QSettings settings("kvazzup.ini", QSettings::IniFormat);
 
     api_->config_init(config_);
+    api_->config_parse(config_, "preset", settings.value("video/Preset").toString().toUtf8());
 
 #ifdef __linux__
+    // On Linux the Camerafilter seems to have a Qt bug that causes not being able to set resolution
     api_->config_parse(config_, "preset", "ultrafast");
     config_->width = 640;
     config_->height = 480;
     config_->framerate_num = 30;
-    config_->intra_period = 5;
-    config_->vps_period = 1;
-    config_->qp = 32;
-    config_->hash = KVZ_HASH_NONE;
 #else
-    api_->config_parse(config_, "preset", settings.value("video/Preset").toString().toUtf8());
     config_->width = settings.value("video/ResolutionWidth").toInt();
     config_->height = settings.value("video/ResolutionHeight").toInt();
+    config_->framerate_num = settings.value("video/Framerate").toInt();
+#endif
+
     config_->threads = settings.value("video/kvzThreads").toInt();
     config_->qp = settings.value("video/QP").toInt();
     config_->wpp = settings.value("video/WPP").toInt();
     config_->vps_period = settings.value("video/VPS").toInt();
     config_->intra_period = settings.value("video/Intra").toInt();
-    config_->framerate_num = settings.value("video/Framerate").toInt();
     config_->framerate_denom = framerate_denom_;
     config_->hash = KVZ_HASH_NONE;
-#endif
 
     //config_->fme_level = 0;
 
