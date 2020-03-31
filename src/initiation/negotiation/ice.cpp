@@ -45,8 +45,10 @@ QList<std::shared_ptr<ICEInfo>> ICE::generateICECandidates(
 
   QList<std::shared_ptr<ICEInfo>> iceCandidates;
 
-  addCandidates(localCandidates, 1, HOST, 65535, iceCandidates);
-  addCandidates(globalCandidates, 2, HOST, 65534, iceCandidates);
+  quint32 foundation = 1;
+
+  addCandidates(localCandidates, nullptr, foundation, HOST, 65535, iceCandidates);
+  addCandidates(globalCandidates, nullptr, foundation, HOST, 65534, iceCandidates);
 
   if (stunCandidates->size() == stunBindings->size())
   {
@@ -65,28 +67,46 @@ QList<std::shared_ptr<ICEInfo>> ICE::generateICECandidates(
       stunBindings_.back()->stunPort += 1;
     }
 
-    addCandidates(stunCandidates, 3, SERVER_REFLEXIVE, 65535, iceCandidates);
+    addCandidates(stunCandidates, stunBindings, foundation, SERVER_REFLEXIVE, 65535, iceCandidates);
   }
-  addCandidates(turnCandidates, 4, RELAY, 0, iceCandidates);
+
+  // TODO: relay needs bindings
+  addCandidates(turnCandidates, nullptr, foundation, RELAY, 0, iceCandidates);
 
   return iceCandidates;
 }
 
 
 void ICE::addCandidates(std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > addresses,
-                        quint32 foundation, CandidateType type, quint16 localPriority,
+                        std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > relayAddresses,
+                        quint32& foundation, CandidateType type, quint16 localPriority,
                         QList<std::shared_ptr<ICEInfo>>& candidates)
 {
-  if (addresses->size() >= 1)
+  int currentIndex = 0;
+  bool includeRelayAddress = relayAddresses != nullptr && addresses->size() == relayAddresses->size();
+
+  QHostAddress relayAddress = QHostAddress("");
+  quint16 relayPort = 0;
+
+  if (addresses->size() >= currentIndex + 1)
   {
+    if (includeRelayAddress)
+    {
+      relayAddress = relayAddresses->at(currentIndex).first;
+      relayPort = relayAddresses->at(currentIndex).second;
+    }
+
     candidates.push_back(makeCandidate(foundation, type, RTP,
-                                       addresses->at(0).first,
-                                       addresses->at(0).second,
-                                       QHostAddress(""), 0, localPriority));
+                                       addresses->at(currentIndex).first,
+                                       addresses->at(currentIndex).second,
+                                       relayAddress, relayPort, localPriority));
+
     candidates.push_back(makeCandidate(foundation, type, RTCP,
-                                       addresses->at(0).first,
-                                       addresses->at(0).second + 1,
-                                       QHostAddress(""), 0, localPriority));
+                                       addresses->at(currentIndex).first,
+                                       addresses->at(currentIndex).second + 1,
+                                       relayAddress, relayPort, localPriority));
+
+    ++foundation;
   }
 }
 

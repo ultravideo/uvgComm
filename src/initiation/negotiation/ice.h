@@ -73,7 +73,7 @@ private slots:
                                                        QList<std::shared_ptr<ICEInfo>>& remote);
 
     void addCandidates(std::shared_ptr<QList<std::pair<QHostAddress,
-                       uint16_t>>> addresses, quint32 foundation,
+                       uint16_t>>> addresses, std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > relayAddresses, quint32 &foundation,
                        CandidateType type, quint16 localPriority,
                        QList<std::shared_ptr<ICEInfo>>& candidates);
 
