@@ -126,6 +126,7 @@ protected:
   void waitForInput()
   {
     waitMutex_->lock();
+    // unlocks the mutex
     hasInput_.wait(waitMutex_);
     waitMutex_->unlock();
   }

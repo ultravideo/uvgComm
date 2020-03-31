@@ -41,7 +41,9 @@ void KvzRTPReceiver::receiveHook(kvz_rtp::frame::rtp_frame *frame)
 {
   Q_ASSERT(frame && frame->payload != nullptr);
 
-  if (frame == nullptr || frame->payload == nullptr)
+  if (frame == nullptr ||
+      frame->payload == nullptr ||
+      frame->payload_len == 0)
   {
     printProgramError(this,  "Received a nullptr frame from kvzRTP");
     return;

@@ -423,7 +423,6 @@ bool ConferenceView::removeCaller(uint32_t sessionID)
   viewMutex_.lock();
   if(activeViews_.find(sessionID) == activeViews_.end())
   {
-    Q_ASSERT(false);
     printDebug(DEBUG_PROGRAM_ERROR, this, 
                      "Tried to remove the view of non-existing sessionID!");
   }
