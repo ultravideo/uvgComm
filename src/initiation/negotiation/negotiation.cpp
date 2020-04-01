@@ -7,6 +7,7 @@
 const uint16_t MIN_ICE_PORT   = 23000;
 const uint16_t MAX_ICE_PORT   = 24000;
 
+const uint8_t COMPONENTS = 4;
 
 Negotiation::Negotiation():
   nCandidates_(),
@@ -36,11 +37,11 @@ bool Negotiation::generateOfferSDP(QString localAddress,
   qDebug() << "Getting local SDP suggestion";
   std::shared_ptr<SDPMessageInfo> localSDP = negotiator_.generateLocalSDP(localAddress);
   // TODO: Set also media sdp parameters.
-  localSDP->candidates = ice_->generateICECandidates(nCandidates_.localCandidates(1, sessionID),
-                                                     nCandidates_.globalCandidates(1, sessionID),
-                                                     nCandidates_.stunCandidates(1),
-                                                     nCandidates_.stunBindings(1, sessionID),
-                                                     nCandidates_.turnCandidates(1, sessionID));
+  localSDP->candidates = ice_->generateICECandidates(nCandidates_.localCandidates(COMPONENTS, sessionID),
+                                                     nCandidates_.globalCandidates(COMPONENTS, sessionID),
+                                                     nCandidates_.stunCandidates(COMPONENTS),
+                                                     nCandidates_.stunBindings(COMPONENTS, sessionID),
+                                                     nCandidates_.turnCandidates(COMPONENTS, sessionID));
 
   if(localSDP != nullptr)
   {
@@ -70,11 +71,11 @@ bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
 
   // generate our SDP.
   std::shared_ptr<SDPMessageInfo> localSDP = negotiator_.negotiateSDP(remoteSDPOffer, localAddress);
-  localSDP->candidates = ice_->generateICECandidates(nCandidates_.localCandidates(1, sessionID),
-                                                     nCandidates_.globalCandidates(1, sessionID),
-                                                     nCandidates_.stunCandidates(1),
-                                                     nCandidates_.stunBindings(1, sessionID),
-                                                     nCandidates_.turnCandidates(1, sessionID));
+  localSDP->candidates = ice_->generateICECandidates(nCandidates_.localCandidates(COMPONENTS, sessionID),
+                                                     nCandidates_.globalCandidates(COMPONENTS, sessionID),
+                                                     nCandidates_.stunCandidates(COMPONENTS),
+                                                     nCandidates_.stunBindings(COMPONENTS, sessionID),
+                                                     nCandidates_.turnCandidates(COMPONENTS, sessionID));
 
   if (localSDP == nullptr)
   {

@@ -58,8 +58,8 @@ private:
   void moreSTUNCandidates();
 
   // return the lower port of the pair and removes both from list of available ports
-  uint16_t nextAvailablePortPair(QString interface, uint32_t sessionID);
-  void makePortPairAvailable(QString interface, uint16_t lowerPort);
+  uint16_t nextAvailablePort(QString interface, uint32_t sessionID);
+  void makePortAvailable(QString interface, uint16_t port);
 
   bool isPrivateNetwork(const QString &address);
 
@@ -75,7 +75,7 @@ private:
   std::deque<std::pair<QHostAddress, uint16_t>> stunBindings_;
 
   QMutex portLock_;
-  // Keeps a list of all available ports. Has only every other port because of rtcp
+  // Keeps a list of all available ports.
   // Key is the ip address of network interface.
   std::map<QString, std::deque<uint16_t>> availablePorts_;
 

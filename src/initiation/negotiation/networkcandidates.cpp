@@ -8,7 +8,7 @@
 
 const QString STUN_SERVER = "stun.l.google.com";
 const uint16_t GOOGLE_STUN_PORT = 19302;
-const uint16_t STUNADDRESSPOOL = 5;
+const uint16_t STUNADDRESSPOOL = 8;
 
 
 NetworkCandidates::NetworkCandidates():
@@ -44,9 +44,9 @@ void NetworkCandidates::setPortRange(uint16_t minport,
       {
         availablePorts_.insert(std::pair<QString, std::deque<uint16_t>>(address.toString(),{}));
 
-        for(uint16_t i = minport; i < maxport; i += 2)
+        for(uint16_t i = minport; i < maxport; ++i)
         {
-          makePortPairAvailable(address.toString(), i);
+          makePortAvailable(address.toString(), i);
         }
       }
     }
@@ -121,7 +121,8 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::loc
     uint8_t streams, uint32_t sessionID)
 {
   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> addresses
-      =   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> (new QList<std::pair<QHostAddress, uint16_t>>());
+      =   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> (
+        new QList<std::pair<QHostAddress, uint16_t>>());
 
   for (auto& interface : availablePorts_)
   {
@@ -130,7 +131,7 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::loc
       for (unsigned int i = 0; i < streams; ++i)
       {
         addresses->push_back({QHostAddress(interface.first),
-                              nextAvailablePortPair(interface.first, sessionID)});
+                              nextAvailablePort(interface.first, sessionID)});
       }
     }
   }
@@ -143,7 +144,8 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::glo
     uint8_t streams, uint32_t sessionID)
 {
   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> addresses
-      =   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> (new QList<std::pair<QHostAddress, uint16_t>>());
+      =   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> (
+        new QList<std::pair<QHostAddress, uint16_t>>());
 
   for (auto& interface : availablePorts_)
   {
@@ -152,7 +154,7 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::glo
       for (unsigned int i = 0; i < streams; ++i)
       {
         addresses->push_back({QHostAddress(interface.first),
-                              nextAvailablePortPair(interface.first, sessionID)});
+                              nextAvailablePort(interface.first, sessionID)});
       }
     }
   }
@@ -164,7 +166,8 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::stu
     uint8_t streams)
 { 
   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> addresses
-      =   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> (new QList<std::pair<QHostAddress, uint16_t>>());
+      =   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> (
+        new QList<std::pair<QHostAddress, uint16_t>>());
   if (!stunAddresses_.empty())
   {
     for (unsigned int i = 0; i < streams; ++i)
@@ -188,7 +191,8 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::stu
     uint8_t streams, uint32_t sessionID)
 {
   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> addresses
-      =   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> (new QList<std::pair<QHostAddress, uint16_t>>());
+      =   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> (
+        new QList<std::pair<QHostAddress, uint16_t>>());
 
   if (!stunBindings_.empty())
   {
@@ -221,16 +225,15 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::tur
   // We are probably never going to support TURN addresses.
   // If we are, add candidates to the list.
   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> addresses
-      =   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> (new QList<std::pair<QHostAddress, uint16_t>>());
+      =   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> (
+        new QList<std::pair<QHostAddress, uint16_t>>());
   return addresses;
 }
 
 
-uint16_t NetworkCandidates::nextAvailablePortPair(QString interface, uint32_t sessionID)
+uint16_t NetworkCandidates::nextAvailablePort(QString interface, uint32_t sessionID)
 {
-
-
-  uint16_t newLowerPort = 0;
+  uint16_t nextPort = 0;
 
   portLock_.lock();
 
@@ -243,60 +246,29 @@ uint16_t NetworkCandidates::nextAvailablePortPair(QString interface, uint32_t se
     return 0;
   }
 
-  newLowerPort = availablePorts_[interface].at(0);
+  nextPort = availablePorts_[interface].at(0);
   availablePorts_[interface].pop_front();
-  reservedPorts_[sessionID].push_back(std::pair<QString, uint16_t>(interface, newLowerPort));
+  reservedPorts_[sessionID].push_back(std::pair<QString, uint16_t>(interface, nextPort));
 
-  // This is because of a hack in ICE which uses upper ports for opus instead of allocating new ones
-  // TODO: Remove once ice supports any amount of media streams.
-  availablePorts_[interface].pop_front();
-  reservedPorts_[sessionID].push_back(std::pair<QString, uint16_t>(interface, newLowerPort + 2));
-
-  /*
-  // TODO: I'm suspecting this may sometimes hang Kvazzup at the start
-  if(availablePorts_.size() >= 1)
-  {
-    QUdpSocket test_port1;
-    QUdpSocket test_port2;
-    do
-    {
-      newLowerPort = availablePorts_.at(0);
-      availablePorts_.pop_front();
-      qDebug() << "Trying to bind ports:" << newLowerPort << "and" << newLowerPort + 1;
-
-    } while(!test_port1.bind(newLowerPort) && !test_port2.bind(newLowerPort + 1));
-    test_port1.abort();
-    test_port2.abort();
-  }
-  else
-  {
-    qDebug() << "Could not reserve ports. Ports available:" << availablePorts_.size();
-  }
-  */
+  // TODO: Check that port works.
   portLock_.unlock();
 
-  //printDebug(DEBUG_NORMAL, "SDP Parameter Manager",
-  //           "Binding finished", {"Bound lower port"}, {QString::number(newLowerPort)});
-
-  return newLowerPort;
+  return nextPort;
 }
 
-void NetworkCandidates::makePortPairAvailable(QString interface, uint16_t lowerPort)
+void NetworkCandidates::makePortAvailable(QString interface, uint16_t port)
 {
-
-
-  if(lowerPort != 0)
+  if(port != 0)
   {
     portLock_.lock();
     if (availablePorts_.find(interface) == availablePorts_.end())
     {
       portLock_.unlock();
-      printWarning(this, "Couldn't find interface when making ports available.");
+      printWarning(this, "Couldn't find interface when making port available.");
       return;
     }
-    //qDebug() << "Freed ports:" << lowerPort << "/" << lowerPort + 1;
 
-    availablePorts_[interface].push_back(lowerPort);
+    availablePorts_[interface].push_back(port);
     portLock_.unlock();
   }
 }
@@ -334,7 +306,7 @@ void NetworkCandidates::cleanupSession(uint32_t sessionID)
 
   for(auto& session : reservedPorts_[sessionID])
   {
-    makePortPairAvailable(session.first, session.second);
+    makePortAvailable(session.first, session.second);
   }
   reservedPorts_.erase(sessionID);
 }
@@ -375,7 +347,7 @@ void NetworkCandidates::moreSTUNCandidates()
       for (auto& interface : availablePorts_)
       {
         // use 0 as STUN sessionID
-        sendSTUNserverRequest(QHostAddress(interface.first), nextAvailablePortPair(interface.first, 0),
+        sendSTUNserverRequest(QHostAddress(interface.first), nextAvailablePort(interface.first, 0),
                               stunServerAddress_,                 GOOGLE_STUN_PORT);
       }
     }
