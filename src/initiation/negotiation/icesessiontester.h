@@ -10,7 +10,7 @@
 
 #include <memory>
 
-
+class IceCandidateTester;
 
 class IceSessionTester : public QThread
 {
@@ -20,7 +20,7 @@ public:
   IceSessionTester(bool controller, int timeout);
   ~IceSessionTester();
 
-  void init(QList<std::shared_ptr<ICEPair>> *candidates,
+  void init(QList<std::shared_ptr<ICEPair>> *pairs_,
             uint32_t sessionID);
 
 signals:
@@ -45,11 +45,13 @@ protected:
 
 private:
 
+  std::shared_ptr<IceCandidateTester> createCandidateTester(std::shared_ptr<ICEInfo> local);
+
   // wait for endNomination() signal and return true if it's received (meaning the nomination succeeded)
   // if the endNomination() is not received in time the function returns false
   bool waitForEndOfNomination(unsigned long timeout);
 
-  QList<std::shared_ptr<ICEPair>> *candidates_;
+  QList<std::shared_ptr<ICEPair>> *pairs_;
 
   uint32_t sessionID_;
 

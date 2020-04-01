@@ -10,7 +10,7 @@
 
 
 IceSessionTester::IceSessionTester(bool controller, int timeout):
-  candidates_(nullptr),
+  pairs_(nullptr),
   sessionID_(0),
   controller_(controller),
   timeout_(timeout)
@@ -21,12 +21,12 @@ IceSessionTester::~IceSessionTester()
 {}
 
 
-void IceSessionTester::init(QList<std::shared_ptr<ICEPair>> *candidates,
+void IceSessionTester::init(QList<std::shared_ptr<ICEPair>> *pairs,
                             uint32_t sessionID)
 {
-  Q_ASSERT(candidates != nullptr);
+  Q_ASSERT(pairs != nullptr);
   Q_ASSERT(sessionID != 0);
-  candidates_ = candidates;
+  pairs_ = pairs;
   sessionID_ = sessionID;
 }
 
@@ -96,7 +96,7 @@ bool IceSessionTester::waitForEndOfNomination(unsigned long timeout)
 
 void IceSessionTester::run()
 {
-  if (candidates_ == nullptr || candidates_->size() == 0)
+  if (pairs_ == nullptr || pairs_->size() == 0)
   {
     printDebug(DEBUG_ERROR, this,
                "Invalid candidates, unable to perform ICE candidate negotiation!");
@@ -109,56 +109,28 @@ void IceSessionTester::run()
   // the candidates into interfaces
   // InterfaceTester then binds to this interface and takes care of sending the STUN Binding requests
 
-  QList<std::shared_ptr<IceCandidateTester>> interfaces;
+  QList<std::shared_ptr<IceCandidateTester>> candidates;
 
   QString prevAddr  = "";
   uint16_t prevPort = 0;
 
-  // TODO: This should be done based on foundation, not address
-  for (auto& candidate : *candidates_)
+  for (auto& pair : *pairs_)
   {
-    if (candidate->local->address != prevAddr ||
-        candidate->local->port != prevPort)
+    // move to next candidate
+    if (pair->local->address != prevAddr ||
+        pair->local->port != prevPort)
     {
-      interfaces.push_back(std::shared_ptr<IceCandidateTester>(new IceCandidateTester));
-
-      // because we cannot modify create new objects from child threads (in this case new socket)
-      // we must initialize both UDPServer and Stun objects here so that ConnectionTester doesn't have to do
-      // anything but to test the connection
-      //
-      // Binding might fail, if so happens no STUN objects are created for this socket
-
-      QHostAddress bindAddress = QHostAddress(candidate->local->address);
-      quint16 bindPort = candidate->local->port;
-
-
-      // use relayport if it is set
-      if (candidate->local->type != "host" &&
-          candidate->local->rel_address != "" &&
-          candidate->local->rel_port != 0)
-      {
-        printDebug(DEBUG_NORMAL, this, "Using relay address", {"Candidate address", "Relay address"}, {
-                      candidate->local->address + ":" + QString::number(candidate->local->port),
-                      candidate->local->rel_address + ":" + QString::number(candidate->local->rel_port)});
-
-        bindAddress = QHostAddress(candidate->local->rel_address);
-        bindPort = candidate->local->rel_port;
-      }
-
-      if (!interfaces.back()->bindInterface(bindAddress, bindPort))
-      {
-        continue;
-      }
+      candidates.push_back(createCandidateTester(pair->local));
     }
 
-    interfaces.back()->addCandidate(candidate);
+    candidates.back()->addCandidate(pair);
 
     // this keeps the code from crashing using magic. Do not move.
-    prevAddr = candidate->local->address;
-    prevPort = candidate->local->port;
+    prevAddr = pair->local->address;
+    prevPort = pair->local->port;
   }
 
-  for (auto& interface : interfaces)
+  for (auto& interface : candidates)
   {
     QObject::connect(
         interface.get(),
@@ -173,7 +145,7 @@ void IceSessionTester::run()
 
   bool nominationSucceeded = waitForEndOfNomination(timeout_);
 
-  for (auto& interface : interfaces)
+  for (auto& interface : candidates)
   {
     interface->endTests();
   }
@@ -206,4 +178,37 @@ void IceSessionTester::run()
 
   streams = {nominated_rtp_, nominated_rtcp_};
   emit ready(streams, sessionID_);
+}
+
+
+std::shared_ptr<IceCandidateTester> IceSessionTester::createCandidateTester(std::shared_ptr<ICEInfo> local)
+{
+  std::shared_ptr<IceCandidateTester> tester = std::make_shared<IceCandidateTester>();
+
+  // because we cannot modify create new objects from child threads (in this case new socket)
+  // we must initialize both UDPServer and Stun objects here so that ConnectionTester doesn't have to do
+  // anything but to test the connection
+
+  QHostAddress bindAddress = QHostAddress(local->address);
+  quint16 bindPort = local->port;
+
+  // use relayport if we are supposed to
+  if (local->type != "host")
+  {
+    if (local->rel_address != "" &&
+        local->rel_port != 0)
+    {
+      bindAddress = QHostAddress(local->rel_address);
+      bindPort = local->rel_port;
+    }
+    else
+    {
+      printProgramError(this, "Relay address not set, when it is supposed to! Should be checked earlier.");
+      return tester;
+    }
+  }
+
+  tester->bindInterface(bindAddress, bindPort);
+
+  return tester;
 }
