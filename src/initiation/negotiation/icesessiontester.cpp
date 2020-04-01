@@ -40,7 +40,10 @@ void IceSessionTester::nominationDone(std::shared_ptr<ICEPair> connection)
   nominated_mtx.lock();
   finished_[connection->local->foundation][connection->local->component] = connection;
 
-  if (finished_[connection->local->foundation].size() == components_)
+  // nominated check makes sure only one stream is nominated.
+  // if we have received all components, nominate these.
+  // TODO: Do some sort of prioritization here
+  if (nominated_.empty() && finished_[connection->local->foundation].size() == components_)
   {
     for (auto& pair : finished_[connection->local->foundation])
     {
