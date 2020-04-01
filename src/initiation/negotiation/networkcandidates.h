@@ -83,4 +83,6 @@ private:
   std::map<uint32_t, QList<std::pair<QString, uint16_t>>> reservedPorts_;
 
   QTimer refreshSTUNTimer_;
+
+  bool behindNAT_;
 };
