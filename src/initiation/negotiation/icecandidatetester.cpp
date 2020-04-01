@@ -19,44 +19,54 @@ bool IceCandidateTester::bindInterface(QHostAddress interface, quint16 port)
 
 void IceCandidateTester::startTestingPairs(bool controller)
 {
-  for (auto& pair : pairs_)
+  if (udp_.isBound())
   {
-    workerThreads_.push_back(std::shared_ptr<IcePairTester>(new IcePairTester(&udp_)));
+    for (auto& pair : pairs_)
+    {
+      workerThreads_.push_back(std::shared_ptr<IcePairTester>(new IcePairTester(&udp_)));
 
-    QObject::connect(workerThreads_.back().get(),
-                     &IcePairTester::testingDone,
-                     this,
-                     &IceCandidateTester::candidateFound,
-                     Qt::DirectConnection);
+      QObject::connect(workerThreads_.back().get(),
+                       &IcePairTester::testingDone,
+                       this,
+                       &IceCandidateTester::candidateFound,
+                       Qt::DirectConnection);
 
-    // when the UDPServer receives a datagram from remote->address:remote->port,
-    // it will send a signal containing the datagram to this Stun object
-    //
-    // This way multiple Stun instances can listen to same socket
-    // TODO: Does not work with STUN candidates
-    expectReplyFrom(workerThreads_.back(),
-                    pair->remote->address,
-                    pair->remote->port);
+      // when the UDPServer receives a datagram from remote->address:remote->port,
+      // it will send a signal containing the datagram to this Stun object
+      //
+      // This way multiple Stun instances can listen to same socket
+      // TODO: Does not work with STUN candidates
+      expectReplyFrom(workerThreads_.back(),
+                      pair->remote->address,
+                      pair->remote->port);
 
-    workerThreads_.back()->setCandidatePair(pair);
-    workerThreads_.back()->isController(controller);
-    workerThreads_.back()->start();
+      workerThreads_.back()->setCandidatePair(pair);
+      workerThreads_.back()->isController(controller);
+      workerThreads_.back()->start();
+    }
+  }
+  else
+  {
+    printWarning(this, "Tried to start testing, but the socket was not bound.");
   }
 }
 
 
 void IceCandidateTester::endTests()
 {
-  // kill all threads, regardless of whether nomination succeeded or not
-  for (size_t i = 0; i < workerThreads_.size(); ++i)
+  if (udp_.isBound())
   {
-    workerThreads_[i]->quit();
-    workerThreads_[i]->wait();
+    // kill all threads, regardless of whether nomination succeeded or not
+    for (size_t i = 0; i < workerThreads_.size(); ++i)
+    {
+      workerThreads_[i]->quit();
+      workerThreads_[i]->wait();
+    }
+
+    workerThreads_.clear();
+
+    udp_.unbind();
   }
-
-  workerThreads_.clear();
-
-  udp_.unbind();
 }
 
 

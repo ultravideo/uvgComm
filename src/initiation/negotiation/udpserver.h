@@ -5,6 +5,7 @@
 #include <QTimer>
 #include <QHostAddress>
 #include <QNetworkDatagram>
+#include <QUdpSocket>
 
 #include <stdint.h>
 
@@ -23,6 +24,11 @@ public:
   // sends the data using Qt UDP classes.
   bool sendData(QByteArray& data, const QHostAddress &local,
                 const QHostAddress &remote, quint16 remotePort);
+
+  bool isBound()
+  {
+    return socket_ && socket_->state() == QAbstractSocket::BoundState;
+  }
 
 signals:
   // send message data forward.
