@@ -18,7 +18,7 @@ ICE::~ICE()
 /* @param type - 0 for relayed, 126 for host
  * @param local - local preference for selecting candidates
  * @param component - 1 for RTP, 2 for RTCP */
-int ICE::calculatePriority(CandidateType type, quint16 local, ICEComponent component)
+int ICE::calculatePriority(CandidateType type, quint16 local, uint8_t component)
 {
   return (16777216 * type) + (256 * local) + component;
 }
@@ -81,12 +81,12 @@ void ICE::addCandidates(std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> 
       relayPort = relayAddresses->at(currentIndex).second;
     }
 
-    candidates.push_back(makeCandidate(foundation, type, RTP,
+    candidates.push_back(makeCandidate(foundation, type, 1,
                                        addresses->at(currentIndex).first,
                                        addresses->at(currentIndex).second,
                                        relayAddress, relayPort, localPriority));
 
-    candidates.push_back(makeCandidate(foundation, type, RTCP,
+    candidates.push_back(makeCandidate(foundation, type, 2,
                                        addresses->at(currentIndex).first,
                                        addresses->at(currentIndex).second + 1,
                                        relayAddress, relayPort + 1, localPriority));
@@ -98,7 +98,7 @@ void ICE::addCandidates(std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> 
 
 std::shared_ptr<ICEInfo> ICE::makeCandidate(uint32_t foundation,
                                             CandidateType type,
-                                            ICEComponent component,
+                                            uint8_t component,
                                             const QHostAddress address,
                                             quint16 port,
                                             const QHostAddress relayAddress,
@@ -239,7 +239,7 @@ void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local,
       Qt::DirectConnection
   );
 
-  agent->init(&nominationInfo_[sessionID].pairs, sessionID);
+  agent->init(&nominationInfo_[sessionID].pairs, sessionID, 2);
   agent->start();
 }
 

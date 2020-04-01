@@ -13,7 +13,8 @@ IceSessionTester::IceSessionTester(bool controller, int timeout):
   pairs_(nullptr),
   sessionID_(0),
   controller_(controller),
-  timeout_(timeout)
+  timeout_(timeout),
+  components_(0)
 {}
 
 
@@ -22,12 +23,13 @@ IceSessionTester::~IceSessionTester()
 
 
 void IceSessionTester::init(QList<std::shared_ptr<ICEPair>> *pairs,
-                            uint32_t sessionID)
+                            uint32_t sessionID, uint8_t components)
 {
   Q_ASSERT(pairs != nullptr);
   Q_ASSERT(sessionID != 0);
   pairs_ = pairs;
   sessionID_ = sessionID;
+  components_ = components;
 }
 
 
@@ -38,7 +40,7 @@ void IceSessionTester::nominationDone(std::shared_ptr<ICEPair> connection)
   nominated_mtx.lock();
   finished_[connection->local->foundation][connection->local->component] = connection;
 
-  if (finished_[connection->local->foundation].size() == 2) // TODO: Get this 2 from somewhere
+  if (finished_[connection->local->foundation].size() == components_)
   {
     for (auto& pair : finished_[connection->local->foundation])
     {

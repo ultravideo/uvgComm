@@ -56,14 +56,14 @@ private slots:
     // "type" marks whether this candidate is host or server reflexive candidate (affects priority)
     std::shared_ptr<ICEInfo> makeCandidate(uint32_t foundation,
                                            CandidateType type,
-                                           ICEComponent component,
+                                           uint8_t component,
                                            const QHostAddress address,
                                            quint16 port,
                                            const QHostAddress relayAddress,
                                            quint16 relayPort,
                                            quint16 localPriority);
 
-    int calculatePriority(CandidateType type, quint16 local, ICEComponent component);
+    int calculatePriority(CandidateType type, quint16 local, uint8_t component);
 
     void printCandidates(QList<std::shared_ptr<ICEInfo>>& candidates);
 
@@ -93,14 +93,4 @@ private slots:
 
     // key is sessionID
     QMap<uint32_t, struct NominationInfo> nominationInfo_;
-
-    // tells which address each stun candidate bind should be called
-    struct STUNBinding
-    {
-      QHostAddress stunAddress;
-      quint16 stunPort;
-
-      QHostAddress bindAddress;
-      quint16 bindPort;
-    };
 };

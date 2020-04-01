@@ -21,7 +21,7 @@ public:
   ~IceSessionTester();
 
   void init(QList<std::shared_ptr<ICEPair>> *pairs_,
-            uint32_t sessionID);
+            uint32_t sessionID, uint8_t components);
 
 signals:
   // When FlowAgent finishes, it sends a ready signal to main thread (ICE).
@@ -58,11 +58,13 @@ private:
   bool controller_;
   int timeout_;
 
-  // temporary storage for succeeded pairs, when both RTP and RTCP
-  // of some candidate pair succeeds, endNomination() signal is emitted
-  // and the succeeded pair is copied to nominated_rtp_ and nominated_rtcp_
+  uint8_t components_;
+
+  // temporary storage for succeeded components, when all components of
+  // one candidate pair succeeds, endNomination() signal is emitted
+  // and the succeeded pair is copied to nominated_
   //
-  // the first candidate pair that has both RTP and RTCP tested is chosen
+  // currently the first pair to have all its components succeed is selected.
 
   QMutex nominated_mtx;
   QMap<QString, QMap<uint8_t, std::shared_ptr<ICEPair>>> finished_;

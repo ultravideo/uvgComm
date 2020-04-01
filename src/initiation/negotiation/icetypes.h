@@ -13,11 +13,6 @@ enum PairState {
   PAIR_NOMINATED   = 5,
 };
 
-enum ICEComponent {
-  RTP  = 1,
-  RTCP = 2
-};
-
 enum CandidateType {
   RELAY = 0,
   SERVER_REFLEXIVE = 1,
@@ -28,10 +23,10 @@ enum CandidateType {
 /* list of ICEInfo (candidates) is send during INVITE */
 struct ICEInfo
 {
-  QString foundation;  /* TODO:  */
-  int component;       /* 1 for RTP, 2 for RTCP */
-  QString transport;   /* UDP/TCP */
-  int priority;        /* TODO: */
+  QString foundation;
+  uint8_t component;   /* 1 to 256 */
+  QString transport;   /* UDP/TCP  */
+  int priority;
 
   QString address;
   quint16 port;
@@ -47,19 +42,4 @@ struct ICEPair
   std::shared_ptr<ICEInfo> remote;
   int priority;
   PairState state;
-};
-
-struct ICEMediaInfo
-{
-  // first ICEPair is for RTP, second for RTCP
-  // ICEPair contains both local and remote address/port pairs (see above)
-  std::pair<
-    std::shared_ptr<ICEPair>,
-    std::shared_ptr<ICEPair>
-  > video;
-
-  std::pair<
-    std::shared_ptr<ICEPair>,
-    std::shared_ptr<ICEPair>
-  > audio;
 };
