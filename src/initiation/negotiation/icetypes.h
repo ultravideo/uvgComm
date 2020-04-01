@@ -4,7 +4,7 @@
 
 #include <memory>
 
-enum PAIR {
+enum PairState {
   PAIR_WAITING     = 0,
   PAIR_IN_PROGRESS = 1,
   PAIR_SUCCEEDED   = 2,
@@ -46,7 +46,7 @@ struct ICEPair
   std::shared_ptr<ICEInfo> local;
   std::shared_ptr<ICEInfo> remote;
   int priority;
-  int state;
+  PairState state;
 };
 
 struct ICEMediaInfo

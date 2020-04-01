@@ -63,9 +63,9 @@ private:
   // and the succeeded pair is copied to nominated_rtp_ and nominated_rtcp_
   //
   // the first candidate pair that has both RTP and RTCP tested is chosen
-  QMap<QString, std::pair<std::shared_ptr<ICEPair>, std::shared_ptr<ICEPair>>> nominated_;
 
-  std::shared_ptr<ICEPair> nominated_rtp_;
-  std::shared_ptr<ICEPair> nominated_rtcp_;
   QMutex nominated_mtx;
+  QMap<QString, QMap<uint8_t, std::shared_ptr<ICEPair>>> finished_;
+
+  QList<std::shared_ptr<ICEPair>> nominated_;
 };

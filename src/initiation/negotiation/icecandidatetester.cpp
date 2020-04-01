@@ -70,42 +70,29 @@ void IceCandidateTester::endTests()
 }
 
 
-bool IceCandidateTester::performNomination(std::shared_ptr<ICEPair> rtp,
-                                        std::shared_ptr<ICEPair> rtcp)
+bool IceCandidateTester::performNomination(QList<std::shared_ptr<ICEPair>>& nominated)
 {
   std::unique_ptr<UDPServer> server = std::make_unique<UDPServer>();
   IcePairTester tester(server.get());
 
-  if (!server->bindSocket(tester.getLocalAddress(rtp->local), tester.getLocalPort(rtp->local)))
-  {
-    return false;
-  }
-
   connect(server.get(), &UDPServer::datagramAvailable, &tester, &IcePairTester::recvStunMessage);
 
-  if (!tester.sendNominationRequest(rtp.get()))
+  for (auto& pair : nominated)
   {
+    if (!server->bindSocket(tester.getLocalAddress(pair->local), tester.getLocalPort(pair->local)))
+    {
+      return false;
+    }
+    if (!tester.sendNominationRequest(pair.get()))
+    {
+      server->unbind();
+      printError(this,  "Failed to nominate pair candidate!");
+      return false;
+    }
+
     server->unbind();
-    printError(this,  "Failed to nominate RTP candidate!");
-    return false;
+    pair->state  = PAIR_NOMINATED;
   }
-
-  server->unbind();
-  if (!server->bindSocket(tester.getLocalAddress(rtcp->local), tester.getLocalPort(rtcp->local)))
-  {
-    return false;
-  }
-
-  if (!tester.sendNominationRequest(rtcp.get()))
-  {
-    server->unbind();
-    printError(this,  "Failed to nominate RTCP candidate!");
-    return false;
-  }
-  server->unbind();
-
-  rtp->state  = PAIR_NOMINATED;
-  rtcp->state = PAIR_NOMINATED;
 
   return true;
 }

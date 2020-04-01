@@ -1,12 +1,12 @@
+#include "icesessiontester.h"
+
+#include "icecandidatetester.h"
+#include "ice.h"
+#include "common.h"
+
 #include <QEventLoop>
 #include <QTimer>
 #include <QThread>
-
-#include "common.h"
-#include "icecandidatetester.h"
-#include "icesessiontester.h"
-#include "ice.h"
-
 
 
 IceSessionTester::IceSessionTester(bool controller, int timeout):
@@ -36,30 +36,18 @@ void IceSessionTester::nominationDone(std::shared_ptr<ICEPair> connection)
   Q_ASSERT(connection != nullptr);
 
   nominated_mtx.lock();
+  finished_[connection->local->foundation][connection->local->component] = connection;
 
-  if (connection->local->component == RTP)
+  if (finished_[connection->local->foundation].size() == 2) // TODO: Get this 2 from somewhere
   {
-    nominated_[connection->local->address].first = connection;
-  }
-  else
-  {
-    nominated_[connection->local->address].second = connection;
-  }
-
-  if (nominated_[connection->local->address].first  != nullptr &&
-      nominated_[connection->local->address].second != nullptr)
-  {
-    nominated_rtp_  = nominated_[connection->local->address].first;
-    nominated_rtcp_ = nominated_[connection->local->address].second;
-
-    nominated_rtp_->state  = PAIR_NOMINATED;
-    nominated_rtcp_->state = PAIR_NOMINATED;
+    for (auto& pair : finished_[connection->local->foundation])
+    {
+      pair->state = PAIR_SUCCEEDED;
+      nominated_.push_back(pair);
+    }
 
     emit endNomination();
-    nominated_mtx.unlock();
-    return;
   }
-
   nominated_mtx.unlock();
 }
 
@@ -163,21 +151,21 @@ void IceSessionTester::run()
   if (controller_)
   {
     IceCandidateTester tester;
-    if (!tester.performNomination(nominated_rtp_, nominated_rtcp_))
+    if (!tester.performNomination(nominated_))
     {
       emit ready(streams, sessionID_);
       return;
     }
   }
 
+/*
   printImportant(this, "Nomination finished", {"Winning pair"}, {
                    nominated_rtp_->local->address  + ":" +
                    QString::number(nominated_rtp_->local->port) + " <-> " +
                    nominated_rtp_->remote->address + ":" +
                    QString::number(nominated_rtp_->remote->port)});
-
-  streams = {nominated_rtp_, nominated_rtcp_};
-  emit ready(streams, sessionID_);
+*/
+  emit ready(nominated_, sessionID_);
 }
 
 
