@@ -24,11 +24,13 @@ public:
             uint32_t sessionID, uint8_t components);
 
 signals:
-  // When FlowAgent finishes, it sends a ready signal to main thread (ICE).
+  // When IceSessionTester finishes, it sends a ready signal to main thread (ICE).
   // If the nomination succeeded, both candidateRTP and candidateRTCP are valid pointers,
   // otherwise nullptr.
-  void ready(QList<std::shared_ptr<ICEPair>>& streams,
-             uint32_t sessionID);
+  void iceSuccess(QList<std::shared_ptr<ICEPair>>& streams,
+                  uint32_t sessionID);
+
+  void iceFailure(uint32_t sessionID);
 
   // when both RTP and RTCP of any address succeeds, sends endNomination() signal to FlowAgent (sent by ConnectionTester)
   // so it knows to stop all other ConnectionTester and return the succeeded pair to ICE
@@ -49,7 +51,7 @@ private:
 
   // wait for endNomination() signal and return true if it's received (meaning the nomination succeeded)
   // if the endNomination() is not received in time the function returns false
-  bool waitForEndOfNomination(unsigned long timeout);
+  void waitForEndOfNomination(unsigned long timeout);
 
   QList<std::shared_ptr<ICEPair>> *pairs_;
 

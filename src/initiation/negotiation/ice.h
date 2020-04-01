@@ -48,8 +48,10 @@ private slots:
     // handleCallerEndOfNomination() check if the nomination succeeed, saves the nominated pair to hashmap and
     // releases caller_mtx to signal that negotiation is done
     // save nominated pair to hashmap so it can be fetched later on
-    void handleEndOfNomination(QList<std::shared_ptr<ICEPair> > &streams,
-                               uint32_t sessionID);
+    void handeICESuccess(QList<std::shared_ptr<ICEPair> > &streams,
+                         uint32_t sessionID);
+
+    void handleICEFailure(uint32_t sessionID);
 
   private:
     // create media candidate (RTP and RTCP connection)

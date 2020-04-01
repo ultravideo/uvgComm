@@ -8,6 +8,10 @@
 #include "icesessiontester.h"
 
 
+
+const int STREAMS = 4;
+
+
 ICE::ICE()
 {}
 
@@ -79,12 +83,12 @@ void ICE::addCandidates(std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> 
     return;
   }
 
-  // got through sets of 4 addresses
-  for (int i = 0; i + 3 < addresses->size(); i += 4)
+  // got through sets of STREAMS addresses
+  for (int i = 0; i + STREAMS <= addresses->size(); i += STREAMS)
   {
     // make a candidate set
     // j is the index in addresses
-    for (int j = i; j < i + 4; ++j)
+    for (int j = i; j < i + STREAMS; ++j)
     {
 
       QHostAddress relayAddress = QHostAddress("");
@@ -240,44 +244,54 @@ void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local,
   nominationInfo_[sessionID].connectionNominated = false;
 
   IceSessionTester *agent = nominationInfo_[sessionID].agent;
-  QObject::connect(
-      agent,
-      &IceSessionTester::ready,
-      this,
-      &ICE::handleEndOfNomination,
-      Qt::DirectConnection
-  );
 
-  agent->init(&nominationInfo_[sessionID].pairs, sessionID, 4);
+  QObject::connect(agent,
+                   &IceSessionTester::iceSuccess,
+                   this,
+                   &ICE::handeICESuccess,
+                   Qt::DirectConnection);
+  QObject::connect(agent,
+                   &IceSessionTester::iceFailure,
+                   this,
+                   &ICE::handleICEFailure,
+                   Qt::DirectConnection);
+
+
+  agent->init(&nominationInfo_[sessionID].pairs, sessionID, STREAMS);
   agent->start();
 }
 
 
-void ICE::handleEndOfNomination(QList<std::shared_ptr<ICEPair> > &streams, uint32_t sessionID)
+void ICE::handeICESuccess(QList<std::shared_ptr<ICEPair> > &streams, uint32_t sessionID)
 {
   Q_ASSERT(sessionID != 0);
 
   printImportant(this, "ICE finished.", {"Components"}, {QString::number(streams.size())});
 
   if (streams.at(0) == nullptr ||
-      streams.at(1) == nullptr)
+      streams.at(1) == nullptr ||
+      streams.size() != STREAMS)
   {
-    printDebug(DEBUG_ERROR, "ICE",  "Failed to nominate RTP/RTCP candidates!");
-    nominationInfo_[sessionID].connectionNominated = false;
-    emit nominationFailed(sessionID);
+    handleICEFailure(sessionID);
   }
   else 
   {
+    nominationInfo_[sessionID].agent->quit();
     nominationInfo_[sessionID].connectionNominated = true;
-
     nominationInfo_[sessionID].selectedPairs = {streams.at(0), streams.at(1),
                                                 streams.at(2), streams.at(3)};
     emit nominationSucceeded(sessionID);
   }
+}
 
-  // TODO: Please call this before emitting the signal that we are ready
-  // This way the UDP sending process stops before media is created.
+
+void ICE::handleICEFailure(uint32_t sessionID)
+{
+  Q_ASSERT(sessionID != 0);
   nominationInfo_[sessionID].agent->quit();
+  printDebug(DEBUG_ERROR, "ICE",  "Failed to nominate RTP/RTCP candidates!");
+  nominationInfo_[sessionID].connectionNominated = false;
+  emit nominationFailed(sessionID);
 }
 
 

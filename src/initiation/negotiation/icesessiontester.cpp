@@ -57,7 +57,7 @@ void IceSessionTester::nominationDone(std::shared_ptr<ICEPair> connection)
 }
 
 
-bool IceSessionTester::waitForEndOfNomination(unsigned long timeout)
+void IceSessionTester::waitForEndOfNomination(unsigned long timeout)
 {
   QTimer timer;
   QEventLoop loop;
@@ -82,8 +82,6 @@ bool IceSessionTester::waitForEndOfNomination(unsigned long timeout)
 
   timer.start(timeout);
   loop.exec();
-
-  return timer.isActive();
 }
 
 
@@ -93,8 +91,7 @@ void IceSessionTester::run()
   {
     printDebug(DEBUG_ERROR, this,
                "Invalid candidates, unable to perform ICE candidate negotiation!");
-    QList<std::shared_ptr<ICEPair>> no_streams;
-    emit ready(no_streams, sessionID_);
+    emit iceFailure(sessionID_);
     return;
   }
 
@@ -136,20 +133,20 @@ void IceSessionTester::run()
     interface->startTestingPairs(controller_);
   }
 
-  bool nominationSucceeded = waitForEndOfNomination(timeout_);
+  // wait for nomination from remote, wait at most 20 seconds
+  waitForEndOfNomination(timeout_);
 
   for (auto& interface : candidates)
   {
     interface->endTests();
   }
 
-  QList<std::shared_ptr<ICEPair>> streams;
-
-  // wait for nomination from remote, wait at most 20 seconds
-  if (!nominationSucceeded)
+  nominated_mtx.lock();
+  if (nominated_.empty())
   {
     printError(this, "Nomination from remote was not received in time!");
-    emit ready(streams, sessionID_);
+    emit iceFailure(sessionID_);
+    nominated_mtx.unlock();
     return;
   }
 
@@ -158,23 +155,19 @@ void IceSessionTester::run()
     IceCandidateTester tester;
     if (!tester.performNomination(nominated_))
     {
-      emit ready(streams, sessionID_);
+      emit iceFailure(sessionID_);
+      nominated_mtx.unlock();
       return;
     }
   }
 
-/*
-  printImportant(this, "Nomination finished", {"Winning pair"}, {
-                   nominated_rtp_->local->address  + ":" +
-                   QString::number(nominated_rtp_->local->port) + " <-> " +
-                   nominated_rtp_->remote->address + ":" +
-                   QString::number(nominated_rtp_->remote->port)});
-*/
-  emit ready(nominated_, sessionID_);
+  emit iceSuccess(nominated_, sessionID_);
+  nominated_mtx.unlock();
 }
 
 
-std::shared_ptr<IceCandidateTester> IceSessionTester::createCandidateTester(std::shared_ptr<ICEInfo> local)
+std::shared_ptr<IceCandidateTester> IceSessionTester::createCandidateTester(
+    std::shared_ptr<ICEInfo> local)
 {
   std::shared_ptr<IceCandidateTester> tester = std::make_shared<IceCandidateTester>();
 
