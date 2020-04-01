@@ -403,7 +403,11 @@ bool IcePairTester::sendNominationResponse(ICEPair *pair)
 void IcePairTester::recvStunMessage(QNetworkDatagram message)
 {
   QByteArray data     = message.data();
-  STUNMessage stunMsg = stunmsg_.networkToHost(data);
+  STUNMessage stunMsg;
+  if (!stunmsg_.networkToHost(data, stunMsg))
+  {
+    return;
+  }
 
   if (stunMsg.getType() == STUN_REQUEST)
   {

@@ -429,9 +429,11 @@ void NetworkCandidates::processSTUNReply(const QNetworkDatagram& packet)
   QByteArray data = packet.data();
 
   QString message = QString::fromStdString(data.toHex().toStdString());
-  STUNMessage response = requests_[key]->message.networkToHost(data);
-  // free socket for further use
-
+  STUNMessage response;
+  if (!requests_[key]->message.networkToHost(data, response))
+  {
+    return;
+  }
 
   if (!requests_[key]->message.validateStunResponse(response))
   {

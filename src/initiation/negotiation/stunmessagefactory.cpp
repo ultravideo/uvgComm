@@ -188,67 +188,83 @@ QByteArray StunMessageFactory::hostToNetwork(STUNMessage& message)
   );
 }
 
-STUNMessage StunMessageFactory::networkToHost(QByteArray& message)
+bool StunMessageFactory::networkToHost(QByteArray& message, STUNMessage& outSTUN)
 {
+  if (message.size() < 20)
+  {
+    printDebug(DEBUG_WARNING, "StunMessageFactory",
+               "Received too small packet to be a STUN message");
+    return false;
+  }
+
   char *raw_data = message.data();
-  STUNMessage response(STUN_RESPONSE);
 
-  response.setType(qFromBigEndian(*((uint16_t *)&raw_data[0])));
-  response.setLength(qFromBigEndian(*((uint16_t *)&raw_data[2])));
-  response.setCookie(qFromBigEndian(*((uint32_t *)&raw_data[4])));
+  outSTUN.setType(qFromBigEndian(*((uint16_t *)&raw_data[0])));
+  outSTUN.setLength(qFromBigEndian(*((uint16_t *)&raw_data[2])));
+  outSTUN.setCookie(qFromBigEndian(*((uint32_t *)&raw_data[4])));
 
-  memcpy(response.getTransactionID(), (uint8_t *)raw_data + 8, TRANSACTION_ID_SIZE);
+  memcpy(outSTUN.getTransactionID(), (uint8_t *)raw_data + 8, TRANSACTION_ID_SIZE);
 
-  Q_ASSERT(response.getLength() + 8 + TRANSACTION_ID_SIZE == message.size());
+  if (outSTUN.getLength() + 8 + TRANSACTION_ID_SIZE == message.size())
+  {
+    uint32_t *payload  = (uint32_t *)((uint8_t *)raw_data + 8 + TRANSACTION_ID_SIZE);
+    uint32_t length    = outSTUN.getLength();
 
-  uint32_t *payload  = (uint32_t *)((uint8_t *)raw_data + 8 + TRANSACTION_ID_SIZE);
-  uint32_t length    = response.getLength();
+    for (size_t i = 0; i < length / 4; ++i) {
+      uint32_t value    = qFromBigEndian(payload[i]);
+      uint16_t attrName = (value >> 16) & 0xffff;
+      uint16_t attrLen  = (value >>  0) & 0xffff;
 
-  for (size_t i = 0; i < length / 4; ++i) {
-    uint32_t value    = qFromBigEndian(payload[i]);
-    uint16_t attrName = (value >> 16) & 0xffff;
-    uint16_t attrLen  = (value >>  0) & 0xffff;
-
-    switch (attrName)
-    {
-      case STUN_ATTR_XOR_MAPPED_ADDRESS:
+      switch (attrName)
+      {
+        case STUN_ATTR_XOR_MAPPED_ADDRESS:
         {
           auto xorMappedAddr = extractXorMappedAddress(attrLen, (uint8_t *)payload + 4);
           if (xorMappedAddr.second != 0)
           {
-            response.setXorMappedAddress(xorMappedAddr.first, xorMappedAddr.second);
+            outSTUN.setXorMappedAddress(xorMappedAddr.first, xorMappedAddr.second);
           }
+          break;
         }
-        break;
-
-        response.addAttribute(STUN_ATTR_ICE_CONTROLLED);
-        break;
-
-      case STUN_ATTR_ICE_CONTROLLING:
-      case STUN_ATTR_ICE_CONTROLLED:
-        response.addAttribute(STUN_ATTR_ICE_CONTROLLING);
-        break;
-
-      case STUN_ATTR_PRIORITY:
+        case STUN_ATTR_ICE_CONTROLLING:
+        {
+          outSTUN.addAttribute(STUN_ATTR_ICE_CONTROLLING);
+          break;
+        }
+        case STUN_ATTR_ICE_CONTROLLED:
+        {
+          outSTUN.addAttribute(STUN_ATTR_ICE_CONTROLLED);
+          break;
+        }
+        case STUN_ATTR_PRIORITY:
         {
           uint32_t priority = qFromBigEndian(payload[i + 1]);
-          response.addAttribute(STUN_ATTR_PRIORITY, priority);
+          outSTUN.addAttribute(STUN_ATTR_PRIORITY, priority);
+          break;
         }
-        break;
+        case STUN_ATTR_USE_CANDIATE:
+        {
+          outSTUN.addAttribute(STUN_ATTR_USE_CANDIATE);
+          break;
+        }
+        default:
+        {
+          return false;
+          break;
+        }
+      }
 
-      case STUN_ATTR_USE_CANDIATE:
-        response.addAttribute(STUN_ATTR_USE_CANDIATE);
-        break;
-
-      default:
-        // TODO handle invalid message?
-        break;
+      i += (attrLen / 4);
     }
-
-    i += (attrLen / 4);
+  }
+  else
+  {
+    printDebug(DEBUG_WARNING, "StunMessageFactory",
+               "STUN message length does not match packet size");
+    return false;
   }
 
-  return response;
+  return true;
 }
 
 std::pair<QHostAddress, uint16_t> StunMessageFactory::extractXorMappedAddress(
