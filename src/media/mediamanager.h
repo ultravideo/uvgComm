@@ -87,7 +87,7 @@ private:
   void createOutgoingMedia(uint32_t sessionID, const MediaInfo& localMedia,
                            QString peerGlobalAddress, const MediaInfo& remoteMedia);
   void createIncomingMedia(uint32_t sessionID, const MediaInfo& localMedia,
-                           QString peerGlobalAddress, const MediaInfo& remoteMedia, uint32_t videoID);
+                           QString localGlobalAddress, const MediaInfo& remoteMedia, uint32_t videoID);
 
   QString rtpNumberToCodec(const MediaInfo& info);
 

@@ -127,6 +127,7 @@ void MediaManager::addParticipant(uint32_t sessionID,
   if(peerInfo->connection_nettype == "IN")
   {
 
+    // TODO: Should check if wer should use global or media address.
     if(!streamer_->addPeer(sessionID, peerInfo->media.at(0).connection_address))
     {
       printDebug(DEBUG_PROGRAM_ERROR, this,
@@ -163,7 +164,7 @@ void MediaManager::addParticipant(uint32_t sessionID,
   for (int i = 0; i < localInfo->media.size(); ++i)
   {
     createIncomingMedia(sessionID, localInfo->media.at(i),
-                        peerInfo->connection_address,
+                        localInfo->connection_address,
                         peerInfo->media.at(i), videoID);
 
     if (localInfo->media.at(i).type == "video" )
@@ -208,21 +209,22 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
         remoteAddress.setAddress(remoteMedia.connection_address);
 
         printDebug(DEBUG_NORMAL, this, "Using media specific address for outgoing media.",
-                  {"Type", "Address", "Port"},
-                  {remoteMedia.type, remoteAddress.toString(), QString::number(remoteMedia.receivePort)});
+                  {"Type", "Path"},
+                  {remoteMedia.type, localMedia.connection_address + ":" + QString::number(localMedia.receivePort) + " -> " +
+                                     remoteAddress.toString() + ":" + QString::number(remoteMedia.receivePort)});
       }
       else if (globalAddressPresent)
       {
         remoteAddress.setAddress(peerGlobalAddress);
         printDebug(DEBUG_NORMAL, this, "Using global address for outgoing media.",
-                  {"Type", "Address", "Port"},
-                  {remoteMedia.type, remoteAddress.toString(), QString::number(remoteMedia.receivePort)});
+                  {"Type", "Remote address"},
+                  {remoteMedia.type, remoteAddress.toString() + ":" + QString::number(remoteMedia.receivePort)});
       }
       else
       {
         printDebug(DEBUG_ERROR, this, "Creating outgoing media. "
-                                                    "No viable connection address in mediainfo. "
-                                                    "Should be detected earlier.");
+                                      "No viable connection address in mediainfo. "
+                                      "Should be detected earlier.");
         return;
       }
 
@@ -263,7 +265,7 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
 
 void MediaManager::createIncomingMedia(uint32_t sessionID,
                                        const MediaInfo &localMedia,
-                                       QString peerGlobalAddress,
+                                       QString localGlobalAddress,
                                        const MediaInfo &remoteMedia, uint32_t videoID)
 {
   bool send = true;
@@ -279,25 +281,25 @@ void MediaManager::createIncomingMedia(uint32_t sessionID,
 
     if(localMedia.proto == "RTP/AVP")
     {
-      bool globalAddressPresent = peerGlobalAddress != "" && !peerGlobalAddress.isNull();
-      bool specificAddressPresent = remoteMedia.connection_address != ""
-           && !remoteMedia.connection_address.isNull();
+      bool globalAddressPresent = localGlobalAddress != "" && !localGlobalAddress.isNull();
+      bool specificAddressPresent = localMedia.connection_address != ""
+           && !localMedia.connection_address.isNull();
 
-      QHostAddress remoteAddress;
+      QHostAddress localAddress;
       if (specificAddressPresent)
       {
-        remoteAddress.setAddress(remoteMedia.connection_address);
+        localAddress.setAddress(localMedia.connection_address);
         printDebug(DEBUG_NORMAL, this, "Using media specific address for incoming.",
                   {"Type", "Address", "Port"},
-                  {localMedia.type, remoteAddress.toString(), QString::number(localMedia.receivePort)});
+                  {localMedia.type, localAddress.toString(), QString::number(localMedia.receivePort)});
 
       }
       else if (globalAddressPresent)
       {
-        remoteAddress.setAddress(peerGlobalAddress);
+        localAddress.setAddress(localGlobalAddress);
         printDebug(DEBUG_NORMAL, this, "Using global address for incoming.",
-                   {"Type", "Address", "Port"},
-                   {localMedia.type, remoteAddress.toString(), QString::number(localMedia.receivePort)});
+                   {"Type", "Address"},
+                   {localMedia.type, localAddress.toString() + ":" + QString::number(localMedia.receivePort)});
       }
       else
       {
@@ -307,7 +309,7 @@ void MediaManager::createIncomingMedia(uint32_t sessionID,
         return;
       }
 
-      std::shared_ptr<Filter> rtpSink = streamer_->addReceiveStream(sessionID, remoteAddress,
+      std::shared_ptr<Filter> rtpSink = streamer_->addReceiveStream(sessionID, localAddress,
                                                                     localMedia.receivePort,
                                                                     remoteMedia.receivePort,
                                                                     codec, localMedia.rtpNums.at(0));

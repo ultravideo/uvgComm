@@ -1,5 +1,4 @@
 #include "media/delivery/irtpstreamer.h"
-#include "media/delivery/kvzrtp/delivery.h"
 #include "delivery.h"
 #include "kvzrtpsender.h"
 #include "kvzrtpreceiver.h"
@@ -121,7 +120,7 @@ void Delivery::parseCodecString(QString codec, uint16_t dst_port,
 }
 
 
-std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID, QHostAddress ip,
+std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID, QHostAddress remoteAddress,
                                                 uint16_t localPort, uint16_t peerPort,
                                                 QString codec, uint8_t rtpNum)
 {
@@ -131,7 +130,7 @@ std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID, QHostAddress
 
   parseCodecString(codec, localPort, fmt, type, mediaName);
 
-  if (!initializeStream(sessionID, ip, localPort, peerPort, fmt))
+  if (!initializeStream(sessionID, localPort, peerPort, fmt))
   {
     printError(this, "Failed to initialize stream");
     return nullptr;
@@ -143,7 +142,7 @@ std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID, QHostAddress
     printNormal(this, "Creating sender filter");
 
     peers_[sessionID]->streams[localPort]->sender =
-        std::shared_ptr<KvzRTPSender>(new KvzRTPSender(ip.toString() + "_",
+        std::shared_ptr<KvzRTPSender>(new KvzRTPSender(remoteAddress.toString() + "_",
                                                        stats_,
                                                        type,
                                                        mediaName,
@@ -154,7 +153,7 @@ std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID, QHostAddress
 }
 
 
-std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID, QHostAddress ip,
+std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID, QHostAddress localAddress,
                                                    uint16_t localPort, uint16_t peerPort,
                                                    QString codec, uint8_t rtpNum)
 {
@@ -164,7 +163,7 @@ std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID, QHostAddr
 
   parseCodecString(codec, localPort, fmt, type, mediaName);
 
-  if (!initializeStream(sessionID, ip, localPort, peerPort, fmt))
+  if (!initializeStream(sessionID, localPort, peerPort, fmt))
   {
     return nullptr;
   }
@@ -175,7 +174,7 @@ std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID, QHostAddr
     printNormal(this, "Creating receiver filter");
     peers_[sessionID]->streams[localPort]->receiver = std::shared_ptr<KvzRTPReceiver>(
         new KvzRTPReceiver(
-          ip.toString() + "_",
+          localAddress.toString() + "_",
           stats_,
           type,
           mediaName,
@@ -188,19 +187,14 @@ std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID, QHostAddr
 }
 
 
-bool Delivery::initializeStream(uint32_t sessionID, QHostAddress peerAddress,
+bool Delivery::initializeStream(uint32_t sessionID,
                                 uint16_t localPort, uint16_t peerPort,
                                 rtp_format_t fmt)
 {
-  ipv6to4(peerAddress);
-
   // add peer if it does not exist
   if (peers_.find(sessionID) == peers_.end())
   {
-    if (!addPeer(sessionID, peerAddress.toString()))
-    {
-      return false;
-    }
+    return false;
   }
 
   // create mediastream if it does not exist

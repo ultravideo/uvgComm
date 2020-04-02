@@ -35,11 +35,11 @@ public:
 
   // Returns filter to be attached to filter graph. ownership is not transferred.
   // removing the peer or stopping the streamer destroys these filters.
-  std::shared_ptr<Filter> addSendStream(uint32_t peer, QHostAddress ip,
+  std::shared_ptr<Filter> addSendStream(uint32_t peer, QHostAddress remoteAddress,
                                         uint16_t localPort, uint16_t peerPort,
                                         QString codec, uint8_t rtpNum);
 
-  std::shared_ptr<Filter> addReceiveStream(uint32_t peer, QHostAddress ip,
+  std::shared_ptr<Filter> addReceiveStream(uint32_t peer, QHostAddress localAddress,
                                            uint16_t localPort, uint16_t peerPort,
                                            QString codec, uint8_t rtpNum);
 
@@ -96,7 +96,7 @@ private:
   bool checkSessionID(uint32_t sessionID);
 
   Sender* addSender(in_addr ip, uint16_t port, DataType type, uint8_t rtpNum);
-  Receiver* addReceiver(in_addr peerAddress, uint16_t port, DataType type, uint8_t rtpNum);
+  Receiver* addReceiver(in_addr localAddress, uint16_t port, DataType type, uint8_t rtpNum);
 
   void destroySender(Sender* sender);
   void destroyReceiver(Receiver* recv);

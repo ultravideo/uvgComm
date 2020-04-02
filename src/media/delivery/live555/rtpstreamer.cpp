@@ -328,7 +328,7 @@ bool Live555RTP::checkSessionID(uint32_t sessionID)
 }
 
 
-std::shared_ptr<Filter> Live555RTP::addSendStream(uint32_t sessionID, QHostAddress ip,
+std::shared_ptr<Filter> Live555RTP::addSendStream(uint32_t sessionID, QHostAddress remoteAddress,
                                                   uint16_t localPort, uint16_t peerPort,
                                                   QString codec, uint8_t rtpNum)
 {
@@ -340,7 +340,7 @@ std::shared_ptr<Filter> Live555RTP::addSendStream(uint32_t sessionID, QHostAddre
   struct in_addr ip_addr;
 
 #ifdef _WIN32
-  ip_addr.S_un.S_addr = qToBigEndian(ip.toIPv4Address());
+  ip_addr.S_un.S_addr = qToBigEndian(remoteAddress.toIPv4Address());
 #else
   ip_addr.s_addr = qToBigEndian(ip.toIPv4Address());
 #endif
@@ -356,7 +356,7 @@ std::shared_ptr<Filter> Live555RTP::addSendStream(uint32_t sessionID, QHostAddre
   return sender->sourcefilter;
 }
 
-std::shared_ptr<Filter> Live555RTP::addReceiveStream(uint32_t sessionID, QHostAddress ip, uint16_t localPort,
+std::shared_ptr<Filter> Live555RTP::addReceiveStream(uint32_t sessionID, QHostAddress localAddress, uint16_t localPort,
                                                      uint16_t peerPort, QString codec, uint8_t rtpNum)
 {
   Q_ASSERT(sessionID);
@@ -367,7 +367,7 @@ std::shared_ptr<Filter> Live555RTP::addReceiveStream(uint32_t sessionID, QHostAd
   struct in_addr ip_addr;
 
 #ifdef _WIN32
-  ip_addr.S_un.S_addr = qToBigEndian(ip.toIPv4Address());
+  ip_addr.S_un.S_addr = qToBigEndian(localAddress.toIPv4Address());
 #else
   ip_addr.s_addr = qToBigEndian(ip.toIPv4Address());
 #endif
@@ -473,11 +473,11 @@ Live555RTP::Sender* Live555RTP::addSender(in_addr ip, uint16_t port, DataType ty
   return sender;
 }
 // TODO why name peerADDress
-Live555RTP::Receiver* Live555RTP::addReceiver(in_addr peerAddress, uint16_t port, DataType type, uint8_t rtpNum)
+Live555RTP::Receiver* Live555RTP::addReceiver(in_addr localAddress, uint16_t port, DataType type, uint8_t rtpNum)
 {
   qDebug() << "Iniating receive RTP/RTCP stream from port:" << port << "with type:" << type;
   Receiver *receiver = new Receiver;
-  createConnection(receiver->connection, peerAddress, port, true);
+  createConnection(receiver->connection, localAddress, port, true);
 
   unsigned int estimatedSessionBandwidth = 10000; // in kbps; for RTCP b/w share
   // todo: negotiate payload number
@@ -503,10 +503,10 @@ Live555RTP::Receiver* Live555RTP::addReceiver(in_addr peerAddress, uint16_t port
     qWarning() << "Warning: RTP support not implemented for this format";
     break;
   }
-  QString  ip_str = QString::number(static_cast<uint8_t>((peerAddress.s_addr) & 0xff)) + "."
-                 + QString::number(static_cast<uint8_t>((peerAddress.s_addr >> 8) & 0xff)) + "."
-                 + QString::number(static_cast<uint8_t>((peerAddress.s_addr >> 16) & 0xff)) + "."
-                 + QString::number(static_cast<uint8_t>((peerAddress.s_addr >> 24) & 0xff));
+  QString  ip_str = QString::number(static_cast<uint8_t>((localAddress.s_addr) & 0xff)) + "."
+                 + QString::number(static_cast<uint8_t>((localAddress.s_addr >> 8) & 0xff)) + "."
+                 + QString::number(static_cast<uint8_t>((localAddress.s_addr >> 16) & 0xff)) + "."
+                 + QString::number(static_cast<uint8_t>((localAddress.s_addr >> 24) & 0xff));
 
   // shared_ptr which does not release
   receiver->sink

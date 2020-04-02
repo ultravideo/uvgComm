@@ -6,7 +6,7 @@
 
 KvzRTPSender::KvzRTPSender(QString id, StatisticsInterface *stats,
                            DataType type, QString media, kvz_rtp::media_stream *mstream):
-  Filter(id, "Framed_Source_" + media, stats, type, NONE),
+  Filter(id, "RTP Sender " + media, stats, type, NONE),
   type_(type),
   mstream_(mstream),
   frame_(0)

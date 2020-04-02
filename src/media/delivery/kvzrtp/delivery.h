@@ -33,11 +33,11 @@ public:
 
   // Returns filter to be attached to filter graph. ownership is not transferred.
   // removing the peer or stopping the streamer destroys these filters.
-  std::shared_ptr<Filter> addSendStream(uint32_t sessionID, QHostAddress ip,
+  std::shared_ptr<Filter> addSendStream(uint32_t sessionID, QHostAddress remoteAddress,
                                         uint16_t localPort, uint16_t peerPort,
                                         QString codec, uint8_t rtpNum);
 
-  std::shared_ptr<Filter> addReceiveStream(uint32_t sessionID, QHostAddress ip,
+  std::shared_ptr<Filter> addReceiveStream(uint32_t sessionID, QHostAddress localAddress,
                                            uint16_t localPort, uint16_t peerPort,
                                            QString codec, uint8_t rtpNum);
 
@@ -68,8 +68,7 @@ private:
    std::map<uint16_t, MediaStream*> streams;
   };
 
-  bool initializeStream(uint32_t sessionID, QHostAddress peerAddress,
-                        uint16_t localPort, uint16_t peerPort,
+  bool initializeStream(uint32_t sessionID, uint16_t localPort, uint16_t peerPort,
                         rtp_format_t fmt);
 
   bool addMediaStream(uint32_t sessionID, uint16_t localPort, uint16_t peerPort,
