@@ -266,7 +266,7 @@ void ICE::handeICESuccess(QList<std::shared_ptr<ICEPair> > &streams, uint32_t se
 {
   Q_ASSERT(sessionID != 0);
 
-  printImportant(this, "ICE finished.", {"Components"}, {QString::number(streams.size())});
+
 
   if (streams.at(0) == nullptr ||
       streams.at(1) == nullptr ||
@@ -276,6 +276,17 @@ void ICE::handeICESuccess(QList<std::shared_ptr<ICEPair> > &streams, uint32_t se
   }
   else 
   {
+    QStringList names;
+    QStringList values;
+    for(auto& stream : streams)
+    {
+      names.append("Component: " + QString::number(stream->local->component));
+      values.append(stream->local->address + ":" + QString::number(stream->local->port) + " <-> " +
+                    stream->remote->address + ":" + QString::number(stream->remote->port));
+    }
+
+    printDebug(DEBUG_IMPORTANT, this, "ICE finished.", names, values);
+
     nominationInfo_[sessionID].agent->quit();
     nominationInfo_[sessionID].connectionNominated = true;
     nominationInfo_[sessionID].selectedPairs = {streams.at(0), streams.at(1),
