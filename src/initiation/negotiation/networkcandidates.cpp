@@ -96,18 +96,6 @@ void NetworkCandidates::refreshSTUN()
     requests_.erase(removal);
     //printNormal(this, "Removed", {"Left"}, {QString::number(requests_.size())});
   }
-
-  // no need to get more STUN candidates
-  if (!behindNAT_)
-  {
-    // chekc every hour in case we are suddenly behind NAT
-    refreshSTUNTimer_.setInterval(1000 * 60 * 60);
-  }
-  else
-  {
-    refreshSTUNTimer_.setInterval(100);
-  }
-
 }
 
 
@@ -126,12 +114,15 @@ void NetworkCandidates::createSTUNCandidate(QHostAddress local, quint16 localPor
   {
     printNormal(this, "We don't seem to be behind NAT");
     behindNAT_ = false;
+    refreshSTUNTimer_.setInterval(1000 * 60 * 60);
     stunAddresses_.clear();
     stunBindings_.clear();
+    makePortAvailable(local.toString(), localPort);
   }
   else
   {
     behindNAT_ = true;
+    refreshSTUNTimer_.setInterval(100);
     printNormal(this, "Created ICE STUN candidate", {"STUN Translation"},
               {local.toString() + ":" + QString::number(localPort) + " << " +
                stun.toString() + ":" + QString::number(stunPort)});
