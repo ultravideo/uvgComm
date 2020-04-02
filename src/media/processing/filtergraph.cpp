@@ -31,7 +31,6 @@ FilterGraph::FilterGraph():
   audioProcessing_(),
   selfView_(nullptr),
   stats_(nullptr),
-  conversionIndex_(0),
   format_(),
   quitting_(false)
 {
@@ -167,13 +166,13 @@ void FilterGraph::initSelfView(VideoInterface *selfView)
     // connect scaling filter
     // TODO: not useful if it does not support YUV. Testing needed to verify
     /*
-    ScaleFilter* scaler = new ScaleFilter("Self_", stats_);
+    ScaleFilter* scaler = new ScaleFilter("Self", stats_);
     scaler->setResolution(selfView->size());
     addToGraph(std::shared_ptr<Filter>(scaler), videoSend_);
     */
 
     // connect selfview to camera
-    std::shared_ptr<DisplayFilter> selfviewFilter = std::shared_ptr<DisplayFilter>(new DisplayFilter("Self_", stats_, selfView, 1111));
+    std::shared_ptr<DisplayFilter> selfviewFilter = std::shared_ptr<DisplayFilter>(new DisplayFilter("Self", stats_, selfView, 1111));
     // the self view rotation depends on which conversions are use as some of the optimizations
     // do the mirroring. Note: mirroring is slow with Qt
     selfviewFilter->setProperties(true, cameraGraph_.at(0)->outputType() == RGB32VIDEO);
@@ -236,15 +235,15 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
          filter->inputType() == YUV420VIDEO)
       {
         qDebug() << "FilterGraph : Found RGB32 to YUV conversion needed";
-        addToGraph(std::shared_ptr<Filter>(new RGB32toYUV("", stats_, conversionIndex_)), graph, connectIndex);
-        ++conversionIndex_;
+        addToGraph(std::shared_ptr<Filter>(new RGB32toYUV("", stats_)),
+                   graph, connectIndex);
       }
       else if(graph.at(connectIndex)->outputType() == YUV420VIDEO &&
               filter->inputType() == RGB32VIDEO)
       {
         qDebug() << "FilterGraph : Found RGB32 to YUV conversion needed";
-        addToGraph(std::shared_ptr<Filter>(new YUVtoRGB32("", stats_, conversionIndex_)), graph, connectIndex);
-        ++conversionIndex_;
+        addToGraph(std::shared_ptr<Filter>(new YUVtoRGB32("", stats_)),
+                   graph, connectIndex);
       }
       else
       {
@@ -362,10 +361,10 @@ void FilterGraph::receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> v
   peers_.at(sessionID - 1)->videoReceivers.push_back(graph);
 
   addToGraph(videoSink, *graph);
-  addToGraph(std::shared_ptr<Filter>(new OpenHEVCFilter(QString::number(sessionID) + "_", stats_)),
+  addToGraph(std::shared_ptr<Filter>(new OpenHEVCFilter(QString::number(sessionID), stats_)),
              *graph, 0);
 
-  addToGraph(std::shared_ptr<Filter>(new DisplayFilter(QString::number(sessionID) + "_", stats_,
+  addToGraph(std::shared_ptr<Filter>(new DisplayFilter(QString::number(sessionID), stats_,
                                                        view, sessionID)),
              *graph, 1);
 }
@@ -413,13 +412,13 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
   addToGraph(audioSink, *graph);
   if (audioSink->outputType() == OPUSAUDIO)
   {
-    addToGraph(std::shared_ptr<Filter>(new OpusDecoderFilter(QString::number(sessionID) + "_", format_, stats_)),
+    addToGraph(std::shared_ptr<Filter>(new OpusDecoderFilter(QString::number(sessionID), format_, stats_)),
                *graph, 0);
   }
 
   if(audioProcessing_.size() > 0 && AEC_ENABLED)
   {
-    addToGraph(std::shared_ptr<Filter>(new SpeexAECFilter(QString::number(sessionID) + "_", stats_, format_)),
+    addToGraph(std::shared_ptr<Filter>(new SpeexAECFilter(QString::number(sessionID), stats_, format_)),
                *graph, 1);
 
     //connect to capture filter to remove echo

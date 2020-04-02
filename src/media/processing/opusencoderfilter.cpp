@@ -10,7 +10,7 @@
 const uint16_t FRAMESPERSECOND = 25; // TODO: Seems risky
 
 OpusEncoderFilter::OpusEncoderFilter(QString id, QAudioFormat format, StatisticsInterface* stats):
-  Filter(id, "Opus_Encoder", stats, RAWAUDIO, OPUSAUDIO),
+  Filter(id, "Opus Encoder", stats, RAWAUDIO, OPUSAUDIO),
   enc_(nullptr),
   opusOutput_(nullptr),
   max_data_bytes_(65536),

@@ -53,11 +53,11 @@ public:
   virtual void addReceivePacket(uint16_t size);
 
   // filter
-  virtual void addFilter(QString filter, uint64_t TID);
-  virtual void removeFilter(QString filter);
-  virtual void updateBufferStatus(QString filter, uint16_t buffersize,
+  virtual uint32_t addFilter(QString type, QString identifier, uint64_t TID);
+  virtual void removeFilter(uint32_t id);
+  virtual void updateBufferStatus(uint32_t id, uint16_t buffersize,
                                   uint16_t maxBufferSize);
-  virtual void packetDropped(QString filter);
+  virtual void packetDropped(uint32_t id);
 
   // sip
   virtual void addSentSIPMessage(QString type, QString message, QString address);
@@ -109,7 +109,7 @@ private:
     int tableIndex;
   };
 
-  std::map<QString, FilterStatus> buffers_;
+  std::map<uint32_t, FilterStatus> buffers_;
 
   Ui::StatisticsWindow *ui_;
 

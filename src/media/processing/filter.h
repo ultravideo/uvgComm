@@ -146,6 +146,7 @@ protected:
 private:
 
   QString name_;
+  QString id_;
 
   StatisticsInterface* stats_;
   QMutex *waitMutex_;
@@ -164,4 +165,6 @@ private:
 
   unsigned int inputTaken_;
   unsigned int inputDiscarded_;
+
+  uint32_t filterID_;
 };

@@ -11,13 +11,15 @@ Filter::Filter(QString id, QString name, StatisticsInterface *stats,
   maxBufferSize_(10),
   input_(input),
   output_(output),
-  name_(id + name),
+  name_(name),
+  id_(id),
   stats_(stats),
   waitMutex_(new QMutex),
   hasInput_(),
   running_(true),
   inputTaken_(0),
-  inputDiscarded_(0)
+  inputDiscarded_(0),
+  filterID_(0)
 {}
 
 Filter::~Filter()
@@ -93,7 +95,7 @@ void Filter::putInput(std::unique_ptr<Data> data)
 
   if(inputTaken_%30 == 0)
   {
-    stats_->updateBufferStatus(getName(), inBuffer_.size(), maxBufferSize_);
+    stats_->updateBufferStatus(filterID_, inBuffer_.size(), maxBufferSize_);
   }
 
   inBuffer_.push_back(std::move(data));
@@ -132,7 +134,7 @@ void Filter::putInput(std::unique_ptr<Data> data)
     }
 
     ++inputDiscarded_;
-    stats_->packetDropped(name_);
+    stats_->packetDropped(filterID_);
     if(inputDiscarded_ == 1 || inputDiscarded_%10 == 0)
     {
       qDebug() << "Processing," << name_ << "buffer full. Discarded input:"
@@ -218,9 +220,7 @@ void Filter::stop()
 
 void Filter::run()
 {
-  stats_->addFilter(name_, (uint64_t)currentThreadId());
-  //qDebug() << "Iniating," << metaObject()->className()
-    //<< Running filter" << name_ << "with max buffer:" << maxBufferSize_;
+  filterID_ = stats_->addFilter(name_, id_, (uint64_t)currentThreadId());
   while(running_)
   {
     waitForInput();
@@ -229,7 +229,7 @@ void Filter::run()
     process();
   }
 
-  stats_->removeFilter(getName());
+  stats_->removeFilter(filterID_);
 }
 
 Data* Filter::shallowDataCopy(Data* original)

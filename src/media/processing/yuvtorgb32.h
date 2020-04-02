@@ -6,7 +6,7 @@
 class YUVtoRGB32 : public Filter
 {
 public:
-  YUVtoRGB32(QString id, StatisticsInterface* stats, uint32_t peer);
+  YUVtoRGB32(QString id, StatisticsInterface* stats);
 
   virtual void updateSettings();
 

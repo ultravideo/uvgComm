@@ -3,7 +3,7 @@
 #include "common.h"
 
 OpusDecoderFilter::OpusDecoderFilter(QString id, QAudioFormat format, StatisticsInterface *stats):
-  Filter(id, "Opus_Decoder", stats, OPUSAUDIO, RAWAUDIO),
+  Filter(id, "Opus Decoder", stats, OPUSAUDIO, RAWAUDIO),
   dec_(nullptr),
   pcmOutput_(nullptr),
   max_data_bytes_(65536),

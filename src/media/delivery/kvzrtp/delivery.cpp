@@ -92,29 +92,29 @@ void Delivery::parseCodecString(QString codec, uint16_t dst_port,
   }
 
   fmt  = xmap[codec];
-  mediaName = QString::number(dst_port);
+  mediaName = "";
   type = NONE;
 
   switch (fmt)
   {
     case RTP_FORMAT_HEVC:
-      mediaName += "_HEVC";
+      mediaName = "HEVC";
       type = HEVCVIDEO;
       break;
 
     case RTP_FORMAT_OPUS:
-      mediaName += "_OPUS";
+      mediaName = "OPUS";
       type = OPUSAUDIO;
       break;
 
     case RTP_FORMAT_GENERIC:
-      mediaName += "_RAW_AUDIO";
+      mediaName+= "PCM";
       type = RAWAUDIO;
       break;
 
     default :
       printError(this, "RTP support not implemented for this format");
-      mediaName += "_UNKNOWN";
+      mediaName += "UNKNOWN";
       break;
   }
 }
@@ -142,7 +142,7 @@ std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID, QHostAddress
     printNormal(this, "Creating sender filter");
 
     peers_[sessionID]->streams[localPort]->sender =
-        std::shared_ptr<KvzRTPSender>(new KvzRTPSender(remoteAddress.toString() + "_",
+        std::shared_ptr<KvzRTPSender>(new KvzRTPSender(remoteAddress.toString() + ":" + QString::number(peerPort),
                                                        stats_,
                                                        type,
                                                        mediaName,
@@ -174,7 +174,7 @@ std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID, QHostAddr
     printNormal(this, "Creating receiver filter");
     peers_[sessionID]->streams[localPort]->receiver = std::shared_ptr<KvzRTPReceiver>(
         new KvzRTPReceiver(
-          localAddress.toString() + "_",
+          localAddress.toString() + ":" + QString::number(localPort),
           stats_,
           type,
           mediaName,

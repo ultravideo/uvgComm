@@ -100,8 +100,6 @@ private:
 
   StatisticsInterface* stats_;
 
-  uint32_t conversionIndex_;
-
   // audio configs
   QAudioFormat format_;
 

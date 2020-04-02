@@ -55,14 +55,15 @@ public:
 
   // FILTER
   // tell the that we want to track this filter or stop tracking
-  virtual void addFilter(QString filter, uint64_t TID) = 0;
-  virtual void removeFilter(QString filter) = 0;
+  virtual uint32_t addFilter(QString type, QString identifier, uint64_t TID) = 0;
+  virtual void removeFilter(uint32_t id) = 0;
 
   // Tracking of buffer information.
-  virtual void updateBufferStatus(QString filter, uint16_t buffersize, uint16_t maxBufferSize) = 0;
+  virtual void updateBufferStatus(uint32_t id, uint16_t buffersize,
+                                  uint16_t maxBufferSize) = 0;
 
   // Tracking of packets dropped due to buffer overflow
-  virtual void packetDropped(QString filter) = 0;
+  virtual void packetDropped(uint32_t id) = 0;
 
 
   // SIP

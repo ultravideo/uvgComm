@@ -53,7 +53,7 @@ StatisticsInterface(),
   fillTableHeaders(ui_->table_incoming, sessionMutex_,
                           {"IP", "Audio Ports", "Video Ports"});
   fillTableHeaders(ui_->filterTable, filterMutex_,
-                          {"Filter", "TID", "Buffer Size", "Dropped"});
+                          {"Filter", "Info", "TID", "Buffer Size", "Dropped"});
   fillTableHeaders(ui_->performance_table, sessionMutex_,
                           {"Name", "Audio delay", "Video delay", "Video fps"});
   fillTableHeaders(ui_->sent_list, sipMutex_,
@@ -186,56 +186,50 @@ QString StatisticsWindow::combineList(QStringList &list)
   return listed;
 }
 
-void StatisticsWindow::addFilter(QString filter, uint64_t TID)
+uint32_t StatisticsWindow::addFilter(QString type, QString identifier, uint64_t TID)
 {
   int rowIndex = addTableRow(ui_->filterTable, filterMutex_,
-                                  {filter, QString::number(TID), "-/-", "0"});
+                                  {type, identifier, QString::number(TID), "-/-", "0"});
 
   filterMutex_.lock();
-  if(buffers_.find(filter) == buffers_.end())
-  {
-    buffers_[filter] = FilterStatus{0,QString::number(TID), 0, 0, rowIndex};
-  }
-  else
-  {
-    filterMutex_.unlock();
-    printProgramWarning(this, "Tried to add a new filter with same name as previous", {"Name"}, filter);
-    return;
-  }
+  uint32_t id = buffers_.size() + 1;
+  buffers_[id] = FilterStatus{0,QString::number(TID), 0, 0, rowIndex};
   filterMutex_.unlock();
+
+  return id;
 }
 
 
-void StatisticsWindow::removeFilter(QString filter)
+void StatisticsWindow::removeFilter(uint32_t id)
 {
   filterMutex_.lock();
-  if (buffers_.find(filter) == buffers_.end())
+  if (buffers_.find(id) == buffers_.end())
   {
     filterMutex_.unlock();
     printProgramWarning(this, "Tried to remove non-existing filter.",
-                          {"Name"}, {filter});
+                          {"Id"}, {QString::number(id)});
     return;
   }
-  if (ui_->filterTable->rowCount() <= buffers_[filter].tableIndex)
+  if (ui_->filterTable->rowCount() <= buffers_[id].tableIndex)
   {
     filterMutex_.unlock();
     printProgramWarning(this, "Filter doesn't exist in filter table when removing.",
-                          {"Name"}, {filter});
+                          {"Id"}, {QString::number(id)});
     return;
   }
 
-  ui_->filterTable->removeRow(buffers_[filter].tableIndex);
+  ui_->filterTable->removeRow(buffers_[id].tableIndex);
 
   // adjust all existing indexes
   for (auto& buffer: buffers_)
   {
-    if (buffers_[filter].tableIndex < buffer.second.tableIndex)
+    if (buffers_[id].tableIndex < buffer.second.tableIndex)
     {
       buffer.second.tableIndex -= 1;
     }
   }
 
-  buffers_.erase(filter);
+  buffers_.erase(id);
   filterMutex_.unlock();
 }
 
@@ -429,42 +423,42 @@ void StatisticsWindow::addReceivePacket(uint16_t size)
 }
 
 
-void StatisticsWindow::updateBufferStatus(QString filter, uint16_t buffersize,
+void StatisticsWindow::updateBufferStatus(uint32_t id, uint16_t buffersize,
                                           uint16_t maxBufferSize)
 {
   filterMutex_.lock();
-  if(buffers_.find(filter) != buffers_.end())
+  if(buffers_.find(id) != buffers_.end())
   {
-    if(buffers_[filter].bufferStatus != buffersize ||
-       buffers_[filter].bufferSize != maxBufferSize)
+    if(buffers_[id].bufferStatus != buffersize ||
+       buffers_[id].bufferSize != maxBufferSize)
     {
       dirtyBuffers_ = true;
-      buffers_[filter].bufferStatus = buffersize;
-      buffers_[filter].bufferSize = maxBufferSize;
+      buffers_[id].bufferStatus = buffersize;
+      buffers_[id].bufferSize = maxBufferSize;
     }
   }
   else
   {
     printProgramWarning(this, "Couldn't find correct filter for buffer status",
-                        "Filter", filter);
+                        "Filter id", QString::number(id));
   }
   filterMutex_.unlock();
 }
 
 
-void StatisticsWindow::packetDropped(QString filter)
+void StatisticsWindow::packetDropped(uint32_t id)
 {
   ++packetsDropped_;
   filterMutex_.lock();
-  if(buffers_.find(filter) != buffers_.end())
+  if(buffers_.find(id) != buffers_.end())
   {
-    ++buffers_[filter].dropped;
+    ++buffers_[id].dropped;
     dirtyBuffers_ = true;
   }
   else
   {
     printProgramWarning(this, "Couldn't find correct filter for dropped packet",
-                        "Filter", filter);
+                        "Filter id", QString::number(id));
   }
   filterMutex_.unlock();
 }
@@ -583,14 +577,14 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
             return;
           }
 
-          ui_->filterTable->setItem(it.second.tableIndex, 2,
+          ui_->filterTable->setItem(it.second.tableIndex, 3,
                                     new QTableWidgetItem(QString::number(it.second.bufferStatus) +
                                                          "/" + QString::number(it.second.bufferSize)));
-          ui_->filterTable->setItem(it.second.tableIndex, 3,
+          ui_->filterTable->setItem(it.second.tableIndex, 4,
                                     new QTableWidgetItem(QString::number(it.second.dropped)));
 
-          ui_->filterTable->item(it.second.tableIndex, 2)->setTextAlignment(Qt::AlignHCenter);
           ui_->filterTable->item(it.second.tableIndex, 3)->setTextAlignment(Qt::AlignHCenter);
+          ui_->filterTable->item(it.second.tableIndex, 4)->setTextAlignment(Qt::AlignHCenter);
         }
         filterMutex_.unlock();
 
