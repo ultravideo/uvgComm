@@ -62,35 +62,36 @@ void IceCandidateTester::endTests()
       workerThreads_[i]->quit();
       workerThreads_[i]->wait();
     }
-
     workerThreads_.clear();
-
     udp_.unbind();
+    listeners_.clear();
   }
 }
 
 
 bool IceCandidateTester::performNomination(QList<std::shared_ptr<ICEPair>>& nominated)
 {
-  std::unique_ptr<UDPServer> server = std::make_unique<UDPServer>();
-  IcePairTester tester(server.get());
+  workerThreads_.clear();
+  workerThreads_.push_back(std::shared_ptr<IcePairTester>(new IcePairTester(&udp_)));
 
-  connect(server.get(), &UDPServer::datagramAvailable, &tester, &IcePairTester::recvStunMessage);
+  connect(&udp_,                       &UDPServer::datagramAvailable,
+          workerThreads_.back().get(), &IcePairTester::recvStunMessage);
 
   for (auto& pair : nominated)
   {
-    if (!server->bindSocket(tester.getLocalAddress(pair->local), tester.getLocalPort(pair->local)))
+    if (!udp_.bindSocket(workerThreads_.back()->getLocalAddress(pair->local),
+                         workerThreads_.back()->getLocalPort(pair->local)))
     {
       return false;
     }
-    if (!tester.sendNominationRequest(pair.get()))
+    if (!workerThreads_.back()->sendNominationRequest(pair.get()))
     {
-      server->unbind();
-      printError(this,  "Failed to nominate pair candidate!");
+      udp_.unbind();
+      printError(this,  "Failed to nominate a pair in for candidate!");
       return false;
     }
 
-    server->unbind();
+    udp_.unbind();
     pair->state  = PAIR_NOMINATED;
   }
 
@@ -108,7 +109,7 @@ void IceCandidateTester::routeDatagram(QNetworkDatagram message)
   }
   else
   {
-    printError(this, "Could not find listener for data", {"Address"}, {
+    printWarning(this, "Could not find listener for data", {"Address"}, {
                  message.destinationAddress().toString() + ":" +
                  QString::number(message.destinationPort()) + " <- " +
                  message.senderAddress().toString() + ":" +
@@ -122,5 +123,3 @@ void IceCandidateTester::expectReplyFrom(std::shared_ptr<IcePairTester> ct,
 {
     listeners_[address][port] = ct;
 }
-
-
