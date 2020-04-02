@@ -12,7 +12,7 @@ class IcePairTester : public QThread
   Q_OBJECT
 
 public:
-  IcePairTester(UDPServer *server, bool multiplex);
+  IcePairTester(UDPServer *server);
   ~IcePairTester();
   void setCandidatePair(std::shared_ptr<ICEPair> pair);
 
@@ -27,17 +27,20 @@ public:
   // Send the nominated candidate to ICE_CONTROLLED agent
   bool sendNominationRequest(ICEPair *pair);
 
+  void recvStunMessage(QNetworkDatagram message);
+
+  QHostAddress getLocalAddress(std::shared_ptr<ICEInfo> info);
+  quint16 getLocalPort(std::shared_ptr<ICEInfo> info);
+
 public slots:
   // Because the Stun object used by ConnectionTester has it's own event loop, we must
   // override the default quit function, call Stun::stopTesting() and then exit from ConnectionTester
   void quit();
 
 signals:
-  // testingDone() is emitted when the connection testing has ended
-  //
-  // if the tested candidate succeeded (remote responded to our requests),
-  // connection points to valid ICEPair, otherwise it's nullptr
-  void testingDone(std::shared_ptr<ICEPair> connection);
+
+  void controllerPairSucceeded(std::shared_ptr<ICEPair> connection);
+  void controlleeNominationDone(std::shared_ptr<ICEPair> connection);
 
   void parsingDone();
   void nominationRecv();
@@ -49,10 +52,8 @@ protected:
   void printMessage(QString message);
   void run();
 
-private slots:
-  void recvStunMessage(QNetworkDatagram message);
-
 private:
+
 
   // send stun binding request to remote
   // this function is used to establish a gateway between clients
@@ -123,10 +124,6 @@ private:
   UDPServer *udp_;
 
   StunMessageFactory stunmsg_;
-
-  // If multiplex_ is true, it means that the UDPServer has already been created for us
-  // and we shouldn't unbind/rebind it or attach listeners to it.
-  bool multiplex_;
 
   // When waitFor(Stun|Nomination)(Request|Response) returns, the calling code should
   // check whether interrupt flag has been set. It means that the running thread has

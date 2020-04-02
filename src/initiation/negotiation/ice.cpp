@@ -8,6 +8,10 @@
 #include "icesessiontester.h"
 
 
+
+const int STREAMS = 4;
+
+
 ICE::ICE()
 {}
 
@@ -18,7 +22,7 @@ ICE::~ICE()
 /* @param type - 0 for relayed, 126 for host
  * @param local - local preference for selecting candidates
  * @param component - 1 for RTP, 2 for RTCP */
-int ICE::calculatePriority(CandidateType type, quint16 local, ICEComponent component)
+int ICE::calculatePriority(CandidateType type, quint16 local, uint8_t component)
 {
   return (16777216 * type) + (256 * local) + component;
 }
@@ -45,55 +49,73 @@ QList<std::shared_ptr<ICEInfo>> ICE::generateICECandidates(
 
   QList<std::shared_ptr<ICEInfo>> iceCandidates;
 
-  addCandidates(localCandidates, 1, HOST, 65535, iceCandidates);
-  addCandidates(globalCandidates, 2, HOST, 65534, iceCandidates);
+  quint32 foundation = 1;
+
+  addCandidates(localCandidates, nullptr, foundation, HOST, 65535, iceCandidates);
+  addCandidates(globalCandidates, nullptr, foundation, HOST, 65534, iceCandidates);
 
   if (stunCandidates->size() == stunBindings->size())
   {
-    for (int i = 0; i < stunCandidates->size(); ++i)
-    {
-      // rtp
-      stunBindings_.push_back(std::shared_ptr<STUNBinding>(
-                                new STUNBinding{stunCandidates->at(i).first, stunCandidates->at(i).second,
-                                                stunBindings->at(i).first,   stunBindings->at(i).second}));
-
-      // rtcp
-      stunBindings_.push_back(std::shared_ptr<STUNBinding>(
-                                new STUNBinding{stunCandidates->at(i).first, stunCandidates->at(i).second,
-                                                stunBindings->at(i).first,   stunBindings->at(i).second}));
-      stunBindings_.back()->bindPort += 1;
-      stunBindings_.back()->stunPort += 1;
-    }
-
-    addCandidates(stunCandidates, 3, SERVER_REFLEXIVE, 65535, iceCandidates);
+    addCandidates(stunCandidates, stunBindings, foundation, SERVER_REFLEXIVE, 65535, iceCandidates);
   }
-  addCandidates(turnCandidates, 4, RELAY, 0, iceCandidates);
+  else
+  {
+    printProgramError(this, "STUN bindings don't match");
+  }
+
+  // TODO: relay needs bindings
+  addCandidates(turnCandidates, nullptr, foundation, RELAY, 0, iceCandidates);
 
   return iceCandidates;
 }
 
 
 void ICE::addCandidates(std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > addresses,
-                        quint32 foundation, CandidateType type, quint16 localPriority,
+                        std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > relayAddresses,
+                        quint32& foundation, CandidateType type, quint16 localPriority,
                         QList<std::shared_ptr<ICEInfo>>& candidates)
 {
-  if (addresses->size() >= 1)
+  bool includeRelayAddress = relayAddresses != nullptr && addresses->size() == relayAddresses->size();
+
+  if (!includeRelayAddress && type != HOST && !addresses->empty())
   {
-    candidates.push_back(makeCandidate(foundation, type, RTP,
-                                       addresses->at(0).first,
-                                       addresses->at(0).second,
-                                       QHostAddress(""), 0, localPriority));
-    candidates.push_back(makeCandidate(foundation, type, RTCP,
-                                       addresses->at(0).first,
-                                       addresses->at(0).second + 1,
-                                       QHostAddress(""), 0, localPriority));
+    printProgramError(this, "Bindings not given for non host cadidate!");
+    return;
+  }
+
+  // got through sets of STREAMS addresses
+  for (int i = 0; i + STREAMS <= addresses->size(); i += STREAMS)
+  {
+    // make a candidate set
+    // j is the index in addresses
+    for (int j = i; j < i + STREAMS; ++j)
+    {
+
+      QHostAddress relayAddress = QHostAddress("");
+      quint16 relayPort = 0;
+
+      if (includeRelayAddress)
+      {
+        relayAddress = relayAddresses->at(j).first;
+        relayPort = relayAddresses->at(j).second;
+      }
+      uint8_t component = j - i + 1;
+
+      candidates.push_back(makeCandidate(foundation, type, component,
+                                         addresses->at(j).first,
+                                         addresses->at(j).second,
+                                         relayAddress, relayPort, localPriority));
+    }
+
+    ++foundation;
+
   }
 }
 
 
 std::shared_ptr<ICEInfo> ICE::makeCandidate(uint32_t foundation,
                                             CandidateType type,
-                                            ICEComponent component,
+                                            uint8_t component,
                                             const QHostAddress address,
                                             quint16 port,
                                             const QHostAddress relayAddress,
@@ -168,10 +190,7 @@ QList<std::shared_ptr<ICEPair>> ICE::makeCandidatePairs(
   {
     for (int k = 0; k < remote.size(); ++k)
     {
-      // TODO: What restriction should the pairings have?
-      // the global addresses should at least be matched to stun addresses
-
-      // type (host/server reflexive) and component (RTP/RTCP) has to match
+      // component has to match
       if (local[i]->component == remote[k]->component)
       {
         std::shared_ptr<ICEPair> pair = std::make_shared<ICEPair>();
@@ -221,78 +240,69 @@ void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local,
     nominationInfo_[sessionID].agent = new IceSessionTester(false, 20000);
   }
 
-
   nominationInfo_[sessionID].pairs = makeCandidatePairs(local, remote);
   nominationInfo_[sessionID].connectionNominated = false;
 
   IceSessionTester *agent = nominationInfo_[sessionID].agent;
-  QObject::connect(
-      agent,
-      &IceSessionTester::ready,
-      this,
-      &ICE::handleEndOfNomination,
-      Qt::DirectConnection
-  );
 
-  // modify values if we use STUN ports, because they require
-  // different binding for their address.
-  transformBindingCandidates(nominationInfo_[sessionID].pairs);
+  QObject::connect(agent,
+                   &IceSessionTester::iceSuccess,
+                   this,
+                   &ICE::handeICESuccess,
+                   Qt::DirectConnection);
+  QObject::connect(agent,
+                   &IceSessionTester::iceFailure,
+                   this,
+                   &ICE::handleICEFailure,
+                   Qt::DirectConnection);
 
-  agent->init(&nominationInfo_[sessionID].pairs, sessionID);
+
+  agent->init(&nominationInfo_[sessionID].pairs, sessionID, STREAMS);
   agent->start();
 }
 
 
-void ICE::handleEndOfNomination(QList<std::shared_ptr<ICEPair> > &streams, uint32_t sessionID)
+void ICE::handeICESuccess(QList<std::shared_ptr<ICEPair> > &streams, uint32_t sessionID)
 {
   Q_ASSERT(sessionID != 0);
 
-  if (streams.size() != 2 ||
-      streams.at(0) == nullptr ||
-      streams.at(1) == nullptr)
+
+
+  if (streams.at(0) == nullptr ||
+      streams.at(1) == nullptr ||
+      streams.size() != STREAMS)
   {
-    printDebug(DEBUG_ERROR, "ICE",  "Failed to nominate RTP/RTCP candidates!");
-    nominationInfo_[sessionID].connectionNominated = false;
-    emit nominationFailed(sessionID);
+    handleICEFailure(sessionID);
   }
   else 
   {
+    QStringList names;
+    QStringList values;
+    for(auto& stream : streams)
+    {
+      names.append("Component: " + QString::number(stream->local->component));
+      values.append(stream->local->address + ":" + QString::number(stream->local->port) + " <-> " +
+                    stream->remote->address + ":" + QString::number(stream->remote->port));
+    }
+
+    printDebug(DEBUG_IMPORTANT, this, "ICE finished.", names, values);
+
+    nominationInfo_[sessionID].agent->quit();
     nominationInfo_[sessionID].connectionNominated = true;
-
-    // Create opus candidate on the fly. When this candidate (rtp && rtcp) was created
-    // we intentionally allocated 4 ports instead of 2 for use.
-    //
-    // This is because we don't actually need to test that both HEVC and Opus work separately. Insted we can just
-    // test HEVC and if that works we can assume that Opus works too (no reason why it shouldn't)
-    std::shared_ptr<ICEPair> opusPairRTP  = std::make_shared<ICEPair>();
-    std::shared_ptr<ICEPair> opusPairRTCP = std::make_shared<ICEPair>();
-
-    opusPairRTP->local  = std::make_shared<ICEInfo>();
-    opusPairRTP->remote = std::make_shared<ICEInfo>();
-
-    memcpy(opusPairRTP->local.get(),  streams.at(0)->local.get(),  sizeof(ICEInfo));
-    memcpy(opusPairRTP->remote.get(), streams.at(0)->remote.get(), sizeof(ICEInfo));
-
-    opusPairRTCP->local  = std::make_shared<ICEInfo>();
-    opusPairRTCP->remote = std::make_shared<ICEInfo>();
-
-    memcpy(opusPairRTCP->local.get(),  streams.at(1)->local.get(),  sizeof(ICEInfo));
-    memcpy(opusPairRTCP->remote.get(), streams.at(1)->remote.get(), sizeof(ICEInfo));
-
-    opusPairRTP->local->port  += 2; // hevc rtp, hevc rtcp and then opus rtp
-    opusPairRTCP->local->port += 2; // hevc rtp, hevc, rtcp, opus rtp and then opus rtcp
-
-    opusPairRTP->remote->port  += 2; // hevc rtp, hevc rtcp and then opus rtp
-    opusPairRTCP->remote->port += 2; // hev rtp, hevc, rtcp, opus rtp and then opus rtcp
-
     nominationInfo_[sessionID].selectedPairs = {streams.at(0), streams.at(1),
-                                                opusPairRTP, opusPairRTCP};
+                                                streams.at(2), streams.at(3)};
     emit nominationSucceeded(sessionID);
   }
+}
 
-  // TODO: Please call this before emitting the signal that we are ready
-  // This way the UDP sending process stops before media is created.
+
+void ICE::handleICEFailure(uint32_t sessionID)
+{
+  Q_ASSERT(sessionID != 0);
   nominationInfo_[sessionID].agent->quit();
+  printDebug(DEBUG_ERROR, "ICE",  "Failed to nominate RTP/RTCP candidates!");
+  nominationInfo_[sessionID].connectionNominated = false;
+  emit nominationFailed(sessionID);
 }
 
 
@@ -314,25 +324,5 @@ void ICE::cleanupSession(uint32_t sessionID)
   if (nominationInfo_.contains(sessionID))
   {
     nominationInfo_.remove(sessionID);
-  }
-}
-
-
-void ICE::transformBindingCandidates(QList<std::shared_ptr<ICEPair>>& pairs)
-{
-  for  (auto& pair : pairs)
-  {
-    for (auto& binding : stunBindings_)
-    {
-      if (pair->local->address == binding->stunAddress.toString() &&
-          pair->local->port == binding->stunPort)
-      {
-        pair->local->address = binding->bindAddress.toString();
-        pair->local->port = binding->bindPort;
-        printNormal(this, "Found stun binding, using different address", {"Change"},
-        {binding->stunAddress.toString() + ":" + QString::number(binding->stunPort) + " >> " +
-         binding->bindAddress.toString() + ":" + QString::number(binding->bindPort)});
-      }
-    }
   }
 }

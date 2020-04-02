@@ -48,22 +48,24 @@ private slots:
     // handleCallerEndOfNomination() check if the nomination succeeed, saves the nominated pair to hashmap and
     // releases caller_mtx to signal that negotiation is done
     // save nominated pair to hashmap so it can be fetched later on
-    void handleEndOfNomination(QList<std::shared_ptr<ICEPair> > &streams,
-                               uint32_t sessionID);
+    void handeICESuccess(QList<std::shared_ptr<ICEPair> > &streams,
+                         uint32_t sessionID);
+
+    void handleICEFailure(uint32_t sessionID);
 
   private:
     // create media candidate (RTP and RTCP connection)
     // "type" marks whether this candidate is host or server reflexive candidate (affects priority)
     std::shared_ptr<ICEInfo> makeCandidate(uint32_t foundation,
                                            CandidateType type,
-                                           ICEComponent component,
+                                           uint8_t component,
                                            const QHostAddress address,
                                            quint16 port,
                                            const QHostAddress relayAddress,
                                            quint16 relayPort,
                                            quint16 localPriority);
 
-    int calculatePriority(CandidateType type, quint16 local, ICEComponent component);
+    int calculatePriority(CandidateType type, quint16 local, uint8_t component);
 
     void printCandidates(QList<std::shared_ptr<ICEInfo>>& candidates);
 
@@ -73,11 +75,9 @@ private slots:
                                                        QList<std::shared_ptr<ICEInfo>>& remote);
 
     void addCandidates(std::shared_ptr<QList<std::pair<QHostAddress,
-                       uint16_t>>> addresses, quint32 foundation,
+                       uint16_t>>> addresses, std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > relayAddresses, quint32 &foundation,
                        CandidateType type, quint16 localPriority,
                        QList<std::shared_ptr<ICEInfo>>& candidates);
-
-    void transformBindingCandidates(QList<std::shared_ptr<ICEPair> > &pairs);
 
     bool nominatingConnection_;
 
@@ -95,17 +95,4 @@ private slots:
 
     // key is sessionID
     QMap<uint32_t, struct NominationInfo> nominationInfo_;
-
-    // tells which address each stun candidate bind should be called
-    struct STUNBinding
-    {
-      QHostAddress stunAddress;
-      quint16 stunPort;
-
-      QHostAddress bindAddress;
-      quint16 bindPort;
-    };
-
-    // TODO: This is never emptied meaning it will grow as long as program is running
-    QList<std::shared_ptr<STUNBinding>> stunBindings_;
 };

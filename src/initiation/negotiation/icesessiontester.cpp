@@ -1,19 +1,20 @@
+#include "icesessiontester.h"
+
+#include "icecandidatetester.h"
+#include "ice.h"
+#include "common.h"
+
 #include <QEventLoop>
 #include <QTimer>
 #include <QThread>
 
-#include "common.h"
-#include "icecandidatetester.h"
-#include "icesessiontester.h"
-#include "ice.h"
-
-
 
 IceSessionTester::IceSessionTester(bool controller, int timeout):
-  candidates_(nullptr),
+  pairs_(nullptr),
   sessionID_(0),
   controller_(controller),
-  timeout_(timeout)
+  timeout_(timeout),
+  components_(0)
 {}
 
 
@@ -21,50 +22,43 @@ IceSessionTester::~IceSessionTester()
 {}
 
 
-void IceSessionTester::init(QList<std::shared_ptr<ICEPair>> *candidates,
-                            uint32_t sessionID)
+void IceSessionTester::init(QList<std::shared_ptr<ICEPair>> *pairs,
+                            uint32_t sessionID, uint8_t components)
 {
-  Q_ASSERT(candidates != nullptr);
+  Q_ASSERT(pairs != nullptr);
   Q_ASSERT(sessionID != 0);
-  candidates_ = candidates;
+  pairs_ = pairs;
   sessionID_ = sessionID;
+  components_ = components;
 }
 
 
-void IceSessionTester::nominationDone(std::shared_ptr<ICEPair> connection)
+void IceSessionTester::endConcurrentTesting(std::shared_ptr<ICEPair> connection)
 {
   Q_ASSERT(connection != nullptr);
 
   nominated_mtx.lock();
+  finished_[connection->local->foundation][connection->local->component] = connection;
 
-  if (connection->local->component == RTP)
+  // nominated check makes sure only one stream is nominated.
+  // if we have received all components, nominate these.
+  // TODO: Do some sort of prioritization here. Maybe wait for 10% more of waited time or something.
+  if (nominated_.empty() &&
+      finished_[connection->local->foundation].size() == components_)
   {
-    nominated_[connection->local->address].first = connection;
+    for (auto& pair : finished_[connection->local->foundation])
+    {
+      pair->state = PAIR_SUCCEEDED;
+      nominated_.push_back(pair);
+    }
+
+    emit endTesting();
   }
-  else
-  {
-    nominated_[connection->local->address].second = connection;
-  }
-
-  if (nominated_[connection->local->address].first  != nullptr &&
-      nominated_[connection->local->address].second != nullptr)
-  {
-    nominated_rtp_  = nominated_[connection->local->address].first;
-    nominated_rtcp_ = nominated_[connection->local->address].second;
-
-    nominated_rtp_->state  = PAIR_NOMINATED;
-    nominated_rtcp_->state = PAIR_NOMINATED;
-
-    emit endNomination();
-    nominated_mtx.unlock();
-    return;
-  }
-
   nominated_mtx.unlock();
 }
 
 
-bool IceSessionTester::waitForEndOfNomination(unsigned long timeout)
+void IceSessionTester::waitForEndOfTesting(unsigned long timeout)
 {
   QTimer timer;
   QEventLoop loop;
@@ -72,36 +66,27 @@ bool IceSessionTester::waitForEndOfNomination(unsigned long timeout)
   timer.setSingleShot(true);
 
   QObject::connect(
-      this,
-      &IceSessionTester::endNomination,
-      &loop,
-      &QEventLoop::quit,
-      Qt::DirectConnection
-  );
+      this,  &IceSessionTester::endTesting,
+      &loop, &QEventLoop::quit,
+      Qt::DirectConnection);
 
   QObject::connect(
-      &timer,
-      &QTimer::timeout,
-      &loop,
-      &QEventLoop::quit,
-      Qt::DirectConnection
-  );
+      &timer, &QTimer::timeout,
+      &loop,  &QEventLoop::quit,
+      Qt::DirectConnection);
 
   timer.start(timeout);
   loop.exec();
-
-  return timer.isActive();
 }
 
 
 void IceSessionTester::run()
 {
-  if (candidates_ == nullptr || candidates_->size() == 0)
+  if (pairs_ == nullptr || pairs_->size() == 0)
   {
     printDebug(DEBUG_ERROR, this,
                "Invalid candidates, unable to perform ICE candidate negotiation!");
-    QList<std::shared_ptr<ICEPair>> no_streams;
-    emit ready(no_streams, sessionID_);
+    emit iceFailure(sessionID_);
     return;
   }
 
@@ -109,83 +94,111 @@ void IceSessionTester::run()
   // the candidates into interfaces
   // InterfaceTester then binds to this interface and takes care of sending the STUN Binding requests
 
-  QList<std::shared_ptr<IceCandidateTester>> interfaces;
+  QList<std::shared_ptr<IceCandidateTester>> candidates;
 
   QString prevAddr  = "";
   uint16_t prevPort = 0;
 
-  for (auto& candidate : *candidates_)
+  for (auto& pair : *pairs_)
   {
-    if (candidate->local->address != prevAddr ||
-        candidate->local->port != prevPort)
+    // move to next candidate
+    if (pair->local->address != prevAddr ||
+        pair->local->port != prevPort)
     {
-      interfaces.push_back(std::shared_ptr<IceCandidateTester>(new IceCandidateTester));
-
-      // because we cannot modify create new objects from child threads (in this case new socket)
-      // we must initialize both UDPServer and Stun objects here so that ConnectionTester doesn't have to do
-      // anything but to test the connection
-      //
-      // Binding might fail, if so happens no STUN objects are created for this socket
-      if (!interfaces.back()->bindInterface(QHostAddress(candidate->local->address),
-            candidate->local->port))
-      {
-        continue;
-      }
+      candidates.push_back(createCandidateTester(pair->local));
     }
 
-    interfaces.back()->addCandidate(candidate);
+    candidates.back()->addCandidate(pair);
 
     // this keeps the code from crashing using magic. Do not move.
-    prevAddr = candidate->local->address;
-    prevPort = candidate->local->port;
+    prevAddr = pair->local->address;
+    prevPort = pair->local->port;
   }
 
-  for (auto& interface : interfaces)
+  for (auto& interface : candidates)
   {
-    QObject::connect(
-        interface.get(),
-        &IceCandidateTester::candidateFound,
-        this,
-        &IceSessionTester::nominationDone,
-        Qt::DirectConnection
-    );
+    if (controller_)
+    {
+      QObject::connect(
+          interface.get(), &IceCandidateTester::controllerPairFound,
+          this,            &IceSessionTester::endConcurrentTesting,
+          Qt::DirectConnection);
+    }
+    else
+    {
+      QObject::connect(
+          interface.get(), &IceCandidateTester::controlleeNominationDone,
+          this,            &IceSessionTester::endConcurrentTesting,
+          Qt::DirectConnection);
+    }
+
 
     interface->startTestingPairs(controller_);
   }
 
-  bool nominationSucceeded = waitForEndOfNomination(timeout_);
+  // wait for nomination from remote, wait at most 20 seconds
+  waitForEndOfTesting(timeout_);
 
-  for (auto& interface : interfaces)
+  for (auto& interface : candidates)
   {
     interface->endTests();
   }
 
-  QList<std::shared_ptr<ICEPair>> streams;
-
-  // wait for nomination from remote, wait at most 20 seconds
-  if (!nominationSucceeded)
+  nominated_mtx.lock();
+  if (nominated_.empty())
   {
     printError(this, "Nomination from remote was not received in time!");
-    emit ready(streams, sessionID_);
+    emit iceFailure(sessionID_);
+    nominated_mtx.unlock();
     return;
   }
 
   if (controller_)
   {
     IceCandidateTester tester;
-    if (!tester.performNomination(nominated_rtp_, nominated_rtcp_))
+    if (!tester.performNomination(nominated_))
     {
-      emit ready(streams, sessionID_);
+      emit iceFailure(sessionID_);
+      nominated_mtx.unlock();
       return;
     }
   }
 
-  printImportant(this, "Nomination finished", {"Winning pair"}, {
-                   nominated_rtp_->local->address  + ":" +
-                   QString::number(nominated_rtp_->local->port) + " <-> " +
-                   nominated_rtp_->remote->address + ":" +
-                   QString::number(nominated_rtp_->remote->port)});
+  emit iceSuccess(nominated_, sessionID_);
+  nominated_mtx.unlock();
+}
 
-  streams = {nominated_rtp_, nominated_rtcp_};
-  emit ready(streams, sessionID_);
+
+std::shared_ptr<IceCandidateTester> IceSessionTester::createCandidateTester(
+    std::shared_ptr<ICEInfo> local)
+{
+  std::shared_ptr<IceCandidateTester> tester = std::make_shared<IceCandidateTester>();
+
+  // because we cannot modify create new objects from child threads (in this case new socket)
+  // we must initialize both UDPServer and Stun objects here so that ConnectionTester doesn't have to do
+  // anything but to test the connection
+
+  QHostAddress bindAddress = QHostAddress(local->address);
+  quint16 bindPort = local->port;
+
+  // use relayport if we are supposed to
+  if (local->type != "host")
+  {
+    if (local->rel_address != "" &&
+        local->rel_port != 0)
+    {
+      bindAddress = QHostAddress(local->rel_address);
+      bindPort = local->rel_port;
+    }
+    else
+    {
+      printProgramError(this, "Relay address not set, when it is supposed to! "
+                              "Should be checked earlier.");
+      return tester;
+    }
+  }
+
+  tester->bindInterface(bindAddress, bindPort);
+
+  return tester;
 }

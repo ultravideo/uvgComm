@@ -10,7 +10,7 @@
 
 #include <memory>
 
-
+class IceCandidateTester;
 
 class IceSessionTester : public QThread
 {
@@ -20,50 +20,56 @@ public:
   IceSessionTester(bool controller, int timeout);
   ~IceSessionTester();
 
-  void init(QList<std::shared_ptr<ICEPair>> *candidates,
-            uint32_t sessionID);
+  void init(QList<std::shared_ptr<ICEPair>> *pairs_,
+            uint32_t sessionID, uint8_t components);
 
 signals:
-  // When FlowAgent finishes, it sends a ready signal to main thread (ICE).
+  // When IceSessionTester finishes, it sends a ready signal to main thread (ICE).
   // If the nomination succeeded, both candidateRTP and candidateRTCP are valid pointers,
   // otherwise nullptr.
-  void ready(QList<std::shared_ptr<ICEPair>>& streams,
-             uint32_t sessionID);
+  void iceSuccess(QList<std::shared_ptr<ICEPair>>& streams,
+                  uint32_t sessionID);
+
+  void iceFailure(uint32_t sessionID);
 
   // when both RTP and RTCP of any address succeeds, sends endNomination() signal to FlowAgent (sent by ConnectionTester)
   // so it knows to stop all other ConnectionTester and return the succeeded pair to ICE
   //
   // FlowAgent listens to this signal in waitForEndOfNomination() and if the signal is not received within some time period,
   // FlowAgent fails and returns nullptrs to ICE indicating that the call cannot start
-  void endNomination();
+  void endTesting();
 
 public slots:
-  void nominationDone(std::shared_ptr<ICEPair> connection);
+  void endConcurrentTesting(std::shared_ptr<ICEPair> connection);
 
 protected:
   virtual void run();
 
 private:
 
+  std::shared_ptr<IceCandidateTester> createCandidateTester(std::shared_ptr<ICEInfo> local);
+
   // wait for endNomination() signal and return true if it's received (meaning the nomination succeeded)
   // if the endNomination() is not received in time the function returns false
-  bool waitForEndOfNomination(unsigned long timeout);
+  void waitForEndOfTesting(unsigned long timeout);
 
-  QList<std::shared_ptr<ICEPair>> *candidates_;
+  QList<std::shared_ptr<ICEPair>> *pairs_;
 
   uint32_t sessionID_;
 
   bool controller_;
   int timeout_;
 
-  // temporary storage for succeeded pairs, when both RTP and RTCP
-  // of some candidate pair succeeds, endNomination() signal is emitted
-  // and the succeeded pair is copied to nominated_rtp_ and nominated_rtcp_
-  //
-  // the first candidate pair that has both RTP and RTCP tested is chosen
-  QMap<QString, std::pair<std::shared_ptr<ICEPair>, std::shared_ptr<ICEPair>>> nominated_;
+  uint8_t components_;
 
-  std::shared_ptr<ICEPair> nominated_rtp_;
-  std::shared_ptr<ICEPair> nominated_rtcp_;
+  // temporary storage for succeeded components, when all components of
+  // one candidate pair succeeds, endNomination() signal is emitted
+  // and the succeeded pair is copied to nominated_
+  //
+  // currently the first pair to have all its components succeed is selected.
+
   QMutex nominated_mtx;
+  QMap<QString, QMap<uint8_t, std::shared_ptr<ICEPair>>> finished_;
+
+  QList<std::shared_ptr<ICEPair>> nominated_;
 };

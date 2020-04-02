@@ -25,11 +25,11 @@ public:
 
   void endTests();
 
-  bool performNomination(std::shared_ptr<ICEPair> rtp,
-                         std::shared_ptr<ICEPair> rtcp);
+  bool performNomination(QList<std::shared_ptr<ICEPair> > &nominated);
 
 signals:
-  void candidateFound(std::shared_ptr<ICEPair> connection);
+  void controllerPairFound(std::shared_ptr<ICEPair> connection);
+  void controlleeNominationDone(std::shared_ptr<ICEPair> connection);
 
 private slots:
   void routeDatagram(QNetworkDatagram message);

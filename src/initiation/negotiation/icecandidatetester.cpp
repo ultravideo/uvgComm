@@ -19,66 +19,90 @@ bool IceCandidateTester::bindInterface(QHostAddress interface, quint16 port)
 
 void IceCandidateTester::startTestingPairs(bool controller)
 {
-  for (auto& pair : pairs_)
+  if (udp_.isBound())
   {
-    workerThreads_.push_back(std::shared_ptr<IcePairTester>(new IcePairTester(&udp_, true)));
+    for (auto& pair : pairs_)
+    {
+      workerThreads_.push_back(std::shared_ptr<IcePairTester>(new IcePairTester(&udp_)));
 
-    QObject::connect(workerThreads_.back().get(),
-                     &IcePairTester::testingDone,
-                     this,
-                     &IceCandidateTester::candidateFound,
-                     Qt::DirectConnection);
+      if (controller)
+      {
+        QObject::connect(workerThreads_.back().get(), &IcePairTester::controllerPairSucceeded,
+                         this,                        &IceCandidateTester::controllerPairFound,
+                         Qt::DirectConnection);
+      }
+      else
+      {
+        QObject::connect(workerThreads_.back().get(), &IcePairTester::controlleeNominationDone,
+                         this,                        &IceCandidateTester::controlleeNominationDone,
+                         Qt::DirectConnection);
+      }
 
-    // when the UDPServer receives a datagram from remote->address:remote->port,
-    // it will send a signal containing the datagram to this Stun object
-    //
-    // This way multiple Stun instances can listen to same socket
-    // TODO: Does not work with STUN candidates
-    expectReplyFrom(workerThreads_.back(),
-                    pair->remote->address,
-                    pair->remote->port);
+      // when the UDPServer receives a datagram from remote->address:remote->port,
+      // it will send a signal containing the datagram to this Stun object
+      //
+      // This way multiple Stun instances can listen to same socket
+      // TODO: Does not work with STUN candidates
+      expectReplyFrom(workerThreads_.back(),
+                      pair->remote->address,
+                      pair->remote->port);
 
-    workerThreads_.back()->setCandidatePair(pair);
-    workerThreads_.back()->isController(controller);
-    workerThreads_.back()->start();
+      workerThreads_.back()->setCandidatePair(pair);
+      workerThreads_.back()->isController(controller);
+
+      // starts the binding tests. For non-controller also does the nomination.
+      workerThreads_.back()->start();
+    }
+  }
+  else
+  {
+    printWarning(this, "Tried to start testing, but the socket was not bound.");
   }
 }
 
 
 void IceCandidateTester::endTests()
 {
-  // kill all threads, regardless of whether nomination succeeded or not
-  for (size_t i = 0; i < workerThreads_.size(); ++i)
+  if (udp_.isBound())
   {
-    workerThreads_[i]->quit();
-    workerThreads_[i]->wait();
+    // kill all threads, regardless of whether nomination succeeded or not
+    for (size_t i = 0; i < workerThreads_.size(); ++i)
+    {
+      workerThreads_[i]->quit();
+      workerThreads_[i]->wait();
+    }
+    workerThreads_.clear();
+    udp_.unbind();
+    listeners_.clear();
   }
-
-  workerThreads_.clear();
-
-  udp_.unbind();
 }
 
 
-bool IceCandidateTester::performNomination(std::shared_ptr<ICEPair> rtp,
-                                        std::shared_ptr<ICEPair> rtcp)
+bool IceCandidateTester::performNomination(QList<std::shared_ptr<ICEPair>>& nominated)
 {
-  IcePairTester tester(new UDPServer, false);
+  workerThreads_.clear();
+  workerThreads_.push_back(std::shared_ptr<IcePairTester>(new IcePairTester(&udp_)));
 
-  if (!tester.sendNominationRequest(rtp.get()))
+  connect(&udp_,                       &UDPServer::datagramAvailable,
+          workerThreads_.back().get(), &IcePairTester::recvStunMessage);
+
+  for (auto& pair : nominated)
   {
-    printError(this,  "Failed to nominate RTP candidate!");
-    return false;
-  }
+    if (!udp_.bindSocket(workerThreads_.back()->getLocalAddress(pair->local),
+                         workerThreads_.back()->getLocalPort(pair->local)))
+    {
+      return false;
+    }
+    if (!workerThreads_.back()->sendNominationRequest(pair.get()))
+    {
+      udp_.unbind();
+      printError(this,  "Failed to nominate a pair in for candidate!");
+      return false;
+    }
 
-  if (!tester.sendNominationRequest(rtcp.get()))
-  {
-    printError(this,  "Failed to nominate RTCP candidate!");
-    return false;
+    udp_.unbind();
+    pair->state  = PAIR_NOMINATED;
   }
-
-  rtp->state  = PAIR_NOMINATED;
-  rtcp->state = PAIR_NOMINATED;
 
   return true;
 }
@@ -90,16 +114,11 @@ void IceCandidateTester::routeDatagram(QNetworkDatagram message)
   if (listeners_.contains(message.senderAddress().toString()) &&
       listeners_[message.senderAddress().toString()].contains(message.senderPort()))
   {
-    QMetaObject::invokeMethod(
-        listeners_[message.senderAddress().toString()][message.senderPort()].get(),
-        "recvStunMessage",
-        Qt::DirectConnection,
-        Q_ARG(QNetworkDatagram, message)
-    );
+    listeners_[message.senderAddress().toString()][message.senderPort()]->recvStunMessage(message);
   }
   else
   {
-    printError(this, "Could not find listener for data", {"Address"}, {
+    printWarning(this, "Could not find listener for data", {"Address"}, {
                  message.destinationAddress().toString() + ":" +
                  QString::number(message.destinationPort()) + " <- " +
                  message.senderAddress().toString() + ":" +
@@ -109,9 +128,7 @@ void IceCandidateTester::routeDatagram(QNetworkDatagram message)
 
 
 void IceCandidateTester::expectReplyFrom(std::shared_ptr<IcePairTester> ct,
-                                      QString& address, quint16 port)
+                                         QString& address, quint16 port)
 {
     listeners_[address][port] = ct;
 }
-
-
