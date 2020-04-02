@@ -15,15 +15,15 @@ class StatisticsInterface
 public:
   virtual ~StatisticsInterface(){}
 
-  // basic information on video. Can be called in case information changes.
-  virtual void videoInfo(double framerate, QSize resolution) = 0;
-
-  // basic information on audio. Can be called in case information changes.
-  virtual void audioInfo(uint32_t sampleRate, uint16_t channelCount) = 0;
-
+  // MEDIA SESSION
   // add/remove session information or log the start/end of session.
   virtual void addSession(uint32_t sessionID) = 0;
   virtual void removeSession(uint32_t sessionID) = 0;
+
+  // MEDIA
+  // basic information on audio/video. Can be called in case information changes.
+  virtual void videoInfo(double framerate, QSize resolution) = 0;
+  virtual void audioInfo(uint32_t sampleRate, uint16_t channelCount) = 0;
 
   // basic call info for incoming and outgoing medias
   virtual void incomingMedia(uint32_t sessionID, QStringList& ipList,
@@ -43,16 +43,19 @@ public:
   // For tracking of encoding bitrate and possibly other information.
   virtual void addEncodedPacket(QString type, uint32_t size) = 0;
 
+
+
+  // DELIVERY
   // Tracking of sent packets
   virtual void addSendPacket(uint16_t size) = 0;
 
   // tracking of received packets.
   virtual void addReceivePacket(uint16_t size) = 0;
 
-  // tell the that we want to track this filter.
-  virtual void addFilter(QString filter, uint64_t TID) = 0;
 
-  // removes tracking for this filter.
+  // FILTER
+  // tell the that we want to track this filter or stop tracking
+  virtual void addFilter(QString filter, uint64_t TID) = 0;
   virtual void removeFilter(QString filter) = 0;
 
   // Tracking of buffer information.
@@ -61,6 +64,8 @@ public:
   // Tracking of packets dropped due to buffer overflow
   virtual void packetDropped(QString filter) = 0;
 
+
+  // SIP
   // Tracking of sent and received SIP Messages
   virtual void addSentSIPMessage(QString type, QString message, QString address) = 0;
   virtual void addReceivedSIPMessage(QString type, QString message, QString address) = 0;

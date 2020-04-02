@@ -31,29 +31,35 @@ public:
   // see statisticsInterface for details
   // use these for inputting data. Some of these record fields to be later
   // set to UI and some of these modify UI directly.
-  virtual void videoInfo(double framerate, QSize resolution);
-  virtual void audioInfo(uint32_t sampleRate, uint16_t channelCount);
 
+  // session
   virtual void addSession(uint32_t sessionID);
   virtual void removeSession(uint32_t sessionID);
 
+  // media
+  virtual void videoInfo(double framerate, QSize resolution);
+  virtual void audioInfo(uint32_t sampleRate, uint16_t channelCount);
   virtual void incomingMedia(uint32_t sessionID, QStringList& ipList,
                              QStringList& audioPorts, QStringList& videoPorts);
   virtual void outgoingMedia(uint32_t sessionID, QStringList& ipList,
                              QStringList& audioPorts, QStringList& videoPorts);
-
   virtual void sendDelay(QString type, uint32_t delay);
   virtual void receiveDelay(uint32_t sessionID, QString type, int32_t delay);
-
   virtual void presentPackage(uint32_t sessionID, QString type);
   virtual void addEncodedPacket(QString type, uint32_t size);
+
+  // delivery
   virtual void addSendPacket(uint16_t size);
   virtual void addReceivePacket(uint16_t size);
+
+  // filter
   virtual void addFilter(QString filter, uint64_t TID);
   virtual void removeFilter(QString filter);
   virtual void updateBufferStatus(QString filter, uint16_t buffersize,
                                   uint16_t maxBufferSize);
   virtual void packetDropped(QString filter);
+
+  // sip
   virtual void addSentSIPMessage(QString type, QString message, QString address);
   virtual void addReceivedSIPMessage(QString type, QString message, QString address);
 
