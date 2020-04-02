@@ -23,8 +23,6 @@ KvzRTPReceiver::KvzRTPReceiver(QString id, StatisticsInterface *stats, DataType 
   addStartCodes_(true),
   mstream_(mstream)
 {
-  getStats()->addFilter(getName(), (uint64_t)currentThreadId());
-
   mstream_->install_receive_hook(this, __receiveHook);
 }
 

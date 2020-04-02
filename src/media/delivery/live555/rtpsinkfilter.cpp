@@ -17,7 +17,6 @@ RTPSinkFilter::RTPSinkFilter(QString id, StatisticsInterface *stats,
   addStartCodes_(false)
 {
   fReceiveBuffer = new u_int8_t[BUFFER_SIZE];
-  getStats()->addFilter(getName(), (uint64_t)currentThreadId());
 }
 
 RTPSinkFilter::~RTPSinkFilter()
