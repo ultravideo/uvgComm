@@ -15,8 +15,8 @@ enum PairState {
 
 enum CandidateType {
   RELAY = 0,
-  SERVER_REFLEXIVE = 1,
-  PEER_REFLEXIVE = 2,
+  SERVER_REFLEXIVE = 100,
+  PEER_REFLEXIVE = 110,
   HOST    = 126
 };
 
