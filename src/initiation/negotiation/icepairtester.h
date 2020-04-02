@@ -38,11 +38,9 @@ public slots:
   void quit();
 
 signals:
-  // testingDone() is emitted when the connection testing has ended
-  //
-  // if the tested candidate succeeded (remote responded to our requests),
-  // connection points to valid ICEPair, otherwise it's nullptr
-  void testingDone(std::shared_ptr<ICEPair> connection);
+
+  void controllerPairSucceeded(std::shared_ptr<ICEPair> connection);
+  void controlleeNominationDone(std::shared_ptr<ICEPair> connection);
 
   void parsingDone();
   void nominationRecv();

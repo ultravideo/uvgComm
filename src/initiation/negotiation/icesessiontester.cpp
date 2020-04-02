@@ -33,7 +33,7 @@ void IceSessionTester::init(QList<std::shared_ptr<ICEPair>> *pairs,
 }
 
 
-void IceSessionTester::nominationDone(std::shared_ptr<ICEPair> connection)
+void IceSessionTester::endConcurrentTesting(std::shared_ptr<ICEPair> connection)
 {
   Q_ASSERT(connection != nullptr);
 
@@ -42,8 +42,9 @@ void IceSessionTester::nominationDone(std::shared_ptr<ICEPair> connection)
 
   // nominated check makes sure only one stream is nominated.
   // if we have received all components, nominate these.
-  // TODO: Do some sort of prioritization here
-  if (nominated_.empty() && finished_[connection->local->foundation].size() == components_)
+  // TODO: Do some sort of prioritization here. Maybe wait for 10% more of waited time or something.
+  if (nominated_.empty() &&
+      finished_[connection->local->foundation].size() == components_)
   {
     for (auto& pair : finished_[connection->local->foundation])
     {
@@ -51,13 +52,13 @@ void IceSessionTester::nominationDone(std::shared_ptr<ICEPair> connection)
       nominated_.push_back(pair);
     }
 
-    emit endNomination();
+    emit endTesting();
   }
   nominated_mtx.unlock();
 }
 
 
-void IceSessionTester::waitForEndOfNomination(unsigned long timeout)
+void IceSessionTester::waitForEndOfTesting(unsigned long timeout)
 {
   QTimer timer;
   QEventLoop loop;
@@ -65,20 +66,14 @@ void IceSessionTester::waitForEndOfNomination(unsigned long timeout)
   timer.setSingleShot(true);
 
   QObject::connect(
-      this,
-      &IceSessionTester::endNomination,
-      &loop,
-      &QEventLoop::quit,
-      Qt::DirectConnection
-  );
+      this,  &IceSessionTester::endTesting,
+      &loop, &QEventLoop::quit,
+      Qt::DirectConnection);
 
   QObject::connect(
-      &timer,
-      &QTimer::timeout,
-      &loop,
-      &QEventLoop::quit,
-      Qt::DirectConnection
-  );
+      &timer, &QTimer::timeout,
+      &loop,  &QEventLoop::quit,
+      Qt::DirectConnection);
 
   timer.start(timeout);
   loop.exec();
@@ -122,19 +117,27 @@ void IceSessionTester::run()
 
   for (auto& interface : candidates)
   {
-    QObject::connect(
-        interface.get(),
-        &IceCandidateTester::candidateFound,
-        this,
-        &IceSessionTester::nominationDone,
-        Qt::DirectConnection
-    );
+    if (controller_)
+    {
+      QObject::connect(
+          interface.get(), &IceCandidateTester::controllerPairFound,
+          this,            &IceSessionTester::endConcurrentTesting,
+          Qt::DirectConnection);
+    }
+    else
+    {
+      QObject::connect(
+          interface.get(), &IceCandidateTester::controlleeNominationDone,
+          this,            &IceSessionTester::endConcurrentTesting,
+          Qt::DirectConnection);
+    }
+
 
     interface->startTestingPairs(controller_);
   }
 
   // wait for nomination from remote, wait at most 20 seconds
-  waitForEndOfNomination(timeout_);
+  waitForEndOfTesting(timeout_);
 
   for (auto& interface : candidates)
   {
@@ -189,7 +192,8 @@ std::shared_ptr<IceCandidateTester> IceSessionTester::createCandidateTester(
     }
     else
     {
-      printProgramError(this, "Relay address not set, when it is supposed to! Should be checked earlier.");
+      printProgramError(this, "Relay address not set, when it is supposed to! "
+                              "Should be checked earlier.");
       return tester;
     }
   }

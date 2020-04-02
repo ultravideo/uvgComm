@@ -89,29 +89,30 @@ void IcePairTester::run()
   // so exit from ConnectionTester when this connection has been tested...
   if (controller_)
   {
-    printNormal(this, "Controller testing succeeded", {"Pair"}, {
+    printNormal(this, "Controller binding succeeded", {"Pair"}, {
                   pair_->local->address + ":" + QString::number(pair_->local->port) + " <-> " +
                   pair_->remote->address + ":" + QString::number(pair_->remote->port)});
 
-    emit testingDone(pair_);
+    // we have to sync the nomination elsewhere because only one pair should be nominated
+    emit controllerPairSucceeded(pair_);
     return;
   }
 
-  //... otherwise start waiting for nomination requests
+  // controllee starts waiting for nomination requests on this pair.
   if (!sendNominationResponse(pair_.get()))
   {
-    printNormal(this,  "Failed to receive nomination for candidate: ", {"Pair"},
+    printNormal(this,  "Did not receive nomination for candidate: ", {"Pair"},
                {pair_->local->address + ":" + QString::number(pair_->local->port) + " <- " +
                 pair_->remote->address + ":" + QString::number(pair_->remote->port)});
     pair_->state = PAIR_FAILED;
     return;
   }
 
-  printNormal(this, "Non-Controller testing succeeded", {"Pair"}, {
+  printNormal(this, "Non-Controller nomination succeeded", {"Pair"}, {
                 pair_->local->address + ":" + QString::number(pair_->local->port) + " <-> " +
                 pair_->remote->address + ":" + QString::number(pair_->remote->port)});
 
-  emit testingDone(pair_);
+  emit controlleeNominationDone(pair_);
 }
 
 

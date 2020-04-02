@@ -37,10 +37,10 @@ signals:
   //
   // FlowAgent listens to this signal in waitForEndOfNomination() and if the signal is not received within some time period,
   // FlowAgent fails and returns nullptrs to ICE indicating that the call cannot start
-  void endNomination();
+  void endTesting();
 
 public slots:
-  void nominationDone(std::shared_ptr<ICEPair> connection);
+  void endConcurrentTesting(std::shared_ptr<ICEPair> connection);
 
 protected:
   virtual void run();
@@ -51,7 +51,7 @@ private:
 
   // wait for endNomination() signal and return true if it's received (meaning the nomination succeeded)
   // if the endNomination() is not received in time the function returns false
-  void waitForEndOfNomination(unsigned long timeout);
+  void waitForEndOfTesting(unsigned long timeout);
 
   QList<std::shared_ptr<ICEPair>> *pairs_;
 

@@ -25,11 +25,18 @@ void IceCandidateTester::startTestingPairs(bool controller)
     {
       workerThreads_.push_back(std::shared_ptr<IcePairTester>(new IcePairTester(&udp_)));
 
-      QObject::connect(workerThreads_.back().get(),
-                       &IcePairTester::testingDone,
-                       this,
-                       &IceCandidateTester::candidateFound,
-                       Qt::DirectConnection);
+      if (controller)
+      {
+        QObject::connect(workerThreads_.back().get(), &IcePairTester::controllerPairSucceeded,
+                         this,                        &IceCandidateTester::controllerPairFound,
+                         Qt::DirectConnection);
+      }
+      else
+      {
+        QObject::connect(workerThreads_.back().get(), &IcePairTester::controlleeNominationDone,
+                         this,                        &IceCandidateTester::controlleeNominationDone,
+                         Qt::DirectConnection);
+      }
 
       // when the UDPServer receives a datagram from remote->address:remote->port,
       // it will send a signal containing the datagram to this Stun object
@@ -42,6 +49,8 @@ void IceCandidateTester::startTestingPairs(bool controller)
 
       workerThreads_.back()->setCandidatePair(pair);
       workerThreads_.back()->isController(controller);
+
+      // starts the binding tests. For non-controller also does the nomination.
       workerThreads_.back()->start();
     }
   }
