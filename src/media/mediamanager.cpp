@@ -152,15 +152,19 @@ void MediaManager::addParticipant(uint32_t sessionID,
   // create each agreed media stream
   for(int i = 0; i <peerInfo->media.size(); ++i)  {
     // TODO: I don't like that we match
-    createOutgoingMedia(sessionID, peerInfo->connection_address, peerInfo->media.at(i), localInfo->media.at(i));
+    createOutgoingMedia(sessionID,
+                        localInfo->media.at(i),
+                        peerInfo->connection_address,
+                        peerInfo->media.at(i));
   }
 
   // TODO: THis should be got from somewhere instead of guessed.
   uint32_t videoID = 0;
   for (int i = 0; i < localInfo->media.size(); ++i)
   {
-    createIncomingMedia(sessionID, peerInfo->connection_address, peerInfo->media.at(i),
-                        localInfo->media.at(i), videoID);
+    createIncomingMedia(sessionID, localInfo->media.at(i),
+                        peerInfo->connection_address,
+                        peerInfo->media.at(i), videoID);
 
     if (localInfo->media.at(i).type == "video" )
     {
@@ -174,8 +178,8 @@ void MediaManager::addParticipant(uint32_t sessionID,
 
 
 void MediaManager::createOutgoingMedia(uint32_t sessionID,
-                                       QString globalAddress,
                                        const MediaInfo& localMedia,
+                                       QString peerGlobalAddress,
                                        const MediaInfo& remoteMedia)
 {
   bool send = true;
@@ -194,25 +198,25 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
 
     if(remoteMedia.proto == "RTP/AVP")
     {
-      bool globalAddressPresent = globalAddress != "" && !globalAddress.isNull();
+      bool globalAddressPresent = !peerGlobalAddress.isNull() && peerGlobalAddress != "";
       bool specificAddressPresent = remoteMedia.connection_address != ""
            && !remoteMedia.connection_address.isNull();
 
-      QHostAddress address;
+      QHostAddress remoteAddress;
       if (specificAddressPresent)
       {
-        address.setAddress(remoteMedia.connection_address);
+        remoteAddress.setAddress(remoteMedia.connection_address);
 
         printDebug(DEBUG_NORMAL, this, "Using media specific address for outgoing media.",
                   {"Type", "Address", "Port"},
-                  {remoteMedia.type, address.toString(), QString::number(remoteMedia.receivePort)});
+                  {remoteMedia.type, remoteAddress.toString(), QString::number(remoteMedia.receivePort)});
       }
       else if (globalAddressPresent)
       {
-        address.setAddress(globalAddress);
+        remoteAddress.setAddress(peerGlobalAddress);
         printDebug(DEBUG_NORMAL, this, "Using global address for outgoing media.",
                   {"Type", "Address", "Port"},
-                  {remoteMedia.type, address.toString(), QString::number(remoteMedia.receivePort)});
+                  {remoteMedia.type, remoteAddress.toString(), QString::number(remoteMedia.receivePort)});
       }
       else
       {
@@ -222,7 +226,7 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
         return;
       }
 
-      std::shared_ptr<Filter> framedSource = streamer_->addSendStream(sessionID, address,
+      std::shared_ptr<Filter> framedSource = streamer_->addSendStream(sessionID, remoteAddress,
                                                                       localMedia.receivePort, remoteMedia.receivePort,
                                                                       codec, remoteMedia.rtpNums.at(0));
 
@@ -257,8 +261,9 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
 }
 
 
-void MediaManager::createIncomingMedia(uint32_t sessionID, QString globalAddress,
+void MediaManager::createIncomingMedia(uint32_t sessionID,
                                        const MediaInfo &localMedia,
+                                       QString peerGlobalAddress,
                                        const MediaInfo &remoteMedia, uint32_t videoID)
 {
   bool send = true;
@@ -274,25 +279,25 @@ void MediaManager::createIncomingMedia(uint32_t sessionID, QString globalAddress
 
     if(localMedia.proto == "RTP/AVP")
     {
-      bool globalAddressPresent = globalAddress != "" && !globalAddress.isNull();
+      bool globalAddressPresent = peerGlobalAddress != "" && !peerGlobalAddress.isNull();
       bool specificAddressPresent = remoteMedia.connection_address != ""
            && !remoteMedia.connection_address.isNull();
 
-      QHostAddress address;
+      QHostAddress remoteAddress;
       if (specificAddressPresent)
       {
-        address.setAddress(remoteMedia.connection_address);
+        remoteAddress.setAddress(remoteMedia.connection_address);
         printDebug(DEBUG_NORMAL, this, "Using media specific address for incoming.",
                   {"Type", "Address", "Port"},
-                  {localMedia.type, address.toString(), QString::number(localMedia.receivePort)});
+                  {localMedia.type, remoteAddress.toString(), QString::number(localMedia.receivePort)});
 
       }
       else if (globalAddressPresent)
       {
-        address.setAddress(globalAddress);
+        remoteAddress.setAddress(peerGlobalAddress);
         printDebug(DEBUG_NORMAL, this, "Using global address for incoming.",
                    {"Type", "Address", "Port"},
-                   {localMedia.type, address.toString(), QString::number(localMedia.receivePort)});
+                   {localMedia.type, remoteAddress.toString(), QString::number(localMedia.receivePort)});
       }
       else
       {
@@ -302,7 +307,8 @@ void MediaManager::createIncomingMedia(uint32_t sessionID, QString globalAddress
         return;
       }
 
-      std::shared_ptr<Filter> rtpSink = streamer_->addReceiveStream(sessionID, address, localMedia.receivePort,
+      std::shared_ptr<Filter> rtpSink = streamer_->addReceiveStream(sessionID, remoteAddress,
+                                                                    localMedia.receivePort,
                                                                     remoteMedia.receivePort,
                                                                     codec, localMedia.rtpNums.at(0));
       Q_ASSERT(rtpSink != nullptr);
