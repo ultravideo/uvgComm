@@ -77,7 +77,7 @@ void ICE::addCandidates(std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> 
 {
   bool includeRelayAddress = relayAddresses != nullptr && addresses->size() == relayAddresses->size();
 
-  if (!includeRelayAddress && type != HOST)
+  if (!includeRelayAddress && type != HOST && !addresses->empty())
   {
     printProgramError(this, "Bindings not given for non host cadidate!");
     return;
