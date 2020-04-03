@@ -87,7 +87,7 @@ private:
   };
 
   void createConnection(Connection& connection,
-                        struct in_addr ip, uint16_t portNum,
+                        struct in_addr localIP, in_addr remoteIP, uint16_t portNum,
                         bool reservePorts);
 
   void destroyConnection(Connection& connection);
@@ -112,7 +112,6 @@ private:
   QMutex destroyed_; // locks for duration of destruction
 
   uint8_t ttl_;
-  struct in_addr sessionAddress_;
 
   char stopRTP_; // char for stopping live555 taskscheduler
   UsageEnvironment* env_;

@@ -22,7 +22,6 @@ Live555RTP::Live555RTP():
   iniated_(),
   destroyed_(),
   ttl_(255),
-  sessionAddress_(),
   stopRTP_(0),
   env_(nullptr),
   scheduler_(nullptr),
@@ -33,12 +32,6 @@ Live555RTP::Live555RTP():
   QString ip_str = "0.0.0.0";
   QHostAddress address;
   address.setAddress(ip_str);
-#ifdef _WIN32
-  sessionAddress_.S_un.S_addr = qToBigEndian(address.toIPv4Address());
-#else
-  sessionAddress_.s_addr = qToBigEndian(address.toIPv4Address());
-#endif
-
   gethostname((char*)CNAME_, maxCNAMElen_);
   CNAME_[maxCNAMElen_] = '\0'; // just in case
 
@@ -388,7 +381,7 @@ Live555RTP::Sender* Live555RTP::addSender(in_addr ip, uint16_t port, DataType ty
 {
   qDebug() << "Iniating send RTP/RTCP stream to port:" << port << "With type:" << type;
   Sender* sender = new Sender;
-  createConnection(sender->connection, ip, port, false);
+  createConnection(sender->connection, ip, ip, port, false);
 
   // todo: negotiate payload number
   QString mediaName = QString::number(port);
@@ -477,7 +470,7 @@ Live555RTP::Receiver* Live555RTP::addReceiver(in_addr localAddress, uint16_t por
 {
   qDebug() << "Iniating receive RTP/RTCP stream from port:" << port << "with type:" << type;
   Receiver *receiver = new Receiver;
-  createConnection(receiver->connection, localAddress, port, true);
+  createConnection(receiver->connection, localAddress, localAddress, port, true);
 
   unsigned int estimatedSessionBandwidth = 10000; // in kbps; for RTCP b/w share
   // todo: negotiate payload number
@@ -539,7 +532,7 @@ Live555RTP::Receiver* Live555RTP::addReceiver(in_addr localAddress, uint16_t por
   return receiver;
 }
 
-void Live555RTP::createConnection(Connection& connection, struct in_addr ip,
+void Live555RTP::createConnection(Connection& connection, struct in_addr localIP, struct in_addr remoteIP,
                                    uint16_t portNum, bool reservePorts)
 {
   // TODO: Sending should not reserve ports.
@@ -556,13 +549,13 @@ void Live555RTP::createConnection(Connection& connection, struct in_addr ip,
     connection.rtcpPort = new Port(portNum + 1);
   }
 
-  connection.rtpGroupsock = new Groupsock(*env_, sessionAddress_, ip, *connection.rtpPort);
-  connection.rtcpGroupsock = new Groupsock(*env_, ip, *(connection.rtcpPort), ttl_);
+  connection.rtpGroupsock = new Groupsock(*env_, localIP, remoteIP, *connection.rtpPort);
+  connection.rtcpGroupsock = new Groupsock(*env_, remoteIP, *(connection.rtcpPort), ttl_);
 
   if(!reservePorts)
   {
-    connection.rtpGroupsock->changeDestinationParameters(ip, portNum, ttl_);
-    connection.rtcpGroupsock->changeDestinationParameters(ip, portNum + 1, ttl_);
+    connection.rtpGroupsock->changeDestinationParameters(remoteIP, portNum, ttl_);
+    connection.rtcpGroupsock->changeDestinationParameters(remoteIP, portNum + 1, ttl_);
   }
 }
 
