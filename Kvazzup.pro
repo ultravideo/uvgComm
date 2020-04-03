@@ -79,6 +79,8 @@ SOURCES +=\
     src/media/delivery/kvzrtpreceiver.cpp \
     src/media/delivery/kvzrtpsender.cpp \
     src/media/mediamanager.cpp \
+    src/media/processing/aecinputfilter.cpp \
+    src/media/processing/aecplaybackfilter.cpp \
     src/media/processing/audiocapturefilter.cpp \
     src/media/processing/audiooutput.cpp \
     src/media/processing/audiooutputdevice.cpp \
@@ -94,7 +96,6 @@ SOURCES +=\
     src/media/processing/rgb32toyuv.cpp \
     src/media/processing/scalefilter.cpp \
     src/media/processing/screensharefilter.cpp \
-    src/media/processing/speexaecfilter.cpp \
     src/common.cpp \
     src/media/processing/yuvtorgb32.cpp \
     src/ui/gui/callwindow.cpp \
@@ -154,6 +155,8 @@ HEADERS  += \
     src/media/delivery/kvzrtpreceiver.h \
     src/media/delivery/kvzrtpsender.h \
     src/media/mediamanager.h \
+    src/media/processing/aecinputfilter.h \
+    src/media/processing/aecplaybackfilter.h \
     src/media/processing/audiocapturefilter.h \
     src/media/processing/audiooutput.h \
     src/media/processing/audiooutputdevice.h \
@@ -171,7 +174,6 @@ HEADERS  += \
     src/media/processing/rgb32toyuv.h \
     src/media/processing/scalefilter.h \
     src/media/processing/screensharefilter.h \
-    src/media/processing/speexaecfilter.h \
     src/media/processing/yuvtorgb32.h \
     src/serverstatusview.h \
     src/statisticsinterface.h \

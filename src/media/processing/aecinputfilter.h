@@ -6,13 +6,16 @@
 
 #include <QAudioFormat>
 
-// TODO: this does not work well at the moment, should be fixed at some point.
-
-class SpeexAECFilter : public Filter
+class AECInputFilter : public Filter
 {
 public:
-  SpeexAECFilter(QString id, StatisticsInterface* stats, QAudioFormat format);
-  ~SpeexAECFilter();
+  AECInputFilter(QString id, StatisticsInterface* stats, QAudioFormat format);
+  ~AECInputFilter();
+
+  SpeexEchoState* getEchoState()
+  {
+    return echo_state_;
+  }
 
 protected:
 
@@ -24,11 +27,8 @@ private:
 
   QAudioFormat format_;
 
-  uint32_t numberOfSamples_;
+  uint32_t samplesPerFrame_;
 
   int16_t* pcmOutput_;
   int32_t max_data_bytes_;
-
-  uint16_t in_;
-  uint16_t out_;
 };

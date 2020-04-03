@@ -15,7 +15,8 @@
 #include "media/processing/audiooutput.h"
 #include "media/processing/opusencoderfilter.h"
 #include "media/processing/opusdecoderfilter.h"
-#include "media/processing/speexaecfilter.h"
+#include "media/processing/aecinputfilter.h"
+#include "media/processing/aecplaybackfilter.h"
 
 #include "ui/gui/videointerface.h"
 
@@ -207,9 +208,17 @@ void FilterGraph::initAudioSend(bool opus)
 {
   // Do this before adding participants, otherwise AEC filter wont get attached
   addToGraph(std::shared_ptr<Filter>(new AudioCaptureFilter("", format_, stats_)), audioProcessing_);
+
+  if (AEC_ENABLED)
+  {
+    aec_ = std::shared_ptr<AECInputFilter>(new AECInputFilter("", stats_, format_));
+    addToGraph(aec_, audioProcessing_, audioProcessing_.size() - 1);
+  }
+
   if (opus)
   {
-    addToGraph(std::shared_ptr<Filter>(new OpusEncoderFilter("", format_, stats_)), audioProcessing_, 0);
+    addToGraph(std::shared_ptr<Filter>(new OpusEncoderFilter("", format_, stats_)), audioProcessing_,
+               audioProcessing_.size() - 1);
   }
 }
 
@@ -413,16 +422,14 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
   if (audioSink->outputType() == OPUSAUDIO)
   {
     addToGraph(std::shared_ptr<Filter>(new OpusDecoderFilter(QString::number(sessionID), format_, stats_)),
-               *graph, 0);
+               *graph, graph->size() - 1);
   }
 
   if(audioProcessing_.size() > 0 && AEC_ENABLED)
   {
-    addToGraph(std::shared_ptr<Filter>(new SpeexAECFilter(QString::number(sessionID), stats_, format_)),
-               *graph, 1);
-
-    //connect to capture filter to remove echo
-    audioProcessing_.at(0)->addOutConnection(graph->back());
+    addToGraph(std::shared_ptr<Filter>(
+                 new AECPlaybackFilter(QString::number(sessionID), stats_, format_, aec_->getEchoState())),
+               *graph, graph->size() - 1);
   }
   else
   {

@@ -11,6 +11,7 @@ class StatisticsInterface;
 class AudioOutput;
 class Filter;
 class ScreenShareFilter;
+class AECInputFilter;
 
 typedef std::vector<std::shared_ptr<Filter>> GraphSegment;
 
@@ -106,4 +107,6 @@ private:
   QString videoFormat_;
 
   bool quitting_;
+
+  std::shared_ptr<AECInputFilter> aec_;
 };
