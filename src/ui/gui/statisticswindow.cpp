@@ -188,8 +188,11 @@ QString StatisticsWindow::combineList(QStringList &list)
 
 uint32_t StatisticsWindow::addFilter(QString type, QString identifier, uint64_t TID)
 {
+  QString threadID = QString::number(TID);
+  threadID = threadID.rightJustified(5, '0');
+
   int rowIndex = addTableRow(ui_->filterTable, filterMutex_,
-                                  {type, identifier, QString::number(TID), "-/-", "0"});
+                                  {type, identifier, threadID, "-/-", "0"});
 
   filterMutex_.lock();
   uint32_t id = buffers_.size() + 1;
@@ -657,6 +660,9 @@ void StatisticsWindow::fillTableHeaders(QTableWidget* table, QMutex& mutex,
 
   table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
   table->horizontalHeader()->setMinimumHeight(40);
+
+  table->horizontalHeader()->setSectionsClickable(true);
+  table->setSortingEnabled(true);
 
   mutex.unlock();
 }
