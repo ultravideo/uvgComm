@@ -24,7 +24,7 @@
 
 class VideoviewFactory;
 class StatisticsInterface;
-class IRTPStreamer;
+class Delivery;
 
 class FilterGraph;
 class MediaSession;
@@ -93,15 +93,12 @@ private:
 
   void transportAttributes(const QList<SDPAttributeType> &attributes, bool& send, bool& recv);
 
-  void setRTPLibrary();
-  void stopRTPLibrary();
-
   void sdpToStats(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> sdp, bool incoming);
 
   StatisticsInterface* stats_;
 
   std::unique_ptr<FilterGraph> fg_;
-  std::unique_ptr<IRTPStreamer> streamer_;
+  std::unique_ptr<Delivery> streamer_;
 
   std::shared_ptr<VideoviewFactory> viewfactory_;
 

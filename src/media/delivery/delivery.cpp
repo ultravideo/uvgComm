@@ -1,4 +1,3 @@
-#include "media/delivery/irtpstreamer.h"
 #include "delivery.h"
 #include "kvzrtpsender.h"
 #include "kvzrtpreceiver.h"
@@ -29,15 +28,6 @@ void Delivery::uninit()
 {
   removeAllPeers();
 }
-
-
-void Delivery::run()
-{}
-
-
-void Delivery::stop()
-{}
-
 
 bool Delivery::addPeer(uint32_t sessionID, QString peerAddress)
 {

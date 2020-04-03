@@ -10,8 +10,7 @@
 #include <QtEndian>
 #include <QSettings>
 
-#include "media/delivery/kvzrtp/delivery.h"
-#include "media/delivery/live555/rtpstreamer.h"
+#include "media/delivery/delivery.h"
 
 MediaManager::MediaManager():
   stats_(nullptr),
@@ -36,7 +35,8 @@ void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory, Statistic
   stats_ = stats;
   fg_->init(viewfactory_->getVideo(0, 0), stats); // 0 is the selfview index. The view should be created by GUI
 
-  setRTPLibrary();
+  streamer_ = std::unique_ptr<Delivery> (new Delivery());
+  streamer_->init(stats_);
 }
 
 
@@ -50,7 +50,8 @@ void MediaManager::uninit()
   stats_ = nullptr;
   if (streamer_ != nullptr)
   {
-    stopRTPLibrary();
+    streamer_->uninit();
+    streamer_ = nullptr;
   }
 }
 
@@ -60,45 +61,6 @@ void MediaManager::updateSettings()
   fg_->updateSettings();
   fg_->camera(camera_); // kind of a hack to make sure the camera/mic state is preserved
   fg_->mic(mic_);
-  setRTPLibrary();
-}
-
-
-void MediaManager::stopRTPLibrary()
-{
-  streamer_->stop();
-
-  while (streamer_->isRunning())
-  {
-    qSleep(3);
-  }
-
-  streamer_->uninit();
-  streamer_ = nullptr;
-}
-
-
-void MediaManager::setRTPLibrary()
-{
-  if (streamer_)
-  {
-    return;
-  }
-
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
-  int kvzRTP = settings.value("sip/kvzrtp").toInt();
-
-  if (kvzRTP == 1)
-  {
-    streamer_ = std::unique_ptr<IRTPStreamer> (new Delivery());
-  }
-  else
-  {
-    streamer_ = std::unique_ptr<IRTPStreamer> (new Live555RTP());
-  }
-
-  streamer_->init(stats_);
-  streamer_->start();
 }
 
 

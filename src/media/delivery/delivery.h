@@ -1,20 +1,20 @@
 #pragma once
 #include "media/processing/filter.h"
-#include "media/delivery/irtpstreamer.h"
 
-#include <QThread>
 #include <QMutex>
 #include <QHostAddress>
-#include <vector>
+#include <QObject>
 
 #include <kvzrtp/lib.hh>
+
+#include <vector>
 
 class StatisticsInterface;
 class KvzRTPSender;
 class KvzRTPReceiver;
 class Filter;
 
-class Delivery : public IRTPStreamer
+class Delivery : public QObject
 {
   Q_OBJECT
 
@@ -24,8 +24,6 @@ public:
 
    void init(StatisticsInterface *stats);
    void uninit();
-   void run();
-   void stop();
 
   // init a session with sessionID to use with add/remove functions
   // returns whether operation was successful

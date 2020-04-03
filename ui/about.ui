@@ -143,9 +143,9 @@
        </widget>
       </item>
       <item>
-       <widget class="QLabel" name="Live555">
+       <widget class="QLabel" name="kvzRTP">
         <property name="text">
-         <string>Live555</string>
+         <string>kvzRTP</string>
         </property>
        </widget>
       </item>
@@ -159,7 +159,7 @@
       <item>
        <widget class="QLabel" name="Speex">
         <property name="text">
-         <string>Speex (for AEC)</string>
+         <string>Speex DSP</string>
         </property>
        </widget>
       </item>

@@ -75,12 +75,9 @@ SOURCES +=\
     src/initiation/transport/tcpconnection.cpp \
     src/kvazzupcontroller.cpp \
     src/main.cpp \
-    src/media/delivery/kvzrtp/delivery.cpp \
-    src/media/delivery/kvzrtp/kvzrtpreceiver.cpp \
-    src/media/delivery/kvzrtp/kvzrtpsender.cpp \
-    src/media/delivery/live555/framedsourcefilter.cpp \
-    src/media/delivery/live555/rtpsinkfilter.cpp \
-    src/media/delivery/live555/rtpstreamer.cpp \
+    src/media/delivery/delivery.cpp \
+    src/media/delivery/kvzrtpreceiver.cpp \
+    src/media/delivery/kvzrtpsender.cpp \
     src/media/mediamanager.cpp \
     src/media/processing/audiocapturefilter.cpp \
     src/media/processing/audiooutput.cpp \
@@ -153,13 +150,9 @@ HEADERS  += \
     src/initiation/transport/siptransport.h \
     src/initiation/transport/tcpconnection.h \
     src/kvazzupcontroller.h \
-    src/media/delivery/kvzrtp/delivery.h \
-    src/media/delivery/kvzrtp/kvzrtpreceiver.h \
-    src/media/delivery/kvzrtp/kvzrtpsender.h \
-    src/media/delivery/live555/framedsourcefilter.h \
-    src/media/delivery/live555/rtpsinkfilter.h \
-    src/media/delivery/live555/rtpstreamer.h \
-    src/media/delivery/irtpstreamer.h \
+    src/media/delivery/delivery.h \
+    src/media/delivery/kvzrtpreceiver.h \
+    src/media/delivery/kvzrtpsender.h \
     src/media/mediamanager.h \
     src/media/processing/audiocapturefilter.h \
     src/media/processing/audiooutput.h \
@@ -242,19 +235,10 @@ INCLUDEPATH += $$PWD/../include/opus
 INCLUDEPATH += $$PWD/../include/
 
 win32-msvc{
-# on msvc we use live666 because it compiles
-# available at https://github.com/MobotixAG/live666
-INCLUDEPATH += $$PWD/../include/live666/liveMedia/include
-INCLUDEPATH += $$PWD/../include/live666/groupsock/include
-INCLUDEPATH += $$PWD/../include/live666/UsageEnvironment/include
-INCLUDEPATH += $$PWD/../include/live666/BasicUsageEnvironment/include
-
 INCLUDEPATH += $$PWD/../include/kvzrtp
 INCLUDEPATH += $$PWD/../include/kvzrtp/formats
 
-
 LIBS += -L$$PWD/../msvc_libs
-LIBS += -llive666
 LIBS += -lLibOpenHevcWrapper
 LIBS += -llibspeexdsp
 LIBS += -lopus
@@ -264,18 +248,12 @@ message("Using Visual Studio libraries in ../msvc_libs")
 }
 
 win32-g++{
-INCLUDEPATH += $$PWD/../include/live/liveMedia/include
-INCLUDEPATH += $$PWD/../include/live/groupsock/include
-INCLUDEPATH += $$PWD/../include/live/UsageEnvironment/include
-INCLUDEPATH += $$PWD/../include/live/BasicUsageEnvironment/include
 INCLUDEPATH += $$PWD/../include/kvzrtp
 
-#LIBS += -L$$PWD/../lib32
 LIBS += -L$$PWD/../lib64
 LIBS += -llibkvazaar.dll
 LIBS += -llibopus.dll
 LIBS += -llibLibOpenHevcWrapper.dll
-LIBS += -llivemedia.dll
 LIBS += -llibspeexdsp.dll
 LIBS += -lkvzrtp
 LIBS += -fopenmp # TODO: Does msvc also need this?
@@ -285,19 +263,9 @@ message("Using MinGW libraries in ../libs")
 unix {
 QMAKE_CXXFLAGS += -msse4.1 -mavx2 -fopenmp
 
-INCLUDEPATH += /usr/local/include/BasicUsageEnvironment/
-INCLUDEPATH += /usr/local/include/UsageEnvironment/
-INCLUDEPATH += /usr/local/include/groupsock/
-INCLUDEPATH += /usr/local/include/liveMedia/
 INCLUDEPATH += /usr/include/opus/
 INCLUDEPATH += /usr/local/include/kvzrtp/
 INCLUDEPATH += /usr/local/include/kvzrtp/formats
-
-# live555
-LIBS += -lliveMedia
-LIBS += -lgroupsock
-LIBS += -lBasicUsageEnvironment
-LIBS += -lUsageEnvironment
 
 LIBS += -lopus
 LIBS += -lkvazaar

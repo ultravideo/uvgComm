@@ -116,8 +116,6 @@ void Settings::saveSettings()
 
   saveCheckBox("sip/AutoConnect", basicUI_->autoConnect, settings_);
 
-  saveCheckBox("sip/kvzrtp", basicUI_->kvzRTP, settings_);
-
   saveDevice(basicUI_->videoDevice, "video/DeviceID", "video/Device", true);
   saveDevice(basicUI_->audioDevice, "audio/DeviceID", "audio/Device", false);
   saveDevice(basicUI_->screenDevice, "user/ScreenID", "user/Screen", false);
@@ -145,8 +143,6 @@ void Settings::getSettings(bool changedDevice)
 
     // updates the sip text label
     changedSIPText("");
-
-    restoreCheckBox("sip/kvzrtp", basicUI_->kvzRTP, settings_);
 
     // set index for camera
     int videoIndex = getDeviceID(basicUI_->videoDevice, "video/DeviceID", "video/Device");

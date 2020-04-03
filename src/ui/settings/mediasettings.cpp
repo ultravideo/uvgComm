@@ -144,7 +144,6 @@ void MediaSettings::saveCustomSettings()
 
   saveCheckBox("video/opengl",                 customUI_->opengl, settings_);
   saveCheckBox("video/flipViews",              customUI_->flip, settings_);
-  saveCheckBox("video/liveCopying",            customUI_->live555Copy, settings_);
 
   //settings_.setValue("audio/Channels",         QString::number(customUI_->channels->value()));
 
@@ -237,7 +236,6 @@ void MediaSettings::restoreCustomSettings()
 
     restoreCheckBox("video/opengl", customUI_->opengl, settings_);
     restoreCheckBox("video/flipViews", customUI_->flip, settings_);
-    restoreCheckBox("video/liveCopying", customUI_->live555Copy, settings_);
 
     listSettingsToGUI("kvazzup.ini", "parameters", QStringList() << "Name" << "Value",
                       customUI_->custom_parameters);
