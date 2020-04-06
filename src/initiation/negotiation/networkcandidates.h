@@ -71,6 +71,7 @@ private:
 
   std::map<QString, std::shared_ptr<STUNRequest>> requests_;
 
+  QMutex stunMutex_;
   std::deque<std::pair<QHostAddress, uint16_t>> stunAddresses_;
   std::deque<std::pair<QHostAddress, uint16_t>> stunBindings_;
 

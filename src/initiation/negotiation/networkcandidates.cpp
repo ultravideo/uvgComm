@@ -13,6 +13,7 @@ const uint16_t STUNADDRESSPOOL = 8;
 
 NetworkCandidates::NetworkCandidates():
   requests_(),
+  stunMutex_(),
   stunAddresses_(),
   stunBindings_(),
   portLock_(),
@@ -69,6 +70,7 @@ void NetworkCandidates::setPortRange(uint16_t minport,
 
 void NetworkCandidates::refreshSTUN()
 {
+  stunMutex_.lock();
   if (!stunServerAddress_.isNull() &&
       stunAddresses_.size() + requests_.size() < STUNADDRESSPOOL)
   {
@@ -76,6 +78,7 @@ void NetworkCandidates::refreshSTUN()
     // connected to the internet. Most of them will fail.
     moreSTUNCandidates();
   }
+  stunMutex_.unlock();
 
   // The socket unbinding cannot happen in processreply, because that would destroy the socket
   // leading to heap corruption. Instead we do the unbinding here.
@@ -115,8 +118,12 @@ void NetworkCandidates::createSTUNCandidate(QHostAddress local, quint16 localPor
     printNormal(this, "We don't seem to be behind NAT");
     behindNAT_ = false;
     refreshSTUNTimer_.setInterval(1000 * 60 * 60);
+
+    stunMutex_.lock();
     stunAddresses_.clear();
     stunBindings_.clear();
+    stunMutex_.unlock();
+
     makePortAvailable(local.toString(), localPort);
   }
   else
@@ -127,8 +134,10 @@ void NetworkCandidates::createSTUNCandidate(QHostAddress local, quint16 localPor
               {local.toString() + ":" + QString::number(localPort) + " << " +
                stun.toString() + ":" + QString::number(stunPort)});
 
+    stunMutex_.lock();
     stunAddresses_.push_back({stun, stunPort});
     stunBindings_.push_back({local, localPort});
+    stunMutex_.unlock();
   }
 }
 
@@ -142,7 +151,7 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::loc
 
   for (auto& interface : availablePorts_)
   {
-    if (isPrivateNetwork(interface.first))
+    if (isPrivateNetwork(interface.first) && availablePorts_[interface.first].size() >= streams)
     {
       for (unsigned int i = 0; i < streams; ++i)
       {
@@ -165,7 +174,7 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::glo
 
   for (auto& interface : availablePorts_)
   {
-    if (!isPrivateNetwork(interface.first))
+    if (!isPrivateNetwork(interface.first)&& availablePorts_[interface.first].size() >= streams)
     {
       for (unsigned int i = 0; i < streams; ++i)
       {
@@ -184,7 +193,8 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::stu
   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> addresses
       =   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> (
         new QList<std::pair<QHostAddress, uint16_t>>());
-  if (!stunAddresses_.empty())
+  stunMutex_.lock();
+  if (stunAddresses_.size() >= streams)
   {
     for (unsigned int i = 0; i < streams; ++i)
     {
@@ -198,6 +208,7 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::stu
   {
     printWarning(this, "No STUN candidates found!");
   }
+  stunMutex_.unlock();
 
   return addresses;
 }
@@ -210,7 +221,8 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::stu
       =   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> (
         new QList<std::pair<QHostAddress, uint16_t>>());
 
-  if (!stunBindings_.empty())
+  stunMutex_.lock();
+  if (stunBindings_.size() >= streams)
   {
     for (unsigned int i = 0; i < streams; ++i)
     {
@@ -227,6 +239,7 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::stu
   {
     printWarning(this, "No STUN bindings added!");
   }
+  stunMutex_.unlock();
 
   return addresses;
 }
@@ -358,14 +371,11 @@ void NetworkCandidates::moreSTUNCandidates()
 {
   if (!stunServerAddress_.isNull())
   {
-    if(stunAddresses_.size() < STUNADDRESSPOOL)
+    for (auto& interface : availablePorts_)
     {
-      for (auto& interface : availablePorts_)
-      {
-        // use 0 as STUN sessionID
-        sendSTUNserverRequest(QHostAddress(interface.first), nextAvailablePort(interface.first, 0),
-                              stunServerAddress_,                 GOOGLE_STUN_PORT);
-      }
+      // use 0 as STUN sessionID
+      sendSTUNserverRequest(QHostAddress(interface.first), nextAvailablePort(interface.first, 0),
+                            stunServerAddress_,                 GOOGLE_STUN_PORT);
     }
   }
   else
