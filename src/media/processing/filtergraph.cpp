@@ -15,8 +15,7 @@
 #include "media/processing/audiooutput.h"
 #include "media/processing/opusencoderfilter.h"
 #include "media/processing/opusdecoderfilter.h"
-#include "media/processing/aecinputfilter.h"
-#include "media/processing/aecplaybackfilter.h"
+#include "media/processing/aecfilter.h"
 
 #include "ui/gui/videointerface.h"
 
@@ -211,7 +210,7 @@ void FilterGraph::initAudioSend(bool opus)
 
   if (AEC_ENABLED)
   {
-    aec_ = std::shared_ptr<AECInputFilter>(new AECInputFilter("", stats_, format_));
+    aec_ = std::shared_ptr<AECFilter>(new AECFilter("", stats_, format_, AEC_INPUT));
     addToGraph(aec_, audioProcessing_, audioProcessing_.size() - 1);
   }
 
@@ -428,7 +427,8 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
   if(audioProcessing_.size() > 0 && AEC_ENABLED)
   {
     addToGraph(std::shared_ptr<Filter>(
-                 new AECPlaybackFilter(QString::number(sessionID), stats_, format_, aec_->getEchoState())),
+                 new AECFilter(QString::number(sessionID), stats_, format_,
+                               AEC_ECHO, aec_->getEchoState())),
                *graph, graph->size() - 1);
   }
   else

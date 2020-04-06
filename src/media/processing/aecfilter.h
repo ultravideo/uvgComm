@@ -6,11 +6,14 @@
 
 #include <QAudioFormat>
 
-class AECInputFilter : public Filter
+enum AECType {AEC_INPUT, AEC_ECHO};
+
+class AECFilter : public Filter
 {
 public:
-  AECInputFilter(QString id, StatisticsInterface* stats, QAudioFormat format);
-  ~AECInputFilter();
+  AECFilter(QString id, StatisticsInterface* stats, QAudioFormat format,
+            AECType type, SpeexEchoState *echo_state = nullptr);
+  ~AECFilter();
 
   SpeexEchoState* getEchoState()
   {
@@ -31,4 +34,6 @@ private:
 
   int16_t* pcmOutput_;
   int32_t max_data_bytes_;
+
+  AECType type_;
 };

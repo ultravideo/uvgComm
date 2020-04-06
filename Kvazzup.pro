@@ -79,8 +79,7 @@ SOURCES +=\
     src/media/delivery/kvzrtpreceiver.cpp \
     src/media/delivery/kvzrtpsender.cpp \
     src/media/mediamanager.cpp \
-    src/media/processing/aecinputfilter.cpp \
-    src/media/processing/aecplaybackfilter.cpp \
+    src/media/processing/aecfilter.cpp \
     src/media/processing/audiocapturefilter.cpp \
     src/media/processing/audiooutput.cpp \
     src/media/processing/audiooutputdevice.cpp \
@@ -155,8 +154,7 @@ HEADERS  += \
     src/media/delivery/kvzrtpreceiver.h \
     src/media/delivery/kvzrtpsender.h \
     src/media/mediamanager.h \
-    src/media/processing/aecinputfilter.h \
-    src/media/processing/aecplaybackfilter.h \
+    src/media/processing/aecfilter.h \
     src/media/processing/audiocapturefilter.h \
     src/media/processing/audiooutput.h \
     src/media/processing/audiooutputdevice.h \
