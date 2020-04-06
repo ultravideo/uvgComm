@@ -428,7 +428,7 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
   {
     addToGraph(std::shared_ptr<Filter>(
                  new AECFilter(QString::number(sessionID), stats_, format_,
-                               AEC_ECHO, aec_->getEchoState())),
+                               AEC_ECHO, aec_->getAEC())),
                *graph, graph->size() - 1);
   }
   else
