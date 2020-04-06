@@ -81,7 +81,7 @@ std::unique_ptr<uchar[]> AECProcessor::processInputFrame(std::unique_ptr<uchar[]
 }
 
 
-void AECProcessor::processEchoFrame(std::unique_ptr<uchar[]> echo, uint32_t dataSize)
+void AECProcessor::processEchoFrame(std::unique_ptr<uchar[]> echo, uint32_t dataSize, uint32_t sessionID)
 {
   for(uint32_t i = 0; i < dataSize; i += format_.bytesPerFrame()*samplesPerFrame_)
   {

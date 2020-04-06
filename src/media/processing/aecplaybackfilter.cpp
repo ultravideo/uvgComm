@@ -4,8 +4,10 @@
 #include "common.h"
 
 AECPlaybackFilter::AECPlaybackFilter(QString id, StatisticsInterface* stats,
+                                     uint32_t sessionID,
                                      std::shared_ptr<AECProcessor> processor):
   Filter(id, "AEC filter", stats, RAWAUDIO, NONE),
+  sessionID_(sessionID),
   aec_(processor)
 {}
 
@@ -22,7 +24,7 @@ void AECPlaybackFilter::process()
 
   while(input)
   {
-    aec_->processEchoFrame(std::move(input->data), input->data_size);
+    aec_->processEchoFrame(std::move(input->data), input->data_size, sessionID_);
 
     // get next input
     input = getInput();

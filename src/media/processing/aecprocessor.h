@@ -19,7 +19,8 @@ public:
                                              uint32_t dataSize);
 
   void processEchoFrame(std::unique_ptr<uchar[]> echo,
-                        uint32_t dataSize);
+                        uint32_t dataSize,
+                        uint32_t sessionID);
 
 private:
 

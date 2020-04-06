@@ -9,7 +9,7 @@ class AECProcessor;
 class AECPlaybackFilter : public Filter
 {
 public:
-  AECPlaybackFilter(QString id, StatisticsInterface *stats,
+  AECPlaybackFilter(QString id, StatisticsInterface *stats, uint32_t sessionID,
                     std::shared_ptr<AECProcessor> processor);
 
 protected:
@@ -17,6 +17,8 @@ protected:
   void process();
 
 private:
+
+  uint32_t sessionID_;
 
   std::shared_ptr<AECProcessor> aec_;
 };
