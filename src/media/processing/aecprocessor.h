@@ -18,8 +18,8 @@ public:
   std::unique_ptr<uchar[]> processInputFrame(std::unique_ptr<uchar[]> input,
                                              uint32_t dataSize);
 
-  std::unique_ptr<uchar[]> processEchoFrame(std::unique_ptr<uchar[]> echo,
-                                            uint32_t dataSize);
+  void processEchoFrame(std::unique_ptr<uchar[]> echo,
+                        uint32_t dataSize);
 
 private:
 

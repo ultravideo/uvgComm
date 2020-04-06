@@ -11,7 +11,7 @@ class StatisticsInterface;
 class AudioOutput;
 class Filter;
 class ScreenShareFilter;
-class AECFilter;
+class AECInputFilter;
 
 typedef std::vector<std::shared_ptr<Filter>> GraphSegment;
 
@@ -108,5 +108,5 @@ private:
 
   bool quitting_;
 
-  std::shared_ptr<AECFilter> aec_;
+  std::shared_ptr<AECInputFilter> aec_;
 };

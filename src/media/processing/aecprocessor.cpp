@@ -24,7 +24,7 @@ void AECProcessor::init(QAudioFormat format)
     cleanup();
   }
 
-  // should be around 1/3 of
+  // should be around 1/3 of the room reverberation time
   uint16_t echoFilterLength = samplesPerFrame_*10;
   if(format_.channelCount() > 1)
   {
@@ -81,13 +81,10 @@ std::unique_ptr<uchar[]> AECProcessor::processInputFrame(std::unique_ptr<uchar[]
 }
 
 
-std::unique_ptr<uchar[]> AECProcessor::processEchoFrame(std::unique_ptr<uchar[]> echo, uint32_t dataSize)
+void AECProcessor::processEchoFrame(std::unique_ptr<uchar[]> echo, uint32_t dataSize)
 {
   for(uint32_t i = 0; i < dataSize; i += format_.bytesPerFrame()*samplesPerFrame_)
   {
     speex_echo_playback(echo_state_, (int16_t*)echo.get() + i/2);
   }
-
-  return echo;
 }
-
