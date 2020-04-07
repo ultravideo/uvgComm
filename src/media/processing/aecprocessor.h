@@ -9,8 +9,9 @@
 #include <deque>
 #include <memory>
 
-class AECProcessor
+class AECProcessor : public QObject
 {
+  Q_OBJECT
 public:
   AECProcessor(QAudioFormat format);
 
@@ -29,7 +30,6 @@ private:
 
   std::unique_ptr<uchar[]> processInput(SpeexEchoState *echo_state,
                                         std::unique_ptr<uchar[]> input,
-                                        uint32_t inputSize,
                                         std::unique_ptr<uchar[]> echo, uint32_t pos);
 
   struct EchoBuffer

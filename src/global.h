@@ -6,8 +6,7 @@
 
 const QString APPLICATIONNAME = "Kvazzup";
 
-// TODO fix AEC bugs and faulty operating.
-const bool AEC_ENABLED = false;
+const bool AEC_ENABLED = true;
 
 // how often registrations are sent in seconds
 const int REGISTER_INTERVAL = 600;
