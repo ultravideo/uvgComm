@@ -29,7 +29,7 @@ void Delivery::uninit()
   removeAllPeers();
 }
 
-bool Delivery::addPeer(uint32_t sessionID, QString peerAddress)
+bool Delivery::addPeer(uint32_t sessionID, QString peerAddress, QString localAddress)
 {
   Q_ASSERT(sessionID != 0);
 
@@ -44,7 +44,7 @@ bool Delivery::addPeer(uint32_t sessionID, QString peerAddress)
 
     std::shared_ptr<Peer> peer = std::shared_ptr<Peer> (new Peer{nullptr,{}});
     peers_[sessionID] = peer;
-    peers_[sessionID]->session = rtp_ctx_->create_session(peerAddress.toStdString());
+    peers_[sessionID]->session = rtp_ctx_->create_session(peerAddress.toStdString(), localAddress.toStdString());
 
     iniated_.unlock();
     destroyed_.unlock();

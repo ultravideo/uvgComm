@@ -90,7 +90,9 @@ void MediaManager::addParticipant(uint32_t sessionID,
   {
 
     // TODO: Should check if wer should use global or media address.
-    if(!streamer_->addPeer(sessionID, peerInfo->media.at(0).connection_address))
+    if(!streamer_->addPeer(sessionID,
+                           peerInfo->media.at(0).connection_address,
+                           localInfo->media.at(0).connection_address))
     {
       printDebug(DEBUG_PROGRAM_ERROR, this,
                  "Error creating RTP peer. Simultaneous destruction?");
