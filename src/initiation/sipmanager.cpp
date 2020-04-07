@@ -84,6 +84,12 @@ void SIPManager::uninit()
 }
 
 
+void SIPManager::uninitSession(uint32_t sessionID)
+{
+  negotiation_.endSession(sessionID);
+}
+
+
 void SIPManager::updateSettings()
 {
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
@@ -239,6 +245,7 @@ void SIPManager::transportRequest(uint32_t sessionID, SIPRequest &request)
 
         if (!SDPAnswerToContent(content, sessionID))
         {
+          printError(this, "Failed to get SDP answer to request");
           return;
         }
       }
@@ -287,6 +294,7 @@ void SIPManager::transportResponse(uint32_t sessionID, SIPResponse &response)
         response.message->content.type = APPLICATION_SDP;
         if (!SDPAnswerToContent(content, sessionID))
         {
+          printError(this, "Failed to get SDP answer to response");
           return;
         }
       }
@@ -563,6 +571,10 @@ bool SIPManager::SDPAnswerToContent(QVariant &content, uint32_t sessionID)
 {
   SDPMessageInfo sdp;
   std::shared_ptr<SDPMessageInfo> pointer = negotiation_.getLocalSDP(sessionID);
+  if (pointer == nullptr)
+  {
+    return false;
+  }
   sdp = *pointer;
   content.setValue(sdp);
   return true;

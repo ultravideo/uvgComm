@@ -40,6 +40,10 @@ public:
   void endCall(uint32_t sessionID);
   void endAllCalls();
 
+  // when the other person ends the call, one component is not uninited naturally
+  // so this has to be called.
+  void uninitSession(uint32_t sessionID);
+
   // Get the negotiated session media session descriptions. Use after call
   // has been negotiated.
   void getSDPs(uint32_t sessionID,
