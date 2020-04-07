@@ -23,5 +23,5 @@ private:
 
   QAudioFormat format_;
 
-  uint32_t numberOfSamples_;
+  uint32_t samplesPerFrame_;
 };

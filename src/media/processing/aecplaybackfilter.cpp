@@ -1,30 +1,32 @@
 #include "aecplaybackfilter.h"
 
-// this is how many frames the audio capture seems to send
-const uint16_t FRAMESPERSECOND = 25;
+#include "aecprocessor.h"
+#include "common.h"
 
-
-AECPlaybackFilter::AECPlaybackFilter(QString id, StatisticsInterface *stats,
-                                     QAudioFormat format, SpeexEchoState *echo_state):
-  Filter(id, "AEC Playback", stats, RAWAUDIO, RAWAUDIO),
-  echo_state_(echo_state),
-  format_(format),
-  samplesPerFrame_(format.sampleRate()/FRAMESPERSECOND)
+AECPlaybackFilter::AECPlaybackFilter(QString id, StatisticsInterface* stats,
+                                     uint32_t sessionID,
+                                     std::shared_ptr<AECProcessor> processor):
+  Filter(id, "AEC echo filter", stats, RAWAUDIO, NONE),
+  sessionID_(sessionID),
+  aec_(processor)
 {}
 
 
 void AECPlaybackFilter::process()
 {
+  if (!aec_)
+  {
+    printProgramError(this, "AEC not set");
+    return;
+  }
+
   std::unique_ptr<Data> input = getInput();
 
   while(input)
   {
-    for(uint32_t i = 0; i < input->data_size; i += format_.bytesPerFrame()*samplesPerFrame_)
-    {
-      speex_echo_playback(echo_state_, (int16_t*)input->data.get() + i/2);
-    }
+    aec_->processEchoFrame(std::move(input->data), input->data_size, sessionID_);
 
-    // do not modify input
-    sendOutput(std::move(input));
+    // get next input
+    input = getInput();
   }
 }

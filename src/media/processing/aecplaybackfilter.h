@@ -1,23 +1,24 @@
 #pragma once
+
 #include "filter.h"
 
-#include <speex/speex_echo.h>
+#include <memory>
 
-#include <QAudioFormat>
+class AECProcessor;
 
 class AECPlaybackFilter : public Filter
 {
 public:
-  AECPlaybackFilter(QString id, StatisticsInterface* stats,
-                    QAudioFormat format, SpeexEchoState *echo_state);
+  AECPlaybackFilter(QString id, StatisticsInterface *stats, uint32_t sessionID,
+                    std::shared_ptr<AECProcessor> processor);
 
 protected:
+
   void process();
 
 private:
-  SpeexEchoState *echo_state_;
 
-  QAudioFormat format_;
+  uint32_t sessionID_;
 
-  uint32_t samplesPerFrame_;
+  std::shared_ptr<AECProcessor> aec_;
 };

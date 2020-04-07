@@ -66,7 +66,7 @@ void OpusDecoderFilter::process()
     }
     else
     {
-      printWarning(this, "Failed to encode audio frame.", {"Error"}, {QString::number(len)});
+      printWarning(this, "Failed to decode audio frame.", {"Error"}, {QString::number(len)});
     }
     input = getInput();
   }

@@ -211,7 +211,8 @@ void FilterGraph::initAudioSend(bool opus)
 
   if (AEC_ENABLED)
   {
-    aec_ = std::shared_ptr<AECInputFilter>(new AECInputFilter("", stats_, format_));
+    aec_ = std::shared_ptr<AECInputFilter>(new AECInputFilter("", stats_));
+    aec_->initInput(format_);
     addToGraph(aec_, audioProcessing_, audioProcessing_.size() - 1);
   }
 
@@ -428,7 +429,8 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
   if(audioProcessing_.size() > 0 && AEC_ENABLED)
   {
     addToGraph(std::shared_ptr<Filter>(
-                 new AECPlaybackFilter(QString::number(sessionID), stats_, format_, aec_->getEchoState())),
+                 new AECPlaybackFilter(QString::number(sessionID), stats_, sessionID,
+                                       aec_->getAEC())),
                *graph, graph->size() - 1);
   }
   else
@@ -441,7 +443,14 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
   peers_.at(sessionID - 1)->output->initializeAudio(format_);
   AudioOutputDevice* outputModule = peers_.at(sessionID - 1)->output->getOutputModule();
 
-  outputModule->init(graph->back());
+  if (AEC_ENABLED)
+  {
+    outputModule->init(graph->at(graph->size() - 2));
+  }
+  else
+  {
+    outputModule->init(graph->back());
+  }
 }
 
 
