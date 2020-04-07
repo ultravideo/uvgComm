@@ -34,7 +34,7 @@ public:
   bool checkSDPOffer(SDPMessageInfo& offer);
 
   // update MediaInfo of SDP after ICE has finished
-  void setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo);
+  void setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo, bool local);
 
 
 private:

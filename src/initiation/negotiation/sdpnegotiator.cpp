@@ -306,15 +306,29 @@ bool SDPNegotiator::checkSDPOffer(SDPMessageInfo &offer)
 }
 
 
-void SDPNegotiator::setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo)
+void SDPNegotiator::setMediaPair(MediaInfo& media,
+                                 std::shared_ptr<ICEInfo> mediaInfo,
+                                 bool local)
 {
   if (mediaInfo == nullptr)
   {
+    printDebug(DEBUG_PROGRAM_ERROR, "SDPNegotiator", "Null mediainfo in setMediaPair");
     return;
   }
 
-  media.connection_address = mediaInfo->address;
-  media.receivePort        = mediaInfo->port;
+  // for local address, we bind to our rel-address if using non-host connection type
+  if (local &&
+      mediaInfo->type != "host" &&
+      mediaInfo->rel_address != "" && mediaInfo->rel_port != 0)
+  {
+    media.connection_address = mediaInfo->rel_address;
+    media.receivePort        = mediaInfo->rel_port;
+  }
+  else
+  {
+    media.connection_address = mediaInfo->address;
+    media.receivePort        = mediaInfo->port;
+  }
 }
 
 

@@ -225,15 +225,15 @@ void Negotiation::nominationSucceeded(quint32 sessionID)
   // Video. 0 is RTP, 1 is RTCP
   if (streams.at(0) != nullptr && streams.at(1) != nullptr)
   {
-    negotiator_.setMediaPair(localSDP->media[1],  streams.at(0)->local);
-    negotiator_.setMediaPair(remoteSDP->media[1], streams.at(0)->remote);
+    negotiator_.setMediaPair(localSDP->media[1],  streams.at(0)->local, true);
+    negotiator_.setMediaPair(remoteSDP->media[1], streams.at(0)->remote, false);
   }
 
   // Audio. 2 is RTP, 3 is RTCP
   if (streams.at(2) != nullptr && streams.at(3) != nullptr)
   {
-    negotiator_.setMediaPair(localSDP->media[0],  streams.at(2)->local);
-    negotiator_.setMediaPair(remoteSDP->media[0], streams.at(2)->remote);
+    negotiator_.setMediaPair(localSDP->media[0],  streams.at(2)->local, true);
+    negotiator_.setMediaPair(remoteSDP->media[0], streams.at(2)->remote, false);
   }
 
   emit iceNominationSucceeded(sessionID);
