@@ -7,7 +7,7 @@
 #include <QDateTime>
 
 // this is how many frames the audio capture seems to send
-const uint16_t FRAMESPERSECOND = 25; // TODO: Seems risky
+const uint16_t FRAMESPERSECOND = 50;
 
 OpusEncoderFilter::OpusEncoderFilter(QString id, QAudioFormat format, StatisticsInterface* stats):
   Filter(id, "Opus Encoder", stats, RAWAUDIO, OPUSAUDIO),
@@ -15,7 +15,7 @@ OpusEncoderFilter::OpusEncoderFilter(QString id, QAudioFormat format, Statistics
   opusOutput_(nullptr),
   max_data_bytes_(65536),
   format_(format),
-  numberOfSamples_(0)
+  samplesPerFrame_(0)
 {
   opusOutput_ = new uchar[max_data_bytes_];
 }
@@ -42,7 +42,7 @@ bool OpusEncoderFilter::init()
     return false;
   }
 
-  numberOfSamples_ = format_.sampleRate()/FRAMESPERSECOND;
+  samplesPerFrame_ = format_.sampleRate()/FRAMESPERSECOND;
   return true;
 }
 
@@ -58,9 +58,11 @@ void OpusEncoderFilter::process()
 
     // one input packet may contain more than one audio frame (usually doesn't).
     // Process them all and send one by one.
-    for(uint32_t i = 0; i < input->data_size; i += format_.bytesPerFrame()*numberOfSamples_)
+
+    for(uint32_t i = 0; i < input->data_size; i += format_.bytesPerFrame()*samplesPerFrame_)
     {
-      len = opus_encode(enc_, (opus_int16*)input->data.get()+i/2, numberOfSamples_, opusOutput_ + pos, max_data_bytes_ - pos);
+      len = opus_encode(enc_, (opus_int16*)input->data.get()+i/2, samplesPerFrame_,
+                        opusOutput_ + pos, max_data_bytes_ - pos);
       if(len <= 0)
       {
         printWarning(this,  "Failed to encode audio",

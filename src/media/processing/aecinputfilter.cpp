@@ -6,7 +6,7 @@
 
 
 AECInputFilter::AECInputFilter(QString id, StatisticsInterface* stats):
-  Filter(id, "AEC filter", stats, RAWAUDIO, RAWAUDIO)
+  Filter(id, "AEC input filter", stats, RAWAUDIO, RAWAUDIO)
 {}
 
 
@@ -17,8 +17,7 @@ AECInputFilter::~AECInputFilter()
 
 void AECInputFilter::initInput(QAudioFormat format)
 {
-  aec_ = std::make_shared<AECProcessor>();
-  aec_->init(format);
+  aec_ = std::make_shared<AECProcessor>(format);
 }
 
 

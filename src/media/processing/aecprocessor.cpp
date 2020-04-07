@@ -1,90 +1,158 @@
 #include "aecprocessor.h"
 
 // this is how many frames the audio capture seems to send
-const uint16_t FRAMESPERSECOND = 25;
+
+#include "common.h"
+
+const uint16_t FRAMESPERSECOND = 50;
 bool PREPROCESSOR = false;
 
-AECProcessor::AECProcessor():
-  format_(),
-  samplesPerFrame_(0),
-  pcmOutput_(nullptr),
-  max_data_bytes_(65536),
-  echo_state_(nullptr),
-  preprocess_state_(nullptr)
+AECProcessor::AECProcessor(QAudioFormat format):
+  format_(format),
+  samplesPerFrame_(format.sampleRate()/FRAMESPERSECOND),
+  max_data_bytes_(65536)
 {}
 
 
-void AECProcessor::init(QAudioFormat format)
+void AECProcessor::initEcho(uint32_t sessionID)
 {
-  format_ = format;
-  samplesPerFrame_ = format.sampleRate()/FRAMESPERSECOND;
-
-  if (echo_state_ != nullptr)
+  echoMutex_.lock();
+  if (echoes_.find(sessionID) != echoes_.end())
   {
-    cleanup();
+    echoMutex_.unlock();
+    return;
   }
 
+  echoes_[sessionID] = std::make_shared<EchoBuffer>();
+  echoes_[sessionID]->preprocess_state = nullptr;
+  echoes_[sessionID]->echo_state = nullptr;
+
   // should be around 1/3 of the room reverberation time
-  uint16_t echoFilterLength = samplesPerFrame_*10;
+  // currently set to 100 ms
+  uint16_t echoFilterLength = format_.sampleRate()/10;
   if(format_.channelCount() > 1)
   {
-    echo_state_ = speex_echo_state_init_mc(samplesPerFrame_,
-                                           echoFilterLength,
-                                           format_.channelCount(),
-                                           format_.channelCount());
+    echoes_[sessionID]->echo_state = speex_echo_state_init_mc(samplesPerFrame_,
+                                                              echoFilterLength,
+                                                              format_.channelCount(),
+                                                              format_.channelCount());
   }
   else
   {
-    echo_state_ = speex_echo_state_init(samplesPerFrame_, echoFilterLength);
+    echoes_[sessionID]->echo_state = speex_echo_state_init(samplesPerFrame_,
+                                                           echoFilterLength);
   }
 
   if (PREPROCESSOR)
   {
-    preprocess_state_ = speex_preprocess_state_init(samplesPerFrame_,
-                                                    format_.sampleRate());
-    speex_preprocess_ctl(preprocess_state_, SPEEX_PREPROCESS_SET_ECHO_STATE,
-                         echo_state_);
+    echoes_[sessionID]->preprocess_state = speex_preprocess_state_init(samplesPerFrame_,
+                                                                       format_.sampleRate());
+    speex_preprocess_ctl(echoes_[sessionID]->preprocess_state,
+                         SPEEX_PREPROCESS_SET_ECHO_STATE,
+                         echoes_[sessionID]->echo_state);
   }
-
-  pcmOutput_ = new int16_t[max_data_bytes_];
+  else
+  {
+    echoes_[sessionID]->preprocess_state = nullptr;
+  }
+  echoMutex_.unlock();
 }
 
 
 void AECProcessor::cleanup()
 {
-  if (PREPROCESSOR)
+  echoMutex_.lock();
+
+  for (auto& echo : echoes_)
   {
-    speex_preprocess_state_destroy(preprocess_state_);
-    preprocess_state_ = nullptr;
+    echo.second->frames.clear();
+    if (echo.second->preprocess_state != nullptr)
+    {
+      speex_preprocess_state_destroy(echo.second->preprocess_state);
+      echo.second->preprocess_state = nullptr;
+    }
+
+    if (echo.second->echo_state != nullptr)
+    {
+      speex_echo_state_destroy(echo.second->echo_state);
+      echo.second->echo_state = nullptr;
+    }
   }
-  speex_echo_state_destroy(echo_state_);
-  echo_state_ = nullptr;
+  echoMutex_.unlock();
 }
 
 
 std::unique_ptr<uchar[]> AECProcessor::processInputFrame(std::unique_ptr<uchar[]> input,
                                                          uint32_t dataSize)
 {
-  for(uint32_t i = 0; i < dataSize; i += format_.bytesPerFrame()*samplesPerFrame_)
+  echoMutex_.lock();
+
+  for (auto& echo : echoes_)
   {
-    if(format_.channelCount() == 1 && PREPROCESSOR)
+    for(uint32_t i = 0; i < dataSize; i += format_.bytesPerFrame()*samplesPerFrame_)
     {
-      speex_preprocess_run(preprocess_state_, (int16_t*)input.get()+i/2);
+      if(format_.channelCount() == 1 &&
+         echo.second->preprocess_state != nullptr)
+      {
+        speex_preprocess_run(echo.second->preprocess_state, (int16_t*)input.get()+i);
+      }
+
+      if (!echo.second->frames.empty())
+      {
+        //printDebug(DEBUG_NORMAL, "AEC Processor", "Echo cancellation",
+        //          {"Echoes"}, {QString::number(echo.second->frames.size())});
+
+        std::unique_ptr<uchar[]> echoFrame = std::move(echo.second->frames.front());
+        echo.second->frames.pop_front();
+
+        input = processInput(echo.second->echo_state, std::move(input),
+                             dataSize, std::move(echoFrame), i/2);
+      }
+      else
+      {
+        printDebug(DEBUG_WARNING, "AEC Processor", "No echo to process");
+      }
     }
-
-    speex_echo_capture(echo_state_, (int16_t*)input.get()+i/2, pcmOutput_+i/2);
   }
+  echoMutex_.unlock();
 
-  std::unique_ptr<uchar[]> pcm_frame(new uchar[dataSize]);
-  memcpy(pcm_frame.get(), pcmOutput_, dataSize);
+  return input;
+}
+
+
+std::unique_ptr<uchar[]> AECProcessor::processInput(SpeexEchoState *echo_state,
+                                                    std::unique_ptr<uchar[]> input,
+                                                    uint32_t inputSize,
+                                                    std::unique_ptr<uchar[]> echo,
+                                                    uint32_t pos)
+{
+  int16_t* pcmOutput = new int16_t[max_data_bytes_];;
+  speex_echo_cancellation(echo_state,
+                          (int16_t*)input.get() + pos,
+                          (int16_t*)echo.get(), pcmOutput);
+
+  // TODO: cast pcmOutput instead of copying
+  std::unique_ptr<uchar[]> pcm_frame(new uchar[inputSize]);
+  memcpy(pcm_frame.get(), pcmOutput, inputSize);
   return pcm_frame;
 }
 
 
-void AECProcessor::processEchoFrame(std::unique_ptr<uchar[]> echo, uint32_t dataSize, uint32_t sessionID)
+void AECProcessor::processEchoFrame(std::unique_ptr<uchar[]> echo, uint32_t dataSize,
+                                    uint32_t sessionID)
 {
-  for(uint32_t i = 0; i < dataSize; i += format_.bytesPerFrame()*samplesPerFrame_)
+  echoMutex_.lock();
+  if (echoes_.find(sessionID) == echoes_.end())
   {
-    speex_echo_playback(echo_state_, (int16_t*)echo.get() + i/2);
+    echoMutex_.unlock();
+    initEcho(sessionID);
   }
+  else
+  {
+    echoMutex_.unlock();
+  }
+
+  echoMutex_.lock();
+  echoes_[sessionID]->frames.push_back(std::move(echo));
+  echoMutex_.unlock();
 }

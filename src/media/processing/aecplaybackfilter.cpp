@@ -6,7 +6,7 @@
 AECPlaybackFilter::AECPlaybackFilter(QString id, StatisticsInterface* stats,
                                      uint32_t sessionID,
                                      std::shared_ptr<AECProcessor> processor):
-  Filter(id, "AEC filter", stats, RAWAUDIO, NONE),
+  Filter(id, "AEC echo filter", stats, RAWAUDIO, NONE),
   sessionID_(sessionID),
   aec_(processor)
 {}
