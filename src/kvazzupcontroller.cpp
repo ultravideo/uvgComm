@@ -55,6 +55,8 @@ void KvazzupController::init()
 
 void KvazzupController::uninit()
 {
+  // for politeness, we send BYE messages to all our call participants.
+  endTheCall();
   sip_.uninit();
   media_.uninit();
 }
