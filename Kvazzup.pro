@@ -276,7 +276,6 @@ LIBS += -lspeexdsp
 LIBS += -lLibOpenHevcWrapper
 LIBS += -lgomp
 LIBS += -lkvzrtp
-LIBS += -lcryptopp
 
 message("Using Unix libraries")
 }
