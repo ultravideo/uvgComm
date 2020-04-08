@@ -6,13 +6,28 @@
 
 const uint16_t FRAMESPERSECOND = 50;
 bool PREPROCESSOR = true;
-const int REVERBERATION_TIME_MS = 200;
+const int REVERBERATION_TIME_MS = 100;
 
 AECProcessor::AECProcessor(QAudioFormat format):
   format_(format),
   samplesPerFrame_(format_.bytesPerFrame()*format.sampleRate()/FRAMESPERSECOND),
-  max_data_bytes_(65536)
-{}
+  max_data_bytes_(65536),
+  global_preprocessor_(nullptr)
+{
+
+  global_preprocessor_ = speex_preprocess_state_init(samplesPerFrame_/2,
+                                                     format_.sampleRate());
+
+  // TODO: investigate these more for benefits.
+  // not sure if multiple states work.
+  void* state = new int(1);
+  speex_preprocess_ctl(global_preprocessor_,
+                       SPEEX_PREPROCESS_SET_AGC, state);
+  //speex_preprocess_ctl(global_preprocessor_,
+  //                     SPEEX_PREPROCESS_SET_DEREVERB, state);
+
+  printNormal(this, "Set AGC preprocessor");
+}
 
 
 void AECProcessor::initEcho(uint32_t sessionID)
@@ -84,12 +99,28 @@ void AECProcessor::cleanup()
     }
   }
   echoMutex_.unlock();
+
+  if (global_preprocessor_ != nullptr)
+  {
+    speex_preprocess_state_destroy(global_preprocessor_);
+  }
 }
 
 
 std::unique_ptr<uchar[]> AECProcessor::processInputFrame(std::unique_ptr<uchar[]> input,
                                                          uint32_t dataSize)
 {
+  // Do preprocess trickery defined in constructor once for input.
+  for(uint32_t i = 0; i < dataSize; i += samplesPerFrame_)
+  {
+    if(format_.channelCount() == 1 &&
+       global_preprocessor_ != nullptr)
+    {
+      //printNormal(this, "Running preprocessor");
+      speex_preprocess_run(global_preprocessor_, (int16_t*)input.get() + i/2);
+    }
+  }
+
   echoMutex_.lock();
 
   for (auto& echo : echoes_)
@@ -107,6 +138,13 @@ std::unique_ptr<uchar[]> AECProcessor::processInputFrame(std::unique_ptr<uchar[]
       {
         std::unique_ptr<uchar[]> echoFrame = std::move(echo.second->frames.front());
         echo.second->frames.pop_front();
+
+        if(echo.second->frames.size() > 1)
+        {
+          printWarning(this, "Clearing echo samples, because there is too many of them.");
+          std::unique_ptr<uchar[]> echoFrame = std::move(echo.second->frames.front());
+          echo.second->frames.clear();
+        }
 
         input = processInput(echo.second->echo_state, std::move(input), std::move(echoFrame), i);
 

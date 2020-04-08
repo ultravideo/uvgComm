@@ -46,6 +46,7 @@ private:
 
   uint32_t samplesPerFrame_;
 
-
   int32_t max_data_bytes_;
+
+  SpeexPreprocessState *global_preprocessor_;
 };
