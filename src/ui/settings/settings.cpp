@@ -82,9 +82,12 @@ void Settings::on_close_clicked()
 {
   printNormal(this, "Closing. Gettings recorded settings");
 
-  // discard UI values and restore the settings from file
-  getSettings(false);
-  hide();
+  if (checkMissingValues() && checkUserSettings())
+  {
+    // discard UI values and restore the settings from file
+    getSettings(false);
+    hide();
+  }
 }
 
 
@@ -194,6 +197,9 @@ void Settings::resetFaultySettings()
   // record GUI settings in hope that they are correct ( is case by default )
   saveSettings();
   mediaSettings_.resetSettings(getDeviceID(basicUI_->videoDevice, "video/DeviceID", "video/Device"));
+  
+  // Show resetted settings to user so she can fix them manually
+  show();
 }
 
 
