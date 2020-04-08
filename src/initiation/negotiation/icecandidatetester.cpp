@@ -116,7 +116,7 @@ void IceCandidateTester::routeDatagram(QNetworkDatagram message)
   {
     listeners_[message.senderAddress().toString()][message.senderPort()]->recvStunMessage(message);
   }
-  else
+  else if (!message.destinationAddress().isNull() && message.senderPort() != -1)
   {
     printWarning(this, "Could not find listener for data", {"Address"}, {
                  message.destinationAddress().toString() + ":" +

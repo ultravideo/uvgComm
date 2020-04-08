@@ -10,6 +10,11 @@
 
 #include <QSettings>
 #include <QDebug>
+#include <QMutex>
+
+
+// global variable until this becomes a static class
+QMutex printMutex_;
 
 // TODO move this to a different file from common.h
 void qSleep(int ms)
@@ -188,45 +193,57 @@ void printDebug(DebugType type, QString className,
   }
   case DEBUG_IMPORTANT:
   {
+    printMutex_.lock();
     // TODO: Center text in middle.
     qDebug();
     qDebug() << "=============================================================================";
     printHelper(beginString, valueString, description, valueNames.size());
     qDebug() << "=============================================================================";
     qDebug();
+    printMutex_.unlock();
     break;
   }
   case DEBUG_ERROR:
   {
+    printMutex_.lock();
     printHelper("ERROR! " + beginString, valueString, description, valueNames.size());
+    printMutex_.unlock();
     break;
   }
   case DEBUG_WARNING:
   {
+    printMutex_.lock();
     printHelper("Warning! " + beginString, valueString, description, valueNames.size());
+    printMutex_.unlock();
     break;
   }
   case DEBUG_PEER_ERROR:
   {
+    printMutex_.lock();
     qWarning().nospace().noquote() << "PEER ERROR: --------------------------------------------";
     printHelper(beginString, valueString, description, valueNames.size());
-    qWarning().nospace().noquote() << "-------------------------------------------- PEER ERROR";
+    qWarning().nospace().noquote() << "-------------------------------------------- PEER ERROR" << "\r\n";
+    printMutex_.unlock();
     break;
   }
   case DEBUG_PROGRAM_ERROR:
   {
+    printMutex_.lock();
     qCritical().nospace().noquote()
         << "BUG DETECTED: --------------------------------------------";
     printHelper(beginString, valueString, description, valueNames.size());
-    qCritical().nospace().noquote() << "-------------------------------------------- BUG";
+    qCritical().nospace().noquote() << "-------------------------------------------- BUG" << "\r\n";
+    printMutex_.unlock();
     break;
   }
   case DEBUG_PROGRAM_WARNING:
   {
+    printMutex_.lock();
     qWarning().nospace().noquote()
         << "MINOR BUG DETECTED: --------------------------------------------";
     printHelper(beginString, valueString, description, valueNames.size());
-    qWarning().nospace() << "\r\n" << "-------------------------------------------- MINOR BUG";
+    qWarning().nospace() << "-------------------------------------------- MINOR BUG" << "\r\n";
+    printMutex_.unlock();
     break;
   }
   }
@@ -281,4 +298,5 @@ void printHelper(QString beginString, QString valueString, QString description, 
       printing << "\r\n" << valueString;
     }
   }
+  //printing << "\r\n";
 }

@@ -87,6 +87,11 @@ void SIPManager::uninit()
 void SIPManager::uninitSession(uint32_t sessionID)
 {
   negotiation_.endSession(sessionID);
+
+  // if you are wondering why the dialog is not destroy here, the dialog is
+  // often the start point of these kinds of destructions and removing dialog
+  // here would corrupt the heap. Instead dialog is destroyed by return values
+  // in dialog manager
 }
 
 

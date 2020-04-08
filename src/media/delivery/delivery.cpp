@@ -234,7 +234,7 @@ bool Delivery::addMediaStream(uint32_t sessionID, uint16_t localPort, uint16_t p
 
 void Delivery::removeMediaStream(uint32_t sessionID, uint16_t localPort)
 {
-  printNormal(this, "Creating remove mediastream");
+  printNormal(this, "Removing mediastream");
 
   peers_[sessionID]->session->destroy_stream(peers_[sessionID]->streams[localPort]->stream);
   delete peers_[sessionID]->streams[localPort];

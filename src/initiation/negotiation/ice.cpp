@@ -36,7 +36,7 @@ QList<std::shared_ptr<ICEInfo>> ICE::generateICECandidates(
     std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > turnCandidates)
 {
   printDebug(DEBUG_NORMAL, this, "Start Generating ICE candidates", {
-               "Local", "Global", "STUN", "STUN bindings", "TURN"},
+               "Local", "Global", "STUN", "STUN relays", "TURN"},
             {QString::number(localCandidates->size()),
              QString::number(globalCandidates->size()),
              QString::number(stunCandidates->size()),
@@ -280,7 +280,7 @@ void ICE::handeICESuccess(QList<std::shared_ptr<ICEPair> > &streams, uint32_t se
     QStringList values;
     for(auto& stream : streams)
     {
-      names.append("Component: " + QString::number(stream->local->component));
+      names.append("Component " + QString::number(stream->local->component));
       values.append(stream->local->address + ":" + QString::number(stream->local->port) + " <-> " +
                     stream->remote->address + ":" + QString::number(stream->remote->port));
     }

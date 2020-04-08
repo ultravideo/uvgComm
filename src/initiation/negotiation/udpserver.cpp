@@ -25,7 +25,7 @@ bool UDPServer::bindSocket(const QHostAddress& address, quint16 port)
   }
   else
   {
-    printNormal(this, "Binded UDP Port", {"Interface"}, addressDebug);
+    //printNormal(this, "Binded UDP Port", {"Interface"}, addressDebug);
   }
 
   connect(socket_, &QUdpSocket::readyRead, this, &UDPServer::readDatagram);
@@ -64,9 +64,9 @@ bool UDPServer::sendData(QByteArray& data, const QHostAddress &local,
 
   if (socket_->writeDatagram(datagram) < 0)
   {
-    printWarning(this, "Failed to send UDP datagram!", {"Path"},
-              {local.toString() + ":" + QString::number(sendPort_) + " -> " +
-               remote.toString() + ":" + QString::number(remotePort)});
+    //printWarning(this, "Failed to send UDP datagram!", {"Path"},
+    //          {local.toString() + ":" + QString::number(sendPort_) + " -> " +
+    //           remote.toString() + ":" + QString::number(remotePort)});
     return false;
   }
 
