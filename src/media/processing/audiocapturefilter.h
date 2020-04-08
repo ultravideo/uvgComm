@@ -33,6 +33,9 @@ private slots:
 
   void volumeChanged(int value);
 
+  // handles a second state change if we suddenly changed our mind
+  void stateChanged();
+
 private:
 
   void createAudioInput();
@@ -43,4 +46,6 @@ private:
   QIODevice *input_;
   bool pullMode_;
   QByteArray buffer_;
+
+  QAudio::State wantedState_;
 };

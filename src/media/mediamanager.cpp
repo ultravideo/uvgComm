@@ -201,6 +201,7 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
       if(remoteMedia.type == "audio")
       {
         fg_->sendAudioTo(sessionID, std::shared_ptr<Filter>(framedSource));
+        fg_->mic(mic_);
       }
       else if(remoteMedia.type == "video")
       {

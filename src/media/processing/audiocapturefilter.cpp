@@ -18,7 +18,8 @@ AudioCaptureFilter::AudioCaptureFilter(QString id, QAudioFormat format, Statisti
   format_(format),
   audioInput_(nullptr),
   input_(nullptr),
-  buffer_(AUDIO_BUFFER_SIZE, 0)
+  buffer_(AUDIO_BUFFER_SIZE, 0),
+  wantedState_(QAudio::StoppedState)
 {}
 
 
@@ -110,6 +111,10 @@ void AudioCaptureFilter::createAudioInput()
       connect(input_, SIGNAL(readyRead()), SLOT(readMore()));
     }
   }
+  wantedState_ = QAudio::ActiveState;
+
+  connect(audioInput_, &QAudioInput::stateChanged,
+          this,        &AudioCaptureFilter::stateChanged);
 
   printNormal(this, "Creating audio input.", {"Notify interval (ms)"},
               {QString::number(audioInput_->notifyInterval())});
@@ -171,11 +176,13 @@ void AudioCaptureFilter::start()
 {
   printNormal(this, "Resuming audio input.");
 
+  wantedState_ = QAudio::ActiveState;
   if (audioInput_ && (audioInput_->state() == QAudio::SuspendedState
       || audioInput_->state() == QAudio::StoppedState))
   {
     audioInput_->resume();
   }
+
 }
 
 
@@ -183,6 +190,7 @@ void AudioCaptureFilter::stop()
 {
   printNormal(this, "Suspending input.");
 
+  wantedState_ = QAudio::SuspendedState;
   if (audioInput_ && audioInput_->state() == QAudio::ActiveState)
   {
     audioInput_->suspend();
@@ -216,6 +224,35 @@ void AudioCaptureFilter::volumeChanged(int value)
   if(audioInput_)
   {
     audioInput_->setVolume(qreal(value) / 100);
+  }
+}
+
+void AudioCaptureFilter::stateChanged()
+{
+  printNormal(this, "AUdio Input State changed", {"States:"}, {
+                "Current: " + QString::number(audioInput_->state()) + ", Wanted: " + QString::number(wantedState_)});
+
+  if (audioInput_ && audioInput_->state() != wantedState_)
+  {
+    if (wantedState_ == QAudio::SuspendedState)
+    {
+      audioInput_->suspend();
+    }
+    else if (wantedState_ == QAudio::ActiveState)
+    {
+      if (audioInput_->state() == QAudio::StoppedState)
+      {
+        createAudioInput();
+      }
+      else if (audioInput_->state() == QAudio::SuspendedState)
+      {
+        audioInput_->resume();
+      }
+      else if (audioInput_->state() == QAudio::IdleState)
+      {
+
+      }
+    }
   }
 }
 
