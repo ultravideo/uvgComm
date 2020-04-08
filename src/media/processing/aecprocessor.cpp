@@ -137,15 +137,15 @@ std::unique_ptr<uchar[]> AECProcessor::processInputFrame(std::unique_ptr<uchar[]
 
     if (!echo.second->frames.empty())
     {
+      // remove echo queue so we use newer echo frames.
+      while (echo.second->frames.size() > 2)
+      {
+        //printWarning(this, "Clearing echo samples because there is too many of them.");
+        echo.second->frames.pop_front();
+      }
+
       std::unique_ptr<uchar[]> echoFrame = std::move(echo.second->frames.front());
       echo.second->frames.pop_front();
-
-      if(echo.second->frames.size() > 1)
-      {
-        printWarning(this, "Clearing echo samples, because there is too many of them.");
-        std::unique_ptr<uchar[]> echoFrame = std::move(echo.second->frames.front());
-        echo.second->frames.clear();
-      }
 
       input = processInput(echo.second->echo_state, std::move(input), std::move(echoFrame));
 
