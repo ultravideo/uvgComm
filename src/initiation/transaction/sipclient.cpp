@@ -136,6 +136,12 @@ bool SIPClient::startTransaction(RequestType type)
 void SIPClient::processTimeout()
 {
   requestTimer_.stop();
+
+  if (ongoingTransactionType_ == SIP_BYE)
+  {
+    byeTimeout();
+  }
+
   ongoingTransactionType_ = SIP_NO_REQUEST;
 }
 

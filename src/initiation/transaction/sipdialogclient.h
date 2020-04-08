@@ -31,6 +31,8 @@ protected:
 
   virtual bool startTransaction(RequestType type);
 
+  virtual void byeTimeout();
+
 signals:
   // send messages to other end
   void sendDialogRequest(uint32_t sessionID, RequestType type);

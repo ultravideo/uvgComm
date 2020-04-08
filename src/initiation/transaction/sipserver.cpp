@@ -76,9 +76,10 @@ bool SIPServer::processRequest(SIPRequest& request,
   case SIP_BYE:
   {
     state.setState(false);
-    transactionUser_->endCall(sessionID_);
     responseSender(SIP_OK);
 
+    // this takes too long, send response first.
+    transactionUser_->endCall(sessionID_);
     return false;
   }
   case SIP_CANCEL:

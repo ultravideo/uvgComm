@@ -75,6 +75,8 @@ protected:
   // returns whether we should actually send the message
   virtual bool startTransaction(RequestType type);
 
+  virtual void byeTimeout() {}
+
 private slots:
   void requestTimeOut();
 

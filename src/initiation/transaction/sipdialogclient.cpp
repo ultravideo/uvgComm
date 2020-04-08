@@ -100,6 +100,11 @@ bool SIPDialogClient::processResponse(SIPResponse& response,
 }
 
 
+void SIPDialogClient::byeTimeout()
+{
+  transactionUser_->endCall(sessionID_);
+}
+
 bool SIPDialogClient::startCall(QString callee)
 {
   qDebug() << "SIP, Dialog client: Starting a call and sending an INVITE in session";
