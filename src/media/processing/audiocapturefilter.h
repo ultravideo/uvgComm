@@ -45,6 +45,8 @@ private:
   QAudioInput *audioInput_;
   QIODevice *input_;
   bool pullMode_;
+
+  int frameSize_;
   QByteArray buffer_;
 
   QAudio::State wantedState_;

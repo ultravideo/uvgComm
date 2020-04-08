@@ -3,6 +3,7 @@
 #include "statisticsinterface.h"
 
 #include "common.h"
+#include "global.h"
 
 #include <QAudioInput>
 #include <QTime>
@@ -10,15 +11,14 @@
 #include <QRegularExpression>
 
 
-const int AUDIO_BUFFER_SIZE = 65536;
-
 AudioCaptureFilter::AudioCaptureFilter(QString id, QAudioFormat format, StatisticsInterface *stats) :
   Filter(id, "Audio_Capture", stats, NONE, RAWAUDIO),
   deviceInfo_(),
   format_(format),
   audioInput_(nullptr),
   input_(nullptr),
-  buffer_(AUDIO_BUFFER_SIZE, 0),
+  frameSize_(format.sampleRate()*format.bytesPerFrame()/AUDIO_FRAMES_PER_SECOND),
+  buffer_(frameSize_, 0),
   wantedState_(QAudio::StoppedState)
 {}
 
@@ -128,46 +128,48 @@ void AudioCaptureFilter::readMore()
     printProgramWarning(this,  "No audio input in readMore");
     return;
   }
-  qint64 len = audioInput_->bytesReady();
-  if (len > AUDIO_BUFFER_SIZE)
+
+  while (audioInput_->bytesReady() > frameSize_)
   {
-    printWarning(this, "More data available than our buffer size!", {"Data available"},
-                {QString::number(len) + "/" + QString::number(AUDIO_BUFFER_SIZE)});
-    len = AUDIO_BUFFER_SIZE;
-  }
-  qint64 readData = input_->read(buffer_.data(), len);
+    qint64 len = audioInput_->bytesReady();
+    if (len > frameSize_)
+    {
+      len = frameSize_;
+    }
+    qint64 readData = input_->read(buffer_.data(), len);
 
-  if (readData > 0)
-  {
-    Data* newSample = new Data;
+    if (readData > 0)
+    {
+      Data* newSample = new Data;
 
-    // create audio data packet to be sent to filter graph
-    newSample->presentationTime.tv_sec = QDateTime::currentMSecsSinceEpoch()/1000;
-    newSample->presentationTime.tv_usec = (QDateTime::currentMSecsSinceEpoch()%1000) * 1000;
-    newSample->type = RAWAUDIO;
-    newSample->data = std::unique_ptr<uint8_t[]>(new uint8_t[len]);
+      // create audio data packet to be sent to filter graph
+      newSample->presentationTime.tv_sec = QDateTime::currentMSecsSinceEpoch()/1000;
+      newSample->presentationTime.tv_usec = (QDateTime::currentMSecsSinceEpoch()%1000) * 1000;
+      newSample->type = RAWAUDIO;
+      newSample->data = std::unique_ptr<uint8_t[]>(new uint8_t[len]);
 
-    memcpy(newSample->data.get(), buffer_.constData(), len);
+      memcpy(newSample->data.get(), buffer_.constData(), len);
 
-    newSample->data_size = len;
-    newSample->width = 0;
-    newSample->height = 0;
-    newSample->source = LOCAL;
-    newSample->framerate = format_.sampleRate();
+      newSample->data_size = len;
+      newSample->width = 0;
+      newSample->height = 0;
+      newSample->source = LOCAL;
+      newSample->framerate = format_.sampleRate();
 
-    std::unique_ptr<Data> u_newSample( newSample );
-    sendOutput(std::move(u_newSample));
+      std::unique_ptr<Data> u_newSample( newSample );
+      sendOutput(std::move(u_newSample));
 
-    //printNormal(this, "sent forward audio sample", {"Size"}, {QString::number(readData)});
-  }
-  else if (readData == 0)
-  {
-    printNormal(this, "No data given from microphone. Maybe the stream ended?");
-  }
-  else if (readData == -1)
-  {
-    printWarning(this, "Error reading data from mic IODevice!",
-                  {"Amount"}, {QString::number(len)});
+      //printNormal(this, "sent forward audio sample", {"Size"}, {QString::number(readData)});
+    }
+    else if (readData == 0)
+    {
+      printNormal(this, "No data given from microphone. Maybe the stream ended?");
+    }
+    else if (readData == -1)
+    {
+      printWarning(this, "Error reading data from mic IODevice!",
+      {"Amount"}, {QString::number(len)});
+    }
   }
 }
 

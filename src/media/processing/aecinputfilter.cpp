@@ -34,7 +34,11 @@ void AECInputFilter::process()
   while(input)
   {
     input->data = aec_->processInputFrame(std::move(input->data), input->data_size);
-    sendOutput(std::move(input));
+
+    if (input->data != nullptr)
+    {
+      sendOutput(std::move(input));
+    }
 
     // get next input
     input = getInput();

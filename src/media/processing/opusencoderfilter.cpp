@@ -3,11 +3,9 @@
 #include "statisticsinterface.h"
 
 #include "common.h"
+#include "global.h"
 
 #include <QDateTime>
-
-// this is how many frames the audio capture seems to send
-const uint16_t FRAMESPERSECOND = 50;
 
 OpusEncoderFilter::OpusEncoderFilter(QString id, QAudioFormat format, StatisticsInterface* stats):
   Filter(id, "Opus Encoder", stats, RAWAUDIO, OPUSAUDIO),
@@ -42,7 +40,7 @@ bool OpusEncoderFilter::init()
     return false;
   }
 
-  samplesPerFrame_ = format_.sampleRate()/FRAMESPERSECOND;
+  samplesPerFrame_ = format_.sampleRate()/AUDIO_FRAMES_PER_SECOND;
   return true;
 }
 
@@ -53,38 +51,41 @@ void OpusEncoderFilter::process()
 
   while(input)
   {
+    // The audiocapturefilter makes sure the frames are the correct (samplesPerFrame_) size.
+    if (input->data_size != samplesPerFrame_*format_.bytesPerFrame())
+    {
+      printProgramError(this, "Wrong size of input frame");
+      return;
+    }
+
     opus_int32 len = 0; // encoded frame size
     uint32_t pos = 0; // output position
 
-    // one input packet may contain more than one audio frame (usually doesn't).
-    // Process them all and send one by one.
+    // The audiocapturefilter makes sure the frames are the samplesPerFrame size.
 
-    for(uint32_t i = 0; i < input->data_size; i += format_.bytesPerFrame()*samplesPerFrame_)
+    len = opus_encode(enc_, (opus_int16*)input->data.get(), samplesPerFrame_,
+                      opusOutput_ + pos, max_data_bytes_ - pos);
+    if(len <= 0)
     {
-      len = opus_encode(enc_, (opus_int16*)input->data.get()+i/2, samplesPerFrame_,
-                        opusOutput_ + pos, max_data_bytes_ - pos);
-      if(len <= 0)
-      {
-        printWarning(this,  "Failed to encode audio",
-          {"Errorcode:"}, {QString::number(len)});
-        break;
-      }
-
-      std::unique_ptr<Data> u_copy(shallowDataCopy(input.get()));
-
-      std::unique_ptr<uchar[]> opus_frame(new uchar[len]);
-      memcpy(opus_frame.get(), opusOutput_ + pos, len);
-      u_copy->data_size = len;
-
-      u_copy->data = std::move(opus_frame);
-      sendOutput(std::move(u_copy));
-
-      /*printDebug(DEBUG_NORMAL, this, "Encoded Opus Audio.",
-                {"Input size", "Index", "Position", "Output size"},
-                {QString::number(input->data_size), QString::number(i),
-                 QString::number(pos), QString::number(len)});*/
-      pos += len;
+      printWarning(this,  "Failed to encode audio",
+        {"Errorcode:"}, {QString::number(len)});
+      break;
     }
+
+    std::unique_ptr<Data> u_copy(shallowDataCopy(input.get()));
+
+    std::unique_ptr<uchar[]> opus_frame(new uchar[len]);
+    memcpy(opus_frame.get(), opusOutput_ + pos, len);
+    u_copy->data_size = len;
+
+    u_copy->data = std::move(opus_frame);
+    sendOutput(std::move(u_copy));
+
+    /*printDebug(DEBUG_NORMAL, this, "Encoded Opus Audio.",
+              {"Input size", "Index", "Position", "Output size"},
+              {QString::number(input->data_size), QString::number(i),
+               QString::number(pos), QString::number(len)});*/
+    pos += len;
 
     if(len > 0)
     {

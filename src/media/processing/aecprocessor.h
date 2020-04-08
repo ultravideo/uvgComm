@@ -30,7 +30,7 @@ private:
 
   std::unique_ptr<uchar[]> processInput(SpeexEchoState *echo_state,
                                         std::unique_ptr<uchar[]> input,
-                                        std::unique_ptr<uchar[]> echo, uint32_t pos);
+                                        std::unique_ptr<uchar[]> echo);
 
   struct EchoBuffer
   {
@@ -43,10 +43,7 @@ private:
   std::map<uint32_t, std::shared_ptr<EchoBuffer>> echoes_;
 
   QAudioFormat format_;
-
   uint32_t samplesPerFrame_;
-
-  int32_t max_data_bytes_;
 
   SpeexPreprocessState *global_preprocessor_;
 };
