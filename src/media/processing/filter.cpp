@@ -228,8 +228,11 @@ void Filter::run()
 
     process();
   }
-
-  stats_->removeFilter(filterID_);
+  if (filterID_ != 0)
+  {
+    stats_->removeFilter(filterID_);
+    filterID_ = 0;
+  }
 }
 
 Data* Filter::shallowDataCopy(Data* original)

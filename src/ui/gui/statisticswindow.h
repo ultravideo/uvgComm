@@ -110,6 +110,7 @@ private:
   };
 
   std::map<uint32_t, FilterStatus> buffers_;
+  uint32_t nextFilterID_;
 
   Ui::StatisticsWindow *ui_;
 

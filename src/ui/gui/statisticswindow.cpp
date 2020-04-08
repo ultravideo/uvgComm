@@ -23,6 +23,8 @@ StatisticsWindow::StatisticsWindow(QWidget *parent) :
 QDialog(parent),
 StatisticsInterface(),
   sessions_(),
+  buffers_(),
+  nextFilterID_(1),
   ui_(new Ui::StatisticsWindow),
   sessionMutex_(),
   filterMutex_(),
@@ -195,7 +197,12 @@ uint32_t StatisticsWindow::addFilter(QString type, QString identifier, uint64_t 
                                   {type, identifier, threadID, "-/-", "0"});
 
   filterMutex_.lock();
-  uint32_t id = buffers_.size() + 1;
+  uint32_t id = nextFilterID_;
+  ++nextFilterID_;
+  if (nextFilterID_ >= UINT32_MAX - 2)
+  {
+    nextFilterID_ = 10;
+  }
   buffers_[id] = FilterStatus{0,QString::number(TID), 0, 0, rowIndex};
   filterMutex_.unlock();
 
@@ -213,11 +220,13 @@ void StatisticsWindow::removeFilter(uint32_t id)
                           {"Id"}, {QString::number(id)});
     return;
   }
-  if (ui_->filterTable->rowCount() <= buffers_[id].tableIndex)
+  if (ui_->filterTable->rowCount() < buffers_[id].tableIndex)
   {
     filterMutex_.unlock();
     printProgramWarning(this, "Filter doesn't exist in filter table when removing.",
-                          {"Id"}, {QString::number(id)});
+                          {"Id: Table size vs expected place"}, {
+                          QString::number(id) + ":" + QString::number(ui_->filterTable->rowCount()) + " vs " +
+                          QString::number(buffers_[id].tableIndex)});
     return;
   }
 
