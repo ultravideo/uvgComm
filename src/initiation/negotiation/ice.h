@@ -1,13 +1,14 @@
 #pragma once
 
-#include <QHostAddress>
-#include <QString>
-#include <QWaitCondition>
-#include <memory>
-
 #include "sdptypes.h"
 #include "icetypes.h"
 #include "networkcandidates.h"
+
+#include <QHostAddress>
+#include <QString>
+#include <QWaitCondition>
+
+#include <memory>
 
 class IceSessionTester;
 

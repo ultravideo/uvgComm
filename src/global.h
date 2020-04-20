@@ -13,7 +13,7 @@ const int REGISTER_INTERVAL = 600;
 
 const uint16_t AUDIO_FRAMES_PER_SECOND = 50;
 
-
+const int STREAM_COMPONENTS = 4;
 
 // this macro checks the condition and quits in debug mode and exits the current function in
 #define CHECKERROR(condition, errorString, errorReturnValue) \

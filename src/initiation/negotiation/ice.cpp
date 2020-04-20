@@ -1,15 +1,17 @@
+#include "ice.h"
+
+#include "icesessiontester.h"
+#include "common.h"
+#include "global.h"
+
 #include <QNetworkInterface>
 #include <QTime>
 #include <QSettings>
+
 #include <memory>
 
-#include "common.h"
-#include "ice.h"
-#include "icesessiontester.h"
 
-
-
-const int STREAMS = 4;
+#include <math.h>       /* pow */
 
 
 ICE::ICE()
@@ -18,13 +20,11 @@ ICE::ICE()
 ICE::~ICE()
 {}
 
-
-/* @param type - 0 for relayed, 126 for host
- * @param local - local preference for selecting candidates
- * @param component - 1 for RTP, 2 for RTCP */
 int ICE::calculatePriority(CandidateType type, quint16 local, uint8_t component)
 {
-  return (16777216 * type) + (256 * local) + component;
+  return ((int)pow(2, 24) * type) +
+         ((int)pow(2, 8) * local) +
+         256 - component;
 }
 
 
@@ -56,14 +56,13 @@ QList<std::shared_ptr<ICEInfo>> ICE::generateICECandidates(
 
   if (stunCandidates->size() == stunBindings->size())
   {
-    addCandidates(stunCandidates, stunBindings, foundation, SERVER_REFLEXIVE, 65535, iceCandidates);
+    addCandidates(stunCandidates, stunBindings, foundation, SERVER_REFLEXIVE,
+                  65535, iceCandidates);
   }
   else
   {
     printProgramError(this, "STUN bindings don't match");
   }
-
-  // TODO: relay needs bindings
   addCandidates(turnCandidates, nullptr, foundation, RELAY, 0, iceCandidates);
 
   return iceCandidates;
@@ -84,11 +83,11 @@ void ICE::addCandidates(std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> 
   }
 
   // got through sets of STREAMS addresses
-  for (int i = 0; i + STREAMS <= addresses->size(); i += STREAMS)
+  for (int i = 0; i + STREAM_COMPONENTS <= addresses->size(); i += STREAM_COMPONENTS)
   {
     // make a candidate set
     // j is the index in addresses
-    for (int j = i; j < i + STREAMS; ++j)
+    for (int j = i; j < i + STREAM_COMPONENTS; ++j)
     {
 
       QHostAddress relayAddress = QHostAddress("");
@@ -257,7 +256,7 @@ void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local,
                    Qt::DirectConnection);
 
 
-  agent->init(&nominationInfo_[sessionID].pairs, sessionID, STREAMS);
+  agent->init(&nominationInfo_[sessionID].pairs, sessionID, STREAM_COMPONENTS);
   agent->start();
 }
 
@@ -270,7 +269,7 @@ void ICE::handeICESuccess(QList<std::shared_ptr<ICEPair> > &streams, uint32_t se
 
   if (streams.at(0) == nullptr ||
       streams.at(1) == nullptr ||
-      streams.size() != STREAMS)
+      streams.size() != STREAM_COMPONENTS)
   {
     handleICEFailure(sessionID);
   }
