@@ -212,24 +212,18 @@ QList<std::shared_ptr<ICEPair>> ICE::makeCandidatePairs(
   return pairs;
 }
 
-// callee (flow controller)
-// 
-// this function spawns a control thread and exist right away so the 200 OK
-// response can be set as fast as possible and the remote can start respoding to our requests
-//
-// Thread spawned by startNomination() must keep track of which candidates failed and which succeeded
+
 void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local,
     QList<std::shared_ptr<ICEInfo>>& remote,
     uint32_t sessionID, bool flowController)
 {
-  // Spawns a FlowAgent thread which is responsible for handling
-  // connectivity checks and nomination.
-  // When FlowAgent has finished (succeed or failed), it sends a ready() signal
-  // which is caught by handleCalleeEndOfNomination slot
-
   printImportant(this, "Starting ICE nomination");
 
-  // nomination-related memory is released when handleEndOfNomination() is called
+  // Starts a SessionTester which is responsible for handling
+  // connectivity checks and nomination.
+  // When testing is finished it is connected tonominationSucceeded/nominationFailed
+
+  // nomination-related memory is released by cleanupSession
   if (flowController)
   {
     nominationInfo_[sessionID].agent = new IceSessionTester(true, 10000);
@@ -265,8 +259,7 @@ void ICE::handeICESuccess(QList<std::shared_ptr<ICEPair> > &streams, uint32_t se
 {
   Q_ASSERT(sessionID != 0);
 
-
-
+  // check that results make sense. Should always do
   if (streams.at(0) == nullptr ||
       streams.at(1) == nullptr ||
       streams.size() != STREAM_COMPONENTS)
@@ -287,6 +280,7 @@ void ICE::handeICESuccess(QList<std::shared_ptr<ICEPair> > &streams, uint32_t se
 
     printDebug(DEBUG_IMPORTANT, this, "ICE finished.", names, values);
 
+    // end other tests. We have a winner.
     nominationInfo_[sessionID].agent->quit();
     nominationInfo_[sessionID].connectionNominated = true;
     nominationInfo_[sessionID].selectedPairs = {streams.at(0), streams.at(1),

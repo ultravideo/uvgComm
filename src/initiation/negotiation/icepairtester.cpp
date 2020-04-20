@@ -1,4 +1,3 @@
-#include "common.h"
 #include "icepairtester.h"
 
 #include "stunmessage.h"
@@ -77,7 +76,7 @@ void IcePairTester::run()
 
   if (!sendBindingRequest(pair_.get(), controller_))
   {
-    printNormal(this,   "No connection found.", {"Path"},
+    printNormal(this, "No connection found.", {"Path"},
     {pair_->local->address + ":" + QString::number(pair_->local->port) + " <-> " +
      pair_->remote->address + ":" + QString::number(pair_->remote->port)});
     return;
@@ -85,8 +84,7 @@ void IcePairTester::run()
 
   pair_->state = PAIR_SUCCEEDED;
 
-  // controller performs the nomination process in FlowAgent
-  // so exit from ConnectionTester when this connection has been tested...
+  // controller performs the nomination process separately so we exit
   if (controller_)
   {
     printNormal(this, "Controller binding succeeded", {"Pair"}, {
@@ -167,11 +165,12 @@ bool IcePairTester::waitForNominationRequest(unsigned long timeout)
 }
 
 
-// if we're the controlling agent, sending binding request is rather straight-forward:
-// send request, wait for response and return
 bool IcePairTester::controllerSendBindingRequest(ICEPair *pair)
 {
   Q_ASSERT(pair != nullptr);
+
+  // if we're the controlling agent, sending binding request is rather straight-forward:
+  // send request, wait for response and return
 
   STUNMessage msg = stunmsg_.createRequest();
   msg.addAttribute(STUN_ATTR_ICE_CONTROLLING);
@@ -216,6 +215,7 @@ bool IcePairTester::controllerSendBindingRequest(ICEPair *pair)
         {
           break;
         }
+        // wait until sending the response again
         QThread::msleep(20);
       }
       break;
@@ -448,7 +448,7 @@ void IcePairTester::recvStunMessage(QNetworkDatagram message)
 
 
 bool IcePairTester::sendRequestWaitResponse(ICEPair* pair, QByteArray& request,
-                                   int retries, int baseTimeout)
+                                            int retries, int baseTimeout)
 {
   bool msgReceived = false;
   for (int i = 0; i < retries; ++i)

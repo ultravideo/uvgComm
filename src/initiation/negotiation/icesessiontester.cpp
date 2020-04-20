@@ -42,7 +42,7 @@ void IceSessionTester::endConcurrentTesting(std::shared_ptr<ICEPair> connection)
 
   // nominated check makes sure only one stream is nominated.
   // if we have received all components, nominate these.
-  // TODO: Do some sort of prioritization here. Maybe wait for 10% more of waited time or something.
+  // TODO: Do some sort of prioritization here.
   if (nominated_.empty() &&
       finished_[connection->local->foundation].size() == components_)
   {
@@ -61,6 +61,8 @@ void IceSessionTester::endConcurrentTesting(std::shared_ptr<ICEPair> connection)
 void IceSessionTester::waitForEndOfTesting(unsigned long timeout)
 {
   QTimer timer;
+
+  // eventloop is an additional thread for receiving udp packets through socket.
   QEventLoop loop;
 
   timer.setSingleShot(true);
@@ -90,15 +92,17 @@ void IceSessionTester::run()
     return;
   }
 
-  // because we can only bind to a port once (no multithreaded access), we must divide
-  // the candidates into interfaces
-  // InterfaceTester then binds to this interface and takes care of sending the STUN Binding requests
 
   QList<std::shared_ptr<IceCandidateTester>> candidates;
 
   QString prevAddr  = "";
   uint16_t prevPort = 0;
 
+  // because we can only bind to a port once (no multithreaded access), we must
+  // do the testing based on candidates we gave to peer
+
+  // the candidates should be in order at this point because of how the pairs
+  // are formed
   for (auto& pair : *pairs_)
   {
     // move to next candidate
@@ -110,11 +114,11 @@ void IceSessionTester::run()
 
     candidates.back()->addCandidate(pair);
 
-    // this keeps the code from crashing using magic. Do not move.
     prevAddr = pair->local->address;
     prevPort = pair->local->port;
   }
 
+  // start testing for this interface/port combination
   for (auto& interface : candidates)
   {
     if (controller_)
@@ -132,11 +136,10 @@ void IceSessionTester::run()
           Qt::DirectConnection);
     }
 
-
     interface->startTestingPairs(controller_);
   }
 
-  // wait for nomination from remote, wait at most 20 seconds
+  // now we wait until the connection tests have ended. Wait at most timeout_
   waitForEndOfTesting(timeout_);
 
   for (auto& interface : candidates)
@@ -145,6 +148,8 @@ void IceSessionTester::run()
   }
 
   nominated_mtx.lock();
+
+  // we did not get nominations and instead we got a timeout
   if (nominated_.empty())
   {
     printError(this, "Nomination from remote was not received in time!");
@@ -153,6 +158,8 @@ void IceSessionTester::run()
     return;
   }
 
+  // if we are the controller we must perform the final nomination.
+  // non-controller does not reach this point until after nomination (or timeout).
   if (controller_)
   {
     IceCandidateTester tester;
@@ -164,6 +171,7 @@ void IceSessionTester::run()
     }
   }
 
+  // announce that we have succeeded in nomination.
   emit iceSuccess(nominated_, sessionID_);
   nominated_mtx.unlock();
 }
@@ -173,10 +181,6 @@ std::shared_ptr<IceCandidateTester> IceSessionTester::createCandidateTester(
     std::shared_ptr<ICEInfo> local)
 {
   std::shared_ptr<IceCandidateTester> tester = std::make_shared<IceCandidateTester>();
-
-  // because we cannot modify create new objects from child threads (in this case new socket)
-  // we must initialize both UDPServer and Stun objects here so that ConnectionTester doesn't have to do
-  // anything but to test the connection
 
   QHostAddress bindAddress = QHostAddress(local->address);
   quint16 bindPort = local->port;
@@ -198,6 +202,7 @@ std::shared_ptr<IceCandidateTester> IceSessionTester::createCandidateTester(
     }
   }
 
+  // because we cannot modify create new objects from child threads we must bind here
   tester->bindInterface(bindAddress, bindPort);
 
   return tester;

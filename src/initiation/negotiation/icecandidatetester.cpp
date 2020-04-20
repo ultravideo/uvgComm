@@ -38,11 +38,9 @@ void IceCandidateTester::startTestingPairs(bool controller)
                          Qt::DirectConnection);
       }
 
-      // when the UDPServer receives a datagram from remote->address:remote->port,
-      // it will send a signal containing the datagram to this Stun object
-      //
-      // This way multiple Stun instances can listen to same socket
-      // TODO: Does not work with STUN candidates
+      // when the UDPServer receives a datagram from address:port,
+      // it will hand the containing the datagram to this tester. This way multiple
+      // testers can listen to same socket
       expectReplyFrom(workerThreads_.back(),
                       pair->remote->address,
                       pair->remote->port);
@@ -50,7 +48,7 @@ void IceCandidateTester::startTestingPairs(bool controller)
       workerThreads_.back()->setCandidatePair(pair);
       workerThreads_.back()->isController(controller);
 
-      // starts the binding tests. For non-controller also does the nomination.
+      // starts the binding tests. For non-controller also handles the nomination.
       workerThreads_.back()->start();
     }
   }
@@ -118,6 +116,8 @@ void IceCandidateTester::routeDatagram(QNetworkDatagram message)
   }
   else if (!message.destinationAddress().isNull() && message.senderPort() != -1)
   {
+    // TODO: This is where we should detect if we should add Peer Reflexive candidates.
+
     printWarning(this, "Could not find listener for data", {"Address"}, {
                  message.destinationAddress().toString() + ":" +
                  QString::number(message.destinationPort()) + " <- " +

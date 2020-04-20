@@ -14,17 +14,26 @@ class IceCandidateTester : public QObject
 public:
   IceCandidateTester();
 
+  // bind to port this tester is responsible for
   bool bindInterface(QHostAddress interface, quint16 port);
 
+  // add one candidate we expect to get messages from.
   void addCandidate(std::shared_ptr<ICEPair> pair)
   {
     pairs_.push_back(pair);
   }
 
+  // start sending of STUN binding requests for all added candidates
+  // each candidate will have its own thread.
   void startTestingPairs(bool controller);
 
+  // stops all testing
   void endTests();
 
+  // nominate selected pairs as controller. Does separate nomination
+  // for all components. Note that this concerns components of one candidate
+  // where as startTestingPairs is concerned with one interface/port pair
+  // of all candidates
   bool performNomination(QList<std::shared_ptr<ICEPair> > &nominated);
 
 signals:
@@ -32,6 +41,9 @@ signals:
   void controlleeNominationDone(std::shared_ptr<ICEPair> connection);
 
 private slots:
+
+  // finds which pair this packet belongs to
+  // TODO: should also detect if we should add a peer reflexive candidate
   void routeDatagram(QNetworkDatagram message);
 
 private:

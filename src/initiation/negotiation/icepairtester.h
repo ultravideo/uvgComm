@@ -16,12 +16,9 @@ public:
   ~IcePairTester();
   void setCandidatePair(std::shared_ptr<ICEPair> pair);
 
-  // controller_ defines the course of action after candiate pair has been validated.
-  // If the ConnectionTester belongs to FlowAgent it terminates immediately after
-  // confirming the validity of pair and FlowAgent can start the nomination process
-  //
-  // If the owner is instead FlowAgent, ConnectionTester start responding to nomination
-  // requests after it has concluded the candidate verification
+  // Whether we are the controller affects how testing is performed. Most
+  // importantly non-controller waits for nomination after successful binding
+  // while controller exits and performs nomination later.
   void isController(bool controller);
 
   // Send the nominated candidate to ICE_CONTROLLED agent
@@ -29,12 +26,14 @@ public:
 
   void recvStunMessage(QNetworkDatagram message);
 
+  // helper functions that get either actual address/port or
+  // relay address/port if needed
   QHostAddress getLocalAddress(std::shared_ptr<ICEInfo> info);
   quint16 getLocalPort(std::shared_ptr<ICEInfo> info);
 
 public slots:
-  // Because the Stun object used by ConnectionTester has it's own event loop, we must
-  // override the default quit function, call Stun::stopTesting() and then exit from ConnectionTester
+  // Call this when you want to stop testing.
+  // Also stops eventloop.
   void quit();
 
 signals:
@@ -46,7 +45,6 @@ signals:
   void nominationRecv();
   void requestRecv();
   void stopEventLoop();
-
 
 protected:
   void printMessage(QString message);
@@ -70,11 +68,10 @@ private:
 
 
 
-  // this function is called by the ICE_CONTROLLED agent
-  //
-  // It is called when the two clients have negotiated a list of possible candidates.
-  // The ICE_CONTROLLING agent selects RTP and RTCP candidates used for media streaming
-  // and sends these two candidates using STUN Binding request
+  // this function is called by the ICE_CONTROLLED agent when the two clients have
+  // negotiated a list of possible candidates.
+  // The ICE_CONTROLLING agent selects component candidates used for media streaming
+  // and sends these candidates using STUN Binding request
   //
   // ICE_CONTROLLED agent (caller of sendNominationResponse()) must send STUN Binding Requests
   // to all valid candidate address:port pairs to receive the nominations
@@ -120,13 +117,12 @@ private:
   std::shared_ptr<ICEPair> pair_;
   bool controller_;
 
-  // TODO [Encryption] Use TLS to send packet
   UDPServer *udp_;
 
   StunMessageFactory stunmsg_;
 
   // When waitFor(Stun|Nomination)(Request|Response) returns, the calling code should
   // check whether interrupt flag has been set. It means that the running thread has
-  // decided to terminate processing and Stun shouln't continue with the process any further
+  // decided to terminate processing and we shouln't continue any further
   bool interrupted_;
 };
