@@ -34,7 +34,7 @@ struct STUNRawMessage
   uint16_t length;
   uint32_t magicCookie;
   uint8_t transactionID[TRANSACTION_ID_SIZE];
-  unsigned char payload[0];
+  unsigned char payload[256];
 };
 
 class STUNMessage

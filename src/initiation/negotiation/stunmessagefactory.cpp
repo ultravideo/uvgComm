@@ -154,11 +154,10 @@ void StunMessageFactory::cacheRequest(STUNMessage request)
 QByteArray StunMessageFactory::hostToNetwork(STUNMessage& message)
 {
   auto attrs = message.getAttributes();
-  const size_t MSG_SIZE = sizeof(STUNRawMessage) + message.getLength();
+  const int MSG_SIZE = sizeof(STUNRawMessage) - 256 + message.getLength();
 
   auto ptr = std::unique_ptr<unsigned char[]>{
-    new unsigned char[STUN_MSG_MAX_SIZE]
-  };
+    new unsigned char[STUN_MSG_MAX_SIZE]};
 
   STUNRawMessage *rawMessage =
     static_cast<STUNRawMessage *>(static_cast<void *>(ptr.get()));
@@ -170,7 +169,6 @@ QByteArray StunMessageFactory::hostToNetwork(STUNMessage& message)
   memcpy(rawMessage->transactionID, message.getTransactionID(), TRANSACTION_ID_SIZE);
 
   uint16_t *attrPtr = (uint16_t *)rawMessage->payload;
-
   for (size_t i = 0, k = 0; i < attrs.size(); ++i, k += 2)
   {
     attrPtr[k + 0] = qToBigEndian(std::get<0>(attrs[i]));
@@ -184,8 +182,7 @@ QByteArray StunMessageFactory::hostToNetwork(STUNMessage& message)
   }
 
   return QByteArray(static_cast<const char *>(
-        static_cast<void *>(ptr.get())), MSG_SIZE
-  );
+        static_cast<void *>(ptr.get())), MSG_SIZE);
 }
 
 bool StunMessageFactory::networkToHost(QByteArray& message, STUNMessage& outSTUN)
