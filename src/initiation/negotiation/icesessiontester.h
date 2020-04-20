@@ -39,7 +39,7 @@ public slots:
 
   // current implementation ends testing if all components of a candidate
   // have succeeded
-  void endConcurrentTesting(std::shared_ptr<ICEPair> connection);
+  void componentSucceeded(std::shared_ptr<ICEPair> connection);
 
 protected:
   // handles the overall flow of testing so rest of Kvazzup is not

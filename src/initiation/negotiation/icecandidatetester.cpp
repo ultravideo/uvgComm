@@ -41,12 +41,10 @@ void IceCandidateTester::startTestingPairs(bool controller)
       // when the UDPServer receives a datagram from address:port,
       // it will hand the containing the datagram to this tester. This way multiple
       // testers can listen to same socket
-      expectReplyFrom(workerThreads_.back(),
-                      pair->remote->address,
-                      pair->remote->port);
+      listeners_[pair->remote->address][pair->remote->port] = workerThreads_.back();
 
       workerThreads_.back()->setCandidatePair(pair);
-      workerThreads_.back()->isController(controller);
+      workerThreads_.back()->setController(controller);
 
       // starts the binding tests. For non-controller also handles the nomination.
       workerThreads_.back()->start();
@@ -124,11 +122,4 @@ void IceCandidateTester::routeDatagram(QNetworkDatagram message)
                  message.senderAddress().toString() + ":" +
                  QString::number(message.senderPort())});
   }
-}
-
-
-void IceCandidateTester::expectReplyFrom(std::shared_ptr<IcePairTester> ct,
-                                         QString& address, quint16 port)
-{
-    listeners_[address][port] = ct;
 }

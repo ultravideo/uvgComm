@@ -19,7 +19,7 @@ public:
   // Whether we are the controller affects how testing is performed. Most
   // importantly non-controller waits for nomination after successful binding
   // while controller exits and performs nomination later.
-  void isController(bool controller);
+  void setController(bool controller);
 
   // Send the nominated candidate to ICE_CONTROLLED agent
   bool sendNominationRequest(ICEPair *pair);

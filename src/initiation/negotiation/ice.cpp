@@ -215,7 +215,7 @@ QList<std::shared_ptr<ICEPair>> ICE::makeCandidatePairs(
 
 void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local,
     QList<std::shared_ptr<ICEInfo>>& remote,
-    uint32_t sessionID, bool flowController)
+    uint32_t sessionID, bool controller)
 {
   printImportant(this, "Starting ICE nomination");
 
@@ -224,7 +224,7 @@ void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local,
   // When testing is finished it is connected tonominationSucceeded/nominationFailed
 
   // nomination-related memory is released by cleanupSession
-  if (flowController)
+  if (controller)
   {
     nominationInfo_[sessionID].agent = new IceSessionTester(true, 10000);
   }

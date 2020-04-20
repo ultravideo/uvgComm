@@ -33,7 +33,7 @@ class ICE : public QObject
     // Does not block
     void startNomination(QList<std::shared_ptr<ICEInfo>>& local,
                          QList<std::shared_ptr<ICEInfo>>& remote,
-                         uint32_t sessionID, bool flowController);
+                         uint32_t sessionID, bool controller);
 
     // get nominated ICE pairs for sessionID
     QList<std::shared_ptr<ICEPair> > getNominated(uint32_t sessionID);

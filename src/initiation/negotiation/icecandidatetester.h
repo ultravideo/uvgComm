@@ -48,9 +48,6 @@ private slots:
 
 private:
 
-  void expectReplyFrom(std::shared_ptr<IcePairTester> ct,
-                       QString& address, quint16 port);
-
   UDPServer udp_;
   QList<std::shared_ptr<ICEPair>> pairs_;
 

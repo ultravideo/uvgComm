@@ -5,6 +5,15 @@
 
 #include <QEventLoop>
 
+const int STUN_RETRIES = 20;
+const int STUN_RESPONSE_RETRIES = 3;
+const int STUN_WAIT_MS = 20;
+
+const int STUN_NOMINATION_RETRIES = 25;
+const int STUN_NOMINATION_RESPONSE_WAITS = 128;
+const int STUN_NOMINATION_RESPONSE_RETRIES = 5;
+
+
 IcePairTester::IcePairTester(UDPServer* server):
   pair_(nullptr),
   controller_(false),
@@ -49,7 +58,7 @@ void IcePairTester::setCandidatePair(std::shared_ptr<ICEPair> pair)
 }
 
 
-void IcePairTester::isController(bool controller)
+void IcePairTester::setController(bool controller)
 {
   controller_ = controller;
 }
@@ -182,7 +191,7 @@ bool IcePairTester::controllerSendBindingRequest(ICEPair *pair)
 
   QByteArray message = stunmsg_.hostToNetwork(msg);
 
-  if (!sendRequestWaitResponse(pair, message, 20, 20))
+  if (!sendRequestWaitResponse(pair, message, STUN_RETRIES, STUN_WAIT_MS))
   {
     return false;
   }
@@ -191,9 +200,9 @@ bool IcePairTester::controllerSendBindingRequest(ICEPair *pair)
   // remote's binding request and responed to them
   bool msgReceived = false;
 
-  for (int i = 0; i < 20; ++i)
+  for (int i = 0; i < STUN_RETRIES; ++i)
   {
-    if (waitForStunRequest(20 * (i + 1)))
+    if (waitForStunRequest(STUN_WAIT_MS * (i + 1)))
     {
       if (interrupted_)
       {
@@ -206,7 +215,7 @@ bool IcePairTester::controllerSendBindingRequest(ICEPair *pair)
       message     = stunmsg_.hostToNetwork(msg);
       msgReceived = true;
 
-      for (int k = 0; k < 3; ++k)
+      for (int k = 0; k < STUN_RESPONSE_RETRIES; ++k)
       {
         if (!udp_->sendData(message,
                             getLocalAddress(pair->local),
@@ -215,8 +224,9 @@ bool IcePairTester::controllerSendBindingRequest(ICEPair *pair)
         {
           break;
         }
+
         // wait until sending the response again
-        QThread::msleep(20);
+        QThread::msleep(STUN_WAIT_MS);
       }
       break;
     }
@@ -234,7 +244,7 @@ bool IcePairTester::controlleeSendBindingRequest(ICEPair *pair)
   STUNMessage msg    = stunmsg_.createRequest();
   QByteArray message = stunmsg_.hostToNetwork(msg);
 
-  for (int i = 0; i < 20; ++i)
+  for (int i = 0; i < STUN_RETRIES; ++i)
   {
     if(!udp_->sendData(
       message,
@@ -245,7 +255,7 @@ bool IcePairTester::controlleeSendBindingRequest(ICEPair *pair)
       break;
     }
 
-    if (waitForStunRequest(20 * (i + 1)))
+    if (waitForStunRequest(STUN_WAIT_MS * (i + 1)))
     {
       if (interrupted_)
       {
@@ -258,14 +268,14 @@ bool IcePairTester::controlleeSendBindingRequest(ICEPair *pair)
       message     = stunmsg_.hostToNetwork(msg);
       msgReceived = true;
 
-      for (int k = 0; k < 3; ++k)
+      for (int k = 0; k < STUN_RESPONSE_RETRIES; ++k)
       {
         udp_->sendData(message,
                        getLocalAddress(pair->local),
                        QHostAddress(pair->remote->address),
                        pair->remote->port);
 
-        QThread::msleep(20);
+        QThread::msleep(STUN_WAIT_MS);
       }
 
       break;
@@ -295,7 +305,7 @@ bool IcePairTester::controlleeSendBindingRequest(ICEPair *pair)
   // we're expecting a response from remote to this request
   stunmsg_.cacheRequest(request);
 
-  msgReceived = sendRequestWaitResponse(pair, message, 20, 20);
+  msgReceived = sendRequestWaitResponse(pair, message, STUN_RETRIES, STUN_WAIT_MS);
 
   return msgReceived;
 }
@@ -340,7 +350,9 @@ bool IcePairTester::sendNominationRequest(ICEPair *pair)
 
   QByteArray message  = stunmsg_.hostToNetwork(request);
 
-  bool responseRecv = sendRequestWaitResponse(pair, message, 25, 20);
+  bool responseRecv = sendRequestWaitResponse(pair, message,
+                                              STUN_NOMINATION_RETRIES,
+                                              STUN_WAIT_MS);
 
   return responseRecv;
 }
@@ -354,14 +366,14 @@ bool IcePairTester::sendNominationResponse(ICEPair *pair)
   STUNMessage msg     = stunmsg_.createRequest();
   QByteArray message = stunmsg_.hostToNetwork(msg);
 
-  for (int i = 0; i < 128; ++i)
+  for (int i = 0; i < STUN_NOMINATION_RESPONSE_WAITS; ++i)
   {
     udp_->sendData(message,
                    getLocalAddress(pair->local),
                    QHostAddress(pair->remote->address),
                    pair->remote->port);
 
-    if (waitForNominationRequest(20 * (i + 1)))
+    if (waitForNominationRequest(STUN_WAIT_MS * (i + 1)))
     {
       if (interrupted_)
       {
@@ -374,14 +386,14 @@ bool IcePairTester::sendNominationResponse(ICEPair *pair)
       message = stunmsg_.hostToNetwork(msg);
       nominationRecv = true;
 
-      for (int i = 0; i < 5; ++i)
+      for (int i = 0; i < STUN_NOMINATION_RESPONSE_RETRIES; ++i)
       {
         udp_->sendData(message,
                        getLocalAddress(pair->local),
                        QHostAddress(pair->remote->address),
                        pair->remote->port);
 
-        QThread::msleep(20);
+        QThread::msleep(STUN_WAIT_MS);
       }
 
       break;

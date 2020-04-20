@@ -33,7 +33,7 @@ void IceSessionTester::init(QList<std::shared_ptr<ICEPair>> *pairs,
 }
 
 
-void IceSessionTester::endConcurrentTesting(std::shared_ptr<ICEPair> connection)
+void IceSessionTester::componentSucceeded(std::shared_ptr<ICEPair> connection)
 {
   Q_ASSERT(connection != nullptr);
 
@@ -125,14 +125,14 @@ void IceSessionTester::run()
     {
       QObject::connect(
           interface.get(), &IceCandidateTester::controllerPairFound,
-          this,            &IceSessionTester::endConcurrentTesting,
+          this,            &IceSessionTester::componentSucceeded,
           Qt::DirectConnection);
     }
     else
     {
       QObject::connect(
           interface.get(), &IceCandidateTester::controlleeNominationDone,
-          this,            &IceSessionTester::endConcurrentTesting,
+          this,            &IceSessionTester::componentSucceeded,
           Qt::DirectConnection);
     }
 
