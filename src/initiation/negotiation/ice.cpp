@@ -277,11 +277,12 @@ void ICE::handeICESuccess(QList<std::shared_ptr<ICEPair> > &streams, uint32_t se
   {
     QStringList names;
     QStringList values;
-    for(auto& stream : streams)
+    for(auto& component : streams)
     {
-      names.append("Component " + QString::number(stream->local->component));
-      values.append(stream->local->address + ":" + QString::number(stream->local->port) + " <-> " +
-                    stream->remote->address + ":" + QString::number(stream->remote->port));
+      names.append("Component " + QString::number(component->local->component));
+      values.append(component->local->address + ":" + QString::number(component->local->port)
+                    + " <-> " +
+                    component->remote->address + ":" + QString::number(component->remote->port));
     }
 
     printDebug(DEBUG_IMPORTANT, this, "ICE finished.", names, values);
@@ -298,8 +299,9 @@ void ICE::handeICESuccess(QList<std::shared_ptr<ICEPair> > &streams, uint32_t se
 void ICE::handleICEFailure(uint32_t sessionID)
 {
   Q_ASSERT(sessionID != 0);
-  nominationInfo_[sessionID].agent->quit();
   printDebug(DEBUG_ERROR, "ICE",  "Failed to nominate RTP/RTCP candidates!");
+
+  nominationInfo_[sessionID].agent->quit();
   nominationInfo_[sessionID].connectionNominated = false;
   emit nominationFailed(sessionID);
 }
@@ -307,11 +309,12 @@ void ICE::handleICEFailure(uint32_t sessionID)
 
 QList<std::shared_ptr<ICEPair>> ICE::getNominated(uint32_t sessionID)
 {
-  if (nominationInfo_.find(sessionID) != nominationInfo_.end())
+  if (nominationInfo_.find(sessionID) != nominationInfo_.end() &&
+      nominationInfo_[sessionID].connectionNominated)
   {
     return nominationInfo_[sessionID].selectedPairs;
   }
-  printProgramError(this, "No selected ICE candidatse stored");
+  printProgramError(this, "No selected ICE candidates stored.");
   return QList<std::shared_ptr<ICEPair>>();
 }
 
