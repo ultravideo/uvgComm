@@ -145,6 +145,17 @@ StatisticsInterface* CallWindow::createStatsWindow()
   return statsWindow_;
 }
 
+void CallWindow::on_addContact_clicked()
+{
+  printNormal(this, "Clicked");
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+  QString serverAddress = settings.value("sip/ServerAddress").toString();
+  ui_->address->setText(serverAddress);
+  ui_->username->setText("username");
+
+  changedSIPText(serverAddress);
+}
+
 void CallWindow::addContact()
 {
   // TODO: support dns
@@ -157,6 +168,11 @@ void CallWindow::addContact()
     ui_->addressLabel->setText("Please set an IP address!");
     ui_->addressLabel->setStyleSheet("QLabel { color : red; }");
   }
+  else if (ui_->username->text() == "")
+  {
+    ui_->usernameLabel->setText("Please set username!");
+    ui_->usernameLabel->setStyleSheet("QLabel { color : red; }");
+  }
   else
   {
     contacts_.addContact(partInt_, ui_->peerName->text(), ui_->username->text(), ui_->address->text());
@@ -167,12 +183,14 @@ void CallWindow::addContact()
     ui_->address->clear();
     ui_->addressLabel->setText("Address");
     ui_->addressLabel->setStyleSheet("QLabel { color : black; }");
+
+    ui_->usernameLabel->setText("Username");
+    ui_->usernameLabel->setStyleSheet("QLabel { color : black; }");
     ui_->Add_contact_widget->hide();
 
     ui_->addContact->show();
   }
 }
-
 
 
 void CallWindow::displayOutgoingCall(uint32_t sessionID, QString name)

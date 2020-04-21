@@ -416,17 +416,27 @@
            <widget class="QLineEdit" name="username">
             <property name="maximumSize">
              <size>
-              <width>200</width>
+              <width>1000</width>
               <height>16777215</height>
              </size>
             </property>
             <property name="text">
              <string>username</string>
             </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
            </widget>
           </item>
           <item row="2" column="0">
            <widget class="QLabel" name="usernameLabel">
+            <property name="font">
+             <font>
+              <pointsize>12</pointsize>
+              <weight>75</weight>
+              <bold>true</bold>
+             </font>
+            </property>
             <property name="text">
              <string>Username</string>
             </property>
@@ -443,6 +453,13 @@
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
+            <property name="font">
+             <font>
+              <pointsize>12</pointsize>
+              <weight>75</weight>
+              <bold>true</bold>
+             </font>
+            </property>
             <property name="text">
              <string>Display Name</string>
             </property>
@@ -458,6 +475,13 @@
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
+            </property>
+            <property name="font">
+             <font>
+              <pointsize>12</pointsize>
+              <weight>75</weight>
+              <bold>true</bold>
+             </font>
             </property>
             <property name="text">
              <string>Address</string>
@@ -477,12 +501,15 @@
             </property>
             <property name="maximumSize">
              <size>
-              <width>200</width>
+              <width>1000</width>
               <height>16777215</height>
              </size>
             </property>
             <property name="text">
              <string>server</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
             </property>
            </widget>
           </item>
@@ -509,9 +536,12 @@
             </property>
             <property name="maximumSize">
              <size>
-              <width>200</width>
+              <width>1000</width>
               <height>16777215</height>
              </size>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
             </property>
            </widget>
           </item>

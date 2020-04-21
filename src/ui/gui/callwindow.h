@@ -90,6 +90,8 @@ public slots:
   void on_settings_button_clicked();
   void on_about_clicked();
 
+  void on_addContact_clicked();
+
   void changedSIPText(const QString &text);
 
 private:
