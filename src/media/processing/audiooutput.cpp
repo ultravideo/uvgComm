@@ -7,8 +7,6 @@
 
 #include <QDateTime>
 
-const int BUFFER_SIZE = 32768;
-
 AudioOutput::AudioOutput(StatisticsInterface *stats, uint32_t peer):
   QObject(),
   stats_(stats),
@@ -16,7 +14,6 @@ AudioOutput::AudioOutput(StatisticsInterface *stats, uint32_t peer):
   audioOutput_(nullptr),
   output_(nullptr),
   format_(),
-  buffer_(BUFFER_SIZE, 0),
   peer_(peer)
 {}
 
@@ -36,8 +33,6 @@ void AudioOutput::initializeAudio(QAudioFormat format, std::shared_ptr<Filter> s
   {
     format_ = format;
   }
-
-  connect(this, SIGNAL(inputAvailable()), SLOT(receiveInput()));
 
   createAudioOutput();
 
@@ -86,29 +81,46 @@ void AudioOutput::takeInput(std::unique_ptr<Data> input)
   int64_t delay = QDateTime::currentMSecsSinceEpoch() -
       ((uint64_t)input->presentationTime.tv_sec * 1000 +
        (uint64_t)input->presentationTime.tv_usec/1000);
+
   stats_->receiveDelay(peer_, "Audio", delay);
 
-  bufferMutex_.lock();
-  m_buffer.append((const char*)input->data.get(), input->data_size);
-  bufferMutex_.unlock();
-  emit inputAvailable();
-}
-
-
-void AudioOutput::receiveInput()
-{
   if (audioOutput_ && audioOutput_->state() != QAudio::StoppedState)
   {
-    int chunks = audioOutput_->bytesFree()/audioOutput_->periodSize();
+    int audioChunks = audioOutput_->bytesFree()/audioOutput_->periodSize();
 
-    while (chunks)
+    printDebug(DEBUG_NORMAL, this, "Output values", {"input size", "audioOutput_->periodSize()", "output chunks"}, {
+                 QString::number(input->data_size),
+                 QString::number(audioOutput_->periodSize()),
+                 QString::number(audioChunks)});
+
+    const char *pointer = (char *)input->data.get();
+
+    int dataLeft = input->data_size;
+    while (audioChunks && dataLeft >= audioOutput_->periodSize())
     {
-      const qint64 len = readData(buffer_.data(), audioOutput_->periodSize());
-      if (len)
-        output_->write(buffer_.data(), len);
-      if (len != audioOutput_->periodSize())
+      qint64 written = output_->write(pointer, audioOutput_->periodSize());
+
+      if (written == -1)
+      {
+        printError(this, "Audio output error");
         break;
-      --chunks;
+      }
+      dataLeft -= written;
+      pointer += written;
+
+      --audioChunks;
+    }
+
+    if (dataLeft >= audioOutput_->periodSize())
+    {
+      printWarning(this, "Audio output data overflow. "
+                         "Output device cannot play this much audio. Discarding audio");
+    }
+    else if (dataLeft > 0 && audioChunks > 0)
+    {
+      printError(this, "Audio framesize is wrong. Discarding some part of it."
+                       "It is recommended to use the same frame size as output period. "
+                       "This could be fixed by recording the leftovers also.");
     }
   }
 }
@@ -130,19 +142,4 @@ void AudioOutput::stop()
   {
     audioOutput_->suspend();
   }
-}
-
-
-qint64 AudioOutput::readData(char *data, qint64 len)
-{
-  bufferMutex_.lock();
-  const qint64 chunk = qMin((qint64)m_buffer.size(), len);
-
-  if (!m_buffer.isEmpty())
-  {
-    memcpy(data, m_buffer.constData(), chunk);
-    m_buffer.remove(0,chunk);
-  }
-  bufferMutex_.unlock();
-  return chunk;
 }

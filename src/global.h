@@ -11,7 +11,7 @@ const bool AEC_ENABLED = true;
 // how often registrations are sent in seconds
 const int REGISTER_INTERVAL = 600;
 
-const uint16_t AUDIO_FRAMES_PER_SECOND = 50;
+const uint16_t AUDIO_FRAMES_PER_SECOND = 25;
 
 const int STREAM_COMPONENTS = 4;
 
