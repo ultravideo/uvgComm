@@ -192,11 +192,17 @@ void Settings::getSettings(bool changedDevice)
 
 void Settings::resetFaultySettings()
 {
-  printWarning(this, "Could not restore settings because they were corrupted! Resetting settings from UI");
+  printWarning(this, "Could not restore settings! Resetting settings from defaults.");
 
   // record GUI settings in hope that they are correct ( is case by default )
   saveSettings();
   mediaSettings_.resetSettings(getDeviceID(basicUI_->videoDevice, "video/DeviceID", "video/Device"));
+
+  // we set the connecting to true at this point because we want two things:
+  // 1) that Kvazzup doesn't connect to any server without user permission
+  // 2) that connecting to server is default since it is the easiest way to use Kvazzup
+  // These two conditions can only be achieved by modifying UI after settings have been saved
+  basicUI_->autoConnect->setChecked(true);
   
   // Show resetted settings to user so she can fix them manually
   show();
