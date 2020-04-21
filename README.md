@@ -1,19 +1,20 @@
 Kvazzup
 =======
 
-Kvazzup is an HEVC video call software. Kvazzup is written in C++ and built on Qt framework. Kvazzup also makes use of the following open-source tools: Kvazaar for HEVC encoding, OpenHEVC for HEVC decoding, Opus Codec for audio encoding and decoding, and kvzRTP for Streaming Media. Currently, Kvazzup operates on Windows and it can be compiled using MinGW or Visual Studio. 
+Kvazzup is an HEVC video call software written in C++ and built on [Qt](https://www.qt.io/) framework. Kvazzup makes use of the following open-source tools: Kvazaar for HEVC encoding, OpenHEVC for HEVC decoding, Opus Codec for audio encoding and decoding, kvzRTP for Streaming Media and Speex DSP for AEC. Currently, Kvazzup operates on Windows and it can be compiled using MinGW or Visual Studio. 
 
 ## Features 
 
 Kvazzup has the following features:  
 - SIP server integration for iniating a call with anyone who has registered to the server.
-- Peer-to-peer call intiation (firewall needs to be open).
-- Peer-to-peer media transport.
-- Contact list.  
+- Peer-to-peer call intiation (firewall needs to have an open port 5060 for incoming TCP).
+- Peer-to-peer media transport through firewall with ICE.
+- Contact list.
 - Enable/disable audio or video.  
 - Screen sharing.
 - Live call parameter adjustment. 
-- A statistics window.
+- A statistics window for monitoring the call.
+- Settings which are saved to disk.
 
 
 ## Compile Kvazzup
@@ -30,9 +31,9 @@ Build these libraries using MinGW or Visual Studio. Qt Creator is recommended to
 
 ## Planned features
 
-- Authentication
+- Authentication (passwords)
 - Contact precense monitoring
 - Video conferences
 - Encryption
-- Linux support
-- Automatic call parameter adjustment
+- Linux support (compiles, but camera issues prevent resolution changes)
+- Automatic call parameter adjustment (currently everything is manual)
