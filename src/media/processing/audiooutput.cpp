@@ -1,20 +1,22 @@
 #include "audiooutput.h"
 
-#include "audiooutputdevice.h"
+#include "filter.h"
+#include "statisticsinterface.h"
 
 #include "common.h"
 
-const int BufferSize      = 32768;
+#include <QDateTime>
+
+const int BUFFER_SIZE = 32768;
 
 AudioOutput::AudioOutput(StatisticsInterface *stats, uint32_t peer):
   QObject(),
   stats_(stats),
   device_(QAudioDeviceInfo::defaultOutputDevice()),
-  source_(nullptr),
   audioOutput_(nullptr),
   output_(nullptr),
   format_(),
-  buffer_(BufferSize, 0),
+  buffer_(BUFFER_SIZE, 0),
   peer_(peer)
 {}
 
@@ -23,7 +25,7 @@ AudioOutput::~AudioOutput()
 {}
 
 
-void AudioOutput::initializeAudio(QAudioFormat format)
+void AudioOutput::initializeAudio(QAudioFormat format, std::shared_ptr<Filter> source)
 {
   QAudioDeviceInfo info(device_);
   if (!info.isFormatSupported(format)) {
@@ -35,14 +37,16 @@ void AudioOutput::initializeAudio(QAudioFormat format)
     format_ = format;
   }
 
-  if(source_)
-    delete source_;
-
-  source_ = new AudioOutputDevice(stats_, peer_);
-
-  connect(source_, SIGNAL(inputAvailable()), SLOT(receiveInput()));
+  connect(this, SIGNAL(inputAvailable()), SLOT(receiveInput()));
 
   createAudioOutput();
+
+  Q_ASSERT(source != nullptr);
+
+  if(source)
+  {
+    source->addDataOutCallback(this, &AudioOutput::takeInput);
+  }
 }
 
 
@@ -53,7 +57,7 @@ void AudioOutput::createAudioOutput()
     delete audioOutput_;
   }
   audioOutput_ = new QAudioOutput(device_, format_, this);
-  source_->start();
+
   // pull mode
   output_ = audioOutput_->start();
 }
@@ -61,15 +65,12 @@ void AudioOutput::createAudioOutput()
 
 void AudioOutput::deviceChanged(int index)
 {
-  printDebug(DEBUG_WARNING, this, "Audio output device change not implemented fully.",
-    {"Index"}, {QString::number(index)});
+  Q_UNUSED(index);
+  printUnimplemented(this, "Audio output device change not implemented fully.");
 
-  //m_pushTimer->stop();
-  source_->stop();
   audioOutput_->stop();
   audioOutput_->disconnect(this);
-  //device = m_deviceBox->itemData(index).value<QAudioDeviceInfo>();
-  initializeAudio(format_);
+  //initializeAudio(format_);
 }
 
 
@@ -80,13 +81,29 @@ void AudioOutput::volumeChanged(int value)
 }
 
 
+void AudioOutput::takeInput(std::unique_ptr<Data> input)
+{
+  int64_t delay = QDateTime::currentMSecsSinceEpoch() -
+      ((uint64_t)input->presentationTime.tv_sec * 1000 +
+       (uint64_t)input->presentationTime.tv_usec/1000);
+  stats_->receiveDelay(peer_, "Audio", delay);
+
+  bufferMutex_.lock();
+  m_buffer.append((const char*)input->data.get(), input->data_size);
+  bufferMutex_.unlock();
+  emit inputAvailable();
+}
+
+
 void AudioOutput::receiveInput()
 {
-  if (audioOutput_ && audioOutput_->state() != QAudio::StoppedState) {
+  if (audioOutput_ && audioOutput_->state() != QAudio::StoppedState)
+  {
     int chunks = audioOutput_->bytesFree()/audioOutput_->periodSize();
+
     while (chunks)
     {
-      const qint64 len = source_->read(buffer_.data(), audioOutput_->periodSize());
+      const qint64 len = readData(buffer_.data(), audioOutput_->periodSize());
       if (len)
         output_->write(buffer_.data(), len);
       if (len != audioOutput_->periodSize())
@@ -113,4 +130,19 @@ void AudioOutput::stop()
   {
     audioOutput_->suspend();
   }
+}
+
+
+qint64 AudioOutput::readData(char *data, qint64 len)
+{
+  bufferMutex_.lock();
+  const qint64 chunk = qMin((qint64)m_buffer.size(), len);
+
+  if (!m_buffer.isEmpty())
+  {
+    memcpy(data, m_buffer.constData(), chunk);
+    m_buffer.remove(0,chunk);
+  }
+  bufferMutex_.unlock();
+  return chunk;
 }

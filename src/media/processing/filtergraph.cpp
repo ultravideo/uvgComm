@@ -11,7 +11,6 @@
 #include "media/processing/displayfilter.h"
 #include "media/processing/scalefilter.h"
 #include "media/processing/audiocapturefilter.h"
-#include "media/processing/audiooutputdevice.h"
 #include "media/processing/audiooutput.h"
 #include "media/processing/opusencoderfilter.h"
 #include "media/processing/opusdecoderfilter.h"
@@ -38,6 +37,7 @@ FilterGraph::FilterGraph():
   // TODO negotiate these values with all included filters and SDP
   // TODO move these to settings and manage them automatically
   // TODO: at the moment uvgRTP does not support larger audio frames for pcm
+  // 48000 should be used with opus
   format_.setSampleRate(16000); 
   //format_.setSampleRate(48000);
   format_.setChannelCount(1);
@@ -422,7 +422,9 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
   addToGraph(audioSink, *graph);
   if (audioSink->outputType() == OPUSAUDIO)
   {
-    addToGraph(std::shared_ptr<Filter>(new OpusDecoderFilter(QString::number(sessionID), format_, stats_)),
+    addToGraph(std::shared_ptr<Filter>(new OpusDecoderFilter(QString::number(sessionID),
+                                                             format_, stats_)
+                                       ),
                *graph, graph->size() - 1);
   }
 
@@ -440,16 +442,15 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
   }
 
   peers_.at(sessionID - 1)->output = new AudioOutput(stats_, sessionID);
-  peers_.at(sessionID - 1)->output->initializeAudio(format_);
-  AudioOutputDevice* outputModule = peers_.at(sessionID - 1)->output->getOutputModule();
 
   if (AEC_ENABLED)
   {
-    outputModule->init(graph->at(graph->size() - 2));
+    peers_.at(sessionID - 1)->output->initializeAudio(format_,
+                                                      graph->at(graph->size() - 2));
   }
   else
   {
-    outputModule->init(graph->back());
+    peers_.at(sessionID - 1)->output->initializeAudio(format_, graph->back());
   }
 }
 
@@ -754,6 +755,7 @@ void FilterGraph::print()
       }
     }
   }
+
   videoDotFile += "}";
 
   QString aFilename="audiograph.dot";

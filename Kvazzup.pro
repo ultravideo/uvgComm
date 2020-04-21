@@ -84,7 +84,6 @@ SOURCES +=\
     src/media/processing/aecprocessor.cpp \
     src/media/processing/audiocapturefilter.cpp \
     src/media/processing/audiooutput.cpp \
-    src/media/processing/audiooutputdevice.cpp \
     src/media/processing/camerafilter.cpp \
     src/media/processing/cameraframegrabber.cpp \
     src/media/processing/displayfilter.cpp \
@@ -161,7 +160,6 @@ HEADERS  += \
     src/media/processing/aecprocessor.h \
     src/media/processing/audiocapturefilter.h \
     src/media/processing/audiooutput.h \
-    src/media/processing/audiooutputdevice.h \
     src/media/processing/camerafilter.h \
     src/media/processing/cameraframegrabber.h \
     src/media/processing/displayfilter.h \
