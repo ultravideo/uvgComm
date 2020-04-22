@@ -16,15 +16,15 @@ class AudioOutput : public QObject
 {
   Q_OBJECT
 public:
-  AudioOutput(StatisticsInterface* stats, uint32_t peer);
+  AudioOutput(StatisticsInterface* stats);
   virtual ~AudioOutput();
 
-  void initializeAudio(QAudioFormat format, std::shared_ptr<Filter> source);
+  void initializeAudio(QAudioFormat format);
   void start(); // resume audio output
   void stop(); // suspend audio output
 
   // Receives input from filter graph and tells output that there is input available
-  void takeInput(std::unique_ptr<Data> input);
+  void takeInput(std::unique_ptr<Data> input, uint32_t sessionID);
 
 private:
 
@@ -36,8 +36,6 @@ private:
   QAudioOutput *audioOutput_;
   QIODevice *output_; // not owned
   QAudioFormat format_;
-
-  uint32_t peer_;
 
 private slots:
   void deviceChanged(int index);

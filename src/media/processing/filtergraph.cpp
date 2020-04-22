@@ -16,6 +16,7 @@
 #include "media/processing/opusdecoderfilter.h"
 #include "media/processing/aecinputfilter.h"
 #include "media/processing/aecplaybackfilter.h"
+#include "media/processing/audiomixerfilter.h"
 
 #include "ui/gui/videointerface.h"
 
@@ -32,7 +33,9 @@ FilterGraph::FilterGraph():
   selfView_(nullptr),
   stats_(nullptr),
   format_(),
-  quitting_(false)
+  quitting_(false),
+  aec_(),
+  audioOutput_(nullptr)
 {
   // TODO negotiate these values with all included filters and SDP
   // TODO move these to settings and manage them automatically
@@ -330,7 +333,6 @@ void FilterGraph::checkParticipant(uint32_t sessionID)
     qDebug() << "FilterGraph: Adding participant to end with sessionID:" << sessionID;
   }
 
-  peers_.at(sessionID - 1)->output = nullptr;
   peers_.at(sessionID - 1)->audioSenders.clear();
   peers_.at(sessionID - 1)->videoSenders.clear();
 }
@@ -407,6 +409,12 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
   Q_ASSERT(sessionID);
   Q_ASSERT(audioSink);
 
+  if (audioOutput_ == nullptr)
+  {
+    audioOutput_ = std::make_shared<AudioOutput>(stats_);
+    audioOutput_->initializeAudio(format_);
+  }
+
   // just in case it is wanted later. AEC filter has to be attached
   if(AEC_ENABLED && audioProcessing_.size() == 0)
   {
@@ -423,8 +431,7 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
   if (audioSink->outputType() == OPUSAUDIO)
   {
     addToGraph(std::shared_ptr<Filter>(new OpusDecoderFilter(QString::number(sessionID),
-                                                             format_, stats_)
-                                       ),
+                                                             format_, stats_)),
                *graph, graph->size() - 1);
   }
 
@@ -441,16 +448,17 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
                "Did not attach echo cancellation");
   }
 
-  peers_.at(sessionID - 1)->output = new AudioOutput(stats_, sessionID);
-
   if (AEC_ENABLED)
   {
-    peers_.at(sessionID - 1)->output->initializeAudio(format_,
-                                                      graph->at(graph->size() - 2));
+    addToGraph(std::make_shared<AudioMixerFilter>(QString::number(sessionID),
+                                                  stats_, sessionID, audioOutput_),
+               *graph, graph->size() - 2);
   }
   else
   {
-    peers_.at(sessionID - 1)->output->initializeAudio(format_, graph->back());
+    addToGraph(std::make_shared<AudioMixerFilter>(QString::number(sessionID),
+                                                  stats_, sessionID, audioOutput_),
+               *graph, graph->size() - 1);
   }
 }
 
@@ -663,11 +671,6 @@ void FilterGraph::destroyPeer(Peer* peer)
     destroyFilters(*graph);
   }
 
-  if(peer->output)
-  {
-    delete peer->output;
-    peer->output = nullptr;
-  }
   delete peer;
 }
 

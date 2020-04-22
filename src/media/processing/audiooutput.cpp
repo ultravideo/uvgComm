@@ -7,14 +7,13 @@
 
 #include <QDateTime>
 
-AudioOutput::AudioOutput(StatisticsInterface *stats, uint32_t peer):
+AudioOutput::AudioOutput(StatisticsInterface *stats):
   QObject(),
   stats_(stats),
   device_(QAudioDeviceInfo::defaultOutputDevice()),
   audioOutput_(nullptr),
   output_(nullptr),
-  format_(),
-  peer_(peer)
+  format_()
 {}
 
 
@@ -22,7 +21,7 @@ AudioOutput::~AudioOutput()
 {}
 
 
-void AudioOutput::initializeAudio(QAudioFormat format, std::shared_ptr<Filter> source)
+void AudioOutput::initializeAudio(QAudioFormat format)
 {
   QAudioDeviceInfo info(device_);
   if (!info.isFormatSupported(format)) {
@@ -35,13 +34,6 @@ void AudioOutput::initializeAudio(QAudioFormat format, std::shared_ptr<Filter> s
   }
 
   createAudioOutput();
-
-  Q_ASSERT(source != nullptr);
-
-  if(source)
-  {
-    source->addDataOutCallback(this, &AudioOutput::takeInput);
-  }
 }
 
 
@@ -76,14 +68,8 @@ void AudioOutput::volumeChanged(int value)
 }
 
 
-void AudioOutput::takeInput(std::unique_ptr<Data> input)
+void AudioOutput::takeInput(std::unique_ptr<Data> input, uint32_t sessionID)
 {
-  int64_t delay = QDateTime::currentMSecsSinceEpoch() -
-      ((uint64_t)input->presentationTime.tv_sec * 1000 +
-       (uint64_t)input->presentationTime.tv_usec/1000);
-
-  stats_->receiveDelay(peer_, "Audio", delay);
-
   if (audioOutput_ && audioOutput_->state() != QAudio::StoppedState)
   {
     int audioChunks = audioOutput_->bytesFree()/audioOutput_->periodSize();
@@ -110,6 +96,13 @@ void AudioOutput::takeInput(std::unique_ptr<Data> input)
 
       --audioChunks;
     }
+
+    // Add audio delay to statistics
+    int64_t delay = QDateTime::currentMSecsSinceEpoch() -
+        ((uint64_t)input->presentationTime.tv_sec * 1000 +
+         (uint64_t)input->presentationTime.tv_usec/1000);
+
+    stats_->receiveDelay(sessionID, "Audio", delay);
 
     if (dataLeft >= audioOutput_->periodSize())
     {

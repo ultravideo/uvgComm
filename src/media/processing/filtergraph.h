@@ -78,8 +78,6 @@ private:
     // Each graphsegment receives one mediastream.
     std::vector<std::shared_ptr<GraphSegment>> videoReceivers;
     std::vector<std::shared_ptr<GraphSegment>> audioReceivers;
-
-    AudioOutput* output; // plays audio coming from this peer
   };
 
   // destroy all filters associated with this peer.
@@ -109,4 +107,6 @@ private:
   bool quitting_;
 
   std::shared_ptr<AECInputFilter> aec_;
+
+  std::shared_ptr<AudioOutput> audioOutput_;
 };
