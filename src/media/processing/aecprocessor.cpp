@@ -7,12 +7,17 @@
 
 
 bool PREPROCESSOR = true;
+
+// I tested this to be the best or at least close enough
+// this is also recommended by speex documentation
+// if you are in a large room, optimal time may be larger.
 const int REVERBERATION_TIME_MS = 100;
 
 AECProcessor::AECProcessor(QAudioFormat format):
   format_(format),
   samplesPerFrame_(format.sampleRate()/AUDIO_FRAMES_PER_SECOND),
-  global_preprocessor_(nullptr)
+  global_preprocessor_(nullptr),
+  suppressNoInput_(false)
 {
 
   global_preprocessor_ = speex_preprocess_state_init(samplesPerFrame_,
@@ -23,10 +28,12 @@ AECProcessor::AECProcessor(QAudioFormat format):
   void* state = new int(1);
   speex_preprocess_ctl(global_preprocessor_,
                        SPEEX_PREPROCESS_SET_AGC, state);
+  speex_preprocess_ctl(global_preprocessor_,
+                       SPEEX_PREPROCESS_SET_DENOISE, state);
   //speex_preprocess_ctl(global_preprocessor_,
   //                     SPEEX_PREPROCESS_SET_DEREVERB, state);
 
-  printNormal(this, "Set AGC preprocessor");
+  printNormal(this, "Set global audio preprocessor options");
 }
 
 
@@ -129,12 +136,6 @@ std::unique_ptr<uchar[]> AECProcessor::processInputFrame(std::unique_ptr<uchar[]
   echoMutex_.lock();
   for (auto& echo : echoes_)
   {
-    if(format_.channelCount() == 1 &&
-       echo.second->preprocess_state != nullptr)
-    {
-      speex_preprocess_run(echo.second->preprocess_state, (int16_t*)input.get());
-    }
-
     if (!echo.second->frames.empty())
     {
       // remove echo queue so we use newer echo frames.
@@ -149,9 +150,18 @@ std::unique_ptr<uchar[]> AECProcessor::processInputFrame(std::unique_ptr<uchar[]
 
       input = processInput(echo.second->echo_state, std::move(input), std::move(echoFrame));
 
+      // preprocess must be done after echo cancellation
+      if(format_.channelCount() == 1 &&
+         echo.second->preprocess_state != nullptr)
+      {
+        speex_preprocess_run(echo.second->preprocess_state, (int16_t*)input.get());
+      }
+
+      suppressNoInput_ = false;
     }
-    else
+    else if (!suppressNoInput_)
     {
+      suppressNoInput_ = true;
       printDebug(DEBUG_WARNING, "AEC Processor", "No echo to process");
     }
   }

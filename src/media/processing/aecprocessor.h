@@ -9,6 +9,11 @@
 #include <deque>
 #include <memory>
 
+// This class implements Speex Echo cancellation. After some testing I think
+// it is implemented optimally, but it does not seem very good. It blocks some
+// voices, but not nearly all of them. I guess it is better than nothing, but
+// it could be replaced at some point. The Automatic gain control is enabled
+
 class AECProcessor : public QObject
 {
   Q_OBJECT
@@ -46,4 +51,6 @@ private:
   uint32_t samplesPerFrame_;
 
   SpeexPreprocessState *global_preprocessor_;
+
+  bool suppressNoInput_;
 };
