@@ -124,15 +124,6 @@ std::unique_ptr<uchar[]> AECProcessor::processInputFrame(std::unique_ptr<uchar[]
     return nullptr;
   }
 
-
-  // Do preprocess trickery defined in constructor once for input.
-  if(format_.channelCount() == 1 &&
-     global_preprocessor_ != nullptr)
-  {
-    //printNormal(this, "Running preprocessor");
-    speex_preprocess_run(global_preprocessor_, (int16_t*)input.get());
-  }
-
   echoMutex_.lock();
   for (auto& echo : echoes_)
   {
@@ -166,6 +157,14 @@ std::unique_ptr<uchar[]> AECProcessor::processInputFrame(std::unique_ptr<uchar[]
     }
   }
   echoMutex_.unlock();
+
+  // Do preprocess trickery defined in constructor once for input.
+  if(format_.channelCount() == 1 &&
+     global_preprocessor_ != nullptr)
+  {
+    //printNormal(this, "Running preprocessor");
+    speex_preprocess_run(global_preprocessor_, (int16_t*)input.get());
+  }
 
   return input;
 }
