@@ -83,21 +83,28 @@ void AudioOutput::takeInput(std::unique_ptr<Data> input, uint32_t sessionID)
     stats_->receiveDelay(sessionID, "Audio", delay);
 
     int dataLeft = input->data_size;
-    std::unique_ptr<uchar[]> outputFrame = mixAudio(std::move(input), sessionID);
 
-    if (outputFrame == nullptr)
+    // we record one sample to buffer in case there is a packet loss,
+    // just so we don't have any breaks
+    std::unique_ptr<uchar[]> outputFrame;
+
+    if (inputs_ < 2)
     {
-      return;
+      outputFrame = std::move(input->data);
+    }
+    else
+    {
+      outputFrame = mixAudio(std::move(input), sessionID);
+
+      // if we are still waiting for other samples to mix
+      if (outputFrame == nullptr)
+      {
+        return;
+      }
     }
 
     int audioChunks = audioOutput_->bytesFree()/audioOutput_->periodSize();
-/*
-    printDebug(DEBUG_NORMAL, this, "Output values", {"input size", "audioOutput_->periodSize()",
-                                                     "output chunks"}, {
-                 QString::number(dataLeft),
-                 QString::number(audioOutput_->periodSize()),
-                 QString::number(audioChunks)});
-*/
+
     const char *pointer = (char *)outputFrame.get();
     while (audioChunks > 0 && dataLeft >= audioOutput_->periodSize())
     {
@@ -149,7 +156,6 @@ std::unique_ptr<uchar[]> AudioOutput::mixAudio(std::unique_ptr<Data> input, uint
     if (mixingBuffer_.size() == inputs_)
     {
       outputFrame = doMixing(size);
-      mixingBuffer_.clear();
     }
   }
 
@@ -161,7 +167,13 @@ std::unique_ptr<uchar[]> AudioOutput::mixAudio(std::unique_ptr<Data> input, uint
 
 std::unique_ptr<uchar[]> AudioOutput::doMixing(uint32_t frameSize)
 {
-  //printNormal(this, "Mixing frame", {"Size"}, {QString::number(frameSize)});
+  // don't do mixing if we have only one stream.
+  if (mixingBuffer_.size() == 1)
+  {
+    std::unique_ptr<uchar[]> oneSample = std::move(mixingBuffer_.begin()->second->data);
+    mixingBuffer_.clear();
+    return oneSample;
+  }
 
   std::unique_ptr<uchar[]> result = std::unique_ptr<uint8_t[]>(new uint8_t[frameSize]);
   int16_t * output_ptr = (int16_t*)result.get();
@@ -180,18 +192,20 @@ std::unique_ptr<uchar[]> AudioOutput::doMixing(uint32_t frameSize)
     // TODO: Replace this with dynamic range compression
     if (sum > INT16_MAX)
     {
-      printWarning(this, "Clipping", "Value", QString::number(sum));
+      printWarning(this, "Clipping audio", "Value", QString::number(sum));
       sum = INT16_MAX;
     }
     else if (sum < INT16_MIN)
     {
-      printWarning(this, "Boosting", "Value", QString::number(sum));
+      printWarning(this, "Boosting audio", "Value", QString::number(sum));
       sum = INT16_MIN;
     }
 
     *output_ptr = sum;
     ++output_ptr;
   }
+
+  mixingBuffer_.clear();
 
   return result;
 }
