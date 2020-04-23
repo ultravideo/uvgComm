@@ -448,6 +448,8 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
                "Did not attach echo cancellation");
   }
 
+  audioOutput_->addInput();
+
   if (AEC_ENABLED)
   {
     addToGraph(std::make_shared<AudioMixerFilter>(QString::number(sessionID),
@@ -664,6 +666,7 @@ void FilterGraph::destroyPeer(Peer* peer)
   for (auto& graph : peer->audioReceivers)
   {
     destroyFilters(*graph);
+    audioOutput_->removeInput();
   }
 
   for (auto& graph : peer->videoReceivers)

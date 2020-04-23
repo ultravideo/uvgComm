@@ -7,13 +7,16 @@
 
 #include <QDateTime>
 
+#include <QDebug>
+
 AudioOutput::AudioOutput(StatisticsInterface *stats):
   QObject(),
   stats_(stats),
   device_(QAudioDeviceInfo::defaultOutputDevice()),
   audioOutput_(nullptr),
   output_(nullptr),
-  format_()
+  format_(),
+  inputs_(0)
 {}
 
 
@@ -72,17 +75,31 @@ void AudioOutput::takeInput(std::unique_ptr<Data> input, uint32_t sessionID)
 {
   if (audioOutput_ && audioOutput_->state() != QAudio::StoppedState)
   {
-    int audioChunks = audioOutput_->bytesFree()/audioOutput_->periodSize();
+    // Add audio delay to statistics
+    int64_t delay = QDateTime::currentMSecsSinceEpoch() -
+        ((uint64_t)input->presentationTime.tv_sec * 1000 +
+         (uint64_t)input->presentationTime.tv_usec/1000);
 
-    printDebug(DEBUG_NORMAL, this, "Output values", {"input size", "audioOutput_->periodSize()", "output chunks"}, {
-                 QString::number(input->data_size),
-                 QString::number(audioOutput_->periodSize()),
-                 QString::number(audioChunks)});
-
-    const char *pointer = (char *)input->data.get();
+    stats_->receiveDelay(sessionID, "Audio", delay);
 
     int dataLeft = input->data_size;
-    while (audioChunks && dataLeft >= audioOutput_->periodSize())
+    std::unique_ptr<uchar[]> outputFrame = mixAudio(std::move(input), sessionID);
+
+    if (outputFrame == nullptr)
+    {
+      return;
+    }
+
+    int audioChunks = audioOutput_->bytesFree()/audioOutput_->periodSize();
+/*
+    printDebug(DEBUG_NORMAL, this, "Output values", {"input size", "audioOutput_->periodSize()",
+                                                     "output chunks"}, {
+                 QString::number(dataLeft),
+                 QString::number(audioOutput_->periodSize()),
+                 QString::number(audioChunks)});
+*/
+    const char *pointer = (char *)outputFrame.get();
+    while (audioChunks > 0 && dataLeft >= audioOutput_->periodSize())
     {
       qint64 written = output_->write(pointer, audioOutput_->periodSize());
 
@@ -97,13 +114,6 @@ void AudioOutput::takeInput(std::unique_ptr<Data> input, uint32_t sessionID)
       --audioChunks;
     }
 
-    // Add audio delay to statistics
-    int64_t delay = QDateTime::currentMSecsSinceEpoch() -
-        ((uint64_t)input->presentationTime.tv_sec * 1000 +
-         (uint64_t)input->presentationTime.tv_usec/1000);
-
-    stats_->receiveDelay(sessionID, "Audio", delay);
-
     if (dataLeft >= audioOutput_->periodSize())
     {
       printWarning(this, "Audio output data overflow. "
@@ -116,6 +126,74 @@ void AudioOutput::takeInput(std::unique_ptr<Data> input, uint32_t sessionID)
                        "This could be fixed by recording the leftovers also.");
     }
   }
+}
+
+
+std::unique_ptr<uchar[]> AudioOutput::mixAudio(std::unique_ptr<Data> input, uint32_t sessionID)
+{
+  std::unique_ptr<uchar[]> outputFrame = nullptr;
+  mixingMutex_.lock();
+  // mix if there is already a sample for this stream in buffer
+  if (mixingBuffer_.find(sessionID) != mixingBuffer_.end())
+  {
+    printWarning(this, "Mixing overflow. Missing samples.");
+    outputFrame = doMixing(input->data_size);
+    mixingBuffer_[sessionID] = std::move(input);
+  }
+  else
+  {
+    uint32_t size = input->data_size;
+    mixingBuffer_[sessionID] = std::move(input);
+
+    // mix if there is a sample for all streams
+    if (mixingBuffer_.size() == inputs_)
+    {
+      outputFrame = doMixing(size);
+      mixingBuffer_.clear();
+    }
+  }
+
+  mixingMutex_.unlock();
+
+  return outputFrame;
+}
+
+
+std::unique_ptr<uchar[]> AudioOutput::doMixing(uint32_t frameSize)
+{
+  //printNormal(this, "Mixing frame", {"Size"}, {QString::number(frameSize)});
+
+  std::unique_ptr<uchar[]> result = std::unique_ptr<uint8_t[]>(new uint8_t[frameSize]);
+  int16_t * output_ptr = (int16_t*)result.get();
+
+  for (unsigned int i = 0; i < frameSize/2; ++i)
+  {
+    int32_t sum = 0;
+
+    // This is in my understanding the correct way to do audio mixing. Just add them up.
+    for (auto& buffer : mixingBuffer_)
+    {
+      sum += *((int16_t*)buffer.second->data.get() + i);
+    }
+
+    // clipping is not desired, but occurs rarely
+    // TODO: Replace this with dynamic range compression
+    if (sum > INT16_MAX)
+    {
+      printWarning(this, "Clipping", "Value", QString::number(sum));
+      sum = INT16_MAX;
+    }
+    else if (sum < INT16_MIN)
+    {
+      printWarning(this, "Boosting", "Value", QString::number(sum));
+      sum = INT16_MIN;
+    }
+
+    *output_ptr = sum;
+    ++output_ptr;
+  }
+
+  return result;
 }
 
 

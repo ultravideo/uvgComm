@@ -5,6 +5,10 @@
 
 class AudioOutput;
 
+// This class is only a passthough class which holds the streams sessionID
+// This sessionID can then be used to identify which stream a samples belongs
+// to in mixing.
+
 class AudioMixerFilter : public Filter
 {
 public:
