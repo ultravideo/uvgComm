@@ -1,7 +1,7 @@
 Kvazzup
 =======
 
-Kvazzup is an HEVC video call software written in C++ and built on [Qt](https://www.qt.io/) framework. Kvazzup makes use of the following open-source tools: Kvazaar for HEVC encoding, OpenHEVC for HEVC decoding, Opus Codec for audio encoding and decoding, kvzRTP for Streaming Media and Speex DSP for AEC. Currently, Kvazzup operates on Windows and it can be compiled using MinGW or Visual Studio. 
+Kvazzup is an HEVC video call software written in C++ and built on [Qt](https://www.qt.io/) framework. Kvazzup makes use of the following open-source tools: Kvazaar for HEVC encoding, OpenHEVC for HEVC decoding, Opus Codec for audio encoding and decoding, kvzRTP for Streaming Media and Speex DSP for AEC. The aim of this project is to become a state-of-the-art Open-source Video Conferencing application as well as to provide a testbed for novel video call technologies that improve the video call experience.
 
 ## Features 
 
@@ -26,14 +26,18 @@ Kvazzup requires the following external libraries to run:
 - [kvzRTP](https://github.com/ultravideo/kvzRTP) for Media Delivery.
 - [Speex DSP](https://www.speex.org/) for AEC.
 
-Build these libraries using MinGW or Visual Studio. Qt Creator is recommended tool for compiling Kvazzup.
+Build these libraries using GCC, MinGW or Visual Studio. Make sure you use the same compiler for all dependencies and Kvazzup. OpenMP also need to be installed in your build environment or PATH. Qt Creator is recommended tool for compiling Kvazzup.
+
+Few notes:
+- Due to recent addition of kvzRTP, the Visual Studio compilation does not succeed. Fix is pending.
+- The Linux version has a bug with QCamera which prevents choosing the resolution and the Opus codec is disabled until issues with it can be resolved.
+- The current master still has few small bugs due to recent completion of several key features. A bug-free release is currently in the works and is expected to be ready soon. 
 
 
 ## Planned features
 
 - Authentication (passwords)
-- Contact precense monitoring
+- Contact presence monitoring
 - Video conferences
 - Encryption
-- Linux support (compiles, but camera issues prevent resolution changes)
 - Automatic call parameter adjustment (currently everything is manual)
