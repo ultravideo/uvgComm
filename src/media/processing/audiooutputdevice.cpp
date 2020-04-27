@@ -1,30 +1,34 @@
-#include "audiooutput.h"
+#include "audiooutputdevice.h"
 
 #include "filter.h"
 #include "statisticsinterface.h"
 
 #include "common.h"
+#include "global.h"
 
 #include <QDateTime>
 
 #include <QDebug>
 
-AudioOutput::AudioOutput(StatisticsInterface *stats):
-  QObject(),
+AudioOutputDevice::AudioOutputDevice(StatisticsInterface *stats):
+  QIODevice(),
   stats_(stats),
   device_(QAudioDeviceInfo::defaultOutputDevice()),
   audioOutput_(nullptr),
   output_(nullptr),
   format_(),
+  sampleMutex_(),
+  outputSample_(),
+  sampleSize_(0),
   inputs_(0)
 {}
 
 
-AudioOutput::~AudioOutput()
+AudioOutputDevice::~AudioOutputDevice()
 {}
 
 
-void AudioOutput::initializeAudio(QAudioFormat format)
+void AudioOutputDevice::initializeAudio(QAudioFormat format)
 {
   QAudioDeviceInfo info(device_);
   if (!info.isFormatSupported(format)) {
@@ -40,7 +44,7 @@ void AudioOutput::initializeAudio(QAudioFormat format)
 }
 
 
-void AudioOutput::createAudioOutput()
+void AudioOutputDevice::createAudioOutput()
 {
   if(audioOutput_)
   {
@@ -48,12 +52,22 @@ void AudioOutput::createAudioOutput()
   }
   audioOutput_ = new QAudioOutput(device_, format_, this);
 
+  resetBuffer();
+
+  open(QIODevice::ReadOnly);
   // pull mode
-  output_ = audioOutput_->start();
+  audioOutput_->start(this);
+}
+
+void AudioOutputDevice::resetBuffer()
+{
+  sampleSize_ = format_.sampleRate()*format_.bytesPerFrame()/AUDIO_FRAMES_PER_SECOND;
+  outputSample_ = std::unique_ptr<uint8_t[]>(new uint8_t[sampleSize_]);
+  memset(outputSample_.get(), 0, sampleSize_);
 }
 
 
-void AudioOutput::deviceChanged(int index)
+void AudioOutputDevice::deviceChanged(int index)
 {
   Q_UNUSED(index);
   printUnimplemented(this, "Audio output device change not implemented fully.");
@@ -64,14 +78,53 @@ void AudioOutput::deviceChanged(int index)
 }
 
 
-void AudioOutput::volumeChanged(int value)
+void AudioOutputDevice::volumeChanged(int value)
 {
   if (audioOutput_)
     audioOutput_->setVolume(qreal(value/100.0f));
 }
 
 
-void AudioOutput::takeInput(std::unique_ptr<Data> input, uint32_t sessionID)
+qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
+{
+  uint32_t read = 0;
+  if (maxlen < sampleSize_)
+  {
+    printWarning(this, "Read too little audio data.", {"Read vs available"}, {
+                   QString::number(maxlen) + " vs " + QString::number(sampleSize_)});
+  }
+  else
+  {
+    // if no new input has arrived, we play the last sample
+    sampleMutex_.lock();
+    memcpy(data, outputSample_.get(), sampleSize_);
+    read = sampleSize_;
+    sampleMutex_.unlock();
+  }
+
+  return read;
+}
+
+
+qint64 AudioOutputDevice::writeData(const char *data, qint64 len)
+{
+  Q_UNUSED(data);
+  Q_UNUSED(len);
+
+  // output does not write data to device, only reads it.
+  printProgramWarning(this, "Why is output writing to us");
+
+  return 0;
+}
+
+qint64 AudioOutputDevice::bytesAvailable() const
+{
+  printNormal(this, "bytes avaialbe");
+  return sampleSize_ + QIODevice::bytesAvailable();
+}
+
+
+void AudioOutputDevice::takeInput(std::unique_ptr<Data> input, uint32_t sessionID)
 {
   if (audioOutput_ && audioOutput_->state() != QAudio::StoppedState)
   {
@@ -103,6 +156,11 @@ void AudioOutput::takeInput(std::unique_ptr<Data> input, uint32_t sessionID)
       }
     }
 
+    sampleMutex_.lock();
+    sampleSize_ = dataLeft;
+    outputSample_ = std::move(outputFrame);
+    sampleMutex_.unlock();
+/*
     int audioChunks = audioOutput_->bytesFree()/audioOutput_->periodSize();
 
     const char *pointer = (char *)outputFrame.get();
@@ -132,11 +190,12 @@ void AudioOutput::takeInput(std::unique_ptr<Data> input, uint32_t sessionID)
                        "It is recommended to use the same frame size as output period. "
                        "This could be fixed by recording the leftovers also.");
     }
+    */
   }
 }
 
 
-std::unique_ptr<uchar[]> AudioOutput::mixAudio(std::unique_ptr<Data> input, uint32_t sessionID)
+std::unique_ptr<uchar[]> AudioOutputDevice::mixAudio(std::unique_ptr<Data> input, uint32_t sessionID)
 {
   std::unique_ptr<uchar[]> outputFrame = nullptr;
   mixingMutex_.lock();
@@ -165,7 +224,7 @@ std::unique_ptr<uchar[]> AudioOutput::mixAudio(std::unique_ptr<Data> input, uint
 }
 
 
-std::unique_ptr<uchar[]> AudioOutput::doMixing(uint32_t frameSize)
+std::unique_ptr<uchar[]> AudioOutputDevice::doMixing(uint32_t frameSize)
 {
   // don't do mixing if we have only one stream.
   if (mixingBuffer_.size() == 1)
@@ -211,8 +270,10 @@ std::unique_ptr<uchar[]> AudioOutput::doMixing(uint32_t frameSize)
 }
 
 
-void AudioOutput::start()
+void AudioOutputDevice::start()
 {
+  open(QIODevice::ReadOnly);
+
   if(audioOutput_->state() == QAudio::SuspendedState
      || audioOutput_->state() == QAudio::StoppedState)
   {
@@ -221,10 +282,12 @@ void AudioOutput::start()
 }
 
 
-void AudioOutput::stop()
+void AudioOutputDevice::stop()
 {
   if(audioOutput_->state() == QAudio::ActiveState)
   {
     audioOutput_->suspend();
   }
+
+  close();
 }

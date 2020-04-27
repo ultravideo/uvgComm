@@ -12,16 +12,20 @@ class StatisticsInterface;
 
 struct Data;
 
-class AudioOutput : public QObject
+class AudioOutputDevice : public QIODevice
 {
   Q_OBJECT
 public:
-  AudioOutput(StatisticsInterface* stats);
-  virtual ~AudioOutput();
+  AudioOutputDevice(StatisticsInterface* stats);
+  virtual ~AudioOutputDevice();
 
   void initializeAudio(QAudioFormat format);
   void start(); // resume audio output
   void stop(); // suspend audio output
+
+  qint64 readData(char *data, qint64 maxlen) override;
+  qint64 writeData(const char *data, qint64 len) override;
+  qint64 bytesAvailable() const override;
 
   void addInput()
   {
@@ -39,6 +43,7 @@ public:
 private:
 
   void createAudioOutput();
+  void resetBuffer();
 
   std::unique_ptr<uchar[]> mixAudio(std::unique_ptr<Data> input, uint32_t sessionID);
 
@@ -53,6 +58,12 @@ private:
 
   QMutex mixingMutex_;
   std::map<uint32_t, std::unique_ptr<Data>> mixingBuffer_;
+
+  QMutex sampleMutex_;
+  // this will have the next played output audio. The same frame is played
+  // if no new frame has been received.
+  std::unique_ptr<uchar[]> outputSample_;
+  uint32_t sampleSize_;
 
   unsigned int inputs_;
 

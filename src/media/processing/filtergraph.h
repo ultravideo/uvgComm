@@ -8,7 +8,7 @@
 
 class VideoInterface;
 class StatisticsInterface;
-class AudioOutput;
+class AudioOutputDevice;
 class Filter;
 class ScreenShareFilter;
 class AECInputFilter;
@@ -108,5 +108,5 @@ private:
 
   std::shared_ptr<AECInputFilter> aec_;
 
-  std::shared_ptr<AudioOutput> audioOutput_;
+  std::shared_ptr<AudioOutputDevice> audioOutput_;
 };

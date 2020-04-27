@@ -11,7 +11,7 @@
 #include "media/processing/displayfilter.h"
 #include "media/processing/scalefilter.h"
 #include "media/processing/audiocapturefilter.h"
-#include "media/processing/audiooutput.h"
+#include "media/processing/audiooutputdevice.h"
 #include "media/processing/opusencoderfilter.h"
 #include "media/processing/opusdecoderfilter.h"
 #include "media/processing/aecinputfilter.h"
@@ -411,7 +411,7 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
 
   if (audioOutput_ == nullptr)
   {
-    audioOutput_ = std::make_shared<AudioOutput>(stats_);
+    audioOutput_ = std::make_shared<AudioOutputDevice>(stats_);
     audioOutput_->initializeAudio(format_);
   }
 
