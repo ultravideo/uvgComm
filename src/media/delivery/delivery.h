@@ -5,13 +5,13 @@
 #include <QHostAddress>
 #include <QObject>
 
-#include <kvzrtp/lib.hh>
+#include <uvgrtp/lib.hh>
 
 #include <vector>
 
 class StatisticsInterface;
-class KvzRTPSender;
-class KvzRTPReceiver;
+class UvgRTPSender;
+class UvgRTPReceiver;
 class Filter;
 
 class Delivery : public QObject
@@ -52,15 +52,15 @@ private:
 
   struct MediaStream
   {
-   kvz_rtp::media_stream *stream;
+   uvg_rtp::media_stream *stream;
 
-   std::shared_ptr<KvzRTPSender> sender;
-   std::shared_ptr<KvzRTPReceiver> receiver;
+   std::shared_ptr<UvgRTPSender> sender;
+   std::shared_ptr<UvgRTPReceiver> receiver;
   };
 
   struct Peer
   {
-   kvz_rtp::session *session;
+   uvg_rtp::session *session;
 
    // uses local port as key
    std::map<uint16_t, MediaStream*> streams;
@@ -82,7 +82,7 @@ private:
   // private variables
   std::map<uint32_t, std::shared_ptr<Peer>> peers_;
 
-  kvz_rtp::context *rtp_ctx_;
+  uvg_rtp::context *rtp_ctx_;
 
   QMutex iniated_; // locks for duration of creation
   QMutex destroyed_; // locks for duration of destruction

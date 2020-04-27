@@ -88,7 +88,7 @@ bool KvazaarFilter::init()
 
     //config_->fme_level = 0;
 
-    // this does not work with kvzRTP at the moment. Avoid using slices.
+    // this does not work with uvgRTP at the moment. Avoid using slices.
     if(settings.value("video/Slices").toInt() == 1)
     {
       if(config_->wpp == 0)

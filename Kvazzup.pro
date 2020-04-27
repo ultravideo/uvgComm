@@ -76,8 +76,8 @@ SOURCES +=\
     src/kvazzupcontroller.cpp \
     src/main.cpp \
     src/media/delivery/delivery.cpp \
-    src/media/delivery/kvzrtpreceiver.cpp \
-    src/media/delivery/kvzrtpsender.cpp \
+    src/media/delivery/uvgrtpreceiver.cpp \
+    src/media/delivery/uvgrtpsender.cpp \
     src/media/mediamanager.cpp \
     src/media/processing/aecinputfilter.cpp \
     src/media/processing/aecplaybackfilter.cpp \
@@ -153,8 +153,8 @@ HEADERS  += \
     src/initiation/transport/tcpconnection.h \
     src/kvazzupcontroller.h \
     src/media/delivery/delivery.h \
-    src/media/delivery/kvzrtpreceiver.h \
-    src/media/delivery/kvzrtpsender.h \
+    src/media/delivery/uvgrtpreceiver.h \
+    src/media/delivery/uvgrtpsender.h \
     src/media/mediamanager.h \
     src/media/processing/aecinputfilter.h \
     src/media/processing/aecplaybackfilter.h \
@@ -239,27 +239,27 @@ INCLUDEPATH += $$PWD/../include/opus
 INCLUDEPATH += $$PWD/../include/
 
 win32-msvc{
-INCLUDEPATH += $$PWD/../include/kvzrtp
-INCLUDEPATH += $$PWD/../include/kvzrtp/formats
+INCLUDEPATH += $$PWD/../include/uvgrtp
+INCLUDEPATH += $$PWD/../include/uvgrtp/formats
 
 LIBS += -L$$PWD/../msvc_libs
 LIBS += -lLibOpenHevcWrapper
 LIBS += -llibspeexdsp
 LIBS += -lopus
 LIBS += -lkvazaar_lib
-LIBS += -lkvzrtp
+LIBS += -luvgrtp
 message("Using Visual Studio libraries in ../msvc_libs")
 }
 
 win32-g++{
-INCLUDEPATH += $$PWD/../include/kvzrtp
+INCLUDEPATH += $$PWD/../include/uvgrtp
 
 LIBS += -L$$PWD/../lib64
 LIBS += -llibkvazaar.dll
 LIBS += -llibopus.dll
 LIBS += -llibLibOpenHevcWrapper.dll
 LIBS += -llibspeexdsp.dll
-LIBS += -lkvzrtp
+LIBS += -luvgrtp
 LIBS += -fopenmp # TODO: Does msvc also need this?
 message("Using MinGW libraries in ../libs")
 }
@@ -268,8 +268,8 @@ unix {
 QMAKE_CXXFLAGS += -msse4.1 -mavx2 -fopenmp
 
 INCLUDEPATH += /usr/include/opus/
-INCLUDEPATH += /usr/local/include/kvzrtp/
-INCLUDEPATH += /usr/local/include/kvzrtp/formats
+INCLUDEPATH += /usr/local/include/uvgrtp/
+INCLUDEPATH += /usr/local/include/uvgrtp/formats
 
 LIBS += -lopus
 LIBS += -lkvazaar
@@ -277,7 +277,7 @@ LIBS += -lspeex
 LIBS += -lspeexdsp
 LIBS += -lLibOpenHevcWrapper
 LIBS += -lgomp
-LIBS += -lkvzrtp
+LIBS += -luvgrtp
 
 message("Using Unix libraries")
 }

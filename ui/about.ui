@@ -143,9 +143,9 @@
        </widget>
       </item>
       <item>
-       <widget class="QLabel" name="kvzRTP">
+       <widget class="QLabel" name="uvgRTP">
         <property name="text">
-         <string>kvzRTP</string>
+         <string>uvgRTP</string>
         </property>
        </widget>
       </item>

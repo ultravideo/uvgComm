@@ -1,15 +1,15 @@
 #pragma once
 
-#include <kvzrtp/lib.hh>
+#include <uvgrtp/lib.hh>
 #include "media/processing/filter.h"
 
-class KvzRTPReceiver : public Filter
+class UvgRTPReceiver : public Filter
 {
 public:
-  KvzRTPReceiver(QString id, StatisticsInterface *stats, DataType type, QString media, kvz_rtp::media_stream *mstream);
-  ~KvzRTPReceiver();
+  UvgRTPReceiver(QString id, StatisticsInterface *stats, DataType type, QString media, uvg_rtp::media_stream *mstream);
+  ~UvgRTPReceiver();
 
-  void receiveHook(kvz_rtp::frame::rtp_frame *frame);
+  void receiveHook(uvg_rtp::frame::rtp_frame *frame);
 
   void uninit();
 
@@ -22,5 +22,5 @@ private:
   DataType type_;
   bool addStartCodes_;
 
-  kvz_rtp::media_stream *mstream_;
+  uvg_rtp::media_stream *mstream_;
 };

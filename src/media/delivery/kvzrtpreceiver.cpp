@@ -2,22 +2,22 @@
 #include <cstdio>
 
 #include "statisticsinterface.h"
-#include "kvzrtpreceiver.h"
+#include "uvgrtpreceiver.h"
 #include "common.h"
 
 #define RTP_HEADER_SIZE 2
 #define FU_HEADER_SIZE  1
 
-static void __receiveHook(void *arg, kvz_rtp::frame::rtp_frame *frame)
+static void __receiveHook(void *arg, uvg_rtp::frame::rtp_frame *frame)
 {
   if (arg && frame)
   {
-    static_cast<KvzRTPReceiver *>(arg)->receiveHook(frame);
+    static_cast<UvgRTPReceiver *>(arg)->receiveHook(frame);
   }
 }
 
-KvzRTPReceiver::KvzRTPReceiver(QString id, StatisticsInterface *stats, DataType type,
-                               QString media, kvz_rtp::media_stream *mstream):
+UvgRTPReceiver::UvgRTPReceiver(QString id, StatisticsInterface *stats, DataType type,
+                               QString media, uvg_rtp::media_stream *mstream):
   Filter(id, "RTP Receiver " + media, stats, NONE, type),
   type_(type),
   addStartCodes_(true),
@@ -26,16 +26,16 @@ KvzRTPReceiver::KvzRTPReceiver(QString id, StatisticsInterface *stats, DataType 
   mstream_->install_receive_hook(this, __receiveHook);
 }
 
-KvzRTPReceiver::~KvzRTPReceiver()
+UvgRTPReceiver::~UvgRTPReceiver()
 {
 }
 
-void KvzRTPReceiver::process()
+void UvgRTPReceiver::process()
 {
 }
 
 
-void KvzRTPReceiver::receiveHook(kvz_rtp::frame::rtp_frame *frame)
+void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
 {
   Q_ASSERT(frame && frame->payload != nullptr);
 
@@ -43,7 +43,7 @@ void KvzRTPReceiver::receiveHook(kvz_rtp::frame::rtp_frame *frame)
       frame->payload == nullptr ||
       frame->payload_len == 0)
   {
-    printProgramError(this,  "Received a nullptr frame from kvzRTP");
+    printProgramError(this,  "Received a nullptr frame from uvgRTP");
     return;
   }
 
@@ -80,7 +80,7 @@ void KvzRTPReceiver::receiveHook(kvz_rtp::frame::rtp_frame *frame)
     memcpy(received_picture->data.get(), frame->payload, received_picture->data_size);
   }
 
-  (void)kvz_rtp::frame::dealloc_frame(frame);
+  (void)uvg_rtp::frame::dealloc_frame(frame);
   std::unique_ptr<Data> rp( received_picture );
   sendOutput(std::move(rp));
 }

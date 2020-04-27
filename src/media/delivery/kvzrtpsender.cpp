@@ -1,11 +1,11 @@
 #include <QSettings>
 
-#include "kvzrtpsender.h"
+#include "uvgrtpsender.h"
 #include "statisticsinterface.h"
 #include "common.h"
 
-KvzRTPSender::KvzRTPSender(QString id, StatisticsInterface *stats,
-                           DataType type, QString media, kvz_rtp::media_stream *mstream):
+UvgRTPSender::UvgRTPSender(QString id, StatisticsInterface *stats,
+                           DataType type, QString media, uvg_rtp::media_stream *mstream):
   Filter(id, "RTP Sender " + media, stats, type, NONE),
   type_(type),
   mstream_(mstream),
@@ -29,11 +29,11 @@ KvzRTPSender::KvzRTPSender(QString id, StatisticsInterface *stats,
   }
 }
 
-KvzRTPSender::~KvzRTPSender()
+UvgRTPSender::~UvgRTPSender()
 {
 }
 
-void KvzRTPSender::updateSettings()
+void UvgRTPSender::updateSettings()
 {
   // called in case we later decide to add some settings to filter
   Filter::updateSettings();
@@ -69,7 +69,7 @@ void KvzRTPSender::updateSettings()
 }
 
 
-void KvzRTPSender::process()
+void UvgRTPSender::process()
 {
   rtp_error_t ret;
   std::unique_ptr<Data> input = getInput();

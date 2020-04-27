@@ -37,7 +37,7 @@ FilterGraph::FilterGraph():
 {
   // TODO negotiate these values with all included filters and SDP
   // TODO move these to settings and manage them automatically
-  // TODO: at the moment kvzRTP does not support larger audio frames for pcm
+  // TODO: at the moment uvgRTP does not support larger audio frames for pcm
   format_.setSampleRate(16000); 
   //format_.setSampleRate(48000);
   format_.setChannelCount(1);

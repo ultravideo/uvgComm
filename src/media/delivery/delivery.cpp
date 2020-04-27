@@ -1,18 +1,18 @@
 #include "delivery.h"
-#include "kvzrtpsender.h"
-#include "kvzrtpreceiver.h"
+#include "uvgrtpsender.h"
+#include "uvgrtpreceiver.h"
 #include "common.h"
 
 #include <QtEndian>
 #include <QHostInfo>
 
-#include <kvzrtp/formats/opus.hh>
-#include <kvzrtp/lib.hh>
+#include <uvgrtp/formats/opus.hh>
+#include <uvgrtp/lib.hh>
 
 #include <iostream>
 
 Delivery::Delivery():
-  rtp_ctx_(new kvz_rtp::context)
+  rtp_ctx_(new uvg_rtp::context)
 {}
 
 Delivery::~Delivery()
@@ -76,7 +76,7 @@ void Delivery::parseCodecString(QString codec, uint16_t dst_port,
 
   if (xmap.find(codec) == xmap.end())
   {
-    printError(this, "Tried to use non-defined codec type in kvzRTP.");
+    printError(this, "Tried to use non-defined codec type in uvgRTP.");
     type = NONE;
     return;
   }
@@ -132,7 +132,7 @@ std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID, QHostAddress
     printNormal(this, "Creating sender filter");
 
     peers_[sessionID]->streams[localPort]->sender =
-        std::shared_ptr<KvzRTPSender>(new KvzRTPSender(remoteAddress.toString() + ":" + QString::number(peerPort),
+        std::shared_ptr<UvgRTPSender>(new UvgRTPSender(remoteAddress.toString() + ":" + QString::number(peerPort),
                                                        stats_,
                                                        type,
                                                        mediaName,
@@ -162,8 +162,8 @@ std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID, QHostAddr
   if (peers_[sessionID]->streams[localPort]->receiver == nullptr)
   {
     printNormal(this, "Creating receiver filter");
-    peers_[sessionID]->streams[localPort]->receiver = std::shared_ptr<KvzRTPReceiver>(
-        new KvzRTPReceiver(
+    peers_[sessionID]->streams[localPort]->receiver = std::shared_ptr<UvgRTPReceiver>(
+        new UvgRTPReceiver(
           localAddress.toString() + ":" + QString::number(localPort),
           stats_,
           type,
@@ -207,7 +207,7 @@ bool Delivery::addMediaStream(uint32_t sessionID, uint16_t localPort, uint16_t p
 
   printNormal(this, "Creating mediastream");
 
-  kvz_rtp::media_stream *stream = peers_[sessionID]->session->create_stream(localPort, peerPort, fmt, 0);
+  uvg_rtp::media_stream *stream = peers_[sessionID]->session->create_stream(localPort, peerPort, fmt, 0);
 
   if (stream == nullptr)
   {
@@ -292,7 +292,7 @@ void Delivery::removeAllPeers()
 
 void Delivery::ipv6to4(QHostAddress& address)
 {
-  // check if the IP addresses start with ::ffff: and remove it, kvzrtp only accepts IPv4 addresses
+  // check if the IP addresses start with ::ffff: and remove it, uvgrtp only accepts IPv4 addresses
   if (address.toString().left(7) == "::ffff:")
   {
     address = QHostAddress(address.toString().mid(7));
@@ -301,7 +301,7 @@ void Delivery::ipv6to4(QHostAddress& address)
 
 void Delivery::ipv6to4(QString &address)
 {
-  // check if the IP addresses start with ::ffff: and remove it, kvzrtp only accepts IPv4 addresses
+  // check if the IP addresses start with ::ffff: and remove it, uvgrtp only accepts IPv4 addresses
   if (address.left(7) == "::ffff:")
   {
     address = address.mid(7);
