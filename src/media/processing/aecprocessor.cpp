@@ -59,7 +59,7 @@ void AECProcessor::init()
     preprocessor_ = speex_preprocess_state_init(samplesPerFrame_,
                                                 format_.sampleRate());
 
-    void* activeState = new int(1);
+    int* activeState = new int(1);
     speex_preprocess_ctl(preprocessor_,
                          SPEEX_PREPROCESS_SET_AGC, activeState);
     speex_preprocess_ctl(preprocessor_,
@@ -67,11 +67,19 @@ void AECProcessor::init()
     //speex_preprocess_ctl(preprocessor_,
     //                     SPEEX_PREPROCESS_SET_DEREVERB, state);
 
-    printNormal(this, "Set global audio preprocessor options");
+    delete activeState;
 
+    int* suppression = new int(-40);
     speex_preprocess_ctl(preprocessor_,
-                         SPEEX_PREPROCESS_SET_ECHO_STATE,
-                         echo_state_);
+                         SPEEX_PREPROCESS_SET_ECHO_SUPPRESS,
+                         suppression);
+
+    *suppression = -15;
+    speex_preprocess_ctl(preprocessor_,
+                         SPEEX_PREPROCESS_SET_ECHO_SUPPRESS_ACTIVE,
+                         suppression);
+
+    delete suppression;
   }
 
   echoMutex_.unlock();
