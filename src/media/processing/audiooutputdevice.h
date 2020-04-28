@@ -9,8 +9,9 @@
 
 class Filter;
 class StatisticsInterface;
-
+class AECProcessor;
 struct Data;
+
 
 class AudioOutputDevice : public QIODevice
 {
@@ -19,7 +20,8 @@ public:
   AudioOutputDevice(StatisticsInterface* stats);
   virtual ~AudioOutputDevice();
 
-  void initializeAudio(QAudioFormat format);
+  void init(QAudioFormat format,
+            std::shared_ptr<AECProcessor> AEC);
   void start(); // resume audio output
   void stop(); // suspend audio output
 
@@ -43,7 +45,6 @@ public:
 private:
 
   void createAudioOutput();
-  void resetBuffer();
 
   std::unique_ptr<uchar[]> mixAudio(std::unique_ptr<Data> input, uint32_t sessionID);
 
@@ -62,10 +63,12 @@ private:
   QMutex sampleMutex_;
   // this will have the next played output audio. The same frame is played
   // if no new frame has been received.
-  std::unique_ptr<uchar[]> outputSample_;
+  std::shared_ptr<uchar[]> outputSample_;
   uint32_t sampleSize_;
 
   unsigned int inputs_;
+
+  std::shared_ptr<AECProcessor> aec_;
 
 private slots:
   void deviceChanged(int index);

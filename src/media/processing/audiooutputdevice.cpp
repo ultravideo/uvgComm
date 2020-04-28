@@ -2,6 +2,7 @@
 
 #include "filter.h"
 #include "statisticsinterface.h"
+#include "aecprocessor.h"
 
 #include "common.h"
 #include "global.h"
@@ -28,8 +29,10 @@ AudioOutputDevice::~AudioOutputDevice()
 {}
 
 
-void AudioOutputDevice::initializeAudio(QAudioFormat format)
+void AudioOutputDevice::init(QAudioFormat format, std::shared_ptr<AECProcessor> AEC)
 {
+  aec_ = AEC;
+
   QAudioDeviceInfo info(device_);
   if (!info.isFormatSupported(format)) {
     printDebug(DEBUG_WARNING, this, "Default format not supported - trying to use nearest.");
@@ -46,24 +49,23 @@ void AudioOutputDevice::initializeAudio(QAudioFormat format)
 
 void AudioOutputDevice::createAudioOutput()
 {
+  if (!aec_)
+  {
+    printProgramError(this, "AEC not set");
+  }
+
   if(audioOutput_)
   {
     delete audioOutput_;
   }
   audioOutput_ = new QAudioOutput(device_, format_, this);
 
-  resetBuffer();
+  sampleSize_ = format_.sampleRate()*format_.bytesPerFrame()/AUDIO_FRAMES_PER_SECOND;
+  outputSample_ = aec_->createEmptyFrame(sampleSize_);
 
   open(QIODevice::ReadOnly);
   // pull mode
   audioOutput_->start(this);
-}
-
-void AudioOutputDevice::resetBuffer()
-{
-  sampleSize_ = format_.sampleRate()*format_.bytesPerFrame()/AUDIO_FRAMES_PER_SECOND;
-  outputSample_ = std::unique_ptr<uint8_t[]>(new uint8_t[sampleSize_]);
-  memset(outputSample_.get(), 0, sampleSize_);
 }
 
 
@@ -95,13 +97,31 @@ qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
   }
   else
   {
+    if (audioOutput_->periodSize() > sampleSize_)
+    {
+      printWarning(this, "The audio Frame size is too small. "
+                         "Buffer output underflow.", {"PeriodSize vs frame size"}, {
+                     QString::number(audioOutput_->periodSize()) + " vs " +
+                     QString::number(sampleSize_)});
+    }
+
+    if (!aec_)
+    {
+      printProgramError(this, "AEC not set");
+    }
+
     // if no new input has arrived, we play the last sample
     sampleMutex_.lock();
+
+    // send sample to AEC
+    std::shared_ptr<uchar[]> echoSample = outputSample_;
+    aec_->processEchoFrame(echoSample, sampleSize_);
+
+    // send sample to speakers
     memcpy(data, outputSample_.get(), sampleSize_);
     read = sampleSize_;
     sampleMutex_.unlock();
   }
-
   return read;
 }
 
@@ -117,9 +137,9 @@ qint64 AudioOutputDevice::writeData(const char *data, qint64 len)
   return 0;
 }
 
+
 qint64 AudioOutputDevice::bytesAvailable() const
 {
-  printNormal(this, "bytes avaialbe");
   return sampleSize_ + QIODevice::bytesAvailable();
 }
 
@@ -160,37 +180,6 @@ void AudioOutputDevice::takeInput(std::unique_ptr<Data> input, uint32_t sessionI
     sampleSize_ = dataLeft;
     outputSample_ = std::move(outputFrame);
     sampleMutex_.unlock();
-/*
-    int audioChunks = audioOutput_->bytesFree()/audioOutput_->periodSize();
-
-    const char *pointer = (char *)outputFrame.get();
-    while (audioChunks > 0 && dataLeft >= audioOutput_->periodSize())
-    {
-      qint64 written = output_->write(pointer, audioOutput_->periodSize());
-
-      if (written == -1)
-      {
-        printError(this, "Audio output error");
-        break;
-      }
-      dataLeft -= written;
-      pointer += written;
-
-      --audioChunks;
-    }
-
-    if (dataLeft >= audioOutput_->periodSize())
-    {
-      printWarning(this, "Audio output data overflow. "
-                         "Output device cannot play this much audio. Discarding audio");
-    }
-    else if (dataLeft > 0 && audioChunks > 0)
-    {
-      printError(this, "Audio framesize is wrong. Discarding some part of it."
-                       "It is recommended to use the same frame size as output period. "
-                       "This could be fixed by recording the leftovers also.");
-    }
-    */
   }
 }
 

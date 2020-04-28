@@ -20,37 +20,26 @@ class AECProcessor : public QObject
 public:
   AECProcessor(QAudioFormat format);
 
+  void init();
   void cleanup();
 
   std::unique_ptr<uchar[]> processInputFrame(std::unique_ptr<uchar[]> input,
                                              uint32_t dataSize);
 
-  void processEchoFrame(std::unique_ptr<uchar[]> echo,
-                        uint32_t dataSize,
-                        uint32_t sessionID);
+  void processEchoFrame(std::shared_ptr<uchar[]> echo,
+                        uint32_t dataSize);
+
+  std::shared_ptr<uchar[]> createEmptyFrame(uint32_t size);
 
 private:
-
-  void initEcho(uint32_t sessionID);
-
-  std::unique_ptr<uchar[]> processInput(SpeexEchoState *echo_state,
-                                        std::unique_ptr<uchar[]> input,
-                                        std::unique_ptr<uchar[]> echo);
-
-  struct EchoBuffer
-  {
-    SpeexPreprocessState *preprocess_state;
-    SpeexEchoState *echo_state;
-    std::deque<std::unique_ptr<uchar[]>> frames;
-  };
-
-  QMutex echoMutex_;
-  std::map<uint32_t, std::shared_ptr<EchoBuffer>> echoes_;
 
   QAudioFormat format_;
   uint32_t samplesPerFrame_;
 
-  SpeexPreprocessState *global_preprocessor_;
+  SpeexPreprocessState *preprocessor_;
+  SpeexEchoState *echo_state_;
 
-  bool suppressNoInput_;
+  QMutex echoMutex_;
+  uint32_t echoSize_;
+  std::shared_ptr<uchar[]> echoSample_;
 };

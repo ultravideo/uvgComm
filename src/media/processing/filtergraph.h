@@ -64,7 +64,7 @@ private:
   void initVideoSend();
 
   // iniates encoder and attaches it
-  void initAudioSend(bool opus);
+  void initializeAudio(bool opus);
 
   void removeAllParticipants();
 
@@ -105,8 +105,6 @@ private:
   QString videoFormat_;
 
   bool quitting_;
-
-  std::shared_ptr<AECInputFilter> aec_;
 
   std::shared_ptr<AudioOutputDevice> audioOutput_;
 };

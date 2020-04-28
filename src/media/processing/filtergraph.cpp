@@ -15,7 +15,6 @@
 #include "media/processing/opusencoderfilter.h"
 #include "media/processing/opusdecoderfilter.h"
 #include "media/processing/aecinputfilter.h"
-#include "media/processing/aecplaybackfilter.h"
 #include "media/processing/audiomixerfilter.h"
 
 #include "ui/gui/videointerface.h"
@@ -34,7 +33,6 @@ FilterGraph::FilterGraph():
   stats_(nullptr),
   format_(),
   quitting_(false),
-  aec_(),
   audioOutput_(nullptr)
 {
   // TODO negotiate these values with all included filters and SDP
@@ -207,16 +205,19 @@ void FilterGraph::initVideoSend()
 }
 
 
-void FilterGraph::initAudioSend(bool opus)
+void FilterGraph::initializeAudio(bool opus)
 {
   // Do this before adding participants, otherwise AEC filter wont get attached
   addToGraph(std::shared_ptr<Filter>(new AudioCaptureFilter("", format_, stats_)), audioProcessing_);
 
-  if (AEC_ENABLED)
+  std::shared_ptr<AECInputFilter> aec = std::shared_ptr<AECInputFilter>(new AECInputFilter("", stats_));
+  aec->initInput(format_);
+  addToGraph(aec, audioProcessing_, audioProcessing_.size() - 1);
+
+  if (audioOutput_ == nullptr)
   {
-    aec_ = std::shared_ptr<AECInputFilter>(new AECInputFilter("", stats_));
-    aec_->initInput(format_);
-    addToGraph(aec_, audioProcessing_, audioProcessing_.size() - 1);
+    audioOutput_ = std::make_shared<AudioOutputDevice>(stats_);
+    audioOutput_->init(format_, aec->getAEC());
   }
 
   if (opus)
@@ -390,7 +391,7 @@ void FilterGraph::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioF
   // just in case it is wanted later. AEC filter has to be attached
   if(audioProcessing_.size() == 0)
   {
-    initAudioSend(audioFramedSource->inputType() == OPUSAUDIO);
+    initializeAudio(audioFramedSource->inputType() == OPUSAUDIO);
   }
 
   // add participant if necessary
@@ -409,17 +410,7 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
   Q_ASSERT(sessionID);
   Q_ASSERT(audioSink);
 
-  if (audioOutput_ == nullptr)
-  {
-    audioOutput_ = std::make_shared<AudioOutputDevice>(stats_);
-    audioOutput_->initializeAudio(format_);
-  }
 
-  // just in case it is wanted later. AEC filter has to be attached
-  if(AEC_ENABLED && audioProcessing_.size() == 0)
-  {
-    initAudioSend(audioSink->outputType() == OPUSAUDIO);
-  }
 
   // add participant if necessary
   checkParticipant(sessionID);
@@ -435,33 +426,12 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
                *graph, graph->size() - 1);
   }
 
-  if(audioProcessing_.size() > 0 && AEC_ENABLED)
-  {
-    addToGraph(std::shared_ptr<Filter>(
-                 new AECPlaybackFilter(QString::number(sessionID), stats_, sessionID,
-                                       aec_->getAEC())),
-               *graph, graph->size() - 1);
-  }
-  else
-  {
-    printDebug(DEBUG_WARNING, "FilterGraph",
-               "Did not attach echo cancellation");
-  }
-
   audioOutput_->addInput();
 
-  if (AEC_ENABLED)
-  {
-    addToGraph(std::make_shared<AudioMixerFilter>(QString::number(sessionID),
-                                                  stats_, sessionID, audioOutput_),
-               *graph, graph->size() - 2);
-  }
-  else
-  {
-    addToGraph(std::make_shared<AudioMixerFilter>(QString::number(sessionID),
-                                                  stats_, sessionID, audioOutput_),
-               *graph, graph->size() - 1);
-  }
+  addToGraph(std::make_shared<AudioMixerFilter>(QString::number(sessionID),
+                                                stats_, sessionID, audioOutput_),
+             *graph, graph->size() - 1);
+
 }
 
 
@@ -647,14 +617,6 @@ void FilterGraph::destroyPeer(Peer* peer)
     //peer->audioFramedSource is destroyed by RTPStreamer
     changeState(audioSender, false);
     audioSender = nullptr;
-
-    if(AEC_ENABLED)
-    {
-      for (auto& graph : peer->audioReceivers)
-      {
-        audioProcessing_.at(0)->removeOutConnection(graph->back());
-      }
-    }
   }
   for (auto& videoSender : peer->videoSenders)
   {
