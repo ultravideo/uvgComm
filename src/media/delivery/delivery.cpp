@@ -207,7 +207,14 @@ bool Delivery::addMediaStream(uint32_t sessionID, uint16_t localPort, uint16_t p
 
   printNormal(this, "Creating mediastream");
 
-  uvg_rtp::media_stream *stream = peers_[sessionID]->session->create_stream(localPort, peerPort, fmt, 0);
+  int flags = 0;
+
+  if (fmt == RTP_FORMAT_GENERIC)
+  {
+    //flags = RCE_FRAGMENT_GENERIC;
+  }
+
+  uvg_rtp::media_stream *stream = peers_[sessionID]->session->create_stream(localPort, peerPort, fmt, flags);
 
   if (stream == nullptr)
   {

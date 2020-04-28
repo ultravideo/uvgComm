@@ -7,44 +7,33 @@
 
 
 bool PREPROCESSOR = true;
+
+// I tested this to be the best or at least close enough
+// this is also recommended by speex documentation
+// if you are in a large room, optimal time may be larger.
 const int REVERBERATION_TIME_MS = 100;
 
 AECProcessor::AECProcessor(QAudioFormat format):
   format_(format),
   samplesPerFrame_(format.sampleRate()/AUDIO_FRAMES_PER_SECOND),
-  global_preprocessor_(nullptr)
+  preprocessor_(nullptr),
+  echo_state_(nullptr),
+  echoSize_(0)
 {
-
-  global_preprocessor_ = speex_preprocess_state_init(samplesPerFrame_,
-                                                     format_.sampleRate());
-
-  // TODO: investigate these more for benefits.
-  // not sure if multiple states work.
-  void* state = new int(1);
-  speex_preprocess_ctl(global_preprocessor_,
-                       SPEEX_PREPROCESS_SET_AGC, state);
-  //speex_preprocess_ctl(global_preprocessor_,
-  //                     SPEEX_PREPROCESS_SET_DEREVERB, state);
-
-  printNormal(this, "Set AGC preprocessor");
+  init();
 }
 
 
-void AECProcessor::initEcho(uint32_t sessionID)
+void AECProcessor::init()
 {
-  echoMutex_.lock();
-  if (echoes_.find(sessionID) != echoes_.end())
+  if (preprocessor_ != nullptr || echo_state_ != nullptr)
   {
-    echoMutex_.unlock();
-    return;
+    cleanup();
   }
 
-  echoes_[sessionID] = std::make_shared<EchoBuffer>();
-  echoes_[sessionID]->preprocess_state = nullptr;
-  echoes_[sessionID]->echo_state = nullptr;
+  echoMutex_.lock();
 
   // should be around 1/3 of the room reverberation time
-  //
   uint16_t echoFilterLength = format_.sampleRate()*REVERBERATION_TIME_MS/1000;
 
   printNormal(this, "Initiating echo frame processing", {"Filter length"}, {
@@ -52,29 +41,47 @@ void AECProcessor::initEcho(uint32_t sessionID)
 
   if(format_.channelCount() > 1)
   {
-    echoes_[sessionID]->echo_state = speex_echo_state_init_mc(samplesPerFrame_,
-                                                              echoFilterLength,
-                                                              format_.channelCount(),
-                                                              format_.channelCount());
+    echo_state_ = speex_echo_state_init_mc(samplesPerFrame_,
+                                           echoFilterLength,
+                                           format_.channelCount(),
+                                           format_.channelCount());
   }
   else
   {
-    echoes_[sessionID]->echo_state = speex_echo_state_init(samplesPerFrame_,
-                                                           echoFilterLength);
+    echo_state_ = speex_echo_state_init(samplesPerFrame_, echoFilterLength);
   }
+
+  echoSize_ = samplesPerFrame_*format_.bytesPerFrame();
+  echoSample_ = createEmptyFrame(echoSize_);
 
   if (PREPROCESSOR)
   {
-    echoes_[sessionID]->preprocess_state = speex_preprocess_state_init(samplesPerFrame_,
-                                                                       format_.sampleRate());
-    speex_preprocess_ctl(echoes_[sessionID]->preprocess_state,
-                         SPEEX_PREPROCESS_SET_ECHO_STATE,
-                         echoes_[sessionID]->echo_state);
+    preprocessor_ = speex_preprocess_state_init(samplesPerFrame_,
+                                                format_.sampleRate());
+
+    int* activeState = new int(1);
+    speex_preprocess_ctl(preprocessor_,
+                         SPEEX_PREPROCESS_SET_AGC, activeState);
+    speex_preprocess_ctl(preprocessor_,
+                         SPEEX_PREPROCESS_SET_DENOISE, activeState);
+    //speex_preprocess_ctl(preprocessor_,
+    //                     SPEEX_PREPROCESS_SET_DEREVERB, state);
+
+    delete activeState;
+
+    int* suppression = new int(-40);
+    speex_preprocess_ctl(preprocessor_,
+                         SPEEX_PREPROCESS_SET_ECHO_SUPPRESS,
+                         suppression);
+
+    *suppression = -15;
+    speex_preprocess_ctl(preprocessor_,
+                         SPEEX_PREPROCESS_SET_ECHO_SUPPRESS_ACTIVE,
+                         suppression);
+
+    delete suppression;
   }
-  else
-  {
-    echoes_[sessionID]->preprocess_state = nullptr;
-  }
+
   echoMutex_.unlock();
 }
 
@@ -83,27 +90,19 @@ void AECProcessor::cleanup()
 {
   echoMutex_.lock();
 
-  for (auto& echo : echoes_)
+  if (preprocessor_ != nullptr)
   {
-    echo.second->frames.clear();
-    if (echo.second->preprocess_state != nullptr)
-    {
-      speex_preprocess_state_destroy(echo.second->preprocess_state);
-      echo.second->preprocess_state = nullptr;
-    }
-
-    if (echo.second->echo_state != nullptr)
-    {
-      speex_echo_state_destroy(echo.second->echo_state);
-      echo.second->echo_state = nullptr;
-    }
+    speex_preprocess_state_destroy(preprocessor_);
+    preprocessor_ = nullptr;
   }
+
+  if (echo_state_ != nullptr)
+  {
+    speex_echo_state_destroy(echo_state_);
+    echo_state_ = nullptr;
+  }
+
   echoMutex_.unlock();
-
-  if (global_preprocessor_ != nullptr)
-  {
-    speex_preprocess_state_destroy(global_preprocessor_);
-  }
 }
 
 
@@ -117,67 +116,29 @@ std::unique_ptr<uchar[]> AECProcessor::processInputFrame(std::unique_ptr<uchar[]
     return nullptr;
   }
 
-
-  // Do preprocess trickery defined in constructor once for input.
-  if(format_.channelCount() == 1 &&
-     global_preprocessor_ != nullptr)
-  {
-    //printNormal(this, "Running preprocessor");
-    speex_preprocess_run(global_preprocessor_, (int16_t*)input.get());
-  }
-
   echoMutex_.lock();
-  for (auto& echo : echoes_)
-  {
-    if(format_.channelCount() == 1 &&
-       echo.second->preprocess_state != nullptr)
-    {
-      speex_preprocess_run(echo.second->preprocess_state, (int16_t*)input.get());
-    }
 
-    if (!echo.second->frames.empty())
-    {
-      // remove echo queue so we use newer echo frames.
-      while (echo.second->frames.size() > 2)
-      {
-        //printWarning(this, "Clearing echo samples because there is too many of them.");
-        echo.second->frames.pop_front();
-      }
+  // do not know if this is allowed, but it saves a copy
+  int16_t* pcmOutput = (int16_t*)input.get();
+  speex_echo_cancellation(echo_state_,
+                          (int16_t*)input.get(),
+                          (int16_t*)echoSample_.get(), pcmOutput);
 
-      std::unique_ptr<uchar[]> echoFrame = std::move(echo.second->frames.front());
-      echo.second->frames.pop_front();
-
-      input = processInput(echo.second->echo_state, std::move(input), std::move(echoFrame));
-
-    }
-    else
-    {
-      printDebug(DEBUG_WARNING, "AEC Processor", "No echo to process");
-    }
-  }
   echoMutex_.unlock();
 
-  return input;
-}
-
-
-std::unique_ptr<uchar[]> AECProcessor::processInput(SpeexEchoState *echo_state,
-                                                    std::unique_ptr<uchar[]> input,
-                                                    std::unique_ptr<uchar[]> echo)
-{ 
-  int16_t* pcmOutput = (int16_t*)input.get();
-
-  speex_echo_cancellation(echo_state,
-                          (int16_t*)input.get(),
-                          (int16_t*)echo.get(), pcmOutput);
+  // Do preprocess trickery defined in init for input.
+  // In my understanding preprocessor is run after echo cancellation for some reason.
+  if(preprocessor_ != nullptr)
+  {
+    speex_preprocess_run(preprocessor_, (int16_t*)input.get());
+  }
 
   return input;
 }
 
 
-void AECProcessor::processEchoFrame(std::unique_ptr<uchar[]> echo,
-                                    uint32_t dataSize,
-                                    uint32_t sessionID)
+void AECProcessor::processEchoFrame(std::shared_ptr<uchar[]> echo,
+                                    uint32_t dataSize)
 {
   // TODO: This should prepare for different size of frames in case since they
   // are not generated by us
@@ -188,17 +149,16 @@ void AECProcessor::processEchoFrame(std::unique_ptr<uchar[]> echo,
   }
 
   echoMutex_.lock();
-  if (echoes_.find(sessionID) == echoes_.end())
-  {
-    echoMutex_.unlock();
-    initEcho(sessionID);
-  }
-  else
-  {
-    echoMutex_.unlock();
-  }
-
-  echoMutex_.lock();
-  echoes_[sessionID]->frames.push_back(std::move(echo));
+  echoSize_ = dataSize;
+  echoSample_ = std::move(echo);
   echoMutex_.unlock();
+}
+
+
+std::shared_ptr<uchar[]> AECProcessor::createEmptyFrame(uint32_t size)
+{
+  std::shared_ptr<uchar[]> outputSample_
+      = std::shared_ptr<uint8_t[]>(new uint8_t[size]);
+  memset(outputSample_.get(), 0, size);
+  return outputSample_;
 }

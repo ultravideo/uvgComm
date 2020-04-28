@@ -80,10 +80,9 @@ SOURCES +=\
     src/media/delivery/uvgrtpsender.cpp \
     src/media/mediamanager.cpp \
     src/media/processing/aecinputfilter.cpp \
-    src/media/processing/aecplaybackfilter.cpp \
     src/media/processing/aecprocessor.cpp \
     src/media/processing/audiocapturefilter.cpp \
-    src/media/processing/audiooutput.cpp \
+    src/media/processing/audiomixerfilter.cpp \
     src/media/processing/audiooutputdevice.cpp \
     src/media/processing/camerafilter.cpp \
     src/media/processing/cameraframegrabber.cpp \
@@ -157,10 +156,9 @@ HEADERS  += \
     src/media/delivery/uvgrtpsender.h \
     src/media/mediamanager.h \
     src/media/processing/aecinputfilter.h \
-    src/media/processing/aecplaybackfilter.h \
     src/media/processing/aecprocessor.h \
     src/media/processing/audiocapturefilter.h \
-    src/media/processing/audiooutput.h \
+    src/media/processing/audiomixerfilter.h \
     src/media/processing/audiooutputdevice.h \
     src/media/processing/camerafilter.h \
     src/media/processing/cameraframegrabber.h \
