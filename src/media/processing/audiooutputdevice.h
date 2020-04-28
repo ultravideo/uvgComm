@@ -70,6 +70,9 @@ private:
 
   std::shared_ptr<AECProcessor> aec_;
 
+  bool mixedSample_;
+  unsigned int outputRepeats_;
+
 private slots:
   void deviceChanged(int index);
   void volumeChanged(int);

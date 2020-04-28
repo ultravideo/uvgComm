@@ -21,7 +21,9 @@ AudioOutputDevice::AudioOutputDevice(StatisticsInterface *stats):
   sampleMutex_(),
   outputSample_(),
   sampleSize_(0),
-  inputs_(0)
+  inputs_(0),
+  mixedSample_(false),
+  outputRepeats_(0)
 {}
 
 
@@ -29,13 +31,15 @@ AudioOutputDevice::~AudioOutputDevice()
 {}
 
 
-void AudioOutputDevice::init(QAudioFormat format, std::shared_ptr<AECProcessor> AEC)
+void AudioOutputDevice::init(QAudioFormat format,
+                             std::shared_ptr<AECProcessor> AEC)
 {
   aec_ = AEC;
 
   QAudioDeviceInfo info(device_);
   if (!info.isFormatSupported(format)) {
-    printDebug(DEBUG_WARNING, this, "Default format not supported - trying to use nearest.");
+    printDebug(DEBUG_WARNING, this,
+               "Default format not supported - trying to use nearest.");
     format_ = info.nearestFormat(format);
   }
   else
@@ -113,6 +117,22 @@ qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
     // if no new input has arrived, we play the last sample
     sampleMutex_.lock();
 
+    // we keep track if this is a repeat so we can change it to silence.
+    if (!mixedSample_)
+    {
+      ++outputRepeats_;
+    }
+    else
+    {
+      mixedSample_ = false;
+    }
+
+    // start playing silence if we played last frame three times.
+    if (outputRepeats_ == 3)
+    {
+      outputSample_ = aec_->createEmptyFrame(sampleSize_);
+    }
+
     // send sample to AEC
     std::shared_ptr<uchar[]> echoSample = outputSample_;
     aec_->processEchoFrame(echoSample, sampleSize_);
@@ -177,6 +197,8 @@ void AudioOutputDevice::takeInput(std::unique_ptr<Data> input, uint32_t sessionI
     }
 
     sampleMutex_.lock();
+    mixedSample_ = true;
+    outputRepeats_ = 0;
     sampleSize_ = dataLeft;
     outputSample_ = std::move(outputFrame);
     sampleMutex_.unlock();
