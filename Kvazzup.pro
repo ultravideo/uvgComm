@@ -7,22 +7,11 @@
 QT       += core gui
 
 message("Parsing project file.")
-message("Qt version:" "$$QT_MAJOR_VERSION"."$$QT_MINOR_VERSION" "Min: 5.4")
-
-greaterThan(QT_MAJOR_VERSION, 5)
-{
-  greaterThan(QT_MINOR_VERSION, 4)
-  {
-    message("Qt version is supported")
-    # this is because of qopenglwidget.
-  }
-}
+message("Qt version:" "$$QT_MAJOR_VERSION"."$$QT_MINOR_VERSION")
 
 TARGET = Kvazzup
 
-win32-g++:  TEMPLATE = app
-win32-msvc: TEMPLATE = app # vcapp does not currently generate makefile
-
+TEMPLATE = app
 
 # Copies the given files to the destination directory
 defineTest(copyToDestination) {
@@ -211,79 +200,62 @@ FORMS    += \
     ui/incomingcallwidget.ui \
     ui/outgoingcallwidget.ui
 
-# just in case we sometimes like to support smaller qt versions.
-greaterThan(4, QT_MAJOR_VERSION)
-{
-  QT += widgets
-  QT += multimedia
-}
 
-QT+=multimediawidgets
-QT+=network
-QT+=svg # for icons
+QT += multimediawidgets
+QT += network
+QT += svg # for icons
 QT += opengl
 
-#win32-g++: QMAKE_CXXFLAGS += -std=c++11 -fopenmp
 win32-g++: QMAKE_CXXFLAGS += -msse4.1 -mavx2 -fopenmp
 
-# Uses console window instead of IDE. Activates after linking.
-#debug {
-#    CONFIG += console
-#}
 
-
+# common includes
 INCLUDEPATH += $$PWD/../include/openhevc_dec
-INCLUDEPATH += $$PWD/../include/opus
 INCLUDEPATH += $$PWD/../include/
 
-win32-msvc{
-INCLUDEPATH += $$PWD/../include/uvgrtp
-INCLUDEPATH += $$PWD/../include/uvgrtp/formats
-
-LIBS += -L$$PWD/../msvc_libs
-LIBS += -lLibOpenHevcWrapper
-LIBS += -llibspeexdsp
+# These you need to install or build yourself
+LIBS += -lkvazaar
 LIBS += -lopus
-LIBS += -lkvazaar_lib
+LIBS += -lLibOpenHevcWrapper
+LIBS += -lspeexdsp
 LIBS += -luvgrtp
-message("Using Visual Studio libraries in ../msvc_libs")
+
+# windows build settings
+win32{
+  INCLUDEPATH += $$PWD/../include/uvgrtp
+  INCLUDEPATH += $$PWD/../include/opus
+
+  LIBS += -fopenmp # make sure openMP is installed in your build environment
+  LIBS += -lws2_32
+  LIBS += -lstrmiids
+  LIBS += -lole32
+  LIBS += -loleaut32
+  LIBS += -lssp
 }
+
+
+# TODO: MSVC is currently not compiling. Please use another compiler or resolve issues
+win32-msvc{
+  # you can put your libaries here
+  LIBS += -L$$PWD/../msvc_libs
+  message("Using MSVC libraries in ../msvc_libs")
+}
+
 
 win32-g++{
-INCLUDEPATH += $$PWD/../include/uvgrtp
-
-LIBS += -L$$PWD/../lib64
-LIBS += -llibkvazaar.dll
-LIBS += -llibopus.dll
-LIBS += -llibLibOpenHevcWrapper.dll
-LIBS += -llibspeexdsp.dll
-LIBS += -luvgrtp
-LIBS += -fopenmp # TODO: Does msvc also need this?
-message("Using MinGW libraries in ../libs")
+  # you can put your libaries here
+  LIBS += -L$$PWD/../libs
+  message("Using MinGW libraries in ../libs")
 }
+
 
 unix {
-QMAKE_CXXFLAGS += -msse4.1 -mavx2 -fopenmp
+  QMAKE_CXXFLAGS += -msse4.1 -mavx2 -fopenmp
 
-INCLUDEPATH += /usr/include/opus/
-INCLUDEPATH += /usr/local/include/uvgrtp/
-INCLUDEPATH += /usr/local/include/uvgrtp/formats
-
-LIBS += -lopus
-LIBS += -lkvazaar
-LIBS += -lspeex
-LIBS += -lspeexdsp
-LIBS += -lLibOpenHevcWrapper
-LIBS += -lgomp
-LIBS += -luvgrtp
-
-message("Using Unix libraries")
+  INCLUDEPATH += /usr/include/opus/
+  INCLUDEPATH += /usr/local/include/uvgrtp/
+  LIBS += -lgomp # openMP
 }
-
-win32: LIBS += -lws2_32
-win32: LIBS += -lstrmiids
-win32: LIBS += -lole32
-win32: LIBS += -loleaut32
 
 INCLUDEPATH += $$PWD/../
 DEPENDPATH += $$PWD/../
@@ -296,8 +268,8 @@ copyToDestination($$PWD/icons, $$OUT_PWD/icons)
 
 
 # deploying portable version
-# Copies only Qt libararies. OpenMP is not copied.
-# OpenMP is located in Tools folder of Qt
+# Copies only Qt libraries. OpenMP is not copied.
+# On windows OpenMP is located in Tools folder of Qt
 CONFIG(false){
   isEmpty(TARGET_EXT) {
       win32 {
@@ -315,6 +287,11 @@ CONFIG(false){
   }
   macx {
       DEPLOY_COMMAND = macdeployqt
+  }
+
+  # Add a console window to executable so we see debug prints.
+  debug {
+      CONFIG += console
   }
 
   DEPLOY_TARGET = $$shell_quote($$shell_path($${OUT_PWD}/$${TARGET}$${TARGET_CUSTOM_EXT}))
