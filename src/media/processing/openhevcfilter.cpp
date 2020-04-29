@@ -186,6 +186,7 @@ void OpenHEVCFilter::process()
           // TODO: put delay into deque, and set timestamp accordingly to get more accurate latency.
 
           frame->type = YUV420VIDEO;
+          frame->framerate = openHevcFrame.frameInfo.frameRate.num/openHevcFrame.frameInfo.frameRate.den;
           frame->data_size = finalDataSize;
           frame->data = std::move(yuv_frame);
 
