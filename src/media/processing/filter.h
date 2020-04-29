@@ -116,6 +116,8 @@ protected:
 
   virtual void process() = 0;
 
+  bool isHEVCIntra(const unsigned char *buff);
+
   void wakeUp()
   {
     waitMutex_->lock();

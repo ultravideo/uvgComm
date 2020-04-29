@@ -108,11 +108,7 @@ void Filter::putInput(std::unique_ptr<Data> data)
       for(uint32_t i = 0; i < inBuffer_.size(); ++i)
       {
         const unsigned char *buff = inBuffer_.at(i)->data.get();
-        if(!(buff[0] == 0
-           && buff[1] == 0
-           && buff[2] == 0
-           && buff[3] == 1
-           && (buff[4] >> 1) == 1))
+        if(!isHEVCIntra(buff))
         {
           qDebug() << "Processing," << metaObject()->className() << ": Discarding" << i
                    << "HEVC frames. Found non inter frame from buffer at :" << i;
@@ -283,4 +279,14 @@ QString Filter::printOutputs()
 
   outs += "plus " + QString::number(outDataCallbacks_.size()) + " callbacks";
   return outs;
+}
+
+
+bool Filter::isHEVCIntra(const unsigned char *buff)
+{
+  return (buff[0] == 0 &&
+      buff[1] == 0 &&
+      buff[2] == 0 &&
+      buff[3] == 1 &&
+      (buff[4] >> 1) == 1);
 }
