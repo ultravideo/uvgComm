@@ -16,39 +16,39 @@ void qSleep(int ms);
 QString generateRandomString(uint32_t length);
 
 // One time informational debug printing.
-void printNormal(QObject* object, QString description = "",
-                      QString valueName = "", QString value = "");
+void printNormal(const QObject* object, QString description = "",
+                 QString valueName = "", QString value = "");
 
 // Important one time events
-void printImportant(QObject* object, QString description = "",
-                   QString valueName = "", QString value = "");
+void printImportant(const QObject* object, QString description = "",
+                    QString valueName = "", QString value = "");
 
 // Events outside the program that can be dealt with, but are unusual
 // and/or can cause problems in the future
-void printWarning(QObject* object, QString description = "",
+void printWarning(const QObject* object, QString description = "",
                   QString valueName = "", QString value = "");
 
 // Events outside the program that will cause problems
 // for the functionality of the Kvazzup.
-void printError(QObject* object, QString description = "",
+void printError(const QObject* object, QString description = "",
                 QString valueName = "", QString value = "");
 
 // Impossible situation that will cause problems to functionality of Kvazzup.
-void printProgramError(QObject* object, QString description = "",
+void printProgramError(const QObject* object, QString description = "",
                       QString valueName = "", QString value = "");
 
 // Impossible situation that can be dealt without causing problems to functionality
 // of Kvazzup.
-void printProgramWarning(QObject* object, QString description = "",
+void printProgramWarning(const QObject* object, QString description = "",
                          QString valueName = "", QString value = "");
 
 // Errors in behavior of entities that we think are caused by other entities.
 // Most commonly a protocol.
-void printPeerError(QObject* object, QString description = "",
+void printPeerError(const QObject* object, QString description = "",
                     QString valueName = "", QString value = "");
 
 // Print when something is unimplemented. Does not replace TODO comments
-void printUnimplemented(QObject* object, QString whatIsNotImplemented);
+void printUnimplemented(const QObject* object, QString whatIsNotImplemented);
 
 
 enum DebugType{DEBUG_NORMAL, DEBUG_IMPORTANT, DEBUG_ERROR, DEBUG_WARNING,
@@ -67,7 +67,7 @@ void printDebug(DebugType type, QString className, QString description = "",
 
 
 // use this if printing is inside class derived from QObject which is most classes in Kvazzup
-void printDebug(DebugType type, QObject* object, QString description = "",
+void printDebug(DebugType type, const QObject* object, QString description = "",
                 QStringList valueNames = {}, QStringList values = {});
 
 bool settingEnabled(QString parameter);

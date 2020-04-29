@@ -53,7 +53,7 @@ QString generateRandomString(uint32_t length)
 }
 
 
-void printDebug(DebugType type, QObject* object, QString description,
+void printDebug(DebugType type, const QObject *object, QString description,
                 QStringList valueNames, QStringList values)
 {
   printDebug(type, object->metaObject()->className(),
@@ -61,56 +61,56 @@ void printDebug(DebugType type, QObject* object, QString description,
 }
 
 
-void printNormal(QObject* object, QString description,
+void printNormal(const QObject *object, QString description,
                       QString valueName, QString value)
 {
   printDebug(DEBUG_NORMAL, object, description, {valueName}, {value});
 }
 
 
-void printImportant(QObject* object, QString description,
+void printImportant(const QObject* object, QString description,
                    QString valueName, QString value)
 {
   printDebug(DEBUG_IMPORTANT, object, description, {valueName}, {value});
 }
 
 
-void printWarning(QObject* object, QString description,
+void printWarning(const QObject* object, QString description,
                   QString valueName, QString value)
 {
   printDebug(DEBUG_WARNING, object, description, {valueName}, {value});
 }
 
 
-void printError(QObject* object, QString description,
+void printError(const QObject *object, QString description,
                 QString valueName, QString value)
 {
   printDebug(DEBUG_ERROR, object, description, {valueName}, {value});
 }
 
 
-void printProgramError(QObject* object, QString description,
+void printProgramError(const QObject *object, QString description,
                       QString valueName, QString value)
 {
   printDebug(DEBUG_PROGRAM_ERROR, object, description, {valueName}, {value});
 }
 
 
-void printProgramWarning(QObject* object, QString description,
+void printProgramWarning(const QObject *object, QString description,
                          QString valueName, QString value)
 {
   printDebug(DEBUG_PROGRAM_WARNING, object, description, {valueName}, {value});
 }
 
 
-void printPeerError(QObject* object, QString description,
+void printPeerError(const QObject *object, QString description,
                     QString valueName, QString value)
 {
   printDebug(DEBUG_PEER_ERROR, object, description, {valueName}, {value});
 }
 
 
-void printUnimplemented(QObject* object, QString whatIsNotImplemented)
+void printUnimplemented(const QObject* object, QString whatIsNotImplemented)
 {
   printDebug(DEBUG_PROGRAM_WARNING, object,
              QString("NOT IMPLEMENTED: ") + whatIsNotImplemented);
