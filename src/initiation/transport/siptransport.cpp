@@ -462,7 +462,7 @@ void SIPTransport::networkPackage(QString package)
       {
         if (isConnected())
         {
-          stats_->addReceivedSIPMessage(response_match.captured(2),
+          stats_->addReceivedSIPMessage(response_match.captured(2) + " " + response_match.captured(3),
                                         package, connection_->remoteAddress().toString());
         }
 
