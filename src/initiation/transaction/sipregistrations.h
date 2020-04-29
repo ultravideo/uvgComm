@@ -48,6 +48,9 @@ private slots:
 
 private:
 
+  enum RegistrationStatus {INACTIVE, FIRST_REGISTRATION,
+                           RE_REGISTRATION, DEREGISTERING, REG_ACTIVE};
+
   struct SIPRegistrationData
   {
     SIPNonDialogClient client;
@@ -56,8 +59,7 @@ private:
     QString contactAddress;
     uint16_t contactPort;
 
-    bool active;
-    bool updatedContact;
+    RegistrationStatus status;
   };
 
   std::map<QString, std::shared_ptr<SIPRegistrationData>> registrations_;

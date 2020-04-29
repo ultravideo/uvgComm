@@ -36,10 +36,10 @@ void SIPRegistrations::uninit()
 {
   for (auto& registration : registrations_)
   {
-    if (registration.second->active)
+    if (registration.second->status == REG_ACTIVE)
     {
+      registration.second->status = DEREGISTERING;
       registration.second->client.unRegister();
-      registration.second->active = false;
     }
   }
 
@@ -56,7 +56,7 @@ void SIPRegistrations::bindToServer(QString serverAddress, QString localAddress,
 
   std::shared_ptr<SIPRegistrationData> data
       = std::shared_ptr<SIPRegistrationData>
-      (new SIPRegistrationData{{}, {}, localAddress, port, false, false});
+      (new SIPRegistrationData{{}, {}, localAddress, port, INACTIVE});
 
   SIP_URI serverUri = {TRANSPORTTYPE, "", "", serverAddress, 0, {}};
   data->state.createServerConnection(serverUri);
@@ -68,7 +68,7 @@ void SIPRegistrations::bindToServer(QString serverAddress, QString localAddress,
                    this, &SIPRegistrations::sendNonDialogRequest);
 
   statusView_->updateServerStatus("Request sent. Waiting response...");
-
+  registrations_[serverAddress]->status = FIRST_REGISTRATION;
   registrations_[serverAddress]->client.registerToServer();
 }
 
@@ -116,39 +116,54 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
         if (!i.second->client.processResponse(response, i.second->state))
         {
           printWarning(this, "Got a failure response to our REGISTER");
-          i.second->active = false;
+          i.second->status = INACTIVE;
           return;
         }
 
         if (response.type == SIP_OK)
         {
-          i.second->active = true;
-
           foundRegistration = true;
 
-          if (!i.second->updatedContact &&
+          if (i.second->status != RE_REGISTRATION &&
               response.message->vias.at(0).receivedAddress != "" &&
               response.message->vias.at(0).rportValue != 0 &&
               (i.second->contactAddress != response.message->vias.at(0).receivedAddress ||
                i.second->contactPort != response.message->vias.at(0).rportValue))
           {
+            printNormal(this, "Detected that we are behind NAT!");
 
-            printNormal(this, "Detected that we are behind NAT! Sending a second REGISTER");
+            // we want to remove the previous registration so it doesn't cause problems
+            if (i.second->status == FIRST_REGISTRATION)
+            {
+              printNormal(this, "Resetting previous registration");
+              i.second->status = DEREGISTERING;
+              i.second->client.unRegister();
+              return;
+            }
+            else if (i.second->status == DEREGISTERING)// the actual NAT registration
+            {
+              i.second->status = RE_REGISTRATION;
+              printNormal(this, "Sending the final NAT REGISTER");
+              i.second->contactAddress = response.message->contact.host;
+              i.second->contactPort = response.message->contact.port;
+              // makes sure we don't end up in infinite loop if the address doesn't match
 
-            i.second->contactAddress = response.message->contact.host;
-            i.second->contactPort = response.message->contact.port;
+              statusView_->updateServerStatus("Behind NAT, updating address...");
 
-            // makes sure we don't end up in infinite loop if the address doesn't match
-            i.second->updatedContact = true;
-
-            statusView_->updateServerStatus("Behind NAT, updating address...");
-
-            i.second->client.registerToServer(); // re-REGISTER with NAT address and port
+              i.second->client.registerToServer(); // re-REGISTER with NAT address and port
+              return;
+            }
+            else
+            {
+              printError(this, "The Registration response does not match internal state");
+            }
           }
           else
           {
             statusView_->updateServerStatus("Registered");
           }
+
+          i.second->status = REG_ACTIVE;
 
           if (!retryTimer_.isActive())
           {
@@ -189,7 +204,7 @@ void SIPRegistrations::refreshRegistrations()
 
   for (auto& i : registrations_)
   {
-    if (i.second->active)
+    if (i.second->status == REG_ACTIVE)
     {
       statusView_->updateServerStatus("Second request sent. Waiting response...");
       i.second->client.registerToServer();
@@ -204,7 +219,7 @@ bool SIPRegistrations::haveWeRegistered()
 
   for (auto& i : registrations_)
   {
-    if (i.second->active)
+    if (i.second->status == REG_ACTIVE)
     {
       registered = true;
     }

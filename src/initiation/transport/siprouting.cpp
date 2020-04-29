@@ -7,7 +7,8 @@
 
 SIPRouting::SIPRouting():
   contactAddress_(""),
-  contactPort_(0)
+  contactPort_(0),
+  first_(true)
 {}
 
 void SIPRouting::processResponseViaFields(QList<ViaInfo>& vias,
@@ -27,8 +28,17 @@ void SIPRouting::processResponseViaFields(QList<ViaInfo>& vias,
         printDebug(DEBUG_NORMAL, "SIPRouting", "Found our received address and rport",
                   {"Address"}, {via.receivedAddress + ":" + QString::number(via.rportValue)});
 
-        contactAddress_ = via.receivedAddress;
-        contactPort_ = via.rportValue;
+        // we do not update our address, because we want to remove this registration
+        // first before updating.
+        if (first_)
+        {
+          first_ = false;
+        }
+        else
+        {
+          contactAddress_ = via.receivedAddress;
+          contactPort_ = via.rportValue;
+        }
       }
       return;
     }
@@ -52,7 +62,8 @@ void SIPRouting::getViaAndContact(std::shared_ptr<SIPMessageInfo> message,
 
 
 void SIPRouting::getContactAddress(std::shared_ptr<SIPMessageInfo> message,
-                                   QString localAddress, uint16_t localPort, ConnectionType type)
+                                   QString localAddress, uint16_t localPort,
+                                   ConnectionType type)
 {
   message->contact = {type, getUsername(), "", "", 0, {}};
 

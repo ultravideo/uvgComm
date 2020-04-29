@@ -36,4 +36,6 @@ private:
 
   QString contactAddress_;
   uint16_t contactPort_;
+
+  bool first_;
 };
