@@ -28,12 +28,13 @@ Kvazzup requires the following external libraries to run:
 - [uvgRTP](https://github.com/ultravideo/uvgRTP) for Media Delivery.
 - [Speex DSP](https://www.speex.org/) for AEC.
 
-Build these libraries using GCC, MinGW or MSVC compiler. Make sure you use the same compiler for all the dependencies and for Kvazzup. OpenMP also needs to be installed in your build environment or found in PATH. Qt Creator is the recommended tool for compiling Kvazzup.
+Build these libraries using GCC, MinGW or MSVC compiler. Make sure you use the same compiler for all the dependencies and for Kvazzup. OpenMP also needs to be installed in your build environment or found in PATH. Qt Creator is the recommended tool for compiling Kvazzup. Please use dynamic version of kvazaar or define KVZ_STATIC_LIB in project file if you want to use the static library.
 
-### Known issues
 
-- Due to recent addition of uvgRTP, the Visual Studio compilation does not succeed. Fix is pending.
-- The Linux version of Kvazzup has a bug with QCamera which prevents from changing the default resolution. Opus codec is also disabled on Linux until issues with it have been resolved.
+## Known issues
+
+- Currently Visual Studio compilation does not succeed. Fix is pending.
+- The Linux version of Kvazzup has a bug with QCamera which prevents from changing the default resolution. In addition the Opus codec is also disabled on Linux until issues with it have been resolved.
 
 
 ## Planned features
