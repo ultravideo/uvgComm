@@ -182,7 +182,8 @@ void SIPTransport::destroyConnection()
 void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
 {
   ++processingInProgress_;
-  printNormal(this, "Composing SIP Request:", {"Type"}, requestToString(request.type));
+  printImportant(this, "Composing and sending SIP Request:", {"Type"},
+                 requestToString(request.type));
   Q_ASSERT(request.message->content.type == NO_CONTENT || content.isValid());
   Q_ASSERT(connection_ != nullptr);
 
@@ -254,7 +255,8 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
 void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
 {
   ++processingInProgress_;
-  qDebug() << "Composing SIP Response:" << responseToPhrase(response.type);
+  printImportant(this, "Composing and sending SIP Response:", {"Type"},
+                 responseToPhrase(response.type));
   Q_ASSERT(response.message->transactionRequest != SIP_INVITE
       || response.type != SIP_OK
       || (response.message->content.type == APPLICATION_SDP && content.isValid()));
@@ -264,14 +266,14 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
      && (!content.isValid() || response.message->content.type != APPLICATION_SDP))
      || connection_ == nullptr)
   {
-    qDebug() << "WARNING: SDP nullptr or connection does not exist in sendResponse";
+    printWarning(this, "SDP nullptr or connection does not exist in sendResponse");
     return;
   }
 
   QList<SIPField> fields;
   if(!composeMandatoryFields(fields, response.message))
   {
-    qDebug() << "WARNING: Failed to add mandatory fields. Probably because of missing values.";
+    printWarning(this, "Failed to add mandatory fields. Probably because of missing values.");
     return;
   }
 
@@ -338,7 +340,6 @@ QString SIPTransport::fieldsToString(QList<SIPField>& fields, QString lineEnding
 
     for (int i = 0; i < field.valueSets.size(); ++i)
     {
-
       // add words.
       for (int j = 0; j < field.valueSets.at(i).words.size(); ++j)
       {
@@ -820,7 +821,7 @@ bool SIPTransport::parseFieldValue(QString& valueSet, SIPField& field)
 
 
 void SIPTransport::addParameterToSet(SIPParameter& currentParameter, QString &currentWord,
-                  ValueSet& valueSet)
+                                     ValueSet& valueSet)
 {
   if (currentParameter.name == "")
   {
@@ -878,6 +879,8 @@ bool SIPTransport::parseRequest(QString requestString, QString version,
 {  
   qDebug() << "Request detected:" << requestString;
 
+  printImportant(this, "Parsing incoming request", {"Type"}, {requestString});
+
   message->version = version; // TODO: set only version not SIP/version
   RequestType requestType = stringToRequest(requestString);
 
@@ -916,7 +919,7 @@ bool SIPTransport::parseResponse(QString responseString, QString version,
                                  std::shared_ptr<SIPMessageInfo> message,
                                  QVariant &content)
 {
-  qDebug() << "Response detected:" << responseString;
+  printImportant(this, "Parsing incoming response", {"Type"}, {responseString});
   message->version = version; // TODO: set only version not SIP/version
   ResponseType type = codeToResponse(stringToResponseCode(responseString));
 

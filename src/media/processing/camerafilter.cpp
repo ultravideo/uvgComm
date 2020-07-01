@@ -74,7 +74,7 @@ bool CameraFilter::initialCameraSetup()
       }
     }
     // previous camera could not be found, use first.
-    qDebug() << "Did not find camera name:" << deviceName << " Using first";
+    qDebug() << "Did not find camera name:" << deviceName << " Using first:" << cameras.at(0).description();
     deviceID = 0;
   }
 

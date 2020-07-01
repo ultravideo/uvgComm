@@ -28,7 +28,9 @@ Kvazzup requires the following external libraries to run:
 - [uvgRTP](https://github.com/ultravideo/uvgRTP) for Media Delivery.
 - [Speex DSP](https://www.speex.org/) for AEC.
 
-Build these libraries using GCC, MinGW or MSVC compiler. Make sure you use the same compiler for all the dependencies and for Kvazzup. OpenMP also needs to be installed in your build environment or found in PATH. Qt Creator is the recommended tool for compiling Kvazzup.
+Build these libraries using GCC, MinGW or MSVC compiler. Make sure you use the same compiler for all the dependencies and for Kvazzup. OpenMP also needs to be installed in your build environment or found in PATH. Qt Creator is the recommended tool for compiling Kvazzup. 
+
+It is recommended that you build dynamic version of kvazaar or you have to define KVZ_STATIC_LIB in project file if you want to use a static version. 
 
 ### Known issues
 

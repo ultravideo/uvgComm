@@ -30,7 +30,6 @@ defineTest(copyToDestination) {
     export(QMAKE_POST_LINK)
 }
 
-
 INCLUDEPATH += src
 
 SOURCES +=\
@@ -208,7 +207,6 @@ QT += opengl
 
 win32-g++: QMAKE_CXXFLAGS += -msse4.1 -mavx2 -fopenmp
 
-
 # common includes
 INCLUDEPATH += $$PWD/../include/openhevc_dec
 INCLUDEPATH += $$PWD/../include/
@@ -233,21 +231,19 @@ win32{
   LIBS += -lssp
 }
 
-
 # TODO: MSVC is currently not compiling. Please use another compiler or resolve issues
 win32-msvc{
   # you can put your libaries here
   LIBS += -L$$PWD/../msvc_libs
+  LIBS += -ladvapi32
   message("Using MSVC libraries in ../msvc_libs")
 }
-
 
 win32-g++{
   # you can put your libaries here
   LIBS += -L$$PWD/../libs
   message("Using MinGW libraries in ../libs")
 }
-
 
 unix {
   QMAKE_CXXFLAGS += -msse4.1 -mavx2 -fopenmp
@@ -265,7 +261,6 @@ DEPENDPATH += $$PWD/../
 copyToDestination($$PWD/stylesheet.qss, $$OUT_PWD)
 copyToDestination($$PWD/fonts, $$OUT_PWD/fonts)
 copyToDestination($$PWD/icons, $$OUT_PWD/icons)
-
 
 # deploying portable version
 # Copies only Qt libraries. OpenMP is not copied.

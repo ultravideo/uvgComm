@@ -125,7 +125,7 @@ bool SIPDialog::processResponse(SIPResponse& response)
 
 void SIPDialog::generateRequest(uint32_t sessionID, RequestType type)
 {
-  printImportant(this, "Iniate sending of a dialog request");
+  printNormal(this, "Iniate sending of a dialog request");
 
   // Get all the necessary information from different components.
   SIPRequest request;
@@ -153,13 +153,13 @@ void SIPDialog::generateRequest(uint32_t sessionID, RequestType type)
   }
 
   emit sendRequest(sessionID, request);
-  printImportant(this, "Finished sending of a dialog request");
+  printNormal(this, "Finished sending of a dialog request");
 }
 
 
 void SIPDialog::generateResponse(uint32_t sessionID, ResponseType type)
 {
-  printImportant(this, "Iniate sending of a dialog response");
+  printNormal(this, "Iniate sending of a dialog response");
 
   // Get all the necessary information from different components.
   SIPResponse response;
@@ -167,5 +167,5 @@ void SIPDialog::generateResponse(uint32_t sessionID, ResponseType type)
   server_.getResponseMessage(response.message, type);
 
   emit sendResponse(sessionID, response);
-  printImportant(this, "Finished sending of a dialog response");
+  printNormal(this, "Finished sending of a dialog response");
 }

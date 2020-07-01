@@ -11,7 +11,8 @@
 #include <QRegularExpression>
 
 
-AudioCaptureFilter::AudioCaptureFilter(QString id, QAudioFormat format, StatisticsInterface *stats) :
+AudioCaptureFilter::AudioCaptureFilter(QString id, QAudioFormat format,
+                                       StatisticsInterface *stats):
   Filter(id, "Audio_Capture", stats, NONE, RAWAUDIO),
   deviceInfo_(),
   format_(format),
@@ -132,6 +133,13 @@ void AudioCaptureFilter::readMore()
   while (audioInput_->bytesReady() > frameSize_)
   {
     qint64 len = audioInput_->bytesReady();
+    if (len > 10*frameSize_)
+    {
+      printWarning(this, "There is a large amount of audio data in microphone", {
+                     "Amount"}, QString::number(len));
+    }
+
+
     if (len > frameSize_)
     {
       len = frameSize_;
@@ -231,7 +239,7 @@ void AudioCaptureFilter::volumeChanged(int value)
 
 void AudioCaptureFilter::stateChanged()
 {
-  printNormal(this, "AUdio Input State changed", {"States:"}, {
+  printNormal(this, "Audio Input State changed", {"States:"}, {
                 "Current: " + QString::number(audioInput_->state()) + ", Wanted: " + QString::number(wantedState_)});
 
   if (audioInput_ && audioInput_->state() != wantedState_)

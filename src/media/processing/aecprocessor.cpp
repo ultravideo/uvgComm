@@ -65,10 +65,11 @@ void AECProcessor::init()
     speex_preprocess_ctl(preprocessor_,
                          SPEEX_PREPROCESS_SET_DENOISE, activeState);
     //speex_preprocess_ctl(preprocessor_,
-    //                     SPEEX_PREPROCESS_SET_DEREVERB, state);
+    //                     SPEEX_PREPROCESS_SET_DEREVERB, activeState);
 
     delete activeState;
 
+    // these are the default values
     int* suppression = new int(-40);
     speex_preprocess_ctl(preprocessor_,
                          SPEEX_PREPROCESS_SET_ECHO_SUPPRESS,

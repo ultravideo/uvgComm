@@ -6,7 +6,7 @@
 
 
 AECInputFilter::AECInputFilter(QString id, StatisticsInterface* stats):
-  Filter(id, "AEC input filter", stats, RAWAUDIO, RAWAUDIO)
+  Filter(id, "AEC input", stats, RAWAUDIO, RAWAUDIO)
 {}
 
 
