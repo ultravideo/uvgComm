@@ -9,7 +9,12 @@ const QString APPLICATIONNAME = "Kvazzup";
 // how often registrations are sent in seconds
 const int REGISTER_INTERVAL = 600;
 
-const uint16_t AUDIO_FRAMES_PER_SECOND = 25;
+// this affects latency of audio. We have to wait until this much audio
+// has arrived before sending the packet. If packet is too small,
+// we waste bandwidth.
+
+// TODO: This should be at least 100 frames per second to reduce latency
+const uint16_t AUDIO_FRAMES_PER_SECOND = 25; // 40 ms of latency
 
 const int STREAM_COMPONENTS = 4;
 

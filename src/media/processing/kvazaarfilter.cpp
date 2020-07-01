@@ -180,8 +180,6 @@ void KvazaarFilter::process()
 
 void KvazaarFilter::customParameters(QSettings& settings)
 {
-
-
   int size = settings.beginReadArray("parameters");
 
   qDebug() << "Initialization," << metaObject()->className()
@@ -201,6 +199,7 @@ void KvazaarFilter::customParameters(QSettings& settings)
   }
   settings.endArray();
 }
+
 
 void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
 {
@@ -226,7 +225,6 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
     settings.setValue("video/Framerate", input->framerate);
     updateSettings();
   }
-
 
   // copy input to kvazaar picture
   memcpy(input_pic_->y,
@@ -255,6 +253,7 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
   }
 }
 
+
 void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
                                       uint32_t len_out, kvz_picture *recon_pic)
 {
@@ -273,7 +272,7 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
   for (kvz_data_chunk *chunk = data_out; chunk != nullptr; chunk = chunk->next)
   {
     if(chunk->len > 3 && chunk->data[0] == 0 && chunk->data[1] == 0
-       &&( chunk->data[2] == 1 || (chunk->data[2] == 0 && chunk->data[3] == 1 ))
+       && ( chunk->data[2] == 1 || (chunk->data[2] == 0 && chunk->data[3] == 1 ))
        && dataWritten != 0 && config_->slices != KVZ_SLICES_NONE)
     {
       // send previous packet if this is not the first
@@ -299,8 +298,10 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
   sendEncodedFrame(std::move(encodedFrame), std::move(hevc_frame), dataWritten);
 }
 
+
 void KvazaarFilter::sendEncodedFrame(std::unique_ptr<Data> input,
-                                     std::unique_ptr<uchar[]> hevc_frame, uint32_t dataWritten)
+                                     std::unique_ptr<uchar[]> hevc_frame,
+                                     uint32_t dataWritten)
 {
   input->type = HEVCVIDEO;
   input->data_size = dataWritten;

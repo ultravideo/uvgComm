@@ -12,6 +12,7 @@ class StatisticsInterface;
 class AECProcessor;
 struct Data;
 
+// TODO: There should be an audio buffer with minimum and maximum values so we alway have data to send.
 
 class AudioOutputDevice : public QIODevice
 {

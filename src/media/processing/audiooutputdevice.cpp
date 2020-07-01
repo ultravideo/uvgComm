@@ -206,7 +206,8 @@ void AudioOutputDevice::takeInput(std::unique_ptr<Data> input, uint32_t sessionI
 }
 
 
-std::unique_ptr<uchar[]> AudioOutputDevice::mixAudio(std::unique_ptr<Data> input, uint32_t sessionID)
+std::unique_ptr<uchar[]> AudioOutputDevice::mixAudio(std::unique_ptr<Data> input,
+                                                     uint32_t sessionID)
 {
   std::unique_ptr<uchar[]> outputFrame = nullptr;
   mixingMutex_.lock();

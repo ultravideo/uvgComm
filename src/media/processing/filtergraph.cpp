@@ -37,10 +37,8 @@ FilterGraph::FilterGraph():
 {
   // TODO negotiate these values with all included filters and SDP
   // TODO move these to settings and manage them automatically
-  // TODO: at the moment uvgRTP does not support larger audio frames for pcm
   // 48000 should be used with opus
   format_.setSampleRate(16000); 
-  //format_.setSampleRate(48000);
   format_.setChannelCount(1);
   format_.setSampleSize(16);
   format_.setSampleType(QAudioFormat::SignedInt);
