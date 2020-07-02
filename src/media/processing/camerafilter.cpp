@@ -98,9 +98,19 @@ bool CameraFilter::cameraSetup()
   {
     QSettings settings("kvazzup.ini", QSettings::IniFormat);
 #ifndef __linux__
+
+    int waitRoundMS = 5;
+    int totalWaitTime = 1000;
+    int currentWaitTime = 0;
     while(camera_->state() != QCamera::LoadedState)
     {
-      qSleep(5);
+      qSleep(waitRoundMS);
+      currentWaitTime += waitRoundMS;
+      if (currentWaitTime >= totalWaitTime)
+      {
+        printWarning(this, "Loading camera did not succeed.");
+        return false;
+      }
     }
 #endif
 
@@ -263,13 +273,7 @@ void CameraFilter::process()
     // capture the frame data
     Data * newImage = new Data;
 
-    // set time
-    timeval present_time;
-
-    present_time.tv_sec = QDateTime::currentMSecsSinceEpoch()/1000;
-    present_time.tv_usec = (QDateTime::currentMSecsSinceEpoch()%1000) * 1000;
-
-    newImage->presentationTime = present_time;
+    newImage->presentationTime = QDateTime::currentMSecsSinceEpoch();
     newImage->type = output_;
     newImage->data = std::unique_ptr<uchar[]>(new uchar[cloneFrame.mappedBytes()]);
 

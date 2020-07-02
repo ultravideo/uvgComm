@@ -169,9 +169,7 @@ void AudioOutputDevice::takeInput(std::unique_ptr<Data> input, uint32_t sessionI
   if (audioOutput_ && audioOutput_->state() != QAudio::StoppedState)
   {
     // Add audio delay to statistics
-    int64_t delay = QDateTime::currentMSecsSinceEpoch() -
-        ((uint64_t)input->presentationTime.tv_sec * 1000 +
-         (uint64_t)input->presentationTime.tv_usec/1000);
+    int64_t delay = QDateTime::currentMSecsSinceEpoch() - input->presentationTime;
 
     stats_->receiveDelay(sessionID, "Audio", delay);
 

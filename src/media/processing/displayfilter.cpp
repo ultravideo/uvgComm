@@ -96,8 +96,7 @@ void DisplayFilter::process()
         image = image.mirrored(horizontalMirroring_, verticalMirroring_);
       }
 
-      int32_t delay = QDateTime::currentMSecsSinceEpoch() -
-          (input->presentationTime.tv_sec * 1000 + input->presentationTime.tv_usec/1000);
+      int32_t delay = QDateTime::currentMSecsSinceEpoch() - input->presentationTime;
 
       widget_->inputImage(std::move(input->data),image);
 
