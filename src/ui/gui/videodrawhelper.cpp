@@ -8,19 +8,20 @@
 
 const uint16_t VIEWBUFFERSIZE = 5;
 
+
 VideoDrawHelper::VideoDrawHelper(uint32_t sessionID, uint32_t index, uint8_t borderSize):
   sessionID_(sessionID),
   index_(index),
   tmpParent_(nullptr),
   firstImageReceived_(false),
   previousSize_(QSize(0,0)),
-  borderSize_(borderSize)
+  borderSize_(borderSize),
+  currentFrame_(0)
 {}
 
 VideoDrawHelper::~VideoDrawHelper()
 {
-  viewBuffer_.clear();
-  dataBuffer_.clear();
+  frameBuffer_.clear();
 }
 
 void VideoDrawHelper::initWidget(QWidget* widget)
@@ -43,12 +44,13 @@ bool VideoDrawHelper::readyToDraw()
   return firstImageReceived_;
 }
 
-void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data, QImage &image)
+void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data, QImage &image,
+                                 int64_t timestamp)
 {
   if(!firstImageReceived_)
   {
-    lastImage_ = image;
-    lastImageData_ = std::move(data);
+    currentFrame_ = timestamp;
+    lastFrame_ = {image, std::move(data), timestamp};
     firstImageReceived_ = true;
     updateTargetRect(widget);
   }
@@ -56,23 +58,20 @@ void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data,
   {
     if(previousSize_ != image.size())
     {
-      qDebug() << "Drawing," << metaObject()->className() << ": Video widget needs to update its target rectangle because of resolution change.";
-      viewBuffer_.clear();
-      dataBuffer_.clear();
-
-      viewBuffer_.push_front(image);
-      dataBuffer_.push_front(std::move(data));
+      qDebug() << "Drawing," << metaObject()->className()
+               << ": Video widget needs to update its target rectangle because of resolution change.";
+      frameBuffer_.clear();
+      frameBuffer_.push_front({image, std::move(data), timestamp});
 
       updateTargetRect(widget);
     }
     else
     {
-      viewBuffer_.push_front(image);
-      dataBuffer_.push_front(std::move(data));
+      frameBuffer_.push_front({image, std::move(data), timestamp});
     }
 
     // delete oldes image if there is too much buffer
-    if(viewBuffer_.size() > VIEWBUFFERSIZE)
+    if(frameBuffer_.size() > VIEWBUFFERSIZE)
     {
       if ( widget->isVisible() &&
            widget->isActiveWindow() &&
@@ -80,12 +79,11 @@ void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data,
           !widget->isMinimized())
       {
         printWarning(this, "Buffer full when inputting image",
-                   {"Buffer"}, QString::number(viewBuffer_.size()) + "/"
+                   {"Buffer"}, QString::number(frameBuffer_.size()) + "/"
                      + QString::number(VIEWBUFFERSIZE));
       }
 
-      viewBuffer_.pop_back();
-      dataBuffer_.pop_back();
+      frameBuffer_.pop_back();
 
       //setUpdatesEnabled(true);
 
@@ -99,19 +97,17 @@ bool VideoDrawHelper::getRecentImage(QImage& image)
   Q_ASSERT(readyToDraw());
   if(readyToDraw())
   {
-    if(!viewBuffer_.empty())
+    if(!frameBuffer_.empty())
     {
-      image = viewBuffer_.back();
+      image = frameBuffer_.back().image;
 
-      lastImage_ = viewBuffer_.back();
-      lastImageData_ = std::move(dataBuffer_.back());
-      viewBuffer_.pop_back();
-      dataBuffer_.pop_back();
+      lastFrame_ = std::move(frameBuffer_.back());
+      frameBuffer_.pop_back();
       return true;
     }
     else
     {
-      image = lastImage_;
+      image = lastFrame_.image;
     }
   }
   return false;
@@ -121,14 +117,14 @@ void VideoDrawHelper::updateTargetRect(QWidget* widget)
 {
   if(firstImageReceived_)
   {
-    Q_ASSERT(lastImage_.data_ptr());
-    if(lastImage_.data_ptr() == nullptr)
+    Q_ASSERT(lastFrame_.image.data_ptr());
+    if(lastFrame_.image.data_ptr() == nullptr)
     {
       printDebug(DEBUG_PROGRAM_ERROR, this, "Null pointer in current image!");
       return;
     }
 
-    QSize size = lastImage_.size();
+    QSize size = lastFrame_.image.size();
     QSize frameSize = widget->size() - QSize(borderSize_,borderSize_);
 
     if(frameSize.height() > size.height()
@@ -146,7 +142,7 @@ void VideoDrawHelper::updateTargetRect(QWidget* widget)
     newFrameRect_ = QRect(QPoint(0, 0), size + QSize(borderSize_,borderSize_));
     newFrameRect_.moveCenter(widget->rect().center());
 
-    previousSize_ = lastImage_.size();
+    previousSize_ = lastFrame_.image.size();
   }
   else
   {

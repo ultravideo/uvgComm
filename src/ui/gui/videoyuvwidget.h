@@ -38,7 +38,7 @@ public:
   }
 
   // Takes ownership of the image data
-  void inputImage(std::unique_ptr<uchar[]> data, QImage &image);
+  void inputImage(std::unique_ptr<uchar[]> data, QImage &image, int64_t timestamp);
 
   static unsigned int number_;
 

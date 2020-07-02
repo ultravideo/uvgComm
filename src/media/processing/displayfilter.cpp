@@ -98,7 +98,7 @@ void DisplayFilter::process()
 
       int32_t delay = QDateTime::currentMSecsSinceEpoch() - input->presentationTime;
 
-      widget_->inputImage(std::move(input->data),image);
+      widget_->inputImage(std::move(input->data),image, input->presentationTime);
 
       if( sessionID_ != 1111)
         getStats()->receiveDelay(sessionID_, "Video", delay);

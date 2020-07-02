@@ -30,12 +30,13 @@ VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID, uint32_t index, ui
 VideoWidget::~VideoWidget()
 {}
 
-void VideoWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image)
+void VideoWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image,
+                             int64_t timestamp)
 {
   drawMutex_.lock();
   // if the resolution has changed in video
 
-  helper_.inputImage(this, std::move(data), image);
+  helper_.inputImage(this, std::move(data), image, timestamp);
 
   //update();
 
@@ -51,7 +52,6 @@ void VideoWidget::paintEvent(QPaintEvent *event)
   if(helper_.readyToDraw())
   {
     drawMutex_.lock();
-
 
     if(QFrame::frameRect() != helper_.getFrameRect())
     {
