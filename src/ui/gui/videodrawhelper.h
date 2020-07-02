@@ -9,6 +9,8 @@ class QKeyEvent;
 #include <QImage>
 #include <QRect>
 
+#include <QElapsedTimer>
+
 #include <deque>
 #include <memory>
 
@@ -32,7 +34,7 @@ public:
   void initWidget(QWidget* widget);
 
   bool readyToDraw();
-  void inputImage(QWidget *widget, std::unique_ptr<uchar[]> data, QImage &image);
+  void inputImage(QWidget *widget, std::unique_ptr<uchar[]> data, QImage &image, int64_t timestamp);
 
   // returns whether this is a new image or the previous one
   bool getRecentImage(QImage& image);
@@ -62,8 +64,6 @@ private:
   void enterFullscreen(QWidget* widget);
   void exitFullscreen(QWidget* widget);
 
-
-
   uint32_t sessionID_;
   uint32_t index_;
 
@@ -74,11 +74,18 @@ private:
 
   bool firstImageReceived_;
   QSize previousSize_;
-  QImage lastImage_;
-  std::unique_ptr<uchar[]> lastImageData_;
 
   int borderSize_;
 
-  std::deque<QImage> viewBuffer_;
-  std::deque<std::unique_ptr<uchar[]>> dataBuffer_;
+  struct Frame
+  {
+    QImage image;
+    std::unique_ptr<uchar[]> data;
+    int64_t timestamp;
+  };
+
+  Frame lastFrame_;
+  std::deque<Frame> frameBuffer_;
+
+  int64_t currentFrame_;
 };

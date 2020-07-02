@@ -30,13 +30,13 @@ VideoYUVWidget::VideoYUVWidget(QWidget* parent, uint32_t sessionID,
 VideoYUVWidget::~VideoYUVWidget()
 {}
 
-void VideoYUVWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image)
+void VideoYUVWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image, int64_t timestamp)
 {
   Q_ASSERT(data != nullptr);
   drawMutex_.lock();
   // if the resolution has changed in video
 
-  helper_.inputImage(this, std::move(data), image);
+  helper_.inputImage(this, std::move(data), image, timestamp);
 
   //update();
 

@@ -26,12 +26,12 @@ VideoGLWidget::VideoGLWidget(QWidget* parent, uint32_t sessionID, uint32_t index
 VideoGLWidget::~VideoGLWidget()
 {}
 
-void VideoGLWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image)
+void VideoGLWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image, int64_t timestamp)
 {
   drawMutex_.lock();
   // if the resolution has changed in video
 
-  helper_.inputImage(this, std::move(data), image);
+  helper_.inputImage(this, std::move(data), image, timestamp);
 
   //update();
 
