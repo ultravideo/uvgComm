@@ -89,8 +89,7 @@ void OpusEncoderFilter::process()
 
     if(len > 0)
     {
-      uint32_t delay = QDateTime::currentMSecsSinceEpoch() -
-          (input->presentationTime.tv_sec * 1000 + input->presentationTime.tv_usec/1000);
+      uint32_t delay = QDateTime::currentMSecsSinceEpoch() - input->presentationTime;
 
       getStats()->sendDelay("audio", delay);
       getStats()->addEncodedPacket("audio", len);

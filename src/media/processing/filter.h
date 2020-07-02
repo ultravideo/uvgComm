@@ -32,7 +32,7 @@ struct Data
   uint32_t data_size;
   int16_t width;
   int16_t height;
-  timeval presentationTime;
+  int64_t presentationTime;
 
   uint16_t framerate;
 

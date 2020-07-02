@@ -260,8 +260,7 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
   std::unique_ptr<Data> encodedFrame = std::move(encodingFrames_.back());
   encodingFrames_.pop_back();
 
-  uint32_t delay = QDateTime::currentMSecsSinceEpoch() -
-      (encodedFrame->presentationTime.tv_sec * 1000 + encodedFrame->presentationTime.tv_usec/1000);
+  uint32_t delay = QDateTime::currentMSecsSinceEpoch() - encodedFrame->presentationTime;
   getStats()->sendDelay("video", delay);
   getStats()->addEncodedPacket("video", len_out);
 

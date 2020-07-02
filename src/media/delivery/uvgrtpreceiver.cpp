@@ -28,10 +28,12 @@ UvgRTPReceiver::UvgRTPReceiver(QString id, StatisticsInterface *stats, DataType 
 
 UvgRTPReceiver::~UvgRTPReceiver()
 {
+
 }
 
 void UvgRTPReceiver::process()
 {
+
 }
 
 
@@ -63,7 +65,7 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
   received_picture->height = 0;
   received_picture->framerate = 0;
   received_picture->source = REMOTE;
-  received_picture->presentationTime = {0,0}; // TODO
+  received_picture->presentationTime = 0; // TODO
 
   // TODO: This copying should be done in separate thread as in
   // framedsource if we want to receive 4K with less powerful thread (like in Xeon)

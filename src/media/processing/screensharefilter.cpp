@@ -35,13 +35,7 @@ void ScreenShareFilter::process()
   // capture the frame data
   Data * newImage = new Data;
 
-  // set time
-  timeval present_time;
-
-  present_time.tv_sec = QDateTime::currentMSecsSinceEpoch()/1000;
-  present_time.tv_usec = (QDateTime::currentMSecsSinceEpoch()%1000) * 1000;
-
-  newImage->presentationTime = present_time;
+  newImage->presentationTime = QDateTime::currentMSecsSinceEpoch();
   newImage->type = output_;
   newImage->data = std::unique_ptr<uchar[]>(new uchar[image.sizeInBytes()]);
 
