@@ -14,8 +14,11 @@ const int FPSPRECISION = 4;
 
 const int UPDATEFREQUENCY = 1000;
 
+const int CHARTVALUES = 20;
+
 enum TabType {
-  SIP_TAB = 0, PARAMETERS_TAB = 1, DELIVERY_TAB = 2, FILTER_TAB = 3, PERFORMANCE_TAB = 4
+  SIP_TAB = 0, PARAMETERS_TAB = 1, DELIVERY_TAB = 2,
+  FILTER_TAB = 3, PERFORMANCE_TAB = 4
 };
 
 
@@ -94,7 +97,9 @@ void StatisticsWindow::videoInfo(double framerate, QSize resolution)
   ui_->value_resolution->setText( QString::number(resolution.width()) + "x"
                           + QString::number(resolution.height()));
 
-  ui_->enc_framerate->init(framerate, 5, 10);
+  // set maximum framerate, have three gray lines and set how many values
+  // are shown on chart
+  ui_->enc_chart->init(framerate, 3, CHARTVALUES);
 }
 
 
@@ -486,7 +491,9 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
   if(lastTabIndex_ != ui_->Statistics_tabs->currentIndex() &&
      ui_->Statistics_tabs->currentIndex() == PERFORMANCE_TAB)
   {
-    ui_->enc_framerate->clearPoints();
+    ui_->enc_chart->clearPoints();
+    ui_->bitrate_chart->clearPoints();
+    ui_->bitrate_chart->init(1000, 5, 20);
   }
 
   if(lastTabIndex_ != ui_->Statistics_tabs->currentIndex()
@@ -528,10 +535,12 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
         ui_->video_bitrate_value->setText
             ( QString::number(videoBitrate) + " kbit/s" );
 
+        ui_->bitrate_chart->addPoint(videoBitrate);
+
         ui_->encoded_framerate_value->setText
             ( QString::number(framerate, 'g', FPSPRECISION) + " fps" );
 
-        ui_->enc_framerate->addPoint(framerate);
+        ui_->enc_chart->addPoint(framerate);
 
         ui_->encode_delay_value->setText( QString::number(videoEncDelay_) + " ms." );
         ui_->audio_delay_value->setText( QString::number(audioEncDelay_) + " ms." );

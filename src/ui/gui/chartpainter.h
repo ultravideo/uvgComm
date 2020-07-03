@@ -45,5 +45,7 @@ private:
   int numberHeight_;
   int numberWidth_;
 
+  int yLines_;
+
   std::deque<float> points_;
 };
