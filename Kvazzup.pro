@@ -87,6 +87,7 @@ SOURCES +=\
     src/common.cpp \
     src/media/processing/yuvtorgb32.cpp \
     src/ui/gui/callwindow.cpp \
+    src/ui/gui/chartpainter.cpp \
     src/ui/gui/conferenceview.cpp \
     src/ui/gui/contactlist.cpp \
     src/ui/gui/contactlistitem.cpp \
@@ -169,6 +170,7 @@ HEADERS  += \
     src/participantinterface.h \
     src/global.h \
     src/ui/gui/callwindow.h \
+    src/ui/gui/chartpainter.h \
     src/ui/gui/conferenceview.h \
     src/ui/gui/contactlist.h \
     src/ui/gui/contactlistitem.h \

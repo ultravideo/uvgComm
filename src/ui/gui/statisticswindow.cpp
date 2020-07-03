@@ -79,6 +79,7 @@ void StatisticsWindow::showEvent(QShowEvent * event)
   guiUpdates_ = 0;
 }
 
+
 void StatisticsWindow::closeEvent(QCloseEvent *event)
 {
   Q_UNUSED(event)
@@ -92,6 +93,8 @@ void StatisticsWindow::videoInfo(double framerate, QSize resolution)
   ui_->value_framerate->setText( QString::number(framerate, 'g', FPSPRECISION)+" fps");
   ui_->value_resolution->setText( QString::number(resolution.width()) + "x"
                           + QString::number(resolution.height()));
+
+  ui_->enc_framerate->init(framerate, 5, 10);
 }
 
 
@@ -480,6 +483,12 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 {
   Q_UNUSED(event);
 
+  if(lastTabIndex_ != ui_->Statistics_tabs->currentIndex() &&
+     ui_->Statistics_tabs->currentIndex() == PERFORMANCE_TAB)
+  {
+    ui_->enc_framerate->clearPoints();
+  }
+
   if(lastTabIndex_ != ui_->Statistics_tabs->currentIndex()
      || guiUpdates_*UPDATEFREQUENCY < guiTimer_.elapsed())
   {
@@ -521,6 +530,8 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 
         ui_->encoded_framerate_value->setText
             ( QString::number(framerate, 'g', FPSPRECISION) + " fps" );
+
+        ui_->enc_framerate->addPoint(framerate);
 
         ui_->encode_delay_value->setText( QString::number(videoEncDelay_) + " ms." );
         ui_->audio_delay_value->setText( QString::number(audioEncDelay_) + " ms." );
@@ -628,7 +639,14 @@ void StatisticsWindow::addSentSIPMessage(QString type, QString message,
 void StatisticsWindow::addReceivedSIPMessage(QString type, QString message,
                                              QString address)
 {
-  addTableRow(ui_->received_list, sipMutex_, {type, address}, message);
+  int row = addTableRow(ui_->received_list, sipMutex_, {type, address}, message);
+
+  sipMutex_.lock();
+  QTableWidgetItem * first = ui_->received_list->itemAt(0, row);
+  first->setBackground(QColor(235,235,235));
+  QTableWidgetItem * second = ui_->received_list->itemAt(1, row);
+  second->setBackground(QColor(235,235,235));
+  sipMutex_.unlock();
 }
 
 

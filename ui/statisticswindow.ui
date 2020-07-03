@@ -481,27 +481,65 @@
        <string>Performance</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_3">
-       <item row="10" column="0">
-        <spacer name="verticalSpacer">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
+       <item row="2" column="1">
+        <widget class="QLabel" name="encode_delay_value">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
          </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>40</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="encode_delay">
          <property name="text">
-          <string>Encoding delay:</string>
+          <string>-</string>
          </property>
         </widget>
        </item>
-       <item row="8" column="0" colspan="2">
+       <item row="7" column="1">
+        <widget class="QLabel" name="audio_delay_value">
+         <property name="text">
+          <string>-</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="video_bitrate">
+         <property name="text">
+          <string>Bitrate:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QLabel" name="video_bitrate_value">
+         <property name="text">
+          <string>-</string>
+         </property>
+        </widget>
+       </item>
+       <item row="10" column="0" colspan="2">
+        <widget class="QTableWidget" name="performance_table"/>
+       </item>
+       <item row="4" column="1">
+        <widget class="QLabel" name="encoded_framerate_value">
+         <property name="text">
+          <string>-</string>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="1">
+        <widget class="QLabel" name="audio_bitrate_value">
+         <property name="text">
+          <string>-</string>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="0">
+        <widget class="QLabel" name="audio_bitrate">
+         <property name="text">
+          <string>Bitrate:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="9" column="0" colspan="2">
         <widget class="QLabel" name="label_6">
          <property name="font">
           <font>
@@ -512,6 +550,30 @@
          </property>
          <property name="text">
           <string>Delays and framerates</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="encode_delay">
+         <property name="text">
+          <string>Encoding delay:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="0" colspan="2">
+        <widget class="QLabel" name="audio">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Audio</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -535,7 +597,7 @@
          </property>
         </widget>
        </item>
-       <item row="10" column="1">
+       <item row="11" column="1">
         <spacer name="verticalSpacer_2">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -548,26 +610,32 @@
          </property>
         </spacer>
        </item>
-       <item row="3" column="1">
-        <widget class="QLabel" name="video_bitrate_value">
+       <item row="4" column="0">
+        <widget class="QLabel" name="encoded_framerate">
          <property name="text">
-          <string>-</string>
+          <string>Encoding framerate:</string>
          </property>
         </widget>
        </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="video_bitrate">
+       <item row="7" column="0">
+        <widget class="QLabel" name="audio_delay">
          <property name="text">
-          <string>Bitrate:</string>
+          <string>Encoding delay:</string>
          </property>
         </widget>
        </item>
-       <item row="6" column="1">
-        <widget class="QLabel" name="audio_delay_value">
-         <property name="text">
-          <string>-</string>
+       <item row="11" column="0">
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
          </property>
-        </widget>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
        </item>
        <item row="0" column="0" colspan="2">
         <widget class="QLabel" name="label_3">
@@ -586,71 +654,19 @@
          </property>
         </widget>
        </item>
-       <item row="6" column="0">
-        <widget class="QLabel" name="audio_delay">
-         <property name="text">
-          <string>Encoding delay:</string>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="0">
-        <widget class="QLabel" name="encoded_framerate">
-         <property name="text">
-          <string>Encoding framerate:</string>
-         </property>
-        </widget>
-       </item>
-       <item row="9" column="0" colspan="2">
-        <widget class="QTableWidget" name="performance_table"/>
-       </item>
-       <item row="2" column="1">
-        <widget class="QLabel" name="encode_delay_value">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="text">
-          <string>-</string>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="1">
-        <widget class="QLabel" name="encoded_framerate_value">
-         <property name="text">
-          <string>-</string>
-         </property>
-        </widget>
-       </item>
-       <item row="7" column="1">
-        <widget class="QLabel" name="audio_bitrate_value">
-         <property name="text">
-          <string>-</string>
-         </property>
-        </widget>
-       </item>
-       <item row="7" column="0">
-        <widget class="QLabel" name="audio_bitrate">
-         <property name="text">
-          <string>Bitrate:</string>
-         </property>
-        </widget>
-       </item>
        <item row="5" column="0" colspan="2">
-        <widget class="QLabel" name="audio">
-         <property name="font">
-          <font>
-           <pointsize>12</pointsize>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
+        <widget class="ChartPainter" name="enc_framerate">
+         <property name="minimumSize">
+          <size>
+           <width>300</width>
+           <height>200</height>
+          </size>
          </property>
-         <property name="text">
-          <string>Audio</string>
+         <property name="frameShape">
+          <enum>QFrame::StyledPanel</enum>
          </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
+         <property name="frameShadow">
+          <enum>QFrame::Raised</enum>
          </property>
         </widget>
        </item>
@@ -660,6 +676,14 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ChartPainter</class>
+   <extends>QFrame</extends>
+   <header>ui/gui/chartpainter.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>
