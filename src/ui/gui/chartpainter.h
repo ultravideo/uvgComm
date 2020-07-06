@@ -11,7 +11,7 @@ public:
   ChartPainter(QWidget *parent);
   ~ChartPainter();
 
-  void init(int maxY, int yLines, int xWindowSize);
+  void init(int maxY, int yLines, int xWindowSize, QString chartTitle);
 
   // return line ID
   int addLine(QString name);
@@ -43,8 +43,7 @@ private:
   int maxY_;
   int xWindowCount_;
 
-  int numberHeight_;
-  int numberWidth_;
+  QSize numberSize_;
 
   int yLines_;
 
@@ -53,4 +52,8 @@ private:
   std::vector<std::shared_ptr<std::deque<float>>> points_;
 
   QStringList names_;
+
+  QString title_;
+
+  QSize titleSize_;
 };

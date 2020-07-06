@@ -53,13 +53,14 @@ StatisticsInterface(),
           this, &StatisticsWindow::clearGUI);
 
 
-  ui_->bitrate_chart->init(1000, 5, 20);
+  ui_->bitrate_chart->init(1000, 5, CHARTVALUES, "Bitrates");
+  ui_->enc_delay_chart->init(200, 3, CHARTVALUES, "Encoder Latency");
 
   chartVideoID_ = ui_->bitrate_chart->addLine("Video");
   chartAudioID_ = ui_->bitrate_chart->addLine("Audio");
 
-  ui_->enc_chart->addLine("Video");
-  ui_->enc_chart->addLine("Audio");
+  ui_->enc_delay_chart->addLine("Video");
+  ui_->enc_delay_chart->addLine("Audio");
 
   // init headers of participant table
 
@@ -106,10 +107,6 @@ void StatisticsWindow::videoInfo(double framerate, QSize resolution)
   ui_->value_framerate->setText( QString::number(framerate, 'g', FPSPRECISION)+" fps");
   ui_->value_resolution->setText( QString::number(resolution.width()) + "x"
                           + QString::number(resolution.height()));
-
-  // set maximum framerate, have three gray lines and set how many values
-  // are shown on chart
-  ui_->enc_chart->init(framerate, 3, CHARTVALUES);
 }
 
 
@@ -125,7 +122,6 @@ void StatisticsWindow::audioInfo(uint32_t sampleRate, uint16_t channelCount)
     ui_->value_channels->setText(QString::number(channelCount));
     ui_->value_samplerate->setText(QString::number(sampleRate) + " Hz");
   }
-  ui_->enc_chart->addLine("Audio");
 }
 
 void StatisticsWindow::addSession(uint32_t sessionID)
@@ -502,7 +498,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
   if(lastTabIndex_ != ui_->Statistics_tabs->currentIndex() &&
      ui_->Statistics_tabs->currentIndex() == PERFORMANCE_TAB)
   {
-    ui_->enc_chart->clearPoints();
+    ui_->enc_delay_chart->clearPoints();
     ui_->bitrate_chart->clearPoints();
   }
 
@@ -542,8 +538,8 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
     case PERFORMANCE_TAB:
         float framerate = 0.0f;
         uint32_t videoBitrate = bitrate(videoPackets_, videoIndex_, framerate);
-        ui_->video_bitrate_value->setText
-            ( QString::number(videoBitrate) + " kbit/s" );
+       // ui_->video_bitrate_value->setText
+       //     ( QString::number(videoBitrate) + " kbit/s" );
 
 
 
@@ -552,18 +548,18 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 
 
 
-        ui_->encode_delay_value->setText( QString::number(videoEncDelay_) + " ms." );
-        ui_->audio_delay_value->setText( QString::number(audioEncDelay_) + " ms." );
+        //ui_->encode_delay_value->setText( QString::number(videoEncDelay_) + " ms." );
+        //ui_->audio_delay_value->setText( QString::number(audioEncDelay_) + " ms." );
 
         float audioFramerate = 0.0f; // not interested in this at the moment.
         uint32_t audioBitrate = bitrate(audioPackets_, audioIndex_, audioFramerate);
-        ui_->audio_bitrate_value->setText
-            ( QString::number(audioBitrate) + " kbit/s" );
+        //ui_->audio_bitrate_value->setText
+        //    ( QString::number(audioBitrate) + " kbit/s" );
 
         ui_->bitrate_chart->addPoint(chartVideoID_, videoBitrate);
         ui_->bitrate_chart->addPoint(chartAudioID_, audioBitrate);
-        ui_->enc_chart->addPoint(chartVideoID_, framerate);
-        ui_->enc_chart->addPoint(chartAudioID_, 0);
+        ui_->enc_delay_chart->addPoint(chartVideoID_, videoEncDelay_);
+        ui_->enc_delay_chart->addPoint(chartAudioID_, audioEncDelay_);
         // fill table
         for(auto& d : sessions_)
         {
@@ -744,7 +740,7 @@ int StatisticsWindow::addTableRow(QTableWidget* table, QMutex& mutex,
 
 void StatisticsWindow::clearGUI(int value)
 {
-  ui_->enc_chart->clearPoints();
+  ui_->enc_delay_chart->clearPoints();
   ui_->bitrate_chart->clearPoints();
   guiUpdates_ = 0;
   guiTimer_.restart();

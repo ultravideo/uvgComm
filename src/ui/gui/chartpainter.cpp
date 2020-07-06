@@ -24,8 +24,6 @@ std::vector<LineAppearance> appearances = {
 };
 
 
-
-
 const int MARGIN = 5;
 const int NUMBERMARGIN = 3;
 
@@ -33,10 +31,12 @@ ChartPainter::ChartPainter(QWidget* parent)
   : QFrame (parent),
   maxY_(0),
   xWindowCount_(0),
-  numberHeight_(0),
-  numberWidth_(0),
+  numberSize_(),
   yLines_(0),
-  points_()
+  points_(),
+  names_(),
+  title_(""),
+  titleSize_()
 {}
 
 
@@ -46,7 +46,7 @@ ChartPainter::~ChartPainter()
 
 int ChartPainter::getDrawMinX() const
 {
-  return MARGIN + numberWidth_ + NUMBERMARGIN;
+  return MARGIN + numberSize_.width() + NUMBERMARGIN;
 }
 
 
@@ -58,7 +58,7 @@ int ChartPainter::getDrawMaxX() const
 
 int ChartPainter::getDrawMinY() const
 {
-  return MARGIN + numberHeight_/4;
+  return MARGIN + numberSize_.height()/4 + titleSize_.height();
 }
 
 
@@ -76,11 +76,12 @@ void ChartPainter::clearPoints()
   }
 }
 
-void ChartPainter::init(int maxY, int yLines, int xWindowSize)
+void ChartPainter::init(int maxY, int yLines, int xWindowSize, QString chartTitle)
 {
   maxY_ = maxY;
   xWindowCount_ = xWindowSize;
   yLines_ = yLines;
+  title_ = chartTitle;
 }
 
 
@@ -112,10 +113,11 @@ void ChartPainter::paintEvent(QPaintEvent *event)
   Q_UNUSED(event);
   QPainter painter(this);
 
-  numberWidth_ = QFontMetrics(painter.font()).size(Qt::TextSingleLine,
-                                                   QString::number(maxY_)).width();
-  numberHeight_ = QFontMetrics(painter.font()).size(Qt::TextSingleLine,
-                                                    QString::number(maxY_)).height();
+  numberSize_ = QFontMetrics(painter.font()).size(Qt::TextSingleLine,
+                                                  QString::number(maxY_));
+
+  titleSize_ = QFontMetrics(painter.font()).size(Qt::TextSingleLine, title_);
+
 
   drawBackground(painter);
 
@@ -140,6 +142,12 @@ void ChartPainter::drawBackground(QPainter& painter)
     int yLoc = getDrawMaxY() - float(i)/yLines_*drawHeight;
     painter.drawLine(getDrawMinX(), yLoc, getDrawMaxX(), yLoc);
   }
+
+
+  painter.setPen(QPen(Qt::black, 1, Qt::SolidLine, Qt::RoundCap));
+
+  painter.drawText(rect().width()/2 - titleSize_.width()/2,
+                   MARGIN/2 + titleSize_.height(), title_);
 }
 
 
@@ -230,7 +238,8 @@ void ChartPainter::drawForeground(QPainter& painter)
                    getDrawMaxX(),      getDrawMaxY());
 
   // max x
-  painter.drawText(MARGIN, MARGIN + numberHeight_/2, QString::number(maxY_));
+  painter.drawText(MARGIN, MARGIN + numberSize_.height()/2 + titleSize_.height(),
+                   QString::number(maxY_));
 
   // small nod for max x
   painter.drawLine(getDrawMinX(),           getDrawMinY(),
@@ -240,7 +249,7 @@ void ChartPainter::drawForeground(QPainter& painter)
   int zeroLength = QFontMetrics(painter.font()).size(Qt::TextSingleLine,
                                                      QString::number(0)).width();
   painter.drawText(getDrawMinX() - zeroLength - NUMBERMARGIN,
-                   rect().size().height() - MARGIN - NUMBERMARGIN + numberHeight_/4,
+                   rect().size().height() - MARGIN - NUMBERMARGIN + numberSize_.height()/4,
                    QString::number(0));
 }
 
