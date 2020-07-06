@@ -52,6 +52,15 @@ StatisticsInterface(),
   connect(ui_->update_frequency, &QAbstractSlider::sliderMoved,
           this, &StatisticsWindow::clearGUI);
 
+
+  ui_->bitrate_chart->init(1000, 5, 20);
+
+  chartVideoID_ = ui_->bitrate_chart->addLine("Video");
+  chartAudioID_ = ui_->bitrate_chart->addLine("Audio");
+
+  ui_->enc_chart->addLine("Video");
+  ui_->enc_chart->addLine("Audio");
+
   // init headers of participant table
 
   fillTableHeaders(ui_->table_outgoing, sessionMutex_,
@@ -116,6 +125,7 @@ void StatisticsWindow::audioInfo(uint32_t sampleRate, uint16_t channelCount)
     ui_->value_channels->setText(QString::number(channelCount));
     ui_->value_samplerate->setText(QString::number(sampleRate) + " Hz");
   }
+  ui_->enc_chart->addLine("Audio");
 }
 
 void StatisticsWindow::addSession(uint32_t sessionID)
@@ -494,7 +504,6 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
   {
     ui_->enc_chart->clearPoints();
     ui_->bitrate_chart->clearPoints();
-    ui_->bitrate_chart->init(1000, 5, 20);
   }
 
   if(lastTabIndex_ != ui_->Statistics_tabs->currentIndex()
@@ -536,12 +545,12 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
         ui_->video_bitrate_value->setText
             ( QString::number(videoBitrate) + " kbit/s" );
 
-        ui_->bitrate_chart->addPoint(videoBitrate);
+
 
         ui_->encoded_framerate_value->setText
             ( QString::number(framerate, 'g', FPSPRECISION) + " fps" );
 
-        ui_->enc_chart->addPoint(framerate);
+
 
         ui_->encode_delay_value->setText( QString::number(videoEncDelay_) + " ms." );
         ui_->audio_delay_value->setText( QString::number(audioEncDelay_) + " ms." );
@@ -551,6 +560,10 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
         ui_->audio_bitrate_value->setText
             ( QString::number(audioBitrate) + " kbit/s" );
 
+        ui_->bitrate_chart->addPoint(chartVideoID_, videoBitrate);
+        ui_->bitrate_chart->addPoint(chartAudioID_, audioBitrate);
+        ui_->enc_chart->addPoint(chartVideoID_, framerate);
+        ui_->enc_chart->addPoint(chartAudioID_, 0);
         // fill table
         for(auto& d : sessions_)
         {

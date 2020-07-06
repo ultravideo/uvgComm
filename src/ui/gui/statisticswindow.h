@@ -150,4 +150,7 @@ private:
 
   // for updating the tab as fast as possible
   int lastTabIndex_;
+
+  int chartVideoID_;
+  int chartAudioID_;
 };

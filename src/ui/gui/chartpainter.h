@@ -13,12 +13,13 @@ public:
 
   void init(int maxY, int yLines, int xWindowSize);
 
-  void addPoint(float y);
+  // return line ID
+  int addLine(QString name);
 
-  void clearPoints()
-  {
-    points_.clear();
-  }
+  // add one point to line
+  void addPoint(int lineID, float y);
+
+  void clearPoints();
 
 protected:
   void paintEvent(QPaintEvent *event);
@@ -30,7 +31,7 @@ protected:
 private:
 
   void drawBackground(QPainter& painter);
-  void drawPoints(QPainter& painter);
+  void drawPoints(QPainter& painter, int lineID);
   void drawForeground(QPainter& painter);
 
   int getDrawMinX() const;
@@ -47,5 +48,9 @@ private:
 
   int yLines_;
 
-  std::deque<float> points_;
+  //std::deque<float> points_;
+
+  std::vector<std::shared_ptr<std::deque<float>>> points_;
+
+  QStringList names_;
 };
