@@ -63,6 +63,9 @@ public:
   virtual void addSentSIPMessage(QString type, QString message, QString address);
   virtual void addReceivedSIPMessage(QString type, QString message, QString address);
 
+private slots:
+  void clearGUI(int value);
+
 private:
 
   // info about one packet for calculating bitrate

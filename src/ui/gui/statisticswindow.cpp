@@ -12,8 +12,6 @@ const int BUFFERSIZE = 65536;
 
 const int FPSPRECISION = 4;
 
-const int UPDATEFREQUENCY = 1000;
-
 const int CHARTVALUES = 20;
 
 enum TabType {
@@ -50,6 +48,9 @@ StatisticsInterface(),
   lastTabIndex_(254) // an invalid value so we will update the tab immediately
 {
   ui_->setupUi(this);
+
+  connect(ui_->update_frequency, &QAbstractSlider::sliderMoved,
+          this, &StatisticsWindow::clearGUI);
 
   // init headers of participant table
 
@@ -497,7 +498,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
   }
 
   if(lastTabIndex_ != ui_->Statistics_tabs->currentIndex()
-     || guiUpdates_*UPDATEFREQUENCY < guiTimer_.elapsed())
+     || guiUpdates_*ui_->update_frequency->value() < guiTimer_.elapsed())
   {
     if (lastTabIndex_ == ui_->Statistics_tabs->currentIndex())
     {
@@ -725,4 +726,32 @@ int StatisticsWindow::addTableRow(QTableWidget* table, QMutex& mutex,
   int index = table->rowCount() - 1;
   mutex.unlock();
   return index;
+}
+
+
+void StatisticsWindow::clearGUI(int value)
+{
+  ui_->enc_chart->clearPoints();
+  ui_->bitrate_chart->clearPoints();
+  guiUpdates_ = 0;
+  guiTimer_.restart();
+
+  int limitedValue = static_cast<int>((value + 50)/100);
+  limitedValue *= 100;
+
+  ui_->update_frequency->setValue(limitedValue);
+
+  if (limitedValue >= 1000)
+  {
+    QString number = QString::number(limitedValue/1000) + "." + QString::number(limitedValue%1000);
+    ui_->update_frequency_label->setText("Update Frequency: " + number + " s");
+  }
+  else if (limitedValue > 0)
+  {
+    ui_->update_frequency_label->setText("Update Frequency: " + QString::number(limitedValue) + " ms");
+  }
+  else
+  {
+    ui_->update_frequency_label->setText("Update Frequency: every draw step");
+  }
 }
