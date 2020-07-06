@@ -53,8 +53,8 @@ StatisticsInterface(),
           this, &StatisticsWindow::clearGUI);
 
 
-  ui_->bitrate_chart->init(1000, 5, CHARTVALUES, "Bitrates");
-  ui_->enc_delay_chart->init(200, 3, CHARTVALUES, "Encoder Latency");
+  ui_->bitrate_chart->init(1000, 5, CHARTVALUES, "Bitrates (kbit/s)");
+  ui_->enc_delay_chart->init(200, 3, CHARTVALUES, "Encoder Latencies (ms)");
 
   chartVideoID_ = ui_->bitrate_chart->addLine("Video");
   chartAudioID_ = ui_->bitrate_chart->addLine("Audio");

@@ -31,8 +31,8 @@ protected:
 private:
 
   void drawBackground(QPainter& painter);
-  void drawPoints(QPainter& painter, int lineID);
-  void drawForeground(QPainter& painter);
+  void drawPoints(QPainter& painter, int lineID, bool &outDrawZero, bool &outDrawMax);
+  void drawForeground(QPainter& painter, bool drawZero, bool drawMax);
 
   int getDrawMinX() const;
   int getDrawMaxX() const;

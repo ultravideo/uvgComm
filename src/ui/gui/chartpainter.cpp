@@ -121,12 +121,15 @@ void ChartPainter::paintEvent(QPaintEvent *event)
 
   drawBackground(painter);
 
+  bool drawZero = true;
+  bool drawMax = true;
+
   for (unsigned int i = 0; i < points_.size(); ++i)
   {
-    drawPoints(painter, i + 1);
+    drawPoints(painter, i + 1, drawZero, drawMax);
   }
 
-  drawForeground(painter);
+  drawForeground(painter, drawZero, drawMax);
 }
 
 
@@ -143,15 +146,14 @@ void ChartPainter::drawBackground(QPainter& painter)
     painter.drawLine(getDrawMinX(), yLoc, getDrawMaxX(), yLoc);
   }
 
-
   painter.setPen(QPen(Qt::black, 1, Qt::SolidLine, Qt::RoundCap));
 
   painter.drawText(rect().width()/2 - titleSize_.width()/2,
-                   MARGIN/2 + titleSize_.height(), title_);
+                   MARGIN + titleSize_.height()/2, title_);
 }
 
 
-void ChartPainter::drawPoints(QPainter& painter, int lineID)
+void ChartPainter::drawPoints(QPainter& painter, int lineID, bool& outDrawZero, bool& outDrawMax)
 {
   if (lineID > points_.size())
   {
@@ -214,7 +216,25 @@ void ChartPainter::drawPoints(QPainter& painter, int lineID)
       }
     }
 
-    if (i != 0)
+
+    if (i == 0)
+    {
+      // we don't want to draw min/max if the current value would overlap them
+      if (points_.at(lineID - 1)->at(i) < maxY_/10)
+      {
+        outDrawZero = false;
+      }
+      else if (points_.at(lineID - 1)->at(i) > 9*maxY_/10)
+      {
+        outDrawMax = false;
+      }
+
+      // draw current value
+      painter.drawText(MARGIN, yPoint + numberSize_.height()/4,
+                       QString::number(points_.at(lineID - 1)->at(i)));
+
+    }
+    else // draw line if we have to points
     {
       painter.drawLine(previousX, previousY, xPoint, yPoint);
     }
@@ -225,7 +245,7 @@ void ChartPainter::drawPoints(QPainter& painter, int lineID)
 }
 
 
-void ChartPainter::drawForeground(QPainter& painter)
+void ChartPainter::drawForeground(QPainter& painter, bool drawZero, bool drawMax)
 {
   painter.setPen(QPen(Qt::black, 1, Qt::SolidLine, Qt::FlatCap));
 
@@ -237,20 +257,26 @@ void ChartPainter::drawForeground(QPainter& painter)
   painter.drawLine(getDrawMinX(),      getDrawMaxY(),
                    getDrawMaxX(),      getDrawMaxY());
 
-  // max x
-  painter.drawText(MARGIN, MARGIN + numberSize_.height()/2 + titleSize_.height(),
-                   QString::number(maxY_));
+  if (drawMax)
+  {
+    // max x
+    painter.drawText(MARGIN, MARGIN + numberSize_.height()/2 + titleSize_.height(),
+                     QString::number(maxY_));
 
-  // small nod for max x
-  painter.drawLine(getDrawMinX(),           getDrawMinY(),
-                   getDrawMinX() + 3,       getDrawMinY());
+    // small nod for max x
+    painter.drawLine(getDrawMinX(),           getDrawMinY(),
+                     getDrawMinX() + 3,       getDrawMinY());
+  }
 
-  // mix x
-  int zeroLength = QFontMetrics(painter.font()).size(Qt::TextSingleLine,
-                                                     QString::number(0)).width();
-  painter.drawText(getDrawMinX() - zeroLength - NUMBERMARGIN,
-                   rect().size().height() - MARGIN - NUMBERMARGIN + numberSize_.height()/4,
-                   QString::number(0));
+  if (drawZero)
+  {
+    // mix x
+    int zeroLength = QFontMetrics(painter.font()).size(Qt::TextSingleLine,
+                                                       QString::number(0)).width();
+    painter.drawText(getDrawMinX() - zeroLength - NUMBERMARGIN,
+                     rect().size().height() - MARGIN - NUMBERMARGIN + numberSize_.height()/4,
+                     QString::number(0));
+  }
 }
 
 
