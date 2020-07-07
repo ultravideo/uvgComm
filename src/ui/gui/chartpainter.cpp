@@ -107,6 +107,38 @@ void ChartPainter::addPoint(int lineID, float y)
   if (points_.at(lineID - 1)->size() > xWindowCount_)
   {
     points_.at(lineID - 1)->pop_back();
+
+    if (y < (maxY_/yLines_)*(yLines_ - 1))
+    {
+      bool inLastSegment = false;
+      for (auto& line : points_)
+      {
+        for (auto& value : *line.get())
+        {
+          if (value >= (maxY_/yLines_)*(yLines_ - 1))
+          {
+            inLastSegment = true;
+            break;
+          }
+        }
+        if (inLastSegment)
+        {
+          break;
+        }
+      }
+
+      if (!inLastSegment && yLines_ > 1)
+      {
+        maxY_ -= maxY_/yLines_;
+        --yLines_;
+      }
+    }
+  }
+
+  while (maxY_ < y)
+  {
+    maxY_ += maxY_/yLines_;
+    ++yLines_;
   }
 }
 
