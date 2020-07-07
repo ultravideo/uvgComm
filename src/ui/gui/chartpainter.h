@@ -40,6 +40,16 @@ private:
   int getDrawMinY() const;
   int getDrawMaxY() const;
 
+  void drawMark(QPainter& painter, int lineID, float x, float y);
+
+  void drawCircle(QPainter& painter, float x, float y);
+  void drawSquare(QPainter& painter, float x, float y);
+  void drawTriangle(QPainter& painter, float x, float y);
+  void drawCross(QPainter& painter, float x, float y);
+
+  void drawLegend(QPainter& painter, float x, float y, int legendMargin, int markSize,
+                  int lineID, QString name);
+
   int maxY_;
   int xWindowCount_;
 
@@ -54,6 +64,7 @@ private:
   QStringList names_;
 
   QString title_;
-
   QSize titleSize_;
+
+  int legendRows_;
 };

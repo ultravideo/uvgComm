@@ -16,11 +16,11 @@ std::vector<LineAppearance> appearances = {
   {Qt::green, CIRCLE},
   {Qt::red, SQUARE},
   {Qt::blue, TRIANGLE},
-  {Qt::yellow, CROSS},
+  {Qt::darkYellow, CROSS},
   {Qt::cyan, SQUARE},
   {Qt::magenta, TRIANGLE},
   {Qt::darkGreen, CROSS},
-  {Qt::darkYellow, CIRCLE}
+  {Qt::darkRed, CIRCLE}
 };
 
 
@@ -36,7 +36,8 @@ ChartPainter::ChartPainter(QWidget* parent)
   points_(),
   names_(),
   title_(""),
-  titleSize_()
+  titleSize_(),
+  legendRows_(0)
 {}
 
 
@@ -64,7 +65,7 @@ int ChartPainter::getDrawMinY() const
 
 int ChartPainter::getDrawMaxY() const
 {
-  return rect().size().height() - MARGIN - NUMBERMARGIN;
+  return rect().size().height() - MARGIN - NUMBERMARGIN - titleSize_.height()*legendRows_;
 }
 
 
@@ -101,9 +102,11 @@ void ChartPainter::addPoint(int lineID, float y)
   }
 
   points_.at(lineID - 1)->push_front(y);
-  if (points_.size() > xWindowCount_)
+
+  // remove oldest if we have enough points.
+  if (points_.at(lineID - 1)->size() > xWindowCount_)
   {
-    points_.pop_back();
+    points_.at(lineID - 1)->pop_back();
   }
 }
 
@@ -176,46 +179,7 @@ void ChartPainter::drawPoints(QPainter& painter, int lineID, bool& outDrawZero, 
     int xPoint = getDrawMinX() + float(i)/(xWindowCount_ - 1)*drawLength;
     int yPoint = getDrawMaxY() - points_.at(lineID - 1)->at(i)/maxY_*drawHeight;
 
-
-    switch (appearances.at(appearanceIndex).pointShape)
-    {
-      case CIRCLE:
-      {
-        painter.drawEllipse(QPointF(xPoint, yPoint), 3, 3);
-        break;
-      }
-      case SQUARE:
-      {
-      QPointF points[4] = {
-          QPointF(xPoint - 3, yPoint - 3),
-          QPointF(xPoint - 3, yPoint + 3),
-          QPointF(xPoint + 3, yPoint + 3),
-          QPointF(xPoint + 3, yPoint - 3)
-
-      };
-        painter.drawConvexPolygon(points, 4);
-        break;
-      }
-      case TRIANGLE:
-      {
-      QPointF points[3] = {
-          QPointF(xPoint, yPoint - 3),
-          QPointF(xPoint - 3, yPoint + 3),
-          QPointF(xPoint + 3, yPoint - 3)
-      };
-        painter.drawConvexPolygon(points, 3);
-        break;
-      }
-      case CROSS:
-      {
-      painter.drawLine(xPoint - 3, yPoint - 3,
-                       xPoint + 3, yPoint + 3);
-      painter.drawLine(xPoint - 3, yPoint + 3,
-                       xPoint + 3, yPoint - 3);
-        break;
-      }
-    }
-
+    drawMark(painter, lineID, xPoint, yPoint);
 
     if (i == 0)
     {
@@ -277,6 +241,161 @@ void ChartPainter::drawForeground(QPainter& painter, bool drawZero, bool drawMax
                      rect().size().height() - MARGIN - NUMBERMARGIN + numberSize_.height()/4,
                      QString::number(0));
   }
+
+  if (names_.size() > 0 && names_.size() == points_.size())
+  {
+    // draw legend
+
+    int legendMargin = 3;
+    int markSize = 7;
+
+    // +2 is an extra precausion
+    int nameWidth = QFontMetrics(painter.font()).size(Qt::TextSingleLine,
+                                                      names_.at(0)).width() + 2;
+
+    int legendWidth = markSize + legendMargin + nameWidth;
+    int totalWidthOfTwo = legendWidth*2;
+    int totalWidthOfThree = legendWidth*3;
+
+    int wordSpace = 14;
+
+    for (unsigned int i = 0; i < points_.size(); ++i)
+    {
+      if (points_.size() > 2 &&
+          points_.size() != 4 &&
+          rect().width() >= totalWidthOfThree + 2 * (legendMargin + wordSpace))
+      {
+        // draw three legends next to each other
+        // the if above means this will include at least the margins.
+        int extraSpace = rect().width() - totalWidthOfThree;
+        int x = extraSpace/2 + (i%3)*(legendWidth + wordSpace);
+        int y = getDrawMaxY() + NUMBERMARGIN + (i/3)*titleSize_.height();
+
+        drawLegend(painter, x, y, legendMargin, markSize, i + 1, names_.at(i));
+
+        if (points_.size()%3 != 0)
+        {
+          legendRows_ = points_.size()/3 + 1;
+        }
+        else
+        {
+          legendRows_ = points_.size()/3;
+        }
+      }
+      else if (points_.size() >= 2 &&
+               rect().width() > totalWidthOfTwo + wordSpace)
+      {
+        // draw legends in pairs
+        // the if above means this will include at least the margins.
+        int extraSpace = rect().width() - totalWidthOfTwo;
+        int x = extraSpace/2 + (i%2)*(legendWidth + wordSpace);
+        int y = getDrawMaxY() + NUMBERMARGIN + (i/2)*titleSize_.height();
+
+        drawLegend(painter, x, y, legendMargin, markSize, i + 1, names_.at(i));
+
+        if (points_.size()%2 != 0)
+        {
+          legendRows_ = points_.size()/2 + 1;
+        }
+        else
+        {
+          legendRows_ = points_.size()/2;
+        }
+      }
+      else
+      {
+        // draw one legend per row
+        // the if above means this will include at least the margins.
+        int extraSpace = rect().width() - legendWidth;
+        int x = extraSpace/2;
+        int y = getDrawMaxY() + i*titleSize_.height() + NUMBERMARGIN;
+
+        drawLegend(painter, x, y, legendMargin, i + 1, markSize, names_.at(i));
+
+        legendRows_ = points_.size();
+      }
+    }
+  }
+}
+
+
+void ChartPainter::drawMark(QPainter& painter, int lineID, float x, float y)
+{
+  int appearanceIndex = (lineID - 1)%appearances.size();
+
+  painter.setPen(QPen(appearances.at(appearanceIndex).color,
+                      2, Qt::SolidLine, Qt::FlatCap));
+
+  switch (appearances.at(appearanceIndex).pointShape)
+  {
+    case CIRCLE:
+    {
+      drawCircle(painter, x, y);
+      break;
+    }
+    case SQUARE:
+    {
+      drawSquare(painter, x, y);
+      break;
+    }
+    case TRIANGLE:
+    {
+      drawTriangle(painter, x, y);
+      break;
+    }
+    case CROSS:
+    {
+      drawCross(painter, x, y);
+      break;
+    }
+  }
+}
+
+
+void ChartPainter::drawCircle(QPainter& painter, float x, float y)
+{
+  painter.drawEllipse(QPointF(x, y), 3, 3);
+}
+
+
+void ChartPainter::drawSquare(QPainter& painter, float x, float y)
+{
+  QPointF points[4] = {
+      QPointF(x - 3, y - 3),
+      QPointF(x - 3, y + 3),
+      QPointF(x + 3, y + 3),
+      QPointF(x + 3, y - 3)
+
+  };
+  painter.drawConvexPolygon(points, 4);
+}
+
+
+void ChartPainter::drawTriangle(QPainter& painter, float x, float y)
+{
+  QPointF points[3] = {
+      QPointF(x,     y - 3),
+      QPointF(x - 3, y + 3),
+      QPointF(x + 3, y - 3)
+  };
+  painter.drawConvexPolygon(points, 3);
+}
+
+
+void ChartPainter::drawCross(QPainter& painter, float x, float y)
+{
+  painter.drawLine(x - 3, y - 3,
+                   x + 3, y + 3);
+  painter.drawLine(x - 3, y + 3,
+                   x + 3, y - 3);
+}
+
+void ChartPainter::drawLegend(QPainter& painter, float x, float y,
+                              int legendMargin, int markSize, int lineID, QString name)
+{
+  drawMark(painter, lineID, x, y + titleSize_.height()/2 + markSize - 1);
+  painter.setPen(QPen(Qt::black, 1, Qt::SolidLine, Qt::FlatCap));
+  painter.drawText(QPointF(x + markSize + legendMargin, y + titleSize_.height()), name);
 }
 
 
