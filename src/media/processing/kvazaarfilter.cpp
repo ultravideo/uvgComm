@@ -85,6 +85,7 @@ bool KvazaarFilter::init()
     config_->intra_period = settings.value("video/Intra").toInt();
     config_->framerate_denom = framerate_denom_;
     config_->hash = KVZ_HASH_NONE;
+    config_->gop_lowdelay = 1;
 
     //config_->fme_level = 0;
 
