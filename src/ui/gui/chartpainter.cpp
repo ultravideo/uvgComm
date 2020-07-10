@@ -65,7 +65,8 @@ int ChartPainter::getDrawMinY() const
 
 int ChartPainter::getDrawMaxY() const
 {
-  return rect().size().height() - MARGIN - NUMBERMARGIN - titleSize_.height()*legendRows_;
+  return rect().size().height() - MARGIN - NUMBERMARGIN
+      - titleSize_.height()*legendRows_;
 }
 
 
@@ -77,7 +78,8 @@ void ChartPainter::clearPoints()
   }
 }
 
-void ChartPainter::init(int maxY, int yLines, int xWindowSize, QString chartTitle)
+void ChartPainter::init(int maxY, int yLines, int xWindowSize,
+                        QString chartTitle)
 {
   maxY_ = maxY;
   xWindowCount_ = xWindowSize;
@@ -184,11 +186,12 @@ void ChartPainter::drawBackground(QPainter& painter)
   painter.setPen(QPen(Qt::black, 1, Qt::SolidLine, Qt::RoundCap));
 
   painter.drawText(rect().width()/2 - titleSize_.width()/2,
-                   MARGIN + titleSize_.height()/2, title_);
+                   MARGIN/2 + titleSize_.height(), title_);
 }
 
 
-void ChartPainter::drawPoints(QPainter& painter, int lineID, bool& outDrawZero, bool& outDrawMax)
+void ChartPainter::drawPoints(QPainter& painter, int lineID,
+                              bool& outDrawZero, bool& outDrawMax)
 {
   if (lineID > points_.size())
   {

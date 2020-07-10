@@ -36,6 +36,10 @@ StatisticsInterface(),
   videoPackets_(BUFFERSIZE,nullptr), // ringbuffer
   audioIndex_(0), // ringbuffer index
   audioPackets_(BUFFERSIZE,nullptr), // ringbuffer
+  inIndex_(0),
+  inBandWidth_(BUFFERSIZE,nullptr),
+  outIndex_(0),
+  outBandwidth_(BUFFERSIZE,nullptr),
   sendPacketCount_(0),
   transferredData_(0),
   receivePacketCount_(0),
@@ -55,12 +59,16 @@ StatisticsInterface(),
 
   ui_->bitrate_chart->init(1000, 5, CHARTVALUES, "Bitrates (kbit/s)");
   ui_->enc_delay_chart->init(200, 4, CHARTVALUES, "Encoder Latencies (ms)");
+  ui_->bandwidth_chart->init(1000, 5, CHARTVALUES, "Bandwidth (kbit/s)");
 
   chartVideoID_ = ui_->bitrate_chart->addLine("Video");
   chartAudioID_ = ui_->bitrate_chart->addLine("Audio");
 
   ui_->enc_delay_chart->addLine("Video");
   ui_->enc_delay_chart->addLine("Audio");
+
+  ui_->bandwidth_chart->addLine("In");
+  ui_->bandwidth_chart->addLine("Out");
 
   // init headers of participant table
 
@@ -437,6 +445,8 @@ void StatisticsWindow::addSendPacket(uint16_t size)
   deliveryMutex_.lock();
   ++sendPacketCount_;
   transferredData_ += size;
+
+  updateFramerateBuffer(outBandwidth_, outIndex_, size);
   deliveryMutex_.unlock();
 }
 
@@ -446,6 +456,8 @@ void StatisticsWindow::addReceivePacket(uint16_t size)
   deliveryMutex_.lock();
   ++receivePacketCount_;
   receivedData_ += size;
+
+  updateFramerateBuffer(inBandWidth_, inIndex_, size);
   deliveryMutex_.unlock();
 }
 
@@ -500,6 +512,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
   {
     ui_->enc_delay_chart->clearPoints();
     ui_->bitrate_chart->clearPoints();
+    ui_->bandwidth_chart->clearPoints();
   }
 
   if(lastTabIndex_ != ui_->Statistics_tabs->currentIndex()
@@ -538,28 +551,23 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
     case PERFORMANCE_TAB:
         float framerate = 0.0f;
         uint32_t videoBitrate = bitrate(videoPackets_, videoIndex_, framerate);
-       // ui_->video_bitrate_value->setText
-       //     ( QString::number(videoBitrate) + " kbit/s" );
-
-
 
         ui_->encoded_framerate_value->setText
             ( QString::number(framerate, 'g', FPSPRECISION) + " fps" );
 
-
-
-        //ui_->encode_delay_value->setText( QString::number(videoEncDelay_) + " ms." );
-        //ui_->audio_delay_value->setText( QString::number(audioEncDelay_) + " ms." );
-
         float audioFramerate = 0.0f; // not interested in this at the moment.
         uint32_t audioBitrate = bitrate(audioPackets_, audioIndex_, audioFramerate);
-        //ui_->audio_bitrate_value->setText
-        //    ( QString::number(audioBitrate) + " kbit/s" );
+
+        float packetRate = 0.0f; // not interested in this at the moment.
+        uint32_t inBandwidth = bitrate(inBandWidth_, inIndex_, packetRate);
+        uint32_t outBandwidth = bitrate(outBandwidth_, outIndex_, packetRate);
 
         ui_->bitrate_chart->addPoint(chartVideoID_, videoBitrate);
         ui_->bitrate_chart->addPoint(chartAudioID_, audioBitrate);
         ui_->enc_delay_chart->addPoint(chartVideoID_, videoEncDelay_);
         ui_->enc_delay_chart->addPoint(chartAudioID_, audioEncDelay_);
+        ui_->bandwidth_chart->addPoint(1, inBandwidth);
+        ui_->bandwidth_chart->addPoint(2, outBandwidth);
         // fill table
         for(auto& d : sessions_)
         {
@@ -662,9 +670,9 @@ void StatisticsWindow::addReceivedSIPMessage(QString type, QString message,
 
   sipMutex_.lock();
   QTableWidgetItem * first = ui_->received_list->itemAt(0, row);
-  first->setBackground(QColor(235,235,235));
+  //first->setBackground(QColor(235,235,235));
   QTableWidgetItem * second = ui_->received_list->itemAt(1, row);
-  second->setBackground(QColor(235,235,235));
+  //second->setBackground(QColor(235,235,235));
   sipMutex_.unlock();
 }
 
@@ -742,6 +750,7 @@ void StatisticsWindow::clearGUI(int value)
 {
   ui_->enc_delay_chart->clearPoints();
   ui_->bitrate_chart->clearPoints();
+  ui_->bandwidth_chart->clearPoints();
   guiUpdates_ = 0;
   guiTimer_.restart();
 

@@ -134,6 +134,11 @@ private:
   uint32_t audioIndex_;
   std::vector<PacketInfo*> audioPackets_;
 
+  uint32_t inIndex_;
+  std::vector<PacketInfo*> inBandWidth_;
+  uint32_t outIndex_;
+  std::vector<PacketInfo*> outBandwidth_;
+
   uint64_t sendPacketCount_;
   uint64_t transferredData_;
   uint64_t receivePacketCount_;
