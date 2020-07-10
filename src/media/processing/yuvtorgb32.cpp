@@ -38,7 +38,7 @@ void YUVtoRGB32::updateSettings()
   }
   else
   {
-    printDebug(DEBUG_ERROR, "CameraInfo", 
+    printDebug(DEBUG_ERROR, "YUVtoRGB32",
                "Missing settings value YUV threads.");
   }
 

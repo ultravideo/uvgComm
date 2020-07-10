@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <math.h>
+#include <cstring>
 
 #include <omp.h>
 

@@ -9,6 +9,8 @@ class RGB32toYUV : public Filter
 public:
   RGB32toYUV(QString id, StatisticsInterface* stats);
 
+  virtual void updateSettings();
+
 protected:
 
   // flips input
@@ -18,4 +20,5 @@ private:
 
   bool sse_;
 
+  int threadCount_;
 };

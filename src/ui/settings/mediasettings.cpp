@@ -22,6 +22,7 @@ const QStringList neededSettings = {"video/DeviceID",
                                     "video/Slices",
                                     "video/kvzThreads",
                                     "video/yuvThreads",
+                                    "video/rgbThreads",
                                     "video/OPENHEVC_Threads",
                                     "video/FramerateID"};
 
@@ -134,6 +135,7 @@ void MediaSettings::saveCustomSettings()
   saveTextValue("video/kvzThreads",            customUI_->kvz_threads->text(), settings_);
   saveTextValue("video/OPENHEVC_threads",      customUI_->openhevc_threads->text(), settings_);
   saveTextValue("video/yuvThreads",            customUI_->yuv_threads->text(), settings_);
+  saveTextValue("video/rgbThreads",            customUI_->rgb32_threads->text(), settings_);
   saveTextValue("video/VPS",                   customUI_->vps->text(), settings_);
   saveTextValue("video/Intra",                 customUI_->intra->text(), settings_);
   saveCheckBox("video/WPP",                    customUI_->wpp, settings_);
@@ -220,7 +222,8 @@ void MediaSettings::restoreCustomSettings()
     customUI_->qp->setValue            (settings_.value("video/QP").toInt());
     customUI_->openhevc_threads->setText        (settings_.value("video/OPENHEVC_threads").toString());
 
-    customUI_->yuv_threads->setText        (settings_.value("video/yuvThreads").toString());
+    customUI_->yuv_threads->setValue(settings_.value("video/yuvThreads").toInt());
+    customUI_->rgb32_threads->setValue(settings_.value("video/rgbThreads").toInt());
 
     restoreCheckBox("video/WPP", customUI_->wpp, settings_);
 

@@ -1,13 +1,37 @@
 #include "rgb32toyuv.h"
 
 #include "optimized/rgb2yuv.h"
+#include "common.h"
 
-#include <QtDebug>
+#include <QSettings>
 
 RGB32toYUV::RGB32toYUV(QString id, StatisticsInterface *stats) :
   Filter(id, "RGB32toYUV", stats, RGB32VIDEO, YUV420VIDEO),
-  sse_(true)
-{}
+  sse_(true),
+  threadCount_(0)
+{
+  updateSettings();
+}
+
+
+void RGB32toYUV::updateSettings()
+{
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+  if(settings.value("video/rgbThreads").isValid())
+  {
+    threadCount_ = settings.value("video/rgbThreads").toInt();
+
+    qDebug() << "Settings for RGB32 to YUV threads:" << threadCount_;
+  }
+  else
+  {
+    printDebug(DEBUG_ERROR, "YUVtoRGB32",
+               "Missing settings value RGB32 threads.");
+  }
+
+  Filter::updateSettings();
+}
+
 
 void RGB32toYUV::process()
 {
@@ -20,7 +44,14 @@ void RGB32toYUV::process()
 
     if(sse_ && input->width % 4 == 0)
     {
-      rgb2yuv_i_sse41(input->data.get(), yuv_data.get(), input->width, input->height);
+      if (threadCount_ != 1)
+      {
+        rgb2yuv_i_sse41(input->data.get(), yuv_data.get(), input->width, input->height, threadCount_);
+      }
+      else
+      {
+        rgb2yuv_i_sse41_single(input->data.get(), yuv_data.get(), input->width, input->height);
+      }
     }
     else
     {
