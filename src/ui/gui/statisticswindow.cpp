@@ -57,9 +57,9 @@ StatisticsInterface(),
           this, &StatisticsWindow::clearGUI);
 
 
-  ui_->bitrate_chart->init(1000, 5, CHARTVALUES, "Bitrates (kbit/s)");
-  ui_->enc_delay_chart->init(200, 4, CHARTVALUES, "Encoder Latencies (ms)");
-  ui_->bandwidth_chart->init(1000, 5, CHARTVALUES, "Bandwidth (kbit/s)");
+  ui_->bitrate_chart->init(500, 5, CHARTVALUES, "Bitrates (kbit/s)");
+  ui_->enc_delay_chart->init(100, 5, CHARTVALUES, "Encoder Latencies (ms)");
+  ui_->bandwidth_chart->init(500, 5, CHARTVALUES, "Bandwidth (kbit/s)");
 
   chartVideoID_ = ui_->bitrate_chart->addLine("Video");
   chartAudioID_ = ui_->bitrate_chart->addLine("Audio");
@@ -381,15 +381,14 @@ void StatisticsWindow::updateFramerateBuffer(std::vector<PacketInfo*>& packets,
 }
 
 
-uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets,
-                                   uint32_t index, float& framerate)
+uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets, uint32_t index,
+                                   float& framerate, int64_t interval)
 {
   if(index == 0)
     return 0;
 
   int64_t timeInterval = 0;
   int64_t bitrate = 0;
-  int64_t bitrateInterval = 5000; // how long time in msecs we measure
   uint16_t frames = 0;
   uint32_t currentTs = 0;
   uint32_t previousTs = index - 2;
@@ -415,7 +414,7 @@ uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets,
   timeInterval += QDateTime::currentMSecsSinceEpoch() - packets[currentTs%BUFFERSIZE]->timestamp;
 
   // sum all bytes and time intervals in ring-buffer for specified timeperiod
-  while(packets[previousTs%BUFFERSIZE] && timeInterval < bitrateInterval)
+  while(packets[previousTs%BUFFERSIZE] && timeInterval < interval)
   {
     timeInterval += packets[currentTs%BUFFERSIZE]->timestamp
                       - packets[previousTs%BUFFERSIZE]->timestamp;
@@ -553,17 +552,20 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
       break;
     case PERFORMANCE_TAB:
         float framerate = 0.0f;
-        uint32_t videoBitrate = bitrate(videoPackets_, videoIndex_, framerate);
+
+        int64_t interval = ui_->update_frequency->value() * 5;
+
+        uint32_t videoBitrate = bitrate(videoPackets_, videoIndex_, framerate, interval);
 
         ui_->encoded_framerate_value->setText
             ( QString::number(framerate, 'g', FPSPRECISION) + " fps" );
 
         float audioFramerate = 0.0f; // not interested in this at the moment.
-        uint32_t audioBitrate = bitrate(audioPackets_, audioIndex_, audioFramerate);
+        uint32_t audioBitrate = bitrate(audioPackets_, audioIndex_, audioFramerate, interval);
 
         float packetRate = 0.0f; // not interested in this at the moment.
-        uint32_t inBandwidth = bitrate(inBandWidth_, inIndex_, packetRate);
-        uint32_t outBandwidth = bitrate(outBandwidth_, outIndex_, packetRate);
+        uint32_t inBandwidth = bitrate(inBandWidth_, inIndex_, packetRate, interval);
+        uint32_t outBandwidth = bitrate(outBandwidth_, outIndex_, packetRate, interval);
 
         ui_->bitrate_chart->addPoint(chartVideoID_, videoBitrate);
         ui_->bitrate_chart->addPoint(chartAudioID_, audioBitrate);
@@ -597,7 +599,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
                             new QTableWidgetItem(QString::number(videoDelay) + " " + videoUnit));
 
           float framerate = 0;
-          uint32_t videoBitrate = bitrate(d.second.videoPackets, d.second.videoIndex, framerate);
+          uint32_t videoBitrate = bitrate(d.second.videoPackets, d.second.videoIndex, framerate, interval);
           Q_UNUSED(videoBitrate);
 
           ui_->performance_table->setItem(d.second.tableIndex, 3,

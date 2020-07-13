@@ -75,8 +75,10 @@ private:
     uint32_t size;
   };
 
-  uint32_t bitrate(std::vector<PacketInfo*>& packets, uint32_t index, float &framerate);
-  void updateFramerateBuffer(std::vector<PacketInfo*>& packets, uint32_t& index, uint32_t size);
+  uint32_t bitrate(std::vector<PacketInfo*>& packets, uint32_t index,
+                   float &framerate, int64_t interval);
+  void updateFramerateBuffer(std::vector<PacketInfo*>& packets,
+                             uint32_t& index, uint32_t size);
 
   void delayMsConversion(int& delay, QString& unit);
 
