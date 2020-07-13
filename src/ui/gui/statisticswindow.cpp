@@ -393,6 +393,7 @@ uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets,
   uint16_t frames = 0;
   uint32_t currentTs = 0;
   uint32_t previousTs = index - 2;
+  framerate = 0;
 
   // set timestamp indexes to ringbuffer
   if(index == 0)
@@ -410,6 +411,8 @@ uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets,
     currentTs = index - 1;
     previousTs = index - 2;
   }
+
+  timeInterval += QDateTime::currentMSecsSinceEpoch() - packets[currentTs%BUFFERSIZE]->timestamp;
 
   // sum all bytes and time intervals in ring-buffer for specified timeperiod
   while(packets[previousTs%BUFFERSIZE] && timeInterval < bitrateInterval)
@@ -431,7 +434,7 @@ uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets,
   }
 
   // calculate framerate and the average amount of bits per timeinterval (bitrate)
-  if(timeInterval)
+  if(timeInterval > 0)
   {
     framerate = 1000*(float)frames/timeInterval;
     return 8*bitrate/(timeInterval);
