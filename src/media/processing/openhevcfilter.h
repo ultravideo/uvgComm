@@ -6,7 +6,7 @@
 class OpenHEVCFilter : public Filter
 {
 public:
-  OpenHEVCFilter(QString id, StatisticsInterface* stats);
+  OpenHEVCFilter(uint32_t sessionID, StatisticsInterface* stats);
 
   virtual bool init();
   void uninit();
@@ -29,4 +29,6 @@ private:
   bool slices_;
 
   std::vector<std::unique_ptr<Data>> sliceBuffer_;
+
+  uint32_t sessionID_;
 };

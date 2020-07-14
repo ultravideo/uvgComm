@@ -145,6 +145,8 @@ void StatisticsWindow::addSession(uint32_t sessionID)
 
   sessions_[sessionID] = {0, std::vector<PacketInfo*>(BUFFERSIZE, nullptr),
                           0, std::vector<PacketInfo*>(BUFFERSIZE, nullptr),
+                          0, std::vector<PacketInfo*>(BUFFERSIZE, nullptr),
+                          0, std::vector<PacketInfo*>(BUFFERSIZE, nullptr),
                           0, 0, -1};
 }
 
@@ -301,14 +303,6 @@ void StatisticsWindow::removeSession(uint32_t sessionID)
   ui_->table_incoming->removeRow(index);
   ui_->table_outgoing->removeRow(index);
 
-  ui_->v_bitrate_chart->removeLine(index);
-  ui_->a_bitrate_chart->removeLine(index);
-  ui_->v_delay_chart->removeLine(index);
-  ui_->a_delay_chart->removeLine(index);
-  ui_->v_framerate_chart->removeLine(index);
-
-  sessions_.erase(sessionID);
-
   // adjust the rest of the peers if needed
   for (auto &peer : sessions_)
   {
@@ -317,6 +311,16 @@ void StatisticsWindow::removeSession(uint32_t sessionID)
       --peer.second.tableIndex;
     }
   }
+
+  index += 2; // +1 because it is an ID, not index and +1 for local before peers.
+
+  ui_->v_bitrate_chart->removeLine(index);
+  ui_->a_bitrate_chart->removeLine(index);
+  ui_->v_delay_chart->removeLine(index);
+  ui_->a_delay_chart->removeLine(index);
+  ui_->v_framerate_chart->removeLine(index);
+
+  sessions_.erase(sessionID);
 
   sessionMutex_.unlock();
 }
@@ -358,13 +362,13 @@ void StatisticsWindow::presentPackage(uint32_t sessionID, QString type)
   {
     if(type == "video" || type == "Video")
     {
-      updateFramerateBuffer(sessions_.at(sessionID).videoPackets,
-                            sessions_.at(sessionID).videoIndex, 0);
+      updateFramerateBuffer(sessions_.at(sessionID).pVideoPackets,
+                            sessions_.at(sessionID).pVideoIndex, 0);
     }
     else if (type == "audio" || type == "Audio")
     {
-      updateFramerateBuffer(sessions_.at(sessionID).audioPackets,
-                            sessions_.at(sessionID).audioIndex, 0);
+      updateFramerateBuffer(sessions_.at(sessionID).pAudioPackets,
+                            sessions_.at(sessionID).pAudioIndex, 0);
     }
   }
 }
@@ -469,7 +473,7 @@ void StatisticsWindow::addSendPacket(uint16_t size)
 }
 
 
-void StatisticsWindow::addReceivePacket(uint16_t size)
+void StatisticsWindow::addReceivePacket(uint32_t sessionID, QString type, uint16_t size)
 {
   deliveryMutex_.lock();
   ++receivePacketCount_;
@@ -477,6 +481,20 @@ void StatisticsWindow::addReceivePacket(uint16_t size)
 
   updateFramerateBuffer(inBandWidth_, inIndex_, size);
   deliveryMutex_.unlock();
+
+  if(sessions_.find(sessionID) != sessions_.end())
+  {
+    if(type == "video" || type == "Video")
+    {
+      updateFramerateBuffer(sessions_.at(sessionID).videoPackets,
+                            sessions_.at(sessionID).videoIndex, size);
+    }
+    else if (type == "audio" || type == "Audio")
+    {
+      updateFramerateBuffer(sessions_.at(sessionID).audioPackets,
+                            sessions_.at(sessionID).audioIndex, size);
+    }
+  }
 }
 
 
@@ -567,10 +585,19 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
       ui_->data_sent_value->setText( QString::number(transferredData_));
       ui_->packets_received_value->setText( QString::number(receivePacketCount_));
       ui_->data_received_value->setText( QString::number(receivedData_));
+
+      float packetRate = 0.0f; // not interested in this at the moment.
+      uint32_t inBandwidth = bitrate(inBandWidth_, inIndex_, packetRate, 5000);
+      uint32_t outBandwidth = bitrate(outBandwidth_, outIndex_, packetRate, 5000);
+
+      ui_->bandwidth_chart->addPoint(1, inBandwidth);
+      ui_->bandwidth_chart->addPoint(2, outBandwidth);
       deliveryMutex_.unlock();
 
       break;
+    }
     case PERFORMANCE_TAB:
+      {
         float videoFramerate = 0.0f;
 
         int64_t interval = ui_->update_frequency->value() * 5;
@@ -580,34 +607,34 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
         float audioFramerate = 0.0f; // not interested in this at the moment.
         uint32_t audioBitrate = bitrate(audioPackets_, audioIndex_, audioFramerate, interval);
 
-        float packetRate = 0.0f; // not interested in this at the moment.
-        uint32_t inBandwidth = bitrate(inBandWidth_, inIndex_, packetRate, interval);
-        uint32_t outBandwidth = bitrate(outBandwidth_, outIndex_, packetRate, interval);
-
         ui_->v_bitrate_chart->addPoint(chartVideoID_, videoBitrate);
         ui_->a_bitrate_chart->addPoint(chartAudioID_, audioBitrate);
         ui_->v_delay_chart->addPoint(chartVideoID_, videoEncDelay_);
         ui_->a_delay_chart->addPoint(chartAudioID_, audioEncDelay_);
         ui_->v_framerate_chart->addPoint(chartVideoID_, videoFramerate);
 
-        ui_->bandwidth_chart->addPoint(1, inBandwidth);
-        ui_->bandwidth_chart->addPoint(2, outBandwidth);
         // fill table
         for(auto& d : sessions_)
         {
           sessionMutex_.lock();
 
-          float peer_video_framerate = 0;
-          uint32_t p_videoBitrate = bitrate(d.second.videoPackets, d.second.videoIndex, peer_video_framerate, interval);
 
-          float peer_audio_framerate = 0;
-          uint32_t p_audioBitrate = bitrate(d.second.audioPackets, d.second.audioIndex, peer_audio_framerate, interval);
+          float receiveVideorate = 0; // not shown at the moment
+          uint32_t videoBitrate = bitrate(d.second.videoPackets, d.second.videoIndex, receiveVideorate, interval);
+          float presentationVideoFramerate = 0;
+          bitrate(d.second.pVideoPackets, d.second.pVideoIndex, presentationVideoFramerate, interval);
 
-          //ui_->v_bitrate_chart->addPoint(d.second.tableIndex, p_videoBitrate);
-          //ui_->a_bitrate_chart->addPoint(d.second.tableIndex, p_audioBitrate);
-          ui_->v_delay_chart->addPoint(d.second.tableIndex + 2, 160);
-          ui_->a_delay_chart->addPoint(d.second.tableIndex + 2, 160);
-          ui_->v_framerate_chart->addPoint(d.second.tableIndex + 2, peer_video_framerate);
+          float receiveAudiorate = 0; // not shown at the moment
+          uint32_t audioBitrate = bitrate(d.second.audioPackets, d.second.audioIndex, receiveAudiorate, interval);
+
+          //float presentationAudioFramerate = 0;
+          //bitrate(d.second.pAudioPackets, d.second.pAudioIndex, presentationAudioFramerate, interval);
+
+          ui_->v_bitrate_chart->addPoint(d.second.tableIndex + 2, videoBitrate);
+          ui_->a_bitrate_chart->addPoint(d.second.tableIndex + 2, audioBitrate);
+          ui_->v_delay_chart->addPoint(d.second.tableIndex + 2, d.second.videoDelay);
+          ui_->a_delay_chart->addPoint(d.second.tableIndex + 2, d.second.audioDelay);
+          ui_->v_framerate_chart->addPoint(d.second.tableIndex + 2, presentationVideoFramerate);
 
           sessionMutex_.unlock();
         }

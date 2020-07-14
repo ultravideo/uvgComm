@@ -7,7 +7,8 @@
 class OpusDecoderFilter : public Filter
 {
 public:
-  OpusDecoderFilter(QString id, QAudioFormat format, StatisticsInterface* stats);
+  OpusDecoderFilter(uint32_t sessionID, QAudioFormat format,
+                    StatisticsInterface* stats);
   ~OpusDecoderFilter();
 
   // setups decoder
@@ -26,4 +27,6 @@ private:
   uint32_t max_data_bytes_;
 
   QAudioFormat format_;
+
+  uint32_t sessionID_;
 };

@@ -372,12 +372,10 @@ void FilterGraph::receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> v
   peers_.at(sessionID - 1)->videoReceivers.push_back(graph);
 
   addToGraph(videoSink, *graph);
-  addToGraph(std::shared_ptr<Filter>(new OpenHEVCFilter(QString::number(sessionID), stats_)),
-             *graph, 0);
+  addToGraph(std::shared_ptr<Filter>(new OpenHEVCFilter(sessionID, stats_)), *graph, 0);
 
   addToGraph(std::shared_ptr<Filter>(new DisplayFilter(QString::number(sessionID), stats_,
-                                                       view, sessionID)),
-             *graph, 1);
+                                                       view, sessionID)), *graph, 1);
 }
 
 
@@ -419,8 +417,7 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
   addToGraph(audioSink, *graph);
   if (audioSink->outputType() == OPUSAUDIO)
   {
-    addToGraph(std::shared_ptr<Filter>(new OpusDecoderFilter(QString::number(sessionID),
-                                                             format_, stats_)),
+    addToGraph(std::shared_ptr<Filter>(new OpusDecoderFilter(sessionID, format_, stats_)),
                *graph, graph->size() - 1);
   }
 

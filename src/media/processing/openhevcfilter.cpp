@@ -2,17 +2,20 @@
 
 #include "common.h"
 
+#include "statisticsinterface.h"
+
 #include <QDebug>
 #include <QSettings>
 
 enum OHThreadType {OH_THREAD_FRAME  = 1, OH_THREAD_SLICE  = 2, OH_THREAD_FRAMESLICE  = 3};
 
-OpenHEVCFilter::OpenHEVCFilter(QString id, StatisticsInterface *stats):
-  Filter(id, "OpenHEVC", stats, HEVCVIDEO, YUV420VIDEO),
+OpenHEVCFilter::OpenHEVCFilter(uint32_t sessionID, StatisticsInterface *stats):
+  Filter(QString::number(sessionID), "OpenHEVC", stats, HEVCVIDEO, YUV420VIDEO),
   handle_(),
   parameterSets_(false),
   waitFrames_(0),
-  slices_(true)
+  slices_(true),
+  sessionID_(sessionID)
 {}
 
 bool OpenHEVCFilter::init()
@@ -100,6 +103,8 @@ void OpenHEVCFilter::process()
   std::unique_ptr<Data> input = getInput();
   while(input)
   {
+    getStats()->addReceivePacket(sessionID_, "Video", input->data_size);
+
     const unsigned char *buff = input->data.get();
 
     bool nextSlice = buff[0] == 0
@@ -134,8 +139,7 @@ void OpenHEVCFilter::process()
           break;
         }
 
-        int64_t pts = frame->presentationTime.tv_sec*90000 + frame->presentationTime.tv_usec*90000/1000000;
-        int gotPicture = libOpenHevcDecode(handle_, frame->data.get(), frame->data_size, pts);
+        int gotPicture = libOpenHevcDecode(handle_, frame->data.get(), frame->data_size, frame->presentationTime);
 
         OpenHevc_Frame openHevcFrame;
         if( gotPicture == -1)
@@ -155,6 +159,8 @@ void OpenHEVCFilter::process()
         }
         else
         {
+          libOpenHevcGetPictureInfo(handle_, &openHevcFrame.frameInfo);
+
           frame->width = openHevcFrame.frameInfo.nWidth;
           frame->height = openHevcFrame.frameInfo.nHeight;
           uint32_t finalDataSize = frame->width*frame->height + frame->width*frame->height/2;
