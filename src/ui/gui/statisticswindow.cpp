@@ -56,19 +56,23 @@ StatisticsInterface(),
   connect(ui_->update_frequency, &QAbstractSlider::sliderMoved,
           this, &StatisticsWindow::clearGUI);
 
-
-  ui_->bitrate_chart->init(500, 5, CHARTVALUES, "Bitrates (kbit/s)");
-  ui_->enc_delay_chart->init(100, 5, CHARTVALUES, "Encoder Latencies (ms)");
   ui_->bandwidth_chart->init(500, 5, CHARTVALUES, "Bandwidth (kbit/s)");
-
-  chartVideoID_ = ui_->bitrate_chart->addLine("Video");
-  chartAudioID_ = ui_->bitrate_chart->addLine("Audio");
-
-  ui_->enc_delay_chart->addLine("Video");
-  ui_->enc_delay_chart->addLine("Audio");
-
   ui_->bandwidth_chart->addLine("In");
   ui_->bandwidth_chart->addLine("Out");
+
+  ui_->v_bitrate_chart->init(500, 5, CHARTVALUES, "Bitrates (kbit/s)");
+  ui_->a_bitrate_chart->init(100, 5, CHARTVALUES, "Bitrates (kbit/s)");
+  ui_->v_delay_chart->init(100, 5, CHARTVALUES, "Latencies (ms)");
+  ui_->a_delay_chart->init(100, 5, CHARTVALUES, "Latencies (ms)");
+  ui_->v_framerate_chart->init(100, 5, CHARTVALUES, "Framerates (fps)");
+
+  chartVideoID_ = ui_->v_bitrate_chart->addLine("Kvazaar");
+  chartAudioID_ = ui_->a_bitrate_chart->addLine("Opus");
+
+  ui_->v_delay_chart->addLine("Sending");
+  ui_->a_delay_chart->addLine("Sending");
+
+  ui_->v_framerate_chart->addLine("Kvazaar");
 
   // init headers of participant table
 
@@ -78,8 +82,6 @@ StatisticsInterface(),
                           {"IP", "Audio Ports", "Video Ports"});
   fillTableHeaders(ui_->filterTable, filterMutex_,
                           {"Filter", "Info", "TID", "Buffer Size", "Dropped"});
-  fillTableHeaders(ui_->performance_table, sessionMutex_,
-                          {"Name", "Audio delay", "Video delay", "Video fps"});
   fillTableHeaders(ui_->sent_list, sipMutex_,
                           {"Type", "Destination"});
   fillTableHeaders(ui_->received_list, sipMutex_,
@@ -97,8 +99,7 @@ void StatisticsWindow::showEvent(QShowEvent * event)
 {
   Q_UNUSED(event)
   // start refresh timer
-  guiTimer_.start();
-  guiUpdates_ = 0;
+  clearGUI(1000);
 }
 
 
@@ -115,6 +116,8 @@ void StatisticsWindow::videoInfo(double framerate, QSize resolution)
   ui_->value_framerate->setText( QString::number(framerate, 'g', FPSPRECISION)+" fps");
   ui_->value_resolution->setText( QString::number(resolution.width()) + "x"
                           + QString::number(resolution.height()));
+
+  ui_->v_framerate_chart->init(framerate, framerate/5, CHARTVALUES, "Framerates (fps)");
 }
 
 
@@ -141,6 +144,7 @@ void StatisticsWindow::addSession(uint32_t sessionID)
   }
 
   sessions_[sessionID] = {0, std::vector<PacketInfo*>(BUFFERSIZE, nullptr),
+                          0, std::vector<PacketInfo*>(BUFFERSIZE, nullptr),
                           0, 0, -1};
 }
 
@@ -155,8 +159,11 @@ void StatisticsWindow::incomingMedia(uint32_t sessionID, QStringList& ipList,
 
   addMedia(ui_->table_incoming, sessionID, ipList, audioPorts, videoPorts);
 
-  addTableRow(ui_->performance_table, sessionMutex_,
-             {ipList.at(0), "- ms", "- ms", "- fps"});
+  ui_->v_delay_chart->addLine(ipList.at(0));
+  ui_->a_delay_chart->addLine(ipList.at(0));
+  ui_->v_bitrate_chart->addLine(ipList.at(0));
+  ui_->a_bitrate_chart->addLine(ipList.at(0));
+  ui_->v_framerate_chart->addLine(ipList.at(0));
 }
 
 
@@ -283,8 +290,7 @@ void StatisticsWindow::removeSession(uint32_t sessionID)
 
   // check that index points to a valid row
   if (ui_->table_incoming->rowCount() <= index ||
-      ui_->table_outgoing->rowCount() <= index ||
-      ui_->performance_table->rowCount() <= index)
+      ui_->table_outgoing->rowCount() <= index)
   {
     sessionMutex_.unlock();
     printProgramWarning(this, "Missing participant row for participant");
@@ -294,7 +300,12 @@ void StatisticsWindow::removeSession(uint32_t sessionID)
   // remove row from UI
   ui_->table_incoming->removeRow(index);
   ui_->table_outgoing->removeRow(index);
-  ui_->performance_table->removeRow(index);
+
+  ui_->v_bitrate_chart->removeLine(index);
+  ui_->a_bitrate_chart->removeLine(index);
+  ui_->v_delay_chart->removeLine(index);
+  ui_->a_delay_chart->removeLine(index);
+  ui_->v_framerate_chart->removeLine(index);
 
   sessions_.erase(sessionID);
 
@@ -303,7 +314,7 @@ void StatisticsWindow::removeSession(uint32_t sessionID)
   {
     if (peer.second.tableIndex > index)
     {
-      peer.second.tableIndex -= 1;
+      --peer.second.tableIndex;
     }
   }
 
@@ -350,6 +361,11 @@ void StatisticsWindow::presentPackage(uint32_t sessionID, QString type)
       updateFramerateBuffer(sessions_.at(sessionID).videoPackets,
                             sessions_.at(sessionID).videoIndex, 0);
     }
+    else if (type == "audio" || type == "Audio")
+    {
+      updateFramerateBuffer(sessions_.at(sessionID).audioPackets,
+                            sessions_.at(sessionID).audioIndex, 0);
+    }
   }
 }
 
@@ -392,7 +408,7 @@ uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets, uint32_t i
   uint16_t frames = 0;
   uint32_t currentTs = 0;
   uint32_t previousTs = index - 2;
-  framerate = 0;
+  framerate = 0.0f;
 
   // set timestamp indexes to ringbuffer
   if(index == 0)
@@ -512,8 +528,12 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
   if(lastTabIndex_ != ui_->Statistics_tabs->currentIndex() &&
      ui_->Statistics_tabs->currentIndex() == PERFORMANCE_TAB)
   {
-    ui_->enc_delay_chart->clearPoints();
-    ui_->bitrate_chart->clearPoints();
+    ui_->v_bitrate_chart->clearPoints();
+    ui_->a_bitrate_chart->clearPoints();
+    ui_->v_delay_chart->clearPoints();
+    ui_->a_delay_chart->clearPoints();
+    ui_->v_framerate_chart->clearPoints();
+
     ui_->bandwidth_chart->clearPoints();
   }
 
@@ -551,14 +571,11 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 
       break;
     case PERFORMANCE_TAB:
-        float framerate = 0.0f;
+        float videoFramerate = 0.0f;
 
         int64_t interval = ui_->update_frequency->value() * 5;
 
-        uint32_t videoBitrate = bitrate(videoPackets_, videoIndex_, framerate, interval);
-
-        ui_->encoded_framerate_value->setText
-            ( QString::number(framerate, 'g', FPSPRECISION) + " fps" );
+        uint32_t videoBitrate = bitrate(videoPackets_, videoIndex_, videoFramerate, interval);
 
         float audioFramerate = 0.0f; // not interested in this at the moment.
         uint32_t audioBitrate = bitrate(audioPackets_, audioIndex_, audioFramerate, interval);
@@ -567,47 +584,31 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
         uint32_t inBandwidth = bitrate(inBandWidth_, inIndex_, packetRate, interval);
         uint32_t outBandwidth = bitrate(outBandwidth_, outIndex_, packetRate, interval);
 
-        ui_->bitrate_chart->addPoint(chartVideoID_, videoBitrate);
-        ui_->bitrate_chart->addPoint(chartAudioID_, audioBitrate);
-        ui_->enc_delay_chart->addPoint(chartVideoID_, videoEncDelay_);
-        ui_->enc_delay_chart->addPoint(chartAudioID_, audioEncDelay_);
+        ui_->v_bitrate_chart->addPoint(chartVideoID_, videoBitrate);
+        ui_->a_bitrate_chart->addPoint(chartAudioID_, audioBitrate);
+        ui_->v_delay_chart->addPoint(chartVideoID_, videoEncDelay_);
+        ui_->a_delay_chart->addPoint(chartAudioID_, audioEncDelay_);
+        ui_->v_framerate_chart->addPoint(chartVideoID_, videoFramerate);
+
         ui_->bandwidth_chart->addPoint(1, inBandwidth);
         ui_->bandwidth_chart->addPoint(2, outBandwidth);
         // fill table
         for(auto& d : sessions_)
         {
           sessionMutex_.lock();
-          if (d.second.tableIndex >= ui_->performance_table->rowCount() ||
-              d.second.tableIndex == -1)
-          {
-            sessionMutex_.unlock();
-            printProgramError(this, "Faulty table index detected in peer!");
-            return;
-          }
 
-          int audioDelay = d.second.audioDelay;
-          QString audioUnit = "ms";
-          delayMsConversion(audioDelay, audioUnit);
+          float peer_video_framerate = 0;
+          uint32_t p_videoBitrate = bitrate(d.second.videoPackets, d.second.videoIndex, peer_video_framerate, interval);
 
-          int videoDelay = d.second.videoDelay;
-          QString videoUnit = "ms";
-          delayMsConversion(videoDelay, videoUnit);
+          float peer_audio_framerate = 0;
+          uint32_t p_audioBitrate = bitrate(d.second.audioPackets, d.second.audioIndex, peer_audio_framerate, interval);
 
-          ui_->performance_table->setItem(d.second.tableIndex, 1,
-                            new QTableWidgetItem(QString::number(audioDelay) + " " + audioUnit));
-          ui_->performance_table->setItem(d.second.tableIndex, 2,
-                            new QTableWidgetItem(QString::number(videoDelay) + " " + videoUnit));
+          //ui_->v_bitrate_chart->addPoint(d.second.tableIndex, p_videoBitrate);
+          //ui_->a_bitrate_chart->addPoint(d.second.tableIndex, p_audioBitrate);
+          ui_->v_delay_chart->addPoint(d.second.tableIndex + 2, 160);
+          ui_->a_delay_chart->addPoint(d.second.tableIndex + 2, 160);
+          ui_->v_framerate_chart->addPoint(d.second.tableIndex + 2, peer_video_framerate);
 
-          float framerate = 0;
-          uint32_t videoBitrate = bitrate(d.second.videoPackets, d.second.videoIndex, framerate, interval);
-          Q_UNUSED(videoBitrate);
-
-          ui_->performance_table->setItem(d.second.tableIndex, 3,
-                             new QTableWidgetItem( QString::number(framerate, 'g', FPSPRECISION)));
-
-          ui_->performance_table->item(d.second.tableIndex, 1)->setTextAlignment(Qt::AlignHCenter);
-          ui_->performance_table->item(d.second.tableIndex, 2)->setTextAlignment(Qt::AlignHCenter);
-          ui_->performance_table->item(d.second.tableIndex, 3)->setTextAlignment(Qt::AlignHCenter);
           sessionMutex_.unlock();
         }
 
@@ -753,9 +754,14 @@ int StatisticsWindow::addTableRow(QTableWidget* table, QMutex& mutex,
 
 void StatisticsWindow::clearGUI(int value)
 {
-  ui_->enc_delay_chart->clearPoints();
-  ui_->bitrate_chart->clearPoints();
+  ui_->v_delay_chart->clearPoints();
+  ui_->a_delay_chart->clearPoints();
+  ui_->v_bitrate_chart->clearPoints();
+  ui_->a_bitrate_chart->clearPoints();
+  ui_->v_framerate_chart->clearPoints();
+
   ui_->bandwidth_chart->clearPoints();
+
   guiUpdates_ = 0;
   guiTimer_.restart();
 

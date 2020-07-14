@@ -35,9 +35,11 @@ ChartPainter::ChartPainter(QWidget* parent)
   yLines_(0),
   points_(),
   names_(),
+  maxNameWidth_(0),
   title_(""),
   titleSize_(),
-  legendRows_(0)
+  legendRows_(0),
+  font_(QFont("times", 10))
 {}
 
 
@@ -91,15 +93,40 @@ void ChartPainter::init(int maxY, int yLines, int xWindowSize,
 // return line ID
 int ChartPainter::addLine(QString name)
 {
+  lineMutex_.lock();
   names_.push_back(name);
   points_.push_back(std::make_shared<std::deque<float>>());
-  return points_.size();
+  int index = points_.size();
+
+  int newWidth = QFontMetrics(font_).size(Qt::TextSingleLine, name).width();
+
+  if (newWidth > maxNameWidth_)
+  {
+    maxNameWidth_ = newWidth;
+  }
+  lineMutex_.unlock();
+  return index;
 }
+
+
+void ChartPainter::removeLine(int lineID)
+{
+  lineMutex_.lock();
+  if (names_.size() >= lineID)
+  {
+    names_.erase(names_.begin() + lineID - 1);
+    points_.erase(points_.begin() + lineID - 1);
+  }
+  lineMutex_.unlock();
+}
+
 
 void ChartPainter::addPoint(int lineID, float y)
 {
+  lineMutex_.lock();
   if (lineID > points_.size())
   {
+    lineMutex_.unlock();
     return;
   }
 
@@ -142,6 +169,7 @@ void ChartPainter::addPoint(int lineID, float y)
     maxY_ += maxY_/yLines_;
     ++yLines_;
   }
+  lineMutex_.unlock();
 }
 
 
@@ -150,6 +178,7 @@ void ChartPainter::paintEvent(QPaintEvent *event)
   Q_UNUSED(event);
   QPainter painter(this);
 
+  painter.setFont(font_);
   numberSize_ = QFontMetrics(painter.font()).size(Qt::TextSingleLine,
                                                   QString::number(maxY_));
 
@@ -161,12 +190,14 @@ void ChartPainter::paintEvent(QPaintEvent *event)
   bool drawZero = true;
   bool drawMax = true;
 
+  lineMutex_.lock();
   for (unsigned int i = 0; i < points_.size(); ++i)
   {
     drawPoints(painter, i + 1, drawZero, drawMax);
   }
 
   drawForeground(painter, drawZero, drawMax);
+  lineMutex_.unlock();
 }
 
 
@@ -230,7 +261,7 @@ void ChartPainter::drawPoints(QPainter& painter, int lineID,
 
       // draw current value
       painter.drawText(MARGIN, yPoint + numberSize_.height()/4,
-                       QString::number(points_.at(lineID - 1)->at(i)));
+                       QString::number(points_.at(lineID - 1)->at(i), 10, 0));
 
     }
     else // draw line if we have to points
@@ -284,11 +315,7 @@ void ChartPainter::drawForeground(QPainter& painter, bool drawZero, bool drawMax
     int legendMargin = 3;
     int markSize = 7;
 
-    // +2 is an extra precausion
-    int nameWidth = QFontMetrics(painter.font()).size(Qt::TextSingleLine,
-                                                      names_.at(0)).width() + 2;
-
-    int legendWidth = markSize + legendMargin + nameWidth;
+    int legendWidth = markSize + legendMargin + maxNameWidth_ + 2;
     int totalWidthOfTwo = legendWidth*2;
     int totalWidthOfThree = legendWidth*3;
 
@@ -428,7 +455,7 @@ void ChartPainter::drawCross(QPainter& painter, float x, float y)
 void ChartPainter::drawLegend(QPainter& painter, float x, float y,
                               int legendMargin, int markSize, int lineID, QString name)
 {
-  drawMark(painter, lineID, x, y + titleSize_.height()/2 + markSize - 1);
+  drawMark(painter, lineID, x, y + titleSize_.height()/2 + markSize/2 + 1);
   painter.setPen(QPen(Qt::black, 1, Qt::SolidLine, Qt::FlatCap));
   painter.drawText(QPointF(x + markSize + legendMargin, y + titleSize_.height()), name);
 }

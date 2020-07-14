@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QFrame>
+#include <QMutex>
 
 #include <deque>
 
@@ -15,6 +16,9 @@ public:
 
   // return line ID
   int addLine(QString name);
+
+  // also reduces the index of all following lineID:s by one
+  void removeLine(int lineID);
 
   // add one point to line
   void addPoint(int lineID, float y);
@@ -57,14 +61,17 @@ private:
 
   int yLines_;
 
-  //std::deque<float> points_;
-
+  QMutex lineMutex_;
   std::vector<std::shared_ptr<std::deque<float>>> points_;
 
   QStringList names_;
+
+  int maxNameWidth_;
 
   QString title_;
   QSize titleSize_;
 
   int legendRows_;
+
+  QFont font_;
 };

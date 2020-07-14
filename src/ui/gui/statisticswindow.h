@@ -95,6 +95,9 @@ private:
   {
     uint32_t videoIndex;
     std::vector<PacketInfo*> videoPackets;
+    uint32_t audioIndex;
+    std::vector<PacketInfo*> audioPackets;
+
     int32_t videoDelay;
     int32_t audioDelay;
 
