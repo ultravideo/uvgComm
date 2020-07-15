@@ -395,7 +395,7 @@ void ChartPainter::drawForeground(QPainter& painter, bool drawZero, bool drawMax
         int x = extraSpace/2;
         int y = getDrawMaxY() + i*titleSize_.height() + NUMBERMARGIN;
 
-        drawLegend(painter, x, y, legendMargin, i + 1, markSize, names_.at(i));
+        drawLegend(painter, x, y, legendMargin, markSize, i + 1, names_.at(i));
 
         legendRows_ = points_.size();
       }
