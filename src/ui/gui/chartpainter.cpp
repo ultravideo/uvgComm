@@ -1,5 +1,7 @@
 #include "chartpainter.h"
 
+#include "common.h"
+
 #include <QPainter>
 #include <QPaintEvent>
 
@@ -85,6 +87,12 @@ void ChartPainter::clearPoints()
 void ChartPainter::init(int maxY, int yLines, bool adaptive, int xWindowSize,
                         QString chartTitle)
 {
+  Q_ASSERT(maxY >= 1);
+  Q_ASSERT(yLines >= 1);
+  Q_ASSERT(xWindowSize >= 2);
+
+  printNormal(this, "Initiating chart", "Title", chartTitle);
+
   maxY_ = maxY;
   xWindowCount_ = xWindowSize;
   yLines_ = yLines;
@@ -96,6 +104,8 @@ void ChartPainter::init(int maxY, int yLines, bool adaptive, int xWindowSize,
 // return line ID
 int ChartPainter::addLine(QString name)
 {
+  Q_ASSERT(name != "" && !name.isNull());
+
   lineMutex_.lock();
   names_.push_back(name);
   points_.push_back(std::make_shared<std::deque<float>>());
@@ -114,6 +124,8 @@ int ChartPainter::addLine(QString name)
 
 void ChartPainter::removeLine(int lineID)
 {
+  Q_ASSERT(lineID > 0);
+
   lineMutex_.lock();
   if (names_.size() >= lineID)
   {
@@ -126,8 +138,15 @@ void ChartPainter::removeLine(int lineID)
 
 void ChartPainter::addPoint(int lineID, float y)
 {
+  Q_ASSERT(lineID > 0);
+  Q_ASSERT(y >= 0);
+  Q_ASSERT(yLines_ > 0);
+
   lineMutex_.lock();
-  if (lineID > points_.size())
+  Q_ASSERT(lineID <= points_.size());
+  Q_ASSERT(points_.at(lineID - 1) != nullptr);
+
+  if (lineID > points_.size() || points_.at(lineID - 1) == nullptr)
   {
     lineMutex_.unlock();
     return;
@@ -230,11 +249,13 @@ void ChartPainter::drawBackground(QPainter& painter)
   painter.setPen(QPen(Qt::gray, 1, Qt::SolidLine, Qt::RoundCap));
 
   int drawHeight = getDrawMaxY() - getDrawMinY();
-
-  for (int i = 1; i <= yLines_; ++i)
+  if (drawHeight > 0 && yLines_ > 0)
   {
-    int yLoc = getDrawMaxY() - float(i)/yLines_*drawHeight;
-    painter.drawLine(getDrawMinX(), yLoc, getDrawMaxX(), yLoc);
+    for (int i = 1; i <= yLines_; ++i)
+    {
+      int yLoc = getDrawMaxY() - float(i)/yLines_*drawHeight;
+      painter.drawLine(getDrawMinX(), yLoc, getDrawMaxX(), yLoc);
+    }
   }
 
   painter.setPen(QPen(Qt::black, 1, Qt::SolidLine, Qt::RoundCap));
@@ -247,7 +268,11 @@ void ChartPainter::drawBackground(QPainter& painter)
 void ChartPainter::drawPoints(QPainter& painter, int lineID,
                               bool& outDrawZero, bool& outDrawMax)
 {
-  if (lineID > points_.size())
+  Q_ASSERT(lineID >= 1);
+  Q_ASSERT(lineID <= points_.size());
+  Q_ASSERT(points_.at(lineID - 1) != nullptr);
+
+  if (lineID == 0 || lineID > points_.size() || points_.at(lineID - 1) == nullptr)
   {
     return;
   }
@@ -321,7 +346,7 @@ void ChartPainter::drawForeground(QPainter& painter, bool drawZero, bool drawMax
                      getDrawMinX() + 3,       getDrawMinY());
   }
 
-  if (drawZero)
+  if (drawZero) // TODO: The y in this one is not correct
   {
     // mix x
     int zeroLength = QFontMetrics(painter.font()).size(Qt::TextSingleLine,
@@ -406,6 +431,8 @@ void ChartPainter::drawForeground(QPainter& painter, bool drawZero, bool drawMax
 
 void ChartPainter::drawMark(QPainter& painter, int lineID, float x, float y)
 {
+  Q_ASSERT(lineID >= 1);
+
   int appearanceIndex = (lineID - 1)%appearances.size();
 
   painter.setPen(QPen(appearances.at(appearanceIndex).color,
@@ -478,9 +505,12 @@ void ChartPainter::drawCross(QPainter& painter, float x, float y)
 void ChartPainter::drawLegend(QPainter& painter, float x, float y,
                               int legendMargin, int markSize, int lineID, QString name)
 {
-  drawMark(painter, lineID, x, y + titleSize_.height()/2 + markSize/2 + 1);
-  painter.setPen(QPen(Qt::black, 1, Qt::SolidLine, Qt::FlatCap));
-  painter.drawText(QPointF(x + markSize + legendMargin, y + titleSize_.height()), name);
+  if (x < rect().width() && y < rect().height())
+  {
+    drawMark(painter, lineID, x, y + titleSize_.height()/2 + markSize/2 + 1);
+    painter.setPen(QPen(Qt::black, 1, Qt::SolidLine, Qt::FlatCap));
+    painter.drawText(QPointF(x + markSize + legendMargin, y + titleSize_.height()), name);
+  }
 }
 
 
