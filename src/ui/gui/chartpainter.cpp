@@ -32,7 +32,9 @@ ChartPainter::ChartPainter(QWidget* parent)
   maxY_(0),
   xWindowCount_(0),
   numberSize_(),
+  adaptiveLines_(true),
   yLines_(0),
+  overLines_(0),
   points_(),
   names_(),
   maxNameWidth_(0),
@@ -80,13 +82,14 @@ void ChartPainter::clearPoints()
   }
 }
 
-void ChartPainter::init(int maxY, int yLines, int xWindowSize,
+void ChartPainter::init(int maxY, int yLines, bool adaptive, int xWindowSize,
                         QString chartTitle)
 {
   maxY_ = maxY;
   xWindowCount_ = xWindowSize;
   yLines_ = yLines;
   title_ = chartTitle;
+  adaptiveLines_ = adaptive;
 }
 
 
@@ -136,39 +139,59 @@ void ChartPainter::addPoint(int lineID, float y)
   if (points_.at(lineID - 1)->size() > xWindowCount_)
   {
     points_.at(lineID - 1)->pop_back();
+  }
 
+  if (adaptiveLines_)
+  {
     if (y < (maxY_/yLines_)*(yLines_ - 1))
     {
-      bool inLastSegment = false;
+      float largest = y;
       for (auto& line : points_)
       {
         for (auto& value : *line.get())
         {
-          if (value >= (maxY_/yLines_)*(yLines_ - 1))
+          if (value > largest)
           {
-            inLastSegment = true;
-            break;
+            largest = value;
           }
-        }
-        if (inLastSegment)
-        {
-          break;
         }
       }
 
-      if (!inLastSegment && yLines_ > 1)
+      while (largest < maxY_/2 && yLines_ > 5)
       {
-        maxY_ -= maxY_/yLines_;
-        --yLines_;
+        maxY_ /= 2;
+        if (overLines_ == 0)
+        {
+          yLines_ /= 2;
+        }
+        else
+        {
+          --overLines_;
+        }
+      }
+    }
+    else
+    {
+      while (maxY_ < y)
+      {
+        maxY_ *= 2;
+        if (yLines_*2 <= 10)
+        {
+          yLines_ *= 2;
+        }
+        else
+        {
+          ++overLines_;
+        }
       }
     }
   }
-
-  while (maxY_ < y)
+  else if (maxY_ + maxY_/5 < y)
   {
-    maxY_ += maxY_/yLines_;
-    ++yLines_;
+    // just in case the value escapes the graph when we are not adjusting
+    adaptiveLines_ = true;
   }
+
   lineMutex_.unlock();
 }
 

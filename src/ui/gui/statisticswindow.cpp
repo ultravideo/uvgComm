@@ -56,15 +56,15 @@ StatisticsInterface(),
   connect(ui_->update_frequency, &QAbstractSlider::sliderMoved,
           this, &StatisticsWindow::clearGUI);
 
-  ui_->bandwidth_chart->init(500, 5, CHARTVALUES, "Bandwidth (kbit/s)");
+  ui_->bandwidth_chart->init(800, 8, true, CHARTVALUES, "Bandwidth (kbit/s)");
   ui_->bandwidth_chart->addLine("In");
   ui_->bandwidth_chart->addLine("Out");
 
-  ui_->v_bitrate_chart->init(500, 5, CHARTVALUES, "Bitrates (kbit/s)");
-  ui_->a_bitrate_chart->init(100, 5, CHARTVALUES, "Bitrates (kbit/s)");
-  ui_->v_delay_chart->init(100, 5, CHARTVALUES, "Latencies (ms)");
-  ui_->a_delay_chart->init(100, 5, CHARTVALUES, "Latencies (ms)");
-  ui_->v_framerate_chart->init(100, 5, CHARTVALUES, "Framerates (fps)");
+  ui_->v_bitrate_chart->init(500, 5, true, CHARTVALUES, "Bitrates (kbit/s)");
+  ui_->a_bitrate_chart->init(100, 5, false, CHARTVALUES, "Bitrates (kbit/s)");
+  ui_->v_delay_chart->init(200, 4, true, CHARTVALUES, "Latencies (ms)");
+  ui_->a_delay_chart->init(10, 5, false, CHARTVALUES, "Latencies (ms)");
+  ui_->v_framerate_chart->init(30, 5, false, CHARTVALUES, "Framerates (fps)");
 
   chartVideoID_ = ui_->v_bitrate_chart->addLine("Kvazaar");
   chartAudioID_ = ui_->a_bitrate_chart->addLine("Opus");
@@ -117,7 +117,7 @@ void StatisticsWindow::videoInfo(double framerate, QSize resolution)
   ui_->value_resolution->setText( QString::number(resolution.width()) + "x"
                           + QString::number(resolution.height()));
 
-  ui_->v_framerate_chart->init(framerate, framerate/5, CHARTVALUES, "Framerates (fps)");
+  ui_->v_framerate_chart->init(framerate, framerate/5, false, CHARTVALUES, "Framerates (fps)");
 }
 
 

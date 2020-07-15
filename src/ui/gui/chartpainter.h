@@ -12,7 +12,7 @@ public:
   ChartPainter(QWidget *parent);
   ~ChartPainter();
 
-  void init(int maxY, int yLines, int xWindowSize, QString chartTitle);
+  void init(int maxY, int yLines, bool adaptive, int xWindowSize, QString chartTitle);
 
   // return line ID
   int addLine(QString name);
@@ -59,7 +59,11 @@ private:
 
   QSize numberSize_;
 
+  bool adaptiveLines_;
   int yLines_;
+
+  // how many times we skipped increasing the lines
+  int overLines_;
 
   QMutex lineMutex_;
   std::vector<std::shared_ptr<std::deque<float>>> points_;
