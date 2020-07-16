@@ -66,7 +66,7 @@ StatisticsInterface(),
   // performance-tab
   ui_->v_bitrate_chart->init(500, 5, true, CHARTVALUES, "Bitrates (kbit/s)");
   ui_->a_bitrate_chart->init(100, 5, false, CHARTVALUES, "Bitrates (kbit/s)");
-  ui_->v_delay_chart->init(200, 4, true, CHARTVALUES, "Latencies (ms)");
+  ui_->v_delay_chart->init(100, 5, true, CHARTVALUES, "Latencies (ms)");
   ui_->a_delay_chart->init(10, 5, false, CHARTVALUES, "Latencies (ms)");
   ui_->v_framerate_chart->init(30, 5, false, CHARTVALUES, "Framerates (fps)");
 
@@ -120,9 +120,16 @@ void StatisticsWindow::videoInfo(double framerate, QSize resolution)
   ui_->value_resolution->setText( QString::number(resolution.width()) + "x"
                           + QString::number(resolution.height()));
 
-  // set max framerate as this. Set the y-line every 5 fps
-  ui_->v_framerate_chart->init(framerate, framerate/5, false, CHARTVALUES, "Framerates (fps)");
-
+  // set max framerate as this. Set the y-line every 5 fps, 10 fps if fps is over 60
+  if (framerate <= 60)
+  {
+    ui_->v_framerate_chart->init(framerate, framerate/5, false, CHARTVALUES, "Framerates (fps)");
+  }
+  else
+  {
+    ui_->v_framerate_chart->init(framerate, framerate/10, false, CHARTVALUES, "Framerates (fps)");
+  }
+}
 
 
 void StatisticsWindow::audioInfo(uint32_t sampleRate, uint16_t channelCount)
@@ -552,18 +559,23 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
   Q_UNUSED(event);
 
   // clear old points from charts since they are obsolete
-  if(lastTabIndex_ != ui_->Statistics_tabs->currentIndex() &&
-     ui_->Statistics_tabs->currentIndex() == PERFORMANCE_TAB)
+  if(lastTabIndex_ != ui_->Statistics_tabs->currentIndex())
   {
-    ui_->v_bitrate_chart->clearPoints();
-    ui_->a_bitrate_chart->clearPoints();
-    ui_->v_delay_chart->clearPoints();
-    ui_->a_delay_chart->clearPoints();
-    ui_->v_framerate_chart->clearPoints();
-
-    ui_->bandwidth_chart->clearPoints();
+    if (ui_->Statistics_tabs->currentIndex() == PERFORMANCE_TAB)
+    {
+      ui_->v_bitrate_chart->clearPoints();
+      ui_->a_bitrate_chart->clearPoints();
+      ui_->v_delay_chart->clearPoints();
+      ui_->a_delay_chart->clearPoints();
+      ui_->v_framerate_chart->clearPoints();
+    }
+    else if (ui_->Statistics_tabs->currentIndex() == DELIVERY_TAB)
+    {
+      ui_->bandwidth_chart->clearPoints();
+    }
   }
 
+  // should we update the outlook of statistics
   if(lastTabIndex_ != ui_->Statistics_tabs->currentIndex()
      || guiUpdates_*ui_->update_frequency->value() < guiTimer_.elapsed())
   {

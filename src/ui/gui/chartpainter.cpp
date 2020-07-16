@@ -19,9 +19,9 @@ const std::vector<LineAppearance> appearances = {
   {Qt::green, CIRCLE},
   {Qt::red, SQUARE},
   {Qt::blue, TRIANGLE},
-  {Qt::darkYellow, CROSS},
+  {Qt::magenta, CROSS},
   {Qt::cyan, SQUARE},
-  {Qt::magenta, TRIANGLE},
+  {Qt::darkBlue, TRIANGLE},
   {Qt::darkGreen, CROSS},
   {Qt::darkRed, CIRCLE}
 };
@@ -171,47 +171,49 @@ void ChartPainter::addPoint(int lineID, float y)
   // rise over the maximum or fall to the bottom part of the graph
   if (adaptiveLines_)
   {
-    // if the removed is in the
-    // TODO: Fix this
-    if (y < (maxY_/yLines_)*(yLines_ - 1))
+    // if the removed is in the bottom half
+    if (y < maxY_/2)
     {
-      // got through all the points in all lines to find the largest one
-      float largest = y;
-      for (auto& line : points_)
+      // Consider division only if we have enough yLines left.
+      if (yLines_ > 5)
       {
-        for (auto& value : *line.get())
+        // got through all the points in all lines to find the largest one
+        float largest = y;
+        for (auto& line : points_)
         {
-          if (value > largest)
+          for (auto& value : *line.get())
           {
-            largest = value;
+            if (value > largest)
+            {
+              largest = value;
+            }
           }
         }
-      }
 
-      // Divide the maximum and number of lines by two when all points are
-      // in bottom half. This way the jumps are not so frequent.
-      // Also only divide if we have enough yLines left.
-      // There is also a system where the yLines are not increased
-      // if there would be too many of them and this is synchronized using
-      // overLines_ variable
-      while (largest < maxY_/2 && yLines_ > 5)
-      {
-        maxY_ /= 2;
+        // Divide the maximum and number of lines by two when all points are
+        // in bottom half. This way the jumps are not so frequent.
+        // There is also a system where the yLines are not increased
+        // if there would be too many of them and this is synchronized using
+        // overLines_ variable.
+        while (largest < maxY_/2 && yLines_ > 5)
+        {
+          maxY_ /= 2;
 
-        if (overLines_ == 0)
-        {
-          yLines_ /= 2;
-        }
-        else // no yLines division for now
-        {
-          --overLines_;
+          if (overLines_ == 0)
+          {
+            yLines_ /= 2;
+          }
+          else // no yLines division for now
+          {
+            --overLines_;
+          }
         }
       }
     }
     else
     {
       // if y is larger than maximum, then double the maxY and yLines
-      while (maxY_ < y)
+      while (y > maxY_)
       {
         maxY_ *= 2;
 
@@ -228,9 +230,10 @@ void ChartPainter::addPoint(int lineID, float y)
     }
   }
   // if value over the chart maximum and we dont have adaptivity to deal with it
-  else if (maxY_ + maxY_/5 < y)
+  else if (maxY_ + maxY_/10 < y)
   {
     // force the adaptivity on
+    // This assumes that we never want the graph to be too much over the maximum.
     adaptiveLines_ = true;
   }
 
@@ -497,9 +500,8 @@ void ChartPainter::drawMark(QPainter& painter, int lineID, float x, float y)
   int appearanceIndex = (lineID - 1)%appearances.size();
 
   painter.setPen(QPen(appearances.at(appearanceIndex).color,
-                      2, Qt::SolidLine, Qt::FlatCap));
+                      2, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin));
 
-  // TODO: Test/fix these
   switch (appearances.at(appearanceIndex).pointShape)
   {
     case CIRCLE:
@@ -548,9 +550,9 @@ void ChartPainter::drawSquare(QPainter& painter, float x, float y)
 void ChartPainter::drawTriangle(QPainter& painter, float x, float y)
 {
   QPointF points[3] = {
-      QPointF(x,     y - 3),
-      QPointF(x - 3, y + 3),
-      QPointF(x + 3, y - 3)
+      QPointF(x - 3, y - 3),
+      QPointF(x + 3, y - 3),
+      QPointF(x,     y + 3)
   };
   painter.drawConvexPolygon(points, 3);
 }

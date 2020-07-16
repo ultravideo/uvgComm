@@ -68,7 +68,6 @@ private:
   void drawMark(QPainter& painter, int lineID, float x, float y);
 
   // helper functions for drawing different shapes
-  // TODO: test these and fix them
   void drawCircle(QPainter& painter, float x, float y);
   void drawSquare(QPainter& painter, float x, float y);
   void drawTriangle(QPainter& painter, float x, float y);
