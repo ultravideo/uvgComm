@@ -28,7 +28,7 @@ const std::vector<LineAppearance> appearances = {
 
 
 const int MARGIN = 5;
-const int NUMBERMARGIN = 3;
+const int NUMBERMARGIN = 6;
 
 ChartPainter::ChartPainter(QWidget* parent)
   : QFrame (parent),
@@ -348,8 +348,12 @@ void ChartPainter::drawPoints(QPainter& painter, int lineID,
       }
 
       // draw current value
-      painter.drawText(MARGIN, yPoint + numberSize_.height()/4,
-                       QString::number(points_.at(lineID - 1)->at(i), 10, 0));
+      QString number = QString::number(points_.at(lineID - 1)->at(i), 10, 0);
+      QSize numberSize = QFontMetrics(painter.font()).size(Qt::TextSingleLine,
+                                                           number);
+
+      painter.drawText(getDrawMinX() - numberSize.width() - NUMBERMARGIN,
+                       yPoint + numberSize_.height()/4, number);
 
     }
     else // draw line if we have at least two points
@@ -389,13 +393,13 @@ void ChartPainter::drawForeground(QPainter& painter, bool drawZero, bool drawMax
   }
 
   // min number
-  if (drawZero) // TODO: The y in this one is not correct
+  if (drawZero)
   {
     // mix x
-    int zeroLength = QFontMetrics(painter.font()).size(Qt::TextSingleLine,
-                                                       QString::number(0)).width();
-    painter.drawText(getDrawMinX() - zeroLength - NUMBERMARGIN,
-                     rect().size().height() - MARGIN - NUMBERMARGIN + numberSize_.height()/4,
+    QSize zeroSize = QFontMetrics(painter.font()).size(Qt::TextSingleLine,
+                                                       QString::number(0));
+    painter.drawText(getDrawMinX() - zeroSize.width() - NUMBERMARGIN,
+                     getDrawMaxY() + zeroSize.height()/4,
                      QString::number(0));
   }
 
