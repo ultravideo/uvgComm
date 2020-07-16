@@ -75,12 +75,10 @@ private:
 
   // what is the maximum y value of the chart
   int maxY_;
+  QSize maxYSize_;
 
   // how many points are drawn at maximum per
   int xWindowCount_;
-
-  // how large are the numbers
-  QSize numberSize_;
 
   // is the scale of graph adaptive or is it constant.
   // constant makes sense if the graph is only expected to have limited changes
@@ -101,22 +99,16 @@ private:
   std::vector<std::shared_ptr<std::deque<float>>> points_;
 
   // names of lines for legends
-  QStringList names_;
-
-  // the width of longest name
-  int maxNameWidth_;
-
-  // title of the whole chart
-  QString title_;
-
-  // how big is the title
-  QSize titleSize_;
+  QStringList legends_;
 
   // how many rows will the legends need
   int legendRows_;
+  QSize legendSize_;
+
+  // title of the whole chart
+  QString title_;
+  QSize titleSize_;
 
   // font used when drawing text
   QFont font_;
-
-  // TODO: maybe a larger font for chart title?
 };

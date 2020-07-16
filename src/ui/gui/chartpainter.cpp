@@ -33,17 +33,18 @@ const int NUMBERMARGIN = 6;
 ChartPainter::ChartPainter(QWidget* parent)
   : QFrame (parent),
   maxY_(0),
+  maxYSize_(0,0),
   xWindowCount_(0),
-  numberSize_(),
   adaptiveLines_(true),
   yLines_(0),
   overLines_(0),
   points_(),
-  names_(),
-  maxNameWidth_(0),
-  title_(""),
-  titleSize_(),
+  legends_(),
   legendRows_(0),
+  legendSize_(0,0),
+  title_(""),
+  titleSize_(0,0),
+
   font_(QFont("times", 10))
 {}
 
@@ -54,7 +55,7 @@ ChartPainter::~ChartPainter()
 
 int ChartPainter::getDrawMinX() const
 {
-  return MARGIN + numberSize_.width() + NUMBERMARGIN;
+  return MARGIN + maxYSize_.width() + NUMBERMARGIN;
 }
 
 
@@ -66,14 +67,14 @@ int ChartPainter::getDrawMaxX() const
 
 int ChartPainter::getDrawMinY() const
 {
-  return MARGIN + numberSize_.height()/4 + titleSize_.height();
+  return MARGIN + maxYSize_.height()/4 + titleSize_.height();
 }
 
 
 int ChartPainter::getDrawMaxY() const
 {
   return rect().size().height() - MARGIN - NUMBERMARGIN
-      - titleSize_.height()*legendRows_;
+      - legendSize_.height()*legendRows_;
 }
 
 
@@ -111,15 +112,15 @@ int ChartPainter::addLine(QString name)
 
   lineMutex_.lock();
   // lineID should refer to position in both arrays
-  names_.push_back(name);
+  legends_.push_back(name);
   points_.push_back(std::make_shared<std::deque<float>>());
   int lineID = points_.size();
 
   // check if this is the widest name of all for drawing the legends
-  int newWidth = QFontMetrics(font_).size(Qt::TextSingleLine, name).width();
-  if (newWidth > maxNameWidth_)
+  QSize newSize = QFontMetrics(font_).size(Qt::TextSingleLine, name);
+  if (newSize.width() > legendSize_.width())
   {
-    maxNameWidth_ = newWidth;
+    legendSize_ = newSize;
   }
   lineMutex_.unlock();
   return lineID;
@@ -131,10 +132,10 @@ void ChartPainter::removeLine(int lineID)
   Q_ASSERT(lineID > 0);
 
   lineMutex_.lock();
-  if (names_.size() >= lineID)
+  if (legends_.size() >= lineID)
   {
     // lineID refers to both
-    names_.erase(names_.begin() + lineID - 1);
+    legends_.erase(legends_.begin() + lineID - 1);
     points_.erase(points_.begin() + lineID - 1);
   }
   lineMutex_.unlock();
@@ -251,10 +252,8 @@ void ChartPainter::paintEvent(QPaintEvent *event)
   painter.setFont(font_);
 
   // calculate sizes to be used when determining draw are limits
-  numberSize_ = QFontMetrics(painter.font()).size(Qt::TextSingleLine,
-                                                  QString::number(maxY_));
-
-  titleSize_ = QFontMetrics(painter.font()).size(Qt::TextSingleLine, title_);
+  maxYSize_ = QFontMetrics(painter.font()).size(Qt::TextSingleLine,
+                                                QString::number(maxY_));
 
   // draw everything that is on the background first
   drawBackground(painter);
@@ -277,8 +276,19 @@ void ChartPainter::paintEvent(QPaintEvent *event)
 void ChartPainter::drawBackground(QPainter& painter)
 {
   painter.fillRect(rect(), QBrush(QColor(250,250,250)));
-  painter.setPen(QPen(Qt::gray, 1, Qt::SolidLine, Qt::RoundCap));
 
+  // chart title
+  QFont titleFont = QFont("times", 14);
+  painter.setFont(titleFont);
+  titleSize_ = QFontMetrics(painter.font()).size(Qt::TextSingleLine, title_);
+
+  painter.drawText(rect().width()/2 - titleSize_.width()/2,
+                   MARGIN/2 + titleSize_.height(), title_);
+
+  // return font to normal
+  painter.setFont(font_);
+
+  painter.setPen(QPen(Qt::gray, 1, Qt::SolidLine, Qt::RoundCap));
   int drawHeight = getDrawMaxY() - getDrawMinY();
 
   // draw y-lines
@@ -293,9 +303,7 @@ void ChartPainter::drawBackground(QPainter& painter)
 
   painter.setPen(QPen(Qt::black, 1, Qt::SolidLine, Qt::RoundCap));
 
-  // chart title
-  painter.drawText(rect().width()/2 - titleSize_.width()/2,
-                   MARGIN/2 + titleSize_.height(), title_);
+
 }
 
 
@@ -353,7 +361,7 @@ void ChartPainter::drawPoints(QPainter& painter, int lineID,
                                                            number);
 
       painter.drawText(getDrawMinX() - numberSize.width() - NUMBERMARGIN,
-                       yPoint + numberSize_.height()/4, number);
+                       yPoint + maxYSize_.height()/4, number);
 
     }
     else // draw line if we have at least two points
@@ -384,7 +392,8 @@ void ChartPainter::drawForeground(QPainter& painter, bool drawZero, bool drawMax
   if (drawMax)
   {
     // max x
-    painter.drawText(MARGIN, MARGIN + numberSize_.height()/2 + titleSize_.height(),
+    painter.drawText(getDrawMinX() - maxYSize_.width() - NUMBERMARGIN,
+                     getDrawMinY() + maxYSize_.height()/4 + 1,
                      QString::number(maxY_));
 
     // small nod for max x
@@ -399,18 +408,18 @@ void ChartPainter::drawForeground(QPainter& painter, bool drawZero, bool drawMax
     QSize zeroSize = QFontMetrics(painter.font()).size(Qt::TextSingleLine,
                                                        QString::number(0));
     painter.drawText(getDrawMinX() - zeroSize.width() - NUMBERMARGIN,
-                     getDrawMaxY() + zeroSize.height()/4,
+                     getDrawMaxY() + zeroSize.height()/4 + 1,
                      QString::number(0));
   }
 
-  if (names_.size() > 0 && names_.size() == points_.size())
+  if (legends_.size() > 0 && legends_.size() == points_.size())
   {
     // draw legends
 
     int legendMargin = 3;
     int markSize = 7;
 
-    int legendWidth = markSize + legendMargin + maxNameWidth_ + 2;
+    int legendWidth = markSize + legendMargin + legendSize_.width() + 2;
     int totalWidthOfTwo = legendWidth*2;
     int totalWidthOfThree = legendWidth*3;
 
@@ -428,9 +437,9 @@ void ChartPainter::drawForeground(QPainter& painter, bool drawZero, bool drawMax
         int extraSpace = rect().width() - totalWidthOfThree;
         // location
         int x = extraSpace/2 + (i%3)*(legendWidth + wordSpace);
-        int y = getDrawMaxY() + NUMBERMARGIN + (i/3)*titleSize_.height();
+        int y = getDrawMaxY() + NUMBERMARGIN + (i/3)*legendSize_.height();
 
-        drawLegend(painter, x, y, legendMargin, markSize, i + 1, names_.at(i));
+        drawLegend(painter, x, y, legendMargin, markSize, i + 1, legends_.at(i));
 
         // calculate how many rows our legend takes
         if (points_.size()%3 != 0)
@@ -449,9 +458,9 @@ void ChartPainter::drawForeground(QPainter& painter, bool drawZero, bool drawMax
         int extraSpace = rect().width() - totalWidthOfTwo;
         // location
         int x = extraSpace/2 + (i%2)*(legendWidth + wordSpace);
-        int y = getDrawMaxY() + NUMBERMARGIN + (i/2)*titleSize_.height();
+        int y = getDrawMaxY() + NUMBERMARGIN + (i/2)*legendSize_.height();
 
-        drawLegend(painter, x, y, legendMargin, markSize, i + 1, names_.at(i));
+        drawLegend(painter, x, y, legendMargin, markSize, i + 1, legends_.at(i));
 
         // how many rows the legend takes
         if (points_.size()%2 != 0)
@@ -469,9 +478,9 @@ void ChartPainter::drawForeground(QPainter& painter, bool drawZero, bool drawMax
         int extraSpace = rect().width() - legendWidth;
         // location
         int x = extraSpace/2;
-        int y = getDrawMaxY() + i*titleSize_.height() + NUMBERMARGIN;
+        int y = getDrawMaxY() + i*legendSize_.height() + NUMBERMARGIN;
 
-        drawLegend(painter, x, y, legendMargin, markSize, i + 1, names_.at(i));
+        drawLegend(painter, x, y, legendMargin, markSize, i + 1, legends_.at(i));
 
         legendRows_ = points_.size();
       }
@@ -486,11 +495,11 @@ void ChartPainter::drawLegend(QPainter& painter, float x, float y,
 {
   if (x < rect().width() && y < rect().height())
   {
-    drawMark(painter, lineID, x, y + titleSize_.height()/2 + markSize/2 + 1);
+    drawMark(painter, lineID, x, y + legendSize_.height()/2 + markSize/2 + 1);
 
     // draw the legend text
     painter.setPen(QPen(Qt::black, 1, Qt::SolidLine, Qt::FlatCap));
-    painter.drawText(QPointF(x + markSize + legendMargin, y + titleSize_.height()),
+    painter.drawText(QPointF(x + markSize + legendMargin, y + legendSize_.height()),
                      name);
   }
 }
