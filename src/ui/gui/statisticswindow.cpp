@@ -56,10 +56,14 @@ StatisticsInterface(),
   connect(ui_->update_frequency, &QAbstractSlider::sliderMoved,
           this, &StatisticsWindow::clearGUI);
 
+  // Initiate all charts
+
+  // Delivery-tab
   ui_->bandwidth_chart->init(800, 8, true, CHARTVALUES, "Bandwidth (kbit/s)");
   ui_->bandwidth_chart->addLine("In");
   ui_->bandwidth_chart->addLine("Out");
 
+  // performance-tab
   ui_->v_bitrate_chart->init(500, 5, true, CHARTVALUES, "Bitrates (kbit/s)");
   ui_->a_bitrate_chart->init(100, 5, false, CHARTVALUES, "Bitrates (kbit/s)");
   ui_->v_delay_chart->init(200, 4, true, CHARTVALUES, "Latencies (ms)");
@@ -74,8 +78,7 @@ StatisticsInterface(),
 
   ui_->v_framerate_chart->addLine("Kvazaar");
 
-  // init headers of participant table
-
+  // init headers of call parameter table
   fillTableHeaders(ui_->table_outgoing, sessionMutex_,
                           {"IP", "Audio Ports", "Video Ports"});
   fillTableHeaders(ui_->table_incoming, sessionMutex_,
@@ -117,8 +120,9 @@ void StatisticsWindow::videoInfo(double framerate, QSize resolution)
   ui_->value_resolution->setText( QString::number(resolution.width()) + "x"
                           + QString::number(resolution.height()));
 
+  // set max framerate as this. Set the y-line every 5 fps
   ui_->v_framerate_chart->init(framerate, framerate/5, false, CHARTVALUES, "Framerates (fps)");
-}
+
 
 
 void StatisticsWindow::audioInfo(uint32_t sampleRate, uint16_t channelCount)
@@ -314,6 +318,8 @@ void StatisticsWindow::removeSession(uint32_t sessionID)
 
   index += 2; // +1 because it is an ID, not index and +1 for local before peers.
 
+  // remove line from all charts. Charts automatically adjust their lineID:s
+  // after removal
   ui_->v_bitrate_chart->removeLine(index);
   ui_->a_bitrate_chart->removeLine(index);
   ui_->v_delay_chart->removeLine(index);
@@ -396,6 +402,7 @@ void StatisticsWindow::updateFramerateBuffer(std::vector<PacketInfo*>& packets,
     delete packets.at(index%BUFFERSIZE);
   }
 
+  // add packet at this timestamp
   packets[index%BUFFERSIZE] = new PacketInfo{QDateTime::currentMSecsSinceEpoch(), size};
   ++index;
 }
@@ -431,7 +438,8 @@ uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets, uint32_t i
     previousTs = index - 2;
   }
 
-  timeInterval += QDateTime::currentMSecsSinceEpoch() - packets[currentTs%BUFFERSIZE]->timestamp;
+  timeInterval += QDateTime::currentMSecsSinceEpoch()
+      - packets[currentTs%BUFFERSIZE]->timestamp;
 
   // sum all bytes and time intervals in ring-buffer for specified timeperiod
   while(packets[previousTs%BUFFERSIZE] && timeInterval < interval)
@@ -543,6 +551,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 {
   Q_UNUSED(event);
 
+  // clear old points from charts since they are obsolete
   if(lastTabIndex_ != ui_->Statistics_tabs->currentIndex() &&
      ui_->Statistics_tabs->currentIndex() == PERFORMANCE_TAB)
   {
@@ -558,6 +567,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
   if(lastTabIndex_ != ui_->Statistics_tabs->currentIndex()
      || guiUpdates_*ui_->update_frequency->value() < guiTimer_.elapsed())
   {
+    // do not take this account if this was only a tab switch
     if (lastTabIndex_ == ui_->Statistics_tabs->currentIndex())
     {
       ++guiUpdates_;
@@ -586,6 +596,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
       ui_->packets_received_value->setText( QString::number(receivePacketCount_));
       ui_->data_received_value->setText( QString::number(receivedData_));
 
+      // bandwidth chart
       float packetRate = 0.0f; // not interested in this at the moment.
       uint32_t inBandwidth = bitrate(inBandWidth_, inIndex_, packetRate, 5000);
       uint32_t outBandwidth = bitrate(outBandwidth_, outIndex_, packetRate, 5000);
@@ -598,35 +609,38 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
     }
     case PERFORMANCE_TAB:
       {
-        float videoFramerate = 0.0f;
-
+        // how long a tail should we consider in bitrate calculations
         int64_t interval = ui_->update_frequency->value() * 5;
 
+        // calculate local video bitrate and framerate
+        float videoFramerate = 0.0f;
         uint32_t videoBitrate = bitrate(videoPackets_, videoIndex_, videoFramerate, interval);
 
+        // calculate local audio bitrate
         float audioFramerate = 0.0f; // not interested in this at the moment.
         uint32_t audioBitrate = bitrate(audioPackets_, audioIndex_, audioFramerate, interval);
 
+        // add points to chart
         ui_->v_bitrate_chart->addPoint(chartVideoID_, videoBitrate);
         ui_->a_bitrate_chart->addPoint(chartAudioID_, audioBitrate);
         ui_->v_delay_chart->addPoint(chartVideoID_, videoEncDelay_);
         ui_->a_delay_chart->addPoint(chartAudioID_, audioEncDelay_);
         ui_->v_framerate_chart->addPoint(chartVideoID_, videoFramerate);
 
-        // fill table
+        // add points for all existing sessions
         for(auto& d : sessions_)
         {
           sessionMutex_.lock();
 
-
-          float receiveVideorate = 0; // not shown at the moment
+          float receiveVideorate = 0; // not shown at the moment. We show presentation framerate instead
           uint32_t videoBitrate = bitrate(d.second.videoPackets, d.second.videoIndex, receiveVideorate, interval);
           float presentationVideoFramerate = 0;
           bitrate(d.second.pVideoPackets, d.second.pVideoIndex, presentationVideoFramerate, interval);
 
-          float receiveAudiorate = 0; // not shown at the moment
+          float receiveAudiorate = 0; // not interesting and not shown.
           uint32_t audioBitrate = bitrate(d.second.audioPackets, d.second.audioIndex, receiveAudiorate, interval);
 
+          // not showing audio framerate at the moment. Might show playback samplerate in the future
           //float presentationAudioFramerate = 0;
           //bitrate(d.second.pAudioPackets, d.second.pAudioIndex, presentationAudioFramerate, interval);
 
@@ -781,6 +795,7 @@ int StatisticsWindow::addTableRow(QTableWidget* table, QMutex& mutex,
 
 void StatisticsWindow::clearGUI(int value)
 {
+  // clear charts
   ui_->v_delay_chart->clearPoints();
   ui_->a_delay_chart->clearPoints();
   ui_->v_bitrate_chart->clearPoints();
@@ -789,24 +804,29 @@ void StatisticsWindow::clearGUI(int value)
 
   ui_->bandwidth_chart->clearPoints();
 
+  // reset GUI timer so the new frequency works
   guiUpdates_ = 0;
   guiTimer_.restart();
 
+  // this makes limits the update frequency to only discreet values
+  // which I think is more suitable for this.
   int limitedValue = static_cast<int>((value + 50)/100);
   limitedValue *= 100;
 
+  // move slider to discreet value
   ui_->update_frequency->setValue(limitedValue);
 
+  // show as seconds
   if (limitedValue >= 1000)
   {
     QString number = QString::number(limitedValue/1000) + "." + QString::number(limitedValue%1000);
     ui_->update_frequency_label->setText("Update Frequency: " + number + " s");
   }
-  else if (limitedValue > 0)
+  else if (limitedValue > 0) // show as ms
   {
     ui_->update_frequency_label->setText("Update Frequency: " + QString::number(limitedValue) + " ms");
   }
-  else
+  else // update always
   {
     ui_->update_frequency_label->setText("Update Frequency: every draw step");
   }
