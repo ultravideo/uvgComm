@@ -53,7 +53,7 @@ StatisticsInterface(),
 {
   ui_->setupUi(this);
 
-  connect(ui_->update_frequency, &QAbstractSlider::sliderMoved,
+  connect(ui_->update_frequency, &QAbstractSlider::valueChanged,
           this, &StatisticsWindow::clearGUI);
 
   // Initiate all charts
@@ -831,15 +831,11 @@ void StatisticsWindow::clearGUI(int value)
   // show as seconds
   if (limitedValue >= 1000)
   {
-    QString number = QString::number(limitedValue/1000) + "." + QString::number(limitedValue%1000);
+    QString number = QString::number(limitedValue/1000) + "." + QString::number(limitedValue%1000/100);
     ui_->update_frequency_label->setText("Update Frequency: " + number + " s");
   }
-  else if (limitedValue > 0) // show as ms
+  else // show as ms
   {
     ui_->update_frequency_label->setText("Update Frequency: " + QString::number(limitedValue) + " ms");
-  }
-  else // update always
-  {
-    ui_->update_frequency_label->setText("Update Frequency: every draw step");
   }
 }
