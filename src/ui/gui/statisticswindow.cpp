@@ -54,7 +54,10 @@ StatisticsInterface(),
   ui_->setupUi(this);
 
   connect(ui_->update_frequency, &QAbstractSlider::valueChanged,
-          this, &StatisticsWindow::clearGUI);
+          this, &StatisticsWindow::changeUpdateFrequency);
+
+  connect(ui_->update_tail, &QAbstractSlider::valueChanged,
+          this, &StatisticsWindow::changeUpdateTail);
 
   // Initiate all charts
 
@@ -102,7 +105,7 @@ void StatisticsWindow::showEvent(QShowEvent * event)
 {
   Q_UNUSED(event)
   // start refresh timer
-  clearGUI(1000);
+  clearCharts();
 }
 
 
@@ -622,7 +625,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
     case PERFORMANCE_TAB:
       {
         // how long a tail should we consider in bitrate calculations
-        int64_t interval = ui_->update_frequency->value() * 5;
+        int64_t interval = ui_->update_frequency->value() * ui_->update_tail->value();
 
         // calculate local video bitrate and framerate
         float videoFramerate = 0.0f;
@@ -805,21 +808,8 @@ int StatisticsWindow::addTableRow(QTableWidget* table, QMutex& mutex,
 }
 
 
-void StatisticsWindow::clearGUI(int value)
+void StatisticsWindow::changeUpdateFrequency(int value)
 {
-  // clear charts
-  ui_->v_delay_chart->clearPoints();
-  ui_->a_delay_chart->clearPoints();
-  ui_->v_bitrate_chart->clearPoints();
-  ui_->a_bitrate_chart->clearPoints();
-  ui_->v_framerate_chart->clearPoints();
-
-  ui_->bandwidth_chart->clearPoints();
-
-  // reset GUI timer so the new frequency works
-  guiUpdates_ = 0;
-  guiTimer_.restart();
-
   // this makes limits the update frequency to only discreet values
   // which I think is more suitable for this.
   int limitedValue = static_cast<int>((value + 50)/100);
@@ -838,4 +828,30 @@ void StatisticsWindow::clearGUI(int value)
   {
     ui_->update_frequency_label->setText("Update Frequency: " + QString::number(limitedValue) + " ms");
   }
+  clearCharts();
+}
+
+
+void StatisticsWindow::changeUpdateTail(int value)
+{
+  ui_->update_tail_label->setText("Tail Length: " + QString::number(value) + "x");
+  clearCharts();
+}
+
+
+void StatisticsWindow::clearCharts()
+{
+  // clear charts
+  ui_->v_delay_chart->clearPoints();
+  ui_->a_delay_chart->clearPoints();
+  ui_->v_bitrate_chart->clearPoints();
+  ui_->a_bitrate_chart->clearPoints();
+  ui_->v_framerate_chart->clearPoints();
+
+  ui_->bandwidth_chart->clearPoints();
+
+  // reset GUI timer so the new frequency works
+  guiUpdates_ = 0;
+  guiTimer_.restart();
+
 }

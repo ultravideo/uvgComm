@@ -64,9 +64,13 @@ public:
   virtual void addReceivedSIPMessage(QString type, QString message, QString address);
 
 private slots:
-  void clearGUI(int value);
+
+  void changeUpdateFrequency(int value);
+  void changeUpdateTail(int value);
 
 private:
+
+  void clearCharts();
 
   // info about one packet for calculating bitrate
   struct PacketInfo

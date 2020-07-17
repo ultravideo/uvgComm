@@ -469,25 +469,24 @@
        <string>Performance</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_3">
-       <item row="5" column="1">
-        <widget class="QLabel" name="label_6">
-         <property name="font">
-          <font>
-           <pointsize>12</pointsize>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
+       <item row="10" column="1">
+        <spacer name="verticalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
          </property>
-         <property name="text">
-          <string>Audio</string>
+         <property name="sizeType">
+          <enum>QSizePolicy::Expanding</enum>
          </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
          </property>
-        </widget>
+        </spacer>
        </item>
-       <item row="7" column="0">
-        <widget class="ChartPainter" name="v_delay_chart">
+       <item row="9" column="0">
+        <widget class="ChartPainter" name="v_framerate_chart">
          <property name="minimumSize">
           <size>
            <width>300</width>
@@ -519,21 +518,87 @@
          </property>
         </widget>
        </item>
-       <item row="9" column="0">
-        <spacer name="verticalSpacer">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
+       <item row="6" column="1">
+        <widget class="QLabel" name="label_6">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
          </property>
-         <property name="sizeType">
-          <enum>QSizePolicy::Expanding</enum>
+         <property name="text">
+          <string>Audio</string>
          </property>
-         <property name="sizeHint" stdset="0">
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="0">
+        <widget class="QLabel" name="label_7">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Video</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="1">
+        <widget class="ChartPainter" name="a_bitrate_chart">
+         <property name="minimumSize">
           <size>
-           <width>20</width>
-           <height>40</height>
+           <width>300</width>
+           <height>180</height>
           </size>
          </property>
-        </spacer>
+         <property name="frameShape">
+          <enum>QFrame::StyledPanel</enum>
+         </property>
+         <property name="frameShadow">
+          <enum>QFrame::Raised</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="1">
+        <widget class="ChartPainter" name="a_delay_chart">
+         <property name="minimumSize">
+          <size>
+           <width>300</width>
+           <height>180</height>
+          </size>
+         </property>
+         <property name="frameShape">
+          <enum>QFrame::StyledPanel</enum>
+         </property>
+         <property name="frameShadow">
+          <enum>QFrame::Raised</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="0">
+        <widget class="ChartPainter" name="v_bitrate_chart">
+         <property name="minimumSize">
+          <size>
+           <width>300</width>
+           <height>180</height>
+          </size>
+         </property>
+         <property name="frameShape">
+          <enum>QFrame::StyledPanel</enum>
+         </property>
+         <property name="frameShadow">
+          <enum>QFrame::Raised</enum>
+         </property>
+        </widget>
        </item>
        <item row="4" column="0">
         <widget class="QSlider" name="update_frequency">
@@ -572,23 +637,6 @@
          </property>
         </widget>
        </item>
-       <item row="5" column="0">
-        <widget class="QLabel" name="label_7">
-         <property name="font">
-          <font>
-           <pointsize>12</pointsize>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
-         </property>
-         <property name="text">
-          <string>Video</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
-         </property>
-        </widget>
-       </item>
        <item row="4" column="1">
         <widget class="QLabel" name="update_frequency_label">
          <property name="sizePolicy">
@@ -602,24 +650,8 @@
          </property>
         </widget>
        </item>
-       <item row="6" column="0">
-        <widget class="ChartPainter" name="v_bitrate_chart">
-         <property name="minimumSize">
-          <size>
-           <width>300</width>
-           <height>180</height>
-          </size>
-         </property>
-         <property name="frameShape">
-          <enum>QFrame::StyledPanel</enum>
-         </property>
-         <property name="frameShadow">
-          <enum>QFrame::Raised</enum>
-         </property>
-        </widget>
-       </item>
-       <item row="9" column="1">
-        <spacer name="verticalSpacer_2">
+       <item row="10" column="0">
+        <spacer name="verticalSpacer">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
          </property>
@@ -635,7 +667,7 @@
         </spacer>
        </item>
        <item row="8" column="0">
-        <widget class="ChartPainter" name="v_framerate_chart">
+        <widget class="ChartPainter" name="v_delay_chart">
          <property name="minimumSize">
           <size>
            <width>300</width>
@@ -650,35 +682,35 @@
          </property>
         </widget>
        </item>
-       <item row="6" column="1">
-        <widget class="ChartPainter" name="a_bitrate_chart">
-         <property name="minimumSize">
-          <size>
-           <width>300</width>
-           <height>180</height>
-          </size>
+       <item row="5" column="0">
+        <widget class="QSlider" name="update_tail">
+         <property name="minimum">
+          <number>1</number>
          </property>
-         <property name="frameShape">
-          <enum>QFrame::StyledPanel</enum>
+         <property name="maximum">
+          <number>10</number>
          </property>
-         <property name="frameShadow">
-          <enum>QFrame::Raised</enum>
+         <property name="pageStep">
+          <number>3</number>
+         </property>
+         <property name="value">
+          <number>5</number>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="tickPosition">
+          <enum>QSlider::TicksBelow</enum>
+         </property>
+         <property name="tickInterval">
+          <number>1</number>
          </property>
         </widget>
        </item>
-       <item row="7" column="1">
-        <widget class="ChartPainter" name="a_delay_chart">
-         <property name="minimumSize">
-          <size>
-           <width>300</width>
-           <height>180</height>
-          </size>
-         </property>
-         <property name="frameShape">
-          <enum>QFrame::StyledPanel</enum>
-         </property>
-         <property name="frameShadow">
-          <enum>QFrame::Raised</enum>
+       <item row="5" column="1">
+        <widget class="QLabel" name="update_tail_label">
+         <property name="text">
+          <string>Tail length: 5x</string>
          </property>
         </widget>
        </item>
