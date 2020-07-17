@@ -424,57 +424,46 @@ uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets, uint32_t i
   if(index == 0)
     return 0;
 
-  int64_t timeInterval = 0;
+  int64_t now = QDateTime::currentMSecsSinceEpoch();
   int64_t bitrate = 0;
   uint16_t frames = 0;
   uint32_t currentTs = 0;
-  uint32_t previousTs = index - 2;
   framerate = 0.0f;
 
   // set timestamp indexes to ringbuffer
   if(index == 0)
   {
     currentTs = BUFFERSIZE - 1;
-    previousTs = BUFFERSIZE - 2;
   }
   else if (index == 1)
   {
     currentTs = index - 1; // equals to 0
-    previousTs = BUFFERSIZE - 1;
   }
   else
   {
     currentTs = index - 1;
-    previousTs = index - 2;
   }
 
-  timeInterval += QDateTime::currentMSecsSinceEpoch()
-      - packets[currentTs%BUFFERSIZE]->timestamp;
-
   // sum all bytes and time intervals in ring-buffer for specified timeperiod
-  while(packets[previousTs%BUFFERSIZE] && timeInterval < interval)
+  while(packets[currentTs%BUFFERSIZE] && now - packets[currentTs%BUFFERSIZE]->timestamp < interval)
   {
-    timeInterval += packets[currentTs%BUFFERSIZE]->timestamp
-                      - packets[previousTs%BUFFERSIZE]->timestamp;
-
     bitrate += packets[currentTs%BUFFERSIZE]->size;
     ++frames;
-    currentTs = previousTs;
-    if(previousTs != 0)
+    if(currentTs != 0)
     {
-      --previousTs;
+      --currentTs;
     }
     else
     {
-      previousTs = BUFFERSIZE - 1;
+      currentTs = BUFFERSIZE - 1;
     }
   }
 
   // calculate framerate and the average amount of bits per timeinterval (bitrate)
-  if(timeInterval > 0)
+  if(frames > 0)
   {
-    framerate = 1000*(float)frames/timeInterval;
-    return 8*bitrate/(timeInterval);
+    framerate = 1000*(float)frames/interval;
+    return 8*bitrate/(interval);
   }
   return 0;
 }
@@ -667,6 +656,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 
           sessionMutex_.unlock();
         }
+
 
         break;
       }
