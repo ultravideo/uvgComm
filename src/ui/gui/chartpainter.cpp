@@ -29,6 +29,7 @@ const std::vector<LineAppearance> appearances = {
 
 const int MARGIN = 5;
 const int NUMBERMARGIN = 6;
+const int TITLEMARGIN = 15;
 
 ChartPainter::ChartPainter(QWidget* parent)
   : QFrame (parent),
@@ -67,7 +68,7 @@ int ChartPainter::getDrawMaxX() const
 
 int ChartPainter::getDrawMinY() const
 {
-  return MARGIN + maxYSize_.height()/4 + titleSize_.height();
+  return MARGIN + TITLEMARGIN + titleSize_.height();
 }
 
 
@@ -283,7 +284,7 @@ void ChartPainter::drawBackground(QPainter& painter)
   titleSize_ = QFontMetrics(painter.font()).size(Qt::TextSingleLine, title_);
 
   painter.drawText(rect().width()/2 - titleSize_.width()/2,
-                   MARGIN/2 + titleSize_.height(), title_);
+                   MARGIN + titleSize_.height(), title_);
 
   // return font to normal
   painter.setFont(font_);
