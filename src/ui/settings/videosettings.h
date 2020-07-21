@@ -13,16 +13,16 @@
 
 
 namespace Ui {
-class CustomSettings;
+class VideoSettings;
 }
 
 class CameraInfo;
 
-class MediaSettings  : public QDialog
+class VideoSettings  : public QDialog
 {
   Q_OBJECT
 public:
-  MediaSettings(QWidget* parent, std::shared_ptr<CameraInfo> info);
+  VideoSettings(QWidget* parent, std::shared_ptr<CameraInfo> info);
 
   // initializes the custom view with values from settings.
   void init(int deviceID);
@@ -71,7 +71,7 @@ private:
 
   int currentDevice_;
 
-  Ui::CustomSettings *customUI_;
+  Ui::VideoSettings *customUI_;
 
   std::shared_ptr<CameraInfo> cam_;
 

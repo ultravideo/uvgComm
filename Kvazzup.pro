@@ -98,12 +98,12 @@ SOURCES +=\
     src/ui/gui/videowidget.cpp \
     src/ui/gui/videoyuvwidget.cpp \
     src/ui/settings/camerainfo.cpp \
-    src/ui/settings/mediasettings.cpp \
     src/ui/settings/microphoneinfo.cpp \
     src/ui/settings/screeninfo.cpp \
     src/ui/settings/settings.cpp \
     src/ui/settings/settingshelper.cpp \
-    src/ui/settings/sipsettings.cpp
+    src/ui/settings/sipsettings.cpp \
+    src/ui/settings/videosettings.cpp
 
 HEADERS  += \
     src/initiation/connectionpolicy.h \
@@ -183,23 +183,23 @@ HEADERS  += \
     src/ui/gui/videoyuvwidget.h \
     src/ui/settings/camerainfo.h \
     src/ui/settings/deviceinfointerface.h \
-    src/ui/settings/mediasettings.h \
     src/ui/settings/microphoneinfo.h \
     src/ui/settings/screeninfo.h \
     src/ui/settings/settings.h \
     src/ui/settings/settingshelper.h \
-    src/ui/settings/sipsettings.h
+    src/ui/settings/sipsettings.h \
+    src/ui/settings/videosettings.h
 
 FORMS    += \
     ui/callwindow.ui \
-    ui/mediasettings.ui \
     ui/messagewidget.ui \
     ui/sipsettings.ui \
     ui/statisticswindow.ui \
     ui/about.ui \
     ui/settings.ui \
     ui/incomingcallwidget.ui \
-    ui/outgoingcallwidget.ui
+    ui/outgoingcallwidget.ui \
+    ui/videosettings.ui
 
 
 QT += multimediawidgets

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ui/settings/mediasettings.h"
+#include "ui/settings/videosettings.h"
 #include "ui/settings/sipsettings.h"
 
 #include <QDialog>
@@ -102,7 +102,7 @@ private:
   std::shared_ptr<ScreenInfo> screen_;
 
   SIPSettings sipSettings_;
-  MediaSettings mediaSettings_;
+  VideoSettings videoSettings_;
 
   QSettings settings_;
 };

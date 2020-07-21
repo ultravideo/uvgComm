@@ -293,7 +293,7 @@
           <bool>true</bool>
          </property>
          <property name="text">
-          <string>Media Settings</string>
+          <string>Video Settings</string>
          </property>
         </widget>
        </item>

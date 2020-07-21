@@ -16,7 +16,7 @@ Settings::Settings(QWidget *parent) :
   mic_(std::shared_ptr<MicrophoneInfo> (new MicrophoneInfo())),
   screen_(std::shared_ptr<ScreenInfo> (new ScreenInfo())),
   sipSettings_(this),
-  mediaSettings_(this, cam_),
+  videoSettings_(this, cam_),
   settings_("kvazzup.ini", QSettings::IniFormat)
 {}
 
@@ -36,15 +36,15 @@ void Settings::init()
 
   int videoID = getDeviceID(basicUI_->videoDevice, "video/DeviceID", "video/Device");
 
-  mediaSettings_.init(videoID);
+  videoSettings_.init(videoID);
   sipSettings_.init();
 
   //QObject::connect(basicUI_->save, &QPushButton::clicked, this, &Settings::on_ok_clicked);
   //QObject::connect(basicUI_->close, &QPushButton::clicked, this, &Settings::on_cancel_clicked);
 
-  QObject::connect(&mediaSettings_, &MediaSettings::customSettingsChanged,
+  QObject::connect(&videoSettings_, &VideoSettings::customSettingsChanged,
                    this, &Settings::settingsChanged);
-  QObject::connect(&mediaSettings_, &MediaSettings::hidden, this, &Settings::show);
+  QObject::connect(&videoSettings_, &VideoSettings::hidden, this, &Settings::show);
 
   QObject::connect(&sipSettings_, &SIPSettings::advancedSettingsChanged,
                    this, &Settings::settingsChanged);
@@ -55,6 +55,9 @@ void Settings::init()
                    this, &Settings::changedSIPText);
   QObject::connect(basicUI_->username, &QLineEdit::textChanged,
                    this, &Settings::changedSIPText);
+
+
+  // TODO: Also emit the position of closed window and move this setting there
 }
 
 
@@ -103,7 +106,7 @@ void Settings::on_custom_settings_button_clicked()
 {
   saveSettings();
   hide();
-  mediaSettings_.show();
+  videoSettings_.show();
 }
 
 
@@ -151,7 +154,7 @@ void Settings::getSettings(bool changedDevice)
     int videoIndex = getDeviceID(basicUI_->videoDevice, "video/DeviceID", "video/Device");
     if(changedDevice)
     {
-      mediaSettings_.changedDevice(videoIndex);
+      videoSettings_.changedDevice(videoIndex);
     }
     basicUI_->videoDevice->setCurrentIndex(videoIndex);
 
@@ -196,7 +199,7 @@ void Settings::resetFaultySettings()
 
   // record GUI settings in hope that they are correct ( is case by default )
   saveSettings();
-  mediaSettings_.resetSettings(getDeviceID(basicUI_->videoDevice, "video/DeviceID", "video/Device"));
+  videoSettings_.resetSettings(getDeviceID(basicUI_->videoDevice, "video/DeviceID", "video/Device"));
 
   // we set the connecting to true at this point because we want two things:
   // 1) that Kvazzup doesn't connect to any server without user permission
@@ -288,14 +291,14 @@ void Settings::saveDevice(QComboBox* deviceSelector, QString settingsID, QString
 
       if (video)
       {
-        mediaSettings_.changedDevice(currentIndex);
+        videoSettings_.changedDevice(currentIndex);
       }
     }
     else if(basicUI_->videoDevice->currentIndex() != settings_.value(settingsID))
     {
       if (video)
       {
-        mediaSettings_.changedDevice(currentIndex);
+        videoSettings_.changedDevice(currentIndex);
       }
     }
 
