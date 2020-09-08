@@ -134,7 +134,7 @@ void OpenHEVCFilter::process()
           break;
         }
 
-        int64_t pts = frame->presentationTime.tv_sec*90000 + frame->presentationTime.tv_usec*90000/1000000;
+        int64_t pts = frame->presentationTime;
         int gotPicture = libOpenHevcDecode(handle_, frame->data.get(), frame->data_size, pts);
 
         OpenHevc_Frame openHevcFrame;
