@@ -17,6 +17,7 @@ class VideoSettings;
 }
 
 class CameraInfo;
+class QComboBox;
 
 class VideoSettings  : public QDialog
 {
@@ -53,9 +54,14 @@ public slots:
 private:
   // QSettings -> GUI
   void restoreCustomSettings();
+
+  void restoreComboBoxes();
   void restoreFormat();
   void restoreResolution();
   void restoreFramerate();
+
+  void restoreComboBoxValue(QString key, QComboBox* box,
+                            QString defaultValue);
 
   // GUI -> QSettings
   void saveCustomSettings();

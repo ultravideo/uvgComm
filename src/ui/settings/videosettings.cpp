@@ -8,6 +8,7 @@
 #include "common.h"
 
 #include <QTableWidgetItem>
+#include <QThread>
 
 
 #include <QDebug>
@@ -132,26 +133,51 @@ void VideoSettings::saveCustomSettings()
   qDebug() << "Settings," << metaObject()->className() << ": Saving advanced Settings";
 
   // Video settings
-  saveTextValue("video/kvzThreads",            customUI_->kvz_threads->text(), settings_);
-  saveTextValue("video/OPENHEVC_threads",      customUI_->openhevc_threads->text(), settings_);
-  saveTextValue("video/yuvThreads",            customUI_->yuv_threads->text(), settings_);
-  saveTextValue("video/rgbThreads",            customUI_->rgb32_threads->text(), settings_);
-  saveTextValue("video/VPS",                   customUI_->vps->text(), settings_);
-  saveTextValue("video/Intra",                 customUI_->intra->text(), settings_);
-  saveCheckBox("video/WPP",                    customUI_->wpp, settings_);
-  saveCheckBox("video/Slices",                 customUI_->slices, settings_);
+  // input-tab
+  saveCameraCapabilities(settings_.value("video/DeviceID").toInt());
 
-  settings_.setValue("video/QP",               QString::number(customUI_->qp->value()));
-  settings_.setValue("video/Preset",           customUI_->preset->currentText());
 
-  saveCheckBox("video/opengl",                 customUI_->opengl, settings_);
-  saveCheckBox("video/flipViews",              customUI_->flip, settings_);
+  // Parallelization-tab
+  saveTextValue("video/kvzThreads",        customUI_->kvazaar_threads->currentText(), settings_);
+  settings_.setValue("video/OWF",          customUI_->owf->currentText());
+  saveCheckBox("video/WPP",                customUI_->wpp, settings_);
 
-  //settings_.setValue("audio/Channels",         QString::number(customUI_->channels->value()));
+  saveCheckBox("video/Tiles",              customUI_->tiles_checkbox, settings_);
+  saveCheckBox("video/Slices",             customUI_->slices, settings_);
+  QString tile_dimension =                 QString::number(customUI_->tile_x->value()) + "x" +
+                                           QString::number(customUI_->tile_y->value());
+  saveTextValue("video/tileDimensions",    tile_dimension, settings_);
 
+
+  saveTextValue("video/OPENHEVC_threads",  customUI_->openhevc_threads->text(), settings_);
+  saveTextValue("video/yuvThreads",        customUI_->yuv_threads->text(), settings_);
+  saveTextValue("video/rgbThreads",        customUI_->rgb32_threads->text(), settings_);
+
+  // structure-tab
+  settings_.setValue("video/QP",           QString::number(customUI_->qp->value()));
+  saveTextValue("video/Intra",             customUI_->intra->text(), settings_);
+  saveTextValue("video/VPS",               customUI_->vps->text(), settings_);
+
+  saveTextValue("video/bitrate",           QString::number(customUI_->bitrate_slider->value()), settings_);
+  saveTextValue("video/rcAlgorithm",       customUI_->rc_algorithm->currentText(), settings_);
+  saveCheckBox("video/obaClipNeighbours",  customUI_->oba_clip_neighbours, settings_);
+
+  saveCheckBox("video/scalingList",        customUI_->scaling_box, settings_);
+  saveCheckBox("video/lossless",           customUI_->lossless_box, settings_);
+  saveTextValue("video/mvConstraint",      customUI_->mv_constraint->currentText(), settings_);
+
+  saveCheckBox("video/qpInCU",             customUI_->qp_in_cu_box, settings_);
+  saveTextValue("video/vaq",               QString::number(customUI_->vaq->currentIndex()), settings_);
+
+  // compression-tab
+  settings_.setValue("video/Preset",       customUI_->preset->currentText());
   listGUIToSettings("kvazzup.ini", "parameters", QStringList() << "Name" << "Value", customUI_->custom_parameters);
 
-  saveCameraCapabilities(settings_.value("video/DeviceID").toInt());
+  // Other-tab
+  saveCheckBox("video/opengl",             customUI_->opengl, settings_);
+  saveCheckBox("video/flipViews",          customUI_->flip, settings_);
+
+  //settings_.setValue("audio/Channels",         QString::number(customUI_->channels->value()));
 }
 
 
@@ -210,38 +236,87 @@ void VideoSettings::restoreCustomSettings()
   bool validSettings = checkMissingValues(settings_);
   if(validSettings && checkVideoSettings())
   {
-    restoreFormat();
-    restoreResolution();
-    restoreFramerate();
-
     qDebug() << "Settings," << metaObject()->className() << ": Restoring previous Advanced settings from file:" << settings_.fileName();
-    int index = customUI_->preset->findText(settings_.value("video/Preset").toString());
-    if(index != -1)
-      customUI_->preset->setCurrentIndex(index);
-    customUI_->kvz_threads->setText        (settings_.value("video/kvzThreads").toString());
-    customUI_->qp->setValue            (settings_.value("video/QP").toInt());
-    customUI_->openhevc_threads->setText        (settings_.value("video/OPENHEVC_threads").toString());
 
-    customUI_->yuv_threads->setValue(settings_.value("video/yuvThreads").toInt());
-    customUI_->rgb32_threads->setValue(settings_.value("video/rgbThreads").toInt());
+    restoreComboBoxes();
 
-    restoreCheckBox("video/WPP", customUI_->wpp, settings_);
-
-    customUI_->vps->setText            (settings_.value("video/VPS").toString());
-    customUI_->intra->setText          (settings_.value("video/Intra").toString());
-
-    restoreCheckBox("video/Slices", customUI_->slices, settings_);
-
+    // input-tab
     customUI_->format_box->setCurrentText(settings_.value("video/InputFormat").toString());
 
     int resolutionID = settings_.value("video/ResolutionID").toInt();
     customUI_->resolution->setCurrentIndex(resolutionID);
 
-    restoreCheckBox("video/opengl", customUI_->opengl, settings_);
-    restoreCheckBox("video/flipViews", customUI_->flip, settings_);
+
+    // parallelization-tab
+    restoreComboBoxValue("video/kvzThreads", customUI_->kvazaar_threads, "auto");
+    restoreComboBoxValue("video/OWF", customUI_->owf, "0");
+
+    restoreCheckBox("video/WPP", customUI_->wpp, settings_);
+
+    restoreCheckBox("video/Tiles", customUI_->tiles_checkbox, settings_);
+    QString dimensions = settings_.value("video/tileDimensions").toString();
+
+    QRegularExpression re_dimension("(\\d*)x(\\d*)");
+    QRegularExpressionMatch dimension_match = re_dimension.match(dimensions);
+
+    if (dimension_match.hasMatch() &&
+        dimension_match.lastCapturedIndex() == 2)
+    {
+      int tile_x = dimension_match.captured(1).toInt();
+      int tile_y = dimension_match.captured(2).toInt();
+
+      if (customUI_->tile_x->maximum() >= tile_x)
+      {
+        customUI_->tile_x->setValue(tile_x);
+      }
+      else
+      {
+        customUI_->tile_x->setValue(2);
+      }
+
+      if (customUI_->tile_y->maximum() >= tile_y)
+      {
+        customUI_->tile_y->setValue(tile_y);
+      }
+      else
+      {
+        customUI_->tile_y->setValue(2);
+      }
+    }
+
+    restoreCheckBox("video/Slices", customUI_->slices, settings_);
+
+    customUI_->openhevc_threads->setText        (settings_.value("video/OPENHEVC_threads").toString());
+
+    customUI_->yuv_threads->setValue(settings_.value("video/yuvThreads").toInt());
+    customUI_->rgb32_threads->setValue(settings_.value("video/rgbThreads").toInt());
+
+    // structure-tab
+    customUI_->qp->setValue            (settings_.value("video/QP").toInt());
+    customUI_->intra->setText          (settings_.value("video/Intra").toString());
+    customUI_->vps->setText            (settings_.value("video/VPS").toString());
+
+    customUI_->bitrate_slider->setValue(settings_.value("video/bitrate").toInt());
+
+    restoreComboBoxValue("video/rcAlgorithm", customUI_->rc_algorithm, "lambda");
+
+    restoreCheckBox("video/obaClipNeighbours", customUI_->oba_clip_neighbours, settings_);
+    restoreCheckBox("video/scalingList", customUI_->scaling_box, settings_);
+    restoreCheckBox("video/lossless", customUI_->lossless_box, settings_);
+
+    restoreComboBoxValue("video/mvConstraint", customUI_->mv_constraint, "none");
+
+    restoreCheckBox("video/qpInCU", customUI_->qp_in_cu_box, settings_);
+
+    // tools-tab
+    restoreComboBoxValue("video/Preset", customUI_->preset, "ultrafast");
 
     listSettingsToGUI("kvazzup.ini", "parameters", QStringList() << "Name" << "Value",
                       customUI_->custom_parameters);
+
+    // other-tab
+    restoreCheckBox("video/opengl", customUI_->opengl, settings_);
+    restoreCheckBox("video/flipViews", customUI_->flip, settings_);
   }
   else
   {
@@ -259,6 +334,39 @@ void VideoSettings::restoreCustomSettings()
     resetSettings(currentDevice_);
   }
 }
+
+
+void VideoSettings::restoreComboBoxes()
+{
+  restoreFormat();
+  restoreResolution();
+  restoreFramerate();
+
+  int maxThreads = QThread::idealThreadCount();
+
+  printNormal(this, "Max Threads", "erere", QString::number(maxThreads));
+
+  //if (customUI_->kvazaar_threads->)
+
+
+
+  if (customUI_->kvazaar_threads->count() == 0 ||
+      customUI_->owf->count() == 0)
+  {
+    customUI_->kvazaar_threads->clear();
+    customUI_->owf->clear();
+    customUI_->kvazaar_threads->addItem("auto");
+    customUI_->kvazaar_threads->addItem("Main");
+    customUI_->owf->addItem("0");
+
+    for (int i = 1; i <= maxThreads; ++i)
+    {
+      customUI_->kvazaar_threads->addItem(QString::number(i));
+      customUI_->owf->addItem(QString::number(i));
+    }
+  }
+}
+
 
 void VideoSettings::restoreFormat()
 {
@@ -320,6 +428,21 @@ void VideoSettings::restoreFramerate()
     else {
       customUI_->framerate_box->setCurrentIndex(customUI_->framerate_box->count() - 1);
     }
+  }
+}
+
+
+void VideoSettings::restoreComboBoxValue(QString key, QComboBox* box,
+                                         QString defaultValue)
+{
+  int index = box->findText(settings_.value(key).toString());
+  if(index != -1)
+  {
+    box->setCurrentIndex(index);
+  }
+  else
+  {
+    customUI_->kvazaar_threads->setCurrentText(defaultValue);
   }
 }
 
