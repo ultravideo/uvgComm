@@ -760,7 +760,7 @@
        <item row="3" column="0">
         <widget class="QLabel" name="QP">
          <property name="text">
-          <string>Quantization Parameter</string>
+          <string>QP</string>
          </property>
         </widget>
        </item>
@@ -935,7 +935,7 @@
        <item row="17" column="0">
         <widget class="QLabel" name="label_28">
          <property name="text">
-          <string>Variance Adaptive Quantization</string>
+          <string>VAQ</string>
          </property>
         </widget>
        </item>
@@ -987,21 +987,33 @@
        </item>
        <item row="6" column="1">
         <widget class="QSlider" name="bitrate_slider">
+         <property name="maximum">
+          <number>10000000</number>
+         </property>
+         <property name="singleStep">
+          <number>50000</number>
+         </property>
+         <property name="pageStep">
+          <number>1000000</number>
+         </property>
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
          </property>
         </widget>
        </item>
        <item row="6" column="2">
-        <widget class="QLineEdit" name="bitrate">
+        <widget class="QLabel" name="bitrate">
          <property name="maximumSize">
           <size>
-           <width>72</width>
+           <width>96</width>
            <height>16777215</height>
           </size>
          </property>
          <property name="text">
           <string>disabled</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
          </property>
         </widget>
        </item>

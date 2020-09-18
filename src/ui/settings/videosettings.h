@@ -51,6 +51,8 @@ public slots:
   void initializeResolutions(QString format);
   void initializeFramerates(QString resolution);
 
+  void updateBitrate(int value);
+
 private:
   // QSettings -> GUI
   void restoreCustomSettings();

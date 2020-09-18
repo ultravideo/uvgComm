@@ -48,6 +48,9 @@ VideoSettings::VideoSettings(QWidget* parent,
   customUI_->custom_parameters->setContextMenuPolicy(Qt::CustomContextMenu);
   connect(customUI_->custom_parameters, &QWidget::customContextMenuRequested,
           this, &VideoSettings::showParameterContextMenu);
+
+  connect(customUI_->bitrate_slider, &QSlider::valueChanged,
+          this, &VideoSettings::updateBitrate);
 }
 
 
@@ -111,6 +114,7 @@ void VideoSettings::on_custom_close_clicked()
   hide();
   emit hidden();
 }
+
 
 void VideoSettings::on_add_parameter_clicked()
 {
@@ -236,7 +240,8 @@ void VideoSettings::restoreCustomSettings()
   bool validSettings = checkMissingValues(settings_);
   if(validSettings && checkVideoSettings())
   {
-    qDebug() << "Settings," << metaObject()->className() << ": Restoring previous Advanced settings from file:" << settings_.fileName();
+    qDebug() << "Settings," << metaObject()->className()
+             << ": Restoring previous Advanced settings from file:" << settings_.fileName();
 
     restoreComboBoxes();
 
@@ -296,7 +301,8 @@ void VideoSettings::restoreCustomSettings()
     customUI_->intra->setText          (settings_.value("video/Intra").toString());
     customUI_->vps->setText            (settings_.value("video/VPS").toString());
 
-    customUI_->bitrate_slider->setValue(settings_.value("video/bitrate").toInt());
+    QString bitrate = settings_.value("video/bitrate").toString();
+    customUI_->bitrate_slider->setValue(bitrate.toInt());
 
     restoreComboBoxValue("video/rcAlgorithm", customUI_->rc_algorithm, "lambda");
 
@@ -305,7 +311,6 @@ void VideoSettings::restoreCustomSettings()
     restoreCheckBox("video/lossless", customUI_->lossless_box, settings_);
 
     restoreComboBoxValue("video/mvConstraint", customUI_->mv_constraint, "none");
-
     restoreCheckBox("video/qpInCU", customUI_->qp_in_cu_box, settings_);
 
     // tools-tab
@@ -348,8 +353,6 @@ void VideoSettings::restoreComboBoxes()
 
   //if (customUI_->kvazaar_threads->)
 
-
-
   if (customUI_->kvazaar_threads->count() == 0 ||
       customUI_->owf->count() == 0)
   {
@@ -387,7 +390,6 @@ void VideoSettings::restoreFormat()
       else {
         customUI_->format_box->setCurrentIndex(0);
       }
-
     }
     else
     {
@@ -397,6 +399,7 @@ void VideoSettings::restoreFormat()
     initializeResolutions(customUI_->format_box->currentText());
   }
 }
+
 
 void VideoSettings::restoreResolution()
 {
@@ -531,7 +534,41 @@ bool VideoSettings::checkVideoSettings()
   return everythingPresent;
 }
 
+
 bool VideoSettings::checkAudioSettings()
 {
   return true;
+}
+
+
+void VideoSettings::updateBitrate(int value)
+{
+  int roundedValue = static_cast<int>((value + 500)/1000);
+  roundedValue *= 1000;
+
+  if (value == 0)
+  {
+    customUI_->bitrate->setText("disabled");
+  }
+  else
+  {
+    // not possible at the moment
+    if (roundedValue < 1000)
+    {
+      customUI_->bitrate->setText(QString::number(roundedValue) + " bit/s");
+    }
+    else if (1000 <= roundedValue && roundedValue < 1000000)
+    {
+      customUI_->bitrate->setText(QString::number(roundedValue/1000) + " kbit/s");
+    }
+    else
+    {
+      customUI_->bitrate->setText(QString::number(roundedValue/1000000) + "." +
+                                  QString::number((roundedValue%1000000)/1000) + " Mbit/s");
+    }
+
+
+
+    customUI_->bitrate_slider->setValue(roundedValue);
+  }
 }
