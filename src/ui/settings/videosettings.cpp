@@ -297,6 +297,17 @@ void VideoSettings::restoreCustomSettings()
       }
     }
 
+    if (customUI_->tiles_checkbox->checkState())
+    {
+      customUI_->tile_frame->setHidden(false);
+      customUI_->tile_split_label->setHidden(false);
+    }
+    else
+    {
+      customUI_->tile_frame->setHidden(true);
+      customUI_->tile_split_label->setHidden(true);
+    }
+
     restoreCheckBox("video/Slices", customUI_->slices, settings_);
 
     customUI_->openhevc_threads->setText        (settings_.value("video/OPENHEVC_threads").toString());
