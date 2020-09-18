@@ -53,6 +53,9 @@ public slots:
 
   void updateBitrate(int value);
 
+  void updateSliceBoxStatus();
+  void updateObaStatus(int index);
+
 private:
   // QSettings -> GUI
   void restoreCustomSettings();

@@ -9,7 +9,7 @@
 
 #include <QTableWidgetItem>
 #include <QThread>
-
+#include <QComboBox>
 
 #include <QDebug>
 
@@ -51,6 +51,15 @@ VideoSettings::VideoSettings(QWidget* parent,
 
   connect(customUI_->bitrate_slider, &QSlider::valueChanged,
           this, &VideoSettings::updateBitrate);
+
+  connect(customUI_->wpp, &QCheckBox::clicked,
+          this, &VideoSettings::updateSliceBoxStatus);
+
+  connect(customUI_->tiles_checkbox, &QCheckBox::clicked,
+          this, &VideoSettings::updateSliceBoxStatus);
+
+  connect(customUI_->rc_algorithm, QOverload<int>::of(&QComboBox::currentIndexChanged),
+          this, &VideoSettings::updateObaStatus);
 }
 
 
@@ -151,7 +160,6 @@ void VideoSettings::saveCustomSettings()
   QString tile_dimension =                 QString::number(customUI_->tile_x->value()) + "x" +
                                            QString::number(customUI_->tile_y->value());
   saveTextValue("video/tileDimensions",    tile_dimension, settings_);
-
 
   saveTextValue("video/OPENHEVC_threads",  customUI_->openhevc_threads->text(), settings_);
   saveTextValue("video/yuvThreads",        customUI_->yuv_threads->text(), settings_);
@@ -296,6 +304,8 @@ void VideoSettings::restoreCustomSettings()
     customUI_->yuv_threads->setValue(settings_.value("video/yuvThreads").toInt());
     customUI_->rgb32_threads->setValue(settings_.value("video/rgbThreads").toInt());
 
+    updateSliceBoxStatus();
+
     // structure-tab
     customUI_->qp->setValue            (settings_.value("video/QP").toInt());
     customUI_->intra->setText          (settings_.value("video/Intra").toString());
@@ -312,6 +322,8 @@ void VideoSettings::restoreCustomSettings()
 
     restoreComboBoxValue("video/mvConstraint", customUI_->mv_constraint, "none");
     restoreCheckBox("video/qpInCU", customUI_->qp_in_cu_box, settings_);
+
+    updateObaStatus(customUI_->rc_algorithm->currentIndex());
 
     // tools-tab
     restoreComboBoxValue("video/Preset", customUI_->preset, "ultrafast");
@@ -381,7 +393,8 @@ void VideoSettings::restoreFormat()
     {
       format = settings_.value("video/InputFormat").toString();
       int formatIndex = customUI_->format_box->findText(format);
-      qDebug() << "Settings," << metaObject()->className() << ": Trying to find format in camera:" << format << "Result index:" << formatIndex;
+      qDebug() << "Settings," << metaObject()->className() << ": Trying to find format in camera:"
+               << format << "Result index:" << formatIndex;
 
       if(formatIndex != -1)
       {
@@ -570,5 +583,40 @@ void VideoSettings::updateBitrate(int value)
 
 
     customUI_->bitrate_slider->setValue(roundedValue);
+  }
+}
+
+
+void VideoSettings::updateSliceBoxStatus()
+{
+  if (customUI_->wpp->checkState() ||
+      customUI_->tiles_checkbox->checkState())
+  {
+    customUI_->slices_label->setDisabled(false);
+    customUI_->slices->setDisabled(false);
+  }
+  else
+  {
+    customUI_->slices_label->setDisabled(true);
+    customUI_->slices->setDisabled(true);
+    customUI_->slices->setCheckState(Qt::CheckState::Unchecked);
+  }
+}
+
+
+void VideoSettings::updateObaStatus(int index)
+{
+  Q_UNUSED(index);
+
+  if (customUI_->rc_algorithm->currentText() == "oba")
+  {
+    customUI_->oba_clip_neighbours->setDisabled(false);
+    customUI_->oba_clip_neighbour_label->setDisabled(false);
+  }
+  else
+  {
+    customUI_->oba_clip_neighbour_label->setDisabled(true);
+    customUI_->oba_clip_neighbours->setDisabled(true);
+    customUI_->oba_clip_neighbours->setCheckState(Qt::CheckState::Unchecked);
   }
 }

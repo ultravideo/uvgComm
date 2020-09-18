@@ -310,7 +310,7 @@
         </widget>
        </item>
        <item row="8" column="0" colspan="2">
-        <widget class="QLabel" name="slice_label">
+        <widget class="QLabel" name="slices_label">
          <property name="enabled">
           <bool>false</bool>
          </property>
@@ -428,7 +428,7 @@
         </widget>
        </item>
        <item row="5" column="0" colspan="2">
-        <widget class="QLabel" name="WPP">
+        <widget class="QLabel" name="WPP_label">
          <property name="text">
           <string>WPP</string>
          </property>
@@ -786,7 +786,7 @@
         </widget>
        </item>
        <item row="9" column="0">
-        <widget class="QLabel" name="label_22">
+        <widget class="QLabel" name="oba_clip_neighbour_label">
          <property name="enabled">
           <bool>false</bool>
          </property>
