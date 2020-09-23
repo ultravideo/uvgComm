@@ -82,7 +82,7 @@ private:
 
   int currentDevice_;
 
-  Ui::VideoSettings *customUI_;
+  Ui::VideoSettings *videoSettingsUI_;
 
   std::shared_ptr<CameraInfo> cam_;
 
