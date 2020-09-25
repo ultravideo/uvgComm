@@ -982,6 +982,16 @@
          </item>
          <item>
           <property name="text">
+           <string>frame</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>tile</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
            <string>frametile</string>
           </property>
          </item>
@@ -1279,7 +1289,7 @@
        <item row="5" column="0">
         <widget class="QLabel" name="label_14">
          <property name="text">
-          <string>You can use this to further modify the preset to your needs.</string>
+          <string>Enable/disable individual coding tools.</string>
          </property>
         </widget>
        </item>

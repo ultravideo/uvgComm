@@ -235,7 +235,8 @@ void VideoSettings::saveCameraCapabilities(int deviceIndex)
 
   settings_.setValue("video/InputFormat",          format);
 
-  qDebug() << "Settings," << metaObject()->className() << ": Recorded the following video settings: Resolution:"
+  qDebug() << "Settings," << metaObject()->className()
+           << ": Recorded the following video settings: Resolution:"
            << res.width() - res.width()%8 << "x" << res.height() - res.height()%8
            << "resolution index:" << resolutionIndex << "format" << format;
 }
@@ -249,7 +250,8 @@ void VideoSettings::restoreCustomSettings()
   if(validSettings && checkVideoSettings())
   {
     qDebug() << "Settings," << metaObject()->className()
-             << ": Restoring previous Advanced settings from file:" << settings_.fileName();
+             << ": Restoring previous Advanced settings from file:"
+             << settings_.fileName();
 
     restoreComboBoxes();
 
@@ -333,6 +335,8 @@ void VideoSettings::restoreCustomSettings()
 
     restoreComboBoxValue("video/mvConstraint", videoSettingsUI_->mv_constraint, "none");
     restoreCheckBox("video/qpInCU", videoSettingsUI_->qp_in_cu_box, settings_);
+
+    videoSettingsUI_->vaq->setCurrentIndex( settings_.value("video/vaq").toInt());
 
     updateObaStatus(videoSettingsUI_->rc_algorithm->currentIndex());
 
