@@ -18,7 +18,8 @@ AECProcessor::AECProcessor(QAudioFormat format):
   samplesPerFrame_(format.sampleRate()/AUDIO_FRAMES_PER_SECOND),
   preprocessor_(nullptr),
   echo_state_(nullptr),
-  echoSize_(0)
+  echoSize_(0),
+  echoSample_(nullptr)
 {
   init();
 }
@@ -49,6 +50,13 @@ void AECProcessor::init()
   else
   {
     echo_state_ = speex_echo_state_init(samplesPerFrame_, echoFilterLength);
+  }
+
+  if (echoSample_ != nullptr)
+  {
+    delete echoSample_;
+    echoSample_ = nullptr;
+    echoSize_ = 0;
   }
 
   echoSize_ = samplesPerFrame_*format_.bytesPerFrame();
@@ -119,11 +127,14 @@ std::unique_ptr<uchar[]> AECProcessor::processInputFrame(std::unique_ptr<uchar[]
 
   echoMutex_.lock();
 
-  // do not know if this is allowed, but it saves a copy
-  int16_t* pcmOutput = (int16_t*)input.get();
-  speex_echo_cancellation(echo_state_,
-                          (int16_t*)input.get(),
-                          (int16_t*)echoSample_.get(), pcmOutput);
+  if (echoSample_ != nullptr)
+  {
+    // do not know if this is allowed, but it saves a copy
+    int16_t* pcmOutput = (int16_t*)input.get();
+    speex_echo_cancellation(echo_state_,
+                            (int16_t*)input.get(),
+                            (int16_t*)echoSample_, pcmOutput);
+  }
 
   echoMutex_.unlock();
 
@@ -138,7 +149,7 @@ std::unique_ptr<uchar[]> AECProcessor::processInputFrame(std::unique_ptr<uchar[]
 }
 
 
-void AECProcessor::processEchoFrame(std::shared_ptr<uchar[]> echo,
+void AECProcessor::processEchoFrame(uint8_t* echo,
                                     uint32_t dataSize)
 {
   // TODO: This should prepare for different size of frames in case since they
@@ -150,16 +161,30 @@ void AECProcessor::processEchoFrame(std::shared_ptr<uchar[]> echo,
   }
 
   echoMutex_.lock();
+
+  if (echoSample_ == nullptr || echoSize_ != dataSize)
+  {
+    if (echoSample_ != nullptr)
+    {
+      delete echoSample_;
+      echoSample_ = nullptr;
+      echoSize_ = 0;
+    }
+
+    echoSize_ = dataSize;
+    echoSample_ = createEmptyFrame(echoSize_);
+  }
   echoSize_ = dataSize;
-  echoSample_ = std::move(echo);
+
+  // I don't like this memcpy, but visual studio had some problems with smart pointers.
+  memcpy(echoSample_, echo, dataSize);
   echoMutex_.unlock();
 }
 
 
-std::shared_ptr<uchar[]> AECProcessor::createEmptyFrame(uint32_t size)
+uint8_t* AECProcessor::createEmptyFrame(uint32_t size)
 {
-  std::shared_ptr<uchar[]> outputSample_
-      = std::shared_ptr<uint8_t[]>(new uint8_t[size]);
-  memset(outputSample_.get(), 0, size);
-  return outputSample_;
+  uint8_t* emptyFrame  = new uint8_t[size];
+  memset(emptyFrame, 0, size);
+  return emptyFrame;
 }

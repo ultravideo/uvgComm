@@ -26,10 +26,10 @@ public:
   std::unique_ptr<uchar[]> processInputFrame(std::unique_ptr<uchar[]> input,
                                              uint32_t dataSize);
 
-  void processEchoFrame(std::shared_ptr<uchar[]> echo,
+  void processEchoFrame(uint8_t *echo,
                         uint32_t dataSize);
 
-  std::shared_ptr<uchar[]> createEmptyFrame(uint32_t size);
+  uint8_t* createEmptyFrame(uint32_t size);
 
 private:
 
@@ -41,5 +41,5 @@ private:
 
   QMutex echoMutex_;
   uint32_t echoSize_;
-  std::shared_ptr<uchar[]> echoSample_;
+  uint8_t* echoSample_;
 };

@@ -19,7 +19,7 @@ AudioOutputDevice::AudioOutputDevice(StatisticsInterface *stats):
   output_(nullptr),
   format_(),
   sampleMutex_(),
-  outputSample_(),
+  outputSample_(nullptr),
   sampleSize_(0),
   inputs_(0),
   mixedSample_(false),
@@ -28,7 +28,14 @@ AudioOutputDevice::AudioOutputDevice(StatisticsInterface *stats):
 
 
 AudioOutputDevice::~AudioOutputDevice()
-{}
+{
+  if (outputSample_ != nullptr)
+  {
+    delete outputSample_;
+    outputSample_ = nullptr;
+    sampleSize_ = 0;
+  }
+}
 
 
 void AudioOutputDevice::init(QAudioFormat format,
@@ -63,6 +70,12 @@ void AudioOutputDevice::createAudioOutput()
     delete audioOutput_;
   }
   audioOutput_ = new QAudioOutput(device_, format_, this);
+
+  if (outputSample_ != nullptr)
+  {
+    delete outputSample_;
+    sampleSize_ = 0;
+  }
 
   sampleSize_ = format_.sampleRate()*format_.bytesPerFrame()/AUDIO_FRAMES_PER_SECOND;
   outputSample_ = aec_->createEmptyFrame(sampleSize_);
@@ -130,15 +143,19 @@ qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
     // start playing silence if we played last frame three times.
     if (outputRepeats_ == 3)
     {
+      if (outputSample_ != nullptr)
+      {
+        delete outputSample_;
+      }
+
       outputSample_ = aec_->createEmptyFrame(sampleSize_);
     }
 
     // send sample to AEC
-    std::shared_ptr<uchar[]> echoSample = outputSample_;
-    aec_->processEchoFrame(echoSample, sampleSize_);
+    aec_->processEchoFrame(outputSample_, sampleSize_);
 
     // send sample to speakers
-    memcpy(data, outputSample_.get(), sampleSize_);
+    memcpy(data, outputSample_, sampleSize_);
     read = sampleSize_;
     sampleMutex_.unlock();
   }
@@ -197,8 +214,15 @@ void AudioOutputDevice::takeInput(std::unique_ptr<Data> input, uint32_t sessionI
     sampleMutex_.lock();
     mixedSample_ = true;
     outputRepeats_ = 0;
-    sampleSize_ = dataLeft;
-    outputSample_ = std::move(outputFrame);
+
+    if (sampleSize_ != dataLeft)
+    {
+      outputSample_ = aec_->createEmptyFrame(dataLeft);
+      sampleSize_ = dataLeft;
+    }
+
+    // I don't like this memcpy, but visual studio had problems with smart pointers.
+    memcpy(outputSample_, outputFrame.get(), sampleSize_);
     sampleMutex_.unlock();
   }
 }

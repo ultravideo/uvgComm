@@ -64,7 +64,7 @@ private:
   QMutex sampleMutex_;
   // this will have the next played output audio. The same frame is played
   // if no new frame has been received.
-  std::shared_ptr<uchar[]> outputSample_;
+  uint8_t* outputSample_;
   uint32_t sampleSize_;
 
   unsigned int inputs_;
