@@ -32,6 +32,7 @@ FilterGraph::FilterGraph():
   selfView_(nullptr),
   stats_(nullptr),
   format_(),
+  videoFormat_(""),
   quitting_(false),
   audioOutput_(nullptr)
 {
@@ -62,7 +63,9 @@ void FilterGraph::updateSettings()
 {
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
   // if the video format has changed so that we need different conversions
-  if(videoFormat_ != settings.value("video/InputFormat").toString())
+
+  QString wantedVideoFormat = settings.value("video/InputFormat").toString();
+  if(videoFormat_ != wantedVideoFormat)
   {
     qDebug() << "Settings, FilterGraph :" << "The video format has been changed from " << videoFormat_
              << "to" << settings.value("video/InputFormat").toString() << "Video send graph has to be reconstructed.";
@@ -152,6 +155,9 @@ void FilterGraph::initSelfView(VideoInterface *selfView)
     printDebug(DEBUG_ERROR, "FilterGraph", "Failed to add camera. Does it have supported formats.");
     return; // TODO: return false that we failed so user can fix camera selection
   }
+
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+  videoFormat_ = settings.value("video/InputFormat").toString();
 
   if(screenShareGraph_.size() == 0)
   {

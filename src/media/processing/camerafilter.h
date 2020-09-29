@@ -17,10 +17,14 @@ public:
   // setup camera device
   virtual bool init();
 
+  void uninit();
+
   virtual void start();
 
   // stop camera device and this filter.
   virtual void stop();
+
+  virtual void updateSettings();
 
 private slots:
   // qcamera calls this when frame available
@@ -54,4 +58,10 @@ private:
 
   QMutex frameMutex_;
   std::deque<QVideoFrame> frames_;
+
+  QString currentDeviceName_;
+  int currentDeviceID_;
+  QString currentInputFormat_;
+  int currentResolutionID_;
+  int currentFramerateID_;
 };
