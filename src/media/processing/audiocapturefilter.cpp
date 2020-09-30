@@ -139,7 +139,6 @@ void AudioCaptureFilter::readMore()
                      "Amount"}, QString::number(len));
     }
 
-
     if (len > frameSize_)
     {
       len = frameSize_;
@@ -170,12 +169,15 @@ void AudioCaptureFilter::readMore()
     }
     else if (readData == 0)
     {
-      printNormal(this, "No data given from microphone. Maybe the stream ended?");
+      printNormal(this, "No data given from microphone. Maybe the stream ended?",
+                  {"Bytes ready"},{QString::number(audioInput_->bytesReady())});
+      return;
     }
     else if (readData == -1)
     {
       printWarning(this, "Error reading data from mic IODevice!",
       {"Amount"}, {QString::number(len)});
+      return;
     }
   }
 }
