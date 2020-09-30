@@ -137,12 +137,6 @@ bool KvazaarFilter::init()
       {
         config_->rc_algorithm = KVZ_LAMBDA;
       }
-      else if (rcAlgo == "DOI")
-      {
-        printWarning(this, "DOI seems to be missing from kvazaar API");
-        // TODO: Kvazaar.h is missing DOI
-        config_->rc_algorithm = KVZ_NO_RC;
-      }
       else if (rcAlgo == "oba")
       {
         config_->rc_algorithm = KVZ_OBA;

@@ -721,11 +721,6 @@
          </item>
          <item>
           <property name="text">
-           <string>DOI</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
            <string>oba</string>
           </property>
          </item>
