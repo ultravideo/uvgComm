@@ -34,7 +34,7 @@ void Settings::init()
   // Checks that settings values are correct for the program to start. Also sets GUI.
   getSettings(false);
 
-  int videoID = getDeviceID(basicUI_->videoDevice, "video/DeviceID", "video/Device");
+  int videoID = getDeviceID(basicUI_->videoDevice_combo, "video/DeviceID", "video/Device");
 
   videoSettings_.init(videoID);
   sipSettings_.init();
@@ -51,9 +51,9 @@ void Settings::init()
   QObject::connect(&sipSettings_, &SIPSettings::hidden,
                    this, &Settings::show);
 
-  QObject::connect(basicUI_->serverAddress, &QLineEdit::textChanged,
+  QObject::connect(basicUI_->serverAddress_edit, &QLineEdit::textChanged,
                    this, &Settings::changedSIPText);
-  QObject::connect(basicUI_->username, &QLineEdit::textChanged,
+  QObject::connect(basicUI_->username_edit, &QLineEdit::textChanged,
                    this, &Settings::changedSIPText);
 
 
@@ -64,9 +64,9 @@ void Settings::init()
 void Settings::show()
 {
   // initialize everytime in case they have changed
-  initDeviceSelector(basicUI_->videoDevice, "video/DeviceID", "video/Device", cam_);
-  initDeviceSelector(basicUI_->audioDevice, "audio/DeviceID", "audio/Device", mic_);
-  initDeviceSelector(basicUI_->screenDevice, "user/ScreenID", "user/Screen", screen_);
+  initDeviceSelector(basicUI_->videoDevice_combo, "video/DeviceID", "video/Device", cam_);
+  initDeviceSelector(basicUI_->audioDevice_combo, "audio/DeviceID", "audio/Device", mic_);
+  initDeviceSelector(basicUI_->screenDevice_combo, "user/ScreenID", "user/Screen", screen_);
 
   QWidget::show();
 }
@@ -117,23 +117,23 @@ void Settings::saveSettings()
 
   // Local settings
   saveTextValue("local/Name", basicUI_->name_edit->text(), settings_);
-  saveTextValue("local/Username", basicUI_->username->text(), settings_);
-  saveTextValue("sip/ServerAddress", basicUI_->serverAddress->text(), settings_);
+  saveTextValue("local/Username", basicUI_->username_edit->text(), settings_);
+  saveTextValue("sip/ServerAddress", basicUI_->serverAddress_edit->text(), settings_);
 
-  saveCheckBox("sip/AutoConnect", basicUI_->autoConnect, settings_);
+  saveCheckBox("sip/AutoConnect", basicUI_->auto_connect_box, settings_);
 
-  saveDevice(basicUI_->videoDevice, "video/DeviceID", "video/Device", true);
-  saveDevice(basicUI_->audioDevice, "audio/DeviceID", "audio/Device", false);
-  saveDevice(basicUI_->screenDevice, "user/ScreenID", "user/Screen", false);
+  saveDevice(basicUI_->videoDevice_combo, "video/DeviceID", "video/Device", true);
+  saveDevice(basicUI_->audioDevice_combo, "audio/DeviceID", "audio/Device", false);
+  saveDevice(basicUI_->screenDevice_combo, "user/ScreenID", "user/Screen", false);
 }
 
 
 // restores recorded settings
 void Settings::getSettings(bool changedDevice)
 {
-  initDeviceSelector(basicUI_->videoDevice, "video/DeviceID", "video/Device", cam_);
-  initDeviceSelector(basicUI_->audioDevice, "audio/DeviceID", "audio/Device", mic_);
-  initDeviceSelector(basicUI_->screenDevice, "user/ScreenID", "user/Screen", screen_);
+  initDeviceSelector(basicUI_->videoDevice_combo, "video/DeviceID", "video/Device", cam_);
+  initDeviceSelector(basicUI_->audioDevice_combo, "audio/DeviceID", "audio/Device", mic_);
+  initDeviceSelector(basicUI_->screenDevice_combo, "user/ScreenID", "user/Screen", screen_);
 
   //get values from QSettings
   if(checkMissingValues() && checkUserSettings())
@@ -141,48 +141,48 @@ void Settings::getSettings(bool changedDevice)
     printNormal(this, "Loading settings from file", {"File"}, {settings_.fileName()});
 
     basicUI_->name_edit->setText      (settings_.value("local/Name").toString());
-    basicUI_->username->setText  (settings_.value("local/Username").toString());
+    basicUI_->username_edit->setText  (settings_.value("local/Username").toString());
 
-    basicUI_->serverAddress->setText(settings_.value("sip/ServerAddress").toString());
+    basicUI_->serverAddress_edit->setText(settings_.value("sip/ServerAddress").toString());
 
-    restoreCheckBox("sip/AutoConnect", basicUI_->autoConnect, settings_);
+    restoreCheckBox("sip/AutoConnect", basicUI_->auto_connect_box, settings_);
 
     // updates the sip text label
     changedSIPText("");
 
     // set index for camera
-    int videoIndex = getDeviceID(basicUI_->videoDevice, "video/DeviceID", "video/Device");
+    int videoIndex = getDeviceID(basicUI_->videoDevice_combo, "video/DeviceID", "video/Device");
     if(changedDevice)
     {
       videoSettings_.changedDevice(videoIndex);
     }
-    basicUI_->videoDevice->setCurrentIndex(videoIndex);
+    basicUI_->videoDevice_combo->setCurrentIndex(videoIndex);
 
     // set correct entry for microphone selector
-    int audioIndex = getDeviceID(basicUI_->audioDevice, "audio/DeviceID", "audio/Device");
-    if (basicUI_->audioDevice->count() != 0)
+    int audioIndex = getDeviceID(basicUI_->audioDevice_combo, "audio/DeviceID", "audio/Device");
+    if (basicUI_->audioDevice_combo->count() != 0)
     {
       if (audioIndex != -1)
       {
-        basicUI_->audioDevice->setCurrentIndex(audioIndex);
+        basicUI_->audioDevice_combo->setCurrentIndex(audioIndex);
       }
       else
       {
-        basicUI_->audioDevice->setCurrentIndex(0);
+        basicUI_->audioDevice_combo->setCurrentIndex(0);
       }
     }
 
     // set index for screen
-    int screenIndex = getDeviceID(basicUI_->screenDevice, "user/ScreenID", "user/Screen");
-    if (basicUI_->screenDevice->count() != 0)
+    int screenIndex = getDeviceID(basicUI_->screenDevice_combo, "user/ScreenID", "user/Screen");
+    if (basicUI_->screenDevice_combo->count() != 0)
     {
       if (screenIndex != -1)
       {
-        basicUI_->screenDevice->setCurrentIndex(screenIndex);
+        basicUI_->screenDevice_combo->setCurrentIndex(screenIndex);
       }
       else
       {
-        basicUI_->screenDevice->setCurrentIndex(0);
+        basicUI_->screenDevice_combo->setCurrentIndex(0);
       }
     }
   }
@@ -199,13 +199,13 @@ void Settings::resetFaultySettings()
 
   // record GUI settings in hope that they are correct ( is case by default )
   saveSettings();
-  videoSettings_.resetSettings(getDeviceID(basicUI_->videoDevice, "video/DeviceID", "video/Device"));
+  videoSettings_.resetSettings(getDeviceID(basicUI_->videoDevice_combo, "video/DeviceID", "video/Device"));
 
   // we set the connecting to true at this point because we want two things:
   // 1) that Kvazzup doesn't connect to any server without user permission
   // 2) that connecting to server is default since it is the easiest way to use Kvazzup
   // These two conditions can only be achieved by modifying UI after settings have been saved
-  basicUI_->autoConnect->setChecked(true);
+  basicUI_->auto_connect_box->setChecked(true);
   
   // Show resetted settings to user so she can fix them manually
   show();
@@ -294,7 +294,7 @@ void Settings::saveDevice(QComboBox* deviceSelector, QString settingsID, QString
         videoSettings_.changedDevice(currentIndex);
       }
     }
-    else if(basicUI_->videoDevice->currentIndex() != settings_.value(settingsID))
+    else if(basicUI_->videoDevice_combo->currentIndex() != settings_.value(settingsID))
     {
       if (video)
       {
@@ -311,8 +311,8 @@ void Settings::saveDevice(QComboBox* deviceSelector, QString settingsID, QString
 void Settings::changedSIPText(const QString &text)
 {
   Q_UNUSED(text);
-  basicUI_->sipAddress->setText("sip:" + basicUI_->username->text()
-                                + "@" + basicUI_->serverAddress->text());
+  basicUI_->sipAddress->setText("sip:" + basicUI_->username_edit->text()
+                                + "@" + basicUI_->serverAddress_edit->text());
 }
 
 
