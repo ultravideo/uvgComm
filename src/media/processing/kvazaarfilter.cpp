@@ -29,6 +29,8 @@ void KvazaarFilter::updateSettings()
 {
   qDebug() << "Updating kvazaar settings";
   close();
+  encodingFrames_.clear();
+
   if(init())
   {
     qDebug() << getName() << "Kvazaar resolution change successful";
@@ -352,10 +354,6 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
   std::unique_ptr<Data> encodedFrame = std::move(encodingFrames_.back());
   encodingFrames_.pop_back();
 
-  uint32_t delay = QDateTime::currentMSecsSinceEpoch() - encodedFrame->presentationTime;
-  getStats()->sendDelay("video", delay);
-  getStats()->addEncodedPacket("video", len_out);
-
   std::unique_ptr<uchar[]> hevc_frame(new uchar[len_out]);
   uint8_t* writer = hevc_frame.get();
   uint32_t dataWritten = 0;
@@ -367,8 +365,6 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
        && dataWritten != 0 && config_->slices != KVZ_SLICES_NONE)
     {
       // send previous packet if this is not the first
-
-      // TODO: put delayes into deque, and set timestamp accordingly to get more accurate latency.
       std::unique_ptr<Data> slice(shallowDataCopy(encodedFrame.get()));
 
       sendEncodedFrame(std::move(slice), std::move(hevc_frame), dataWritten);
@@ -384,6 +380,10 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
   }
   api_->chunk_free(data_out);
   api_->picture_free(recon_pic);
+
+  uint32_t delay = QDateTime::currentMSecsSinceEpoch() - encodedFrame->presentationTime;
+  getStats()->sendDelay("video", delay);
+  getStats()->addEncodedPacket("video", len_out);
 
   // send last packet reusing input structure
   sendEncodedFrame(std::move(encodedFrame), std::move(hevc_frame), dataWritten);
