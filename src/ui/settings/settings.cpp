@@ -57,6 +57,25 @@ void Settings::init()
                    this, &Settings::changedSIPText);
 
 
+  QObject::connect(basicUI_->serverAddress_edit, &QLineEdit::textChanged,
+                   this, &Settings::uiChangedString);
+
+  QObject::connect(basicUI_->name_edit, &QLineEdit::textChanged,
+                   this, &Settings::uiChangedString);
+
+  QObject::connect(basicUI_->username_edit, &QLineEdit::textChanged,
+                   this, &Settings::uiChangedString);
+
+  QObject::connect(basicUI_->auto_connect_box, &QCheckBox::stateChanged,
+                   this, &Settings::uiChangedBool);
+
+  QObject::connect(basicUI_->videoDevice_combo, &QComboBox::currentTextChanged,
+                   this, &Settings::uiChangedString);
+  QObject::connect(basicUI_->audioDevice_combo, &QComboBox::currentTextChanged,
+                   this, &Settings::uiChangedString);
+  QObject::connect(basicUI_->screenDevice_combo, &QComboBox::currentTextChanged,
+                   this, &Settings::uiChangedString);
+
   // TODO: Also emit the position of closed window and move this setting there
 }
 
@@ -69,6 +88,21 @@ void Settings::show()
   initDeviceSelector(basicUI_->screenDevice_combo, "user/ScreenID", "user/Screen", screen_);
 
   QWidget::show();
+  basicUI_->save->hide();
+}
+
+
+void Settings::uiChangedString(QString text)
+{
+  Q_UNUSED(text);
+  basicUI_->save->show();
+}
+
+
+void Settings::uiChangedBool(bool state)
+{
+  Q_UNUSED(state);
+  basicUI_->save->show();
 }
 
 
@@ -77,7 +111,8 @@ void Settings::on_save_clicked()
   printNormal(this, "Saving settings");
   // The UI values are saved to settings.
   saveSettings();
-  emit settingsChanged(); // TODO: check have the settings actually been changed
+  emit settingsChanged();
+  basicUI_->save->hide();
 }
 
 
