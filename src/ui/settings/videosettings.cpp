@@ -67,7 +67,7 @@ void VideoSettings::init(int deviceID)
 {
   currentDevice_ = deviceID;
 
-  restoreCustomSettings();
+  restoreSettings();
 }
 
 
@@ -98,28 +98,28 @@ void VideoSettings::changedDevice(uint16_t deviceIndex)
 void VideoSettings::resetSettings(int deviceID)
 {
   qDebug() << "Settings," << metaObject()->className()
-           << "Resetting custom settings from UI";
+           << "Resetting video settings from UI";
   currentDevice_ = deviceID;
   initializeFormat();
-  saveCustomSettings();
+  saveSettings();
 }
 
 
-void VideoSettings::on_custom_ok_clicked()
+void VideoSettings::on_video_ok_clicked()
 {
   qDebug() << "Settings," << metaObject()->className() << ": Saving advanced settings";
-  saveCustomSettings();
-  emit customSettingsChanged();
+  saveSettings();
+  emit settingsChanged();
   //emit hidden();
   //hide();
 }
 
 
-void VideoSettings::on_custom_close_clicked()
+void VideoSettings::on_video_close_clicked()
 {
   qDebug() << "Settings," << metaObject()->className()
-           << ": Cancelled modifying custom settings. Getting settings from system";
-  restoreCustomSettings();
+           << ": Cancelled modifying video settings. Getting settings from system";
+  restoreSettings();
   hide();
   emit hidden();
 }
@@ -141,7 +141,7 @@ void VideoSettings::on_add_parameter_clicked()
   addFieldsToTable(list, videoSettingsUI_->custom_parameters);
 }
 
-void VideoSettings::saveCustomSettings()
+void VideoSettings::saveSettings()
 {
   qDebug() << "Settings," << metaObject()->className() << ": Saving advanced Settings";
 
@@ -188,8 +188,6 @@ void VideoSettings::saveCustomSettings()
   // Other-tab
   saveCheckBox("video/opengl",             videoSettingsUI_->opengl, settings_);
   saveCheckBox("video/flipViews",          videoSettingsUI_->flip, settings_);
-
-  //settings_.setValue("audio/Channels",         QString::number(customUI_->channels->value()));
 }
 
 
@@ -242,12 +240,12 @@ void VideoSettings::saveCameraCapabilities(int deviceIndex)
 }
 
 
-void VideoSettings::restoreCustomSettings()
+void VideoSettings::restoreSettings()
 {
   initializeFormat();
 
   bool validSettings = checkMissingValues(settings_);
-  if(validSettings && checkVideoSettings())
+  if(validSettings && checkSettings())
   {
     qDebug() << "Settings," << metaObject()->className()
              << ": Restoring previous Advanced settings from file:"
@@ -354,17 +352,6 @@ void VideoSettings::restoreCustomSettings()
   {
     resetSettings(currentDevice_);
   }
-
-  if(validSettings && checkAudioSettings())
-  {
-    // TODO: implement audio settings.
-    //customUI_->channels->setValue(settings_.value("audio/Channels").toInt());
-  }
-  else
-  {
-    // TODO: reset only audio settings.
-    resetSettings(currentDevice_);
-  }
 }
 
 
@@ -377,8 +364,6 @@ void VideoSettings::restoreComboBoxes()
   int maxThreads = QThread::idealThreadCount();
 
   printNormal(this, "Max Threads", "erere", QString::number(maxThreads));
-
-  //if (customUI_->kvazaar_threads->)
 
   if (videoSettingsUI_->kvazaar_threads->count() == 0 ||
       videoSettingsUI_->owf->count() == 0)
@@ -546,7 +531,7 @@ void VideoSettings::initializeFramerates(QString resolution)
 }
 
 
-bool VideoSettings::checkVideoSettings()
+bool VideoSettings::checkSettings()
 {
   bool everythingPresent = checkMissingValues(settings_);
 
@@ -555,19 +540,12 @@ bool VideoSettings::checkVideoSettings()
     if(!settings_.contains(need))
     {
       qDebug() << "Settings," << metaObject()->className()
-               << "Missing setting for:" << need << "Resetting custom settings";
+               << "Missing setting for:" << need << "Resetting video settings";
       everythingPresent = false;
     }
   }
   return everythingPresent;
 }
-
-
-bool VideoSettings::checkAudioSettings()
-{
-  return true;
-}
-
 
 void VideoSettings::updateBitrate(int value)
 {

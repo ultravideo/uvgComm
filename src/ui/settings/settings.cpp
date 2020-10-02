@@ -42,7 +42,7 @@ void Settings::init()
   //QObject::connect(basicUI_->save, &QPushButton::clicked, this, &Settings::on_ok_clicked);
   //QObject::connect(basicUI_->close, &QPushButton::clicked, this, &Settings::on_cancel_clicked);
 
-  QObject::connect(&videoSettings_, &VideoSettings::customSettingsChanged,
+  QObject::connect(&videoSettings_, &VideoSettings::settingsChanged,
                    this, &Settings::settingsChanged);
   QObject::connect(&videoSettings_, &VideoSettings::hidden, this, &Settings::show);
 
@@ -129,7 +129,7 @@ void Settings::on_close_clicked()
 }
 
 
-void Settings::on_advanced_settings_button_clicked()
+void Settings::on_sip_settings_button_clicked()
 {
   saveSettings();
   hide();
@@ -137,7 +137,7 @@ void Settings::on_advanced_settings_button_clicked()
 }
 
 
-void Settings::on_custom_settings_button_clicked()
+void Settings::on_video_settings_button_clicked()
 {
   saveSettings();
   hide();

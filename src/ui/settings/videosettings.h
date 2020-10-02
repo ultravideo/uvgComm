@@ -25,7 +25,7 @@ class VideoSettings  : public QDialog
 public:
   VideoSettings(QWidget* parent, std::shared_ptr<CameraInfo> info);
 
-  // initializes the custom view with values from settings.
+  // initializes the view with values from settings.
   void init(int deviceID);
 
   void changedDevice(uint16_t deviceIndex);
@@ -33,7 +33,7 @@ public:
 
 signals:
 
-  void customSettingsChanged();
+  void settingsChanged();
   void hidden();
 
 public slots:
@@ -43,8 +43,8 @@ public slots:
   void deleteListParameter();
 
   // button slots, called automatically by Qt
-  void on_custom_ok_clicked();
-  void on_custom_close_clicked();
+  void on_video_ok_clicked();
+  void on_video_close_clicked();
 
   void on_add_parameter_clicked();
 
@@ -58,7 +58,7 @@ public slots:
 
 private:
   // QSettings -> GUI
-  void restoreCustomSettings();
+  void restoreSettings();
 
   void restoreComboBoxes();
   void restoreFormat();
@@ -69,16 +69,14 @@ private:
                             QString defaultValue);
 
   // GUI -> QSettings
-  void saveCustomSettings();
+  void saveSettings();
 
   void saveCameraCapabilities(int deviceIndex);
 
   // initializes the UI with correct formats and resolutions
   void initializeFormat();
 
-  bool checkVideoSettings();
-  bool checkAudioSettings();
-
+  bool checkSettings();
 
   int currentDevice_;
 

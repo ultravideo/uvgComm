@@ -62,8 +62,8 @@ public slots:
   // button slots, called automatically by Qt
   void on_save_clicked();
   void on_close_clicked();
-  void on_advanced_settings_button_clicked();
-  void on_custom_settings_button_clicked();
+  void on_sip_settings_button_clicked();
+  void on_video_settings_button_clicked();
 
   void changedSIPText(const QString &text);
 

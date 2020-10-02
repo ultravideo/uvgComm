@@ -31,7 +31,7 @@
     </spacer>
    </item>
    <item row="2" column="2">
-    <widget class="QPushButton" name="custom_close">
+    <widget class="QPushButton" name="video_close">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
        <horstretch>0</horstretch>
@@ -56,7 +56,7 @@
     </widget>
    </item>
    <item row="2" column="1">
-    <widget class="QPushButton" name="custom_ok">
+    <widget class="QPushButton" name="video_ok">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
        <horstretch>0</horstretch>
@@ -1070,6 +1070,9 @@
            <height>16777215</height>
           </size>
          </property>
+         <property name="toolTip">
+          <string>Select a collection of compression tools with different trade-off between complexity and compression efficiency</string>
+         </property>
          <item>
           <property name="text">
            <string>ultrafast</string>
@@ -1152,6 +1155,73 @@
        </item>
        <item row="7" column="0" colspan="2">
         <widget class="QTableWidget" name="custom_parameters">
+         <property name="toolTip">
+          <string notr="true">Individual compression tools in Kvazaar
+
+(no-)deblock &lt;beta:tc&gt; : Deblocking filter
+                                   - beta: Between -6 and 6
+                                   - tc: Between -6 and 6
+sao &lt;string&gt;         : Sample Adaptive Offset
+                                   - off: SAO disabled
+                                   - band: Band offset only
+                                   - edge: Edge offset only
+                                   - full: Full SAO
+(no-)rdoq            : Rate-distortion optimized quantization 
+(no-)rdoq-skip       : Skip RDOQ for 4x4 blocks
+(no-)signhide        : Sign hiding 
+(no-)smp             : Symmetric motion partition
+(no-)amp             : Asymmetric motion partition
+rd &lt;integer&gt;         : Intra mode search complexity
+                                   - 0: Skip intra if inter is good enough.
+                                   - 1: Rough intra mode search with SATD.
+                                   - 2: Refine intra mode search with SSE.
+                                   - 3: Try all intra modes and enable intra chroma mode search.
+(no-)mv-rdo          : Rate-distortion optimized motion vector costs
+(no-)zero-coeff-rdo  : If a CU is set inter, check if forcing zero residual improves the RD cost
+(no-)full-intra-search : Try all intra modes during rough search
+(no-)transform-skip  : Try transform skip
+me &lt;string&gt;          : Integer motion estimation algorithm
+                                   - hexbs: Hexagon Based Search
+                                   - tz:    Test Zone Search
+                                   - full:  Full Search
+                                   - full8, full16, full32, full64
+                                   - dia:   Diamond Search
+me-steps &lt;integer&gt;   : Motion estimation search step limit. Only affects 'hexbs' and 'dia'.
+subme &lt;integer&gt;      : Fractional pixel motion estimation level
+                                   - 0: Integer motion estimation only
+                                   - 1: + 1/2-pixel horizontal and vertical
+                                   - 2: + 1/2-pixel diagonal
+                                   - 3: + 1/4-pixel horizontal and vertical
+                                   - 4: + 1/4-pixel diagonal
+pu-depth-inter &lt;int&gt;-&lt;int&gt; : Inter prediction units sizes 
+                                   - 0, 1, 2, 3: from 64x64 to 8x8
+                                   - Accepts a list of values separated by ','
+                                     for setting separate depths per GOP layer
+                                     (values can be omitted to use the first value for the respective layer).
+pu-depth-intra &lt;int&gt;-&lt;int&gt; : Intra prediction units sizes
+                                   - 0, 1, 2, 3, 4: from 64x64 to 4x4
+                                   - Accepts a list of values separated by ',' for setting separate depths per GOP layer
+                                     (values can be omitted to use the first value for the respective layer).
+ml-pu-depth-intra    : Predict the pu-depth-intra using machine
+                                learning trees, overrides the --pu-depth-intra parameter.
+tr-depth-intra &lt;int&gt; : Transform split depth for intra blocks
+(no-)bipred          : Bi-prediction
+cu-split-termination &lt;string&gt; : CU split search termination
+                                   - off: Don't terminate early.
+                                   - zero: Terminate when residual is zero.
+me-early-termination &lt;string&gt; : Motion estimation termination
+                                   - off: Don't terminate early.
+                                   - on: Terminate early.
+                                   - sensitive: Terminate even earlier.
+fast-residual-cost &lt;int&gt; : Skip CABAC cost for residual coefficients when QP is below the limit. 
+(no-)intra-rdo-et    : Check intra modes in rdo stage only until a zero coefficient CU is found.
+(no-)early-skip      : Try to find skip cu from merge candidates. Perform no further search if skip is found.
+                               For rd=0..1: Try the first candidate.
+                               For rd=2.. : Try the best candidate based on luma satd cost. 
+max-merge &lt;integer&gt;  : Maximum number of merge candidates, 1..5 
+(no-)implicit-rdpcm  : Implicit residual DPCM. Currently only supported with lossless coding.
+(no-)tmvp            : Temporal motion vector prediction</string>
+         </property>
          <property name="columnCount">
           <number>2</number>
          </property>
@@ -1396,7 +1466,7 @@
   <tabstop>wpp</tabstop>
   <tabstop>slices</tabstop>
   <tabstop>openhevc_threads</tabstop>
-  <tabstop>custom_close</tabstop>
+  <tabstop>video_close</tabstop>
   <tabstop>Advanced</tabstop>
  </tabstops>
  <resources/>
