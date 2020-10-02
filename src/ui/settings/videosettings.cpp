@@ -11,8 +11,6 @@
 #include <QThread>
 #include <QComboBox>
 
-#include <QDebug>
-
 
 const QStringList neededSettings = {"video/DeviceID",
                                     "video/Device",
@@ -58,7 +56,8 @@ VideoSettings::VideoSettings(QWidget* parent,
   connect(videoSettingsUI_->tiles_checkbox, &QCheckBox::clicked,
           this, &VideoSettings::updateSliceBoxStatus);
 
-  connect(videoSettingsUI_->rc_algorithm, QOverload<int>::of(&QComboBox::currentIndexChanged),
+  connect(videoSettingsUI_->rc_algorithm,
+          QOverload<int>::of(&QComboBox::currentIndexChanged),
           this, &VideoSettings::updateObaStatus);
 }
 
@@ -76,7 +75,8 @@ void VideoSettings::showParameterContextMenu(const QPoint& pos)
   if (videoSettingsUI_->custom_parameters->rowCount() != 0)
   {
     showContextMenu(pos, videoSettingsUI_->custom_parameters, this,
-                    QStringList() << "Delete", QStringList() << SLOT(deleteListParameter()));
+                    QStringList() << "Delete", QStringList()
+                    << SLOT(deleteListParameter()));
   }
 }
 
@@ -97,8 +97,8 @@ void VideoSettings::changedDevice(uint16_t deviceIndex)
 
 void VideoSettings::resetSettings(int deviceID)
 {
-  qDebug() << "Settings," << metaObject()->className()
-           << "Resetting video settings from UI";
+  printNormal(this, "Resettings video settings fomr UI");
+
   currentDevice_ = deviceID;
   initializeFormat();
   saveSettings();
@@ -107,7 +107,7 @@ void VideoSettings::resetSettings(int deviceID)
 
 void VideoSettings::on_video_ok_clicked()
 {
-  qDebug() << "Settings," << metaObject()->className() << ": Saving advanced settings";
+  printNormal(this, "Saving video settings");
   saveSettings();
   emit settingsChanged();
   //emit hidden();
@@ -117,8 +117,7 @@ void VideoSettings::on_video_ok_clicked()
 
 void VideoSettings::on_video_close_clicked()
 {
-  qDebug() << "Settings," << metaObject()->className()
-           << ": Cancelled modifying video settings. Getting settings from system";
+  printNormal(this, "Cancelled modifying video settings. Getting settings from system.");
   restoreSettings();
   hide();
   emit hidden();
@@ -127,12 +126,11 @@ void VideoSettings::on_video_close_clicked()
 
 void VideoSettings::on_add_parameter_clicked()
 {
-  qDebug() << "Settings," << metaObject()->className()
-           << ": Adding a custom parameter for kvazaar.";
+  printNormal(this, "Adding a custom parameter for kvazaar.");
 
   if (videoSettingsUI_->parameter_name->text() == "")
   {
-    qDebug() << "Settings," << metaObject()->className() << ": parameter name not set";
+    printWarning(this, "Parameter name not set");
     return;
   }
 
@@ -143,7 +141,7 @@ void VideoSettings::on_add_parameter_clicked()
 
 void VideoSettings::saveSettings()
 {
-  qDebug() << "Settings," << metaObject()->className() << ": Saving advanced Settings";
+  printNormal(this, "Saving video Settings");
 
   // Video settings
   // input-tab
@@ -193,14 +191,15 @@ void VideoSettings::saveSettings()
 
 void VideoSettings::saveCameraCapabilities(int deviceIndex)
 {
-  qDebug() << "Settings," << metaObject()->className()
-           << ": Recording capability settings for deviceIndex:" << deviceIndex;
+  printNormal(this, "Recording capability settings for device",
+              {"Device Index"}, {QString::number(deviceIndex)});
 
   int formatIndex = videoSettingsUI_->format_box->currentIndex();
   int resolutionIndex = videoSettingsUI_->resolution->currentIndex();
 
-  qDebug() << "Settings," << metaObject()->className()
-           << ": Boxes in following positions: Format:" << formatIndex << "Resolution:" << resolutionIndex;
+  printDebug(DEBUG_NORMAL, this, "Box status", {"Format", "Resolution"},
+             {QString::number(formatIndex), QString::number(resolutionIndex)});
+
   if(formatIndex == -1)
   {
     formatIndex = 0;
@@ -233,10 +232,10 @@ void VideoSettings::saveCameraCapabilities(int deviceIndex)
 
   settings_.setValue("video/InputFormat",          format);
 
-  qDebug() << "Settings," << metaObject()->className()
-           << ": Recorded the following video settings: Resolution:"
-           << res.width() - res.width()%8 << "x" << res.height() - res.height()%8
-           << "resolution index:" << resolutionIndex << "format" << format;
+  printDebug(DEBUG_NORMAL, this, "Recorded following video settings.",
+             {"Resolution", "Resolution Index", "Format"},
+             {QString::number(res.width() - res.width()%8) + "x" + QString::number(res.height() - res.height()%8),
+             QString::number(resolutionIndex), format});
 }
 
 
@@ -247,9 +246,8 @@ void VideoSettings::restoreSettings()
   bool validSettings = checkMissingValues(settings_);
   if(validSettings && checkSettings())
   {
-    qDebug() << "Settings," << metaObject()->className()
-             << ": Restoring previous Advanced settings from file:"
-             << settings_.fileName();
+    printNormal(this, "Restoring previous video settings from file.",
+                {"Filename"}, {settings_.fileName()});
 
     restoreComboBoxes();
 
@@ -393,8 +391,9 @@ void VideoSettings::restoreFormat()
     {
       format = settings_.value("video/InputFormat").toString();
       int formatIndex = videoSettingsUI_->format_box->findText(format);
-      qDebug() << "Settings," << metaObject()->className() << ": Trying to find format in camera:"
-               << format << "Result index:" << formatIndex;
+
+      printDebug(DEBUG_NORMAL, this, "Trying to find format for camera",
+                 {"Format", "Format index"}, {format, QString::number(formatIndex)});
 
       if(formatIndex != -1)
       {
@@ -486,8 +485,7 @@ void VideoSettings::initializeFormat()
 
 void VideoSettings::initializeResolutions(QString format)
 {
-  qDebug() << "Settings," << metaObject()->className()
-           << ": Initializing resolutions for format:" << format;
+  printNormal(this, "Initializing camera resolutions", {"Format"}, format);
   videoSettingsUI_->resolution->clear();
   QStringList resolutions;
 
@@ -511,8 +509,7 @@ void VideoSettings::initializeResolutions(QString format)
 
 void VideoSettings::initializeFramerates(QString resolution)
 {
-  qDebug() << "Settings,"  << metaObject()->className() << ": Initializing framerates for resolution:"
-           << resolution;
+  printNormal(this, "Initializing camera framerates", {"Resolution"}, resolution);
   videoSettingsUI_->framerate_box->clear();
   QStringList rates;
 
@@ -539,8 +536,7 @@ bool VideoSettings::checkSettings()
   {
     if(!settings_.contains(need))
     {
-      qDebug() << "Settings," << metaObject()->className()
-               << "Missing setting for:" << need << "Resetting video settings";
+      printError(this, "Found missing setting. Resetting video settings", {"Missing key"}, need);
       everythingPresent = false;
     }
   }
@@ -572,7 +568,6 @@ void VideoSettings::updateBitrate(int value)
       videoSettingsUI_->bitrate->setText(QString::number(roundedValue/1000000) + "." +
                                   QString::number((roundedValue%1000000)/1000) + " Mbit/s");
     }
-
 
 
     videoSettingsUI_->bitrate_slider->setValue(roundedValue);
