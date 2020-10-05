@@ -75,6 +75,7 @@ private:
 
   // initializes the UI with correct formats and resolutions
   void initializeFormat();
+  void initializeThreads();
 
   bool checkSettings();
 

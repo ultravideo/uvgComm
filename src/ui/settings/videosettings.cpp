@@ -17,6 +17,7 @@ const QStringList neededSettings = {"video/DeviceID",
                                     "video/ResolutionWidth",
                                     "video/ResolutionHeight",
                                     "video/WPP",
+                                    "video/OWF",
                                     "video/InputFormat",
                                     "video/Slices",
                                     "video/kvzThreads",
@@ -242,6 +243,7 @@ void VideoSettings::saveCameraCapabilities(int deviceIndex)
 void VideoSettings::restoreSettings()
 {
   initializeFormat();
+  initializeThreads();
 
   bool validSettings = checkMissingValues(settings_);
   if(validSettings && checkSettings())
@@ -358,26 +360,6 @@ void VideoSettings::restoreComboBoxes()
   restoreFormat();
   restoreResolution();
   restoreFramerate();
-
-  int maxThreads = QThread::idealThreadCount();
-
-  printNormal(this, "Max Threads", "erere", QString::number(maxThreads));
-
-  if (videoSettingsUI_->kvazaar_threads->count() == 0 ||
-      videoSettingsUI_->owf->count() == 0)
-  {
-    videoSettingsUI_->kvazaar_threads->clear();
-    videoSettingsUI_->owf->clear();
-    videoSettingsUI_->kvazaar_threads->addItem("auto");
-    videoSettingsUI_->kvazaar_threads->addItem("Main");
-    videoSettingsUI_->owf->addItem("0");
-
-    for (int i = 1; i <= maxThreads; ++i)
-    {
-      videoSettingsUI_->kvazaar_threads->addItem(QString::number(i));
-      videoSettingsUI_->owf->addItem(QString::number(i));
-    }
-  }
 }
 
 
@@ -458,6 +440,29 @@ void VideoSettings::restoreComboBoxValue(QString key, QComboBox* box,
   else
   {
     videoSettingsUI_->kvazaar_threads->setCurrentText(defaultValue);
+  }
+}
+
+void VideoSettings::initializeThreads()
+{
+  int maxThreads = QThread::idealThreadCount();
+
+  printNormal(this, "Max Threads", "Threads", QString::number(maxThreads));
+
+  if (videoSettingsUI_->kvazaar_threads->count() == 0 ||
+      videoSettingsUI_->owf->count() == 0)
+  {
+    videoSettingsUI_->kvazaar_threads->clear();
+    videoSettingsUI_->owf->clear();
+    videoSettingsUI_->kvazaar_threads->addItem("auto");
+    videoSettingsUI_->kvazaar_threads->addItem("Main");
+    videoSettingsUI_->owf->addItem("0");
+
+    for (int i = 1; i <= maxThreads; ++i)
+    {
+      videoSettingsUI_->kvazaar_threads->addItem(QString::number(i));
+      videoSettingsUI_->owf->addItem(QString::number(i));
+    }
   }
 }
 
