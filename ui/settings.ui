@@ -326,7 +326,7 @@
          </property>
         </spacer>
        </item>
-       <item row="14" column="0">
+       <item row="15" column="0">
         <widget class="QPushButton" name="video_settings_button">
          <property name="enabled">
           <bool>true</bool>
@@ -336,10 +336,17 @@
          </property>
         </widget>
        </item>
-       <item row="15" column="0">
+       <item row="16" column="0">
         <widget class="QPushButton" name="sip_settings_button">
          <property name="text">
           <string>SIP Settings</string>
+         </property>
+        </widget>
+       </item>
+       <item row="14" column="0">
+        <widget class="QPushButton" name="audio_settings_button">
+         <property name="text">
+          <string>Audio Settings</string>
          </property>
         </widget>
        </item>

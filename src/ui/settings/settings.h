@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ui/settings/audiosettings.h"
 #include "ui/settings/videosettings.h"
 #include "ui/settings/sipsettings.h"
 
@@ -64,6 +65,7 @@ public slots:
   void on_close_clicked();
   void on_sip_settings_button_clicked();
   void on_video_settings_button_clicked();
+  void on_audio_settings_button_clicked();
 
   void changedSIPText(const QString &text);
 
@@ -95,7 +97,6 @@ private:
   void saveSettings();
 
 
-
   void resetFaultySettings();
 
   Ui::BasicSettings *basicUI_;
@@ -106,6 +107,7 @@ private:
 
   SIPSettings sipSettings_;
   VideoSettings videoSettings_;
+  AudioSettings audioSettings_;
 
   QSettings settings_;
 };

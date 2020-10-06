@@ -97,6 +97,7 @@ SOURCES +=\
     src/ui/gui/videoviewfactory.cpp \
     src/ui/gui/videowidget.cpp \
     src/ui/gui/videoyuvwidget.cpp \
+    src/ui/settings/audiosettings.cpp \
     src/ui/settings/camerainfo.cpp \
     src/ui/settings/microphoneinfo.cpp \
     src/ui/settings/screeninfo.cpp \
@@ -181,6 +182,7 @@ HEADERS  += \
     src/ui/gui/videoviewfactory.h \
     src/ui/gui/videowidget.h \
     src/ui/gui/videoyuvwidget.h \
+    src/ui/settings/audiosettings.h \
     src/ui/settings/camerainfo.h \
     src/ui/settings/deviceinfointerface.h \
     src/ui/settings/microphoneinfo.h \
@@ -191,6 +193,7 @@ HEADERS  += \
     src/ui/settings/videosettings.h
 
 FORMS    += \
+    ui/audiosettings.ui \
     ui/callwindow.ui \
     ui/messagewidget.ui \
     ui/sipsettings.ui \
