@@ -550,32 +550,16 @@ bool VideoSettings::checkSettings()
 
 void VideoSettings::updateBitrate(int value)
 {
-  int roundedValue = static_cast<int>((value + 500)/1000);
-  roundedValue *= 1000;
-
   if (value == 0)
   {
     videoSettingsUI_->bitrate->setText("disabled");
   }
   else
   {
-    // not possible at the moment
-    if (roundedValue < 1000)
-    {
-      videoSettingsUI_->bitrate->setText(QString::number(roundedValue) + " bit/s");
-    }
-    else if (1000 <= roundedValue && roundedValue < 1000000)
-    {
-      videoSettingsUI_->bitrate->setText(QString::number(roundedValue/1000) + " kbit/s");
-    }
-    else
-    {
-      videoSettingsUI_->bitrate->setText(QString::number(roundedValue/1000000) + "." +
-                                  QString::number((roundedValue%1000000)/1000) + " Mbit/s");
-    }
+    value = roundToThousands(value);
 
-
-    videoSettingsUI_->bitrate_slider->setValue(roundedValue);
+    videoSettingsUI_->bitrate->setText(getBitrateString(value));
+    videoSettingsUI_->bitrate_slider->setValue(value);
   }
 }
 

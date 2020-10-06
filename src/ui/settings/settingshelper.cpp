@@ -149,3 +149,32 @@ void showContextMenu(const QPoint& pos, QTableWidget* table, QObject* processor,
   // Show context menu at handling position
   myMenu.exec(globalPos);
 }
+
+int roundToThousands(int value)
+{
+  int roundedValue = static_cast<int>((value + 500)/1000);
+  return roundedValue *= 1000;
+}
+
+
+QString getBitrateString(int bits)
+{
+  QString finalString = QString::number(bits);
+
+  // not possible at the moment
+  if (bits < 1000)
+  {
+    finalString = QString::number(bits) + " bit/s";
+  }
+  else if (1000 <= bits && bits < 1000000)
+  {
+    finalString = QString::number(bits/1000) + " kbit/s";
+  }
+  else
+  {
+    finalString = QString::number(bits/1000000) + "." +
+                  QString::number((bits%1000000)/1000) + " Mbit/s";
+  }
+
+  return finalString;
+}

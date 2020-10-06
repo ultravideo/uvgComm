@@ -23,3 +23,7 @@ void listGUIToSettings(QString filename, QString listName, QStringList values, Q
 
 void showContextMenu(const QPoint& pos, QTableWidget* table, QObject* processor,
                      QStringList actions, QStringList processSlots);
+
+int roundToThousands(int value);
+
+QString getBitrateString(int bits);
