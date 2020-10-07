@@ -10,6 +10,8 @@ public:
   OpusEncoderFilter(QString id, QAudioFormat format, StatisticsInterface* stats);
   ~OpusEncoderFilter();
 
+  virtual void updateSettings();
+
   bool init();
 
 protected:
