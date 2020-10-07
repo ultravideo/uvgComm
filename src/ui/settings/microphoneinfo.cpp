@@ -41,3 +41,19 @@ QStringList MicrophoneInfo::getDeviceList()
 
   return list;
 }
+
+
+QList<int> MicrophoneInfo::getChannels(int deviceID)
+{
+  if (deviceID != -1)
+  {
+    QList<QAudioDeviceInfo> microphones = QAudioDeviceInfo::availableDevices(QAudio::AudioInput);
+
+    if (!microphones.empty() && deviceID < microphones.size())
+    {
+      return microphones.at(deviceID).supportedChannelCounts();
+    }
+  }
+
+  return {};
+}

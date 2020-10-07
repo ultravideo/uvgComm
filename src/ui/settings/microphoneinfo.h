@@ -13,4 +13,5 @@ public:
   // returns a list of devices.
   virtual QStringList getDeviceList();
 
+  QList<int> getChannels(int deviceID);
 };

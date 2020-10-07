@@ -17,7 +17,7 @@ Settings::Settings(QWidget *parent) :
   screen_(std::shared_ptr<ScreenInfo> (new ScreenInfo())),
   sipSettings_(this),
   videoSettings_(this, cam_),
-  audioSettings_(this),
+  audioSettings_(this, mic_),
   settings_("kvazzup.ini", QSettings::IniFormat)
 {}
 

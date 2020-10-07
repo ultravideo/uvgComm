@@ -7,11 +7,13 @@ namespace Ui {
 class AudioSettings;
 }
 
+class MicrophoneInfo;
+
 class AudioSettings : public QDialog
 {
   Q_OBJECT
 public:
-  AudioSettings(QWidget* parent);
+  AudioSettings(QWidget* parent, std::shared_ptr<MicrophoneInfo> info);
 
   // initializes the custom view with values from settings.
   void init(int deviceID);
@@ -42,9 +44,13 @@ private:
 
   bool checkSettings();
 
+  void initializeChannelList();
+
   int currentDevice_;
 
   Ui::AudioSettings *audioSettingsUI_;
+
+  std::shared_ptr<MicrophoneInfo> mic_;
 
   QSettings settings_;
 };

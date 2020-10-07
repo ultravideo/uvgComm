@@ -2,15 +2,18 @@
 
 #include "ui_audiosettings.h"
 
+#include "microphoneinfo.h"
 #include "settingshelper.h"
 
 #include "common.h"
 
 
-AudioSettings::AudioSettings(QWidget* parent):
+AudioSettings::AudioSettings(QWidget* parent,
+                             std::shared_ptr<MicrophoneInfo> info):
   QDialog(parent),
   currentDevice_(0),
   audioSettingsUI_(new Ui::AudioSettings),
+  mic_(info),
   settings_("kvazzup.ini", QSettings::IniFormat)
 {
   audioSettingsUI_->setupUi(this);
@@ -68,10 +71,11 @@ void AudioSettings::on_audio_close_clicked()
 
 void AudioSettings::restoreSettings()
 {
+  initializeChannelList();
+
   if (checkSettings())
   {
-    unsigned int channels = settings_.value("audio/channels").toUInt();
-    audioSettingsUI_->channels_box->setValue(channels);
+    restoreComboBoxValue("audio/channels", audioSettingsUI_->channel_combo, QString::number(1), settings_);
 
     unsigned int bitrate = settings_.value("audio/bitrate").toUInt();
     audioSettingsUI_->bitrate_slider->setValue(bitrate);
@@ -94,8 +98,7 @@ void AudioSettings::saveSettings()
   printNormal(this, "Saving audio Settings");
 
   saveTextValue("audio/channels",
-                QString::number(audioSettingsUI_->channels_box->value()),
-                settings_);
+                audioSettingsUI_->channel_combo->currentText(), settings_);
 
   saveTextValue("audio/bitrate",
                 {QString::number(audioSettingsUI_->bitrate_slider->value())},
@@ -145,4 +148,16 @@ void AudioSettings::updateComplexity(int value)
 {
   audioSettingsUI_->complexity_label->setText(
         "Complexity (" + QString::number(value) + ")");
+}
+
+
+void AudioSettings::initializeChannelList()
+{
+  audioSettingsUI_->channel_combo->clear();
+  QList<int> channels = mic_->getChannels(currentDevice_);
+
+  for (int channel : channels)
+  {
+    audioSettingsUI_->channel_combo->addItem(QString::number(channel));
+  }
 }
