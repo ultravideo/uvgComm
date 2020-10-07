@@ -71,11 +71,11 @@ void AudioSettings::on_audio_close_clicked()
 
 void AudioSettings::restoreSettings()
 {
-  initializeChannelList();
+  //initializeChannelList();
 
   if (checkSettings())
   {
-    restoreComboBoxValue("audio/channels", audioSettingsUI_->channel_combo, QString::number(1), settings_);
+    //restoreComboBoxValue("audio/channels", audioSettingsUI_->channel_combo, QString::number(1), settings_);
 
     unsigned int bitrate = settings_.value("audio/bitrate").toUInt();
     audioSettingsUI_->bitrate_slider->setValue(bitrate);
@@ -97,8 +97,8 @@ void AudioSettings::saveSettings()
 {
   printNormal(this, "Saving audio Settings");
 
-  saveTextValue("audio/channels",
-                audioSettingsUI_->channel_combo->currentText(), settings_);
+  //saveTextValue("audio/channels",
+  //              audioSettingsUI_->channel_combo->currentText(), settings_);
 
   saveTextValue("audio/bitrate",
                 {QString::number(audioSettingsUI_->bitrate_slider->value())},
@@ -153,11 +153,11 @@ void AudioSettings::updateComplexity(int value)
 
 void AudioSettings::initializeChannelList()
 {
-  audioSettingsUI_->channel_combo->clear();
+  //audioSettingsUI_->channel_combo->clear();
   QList<int> channels = mic_->getChannels(currentDevice_);
 
   for (int channel : channels)
   {
-    audioSettingsUI_->channel_combo->addItem(QString::number(channel));
+    //audioSettingsUI_->channel_combo->addItem(QString::number(channel));
   }
 }
