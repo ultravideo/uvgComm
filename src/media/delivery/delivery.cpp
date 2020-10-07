@@ -6,7 +6,6 @@
 #include <QtEndian>
 #include <QHostInfo>
 
-#include <uvgrtp/formats/opus.hh>
 #include <uvgrtp/lib.hh>
 
 #include <iostream>
@@ -71,7 +70,7 @@ void Delivery::parseCodecString(QString codec, uint16_t dst_port,
   std::map<QString, rtp_format_t> xmap = {
       { "pcm",  RTP_FORMAT_GENERIC },
       { "opus", RTP_FORMAT_OPUS },
-      { "h265", RTP_FORMAT_HEVC }
+      { "h265", RTP_FORMAT_H265 }
   };
 
   if (xmap.find(codec) == xmap.end())
@@ -87,7 +86,7 @@ void Delivery::parseCodecString(QString codec, uint16_t dst_port,
 
   switch (fmt)
   {
-    case RTP_FORMAT_HEVC:
+    case RTP_FORMAT_H265:
       mediaName = "HEVC";
       type = HEVCVIDEO;
       break;

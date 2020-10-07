@@ -16,7 +16,7 @@ UvgRTPSender::UvgRTPSender(QString id, StatisticsInterface *stats,
   switch (type)
   {
     case HEVCVIDEO:
-      dataFormat_ = RTP_FORMAT_HEVC;
+      dataFormat_ = RTP_FORMAT_H265;
       break;
 
     case OPUSAUDIO:
