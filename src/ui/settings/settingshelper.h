@@ -5,7 +5,7 @@
 #include <QTableWidget>
 
 class QCheckBox;
-
+class QComboBox;
 
 // simpler functions for checkbox management.
 void restoreCheckBox(const QString settingValue, QCheckBox* box, QSettings& settings);
@@ -23,6 +23,10 @@ void listGUIToSettings(QString filename, QString listName, QStringList values, Q
 
 void showContextMenu(const QPoint& pos, QTableWidget* table, QObject* processor,
                      QStringList actions, QStringList processSlots);
+
+
+void restoreComboBoxValue(QString key, QComboBox* box,
+                          QString defaultValue, QSettings& settings);
 
 int roundToThousands(int value);
 

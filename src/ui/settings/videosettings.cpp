@@ -28,7 +28,7 @@ const QStringList neededSettings = {"video/DeviceID",
 
 
 VideoSettings::VideoSettings(QWidget* parent,
-                               std::shared_ptr<CameraInfo> info)
+                             std::shared_ptr<CameraInfo> info)
   :
   QDialog(parent),
   currentDevice_(0),
@@ -261,8 +261,8 @@ void VideoSettings::restoreSettings()
 
 
     // parallelization-tab
-    restoreComboBoxValue("video/kvzThreads", videoSettingsUI_->kvazaar_threads, "auto");
-    restoreComboBoxValue("video/OWF", videoSettingsUI_->owf, "0");
+    restoreComboBoxValue("video/kvzThreads", videoSettingsUI_->kvazaar_threads, "auto", settings_);
+    restoreComboBoxValue("video/OWF", videoSettingsUI_->owf, "0", settings_);
 
     restoreCheckBox("video/WPP", videoSettingsUI_->wpp, settings_);
 
@@ -325,13 +325,13 @@ void VideoSettings::restoreSettings()
     QString bitrate = settings_.value("video/bitrate").toString();
     videoSettingsUI_->bitrate_slider->setValue(bitrate.toInt());
 
-    restoreComboBoxValue("video/rcAlgorithm", videoSettingsUI_->rc_algorithm, "lambda");
+    restoreComboBoxValue("video/rcAlgorithm", videoSettingsUI_->rc_algorithm, "lambda", settings_);
 
     restoreCheckBox("video/obaClipNeighbours", videoSettingsUI_->oba_clip_neighbours, settings_);
     restoreCheckBox("video/scalingList", videoSettingsUI_->scaling_box, settings_);
     restoreCheckBox("video/lossless", videoSettingsUI_->lossless_box, settings_);
 
-    restoreComboBoxValue("video/mvConstraint", videoSettingsUI_->mv_constraint, "none");
+    restoreComboBoxValue("video/mvConstraint", videoSettingsUI_->mv_constraint, "none", settings_);
     restoreCheckBox("video/qpInCU", videoSettingsUI_->qp_in_cu_box, settings_);
 
     videoSettingsUI_->vaq->setCurrentIndex( settings_.value("video/vaq").toInt());
@@ -339,7 +339,7 @@ void VideoSettings::restoreSettings()
     updateObaStatus(videoSettingsUI_->rc_algorithm->currentIndex());
 
     // tools-tab
-    restoreComboBoxValue("video/Preset", videoSettingsUI_->preset, "ultrafast");
+    restoreComboBoxValue("video/Preset", videoSettingsUI_->preset, "ultrafast", settings_);
 
     listSettingsToGUI("kvazzup.ini", "parameters", QStringList() << "Name" << "Value",
                       videoSettingsUI_->custom_parameters);
@@ -429,26 +429,14 @@ void VideoSettings::restoreFramerate()
 }
 
 
-void VideoSettings::restoreComboBoxValue(QString key, QComboBox* box,
-                                         QString defaultValue)
-{
-  int index = box->findText(settings_.value(key).toString());
-  if(index != -1)
-  {
-    box->setCurrentIndex(index);
-  }
-  else
-  {
-    videoSettingsUI_->kvazaar_threads->setCurrentText(defaultValue);
-  }
-}
-
 void VideoSettings::initializeThreads()
 {
   int maxThreads = QThread::idealThreadCount();
 
   printNormal(this, "Max Threads", "Threads", QString::number(maxThreads));
 
+  // because I don't think the number of threads has changed if we have already
+  // added them.
   if (videoSettingsUI_->kvazaar_threads->count() == 0 ||
       videoSettingsUI_->owf->count() == 0)
   {

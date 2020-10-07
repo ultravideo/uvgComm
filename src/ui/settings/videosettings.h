@@ -65,9 +65,6 @@ private:
   void restoreResolution();
   void restoreFramerate();
 
-  void restoreComboBoxValue(QString key, QComboBox* box,
-                            QString defaultValue);
-
   // GUI -> QSettings
   void saveSettings();
 

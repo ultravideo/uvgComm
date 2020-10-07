@@ -4,6 +4,7 @@
 
 #include <QMenu>
 #include <QCheckBox>
+#include <QComboBox>
 #include <QDebug>
 
 
@@ -149,6 +150,21 @@ void showContextMenu(const QPoint& pos, QTableWidget* table, QObject* processor,
   // Show context menu at handling position
   myMenu.exec(globalPos);
 }
+
+void restoreComboBoxValue(QString key, QComboBox* box,
+                          QString defaultValue, QSettings& settings)
+{
+  int index = box->findText(settings.value(key).toString());
+  if(index != -1)
+  {
+    box->setCurrentIndex(index);
+  }
+  else
+  {
+    box->setCurrentText(defaultValue);
+  }
+}
+
 
 int roundToThousands(int value)
 {
