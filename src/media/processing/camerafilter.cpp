@@ -52,6 +52,8 @@ void CameraFilter::updateSettings()
       resolutionID != currentResolutionID_ ||
       framerateID != currentFramerateID_)
   {
+    printNormal(this, "Updating camera settings since they have changed");
+
     stop();
     uninit();
     init();
@@ -305,7 +307,6 @@ void CameraFilter::process()
     frames_.pop_front();
     frameMutex_.unlock();
 
-    // do nothing because camera input is handled via camera signal
     if(framerate_ == 0)
     {
       QCameraViewfinderSettings settings = camera_->viewfinderSettings();
@@ -314,18 +315,15 @@ void CameraFilter::process()
       framerate_ = settings.maximumFrameRate();
     }
 
+    // capture the frame data
+    Data * newImage = new Data;
+    newImage->presentationTime = QDateTime::currentMSecsSinceEpoch();
+    newImage->type = output_;
+
     QVideoFrame cloneFrame(frame);
     cloneFrame.map(QAbstractVideoBuffer::ReadOnly);
 
-    //QVideoFrame::PixelFormat pf = cloneFrame.pixelFormat();
-
-    // capture the frame data
-    Data * newImage = new Data;
-
-    newImage->presentationTime = QDateTime::currentMSecsSinceEpoch();
-    newImage->type = output_;
     newImage->data = std::unique_ptr<uchar[]>(new uchar[cloneFrame.mappedBytes()]);
-
     uchar *bits = cloneFrame.bits();
 
     memcpy(newImage->data.get(), bits, cloneFrame.mappedBytes());
@@ -335,9 +333,6 @@ void CameraFilter::process()
     newImage->height = cloneFrame.height() - cloneFrame.height()%8;
     newImage->source = LOCAL;
     newImage->framerate = framerate_;
-
-    //qDebug() << "Frame generated. Format: " << pf
-    //         << " width: " << newImage->width << ", height: " << newImage->height;
 
     std::unique_ptr<Data> u_newImage( newImage );
     cloneFrame.unmap();
