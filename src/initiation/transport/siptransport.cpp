@@ -852,6 +852,7 @@ bool SIPTransport::fieldsToMessage(QList<SIPField>& fields,
   message->dialog = std::shared_ptr<SIPDialogInfo> (new SIPDialogInfo);
   message->content.type = NO_CONTENT;
   message->content.length = 0;
+  message->expires = 0;
 
   for(int i = 0; i < fields.size(); ++i)
   {
