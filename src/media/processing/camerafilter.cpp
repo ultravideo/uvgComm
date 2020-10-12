@@ -15,7 +15,12 @@ CameraFilter::CameraFilter(QString id, StatisticsInterface *stats):
   Filter(id, "Camera", stats, NONE, RGB32VIDEO),
   camera_(nullptr),
   cameraFrameGrabber_(nullptr),
-  framerate_(0)
+  framerate_(0),
+  currentDeviceName_(""),
+  currentDeviceID_(-1),
+  currentInputFormat_(""),
+  currentResolutionID_(-1),
+  currentFramerateID_(-1)
 {}
 
 
@@ -30,6 +35,51 @@ CameraFilter::~CameraFilter()
     delete cameraFrameGrabber_;
   }
 }
+
+void CameraFilter::updateSettings()
+{
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+
+  QString deviceName = settings.value("video/Device").toString();
+  int deviceID = settings.value("video/DeviceID").toInt();
+  QString inputFormat = settings.value("video/InputFormat").toString();
+  int resolutionID = settings.value("video/ResolutionID").toInt();
+  int framerateID = settings.value("video/FramerateID").toInt();
+
+  if (deviceName != currentDeviceName_ ||
+      deviceID != currentDeviceID_ ||
+      inputFormat != currentInputFormat_ ||
+      resolutionID != currentResolutionID_ ||
+      framerateID != currentFramerateID_)
+  {
+    printNormal(this, "Updating camera settings since they have changed");
+
+    stop();
+    uninit();
+    init();
+    start();
+  }
+
+  Filter::updateSettings();
+}
+
+
+void CameraFilter::uninit()
+{
+  stop();
+  if (camera_ != nullptr)
+  {
+    delete camera_;
+    camera_ = nullptr;
+  }
+
+  if (cameraFrameGrabber_ != nullptr)
+  {
+    delete cameraFrameGrabber_;
+    cameraFrameGrabber_ = nullptr;
+  }
+}
+
 
 bool CameraFilter::init()
 {
@@ -57,30 +107,31 @@ bool CameraFilter::initialCameraSetup()
   }
 
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
-  QString deviceName = settings.value("video/Device").toString();
-  int deviceID = settings.value("video/DeviceID").toInt();
+  currentDeviceName_ = settings.value("video/Device").toString();
+  currentDeviceID_ = settings.value("video/DeviceID").toInt();
 
   // if the deviceID has changed
-  if (deviceID < cameras.size() && cameras[deviceID].description() != deviceName)
+  if (currentDeviceID_ < cameras.size() && cameras[currentDeviceID_].description() != currentDeviceName_)
   {
     // search for device with same name
     for(int i = 0; i < cameras.size(); ++i)
     {
-      if(cameras.at(i).description() == deviceName)
+      if(cameras.at(i).description() == currentDeviceName_)
       {
         qDebug() << "Found camera with name:" << cameras.at(i).description() << "and id:" << i;
-        deviceID = i;
+        currentDeviceID_ = i;
         break;
       }
     }
     // previous camera could not be found, use first.
-    qDebug() << "Did not find camera name:" << deviceName << " Using first:" << cameras.at(0).description();
-    deviceID = 0;
+    qDebug() << "Did not find camera name:" << currentDeviceName_
+             << " Using first:" << cameras.at(0).description();
+    currentDeviceID_ = 0;
   }
 
-  qDebug() << "Iniating Qt camera with device ID:" << deviceID << " cameras:" << cameras.size();
+  qDebug() << "Iniating Qt camera with device ID:" << currentDeviceID_ << " cameras:" << cameras.size();
 
-  camera_ = new QCamera(cameras.at(deviceID));
+  camera_ = new QCamera(cameras.at(currentDeviceID_));
   cameraFrameGrabber_ = new CameraFrameGrabber();
 
 #ifndef __linux__
@@ -122,23 +173,23 @@ bool CameraFilter::cameraSetup()
     printSupportedFormats();
 
     // TODO: this should be a temporary hack until dshow is replaced by qcamera
-    QString inputFormat = settings.value("video/InputFormat").toString();
+    currentInputFormat_ = settings.value("video/InputFormat").toString();
 
 #ifdef __linux__
     viewSettings.setPixelFormat(QVideoFrame::Format_RGB32);
     output_ = RGB32VIDEO;
 #else
-    if(inputFormat == "MJPG")
+    if(currentInputFormat_ == "MJPG")
     {
       viewSettings.setPixelFormat(QVideoFrame::Format_Jpeg);
       output_ = RGB32VIDEO;
     }
-    else if(inputFormat == "RGB32")
+    else if(currentInputFormat_ == "RGB32")
     {
       viewSettings.setPixelFormat(QVideoFrame::Format_RGB32);
       output_ = RGB32VIDEO;
     }
-    else if(inputFormat == "YUV420P")
+    else if(currentInputFormat_ == "YUV420P")
     {
       viewSettings.setPixelFormat(QVideoFrame::Format_YUV420P);
       output_ = YUV420VIDEO;
@@ -156,10 +207,10 @@ bool CameraFilter::cameraSetup()
 #ifndef __linux__
     QList<QSize> resolutions = camera_->supportedViewfinderResolutions(viewSettings);
 
-    int resolutionID = settings.value("video/ResolutionID").toInt();
-    if(resolutions.size() >= resolutionID && !resolutions.empty())
+    currentResolutionID_ = settings.value("video/ResolutionID").toInt();
+    if(resolutions.size() >= currentResolutionID_ && !resolutions.empty())
     {
-      QSize resolution = resolutions.at(resolutionID);
+      QSize resolution = resolutions.at(currentResolutionID_);
       viewSettings.setResolution(QSize(resolution.width(),
                                        resolution.height()));
     }
@@ -172,15 +223,15 @@ bool CameraFilter::cameraSetup()
 
     QList<QCamera::FrameRateRange> framerates = camera_->supportedViewfinderFrameRateRanges(viewSettings);
 
-    int framerateID = settings.value("video/FramerateID").toInt();
+    currentFramerateID_ = settings.value("video/FramerateID").toInt();
 
 #ifndef __linux__
     if (!framerates.empty())
     {
-      if(framerateID < framerates.size())
+      if(currentFramerateID_ < framerates.size())
       {
-        viewSettings.setMaximumFrameRate(framerates.at(framerateID).maximumFrameRate);
-        viewSettings.setMinimumFrameRate(framerates.at(framerateID).minimumFrameRate);
+        viewSettings.setMaximumFrameRate(framerates.at(currentFramerateID_).maximumFrameRate);
+        viewSettings.setMinimumFrameRate(framerates.at(currentFramerateID_).minimumFrameRate);
       }
       else {
         viewSettings.setMaximumFrameRate(framerates.back().maximumFrameRate);
@@ -256,7 +307,6 @@ void CameraFilter::process()
     frames_.pop_front();
     frameMutex_.unlock();
 
-    // do nothing because camera input is handled via camera signal
     if(framerate_ == 0)
     {
       QCameraViewfinderSettings settings = camera_->viewfinderSettings();
@@ -265,18 +315,15 @@ void CameraFilter::process()
       framerate_ = settings.maximumFrameRate();
     }
 
+    // capture the frame data
+    Data * newImage = new Data;
+    newImage->presentationTime = QDateTime::currentMSecsSinceEpoch();
+    newImage->type = output_;
+
     QVideoFrame cloneFrame(frame);
     cloneFrame.map(QAbstractVideoBuffer::ReadOnly);
 
-    //QVideoFrame::PixelFormat pf = cloneFrame.pixelFormat();
-
-    // capture the frame data
-    Data * newImage = new Data;
-
-    newImage->presentationTime = QDateTime::currentMSecsSinceEpoch();
-    newImage->type = output_;
     newImage->data = std::unique_ptr<uchar[]>(new uchar[cloneFrame.mappedBytes()]);
-
     uchar *bits = cloneFrame.bits();
 
     memcpy(newImage->data.get(), bits, cloneFrame.mappedBytes());
@@ -286,9 +333,6 @@ void CameraFilter::process()
     newImage->height = cloneFrame.height() - cloneFrame.height()%8;
     newImage->source = LOCAL;
     newImage->framerate = framerate_;
-
-    //qDebug() << "Frame generated. Format: " << pf
-    //         << " width: " << newImage->width << ", height: " << newImage->height;
 
     std::unique_ptr<Data> u_newImage( newImage );
     cloneFrame.unmap();

@@ -1,13 +1,16 @@
 #include "opusdecoderfilter.h"
 
+#include "statisticsinterface.h"
+
 #include "common.h"
 
-OpusDecoderFilter::OpusDecoderFilter(QString id, QAudioFormat format, StatisticsInterface *stats):
-  Filter(id, "Opus Decoder", stats, OPUSAUDIO, RAWAUDIO),
+OpusDecoderFilter::OpusDecoderFilter(uint32_t sessionID, QAudioFormat format, StatisticsInterface *stats):
+  Filter(QString::number(sessionID), "Opus Decoder", stats, OPUSAUDIO, RAWAUDIO),
   dec_(nullptr),
   pcmOutput_(nullptr),
   max_data_bytes_(65536),
-  format_(format)
+  format_(format),
+  sessionID_(sessionID)
 {
   pcmOutput_ = new int16_t[max_data_bytes_];
 }
@@ -44,6 +47,8 @@ void OpusDecoderFilter::process()
 
   while(input)
   {
+    getStats()->addReceivePacket(sessionID_, "Audio", input->data_size);
+
     // TODO: get number of channels from opus sample: opus_packet_get_nb_channels
     int32_t len = 0;
     int frame_size = max_data_bytes_/(format_.channelCount()*sizeof(opus_int16));

@@ -50,7 +50,7 @@ public:
   virtual void addSendPacket(uint16_t size) = 0;
 
   // tracking of received packets.
-  virtual void addReceivePacket(uint16_t size) = 0;
+  virtual void addReceivePacket(uint32_t sessionID, QString type, uint16_t size) = 0;
 
 
   // FILTER

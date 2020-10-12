@@ -29,6 +29,8 @@ void KvazaarFilter::updateSettings()
 {
   qDebug() << "Updating kvazaar settings";
   close();
+  encodingFrames_.clear();
+
   if(init())
   {
     qDebug() << getName() << "Kvazaar resolution change successful";
@@ -68,6 +70,8 @@ bool KvazaarFilter::init()
     api_->config_init(config_);
     api_->config_parse(config_, "preset", settings.value("video/Preset").toString().toUtf8());
 
+    // input
+
 #ifdef __linux__
     // On Linux the Camerafilter seems to have a Qt bug that causes not being able to set resolution
     config_->width = 640;
@@ -78,34 +82,124 @@ bool KvazaarFilter::init()
     config_->height = settings.value("video/ResolutionHeight").toInt();
     config_->framerate_num = settings.value("video/Framerate").toInt();
 #endif
-    config_->threads = settings.value("video/kvzThreads").toInt();
-    config_->qp = settings.value("video/QP").toInt();
-    config_->wpp = settings.value("video/WPP").toInt();
-    config_->vps_period = settings.value("video/VPS").toInt();
-    config_->intra_period = settings.value("video/Intra").toInt();
     config_->framerate_denom = framerate_denom_;
-    config_->hash = KVZ_HASH_NONE;
 
-    //config_->fme_level = 0;
+    // parallelization
+
+    if (settings.value("video/kvzThreads") == "auto")
+    {
+      config_->threads = QThread::idealThreadCount();
+    }
+    else if (settings.value("video/kvzThreads") == "Main")
+    {
+      config_->threads = 0;
+    }
+    else
+    {
+      config_->threads = settings.value("video/kvzThreads").toInt();
+    }
+
+    config_->owf = settings.value("video/OWF").toInt();
+    config_->wpp = settings.value("video/WPP").toInt();
+
+    bool tiles = false; //settings.value("video/WPP").toBool();
+
+    if (tiles)
+    {
+      std::string dimensions = settings.value("video/tileDimensions").toString().toStdString();
+      api_->config_parse(config_, "tiles", dimensions.c_str());
+    }
 
     // this does not work with uvgRTP at the moment. Avoid using slices.
     if(settings.value("video/Slices").toInt() == 1)
     {
-      if(config_->wpp == 0)
-      {
-        api_->config_parse(config_, "tiles", "2x2");
-        config_->slices = KVZ_SLICES_TILES;
-      }
-      else
+      if(config_->wpp)
       {
         config_->slices = KVZ_SLICES_WPP;
       }
+      else if (tiles)
+      {
+        config_->slices = KVZ_SLICES_TILES;
+      }
     }
 
-    // TODO Maybe send parameter sets only when needed
-    //config_->target_bitrate = target_bitrate;
+    // Structure
 
+    config_->qp = settings.value("video/QP").toInt();
+    config_->intra_period = settings.value("video/Intra").toInt();
+    config_->vps_period = settings.value("video/VPS").toInt();
+
+    config_->target_bitrate = settings.value("video/bitrate").toInt();
+
+    if (config_->target_bitrate != 0)
+    {
+      QString rcAlgo = settings.value("video/rcAlgorithm").toString();
+
+      if (rcAlgo == "lambda")
+      {
+        config_->rc_algorithm = KVZ_LAMBDA;
+      }
+      else if (rcAlgo == "oba")
+      {
+        config_->rc_algorithm = KVZ_OBA;
+        config_->clip_neighbour = settings.value("video/obaClipNeighbours").toInt();
+      }
+      else
+      {
+        printWarning(this, "Some carbage in rc algorithm setting");
+        config_->rc_algorithm = KVZ_NO_RC;
+      }
+    }
+    else
+    {
+      config_->rc_algorithm = KVZ_NO_RC;
+    }
+
+    config_->gop_lowdelay = 1;
+
+    if (settings.value("video/scalingList").toInt() == 0)
+    {
+      config_->scaling_list = KVZ_SCALING_LIST_OFF;
+    }
+    else
+    {
+      config_->scaling_list = KVZ_SCALING_LIST_DEFAULT;
+    }
+
+    config_->lossless = settings.value("video/lossless").toInt();
+
+    QString constraint = settings.value("video/mvConstraint").toString();
+
+    if (constraint == "frame")
+    {
+      config_->mv_constraint = KVZ_MV_CONSTRAIN_FRAME;
+    }
+    else if (constraint == "tile")
+    {
+      config_->mv_constraint = KVZ_MV_CONSTRAIN_TILE;
+    }
+    else if (constraint == "frametile")
+    {
+      config_->mv_constraint = KVZ_MV_CONSTRAIN_FRAME_AND_TILE;
+    }
+    else if (constraint == "frametilemargin")
+    {
+      config_->mv_constraint = KVZ_MV_CONSTRAIN_FRAME_AND_TILE_MARGIN;
+    }
+    else
+    {
+      config_->mv_constraint = KVZ_MV_CONSTRAIN_NONE;
+    }
+
+    config_->set_qp_in_cu = settings.value("video/qpInCU").toInt();
+
+    config_->vaq = settings.value("video/vaq").toInt();
+
+
+    // compression-tab
     customParameters(settings);
+
+    config_->hash = KVZ_HASH_NONE;
 
     enc_ = api_->encoder_open(config_);
 
@@ -260,10 +354,6 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
   std::unique_ptr<Data> encodedFrame = std::move(encodingFrames_.back());
   encodingFrames_.pop_back();
 
-  uint32_t delay = QDateTime::currentMSecsSinceEpoch() - encodedFrame->presentationTime;
-  getStats()->sendDelay("video", delay);
-  getStats()->addEncodedPacket("video", len_out);
-
   std::unique_ptr<uchar[]> hevc_frame(new uchar[len_out]);
   uint8_t* writer = hevc_frame.get();
   uint32_t dataWritten = 0;
@@ -275,8 +365,6 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
        && dataWritten != 0 && config_->slices != KVZ_SLICES_NONE)
     {
       // send previous packet if this is not the first
-
-      // TODO: put delayes into deque, and set timestamp accordingly to get more accurate latency.
       std::unique_ptr<Data> slice(shallowDataCopy(encodedFrame.get()));
 
       sendEncodedFrame(std::move(slice), std::move(hevc_frame), dataWritten);
@@ -292,6 +380,10 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
   }
   api_->chunk_free(data_out);
   api_->picture_free(recon_pic);
+
+  uint32_t delay = QDateTime::currentMSecsSinceEpoch() - encodedFrame->presentationTime;
+  getStats()->sendDelay("video", delay);
+  getStats()->addEncodedPacket("video", len_out);
 
   // send last packet reusing input structure
   sendEncodedFrame(std::move(encodedFrame), std::move(hevc_frame), dataWritten);

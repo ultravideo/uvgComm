@@ -50,7 +50,7 @@ public:
 
   // delivery
   virtual void addSendPacket(uint16_t size);
-  virtual void addReceivePacket(uint16_t size);
+  virtual void addReceivePacket(uint32_t sessionID, QString type, uint16_t size);
 
   // filter
   virtual uint32_t addFilter(QString type, QString identifier, uint64_t TID);
@@ -63,7 +63,14 @@ public:
   virtual void addSentSIPMessage(QString type, QString message, QString address);
   virtual void addReceivedSIPMessage(QString type, QString message, QString address);
 
+private slots:
+
+  void changeUpdateFrequency(int value);
+  void changeUpdateTail(int value);
+
 private:
+
+  void clearCharts();
 
   // info about one packet for calculating bitrate
   struct PacketInfo
@@ -72,8 +79,10 @@ private:
     uint32_t size;
   };
 
-  uint32_t bitrate(std::vector<PacketInfo*>& packets, uint32_t index, float &framerate);
-  void updateFramerateBuffer(std::vector<PacketInfo*>& packets, uint32_t& index, uint32_t size);
+  uint32_t bitrate(std::vector<PacketInfo*>& packets, uint32_t index,
+                   float &framerate, int64_t interval);
+  void updateFramerateBuffer(std::vector<PacketInfo*>& packets,
+                             uint32_t& index, uint32_t size);
 
   void delayMsConversion(int& delay, QString& unit);
 
@@ -90,6 +99,14 @@ private:
   {
     uint32_t videoIndex;
     std::vector<PacketInfo*> videoPackets;
+    uint32_t audioIndex;
+    std::vector<PacketInfo*> audioPackets;
+
+    uint32_t pVideoIndex;
+    std::vector<PacketInfo*> pVideoPackets;
+    uint32_t pAudioIndex;
+    std::vector<PacketInfo*> pAudioPackets;
+
     int32_t videoDelay;
     int32_t audioDelay;
 
@@ -131,6 +148,11 @@ private:
   uint32_t audioIndex_;
   std::vector<PacketInfo*> audioPackets_;
 
+  uint32_t inIndex_;
+  std::vector<PacketInfo*> inBandWidth_;
+  uint32_t outIndex_;
+  std::vector<PacketInfo*> outBandwidth_;
+
   uint64_t sendPacketCount_;
   uint64_t transferredData_;
   uint64_t receivePacketCount_;
@@ -147,4 +169,7 @@ private:
 
   // for updating the tab as fast as possible
   int lastTabIndex_;
+
+  int chartVideoID_;
+  int chartAudioID_;
 };

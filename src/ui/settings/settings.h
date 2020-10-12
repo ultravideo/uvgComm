@@ -1,6 +1,7 @@
 #pragma once
 
-#include "ui/settings/mediasettings.h"
+#include "ui/settings/audiosettings.h"
+#include "ui/settings/videosettings.h"
 #include "ui/settings/sipsettings.h"
 
 #include <QDialog>
@@ -62,10 +63,14 @@ public slots:
   // button slots, called automatically by Qt
   void on_save_clicked();
   void on_close_clicked();
-  void on_advanced_settings_button_clicked();
-  void on_custom_settings_button_clicked();
+  void on_sip_settings_button_clicked();
+  void on_video_settings_button_clicked();
+  void on_audio_settings_button_clicked();
 
   void changedSIPText(const QString &text);
+
+  void uiChangedString(QString text);
+  void uiChangedBool(bool state);
 
 private:
 
@@ -92,7 +97,6 @@ private:
   void saveSettings();
 
 
-
   void resetFaultySettings();
 
   Ui::BasicSettings *basicUI_;
@@ -102,7 +106,8 @@ private:
   std::shared_ptr<ScreenInfo> screen_;
 
   SIPSettings sipSettings_;
-  MediaSettings mediaSettings_;
+  VideoSettings videoSettings_;
+  AudioSettings audioSettings_;
 
   QSettings settings_;
 };

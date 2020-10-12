@@ -16,6 +16,24 @@
   <layout class="QGridLayout" name="gridLayout">
    <item row="2" column="1">
     <widget class="QPushButton" name="save">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="minimumSize">
+      <size>
+       <width>96</width>
+       <height>0</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>96</width>
+       <height>16777215</height>
+      </size>
+     </property>
      <property name="text">
       <string>Save</string>
      </property>
@@ -23,6 +41,24 @@
    </item>
    <item row="2" column="2">
     <widget class="QPushButton" name="close">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="minimumSize">
+      <size>
+       <width>96</width>
+       <height>0</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>96</width>
+       <height>16777215</height>
+      </size>
+     </property>
      <property name="text">
       <string>Close</string>
      </property>
@@ -32,6 +68,9 @@
     <spacer name="horizontalSpacer">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Preferred</enum>
      </property>
      <property name="sizeHint" stdset="0">
       <size>
@@ -105,7 +144,7 @@
         </widget>
        </item>
        <item row="3" column="1">
-        <widget class="QLineEdit" name="username">
+        <widget class="QLineEdit" name="username_edit">
          <property name="maximumSize">
           <size>
            <width>256</width>
@@ -130,7 +169,7 @@
         </widget>
        </item>
        <item row="4" column="1">
-        <widget class="QLineEdit" name="serverAddress">
+        <widget class="QLineEdit" name="serverAddress_edit">
          <property name="maximumSize">
           <size>
            <width>256</width>
@@ -180,7 +219,7 @@
         </widget>
        </item>
        <item row="7" column="1">
-        <widget class="QCheckBox" name="autoConnect">
+        <widget class="QCheckBox" name="auto_connect_box">
          <property name="text">
           <string>Connect to server</string>
          </property>
@@ -206,7 +245,7 @@
         </widget>
        </item>
        <item row="10" column="1">
-        <widget class="QComboBox" name="videoDevice">
+        <widget class="QComboBox" name="videoDevice_combo">
          <property name="minimumSize">
           <size>
            <width>164</width>
@@ -234,7 +273,7 @@
         </widget>
        </item>
        <item row="11" column="1">
-        <widget class="QComboBox" name="audioDevice">
+        <widget class="QComboBox" name="audioDevice_combo">
          <property name="maximumSize">
           <size>
            <width>256</width>
@@ -259,7 +298,7 @@
         </widget>
        </item>
        <item row="12" column="1">
-        <widget class="QComboBox" name="screenDevice"/>
+        <widget class="QComboBox" name="screenDevice_combo"/>
        </item>
        <item row="13" column="0">
         <spacer name="horizontalSpacer_2">
@@ -287,20 +326,27 @@
          </property>
         </spacer>
        </item>
-       <item row="14" column="0">
-        <widget class="QPushButton" name="custom_settings_button">
+       <item row="15" column="0">
+        <widget class="QPushButton" name="video_settings_button">
          <property name="enabled">
           <bool>true</bool>
          </property>
          <property name="text">
-          <string>Media Settings</string>
+          <string>Video Settings</string>
          </property>
         </widget>
        </item>
-       <item row="15" column="0">
-        <widget class="QPushButton" name="advanced_settings_button">
+       <item row="16" column="0">
+        <widget class="QPushButton" name="sip_settings_button">
          <property name="text">
           <string>SIP Settings</string>
+         </property>
+        </widget>
+       </item>
+       <item row="14" column="0">
+        <widget class="QPushButton" name="audio_settings_button">
+         <property name="text">
+          <string>Audio Settings</string>
          </property>
         </widget>
        </item>

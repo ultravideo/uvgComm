@@ -5,6 +5,8 @@
 #include "uvgrtpreceiver.h"
 #include "common.h"
 
+#include <QDateTime>
+
 #define RTP_HEADER_SIZE 2
 #define FU_HEADER_SIZE  1
 
@@ -49,9 +51,6 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
     return;
   }
 
-  // TODO: payload len?
-  getStats()->addReceivePacket(frame->payload_len);
-
   if (addStartCodes_ && type_ == HEVCVIDEO)
   {
     frame->payload_len += 4;
@@ -65,7 +64,9 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
   received_picture->height = 0;
   received_picture->framerate = 0;
   received_picture->source = REMOTE;
-  received_picture->presentationTime = 0; // TODO
+
+  // TODO: Get this info from RTP
+  received_picture->presentationTime = QDateTime::currentMSecsSinceEpoch();
 
   // TODO: This copying should be done in separate thread as in
   // framedsource if we want to receive 4K with less powerful thread (like in Xeon)

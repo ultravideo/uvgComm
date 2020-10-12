@@ -6,6 +6,8 @@
 #include "global.h"
 
 #include <QDateTime>
+#include <QSettings>
+
 
 OpusEncoderFilter::OpusEncoderFilter(QString id, QAudioFormat format, StatisticsInterface* stats):
   Filter(id, "Opus Encoder", stats, RAWAUDIO, OPUSAUDIO),
@@ -41,7 +43,42 @@ bool OpusEncoderFilter::init()
   }
 
   samplesPerFrame_ = format_.sampleRate()/AUDIO_FRAMES_PER_SECOND;
+
+  updateSettings();
+
   return true;
+}
+
+
+void OpusEncoderFilter::updateSettings()
+{
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+
+  int bitrate = settings.value("audio/bitrate").toInt();
+  int complexity = settings.value("audio/complexity").toInt();
+  QString type = settings.value("audio/signalType").toString();
+
+  opus_encoder_ctl(enc_, OPUS_SET_BITRATE(bitrate));
+  opus_encoder_ctl(enc_, OPUS_SET_COMPLEXITY(complexity));
+
+  if (type == "Auto")
+  {
+    opus_encoder_ctl(enc_, OPUS_SET_SIGNAL(OPUS_AUTO));
+  }
+  else if (type == "Voice")
+  {
+    opus_encoder_ctl(enc_, OPUS_SET_SIGNAL(OPUS_SIGNAL_VOICE));
+  }
+  else if (type == "Music")
+  {
+    opus_encoder_ctl(enc_, OPUS_SET_SIGNAL(OPUS_SIGNAL_MUSIC));
+  }
+  else
+  {
+    printWarning(this, "Incorrect value in settings");
+  }
+
+  Filter::updateSettings();
 }
 
 

@@ -13,18 +13,19 @@
 
 
 namespace Ui {
-class CustomSettings;
+class VideoSettings;
 }
 
 class CameraInfo;
+class QComboBox;
 
-class MediaSettings  : public QDialog
+class VideoSettings  : public QDialog
 {
   Q_OBJECT
 public:
-  MediaSettings(QWidget* parent, std::shared_ptr<CameraInfo> info);
+  VideoSettings(QWidget* parent, std::shared_ptr<CameraInfo> info);
 
-  // initializes the custom view with values from settings.
+  // initializes the view with values from settings.
   void init(int deviceID);
 
   void changedDevice(uint16_t deviceIndex);
@@ -32,7 +33,7 @@ public:
 
 signals:
 
-  void customSettingsChanged();
+  void settingsChanged();
   void hidden();
 
 public slots:
@@ -42,36 +43,42 @@ public slots:
   void deleteListParameter();
 
   // button slots, called automatically by Qt
-  void on_custom_ok_clicked();
-  void on_custom_close_clicked();
+  void on_video_ok_clicked();
+  void on_video_close_clicked();
 
   void on_add_parameter_clicked();
 
   void initializeResolutions(QString format);
   void initializeFramerates(QString resolution);
 
+  void updateBitrate(int value);
+
+  void updateSliceBoxStatus();
+  void updateObaStatus(int index);
+
 private:
   // QSettings -> GUI
-  void restoreCustomSettings();
+  void restoreSettings();
+
+  void restoreComboBoxes();
   void restoreFormat();
   void restoreResolution();
   void restoreFramerate();
 
   // GUI -> QSettings
-  void saveCustomSettings();
+  void saveSettings();
 
   void saveCameraCapabilities(int deviceIndex);
 
   // initializes the UI with correct formats and resolutions
   void initializeFormat();
+  void initializeThreads();
 
-  bool checkVideoSettings();
-  bool checkAudioSettings();
-
+  bool checkSettings();
 
   int currentDevice_;
 
-  Ui::CustomSettings *customUI_;
+  Ui::VideoSettings *videoSettingsUI_;
 
   std::shared_ptr<CameraInfo> cam_;
 
