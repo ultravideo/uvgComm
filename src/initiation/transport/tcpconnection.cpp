@@ -182,6 +182,7 @@ void TCPConnection::run()
       if (!connectLoop())
       {
         printWarning(this, "Failed to connect TCP connection");
+        shouldConnect_ = false;
       }
     }
 
