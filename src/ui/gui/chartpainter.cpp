@@ -46,7 +46,7 @@ ChartPainter::ChartPainter(QWidget* parent)
   title_(""),
   titleSize_(0,0),
 
-  font_(QFont("times", 10))
+  font_(QFont("times", 14))
 {}
 
 
@@ -279,7 +279,7 @@ void ChartPainter::drawBackground(QPainter& painter)
   painter.fillRect(rect(), QBrush(QColor(250,250,250)));
 
   // chart title
-  QFont titleFont = QFont("times", 14);
+  QFont titleFont = QFont("times", 16);
   painter.setFont(titleFont);
   titleSize_ = QFontMetrics(painter.font()).size(Qt::TextSingleLine, title_);
 
