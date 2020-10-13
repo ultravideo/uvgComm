@@ -19,6 +19,10 @@ SIPRegistrations::SIPRegistrations():
 {}
 
 
+SIPRegistrations::~SIPRegistrations()
+{}
+
+
 void SIPRegistrations::init(ServerStatusView *statusView)
 {
   printNormal(this, "Initiatin Registrations");

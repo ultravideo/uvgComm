@@ -3,6 +3,8 @@
 #include <QDialog>
 #include <QSettings>
 
+#include <memory>
+
 namespace Ui {
 class AudioSettings;
 }

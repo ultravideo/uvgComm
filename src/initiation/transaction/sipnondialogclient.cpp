@@ -8,6 +8,11 @@ SIPNonDialogClient::SIPNonDialogClient():
   expires_(REGISTER_INTERVAL)
 {}
 
+
+SIPNonDialogClient::~SIPNonDialogClient()
+{}
+
+
 void SIPNonDialogClient::set_remoteURI(SIP_URI& uri)
 {
   remoteUri_ = uri;

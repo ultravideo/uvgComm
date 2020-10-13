@@ -4,6 +4,7 @@
 #include <QMutex>
 
 #include <deque>
+#include <memory>
 
 class ChartPainter : public QFrame
 {

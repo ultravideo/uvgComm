@@ -19,6 +19,7 @@ class SIPRegistrations : public QObject
   Q_OBJECT
 public:
   SIPRegistrations();
+  ~SIPRegistrations();
 
   void init(ServerStatusView* statusView);
 

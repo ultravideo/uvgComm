@@ -12,6 +12,7 @@ class SIPNonDialogClient : public SIPClient
   Q_OBJECT
 public:
   SIPNonDialogClient();
+  ~SIPNonDialogClient();
 
   void set_remoteURI(SIP_URI& uri);
 

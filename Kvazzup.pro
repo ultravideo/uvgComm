@@ -252,10 +252,9 @@ win32-g++{
 
 unix {
   QMAKE_CXXFLAGS += -msse4.1 -mavx2 -fopenmp
-
+  QMAKE_LFLAGS += -fopenmp
   INCLUDEPATH += /usr/include/opus/
   INCLUDEPATH += /usr/local/include/uvgrtp/
-  LIBS += -lgomp # openMP
 }
 
 INCLUDEPATH += $$PWD/../
