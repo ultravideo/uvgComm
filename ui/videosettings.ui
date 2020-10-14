@@ -259,28 +259,6 @@
          </property>
         </widget>
        </item>
-       <item row="14" column="2">
-        <widget class="QLineEdit" name="openhevc_threads">
-         <property name="minimumSize">
-          <size>
-           <width>48</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>48</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>2</string>
-         </property>
-         <property name="maxLength">
-          <number>3</number>
-         </property>
-        </widget>
-       </item>
        <item row="19" column="0">
         <widget class="QLabel" name="label_16">
          <property name="font">
@@ -374,7 +352,7 @@
         <widget class="QSpinBox" name="rgb32_threads">
          <property name="maximumSize">
           <size>
-           <width>48</width>
+           <width>36</width>
            <height>16777215</height>
           </size>
          </property>
@@ -390,7 +368,7 @@
         <widget class="QSpinBox" name="yuv_threads">
          <property name="maximumSize">
           <size>
-           <width>48</width>
+           <width>36</width>
            <height>16777215</height>
           </size>
          </property>
@@ -591,6 +569,22 @@
        </item>
        <item row="4" column="2">
         <widget class="QComboBox" name="owf"/>
+       </item>
+       <item row="14" column="2">
+        <widget class="QSpinBox" name="openhevc_threads">
+         <property name="maximumSize">
+          <size>
+           <width>36</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="minimum">
+          <number>1</number>
+         </property>
+         <property name="maximum">
+          <number>32</number>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>
@@ -1465,7 +1459,6 @@ max-merge &lt;integer&gt;  : Maximum number of merge candidates, 1..5
   <tabstop>framerate_box</tabstop>
   <tabstop>wpp</tabstop>
   <tabstop>slices</tabstop>
-  <tabstop>openhevc_threads</tabstop>
   <tabstop>video_close</tabstop>
   <tabstop>Advanced</tabstop>
  </tabstops>

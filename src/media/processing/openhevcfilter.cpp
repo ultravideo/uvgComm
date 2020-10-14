@@ -4,7 +4,6 @@
 
 #include "statisticsinterface.h"
 
-#include <QDebug>
 #include <QSettings>
 
 enum OHThreadType {OH_THREAD_FRAME  = 1, OH_THREAD_SLICE  = 2, OH_THREAD_FRAMESLICE  = 3};
@@ -15,15 +14,18 @@ OpenHEVCFilter::OpenHEVCFilter(uint32_t sessionID, StatisticsInterface *stats):
   parameterSets_(false),
   waitFrames_(0),
   slices_(true),
-  sessionID_(sessionID)
+  sessionID_(sessionID),
+  threads_(-1)
 {}
+
 
 bool OpenHEVCFilter::init()
 {
-  qDebug() << getName() << "iniating";
+  printNormal(this, "Initiating");
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
 
-  handle_ = libOpenHevcInit(settings.value("video/OPENHEVC_threads").toInt(), OH_THREAD_FRAME);
+  threads_ = settings.value("video/OPENHEVC_threads").toInt();
+  handle_ = libOpenHevcInit(threads_, OH_THREAD_FRAME);
 
   libOpenHevcSetDebugMode(handle_, 0);
   if(libOpenHevcStartDecoder(handle_) == -1)
@@ -34,7 +36,7 @@ bool OpenHEVCFilter::init()
   libOpenHevcSetTemporalLayer_id(handle_, 0);
   libOpenHevcSetActiveDecoders(handle_, 0);
   libOpenHevcSetViewLayers(handle_, 0);
-  qDebug() << getName() << "initiation success. Version: " << libOpenHevcVersion(handle_);
+  printNormal(this, "initiation success.", {"Version"}, {libOpenHevcVersion(handle_)});
 
   // This is because we don't know anything about the incoming stream
   maxBufferSize_ = -1; // no buffer limit
@@ -42,12 +44,14 @@ bool OpenHEVCFilter::init()
   return true;
 }
 
+
 void OpenHEVCFilter::uninit()
 {
-  qDebug() << getName() << "uniniating.";
+  printNormal(this, "Uniniating.");
   libOpenHevcFlush(handle_);
   libOpenHevcClose(handle_);
 }
+
 
 void OpenHEVCFilter::run()
 {
@@ -59,11 +63,24 @@ void OpenHEVCFilter::run()
   Filter::run();
 }
 
+
+void OpenHEVCFilter::updateSettings()
+{
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+  if (settings.value("video/OPENHEVC_threads").toInt() != threads_)
+  {
+    uninit();
+    init();
+  }
+  Filter::updateSettings();
+}
+
+
 void OpenHEVCFilter::combineFrame(std::unique_ptr<Data>& combinedFrame)
 {
   if(sliceBuffer_.size() == 0)
   {
-    qDebug() << "No previous slices";
+    printWarning(this, "No previous slices");
     return;
   }
 
@@ -88,7 +105,7 @@ void OpenHEVCFilter::combineFrame(std::unique_ptr<Data>& combinedFrame)
   if(slices_ && sliceBuffer_.size() == 1)
   {
     slices_ = false;
-    qDebug() << getName() << "Detected no slices in incoming stream.";
+    printPeerError(this, "Detected no slices in incoming stream.");
     uninit();
     init();
   }
@@ -116,7 +133,7 @@ void OpenHEVCFilter::process()
        && buff[2] == 1)
     {
       slices_ = true;
-      qDebug() << "Detected slices in incoming stream";
+      printNormal(this, "Detected slices in incoming stream");
       uninit();
       init();
     }
@@ -124,7 +141,7 @@ void OpenHEVCFilter::process()
     if(!parameterSets_ && (buff[4] >> 1) == 32)
     {
       parameterSets_ = true;
-      qDebug() << getName() << ": Parameter set found after" << waitFrames_ << "frames";
+      printNormal(this, "Parameter set found", {"Frame received before"}, {QString::number(waitFrames_)});
     }
 
     if(parameterSets_)

@@ -310,8 +310,7 @@ void VideoSettings::restoreSettings()
 
     restoreCheckBox("video/Slices", videoSettingsUI_->slices, settings_);
 
-    videoSettingsUI_->openhevc_threads->setText        (settings_.value("video/OPENHEVC_threads").toString());
-
+    videoSettingsUI_->openhevc_threads->setValue(settings_.value("video/OPENHEVC_threads").toInt());
     videoSettingsUI_->yuv_threads->setValue(settings_.value("video/yuvThreads").toInt());
     videoSettingsUI_->rgb32_threads->setValue(settings_.value("video/rgbThreads").toInt());
 

@@ -12,6 +12,8 @@ public:
   void uninit();
   void run();
 
+  virtual void updateSettings();
+
 protected:
   virtual void process();
 
@@ -31,4 +33,6 @@ private:
   std::vector<std::unique_ptr<Data>> sliceBuffer_;
 
   uint32_t sessionID_;
+
+  int threads_;
 };
