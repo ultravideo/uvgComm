@@ -23,6 +23,28 @@ AudioSettings::AudioSettings(QWidget* parent,
 
   connect(audioSettingsUI_->complexity_slider, &QSlider::valueChanged,
           this, &AudioSettings::updateComplexity);
+
+  connect(audioSettingsUI_->bitrate_slider, &QSlider::valueChanged,
+          audioSettingsUI_->audio_ok, &QPushButton::show);
+
+  connect(audioSettingsUI_->complexity_slider, &QSlider::valueChanged,
+          audioSettingsUI_->audio_ok, &QPushButton::show);
+
+  connect(audioSettingsUI_->signal_combo, &QComboBox::currentTextChanged,
+          this, &AudioSettings::showOkButton);
+}
+
+
+void AudioSettings::show()
+{
+  audioSettingsUI_->audio_ok->hide();
+  QDialog::show();
+}
+
+void AudioSettings::showOkButton(QString text)
+{
+  Q_UNUSED(text);
+  audioSettingsUI_->audio_ok->show();
 }
 
 
@@ -73,6 +95,8 @@ void AudioSettings::restoreSettings()
 {
   //initializeChannelList();
 
+  audioSettingsUI_->audio_ok->hide();
+
   if (checkSettings())
   {
     //restoreComboBoxValue("audio/channels", audioSettingsUI_->channel_combo, QString::number(1), settings_);
@@ -96,6 +120,8 @@ void AudioSettings::restoreSettings()
 void AudioSettings::saveSettings()
 {
   printNormal(this, "Saving audio Settings");
+
+  audioSettingsUI_->audio_ok->hide();
 
   //saveTextValue("audio/channels",
   //              audioSettingsUI_->channel_combo->currentText(), settings_);

@@ -17,6 +17,8 @@ class AudioSettings : public QDialog
 public:
   AudioSettings(QWidget* parent, std::shared_ptr<MicrophoneInfo> info);
 
+  virtual void show();
+
   // initializes the custom view with values from settings.
   void init(int deviceID);
 
@@ -36,6 +38,7 @@ public slots:
 
   void updateBitrate(int value);
   void updateComplexity(int value);
+  void showOkButton(QString text);
 
 private:
   // QSettings -> GUI
