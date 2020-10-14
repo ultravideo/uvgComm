@@ -116,7 +116,7 @@ bool AudioSettings::checkSettings()
 {
   bool everythingOK = checkMissingValues(settings_);
 
-  if(!settings_.contains("audio/channels") ||
+  if(// !settings_.contains("audio/channels") ||
      !settings_.contains("audio/bitrate") ||
      !settings_.contains("audio/complexity") ||
      !settings_.contains("audio/signalType"))
