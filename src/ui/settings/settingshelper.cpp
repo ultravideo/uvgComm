@@ -5,7 +5,6 @@
 #include <QMenu>
 #include <QCheckBox>
 #include <QComboBox>
-#include <QDebug>
 
 
 void saveCheckBox(const QString settingValue, QCheckBox* box, QSettings& settings)
@@ -33,8 +32,8 @@ void restoreCheckBox(const QString settingValue, QCheckBox* box, QSettings& sett
   }
   else
   {
-    qDebug() << "Settings, SettingsHelper : Corrupted value for checkbox in settings file for:"
-             << settingValue << "!!!";
+    printDebug(DEBUG_ERROR, "Settings Helper", "Corrupted value for checkbox in settings file",
+               {"Key"}, {settingValue});
   }
 }
 
@@ -57,7 +56,7 @@ bool checkMissingValues(QSettings& settings)
   {
     if(settings.value(key).isNull() || settings.value(key) == "")
     {
-      qDebug() << "Settings, SettingsHelper: MISSING SETTING FOR:" << key;
+      printDebug(DEBUG_ERROR, "Settings Helper", "Missing setting found", {"Key"}, {key});
       foundEverything = false;
     }
   }
@@ -85,8 +84,9 @@ void listSettingsToGUI(QString filename, QString listName, QStringList values, Q
 
   int size = settings.beginReadArray(listName);
 
-  qDebug() << "Settings, SettingsHelper : Reading" << listName << "from" << filename << "with"
-           << size << "items to GUI.";
+  printDebug(DEBUG_NORMAL, "Settings Helper", "Reading list from settings", {"File", "List name", "Items"},
+             {filename, listName, QString::number(size)});
+
 
   for(int i = 0; i < size; ++i)
   {
@@ -106,8 +106,8 @@ void listSettingsToGUI(QString filename, QString listName, QStringList values, Q
 
 void listGUIToSettings(QString filename, QString listName, QStringList values, QTableWidget* table)
 {
-  qDebug() << "Settings," << "SettingsHelper" << "Writing" << listName << "with"
-           << table->rowCount() << "items to settings.";
+  printDebug(DEBUG_NORMAL, "Settings Helper", "Writing list from GUI to settings", {"File", "List name", "Table items"},
+             {filename, listName, QString::number(table->rowCount())});
 
   QSettings settings(filename, QSettings::IniFormat);
 
@@ -128,7 +128,7 @@ void listGUIToSettings(QString filename, QString listName, QStringList values, Q
 void showContextMenu(const QPoint& pos, QTableWidget* table, QObject* processor,
                      QStringList actions, QStringList processSlots)
 {
-  qDebug() << "Settings," << "SettingsHelper" << ": Showing context menu for blocked users.";
+  printDebug(DEBUG_NORMAL, "Settings Helper", "Showing context menu.");
 
   if(actions.size() != processSlots.size())
   {

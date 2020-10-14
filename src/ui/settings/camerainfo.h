@@ -19,7 +19,6 @@ public:
   virtual QStringList getDeviceList();
 
   // get formats for a device.
-  // the for
   void getVideoFormats(int deviceID, QStringList& formats);
 
   // get resolutions for a format.

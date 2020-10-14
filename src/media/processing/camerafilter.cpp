@@ -8,7 +8,6 @@
 #include <QSettings>
 #include <QCameraInfo>
 #include <QTime>
-#include <QtDebug>
 
 
 CameraFilter::CameraFilter(QString id, StatisticsInterface *stats):
@@ -102,7 +101,7 @@ bool CameraFilter::initialCameraSetup()
 
   if(cameras.size() == 0)
   {
-    qDebug() << "No camera found!";
+    printWarning(this, "No camera found!");
     return false;
   }
 
@@ -118,18 +117,20 @@ bool CameraFilter::initialCameraSetup()
     {
       if(cameras.at(i).description() == currentDeviceName_)
       {
-        qDebug() << "Found camera with name:" << cameras.at(i).description() << "and id:" << i;
+        printDebug(DEBUG_NORMAL, this, "Found the camera.", {"Description", "ID"},
+                   {cameras.at(i).description(), QString::number(i)});
         currentDeviceID_ = i;
         break;
       }
     }
     // previous camera could not be found, use first.
-    qDebug() << "Did not find camera name:" << currentDeviceName_
-             << " Using first:" << cameras.at(0).description();
+    printDebug(DEBUG_NORMAL, this, "Did not find the camera. Using first.", {"Settings camera", "First camera"},
+               {currentDeviceName_, cameras.at(0).description()});
     currentDeviceID_ = 0;
   }
 
-  qDebug() << "Iniating Qt camera with device ID:" << currentDeviceID_ << " cameras:" << cameras.size();
+  printDebug(DEBUG_NORMAL, this, "Initiating Qt camera", {"ID"},
+              {QString::number(currentDeviceID_)});
 
   camera_ = new QCamera(cameras.at(currentDeviceID_));
   cameraFrameGrabber_ = new CameraFrameGrabber();
@@ -170,9 +171,7 @@ bool CameraFilter::cameraSetup()
     connect(cameraFrameGrabber_, SIGNAL(frameAvailable(QVideoFrame)), this, SLOT(handleFrame(QVideoFrame)));
 
     QCameraViewfinderSettings viewSettings = camera_->viewfinderSettings();
-    printSupportedFormats();
 
-    // TODO: this should be a temporary hack until dshow is replaced by qcamera
     currentInputFormat_ = settings.value("video/InputFormat").toString();
 
 #ifdef __linux__
@@ -201,7 +200,7 @@ bool CameraFilter::cameraSetup()
       output_ = NONE;
       return false;
     }
-    //printSupportedResolutions(viewSettings);
+
 #endif
 
 #ifndef __linux__
@@ -243,17 +242,15 @@ bool CameraFilter::cameraSetup()
     viewSettings.setMinimumFrameRate(30);
 #endif
 
-    qDebug() << "Iniating, CameraFilter : Using following QCamera settings:";
-    qDebug() << "Iniating, CameraFilter :---------------------------------------";
-    qDebug() << "Iniating, CameraFilter : Format:" << viewSettings.pixelFormat();
-    qDebug() << "Iniating, CameraFilter : Resolution:" << viewSettings.resolution();
-    qDebug() << "Iniating, CameraFilter : FrameRate:" << viewSettings.minimumFrameRate()
-             << "to" << viewSettings.maximumFrameRate();
-    qDebug() << "Iniating, CameraFilter : ---------------------------------------";
+    printDebug(DEBUG_NORMAL, this, "Using the following camera settings.",
+               {"Format", "Resolution", "Framerate"}, {currentInputFormat_,
+               QString::number(viewSettings.resolution().width()) + "x" + QString::number(viewSettings.resolution().height()),
+               QString::number(viewSettings.minimumFrameRate()) + " to " + QString::number(viewSettings.maximumFrameRate())});
+
     camera_->setViewfinderSettings(viewSettings);
     camera_->start();
 
-    qDebug() << "Iniating, CameraFilter : Camera status:" << camera_->state();
+    printImportant(this, "Starting camera.");
   }
   else
   {
@@ -296,7 +293,7 @@ void CameraFilter::process()
 {
   if(frames_.empty())
   {
-    qDebug() << "No frame";
+    printWarning(this, "No frame.");
     return;
   }
 
@@ -339,23 +336,5 @@ void CameraFilter::process()
 
     Q_ASSERT(u_newImage->data);
     sendOutput(std::move(u_newImage));
-  }
-}
-
-
-void CameraFilter::printSupportedFormats()
-{
-  QList<QVideoFrame::PixelFormat> formats = camera_->supportedViewfinderPixelFormats();
-  qDebug() << "Iniating, Camerafilter: QCamera supported formats:" << formats;
-}
-
-
-void CameraFilter::printSupportedResolutions(QCameraViewfinderSettings& viewsettings)
-{
-  QList<QSize> resolutions = camera_->supportedViewfinderResolutions(viewsettings);
-  qDebug() << "Iniating, CameraFilter: Found" << resolutions.size() << "supported QCamera resolutions.";
-  for(auto& reso : resolutions)
-  {
-    qDebug() << "Iniating, CameraFilter: QCamera supported resolutions:" << reso;
   }
 }

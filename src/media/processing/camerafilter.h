@@ -47,10 +47,6 @@ private:
   // setup camera device. For some reason this has to be called from main thread
   bool cameraSetup();
 
-  // debug print functions.
-  void printSupportedFormats();
-  void printSupportedResolutions(QCameraViewfinderSettings &viewsettings);
-
   QCamera *camera_;
   CameraFrameGrabber *cameraFrameGrabber_;
 

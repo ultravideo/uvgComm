@@ -15,7 +15,7 @@ SIPDialogManager::SIPDialogManager():
 
 void SIPDialogManager::init(SIPTransactionUser *callControl)
 {
-  qDebug() << "Iniating SIP Transactions";
+  printNormal(this, "Iniating SIP Transactions");
   transactionUser_ = callControl;
 }
 
@@ -98,7 +98,7 @@ void SIPDialogManager::acceptCall(uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
 
-  qDebug() << "Accept, SIPTransaction" << "accepting call:" << sessionID;
+  printNormal(this, "Accepting call", {"SessionID"}, {QString::number(sessionID)});
 
   dialogMutex_.lock();
   std::shared_ptr<SIPDialog> dialog = dialogs_[sessionID];
@@ -161,11 +161,10 @@ void SIPDialogManager::endAllCalls()
 
 
 bool SIPDialogManager::identifySession(SIPRequest request,
-                                      QString localAddress,
-                                      uint32_t& out_sessionID)
+                                       QString localAddress,
+                                       uint32_t& out_sessionID)
 {
-  qDebug() << "Starting to process identifying SIP Request session for type:"
-           << request.type;
+  printNormal(this, "Starting to process identifying SIP Request dialog.");
 
   out_sessionID = 0;
 
@@ -175,7 +174,7 @@ bool SIPDialogManager::identifySession(SIPRequest request,
     if(i->second != nullptr &&
        i->second->isThisYours(request))
     {
-      qDebug() << "Found dialog matching for incoming request.";
+      printNormal(this, "Found dialog matching for incoming request.");
       out_sessionID = i->first;
     }
   }
@@ -187,13 +186,13 @@ bool SIPDialogManager::identifySession(SIPRequest request,
   // we did not find existing dialog for this request
   if(out_sessionID == 0)
   {
-    qDebug() << "Could not find the dialog of the request.";
+    printNormal(this, "No existing dialog found.");
 
     // TODO: there is a problem if the sequence number did not match
     // and the request type is INVITE
     if(request.type == SIP_INVITE)
     {
-      qDebug() << "Someone is trying to start a SIP dialog with us!";
+      printNormal(this, "Someone is trying to start a SIP dialog with us!");
 
       out_sessionID = createDialogFromINVITE(localAddress, request.message);
       return true;
@@ -206,8 +205,7 @@ bool SIPDialogManager::identifySession(SIPRequest request,
 
 bool SIPDialogManager::identifySession(SIPResponse response, uint32_t& out_sessionID)
 {
-  qDebug() << "Attempting to identify SIP response session. Response type:"
-           << response.type;
+  printNormal(this, "Starting to process identifying SIP response dialog.");
 
   out_sessionID = 0;
   // find the dialog which corresponds to the callID and tags received in response
@@ -229,7 +227,7 @@ bool SIPDialogManager::identifySession(SIPResponse response, uint32_t& out_sessi
 void SIPDialogManager::processSIPRequest(SIPRequest request, uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
-  qDebug() << "Starting to process received SIP Request type:" << request.type;
+  printNormal(this, "Starting to process received SIP Request.");
 
   dialogMutex_.lock();
 

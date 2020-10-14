@@ -27,8 +27,8 @@ void SIPManager::init(SIPTransactionUser* callControl, StatisticsInterface *stat
   tcpServer_.setProxy(QNetworkProxy::NoProxy);
 
   // listen to everything
-  qDebug() << "Initiating," << metaObject()->className()
-           << ": Listening to SIP TCP connections on port:" << sipPort_;
+  printNormal(this, "Listening to SIP TCP connections", "Port", QString::number(sipPort_));
+
   if (!tcpServer_.listen(QHostAddress::Any, sipPort_))
   {
     printDebug(DEBUG_ERROR, this,
@@ -205,7 +205,7 @@ void SIPManager::getSDPs(uint32_t sessionID,
 
 void SIPManager::receiveTCPConnection(TCPConnection *con)
 {
-  qDebug() << "Received a TCP connection. Initializing dialog";
+  printNormal(this, "Received a TCP connection. Initializing dialog.");
   Q_ASSERT(con);
 
   std::shared_ptr<SIPTransport> transport = createSIPTransport();
@@ -245,7 +245,8 @@ void SIPManager::transportRequest(uint32_t sessionID, SIPRequest &request)
          == NEG_ANSWER_GENERATED)
       {
         request.message->content.length = 0;
-        qDebug() << "Adding SDP content to request:" << request.type;
+        printNormal(this, "Adding SDP content to request");
+
         request.message->content.type = APPLICATION_SDP;
 
         if (!SDPAnswerToContent(content, sessionID))
@@ -283,7 +284,7 @@ void SIPManager::transportResponse(uint32_t sessionID, SIPResponse &response)
           && response.message->transactionRequest == SIP_INVITE
           && negotiation_.getState(sessionID) == NEG_NO_STATE)
       {
-        qDebug() << "Adding SDP content to request:" << response.type;
+        printNormal(this, "Adding SDP to an OK response");
         response.message->content.length = 0;
         response.message->content.type = APPLICATION_SDP;
         if (!SDPOfferToContent(content, transports_[transportID]->getLocalAddress(), sessionID))
@@ -294,7 +295,8 @@ void SIPManager::transportResponse(uint32_t sessionID, SIPResponse &response)
       // if they sent an offer in their INVITE
       else if (negotiation_.getState(sessionID) == NEG_ANSWER_GENERATED)
       {
-        qDebug() << "Adding SDP answer to request:" << response.type;
+        printNormal(this, "Adding SDP to response since INVITE had an SDP.");
+
         response.message->content.length = 0;
         response.message->content.type = APPLICATION_SDP;
         if (!SDPAnswerToContent(content, sessionID))
@@ -536,7 +538,7 @@ bool SIPManager::SDPOfferToContent(QVariant& content, QString localAddress,
   printDebug(DEBUG_NORMAL, this,  "Adding one-to-one SDP.");
   if(!negotiation_.generateOfferSDP(localAddress, sessionID))
   {
-    qDebug() << "Failed to generate first SDP offer while sending.";
+    printWarning(this, "Failed to generate local SDP when sending offer.");
     return false;
   }
    pointer = negotiation_.getLocalSDP(sessionID);
@@ -563,7 +565,7 @@ bool SIPManager::processOfferSDP(uint32_t sessionID, QVariant& content,
   SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
   if(!negotiation_.generateAnswerSDP(retrieved, localAddress, sessionID))
   {
-    qDebug() << "Remote SDP not suitable or we have no ports to assign";
+    printWarning(this, "Remote SDP not suitable or we have no ports to assign");
     negotiation_.endSession(sessionID);
     return false;
   }

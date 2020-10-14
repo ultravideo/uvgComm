@@ -90,6 +90,7 @@ void Settings::init()
 
 void Settings::show()
 {
+  printNormal(this, "Opening settings");
   // initialize everytime in case they have changed
   initDeviceSelector(basicUI_->videoDevice_combo, "video/DeviceID", "video/Device", cam_);
   initDeviceSelector(basicUI_->audioDevice_combo, "audio/DeviceID", "audio/Device", mic_);
@@ -126,7 +127,7 @@ void Settings::on_save_clicked()
 
 void Settings::on_close_clicked()
 {
-  printNormal(this, "Closing. Gettings recorded settings");
+  printNormal(this, "Closing Settings. Gettings settings from file.");
 
   if (checkMissingValues() && checkUserSettings())
   {
@@ -285,8 +286,8 @@ void Settings::initDeviceSelector(QComboBox* deviceSelector,
     deviceSelector->setCurrentIndex(deviceIndex);
   }
 
-  printNormal(this, "Added " + QString::number(deviceSelector->count()) + " devices to selector",
-      {"SettingsID"}, {settingID});
+  //printNormal(this, "Added " + QString::number(deviceSelector->count()) + " devices to selector",
+  //    {"SettingsID"}, {settingID});
 }
 
 
