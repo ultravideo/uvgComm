@@ -9,7 +9,8 @@ UvgRTPSender::UvgRTPSender(QString id, StatisticsInterface *stats,
   Filter(id, "RTP Sender " + media, stats, type, NONE),
   type_(type),
   mstream_(mstream),
-  frame_(0)
+  frame_(0),
+  rtpFlags_(RTP_NO_FLAGS)
 {
   updateSettings();
 
@@ -47,13 +48,7 @@ void UvgRTPSender::updateSettings()
 
     if (settings.value("video/Slices").toInt() == 1)
     {
-      // 4k 30 fps uses can fit to max 200 slices
-      int maxSlices = 200;
-
-      // this buffersize is intended to hold at least one intra frame so we can
-      // delete all picture that do not belong to it. TODO: not implemented
-      maxBufferSize_    = maxSlices * vps * intra;
-      removeStartCodes_ = false;
+      rtpFlags_ |= RTP_SLICE;
     }
     else
     {
@@ -62,6 +57,8 @@ void UvgRTPSender::updateSettings()
 
       // discrete framer doesn't like start codes
       removeStartCodes_ = true;
+
+      rtpFlags_ &= ~RTP_SLICE;
     }
 
     printDebug(DEBUG_NORMAL, this,  "Updated buffersize", {"Size"}, {QString::number(maxBufferSize_)});
@@ -76,7 +73,7 @@ void UvgRTPSender::process()
 
   while (input)
   {
-    ret = mstream_->push_frame(std::move(input->data), input->data_size, RTP_NO_FLAGS);
+    ret = mstream_->push_frame(std::move(input->data), input->data_size, rtpFlags_);
 
     if (ret != RTP_OK)
     {

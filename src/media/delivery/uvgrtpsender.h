@@ -25,4 +25,5 @@ private:
   uvg_rtp::media_stream *mstream_;
   uint64_t frame_;
   rtp_format_t dataFormat_;
+  int rtpFlags_;
 };
