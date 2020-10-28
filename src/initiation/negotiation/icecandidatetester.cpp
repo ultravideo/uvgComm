@@ -41,7 +41,9 @@ void IceCandidateTester::startTestingPairs(bool controller)
       // when the UDPServer receives a datagram from address:port,
       // it will hand the containing the datagram to this tester. This way multiple
       // testers can listen to same socket
+      listenerMutex_.lock();
       listeners_[pair->remote->address][pair->remote->port] = workerThreads_.back();
+      listenerMutex_.unlock();
 
       workerThreads_.back()->setCandidatePair(pair);
       workerThreads_.back()->setController(controller);
@@ -69,7 +71,9 @@ void IceCandidateTester::endTests()
     }
     workerThreads_.clear();
     udp_.unbind();
+    listenerMutex_.lock();
     listeners_.clear();
+    listenerMutex_.unlock();
   }
 }
 
@@ -106,14 +110,18 @@ bool IceCandidateTester::performNomination(QList<std::shared_ptr<ICEPair>>& nomi
 
 void IceCandidateTester::routeDatagram(QNetworkDatagram message)
 {
+  listenerMutex_.lock();
   // is anyone listening to messages from this sender?
   if (listeners_.contains(message.senderAddress().toString()) &&
       listeners_[message.senderAddress().toString()].contains(message.senderPort()))
   {
-    listeners_[message.senderAddress().toString()][message.senderPort()]->recvStunMessage(message);
+    std::shared_ptr<IcePairTester> listener = listeners_[message.senderAddress().toString()][message.senderPort()];
+    listenerMutex_.unlock();
+    listener->recvStunMessage(message);
   }
   else if (!message.destinationAddress().isNull() && message.senderPort() != -1)
   {
+    listenerMutex_.unlock();
     // TODO: This is where we should detect if we should add Peer Reflexive candidates.
 
     printWarning(this, "Could not find listener for data", {"Address"}, {
@@ -121,5 +129,9 @@ void IceCandidateTester::routeDatagram(QNetworkDatagram message)
                  QString::number(message.destinationPort()) + " <- " +
                  message.senderAddress().toString() + ":" +
                  QString::number(message.senderPort())});
+  }
+  else
+  {
+    listenerMutex_.unlock();
   }
 }

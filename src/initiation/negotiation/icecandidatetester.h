@@ -5,6 +5,7 @@
 
 #include <QList>
 #include <QHostAddress>
+#include <QMutex>
 
 class IcePairTester;
 
@@ -54,4 +55,6 @@ private:
   std::vector<std::shared_ptr<IcePairTester>> workerThreads_;
 
   QMap<QString, QMap<quint16, std::shared_ptr<IcePairTester>>> listeners_;
+
+  QMutex listenerMutex_;
 };
