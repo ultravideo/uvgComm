@@ -26,9 +26,9 @@ public:
   virtual void audioInfo(uint32_t sampleRate, uint16_t channelCount) = 0;
 
   // basic call info for incoming and outgoing medias
-  virtual void incomingMedia(uint32_t sessionID, QStringList& ipList,
+  virtual void incomingMedia(uint32_t sessionID, QString name, QStringList& ipList,
                              QStringList& audioPorts, QStringList& videoPorts) = 0;
-  virtual void outgoingMedia(uint32_t sessionID, QStringList& ipList,
+  virtual void outgoingMedia(uint32_t sessionID, QString name, QStringList& ipList,
                              QStringList& audioPorts, QStringList& videoPorts) = 0;
 
   // the delay it takes from input to the point when input is encoded

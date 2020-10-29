@@ -73,13 +73,13 @@ StatisticsInterface(),
   ui_->a_delay_chart->init(10, 5, false, CHARTVALUES, "Latencies (ms)");
   ui_->v_framerate_chart->init(30, 5, false, CHARTVALUES, "Framerates (fps)");
 
-  chartVideoID_ = ui_->v_bitrate_chart->addLine("Kvazaar");
-  chartAudioID_ = ui_->a_bitrate_chart->addLine("Opus");
+  chartVideoID_ = ui_->v_bitrate_chart->addLine("Outgoing");
+  chartAudioID_ = ui_->a_bitrate_chart->addLine("Outgoing");
 
-  ui_->v_delay_chart->addLine("Sending");
-  ui_->a_delay_chart->addLine("Sending");
+  ui_->v_delay_chart->addLine("Outgoing");
+  ui_->a_delay_chart->addLine("Outgoing");
 
-  ui_->v_framerate_chart->addLine("Kvazaar");
+  ui_->v_framerate_chart->addLine("Outgoing");
 
   // init headers of call parameter table
   fillTableHeaders(ui_->table_outgoing, sessionMutex_,
@@ -165,7 +165,7 @@ void StatisticsWindow::addSession(uint32_t sessionID)
 }
 
 
-void StatisticsWindow::incomingMedia(uint32_t sessionID, QStringList& ipList,
+void StatisticsWindow::incomingMedia(uint32_t sessionID, QString name, QStringList& ipList,
                                      QStringList &audioPorts, QStringList &videoPorts)
 {
   if (ipList.size() == 0)
@@ -175,15 +175,15 @@ void StatisticsWindow::incomingMedia(uint32_t sessionID, QStringList& ipList,
 
   addMedia(ui_->table_incoming, sessionID, ipList, audioPorts, videoPorts);
 
-  ui_->v_delay_chart->addLine(ipList.at(0));
-  ui_->a_delay_chart->addLine(ipList.at(0));
-  ui_->v_bitrate_chart->addLine(ipList.at(0));
-  ui_->a_bitrate_chart->addLine(ipList.at(0));
-  ui_->v_framerate_chart->addLine(ipList.at(0));
+  ui_->v_delay_chart->addLine(name);
+  ui_->a_delay_chart->addLine(name);
+  ui_->v_bitrate_chart->addLine(name);
+  ui_->a_bitrate_chart->addLine(name);
+  ui_->v_framerate_chart->addLine(name);
 }
 
 
-void StatisticsWindow::outgoingMedia(uint32_t sessionID, QStringList& ipList,
+void StatisticsWindow::outgoingMedia(uint32_t sessionID, QString name, QStringList& ipList,
                                      QStringList& audioPorts, QStringList& videoPorts)
 {
   addMedia(ui_->table_outgoing, sessionID, ipList, audioPorts, videoPorts);

@@ -520,7 +520,7 @@
           </sizepolicy>
          </property>
          <property name="text">
-          <string>Tail length: 5x</string>
+          <string>Window length: 5x</string>
          </property>
         </widget>
        </item>

@@ -426,11 +426,11 @@ void MediaManager::sdpToStats(uint32_t sessionID, std::shared_ptr<SDPMessageInfo
   {
     if (incoming)
     {
-      stats_->incomingMedia(sessionID, ipList, audioPorts, videoPorts);
+      stats_->incomingMedia(sessionID, sdp->originator_username, ipList, audioPorts, videoPorts);
     }
     else
     {
-      stats_->outgoingMedia(sessionID, ipList, audioPorts, videoPorts);
+      stats_->outgoingMedia(sessionID, sdp->originator_username,ipList, audioPorts, videoPorts);
     }
   }
 }

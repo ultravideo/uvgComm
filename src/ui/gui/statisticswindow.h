@@ -39,9 +39,9 @@ public:
   // media
   virtual void videoInfo(double framerate, QSize resolution);
   virtual void audioInfo(uint32_t sampleRate, uint16_t channelCount);
-  virtual void incomingMedia(uint32_t sessionID, QStringList& ipList,
+  virtual void incomingMedia(uint32_t sessionID, QString name, QStringList& ipList,
                              QStringList& audioPorts, QStringList& videoPorts);
-  virtual void outgoingMedia(uint32_t sessionID, QStringList& ipList,
+  virtual void outgoingMedia(uint32_t sessionID, QString name, QStringList& ipList,
                              QStringList& audioPorts, QStringList& videoPorts);
   virtual void sendDelay(QString type, uint32_t delay);
   virtual void receiveDelay(uint32_t sessionID, QString type, int32_t delay);
