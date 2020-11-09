@@ -88,7 +88,7 @@ void IcePairTester::run()
 
   pair_->state = PAIR_IN_PROGRESS;
 
-  if (!sendBindingRequest(pair_.get(), controller_))
+  if (!bindingPhase(pair_.get(), controller_))
   {
     printNormal(this, "Binding failed. No connection found.", {"Path"},
     {pair_->local->address + ":" + QString::number(pair_->local->port) + " <-> " +
@@ -115,7 +115,7 @@ void IcePairTester::run()
                   pair_->remote->address + ":" + QString::number(pair_->remote->port)});
 
     // controllee starts waiting for nomination requests on this pair.
-    if (!sendNominationResponse(pair_.get()))
+    if (!waitNominationSendResponse(pair_.get()))
     {
       printNormal(this,  "Did not receive nomination for candidate: ", {"Pair"},
                   {pair_->local->address + ":" + QString::number(pair_->local->port) + " <- " +
@@ -135,30 +135,48 @@ void IcePairTester::run()
 }
 
 
-bool IcePairTester::waitForStunResponse(unsigned long timeout)
-{
-  QTimer timer;
-  timer.setSingleShot(true);
-  QEventLoop loop;
-
-  connect(this,   &IcePairTester::responseRecv,   &loop, &QEventLoop::quit, Qt::DirectConnection);
-  connect(this,   &IcePairTester::stopEventLoop, &loop, &QEventLoop::quit, Qt::DirectConnection);
-  connect(&timer, &QTimer::timeout,     &loop, &QEventLoop::quit, Qt::DirectConnection);
-
-  timer.start(timeout);
-  loop.exec();
-
-  return timer.isActive();
-}
-
-
 bool IcePairTester::waitForStunRequest(unsigned long timeout)
 {
+  return waitForStunMessage(timeout, true, false, false);
+}
+
+
+bool IcePairTester::waitForStunResponse(unsigned long timeout)
+{
+  return waitForStunMessage(timeout, false, true, false);
+}
+
+
+bool IcePairTester::waitForStunNomination(unsigned long timeout)
+{
+  return waitForStunMessage(timeout, false, false, true);
+}
+
+
+bool IcePairTester::waitForStunMessage(unsigned long timeout,
+                                       bool expectingRequest,
+                                       bool expectingResponse,
+                                       bool expectingNomination)
+{
   QTimer timer;
   timer.setSingleShot(true);
   QEventLoop loop;
 
-  connect(this,   &IcePairTester::requestRecv,   &loop, &QEventLoop::quit, Qt::DirectConnection);
+  if (expectingRequest)
+  {
+    connect(this,   &IcePairTester::requestRecv,   &loop, &QEventLoop::quit, Qt::DirectConnection);
+  }
+
+  if (expectingResponse)
+  {
+    connect(this,   &IcePairTester::responseRecv,   &loop, &QEventLoop::quit, Qt::DirectConnection);
+  }
+
+  if (expectingNomination)
+  {
+    connect(this,   &IcePairTester::nominationRecv, &loop, &QEventLoop::quit, Qt::DirectConnection);
+  }
+
   connect(this,   &IcePairTester::stopEventLoop, &loop, &QEventLoop::quit, Qt::DirectConnection);
   connect(&timer, &QTimer::timeout,     &loop, &QEventLoop::quit, Qt::DirectConnection);
 
@@ -169,24 +187,8 @@ bool IcePairTester::waitForStunRequest(unsigned long timeout)
 }
 
 
-bool IcePairTester::waitForNominationRequest(unsigned long timeout)
-{
-  QTimer timer;
-  timer.setSingleShot(true);
-  QEventLoop loop;
 
-  connect(this,   &IcePairTester::nominationRecv, &loop, &QEventLoop::quit, Qt::DirectConnection);
-  connect(this,   &IcePairTester::stopEventLoop,  &loop, &QEventLoop::quit, Qt::DirectConnection);
-  connect(&timer, &QTimer::timeout,      &loop, &QEventLoop::quit, Qt::DirectConnection);
-
-  timer.start(timeout);
-  loop.exec();
-
-  return timer.isActive();
-}
-
-
-bool IcePairTester::controllerSendBindingRequest(ICEPair *pair)
+bool IcePairTester::controllerBinding(ICEPair *pair)
 {
   Q_ASSERT(pair != nullptr);
 
@@ -249,11 +251,12 @@ bool IcePairTester::controllerSendBindingRequest(ICEPair *pair)
 }
 
 
-bool IcePairTester::controlleeSendBindingRequest(ICEPair *pair)
+bool IcePairTester::controlleeBinding(ICEPair *pair)
 {
   Q_ASSERT(pair != nullptr);
 
-  // TODO: Why does controllee send a binding request without attributes?
+  //TODO: Should the checks be performed at the same time?
+  // Dummy packet sending so the port can be hole-punched.
   bool msgReceived   = false;
   STUNMessage msg    = stunmsg_.createRequest();
   QByteArray message = stunmsg_.hostToNetwork(msg);
@@ -276,6 +279,7 @@ bool IcePairTester::controlleeSendBindingRequest(ICEPair *pair)
         return false;
       }
 
+      // send response to received request
       msg = stunmsg_.createResponse();
       msg.addAttribute(STUN_ATTR_ICE_CONTROLLED);
 
@@ -319,13 +323,14 @@ bool IcePairTester::controlleeSendBindingRequest(ICEPair *pair)
   // we're expecting a response from remote to this request
   stunmsg_.cacheRequest(request);
 
+  // do the connectivity check from our end to theirs
   msgReceived = sendRequestWaitResponse(pair, message, STUN_RETRIES, STUN_WAIT_MS);
 
   return msgReceived;
 }
 
 
-bool IcePairTester::sendBindingRequest(ICEPair *pair, bool controller)
+bool IcePairTester::bindingPhase(ICEPair *pair, bool controller)
 {
   Q_ASSERT(pair != nullptr);
 
@@ -342,16 +347,22 @@ bool IcePairTester::sendBindingRequest(ICEPair *pair, bool controller)
                   pair->remote->address + ":" + QString::number(pair->remote->port)});
   }
 
+
+  bool state = false;
   if (controller)
   {
-    return controllerSendBindingRequest(pair);
+    state = controllerBinding(pair);
+  }
+  else
+  {
+    state = controlleeBinding(pair);
   }
 
-  return controlleeSendBindingRequest(pair);
+  return state;
 }
 
 
-bool IcePairTester::sendNominationRequest(ICEPair *pair)
+bool IcePairTester::sendNominationWaitResponse(ICEPair *pair)
 {
   Q_ASSERT(pair != nullptr);
 
@@ -372,11 +383,11 @@ bool IcePairTester::sendNominationRequest(ICEPair *pair)
 }
 
 
-bool IcePairTester::sendNominationResponse(ICEPair *pair)
+bool IcePairTester::waitNominationSendResponse(ICEPair *pair)
 {
   Q_ASSERT(pair != nullptr);
 
-  // TODO: Is this correct?
+  // dummy message. TODO: Is this needed?
   bool nominationRecv = false;
   STUNMessage msg     = stunmsg_.createRequest();
   QByteArray message = stunmsg_.hostToNetwork(msg);
@@ -388,7 +399,7 @@ bool IcePairTester::sendNominationResponse(ICEPair *pair)
                    QHostAddress(pair->remote->address),
                    pair->remote->port);
 
-    if (waitForNominationRequest(STUN_WAIT_MS * (i + 1)))
+    if (waitForStunNomination(STUN_WAIT_MS * (i + 1)))
     {
       if (interrupted_)
       {

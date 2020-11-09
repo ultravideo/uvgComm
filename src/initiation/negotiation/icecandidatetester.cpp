@@ -93,7 +93,7 @@ bool IceCandidateTester::performNomination(QList<std::shared_ptr<ICEPair>>& nomi
     {
       return false;
     }
-    if (!workerThreads_.back()->sendNominationRequest(pair.get()))
+    if (!workerThreads_.back()->sendNominationWaitResponse(pair.get()))
     {
       udp_.unbind();
       printError(this,  "Failed to nominate a pair in for candidate!");
