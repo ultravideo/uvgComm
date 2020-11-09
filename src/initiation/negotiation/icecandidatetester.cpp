@@ -115,16 +115,18 @@ void IceCandidateTester::routeDatagram(QNetworkDatagram message)
   if (listeners_.contains(message.senderAddress().toString()) &&
       listeners_[message.senderAddress().toString()].contains(message.senderPort()))
   {
-    std::shared_ptr<IcePairTester> listener = listeners_[message.senderAddress().toString()][message.senderPort()];
+    std::shared_ptr<IcePairTester> listener
+        = listeners_[message.senderAddress().toString()][message.senderPort()];
+
     listenerMutex_.unlock();
     listener->recvStunMessage(message);
   }
-  else if (!message.destinationAddress().isNull() && message.senderPort() != -1)
+  else if (!message.senderAddress().isNull() && message.senderPort() != -1)
   {
     listenerMutex_.unlock();
     // TODO: This is where we should detect if we should add Peer Reflexive candidates.
 
-    printWarning(this, "Could not find listener for data", {"Address"}, {
+    printWarning(this, "Found a peer reflexive candidate. Not implemented.", {"Address"}, {
                  message.destinationAddress().toString() + ":" +
                  QString::number(message.destinationPort()) + " <- " +
                  message.senderAddress().toString() + ":" +
@@ -132,6 +134,11 @@ void IceCandidateTester::routeDatagram(QNetworkDatagram message)
   }
   else
   {
+    printWarning(this, "Message ", {"The sender address or port were not set in network package"}, {
+                 message.destinationAddress().toString() + ":" +
+                 QString::number(message.destinationPort()) + " <- " +
+                 message.senderAddress().toString() + ":" +
+                 QString::number(message.senderPort())});
     listenerMutex_.unlock();
   }
 }

@@ -38,7 +38,24 @@ void IceSessionTester::componentSucceeded(std::shared_ptr<ICEPair> connection)
   Q_ASSERT(connection != nullptr);
 
   nominated_mtx.lock();
+
+  if (finished_[connection->local->foundation].find(connection->local->component)
+      != finished_[connection->local->foundation].end())
+  {
+    printError(this, "Component finished, but it has already finished before.");
+  }
+
   finished_[connection->local->foundation][connection->local->component] = connection;
+
+  QString type = "Controller";
+  if (!controller_)
+  {
+    type = "Controllee";
+  }
+
+  printNormal(this, type + " component finished", {"Finished components"},
+              {QString::number(finished_[connection->local->foundation].size()) + "/" +
+              QString::number(components_)});
 
   // nominated check makes sure only one stream is nominated.
   // if we have received all components, nominate these.
@@ -92,7 +109,6 @@ void IceSessionTester::run()
     return;
   }
 
-
   QList<std::shared_ptr<IceCandidateTester>> candidates;
 
   QString prevAddr  = "";
@@ -139,6 +155,11 @@ void IceSessionTester::run()
     interface->startTestingPairs(controller_);
   }
 
+  // TODO: This is not technically according to specification. The nomination
+  // should only be done for once per component. The current implementation
+  // is who can get all their components finished fastest.
+
+
   // now we wait until the connection tests have ended. Wait at most timeout_
   waitForEndOfTesting(timeout_);
 
@@ -152,7 +173,7 @@ void IceSessionTester::run()
   // we did not get nominations and instead we got a timeout
   if (nominated_.empty())
   {
-    printError(this, "Nomination from remote was not received in time!");
+    printError(this, "Nominations from remote were not received in time!");
     emit iceFailure(sessionID_);
     nominated_mtx.unlock();
     return;

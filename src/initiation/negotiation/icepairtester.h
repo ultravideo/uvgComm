@@ -41,7 +41,7 @@ signals:
   void controllerPairSucceeded(std::shared_ptr<ICEPair> connection);
   void controlleeNominationDone(std::shared_ptr<ICEPair> connection);
 
-  void parsingDone();
+  void responseRecv();
   void nominationRecv();
   void requestRecv();
   void stopEventLoop();
@@ -77,9 +77,9 @@ private:
   // to all valid candidate address:port pairs to receive the nominations
   bool sendNominationResponse(ICEPair *pair);
 
-  // waitForStunResponse() starts an even loop which listens to parsingDone() signal
+  // waitForStunResponse() starts an even loop which listens to responseRecv() signal
   // When the signal is received the event loop is stopped and waitForStunResponse() returns true
-  // If parsingDone() signal is not received in time, waitForStunResponse() returns false
+  // If responseRecv() signal is not received in time, waitForStunResponse() returns false
   bool waitForStunResponse(unsigned long timeout);
 
   // Same as waitForStunResponse() but this function listens to requestRecv() signal

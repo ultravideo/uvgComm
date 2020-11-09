@@ -13,6 +13,9 @@
 
 #include <math.h>       /* pow */
 
+const uint32_t CONTROLLER_SESSION_TIMEOUT = 10000;
+const uint32_t NONCONTROLLER_SESSION_TIMEOUT = 20000;
+
 
 ICE::ICE()
 {}
@@ -224,15 +227,18 @@ void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local,
   // When testing is finished it is connected tonominationSucceeded/nominationFailed
 
   // nomination-related memory is released by cleanupSession
+
+  uint32_t timeout = 0;
   if (controller)
   {
-    nominationInfo_[sessionID].agent = new IceSessionTester(true, 10000);
+    timeout = CONTROLLER_SESSION_TIMEOUT;
   }
   else
   {
-    nominationInfo_[sessionID].agent = new IceSessionTester(false, 20000);
+    timeout = NONCONTROLLER_SESSION_TIMEOUT;
   }
 
+  nominationInfo_[sessionID].agent = new IceSessionTester(controller, timeout);
   nominationInfo_[sessionID].pairs = makeCandidatePairs(local, remote);
   nominationInfo_[sessionID].connectionNominated = false;
 
@@ -259,11 +265,12 @@ void ICE::handeICESuccess(QList<std::shared_ptr<ICEPair> > &streams, uint32_t se
 {
   Q_ASSERT(sessionID != 0);
 
-  // check that results make sense. Should always do
+  // check that results make sense. They should always.
   if (streams.at(0) == nullptr ||
       streams.at(1) == nullptr ||
       streams.size() != STREAM_COMPONENTS)
   {
+    printProgramError(this,  "The ICE results don't make sense even though they should");
     handleICEFailure(sessionID);
   }
   else 

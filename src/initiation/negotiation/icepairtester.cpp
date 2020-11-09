@@ -29,24 +29,30 @@ IcePairTester::~IcePairTester()
 
 QHostAddress IcePairTester::getLocalAddress(std::shared_ptr<ICEInfo> info)
 {
+  // use relay address
   if (info->type != "host" &&
       info->rel_address != "" &&
       info->rel_port != 0)
   {
     return QHostAddress(info->rel_address);
   }
+
+  // don't use relay address
   return QHostAddress(info->address);
 }
 
 
 quint16 IcePairTester::getLocalPort(std::shared_ptr<ICEInfo> info)
 {
+  // use relay port
   if (info->type != "host" &&
       info->rel_address != "" &&
       info->rel_port != 0)
   {
     return info->rel_port;
   }
+
+  // don't use relay port
   return info->port;
 }
 
@@ -76,8 +82,7 @@ void IcePairTester::run()
 {
   if (pair_ == nullptr)
   {
-    printDebug(DEBUG_ERROR, this,
-        "Unable to test connection, candidate is NULL!");
+    printProgramError(this, "Unable to test connection, candidate is NULL!");
     return;
   }
 
@@ -85,10 +90,10 @@ void IcePairTester::run()
 
   if (!sendBindingRequest(pair_.get(), controller_))
   {
-    printNormal(this, "No connection found.", {"Path"},
+    printNormal(this, "Binding failed. No connection found.", {"Path"},
     {pair_->local->address + ":" + QString::number(pair_->local->port) + " <-> " +
      pair_->remote->address + ":" + QString::number(pair_->remote->port)});
-    return;
+    return; // fail
   }
 
   pair_->state = PAIR_SUCCEEDED;
@@ -102,24 +107,31 @@ void IcePairTester::run()
 
     // we have to sync the nomination elsewhere because only one pair should be nominated
     emit controllerPairSucceeded(pair_);
-    return;
   }
-
-  // controllee starts waiting for nomination requests on this pair.
-  if (!sendNominationResponse(pair_.get()))
+  else
   {
-    printNormal(this,  "Did not receive nomination for candidate: ", {"Pair"},
-               {pair_->local->address + ":" + QString::number(pair_->local->port) + " <- " +
-                pair_->remote->address + ":" + QString::number(pair_->remote->port)});
-    pair_->state = PAIR_FAILED;
-    return;
+    printNormal(this, "Controllee binding succeeded", {"Pair"}, {
+                  pair_->local->address + ":" + QString::number(pair_->local->port) + " <-> " +
+                  pair_->remote->address + ":" + QString::number(pair_->remote->port)});
+
+    // controllee starts waiting for nomination requests on this pair.
+    if (!sendNominationResponse(pair_.get()))
+    {
+      printNormal(this,  "Did not receive nomination for candidate: ", {"Pair"},
+                  {pair_->local->address + ":" + QString::number(pair_->local->port) + " <- " +
+                   pair_->remote->address + ":" + QString::number(pair_->remote->port)});
+      pair_->state = PAIR_FAILED;
+      return; // fail
+    }
+
+    printNormal(this, "Non-Controller nomination succeeded", {"Pair"}, {
+                  pair_->local->address + ":" + QString::number(pair_->local->port) + " <-> " +
+                  pair_->remote->address + ":" + QString::number(pair_->remote->port)});
+
+    emit controlleeNominationDone(pair_);
   }
 
-  printNormal(this, "Non-Controller nomination succeeded", {"Pair"}, {
-                pair_->local->address + ":" + QString::number(pair_->local->port) + " <-> " +
-                pair_->remote->address + ":" + QString::number(pair_->remote->port)});
-
-  emit controlleeNominationDone(pair_);
+  // success
 }
 
 
@@ -129,7 +141,7 @@ bool IcePairTester::waitForStunResponse(unsigned long timeout)
   timer.setSingleShot(true);
   QEventLoop loop;
 
-  connect(this,   &IcePairTester::parsingDone,   &loop, &QEventLoop::quit, Qt::DirectConnection);
+  connect(this,   &IcePairTester::responseRecv,   &loop, &QEventLoop::quit, Qt::DirectConnection);
   connect(this,   &IcePairTester::stopEventLoop, &loop, &QEventLoop::quit, Qt::DirectConnection);
   connect(&timer, &QTimer::timeout,     &loop, &QEventLoop::quit, Qt::DirectConnection);
 
@@ -193,6 +205,7 @@ bool IcePairTester::controllerSendBindingRequest(ICEPair *pair)
 
   if (!sendRequestWaitResponse(pair, message, STUN_RETRIES, STUN_WAIT_MS))
   {
+    printWarning(this, "Binding failed");
     return false;
   }
 
@@ -240,6 +253,7 @@ bool IcePairTester::controlleeSendBindingRequest(ICEPair *pair)
 {
   Q_ASSERT(pair != nullptr);
 
+  // TODO: Why does controllee send a binding request without attributes?
   bool msgReceived   = false;
   STUNMessage msg    = stunmsg_.createRequest();
   QByteArray message = stunmsg_.hostToNetwork(msg);
@@ -343,7 +357,7 @@ bool IcePairTester::sendNominationRequest(ICEPair *pair)
 
   STUNMessage request = stunmsg_.createRequest();
   request.addAttribute(STUN_ATTR_ICE_CONTROLLING);
-  request.addAttribute(STUN_ATTR_USE_CANDIATE);
+  request.addAttribute(STUN_ATTR_USE_CANDIDATE);
 
   // expect reply for this message from remote
   stunmsg_.expectReplyFrom(request, pair->remote->address, pair->remote->port);
@@ -362,6 +376,7 @@ bool IcePairTester::sendNominationResponse(ICEPair *pair)
 {
   Q_ASSERT(pair != nullptr);
 
+  // TODO: Is this correct?
   bool nominationRecv = false;
   STUNMessage msg     = stunmsg_.createRequest();
   QByteArray message = stunmsg_.hostToNetwork(msg);
@@ -426,15 +441,43 @@ void IcePairTester::recvStunMessage(QNetworkDatagram message)
   {
     if (stunmsg_.validateStunRequest(stunMsg))
     {
-      stunmsg_.cacheRequest(stunMsg);
-
-      if (stunMsg.hasAttribute(STUN_ATTR_USE_CANDIATE))
+      if (controller_ && !stunMsg.hasAttribute(STUN_ATTR_ICE_CONTROLLED))
       {
-        emit nominationRecv();
-        return;
+        printWarning(this, "Got request without controlled attribute and we are the controller");
+        return; // fail
+      }
+      else if (!controller_ && !stunMsg.hasAttribute(STUN_ATTR_ICE_CONTROLLING))
+      {
+        printWarning(this, "Got request without controlling attribute and we are not the controller");
+        return; // fail
       }
 
-      emit requestRecv();
+      stunmsg_.cacheRequest(stunMsg);
+
+      if (stunMsg.hasAttribute(STUN_ATTR_USE_CANDIDATE))
+      {
+        if (pair_->state != PAIR_SUCCEEDED)
+        {
+          printError(this, "Pair in wrong state when receiving nomination request");
+          return; // fail
+        }
+
+        emit nominationRecv();
+      }
+      else
+      {
+        if (pair_->state != PAIR_IN_PROGRESS)
+        {
+          printError(this, "Pair in wrong state when receiving binding request");
+          return; // fail
+        }
+
+        emit requestRecv();
+      }
+    }
+    else
+    {
+      printWarning(this, "Received invalid STUN request in ice");
     }
   }
   else if (stunMsg.getType() == STUN_RESPONSE)
@@ -443,12 +486,16 @@ void IcePairTester::recvStunMessage(QNetworkDatagram message)
                                       message.senderAddress(),
                                       message.senderPort()))
     {
-      emit parsingDone();
+      emit responseRecv();
+    }
+    else
+    {
+      printWarning(this, "Received invalid STUN response in ICE");
     }
   }
   else
   {
-     printDebug(DEBUG_WARNING, "STUN",  "Received message with unknown type", {
+     printDebug(DEBUG_WARNING, this,  "Received message with unknown type", {
                   "type", "from", "to" }, {
                   QString::number(stunMsg.getType()),
                   message.senderAddress().toString() + ":" +
