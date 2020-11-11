@@ -54,6 +54,7 @@ public slots:
   void updateBitrate(int value);
 
   void updateSliceBoxStatus();
+  void updateTilesStatus();
   void updateObaStatus(int index);
 
 private:

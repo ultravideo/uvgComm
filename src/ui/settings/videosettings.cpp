@@ -102,6 +102,8 @@ void VideoSettings::resetSettings(int deviceID)
   currentDevice_ = deviceID;
   initializeFormat();
   saveSettings();
+  updateSliceBoxStatus();
+  updateTilesStatus();
 }
 
 
@@ -296,16 +298,7 @@ void VideoSettings::restoreSettings()
       }
     }
 
-    if (videoSettingsUI_->tiles_checkbox->checkState())
-    {
-      videoSettingsUI_->tile_frame->setHidden(false);
-      videoSettingsUI_->tile_split_label->setHidden(false);
-    }
-    else
-    {
-      videoSettingsUI_->tile_frame->setHidden(true);
-      videoSettingsUI_->tile_split_label->setHidden(true);
-    }
+    updateTilesStatus();
 
     restoreCheckBox("video/Slices", videoSettingsUI_->slices, settings_);
 
@@ -563,6 +556,20 @@ void VideoSettings::updateSliceBoxStatus()
     videoSettingsUI_->slices_label->setDisabled(true);
     videoSettingsUI_->slices->setDisabled(true);
     videoSettingsUI_->slices->setCheckState(Qt::CheckState::Unchecked);
+  }
+}
+
+void VideoSettings::updateTilesStatus()
+{
+  if (videoSettingsUI_->tiles_checkbox->checkState())
+  {
+    videoSettingsUI_->tile_frame->setHidden(false);
+    videoSettingsUI_->tile_split_label->setHidden(false);
+  }
+  else
+  {
+    videoSettingsUI_->tile_frame->setHidden(true);
+    videoSettingsUI_->tile_split_label->setHidden(true);
   }
 }
 
