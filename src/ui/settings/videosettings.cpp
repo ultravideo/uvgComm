@@ -11,10 +11,9 @@
 #include <QThread>
 #include <QComboBox>
 
+// video/DeviceID and video/Device are no checked in case we don't have a camera
 
-const QStringList neededSettings = {"video/DeviceID",
-                                    "video/Device",
-                                    "video/ResolutionWidth",
+const QStringList neededSettings = {"video/ResolutionWidth",
                                     "video/ResolutionHeight",
                                     "video/WPP",
                                     "video/OWF",
@@ -23,7 +22,7 @@ const QStringList neededSettings = {"video/DeviceID",
                                     "video/kvzThreads",
                                     "video/yuvThreads",
                                     "video/rgbThreads",
-                                    "video/OPENHEVC_Threads",
+                                    "video/OPENHEVC_threads",
                                     "video/FramerateID"};
 
 
