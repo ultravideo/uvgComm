@@ -85,53 +85,65 @@ void IcePairTester::run()
     printProgramError(this, "Unable to test connection, candidate is NULL!");
     return;
   }
+  QString debug_type = "Controller";
+  if (!controller_)
+  {
+    debug_type = "Controllee";
+  }
+
+  QString debugPath = pair_->local->address + ":" + QString::number(pair_->local->port) + " <-> " +
+      pair_->remote->address + ":" + QString::number(pair_->remote->port);
+
 
   pair_->state = PAIR_IN_PROGRESS;
 
-  if (!bindingPhase(pair_.get(), controller_))
+  printNormal(this, debug_type + " starts testing.", {"Pair"}, {debugPath});
+
+  // TODO: I believe the testing should be identical for controller and controllee at binding phase
+
+  // binding phase
+  if (controller_)
   {
-    printNormal(this, "Binding failed. No connection found.", {"Path"},
-    {pair_->local->address + ":" + QString::number(pair_->local->port) + " <-> " +
-     pair_->remote->address + ":" + QString::number(pair_->remote->port)});
-    return; // fail
+    if (!controllerBinding(pair_.get()))
+    {
+      printNormal(this, debug_type + " binding failed. No connection found.", {"Path"}, {debugPath});
+      return; // failed
+    }
+  }
+  else
+  {
+    if (!controlleeBinding(pair_.get()))
+    {
+      printNormal(this, debug_type + " binding failed. No connection found.", {"Path"}, {debugPath});
+      return; // failed
+    }
   }
 
   pair_->state = PAIR_SUCCEEDED;
 
+  printNormal(this, debug_type + " binding succeeded", {"Pair"}, {debugPath});
+
   // controller performs the nomination process separately so we exit
   if (controller_)
   {
-    printNormal(this, "Controller binding succeeded", {"Pair"}, {
-                  pair_->local->address + ":" + QString::number(pair_->local->port) + " <-> " +
-                  pair_->remote->address + ":" + QString::number(pair_->remote->port)});
-
     // we have to sync the nomination elsewhere because only one pair should be nominated
     emit controllerPairSucceeded(pair_);
   }
   else
   {
-    printNormal(this, "Controllee binding succeeded", {"Pair"}, {
-                  pair_->local->address + ":" + QString::number(pair_->local->port) + " <-> " +
-                  pair_->remote->address + ":" + QString::number(pair_->remote->port)});
-
     // controllee starts waiting for nomination requests on this pair.
     if (!waitNominationSendResponse(pair_.get()))
     {
-      printNormal(this,  "Did not receive nomination for candidate: ", {"Pair"},
-                  {pair_->local->address + ":" + QString::number(pair_->local->port) + " <- " +
-                   pair_->remote->address + ":" + QString::number(pair_->remote->port)});
+      printNormal(this,  debug_type + " did not receive nomination for candidate: ", {"Pair"},
+                  {debugPath});
       pair_->state = PAIR_FAILED;
-      return; // fail
+      return; // failed
     }
 
-    printNormal(this, "Non-Controller nomination succeeded", {"Pair"}, {
-                  pair_->local->address + ":" + QString::number(pair_->local->port) + " <-> " +
-                  pair_->remote->address + ":" + QString::number(pair_->remote->port)});
+    printNormal(this, debug_type + " nomination succeeded", {"Pair"}, {debugPath});
 
     emit controlleeNominationDone(pair_);
   }
-
-  // success
 }
 
 
@@ -327,38 +339,6 @@ bool IcePairTester::controlleeBinding(ICEPair *pair)
   msgReceived = sendRequestWaitResponse(pair, message, STUN_RETRIES, STUN_WAIT_MS);
 
   return msgReceived;
-}
-
-
-bool IcePairTester::bindingPhase(ICEPair *pair, bool controller)
-{
-  Q_ASSERT(pair != nullptr);
-
-  if (controller)
-  {
-    printNormal(this, "Controller starts testing.", {"Pair"}, {
-                  pair->local->address + ":" + QString::number(pair->local->port) + " -> " +
-                  pair->remote->address + ":" + QString::number(pair->remote->port)});
-  }
-  else
-  {
-    printNormal(this, "Non-controller starts testing.", {"Pair"}, {
-                  pair->local->address + ":" + QString::number(pair->local->port) + " -> " +
-                  pair->remote->address + ":" + QString::number(pair->remote->port)});
-  }
-
-
-  bool state = false;
-  if (controller)
-  {
-    state = controllerBinding(pair);
-  }
-  else
-  {
-    state = controlleeBinding(pair);
-  }
-
-  return state;
 }
 
 

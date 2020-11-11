@@ -52,14 +52,6 @@ protected:
 
 private:
 
-
-  // send stun binding request to remote
-  // this function is used to establish a gateway between clients
-  //
-  // return true if we got a response from remote and false if
-  // after N tries the remote was silent
-  bool bindingPhase(ICEPair *pair, bool controller);
-
   // Send STUN Binding Response to remote. Each message should be response to alraedy-received
   // request and this is why the request we're responding to is given as parameter
   //
