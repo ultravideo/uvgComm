@@ -243,15 +243,13 @@ bool IcePairTester::controllerBinding(ICEPair *pair)
 
       for (int k = 0; k < STUN_RESPONSE_RETRIES; ++k)
       {
-        if (!udp_->sendData(message,
-                            getLocalAddress(pair->local),
-                            QHostAddress(pair->remote->address),
-                            pair->remote->port))
+        if (!udp_->sendData(message, getLocalAddress(pair->local),
+                            QHostAddress(pair->remote->address), pair->remote->port))
         {
-          printNormal(this, debugType_ + " failed to send STUN Binding Request!",
+          printNormal(this, debugType_ + " failed to send STUN Binding request!",
                      {"Pair"}, {debugPair_});
 
-          break;
+          return false;
         }
 
         // wait until sending the response again
@@ -283,15 +281,12 @@ bool IcePairTester::controlleeBinding(ICEPair *pair)
 
   for (int i = 0; i < STUN_RETRIES; ++i)
   {
-    if(!udp_->sendData(
-      message,
-      getLocalAddress(pair->local),
-      QHostAddress(pair->remote->address),
-      pair->remote->port))
+    if(!udp_->sendData(message,  getLocalAddress(pair->local),
+                       QHostAddress(pair->remote->address), pair->remote->port))
     {
       printWarning(this, debugType_ + " failed to send dummy packet", {"Pair"},
                   {debugPair_});
-      break;
+      return false;
     }
 
     if (waitForStunRequest(STUN_WAIT_MS * (i + 1)))
@@ -310,10 +305,13 @@ bool IcePairTester::controlleeBinding(ICEPair *pair)
 
       for (int k = 0; k < STUN_RESPONSE_RETRIES; ++k)
       {
-        udp_->sendData(message,
-                       getLocalAddress(pair->local),
-                       QHostAddress(pair->remote->address),
-                       pair->remote->port);
+        if (!udp_->sendData(message,  getLocalAddress(pair->local),
+                            QHostAddress(pair->remote->address), pair->remote->port))
+        {
+          printNormal(this, debugType_ + " failed to send STUN Binding response!",
+                     {"Pair"}, {debugPair_});
+          return false;
+        }
 
         QThread::msleep(STUN_WAIT_MS);
       }
@@ -388,7 +386,7 @@ bool IcePairTester::waitNominationSendResponse(ICEPair *pair)
     {
       printWarning(this, debugType_ + " failed to send dummy packet in nomination",
                    {"Pair"}, {debugPair_});
-      break;
+      return false;
     }
 
     if (waitForStunNomination(STUN_WAIT_MS * (i + 1)))
@@ -411,6 +409,7 @@ bool IcePairTester::waitNominationSendResponse(ICEPair *pair)
         {
           printWarning(this, debugType_ + " failed to send nomination response",
                        {"Pair"}, {debugPair_});
+          return false;
         }
 
         QThread::msleep(STUN_WAIT_MS);
