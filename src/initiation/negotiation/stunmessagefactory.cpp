@@ -55,11 +55,13 @@ bool StunMessageFactory::validateStunMessage(STUNMessage& message, int type)
 {
   if (message.getCookie() != STUN_MAGIC_COOKIE)
   {
+    printDebug(DEBUG_WARNING, "StunMessageFactory", "Did not include magic cookie");
     return false;
   }
 
   if (message.getType() != type)
   {
+    printDebug(DEBUG_WARNING, "StunMessageFactory", "Request/response type mismatch");
     return false;
   }
 
@@ -71,37 +73,35 @@ bool StunMessageFactory::validateStunRequest(STUNMessage& message)
   return this->validateStunMessage(message, STUN_REQUEST);
 }
 
-bool StunMessageFactory::validateStunResponse(
-    STUNMessage& response,
-    QHostAddress sender,
-    uint16_t port
-)
+bool StunMessageFactory::validateStunResponse(STUNMessage& response,
+                                              QHostAddress sender,
+                                              uint16_t port)
 {
   if (expectedResponses_.contains(sender.toString()))
   {
-      if (expectedResponses_[sender.toString()].contains(port))
-      {
-          auto cached = expectedResponses_[sender.toString()][port];
+    if (expectedResponses_[sender.toString()].contains(port))
+    {
+        auto cached = expectedResponses_[sender.toString()][port];
 
-          for (int i = 0; i < TRANSACTION_ID_SIZE; ++i)
-          {
-              if (cached[i] != response.getTransactionIDAt(i))
-              {
-                return false;
-              }
-          }
-          return true;
-      }
+        for (int i = 0; i < TRANSACTION_ID_SIZE; ++i)
+        {
+            if (cached[i] != response.getTransactionIDAt(i))
+            {
+              printDebug(DEBUG_WARNING, "StunMessageFactory",
+                         "Incorrect response transaction ID!");
+              return false;
+            }
+        }
+        return true;
+    }
     else
     {
-      printDebug(DEBUG_WARNING, "StunMessageFactory",
-                  "port not reported!"
-      );
+      printDebug(DEBUG_WARNING, "StunMessageFactory", "Port not reported!");
     }
   }
 
   // expected response address:port was not saved for whatever reason
-  // check the received response agains the latest request
+  // check the received response against the latest request
   return this->validateStunResponse(response);
 }
 
@@ -116,6 +116,8 @@ bool StunMessageFactory::validateStunResponse(STUNMessage& response)
     {
       if (responseTID[i] != requestTID[i])
       {
+        printDebug(DEBUG_WARNING, "StunMessageFactory",
+                   "Incorrect response transaction ID!");
         return false;
       }
     }
@@ -239,13 +241,14 @@ bool StunMessageFactory::networkToHost(QByteArray& message, STUNMessage& outSTUN
           outSTUN.addAttribute(STUN_ATTR_PRIORITY, priority);
           break;
         }
-        case STUN_ATTR_USE_CANDIATE:
+        case STUN_ATTR_USE_CANDIDATE:
         {
-          outSTUN.addAttribute(STUN_ATTR_USE_CANDIATE);
+          outSTUN.addAttribute(STUN_ATTR_USE_CANDIDATE);
           break;
         }
         default:
         {
+          printDebug(DEBUG_WARNING, "StunMessageFactory", "Could not determine attribute!");
           return false;
           break;
         }
@@ -265,9 +268,7 @@ bool StunMessageFactory::networkToHost(QByteArray& message, STUNMessage& outSTUN
 }
 
 std::pair<QHostAddress, uint16_t> StunMessageFactory::extractXorMappedAddress(
-    uint16_t payloadLen,
-    uint8_t *payload
-)
+  uint16_t payloadLen, uint8_t *payload)
 {
   if (payloadLen >= 8)
   {
@@ -279,6 +280,10 @@ std::pair<QHostAddress, uint16_t> StunMessageFactory::extractXorMappedAddress(
       uint32_t address = qFromBigEndian(*(((uint32_t *)payload + 1))) ^ STUN_MAGIC_COOKIE;
 
       return std::make_pair(QHostAddress(address), port);
+    }
+    else if (payload[1] == 0x02) // IPv6
+    {
+      printDebug(DEBUG_PROGRAM_WARNING, "StunMessageFactory", "IPv6 Unimplemented");
     }
   }
 

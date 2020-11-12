@@ -22,7 +22,7 @@ public:
   void setController(bool controller);
 
   // Send the nominated candidate to ICE_CONTROLLED agent
-  bool sendNominationRequest(ICEPair *pair);
+  bool sendNominationWaitResponse(ICEPair *pair);
 
   void recvStunMessage(QNetworkDatagram message);
 
@@ -41,7 +41,7 @@ signals:
   void controllerPairSucceeded(std::shared_ptr<ICEPair> connection);
   void controlleeNominationDone(std::shared_ptr<ICEPair> connection);
 
-  void parsingDone();
+  void responseRecv();
   void nominationRecv();
   void requestRecv();
   void stopEventLoop();
@@ -52,20 +52,11 @@ protected:
 
 private:
 
-
-  // send stun binding request to remote
-  // this function is used to establish a gateway between clients
-  //
-  // return true if we got a response from remote and false if
-  // after N tries the remote was silent
-  bool sendBindingRequest(ICEPair *pair, bool controller);
-
   // Send STUN Binding Response to remote. Each message should be response to alraedy-received
   // request and this is why the request we're responding to is given as parameter
   //
   // TransactionID from request is copied to response
   bool sendBindingResponse(STUNMessage& request, QString addressRemote, int portRemote);
-
 
 
   // this function is called by the ICE_CONTROLLED agent when the two clients have
@@ -75,18 +66,20 @@ private:
   //
   // ICE_CONTROLLED agent (caller of sendNominationResponse()) must send STUN Binding Requests
   // to all valid candidate address:port pairs to receive the nominations
-  bool sendNominationResponse(ICEPair *pair);
+  bool waitNominationSendResponse(ICEPair *pair);
 
-  // waitForStunResponse() starts an even loop which listens to parsingDone() signal
-  // When the signal is received the event loop is stopped and waitForStunResponse() returns true
-  // If parsingDone() signal is not received in time, waitForStunResponse() returns false
-  bool waitForStunResponse(unsigned long timeout);
-
-  // Same as waitForStunResponse() but this function listens to requestRecv() signal
   bool waitForStunRequest(unsigned long timeout);
+  bool waitForStunResponse(unsigned long timeout);
+  bool waitForStunNomination(unsigned long timeout);
 
-  // Same as waitForStunResponse/Request() but this waits for nominationRecv() signal
-  bool waitForNominationRequest(unsigned long timeout);
+  // waitForStunMessage() starts an even loop which listens to request, response and nomination signals
+  // When the signal is received the event loop is stopped and waitForStunMessage() returns true
+  // If responseRecv() signal is not received in time, waitForStunMessage() returns false
+  bool waitForStunMessage(unsigned long timeout,
+                          bool expectingRequest,
+                          bool expectingResponse,
+                          bool expectingNomination);
+
 
   // If we're the controlling agent we start by sending STUN Binding Requests to remote
   // When we receive a response to one of our STUN Binding Requests, we start listening to
@@ -95,7 +88,7 @@ private:
   // Now the we've concluded that the communication works and we can stop testing.
   //
   // Return true if the testing succeeded, false otherwise
-  bool controllerSendBindingRequest(ICEPair *pair);
+  bool controllerBinding(ICEPair *pair);
 
   // if we're the controlled agent, we must first start sending "dummy" binding requests to
   // make a hole in the firewall and after we've gotten a request from remote (controlling agent)
@@ -109,13 +102,15 @@ private:
   // When we've received a response we mark this pair as valid as we've established that communication works to both directions
   //
   // Return true if the testing succeeded, false otherwise
-  bool controlleeSendBindingRequest(ICEPair *pair);
+  bool controlleeBinding(ICEPair *pair);
 
   bool sendRequestWaitResponse(ICEPair *pair, QByteArray &request, int retries, int baseTimeout);
 
 
   std::shared_ptr<ICEPair> pair_;
+  QString debugPair_;
   bool controller_;
+  QString debugType_;
 
   UDPServer *udp_;
 
