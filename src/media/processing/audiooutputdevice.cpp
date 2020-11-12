@@ -145,7 +145,7 @@ qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
     {
       if (outputSample_ != nullptr)
       {
-        delete outputSample_;
+        delete[] outputSample_;
       }
 
       outputSample_ = aec_->createEmptyFrame(sampleSize_);
