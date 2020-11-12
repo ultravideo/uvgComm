@@ -155,11 +155,6 @@ void IceSessionTester::run()
     interface->startTestingPairs(controller_);
   }
 
-  // TODO: This is not technically according to specification. The nomination
-  // should only be done for once per component. The current implementation
-  // is who can get all their components finished fastest.
-
-
   // now we wait until the connection tests have ended. Wait at most timeout_
   waitForEndOfTesting(timeout_);
 

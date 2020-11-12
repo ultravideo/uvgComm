@@ -108,7 +108,9 @@ private:
 
 
   std::shared_ptr<ICEPair> pair_;
+  QString debugPair_;
   bool controller_;
+  QString debugType_;
 
   UDPServer *udp_;
 

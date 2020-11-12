@@ -125,20 +125,9 @@ void IceCandidateTester::routeDatagram(QNetworkDatagram message)
   {
     listenerMutex_.unlock();
     // TODO: This is where we should detect if we should add Peer Reflexive candidates.
-
-    printWarning(this, "Found a peer reflexive candidate. Not implemented.", {"Address"}, {
-                 message.destinationAddress().toString() + ":" +
-                 QString::number(message.destinationPort()) + " <- " +
-                 message.senderAddress().toString() + ":" +
-                 QString::number(message.senderPort())});
   }
   else
   {
-    printWarning(this, "Message ", {"The sender address or port were not set in network package"}, {
-                 message.destinationAddress().toString() + ":" +
-                 QString::number(message.destinationPort()) + " <- " +
-                 message.senderAddress().toString() + ":" +
-                 QString::number(message.senderPort())});
     listenerMutex_.unlock();
   }
 }

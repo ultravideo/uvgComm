@@ -16,7 +16,9 @@ const int STUN_NOMINATION_RESPONSE_RETRIES = 5;
 
 IcePairTester::IcePairTester(UDPServer* server):
   pair_(nullptr),
+  debugPair_(""),
   controller_(false),
+  debugType_("Controllee"),
   udp_(server),
   stunmsg_(),
   interrupted_(false)
@@ -61,12 +63,22 @@ void IcePairTester::setCandidatePair(std::shared_ptr<ICEPair> pair)
   Q_ASSERT(pair != nullptr);
 
   pair_ = pair;
+  debugPair_ = pair_->local->address + ":" + QString::number(pair_->local->port) + " <-> " +
+      pair_->remote->address + ":" + QString::number(pair_->remote->port);
 }
 
 
 void IcePairTester::setController(bool controller)
 {
   controller_ = controller;
+  if (controller)
+  {
+    debugType_ = "Controller";
+  }
+  else
+  {
+    debugType_ = "Controllee";
+  }
 }
 
 
@@ -85,43 +97,33 @@ void IcePairTester::run()
     printProgramError(this, "Unable to test connection, candidate is NULL!");
     return;
   }
-  QString debug_type = "Controller";
-  if (!controller_)
-  {
-    debug_type = "Controllee";
-  }
-
-  QString debugPath = pair_->local->address + ":" + QString::number(pair_->local->port) + " <-> " +
-      pair_->remote->address + ":" + QString::number(pair_->remote->port);
-
 
   pair_->state = PAIR_IN_PROGRESS;
 
-  printNormal(this, debug_type + " starts testing.", {"Pair"}, {debugPath});
+  printNormal(this, debugType_ + " starts connectivity tests.", {"Pair"}, {debugPair_});
 
-  // TODO: I believe the testing should be identical for controller and controllee at binding phase
+  // TODO: I believe the testing should be identical for controller and controllee
+  // at binding phase and done simultaniously.
 
   // binding phase
   if (controller_)
   {
     if (!controllerBinding(pair_.get()))
     {
-      printNormal(this, debug_type + " binding failed. No connection found.", {"Path"}, {debugPath});
-      return; // failed
+      return; // failed or interrupted
     }
   }
   else
   {
     if (!controlleeBinding(pair_.get()))
     {
-      printNormal(this, debug_type + " binding failed. No connection found.", {"Path"}, {debugPath});
-      return; // failed
+      return; // failed or interrupted
     }
   }
 
   pair_->state = PAIR_SUCCEEDED;
 
-  printNormal(this, debug_type + " binding succeeded", {"Pair"}, {debugPath});
+  printNormal(this, debugType_ + " found a connection", {"Pair"}, {debugPair_});
 
   // controller performs the nomination process separately so we exit
   if (controller_)
@@ -134,13 +136,11 @@ void IcePairTester::run()
     // controllee starts waiting for nomination requests on this pair.
     if (!waitNominationSendResponse(pair_.get()))
     {
-      printNormal(this,  debug_type + " did not receive nomination for candidate: ", {"Pair"},
-                  {debugPath});
       pair_->state = PAIR_FAILED;
-      return; // failed
+      return; // failed or interrupted
     }
 
-    printNormal(this, debug_type + " nomination succeeded", {"Pair"}, {debugPath});
+    printNormal(this, debugType_ + " nomination succeeded", {"Pair"}, {debugPair_});
 
     emit controlleeNominationDone(pair_);
   }
@@ -219,7 +219,6 @@ bool IcePairTester::controllerBinding(ICEPair *pair)
 
   if (!sendRequestWaitResponse(pair, message, STUN_RETRIES, STUN_WAIT_MS))
   {
-    printWarning(this, "Binding failed");
     return false;
   }
 
@@ -249,6 +248,9 @@ bool IcePairTester::controllerBinding(ICEPair *pair)
                             QHostAddress(pair->remote->address),
                             pair->remote->port))
         {
+          printNormal(this, debugType_ + " failed to send STUN Binding Request!",
+                     {"Pair"}, {debugPair_});
+
           break;
         }
 
@@ -257,6 +259,12 @@ bool IcePairTester::controllerBinding(ICEPair *pair)
       }
       break;
     }
+  }
+
+  if (!msgReceived)
+  {
+    printNormal(this, debugType_ + " did not receive STUN binding request from remote!",
+               {"Pair"}, {debugPair_});
   }
 
   return msgReceived;
@@ -281,6 +289,8 @@ bool IcePairTester::controlleeBinding(ICEPair *pair)
       QHostAddress(pair->remote->address),
       pair->remote->port))
     {
+      printWarning(this, debugType_ + " failed to send dummy packet", {"Pair"},
+                  {debugPair_});
       break;
     }
 
@@ -314,9 +324,8 @@ bool IcePairTester::controlleeBinding(ICEPair *pair)
 
   if (!msgReceived)
   {
-    printWarning(this, "Failed to receive STUN Binding Request from remote!", {"Path"},
-          {pair->local->address + ":" + QString::number(pair->local->port) + " <- " +
-           pair->remote->address + ":" + QString::number(pair->remote->port)});
+    printNormal(this, "Failed to receive STUN Binding Request from remote!", {"Pair"},
+                {debugPair_});
 
     return false;
   }
@@ -374,10 +383,13 @@ bool IcePairTester::waitNominationSendResponse(ICEPair *pair)
 
   for (int i = 0; i < STUN_NOMINATION_RESPONSE_WAITS; ++i)
   {
-    udp_->sendData(message,
-                   getLocalAddress(pair->local),
-                   QHostAddress(pair->remote->address),
-                   pair->remote->port);
+    if (!udp_->sendData(message,  getLocalAddress(pair->local),
+                        QHostAddress(pair->remote->address), pair->remote->port))
+    {
+      printWarning(this, debugType_ + " failed to send dummy packet in nomination",
+                   {"Pair"}, {debugPair_});
+      break;
+    }
 
     if (waitForStunNomination(STUN_WAIT_MS * (i + 1)))
     {
@@ -394,10 +406,12 @@ bool IcePairTester::waitNominationSendResponse(ICEPair *pair)
 
       for (int i = 0; i < STUN_NOMINATION_RESPONSE_RETRIES; ++i)
       {
-        udp_->sendData(message,
-                       getLocalAddress(pair->local),
-                       QHostAddress(pair->remote->address),
-                       pair->remote->port);
+        if (!udp_->sendData(message,  getLocalAddress(pair->local),
+                            QHostAddress(pair->remote->address), pair->remote->port))
+        {
+          printWarning(this, debugType_ + " failed to send nomination response",
+                       {"Pair"}, {debugPair_});
+        }
 
         QThread::msleep(STUN_WAIT_MS);
       }
@@ -408,8 +422,8 @@ bool IcePairTester::waitNominationSendResponse(ICEPair *pair)
 
   if (nominationRecv == false)
   {
-    printWarning(this, "Failed to receive STUN Nomination Request from remote!", {"Remote"}, {
-                   pair->remote->address + ":" + QString(pair->remote->port)});
+    printNormal(this, "Failed to receive STUN Nomination Request from remote!", {"Pair"}, {
+                   debugPair_});
     return false;
   }
 
@@ -434,12 +448,14 @@ void IcePairTester::recvStunMessage(QNetworkDatagram message)
     {
       if (controller_ && !stunMsg.hasAttribute(STUN_ATTR_ICE_CONTROLLED))
       {
-        printWarning(this, "Got request without controlled attribute and we are the controller");
+        // TODO: When dummy packets are removed, enable this print
+        //printWarning(this, "Got request without controlled attribute and we are the controller");
         return; // fail
       }
       else if (!controller_ && !stunMsg.hasAttribute(STUN_ATTR_ICE_CONTROLLING))
       {
-        printWarning(this, "Got request without controlling attribute and we are not the controller");
+        // TODO: When dummy packets are removed, enable this print
+        //printWarning(this, "Got request without controlling attribute and we are not the controller");
         return; // fail
       }
 
@@ -508,6 +524,8 @@ bool IcePairTester::sendRequestWaitResponse(ICEPair* pair, QByteArray& request,
                        QHostAddress(pair->remote->address),
                        pair->remote->port))
     {
+      printWarning(this, debugType_ + " failed to send dummy packet", {"Pair"},
+                  {debugPair_});
       return false;
     }
 
@@ -525,8 +543,8 @@ bool IcePairTester::sendRequestWaitResponse(ICEPair* pair, QByteArray& request,
 
   if (!msgReceived)
   {
-    printWarning(this, "Failed to receive STUN Binding Response from remote!", {"Remote"}, {
-                   pair->remote->address + ":" + QString::number(pair->remote->port)});
+    printNormal(this, debugType_ + " failed to receive STUN Binding Response from remote!",
+               {"Pair"}, {debugPair_});
   }
 
   return msgReceived;
