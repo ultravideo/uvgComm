@@ -152,11 +152,11 @@ void AudioCaptureFilter::readMore()
       // create audio data packet to be sent to filter graph
       newSample->presentationTime = QDateTime::currentMSecsSinceEpoch();
       newSample->type = RAWAUDIO;
-      newSample->data = std::unique_ptr<uint8_t[]>(new uint8_t[len]);
+      newSample->data = std::unique_ptr<uint8_t[]>(new uint8_t[readData]);
 
-      memcpy(newSample->data.get(), buffer_.constData(), len);
+      memcpy(newSample->data.get(), buffer_.constData(), readData);
 
-      newSample->data_size = len;
+      newSample->data_size = readData;
       newSample->width = 0;
       newSample->height = 0;
       newSample->source = LOCAL;
