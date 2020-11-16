@@ -280,7 +280,7 @@ void KvazzupController::cancelIncomingCall(uint32_t sessionID)
 
 void KvazzupController::endCall(uint32_t sessionID)
 {
-  printNormal(this, "Ending the call", {"SessionID"}, {sessionID});
+  printNormal(this, "Ending the call", {"SessionID"}, {QString::number(sessionID)});
   if (states_.find(sessionID) != states_.end() &&
       states_[sessionID] == CALLONGOING)
   {
