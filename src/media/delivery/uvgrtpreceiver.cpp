@@ -18,14 +18,23 @@ static void __receiveHook(void *arg, uvg_rtp::frame::rtp_frame *frame)
   }
 }
 
-UvgRTPReceiver::UvgRTPReceiver(QString id, StatisticsInterface *stats, DataType type,
-                               QString media, uvg_rtp::media_stream *mstream):
+UvgRTPReceiver::UvgRTPReceiver(uint32_t sessionID, QString id, StatisticsInterface *stats,
+                               DataType type, QString media, QFuture<uvg_rtp::media_stream *> stream):
   Filter(id, "RTP Receiver " + media, stats, NONE, type),
   type_(type),
   addStartCodes_(true),
-  mstream_(mstream)
+  sessionID_(sessionID)
 {
-  mstream_->install_receive_hook(this, __receiveHook);
+  watcher_.setFuture(stream);
+
+  connect(&watcher_, &QFutureWatcher<uvg_rtp::media_stream *>::finished,
+          [this]()
+          {
+            if (!watcher_.result())
+              emit zrtpFailure(sessionID_);
+            else
+              watcher_.result()->install_receive_hook(this, __receiveHook);
+          });
 }
 
 UvgRTPReceiver::~UvgRTPReceiver()

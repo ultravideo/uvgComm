@@ -50,6 +50,9 @@ void KvazzupController::init()
                    this, &KvazzupController::iceFailed);
   media_.init(window_.getViewFactory(), stats_);
 
+  QObject::connect(&media_, &MediaManager::handleZRTPFailure,
+                   this,    &KvazzupController::zrtpFailed);
+
   printImportant(this, "Kvazzup initiation finished");
 }
 
@@ -235,6 +238,13 @@ void KvazzupController::iceFailed(uint32_t sessionID)
   endCall(sessionID);
 }
 
+void KvazzupController::zrtpFailed(quint32 sessionID)
+{
+  // TODO inform the user through gui somehow?
+
+  printError(this, "ZRTP has failed");
+  endCall(sessionID);
+}
 
 void KvazzupController::createSingleCall(uint32_t sessionID)
 {

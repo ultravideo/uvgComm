@@ -63,6 +63,7 @@ public:
   bool toggleScreenShare();
 
 signals:
+  void handleZRTPFailure(uint32_t sessionID);
 
   // somebody is calling
   void incomingCall(unsigned int participantID);

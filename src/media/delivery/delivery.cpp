@@ -5,7 +5,9 @@
 
 #include <QtEndian>
 #include <QHostInfo>
-
+#include <QCoreApplication>
+#include <QtConcurrent>
+#include <QFuture>
 #include <uvgrtp/lib.hh>
 
 #include <iostream>
@@ -131,16 +133,22 @@ std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID, QHostAddress
     printNormal(this, "Creating sender filter");
 
     peers_[sessionID]->streams[localPort]->sender =
-        std::shared_ptr<UvgRTPSender>(new UvgRTPSender(remoteAddress.toString() + ":" + QString::number(peerPort),
+        std::shared_ptr<UvgRTPSender>(new UvgRTPSender(sessionID,
+                                                       remoteAddress.toString() + ":" + QString::number(peerPort),
                                                        stats_,
                                                        type,
                                                        mediaName,
                                                        peers_[sessionID]->streams[localPort]->stream));
+
+    connect(
+      peers_[sessionID]->streams[localPort]->sender.get(),
+      &UvgRTPSender::zrtpFailure,
+      this,
+      &Delivery::handleZRTPFailure);
   }
 
   return peers_[sessionID]->streams[localPort]->sender;
 }
-
 
 std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID, QHostAddress localAddress,
                                                    uint16_t localPort, uint16_t peerPort,
@@ -163,6 +171,7 @@ std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID, QHostAddr
     printNormal(this, "Creating receiver filter");
     peers_[sessionID]->streams[localPort]->receiver = std::shared_ptr<UvgRTPReceiver>(
         new UvgRTPReceiver(
+          sessionID,
           localAddress.toString() + ":" + QString::number(localPort),
           stats_,
           type,
@@ -170,6 +179,12 @@ std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID, QHostAddr
           peers_[sessionID]->streams[localPort]->stream
         )
     );
+
+    connect(
+      peers_[sessionID]->streams[localPort]->receiver.get(),
+      &UvgRTPReceiver::zrtpFailure,
+      this,
+      &Delivery::handleZRTPFailure);
   }
 
   return peers_[sessionID]->streams[localPort]->receiver;
@@ -206,19 +221,18 @@ bool Delivery::addMediaStream(uint32_t sessionID, uint16_t localPort, uint16_t p
 
   printNormal(this, "Creating mediastream");
 
-  int flags = 0;
+  // for now just enable srtp + zrtp for all calls
+  //
+  // TODO: add ability to control "flags" from settings
+  int flags = RCE_SRTP_KMNGMNT_ZRTP | RCE_SRTP;
 
-  if (fmt == RTP_FORMAT_GENERIC)
-  {
-    //flags = RCE_FRAGMENT_GENERIC;
-  }
-
-  uvg_rtp::media_stream *stream = peers_[sessionID]->session->create_stream(localPort, peerPort, fmt, flags);
-
-  if (stream == nullptr)
-  {
-    return false;
-  }
+  QFuture<uvg_rtp::media_stream *> futureRes =
+    QtConcurrent::run([=](uvg_rtp::session *session, uint16_t local, uint16_t peer,
+          rtp_format_t fmt, int flags)
+    {
+        return session->create_stream(local, peer, fmt, flags);
+    },
+    peers_[sessionID]->session, localPort, peerPort, fmt, flags);
 
   // check if there already exists a media session and overwrite
   if (peers_[sessionID]->streams.find(localPort) != peers_[sessionID]->streams.end() &&
@@ -226,13 +240,12 @@ bool Delivery::addMediaStream(uint32_t sessionID, uint16_t localPort, uint16_t p
   {
     printProgramWarning(this, "Existing mediastream detected. Overwriting."
                               " Will cause a crash if previous filters are attached to filtergraph.");
-
     removeMediaStream(sessionID, localPort);
   }
 
   // actually create the mediastream
   peers_[sessionID]->streams[localPort] = new MediaStream;
-  peers_[sessionID]->streams[localPort]->stream = stream;
+  peers_[sessionID]->streams[localPort]->stream = futureRes;
 
   return true;
 }
