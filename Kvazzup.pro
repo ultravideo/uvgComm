@@ -217,7 +217,6 @@ INCLUDEPATH += $$PWD/../include/openhevc_dec
 INCLUDEPATH += $$PWD/../include/
 
 # These you need to install or build yourself
-LIBS += -lkvazaar
 LIBS += -lopus
 LIBS += -lLibOpenHevcWrapper
 LIBS += -lspeexdsp
@@ -228,25 +227,37 @@ win32{
   INCLUDEPATH += $$PWD/../include/uvgrtp
   INCLUDEPATH += $$PWD/../include/opus
 
-  LIBS += -fopenmp # make sure openMP is installed in your build environment
   LIBS += -lws2_32
-  LIBS += -lstrmiids
   LIBS += -lole32
   LIBS += -loleaut32
-  LIBS += -lssp
 }
 
-# TODO: MSVC is currently not compiling. Please use another compiler or resolve issues
+
 win32-msvc{
+  # static kvazaar. Untested
+  #DEFINES += KVZ_STATIC_LIB
+
+  # shared kvazaar
+  DEFINES += PIC
+
+  LIBS += -lkvazaar_lib
+
   # you can put your libaries here
   LIBS += -L$$PWD/../msvc_libs
   LIBS += -ladvapi32
+  LIBS += -lkernel32
   message("Using MSVC libraries in ../msvc_libs")
 }
 
+
 win32-g++{
+
+  LIBS += -lkvazaar
+  LIBS += -fopenmp # make sure openMP is installed in your build environment
   # you can put your libaries here
   LIBS += -L$$PWD/../libs
+  LIBS += -lstrmiids
+  LIBS += -lssp
   message("Using MinGW libraries in ../libs")
 }
 
@@ -312,3 +323,8 @@ CONFIG(false){
 
 DISTFILES += \
     .gitignore
+
+win32: LIBS += -L$$PWD/../msvc_libs/old/ -lkvazaar_lib
+
+INCLUDEPATH += $$PWD/../msvc_libs/old
+DEPENDPATH += $$PWD/../msvc_libs/old
