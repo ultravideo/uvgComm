@@ -16,7 +16,7 @@ Currently Kvazzup has the following features:
 - Screen sharing.
 - Live call parameter adjustment. 
 - A statistics window for monitoring the call.
-- Settings which are saved to disk.
+- Video and Audio Settings which are saved to the disk.
 
 
 ## Compile Kvazzup
@@ -28,13 +28,34 @@ Kvazzup requires the following external libraries to run:
 - [uvgRTP](https://github.com/ultravideo/uvgRTP) for Media Delivery.
 - [Speex DSP](https://www.speex.org/) for AEC.
 
-Build these libraries using GCC, MinGW or MSVC compiler. Make sure you use the same compiler for all the dependencies and for Kvazzup. OpenMP also needs to be installed in your build environment or found in PATH. Qt Creator is the recommended tool for compiling Kvazzup. Please use dynamic version of kvazaar or define KVZ_STATIC_LIB in project file if you want to use the static library.
+Qt Creator is the recommended tool for compiling Kvazzup. Make sure you use the same compiler and bit version for all the dependencies and for Kvazzup.
 
+### Linux(GCC)
+
+Install Qt and Qt multimedia. Make sure Opus, Speex DSP and OpenMP are installed. Compile and install openHEVC, Kvazaar and uvgRTP.
+
+### MinGW
+
+Make sure OpenMP is installed in your build environment. Add compiled libraries to PATH or to `../libs` folder and headers to PATH or `../include`.
+
+### Microsoft Visual Studio
+
+Add compiled libraries to PATH or to `../msvc_libs` folder and headers to PATH or `../include`.
+
+#### Shared Kvazaar
+
+When compiling Kvazaar, select Dynamic Lib(.dll) in kvazaar_lib project Properties: General/Configuration Type and add ;PIC to C/C++ Preprocessor/Preprocessor Definitions. 
+
+In Kvazzup, please add:`DEFINES += PIC` to Kvazzup.pro file. 
+
+#### Static Kvazaar
+
+Please add: `DEFINES += KVZ_STATIC_LIB` to Kvazzup.pro file.
 
 ## Known issues
 
-- Currently Visual Studio compilation does not succeed. Fix is pending.
-- The Linux version of Kvazzup has a bug with QCamera which prevents from changing the default resolution. In addition the Opus codec is also disabled on Linux until issues with it have been resolved.
+- The Linux version of Kvazzup has a bug with QCamera which prevents from changing the default resolution. 
+- The Opus codec is disabled on Linux until issues with it have been resolved.
 
 
 ## Planned features
