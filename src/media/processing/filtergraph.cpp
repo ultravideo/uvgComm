@@ -638,35 +638,35 @@ void FilterGraph::destroyPeer(Peer* peer)
 void FilterGraph::removeParticipant(uint32_t sessionID)
 {
   Q_ASSERT(peers_.find(sessionID) != peers_.end());
-  printDebug(DEBUG_NORMAL, this, "Removing peer", {"SessionID", "Remaining sessions"},
-             {QString::number(sessionID), QString::number(peers_.size())});
-
-  if(peers_[sessionID] != nullptr)
+  if (peers_.find(sessionID) != peers_.end() &&
+      peers_[sessionID] != nullptr)
   {
+    printDebug(DEBUG_NORMAL, this, "Removing peer", {"SessionID", "Remaining sessions"},
+               {QString::number(sessionID), QString::number(peers_.size())});
+
     destroyPeer(peers_[sessionID]);
-  }
+    peers_[sessionID] = nullptr;
 
-  peers_[sessionID] = nullptr;
-
-  // destroy send graphs if this was the last peer
-  bool peerPresent = false;
-  for(auto& peer : peers_)
-  {
-    if (peer.second != nullptr)
+    // destroy send graphs if this was the last peer
+    bool peerPresent = false;
+    for(auto& peer : peers_)
     {
-      peerPresent = true;
-    }
-  }
-
-  if(!peerPresent)
-  {
-    destroyFilters(cameraGraph_);
-    if (!quitting_)
-    {
-      initSelfView(selfView_); // restore the self view.
+      if (peer.second != nullptr)
+      {
+        peerPresent = true;
+      }
     }
 
-    destroyFilters(audioProcessing_);
+    if(!peerPresent)
+    {
+      destroyFilters(cameraGraph_);
+      if (!quitting_)
+      {
+        initSelfView(selfView_); // restore the self view.
+      }
+
+      destroyFilters(audioProcessing_);
+    }
   }
 }
 
