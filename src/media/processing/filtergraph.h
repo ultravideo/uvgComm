@@ -86,9 +86,8 @@ private:
   void destroyFilters(std::vector<std::shared_ptr<Filter>>& filters);
 
 
-  // id is also the index of the Peer in this vector
-  // TODO: Change this to map
-  std::vector<Peer*> peers_;
+  // key is sessionID
+  std::map<uint32_t, Peer*> peers_;
 
  // std::shared_ptr<ScreenShareFilter> screenShare_;
   GraphSegment cameraGraph_;

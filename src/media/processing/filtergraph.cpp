@@ -86,11 +86,11 @@ void FilterGraph::updateSettings()
       initVideoSend();
 
       // reconnect all videosends to streamers
-      for(Peer* peer : peers_)
+      for(auto& peer : peers_)
       {
-        if(peer != nullptr)
+        if(peer.second != nullptr)
         {
-          for (auto& senderFilter : peer->videoSenders)
+          for (auto& senderFilter : peer.second->videoSenders)
           {
             cameraGraph_.back()->addOutConnection(senderFilter);
           }
@@ -111,21 +111,21 @@ void FilterGraph::updateSettings()
     filter->updateSettings();
   }
 
-  for(Peer* peer : peers_)
+  for(auto& peer : peers_)
   {
-    if(peer != nullptr)
+    if(peer.second != nullptr)
     {
-      for (auto& senderFilter : peer->videoSenders)
+      for (auto& senderFilter : peer.second->videoSenders)
       {
         senderFilter->updateSettings();
       }
-      for (auto& senderFilter : peer->audioSenders)
+      for (auto& senderFilter : peer.second->audioSenders)
       {
         senderFilter->updateSettings();
       }
 
       // decode and display settings
-      for(auto& videoReceivers : peer->videoReceivers)
+      for(auto& videoReceivers : peer.second->videoReceivers)
       {
         for (auto& filter : *videoReceivers)
         {
@@ -133,7 +133,7 @@ void FilterGraph::updateSettings()
         }
       }
 
-      for(auto& audioReceivers : peer->audioReceivers)
+      for(auto& audioReceivers : peer.second->audioReceivers)
       {
         for (auto& filter : *audioReceivers)
         {
@@ -321,9 +321,9 @@ void FilterGraph::checkParticipant(uint32_t sessionID)
 
   //qDebug() << "FilterGraph : Checking participant with session ID:" << sessionID;
 
-  if(peers_.size() >= sessionID)
+  if(peers_.find(sessionID) != peers_.end())
   {
-    if(peers_.at(sessionID - 1) != nullptr)
+    if(peers_[sessionID] != nullptr)
     {
       qDebug() << "FilterGraph: Peer exists for session ID:" << sessionID;
       return;
@@ -331,22 +331,18 @@ void FilterGraph::checkParticipant(uint32_t sessionID)
     else
     {
       qDebug() << "FilterGraph: Replacing old participant with session ID:" << sessionID;
-      peers_.at(sessionID - 1) = new Peer;
+      peers_[sessionID] = new Peer();
     }
   }
   else
   {
-    while(peers_.size() < sessionID)
-    {
-      peers_.push_back(nullptr);
-    }
-    peers_.at(sessionID - 1) = new Peer();
+    peers_[sessionID] = new Peer();
 
     qDebug() << "FilterGraph: Adding participant to end with sessionID:" << sessionID;
   }
 
-  peers_.at(sessionID - 1)->audioSenders.clear();
-  peers_.at(sessionID - 1)->videoSenders.clear();
+  peers_[sessionID]->audioSenders.clear();
+  peers_[sessionID]->videoSenders.clear();
 }
 
 
@@ -366,7 +362,7 @@ void FilterGraph::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoF
   // add participant if necessary
   checkParticipant(sessionID);
 
-  peers_.at(sessionID - 1)->videoSenders.push_back(videoFramedSource);
+  peers_[sessionID]->videoSenders.push_back(videoFramedSource);
 
   cameraGraph_.back()->addOutConnection(videoFramedSource);
   videoFramedSource->start();
@@ -382,7 +378,7 @@ void FilterGraph::receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> v
   checkParticipant(sessionID);
 
   std::shared_ptr<GraphSegment> graph = std::shared_ptr<GraphSegment> (new GraphSegment);
-  peers_.at(sessionID - 1)->videoReceivers.push_back(graph);
+  peers_[sessionID]->videoReceivers.push_back(graph);
 
   addToGraph(videoSink, *graph);
   addToGraph(std::shared_ptr<Filter>(new OpenHEVCFilter(sessionID, stats_)), *graph, 0);
@@ -406,8 +402,7 @@ void FilterGraph::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioF
   // add participant if necessary
   checkParticipant(sessionID);
 
-
-  peers_.at(sessionID - 1)->audioSenders.push_back(audioFramedSource);
+  peers_[sessionID]->audioSenders.push_back(audioFramedSource);
 
   audioProcessing_.back()->addOutConnection(audioFramedSource);
   audioFramedSource->start();
@@ -420,12 +415,11 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
   Q_ASSERT(audioSink);
 
 
-
   // add participant if necessary
   checkParticipant(sessionID);
 
   std::shared_ptr<GraphSegment> graph = std::shared_ptr<GraphSegment> (new GraphSegment);
-  peers_.at(sessionID - 1)->audioReceivers.push_back(graph);
+  peers_[sessionID]->audioReceivers.push_back(graph);
 
   addToGraph(audioSink, *graph);
   if (audioSink->outputType() == OPUSAUDIO)
@@ -456,11 +450,11 @@ void FilterGraph::uninit()
 
 void FilterGraph::removeAllParticipants()
 {
-  for(unsigned int i = 0; i < peers_.size(); ++i)
+  for(auto& peer : peers_)
   {
-    if(peers_.at(i) != nullptr)
+    if(peer.second != nullptr)
     {
-      removeParticipant(i + 1);
+      removeParticipant(peer.first);
     }
   }
   peers_.clear();
@@ -559,11 +553,11 @@ void FilterGraph::running(bool state)
     changeState(screenShareGraph_.at(0), state);
   }
 
-  for(Peer* p : peers_)
+  for(auto& peer : peers_)
   {
-    if(p != nullptr)
+    if(peer.second != nullptr)
     {
-      for (auto& senderFilter : p->audioSenders)
+      for (auto& senderFilter : peer.second->audioSenders)
       {
         if(senderFilter)
         {
@@ -571,7 +565,7 @@ void FilterGraph::running(bool state)
         }
       }
 
-      for (auto& senderFilter : p->videoSenders)
+      for (auto& senderFilter : peer.second->videoSenders)
       {
         if(senderFilter)
         {
@@ -579,7 +573,7 @@ void FilterGraph::running(bool state)
         }
       }
 
-      for (auto& graph : p->audioReceivers)
+      for (auto& graph : peer.second->audioReceivers)
       {
         for(std::shared_ptr<Filter> f : *graph)
         {
@@ -587,7 +581,7 @@ void FilterGraph::running(bool state)
         }
       }
 
-      for (auto& graph : p->videoReceivers)
+      for (auto& graph : peer.second->videoReceivers)
       {
         for(std::shared_ptr<Filter> f : *graph)
         {
@@ -651,17 +645,23 @@ void FilterGraph::destroyPeer(Peer* peer)
 void FilterGraph::removeParticipant(uint32_t sessionID)
 {
   qDebug() << "Remove participant, FilterGraph : Removing peer:" << sessionID << "/" << peers_.size();
-  Q_ASSERT(sessionID <= peers_.size());
-  if(peers_.at(sessionID - 1) != nullptr)
-    destroyPeer(peers_.at(sessionID - 1));
-  peers_.at(sessionID - 1) = nullptr;
+  Q_ASSERT(peers_.find(sessionID) != peers_.end());
 
-    // destroy send graphs if this was the last peer
+  if(peers_[sessionID] != nullptr)
+  {
+    destroyPeer(peers_[sessionID]);
+  }
+
+  peers_[sessionID] = nullptr;
+
+  // destroy send graphs if this was the last peer
   bool peerPresent = false;
   for(auto& peer : peers_)
   {
-    if (peer != nullptr)
+    if (peer.second != nullptr)
+    {
       peerPresent = true;
+    }
   }
 
   if(!peerPresent)
@@ -686,11 +686,11 @@ void FilterGraph::print()
     audioDotFile += f->printOutputs();
   }
 
-  for(unsigned int i = 0; i <peers_.size(); ++i)
+  for(auto& peer : peers_)
   {
-    if(peers_.at(i) != nullptr)
+    if(peer.second != nullptr)
     {
-      for(auto& graph : peers_.at(i)->audioReceivers)
+      for(auto& graph : peer.second->audioReceivers)
       {
         for (auto& filter : *graph)
         {
@@ -698,7 +698,7 @@ void FilterGraph::print()
         }
 
       }
-      for (auto& audioSender : peers_.at(i)->audioSenders)
+      for (auto& audioSender : peer.second->audioSenders)
       {
         audioDotFile += audioSender->printOutputs();
       }
@@ -713,11 +713,11 @@ void FilterGraph::print()
     videoDotFile += f->printOutputs();
   }
 
-  for(unsigned int i = 0; i <peers_.size(); ++i)
+  for(auto& peer : peers_)
   {
-    if(peers_.at(i) != nullptr)
+    if(peer.second != nullptr)
     {
-      for(auto&graph : peers_.at(i)->videoReceivers)
+      for(auto&graph : peer.second->videoReceivers)
       {
         for (auto&filter : *graph)
         {
@@ -725,7 +725,7 @@ void FilterGraph::print()
         }
       }
 
-      for (auto&videoSender : peers_.at(i)->videoSenders)
+      for (auto&videoSender : peer.second->videoSenders)
       {
         audioDotFile += videoSender->printOutputs();
       }
