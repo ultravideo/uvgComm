@@ -144,6 +144,12 @@ void FilterGraph::updateSettings()
       }
     }
   }
+
+
+  if (audioOutput_ != nullptr)
+  {
+    audioOutput_->updateSettings();
+  }
 }
 
 

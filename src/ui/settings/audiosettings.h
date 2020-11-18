@@ -11,6 +11,7 @@ class AudioSettings;
 
 class MicrophoneInfo;
 class QSlider;
+class QCheckBox;
 
 class AudioSettings : public QDialog
 {
@@ -61,4 +62,6 @@ private:
   QSettings settings_;
 
   QList<std::pair<QString, QSlider*>> sliders_;
+
+  QList<std::pair<QString, QCheckBox*>> boxes_;
 };

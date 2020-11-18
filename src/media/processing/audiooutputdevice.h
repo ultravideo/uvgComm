@@ -12,7 +12,7 @@ class StatisticsInterface;
 class AECProcessor;
 struct Data;
 
-// TODO: There should be an audio buffer with minimum and maximum values so we alway have data to send.
+// TODO: There should be an audio buffer with minimum and maximum values so we always have data to send.
 
 class AudioOutputDevice : public QIODevice
 {
@@ -20,6 +20,8 @@ class AudioOutputDevice : public QIODevice
 public:
   AudioOutputDevice(StatisticsInterface* stats);
   virtual ~AudioOutputDevice();
+
+  void updateSettings();
 
   void init(QAudioFormat format,
             std::shared_ptr<AECProcessor> AEC);

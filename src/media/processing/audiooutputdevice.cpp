@@ -38,6 +38,15 @@ AudioOutputDevice::~AudioOutputDevice()
 }
 
 
+void AudioOutputDevice::updateSettings()
+{
+  if (aec_)
+  {
+    aec_->updateSettings();
+  }
+}
+
+
 void AudioOutputDevice::init(QAudioFormat format,
                              std::shared_ptr<AECProcessor> AEC)
 {

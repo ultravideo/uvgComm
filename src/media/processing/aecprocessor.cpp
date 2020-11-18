@@ -2,6 +2,8 @@
 
 // this is how many frames the audio capture seems to send
 
+#include <QSettings>
+
 #include "common.h"
 #include "global.h"
 
@@ -22,6 +24,74 @@ AECProcessor::AECProcessor(QAudioFormat format):
   echoSample_(nullptr)
 {
   init();
+}
+
+
+void AECProcessor::updateSettings()
+{
+  if (PREPROCESSOR && preprocessor_ != nullptr)
+  {
+    QSettings settings("kvazzup.ini", QSettings::IniFormat);
+
+    echoMutex_.lock();
+
+    if (settings.value("audio/aec") == 1)
+    {
+      speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_ECHO_STATE, echo_state_);
+
+      // these are the default values
+      int* suppression = new int(-40);
+      speex_preprocess_ctl(preprocessor_,
+                           SPEEX_PREPROCESS_SET_ECHO_SUPPRESS,
+                           suppression);
+
+      *suppression = -15;
+      speex_preprocess_ctl(preprocessor_,
+                           SPEEX_PREPROCESS_SET_ECHO_SUPPRESS_ACTIVE,
+                           suppression);
+
+      delete suppression;
+    }
+    else
+    {
+      speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_ECHO_STATE, nullptr);
+    }
+
+    int* activeState = new int(1);
+    int* inactiveState = new int(0);
+
+    if (settings.value("audio/denoise") == 1)
+    {
+      speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_DENOISE, activeState);
+    }
+    else
+    {
+      speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_DENOISE, inactiveState);
+    }
+
+    if (settings.value("audio/dereverb") == 1)
+    {
+      speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_DEREVERB, activeState);
+    }
+    else
+    {
+      speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC, inactiveState);
+    }
+
+    if (settings.value("audio/agc") == 1)
+    {
+      speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC, activeState);
+    }
+    else
+    {
+      speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC, inactiveState);
+    }
+
+    delete activeState;
+    delete inactiveState;
+
+    echoMutex_.unlock();
+  }
 }
 
 
@@ -66,32 +136,11 @@ void AECProcessor::init()
   {
     preprocessor_ = speex_preprocess_state_init(samplesPerFrame_,
                                                 format_.sampleRate());
-
-    int* activeState = new int(1);
-    speex_preprocess_ctl(preprocessor_,
-                         SPEEX_PREPROCESS_SET_AGC, activeState);
-    speex_preprocess_ctl(preprocessor_,
-                         SPEEX_PREPROCESS_SET_DENOISE, activeState);
-    //speex_preprocess_ctl(preprocessor_,
-    //                     SPEEX_PREPROCESS_SET_DEREVERB, activeState);
-
-    delete activeState;
-
-    // these are the default values
-    int* suppression = new int(-40);
-    speex_preprocess_ctl(preprocessor_,
-                         SPEEX_PREPROCESS_SET_ECHO_SUPPRESS,
-                         suppression);
-
-    *suppression = -15;
-    speex_preprocess_ctl(preprocessor_,
-                         SPEEX_PREPROCESS_SET_ECHO_SUPPRESS_ACTIVE,
-                         suppression);
-
-    delete suppression;
   }
 
   echoMutex_.unlock();
+
+  updateSettings();
 }
 
 

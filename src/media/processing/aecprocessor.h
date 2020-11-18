@@ -20,6 +20,8 @@ class AECProcessor : public QObject
 public:
   AECProcessor(QAudioFormat format);
 
+  void updateSettings();
+
   void init();
   void cleanup();
 

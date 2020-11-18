@@ -21,11 +21,23 @@ AudioSettings::AudioSettings(QWidget* parent,
   sliders_.push_back({"audio/bitrate", audioSettingsUI_->bitrate_slider});
   sliders_.push_back({"audio/complexity", audioSettingsUI_->complexity_slider});
 
+  boxes_.push_back({"audio/aec", audioSettingsUI_->aec_box});
+  boxes_.push_back({"audio/denoise", audioSettingsUI_->denoise_box});
+  boxes_.push_back({"audio/dereverb", audioSettingsUI_->dereverberation_box});
+  boxes_.push_back({"audio/agc", audioSettingsUI_->agc_box});
+
   for (auto& slider : sliders_)
   {
     connect(slider.second, &QSlider::valueChanged,
             audioSettingsUI_->audio_ok, &QPushButton::show);
   }
+
+  for (auto& box : boxes_)
+  {
+    connect(box.second, &QCheckBox::stateChanged,
+            audioSettingsUI_->audio_ok, &QPushButton::show);
+  }
+
 
   connect(audioSettingsUI_->bitrate_slider, &QSlider::valueChanged,
           this, &AudioSettings::updateBitrate);
@@ -112,6 +124,11 @@ void AudioSettings::restoreSettings()
 
     QString type = settings_.value("audio/signalType").toString();
     audioSettingsUI_->signal_combo->setCurrentText(type);
+
+    for (auto& box : boxes_)
+    {
+      restoreCheckBox(box.first, box.second, settings_);
+    }
   }
   else
   {
@@ -134,6 +151,11 @@ void AudioSettings::saveSettings()
     saveTextValue(slider.first, {QString::number(slider.second->value())}, settings_);
   }
 
+  for (auto& box : boxes_)
+  {
+    saveCheckBox(box.first, box.second, settings_);
+  }
+
   saveTextValue("audio/signalType",
                 audioSettingsUI_->signal_combo->currentText(), settings_);
 }
@@ -147,6 +169,15 @@ bool AudioSettings::checkSettings()
     if (!settings_.contains(slider.first))
     {
       printError(this, "Missing a slider settings value.");
+      everythingOK = false;
+    }
+  }
+
+  for (auto& box : boxes_)
+  {
+    if (!settings_.contains(box.first))
+    {
+      printError(this, "Missing a box settings value.");
       everythingOK = false;
     }
   }
