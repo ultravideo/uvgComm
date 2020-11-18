@@ -18,17 +18,20 @@ AudioSettings::AudioSettings(QWidget* parent,
 {
   audioSettingsUI_->setupUi(this);
 
+  sliders_.push_back({"audio/bitrate", audioSettingsUI_->bitrate_slider});
+  sliders_.push_back({"audio/complexity", audioSettingsUI_->complexity_slider});
+
+  for (auto& slider : sliders_)
+  {
+    connect(slider.second, &QSlider::valueChanged,
+            audioSettingsUI_->audio_ok, &QPushButton::show);
+  }
+
   connect(audioSettingsUI_->bitrate_slider, &QSlider::valueChanged,
           this, &AudioSettings::updateBitrate);
 
   connect(audioSettingsUI_->complexity_slider, &QSlider::valueChanged,
           this, &AudioSettings::updateComplexity);
-
-  connect(audioSettingsUI_->bitrate_slider, &QSlider::valueChanged,
-          audioSettingsUI_->audio_ok, &QPushButton::show);
-
-  connect(audioSettingsUI_->complexity_slider, &QSlider::valueChanged,
-          audioSettingsUI_->audio_ok, &QPushButton::show);
 
   connect(audioSettingsUI_->signal_combo, &QComboBox::currentTextChanged,
           this, &AudioSettings::showOkButton);
@@ -101,11 +104,11 @@ void AudioSettings::restoreSettings()
   {
     //restoreComboBoxValue("audio/channels", audioSettingsUI_->channel_combo, QString::number(1), settings_);
 
-    unsigned int bitrate = settings_.value("audio/bitrate").toUInt();
-    audioSettingsUI_->bitrate_slider->setValue(bitrate);
-
-    unsigned int complexity = settings_.value("audio/complexity").toUInt();
-    audioSettingsUI_->complexity_slider->setValue(complexity);
+    for (auto& slider : sliders_)
+    {
+      unsigned int bitrate = settings_.value(slider.first).toUInt();
+      slider.second->setValue(bitrate);
+    }
 
     QString type = settings_.value("audio/signalType").toString();
     audioSettingsUI_->signal_combo->setCurrentText(type);
@@ -126,13 +129,10 @@ void AudioSettings::saveSettings()
   //saveTextValue("audio/channels",
   //              audioSettingsUI_->channel_combo->currentText(), settings_);
 
-  saveTextValue("audio/bitrate",
-                {QString::number(audioSettingsUI_->bitrate_slider->value())},
-                settings_);
-
-  saveTextValue("audio/complexity",
-                QString::number(audioSettingsUI_->complexity_slider->value()),
-                settings_);
+  for (auto& slider : sliders_)
+  {
+    saveTextValue(slider.first, {QString::number(slider.second->value())}, settings_);
+  }
 
   saveTextValue("audio/signalType",
                 audioSettingsUI_->signal_combo->currentText(), settings_);
@@ -142,9 +142,16 @@ bool AudioSettings::checkSettings()
 {
   bool everythingOK = checkMissingValues(settings_);
 
+  for (auto& slider : sliders_)
+  {
+    if (!settings_.contains(slider.first))
+    {
+      printError(this, "Missing a slider settings value.");
+      everythingOK = false;
+    }
+  }
+
   if(// !settings_.contains("audio/channels") ||
-     !settings_.contains("audio/bitrate") ||
-     !settings_.contains("audio/complexity") ||
      !settings_.contains("audio/signalType"))
   {
     printError(this, "Missing an audio settings value.");
@@ -169,6 +176,7 @@ void AudioSettings::updateBitrate(int value)
     audioSettingsUI_->bitrate_slider->setValue(value);
   }
 }
+
 
 void AudioSettings::updateComplexity(int value)
 {

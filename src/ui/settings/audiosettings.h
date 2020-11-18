@@ -10,6 +10,7 @@ class AudioSettings;
 }
 
 class MicrophoneInfo;
+class QSlider;
 
 class AudioSettings : public QDialog
 {
@@ -58,4 +59,6 @@ private:
   std::shared_ptr<MicrophoneInfo> mic_;
 
   QSettings settings_;
+
+  QList<std::pair<QString, QSlider*>> sliders_;
 };
