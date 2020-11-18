@@ -2,6 +2,7 @@
 
 #include <QWidget>
 #include <QAudioFormat>
+#include <QObject>
 
 #include <vector>
 #include <memory>
@@ -15,8 +16,9 @@ class AECInputFilter;
 
 typedef std::vector<std::shared_ptr<Filter>> GraphSegment;
 
-class FilterGraph
+class FilterGraph : public QObject
 {
+  Q_OBJECT
 public:
   FilterGraph();
 
