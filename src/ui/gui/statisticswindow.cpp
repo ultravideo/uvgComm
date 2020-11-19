@@ -53,7 +53,7 @@ StatisticsInterface(),
 {
   ui_->setupUi(this);
 
-  connect(ui_->update_frequency, &QAbstractSlider::valueChanged,
+  connect(ui_->update_period, &QAbstractSlider::valueChanged,
           this, &StatisticsWindow::changeUpdateFrequency);
 
   connect(ui_->update_tail, &QAbstractSlider::valueChanged,
@@ -67,11 +67,11 @@ StatisticsInterface(),
   ui_->bandwidth_chart->addLine("Out");
 
   // performance-tab
-  ui_->v_bitrate_chart->init(500, 5, true, CHARTVALUES, "Bitrates (kbit/s)");
-  ui_->a_bitrate_chart->init(100, 5, false, CHARTVALUES, "Bitrates (kbit/s)");
+  ui_->v_bitrate_chart->init(500, 5, true, CHARTVALUES, "Bit rates (kbit/s)");
+  ui_->a_bitrate_chart->init(50, 5, false, CHARTVALUES, "Bit rates (kbit/s)");
   ui_->v_delay_chart->init(100, 5, true, CHARTVALUES, "Latencies (ms)");
   ui_->a_delay_chart->init(10, 5, false, CHARTVALUES, "Latencies (ms)");
-  ui_->v_framerate_chart->init(30, 5, false, CHARTVALUES, "Framerates (fps)");
+  ui_->v_framerate_chart->init(30, 5, false, CHARTVALUES, "Frame rates (fps)");
 
   chartVideoID_ = ui_->v_bitrate_chart->addLine("Outgoing");
   chartAudioID_ = ui_->a_bitrate_chart->addLine("Outgoing");
@@ -126,11 +126,11 @@ void StatisticsWindow::videoInfo(double framerate, QSize resolution)
   // set max framerate as this. Set the y-line every 5 fps, 10 fps if fps is over 60
   if (framerate <= 60)
   {
-    ui_->v_framerate_chart->init(framerate, framerate/5, false, CHARTVALUES, "Framerates (fps)");
+    ui_->v_framerate_chart->init(framerate, framerate/5, false, CHARTVALUES, "Frame rates (fps)");
   }
   else
   {
-    ui_->v_framerate_chart->init(framerate, framerate/10, false, CHARTVALUES, "Framerates (fps)");
+    ui_->v_framerate_chart->init(framerate, framerate/10, false, CHARTVALUES, "Frame rates (fps)");
   }
 }
 
@@ -569,7 +569,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 
   // should we update the outlook of statistics
   if(lastTabIndex_ != ui_->Statistics_tabs->currentIndex()
-     || guiUpdates_*ui_->update_frequency->value() < guiTimer_.elapsed())
+     || guiUpdates_*ui_->update_period->value() < guiTimer_.elapsed())
   {
     // do not take this account if this was only a tab switch
     if (lastTabIndex_ == ui_->Statistics_tabs->currentIndex())
@@ -614,7 +614,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
     case PERFORMANCE_TAB:
       {
         // how long a tail should we consider in bitrate calculations
-        int64_t interval = ui_->update_frequency->value() * ui_->update_tail->value();
+        int64_t interval = ui_->update_period->value() * ui_->update_tail->value();
 
         // calculate local video bitrate and framerate
         float videoFramerate = 0.0f;
@@ -806,17 +806,17 @@ void StatisticsWindow::changeUpdateFrequency(int value)
   limitedValue *= 100;
 
   // move slider to discreet value
-  ui_->update_frequency->setValue(limitedValue);
+  ui_->update_period->setValue(limitedValue);
 
   // show as seconds
   if (limitedValue >= 1000)
   {
     QString number = QString::number(limitedValue/1000) + "." + QString::number(limitedValue%1000/100);
-    ui_->update_frequency_label->setText("Update Frequency: " + number + " s");
+    ui_->update_period_label->setText("Update Frequency: " + number + " s");
   }
   else // show as ms
   {
-    ui_->update_frequency_label->setText("Update Frequency: " + QString::number(limitedValue) + " ms");
+    ui_->update_period_label->setText("Update Frequency: " + QString::number(limitedValue) + " ms");
   }
   clearCharts();
 }

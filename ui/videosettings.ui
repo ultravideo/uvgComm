@@ -686,7 +686,7 @@
        <item row="8" column="0">
         <widget class="QLabel" name="label_21">
          <property name="text">
-          <string>RC Algorithm</string>
+          <string>RC algorithm</string>
          </property>
         </widget>
        </item>
@@ -797,7 +797,7 @@
        <item row="6" column="0">
         <widget class="QLabel" name="bitrate_label">
          <property name="text">
-          <string>Target Bitrate</string>
+          <string>Target bit rate</string>
          </property>
         </widget>
        </item>
@@ -994,7 +994,7 @@
        <item row="14" column="0" colspan="2">
         <widget class="QLabel" name="label_24">
          <property name="text">
-          <string>MV Constraint</string>
+          <string>MV constraint</string>
          </property>
         </widget>
        </item>
