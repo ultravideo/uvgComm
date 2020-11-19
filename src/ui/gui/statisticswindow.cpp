@@ -54,7 +54,7 @@ StatisticsInterface(),
   ui_->setupUi(this);
 
   connect(ui_->update_period, &QAbstractSlider::valueChanged,
-          this, &StatisticsWindow::changeUpdateFrequency);
+          this, &StatisticsWindow::changeUpdatePeriod);
 
   connect(ui_->sample_window, &QAbstractSlider::valueChanged,
           this, &StatisticsWindow::changeSampleWindow);
@@ -126,11 +126,13 @@ void StatisticsWindow::videoInfo(double framerate, QSize resolution)
   // set max framerate as this. Set the y-line every 5 fps, 10 fps if fps is over 60
   if (framerate <= 60)
   {
-    ui_->v_framerate_chart->init(framerate, framerate/5, false, CHARTVALUES, "Frame rates (fps)");
+    ui_->v_framerate_chart->init(framerate, framerate/5, false,
+                                 CHARTVALUES, "Frame rates (fps)");
   }
   else
   {
-    ui_->v_framerate_chart->init(framerate, framerate/10, false, CHARTVALUES, "Frame rates (fps)");
+    ui_->v_framerate_chart->init(framerate, framerate/10, false,
+                                 CHARTVALUES, "Frame rates (fps)");
   }
 }
 
@@ -200,7 +202,8 @@ void StatisticsWindow::addMedia(QTableWidget* table, uint32_t sessionID, QString
   }
 
   int index = addTableRow(table, sessionMutex_,
-                          {combineList(ipList), combineList(audioPorts), combineList(videoPorts)});
+                          {combineList(ipList), combineList(audioPorts),
+                           combineList(videoPorts)});
 
   if (sessions_[sessionID].tableIndex == -1 || sessions_[sessionID].tableIndex == index)
   {
@@ -271,8 +274,8 @@ void StatisticsWindow::removeFilter(uint32_t id)
     filterMutex_.unlock();
     printProgramWarning(this, "Filter doesn't exist in filter table when removing.",
                           {"Id: Table size vs expected place"}, {
-                          QString::number(id) + ":" + QString::number(ui_->filterTable->rowCount()) + " vs " +
-                          QString::number(buffers_[id].tableIndex)});
+                          QString::number(id) + ":" + QString::number(ui_->filterTable->rowCount())
+                          + " vs " + QString::number(buffers_[id].tableIndex)});
     return;
   }
 
@@ -445,7 +448,8 @@ uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets, uint32_t i
   }
 
   // sum all bytes and time intervals in ring-buffer for specified timeperiod
-  while(packets[currentTs%BUFFERSIZE] && now - packets[currentTs%BUFFERSIZE]->timestamp < interval)
+  while(packets[currentTs%BUFFERSIZE] && now - packets[currentTs%BUFFERSIZE]->timestamp
+        < interval)
   {
     bitrate += packets[currentTs%BUFFERSIZE]->size;
     ++frames;
@@ -480,7 +484,8 @@ void StatisticsWindow::addSendPacket(uint16_t size)
 }
 
 
-void StatisticsWindow::addReceivePacket(uint32_t sessionID, QString type, uint16_t size)
+void StatisticsWindow::addReceivePacket(uint32_t sessionID, QString type,
+                                        uint16_t size)
 {
   deliveryMutex_.lock();
   ++receivePacketCount_;
@@ -637,12 +642,16 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
           sessionMutex_.lock();
 
           float receiveVideorate = 0; // not shown at the moment. We show presentation framerate instead
-          uint32_t videoBitrate = bitrate(d.second.videoPackets, d.second.videoIndex, receiveVideorate, interval);
+          uint32_t videoBitrate = bitrate(d.second.videoPackets, d.second.videoIndex,
+                                          receiveVideorate, interval);
+
           float presentationVideoFramerate = 0;
-          bitrate(d.second.pVideoPackets, d.second.pVideoIndex, presentationVideoFramerate, interval);
+          bitrate(d.second.pVideoPackets, d.second.pVideoIndex,
+                  presentationVideoFramerate, interval);
 
           float receiveAudiorate = 0; // not interesting and not shown.
-          uint32_t audioBitrate = bitrate(d.second.audioPackets, d.second.audioIndex, receiveAudiorate, interval);
+          uint32_t audioBitrate = bitrate(d.second.audioPackets, d.second.audioIndex,
+                                          receiveAudiorate, interval);
 
           // not showing audio framerate at the moment. Might show playback samplerate in the future
           //float presentationAudioFramerate = 0;
@@ -798,7 +807,7 @@ int StatisticsWindow::addTableRow(QTableWidget* table, QMutex& mutex,
 }
 
 
-void StatisticsWindow::changeUpdateFrequency(int value)
+void StatisticsWindow::changeUpdatePeriod(int value)
 {
   // this makes limits the update frequency to only discreet values
   // which I think is more suitable for this.
@@ -808,7 +817,8 @@ void StatisticsWindow::changeUpdateFrequency(int value)
   // move slider to discreet value
   ui_->update_period->setValue(limitedValue);
 
-  ui_->update_period_label->setText("Update Period: " + getTimeConversion(limitedValue));
+  ui_->update_period_label->setText("Update Period: "
+                                    + getTimeConversion(limitedValue));
 
   changeSampleWindow(ui_->sample_window->value());
   clearCharts();
@@ -818,7 +828,8 @@ void StatisticsWindow::changeUpdateFrequency(int value)
 void StatisticsWindow::changeSampleWindow(int value)
 {
   int sampleWindow = ui_->update_period->value() * value;
-  ui_->sample_window_label->setText("Sample Window Length: " +  getTimeConversion(sampleWindow));
+  ui_->sample_window_label->setText("Sample Window Length: "
+                                    +  getTimeConversion(sampleWindow));
   clearCharts();
 }
 
@@ -848,6 +859,6 @@ QString StatisticsWindow::getTimeConversion(int valueInMs)
   {
     return (QString::number(valueInMs/1000) + "." + QString::number(valueInMs%1000/100) + " s");
   }
-  // milliseconds
+  // show as milliseconds
   return QString::number(valueInMs) + " ms";
 }

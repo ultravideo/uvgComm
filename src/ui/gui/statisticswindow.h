@@ -65,14 +65,18 @@ public:
 
 private slots:
 
-  void changeUpdateFrequency(int value);
+  // Rounds the update period to nearest second and updates the label with
+  // the current value.
+  void changeUpdatePeriod(int value);
+
+  // Changes the label of sample window to reflect current value.
   void changeSampleWindow(int value);
 
 private:
 
   void clearCharts();
 
-  // info about one packet for calculating bitrate
+  // Info about one packet for calculating bitrate.
   struct PacketInfo
   {
     int64_t timestamp;
