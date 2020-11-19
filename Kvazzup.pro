@@ -234,6 +234,9 @@ win32{
 
 
 win32-msvc{
+  # Note: I had problems with msvc version 10.0.18362.0
+  # and had to use another version
+
   # static kvazaar. Untested
   #DEFINES += KVZ_STATIC_LIB
 
@@ -324,8 +327,3 @@ CONFIG(false){
 
 DISTFILES += \
     .gitignore
-
-win32: LIBS += -L$$PWD/../msvc_libs/old/ -lkvazaar_lib
-
-INCLUDEPATH += $$PWD/../msvc_libs/old
-DEPENDPATH += $$PWD/../msvc_libs/old
