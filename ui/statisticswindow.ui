@@ -514,7 +514,7 @@
         </widget>
        </item>
        <item row="5" column="0">
-        <widget class="QSlider" name="update_tail">
+        <widget class="QSlider" name="sample_window">
          <property name="minimum">
           <number>1</number>
          </property>
@@ -671,7 +671,7 @@
         </widget>
        </item>
        <item row="5" column="1">
-        <widget class="QLabel" name="update_tail_label">
+        <widget class="QLabel" name="sample_window_label">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
            <horstretch>0</horstretch>
@@ -679,7 +679,7 @@
           </sizepolicy>
          </property>
          <property name="text">
-          <string>Sample Window length: 5x</string>
+          <string>Sample Window Length: 5.0 s</string>
          </property>
         </widget>
        </item>

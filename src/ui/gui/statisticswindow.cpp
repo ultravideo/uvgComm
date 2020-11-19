@@ -56,8 +56,8 @@ StatisticsInterface(),
   connect(ui_->update_period, &QAbstractSlider::valueChanged,
           this, &StatisticsWindow::changeUpdateFrequency);
 
-  connect(ui_->update_tail, &QAbstractSlider::valueChanged,
-          this, &StatisticsWindow::changeUpdateTail);
+  connect(ui_->sample_window, &QAbstractSlider::valueChanged,
+          this, &StatisticsWindow::changeSampleWindow);
 
   // Initiate all charts
 
@@ -614,7 +614,7 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
     case PERFORMANCE_TAB:
       {
         // how long a tail should we consider in bitrate calculations
-        int64_t interval = ui_->update_period->value() * ui_->update_tail->value();
+        int64_t interval = ui_->update_period->value() * ui_->sample_window->value();
 
         // calculate local video bitrate and framerate
         float videoFramerate = 0.0f;
@@ -808,23 +808,17 @@ void StatisticsWindow::changeUpdateFrequency(int value)
   // move slider to discreet value
   ui_->update_period->setValue(limitedValue);
 
-  // show as seconds
-  if (limitedValue >= 1000)
-  {
-    QString number = QString::number(limitedValue/1000) + "." + QString::number(limitedValue%1000/100);
-    ui_->update_period_label->setText("Update Frequency: " + number + " s");
-  }
-  else // show as ms
-  {
-    ui_->update_period_label->setText("Update Frequency: " + QString::number(limitedValue) + " ms");
-  }
+  ui_->update_period_label->setText("Update Period: " + getTimeConversion(limitedValue));
+
+  changeSampleWindow(ui_->sample_window->value());
   clearCharts();
 }
 
 
-void StatisticsWindow::changeUpdateTail(int value)
+void StatisticsWindow::changeSampleWindow(int value)
 {
-  ui_->update_tail_label->setText("Tail Length: " + QString::number(value) + "x");
+  int sampleWindow = ui_->update_period->value() * value;
+  ui_->sample_window_label->setText("Sample Window Length: " +  getTimeConversion(sampleWindow));
   clearCharts();
 }
 
@@ -844,4 +838,16 @@ void StatisticsWindow::clearCharts()
   guiUpdates_ = 0;
   guiTimer_.restart();
 
+}
+
+
+QString StatisticsWindow::getTimeConversion(int valueInMs)
+{
+  // show as seconds
+  if (valueInMs >= 1000)
+  {
+    return (QString::number(valueInMs/1000) + "." + QString::number(valueInMs%1000/100) + " s");
+  }
+  // milliseconds
+  return QString::number(valueInMs) + " ms";
 }

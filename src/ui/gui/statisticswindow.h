@@ -66,7 +66,7 @@ public:
 private slots:
 
   void changeUpdateFrequency(int value);
-  void changeUpdateTail(int value);
+  void changeSampleWindow(int value);
 
 private:
 
@@ -89,11 +89,14 @@ private:
   void fillTableHeaders(QTableWidget* table, QMutex& mutex, QStringList headers);
 
   // returns the index of added row
-  int addTableRow(QTableWidget* table, QMutex& mutex, QStringList fields, QString tooltip = "");
+  int addTableRow(QTableWidget* table, QMutex& mutex, QStringList fields,
+                  QString tooltip = "");
 
   void addMedia(QTableWidget* table, uint32_t sessionID, QStringList& ipList,
                 QStringList audioPorts, QStringList videoPorts);
   QString combineList(QStringList& list);
+
+  QString getTimeConversion(int valueInMs);
 
   struct SessionInfo
   {
