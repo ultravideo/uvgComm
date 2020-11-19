@@ -262,6 +262,36 @@
        <string>DSP</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_2">
+       <item row="6" column="1">
+        <widget class="QCheckBox" name="agc_box">
+         <property name="text">
+          <string/>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="aec_label">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="text">
+          <string>Acoustic Echo Cancellation (AEC)</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="0">
+        <widget class="QLabel" name="agc_label">
+         <property name="text">
+          <string>Automatic Gain Control (AGC)</string>
+         </property>
+        </widget>
+       </item>
        <item row="0" column="0" colspan="2">
         <widget class="QLabel" name="label_3">
          <property name="font">
@@ -279,16 +309,6 @@
          </property>
         </widget>
        </item>
-       <item row="6" column="1">
-        <widget class="QCheckBox" name="agc_box">
-         <property name="text">
-          <string/>
-         </property>
-         <property name="checked">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
        <item row="7" column="0" colspan="2">
         <spacer name="verticalSpacer">
          <property name="orientation">
@@ -302,40 +322,10 @@
          </property>
         </spacer>
        </item>
-       <item row="6" column="0">
-        <widget class="QLabel" name="agc_label">
-         <property name="text">
-          <string>Automatic Gain Control (AGC)</string>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="1">
-        <widget class="QCheckBox" name="denoise_box">
-         <property name="text">
-          <string/>
-         </property>
-         <property name="checked">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
        <item row="5" column="0">
         <widget class="QLabel" name="denoise_label">
          <property name="text">
           <string>Denoise</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="aec_label">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="text">
-          <string>Acoustic Echo Cancellation (AEC)</string>
          </property>
         </widget>
        </item>
@@ -348,6 +338,16 @@
        </item>
        <item row="3" column="1">
         <widget class="QCheckBox" name="dereverberation_box">
+         <property name="text">
+          <string/>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
+        <widget class="QCheckBox" name="denoise_box">
          <property name="text">
           <string/>
          </property>
