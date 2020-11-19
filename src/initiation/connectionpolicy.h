@@ -18,8 +18,6 @@ public:
 private:
   void initializePolicy();
 
-  QString localUsername_;
-
   QList<QString> blockedUsers_;
   QList<QString> blockedIPs_;
 };

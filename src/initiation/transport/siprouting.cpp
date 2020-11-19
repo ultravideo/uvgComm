@@ -65,7 +65,7 @@ void SIPRouting::getContactAddress(std::shared_ptr<SIPMessageInfo> message,
                                    QString localAddress, uint16_t localPort,
                                    ConnectionType type)
 {
-  message->contact = {type, getUsername(), "", "", 0, {}};
+  message->contact = {type, getLocalUsername(), "", "", 0, {}};
 
     // use rport address and port if we have them, otherwise use localaddress
   if (contactAddress_ != "")
@@ -85,12 +85,4 @@ void SIPRouting::getContactAddress(std::shared_ptr<SIPMessageInfo> message,
   {
     message->contact.port = localPort;
   }
-}
-
-
-QString SIPRouting::getUsername()
-{
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
-
-  return settings.value("local/Username").toString();
 }

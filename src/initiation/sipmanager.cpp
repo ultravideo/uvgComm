@@ -41,10 +41,8 @@ void SIPManager::init(SIPTransactionUser* callControl, StatisticsInterface *stat
   registrations_.init(statusView);
 
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
-  QString username = !settings.value("local/Username").isNull()
-      ? settings.value("local/Username").toString() : "anonymous";
 
-  negotiation_.init(username);
+  negotiation_.init();
 
   QObject::connect(&dialogManager_, &SIPDialogManager::transportRequest,
                    this, &SIPManager::transportRequest);

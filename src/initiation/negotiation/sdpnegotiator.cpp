@@ -12,9 +12,9 @@ SDPNegotiator::SDPNegotiator():
 {}
 
 
-void SDPNegotiator::setLocalInfo(QString username)
+void SDPNegotiator::setLocalInfo()
 {
-  localUsername_ = username;
+  localUsername_ = getLocalUsername();
 }
 
 
@@ -173,7 +173,7 @@ bool SDPNegotiator::selectBestCodec(QList<uint8_t>& remoteNums,       QList<RTPM
 void SDPNegotiator::generateOrigin(std::shared_ptr<SDPMessageInfo> sdp,
                                  QString localAddress)
 {
-  sdp->originator_username = localUsername_;
+  sdp->originator_username = getLocalUsername();
   sdp->sess_id = QDateTime::currentMSecsSinceEpoch();
   sdp->sess_v = QDateTime::currentMSecsSinceEpoch();
   sdp->host_nettype = "IN";

@@ -236,7 +236,7 @@ void SIPDialogState::initLocalURI()
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
 
   localURI_.realname = settings.value("local/Name").toString();
-  localURI_.username = settings.value("local/Username").toString();
+  localURI_.username = getLocalUsername();
   localURI_.host = settings.value("sip/ServerAddress").toString();
   localURI_.connectionType = TRANSPORTTYPE;
   localURI_.port = 0; // port is added later if needed

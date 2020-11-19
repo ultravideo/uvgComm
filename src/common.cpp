@@ -277,6 +277,13 @@ bool settingEnabled(QString parameter)
 }
 
 
+QString getLocalUsername()
+{
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+
+  return settings.value("local/Username").toString();
+}
+
 void printHelper(QString beginString, QString valueString, QString description, int valuenames)
 {
   if (beginString.length() < BEGIN_LENGTH)

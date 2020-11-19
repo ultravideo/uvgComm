@@ -71,3 +71,5 @@ void printDebug(DebugType type, const QObject* object, QString description = "",
                 QStringList valueNames = {}, QStringList values = {});
 
 bool settingEnabled(QString parameter);
+
+QString getUsername();

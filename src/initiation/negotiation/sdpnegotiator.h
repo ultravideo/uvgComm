@@ -13,7 +13,7 @@ class SDPNegotiator
 public:
   SDPNegotiator();
 
-  void setLocalInfo(QString username);
+  void setLocalInfo();
 
   std::shared_ptr<SDPMessageInfo> generateLocalSDP(QString localAddress);
 

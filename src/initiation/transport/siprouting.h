@@ -32,8 +32,6 @@ public:
 
 private:
 
-  QString getUsername();
-
   QString contactAddress_;
   uint16_t contactPort_;
 

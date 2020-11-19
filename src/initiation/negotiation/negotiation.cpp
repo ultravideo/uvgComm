@@ -14,9 +14,9 @@ Negotiation::Negotiation():
 {}
 
 
-void Negotiation::init(QString username)
+void Negotiation::init()
 {
-  negotiator_.setLocalInfo(username);
+  negotiator_.setLocalInfo();
 
   QObject::connect(ice_.get(), &ICE::nominationSucceeded,
                    this,       &Negotiation::nominationSucceeded);
