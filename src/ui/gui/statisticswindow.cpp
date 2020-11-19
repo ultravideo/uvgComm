@@ -106,6 +106,13 @@ void StatisticsWindow::showEvent(QShowEvent * event)
   Q_UNUSED(event)
   // start refresh timer
   clearCharts();
+
+  // this makes sure the window does not open outside the screen above the parent.
+  this->setGeometry(QStyle::alignedRect(Qt::LeftToRight,
+                                        Qt::AlignHCenter,
+                                        this->size(),
+                                        parentWidget()->geometry()));
+
 }
 
 
