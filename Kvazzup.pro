@@ -262,6 +262,7 @@ win32-g++{
 }
 
 unix {
+  LIBS += -lkvazaar
   QMAKE_CXXFLAGS += -msse4.1 -mavx2 -fopenmp
   QMAKE_LFLAGS += -fopenmp
   INCLUDEPATH += /usr/include/opus/
