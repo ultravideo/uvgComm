@@ -32,7 +32,7 @@ class Negotiation : public QObject
 public:
   Negotiation();
 
-  void init(QString username);
+  void init();
 
   // Use this to generate the first SDP offer of the negotiation.
   // Includes all the media codecs suitable to us in preferred order.

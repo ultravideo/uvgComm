@@ -7,15 +7,8 @@
 #include <QDateTime>
 #include <QDebug>
 
-SDPNegotiator::SDPNegotiator():
-  localUsername_("")
+SDPNegotiator::SDPNegotiator()
 {}
-
-
-void SDPNegotiator::setLocalInfo()
-{
-  localUsername_ = getLocalUsername();
-}
 
 
 std::shared_ptr<SDPMessageInfo> SDPNegotiator::generateLocalSDP(QString localAddress)
@@ -23,13 +16,15 @@ std::shared_ptr<SDPMessageInfo> SDPNegotiator::generateLocalSDP(QString localAdd
   // TODO: This should ask media manager, what options it supports.
   qDebug() << "Generating new SDP message with our address as:" << localAddress;
 
+  QString localUsername = getLocalUsername();
+
   if(localAddress == ""
      || localAddress == "0.0.0.0"
-     || localUsername_ == "")
+     || localUsername == "")
   {
     qWarning() << "WARNING: Necessary info not set for SDP generation:"
                << localAddress
-               << localUsername_;
+               << localUsername;
     return nullptr;
   }
 

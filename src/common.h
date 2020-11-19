@@ -72,4 +72,4 @@ void printDebug(DebugType type, const QObject* object, QString description = "",
 
 bool settingEnabled(QString parameter);
 
-QString getUsername();
+QString getLocalUsername();

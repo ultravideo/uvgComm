@@ -13,8 +13,6 @@ class SDPNegotiator
 public:
   SDPNegotiator();
 
-  void setLocalInfo();
-
   std::shared_ptr<SDPMessageInfo> generateLocalSDP(QString localAddress);
 
   std::shared_ptr<SDPMessageInfo> negotiateSDP(SDPMessageInfo& remoteSDPOffer,
@@ -38,7 +36,5 @@ public:
 
 
 private:
-
-  QString localUsername_;
 
 };

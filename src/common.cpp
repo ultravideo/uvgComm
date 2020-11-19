@@ -281,7 +281,8 @@ QString getLocalUsername()
 {
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
 
-  return settings.value("local/Username").toString();
+  return !settings.value("local/Username").isNull()
+      ? settings.value("local/Username").toString() : "anonymous";
 }
 
 void printHelper(QString beginString, QString valueString, QString description, int valuenames)

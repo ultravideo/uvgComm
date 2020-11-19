@@ -16,8 +16,6 @@ Negotiation::Negotiation():
 
 void Negotiation::init()
 {
-  negotiator_.setLocalInfo();
-
   QObject::connect(ice_.get(), &ICE::nominationSucceeded,
                    this,       &Negotiation::nominationSucceeded);
 
