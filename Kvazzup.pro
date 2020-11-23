@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT       += core gui concurrent
 
 message("Parsing project file.")
 message("Qt version:" "$$QT_MAJOR_VERSION"."$$QT_MINOR_VERSION")

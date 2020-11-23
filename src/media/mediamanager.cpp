@@ -37,6 +37,12 @@ void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory, Statistic
 
   streamer_ = std::unique_ptr<Delivery> (new Delivery());
   streamer_->init(stats_);
+
+  connect(
+    streamer_.get(),
+    &Delivery::handleZRTPFailure,
+    this,
+    &MediaManager::handleZRTPFailure);
 }
 
 
@@ -54,7 +60,6 @@ void MediaManager::uninit()
     streamer_ = nullptr;
   }
 }
-
 
 void MediaManager::updateSettings()
 {

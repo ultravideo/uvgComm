@@ -4,13 +4,14 @@
 #include "statisticsinterface.h"
 #include "common.h"
 
-UvgRTPSender::UvgRTPSender(QString id, StatisticsInterface *stats,
-                           DataType type, QString media, uvg_rtp::media_stream *mstream):
+UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id, StatisticsInterface *stats,
+                           DataType type, QString media, QFuture<uvg_rtp::media_stream *> mstream):
   Filter(id, "RTP Sender " + media, stats, type, NONE),
   type_(type),
-  mstream_(mstream),
+  mstream_(nullptr),
   frame_(0),
-  rtpFlags_(RTP_NO_FLAGS)
+  rtpFlags_(RTP_NO_FLAGS),
+  sessionID_(sessionID)
 {
   updateSettings();
 
@@ -28,6 +29,14 @@ UvgRTPSender::UvgRTPSender(QString id, StatisticsInterface *stats,
       dataFormat_ = RTP_FORMAT_GENERIC;
       break;
   }
+
+  watcher_.setFuture(mstream);
+  connect(&watcher_, &QFutureWatcher<uvg_rtp::media_stream *>::finished,
+          [this]()
+          {
+            if (!(mstream_ = watcher_.result()))
+              emit zrtpFailure(sessionID_);
+          });
 }
 
 UvgRTPSender::~UvgRTPSender()
@@ -68,6 +77,10 @@ void UvgRTPSender::updateSettings()
 
 void UvgRTPSender::process()
 {
+  // TODO
+  if (!mstream_)
+    return;
+
   rtp_error_t ret;
   std::unique_ptr<Data> input = getInput();
 
