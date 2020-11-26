@@ -247,6 +247,10 @@ bool CameraFilter::cameraSetup()
                QString::number(viewSettings.resolution().width()) + "x" + QString::number(viewSettings.resolution().height()),
                QString::number(viewSettings.minimumFrameRate()) + " to " + QString::number(viewSettings.maximumFrameRate())});
 
+    getStats()->videoInfo(viewSettings.maximumFrameRate(),
+                          viewSettings.resolution());
+    framerate_ = viewSettings.maximumFrameRate();
+
     camera_->setViewfinderSettings(viewSettings);
     camera_->start();
 
@@ -303,14 +307,6 @@ void CameraFilter::process()
     frameMutex_.lock();
     frames_.pop_front();
     frameMutex_.unlock();
-
-    if(framerate_ == 0)
-    {
-      QCameraViewfinderSettings settings = camera_->viewfinderSettings();
-
-      getStats()->videoInfo(settings.maximumFrameRate(), settings.resolution());
-      framerate_ = settings.maximumFrameRate();
-    }
 
     // capture the frame data
     Data * newImage = new Data;
