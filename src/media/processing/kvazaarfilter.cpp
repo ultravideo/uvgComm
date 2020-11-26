@@ -28,6 +28,15 @@ KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats):
 void KvazaarFilter::updateSettings()
 {
   qDebug() << "Updating kvazaar settings";
+
+  stop();
+
+  while(isRunning())
+  {
+    sleep(1);
+  }
+
+
   close();
   encodingFrames_.clear();
 
@@ -39,6 +48,8 @@ void KvazaarFilter::updateSettings()
   {
     qDebug() << "Failed to change resolution";
   }
+
+  start();
 
   Filter::updateSettings();
 }
