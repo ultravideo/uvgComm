@@ -399,6 +399,8 @@ void VideoSettings::restoreResolution()
     else {
       videoSettingsUI_->resolution->setCurrentIndex(0);
     }
+
+    initializeFramerates();
   }
 }
 
