@@ -268,17 +268,6 @@ void KvazaarFilter::process()
     }
 
     feedInput(std::move(input));
-    // TODO: decrease latency by polling at least once more.
-/*
-    while(data_out == nullptr && encodingPresentationTimes_.size() != 0)
-    {
-      qSleep(3);
-      api_->encoder_encode(enc_, nullptr,
-                           &data_out, &len_out,
-                           &recon_pic, nullptr,
-                           &frame_info );
-    }
-*/
 
     input = getInput();
   }
@@ -349,9 +338,15 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
                        &recon_pic, nullptr,
                        &frame_info );
 
-  if(data_out != nullptr)
+  while(data_out != nullptr)
   {
     parseEncodedFrame(data_out, len_out, recon_pic);
+
+    // see if there is more output ready
+    api_->encoder_encode(enc_, nullptr,
+                         &data_out, &len_out,
+                         &recon_pic, nullptr,
+                         &frame_info );
   }
 }
 
