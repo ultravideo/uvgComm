@@ -80,7 +80,8 @@ bool KvazaarFilter::init()
 #else
     config_->width = settings.value("video/ResolutionWidth").toInt();
     config_->height = settings.value("video/ResolutionHeight").toInt();
-    config_->framerate_num = settings.value("video/Framerate").toInt();
+    framerate_num_ = settings.value("video/Framerate").toFloat();
+    config_->framerate_num = framerate_num_;
 #endif
     config_->framerate_denom = framerate_denom_;
 
@@ -313,11 +314,7 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
 
     qDebug() << getName() << "Framerate:" << config_->framerate_num << "input:" << input->framerate;
 
-    QSettings settings("kvazzup.ini", QSettings::IniFormat);
-    settings.setValue("video/ResolutionWidth", input->width);
-    settings.setValue("video/ResolutionHeight", input->height);
-    settings.setValue("video/Framerate", input->framerate);
-    updateSettings();
+    return;
   }
 
   // copy input to kvazaar picture
