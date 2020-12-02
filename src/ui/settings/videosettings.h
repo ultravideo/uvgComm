@@ -48,8 +48,8 @@ public slots:
 
   void on_add_parameter_clicked();
 
-  void initializeResolutions(QString format);
-  void initializeFramerates(QString resolution);
+  void initializeResolutions();
+  void initializeFramerates();
 
   void updateBitrate(int value);
 

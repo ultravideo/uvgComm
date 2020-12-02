@@ -77,16 +77,22 @@ private:
   void clearCharts();
 
   // Info about one packet for calculating bitrate.
-  struct PacketInfo
+  struct ValueInfo
   {
     int64_t timestamp;
-    uint32_t size;
+    uint32_t value;
   };
 
-  uint32_t bitrate(std::vector<PacketInfo*>& packets, uint32_t index,
-                   float &framerate, int64_t interval);
-  void updateFramerateBuffer(std::vector<PacketInfo*>& packets,
-                             uint32_t& index, uint32_t size);
+  uint32_t calculateAverageAndRate(std::vector<ValueInfo*>& packets, uint32_t index,
+                                   float &rate, int64_t interval, bool calcData);
+
+  uint32_t calculateAverage(std::vector<ValueInfo*>& packets, uint32_t index,
+                            int64_t interval, bool kbitConversion);
+
+
+
+  void updateValueBuffer(std::vector<ValueInfo*>& packets,
+                         uint32_t& index, uint32_t value);
 
   void delayMsConversion(int& delay, QString& unit);
 
@@ -104,18 +110,25 @@ private:
 
   struct SessionInfo
   {
+    // TODO: where are all these deleted?
+
+    // receive buffers for calculating stream size
     uint32_t videoIndex;
-    std::vector<PacketInfo*> videoPackets;
+    std::vector<ValueInfo*> videoPackets;
     uint32_t audioIndex;
-    std::vector<PacketInfo*> audioPackets;
+    std::vector<ValueInfo*> audioPackets;
 
+    // presentation buffers for frame rate
     uint32_t pVideoIndex;
-    std::vector<PacketInfo*> pVideoPackets;
+    std::vector<ValueInfo*> pVideoPackets;
     uint32_t pAudioIndex;
-    std::vector<PacketInfo*> pAudioPackets;
+    std::vector<ValueInfo*> pAudioPackets;
 
-    int32_t videoDelay;
-    int32_t audioDelay;
+    // delay buffers for calculating average delay
+    uint32_t videoDelayIndex;
+    std::vector<ValueInfo*> videoDelay;
+    uint32_t audioDelayIndex;
+    std::vector<ValueInfo*> audioDelay;
 
     // index for all UI tables this peer is part of
     int tableIndex;
@@ -149,16 +162,16 @@ private:
 
   // ring-buffer and its current index
   uint32_t videoIndex_;
-  std::vector<PacketInfo*> videoPackets_;
+  std::vector<ValueInfo*> videoPackets_;
 
   // ring-buffer and its current index
   uint32_t audioIndex_;
-  std::vector<PacketInfo*> audioPackets_;
+  std::vector<ValueInfo*> audioPackets_;
 
   uint32_t inIndex_;
-  std::vector<PacketInfo*> inBandWidth_;
+  std::vector<ValueInfo*> inBandWidth_;
   uint32_t outIndex_;
-  std::vector<PacketInfo*> outBandwidth_;
+  std::vector<ValueInfo*> outBandwidth_;
 
   uint64_t sendPacketCount_;
   uint64_t transferredData_;
@@ -167,8 +180,12 @@ private:
 
   uint64_t packetsDropped_;
 
-  uint16_t audioEncDelay_;
-  uint16_t videoEncDelay_;
+  // TODO: delete these
+  uint32_t videoEncDelayIndex_;
+  std::vector<ValueInfo*> videoEncDelay_;
+  uint32_t audioEncDelayIndex_;
+  std::vector<ValueInfo*> audioEncDelay_;
+
 
   // a timer for reducing number of gui updates and making it more readable
   QElapsedTimer guiTimer_;

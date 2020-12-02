@@ -381,7 +381,7 @@ void VideoSettings::restoreFormat()
       videoSettingsUI_->format_box->setCurrentIndex(0);
     }
 
-    initializeResolutions(videoSettingsUI_->format_box->currentText());
+    initializeResolutions();
   }
 }
 
@@ -399,6 +399,8 @@ void VideoSettings::restoreResolution()
     else {
       videoSettingsUI_->resolution->setCurrentIndex(0);
     }
+
+    initializeFramerates();
   }
 }
 
@@ -462,18 +464,20 @@ void VideoSettings::initializeFormat()
   if(videoSettingsUI_->format_box->count() > 0)
   {
     videoSettingsUI_->format_box->setCurrentIndex(0);
-    initializeResolutions(videoSettingsUI_->format_box->currentText());
+    initializeResolutions();
   }
 }
 
 
-void VideoSettings::initializeResolutions(QString format)
+void VideoSettings::initializeResolutions()
 {
-  printNormal(this, "Initializing camera resolutions", {"Format"}, format);
+  printNormal(this, "Initializing camera resolutions", {"Format"},
+              videoSettingsUI_->format_box->currentText());
   videoSettingsUI_->resolution->clear();
   QStringList resolutions;
 
-  cam_->getFormatResolutions(currentDevice_, format, resolutions);
+  cam_->getFormatResolutions(currentDevice_,
+                             videoSettingsUI_->format_box->currentText(), resolutions);
 
   if(!resolutions.empty())
   {
@@ -486,14 +490,15 @@ void VideoSettings::initializeResolutions(QString format)
   if(videoSettingsUI_->resolution->count() > 0)
   {
     videoSettingsUI_->resolution->setCurrentIndex(0);
-    initializeFramerates(videoSettingsUI_->resolution->currentText());
+    initializeFramerates();
   }
 }
 
 
-void VideoSettings::initializeFramerates(QString resolution)
+void VideoSettings::initializeFramerates()
 {
-  printNormal(this, "Initializing camera framerates", {"Resolution"}, resolution);
+  printNormal(this, "Initializing camera framerates", {"Resolution"},
+              videoSettingsUI_->resolution->currentText());
   videoSettingsUI_->framerate_box->clear();
   QStringList rates;
 

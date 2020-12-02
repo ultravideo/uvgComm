@@ -28,6 +28,15 @@ KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats):
 void KvazaarFilter::updateSettings()
 {
   qDebug() << "Updating kvazaar settings";
+
+  stop();
+
+  while(isRunning())
+  {
+    sleep(1);
+  }
+
+
   close();
   encodingFrames_.clear();
 
@@ -39,6 +48,8 @@ void KvazaarFilter::updateSettings()
   {
     qDebug() << "Failed to change resolution";
   }
+
+  start();
 
   Filter::updateSettings();
 }
@@ -80,7 +91,8 @@ bool KvazaarFilter::init()
 #else
     config_->width = settings.value("video/ResolutionWidth").toInt();
     config_->height = settings.value("video/ResolutionHeight").toInt();
-    config_->framerate_num = settings.value("video/Framerate").toInt();
+    framerate_num_ = settings.value("video/Framerate").toFloat();
+    config_->framerate_num = framerate_num_;
 #endif
     config_->framerate_denom = framerate_denom_;
 
@@ -256,17 +268,6 @@ void KvazaarFilter::process()
     }
 
     feedInput(std::move(input));
-    // TODO: decrease latency by polling at least once more.
-/*
-    while(data_out == nullptr && encodingPresentationTimes_.size() != 0)
-    {
-      qSleep(3);
-      api_->encoder_encode(enc_, nullptr,
-                           &data_out, &len_out,
-                           &recon_pic, nullptr,
-                           &frame_info );
-    }
-*/
 
     input = getInput();
   }
@@ -313,11 +314,7 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
 
     qDebug() << getName() << "Framerate:" << config_->framerate_num << "input:" << input->framerate;
 
-    QSettings settings("kvazzup.ini", QSettings::IniFormat);
-    settings.setValue("video/ResolutionWidth", input->width);
-    settings.setValue("video/ResolutionHeight", input->height);
-    settings.setValue("video/Framerate", input->framerate);
-    updateSettings();
+    return;
   }
 
   // copy input to kvazaar picture
@@ -341,9 +338,15 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
                        &recon_pic, nullptr,
                        &frame_info );
 
-  if(data_out != nullptr)
+  while(data_out != nullptr)
   {
     parseEncodedFrame(data_out, len_out, recon_pic);
+
+    // see if there is more output ready
+    api_->encoder_encode(enc_, nullptr,
+                         &data_out, &len_out,
+                         &recon_pic, nullptr,
+                         &frame_info );
   }
 }
 
