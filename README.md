@@ -27,6 +27,7 @@ Kvazzup requires the following external libraries to run:
 - [Opus](http://opus-codec.org/) for audio encoding and decoding.
 - [uvgRTP](https://github.com/ultravideo/uvgRTP) for Media Delivery.
 - [Speex DSP](https://www.speex.org/) for AEC.
+- [Crypto++](https://www.cryptopp.com/) for cryptographic routines.
 
 Qt Creator is the recommended tool for compiling Kvazzup. Make sure you use the same compiler and bit version for all the dependencies and for Kvazzup.
 
