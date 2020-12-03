@@ -25,11 +25,11 @@ Kvazzup requires the following external libraries to run:
 - [Kvazaar](https://github.com/ultravideo/kvazaar) for video encoding.
 - [OpenHEVC](https://github.com/OpenHEVC/openHEVC) for video decoding.
 - [Opus](http://opus-codec.org/) for audio encoding and decoding.
-- [uvgRTP](https://github.com/ultravideo/uvgRTP) for Media Delivery.
+- [uvgRTP](https://github.com/ultravideo/uvgRTP) for media delivery.
 - [Speex DSP](https://www.speex.org/) for AEC.
-- [Crypto++](https://www.cryptopp.com/) for cryptographic routines.
+- [Crypto++](https://www.cryptopp.com/) for media encryption.
 
-Qt Creator is the recommended tool for compiling Kvazzup. Make sure you use the same compiler and bit version for all the dependencies and for Kvazzup.
+Qt Creator is the recommended tool for compiling Kvazzup. Make sure you use the same compiler and bit version for all the dependencies and for Kvazzup. You should compile uvgRTP with crypto++ by adding `-D__RTP_CRYPTO__` to uvgRTP CXXFLAGS.
 
 ### Linux(GCC)
 
@@ -41,7 +41,9 @@ Make sure OpenMP is installed in your build environment. Add compiled libraries 
 
 ### Microsoft Visual Studio
 
-Add compiled libraries to PATH or to `../msvc_libs` folder and headers to PATH or `../include`.
+Compile the dependencies. If you get the following error `Windows SDK version X.X was not found`, retarget the solution.
+
+Add compiled libraries to PATH or to `../msvc_libs` folder and headers to PATH or `../include`. 
 
 #### Shared Kvazaar
 
