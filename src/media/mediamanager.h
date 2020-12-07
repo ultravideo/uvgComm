@@ -64,6 +64,7 @@ public:
 
 signals:
   void handleZRTPFailure(uint32_t sessionID);
+  void handleNoEncryption();
 
   // somebody is calling
   void incomingCall(unsigned int participantID);

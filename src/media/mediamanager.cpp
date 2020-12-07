@@ -31,18 +31,24 @@ void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory, Statistic
 {
   printDebug(DEBUG_NORMAL, this, "Initiating");
   viewfactory_ = viewfactory;
-
   stats_ = stats;
-  fg_->init(viewfactory_->getVideo(0, 0), stats); // 0 is the selfview index. The view should be created by GUI
-
   streamer_ = std::unique_ptr<Delivery> (new Delivery());
-  streamer_->init(stats_);
 
   connect(
     streamer_.get(),
     &Delivery::handleZRTPFailure,
     this,
     &MediaManager::handleZRTPFailure);
+
+  connect(
+    streamer_.get(),
+    &Delivery::handleNoEncryption,
+    this,
+    &MediaManager::handleNoEncryption);
+
+  // 0 is the selfview index. The view should be created by GUI
+  fg_->init(viewfactory_->getVideo(0, 0), stats);
+  streamer_->init(stats_);
 }
 
 

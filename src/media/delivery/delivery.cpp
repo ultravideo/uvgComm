@@ -16,12 +16,19 @@ Delivery::Delivery():
   rtp_ctx_(new uvg_rtp::context)
 {}
 
+
 Delivery::~Delivery()
 {}
+
 
 void Delivery::init(StatisticsInterface *stats)
 {
   stats_ = stats;
+
+  if (!uvg_rtp::crypto::enabled())
+  {
+    emit handleNoEncryption();
+  }
 }
 
 
@@ -221,10 +228,13 @@ bool Delivery::addMediaStream(uint32_t sessionID, uint16_t localPort, uint16_t p
 
   printNormal(this, "Creating mediastream");
 
-  // for now just enable srtp + zrtp for all calls
-  //
-  // TODO: add ability to control "flags" from settings
-  int flags = RCE_SRTP_KMNGMNT_ZRTP | RCE_SRTP;
+  int flags = 0;
+  // enable encryption if it works
+  if (uvg_rtp::crypto::enabled())
+  {
+    // enable srtp + zrtp
+    flags = RCE_SRTP_KMNGMNT_ZRTP | RCE_SRTP;
+  }
 
   QFuture<uvg_rtp::media_stream *> futureRes =
     QtConcurrent::run([=](uvg_rtp::session *session, uint16_t local, uint16_t peer,

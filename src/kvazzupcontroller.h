@@ -65,6 +65,8 @@ public slots:
 
   void zrtpFailed(quint32 sessionID);
 
+  void noEncryptionAvailable();
+
   void delayedAutoAccept();
 private:
   void startCall(quint32 sessionID, bool iceNominationComplete);

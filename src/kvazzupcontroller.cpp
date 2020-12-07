@@ -21,12 +21,6 @@ KvazzupController::KvazzupController():
 void KvazzupController::init()
 {
   printImportant(this, "Kvazzup initiation Started");
-  window_.init(this);
-  window_.show();
-  stats_ = window_.createStatsWindow();
-
-  sip_.init(this, stats_, window_.getStatusView());
-
 
   // register the GUI signals indicating GUI changes to be handled
   // approrietly in a system wide manner
@@ -48,10 +42,19 @@ void KvazzupController::init()
                    this, &KvazzupController::iceCompleted);
   QObject::connect(&sip_, &SIPManager::nominationFailed,
                    this, &KvazzupController::iceFailed);
-  media_.init(window_.getViewFactory(), stats_);
 
   QObject::connect(&media_, &MediaManager::handleZRTPFailure,
                    this,    &KvazzupController::zrtpFailed);
+
+  QObject::connect(&media_, &MediaManager::handleNoEncryption,
+                   this,    &KvazzupController::noEncryptionAvailable);
+
+  window_.init(this);
+  window_.show();
+  stats_ = window_.createStatsWindow();
+
+  sip_.init(this, stats_, window_.getStatusView());
+  media_.init(window_.getViewFactory(), stats_);
 
   printImportant(this, "Kvazzup initiation finished");
 }
@@ -248,6 +251,13 @@ void KvazzupController::zrtpFailed(quint32 sessionID)
   window_.showZRTPFailedMessage(QString::number(sessionID));
   endCall(sessionID);
 }
+
+
+void KvazzupController::noEncryptionAvailable()
+{
+  window_.showCryptoMissingMessage();
+}
+
 
 void KvazzupController::createSingleCall(uint32_t sessionID)
 {
