@@ -3,6 +3,7 @@
 #include "conferenceview.h"
 #include "ui/settings/settings.h"
 #include "contactlist.h"
+#include "guimessage.h"
 
 #include <QMainWindow>
 
@@ -45,7 +46,8 @@ public:
   // removes caller from view
   void removeParticipant(uint32_t sessionID);
 
-  void removeWithMessage(uint32_t sessionID, QString message, bool temporaryMessage);
+  void removeWithMessage(uint32_t sessionID, QString message,
+                         bool temporaryMessage);
 
   // set GUI to reflect state
   void setMicState(bool on);
@@ -64,6 +66,10 @@ public:
   {
     return &settingsView_;
   }
+
+  void showICEFailedMessage();
+  void showCryptoMissingMessage();
+  void showZRTPFailedMessage();
 
 signals:
 
@@ -115,4 +121,7 @@ private:
   ParticipantInterface* partInt_;
 
   QTimer *timer_; // for GUI update
+
+
+  GUIMessage mesg_;
 };

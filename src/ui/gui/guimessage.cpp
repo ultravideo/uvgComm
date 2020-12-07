@@ -16,24 +16,38 @@ GUIMessage::~GUIMessage()
 }
 
 
+void GUIMessage::showWarning(QString heading, QString message)
+{
+  std::shared_ptr<Message> mesg
+      = std::shared_ptr<Message>(new Message{"Warning", heading, message});
+  addMessage(mesg);
+}
+
+
 void GUIMessage::showError(QString heading, QString message)
 {
-  std::shared_ptr<Message> mesg = std::shared_ptr<Message>(new Message{"Error", heading, message});
+  std::shared_ptr<Message> mesg
+      = std::shared_ptr<Message>(new Message{"Error", heading, message});
+  addMessage(mesg);
+}
 
+
+void GUIMessage::addMessage(std::shared_ptr<Message> message)
+{
   if (!isVisible())
   {
     // copies the data, pointer gets deleted
-    setMessage(*mesg.get());
+    showMessage(*message.get());
   }
   else
   {
     // copies the smart pointer
-    waiting_.push_front(mesg);
+    waiting_.push_front(message);
   }
 }
 
 
-void GUIMessage::setMessage(Message message)
+void GUIMessage::showMessage(Message message)
 {
   setWindowTitle(message.title);
   ui_->heading->setText(message.heading);
@@ -42,16 +56,19 @@ void GUIMessage::setMessage(Message message)
   show();
 }
 
+
 void GUIMessage::accept()
 {
-  printNormal(this, "Closing message");
-  if (waiting_.size() != 0)
+  printNormal(this, "Closing message",
+              {"Waiting messages"}, {QString::number(waiting_.size())});
+
+  if (!waiting_.empty())
   {
     // take the oldest message
     std::shared_ptr<Message> mesg = waiting_.back();
     waiting_.pop_back();
     // copy the data from pointer and show it
-    setMessage(*mesg.get());
+    showMessage(*mesg.get());
   }
   else
   {

@@ -69,7 +69,8 @@ void KvazzupController::windowClosed()
   uninit();
 }
 
-uint32_t KvazzupController::callToParticipant(QString name, QString username, QString ip)
+uint32_t KvazzupController::callToParticipant(QString name, QString username,
+                                              QString ip)
 {
   QString ip_str = ip;
 
@@ -233,6 +234,8 @@ void KvazzupController::iceFailed(uint32_t sessionID)
 {
   printError(this, "ICE has failed");
 
+  window_.showICEFailedMessage();
+
   // TODO: Tell sip manager to send an error for ICE
   printUnimplemented(this, "Send SIP error code for ICE failure");
   endCall(sessionID);
@@ -240,9 +243,9 @@ void KvazzupController::iceFailed(uint32_t sessionID)
 
 void KvazzupController::zrtpFailed(quint32 sessionID)
 {
-  // TODO inform the user through gui somehow?
-
   printError(this, "ZRTP has failed");
+
+  window_.showZRTPFailedMessage();
   endCall(sessionID);
 }
 

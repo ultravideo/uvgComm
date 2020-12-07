@@ -16,6 +16,9 @@ public:
   explicit GUIMessage(QWidget *parent = nullptr);
   ~GUIMessage();
 
+  // shows the error message or if there is already a message shown
+  // it is shown after current message is closed
+  void showWarning(QString heading, QString message);
   void showError(QString heading, QString message);
 
 protected:
@@ -30,7 +33,10 @@ private:
     QString text;
   };
 
-  void setMessage(Message message);
+  // either shows the message or ads it to queue
+  void addMessage(std::shared_ptr<Message> message);
+
+  void showMessage(Message message);
 
   Ui::GUIMessage *ui_;
 
