@@ -91,6 +91,7 @@ SOURCES +=\
     src/ui/gui/conferenceview.cpp \
     src/ui/gui/contactlist.cpp \
     src/ui/gui/contactlistitem.cpp \
+    src/ui/gui/guimessage.cpp \
     src/ui/gui/statisticswindow.cpp \
     src/ui/gui/videodrawhelper.cpp \
     src/ui/gui/videoglwidget.cpp \
@@ -175,6 +176,7 @@ HEADERS  += \
     src/ui/gui/conferenceview.h \
     src/ui/gui/contactlist.h \
     src/ui/gui/contactlistitem.h \
+    src/ui/gui/guimessage.h \
     src/ui/gui/statisticswindow.h \
     src/ui/gui/videodrawhelper.h \
     src/ui/gui/videoglwidget.h \
@@ -195,6 +197,7 @@ HEADERS  += \
 FORMS    += \
     ui/audiosettings.ui \
     ui/callwindow.ui \
+    ui/guimessage.ui \
     ui/messagewidget.ui \
     ui/sipsettings.ui \
     ui/statisticswindow.ui \
