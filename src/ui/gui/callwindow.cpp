@@ -334,8 +334,8 @@ void CallWindow::showCryptoMissingMessage()
 }
 
 
-void CallWindow::showZRTPFailedMessage()
+void CallWindow::showZRTPFailedMessage(QString sessionID)
 {
-  mesg_.showError("Error: ZRTP handshake has failed",
+  mesg_.showError("Error: ZRTP handshake has failed for session " + sessionID,
                   "Could not exchange encryption keys.");
 }

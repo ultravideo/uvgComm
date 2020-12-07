@@ -69,7 +69,7 @@ public:
 
   void showICEFailedMessage();
   void showCryptoMissingMessage();
-  void showZRTPFailedMessage();
+  void showZRTPFailedMessage(QString sessionID);
 
 signals:
 

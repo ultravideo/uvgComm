@@ -245,7 +245,7 @@ void KvazzupController::zrtpFailed(quint32 sessionID)
 {
   printError(this, "ZRTP has failed");
 
-  window_.showZRTPFailedMessage();
+  window_.showZRTPFailedMessage(QString::number(sessionID));
   endCall(sessionID);
 }
 
