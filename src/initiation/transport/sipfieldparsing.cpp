@@ -8,7 +8,7 @@
 
 // TODO: Support SIPS uri scheme. Needed for TLS
 bool parseURI(QStringList &words, SIP_URI& uri);
-ConnectionType parseUritype(QString type);
+bool parseUritype(QString type, SIPType &out_Type);
 bool parseParameterNameToValue(std::shared_ptr<QList<SIPParameter>> parameters,
                                QString name, QString& value);
 bool parseUint(QString values, uint& number);
@@ -41,8 +41,12 @@ bool parseURI(QStringList& words, SIP_URI& uri)
 
     if(field_match.lastCapturedIndex() == 3)
     {
-      uri.connectionType = parseUritype(field_match.captured(1));
-      uri.user.username = field_match.captured(2);
+      if (!parseUritype(field_match.captured(1), uri.type))
+      {
+        return false;
+      }
+
+      uri.userinfo.user = field_match.captured(2);
       addressString = field_match.captured(3);
     }
 
@@ -85,33 +89,34 @@ bool parseURI(QStringList& words, SIP_URI& uri)
       }
     }
 
-    return uri.connectionType != NONE;
+    return true;
   }
 
   return false;
 }
 
 
-ConnectionType parseUritype(QString type)
+bool parseUritype(QString type, SIPType& out_Type)
 {
   if (type == "sip")
   {
-    return TCP;
+    out_Type = SIP;
   }
   else if (type == "sips")
   {
-    return TLS;
+    out_Type = SIPS;
   }
   else if (type == "tel")
   {
-    return TEL;
+    out_Type = TEL;
   }
   else
   {
     qDebug() << "ERROR:  Could not identify connection type:" << type;
+    return false;
   }
 
-  return NONE;
+  return true;
 }
 
 

@@ -89,7 +89,7 @@ void SIPClient::getRequestMessageInfo(RequestType type,
   outMessage->content.type = NO_CONTENT;
   outMessage->content.length = 0;
 
-  ViaInfo via = ViaInfo{TRANSPORTTYPE, "2.0", "", 0,
+  ViaInfo via = ViaInfo{DEFAULTTRANSPORT, "2.0", "", 0,
           QString("z9hG4bK" + generateRandomString(BRANCHLENGTH)), false, false, 0, ""};
   outMessage->vias.push_back(via);
 

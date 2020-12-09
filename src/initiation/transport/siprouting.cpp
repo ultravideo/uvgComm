@@ -57,15 +57,15 @@ void SIPRouting::getViaAndContact(std::shared_ptr<SIPMessageInfo> message,
     message->vias.back().port = localPort;
   }
 
-  getContactAddress(message, localAddress, localPort, TCP);
+  getContactAddress(message, localAddress, localPort, DEFAULTSIPTYPE);
 }
 
 
 void SIPRouting::getContactAddress(std::shared_ptr<SIPMessageInfo> message,
                                    QString localAddress, uint16_t localPort,
-                                   ConnectionType type)
+                                   SIPType type)
 {
-  message->contact = {type, getLocalUsername(), "", "", 0, {}};
+  message->contact = {type, {getLocalUsername(), ""}, "", {"", 0}, {}};
 
     // use rport address and port if we have them, otherwise use localaddress
   if (contactAddress_ != "")

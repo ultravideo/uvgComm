@@ -13,15 +13,15 @@ bool tryAddParameter(std::shared_ptr<QList<SIPParameter> > &parameters,
 bool tryAddParameter(std::shared_ptr<QList<SIPParameter> > &parameters,
                      QString parameterName);
 
-QString composeUritype(ConnectionType type);
+QString composeUritype(SIPType type);
 
-QString composeUritype(ConnectionType type)
+QString composeUritype(SIPType type)
 {
-  if (type == TCP)
+  if (type == SIP)
   {
     return "sip:";
   }
-  else if (type == TLS)
+  else if (type == SIPS)
   {
     return "sips:";
   }
@@ -55,7 +55,7 @@ bool composeSIPUri(SIP_URI& uri, QStringList& words)
     words.push_back("\"" + uri.realname + "\"");
   }
 
-  QString uriString = "<" + composeUritype(uri.connectionType);
+  QString uriString = "<" + composeUritype(uri.type);
   if (uriString != "")
   {
     QString parameters = "";
@@ -71,13 +71,13 @@ bool composeSIPUri(SIP_URI& uri, QStringList& words)
 
     QString usernameString = "";
 
-    if (uri.user.username != "")
+    if (uri.userinfo.user != "")
     {
-      usernameString = uri.user.username;
+      usernameString = uri.userinfo.user;
 
-      if (uri.user.password != "")
+      if (uri.userinfo.password != "")
       {
-        usernameString += ":" + uri.user.password;
+        usernameString += ":" + uri.userinfo.password;
       }
       usernameString += "@";
     }
@@ -120,12 +120,12 @@ bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
 
   if(request.type != SIP_REGISTER)
   {
-    type = composeUritype(request.requestURI.connectionType);
-    target = request.requestURI.user.username + "@" + request.requestURI.hostport.host;
+    type = composeUritype(request.requestURI.type);
+    target = request.requestURI.userinfo.user + "@" + request.requestURI.hostport.host;
   }
   else // REGISTER first line does not contain username.
   {
-    type = composeUritype(request.requestURI.connectionType);
+    type = composeUritype(request.requestURI.type);
     target = request.requestURI.hostport.host;
   }
 
@@ -152,11 +152,11 @@ bool getFirstResponseLine(QString& line, SIPResponse& response,
 bool includeToField(QList<SIPField> &fields,
                     std::shared_ptr<SIPMessageInfo> message)
 {
-  Q_ASSERT(message->to.user.username != "" && message->to.hostport.host != "");
-  if(message->to.user.username == "" ||  message->to.hostport.host == "")
+  Q_ASSERT(message->to.userinfo.user != "" && message->to.hostport.host != "");
+  if(message->to.userinfo.user == "" ||  message->to.hostport.host == "")
   {
     qDebug() << "WARNING: Composing To-field failed because host is:"
-             << message->to.hostport.host << "and" << message->to.user.username;
+             << message->to.hostport.host << "and" << message->to.userinfo.user;
     return false;
   }
 
@@ -178,8 +178,8 @@ bool includeToField(QList<SIPField> &fields,
 bool includeFromField(QList<SIPField> &fields,
                       std::shared_ptr<SIPMessageInfo> message)
 {
-  Q_ASSERT(message->from.user.username != "" && message->from.hostport.host != "");
-  if(message->from.user.username == "" ||  message->from.hostport.host == "")
+  Q_ASSERT(message->from.userinfo.user != "" && message->from.hostport.host != "");
+  if(message->from.userinfo.user == "" ||  message->from.hostport.host == "")
   {
     qDebug() << "WARNING: From field failed";
     return false;
@@ -311,8 +311,8 @@ bool includeMaxForwardsField(QList<SIPField> &fields,
 bool includeContactField(QList<SIPField> &fields,
                          std::shared_ptr<SIPMessageInfo> message)
 {
-  Q_ASSERT(message->contact.user.username != "" && message->contact.hostport.host != "");
-  if(message->contact.user.username == "" ||  message->contact.hostport.host == "")
+  Q_ASSERT(message->contact.userinfo.user != "" && message->contact.hostport.host != "");
+  if(message->contact.userinfo.user == "" ||  message->contact.hostport.host == "")
   {
     qDebug() << "WARNING: Contact field failed";
     return false;

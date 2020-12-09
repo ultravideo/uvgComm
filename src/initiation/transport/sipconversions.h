@@ -20,8 +20,8 @@ QString codeToPhrase(uint16_t code);
 QString responseToPhrase(ResponseType response);
 
 // connection type and string
-ConnectionType stringToConnection(QString type);
-QString connectionToString(ConnectionType connection);
+Transport stringToConnection(QString type);
+QString connectionToString(Transport connection);
 
 // contentType
 ContentType stringToContentType(QString typeStr);

@@ -74,7 +74,7 @@ uint32_t KvazzupController::callToParticipant(QString name, QString username, QS
   uri.hostport.host = ip_str;
   uri.hostport.port = 0;
   uri.realname      = name;
-  uri.user.username = username;
+  uri.userinfo.user = username;
 
 
   //start negotiations for this connection

@@ -94,10 +94,9 @@ enum ResponseType {SIP_UNKNOWN_RESPONSE = 0,
                    SIP_NOT_ACCEPTABLE = 606,
                    SIP_UNWANTED = 607}; // RFC 3261
 
-enum ConnectionType {NONE, TCP, UDP, TLS, TEL};
 
-// Defines the type of connection in use for SIP
-const ConnectionType TRANSPORTTYPE = TCP;
+
+
 
 // 7 is the length of preset string
 const uint32_t BRANCHLENGTH = 32 - 7;
@@ -126,34 +125,41 @@ struct SIPField
 
 struct hostport
 {
-  QString host;
+  QString host; // hostname / IPv4address / IPv6reference
   uint16_t port = 0; // omitted if 0
 };
 
 struct userinfo
 {
-  QString username;
-  QString password = ""; // *( unreserved / escaped / "&" / "=" / "+" / "$" / "," )
+  QString user; // could also be telephone-subscriber
+  QString password = ""; // omitted if empty
 };
 
-// usually in format: "realname <sip:username@host>".
+enum SIPType {SIP, SIPS, TEL};
 
+const SIPType DEFAULTSIPTYPE = SIP;
+
+// usually in format: "realname <sip:username@host>".
 struct SIP_URI
 {
-  ConnectionType connectionType;
-  userinfo user;
+  SIPType type;
+  userinfo userinfo;
 
-  // realname may be empty and should be omitted if so
-  QString realname;
+  QString realname; // omitted if empty
 
   hostport hostport;
 
   QList<SIPParameter> uri_parameters;
 };
 
+enum Transport {NONE, UDP, TCP, TLS, SCTP, OTHER};
+
+// Defines the type of connection in use for SIP
+const Transport DEFAULTTRANSPORT = TCP;
+
 struct ViaInfo
 {
-  ConnectionType connectionType;
+  Transport connectionType;
   QString version;
   QString address;
   uint16_t port = 0;              // omitted if 0

@@ -27,7 +27,7 @@ public:
   // TODO: separate non-dialog and dialog messages
 
   // functions for manipulating network connection
-  void createConnection(ConnectionType type, QString target);
+  void createConnection(Transport type, QString target);
   void incomingTCPConnection(std::shared_ptr<TCPConnection> con);
 
   // sending SIP messages

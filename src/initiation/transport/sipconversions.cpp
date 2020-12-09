@@ -86,7 +86,7 @@ QString responseToPhrase(ResponseType response)
 }
 
 // connection type and string
-ConnectionType stringToConnection(QString type)
+Transport stringToConnection(QString type)
 {
   if(type == "UDP")
   {
@@ -107,7 +107,7 @@ ConnectionType stringToConnection(QString type)
   return NONE;
 }
 
-QString connectionToString(ConnectionType connection)
+QString connectionToString(Transport connection)
 {
   switch(connection)
   {

@@ -108,17 +108,17 @@ void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inM
 
 void SIPDialogState::getRequestDialogInfo(SIPRequest &outRequest)
 {
-  Q_ASSERT(localURI_.user.username != "" && localURI_.hostport.host != "");
-  Q_ASSERT(remoteURI_.user.username != "" && remoteURI_.hostport.host != "");
+  Q_ASSERT(localURI_.userinfo.user != "" && localURI_.hostport.host != "");
+  Q_ASSERT(remoteURI_.userinfo.user != "" && remoteURI_.hostport.host != "");
 
-  if(localURI_.user.username == "" || localURI_.hostport.host == "" ||
-     remoteURI_.user.username == "" || remoteURI_.hostport.host == "")
+  if(localURI_.userinfo.user == "" || localURI_.hostport.host == "" ||
+     remoteURI_.userinfo.user == "" || remoteURI_.hostport.host == "")
   {
     printDebug(DEBUG_PROGRAM_ERROR, "SIPDialogState", 
                "The dialog state info has not been set, but we are using it.",
                 {"username", "host", "remote username", "remote host"},
-                {localURI_.user.username, localURI_.hostport.host,
-                 remoteURI_.user.username, remoteURI_.hostport.host});
+                {localURI_.userinfo.user, localURI_.hostport.host,
+                 remoteURI_.userinfo.user, remoteURI_.hostport.host});
   }
 
   outRequest.requestURI = requestUri_;
@@ -237,14 +237,14 @@ void SIPDialogState::initLocalURI()
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
 
   localURI_.realname = settings.value("local/Name").toString();
-  localURI_.user.username = getLocalUsername();
+  localURI_.userinfo.user = getLocalUsername();
   localURI_.hostport.host = settings.value("sip/ServerAddress").toString();
-  localURI_.connectionType = TRANSPORTTYPE;
+  localURI_.type = DEFAULTSIPTYPE;
   localURI_.hostport.port = 0; // port is added later if needed
 
-  if(localURI_.user.username.isEmpty())
+  if(localURI_.userinfo.user.isEmpty())
   {
-    localURI_.user.username = "anonymous";
+    localURI_.userinfo.user = "anonymous";
   }
 }
 

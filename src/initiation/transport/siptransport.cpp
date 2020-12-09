@@ -98,7 +98,7 @@ uint16_t SIPTransport::getLocalPort()
 }
 
 
-void SIPTransport::createConnection(ConnectionType type, QString target)
+void SIPTransport::createConnection(Transport type, QString target)
 {
   if(type == TCP)
   {
@@ -284,7 +284,7 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
 
   routing_.getContactAddress(response.message,
                              connection_->localAddress().toString(),
-                             connection_->localPort(), TCP);
+                             connection_->localPort(), DEFAULTSIPTYPE);
 
   if (response.message->transactionRequest == SIP_INVITE && response.type == SIP_OK &&
       !includeContactField(fields, response.message))

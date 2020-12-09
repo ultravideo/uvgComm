@@ -28,7 +28,7 @@ public:
   // modifies the just the contact-address. Use with responses
   void getContactAddress(std::shared_ptr<SIPMessageInfo> message,
                           QString localAddress,
-                          uint16_t localPort, ConnectionType type);
+                          uint16_t localPort, SIPType type);
 
 private:
 

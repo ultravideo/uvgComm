@@ -115,7 +115,7 @@ void SIPManager::bindToServer()
   if (serverAddress != "" && !registrations_.haveWeRegistered())
   {
     std::shared_ptr<SIPTransport> transport = createSIPTransport();
-    transport->createConnection(TRANSPORTTYPE, serverAddress);
+    transport->createConnection(DEFAULTTRANSPORT, serverAddress);
 
     serverToTransportID_[serverAddress] = transport->getTransportID();
 
@@ -142,7 +142,7 @@ uint32_t SIPManager::startCall(SIP_URI &address)
     std::shared_ptr<SIPTransport> transport = createSIPTransport();
     transportID = transport->getTransportID(); // Get new transportID
     sessionToTransportID_[sessionID] = transportID;
-    transport->createConnection(TRANSPORTTYPE, address.hostport.host);
+    transport->createConnection(DEFAULTTRANSPORT, address.hostport.host);
     waitingToStart_[transportID] = {sessionID, address};
   }
   else {

@@ -62,7 +62,7 @@ void SIPRegistrations::bindToServer(QString serverAddress, QString localAddress,
       = std::shared_ptr<SIPRegistrationData>
       (new SIPRegistrationData{{}, {}, localAddress, port, INACTIVE});
 
-  SIP_URI serverUri = {TRANSPORTTYPE, "", "", serverAddress, 0, {}};
+  SIP_URI serverUri = {DEFAULTSIPTYPE, {"", ""}, "", {serverAddress, 0}, {}};
   data->state.createServerConnection(serverUri);
   data->client.set_remoteURI(serverUri);
   registrations_[serverAddress] = data;

@@ -26,8 +26,8 @@ void SIPDialog::init(uint32_t sessionID, SIPTransactionUser* tu)
 
 void SIPDialog::startCall(SIP_URI &address, QString localAddress, bool registered)
 {
-  state_.createNewDialog(SIP_URI{TRANSPORTTYPE,
-                                 {address.user.username, ""},
+  state_.createNewDialog(SIP_URI{DEFAULTSIPTYPE,
+                                 {address.userinfo.user, ""},
                                  address.realname,
                                  {address.hostport.host,  0}, {}},
                                  localAddress, registered);
