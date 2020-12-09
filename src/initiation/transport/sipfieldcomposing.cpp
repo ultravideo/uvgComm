@@ -60,7 +60,7 @@ bool composeSIPUri(SIP_URI& uri, QStringList& words)
   {
     QString parameters = "";
 
-    for (auto& parameter : uri.parameters)
+    for (auto& parameter : uri.uri_parameters)
     {
       parameters += ";" + parameter.name;
       if (parameter.value != "")
@@ -71,12 +71,19 @@ bool composeSIPUri(SIP_URI& uri, QStringList& words)
 
     QString usernameString = "";
 
-    if (uri.username != "")
+    if (uri.user.username != "")
     {
-      usernameString = uri.username + "@";
+      usernameString = uri.user.username;
+
+      if (uri.user.password != "")
+      {
+        usernameString += ":" + uri.user.password;
+      }
+      usernameString += "@";
     }
 
-    uriString += usernameString + uri.host + composePortString(uri.port) + parameters + ">";
+    uriString += usernameString + uri.hostport.host
+        + composePortString(uri.hostport.port) + parameters + ">";
 
     words.push_back(uriString);
 
@@ -88,7 +95,7 @@ bool composeSIPUri(SIP_URI& uri, QStringList& words)
 
 bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
 {
-  if(request.requestURI.host == "")
+  if(request.requestURI.hostport.host == "")
   {
     printDebug(DEBUG_PROGRAM_ERROR, "SIPComposing", 
                "Request URI host is empty when comprising the first line.");
@@ -105,21 +112,21 @@ bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
   QString target = "";
   QString port = "";
 
-  if (request.requestURI.port != 0)
+  if (request.requestURI.hostport.port != 0)
   {
-    port = ":" + QString::number(request.requestURI.port) + ";transport=tcp";
+    port = ":" + QString::number(request.requestURI.hostport.port) + ";transport=tcp";
   }
 
 
   if(request.type != SIP_REGISTER)
   {
     type = composeUritype(request.requestURI.connectionType);
-    target = request.requestURI.username + "@" + request.requestURI.host;
+    target = request.requestURI.user.username + "@" + request.requestURI.hostport.host;
   }
   else // REGISTER first line does not contain username.
   {
     type = composeUritype(request.requestURI.connectionType);
-    target = request.requestURI.host;
+    target = request.requestURI.hostport.host;
   }
 
   line = requestToString(request.type) + " " + type
@@ -145,11 +152,11 @@ bool getFirstResponseLine(QString& line, SIPResponse& response,
 bool includeToField(QList<SIPField> &fields,
                     std::shared_ptr<SIPMessageInfo> message)
 {
-  Q_ASSERT(message->to.username != "" && message->to.host != "");
-  if(message->to.username == "" ||  message->to.host == "")
+  Q_ASSERT(message->to.user.username != "" && message->to.hostport.host != "");
+  if(message->to.user.username == "" ||  message->to.hostport.host == "")
   {
     qDebug() << "WARNING: Composing To-field failed because host is:"
-             << message->to.host << "and" << message->to.username;
+             << message->to.hostport.host << "and" << message->to.user.username;
     return false;
   }
 
@@ -171,8 +178,8 @@ bool includeToField(QList<SIPField> &fields,
 bool includeFromField(QList<SIPField> &fields,
                       std::shared_ptr<SIPMessageInfo> message)
 {
-  Q_ASSERT(message->from.username != "" && message->from.host != "");
-  if(message->from.username == "" ||  message->from.host == "")
+  Q_ASSERT(message->from.user.username != "" && message->from.hostport.host != "");
+  if(message->from.user.username == "" ||  message->from.hostport.host == "")
   {
     qDebug() << "WARNING: From field failed";
     return false;
@@ -304,8 +311,8 @@ bool includeMaxForwardsField(QList<SIPField> &fields,
 bool includeContactField(QList<SIPField> &fields,
                          std::shared_ptr<SIPMessageInfo> message)
 {
-  Q_ASSERT(message->contact.username != "" && message->contact.host != "");
-  if(message->contact.username == "" ||  message->contact.host == "")
+  Q_ASSERT(message->contact.user.username != "" && message->contact.hostport.host != "");
+  if(message->contact.user.username == "" ||  message->contact.hostport.host == "")
   {
     qDebug() << "WARNING: Contact field failed";
     return false;
@@ -316,7 +323,7 @@ bool includeContactField(QList<SIPField> &fields,
   QString transportString = "";
 
   message->contact.realname = "";
-  message->contact.parameters.push_back({"transport", "tcp"});
+  message->contact.uri_parameters.push_back({"transport", "tcp"});
 
   if (!composeSIPUri(message->contact, field.valueSets[0].words))
   {

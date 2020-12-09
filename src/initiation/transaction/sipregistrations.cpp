@@ -115,7 +115,7 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
 
     for (auto& i : registrations_)
     {
-      if (i.first == response.message->to.host)
+      if (i.first == response.message->to.hostport.host)
       {
         if (!i.second->client.processResponse(response, i.second->state))
         {
@@ -148,8 +148,8 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
             {
               i.second->status = RE_REGISTRATION;
               printNormal(this, "Sending the final NAT REGISTER");
-              i.second->contactAddress = response.message->contact.host;
-              i.second->contactPort = response.message->contact.port;
+              i.second->contactAddress = response.message->contact.hostport.host;
+              i.second->contactPort = response.message->contact.hostport.port;
               // makes sure we don't end up in infinite loop if the address doesn't match
 
               statusView_->updateServerStatus("Behind NAT, updating address...");
@@ -241,7 +241,7 @@ void SIPRegistrations::sendNonDialogRequest(SIP_URI& uri, RequestType type)
 
   if (type == SIP_REGISTER)
   {
-    if (registrations_.find(uri.host) == registrations_.end())
+    if (registrations_.find(uri.hostport.host) == registrations_.end())
     {
       printDebug(DEBUG_PROGRAM_ERROR, this,
                  "Registration information should have been created "
@@ -250,11 +250,11 @@ void SIPRegistrations::sendNonDialogRequest(SIP_URI& uri, RequestType type)
       return;
     }
 
-    registrations_[uri.host]->client.getRequestMessageInfo(request.type, request.message);
-    registrations_[uri.host]->state.getRequestDialogInfo(request);
+    registrations_[uri.hostport.host]->client.getRequestMessageInfo(request.type, request.message);
+    registrations_[uri.hostport.host]->state.getRequestDialogInfo(request);
 
     QVariant content; // we dont have content in REGISTER
-    emit transportProxyRequest(uri.host, request);
+    emit transportProxyRequest(uri.hostport.host, request);
   }
   else if (type == SIP_OPTIONS) {
     printDebug(DEBUG_PROGRAM_ERROR, this,

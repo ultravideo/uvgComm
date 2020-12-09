@@ -32,7 +32,7 @@ void SIPDialogState::createNewDialog(SIP_URI remoteURI, QString localAddress,
   if(!registered)
   {
     printDebug(DEBUG_NORMAL, "SIPDialogState", "Setting peer-to-peer address.");
-    localURI_.host = localAddress;
+    localURI_.hostport.host = localAddress;
   }
 }
 
@@ -81,7 +81,7 @@ void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inM
   // in future we will address our requests to their contact address
   requestUri_ = inMessage->contact;
 
-  localURI_.host = hostName;
+  localURI_.hostport.host = hostName;
 
   remoteTag_ = inMessage->dialog->fromTag;
   if(remoteTag_ == "")
@@ -108,16 +108,17 @@ void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inM
 
 void SIPDialogState::getRequestDialogInfo(SIPRequest &outRequest)
 {
-  Q_ASSERT(localURI_.username != "" && localURI_.host != "");
-  Q_ASSERT(remoteURI_.username != "" && remoteURI_.host != "");
+  Q_ASSERT(localURI_.user.username != "" && localURI_.hostport.host != "");
+  Q_ASSERT(remoteURI_.user.username != "" && remoteURI_.hostport.host != "");
 
-  if(localURI_.username == "" || localURI_.host == "" ||
-     remoteURI_.username == "" || remoteURI_.host == "")
+  if(localURI_.user.username == "" || localURI_.hostport.host == "" ||
+     remoteURI_.user.username == "" || remoteURI_.hostport.host == "")
   {
     printDebug(DEBUG_PROGRAM_ERROR, "SIPDialogState", 
                "The dialog state info has not been set, but we are using it.",
                 {"username", "host", "remote username", "remote host"},
-                {localURI_.username, localURI_.host, remoteURI_.username, remoteURI_.host});
+                {localURI_.user.username, localURI_.hostport.host,
+                 remoteURI_.user.username, remoteURI_.hostport.host});
   }
 
   outRequest.requestURI = requestUri_;
@@ -208,9 +209,9 @@ void SIPDialogState::initDialog()
 
   localTag_ = generateRandomString(TAGLENGTH);
   callID_ = generateRandomString(CALLIDLENGTH);
-  if(localURI_.host != "")
+  if(localURI_.hostport.host != "")
   {
-    callID_ += "@" + localURI_.host;
+    callID_ += "@" + localURI_.hostport.host;
   }
 
   qDebug() << "Local dialog created. CallID: " << callID_
@@ -236,14 +237,14 @@ void SIPDialogState::initLocalURI()
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
 
   localURI_.realname = settings.value("local/Name").toString();
-  localURI_.username = getLocalUsername();
-  localURI_.host = settings.value("sip/ServerAddress").toString();
+  localURI_.user.username = getLocalUsername();
+  localURI_.hostport.host = settings.value("sip/ServerAddress").toString();
   localURI_.connectionType = TRANSPORTTYPE;
-  localURI_.port = 0; // port is added later if needed
+  localURI_.hostport.port = 0; // port is added later if needed
 
-  if(localURI_.username.isEmpty())
+  if(localURI_.user.username.isEmpty())
   {
-    localURI_.username = "anonymous";
+    localURI_.user.username = "anonymous";
   }
 }
 

@@ -70,19 +70,19 @@ void SIPRouting::getContactAddress(std::shared_ptr<SIPMessageInfo> message,
     // use rport address and port if we have them, otherwise use localaddress
   if (contactAddress_ != "")
   {
-    message->contact.host = contactAddress_;
+    message->contact.hostport.host = contactAddress_;
   }
   else
   {
-    message->contact.host = localAddress;
+    message->contact.hostport.host = localAddress;
   }
 
   if (contactPort_ != 0)
   {
-    message->contact.port = contactPort_;
+    message->contact.hostport.port = contactPort_;
   }
   else
   {
-    message->contact.port = localPort;
+    message->contact.hostport.port = localPort;
   }
 }

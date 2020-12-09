@@ -42,7 +42,7 @@ bool parseURI(QStringList& words, SIP_URI& uri)
     if(field_match.lastCapturedIndex() == 3)
     {
       uri.connectionType = parseUritype(field_match.captured(1));
-      uri.username = field_match.captured(2);
+      uri.user.username = field_match.captured(2);
       addressString = field_match.captured(3);
     }
 
@@ -56,8 +56,8 @@ bool parseURI(QStringList& words, SIP_URI& uri)
         for (int i = firstParameterIndex; i < parameters.size(); ++i)
         {
           // currently parsing doesn't do any further processing on URI parameters
-          uri.parameters.push_back(SIPParameter());
-          parseParameter(parameters.at(i), uri.parameters.back());
+          uri.uri_parameters.push_back(SIPParameter());
+          parseParameter(parameters.at(i), uri.uri_parameters.back());
         }
       }
 
@@ -68,15 +68,15 @@ bool parseURI(QStringList& words, SIP_URI& uri)
          address_match.lastCapturedIndex() >= 1 &&
          address_match.lastCapturedIndex() <= 2)
       {
-        uri.host = address_match.captured(1);
+        uri.hostport.host = address_match.captured(1);
 
         if (address_match.lastCapturedIndex() == 2 && address_match.captured(2) != "")
         {
-          uri.port = address_match.captured(2).toUInt();
+          uri.hostport.port = address_match.captured(2).toUInt();
         }
         else
         {
-          uri.port = 0;
+          uri.hostport.port = 0;
         }
       }
       else

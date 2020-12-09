@@ -124,18 +124,31 @@ struct SIPField
   QList<ValueSet> valueSets; // separated by comma(,)
 };
 
+struct hostport
+{
+  QString host;
+  uint16_t port = 0; // omitted if 0
+};
+
+struct userinfo
+{
+  QString username;
+  QString password = ""; // *( unreserved / escaped / "&" / "=" / "+" / "$" / "," )
+};
+
 // usually in format: "realname <sip:username@host>".
-// realname may be empty and should be omitted if so
+
 struct SIP_URI
 {
   ConnectionType connectionType;
-  QString username;
-  QString realname;
-  QString host;
-  uint16_t port = 0; // omitted if 0
+  userinfo user;
 
-  // currently we have no need to know the parameters.
-  QList<SIPParameter> parameters;
+  // realname may be empty and should be omitted if so
+  QString realname;
+
+  hostport hostport;
+
+  QList<SIPParameter> uri_parameters;
 };
 
 struct ViaInfo

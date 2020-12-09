@@ -26,9 +26,11 @@ void SIPDialog::init(uint32_t sessionID, SIPTransactionUser* tu)
 
 void SIPDialog::startCall(SIP_URI &address, QString localAddress, bool registered)
 {
-  state_.createNewDialog(SIP_URI{TRANSPORTTYPE, address.username, address.username,
-                                             address.host,  0, {}},
-                                     localAddress, registered);
+  state_.createNewDialog(SIP_URI{TRANSPORTTYPE,
+                                 {address.user.username, ""},
+                                 address.realname,
+                                 {address.hostport.host,  0}, {}},
+                                 localAddress, registered);
 
   // this start call will commence once the connection has been established
   if(!client_.startCall(address.realname))

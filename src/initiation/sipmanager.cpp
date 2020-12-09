@@ -136,13 +136,13 @@ uint32_t SIPManager::startCall(SIP_URI &address)
   // TODO: ask network interface if we can start session
 
   // check if we are already connected to remoteaddress and set transportID
-  if (!isConnected(address.host, transportID))
+  if (!isConnected(address.hostport.host, transportID))
   {
     // we are not yet connected to them. Form a connection by creating the transport layer
     std::shared_ptr<SIPTransport> transport = createSIPTransport();
     transportID = transport->getTransportID(); // Get new transportID
     sessionToTransportID_[sessionID] = transportID;
-    transport->createConnection(TRANSPORTTYPE, address.host);
+    transport->createConnection(TRANSPORTTYPE, address.hostport.host);
     waitingToStart_[transportID] = {sessionID, address};
   }
   else {
