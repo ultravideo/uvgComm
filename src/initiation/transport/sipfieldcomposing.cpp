@@ -150,7 +150,7 @@ bool getFirstResponseLine(QString& line, SIPResponse& response,
 }
 
 bool includeToField(QList<SIPField> &fields,
-                    std::shared_ptr<SIPMessageInfo> message)
+                    std::shared_ptr<SIPMessageBody> message)
 {
   Q_ASSERT(message->to.userinfo.user != "" && message->to.hostport.host != "");
   if(message->to.userinfo.user == "" ||  message->to.hostport.host == "")
@@ -176,7 +176,7 @@ bool includeToField(QList<SIPField> &fields,
 }
 
 bool includeFromField(QList<SIPField> &fields,
-                      std::shared_ptr<SIPMessageInfo> message)
+                      std::shared_ptr<SIPMessageBody> message)
 {
   Q_ASSERT(message->from.userinfo.user != "" && message->from.hostport.host != "");
   if(message->from.userinfo.user == "" ||  message->from.hostport.host == "")
@@ -201,7 +201,7 @@ bool includeFromField(QList<SIPField> &fields,
 }
 
 bool includeCSeqField(QList<SIPField> &fields,
-                      std::shared_ptr<SIPMessageInfo> message)
+                      std::shared_ptr<SIPMessageBody> message)
 {
   Q_ASSERT(message->cSeq != 0 && message->transactionRequest != SIP_NO_REQUEST);
   if(message->cSeq == 0 || message->transactionRequest == SIP_NO_REQUEST)
@@ -221,7 +221,7 @@ bool includeCSeqField(QList<SIPField> &fields,
 }
 
 bool includeCallIDField(QList<SIPField> &fields,
-                        std::shared_ptr<SIPMessageInfo> message)
+                        std::shared_ptr<SIPMessageBody> message)
 {
   Q_ASSERT(message->dialog->callID != "");
   if(message->dialog->callID == "")
@@ -236,7 +236,7 @@ bool includeCallIDField(QList<SIPField> &fields,
 }
 
 bool includeViaFields(QList<SIPField> &fields,
-                      std::shared_ptr<SIPMessageInfo> message)
+                      std::shared_ptr<SIPMessageBody> message)
 {
   Q_ASSERT(!message->vias.empty());
   if(message->vias.empty())
@@ -293,7 +293,7 @@ bool includeViaFields(QList<SIPField> &fields,
 }
 
 bool includeMaxForwardsField(QList<SIPField> &fields,
-                             std::shared_ptr<SIPMessageInfo> message)
+                             std::shared_ptr<SIPMessageBody> message)
 {
   Q_ASSERT(message->maxForwards != 0);
   if(message->maxForwards == 0)
@@ -309,7 +309,7 @@ bool includeMaxForwardsField(QList<SIPField> &fields,
 }
 
 bool includeContactField(QList<SIPField> &fields,
-                         std::shared_ptr<SIPMessageInfo> message)
+                         std::shared_ptr<SIPMessageBody> message)
 {
   Q_ASSERT(message->contact.userinfo.user != "" && message->contact.hostport.host != "");
   if(message->contact.userinfo.user == "" ||  message->contact.hostport.host == "")
@@ -372,7 +372,7 @@ bool includeExpiresField(QList<SIPField>& fields,
 
 
 bool includeRecordRouteField(QList<SIPField>& fields,
-                             std::shared_ptr<SIPMessageInfo> message)
+                             std::shared_ptr<SIPMessageBody> message)
 {
   for (auto& record : message->recordRoutes)
   {
@@ -390,7 +390,7 @@ bool includeRecordRouteField(QList<SIPField>& fields,
 
 
 bool includeRouteField(QList<SIPField>& fields,
-                       std::shared_ptr<SIPMessageInfo> message)
+                       std::shared_ptr<SIPMessageBody> message)
 {
   for (auto& route : message->routes)
   {

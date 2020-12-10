@@ -65,12 +65,12 @@ signals:
   void incomingSIPResponse(SIPResponse& response, QVariant& content);
 
   // we got a message, but could not parse it.
-  void parsingError(ResponseType errorResponse, quint32 transportID);
+  void parsingError(SIPResponseStatus errorResponse, quint32 transportID);
 
 private:
 
   // composing
-  bool composeMandatoryFields(QList<SIPField>& fields, std::shared_ptr<SIPMessageInfo> message);
+  bool composeMandatoryFields(QList<SIPField>& fields, std::shared_ptr<SIPMessageBody> message);
   QString fieldsToString(QList<SIPField>& fields, QString lineEnding);
   QString addContent(QList<SIPField>& fields, bool haveContent, const SDPMessageInfo& sdp);
 
@@ -78,13 +78,13 @@ private:
   // returs true if the whole message was received
   bool parsePackage(QString package, QStringList &headers, QStringList &bodies);
   bool headerToFields(QString header, QString& firstLine, QList<SIPField>& fields);
-  bool fieldsToMessage(QList<SIPField>& fields, std::shared_ptr<SIPMessageInfo> &message);
+  bool fieldsToMessage(QList<SIPField>& fields, std::shared_ptr<SIPMessageBody> &message);
 
   bool parseRequest(QString requestString, QString version,
-                    std::shared_ptr<SIPMessageInfo> message,
+                    std::shared_ptr<SIPMessageBody> message,
                     QList<SIPField>& fields, QVariant& content);
   bool parseResponse(QString responseString, QString version, QString text,
-                     std::shared_ptr<SIPMessageInfo> message,
+                     std::shared_ptr<SIPMessageBody> message,
                      QVariant& content);
 
   bool combineContinuationLines(QStringList& lines);

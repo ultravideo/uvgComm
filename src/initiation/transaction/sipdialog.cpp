@@ -40,7 +40,7 @@ void SIPDialog::startCall(SIP_URI &address, QString localAddress, bool registere
 }
 
 
-void SIPDialog::createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &invite,
+void SIPDialog::createDialogFromINVITE(std::shared_ptr<SIPMessageBody> &invite,
                                        QString localAddress)
 {
   state_.createDialogFromINVITE(invite, localAddress);
@@ -125,7 +125,7 @@ bool SIPDialog::processResponse(SIPResponse& response)
 }
 
 
-void SIPDialog::generateRequest(uint32_t sessionID, RequestType type)
+void SIPDialog::generateRequest(uint32_t sessionID, SIPRequestMethod type)
 {
   printNormal(this, "Iniate sending of a dialog request");
 
@@ -159,7 +159,7 @@ void SIPDialog::generateRequest(uint32_t sessionID, RequestType type)
 }
 
 
-void SIPDialog::generateResponse(uint32_t sessionID, ResponseType type)
+void SIPDialog::generateResponse(uint32_t sessionID, SIPResponseStatus type)
 {
   printNormal(this, "Iniate sending of a dialog response");
 

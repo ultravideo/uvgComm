@@ -62,7 +62,7 @@ void SIPDialogManager::renegotiateAllCalls()
 
 
 uint32_t SIPDialogManager::createDialogFromINVITE(QString localAddress,
-                                                 std::shared_ptr<SIPMessageInfo> &invite)
+                                                 std::shared_ptr<SIPMessageBody> &invite)
 {
   Q_ASSERT(invite);
 

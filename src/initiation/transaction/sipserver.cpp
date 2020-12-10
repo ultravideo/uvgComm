@@ -109,8 +109,8 @@ bool SIPServer::processRequest(SIPRequest& request,
   return true;
 }
 
-void SIPServer::getResponseMessage(std::shared_ptr<SIPMessageInfo> &outMessage,
-                                              ResponseType type)
+void SIPServer::getResponseMessage(std::shared_ptr<SIPMessageBody> &outMessage,
+                                              SIPResponseStatus type)
 {
   if(receivedRequest_ == nullptr)
   {
@@ -148,17 +148,17 @@ void SIPServer::respondReject()
   responseSender(SIP_DECLINE);
 }
 
-void SIPServer::responseSender(ResponseType type)
+void SIPServer::responseSender(SIPResponseStatus type)
 {
   Q_ASSERT(receivedRequest_ != nullptr);
   emit sendResponse(sessionID_, type);
 }
 
-void SIPServer::copyMessageDetails(std::shared_ptr<SIPMessageInfo>& inMessage,
-                        std::shared_ptr<SIPMessageInfo>& copy)
+void SIPServer::copyMessageDetails(std::shared_ptr<SIPMessageBody>& inMessage,
+                        std::shared_ptr<SIPMessageBody>& copy)
 {
   Q_ASSERT(inMessage);
-  copy = std::shared_ptr<SIPMessageInfo> (new SIPMessageInfo());
+  copy = std::shared_ptr<SIPMessageBody> (new SIPMessageBody());
   copy->dialog = std::shared_ptr<SIPDialogInfo> (new SIPDialogInfo());
   // Which fields to copy are listed in section 8.2.6.2 of RFC 3621
 
@@ -189,7 +189,7 @@ void SIPServer::copyMessageDetails(std::shared_ptr<SIPMessageInfo>& inMessage,
 }
 
 
-bool SIPServer::isCancelYours(std::shared_ptr<SIPMessageInfo> cancel)
+bool SIPServer::isCancelYours(std::shared_ptr<SIPMessageBody> cancel)
 {
   // TODO: Check more info
   return receivedRequest_->vias.first().branch == cancel->vias.first().branch;

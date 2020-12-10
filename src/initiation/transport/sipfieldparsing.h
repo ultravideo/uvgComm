@@ -9,41 +9,40 @@
 // returns whether the parsing was successful.
 
 bool parseToField(SIPField& field,
-                  std::shared_ptr<SIPMessageInfo> message);
+                  std::shared_ptr<SIPMessageBody> message);
 
 bool parseFromField(SIPField& field,
-                  std::shared_ptr<SIPMessageInfo> message);
+                    std::shared_ptr<SIPMessageBody> message);
 
 bool parseCSeqField(SIPField& field,
-                  std::shared_ptr<SIPMessageInfo> message);
+                    std::shared_ptr<SIPMessageBody> message);
 
 bool parseCallIDField(SIPField& field,
-                  std::shared_ptr<SIPMessageInfo> message);
+                    std::shared_ptr<SIPMessageBody> message);
 
 bool parseViaField(SIPField& field,
-                  std::shared_ptr<SIPMessageInfo> message);
+                   std::shared_ptr<SIPMessageBody> message);
 
 bool parseMaxForwardsField(SIPField& field,
-                  std::shared_ptr<SIPMessageInfo> message);
+                           std::shared_ptr<SIPMessageBody> message);
 
 bool parseContactField(SIPField& field,
-                  std::shared_ptr<SIPMessageInfo> message);
+                       std::shared_ptr<SIPMessageBody> message);
 
 bool parseContentTypeField(SIPField& field,
-                  std::shared_ptr<SIPMessageInfo> message);
+                           std::shared_ptr<SIPMessageBody> message);
 
 bool parseContentLengthField(SIPField& field,
-                  std::shared_ptr<SIPMessageInfo> message);
+                             std::shared_ptr<SIPMessageBody> message);
 
 bool parseRecordRouteField(SIPField& field,
-                  std::shared_ptr<SIPMessageInfo> message);
+                           std::shared_ptr<SIPMessageBody> message);
 
 bool parseServerField(SIPField& field,
-                  std::shared_ptr<SIPMessageInfo> message);
+                      std::shared_ptr<SIPMessageBody> message);
 
 bool parseUserAgentField(SIPField& field,
-                  std::shared_ptr<SIPMessageInfo> message);
-
+                         std::shared_ptr<SIPMessageBody> message);
 
 
 // tell whether a particular field is present in list.

@@ -13,8 +13,8 @@ public:
 
   void init(SIPTransactionUser* tu, uint32_t sessionID);
 
-  virtual void getRequestMessageInfo(RequestType type,
-                                     std::shared_ptr<SIPMessageInfo> &outMessage);
+  virtual void getRequestMessageInfo(SIPRequestMethod type,
+                                     std::shared_ptr<SIPMessageBody> &outMessage);
 
   virtual bool processResponse(SIPResponse& response,
                                SIPDialogState& state);
@@ -29,13 +29,13 @@ public:
 protected:
   virtual void processTimeout();
 
-  virtual bool startTransaction(RequestType type);
+  virtual bool startTransaction(SIPRequestMethod type);
 
   virtual void byeTimeout();
 
 signals:
   // send messages to other end
-  void sendDialogRequest(uint32_t sessionID, RequestType type);
+  void sendDialogRequest(uint32_t sessionID, SIPRequestMethod type);
 
   void BYETimeout(uint32_t sessionID);
 

@@ -4,21 +4,21 @@
 
 #include <QDebug>
 
-const std::map<QString, RequestType> requestTypes = {{"INVITE", SIP_INVITE},
+const std::map<QString, SIPRequestMethod> requestTypes = {{"INVITE", SIP_INVITE},
                                                      {"ACK", SIP_ACK},
                                                      {"BYE", SIP_BYE},
                                                      {"CANCEL", SIP_CANCEL},
                                                      {"OPTIONS", SIP_OPTIONS},
                                                      {"REGISTER", SIP_REGISTER}};
 
-const std::map<RequestType, QString> requestStrings = {{SIP_INVITE, "INVITE"},
+const std::map<SIPRequestMethod, QString> requestStrings = {{SIP_INVITE, "INVITE"},
                                                        {SIP_ACK, "ACK"},
                                                        {SIP_BYE, "BYE"},
                                                        {SIP_CANCEL, "CANCEL"},
                                                        {SIP_OPTIONS, "OPTIONS"},
                                                        {SIP_REGISTER, "REGISTER"}};
 
-const std::map<ResponseType, QString> responsePhrases = {{SIP_UNKNOWN_RESPONSE, "Unknown response"},
+const std::map<SIPResponseStatus, QString> responsePhrases = {{SIP_UNKNOWN_RESPONSE, "Unknown response"},
                                                        {SIP_TRYING, "Trying"},
                                                        {SIP_RINGING, "Ringing"},
                                                        {SIP_FORWARDED, "Forwarded"},
@@ -31,7 +31,7 @@ const std::map<ResponseType, QString> responsePhrases = {{SIP_UNKNOWN_RESPONSE, 
                                                        {SIP_BUSY_HERE, "Busy"},
                                                        {SIP_DECLINE, "Call declined"}}; // TODO: finish this
 
-RequestType stringToRequest(QString request)
+SIPRequestMethod stringToRequest(QString request)
 {
   if(requestTypes.find(request) == requestTypes.end())
   {
@@ -41,7 +41,7 @@ RequestType stringToRequest(QString request)
   return requestTypes.at(request);
 }
 
-QString requestToString(RequestType request)
+QString requestToString(SIPRequestMethod request)
 {
   Q_ASSERT(request != SIP_NO_REQUEST);
   if(request == SIP_NO_REQUEST)
@@ -57,12 +57,12 @@ uint16_t stringToResponseCode(QString code)
   return code.toUInt();
 }
 
-ResponseType codeToResponse(uint16_t code)
+SIPResponseStatus codeToResponse(uint16_t code)
 {
-  return static_cast<ResponseType>(code);
+  return static_cast<SIPResponseStatus>(code);
 }
 
-uint16_t responseToCode(ResponseType response)
+uint16_t responseToCode(SIPResponseStatus response)
 {
   return (uint16_t)response;
 }
@@ -72,7 +72,7 @@ QString codeToPhrase(uint16_t code)
   return responseToPhrase(codeToResponse(code));
 }
 
-QString responseToPhrase(ResponseType response)
+QString responseToPhrase(SIPResponseStatus response)
 {
   if(responsePhrases.find(response) == responsePhrases.end())
   {

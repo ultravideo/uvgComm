@@ -49,7 +49,7 @@ void SIPDialogState::createServerConnection(SIP_URI requestURI)
 }
 
 
-void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inMessage,
+void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageBody> &inMessage,
                                             QString hostName)
 {
   printDebug(DEBUG_NORMAL, "SIPDialogState",
@@ -143,7 +143,7 @@ void SIPDialogState::getRequestDialogInfo(SIPRequest &outRequest)
 
 
 bool SIPDialogState::correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog,
-                                          RequestType type, uint32_t remoteCSeq)
+                                          SIPRequestMethod type, uint32_t remoteCSeq)
 {
   Q_ASSERT(callID_ != "");
   if(callID_ == "")

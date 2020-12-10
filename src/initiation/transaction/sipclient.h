@@ -19,15 +19,15 @@ public:
   SIPClient();
 
   // have we sent this kind of request
-  bool waitingResponse(RequestType requestType)
+  bool waitingResponse(SIPRequestMethod requestType)
   {
     return ongoingTransactionType_ == requestType
         && requestType != SIP_NO_REQUEST;
   }
 
   // constructs the SIP message info struct as much as possible
-  virtual void getRequestMessageInfo(RequestType type,
-                                     std::shared_ptr<SIPMessageInfo> &outMessage);
+  virtual void getRequestMessageInfo(SIPRequestMethod type,
+                                     std::shared_ptr<SIPMessageBody> &outMessage);
 
   // processes incoming response. Part of our client transaction
   // returns whether we should keep the dialog alive
@@ -48,7 +48,7 @@ public:
 
 protected:
 
-  bool checkTransactionType(RequestType transactionRequest)
+  bool checkTransactionType(SIPRequestMethod transactionRequest)
   {
     return transactionRequest == ongoingTransactionType_;
   }
@@ -66,14 +66,14 @@ protected:
 
   virtual void processTimeout();
 
-  RequestType getOngoingRequest() const
+  SIPRequestMethod getOngoingRequest() const
   {
     return ongoingTransactionType_;
   }
 
   // set the internal state of client to such that we have sent a request.
   // returns whether we should actually send the message
-  virtual bool startTransaction(RequestType type);
+  virtual bool startTransaction(SIPRequestMethod type);
 
   virtual void byeTimeout() {}
 
@@ -85,7 +85,7 @@ private:
 
   // used to keep track of our current transaction. This means it is used to
   // determine what request the response is responding to.
-  RequestType ongoingTransactionType_;
+  SIPRequestMethod ongoingTransactionType_;
   SIPRequest sentRequest_;
 
   QTimer requestTimer_;

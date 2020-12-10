@@ -46,7 +46,7 @@ void SIPRouting::processResponseViaFields(QList<ViaInfo>& vias,
 }
 
 
-void SIPRouting::getViaAndContact(std::shared_ptr<SIPMessageInfo> message,
+void SIPRouting::getViaAndContact(std::shared_ptr<SIPMessageBody> message,
                                    QString localAddress,
                                    uint16_t localPort)
 {
@@ -61,7 +61,7 @@ void SIPRouting::getViaAndContact(std::shared_ptr<SIPMessageInfo> message,
 }
 
 
-void SIPRouting::getContactAddress(std::shared_ptr<SIPMessageInfo> message,
+void SIPRouting::getContactAddress(std::shared_ptr<SIPMessageBody> message,
                                    QString localAddress, uint16_t localPort,
                                    SIPType type)
 {

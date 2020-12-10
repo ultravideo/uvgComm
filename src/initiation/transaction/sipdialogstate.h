@@ -26,7 +26,7 @@ public:
   void createServerConnection(SIP_URI requestURI);
 
   // creates the dialog from an incoming INVITE
-  void createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inMessage,
+  void createDialogFromINVITE(std::shared_ptr<SIPMessageBody> &inMessage,
                               QString hostName);
 
   // Generates the request message details
@@ -42,7 +42,7 @@ public:
   // use this to check whether incoming request belongs to this dialog
   // responses should be checked by client which sent the request
   bool correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog,
-                            RequestType type, uint32_t remoteCSeq);
+                            SIPRequestMethod type, uint32_t remoteCSeq);
   bool correctResponseDialog(std::shared_ptr<SIPDialogInfo> dialog,
                              uint32_t messageCSeq, bool recordToTag = true);
 

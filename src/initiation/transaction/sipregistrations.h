@@ -34,7 +34,7 @@ public:
 
   void processNonDialogResponse(SIPResponse& response);
 
-  void sendNonDialogRequest(SIP_URI& uri, RequestType type);
+  void sendNonDialogRequest(SIP_URI& uri, SIPRequestMethod type);
 
   bool haveWeRegistered();
 

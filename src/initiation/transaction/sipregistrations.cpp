@@ -233,7 +233,7 @@ bool SIPRegistrations::haveWeRegistered()
 }
 
 
-void SIPRegistrations::sendNonDialogRequest(SIP_URI& uri, RequestType type)
+void SIPRegistrations::sendNonDialogRequest(SIP_URI& uri, SIPRequestMethod type)
 {
   qDebug() << "Start sending of a non-dialog request. Type:" << type;
   SIPRequest request;

@@ -153,7 +153,7 @@ bool parseUint(QString values, uint& number)
 
 
 bool parseToField(SIPField& field,
-                  std::shared_ptr<SIPMessageInfo> message)
+                  std::shared_ptr<SIPMessageBody> message)
 {
   Q_ASSERT(message);
   Q_ASSERT(message->dialog);
@@ -171,7 +171,7 @@ bool parseToField(SIPField& field,
 
 
 bool parseFromField(SIPField& field,
-                    std::shared_ptr<SIPMessageInfo> message)
+                    std::shared_ptr<SIPMessageBody> message)
 {
   Q_ASSERT(message);
   Q_ASSERT(message->dialog);
@@ -189,7 +189,7 @@ bool parseFromField(SIPField& field,
 
 
 bool parseCSeqField(SIPField& field,
-                  std::shared_ptr<SIPMessageInfo> message)
+                  std::shared_ptr<SIPMessageBody> message)
 {
   Q_ASSERT(message);
   Q_ASSERT(!field.valueSets.empty());
@@ -208,7 +208,7 @@ bool parseCSeqField(SIPField& field,
 
 
 bool parseCallIDField(SIPField& field,
-                      std::shared_ptr<SIPMessageInfo> message)
+                      std::shared_ptr<SIPMessageBody> message)
 {
   Q_ASSERT(message);
   Q_ASSERT(message->dialog);
@@ -225,7 +225,7 @@ bool parseCallIDField(SIPField& field,
 
 
 bool parseViaField(SIPField& field,
-                   std::shared_ptr<SIPMessageInfo> message)
+                   std::shared_ptr<SIPMessageBody> message)
 {
   Q_ASSERT(message);
   Q_ASSERT(!field.valueSets.empty());
@@ -285,7 +285,7 @@ bool parseViaField(SIPField& field,
 
 
 bool parseMaxForwardsField(SIPField& field,
-                           std::shared_ptr<SIPMessageInfo> message)
+                           std::shared_ptr<SIPMessageBody> message)
 {
   Q_ASSERT(message);
   Q_ASSERT(!field.valueSets.empty());
@@ -296,7 +296,7 @@ bool parseMaxForwardsField(SIPField& field,
 
 
 bool parseContactField(SIPField& field,
-                       std::shared_ptr<SIPMessageInfo> message)
+                       std::shared_ptr<SIPMessageBody> message)
 {
   Q_ASSERT(message);
   Q_ASSERT(!field.valueSets.empty());
@@ -308,7 +308,7 @@ bool parseContactField(SIPField& field,
 
 
 bool parseContentTypeField(SIPField& field,
-                           std::shared_ptr<SIPMessageInfo> message)
+                           std::shared_ptr<SIPMessageBody> message)
 {
   Q_ASSERT(message);
   Q_ASSERT(!field.valueSets.empty());
@@ -326,7 +326,7 @@ bool parseContentTypeField(SIPField& field,
 
 
 bool parseContentLengthField(SIPField& field,
-                             std::shared_ptr<SIPMessageInfo> message)
+                             std::shared_ptr<SIPMessageBody> message)
 {
   Q_ASSERT(message);
   Q_ASSERT(!field.valueSets.empty());
@@ -336,7 +336,7 @@ bool parseContentLengthField(SIPField& field,
 
 
 bool parseRecordRouteField(SIPField& field,
-                  std::shared_ptr<SIPMessageInfo> message)
+                  std::shared_ptr<SIPMessageBody> message)
 {
   Q_ASSERT(message);
   Q_ASSERT(!field.valueSets.empty());
@@ -346,7 +346,7 @@ bool parseRecordRouteField(SIPField& field,
 
 
 bool parseServerField(SIPField& field,
-                  std::shared_ptr<SIPMessageInfo> message)
+                  std::shared_ptr<SIPMessageBody> message)
 {
   Q_ASSERT(message);
   Q_ASSERT(!field.valueSets.empty());
@@ -363,7 +363,7 @@ bool parseServerField(SIPField& field,
 
 
 bool parseUserAgentField(SIPField& field,
-                  std::shared_ptr<SIPMessageInfo> message)
+                  std::shared_ptr<SIPMessageBody> message)
 {
   Q_ASSERT(message);
   Q_ASSERT(!field.valueSets.empty());

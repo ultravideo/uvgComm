@@ -23,8 +23,8 @@ void SIPDialogClient::init(SIPTransactionUser* tu, uint32_t sessionID)
 }
 
 
-void SIPDialogClient::getRequestMessageInfo(RequestType type,
-                                            std::shared_ptr<SIPMessageInfo> &outMessage)
+void SIPDialogClient::getRequestMessageInfo(SIPRequestMethod type,
+                                            std::shared_ptr<SIPMessageBody> &outMessage)
 {
   SIPClient::getRequestMessageInfo(type, outMessage);
 
@@ -163,7 +163,7 @@ void SIPDialogClient::processTimeout()
 }
 
 
-bool SIPDialogClient::startTransaction(RequestType type)
+bool SIPDialogClient::startTransaction(SIPRequestMethod type)
 {
   if (SIPClient::startTransaction(type))
   {

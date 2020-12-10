@@ -76,10 +76,10 @@ bool SIPClient::processResponse(SIPResponse& response,
 }
 
 
-void SIPClient::getRequestMessageInfo(RequestType type,
-                                                 std::shared_ptr<SIPMessageInfo>& outMessage)
+void SIPClient::getRequestMessageInfo(SIPRequestMethod type,
+                                                 std::shared_ptr<SIPMessageBody>& outMessage)
 {
-  outMessage = std::shared_ptr<SIPMessageInfo> (new SIPMessageInfo);
+  outMessage = std::shared_ptr<SIPMessageBody> (new SIPMessageBody);
   outMessage->transactionRequest = type;
 
   outMessage->dialog = nullptr;
@@ -101,7 +101,7 @@ void SIPClient::getRequestMessageInfo(RequestType type,
 }
 
 
-bool SIPClient::startTransaction(RequestType type)
+bool SIPClient::startTransaction(SIPRequestMethod type)
 {
   printDebug(DEBUG_NORMAL, this,
              "Client starts sending a request.", {"Type"}, {QString::number(type)});

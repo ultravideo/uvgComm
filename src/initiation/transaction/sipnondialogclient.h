@@ -17,8 +17,8 @@ public:
   void set_remoteURI(SIP_URI& uri);
 
   // constructs the SIP message info struct as much as possible
-  virtual void getRequestMessageInfo(RequestType type,
-                             std::shared_ptr<SIPMessageInfo> &outMessage);
+  virtual void getRequestMessageInfo(SIPRequestMethod type,
+                             std::shared_ptr<SIPMessageBody> &outMessage);
 
   virtual bool processResponse(SIPResponse& response,
                                SIPDialogState& state);
@@ -27,7 +27,7 @@ public:
   void unRegister();
 
 signals:
-  void sendNondialogRequest(SIP_URI& uri, RequestType type);
+  void sendNondialogRequest(SIP_URI& uri, SIPRequestMethod type);
 
 private:
 

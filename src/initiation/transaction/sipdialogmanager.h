@@ -71,7 +71,7 @@ signals:
 private:
 
   uint32_t createDialogFromINVITE(QString localAddress,
-                                  std::shared_ptr<SIPMessageInfo> &invite);
+                                  std::shared_ptr<SIPMessageBody> &invite);
   void createDialog(uint32_t sessionID);
   void removeDialog(uint32_t sessionID);
 

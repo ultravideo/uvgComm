@@ -5,19 +5,19 @@
 // various helper functions associated with SIP
 
 // request and string
-RequestType stringToRequest(QString request);
-QString requestToString(RequestType request);
+SIPRequestMethod stringToRequest(QString request);
+QString requestToString(SIPRequestMethod request);
 
 // Response code and string
 uint16_t stringToResponseCode(QString code);
 
 // Response and response code
-ResponseType codeToResponse(uint16_t code);
-uint16_t responseToCode(ResponseType response);
+SIPResponseStatus codeToResponse(uint16_t code);
+uint16_t responseToCode(SIPResponseStatus response);
 
 // phrase and response code
 QString codeToPhrase(uint16_t code);
-QString responseToPhrase(ResponseType response);
+QString responseToPhrase(SIPResponseStatus response);
 
 // connection type and string
 Transport stringToConnection(QString type);

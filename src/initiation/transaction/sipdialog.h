@@ -27,7 +27,7 @@ public:
   void init(uint32_t sessionID, SIPTransactionUser *tu);
 
   void startCall(SIP_URI &address, QString localAddress, bool registered);
-  void createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &invite, QString localAddress);
+  void createDialogFromINVITE(std::shared_ptr<SIPMessageBody> &invite, QString localAddress);
 
   void renegotiateCall();
 
@@ -51,8 +51,8 @@ signals:
 
 private slots:
 
-  void generateRequest(uint32_t sessionID, RequestType type);
-  void generateResponse(uint32_t sessionID, ResponseType type);
+  void generateRequest(uint32_t sessionID, SIPRequestMethod type);
+  void generateResponse(uint32_t sessionID, SIPResponseStatus type);
 
 private:
 

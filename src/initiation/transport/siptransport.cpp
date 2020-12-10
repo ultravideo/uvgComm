@@ -27,7 +27,7 @@ const uint16_t SIP_PORT = 5060;
 // RFC3261_TODO: support compact forms (7.3.3)
 
 const std::map<QString, std::function<bool(SIPField& field,
-                                           std::shared_ptr<SIPMessageInfo>)>> parsing =
+                                           std::shared_ptr<SIPMessageBody>)>> parsing =
 {
     {"To", parseToField},
     {"From", parseFromField},
@@ -321,7 +321,7 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
 }
 
 bool SIPTransport::composeMandatoryFields(QList<SIPField>& fields,
-                                          std::shared_ptr<SIPMessageInfo> message)
+                                          std::shared_ptr<SIPMessageBody> message)
 {
   return includeViaFields(fields, message) &&
          includeMaxForwardsField(fields, message) &&
@@ -418,7 +418,7 @@ void SIPTransport::networkPackage(QString package)
 
     if (header != "" && firstLine != "" && !fields.empty())
     {
-      std::shared_ptr<SIPMessageInfo> message;
+      std::shared_ptr<SIPMessageBody> message;
       if (!fieldsToMessage(fields, message))
       {
         qDebug() << "The received message was not correct. ";
@@ -843,9 +843,9 @@ void SIPTransport::addParameterToSet(SIPParameter& currentParameter, QString &cu
 
 
 bool SIPTransport::fieldsToMessage(QList<SIPField>& fields,
-                                   std::shared_ptr<SIPMessageInfo>& message)
+                                   std::shared_ptr<SIPMessageBody>& message)
 {
-  message = std::shared_ptr<SIPMessageInfo> (new SIPMessageInfo);
+  message = std::shared_ptr<SIPMessageBody> (new SIPMessageBody);
   message->cSeq = 0;
   message->transactionRequest = SIP_NO_REQUEST;
   message->maxForwards = 0;
@@ -875,7 +875,7 @@ bool SIPTransport::fieldsToMessage(QList<SIPField>& fields,
 
 
 bool SIPTransport::parseRequest(QString requestString, QString version,
-                                std::shared_ptr<SIPMessageInfo> message,
+                                std::shared_ptr<SIPMessageBody> message,
                                 QList<SIPField> &fields, QVariant &content)
 {  
   qDebug() << "Request detected:" << requestString;
@@ -883,7 +883,7 @@ bool SIPTransport::parseRequest(QString requestString, QString version,
   printImportant(this, "Parsing incoming request", {"Type"}, {requestString});
 
   message->version = version; // TODO: set only version not SIP/version
-  RequestType requestType = stringToRequest(requestString);
+  SIPRequestMethod requestType = stringToRequest(requestString);
 
   if(requestType == SIP_NO_REQUEST)
   {
@@ -917,12 +917,12 @@ bool SIPTransport::parseRequest(QString requestString, QString version,
 
 bool SIPTransport::parseResponse(QString responseString, QString version,
                                  QString text,
-                                 std::shared_ptr<SIPMessageInfo> message,
+                                 std::shared_ptr<SIPMessageBody> message,
                                  QVariant &content)
 {
   printImportant(this, "Parsing incoming response", {"Type"}, {responseString});
   message->version = version; // TODO: set only version not SIP/version
-  ResponseType type = codeToResponse(stringToResponseCode(responseString));
+  SIPResponseStatus type = codeToResponse(stringToResponseCode(responseString));
 
   if(type == SIP_UNKNOWN_RESPONSE)
   {
