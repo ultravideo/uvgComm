@@ -44,6 +44,8 @@ bool parseServerField(SIPField& field,
 bool parseUserAgentField(SIPField& field,
                          std::shared_ptr<SIPMessageBody> message);
 
+bool parseUnimplemented(SIPField& field,
+                      std::shared_ptr<SIPMessageBody> message);
 
 // tell whether a particular field is present in list.
 bool isLinePresent(QString name, QList<SIPField> &fields);

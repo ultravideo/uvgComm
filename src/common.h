@@ -15,6 +15,10 @@ void qSleep(int ms);
 // TODO: Not yet cryptographically secure, but should be
 QString generateRandomString(uint32_t length);
 
+
+
+// TODO: Use templates in these functions
+
 // One time informational debug printing.
 void printNormal(const QObject* object, QString description = "",
                  QString valueName = "", QString value = "");
@@ -49,6 +53,7 @@ void printPeerError(const QObject* object, QString description = "",
 
 // Print when something is unimplemented. Does not replace TODO comments
 void printUnimplemented(const QObject* object, QString whatIsNotImplemented);
+void printUnimplemented(QString object, QString whatIsNotImplemented);
 
 
 enum DebugType{DEBUG_NORMAL, DEBUG_IMPORTANT, DEBUG_ERROR, DEBUG_WARNING,

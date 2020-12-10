@@ -116,6 +116,11 @@ void printUnimplemented(const QObject* object, QString whatIsNotImplemented)
              QString("NOT IMPLEMENTED: ") + whatIsNotImplemented);
 }
 
+void printUnimplemented(QString object, QString whatIsNotImplemented)
+{
+  printDebug(DEBUG_PROGRAM_WARNING, object,
+             QString("NOT IMPLEMENTED: ") + whatIsNotImplemented);
+}
 
 
 

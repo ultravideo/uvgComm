@@ -1,6 +1,7 @@
 #include "sipfieldparsing.h"
 
 #include "sipconversions.h"
+#include "common.h"
 
 #include <QRegularExpression>
 #include <QDebug>
@@ -30,6 +31,9 @@ bool parseURI(QStringList& words, SIP_URI& uri)
     uriIndex = 1;
   }
 
+  // for example <sip:bob@biloxi.com>
+  // ?: means it wont create a capture group
+  // TODO: accept passwords
   QRegularExpression re_field("<(\\w+):(?:(\\w+)@)?(.+)>");
   QRegularExpressionMatch field_match = re_field.match(words.at(uriIndex));
 
@@ -65,6 +69,7 @@ bool parseURI(QStringList& words, SIP_URI& uri)
         }
       }
 
+      // TODO: improve this to accept IPv4, Ipv6 and addresses
       QRegularExpression re_address("(\\[.+\\]|[\\w.]+):?(\\d*)");
       QRegularExpressionMatch address_match = re_address.match(parameters.first());
 
@@ -376,6 +381,18 @@ bool parseUserAgentField(SIPField& field,
 
   message->userAgent = field.valueSets[0].words[0];
   return true;
+}
+
+
+bool parseUnimplemented(SIPField& field,
+                      std::shared_ptr<SIPMessageBody> message)
+{
+  Q_ASSERT(message);
+  Q_ASSERT(!field.valueSets.empty());
+
+  printUnimplemented("SIPFieldParsing", "Found unsupported SIP field type: " + field.name);
+
+  return false;
 }
 
 

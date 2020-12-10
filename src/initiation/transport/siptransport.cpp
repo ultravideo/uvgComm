@@ -24,23 +24,66 @@ const uint16_t SIP_PORT = 5060;
 // TODO: separate this into common, request and response field parsing.
 // This is so we can ignore nonrelevant fields (7.3.2)
 
-// RFC3261_TODO: support compact forms (7.3.3)
-
+// one letter headers are compact forms as defined by RFC 3261
 const std::map<QString, std::function<bool(SIPField& field,
                                            std::shared_ptr<SIPMessageBody>)>> parsing =
 {
-    {"To", parseToField},
-    {"From", parseFromField},
-    {"CSeq", parseCSeqField},
-    {"Call-ID", parseCallIDField},
-    {"Via", parseViaField},
-    {"Max-Forwards", parseMaxForwardsField},
-    {"Contact", parseContactField},
-    {"Content-Type", parseContentTypeField},
-    {"Content-Length", parseContentLengthField},
-    {"Server", parseServerField},
-    {"User-Agent", parseUserAgentField},
-    {"Record-Route", parseRecordRouteField}
+    {"Accept",              parseUnimplemented},      // TODO
+    {"Accept-Encoding",     parseUnimplemented},      // TODO
+    {"Accept-Language",     parseUnimplemented},      // TODO
+    {"Alert-Info",          parseUnimplemented},      // TODO
+    {"Allow",               parseUnimplemented},      // TODO
+    {"Authentication-Info", parseUnimplemented},      // TODO
+    {"Authorization",       parseUnimplemented},      // TODO
+    {"Call-ID",             parseCallIDField},
+    {"i",                   parseCallIDField},        // compact form of Call-ID
+    {"Call-Info",           parseUnimplemented},      // TODO
+    {"Contact",             parseContactField},
+    {"m",                   parseContactField},       // compact form of contact
+    {"Content-Disposition", parseUnimplemented},      // TODO
+    {"Content-Encoding",    parseUnimplemented},      // TODO
+    {"e",                   parseUnimplemented},      // TODO, compact form of Content-Encoding
+    {"Content-Language",    parseUnimplemented},      // TODO
+    {"Content-Length",      parseContentLengthField},
+    {"l",                   parseContentLengthField}, // compact form of Content-Length
+    {"Content-Type",        parseContentTypeField},
+    {"c",                   parseContentTypeField},   // compact form of Content-Type
+    {"CSeq",                parseCSeqField},
+    {"Date",                parseUnimplemented},      // TODO
+    {"Error-Info",          parseUnimplemented},      // TODO
+    {"Expires",             parseUnimplemented},      // TODO
+    {"From",                parseFromField},
+    {"f",                   parseFromField},          // compact form of From
+    {"In-Reply_to",         parseUnimplemented},      // TODO
+    {"Max-Forwards",        parseMaxForwardsField},
+    {"In-Reply_to",         parseUnimplemented},      // TODO
+    {"MIME-Version",        parseUnimplemented},      // TODO
+    {"Min-Expires",         parseUnimplemented},      // TODO
+    {"Organization",        parseUnimplemented},      // TODO
+    {"Priority",            parseUnimplemented},      // TODO
+    {"Proxy-Authenticate",  parseUnimplemented},      // TODO
+    {"Proxy-Authorization", parseUnimplemented},      // TODO
+    {"Proxy-Require",       parseUnimplemented},      // TODO
+    {"Record-Route",        parseRecordRouteField},
+    {"Reply-To",            parseUnimplemented},      // TODO
+    {"Require",             parseUnimplemented},      // TODO
+    {"Retry-After",         parseUnimplemented},      // TODO
+    {"Route",               parseUnimplemented},      // TODO
+    {"Server",              parseServerField},
+    {"Subject",             parseUnimplemented},      // TODO
+    {"s",                   parseUnimplemented},      // TODO, compact form of Subject
+    {"Supported",           parseUnimplemented},      // TODO
+    {"k",                   parseUnimplemented},      // TODO, compact form of Supported
+    {"Timestamp",           parseUnimplemented},      // TODO
+    {"To",                  parseToField},
+    {"t",                   parseToField},            // compact form of To
+    {"Unsupported",         parseUnimplemented},      // TODO
+    {"User-Agent",          parseUserAgentField},
+    {"Via",                 parseViaField},
+    {"v",                   parseViaField},           // compact form of Via
+    {"Warning",             parseUnimplemented},      // TODO
+    {"WWW-Authenticate",    parseUnimplemented},      // TODO
+    {"extension-header",    parseUnimplemented}       // TODO
 };
 
 
