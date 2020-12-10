@@ -5,6 +5,24 @@
 
 #include <memory>
 
+
+/* notes on expansion of the SIP structures such as SIPDialogInfo,
+ * SIPMessageInfo, SIPRequest and SIPResponse with new SIP message extensions.
+
+ * If you want to add support for a new parameter to SIP message:
+ * 1) add the parameter to desired struct,
+ * 2) compose the parameter using tryAddParameter in sipfieldcomposing withing desired field and
+ * 3) parse parameter using parseParameterNameToValue in sipfieldparsing
+
+ * If you want to add support for a new field to SIP message:
+ * 1) add field values to desired structs,
+ * 2) add a function for composing the message to sipfieldcomposing
+ * 3) use the composing function in SIPTransport
+ * 4) add a function for field parsing to sipfieldparsing and
+ * 5) add the parsing function to parsing map at the start of siptransport
+ */
+
+
 // See RFC 3261 for INVITE, ACK, BYE, CANCEL, OPTIONS and REGISTER
 // See RFC 3262 for PRACK
 // See RFC 3311 for UPDATE
@@ -95,41 +113,31 @@ enum ResponseType {SIP_UNKNOWN_RESPONSE = 0,
                    SIP_UNWANTED = 607}; // RFC 3261
 
 
-
-
-
 // 7 is the length of preset string
 const uint32_t BRANCHLENGTH = 32 - 7;
 
 
-
-// SIPParameter and SIPField are used as an intermediary step in composing and parsing SIP messages
 struct SIPParameter
 {
   QString name;
   QString value; // optional
 };
 
-// one set of values for a SIP field. Separated by commas
-struct ValueSet
+
+struct URIHeader
 {
-  QStringList words;
-  std::shared_ptr<QList<SIPParameter>> parameters;
+  QString hname;
+  QString hvalue;
 };
 
-struct SIPField
-{
-  QString name;
-  QList<ValueSet> valueSets; // separated by comma(,)
-};
 
-struct hostport
+struct Hostport
 {
   QString host; // hostname / IPv4address / IPv6reference
-  uint16_t port = 0; // omitted if 0
+  uint16_t port = 0; // optional, omitted if 0
 };
 
-struct userinfo
+struct Userinfo
 {
   QString user; // could also be telephone-subscriber
   QString password = ""; // omitted if empty
@@ -143,13 +151,15 @@ const SIPType DEFAULTSIPTYPE = SIP;
 struct SIP_URI
 {
   SIPType type;
-  userinfo userinfo;
+  Userinfo userinfo; // optional
 
+  // TODO: this does not belong to uri
   QString realname; // omitted if empty
 
-  hostport hostport;
+  Hostport hostport;
 
   QList<SIPParameter> uri_parameters;
+  QList<URIHeader> headers;
 };
 
 enum Transport {NONE, UDP, TCP, TLS, SCTP, OTHER};
@@ -178,21 +188,7 @@ struct ContentInfo
   uint32_t length;  // set by SIPTransport
 };
 
-/* notes on expansion of the SIP structures such as SIPDialogInfo,
- * SIPMessageInfo, SIPRequest and SIPResponse with new SIP message extensions.
 
- * If you want to add support for a new parameter to SIP message:
- * 1) add the parameter to desired struct,
- * 2) compose the parameter using tryAddParameter in sipfieldcomposing withing desired field and
- * 3) parse parameter using parseParameterNameToValue in sipfieldparsing
-
- * If you want to add support for a new field to SIP message:
- * 1) add field values to desired structs,
- * 2) add a function for composing the message to sipfieldcomposing
- * 3) use the composing function in SIPTransport
- * 4) add a function for field parsing to sipfieldparsing and
- * 5) add the parsing function to parsing map at the start of siptransport
- */
 
 const uint16_t CALLIDLENGTH = 16;
 const uint16_t TAGLENGTH = 16;
@@ -205,7 +201,7 @@ struct SIPDialogInfo
   QString callID; // in form callid@host
 };
 
-// TODO: Enable recording of several valuesets in SIPMessage
+
 
 // Identifies the SIP message and the transaction it belongs to as well as participants
 struct SIPMessageInfo
@@ -249,5 +245,23 @@ struct SIPResponse
   QString text;
   std::shared_ptr<SIPMessageInfo> message;
 };
+
+
+// these structs are used as a temporary step in parsing and composing SIP messages
+// TODO: Enable recording of several valuesets in SIPMessage
+
+// one set of values for a SIP field. Separated by commas
+struct ValueSet
+{
+  QStringList words;
+  std::shared_ptr<QList<SIPParameter>> parameters;
+};
+
+struct SIPField
+{
+  QString name;
+  QList<ValueSet> valueSets; // separated by comma(,)
+};
+
 
 
