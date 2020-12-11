@@ -67,11 +67,23 @@ void printNormal(const QObject *object, QString description,
   printDebug(DEBUG_NORMAL, object, description, {valueName}, {value});
 }
 
+void printNormal(const QString module, QString description,
+                      QString valueName, QString value)
+{
+  printDebug(DEBUG_NORMAL, module, description, {valueName}, {value});
+}
+
 
 void printImportant(const QObject* object, QString description,
                    QString valueName, QString value)
 {
   printDebug(DEBUG_IMPORTANT, object, description, {valueName}, {value});
+}
+
+void printImportant(const QString module, QString description,
+                   QString valueName, QString value)
+{
+  printDebug(DEBUG_IMPORTANT, module, description, {valueName}, {value});
 }
 
 
@@ -81,11 +93,23 @@ void printWarning(const QObject* object, QString description,
   printDebug(DEBUG_WARNING, object, description, {valueName}, {value});
 }
 
+void printWarning(const QString module, QString description,
+                  QString valueName, QString value)
+{
+  printDebug(DEBUG_WARNING, module, description, {valueName}, {value});
+}
+
 
 void printError(const QObject *object, QString description,
                 QString valueName, QString value)
 {
   printDebug(DEBUG_ERROR, object, description, {valueName}, {value});
+}
+
+void printError(const QString module, QString description,
+                QString valueName, QString value)
+{
+  printDebug(DEBUG_ERROR, module, description, {valueName}, {value});
 }
 
 
@@ -95,11 +119,23 @@ void printProgramError(const QObject *object, QString description,
   printDebug(DEBUG_PROGRAM_ERROR, object, description, {valueName}, {value});
 }
 
+void printProgramError(const QString module, QString description,
+                      QString valueName, QString value)
+{
+  printDebug(DEBUG_PROGRAM_ERROR, module, description, {valueName}, {value});
+}
+
 
 void printProgramWarning(const QObject *object, QString description,
                          QString valueName, QString value)
 {
   printDebug(DEBUG_PROGRAM_WARNING, object, description, {valueName}, {value});
+}
+
+void printProgramWarning(const QString module, QString description,
+                         QString valueName, QString value)
+{
+  printDebug(DEBUG_PROGRAM_WARNING, module, description, {valueName}, {value});
 }
 
 
@@ -109,6 +145,12 @@ void printPeerError(const QObject *object, QString description,
   printDebug(DEBUG_PEER_ERROR, object, description, {valueName}, {value});
 }
 
+void printPeerError(const QString module, QString description,
+                    QString valueName, QString value)
+{
+  printDebug(DEBUG_PEER_ERROR, module, description, {valueName}, {value});
+}
+
 
 void printUnimplemented(const QObject* object, QString whatIsNotImplemented)
 {
@@ -116,9 +158,9 @@ void printUnimplemented(const QObject* object, QString whatIsNotImplemented)
              QString("NOT IMPLEMENTED: ") + whatIsNotImplemented);
 }
 
-void printUnimplemented(QString object, QString whatIsNotImplemented)
+void printUnimplemented(const QString module, QString whatIsNotImplemented)
 {
-  printDebug(DEBUG_PROGRAM_WARNING, object,
+  printDebug(DEBUG_PROGRAM_WARNING, module,
              QString("NOT IMPLEMENTED: ") + whatIsNotImplemented);
 }
 

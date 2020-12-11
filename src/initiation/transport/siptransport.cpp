@@ -157,6 +157,7 @@ void SIPTransport::createConnection(Transport type, QString target)
   }
 }
 
+
 void SIPTransport::incomingTCPConnection(std::shared_ptr<TCPConnection> con)
 {
   qDebug() << "This SIP connection uses an incoming connection:" << transportID_;
@@ -169,6 +170,7 @@ void SIPTransport::incomingTCPConnection(std::shared_ptr<TCPConnection> con)
   signalConnections();
 }
 
+
 void SIPTransport::signalConnections()
 {
   Q_ASSERT(connection_);
@@ -179,12 +181,14 @@ void SIPTransport::signalConnections()
                    this, &SIPTransport::connectionEstablished);
 }
 
+
 void SIPTransport::connectionEstablished(QString localAddress, QString remoteAddress)
 {
   emit sipTransportEstablished(transportID_,
                                 localAddress,
                                 remoteAddress);
 }
+
 
 void SIPTransport::destroyConnection()
 {
@@ -363,6 +367,7 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
   --processingInProgress_;
 }
 
+
 bool SIPTransport::composeMandatoryFields(QList<SIPField>& fields,
                                           std::shared_ptr<SIPMessageBody> message)
 {
@@ -462,10 +467,11 @@ void SIPTransport::networkPackage(QString package)
     if (header != "" && firstLine != "" && !fields.empty())
     {
       std::shared_ptr<SIPMessageBody> message;
-      if (!fieldsToMessage(fields, message))
+      if (!fieldsToMessageBody(fields, message))
       {
-        qDebug() << "The received message was not correct. ";
-        emit parsingError(SIP_BAD_REQUEST, transportID_); // RFC3261_TODO support other possible error types
+        qDebug() << "The received message was not correct.";
+        // RFC3261_TODO support other possible error types
+        emit parsingError(SIP_BAD_REQUEST, transportID_);
         --processingInProgress_;
         return;
       }
@@ -481,6 +487,7 @@ void SIPTransport::networkPackage(QString package)
       QRegularExpressionMatch request_match = requestRE.match(firstLine);
       QRegularExpressionMatch response_match = responseRE.match(firstLine);
 
+      // first line matches a request
       if (request_match.hasMatch() && response_match.hasMatch())
       {
         printDebug(DEBUG_PROGRAM_ERROR, this,
@@ -497,11 +504,13 @@ void SIPTransport::networkPackage(QString package)
                                         package, connection_->remoteAddress().toString());
         }
 
-        if (!parseRequest(request_match.captured(1), request_match.captured(3), message, fields, content))
+        if (!parseRequest(request_match.captured(1), request_match.captured(3),
+                          message, fields, content))
         {
           qDebug() << "Failed to parse request";
         }
       }
+      // first line matches a response
       else if (response_match.hasMatch() && response_match.lastCapturedIndex() == 3)
       {
         if (isConnected())
@@ -511,7 +520,7 @@ void SIPTransport::networkPackage(QString package)
         }
 
         if (!parseResponse(response_match.captured(2), response_match.captured(1), response_match.captured(3),
-                           message, content))
+                           message, fields, content))
         {
           qDebug() << "ERROR: Failed to parse response: " << response_match.captured(2);
         }
@@ -885,8 +894,8 @@ void SIPTransport::addParameterToSet(SIPParameter& currentParameter, QString &cu
 }
 
 
-bool SIPTransport::fieldsToMessage(QList<SIPField>& fields,
-                                   std::shared_ptr<SIPMessageBody>& message)
+bool SIPTransport::fieldsToMessageBody(QList<SIPField>& fields,
+                                       std::shared_ptr<SIPMessageBody>& message)
 {
   message = std::shared_ptr<SIPMessageBody> (new SIPMessageBody);
   message->cSeq = 0;
@@ -936,15 +945,15 @@ bool SIPTransport::parseRequest(QString requestString, QString version,
 
   // RFC3261_TODO: if more than one via-field, discard message
 
-  if(!isLinePresent("Max-Forwards", fields))
+  if (countVias(fields) > 1)
   {
-    qDebug() << "Mandatory Max-Forwards not present in Request header";
+    printPeerError(this, "Too many Vias in received request");
     return false;
   }
 
-  if(requestType == SIP_INVITE && !isLinePresent("Contact", fields))
+
+  if (!checkRequestMustFields(requestType, fields))
   {
-    qDebug() << "Contact header missing from INVITE request";
     return false;
   }
 
@@ -961,7 +970,7 @@ bool SIPTransport::parseRequest(QString requestString, QString version,
 bool SIPTransport::parseResponse(QString responseString, QString version,
                                  QString text,
                                  std::shared_ptr<SIPMessageBody> message,
-                                 QVariant &content)
+                                 QList<SIPField> &fields, QVariant &content)
 {
   printImportant(this, "Parsing incoming response", {"Type"}, {responseString});
   message->version = version; // TODO: set only version not SIP/version
@@ -972,6 +981,12 @@ bool SIPTransport::parseResponse(QString responseString, QString version,
     printWarning(this, "Could not recognize response type!");
     return false;
   }
+
+  if (!checkResponseMustFields(type, message->transactionRequest, fields))
+  {
+    return false;
+  }
+
 
   SIPResponse response;
   response.type = type;

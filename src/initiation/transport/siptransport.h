@@ -77,15 +77,15 @@ private:
   // parsing functions
   // returs true if the whole message was received
   bool parsePackage(QString package, QStringList &headers, QStringList &bodies);
-  bool headerToFields(QString header, QString& firstLine, QList<SIPField>& fields);
-  bool fieldsToMessage(QList<SIPField>& fields, std::shared_ptr<SIPMessageBody> &message);
+  bool headerToFields(QString header, QString& firstLine, QList<SIPField> &fields);
+  bool fieldsToMessageBody(QList<SIPField>& fields, std::shared_ptr<SIPMessageBody> &message);
 
   bool parseRequest(QString requestString, QString version,
                     std::shared_ptr<SIPMessageBody> message,
                     QList<SIPField>& fields, QVariant& content);
   bool parseResponse(QString responseString, QString version, QString text,
                      std::shared_ptr<SIPMessageBody> message,
-                     QVariant& content);
+                     QList<SIPField> &fields, QVariant& content);
 
   bool combineContinuationLines(QStringList& lines);
   bool parseFieldName(QString& line, SIPField &field);

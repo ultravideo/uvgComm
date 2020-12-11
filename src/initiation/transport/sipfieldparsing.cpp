@@ -14,6 +14,8 @@ bool parseParameterNameToValue(std::shared_ptr<QList<SIPParameter>> parameters,
                                QString name, QString& value);
 bool parseUint(QString values, uint& number);
 
+bool checkAlwaysMandatoryFields(QList<SIPField>& fields);
+
 
 bool parseURI(QStringList& words, SIP_URI& uri)
 {
@@ -395,6 +397,20 @@ bool parseUnimplemented(SIPField& field,
   return false;
 }
 
+int countVias(QList<SIPField> &fields)
+{
+  int vias = 0;
+  for(SIPField field : fields)
+  {
+    if(field.name == "Via")
+    {
+      ++vias;
+    }
+  }
+
+  return vias;
+}
+
 
 bool isLinePresent(QString name, QList<SIPField>& fields)
 {
@@ -429,3 +445,177 @@ bool parseParameter(QString text, SIPParameter& parameter)
 
   return false;
 }
+
+
+bool checkRequestMustFields(SIPRequestMethod method,
+                            QList<SIPField>& fields)
+{
+  if (!checkAlwaysMandatoryFields(fields))
+  {
+    printPeerError("SIPFieldParsing", "Request did not include "
+                         "all universally mandatory fields!");
+    return false;
+  }
+
+  // There are request header fields that are mandatory in certain situations,
+  // but the RFC 3261 says we should be prepared to receive message
+  // without them. That is the reason we don't fail because of them.
+
+  // Contact is mandatory in INVITE
+  if (method == SIP_INVITE)
+  {
+    if (!isLinePresent("Contact", fields))
+    {
+      printPeerError("SIPFieldParsing", "Received INVITE request without contact-field!");
+      return false;
+    }
+
+    if (!isLinePresent("Supported", fields))
+    {
+      printWarning("SIPFieldParsing", "Received an INVITE Request "
+                                      "without Supported-field, "
+                                      "even though it should be included!");
+    }
+  }
+
+
+  if (method == SIP_OPTIONS)
+  {
+    if (!isLinePresent("Accept", fields))
+    {
+      printWarning("SIPFieldParsing", "Received SIP OPTIONS request without Accept-field, "
+                         "even though it should be included!");
+    }
+  }
+
+  return true;
+}
+
+
+bool checkResponseMustFields(SIPResponseStatus status,
+                             SIPRequestMethod ongoingTransaction,
+                             QList<SIPField>& fields)
+{
+  int code = responseToCode(status);
+
+  if (!checkAlwaysMandatoryFields(fields))
+  {
+    printPeerError("SIPFieldParsing", "Response did not include "
+                         "all universally mandatory fields!");
+    return false;
+  }
+
+  if (code == 405)
+  {
+    if (!isLinePresent("Allow", fields))
+    {
+      printPeerError("SIPFieldParsing", "Received 405 Not allowed response without "
+                       "allow field, even though it is mandatory!");
+
+      return false;
+    }
+  }
+
+  if (ongoingTransaction == SIP_INVITE &&
+      code >= 200 && code <= 299)
+  {
+    if (!isLinePresent("Contact", fields))
+    {
+      printPeerError("SIPFieldParsing", "No contact-field in INVITE OK response!");
+      return false;
+    }
+  }
+
+  if (ongoingTransaction == SIP_REGISTER &&
+      code == 423)
+  {
+    if (!isLinePresent("Min-Expires", fields))
+    {
+      printPeerError("SIPFieldParsing", "No Min-Expires-field in SIP 423 "
+                           "Interval Too Brief response!");
+      return false;
+    }
+  }
+
+  if (code == 401)
+  {
+    if (!isLinePresent("WWW-Authenticate", fields))
+    {
+      printPeerError("SIPFieldParsing", "Received OK response to OPTIONS or INVITE request without "
+                           "WWW-Authenticate field, even though it is mandatory!");
+      return false;
+    }
+  }
+
+  if (code == 420)
+  {
+    if (!isLinePresent("Unsupported", fields))
+    {
+      printPeerError("SIPFieldParsing", "Received 420 Bad Extension response without "
+                           "Unsupported-field, even though it is mandatory!");
+      return false;
+    }
+  }
+
+  // mandatory, but we should still accept messages without these
+  if (ongoingTransaction == SIP_OPTIONS &&
+      (code >= 200 && code <= 299))
+  {
+    if (!isLinePresent("Accept", fields))
+    {
+      printWarning("SIPFieldParsing", "Received OK response to OPTIONS request without "
+                         "Accept field, even though it should be included!");
+    }
+
+    if (!isLinePresent("Accept-Encoding", fields))
+    {
+      printWarning("SIPFieldParsing", "Received OK response to OPTIONS request without "
+                         "Accept-Encoding field, even though it should be included!");
+    }
+
+    if (!isLinePresent("Accept-Language", fields))
+    {
+      printWarning("SIPFieldParsing", "Received OK response to OPTIONS request without "
+                         "Accept-Language field, even though it should be included!");
+    }
+  }
+
+  if ((ongoingTransaction == SIP_OPTIONS || ongoingTransaction == SIP_INVITE) &&
+      (code >= 200 && code <= 299))
+  {
+    if (!isLinePresent("Allow", fields))
+    {
+      printWarning("SIPFieldParsing", "Received OK response to OPTIONS or INVITE request without "
+                         "allow field, even though it should be included!");
+    }
+
+    if (!isLinePresent("Supported", fields))
+    {
+      printWarning("SIPFieldParsing", "Received OK response to OPTIONS or INVITE request without "
+                         "Supported-field, even though it should be included!");
+    }
+  }
+
+  return true;
+}
+
+
+bool checkAlwaysMandatoryFields(QList<SIPField>& fields)
+{
+  // Not the fastest solution if there are many header fields,
+  // but that shouldn't be an issue
+
+  if (!isLinePresent("Call-ID",        fields) ||
+      !isLinePresent("CSeq",           fields) ||
+      !isLinePresent("From",           fields) ||
+      !isLinePresent("Max-Forwards",   fields) ||
+      !isLinePresent("To",             fields) ||
+      !isLinePresent("Via",            fields) ||
+      !isLinePresent("Content-Length", fields))
+  {
+    return false;
+  }
+
+  return true;
+}
+
