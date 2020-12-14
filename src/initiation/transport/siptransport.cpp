@@ -226,6 +226,7 @@ void SIPTransport::destroyConnection()
   printNormal(this, "Destroyed SIP Transport connection");
 }
 
+
 void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
 {
   ++processingInProgress_;
@@ -298,6 +299,7 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
   connection_->sendPacket(message);
   --processingInProgress_;
 }
+
 
 void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
 {
@@ -466,28 +468,14 @@ void SIPTransport::networkPackage(QString package)
 
     if (header != "" && firstLine != "" && !fields.empty())
     {
-      std::shared_ptr<SIPMessageBody> message;
-      if (!fieldsToMessageBody(fields, message))
-      {
-        qDebug() << "The received message was not correct.";
-        // RFC3261_TODO support other possible error types
-        emit parsingError(SIP_BAD_REQUEST, transportID_);
-        --processingInProgress_;
-        return;
-      }
 
-      QVariant content;
-      if (body != "" && message->content.type != NO_CONTENT)
-      {
-        parseContent(content, message->content.type, body);
-      }
-
+      // Here we start identifying is this a request or a response
       QRegularExpression requestRE("^(\\w+) (sip:\\S+@\\S+) (SIP/2.0)");
       QRegularExpression responseRE("^(SIP/2.0) (\\d\\d\\d) (.+)");
       QRegularExpressionMatch request_match = requestRE.match(firstLine);
       QRegularExpressionMatch response_match = responseRE.match(firstLine);
 
-      // first line matches a request
+      // Something is wrong if it matches both
       if (request_match.hasMatch() && response_match.hasMatch())
       {
         printDebug(DEBUG_PROGRAM_ERROR, this,
@@ -496,6 +484,7 @@ void SIPTransport::networkPackage(QString package)
         return;
       }
 
+      // If it matches request
       if (request_match.hasMatch() && request_match.lastCapturedIndex() == 3)
       {
         if (isConnected())
@@ -505,9 +494,10 @@ void SIPTransport::networkPackage(QString package)
         }
 
         if (!parseRequest(request_match.captured(1), request_match.captured(3),
-                          message, fields, content))
+                          fields, body))
         {
           qDebug() << "Failed to parse request";
+          emit parsingError(SIP_BAD_REQUEST, transportID_);
         }
       }
       // first line matches a response
@@ -520,9 +510,10 @@ void SIPTransport::networkPackage(QString package)
         }
 
         if (!parseResponse(response_match.captured(2), response_match.captured(1), response_match.captured(3),
-                           message, fields, content))
+                           fields, body))
         {
           qDebug() << "ERROR: Failed to parse response: " << response_match.captured(2);
+          emit parsingError(SIP_BAD_REQUEST, transportID_);
         }
       }
       else
@@ -530,6 +521,8 @@ void SIPTransport::networkPackage(QString package)
         qDebug() << "Failed to parse first line of SIP message:" << firstLine
                  << "Request index:" << request_match.lastCapturedIndex()
                  << "response index:" << response_match.lastCapturedIndex();
+
+        emit parsingError(SIP_BAD_REQUEST, transportID_);
       }
     }
     else
@@ -897,7 +890,6 @@ void SIPTransport::addParameterToSet(SIPParameter& currentParameter, QString &cu
 bool SIPTransport::fieldsToMessageBody(QList<SIPField>& fields,
                                        std::shared_ptr<SIPMessageBody>& message)
 {
-  message = std::shared_ptr<SIPMessageBody> (new SIPMessageBody);
   message->cSeq = 0;
   message->transactionRequest = SIP_NO_REQUEST;
   message->maxForwards = 0;
@@ -927,75 +919,64 @@ bool SIPTransport::fieldsToMessageBody(QList<SIPField>& fields,
 
 
 bool SIPTransport::parseRequest(QString requestString, QString version,
-                                std::shared_ptr<SIPMessageBody> message,
-                                QList<SIPField> &fields, QVariant &content)
+                                QList<SIPField> &fields, QString& body)
 {  
   qDebug() << "Request detected:" << requestString;
 
   printImportant(this, "Parsing incoming request", {"Type"}, {requestString});
+  SIPRequest request;
+  request.type = stringToRequest(requestString);
+  request.message = std::shared_ptr<SIPMessageBody> (new SIPMessageBody);
+  request.message->version = version; // TODO: set only version not SIP/version
 
-  message->version = version; // TODO: set only version not SIP/version
-  SIPRequestMethod requestType = stringToRequest(requestString);
-
-  if(requestType == SIP_NO_REQUEST)
+  if(request.type == SIP_NO_REQUEST)
   {
     qDebug() << "Could not recognize request type!";
     return false;
   }
 
-  // RFC3261_TODO: if more than one via-field, discard message
-
-  if (countVias(fields) > 1)
-  {
-    printPeerError(this, "Too many Vias in received request");
-    return false;
-  }
-
-
-  if (!checkRequestMustFields(requestType, fields))
+  if (!fieldsToMessageBody(fields, request.message))
   {
     return false;
   }
 
-  // construct request
-  SIPRequest request;
-  request.type = requestType;
-  request.message = message;
+  QVariant content;
+  if (body != "" && request.message->content.type != NO_CONTENT)
+  {
+    parseContent(content, request.message->content.type, body);
+  }
 
   emit incomingSIPRequest(request, getLocalAddress(), content, transportID_);
   return true;
 }
 
-
 bool SIPTransport::parseResponse(QString responseString, QString version,
-                                 QString text,
-                                 std::shared_ptr<SIPMessageBody> message,
-                                 QList<SIPField> &fields, QVariant &content)
+                                 QString text, QList<SIPField> &fields,
+                                 QString& body)
 {
   printImportant(this, "Parsing incoming response", {"Type"}, {responseString});
-  message->version = version; // TODO: set only version not SIP/version
-  SIPResponseStatus type = codeToResponse(stringToResponseCode(responseString));
-
-  if(type == SIP_UNKNOWN_RESPONSE)
-  {
-    printWarning(this, "Could not recognize response type!");
-    return false;
-  }
-
-  if (!checkResponseMustFields(type, message->transactionRequest, fields))
-  {
-    return false;
-  }
-
 
   SIPResponse response;
-  response.type = type;
-  response.message = message;
+  response.type = codeToResponse(stringToResponseCode(responseString));
+  response.message = std::shared_ptr<SIPMessageBody> (new SIPMessageBody);
   response.text = text;
+  response.message->version = version; // TODO: set only version not SIP/version
+
+
+  if (!fieldsToMessageBody(fields, response.message))
+  {
+    return false;
+  }
+
+  QVariant content;
+  if (body != "" && response.message->content.type != NO_CONTENT)
+  {
+    parseContent(content, response.message->content.type, body);
+  }
 
   if (isConnected())
   {
-    routing_.processResponseViaFields(message->vias,
+    routing_.processResponseViaFields(response.message->vias,
                                       connection_->localAddress().toString(),
                                       connection_->localPort());
   }
