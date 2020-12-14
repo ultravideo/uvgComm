@@ -935,6 +935,11 @@ bool SIPTransport::parseRequest(QString requestString, QString version,
     return false;
   }
 
+  if (!requestSanityCheck(fields, request.type))
+  {
+    return false;
+  }
+
   if (!fieldsToMessageBody(fields, request.message))
   {
     return false;
@@ -950,6 +955,28 @@ bool SIPTransport::parseRequest(QString requestString, QString version,
   return true;
 }
 
+
+bool SIPTransport::requestSanityCheck(QList<SIPField>& fields, SIPRequestMethod method)
+{
+  // check if mandatory fields are present
+  if (!checkRequestMustFields(fields, method))
+  {
+    return false;
+  }
+
+  // remove invalid fields
+  for (int i = fields.size() - 1; i >= 0; --i)
+  {
+    if (!sensibleRequestField(fields, method, fields.at(i).name))
+    {
+      fields.removeAt(i);
+    }
+  }
+
+  return true;
+}
+
+
 bool SIPTransport::parseResponse(QString responseString, QString version,
                                  QString text, QList<SIPField> &fields,
                                  QString& body)
@@ -962,6 +989,10 @@ bool SIPTransport::parseResponse(QString responseString, QString version,
   response.text = text;
   response.message->version = version; // TODO: set only version not SIP/version
 
+  if (!responseSanityCheck(fields, response.type))
+  {
+    return false;
+  }
 
   if (!fieldsToMessageBody(fields, response.message))
   {
@@ -987,6 +1018,60 @@ bool SIPTransport::parseResponse(QString responseString, QString version,
   }
 
   emit incomingSIPResponse(response, content);
+
+  return true;
+}
+
+
+bool SIPTransport::responseSanityCheck(QList<SIPField>& fields,
+                                       SIPResponseStatus status)
+{
+  if(status == SIP_UNKNOWN_RESPONSE)
+  {
+    printWarning(this, "Could not recognize response type!");
+    return false;
+  }
+
+  SIPRequestMethod ongoingTransaction = SIP_NO_REQUEST;
+
+  if (countVias(fields) > 1)
+  {
+    printPeerError(this, "Too many Vias in received response");
+    return false;
+  }
+
+  for (auto& field : fields)
+  {
+    if (field.name == "CSeq")
+    {
+      std::shared_ptr<SIPMessageBody> message
+          = std::shared_ptr<SIPMessageBody> (new SIPMessageBody);
+      if (parseCSeqField(field, message))
+      {
+        ongoingTransaction = message->transactionRequest;
+      }
+      else
+      {
+        return false;
+      }
+    }
+  }
+
+  // check if mandatory fields are present
+  if (!checkResponseMustFields(fields, status, ongoingTransaction))
+  {
+    return false;
+  }
+
+  // remove invalid fields
+  for (int i = fields.size() - 1; i >= 0; --i)
+  {
+    if (!sensibleResponseField(fields, status, ongoingTransaction,
+                               fields.at(i).name))
+    {
+      fields.removeAt(i);
+    }
+  }
 
   return true;
 }

@@ -79,13 +79,13 @@ private:
   bool parsePackage(QString package, QStringList &headers, QStringList &bodies);
   bool headerToFields(QString header, QString& firstLine, QList<SIPField> &fields);
   bool fieldsToMessageBody(QList<SIPField>& fields, std::shared_ptr<SIPMessageBody> &message);
+  bool requestSanityCheck(QList<SIPField>& fields, SIPRequestMethod method);
+  bool responseSanityCheck(QList<SIPField>& fields, SIPResponseStatus status);
 
   bool parseRequest(QString requestString, QString version,
-                    std::shared_ptr<SIPMessageBody> message,
-                    QList<SIPField>& fields, QVariant& content);
+                    QList<SIPField>& fields, QString &body);
   bool parseResponse(QString responseString, QString version, QString text,
-                     std::shared_ptr<SIPMessageBody> message,
-                     QList<SIPField> &fields, QVariant& content);
+                     QList<SIPField> &fields, QString &body);
 
   bool combineContinuationLines(QStringList& lines);
   bool parseFieldName(QString& line, SIPField &field);
