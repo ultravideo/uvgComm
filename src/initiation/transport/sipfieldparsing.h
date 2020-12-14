@@ -47,22 +47,6 @@ bool parseUserAgentField(SIPField& field,
 bool parseUnimplemented(SIPField& field,
                         std::shared_ptr<SIPMessageBody> message);
 
-// check if the SIP message contains all required fields
-bool checkRequestMustFields(QList<SIPField>& fields, SIPRequestMethod method);
-bool checkResponseMustFields(QList<SIPField>& fields, SIPResponseStatus status,
-                             SIPRequestMethod ongoingTransaction);
-
-// check if the field makes sense in this request/response.
-// Fields that do not should be ignored.
-bool sensibleRequestField(QList<SIPField>& fields, SIPRequestMethod method, QString field);
-bool sensibleResponseField(QList<SIPField>& fields, SIPResponseStatus status,
-                           SIPRequestMethod ongoingTransaction, QString field);
-
-
-// tell whether a particular field is present in list.
-bool isLinePresent(QString name, QList<SIPField> &fields);
-
-int countVias(QList<SIPField> &fields);
 
 // takes the parameter string (name=value) and parses it to SIPParameter
 // used by parse functions.

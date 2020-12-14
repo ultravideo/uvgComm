@@ -79,8 +79,7 @@ private:
   bool parsePackage(QString package, QStringList &headers, QStringList &bodies);
   bool headerToFields(QString header, QString& firstLine, QList<SIPField> &fields);
   bool fieldsToMessageBody(QList<SIPField>& fields, std::shared_ptr<SIPMessageBody> &message);
-  bool requestSanityCheck(QList<SIPField>& fields, SIPRequestMethod method);
-  bool responseSanityCheck(QList<SIPField>& fields, SIPResponseStatus status);
+
 
   bool parseRequest(QString requestString, QString version,
                     QList<SIPField>& fields, QString &body);
