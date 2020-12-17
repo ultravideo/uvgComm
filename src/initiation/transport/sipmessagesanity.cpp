@@ -114,6 +114,11 @@ bool checkRequestMustFields(QList<SIPField>& fields, SIPRequestMethod method)
     return false;
   }
 
+  if (!isLinePresent("Max-Forwards", fields))
+  {
+    printPeerError("SIPMessageSanity", "Received a request without max-forwards field!");
+  }
+
   // There are request header fields that are mandatory in certain situations,
   // but the RFC 3261 says we should be prepared to receive message
   // without them. That is the reason we don't fail because of them.
@@ -269,9 +274,9 @@ bool sensibleRequestField(QList<SIPField>& fields, SIPRequestMethod method, QStr
   }
 
   // These make always sense in requests, but not responses
-  if (field == "Authorization" &&
-      field == "Max-Forwards" &&
-      field == "Route" &&
+  if (field == "Authorization" ||
+      field == "Max-Forwards" ||
+      field == "Route" ||
       field == "Record-Route")
   {
     return true;
@@ -330,8 +335,8 @@ bool sensibleRequestField(QList<SIPField>& fields, SIPRequestMethod method, QStr
     return true;
   }
 
-  printPeerError("SIPMessageSanity", "Nonsensical field found in request!",
-                 "Field name", field);
+  printWarning("SIPMessageSanity", "Nonsensical field found in request!",
+               "Field name", field);
 
   return false;
 }
@@ -509,8 +514,8 @@ bool sensibleResponseField(QList<SIPField>& fields, SIPResponseStatus status,
     }
   }
 
-  printPeerError("SIPMessageSanity", "Nonsensical field found in response",
-                 "Field name", field);
+  printWarning("SIPMessageSanity", "Nonsensical field found in response",
+               "Field name", field);
 
   return false;
 }
@@ -560,15 +565,15 @@ bool checkAlwaysMandatoryFields(QList<SIPField>& fields)
   if (isLinePresent("Call-ID",        fields) &&
       isLinePresent("CSeq",           fields) &&
       isLinePresent("From",           fields) &&
-      isLinePresent("Max-Forwards",   fields) &&
       isLinePresent("To",             fields) &&
       isLinePresent("Via",            fields) &&
       isLinePresent("Content-Length", fields)) // mandatory in TCP and TLS
   {
-    printPeerError("SIPMessageSanity",
-                   "All mandatory fields not present in SIP message!");
     return true;
   }
+
+  printPeerError("SIPMessageSanity",
+                 "All mandatory fields not present in SIP message!");
 
   return false;
 }
