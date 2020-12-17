@@ -233,7 +233,6 @@ win32{
   LIBS += -lws2_32
   LIBS += -lole32
   LIBS += -loleaut32
-  LIBS += -lcryptlib
 }
 
 
@@ -269,7 +268,7 @@ win32-g++{
 }
 
 unix {
-  LIBS += -lkvazaar -lcryptopp
+  LIBS += -lkvazaar
   QMAKE_CXXFLAGS += -msse4.1 -mavx2 -fopenmp
   QMAKE_LFLAGS += -fopenmp
   INCLUDEPATH += /usr/include/opus/
