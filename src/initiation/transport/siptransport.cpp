@@ -250,7 +250,8 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
   // start composing the request.
   // First we turn the struct to fields which are then turned to string
   QList<SIPField> fields;
-  if (!composeMandatoryFields(fields, request.message))
+  if (!composeMandatoryFields(fields, request.message) ||
+      !includeMaxForwardsField(fields, request.message))
   {
     qDebug() << "WARNING: Failed to add all the fields. Probably because of missing values.";
     return;
@@ -375,7 +376,6 @@ bool SIPTransport::composeMandatoryFields(QList<SIPField>& fields,
                                           std::shared_ptr<SIPMessageBody> message)
 {
   return includeViaFields(fields, message) &&
-         includeMaxForwardsField(fields, message) &&
          includeToField(fields, message) &&
          includeFromField(fields, message) &&
          includeCallIDField(fields, message) &&
@@ -879,7 +879,7 @@ void SIPTransport::addParameterToSet(SIPParameter& currentParameter, QString &cu
 
 
 bool SIPTransport::fieldsToMessageBody(QList<SIPField>& fields,
-                                       std::shared_ptr<SIPMessageBody>& message)
+                                       std::shared_ptr<SIPMessageHeader>& message)
 {
   message->cSeq = 0;
   message->transactionRequest = SIP_NO_REQUEST;
