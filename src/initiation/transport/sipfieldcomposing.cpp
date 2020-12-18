@@ -14,6 +14,8 @@ bool tryAddParameter(std::shared_ptr<QList<SIPParameter> > &parameters,
                      QString parameterName);
 
 QString composeUritype(SIPType type);
+bool composeSIPUri(SIP_URI& uri, QStringList& words);
+bool composeNameAddr(NameAddr& nameAddr, QStringList& words);
 
 QString composeUritype(SIPType type)
 {
@@ -48,12 +50,18 @@ QString composePortString(uint16_t port)
   return portString;
 }
 
+bool composeNameAddr(NameAddr& nameAddr, QStringList& words)
+{
+  if (nameAddr.realname != "")
+  {
+    words.push_back("\"" + nameAddr.realname + "\"");
+  }
+
+  return composeSIPUri(nameAddr.uri, words);
+}
+
 bool composeSIPUri(SIP_URI& uri, QStringList& words)
 {
-  if (uri.realname != "")
-  {
-    words.push_back("\"" + uri.realname + "\"");
-  }
 
   QString uriString = "<" + composeUritype(uri.type);
   if (uriString != "")
@@ -101,7 +109,7 @@ bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
                "Request URI host is empty when comprising the first line.");
   }
 
-  if(request.type == SIP_NO_REQUEST)
+  if(request.method == SIP_NO_REQUEST)
   {
     printDebug(DEBUG_PROGRAM_ERROR, "SIPComposing",
                 "SIP_NO_REQUEST given.");
@@ -118,7 +126,7 @@ bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
   }
 
 
-  if(request.type != SIP_REGISTER)
+  if(request.method != SIP_REGISTER)
   {
     type = composeUritype(request.requestURI.type);
     target = request.requestURI.userinfo.user + "@" + request.requestURI.hostport.host;
@@ -129,8 +137,8 @@ bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
     target = request.requestURI.hostport.host;
   }
 
-  line = requestToString(request.type) + " " + type
-      + target + port + " SIP/" + request.message->version + lineEnding;
+  line = requestToString(request.method) + " " + type
+      + target + port + " SIP/" + request.sipVersion + lineEnding;
 
   return true;
 }
@@ -143,43 +151,47 @@ bool getFirstResponseLine(QString& line, SIPResponse& response,
     qDebug() << "WARNING: First response line failed";
     return false;
   }
-  line = "SIP/" + response.message->version + " "
+  line = "SIP/" + response.sipVersion + " "
       + QString::number(responseToCode(response.type)) + " "
       + responseToPhrase(response.type) + lineEnding;
   return true;
 }
 
 bool includeToField(QList<SIPField> &fields,
-                    std::shared_ptr<SIPMessageBody> message)
+                    std::shared_ptr<SIPMessageHeader> message)
 {
-  Q_ASSERT(message->to.userinfo.user != "" && message->to.hostport.host != "");
-  if(message->to.userinfo.user == "" ||  message->to.hostport.host == "")
+  Q_ASSERT(message->to.address.uri.userinfo.user != "" &&
+      message->to.address.uri.hostport.host != "");
+  if(message->to.address.uri.userinfo.user == "" ||
+     message->to.address.uri.hostport.host == "")
   {
     qDebug() << "WARNING: Composing To-field failed because host is:"
-             << message->to.hostport.host << "and" << message->to.userinfo.user;
+             << message->to.address.uri.hostport.host << "and" << message->to.address.uri.userinfo.user;
     return false;
   }
 
   SIPField field = {"To", QList<ValueSet>{ValueSet{{}, nullptr}}};
 
-  if (!composeSIPUri(message->to, field.valueSets[0].words))
+  if (!composeNameAddr(message->to.address, field.valueSets[0].words))
   {
     return false;
   }
 
   field.valueSets[0].parameters = nullptr;
 
-  tryAddParameter(field.valueSets[0].parameters, "tag", message->dialog->toTag);
+  tryAddParameter(field.valueSets[0].parameters, "tag", message->to.tag);
 
   fields.push_back(field);
   return true;
 }
 
 bool includeFromField(QList<SIPField> &fields,
-                      std::shared_ptr<SIPMessageBody> message)
+                      std::shared_ptr<SIPMessageHeader> message)
 {
-  Q_ASSERT(message->from.userinfo.user != "" && message->from.hostport.host != "");
-  if(message->from.userinfo.user == "" ||  message->from.hostport.host == "")
+  Q_ASSERT(message->from.address.uri.userinfo.user != "" &&
+      message->from.address.uri.hostport.host != "");
+  if(message->from.address.uri.userinfo.user == "" ||
+     message->from.address.uri.hostport.host == "")
   {
     qDebug() << "WARNING: From field failed";
     return false;
@@ -187,21 +199,21 @@ bool includeFromField(QList<SIPField> &fields,
 
   SIPField field = {"From", QList<ValueSet>{ValueSet{{}, nullptr}}};
 
-  if (!composeSIPUri(message->from, field.valueSets[0].words))
+  if (!composeNameAddr(message->from.address, field.valueSets[0].words))
   {
     return false;
   }
 
   field.valueSets[0].parameters = nullptr;
 
-  tryAddParameter(field.valueSets[0].parameters, "tag", message->dialog->fromTag);
+  tryAddParameter(field.valueSets[0].parameters, "tag", message->from.tag);
 
   fields.push_back(field);
   return true;
 }
 
 bool includeCSeqField(QList<SIPField> &fields,
-                      std::shared_ptr<SIPMessageBody> message)
+                      std::shared_ptr<SIPMessageHeader> message)
 {
   Q_ASSERT(message->cSeq != 0 && message->transactionRequest != SIP_NO_REQUEST);
   if(message->cSeq == 0 || message->transactionRequest == SIP_NO_REQUEST)
@@ -221,22 +233,22 @@ bool includeCSeqField(QList<SIPField> &fields,
 }
 
 bool includeCallIDField(QList<SIPField> &fields,
-                        std::shared_ptr<SIPMessageBody> message)
+                        std::shared_ptr<SIPMessageHeader> message)
 {
-  Q_ASSERT(message->dialog->callID != "");
-  if(message->dialog->callID == "")
+  Q_ASSERT(message->callID != "");
+  if(message->callID == "")
   {
     qDebug() << "WARNING: Call-ID field failed";
     return false;
   }
 
-  SIPField field = {"Call-ID", QList<ValueSet>{ValueSet{{message->dialog->callID}, nullptr}}};
+  SIPField field = {"Call-ID", QList<ValueSet>{ValueSet{{message->callID}, nullptr}}};
   fields.push_back(field);
   return true;
 }
 
 bool includeViaFields(QList<SIPField> &fields,
-                      std::shared_ptr<SIPMessageBody> message)
+                      std::shared_ptr<SIPMessageHeader> message)
 {
   Q_ASSERT(!message->vias.empty());
   if(message->vias.empty())
@@ -293,7 +305,7 @@ bool includeViaFields(QList<SIPField> &fields,
 }
 
 bool includeMaxForwardsField(QList<SIPField> &fields,
-                             std::shared_ptr<SIPMessageBody> message)
+                             std::shared_ptr<SIPMessageHeader> message)
 {
   Q_ASSERT(message->maxForwards != 0);
   if(message->maxForwards == 0)
@@ -309,10 +321,10 @@ bool includeMaxForwardsField(QList<SIPField> &fields,
 }
 
 bool includeContactField(QList<SIPField> &fields,
-                         std::shared_ptr<SIPMessageBody> message)
+                         std::shared_ptr<SIPMessageHeader> message)
 {
-  Q_ASSERT(message->contact.userinfo.user != "" && message->contact.hostport.host != "");
-  if(message->contact.userinfo.user == "" ||  message->contact.hostport.host == "")
+  Q_ASSERT(message->contact.uri.userinfo.user != "" && message->contact.uri.hostport.host != "");
+  if(message->contact.uri.userinfo.user == "" ||  message->contact.uri.hostport.host == "")
   {
     qDebug() << "WARNING: Contact field failed";
     return false;
@@ -323,9 +335,9 @@ bool includeContactField(QList<SIPField> &fields,
   QString transportString = "";
 
   message->contact.realname = "";
-  message->contact.uri_parameters.push_back({"transport", "tcp"});
+  message->contact.uri.uri_parameters.push_back({"transport", "tcp"});
 
-  if (!composeSIPUri(message->contact, field.valueSets[0].words))
+  if (!composeNameAddr(message->contact, field.valueSets[0].words))
   {
     return false;
   }
@@ -372,14 +384,14 @@ bool includeExpiresField(QList<SIPField>& fields,
 
 
 bool includeRecordRouteField(QList<SIPField>& fields,
-                             std::shared_ptr<SIPMessageBody> message)
+                             std::shared_ptr<SIPMessageHeader> message)
 {
   for (auto& record : message->recordRoutes)
   {
     SIPField field = {"Record-Route",
                       QList<ValueSet>{ValueSet{{}, nullptr}}};
 
-    if (!composeSIPUri(record, field.valueSets[0].words))
+    if (!composeNameAddr(record, field.valueSets[0].words))
     {
       return false;
     }
@@ -390,14 +402,14 @@ bool includeRecordRouteField(QList<SIPField>& fields,
 
 
 bool includeRouteField(QList<SIPField>& fields,
-                       std::shared_ptr<SIPMessageBody> message)
+                       std::shared_ptr<SIPMessageHeader> message)
 {
   for (auto& route : message->routes)
   {
     SIPField field = {"Route",
                       QList<ValueSet>{ValueSet{{}, nullptr}}};
 
-    if (!composeSIPUri(route, field.valueSets[0].words))
+    if (!composeNameAddr(route, field.valueSets[0].words))
     {
       return false;
     }

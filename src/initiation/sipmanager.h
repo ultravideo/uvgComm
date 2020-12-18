@@ -31,7 +31,7 @@ public:
   void updateSettings();
 
   // start a call with address. Returns generated sessionID
-  uint32_t startCall(SIP_URI& address);
+  uint32_t startCall(NameAddr &address);
 
   // TU wants something to happen.
   void acceptCall(uint32_t sessionID);
@@ -119,7 +119,7 @@ private:
   struct WaitingStart
   {
     uint32_t sessionID;
-    SIP_URI contact;
+    NameAddr contact;
   };
   std::map<quint32, WaitingStart> waitingToStart_; // INVITE after connect
   std::map<quint32, QString> waitingToBind_; // REGISTER after connect

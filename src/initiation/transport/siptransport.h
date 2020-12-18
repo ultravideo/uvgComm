@@ -70,7 +70,7 @@ signals:
 private:
 
   // composing
-  bool composeMandatoryFields(QList<SIPField>& fields, std::shared_ptr<SIPMessageBody> message);
+  bool composeMandatoryFields(QList<SIPField>& fields, std::shared_ptr<SIPMessageHeader> message);
   QString fieldsToString(QList<SIPField>& fields, QString lineEnding);
   QString addContent(QList<SIPField>& fields, bool haveContent, const SDPMessageInfo& sdp);
 
@@ -78,7 +78,7 @@ private:
   // returs true if the whole message was received
   bool parsePackage(QString package, QStringList &headers, QStringList &bodies);
   bool headerToFields(QString header, QString& firstLine, QList<SIPField> &fields);
-  bool fieldsToMessageBody(QList<SIPField>& fields, std::shared_ptr<SIPMessageBody> &message);
+  bool fieldsToMessageHeader(QList<SIPField>& fields, std::shared_ptr<SIPMessageHeader> &message);
 
 
   bool parseRequest(QString requestString, QString version,

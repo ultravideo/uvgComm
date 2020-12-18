@@ -21,18 +21,18 @@ SIPDialogState::SIPDialogState():
 {}
 
 
-void SIPDialogState::createNewDialog(SIP_URI remoteURI, QString localAddress,
+void SIPDialogState::createNewDialog(NameAddr &remote, QString localAddress,
                                      bool registered)
 {
   printDebug(DEBUG_NORMAL, "SIPDialogState", "Creating a new dialog.");
   initDialog();
 
-  remoteURI_ = remoteURI;
-  requestUri_ = remoteURI;
+  remoteURI_ = remote;
+  requestUri_ = remote.uri;
   if(!registered)
   {
     printDebug(DEBUG_NORMAL, "SIPDialogState", "Setting peer-to-peer address.");
-    localURI_.hostport.host = localAddress;
+    localURI_.uri.hostport.host = localAddress;
   }
 }
 
@@ -49,18 +49,17 @@ void SIPDialogState::createServerConnection(SIP_URI requestURI)
 }
 
 
-void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageBody> &inMessage,
+void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageHeader> &inMessage,
                                             QString hostName)
 {
   printDebug(DEBUG_NORMAL, "SIPDialogState",
              "Creating a dialog from incoming INVITE.");
   Q_ASSERT(callID_ == "");
   Q_ASSERT(inMessage);
-  Q_ASSERT(inMessage->dialog);
 
   if(callID_ != "")
   {
-    if(correctRequestDialog(inMessage->dialog, SIP_INVITE, inMessage->cSeq))
+    if(correctRequestDialog(inMessage, SIP_INVITE, inMessage->cSeq))
     {
       printDebug(DEBUG_PROGRAM_ERROR, "SIPDialogState",
                  "Re-INVITE should be processed differently.");
@@ -74,16 +73,16 @@ void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageBody> &inM
     }
   }
 
-  setDialog(inMessage->dialog->callID); // TODO: port
+  setDialog(inMessage->callID); // TODO: port
 
-  remoteURI_ = inMessage->from;
+  remoteURI_ = inMessage->from.address;
 
   // in future we will address our requests to their contact address
-  requestUri_ = inMessage->contact;
+  requestUri_ = inMessage->contact.uri;
 
-  localURI_.hostport.host = hostName;
+  localURI_.uri.hostport.host = hostName;
 
-  remoteTag_ = inMessage->dialog->fromTag;
+  remoteTag_ = inMessage->from.tag;
   if(remoteTag_ == "")
   {
     printDebug(DEBUG_PEER_ERROR, "SIPDialogState",
@@ -94,9 +93,9 @@ void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageBody> &inM
   remoteCSeq_ = inMessage->cSeq;
 
    // set the request to tag to local tag value so when sending the response it is already there.
-  if(inMessage->dialog->toTag == "")
+  if(inMessage->to.tag == "")
   {
-    inMessage->dialog->toTag = localTag_;
+    inMessage->to.tag = localTag_;
   }
 
   route_ = inMessage->recordRoutes;
@@ -108,22 +107,22 @@ void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageBody> &inM
 
 void SIPDialogState::getRequestDialogInfo(SIPRequest &outRequest)
 {
-  Q_ASSERT(localURI_.userinfo.user != "" && localURI_.hostport.host != "");
-  Q_ASSERT(remoteURI_.userinfo.user != "" && remoteURI_.hostport.host != "");
+  Q_ASSERT(localURI_.uri.userinfo.user != "" && localURI_.uri.hostport.host != "");
+  Q_ASSERT(remoteURI_.uri.userinfo.user != "" && remoteURI_.uri.hostport.host != "");
 
-  if(localURI_.userinfo.user == "" || localURI_.hostport.host == "" ||
-     remoteURI_.userinfo.user == "" || remoteURI_.hostport.host == "")
+  if(localURI_.uri.userinfo.user == "" || localURI_.uri.hostport.host == "" ||
+     remoteURI_.uri.userinfo.user == "" || remoteURI_.uri.hostport.host == "")
   {
     printDebug(DEBUG_PROGRAM_ERROR, "SIPDialogState", 
                "The dialog state info has not been set, but we are using it.",
                 {"username", "host", "remote username", "remote host"},
-                {localURI_.userinfo.user, localURI_.hostport.host,
-                 remoteURI_.userinfo.user, remoteURI_.hostport.host});
+                {localURI_.uri.userinfo.user, localURI_.uri.hostport.host,
+                 remoteURI_.uri.userinfo.user, remoteURI_.uri.hostport.host});
   }
 
   outRequest.requestURI = requestUri_;
 
-  if(outRequest.type != SIP_ACK && outRequest.type != SIP_CANCEL)
+  if(outRequest.method != SIP_ACK && outRequest.method != SIP_CANCEL)
   {
     ++localCSeq_;
     printDebug(DEBUG_NORMAL, "SIPDialogState",  "Increasing CSeq",
@@ -131,18 +130,20 @@ void SIPDialogState::getRequestDialogInfo(SIPRequest &outRequest)
   }
 
   outRequest.message->cSeq = localCSeq_;
-  outRequest.message->from = localURI_;
-  outRequest.message->to = remoteURI_;
+
+  outRequest.message->from.address = localURI_;
+  outRequest.message->from.tag = localTag_;
+
+  outRequest.message->to.address = remoteURI_;
+  outRequest.message->to.tag = remoteTag_;
+
+  outRequest.message->callID = callID_;
 
   outRequest.message->routes = route_;
-
-  // SIPDialogInfo format: toTag, fromTag, CallID
-  outRequest.message->dialog
-      = std::shared_ptr<SIPDialogInfo> (new SIPDialogInfo{remoteTag_, localTag_, callID_});
 }
 
 
-bool SIPDialogState::correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog,
+bool SIPDialogState::correctRequestDialog(std::shared_ptr<SIPMessageHeader> &inMessage,
                                           SIPRequestMethod type, uint32_t remoteCSeq)
 {
   Q_ASSERT(callID_ != "");
@@ -155,8 +156,8 @@ bool SIPDialogState::correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog,
   // TODO: For backwards compability, this should be prepared for missing To-tag (or was it from-tag) (RFC3261).
 
   // if our tags and call-ID match the incoming requests, it belongs to this dialog
-  if((dialog->toTag == localTag_) && dialog->fromTag == remoteTag_ &&
-     ( dialog->callID == callID_))
+  if((inMessage->to.tag == localTag_) && inMessage->from.tag == remoteTag_ &&
+     ( inMessage->callID == callID_))
   {
     // The request cseq should be larger than our remotecseq.
     if(remoteCSeq <= remoteCSeq_ && type != SIP_ACK && type != SIP_CANCEL)
@@ -174,13 +175,13 @@ bool SIPDialogState::correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog,
 }
 
 
-bool SIPDialogState::correctResponseDialog(std::shared_ptr<SIPDialogInfo> dialog,
+bool SIPDialogState::correctResponseDialog(std::shared_ptr<SIPMessageHeader> &inMessage,
                                            uint32_t messageCSeq, bool recordToTag)
 {
   // For backwards compability, this should be prepared for missing To-tag (or was it from tag) (RFC3261).
   // if our tags and call-ID match the incoming requests, it belongs to this dialog
-  if(dialog->fromTag == localTag_ && (dialog->toTag == remoteTag_ || remoteTag_ == "") &&
-     dialog->callID == callID_)
+  if(inMessage->from.tag == localTag_ && (inMessage->to.tag == remoteTag_ || remoteTag_ == "") &&
+     inMessage->callID == callID_)
   {
     // The response cseq should be the same as our cseq
     if(messageCSeq != localCSeq_)
@@ -194,7 +195,7 @@ bool SIPDialogState::correctResponseDialog(std::shared_ptr<SIPDialogInfo> dialog
     if(remoteTag_ == "" && recordToTag)
     {
       qDebug() << "We don't yet have their remote Tag. Using the one in response.";
-      remoteTag_ = dialog->toTag;
+      remoteTag_ = inMessage->to.tag;
     }
 
     return true;
@@ -209,9 +210,9 @@ void SIPDialogState::initDialog()
 
   localTag_ = generateRandomString(TAGLENGTH);
   callID_ = generateRandomString(CALLIDLENGTH);
-  if(localURI_.hostport.host != "")
+  if(localURI_.uri.hostport.host != "")
   {
-    callID_ += "@" + localURI_.hostport.host;
+    callID_ += "@" + localURI_.uri.hostport.host;
   }
 
   qDebug() << "Local dialog created. CallID: " << callID_
@@ -237,19 +238,19 @@ void SIPDialogState::initLocalURI()
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
 
   localURI_.realname = settings.value("local/Name").toString();
-  localURI_.userinfo.user = getLocalUsername();
-  localURI_.hostport.host = settings.value("sip/ServerAddress").toString();
-  localURI_.type = DEFAULTSIPTYPE;
-  localURI_.hostport.port = 0; // port is added later if needed
+  localURI_.uri.userinfo.user = getLocalUsername();
+  localURI_.uri.hostport.host = settings.value("sip/ServerAddress").toString();
+  localURI_.uri.type = DEFAULTSIPTYPE;
+  localURI_.uri.hostport.port = 0; // port is added later if needed
 
-  if(localURI_.userinfo.user.isEmpty())
+  if(localURI_.uri.userinfo.user.isEmpty())
   {
-    localURI_.userinfo.user = "anonymous";
+    localURI_.uri.userinfo.user = "anonymous";
   }
 }
 
 
-void SIPDialogState::setRoute(QList<SIP_URI>& route)
+void SIPDialogState::setRoute(QList<NameAddr>& route)
 {
   route_ = route;
 }

@@ -28,7 +28,7 @@ public:
   bool processRequest(SIPRequest& request,
                       SIPDialogState& state);
 
-  void getResponseMessage(std::shared_ptr<SIPMessageBody> &outMessage,
+  void getResponseMessage(std::shared_ptr<SIPMessageHeader> &outMessage,
                           SIPResponseStatus type);
 
   // set the request details so we can use them when sending response
@@ -39,7 +39,7 @@ public:
   void responseAccept();
   void respondReject();
 
-  bool isCancelYours(std::shared_ptr<SIPMessageBody> cancel);
+  bool isCancelYours(std::shared_ptr<SIPMessageHeader> cancel);
 
 signals:
 
@@ -53,14 +53,14 @@ private:
 
   // Copies the fields of to a response which are direct copies of the request.
   // includes at least via, to, from, CallID and cseq
-  void copyMessageDetails(std::shared_ptr<SIPMessageBody> &inMessage,
-                          std::shared_ptr<SIPMessageBody> &copy);
+  void copyMessageDetails(std::shared_ptr<SIPMessageHeader> &inMessage,
+                          std::shared_ptr<SIPMessageHeader> &copy);
 
 
   uint32_t sessionID_;
 
   // used for copying data to response
-  std::shared_ptr<SIPMessageBody> receivedRequest_;
+  std::shared_ptr<SIPMessageHeader> receivedRequest_;
 
   SIPTransactionUser* transactionUser_;
 };

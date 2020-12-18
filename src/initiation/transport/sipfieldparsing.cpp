@@ -8,15 +8,16 @@
 
 
 // TODO: Support SIPS uri scheme. Needed for TLS
-bool parseURI(QStringList &words, SIP_URI& uri);
+bool parseURI(const QString& word, SIP_URI& uri);
+bool parseNameAddr(const QStringList &words, NameAddr& nameAddr);
+
 bool parseUritype(QString type, SIPType &out_Type);
 bool parseParameterNameToValue(std::shared_ptr<QList<SIPParameter>> parameters,
                                QString name, QString& value);
 bool parseUint(QString values, uint& number);
 
 
-
-bool parseURI(QStringList& words, SIP_URI& uri)
+bool parseNameAddr(const QStringList &words, NameAddr& nameAddr)
 {
   if (words.size() == 0 || words.size() > 2)
   {
@@ -28,15 +29,20 @@ bool parseURI(QStringList& words, SIP_URI& uri)
   int uriIndex = 0;
   if (words.size() == 2)
   {
-    uri.realname = words.at(0);
+    nameAddr.realname = words.at(0);
     uriIndex = 1;
   }
+  return parseURI(words.at(uriIndex), nameAddr.uri);
+}
 
+
+bool parseURI(const QString &word, SIP_URI& uri)
+{
   // for example <sip:bob@biloxi.com>
   // ?: means it wont create a capture group
   // TODO: accept passwords
   QRegularExpression re_field("<(\\w+):(?:(\\w+)@)?(.+)>");
-  QRegularExpressionMatch field_match = re_field.match(words.at(uriIndex));
+  QRegularExpressionMatch field_match = re_field.match(word);
 
   // number of matches depends whether real name or the port were given
   if (field_match.hasMatch() &&
@@ -159,43 +165,41 @@ bool parseUint(QString values, uint& number)
 
 
 bool parseToField(SIPField& field,
-                  std::shared_ptr<SIPMessageBody> message)
+                  std::shared_ptr<SIPMessageHeader> message)
 {
   Q_ASSERT(message);
-  Q_ASSERT(message->dialog);
   Q_ASSERT(!field.valueSets.empty());
 
   if (field.valueSets[0].words.size() >= 1 &&
-      !parseURI(field.valueSets[0].words, message->to))
+      !parseNameAddr(field.valueSets[0].words, message->to.address))
   {
     return false;
   }
 
-  parseParameterNameToValue(field.valueSets[0].parameters, "tag", message->dialog->toTag);
+  parseParameterNameToValue(field.valueSets[0].parameters, "tag", message->to.tag);
   return true;
 }
 
 
 bool parseFromField(SIPField& field,
-                    std::shared_ptr<SIPMessageBody> message)
+                    std::shared_ptr<SIPMessageHeader> message)
 {
   Q_ASSERT(message);
-  Q_ASSERT(message->dialog);
   Q_ASSERT(!field.valueSets.empty());
 
   if (field.valueSets[0].words.size() >= 1 &&
-      !parseURI(field.valueSets[0].words, message->from))
+      !parseNameAddr(field.valueSets[0].words, message->from.address))
   {
     return false;
   }
 
-  parseParameterNameToValue(field.valueSets[0].parameters, "tag", message->dialog->fromTag);
+  parseParameterNameToValue(field.valueSets[0].parameters, "tag", message->from.tag);
   return true;
 }
 
 
 bool parseCSeqField(SIPField& field,
-                  std::shared_ptr<SIPMessageBody> message)
+                  std::shared_ptr<SIPMessageHeader> message)
 {
   Q_ASSERT(message);
   Q_ASSERT(!field.valueSets.empty());
@@ -214,10 +218,9 @@ bool parseCSeqField(SIPField& field,
 
 
 bool parseCallIDField(SIPField& field,
-                      std::shared_ptr<SIPMessageBody> message)
+                      std::shared_ptr<SIPMessageHeader> message)
 {
   Q_ASSERT(message);
-  Q_ASSERT(message->dialog);
   Q_ASSERT(!field.valueSets.empty());
 
   if (field.valueSets[0].words.size() != 1)
@@ -225,13 +228,13 @@ bool parseCallIDField(SIPField& field,
     return false;
   }
 
-  message->dialog->callID = field.valueSets[0].words[0];
+  message->callID = field.valueSets[0].words[0];
   return true;
 }
 
 
 bool parseViaField(SIPField& field,
-                   std::shared_ptr<SIPMessageBody> message)
+                   std::shared_ptr<SIPMessageHeader> message)
 {
   Q_ASSERT(message);
   Q_ASSERT(!field.valueSets.empty());
@@ -291,7 +294,7 @@ bool parseViaField(SIPField& field,
 
 
 bool parseMaxForwardsField(SIPField& field,
-                           std::shared_ptr<SIPMessageBody> message)
+                           std::shared_ptr<SIPMessageHeader> message)
 {
   Q_ASSERT(message);
   Q_ASSERT(!field.valueSets.empty());
@@ -302,19 +305,19 @@ bool parseMaxForwardsField(SIPField& field,
 
 
 bool parseContactField(SIPField& field,
-                       std::shared_ptr<SIPMessageBody> message)
+                       std::shared_ptr<SIPMessageHeader> message)
 {
   Q_ASSERT(message);
   Q_ASSERT(!field.valueSets.empty());
   return field.valueSets[0].words.size() == 1 &&
-      parseURI(field.valueSets[0].words, message->contact);
+      parseNameAddr(field.valueSets[0].words, message->contact);
 
   // TODO: parse expires parameter
 }
 
 
 bool parseContentTypeField(SIPField& field,
-                           std::shared_ptr<SIPMessageBody> message)
+                           std::shared_ptr<SIPMessageHeader> message)
 {
   Q_ASSERT(message);
   Q_ASSERT(!field.valueSets.empty());
@@ -332,7 +335,7 @@ bool parseContentTypeField(SIPField& field,
 
 
 bool parseContentLengthField(SIPField& field,
-                             std::shared_ptr<SIPMessageBody> message)
+                             std::shared_ptr<SIPMessageHeader> message)
 {
   Q_ASSERT(message);
   Q_ASSERT(!field.valueSets.empty());
@@ -342,17 +345,19 @@ bool parseContentLengthField(SIPField& field,
 
 
 bool parseRecordRouteField(SIPField& field,
-                  std::shared_ptr<SIPMessageBody> message)
+                           std::shared_ptr<SIPMessageHeader> message)
 {
   Q_ASSERT(message);
   Q_ASSERT(!field.valueSets.empty());
-  message->recordRoutes.push_back(SIP_URI{});
-  return parseURI(field.valueSets[0].words, message->recordRoutes.back());
+
+  message->recordRoutes.push_back(NameAddr{"", SIP_URI{}});
+
+  return parseNameAddr(field.valueSets[0].words, message->recordRoutes.back());
 }
 
 
 bool parseServerField(SIPField& field,
-                  std::shared_ptr<SIPMessageBody> message)
+                      std::shared_ptr<SIPMessageHeader> message)
 {
   Q_ASSERT(message);
   Q_ASSERT(!field.valueSets.empty());
@@ -369,7 +374,7 @@ bool parseServerField(SIPField& field,
 
 
 bool parseUserAgentField(SIPField& field,
-                  std::shared_ptr<SIPMessageBody> message)
+                  std::shared_ptr<SIPMessageHeader> message)
 {
   Q_ASSERT(message);
   Q_ASSERT(!field.valueSets.empty());
@@ -386,7 +391,7 @@ bool parseUserAgentField(SIPField& field,
 
 
 bool parseUnimplemented(SIPField& field,
-                      std::shared_ptr<SIPMessageBody> message)
+                      std::shared_ptr<SIPMessageHeader> message)
 {
   Q_ASSERT(message);
   Q_ASSERT(!field.valueSets.empty());

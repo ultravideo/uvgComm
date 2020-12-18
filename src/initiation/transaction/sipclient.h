@@ -27,7 +27,7 @@ public:
 
   // constructs the SIP message info struct as much as possible
   virtual void getRequestMessageInfo(SIPRequestMethod type,
-                                     std::shared_ptr<SIPMessageBody> &outMessage);
+                                     std::shared_ptr<SIPMessageHeader> &outMessage);
 
   // processes incoming response. Part of our client transaction
   // returns whether we should keep the dialog alive

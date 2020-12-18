@@ -46,7 +46,7 @@ void SIPRouting::processResponseViaFields(QList<ViaInfo>& vias,
 }
 
 
-void SIPRouting::getViaAndContact(std::shared_ptr<SIPMessageBody> message,
+void SIPRouting::getViaAndContact(std::shared_ptr<SIPMessageHeader> message,
                                    QString localAddress,
                                    uint16_t localPort)
 {
@@ -61,28 +61,28 @@ void SIPRouting::getViaAndContact(std::shared_ptr<SIPMessageBody> message,
 }
 
 
-void SIPRouting::getContactAddress(std::shared_ptr<SIPMessageBody> message,
+void SIPRouting::getContactAddress(std::shared_ptr<SIPMessageHeader> message,
                                    QString localAddress, uint16_t localPort,
                                    SIPType type)
 {
-  message->contact = {type, {getLocalUsername(), ""}, "", {"", 0}, {}};
+  message->contact = {"", {type, {getLocalUsername(), ""}, {"", 0}, {}, {}}};
 
     // use rport address and port if we have them, otherwise use localaddress
   if (contactAddress_ != "")
   {
-    message->contact.hostport.host = contactAddress_;
+    message->contact.uri.hostport.host = contactAddress_;
   }
   else
   {
-    message->contact.hostport.host = localAddress;
+    message->contact.uri.hostport.host = localAddress;
   }
 
   if (contactPort_ != 0)
   {
-    message->contact.hostport.port = contactPort_;
+    message->contact.uri.hostport.port = contactPort_;
   }
   else
   {
-    message->contact.hostport.port = localPort;
+    message->contact.uri.hostport.port = localPort;
   }
 }

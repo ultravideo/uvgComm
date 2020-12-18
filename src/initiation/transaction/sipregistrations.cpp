@@ -62,7 +62,7 @@ void SIPRegistrations::bindToServer(QString serverAddress, QString localAddress,
       = std::shared_ptr<SIPRegistrationData>
       (new SIPRegistrationData{{}, {}, localAddress, port, INACTIVE});
 
-  SIP_URI serverUri = {DEFAULTSIPTYPE, {"", ""}, "", {serverAddress, 0}, {}};
+  SIP_URI serverUri = {DEFAULTSIPTYPE, {"", ""}, {serverAddress, 0}, {}, {}};
   data->state.createServerConnection(serverUri);
   data->client.set_remoteURI(serverUri);
   registrations_[serverAddress] = data;
@@ -84,7 +84,7 @@ bool SIPRegistrations::identifyRegistration(SIPResponse& response, QString &outA
   // check if this is a response from the server.
   for (auto i = registrations_.begin(); i != registrations_.end(); ++i)
   {
-    if(i->second->state.correctResponseDialog(response.message->dialog,
+    if(i->second->state.correctResponseDialog(response.message,
                                               response.message->cSeq, false))
     {
       // TODO: we should check that every single detail is as specified in rfc.
@@ -115,7 +115,7 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
 
     for (auto& i : registrations_)
     {
-      if (i.first == response.message->to.hostport.host)
+      if (i.first == response.message->to.address.uri.hostport.host)
       {
         if (!i.second->client.processResponse(response, i.second->state))
         {
@@ -148,8 +148,8 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
             {
               i.second->status = RE_REGISTRATION;
               printNormal(this, "Sending the final NAT REGISTER");
-              i.second->contactAddress = response.message->contact.hostport.host;
-              i.second->contactPort = response.message->contact.hostport.port;
+              i.second->contactAddress = response.message->contact.uri.hostport.host;
+              i.second->contactPort = response.message->contact.uri.hostport.port;
               // makes sure we don't end up in infinite loop if the address doesn't match
 
               statusView_->updateServerStatus("Behind NAT, updating address...");
@@ -237,7 +237,8 @@ void SIPRegistrations::sendNonDialogRequest(SIP_URI& uri, SIPRequestMethod type)
 {
   qDebug() << "Start sending of a non-dialog request. Type:" << type;
   SIPRequest request;
-  request.type = type;
+  request.sipVersion = SIP_VERSION;
+  request.method = type;
 
   if (type == SIP_REGISTER)
   {
@@ -250,7 +251,7 @@ void SIPRegistrations::sendNonDialogRequest(SIP_URI& uri, SIPRequestMethod type)
       return;
     }
 
-    registrations_[uri.hostport.host]->client.getRequestMessageInfo(request.type, request.message);
+    registrations_[uri.hostport.host]->client.getRequestMessageInfo(request.method, request.message);
     registrations_[uri.hostport.host]->state.getRequestDialogInfo(request);
 
     QVariant content; // we dont have content in REGISTER

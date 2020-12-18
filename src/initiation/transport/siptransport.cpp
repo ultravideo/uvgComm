@@ -27,7 +27,7 @@ const uint16_t SIP_PORT = 5060;
 
 // one letter headers are compact forms as defined by RFC 3261
 const std::map<QString, std::function<bool(SIPField& field,
-                                           std::shared_ptr<SIPMessageBody>)>> parsing =
+                                           std::shared_ptr<SIPMessageHeader>)>> parsing =
 {
     {"Accept",              parseUnimplemented},      // TODO
     {"Accept-Encoding",     parseUnimplemented},      // TODO
@@ -232,7 +232,7 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
 {
   ++processingInProgress_;
   printImportant(this, "Composing and sending SIP Request:", {"Type"},
-                 requestToString(request.type));
+                 requestToString(request.method));
   Q_ASSERT(request.message->content.type == NO_CONTENT || content.isValid());
   Q_ASSERT(connection_ != nullptr);
 
@@ -262,14 +262,14 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
     printDebug(DEBUG_PROGRAM_ERROR, this,  "Failed to add Route-fields");
   }
 
-  if ((request.type == SIP_INVITE || request.type == SIP_REGISTER) &&
+  if ((request.method == SIP_INVITE || request.method == SIP_REGISTER) &&
       !includeContactField(fields, request.message))
   {
    qDebug() << "WARNING: Failed to add Contact field. Probably because of missing values.";
    return;
   }
 
-  if (request.type == SIP_REGISTER &&
+  if (request.method == SIP_REGISTER &&
       !includeExpiresField(fields, request.message->expires))
   {
     printDebug(DEBUG_PROGRAM_ERROR, this,  "Failed to add expires-field");
@@ -294,7 +294,7 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
   message += sdp_str;
 
   // print the first line
-  stats_->addSentSIPMessage(requestToString(request.type),
+  stats_->addSentSIPMessage(requestToString(request.method),
                             message,
                             connection_->remoteAddress().toString());
 
@@ -373,7 +373,7 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
 
 
 bool SIPTransport::composeMandatoryFields(QList<SIPField>& fields,
-                                          std::shared_ptr<SIPMessageBody> message)
+                                          std::shared_ptr<SIPMessageHeader> message)
 {
   return includeViaFields(fields, message) &&
          includeToField(fields, message) &&
@@ -471,8 +471,8 @@ void SIPTransport::networkPackage(QString package)
     {
 
       // Here we start identifying is this a request or a response
-      QRegularExpression requestRE("^(\\w+) (sip:\\S+@\\S+) (SIP/2.0)");
-      QRegularExpression responseRE("^(SIP/2.0) (\\d\\d\\d) (.+)");
+      QRegularExpression requestRE("^(\\w+) (sip:\\S+@\\S+) SIP/(" + SIP_VERSION + ")");
+      QRegularExpression responseRE("^SIP/(" + SIP_VERSION + ") (\\d\\d\\d) (.+)");
       QRegularExpressionMatch request_match = requestRE.match(firstLine);
       QRegularExpressionMatch response_match = responseRE.match(firstLine);
 
@@ -878,13 +878,14 @@ void SIPTransport::addParameterToSet(SIPParameter& currentParameter, QString &cu
 }
 
 
-bool SIPTransport::fieldsToMessageBody(QList<SIPField>& fields,
-                                       std::shared_ptr<SIPMessageHeader>& message)
+bool SIPTransport::fieldsToMessageHeader(QList<SIPField>& fields,
+                                         std::shared_ptr<SIPMessageHeader>& message)
 {
   message->cSeq = 0;
   message->transactionRequest = SIP_NO_REQUEST;
   message->maxForwards = 0;
-  message->dialog = std::shared_ptr<SIPDialogInfo> (new SIPDialogInfo);
+  message->to =   {{"",SIP_URI{}}, ""};
+  message->from = {{"",SIP_URI{}}, ""};
   message->content.type = NO_CONTENT;
   message->content.length = 0;
   message->expires = 0;
@@ -916,22 +917,23 @@ bool SIPTransport::parseRequest(QString requestString, QString version,
 
   printImportant(this, "Parsing incoming request", {"Type"}, {requestString});
   SIPRequest request;
-  request.type = stringToRequest(requestString);
-  request.message = std::shared_ptr<SIPMessageBody> (new SIPMessageBody);
-  request.message->version = version; // TODO: set only version not SIP/version
+  request.method = stringToRequest(requestString);
+  request.sipVersion = version;
+  request.message = std::shared_ptr<SIPMessageHeader> (new SIPMessageHeader);
 
-  if(request.type == SIP_NO_REQUEST)
+
+  if(request.method == SIP_NO_REQUEST)
   {
     qDebug() << "Could not recognize request type!";
     return false;
   }
 
-  if (!requestSanityCheck(fields, request.type))
+  if (!requestSanityCheck(fields, request.method))
   {
     return false;
   }
 
-  if (!fieldsToMessageBody(fields, request.message))
+  if (!fieldsToMessageHeader(fields, request.message))
   {
     return false;
   }
@@ -955,16 +957,16 @@ bool SIPTransport::parseResponse(QString responseString, QString version,
 
   SIPResponse response;
   response.type = codeToResponse(stringToResponseCode(responseString));
-  response.message = std::shared_ptr<SIPMessageBody> (new SIPMessageBody);
+  response.message = std::shared_ptr<SIPMessageHeader> (new SIPMessageHeader);
   response.text = text;
-  response.message->version = version; // TODO: set only version not SIP/version
+  response.sipVersion = version;
 
   if (!responseSanityCheck(fields, response.type))
   {
     return false;
   }
 
-  if (!fieldsToMessageBody(fields, response.message))
+  if (!fieldsToMessageHeader(fields, response.message))
   {
     return false;
   }

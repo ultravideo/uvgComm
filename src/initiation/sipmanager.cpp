@@ -128,7 +128,7 @@ void SIPManager::bindToServer()
 }
 
 
-uint32_t SIPManager::startCall(SIP_URI &address)
+uint32_t SIPManager::startCall(NameAddr &address)
 {
   quint32 transportID = 0;
   uint32_t sessionID = dialogManager_.reserveSessionID();
@@ -136,13 +136,13 @@ uint32_t SIPManager::startCall(SIP_URI &address)
   // TODO: ask network interface if we can start session
 
   // check if we are already connected to remoteaddress and set transportID
-  if (!isConnected(address.hostport.host, transportID))
+  if (!isConnected(address.uri.hostport.host, transportID))
   {
     // we are not yet connected to them. Form a connection by creating the transport layer
     std::shared_ptr<SIPTransport> transport = createSIPTransport();
     transportID = transport->getTransportID(); // Get new transportID
     sessionToTransportID_[sessionID] = transportID;
-    transport->createConnection(DEFAULTTRANSPORT, address.hostport.host);
+    transport->createConnection(DEFAULTTRANSPORT, address.uri.hostport.host);
     waitingToStart_[transportID] = {sessionID, address};
   }
   else {
@@ -239,7 +239,7 @@ void SIPManager::transportRequest(uint32_t sessionID, SIPRequest &request)
     if (transports_.find(transportID) != transports_.end())
     {
       QVariant content;
-      if(request.type == SIP_ACK && negotiation_.getState(sessionID)
+      if(request.method == SIP_ACK && negotiation_.getState(sessionID)
          == NEG_ANSWER_GENERATED)
       {
         request.message->content.length = 0;
@@ -352,7 +352,7 @@ void SIPManager::processSIPRequest(SIPRequest& request, QString localAddress,
     {
       sessionToTransportID_[sessionID] = transportID;
 
-      if((request.type == SIP_INVITE || request.type == SIP_ACK)
+      if((request.method == SIP_INVITE || request.method == SIP_ACK)
          && request.message->content.type == APPLICATION_SDP)
       {
         switch (negotiation_.getState(sessionID))

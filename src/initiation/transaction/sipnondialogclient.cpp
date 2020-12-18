@@ -19,7 +19,7 @@ void SIPNonDialogClient::set_remoteURI(SIP_URI& uri)
 }
 
 void SIPNonDialogClient::getRequestMessageInfo(SIPRequestMethod type,
-                                               std::shared_ptr<SIPMessageBody>& outMessage)
+                                               std::shared_ptr<SIPMessageHeader>& outMessage)
 {
   SIPClient::getRequestMessageInfo(type, outMessage);
 

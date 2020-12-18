@@ -70,8 +70,8 @@ bool responseSanityCheck(QList<SIPField>& fields,
   {
     if (field.name == "CSeq")
     {
-      std::shared_ptr<SIPMessageBody> message
-          = std::shared_ptr<SIPMessageBody> (new SIPMessageBody);
+      std::shared_ptr<SIPMessageHeader> message
+          = std::shared_ptr<SIPMessageHeader> (new SIPMessageHeader);
       if (parseCSeqField(field, message))
       {
         ongoingTransaction = message->transactionRequest;

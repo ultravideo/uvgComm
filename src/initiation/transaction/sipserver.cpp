@@ -38,11 +38,11 @@ bool SIPServer::processRequest(SIPRequest& request,
 
   // TODO: check that the request is appropriate at this time.
 
-  if((receivedRequest_ == nullptr && request.type != SIP_ACK) || request.type == SIP_BYE)
+  if((receivedRequest_ == nullptr && request.method != SIP_ACK) || request.method == SIP_BYE)
   {
     copyMessageDetails(request.message, receivedRequest_);
   }
-  else if (request.type != SIP_ACK && request.type != SIP_CANCEL)
+  else if (request.method != SIP_ACK && request.method != SIP_CANCEL)
   {
     printDebug(DEBUG_PEER_ERROR, "SIP Server Transaction",
                "They sent us a new SIP request even though we have the old one still saved.",
@@ -50,13 +50,13 @@ bool SIPServer::processRequest(SIPRequest& request,
     return false;
   }
 
-  switch(request.type)
+  switch(request.method)
   {
   case SIP_INVITE:
   {
     if (!state.getState())
     {
-      if (!transactionUser_->incomingCall(sessionID_, request.message->from.realname))
+      if (!transactionUser_->incomingCall(sessionID_, request.message->from.address.realname))
       {
         // if we did not auto-accept
         responseSender(SIP_RINGING);
@@ -109,7 +109,7 @@ bool SIPServer::processRequest(SIPRequest& request,
   return true;
 }
 
-void SIPServer::getResponseMessage(std::shared_ptr<SIPMessageBody> &outMessage,
+void SIPServer::getResponseMessage(std::shared_ptr<SIPMessageHeader> &outMessage,
                                               SIPResponseStatus type)
 {
   if(receivedRequest_ == nullptr)
@@ -120,8 +120,7 @@ void SIPServer::getResponseMessage(std::shared_ptr<SIPMessageBody> &outMessage,
   }
   copyMessageDetails(receivedRequest_, outMessage);
   outMessage->maxForwards = 71;
-  outMessage->version = "2.0";
-  outMessage->contact = SIP_URI{DEFAULTSIPTYPE, {"", ""}, "", {"", 0}, {}};
+  outMessage->contact = {"", SIP_URI{DEFAULTSIPTYPE, {"", ""}, {"", 0}, {}, {}}};
   outMessage->content.length = 0;
   outMessage->content.type = NO_CONTENT;
 
@@ -154,20 +153,20 @@ void SIPServer::responseSender(SIPResponseStatus type)
   emit sendResponse(sessionID_, type);
 }
 
-void SIPServer::copyMessageDetails(std::shared_ptr<SIPMessageBody>& inMessage,
-                        std::shared_ptr<SIPMessageBody>& copy)
+void SIPServer::copyMessageDetails(std::shared_ptr<SIPMessageHeader>& inMessage,
+                        std::shared_ptr<SIPMessageHeader>& copy)
 {
   Q_ASSERT(inMessage);
-  copy = std::shared_ptr<SIPMessageBody> (new SIPMessageBody());
-  copy->dialog = std::shared_ptr<SIPDialogInfo> (new SIPDialogInfo());
+  Q_ASSERT(inMessage->from.tag != "");
+  Q_ASSERT(inMessage->to.tag != "");
+  copy = std::shared_ptr<SIPMessageHeader> (new SIPMessageHeader());
   // Which fields to copy are listed in section 8.2.6.2 of RFC 3621
 
   // from-field
   copy->from = inMessage->from;
-  copy->dialog->fromTag = inMessage->dialog->fromTag;
 
   // Call-ID field
-  copy->dialog->callID = inMessage->dialog->callID;
+  copy->callID = inMessage->callID;
 
   // CSeq
   copy->cSeq = inMessage->cSeq;
@@ -183,13 +182,11 @@ void SIPServer::copyMessageDetails(std::shared_ptr<SIPMessageBody>& inMessage,
 
   // To field, expect if To tag is missing, in which case it should be added
   // To tag is added in dialog when checking the first request.
-  Q_ASSERT(inMessage->dialog->toTag != "");
   copy->to = inMessage->to;
-  copy->dialog->toTag = inMessage->dialog->toTag;
 }
 
 
-bool SIPServer::isCancelYours(std::shared_ptr<SIPMessageBody> cancel)
+bool SIPServer::isCancelYours(std::shared_ptr<SIPMessageHeader> cancel)
 {
   // TODO: Check more info
   return receivedRequest_->vias.first().branch == cancel->vias.first().branch;

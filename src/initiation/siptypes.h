@@ -6,8 +6,8 @@
 #include <memory>
 
 
-/* notes on expansion of the SIP structures such as SIPDialogInfo,
- * SIPMessageBody, SIPRequest and SIPResponse with new SIP message extensions.
+/* notes on expansion of the SIP structures such as SIPMessageHeader,
+ *  SIPRequest and SIPResponse with new SIP message extensions.
 
  * If you want to add support for a new parameter to SIP message:
  * 1) add the parameter to desired struct,
@@ -153,14 +153,24 @@ struct SIP_URI
   SIPType type;
   Userinfo userinfo; // optional
 
-  // TODO: this does not belong to uri
-  QString realname; // omitted if empty
-
   Hostport hostport;
 
   QList<SIPParameter> uri_parameters;
   QList<URIHeader> headers;
 };
+
+struct NameAddr{
+  QString realname = "";// omitted if empty
+  SIP_URI uri;
+};
+
+struct ToFrom
+{
+  NameAddr address;
+  QString tag = ""; // omitted if empty
+};
+
+const uint16_t TAGLENGTH = 16;
 
 enum Transport {NONE, UDP, TCP, TLS, SCTP, OTHER};
 
@@ -188,33 +198,20 @@ struct ContentInfo
   uint32_t length;  // set by SIPTransport
 };
 
-
-
 const uint16_t CALLIDLENGTH = 16;
-const uint16_t TAGLENGTH = 16;
-
-// Identifies the SIP dialog
-struct SIPDialogInfo
-{
-  QString toTag;
-  QString fromTag;
-  QString callID; // in form callid@host
-};
-
 
 
 // Identifies the SIP message and the transaction it belongs to as well as participants
-struct SIPMessageBody
+struct SIPMessageHeader
 {
-  QString version;
   uint maxForwards;
-  std::shared_ptr<SIPDialogInfo> dialog;
-  SIP_URI from; // For dialog requests, use SIPDialog. Otherwise use SIPInfo
-  SIP_URI to;
+  QString callID; // in form callid@host
+  ToFrom from;
+  ToFrom to;
 
   QList<ViaInfo> vias;   // from via-fields. Send responses here by copying these.
 
-  SIP_URI contact;  // Contact field. Send requests here. Mandatory in INVITE requests
+  NameAddr contact;  // Contact field. Send requests here. Mandatory in INVITE requests
 
   uint32_t cSeq; // must be less than 2^31
   SIPRequestMethod transactionRequest;
@@ -226,25 +223,31 @@ struct SIPMessageBody
 
   ContentInfo content;
 
-  QList<SIP_URI> recordRoutes;
-  QList<SIP_URI> routes;
+  QList<NameAddr> recordRoutes;
+  QList<NameAddr> routes;
 };
 
-// data in a request
+const QString SIP_VERSION = "2.0";
+
+
 struct SIPRequest
 {
-  SIPRequestMethod type;
+  // currently we ignore recording the human readable phrase from incoming messages
+  SIPRequestMethod method;
   // There is also something called absoluteURI which is not supported at the moment
   SIP_URI requestURI;
-  std::shared_ptr<SIPMessageBody> message;
+  QString sipVersion;
+
+  std::shared_ptr<SIPMessageHeader> message;
 };
 
-// data in a response
+
 struct SIPResponse
 {
+  QString sipVersion;
   SIPResponseStatus type;
   QString text;
-  std::shared_ptr<SIPMessageBody> message;
+  std::shared_ptr<SIPMessageHeader> message;
 };
 
 
@@ -263,6 +266,3 @@ struct SIPField
   QString name;
   QList<ValueSet> valueSets; // separated by comma(,)
 };
-
-
-

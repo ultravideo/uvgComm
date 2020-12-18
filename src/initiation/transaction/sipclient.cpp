@@ -77,19 +77,17 @@ bool SIPClient::processResponse(SIPResponse& response,
 
 
 void SIPClient::getRequestMessageInfo(SIPRequestMethod type,
-                                                 std::shared_ptr<SIPMessageBody>& outMessage)
+                                                 std::shared_ptr<SIPMessageHeader>& outMessage)
 {
-  outMessage = std::shared_ptr<SIPMessageBody> (new SIPMessageBody);
+  outMessage = std::shared_ptr<SIPMessageHeader> (new SIPMessageHeader);
   outMessage->transactionRequest = type;
 
-  outMessage->dialog = nullptr;
   outMessage->maxForwards = 71;
-  outMessage->version = "2.0";
   outMessage->cSeq = 0; // invalid, should be set in dialog
   outMessage->content.type = NO_CONTENT;
   outMessage->content.length = 0;
 
-  ViaInfo via = ViaInfo{DEFAULTTRANSPORT, "2.0", "", 0,
+  ViaInfo via = ViaInfo{DEFAULTTRANSPORT, SIP_VERSION, "", 0,
           QString("z9hG4bK" + generateRandomString(BRANCHLENGTH)), false, false, 0, ""};
   outMessage->vias.push_back(via);
 

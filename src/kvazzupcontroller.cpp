@@ -68,20 +68,18 @@ void KvazzupController::windowClosed()
 
 uint32_t KvazzupController::callToParticipant(QString name, QString username, QString ip)
 {
-  QString ip_str = ip;
-
-  SIP_URI uri;
-  uri.hostport.host = ip_str;
-  uri.hostport.port = 0;
-  uri.realname      = name;
-  uri.userinfo.user = username;
-
+  NameAddr remote;
+  remote.realname = name;
+  remote.uri.type = DEFAULTSIPTYPE;
+  remote.uri.hostport.host = ip;
+  remote.uri.hostport.port = 0;
+  remote.uri.userinfo.user = username;
 
   //start negotiations for this connection
 
-  printNormal(this, "Starting call with contact", {"Contact"}, {uri.realname});
+  printNormal(this, "Starting call with contact", {"Contact"}, {remote.realname});
 
-  return sip_.startCall(uri);
+  return sip_.startCall(remote);
 }
 
 uint32_t KvazzupController::chatWithParticipant(QString name, QString username,

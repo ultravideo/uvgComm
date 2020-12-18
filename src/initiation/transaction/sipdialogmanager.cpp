@@ -35,7 +35,7 @@ uint32_t SIPDialogManager::reserveSessionID()
 }
 
 
-void SIPDialogManager::startCall(SIP_URI &address, QString localAddress,
+void SIPDialogManager::startCall(NameAddr &address, QString localAddress,
                                 uint32_t sessionID, bool registered)
 {
   printNormal(this, "Intializing a new dialog by sending an INVITE");
@@ -62,7 +62,7 @@ void SIPDialogManager::renegotiateAllCalls()
 
 
 uint32_t SIPDialogManager::createDialogFromINVITE(QString localAddress,
-                                                 std::shared_ptr<SIPMessageBody> &invite)
+                                                 std::shared_ptr<SIPMessageHeader> &invite)
 {
   Q_ASSERT(invite);
 
@@ -190,7 +190,7 @@ bool SIPDialogManager::identifySession(SIPRequest request,
 
     // TODO: there is a problem if the sequence number did not match
     // and the request type is INVITE
-    if(request.type == SIP_INVITE)
+    if(request.method == SIP_INVITE)
     {
       printNormal(this, "Someone is trying to start a SIP dialog with us!");
 

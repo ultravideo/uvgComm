@@ -34,7 +34,7 @@ public:
   uint32_t reserveSessionID();
 
   // start a call with address. Returns generated sessionID
-  void startCall(SIP_URI& address, QString localAddress,
+  void startCall(NameAddr &address, QString localAddress,
                  uint32_t sessionID, bool registered);
 
   // sends a re-INVITE
@@ -71,7 +71,7 @@ signals:
 private:
 
   uint32_t createDialogFromINVITE(QString localAddress,
-                                  std::shared_ptr<SIPMessageBody> &invite);
+                                  std::shared_ptr<SIPMessageHeader> &invite);
   void createDialog(uint32_t sessionID);
   void removeDialog(uint32_t sessionID);
 

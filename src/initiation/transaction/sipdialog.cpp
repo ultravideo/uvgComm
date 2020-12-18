@@ -24,13 +24,9 @@ void SIPDialog::init(uint32_t sessionID, SIPTransactionUser* tu)
 }
 
 
-void SIPDialog::startCall(SIP_URI &address, QString localAddress, bool registered)
+void SIPDialog::startCall(NameAddr &address, QString localAddress, bool registered)
 {
-  state_.createNewDialog(SIP_URI{DEFAULTSIPTYPE,
-                                 {address.userinfo.user, ""},
-                                 address.realname,
-                                 {address.hostport.host,  0}, {}},
-                                 localAddress, registered);
+  state_.createNewDialog(address, localAddress, registered);
 
   // this start call will commence once the connection has been established
   if(!client_.startCall(address.realname))
@@ -40,7 +36,7 @@ void SIPDialog::startCall(SIP_URI &address, QString localAddress, bool registere
 }
 
 
-void SIPDialog::createDialogFromINVITE(std::shared_ptr<SIPMessageBody> &invite,
+void SIPDialog::createDialogFromINVITE(std::shared_ptr<SIPMessageHeader> &invite,
                                        QString localAddress)
 {
   state_.createDialogFromINVITE(invite, localAddress);
@@ -79,12 +75,12 @@ void SIPDialog::cancelCall()
 
 bool SIPDialog::isThisYours(SIPRequest& request)
 {
-  if (request.type == SIP_CANCEL)
+  if (request.method == SIP_CANCEL)
   {
     return server_.isCancelYours(request.message);
   }
-  return state_.correctRequestDialog(request.message->dialog,
-                                     request.type,
+  return state_.correctRequestDialog(request.message,
+                                     request.method,
                                      request.message->cSeq);
 }
 
@@ -92,7 +88,7 @@ bool SIPDialog::isThisYours(SIPRequest& request)
 bool SIPDialog::isThisYours(SIPResponse& response)
 {
   return
-      state_.correctResponseDialog(response.message->dialog, response.message->cSeq)
+      state_.correctResponseDialog(response.message, response.message->cSeq)
       && client_.waitingResponse(response.message->transactionRequest);
 }
 
@@ -109,7 +105,7 @@ bool SIPDialog::processResponse(SIPResponse& response)
 
   if (response.type == SIP_OK && response.message->transactionRequest == SIP_INVITE)
   {
-    state_.setRequestUri(response.message->contact);
+    state_.setRequestUri(response.message->contact.uri);
   }
 
   if(!client_.processResponse(response, state_))
@@ -131,10 +127,10 @@ void SIPDialog::generateRequest(uint32_t sessionID, SIPRequestMethod type)
 
   // Get all the necessary information from different components.
   SIPRequest request;
+
   if (type != SIP_CANCEL)
   {
-    request.type = type;
-
+    request.sipVersion = SIP_VERSION;
     // Get message info
     client_.getRequestMessageInfo(type, request.message);
     client_.startTimer(type);
@@ -142,17 +138,15 @@ void SIPDialog::generateRequest(uint32_t sessionID, SIPRequestMethod type)
     state_.getRequestDialogInfo(request);
 
     Q_ASSERT(request.message != nullptr);
-    Q_ASSERT(request.message->dialog != nullptr);
 
     client_.recordRequest(request);
   }
   else
   {
     request = client_.getRecordedRequest();
-
-    request.type = SIP_CANCEL;
     request.message->transactionRequest = SIP_CANCEL;
   }
+  request.method = type;
 
   emit sendRequest(sessionID, request);
   printNormal(this, "Finished sending of a dialog request");
@@ -166,6 +160,7 @@ void SIPDialog::generateResponse(uint32_t sessionID, SIPResponseStatus type)
   // Get all the necessary information from different components.
   SIPResponse response;
   response.type = type;
+  response.sipVersion = SIP_VERSION;
   server_.getResponseMessage(response.message, type);
 
   emit sendResponse(sessionID, response);

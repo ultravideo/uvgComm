@@ -19,14 +19,14 @@ public:
   // creates dialog which is about to start from our end
   // needs local address in case we have not registered
   // and this is a peer-to-peer dialog
-  void createNewDialog(SIP_URI remoteURI, QString localAddress, bool registered);
+  void createNewDialog(NameAddr& remote, QString localAddress, bool registered);
 
   // create a connection to server to be used for sending the REGISTER request
   // does not actually create dialog.
   void createServerConnection(SIP_URI requestURI);
 
   // creates the dialog from an incoming INVITE
-  void createDialogFromINVITE(std::shared_ptr<SIPMessageBody> &inMessage,
+  void createDialogFromINVITE(std::shared_ptr<SIPMessageHeader> &inMessage,
                               QString hostName);
 
   // Generates the request message details
@@ -37,13 +37,13 @@ public:
     requestUri_ = remoteContact;
   }
 
-  void setRoute(QList<SIP_URI>& route);
+  void setRoute(QList<NameAddr>& route);
 
   // use this to check whether incoming request belongs to this dialog
   // responses should be checked by client which sent the request
-  bool correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog,
+  bool correctRequestDialog(std::shared_ptr<SIPMessageHeader> &inMessage,
                             SIPRequestMethod type, uint32_t remoteCSeq);
-  bool correctResponseDialog(std::shared_ptr<SIPDialogInfo> dialog,
+  bool correctResponseDialog(std::shared_ptr<SIPMessageHeader> &inMessage,
                              uint32_t messageCSeq, bool recordToTag = true);
 
 
@@ -79,8 +79,8 @@ private:
 
   // address-of-record is the SIP address if one exists. If we have not registered to
   // server we use our local IP address.
-  SIP_URI localURI_; // local address-of-record.
-  SIP_URI remoteURI_; // remote address-of-record.
+  NameAddr localURI_; // local address-of-record.
+  NameAddr remoteURI_; // remote address-of-record.
 
   SIP_URI requestUri_;
 
@@ -90,7 +90,7 @@ private:
   uint32_t remoteCSeq_;
 
   // may be empty if there is no route
-  QList<SIP_URI> route_;
+  QList<NameAddr> route_;
 
   bool sessionState_;
 };
