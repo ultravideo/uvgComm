@@ -11,15 +11,15 @@ SIPRouting::SIPRouting():
   first_(true)
 {}
 
-void SIPRouting::processResponseViaFields(QList<ViaInfo>& vias,
+void SIPRouting::processResponseViaFields(QList<ViaField>& vias,
                                           QString localAddress,
                                           uint16_t localPort)
 {
   // find the via with our address and port
 
-  for (ViaInfo& via : vias)
+  for (ViaField& via : vias)
   {
-    if (via.address == localAddress && via.port == localPort)
+    if (via.sentBy == localAddress && via.port == localPort)
     {
       printDebug(DEBUG_NORMAL, "SIPRouting", "Found our via. This is meant for us!");
 
@@ -53,11 +53,11 @@ void SIPRouting::getViaAndContact(std::shared_ptr<SIPMessageHeader> message,
   // set via-address
   if (!message->vias.empty())
   {
-    message->vias.back().address = localAddress;
+    message->vias.back().sentBy = localAddress;
     message->vias.back().port = localPort;
   }
 
-  getContactAddress(message, localAddress, localPort, DEFAULTSIPTYPE);
+  getContactAddress(message, localAddress, localPort, DEFAULT_SIP_TYPE);
 }
 
 
@@ -65,24 +65,24 @@ void SIPRouting::getContactAddress(std::shared_ptr<SIPMessageHeader> message,
                                    QString localAddress, uint16_t localPort,
                                    SIPType type)
 {
-  message->contact = {"", {type, {getLocalUsername(), ""}, {"", 0}, {}, {}}};
+  message->contact = {{"", {type, {getLocalUsername(), ""}, {"", 0}, {}, {}}}, {}};
 
     // use rport address and port if we have them, otherwise use localaddress
   if (contactAddress_ != "")
   {
-    message->contact.uri.hostport.host = contactAddress_;
+    message->contact.address.uri.hostport.host = contactAddress_;
   }
   else
   {
-    message->contact.uri.hostport.host = localAddress;
+    message->contact.address.uri.hostport.host = localAddress;
   }
 
   if (contactPort_ != 0)
   {
-    message->contact.uri.hostport.port = contactPort_;
+    message->contact.address.uri.hostport.port = contactPort_;
   }
   else
   {
-    message->contact.uri.hostport.port = localPort;
+    message->contact.address.uri.hostport.port = localPort;
   }
 }

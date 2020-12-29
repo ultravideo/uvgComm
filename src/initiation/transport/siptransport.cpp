@@ -142,7 +142,7 @@ uint16_t SIPTransport::getLocalPort()
 }
 
 
-void SIPTransport::createConnection(Transport type, QString target)
+void SIPTransport::createConnection(SIPTransportProtocol type, QString target)
 {
   if(type == TCP)
   {
@@ -233,14 +233,19 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
   ++processingInProgress_;
   printImportant(this, "Composing and sending SIP Request:", {"Type"},
                  requestToString(request.method));
-  Q_ASSERT(request.message->content.type == NO_CONTENT || content.isValid());
+  Q_ASSERT(request.message->contentType == MT_NONE || content.isValid());
   Q_ASSERT(connection_ != nullptr);
 
-  if((request.message->content.type == APPLICATION_SDP && !content.isValid())
-     || connection_ == nullptr)
+  if((request.message->contentType != MT_NONE && !content.isValid()))
   {
-    qDebug() << "WARNING: SDP nullptr or connection does not exist in sendRequest";
+    printProgramWarning(this, "Invalid SIP request content when sending");
     return;
+  }
+
+  if (connection_ == nullptr)
+  {
+     printProgramWarning(this, "Connection does not exist in sendRequest");
+     return;
   }
 
   routing_.getViaAndContact(request.message,
@@ -281,7 +286,7 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
   QString message = "";
   // adds content fields and converts the sdp to string if INVITE
   QString sdp_str = addContent(fields,
-                               request.message->content.type != NO_CONTENT,
+                               request.message->contentType != MT_NONE,
                                content.value<SDPMessageInfo>());
 
   if(!getFirstRequestLine(message, request, lineEnding))
@@ -308,13 +313,13 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
   ++processingInProgress_;
   printImportant(this, "Composing and sending SIP Response:", {"Type"},
                  responseToPhrase(response.type));
-  Q_ASSERT(response.message->transactionRequest != SIP_INVITE
+  Q_ASSERT(response.message->cSeq.method != SIP_INVITE
       || response.type != SIP_OK
-      || (response.message->content.type == APPLICATION_SDP && content.isValid()));
+      || (response.message->contentType == MT_APPLICATION_SDP && content.isValid()));
   Q_ASSERT(connection_ != nullptr);
 
-  if((response.message->transactionRequest == SIP_INVITE && response.type == SIP_OK
-     && (!content.isValid() || response.message->content.type != APPLICATION_SDP))
+  if((response.message->cSeq.method == SIP_INVITE && response.type == SIP_OK
+     && (!content.isValid() || response.message->contentType != MT_APPLICATION_SDP))
      || connection_ == nullptr)
   {
     printWarning(this, "SDP nullptr or connection does not exist in sendResponse");
@@ -335,9 +340,9 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
 
   routing_.getContactAddress(response.message,
                              connection_->localAddress().toString(),
-                             connection_->localPort(), DEFAULTSIPTYPE);
+                             connection_->localPort(), DEFAULT_SIP_TYPE);
 
-  if (response.message->transactionRequest == SIP_INVITE && response.type == SIP_OK &&
+  if (response.message->cSeq.method == SIP_INVITE && response.type == SIP_OK &&
       !includeContactField(fields, response.message))
   {
     qDebug() << "ERROR: Failed to compose contact field for SIP OK response.";
@@ -350,7 +355,7 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
   QString lineEnding = "\r\n";
   QString message = "";
   // adds content fields and converts the sdp to string if INVITE
-  QString sdp_str = addContent(fields, response.message->transactionRequest == SIP_INVITE
+  QString sdp_str = addContent(fields, response.message->cSeq.method == SIP_INVITE
                                && response.type == SIP_OK, content.value<SDPMessageInfo>());
   if(!getFirstResponseLine(message, response, lineEnding))
   {
@@ -387,46 +392,55 @@ QString SIPTransport::fieldsToString(QList<SIPField>& fields, QString lineEnding
   QString message = "";
   for(SIPField& field : fields)
   {
-    message += field.name + ": ";
-
-    for (int i = 0; i < field.valueSets.size(); ++i)
+    if (field.name != "" &&
+        !field.valueSets.empty() &&
+        !field.valueSets[0].words.empty())
     {
-      // add words.
-      for (int j = 0; j < field.valueSets.at(i).words.size(); ++j)
-      {
-        message += field.valueSets.at(i).words.at(j);
+      message += field.name + ": ";
 
-        if (j != field.valueSets.at(i).words.size() - 1)
-        {
-          message += " ";
-        }
-      }
-
-      // add parameters
-      if(field.valueSets.at(i).parameters != nullptr)
+      for (int i = 0; i < field.valueSets.size(); ++i)
       {
-        for(SIPParameter& parameter : *field.valueSets.at(i).parameters)
+        // add words.
+        for (int j = 0; j < field.valueSets.at(i).words.size(); ++j)
         {
-          if (parameter.value != "")
+          message += field.valueSets.at(i).words.at(j);
+
+          if (j != field.valueSets.at(i).words.size() - 1)
           {
-            message += ";" + parameter.name + "=" + parameter.value;
-          }
-          else
-          {
-            message += ";" + parameter.name;
+            message += " ";
           }
         }
-      }
 
-      // should we add a comma(,) or end of line
-      if (i != field.valueSets.size() - 1)
-      {
-        message += ",";
+        // add parameters
+        if(field.valueSets.at(i).parameters != nullptr)
+        {
+          for(SIPParameter& parameter : *field.valueSets.at(i).parameters)
+          {
+            if (parameter.value != "")
+            {
+              message += ";" + parameter.name + "=" + parameter.value;
+            }
+            else
+            {
+              message += ";" + parameter.name;
+            }
+          }
+        }
+
+        // should we add a comma(,) or end of line
+        if (i != field.valueSets.size() - 1)
+        {
+          message += ",";
+        }
+        else
+        {
+          message += lineEnding;
+        }
       }
-      else
-      {
-        message += lineEnding;
-      }
+    }
+    else
+    {
+      printProgramError(this, "Failed to convert field to string", "Field name", field.name);
     }
   }
   return message;
@@ -716,7 +730,7 @@ bool SIPTransport::parseFieldValueSets(QString& line, QStringList& outValueSets)
 bool SIPTransport::parseFieldValue(QString& valueSet, SIPField& field)
 {
   // RFC3261_TODO: Uniformalize case formatting. Make everything big or small case expect quotes.
-  ValueSet set = ValueSet{{}, nullptr};
+  SIPValueSet set = SIPValueSet{{}, nullptr};
 
   QString currentWord = "";
   bool isQuotation = false;
@@ -857,7 +871,7 @@ bool SIPTransport::parseFieldValue(QString& valueSet, SIPField& field)
 
 
 void SIPTransport::addParameterToSet(SIPParameter& currentParameter, QString &currentWord,
-                                     ValueSet& valueSet)
+                                     SIPValueSet& valueSet)
 {
   if (currentParameter.name == "")
   {
@@ -881,13 +895,13 @@ void SIPTransport::addParameterToSet(SIPParameter& currentParameter, QString &cu
 bool SIPTransport::fieldsToMessageHeader(QList<SIPField>& fields,
                                          std::shared_ptr<SIPMessageHeader>& message)
 {
-  message->cSeq = 0;
-  message->transactionRequest = SIP_NO_REQUEST;
+  message->cSeq.cSeq = 0;
+  message->cSeq.method = SIP_NO_REQUEST;
   message->maxForwards = 0;
   message->to =   {{"",SIP_URI{}}, ""};
   message->from = {{"",SIP_URI{}}, ""};
-  message->content.type = NO_CONTENT;
-  message->content.length = 0;
+  message->contentType = MT_NONE;
+  message->contentLength = 0;
   message->expires = 0;
 
   for(int i = 0; i < fields.size(); ++i)
@@ -939,9 +953,9 @@ bool SIPTransport::parseRequest(QString requestString, QString version,
   }
 
   QVariant content;
-  if (body != "" && request.message->content.type != NO_CONTENT)
+  if (body != "" && request.message->contentType != MT_NONE)
   {
-    parseContent(content, request.message->content.type, body);
+    parseContent(content, request.message->contentType, body);
   }
 
   emit incomingSIPRequest(request, getLocalAddress(), content, transportID_);
@@ -972,9 +986,9 @@ bool SIPTransport::parseResponse(QString responseString, QString version,
   }
 
   QVariant content;
-  if (body != "" && response.message->content.type != NO_CONTENT)
+  if (body != "" && response.message->contentType != MT_NONE)
   {
-    parseContent(content, response.message->content.type, body);
+    parseContent(content, response.message->contentType, body);
   }
 
   if (isConnected())
@@ -995,9 +1009,9 @@ bool SIPTransport::parseResponse(QString responseString, QString version,
 }
 
 
-void SIPTransport::parseContent(QVariant& content, ContentType type, QString& body)
+void SIPTransport::parseContent(QVariant& content, MediaType type, QString& body)
 {
-  if(type == APPLICATION_SDP)
+  if(type == MT_APPLICATION_SDP)
   {
     SDPMessageInfo sdp;
     if(parseSDPContent(body, sdp))

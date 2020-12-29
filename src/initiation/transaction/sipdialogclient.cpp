@@ -51,7 +51,7 @@ bool SIPDialogClient::processResponse(SIPResponse& response,
     return true;
   }
 
-  if (!checkTransactionType(response.message->transactionRequest))
+  if (!checkTransactionType(response.message->cSeq.method))
   {
     printPeerError(this, "Their response transaction type is not the same as our request!");
     return false;
@@ -68,7 +68,7 @@ bool SIPDialogClient::processResponse(SIPResponse& response,
   // process anything that is not a failure and may cause a new request to be sent.
   // this must be done after the SIPClientTransaction processResponse, because that checks our
   // current active transaction and may modify it.
-  if(response.message->transactionRequest == SIP_INVITE)
+  if(response.message->cSeq.method == SIP_INVITE)
   {
     if(response.type == SIP_RINGING)
     {
@@ -91,7 +91,7 @@ bool SIPDialogClient::processResponse(SIPResponse& response,
       }
     }
   }
-  else if(response.message->transactionRequest == SIP_BYE)
+  else if(response.message->cSeq.method == SIP_BYE)
   {
     transactionUser_->endCall(sessionID_);
   }

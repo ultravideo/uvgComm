@@ -17,6 +17,8 @@ QString composeUritype(SIPType type);
 bool composeSIPUri(SIP_URI& uri, QStringList& words);
 bool composeNameAddr(NameAddr& nameAddr, QStringList& words);
 
+bool composeSIPRouteLocation(SIPRouteLocation& location, SIPValueSet& valueSet);
+
 QString composeUritype(SIPType type)
 {
   if (type == SIP)
@@ -101,6 +103,23 @@ bool composeSIPUri(SIP_URI& uri, QStringList& words)
 }
 
 
+bool composeSIPRouteLocation(SIPRouteLocation& location, SIPValueSet &valueSet)
+{
+  if (!composeNameAddr(location.address, valueSet.words))
+  {
+    return false;
+  }
+
+  if (!location.parameters.empty())
+  {
+    valueSet.parameters
+        = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
+    *valueSet.parameters = location.parameters;
+  }
+  return true;
+}
+
+
 bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
 {
   if(request.requestURI.hostport.host == "")
@@ -170,7 +189,7 @@ bool includeToField(QList<SIPField> &fields,
     return false;
   }
 
-  SIPField field = {"To", QList<ValueSet>{ValueSet{{}, nullptr}}};
+  SIPField field = {"To", QList<SIPValueSet>{SIPValueSet{{}, nullptr}}};
 
   if (!composeNameAddr(message->to.address, field.valueSets[0].words))
   {
@@ -197,7 +216,7 @@ bool includeFromField(QList<SIPField> &fields,
     return false;
   }
 
-  SIPField field = {"From", QList<ValueSet>{ValueSet{{}, nullptr}}};
+  SIPField field = {"From", QList<SIPValueSet>{SIPValueSet{{}, nullptr}}};
 
   if (!composeNameAddr(message->from.address, field.valueSets[0].words))
   {
@@ -215,17 +234,17 @@ bool includeFromField(QList<SIPField> &fields,
 bool includeCSeqField(QList<SIPField> &fields,
                       std::shared_ptr<SIPMessageHeader> message)
 {
-  Q_ASSERT(message->cSeq != 0 && message->transactionRequest != SIP_NO_REQUEST);
-  if(message->cSeq == 0 || message->transactionRequest == SIP_NO_REQUEST)
+  Q_ASSERT(message->cSeq.cSeq != 0 && message->cSeq.method != SIP_NO_REQUEST);
+  if(message->cSeq.cSeq == 0 || message->cSeq.method == SIP_NO_REQUEST)
   {
     qDebug() << "WARNING: cSeq field failed";
     return false;
   }
 
-  SIPField field = {"CSeq", QList<ValueSet>{ValueSet{{}, nullptr}}};
+  SIPField field = {"CSeq", QList<SIPValueSet>{SIPValueSet{{}, nullptr}}};
 
-  field.valueSets[0].words.push_back(QString::number(message->cSeq));
-  field.valueSets[0].words.push_back(requestToString(message->transactionRequest));
+  field.valueSets[0].words.push_back(QString::number(message->cSeq.cSeq));
+  field.valueSets[0].words.push_back(requestToString(message->cSeq.method));
   field.valueSets[0].parameters = nullptr;
 
   fields.push_back(field);
@@ -242,7 +261,7 @@ bool includeCallIDField(QList<SIPField> &fields,
     return false;
   }
 
-  SIPField field = {"Call-ID", QList<ValueSet>{ValueSet{{message->callID}, nullptr}}};
+  SIPField field = {"Call-ID", QList<SIPValueSet>{SIPValueSet{{message->callID}, nullptr}}};
   fields.push_back(field);
   return true;
 }
@@ -257,16 +276,16 @@ bool includeViaFields(QList<SIPField> &fields,
     return false;
   }
 
-  for(ViaInfo via : message->vias)
+  for(ViaField& via : message->vias)
   {
-    Q_ASSERT(via.connectionType != NONE);
+    Q_ASSERT(via.protocol != NONE);
     Q_ASSERT(via.branch != "");
-    Q_ASSERT(via.address != "");
+    Q_ASSERT(via.sentBy != "");
 
-    SIPField field = {"Via", QList<ValueSet>{ValueSet{{}, nullptr}}};
+    SIPField field = {"Via", QList<SIPValueSet>{SIPValueSet{{}, nullptr}}};
 
-    field.valueSets[0].words.push_back("SIP/" + via.version +"/" + connectionToString(via.connectionType));
-    field.valueSets[0].words.push_back(via.address + composePortString(via.port));
+    field.valueSets[0].words.push_back("SIP/" + via.sipVersion +"/" + connectionToString(via.protocol));
+    field.valueSets[0].words.push_back(via.sentBy + composePortString(via.port));
 
     if(!tryAddParameter(field.valueSets[0].parameters, "branch", via.branch))
     {
@@ -315,7 +334,7 @@ bool includeMaxForwardsField(QList<SIPField> &fields,
   }
 
   SIPField field = {"Max-Forwards",
-                    QList<ValueSet>{ValueSet{{QString::number(message->maxForwards)}, nullptr}}};
+                    QList<SIPValueSet>{SIPValueSet{{QString::number(message->maxForwards)}, nullptr}}};
   fields.push_back(field);
   return true;
 }
@@ -323,26 +342,24 @@ bool includeMaxForwardsField(QList<SIPField> &fields,
 bool includeContactField(QList<SIPField> &fields,
                          std::shared_ptr<SIPMessageHeader> message)
 {
-  Q_ASSERT(message->contact.uri.userinfo.user != "" && message->contact.uri.hostport.host != "");
-  if(message->contact.uri.userinfo.user == "" ||  message->contact.uri.hostport.host == "")
+  Q_ASSERT(message->contact.address.uri.userinfo.user != "" &&
+      message->contact.address.uri.hostport.host != "");
+  if(message->contact.address.uri.userinfo.user == "" ||
+     message->contact.address.uri.hostport.host == "")
   {
-    qDebug() << "WARNING: Contact field failed";
+    printProgramError("SIPFieldComposing", "Failed to add contact-field!");
     return false;
   }
 
-  SIPField field = {"Contact", QList<ValueSet>{ValueSet{{}, nullptr}}};
+  SIPField field = {"Contact", QList<SIPValueSet>{{{}, nullptr}}};
 
-  QString transportString = "";
+  message->contact.address.realname = "";
+  message->contact.address.uri.uri_parameters.push_back({"transport", "tcp"});
 
-  message->contact.realname = "";
-  message->contact.uri.uri_parameters.push_back({"transport", "tcp"});
-
-  if (!composeNameAddr(message->contact, field.valueSets[0].words))
+  if (!composeSIPRouteLocation(message->contact, field.valueSets[0]))
   {
     return false;
   }
-
-  field.valueSets[0].parameters = nullptr;
 
   fields.push_back(field);
   return true;
@@ -358,7 +375,7 @@ bool includeContentTypeField(QList<SIPField> &fields,
     return false;
   }
   SIPField field = {"Content-Type",
-                    QList<ValueSet>{ValueSet{{contentType}, nullptr}}};
+                    QList<SIPValueSet>{SIPValueSet{{contentType}, nullptr}}};
   fields.push_back(field);
   return true;
 }
@@ -367,7 +384,7 @@ bool includeContentLengthField(QList<SIPField> &fields,
                                uint32_t contentLenght)
 {
   SIPField field = {"Content-Length",
-                    QList<ValueSet>{ValueSet{{QString::number(contentLenght)}, nullptr}}};
+                    QList<SIPValueSet>{SIPValueSet{{QString::number(contentLenght)}, nullptr}}};
   fields.push_back(field);
   return true;
 }
@@ -377,7 +394,7 @@ bool includeExpiresField(QList<SIPField>& fields,
                          uint32_t expires)
 {
   SIPField field = {"Expires",
-                    QList<ValueSet>{ValueSet{{QString::number(expires)}, nullptr}}};
+                    QList<SIPValueSet>{SIPValueSet{{QString::number(expires)}, nullptr}}};
   fields.push_back(field);
   return true;
 }
@@ -386,17 +403,17 @@ bool includeExpiresField(QList<SIPField>& fields,
 bool includeRecordRouteField(QList<SIPField>& fields,
                              std::shared_ptr<SIPMessageHeader> message)
 {
-  for (auto& record : message->recordRoutes)
+  SIPField field = {"Record-Route",{}};
+  for (auto& route : message->recordRoutes)
   {
-    SIPField field = {"Record-Route",
-                      QList<ValueSet>{ValueSet{{}, nullptr}}};
+    field.valueSets.push_back({{}, nullptr});
 
-    if (!composeNameAddr(record, field.valueSets[0].words))
+    if (!composeSIPRouteLocation(route, field.valueSets.back()))
     {
       return false;
     }
-    fields.push_back(field);
   }
+  fields.push_back(field);
   return true;
 }
 
@@ -404,17 +421,40 @@ bool includeRecordRouteField(QList<SIPField>& fields,
 bool includeRouteField(QList<SIPField>& fields,
                        std::shared_ptr<SIPMessageHeader> message)
 {
+  SIPField field = {"Route",{}};
   for (auto& route : message->routes)
   {
-    SIPField field = {"Route",
-                      QList<ValueSet>{ValueSet{{}, nullptr}}};
+    field.valueSets.push_back({{}, nullptr});
 
-    if (!composeNameAddr(route, field.valueSets[0].words))
+    if (!composeSIPRouteLocation(route, field.valueSets.back()))
     {
       return false;
     }
-    fields.push_back(field);
   }
+  fields.push_back(field);
+  return true;
+}
+
+
+bool includeAuthorizationField(QList<SIPField>& fields,
+                               std::shared_ptr<SIPMessageHeader> message)
+{
+  Q_ASSERT(message->authorization != nullptr);
+  Q_ASSERT(message->authorization->username != "");
+  Q_ASSERT(message->authorization->realm != "");
+
+
+  SIPField field = {"Authorization",
+                    QList<SIPValueSet>{SIPValueSet{{}, nullptr}}};
+
+  field.valueSets[0].words.push_back("Digest");
+  field.valueSets[0].words.push_back("username=\"" +
+                                     message->authorization->username + "\"");
+  field.valueSets[0].words.push_back("realm=\"" +
+                                     message->authorization->realm + "\"");
+
+  fields.push_back(field);
+
   return true;
 }
 

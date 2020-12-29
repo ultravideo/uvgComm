@@ -16,7 +16,7 @@ public:
 
 
   // check the rport value if
-  void processResponseViaFields(QList<ViaInfo> &vias,
+  void processResponseViaFields(QList<ViaField> &vias,
                                 QString localAddress,
                                 uint16_t localPort);
 

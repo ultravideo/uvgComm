@@ -20,9 +20,9 @@ QString codeToPhrase(uint16_t code);
 QString responseToPhrase(SIPResponseStatus response);
 
 // connection type and string
-Transport stringToConnection(QString type);
-QString connectionToString(Transport connection);
+SIPTransportProtocol stringToConnection(QString type);
+QString connectionToString(SIPTransportProtocol connection);
 
 // contentType
-ContentType stringToContentType(QString typeStr);
-QString contentTypeToString(ContentType type);
+MediaType stringToContentType(QString typeStr);
+QString contentTypeToString(MediaType type);

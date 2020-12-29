@@ -62,7 +62,7 @@ void SIPRegistrations::bindToServer(QString serverAddress, QString localAddress,
       = std::shared_ptr<SIPRegistrationData>
       (new SIPRegistrationData{{}, {}, localAddress, port, INACTIVE});
 
-  SIP_URI serverUri = {DEFAULTSIPTYPE, {"", ""}, {serverAddress, 0}, {}, {}};
+  SIP_URI serverUri = {DEFAULT_SIP_TYPE, {"", ""}, {serverAddress, 0}, {}, {}};
   data->state.createServerConnection(serverUri);
   data->client.set_remoteURI(serverUri);
   registrations_[serverAddress] = data;
@@ -85,10 +85,10 @@ bool SIPRegistrations::identifyRegistration(SIPResponse& response, QString &outA
   for (auto i = registrations_.begin(); i != registrations_.end(); ++i)
   {
     if(i->second->state.correctResponseDialog(response.message,
-                                              response.message->cSeq, false))
+                                              response.message->cSeq.cSeq, false))
     {
       // TODO: we should check that every single detail is as specified in rfc.
-      if(i->second->client.waitingResponse(response.message->transactionRequest))
+      if(i->second->client.waitingResponse(response.message->cSeq.method))
       {
         printNormal(this, "Found registration matching the response");
         outAddress = i->first;
@@ -109,7 +109,7 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
 {
   // REGISTER response must not create route. In other words ignore all record-routes
 
-  if (response.message->transactionRequest == SIP_REGISTER)
+  if (response.message->cSeq.method == SIP_REGISTER)
   {
     bool foundRegistration = false;
 
@@ -148,8 +148,8 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
             {
               i.second->status = RE_REGISTRATION;
               printNormal(this, "Sending the final NAT REGISTER");
-              i.second->contactAddress = response.message->contact.uri.hostport.host;
-              i.second->contactPort = response.message->contact.uri.hostport.port;
+              i.second->contactAddress = response.message->contact.address.uri.hostport.host;
+              i.second->contactPort = response.message->contact.address.uri.hostport.port;
               // makes sure we don't end up in infinite loop if the address doesn't match
 
               statusView_->updateServerStatus("Behind NAT, updating address...");

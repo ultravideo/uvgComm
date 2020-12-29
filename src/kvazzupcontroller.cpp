@@ -70,7 +70,7 @@ uint32_t KvazzupController::callToParticipant(QString name, QString username, QS
 {
   NameAddr remote;
   remote.realname = name;
-  remote.uri.type = DEFAULTSIPTYPE;
+  remote.uri.type = DEFAULT_SIP_TYPE;
   remote.uri.hostport.host = ip;
   remote.uri.hostport.port = 0;
   remote.uri.userinfo.user = username;

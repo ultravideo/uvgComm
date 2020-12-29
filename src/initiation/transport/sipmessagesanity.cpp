@@ -74,7 +74,7 @@ bool responseSanityCheck(QList<SIPField>& fields,
           = std::shared_ptr<SIPMessageHeader> (new SIPMessageHeader);
       if (parseCSeqField(field, message))
       {
-        ongoingTransaction = message->transactionRequest;
+        ongoingTransaction = message->cSeq.method;
       }
       else
       {

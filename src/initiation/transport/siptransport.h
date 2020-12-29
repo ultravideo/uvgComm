@@ -27,7 +27,7 @@ public:
   // TODO: separate non-dialog and dialog messages
 
   // functions for manipulating network connection
-  void createConnection(Transport type, QString target);
+  void createConnection(SIPTransportProtocol type, QString target);
   void incomingTCPConnection(std::shared_ptr<TCPConnection> con);
 
   // sending SIP messages
@@ -91,13 +91,13 @@ private:
   bool parseFieldValueSets(QString& line, QStringList &outValueSets);
   bool parseFieldValue(QString& valueSet, SIPField& field);
 
-  void parseContent(QVariant &content, ContentType type, QString &body);
+  void parseContent(QVariant &content, MediaType type, QString &body);
 
   void signalConnections();
   void destroyConnection();
 
   void addParameterToSet(SIPParameter& currentParameter, QString& currentWord,
-                    ValueSet& valueSet);
+                    SIPValueSet& valueSet);
 
 
   QString partialMessage_;

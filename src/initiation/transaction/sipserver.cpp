@@ -120,9 +120,9 @@ void SIPServer::getResponseMessage(std::shared_ptr<SIPMessageHeader> &outMessage
   }
   copyMessageDetails(receivedRequest_, outMessage);
   outMessage->maxForwards = 71;
-  outMessage->contact = {"", SIP_URI{DEFAULTSIPTYPE, {"", ""}, {"", 0}, {}, {}}};
-  outMessage->content.length = 0;
-  outMessage->content.type = NO_CONTENT;
+  outMessage->contact = {{"", SIP_URI{DEFAULT_SIP_TYPE, {"", ""}, {"", 0}, {}, {}}}, {}};
+  outMessage->contentLength = 0;
+  outMessage->contentType = MT_NONE;
 
   int responseCode = type;
   if(responseCode >= 200)
@@ -131,7 +131,7 @@ void SIPServer::getResponseMessage(std::shared_ptr<SIPMessageHeader> &outMessage
                "Sending a final response. Deleting request details.",
                {"SessionID", "Code", "Cseq"},
                {QString::number(sessionID_), QString::number(responseCode),
-                QString::number(receivedRequest_->cSeq)});
+                QString::number(receivedRequest_->cSeq.cSeq)});
     receivedRequest_.reset();
     receivedRequest_ = nullptr;
   }
@@ -170,12 +170,11 @@ void SIPServer::copyMessageDetails(std::shared_ptr<SIPMessageHeader>& inMessage,
 
   // CSeq
   copy->cSeq = inMessage->cSeq;
-  copy->transactionRequest = inMessage->transactionRequest;
 
   copy->recordRoutes = inMessage->recordRoutes;
 
   // Via- fields in same order
-  for(ViaInfo via : inMessage->vias)
+  for(ViaField& via : inMessage->vias)
   {
     copy->vias.push_back(via);
   }

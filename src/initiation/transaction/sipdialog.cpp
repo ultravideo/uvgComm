@@ -81,15 +81,15 @@ bool SIPDialog::isThisYours(SIPRequest& request)
   }
   return state_.correctRequestDialog(request.message,
                                      request.method,
-                                     request.message->cSeq);
+                                     request.message->cSeq.cSeq);
 }
 
 
 bool SIPDialog::isThisYours(SIPResponse& response)
 {
   return
-      state_.correctResponseDialog(response.message, response.message->cSeq)
-      && client_.waitingResponse(response.message->transactionRequest);
+      state_.correctResponseDialog(response.message, response.message->cSeq.cSeq)
+      && client_.waitingResponse(response.message->cSeq.method);
 }
 
 
@@ -103,9 +103,9 @@ bool SIPDialog::processResponse(SIPResponse& response)
 {
   // TODO: prechecks that the response is ok, then modify program state.
 
-  if (response.type == SIP_OK && response.message->transactionRequest == SIP_INVITE)
+  if (response.type == SIP_OK && response.message->cSeq.method == SIP_INVITE)
   {
-    state_.setRequestUri(response.message->contact.uri);
+    state_.setRequestUri(response.message->contact.address.uri);
   }
 
   if(!client_.processResponse(response, state_))
@@ -144,7 +144,7 @@ void SIPDialog::generateRequest(uint32_t sessionID, SIPRequestMethod type)
   else
   {
     request = client_.getRecordedRequest();
-    request.message->transactionRequest = SIP_CANCEL;
+    request.message->cSeq.method = SIP_CANCEL;
   }
   request.method = type;
 

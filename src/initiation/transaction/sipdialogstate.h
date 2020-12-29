@@ -37,7 +37,7 @@ public:
     requestUri_ = remoteContact;
   }
 
-  void setRoute(QList<NameAddr>& route);
+  void setRoute(QList<SIPRouteLocation> &route);
 
   // use this to check whether incoming request belongs to this dialog
   // responses should be checked by client which sent the request
@@ -90,7 +90,7 @@ private:
   uint32_t remoteCSeq_;
 
   // may be empty if there is no route
-  QList<NameAddr> route_;
+  QList<SIPRouteLocation> route_;
 
   bool sessionState_;
 };

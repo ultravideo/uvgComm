@@ -32,8 +32,21 @@
 // See RFC 6086 for INFO
 // See RFC 6665 for SUBSCRIBE and NOTIFY
 
-enum SIPRequestMethod {SIP_NO_REQUEST, SIP_INVITE, SIP_ACK, SIP_BYE, SIP_CANCEL, SIP_OPTIONS, SIP_REGISTER};
-// SIP_PRACK, SIP_SUBSCRIBE, SIP_NOTIFY, SIP_PUBLISH, SIP_INFO, SIP_REFER, SIP_MESSAGE, SIP_UPDATE };
+enum SIPRequestMethod {SIP_NO_REQUEST,
+                       SIP_INVITE,
+                       SIP_ACK,
+                       SIP_BYE,
+                       SIP_CANCEL,
+                       SIP_OPTIONS,
+                       SIP_REGISTER};
+                       // SIP_PRACK,
+                       // SIP_SUBSCRIBE,
+                       // SIP_NOTIFY,
+                       // SIP_PUBLISH,
+                       // SIP_INFO,
+                       // SIP_REFER,
+                       // SIP_MESSAGE,
+                       // SIP_UPDATE };
 
 // the phrase is for humans only, so we will ignore it when parsing and use the code instead
 enum SIPResponseStatus {SIP_UNKNOWN_RESPONSE = 0,
@@ -113,8 +126,7 @@ enum SIPResponseStatus {SIP_UNKNOWN_RESPONSE = 0,
                         SIP_UNWANTED = 607}; // RFC 3261
 
 
-// 7 is the length of preset string
-const uint32_t BRANCHLENGTH = 32 - 7;
+
 
 
 struct SIPParameter
@@ -144,8 +156,7 @@ struct Userinfo
 };
 
 enum SIPType {SIP, SIPS, TEL};
-
-const SIPType DEFAULTSIPTYPE = SIP;
+const SIPType DEFAULT_SIP_TYPE = SIP;
 
 // usually in format: "realname <sip:username@host>".
 struct SIP_URI
@@ -159,75 +170,249 @@ struct SIP_URI
   QList<URIHeader> headers;
 };
 
-struct NameAddr{
-  QString realname = "";// omitted if empty
-  SIP_URI uri;
+struct AbsoluteURI
+{
+  QString scheme;
+  QString path;
 };
 
+struct NameAddr{
+  QString realname = "";// omitted if empty
+
+  SIP_URI uri;
+  //AbsoluteURI absoluteURI; this is an alternative to SIP_URI
+};
+
+// To and From field
 struct ToFrom
 {
   NameAddr address;
   QString tag = ""; // omitted if empty
 };
 
-const uint16_t TAGLENGTH = 16;
+const uint16_t TAG_LENGTH = 16;
 
-enum Transport {NONE, UDP, TCP, TLS, SCTP, OTHER};
 
-// Defines the type of connection in use for SIP
-const Transport DEFAULTTRANSPORT = TCP;
+enum SIPTransportProtocol {NONE, UDP, TCP, TLS, SCTP, OTHER};
+const SIPTransportProtocol DEFAULT_TRANSPORT = TCP; // used for SIP transport
 
-struct ViaInfo
+struct ViaField
 {
-  Transport connectionType;
-  QString version;
-  QString address;
+  QString sipVersion;
+  SIPTransportProtocol protocol;
+  QString sentBy; // address this message originated from
   uint16_t port = 0;              // omitted if 0
+
+  // parameters
   QString branch;
   bool alias = false;             // does the flag parameter exist
   bool rport = false;             // does the flag parameter exist
   uint16_t rportValue = 0;        // value parameter, omitted if 0
   QString receivedAddress = ""; // omitted if empty
+
+  // multicast address (maddr) and related ttl go here for now
+  QList<SIPParameter> otherParameters;
 };
 
-enum ContentType {NO_CONTENT, APPLICATION_SDP, TEXT_PLAIN};
+const QString MAGIC_COOKIE = "z9hG4bK";
+const uint32_t BRANCH_TAIL_LENGTH = 32 - MAGIC_COOKIE.size();
 
-struct ContentInfo
+
+enum Algorithm {UNKOWN_ALGORITHM, MD5, MD5_SESS};
+
+enum QopValue {SIP_AUTH_UNKNOWN, SIP_AUTH, SIP_AUTH_INT};
+
+struct DigestChallenge
 {
-  ContentType type; // tells what is in QVariant content
-  uint32_t length;  // set by SIPTransport
+  QString realm;
+  AbsoluteURI domain; // can also be abs-path
+  QString nonce;
+  QString opaque;
+  bool stale;
+  Algorithm algorithm;
+  QList<QopValue> qopOptions;
+
+  QString authParam;
+};
+
+
+struct DigestResponse
+{
+  QString username;
+  QString realm; // proxy server where credentials are valid.
+  QString nonce;
+  SIP_URI digestUri; // equal to Request-URI
+  QString dresponse; // 32-letter hex
+  Algorithm algorithm;
+  QString cnonce;
+  QString opaque;
+  QString messageQop;
+  QString nonceCount; // 8-letter lower hex
+
+  QString authParam;
+};
+
+struct AuthInfo
+{
+  QString nextNonce;
+  QString messageQop;
+
+  QString responseAuth; // lower hexes
+  QString cnonce; // 8-letter lower hex
+  QString nonceCount;
+};
+
+
+enum MediaType {MT_NONE, MT_UNKNOWN, MT_APPLICATION, MT_APPLICATION_SDP,
+                MT_TEXT, MT_AUDIO, MT_VIDEO, MT_MESSAGE, MT_MULTIPART};
+
+struct Accept
+{
+  MediaType type;
+
+  std::shared_ptr<SIPParameter> parameter; // optional
+};
+
+
+// Alert-Info is used by server for a distinctive Ring-tone
+struct SIPInfo
+{
+  AbsoluteURI absoluteURI;
+  std::shared_ptr<SIPParameter> parameter; // optional
+};
+
+
+struct SIPRouteLocation
+{
+  NameAddr address;
+  QList<SIPParameter> parameters;
+};
+
+
+struct ContentDisposition
+{
+  QString dispType;
+  QList<SIPParameter> parameters;
+};
+
+struct CSeqField
+{
+  uint32_t cSeq; // must be less than 2^31
+  SIPRequestMethod method;
 };
 
 const uint16_t CALLIDLENGTH = 16;
 
+struct SIPDateField
+{
+  QString weekday;
+  QString date;
+  QString time;
+  QString timezone;
+};
 
-// Identifies the SIP message and the transaction it belongs to as well as participants
+enum SIPWarningCode {SIP_INCOMPATIBLE_NET_PROTOCOL = 300,
+                    SIP_INCOMPATIBLE_ADDRESS_FORMAT = 301,
+                    SIP_INCOMPATIBLE_TRANSPORT_PROTOCOL = 302,
+                    SIP_INCOMPATIBLE_BANDWIDTH_UNIT = 303,
+                    SIP_MEDIA_TYPE_NOT_AVAILABLE = 304,
+                    SIP_INCOMPATIBLE_MEDIA_FORMAT = 305,
+                    SIP_ATTRIBUTE_NOT_UNDERSTOOD = 306,
+                    SIP_SESS_DESC_PARAMETER_NOT_UNDERSTOOD = 307,
+                    SIP_MULTICAST_NOT_AVAILABLE = 330,
+                    SIP_UNICAST_NOT_AVAILABLE = 331,
+                    SIP_INSUFFICIENT_BANDWIDTH = 370,
+                    SIP_MISCELLANEOUS_WARNING = 399};
+
+struct SIPWarningField
+{
+  SIPWarningCode code;
+
+  // hostport or pseudonym. Used for debugging
+  QString warnAgent;
+  QString warnText;
+};
+
+
+
+enum SIPPriorityField {SIP_NO_PRIORITY,
+                       SIP_UNKNOWN_PRIORITY,
+                       SIP_EMERGENCY,
+                       SIP_URGENT,
+                       SIP_NORMAL,
+                       SIP_NONURGENT};
+
+
+// - Mandatory: the processing will fail if the field is not included.
+// - Should: field should be there, but client is able to receive the
+//   message without that field.
 struct SIPMessageHeader
 {
-  uint maxForwards;
+  // always mandatory
   QString callID; // in form callid@host
   ToFrom from;
   ToFrom to;
+  QList<ViaField> vias;   // from via-fields. Send responses here by copying these.
+  CSeqField cSeq;
+  MediaType contentType = MT_NONE; // tells what is in QVariant content
+  uint32_t contentLength = 0;  // set by SIPTransport when sending
 
-  QList<ViaInfo> vias;   // from via-fields. Send responses here by copying these.
+  uint maxForwards = 0; // mandatory in requests, not present in responses
 
-  NameAddr contact;  // Contact field. Send requests here. Mandatory in INVITE requests
+  // should be included in INVITE and INVITE OK response
+  QStringList supported = {"ice"};
+  SIPRouteLocation contact;  // Mandatory in INVITE requests
 
-  uint32_t cSeq; // must be less than 2^31
-  SIPRequestMethod transactionRequest;
+  QStringList unsupported; // mandatory and only allowed in 420 response
+
+  QList<Accept> accept;
+  QStringList acceptEncoding;
+  QStringList acceptLanguage;
+
+  QList<SIPRequestMethod> allow;
+
+  QList<SIPInfo> alertInfos;
+  QList<SIPInfo> callInfos;
+  QList<SIPInfo> errorInfos;
+
+  ContentDisposition disposition;
+  QStringList contentEncoding;
+  QStringList contentLanguage;
+
+  SIPDateField date;
 
   uint32_t expires;
+  uint32_t minExpires;
 
-  QString userAgent;
-  QString server;
+  QString inReplyToCallID = "";
+  QString mimeVersion = "";
 
-  ContentInfo content;
+  QString subject = "";
+  QString organization = "";
 
-  QList<NameAddr> recordRoutes;
-  QList<NameAddr> routes;
+  SIPPriorityField priority;
+
+  // Authentication field
+  std::shared_ptr<DigestChallenge> wwwAuthenticate; // response
+  std::shared_ptr<DigestResponse> authorization;    // request
+
+  std::shared_ptr<DigestChallenge> proxyAuthenticate; // response
+  std::shared_ptr<DigestResponse> proxyAuthorization; // request
+
+  QStringList proxyRequires;
+
+  SIPRouteLocation replyTo;
+
+  QList<SIPRouteLocation> recordRoutes;
+  QList<SIPRouteLocation> routes;
+
+  QStringList server;
+  QStringList userAgent;
+
+  QString timestamp;
+
+  SIPWarningField warning;
 };
-
-const QString SIP_VERSION = "2.0";
 
 
 struct SIPRequest
@@ -250,12 +435,13 @@ struct SIPResponse
   std::shared_ptr<SIPMessageHeader> message;
 };
 
+const QString SIP_VERSION = "2.0";
 
 // these structs are used as a temporary step in parsing and composing SIP messages
 // TODO: Enable recording of several valuesets in SIPMessage
 
 // one set of values for a SIP field. Separated by commas
-struct ValueSet
+struct SIPValueSet
 {
   QStringList words;
   std::shared_ptr<QList<SIPParameter>> parameters;
@@ -264,5 +450,5 @@ struct ValueSet
 struct SIPField
 {
   QString name;
-  QList<ValueSet> valueSets; // separated by comma(,)
+  QList<SIPValueSet> valueSets; // separated by comma(,)
 };

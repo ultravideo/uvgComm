@@ -46,3 +46,6 @@ bool includeRecordRouteField(QList<SIPField>& fields,
 
 bool includeRouteField(QList<SIPField>& fields,
                        std::shared_ptr<SIPMessageHeader> message);
+
+bool includeAuthorizationField(QList<SIPField>& fields,
+                               std::shared_ptr<SIPMessageHeader> message);

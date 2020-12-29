@@ -115,7 +115,7 @@ void SIPManager::bindToServer()
   if (serverAddress != "" && !registrations_.haveWeRegistered())
   {
     std::shared_ptr<SIPTransport> transport = createSIPTransport();
-    transport->createConnection(DEFAULTTRANSPORT, serverAddress);
+    transport->createConnection(DEFAULT_TRANSPORT, serverAddress);
 
     serverToTransportID_[serverAddress] = transport->getTransportID();
 
@@ -142,7 +142,7 @@ uint32_t SIPManager::startCall(NameAddr &address)
     std::shared_ptr<SIPTransport> transport = createSIPTransport();
     transportID = transport->getTransportID(); // Get new transportID
     sessionToTransportID_[sessionID] = transportID;
-    transport->createConnection(DEFAULTTRANSPORT, address.uri.hostport.host);
+    transport->createConnection(DEFAULT_TRANSPORT, address.uri.hostport.host);
     waitingToStart_[transportID] = {sessionID, address};
   }
   else {
@@ -242,10 +242,10 @@ void SIPManager::transportRequest(uint32_t sessionID, SIPRequest &request)
       if(request.method == SIP_ACK && negotiation_.getState(sessionID)
          == NEG_ANSWER_GENERATED)
       {
-        request.message->content.length = 0;
+        request.message->contentLength = 0;
         printNormal(this, "Adding SDP content to request");
 
-        request.message->content.type = APPLICATION_SDP;
+        request.message->contentType = MT_APPLICATION_SDP;
 
         if (!SDPAnswerToContent(content, sessionID))
         {
@@ -279,12 +279,12 @@ void SIPManager::transportResponse(uint32_t sessionID, SIPResponse &response)
       // determine if we to attach SDP to our response
       QVariant content;
       if (response.type == SIP_OK
-          && response.message->transactionRequest == SIP_INVITE
+          && response.message->cSeq.method == SIP_INVITE
           && negotiation_.getState(sessionID) == NEG_NO_STATE)
       {
         printNormal(this, "Adding SDP to an OK response");
-        response.message->content.length = 0;
-        response.message->content.type = APPLICATION_SDP;
+        response.message->contentLength = 0;
+        response.message->contentType = MT_APPLICATION_SDP;
         if (!SDPOfferToContent(content, transports_[transportID]->getLocalAddress(), sessionID))
         {
           return;
@@ -295,8 +295,8 @@ void SIPManager::transportResponse(uint32_t sessionID, SIPResponse &response)
       {
         printNormal(this, "Adding SDP to response since INVITE had an SDP.");
 
-        response.message->content.length = 0;
-        response.message->content.type = APPLICATION_SDP;
+        response.message->contentLength = 0;
+        response.message->contentType = MT_APPLICATION_SDP;
         if (!SDPAnswerToContent(content, sessionID))
         {
           printError(this, "Failed to get SDP answer to response");
@@ -353,7 +353,7 @@ void SIPManager::processSIPRequest(SIPRequest& request, QString localAddress,
       sessionToTransportID_[sessionID] = transportID;
 
       if((request.method == SIP_INVITE || request.method == SIP_ACK)
-         && request.message->content.type == APPLICATION_SDP)
+         && request.message->contentType == MT_APPLICATION_SDP)
       {
         switch (negotiation_.getState(sessionID))
         {
@@ -430,9 +430,9 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
     return;
   }
 
-  if(response.message->transactionRequest == SIP_INVITE && response.type == SIP_OK)
+  if(response.message->cSeq.method == SIP_INVITE && response.type == SIP_OK)
   {
-    if(response.message->content.type == APPLICATION_SDP)
+    if(response.message->contentType == MT_APPLICATION_SDP)
     {
       if(sessionToTransportID_.find(sessionID) == sessionToTransportID_.end())
       {

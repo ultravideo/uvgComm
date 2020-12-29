@@ -59,7 +59,7 @@ void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageHeader> &i
 
   if(callID_ != "")
   {
-    if(correctRequestDialog(inMessage, SIP_INVITE, inMessage->cSeq))
+    if(correctRequestDialog(inMessage, SIP_INVITE, inMessage->cSeq.cSeq))
     {
       printDebug(DEBUG_PROGRAM_ERROR, "SIPDialogState",
                  "Re-INVITE should be processed differently.");
@@ -78,7 +78,7 @@ void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageHeader> &i
   remoteURI_ = inMessage->from.address;
 
   // in future we will address our requests to their contact address
-  requestUri_ = inMessage->contact.uri;
+  requestUri_ = inMessage->contact.address.uri;
 
   localURI_.uri.hostport.host = hostName;
 
@@ -90,7 +90,7 @@ void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageHeader> &i
     // TODO: send an error response.
   }
 
-  remoteCSeq_ = inMessage->cSeq;
+  remoteCSeq_ = inMessage->cSeq.cSeq;
 
    // set the request to tag to local tag value so when sending the response it is already there.
   if(inMessage->to.tag == "")
@@ -129,7 +129,7 @@ void SIPDialogState::getRequestDialogInfo(SIPRequest &outRequest)
               {"CSeq"}, {QString::number(localCSeq_)});
   }
 
-  outRequest.message->cSeq = localCSeq_;
+  outRequest.message->cSeq.cSeq = localCSeq_;
 
   outRequest.message->from.address = localURI_;
   outRequest.message->from.tag = localTag_;
@@ -208,7 +208,7 @@ void SIPDialogState::initDialog()
 {
   initLocalURI();
 
-  localTag_ = generateRandomString(TAGLENGTH);
+  localTag_ = generateRandomString(TAG_LENGTH);
   callID_ = generateRandomString(CALLIDLENGTH);
   if(localURI_.uri.hostport.host != "")
   {
@@ -227,7 +227,7 @@ void SIPDialogState::setDialog(QString callID)
 
   if(localTag_ == "")
   {
-    localTag_ = generateRandomString(TAGLENGTH);
+    localTag_ = generateRandomString(TAG_LENGTH);
   }
 }
 
@@ -240,7 +240,7 @@ void SIPDialogState::initLocalURI()
   localURI_.realname = settings.value("local/Name").toString();
   localURI_.uri.userinfo.user = getLocalUsername();
   localURI_.uri.hostport.host = settings.value("sip/ServerAddress").toString();
-  localURI_.uri.type = DEFAULTSIPTYPE;
+  localURI_.uri.type = DEFAULT_SIP_TYPE;
   localURI_.uri.hostport.port = 0; // port is added later if needed
 
   if(localURI_.uri.userinfo.user.isEmpty())
@@ -250,7 +250,7 @@ void SIPDialogState::initLocalURI()
 }
 
 
-void SIPDialogState::setRoute(QList<NameAddr>& route)
+void SIPDialogState::setRoute(QList<SIPRouteLocation>& route)
 {
   route_ = route;
 }

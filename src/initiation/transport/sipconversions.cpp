@@ -86,7 +86,7 @@ QString responseToPhrase(SIPResponseStatus response)
 }
 
 // connection type and string
-Transport stringToConnection(QString type)
+SIPTransportProtocol stringToConnection(QString type)
 {
   if(type == "UDP")
   {
@@ -107,7 +107,7 @@ Transport stringToConnection(QString type)
   return NONE;
 }
 
-QString connectionToString(Transport connection)
+QString connectionToString(SIPTransportProtocol connection)
 {
   switch(connection)
   {
@@ -132,20 +132,20 @@ QString connectionToString(Transport connection)
   return "";
 }
 
-ContentType stringToContentType(QString typeStr)
+MediaType stringToContentType(QString typeStr)
 {
   if(typeStr == "application/sdp")
   {
-    return APPLICATION_SDP;
+    return MT_APPLICATION_SDP;
   }
-  return NO_CONTENT;
+  return MT_NONE;
 }
 
-QString contentTypeToString(ContentType type)
+QString contentTypeToString(MediaType type)
 {
   switch(type)
   {
-  case APPLICATION_SDP:
+  case MT_APPLICATION_SDP:
   {
     return "application/sdp";
   }

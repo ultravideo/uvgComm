@@ -22,7 +22,7 @@ bool SIPClient::processResponse(SIPResponse& response,
 
   int responseCode = response.type;
 
-  if (!checkTransactionType(response.message->transactionRequest))
+  if (!checkTransactionType(response.message->cSeq.method))
   {
     printPeerError(this, "Their response transaction type is not the same as our request!");
     return false;
@@ -32,7 +32,7 @@ bool SIPClient::processResponse(SIPResponse& response,
   if (responseCode >= 100 && responseCode <= 199)
   {
     printNormal(this, "Got a provisional response. Restarting timer.");
-    if (response.message->transactionRequest == SIP_INVITE &&
+    if (response.message->cSeq.method == SIP_INVITE &&
         responseCode == SIP_RINGING)
     {
       startTimeoutTimer(INVITE_TIMEOUT);
@@ -77,18 +77,19 @@ bool SIPClient::processResponse(SIPResponse& response,
 
 
 void SIPClient::getRequestMessageInfo(SIPRequestMethod type,
-                                                 std::shared_ptr<SIPMessageHeader>& outMessage)
+                                      std::shared_ptr<SIPMessageHeader>& outMessage)
 {
   outMessage = std::shared_ptr<SIPMessageHeader> (new SIPMessageHeader);
-  outMessage->transactionRequest = type;
+  outMessage->cSeq.cSeq = 0; // invalid, should be set in dialog
+  outMessage->cSeq.method = type;
 
-  outMessage->maxForwards = 71;
-  outMessage->cSeq = 0; // invalid, should be set in dialog
-  outMessage->content.type = NO_CONTENT;
-  outMessage->content.length = 0;
+  outMessage->maxForwards = 71; // TODO: This should be 0 if response
 
-  ViaInfo via = ViaInfo{DEFAULTTRANSPORT, SIP_VERSION, "", 0,
-          QString("z9hG4bK" + generateRandomString(BRANCHLENGTH)), false, false, 0, ""};
+  outMessage->contentType = MT_NONE;
+  outMessage->contentLength = 0;
+
+  ViaField via = ViaField{SIP_VERSION, DEFAULT_TRANSPORT, "", 0,
+      QString(MAGIC_COOKIE + generateRandomString(BRANCH_TAIL_LENGTH)), false, false, 0, "", {}};
   outMessage->vias.push_back(via);
 
   // INVITE has the same timeout as rest of them. Only after RINGING reply do we increase timeout
