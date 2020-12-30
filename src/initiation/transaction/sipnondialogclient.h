@@ -33,5 +33,5 @@ private:
 
   SIP_URI remoteUri_;
 
-  unsigned int expires_;
+  uint32_t expires_;
 };

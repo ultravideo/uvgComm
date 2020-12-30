@@ -103,9 +103,17 @@ bool SIPDialog::processResponse(SIPResponse& response)
 {
   // TODO: prechecks that the response is ok, then modify program state.
 
-  if (response.type == SIP_OK && response.message->cSeq.method == SIP_INVITE)
+  if (response.message == nullptr)
   {
-    state_.setRequestUri(response.message->contact.address.uri);
+    printProgramError(this, "SIPDialog got a message without header");
+    return false;
+  }
+
+  if (response.type == SIP_OK &&
+      response.message->cSeq.method == SIP_INVITE &&
+      !response.message->contact.empty())
+  {
+    state_.setRequestUri(response.message->contact.first().address.uri);
   }
 
   if(!client_.processResponse(response, state_))

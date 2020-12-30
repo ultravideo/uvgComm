@@ -119,8 +119,8 @@ void SIPServer::getResponseMessage(std::shared_ptr<SIPMessageHeader> &outMessage
     return;
   }
   copyMessageDetails(receivedRequest_, outMessage);
-  outMessage->maxForwards = 71;
-  outMessage->contact = {{"", SIP_URI{DEFAULT_SIP_TYPE, {"", ""}, {"", 0}, {}, {}}}, {}};
+  outMessage->maxForwards = nullptr; // no max-forwards in responses
+
   outMessage->contentLength = 0;
   outMessage->contentType = MT_NONE;
 
@@ -188,5 +188,8 @@ void SIPServer::copyMessageDetails(std::shared_ptr<SIPMessageHeader>& inMessage,
 bool SIPServer::isCancelYours(std::shared_ptr<SIPMessageHeader> cancel)
 {
   // TODO: Check more info
-  return receivedRequest_->vias.first().branch == cancel->vias.first().branch;
+  return receivedRequest_ != nullptr &&
+      !receivedRequest_->vias.empty() &&
+      !cancel->vias.empty() &&
+      receivedRequest_->vias.first().branch == cancel->vias.first().branch;
 }

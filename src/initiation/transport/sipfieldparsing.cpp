@@ -15,7 +15,11 @@ bool parseSIPRouteLocation(const SIPValueSet &valueSet, SIPRouteLocation& locati
 bool parseUritype(QString type, SIPType &out_Type);
 bool parseParameterNameToValue(std::shared_ptr<QList<SIPParameter>> parameters,
                                QString name, QString& value);
-bool parseUint(QString values, uint& number);
+bool parseUint64(QString values, uint64_t& number);
+bool parseUint8(QString values, uint8_t& number);
+
+bool preChecks(SIPField& field,
+               std::shared_ptr<SIPMessageHeader> message);
 
 
 bool parseNameAddr(const QStringList &words, NameAddr& nameAddr)
@@ -166,33 +170,73 @@ bool parseParameterNameToValue(std::shared_ptr<QList<SIPParameter>> parameters,
 }
 
 
-bool parseUint(QString values, uint& number)
+bool parseUint64(QString values, uint64_t& number)
 {
   QRegularExpression re_field("(\\d+)");
   QRegularExpressionMatch field_match = re_field.match(values);
 
   if(field_match.hasMatch() && field_match.lastCapturedIndex() == 1)
   {
-    number = values.toUInt();
+    bool ok = false;
+    uint64_t parsedNumber = values.toULongLong(&ok);
+
+    if (!ok)
+    {
+      return false;
+    }
+
+    number = parsedNumber;
     return true;
   }
   return false;
 }
 
+bool parseUint8(QString values, uint8_t& number)
+{
+  uint64_t parsed = 0;
+
+  if (!parseUint64(values, parsed) ||
+      parsed > UINT8_MAX)
+  {
+    return false;
+  }
+
+  number = (uint8_t)parsed;
+  return true;
+}
+
+
+bool preChecks(SIPField& field,
+               std::shared_ptr<SIPMessageHeader> message)
+{
+  Q_ASSERT(message != nullptr);
+  Q_ASSERT(!field.valueSets.empty());
+  Q_ASSERT(!field.valueSets[0].words.empty());
+
+  if (message == nullptr ||
+      field.valueSets.empty() ||
+      field.valueSets[0].words.empty())
+  {
+    printProgramError("SIPFieldParsing", "Parsing prechecks failed");
+    return false;
+  }
+  return true;
+}
+
+
 
 bool parseToField(SIPField& field,
                   std::shared_ptr<SIPMessageHeader> message)
 {
-  Q_ASSERT(message);
-  Q_ASSERT(!field.valueSets.empty());
-
-  if (field.valueSets[0].words.size() >= 1 &&
+  if (!preChecks(field, message) ||
       !parseNameAddr(field.valueSets[0].words, message->to.address))
   {
     return false;
   }
 
+  // to-tag does not exist in first message
   parseParameterNameToValue(field.valueSets[0].parameters, "tag", message->to.tag);
+
   return true;
 }
 
@@ -200,27 +244,22 @@ bool parseToField(SIPField& field,
 bool parseFromField(SIPField& field,
                     std::shared_ptr<SIPMessageHeader> message)
 {
-  Q_ASSERT(message);
-  Q_ASSERT(!field.valueSets.empty());
-
-  if (field.valueSets[0].words.size() >= 1 &&
+  if (!preChecks(field, message) ||
       !parseNameAddr(field.valueSets[0].words, message->from.address))
   {
     return false;
   }
 
-  parseParameterNameToValue(field.valueSets[0].parameters, "tag", message->from.tag);
-  return true;
+  // from tag should always be included
+  return parseParameterNameToValue(field.valueSets[0].parameters, "tag", message->from.tag);
 }
 
 
 bool parseCSeqField(SIPField& field,
                   std::shared_ptr<SIPMessageHeader> message)
 {
-  Q_ASSERT(message);
-  Q_ASSERT(!field.valueSets.empty());
-
-  if (field.valueSets[0].words.size() != 2)
+  if (!preChecks(field, message) ||
+      field.valueSets[0].words.size() != 2)
   {
     return false;
   }
@@ -239,7 +278,8 @@ bool parseCallIDField(SIPField& field,
   Q_ASSERT(message);
   Q_ASSERT(!field.valueSets.empty());
 
-  if (field.valueSets[0].words.size() != 1)
+  if (!preChecks(field, message) ||
+      field.valueSets[0].words.size() != 1)
   {
     return false;
   }
@@ -252,10 +292,8 @@ bool parseCallIDField(SIPField& field,
 bool parseViaField(SIPField& field,
                    std::shared_ptr<SIPMessageHeader> message)
 {
-  Q_ASSERT(message);
-  Q_ASSERT(!field.valueSets.empty());
-
-  if (field.valueSets[0].words.size() != 2)
+  if (!preChecks(field, message) ||
+      field.valueSets[0].words.size() != 2)
   {
     return false;
   }
@@ -312,31 +350,56 @@ bool parseViaField(SIPField& field,
 bool parseMaxForwardsField(SIPField& field,
                            std::shared_ptr<SIPMessageHeader> message)
 {
-  Q_ASSERT(message);
-  Q_ASSERT(!field.valueSets.empty());
+  if (!preChecks(field, message) ||
+      field.valueSets[0].words.size() != 1)
+  {
+    return false;
+  }
 
-  return field.valueSets[0].words.size() == 1 &&
-      parseUint(field.valueSets[0].words[0], message->maxForwards);
+  uint8_t value = 0;
+
+  if (!parseUint8(field.valueSets[0].words[0], value))
+  {
+    return false;
+  }
+
+  field.valueSets[0].words[0], message->maxForwards = std::shared_ptr<uint8_t> (new uint8_t{value});
+  return true;
 }
 
 
 bool parseContactField(SIPField& field,
                        std::shared_ptr<SIPMessageHeader> message)
 {
-  Q_ASSERT(message);
-  Q_ASSERT(!field.valueSets.empty());
-  return field.valueSets[0].words.size() == 1 &&
-      parseNameAddr(field.valueSets[0].words, message->contact.address);
+  if (!preChecks(field, message) ||
+      field.valueSets[0].words.size() != 1)
+  {
+    return false;
+  }
 
-  // TODO: parse expires parameter
+  for(auto& valueSet : field.valueSets)
+  {
+    message->contact.push_back(SIPRouteLocation());
+
+    // TODO: parse parameters
+    if(!parseNameAddr(valueSet.words, message->contact.back().address))
+    {
+      message->contact.pop_back();
+      return false;
+    }
+  }
+
+  return true;
 }
 
 
 bool parseContentTypeField(SIPField& field,
                            std::shared_ptr<SIPMessageHeader> message)
 {
-  Q_ASSERT(message);
-  Q_ASSERT(!field.valueSets.empty());
+  if (!preChecks(field, message))
+  {
+    return false;
+  }
 
   QRegularExpression re_field("(\\w+/\\w+)");
   QRegularExpressionMatch field_match = re_field.match(field.valueSets[0].words[0]);
@@ -353,10 +416,9 @@ bool parseContentTypeField(SIPField& field,
 bool parseContentLengthField(SIPField& field,
                              std::shared_ptr<SIPMessageHeader> message)
 {
-  Q_ASSERT(message);
-  Q_ASSERT(!field.valueSets.empty());
-  return field.valueSets[0].words.size() == 1 &&
-      parseUint(field.valueSets[0].words[0], message->contentLength);
+  return preChecks(field, message) &&
+      field.valueSets[0].words.size() == 1 &&
+      parseUint64(field.valueSets[0].words[0], message->contentLength);
 }
 
 

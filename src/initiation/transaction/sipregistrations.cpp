@@ -148,8 +148,8 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
             {
               i.second->status = RE_REGISTRATION;
               printNormal(this, "Sending the final NAT REGISTER");
-              i.second->contactAddress = response.message->contact.address.uri.hostport.host;
-              i.second->contactPort = response.message->contact.address.uri.hostport.port;
+              i.second->contactAddress = response.message->contact.first().address.uri.hostport.host;
+              i.second->contactPort = response.message->contact.first().address.uri.hostport.port;
               // makes sure we don't end up in infinite loop if the address doesn't match
 
               statusView_->updateServerStatus("Behind NAT, updating address...");

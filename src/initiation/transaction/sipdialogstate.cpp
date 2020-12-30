@@ -78,7 +78,7 @@ void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageHeader> &i
   remoteURI_ = inMessage->from.address;
 
   // in future we will address our requests to their contact address
-  requestUri_ = inMessage->contact.address.uri;
+  requestUri_ = inMessage->contact.first().address.uri;
 
   localURI_.uri.hostport.host = hostName;
 
@@ -92,7 +92,8 @@ void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageHeader> &i
 
   remoteCSeq_ = inMessage->cSeq.cSeq;
 
-   // set the request to tag to local tag value so when sending the response it is already there.
+  // Set the request to tag to local tag value so when sending the response
+  // it is already there.
   if(inMessage->to.tag == "")
   {
     inMessage->to.tag = localTag_;

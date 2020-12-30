@@ -262,7 +262,8 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
     return;
   }
 
-  if (!includeRouteField(fields, request.message))
+  if (!request.message->routes.empty() &&
+      !includeRouteField(fields, request.message))
   {
     printDebug(DEBUG_PROGRAM_ERROR, this,  "Failed to add Route-fields");
   }
@@ -275,7 +276,8 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
   }
 
   if (request.method == SIP_REGISTER &&
-      !includeExpiresField(fields, request.message->expires))
+      (request.message->expires == nullptr ||
+      !includeExpiresField(fields, *request.message->expires)))
   {
     printDebug(DEBUG_PROGRAM_ERROR, this,  "Failed to add expires-field");
     return;
@@ -524,7 +526,9 @@ void SIPTransport::networkPackage(QString package)
                                         package, connection_->remoteAddress().toString());
         }
 
-        if (!parseResponse(response_match.captured(2), response_match.captured(1), response_match.captured(3),
+        if (!parseResponse(response_match.captured(2),
+                           response_match.captured(1),
+                           response_match.captured(3),
                            fields, body))
         {
           qDebug() << "ERROR: Failed to parse response: " << response_match.captured(2);
@@ -612,7 +616,6 @@ bool SIPTransport::parsePackage(QString package, QStringList& headers, QStringLi
 
 bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPField>& fields)
 {
-  // RFC3261_TODO: support header fields that span multiple lines
   // Divide into lines
   QStringList lines = header.split("\r\n", QString::SkipEmptyParts);
   qDebug() << "Parsing SIP header with" << lines.size() << "lines";
@@ -637,20 +640,7 @@ bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPF
         parseFieldValueSets(lines[i], valueSets))
     {
       // Check the correct number of valueSets for Field
-
-      if (field.name != "Contact" &&
-          field.name != "Supported" &&
-          field.name != "Allow")
-      {
-        if (valueSets.size() != 1)
-        {
-          printDebug(DEBUG_PEER_ERROR, this,
-                     "Incorrect amount of comma separated sets in field",
-                      {"Amount"}, {QString::number(valueSets.size())});
-          return false;
-        }
-      }
-      else if (valueSets.size() == 0 || valueSets.size() > 100)
+      if (valueSets.size() == 0 || valueSets.size() > 100)
       {
         printDebug(DEBUG_PEER_ERROR, this,
                    "Incorrect amount of comma separated sets in field",
@@ -686,7 +676,7 @@ bool SIPTransport::combineContinuationLines(QStringList& lines)
 {
   for (int i = 1; i < lines.size(); ++i)
   {
-    // combine current line with previous
+    // combine current line with previous if there a space at the beginning
     if (lines.at(i).front().isSpace())
     {
       printNormal(this,  "Found a continuation line");

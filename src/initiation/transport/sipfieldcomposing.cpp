@@ -326,15 +326,16 @@ bool includeViaFields(QList<SIPField> &fields,
 bool includeMaxForwardsField(QList<SIPField> &fields,
                              std::shared_ptr<SIPMessageHeader> message)
 {
-  Q_ASSERT(message->maxForwards != 0);
-  if(message->maxForwards == 0)
+  Q_ASSERT(message-> maxForwards != nullptr);
+  Q_ASSERT(*message->maxForwards != 0);
+  if (message-> maxForwards == nullptr || *message->maxForwards == 0)
   {
-    qDebug() << "WARNING: Max-forwards field failed";
+    printProgramError("SIPFieldComposing", "Failed to include Max-Forwards field");
     return false;
   }
 
   SIPField field = {"Max-Forwards",
-                    QList<SIPValueSet>{SIPValueSet{{QString::number(message->maxForwards)}, nullptr}}};
+                    QList<SIPValueSet>{SIPValueSet{{QString::number(*message->maxForwards)}, nullptr}}};
   fields.push_back(field);
   return true;
 }
@@ -342,23 +343,34 @@ bool includeMaxForwardsField(QList<SIPField> &fields,
 bool includeContactField(QList<SIPField> &fields,
                          std::shared_ptr<SIPMessageHeader> message)
 {
-  Q_ASSERT(message->contact.address.uri.userinfo.user != "" &&
-      message->contact.address.uri.hostport.host != "");
-  if(message->contact.address.uri.userinfo.user == "" ||
-     message->contact.address.uri.hostport.host == "")
+  Q_ASSERT(!message->contact.empty());
+  if (message->contact.empty())
   {
-    printProgramError("SIPFieldComposing", "Failed to add contact-field!");
     return false;
   }
 
-  SIPField field = {"Contact", QList<SIPValueSet>{{{}, nullptr}}};
+  SIPField field = {"Contact", QList<SIPValueSet>{}};
 
-  message->contact.address.realname = "";
-  message->contact.address.uri.uri_parameters.push_back({"transport", "tcp"});
-
-  if (!composeSIPRouteLocation(message->contact, field.valueSets[0]))
+  for(auto& contact : message->contact)
   {
-    return false;
+    Q_ASSERT(contact.address.uri.userinfo.user != "" &&
+             contact.address.uri.hostport.host != "");
+    if(contact.address.uri.userinfo.user == "" ||
+       contact.address.uri.hostport.host == "")
+    {
+      printProgramError("SIPFieldComposing", "Failed to include Contact-field");
+      return false;
+    }
+
+    contact.address.realname = "";
+    contact.address.uri.uri_parameters.push_back({"transport", "tcp"});
+
+    field.valueSets.push_back({{}, nullptr});
+
+    if (!composeSIPRouteLocation(contact, field.valueSets.back()))
+    {
+      return false;
+    }
   }
 
   fields.push_back(field);

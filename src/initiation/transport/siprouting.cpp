@@ -50,6 +50,9 @@ void SIPRouting::getViaAndContact(std::shared_ptr<SIPMessageHeader> message,
                                    QString localAddress,
                                    uint16_t localPort)
 {
+  // TODO: Via is needed always, but contact is not!
+
+
   // set via-address
   if (!message->vias.empty())
   {
@@ -65,24 +68,24 @@ void SIPRouting::getContactAddress(std::shared_ptr<SIPMessageHeader> message,
                                    QString localAddress, uint16_t localPort,
                                    SIPType type)
 {
-  message->contact = {{"", {type, {getLocalUsername(), ""}, {"", 0}, {}, {}}}, {}};
+  message->contact.push_back({{"", SIP_URI{type, {getLocalUsername(), ""}, {"", 0}, {}, {}}}, {}});
 
     // use rport address and port if we have them, otherwise use localaddress
   if (contactAddress_ != "")
   {
-    message->contact.address.uri.hostport.host = contactAddress_;
+    message->contact.back().address.uri.hostport.host = contactAddress_;
   }
   else
   {
-    message->contact.address.uri.hostport.host = localAddress;
+    message->contact.back().address.uri.hostport.host = localAddress;
   }
 
   if (contactPort_ != 0)
   {
-    message->contact.address.uri.hostport.port = contactPort_;
+    message->contact.back().address.uri.hostport.port = contactPort_;
   }
   else
   {
-    message->contact.address.uri.hostport.port = localPort;
+    message->contact.back().address.uri.hostport.port = localPort;
   }
 }

@@ -83,7 +83,7 @@ void SIPClient::getRequestMessageInfo(SIPRequestMethod type,
   outMessage->cSeq.cSeq = 0; // invalid, should be set in dialog
   outMessage->cSeq.method = type;
 
-  outMessage->maxForwards = 71; // TODO: This should be 0 if response
+  outMessage->maxForwards = std::shared_ptr<uint8_t> (new uint8_t{DEFAULT_MAX_FORWARDS});
 
   outMessage->contentType = MT_NONE;
   outMessage->contentLength = 0;

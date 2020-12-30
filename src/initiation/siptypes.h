@@ -269,7 +269,6 @@ enum MediaType {MT_NONE, MT_UNKNOWN, MT_APPLICATION, MT_APPLICATION_SDP,
 struct Accept
 {
   MediaType type;
-
   std::shared_ptr<SIPParameter> parameter; // optional
 };
 
@@ -346,6 +345,10 @@ enum SIPPriorityField {SIP_NO_PRIORITY,
 // - Mandatory: the processing will fail if the field is not included.
 // - Should: field should be there, but client is able to receive the
 //   message without that field.
+
+// If pointer is null, the field does/should not exist in message
+// This also applies to some of the tables, but not all. Those it
+// does not apply are in a pointer.
 struct SIPMessageHeader
 {
   // always mandatory
@@ -354,54 +357,57 @@ struct SIPMessageHeader
   ToFrom to;
   QList<ViaField> vias;   // from via-fields. Send responses here by copying these.
   CSeqField cSeq;
-  MediaType contentType = MT_NONE; // tells what is in QVariant content
-  uint32_t contentLength = 0;  // set by SIPTransport when sending
+  MediaType contentType = MT_NONE; // tells what is in content
+  uint64_t contentLength = 0;      // set by SIPTransport when sending
 
-  uint maxForwards = 0; // mandatory in requests, not present in responses
+  std::shared_ptr<uint8_t> maxForwards = 0; // mandatory in requests, not present in responses
 
-  // should be included in INVITE and INVITE OK response
-  QStringList supported = {"ice"};
-  SIPRouteLocation contact;  // Mandatory in INVITE requests
+  // In INVITE and INVITE OK response
+  std::shared_ptr<QStringList> supported;    // Should include atleast ice
+  QList<SIPRouteLocation> contact; // Mandatory
 
   QStringList unsupported; // mandatory and only allowed in 420 response
 
-  QList<Accept> accept;
-  QStringList acceptEncoding;
-  QStringList acceptLanguage;
+  std::shared_ptr<QList<Accept>> accept;
+  std::shared_ptr<QStringList> acceptEncoding;
+  std::shared_ptr<QStringList> acceptLanguage;
 
-  QList<SIPRequestMethod> allow;
+  // recommended that this is included in INVITE unless security is a concern
+  std::shared_ptr<QList<SIPRequestMethod>> allow;
 
+  // not present if empty
   QList<SIPInfo> alertInfos;
   QList<SIPInfo> callInfos;
   QList<SIPInfo> errorInfos;
 
-  ContentDisposition disposition;
+  std::shared_ptr<ContentDisposition> contentDisposition;
   QStringList contentEncoding;
   QStringList contentLanguage;
 
-  SIPDateField date;
+  std::shared_ptr<SIPDateField> date;
+  QString timestamp = "";
 
-  uint32_t expires;
-  uint32_t minExpires;
+  std::shared_ptr<uint32_t> expires;
+  std::shared_ptr<uint32_t> minExpires;
 
-  QString inReplyToCallID = "";
-  QString mimeVersion = "";
+  QString inReplyToCallID = ""; // to be ignore if empty
+  std::shared_ptr<SIPRouteLocation> replyTo = nullptr;
+  QString mimeVersion = "";     // to be ignore if empty
 
-  QString subject = "";
-  QString organization = "";
+  QString subjectField = "";    // to be ignored if empty
+  QString organization = "";    // to be ignored if empty
 
-  SIPPriorityField priority;
+  SIPPriorityField priority = SIP_NO_PRIORITY;
 
-  // Authentication field
-  std::shared_ptr<DigestChallenge> wwwAuthenticate; // response
-  std::shared_ptr<DigestResponse> authorization;    // request
+  // user-to-user authentication
+  std::shared_ptr<DigestChallenge> wwwAuthenticate = nullptr; // 401 or 407 response
+  std::shared_ptr<DigestResponse> authorization    = nullptr; // requests
 
-  std::shared_ptr<DigestChallenge> proxyAuthenticate; // response
-  std::shared_ptr<DigestResponse> proxyAuthorization; // request
+  // user-to-proxy authentication
+  std::shared_ptr<DigestChallenge> proxyAuthenticate = nullptr; // 401 or 407 response
+  std::shared_ptr<DigestResponse> proxyAuthorization = nullptr; // request
 
-  QStringList proxyRequires;
-
-  SIPRouteLocation replyTo;
+  QStringList proxyRequires; // does not exist if empty
 
   QList<SIPRouteLocation> recordRoutes;
   QList<SIPRouteLocation> routes;
@@ -409,10 +415,12 @@ struct SIPMessageHeader
   QStringList server;
   QStringList userAgent;
 
-  QString timestamp;
-
-  SIPWarningField warning;
+  std::shared_ptr<SIPWarningField> warning = nullptr;
 };
+
+// 71 is recommended by specification
+// the purpose of max-forwards is to avoid infinite routing loops.
+const uint8_t DEFAULT_MAX_FORWARDS = 71;
 
 
 struct SIPRequest
