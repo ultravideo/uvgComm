@@ -256,20 +256,20 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
   // First we turn the struct to fields which are then turned to string
   QList<SIPField> fields;
   if (!composeMandatoryFields(fields, request.message) ||
-      !includeMaxForwardsField(fields, request.message))
+      !includeMaxForwardsField(fields, request.message->maxForwards))
   {
     qDebug() << "WARNING: Failed to add all the fields. Probably because of missing values.";
     return;
   }
 
   if (!request.message->routes.empty() &&
-      !includeRouteField(fields, request.message))
+      !includeRouteField(fields, request.message->routes))
   {
     printDebug(DEBUG_PROGRAM_ERROR, this,  "Failed to add Route-fields");
   }
 
   if ((request.method == SIP_INVITE || request.method == SIP_REGISTER) &&
-      !includeContactField(fields, request.message))
+      !includeContactField(fields, request.message->contact))
   {
    qDebug() << "WARNING: Failed to add Contact field. Probably because of missing values.";
    return;
@@ -335,7 +335,7 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
     return;
   }
 
-  if (!includeRecordRouteField(fields, response.message))
+  if (!includeRecordRouteField(fields, response.message->recordRoutes))
   {
     printDebug(DEBUG_PROGRAM_ERROR, this,  "Failed to add RecordRoute-fields");
   }
@@ -345,7 +345,7 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
                              connection_->localPort(), DEFAULT_SIP_TYPE);
 
   if (response.message->cSeq.method == SIP_INVITE && response.type == SIP_OK &&
-      !includeContactField(fields, response.message))
+      !includeContactField(fields, response.message->contact))
   {
     qDebug() << "ERROR: Failed to compose contact field for SIP OK response.";
   }
@@ -382,11 +382,11 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
 bool SIPTransport::composeMandatoryFields(QList<SIPField>& fields,
                                           std::shared_ptr<SIPMessageHeader> message)
 {
-  return includeViaFields(fields, message) &&
-         includeToField(fields, message) &&
-         includeFromField(fields, message) &&
-         includeCallIDField(fields, message) &&
-         includeCSeqField(fields, message);
+  return includeViaFields(fields, message->vias) &&
+         includeToField(fields, message->to) &&
+         includeFromField(fields, message->from) &&
+         includeCallIDField(fields, message->callID) &&
+         includeCSeqField(fields, message->cSeq);
 }
 
 QString SIPTransport::fieldsToString(QList<SIPField>& fields, QString lineEnding)

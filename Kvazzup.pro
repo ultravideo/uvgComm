@@ -55,6 +55,7 @@ SOURCES +=\
     src/initiation/transaction/sipregistrations.cpp \
     src/initiation/transaction/sipserver.cpp \
     src/initiation/transport/connectionserver.cpp \
+    src/initiation/transport/sipcomposinghelper.cpp \
     src/initiation/transport/sipconversions.cpp \
     src/initiation/transport/sipfieldcomposing.cpp \
     src/initiation/transport/sipfieldparsing.cpp \
@@ -135,6 +136,7 @@ HEADERS  += \
     src/initiation/transaction/sipregistrations.h \
     src/initiation/transaction/sipserver.h \
     src/initiation/transport/connectionserver.h \
+    src/initiation/transport/sipcomposinghelper.h \
     src/initiation/transport/sipconversions.h \
     src/initiation/transport/sipfieldcomposing.h \
     src/initiation/transport/sipfieldparsing.h \
