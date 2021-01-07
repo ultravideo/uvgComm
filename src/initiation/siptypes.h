@@ -252,7 +252,7 @@ struct DigestResponse
   QString authParam;
 };
 
-struct AuthInfo
+struct SIPAuthInfo
 {
   QString nextNonce;
   QString messageQop;
@@ -310,6 +310,13 @@ struct SIPDateField
   QString timezone;
 };
 
+struct SIPRetryAfter
+{
+  uint32_t time;
+  uint32_t duration = 0;
+  QList<SIPParameter> parameters;
+};
+
 enum SIPWarningCode {SIP_INCOMPATIBLE_NET_PROTOCOL = 300,
                     SIP_INCOMPATIBLE_ADDRESS_FORMAT = 301,
                     SIP_INCOMPATIBLE_TRANSPORT_PROTOCOL = 302,
@@ -351,75 +358,66 @@ enum SIPPriorityField {SIP_NO_PRIORITY,
 // does not apply are in a pointer.
 struct SIPMessageHeader
 {
-  // always mandatory
-  QString callID; // in form callid@host
-  ToFrom from;
-  ToFrom to;
-  QList<ViaField> vias;   // from via-fields. Send responses here by copying these.
-  CSeqField cSeq;
-  MediaType contentType = MT_NONE; // tells what is in content
-  uint64_t contentLength = 0;      // set by SIPTransport when sending
+  // callID, cSeq, from, to and via fields are copied from request to response.
+  // Max-Forwards is mandatory in requests and not allowed in responses
 
-  std::shared_ptr<uint8_t> maxForwards = 0; // mandatory in requests, not present in responses
+  // INVITE and INVITE 2xx response must include contact and supported field
 
-  // In INVITE and INVITE OK response
-  std::shared_ptr<QStringList> supported;    // Should include atleast ice
-  QList<SIPRouteLocation> contact; // Mandatory
+  // More details on which fields belong in which message and their purpose are
+  // listed in RFC 3261 section 20. Details of field BNF forms are given in section 25.
 
-  QStringList unsupported; // mandatory and only allowed in 420 response
+  // Each variable represents one field. Fields are in alphabetical order.
+  // Unless it has the comment mandatory, the default value is set so that field
+  // does not exist.
 
-  std::shared_ptr<QList<Accept>> accept;
-  std::shared_ptr<QStringList> acceptEncoding;
-  std::shared_ptr<QStringList> acceptLanguage;
-
-  // recommended that this is included in INVITE unless security is a concern
-  std::shared_ptr<QList<SIPRequestMethod>> allow;
-
-  // not present if empty
-  QList<SIPInfo> alertInfos;
-  QList<SIPInfo> callInfos;
-  QList<SIPInfo> errorInfos;
-
-  std::shared_ptr<ContentDisposition> contentDisposition;
-  QStringList contentEncoding;
-  QStringList contentLanguage;
-
-  std::shared_ptr<SIPDateField> date;
-  QString timestamp = "";
-
-  std::shared_ptr<uint32_t> expires;
-  std::shared_ptr<uint32_t> minExpires;
-
-  QString inReplyToCallID = ""; // to be ignore if empty
-  std::shared_ptr<SIPRouteLocation> replyTo = nullptr;
-  QString mimeVersion = "";     // to be ignore if empty
-
-  QString subjectField = "";    // to be ignored if empty
-  QString organization = "";    // to be ignored if empty
-
-  SIPPriorityField priority = SIP_NO_PRIORITY;
-
-  // user-to-user authentication
-  std::shared_ptr<DigestChallenge> wwwAuthenticate = nullptr; // 401 or 407 response
-  std::shared_ptr<DigestResponse> authorization    = nullptr; // requests
-
-  // user-to-proxy authentication
-  std::shared_ptr<DigestChallenge> proxyAuthenticate = nullptr; // 401 or 407 response
-  std::shared_ptr<DigestResponse> proxyAuthorization = nullptr; // request
-
-  QStringList proxyRequires; // does not exist if empty
-
-  QList<SIPRouteLocation> recordRoutes;
-  QList<SIPRouteLocation> routes;
-
-  QStringList server;
-  QStringList userAgent;
-
-  std::shared_ptr<SIPWarningField> warning = nullptr;
+  std::shared_ptr<QList<Accept>>           accept = nullptr;
+  std::shared_ptr<QStringList>             acceptEncoding = nullptr;
+  std::shared_ptr<QStringList>             acceptLanguage = nullptr;
+  QList<SIPInfo>                           alertInfos = {};
+  std::shared_ptr<QList<SIPRequestMethod>> allow = nullptr;
+  QList<SIPAuthInfo>                       authInfos  = {};
+  std::shared_ptr<DigestResponse>          authorization = nullptr;
+  QString                                  callID = ""; // mandatory
+  QList<SIPInfo>                           callInfos = {};
+  QList<SIPRouteLocation>                  contact = {};
+  std::shared_ptr<ContentDisposition>      contentDisposition = nullptr;
+  QStringList                              contentEncoding = {};
+  QStringList                              contentLanguage = {};
+  uint64_t                                 contentLength = 0;  // mandatory
+  MediaType                                contentType = MT_NONE; // mandatory
+  CSeqField                                cSeq; // mandatory
+  std::shared_ptr<SIPDateField>            date = nullptr;
+  QList<SIPInfo>                           errorInfos = {};
+  std::shared_ptr<uint32_t>                expires = nullptr;
+  ToFrom                                   from; // mandatory
+  QString                                  inReplyToCallID = "";
+  std::shared_ptr<uint8_t>                 maxForwards = nullptr;
+  std::shared_ptr<uint32_t>                minExpires = nullptr;
+  QString                                  mimeVersion = "";
+  QString                                  organization = "";
+  SIPPriorityField                         priority = SIP_NO_PRIORITY;
+  std::shared_ptr<DigestChallenge>         proxyAuthenticate = nullptr;
+  std::shared_ptr<DigestResponse>          proxyAuthorization = nullptr;
+  QStringList                              proxyRequires = {};
+  QList<SIPRouteLocation>                  recordRoutes = {};
+  std::shared_ptr<SIPRouteLocation>        replyTo = nullptr;
+  QStringList                              require= {};
+  std::shared_ptr<SIPRetryAfter>           retryAfter = nullptr;
+  QList<SIPRouteLocation>                  routes = {};
+  QStringList                              server = {};
+  QString                                  subject = "";
+  std::shared_ptr<QStringList>             supported = nullptr;
+  QString                                  timestamp = "";
+  ToFrom                                   to; // mandatory
+  QStringList                              unsupported = {};
+  QStringList                              userAgent = {};
+  QList<ViaField>                          vias = {}; // mandatory
+  std::shared_ptr<SIPWarningField>         warning = nullptr;
+  std::shared_ptr<DigestChallenge>         wwwAuthenticate = nullptr;
 };
 
 // 71 is recommended by specification
-// the purpose of max-forwards is to avoid infinite routing loops.
+// The purpose of max-forwards is to avoid infinite routing loops.
 const uint8_t DEFAULT_MAX_FORWARDS = 71;
 
 
