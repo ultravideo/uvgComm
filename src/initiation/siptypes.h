@@ -375,7 +375,7 @@ struct SIPMessageHeader
   // Unless it has the comment mandatory, the default value is set so that field
   // does not exist.
 
-  std::shared_ptr<QList<SIPAccept>>           accept = nullptr;
+  std::shared_ptr<QList<SIPAccept>>        accept = nullptr;
   std::shared_ptr<QStringList>             acceptEncoding = nullptr;
   std::shared_ptr<QStringList>             acceptLanguage = nullptr;
   QList<SIPInfo>                           alertInfos = {};

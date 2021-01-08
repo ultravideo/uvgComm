@@ -62,6 +62,7 @@ SOURCES +=\
     src/initiation/transport/sipmessagesanity.cpp \
     src/initiation/transport/siprouting.cpp \
     src/initiation/transport/siptransport.cpp \
+    src/initiation/transport/siptransporthelper.cpp \
     src/initiation/transport/tcpconnection.cpp \
     src/kvazzupcontroller.cpp \
     src/main.cpp \
@@ -143,6 +144,7 @@ HEADERS  += \
     src/initiation/transport/sipmessagesanity.h \
     src/initiation/transport/siprouting.h \
     src/initiation/transport/siptransport.h \
+    src/initiation/transport/siptransporthelper.h \
     src/initiation/transport/tcpconnection.h \
     src/kvazzupcontroller.h \
     src/media/delivery/delivery.h \
