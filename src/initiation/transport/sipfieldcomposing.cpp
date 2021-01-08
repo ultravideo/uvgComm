@@ -66,9 +66,29 @@ bool getFirstResponseLine(QString& line, SIPResponse& response,
 
 
 bool includeAcceptField(QList<SIPField>& fields,
-                        const std::shared_ptr<QList<Accept> > accepts)
+                        const std::shared_ptr<QList<SIPAccept>> accepts)
 {
-  return false;
+  if (accepts == nullptr)
+  {
+    return false;
+  }
+  // empty list is also legal
+  fields.push_back({"Accept",{}});
+
+  for (auto& accept : *accepts)
+  {
+    fields.back().valueSets.push_back({{contentTypeToString(accept.type)},{}});
+
+    if (accept.parameter != nullptr)
+    {
+      if (!addParameter(fields.back().valueSets.back().parameters, *accept.parameter))
+      {
+        printProgramWarning("SIP Field Composing", "Failed to add Accpet field parameter");
+      }
+    }
+  }
+
+  return true;
 }
 
 
@@ -216,25 +236,33 @@ bool includeContentLengthField(QList<SIPField> &fields,
                                uint32_t contentLenght)
 {
   SIPField field = {"Content-Length",
-                    QList<SIPValueSet>{SIPValueSet{{QString::number(contentLenght)}, nullptr}}};
+                    QList<SIPValueSet>{SIPValueSet{{QString::number(contentLenght)},
+                                                   nullptr}}};
   fields.push_back(field);
   return true;
 }
 
 
 bool includeContentTypeField(QList<SIPField> &fields,
-                             QString contentType)
+                             MediaType contentType)
 {
-  Q_ASSERT(contentType != "");
-  if(contentType == "")
+  Q_ASSERT(contentType != MT_UNKNOWN);
+  if(contentType == MT_UNKNOWN)
   {
     printProgramWarning("SIP Field Composing", "Content-type field failed.");
     return false;
   }
-  SIPField field = {"Content-Type",
-                    QList<SIPValueSet>{SIPValueSet{{contentType}, nullptr}}};
-  fields.push_back(field);
-  return true;
+
+  if (contentType != MT_NONE)
+  {
+    SIPField field = {"Content-Type",
+                      QList<SIPValueSet>{SIPValueSet{{contentTypeToString(contentType)},
+                                                     nullptr}}};
+    fields.push_back(field);
+    return true;
+  }
+
+  return false; // type is not added if it is none
 }
 
 

@@ -10,8 +10,10 @@ bool getFirstResponseLine(QString& line, SIPResponse& response, QString lineEndi
 // These functions work as follows: Create a field based on necessary info from
 // the parameter and add the field to list. Later the fields are converted to string.
 
+// returns whether the field was added
+
 bool includeAcceptField(QList<SIPField>& fields,
-                        const std::shared_ptr<QList<Accept>> accepts);
+                        const std::shared_ptr<QList<SIPAccept>> accepts);
 
 bool includeAcceptEncodingField(QList<SIPField>& fields,
                                 const std::shared_ptr<QStringList> encodings);
@@ -53,7 +55,7 @@ bool includeContentLanguageField(QList<SIPField>& fields,
 
 bool includeContentLengthField(QList<SIPField>& fields, uint32_t contentLenght);
 
-bool includeContentTypeField(QList<SIPField>& fields, QString contentType);
+bool includeContentTypeField(QList<SIPField>& fields, MediaType contentType);
 
 // Always mandatory
 bool includeCSeqField(QList<SIPField>& fields,

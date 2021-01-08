@@ -211,8 +211,10 @@ bool parseContentLengthField(SIPField& field,
 bool parseRecordRouteField(SIPField& field,
                            std::shared_ptr<SIPMessageHeader> message)
 {
-  Q_ASSERT(message);
-  Q_ASSERT(!field.valueSets.empty());
+  if (!parsingPreChecks(field, message))
+  {
+    return false;
+  }
 
   for (auto& valueSet : field.valueSets)
   {
@@ -229,8 +231,10 @@ bool parseRecordRouteField(SIPField& field,
 bool parseServerField(SIPField& field,
                       std::shared_ptr<SIPMessageHeader> message)
 {
-  Q_ASSERT(message);
-  Q_ASSERT(!field.valueSets.empty());
+  if (!parsingPreChecks(field, message))
+  {
+    return false;
+  }
 
   if (field.valueSets[0].words.size() < 1
       || field.valueSets[0].words.size() > 100)
@@ -244,10 +248,12 @@ bool parseServerField(SIPField& field,
 
 
 bool parseUserAgentField(SIPField& field,
-                  std::shared_ptr<SIPMessageHeader> message)
+                         std::shared_ptr<SIPMessageHeader> message)
 {
-  Q_ASSERT(message);
-  Q_ASSERT(!field.valueSets.empty());
+  if (!parsingPreChecks(field, message))
+  {
+    return false;
+  }
 
   if (field.valueSets[0].words.size() < 1
       || field.valueSets[0].words.size() > 100)
@@ -263,11 +269,14 @@ bool parseUserAgentField(SIPField& field,
 bool parseUnimplemented(SIPField& field,
                       std::shared_ptr<SIPMessageHeader> message)
 {
-  Q_ASSERT(message);
-  Q_ASSERT(!field.valueSets.empty());
+  if (!parsingPreChecks(field, message, true))
+  {
+    return false;
+  }
 
   printUnimplemented("SIPFieldParsing",
                      "Found unsupported SIP field type: " + field.name);
 
-  return false;
+  // we continue with the message nonetheless.
+  return true;
 }

@@ -263,10 +263,15 @@ struct SIPAuthInfo
 };
 
 
-enum MediaType {MT_NONE, MT_UNKNOWN, MT_APPLICATION, MT_APPLICATION_SDP,
-                MT_TEXT, MT_AUDIO, MT_VIDEO, MT_MESSAGE, MT_MULTIPART};
+enum MediaType {MT_NONE, MT_UNKNOWN,
+                MT_APPLICATION, MT_APPLICATION_SDP,
+                MT_TEXT,
+                MT_AUDIO, MT_AUDIO_OPUS,
+                MT_VIDEO, MT_VIDEO_HEVC,
+                MT_MESSAGE, MT_MULTIPART};
 
-struct Accept
+
+struct SIPAccept
 {
   MediaType type;
   std::shared_ptr<SIPParameter> parameter; // optional
@@ -370,7 +375,7 @@ struct SIPMessageHeader
   // Unless it has the comment mandatory, the default value is set so that field
   // does not exist.
 
-  std::shared_ptr<QList<Accept>>           accept = nullptr;
+  std::shared_ptr<QList<SIPAccept>>           accept = nullptr;
   std::shared_ptr<QStringList>             acceptEncoding = nullptr;
   std::shared_ptr<QStringList>             acceptLanguage = nullptr;
   QList<SIPInfo>                           alertInfos = {};
@@ -444,7 +449,6 @@ struct SIPResponse
 const QString SIP_VERSION = "2.0";
 
 // these structs are used as a temporary step in parsing and composing SIP messages
-// TODO: Enable recording of several valuesets in SIPMessage
 
 // one set of values for a SIP field. Separated by commas
 struct SIPValueSet
@@ -453,8 +457,9 @@ struct SIPValueSet
   std::shared_ptr<QList<SIPParameter>> parameters;
 };
 
+
 struct SIPField
 {
-  QString name;
+  QString name; // before ':'
   QList<SIPValueSet> valueSets; // separated by comma(,)
 };

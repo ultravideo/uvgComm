@@ -230,9 +230,6 @@ void SIPTransport::destroyConnection()
 
 void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
 {
-  ++processingInProgress_;
-  printImportant(this, "Composing and sending SIP Request:", {"Type"},
-                 requestToString(request.method));
   Q_ASSERT(request.message->contentType == MT_NONE || content.isValid());
   Q_ASSERT(connection_ != nullptr);
 
@@ -248,6 +245,11 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
      return;
   }
 
+  ++processingInProgress_;
+
+  printImportant(this, "Composing and sending SIP Request:", {"Type"},
+                 requestToString(request.method));
+
   routing_.getViaAndContact(request.message,
                             connection_->localAddress().toString(),
                             connection_->localPort());
@@ -261,6 +263,8 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
     qDebug() << "WARNING: Failed to add all the fields. Probably because of missing values.";
     return;
   }
+  //request.message->accept = std::shared_ptr<QList<SIPAccept>>(new QList<SIPAccept>);
+  //includeAcceptField(fields, request.message->accept);
 
   if (!request.message->routes.empty() &&
       !includeRouteField(fields, request.message->routes))
@@ -287,9 +291,9 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
   QString lineEnding = "\r\n";
   QString message = "";
   // adds content fields and converts the sdp to string if INVITE
-  QString sdp_str = addContent(fields,
-                               request.message->contentType != MT_NONE,
-                               content.value<SDPMessageInfo>());
+  QString content_str = addContent(fields,
+                                   request.message->contentType,
+                                   content);
 
   if(!getFirstRequestLine(message, request, lineEnding))
   {
@@ -298,7 +302,7 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
   }
 
   message += fieldsToString(fields, lineEnding) + lineEnding;
-  message += sdp_str;
+  message += content_str;
 
   // print the first line
   stats_->addSentSIPMessage(requestToString(request.method),
@@ -350,15 +354,12 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
     qDebug() << "ERROR: Failed to compose contact field for SIP OK response.";
   }
 
-
   // TODO: if the response is 405 SIP_NOT_ALLOWED we must include an allow header field.
   // lists allowed methods.
 
   QString lineEnding = "\r\n";
   QString message = "";
-  // adds content fields and converts the sdp to string if INVITE
-  QString sdp_str = addContent(fields, response.message->cSeq.method == SIP_INVITE
-                               && response.type == SIP_OK, content.value<SDPMessageInfo>());
+  QString content_str = addContent(fields, response.message->contentType, content);
   if(!getFirstResponseLine(message, response, lineEnding))
   {
     qDebug() << "WARNING: could not get first request line";
@@ -366,7 +367,7 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
   }
 
   message += fieldsToString(fields, lineEnding) + lineEnding;
-  message += sdp_str;
+  message += content_str;
 
   stats_->addSentSIPMessage(QString::number(responseToCode(response.type))
                             + " " + responseToPhrase(response.type),
@@ -389,14 +390,13 @@ bool SIPTransport::composeMandatoryFields(QList<SIPField>& fields,
          includeCSeqField(fields, message->cSeq);
 }
 
+
 QString SIPTransport::fieldsToString(QList<SIPField>& fields, QString lineEnding)
 {
   QString message = "";
   for(SIPField& field : fields)
   {
-    if (field.name != "" &&
-        !field.valueSets.empty() &&
-        !field.valueSets[0].words.empty())
+    if (field.name != "")
     {
       message += field.name + ": ";
 
@@ -429,20 +429,19 @@ QString SIPTransport::fieldsToString(QList<SIPField>& fields, QString lineEnding
           }
         }
 
-        // should we add a comma(,) or end of line
+        // add comma(,) if not the last valueSet
         if (i != field.valueSets.size() - 1)
         {
           message += ",";
         }
-        else
-        {
-          message += lineEnding;
-        }
       }
+
+      message += lineEnding;
     }
     else
     {
-      printProgramError(this, "Failed to convert field to string", "Field name", field.name);
+      printProgramError(this, "Failed to convert field to string",
+                        "Field name", field.name);
     }
   }
   return message;
@@ -485,7 +484,6 @@ void SIPTransport::networkPackage(QString package)
 
     if (header != "" && firstLine != "" && !fields.empty())
     {
-
       // Here we start identifying is this a request or a response
       QRegularExpression requestRE("^(\\w+) (sip:\\S+@\\S+) SIP/(" + SIP_VERSION + ")");
       QRegularExpression responseRE("^SIP/(" + SIP_VERSION + ") (\\d\\d\\d) (.+)");
@@ -614,7 +612,7 @@ bool SIPTransport::parsePackage(QString package, QStringList& headers, QStringLi
 }
 
 
-bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPField>& fields)
+bool SIPTransport::headerToFields(QString& header, QString& firstLine, QList<SIPField>& fields)
 {
   // Divide into lines
   QStringList lines = header.split("\r\n", QString::SkipEmptyParts);
@@ -636,14 +634,15 @@ bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPF
     SIPField field = {"", {}};
     QStringList valueSets;
 
-    if (parseFieldName(lines[i], field) &&
-        parseFieldValueSets(lines[i], valueSets))
+    if (parseFieldName(lines[i], field))
     {
+      parseFieldValueSets(lines[i], valueSets);
+
       // Check the correct number of valueSets for Field
-      if (valueSets.size() == 0 || valueSets.size() > 100)
+      if (valueSets.size() > 500)
       {
         printDebug(DEBUG_PEER_ERROR, this,
-                   "Incorrect amount of comma separated sets in field",
+                   "Too many comma separated sets in field",
                     {"Field", "Amount"}, {field.name, QString::number(valueSets.size())});
         return false;
       }
@@ -692,7 +691,7 @@ bool SIPTransport::combineContinuationLines(QStringList& lines)
 
 bool SIPTransport::parseFieldName(QString& line, SIPField& field)
 {
-  QRegularExpression re_field("(\\S*):\\s+(.+)");
+  QRegularExpression re_field("(\\S*):\\s+(.*)");
   QRegularExpressionMatch field_match = re_field.match(line);
 
   // separate name from rest
@@ -709,11 +708,10 @@ bool SIPTransport::parseFieldName(QString& line, SIPField& field)
 }
 
 
-bool SIPTransport::parseFieldValueSets(QString& line, QStringList& outValueSets)
+void SIPTransport::parseFieldValueSets(QString& line, QStringList& outValueSets)
 {
   // separate value sections by commas
   outValueSets = line.split(",", QString::SkipEmptyParts);
-  return !outValueSets.empty();
 }
 
 
@@ -900,14 +898,10 @@ bool SIPTransport::fieldsToMessageHeader(QList<SIPField>& fields,
     {
       qDebug() << "Field not supported:" << fields[i].name;
     }
-    else
+    else if(!parsing.at(fields.at(i).name)(fields[i], message))
     {
-      if(!parsing.at(fields.at(i).name)(fields[i], message))
-      {
-        qDebug() << "Failed to parse following field:" << fields.at(i).name;
-        //qDebug() << "Values:" << fields.at(i).valueSets.at(0).values;
-        return false;
-      }
+      qDebug() << "Failed to parse following field:" << fields.at(i).name;
+      return false;
     }
   }
   return true;
@@ -1021,26 +1015,37 @@ void SIPTransport::parseContent(QVariant& content, MediaType type, QString& body
 }
 
 
-QString SIPTransport::addContent(QList<SIPField>& fields, bool haveContent,
-                                 const SDPMessageInfo &sdp)
+QString SIPTransport::addContent(QList<SIPField>& fields, MediaType contentType,
+                                 QVariant &content)
 {
-  QString sdp_str = "";
+  // TODO: QString is probably not the right container for content
+  // since it can also be audio or video. QByteArray would probably be better
 
-  if(haveContent)
+  QString contentString = "";
+
+  if (contentType == MT_TEXT)
   {
-    sdp_str = composeSDPContent(sdp);
-    if(sdp_str == "" ||
-       !includeContentLengthField(fields, sdp_str.length()) ||
-       !includeContentTypeField(fields, "application/sdp"))
+    contentString = content.value<QString>();
+  }
+  else if(contentType == MT_APPLICATION_SDP)
+  {
+    contentString = composeSDPContent(content.value<SDPMessageInfo>());
+  }
+
+  if (contentString != "")
+  {
+    if (!includeContentLengthField(fields, contentString.length()) ||
+        !includeContentTypeField(fields, contentType))
     {
-      qDebug() << "WARNING: Could not add sdp fields to request";
+      printProgramWarning(this, "Could not add content to SIP message");
       return "";
     }
   }
   else if(!includeContentLengthField(fields, 0))
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this, 
-               "Could not add content-length field to sip message!");
+    printProgramError(this, "Could not add content-length field to SIP message!");
+    return "";
   }
-  return sdp_str;
+
+  return contentString;
 }

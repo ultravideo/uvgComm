@@ -72,12 +72,12 @@ private:
   // composing
   bool composeMandatoryFields(QList<SIPField>& fields, std::shared_ptr<SIPMessageHeader> message);
   QString fieldsToString(QList<SIPField>& fields, QString lineEnding);
-  QString addContent(QList<SIPField>& fields, bool haveContent, const SDPMessageInfo& sdp);
+  QString addContent(QList<SIPField>& fields, MediaType contentType, QVariant &content);
 
   // parsing functions
   // returs true if the whole message was received
   bool parsePackage(QString package, QStringList &headers, QStringList &bodies);
-  bool headerToFields(QString header, QString& firstLine, QList<SIPField> &fields);
+  bool headerToFields(QString &header, QString& firstLine, QList<SIPField> &fields);
   bool fieldsToMessageHeader(QList<SIPField>& fields, std::shared_ptr<SIPMessageHeader> &message);
 
 
@@ -88,7 +88,7 @@ private:
 
   bool combineContinuationLines(QStringList& lines);
   bool parseFieldName(QString& line, SIPField &field);
-  bool parseFieldValueSets(QString& line, QStringList &outValueSets);
+  void parseFieldValueSets(QString& line, QStringList &outValueSets);
   bool parseFieldValue(QString& valueSet, SIPField& field);
 
   void parseContent(QVariant &content, MediaType type, QString &body);

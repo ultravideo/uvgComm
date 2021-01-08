@@ -44,6 +44,7 @@ bool parseServerField(SIPField& field,
 bool parseUserAgentField(SIPField& field,
                          std::shared_ptr<SIPMessageHeader> message);
 
+// this is a placeholder function. Serves no actual purpose
 bool parseUnimplemented(SIPField& field,
                         std::shared_ptr<SIPMessageHeader> message);
 

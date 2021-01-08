@@ -5,31 +5,57 @@
 #include <QDebug>
 
 const std::map<QString, SIPRequestMethod> requestTypes = {{"INVITE", SIP_INVITE},
-                                                     {"ACK", SIP_ACK},
-                                                     {"BYE", SIP_BYE},
-                                                     {"CANCEL", SIP_CANCEL},
-                                                     {"OPTIONS", SIP_OPTIONS},
-                                                     {"REGISTER", SIP_REGISTER}};
+                                                          {"ACK", SIP_ACK},
+                                                          {"BYE", SIP_BYE},
+                                                          {"CANCEL", SIP_CANCEL},
+                                                          {"OPTIONS", SIP_OPTIONS},
+                                                          {"REGISTER", SIP_REGISTER}};
 
 const std::map<SIPRequestMethod, QString> requestStrings = {{SIP_INVITE, "INVITE"},
-                                                       {SIP_ACK, "ACK"},
-                                                       {SIP_BYE, "BYE"},
-                                                       {SIP_CANCEL, "CANCEL"},
-                                                       {SIP_OPTIONS, "OPTIONS"},
-                                                       {SIP_REGISTER, "REGISTER"}};
+                                                            {SIP_ACK, "ACK"},
+                                                            {SIP_BYE, "BYE"},
+                                                            {SIP_CANCEL, "CANCEL"},
+                                                            {SIP_OPTIONS, "OPTIONS"},
+                                                            {SIP_REGISTER, "REGISTER"}};
 
 const std::map<SIPResponseStatus, QString> responsePhrases = {{SIP_UNKNOWN_RESPONSE, "Unknown response"},
-                                                       {SIP_TRYING, "Trying"},
-                                                       {SIP_RINGING, "Ringing"},
-                                                       {SIP_FORWARDED, "Forwarded"},
-                                                       {SIP_QUEUED, "Queued"},
-                                                       {SIP_SESSION_IN_PROGRESS, "Sesssion in progress"},
-                                                       {SIP_EARLY_DIALOG_TERMINATED, "Early dialog terminated"},
-                                                       {SIP_OK, "Ok"},
-                                                       {SIP_NO_NOTIFICATION, "No notification"},
-                                                       {SIP_BAD_REQUEST, "Bad Request"},
-                                                       {SIP_BUSY_HERE, "Busy"},
-                                                       {SIP_DECLINE, "Call declined"}}; // TODO: finish this
+                                                              {SIP_TRYING, "Trying"},
+                                                              {SIP_RINGING, "Ringing"},
+                                                              {SIP_FORWARDED, "Forwarded"},
+                                                              {SIP_QUEUED, "Queued"},
+                                                              {SIP_SESSION_IN_PROGRESS, "Sesssion in progress"},
+                                                              {SIP_EARLY_DIALOG_TERMINATED, "Early dialog terminated"},
+                                                              {SIP_OK, "Ok"},
+                                                              {SIP_NO_NOTIFICATION, "No notification"},
+                                                              {SIP_BAD_REQUEST, "Bad Request"},
+                                                              {SIP_BUSY_HERE, "Busy"},
+                                                              {SIP_DECLINE, "Call declined"}}; // TODO: finish this
+
+const std::map<MediaType, QString> mediaStrings = {{MT_NONE, ""},
+                                                   {MT_UNKNOWN, ""},
+                                                   {MT_APPLICATION, "application"},
+                                                   {MT_APPLICATION_SDP, "application/sdp"},
+                                                   {MT_TEXT, "text"},
+                                                   {MT_AUDIO, "audio"},
+                                                   {MT_AUDIO_OPUS, "audio/opus"},
+                                                   {MT_VIDEO, "video"},
+                                                   {MT_VIDEO_HEVC, "video/hevc"},
+                                                   {MT_MESSAGE, "message"},
+                                                   {MT_MULTIPART, "multipart"}};
+
+const std::map<QString, MediaType> mediaTypes = {{"", MT_NONE},
+                                                 {"application", MT_APPLICATION},
+                                                 {"application/sdp", MT_APPLICATION_SDP},
+                                                 {"text", MT_TEXT},
+                                                 {"audio", MT_AUDIO},
+                                                 {"audio/opus", MT_AUDIO_OPUS},
+                                                 {"video", MT_VIDEO},
+                                                 {"video/hevc", MT_VIDEO_HEVC},
+                                                 {"message", MT_MESSAGE},
+                                                 {"multipart", MT_MULTIPART}};
+
+
+
 
 SIPRequestMethod stringToRequest(QString request)
 {
@@ -40,6 +66,7 @@ SIPRequestMethod stringToRequest(QString request)
   }
   return requestTypes.at(request);
 }
+
 
 QString requestToString(SIPRequestMethod request)
 {
@@ -52,25 +79,30 @@ QString requestToString(SIPRequestMethod request)
   return requestStrings.at(request);
 }
 
+
 uint16_t stringToResponseCode(QString code)
 {
   return code.toUInt();
 }
+
 
 SIPResponseStatus codeToResponse(uint16_t code)
 {
   return static_cast<SIPResponseStatus>(code);
 }
 
+
 uint16_t responseToCode(SIPResponseStatus response)
 {
   return (uint16_t)response;
 }
 
+
 QString codeToPhrase(uint16_t code)
 {
   return responseToPhrase(codeToResponse(code));
 }
+
 
 QString responseToPhrase(SIPResponseStatus response)
 {
@@ -84,6 +116,7 @@ QString responseToPhrase(SIPResponseStatus response)
 
   return responsePhrases.at(response);
 }
+
 
 // connection type and string
 SIPTransportProtocol stringToConnection(QString type)
@@ -106,6 +139,7 @@ SIPTransportProtocol stringToConnection(QString type)
   }
   return NONE;
 }
+
 
 QString connectionToString(SIPTransportProtocol connection)
 {
@@ -132,25 +166,30 @@ QString connectionToString(SIPTransportProtocol connection)
   return "";
 }
 
+
 MediaType stringToContentType(QString typeStr)
 {
-  if(typeStr == "application/sdp")
+  if(mediaTypes.find(typeStr) == mediaTypes.end())
   {
-    return MT_APPLICATION_SDP;
+    printWarning("SIPConversions",
+                 "Did not find response in phrase map. Maybe it has not been added yet.");
+
+    return MT_UNKNOWN;
   }
-  return MT_NONE;
+
+  return mediaTypes.at(typeStr);
 }
+
 
 QString contentTypeToString(MediaType type)
 {
-  switch(type)
+  if(mediaStrings.find(type) == mediaStrings.end())
   {
-  case MT_APPLICATION_SDP:
-  {
-    return "application/sdp";
+    printWarning("SIPConversions",
+                 "Did not find response in phrase map. Maybe it has not been added yet.");
+
+    return "";
   }
-  default:
-    break;
-  }
-  return "";
+
+  return mediaStrings.at(type);
 }

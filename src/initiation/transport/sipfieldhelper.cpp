@@ -144,7 +144,22 @@ bool tryAddParameter(std::shared_ptr<QList<SIPParameter>>& parameters,
   return true;
 }
 
+bool addParameter(std::shared_ptr<QList<SIPParameter> > &parameters,
+                  SIPParameter& parameter)
+{
+  if (parameter.name == "")
+  {
+    return false;
+  }
 
+  if (parameters == nullptr)
+  {
+    parameters = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
+  }
+
+  parameters->append(parameter);
+  return true;
+}
 
 
 
@@ -294,7 +309,7 @@ bool parseParameterNameToValue(std::shared_ptr<QList<SIPParameter>> parameters,
 {
   if(parameters != nullptr)
   {
-    for(SIPParameter parameter : *parameters)
+    for(SIPParameter& parameter : *parameters)
     {
       if(parameter.name == name)
       {
@@ -344,19 +359,35 @@ bool parseUint8(QString values, uint8_t& number)
 
 
 bool parsingPreChecks(SIPField& field,
-               std::shared_ptr<SIPMessageHeader> message)
+                      std::shared_ptr<SIPMessageHeader> message,
+                      bool emptyPossible)
 {
   Q_ASSERT(message != nullptr);
-  Q_ASSERT(!field.valueSets.empty());
-  Q_ASSERT(!field.valueSets[0].words.empty());
+  if (!emptyPossible)
+  {
+    Q_ASSERT(!field.valueSets.empty());
+  }
 
   if (message == nullptr ||
-      field.valueSets.empty() ||
-      field.valueSets[0].words.empty())
+      (!emptyPossible && field.valueSets.empty()))
   {
     printProgramError("SIPFieldParsing", "Parsing prechecks failed");
     return false;
   }
+
+  // Check that none of the valuesets have no words.
+  // Empty fields should be handled with having no valuesets.
+  for (auto& valueset: field.valueSets)
+  {
+    Q_ASSERT(!valueset.words.empty());
+
+    if (valueset.words.empty())
+    {
+      printProgramError("SIPFieldParsing", "Found empty valueset");
+      return false;
+    }
+  }
+
   return true;
 }
 

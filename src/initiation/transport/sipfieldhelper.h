@@ -11,6 +11,9 @@ bool tryAddParameter(std::shared_ptr<QList<SIPParameter> > &parameters,
 bool tryAddParameter(std::shared_ptr<QList<SIPParameter> > &parameters,
                      QString parameterName);
 
+bool addParameter(std::shared_ptr<QList<SIPParameter> > &parameters,
+                  SIPParameter& parameter);
+
 QString composeUritype(SIPType type);
 bool composeSIPUri(const SIP_URI &uri, QStringList& words);
 bool composeNameAddr(const NameAddr &nameAddr, QStringList& words);
@@ -32,8 +35,10 @@ bool parseParameterNameToValue(std::shared_ptr<QList<SIPParameter>> parameters,
 bool parseUint64(QString values, uint64_t& number);
 bool parseUint8(QString values, uint8_t& number);
 
+
 bool parsingPreChecks(SIPField& field,
-                      std::shared_ptr<SIPMessageHeader> message);
+                      std::shared_ptr<SIPMessageHeader> message,
+                      bool emptyPossible = false);
 
 // takes the parameter string (name=value) and parses it to SIPParameter
 // used by parse functions.
