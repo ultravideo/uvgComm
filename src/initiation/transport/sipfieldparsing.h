@@ -47,7 +47,3 @@ bool parseUserAgentField(SIPField& field,
 bool parseUnimplemented(SIPField& field,
                         std::shared_ptr<SIPMessageHeader> message);
 
-
-// takes the parameter string (name=value) and parses it to SIPParameter
-// used by parse functions.
-bool parseParameter(QString text, SIPParameter& parameter);

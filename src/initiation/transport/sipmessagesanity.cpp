@@ -27,6 +27,35 @@ bool isLinePresent(QString name, QList<SIPField> &fields);
 int countVias(QList<SIPField> &fields);
 
 
+bool isLinePresent(QString name, QList<SIPField>& fields)
+{
+  for(SIPField& field : fields)
+  {
+    if(field.name == name)
+    {
+      return true;
+    }
+  }
+  printWarning("SIP Message Sanity", "Did not find field in header",
+               "Name", name);
+  return false;
+}
+
+
+int countVias(QList<SIPField> &fields)
+{
+  int vias = 0;
+  for(SIPField& field : fields)
+  {
+    if(field.name == "Via")
+    {
+      ++vias;
+    }
+  }
+
+  return vias;
+}
+
 
 bool requestSanityCheck(QList<SIPField>& fields, SIPRequestMethod method)
 {
