@@ -261,10 +261,23 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
       !includeMaxForwardsField(fields, request.message->maxForwards))
   {
     qDebug() << "WARNING: Failed to add all the fields. Probably because of missing values.";
+    printProgramError(this, "Failed to compose mandatory fields for request");
     return;
   }
-  //request.message->accept = std::shared_ptr<QList<SIPAccept>>(new QList<SIPAccept>);
-  //includeAcceptField(fields, request.message->accept);
+
+  // We add accept field if this is OPTIONS or if the default value (application/sdp)
+  // does not cover the situation for INVITE.
+  if (request.method == SIP_OPTIONS ||
+      (request.method == SIP_INVITE &&
+       (request.message->accept != nullptr &&
+        (request.message->accept->size() != 1 ||
+         request.message->accept->at(0).type != MT_APPLICATION_SDP))))
+  {
+    if (!includeAcceptField(fields, request.message->accept))
+    {
+      printProgramWarning(this, "Failed to add accept-field");
+    }
+  }
 
   if (!request.message->routes.empty() &&
       !includeRouteField(fields, request.message->routes))
@@ -337,6 +350,25 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
   {
     printWarning(this, "Failed to add mandatory fields. Probably because of missing values.");
     return;
+  }
+
+  uint16_t responseCode = responseToCode(response.type);
+
+  // We add accept field if this is OPTIONS or if the default value (application/sdp)
+  // does not cover the situation for INVITE.
+  if (((200 <= responseCode && responseCode <= 299) && // OK response
+      (response.message->cSeq.method == SIP_OPTIONS || // always in OPTIONS
+       (response.message->cSeq.method == SIP_INVITE && // INVITE if needed
+        (response.message->accept != nullptr &&
+         (response.message->accept->size() != 1 ||
+          response.message->accept->at(0).type != MT_APPLICATION_SDP))))) ||
+      (response.type == SIP_UNSUPPORTED_MEDIA_TYPE && // 415 response if correct
+       response.message->accept != nullptr))
+  {
+    if (!includeAcceptField(fields, response.message->accept))
+    {
+      printProgramWarning(this, "Failed to add accept-field");
+    }
   }
 
   if (!includeRecordRouteField(fields, response.message->recordRoutes))
