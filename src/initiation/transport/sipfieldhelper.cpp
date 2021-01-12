@@ -1,5 +1,7 @@
 #include "sipfieldhelper.h"
 
+#include "sipconversions.h"
+
 #include "common.h"
 
 #include <QRegularExpression>
@@ -8,7 +10,7 @@
 
 // ================== Composing functions ==================
 
-QString composeUritype(SIPType type)
+QString composeURItype(SIPType type)
 {
   if (type == SIP)
   {
@@ -30,6 +32,7 @@ QString composeUritype(SIPType type)
   return "";
 }
 
+
 QString composePortString(uint16_t port)
 {
   QString portString = "";
@@ -38,8 +41,10 @@ QString composePortString(uint16_t port)
   {
     portString = ":" + QString::number(port);
   }
+
   return portString;
 }
+
 
 bool composeNameAddr(const NameAddr& nameAddr, QStringList& words)
 {
@@ -48,13 +53,23 @@ bool composeNameAddr(const NameAddr& nameAddr, QStringList& words)
     words.push_back("\"" + nameAddr.realname + "\"");
   }
 
-  return composeSIPUri(nameAddr.uri, words);
+  QString uri = "<" + composeSIPURI(nameAddr.uri) + ">";
+
+  if (uri == "<>")
+  {
+    words.pop_back();
+    return false;
+  }
+
+  words.push_back(uri);
+
+  return true;
 }
 
-bool composeSIPUri(const SIP_URI& uri, QStringList& words)
-{
 
-  QString uriString = "<" + composeUritype(uri.type);
+QString composeSIPURI(const SIP_URI &uri)
+{
+  QString uriString = composeURItype(uri.type);
   if (uriString != "")
   {
     QString parameters = "";
@@ -82,13 +97,22 @@ bool composeSIPUri(const SIP_URI& uri, QStringList& words)
     }
 
     uriString += usernameString + uri.hostport.host
-        + composePortString(uri.hostport.port) + parameters + ">";
+        + composePortString(uri.hostport.port) + parameters;
 
-    words.push_back(uriString);
-
-    return true;
+    return uriString;
   }
-  return false;
+  return "";
+}
+
+
+QString composeAbsoluteURI(const AbsoluteURI& uri)
+{
+  if (uri.scheme == "" || uri.path == "")
+  {
+    return "";
+  }
+
+  return uri.scheme + ":" + uri.path;
 }
 
 
@@ -106,6 +130,30 @@ bool composeSIPRouteLocation(const SIPRouteLocation& location, SIPValueSet &valu
     *valueSet.parameters = location.parameters;
   }
   return true;
+}
+
+
+void composeDigestValue(QString fieldName, const QString& fieldValue, SIPField& field)
+{
+  if (fieldValue != "")
+  {
+    field.valueSets.push_back({});
+
+    // fieldname=value
+    field.valueSets.back().words.push_back({fieldName + "=" + fieldValue});
+  }
+}
+
+
+void composeDigestValueQuoted(QString fieldName, const QString& fieldValue, SIPField& field)
+{
+  if (fieldValue != "")
+  {
+    field.valueSets.push_back({});
+
+    // fieldname="value"
+    field.valueSets.back().words.push_back({fieldName + "=" + "\"" + fieldValue + "\""});
+  }
 }
 
 
@@ -144,8 +192,9 @@ bool tryAddParameter(std::shared_ptr<QList<SIPParameter>>& parameters,
   return true;
 }
 
+
 bool addParameter(std::shared_ptr<QList<SIPParameter> > &parameters,
-                  SIPParameter& parameter)
+                  const SIPParameter& parameter)
 {
   if (parameter.name == "")
   {
@@ -162,8 +211,164 @@ bool addParameter(std::shared_ptr<QList<SIPParameter> > &parameters,
 }
 
 
+bool composeAcceptGenericField(QList<SIPField>& fields,
+                          const std::shared_ptr<QList<SIPAcceptGeneric>> generics,
+                          QString fieldname)
+{
+  if (generics == nullptr)
+  {
+    return false;
+  }
+
+  fields.push_back({fieldname,{}});
+
+  // compose each comma(,) separated accept value
+  for (auto& generic : *generics)
+  {
+    fields.back().valueSets.push_back({{generic.accepted},{}});
+    if (generic.parameter != nullptr)
+    {
+      if (!addParameter(fields.back().valueSets.back().parameters, *generic.parameter))
+      {
+        printProgramWarning("SIP Field Composing", "Failed to add parameter");
+      }
+    }
+  }
+
+  return true;
+}
 
 
+bool composeInfoField(QList<SIPField>& fields,
+                      const QList<SIPInfo>& infos,
+                      QString fieldname)
+{
+  if (infos.empty())
+  {
+    return false;
+  }
+
+  fields.push_back({fieldname,{}});
+
+  for (auto& info : infos)
+  {
+    QString value = "<" + composeAbsoluteURI(info.absoluteURI) + ">";
+
+    if (value != "<>")
+    {
+      fields.back().valueSets.push_back({{value},{}});
+      if (info.parameter != nullptr)
+      {
+        if (!addParameter(fields.back().valueSets.back().parameters, *info.parameter))
+        {
+          printProgramWarning("SIP Field Helper", "Failed to add Info parameter");
+        }
+      }
+    }
+    else
+    {
+      printProgramWarning("SIP Field Helper", "Failed to compose info abosluteURI");
+    }
+  }
+
+  // if we failed to add any valuesets. Infos require at least one value
+  if (fields.back().valueSets.empty())
+  {
+    fields.pop_back();
+    return false;
+  }
+
+  return true;
+}
+
+
+bool composeDigestChallengeField(QList<SIPField>& fields,
+                                 const std::shared_ptr<DigestChallenge> dChallenge,
+                                 QString fieldname)
+{
+  if (dChallenge == nullptr ||
+      dChallenge->realm == "")
+  {
+    return false;
+  }
+
+  fields.push_back({fieldname,{}});
+  composeDigestValueQuoted("realm",  dChallenge->realm,                      fields.back());
+  composeDigestValueQuoted("domain", composeAbsoluteURI(dChallenge->domain), fields.back());
+  composeDigestValueQuoted("nonce",  dChallenge->nonce,                      fields.back());
+  composeDigestValueQuoted("opaque", dChallenge->opaque,                     fields.back());
+  composeDigestValue      ("stale",  boolToString(dChallenge->stale),        fields.back());
+  composeDigestValue      ("algorithm", algorithmToString(dChallenge->algorithm), fields.back());
+
+  QString qopOptions = "";
+
+  for (auto& option : dChallenge->qopOptions)
+  {
+    if (qopOptions != "" &&
+        qopOptions.right(1) != ",")
+    {
+      qopOptions += ",";
+    }
+
+    qopOptions += qopValueToString(option);
+  }
+
+  if (qopOptions.right(1) == ",")
+  {
+    qopOptions = qopOptions.left(qopOptions.length() -1);
+  }
+
+  composeDigestValueQuoted("qop", qopOptions, fields.back());
+
+  return true;
+}
+
+
+bool composeDigestResponseField(QList<SIPField>& fields,
+                                const std::shared_ptr<DigestResponse> dResponse,
+                                QString fieldname)
+{
+  if (dResponse == nullptr ||
+      dResponse->username == "" ||
+      dResponse->realm == "")
+  {
+    return false;
+  }
+
+  fields.push_back({fieldname,{}});
+
+  composeDigestValueQuoted("username", dResponse->username, fields.back());
+  composeDigestValueQuoted("realm",    dResponse->realm,    fields.back());
+  composeDigestValueQuoted("nonce",    dResponse->nonce, fields.back());
+
+  if (dResponse->digestUri != nullptr)
+  {
+    composeDigestValueQuoted("uri",     composeSIPURI(*dResponse->digestUri), fields.back());
+  }
+
+  composeDigestValueQuoted("response",    dResponse->dresponse, fields.back());
+  composeDigestValue      ("algorithm", algorithmToString(dResponse->algorithm), fields.back());
+
+  composeDigestValueQuoted("cnonce",    dResponse->cnonce, fields.back());
+  composeDigestValueQuoted("opaque",    dResponse->opaque, fields.back());
+
+  composeDigestValue      ("qop",       qopValueToString(dResponse->messageQop), fields.back());
+  composeDigestValue      ("nc",        dResponse->nonceCount, fields.back());
+
+  // make sure we added something successfully and add Digest to beginning
+  if (!fields.back().valueSets.empty())
+  {
+    // add word Digest to the beginning
+    fields.back().valueSets[0].words.push_front("Digest");
+  }
+  else
+  {
+    fields.pop_back();
+    return false;
+  }
+
+  return true;
+}
 
 
 

@@ -53,7 +53,7 @@ bool parseCSeqField(SIPField& field,
   bool ok = false;
 
   message->cSeq.cSeq = field.valueSets[0].words[0].toUInt(&ok);
-  message->cSeq.method = stringToRequest(field.valueSets[0].words[1]);
+  message->cSeq.method = stringToRequestMethod(field.valueSets[0].words[1]);
   return message->cSeq.method != SIP_NO_REQUEST && ok;
 }
 
@@ -94,7 +94,7 @@ bool parseViaField(SIPField& field,
     return false;
   }
 
-  via.protocol = stringToConnection(first_match.captured(2));
+  via.protocol = stringToTransportProtocol(first_match.captured(2));
   via.sipVersion = first_match.captured(1);
 
   QRegularExpression re_second("([\\w.]+):?(\\d*)");

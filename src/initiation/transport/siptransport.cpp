@@ -183,7 +183,7 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
   ++processingInProgress_;
 
   printImportant(this, "Composing and sending SIP Request:", {"Type"},
-                 requestToString(request.method));
+                 requestMethodToString(request.method));
 
   routing_.getViaAndContact(request.message,
                             connection_->localAddress().toString(),
@@ -195,7 +195,6 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
   if (!composeMandatoryFields(fields, request.message) ||
       !includeMaxForwardsField(fields, request.message->maxForwards))
   {
-    qDebug() << "WARNING: Failed to add all the fields. Probably because of missing values.";
     printProgramError(this, "Failed to compose mandatory fields for request");
     return;
   }
@@ -240,7 +239,7 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
   message += content_str;
 
   // print the first line
-  stats_->addSentSIPMessage(requestToString(request.method),
+  stats_->addSentSIPMessage(requestMethodToString(request.method),
                             message,
                             connection_->remoteAddress().toString());
 
@@ -253,7 +252,7 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
 {
   ++processingInProgress_;
   printImportant(this, "Composing and sending SIP Response:", {"Type"},
-                 responseToPhrase(response.type));
+                 responseTypeToPhrase(response.type));
   Q_ASSERT(response.message->cSeq.method != SIP_INVITE
       || response.type != SIP_OK
       || (response.message->contentType == MT_APPLICATION_SDP && content.isValid()));
@@ -274,7 +273,7 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
     return;
   }
 
-  uint16_t responseCode = responseToCode(response.type);
+  uint16_t responseCode = responseTypeToCode(response.type);
 
   composeResponseAcceptField(fields, responseCode,
                              response.message->cSeq.method,
@@ -310,8 +309,8 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
   message += fieldsToString(fields, lineEnding) + lineEnding;
   message += content_str;
 
-  stats_->addSentSIPMessage(QString::number(responseToCode(response.type))
-                            + " " + responseToPhrase(response.type),
+  stats_->addSentSIPMessage(QString::number(responseTypeToCode(response.type))
+                            + " " + responseTypeToPhrase(response.type),
                             message,
                             connection_->remoteAddress().toString());
 
@@ -493,7 +492,7 @@ bool SIPTransport::parseRequest(QString requestString, QString version,
 
   printImportant(this, "Parsing incoming request", {"Type"}, {requestString});
   SIPRequest request;
-  request.method = stringToRequest(requestString);
+  request.method = stringToRequestMethod(requestString);
   request.sipVersion = version;
   request.message = std::shared_ptr<SIPMessageHeader> (new SIPMessageHeader);
 
@@ -532,7 +531,7 @@ bool SIPTransport::parseResponse(QString responseString, QString version,
   printImportant(this, "Parsing incoming response", {"Type"}, {responseString});
 
   SIPResponse response;
-  response.type = codeToResponse(stringToResponseCode(responseString));
+  response.type = codeToResponseType(stringToResponseCode(responseString));
   response.message = std::shared_ptr<SIPMessageHeader> (new SIPMessageHeader);
   response.text = text;
   response.sipVersion = version;

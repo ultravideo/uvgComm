@@ -16,10 +16,10 @@ bool includeAcceptField(QList<SIPField>& fields,
                         const std::shared_ptr<QList<SIPAccept>> accepts);
 
 bool includeAcceptEncodingField(QList<SIPField>& fields,
-                                const std::shared_ptr<QStringList> encodings);
+                                const std::shared_ptr<QList<SIPAcceptGeneric> > encodings);
 
 bool includeAcceptLanguageField(QList<SIPField>& fields,
-                                const std::shared_ptr<QStringList> languages);
+                                const std::shared_ptr<QList<SIPAcceptGeneric>> languages);
 
 bool includeAlertInfoField(QList<SIPField>& fields,
                            const QList<SIPInfo>& infos);
@@ -28,7 +28,7 @@ bool includeAllowField(QList<SIPField>& fields,
                        const std::shared_ptr<QList<SIPRequestMethod>> allows);
 
 bool includeAuthInfoField(QList<SIPField>& fields,
-                          const QList<SIPAuthInfo>& authInfos);
+                          const std::shared_ptr<SIPAuthInfo> authInfo);
 
 bool includeAuthorizationField(QList<SIPField>& fields,
                                const std::shared_ptr<DigestResponse> dResponse);

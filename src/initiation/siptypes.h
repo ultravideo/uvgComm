@@ -155,6 +155,7 @@ struct Userinfo
   QString password = ""; // omitted if empty
 };
 
+// is TEL part of absolute URI?
 enum SIPType {SIP, SIPS, TEL};
 const SIPType DEFAULT_SIP_TYPE = SIP;
 
@@ -218,9 +219,11 @@ const QString MAGIC_COOKIE = "z9hG4bK";
 const uint32_t BRANCH_TAIL_LENGTH = 32 - MAGIC_COOKIE.size();
 
 
-enum Algorithm {UNKOWN_ALGORITHM, MD5, MD5_SESS};
+enum DigestAlgorithm {SIP_NO_ALGORITHM, SIP_UNKNOWN_ALGORITHM,
+                      SIP_MD5, SIP_MD5_SESS};
 
-enum QopValue {SIP_AUTH_UNKNOWN, SIP_AUTH, SIP_AUTH_INT};
+// support for new qop types can be added to SIP Conversions module
+enum QopValue {SIP_NO_AUTH, SIP_AUTH_UNKNOWN, SIP_AUTH, SIP_AUTH_INT};
 
 struct DigestChallenge
 {
@@ -229,33 +232,34 @@ struct DigestChallenge
   QString nonce;
   QString opaque;
   bool stale;
-  Algorithm algorithm;
+  DigestAlgorithm algorithm;
   QList<QopValue> qopOptions;
 
-  QString authParam;
+  //QString authParam; refers to any further parameters
 };
 
 
 struct DigestResponse
 {
-  QString username;
-  QString realm; // proxy server where credentials are valid.
-  QString nonce;
-  SIP_URI digestUri; // equal to Request-URI
-  QString dresponse; // 32-letter hex
-  Algorithm algorithm;
+  QString username = "";
+  QString realm = ""; // proxy server where credentials are valid.
+  QString nonce = "";
+  std::shared_ptr<SIP_URI> digestUri = nullptr; // equal to Request-URI
+  QString dresponse = ""; // 32-letter hex
+  DigestAlgorithm algorithm = SIP_NO_ALGORITHM;
   QString cnonce;
   QString opaque;
-  QString messageQop;
+  QopValue messageQop;
   QString nonceCount; // 8-letter lower hex
 
-  QString authParam;
+  //QString authParam; refers to any further parameters
 };
+
 
 struct SIPAuthInfo
 {
   QString nextNonce;
-  QString messageQop;
+  QopValue messageQop;
 
   QString responseAuth; // lower hexes
   QString cnonce; // 8-letter lower hex
@@ -274,6 +278,12 @@ enum MediaType {MT_NONE, MT_UNKNOWN,
 struct SIPAccept
 {
   MediaType type;
+  std::shared_ptr<SIPParameter> parameter; // optional
+};
+
+struct SIPAcceptGeneric
+{
+  QString accepted;
   std::shared_ptr<SIPParameter> parameter; // optional
 };
 
@@ -376,11 +386,11 @@ struct SIPMessageHeader
   // does not exist.
 
   std::shared_ptr<QList<SIPAccept>>        accept = nullptr;
-  std::shared_ptr<QStringList>             acceptEncoding = nullptr;
-  std::shared_ptr<QStringList>             acceptLanguage = nullptr;
+  std::shared_ptr<QList<SIPAcceptGeneric>> acceptEncoding = nullptr;
+  std::shared_ptr<QList<SIPAcceptGeneric>> acceptLanguage = nullptr;
   QList<SIPInfo>                           alertInfos = {};
   std::shared_ptr<QList<SIPRequestMethod>> allow = nullptr;
-  QList<SIPAuthInfo>                       authInfos  = {};
+  std::shared_ptr<SIPAuthInfo>             authInfos  = {};
   std::shared_ptr<DigestResponse>          authorization = nullptr;
   QString                                  callID = ""; // mandatory
   QList<SIPInfo>                           callInfos = {};

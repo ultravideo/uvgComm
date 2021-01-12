@@ -4,6 +4,10 @@
 
 #include <QDebug>
 
+
+// Note: if you see a non-POD static warning, it comes from glazy. This warning
+// is meant for libraries so they don't needlessly waste resources by initializing
+// features which are not used.
 const std::map<QString, SIPRequestMethod> requestTypes = {{"INVITE", SIP_INVITE},
                                                           {"ACK", SIP_ACK},
                                                           {"BYE", SIP_BYE},
@@ -57,7 +61,7 @@ const std::map<QString, MediaType> mediaTypes = {{"", MT_NONE},
 
 
 
-SIPRequestMethod stringToRequest(QString request)
+SIPRequestMethod stringToRequestMethod(QString request)
 {
   if(requestTypes.find(request) == requestTypes.end())
   {
@@ -68,7 +72,7 @@ SIPRequestMethod stringToRequest(QString request)
 }
 
 
-QString requestToString(SIPRequestMethod request)
+QString requestMethodToString(SIPRequestMethod request)
 {
   Q_ASSERT(request != SIP_NO_REQUEST);
   if(request == SIP_NO_REQUEST)
@@ -86,13 +90,13 @@ uint16_t stringToResponseCode(QString code)
 }
 
 
-SIPResponseStatus codeToResponse(uint16_t code)
+SIPResponseStatus codeToResponseType(uint16_t code)
 {
   return static_cast<SIPResponseStatus>(code);
 }
 
 
-uint16_t responseToCode(SIPResponseStatus response)
+uint16_t responseTypeToCode(SIPResponseStatus response)
 {
   return (uint16_t)response;
 }
@@ -100,11 +104,11 @@ uint16_t responseToCode(SIPResponseStatus response)
 
 QString codeToPhrase(uint16_t code)
 {
-  return responseToPhrase(codeToResponse(code));
+  return responseTypeToPhrase(codeToResponseType(code));
 }
 
 
-QString responseToPhrase(SIPResponseStatus response)
+QString responseTypeToPhrase(SIPResponseStatus response)
 {
   if(responsePhrases.find(response) == responsePhrases.end())
   {
@@ -119,7 +123,7 @@ QString responseToPhrase(SIPResponseStatus response)
 
 
 // connection type and string
-SIPTransportProtocol stringToConnection(QString type)
+SIPTransportProtocol stringToTransportProtocol(const QString &type)
 {
   if(type == "UDP")
   {
@@ -141,7 +145,7 @@ SIPTransportProtocol stringToConnection(QString type)
 }
 
 
-QString connectionToString(SIPTransportProtocol connection)
+QString transportProtocolToString(const SIPTransportProtocol connection)
 {
   switch(connection)
   {
@@ -167,7 +171,7 @@ QString connectionToString(SIPTransportProtocol connection)
 }
 
 
-MediaType stringToContentType(QString typeStr)
+MediaType stringToContentType(const QString typeStr)
 {
   if(mediaTypes.find(typeStr) == mediaTypes.end())
   {
@@ -181,7 +185,7 @@ MediaType stringToContentType(QString typeStr)
 }
 
 
-QString contentTypeToString(MediaType type)
+QString contentTypeToString(const MediaType type)
 {
   if(mediaStrings.find(type) == mediaStrings.end())
   {
@@ -192,4 +196,105 @@ QString contentTypeToString(MediaType type)
   }
 
   return mediaStrings.at(type);
+}
+
+
+QopValue stringToQopValue(const QString& qop)
+{
+  if (qop == "auth")
+  {
+    return SIP_AUTH;
+  }
+  else if (qop == "auth-int")
+  {
+    return SIP_AUTH_INT;
+  }
+  // Note: add more auth types here if needed
+
+
+  return SIP_AUTH_UNKNOWN;
+}
+
+
+QString qopValueToString(const QopValue qop)
+{
+  if (qop == SIP_AUTH)
+  {
+    return "auth";
+  }
+  else if (qop == SIP_AUTH_INT)
+  {
+    return "auth-int";
+  }
+  else if (qop == SIP_AUTH_UNKNOWN)
+  {
+    printProgramWarning("SIP Conversions", "Found unimplemented Auth type!");
+  }
+  // Note: Add more auth types here if needed
+
+  return "";
+}
+
+
+DigestAlgorithm stringToAlgorithm(const QString& algorithm)
+{
+  if (algorithm == "MD5")
+  {
+    return SIP_MD5;
+  }
+  else if (algorithm == "MD5-sess")
+  {
+    return SIP_MD5_SESS;
+  }
+
+  return SIP_NO_ALGORITHM;
+}
+
+
+QString algorithmToString(const DigestAlgorithm algorithm)
+{
+  if (algorithm == SIP_MD5)
+  {
+    return "MD5";
+  }
+  else if (algorithm == SIP_MD5_SESS)
+  {
+    return "MD5-sess";
+  }
+  else if (algorithm == SIP_UNKNOWN_ALGORITHM)
+  {
+    printProgramWarning("SIP Conversions", "Found unimplemented algorithm type!");
+  }
+
+  return "";
+}
+
+
+bool stringToBool(const QString& boolean, bool& ok)
+{
+  ok = true;
+  if (boolean == "false")
+  {
+    return false;
+  }
+  else if (boolean == "true")
+  {
+    return true;
+  }
+  // this is neither
+
+  printWarning("SIP Conversions", "Got neither true nor false for boolean");
+  ok = false;
+  return false;
+}
+
+
+QString boolToString(const bool boolean)
+{
+  if (boolean)
+  {
+    return "true";
+  }
+
+  return "false";
 }

@@ -22,29 +22,17 @@ bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
     return false;
   }
 
-  QString type = "";
-  QString target = "";
-  QString port = "";
-
-  if (request.requestURI.hostport.port != 0)
+  if (request.method == SIP_REGISTER)
   {
-    port = ":" + QString::number(request.requestURI.hostport.port) + ";transport=tcp";
+    request.requestURI.userinfo.user = "";
+    request.requestURI.userinfo.password = "";
   }
 
+  request.requestURI.uri_parameters.push_back(SIPParameter{"transport", "tcp"});
 
-  if(request.method != SIP_REGISTER)
-  {
-    type = composeUritype(request.requestURI.type);
-    target = request.requestURI.userinfo.user + "@" + request.requestURI.hostport.host;
-  }
-  else // REGISTER first line does not contain username.
-  {
-    type = composeUritype(request.requestURI.type);
-    target = request.requestURI.hostport.host;
-  }
-
-  line = requestToString(request.method) + " " + type
-      + target + port + " SIP/" + request.sipVersion + lineEnding;
+  line = requestMethodToString(request.method) + " " +
+      composeSIPURI(request.requestURI) +
+      " SIP/" + request.sipVersion + lineEnding;
 
   return true;
 }
@@ -59,8 +47,8 @@ bool getFirstResponseLine(QString& line, SIPResponse& response,
     return false;
   }
   line = "SIP/" + response.sipVersion + " "
-      + QString::number(responseToCode(response.type)) + " "
-      + responseToPhrase(response.type) + lineEnding;
+      + QString::number(responseTypeToCode(response.type)) + " "
+      + responseTypeToPhrase(response.type) + lineEnding;
   return true;
 }
 
@@ -83,7 +71,8 @@ bool includeAcceptField(QList<SIPField>& fields,
     {
       if (!addParameter(fields.back().valueSets.back().parameters, *accept.parameter))
       {
-        printProgramWarning("SIP Field Composing", "Failed to add Accpet field parameter");
+        printProgramWarning("SIP Field Composing",
+                            "Failed to add Accpet field parameter");
       }
     }
   }
@@ -93,62 +82,82 @@ bool includeAcceptField(QList<SIPField>& fields,
 
 
 bool includeAcceptEncodingField(QList<SIPField>& fields,
-                                const std::shared_ptr<QStringList> encodings)
+                                const std::shared_ptr<QList<SIPAcceptGeneric>> encodings)
 {
-  return false;
+  return composeAcceptGenericField(fields, encodings, "Accept-Encoding");
 }
 
 
 bool includeAcceptLanguageField(QList<SIPField>& fields,
-                                const std::shared_ptr<QStringList> languages)
+                                const std::shared_ptr<QList<SIPAcceptGeneric> > languages)
 {
-  return false;
+  return composeAcceptGenericField(fields, languages, "Accept-Language");
 }
 
 
 bool includeAlertInfoField(QList<SIPField>& fields,
                            const QList<SIPInfo>& infos)
 {
-  return false;
+  return composeInfoField(fields, infos, "Alert-Info");
 }
 
 
 bool includeAllowField(QList<SIPField>& fields,
                        const std::shared_ptr<QList<SIPRequestMethod>> allows)
 {
+  if (allows == nullptr)
+  {
+    return false;
+  }
+
+  // add field
+  fields.push_back({"Allow",{}});
+
+  for (auto& allow : *allows)
+  {
+    if (allow != SIP_NO_REQUEST)
+    {
+      // add comma(,) separated value. In this case one method.
+      fields.back().valueSets.push_back({{requestMethodToString(allow)}, {}});
+    }
+  }
+
   return false;
 }
 
 
 bool includeAuthInfoField(QList<SIPField>& fields,
-                          const QList<SIPAuthInfo>& authInfos)
+                          const std::shared_ptr<SIPAuthInfo> authInfo)
 {
-  return false;
+  // if either field does not exist or none of the values have been set
+  if (authInfo == nullptr ||
+      (authInfo->nextNonce == "" &&
+      authInfo->messageQop == SIP_NO_AUTH &&
+      authInfo->responseAuth == "" &&
+      authInfo->cnonce == "" &&
+      authInfo->nonceCount == ""))
+  {
+    return false;
+  }
+
+  fields.push_back({"Allow",{}});
+
+  // add each value as valueset if the value has been set
+  composeDigestValueQuoted("nextnonce", authInfo->nextNonce, fields.back());
+  composeDigestValue      ("qop",       qopValueToString(authInfo->messageQop), fields.back());
+  composeDigestValueQuoted("rspauth",   authInfo->responseAuth, fields.back());
+  composeDigestValueQuoted("cnonce",    authInfo->cnonce, fields.back());
+  composeDigestValue      ("nc",        authInfo->nonceCount, fields.back());
+
+  return true;
 }
 
 
 bool includeAuthorizationField(QList<SIPField>& fields,
                                const std::shared_ptr<DigestResponse> dResponse)
 {
-  Q_ASSERT(dResponse != nullptr);
-  Q_ASSERT(dResponse->username != "");
-  Q_ASSERT(dResponse->realm != "");
-
-
-  SIPField field = {"Authorization",
-                    QList<SIPValueSet>{SIPValueSet{{}, nullptr}}};
-
-  field.valueSets[0].words.push_back("Digest");
-  field.valueSets[0].words.push_back("username=\"" +
-                                     dResponse->username + "\"");
-  field.valueSets[0].words.push_back("realm=\"" +
-                                     dResponse->realm + "\"");
-
-  fields.push_back(field);
-
-  return true;
+  return composeDigestResponseField(fields, dResponse, "Authorization");
 }
-
 
 
 bool includeCallIDField(QList<SIPField> &fields,
@@ -170,7 +179,7 @@ bool includeCallIDField(QList<SIPField> &fields,
 bool includeCallInfoField(QList<SIPField>& fields,
                           const QList<SIPInfo>& infos)
 {
-  return false;
+  return composeInfoField(fields, infos, "Call-Info");
 }
 
 
@@ -279,7 +288,7 @@ bool includeCSeqField(QList<SIPField> &fields,
   SIPField field = {"CSeq", QList<SIPValueSet>{SIPValueSet{{}, nullptr}}};
 
   field.valueSets[0].words.push_back(QString::number(cSeq.cSeq));
-  field.valueSets[0].words.push_back(requestToString(cSeq.method));
+  field.valueSets[0].words.push_back(requestMethodToString(cSeq.method));
   field.valueSets[0].parameters = nullptr;
 
   fields.push_back(field);
@@ -297,7 +306,7 @@ bool includeDateField(QList<SIPField>& fields,
 bool includeErrorInfoField(QList<SIPField>& fields,
                            const QList<SIPInfo>& infos)
 {
-  return false;
+  return composeInfoField(fields, infos, "Error-Info");
 }
 
 
@@ -398,14 +407,14 @@ bool includePriorityField(QList<SIPField>& fields,
 bool includeProxyAuthenticateField(QList<SIPField>& fields,
                                    const std::shared_ptr<DigestChallenge> challenge)
 {
-  return false;
+  return composeDigestChallengeField(fields, challenge, "Proxy-Authenticate");
 }
 
 
 bool includeProxyAuthorizationField(QList<SIPField>& fields,
                                     const std::shared_ptr<DigestResponse> dResponse)
 {
-  return false;
+  return composeDigestResponseField(fields, dResponse, "Proxy-Authorization");
 }
 
 
@@ -573,7 +582,8 @@ bool includeViaFields(QList<SIPField>& fields, const QList<ViaField>& vias)
 
     SIPField field = {"Via", QList<SIPValueSet>{SIPValueSet{{}, nullptr}}};
 
-    field.valueSets[0].words.push_back("SIP/" + via.sipVersion +"/" + connectionToString(via.protocol));
+    field.valueSets[0].words.push_back("SIP/" + via.sipVersion +"/" +
+                                       transportProtocolToString(via.protocol));
     field.valueSets[0].words.push_back(via.sentBy + composePortString(via.port));
 
     if(!tryAddParameter(field.valueSets[0].parameters, "branch", via.branch))
@@ -623,5 +633,5 @@ bool includeWarningField(QList<SIPField>& fields,
 bool includeWWWAuthenticateField(QList<SIPField>& fields,
                                  std::shared_ptr<DigestChallenge> challenge)
 {
-  return false;
+  return composeDigestChallengeField(fields, challenge, "WWW-Authenticate");
 }

@@ -12,15 +12,40 @@ bool tryAddParameter(std::shared_ptr<QList<SIPParameter> > &parameters,
                      QString parameterName);
 
 bool addParameter(std::shared_ptr<QList<SIPParameter> > &parameters,
-                  SIPParameter& parameter);
+                  const SIPParameter &parameter);
 
-QString composeUritype(SIPType type);
-bool composeSIPUri(const SIP_URI &uri, QStringList& words);
-bool composeNameAddr(const NameAddr &nameAddr, QStringList& words);
+QString composeURItype(SIPType type);
+QString composeSIPURI(const SIP_URI &uri);
+QString composeAbsoluteURI(const AbsoluteURI&uri);
+bool composeNameAddr(const NameAddr &nameAddr, QStringList &words);
 QString composePortString(uint16_t port);
 
 bool composeSIPRouteLocation(const SIPRouteLocation &location,
                              SIPValueSet& valueSet);
+
+void composeDigestValue(QString fieldName, const QString& fieldValue, SIPField &field);
+void composeDigestValueQuoted(QString fieldName, const QString& fieldValue, SIPField &field);
+
+
+// composing whole fields
+bool composeAcceptGenericField(QList<SIPField>& fields,
+                          const std::shared_ptr<QList<SIPAcceptGeneric>> generics,
+                          QString fieldname);
+
+bool composeInfoField(QList<SIPField>& fields,
+                      const QList<SIPInfo>& infos,
+                      QString fieldname);
+
+
+bool composeDigestChallengeField(QList<SIPField>& fields,
+                                 const std::shared_ptr<DigestChallenge> dChallenge,
+                                 QString fieldname);
+
+bool composeDigestResponseField(QList<SIPField>& fields,
+                                const std::shared_ptr<DigestResponse> dResponse,
+                                QString fieldname);
+
+
 
 
 // ========= Parsing functions =========
