@@ -87,55 +87,11 @@ void addParameterToSet(SIPParameter& currentParameter, QString& currentWord,
 bool composeMandatoryFields(QList<SIPField>& fields,
                             std::shared_ptr<SIPMessageHeader> header)
 {
-  return includeViaFields(fields, header->vias) &&
-         includeToField(fields, header->to) &&
-         includeFromField(fields, header->from) &&
-         includeCallIDField(fields, header->callID) &&
-         includeCSeqField(fields, header->cSeq);
-}
-
-
-void composeRequestAcceptField(QList<SIPField>& fields,
-                               SIPRequestMethod method,
-                               std::shared_ptr<QList<SIPAccept>> accept)
-{
-  // We add accept field if this is OPTIONS or if the default value (application/sdp)
-  // does not cover the situation for INVITE.
-  if (method == SIP_OPTIONS ||
-      (method == SIP_INVITE &&
-       (accept != nullptr &&
-        (accept->size() != 1 ||
-         accept->at(0).type != MT_APPLICATION_SDP))))
-  {
-    if (!includeAcceptField(fields, accept))
-    {
-      printProgramWarning("SIP Transport Helper", "Failed to add accept-field");
-    }
-  }
-}
-
-
-void composeResponseAcceptField(QList<SIPField>& fields,
-                                uint16_t responseCode,
-                                SIPRequestMethod transactionMethod,
-                                std::shared_ptr<QList<SIPAccept>> accept)
-{
-  // We add accept field if this is OPTIONS or if the default value (application/sdp)
-  // does not cover the situation for INVITE.
-  if (((200 <= responseCode && responseCode <= 299) && // OK response
-      (transactionMethod == SIP_OPTIONS || // always in OPTIONS
-       (transactionMethod == SIP_INVITE && // INVITE if needed
-        (accept != nullptr &&
-         (accept->size() != 1 ||
-          accept->at(0).type != MT_APPLICATION_SDP))))) ||
-      (responseCode == SIP_UNSUPPORTED_MEDIA_TYPE && // 415 response if correct
-       accept != nullptr))
-  {
-    if (!includeAcceptField(fields, accept))
-    {
-      printProgramWarning("SIP Transport Helper", "Failed to add accept-field");
-    }
-  }
+  return includeViaFields(fields, header) &&
+         includeToField(fields, header) &&
+         includeFromField(fields, header) &&
+         includeCallIDField(fields, header) &&
+         includeCSeqField(fields, header);
 }
 
 
@@ -196,8 +152,8 @@ QString fieldsToString(QList<SIPField>& fields, QString lineEnding)
 }
 
 
-QString addContent(QList<SIPField>& fields, MediaType contentType,
-                                 QVariant &content)
+QString addContent(QList<SIPField>& fields, const std::shared_ptr<SIPMessageHeader> header,
+                   QVariant &content)
 {
   // TODO: QString is probably not the right container for content
   // since it can also be audio or video. QByteArray would probably be better
@@ -206,28 +162,30 @@ QString addContent(QList<SIPField>& fields, MediaType contentType,
 
   QString contentString = "";
 
-  if (contentType == MT_TEXT)
+  if (header->contentType == MT_TEXT)
   {
     contentString = content.value<QString>();
   }
-  else if(contentType == MT_APPLICATION_SDP)
+  else if(header->contentType == MT_APPLICATION_SDP)
   {
     contentString = composeSDPContent(content.value<SDPMessageInfo>());
   }
 
-  if (contentString != "")
-  {
-    if (!includeContentLengthField(fields, contentString.length()) ||
-        !includeContentTypeField(fields, contentType))
-    {
-      printProgramWarning("SIP Transport Helper", "Could not add content to SIP message");
-      return "";
-    }
-  }
-  else if(!includeContentLengthField(fields, 0))
+  header->contentLength = contentString.length();
+
+  if(!includeContentLengthField(fields, header))
   {
     printProgramError("SIP Transport Helper", "Could not add content-length field to SIP message!");
     return "";
+  }
+
+  if (contentString != "")
+  {
+    if (!includeContentTypeField(fields, header))
+    {
+      printProgramWarning("SIP Transport Helper", "Could not add content type field to SIP");
+      return "";
+    }
   }
 
   return contentString;

@@ -6,18 +6,14 @@
 
 bool checkAlwaysMandatoryFields(QList<SIPField>& fields);
 bool alwaysSensibleField(QString field);
-bool sensiblePreconditions(QString field, SIPRequestMethod method, QList<SIPField>& fields);
+bool sensiblePreconditions(QString field, SIPRequestMethod method);
 
 // check if the SIP message contains all required fields
 bool checkRequestMustFields(QList<SIPField>& fields, SIPRequestMethod method);
 bool checkResponseMustFields(QList<SIPField>& fields, SIPResponseStatus status,
                              SIPRequestMethod ongoingTransaction);
 
-// check if the field makes sense in this request/response.
-// Fields that do not should be ignored.
-bool sensibleRequestField(QList<SIPField>& fields, SIPRequestMethod method, QString field);
-bool sensibleResponseField(QList<SIPField>& fields, SIPResponseStatus status,
-                           SIPRequestMethod ongoingTransaction, QString field);
+
 
 
 
@@ -68,7 +64,7 @@ bool requestSanityCheck(QList<SIPField>& fields, SIPRequestMethod method)
   // remove invalid fields
   for (int i = fields.size() - 1; i >= 0; --i)
   {
-    if (!sensibleRequestField(fields, method, fields.at(i).name))
+    if (!sensibleRequestField(method, fields.at(i).name))
     {
       fields.removeAt(i);
     }
@@ -121,7 +117,7 @@ bool responseSanityCheck(QList<SIPField>& fields,
   // remove invalid fields
   for (int i = fields.size() - 1; i >= 0; --i)
   {
-    if (!sensibleResponseField(fields, status, ongoingTransaction,
+    if (!sensibleResponseField(status, ongoingTransaction,
                                fields.at(i).name))
     {
       fields.removeAt(i);
@@ -286,11 +282,11 @@ bool checkResponseMustFields(QList<SIPField>& fields, SIPResponseStatus status,
 }
 
 
-bool sensibleRequestField(QList<SIPField>& fields, SIPRequestMethod method, QString field)
+bool sensibleRequestField(SIPRequestMethod method, const QString field)
 {
   Q_ASSERT(method != SIP_REGISTER);
 
-  if (!sensiblePreconditions(field, method, fields) ||
+  if (!sensiblePreconditions(field, method) ||
       method == SIP_REGISTER)
   {
     return false;
@@ -371,14 +367,14 @@ bool sensibleRequestField(QList<SIPField>& fields, SIPRequestMethod method, QStr
 }
 
 
-bool sensibleResponseField(QList<SIPField>& fields, SIPResponseStatus status,
+bool sensibleResponseField(SIPResponseStatus status,
                            SIPRequestMethod ongoingTransaction,
                            QString field)
 {
   Q_ASSERT(status != SIP_UNKNOWN_RESPONSE);
   Q_ASSERT(ongoingTransaction != SIP_ACK); // There is no such thing as an ACK response
 
-  if (!sensiblePreconditions(field, ongoingTransaction, fields) ||
+  if (!sensiblePreconditions(field, ongoingTransaction) ||
       status == SIP_UNKNOWN_RESPONSE ||
       ongoingTransaction == SIP_ACK)
   {
@@ -567,13 +563,12 @@ bool alwaysSensibleField(QString field)
 }
 
 
-bool sensiblePreconditions(QString field, SIPRequestMethod method, QList<SIPField>& fields)
+bool sensiblePreconditions(QString field, SIPRequestMethod method)
 {
   // precondition checks
 
   Q_ASSERT(method != SIP_NO_REQUEST);
   Q_ASSERT(field != "");
-  Q_ASSERT(!fields.empty());
 
   if (method == SIP_NO_REQUEST)
   {

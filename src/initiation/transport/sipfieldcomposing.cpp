@@ -54,16 +54,17 @@ bool getFirstResponseLine(QString& line, SIPResponse& response,
 
 
 bool includeAcceptField(QList<SIPField>& fields,
-                        const std::shared_ptr<QList<SIPAccept>> accepts)
+                        const std::shared_ptr<SIPMessageHeader> header)
 {
-  if (accepts == nullptr)
+  if (header == nullptr ||
+      header->accept == nullptr)
   {
     return false;
   }
   // empty list is also legal
   fields.push_back({"Accept",{}});
 
-  for (auto& accept : *accepts)
+  for (auto& accept : *header->accept)
   {
     fields.back().valueSets.push_back({{contentTypeToString(accept.type)},{}});
 
@@ -82,30 +83,31 @@ bool includeAcceptField(QList<SIPField>& fields,
 
 
 bool includeAcceptEncodingField(QList<SIPField>& fields,
-                                const std::shared_ptr<QList<SIPAcceptGeneric>> encodings)
+                                const std::shared_ptr<SIPMessageHeader> header)
 {
-  return composeAcceptGenericField(fields, encodings, "Accept-Encoding");
+  return composeAcceptGenericField(fields, header->acceptEncoding, "Accept-Encoding");
 }
 
 
 bool includeAcceptLanguageField(QList<SIPField>& fields,
-                                const std::shared_ptr<QList<SIPAcceptGeneric> > languages)
+                                const std::shared_ptr<SIPMessageHeader> header)
 {
-  return composeAcceptGenericField(fields, languages, "Accept-Language");
+  return composeAcceptGenericField(fields, header->acceptLanguage, "Accept-Language");
 }
 
 
 bool includeAlertInfoField(QList<SIPField>& fields,
-                           const QList<SIPInfo>& infos)
+                           const std::shared_ptr<SIPMessageHeader> header)
 {
-  return composeInfoField(fields, infos, "Alert-Info");
+  return composeInfoField(fields, header->alertInfos, "Alert-Info");
 }
 
 
 bool includeAllowField(QList<SIPField>& fields,
-                       const std::shared_ptr<QList<SIPRequestMethod>> allows)
+                       const std::shared_ptr<SIPMessageHeader> header)
 {
-  if (allows == nullptr)
+  if (header == nullptr ||
+      header->allow == nullptr)
   {
     return false;
   }
@@ -113,7 +115,7 @@ bool includeAllowField(QList<SIPField>& fields,
   // add field
   fields.push_back({"Allow",{}});
 
-  for (auto& allow : *allows)
+  for (auto& allow : *header->allow)
   {
     if (allow != SIP_NO_REQUEST)
     {
@@ -127,15 +129,16 @@ bool includeAllowField(QList<SIPField>& fields,
 
 
 bool includeAuthInfoField(QList<SIPField>& fields,
-                          const std::shared_ptr<SIPAuthInfo> authInfo)
+                          const std::shared_ptr<SIPMessageHeader> header)
 {
   // if either field does not exist or none of the values have been set
-  if (authInfo == nullptr ||
-      (authInfo->nextNonce == "" &&
-      authInfo->messageQop == SIP_NO_AUTH &&
-      authInfo->responseAuth == "" &&
-      authInfo->cnonce == "" &&
-      authInfo->nonceCount == ""))
+  if (header == nullptr ||
+      header->authInfo == nullptr ||
+      (header->authInfo->nextNonce == "" &&
+      header->authInfo->messageQop == SIP_NO_AUTH &&
+      header->authInfo->responseAuth == "" &&
+      header->authInfo->cnonce == "" &&
+      header->authInfo->nonceCount == ""))
   {
     return false;
   }
@@ -143,49 +146,48 @@ bool includeAuthInfoField(QList<SIPField>& fields,
   fields.push_back({"Allow",{}});
 
   // add each value as valueset if the value has been set
-  composeDigestValueQuoted("nextnonce", authInfo->nextNonce, fields.back());
-  composeDigestValue      ("qop",       qopValueToString(authInfo->messageQop), fields.back());
-  composeDigestValueQuoted("rspauth",   authInfo->responseAuth, fields.back());
-  composeDigestValueQuoted("cnonce",    authInfo->cnonce, fields.back());
-  composeDigestValue      ("nc",        authInfo->nonceCount, fields.back());
+  composeDigestValueQuoted("nextnonce", header->authInfo->nextNonce, fields.back());
+  composeDigestValue      ("qop",       qopValueToString(header->authInfo->messageQop), fields.back());
+  composeDigestValueQuoted("rspauth",   header->authInfo->responseAuth, fields.back());
+  composeDigestValueQuoted("cnonce",    header->authInfo->cnonce, fields.back());
+  composeDigestValue      ("nc",        header->authInfo->nonceCount, fields.back());
 
   return true;
 }
 
 
 bool includeAuthorizationField(QList<SIPField>& fields,
-                               const std::shared_ptr<DigestResponse> dResponse)
+                               const std::shared_ptr<SIPMessageHeader> header)
 {
-  return composeDigestResponseField(fields, dResponse, "Authorization");
+  return composeDigestResponseField(fields, header->authorization, "Authorization");
 }
 
 
 bool includeCallIDField(QList<SIPField> &fields,
-                        const QString& callID)
+                        const std::shared_ptr<SIPMessageHeader> header)
 {
-  return composeString(fields, callID, "Call-ID");
+  return composeString(fields, header->callID, "Call-ID");
 }
 
 
 bool includeCallInfoField(QList<SIPField>& fields,
-                          const QList<SIPInfo>& infos)
+                          const std::shared_ptr<SIPMessageHeader> header)
 {
-  return composeInfoField(fields, infos, "Call-Info");
+  return composeInfoField(fields, header->callInfos, "Call-Info");
 }
 
 
 bool includeContactField(QList<SIPField> &fields,
-                         const QList<SIPRouteLocation> &contacts)
+                         const std::shared_ptr<SIPMessageHeader> header)
 {
-  Q_ASSERT(!contacts.empty());
-  if (contacts.empty())
+  if (header->contact.empty())
   {
     return false;
   }
 
   SIPField field = {"Contact", QList<SIPValueSet>{}};
 
-  for(auto& contact : contacts)
+  for(auto& contact : header->contact)
   {
     Q_ASSERT(contact.address.uri.userinfo.user != "" &&
              contact.address.uri.hostport.host != "");
@@ -212,18 +214,18 @@ bool includeContactField(QList<SIPField> &fields,
 
 
 bool includeContentDispositionField(QList<SIPField>& fields,
-                                    const std::shared_ptr<ContentDisposition> disposition)
+                                    const std::shared_ptr<SIPMessageHeader> header)
 {
-  if (disposition == nullptr)
+  if (header->contentDisposition == nullptr)
   {
     return false;
   }
 
   fields.push_back({"Content-Disposition", QList<SIPValueSet>{}});
 
-  fields.back().valueSets.back().words.push_back(disposition->dispType);
+  fields.back().valueSets.back().words.push_back(header->contentDisposition->dispType);
 
-  for (auto& parameter : disposition->parameters)
+  for (auto& parameter : header->contentDisposition->parameters)
   {
     if (!addParameter(fields.back().valueSets.back().parameters, parameter))
     {
@@ -237,24 +239,24 @@ bool includeContentDispositionField(QList<SIPField>& fields,
 
 
 bool includeContentEncodingField(QList<SIPField>& fields,
-                                 const QStringList &encodings)
+                                 const std::shared_ptr<SIPMessageHeader> header)
 {
-  return composeCommaStringList(fields, encodings, "Content-Encoding");
+  return composeStringList(fields, header->contentEncoding, "Content-Encoding");
 }
 
 
 bool includeContentLanguageField(QList<SIPField>& fields,
-                                 const QStringList& languages)
+                                 const std::shared_ptr<SIPMessageHeader> header)
 {
-  return composeCommaStringList(fields, languages, "Content-Language");
+  return composeStringList(fields, header->contentLanguage, "Content-Language");
 }
 
 
 bool includeContentLengthField(QList<SIPField> &fields,
-                               uint32_t contentLenght)
+                               const std::shared_ptr<SIPMessageHeader> header)
 {
   SIPField field = {"Content-Length",
-                    QList<SIPValueSet>{SIPValueSet{{QString::number(contentLenght)},
+                    QList<SIPValueSet>{SIPValueSet{{QString::number(header->contentLength)},
                                                    nullptr}}};
   fields.push_back(field);
   return true;
@@ -262,19 +264,19 @@ bool includeContentLengthField(QList<SIPField> &fields,
 
 
 bool includeContentTypeField(QList<SIPField> &fields,
-                             MediaType contentType)
+                             const std::shared_ptr<SIPMessageHeader> header)
 {
-  Q_ASSERT(contentType != MT_UNKNOWN);
-  if(contentType == MT_UNKNOWN)
+  Q_ASSERT(header->contentType != MT_UNKNOWN);
+  if(header->contentType == MT_UNKNOWN)
   {
     printProgramWarning("SIP Field Composing", "Content-type field failed.");
     return false;
   }
 
-  if (contentType != MT_NONE)
+  if (header->contentType != MT_NONE)
   {
     SIPField field = {"Content-Type",
-                      QList<SIPValueSet>{SIPValueSet{{contentTypeToString(contentType)},
+                      QList<SIPValueSet>{SIPValueSet{{contentTypeToString(header->contentType)},
                                                      nullptr}}};
     fields.push_back(field);
     return true;
@@ -285,10 +287,10 @@ bool includeContentTypeField(QList<SIPField> &fields,
 
 
 bool includeCSeqField(QList<SIPField> &fields,
-                      const CSeqField &cSeq)
+                      const std::shared_ptr<SIPMessageHeader> header)
 {
-  Q_ASSERT(cSeq.cSeq != 0 && cSeq.method != SIP_NO_REQUEST);
-  if (cSeq.cSeq == 0 || cSeq.method == SIP_NO_REQUEST)
+  Q_ASSERT(header->cSeq.cSeq != 0 && header->cSeq.method != SIP_NO_REQUEST);
+  if (header->cSeq.cSeq == 0 || header->cSeq.method == SIP_NO_REQUEST)
   {
     printProgramWarning("SIP Field Composing", "CSeq field failed.");
     return false;
@@ -296,8 +298,8 @@ bool includeCSeqField(QList<SIPField> &fields,
 
   SIPField field = {"CSeq", QList<SIPValueSet>{SIPValueSet{{}, nullptr}}};
 
-  field.valueSets[0].words.push_back(QString::number(cSeq.cSeq));
-  field.valueSets[0].words.push_back(requestMethodToString(cSeq.method));
+  field.valueSets[0].words.push_back(QString::number(header->cSeq.cSeq));
+  field.valueSets[0].words.push_back(requestMethodToString(header->cSeq.method));
   field.valueSets[0].parameters = nullptr;
 
   fields.push_back(field);
@@ -306,21 +308,21 @@ bool includeCSeqField(QList<SIPField> &fields,
 
 
 bool includeDateField(QList<SIPField>& fields,
-                      const std::shared_ptr<SIPDateField> date)
+                      const std::shared_ptr<SIPMessageHeader> header)
 {
-  if (date == nullptr ||
-      date->weekday == "" ||
-      date->date == "" ||
-      date->time == "" ||
-      date->timezone == "")
+  if (header->date == nullptr ||
+      header->date->weekday == "" ||
+      header->date->date == "" ||
+      header->date->time == "" ||
+      header->date->timezone == "")
   {
     return false;
   }
 
   fields.push_back({"Date", QList<SIPValueSet>{SIPValueSet{}}});
 
-  QString dateString = date->weekday + "," + " " + date->date + " " +
-      date->time + " " + date->timezone;
+  QString dateString = header->date->weekday + "," + " " + header->date->date + " " +
+      header->date->time + " " + header->date->timezone;
 
   fields.back().valueSets.back().words.push_back(dateString);
 
@@ -329,47 +331,52 @@ bool includeDateField(QList<SIPField>& fields,
 
 
 bool includeErrorInfoField(QList<SIPField>& fields,
-                           const QList<SIPInfo>& infos)
+                           const std::shared_ptr<SIPMessageHeader> header)
 {
-  return composeInfoField(fields, infos, "Error-Info");
+  return composeInfoField(fields, header->errorInfos, "Error-Info");
 }
 
 
 bool includeExpiresField(QList<SIPField>& fields,
-                         uint32_t expires)
+                         const std::shared_ptr<SIPMessageHeader> header)
 {
+  if (header->expires == nullptr)
+  {
+    return false;
+  }
+
   SIPField field = {"Expires",
-                    QList<SIPValueSet>{SIPValueSet{{QString::number(expires)}, nullptr}}};
+                    QList<SIPValueSet>{SIPValueSet{{QString::number(*header->expires)}, nullptr}}};
   fields.push_back(field);
   return true;
 }
 
 
 bool includeFromField(QList<SIPField> &fields,
-                      const ToFrom &from)
+                      const std::shared_ptr<SIPMessageHeader> header)
 {
-  Q_ASSERT(from.address.uri.userinfo.user != "" &&
-      from.address.uri.hostport.host != "");
-  if(from.address.uri.userinfo.user == "" ||
-     from.address.uri.hostport.host == "")
+  Q_ASSERT(header->from.address.uri.userinfo.user != "" &&
+      header->from.address.uri.hostport.host != "");
+  if(header->from.address.uri.userinfo.user == "" ||
+     header->from.address.uri.hostport.host == "")
   {
     printProgramWarning("SIP Field Composing",
                         "Failed to compose From-field because of missing info",
-                        "addressport", from.address.uri.userinfo.user +
-                        "@" + from.address.uri.hostport.host);
+                        "addressport", header->from.address.uri.userinfo.user +
+                        "@" + header->from.address.uri.hostport.host);
     return false;
   }
 
   SIPField field = {"From", QList<SIPValueSet>{SIPValueSet{{}, nullptr}}};
 
-  if (!composeNameAddr(from.address, field.valueSets[0].words))
+  if (!composeNameAddr(header->from.address, field.valueSets[0].words))
   {
     return false;
   }
 
   field.valueSets[0].parameters = nullptr;
 
-  tryAddParameter(field.valueSets[0].parameters, "tag", from.tag);
+  tryAddParameter(field.valueSets[0].parameters, "tag", header->from.tag);
 
   fields.push_back(field);
   return true;
@@ -377,92 +384,90 @@ bool includeFromField(QList<SIPField> &fields,
 
 
 bool includeInReplyToField(QList<SIPField>& fields,
-                           const QString& callID)
+                           const std::shared_ptr<SIPMessageHeader> header)
 {
-  return composeString(fields, callID, "In-Reply-To");
+  return composeString(fields, header->inReplyToCallID, "In-Reply-To");
 }
 
 
 bool includeMaxForwardsField(QList<SIPField> &fields,
-                             const std::shared_ptr<uint8_t> maxForwards)
+                             const std::shared_ptr<SIPMessageHeader> header)
 {
-  Q_ASSERT(maxForwards != nullptr);
-  Q_ASSERT(*maxForwards != 0);
-  if (maxForwards == nullptr || *maxForwards == 0)
+  if (header->maxForwards == nullptr || *header->maxForwards == 0)
   {
-    printProgramError("SIPFieldComposing", "Failed to include Max-Forwards field");
     return false;
   }
 
-  return composeString(fields, QString::number(*maxForwards), "Max-Forwards");
+  return composeString(fields, QString::number(*header->maxForwards), "Max-Forwards");
 }
 
 
 bool includeMinExpiresField(QList<SIPField>& fields,
-                            std::shared_ptr<uint32_t> minExpires)
+                            const std::shared_ptr<SIPMessageHeader> header)
 {
-  if (minExpires == nullptr || *minExpires == 0)
+  if (header->minExpires == nullptr ||
+      *header->minExpires == 0)
   {
     printProgramError("SIPFieldComposing", "Failed to include Min-Expires field");
     return false;
   }
 
-  return composeString(fields, QString::number(*minExpires), "Min-Expires");
+  return composeString(fields, QString::number(*header->minExpires), "Min-Expires");
 }
 
 
 bool includeMIMEVersionField(QList<SIPField>& fields,
-                             const QString& version)
+                             const std::shared_ptr<SIPMessageHeader> header)
 {
-  return composeString(fields, version, "MIME-Version");
+  return composeString(fields, header->mimeVersion, "MIME-Version");
 }
 
 
 bool includeOrganizationField(QList<SIPField>& fields,
-                              const QString& organization)
+                              const std::shared_ptr<SIPMessageHeader> header)
 {
-  return composeString(fields, organization, "Organization");
+  return composeString(fields, header->organization, "Organization");
 }
 
 
 bool includePriorityField(QList<SIPField>& fields,
-                          const SIPPriorityField& priority)
+                          const std::shared_ptr<SIPMessageHeader> header)
 {
-  return composeString(fields, priorityToString(priority), "Priority");
+  return composeString(fields, priorityToString(header->priority), "Priority");
 }
 
 
 bool includeProxyAuthenticateField(QList<SIPField>& fields,
-                                   const std::shared_ptr<DigestChallenge> challenge)
+                                   const std::shared_ptr<SIPMessageHeader> header)
 {
-  return composeDigestChallengeField(fields, challenge, "Proxy-Authenticate");
+  return composeDigestChallengeField(fields, header->proxyAuthenticate, "Proxy-Authenticate");
 }
 
 
 bool includeProxyAuthorizationField(QList<SIPField>& fields,
-                                    const std::shared_ptr<DigestResponse> dResponse)
+                                    const std::shared_ptr<SIPMessageHeader> header)
 {
-  return composeDigestResponseField(fields, dResponse, "Proxy-Authorization");
+  return composeDigestResponseField(fields, header->proxyAuthorization, "Proxy-Authorization");
 }
 
 
 bool includeProxyRequireField(QList<SIPField>& fields,
-                              const QStringList& requires)
+                              const std::shared_ptr<SIPMessageHeader> header)
 {
-  return composeCommaStringList(fields, requires, "Proxy-Require");
+  return composeStringList(fields, header->proxyRequires, "Proxy-Require");
 }
 
 
 bool includeRecordRouteField(QList<SIPField>& fields,
-                             const QList<SIPRouteLocation> &routes)
+                             const std::shared_ptr<SIPMessageHeader> header)
 {
-  if (routes.empty())
+  if (header->recordRoutes.empty())
   {
     return false;
   }
 
   SIPField field = {"Record-Route",{}};
-  for (auto& route : routes)
+  for (auto& route : header->recordRoutes)
   {
     field.valueSets.push_back({{}, nullptr});
 
@@ -477,16 +482,16 @@ bool includeRecordRouteField(QList<SIPField>& fields,
 
 
 bool includeReplyToField(QList<SIPField>& fields,
-                         const std::shared_ptr<SIPRouteLocation> replyTo)
+                         const std::shared_ptr<SIPMessageHeader> header)
 {
-  if (replyTo == nullptr)
+  if (header->replyTo == nullptr)
   {
     return false;
   }
 
   fields.push_back(SIPField{"Reply-To", QList<SIPValueSet>{SIPValueSet{},{}}});
 
-  if (!composeSIPRouteLocation(*replyTo, fields.back().valueSets.back()))
+  if (!composeSIPRouteLocation(*header->replyTo, fields.back().valueSets.back()))
   {
     fields.pop_back();
     return false;
@@ -498,31 +503,31 @@ bool includeReplyToField(QList<SIPField>& fields,
 
 
 bool includeRequireField(QList<SIPField>& fields,
-                         const QStringList& requires)
+                         const std::shared_ptr<SIPMessageHeader> header)
 {
-  return composeCommaStringList(fields, requires, "Require");
+  return composeStringList(fields, header->require, "Require");
 }
 
 
 bool includeRetryAfterField(QList<SIPField>& fields,
-                            const std::shared_ptr<SIPRetryAfter> retryAfter)
+                            const std::shared_ptr<SIPMessageHeader> header)
 {
-  if (retryAfter != nullptr &&
-      composeString(fields, QString::number(retryAfter->time), "Retry-After"))
+  if (header->retryAfter != nullptr &&
+      composeString(fields, QString::number(header->retryAfter->time), "Retry-After"))
   {
     if (!fields.empty() &&
         fields.back().name == "Retry-After" &&
         !fields.back().valueSets.empty())
     {
-      if (retryAfter->duration != 0 &&
+      if (header->retryAfter->duration != 0 &&
           !tryAddParameter(fields.back().valueSets.first().parameters,
-                      "Duration", QString::number(retryAfter->duration)))
+                      "Duration", QString::number(header->retryAfter->duration)))
       {
         printProgramWarning("SIP Field Composing",
                             "Failed to add Retry-After duration parameter");
       }
 
-      for (auto& parameter : retryAfter->parameters)
+      for (auto& parameter : header->retryAfter->parameters)
       {
         if (!addParameter(fields.back().valueSets.first().parameters, parameter))
         {
@@ -540,15 +545,15 @@ bool includeRetryAfterField(QList<SIPField>& fields,
 
 
 bool includeRouteField(QList<SIPField>& fields,
-                       const QList<SIPRouteLocation> &routes)
+                       const std::shared_ptr<SIPMessageHeader> header)
 {
-  if (routes.empty())
+  if (header->routes.empty())
   {
     return false;
   }
 
   SIPField field = {"Route",{}};
-  for (auto& route : routes)
+  for (auto& route : header->routes)
   {
     field.valueSets.push_back({{}, nullptr});
 
@@ -563,62 +568,62 @@ bool includeRouteField(QList<SIPField>& fields,
 
 
 bool includeServerField(QList<SIPField>& fields,
-                        const QString& server)
+                        const std::shared_ptr<SIPMessageHeader> header)
 {
-  return composeString(fields, server, "Server");
+  return composeString(fields, header->server, "Server");
 }
 
 
 bool includeSubjectField(QList<SIPField>& fields,
-                         const QString& subject)
+                         const std::shared_ptr<SIPMessageHeader> header)
 {
-  return composeString(fields, subject, "Subject");
+  return composeString(fields, header->subject, "Subject");
 }
 
 
 bool includeSupportedField(QList<SIPField>& fields,
-                           const std::shared_ptr<QStringList> supported)
+                           const std::shared_ptr<SIPMessageHeader> header)
 {
-  if (supported == nullptr)
+  if (header->supported == nullptr)
   {
     return false;
   }
-  return composeCommaStringList(fields, *supported, "Supported");
+  return composeStringList(fields, *header->supported, "Supported");
 }
 
 
 bool includeTimestampField(QList<SIPField>& fields,
-                           const QString& timestamp)
+                           const std::shared_ptr<SIPMessageHeader> header)
 {
-  return composeString(fields, timestamp, "Timestamp");
+  return composeString(fields, header->timestamp, "Timestamp");
 }
 
 
 bool includeToField(QList<SIPField> &fields,
-                    const ToFrom &to)
+                    const std::shared_ptr<SIPMessageHeader> header)
 {
-  Q_ASSERT(to.address.uri.userinfo.user != "" &&
-      to.address.uri.hostport.host != "");
-  if(to.address.uri.userinfo.user == "" ||
-     to.address.uri.hostport.host == "")
+  Q_ASSERT(header->to.address.uri.userinfo.user != "" &&
+      header->to.address.uri.hostport.host != "");
+  if(header->to.address.uri.userinfo.user == "" ||
+     header->to.address.uri.hostport.host == "")
   {
     printProgramWarning("SIP Field Composing",
                         "Failed to compose To-field because of missing",
-                        "addressport", to.address.uri.userinfo.user +
-                        "@" + to.address.uri.hostport.host);
+                        "addressport", header->to.address.uri.userinfo.user +
+                        "@" + header->to.address.uri.hostport.host);
     return false;
   }
 
   SIPField field = {"To", QList<SIPValueSet>{SIPValueSet{{}, nullptr}}};
 
-  if (!composeNameAddr(to.address, field.valueSets[0].words))
+  if (!composeNameAddr(header->to.address, field.valueSets[0].words))
   {
     return false;
   }
 
   field.valueSets[0].parameters = nullptr;
 
-  tryAddParameter(field.valueSets[0].parameters, "tag", to.tag);
+  tryAddParameter(field.valueSets[0].parameters, "tag", header->to.tag);
 
   fields.push_back(field);
   return true;
@@ -626,29 +631,29 @@ bool includeToField(QList<SIPField> &fields,
 
 
 bool includeUnsupportedField(QList<SIPField>& fields,
-                             const QStringList& unsupported)
+                             const std::shared_ptr<SIPMessageHeader> header)
 {
-  return composeCommaStringList(fields, unsupported, "Unsupported");
+  return composeStringList(fields, header->unsupported, "Unsupported");
 }
 
 
 bool includeUserAgentField(QList<SIPField>& fields,
-                           const QString& userAgent)
+                           const std::shared_ptr<SIPMessageHeader> header)
 {
-  return composeString(fields, userAgent, "User-Agent");
+  return composeString(fields, header->userAgent, "User-Agent");
 }
 
 
-bool includeViaFields(QList<SIPField>& fields, const QList<ViaField>& vias)
+bool includeViaFields(QList<SIPField>& fields, const std::shared_ptr<SIPMessageHeader> header)
 {
-  Q_ASSERT(!vias.empty());
-  if(vias.empty())
+  Q_ASSERT(!header->vias.empty());
+  if(header->vias.empty())
   {
     printProgramWarning("SIP Field Composing", "Via field failed.");
     return false;
   }
 
-  for(const ViaField& via : vias)
+  for (ViaField& via : header->vias)
   {
     Q_ASSERT(via.protocol != NONE);
     Q_ASSERT(via.branch != "");
@@ -698,16 +703,16 @@ bool includeViaFields(QList<SIPField>& fields, const QList<ViaField>& vias)
 
 
 bool includeWarningField(QList<SIPField>& fields,
-                         QList<SIPWarningField> warnings)
+                         const std::shared_ptr<SIPMessageHeader> header)
 {
-  if (warnings.empty())
+  if (header->warning.empty())
   {
     return false;
   }
 
   fields.push_back(SIPField{"Warning", QList<SIPValueSet>{}});
 
-  for (auto& warning : warnings)
+  for (auto& warning : header->warning)
   {
     fields.back().valueSets.push_back(SIPValueSet{});
 
@@ -721,7 +726,7 @@ bool includeWarningField(QList<SIPField>& fields,
 
 
 bool includeWWWAuthenticateField(QList<SIPField>& fields,
-                                 std::shared_ptr<DigestChallenge> challenge)
+                                 const std::shared_ptr<SIPMessageHeader> header)
 {
-  return composeDigestChallengeField(fields, challenge, "WWW-Authenticate");
+  return composeDigestChallengeField(fields, header->wwwAuthenticate, "WWW-Authenticate");
 }

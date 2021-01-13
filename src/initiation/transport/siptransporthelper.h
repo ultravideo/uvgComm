@@ -14,17 +14,9 @@ bool composeMandatoryFields(QList<SIPField>& fields,
 QString fieldsToString(QList<SIPField>& fields, QString lineEnding);
 
 // returns the content as string and adds content-type/length to fields
-QString addContent(QList<SIPField>& fields, MediaType contentType,
+QString addContent(QList<SIPField>& fields, const std::shared_ptr<SIPMessageHeader> header,
                    QVariant &content);
 
-void composeRequestAcceptField(QList<SIPField>& fields,
-                               SIPRequestMethod method,
-                               std::shared_ptr<QList<SIPAccept>> accept);
-
-void composeResponseAcceptField(QList<SIPField>& fields,
-                                uint16_t responseCode,
-                                SIPRequestMethod transactionMethod,
-                                std::shared_ptr<QList<SIPAccept>> accept);
 
 // ===== Parsing =====
 

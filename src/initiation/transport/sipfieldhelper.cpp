@@ -378,7 +378,7 @@ bool composeDigestResponseField(QList<SIPField>& fields,
 }
 
 
-bool composeCommaStringList(QList<SIPField>& fields,
+bool composeStringList(QList<SIPField>& fields,
                        const QStringList& list,
                        QString fieldName)
 {

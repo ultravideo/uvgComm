@@ -185,30 +185,47 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
   printImportant(this, "Composing and sending SIP Request:", {"Type"},
                  requestMethodToString(request.method));
 
+  // TODO: This should be moved to transaction side once
+  // new architecture is implemented
   routing_.getViaAndContact(request.message,
                             connection_->localAddress().toString(),
                             connection_->localPort());
 
-  // start composing the request.
-  // First we turn the struct to fields which are then turned to string
+  // Start composing the request. First we turn the struct to fields
+  // which are then turned to string
+
+
+  // CallID, CSeq, From, To, Via, Max-Forwards
   QList<SIPField> fields;
   if (!composeMandatoryFields(fields, request.message) ||
-      !includeMaxForwardsField(fields, request.message->maxForwards))
+      !includeMaxForwardsField(fields, request.message))
   {
     printProgramError(this, "Failed to compose mandatory fields for request");
     return;
   }
 
-  composeRequestAcceptField(fields, request.method, request.message->accept);
+  if (request.method == SIP_INVITE)
+  {
+    // Allow
+    if (request.message->allow != nullptr)
+    {
+      if (!includeAllowField(fields, request.message))
+      {
+        printProgramWarning(this, "Failed to include Allow-field");
+      }
+    }
+  }
 
+
+  // Route
   if (!request.message->routes.empty() &&
-      !includeRouteField(fields, request.message->routes))
+      !includeRouteField(fields, request.message))
   {
     printDebug(DEBUG_PROGRAM_ERROR, this,  "Failed to add Route-fields");
   }
 
   if ((request.method == SIP_INVITE || request.method == SIP_REGISTER) &&
-      !includeContactField(fields, request.message->contact))
+      !includeContactField(fields, request.message))
   {
    qDebug() << "WARNING: Failed to add Contact field. Probably because of missing values.";
    return;
@@ -216,7 +233,7 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
 
   if (request.method == SIP_REGISTER &&
       (request.message->expires == nullptr ||
-      !includeExpiresField(fields, *request.message->expires)))
+      !includeExpiresField(fields, request.message)))
   {
     printDebug(DEBUG_PROGRAM_ERROR, this,  "Failed to add expires-field");
     return;
@@ -226,7 +243,7 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
   QString message = "";
   // adds content fields and converts the sdp to string if INVITE
   QString content_str = addContent(fields,
-                                   request.message->contentType,
+                                   request.message,
                                    content);
 
   if(!getFirstRequestLine(message, request, lineEnding))
@@ -267,19 +284,36 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
   }
 
   QList<SIPField> fields;
+
+  if (sensibleResponseField(response.type, response.message->cSeq.method, "Accept"))
+  {
+    includeAcceptField(fields, response.message);
+  }
+
+
+
   if(!composeMandatoryFields(fields, response.message))
   {
-    printWarning(this, "Failed to add mandatory fields. Probably because of missing values.");
+    printWarning(this, "Failed to add mandatory fields. "
+                       "Probably because of missing values.");
     return;
   }
 
   uint16_t responseCode = responseTypeToCode(response.type);
 
-  composeResponseAcceptField(fields, responseCode,
-                             response.message->cSeq.method,
-                             response.message->accept);
+  if (response.type == SIP_NOT_ALLOWED ||
+      (200 <= responseCode && responseCode <= 299 &&
+      (response.message->cSeq.method == SIP_INVITE ||
+       response.message->cSeq.method == SIP_OPTIONS)))
+  {
+    if (!includeAllowField(fields, response.message))
+    {
+      printProgramWarning(this, "Failed to include Allow-field in response");
+    }
+  }
 
-  if (!includeRecordRouteField(fields, response.message->recordRoutes))
+  if (!response.message->recordRoutes.empty() &&
+      !includeRecordRouteField(fields, response.message))
   {
     printDebug(DEBUG_PROGRAM_ERROR, this,  "Failed to add RecordRoute-fields");
   }
@@ -289,7 +323,7 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
                              connection_->localPort(), DEFAULT_SIP_TYPE);
 
   if (response.message->cSeq.method == SIP_INVITE && response.type == SIP_OK &&
-      !includeContactField(fields, response.message->contact))
+      !includeContactField(fields, response.message))
   {
     qDebug() << "ERROR: Failed to compose contact field for SIP OK response.";
   }
@@ -299,7 +333,7 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
 
   QString lineEnding = "\r\n";
   QString message = "";
-  QString content_str = addContent(fields, response.message->contentType, content);
+  QString content_str = addContent(fields, response.message, content);
   if(!getFirstResponseLine(message, response, lineEnding))
   {
     qDebug() << "WARNING: could not get first request line";

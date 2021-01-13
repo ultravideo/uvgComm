@@ -390,7 +390,7 @@ struct SIPMessageHeader
   std::shared_ptr<QList<SIPAcceptGeneric>> acceptLanguage = nullptr;
   QList<SIPInfo>                           alertInfos = {};
   std::shared_ptr<QList<SIPRequestMethod>> allow = nullptr;
-  std::shared_ptr<SIPAuthInfo>             authInfos  = {};
+  std::shared_ptr<SIPAuthInfo>             authInfo  = {};
   std::shared_ptr<DigestResponse>          authorization = nullptr;
   QString                                  callID = ""; // mandatory
   QList<SIPInfo>                           callInfos = {};
