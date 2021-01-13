@@ -61,7 +61,7 @@ const std::map<QString, MediaType> mediaTypes = {{"", MT_NONE},
 
 
 
-SIPRequestMethod stringToRequestMethod(QString request)
+SIPRequestMethod stringToRequestMethod(const QString &request)
 {
   if(requestTypes.find(request) == requestTypes.end())
   {
@@ -84,7 +84,7 @@ QString requestMethodToString(SIPRequestMethod request)
 }
 
 
-uint16_t stringToResponseCode(QString code)
+uint16_t stringToResponseCode(const QString &code)
 {
   return code.toUInt();
 }
@@ -171,7 +171,7 @@ QString transportProtocolToString(const SIPTransportProtocol connection)
 }
 
 
-MediaType stringToContentType(const QString typeStr)
+MediaType stringToContentType(const QString &typeStr)
 {
   if(mediaTypes.find(typeStr) == mediaTypes.end())
   {
@@ -201,6 +201,10 @@ QString contentTypeToString(const MediaType type)
 
 QopValue stringToQopValue(const QString& qop)
 {
+  if (qop == "")
+  {
+    return SIP_NO_AUTH;
+  }
   if (qop == "auth")
   {
     return SIP_AUTH;
@@ -238,7 +242,11 @@ QString qopValueToString(const QopValue qop)
 
 DigestAlgorithm stringToAlgorithm(const QString& algorithm)
 {
-  if (algorithm == "MD5")
+  if (algorithm == "")
+  {
+    return SIP_NO_ALGORITHM;
+  }
+  else if (algorithm == "MD5")
   {
     return SIP_MD5;
   }
@@ -247,7 +255,7 @@ DigestAlgorithm stringToAlgorithm(const QString& algorithm)
     return SIP_MD5_SESS;
   }
 
-  return SIP_NO_ALGORITHM;
+  return SIP_UNKNOWN_ALGORITHM;
 }
 
 
@@ -297,4 +305,54 @@ QString boolToString(const bool boolean)
   }
 
   return "false";
+}
+
+
+SIPPriorityField stringToPriority(const QString& priority)
+{
+  if (priority == "")
+  {
+    return SIP_NO_PRIORITY;
+  }
+  else if (priority == "emergency")
+  {
+    return SIP_EMERGENCY;
+  }
+  else if (priority == "urgent")
+  {
+    return SIP_URGENT;
+  }
+  else if (priority == "normal")
+  {
+    return SIP_NORMAL;
+  }
+  else if (priority == "non-urgent")
+  {
+    return SIP_NONURGENT;
+  }
+
+  return SIP_UNKNOWN_PRIORITY;
+}
+
+
+QString priorityToString(const SIPPriorityField priority)
+{
+  if (priority == SIP_EMERGENCY)
+  {
+    return "emergency";
+  }
+  else if (priority == SIP_URGENT)
+  {
+    return "urgent";
+  }
+  else if (priority == SIP_NORMAL)
+  {
+    return "normal";
+  }
+  else if (priority == SIP_NONURGENT)
+  {
+    return "non-urgent";
+  }
+
+  return "";
 }

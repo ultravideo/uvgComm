@@ -163,16 +163,7 @@ bool includeAuthorizationField(QList<SIPField>& fields,
 bool includeCallIDField(QList<SIPField> &fields,
                         const QString& callID)
 {
-  Q_ASSERT(callID != "");
-  if(callID == "")
-  {
-    printProgramWarning("SIP Field Composing", "Call-ID field failed.");
-    return false;
-  }
-
-  SIPField field = {"Call-ID", QList<SIPValueSet>{SIPValueSet{{callID}, nullptr}}};
-  fields.push_back(field);
-  return true;
+  return composeString(fields, callID, "Call-ID");
 }
 
 
@@ -223,21 +214,39 @@ bool includeContactField(QList<SIPField> &fields,
 bool includeContentDispositionField(QList<SIPField>& fields,
                                     const std::shared_ptr<ContentDisposition> disposition)
 {
-  return false;
+  if (disposition == nullptr)
+  {
+    return false;
+  }
+
+  fields.push_back({"Content-Disposition", QList<SIPValueSet>{}});
+
+  fields.back().valueSets.back().words.push_back(disposition->dispType);
+
+  for (auto& parameter : disposition->parameters)
+  {
+    if (!addParameter(fields.back().valueSets.back().parameters, parameter))
+    {
+      printProgramWarning("SIP Field Composing",
+                          "Faulty parameter in content-disposition");
+    }
+  }
+
+  return true;
 }
 
 
 bool includeContentEncodingField(QList<SIPField>& fields,
                                  const QStringList &encodings)
 {
-  return false;
+  return composeCommaStringList(fields, encodings, "Content-Encoding");
 }
 
 
 bool includeContentLanguageField(QList<SIPField>& fields,
                                  const QStringList& languages)
 {
-  return false;
+  return composeCommaStringList(fields, languages, "Content-Language");
 }
 
 
@@ -299,7 +308,23 @@ bool includeCSeqField(QList<SIPField> &fields,
 bool includeDateField(QList<SIPField>& fields,
                       const std::shared_ptr<SIPDateField> date)
 {
-  return false;
+  if (date == nullptr ||
+      date->weekday == "" ||
+      date->date == "" ||
+      date->time == "" ||
+      date->timezone == "")
+  {
+    return false;
+  }
+
+  fields.push_back({"Date", QList<SIPValueSet>{SIPValueSet{}}});
+
+  QString dateString = date->weekday + "," + " " + date->date + " " +
+      date->time + " " + date->timezone;
+
+  fields.back().valueSets.back().words.push_back(dateString);
+
+  return true;
 }
 
 
@@ -354,7 +379,7 @@ bool includeFromField(QList<SIPField> &fields,
 bool includeInReplyToField(QList<SIPField>& fields,
                            const QString& callID)
 {
-  return false;
+  return composeString(fields, callID, "In-Reply-To");
 }
 
 
@@ -369,38 +394,41 @@ bool includeMaxForwardsField(QList<SIPField> &fields,
     return false;
   }
 
-  SIPField field = {"Max-Forwards",
-                    QList<SIPValueSet>{SIPValueSet{{QString::number(*maxForwards)}, nullptr}}};
-  fields.push_back(field);
-  return true;
+  return composeString(fields, QString::number(*maxForwards), "Max-Forwards");
 }
 
 
 bool includeMinExpiresField(QList<SIPField>& fields,
                             std::shared_ptr<uint32_t> minExpires)
 {
-  return false;
+  if (minExpires == nullptr || *minExpires == 0)
+  {
+    printProgramError("SIPFieldComposing", "Failed to include Min-Expires field");
+    return false;
+  }
+
+  return composeString(fields, QString::number(*minExpires), "Min-Expires");
 }
 
 
 bool includeMIMEVersionField(QList<SIPField>& fields,
                              const QString& version)
 {
-  return false;
+  return composeString(fields, version, "MIME-Version");
 }
 
 
 bool includeOrganizationField(QList<SIPField>& fields,
                               const QString& organization)
 {
-  return false;
+  return composeString(fields, organization, "Organization");
 }
 
 
 bool includePriorityField(QList<SIPField>& fields,
                           const SIPPriorityField& priority)
 {
-  return false;
+  return composeString(fields, priorityToString(priority), "Priority");
 }
 
 
@@ -421,8 +449,9 @@ bool includeProxyAuthorizationField(QList<SIPField>& fields,
 bool includeProxyRequireField(QList<SIPField>& fields,
                               const QStringList& requires)
 {
-  return false;
+  return composeCommaStringList(fields, requires, "Proxy-Require");
 }
+
 
 bool includeRecordRouteField(QList<SIPField>& fields,
                              const QList<SIPRouteLocation> &routes)
@@ -431,7 +460,6 @@ bool includeRecordRouteField(QList<SIPField>& fields,
   {
     return false;
   }
-
 
   SIPField field = {"Record-Route",{}};
   for (auto& route : routes)
@@ -451,20 +479,62 @@ bool includeRecordRouteField(QList<SIPField>& fields,
 bool includeReplyToField(QList<SIPField>& fields,
                          const std::shared_ptr<SIPRouteLocation> replyTo)
 {
-  return false;
+  if (replyTo == nullptr)
+  {
+    return false;
+  }
+
+  fields.push_back(SIPField{"Reply-To", QList<SIPValueSet>{SIPValueSet{},{}}});
+
+  if (!composeSIPRouteLocation(*replyTo, fields.back().valueSets.back()))
+  {
+    fields.pop_back();
+    return false;
+  }
+
+
+  return true;
 }
 
 
 bool includeRequireField(QList<SIPField>& fields,
                          const QStringList& requires)
 {
-  return false;
+  return composeCommaStringList(fields, requires, "Require");
 }
 
 
 bool includeRetryAfterField(QList<SIPField>& fields,
                             const std::shared_ptr<SIPRetryAfter> retryAfter)
 {
+  if (retryAfter != nullptr &&
+      composeString(fields, QString::number(retryAfter->time), "Retry-After"))
+  {
+    if (!fields.empty() &&
+        fields.back().name == "Retry-After" &&
+        !fields.back().valueSets.empty())
+    {
+      if (retryAfter->duration != 0 &&
+          !tryAddParameter(fields.back().valueSets.first().parameters,
+                      "Duration", QString::number(retryAfter->duration)))
+      {
+        printProgramWarning("SIP Field Composing",
+                            "Failed to add Retry-After duration parameter");
+      }
+
+      for (auto& parameter : retryAfter->parameters)
+      {
+        if (!addParameter(fields.back().valueSets.first().parameters, parameter))
+        {
+          printProgramWarning("SIP Field Composing",
+                              "Failed to add Retry-After generic parameter");
+        }
+      }
+    }
+
+
+    return true;
+  }
   return false;
 }
 
@@ -495,28 +565,32 @@ bool includeRouteField(QList<SIPField>& fields,
 bool includeServerField(QList<SIPField>& fields,
                         const QString& server)
 {
-  return false;
+  return composeString(fields, server, "Server");
 }
 
 
 bool includeSubjectField(QList<SIPField>& fields,
                          const QString& subject)
 {
-  return false;
+  return composeString(fields, subject, "Subject");
 }
 
 
 bool includeSupportedField(QList<SIPField>& fields,
                            const std::shared_ptr<QStringList> supported)
 {
-  return false;
+  if (supported == nullptr)
+  {
+    return false;
+  }
+  return composeCommaStringList(fields, *supported, "Supported");
 }
 
 
 bool includeTimestampField(QList<SIPField>& fields,
                            const QString& timestamp)
 {
-  return false;
+  return composeString(fields, timestamp, "Timestamp");
 }
 
 
@@ -554,14 +628,14 @@ bool includeToField(QList<SIPField> &fields,
 bool includeUnsupportedField(QList<SIPField>& fields,
                              const QStringList& unsupported)
 {
-  return false;
+  return composeCommaStringList(fields, unsupported, "Unsupported");
 }
 
 
 bool includeUserAgentField(QList<SIPField>& fields,
-                           const QStringList& userAgents)
+                           const QString& userAgent)
 {
-  return false;
+  return composeString(fields, userAgent, "User-Agent");
 }
 
 
@@ -624,9 +698,25 @@ bool includeViaFields(QList<SIPField>& fields, const QList<ViaField>& vias)
 
 
 bool includeWarningField(QList<SIPField>& fields,
-                         std::shared_ptr<SIPWarningField> warning)
+                         QList<SIPWarningField> warnings)
 {
-  return false;
+  if (warnings.empty())
+  {
+    return false;
+  }
+
+  fields.push_back(SIPField{"Warning", QList<SIPValueSet>{}});
+
+  for (auto& warning : warnings)
+  {
+    fields.back().valueSets.push_back(SIPValueSet{});
+
+    fields.back().valueSets.back().words.push_back(QString::number(warning.code));
+    fields.back().valueSets.back().words.push_back(warning.warnAgent);
+    fields.back().valueSets.back().words.push_back(warning.warnText);
+  }
+
+  return true;
 }
 
 

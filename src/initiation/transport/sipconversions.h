@@ -5,11 +5,11 @@
 // various helper functions associated with SIP
 
 // request and string
-SIPRequestMethod stringToRequestMethod(QString request);
+SIPRequestMethod stringToRequestMethod(const QString& request);
 QString requestMethodToString(SIPRequestMethod request);
 
 // Response code and string
-uint16_t stringToResponseCode(QString code);
+uint16_t stringToResponseCode(const QString& code);
 
 // Response type, response code and phrase conversions
 SIPResponseStatus codeToResponseType(uint16_t code);
@@ -22,7 +22,7 @@ SIPTransportProtocol stringToTransportProtocol(const QString& type);
 QString transportProtocolToString(const SIPTransportProtocol connection);
 
 // contentType
-MediaType stringToContentType(const QString typeStr);
+MediaType stringToContentType(const QString& typeStr);
 QString contentTypeToString(const MediaType type);
 
 // Message QOP
@@ -35,3 +35,7 @@ QString algorithmToString(const DigestAlgorithm algorithm);
 
 bool stringToBool(const QString& boolean, bool& ok);
 QString boolToString(const bool boolean);
+
+
+SIPPriorityField stringToPriority(const QString& priority);
+QString priorityToString(const SIPPriorityField priority);

@@ -123,12 +123,19 @@ bool composeSIPRouteLocation(const SIPRouteLocation& location, SIPValueSet &valu
     return false;
   }
 
+  // add location parameters
   if (!location.parameters.empty())
-  {
-    valueSet.parameters
-        = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
-    *valueSet.parameters = location.parameters;
+  { 
+    for (auto& parameter : location.parameters)
+    {
+      if (!addParameter(valueSet.parameters, parameter))
+      {
+        printProgramWarning("SIP Field Helper",
+                            "Failed to add location parameter");
+      }
+    }
   }
+
   return true;
 }
 
@@ -369,6 +376,53 @@ bool composeDigestResponseField(QList<SIPField>& fields,
 
   return true;
 }
+
+
+bool composeCommaStringList(QList<SIPField>& fields,
+                       const QStringList& list,
+                       QString fieldName)
+{
+  if (list.empty())
+  {
+    return false;
+  }
+
+  fields.push_back({fieldName, QList<SIPValueSet>{}});
+
+  for (auto& string : list)
+  {
+    if (string != "")
+    {
+      fields.back().valueSets.push_back({{string},{}});
+    }
+  }
+
+  if (fields.back().valueSets.empty())
+  {
+    fields.pop_back();
+    return false;
+  }
+
+  return true;
+}
+
+
+bool composeString(QList<SIPField>& fields,
+                   const QString& string,
+                   QString fieldName)
+{
+  if (string == "")
+  {
+    return false;
+  }
+
+  fields.push_back({fieldName, {{{string}, {}}}});
+  return true;
+}
+
+
+
+
 
 
 

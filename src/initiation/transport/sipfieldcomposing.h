@@ -135,14 +135,14 @@ bool includeUnsupportedField(QList<SIPField>& fields,
                              const QStringList& unsupported);
 
 bool includeUserAgentField(QList<SIPField>& fields,
-                           const QStringList& userAgents);
+                           const QString &userAgent);
 
 // Always mandatory
 bool includeViaFields(QList<SIPField>& fields,
                       const QList<ViaField>& vias);
 
 bool includeWarningField(QList<SIPField>& fields,
-                         std::shared_ptr<SIPWarningField> warning);
+                         QList<SIPWarningField> warnings);
 
 bool includeWWWAuthenticateField(QList<SIPField>& fields,
                                  std::shared_ptr<DigestChallenge> challenge);

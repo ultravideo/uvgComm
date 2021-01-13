@@ -45,7 +45,13 @@ bool composeDigestResponseField(QList<SIPField>& fields,
                                 const std::shared_ptr<DigestResponse> dResponse,
                                 QString fieldname);
 
+bool composeCommaStringList(QList<SIPField>& fields,
+                            const QStringList& list,
+                            QString fieldName);
 
+bool composeString(QList<SIPField>& fields,
+                   const QString& string,
+                   QString fieldName);
 
 
 // ========= Parsing functions =========

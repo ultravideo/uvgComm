@@ -319,10 +319,10 @@ const uint16_t CALLIDLENGTH = 16;
 
 struct SIPDateField
 {
-  QString weekday;
-  QString date;
-  QString time;
-  QString timezone;
+  QString weekday = "";
+  QString date = "";
+  QString time = "";
+  QString timezone = "GMT";
 };
 
 struct SIPRetryAfter
@@ -419,15 +419,15 @@ struct SIPMessageHeader
   QStringList                              require= {};
   std::shared_ptr<SIPRetryAfter>           retryAfter = nullptr;
   QList<SIPRouteLocation>                  routes = {};
-  QStringList                              server = {};
+  QString                                  server = "";
   QString                                  subject = "";
   std::shared_ptr<QStringList>             supported = nullptr;
   QString                                  timestamp = "";
   ToFrom                                   to; // mandatory
   QStringList                              unsupported = {};
-  QStringList                              userAgent = {};
+  QString                                  userAgent = "";
   QList<ViaField>                          vias = {}; // mandatory
-  std::shared_ptr<SIPWarningField>         warning = nullptr;
+  QList<SIPWarningField>                   warning = {};
   std::shared_ptr<DigestChallenge>         wwwAuthenticate = nullptr;
 };
 
