@@ -38,7 +38,7 @@ const QString alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                          "0123456789";
 
 
-void printHelper(QString beginString, QString valueString, QString description, int valuenames);
+void printHelper(QString color, QString beginString, QString valueString, QString description, int valuenames);
 
 
 QString generateRandomString(uint32_t length)
@@ -183,12 +183,17 @@ void printDebug(DebugType type, QString className,
 
   QString beginString = className + ": ";
 
+  QString black   = "\033[0m";
+  QString yellow  = "\033[1;33m";
+  QString red     = "\033[31m";
+  QString blue    = "\033[34m";
+
   // This could be reduced, but it might change so not worth probably at the moment.
   // Choose which text to print based on type.
   switch (type) {
   case DEBUG_NORMAL:
   {
-    printHelper(beginString, valueString, description, valueNames.size());
+    printHelper(black, beginString, valueString, description, valueNames.size());
     break;
   }
   case DEBUG_IMPORTANT:
@@ -196,9 +201,9 @@ void printDebug(DebugType type, QString className,
     printMutex_.lock();
     // TODO: Center text in middle.
     qDebug();
-    qDebug() << "=============================================================================";
-    printHelper(beginString, valueString, description, valueNames.size());
-    qDebug() << "=============================================================================";
+    qDebug().noquote() << blue << "=============================================================================" << black;
+    printHelper(blue, beginString, valueString, description, valueNames.size());
+    qDebug().noquote() << blue << "=============================================================================" << black;
     qDebug();
     printMutex_.unlock();
     break;
@@ -206,43 +211,35 @@ void printDebug(DebugType type, QString className,
   case DEBUG_ERROR:
   {
     printMutex_.lock();
-    printHelper("ERROR! " + beginString, valueString, description, valueNames.size());
+    printHelper(red, beginString, valueString, "ERROR! " + description, valueNames.size());
     printMutex_.unlock();
     break;
   }
   case DEBUG_WARNING:
   {
     printMutex_.lock();
-    printHelper("Warning! " + beginString, valueString, description, valueNames.size());
+    printHelper(yellow, beginString, valueString, "Warning! " + description, valueNames.size());
     printMutex_.unlock();
     break;
   }
   case DEBUG_PEER_ERROR:
   {
     printMutex_.lock();
-    qWarning().nospace().noquote() << "PEER ERROR: --------------------------------------------";
-    printHelper(beginString, valueString, description, valueNames.size());
-    qWarning().nospace().noquote() << "-------------------------------------------- PEER ERROR" << "\r\n";
+    printHelper(red, beginString, valueString, "PEER ERROR:" + description, valueNames.size());
     printMutex_.unlock();
     break;
   }
   case DEBUG_PROGRAM_ERROR:
   {
     printMutex_.lock();
-    qCritical().nospace().noquote()
-        << "BUG DETECTED: --------------------------------------------";
-    printHelper(beginString, valueString, description, valueNames.size());
-    qCritical().nospace().noquote() << "-------------------------------------------- BUG" << "\r\n";
+    printHelper(red, beginString, valueString, "BUG: " + description, valueNames.size());
     printMutex_.unlock();
     break;
   }
   case DEBUG_PROGRAM_WARNING:
   {
     printMutex_.lock();
-    qWarning().nospace().noquote()
-        << "MINOR BUG DETECTED: --------------------------------------------";
-    printHelper(beginString, valueString, description, valueNames.size());
-    qWarning().nospace() << "-------------------------------------------- MINOR BUG" << "\r\n";
+    printHelper(yellow, beginString, valueString, "Minor bug: " + description, valueNames.size());
     printMutex_.unlock();
     break;
   }
@@ -285,7 +282,7 @@ QString getLocalUsername()
       ? settings.value("local/Username").toString() : "anonymous";
 }
 
-void printHelper(QString beginString, QString valueString, QString description, int valuenames)
+void printHelper(QString color, QString beginString, QString valueString, QString description, int valuenames)
 {
   if (beginString.length() < BEGIN_LENGTH)
   {
@@ -293,7 +290,7 @@ void printHelper(QString beginString, QString valueString, QString description, 
   }
 
   QDebug printing = qDebug().nospace().noquote();
-  printing << beginString << description;
+  printing << color << beginString << description;
   if (!valueString.isEmpty())
   {
     // print one value on same line
@@ -306,5 +303,7 @@ void printHelper(QString beginString, QString valueString, QString description, 
       printing << "\r\n" << valueString;
     }
   }
-  //printing << "\r\n";
+
+  QString blackColor = "\033[0m";
+  printing << blackColor;
 }
