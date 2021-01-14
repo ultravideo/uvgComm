@@ -89,7 +89,8 @@ void SIPTransport::createConnection(SIPTransportProtocol type, QString target)
   }
   else
   {
-    qDebug() << "WARNING: Trying to initiate a SIP Connection with unsupported connection type.";
+    qDebug() << "WARNING: Trying to initiate a SIP Connection with "
+                "unsupported connection type.";
   }
 }
 
@@ -185,72 +186,47 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
   printImportant(this, "Composing and sending SIP Request:", {"Type"},
                  requestMethodToString(request.method));
 
-  // TODO: This should be moved to transaction side once
+  // TODO: Via and contact setting should be moved to transaction side once
   // new architecture is implemented
-  routing_.getViaAndContact(request.message,
-                            connection_->localAddress().toString(),
-                            connection_->localPort());
-
-  // Start composing the request. First we turn the struct to fields
-  // which are then turned to string
-
-
-  // CallID, CSeq, From, To, Via, Max-Forwards
-  QList<SIPField> fields;
-  if (!composeMandatoryFields(fields, request.message) ||
-      !includeMaxForwardsField(fields, request.message))
-  {
-    printProgramError(this, "Failed to compose mandatory fields for request");
-    return;
-  }
+  routing_.getVia(request.message,
+                  connection_->localAddress().toString(),
+                  connection_->localPort());
 
   if (request.method == SIP_INVITE)
   {
-    // Allow
-    if (request.message->allow != nullptr)
-    {
-      if (!includeAllowField(fields, request.message))
-      {
-        printProgramWarning(this, "Failed to include Allow-field");
-      }
-    }
-  }
-
-
-  // Route
-  if (!request.message->routes.empty() &&
-      !includeRouteField(fields, request.message))
-  {
-    printDebug(DEBUG_PROGRAM_ERROR, this,  "Failed to add Route-fields");
-  }
-
-  if ((request.method == SIP_INVITE || request.method == SIP_REGISTER) &&
-      !includeContactField(fields, request.message))
-  {
-   qDebug() << "WARNING: Failed to add Contact field. Probably because of missing values.";
-   return;
-  }
-
-  if (request.method == SIP_REGISTER &&
-      (request.message->expires == nullptr ||
-      !includeExpiresField(fields, request.message)))
-  {
-    printDebug(DEBUG_PROGRAM_ERROR, this,  "Failed to add expires-field");
-    return;
+    routing_.getContactAddress(request.message,
+                               connection_->localAddress().toString(),
+                               connection_->localPort(),
+                               DEFAULT_SIP_TYPE);
   }
 
   QString lineEnding = "\r\n";
   QString message = "";
-  // adds content fields and converts the sdp to string if INVITE
-  QString content_str = addContent(fields,
-                                   request.message,
-                                   content);
 
   if(!getFirstRequestLine(message, request, lineEnding))
   {
-    qDebug() << "WARNING: could not get first request line";
+    printProgramError(this, "Failed to get request first line");
     return;
   }
+
+  // Start composing the request. First we turn the struct to fields
+  // which are then turned to string
+
+  // adds content fields and converts the sdp to string if INVITE
+  QString content_str = addContent(request.message,
+                                   content);
+
+
+  QList<SIPField> fields;
+  composeAllFields(fields, request.message);
+
+  // this is just a debug test and can be removed if more performance is desired
+  if (!requestSanityCheck(fields, request.method))
+  {
+    printProgramError(this, "We did not manage to compose a legal SIP request!");
+    return;
+  }
+
 
   message += fieldsToString(fields, lineEnding) + lineEnding;
   message += content_str;
@@ -283,60 +259,32 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
     return;
   }
 
-  QList<SIPField> fields;
-
-  if (sensibleResponseField(response.type, response.message->cSeq.method, "Accept"))
+  // TODO: Move this to transaction layer
+  if (response.message->cSeq.method == SIP_INVITE && response.type == SIP_OK)
   {
-    includeAcceptField(fields, response.message);
+    routing_.getContactAddress(response.message,
+                               connection_->localAddress().toString(),
+                               connection_->localPort(), DEFAULT_SIP_TYPE);
   }
-
-
-
-  if(!composeMandatoryFields(fields, response.message))
-  {
-    printWarning(this, "Failed to add mandatory fields. "
-                       "Probably because of missing values.");
-    return;
-  }
-
-  uint16_t responseCode = responseTypeToCode(response.type);
-
-  if (response.type == SIP_NOT_ALLOWED ||
-      (200 <= responseCode && responseCode <= 299 &&
-      (response.message->cSeq.method == SIP_INVITE ||
-       response.message->cSeq.method == SIP_OPTIONS)))
-  {
-    if (!includeAllowField(fields, response.message))
-    {
-      printProgramWarning(this, "Failed to include Allow-field in response");
-    }
-  }
-
-  if (!response.message->recordRoutes.empty() &&
-      !includeRecordRouteField(fields, response.message))
-  {
-    printDebug(DEBUG_PROGRAM_ERROR, this,  "Failed to add RecordRoute-fields");
-  }
-
-  routing_.getContactAddress(response.message,
-                             connection_->localAddress().toString(),
-                             connection_->localPort(), DEFAULT_SIP_TYPE);
-
-  if (response.message->cSeq.method == SIP_INVITE && response.type == SIP_OK &&
-      !includeContactField(fields, response.message))
-  {
-    qDebug() << "ERROR: Failed to compose contact field for SIP OK response.";
-  }
-
-  // TODO: if the response is 405 SIP_NOT_ALLOWED we must include an allow header field.
-  // lists allowed methods.
 
   QString lineEnding = "\r\n";
   QString message = "";
-  QString content_str = addContent(fields, response.message, content);
+
   if(!getFirstResponseLine(message, response, lineEnding))
   {
-    qDebug() << "WARNING: could not get first request line";
+    printProgramError(this, "Failed to compose SIP Response first line!");
+    return;
+  }
+
+  QString content_str = addContent(response.message, content);
+
+  QList<SIPField> fields;
+  composeAllFields(fields, response.message);
+
+  // this is just a debug test and can be removed if more performance is desired
+  if (!responseSanityCheck(fields, response.type))
+  {
+    printProgramError(this, "Failed to compose a correct SIP Response!");
     return;
   }
 

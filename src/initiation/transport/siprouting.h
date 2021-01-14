@@ -21,7 +21,7 @@ public:
                                 uint16_t localPort);
 
   // sets the via and contact addresses of the request
-  void getViaAndContact(std::shared_ptr<SIPMessageHeader> message,
+  void getVia(std::shared_ptr<SIPMessageHeader> message,
                          QString localAddress,
                          uint16_t localPort);
 

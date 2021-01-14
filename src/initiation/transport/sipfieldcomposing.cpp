@@ -408,7 +408,6 @@ bool includeMinExpiresField(QList<SIPField>& fields,
   if (header->minExpires == nullptr ||
       *header->minExpires == 0)
   {
-    printProgramError("SIPFieldComposing", "Failed to include Min-Expires field");
     return false;
   }
 

@@ -12,7 +12,63 @@
 #include <QRegularExpressionMatch>
 
 
+// one letter forms are not currently included in composing
+
+// NOTE: This will be the order in which fields will appear in SIP message
+const std::vector<std::pair<QString,
+                            std::function<bool(QList<SIPField>& fields,
+                                               std::shared_ptr<SIPMessageHeader>)>>> composing =
+{
+    {"Accept",              includeAcceptField},
+    {"Accept-Encoding",     includeAcceptEncodingField},
+    {"Accept-Language",     includeAcceptLanguageField},
+    {"Alert-Info",          includeAlertInfoField},
+    {"Allow",               includeAllowField},
+    {"Authentication-Info", includeAuthInfoField},
+    {"Authorization",       includeAuthorizationField},
+    {"Call-ID",             includeCallIDField},
+    {"Call-Info",           includeCallInfoField},
+    {"Contact",             includeContactField},
+    {"Content-Disposition", includeContentDispositionField},
+    {"Content-Encoding",    includeContentEncodingField},
+    {"Content-Language",    includeContentLanguageField},
+    {"Content-Length",      includeContentLengthField},
+    {"Content-Type",        includeContentTypeField},
+    {"CSeq",                includeCSeqField},
+    {"Date",                includeDateField},
+    {"Error-Info",          includeErrorInfoField},
+    {"Expires",             includeExpiresField},
+    {"From",                includeFromField},
+    {"In-Reply_to",         includeInReplyToField},
+    {"Max-Forwards",        includeMaxForwardsField},
+    {"Min-Expires",         includeMinExpiresField},
+    {"MIME-Version",        includeMIMEVersionField},
+    {"Organization",        includeOrganizationField},
+    {"Priority",            includePriorityField},
+    {"Proxy-Authenticate",  includeProxyAuthenticateField},
+    {"Proxy-Authorization", includeProxyAuthorizationField},
+    {"Proxy-Require",       includeProxyRequireField},
+    {"Record-Route",        includeRecordRouteField},
+    {"Reply-To",            includeReplyToField},
+    {"Require",             includeRequireField},
+    {"Retry-After",         includeRetryAfterField},
+    {"Route",               includeRouteField},
+    {"Server",              includeServerField},
+    {"Subject",             includeSubjectField},
+    {"Supported",           includeSupportedField},
+    {"Timestamp",           includeTimestampField},
+    {"To",                  includeToField},
+    {"Unsupported",         includeUnsupportedField},
+    {"User-Agent",          includeUserAgentField},
+    {"Via",                 includeViaFields},
+    {"Warning",             includeWarningField},
+    {"WWW-Authenticate",    includeWWWAuthenticateField}
+};
+
+
 // one letter headers are compact forms as defined by RFC 3261
+
+// TODO: The case should be uniformalized and these should all be small or big case
 const std::map<QString, std::function<bool(SIPField& field,
                                            std::shared_ptr<SIPMessageHeader>)>> parsing =
 {
@@ -44,9 +100,8 @@ const std::map<QString, std::function<bool(SIPField& field,
     {"f",                   parseFromField},          // compact form of From
     {"In-Reply_to",         parseUnimplemented},      // TODO
     {"Max-Forwards",        parseMaxForwardsField},
-    {"In-Reply_to",         parseUnimplemented},      // TODO
-    {"MIME-Version",        parseUnimplemented},      // TODO
     {"Min-Expires",         parseUnimplemented},      // TODO
+    {"MIME-Version",        parseUnimplemented},      // TODO
     {"Organization",        parseUnimplemented},      // TODO
     {"Priority",            parseUnimplemented},      // TODO
     {"Proxy-Authenticate",  parseUnimplemented},      // TODO
@@ -70,8 +125,7 @@ const std::map<QString, std::function<bool(SIPField& field,
     {"Via",                 parseViaField},
     {"v",                   parseViaField},           // compact form of Via
     {"Warning",             parseUnimplemented},      // TODO
-    {"WWW-Authenticate",    parseUnimplemented},      // TODO
-    {"extension-header",    parseUnimplemented}       // TODO
+    {"WWW-Authenticate",    parseUnimplemented}       // TODO
 };
 
 bool combineContinuationLines(QStringList& lines);
@@ -84,14 +138,16 @@ void addParameterToSet(SIPParameter& currentParameter, QString& currentWord,
                        SIPValueSet& valueSet);
 
 
-bool composeMandatoryFields(QList<SIPField>& fields,
-                            std::shared_ptr<SIPMessageHeader> header)
+void composeAllFields(QList<SIPField>& fields,
+                      std::shared_ptr<SIPMessageHeader> header)
 {
-  return includeViaFields(fields, header) &&
-         includeToField(fields, header) &&
-         includeFromField(fields, header) &&
-         includeCallIDField(fields, header) &&
-         includeCSeqField(fields, header);
+  for (auto& field : composing)
+  {
+    if (field.second(fields, header))
+    {
+      printNormal("SIP Transport Helper", "Composed a field", "Field", field.first);
+    }
+  }
 }
 
 
@@ -152,13 +208,11 @@ QString fieldsToString(QList<SIPField>& fields, QString lineEnding)
 }
 
 
-QString addContent(QList<SIPField>& fields, const std::shared_ptr<SIPMessageHeader> header,
+QString addContent(const std::shared_ptr<SIPMessageHeader> header,
                    QVariant &content)
 {
   // TODO: QString is probably not the right container for content
   // since it can also be audio or video. QByteArray would probably be better
-
-  // TODO: Add other content fields
 
   QString contentString = "";
 
@@ -172,21 +226,6 @@ QString addContent(QList<SIPField>& fields, const std::shared_ptr<SIPMessageHead
   }
 
   header->contentLength = contentString.length();
-
-  if(!includeContentLengthField(fields, header))
-  {
-    printProgramError("SIP Transport Helper", "Could not add content-length field to SIP message!");
-    return "";
-  }
-
-  if (contentString != "")
-  {
-    if (!includeContentTypeField(fields, header))
-    {
-      printProgramWarning("SIP Transport Helper", "Could not add content type field to SIP");
-      return "";
-    }
-  }
 
   return contentString;
 }

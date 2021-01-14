@@ -9,8 +9,8 @@
 
 #include <memory>
 
-// SIP Transportation layer. Use separate connection class to actually send the messages.
-// This class primarily deals with checking that the incoming messages are valid, parsing them
+// SIP Transportation layer. Use separate connection class to actually send the
+// messages. This class primarily deals with checking that the incoming messages are valid, parsing them
 // and composing outgoing messages.
 
 class StatisticsInterface;

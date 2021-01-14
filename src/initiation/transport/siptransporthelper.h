@@ -6,15 +6,14 @@
 
 // ===== Composing =====
 
-// compose fields that are always included in a message
-bool composeMandatoryFields(QList<SIPField>& fields,
-                            std::shared_ptr<SIPMessageHeader> header);
+void composeAllFields(QList<SIPField>& fields,
+                      std::shared_ptr<SIPMessageHeader> header);
 
 // convert fields table to one string which is returned
 QString fieldsToString(QList<SIPField>& fields, QString lineEnding);
 
 // returns the content as string and adds content-type/length to fields
-QString addContent(QList<SIPField>& fields, const std::shared_ptr<SIPMessageHeader> header,
+QString addContent(const std::shared_ptr<SIPMessageHeader> header,
                    QVariant &content);
 
 

@@ -7,6 +7,9 @@
 bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding);
 bool getFirstResponseLine(QString& line, SIPResponse& response, QString lineEnding);
 
+// The field functions only compose the field if the field data is present in
+// the header!
+
 // These functions work as follows: Create a field based on necessary info from
 // the parameter and add the field to list. Later the fields are converted to string.
 

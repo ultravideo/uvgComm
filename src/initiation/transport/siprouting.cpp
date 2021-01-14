@@ -46,21 +46,16 @@ void SIPRouting::processResponseViaFields(QList<ViaField>& vias,
 }
 
 
-void SIPRouting::getViaAndContact(std::shared_ptr<SIPMessageHeader> message,
+void SIPRouting::getVia(std::shared_ptr<SIPMessageHeader> message,
                                    QString localAddress,
                                    uint16_t localPort)
 {
-  // TODO: Via is needed always, but contact is not!
-
-
   // set via-address
   if (!message->vias.empty())
   {
     message->vias.back().sentBy = localAddress;
     message->vias.back().port = localPort;
   }
-
-  getContactAddress(message, localAddress, localPort, DEFAULT_SIP_TYPE);
 }
 
 
