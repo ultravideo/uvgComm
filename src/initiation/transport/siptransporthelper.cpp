@@ -14,6 +14,8 @@
 
 // one letter forms are not currently included in composing
 
+// TODO: Set composing order so that those fields needed by proxy are close to the top
+
 // NOTE: This will be the order in which fields will appear in SIP message
 const std::vector<std::pair<QString,
                             std::function<bool(QList<SIPField>& fields,
@@ -72,60 +74,60 @@ const std::vector<std::pair<QString,
 const std::map<QString, std::function<bool(SIPField& field,
                                            std::shared_ptr<SIPMessageHeader>)>> parsing =
 {
-    {"Accept",              parseUnimplemented},      // TODO
-    {"Accept-Encoding",     parseUnimplemented},      // TODO
-    {"Accept-Language",     parseUnimplemented},      // TODO
-    {"Alert-Info",          parseUnimplemented},      // TODO
-    {"Allow",               parseUnimplemented},      // TODO
-    {"Authentication-Info", parseUnimplemented},      // TODO
-    {"Authorization",       parseUnimplemented},      // TODO
+    {"Accept",              parseAcceptField},
+    {"Accept-Encoding",     parseAcceptEncodingField},
+    {"Accept-Language",     parseAcceptLanguageField},
+    {"Alert-Info",          parseAlertInfoField},
+    {"Allow",               parseAllowField},
+    {"Authentication-Info", parseAuthInfoField},
+    {"Authorization",       parseAuthorizationField},
     {"Call-ID",             parseCallIDField},
-    {"i",                   parseCallIDField},        // compact form of Call-ID
-    {"Call-Info",           parseUnimplemented},      // TODO
+    {"i",                   parseCallIDField},          // compact form of Call-ID
+    {"Call-Info",           parseCallInfoField},
     {"Contact",             parseContactField},
-    {"m",                   parseContactField},       // compact form of contact
-    {"Content-Disposition", parseUnimplemented},      // TODO
-    {"Content-Encoding",    parseUnimplemented},      // TODO
-    {"e",                   parseUnimplemented},      // TODO, compact form of Content-Encoding
-    {"Content-Language",    parseUnimplemented},      // TODO
+    {"m",                   parseContactField},         // compact form of contact
+    {"Content-Disposition", parseContentDispositionField},
+    {"Content-Encoding",    parseContentEncodingField},
+    {"e",                   parseContentEncodingField}, // compact form of Content-Encoding
+    {"Content-Language",    parseContentLanguageField},
     {"Content-Length",      parseContentLengthField},
-    {"l",                   parseContentLengthField}, // compact form of Content-Length
+    {"l",                   parseContentLengthField},   // compact form of Content-Length
     {"Content-Type",        parseContentTypeField},
-    {"c",                   parseContentTypeField},   // compact form of Content-Type
+    {"c",                   parseContentTypeField},     // compact form of Content-Type
     {"CSeq",                parseCSeqField},
-    {"Date",                parseUnimplemented},      // TODO
-    {"Error-Info",          parseUnimplemented},      // TODO
-    {"Expires",             parseUnimplemented},      // TODO
+    {"Date",                parseDateField},
+    {"Error-Info",          parseErrorInfoField},
+    {"Expires",             parseExpireField},
     {"From",                parseFromField},
-    {"f",                   parseFromField},          // compact form of From
-    {"In-Reply_to",         parseUnimplemented},      // TODO
+    {"f",                   parseFromField},            // compact form of From
+    {"In-Reply_to",         parseInReplyToField},
     {"Max-Forwards",        parseMaxForwardsField},
-    {"Min-Expires",         parseUnimplemented},      // TODO
-    {"MIME-Version",        parseUnimplemented},      // TODO
-    {"Organization",        parseUnimplemented},      // TODO
-    {"Priority",            parseUnimplemented},      // TODO
-    {"Proxy-Authenticate",  parseUnimplemented},      // TODO
-    {"Proxy-Authorization", parseUnimplemented},      // TODO
-    {"Proxy-Require",       parseUnimplemented},      // TODO
+    {"Min-Expires",         parseMinExpiresField},
+    {"MIME-Version",        parseMIMEVersionField},
+    {"Organization",        parseOrganizationField},
+    {"Priority",            parsePriorityField},
+    {"Proxy-Authenticate",  parseProxyAuthenticateField},
+    {"Proxy-Authorization", parseProxyAuthorizationField},
+    {"Proxy-Require",       parseProxyRequireField},
     {"Record-Route",        parseRecordRouteField},
-    {"Reply-To",            parseUnimplemented},      // TODO
-    {"Require",             parseUnimplemented},      // TODO
-    {"Retry-After",         parseUnimplemented},      // TODO
-    {"Route",               parseUnimplemented},      // TODO
+    {"Reply-To",            parseReplyToField},
+    {"Require",             parseRequireField},
+    {"Retry-After",         parseRetryAfterField},
+    {"Route",               parseRouteField},
     {"Server",              parseServerField},
-    {"Subject",             parseUnimplemented},      // TODO
-    {"s",                   parseUnimplemented},      // TODO, compact form of Subject
-    {"Supported",           parseUnimplemented},      // TODO
-    {"k",                   parseUnimplemented},      // TODO, compact form of Supported
-    {"Timestamp",           parseUnimplemented},      // TODO
+    {"Subject",             parseSubjectField},
+    {"s",                   parseSubjectField},        // compact form of Subject
+    {"Supported",           parseSupportedField},
+    {"k",                   parseSupportedField},      // compact form of Supported
+    {"Timestamp",           parseTimestampField},
     {"To",                  parseToField},
-    {"t",                   parseToField},            // compact form of To
-    {"Unsupported",         parseUnimplemented},      // TODO
+    {"t",                   parseToField},             // compact form of To
+    {"Unsupported",         parseUnsupportedField},
     {"User-Agent",          parseUserAgentField},
     {"Via",                 parseViaField},
-    {"v",                   parseViaField},           // compact form of Via
-    {"Warning",             parseUnimplemented},      // TODO
-    {"WWW-Authenticate",    parseUnimplemented}       // TODO
+    {"v",                   parseViaField},            // compact form of Via
+    {"Warning",             parseWarningField},
+    {"WWW-Authenticate",    parseWWWAuthenticateField}
 };
 
 bool combineContinuationLines(QStringList& lines);
