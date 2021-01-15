@@ -404,7 +404,7 @@ struct SIPMessageHeader
   std::shared_ptr<SIPAuthInfo>             authInfo  = {};
 
   // ccredentials of UA
-  std::shared_ptr<DigestResponse>          authorization = nullptr;
+  std::shared_ptr<QList<DigestResponse>>   authorization = nullptr;
 
   // mandatory, identify dialog along with tags
   QString                                  callID = "";
@@ -464,10 +464,10 @@ struct SIPMessageHeader
   SIPPriorityField                         priority = SIP_NO_PRIORITY;
 
   // proxy authentication challenge
-  std::shared_ptr<DigestChallenge>         proxyAuthenticate = nullptr;
+  std::shared_ptr<QList<DigestChallenge>>  proxyAuthenticate = nullptr;
 
   // proxy authentication credentials
-  std::shared_ptr<DigestResponse>          proxyAuthorization = nullptr;
+  std::shared_ptr<QList<DigestResponse>>   proxyAuthorization = nullptr;
 
   // proxy must support these features in order to process request
   QStringList                              proxyRequires = {};
@@ -515,12 +515,12 @@ struct SIPMessageHeader
   QList<SIPWarningField>                   warning = {};
 
   // authentication challenge
-  std::shared_ptr<DigestChallenge>         wwwAuthenticate = nullptr;
+  std::shared_ptr<QList<DigestChallenge>>  wwwAuthenticate = nullptr;
 };
 
 // 71 is recommended by specification
 // The purpose of max-forwards is to avoid infinite routing loops.
-const uint8_t DEFAULT_MAX_FORWARDS = 71;
+const uint8_t DEFAULT_MAX_FORWARDS = 70;
 
 
 struct SIPRequest

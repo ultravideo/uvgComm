@@ -290,88 +290,102 @@ bool composeInfoField(QList<SIPField>& fields,
 
 
 bool composeDigestChallengeField(QList<SIPField>& fields,
-                                 const std::shared_ptr<DigestChallenge> dChallenge,
+                                 const std::shared_ptr<QList<DigestChallenge>> dChallenge,
                                  QString fieldname)
 {
-  if (dChallenge == nullptr ||
-      dChallenge->realm == "")
+  if (dChallenge == nullptr)
   {
     return false;
   }
 
-  fields.push_back({fieldname,{}});
-  composeDigestValueQuoted("realm",  dChallenge->realm,                      fields.back());
-  composeDigestValueQuoted("domain", composeAbsoluteURI(dChallenge->domain), fields.back());
-  composeDigestValueQuoted("nonce",  dChallenge->nonce,                      fields.back());
-  composeDigestValueQuoted("opaque", dChallenge->opaque,                     fields.back());
-  composeDigestValue      ("stale",  boolToString(dChallenge->stale),        fields.back());
-  composeDigestValue      ("algorithm", algorithmToString(dChallenge->algorithm), fields.back());
-
-  QString qopOptions = "";
-
-  for (auto& option : dChallenge->qopOptions)
+  for (auto& challenge : *dChallenge)
   {
-    if (qopOptions != "" &&
-        qopOptions.right(1) != ",")
+    if(challenge.realm == "")
     {
-      qopOptions += ",";
+      return false;
     }
 
-    qopOptions += qopValueToString(option);
-  }
+    fields.push_back({fieldname,{}});
+    composeDigestValueQuoted("realm",  challenge.realm,                      fields.back());
+    composeDigestValueQuoted("domain", composeAbsoluteURI(challenge.domain), fields.back());
+    composeDigestValueQuoted("nonce",  challenge.nonce,                      fields.back());
+    composeDigestValueQuoted("opaque", challenge.opaque,                     fields.back());
+    composeDigestValue      ("stale",  boolToString(challenge.stale),        fields.back());
+    composeDigestValue      ("algorithm", algorithmToString(challenge.algorithm), fields.back());
 
-  if (qopOptions.right(1) == ",")
-  {
-    qopOptions = qopOptions.left(qopOptions.length() -1);
-  }
+    QString qopOptions = "";
 
-  composeDigestValueQuoted("qop", qopOptions, fields.back());
+    for (auto& option : challenge.qopOptions)
+    {
+      if (qopOptions != "" &&
+          qopOptions.right(1) != ",")
+      {
+        qopOptions += ",";
+      }
+
+      qopOptions += qopValueToString(option);
+    }
+
+    if (qopOptions.right(1) == ",")
+    {
+      qopOptions = qopOptions.left(qopOptions.length() -1);
+    }
+
+    composeDigestValueQuoted("qop", qopOptions, fields.back());
+  }
 
   return true;
 }
 
 
 bool composeDigestResponseField(QList<SIPField>& fields,
-                                const std::shared_ptr<DigestResponse> dResponse,
+                                const std::shared_ptr<QList<DigestResponse>> dResponse,
                                 QString fieldname)
 {
-  if (dResponse == nullptr ||
-      dResponse->username == "" ||
-      dResponse->realm == "")
+  if (dResponse == nullptr)
   {
     return false;
   }
 
-  fields.push_back({fieldname,{}});
-
-  composeDigestValueQuoted("username", dResponse->username, fields.back());
-  composeDigestValueQuoted("realm",    dResponse->realm,    fields.back());
-  composeDigestValueQuoted("nonce",    dResponse->nonce, fields.back());
-
-  if (dResponse->digestUri != nullptr)
+  for (auto& response : *dResponse)
   {
-    composeDigestValueQuoted("uri",     composeSIPURI(*dResponse->digestUri), fields.back());
-  }
+    if (response.username == "" ||
+        response.realm == "")
+    {
+      break;
+    }
 
-  composeDigestValueQuoted("response",    dResponse->dresponse, fields.back());
-  composeDigestValue      ("algorithm", algorithmToString(dResponse->algorithm), fields.back());
+    fields.push_back({fieldname,{}});
 
-  composeDigestValueQuoted("cnonce",    dResponse->cnonce, fields.back());
-  composeDigestValueQuoted("opaque",    dResponse->opaque, fields.back());
+    composeDigestValueQuoted("username", response.username, fields.back());
+    composeDigestValueQuoted("realm",    response.realm,    fields.back());
+    composeDigestValueQuoted("nonce",    response.nonce, fields.back());
 
-  composeDigestValue      ("qop",       qopValueToString(dResponse->messageQop), fields.back());
-  composeDigestValue      ("nc",        dResponse->nonceCount, fields.back());
+    if (response.digestUri != nullptr)
+    {
+      composeDigestValueQuoted("uri",     composeSIPURI(*response.digestUri), fields.back());
+    }
 
-  // make sure we added something successfully and add Digest to beginning
-  if (!fields.back().valueSets.empty())
-  {
-    // add word Digest to the beginning
-    fields.back().valueSets[0].words.push_front("Digest");
-  }
-  else
-  {
-    fields.pop_back();
-    return false;
+    composeDigestValueQuoted("response",  response.dresponse, fields.back());
+    composeDigestValue      ("algorithm", algorithmToString(response.algorithm), fields.back());
+
+    composeDigestValueQuoted("cnonce",    response.cnonce, fields.back());
+    composeDigestValueQuoted("opaque",    response.opaque, fields.back());
+
+    composeDigestValue      ("qop",       qopValueToString(response.messageQop), fields.back());
+    composeDigestValue      ("nc",        response.nonceCount, fields.back());
+
+    // make sure we added something successfully and add Digest to beginning
+    if (!fields.back().valueSets.empty())
+    {
+      // add word Digest to the beginning
+      fields.back().valueSets[0].words.push_front("Digest");
+    }
+    else
+    {
+      fields.pop_back();
+      return false;
+    }
   }
 
   return true;

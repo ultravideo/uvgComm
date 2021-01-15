@@ -37,11 +37,11 @@ bool composeInfoField(QList<SIPField>& fields,
                       QString fieldname);
 
 bool composeDigestChallengeField(QList<SIPField>& fields,
-                                 const std::shared_ptr<DigestChallenge> dChallenge,
+                                 const std::shared_ptr<QList<DigestChallenge>> dChallenge,
                                  QString fieldname);
 
 bool composeDigestResponseField(QList<SIPField>& fields,
-                                const std::shared_ptr<DigestResponse> dResponse,
+                                const std::shared_ptr<QList<DigestResponse>> dResponse,
                                 QString fieldname);
 
 bool composeStringList(QList<SIPField>& fields,
