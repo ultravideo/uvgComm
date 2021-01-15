@@ -385,49 +385,136 @@ struct SIPMessageHeader
   // Unless it has the comment mandatory, the default value is set so that field
   // does not exist.
 
+  // accepted content types
   std::shared_ptr<QList<SIPAccept>>        accept = nullptr;
+
+  // accepted content encodings
   std::shared_ptr<QList<SIPAcceptGeneric>> acceptEncoding = nullptr;
+
+  // accepted languages in SIP phrases
   std::shared_ptr<QList<SIPAcceptGeneric>> acceptLanguage = nullptr;
+
+  // server specific ring-tone
   QList<SIPInfo>                           alertInfos = {};
+
+  // allowed requests
   std::shared_ptr<QList<SIPRequestMethod>> allow = nullptr;
+
+  // info about successful authentication
   std::shared_ptr<SIPAuthInfo>             authInfo  = {};
+
+  // ccredentials of UA
   std::shared_ptr<DigestResponse>          authorization = nullptr;
-  QString                                  callID = ""; // mandatory
+
+  // mandatory, identify dialog along with tags
+  QString                                  callID = "";
+
+  // additional info from caller or callee
   QList<SIPInfo>                           callInfos = {};
+
+  // address where to send further requests
   QList<SIPRouteLocation>                  contact = {};
+
+  // the purpose of content
   std::shared_ptr<ContentDisposition>      contentDisposition = nullptr;
+
+  // how the content is encoded
   QStringList                              contentEncoding = {};
+
+  // language of content
   QStringList                              contentLanguage = {};
-  uint64_t                                 contentLength = 0;  // mandatory
-  MediaType                                contentType = MT_NONE; // mandatory
-  CSeqField                                cSeq; // mandatory
+
+  // mandatory, size of the content in bytes
+  uint64_t                                 contentLength = 0;
+
+  // mandatory if content, content media type
+  MediaType                                contentType = MT_NONE;
+
+  // mandatory, identifies transactions within dialog
+  CSeqField                                cSeq;
+
+  // practically useless, gives date to end system
   std::shared_ptr<SIPDateField>            date = nullptr;
+
+  // additional info about error
   QList<SIPInfo>                           errorInfos = {};
+
+  // expiration time of message or content in seconds
   std::shared_ptr<uint32_t>                expires = nullptr;
-  ToFrom                                   from; // mandatory
+
+  // mandatory, who started this transaction
+  ToFrom                                   from;
+
+  // if you want to return a call later
   QString                                  inReplyToCallID = "";
+
+  // avoids loops in routing
   std::shared_ptr<uint8_t>                 maxForwards = nullptr;
+
+  // you should at least this expires value
   std::shared_ptr<uint32_t>                minExpires = nullptr;
+
+  // useless, always use 1.0
   QString                                  mimeVersion = "";
+
+  // tells the organization
   QString                                  organization = "";
+
+  // request priority to receiving user
   SIPPriorityField                         priority = SIP_NO_PRIORITY;
+
+  // proxy authentication challenge
   std::shared_ptr<DigestChallenge>         proxyAuthenticate = nullptr;
+
+  // proxy authentication credentials
   std::shared_ptr<DigestResponse>          proxyAuthorization = nullptr;
+
+  // proxy must support these features in order to process request
   QStringList                              proxyRequires = {};
+
+  // proxy wants to be included in the routing
   QList<SIPRouteLocation>                  recordRoutes = {};
+
+  // a separate return URI or call me here URI
   std::shared_ptr<SIPRouteLocation>        replyTo = nullptr;
+
+  // options that UAS must support
   QStringList                              require= {};
+
+  // how long until the service is available again
   std::shared_ptr<SIPRetryAfter>           retryAfter = nullptr;
+
+  // forces routing of request and is based on received record-routes
   QList<SIPRouteLocation>                  routes = {};
+
+  // name of server software
   QString                                  server = "";
+
+  // summary or nature of the call and can be used to filter calls
   QString                                  subject = "";
+
+  // list of supported extensions
   std::shared_ptr<QStringList>             supported = nullptr;
+
+  // request sending timestamp and can be used to calculate RTD
   QString                                  timestamp = "";
-  ToFrom                                   to; // mandatory
+
+  // mandatory, logical recipient of the request
+  ToFrom                                   to;
+
+  // lists features not supported by UAS
   QStringList                              unsupported = {};
+
+  // describes the software or Kvazzup in this case
   QString                                  userAgent = "";
-  QList<ViaField>                          vias = {}; // mandatory
+
+  // mandatory, path taken by request so far and return path for responses
+  QList<ViaField>                          vias = {};
+
+  // additional info on response status
   QList<SIPWarningField>                   warning = {};
+
+  // authentication challenge
   std::shared_ptr<DigestChallenge>         wwwAuthenticate = nullptr;
 };
 
