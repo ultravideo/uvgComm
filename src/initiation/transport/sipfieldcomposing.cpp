@@ -1,6 +1,6 @@
 #include "sipfieldcomposing.h"
 
-#include "sipfieldhelper.h"
+#include "sipfieldcomposinghelper.h"
 #include "sipconversions.h"
 
 #include "common.h"

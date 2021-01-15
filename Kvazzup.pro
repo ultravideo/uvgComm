@@ -57,8 +57,9 @@ SOURCES +=\
     src/initiation/transport/connectionserver.cpp \
     src/initiation/transport/sipconversions.cpp \
     src/initiation/transport/sipfieldcomposing.cpp \
-    src/initiation/transport/sipfieldhelper.cpp \
+    src/initiation/transport/sipfieldcomposinghelper.cpp \
     src/initiation/transport/sipfieldparsing.cpp \
+    src/initiation/transport/sipfieldparsinghelper.cpp \
     src/initiation/transport/sipmessagesanity.cpp \
     src/initiation/transport/siprouting.cpp \
     src/initiation/transport/siptransport.cpp \
@@ -139,8 +140,9 @@ HEADERS  += \
     src/initiation/transport/connectionserver.h \
     src/initiation/transport/sipconversions.h \
     src/initiation/transport/sipfieldcomposing.h \
-    src/initiation/transport/sipfieldhelper.h \
+    src/initiation/transport/sipfieldcomposinghelper.h \
     src/initiation/transport/sipfieldparsing.h \
+    src/initiation/transport/sipfieldparsinghelper.h \
     src/initiation/transport/sipmessagesanity.h \
     src/initiation/transport/siprouting.h \
     src/initiation/transport/siptransport.h \
