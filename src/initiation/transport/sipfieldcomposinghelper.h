@@ -9,9 +9,6 @@ bool tryAddParameter(std::shared_ptr<QList<SIPParameter> > &parameters,
 bool tryAddParameter(std::shared_ptr<QList<SIPParameter> > &parameters,
                      QString parameterName);
 
-bool addParameter(std::shared_ptr<QList<SIPParameter> > &parameters,
-                  const SIPParameter &parameter);
-
 QString composeURItype(SIPType type);
 QString composeSIPURI(const SIP_URI &uri);
 QString composeAbsoluteURI(const AbsoluteURI&uri);
@@ -19,7 +16,7 @@ bool composeNameAddr(const NameAddr &nameAddr, QStringList &words);
 QString composePortString(uint16_t port);
 
 bool composeSIPRouteLocation(const SIPRouteLocation &location,
-                             SIPValueSet& valueSet);
+                             SIPCommaValue& value);
 
 void composeDigestValue(QString fieldName, const QString& fieldValue, SIPField &field);
 void composeDigestValueQuoted(QString fieldName, const QString& fieldValue, SIPField &field);

@@ -20,7 +20,7 @@ QString addContent(const std::shared_ptr<SIPMessageHeader> header,
 // ===== Parsing =====
 
 // parses the string to fields. Combines fields spanning multiple lines and divides
-// the fields to valuesets separated by comma(,)
+// the fields to values separated by comma(,)
 bool headerToFields(QString &header, QString& firstLine, QList<SIPField> &fields);
 
 // converts the fields to SIPMessageHeader struct

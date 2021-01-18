@@ -26,16 +26,16 @@ bool parseNameAddr(const QStringList &words, NameAddr& nameAddr)
 }
 
 
-bool parseSIPRouteLocation(const SIPValueSet &valueSet, SIPRouteLocation& location)
+bool parseSIPRouteLocation(const SIPCommaValue &value, SIPRouteLocation& location)
 {
-  if (!parseNameAddr(valueSet.words, location.address))
+  if (!parseNameAddr(value.words, location.address))
   {
     return false;
   }
 
-  if (valueSet.parameters != nullptr && !valueSet.parameters->empty())
+  if (value.parameters != nullptr && !value.parameters->empty())
   {
-    location.parameters = *valueSet.parameters;
+    location.parameters = *value.parameters;
   }
   return true;
 }
@@ -199,25 +199,25 @@ bool parsingPreChecks(SIPField& field,
   Q_ASSERT(message != nullptr);
   if (!emptyPossible)
   {
-    Q_ASSERT(!field.valueSets.empty());
+    Q_ASSERT(!field.commaSeparated.empty());
   }
 
   if (message == nullptr ||
-      (!emptyPossible && field.valueSets.empty()))
+      (!emptyPossible && field.commaSeparated.empty()))
   {
     printProgramError("SIPFieldParsing", "Parsing prechecks failed");
     return false;
   }
 
-  // Check that none of the valuesets have no words.
-  // Empty fields should be handled with having no valuesets.
-  for (auto& valueset: field.valueSets)
+  // Check that none of the values have no words.
+  // Empty fields should be handled with having no values.
+  for (auto& value: field.commaSeparated)
   {
-    Q_ASSERT(!valueset.words.empty());
+    Q_ASSERT(!value.words.empty());
 
-    if (valueset.words.empty())
+    if (value.words.empty())
     {
-      printProgramError("SIPFieldParsing", "Found empty valueset");
+      printProgramError("SIPFieldParsing", "Found empty value");
       return false;
     }
   }

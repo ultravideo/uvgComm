@@ -356,3 +356,24 @@ QString priorityToString(const SIPPriorityField priority)
 
   return "";
 }
+
+
+
+
+bool addParameter(std::shared_ptr<QList<SIPParameter> > &parameters,
+                  const SIPParameter& parameter)
+{
+  if (parameter.name == "")
+  {
+    return false;
+  }
+
+  if (parameters == nullptr)
+  {
+    parameters = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
+  }
+
+  parameters->append(parameter);
+  return true;
+}
+

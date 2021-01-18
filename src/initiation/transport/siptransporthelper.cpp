@@ -14,7 +14,7 @@
 
 // one letter forms are not currently included in composing
 
-// TODO: Set composing order so that those fields needed by proxy are close to the top
+// TODO: Set order so that those fields needed by proxy are close to the top
 
 // NOTE: This will be the order in which fields will appear in SIP message
 const std::vector<std::pair<QString,
@@ -133,11 +133,11 @@ const std::map<QString, std::function<bool(SIPField& field,
 bool combineContinuationLines(QStringList& lines);
 
 bool parseFieldName(QString& line, SIPField &field);
-void parseFieldValueSets(QString& line, QStringList &outValueSets);
-bool parseFieldValue(QString& valueSet, SIPField& field);
+void parseFieldCommaSeparatedList(QString& line, QStringList &outValues);
+bool parseFieldValue(QString& values, SIPField& field);
 
 void addParameterToSet(SIPParameter& currentParameter, QString& currentWord,
-                       SIPValueSet& valueSet);
+                       SIPCommaValue& value);
 
 
 void composeAllFields(QList<SIPField>& fields,
@@ -162,23 +162,23 @@ QString fieldsToString(QList<SIPField>& fields, QString lineEnding)
     {
       message += field.name + ": ";
 
-      for (int i = 0; i < field.valueSets.size(); ++i)
+      for (int i = 0; i < field.commaSeparated.size(); ++i)
       {
         // add words.
-        for (int j = 0; j < field.valueSets.at(i).words.size(); ++j)
+        for (int j = 0; j < field.commaSeparated.at(i).words.size(); ++j)
         {
-          message += field.valueSets.at(i).words.at(j);
+          message += field.commaSeparated.at(i).words.at(j);
 
-          if (j != field.valueSets.at(i).words.size() - 1)
+          if (j != field.commaSeparated.at(i).words.size() - 1)
           {
             message += " ";
           }
         }
 
         // add parameters
-        if(field.valueSets.at(i).parameters != nullptr)
+        if(field.commaSeparated.at(i).parameters != nullptr)
         {
-          for(SIPParameter& parameter : *field.valueSets.at(i).parameters)
+          for(SIPParameter& parameter : *field.commaSeparated.at(i).parameters)
           {
             if (parameter.value != "")
             {
@@ -191,8 +191,8 @@ QString fieldsToString(QList<SIPField>& fields, QString lineEnding)
           }
         }
 
-        // add comma(,) if not the last valueSet
-        if (i != field.valueSets.size() - 1)
+        // add comma(,) if not the last value
+        if (i != field.commaSeparated.size() - 1)
         {
           message += ",";
         }
@@ -245,6 +245,10 @@ bool headerToFields(QString& header, QString& firstLine, QList<SIPField>& fields
     return false;
   }
 
+  // TODO: Combine multiple fields into one comma separated list.
+  // Expect for WWW-Authenticate, Authorization,
+  // Proxy-Authenticate, and Proxy-Authorization
+
   // The message may contain fields that extend more than one line.
   // Combine them so field is only present on one line
   combineContinuationLines(lines);
@@ -254,22 +258,22 @@ bool headerToFields(QString& header, QString& firstLine, QList<SIPField>& fields
   for(int i = 1; i < lines.size(); ++i)
   {
     SIPField field = {"", {}};
-    QStringList valueSets;
+    QStringList commaSeparated;
 
     if (parseFieldName(lines[i], field))
     {
-      parseFieldValueSets(lines[i], valueSets);
+      parseFieldCommaSeparatedList(lines[i], commaSeparated);
 
-      // Check the correct number of valueSets for Field
-      if (valueSets.size() > 500)
+      // Check the correct number of values for Field
+      if (commaSeparated.size() > 500)
       {
         printDebug(DEBUG_PEER_ERROR, "SIP Transport Helper",
                    "Too many comma separated sets in field",
-                    {"Field", "Amount"}, {field.name, QString::number(valueSets.size())});
+                    {"Field", "Amount"}, {field.name, QString::number(commaSeparated.size())});
         return false;
       }
 
-      for (QString& value : valueSets)
+      for (QString& value : commaSeparated)
       {
         if (!parseFieldValue(value, field))
         {
@@ -384,17 +388,17 @@ bool parseFieldName(QString& line, SIPField& field)
 }
 
 
-void parseFieldValueSets(QString& line, QStringList& outValueSets)
+void parseFieldCommaSeparatedList(QString& line, QStringList& outValues)
 {
   // separate value sections by commas
-  outValueSets = line.split(",", QString::SkipEmptyParts);
+  outValues = line.split(",", QString::SkipEmptyParts);
 }
 
 
-bool parseFieldValue(QString& valueSet, SIPField& field)
+bool parseFieldValue(QString& values, SIPField& field)
 {
   // RFC3261_TODO: Uniformalize case formatting. Make everything big or small case expect quotes.
-  SIPValueSet set = SIPValueSet{{}, nullptr};
+  SIPCommaValue set = SIPCommaValue{{}, nullptr};
 
   QString currentWord = "";
   bool isQuotation = false;
@@ -404,7 +408,7 @@ bool parseFieldValue(QString& valueSet, SIPField& field)
 
   SIPParameter parameter;
 
-  for (QChar& character : valueSet)
+  for (QChar& character : values)
   {
     // add character to word if it is not parsed out
     if (isURI || (isQuotation && character != "\"") ||
@@ -528,14 +532,14 @@ bool parseFieldValue(QString& valueSet, SIPField& field)
     currentWord = "";
   }
 
-  field.valueSets.push_back(set);
+  field.commaSeparated.push_back(set);
 
   return true;
 }
 
 
 void addParameterToSet(SIPParameter& currentParameter, QString &currentWord,
-                       SIPValueSet& valueSet)
+                       SIPCommaValue& value)
 {
   if (currentParameter.name == "")
   {
@@ -547,11 +551,11 @@ void addParameterToSet(SIPParameter& currentParameter, QString &currentWord,
   }
   currentWord = "";
 
-  if (valueSet.parameters == nullptr)
+  if (value.parameters == nullptr)
   {
-    valueSet.parameters = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
+    value.parameters = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
   }
-  valueSet.parameters->push_back(currentParameter);
+  value.parameters->push_back(currentParameter);
   currentParameter = SIPParameter{"",""};
 }
 

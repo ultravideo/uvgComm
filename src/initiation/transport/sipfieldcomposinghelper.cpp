@@ -112,9 +112,9 @@ QString composeAbsoluteURI(const AbsoluteURI& uri)
 }
 
 
-bool composeSIPRouteLocation(const SIPRouteLocation& location, SIPValueSet &valueSet)
+bool composeSIPRouteLocation(const SIPRouteLocation& location, SIPCommaValue &value)
 {
-  if (!composeNameAddr(location.address, valueSet.words))
+  if (!composeNameAddr(location.address, value.words))
   {
     return false;
   }
@@ -124,7 +124,7 @@ bool composeSIPRouteLocation(const SIPRouteLocation& location, SIPValueSet &valu
   { 
     for (auto& parameter : location.parameters)
     {
-      if (!addParameter(valueSet.parameters, parameter))
+      if (!addParameter(value.parameters, parameter))
       {
         printProgramWarning("SIP Field Helper",
                             "Failed to add location parameter");
@@ -140,10 +140,10 @@ void composeDigestValue(QString fieldName, const QString& fieldValue, SIPField& 
 {
   if (fieldValue != "")
   {
-    field.valueSets.push_back({});
+    field.commaSeparated.push_back({});
 
     // fieldname=value
-    field.valueSets.back().words.push_back({fieldName + "=" + fieldValue});
+    field.commaSeparated.back().words.push_back({fieldName + "=" + fieldValue});
   }
 }
 
@@ -152,10 +152,10 @@ void composeDigestValueQuoted(QString fieldName, const QString& fieldValue, SIPF
 {
   if (fieldValue != "")
   {
-    field.valueSets.push_back({});
+    field.commaSeparated.push_back({});
 
     // fieldname="value"
-    field.valueSets.back().words.push_back({fieldName + "=" + "\"" + fieldValue + "\""});
+    field.commaSeparated.back().words.push_back({fieldName + "=" + "\"" + fieldValue + "\""});
   }
 }
 
@@ -196,24 +196,6 @@ bool tryAddParameter(std::shared_ptr<QList<SIPParameter>>& parameters,
 }
 
 
-bool addParameter(std::shared_ptr<QList<SIPParameter> > &parameters,
-                  const SIPParameter& parameter)
-{
-  if (parameter.name == "")
-  {
-    return false;
-  }
-
-  if (parameters == nullptr)
-  {
-    parameters = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
-  }
-
-  parameters->append(parameter);
-  return true;
-}
-
-
 bool composeAcceptGenericField(QList<SIPField>& fields,
                           const std::shared_ptr<QList<SIPAcceptGeneric>> generics,
                           QString fieldname)
@@ -228,10 +210,10 @@ bool composeAcceptGenericField(QList<SIPField>& fields,
   // compose each comma(,) separated accept value
   for (auto& generic : *generics)
   {
-    fields.back().valueSets.push_back({{generic.accepted},{}});
+    fields.back().commaSeparated.push_back({{generic.accepted},{}});
     if (generic.parameter != nullptr)
     {
-      if (!addParameter(fields.back().valueSets.back().parameters, *generic.parameter))
+      if (!addParameter(fields.back().commaSeparated.back().parameters, *generic.parameter))
       {
         printProgramWarning("SIP Field Composing", "Failed to add parameter");
       }
@@ -259,10 +241,10 @@ bool composeInfoField(QList<SIPField>& fields,
 
     if (value != "<>")
     {
-      fields.back().valueSets.push_back({{value},{}});
+      fields.back().commaSeparated.push_back({{value},{}});
       if (info.parameter != nullptr)
       {
-        if (!addParameter(fields.back().valueSets.back().parameters, *info.parameter))
+        if (!addParameter(fields.back().commaSeparated.back().parameters, *info.parameter))
         {
           printProgramWarning("SIP Field Helper", "Failed to add Info parameter");
         }
@@ -274,8 +256,8 @@ bool composeInfoField(QList<SIPField>& fields,
     }
   }
 
-  // if we failed to add any valuesets. Infos require at least one value
-  if (fields.back().valueSets.empty())
+  // if we failed to add any values. Infos require at least one value
+  if (fields.back().commaSeparated.empty())
   {
     fields.pop_back();
     return false;
@@ -372,10 +354,10 @@ bool composeDigestResponseField(QList<SIPField>& fields,
     composeDigestValue      ("nc",        response.nonceCount, fields.back());
 
     // make sure we added something successfully and add Digest to beginning
-    if (!fields.back().valueSets.empty())
+    if (!fields.back().commaSeparated.empty())
     {
       // add word Digest to the beginning
-      fields.back().valueSets[0].words.push_front("Digest");
+      fields.back().commaSeparated[0].words.push_front("Digest");
     }
     else
     {
@@ -397,17 +379,17 @@ bool composeStringList(QList<SIPField>& fields,
     return false;
   }
 
-  fields.push_back({fieldName, QList<SIPValueSet>{}});
+  fields.push_back({fieldName, QList<SIPCommaValue>{}});
 
   for (auto& string : list)
   {
     if (string != "")
     {
-      fields.back().valueSets.push_back({{string},{}});
+      fields.back().commaSeparated.push_back({{string},{}});
     }
   }
 
-  if (fields.back().valueSets.empty())
+  if (fields.back().commaSeparated.empty())
   {
     fields.pop_back();
     return false;

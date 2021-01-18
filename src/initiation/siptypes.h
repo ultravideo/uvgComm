@@ -381,9 +381,11 @@ struct SIPMessageHeader
   // More details on which fields belong in which message and their purpose are
   // listed in RFC 3261 section 20. Details of field BNF forms are given in section 25.
 
-  // Each variable represents one field. Fields are in alphabetical order.
-  // Unless it has the comment mandatory, the default value is set so that field
-  // does not exist.
+  // Each variable represents one field.  Unless it has the comment mandatory,
+  // the default value is set so that field does not exist.
+
+  // All fields which allow comma separation, multiple fields with same name can
+  // be treated as being comma separated lists
 
   // accepted content types
   std::shared_ptr<QList<SIPAccept>>        accept = nullptr;
@@ -403,7 +405,7 @@ struct SIPMessageHeader
   // info about successful authentication
   std::shared_ptr<SIPAuthInfo>             authInfo  = {};
 
-  // ccredentials of UA
+  // credentials of UA
   std::shared_ptr<QList<DigestResponse>>   authorization = nullptr;
 
   // mandatory, identify dialog along with tags
@@ -518,7 +520,7 @@ struct SIPMessageHeader
   std::shared_ptr<QList<DigestChallenge>>  wwwAuthenticate = nullptr;
 };
 
-// 71 is recommended by specification
+// 70 is recommended by specification
 // The purpose of max-forwards is to avoid infinite routing loops.
 const uint8_t DEFAULT_MAX_FORWARDS = 70;
 
@@ -547,16 +549,17 @@ const QString SIP_VERSION = "2.0";
 
 // these structs are used as a temporary step in parsing and composing SIP messages
 
-// one set of values for a SIP field. Separated by commas
-struct SIPValueSet
+// One set of values for a SIP field. Separated by commas
+// or as separate header fields with same name.
+struct SIPCommaValue
 {
   QStringList words;
   std::shared_ptr<QList<SIPParameter>> parameters;
 };
 
-
+// fieldname: commaValue, commaValue
 struct SIPField
 {
   QString name; // before ':'
-  QList<SIPValueSet> valueSets; // separated by comma(,)
+  QList<SIPCommaValue> commaSeparated; // separated by comma(,)
 };

@@ -39,3 +39,11 @@ QString boolToString(const bool boolean);
 
 SIPPriorityField stringToPriority(const QString& priority);
 QString priorityToString(const SIPPriorityField priority);
+
+
+
+
+
+// this is here because it is used by both composing and parsing
+bool addParameter(std::shared_ptr<QList<SIPParameter> > &parameters,
+                  const SIPParameter &parameter);

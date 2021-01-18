@@ -5,7 +5,7 @@
 
 bool parseURI(const QString& word, SIP_URI& uri);
 bool parseNameAddr(const QStringList &words, NameAddr& nameAddr);
-bool parseSIPRouteLocation(const SIPValueSet &valueSet, SIPRouteLocation& location);
+bool parseSIPRouteLocation(const SIPCommaValue &value, SIPRouteLocation& location);
 
 bool parseUritype(QString type, SIPType &out_Type);
 bool parseParameterNameToValue(std::shared_ptr<QList<SIPParameter>> parameters,

@@ -66,11 +66,11 @@ bool includeAcceptField(QList<SIPField>& fields,
 
   for (auto& accept : *header->accept)
   {
-    fields.back().valueSets.push_back({{contentTypeToString(accept.type)},{}});
+    fields.back().commaSeparated.push_back({{contentTypeToString(accept.type)},{}});
 
     if (accept.parameter != nullptr)
     {
-      if (!addParameter(fields.back().valueSets.back().parameters, *accept.parameter))
+      if (!addParameter(fields.back().commaSeparated.back().parameters, *accept.parameter))
       {
         printProgramWarning("SIP Field Composing",
                             "Failed to add Accpet field parameter");
@@ -120,7 +120,7 @@ bool includeAllowField(QList<SIPField>& fields,
     if (allow != SIP_NO_REQUEST)
     {
       // add comma(,) separated value. In this case one method.
-      fields.back().valueSets.push_back({{requestMethodToString(allow)}, {}});
+      fields.back().commaSeparated.push_back({{requestMethodToString(allow)}, {}});
     }
   }
 
@@ -145,7 +145,7 @@ bool includeAuthInfoField(QList<SIPField>& fields,
 
   fields.push_back({"Allow",{}});
 
-  // add each value as valueset if the value has been set
+  // these are added as comma lists
   composeDigestValueQuoted("nextnonce", header->authInfo->nextNonce, fields.back());
   composeDigestValue      ("qop",       qopValueToString(header->authInfo->messageQop), fields.back());
   composeDigestValueQuoted("rspauth",   header->authInfo->responseAuth, fields.back());
@@ -185,7 +185,7 @@ bool includeContactField(QList<SIPField> &fields,
     return false;
   }
 
-  SIPField field = {"Contact", QList<SIPValueSet>{}};
+  SIPField field = {"Contact", QList<SIPCommaValue>{}};
 
   for(auto& contact : header->contact)
   {
@@ -200,9 +200,9 @@ bool includeContactField(QList<SIPField> &fields,
     SIPRouteLocation modifiedContact = contact;
     modifiedContact.address.uri.uri_parameters.push_back({"transport", "tcp"});
 
-    field.valueSets.push_back({{}, nullptr});
+    field.commaSeparated.push_back({{}, nullptr});
 
-    if (!composeSIPRouteLocation(modifiedContact, field.valueSets.back()))
+    if (!composeSIPRouteLocation(modifiedContact, field.commaSeparated.back()))
     {
       return false;
     }
@@ -221,13 +221,13 @@ bool includeContentDispositionField(QList<SIPField>& fields,
     return false;
   }
 
-  fields.push_back({"Content-Disposition", QList<SIPValueSet>{}});
+  fields.push_back({"Content-Disposition", QList<SIPCommaValue>{}});
 
-  fields.back().valueSets.back().words.push_back(header->contentDisposition->dispType);
+  fields.back().commaSeparated.back().words.push_back(header->contentDisposition->dispType);
 
   for (auto& parameter : header->contentDisposition->parameters)
   {
-    if (!addParameter(fields.back().valueSets.back().parameters, parameter))
+    if (!addParameter(fields.back().commaSeparated.back().parameters, parameter))
     {
       printProgramWarning("SIP Field Composing",
                           "Faulty parameter in content-disposition");
@@ -256,7 +256,7 @@ bool includeContentLengthField(QList<SIPField> &fields,
                                const std::shared_ptr<SIPMessageHeader> header)
 {
   SIPField field = {"Content-Length",
-                    QList<SIPValueSet>{SIPValueSet{{QString::number(header->contentLength)},
+                    QList<SIPCommaValue>{SIPCommaValue{{QString::number(header->contentLength)},
                                                    nullptr}}};
   fields.push_back(field);
   return true;
@@ -276,7 +276,7 @@ bool includeContentTypeField(QList<SIPField> &fields,
   if (header->contentType != MT_NONE)
   {
     SIPField field = {"Content-Type",
-                      QList<SIPValueSet>{SIPValueSet{{contentTypeToString(header->contentType)},
+                      QList<SIPCommaValue>{SIPCommaValue{{contentTypeToString(header->contentType)},
                                                      nullptr}}};
     fields.push_back(field);
     return true;
@@ -296,11 +296,11 @@ bool includeCSeqField(QList<SIPField> &fields,
     return false;
   }
 
-  SIPField field = {"CSeq", QList<SIPValueSet>{SIPValueSet{{}, nullptr}}};
+  SIPField field = {"CSeq", QList<SIPCommaValue>{SIPCommaValue{{}, nullptr}}};
 
-  field.valueSets[0].words.push_back(QString::number(header->cSeq.cSeq));
-  field.valueSets[0].words.push_back(requestMethodToString(header->cSeq.method));
-  field.valueSets[0].parameters = nullptr;
+  field.commaSeparated[0].words.push_back(QString::number(header->cSeq.cSeq));
+  field.commaSeparated[0].words.push_back(requestMethodToString(header->cSeq.method));
+  field.commaSeparated[0].parameters = nullptr;
 
   fields.push_back(field);
   return true;
@@ -319,12 +319,12 @@ bool includeDateField(QList<SIPField>& fields,
     return false;
   }
 
-  fields.push_back({"Date", QList<SIPValueSet>{SIPValueSet{}}});
+  fields.push_back({"Date", QList<SIPCommaValue>{SIPCommaValue{}}});
 
   QString dateString = header->date->weekday + "," + " " + header->date->date + " " +
       header->date->time + " " + header->date->timezone;
 
-  fields.back().valueSets.back().words.push_back(dateString);
+  fields.back().commaSeparated.back().words.push_back(dateString);
 
   return true;
 }
@@ -346,7 +346,7 @@ bool includeExpiresField(QList<SIPField>& fields,
   }
 
   SIPField field = {"Expires",
-                    QList<SIPValueSet>{SIPValueSet{{QString::number(*header->expires)}, nullptr}}};
+                    QList<SIPCommaValue>{SIPCommaValue{{QString::number(*header->expires)}, nullptr}}};
   fields.push_back(field);
   return true;
 }
@@ -367,16 +367,16 @@ bool includeFromField(QList<SIPField> &fields,
     return false;
   }
 
-  SIPField field = {"From", QList<SIPValueSet>{SIPValueSet{{}, nullptr}}};
+  SIPField field = {"From", QList<SIPCommaValue>{SIPCommaValue{{}, nullptr}}};
 
-  if (!composeNameAddr(header->from.address, field.valueSets[0].words))
+  if (!composeNameAddr(header->from.address, field.commaSeparated[0].words))
   {
     return false;
   }
 
-  field.valueSets[0].parameters = nullptr;
+  field.commaSeparated[0].parameters = nullptr;
 
-  tryAddParameter(field.valueSets[0].parameters, "tag", header->from.tag);
+  tryAddParameter(field.commaSeparated[0].parameters, "tag", header->from.tag);
 
   fields.push_back(field);
   return true;
@@ -468,9 +468,9 @@ bool includeRecordRouteField(QList<SIPField>& fields,
   SIPField field = {"Record-Route",{}};
   for (auto& route : header->recordRoutes)
   {
-    field.valueSets.push_back({{}, nullptr});
+    field.commaSeparated.push_back({{}, nullptr});
 
-    if (!composeSIPRouteLocation(route, field.valueSets.back()))
+    if (!composeSIPRouteLocation(route, field.commaSeparated.back()))
     {
       return false;
     }
@@ -488,9 +488,9 @@ bool includeReplyToField(QList<SIPField>& fields,
     return false;
   }
 
-  fields.push_back(SIPField{"Reply-To", QList<SIPValueSet>{SIPValueSet{},{}}});
+  fields.push_back(SIPField{"Reply-To", QList<SIPCommaValue>{SIPCommaValue{},{}}});
 
-  if (!composeSIPRouteLocation(*header->replyTo, fields.back().valueSets.back()))
+  if (!composeSIPRouteLocation(*header->replyTo, fields.back().commaSeparated.back()))
   {
     fields.pop_back();
     return false;
@@ -516,10 +516,10 @@ bool includeRetryAfterField(QList<SIPField>& fields,
   {
     if (!fields.empty() &&
         fields.back().name == "Retry-After" &&
-        !fields.back().valueSets.empty())
+        !fields.back().commaSeparated.empty())
     {
       if (header->retryAfter->duration != 0 &&
-          !tryAddParameter(fields.back().valueSets.first().parameters,
+          !tryAddParameter(fields.back().commaSeparated.first().parameters,
                       "Duration", QString::number(header->retryAfter->duration)))
       {
         printProgramWarning("SIP Field Composing",
@@ -528,7 +528,7 @@ bool includeRetryAfterField(QList<SIPField>& fields,
 
       for (auto& parameter : header->retryAfter->parameters)
       {
-        if (!addParameter(fields.back().valueSets.first().parameters, parameter))
+        if (!addParameter(fields.back().commaSeparated.first().parameters, parameter))
         {
           printProgramWarning("SIP Field Composing",
                               "Failed to add Retry-After generic parameter");
@@ -554,9 +554,9 @@ bool includeRouteField(QList<SIPField>& fields,
   SIPField field = {"Route",{}};
   for (auto& route : header->routes)
   {
-    field.valueSets.push_back({{}, nullptr});
+    field.commaSeparated.push_back({{}, nullptr});
 
-    if (!composeSIPRouteLocation(route, field.valueSets.back()))
+    if (!composeSIPRouteLocation(route, field.commaSeparated.back()))
     {
       return false;
     }
@@ -613,16 +613,16 @@ bool includeToField(QList<SIPField> &fields,
     return false;
   }
 
-  SIPField field = {"To", QList<SIPValueSet>{SIPValueSet{{}, nullptr}}};
+  SIPField field = {"To", QList<SIPCommaValue>{SIPCommaValue{{}, nullptr}}};
 
-  if (!composeNameAddr(header->to.address, field.valueSets[0].words))
+  if (!composeNameAddr(header->to.address, field.commaSeparated[0].words))
   {
     return false;
   }
 
-  field.valueSets[0].parameters = nullptr;
+  field.commaSeparated[0].parameters = nullptr;
 
-  tryAddParameter(field.valueSets[0].parameters, "tag", header->to.tag);
+  tryAddParameter(field.commaSeparated[0].parameters, "tag", header->to.tag);
 
   fields.push_back(field);
   return true;
@@ -658,37 +658,37 @@ bool includeViaFields(QList<SIPField>& fields, const std::shared_ptr<SIPMessageH
     Q_ASSERT(via.branch != "");
     Q_ASSERT(via.sentBy != "");
 
-    SIPField field = {"Via", QList<SIPValueSet>{SIPValueSet{{}, nullptr}}};
+    SIPField field = {"Via", QList<SIPCommaValue>{SIPCommaValue{{}, nullptr}}};
 
-    field.valueSets[0].words.push_back("SIP/" + via.sipVersion +"/" +
+    field.commaSeparated[0].words.push_back("SIP/" + via.sipVersion +"/" +
                                        transportProtocolToString(via.protocol));
-    field.valueSets[0].words.push_back(via.sentBy + composePortString(via.port));
+    field.commaSeparated[0].words.push_back(via.sentBy + composePortString(via.port));
 
-    if(!tryAddParameter(field.valueSets[0].parameters, "branch", via.branch))
+    if(!tryAddParameter(field.commaSeparated[0].parameters, "branch", via.branch))
     {
       printProgramWarning("SIP Field Composing", "Via field branch failed.");
       return false;
     }
 
-    if(via.alias && !tryAddParameter(field.valueSets[0].parameters, "alias"))
+    if(via.alias && !tryAddParameter(field.commaSeparated[0].parameters, "alias"))
     {
       printProgramWarning("SIP Field Composing", "Via field alias failed.");
       return false;
     }
 
-    if(via.rport && !tryAddParameter(field.valueSets[0].parameters, "rport"))
+    if(via.rport && !tryAddParameter(field.commaSeparated[0].parameters, "rport"))
     {
       printProgramWarning("SIP Field Composing", "Via field rport failed.");
       return false;
     }
-    else if(via.rportValue !=0 && !tryAddParameter(field.valueSets[0].parameters,
+    else if(via.rportValue !=0 && !tryAddParameter(field.commaSeparated[0].parameters,
                                                    "rport", QString::number(via.rportValue)))
     {
       printProgramWarning("SIP Field Composing", "Via field rport value failed.");
       return false;
     }
 
-    if (via.receivedAddress != "" && !tryAddParameter(field.valueSets[0].parameters,
+    if (via.receivedAddress != "" && !tryAddParameter(field.commaSeparated[0].parameters,
                                                       "received", via.receivedAddress))
     {
       printProgramWarning("SIP Field Composing", "Via field receive address failed.");
@@ -709,15 +709,15 @@ bool includeWarningField(QList<SIPField>& fields,
     return false;
   }
 
-  fields.push_back(SIPField{"Warning", QList<SIPValueSet>{}});
+  fields.push_back(SIPField{"Warning", QList<SIPCommaValue>{}});
 
   for (auto& warning : header->warning)
   {
-    fields.back().valueSets.push_back(SIPValueSet{});
+    fields.back().commaSeparated.push_back(SIPCommaValue{});
 
-    fields.back().valueSets.back().words.push_back(QString::number(warning.code));
-    fields.back().valueSets.back().words.push_back(warning.warnAgent);
-    fields.back().valueSets.back().words.push_back(warning.warnText);
+    fields.back().commaSeparated.back().words.push_back(QString::number(warning.code));
+    fields.back().commaSeparated.back().words.push_back(warning.warnAgent);
+    fields.back().commaSeparated.back().words.push_back(warning.warnText);
   }
 
   return true;
