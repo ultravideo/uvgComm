@@ -8,6 +8,12 @@
 // parsing of individual header fields to SDPMessage, but not the first line.
 // returns whether the parsing was successful.
 
+// Please call check parsing possibility with parsingPreCheck before calling any
+// of the parsing functions
+
+bool parsingPreChecks(SIPField& field,
+                      std::shared_ptr<SIPMessageHeader> message,
+                      bool emptyPossible = false);
 
 bool parseAcceptField(SIPField& field,
                       std::shared_ptr<SIPMessageHeader> message);

@@ -14,9 +14,7 @@ bool parseUint64(QString values, uint64_t& number);
 bool parseUint8(QString values, uint8_t& number);
 
 
-bool parsingPreChecks(SIPField& field,
-                      std::shared_ptr<SIPMessageHeader> message,
-                      bool emptyPossible = false);
+
 
 // takes the parameter string (name=value) and parses it to SIPParameter
 // used by parse functions.

@@ -192,40 +192,6 @@ bool parseUint8(QString values, uint8_t& number)
 }
 
 
-bool parsingPreChecks(SIPField& field,
-                      std::shared_ptr<SIPMessageHeader> message,
-                      bool emptyPossible)
-{
-  Q_ASSERT(message != nullptr);
-  if (!emptyPossible)
-  {
-    Q_ASSERT(!field.commaSeparated.empty());
-  }
-
-  if (message == nullptr ||
-      (!emptyPossible && field.commaSeparated.empty()))
-  {
-    printProgramError("SIPFieldParsing", "Parsing prechecks failed");
-    return false;
-  }
-
-  // Check that none of the values have no words.
-  // Empty fields should be handled with having no values.
-  for (auto& value: field.commaSeparated)
-  {
-    Q_ASSERT(!value.words.empty());
-
-    if (value.words.empty())
-    {
-      printProgramError("SIPFieldParsing", "Found empty value");
-      return false;
-    }
-  }
-
-  return true;
-}
-
-
 bool parseParameter(QString text, SIPParameter& parameter)
 {
   QRegularExpression re_parameter("([^=]+)=?([^;]*)");

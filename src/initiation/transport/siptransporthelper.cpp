@@ -313,6 +313,12 @@ bool fieldsToMessageHeader(QList<SIPField>& fields,
 
   for(int i = 0; i < fields.size(); ++i)
   {
+    if (!parsingPreChecks(fields[i], header))
+    {
+      printProgramError("SIP Transport Helper", "Parsing precheck failed!");
+      break;
+    }
+
     if(parsing.find(fields[i].name) == parsing.end())
     {
       printWarning("SIP Transport Helper", "Field not supported",

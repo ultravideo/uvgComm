@@ -10,15 +10,44 @@
 
 
 
+bool parsingPreChecks(SIPField& field,
+                      std::shared_ptr<SIPMessageHeader> message,
+                      bool emptyPossible)
+{
+  Q_ASSERT(message != nullptr);
+  if (!emptyPossible)
+  {
+    Q_ASSERT(!field.commaSeparated.empty());
+  }
+
+  if (message == nullptr ||
+      (!emptyPossible && field.commaSeparated.empty()))
+  {
+    printProgramError("SIPFieldParsing", "Parsing prechecks failed");
+    return false;
+  }
+
+  // Check that none of the values have no words.
+  // Empty fields should be handled with having no values.
+  for (auto& value: field.commaSeparated)
+  {
+    Q_ASSERT(!value.words.empty());
+
+    if (value.words.empty())
+    {
+      printProgramError("SIPFieldParsing", "Found empty value");
+      return false;
+    }
+  }
+
+  return true;
+}
+
+
 
 bool parseAcceptField(SIPField& field,
                       std::shared_ptr<SIPMessageHeader> message)
 {
-  if (!parsingPreChecks(field, message, true))
-  {
-    return false;
-  }
-
   message->accept = std::shared_ptr<QList<SIPAccept>> (new QList<SIPAccept>());
 
   for (auto& value : field.commaSeparated)
@@ -96,11 +125,7 @@ bool parseAuthorizationField(SIPField& field,
 bool parseCallIDField(SIPField& field,
                       std::shared_ptr<SIPMessageHeader> message)
 {
-  Q_ASSERT(message);
-  Q_ASSERT(!field.commaSeparated.empty());
-
-  if (!parsingPreChecks(field, message) ||
-      field.commaSeparated[0].words.size() != 1)
+  if (field.commaSeparated[0].words.size() != 1)
   {
     return false;
   }
@@ -120,8 +145,7 @@ bool parseCallInfoField(SIPField& field,
 bool parseContactField(SIPField& field,
                        std::shared_ptr<SIPMessageHeader> message)
 {
-  if (!parsingPreChecks(field, message) ||
-      field.commaSeparated[0].words.size() != 1)
+  if (field.commaSeparated[0].words.size() != 1)
   {
     return false;
   }
@@ -166,8 +190,7 @@ bool parseContentLanguageField(SIPField& field,
 bool parseContentLengthField(SIPField& field,
                              std::shared_ptr<SIPMessageHeader> message)
 {
-  return parsingPreChecks(field, message) &&
-      field.commaSeparated[0].words.size() == 1 &&
+  return field.commaSeparated[0].words.size() == 1 &&
       parseUint64(field.commaSeparated[0].words[0], message->contentLength);
 }
 
@@ -175,11 +198,6 @@ bool parseContentLengthField(SIPField& field,
 bool parseContentTypeField(SIPField& field,
                            std::shared_ptr<SIPMessageHeader> message)
 {
-  if (!parsingPreChecks(field, message))
-  {
-    return false;
-  }
-
   QRegularExpression re_field("(\\w+/\\w+)");
   QRegularExpressionMatch field_match = re_field.match(field.commaSeparated[0].words[0]);
 
@@ -195,8 +213,7 @@ bool parseContentTypeField(SIPField& field,
 bool parseCSeqField(SIPField& field,
                   std::shared_ptr<SIPMessageHeader> message)
 {
-  if (!parsingPreChecks(field, message) ||
-      field.commaSeparated[0].words.size() != 2)
+  if (field.commaSeparated[0].words.size() != 2)
   {
     return false;
   }
@@ -233,8 +250,7 @@ bool parseExpireField(SIPField& field,
 bool parseFromField(SIPField& field,
                     std::shared_ptr<SIPMessageHeader> message)
 {
-  if (!parsingPreChecks(field, message) ||
-      !parseNameAddr(field.commaSeparated[0].words, message->from.address))
+  if (!parseNameAddr(field.commaSeparated[0].words, message->from.address))
   {
     return false;
   }
@@ -254,8 +270,7 @@ bool parseInReplyToField(SIPField& field,
 bool parseMaxForwardsField(SIPField& field,
                            std::shared_ptr<SIPMessageHeader> message)
 {
-  if (!parsingPreChecks(field, message) ||
-      field.commaSeparated[0].words.size() != 1)
+  if (field.commaSeparated[0].words.size() != 1)
   {
     return false;
   }
@@ -324,11 +339,6 @@ bool parseProxyRequireField(SIPField& field,
 bool parseRecordRouteField(SIPField& field,
                            std::shared_ptr<SIPMessageHeader> message)
 {
-  if (!parsingPreChecks(field, message))
-  {
-    return false;
-  }
-
   for (auto& value : field.commaSeparated)
   {
     message->recordRoutes.push_back(SIPRouteLocation{{"", SIP_URI{}}, {}});
@@ -372,11 +382,6 @@ bool parseRouteField(SIPField& field,
 bool parseServerField(SIPField& field,
                       std::shared_ptr<SIPMessageHeader> message)
 {
-  if (!parsingPreChecks(field, message))
-  {
-    return false;
-  }
-
   if (field.commaSeparated[0].words.size() < 1
       || field.commaSeparated[0].words.size() > 100)
   {
@@ -412,8 +417,7 @@ bool parseTimestampField(SIPField& field,
 bool parseToField(SIPField& field,
                   std::shared_ptr<SIPMessageHeader> message)
 {
-  if (!parsingPreChecks(field, message) ||
-      !parseNameAddr(field.commaSeparated[0].words, message->to.address))
+  if (!parseNameAddr(field.commaSeparated[0].words, message->to.address))
   {
     return false;
   }
@@ -435,11 +439,6 @@ bool parseUnsupportedField(SIPField& field,
 bool parseUserAgentField(SIPField& field,
                          std::shared_ptr<SIPMessageHeader> message)
 {
-  if (!parsingPreChecks(field, message))
-  {
-    return false;
-  }
-
   if (field.commaSeparated[0].words.size() < 1
       || field.commaSeparated[0].words.size() > 100)
   {
@@ -454,8 +453,7 @@ bool parseUserAgentField(SIPField& field,
 bool parseViaField(SIPField& field,
                    std::shared_ptr<SIPMessageHeader> message)
 {
-  if (!parsingPreChecks(field, message) ||
-      field.commaSeparated[0].words.size() != 2)
+  if (field.commaSeparated[0].words.size() != 2)
   {
     return false;
   }
