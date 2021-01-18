@@ -14,6 +14,39 @@
 bool parseAcceptField(SIPField& field,
                       std::shared_ptr<SIPMessageHeader> message)
 {
+  if (!parsingPreChecks(field, message, true))
+  {
+    return false;
+  }
+
+  message->accept = std::shared_ptr<QList<SIPAccept>> (new QList<SIPAccept>());
+
+  for (auto& value : field.commaSeparated)
+  {
+    if (value.words.size() == 1)
+    {
+      // parse accepted media type
+      MediaType accept = stringToContentType(value.words.first());
+
+      // if we recognize this type
+      if (accept != MT_NONE &&
+          accept != MT_UNKNOWN)
+      {
+        // add it to struct
+        message->accept->push_back({accept, {}});
+
+        // also add parameters
+        if ( value.parameters != nullptr)
+        {
+          for (auto& parameter : *value.parameters)
+          {
+            addParameter(message->accept->back().parameters, parameter);
+          }
+        }
+      }
+    }
+  }
+
   return false;
 }
 

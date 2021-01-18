@@ -278,7 +278,7 @@ enum MediaType {MT_NONE, MT_UNKNOWN,
 struct SIPAccept
 {
   MediaType type;
-  std::shared_ptr<SIPParameter> parameter; // optional
+  std::shared_ptr<QList<SIPParameter>> parameters; // optional
 };
 
 struct SIPAcceptGeneric
