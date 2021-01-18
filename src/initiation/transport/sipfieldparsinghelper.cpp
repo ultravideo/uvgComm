@@ -1,5 +1,6 @@
 #include "sipfieldparsinghelper.h"
 
+#include "sipconversions.h"
 #include "common.h"
 
 #include <QRegularExpression>
@@ -212,3 +213,31 @@ bool parseParameter(QString text, SIPParameter& parameter)
   return false;
 }
 
+
+bool parseAcceptGeneric(SIPField& field,
+                        std::shared_ptr<QList<SIPAcceptGeneric>> generics)
+{
+  if (generics == nullptr)
+  {
+    generics = std::shared_ptr<QList<SIPAcceptGeneric>> (new QList<SIPAcceptGeneric>());
+  }
+
+  for (auto& value : field.commaSeparated)
+  {
+    if (value.words.size() == 1)
+    {
+      // parse accepted media type
+      QString accept = value.words.first();
+
+      // if we recognize this type
+      if (accept.length() > 0)
+      {
+        // add it to struct
+        generics->push_back({accept, {}});
+        copyParameterList(value.parameters, generics->back().parameters);
+      }
+    }
+  }
+
+  return false;
+}

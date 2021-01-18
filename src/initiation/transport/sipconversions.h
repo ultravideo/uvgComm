@@ -47,3 +47,7 @@ QString priorityToString(const SIPPriorityField priority);
 // this is here because it is used by both composing and parsing
 bool addParameter(std::shared_ptr<QList<SIPParameter> > &parameters,
                   const SIPParameter &parameter);
+
+// this is here because it is used by both composing and parsing
+void copyParameterList(const std::shared_ptr<QList<SIPParameter> > &inParameters,
+                       std::shared_ptr<QList<SIPParameter> > &outParameters);

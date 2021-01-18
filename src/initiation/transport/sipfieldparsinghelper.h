@@ -19,3 +19,8 @@ bool parseUint8(QString values, uint8_t& number);
 // takes the parameter string (name=value) and parses it to SIPParameter
 // used by parse functions.
 bool parseParameter(QString text, SIPParameter& parameter);
+
+
+bool parseAcceptGeneric(SIPField& field,
+                        std::shared_ptr<QList<SIPAcceptGeneric>> generics);
+

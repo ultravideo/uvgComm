@@ -284,7 +284,7 @@ struct SIPAccept
 struct SIPAcceptGeneric
 {
   QString accepted;
-  std::shared_ptr<SIPParameter> parameter; // optional
+  std::shared_ptr<QList<SIPParameter>> parameters; // optional
 };
 
 

@@ -377,3 +377,20 @@ bool addParameter(std::shared_ptr<QList<SIPParameter> > &parameters,
   return true;
 }
 
+
+// this is here because it is used by both composing and parsing
+void copyParameterList(const std::shared_ptr<QList<SIPParameter> > &inParameters,
+                       std::shared_ptr<QList<SIPParameter> > &outParameters)
+{
+  if (inParameters != nullptr)
+  {
+    for (auto& parameter : *inParameters)
+    {
+      if (!addParameter(outParameters, parameter))
+      {
+        printProgramWarning("SIP Conversions",
+                            "Failed to add parameter.");
+      }
+    }
+  }
+}

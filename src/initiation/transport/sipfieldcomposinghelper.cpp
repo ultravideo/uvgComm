@@ -211,13 +211,7 @@ bool composeAcceptGenericField(QList<SIPField>& fields,
   for (auto& generic : *generics)
   {
     fields.back().commaSeparated.push_back({{generic.accepted},{}});
-    if (generic.parameter != nullptr)
-    {
-      if (!addParameter(fields.back().commaSeparated.back().parameters, *generic.parameter))
-      {
-        printProgramWarning("SIP Field Composing", "Failed to add parameter");
-      }
-    }
+    copyParameterList(generic.parameters, fields.back().commaSeparated.back().parameters);
   }
 
   return true;

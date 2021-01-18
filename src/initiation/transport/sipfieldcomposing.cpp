@@ -68,17 +68,7 @@ bool includeAcceptField(QList<SIPField>& fields,
   {
     fields.back().commaSeparated.push_back({{contentTypeToString(accept.type)},{}});
 
-    if (accept.parameters != nullptr)
-    {
-      for (auto& parameter : *accept.parameters)
-      {
-        if (!addParameter(fields.back().commaSeparated.back().parameters, parameter))
-        {
-          printProgramWarning("SIP Field Composing",
-                              "Failed to add Accept-field parameter");
-        }
-      }
-    }
+    copyParameterList(accept.parameters, fields.back().commaSeparated.back().parameters);
   }
 
   return true;

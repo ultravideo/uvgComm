@@ -48,7 +48,11 @@ bool parsingPreChecks(SIPField& field,
 bool parseAcceptField(SIPField& field,
                       std::shared_ptr<SIPMessageHeader> message)
 {
-  message->accept = std::shared_ptr<QList<SIPAccept>> (new QList<SIPAccept>());
+  // in case there are multiple accept fields, we don't want to reset previous
+  if (message->accept)
+  {
+    message->accept = std::shared_ptr<QList<SIPAccept>> (new QList<SIPAccept>());
+  }
 
   for (auto& value : field.commaSeparated)
   {
@@ -63,15 +67,7 @@ bool parseAcceptField(SIPField& field,
       {
         // add it to struct
         message->accept->push_back({accept, {}});
-
-        // also add parameters
-        if ( value.parameters != nullptr)
-        {
-          for (auto& parameter : *value.parameters)
-          {
-            addParameter(message->accept->back().parameters, parameter);
-          }
-        }
+        copyParameterList(value.parameters, message->accept->back().parameters);
       }
     }
   }
@@ -83,14 +79,14 @@ bool parseAcceptField(SIPField& field,
 bool parseAcceptEncodingField(SIPField& field,
                               std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+  return parseAcceptGeneric(field, message->acceptEncoding);
 }
 
 
 bool parseAcceptLanguageField(SIPField& field,
                               std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+  return parseAcceptGeneric(field, message->acceptLanguage);
 }
 
 
