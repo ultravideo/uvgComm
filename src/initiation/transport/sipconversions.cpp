@@ -360,7 +360,7 @@ QString priorityToString(const SIPPriorityField priority)
 
 
 
-bool addParameter(std::shared_ptr<QList<SIPParameter> > &parameters,
+bool addParameter(QList<SIPParameter> &parameters,
                   const SIPParameter& parameter)
 {
   if (parameter.name == "")
@@ -368,29 +368,21 @@ bool addParameter(std::shared_ptr<QList<SIPParameter> > &parameters,
     return false;
   }
 
-  if (parameters == nullptr)
-  {
-    parameters = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
-  }
-
-  parameters->append(parameter);
+  parameters.append(parameter);
   return true;
 }
 
 
 // this is here because it is used by both composing and parsing
-void copyParameterList(const std::shared_ptr<QList<SIPParameter> > &inParameters,
-                       std::shared_ptr<QList<SIPParameter> > &outParameters)
+void copyParameterList(const QList<SIPParameter> &inParameters,
+                       QList<SIPParameter> &outParameters)
 {
-  if (inParameters != nullptr)
+  for (auto& parameter : inParameters)
   {
-    for (auto& parameter : *inParameters)
+    if (!addParameter(outParameters, parameter))
     {
-      if (!addParameter(outParameters, parameter))
-      {
-        printProgramWarning("SIP Conversions",
-                            "Failed to add parameter.");
-      }
+      printProgramWarning("SIP Conversions",
+                          "Failed to add parameter.");
     }
   }
 }

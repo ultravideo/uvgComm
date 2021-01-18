@@ -252,7 +252,7 @@ bool parseFromField(SIPField& field,
   }
 
   // from tag should always be included
-  return parseParameterNameToValue(field.commaSeparated[0].parameters, "tag", message->from.tag);
+  return parseParameterByName(field.commaSeparated[0].parameters, "tag", message->from.tag);
 }
 
 
@@ -419,7 +419,7 @@ bool parseToField(SIPField& field,
   }
 
   // to-tag does not exist in first message
-  parseParameterNameToValue(field.commaSeparated[0].parameters, "tag", message->to.tag);
+  parseParameterByName(field.commaSeparated[0].parameters, "tag", message->to.tag);
 
   return true;
 }
@@ -482,11 +482,11 @@ bool parseViaField(SIPField& field,
     via.port = second_match.captured(2).toUInt();
   }
 
-  parseParameterNameToValue(field.commaSeparated[0].parameters, "branch", via.branch);
-  parseParameterNameToValue(field.commaSeparated[0].parameters, "received", via.receivedAddress);
+  parseParameterByName(field.commaSeparated[0].parameters, "branch", via.branch);
+  parseParameterByName(field.commaSeparated[0].parameters, "received", via.receivedAddress);
 
   QString rportValue = "";
-  if (parseParameterNameToValue(field.commaSeparated[0].parameters, "rport", rportValue))
+  if (parseParameterByName(field.commaSeparated[0].parameters, "rport", rportValue))
   {
     bool ok = false;
     via.rportValue = rportValue.toUInt(&ok);

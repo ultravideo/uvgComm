@@ -193,7 +193,7 @@ bool includeContactField(QList<SIPField> &fields,
     SIPRouteLocation modifiedContact = contact;
     modifiedContact.address.uri.uri_parameters.push_back({"transport", "tcp"});
 
-    field.commaSeparated.push_back({{}, nullptr});
+    field.commaSeparated.push_back({{}, {}});
 
     if (!composeSIPRouteLocation(modifiedContact, field.commaSeparated.back()))
     {
@@ -250,7 +250,7 @@ bool includeContentLengthField(QList<SIPField> &fields,
 {
   SIPField field = {"Content-Length",
                     QList<SIPCommaValue>{SIPCommaValue{{QString::number(header->contentLength)},
-                                                   nullptr}}};
+                                                       {}}}};
   fields.push_back(field);
   return true;
 }
@@ -269,8 +269,7 @@ bool includeContentTypeField(QList<SIPField> &fields,
   if (header->contentType != MT_NONE)
   {
     SIPField field = {"Content-Type",
-                      QList<SIPCommaValue>{SIPCommaValue{{contentTypeToString(header->contentType)},
-                                                     nullptr}}};
+                      QList<SIPCommaValue>{SIPCommaValue{{contentTypeToString(header->contentType)}, {}}}};
     fields.push_back(field);
     return true;
   }
@@ -289,11 +288,10 @@ bool includeCSeqField(QList<SIPField> &fields,
     return false;
   }
 
-  SIPField field = {"CSeq", QList<SIPCommaValue>{SIPCommaValue{{}, nullptr}}};
+  SIPField field = {"CSeq", QList<SIPCommaValue>{SIPCommaValue{{}, {}}}};
 
   field.commaSeparated[0].words.push_back(QString::number(header->cSeq.cSeq));
   field.commaSeparated[0].words.push_back(requestMethodToString(header->cSeq.method));
-  field.commaSeparated[0].parameters = nullptr;
 
   fields.push_back(field);
   return true;
@@ -339,7 +337,7 @@ bool includeExpiresField(QList<SIPField>& fields,
   }
 
   SIPField field = {"Expires",
-                    QList<SIPCommaValue>{SIPCommaValue{{QString::number(*header->expires)}, nullptr}}};
+                    QList<SIPCommaValue>{SIPCommaValue{{QString::number(*header->expires)}, {}}}};
   fields.push_back(field);
   return true;
 }
@@ -360,14 +358,12 @@ bool includeFromField(QList<SIPField> &fields,
     return false;
   }
 
-  SIPField field = {"From", QList<SIPCommaValue>{SIPCommaValue{{}, nullptr}}};
+  SIPField field = {"From", QList<SIPCommaValue>{SIPCommaValue{{}, {}}}};
 
   if (!composeNameAddr(header->from.address, field.commaSeparated[0].words))
   {
     return false;
   }
-
-  field.commaSeparated[0].parameters = nullptr;
 
   tryAddParameter(field.commaSeparated[0].parameters, "tag", header->from.tag);
 
@@ -461,7 +457,7 @@ bool includeRecordRouteField(QList<SIPField>& fields,
   SIPField field = {"Record-Route",{}};
   for (auto& route : header->recordRoutes)
   {
-    field.commaSeparated.push_back({{}, nullptr});
+    field.commaSeparated.push_back({{}, {}});
 
     if (!composeSIPRouteLocation(route, field.commaSeparated.back()))
     {
@@ -547,7 +543,7 @@ bool includeRouteField(QList<SIPField>& fields,
   SIPField field = {"Route",{}};
   for (auto& route : header->routes)
   {
-    field.commaSeparated.push_back({{}, nullptr});
+    field.commaSeparated.push_back({{}, {}});
 
     if (!composeSIPRouteLocation(route, field.commaSeparated.back()))
     {
@@ -606,14 +602,12 @@ bool includeToField(QList<SIPField> &fields,
     return false;
   }
 
-  SIPField field = {"To", QList<SIPCommaValue>{SIPCommaValue{{}, nullptr}}};
+  SIPField field = {"To", QList<SIPCommaValue>{SIPCommaValue{{}, {}}}};
 
   if (!composeNameAddr(header->to.address, field.commaSeparated[0].words))
   {
     return false;
   }
-
-  field.commaSeparated[0].parameters = nullptr;
 
   tryAddParameter(field.commaSeparated[0].parameters, "tag", header->to.tag);
 
@@ -651,7 +645,7 @@ bool includeViaFields(QList<SIPField>& fields, const std::shared_ptr<SIPMessageH
     Q_ASSERT(via.branch != "");
     Q_ASSERT(via.sentBy != "");
 
-    SIPField field = {"Via", QList<SIPCommaValue>{SIPCommaValue{{}, nullptr}}};
+    SIPField field = {"Via", QList<SIPCommaValue>{SIPCommaValue{{}, {}}}};
 
     field.commaSeparated[0].words.push_back("SIP/" + via.sipVersion +"/" +
                                        transportProtocolToString(via.protocol));

@@ -160,7 +160,7 @@ void composeDigestValueQuoted(QString fieldName, const QString& fieldValue, SIPF
 }
 
 
-bool tryAddParameter(std::shared_ptr<QList<SIPParameter>>& parameters,
+bool tryAddParameter(QList<SIPParameter>& parameters,
                      QString parameterName, QString parameterValue)
 {
   if (parameterValue == "" || parameterName == "")
@@ -168,17 +168,13 @@ bool tryAddParameter(std::shared_ptr<QList<SIPParameter>>& parameters,
     return false;
   }
 
-  if (parameters == nullptr)
-  {
-    parameters = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
-  }
-  parameters->append({parameterName, parameterValue});
+  parameters.append({parameterName, parameterValue});
 
   return true;
 }
 
 
-bool tryAddParameter(std::shared_ptr<QList<SIPParameter>>& parameters,
+bool tryAddParameter(QList<SIPParameter>& parameters,
                      QString parameterName)
 {
   if (parameterName == "")
@@ -186,11 +182,7 @@ bool tryAddParameter(std::shared_ptr<QList<SIPParameter>>& parameters,
     return false;
   }
 
-  if (parameters == nullptr)
-  {
-    parameters = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
-  }
-  parameters->append({parameterName, ""});
+  parameters.append({parameterName, ""});
 
   return true;
 }
@@ -236,13 +228,8 @@ bool composeInfoField(QList<SIPField>& fields,
     if (value != "<>")
     {
       fields.back().commaSeparated.push_back({{value},{}});
-      if (info.parameter != nullptr)
-      {
-        if (!addParameter(fields.back().commaSeparated.back().parameters, *info.parameter))
-        {
-          printProgramWarning("SIP Field Helper", "Failed to add Info parameter");
-        }
-      }
+
+      copyParameterList(info.parameters, fields.back().commaSeparated.back().parameters);
     }
     else
     {

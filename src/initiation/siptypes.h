@@ -278,21 +278,21 @@ enum MediaType {MT_NONE, MT_UNKNOWN,
 struct SIPAccept
 {
   MediaType type;
-  std::shared_ptr<QList<SIPParameter>> parameters; // optional
+  QList<SIPParameter> parameters;
 };
+
 
 struct SIPAcceptGeneric
 {
   QString accepted;
-  std::shared_ptr<QList<SIPParameter>> parameters; // optional
+  QList<SIPParameter> parameters;
 };
 
 
-// Alert-Info is used by server for a distinctive Ring-tone
 struct SIPInfo
 {
   AbsoluteURI absoluteURI;
-  std::shared_ptr<SIPParameter> parameter; // optional
+  QList<SIPParameter> parameters;
 };
 
 
@@ -309,13 +309,13 @@ struct ContentDisposition
   QList<SIPParameter> parameters;
 };
 
+
 struct CSeqField
 {
   uint32_t cSeq; // must be less than 2^31
   SIPRequestMethod method;
 };
 
-const uint16_t CALLIDLENGTH = 16;
 
 struct SIPDateField
 {
@@ -524,6 +524,7 @@ struct SIPMessageHeader
 // The purpose of max-forwards is to avoid infinite routing loops.
 const uint8_t DEFAULT_MAX_FORWARDS = 70;
 
+const uint16_t CALLIDLENGTH = 16;
 
 struct SIPRequest
 {
@@ -554,7 +555,7 @@ const QString SIP_VERSION = "2.0";
 struct SIPCommaValue
 {
   QStringList words;
-  std::shared_ptr<QList<SIPParameter>> parameters;
+  QList<SIPParameter> parameters;
 };
 
 // fieldname: commaValue, commaValue

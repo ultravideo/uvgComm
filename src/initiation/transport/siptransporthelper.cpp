@@ -134,7 +134,7 @@ bool combineContinuationLines(QStringList& lines);
 
 bool parseFieldName(QString& line, SIPField &field);
 void parseFieldCommaSeparatedList(QString& line, QStringList &outValues);
-bool parseFieldValue(QString& values, SIPField& field);
+bool parseField(QString& values, SIPField& field);
 
 void addParameterToSet(SIPParameter& currentParameter, QString& currentWord,
                        SIPCommaValue& value);
@@ -176,20 +176,18 @@ QString fieldsToString(QList<SIPField>& fields, QString lineEnding)
         }
 
         // add parameters
-        if(field.commaSeparated.at(i).parameters != nullptr)
+        for(const SIPParameter& parameter : field.commaSeparated.at(i).parameters)
         {
-          for(SIPParameter& parameter : *field.commaSeparated.at(i).parameters)
+          if (parameter.value != "")
           {
-            if (parameter.value != "")
-            {
-              message += ";" + parameter.name + "=" + parameter.value;
-            }
-            else
-            {
-              message += ";" + parameter.name;
-            }
+            message += ";" + parameter.name + "=" + parameter.value;
+          }
+          else
+          {
+            message += ";" + parameter.name;
           }
         }
+
 
         // add comma(,) if not the last value
         if (i != field.commaSeparated.size() - 1)
@@ -275,7 +273,7 @@ bool headerToFields(QString& header, QString& firstLine, QList<SIPField>& fields
 
       for (QString& value : commaSeparated)
       {
-        if (!parseFieldValue(value, field))
+        if (!parseField(value, field))
         {
           printWarning("SIP Transport Helper", "Failed to parse field",
                        "Name", field.name);
@@ -401,10 +399,10 @@ void parseFieldCommaSeparatedList(QString& line, QStringList& outValues)
 }
 
 
-bool parseFieldValue(QString& values, SIPField& field)
+bool parseField(QString& values, SIPField& field)
 {
   // RFC3261_TODO: Uniformalize case formatting. Make everything big or small case expect quotes.
-  SIPCommaValue set = SIPCommaValue{{}, nullptr};
+  SIPCommaValue set = SIPCommaValue{{}, {}};
 
   QString currentWord = "";
   bool isQuotation = false;
@@ -557,11 +555,7 @@ void addParameterToSet(SIPParameter& currentParameter, QString &currentWord,
   }
   currentWord = "";
 
-  if (value.parameters == nullptr)
-  {
-    value.parameters = std::shared_ptr<QList<SIPParameter>> (new QList<SIPParameter>);
-  }
-  value.parameters->push_back(currentParameter);
+  value.parameters.push_back(currentParameter);
   currentParameter = SIPParameter{"",""};
 }
 

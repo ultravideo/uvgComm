@@ -4,9 +4,9 @@
 
 
 // a function used within this file to add a parameter
-bool tryAddParameter(std::shared_ptr<QList<SIPParameter> > &parameters,
+bool tryAddParameter(QList<SIPParameter> &parameters,
                      QString parameterName, QString parameterValue);
-bool tryAddParameter(std::shared_ptr<QList<SIPParameter> > &parameters,
+bool tryAddParameter(QList<SIPParameter> &parameters,
                      QString parameterName);
 
 QString composeURItype(SIPType type);

@@ -34,10 +34,8 @@ bool parseSIPRouteLocation(const SIPCommaValue &value, SIPRouteLocation& locatio
     return false;
   }
 
-  if (value.parameters != nullptr && !value.parameters->empty())
-  {
-    location.parameters = *value.parameters;
-  }
+  copyParameterList(value.parameters, location.parameters);
+
   return true;
 }
 
@@ -139,20 +137,18 @@ bool parseUritype(QString type, SIPType& out_Type)
 }
 
 
-bool parseParameterNameToValue(std::shared_ptr<QList<SIPParameter>> parameters,
+bool parseParameterByName(QList<SIPParameter> parameters,
                                QString name, QString& value)
 {
-  if(parameters != nullptr)
+  for(SIPParameter& parameter : parameters)
   {
-    for(SIPParameter& parameter : *parameters)
+    if(parameter.name == name)
     {
-      if(parameter.name == name)
-      {
-        value = parameter.value;
-        return true;
-      }
+      value = parameter.value;
+      return true;
     }
   }
+
   return false;
 }
 
@@ -177,6 +173,7 @@ bool parseUint64(QString values, uint64_t& number)
   }
   return false;
 }
+
 
 bool parseUint8(QString values, uint8_t& number)
 {
@@ -219,7 +216,8 @@ bool parseAcceptGeneric(SIPField& field,
 {
   if (generics == nullptr)
   {
-    generics = std::shared_ptr<QList<SIPAcceptGeneric>> (new QList<SIPAcceptGeneric>());
+    generics =
+        std::shared_ptr<QList<SIPAcceptGeneric>> (new QList<SIPAcceptGeneric>());
   }
 
   for (auto& value : field.commaSeparated)
