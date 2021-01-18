@@ -4,6 +4,7 @@
 
 
 bool parseURI(const QString& word, SIP_URI& uri);
+bool parseAbsoluteURI(const QString& word, AbsoluteURI& uri);
 bool parseNameAddr(const QStringList &words, NameAddr& nameAddr);
 bool parseSIPRouteLocation(const SIPCommaValue &value, SIPRouteLocation& location);
 
@@ -23,6 +24,10 @@ bool parseParameter(QString text, SIPParameter& parameter);
 
 bool parseAcceptGeneric(SIPField& field,
                         std::shared_ptr<QList<SIPAcceptGeneric>> generics);
+
+bool parseInfo(SIPField& field,
+               QList<SIPInfo>& infos);
+
 
 bool parseDigestChallengeField(SIPField& field,
                                const std::shared_ptr<QList<DigestChallenge>> dChallenge);

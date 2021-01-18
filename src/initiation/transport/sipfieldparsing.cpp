@@ -93,7 +93,7 @@ bool parseAcceptLanguageField(SIPField& field,
 bool parseAlertInfoField(SIPField& field,
                          std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+  return parseInfo(field, message->alertInfos);
 }
 
 
@@ -134,7 +134,7 @@ bool parseCallIDField(SIPField& field,
 bool parseCallInfoField(SIPField& field,
                         std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+  return parseInfo(field, message->callInfos);
 }
 
 
@@ -232,7 +232,7 @@ bool parseDateField(SIPField& field,
 bool parseErrorInfoField(SIPField& field,
                          std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+  return parseInfo(field, message->errorInfos);
 }
 
 

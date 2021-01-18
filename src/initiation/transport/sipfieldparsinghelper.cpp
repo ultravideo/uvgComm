@@ -112,6 +112,23 @@ bool parseURI(const QString &word, SIP_URI& uri)
 }
 
 
+bool parseAbsoluteURI(const QString& word, AbsoluteURI& uri)
+{
+  QRegularExpression re_parameter("");
+  QRegularExpressionMatch parameter_match = re_parameter.match(word);
+
+  if(parameter_match.hasMatch() && parameter_match.lastCapturedIndex() == 2)
+  {
+    uri.scheme = parameter_match.captured(1);
+    uri.path = parameter_match.captured(2);
+
+    return true;
+  }
+
+  return false;
+}
+
+
 bool parseUritype(QString type, SIPType& out_Type)
 {
   if (type == "sip")
@@ -238,4 +255,32 @@ bool parseAcceptGeneric(SIPField& field,
   }
 
   return false;
+}
+
+
+bool parseInfo(SIPField& field,
+               QList<SIPInfo>& infos)
+{
+  for (auto& value : field.commaSeparated)
+  {
+    if (value.words.size() == 1)
+    {
+      QRegularExpression re_uri("<(.*)>");
+      QRegularExpressionMatch uri_match = re_uri.match(value.words[0]);
+
+      if(uri_match.hasMatch() &&
+         uri_match.lastCapturedIndex() == 1)
+      {
+        AbsoluteURI uri;
+        if (parseAbsoluteURI(uri_match.captured(1), uri))
+        {
+          infos.push_back({uri, {}});
+
+          copyParameterList(value.parameters, infos.back().parameters);
+        }
+      }
+    }
+  }
+
+  return true;
 }
