@@ -33,6 +33,7 @@
 // See RFC 6665 for SUBSCRIBE and NOTIFY
 
 enum SIPRequestMethod {SIP_NO_REQUEST,
+                       SIP_UNKOWN_REQUEST,
                        SIP_INVITE,
                        SIP_ACK,
                        SIP_BYE,
@@ -364,28 +365,24 @@ enum SIPPriorityField {SIP_NO_PRIORITY,
                        SIP_NONURGENT};
 
 
-// - Mandatory: the processing will fail if the field is not included.
-// - Should: field should be there, but client is able to receive the
-//   message without that field.
-
 // If pointer is null, the field does/should not exist in message
 // This also applies to some of the tables, but not all. Those it
 // does not apply are in a pointer.
 struct SIPMessageHeader
 {
-  // callID, cSeq, from, to and via fields are copied from request to response.
-  // Max-Forwards is mandatory in requests and not allowed in responses
-
-  // INVITE and INVITE 2xx response must include contact and supported field
-
-  // More details on which fields belong in which message and their purpose are
-  // listed in RFC 3261 section 20. Details of field BNF forms are given in section 25.
-
-  // Each variable represents one field.  Unless it has the comment mandatory,
-  // the default value is set so that field does not exist.
-
-  // All fields which allow comma separation, multiple fields with same name can
-  // be treated as being comma separated lists
+  /* callID, cSeq, from, to and via fields are copied from request to response.
+   * Max-Forwards is mandatory in requests and not allowed in responses
+   *
+   * INVITE and INVITE 2xx response must include contact and supported field
+   *
+   * More details on which fields belong in which message and their purpose are
+   * listed in RFC 3261 section 20. Details of field BNF forms are given in section 25.
+   *
+   * Each variable represents one field.  Unless it has the comment mandatory,
+   * the default value is set so that field does not exist.
+   *
+   * All fields which allow comma separation, multiple fields with same name can
+   * be treated as being comma separated lists */
 
   // accepted content types
   std::shared_ptr<QList<SIPAccept>>        accept = nullptr;
@@ -453,7 +450,7 @@ struct SIPMessageHeader
   // avoids loops in routing
   std::shared_ptr<uint8_t>                 maxForwards = nullptr;
 
-  // you should at least this expires value
+  // smaller expires values are not permitted
   std::shared_ptr<uint32_t>                minExpires = nullptr;
 
   // useless, always use 1.0
@@ -520,8 +517,7 @@ struct SIPMessageHeader
   std::shared_ptr<QList<DigestChallenge>>  wwwAuthenticate = nullptr;
 };
 
-// 70 is recommended by specification
-// The purpose of max-forwards is to avoid infinite routing loops.
+// 70 is recommended by RFC 3261.
 const uint8_t DEFAULT_MAX_FORWARDS = 70;
 
 const uint16_t CALLIDLENGTH = 16;
@@ -548,10 +544,11 @@ struct SIPResponse
 
 const QString SIP_VERSION = "2.0";
 
-// these structs are used as a temporary step in parsing and composing SIP messages
+/* SIPCommaValue and SIPField structs are used as an intermediary step in parsing
+ * and composing SIP messages. */
 
-// One set of values for a SIP field. Separated by commas
-// or as separate header fields with same name.
+/* One set of values for a SIP field. Separated by commas
+ *  or as separate header fields with same name. */
 struct SIPCommaValue
 {
   QStringList words;

@@ -100,7 +100,27 @@ bool parseAlertInfoField(SIPField& field,
 bool parseAllowField(SIPField& field,
                      std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+  if (message->allow == nullptr)
+  {
+    message->allow =
+        std::shared_ptr<QList<SIPRequestMethod>> (new QList<SIPRequestMethod>());
+  }
+
+  for (auto& value : field.commaSeparated)
+  {
+    if (value.words.size() == 1)
+    {
+      SIPRequestMethod method = stringToRequestMethod(value.words[0]);
+
+      if (method != SIP_NO_REQUEST &&
+          method != SIP_UNKOWN_REQUEST)
+      {
+        message->allow->push_back(method);
+      }
+    }
+  }
+
+  return true;
 }
 
 
