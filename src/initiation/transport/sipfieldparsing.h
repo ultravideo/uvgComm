@@ -8,6 +8,10 @@
 // parsing of individual header fields to SDPMessage, but not the first line.
 // returns whether the parsing was successful.
 
+// Currently these parse the whole comma separated list, but it would probably
+// be better if they parsed only one value from the list at a time. No need
+// to loop through the list in every one of these
+
 // Please call check parsing possibility with parsingPreCheck before calling any
 // of the parsing functions
 

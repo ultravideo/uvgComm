@@ -259,12 +259,12 @@ struct DigestResponse
 
 struct SIPAuthInfo
 {
-  QString nextNonce;
-  QopValue messageQop;
+  QString nextNonce = "";
+  QopValue messageQop = SIP_NO_AUTH;
 
-  QString responseAuth; // lower hexes
-  QString cnonce; // 8-letter lower hex
-  QString nonceCount;
+  QString responseAuth = ""; // lower hexes
+  QString cnonce = ""; // 8-letter lower hex
+  QString nonceCount = "";
 };
 
 

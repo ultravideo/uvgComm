@@ -127,7 +127,59 @@ bool parseAllowField(SIPField& field,
 bool parseAuthInfoField(SIPField& field,
                         std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+  message->authInfo = std::shared_ptr<SIPAuthInfo> (new SIPAuthInfo);
+
+  for (auto& value : field.commaSeparated)
+  {
+    if (value.words.size() == 1)
+    {
+      QString digestName = "";
+      QString digestValue = "";
+
+      if (parseDigestValue(value.words[0], digestName, digestValue))
+      {
+        if (digestName == "nextnonce")
+        {
+          message->authInfo->nextNonce = digestValue;
+        }
+        else if (digestName == "gop")
+        {
+          message->authInfo->messageQop = stringToQopValue(digestValue);
+        }
+        else if (digestName == "rspauth")
+        {
+          message->authInfo->responseAuth = digestValue;
+        }
+        else if (digestName == "cnonce")
+        {
+          message->authInfo->cnonce = digestValue;
+        }
+        else if (digestName == "nc")
+        {
+          message->authInfo->nonceCount = digestValue;
+        }
+        else
+        {
+          printWarning("SIP Field Parsing",
+                       "Unknown Authentication-Info digest field!");
+        }
+      }
+    }
+  }
+
+  // did we actually get anything succesfully
+  if (message->authInfo->nextNonce == "" &&
+      message->authInfo->messageQop == SIP_NO_AUTH &&
+      message->authInfo->responseAuth == "" &&
+      message->authInfo->cnonce == "" &&
+      message->authInfo->nonceCount == "")
+
+  {
+    message->authInfo = nullptr;
+    return false;
+  }
+
+  return true;
 }
 
 

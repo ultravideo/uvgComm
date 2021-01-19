@@ -284,3 +284,31 @@ bool parseInfo(SIPField& field,
 
   return true;
 }
+
+
+bool parseDigestValue(const QString& word, QString& name, QString& value)
+{
+  QRegularExpression re_quoted("(.*)=\"(.*)\"");
+  QRegularExpressionMatch quoted_match = re_quoted.match(word);
+
+  if(quoted_match.hasMatch() && quoted_match.lastCapturedIndex() == 2)
+  {
+    name = quoted_match.captured(1);
+    value = quoted_match.captured(2);
+
+    return true;
+  }
+
+  QRegularExpression re_normal("(.*)=(.*)");
+  QRegularExpressionMatch normal_match = re_normal.match(word);
+
+  if(normal_match.hasMatch() && normal_match.lastCapturedIndex() == 2)
+  {
+    name = normal_match.captured(1);
+    value = normal_match.captured(2);
+
+    return true;
+  }
+
+  return false;
+}

@@ -140,7 +140,8 @@ bool includeAuthInfoField(QList<SIPField>& fields,
 
   // these are added as comma lists
   composeDigestValueQuoted("nextnonce", header->authInfo->nextNonce, fields.back());
-  composeDigestValue      ("qop",       qopValueToString(header->authInfo->messageQop), fields.back());
+  composeDigestValue      ("qop",       qopValueToString(header->authInfo->messageQop),
+                                        fields.back());
   composeDigestValueQuoted("rspauth",   header->authInfo->responseAuth, fields.back());
   composeDigestValueQuoted("cnonce",    header->authInfo->cnonce, fields.back());
   composeDigestValue      ("nc",        header->authInfo->nonceCount, fields.back());

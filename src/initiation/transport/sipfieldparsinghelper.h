@@ -28,6 +28,8 @@ bool parseAcceptGeneric(SIPField& field,
 bool parseInfo(SIPField& field,
                QList<SIPInfo>& infos);
 
+bool parseDigestValue(const QString& word, QString& name, QString& value);
+
 
 bool parseDigestChallengeField(SIPField& field,
                                const std::shared_ptr<QList<DigestChallenge>> dChallenge);
