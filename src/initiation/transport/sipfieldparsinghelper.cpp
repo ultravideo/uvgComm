@@ -114,7 +114,7 @@ bool parseURI(const QString &word, SIP_URI& uri)
 
 bool parseAbsoluteURI(const QString& word, AbsoluteURI& uri)
 {
-  QRegularExpression re_parameter("");
+  QRegularExpression re_parameter("(.*):(.*)");
   QRegularExpressionMatch parameter_match = re_parameter.match(word);
 
   if(parameter_match.hasMatch() && parameter_match.lastCapturedIndex() == 2)
