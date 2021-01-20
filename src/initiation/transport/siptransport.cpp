@@ -216,6 +216,17 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
   QString content_str = addContent(request.message,
                                    content);
 
+  request.message->authorization.push_back({"joni",
+                                            "täällä",
+                                            "noncense",
+                                            std::shared_ptr<SIP_URI>(new SIP_URI{SIP, {"joni", ""}, {"1.1.1.1", 0}, {}, {}}),
+                                            "resp",
+                                            SIP_MD5,
+                                            "cnoncense",
+                                            "op",
+                                            SIP_AUTH,
+                                            "3"});
+
 
   QList<SIPField> fields;
   composeAllFields(fields, request.message);

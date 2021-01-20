@@ -228,13 +228,13 @@ enum QopValue {SIP_NO_AUTH, SIP_AUTH_UNKNOWN, SIP_AUTH, SIP_AUTH_INT};
 
 struct DigestChallenge
 {
-  QString realm;
-  AbsoluteURI domain; // can also be abs-path
-  QString nonce;
-  QString opaque;
-  bool stale;
-  DigestAlgorithm algorithm;
-  QList<QopValue> qopOptions;
+  QString realm = "";
+  std::shared_ptr<AbsoluteURI> domain = nullptr; // can also be abs-path
+  QString nonce = "";
+  QString opaque = "";
+  std::shared_ptr<bool> stale = nullptr;
+  DigestAlgorithm algorithm = SIP_NO_ALGORITHM;
+  QList<QopValue> qopOptions = {};
 
   //QString authParam; refers to any further parameters
 };
@@ -248,10 +248,10 @@ struct DigestResponse
   std::shared_ptr<SIP_URI> digestUri = nullptr; // equal to Request-URI
   QString dresponse = ""; // 32-letter hex
   DigestAlgorithm algorithm = SIP_NO_ALGORITHM;
-  QString cnonce;
-  QString opaque;
-  QopValue messageQop;
-  QString nonceCount; // 8-letter lower hex
+  QString cnonce = "";
+  QString opaque = "";
+  QopValue messageQop = SIP_NO_AUTH;
+  QString nonceCount = ""; // 8-letter lower hex
 
   //QString authParam; refers to any further parameters
 };
@@ -403,7 +403,7 @@ struct SIPMessageHeader
   std::shared_ptr<SIPAuthInfo>             authInfo  = {};
 
   // credentials of UA
-  std::shared_ptr<QList<DigestResponse>>   authorization = nullptr;
+  QList<DigestResponse>                    authorization = {};
 
   // mandatory, identify dialog along with tags
   QString                                  callID = "";
@@ -463,10 +463,10 @@ struct SIPMessageHeader
   SIPPriorityField                         priority = SIP_NO_PRIORITY;
 
   // proxy authentication challenge
-  std::shared_ptr<QList<DigestChallenge>>  proxyAuthenticate = nullptr;
+  QList<DigestChallenge>                   proxyAuthenticate = {};
 
   // proxy authentication credentials
-  std::shared_ptr<QList<DigestResponse>>   proxyAuthorization = nullptr;
+  QList<DigestResponse>                    proxyAuthorization = {};
 
   // proxy must support these features in order to process request
   QStringList                              proxyRequires = {};
@@ -514,13 +514,14 @@ struct SIPMessageHeader
   QList<SIPWarningField>                   warning = {};
 
   // authentication challenge
-  std::shared_ptr<QList<DigestChallenge>>  wwwAuthenticate = nullptr;
+  QList<DigestChallenge>                   wwwAuthenticate = {};
 };
+
 
 // 70 is recommended by RFC 3261.
 const uint8_t DEFAULT_MAX_FORWARDS = 70;
-
 const uint16_t CALLIDLENGTH = 16;
+
 
 struct SIPRequest
 {

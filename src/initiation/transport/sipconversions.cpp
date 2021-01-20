@@ -281,11 +281,15 @@ QString algorithmToString(const DigestAlgorithm algorithm)
 bool stringToBool(const QString& boolean, bool& ok)
 {
   ok = true;
-  if (boolean == "false")
+  if (boolean == "false" ||
+      boolean == "FALSE" ||
+      boolean == "False")
   {
     return false;
   }
-  else if (boolean == "true")
+  else if (boolean == "true" ||
+           boolean == "TRUE" ||
+           boolean == "True")
   {
     return true;
   }

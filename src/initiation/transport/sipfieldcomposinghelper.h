@@ -24,19 +24,19 @@ void composeDigestValueQuoted(QString fieldName, const QString& fieldValue, SIPF
 
 // composing whole fields
 bool composeAcceptGenericField(QList<SIPField>& fields,
-                          const std::shared_ptr<QList<SIPAcceptGeneric>> generics,
-                          QString fieldname);
+                               const std::shared_ptr<QList<SIPAcceptGeneric>> generics,
+                               QString fieldname);
 
 bool composeInfoField(QList<SIPField>& fields,
                       const QList<SIPInfo>& infos,
                       QString fieldname);
 
 bool composeDigestChallengeField(QList<SIPField>& fields,
-                                 const std::shared_ptr<QList<DigestChallenge>> dChallenge,
+                                 const QList<DigestChallenge> &dChallenge,
                                  QString fieldname);
 
 bool composeDigestResponseField(QList<SIPField>& fields,
-                                const std::shared_ptr<QList<DigestResponse>> dResponse,
+                                const QList<DigestResponse> &dResponse,
                                 QString fieldname);
 
 bool composeStringList(QList<SIPField>& fields,

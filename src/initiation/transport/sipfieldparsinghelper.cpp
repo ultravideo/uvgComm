@@ -23,7 +23,16 @@ bool parseNameAddr(const QStringList &words, NameAddr& nameAddr)
     nameAddr.realname = words.at(0);
     uriIndex = 1;
   }
-  return parseURI(words.at(uriIndex), nameAddr.uri);
+
+  QRegularExpression re_uri("<([\\w\\d]+:.+)>");
+  QRegularExpressionMatch uri_match = re_uri.match(words.at(uriIndex));
+
+  if (uri_match.hasMatch() && uri_match.lastCapturedIndex() == 1)
+  {
+    return parseURI(uri_match.captured(1), nameAddr.uri);
+  }
+
+  return false;
 }
 
 
@@ -45,7 +54,7 @@ bool parseURI(const QString &word, SIP_URI& uri)
   // for example <sip:bob@biloxi.com>
   // ?: means it wont create a capture group
   // TODO: accept passwords
-  QRegularExpression re_field("<(\\w+):(?:(\\w+)@)?(.+)>");
+  QRegularExpression re_field("(\\w+):(?:(\\w+)@)?(.+)");
   QRegularExpressionMatch field_match = re_field.match(word);
 
   // number of matches depends whether real name or the port were given
@@ -311,4 +320,156 @@ bool parseDigestValue(const QString& word, QString& name, QString& value)
   }
 
   return false;
+}
+
+
+bool parseDigestChallengeField(const SIPField& field,
+                               QList<DigestChallenge>& dChallenge)
+{
+  dChallenge.push_back(DigestChallenge{});
+
+  std::map<QString, QString> digests;
+  populateDigestTable(field.commaSeparated, digests, true);
+
+  dChallenge.back().realm = getDigestTableValue(digests, "realm");
+
+  QString domain = getDigestTableValue(digests, "domain");
+  if (domain != "")
+  {
+    dChallenge.back().domain = std::shared_ptr<AbsoluteURI>(new AbsoluteURI);
+    if (parseAbsoluteURI(domain, *dChallenge.back().domain))
+    {
+      dChallenge.back().domain = nullptr;
+    }
+  }
+
+  dChallenge.back().nonce = getDigestTableValue(digests, "nonce");
+  dChallenge.back().opaque = getDigestTableValue(digests, "opaque");
+
+  QString stale = getDigestTableValue(digests, "stale");
+  if (stale != "")
+  {
+    bool success = false;
+    dChallenge.back().stale = std::shared_ptr<bool> (new bool (stringToBool(stale, success)));
+
+    if (!success)
+    {
+      dChallenge.back().stale = nullptr;
+    }
+  }
+
+  dChallenge.back().algorithm = stringToAlgorithm(getDigestTableValue(digests, "algorithm"));
+
+  // parsing of QOP options
+  QString gopOptions = getDigestTableValue(digests, "qop");
+
+  // non-capture group to separate commas(,)
+  QRegularExpression re_options ("(?:([\\w-]*),?)");
+  QRegularExpressionMatch options_match = re_options.match(gopOptions);
+
+  if (options_match.hasMatch() &&
+      options_match.lastCapturedIndex() >= 1)
+  {
+    // the whole string is at 0 so we ignore it
+    for (int i = 1; i < options_match.lastCapturedIndex(); ++i)
+    {
+      QopValue qop = stringToQopValue(options_match.captured(i));
+
+      if (qop != SIP_NO_AUTH &&
+          qop != SIP_AUTH_UNKNOWN)
+      {
+        // success
+        dChallenge.back().qopOptions.push_back(qop);
+      }
+    }
+  }
+
+  return true;
+}
+
+
+bool parseDigestResponseField(const SIPField& field,
+                             QList<DigestResponse>& dResponse)
+{
+  if (field.commaSeparated.empty() ||
+      field.commaSeparated.first().words.size() != 2 ||
+      field.commaSeparated.first().words.at(0) != "Digest")
+  {
+    return false;
+  }
+
+  dResponse.push_back(DigestResponse{});
+
+  std::map<QString, QString> digests;
+  populateDigestTable(field.commaSeparated, digests, true);
+
+  dResponse.back().username = getDigestTableValue(digests, "username");
+  dResponse.back().realm    = getDigestTableValue(digests, "realm");
+  dResponse.back().nonce    = getDigestTableValue(digests, "nonce");
+
+  QString uri = getDigestTableValue(digests, "uri");
+
+  if (uri != "")
+  {
+    dResponse.back().digestUri = std::shared_ptr<SIP_URI> (new SIP_URI);
+
+    if (!parseURI(uri, *dResponse.back().digestUri))
+    {
+      printWarning("SIP Field Parsing", "Failed to parse Digest response URI");
+      dResponse.back().digestUri = nullptr;
+    }
+  }
+
+  dResponse.back().dresponse = getDigestTableValue(digests, "response");
+  dResponse.back().algorithm = stringToAlgorithm(getDigestTableValue(digests, "algorithm"));
+  dResponse.back().cnonce = getDigestTableValue(digests, "cnonce");
+  dResponse.back().opaque = getDigestTableValue(digests, "opaque");
+
+  dResponse.back().messageQop = stringToQopValue(getDigestTableValue(digests, "qop"));
+
+  dResponse.back().nonceCount = getDigestTableValue(digests, "nc");
+
+  return true;
+}
+
+
+void populateDigestTable(const QList<SIPCommaValue>& values,
+                         std::map<QString, QString>& table, bool expectDigest)
+{
+  for (int i = 0; i < values.size(); ++i)
+  {
+    // The first value will may two words, first of which is "Digest"
+    if ((i == 0 && expectDigest &&
+         (values.at(i).words.size() != 2 || values.at(i).words.at(0) != "Digest")) ||
+        (i > 0  && values.at(i).words.size() != 1 ))
+    {
+      break;
+    }
+
+    int wordIndex = 0;
+    if (i == 0 && expectDigest)
+    {
+      wordIndex = 1; // take Digest into account
+    }
+
+    QString digestName = "";
+    QString digestValue = "";
+
+    parseDigestValue(values.at(i).words.at(wordIndex), digestName, digestValue);
+
+    if (digestName != "")
+    {
+      table[digestName] = digestValue;
+    }
+  }
+}
+
+
+QString getDigestTableValue(const std::map<QString, QString>& table, const QString& name)
+{
+  if (table.find(name) == table.end())
+  {
+    return "";
+  }
+  return table.at(name);
 }

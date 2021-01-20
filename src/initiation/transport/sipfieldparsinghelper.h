@@ -2,6 +2,7 @@
 
 #include "initiation/siptypes.h"
 
+#include <map>
 
 bool parseURI(const QString& word, SIP_URI& uri);
 bool parseAbsoluteURI(const QString& word, AbsoluteURI& uri);
@@ -31,10 +32,15 @@ bool parseInfo(SIPField& field,
 bool parseDigestValue(const QString& word, QString& name, QString& value);
 
 
-bool parseDigestChallengeField(SIPField& field,
-                               const std::shared_ptr<QList<DigestChallenge>> dChallenge);
+void populateDigestTable(const QList<SIPCommaValue>& values,
+                         std::map<QString, QString> &table, bool expectDigest);
 
-bool parsaeDigestResponseField(QList<SIPField>& fields,
-                               const std::shared_ptr<QList<DigestResponse>> dResponse,
-                               QString fieldname);
+QString getDigestTableValue(const std::map<QString, QString> &table, const QString& name);
+
+
+bool parseDigestChallengeField(const SIPField &field,
+                               QList<DigestChallenge> &dChallenge);
+
+bool parseDigestResponseField(const SIPField &field,
+                              QList<DigestResponse> &dResponse);
 

@@ -419,7 +419,7 @@ bool parseField(QString& values, SIPField& field)
         (character != " "
         && character != "\""
         && character != ";"
-        && character != "="
+        && (character != "=" || !isParameter)
         && character != "("
         && character != ")"
         && !comments))

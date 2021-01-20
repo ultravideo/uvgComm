@@ -129,43 +129,15 @@ bool parseAuthInfoField(SIPField& field,
 {
   message->authInfo = std::shared_ptr<SIPAuthInfo> (new SIPAuthInfo);
 
-  for (auto& value : field.commaSeparated)
-  {
-    if (value.words.size() == 1)
-    {
-      QString digestName = "";
-      QString digestValue = "";
+  std::map<QString, QString> digests;
+  populateDigestTable(field.commaSeparated, digests, false);
 
-      if (parseDigestValue(value.words[0], digestName, digestValue))
-      {
-        if (digestName == "nextnonce")
-        {
-          message->authInfo->nextNonce = digestValue;
-        }
-        else if (digestName == "gop")
-        {
-          message->authInfo->messageQop = stringToQopValue(digestValue);
-        }
-        else if (digestName == "rspauth")
-        {
-          message->authInfo->responseAuth = digestValue;
-        }
-        else if (digestName == "cnonce")
-        {
-          message->authInfo->cnonce = digestValue;
-        }
-        else if (digestName == "nc")
-        {
-          message->authInfo->nonceCount = digestValue;
-        }
-        else
-        {
-          printWarning("SIP Field Parsing",
-                       "Unknown Authentication-Info digest field!");
-        }
-      }
-    }
-  }
+  message->authInfo->nextNonce = getDigestTableValue(digests, "nextnonce");
+  message->authInfo->messageQop = stringToQopValue(getDigestTableValue(digests,
+                                                                       "nextnonce"));
+  message->authInfo->responseAuth = getDigestTableValue(digests, "nextnonce");
+  message->authInfo->cnonce = getDigestTableValue(digests, "nextnonce");
+  message->authInfo->nonceCount = getDigestTableValue(digests, "nextnonce");
 
   // did we actually get anything succesfully
   if (message->authInfo->nextNonce == "" &&
@@ -186,7 +158,7 @@ bool parseAuthInfoField(SIPField& field,
 bool parseAuthorizationField(SIPField& field,
                              std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+  return parseDigestResponseField(field, message->authorization);
 }
 
 
@@ -386,14 +358,14 @@ bool parsePriorityField(SIPField& field,
 bool parseProxyAuthenticateField(SIPField& field,
                                  std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+  return parseDigestChallengeField(field, message->proxyAuthenticate);
 }
 
 
 bool parseProxyAuthorizationField(SIPField& field,
                                   std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+  return parseDigestResponseField(field, message->proxyAuthorization);
 }
 
 
@@ -585,5 +557,5 @@ bool parseWarningField(SIPField& field,
 bool parseWWWAuthenticateField(SIPField& field,
                                std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+  return parseDigestChallengeField(field, message->wwwAuthenticate);
 }

@@ -53,7 +53,10 @@ bool composeNameAddr(const NameAddr& nameAddr, QStringList& words)
 
   if (uri == "<>")
   {
-    words.pop_back();
+    if (nameAddr.realname != "")
+    {
+      words.pop_back();
+    }
     return false;
   }
 
@@ -249,15 +252,15 @@ bool composeInfoField(QList<SIPField>& fields,
 
 
 bool composeDigestChallengeField(QList<SIPField>& fields,
-                                 const std::shared_ptr<QList<DigestChallenge>> dChallenge,
+                                 const QList<DigestChallenge>& dChallenge,
                                  QString fieldname)
 {
-  if (dChallenge == nullptr)
+  if (dChallenge.empty())
   {
     return false;
   }
 
-  for (auto& challenge : *dChallenge)
+  for (auto& challenge : dChallenge)
   {
     if(challenge.realm == "")
     {
@@ -266,10 +269,16 @@ bool composeDigestChallengeField(QList<SIPField>& fields,
 
     fields.push_back({fieldname,{}});
     composeDigestValueQuoted("realm",  challenge.realm,                      fields.back());
-    composeDigestValueQuoted("domain", composeAbsoluteURI(challenge.domain), fields.back());
+    if (challenge.domain != nullptr)
+    {
+      composeDigestValueQuoted("domain", composeAbsoluteURI(*challenge.domain), fields.back());
+    }
     composeDigestValueQuoted("nonce",  challenge.nonce,                      fields.back());
     composeDigestValueQuoted("opaque", challenge.opaque,                     fields.back());
-    composeDigestValue      ("stale",  boolToString(challenge.stale),        fields.back());
+    if (challenge.stale != nullptr)
+    {
+      composeDigestValue      ("stale",  boolToString(*challenge.stale),        fields.back());
+    }
     composeDigestValue      ("algorithm", algorithmToString(challenge.algorithm), fields.back());
 
     QString qopOptions = "";
@@ -298,15 +307,15 @@ bool composeDigestChallengeField(QList<SIPField>& fields,
 
 
 bool composeDigestResponseField(QList<SIPField>& fields,
-                                const std::shared_ptr<QList<DigestResponse>> dResponse,
+                                const QList<DigestResponse>& dResponse,
                                 QString fieldname)
 {
-  if (dResponse == nullptr)
+  if (dResponse.empty())
   {
     return false;
   }
 
-  for (auto& response : *dResponse)
+  for (auto& response : dResponse)
   {
     if (response.username == "" ||
         response.realm == "")
