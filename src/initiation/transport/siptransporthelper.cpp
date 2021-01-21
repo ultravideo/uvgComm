@@ -311,7 +311,15 @@ bool fieldsToMessageHeader(QList<SIPField>& fields,
 
   for(int i = 0; i < fields.size(); ++i)
   {
-    if (!parsingPreChecks(fields[i], header))
+    bool emptyAllowed = fields[i].name == "Accept" ||
+        fields[i].name == "Accept-Encoding" ||
+        fields[i].name == "Accept-Language" ||
+        fields[i].name == "Allow" ||
+        fields[i].name == "Organization" ||
+        fields[i].name == "Subject" ||
+        fields[i].name == "Supported";
+
+    if (!parsingPreChecks(fields[i], header, emptyAllowed))
     {
       printProgramError("SIP Transport Helper", "Parsing precheck failed!");
       break;
