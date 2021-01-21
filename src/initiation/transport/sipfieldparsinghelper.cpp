@@ -49,6 +49,27 @@ bool parseSIPRouteLocation(const SIPCommaValue &value, SIPRouteLocation& locatio
 }
 
 
+bool parseSIPRouteList(const SIPField& field, QList<SIPRouteLocation>& list)
+{
+  if (field.commaSeparated[0].words.size() != 1)
+  {
+    return false;
+  }
+
+  for (auto& value : field.commaSeparated)
+  {
+    list.push_back(SIPRouteLocation{{"", SIP_URI{}}, {}});
+    if (!parseSIPRouteLocation(value, list.back()))
+    {
+      list.pop_back();
+      return false;
+    }
+  }
+
+  return true;
+}
+
+
 bool parseURI(const QString &word, SIP_URI& uri)
 {
   // for example <sip:bob@biloxi.com>
@@ -163,12 +184,12 @@ bool parseUritype(QString type, SIPType& out_Type)
 }
 
 
-bool parseParameterByName(QList<SIPParameter> parameters,
-                               QString name, QString& value)
+bool parseParameterByName(const QList<SIPParameter>& parameters,
+                          QString name, QString& value)
 {
-  for(SIPParameter& parameter : parameters)
+  for (const SIPParameter& parameter : parameters)
   {
-    if(parameter.name == name)
+    if (parameter.name == name)
     {
       value = parameter.value;
       return true;
@@ -179,7 +200,16 @@ bool parseParameterByName(QList<SIPParameter> parameters,
 }
 
 
-bool parseUint64(QString values, uint64_t& number)
+bool parseFloat(const QString& string, float& value)
+{
+  bool ok = false;
+  value = string.toFloat(&ok);
+
+  return ok;
+}
+
+
+bool parseUint64(const QString &values, uint64_t& number)
 {
   QRegularExpression re_field("(\\d+)");
   QRegularExpressionMatch field_match = re_field.match(values);
@@ -201,12 +231,71 @@ bool parseUint64(QString values, uint64_t& number)
 }
 
 
-bool parseUint8(QString values, uint8_t& number)
+bool parseUint8(const QString &values, uint8_t& number)
 {
   uint64_t parsed = 0;
 
   if (!parseUint64(values, parsed) ||
       parsed > UINT8_MAX)
+  {
+    return false;
+  }
+
+  number = (uint8_t)parsed;
+  return true;
+}
+
+
+bool parseUint16(const QString &values, uint16_t& number)
+{
+  uint64_t parsed = 0;
+
+  if (!parseUint64(values, parsed) ||
+      parsed > UINT16_MAX)
+  {
+    return false;
+  }
+
+  number = (uint16_t)parsed;
+  return true;
+}
+
+
+bool parseUint32(const QString &values, uint32_t& number)
+{
+  uint64_t parsed = 0;
+
+  if (!parseUint64(values, parsed) ||
+      parsed > UINT32_MAX)
+  {
+    return false;
+  }
+
+  number = (uint32_t)parsed;
+  return true;
+}
+
+
+bool parseSharedUint32(SIPField& field, std::shared_ptr<uint32_t>& value)
+{
+  value = std::shared_ptr<uint32_t> (new uint32_t);
+
+  if (!parseUint32(field.commaSeparated.at(0).words.at(0), *value))
+  {
+    value = nullptr;
+    return false;
+  }
+
+  return true;
+}
+
+
+bool parseUintMax(const QString values, uint64_t& number, const uint64_t& maximum)
+{
+  uint64_t parsed = 0;
+
+  if (!parseUint64(values, parsed) ||
+      parsed > maximum)
   {
     return false;
   }
@@ -472,4 +561,32 @@ QString getDigestTableValue(const std::map<QString, QString>& table, const QStri
     return "";
   }
   return table.at(name);
+}
+
+
+bool parseStringList(const SIPField& field, QStringList& list)
+{
+  for (auto& encoding : field.commaSeparated)
+  {
+    list.push_back(encoding.words.first());
+  }
+
+  return !field.commaSeparated.empty();
+}
+
+
+bool parseString(const SIPField& field, QString& value, bool allowEmpty)
+{
+  if (!allowEmpty && field.commaSeparated[0].words.size() != 1)
+  {
+    return false;
+  }
+
+  // words size is prechecked, but sometimes empty comma separated is possible
+  if (field.commaSeparated.size() == 1)
+  {
+    value = field.commaSeparated[0].words[0];
+  }
+
+  return true;
 }

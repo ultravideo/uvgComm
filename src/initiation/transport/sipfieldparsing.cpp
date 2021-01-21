@@ -15,27 +15,25 @@ bool parsingPreChecks(SIPField& field,
                       bool emptyPossible)
 {
   Q_ASSERT(message != nullptr);
-  if (!emptyPossible)
-  {
-    Q_ASSERT(!field.commaSeparated.empty());
-  }
 
+  // does message exist and do we have some values if we are expecting those
   if (message == nullptr ||
       (!emptyPossible && field.commaSeparated.empty()))
   {
-    printProgramError("SIPFieldParsing", "Parsing prechecks failed");
+    printError("SIP Field Parsing", "Parsing prechecks failed");
     return false;
   }
 
-  // Check that none of the values have no words.
-  // Empty fields should be handled with having no values.
+  // Check that none of the values have zero words.
+  // Empty fields should be handled with having no values, not with empty word lists
+  // this guarantees that there will always be elements in words lists
   for (auto& value: field.commaSeparated)
   {
     Q_ASSERT(!value.words.empty());
 
     if (value.words.empty())
     {
-      printProgramError("SIPFieldParsing", "Found empty value");
+      printError("SIP Field Parsing", "Found empty word list");
       return false;
     }
   }
@@ -165,13 +163,7 @@ bool parseAuthorizationField(SIPField& field,
 bool parseCallIDField(SIPField& field,
                       std::shared_ptr<SIPMessageHeader> message)
 {
-  if (field.commaSeparated[0].words.size() != 1)
-  {
-    return false;
-  }
-
-  message->callID = field.commaSeparated[0].words[0];
-  return true;
+  return parseString(field, message->callID, false);
 }
 
 
@@ -185,45 +177,42 @@ bool parseCallInfoField(SIPField& field,
 bool parseContactField(SIPField& field,
                        std::shared_ptr<SIPMessageHeader> message)
 {
-  if (field.commaSeparated[0].words.size() != 1)
-  {
-    return false;
-  }
-
-  for(auto& value : field.commaSeparated)
-  {
-    message->contact.push_back(SIPRouteLocation());
-
-    // TODO: parse parameters
-    if(!parseNameAddr(value.words, message->contact.back().address))
-    {
-      message->contact.pop_back();
-      return false;
-    }
-  }
-
-  return true;
+  return parseSIPRouteList(field, message->contact);
 }
 
 
 bool parseContentDispositionField(SIPField& field,
                                   std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+  if (field.commaSeparated.first().words.size() != 1)
+  {
+    return false;
+  }
+
+  message->contentDisposition =
+      std::shared_ptr<ContentDisposition> (new ContentDisposition);
+
+  message->contentDisposition->dispType = field.commaSeparated.first().words.first();
+
+  copyParameterList(field.commaSeparated.first().parameters,
+                    message->contentDisposition->parameters);
+
+  return true;
 }
 
 
 bool parseContentEncodingField(SIPField& field,
                                std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+
+  return parseStringList(field, message->contentEncoding);
 }
 
 
 bool parseContentLanguageField(SIPField& field,
                                std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+  return parseStringList(field, message->contentLanguage);
 }
 
 
@@ -238,15 +227,15 @@ bool parseContentLengthField(SIPField& field,
 bool parseContentTypeField(SIPField& field,
                            std::shared_ptr<SIPMessageHeader> message)
 {
-  QRegularExpression re_field("(\\w+/\\w+)");
-  QRegularExpressionMatch field_match = re_field.match(field.commaSeparated[0].words[0]);
+  message->contentType = stringToContentType(field.commaSeparated[0].words[0]);
 
-  if(field_match.hasMatch() && field_match.lastCapturedIndex() == 1)
+  if (message->contentType == MT_UNKNOWN)
   {
-    message->contentType = stringToContentType(field_match.captured(1));
-    return true;
+    printWarning("SIP Field Parsing", "Detected unknown mediatype");
+    return false;
   }
-  return false;
+
+  return true;
 }
 
 
@@ -258,18 +247,72 @@ bool parseCSeqField(SIPField& field,
     return false;
   }
 
-  bool ok = false;
-
-  message->cSeq.cSeq = field.commaSeparated[0].words[0].toUInt(&ok);
+  if (!parseUint32(field.commaSeparated[0].words[0], message->cSeq.cSeq))
+  {
+    return false;
+  }
   message->cSeq.method = stringToRequestMethod(field.commaSeparated[0].words[1]);
-  return message->cSeq.method != SIP_NO_REQUEST && ok;
+  if (message->cSeq.method == SIP_NO_REQUEST ||
+      message->cSeq.method == SIP_UNKOWN_REQUEST)
+  {
+    message->cSeq.cSeq = 0;
+    return false;
+  }
+
+  return true;
 }
 
 
 bool parseDateField(SIPField& field,
                     std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+  if (field.commaSeparated.size() != 2 ||
+      field.commaSeparated.at(0).words.size() != 1 ||
+      field.commaSeparated.at(1).words.size() != 5)
+  {
+    return false;
+  }
+
+  message->date = std::shared_ptr<SIPDateField> (new SIPDateField);
+
+  message->date->weekday = field.commaSeparated.at(0).words.at(0);
+  bool daySuccess = parseUint8(field.commaSeparated.at(1).words.at(0), message->date->day);
+  message->date->month = field.commaSeparated.at(1).words.at(1);
+  bool yearSuccess = parseUint32(field.commaSeparated.at(1).words.at(2), message->date->year);
+  message->date->time = field.commaSeparated.at(1).words.at(3);
+  message->date->timezone = field.commaSeparated.at(1).words.at(4);
+
+  // check most of values for possible errors
+  if ((message->date->weekday != "Mon" &&
+      message->date->weekday != "Tue" &&
+      message->date->weekday != "Wed" &&
+      message->date->weekday != "Thu" &&
+      message->date->weekday != "Fri" &&
+      message->date->weekday != "Sat" &&
+      message->date->weekday != "Sun") ||
+      !daySuccess ||
+      message->date->day < 1 || message->date->day > 31 ||
+      (message->date->month != "Jan" &&
+      message->date->month != "Feb" &&
+      message->date->month != "Mar" &&
+      message->date->month != "Apr" &&
+      message->date->month != "May" &&
+      message->date->month != "Jun" &&
+      message->date->month != "Jul" &&
+      message->date->month != "Aug" &&
+      message->date->month != "Sep" &&
+      message->date->month != "Oct" &&
+      message->date->month != "Nov" &&
+      message->date->month != "Dec") ||
+      !yearSuccess ||
+      message->date->time.size() != 8 ||
+      message->date->timezone != "GMT")
+  {
+    message->date = nullptr;
+    return false;
+  }
+
+  return true;
 }
 
 
@@ -283,7 +326,7 @@ bool parseErrorInfoField(SIPField& field,
 bool parseExpireField(SIPField& field,
                       std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+  return parseSharedUint32(field, message->expires);
 }
 
 
@@ -296,14 +339,15 @@ bool parseFromField(SIPField& field,
   }
 
   // from tag should always be included
-  return parseParameterByName(field.commaSeparated[0].parameters, "tag", message->from.tag);
+  return parseParameterByName(field.commaSeparated[0].parameters,
+                              "tag", message->from.tag);
 }
 
 
 bool parseInReplyToField(SIPField& field,
                          std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+  return parseString(field, message->inReplyToCallID, false);
 }
 
 
@@ -322,7 +366,8 @@ bool parseMaxForwardsField(SIPField& field,
     return false;
   }
 
-  field.commaSeparated[0].words[0], message->maxForwards = std::shared_ptr<uint8_t> (new uint8_t{value});
+  field.commaSeparated[0].words[0], message->maxForwards =
+      std::shared_ptr<uint8_t> (new uint8_t{value});
   return true;
 }
 
@@ -330,28 +375,37 @@ bool parseMaxForwardsField(SIPField& field,
 bool parseMinExpiresField(SIPField& field,
                           std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+  return parseSharedUint32(field, message->minExpires);
 }
 
 
 bool parseMIMEVersionField(SIPField& field,
                            std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+  return parseString(field, message->mimeVersion, false);
 }
 
 
 bool parseOrganizationField(SIPField& field,
                             std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+  return parseString(field, message->organization, true);
 }
 
 
 bool parsePriorityField(SIPField& field,
                         std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+  // preconditions should be called, so this should be safe
+  message->priority = stringToPriority(field.commaSeparated.at(0).words.at(0));
+
+  if (message->priority != SIP_NO_PRIORITY &&
+      message->priority != SIP_UNKNOWN_PRIORITY)
+  {
+    return false;
+  }
+
+  return true;
 }
 
 
@@ -372,85 +426,122 @@ bool parseProxyAuthorizationField(SIPField& field,
 bool parseProxyRequireField(SIPField& field,
                             std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+  return parseStringList(field, message->proxyRequires);
 }
 
 
 bool parseRecordRouteField(SIPField& field,
                            std::shared_ptr<SIPMessageHeader> message)
 {
-  for (auto& value : field.commaSeparated)
-  {
-    message->recordRoutes.push_back(SIPRouteLocation{{"", SIP_URI{}}, {}});
-    if (parseSIPRouteLocation(value, message->recordRoutes.back()))
-    {
-      return false;
-    }
-  }
-  return true;
+  return parseSIPRouteList(field, message->recordRoutes);
 }
 
 
 bool parseReplyToField(SIPField& field,
                        std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+  message->replyTo = std::shared_ptr<SIPRouteLocation> (new SIPRouteLocation);
+
+  if (!parseSIPRouteLocation(field.commaSeparated.first(), *message->replyTo))
+  {
+    message->replyTo = nullptr;
+    return false;
+  }
+
+  return true;
 }
 
 
 bool parseRequireField(SIPField& field,
                        std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+  return parseStringList(field, message->require);
 }
 
 
 bool parseRetryAfterField(SIPField& field,
                           std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+  message->retryAfter = std::shared_ptr<SIPRetryAfter> (new SIPRetryAfter);
+
+  if (parseUint32(field.commaSeparated.first().words.first(),
+                  message->retryAfter->time))
+  {
+    message->retryAfter = nullptr;
+    return false;
+  }
+
+  QString duration = "";
+  parseParameterByName(field.commaSeparated.first().parameters,
+                       "duration", duration);
+
+  if (duration != "")
+  {
+    parseUint32(duration, message->retryAfter->duration);
+  }
+
+  // The problem with this approach is that duration will appear in two places,
+  // but at the moment that doesn't seem important.
+  copyParameterList(field.commaSeparated.first().parameters,
+                    message->retryAfter->parameters);
+
+  return true;
 }
 
 
 bool parseRouteField(SIPField& field,
                      std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+  return parseSIPRouteList(field, message->routes);
 }
 
 
 bool parseServerField(SIPField& field,
                       std::shared_ptr<SIPMessageHeader> message)
 {
-  if (field.commaSeparated[0].words.size() < 1
-      || field.commaSeparated[0].words.size() > 100)
-  {
-    return false;
-  }
-
-  message->server.push_back(field.commaSeparated[0].words[0]);
-  return true;
+  return parseString(field, message->server, false);
 }
 
 
 bool parseSubjectField(SIPField& field,
                        std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+  return parseString(field, message->subject, true);
 }
 
 
 bool parseSupportedField(SIPField& field,
                          std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+  if (message->supported == nullptr)
+  {
+    message->supported = std::shared_ptr<QStringList> (new QStringList);
+  }
+
+  parseStringList(field, *message->supported);
+
+  return true;
 }
 
 
 bool parseTimestampField(SIPField& field,
                          std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+  message->timestamp = std::shared_ptr<SIPTimestamp> (new SIPTimestamp);
+
+  if (!parseFloat(field.commaSeparated.at(0).words.at(0), message->timestamp->timestamp))
+  {
+    message->timestamp = nullptr;
+    return false;
+  }
+
+  // optional delay
+  if (field.commaSeparated.at(0).words.size() == 2)
+  {
+    parseFloat(field.commaSeparated.at(0).words.at(1), message->timestamp->delay);
+  }
+
+  return true;
 }
 
 
@@ -472,21 +563,14 @@ bool parseToField(SIPField& field,
 bool parseUnsupportedField(SIPField& field,
                            std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+  return parseStringList(field, message->unsupported);
 }
 
 
 bool parseUserAgentField(SIPField& field,
                          std::shared_ptr<SIPMessageHeader> message)
 {
-  if (field.commaSeparated[0].words.size() < 1
-      || field.commaSeparated[0].words.size() > 100)
-  {
-    return false;
-  }
-
-  message->userAgent.push_back(field.commaSeparated[0].words[0]);
-  return true;
+  return parseString(field, message->userAgent, false);
 }
 
 
@@ -526,8 +610,10 @@ bool parseViaField(SIPField& field,
     via.port = second_match.captured(2).toUInt();
   }
 
-  parseParameterByName(field.commaSeparated[0].parameters, "branch", via.branch);
-  parseParameterByName(field.commaSeparated[0].parameters, "received", via.receivedAddress);
+  parseParameterByName(field.commaSeparated[0].parameters,
+      "branch", via.branch);
+  parseParameterByName(field.commaSeparated[0].parameters,
+      "received", via.receivedAddress);
 
   QString rportValue = "";
   if (parseParameterByName(field.commaSeparated[0].parameters, "rport", rportValue))
@@ -550,7 +636,31 @@ bool parseViaField(SIPField& field,
 bool parseWarningField(SIPField& field,
                        std::shared_ptr<SIPMessageHeader> message)
 {
-  return false;
+  for (auto& value : field.commaSeparated)
+  {
+    if (value.words.size() == 3)
+    {
+      uint16_t code = 0;
+
+      if (!parseUint16(value.words.at(0), code) ||
+          code < 300 ||
+          (code > 307 &&
+           code != 330 &&
+           code != 331 &&
+           code != 370 &&
+           code != 399))
+      {
+        break;
+      }
+
+      // the earlier parsing should get rid of quotations
+      message->warning.push_back({static_cast<SIPWarningCode> (code),
+                                 value.words.at(1),
+                                 value.words.at(2)});
+    }
+  }
+
+  return !message->warning.empty();
 }
 
 

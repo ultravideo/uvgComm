@@ -302,10 +302,12 @@ bool includeCSeqField(QList<SIPField> &fields,
 bool includeDateField(QList<SIPField>& fields,
                       const std::shared_ptr<SIPMessageHeader> header)
 {
-  if (header->date == nullptr ||
-      header->date->weekday == "" ||
-      header->date->date == "" ||
-      header->date->time == "" ||
+  if (header->date           == nullptr ||
+      header->date->weekday  == ""      ||
+      header->date->day      == 0       ||
+      header->date->month    == ""      ||
+      header->date->year     == 0       ||
+      header->date->time     == ""      ||
       header->date->timezone == "")
   {
     return false;
@@ -313,10 +315,12 @@ bool includeDateField(QList<SIPField>& fields,
 
   fields.push_back({"Date", QList<SIPCommaValue>{SIPCommaValue{}}});
 
-  QString dateString = header->date->weekday + "," + " " + header->date->date + " " +
-      header->date->time + " " + header->date->timezone;
-
-  fields.back().commaSeparated.back().words.push_back(dateString);
+  fields.back().commaSeparated.back().words.push_back(header->date->weekday + ",");
+  fields.back().commaSeparated.back().words.push_back(QString::number(header->date->day));
+  fields.back().commaSeparated.back().words.push_back(header->date->month);
+  fields.back().commaSeparated.back().words.push_back(QString::number(header->date->year));
+  fields.back().commaSeparated.back().words.push_back(header->date->time);
+  fields.back().commaSeparated.back().words.push_back(header->date->timezone);
 
   return true;
 }
@@ -584,7 +588,25 @@ bool includeSupportedField(QList<SIPField>& fields,
 bool includeTimestampField(QList<SIPField>& fields,
                            const std::shared_ptr<SIPMessageHeader> header)
 {
-  return composeString(fields, header->timestamp, "Timestamp");
+  if (header->timestamp == nullptr ||
+      header->timestamp->timestamp > 0.0)
+  {
+    return false;
+  }
+
+  fields.push_back({"Timestamp", {}});
+
+  fields.back().commaSeparated.back().words.push_back(
+        QString::number(header->timestamp->timestamp));
+
+  // optional delay
+  if (header->timestamp->delay > 0.0)
+  {
+    fields.back().commaSeparated.back().words.push_back(
+          QString::number(header->timestamp->delay));
+  }
+
+  return true;
 }
 
 

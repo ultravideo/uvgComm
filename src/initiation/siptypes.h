@@ -321,7 +321,10 @@ struct CSeqField
 struct SIPDateField
 {
   QString weekday = "";
-  QString date = "";
+
+  uint8_t day = 0;
+  QString month = "";
+  uint32_t year = 0;
   QString time = "";
   QString timezone = "GMT";
 };
@@ -330,7 +333,14 @@ struct SIPRetryAfter
 {
   uint32_t time;
   uint32_t duration = 0;
+  QString comment = "";
   QList<SIPParameter> parameters;
+};
+
+struct SIPTimestamp
+{
+  float timestamp = 0.0;
+  float delay = 0.0;
 };
 
 enum SIPWarningCode {SIP_INCOMPATIBLE_NET_PROTOCOL = 300,
@@ -495,8 +505,8 @@ struct SIPMessageHeader
   // list of supported extensions
   std::shared_ptr<QStringList>             supported = nullptr;
 
-  // request sending timestamp and can be used to calculate RTD
-  QString                                  timestamp = "";
+  // request sending timestamp and can be used to calculate RTT
+  std::shared_ptr<SIPTimestamp>            timestamp = nullptr;
 
   // mandatory, logical recipient of the request
   ToFrom                                   to;

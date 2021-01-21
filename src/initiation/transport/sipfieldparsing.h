@@ -1,20 +1,24 @@
 #pragma once
 
-/* A module for parsing various parts of SIP message. When adding support for a
- * new field, add function here and add a pointer to the map in siptransport.cpp. */
-
 #include "initiation/siptypes.h"
 
-// parsing of individual header fields to SDPMessage, but not the first line.
-// returns whether the parsing was successful.
+/* A module for parsing SIP header fields SIP message, but not the first line.
+ *
+ * returns whether the parsing was successful.
+ *
+ * Currently these parse the whole comma separated list, but it would probably
+ *  be better if they parsed only one value from the list at a time. No need
+ *   to loop through the list in every one of these
+ *
+ *
+ * Please call check parsing possibility with parsingPreCheck before calling any
+ * of the parsing functions.
+ *
+*/
 
-// Currently these parse the whole comma separated list, but it would probably
-// be better if they parsed only one value from the list at a time. No need
-// to loop through the list in every one of these
 
-// Please call check parsing possibility with parsingPreCheck before calling any
-// of the parsing functions
-
+// checks parsing preconditions such as whether message exists and whether all
+// word lists have words in them
 bool parsingPreChecks(SIPField& field,
                       std::shared_ptr<SIPMessageHeader> message,
                       bool emptyPossible = false);

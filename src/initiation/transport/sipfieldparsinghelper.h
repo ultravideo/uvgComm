@@ -8,14 +8,20 @@ bool parseURI(const QString& word, SIP_URI& uri);
 bool parseAbsoluteURI(const QString& word, AbsoluteURI& uri);
 bool parseNameAddr(const QStringList &words, NameAddr& nameAddr);
 bool parseSIPRouteLocation(const SIPCommaValue &value, SIPRouteLocation& location);
+bool parseSIPRouteList(const SIPField& field, QList<SIPRouteLocation>& list);
 
 bool parseUritype(QString type, SIPType &out_Type);
-bool parseParameterByName(QList<SIPParameter> parameters,
+bool parseParameterByName(const QList<SIPParameter> &parameters,
                           QString name, QString& value);
-bool parseUint64(QString values, uint64_t& number);
-bool parseUint8(QString values, uint8_t& number);
+
+bool parseFloat(const QString& string, float& value);
+bool parseUint8(const QString& values, uint8_t& number);
+bool parseUint16(const QString& values, uint16_t& number);
+bool parseUint32(const QString& values, uint32_t& number);
+bool parseUint64(const QString& values, uint64_t& number);
 
 
+bool parseSharedUint32(SIPField& field, std::shared_ptr<uint32_t>& value);
 
 
 // takes the parameter string (name=value) and parses it to SIPParameter
@@ -44,3 +50,8 @@ bool parseDigestChallengeField(const SIPField &field,
 bool parseDigestResponseField(const SIPField &field,
                               QList<DigestResponse> &dResponse);
 
+
+bool parseStringList(const SIPField& field, QStringList& list);
+
+
+bool parseString(const SIPField& field, QString &value, bool allowEmpty);
