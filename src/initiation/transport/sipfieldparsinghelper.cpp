@@ -159,7 +159,7 @@ bool parseAbsoluteURI(const QString& word, AbsoluteURI& uri)
 }
 
 
-bool parseUritype(QString type, SIPType& out_Type)
+bool parseUritype(const QString &type, SIPType& out_Type)
 {
   if (type == "sip")
   {
@@ -276,7 +276,7 @@ bool parseUint32(const QString &values, uint32_t& number)
 }
 
 
-bool parseSharedUint32(SIPField& field, std::shared_ptr<uint32_t>& value)
+bool parseSharedUint32(const SIPField &field, std::shared_ptr<uint32_t>& value)
 {
   value = std::shared_ptr<uint32_t> (new uint32_t);
 
@@ -305,7 +305,7 @@ bool parseUintMax(const QString values, uint64_t& number, const uint64_t& maximu
 }
 
 
-bool parseParameter(QString text, SIPParameter& parameter)
+bool parseParameter(const QString &text, SIPParameter& parameter)
 {
   QRegularExpression re_parameter("([^=]+)=?([^;]*)");
   QRegularExpressionMatch parameter_match = re_parameter.match(text);
@@ -326,7 +326,7 @@ bool parseParameter(QString text, SIPParameter& parameter)
 }
 
 
-bool parseAcceptGeneric(SIPField& field,
+bool parseAcceptGeneric(const SIPField& field,
                         std::shared_ptr<QList<SIPAcceptGeneric>> generics)
 {
   if (generics == nullptr)
@@ -356,7 +356,7 @@ bool parseAcceptGeneric(SIPField& field,
 }
 
 
-bool parseInfo(SIPField& field,
+bool parseInfo(const SIPField &field,
                QList<SIPInfo>& infos)
 {
   for (auto& value : field.commaSeparated)

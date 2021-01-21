@@ -10,7 +10,7 @@
 
 
 
-bool parsingPreChecks(SIPField& field,
+bool parsingPreChecks(const SIPField &field,
                       std::shared_ptr<SIPMessageHeader> message,
                       bool emptyPossible)
 {
@@ -43,7 +43,7 @@ bool parsingPreChecks(SIPField& field,
 
 
 
-bool parseAcceptField(SIPField& field,
+bool parseAcceptField(const SIPField &field,
                       std::shared_ptr<SIPMessageHeader> message)
 {
   // in case there are multiple accept fields, we don't want to reset previous
@@ -74,28 +74,28 @@ bool parseAcceptField(SIPField& field,
 }
 
 
-bool parseAcceptEncodingField(SIPField& field,
+bool parseAcceptEncodingField(const SIPField &field,
                               std::shared_ptr<SIPMessageHeader> message)
 {
   return parseAcceptGeneric(field, message->acceptEncoding);
 }
 
 
-bool parseAcceptLanguageField(SIPField& field,
+bool parseAcceptLanguageField(const SIPField& field,
                               std::shared_ptr<SIPMessageHeader> message)
 {
   return parseAcceptGeneric(field, message->acceptLanguage);
 }
 
 
-bool parseAlertInfoField(SIPField& field,
+bool parseAlertInfoField(const SIPField &field,
                          std::shared_ptr<SIPMessageHeader> message)
 {
   return parseInfo(field, message->alertInfos);
 }
 
 
-bool parseAllowField(SIPField& field,
+bool parseAllowField(const SIPField &field,
                      std::shared_ptr<SIPMessageHeader> message)
 {
   if (message->allow == nullptr)
@@ -122,7 +122,7 @@ bool parseAllowField(SIPField& field,
 }
 
 
-bool parseAuthInfoField(SIPField& field,
+bool parseAuthInfoField(const SIPField &field,
                         std::shared_ptr<SIPMessageHeader> message)
 {
   message->authInfo = std::shared_ptr<SIPAuthInfo> (new SIPAuthInfo);
@@ -153,35 +153,35 @@ bool parseAuthInfoField(SIPField& field,
 }
 
 
-bool parseAuthorizationField(SIPField& field,
+bool parseAuthorizationField(const SIPField &field,
                              std::shared_ptr<SIPMessageHeader> message)
 {
   return parseDigestResponseField(field, message->authorization);
 }
 
 
-bool parseCallIDField(SIPField& field,
+bool parseCallIDField(const SIPField &field,
                       std::shared_ptr<SIPMessageHeader> message)
 {
   return parseString(field, message->callID, false);
 }
 
 
-bool parseCallInfoField(SIPField& field,
+bool parseCallInfoField(const SIPField &field,
                         std::shared_ptr<SIPMessageHeader> message)
 {
   return parseInfo(field, message->callInfos);
 }
 
 
-bool parseContactField(SIPField& field,
+bool parseContactField(const SIPField &field,
                        std::shared_ptr<SIPMessageHeader> message)
 {
   return parseSIPRouteList(field, message->contact);
 }
 
 
-bool parseContentDispositionField(SIPField& field,
+bool parseContentDispositionField(const SIPField &field,
                                   std::shared_ptr<SIPMessageHeader> message)
 {
   if (field.commaSeparated.first().words.size() != 1)
@@ -201,7 +201,7 @@ bool parseContentDispositionField(SIPField& field,
 }
 
 
-bool parseContentEncodingField(SIPField& field,
+bool parseContentEncodingField(const SIPField &field,
                                std::shared_ptr<SIPMessageHeader> message)
 {
 
@@ -209,14 +209,14 @@ bool parseContentEncodingField(SIPField& field,
 }
 
 
-bool parseContentLanguageField(SIPField& field,
+bool parseContentLanguageField(const SIPField &field,
                                std::shared_ptr<SIPMessageHeader> message)
 {
   return parseStringList(field, message->contentLanguage);
 }
 
 
-bool parseContentLengthField(SIPField& field,
+bool parseContentLengthField(const SIPField &field,
                              std::shared_ptr<SIPMessageHeader> message)
 {
   return field.commaSeparated[0].words.size() == 1 &&
@@ -224,7 +224,7 @@ bool parseContentLengthField(SIPField& field,
 }
 
 
-bool parseContentTypeField(SIPField& field,
+bool parseContentTypeField(const SIPField &field,
                            std::shared_ptr<SIPMessageHeader> message)
 {
   message->contentType = stringToContentType(field.commaSeparated[0].words[0]);
@@ -239,7 +239,7 @@ bool parseContentTypeField(SIPField& field,
 }
 
 
-bool parseCSeqField(SIPField& field,
+bool parseCSeqField(const SIPField &field,
                   std::shared_ptr<SIPMessageHeader> message)
 {
   if (field.commaSeparated[0].words.size() != 2)
@@ -263,7 +263,7 @@ bool parseCSeqField(SIPField& field,
 }
 
 
-bool parseDateField(SIPField& field,
+bool parseDateField(const SIPField &field,
                     std::shared_ptr<SIPMessageHeader> message)
 {
   if (field.commaSeparated.size() != 2 ||
@@ -316,21 +316,21 @@ bool parseDateField(SIPField& field,
 }
 
 
-bool parseErrorInfoField(SIPField& field,
+bool parseErrorInfoField(const SIPField &field,
                          std::shared_ptr<SIPMessageHeader> message)
 {
   return parseInfo(field, message->errorInfos);
 }
 
 
-bool parseExpireField(SIPField& field,
+bool parseExpireField(const SIPField &field,
                       std::shared_ptr<SIPMessageHeader> message)
 {
   return parseSharedUint32(field, message->expires);
 }
 
 
-bool parseFromField(SIPField& field,
+bool parseFromField(const SIPField &field,
                     std::shared_ptr<SIPMessageHeader> message)
 {
   if (!parseNameAddr(field.commaSeparated[0].words, message->from.address))
@@ -344,14 +344,14 @@ bool parseFromField(SIPField& field,
 }
 
 
-bool parseInReplyToField(SIPField& field,
+bool parseInReplyToField(const SIPField &field,
                          std::shared_ptr<SIPMessageHeader> message)
 {
   return parseString(field, message->inReplyToCallID, false);
 }
 
 
-bool parseMaxForwardsField(SIPField& field,
+bool parseMaxForwardsField(const SIPField &field,
                            std::shared_ptr<SIPMessageHeader> message)
 {
   if (field.commaSeparated[0].words.size() != 1)
@@ -372,28 +372,28 @@ bool parseMaxForwardsField(SIPField& field,
 }
 
 
-bool parseMinExpiresField(SIPField& field,
+bool parseMinExpiresField(const SIPField &field,
                           std::shared_ptr<SIPMessageHeader> message)
 {
   return parseSharedUint32(field, message->minExpires);
 }
 
 
-bool parseMIMEVersionField(SIPField& field,
+bool parseMIMEVersionField(const SIPField &field,
                            std::shared_ptr<SIPMessageHeader> message)
 {
   return parseString(field, message->mimeVersion, false);
 }
 
 
-bool parseOrganizationField(SIPField& field,
+bool parseOrganizationField(const SIPField &field,
                             std::shared_ptr<SIPMessageHeader> message)
 {
   return parseString(field, message->organization, true);
 }
 
 
-bool parsePriorityField(SIPField& field,
+bool parsePriorityField(const SIPField &field,
                         std::shared_ptr<SIPMessageHeader> message)
 {
   // preconditions should be called, so this should be safe
@@ -409,35 +409,35 @@ bool parsePriorityField(SIPField& field,
 }
 
 
-bool parseProxyAuthenticateField(SIPField& field,
+bool parseProxyAuthenticateField(const SIPField &field,
                                  std::shared_ptr<SIPMessageHeader> message)
 {
   return parseDigestChallengeField(field, message->proxyAuthenticate);
 }
 
 
-bool parseProxyAuthorizationField(SIPField& field,
+bool parseProxyAuthorizationField(const SIPField& field,
                                   std::shared_ptr<SIPMessageHeader> message)
 {
   return parseDigestResponseField(field, message->proxyAuthorization);
 }
 
 
-bool parseProxyRequireField(SIPField& field,
+bool parseProxyRequireField(const SIPField &field,
                             std::shared_ptr<SIPMessageHeader> message)
 {
   return parseStringList(field, message->proxyRequires);
 }
 
 
-bool parseRecordRouteField(SIPField& field,
+bool parseRecordRouteField(const SIPField &field,
                            std::shared_ptr<SIPMessageHeader> message)
 {
   return parseSIPRouteList(field, message->recordRoutes);
 }
 
 
-bool parseReplyToField(SIPField& field,
+bool parseReplyToField(const SIPField &field,
                        std::shared_ptr<SIPMessageHeader> message)
 {
   message->replyTo = std::shared_ptr<SIPRouteLocation> (new SIPRouteLocation);
@@ -452,14 +452,14 @@ bool parseReplyToField(SIPField& field,
 }
 
 
-bool parseRequireField(SIPField& field,
+bool parseRequireField(const SIPField &field,
                        std::shared_ptr<SIPMessageHeader> message)
 {
   return parseStringList(field, message->require);
 }
 
 
-bool parseRetryAfterField(SIPField& field,
+bool parseRetryAfterField(const SIPField &field,
                           std::shared_ptr<SIPMessageHeader> message)
 {
   message->retryAfter = std::shared_ptr<SIPRetryAfter> (new SIPRetryAfter);
@@ -489,28 +489,28 @@ bool parseRetryAfterField(SIPField& field,
 }
 
 
-bool parseRouteField(SIPField& field,
+bool parseRouteField(const SIPField &field,
                      std::shared_ptr<SIPMessageHeader> message)
 {
   return parseSIPRouteList(field, message->routes);
 }
 
 
-bool parseServerField(SIPField& field,
+bool parseServerField(const SIPField& field,
                       std::shared_ptr<SIPMessageHeader> message)
 {
   return parseString(field, message->server, false);
 }
 
 
-bool parseSubjectField(SIPField& field,
+bool parseSubjectField(const SIPField &field,
                        std::shared_ptr<SIPMessageHeader> message)
 {
   return parseString(field, message->subject, true);
 }
 
 
-bool parseSupportedField(SIPField& field,
+bool parseSupportedField(const SIPField &field,
                          std::shared_ptr<SIPMessageHeader> message)
 {
   if (message->supported == nullptr)
@@ -524,7 +524,7 @@ bool parseSupportedField(SIPField& field,
 }
 
 
-bool parseTimestampField(SIPField& field,
+bool parseTimestampField(const SIPField &field,
                          std::shared_ptr<SIPMessageHeader> message)
 {
   message->timestamp = std::shared_ptr<SIPTimestamp> (new SIPTimestamp);
@@ -545,7 +545,7 @@ bool parseTimestampField(SIPField& field,
 }
 
 
-bool parseToField(SIPField& field,
+bool parseToField(const SIPField &field,
                   std::shared_ptr<SIPMessageHeader> message)
 {
   if (!parseNameAddr(field.commaSeparated[0].words, message->to.address))
@@ -560,21 +560,21 @@ bool parseToField(SIPField& field,
 }
 
 
-bool parseUnsupportedField(SIPField& field,
+bool parseUnsupportedField(const SIPField &field,
                            std::shared_ptr<SIPMessageHeader> message)
 {
   return parseStringList(field, message->unsupported);
 }
 
 
-bool parseUserAgentField(SIPField& field,
+bool parseUserAgentField(const SIPField &field,
                          std::shared_ptr<SIPMessageHeader> message)
 {
   return parseString(field, message->userAgent, false);
 }
 
 
-bool parseViaField(SIPField& field,
+bool parseViaField(const SIPField &field,
                    std::shared_ptr<SIPMessageHeader> message)
 {
   if (field.commaSeparated[0].words.size() != 2)
@@ -633,7 +633,7 @@ bool parseViaField(SIPField& field,
 }
 
 
-bool parseWarningField(SIPField& field,
+bool parseWarningField(const SIPField &field,
                        std::shared_ptr<SIPMessageHeader> message)
 {
   for (auto& value : field.commaSeparated)
@@ -664,7 +664,7 @@ bool parseWarningField(SIPField& field,
 }
 
 
-bool parseWWWAuthenticateField(SIPField& field,
+bool parseWWWAuthenticateField(const SIPField &field,
                                std::shared_ptr<SIPMessageHeader> message)
 {
   return parseDigestChallengeField(field, message->wwwAuthenticate);

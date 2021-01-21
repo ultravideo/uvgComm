@@ -71,7 +71,7 @@ const std::vector<std::pair<QString,
 // one letter headers are compact forms as defined by RFC 3261
 
 // TODO: The case should be uniformalized and these should all be small or big case
-const std::map<QString, std::function<bool(SIPField& field,
+const std::map<QString, std::function<bool(const SIPField& field,
                                            std::shared_ptr<SIPMessageHeader>)>> parsing =
 {
     {"Accept",              parseAcceptField},

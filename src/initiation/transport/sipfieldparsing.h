@@ -19,138 +19,138 @@
 
 // checks parsing preconditions such as whether message exists and whether all
 // word lists have words in them
-bool parsingPreChecks(SIPField& field,
+bool parsingPreChecks(const SIPField& field,
                       std::shared_ptr<SIPMessageHeader> message,
                       bool emptyPossible = false);
 
-bool parseAcceptField(SIPField& field,
+bool parseAcceptField(const SIPField& field,
                       std::shared_ptr<SIPMessageHeader> message);
 
-bool parseAcceptEncodingField(SIPField& field,
+bool parseAcceptEncodingField(const SIPField& field,
                               std::shared_ptr<SIPMessageHeader> message);
 
-bool parseAcceptLanguageField(SIPField& field,
+bool parseAcceptLanguageField(const SIPField& field,
                               std::shared_ptr<SIPMessageHeader> message);
 
-bool parseAlertInfoField(SIPField& field,
+bool parseAlertInfoField(const SIPField& field,
                          std::shared_ptr<SIPMessageHeader> message);
 
-bool parseAllowField(SIPField& field,
+bool parseAllowField(const SIPField& field,
                      std::shared_ptr<SIPMessageHeader> message);
 
-bool parseAuthInfoField(SIPField& field,
+bool parseAuthInfoField(const SIPField& field,
                         std::shared_ptr<SIPMessageHeader> message);
 
-bool parseAuthorizationField(SIPField& field,
+bool parseAuthorizationField(const SIPField& field,
                              std::shared_ptr<SIPMessageHeader> message);
 
-bool parseCallIDField(SIPField& field,
+bool parseCallIDField(const SIPField& field,
                       std::shared_ptr<SIPMessageHeader> message);
 
-bool parseCallInfoField(SIPField& field,
+bool parseCallInfoField(const SIPField& field,
                         std::shared_ptr<SIPMessageHeader> message);
 
-bool parseContactField(SIPField& field,
+bool parseContactField(const SIPField& field,
                        std::shared_ptr<SIPMessageHeader> message);
 
-bool parseContentDispositionField(SIPField& field,
+bool parseContentDispositionField(const SIPField& field,
                                   std::shared_ptr<SIPMessageHeader> message);
 
-bool parseContentEncodingField(SIPField& field,
+bool parseContentEncodingField(const SIPField& field,
                                std::shared_ptr<SIPMessageHeader> message);
 
-bool parseContentLanguageField(SIPField& field,
+bool parseContentLanguageField(const SIPField& field,
                                std::shared_ptr<SIPMessageHeader> message);
 
-bool parseContentLengthField(SIPField& field,
+bool parseContentLengthField(const SIPField& field,
                              std::shared_ptr<SIPMessageHeader> message);
 
-bool parseContentTypeField(SIPField& field,
+bool parseContentTypeField(const SIPField& field,
                            std::shared_ptr<SIPMessageHeader> message);
 
-bool parseCSeqField(SIPField& field,
+bool parseCSeqField(const SIPField& field,
                     std::shared_ptr<SIPMessageHeader> message);
 
-bool parseDateField(SIPField& field,
+bool parseDateField(const SIPField& field,
                     std::shared_ptr<SIPMessageHeader> message);
 
-bool parseErrorInfoField(SIPField& field,
+bool parseErrorInfoField(const SIPField& field,
                          std::shared_ptr<SIPMessageHeader> message);
 
-bool parseExpireField(SIPField& field,
+bool parseExpireField(const SIPField& field,
                       std::shared_ptr<SIPMessageHeader> message);
 
-bool parseFromField(SIPField& field,
+bool parseFromField(const SIPField& field,
                     std::shared_ptr<SIPMessageHeader> message);
 
-bool parseInReplyToField(SIPField& field,
+bool parseInReplyToField(const SIPField& field,
                          std::shared_ptr<SIPMessageHeader> message);
 
-bool parseMaxForwardsField(SIPField& field,
+bool parseMaxForwardsField(const SIPField& field,
                            std::shared_ptr<SIPMessageHeader> message);
 
-bool parseMinExpiresField(SIPField& field,
+bool parseMinExpiresField(const SIPField& field,
                           std::shared_ptr<SIPMessageHeader> message);
 
-bool parseMIMEVersionField(SIPField& field,
+bool parseMIMEVersionField(const SIPField& field,
                            std::shared_ptr<SIPMessageHeader> message);
 
-bool parseOrganizationField(SIPField& field,
+bool parseOrganizationField(const SIPField& field,
                             std::shared_ptr<SIPMessageHeader> message);
 
-bool parsePriorityField(SIPField& field,
+bool parsePriorityField(const SIPField& field,
                         std::shared_ptr<SIPMessageHeader> message);
 
-bool parseProxyAuthenticateField(SIPField& field,
+bool parseProxyAuthenticateField(const SIPField& field,
                                  std::shared_ptr<SIPMessageHeader> message);
 
-bool parseProxyAuthorizationField(SIPField& field,
+bool parseProxyAuthorizationField(const SIPField& field,
                                   std::shared_ptr<SIPMessageHeader> message);
 
-bool parseProxyRequireField(SIPField& field,
+bool parseProxyRequireField(const SIPField& field,
                             std::shared_ptr<SIPMessageHeader> message);
 
-bool parseRecordRouteField(SIPField& field,
+bool parseRecordRouteField(const SIPField& field,
                            std::shared_ptr<SIPMessageHeader> message);
 
-bool parseReplyToField(SIPField& field,
+bool parseReplyToField(const SIPField& field,
                        std::shared_ptr<SIPMessageHeader> message);
 
-bool parseRequireField(SIPField& field,
+bool parseRequireField(const SIPField& field,
                        std::shared_ptr<SIPMessageHeader> message);
 
-bool parseRetryAfterField(SIPField& field,
+bool parseRetryAfterField(const SIPField& field,
                           std::shared_ptr<SIPMessageHeader> message);
 
-bool parseRouteField(SIPField& field,
+bool parseRouteField(const SIPField& field,
                      std::shared_ptr<SIPMessageHeader> message);
 
-bool parseServerField(SIPField& field,
+bool parseServerField(const SIPField& field,
                       std::shared_ptr<SIPMessageHeader> message);
 
-bool parseSubjectField(SIPField& field,
+bool parseSubjectField(const SIPField& field,
                        std::shared_ptr<SIPMessageHeader> message);
 
-bool parseSupportedField(SIPField& field,
+bool parseSupportedField(const SIPField& field,
                          std::shared_ptr<SIPMessageHeader> message);
 
-bool parseTimestampField(SIPField& field,
+bool parseTimestampField(const SIPField& field,
                          std::shared_ptr<SIPMessageHeader> message);
 
-bool parseToField(SIPField& field,
+bool parseToField(const SIPField& field,
                   std::shared_ptr<SIPMessageHeader> message);
 
-bool parseUnsupportedField(SIPField& field,
+bool parseUnsupportedField(const SIPField& field,
                            std::shared_ptr<SIPMessageHeader> message);
 
-bool parseUserAgentField(SIPField& field,
+bool parseUserAgentField(const SIPField& field,
                          std::shared_ptr<SIPMessageHeader> message);
 
-bool parseViaField(SIPField& field,
+bool parseViaField(const SIPField& field,
                    std::shared_ptr<SIPMessageHeader> message);
 
-bool parseWarningField(SIPField& field,
+bool parseWarningField(const SIPField& field,
                        std::shared_ptr<SIPMessageHeader> message);
 
-bool parseWWWAuthenticateField(SIPField& field,
+bool parseWWWAuthenticateField(const SIPField& field,
                                std::shared_ptr<SIPMessageHeader> message);
