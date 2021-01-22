@@ -214,7 +214,7 @@ struct ViaField
   QString receivedAddress = ""; // omitted if empty
 
   // multicast address (maddr) and related ttl go here for now
-  QList<SIPParameter> otherParameters;
+  QList<SIPParameter> parameters;
 };
 
 const QString MAGIC_COOKIE = "z9hG4bK";

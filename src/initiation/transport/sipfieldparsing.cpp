@@ -560,59 +560,61 @@ bool parseUserAgentField(const SIPField &field,
 bool parseViaField(const SIPField &field,
                    std::shared_ptr<SIPMessageHeader> message)
 {
-  if (field.commaSeparated[0].words.size() != 2)
+  for (auto& value : field.commaSeparated)
   {
-    return false;
-  }
-
-  ViaField via = {"", NONE, "", 0, "", false, false, 0, "", {}};
-
-  QRegularExpression re_first("SIP/(\\d.\\d)/(\\w+)");
-  QRegularExpressionMatch first_match = re_first.match(field.commaSeparated[0].words[0]);
-
-  if(!first_match.hasMatch() || first_match.lastCapturedIndex() != 2)
-  {
-    return false;
-  }
-
-  via.protocol = stringToTransportProtocol(first_match.captured(2));
-  via.sipVersion = first_match.captured(1);
-
-  QRegularExpression re_second("([\\w.]+):?(\\d*)");
-  QRegularExpressionMatch second_match = re_second.match(field.commaSeparated[0].words[1]);
-
-  if(!second_match.hasMatch() || second_match.lastCapturedIndex() > 2)
-  {
-    return false;
-  }
-
-  via.sentBy = second_match.captured(1);
-
-  if (second_match.lastCapturedIndex() == 2)
-  {
-    via.port = second_match.captured(2).toUInt();
-  }
-
-  copyParameterList(field.commaSeparated[0].parameters, via.parameters);
-
-  parseParameterByName(via.parameters,
-      "branch", via.branch);
-  parseParameterByName(via.parameters,
-      "received", via.receivedAddress);
-
-  QString rportValue = "";
-  if (parseParameterByName(via.parameters, "rport", rportValue))
-  {
-    bool ok = false;
-    via.rportValue = rportValue.toUInt(&ok);
-
-    if (!ok)
+    if (value.words.size() != 2)
     {
-      via.rportValue = 0;
+      return false;
+    }
+    message->vias.push_back({"", NONE, "", 0, "", false, false, 0, "", {}});
+
+    QRegularExpression re_first("SIP/(\\d.\\d)/(\\w+)");
+    QRegularExpressionMatch first_match = re_first.match(value.words[0]);
+
+    if(!first_match.hasMatch() || first_match.lastCapturedIndex() != 2)
+    {
+      message->vias.pop_back();
+      return false;
+    }
+
+    message->vias.back().protocol = stringToTransportProtocol(first_match.captured(2));
+    message->vias.back().sipVersion = first_match.captured(1);
+
+    QRegularExpression re_second("([\\w.]+):?(\\d*)");
+    QRegularExpressionMatch second_match = re_second.match(value.words[1]);
+
+    if(!second_match.hasMatch() || second_match.lastCapturedIndex() > 2)
+    {
+      message->vias.pop_back();
+      return false;
+    }
+
+    message->vias.back().sentBy = second_match.captured(1);
+
+    if (second_match.lastCapturedIndex() == 2)
+    {
+      message->vias.back().port = second_match.captured(2).toUInt();
+    }
+
+    copyParameterList(value.parameters, message->vias.back().parameters);
+
+    parseParameterByName(message->vias.back().parameters,
+                         "branch", message->vias.back().branch);
+    parseParameterByName(message->vias.back().parameters,
+                         "received", message->vias.back().receivedAddress);
+
+    QString rportValue = "";
+    if (parseParameterByName(message->vias.back().parameters, "rport", rportValue))
+    {
+      bool ok = false;
+      message->vias.back().rportValue = rportValue.toUInt(&ok);
+
+      if (!ok)
+      {
+        message->vias.back().rportValue = 0;
+      }
     }
   }
-
-  message->vias.push_back(via);
 
   return true;
 }
