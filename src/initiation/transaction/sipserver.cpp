@@ -157,8 +157,8 @@ void SIPServer::copyMessageDetails(std::shared_ptr<SIPMessageHeader>& inMessage,
                         std::shared_ptr<SIPMessageHeader>& copy)
 {
   Q_ASSERT(inMessage);
-  Q_ASSERT(inMessage->from.tag != "");
-  Q_ASSERT(inMessage->to.tag != "");
+  Q_ASSERT(inMessage->from.tagParameter != "");
+  Q_ASSERT(inMessage->to.tagParameter != "");
   copy = std::shared_ptr<SIPMessageHeader> (new SIPMessageHeader());
   // Which fields to copy are listed in section 8.2.6.2 of RFC 3621
 

@@ -82,7 +82,7 @@ void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageHeader> &i
 
   localURI_.uri.hostport.host = hostName;
 
-  remoteTag_ = inMessage->from.tag;
+  remoteTag_ = inMessage->from.tagParameter;
   if(remoteTag_ == "")
   {
     printDebug(DEBUG_PEER_ERROR, "SIPDialogState",
@@ -94,9 +94,9 @@ void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageHeader> &i
 
   // Set the request to tag to local tag value so when sending the response
   // it is already there.
-  if(inMessage->to.tag == "")
+  if(inMessage->to.tagParameter == "")
   {
-    inMessage->to.tag = localTag_;
+    inMessage->to.tagParameter = localTag_;
   }
 
   route_ = inMessage->recordRoutes;
@@ -133,10 +133,10 @@ void SIPDialogState::getRequestDialogInfo(SIPRequest &outRequest)
   outRequest.message->cSeq.cSeq = localCSeq_;
 
   outRequest.message->from.address = localURI_;
-  outRequest.message->from.tag = localTag_;
+  outRequest.message->from.tagParameter = localTag_;
 
   outRequest.message->to.address = remoteURI_;
-  outRequest.message->to.tag = remoteTag_;
+  outRequest.message->to.tagParameter = remoteTag_;
 
   outRequest.message->callID = callID_;
 
@@ -157,7 +157,7 @@ bool SIPDialogState::correctRequestDialog(std::shared_ptr<SIPMessageHeader> &inM
   // TODO: For backwards compability, this should be prepared for missing To-tag (or was it from-tag) (RFC3261).
 
   // if our tags and call-ID match the incoming requests, it belongs to this dialog
-  if((inMessage->to.tag == localTag_) && inMessage->from.tag == remoteTag_ &&
+  if((inMessage->to.tagParameter == localTag_) && inMessage->from.tagParameter == remoteTag_ &&
      ( inMessage->callID == callID_))
   {
     // The request cseq should be larger than our remotecseq.
@@ -181,7 +181,7 @@ bool SIPDialogState::correctResponseDialog(std::shared_ptr<SIPMessageHeader> &in
 {
   // For backwards compability, this should be prepared for missing To-tag (or was it from tag) (RFC3261).
   // if our tags and call-ID match the incoming requests, it belongs to this dialog
-  if(inMessage->from.tag == localTag_ && (inMessage->to.tag == remoteTag_ || remoteTag_ == "") &&
+  if(inMessage->from.tagParameter == localTag_ && (inMessage->to.tagParameter == remoteTag_ || remoteTag_ == "") &&
      inMessage->callID == callID_)
   {
     // The response cseq should be the same as our cseq
@@ -196,7 +196,7 @@ bool SIPDialogState::correctResponseDialog(std::shared_ptr<SIPMessageHeader> &in
     if(remoteTag_ == "" && recordToTag)
     {
       qDebug() << "We don't yet have their remote Tag. Using the one in response.";
-      remoteTag_ = inMessage->to.tag;
+      remoteTag_ = inMessage->to.tagParameter;
     }
 
     return true;

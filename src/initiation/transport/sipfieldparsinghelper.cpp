@@ -184,14 +184,15 @@ bool parseUritype(const QString &type, SIPType& out_Type)
 }
 
 
-bool parseParameterByName(const QList<SIPParameter>& parameters,
+bool parseParameterByName(QList<SIPParameter>& parameters,
                           QString name, QString& value)
 {
-  for (const SIPParameter& parameter : parameters)
+  for (int i = 0; i < parameters.size(); ++i)
   {
-    if (parameter.name == name)
+    if (parameters.at(i).name == name)
     {
-      value = parameter.value;
+      value = parameters.at(i).value;
+      parameters.erase(parameters.begin() + i);
       return true;
     }
   }
@@ -589,4 +590,19 @@ bool parseString(const SIPField& field, QString& value, bool allowEmpty)
   }
 
   return true;
+}
+
+
+bool parseFromTo(const SIPField &field, ToFrom& fromTo)
+{
+  if (!parseNameAddr(field.commaSeparated[0].words, fromTo.address))
+  {
+    return false;
+  }
+
+  copyParameterList(field.commaSeparated[0].parameters, fromTo.parameters);
+
+  // from tag should always be included
+  return parseParameterByName(fromTo.parameters,
+                              "tag", fromTo.tagParameter);
 }

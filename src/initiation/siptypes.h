@@ -189,7 +189,8 @@ struct NameAddr{
 struct ToFrom
 {
   NameAddr address;
-  QString tag = ""; // omitted if empty
+  QString tagParameter = ""; // omitted if empty
+  QList<SIPParameter> parameters;
 };
 
 const uint16_t TAG_LENGTH = 16;

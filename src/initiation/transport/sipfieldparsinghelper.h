@@ -11,7 +11,7 @@ bool parseSIPRouteLocation(const SIPCommaValue &value, SIPRouteLocation& locatio
 bool parseSIPRouteList(const SIPField& field, QList<SIPRouteLocation>& list);
 
 bool parseUritype(const QString& type, SIPType &out_Type);
-bool parseParameterByName(const QList<SIPParameter> &parameters,
+bool parseParameterByName(QList<SIPParameter> &parameters,
                           QString name, QString& value);
 
 bool parseFloat(const QString& string, float& value);
@@ -55,3 +55,6 @@ bool parseStringList(const SIPField& field, QStringList& list);
 
 
 bool parseString(const SIPField& field, QString &value, bool allowEmpty);
+
+
+bool parseFromTo(const SIPField &field, ToFrom& fromTo);

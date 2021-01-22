@@ -370,7 +370,7 @@ bool includeFromField(QList<SIPField> &fields,
     return false;
   }
 
-  tryAddParameter(field.commaSeparated[0].parameters, "tag", header->from.tag);
+  tryAddParameter(field.commaSeparated[0].parameters, "tag", header->from.tagParameter);
 
   fields.push_back(field);
   return true;
@@ -632,7 +632,7 @@ bool includeToField(QList<SIPField> &fields,
     return false;
   }
 
-  tryAddParameter(field.commaSeparated[0].parameters, "tag", header->to.tag);
+  tryAddParameter(field.commaSeparated[0].parameters, "tag", header->to.tagParameter);
 
   fields.push_back(field);
   return true;

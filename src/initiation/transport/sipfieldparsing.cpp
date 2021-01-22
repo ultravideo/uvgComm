@@ -333,14 +333,7 @@ bool parseExpireField(const SIPField &field,
 bool parseFromField(const SIPField &field,
                     std::shared_ptr<SIPMessageHeader> message)
 {
-  if (!parseNameAddr(field.commaSeparated[0].words, message->from.address))
-  {
-    return false;
-  }
-
-  // from tag should always be included
-  return parseParameterByName(field.commaSeparated[0].parameters,
-                              "tag", message->from.tag);
+  return parseFromTo(field, message->from);
 }
 
 
@@ -471,19 +464,17 @@ bool parseRetryAfterField(const SIPField &field,
     return false;
   }
 
-  QString duration = "";
-  parseParameterByName(field.commaSeparated.first().parameters,
-                       "duration", duration);
 
-  if (duration != "")
+  copyParameterList(field.commaSeparated.first().parameters,
+                    message->retryAfter->parameters);
+
+  QString duration = "";
+
+  if (parseParameterByName(message->retryAfter->parameters,
+                           "duration", duration) && duration != "0")
   {
     parseUint32(duration, message->retryAfter->duration);
   }
-
-  // The problem with this approach is that duration will appear in two places,
-  // but at the moment that doesn't seem important.
-  copyParameterList(field.commaSeparated.first().parameters,
-                    message->retryAfter->parameters);
 
   return true;
 }
@@ -548,15 +539,7 @@ bool parseTimestampField(const SIPField &field,
 bool parseToField(const SIPField &field,
                   std::shared_ptr<SIPMessageHeader> message)
 {
-  if (!parseNameAddr(field.commaSeparated[0].words, message->to.address))
-  {
-    return false;
-  }
-
-  // to-tag does not exist in first message
-  parseParameterByName(field.commaSeparated[0].parameters, "tag", message->to.tag);
-
-  return true;
+  return parseFromTo(field, message->to);
 }
 
 
@@ -610,13 +593,15 @@ bool parseViaField(const SIPField &field,
     via.port = second_match.captured(2).toUInt();
   }
 
-  parseParameterByName(field.commaSeparated[0].parameters,
+  copyParameterList(field.commaSeparated[0].parameters, via.parameters);
+
+  parseParameterByName(via.parameters,
       "branch", via.branch);
-  parseParameterByName(field.commaSeparated[0].parameters,
+  parseParameterByName(via.parameters,
       "received", via.receivedAddress);
 
   QString rportValue = "";
-  if (parseParameterByName(field.commaSeparated[0].parameters, "rport", rportValue))
+  if (parseParameterByName(via.parameters, "rport", rportValue))
   {
     bool ok = false;
     via.rportValue = rportValue.toUInt(&ok);
