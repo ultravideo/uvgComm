@@ -602,7 +602,7 @@ bool parseFromTo(const SIPField &field, ToFrom& fromTo)
 
   copyParameterList(field.commaSeparated[0].parameters, fromTo.parameters);
 
-  // from tag should always be included
-  return parseParameterByName(fromTo.parameters,
-                              "tag", fromTo.tagParameter);
+  parseParameterByName(fromTo.parameters,
+                                "tag", fromTo.tagParameter);
+  return true;
 }
