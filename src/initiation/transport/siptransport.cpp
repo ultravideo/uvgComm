@@ -164,7 +164,7 @@ void SIPTransport::destroyConnection()
 }
 
 
-void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
+void SIPTransport::processOutgoingRequest(SIPRequest& request, QVariant &content)
 {
   Q_ASSERT(request.message->contentType == MT_NONE || content.isValid());
   Q_ASSERT(connection_ != nullptr);
@@ -252,7 +252,7 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
 }
 
 
-void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
+void SIPTransport::processOutgoingResponse(SIPResponse &response, QVariant &content)
 {
   ++processingInProgress_;
   printImportant(this, "Composing and sending SIP Response:", {"Type"},
@@ -512,7 +512,7 @@ bool SIPTransport::parseRequest(QString requestString, QString version,
     parseContent(content, request.message->contentType, body);
   }
 
-  emit incomingSIPRequest(request, getLocalAddress(), content, transportID_);
+  emit incomingRequest(request, getLocalAddress(), content, transportID_);
   return true;
 }
 
@@ -557,7 +557,7 @@ bool SIPTransport::parseResponse(QString responseString, QString version,
     return false;
   }
 
-  emit incomingSIPResponse(response, content);
+  emit incomingResponse(response, content);
 
   return true;
 }

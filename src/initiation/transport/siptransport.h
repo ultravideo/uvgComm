@@ -2,6 +2,7 @@
 
 #include "initiation/siptypes.h"
 #include "initiation/negotiation/sdptypes.h"
+#include "initiation/sipmessageprocessor.h"
 #include "tcpconnection.h"
 #include "siprouting.h"
 #include <QHostAddress>
@@ -15,7 +16,7 @@
 
 class StatisticsInterface;
 
-class SIPTransport : public QObject
+class SIPTransport : public SIPMessageProcessor
 {
   Q_OBJECT
 public:
@@ -30,9 +31,9 @@ public:
   void createConnection(SIPTransportProtocol type, QString target);
   void incomingTCPConnection(std::shared_ptr<TCPConnection> con);
 
-  // sending SIP messages
-  void sendRequest(SIPRequest &request, QVariant& content);
-  void sendResponse(SIPResponse &response, QVariant& content);
+    // these translate the struct to a string and send the SIP message
+  virtual void processOutgoingRequest(SIPRequest& request, QVariant& content);
+  virtual void processOutgoingResponse(SIPResponse& response, QVariant& content);
 
   bool isConnected();
 
@@ -60,9 +61,9 @@ signals:
                                QString remoteAddress);
 
   // signals that output parsed sip messages
-  void incomingSIPRequest(SIPRequest& request, QString localAddress,
-                          QVariant& content, quint32 transportID);
-  void incomingSIPResponse(SIPResponse& response, QVariant& content);
+  void incomingRequest(SIPRequest& request, QString localAddress,
+                       QVariant& content, quint32 transportID);
+  void incomingResponse(SIPResponse& response, QVariant& content);
 
   // we got a message, but could not parse it.
   void parsingError(SIPResponseStatus errorResponse, quint32 transportID);

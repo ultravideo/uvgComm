@@ -254,7 +254,7 @@ void SIPManager::transportRequest(uint32_t sessionID, SIPRequest &request)
         }
       }
 
-      transports_[transportID]->sendRequest(request, content);
+      transports_[transportID]->processOutgoingRequest(request, content);
     }
     else {
       printDebug(DEBUG_ERROR,  metaObject()->className(), 
@@ -305,7 +305,7 @@ void SIPManager::transportResponse(uint32_t sessionID, SIPResponse &response)
       }
 
       // send the request with or without SDP
-      transports_[transportID]->sendResponse(response, content);
+      transports_[transportID]->processOutgoingResponse(response, content);
     }
     else {
       printDebug(DEBUG_ERROR, metaObject()->className(), 
@@ -330,7 +330,7 @@ void SIPManager::transportToProxy(QString serverAddress, SIPRequest &request)
     {
       // send the request without content
       QVariant content;
-      transports_[transportID]->sendRequest(request, content);
+      transports_[transportID]->processOutgoingRequest(request, content);
     }
   }
 }
@@ -499,10 +499,10 @@ std::shared_ptr<SIPTransport> SIPManager::createSIPTransport()
   std::shared_ptr<SIPTransport> connection =
       std::shared_ptr<SIPTransport>(new SIPTransport(transportID, stats_));
 
-  QObject::connect(connection.get(), &SIPTransport::incomingSIPRequest,
+  QObject::connect(connection.get(), &SIPTransport::incomingRequest,
                    this, &SIPManager::processSIPRequest);
 
-  QObject::connect(connection.get(), &SIPTransport::incomingSIPResponse,
+  QObject::connect(connection.get(), &SIPTransport::incomingResponse,
                    this, &SIPManager::processSIPResponse);
 
   QObject::connect(connection.get(), &SIPTransport::sipTransportEstablished,
