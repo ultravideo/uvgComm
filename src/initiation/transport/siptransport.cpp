@@ -28,6 +28,7 @@ SIPTransport::SIPTransport(quint32 transportID, StatisticsInterface *stats):
   connection_(nullptr),
   transportID_(transportID),
   stats_(stats),
+  routing_(nullptr),
   processingInProgress_(0)
 {}
 
@@ -84,6 +85,7 @@ void SIPTransport::createConnection(SIPTransportProtocol type, QString target)
     printNormal(this, "Initiating TCP connection for sip connection",
                 {"TransportID"}, QString::number(transportID_));
     connection_ = std::shared_ptr<TCPConnection>(new TCPConnection());
+    routing_ = std::shared_ptr<SIPRouting> (new SIPRouting(connection_));
     signalConnections();
     connection_->establishConnection(target, SIP_PORT);
   }
@@ -103,6 +105,7 @@ void SIPTransport::incomingTCPConnection(std::shared_ptr<TCPConnection> con)
     qDebug() << "Replacing existing connection";
   }
   connection_ = con;
+  routing_ = std::shared_ptr<SIPRouting> (new SIPRouting(connection_));
 
   signalConnections();
 }
@@ -185,19 +188,13 @@ void SIPTransport::processOutgoingRequest(SIPRequest& request, QVariant &content
 
   printImportant(this, "Composing and sending SIP Request:", {"Type"},
                  requestMethodToString(request.method));
-
-  // TODO: Via and contact setting should be moved to transaction side once
-  // new architecture is implemented
-  routing_.getVia(request.message,
-                  connection_->localAddress().toString(),
-                  connection_->localPort());
-
-  if (request.method == SIP_INVITE)
+  if (routing_)
   {
-    routing_.getContactAddress(request.message,
-                               connection_->localAddress().toString(),
-                               connection_->localPort(),
-                               DEFAULT_SIP_TYPE);
+    routing_->processOutgoingRequest(request, content);
+  }
+  else
+  {
+    return;
   }
 
   QString lineEnding = "\r\n";
@@ -270,12 +267,13 @@ void SIPTransport::processOutgoingResponse(SIPResponse &response, QVariant &cont
     return;
   }
 
-  // TODO: Move this to transaction layer
-  if (response.message->cSeq.method == SIP_INVITE && response.type == SIP_OK)
+  if (routing_)
   {
-    routing_.getContactAddress(response.message,
-                               connection_->localAddress().toString(),
-                               connection_->localPort(), DEFAULT_SIP_TYPE);
+    routing_->processOutgoingResponse(response, content);
+  }
+  else
+  {
+    return;
   }
 
   QString lineEnding = "\r\n";
@@ -545,15 +543,12 @@ bool SIPTransport::parseResponse(QString responseString, QString version,
     parseContent(content, response.message->contentType, body);
   }
 
-  if (isConnected())
+  if (routing_)
   {
-    routing_.processResponseViaFields(response.message->vias,
-                                      connection_->localAddress().toString(),
-                                      connection_->localPort());
+    routing_->processIncomingResponse(response, content);
   }
   else
   {
-    printWarning(this, "Disconnected while parsing response");
     return false;
   }
 

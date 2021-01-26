@@ -88,9 +88,7 @@ void SIPClient::getRequestMessageInfo(SIPRequestMethod type,
   outMessage->contentType = MT_NONE;
   outMessage->contentLength = 0;
 
-  ViaField via = ViaField{SIP_VERSION, DEFAULT_TRANSPORT, "", 0,
-      QString(MAGIC_COOKIE + generateRandomString(BRANCH_TAIL_LENGTH)), false, false, 0, "", {}};
-  outMessage->vias.push_back(via);
+  // via is set later
 
   // INVITE has the same timeout as rest of them. Only after RINGING reply do we increase timeout
   if(type != SIP_CANCEL && type != SIP_ACK)

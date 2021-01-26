@@ -26,12 +26,6 @@ void SIPNonDialogClient::getRequestMessageInfo(SIPRequestMethod type,
   if (type == SIP_REGISTER)
   {
     outMessage->expires = std::shared_ptr<uint32_t> (new uint32_t{expires_});
-
-    if (!outMessage->vias.empty())
-    {
-      outMessage->vias.back().alias = true;
-      outMessage->vias.back().rport = true;
-    }
   }
 }
 

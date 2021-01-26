@@ -11,8 +11,8 @@
 #include <memory>
 
 // SIP Transportation layer. Use separate connection class to actually send the
-// messages. This class primarily deals with checking that the incoming messages are valid, parsing them
-// and composing outgoing messages.
+// messages. This class primarily deals with checking that the incoming messages
+// are valid, parsing them and composing outgoing messages.
 
 class StatisticsInterface;
 
@@ -25,7 +25,6 @@ public:
 
   void cleanup();
 
-  // TODO: separate non-dialog and dialog messages
 
   // functions for manipulating network connection
   void createConnection(SIPTransportProtocol type, QString target);
@@ -89,7 +88,7 @@ private:
 
   StatisticsInterface *stats_;
 
-  SIPRouting routing_;
+  std::shared_ptr<SIPRouting> routing_;
 
   int processingInProgress_;
 };

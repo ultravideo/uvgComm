@@ -23,21 +23,6 @@ void SIPDialogClient::init(SIPTransactionUser* tu, uint32_t sessionID)
 }
 
 
-void SIPDialogClient::getRequestMessageInfo(SIPRequestMethod type,
-                                            std::shared_ptr<SIPMessageHeader> &outMessage)
-{
-  SIPClient::getRequestMessageInfo(type, outMessage);
-
-  if (type == SIP_INVITE || type == SIP_ACK)
-  {
-    if (!outMessage->vias.empty())
-    {
-      outMessage->vias.back().rport = true;
-    }
-  }
-}
-
-
 //processes incoming response
 bool SIPDialogClient::processResponse(SIPResponse& response,
                                       SIPDialogState &state)
