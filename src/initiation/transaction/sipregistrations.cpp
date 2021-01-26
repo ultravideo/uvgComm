@@ -233,14 +233,11 @@ bool SIPRegistrations::haveWeRegistered()
 }
 
 
-void SIPRegistrations::sendNonDialogRequest(SIP_URI& uri, SIPRequestMethod type)
+void SIPRegistrations::sendNonDialogRequest(SIP_URI& uri, SIPRequest& request)
 {
-  qDebug() << "Start sending of a non-dialog request. Type:" << type;
-  SIPRequest request;
-  request.sipVersion = SIP_VERSION;
-  request.method = type;
+  printNormal(this, "Send non-dialog request");
 
-  if (type == SIP_REGISTER)
+  if (request.method == SIP_REGISTER)
   {
     if (registrations_.find(uri.hostport.host) == registrations_.end())
     {
@@ -251,18 +248,11 @@ void SIPRegistrations::sendNonDialogRequest(SIP_URI& uri, SIPRequestMethod type)
       return;
     }
 
-    registrations_[uri.hostport.host]->client.getRequestMessageInfo(request.method, request.message);
     registrations_[uri.hostport.host]->state.getRequestDialogInfo(request);
 
     QVariant content; // we dont have content in REGISTER
-    emit transportProxyRequest(uri.hostport.host, request);
+
   }
-  else if (type == SIP_OPTIONS) {
-    printDebug(DEBUG_PROGRAM_ERROR, this,
-                     "Trying to send unimplemented non-dialog request OPTIONS!");
-  }
-  else {
-    printDebug(DEBUG_PROGRAM_ERROR, this,
-                     "Trying to send a non-dialog request of type which is a dialog request!");
-  }
+
+  emit transportProxyRequest(uri.hostport.host, request);
 }

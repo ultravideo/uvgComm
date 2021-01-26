@@ -5,8 +5,6 @@
 
 #include "common.h"
 
-// 1 minute for the user to react
-const unsigned int INVITE_TIMEOUT = 60000;
 
 SIPClient::SIPClient():
   ongoingTransactionType_(SIP_NO_REQUEST),
@@ -36,7 +34,7 @@ void SIPClient::setNonDialogStuff(SIP_URI& uri)
 }
 
 
-bool SIPClient::transactionINVITE(QString callee)
+bool SIPClient::transactionINVITE(QString callee, uint32_t timeout)
 {
   printNormal(this, "Starting a call and sending an INVITE in session");
   Q_ASSERT(sessionID_ != 0);
@@ -45,6 +43,8 @@ bool SIPClient::transactionINVITE(QString callee)
     printDebug(DEBUG_WARNING, this, "SIP Client Transaction not initialized.");
     return false;
   }
+
+  expires_ = timeout;
 
   if (startTransaction(SIP_INVITE))
   {
@@ -76,10 +76,7 @@ void SIPClient::transactionReINVITE()// TODO: Remove
 void SIPClient::transactionREGISTER(uint32_t expires)
 {
   expires_ = expires;
-  if (startTransaction(SIP_REGISTER))
-  {
-    emit sendNondialogRequest(remoteUri_, SIP_REGISTER);
-  }
+  startTransaction(SIP_REGISTER);
 }
 
 
@@ -103,14 +100,15 @@ bool SIPClient::processResponse(SIPResponse& response,
     return false;
   }
 
-  // provisional response, continuing
+  // Provisional response, continuing.
+  // Refreshes timeout timer.
   if (responseCode >= 100 && responseCode <= 199)
   {
     printNormal(this, "Got a provisional response. Restarting timer.");
     if (response.message->cSeq.method == SIP_INVITE &&
         responseCode == SIP_RINGING)
     {
-      startTimeoutTimer(INVITE_TIMEOUT);
+      startTimeoutTimer(expires_);
     }
     else
     {
@@ -146,7 +144,6 @@ bool SIPClient::processResponse(SIPResponse& response,
 
   if (responseCode >= 100 && responseCode <= 299)
   {
-
     // process anything that is not a failure and may cause a new request to be sent.
     // this must be done after the SIPClientTransaction processResponse, because that checks our
     // current active transaction and may modify it.
@@ -186,32 +183,47 @@ bool SIPClient::processResponse(SIPResponse& response,
 }
 
 
-void SIPClient::getRequestMessageInfo(SIPRequestMethod type,
-                                      std::shared_ptr<SIPMessageHeader>& outMessage)
+void SIPClient::generateRequest(SIPRequestMethod type,
+                                SIPRequest& request)
 {
-  outMessage = std::shared_ptr<SIPMessageHeader> (new SIPMessageHeader);
-  outMessage->cSeq.cSeq = 0; // invalid, should be set in dialog
-  outMessage->cSeq.method = type;
+  if (type == SIP_CANCEL)
+  {
+    request = sentRequest_;
+    request.method = SIP_CANCEL;
+    request.message->expires = nullptr;
 
-  outMessage->maxForwards = std::shared_ptr<uint8_t> (new uint8_t{DEFAULT_MAX_FORWARDS});
+    // TODO: Instead just copy request-URI, call-ID, to,
+    // cseq number (not method), and from
+    return;
+  }
 
-  outMessage->contentType = MT_NONE;
-  outMessage->contentLength = 0;
+  request.sipVersion = SIP_VERSION;
+  request.method = type;
+  request.message = std::shared_ptr<SIPMessageHeader> (new SIPMessageHeader);
+
+  // sets many of the mandatory fields in SIP header
+  request.message->cSeq.cSeq = 0; // invalid, should be set in dialog
+  request.message->cSeq.method = type;
+
+  request.message->maxForwards
+      = std::shared_ptr<uint8_t> (new uint8_t{DEFAULT_MAX_FORWARDS});
+
+  request.message->contentType = MT_NONE;
+  request.message->contentLength = 0;
 
   // via is set later
 
-  if (type == SIP_REGISTER)
+  if (request.method == SIP_REGISTER)
   {
-    outMessage->expires = std::shared_ptr<uint32_t> (new uint32_t{expires_});
+    // sets the expires field needed in REGISTER requests
+    request.message->expires = std::shared_ptr<uint32_t> (new uint32_t{expires_});
   }
 
   // INVITE has the same timeout as rest of them. Only after RINGING reply do we increase timeout
-  if(type != SIP_CANCEL && type != SIP_ACK)
+  if(request.method != SIP_CANCEL && request.method != SIP_ACK)
   {
     startTimeoutTimer();
   }
-
-
 }
 
 
@@ -236,14 +248,24 @@ bool SIPClient::startTransaction(SIPRequestMethod type)
   if (type == SIP_CANCEL || type == SIP_ACK)
   {
     stopTimeoutTimer();
+    // cancel and ack don't start a transaction
+    ongoingTransactionType_ = SIP_NO_REQUEST;
   }
   else
   {
-    // cancel and ack don't start a transaction
     ongoingTransactionType_ = type;
   }
+  SIPRequest request;
+  generateRequest(type, request);
 
-  emit sendDialogRequest(sessionID_, type);
+  if (type == SIP_REGISTER)
+  {
+    emit sendNondialogRequest(remoteUri_, request);
+  }
+  else
+  {
+    emit sendDialogRequest(sessionID_, request);
+  }
 
   return true;
 }
@@ -251,11 +273,10 @@ bool SIPClient::startTransaction(SIPRequestMethod type)
 
 void SIPClient::processTimeout()
 {
-  if(getOngoingRequest() == SIP_INVITE)
+  if(ongoingTransactionType_ == SIP_INVITE)
   {
-    emit sendDialogRequest(sessionID_, SIP_BYE);
-    // TODO tell user we have failed
     startTransaction(SIP_CANCEL);
+
     transactionUser_->failure(sessionID_, "No response. Request timed out");
   }
 

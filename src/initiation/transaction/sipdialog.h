@@ -52,7 +52,7 @@ signals:
 
 private slots:
 
-  void generateRequest(uint32_t sessionID, SIPRequestMethod type);
+  void generateRequest(uint32_t sessionID, SIPRequest &request);
   void generateResponse(uint32_t sessionID, SIPResponseStatus type);
 
 private:

@@ -23,13 +23,15 @@ void SIPDialog::init(uint32_t sessionID, SIPTransactionUser* tu)
                    this, &SIPDialog::generateResponse);
 }
 
+// 1 minute for the user to react
+const unsigned int INVITE_TIMEOUT = 60000;
 
 void SIPDialog::startCall(NameAddr &address, QString localAddress, bool registered)
 {
   state_.createNewDialog(address, localAddress, registered);
 
   // this start call will commence once the connection has been established
-  if(!client_.transactionINVITE(address.realname))
+  if(!client_.transactionINVITE(address.realname, INVITE_TIMEOUT))
   {
     printWarning(this, "Could not start a call according to client.");
   }
@@ -129,32 +131,19 @@ bool SIPDialog::processResponse(SIPResponse& response)
 }
 
 
-void SIPDialog::generateRequest(uint32_t sessionID, SIPRequestMethod type)
+void SIPDialog::generateRequest(uint32_t sessionID, SIPRequest& request)
 {
-  printNormal(this, "Iniate sending of a dialog request");
+  printNormal(this, "Initiate sending of a dialog request");
 
   // Get all the necessary information from different components.
-  SIPRequest request;
-
-  if (type != SIP_CANCEL)
+  if (request.method != SIP_CANCEL)
   {
-    request.sipVersion = SIP_VERSION;
-    // Get message info
-    client_.getRequestMessageInfo(type, request.message);
-    client_.startTimer(type);
-
     state_.getRequestDialogInfo(request);
 
     Q_ASSERT(request.message != nullptr);
 
     client_.recordRequest(request);
   }
-  else
-  {
-    request = client_.getRecordedRequest();
-    request.message->cSeq.method = SIP_CANCEL;
-  }
-  request.method = type;
 
   emit sendRequest(sessionID, request);
   printNormal(this, "Finished sending of a dialog request");
