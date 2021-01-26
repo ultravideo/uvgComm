@@ -2,7 +2,7 @@
 
 
 #include "initiation/transaction/sipdialogstate.h"
-#include "initiation/transaction/sipnondialogclient.h"
+#include "initiation/transaction/sipclient.h"
 
 #include "common.h"
 #include "serverstatusview.h"
@@ -43,7 +43,7 @@ void SIPRegistrations::uninit()
     if (registration.second->status == REG_ACTIVE)
     {
       registration.second->status = DEREGISTERING;
-      registration.second->client.unRegister();
+      registration.second->client.transactionREGISTER(0);
     }
   }
 
@@ -64,16 +64,16 @@ void SIPRegistrations::bindToServer(QString serverAddress, QString localAddress,
 
   SIP_URI serverUri = {DEFAULT_SIP_TYPE, {"", ""}, {serverAddress, 0}, {}, {}};
   data->state.createServerConnection(serverUri);
-  data->client.set_remoteURI(serverUri);
+  data->client.setNonDialogStuff(serverUri);
   registrations_[serverAddress] = data;
 
   QObject::connect(&registrations_[serverAddress]->client,
-                   &SIPNonDialogClient::sendNondialogRequest,
+                   &SIPClient::sendNondialogRequest,
                    this, &SIPRegistrations::sendNonDialogRequest);
 
   statusView_->updateServerStatus("Request sent. Waiting response...");
   registrations_[serverAddress]->status = FIRST_REGISTRATION;
-  registrations_[serverAddress]->client.registerToServer();
+  registrations_[serverAddress]->client.transactionREGISTER(REGISTER_INTERVAL);
 }
 
 
@@ -141,7 +141,7 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
             {
               printNormal(this, "Resetting previous registration");
               i.second->status = DEREGISTERING;
-              i.second->client.unRegister();
+              i.second->client.transactionREGISTER(0);
               return;
             }
             else if (i.second->status == DEREGISTERING)// the actual NAT registration
@@ -154,7 +154,7 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
 
               statusView_->updateServerStatus("Behind NAT, updating address...");
 
-              i.second->client.registerToServer(); // re-REGISTER with NAT address and port
+              i.second->client.transactionREGISTER(REGISTER_INTERVAL); // re-REGISTER with NAT address and port
               return;
             }
             else
@@ -211,7 +211,7 @@ void SIPRegistrations::refreshRegistrations()
     if (i.second->status == REG_ACTIVE)
     {
       statusView_->updateServerStatus("Second request sent. Waiting response...");
-      i.second->client.registerToServer();
+      i.second->client.transactionREGISTER(REGISTER_INTERVAL);
     }
   }
 }

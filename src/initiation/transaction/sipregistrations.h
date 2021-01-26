@@ -1,6 +1,6 @@
 #pragma once
 
-#include "initiation/transaction/sipnondialogclient.h"
+#include "initiation/transaction/sipclient.h"
 #include "initiation/transaction/sipdialogstate.h"
 
 #include "initiation/siptypes.h"
@@ -54,7 +54,7 @@ private:
 
   struct SIPRegistrationData
   {
-    SIPNonDialogClient client;
+    SIPClient client;
     SIPDialogState state;
 
     QString contactAddress;

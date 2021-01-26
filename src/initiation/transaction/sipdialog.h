@@ -3,7 +3,7 @@
 #include <initiation/siptypes.h>
 
 #include "sipdialogstate.h"
-#include "sipdialogclient.h"
+#include "sipclient.h"
 #include "sipserver.h"
 
 #include <QString>
@@ -27,7 +27,8 @@ public:
   void init(uint32_t sessionID, SIPTransactionUser *tu);
 
   void startCall(NameAddr &address, QString localAddress, bool registered);
-  void createDialogFromINVITE(std::shared_ptr<SIPMessageHeader> &invite, QString localAddress);
+  void createDialogFromINVITE(std::shared_ptr<SIPMessageHeader> &invite,
+                              QString localAddress);
 
   void renegotiateCall();
 
@@ -57,6 +58,6 @@ private slots:
 private:
 
   SIPDialogState state_;
-  SIPDialogClient client_;
+  SIPClient client_;
   SIPServer server_;
 };

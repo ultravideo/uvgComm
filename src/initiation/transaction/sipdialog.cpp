@@ -10,13 +10,13 @@ SIPDialog::SIPDialog():
 
 void SIPDialog::init(uint32_t sessionID, SIPTransactionUser* tu)
 {
-  client_.init(tu, sessionID);
+  client_.setDialogStuff(tu, sessionID);
   server_.init(tu, sessionID);
 
-  QObject::connect(&client_, &SIPDialogClient::sendDialogRequest,
+  QObject::connect(&client_, &SIPClient::sendDialogRequest,
                    this, &SIPDialog::generateRequest);
 
-  QObject::connect(&client_, &SIPDialogClient::BYETimeout,
+  QObject::connect(&client_, &SIPClient::BYETimeout,
                    this, &SIPDialog::dialogEnds);
 
   QObject::connect(&server_, &SIPServer::sendResponse,
@@ -29,7 +29,7 @@ void SIPDialog::startCall(NameAddr &address, QString localAddress, bool register
   state_.createNewDialog(address, localAddress, registered);
 
   // this start call will commence once the connection has been established
-  if(!client_.startCall(address.realname))
+  if(!client_.transactionINVITE(address.realname))
   {
     printWarning(this, "Could not start a call according to client.");
   }
@@ -45,7 +45,7 @@ void SIPDialog::createDialogFromINVITE(std::shared_ptr<SIPMessageHeader> &invite
 
 void SIPDialog::renegotiateCall()
 {
-  client_.requestRenegotiation();
+  client_.transactionReINVITE();
 }
 
 
@@ -63,13 +63,13 @@ void SIPDialog::rejectCall()
 
 void SIPDialog::endCall()
 {
-  client_.requestEnd();
+  client_.transactionBYE();
 }
 
 
 void SIPDialog::cancelCall()
 {
-  client_.requestCancel();
+  client_.transactionCANCEL();
 }
 
 

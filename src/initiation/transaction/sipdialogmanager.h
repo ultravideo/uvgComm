@@ -1,6 +1,5 @@
 #pragma once
 
-#include "initiation/transaction/sipnondialogclient.h"
 #include "initiation/transport/siptransport.h"
 
 #include "common.h"
@@ -72,6 +71,7 @@ private:
 
   uint32_t createDialogFromINVITE(QString localAddress,
                                   std::shared_ptr<SIPMessageHeader> &invite);
+
   void createDialog(uint32_t sessionID);
   void removeDialog(uint32_t sessionID);
 
