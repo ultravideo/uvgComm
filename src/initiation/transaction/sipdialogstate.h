@@ -1,5 +1,6 @@
 #pragma once
 
+#include "initiation/sipmessageprocessor.h"
 #include "initiation/siptypes.h"
 
 #include <memory>
@@ -11,33 +12,34 @@
  */
 
 
-class SIPDialogState
+class SIPDialogState : public SIPMessageProcessor
 {
 public:
   SIPDialogState();
+  ~SIPDialogState();
+
+  // if this is a peer-to-peer call so we don't use the server address in config
+  void setLocalHost(QString localAddress);
 
   // creates dialog which is about to start from our end
   // needs local address in case we have not registered
   // and this is a peer-to-peer dialog
-  void createNewDialog(NameAddr& remote, QString localAddress, bool registered);
+  void createNewDialog(NameAddr& remote);
 
   // create a connection to server to be used for sending the REGISTER request
   // does not actually create dialog.
   void createServerConnection(SIP_URI requestURI);
 
-  // creates the dialog from an incoming INVITE
-  void createDialogFromINVITE(std::shared_ptr<SIPMessageHeader> &inMessage,
-                              QString hostName);
 
-  // Generates the request message details
-  void getRequestDialogInfo(SIPRequest& outRequest);
+  // Adds dialog info to request
+  virtual void processOutgoingRequest(SIPRequest& request, QVariant& content);
 
-  void setRequestUri(SIP_URI& remoteContact)
-  {
-    requestUri_ = remoteContact;
-  }
+  // Creates a dialog if it is INVITE
+  virtual void processIncomingRequest(SIPRequest& request, QVariant& content);
 
-  void setRoute(QList<SIPRouteLocation> &route);
+  // Gets the correct requestURI from INVITE OK contact
+  virtual void processIncomingResponse(SIPResponse& response, QVariant& content);
+
 
   // use this to check whether incoming request belongs to this dialog
   // responses should be checked by client which sent the request
@@ -58,11 +60,11 @@ public:
     sessionState_ = state;
   }
 
+private:
+
   // forbid copy and assignment
   SIPDialogState(const SIPDialogState& copied) = delete;
   SIPDialogState& operator=(SIPDialogState const&) = delete;
-
-private:
 
   // set our information as well as generate callID and tags
   void initDialog();

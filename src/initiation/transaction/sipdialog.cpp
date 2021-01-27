@@ -2,6 +2,8 @@
 
 #include "common.h"
 
+#include <QVariant>
+
 SIPDialog::SIPDialog():
   state_(),
   client_(),
@@ -28,7 +30,13 @@ const unsigned int INVITE_TIMEOUT = 60000;
 
 void SIPDialog::startCall(NameAddr &address, QString localAddress, bool registered)
 {
-  state_.createNewDialog(address, localAddress, registered);
+  state_.createNewDialog(address);
+
+  // in peer-to-peer calls we use the actual network address as local URI
+  if (!registered)
+  {
+    state_.setLocalHost(localAddress);
+  }
 
   // this start call will commence once the connection has been established
   if(!client_.transactionINVITE(address.realname, INVITE_TIMEOUT))
@@ -38,10 +46,12 @@ void SIPDialog::startCall(NameAddr &address, QString localAddress, bool register
 }
 
 
-void SIPDialog::createDialogFromINVITE(std::shared_ptr<SIPMessageHeader> &invite,
+void SIPDialog::createDialogFromINVITE(SIPRequest& invite,
                                        QString localAddress)
 {
-  state_.createDialogFromINVITE(invite, localAddress);
+  QVariant content;
+  state_.processIncomingRequest(invite, content);
+  state_.setLocalHost(localAddress);
 }
 
 
@@ -111,20 +121,13 @@ bool SIPDialog::processResponse(SIPResponse& response)
     return false;
   }
 
-  if (response.type == SIP_OK &&
-      response.message->cSeq.method == SIP_INVITE &&
-      !response.message->contact.empty())
-  {
-    state_.setRequestUri(response.message->contact.first().address.uri);
-  }
+  QVariant content; // unused
+
+  state_.processIncomingResponse(response, content);
 
   if(!client_.processResponse(response, state_))
   {
     return false;
-  }
-  else if (!response.message->recordRoutes.empty())
-  {
-    state_.setRoute(response.message->recordRoutes);
   }
 
   return true;
@@ -138,7 +141,8 @@ void SIPDialog::generateRequest(uint32_t sessionID, SIPRequest& request)
   // Get all the necessary information from different components.
   if (request.method != SIP_CANCEL)
   {
-    state_.getRequestDialogInfo(request);
+    QVariant content; // unused
+    state_.processOutgoingRequest(request, content);
 
     Q_ASSERT(request.message != nullptr);
 

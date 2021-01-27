@@ -247,11 +247,9 @@ void SIPRegistrations::sendNonDialogRequest(SIP_URI& uri, SIPRequest& request)
 
       return;
     }
+    QVariant content; // unused
 
-    registrations_[uri.hostport.host]->state.getRequestDialogInfo(request);
-
-    QVariant content; // we dont have content in REGISTER
-
+    registrations_[uri.hostport.host]->state.processOutgoingRequest(request, content);
   }
 
   emit transportProxyRequest(uri.hostport.host, request);

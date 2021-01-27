@@ -27,7 +27,7 @@ public:
   void init(uint32_t sessionID, SIPTransactionUser *tu);
 
   void startCall(NameAddr &address, QString localAddress, bool registered);
-  void createDialogFromINVITE(std::shared_ptr<SIPMessageHeader> &invite,
+  void createDialogFromINVITE(SIPRequest &invite,
                               QString localAddress);
 
   void renegotiateCall();

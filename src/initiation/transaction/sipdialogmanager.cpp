@@ -62,10 +62,8 @@ void SIPDialogManager::renegotiateAllCalls()
 
 
 uint32_t SIPDialogManager::createDialogFromINVITE(QString localAddress,
-                                                 std::shared_ptr<SIPMessageHeader> &invite)
+                                                 SIPRequest &invite)
 {
-  Q_ASSERT(invite);
-
   uint32_t sessionID = reserveSessionID();
   createDialog(sessionID);
 
@@ -194,7 +192,7 @@ bool SIPDialogManager::identifySession(SIPRequest request,
     {
       printNormal(this, "Someone is trying to start a SIP dialog with us!");
 
-      out_sessionID = createDialogFromINVITE(localAddress, request.message);
+      out_sessionID = createDialogFromINVITE(localAddress, request);
       return true;
     }
     return false;
