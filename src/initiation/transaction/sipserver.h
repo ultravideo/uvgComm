@@ -32,7 +32,7 @@ public:
   void respondOK();
   void respondDECLINE();
 
-  bool isCANCELYours(std::shared_ptr<SIPMessageHeader> cancel);
+  bool isCANCELYours(SIPRequest &cancel);
 
 signals:
 
@@ -48,10 +48,15 @@ private:
   void copyMessageDetails(std::shared_ptr<SIPMessageHeader> &inMessage,
                           std::shared_ptr<SIPMessageHeader> &copy);
 
+  bool equalURIs(SIP_URI& first, SIP_URI& second);
+
+  bool equalToFrom(ToFrom& first, ToFrom& second);
+
+
   uint32_t sessionID_;
 
   // used for copying data to response
-  std::shared_ptr<SIPMessageHeader> receivedRequest_;
+  std::shared_ptr<SIPRequest> receivedRequest_;
 
   SIPTransactionUser* transactionUser_;
 };

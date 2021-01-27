@@ -89,7 +89,7 @@ bool SIPDialog::isThisYours(SIPRequest& request)
 {
   if (request.method == SIP_CANCEL)
   {
-    return server_.isCANCELYours(request.message);
+    return server_.isCANCELYours(request);
   }
   return state_.correctRequestDialog(request.message,
                                      request.method,

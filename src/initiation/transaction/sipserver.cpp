@@ -35,7 +35,8 @@ bool SIPServer::processRequest(SIPRequest& request,
   if((receivedRequest_ == nullptr && request.method != SIP_ACK) ||
      request.method == SIP_BYE)
   {
-    copyMessageDetails(request.message, receivedRequest_);
+    receivedRequest_ = std::shared_ptr<SIPRequest> (new SIPRequest);
+    *receivedRequest_ = request;
   }
   else if (request.method != SIP_ACK && request.method != SIP_CANCEL)
   {
@@ -135,7 +136,7 @@ void SIPServer::responseSender(SIPResponseStatus type)
   response.type = type;
   response.sipVersion = SIP_VERSION;
 
-  copyMessageDetails(receivedRequest_, response.message);
+  copyResponseDetails(receivedRequest_->message, response.message);
   response.message->maxForwards = nullptr; // no max-forwards in responses
 
   response.message->contentLength = 0;
@@ -148,7 +149,9 @@ void SIPServer::responseSender(SIPResponseStatus type)
                "Sending a final response. Deleting request details.",
                {"SessionID", "Code", "Cseq"},
                {QString::number(sessionID_), QString::number(responseCode),
-                QString::number(receivedRequest_->cSeq.cSeq)});
+                QString::number(receivedRequest_->message->cSeq.cSeq)});
+
+    // reset the request since we have responded to it
     receivedRequest_ = nullptr;
   }
 
@@ -156,8 +159,8 @@ void SIPServer::responseSender(SIPResponseStatus type)
 }
 
 
-void SIPServer::copyMessageDetails(std::shared_ptr<SIPMessageHeader>& inMessage,
-                        std::shared_ptr<SIPMessageHeader>& copy)
+void SIPServer::copyResponseDetails(std::shared_ptr<SIPMessageHeader>& inMessage,
+                                    std::shared_ptr<SIPMessageHeader>& copy)
 {
   Q_ASSERT(inMessage);
   Q_ASSERT(inMessage->from.tagParameter != "");
@@ -185,12 +188,31 @@ void SIPServer::copyMessageDetails(std::shared_ptr<SIPMessageHeader>& inMessage,
 }
 
 
-bool SIPServer::isCANCELYours(std::shared_ptr<SIPMessageHeader> cancel)
+bool SIPServer::isCANCELYours(SIPRequest& cancel)
 {
-  // TODO: Check more info
   return receivedRequest_ != nullptr &&
-      !receivedRequest_->vias.empty() &&
-      !cancel->vias.empty() &&
-      receivedRequest_->vias.first().branch == cancel->vias.first().branch;// &&
-//      receivedRequest_.requestURI == cancel->requestURI;
+      !receivedRequest_->message->vias.empty() &&
+      !cancel.message->vias.empty() &&
+      receivedRequest_->message->vias.first().branch == cancel.message->vias.first().branch &&
+      equalURIs(receivedRequest_->requestURI, cancel.requestURI) &&
+      receivedRequest_->message->callID == cancel.message->callID &&
+      receivedRequest_->message->cSeq.cSeq == cancel.message->cSeq.cSeq &&
+      equalToFrom(receivedRequest_->message->from, cancel.message->from) &&
+      equalToFrom(receivedRequest_->message->to, cancel.message->to);
+}
+
+
+bool SIPServer::equalURIs(SIP_URI& first, SIP_URI& second)
+{
+  return first.type == second.type &&
+      first.hostport.host == second.hostport.host &&
+      first.hostport.port == second.hostport.port &&
+      first.userinfo.user == second.userinfo.user;
+}
+
+
+bool SIPServer::equalToFrom(ToFrom& first, ToFrom& second)
+{
+  return first.address.realname == second.address.realname &&
+      equalURIs(first.address.uri, second.address.uri);
 }
