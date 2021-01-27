@@ -17,16 +17,10 @@ void SIPServer::init(SIPTransactionUser* tu, uint32_t sessionID)
   sessionID_ = sessionID;
 }
 
-/*
-void SIPServerTransaction::setCurrentRequest(SIPRequest& request)
-{
-  copyMessageDetails(request.message, receivedRequest_);
-}
-*/
 
 // processes incoming request
 bool SIPServer::processRequest(SIPRequest& request,
-                                          SIPDialogState &state)
+                               SIPDialogState &state)
 {
   Q_ASSERT(transactionUser_ && sessionID_);
   if(!transactionUser_ || sessionID_ == 0)
@@ -38,7 +32,8 @@ bool SIPServer::processRequest(SIPRequest& request,
 
   // TODO: check that the request is appropriate at this time.
 
-  if((receivedRequest_ == nullptr && request.method != SIP_ACK) || request.method == SIP_BYE)
+  if((receivedRequest_ == nullptr && request.method != SIP_ACK) ||
+     request.method == SIP_BYE)
   {
     copyMessageDetails(request.message, receivedRequest_);
   }
@@ -56,7 +51,8 @@ bool SIPServer::processRequest(SIPRequest& request,
   {
     if (!state.getState())
     {
-      if (!transactionUser_->incomingCall(sessionID_, request.message->from.address.realname))
+      if (!transactionUser_->incomingCall(sessionID_,
+                                          request.message->from.address.realname))
       {
         // if we did not auto-accept
         responseSender(SIP_RINGING);
@@ -109,49 +105,56 @@ bool SIPServer::processRequest(SIPRequest& request,
   return true;
 }
 
-void SIPServer::getResponseMessage(std::shared_ptr<SIPMessageHeader> &outMessage,
-                                              SIPResponseStatus type)
-{
-  if(receivedRequest_ == nullptr)
-  {
-    printDebug(DEBUG_PROGRAM_ERROR, this, 
-               "The received request was not set before trying to use it!");
-    return;
-  }
-  copyMessageDetails(receivedRequest_, outMessage);
-  outMessage->maxForwards = nullptr; // no max-forwards in responses
 
-  outMessage->contentLength = 0;
-  outMessage->contentType = MT_NONE;
-
-  int responseCode = type;
-  if(responseCode >= 200)
-  {
-    printDebug(DEBUG_NORMAL, this, 
-               "Sending a final response. Deleting request details.",
-               {"SessionID", "Code", "Cseq"},
-               {QString::number(sessionID_), QString::number(responseCode),
-                QString::number(receivedRequest_->cSeq.cSeq)});
-    receivedRequest_.reset();
-    receivedRequest_ = nullptr;
-  }
-}
-
-void SIPServer::responseAccept()
+void SIPServer::respondOK()
 {
   responseSender(SIP_OK);
 }
 
-void SIPServer::respondReject()
+
+void SIPServer::respondDECLINE()
 {
   responseSender(SIP_DECLINE);
 }
 
+
 void SIPServer::responseSender(SIPResponseStatus type)
 {
   Q_ASSERT(receivedRequest_ != nullptr);
-  emit sendResponse(sessionID_, type);
+
+  if(receivedRequest_ == nullptr)
+  {
+    printDebug(DEBUG_PROGRAM_ERROR, this,
+               "The received request was not set before trying to use it!");
+    return;
+  }
+
+  printNormal(this, "Initiate sending of a dialog response");
+
+  SIPResponse response;
+  response.type = type;
+  response.sipVersion = SIP_VERSION;
+
+  copyMessageDetails(receivedRequest_, response.message);
+  response.message->maxForwards = nullptr; // no max-forwards in responses
+
+  response.message->contentLength = 0;
+  response.message->contentType = MT_NONE;
+
+  int responseCode = type;
+  if(responseCode >= 200)
+  {
+    printDebug(DEBUG_NORMAL, this,
+               "Sending a final response. Deleting request details.",
+               {"SessionID", "Code", "Cseq"},
+               {QString::number(sessionID_), QString::number(responseCode),
+                QString::number(receivedRequest_->cSeq.cSeq)});
+    receivedRequest_ = nullptr;
+  }
+
+  emit sendResponse(sessionID_, response);
 }
+
 
 void SIPServer::copyMessageDetails(std::shared_ptr<SIPMessageHeader>& inMessage,
                         std::shared_ptr<SIPMessageHeader>& copy)
@@ -162,34 +165,32 @@ void SIPServer::copyMessageDetails(std::shared_ptr<SIPMessageHeader>& inMessage,
   copy = std::shared_ptr<SIPMessageHeader> (new SIPMessageHeader());
   // Which fields to copy are listed in section 8.2.6.2 of RFC 3621
 
-  // from-field
-  copy->from = inMessage->from;
-
   // Call-ID field
   copy->callID = inMessage->callID;
 
   // CSeq
   copy->cSeq = inMessage->cSeq;
 
-  copy->recordRoutes = inMessage->recordRoutes;
-
-  // Via- fields in same order
-  for(ViaField& via : inMessage->vias)
-  {
-    copy->vias.push_back(via);
-  }
+  // from-field
+  copy->from = inMessage->from;
 
   // To field, expect if To tag is missing, in which case it should be added
   // To tag is added in dialog when checking the first request.
   copy->to = inMessage->to;
+
+  // Via- fields in same order
+  copy->vias = inMessage->vias;
+
+  copy->recordRoutes = inMessage->recordRoutes;
 }
 
 
-bool SIPServer::isCancelYours(std::shared_ptr<SIPMessageHeader> cancel)
+bool SIPServer::isCANCELYours(std::shared_ptr<SIPMessageHeader> cancel)
 {
   // TODO: Check more info
   return receivedRequest_ != nullptr &&
       !receivedRequest_->vias.empty() &&
       !cancel->vias.empty() &&
-      receivedRequest_->vias.first().branch == cancel->vias.first().branch;
+      receivedRequest_->vias.first().branch == cancel->vias.first().branch;// &&
+//      receivedRequest_.requestURI == cancel->requestURI;
 }

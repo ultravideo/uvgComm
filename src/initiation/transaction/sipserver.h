@@ -28,34 +28,25 @@ public:
   bool processRequest(SIPRequest& request,
                       SIPDialogState& state);
 
-  void getResponseMessage(std::shared_ptr<SIPMessageHeader> &outMessage,
-                          SIPResponseStatus type);
-
-  // set the request details so we can use them when sending response
-  // used in special cases where we know the response before calling process function.
-  void setCurrentRequest(SIPRequest& request);
-
   // send a accept/reject response to received request according to user.
-  void responseAccept();
-  void respondReject();
+  void respondOK();
+  void respondDECLINE();
 
-  bool isCancelYours(std::shared_ptr<SIPMessageHeader> cancel);
+  bool isCANCELYours(std::shared_ptr<SIPMessageHeader> cancel);
 
 signals:
 
   // a signal that response of the following type should be sent.
-  void sendResponse(uint32_t sessionID, SIPResponseStatus type);
+  void sendResponse(uint32_t sessionID, SIPResponse& response);
 
 private:
 
   void responseSender(SIPResponseStatus type);
-  bool goodRequest(); // use this to filter out untimely/duplicate requests
 
   // Copies the fields of to a response which are direct copies of the request.
   // includes at least via, to, from, CallID and cseq
   void copyMessageDetails(std::shared_ptr<SIPMessageHeader> &inMessage,
                           std::shared_ptr<SIPMessageHeader> &copy);
-
 
   uint32_t sessionID_;
 

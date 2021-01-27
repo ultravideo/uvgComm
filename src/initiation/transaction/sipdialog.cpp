@@ -63,13 +63,13 @@ void SIPDialog::renegotiateCall()
 
 void SIPDialog::acceptCall()
 {
-  server_.responseAccept();
+  server_.respondOK();
 }
 
 
 void SIPDialog::rejectCall()
 {
-  server_.respondReject();
+  server_.respondDECLINE();
 }
 
 
@@ -89,7 +89,7 @@ bool SIPDialog::isThisYours(SIPRequest& request)
 {
   if (request.method == SIP_CANCEL)
   {
-    return server_.isCancelYours(request.message);
+    return server_.isCANCELYours(request.message);
   }
   return state_.correctRequestDialog(request.message,
                                      request.method,
@@ -146,15 +146,9 @@ void SIPDialog::generateRequest(uint32_t sessionID, SIPRequest& request)
 }
 
 
-void SIPDialog::generateResponse(uint32_t sessionID, SIPResponseStatus type)
+void SIPDialog::generateResponse(uint32_t sessionID, SIPResponse& response)
 {
-  printNormal(this, "Iniate sending of a dialog response");
-
   // Get all the necessary information from different components.
-  SIPResponse response;
-  response.type = type;
-  response.sipVersion = SIP_VERSION;
-  server_.getResponseMessage(response.message, type);
 
   emit sendResponse(sessionID, response);
   printNormal(this, "Finished sending of a dialog response");
