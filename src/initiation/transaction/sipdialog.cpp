@@ -138,16 +138,8 @@ void SIPDialog::generateRequest(uint32_t sessionID, SIPRequest& request)
 {
   printNormal(this, "Initiate sending of a dialog request");
 
-  // Get all the necessary information from different components.
-  if (request.method != SIP_CANCEL)
-  {
-    QVariant content; // unused
-    state_.processOutgoingRequest(request, content);
-
-    Q_ASSERT(request.message != nullptr);
-
-    client_.recordRequest(request);
-  }
+  QVariant content; // unused
+  state_.processOutgoingRequest(request, content);
 
   emit sendRequest(sessionID, request);
   printNormal(this, "Finished sending of a dialog request");

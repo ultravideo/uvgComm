@@ -41,12 +41,6 @@ public:
   bool processResponse(SIPResponse& response,
                        SIPDialogState& state);
 
-  // used to record request in case we want to cancel it
-  void recordRequest(SIPRequest& request)
-  {
-    sentRequest_ = request;
-  }
-
 signals:
   // send messages to other end
   void sendDialogRequest(uint32_t sessionID, SIPRequest& request);
@@ -93,7 +87,6 @@ private:
   // used to keep track of our current transaction. This means it is used to
   // determine what request the response is responding to.
   SIPRequestMethod ongoingTransactionType_;
-  SIPRequest sentRequest_;
 
   QTimer requestTimer_;
 

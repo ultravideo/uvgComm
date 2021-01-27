@@ -95,4 +95,6 @@ private:
   QList<SIPRouteLocation> route_;
 
   bool sessionState_;
+
+  SIPRequest previousRequest_;
 };

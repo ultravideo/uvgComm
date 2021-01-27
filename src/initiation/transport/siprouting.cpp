@@ -30,17 +30,25 @@ void SIPRouting::processOutgoingRequest(SIPRequest& request, QVariant& content)
     return;
   }
 
-  addVia(request.method, request.message,
-         connection_->localAddress().toString(),
-         connection_->localPort());
+  if (request.method != SIP_CANCEL)
+  {
+    addVia(request.method, request.message,
+           connection_->localAddress().toString(),
+           connection_->localPort());
+  }
+  else
+  {
+    request.message->vias.push_front(previousVia_);
+  }
 
   if (request.method == SIP_INVITE)
   {
     addContactField(request.message,
-                      connection_->localAddress().toString(),
-                      connection_->localPort(),
-                      DEFAULT_SIP_TYPE);
+                    connection_->localAddress().toString(),
+                    connection_->localPort(),
+                    DEFAULT_SIP_TYPE);
   }
+
 }
 
 
@@ -92,11 +100,11 @@ void SIPRouting::processResponseViaFields(QList<ViaField>& vias,
   {
     if (via.sentBy == localAddress && via.port == localPort)
     {
-      printDebug(DEBUG_NORMAL, "SIPRouting", "Found our via. This is meant for us!");
+      printNormal(this, "Found our via. This is meant for us!");
 
       if (via.rportValue != 0 && via.receivedAddress != "")
       {
-        printDebug(DEBUG_NORMAL, "SIPRouting", "Found our received address and rport",
+        printNormal(this, "Found our received address and rport",
                   {"Address"}, {via.receivedAddress + ":" + QString::number(via.rportValue)});
 
         // we do not update our address, because we want to remove this registration
@@ -137,6 +145,8 @@ void SIPRouting::addVia(SIPRequestMethod type,
   {
     message->vias.back().rport = true;
   }
+
+  previousVia_ = message->vias.back();
 }
 
 

@@ -186,17 +186,6 @@ bool SIPClient::processResponse(SIPResponse& response,
 void SIPClient::generateRequest(SIPRequestMethod type,
                                 SIPRequest& request)
 {
-  if (type == SIP_CANCEL)
-  {
-    request = sentRequest_;
-    request.method = SIP_CANCEL;
-    request.message->expires = nullptr;
-
-    // TODO: Instead just copy request-URI, call-ID, to,
-    // cseq number (not method), and from
-    return;
-  }
-
   request.sipVersion = SIP_VERSION;
   request.method = type;
   request.message = std::shared_ptr<SIPMessageHeader> (new SIPMessageHeader);

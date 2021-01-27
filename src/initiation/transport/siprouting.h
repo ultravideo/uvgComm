@@ -57,4 +57,6 @@ private:
   uint16_t contactPort_;
 
   bool first_;
+
+  ViaField previousVia_;
 };

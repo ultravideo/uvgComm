@@ -17,7 +17,8 @@ SIPDialogState::SIPDialogState():
   localCSeq_(QDateTime::currentSecsSinceEpoch()%2147483647),
   remoteCSeq_(0),
   route_(),
-  sessionState_(false)
+  sessionState_(false),
+  previousRequest_({SIP_NO_REQUEST, {}, "",nullptr})
 {}
 
 
@@ -183,28 +184,51 @@ void SIPDialogState::processOutgoingRequest(SIPRequest& request, QVariant& conte
                 {"username", "host", "remote username", "remote host"},
                 {localURI_.uri.userinfo.user, localURI_.uri.hostport.host,
                  remoteURI_.uri.userinfo.user, remoteURI_.uri.hostport.host});
+    return;
   }
 
-  request.requestURI = requestUri_;
-
-  if(request.method != SIP_ACK && request.method != SIP_CANCEL)
+  if (request.method == SIP_CANCEL)
   {
-    ++localCSeq_;
-    printDebug(DEBUG_NORMAL, "SIPDialogState",  "Increasing CSeq",
-              {"CSeq"}, {QString::number(localCSeq_)});
+    if (previousRequest_.method != SIP_INVITE)
+    {
+      printProgramWarning(this, "Trying to CANCEL a non-INVITE request!");
+      return;
+    }
+
+    request.requestURI = previousRequest_.requestURI;
+    request.message->callID = previousRequest_.message->callID;
+
+    // cseq method is still CANCEL
+    request.message->cSeq.cSeq = previousRequest_.message->cSeq.cSeq;
+
+    request.message->from = previousRequest_.message->from;
+    request.message->to = previousRequest_.message->to;
   }
+  else
+  {
+    request.requestURI = requestUri_;
 
-  request.message->cSeq.cSeq = localCSeq_;
+    if(request.method != SIP_ACK && request.method != SIP_CANCEL)
+    {
+      ++localCSeq_;
+      printDebug(DEBUG_NORMAL, "SIPDialogState",  "Increasing CSeq",
+                 {"CSeq"}, {QString::number(localCSeq_)});
+    }
 
-  request.message->from.address = localURI_;
-  request.message->from.tagParameter = localTag_;
+    request.message->cSeq.cSeq = localCSeq_;
 
-  request.message->to.address = remoteURI_;
-  request.message->to.tagParameter = remoteTag_;
+    request.message->from.address = localURI_;
+    request.message->from.tagParameter = localTag_;
 
-  request.message->callID = callID_;
+    request.message->to.address = remoteURI_;
+    request.message->to.tagParameter = remoteTag_;
 
-  request.message->routes = route_;
+    request.message->callID = callID_;
+
+    request.message->routes = route_;
+
+    previousRequest_ = request;
+  }
 }
 
 
