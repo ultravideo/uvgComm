@@ -1,7 +1,6 @@
 #pragma once
 
-#include <QObject>
-
+#include "initiation/sipmessageprocessor.h"
 #include "initiation/siptypes.h"
 
 /* This class implements the behavior defined in RFC3261 for component
@@ -15,7 +14,7 @@ class SIPTransactionUser;
 class SIPDialogState;
 
 
-class SIPServer : public QObject
+class SIPServer : public SIPMessageProcessor
 {
    Q_OBJECT
 public:
@@ -23,15 +22,21 @@ public:
 
   void init(SIPTransactionUser* tu, uint32_t sessionID);
 
-  // processes incoming request. Part of our server transaction
-  // returns whether we should continue this session
-  bool processRequest(SIPRequest& request);
-
   // send a accept/reject response to received request according to user.
   void respondOK();
   void respondDECLINE();
 
   bool isCANCELYours(SIPRequest &cancel);
+
+  bool shouldBeKeptAlive()
+  {
+    return shouldLive_;
+  }
+
+public slots:
+
+    // processes incoming request. Part of server transaction
+  virtual void processIncomingRequest(SIPRequest& request, QVariant& content);
 
 signals:
 
@@ -58,4 +63,6 @@ private:
   std::shared_ptr<SIPRequest> receivedRequest_;
 
   SIPTransactionUser* transactionUser_;
+
+  bool shouldLive_;
 };

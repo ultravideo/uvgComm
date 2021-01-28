@@ -107,7 +107,9 @@ bool SIPDialog::isThisYours(SIPResponse& response)
 
 bool SIPDialog::processRequest(SIPRequest& request)
 {
-  return server_.processRequest(request);
+  QVariant content; // unused
+  server_.processIncomingRequest(request, content);
+  return server_.shouldBeKeptAlive();
 }
 
 
