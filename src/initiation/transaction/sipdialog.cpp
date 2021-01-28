@@ -107,7 +107,7 @@ bool SIPDialog::isThisYours(SIPResponse& response)
 
 bool SIPDialog::processRequest(SIPRequest& request)
 {
-  return server_.processRequest(request, state_);
+  return server_.processRequest(request);
 }
 
 
@@ -125,7 +125,7 @@ bool SIPDialog::processResponse(SIPResponse& response)
 
   state_.processIncomingResponse(response, content);
 
-  if(!client_.processResponse(response, state_))
+  if(!client_.processResponse(response))
   {
     return false;
   }

@@ -80,11 +80,8 @@ void SIPClient::transactionREGISTER(uint32_t expires)
 }
 
 
-bool SIPClient::processResponse(SIPResponse& response,
-                                SIPDialogState &state)
+bool SIPClient::processResponse(SIPResponse& response)
 {
-  Q_UNUSED(state);
-
   printNormal(this, "Client starts processing response");
 
   int responseCode = response.type;
@@ -96,7 +93,6 @@ bool SIPClient::processResponse(SIPResponse& response,
     {
       transactionUser_->failure(sessionID_, response.text);
     }
-
     return false;
   }
 
@@ -151,21 +147,14 @@ bool SIPClient::processResponse(SIPResponse& response,
     {
       if(response.type == SIP_RINGING)
       {
-        if (!state.getState())
-        {
-          transactionUser_->callRinging(sessionID_);
-        }
+        transactionUser_->callRinging(sessionID_);
       }
       else if(response.type == SIP_OK)
       {
-        if (!state.getState())
-        {
-          transactionUser_->peerAccepted(sessionID_);
-        }
+        transactionUser_->peerAccepted(sessionID_);
 
         if (startTransaction(SIP_ACK))
         {
-          state.setState(true);
           transactionUser_->callNegotiated(sessionID_);
         }
       }

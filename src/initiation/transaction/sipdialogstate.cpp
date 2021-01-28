@@ -17,7 +17,6 @@ SIPDialogState::SIPDialogState():
   localCSeq_(QDateTime::currentSecsSinceEpoch()%2147483647),
   remoteCSeq_(0),
   route_(),
-  sessionState_(false),
   previousRequest_({SIP_NO_REQUEST, {}, "",nullptr})
 {}
 

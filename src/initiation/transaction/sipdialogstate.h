@@ -48,18 +48,6 @@ public:
   bool correctResponseDialog(std::shared_ptr<SIPMessageHeader> &inMessage,
                              uint32_t messageCSeq, bool recordToTag = true);
 
-
-  // set and get whether the dialog is active
-  bool getState() const
-  {
-    return sessionState_;
-  }
-
-  void setState(bool state)
-  {
-    sessionState_ = state;
-  }
-
 private:
 
   // forbid copy and assignment
@@ -93,8 +81,6 @@ private:
 
   // may be empty if there is no route
   QList<SIPRouteLocation> route_;
-
-  bool sessionState_;
 
   SIPRequest previousRequest_;
 };

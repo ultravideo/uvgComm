@@ -25,8 +25,7 @@ public:
 
   // processes incoming request. Part of our server transaction
   // returns whether we should continue this session
-  bool processRequest(SIPRequest& request,
-                      SIPDialogState& state);
+  bool processRequest(SIPRequest& request);
 
   // send a accept/reject response to received request according to user.
   void respondOK();
@@ -45,7 +44,7 @@ private:
 
   // Copies the fields of to a response which are direct copies of the request.
   // includes at least via, to, from, CallID and cseq
-  void copyMessageDetails(std::shared_ptr<SIPMessageHeader> &inMessage,
+  void copyResponseDetails(std::shared_ptr<SIPMessageHeader> &inMessage,
                           std::shared_ptr<SIPMessageHeader> &copy);
 
   bool equalURIs(SIP_URI& first, SIP_URI& second);

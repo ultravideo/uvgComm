@@ -117,7 +117,7 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
     {
       if (i.first == response.message->to.address.uri.hostport.host)
       {
-        if (!i.second->client.processResponse(response, i.second->state))
+        if (!i.second->client.processResponse(response))
         {
           printWarning(this, "Got a failure response to our REGISTER");
           i.second->status = INACTIVE;

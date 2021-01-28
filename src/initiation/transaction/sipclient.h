@@ -38,8 +38,7 @@ public:
 
   // processes incoming response. Part of our client transaction
   // returns whether we should keep the dialog alive
-  bool processResponse(SIPResponse& response,
-                       SIPDialogState& state);
+  bool processResponse(SIPResponse& response);
 
 signals:
   // send messages to other end

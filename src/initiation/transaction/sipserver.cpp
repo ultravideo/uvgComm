@@ -19,8 +19,7 @@ void SIPServer::init(SIPTransactionUser* tu, uint32_t sessionID)
 
 
 // processes incoming request
-bool SIPServer::processRequest(SIPRequest& request,
-                               SIPDialogState &state)
+bool SIPServer::processRequest(SIPRequest& request)
 {
   Q_ASSERT(transactionUser_ && sessionID_);
   if(!transactionUser_ || sessionID_ == 0)
@@ -29,8 +28,6 @@ bool SIPServer::processRequest(SIPRequest& request,
                "SIP Server transaction not initialized.");
     return false;
   }
-
-  // TODO: check that the request is appropriate at this time.
 
   if((receivedRequest_ == nullptr && request.method != SIP_ACK) ||
      request.method == SIP_BYE)
@@ -50,29 +47,25 @@ bool SIPServer::processRequest(SIPRequest& request,
   {
   case SIP_INVITE:
   {
-    if (!state.getState())
+    if (!transactionUser_->incomingCall(sessionID_,
+                                        request.message->from.address.realname))
     {
-      if (!transactionUser_->incomingCall(sessionID_,
-                                          request.message->from.address.realname))
-      {
-        // if we did not auto-accept
-        responseSender(SIP_RINGING);
-      }
+      // if we did not auto-accept
+      responseSender(SIP_RINGING);
     }
-    else {
+    else
+    {
       responseSender(SIP_OK);
     }
     break;
   }
   case SIP_ACK:
   {
-    state.setState(true);
     transactionUser_->callNegotiated(sessionID_);
     break;
   }
   case SIP_BYE:
   {
-    state.setState(false);
     responseSender(SIP_OK);
 
     // this takes too long, send response first.
