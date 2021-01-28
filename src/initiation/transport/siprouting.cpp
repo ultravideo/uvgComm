@@ -77,7 +77,7 @@ void SIPRouting::processIncomingResponse(SIPResponse& response, QVariant& conten
 {
   Q_UNUSED(content)
 
-  if (connection_ && !connection_->isConnected())
+  if (connection_ && connection_->isConnected())
   {
     processResponseViaFields(response.message->vias,
                              connection_->localAddress().toString(),
