@@ -4,6 +4,8 @@
 #include "ice.h"
 #include "initiation/negotiation/sdptypes.h"
 
+#include "initiation/sipmessageprocessor.h"
+
 #include <QMutex>
 
 #include <deque>
@@ -26,13 +28,56 @@ enum NegotiationState {NEG_NO_STATE,
                        NEG_ANSWER_GENERATED,
                        NEG_FINISHED};
 
-class Negotiation : public QObject
+
+class Negotiation : public SIPMessageProcessor
 {
   Q_OBJECT
 public:
   Negotiation();
 
   void init();
+
+  // frees the ports when they are not needed in rest of the program
+  void endSession(uint32_t sessionID);
+
+  void endAllSessions();
+
+  // call these only after the corresponding SDP has been generated
+  std::shared_ptr<SDPMessageInfo> getLocalSDP(uint32_t sessionID) const;
+  std::shared_ptr<SDPMessageInfo> getRemoteSDP(uint32_t sessionID) const;
+
+public slots:
+
+// TODO: Remove sessionID and localaddress from parameters
+virtual void processOutgoingRequest(SIPRequest& request, QVariant& content,
+                                    uint32_t sessionID);
+virtual void processOutgoingResponse(SIPResponse& response, QVariant& content,
+                                     uint32_t sessionID, QString localAddress);
+
+virtual void processIncomingRequest(SIPRequest& request, QVariant& content,
+                                    uint32_t sessionID, QString localAddress);
+virtual void processIncomingResponse(SIPResponse& response, QVariant& content,
+                                     uint32_t sessionID, QString localAddress);
+
+signals:
+  void iceNominationSucceeded(quint32 sessionID);
+  void iceNominationFailed(quint32 sessionID);
+
+public slots:
+  void nominationSucceeded(quint32 sessionID);
+
+private:
+
+  // When sending an SDP offer
+  bool SDPOfferToContent(QVariant &content, QString localAddress, uint32_t sessionID);
+  // When receiving an SDP offer
+  bool processOfferSDP(uint32_t sessionID, QVariant &content, QString localAddress);
+  // When sending an SDP answer
+  bool SDPAnswerToContent(QVariant &content, uint32_t sessionID);
+  // When receiving an SDP answer
+  bool processAnswerSDP(uint32_t sessionID, QVariant &content);
+
+  NegotiationState getState(uint32_t sessionID);
 
   // Use this to generate the first SDP offer of the negotiation.
   // Includes all the media codecs suitable to us in preferred order.
@@ -48,25 +93,6 @@ public:
   // process their response SDP.
   bool processAnswerSDP(SDPMessageInfo& remoteSDPAnswer, uint32_t sessionID);
 
-  // frees the ports when they are not needed in rest of the program
-  void endSession(uint32_t sessionID);
-
-  void endAllSessions();
-
-  // call these only after the corresponding SDP has been generated
-  std::shared_ptr<SDPMessageInfo> getLocalSDP(uint32_t sessionID) const;
-  std::shared_ptr<SDPMessageInfo> getRemoteSDP(uint32_t sessionID) const;
-
-  NegotiationState getState(uint32_t sessionID);
-
-signals:
-  void iceNominationSucceeded(quint32 sessionID);
-  void iceNominationFailed(quint32 sessionID);
-
-public slots:
-  void nominationSucceeded(quint32 sessionID);
-
-private:
 
   // Is the internal state of this class correct for this sessionID
   bool checkSessionValidity(uint32_t sessionID, bool checkRemote) const;

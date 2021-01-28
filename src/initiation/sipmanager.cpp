@@ -27,7 +27,8 @@ void SIPManager::init(SIPTransactionUser* callControl, StatisticsInterface *stat
   tcpServer_.setProxy(QNetworkProxy::NoProxy);
 
   // listen to everything
-  printNormal(this, "Listening to SIP TCP connections", "Port", QString::number(sipPort_));
+  printNormal(this, "Listening to SIP TCP connections", "Port",
+              QString::number(sipPort_));
 
   if (!tcpServer_.listen(QHostAddress::Any, sipPort_))
   {
@@ -239,21 +240,7 @@ void SIPManager::transportRequest(uint32_t sessionID, SIPRequest &request)
     if (transports_.find(transportID) != transports_.end())
     {
       QVariant content;
-      if(request.method == SIP_ACK && negotiation_.getState(sessionID)
-         == NEG_ANSWER_GENERATED)
-      {
-        request.message->contentLength = 0;
-        printNormal(this, "Adding SDP content to request");
-
-        request.message->contentType = MT_APPLICATION_SDP;
-
-        if (!SDPAnswerToContent(content, sessionID))
-        {
-          printError(this, "Failed to get SDP answer to request");
-          return;
-        }
-      }
-
+      negotiation_.processOutgoingRequest(request, content, sessionID);
       transports_[transportID]->processOutgoingRequest(request, content);
     }
     else {
@@ -278,31 +265,9 @@ void SIPManager::transportResponse(uint32_t sessionID, SIPResponse &response)
     {
       // determine if we to attach SDP to our response
       QVariant content;
-      if (response.type == SIP_OK
-          && response.message->cSeq.method == SIP_INVITE
-          && negotiation_.getState(sessionID) == NEG_NO_STATE)
-      {
-        printNormal(this, "Adding SDP to an OK response");
-        response.message->contentLength = 0;
-        response.message->contentType = MT_APPLICATION_SDP;
-        if (!SDPOfferToContent(content, transports_[transportID]->getLocalAddress(), sessionID))
-        {
-          return;
-        }
-      }
-      // if they sent an offer in their INVITE
-      else if (negotiation_.getState(sessionID) == NEG_ANSWER_GENERATED)
-      {
-        printNormal(this, "Adding SDP to response since INVITE had an SDP.");
 
-        response.message->contentLength = 0;
-        response.message->contentType = MT_APPLICATION_SDP;
-        if (!SDPAnswerToContent(content, sessionID))
-        {
-          printError(this, "Failed to get SDP answer to response");
-          return;
-        }
-      }
+      negotiation_.processOutgoingResponse(response, content, sessionID,
+                                           transports_[transportID]->getLocalAddress());
 
       // send the request with or without SDP
       transports_[transportID]->processOutgoingResponse(response, content);
@@ -351,50 +316,9 @@ void SIPManager::processSIPRequest(SIPRequest& request, QString localAddress,
     if (sessionID != 0)
     {
       sessionToTransportID_[sessionID] = transportID;
+      negotiation_.processIncomingRequest(request, content, sessionID,
+                                          transports_[transportID]->getLocalAddress());
 
-      if((request.method == SIP_INVITE || request.method == SIP_ACK)
-         && request.message->contentType == MT_APPLICATION_SDP)
-      {
-        switch (negotiation_.getState(sessionID))
-        {
-        case NEG_NO_STATE:
-        {
-          printDebug(DEBUG_NORMAL, this, 
-                     "Got first SDP offer.");
-          if(!processOfferSDP(sessionID, content, transports_[transportID]->getLocalAddress()))
-          {
-             printDebug(DEBUG_PROGRAM_ERROR, this, 
-                        "Failure to process SDP offer not implemented.");
-
-             //foundDialog->server->setCurrentRequest(request); // TODO
-             //sendResponse(sessionID, SIP_DECLINE, request.type);
-             return;
-          }
-          break;
-        }
-        case NEG_OFFER_GENERATED:
-        {
-          printDebug(DEBUG_NORMAL, this, 
-                     "Got an SDP answer.");
-          processAnswerSDP(sessionID, content);
-          break;
-        }
-        case NEG_ANSWER_GENERATED: // TODO: Not sure if these make any sense
-        {
-          printDebug(DEBUG_NORMAL, this, 
-                     "They sent us another SDP offer.");
-          processOfferSDP(sessionID, content, transports_[transportID]->getLocalAddress());
-          break;
-        }
-        case NEG_FINISHED:
-        {
-          printDebug(DEBUG_NORMAL, this, 
-                     "Got a new SDP offer in response.");
-          processOfferSDP(sessionID, content, transports_[transportID]->getLocalAddress());
-          break;
-        }
-        }
-      }
       dialogManager_.processSIPRequest(request, sessionID);
     }
     else
@@ -430,60 +354,17 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
     return;
   }
 
-  if(response.message->cSeq.method == SIP_INVITE && response.type == SIP_OK)
+  if(sessionToTransportID_.find(sessionID) == sessionToTransportID_.end())
   {
-    if(response.message->contentType == MT_APPLICATION_SDP)
-    {
-      if(sessionToTransportID_.find(sessionID) == sessionToTransportID_.end())
-      {
-        printDebug(DEBUG_WARNING, this, 
-                   "Could not identify transport for session");
-        return;
-      }
-
-      quint32 transportID = sessionToTransportID_[sessionID];
-
-      switch (negotiation_.getState(sessionID))
-      {
-      case NEG_NO_STATE:
-      {
-        printDebug(DEBUG_NORMAL, this, 
-                   "Got first SDP offer.");
-        if(!processOfferSDP(sessionID, content, transports_[transportID]->getLocalAddress()))
-        {
-           printDebug(DEBUG_PROGRAM_ERROR, this, 
-                      "Failure to process SDP offer not implemented.");
-
-           //foundDialog->server->setCurrentRequest(request); // TODO
-           //sendResponse(sessionID, SIP_DECLINE, request.type);
-           return;
-        }
-        break;
-      }
-      case NEG_OFFER_GENERATED:
-      {
-        printDebug(DEBUG_NORMAL, this, 
-                   "Got an SDP answer.");
-        processAnswerSDP(sessionID, content);
-        break;
-      }
-      case NEG_ANSWER_GENERATED: // TODO: Not sure if these make any sense
-      {
-        printDebug(DEBUG_NORMAL, this, 
-                   "They sent us another SDP offer.");
-        processOfferSDP(sessionID, content, transports_[transportID]->getLocalAddress());
-        break;
-      }
-      case NEG_FINISHED:
-      {
-        printDebug(DEBUG_NORMAL, this, 
-                   "Got a new SDP offer in response.");
-        processOfferSDP(sessionID, content, transports_[transportID]->getLocalAddress());
-        break;
-      }
-      }
-    }
+    printDebug(DEBUG_WARNING, this,
+               "Could not identify transport for session");
+    return;
   }
+
+  quint32 transportID = sessionToTransportID_[sessionID];
+
+  negotiation_.processIncomingResponse(response, content, sessionID,
+                                       transports_[transportID]->getLocalAddress());
 
   dialogManager_.processSIPResponse(response, sessionID);
 }
@@ -528,79 +409,4 @@ bool SIPManager::isConnected(QString remoteAddress, quint32& outTransportID)
 }
 
 
-bool SIPManager::SDPOfferToContent(QVariant& content, QString localAddress,
-                                   uint32_t sessionID)
-{
-  std::shared_ptr<SDPMessageInfo> pointer;
 
-  printDebug(DEBUG_NORMAL, this,  "Adding one-to-one SDP.");
-  if(!negotiation_.generateOfferSDP(localAddress, sessionID))
-  {
-    printWarning(this, "Failed to generate local SDP when sending offer.");
-    return false;
-  }
-   pointer = negotiation_.getLocalSDP(sessionID);
-
-  Q_ASSERT(pointer != nullptr);
-
-  SDPMessageInfo sdp = *pointer;
-  content.setValue(sdp);
-  return true;
-}
-
-
-bool SIPManager::processOfferSDP(uint32_t sessionID, QVariant& content,
-                                 QString localAddress)
-{
-  if(!content.isValid())
-  {
-    printDebug(DEBUG_PROGRAM_ERROR, this, 
-                     "The SDP content is not valid at processing. "
-                     "Should be detected earlier.");
-    return false;
-  }
-
-  SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
-  if(!negotiation_.generateAnswerSDP(retrieved, localAddress, sessionID))
-  {
-    printWarning(this, "Remote SDP not suitable or we have no ports to assign");
-    negotiation_.endSession(sessionID);
-    return false;
-  }
-
-  return true;
-}
-
-
-bool SIPManager::SDPAnswerToContent(QVariant &content, uint32_t sessionID)
-{
-  SDPMessageInfo sdp;
-  std::shared_ptr<SDPMessageInfo> pointer = negotiation_.getLocalSDP(sessionID);
-  if (pointer == nullptr)
-  {
-    return false;
-  }
-  sdp = *pointer;
-  content.setValue(sdp);
-  return true;
-}
-
-
-bool SIPManager::processAnswerSDP(uint32_t sessionID, QVariant &content)
-{
-  SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
-  if (!content.isValid())
-  {
-    printDebug(DEBUG_PROGRAM_ERROR, this, 
-               "Content is not valid when processing SDP. "
-               "Should be detected earlier.");
-    return false;
-  }
-
-  if(!negotiation_.processAnswerSDP(retrieved, sessionID))
-  {
-    return false;
-  }
-
-  return true;
-}

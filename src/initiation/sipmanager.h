@@ -87,15 +87,6 @@ private:
 
   // Helper functions for SDP management.
 
-  // When sending an SDP offer
-  bool SDPOfferToContent(QVariant &content, QString localAddress, uint32_t sessionID);
-  // When receiving an SDP offer
-  bool processOfferSDP(uint32_t sessionID, QVariant &content, QString localAddress);
-  // When sending an SDP answer
-  bool SDPAnswerToContent(QVariant &content, uint32_t sessionID);
-  // When receiving an SDP answer
-  bool processAnswerSDP(uint32_t sessionID, QVariant &content);
-
   ConnectionServer tcpServer_;
   uint16_t sipPort_;
 

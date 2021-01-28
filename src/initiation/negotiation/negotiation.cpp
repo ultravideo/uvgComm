@@ -26,6 +26,154 @@ void Negotiation::init()
 }
 
 
+void Negotiation::processOutgoingRequest(SIPRequest& request, QVariant& content, uint32_t sessionID)
+{
+  if(request.method == SIP_ACK && getState(sessionID)
+     == NEG_ANSWER_GENERATED)
+  {
+    request.message->contentLength = 0;
+    printNormal(this, "Adding SDP content to request");
+
+    request.message->contentType = MT_APPLICATION_SDP;
+
+    if (!SDPAnswerToContent(content, sessionID))
+    {
+      printError(this, "Failed to get SDP answer to request");
+      return;
+    }
+  }
+}
+
+
+void Negotiation::processOutgoingResponse(SIPResponse& response, QVariant& content,
+                                          uint32_t sessionID, QString localAddress)
+{
+  if (response.type == SIP_OK
+      && response.message->cSeq.method == SIP_INVITE
+      && getState(sessionID) == NEG_NO_STATE)
+  {
+    printNormal(this, "Adding SDP to an OK response");
+    response.message->contentLength = 0;
+    response.message->contentType = MT_APPLICATION_SDP;
+    if (!SDPOfferToContent(content, localAddress, sessionID))
+    {
+      return;
+    }
+  }
+  // if they sent an offer in their INVITE
+  else if (getState(sessionID) == NEG_ANSWER_GENERATED)
+  {
+    printNormal(this, "Adding SDP to response since INVITE had an SDP.");
+
+    response.message->contentLength = 0;
+    response.message->contentType = MT_APPLICATION_SDP;
+    if (!SDPAnswerToContent(content, sessionID))
+    {
+      printError(this, "Failed to get SDP answer to response");
+      return;
+    }
+  }
+
+}
+
+void Negotiation::processIncomingRequest(SIPRequest& request, QVariant& content,
+                                         uint32_t sessionID, QString localAddress)
+{
+  if((request.method == SIP_INVITE || request.method == SIP_ACK)
+     && request.message->contentType == MT_APPLICATION_SDP)
+  {
+    switch (getState(sessionID))
+    {
+    case NEG_NO_STATE:
+    {
+      printDebug(DEBUG_NORMAL, this,
+                 "Got first SDP offer.");
+      if(!processOfferSDP(sessionID, content, localAddress))
+      {
+         printDebug(DEBUG_PROGRAM_ERROR, this,
+                    "Failure to process SDP offer not implemented.");
+
+         //sendResponse(sessionID, SIP_DECLINE, request.type);
+         return;
+      }
+      break;
+    }
+    case NEG_OFFER_GENERATED:
+    {
+      printDebug(DEBUG_NORMAL, this,
+                 "Got an SDP answer.");
+      processAnswerSDP(sessionID, content);
+      break;
+    }
+    case NEG_ANSWER_GENERATED: // TODO: Not sure if these make any sense
+    {
+      printDebug(DEBUG_NORMAL, this,
+                 "They sent us another SDP offer.");
+      processOfferSDP(sessionID, content, localAddress);
+      break;
+    }
+    case NEG_FINISHED:
+    {
+      printDebug(DEBUG_NORMAL, this,
+                 "Got a new SDP offer in response.");
+      processOfferSDP(sessionID, content, localAddress);
+      break;
+    }
+    }
+  }
+}
+
+
+void Negotiation::processIncomingResponse(SIPResponse& response, QVariant& content,
+                                          uint32_t sessionID, QString localAddress)
+{
+  if(response.message->cSeq.method == SIP_INVITE && response.type == SIP_OK)
+  {
+    if(response.message->contentType == MT_APPLICATION_SDP)
+    {
+      switch (getState(sessionID))
+      {
+      case NEG_NO_STATE:
+      {
+        printDebug(DEBUG_NORMAL, this,
+                   "Got first SDP offer.");
+        if(!processOfferSDP(sessionID, content, localAddress))
+        {
+           printDebug(DEBUG_PROGRAM_ERROR, this,
+                      "Failure to process SDP offer not implemented.");
+
+           //sendResponse(sessionID, SIP_DECLINE, request.type);
+           return;
+        }
+        break;
+      }
+      case NEG_OFFER_GENERATED:
+      {
+        printDebug(DEBUG_NORMAL, this,
+                   "Got an SDP answer.");
+        processAnswerSDP(sessionID, content);
+        break;
+      }
+      case NEG_ANSWER_GENERATED: // TODO: Not sure if these make any sense
+      {
+        printDebug(DEBUG_NORMAL, this,
+                   "They sent us another SDP offer.");
+        processOfferSDP(sessionID, content, localAddress);
+        break;
+      }
+      case NEG_FINISHED:
+      {
+        printDebug(DEBUG_NORMAL, this,
+                   "Got a new SDP offer in response.");
+        processOfferSDP(sessionID, content, localAddress);
+        break;
+      }
+      }
+    }
+  }
+}
+
+
 bool Negotiation::generateOfferSDP(QString localAddress,
                                         uint32_t sessionID)
 {
@@ -266,5 +414,82 @@ bool Negotiation::checkSessionValidity(uint32_t sessionID, bool checkRemote) con
               {"sessionID"}, {QString::number(sessionID)});
     return false;
   }
+  return true;
+}
+
+bool Negotiation::SDPOfferToContent(QVariant& content, QString localAddress,
+                                    uint32_t sessionID)
+{
+  std::shared_ptr<SDPMessageInfo> pointer;
+
+  printDebug(DEBUG_NORMAL, this,  "Adding one-to-one SDP.");
+  if(!generateOfferSDP(localAddress, sessionID))
+  {
+    printWarning(this, "Failed to generate local SDP when sending offer.");
+    return false;
+  }
+   pointer = getLocalSDP(sessionID);
+
+  Q_ASSERT(pointer != nullptr);
+
+  SDPMessageInfo sdp = *pointer;
+  content.setValue(sdp);
+  return true;
+}
+
+
+bool Negotiation::processOfferSDP(uint32_t sessionID, QVariant& content,
+                                  QString localAddress)
+{
+  if(!content.isValid())
+  {
+    printDebug(DEBUG_PROGRAM_ERROR, this,
+                     "The SDP content is not valid at processing. "
+                     "Should be detected earlier.");
+    return false;
+  }
+
+  SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
+  if(!generateAnswerSDP(retrieved, localAddress, sessionID))
+  {
+    printWarning(this, "Remote SDP not suitable or we have no ports to assign");
+    endSession(sessionID);
+    return false;
+  }
+
+  return true;
+}
+
+
+bool Negotiation::SDPAnswerToContent(QVariant &content, uint32_t sessionID)
+{
+  SDPMessageInfo sdp;
+  std::shared_ptr<SDPMessageInfo> pointer = getLocalSDP(sessionID);
+  if (pointer == nullptr)
+  {
+    return false;
+  }
+  sdp = *pointer;
+  content.setValue(sdp);
+  return true;
+}
+
+
+bool Negotiation::processAnswerSDP(uint32_t sessionID, QVariant &content)
+{
+  SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
+  if (!content.isValid())
+  {
+    printDebug(DEBUG_PROGRAM_ERROR, this,
+               "Content is not valid when processing SDP. "
+               "Should be detected earlier.");
+    return false;
+  }
+
+  if(!processAnswerSDP(retrieved, sessionID))
+  {
+    return false;
+  }
+
   return true;
 }
