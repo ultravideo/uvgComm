@@ -124,8 +124,9 @@ bool SIPDialog::processResponse(SIPResponse& response)
   QVariant content; // unused
 
   state_.processIncomingResponse(response, content);
+  client_.processIncomingResponse(response, content);
 
-  if(!client_.processResponse(response))
+  if(!client_.shouldBeKeptAlive())
   {
     return false;
   }

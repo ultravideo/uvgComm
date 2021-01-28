@@ -9,7 +9,8 @@
 SIPClient::SIPClient():
   ongoingTransactionType_(SIP_NO_REQUEST),
   sessionID_(0),
-  transactionUser_(nullptr)
+  transactionUser_(nullptr),
+  shouldLive_(true)
 {
   requestTimer_.setSingleShot(true);
   connect(&requestTimer_, SIGNAL(timeout()), this, SLOT(requestTimeOut()));
@@ -80,8 +81,10 @@ void SIPClient::transactionREGISTER(uint32_t expires)
 }
 
 
-bool SIPClient::processResponse(SIPResponse& response)
+void SIPClient::processIncomingResponse(SIPResponse& response, QVariant& content)
 {
+  Q_UNUSED(content)
+
   printNormal(this, "Client starts processing response");
 
   int responseCode = response.type;
@@ -93,7 +96,8 @@ bool SIPClient::processResponse(SIPResponse& response)
     {
       transactionUser_->failure(sessionID_, response.text);
     }
-    return false;
+    shouldLive_ = false;
+    return;
   }
 
   // Provisional response, continuing.
@@ -163,12 +167,13 @@ bool SIPClient::processResponse(SIPResponse& response)
     {
       transactionUser_->endCall(sessionID_);
     }
-    return true;
+    shouldLive_ = true;
+    return;
   }
 
   // delete dialog if response was not provisional or success.
-
-  return false;
+  shouldLive_ = false;
+  return;
 }
 
 
@@ -282,3 +287,4 @@ void SIPClient::requestTimeOut()
     {"Ongoing transaction"}, {QString::number(ongoingTransactionType_)});
   processTimeout();
 }
+

@@ -1,9 +1,9 @@
 #pragma once
 
+#include "initiation/sipmessageprocessor.h"
 #include "initiation/siptypes.h"
 
 #include <QTimer>
-#include <QObject>
 
 // A class for handling all sent requests and processing responses. The purpose
 // of this class is to keep track of request transaction state on client side.
@@ -12,7 +12,7 @@
 class SIPTransactionUser;
 class SIPDialogState;
 
-class SIPClient : public QObject
+class SIPClient : public SIPMessageProcessor
 {
   Q_OBJECT
 public:
@@ -36,9 +36,15 @@ public:
         && requestType != SIP_NO_REQUEST;
   }
 
-  // processes incoming response. Part of our client transaction
-  // returns whether we should keep the dialog alive
-  bool processResponse(SIPResponse& response);
+  bool shouldBeKeptAlive()
+  {
+    return shouldLive_;
+  }
+
+public slots:
+
+  // processes incoming response. Part of client transaction
+  virtual void processIncomingResponse(SIPResponse& response, QVariant& content);
 
 signals:
   // send messages to other end
@@ -51,8 +57,6 @@ private slots:
   void requestTimeOut();
 
 private:
-
-
 
   // constructs the SIP message info struct as much as possible
   void generateRequest(SIPRequestMethod type, SIPRequest &request);
@@ -96,4 +100,6 @@ private:
   SIP_URI remoteUri_;
 
   uint32_t expires_;
+
+  bool shouldLive_;
 };
