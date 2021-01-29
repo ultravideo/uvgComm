@@ -12,57 +12,61 @@
 #include <QRegularExpressionMatch>
 
 
-// one letter forms are not currently included in composing
+// RFC 3261 7.3.1. The order in which header fields appear is not significant,
+// but it is recommended that fields needed for proxy processing are appear
+// towards the top of the message.
 
-// TODO: Set order so that those fields needed by proxy are close to the top
-
-// NOTE: This will be the order in which fields will appear in SIP message
+// This will be the order in which fields will appear in SIP message. One
+// letter forms are not currently included in composing.
 const std::vector<std::pair<QString,
                             std::function<bool(QList<SIPField>& fields,
                                                std::shared_ptr<SIPMessageHeader>)>>> composing =
 {
+    // fields probably needed by proxy
+    {"Call-ID",             includeCallIDField},
+    {"CSeq",                includeCSeqField},
+    {"From",                includeFromField},
+    {"To",                  includeToField},
+    {"Via",                 includeViaFields},
+    {"Contact",             includeContactField},
+    {"Route",               includeRouteField},
+    {"Proxy-Authorization", includeProxyAuthorizationField},
+    {"Proxy-Require",       includeProxyRequireField},
+    {"Max-Forwards",        includeMaxForwardsField},
+    {"Authorization",       includeAuthorizationField},
+    {"Expires",             includeExpiresField},
+
+    // other fields
     {"Accept",              includeAcceptField},
     {"Accept-Encoding",     includeAcceptEncodingField},
     {"Accept-Language",     includeAcceptLanguageField},
     {"Alert-Info",          includeAlertInfoField},
     {"Allow",               includeAllowField},
     {"Authentication-Info", includeAuthInfoField},
-    {"Authorization",       includeAuthorizationField},
-    {"Call-ID",             includeCallIDField},
     {"Call-Info",           includeCallInfoField},
-    {"Contact",             includeContactField},
     {"Content-Disposition", includeContentDispositionField},
     {"Content-Encoding",    includeContentEncodingField},
     {"Content-Language",    includeContentLanguageField},
     {"Content-Length",      includeContentLengthField},
     {"Content-Type",        includeContentTypeField},
-    {"CSeq",                includeCSeqField},
     {"Date",                includeDateField},
     {"Error-Info",          includeErrorInfoField},
-    {"Expires",             includeExpiresField},
-    {"From",                includeFromField},
     {"In-Reply_to",         includeInReplyToField},
-    {"Max-Forwards",        includeMaxForwardsField},
     {"Min-Expires",         includeMinExpiresField},
     {"MIME-Version",        includeMIMEVersionField},
     {"Organization",        includeOrganizationField},
     {"Priority",            includePriorityField},
     {"Proxy-Authenticate",  includeProxyAuthenticateField},
-    {"Proxy-Authorization", includeProxyAuthorizationField},
-    {"Proxy-Require",       includeProxyRequireField},
     {"Record-Route",        includeRecordRouteField},
     {"Reply-To",            includeReplyToField},
     {"Require",             includeRequireField},
     {"Retry-After",         includeRetryAfterField},
-    {"Route",               includeRouteField},
     {"Server",              includeServerField},
     {"Subject",             includeSubjectField},
     {"Supported",           includeSupportedField},
     {"Timestamp",           includeTimestampField},
-    {"To",                  includeToField},
     {"Unsupported",         includeUnsupportedField},
     {"User-Agent",          includeUserAgentField},
-    {"Via",                 includeViaFields},
     {"Warning",             includeWarningField},
     {"WWW-Authenticate",    includeWWWAuthenticateField}
 };
