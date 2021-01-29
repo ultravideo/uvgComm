@@ -1,9 +1,12 @@
 #pragma once
 
 #include "initiation/transport/connectionserver.h"
+#include "initiation/transport/siptransport.h"
+
 #include "initiation/transaction/sipdialogmanager.h"
 #include "initiation/transaction/sipregistrations.h"
 #include "initiation/negotiation/negotiation.h"
+
 
 /* This is a manager class that manages interactions between different
  * components in Session Initiation Protocol (SIP). This class should implement

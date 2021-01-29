@@ -1,10 +1,15 @@
 #pragma once
 
-#include "initiation/transport/siptransport.h"
-
 #include "common.h"
 
+#include "initiation/siptypes.h"
+
+#include "sipdialogstate.h"
+#include "sipclient.h"
+#include "sipserver.h"
+
 #include <QMap>
+#include <QMutex>
 
 
 /* SIP in Kvazzup follows the Transport, Transaction, Transaction User principle.
@@ -18,7 +23,7 @@
 
 class SIPTransactionUser;
 class SIPDialogClient;
-class SIPDialog;
+class SIPDialogState;
 
 class SIPDialogManager : public QObject
 {
@@ -50,22 +55,26 @@ public:
   void endAllCalls();
 
   // returns true if the identification was successful
-  bool identifySession(SIPRequest request, QString localAddress,
+  bool identifySession(SIPRequest &request, QString localAddress,
                        uint32_t& out_sessionID);
 
-  bool identifySession(SIPResponse response,
+  bool identifySession(SIPResponse &response,
                        uint32_t& out_sessionID);
 
   // when sip connection has received a request/response it is handled here.
   // TODO: some sort of SDP situation should also be included.
-  void processSIPRequest(SIPRequest request, uint32_t sessionID);
+  void processSIPRequest(SIPRequest &request, uint32_t sessionID);
 
-  void processSIPResponse(SIPResponse response, uint32_t sessionID);
+  void processSIPResponse(SIPResponse &response, uint32_t sessionID);
 
 signals:
 
   void transportRequest(uint32_t sessionID, SIPRequest &request);
   void transportResponse(uint32_t sessionID, SIPResponse &response);
+
+private slots:
+
+  void processOutgoingRequest(uint32_t sessionID, SIPRequest &request);
 
 private:
 
@@ -88,6 +97,14 @@ private:
   // TODO: sessionID should be called dialogID
 
   uint32_t nextSessionID_;
+
+  struct SIPDialog
+  {
+    SIPDialogState state;
+    SIPClient client;
+    SIPServer server;
+  };
+
   std::map<uint32_t, std::shared_ptr<SIPDialog>> dialogs_;
 
   SIPTransactionUser* transactionUser_;
