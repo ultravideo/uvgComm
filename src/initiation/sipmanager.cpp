@@ -1,5 +1,7 @@
 #include "sipmanager.h"
 
+#include "global.h"
+
 #include <QObject>
 
 
@@ -11,7 +13,7 @@ SIPManager::SIPManager():
   transports_(),
   nextTransportID_(FIRSTTRANSPORTID),
   dialogManager_(),
-  negotiation_()
+  negotiations_()
 {}
 
 
@@ -43,16 +45,12 @@ void SIPManager::init(SIPTransactionUser* callControl, StatisticsInterface *stat
 
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
 
-  negotiation_.init();
 
   QObject::connect(&dialogManager_, &SIPDialogManager::transportRequest,
                    this, &SIPManager::transportRequest);
   QObject::connect(&dialogManager_, &SIPDialogManager::transportResponse,
                    this, &SIPManager::transportResponse);
-  QObject::connect(&negotiation_, &Negotiation::iceNominationSucceeded,
-                    this, &SIPManager::nominationSucceeded);
-  QObject::connect(&negotiation_, &Negotiation::iceNominationFailed,
-                    this, &SIPManager::nominationFailed);
+
   QObject::connect(&registrations_, &SIPRegistrations::transportProxyRequest,
                    this, &SIPManager::transportToProxy);
 
@@ -62,6 +60,9 @@ void SIPManager::init(SIPTransactionUser* callControl, StatisticsInterface *stat
   {
     bindToServer();
   }
+
+  nCandidates_ = std::shared_ptr<NetworkCandidates> (new NetworkCandidates);
+  nCandidates_->setPortRange(MIN_ICE_PORT, MAX_ICE_PORT);
 }
 
 
@@ -85,7 +86,7 @@ void SIPManager::uninit()
 
 void SIPManager::uninitSession(uint32_t sessionID)
 {
-  negotiation_.endSession(sessionID);
+  negotiations_.at(sessionID)->endSession();
 
   // if you are wondering why the dialog is not destroy here, the dialog is
   // often the start point of these kinds of destructions and removing dialog
@@ -134,6 +135,8 @@ uint32_t SIPManager::startCall(NameAddr &address)
   quint32 transportID = 0;
   uint32_t sessionID = dialogManager_.reserveSessionID();
 
+  createNegotiation(sessionID);
+
   // TODO: ask network interface if we can start session
 
   // check if we are already connected to remoteaddress and set transportID
@@ -154,6 +157,8 @@ uint32_t SIPManager::startCall(NameAddr &address)
                             transports_[transportID]->getLocalAddress(),
                             sessionID, registrations_.haveWeRegistered());
   }
+
+
 
   return sessionID;
 }
@@ -180,14 +185,23 @@ void SIPManager::cancelCall(uint32_t sessionID)
 void SIPManager::endCall(uint32_t sessionID)
 {
   dialogManager_.endCall(sessionID);
-  negotiation_.endSession(sessionID);
+  if (negotiations_.find(sessionID) != negotiations_.end())
+  {
+    negotiations_[sessionID]->endSession();
+  }
 }
 
 
 void SIPManager::endAllCalls()
 {
   dialogManager_.endAllCalls();
-  negotiation_.endAllSessions();
+
+  for (auto& negotiation : negotiations_)
+  {
+    negotiation.second->endSession();
+  }
+
+  negotiations_.clear();
 }
 
 
@@ -196,9 +210,12 @@ void SIPManager::getSDPs(uint32_t sessionID,
                          std::shared_ptr<SDPMessageInfo>& remoteSDP) const
 {
   Q_ASSERT(sessionID);
-  localSDP = negotiation_.getLocalSDP(sessionID);
 
-  remoteSDP = negotiation_.getRemoteSDP(sessionID);
+  if (negotiations_.find(sessionID) != negotiations_.end())
+  {
+    localSDP = negotiations_.at(sessionID)->getLocalSDP();
+    remoteSDP = negotiations_.at(sessionID)->getRemoteSDP();
+  }
 }
 
 
@@ -240,7 +257,10 @@ void SIPManager::transportRequest(uint32_t sessionID, SIPRequest &request)
     if (transports_.find(transportID) != transports_.end())
     {
       QVariant content;
-      negotiation_.processOutgoingRequest(request, content, sessionID);
+      if (negotiations_.find(sessionID) != negotiations_.end())
+      {
+        negotiations_.at(sessionID)->processOutgoingRequest(request, content);
+      }
       transports_[transportID]->processOutgoingRequest(request, content);
     }
     else {
@@ -265,9 +285,11 @@ void SIPManager::transportResponse(uint32_t sessionID, SIPResponse &response)
     {
       // determine if we to attach SDP to our response
       QVariant content;
-
-      negotiation_.processOutgoingResponse(response, content, sessionID,
-                                           transports_[transportID]->getLocalAddress());
+      if (negotiations_.find(sessionID) != negotiations_.end())
+      {
+        negotiations_.at(sessionID)->processOutgoingResponse(response, content,
+                                                             transports_[transportID]->getLocalAddress());
+      }
 
       // send the request with or without SDP
       transports_[transportID]->processOutgoingResponse(response, content);
@@ -316,8 +338,14 @@ void SIPManager::processSIPRequest(SIPRequest& request, QString localAddress,
     if (sessionID != 0)
     {
       sessionToTransportID_[sessionID] = transportID;
-      negotiation_.processIncomingRequest(request, content, sessionID,
-                                          transports_[transportID]->getLocalAddress());
+
+      if (negotiations_.find(sessionID) == negotiations_.end())
+      {
+        createNegotiation(sessionID);
+      }
+
+      negotiations_.at(sessionID)->processIncomingRequest(request, content,
+                                                          transports_[transportID]->getLocalAddress());
 
       dialogManager_.processSIPRequest(request, sessionID);
     }
@@ -361,10 +389,14 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
     return;
   }
 
-  quint32 transportID = sessionToTransportID_[sessionID];
+  if (negotiations_.find(sessionID) == negotiations_.end())
+  {
+    createNegotiation(sessionID);
+  }
 
-  negotiation_.processIncomingResponse(response, content, sessionID,
-                                       transports_[transportID]->getLocalAddress());
+  quint32 transportID = sessionToTransportID_[sessionID];
+  negotiations_.at(sessionID)->processIncomingResponse(response, content,
+                                                       transports_[transportID]->getLocalAddress());
 
   dialogManager_.processSIPResponse(response, sessionID);
 }
@@ -409,4 +441,12 @@ bool SIPManager::isConnected(QString remoteAddress, quint32& outTransportID)
 }
 
 
+void SIPManager::createNegotiation(uint32_t sessionID)
+{
+  negotiations_[sessionID] = std::shared_ptr<Negotiation> (new Negotiation(nCandidates_, sessionID));
 
+  QObject::connect(negotiations_[sessionID].get(), &Negotiation::iceNominationSucceeded,
+                    this, &SIPManager::nominationSucceeded);
+  QObject::connect(negotiations_[sessionID].get(), &Negotiation::iceNominationFailed,
+                    this, &SIPManager::nominationFailed);
+}

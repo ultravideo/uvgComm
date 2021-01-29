@@ -85,6 +85,9 @@ private:
   // to this address. Sets found transportID.
   bool isConnected(QString remoteAddress, quint32& outTransportID);
 
+  // creates one Negotiation instance and connect its signals
+  void createNegotiation(uint32_t sessionID);
+
   // Helper functions for SDP management.
 
   ConnectionServer tcpServer_;
@@ -116,7 +119,9 @@ private:
   std::map<quint32, QString> waitingToBind_; // REGISTER after connect
 
   // Negotiation with SDP and ICE
-  Negotiation negotiation_;
+  //Negotiation negotiation_;
+  std::map<uint32_t, std::shared_ptr<Negotiation>> negotiations_;
+  std::shared_ptr<NetworkCandidates> nCandidates_;
 
   StatisticsInterface *stats_;
 };

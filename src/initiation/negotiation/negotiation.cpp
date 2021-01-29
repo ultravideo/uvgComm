@@ -5,38 +5,35 @@
 #include "common.h"
 #include "global.h"
 
-const uint16_t MIN_ICE_PORT   = 23000;
-const uint16_t MAX_ICE_PORT   = 24000;
-
-Negotiation::Negotiation():
-  nCandidates_(),
-  ice_(std::make_unique<ICE>())
-{}
 
 
-void Negotiation::init()
+Negotiation::Negotiation(std::shared_ptr<NetworkCandidates> candidates, uint32_t sessionID):
+  nCandidates_(candidates),
+  ice_(std::make_unique<ICE>()),
+  localSDP_(nullptr),
+  remoteSDP_(nullptr),
+  negotiationState_(NEG_NO_STATE),
+  negotiator_(),
+  sessionID_(sessionID)
 {
   QObject::connect(ice_.get(), &ICE::nominationSucceeded,
                    this,       &Negotiation::nominationSucceeded);
 
   QObject::connect(ice_.get(), &ICE::nominationFailed,
                    this,       &Negotiation::iceNominationFailed);
-
-  nCandidates_.setPortRange(MIN_ICE_PORT, MAX_ICE_PORT);
 }
 
 
-void Negotiation::processOutgoingRequest(SIPRequest& request, QVariant& content, uint32_t sessionID)
+void Negotiation::processOutgoingRequest(SIPRequest& request, QVariant& content)
 {
-  if(request.method == SIP_ACK && getState(sessionID)
-     == NEG_ANSWER_GENERATED)
+  if(request.method == SIP_ACK && negotiationState_ == NEG_ANSWER_GENERATED)
   {
     request.message->contentLength = 0;
     printNormal(this, "Adding SDP content to request");
 
     request.message->contentType = MT_APPLICATION_SDP;
 
-    if (!SDPAnswerToContent(content, sessionID))
+    if (!SDPAnswerToContent(content))
     {
       printError(this, "Failed to get SDP answer to request");
       return;
@@ -46,28 +43,28 @@ void Negotiation::processOutgoingRequest(SIPRequest& request, QVariant& content,
 
 
 void Negotiation::processOutgoingResponse(SIPResponse& response, QVariant& content,
-                                          uint32_t sessionID, QString localAddress)
+                                          QString localAddress)
 {
   if (response.type == SIP_OK
       && response.message->cSeq.method == SIP_INVITE
-      && getState(sessionID) == NEG_NO_STATE)
+      && negotiationState_ == NEG_NO_STATE)
   {
     printNormal(this, "Adding SDP to an OK response");
     response.message->contentLength = 0;
     response.message->contentType = MT_APPLICATION_SDP;
-    if (!SDPOfferToContent(content, localAddress, sessionID))
+    if (!SDPOfferToContent(content, localAddress))
     {
       return;
     }
   }
   // if they sent an offer in their INVITE
-  else if (getState(sessionID) == NEG_ANSWER_GENERATED)
+  else if (negotiationState_ == NEG_ANSWER_GENERATED)
   {
     printNormal(this, "Adding SDP to response since INVITE had an SDP.");
 
     response.message->contentLength = 0;
     response.message->contentType = MT_APPLICATION_SDP;
-    if (!SDPAnswerToContent(content, sessionID))
+    if (!SDPAnswerToContent(content))
     {
       printError(this, "Failed to get SDP answer to response");
       return;
@@ -77,18 +74,18 @@ void Negotiation::processOutgoingResponse(SIPResponse& response, QVariant& conte
 }
 
 void Negotiation::processIncomingRequest(SIPRequest& request, QVariant& content,
-                                         uint32_t sessionID, QString localAddress)
+                                         QString localAddress)
 {
   if((request.method == SIP_INVITE || request.method == SIP_ACK)
      && request.message->contentType == MT_APPLICATION_SDP)
   {
-    switch (getState(sessionID))
+    switch (negotiationState_)
     {
     case NEG_NO_STATE:
     {
       printDebug(DEBUG_NORMAL, this,
                  "Got first SDP offer.");
-      if(!processOfferSDP(sessionID, content, localAddress))
+      if(!processOfferSDP(content, localAddress))
       {
          printDebug(DEBUG_PROGRAM_ERROR, this,
                     "Failure to process SDP offer not implemented.");
@@ -102,21 +99,21 @@ void Negotiation::processIncomingRequest(SIPRequest& request, QVariant& content,
     {
       printDebug(DEBUG_NORMAL, this,
                  "Got an SDP answer.");
-      processAnswerSDP(sessionID, content);
+      processAnswerSDP(content);
       break;
     }
     case NEG_ANSWER_GENERATED: // TODO: Not sure if these make any sense
     {
       printDebug(DEBUG_NORMAL, this,
                  "They sent us another SDP offer.");
-      processOfferSDP(sessionID, content, localAddress);
+      processOfferSDP(content, localAddress);
       break;
     }
     case NEG_FINISHED:
     {
       printDebug(DEBUG_NORMAL, this,
                  "Got a new SDP offer in response.");
-      processOfferSDP(sessionID, content, localAddress);
+      processOfferSDP(content, localAddress);
       break;
     }
     }
@@ -124,20 +121,19 @@ void Negotiation::processIncomingRequest(SIPRequest& request, QVariant& content,
 }
 
 
-void Negotiation::processIncomingResponse(SIPResponse& response, QVariant& content,
-                                          uint32_t sessionID, QString localAddress)
+void Negotiation::processIncomingResponse(SIPResponse& response, QVariant& content, QString localAddress)
 {
   if(response.message->cSeq.method == SIP_INVITE && response.type == SIP_OK)
   {
     if(response.message->contentType == MT_APPLICATION_SDP)
     {
-      switch (getState(sessionID))
+      switch (negotiationState_)
       {
       case NEG_NO_STATE:
       {
         printDebug(DEBUG_NORMAL, this,
                    "Got first SDP offer.");
-        if(!processOfferSDP(sessionID, content, localAddress))
+        if(!processOfferSDP(content, localAddress))
         {
            printDebug(DEBUG_PROGRAM_ERROR, this,
                       "Failure to process SDP offer not implemented.");
@@ -151,21 +147,21 @@ void Negotiation::processIncomingResponse(SIPResponse& response, QVariant& conte
       {
         printDebug(DEBUG_NORMAL, this,
                    "Got an SDP answer.");
-        processAnswerSDP(sessionID, content);
+        processAnswerSDP(content);
         break;
       }
       case NEG_ANSWER_GENERATED: // TODO: Not sure if these make any sense
       {
         printDebug(DEBUG_NORMAL, this,
                    "They sent us another SDP offer.");
-        processOfferSDP(sessionID, content, localAddress);
+        processOfferSDP(content, localAddress);
         break;
       }
       case NEG_FINISHED:
       {
         printDebug(DEBUG_NORMAL, this,
                    "Got a new SDP offer in response.");
-        processOfferSDP(sessionID, content, localAddress);
+        processOfferSDP(content, localAddress);
         break;
       }
       }
@@ -174,36 +170,34 @@ void Negotiation::processIncomingResponse(SIPResponse& response, QVariant& conte
 }
 
 
-bool Negotiation::generateOfferSDP(QString localAddress,
-                                        uint32_t sessionID)
+bool Negotiation::generateOfferSDP(QString localAddress)
 {
-  Q_ASSERT(sessionID);
+  Q_ASSERT(sessionID_);
 
   qDebug() << "Getting local SDP suggestion";
   std::shared_ptr<SDPMessageInfo> localSDP = negotiator_.generateLocalSDP(localAddress);
   // TODO: Set also media sdp parameters.
-  localSDP->candidates = ice_->generateICECandidates(nCandidates_.localCandidates(STREAM_COMPONENTS, sessionID),
-                                                     nCandidates_.globalCandidates(STREAM_COMPONENTS, sessionID),
-                                                     nCandidates_.stunCandidates(STREAM_COMPONENTS),
-                                                     nCandidates_.stunBindings(STREAM_COMPONENTS, sessionID),
-                                                     nCandidates_.turnCandidates(STREAM_COMPONENTS, sessionID));
+  localSDP->candidates = ice_->generateICECandidates(nCandidates_->localCandidates(STREAM_COMPONENTS, sessionID_),
+                                                     nCandidates_->globalCandidates(STREAM_COMPONENTS, sessionID_),
+                                                     nCandidates_->stunCandidates(STREAM_COMPONENTS),
+                                                     nCandidates_->stunBindings(STREAM_COMPONENTS, sessionID_),
+                                                     nCandidates_->turnCandidates(STREAM_COMPONENTS, sessionID_));
 
   if(localSDP != nullptr)
   {
-    sdps_[sessionID].localSDP = localSDP;
-    sdps_[sessionID].remoteSDP = nullptr;
+    localSDP_ = localSDP;
+    remoteSDP_ = nullptr;
 
-    negotiationStates_[sessionID] = NEG_OFFER_GENERATED;
+    negotiationState_ = NEG_OFFER_GENERATED;
   }
   return localSDP != nullptr;
 }
 
 
 bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
-                                    QString localAddress,
-                                    uint32_t sessionID)
+                                    QString localAddress)
 {
-  Q_ASSERT(sessionID);
+  Q_ASSERT(sessionID_);
 
   // check if suitable.
   if(!negotiator_.checkSDPOffer(remoteSDPOffer))
@@ -216,11 +210,11 @@ bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
 
   // generate our SDP.
   std::shared_ptr<SDPMessageInfo> localSDP = negotiator_.negotiateSDP(remoteSDPOffer, localAddress);
-  localSDP->candidates = ice_->generateICECandidates(nCandidates_.localCandidates(STREAM_COMPONENTS, sessionID),
-                                                     nCandidates_.globalCandidates(STREAM_COMPONENTS, sessionID),
-                                                     nCandidates_.stunCandidates(STREAM_COMPONENTS),
-                                                     nCandidates_.stunBindings(STREAM_COMPONENTS, sessionID),
-                                                     nCandidates_.turnCandidates(STREAM_COMPONENTS, sessionID));
+  localSDP->candidates = ice_->generateICECandidates(nCandidates_->localCandidates(STREAM_COMPONENTS, sessionID_),
+                                                     nCandidates_->globalCandidates(STREAM_COMPONENTS, sessionID_),
+                                                     nCandidates_->stunCandidates(STREAM_COMPONENTS),
+                                                     nCandidates_->stunBindings(STREAM_COMPONENTS, sessionID_),
+                                                     nCandidates_->turnCandidates(STREAM_COMPONENTS, sessionID_));
 
   if (localSDP == nullptr)
   {
@@ -234,28 +228,28 @@ bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
       = std::shared_ptr<SDPMessageInfo>(new SDPMessageInfo);
   *remoteSDP = remoteSDPOffer;
 
-  sdps_[sessionID].localSDP = localSDP;
-  sdps_[sessionID].remoteSDP = remoteSDP;
+  localSDP_ = localSDP;
+  remoteSDP_ = remoteSDP;
 
-  negotiationStates_[sessionID] = NEG_ANSWER_GENERATED;
+  negotiationState_ = NEG_ANSWER_GENERATED;
 
   // Start candiate nomination. This function won't block,
   // negotiation happens in the background
-  ice_->startNomination(localSDP->candidates, remoteSDP->candidates, sessionID, true);
+  ice_->startNomination(localSDP->candidates, remoteSDP->candidates, sessionID_, true);
 
   return true;
 }
 
 
-bool Negotiation::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer, uint32_t sessionID)
+bool Negotiation::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer)
 {
   printDebug(DEBUG_NORMAL, "Negotiation",  "Starting to process answer SDP.");
-  if (!checkSessionValidity(sessionID, false))
+  if (!checkSessionValidity(false))
   {
     return false;
   }
 
-  if (getState(sessionID) == NEG_NO_STATE)
+  if (negotiationState_ == NEG_NO_STATE)
   {
     printDebug(DEBUG_WARNING, "Negotiation",  "Processing SDP answer without hacing sent an offer!");
     return false;
@@ -268,16 +262,16 @@ bool Negotiation::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer, uint32_t ses
     std::shared_ptr<SDPMessageInfo> remoteSDP
         = std::shared_ptr<SDPMessageInfo>(new SDPMessageInfo);
     *remoteSDP = remoteSDPAnswer;
-    sdps_[sessionID].remoteSDP = remoteSDP;
+    remoteSDP_ = remoteSDP;
 
-    negotiationStates_[sessionID] = NEG_FINISHED;
+    negotiationState_ = NEG_FINISHED;
 
     // spawn ICE controllee threads and start the candidate
     // exchange and nomination
     //
     // This will start the ICE nomination process. After it has finished,
     // it will send a signal which indicates its state and if successful, the call may start.
-    ice_->startNomination(sdps_[sessionID].localSDP->candidates, remoteSDP->candidates, sessionID, false);
+    ice_->startNomination(localSDP_->candidates, remoteSDP_->candidates, sessionID_, false);
 
     return true;
   }
@@ -286,71 +280,52 @@ bool Negotiation::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer, uint32_t ses
 }
 
 
-std::shared_ptr<SDPMessageInfo> Negotiation::getLocalSDP(uint32_t sessionID) const
+std::shared_ptr<SDPMessageInfo> Negotiation::getLocalSDP() const
 {
-  if(!checkSessionValidity(sessionID, false))
+  if(!checkSessionValidity(false))
   {
     return nullptr;
   }
-  return sdps_.at(sessionID).localSDP;
+  return localSDP_;
 }
 
 
-std::shared_ptr<SDPMessageInfo> Negotiation::getRemoteSDP(uint32_t sessionID) const
+std::shared_ptr<SDPMessageInfo> Negotiation::getRemoteSDP() const
 {
-  if(!checkSessionValidity(sessionID, true))
+  if(!checkSessionValidity(true))
   {
     return nullptr;
   }
 
-  return sdps_.at(sessionID).remoteSDP;
+  return remoteSDP_;
 }
 
 
-void Negotiation::endSession(uint32_t sessionID)
+void Negotiation::endSession()
 {
-  if(sdps_.find(sessionID) != sdps_.end())
+
+  if (localSDP_ != nullptr)
   {
-    if (sdps_.at(sessionID).localSDP != nullptr)
+    /*for(auto& mediaStream : localSDP_->media)
     {
-      std::shared_ptr<SDPMessageInfo> localSDP = sdps_.at(sessionID).localSDP;
-      /*for(auto& mediaStream : localSDP->media)
-      {
-        // TODO: parameters_.makePortPairAvailable(mediaStream.receivePort);
-      }*/
-    }
-    sdps_.erase(sessionID);
+      // TODO: parameters_.makePortPairAvailable(mediaStream.receivePort);
+    }*/
   }
 
-  if (negotiationStates_.find(sessionID) != negotiationStates_.end())
-  {
-    negotiationStates_.erase(sessionID);
-  }
-
-  ice_->cleanupSession(sessionID);
-  nCandidates_.cleanupSession(sessionID);
-}
+  localSDP_ = nullptr;
+  remoteSDP_ = nullptr;
 
 
-void Negotiation::endAllSessions()
-{
-  QList<uint32_t> sessions;
+  negotiationState_ = NEG_NO_STATE;
 
-  for (auto& i : negotiationStates_)
-  {
-    sessions.push_back(i.first);
-  }
-
-  for (auto& i : sessions)
-  {
-    endSession(i);
-  }
+  ice_->cleanupSession(sessionID_);
+  nCandidates_->cleanupSession(sessionID_);
 }
 
 
 void Negotiation::nominationSucceeded(quint32 sessionID)
 {
-  if (!checkSessionValidity(sessionID, true))
+  if (!checkSessionValidity(true))
   {
     return;
   }
@@ -364,71 +339,53 @@ void Negotiation::nominationSucceeded(quint32 sessionID)
 
   printNormal(this, "ICE nomination has succeeded", {"SessionID"}, {QString::number(sessionID)});
 
-  std::shared_ptr<SDPMessageInfo> localSDP = sdps_.at(sessionID).localSDP;
-  std::shared_ptr<SDPMessageInfo> remoteSDP = sdps_.at(sessionID).remoteSDP;
-
   // Video. 0 is RTP, 1 is RTCP
   if (streams.at(0) != nullptr && streams.at(1) != nullptr)
   {
-    negotiator_.setMediaPair(localSDP->media[1],  streams.at(0)->local, true);
-    negotiator_.setMediaPair(remoteSDP->media[1], streams.at(0)->remote, false);
+    negotiator_.setMediaPair(localSDP_->media[1],  streams.at(0)->local, true);
+    negotiator_.setMediaPair(remoteSDP_->media[1], streams.at(0)->remote, false);
   }
 
   // Audio. 2 is RTP, 3 is RTCP
   if (streams.at(2) != nullptr && streams.at(3) != nullptr)
   {
-    negotiator_.setMediaPair(localSDP->media[0],  streams.at(2)->local, true);
-    negotiator_.setMediaPair(remoteSDP->media[0], streams.at(2)->remote, false);
+    negotiator_.setMediaPair(localSDP_->media[0],  streams.at(2)->local, true);
+    negotiator_.setMediaPair(remoteSDP_->media[0], streams.at(2)->remote, false);
   }
 
   emit iceNominationSucceeded(sessionID);
 }
 
 
-NegotiationState Negotiation::getState(uint32_t sessionID)
+bool Negotiation::checkSessionValidity(bool checkRemote) const
 {
-  if (negotiationStates_.find(sessionID) == negotiationStates_.end())
-  {
-    return NEG_NO_STATE;
-  }
+  Q_ASSERT(sessionID_);
+  Q_ASSERT(localSDP_ != nullptr);
+  Q_ASSERT(remoteSDP_ != nullptr || !checkRemote);
 
-  return negotiationStates_[sessionID];
-}
-
-
-bool Negotiation::checkSessionValidity(uint32_t sessionID, bool checkRemote) const
-{
-  Q_ASSERT(sessionID);
-
-  Q_ASSERT(sdps_.find(sessionID) != sdps_.end());
-  Q_ASSERT(sdps_.at(sessionID).localSDP != nullptr);
-  Q_ASSERT(sdps_.at(sessionID).remoteSDP != nullptr || !checkRemote);
-
-  if(sessionID == 0 ||
-     sdps_.find(sessionID) == sdps_.end() ||
-     sdps_.at(sessionID).localSDP == nullptr ||
-     (sdps_.at(sessionID).remoteSDP == nullptr && checkRemote))
+  if(sessionID_ == 0 ||
+     localSDP_ == nullptr ||
+     (remoteSDP_ == nullptr && checkRemote))
   {
     printDebug(DEBUG_PROGRAM_ERROR, "GlobalSDPState",
                "Attempting to use GlobalSDPState without setting SessionID correctly",
-              {"sessionID"}, {QString::number(sessionID)});
+              {"sessionID"}, {QString::number(sessionID_)});
     return false;
   }
   return true;
 }
 
-bool Negotiation::SDPOfferToContent(QVariant& content, QString localAddress,
-                                    uint32_t sessionID)
+bool Negotiation::SDPOfferToContent(QVariant& content, QString localAddress)
 {
   std::shared_ptr<SDPMessageInfo> pointer;
 
   printDebug(DEBUG_NORMAL, this,  "Adding one-to-one SDP.");
-  if(!generateOfferSDP(localAddress, sessionID))
+  if(!generateOfferSDP(localAddress))
   {
     printWarning(this, "Failed to generate local SDP when sending offer.");
     return false;
   }
-   pointer = getLocalSDP(sessionID);
+   pointer = getLocalSDP();
 
   Q_ASSERT(pointer != nullptr);
 
@@ -438,7 +395,7 @@ bool Negotiation::SDPOfferToContent(QVariant& content, QString localAddress,
 }
 
 
-bool Negotiation::processOfferSDP(uint32_t sessionID, QVariant& content,
+bool Negotiation::processOfferSDP(QVariant& content,
                                   QString localAddress)
 {
   if(!content.isValid())
@@ -450,10 +407,10 @@ bool Negotiation::processOfferSDP(uint32_t sessionID, QVariant& content,
   }
 
   SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
-  if(!generateAnswerSDP(retrieved, localAddress, sessionID))
+  if(!generateAnswerSDP(retrieved, localAddress))
   {
     printWarning(this, "Remote SDP not suitable or we have no ports to assign");
-    endSession(sessionID);
+    endSession();
     return false;
   }
 
@@ -461,10 +418,10 @@ bool Negotiation::processOfferSDP(uint32_t sessionID, QVariant& content,
 }
 
 
-bool Negotiation::SDPAnswerToContent(QVariant &content, uint32_t sessionID)
+bool Negotiation::SDPAnswerToContent(QVariant &content)
 {
   SDPMessageInfo sdp;
-  std::shared_ptr<SDPMessageInfo> pointer = getLocalSDP(sessionID);
+  std::shared_ptr<SDPMessageInfo> pointer = getLocalSDP();
   if (pointer == nullptr)
   {
     return false;
@@ -475,7 +432,7 @@ bool Negotiation::SDPAnswerToContent(QVariant &content, uint32_t sessionID)
 }
 
 
-bool Negotiation::processAnswerSDP(uint32_t sessionID, QVariant &content)
+bool Negotiation::processAnswerSDP(QVariant &content)
 {
   SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
   if (!content.isValid())
@@ -486,7 +443,7 @@ bool Negotiation::processAnswerSDP(uint32_t sessionID, QVariant &content)
     return false;
   }
 
-  if(!processAnswerSDP(retrieved, sessionID))
+  if(!processAnswerSDP(retrieved))
   {
     return false;
   }
