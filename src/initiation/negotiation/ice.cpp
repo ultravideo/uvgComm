@@ -174,11 +174,14 @@ void ICE::printCandidates(QList<std::shared_ptr<ICEInfo>>& candidates)
   for (auto& candidate : candidates)
   {
     candidateNames.push_back(candidate->address + ":");
-    candidateStrings.push_back("Foundation: " + candidate->foundation + " Priority: " + candidate->priority);
+    candidateStrings.push_back("Foundation: " + candidate->foundation +
+                               " Priority: " + candidate->priority);
   }
 
-  printDebug(DEBUG_NORMAL, this, "Generated the following ICE candidates", candidateNames, candidateStrings);
+  printDebug(DEBUG_NORMAL, this, "Generated the following ICE candidates",
+             candidateNames, candidateStrings);
 }
+
 
 QList<std::shared_ptr<ICEPair>> ICE::makeCandidatePairs(
     QList<std::shared_ptr<ICEInfo>>& local,
@@ -217,8 +220,7 @@ QList<std::shared_ptr<ICEPair>> ICE::makeCandidatePairs(
 
 
 void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local,
-    QList<std::shared_ptr<ICEInfo>>& remote,
-    uint32_t sessionID, bool controller)
+                          QList<std::shared_ptr<ICEInfo>>& remote, bool controller)
 {
   printImportant(this, "Starting ICE nomination");
 
@@ -238,40 +240,36 @@ void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local,
     timeout = NONCONTROLLER_SESSION_TIMEOUT;
   }
 
-  nominationInfo_[sessionID].agent = new IceSessionTester(controller, timeout);
-  nominationInfo_[sessionID].pairs = makeCandidatePairs(local, remote);
-  nominationInfo_[sessionID].connectionNominated = false;
+  agent_ = std::shared_ptr<IceSessionTester> (new IceSessionTester(controller, timeout));
+  pairs_ = makeCandidatePairs(local, remote);
+  connectionNominated_ = false;
 
-  IceSessionTester *agent = nominationInfo_[sessionID].agent;
-
-  QObject::connect(agent,
+  QObject::connect(agent_.get(),
                    &IceSessionTester::iceSuccess,
                    this,
                    &ICE::handeICESuccess,
                    Qt::DirectConnection);
-  QObject::connect(agent,
+  QObject::connect(agent_.get(),
                    &IceSessionTester::iceFailure,
                    this,
                    &ICE::handleICEFailure,
                    Qt::DirectConnection);
 
 
-  agent->init(&nominationInfo_[sessionID].pairs, sessionID, STREAM_COMPONENTS);
-  agent->start();
+  agent_->init(&pairs_, STREAM_COMPONENTS);
+  agent_->start();
 }
 
 
-void ICE::handeICESuccess(QList<std::shared_ptr<ICEPair> > &streams, uint32_t sessionID)
+void ICE::handeICESuccess(QList<std::shared_ptr<ICEPair> > &streams)
 {
-  Q_ASSERT(sessionID != 0);
-
   // check that results make sense. They should always.
   if (streams.at(0) == nullptr ||
       streams.at(1) == nullptr ||
       streams.size() != STREAM_COMPONENTS)
   {
     printProgramError(this,  "The ICE results don't make sense even though they should");
-    handleICEFailure(sessionID);
+    handleICEFailure();
   }
   else 
   {
@@ -288,44 +286,40 @@ void ICE::handeICESuccess(QList<std::shared_ptr<ICEPair> > &streams, uint32_t se
     printDebug(DEBUG_IMPORTANT, this, "ICE finished.", names, values);
 
     // end other tests. We have a winner.
-    nominationInfo_[sessionID].agent->quit();
-    nominationInfo_[sessionID].connectionNominated = true;
-    nominationInfo_[sessionID].selectedPairs = {streams.at(0), streams.at(1),
-                                                streams.at(2), streams.at(3)};
-    emit nominationSucceeded(sessionID);
+    agent_->quit();
+    connectionNominated_ = true;
+    selectedPairs_ = {streams.at(0), streams.at(1),
+                      streams.at(2), streams.at(3)};
+    emit nominationSucceeded();
   }
 }
 
 
-void ICE::handleICEFailure(uint32_t sessionID)
+void ICE::handleICEFailure()
 {
-  Q_ASSERT(sessionID != 0);
   printDebug(DEBUG_ERROR, "ICE",  "Failed to nominate RTP/RTCP candidates!");
 
-  nominationInfo_[sessionID].agent->quit();
-  nominationInfo_[sessionID].connectionNominated = false;
-  emit nominationFailed(sessionID);
+  agent_->quit();
+  connectionNominated_ = false;
+  emit nominationFailed();
 }
 
 
-QList<std::shared_ptr<ICEPair>> ICE::getNominated(uint32_t sessionID)
+QList<std::shared_ptr<ICEPair>> ICE::getNominated()
 {
-  if (nominationInfo_.find(sessionID) != nominationInfo_.end() &&
-      nominationInfo_[sessionID].connectionNominated)
+  if (connectionNominated_)
   {
-    return nominationInfo_[sessionID].selectedPairs;
+    return selectedPairs_;
   }
   printProgramError(this, "No selected ICE candidates stored.");
   return QList<std::shared_ptr<ICEPair>>();
 }
 
 
-void ICE::cleanupSession(uint32_t sessionID)
+void ICE::cleanupSession()
 {
-  Q_ASSERT(sessionID != 0);
-
-  if (nominationInfo_.contains(sessionID))
-  {
-    nominationInfo_.remove(sessionID);
-  }
+  agent_ = nullptr;
+  pairs_.clear();
+  selectedPairs_.clear();
+  connectionNominated_ = false;
 }

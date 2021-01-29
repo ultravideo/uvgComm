@@ -32,27 +32,25 @@ class ICE : public QObject
     // The other side should start negotiation as fast as possible
     // Does not block
     void startNomination(QList<std::shared_ptr<ICEInfo>>& local,
-                         QList<std::shared_ptr<ICEInfo>>& remote,
-                         uint32_t sessionID, bool controller);
+                         QList<std::shared_ptr<ICEInfo>>& remote, bool controller);
 
     // get nominated ICE pairs for sessionID
-    QList<std::shared_ptr<ICEPair> > getNominated(uint32_t sessionID);
+    QList<std::shared_ptr<ICEPair> > getNominated();
 
     // free all ICE-related resources for sessionID
-    void cleanupSession(uint32_t sessionID);
+    void cleanupSession();
 
 signals:
-    void nominationFailed(quint32 sessionID);
-    void nominationSucceeded(quint32 sessionID);
+    void nominationFailed();
+    void nominationSucceeded();
 
 private slots:
     // saves the nominated pair so it can be fetched later on and
     // sends nominationSucceeded signal that negotiation is done
-    void handeICESuccess(QList<std::shared_ptr<ICEPair> > &streams,
-                         uint32_t sessionID);
+    void handeICESuccess(QList<std::shared_ptr<ICEPair> > &streams);
 
     // ends testing and emits nominationFailed
-    void handleICEFailure(uint32_t sessionID);
+    void handleICEFailure();
 
   private:
 
@@ -85,17 +83,12 @@ private slots:
                        QList<std::shared_ptr<ICEInfo>>& candidates);
 
     // information related to one nomination process
-    struct NominationInfo
-    {
-      IceSessionTester *agent;
 
-      // list of all candidates, remote and local
-      QList<std::shared_ptr<ICEPair>> pairs;
-      QList<std::shared_ptr<ICEPair>> selectedPairs;
+    std::shared_ptr<IceSessionTester> agent_;
 
-      bool connectionNominated;
-    };
+    // list of all candidates, remote and local
+    QList<std::shared_ptr<ICEPair>> pairs_;
+    QList<std::shared_ptr<ICEPair>> selectedPairs_;
 
-    // key is sessionID
-    QMap<uint32_t, struct NominationInfo> nominationInfo_;
+    bool connectionNominated_;
 };

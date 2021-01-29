@@ -59,7 +59,8 @@ signals:
   void iceNominationFailed(quint32 sessionID);
 
 public slots:
-  void nominationSucceeded(quint32 sessionID);
+  void nominationSucceeded();
+  void nominationFailed();
 
 private:
 

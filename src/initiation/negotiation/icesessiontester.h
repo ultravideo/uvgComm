@@ -21,15 +21,14 @@ public:
   ~IceSessionTester();
 
   void init(QList<std::shared_ptr<ICEPair>> *pairs_,
-            uint32_t sessionID, uint8_t components);
+            uint8_t components);
 
 signals:
 
   // When IceSessionTester finishes, it sends a success/failure signal.
-  void iceSuccess(QList<std::shared_ptr<ICEPair>>& streams,
-                  uint32_t sessionID);
+  void iceSuccess(QList<std::shared_ptr<ICEPair>>& streams);
 
-  void iceFailure(uint32_t sessionID);
+  void iceFailure();
 
   // private signal
   // used to end eventloop responsible for one interface
@@ -54,8 +53,6 @@ private:
   void waitForEndOfTesting(unsigned long timeout);
 
   QList<std::shared_ptr<ICEPair>> *pairs_;
-
-  uint32_t sessionID_;
 
   bool controller_;
   int timeout_;

@@ -20,7 +20,7 @@ Negotiation::Negotiation(std::shared_ptr<NetworkCandidates> candidates, uint32_t
                    this,       &Negotiation::nominationSucceeded);
 
   QObject::connect(ice_.get(), &ICE::nominationFailed,
-                   this,       &Negotiation::iceNominationFailed);
+                   this,       &Negotiation::nominationFailed);
 }
 
 
@@ -90,7 +90,7 @@ void Negotiation::processIncomingRequest(SIPRequest& request, QVariant& content,
          printDebug(DEBUG_PROGRAM_ERROR, this,
                     "Failure to process SDP offer not implemented.");
 
-         //sendResponse(sessionID, SIP_DECLINE, request.type);
+         // TODO: sendResponse(sessionID, SIP_DECLINE, request.type);
          return;
       }
       break;
@@ -138,7 +138,7 @@ void Negotiation::processIncomingResponse(SIPResponse& response, QVariant& conte
            printDebug(DEBUG_PROGRAM_ERROR, this,
                       "Failure to process SDP offer not implemented.");
 
-           //sendResponse(sessionID, SIP_DECLINE, request.type);
+           //TODO: sendResponse(sessionID, SIP_DECLINE, request.type);
            return;
         }
         break;
@@ -235,7 +235,7 @@ bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
 
   // Start candiate nomination. This function won't block,
   // negotiation happens in the background
-  ice_->startNomination(localSDP->candidates, remoteSDP->candidates, sessionID_, true);
+  ice_->startNomination(localSDP->candidates, remoteSDP->candidates, true);
 
   return true;
 }
@@ -271,7 +271,7 @@ bool Negotiation::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer)
     //
     // This will start the ICE nomination process. After it has finished,
     // it will send a signal which indicates its state and if successful, the call may start.
-    ice_->startNomination(localSDP_->candidates, remoteSDP_->candidates, sessionID_, false);
+    ice_->startNomination(localSDP_->candidates, remoteSDP_->candidates, false);
 
     return true;
   }
@@ -318,26 +318,26 @@ void Negotiation::endSession()
 
   negotiationState_ = NEG_NO_STATE;
 
-  ice_->cleanupSession(sessionID_);
+  ice_->cleanupSession();
   nCandidates_->cleanupSession(sessionID_);
 }
 
 
-void Negotiation::nominationSucceeded(quint32 sessionID)
+void Negotiation::nominationSucceeded()
 {
   if (!checkSessionValidity(true))
   {
     return;
   }
 
-  QList<std::shared_ptr<ICEPair>> streams = ice_->getNominated(sessionID);
+  QList<std::shared_ptr<ICEPair>> streams = ice_->getNominated();
 
   if (streams.size() != 4)
   {
     return;
   }
 
-  printNormal(this, "ICE nomination has succeeded", {"SessionID"}, {QString::number(sessionID)});
+  printNormal(this, "ICE nomination has succeeded", {"SessionID"}, {QString::number(sessionID_)});
 
   // Video. 0 is RTP, 1 is RTCP
   if (streams.at(0) != nullptr && streams.at(1) != nullptr)
@@ -353,8 +353,15 @@ void Negotiation::nominationSucceeded(quint32 sessionID)
     negotiator_.setMediaPair(remoteSDP_->media[0], streams.at(2)->remote, false);
   }
 
-  emit iceNominationSucceeded(sessionID);
+  emit iceNominationSucceeded(sessionID_);
 }
+
+
+void Negotiation::nominationFailed()
+{
+  emit iceNominationFailed(sessionID_);
+}
+
 
 
 bool Negotiation::checkSessionValidity(bool checkRemote) const
