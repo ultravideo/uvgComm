@@ -152,7 +152,6 @@ bool responseSanityCheck(QList<SIPField>& fields,
 
 bool checkRequestMustFields(QList<SIPField>& fields, SIPRequestMethod method)
 {
-  Q_ASSERT(method != SIP_REGISTER);
   Q_ASSERT(method != SIP_NO_REQUEST);
   Q_ASSERT(!fields.empty());
 
@@ -305,10 +304,7 @@ bool checkResponseMustFields(QList<SIPField>& fields, SIPResponseStatus status,
 
 bool sensibleRequestField(SIPRequestMethod method, const QString field)
 {
-  Q_ASSERT(method != SIP_REGISTER);
-
-  if (!sensiblePreconditions(field, method) ||
-      method == SIP_REGISTER)
+  if (!sensiblePreconditions(field, method))
   {
     return false;
   }
