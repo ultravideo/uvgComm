@@ -63,6 +63,7 @@ void SIPRegistrations::bindToServer(QString serverAddress, QString localAddress,
       (new SIPRegistrationData{{}, {}, localAddress, port, INACTIVE});
 
   SIP_URI serverUri = {DEFAULT_SIP_TYPE, {"", ""}, {serverAddress, 0}, {}, {}};
+  data->state.setLocalHost(localAddress);
   data->state.createServerConnection(serverUri);
   data->client.setNonDialogStuff(serverUri);
   registrations_[serverAddress] = data;
