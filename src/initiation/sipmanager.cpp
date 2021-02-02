@@ -18,9 +18,8 @@ SIPManager::SIPManager():
   sipPort_(5060), // default for SIP, use 5061 for tls encrypted
   transports_(),
   nextTransportID_(FIRSTTRANSPORTID),
-  negotiations_(),
-  pendingConnectionMutex_(),
   nextSessionID_(FIRSTSESSIONID),
+  dialogMutex_(),
   dialogs_(),
   transactionUser_(nullptr)
 {}
@@ -323,11 +322,9 @@ void SIPManager::transportRequest(uint32_t sessionID, SIPRequest &request)
 {
   printNormal(this, "Initiate sending of a dialog request");
 
-  dialogMutex_.lock();
-  std::shared_ptr<SIPDialog> foundDialog = dialogs_[sessionID];
-  dialogMutex_.unlock();
+  std::shared_ptr<SIPDialog> foundDialog = getDialog(sessionID);
 
-  QVariant content; // unused
+  QVariant content;
   foundDialog->state.processOutgoingRequest(request, content);
 
   printNormal(this, "Finished sending of a dialog request");
@@ -338,7 +335,6 @@ void SIPManager::transportRequest(uint32_t sessionID, SIPRequest &request)
 
     if (transports_.find(transportID) != transports_.end())
     {
-      QVariant content;
       if (negotiations_.find(sessionID) != negotiations_.end())
       {
         negotiations_.at(sessionID)->processOutgoingRequest(request, content);
@@ -432,12 +428,8 @@ void SIPManager::processSIPRequest(SIPRequest& request, QString localAddress,
       Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
       printNormal(this, "Starting to process received SIP Request.");
 
-      dialogMutex_.lock();
-
       // find the dialog which corresponds to the callID and tags received in request
-      std::shared_ptr<SIPDialog> foundDialog;
-      foundDialog = dialogs_[sessionID];
-      dialogMutex_.unlock();
+      std::shared_ptr<SIPDialog> foundDialog = getDialog(sessionID);
 
       QVariant content; // unused
       foundDialog->server.processIncomingRequest(request, content);
@@ -512,12 +504,8 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
     return;
   }
 
-  dialogMutex_.lock();
-
   // find the dialog which corresponds to the callID and tags received in request
-  std::shared_ptr<SIPDialog> foundDialog;
-  foundDialog = dialogs_[sessionID];
-  dialogMutex_.unlock();
+  std::shared_ptr<SIPDialog> foundDialog = getDialog(sessionID);
 
   foundDialog->state.processIncomingResponse(response, content);
   foundDialog->client.processIncomingResponse(response, content);
@@ -583,8 +571,8 @@ void SIPManager::createNegotiation(uint32_t sessionID)
 
 
 bool SIPManager::identifySession(SIPRequest& request,
-                                       QString localAddress,
-                                       uint32_t& out_sessionID)
+                                 QString localAddress,
+                                 uint32_t& out_sessionID)
 {
   printNormal(this, "Starting to process identifying SIP Request dialog.");
 
@@ -605,9 +593,6 @@ bool SIPManager::identifySession(SIPRequest& request,
     }
   }
   dialogMutex_.unlock();
-
-  // find the dialog which corresponds to the callID and tags received in request
-  std::shared_ptr<SIPDialog> foundDialog;
 
   // we did not find existing dialog for this request
   if(out_sessionID == 0)
@@ -648,6 +633,20 @@ bool SIPManager::identifySession(SIPResponse &response, uint32_t& out_sessionID)
   }
 
   return false;
+}
+
+
+std::shared_ptr<SIPDialog> SIPManager::getDialog(uint32_t sessionID)
+{
+  std::shared_ptr<SIPDialog> foundDialog = nullptr;
+  dialogMutex_.lock();
+  if (dialogs_.find(sessionID) != dialogs_.end())
+  {
+    foundDialog = dialogs_[sessionID];
+  }
+  dialogMutex_.unlock();
+
+  return foundDialog;
 }
 
 

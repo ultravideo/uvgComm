@@ -22,6 +22,15 @@
 class SIPTransactionUser;
 class StatisticsInterface;
 
+// only for usage within this class
+struct SIPDialog
+{
+  SIPDialogState state;
+  SIPClient client;
+  SIPServer server;
+};
+
+
 class SIPManager : public QObject
 {
   Q_OBJECT
@@ -82,6 +91,8 @@ private slots:
   void removeDialog(uint32_t sessionID);
 
 private:
+
+  std::shared_ptr<SIPDialog> getDialog(uint32_t sessionID);
 
   uint32_t createDialogFromINVITE(QString localAddress,
                                   SIPRequest &invite);
@@ -147,12 +158,6 @@ private:
 
   StatisticsInterface *stats_;
 
-  // This mutex makes sure that the dialog has been added to the dialogs_ list
-  // before we are accessing it when receiving messages
-  QMutex dialogMutex_;
-
-  QMutex pendingConnectionMutex_;
-
   // SessionID:s are used in this program to keep track of dialogs.
   // The CallID is not used because we could be calling ourselves
   // and using uint32_t is simpler than keeping track of tags.
@@ -161,13 +166,9 @@ private:
 
   uint32_t nextSessionID_;
 
-  struct SIPDialog
-  {
-    SIPDialogState state;
-    SIPClient client;
-    SIPServer server;
-  };
-
+  // This mutex makes sure that the dialog has been added to the dialogs_ list
+  // before we are accessing it when receiving messages
+  QMutex dialogMutex_;
   std::map<uint32_t, std::shared_ptr<SIPDialog>> dialogs_;
 
   SIPTransactionUser* transactionUser_;
