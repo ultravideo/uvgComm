@@ -9,6 +9,7 @@
 #include "initiation/transaction/sipserver.h"
 #include "initiation/transaction/sipclient.h"
 #include "initiation/transaction/sipdialogstate.h"
+#include "initiation/transaction/sipsinglecall.h"
 
 /* This is a manager class that manages interactions between different
  * components in Session Initiation Protocol (SIP). This class should implement
@@ -25,9 +26,11 @@ class StatisticsInterface;
 // only for usage within this class
 struct SIPDialog
 {
+  SIPSingleCall call;
+
   SIPDialogState state;
-  SIPClient client;
-  SIPServer server;
+  std::shared_ptr<SIPClient> client;
+  std::shared_ptr<SIPServer> server;
 
   // Handles SDP and ICE functionality
   std::shared_ptr<Negotiation> negotiation;
@@ -90,7 +93,6 @@ private slots:
   void removeDialog(uint32_t sessionID);
 
 private:
-
 
   std::shared_ptr<SIPDialog> getDialog(uint32_t sessionID) const;
 

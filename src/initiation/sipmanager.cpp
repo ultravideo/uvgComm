@@ -10,8 +10,6 @@ const quint32 FIRSTTRANSPORTID = 1;
 
 const uint32_t FIRSTSESSIONID = 1;
 
-// 1 minute for the user to react
-const unsigned int INVITE_TIMEOUT = 60000;
 
 SIPManager::SIPManager():
   tcpServer_(),
@@ -173,10 +171,7 @@ void SIPManager::sendINVITE(NameAddr &address, QString localAddress,
   }
 
   // this start call will commence once the connection has been established
-  if(!dialogs_[sessionID]->client.transactionINVITE(address.realname, INVITE_TIMEOUT))
-  {
-    printWarning(this, "Could not start a call according to client.");
-  }
+  dialogs_[sessionID]->call.startCall(address.realname);
 }
 
 
@@ -189,7 +184,7 @@ void SIPManager::acceptCall(uint32_t sessionID)
 
   std::shared_ptr<SIPDialog> dialog = getDialog(sessionID);
 
-  dialog->server.respond(SIP_OK);
+  dialog->server->respond(SIP_OK);
 }
 
 
@@ -198,7 +193,7 @@ void SIPManager::rejectCall(uint32_t sessionID)
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
   std::shared_ptr<SIPDialog> dialog = getDialog(sessionID);
 
-  dialog->server.respond(SIP_DECLINE);
+  dialog->server->respond(SIP_DECLINE);
 
   removeDialog(sessionID);
 }
@@ -211,7 +206,7 @@ void SIPManager::cancelCall(uint32_t sessionID)
   if (dialogs_.find(sessionID) != dialogs_.end())
   {
     std::shared_ptr<SIPDialog> dialog = getDialog(sessionID);
-    dialog->client.transactionCANCEL();
+    dialog->call.cancelOutgoingCall();
     removeDialog(sessionID);
   }
   else
@@ -225,7 +220,7 @@ void SIPManager::endCall(uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
   std::shared_ptr<SIPDialog> dialog = getDialog(sessionID);
-  dialog->client.transactionBYE();
+  dialog->call.endCall();
 
   removeDialog(sessionID);
 }
@@ -237,7 +232,7 @@ void SIPManager::endAllCalls()
   {
     if(dialog.second != nullptr)
     {
-      dialog.second->client.transactionBYE();
+      dialog.second->call.endCall();
       dialog.second->negotiation->endSession();
     }
   }
@@ -391,8 +386,8 @@ void SIPManager::processSIPRequest(SIPRequest& request, QString localAddress,
                                                        transports_[transportID]->getLocalAddress());
 
       QVariant content; // unused
-      foundDialog->server.processIncomingRequest(request, content);
-      if(!foundDialog->server.shouldBeKeptAlive())
+      foundDialog->server->processIncomingRequest(request, content);
+      if(!foundDialog->server->shouldBeKeptAlive())
       {
         printNormal(this, "Ending session as a results of request.");
         removeDialog(sessionID);
@@ -462,9 +457,9 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
                                                     transports_[transportID]->getLocalAddress());
 
   foundDialog->state.processIncomingResponse(response, content);
-  foundDialog->client.processIncomingResponse(response, content);
+  foundDialog->client->processIncomingResponse(response, content);
 
-  if (!foundDialog->client.shouldBeKeptAlive())
+  if (!foundDialog->call.shouldBeKeptAlive())
   {
     removeDialog(sessionID);
   }
@@ -525,7 +520,7 @@ bool SIPManager::identifySession(SIPRequest& request,
   {
     if(i->second != nullptr)
     {
-      if ((request.method == SIP_CANCEL && i->second->server.isCANCELYours(request)) ||
+      if ((request.method == SIP_CANCEL && i->second->server->isCANCELYours(request)) ||
           i->second->state.correctRequestDialog(request.message, request.method,
                                                 request.message->cSeq.cSeq))
       {
@@ -565,7 +560,7 @@ bool SIPManager::identifySession(SIPResponse &response, uint32_t& out_sessionID)
   {
     if(i->second != nullptr &&
        i->second->state.correctResponseDialog(response.message, response.message->cSeq.cSeq) &&
-       i->second->client.waitingResponse(response.message->cSeq.method))
+       i->second->client->waitingResponse(response.message->cSeq.method))
     {
       printNormal(this, "Found dialog matching the response");
       out_sessionID = i->first;
@@ -599,17 +594,21 @@ void SIPManager::createDialog(uint32_t sessionID)
   std::shared_ptr<SIPDialog> dialog = std::shared_ptr<SIPDialog> (new SIPDialog);
 
   dialogs_[sessionID] = dialog;
-  dialogs_[sessionID]->client.setDialogStuff(transactionUser_, sessionID);
-  dialogs_[sessionID]->server.init(transactionUser_, sessionID);
-  dialog->negotiation = std::shared_ptr<Negotiation> (new Negotiation(nCandidates_, sessionID));
 
-  QObject::connect(&dialogs_[sessionID]->client, &SIPClient::sendDialogRequest,
+  dialogs_[sessionID]->client = std::shared_ptr<SIPClient> (new SIPClient);
+  dialogs_[sessionID]->server = std::shared_ptr<SIPServer> (new SIPServer);
+
+  dialogs_[sessionID]->server->init(transactionUser_, sessionID);
+
+  dialog->call.init(dialog->client, dialog->server, transactionUser_, sessionID);
+
+  dialog->negotiation = std::shared_ptr<Negotiation> (new Negotiation(nCandidates_,
+                                                                      sessionID));
+
+  QObject::connect(&dialogs_[sessionID]->call, &SIPSingleCall::sendDialogRequest,
                    this, &SIPManager::transportRequest);
 
-  QObject::connect(&dialogs_[sessionID]->client, &SIPClient::BYETimeout,
-                   this, &SIPManager::removeDialog);
-
-  QObject::connect(&dialogs_[sessionID]->server, &SIPServer::sendResponse,
+  QObject::connect(dialogs_[sessionID]->server.get(), &SIPServer::sendResponse,
                    this, &SIPManager::transportResponse);
 
   QObject::connect(dialog->negotiation.get(), &Negotiation::iceNominationSucceeded,

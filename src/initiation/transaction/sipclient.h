@@ -19,26 +19,22 @@ public:
   SIPClient();
   ~SIPClient();
 
-  void setDialogStuff(SIPTransactionUser* tu, uint32_t sessionID);
   void setNonDialogStuff(SIP_URI& uri);
 
-  // Start sending of a SIP request
-  bool transactionINVITE(QString callee, uint32_t timeout);
-  void transactionBYE();
-  void transactionCANCEL();
-  void transactionReINVITE(); // TODO: Remove
-  void transactionREGISTER(uint32_t expires);
+  // used to inform the other peer that this request expires. Used with INVITE
+  // and REGISTER transactions
+  void setNextTransactionExpires(uint32_t timeout);
+
+  // set the internal state of client to such that we have sent a request.
+  // returns whether we should actually send the message
+  bool sendRequest(SIPRequestMethod type);
 
   // have we sent this kind of request
+  // TODO: Will be obsolete with new architecture
   bool waitingResponse(SIPRequestMethod requestType)
   {
     return ongoingTransactionType_ == requestType
         && requestType != SIP_NO_REQUEST;
-  }
-
-  bool shouldBeKeptAlive()
-  {
-    return shouldLive_;
   }
 
 public slots:
@@ -48,10 +44,12 @@ public slots:
 
 signals:
   // send messages to other end
-  void sendDialogRequest(uint32_t sessionID, SIPRequest& request);
   void sendNondialogRequest(SIP_URI& uri, SIPRequest& request);
 
-  void BYETimeout(uint32_t sessionID);
+  void receivedResponse(SIPRequestMethod originalRequest,
+                        SIPResponseStatus status);
+
+  void failure(QString message);
 
 private slots:
   void requestTimeOut();
@@ -66,7 +64,8 @@ private:
     return transactionRequest == ongoingTransactionType_;
   }
 
-  // timeout is in milliseconds. Used for request timeout
+  // timeout is in milliseconds. Used for request timeout. The default timeout
+  // is 2 seconds which should be plenty of time for RTT
   void startTimeoutTimer(int timeout = 2000)
   {
     requestTimer_.start(timeout);
@@ -79,9 +78,7 @@ private:
 
   void processTimeout();
 
-  // set the internal state of client to such that we have sent a request.
-  // returns whether we should actually send the message
-  bool startTransaction(SIPRequestMethod type);
+
 
   void byeTimeout();
 
@@ -93,13 +90,9 @@ private:
 
   QTimer requestTimer_;
 
-  uint32_t sessionID_;
-
-  SIPTransactionUser* transactionUser_;
-
   SIP_URI remoteUri_;
 
-  uint32_t expires_;
+  std::shared_ptr<uint32_t> expires_;
 
-  bool shouldLive_;
+
 };
