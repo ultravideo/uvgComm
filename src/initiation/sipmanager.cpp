@@ -19,7 +19,6 @@ SIPManager::SIPManager():
   transports_(),
   nextTransportID_(FIRSTTRANSPORTID),
   nextSessionID_(FIRSTSESSIONID),
-  dialogMutex_(),
   dialogs_(),
   transactionUser_(nullptr)
 {}
@@ -95,17 +94,6 @@ uint32_t SIPManager::reserveSessionID()
 }
 
 
-void SIPManager::uninitSession(uint32_t sessionID)
-{
-  negotiations_.at(sessionID)->endSession();
-
-  // if you are wondering why the dialog is not destroy here, the dialog is
-  // often the start point of these kinds of destructions and removing dialog
-  // here would corrupt the heap. Instead dialog is destroyed by return values
-  // in dialog manager
-}
-
-
 void SIPManager::updateSettings()
 {
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
@@ -146,8 +134,6 @@ uint32_t SIPManager::startCall(NameAddr &address)
   quint32 transportID = 0;
   uint32_t sessionID = reserveSessionID();
 
-  createNegotiation(sessionID);
-
   // TODO: ask network interface if we can start session
 
   // check if we are already connected to remoteaddress and set transportID
@@ -160,7 +146,8 @@ uint32_t SIPManager::startCall(NameAddr &address)
     transport->createConnection(DEFAULT_TRANSPORT, address.uri.hostport.host);
     waitingToStart_[transportID] = {sessionID, address};
   }
-  else {
+  else
+  {
     // associate this sessionID with existing transportID
     sessionToTransportID_[sessionID] = transportID;
     // we have an existing connection already. Send SIP message and start call.
@@ -200,9 +187,7 @@ void SIPManager::acceptCall(uint32_t sessionID)
 
   printNormal(this, "Accepting call", {"SessionID"}, {QString::number(sessionID)});
 
-  dialogMutex_.lock();
-  std::shared_ptr<SIPDialog> dialog = dialogs_[sessionID];
-  dialogMutex_.unlock();
+  std::shared_ptr<SIPDialog> dialog = getDialog(sessionID);
 
   dialog->server.respond(SIP_OK);
 }
@@ -211,9 +196,8 @@ void SIPManager::acceptCall(uint32_t sessionID)
 void SIPManager::rejectCall(uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
-  dialogMutex_.lock();
-  std::shared_ptr<SIPDialog> dialog = dialogs_[sessionID];
-  dialogMutex_.unlock();
+  std::shared_ptr<SIPDialog> dialog = getDialog(sessionID);
+
   dialog->server.respond(SIP_DECLINE);
 
   removeDialog(sessionID);
@@ -226,7 +210,7 @@ void SIPManager::cancelCall(uint32_t sessionID)
 
   if (dialogs_.find(sessionID) != dialogs_.end())
   {
-    std::shared_ptr<SIPDialog> dialog = dialogs_[sessionID];
+    std::shared_ptr<SIPDialog> dialog = getDialog(sessionID);
     dialog->client.transactionCANCEL();
     removeDialog(sessionID);
   }
@@ -240,17 +224,10 @@ void SIPManager::cancelCall(uint32_t sessionID)
 void SIPManager::endCall(uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
-  dialogMutex_.lock();
-  std::shared_ptr<SIPDialog> dialog = dialogs_[sessionID];
-  dialogMutex_.unlock();
+  std::shared_ptr<SIPDialog> dialog = getDialog(sessionID);
   dialog->client.transactionBYE();
 
   removeDialog(sessionID);
-
-  if (negotiations_.find(sessionID) != negotiations_.end())
-  {
-    negotiations_[sessionID]->endSession();
-  }
 }
 
 
@@ -261,17 +238,11 @@ void SIPManager::endAllCalls()
     if(dialog.second != nullptr)
     {
       dialog.second->client.transactionBYE();
+      dialog.second->negotiation->endSession();
     }
   }
 
   nextSessionID_ = FIRSTSESSIONID;
-
-  for (auto& negotiation : negotiations_)
-  {
-    negotiation.second->endSession();
-  }
-
-  negotiations_.clear();
 }
 
 
@@ -281,10 +252,10 @@ void SIPManager::getSDPs(uint32_t sessionID,
 {
   Q_ASSERT(sessionID);
 
-  if (negotiations_.find(sessionID) != negotiations_.end())
+  if (dialogs_.find(sessionID) != dialogs_.end())
   {
-    localSDP = negotiations_.at(sessionID)->getLocalSDP();
-    remoteSDP = negotiations_.at(sessionID)->getRemoteSDP();
+    localSDP = getDialog(sessionID)->negotiation->getLocalSDP();
+    remoteSDP = getDialog(sessionID)->negotiation->getRemoteSDP();
   }
 }
 
@@ -324,9 +295,6 @@ void SIPManager::transportRequest(uint32_t sessionID, SIPRequest &request)
 
   std::shared_ptr<SIPDialog> foundDialog = getDialog(sessionID);
 
-  QVariant content;
-  foundDialog->state.processOutgoingRequest(request, content);
-
   printNormal(this, "Finished sending of a dialog request");
 
   if (sessionToTransportID_.find(sessionID) != sessionToTransportID_.end())
@@ -335,10 +303,9 @@ void SIPManager::transportRequest(uint32_t sessionID, SIPRequest &request)
 
     if (transports_.find(transportID) != transports_.end())
     {
-      if (negotiations_.find(sessionID) != negotiations_.end())
-      {
-        negotiations_.at(sessionID)->processOutgoingRequest(request, content);
-      }
+      QVariant content;
+      foundDialog->state.processOutgoingRequest(request, content);
+      foundDialog->negotiation->processOutgoingRequest(request, content);
       transports_[transportID]->processOutgoingRequest(request, content);
     }
     else {
@@ -363,12 +330,9 @@ void SIPManager::transportResponse(uint32_t sessionID, SIPResponse &response)
     {
       // determine if we to attach SDP to our response
       QVariant content;
-      if (negotiations_.find(sessionID) != negotiations_.end())
-      {
-        negotiations_.at(sessionID)->processOutgoingResponse(response, content,
-                                                             transports_[transportID]->getLocalAddress());
-      }
 
+      getDialog(sessionID)->negotiation->processOutgoingResponse(response, content,
+                                                                 transports_[transportID]->getLocalAddress());
       // send the request with or without SDP
       transports_[transportID]->processOutgoingResponse(response, content);
     }
@@ -417,19 +381,14 @@ void SIPManager::processSIPRequest(SIPRequest& request, QString localAddress,
     {
       sessionToTransportID_[sessionID] = transportID;
 
-      if (negotiations_.find(sessionID) == negotiations_.end())
-      {
-        createNegotiation(sessionID);
-      }
-
-      negotiations_.at(sessionID)->processIncomingRequest(request, content,
-                                                          transports_[transportID]->getLocalAddress());
-
       Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
       printNormal(this, "Starting to process received SIP Request.");
 
       // find the dialog which corresponds to the callID and tags received in request
       std::shared_ptr<SIPDialog> foundDialog = getDialog(sessionID);
+
+      foundDialog->negotiation->processIncomingRequest(request, content,
+                                                       transports_[transportID]->getLocalAddress());
 
       QVariant content; // unused
       foundDialog->server.processIncomingRequest(request, content);
@@ -482,15 +441,6 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
     return;
   }
 
-  if (negotiations_.find(sessionID) == negotiations_.end())
-  {
-    createNegotiation(sessionID);
-  }
-
-  quint32 transportID = sessionToTransportID_[sessionID];
-  negotiations_.at(sessionID)->processIncomingResponse(response, content,
-                                                       transports_[transportID]->getLocalAddress());
-
   Q_ASSERT(sessionID);
   if (sessionID == 0)
   {
@@ -506,6 +456,10 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
 
   // find the dialog which corresponds to the callID and tags received in request
   std::shared_ptr<SIPDialog> foundDialog = getDialog(sessionID);
+
+  quint32 transportID = sessionToTransportID_[sessionID];
+  foundDialog->negotiation->processIncomingResponse(response, content,
+                                                    transports_[transportID]->getLocalAddress());
 
   foundDialog->state.processIncomingResponse(response, content);
   foundDialog->client.processIncomingResponse(response, content);
@@ -559,17 +513,6 @@ bool SIPManager::isConnected(QString remoteAddress, quint32& outTransportID)
 }
 
 
-void SIPManager::createNegotiation(uint32_t sessionID)
-{
-  negotiations_[sessionID] = std::shared_ptr<Negotiation> (new Negotiation(nCandidates_, sessionID));
-
-  QObject::connect(negotiations_[sessionID].get(), &Negotiation::iceNominationSucceeded,
-                    this, &SIPManager::nominationSucceeded);
-  QObject::connect(negotiations_[sessionID].get(), &Negotiation::iceNominationFailed,
-                    this, &SIPManager::nominationFailed);
-}
-
-
 bool SIPManager::identifySession(SIPRequest& request,
                                  QString localAddress,
                                  uint32_t& out_sessionID)
@@ -578,7 +521,6 @@ bool SIPManager::identifySession(SIPRequest& request,
 
   out_sessionID = 0;
 
-  dialogMutex_.lock();
   for (auto i = dialogs_.begin(); i != dialogs_.end(); ++i)
   {
     if(i->second != nullptr)
@@ -592,7 +534,6 @@ bool SIPManager::identifySession(SIPRequest& request,
       }
     }
   }
-  dialogMutex_.unlock();
 
   // we did not find existing dialog for this request
   if(out_sessionID == 0)
@@ -636,15 +577,18 @@ bool SIPManager::identifySession(SIPResponse &response, uint32_t& out_sessionID)
 }
 
 
-std::shared_ptr<SIPDialog> SIPManager::getDialog(uint32_t sessionID)
+std::shared_ptr<SIPDialog> SIPManager::getDialog(uint32_t sessionID) const
 {
   std::shared_ptr<SIPDialog> foundDialog = nullptr;
-  dialogMutex_.lock();
   if (dialogs_.find(sessionID) != dialogs_.end())
   {
-    foundDialog = dialogs_[sessionID];
+    foundDialog = dialogs_.at(sessionID);
   }
-  dialogMutex_.unlock();
+  else
+  {
+    printProgramError(this, "Could not find dialog",
+                      "SessionID", QString::number(sessionID));
+  }
 
   return foundDialog;
 }
@@ -654,12 +598,10 @@ void SIPManager::createDialog(uint32_t sessionID)
 {
   std::shared_ptr<SIPDialog> dialog = std::shared_ptr<SIPDialog> (new SIPDialog);
 
-  dialogMutex_.lock();
   dialogs_[sessionID] = dialog;
-  dialogMutex_.unlock();
-
   dialogs_[sessionID]->client.setDialogStuff(transactionUser_, sessionID);
   dialogs_[sessionID]->server.init(transactionUser_, sessionID);
+  dialog->negotiation = std::shared_ptr<Negotiation> (new Negotiation(nCandidates_, sessionID));
 
   QObject::connect(&dialogs_[sessionID]->client, &SIPClient::sendDialogRequest,
                    this, &SIPManager::transportRequest);
@@ -669,11 +611,21 @@ void SIPManager::createDialog(uint32_t sessionID)
 
   QObject::connect(&dialogs_[sessionID]->server, &SIPServer::sendResponse,
                    this, &SIPManager::transportResponse);
+
+  QObject::connect(dialog->negotiation.get(), &Negotiation::iceNominationSucceeded,
+                    this, &SIPManager::nominationSucceeded);
+  QObject::connect(dialog->negotiation.get(), &Negotiation::iceNominationFailed,
+                    this, &SIPManager::nominationFailed);
 }
 
 
 void SIPManager::removeDialog(uint32_t sessionID)
 {
+  if (dialogs_.find(sessionID) != dialogs_.end())
+  {
+    getDialog(sessionID)->negotiation->endSession();
+  }
+
   dialogs_.erase(dialogs_.find(sessionID));
   if (dialogs_.empty())
   {

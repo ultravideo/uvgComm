@@ -28,6 +28,9 @@ struct SIPDialog
   SIPDialogState state;
   SIPClient client;
   SIPServer server;
+
+  // Handles SDP and ICE functionality
+  std::shared_ptr<Negotiation> negotiation;
 };
 
 
@@ -53,10 +56,6 @@ public:
   void cancelCall(uint32_t sessionID);
   void endCall(uint32_t sessionID);
   void endAllCalls();
-
-  // when the other person ends the call, one component is not uninited naturally
-  // so this has to be called.
-  void uninitSession(uint32_t sessionID);
 
   // Get the negotiated session media session descriptions. Use after call
   // has been negotiated.
@@ -92,7 +91,8 @@ private slots:
 
 private:
 
-  std::shared_ptr<SIPDialog> getDialog(uint32_t sessionID);
+
+  std::shared_ptr<SIPDialog> getDialog(uint32_t sessionID) const;
 
   uint32_t createDialogFromINVITE(QString localAddress,
                                   SIPRequest &invite);
@@ -121,9 +121,6 @@ private:
   // to this address. Sets found transportID.
   bool isConnected(QString remoteAddress, quint32& outTransportID);
 
-  // creates one Negotiation instance and connect its signals
-  void createNegotiation(uint32_t sessionID);
-
   // Helper functions for SDP management.
 
   ConnectionServer tcpServer_;
@@ -151,9 +148,6 @@ private:
   std::map<quint32, WaitingStart> waitingToStart_; // INVITE after connect
   std::map<quint32, QString> waitingToBind_; // REGISTER after connect
 
-  // Negotiation with SDP and ICE
-  //Negotiation negotiation_;
-  std::map<uint32_t, std::shared_ptr<Negotiation>> negotiations_;
   std::shared_ptr<NetworkCandidates> nCandidates_;
 
   StatisticsInterface *stats_;
@@ -168,7 +162,6 @@ private:
 
   // This mutex makes sure that the dialog has been added to the dialogs_ list
   // before we are accessing it when receiving messages
-  QMutex dialogMutex_;
   std::map<uint32_t, std::shared_ptr<SIPDialog>> dialogs_;
 
   SIPTransactionUser* transactionUser_;

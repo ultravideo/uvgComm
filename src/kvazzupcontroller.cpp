@@ -286,7 +286,6 @@ void KvazzupController::endCall(uint32_t sessionID)
     media_.removeParticipant(sessionID);
   }
   removeSession(sessionID, "Call ended", true);
-  sip_.uninitSession(sessionID);
 }
 
 
