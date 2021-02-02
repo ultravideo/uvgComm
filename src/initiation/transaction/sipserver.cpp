@@ -54,11 +54,11 @@ void SIPServer::processIncomingRequest(SIPRequest& request, QVariant& content)
                                         request.message->from.address.realname))
     {
       // if we did not auto-accept
-      responseSender(SIP_RINGING);
+      respond(SIP_RINGING);
     }
     else
     {
-      responseSender(SIP_OK);
+      respond(SIP_OK);
     }
     break;
   }
@@ -69,7 +69,7 @@ void SIPServer::processIncomingRequest(SIPRequest& request, QVariant& content)
   }
   case SIP_BYE:
   {
-    responseSender(SIP_OK);
+    respond(SIP_OK);
 
     // this takes too long, send response first.
     transactionUser_->endCall(sessionID_);
@@ -91,13 +91,13 @@ void SIPServer::processIncomingRequest(SIPRequest& request, QVariant& content)
   case SIP_REGISTER:
   {
     printPeerError(this, "REGISTER-method detected at server. Why?");
-    responseSender(SIP_NOT_ALLOWED);
+    respond(SIP_NOT_ALLOWED);
     break;
   }
   default:
   {
     printUnimplemented(this, "Unsupported request type received");
-    responseSender(SIP_NOT_ALLOWED);
+    respond(SIP_NOT_ALLOWED);
     break;
   }
   }
@@ -106,19 +106,7 @@ void SIPServer::processIncomingRequest(SIPRequest& request, QVariant& content)
 }
 
 
-void SIPServer::respondOK()
-{
-  responseSender(SIP_OK);
-}
-
-
-void SIPServer::respondDECLINE()
-{
-  responseSender(SIP_DECLINE);
-}
-
-
-void SIPServer::responseSender(SIPResponseStatus type)
+void SIPServer::respond(SIPResponseStatus type)
 {
   Q_ASSERT(receivedRequest_ != nullptr);
 

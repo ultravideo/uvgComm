@@ -22,9 +22,8 @@ public:
 
   void init(SIPTransactionUser* tu, uint32_t sessionID);
 
-  // send a accept/reject response to received request according to user.
-  void respondOK();
-  void respondDECLINE();
+  // any response code
+  void respond(SIPResponseStatus type);
 
   bool isCANCELYours(SIPRequest &cancel);
 
@@ -43,9 +42,11 @@ signals:
   // a signal that response of the following type should be sent.
   void sendResponse(uint32_t sessionID, SIPResponse& response);
 
+  void receivedRequest(SIPRequestMethod method, QString& fromRealName);
+
+
 private:
 
-  void responseSender(SIPResponseStatus type);
 
   // Copies the fields of to a response which are direct copies of the request.
   // includes at least via, to, from, CallID and cseq

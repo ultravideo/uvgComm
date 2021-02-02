@@ -3,10 +3,12 @@
 #include "initiation/transport/connectionserver.h"
 #include "initiation/transport/siptransport.h"
 
-#include "initiation/transaction/sipdialogmanager.h"
 #include "initiation/transaction/sipregistrations.h"
 #include "initiation/negotiation/negotiation.h"
 
+#include "initiation/transaction/sipserver.h"
+#include "initiation/transaction/sipclient.h"
+#include "initiation/transaction/sipdialogstate.h"
 
 /* This is a manager class that manages interactions between different
  * components in Session Initiation Protocol (SIP). This class should implement
@@ -76,7 +78,27 @@ private slots:
                          QVariant& content, quint32 transportID);
   void processSIPResponse(SIPResponse &response, QVariant& content);
 
+  void createDialog(uint32_t sessionID);
+  void removeDialog(uint32_t sessionID);
+
 private:
+
+  uint32_t createDialogFromINVITE(QString localAddress,
+                                  SIPRequest &invite);
+
+  // returns true if the identification was successful
+  bool identifySession(SIPRequest &request, QString localAddress,
+                       uint32_t& out_sessionID);
+
+  bool identifySession(SIPResponse &response,
+                       uint32_t& out_sessionID);
+
+  // start a call with address. Returns generated sessionID
+  void sendINVITE(NameAddr &address, QString localAddress,
+                 uint32_t sessionID, bool registered);
+
+  // reserve sessionID for a future call
+  uint32_t reserveSessionID();
 
   // REGISTER our information to SIP-registrar
   void bindToServer();
@@ -101,9 +123,6 @@ private:
   QMap<quint32, std::shared_ptr<SIPTransport>> transports_;
   quint32 nextTransportID_; // the next free transportID to be allocated
 
-  // SIP Transactions layer
-  SIPDialogManager dialogManager_;
-
   SIPRegistrations registrations_;
 
   // mapping of which sessionID uses which TransportID
@@ -127,4 +146,29 @@ private:
   std::shared_ptr<NetworkCandidates> nCandidates_;
 
   StatisticsInterface *stats_;
+
+  // This mutex makes sure that the dialog has been added to the dialogs_ list
+  // before we are accessing it when receiving messages
+  QMutex dialogMutex_;
+
+  QMutex pendingConnectionMutex_;
+
+  // SessionID:s are used in this program to keep track of dialogs.
+  // The CallID is not used because we could be calling ourselves
+  // and using uint32_t is simpler than keeping track of tags.
+
+  // TODO: sessionID should be called dialogID
+
+  uint32_t nextSessionID_;
+
+  struct SIPDialog
+  {
+    SIPDialogState state;
+    SIPClient client;
+    SIPServer server;
+  };
+
+  std::map<uint32_t, std::shared_ptr<SIPDialog>> dialogs_;
+
+  SIPTransactionUser* transactionUser_;
 };
