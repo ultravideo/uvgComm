@@ -5,31 +5,16 @@
 
 #include "common.h"
 
-SIPServer::SIPServer():
-  sessionID_(0),
-  receivedRequest_(nullptr),
-  transactionUser_(nullptr),
-  shouldLive_(true)
-{}
+#include <QVariant>
 
-void SIPServer::init(SIPTransactionUser* tu, uint32_t sessionID)
-{
-  transactionUser_ = tu;
-  sessionID_ = sessionID;
-}
+SIPServer::SIPServer():
+  receivedRequest_(nullptr)
+{}
 
 
 void SIPServer::processIncomingRequest(SIPRequest& request, QVariant& content)
 {
   Q_UNUSED(content)
-  Q_ASSERT(transactionUser_ && sessionID_);
-  if(!transactionUser_ || sessionID_ == 0)
-  {
-    printDebug(DEBUG_PROGRAM_ERROR, this,
-               "SIP Server transaction not initialized.");
-    shouldLive_ = false;
-    return;
-  }
 
   if((receivedRequest_ == nullptr && request.method != SIP_ACK) ||
      request.method == SIP_BYE)
@@ -39,70 +24,11 @@ void SIPServer::processIncomingRequest(SIPRequest& request, QVariant& content)
   }
   else if (request.method != SIP_ACK && request.method != SIP_CANCEL)
   {
-    printDebug(DEBUG_PEER_ERROR, "SIP Server Transaction",
-               "They sent us a new SIP request even though we have the old one still saved.",
-                {"SessionID"}, {QString::number(sessionID_)});
-    shouldLive_ = false;
+    printPeerError(this, "New request when previous transaction has not been completed. Ignoring...");
     return;
   }
 
-  switch(request.method)
-  {
-  case SIP_INVITE:
-  {
-    if (!transactionUser_->incomingCall(sessionID_,
-                                        request.message->from.address.realname))
-    {
-      // if we did not auto-accept
-      respond(SIP_RINGING);
-    }
-    else
-    {
-      respond(SIP_OK);
-    }
-    break;
-  }
-  case SIP_ACK:
-  {
-    transactionUser_->callNegotiated(sessionID_);
-    break;
-  }
-  case SIP_BYE:
-  {
-    respond(SIP_OK);
-
-    // this takes too long, send response first.
-    transactionUser_->endCall(sessionID_);
-    shouldLive_ = false;
-    return;
-  }
-  case SIP_CANCEL:
-  {
-    transactionUser_->cancelIncomingCall(sessionID_);
-    // TODO: send 487 for INVITE
-    shouldLive_ = false;
-    return;
-  }
-  case SIP_OPTIONS:
-  {
-    printUnimplemented(this, "OPTIONS-request not implemented yet");
-    break;
-  }
-  case SIP_REGISTER:
-  {
-    printPeerError(this, "REGISTER-method detected at server. Why?");
-    respond(SIP_NOT_ALLOWED);
-    break;
-  }
-  default:
-  {
-    printUnimplemented(this, "Unsupported request type received");
-    respond(SIP_NOT_ALLOWED);
-    break;
-  }
-  }
-  shouldLive_ = true;
-  return;
+  emit receivedRequest(request.method, request.message->from.address.realname);
 }
 
 
@@ -113,7 +39,7 @@ void SIPServer::respond(SIPResponseStatus type)
   if(receivedRequest_ == nullptr)
   {
     printDebug(DEBUG_PROGRAM_ERROR, this,
-               "The received request was not set before trying to use it!");
+               "We are trying to respond when we have not received a request!");
     return;
   }
 
@@ -134,15 +60,16 @@ void SIPServer::respond(SIPResponseStatus type)
   {
     printDebug(DEBUG_NORMAL, this,
                "Sending a final response. Deleting request details.",
-               {"SessionID", "Code", "Cseq"},
-               {QString::number(sessionID_), QString::number(responseCode),
+               {"Code", "Cseq"},
+               {QString::number(responseCode),
                 QString::number(receivedRequest_->message->cSeq.cSeq)});
 
     // reset the request since we have responded to it
     receivedRequest_ = nullptr;
   }
 
-  emit sendResponse(sessionID_, response);
+  QVariant content;
+  emit outgoingResponse(response, content);
 }
 
 

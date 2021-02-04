@@ -22,6 +22,9 @@ public:
   void endCall();
   void cancelOutgoingCall();
 
+  void acceptIncomingCall();
+  void declineIncomingCall();
+
   bool shouldBeKeptAlive()
   {
     return shouldLive_;
@@ -30,15 +33,21 @@ public:
 signals:
   void sendDialogRequest(uint32_t sessionID, SIPRequest& request);
 
+  void sendResponse(uint32_t sessionID, SIPResponse& response);
+
 
 public slots:
+
+  void processRequest(SIPRequestMethod request, QString& fromAddress);
 
   void processResponse(SIPRequestMethod originalRequest,
                        SIPResponseStatus status);
 
-  void processFailure(QString message);
+  void transmitRequest(SIPRequest& request, QVariant& content);
 
-  void transmitRequest(SIPRequest& request);
+  void transmitResponse(SIPResponse &response, QVariant& content);
+
+  void processFailure(QString message);
 
 private:
 

@@ -183,8 +183,7 @@ void SIPManager::acceptCall(uint32_t sessionID)
   printNormal(this, "Accepting call", {"SessionID"}, {QString::number(sessionID)});
 
   std::shared_ptr<SIPDialog> dialog = getDialog(sessionID);
-
-  dialog->server->respond(SIP_OK);
+  dialog->call.acceptIncomingCall();
 }
 
 
@@ -193,7 +192,7 @@ void SIPManager::rejectCall(uint32_t sessionID)
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
   std::shared_ptr<SIPDialog> dialog = getDialog(sessionID);
 
-  dialog->server->respond(SIP_DECLINE);
+  dialog->call.declineIncomingCall();
 
   removeDialog(sessionID);
 }
@@ -387,7 +386,7 @@ void SIPManager::processSIPRequest(SIPRequest& request, QString localAddress,
 
       QVariant content; // unused
       foundDialog->server->processIncomingRequest(request, content);
-      if(!foundDialog->server->shouldBeKeptAlive())
+      if(!foundDialog->call.shouldBeKeptAlive())
       {
         printNormal(this, "Ending session as a results of request.");
         removeDialog(sessionID);
@@ -592,13 +591,10 @@ std::shared_ptr<SIPDialog> SIPManager::getDialog(uint32_t sessionID) const
 void SIPManager::createDialog(uint32_t sessionID)
 {
   std::shared_ptr<SIPDialog> dialog = std::shared_ptr<SIPDialog> (new SIPDialog);
-
   dialogs_[sessionID] = dialog;
 
   dialogs_[sessionID]->client = std::shared_ptr<SIPClient> (new SIPClient);
   dialogs_[sessionID]->server = std::shared_ptr<SIPServer> (new SIPServer);
-
-  dialogs_[sessionID]->server->init(transactionUser_, sessionID);
 
   dialog->call.init(dialog->client, dialog->server, transactionUser_, sessionID);
 
@@ -608,11 +604,12 @@ void SIPManager::createDialog(uint32_t sessionID)
   QObject::connect(&dialogs_[sessionID]->call, &SIPSingleCall::sendDialogRequest,
                    this, &SIPManager::transportRequest);
 
-  QObject::connect(dialogs_[sessionID]->server.get(), &SIPServer::sendResponse,
+  QObject::connect(&dialogs_[sessionID]->call, &SIPSingleCall::sendResponse,
                    this, &SIPManager::transportResponse);
 
   QObject::connect(dialog->negotiation.get(), &Negotiation::iceNominationSucceeded,
                     this, &SIPManager::nominationSucceeded);
+
   QObject::connect(dialog->negotiation.get(), &Negotiation::iceNominationFailed,
                     this, &SIPManager::nominationFailed);
 }
