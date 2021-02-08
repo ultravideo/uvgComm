@@ -75,7 +75,7 @@ private slots:
   // somebody established a TCP connection with us
   void receiveTCPConnection(TCPConnection* con);
   // our outbound TCP connection was established.
-  void connectionEstablished(quint32 transportID);
+  void connectionEstablished(QString localAddress, QString remoteAddress);
 
   // send the SIP message to a SIP User agent with transport layer. Attaches SDP message if needed.
   void transportRequest(uint32_t sessionID, SIPRequest &request);
@@ -85,9 +85,9 @@ private slots:
   void transportToProxy(QString serverAddress, SIPRequest &request);
 
   // Process incoming SIP message. May create session if it's an INVITE.
-  void processSIPRequest(SIPRequest &request, QString localAddress,
-                         QVariant& content, quint32 transportID);
-  void processSIPResponse(SIPResponse &response, QVariant& content);
+  void processSIPRequest(SIPRequest &request,
+                         QVariant& content, QString localAddress);
+  void processSIPResponse(SIPResponse &response, QVariant& content, QString localAddress);
 
   void createDialog(uint32_t sessionID);
   void removeDialog(uint32_t sessionID);
@@ -119,11 +119,11 @@ private:
   void bindToServer();
 
   // helper function which handles all steps related to creation of new transport
-  std::shared_ptr<SIPTransport> createSIPTransport();
+  std::shared_ptr<SIPTransport> createSIPTransport(QString address);
 
   // Goes through our current connections and returns if we are already connected
-  // to this address. Sets found transportID.
-  bool isConnected(QString remoteAddress, quint32& outTransportID);
+  // to this address.
+  bool isConnected(QString remoteAddress);
 
   // Helper functions for SDP management.
 
@@ -131,17 +131,10 @@ private:
   uint16_t sipPort_;
 
   // SIP Transport layer
-  // Key is transportID
-  QMap<quint32, std::shared_ptr<SIPTransport>> transports_;
-  quint32 nextTransportID_; // the next free transportID to be allocated
+  // Key is remote address
+  QMap<QString, std::shared_ptr<SIPTransport>> transports_;
 
   std::map<QString, std::shared_ptr<SIPRegistration>> registrations_;
-
-  // mapping of which sessionID uses which TransportID
-  std::map<uint32_t, quint32> sessionToTransportID_;
-
-  // mapping of which SIP proxy uses which TransportID
-  std::map<QString, quint32> serverToTransportID_;
 
   // if we want to do something, but the TCP connection has not yet been established
   struct WaitingStart
@@ -149,8 +142,9 @@ private:
     uint32_t sessionID;
     NameAddr contact;
   };
-  std::map<quint32, WaitingStart> waitingToStart_; // INVITE after connect
-  std::map<quint32, QString> waitingToBind_; // REGISTER after connect
+
+  std::map<QString, WaitingStart> waitingToStart_; // INVITE after connect
+  QStringList waitingToBind_; // REGISTER after connect
 
   std::shared_ptr<NetworkCandidates> nCandidates_;
 

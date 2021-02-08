@@ -20,7 +20,7 @@ class SIPTransport : public SIPMessageProcessor
 {
   Q_OBJECT
 public:
-  SIPTransport(quint32 transportID, StatisticsInterface *stats);
+  SIPTransport(StatisticsInterface *stats);
   ~SIPTransport();
 
   void cleanup();
@@ -41,11 +41,6 @@ public:
 
   uint16_t getLocalPort();
 
-  quint32 getTransportID()
-  {
-    return transportID_;
-  }
-
 public slots:
   // called when connection receives a message
   void networkPackage(QString package);
@@ -55,17 +50,16 @@ public slots:
   void connectionEstablished(QString localAddress, QString remoteAddress);
 
 signals:
-  // signal that ads transportID to connectionEstablished slot
-  void sipTransportEstablished(quint32 transportID, QString localAddress,
-                               QString remoteAddress);
+  void sipTransportEstablished(QString localAddress, QString remoteAddress);
 
   // signals that output parsed sip messages
-  void incomingRequest(SIPRequest& request, QString localAddress,
-                       QVariant& content, quint32 transportID);
-  void incomingResponse(SIPResponse& response, QVariant& content);
+  void incomingRequest(SIPRequest& request, QVariant& content,
+                       QString localAddress);
+  void incomingResponse(SIPResponse& response, QVariant& content,
+                        QString localAddress);
 
   // we got a message, but could not parse it.
-  void parsingError(SIPResponseStatus errorResponse, quint32 transportID);
+  void parsingError(SIPResponseStatus errorResponse, QString source);
 
 private:
 
@@ -84,7 +78,6 @@ private:
   QString partialMessage_;
 
   std::shared_ptr<TCPConnection> connection_;
-  quint32 transportID_;
 
   StatisticsInterface *stats_;
 

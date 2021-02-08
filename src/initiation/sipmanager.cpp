@@ -5,9 +5,6 @@
 
 #include <QObject>
 
-
-const quint32 FIRSTTRANSPORTID = 1;
-
 const uint32_t FIRSTSESSIONID = 1;
 
 
@@ -15,7 +12,6 @@ SIPManager::SIPManager():
   tcpServer_(),
   sipPort_(5060), // default for SIP, use 5061 for tls encrypted
   transports_(),
-  nextTransportID_(FIRSTTRANSPORTID),
   nextSessionID_(FIRSTSESSIONID),
   dialogs_(),
   transactionUser_(nullptr)
@@ -115,12 +111,10 @@ void SIPManager::bindToServer()
 
   if (serverAddress != "" && !haveWeRegistered())
   {
-    std::shared_ptr<SIPTransport> transport = createSIPTransport();
+    std::shared_ptr<SIPTransport> transport = createSIPTransport(serverAddress);
     transport->createConnection(DEFAULT_TRANSPORT, serverAddress);
 
-    serverToTransportID_[serverAddress] = transport->getTransportID();
-
-    waitingToBind_[transport->getTransportID()] = serverAddress;
+    waitingToBind_.push_back(serverAddress);
   }
   else {
     printWarning(this, "SIP Registrar was empty "
@@ -131,27 +125,22 @@ void SIPManager::bindToServer()
 
 uint32_t SIPManager::startCall(NameAddr &address)
 {
-  quint32 transportID = 0;
   uint32_t sessionID = reserveSessionID();
 
   // TODO: ask network interface if we can start session
 
-  // check if we are already connected to remoteaddress and set transportID
-  if (!isConnected(address.uri.hostport.host, transportID))
+  // check if we are already connected to remoteaddress
+  if (!isConnected(address.uri.hostport.host))
   {
     // we are not yet connected to them. Form a connection by creating the transport layer
-    std::shared_ptr<SIPTransport> transport = createSIPTransport();
-    transportID = transport->getTransportID(); // Get new transportID
-    sessionToTransportID_[sessionID] = transportID;
+    std::shared_ptr<SIPTransport> transport = createSIPTransport(address.uri.hostport.host);
     transport->createConnection(DEFAULT_TRANSPORT, address.uri.hostport.host);
-    waitingToStart_[transportID] = {sessionID, address};
+    waitingToStart_[address.uri.hostport.host] = {sessionID, address};
   }
   else
   {
-    // associate this sessionID with existing transportID
-    sessionToTransportID_[sessionID] = transportID;
     // we have an existing connection already. Send SIP message and start call.
-    sendINVITE(address, transports_[transportID]->getLocalAddress(),
+    sendINVITE(address, transports_[address.uri.hostport.host]->getLocalAddress(),
                sessionID, haveWeRegistered());
   }
 
@@ -261,22 +250,26 @@ void SIPManager::receiveTCPConnection(TCPConnection *con)
   printNormal(this, "Received a TCP connection. Initializing dialog.");
   Q_ASSERT(con);
 
-  std::shared_ptr<SIPTransport> transport = createSIPTransport();
+  qSleep(500); // TODO: Remove this with better achitecture!!!
+
+  std::shared_ptr<SIPTransport> transport = createSIPTransport(con->remoteAddress().toString());
   transport->incomingTCPConnection(std::shared_ptr<TCPConnection> (con));
 }
 
 
-void SIPManager::connectionEstablished(quint32 transportID)
+void SIPManager::connectionEstablished(QString localAddress, QString remoteAddress)
 {
-  if (waitingToStart_.find(transportID) != waitingToStart_.end())
+  Q_UNUSED(localAddress)
+
+  if (waitingToStart_.find(remoteAddress) != waitingToStart_.end())
   {
-    sendINVITE(waitingToStart_[transportID].contact,
-               transports_[transportID]->getLocalAddress(),
-               waitingToStart_[transportID].sessionID,
+    sendINVITE(waitingToStart_[remoteAddress].contact,
+               transports_[remoteAddress]->getLocalAddress(),
+               waitingToStart_[remoteAddress].sessionID,
                haveWeRegistered());
   }
 
-  if(waitingToBind_.find(transportID) != waitingToBind_.end())
+  if(waitingToBind_.contains(remoteAddress))
   {
     std::shared_ptr<SIPRegistration> registration =
         std::shared_ptr<SIPRegistration> (new SIPRegistration);
@@ -284,11 +277,12 @@ void SIPManager::connectionEstablished(quint32 transportID)
     registration->init(statusView_);
     QObject::connect(registration.get(), &SIPRegistration::transportProxyRequest,
                      this, &SIPManager::transportToProxy);
-    registrations_[waitingToBind_[transportID]] = registration;
 
-    registration->bindToServer(waitingToBind_[transportID],
-                               transports_[transportID]->getLocalAddress(),
-                               transports_[transportID]->getLocalPort());
+    registrations_[remoteAddress] = registration;
+
+    registration->bindToServer(remoteAddress,
+                               transports_[remoteAddress]->getLocalAddress(),
+                               transports_[remoteAddress]->getLocalPort());
   }
 }
 
@@ -301,76 +295,55 @@ void SIPManager::transportRequest(uint32_t sessionID, SIPRequest &request)
 
   printNormal(this, "Finished sending of a dialog request");
 
-  if (sessionToTransportID_.find(sessionID) != sessionToTransportID_.end())
-  {
-    quint32 transportID = sessionToTransportID_[sessionID];
+  QVariant content;
+  foundDialog->state.processOutgoingRequest(request, content);
+  foundDialog->negotiation->processOutgoingRequest(request, content);
 
-    if (transports_.find(transportID) != transports_.end())
-    {
-      QVariant content;
-      foundDialog->state.processOutgoingRequest(request, content);
-      foundDialog->negotiation->processOutgoingRequest(request, content);
-      transports_[transportID]->processOutgoingRequest(request, content);
-    }
-    else {
-      printDebug(DEBUG_ERROR,  metaObject()->className(), 
-                 "Tried to send request with invalid transportID");
-    }
+  if (transports_.find(request.requestURI.hostport.host) != transports_.end())
+  {
+    transports_[request.requestURI.hostport.host]->processOutgoingRequest(request, content);
   }
-  else {
-    printDebug(DEBUG_ERROR, metaObject()->className(), 
-                "No mapping from sessionID to transportID");
+  else
+  {
+    printDebug(DEBUG_ERROR,  metaObject()->className(),
+               "Tried to send request when we are not connected to request-URI");
   }
 }
 
 
 void SIPManager::transportResponse(uint32_t sessionID, SIPResponse &response)
 {
-  if (sessionToTransportID_.find(sessionID) != sessionToTransportID_.end())
+  QString remoteAddress = response.message->vias.back().sentBy;
+  if (transports_.find(remoteAddress) != transports_.end())
   {
-    quint32 transportID = sessionToTransportID_[sessionID];
+    // determine if we to attach SDP to our response
+    QVariant content;
 
-    if (transports_.find(transportID) != transports_.end())
-    {
-      // determine if we to attach SDP to our response
-      QVariant content;
-
-      getDialog(sessionID)->negotiation->processOutgoingResponse(response, content,
-                                                                 transports_[transportID]->getLocalAddress());
-      // send the request with or without SDP
-      transports_[transportID]->processOutgoingResponse(response, content);
-    }
-    else {
-      printDebug(DEBUG_ERROR, metaObject()->className(), 
-                 "Tried to send response with invalid.", {"transportID"},
-      {QString::number(transportID)});
-    }
+    getDialog(sessionID)->negotiation->processOutgoingResponse(response, content,
+                                                               transports_[remoteAddress]->getLocalAddress());
+    // send the request with or without SDP
+    transports_[remoteAddress]->processOutgoingResponse(response, content);
   }
   else {
-    printDebug(DEBUG_ERROR, metaObject()->className(), 
-                "No mapping from sessionID to transportID");
+    printDebug(DEBUG_ERROR, metaObject()->className(),
+               "Tried to send response with invalid.");
   }
 }
 
 
 void SIPManager::transportToProxy(QString serverAddress, SIPRequest &request)
 {
-  if (serverToTransportID_.find(serverAddress) != serverToTransportID_.end())
+  if (transports_.find(serverAddress) != transports_.end())
   {
-    quint32 transportID = serverToTransportID_[serverAddress];
-
-    if (transports_.find(transportID) != transports_.end())
-    {
-      // send the request without content
-      QVariant content;
-      transports_[transportID]->processOutgoingRequest(request, content);
-    }
+    // send the request without content
+    QVariant content;
+    transports_[serverAddress]->processOutgoingRequest(request, content);
   }
 }
 
 
-void SIPManager::processSIPRequest(SIPRequest& request, QString localAddress,
-                                   QVariant& content, quint32 transportID)
+void SIPManager::processSIPRequest(SIPRequest& request, QVariant& content,
+                                   QString localAddress)
 {
   // TODO: ask network interface if we can start session
 
@@ -383,8 +356,6 @@ void SIPManager::processSIPRequest(SIPRequest& request, QString localAddress,
     Q_ASSERT(sessionID);
     if (sessionID != 0)
     {
-      sessionToTransportID_[sessionID] = transportID;
-
       Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
       printNormal(this, "Starting to process received SIP Request.");
 
@@ -392,7 +363,7 @@ void SIPManager::processSIPRequest(SIPRequest& request, QString localAddress,
       std::shared_ptr<SIPDialog> foundDialog = getDialog(sessionID);
 
       foundDialog->negotiation->processIncomingRequest(request, content,
-                                                       transports_[transportID]->getLocalAddress());
+                                                       localAddress);
 
       QVariant content; // unused
       foundDialog->server->processIncomingRequest(request, content);
@@ -419,7 +390,8 @@ void SIPManager::processSIPRequest(SIPRequest& request, QString localAddress,
 }
 
 
-void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
+void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content,
+                                    QString localAddress)
 {
   for (auto& registration : registrations_)
   {
@@ -440,12 +412,6 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
     return;
   }
 
-  if(sessionToTransportID_.find(sessionID) == sessionToTransportID_.end())
-  {
-    printDebug(DEBUG_WARNING, this,
-               "Could not identify transport for session");
-    return;
-  }
 
   Q_ASSERT(sessionID);
   if (sessionID == 0)
@@ -463,9 +429,8 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
   // find the dialog which corresponds to the callID and tags received in request
   std::shared_ptr<SIPDialog> foundDialog = getDialog(sessionID);
 
-  quint32 transportID = sessionToTransportID_[sessionID];
   foundDialog->negotiation->processIncomingResponse(response, content,
-                                                    transports_[transportID]->getLocalAddress());
+                                                    localAddress);
 
   foundDialog->state.processIncomingResponse(response, content);
   foundDialog->client->processIncomingResponse(response, content);
@@ -480,15 +445,19 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
 }
 
 
-std::shared_ptr<SIPTransport> SIPManager::createSIPTransport()
+std::shared_ptr<SIPTransport> SIPManager::createSIPTransport(QString address)
 {
   Q_ASSERT(stats_);
 
-  quint32 transportID = nextTransportID_;
-  ++nextTransportID_;
+  if (transports_.find(address) != transports_.end())
+  {
+    printNormal(this, "Not creating transport since it already exists");
+    return transports_[address];
+  }
+
 
   std::shared_ptr<SIPTransport> connection =
-      std::shared_ptr<SIPTransport>(new SIPTransport(transportID, stats_));
+      std::shared_ptr<SIPTransport>(new SIPTransport(stats_));
 
   QObject::connect(connection.get(), &SIPTransport::incomingRequest,
                    this, &SIPManager::processSIPRequest);
@@ -498,24 +467,15 @@ std::shared_ptr<SIPTransport> SIPManager::createSIPTransport()
 
   QObject::connect(connection.get(), &SIPTransport::sipTransportEstablished,
                    this, &SIPManager::connectionEstablished);
-  transports_[transportID] = connection;
+  transports_[address] = connection;
 
-  return connection;
+  return transports_[address];
 }
 
 
-bool SIPManager::isConnected(QString remoteAddress, quint32& outTransportID)
+bool SIPManager::isConnected(QString remoteAddress)
 {
-  for(auto& transport : transports_)
-  {
-    if(transport != nullptr &&
-       transport->getRemoteAddress() == remoteAddress)
-    {
-      outTransportID = transport->getTransportID();
-      return true;
-    }
-  }
-  return false;
+  return transports_.find(remoteAddress) != transports_.end();
 }
 
 

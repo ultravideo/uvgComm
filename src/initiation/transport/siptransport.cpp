@@ -23,10 +23,9 @@
 const uint16_t SIP_PORT = 5060;
 
 
-SIPTransport::SIPTransport(quint32 transportID, StatisticsInterface *stats):
+SIPTransport::SIPTransport(StatisticsInterface *stats):
   partialMessage_(""),
   connection_(nullptr),
-  transportID_(transportID),
   stats_(stats),
   routing_(nullptr),
   processingInProgress_(0)
@@ -82,8 +81,7 @@ void SIPTransport::createConnection(SIPTransportProtocol type, QString target)
 {
   if(type == TCP)
   {
-    printNormal(this, "Initiating TCP connection for sip connection",
-                {"TransportID"}, QString::number(transportID_));
+    printNormal(this, "Initiating TCP connection for sip connection");
     connection_ = std::shared_ptr<TCPConnection>(new TCPConnection());
     routing_ = std::shared_ptr<SIPRouting> (new SIPRouting(connection_));
     signalConnections();
@@ -99,7 +97,7 @@ void SIPTransport::createConnection(SIPTransportProtocol type, QString target)
 
 void SIPTransport::incomingTCPConnection(std::shared_ptr<TCPConnection> con)
 {
-  qDebug() << "This SIP connection uses an incoming connection:" << transportID_;
+  printNormal(this, "This SIP connection uses an incoming connection");
   if(connection_ != nullptr)
   {
     qDebug() << "Replacing existing connection";
@@ -124,9 +122,7 @@ void SIPTransport::signalConnections()
 
 void SIPTransport::connectionEstablished(QString localAddress, QString remoteAddress)
 {
-  emit sipTransportEstablished(transportID_,
-                                localAddress,
-                                remoteAddress);
+  emit sipTransportEstablished(localAddress, remoteAddress);
 }
 
 
@@ -214,7 +210,7 @@ void SIPTransport::processOutgoingRequest(SIPRequest& request, QVariant &content
                                    content);
 
   request.message->authorization.push_back({"joni",
-                                            "t√§√§ll√§",
+                                            "t‰‰ll‰",
                                             "noncense",
                                             std::shared_ptr<SIP_URI>(new SIP_URI{SIP, {"joni", ""}, {"1.1.1.1", 0}, {}, {}}),
                                             "resp",
@@ -242,7 +238,7 @@ void SIPTransport::processOutgoingRequest(SIPRequest& request, QVariant &content
   // print the first line
   stats_->addSentSIPMessage(requestMethodToString(request.method),
                             message,
-                            connection_->remoteAddress().toString());
+                            getRemoteAddress());
 
   connection_->sendPacket(message);
   --processingInProgress_;
@@ -303,7 +299,7 @@ void SIPTransport::processOutgoingResponse(SIPResponse &response, QVariant &cont
   stats_->addSentSIPMessage(QString::number(responseTypeToCode(response.type))
                             + " " + responseTypeToPhrase(response.type),
                             message,
-                            connection_->remoteAddress().toString());
+                            getRemoteAddress());
 
 
   connection_->sendPacket(message);
@@ -369,14 +365,14 @@ void SIPTransport::networkPackage(QString package)
         if (isConnected())
         {
           stats_->addReceivedSIPMessage(request_match.captured(1),
-                                        package, connection_->remoteAddress().toString());
+                                        package, getRemoteAddress());
         }
 
         if (!parseRequest(request_match.captured(1), request_match.captured(3),
                           fields, body))
         {
           qDebug() << "Failed to parse request";
-          emit parsingError(SIP_BAD_REQUEST, transportID_);
+          emit parsingError(SIP_BAD_REQUEST, getRemoteAddress());
         }
       }
       // first line matches a response
@@ -385,7 +381,7 @@ void SIPTransport::networkPackage(QString package)
         if (isConnected())
         {
           stats_->addReceivedSIPMessage(response_match.captured(2) + " " + response_match.captured(3),
-                                        package, connection_->remoteAddress().toString());
+                                        package, getRemoteAddress());
         }
 
         if (!parseResponse(response_match.captured(2),
@@ -394,7 +390,7 @@ void SIPTransport::networkPackage(QString package)
                            fields, body))
         {
           qDebug() << "ERROR: Failed to parse response: " << response_match.captured(2);
-          emit parsingError(SIP_BAD_REQUEST, transportID_);
+          emit parsingError(SIP_BAD_REQUEST, getRemoteAddress());
         }
       }
       else
@@ -403,7 +399,7 @@ void SIPTransport::networkPackage(QString package)
                  << "Request index:" << request_match.lastCapturedIndex()
                  << "response index:" << response_match.lastCapturedIndex();
 
-        emit parsingError(SIP_BAD_REQUEST, transportID_);
+        emit parsingError(SIP_BAD_REQUEST, connection_->remoteAddress().toString());
       }
     }
     else
@@ -510,7 +506,7 @@ bool SIPTransport::parseRequest(QString requestString, QString version,
     parseContent(content, request.message->contentType, body);
   }
 
-  emit incomingRequest(request, getLocalAddress(), content, transportID_);
+  emit incomingRequest(request, content, getLocalAddress());
   return true;
 }
 
@@ -552,7 +548,7 @@ bool SIPTransport::parseResponse(QString responseString, QString version,
     return false;
   }
 
-  emit incomingResponse(response, content);
+  emit incomingResponse(response, content, getLocalAddress());
 
   return true;
 }
