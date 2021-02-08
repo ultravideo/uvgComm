@@ -14,12 +14,12 @@ class SIPDialogState;
 class SIPTransactionUser;
 class ServerStatusView;
 
-class SIPRegistrations : public QObject
+class SIPRegistration : public QObject
 {
   Q_OBJECT
 public:
-  SIPRegistrations();
-  ~SIPRegistrations();
+  SIPRegistration();
+  ~SIPRegistration();
 
   void init(ServerStatusView* statusView);
 
@@ -30,11 +30,11 @@ public:
                     uint16_t port);
 
   // Identify if this reponse is to our REGISTER-request
-  bool identifyRegistration(SIPResponse& response, QString &outAddress);
+  bool identifyRegistration(SIPResponse& response);
 
   void processNonDialogResponse(SIPResponse& response);
 
-  void sendNonDialogRequest(SIP_URI& uri, SIPRequest& request);
+  void sendNonDialogRequest(SIPRequest& request, QVariant &content);
 
   bool haveWeRegistered();
 
@@ -45,25 +45,22 @@ signals:
 
 private slots:
 
-  void refreshRegistrations();
+  void refreshRegistration();
 
 private:
 
   enum RegistrationStatus {INACTIVE, FIRST_REGISTRATION,
                            RE_REGISTRATION, DEREGISTERING, REG_ACTIVE};
 
-  struct SIPRegistrationData
-  {
-    SIPClient client;
-    SIPDialogState state;
+  SIPClient client_;
+  SIPDialogState state_;
 
-    QString contactAddress;
-    uint16_t contactPort;
+  QString contactAddress_;
+  uint16_t contactPort_;
 
-    RegistrationStatus status;
-  };
+  QString serverAddress_;
 
-  std::map<QString, std::shared_ptr<SIPRegistrationData>> registrations_;
+  RegistrationStatus status_;
 
   ServerStatusView* statusView_;
   QTimer retryTimer_;

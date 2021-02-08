@@ -10,7 +10,6 @@
 SIPClient::SIPClient():
   ongoingTransactionType_(SIP_NO_REQUEST),
   requestTimer_(),
-  remoteUri_(),
   expires_(nullptr)
 {
   requestTimer_.setSingleShot(true);
@@ -20,12 +19,6 @@ SIPClient::SIPClient():
 
 SIPClient::~SIPClient()
 {}
-
-
-void SIPClient::setNonDialogStuff(SIP_URI& uri)
-{
-  remoteUri_ = uri;
-}
 
 
 void SIPClient::setNextTransactionExpires(uint32_t timeout)
@@ -144,16 +137,8 @@ bool SIPClient::sendRequest(SIPRequestMethod type)
   SIPRequest request;
   generateRequest(type, request);
 
-  // TODO: Obsolete
-  if (type == SIP_REGISTER)
-  {
-    emit sendNondialogRequest(remoteUri_, request);
-  }
-  else
-  {
-    QVariant content;
-    emit outgoingRequest(request, content);
-  }
+  QVariant content;
+  emit outgoingRequest(request, content);
 
   return true;
 }

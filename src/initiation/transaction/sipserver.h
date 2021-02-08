@@ -11,7 +11,6 @@
 
 
 class SIPTransactionUser;
-class SIPDialogState;
 
 
 class SIPServer : public SIPMessageProcessor

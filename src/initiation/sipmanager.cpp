@@ -30,6 +30,7 @@ void SIPManager::init(SIPTransactionUser* callControl, StatisticsInterface *stat
                    this, &SIPManager::receiveTCPConnection);
 
   stats_ = stats;
+  statusView_ = statusView;
 
   tcpServer_.setProxy(QNetworkProxy::NoProxy);
 
@@ -46,12 +47,9 @@ void SIPManager::init(SIPTransactionUser* callControl, StatisticsInterface *stat
   }
 
   transactionUser_ = callControl;
-  registrations_.init(statusView);
 
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
 
-  QObject::connect(&registrations_, &SIPRegistrations::transportProxyRequest,
-                   this, &SIPManager::transportToProxy);
 
   int autoConnect = settings.value("sip/AutoConnect").toInt();
 
@@ -71,7 +69,11 @@ void SIPManager::uninit()
 
   dialogs_.clear();
   nextSessionID_ = FIRSTSESSIONID;
-  registrations_.uninit();
+
+  for (auto& registration : registrations_)
+  {
+    registration.second->uninit();
+  }
 
   for(std::shared_ptr<SIPTransport> transport : transports_)
   {
@@ -111,7 +113,7 @@ void SIPManager::bindToServer()
 
   QString serverAddress = settings.value("sip/ServerAddress").toString();
 
-  if (serverAddress != "" && !registrations_.haveWeRegistered())
+  if (serverAddress != "" && !haveWeRegistered())
   {
     std::shared_ptr<SIPTransport> transport = createSIPTransport();
     transport->createConnection(DEFAULT_TRANSPORT, serverAddress);
@@ -150,7 +152,7 @@ uint32_t SIPManager::startCall(NameAddr &address)
     sessionToTransportID_[sessionID] = transportID;
     // we have an existing connection already. Send SIP message and start call.
     sendINVITE(address, transports_[transportID]->getLocalAddress(),
-               sessionID, registrations_.haveWeRegistered());
+               sessionID, haveWeRegistered());
   }
 
   return sessionID;
@@ -271,14 +273,22 @@ void SIPManager::connectionEstablished(quint32 transportID)
     sendINVITE(waitingToStart_[transportID].contact,
                transports_[transportID]->getLocalAddress(),
                waitingToStart_[transportID].sessionID,
-               registrations_.haveWeRegistered());
+               haveWeRegistered());
   }
 
   if(waitingToBind_.find(transportID) != waitingToBind_.end())
   {
-    registrations_.bindToServer(waitingToBind_[transportID],
-                                transports_[transportID]->getLocalAddress(),
-                                transports_[transportID]->getLocalPort());
+    std::shared_ptr<SIPRegistration> registration =
+        std::shared_ptr<SIPRegistration> (new SIPRegistration);
+
+    registration->init(statusView_);
+    QObject::connect(registration.get(), &SIPRegistration::transportProxyRequest,
+                     this, &SIPManager::transportToProxy);
+    registrations_[waitingToBind_[transportID]] = registration;
+
+    registration->bindToServer(waitingToBind_[transportID],
+                               transports_[transportID]->getLocalAddress(),
+                               transports_[transportID]->getLocalPort());
   }
 }
 
@@ -411,12 +421,14 @@ void SIPManager::processSIPRequest(SIPRequest& request, QString localAddress,
 
 void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
 {
-  QString possibleServerAddress = "";
-  if(registrations_.identifyRegistration(response, possibleServerAddress))
+  for (auto& registration : registrations_)
   {
-    printNormal(this, "Got a response to server message!");
-    registrations_.processNonDialogResponse(response);
-    return;
+    if(registration.second->identifyRegistration(response))
+    {
+      printNormal(this, "Got a response to server message!");
+      registration.second->processNonDialogResponse(response);
+      return;
+    }
   }
 
   uint32_t sessionID = 0;
@@ -644,4 +656,17 @@ uint32_t SIPManager::createDialogFromINVITE(QString localAddress,
   dialogs_[sessionID]->state.setLocalHost(localAddress);
 
   return sessionID;
+}
+
+
+bool SIPManager::haveWeRegistered()
+{
+  for (auto& registration : registrations_)
+  {
+    if (registration.second->haveWeRegistered())
+    {
+      return true;
+    }
+  }
+  return false;
 }

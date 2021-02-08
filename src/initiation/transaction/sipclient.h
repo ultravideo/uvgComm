@@ -10,7 +10,6 @@
 // see RFC 3261 for more details.
 
 class SIPTransactionUser;
-class SIPDialogState;
 
 class SIPClient : public SIPMessageProcessor
 {
@@ -18,8 +17,6 @@ class SIPClient : public SIPMessageProcessor
 public:
   SIPClient();
   ~SIPClient();
-
-  void setNonDialogStuff(SIP_URI& uri);
 
   // used to inform the other peer that this request expires. Used with INVITE
   // and REGISTER transactions
@@ -43,8 +40,6 @@ public slots:
   virtual void processIncomingResponse(SIPResponse& response, QVariant& content);
 
 signals:
-  // send messages to other end
-  void sendNondialogRequest(SIP_URI& uri, SIPRequest& request);
 
   void receivedResponse(SIPRequestMethod originalRequest,
                         SIPResponseStatus status);
@@ -90,9 +85,5 @@ private:
 
   QTimer requestTimer_;
 
-  SIP_URI remoteUri_;
-
   std::shared_ptr<uint32_t> expires_;
-
-
 };

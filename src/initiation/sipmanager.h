@@ -3,7 +3,7 @@
 #include "initiation/transport/connectionserver.h"
 #include "initiation/transport/siptransport.h"
 
-#include "initiation/transaction/sipregistrations.h"
+#include "initiation/transaction/sipregistration.h"
 #include "initiation/negotiation/negotiation.h"
 
 #include "initiation/transaction/sipserver.h"
@@ -99,6 +99,8 @@ private:
   uint32_t createDialogFromINVITE(QString localAddress,
                                   SIPRequest &invite);
 
+  bool haveWeRegistered();
+
   // returns true if the identification was successful
   bool identifySession(SIPRequest &request, QString localAddress,
                        uint32_t& out_sessionID);
@@ -133,7 +135,7 @@ private:
   QMap<quint32, std::shared_ptr<SIPTransport>> transports_;
   quint32 nextTransportID_; // the next free transportID to be allocated
 
-  SIPRegistrations registrations_;
+  std::map<QString, std::shared_ptr<SIPRegistration>> registrations_;
 
   // mapping of which sessionID uses which TransportID
   std::map<uint32_t, quint32> sessionToTransportID_;
@@ -167,4 +169,5 @@ private:
   std::map<uint32_t, std::shared_ptr<SIPDialog>> dialogs_;
 
   SIPTransactionUser* transactionUser_;
+  ServerStatusView *statusView_;
 };
