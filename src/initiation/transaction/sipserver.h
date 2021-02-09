@@ -31,7 +31,7 @@ public slots:
 
 signals:
 
-  void receivedRequest(SIPRequestMethod method, QString& fromRealName);
+  void incomingRequest(SIPRequest& request, QVariant& content);
 
 private:
 

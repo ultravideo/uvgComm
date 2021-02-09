@@ -29,8 +29,6 @@ void SIPClient::setNextTransactionExpires(uint32_t timeout)
 
 void SIPClient::processIncomingResponse(SIPResponse& response, QVariant& content)
 {
-  Q_UNUSED(content)
-
   printNormal(this, "Client starts processing response");
 
   int responseCode = response.type;
@@ -67,8 +65,7 @@ void SIPClient::processIncomingResponse(SIPResponse& response, QVariant& content
     expires_ = nullptr;
   }
 
-  emit receivedResponse(response.message->cSeq.method,
-                        response.type);
+  emit incomingResponse(response, content);
 }
 
 

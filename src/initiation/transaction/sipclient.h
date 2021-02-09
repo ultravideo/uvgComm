@@ -41,8 +41,7 @@ public slots:
 
 signals:
 
-  void receivedResponse(SIPRequestMethod originalRequest,
-                        SIPResponseStatus status);
+  void incomingResponse(SIPResponse& response, QVariant& content);
 
   void failure(QString message);
 

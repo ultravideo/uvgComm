@@ -23,8 +23,8 @@ void SIPSingleCall::init(std::shared_ptr<SIPClient> client,
 {
   client_ = client;
 
-  connect(client_.get(), &SIPClient::receivedResponse,
-          this,         &SIPSingleCall::processResponse);
+  connect(client_.get(), &SIPClient::incomingResponse,
+          this,         &SIPSingleCall::processIncomingResponse);
 
   connect(client_.get(), &SIPClient::outgoingRequest,
           this,         &SIPSingleCall::transmitRequest);
@@ -34,8 +34,8 @@ void SIPSingleCall::init(std::shared_ptr<SIPClient> client,
 
   server_ = server;
 
-  connect(server_.get(), &SIPServer::receivedRequest,
-          this,          &SIPSingleCall::processRequest);
+  connect(server_.get(), &SIPServer::incomingRequest,
+          this,          &SIPSingleCall::processIncomingRequest);
 
   connect(server_.get(), &SIPServer::outgoingResponse,
           this,          &SIPSingleCall::transmitResponse);
@@ -88,7 +88,7 @@ void SIPSingleCall::declineIncomingCall()
 }
 
 
-void SIPSingleCall::processRequest(SIPRequestMethod request, QString &fromAddress)
+void SIPSingleCall::processIncomingRequest(SIPRequest& request, QVariant& content)
 {
   Q_ASSERT(transactionUser_ && sessionID_);
   if(!transactionUser_ || sessionID_ == 0)
@@ -99,11 +99,12 @@ void SIPSingleCall::processRequest(SIPRequestMethod request, QString &fromAddres
     return;
   }
 
-  switch(request)
+  switch(request.method)
   {
   case SIP_INVITE:
   {
-    if (!transactionUser_->incomingCall(sessionID_, fromAddress))
+    if (!transactionUser_->incomingCall(sessionID_,
+                                        request.message->from.address.realname))
     {
       // if we did not auto-accept
       server_->respond(SIP_RINGING);
@@ -159,21 +160,20 @@ void SIPSingleCall::processRequest(SIPRequestMethod request, QString &fromAddres
 }
 
 
-void SIPSingleCall::processResponse(SIPRequestMethod originalRequest,
-                                    SIPResponseStatus status)
-{
-  if (status >= 100 && status <= 299)
+void SIPSingleCall::processIncomingResponse(SIPResponse& response, QVariant& content)
+{ 
+  if (response.type >= 100 && response.type <= 299)
   {
     // process anything that is not a failure and may cause a new request to be sent.
     // this must be done after the SIPClientTransaction processResponse, because that checks our
     // current active transaction and may modify it.
-    if(originalRequest == SIP_INVITE)
+    if(response.message->cSeq.method == SIP_INVITE)
     {
-      if(status == SIP_RINGING)
+      if(response.type == SIP_RINGING)
       {
         transactionUser_->callRinging(sessionID_);
       }
-      else if(status == SIP_OK)
+      else if(response.type == SIP_OK)
       {
         transactionUser_->peerAccepted(sessionID_);
 
@@ -181,35 +181,35 @@ void SIPSingleCall::processResponse(SIPRequestMethod originalRequest,
         transactionUser_->callNegotiated(sessionID_);
       }
     }
-    else if (originalRequest == SIP_BYE)
+    else if (response.message->cSeq.method == SIP_BYE)
     {
       transactionUser_->endCall(sessionID_);
     }
     shouldLive_ = true;
   }
-  else if (status >= 300 && status <= 399)
+  else if (response.type >= 300 && response.type <= 399)
   {
     // TODO: 8.1.3.4 Processing 3xx Responses in RFC 3261
     printWarning(this, "Got a Redirection Response.");
     shouldLive_ = false;
   }
-  else if (status >= 400 && status <= 499)
+  else if (response.type >= 400 && response.type <= 499)
   {
     // TODO: 8.1.3.5 Processing 4xx Responses in RFC 3261
     printWarning(this, "Got a Failure Response.");
     shouldLive_ = false;
   }
-  else if (status >= 500 && status <= 599)
+  else if (response.type >= 500 && response.type <= 599)
   {
     printWarning(this, "Got a Server Failure Response.");
     shouldLive_ = false;
   }
-  else if (status >= 600 && status <= 699)
+  else if (response.type >= 600 && response.type <= 699)
   {
     printWarning(this, "Got a Global Failure Response.");
-    if (originalRequest == SIP_INVITE)
+    if (response.message->cSeq.method == SIP_INVITE)
     {
-      if (status == SIP_DECLINE)
+      if (response.type == SIP_DECLINE)
       {
         transactionUser_->endCall(sessionID_);
       }

@@ -14,8 +14,6 @@ SIPServer::SIPServer():
 
 void SIPServer::processIncomingRequest(SIPRequest& request, QVariant& content)
 {
-  Q_UNUSED(content)
-
   if((receivedRequest_ == nullptr && request.method != SIP_ACK) ||
      request.method == SIP_BYE)
   {
@@ -28,7 +26,7 @@ void SIPServer::processIncomingRequest(SIPRequest& request, QVariant& content)
     return;
   }
 
-  emit receivedRequest(request.method, request.message->from.address.realname);
+  emit incomingRequest(request, content);
 }
 
 

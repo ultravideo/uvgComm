@@ -5,9 +5,11 @@
 #include "initiation/transaction/sipclient.h"
 #include "initiation/siptransactionuser.h"
 
+#include "initiation/sipmessageprocessor.h"
+
 #include <memory>
 
-class SIPSingleCall : public QObject
+class SIPSingleCall : public SIPMessageProcessor
 {
   Q_OBJECT
 public:
@@ -38,10 +40,8 @@ signals:
 
 public slots:
 
-  void processRequest(SIPRequestMethod request, QString& fromAddress);
-
-  void processResponse(SIPRequestMethod originalRequest,
-                       SIPResponseStatus status);
+  virtual void processIncomingRequest(SIPRequest& request, QVariant& content);
+  virtual void processIncomingResponse(SIPResponse& response, QVariant& content);
 
   void transmitRequest(SIPRequest& request, QVariant& content);
 
