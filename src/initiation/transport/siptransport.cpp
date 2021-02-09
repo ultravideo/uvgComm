@@ -209,16 +209,7 @@ void SIPTransport::processOutgoingRequest(SIPRequest& request, QVariant &content
   QString content_str = addContent(request.message,
                                    content);
 
-  request.message->authorization.push_back({"joni",
-                                            "t‰‰ll‰",
-                                            "noncense",
-                                            std::shared_ptr<SIP_URI>(new SIP_URI{SIP, {"joni", ""}, {"1.1.1.1", 0}, {}, {}}),
-                                            "resp",
-                                            SIP_MD5,
-                                            "cnoncense",
-                                            "op",
-                                            SIP_AUTH,
-                                            "3"});
+  request.message->userAgent = "Kvazzup";
 
 
   QList<SIPField> fields;
