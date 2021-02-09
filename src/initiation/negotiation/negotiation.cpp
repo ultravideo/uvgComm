@@ -7,20 +7,19 @@
 
 
 
-Negotiation::Negotiation(std::shared_ptr<NetworkCandidates> candidates, uint32_t sessionID):
-  nCandidates_(candidates),
-  ice_(std::make_unique<ICE>()),
+Negotiation::Negotiation(std::shared_ptr<NetworkCandidates> candidates,
+                         uint32_t sessionID):
+  ice_(std::make_unique<ICE>(candidates, sessionID)),
   localSDP_(nullptr),
   remoteSDP_(nullptr),
   negotiationState_(NEG_NO_STATE),
-  negotiator_(),
-  sessionID_(sessionID)
+  negotiator_()
 {
   QObject::connect(ice_.get(), &ICE::nominationSucceeded,
                    this,       &Negotiation::nominationSucceeded);
 
   QObject::connect(ice_.get(), &ICE::nominationFailed,
-                   this,       &Negotiation::nominationFailed);
+                   this,       &Negotiation::iceNominationFailed);
 }
 
 
@@ -39,6 +38,8 @@ void Negotiation::processOutgoingRequest(SIPRequest& request, QVariant& content)
       return;
     }
   }
+
+  ice_->processOutgoingRequest(request, content);
 }
 
 
@@ -71,11 +72,15 @@ void Negotiation::processOutgoingResponse(SIPResponse& response, QVariant& conte
     }
   }
 
+  ice_->processOutgoingResponse(response, content);
 }
 
 void Negotiation::processIncomingRequest(SIPRequest& request, QVariant& content,
                                          QString localAddress)
 {
+  ice_->processIncomingRequest(request, content);
+
+
   if((request.method == SIP_INVITE || request.method == SIP_ACK)
      && request.message->contentType == MT_APPLICATION_SDP)
   {
@@ -90,7 +95,7 @@ void Negotiation::processIncomingRequest(SIPRequest& request, QVariant& content,
          printDebug(DEBUG_PROGRAM_ERROR, this,
                     "Failure to process SDP offer not implemented.");
 
-         // TODO: sendResponse(sessionID, SIP_DECLINE, request.type);
+         // TODO: sendResponse SIP_DECLINE
          return;
       }
       break;
@@ -121,8 +126,11 @@ void Negotiation::processIncomingRequest(SIPRequest& request, QVariant& content,
 }
 
 
-void Negotiation::processIncomingResponse(SIPResponse& response, QVariant& content, QString localAddress)
+void Negotiation::processIncomingResponse(SIPResponse& response, QVariant& content,
+                                          QString localAddress)
 {
+  ice_->processIncomingResponse(response, content);
+
   if(response.message->cSeq.method == SIP_INVITE && response.type == SIP_OK)
   {
     if(response.message->contentType == MT_APPLICATION_SDP)
@@ -138,7 +146,7 @@ void Negotiation::processIncomingResponse(SIPResponse& response, QVariant& conte
            printDebug(DEBUG_PROGRAM_ERROR, this,
                       "Failure to process SDP offer not implemented.");
 
-           //TODO: sendResponse(sessionID, SIP_DECLINE, request.type);
+           //TODO: sendResponse SIP_DECLINE
            return;
         }
         break;
@@ -172,16 +180,9 @@ void Negotiation::processIncomingResponse(SIPResponse& response, QVariant& conte
 
 bool Negotiation::generateOfferSDP(QString localAddress)
 {
-  Q_ASSERT(sessionID_);
-
   qDebug() << "Getting local SDP suggestion";
   std::shared_ptr<SDPMessageInfo> localSDP = negotiator_.generateLocalSDP(localAddress);
   // TODO: Set also media sdp parameters.
-  localSDP->candidates = ice_->generateICECandidates(nCandidates_->localCandidates(STREAM_COMPONENTS, sessionID_),
-                                                     nCandidates_->globalCandidates(STREAM_COMPONENTS, sessionID_),
-                                                     nCandidates_->stunCandidates(STREAM_COMPONENTS),
-                                                     nCandidates_->stunBindings(STREAM_COMPONENTS, sessionID_),
-                                                     nCandidates_->turnCandidates(STREAM_COMPONENTS, sessionID_));
 
   if(localSDP != nullptr)
   {
@@ -197,8 +198,6 @@ bool Negotiation::generateOfferSDP(QString localAddress)
 bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
                                     QString localAddress)
 {
-  Q_ASSERT(sessionID_);
-
   // check if suitable.
   if(!negotiator_.checkSDPOffer(remoteSDPOffer))
   {
@@ -210,11 +209,6 @@ bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
 
   // generate our SDP.
   std::shared_ptr<SDPMessageInfo> localSDP = negotiator_.negotiateSDP(remoteSDPOffer, localAddress);
-  localSDP->candidates = ice_->generateICECandidates(nCandidates_->localCandidates(STREAM_COMPONENTS, sessionID_),
-                                                     nCandidates_->globalCandidates(STREAM_COMPONENTS, sessionID_),
-                                                     nCandidates_->stunCandidates(STREAM_COMPONENTS),
-                                                     nCandidates_->stunBindings(STREAM_COMPONENTS, sessionID_),
-                                                     nCandidates_->turnCandidates(STREAM_COMPONENTS, sessionID_));
 
   if (localSDP == nullptr)
   {
@@ -232,10 +226,6 @@ bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
   remoteSDP_ = remoteSDP;
 
   negotiationState_ = NEG_ANSWER_GENERATED;
-
-  // Start candiate nomination. This function won't block,
-  // negotiation happens in the background
-  ice_->startNomination(localSDP->candidates, remoteSDP->candidates, true);
 
   return true;
 }
@@ -266,13 +256,6 @@ bool Negotiation::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer)
 
     negotiationState_ = NEG_FINISHED;
 
-    // spawn ICE controllee threads and start the candidate
-    // exchange and nomination
-    //
-    // This will start the ICE nomination process. After it has finished,
-    // it will send a signal which indicates its state and if successful, the call may start.
-    ice_->startNomination(localSDP_->candidates, remoteSDP_->candidates, false);
-
     return true;
   }
 
@@ -301,7 +284,7 @@ std::shared_ptr<SDPMessageInfo> Negotiation::getRemoteSDP() const
 }
 
 
-void Negotiation::endSession()
+void Negotiation::uninit()
 {
 
   if (localSDP_ != nullptr)
@@ -318,12 +301,11 @@ void Negotiation::endSession()
 
   negotiationState_ = NEG_NO_STATE;
 
-  ice_->cleanupSession();
-  nCandidates_->cleanupSession(sessionID_);
+  ice_->uninit();
 }
 
 
-void Negotiation::nominationSucceeded()
+void Negotiation::nominationSucceeded(quint32 sessionID)
 {
   if (!checkSessionValidity(true))
   {
@@ -337,7 +319,7 @@ void Negotiation::nominationSucceeded()
     return;
   }
 
-  printNormal(this, "ICE nomination has succeeded", {"SessionID"}, {QString::number(sessionID_)});
+  printNormal(this, "ICE nomination has succeeded", {"SessionID"}, {QString::number(sessionID)});
 
   // Video. 0 is RTP, 1 is RTCP
   if (streams.at(0) != nullptr && streams.at(1) != nullptr)
@@ -353,30 +335,20 @@ void Negotiation::nominationSucceeded()
     negotiator_.setMediaPair(remoteSDP_->media[0], streams.at(2)->remote, false);
   }
 
-  emit iceNominationSucceeded(sessionID_);
+  emit iceNominationSucceeded(sessionID);
 }
-
-
-void Negotiation::nominationFailed()
-{
-  emit iceNominationFailed(sessionID_);
-}
-
 
 
 bool Negotiation::checkSessionValidity(bool checkRemote) const
 {
-  Q_ASSERT(sessionID_);
   Q_ASSERT(localSDP_ != nullptr);
   Q_ASSERT(remoteSDP_ != nullptr || !checkRemote);
 
-  if(sessionID_ == 0 ||
-     localSDP_ == nullptr ||
+  if(localSDP_ == nullptr ||
      (remoteSDP_ == nullptr && checkRemote))
   {
-    printDebug(DEBUG_PROGRAM_ERROR, "GlobalSDPState",
-               "Attempting to use GlobalSDPState without setting SessionID correctly",
-              {"sessionID"}, {QString::number(sessionID_)});
+    printDebug(DEBUG_PROGRAM_ERROR, "Negotiation",
+               "SDP not set correctly");
     return false;
   }
   return true;
@@ -417,7 +389,7 @@ bool Negotiation::processOfferSDP(QVariant& content,
   if(!generateAnswerSDP(retrieved, localAddress))
   {
     printWarning(this, "Remote SDP not suitable or we have no ports to assign");
-    endSession();
+    uninit();
     return false;
   }
 

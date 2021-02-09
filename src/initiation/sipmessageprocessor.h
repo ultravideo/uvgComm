@@ -13,6 +13,8 @@ public:
   SIPMessageProcessor();
   ~SIPMessageProcessor();
 
+  virtual void uninit();
+
   void connectOutgoingProcessor(SIPMessageProcessor& module);
   void connectIncomingProcessor(SIPMessageProcessor& module);
 

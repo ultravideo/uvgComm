@@ -223,7 +223,7 @@ void SIPManager::endAllCalls()
     if(dialog.second != nullptr)
     {
       dialog.second->call.endCall();
-      dialog.second->negotiation->endSession();
+      dialog.second->negotiation->uninit();
     }
   }
 
@@ -591,7 +591,7 @@ void SIPManager::removeDialog(uint32_t sessionID)
 {
   if (dialogs_.find(sessionID) != dialogs_.end())
   {
-    getDialog(sessionID)->negotiation->endSession();
+    getDialog(sessionID)->negotiation->uninit();
   }
 
   dialogs_.erase(dialogs_.find(sessionID));

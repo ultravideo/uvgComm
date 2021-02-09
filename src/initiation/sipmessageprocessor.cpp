@@ -1,6 +1,3 @@
-
-
-
 #include "sipmessageprocessor.h"
 
 
@@ -10,6 +7,11 @@ SIPMessageProcessor::SIPMessageProcessor()
 
 
 SIPMessageProcessor::~SIPMessageProcessor()
+{}
+
+
+
+void SIPMessageProcessor::uninit()
 {}
 
 

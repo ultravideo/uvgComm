@@ -17,11 +17,93 @@ const uint32_t CONTROLLER_SESSION_TIMEOUT = 10000;
 const uint32_t NONCONTROLLER_SESSION_TIMEOUT = 20000;
 
 
-ICE::ICE()
+ICE::ICE(std::shared_ptr<NetworkCandidates> candidates, uint32_t sessionID):
+  networkCandidates_(candidates),
+  sessionID_(sessionID)
 {}
 
 ICE::~ICE()
 {}
+
+
+void ICE::processOutgoingRequest(SIPRequest& request, QVariant& content)
+{
+  // TODO: if INVITE or OPTIONS, add ice to supported
+
+  if(request.message->contentType == MT_APPLICATION_SDP)
+  {
+    addLocalStartNomination(content);
+  }
+}
+
+
+void ICE::processOutgoingResponse(SIPResponse& response, QVariant& content)
+{
+  // TODO: if INVITE or OPTIONS OK, add ice to supported
+
+  if (response.message->contentType == MT_APPLICATION_SDP)
+  {
+    addLocalStartNomination(content);
+  }
+}
+
+
+void ICE::processIncomingRequest(SIPRequest& request, QVariant& content)
+{
+  if (request.message->contentType == MT_APPLICATION_SDP)
+  {
+    takeRemoteStartNomination(content);
+  }
+}
+
+
+void ICE::processIncomingResponse(SIPResponse& response, QVariant& content)
+{
+  if (response.message->contentType == MT_APPLICATION_SDP)
+  {
+    takeRemoteStartNomination(content);
+  }
+}
+
+
+void ICE::addLocalStartNomination(QVariant& content)
+{
+  SDPMessageInfo localSDP = content.value<SDPMessageInfo>();
+
+  localSDP.candidates = generateICECandidates(networkCandidates_->localCandidates(STREAM_COMPONENTS, sessionID_),
+                                              networkCandidates_->globalCandidates(STREAM_COMPONENTS, sessionID_),
+                                              networkCandidates_->stunCandidates(STREAM_COMPONENTS),
+                                              networkCandidates_->stunBindings(STREAM_COMPONENTS, sessionID_),
+                                              networkCandidates_->turnCandidates(STREAM_COMPONENTS, sessionID_));
+
+  localCandidates_ = localSDP.candidates;
+
+  content.setValue(localSDP);
+
+  if (!remoteCandidates_.empty())
+  {
+    // Start candiate nomination. This function won't block,
+    // negotiation happens in the background
+    startNomination(localCandidates_, remoteCandidates_, true);
+  }
+}
+
+
+void ICE::takeRemoteStartNomination(QVariant& content)
+{
+  remoteCandidates_ = content.value<SDPMessageInfo>().candidates;
+
+  if (!localCandidates_.empty())
+  {
+    // spawn ICE controllee threads and start the candidate
+    // exchange and nomination
+    //
+    // This will start the ICE nomination process. After it has finished,
+    // it will send a signal which indicates its state and if successful, the call may start.
+    startNomination(localCandidates_, remoteCandidates_, false);
+  }
+}
+
 
 int ICE::calculatePriority(CandidateType type, quint16 local, uint8_t component)
 {
@@ -290,7 +372,7 @@ void ICE::handeICESuccess(QList<std::shared_ptr<ICEPair> > &streams)
     connectionNominated_ = true;
     selectedPairs_ = {streams.at(0), streams.at(1),
                       streams.at(2), streams.at(3)};
-    emit nominationSucceeded();
+    emit nominationSucceeded(sessionID_);
   }
 }
 
@@ -301,7 +383,7 @@ void ICE::handleICEFailure()
 
   agent_->quit();
   connectionNominated_ = false;
-  emit nominationFailed();
+  emit nominationFailed(sessionID_);
 }
 
 
@@ -316,10 +398,12 @@ QList<std::shared_ptr<ICEPair>> ICE::getNominated()
 }
 
 
-void ICE::cleanupSession()
+void ICE::uninit()
 {
   agent_ = nullptr;
   pairs_.clear();
   selectedPairs_.clear();
   connectionNominated_ = false;
+
+  networkCandidates_->cleanupSession(sessionID_);
 }

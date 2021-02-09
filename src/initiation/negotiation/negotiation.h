@@ -37,7 +37,7 @@ public:
               uint32_t sessionID);
 
   // frees the ports when they are not needed in rest of the program
-  void endSession();
+  virtual void uninit();
 
   // call these only after the corresponding SDP has been generated
   std::shared_ptr<SDPMessageInfo> getLocalSDP() const;
@@ -50,7 +50,8 @@ virtual void processOutgoingRequest(SIPRequest& request, QVariant& content);
 virtual void processOutgoingResponse(SIPResponse& response, QVariant& content,
                                      QString localAddress);
 
-virtual void processIncomingRequest(SIPRequest& request, QVariant& content, QString localAddress);
+virtual void processIncomingRequest(SIPRequest& request, QVariant& content,
+                                    QString localAddress);
 virtual void processIncomingResponse(SIPResponse& response, QVariant& content,
                                      QString localAddress);
 
@@ -59,8 +60,7 @@ signals:
   void iceNominationFailed(quint32 sessionID);
 
 public slots:
-  void nominationSucceeded();
-  void nominationFailed();
+  void nominationSucceeded(quint32 sessionID);
 
 private:
 
@@ -90,7 +90,6 @@ private:
   // Is the internal state of this class correct for this sessionID
   bool checkSessionValidity(bool checkRemote) const;
 
-  std::shared_ptr<NetworkCandidates> nCandidates_;
   std::unique_ptr<ICE> ice_;
 
   std::shared_ptr<SDPMessageInfo> localSDP_;
@@ -99,6 +98,4 @@ private:
   NegotiationState negotiationState_;
 
   SDPNegotiator negotiator_;
-
-  uint32_t sessionID_;
 };
