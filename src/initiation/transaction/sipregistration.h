@@ -14,7 +14,7 @@ class SIPDialogState;
 class SIPTransactionUser;
 class ServerStatusView;
 
-class SIPRegistration : public QObject
+class SIPRegistration : public SIPMessageProcessor
 {
   Q_OBJECT
 public:
@@ -26,7 +26,7 @@ public:
   // return if we can delete
   void uninit();
 
-  void bindToServer(QString serverAddress, QString localAddress,
+  void bindToServer(NameAddr &addressRecord, QString localAddress,
                     uint16_t port);
 
   // Identify if this reponse is to our REGISTER-request
@@ -48,9 +48,12 @@ private slots:
   void refreshRegistration();
 
 private:
-
   enum RegistrationStatus {INACTIVE, FIRST_REGISTRATION,
                            RE_REGISTRATION, DEREGISTERING, REG_ACTIVE};
+
+  void sendREGISTERRequest(uint32_t expires, RegistrationStatus newStatus);
+
+
 
   SIPClient client_;
   SIPDialogState state_;

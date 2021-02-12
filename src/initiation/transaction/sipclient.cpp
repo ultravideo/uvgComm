@@ -21,9 +21,36 @@ SIPClient::~SIPClient()
 {}
 
 
-void SIPClient::setNextTransactionExpires(uint32_t timeout)
+void SIPClient::processOutgoingRequest(SIPRequest& request, QVariant& content)
 {
-  expires_ = std::shared_ptr<uint32_t> (new uint32_t{timeout});
+  printNormal(this, "Processing outgoing request");
+
+  if (ongoingTransactionType_ != SIP_NO_REQUEST && request.method != SIP_CANCEL)
+  {
+    printProgramWarning(this, "Tried to send a request "
+                              "while previous transaction has not finished");
+    return;
+  }
+  else if (ongoingTransactionType_ == SIP_NO_REQUEST && request.method == SIP_CANCEL)
+  {
+    printProgramWarning(this, "Tried to cancel a transaction that does not exist!");
+    return;
+  }
+
+  // we do not expect a response for these requests.
+  if (request.method == SIP_CANCEL || request.method == SIP_ACK)
+  {
+    stopTimeoutTimer();
+    // cancel and ack don't start a transaction
+    ongoingTransactionType_ = SIP_NO_REQUEST;
+  }
+  else
+  {
+    ongoingTransactionType_ = request.method;
+  }
+
+  generateRequest(request);
+  emit outgoingRequest(request, content);
 }
 
 
@@ -69,16 +96,17 @@ void SIPClient::processIncomingResponse(SIPResponse& response, QVariant& content
 }
 
 
-void SIPClient::generateRequest(SIPRequestMethod type,
-                                SIPRequest& request)
+void SIPClient::generateRequest(SIPRequest& request)
 {
+  Q_ASSERT(request.method != SIP_NO_REQUEST);
+  Q_ASSERT(request.method != SIP_UNKNOWN_REQUEST);
+  Q_ASSERT(request.message != nullptr);
+
   request.sipVersion = SIP_VERSION;
-  request.method = type;
-  request.message = std::shared_ptr<SIPMessageHeader> (new SIPMessageHeader);
 
   // sets many of the mandatory fields in SIP header
   request.message->cSeq.cSeq = 0; // invalid, should be set in dialog
-  request.message->cSeq.method = type;
+  request.message->cSeq.method = request.method;
 
   request.message->maxForwards
       = std::shared_ptr<uint8_t> (new uint8_t{DEFAULT_MAX_FORWARDS});
@@ -102,52 +130,20 @@ void SIPClient::generateRequest(SIPRequestMethod type,
   }
 }
 
-
-bool SIPClient::sendRequest(SIPRequestMethod type)
-{
-  printDebug(DEBUG_NORMAL, this,
-             "Client starts sending a request.", {"Type"}, {QString::number(type)});
-
-  if (ongoingTransactionType_ != SIP_NO_REQUEST && type != SIP_CANCEL)
-  {
-    printProgramWarning(this, "Tried to send a request "
-                              "while previous transaction has not finished");
-    return false;
-  }
-  else if (ongoingTransactionType_ == SIP_NO_REQUEST && type == SIP_CANCEL)
-  {
-    printProgramWarning(this, "Tried to cancel a transaction that does not exist!");
-    return false;
-  }
-
-  // we do not expect a response for these requests.
-  if (type == SIP_CANCEL || type == SIP_ACK)
-  {
-    stopTimeoutTimer();
-    // cancel and ack don't start a transaction
-    ongoingTransactionType_ = SIP_NO_REQUEST;
-  }
-  else
-  {
-    ongoingTransactionType_ = type;
-  }
-  SIPRequest request;
-  generateRequest(type, request);
-
-  QVariant content;
-  emit outgoingRequest(request, content);
-
-  return true;
-}
-
-
 void SIPClient::processTimeout()
 {
   emit failure("No response. Request timed out");
 
   if(ongoingTransactionType_ == SIP_INVITE)
   {
-    sendRequest(SIP_CANCEL);
+    // send CANCEL request
+
+    SIPRequest request;
+    request.method = SIP_CANCEL;
+    request.message = std::shared_ptr<SIPMessageHeader> (new SIPMessageHeader);
+    QVariant content;
+
+    processOutgoingRequest(request, content);
   }
 
   requestTimer_.stop();

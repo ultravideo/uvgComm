@@ -28,6 +28,8 @@ ICE::~ICE()
 
 void ICE::processOutgoingRequest(SIPRequest& request, QVariant& content)
 {
+  printNormal(this, "Processing outgoing request");
+
   // TODO: if INVITE or OPTIONS, add ice to supported
 
   if(request.message->contentType == MT_APPLICATION_SDP)
@@ -50,6 +52,8 @@ void ICE::processOutgoingResponse(SIPResponse& response, QVariant& content)
 
 void ICE::processIncomingRequest(SIPRequest& request, QVariant& content)
 {
+  printNormal(this, "Processing incoming request");
+
   if (request.message->contentType == MT_APPLICATION_SDP)
   {
     takeRemoteStartNomination(content);

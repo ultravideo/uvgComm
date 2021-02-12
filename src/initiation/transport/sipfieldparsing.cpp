@@ -111,7 +111,7 @@ bool parseAllowField(const SIPField &field,
       SIPRequestMethod method = stringToRequestMethod(value.words[0]);
 
       if (method != SIP_NO_REQUEST &&
-          method != SIP_UNKOWN_REQUEST)
+          method != SIP_UNKNOWN_REQUEST)
       {
         message->allow->push_back(method);
       }
@@ -253,7 +253,7 @@ bool parseCSeqField(const SIPField &field,
   }
   message->cSeq.method = stringToRequestMethod(field.commaSeparated[0].words[1]);
   if (message->cSeq.method == SIP_NO_REQUEST ||
-      message->cSeq.method == SIP_UNKOWN_REQUEST)
+      message->cSeq.method == SIP_UNKNOWN_REQUEST)
   {
     message->cSeq.cSeq = 0;
     return false;

@@ -40,9 +40,7 @@ void SIPRegistration::uninit()
 {
   if (status_ == REG_ACTIVE)
   {
-    status_ = DEREGISTERING;
-    client_.setNextTransactionExpires(0);
-    client_.sendRequest(SIP_REGISTER);
+    sendREGISTERRequest(0, DEREGISTERING);
   }
 
   printNormal(this, "Finished uniniating registration");
@@ -52,36 +50,39 @@ void SIPRegistration::uninit()
 }
 
 
-void SIPRegistration::bindToServer(QString serverAddress, QString localAddress,
+void SIPRegistration::bindToServer(NameAddr& addressRecord, QString localAddress,
                                     uint16_t port)
 {
-  qDebug() << "Binding to SIP server at:" << serverAddress;
+  printNormal(this, "Binding to server", {"Server"},
+              {addressRecord.uri.hostport.host});
 
   status_ = INACTIVE;
   contactAddress_ = localAddress;
   contactPort_ = port;
 
-  serverAddress_ = serverAddress;
+  serverAddress_ = addressRecord.uri.hostport.host;
 
-  SIP_URI serverUri = {DEFAULT_SIP_TYPE, {"", ""}, {serverAddress, 0}, {}, {}};
-  state_.setLocalHost(localAddress);
-  state_.createServerConnection(serverUri);
+  SIP_URI serverUri = {DEFAULT_SIP_TYPE, {"", ""}, {serverAddress_, 0}, {}, {}};
+  state_.createServerConnection(addressRecord, serverUri);
+
+  QObject::connect(this, &SIPRegistration::outgoingRequest,
+                   &client_, &SIPClient::processOutgoingRequest);
 
   QObject::connect(&client_, &SIPClient::outgoingRequest,
                    this, &SIPRegistration::sendNonDialogRequest);
 
   statusView_->updateServerStatus("Request sent. Waiting response...");
-  status_ = FIRST_REGISTRATION;
-  client_.setNextTransactionExpires(REGISTER_INTERVAL);
-  client_.sendRequest(SIP_REGISTER);
+
+  sendREGISTERRequest(REGISTER_INTERVAL, FIRST_REGISTRATION);
 }
 
 
 bool SIPRegistration::identifyRegistration(SIPResponse& response)
 {
   // check if this is a response from the server.
-  if(state_.correctResponseDialog(response.message,
-                                 response.message->cSeq.cSeq, false))
+  if(state_.correctResponseDialog(response.message->callID,
+                                  response.message->to.tagParameter,
+                                  response.message->from.tagParameter))
   {
     // TODO: we should check that every single detail is as specified in rfc.
     if(client_.waitingResponse(response.message->cSeq.method))
@@ -138,14 +139,11 @@ void SIPRegistration::processNonDialogResponse(SIPResponse& response)
           if (status_ == FIRST_REGISTRATION)
           {
             printNormal(this, "Resetting previous registration");
-            status_ = DEREGISTERING;
-            client_.setNextTransactionExpires(0);
-            client_.sendRequest(SIP_REGISTER);
+            sendREGISTERRequest(0, DEREGISTERING);
             return;
           }
           else if (status_ == DEREGISTERING)// the actual NAT registration
           {
-            status_ = RE_REGISTRATION;
             printNormal(this, "Sending the final NAT REGISTER");
             contactAddress_ = response.message->contact.first().address.uri.hostport.host;
             contactPort_ = response.message->contact.first().address.uri.hostport.port;
@@ -154,8 +152,7 @@ void SIPRegistration::processNonDialogResponse(SIPResponse& response)
             statusView_->updateServerStatus("Behind NAT, updating address...");
 
              // re-REGISTER with NAT address and port
-            client_.setNextTransactionExpires(REGISTER_INTERVAL);
-            client_.sendRequest(SIP_REGISTER);
+            sendREGISTERRequest(REGISTER_INTERVAL, RE_REGISTRATION);
             return;
           }
           else
@@ -209,8 +206,7 @@ void SIPRegistration::refreshRegistration()
   if (status_ == REG_ACTIVE)
   {
     statusView_->updateServerStatus("Second request sent. Waiting response...");
-    client_.setNextTransactionExpires(REGISTER_INTERVAL);
-    client_.sendRequest(SIP_REGISTER);
+    sendREGISTERRequest(REGISTER_INTERVAL, REG_ACTIVE);
   }
 }
 
@@ -231,4 +227,18 @@ void SIPRegistration::sendNonDialogRequest(SIPRequest& request, QVariant& conten
   }
 
   emit transportProxyRequest(serverAddress_, request);
+}
+
+
+void SIPRegistration::sendREGISTERRequest(uint32_t expires, RegistrationStatus newStatus)
+{
+  SIPRequest request;
+  request.method = SIP_REGISTER;
+  request.message = std::shared_ptr<SIPMessageHeader> (new SIPMessageHeader);
+  request.message->expires = std::shared_ptr<uint32_t> (new uint32_t{expires});
+
+  QVariant content;
+
+  status_ = newStatus;
+  emit outgoingRequest(request, content);
 }

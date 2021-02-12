@@ -34,29 +34,26 @@ class Negotiation : public SIPMessageProcessor
   Q_OBJECT
 public:
   Negotiation(std::shared_ptr<NetworkCandidates> candidates,
+              QString localAddress,
               uint32_t sessionID);
 
   // frees the ports when they are not needed in rest of the program
   virtual void uninit();
 
-  // call these only after the corresponding SDP has been generated
-  std::shared_ptr<SDPMessageInfo> getLocalSDP() const;
-  std::shared_ptr<SDPMessageInfo> getRemoteSDP() const;
-
 public slots:
 
-// TODO: Remove sessionID and localaddress from parameters
+// TODO: Remove localaddress from parameters
 virtual void processOutgoingRequest(SIPRequest& request, QVariant& content);
-virtual void processOutgoingResponse(SIPResponse& response, QVariant& content,
-                                     QString localAddress);
+virtual void processOutgoingResponse(SIPResponse& response, QVariant& content);
 
-virtual void processIncomingRequest(SIPRequest& request, QVariant& content,
-                                    QString localAddress);
-virtual void processIncomingResponse(SIPResponse& response, QVariant& content,
-                                     QString localAddress);
+virtual void processIncomingRequest(SIPRequest& request, QVariant& content);
+virtual void processIncomingResponse(SIPResponse& response, QVariant& content);
 
 signals:
-  void iceNominationSucceeded(quint32 sessionID);
+  void iceNominationSucceeded(const quint32 sessionID,
+                              const std::shared_ptr<SDPMessageInfo> local,
+                              const std::shared_ptr<SDPMessageInfo> remote);
+
   void iceNominationFailed(quint32 sessionID);
 
 public slots:
@@ -98,4 +95,8 @@ private:
   NegotiationState negotiationState_;
 
   SDPNegotiator negotiator_;
+
+  // used to set the initial connection address in SDP. This only for spec,
+  // the actual addresses used are determined by ICE.
+  QString localAddress_;
 };

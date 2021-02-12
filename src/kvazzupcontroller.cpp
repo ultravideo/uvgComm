@@ -95,7 +95,7 @@ void KvazzupController::outgoingCall(uint32_t sessionID, QString callee)
   window_.displayOutgoingCall(sessionID, callee);
   if(states_.find(sessionID) == states_.end())
   {
-    states_[sessionID] = CALLINGTHEM;
+    states_[sessionID] = SessionState{CALLINGTHEM , nullptr, nullptr};
   }
 }
 
@@ -125,7 +125,7 @@ bool KvazzupController::incomingCall(uint32_t sessionID, QString caller)
   else
   {
     printNormal(this, "Showing incoming call");
-    states_[sessionID] = CALLRINGINGWITHUS;
+    states_[sessionID] = SessionState{CALLRINGINGWITHUS, nullptr, nullptr};
     window_.displayIncomingCall(sessionID, caller);
   }
   return false;
@@ -142,11 +142,11 @@ void KvazzupController::callRinging(uint32_t sessionID)
   // TODO_RFC 3261: Enable cancelling the request at this point
   // to make sure the original request has been received
 
-  if(states_.find(sessionID) != states_.end() && states_[sessionID] == CALLINGTHEM)
+  if(states_.find(sessionID) != states_.end() && states_[sessionID].state == CALLINGTHEM)
   {
     printNormal(this, "Our call is ringing");
     window_.displayRinging(sessionID);
-    states_[sessionID] = CALLRINGINWITHTHEM;
+    states_[sessionID].state = CALLRINGINWITHTHEM;
   }
   else
   {
@@ -159,10 +159,10 @@ void KvazzupController::peerAccepted(uint32_t sessionID)
 {
   if(states_.find(sessionID) != states_.end())
   {
-    if(states_[sessionID] == CALLRINGINWITHTHEM || states_[sessionID] == CALLINGTHEM)
+    if(states_[sessionID].state == CALLRINGINWITHTHEM || states_[sessionID].state == CALLINGTHEM)
     {
       printImportant(this, "They accepted our call!");
-      states_[sessionID] = CALLNEGOTIATING;
+      states_[sessionID].state = CALLNEGOTIATING;
     }
     else
     {
@@ -176,52 +176,47 @@ void KvazzupController::peerAccepted(uint32_t sessionID)
 }
 
 
-void KvazzupController::iceCompleted(quint32 sessionID)
+void KvazzupController::iceCompleted(quint32 sessionID,
+                                     const std::shared_ptr<SDPMessageInfo> local,
+                                     const std::shared_ptr<SDPMessageInfo> remote)
 {
   printNormal(this, "ICE has been successfully completed",
             {"SessionID"}, {QString::number(sessionID)});
-  startCall(sessionID, true);
+
+  if (states_.find(sessionID) != states_.end())
+  {
+    states_[sessionID].localSDP = local;
+    states_[sessionID].remoteSDP = remote;
+
+    if (states_[sessionID].state == CALLWAITINGICE)
+    {
+      createSingleCall(sessionID);
+    }
+  }
+  else
+  {
+    printError(this, "Got a ICE completion on non-existing call!");
+  }
 }
 
 
 void KvazzupController::callNegotiated(uint32_t sessionID)
 {
   printNormal(this, "Call negotiated");
-  startCall(sessionID, false);
-}
 
-
-void KvazzupController::startCall(uint32_t sessionID, bool iceNominationComplete)
-{
-  if (iceNominationComplete)
+  if (states_.find(sessionID) != states_.end() &&
+      states_[sessionID].state == CALLNEGOTIATING)
   {
-    if(states_.find(sessionID) != states_.end())
+    if (states_[sessionID].localSDP != nullptr &&
+        states_[sessionID].remoteSDP != nullptr)
     {
-      if(states_[sessionID] == CALLNEGOTIATING || states_[sessionID] == CALLONGOING)
-      {
-        if (states_[sessionID] == CALLONGOING)
-        {
-          // we have to remove previous media so we do not double them.
-          media_.removeParticipant(sessionID);
-          window_.removeParticipant(sessionID);
-        }
-        createSingleCall(sessionID);
-      }
-      else
-      {
-        printPeerError(this, "Got call successful negotiation "
-                             "even though we are not there yet.",
-                             "State", {states_[sessionID]});
-      }
+      createSingleCall(sessionID);
     }
     else
     {
-      printProgramError(this, "The call state does not exist when starting the call.",
-                        {"SessionID"}, {sessionID});
+      states_[sessionID].state = CALLWAITINGICE;
     }
   }
-
-  printNormal(this, "Waiting for the ICE to finish before starting the call.");
 }
 
 
@@ -240,12 +235,15 @@ void KvazzupController::createSingleCall(uint32_t sessionID)
   printNormal(this, "Call has been agreed upon with peer.",
               "SessionID", {QString::number(sessionID)});
 
-  std::shared_ptr<SDPMessageInfo> localSDP;
-  std::shared_ptr<SDPMessageInfo> remoteSDP;
+  if (states_[sessionID].state == CALLONGOING)
+  {
+    // we have to remove previous media so we do not double them.
+    media_.removeParticipant(sessionID);
+    window_.removeParticipant(sessionID);
+  }
 
-  sip_.getSDPs(sessionID,
-               localSDP,
-               remoteSDP);
+  std::shared_ptr<SDPMessageInfo> localSDP = states_[sessionID].localSDP;
+  std::shared_ptr<SDPMessageInfo> remoteSDP = states_[sessionID].remoteSDP;
 
   for (auto& media : localSDP->media)
   {
@@ -267,7 +265,9 @@ void KvazzupController::createSingleCall(uint32_t sessionID)
   {
     stats_->addSession(sessionID);
   }
-  media_.addParticipant(sessionID, remoteSDP, localSDP);  states_[sessionID] = CALLONGOING;
+
+  media_.addParticipant(sessionID, remoteSDP, localSDP);
+  states_[sessionID].state = CALLONGOING;
 }
 
 
@@ -281,7 +281,7 @@ void KvazzupController::endCall(uint32_t sessionID)
 {
   printNormal(this, "Ending the call", {"SessionID"}, {QString::number(sessionID)});
   if (states_.find(sessionID) != states_.end() &&
-      states_[sessionID] == CALLONGOING)
+      states_[sessionID].state == CALLONGOING)
   {
     media_.removeParticipant(sessionID);
   }
@@ -293,11 +293,11 @@ void KvazzupController::failure(uint32_t sessionID, QString error)
 {
   if (states_.find(sessionID) != states_.end())
   {
-    if (states_[sessionID] == CALLINGTHEM)
+    if (states_[sessionID].state == CALLINGTHEM)
     {
       printImportant(this, "Our call failed. Invalid sip address?");
     }
-    else if(states_[sessionID] == CALLRINGINWITHTHEM)
+    else if(states_[sessionID].state == CALLRINGINWITHTHEM)
     {
       printImportant(this, "Our call has been rejected!");
     }
@@ -339,7 +339,7 @@ void KvazzupController::updateSettings()
 void KvazzupController::userAcceptsCall(uint32_t sessionID)
 {
   printNormal(this, "We accept");
-  states_[sessionID] = CALLNEGOTIATING;
+  states_[sessionID].state = CALLNEGOTIATING;
   sip_.acceptCall(sessionID);
 }
 

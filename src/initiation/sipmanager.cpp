@@ -123,48 +123,34 @@ void SIPManager::bindToServer()
 }
 
 
-uint32_t SIPManager::startCall(NameAddr &address)
+uint32_t SIPManager::startCall(NameAddr &remote)
 {
   uint32_t sessionID = reserveSessionID();
 
   // TODO: ask network interface if we can start session
 
   // check if we are already connected to remoteaddress
-  if (!isConnected(address.uri.hostport.host))
+  if (!isConnected(remote.uri.hostport.host))
   {
     // we are not yet connected to them. Form a connection by creating the transport layer
-    std::shared_ptr<SIPTransport> transport = createSIPTransport(address.uri.hostport.host);
-    transport->createConnection(DEFAULT_TRANSPORT, address.uri.hostport.host);
-    waitingToStart_[address.uri.hostport.host] = {sessionID, address};
+    std::shared_ptr<SIPTransport> transport = createSIPTransport(remote.uri.hostport.host);
+    transport->createConnection(DEFAULT_TRANSPORT, remote.uri.hostport.host);
+    waitingToStart_[remote.uri.hostport.host] = {sessionID, remote};
   }
   else
   {
-    // we have an existing connection already. Send SIP message and start call.
-    sendINVITE(address, transports_[address.uri.hostport.host]->getLocalAddress(),
-               sessionID, haveWeRegistered());
+    QString localAddress = transports_[remote.uri.hostport.host]->getLocalAddress();
+
+    NameAddr local = localInfo(haveWeRegistered(), localAddress);
+
+    createDialog(sessionID, local, remote, localAddress, true);
+
+    // this start call will commence once the connection has been established
+    dialogs_[sessionID]->call.startCall(remote.realname);
   }
 
   return sessionID;
 }
-
-void SIPManager::sendINVITE(NameAddr &address, QString localAddress,
-                            uint32_t sessionID, bool registered)
-{
-  printNormal(this, "Intializing a new dialog by sending an INVITE");
-  createDialog(sessionID);
-
-  dialogs_[sessionID]->state.createNewDialog(address);
-
-  // in peer-to-peer calls we use the actual network address as local URI
-  if (!registered)
-  {
-    dialogs_[sessionID]->state.setLocalHost(localAddress);
-  }
-
-  // this start call will commence once the connection has been established
-  dialogs_[sessionID]->call.startCall(address.realname);
-}
-
 
 
 void SIPManager::acceptCall(uint32_t sessionID)
@@ -173,7 +159,7 @@ void SIPManager::acceptCall(uint32_t sessionID)
 
   printNormal(this, "Accepting call", {"SessionID"}, {QString::number(sessionID)});
 
-  std::shared_ptr<SIPDialog> dialog = getDialog(sessionID);
+  std::shared_ptr<DialogData> dialog = getDialog(sessionID);
   dialog->call.acceptIncomingCall();
 }
 
@@ -181,7 +167,7 @@ void SIPManager::acceptCall(uint32_t sessionID)
 void SIPManager::rejectCall(uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
-  std::shared_ptr<SIPDialog> dialog = getDialog(sessionID);
+  std::shared_ptr<DialogData> dialog = getDialog(sessionID);
 
   dialog->call.declineIncomingCall();
 
@@ -195,7 +181,7 @@ void SIPManager::cancelCall(uint32_t sessionID)
 
   if (dialogs_.find(sessionID) != dialogs_.end())
   {
-    std::shared_ptr<SIPDialog> dialog = getDialog(sessionID);
+    std::shared_ptr<DialogData> dialog = getDialog(sessionID);
     dialog->call.cancelOutgoingCall();
     removeDialog(sessionID);
   }
@@ -209,7 +195,7 @@ void SIPManager::cancelCall(uint32_t sessionID)
 void SIPManager::endCall(uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
-  std::shared_ptr<SIPDialog> dialog = getDialog(sessionID);
+  std::shared_ptr<DialogData> dialog = getDialog(sessionID);
   dialog->call.endCall();
 
   removeDialog(sessionID);
@@ -223,25 +209,13 @@ void SIPManager::endAllCalls()
     if(dialog.second != nullptr)
     {
       dialog.second->call.endCall();
-      dialog.second->negotiation->uninit();
+
+      // TODO: This should be done later when we receive OK
+      //dialog.second->pipe.uninit();
     }
   }
 
   nextSessionID_ = FIRSTSESSIONID;
-}
-
-
-void SIPManager::getSDPs(uint32_t sessionID,
-                         std::shared_ptr<SDPMessageInfo>& localSDP,
-                         std::shared_ptr<SDPMessageInfo>& remoteSDP) const
-{
-  Q_ASSERT(sessionID);
-
-  if (dialogs_.find(sessionID) != dialogs_.end())
-  {
-    localSDP = getDialog(sessionID)->negotiation->getLocalSDP();
-    remoteSDP = getDialog(sessionID)->negotiation->getRemoteSDP();
-  }
 }
 
 
@@ -252,7 +226,8 @@ void SIPManager::receiveTCPConnection(TCPConnection *con)
 
   qSleep(500); // TODO: Remove this with better achitecture!!!
 
-  std::shared_ptr<SIPTransport> transport = createSIPTransport(con->remoteAddress().toString());
+  std::shared_ptr<SIPTransport> transport =
+      createSIPTransport(con->remoteAddress().toString());
   transport->incomingTCPConnection(std::shared_ptr<TCPConnection> (con));
 }
 
@@ -261,14 +236,20 @@ void SIPManager::connectionEstablished(QString localAddress, QString remoteAddre
 {
   Q_UNUSED(localAddress)
 
+  // if we are planning to call a peer using this connection
   if (waitingToStart_.find(remoteAddress) != waitingToStart_.end())
   {
-    sendINVITE(waitingToStart_[remoteAddress].contact,
-               transports_[remoteAddress]->getLocalAddress(),
-               waitingToStart_[remoteAddress].sessionID,
-               haveWeRegistered());
+    QString localAddress = transports_[remoteAddress]->getLocalAddress();
+
+    NameAddr local = localInfo(haveWeRegistered(), localAddress);
+
+    uint32_t sessionID = waitingToStart_[remoteAddress].sessionID;
+    createDialog(sessionID, local, waitingToStart_[remoteAddress].contact, localAddress, true);
+    dialogs_[sessionID]->call.startCall(waitingToStart_[remoteAddress].contact.realname);
   }
 
+  // TODO: Fix this according to new architecture
+  // if we are planning to register using this connection
   if(waitingToBind_.contains(remoteAddress))
   {
     std::shared_ptr<SIPRegistration> registration =
@@ -280,28 +261,23 @@ void SIPManager::connectionEstablished(QString localAddress, QString remoteAddre
 
     registrations_[remoteAddress] = registration;
 
-    registration->bindToServer(remoteAddress,
-                               transports_[remoteAddress]->getLocalAddress(),
+    // we are currently registering
+    NameAddr local = localInfo(true, transports_[remoteAddress]->getLocalAddress());
+
+    registration->bindToServer(local, transports_[remoteAddress]->getLocalAddress(),
                                transports_[remoteAddress]->getLocalPort());
   }
 }
 
 
-void SIPManager::transportRequest(uint32_t sessionID, SIPRequest &request)
+void SIPManager::transportRequest(SIPRequest &request, QVariant& content)
 {
   printNormal(this, "Initiate sending of a dialog request");
 
-  std::shared_ptr<SIPDialog> foundDialog = getDialog(sessionID);
-
-  printNormal(this, "Finished sending of a dialog request");
-
-  QVariant content;
-  foundDialog->state.processOutgoingRequest(request, content);
-  foundDialog->negotiation->processOutgoingRequest(request, content);
-
   if (transports_.find(request.requestURI.hostport.host) != transports_.end())
   {
-    transports_[request.requestURI.hostport.host]->processOutgoingRequest(request, content);
+    transports_[request.requestURI.hostport.host]->processOutgoingRequest(request,
+                                                                          content);
   }
   else
   {
@@ -311,16 +287,11 @@ void SIPManager::transportRequest(uint32_t sessionID, SIPRequest &request)
 }
 
 
-void SIPManager::transportResponse(uint32_t sessionID, SIPResponse &response)
+void SIPManager::transportResponse(SIPResponse &response, QVariant& content)
 {
   QString remoteAddress = response.message->vias.back().sentBy;
   if (transports_.find(remoteAddress) != transports_.end())
   {
-    // determine if we to attach SDP to our response
-    QVariant content;
-
-    getDialog(sessionID)->negotiation->processOutgoingResponse(response, content,
-                                                               transports_[remoteAddress]->getLocalAddress());
     // send the request with or without SDP
     transports_[remoteAddress]->processOutgoingResponse(response, content);
   }
@@ -345,54 +316,61 @@ void SIPManager::transportToProxy(QString serverAddress, SIPRequest &request)
 void SIPManager::processSIPRequest(SIPRequest& request, QVariant& content,
                                    QString localAddress)
 {
-  // TODO: ask network interface if we can start session
-
   uint32_t sessionID = 0;
 
   // sets the sessionID if session exists or creates a new session if INVITE
   // returns true if either was successful.
-  if (identifySession(request, localAddress, sessionID))
+  if (!identifySession(request, sessionID))
   {
-    Q_ASSERT(sessionID);
-    if (sessionID != 0)
+    printNormal(this, "No existing dialog found.");
+
+    // TODO: there is a problem if the sequence number did not match
+    // and the request type is INVITE
+    if(request.method == SIP_INVITE)
     {
-      Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
-      printNormal(this, "Starting to process received SIP Request.");
+      printNormal(this, "Someone is trying to start a SIP dialog with us!");
+      sessionID = reserveSessionID();
 
-      // find the dialog which corresponds to the callID and tags received in request
-      std::shared_ptr<SIPDialog> foundDialog = getDialog(sessionID);
+      // if they used our local address in to, we use that also, otherwise we use our binding
+      NameAddr local = localInfo(localAddress != request.message->to.address.uri.hostport.host,
+                                 localAddress);
 
-      foundDialog->negotiation->processIncomingRequest(request, content,
-                                                       localAddress);
-
-      QVariant content; // unused
-      foundDialog->server->processIncomingRequest(request, content);
-      if(!foundDialog->call.shouldBeKeptAlive())
-      {
-        printNormal(this, "Ending session as a results of request.");
-        removeDialog(sessionID);
-      }
-
-      printNormal(this, "Finished processing request.",
-        {"SessionID"}, {QString::number(sessionID)});
+      createDialog(sessionID, local, request.message->from.address, localAddress, false);
     }
     else
     {
-      printDebug(DEBUG_PROGRAM_ERROR, metaObject()->className(),
-                  "transactions did not set new sessionID.");
+      printUnimplemented(this, "Out of Dialog request");
+      return;
     }
   }
-  else
+
+  Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
+  printNormal(this, "Starting to process received SIP Request.");
+
+  // find the dialog which corresponds to the callID and tags received in request
+  std::shared_ptr<DialogData> foundDialog = getDialog(sessionID);
+
+  foundDialog->pipe.processIncomingRequest(request, content);
+
+  if(!foundDialog->call.shouldBeKeptAlive())
   {
-    printDebug(DEBUG_PEER_ERROR, metaObject()->className(),
-                "transactions could not identify session.");
+    printNormal(this, "Ending session as a results of request.");
+    removeDialog(sessionID);
   }
+
+  printNormal(this, "Finished processing request.",
+    {"SessionID"}, {QString::number(sessionID)});
 }
 
 
-void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content,
-                                    QString localAddress)
+void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
 {
+  if (response.message == nullptr)
+  {
+    printProgramError(this, "Process response got a message without header");
+    return;
+  }
+
   for (auto& registration : registrations_)
   {
     if(registration.second->identifyRegistration(response))
@@ -405,35 +383,17 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content,
 
   uint32_t sessionID = 0;
 
-  if(!identifySession(response, sessionID))
+  if(!identifySession(response, sessionID) || sessionID == 0)
   {
     printDebug(DEBUG_PEER_ERROR, this, 
                "Could not identify response session");
     return;
   }
 
-
-  Q_ASSERT(sessionID);
-  if (sessionID == 0)
-  {
-    printDebug(DEBUG_PROGRAM_ERROR, this,
-               "SessionID was 0 in processSIPResponse. Should be detected earlier.");
-    return;
-  }
-  if (response.message == nullptr)
-  {
-    printProgramError(this, "SIPDialog got a message without header");
-    return;
-  }
-
   // find the dialog which corresponds to the callID and tags received in request
-  std::shared_ptr<SIPDialog> foundDialog = getDialog(sessionID);
+  std::shared_ptr<DialogData> foundDialog = getDialog(sessionID);
 
-  foundDialog->negotiation->processIncomingResponse(response, content,
-                                                    localAddress);
-
-  foundDialog->state.processIncomingResponse(response, content);
-  foundDialog->client->processIncomingResponse(response, content);
+  foundDialog->pipe.processIncomingResponse(response, content);
 
   if (!foundDialog->call.shouldBeKeptAlive())
   {
@@ -480,7 +440,6 @@ bool SIPManager::isConnected(QString remoteAddress)
 
 
 bool SIPManager::identifySession(SIPRequest& request,
-                                 QString localAddress,
                                  uint32_t& out_sessionID)
 {
   printNormal(this, "Starting to process identifying SIP Request dialog.");
@@ -489,35 +448,18 @@ bool SIPManager::identifySession(SIPRequest& request,
 
   for (auto i = dialogs_.begin(); i != dialogs_.end(); ++i)
   {
-    if(i->second != nullptr)
+    if (i->second != nullptr &&
+        i->second->pipe.isRequestForYou(request.message->callID,
+                                        request.message->to.tagParameter,
+                                        request.message->from.tagParameter))
     {
-      if ((request.method == SIP_CANCEL && i->second->server->isCANCELYours(request)) ||
-          i->second->state.correctRequestDialog(request.message, request.method,
-                                                request.message->cSeq.cSeq))
-      {
-        printNormal(this, "Found dialog matching for incoming request.");
-        out_sessionID = i->first;
-      }
-    }
-  }
-
-  // we did not find existing dialog for this request
-  if(out_sessionID == 0)
-  {
-    printNormal(this, "No existing dialog found.");
-
-    // TODO: there is a problem if the sequence number did not match
-    // and the request type is INVITE
-    if(request.method == SIP_INVITE)
-    {
-      printNormal(this, "Someone is trying to start a SIP dialog with us!");
-
-      out_sessionID = createDialogFromINVITE(localAddress, request);
+      printNormal(this, "Found matching dialog for incoming request.");
+      out_sessionID = i->first;
       return true;
     }
-    return false;
   }
-  return true;
+
+  return false;
 }
 
 
@@ -529,11 +471,12 @@ bool SIPManager::identifySession(SIPResponse &response, uint32_t& out_sessionID)
   // find the dialog which corresponds to the callID and tags received in response
   for (auto i = dialogs_.begin(); i != dialogs_.end(); ++i)
   {
-    if(i->second != nullptr &&
-       i->second->state.correctResponseDialog(response.message, response.message->cSeq.cSeq) &&
-       i->second->client->waitingResponse(response.message->cSeq.method))
+    if (i->second != nullptr &&
+        i->second->pipe.isResponseForYou(response.message->callID,
+                                         response.message->to.tagParameter,
+                                         response.message->from.tagParameter))
     {
-      printNormal(this, "Found dialog matching the response");
+      printNormal(this, "Found matching dialog for incoming response");
       out_sessionID = i->first;
       return true;
     }
@@ -543,9 +486,9 @@ bool SIPManager::identifySession(SIPResponse &response, uint32_t& out_sessionID)
 }
 
 
-std::shared_ptr<SIPDialog> SIPManager::getDialog(uint32_t sessionID) const
+std::shared_ptr<DialogData> SIPManager::getDialog(uint32_t sessionID) const
 {
-  std::shared_ptr<SIPDialog> foundDialog = nullptr;
+  std::shared_ptr<DialogData> foundDialog = nullptr;
   if (dialogs_.find(sessionID) != dialogs_.end())
   {
     foundDialog = dialogs_.at(sessionID);
@@ -560,30 +503,48 @@ std::shared_ptr<SIPDialog> SIPManager::getDialog(uint32_t sessionID) const
 }
 
 
-void SIPManager::createDialog(uint32_t sessionID)
+void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
+                              NameAddr &remote, QString localAddress, bool ourDialog)
 {
-  std::shared_ptr<SIPDialog> dialog = std::shared_ptr<SIPDialog> (new SIPDialog);
+  // Create all the components of the flow. Currently the pipe components are
+  // only stored in pipe.
+  std::shared_ptr<DialogData> dialog = std::shared_ptr<DialogData> (new DialogData);
   dialogs_[sessionID] = dialog;
 
-  dialogs_[sessionID]->client = std::shared_ptr<SIPClient> (new SIPClient);
-  dialogs_[sessionID]->server = std::shared_ptr<SIPServer> (new SIPServer);
+  std::shared_ptr<Negotiation> negotiation =
+      std::shared_ptr<Negotiation> (new Negotiation(nCandidates_, localAddress, sessionID));
+  std::shared_ptr<SIPClient> client = std::shared_ptr<SIPClient> (new SIPClient);
+  std::shared_ptr<SIPServer> server = std::shared_ptr<SIPServer> (new SIPServer);
+  std::shared_ptr<SIPServer> server2 = std::shared_ptr<SIPServer> (new SIPServer);
 
-  dialog->call.init(dialog->client, dialog->server, transactionUser_, sessionID);
+  std::shared_ptr<SIPDialogState> state =
+      std::shared_ptr<SIPDialogState> (new SIPDialogState);
 
-  dialog->negotiation = std::shared_ptr<Negotiation> (new Negotiation(nCandidates_,
-                                                                      sessionID));
+  // Initiatiate all the components of the flow.
+  dialog->call.init(transactionUser_, sessionID);
+  state->init(local, remote, ourDialog);
 
-  QObject::connect(&dialogs_[sessionID]->call, &SIPSingleCall::sendDialogRequest,
-                   this, &SIPManager::transportRequest);
-
-  QObject::connect(&dialogs_[sessionID]->call, &SIPSingleCall::sendResponse,
-                   this, &SIPManager::transportResponse);
-
-  QObject::connect(dialog->negotiation.get(), &Negotiation::iceNominationSucceeded,
+  QObject::connect(negotiation.get(), &Negotiation::iceNominationSucceeded,
                     this, &SIPManager::nominationSucceeded);
 
-  QObject::connect(dialog->negotiation.get(), &Negotiation::iceNominationFailed,
+  QObject::connect(negotiation.get(), &Negotiation::iceNominationFailed,
                     this, &SIPManager::nominationFailed);
+
+  // Add all components to the pipe.
+  dialog->pipe.addDialogState(state);
+  dialog->pipe.addProcessor(negotiation);
+  dialog->pipe.addProcessor(client);
+  dialog->pipe.addProcessor(server);
+
+  // Connect the pipe to call and transmission functions.
+  dialog->call.connectOutgoingProcessor(dialog->pipe);
+  dialog->pipe.connectIncomingProcessor(dialog->call);
+
+  QObject::connect(&dialogs_[sessionID]->pipe, &SIPMessageFlow::outgoingRequest,
+                   this, &SIPManager::transportRequest);
+
+  QObject::connect(&dialogs_[sessionID]->pipe, &SIPMessageFlow::outgoingResponse,
+                   this, &SIPManager::transportResponse);
 }
 
 
@@ -591,7 +552,7 @@ void SIPManager::removeDialog(uint32_t sessionID)
 {
   if (dialogs_.find(sessionID) != dialogs_.end())
   {
-    getDialog(sessionID)->negotiation->uninit();
+    getDialog(sessionID)->pipe.uninit();
   }
 
   dialogs_.erase(dialogs_.find(sessionID));
@@ -605,20 +566,6 @@ void SIPManager::removeDialog(uint32_t sessionID)
 }
 
 
-uint32_t SIPManager::createDialogFromINVITE(QString localAddress,
-                                            SIPRequest &invite)
-{
-  uint32_t sessionID = reserveSessionID();
-  createDialog(sessionID);
-
-  QVariant content;
-  dialogs_[sessionID]->state.processIncomingRequest(invite, content);
-  dialogs_[sessionID]->state.setLocalHost(localAddress);
-
-  return sessionID;
-}
-
-
 bool SIPManager::haveWeRegistered()
 {
   for (auto& registration : registrations_)
@@ -629,4 +576,36 @@ bool SIPManager::haveWeRegistered()
     }
   }
   return false;
+}
+
+
+NameAddr SIPManager::localInfo(bool registered, QString connectionAddress)
+{
+  // init stuff from the settings
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+
+  NameAddr local;
+
+  local.realname = settings.value("local/Name").toString();
+  local.uri.userinfo.user = getLocalUsername();
+
+  // dont set server address if we have already set peer-to-peer address
+  if (registered)
+  {
+    local.uri.hostport.host = settings.value("sip/ServerAddress").toString();
+  }
+  else
+  {
+    local.uri.hostport.host = connectionAddress;
+  }
+
+  local.uri.type = DEFAULT_SIP_TYPE;
+  local.uri.hostport.port = 0; // port is added later if needed
+
+  if(local.uri.userinfo.user.isEmpty())
+  {
+    local.uri.userinfo.user = "anonymous";
+  }
+
+  return local;
 }

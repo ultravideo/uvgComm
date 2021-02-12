@@ -12,8 +12,53 @@ SIPServer::SIPServer():
 {}
 
 
+void SIPServer::processOutgoingResponse(SIPResponse& response, QVariant& content)
+{
+  Q_ASSERT(receivedRequest_ != nullptr);
+
+  if(receivedRequest_ == nullptr)
+  {
+    printDebug(DEBUG_PROGRAM_ERROR, this,
+               "We are trying to respond when we have not received a request!");
+    return;
+  }
+
+  printNormal(this, "Initiate sending of a dialog response");
+  response.sipVersion = SIP_VERSION;
+
+  copyResponseDetails(receivedRequest_->message, response.message);
+  response.message->maxForwards = nullptr; // no max-forwards in responses
+
+  response.message->contentLength = 0;
+  response.message->contentType = MT_NONE;
+
+  if(response.type >= 200)
+  {
+    printDebug(DEBUG_NORMAL, this,
+               "Sending a final response. Deleting request details.",
+               {"Code", "Cseq"},
+               {QString::number(response.type),
+                QString::number(receivedRequest_->message->cSeq.cSeq)});
+
+    // reset the request since we have responded to it
+    receivedRequest_ = nullptr;
+  }
+
+  emit outgoingResponse(response, content);
+}
+
+
 void SIPServer::processIncomingRequest(SIPRequest& request, QVariant& content)
 {
+  printNormal(this, "Processing incoming request");
+
+  if (request.method == SIP_CANCEL && !isCANCELYours(request))
+  {
+    printError(this, "Received invalid CANCEL request");
+    return;
+  }
+
+
   if((receivedRequest_ == nullptr && request.method != SIP_ACK) ||
      request.method == SIP_BYE)
   {
@@ -27,47 +72,6 @@ void SIPServer::processIncomingRequest(SIPRequest& request, QVariant& content)
   }
 
   emit incomingRequest(request, content);
-}
-
-
-void SIPServer::respond(SIPResponseStatus type)
-{
-  Q_ASSERT(receivedRequest_ != nullptr);
-
-  if(receivedRequest_ == nullptr)
-  {
-    printDebug(DEBUG_PROGRAM_ERROR, this,
-               "We are trying to respond when we have not received a request!");
-    return;
-  }
-
-  printNormal(this, "Initiate sending of a dialog response");
-
-  SIPResponse response;
-  response.type = type;
-  response.sipVersion = SIP_VERSION;
-
-  copyResponseDetails(receivedRequest_->message, response.message);
-  response.message->maxForwards = nullptr; // no max-forwards in responses
-
-  response.message->contentLength = 0;
-  response.message->contentType = MT_NONE;
-
-  int responseCode = type;
-  if(responseCode >= 200)
-  {
-    printDebug(DEBUG_NORMAL, this,
-               "Sending a final response. Deleting request details.",
-               {"Code", "Cseq"},
-               {QString::number(responseCode),
-                QString::number(receivedRequest_->message->cSeq.cSeq)});
-
-    // reset the request since we have responded to it
-    receivedRequest_ = nullptr;
-  }
-
-  QVariant content;
-  emit outgoingResponse(response, content);
 }
 
 

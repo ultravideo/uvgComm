@@ -19,21 +19,17 @@ class SIPServer : public SIPMessageProcessor
 public:
   SIPServer();
 
-  // any response code
-  void respond(SIPResponseStatus type);
-
-  bool isCANCELYours(SIPRequest &cancel);
-
 public slots:
+
+  virtual void processOutgoingResponse(SIPResponse& response, QVariant& content);
 
     // processes incoming request. Part of server transaction
   virtual void processIncomingRequest(SIPRequest& request, QVariant& content);
 
-signals:
-
-  void incomingRequest(SIPRequest& request, QVariant& content);
 
 private:
+
+    bool isCANCELYours(SIPRequest &cancel);
 
   // Copies the fields of to a response which are direct copies of the request.
   // includes at least via, to, from, CallID and cseq

@@ -2,45 +2,23 @@
 
 #include "common.h"
 
+#include <QVariant>
+
 
 // 1 minute for the user to react
 const unsigned int INVITE_TIMEOUT = 60000;
 
 
 SIPSingleCall::SIPSingleCall():
-  client_(nullptr),
-  server_(nullptr),
   transactionUser_(nullptr),
   sessionID_(0),
   shouldLive_(true)
 {}
 
 
-void SIPSingleCall::init(std::shared_ptr<SIPClient> client,
-                         std::shared_ptr<SIPServer> server,
-                         SIPTransactionUser* tu,
+void SIPSingleCall::init(SIPTransactionUser* tu,
                          uint32_t sessionID)
 {
-  client_ = client;
-
-  connect(client_.get(), &SIPClient::incomingResponse,
-          this,         &SIPSingleCall::processIncomingResponse);
-
-  connect(client_.get(), &SIPClient::outgoingRequest,
-          this,         &SIPSingleCall::transmitRequest);
-
-  connect(client_.get(), &SIPClient::failure,
-          this,         &SIPSingleCall::processFailure);
-
-  server_ = server;
-
-  connect(server_.get(), &SIPServer::incomingRequest,
-          this,          &SIPSingleCall::processIncomingRequest);
-
-  connect(server_.get(), &SIPServer::outgoingResponse,
-          this,          &SIPSingleCall::transmitResponse);
-
-
   transactionUser_ = tu;
   sessionID_ = sessionID;
 }
@@ -55,8 +33,11 @@ void SIPSingleCall::startCall(QString callee)
     printDebug(DEBUG_WARNING, this, "SIP Client Transaction not initialized.");
     return;
   }
-  client_->setNextTransactionExpires(INVITE_TIMEOUT);
-  client_->sendRequest(SIP_INVITE);
+
+  SIPRequest request = createRequest(SIP_INVITE);
+  setExpires(INVITE_TIMEOUT, request.message);
+  QVariant content;
+  emit outgoingRequest(request, content);
 
   transactionUser_->outgoingCall(sessionID_, callee);
 }
@@ -64,32 +45,41 @@ void SIPSingleCall::startCall(QString callee)
 
 void SIPSingleCall::endCall()
 {
-  Q_ASSERT(sessionID_);
-  client_->sendRequest(SIP_BYE);
+  SIPRequest request = createRequest(SIP_BYE);
+  QVariant content;
+  emit outgoingRequest(request, content);
 }
 
 
 void SIPSingleCall::cancelOutgoingCall()
 {
-  Q_ASSERT(sessionID_);
-  client_->sendRequest(SIP_CANCEL);
+  SIPRequest request = createRequest(SIP_CANCEL);
+  QVariant content;
+  emit outgoingRequest(request, content);
 }
 
 
 void SIPSingleCall::acceptIncomingCall()
 {
-  server_->respond(SIP_OK);
+  SIPResponse response = createResponse(SIP_OK);
+  QVariant content;
+  emit outgoingResponse(response, content);
 }
 
 
 void SIPSingleCall::declineIncomingCall()
 {
-  server_->respond(SIP_DECLINE);
+  SIPResponse response = createResponse(SIP_DECLINE);
+  QVariant content;
+  emit outgoingResponse(response, content);
 }
 
 
 void SIPSingleCall::processIncomingRequest(SIPRequest& request, QVariant& content)
 {
+  printNormal(this, "Processing incoming request");
+
+  Q_UNUSED(content);
   Q_ASSERT(transactionUser_ && sessionID_);
   if(!transactionUser_ || sessionID_ == 0)
   {
@@ -107,11 +97,15 @@ void SIPSingleCall::processIncomingRequest(SIPRequest& request, QVariant& conten
                                         request.message->from.address.realname))
     {
       // if we did not auto-accept
-      server_->respond(SIP_RINGING);
+      SIPResponse response = createResponse(SIP_RINGING);
+      QVariant content;
+      emit outgoingResponse(response, content);
     }
     else
     {
-      server_->respond(SIP_OK);
+      SIPResponse response = createResponse(SIP_OK);
+      QVariant content;
+      emit outgoingResponse(response, content);
     }
     break;
   }
@@ -122,7 +116,9 @@ void SIPSingleCall::processIncomingRequest(SIPRequest& request, QVariant& conten
   }
   case SIP_BYE:
   {
-    server_->respond(SIP_OK);
+    SIPResponse response = createResponse(SIP_OK);
+    QVariant content;
+    emit outgoingResponse(response, content);
 
     // this takes too long, send response first.
     transactionUser_->endCall(sessionID_);
@@ -144,13 +140,17 @@ void SIPSingleCall::processIncomingRequest(SIPRequest& request, QVariant& conten
   case SIP_REGISTER:
   {
     printPeerError(this, "REGISTER-method detected. We are not a registrar!!");
-    server_->respond(SIP_NOT_ALLOWED);
+    SIPResponse response = createResponse(SIP_NOT_ALLOWED);
+    QVariant content;
+    emit outgoingResponse(response, content);
     break;
   }
   default:
   {
     printUnimplemented(this, "Unsupported request type received");
-    server_->respond(SIP_NOT_ALLOWED);
+    SIPResponse response = createResponse(SIP_NOT_ALLOWED);
+    QVariant content;
+    emit outgoingResponse(response, content);
     break;
   }
   }
@@ -162,6 +162,10 @@ void SIPSingleCall::processIncomingRequest(SIPRequest& request, QVariant& conten
 
 void SIPSingleCall::processIncomingResponse(SIPResponse& response, QVariant& content)
 { 
+  Q_UNUSED(content);
+
+  printNormal(this, "Processing incoming response");
+
   if (response.type >= 100 && response.type <= 299)
   {
     // process anything that is not a failure and may cause a new request to be sent.
@@ -177,7 +181,10 @@ void SIPSingleCall::processIncomingResponse(SIPResponse& response, QVariant& con
       {
         transactionUser_->peerAccepted(sessionID_);
 
-        client_->sendRequest(SIP_ACK);
+        SIPRequest request = createRequest(SIP_ACK);
+        QVariant content;
+        emit outgoingRequest(request, content);
+
         transactionUser_->callNegotiated(sessionID_);
       }
     }
@@ -219,21 +226,35 @@ void SIPSingleCall::processIncomingResponse(SIPResponse& response, QVariant& con
 }
 
 
-void SIPSingleCall::transmitRequest(SIPRequest& request, QVariant &content)
-{
-  Q_UNUSED(content);
-  emit sendDialogRequest(sessionID_, request);
-}
-
-
-void SIPSingleCall::transmitResponse(SIPResponse& response, QVariant& content)
-{
-  emit sendResponse(sessionID_, response);
-}
-
-
 void SIPSingleCall::processFailure(QString message)
 {
   transactionUser_->failure(sessionID_, message);
   shouldLive_ = false;
 }
+
+
+void SIPSingleCall::setExpires(uint32_t timeout,
+                               std::shared_ptr<SIPMessageHeader> header)
+{
+  header->expires = std::shared_ptr<uint32_t> (new uint32_t{timeout});
+}
+
+
+SIPRequest SIPSingleCall::createRequest(SIPRequestMethod method)
+{
+  SIPRequest request;
+  request.method = method;
+  request.message = std::shared_ptr<SIPMessageHeader> (new SIPMessageHeader);
+
+  return request;
+}
+
+
+SIPResponse SIPSingleCall::createResponse(SIPResponseStatus status)
+{
+  SIPResponse response;
+  response.type = status;
+  response.message = std::shared_ptr<SIPMessageHeader> (new SIPMessageHeader);
+  return response;
+}
+

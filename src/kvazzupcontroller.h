@@ -60,33 +60,35 @@ public slots:
   void userRejectsCall(uint32_t sessionID); // user has rejected the incoming call
   void userCancelsCall(uint32_t sessionID); // user has rejected the incoming call
 
-  void iceCompleted(quint32 sessionID);
+  void iceCompleted(quint32 sessionID,
+                    const std::shared_ptr<SDPMessageInfo> local,
+                    const std::shared_ptr<SDPMessageInfo> remote);
   void iceFailed(quint32 sessionID);
 
   void delayedAutoAccept();
 private:
-  void startCall(quint32 sessionID, bool iceNominationComplete);
   void removeSession(uint32_t sessionID, QString message, bool temporaryMessage);
 
   void createSingleCall(uint32_t sessionID);
   void setupConference();
 
-  struct PeerState
-  {
-    bool viewAdded;
-    bool mediaAdded;
-  };
-
   // Call state is a non-dependant way
   enum CallState {
-    CALLRINGINGWITHUS = 0,
-    CALLINGTHEM = 1,
-    CALLRINGINWITHTHEM = 2,
-    CALLNEGOTIATING = 3,
-    CALLONGOING = 4
+    CALLRINGINGWITHUS,
+    CALLINGTHEM,
+    CALLRINGINWITHTHEM,
+    CALLNEGOTIATING,
+    CALLWAITINGICE,
+    CALLONGOING
   };
 
-  std::map<uint32_t, CallState> states_;
+  struct SessionState {
+    CallState state;
+    std::shared_ptr<SDPMessageInfo> localSDP;
+    std::shared_ptr<SDPMessageInfo> remoteSDP;
+  };
+
+  std::map<uint32_t, SessionState> states_;
 
   MediaManager media_; // Media processing and delivery
   SIPManager sip_; // SIP

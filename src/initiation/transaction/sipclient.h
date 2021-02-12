@@ -22,9 +22,6 @@ public:
   // and REGISTER transactions
   void setNextTransactionExpires(uint32_t timeout);
 
-  // set the internal state of client to such that we have sent a request.
-  // returns whether we should actually send the message
-  bool sendRequest(SIPRequestMethod type);
 
   // have we sent this kind of request
   // TODO: Will be obsolete with new architecture
@@ -36,12 +33,12 @@ public:
 
 public slots:
 
+  virtual void processOutgoingRequest(SIPRequest& request, QVariant& content);
+
   // processes incoming response. Part of client transaction
   virtual void processIncomingResponse(SIPResponse& response, QVariant& content);
 
 signals:
-
-  void incomingResponse(SIPResponse& response, QVariant& content);
 
   void failure(QString message);
 
@@ -51,7 +48,7 @@ private slots:
 private:
 
   // constructs the SIP message info struct as much as possible
-  void generateRequest(SIPRequestMethod type, SIPRequest &request);
+  void generateRequest(SIPRequest &request);
 
   bool checkTransactionType(SIPRequestMethod transactionRequest)
   {

@@ -46,6 +46,7 @@ SOURCES +=\
     src/initiation/negotiation/stunmessagefactory.cpp \
     src/initiation/negotiation/udpserver.cpp \
     src/initiation/sipmanager.cpp \
+    src/initiation/sipmessageflow.cpp \
     src/initiation/sipmessageprocessor.cpp \
     src/initiation/transaction/sipclient.cpp \
     src/initiation/transaction/sipdialogstate.cpp \
@@ -125,6 +126,7 @@ HEADERS  += \
     src/initiation/negotiation/stunmessagefactory.h \
     src/initiation/negotiation/udpserver.h \
     src/initiation/sipmanager.h \
+    src/initiation/sipmessageflow.h \
     src/initiation/sipmessageprocessor.h \
     src/initiation/siptransactionuser.h \
     src/initiation/siptypes.h \

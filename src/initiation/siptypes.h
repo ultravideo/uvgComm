@@ -33,7 +33,7 @@
 // See RFC 6665 for SUBSCRIBE and NOTIFY
 
 enum SIPRequestMethod {SIP_NO_REQUEST,
-                       SIP_UNKOWN_REQUEST,
+                       SIP_UNKNOWN_REQUEST,
                        SIP_INVITE,
                        SIP_ACK,
                        SIP_BYE,
@@ -314,8 +314,8 @@ struct ContentDisposition
 
 struct CSeqField
 {
-  uint32_t cSeq; // must be less than 2^31
-  SIPRequestMethod method;
+  uint32_t cSeq = 0; // must be less than 2^31
+  SIPRequestMethod method = SIP_NO_REQUEST;
 };
 
 
@@ -422,7 +422,7 @@ struct SIPMessageHeader
   // additional info from caller or callee
   QList<SIPInfo>                           callInfos = {};
 
-  // address where to send further requests
+  // address where to send requests
   QList<SIPRouteLocation>                  contact = {};
 
   // the purpose of content
@@ -518,7 +518,7 @@ struct SIPMessageHeader
   // describes the software or Kvazzup in this case
   QString                                  userAgent = "";
 
-  // mandatory, path taken by request so far and return path for responses
+  // mandatory, the path taken by a response back to request sender
   QList<ViaField>                          vias = {};
 
   // additional info on response status
@@ -537,21 +537,21 @@ const uint16_t CALLIDLENGTH = 16;
 struct SIPRequest
 {
   // currently we ignore recording the human readable phrase from incoming messages
-  SIPRequestMethod method;
+  SIPRequestMethod method = SIP_UNKNOWN_REQUEST;
   // There is also something called absoluteURI which is not supported at the moment
   SIP_URI requestURI;
-  QString sipVersion;
+  QString sipVersion = "";
 
-  std::shared_ptr<SIPMessageHeader> message;
+  std::shared_ptr<SIPMessageHeader> message = nullptr;
 };
 
 
 struct SIPResponse
 {
-  QString sipVersion;
-  SIPResponseStatus type;
+  QString sipVersion = "";
+  SIPResponseStatus type = SIP_UNKNOWN_RESPONSE;
   QString text;
-  std::shared_ptr<SIPMessageHeader> message;
+  std::shared_ptr<SIPMessageHeader> message = nullptr;
 };
 
 const QString SIP_VERSION = "2.0";
