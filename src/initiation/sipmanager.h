@@ -26,6 +26,13 @@ struct DialogData
   SIPSingleCall call;
 };
 
+struct RegistrationData
+{
+  SIPMessageFlow pipe;
+  std::shared_ptr<SIPDialogState> state;
+  SIPRegistration registration;
+};
+
 class SIPTransactionUser;
 class StatisticsInterface;
 
@@ -104,6 +111,8 @@ private:
   // helper function which handles all steps related to creation of new transport
   std::shared_ptr<SIPTransport> createSIPTransport(QString address);
 
+  void createRegistration(NameAddr &addressRecord);
+
   // Goes through our current connections and returns if we are already connected
   // to this address.
   bool isConnected(QString remoteAddress);
@@ -118,8 +127,6 @@ private:
   // SIP Transport layer
   // Key is remote address
   QMap<QString, std::shared_ptr<SIPTransport>> transports_;
-
-  std::map<QString, std::shared_ptr<SIPRegistration>> registrations_;
 
   // if we want to do something, but the TCP connection has not yet been established
   struct WaitingStart
@@ -143,9 +150,11 @@ private:
 
   uint32_t nextSessionID_;
 
-  // This mutex makes sure that the dialog has been added to the dialogs_ list
-  // before we are accessing it when receiving messages
+  // key is sessionID
   std::map<uint32_t, std::shared_ptr<DialogData>> dialogs_;
+
+  // key is the server address
+  std::map<QString, std::shared_ptr<RegistrationData>> registrations_;
 
   SIPTransactionUser* transactionUser_;
   ServerStatusView *statusView_;

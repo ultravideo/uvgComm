@@ -68,7 +68,7 @@ void SIPManager::uninit()
 
   for (auto& registration : registrations_)
   {
-    registration.second->uninit();
+    registration.second->registration.uninit();
   }
 
   for(std::shared_ptr<SIPTransport> transport : transports_)
@@ -228,6 +228,7 @@ void SIPManager::receiveTCPConnection(TCPConnection *con)
 
   std::shared_ptr<SIPTransport> transport =
       createSIPTransport(con->remoteAddress().toString());
+
   transport->incomingTCPConnection(std::shared_ptr<TCPConnection> (con));
 }
 
@@ -252,21 +253,50 @@ void SIPManager::connectionEstablished(QString localAddress, QString remoteAddre
   // if we are planning to register using this connection
   if(waitingToBind_.contains(remoteAddress))
   {
-    std::shared_ptr<SIPRegistration> registration =
-        std::shared_ptr<SIPRegistration> (new SIPRegistration);
-
-    registration->init(statusView_);
-    QObject::connect(registration.get(), &SIPRegistration::transportProxyRequest,
-                     this, &SIPManager::transportToProxy);
-
-    registrations_[remoteAddress] = registration;
-
-    // we are currently registering
     NameAddr local = localInfo(true, transports_[remoteAddress]->getLocalAddress());
 
-    registration->bindToServer(local, transports_[remoteAddress]->getLocalAddress(),
-                               transports_[remoteAddress]->getLocalPort());
+    createRegistration(local);
+
+    registrations_[remoteAddress]->registration.bindToServer(local,
+                                                             transports_[remoteAddress]->getLocalAddress(),
+                                                             transports_[remoteAddress]->getLocalPort());
   }
+}
+
+
+void SIPManager::createRegistration(NameAddr& addressRecord)
+{
+  std::shared_ptr<RegistrationData> registration =
+      std::shared_ptr<RegistrationData> (new RegistrationData);
+  registrations_[addressRecord.uri.hostport.host] = registration;
+
+  registration->registration.init(statusView_);
+
+  registration->state = std::shared_ptr<SIPDialogState> (new SIPDialogState);
+
+  SIP_URI serverUri = {DEFAULT_SIP_TYPE, {"", ""},
+                       {addressRecord.uri.hostport.host, 0}, {}, {}};
+  registration->state->createServerConnection(addressRecord, serverUri);
+
+
+  std::shared_ptr<SIPClient> client = std::shared_ptr<SIPClient> (new SIPClient);
+  //std::shared_ptr<SIPServer> server = std::shared_ptr<SIPServer> (new SIPServer);
+
+  // Add all components to the pipe.
+  registration->pipe.addProcessor(registration->state);
+  registration->pipe.addProcessor(client);
+  //registration->pipe.addProcessor(server);
+
+
+  // Connect the pipe to registration and transmission functions.
+  registration->registration.connectOutgoingProcessor(registration->pipe);
+  registration->pipe.connectIncomingProcessor(registration->registration);
+
+  QObject::connect(&registration->pipe, &SIPMessageFlow::outgoingRequest,
+                   this, &SIPManager::transportRequest);
+
+  QObject::connect(&registration->pipe, &SIPMessageFlow::outgoingResponse,
+                   this, &SIPManager::transportResponse);
 }
 
 
@@ -373,10 +403,12 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
 
   for (auto& registration : registrations_)
   {
-    if(registration.second->identifyRegistration(response))
+    if(registration.second->state->correctResponseDialog(response.message->callID,
+                                                         response.message->to.tagParameter,
+                                                         response.message->from.tagParameter))
     {
       printNormal(this, "Got a response to server message!");
-      registration.second->processNonDialogResponse(response);
+      registration.second->pipe.processIncomingResponse(response, content);
       return;
     }
   }
@@ -515,7 +547,6 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
       std::shared_ptr<Negotiation> (new Negotiation(nCandidates_, localAddress, sessionID));
   std::shared_ptr<SIPClient> client = std::shared_ptr<SIPClient> (new SIPClient);
   std::shared_ptr<SIPServer> server = std::shared_ptr<SIPServer> (new SIPServer);
-  std::shared_ptr<SIPServer> server2 = std::shared_ptr<SIPServer> (new SIPServer);
 
   // Initiatiate all the components of the flow.
   dialog->call.init(transactionUser_, sessionID);
@@ -568,7 +599,7 @@ bool SIPManager::haveWeRegistered()
 {
   for (auto& registration : registrations_)
   {
-    if (registration.second->haveWeRegistered())
+    if (registration.second->registration.haveWeRegistered())
     {
       return true;
     }

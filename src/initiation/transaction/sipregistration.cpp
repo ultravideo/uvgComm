@@ -61,48 +61,15 @@ void SIPRegistration::bindToServer(NameAddr& addressRecord, QString localAddress
   contactPort_ = port;
 
   serverAddress_ = addressRecord.uri.hostport.host;
-
-  SIP_URI serverUri = {DEFAULT_SIP_TYPE, {"", ""}, {serverAddress_, 0}, {}, {}};
-  state_.createServerConnection(addressRecord, serverUri);
-
-  QObject::connect(this, &SIPRegistration::outgoingRequest,
-                   &client_, &SIPClient::processOutgoingRequest);
-
-  QObject::connect(&client_, &SIPClient::outgoingRequest,
-                   this, &SIPRegistration::sendNonDialogRequest);
-
   statusView_->updateServerStatus("Request sent. Waiting response...");
 
   sendREGISTERRequest(REGISTER_INTERVAL, FIRST_REGISTRATION);
 }
 
 
-bool SIPRegistration::identifyRegistration(SIPResponse& response)
+void SIPRegistration::processIncomingResponse(SIPResponse& response, QVariant& content)
 {
-  // check if this is a response from the server.
-  if(state_.correctResponseDialog(response.message->callID,
-                                  response.message->to.tagParameter,
-                                  response.message->from.tagParameter))
-  {
-    // TODO: we should check that every single detail is as specified in rfc.
-    if(client_.waitingResponse(response.message->cSeq.method))
-    {
-      printNormal(this, "Found registration matching the response");
-      return true;
-    }
-    else
-    {
-      qDebug() << "PEER_ERROR: Found the server dialog, "
-                  "but we have not sent a request to their response.";
-      return false;
-    }
-  }
-  return false;
-}
-
-
-void SIPRegistration::processNonDialogResponse(SIPResponse& response)
-{
+  Q_UNUSED(content);
   // REGISTER response must not create route. In other words ignore all record-routes
 
   if (response.message->cSeq.method == SIP_REGISTER)
@@ -111,18 +78,6 @@ void SIPRegistration::processNonDialogResponse(SIPResponse& response)
 
     if (serverAddress_ == response.message->to.address.uri.hostport.host)
     {
-      QVariant content; // unused
-      client_.processIncomingResponse(response, content);
-
-      /*
-      if (!i.second->client.shouldBeKeptAlive())
-      {
-        printWarning(this, "Got a failure response to our REGISTER");
-        i.second->status = INACTIVE;
-        return;
-      }
-      */
-
       if (response.type == SIP_OK)
       {
         foundRegistration = true;
@@ -214,19 +169,6 @@ void SIPRegistration::refreshRegistration()
 bool SIPRegistration::haveWeRegistered()
 {
   return status_ == REG_ACTIVE;
-}
-
-
-void SIPRegistration::sendNonDialogRequest(SIPRequest& request, QVariant& content)
-{
-  printNormal(this, "Send non-dialog request");
-
-  if (request.method == SIP_REGISTER)
-  {
-    state_.processOutgoingRequest(request, content);
-  }
-
-  emit transportProxyRequest(serverAddress_, request);
 }
 
 

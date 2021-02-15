@@ -26,11 +26,8 @@ public:
   // return if we can delete
   void uninit();
 
-  void bindToServer(NameAddr &addressRecord, QString localAddress,
+  void bindToServer(NameAddr& addressRecord, QString localAddress,
                     uint16_t port);
-
-  // Identify if this reponse is to our REGISTER-request
-  bool identifyRegistration(SIPResponse& response);
 
   void processNonDialogResponse(SIPResponse& response);
 
@@ -38,10 +35,9 @@ public:
 
   bool haveWeRegistered();
 
+public slots:
 
-signals:
-
-  void transportProxyRequest(QString& address, SIPRequest& request);
+  virtual void processIncomingResponse(SIPResponse& response, QVariant& content);
 
 private slots:
 
@@ -53,11 +49,7 @@ private:
 
   void sendREGISTERRequest(uint32_t expires, RegistrationStatus newStatus);
 
-
-
-  SIPClient client_;
-  SIPDialogState state_;
-
+  // TODO: these addressses should probably be the responsibility of routing
   QString contactAddress_;
   uint16_t contactPort_;
 
