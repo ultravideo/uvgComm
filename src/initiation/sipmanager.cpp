@@ -68,6 +68,7 @@ void SIPManager::uninit()
 
   for (auto& registration : registrations_)
   {
+    registration.second->pipe.uninit();
     registration.second->registration.uninit();
   }
 
