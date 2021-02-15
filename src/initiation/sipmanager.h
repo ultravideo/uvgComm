@@ -93,6 +93,8 @@ private:
 
   std::shared_ptr<DialogData> getDialog(uint32_t sessionID) const;
 
+  std::shared_ptr<RegistrationData> getRegistration(QString& address) const;
+
   bool haveWeRegistered();
 
   // returns true if the identification was successful

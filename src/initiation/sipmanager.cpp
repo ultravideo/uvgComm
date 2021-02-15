@@ -257,7 +257,7 @@ void SIPManager::connectionEstablished(QString localAddress, QString remoteAddre
 
     createRegistration(local);
 
-    registrations_[remoteAddress]->registration.bindToServer(local,
+    getRegistration(remoteAddress)->registration.bindToServer(local,
                                                              transports_[remoteAddress]->getLocalAddress(),
                                                              transports_[remoteAddress]->getLocalPort());
   }
@@ -532,6 +532,23 @@ std::shared_ptr<DialogData> SIPManager::getDialog(uint32_t sessionID) const
   }
 
   return foundDialog;
+}
+
+
+std::shared_ptr<RegistrationData> SIPManager::getRegistration(QString& address) const
+{
+  std::shared_ptr<RegistrationData> foundRegistration = nullptr;
+  if (registrations_.find(address) != registrations_.end())
+  {
+    foundRegistration = registrations_.at(address);
+  }
+  else
+  {
+    printProgramError(this, "Could not find registration",
+                      "Address", address);
+  }
+
+  return foundRegistration;
 }
 
 
