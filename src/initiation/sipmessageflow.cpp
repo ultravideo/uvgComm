@@ -5,8 +5,7 @@
 #include "common.h"
 
 SIPMessageFlow::SIPMessageFlow():
-  messageFlow_(),
-  dialog_(nullptr)
+  messageFlow_()
 {
 
 }
@@ -14,45 +13,12 @@ SIPMessageFlow::SIPMessageFlow():
 
 void SIPMessageFlow::uninit()
 {
-  if (dialog_)
-  {
-    dialog_->uninit();
-  }
-
   for (auto& processor : messageFlow_)
   {
     processor->uninit();
   }
 
-  dialog_ = nullptr;
-
   messageFlow_.clear();
-}
-
-
-void SIPMessageFlow::addDialogState(std::shared_ptr<SIPDialogState> dialog)
-{
-  if (dialog == nullptr)
-  {
-    printProgramError(this, "Dialog state as nullptr");
-    return;
-  }
-
-  printNormal(this, "Adding dialog to flow");
-
-  dialog_ = dialog;
-
-  connect(dialog_.get(), &SIPMessageProcessor::outgoingRequest,
-          this,          &SIPMessageProcessor::outgoingRequest);
-  connect(dialog_.get(), &SIPMessageProcessor::outgoingResponse,
-          this,          &SIPMessageProcessor::outgoingResponse);
-
-  // connect dialog to pipe if it has members
-  if (!messageFlow_.empty())
-  {
-    dialog_->connectIncomingProcessor(*messageFlow_.first());
-    messageFlow_.first()->connectOutgoingProcessor(*dialog_);
-  }
 }
 
 
@@ -67,13 +33,6 @@ void SIPMessageFlow::addProcessor(std::shared_ptr<SIPMessageProcessor> processor
   printNormal(this, "Adding processor to flow", "Processor number",
               QString::number(messageFlow_.size() + 1));
 
-  // if dialog is already here and this is the first processor added after it
-  if (dialog_ != nullptr && messageFlow_.empty())
-  {
-    dialog_->connectIncomingProcessor(*processor);
-    processor->connectOutgoingProcessor(*dialog_);
-  }
-
   // if there are already processors in the flow, connect to the end
   if (!messageFlow_.empty())
   {
@@ -87,7 +46,16 @@ void SIPMessageFlow::addProcessor(std::shared_ptr<SIPMessageProcessor> processor
     processor->connectOutgoingProcessor(*messageFlow_.last());
     messageFlow_.last()->connectIncomingProcessor(*processor);
   }
+  else
+  {
+    // connect outgoing side to flow if this is the first processor
+    connect(processor.get(), &SIPMessageProcessor::outgoingRequest,
+            this,          &SIPMessageProcessor::outgoingRequest);
+    connect(processor.get(), &SIPMessageProcessor::outgoingResponse,
+            this,          &SIPMessageProcessor::outgoingResponse);
+  }
 
+  // connect incoming side to this because this is the newest processor
   connect(processor.get(), &SIPMessageProcessor::incomingRequest,
           this,            &SIPMessageProcessor::incomingRequest);
   connect(processor.get(), &SIPMessageProcessor::incomingResponse,
@@ -96,27 +64,6 @@ void SIPMessageFlow::addProcessor(std::shared_ptr<SIPMessageProcessor> processor
   messageFlow_.push_back(processor);
 
 
-}
-
-
-bool SIPMessageFlow::isRequestForYou(QString callID, QString toTag, QString fromTag)
-{
-  if (!internalCheck())
-  {
-    return false;
-  }
-
-  return dialog_->correctRequestDialog(callID, toTag, fromTag);
-}
-
-
-bool SIPMessageFlow::isResponseForYou(QString callID, QString toTag, QString fromTag)
-{
-  if (!internalCheck())
-  {
-    return false;
-  }
-  return dialog_->correctResponseDialog(callID, toTag, fromTag);
 }
 
 
@@ -149,7 +96,7 @@ void SIPMessageFlow::processIncomingRequest(SIPRequest& request, QVariant& conte
     return;
   }
 
-  dialog_->processIncomingRequest(request, content);
+  messageFlow_.first()->processIncomingRequest(request, content);
 }
 
 
@@ -160,16 +107,16 @@ void SIPMessageFlow::processIncomingResponse(SIPResponse& response, QVariant& co
     return;
   }
 
-  dialog_->processIncomingResponse(response, content);
+  messageFlow_.first()->processIncomingResponse(response, content);
 }
 
 
 bool SIPMessageFlow::internalCheck()
 {
-  if (dialog_ == nullptr || messageFlow_.empty())
+  if (messageFlow_.empty())
   {
     printProgramError(this, "Being used while flow not initialized. "
-                            "Please call addProcessor and addDialogState functions");
+                            "Please call addProcessor function!");
     return false;
   }
   return true;

@@ -21,6 +21,8 @@
 struct DialogData
 {
   SIPMessageFlow pipe;
+  // state is used to find out whether message belongs to this dialog
+  std::shared_ptr<SIPDialogState> state;
   SIPSingleCall call;
 };
 

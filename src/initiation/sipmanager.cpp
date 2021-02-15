@@ -449,9 +449,9 @@ bool SIPManager::identifySession(SIPRequest& request,
   for (auto i = dialogs_.begin(); i != dialogs_.end(); ++i)
   {
     if (i->second != nullptr &&
-        i->second->pipe.isRequestForYou(request.message->callID,
-                                        request.message->to.tagParameter,
-                                        request.message->from.tagParameter))
+        i->second->state->correctRequestDialog(request.message->callID,
+                                               request.message->to.tagParameter,
+                                               request.message->from.tagParameter))
     {
       printNormal(this, "Found matching dialog for incoming request.");
       out_sessionID = i->first;
@@ -472,9 +472,9 @@ bool SIPManager::identifySession(SIPResponse &response, uint32_t& out_sessionID)
   for (auto i = dialogs_.begin(); i != dialogs_.end(); ++i)
   {
     if (i->second != nullptr &&
-        i->second->pipe.isResponseForYou(response.message->callID,
-                                         response.message->to.tagParameter,
-                                         response.message->from.tagParameter))
+        i->second->state->correctResponseDialog(response.message->callID,
+                                                response.message->to.tagParameter,
+                                                response.message->from.tagParameter))
     {
       printNormal(this, "Found matching dialog for incoming response");
       out_sessionID = i->first;
@@ -517,12 +517,10 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
   std::shared_ptr<SIPServer> server = std::shared_ptr<SIPServer> (new SIPServer);
   std::shared_ptr<SIPServer> server2 = std::shared_ptr<SIPServer> (new SIPServer);
 
-  std::shared_ptr<SIPDialogState> state =
-      std::shared_ptr<SIPDialogState> (new SIPDialogState);
-
   // Initiatiate all the components of the flow.
   dialog->call.init(transactionUser_, sessionID);
-  state->init(local, remote, ourDialog);
+  dialog->state = std::shared_ptr<SIPDialogState> (new SIPDialogState);
+  dialog->state->init(local, remote, ourDialog);
 
   QObject::connect(negotiation.get(), &Negotiation::iceNominationSucceeded,
                     this, &SIPManager::nominationSucceeded);
@@ -531,7 +529,7 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
                     this, &SIPManager::nominationFailed);
 
   // Add all components to the pipe.
-  dialog->pipe.addDialogState(state);
+  dialog->pipe.addProcessor(dialog->state);
   dialog->pipe.addProcessor(negotiation);
   dialog->pipe.addProcessor(client);
   dialog->pipe.addProcessor(server);
