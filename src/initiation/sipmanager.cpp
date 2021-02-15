@@ -248,6 +248,8 @@ void SIPManager::connectionEstablished(QString localAddress, QString remoteAddre
     uint32_t sessionID = waitingToStart_[remoteAddress].sessionID;
     createDialog(sessionID, local, waitingToStart_[remoteAddress].contact, localAddress, true);
     dialogs_[sessionID]->call.startCall(waitingToStart_[remoteAddress].contact.realname);
+
+    waitingToStart_.erase(remoteAddress);
   }
 
   // TODO: Fix this according to new architecture
@@ -258,9 +260,12 @@ void SIPManager::connectionEstablished(QString localAddress, QString remoteAddre
 
     createRegistration(local);
 
-    getRegistration(remoteAddress)->registration.bindToServer(local,
-                                                             transports_[remoteAddress]->getLocalAddress(),
-                                                             transports_[remoteAddress]->getLocalPort());
+    getRegistration(remoteAddress)->
+        registration.bindToServer(local,
+                                  transports_[remoteAddress]->getLocalAddress(),
+                                  transports_[remoteAddress]->getLocalPort());
+
+    waitingToBind_.removeOne(remoteAddress);
   }
 }
 
