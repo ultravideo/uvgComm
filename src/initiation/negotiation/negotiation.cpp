@@ -28,6 +28,8 @@ void Negotiation::processOutgoingRequest(SIPRequest& request, QVariant& content)
 {
   printNormal(this, "Processing outgoing request");
 
+  // We could also add SDP to INVITE, but we choose to send offer
+  // in INVITE OK response and ACK.
   if(request.method == SIP_ACK && negotiationState_ == NEG_ANSWER_GENERATED)
   {
     request.message->contentLength = 0;
@@ -51,28 +53,30 @@ void Negotiation::processOutgoingRequest(SIPRequest& request, QVariant& content)
 void Negotiation::processOutgoingResponse(SIPResponse& response, QVariant& content)
 {
   if (response.type == SIP_OK
-      && response.message->cSeq.method == SIP_INVITE
-      && negotiationState_ == NEG_NO_STATE)
+      && response.message->cSeq.method == SIP_INVITE)
   {
-    printNormal(this, "Adding SDP to an OK response");
-    response.message->contentLength = 0;
-    response.message->contentType = MT_APPLICATION_SDP;
-    if (!SDPOfferToContent(content, localAddress_))
+    if (negotiationState_ == NEG_NO_STATE)
     {
-      return;
+      printNormal(this, "Adding SDP to an OK response");
+      response.message->contentLength = 0;
+      response.message->contentType = MT_APPLICATION_SDP;
+      if (!SDPOfferToContent(content, localAddress_))
+      {
+        return;
+      }
     }
-  }
-  // if they sent an offer in their INVITE
-  else if (negotiationState_ == NEG_ANSWER_GENERATED)
-  {
-    printNormal(this, "Adding SDP to response since INVITE had an SDP.");
-
-    response.message->contentLength = 0;
-    response.message->contentType = MT_APPLICATION_SDP;
-    if (!SDPAnswerToContent(content))
+    // if they sent an offer in their INVITE
+    else if (negotiationState_ == NEG_ANSWER_GENERATED)
     {
-      printError(this, "Failed to get SDP answer to response");
-      return;
+      printNormal(this, "Adding SDP to response since INVITE had an SDP.");
+
+      response.message->contentLength = 0;
+      response.message->contentType = MT_APPLICATION_SDP;
+      if (!SDPAnswerToContent(content))
+      {
+        printError(this, "Failed to get SDP answer to response");
+        return;
+      }
     }
   }
 

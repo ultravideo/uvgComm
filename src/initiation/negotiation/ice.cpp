@@ -404,6 +404,17 @@ QList<std::shared_ptr<ICEPair>> ICE::getNominated()
 
 void ICE::uninit()
 {
+  if (agent_ != nullptr)
+  {
+    agent_->exit(0);
+    uint8_t waits = 10;
+    while (agent_->isRunning() && waits > 10)
+    {
+      qSleep(10);
+      --waits;
+    }
+  }
+
   agent_ = nullptr;
   pairs_.clear();
   selectedPairs_.clear();

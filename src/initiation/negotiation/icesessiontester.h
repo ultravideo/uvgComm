@@ -23,6 +23,8 @@ public:
   void init(QList<std::shared_ptr<ICEPair>> *pairs_,
             uint8_t components);
 
+  // TODO: Have some way to stop testing if the call suddenly ends
+
 signals:
 
   // When IceSessionTester finishes, it sends a success/failure signal.
