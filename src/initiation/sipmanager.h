@@ -85,10 +85,6 @@ private slots:
                          QVariant& content, QString localAddress);
   void processSIPResponse(SIPResponse &response, QVariant& content);
 
-  void createDialog(uint32_t sessionID, NameAddr &local,
-                    NameAddr &remote, QString localAddress, bool ourDialog);
-  void removeDialog(uint32_t sessionID);
-
 private:
 
   std::shared_ptr<DialogData> getDialog(uint32_t sessionID) const;
@@ -114,6 +110,11 @@ private:
   std::shared_ptr<SIPTransport> createSIPTransport(QString address);
 
   void createRegistration(NameAddr &addressRecord);
+
+  void createDialog(uint32_t sessionID, NameAddr &local,
+                    NameAddr &remote, QString localAddress, bool ourDialog);
+  void removeDialog(uint32_t sessionID);
+
 
   // Goes through our current connections and returns if we are already connected
   // to this address.

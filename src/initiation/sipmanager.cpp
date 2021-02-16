@@ -270,42 +270,6 @@ void SIPManager::connectionEstablished(QString localAddress, QString remoteAddre
 }
 
 
-void SIPManager::createRegistration(NameAddr& addressRecord)
-{
-  std::shared_ptr<RegistrationData> registration =
-      std::shared_ptr<RegistrationData> (new RegistrationData);
-  registrations_[addressRecord.uri.hostport.host] = registration;
-
-  registration->registration.init(statusView_);
-
-  registration->state = std::shared_ptr<SIPDialogState> (new SIPDialogState);
-
-  SIP_URI serverUri = {DEFAULT_SIP_TYPE, {"", ""},
-                       {addressRecord.uri.hostport.host, 0}, {}, {}};
-  registration->state->createServerConnection(addressRecord, serverUri);
-
-
-  std::shared_ptr<SIPClient> client = std::shared_ptr<SIPClient> (new SIPClient);
-  //std::shared_ptr<SIPServer> server = std::shared_ptr<SIPServer> (new SIPServer);
-
-  // Add all components to the pipe.
-  registration->pipe.addProcessor(registration->state);
-  registration->pipe.addProcessor(client);
-  //registration->pipe.addProcessor(server);
-
-
-  // Connect the pipe to registration and transmission functions.
-  registration->registration.connectOutgoingProcessor(registration->pipe);
-  registration->pipe.connectIncomingProcessor(registration->registration);
-
-  QObject::connect(&registration->pipe, &SIPMessageFlow::outgoingRequest,
-                   this, &SIPManager::transportRequest);
-
-  QObject::connect(&registration->pipe, &SIPMessageFlow::outgoingResponse,
-                   this, &SIPManager::transportResponse);
-}
-
-
 void SIPManager::transportRequest(SIPRequest &request, QVariant& content)
 {
   printNormal(this, "Initiate sending of a dialog request");
@@ -443,34 +407,6 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
 }
 
 
-std::shared_ptr<SIPTransport> SIPManager::createSIPTransport(QString address)
-{
-  Q_ASSERT(stats_);
-
-  if (transports_.find(address) != transports_.end())
-  {
-    printNormal(this, "Not creating transport since it already exists");
-    return transports_[address];
-  }
-
-
-  std::shared_ptr<SIPTransport> connection =
-      std::shared_ptr<SIPTransport>(new SIPTransport(stats_));
-
-  QObject::connect(connection.get(), &SIPTransport::incomingRequest,
-                   this, &SIPManager::processSIPRequest);
-
-  QObject::connect(connection.get(), &SIPTransport::incomingResponse,
-                   this, &SIPManager::processSIPResponse);
-
-  QObject::connect(connection.get(), &SIPTransport::sipTransportEstablished,
-                   this, &SIPManager::connectionEstablished);
-  transports_[address] = connection;
-
-  return transports_[address];
-}
-
-
 bool SIPManager::isConnected(QString remoteAddress)
 {
   return transports_.find(remoteAddress) != transports_.end();
@@ -555,6 +491,68 @@ std::shared_ptr<RegistrationData> SIPManager::getRegistration(QString& address) 
   }
 
   return foundRegistration;
+}
+
+
+std::shared_ptr<SIPTransport> SIPManager::createSIPTransport(QString address)
+{
+  Q_ASSERT(stats_);
+
+  if (transports_.find(address) == transports_.end())
+  {
+    printNormal(this, "Creating SIP transport.");
+
+    std::shared_ptr<SIPTransport> connection =
+        std::shared_ptr<SIPTransport>(new SIPTransport(stats_));
+
+    QObject::connect(connection.get(), &SIPTransport::incomingRequest,
+                     this, &SIPManager::processSIPRequest);
+
+    QObject::connect(connection.get(), &SIPTransport::incomingResponse,
+                     this, &SIPManager::processSIPResponse);
+
+    QObject::connect(connection.get(), &SIPTransport::sipTransportEstablished,
+                     this, &SIPManager::connectionEstablished);
+    transports_[address] = connection;
+  }
+
+  return transports_[address];
+}
+
+
+void SIPManager::createRegistration(NameAddr& addressRecord)
+{
+  std::shared_ptr<RegistrationData> registration =
+      std::shared_ptr<RegistrationData> (new RegistrationData);
+  registrations_[addressRecord.uri.hostport.host] = registration;
+
+  registration->registration.init(statusView_);
+
+  registration->state = std::shared_ptr<SIPDialogState> (new SIPDialogState);
+
+  SIP_URI serverUri = {DEFAULT_SIP_TYPE, {"", ""},
+                       {addressRecord.uri.hostport.host, 0}, {}, {}};
+  registration->state->createServerConnection(addressRecord, serverUri);
+
+
+  std::shared_ptr<SIPClient> client = std::shared_ptr<SIPClient> (new SIPClient);
+  //std::shared_ptr<SIPServer> server = std::shared_ptr<SIPServer> (new SIPServer);
+
+  // Add all components to the pipe.
+  registration->pipe.addProcessor(registration->state);
+  registration->pipe.addProcessor(client);
+  //registration->pipe.addProcessor(server);
+
+
+  // Connect the pipe to registration and transmission functions.
+  registration->registration.connectOutgoingProcessor(registration->pipe);
+  registration->pipe.connectIncomingProcessor(registration->registration);
+
+  QObject::connect(&registration->pipe, &SIPMessageFlow::outgoingRequest,
+                   this, &SIPManager::transportRequest);
+
+  QObject::connect(&registration->pipe, &SIPMessageFlow::outgoingResponse,
+                   this, &SIPManager::transportResponse);
 }
 
 
