@@ -220,7 +220,7 @@ void SIPManager::endAllCalls()
 }
 
 
-void SIPManager::receiveTCPConnection(TCPConnection *con)
+void SIPManager::receiveTCPConnection(std::shared_ptr<TCPConnection> con)
 {
   printNormal(this, "Received a TCP connection. Initializing dialog.");
   Q_ASSERT(con);
@@ -230,7 +230,7 @@ void SIPManager::receiveTCPConnection(TCPConnection *con)
   std::shared_ptr<SIPTransport> transport =
       createSIPTransport(con->remoteAddress().toString());
 
-  transport->incomingTCPConnection(std::shared_ptr<TCPConnection> (con));
+  transport->incomingTCPConnection(con);
 }
 
 

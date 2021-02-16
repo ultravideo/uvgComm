@@ -69,7 +69,7 @@ signals:
 private slots:
 
   // somebody established a TCP connection with us
-  void receiveTCPConnection(TCPConnection* con);
+  void receiveTCPConnection(std::shared_ptr<TCPConnection> con);
   // our outbound TCP connection was established.
   void connectionEstablished(QString localAddress, QString remoteAddress);
 
