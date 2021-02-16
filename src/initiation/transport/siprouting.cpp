@@ -33,7 +33,7 @@ void SIPRouting::processOutgoingRequest(SIPRequest& request, QVariant& content)
   if (request.method != SIP_CANCEL)
   {
     addVia(request.method, request.message,
-           connection_->localAddress().toString(),
+           connection_->localAddress(),
            connection_->localPort());
   }
   else
@@ -44,7 +44,7 @@ void SIPRouting::processOutgoingRequest(SIPRequest& request, QVariant& content)
   if (request.method == SIP_INVITE)
   {
     addContactField(request.message,
-                    connection_->localAddress().toString(),
+                    connection_->localAddress(),
                     connection_->localPort(),
                     DEFAULT_SIP_TYPE);
   }
@@ -66,7 +66,7 @@ void SIPRouting::processOutgoingResponse(SIPResponse& response, QVariant& conten
   if (response.message->cSeq.method == SIP_INVITE && response.type == SIP_OK)
   {
     addContactField(response.message,
-                      connection_->localAddress().toString(),
+                      connection_->localAddress(),
                       connection_->localPort(),
                       DEFAULT_SIP_TYPE);
   }
@@ -80,7 +80,7 @@ void SIPRouting::processIncomingResponse(SIPResponse& response, QVariant& conten
   if (connection_ && connection_->isConnected())
   {
     processResponseViaFields(response.message->vias,
-                             connection_->localAddress().toString(),
+                             connection_->localAddress(),
                              connection_->localPort());
   }
   else

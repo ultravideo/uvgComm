@@ -48,8 +48,8 @@ QString SIPTransport::getLocalAddress()
 {
   Q_ASSERT(connection_);
 
-  QString address = connection_->localAddress().toString();
-  if (connection_->localAddress().protocol() == QAbstractSocket::IPv6Protocol)
+  QString address = connection_->localAddress();
+  if (connection_->localProtocol() == QAbstractSocket::IPv6Protocol)
   {
     address = "[" + address + "]";
   }
@@ -61,8 +61,8 @@ QString SIPTransport::getRemoteAddress()
 {
   Q_ASSERT(connection_);
 
-  QString address = connection_->remoteAddress().toString();
-  if (connection_->remoteAddress().protocol() == QAbstractSocket::IPv6Protocol)
+  QString address = connection_->remoteAddress();
+  if (connection_->remoteProtocol() == QAbstractSocket::IPv6Protocol)
   {
     address = "[" + address + "]";
   }
@@ -390,7 +390,7 @@ void SIPTransport::networkPackage(QString package)
                  << "Request index:" << request_match.lastCapturedIndex()
                  << "response index:" << response_match.lastCapturedIndex();
 
-        emit parsingError(SIP_BAD_REQUEST, connection_->remoteAddress().toString());
+        emit parsingError(SIP_BAD_REQUEST, connection_->remoteAddress());
       }
     }
     else

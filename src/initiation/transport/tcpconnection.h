@@ -51,12 +51,12 @@ public:
   }
 
   // TODO: Returns empty if we are not connected to anything.
-  QHostAddress localAddress()
+  QString localAddress()
   {
     Q_ASSERT(socket_);
     Q_ASSERT(socket_->state() == QAbstractSocket::ConnectedState);
     Q_ASSERT(socket_->localAddress().toString() != "");
-    return socket_->localAddress();
+    return socket_->localAddress().toString();
   }
 
   uint16_t localPort() const
@@ -66,7 +66,7 @@ public:
     return socket_->localPort();
   }
 
-  QHostAddress remoteAddress()
+  QString remoteAddress()
   {
     Q_ASSERT(socket_);
     Q_ASSERT(socket_->state() == QAbstractSocket::ConnectedState);
@@ -74,10 +74,30 @@ public:
 
     if (!socket_)
     {
-      return QHostAddress();
+      return "";
     }
 
-    return socket_->peerAddress();
+    return socket_->peerAddress().toString();
+  }
+
+  QAbstractSocket::NetworkLayerProtocol localProtocol()
+  {
+    if (isConnected())
+    {
+      return socket_->localAddress().protocol();
+    }
+
+    return QAbstractSocket::NetworkLayerProtocol::AnyIPProtocol;
+  }
+
+  QAbstractSocket::NetworkLayerProtocol remoteProtocol()
+  {
+    if (isConnected())
+    {
+      return socket_->peerAddress().protocol();
+    }
+
+    return QAbstractSocket::NetworkLayerProtocol::AnyIPProtocol;
   }
 
 signals:

@@ -228,7 +228,7 @@ void SIPManager::receiveTCPConnection(std::shared_ptr<TCPConnection> con)
   qSleep(500); // TODO: Remove this with better achitecture!!!
 
   std::shared_ptr<SIPTransport> transport =
-      createSIPTransport(con->remoteAddress().toString());
+      createSIPTransport(con->remoteAddress());
 
   transport->incomingTCPConnection(con);
 }
