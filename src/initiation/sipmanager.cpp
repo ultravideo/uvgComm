@@ -72,6 +72,8 @@ void SIPManager::uninit()
     registration.second->registration.uninit();
   }
 
+  registrations_.clear();
+
   for(std::shared_ptr<SIPTransport> transport : transports_)
   {
     if(transport != nullptr)
@@ -80,6 +82,8 @@ void SIPManager::uninit()
       transport.reset();
     }
   }
+
+  transports_.clear();
 }
 
 
