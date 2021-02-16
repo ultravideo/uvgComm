@@ -45,7 +45,8 @@ void TCPConnection::init()
     QObject::connect(socket_, SIGNAL(readyRead()),
                      this, SLOT(receivedMessage()));
 
-    QObject::connect(socket_, &QAbstractSocket::disconnected, this, &TCPConnection::disconnected);
+    QObject::connect(socket_, &QAbstractSocket::disconnected,
+                     this, &TCPConnection::disconnected);
   }
 }
 
@@ -57,6 +58,74 @@ void TCPConnection::uninit()
     socket_ = nullptr;
   }
 }
+
+
+bool TCPConnection::isConnected() const
+{
+  return socket_ && socket_->state() == QAbstractSocket::ConnectedState;
+}
+
+
+QString TCPConnection::localAddress() const
+{
+  if (isConnected())
+  {
+    return socket_->localAddress().toString();
+  }
+  return "";
+}
+
+
+QString TCPConnection::remoteAddress() const
+{
+  if (isConnected())
+  {
+    return socket_->peerAddress().toString();
+  }
+  return "";
+}
+
+
+uint16_t TCPConnection::localPort() const
+{
+  if (isConnected())
+  {
+    return socket_->localPort();
+  }
+  return 0;
+}
+
+uint16_t TCPConnection::remotePort() const
+{
+  if (isConnected())
+  {
+    return socket_->peerPort();
+  }
+  return 0;
+}
+
+
+QAbstractSocket::NetworkLayerProtocol TCPConnection::localProtocol() const
+{
+  if (isConnected())
+  {
+    return socket_->localAddress().protocol();
+  }
+
+  return QAbstractSocket::NetworkLayerProtocol::AnyIPProtocol;
+}
+
+
+QAbstractSocket::NetworkLayerProtocol TCPConnection::remoteProtocol() const
+{
+  if (isConnected())
+  {
+    return socket_->peerAddress().protocol();
+  }
+
+  return QAbstractSocket::NetworkLayerProtocol::AnyIPProtocol;
+}
+
 
 void TCPConnection::establishConnection(const QString &destination, uint16_t port)
 {
