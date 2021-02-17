@@ -47,7 +47,7 @@ bool parseAcceptField(const SIPField &field,
                       std::shared_ptr<SIPMessageHeader> message)
 {
   // in case there are multiple accept fields, we don't want to reset previous
-  if (message->accept)
+  if (message->accept == nullptr)
   {
     message->accept = std::shared_ptr<QList<SIPAccept>> (new QList<SIPAccept>());
   }
@@ -70,7 +70,7 @@ bool parseAcceptField(const SIPField &field,
     }
   }
 
-  return false;
+  return true;
 }
 
 
