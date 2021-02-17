@@ -318,7 +318,12 @@ bool sensibleRequestField(SIPRequestMethod method, const QString field)
   // These make always sense in requests, but not responses
   if (field == "Authorization" ||
       field == "Max-Forwards" ||
-      field == "Route" ||
+      field == "Route")
+  {
+    return true;
+  }
+
+  if (method != SIP_REGISTER &&
       field == "Record-Route")
   {
     return true;
@@ -356,11 +361,23 @@ bool sensibleRequestField(SIPRequestMethod method, const QString field)
     return true;
   }
 
-  // These are make sense in INVITE or OPTIONS
-  if ((method == SIP_INVITE || method == SIP_OPTIONS) &&
-      (field == "Call-Info" ||
-       field == "Contact" ||
-       field == "Organization"))
+  if (method != SIP_BYE && method != SIP_CANCEL &&
+      field == "Contact")
+  {
+    return true;
+  }
+
+  // These make sense in INVITE, OPTIONS or REGISTER
+  if ((method == SIP_INVITE || method == SIP_OPTIONS || method == SIP_REGISTER) &&
+      (field == "Organization" ||
+       field == "Call-Info"))
+  {
+    return true;
+  }
+
+  // Expires makes sense in INVITE or REGISTER
+  if ((method == SIP_INVITE || method == SIP_REGISTER) &&
+      field == "Expires")
   {
     return true;
   }
@@ -368,7 +385,6 @@ bool sensibleRequestField(SIPRequestMethod method, const QString field)
   // INVITE only fields
   if (method == SIP_INVITE &&
       (field == "Alert-Info" &&
-       field == "Expires" &&
        field == "In-Reply-To" &&
        field == "Priority" &&
        field == "Reply-To" &&
@@ -572,7 +588,8 @@ bool alwaysSensibleField(QString field)
       field == "From" ||
       field == "Timestamp" ||
       field == "To" ||
-      field == "Via")
+      field == "Via" ||
+      field == "User-Agent")
   {
     return true;
   }
