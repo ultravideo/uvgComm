@@ -23,43 +23,21 @@ public:
   SIPTransport(StatisticsInterface *stats);
   ~SIPTransport();
 
-  void cleanup();
-
-
-  // functions for manipulating network connection
-  void createConnection(SIPTransportProtocol type, QString target);
-  void incomingTCPConnection(std::shared_ptr<TCPConnection> con);
-
     // these translate the struct to a string and send the SIP message
   virtual void processOutgoingRequest(SIPRequest& request, QVariant& content);
   virtual void processOutgoingResponse(SIPResponse& response, QVariant& content);
-
-  bool isConnected();
-
-  QString getLocalAddress();
-  QString getRemoteAddress();
-
-  uint16_t getLocalPort();
 
 public slots:
   // called when connection receives a message
   void networkPackage(QString package);
 
-  // called when a connection is established and ip known.
-  // This function may be replaced by something in the future
-  void connectionEstablished(QString localAddress, QString remoteAddress);
-
 signals:
   void sipTransportEstablished(QString localAddress, QString remoteAddress);
 
-  // signals that output parsed sip messages
-  void incomingRequest(SIPRequest& request, QVariant& content,
-                       QString localAddress);
-  void incomingResponse(SIPResponse& response, QVariant& content,
-                        QString localAddress);
-
   // we got a message, but could not parse it.
   void parsingError(SIPResponseStatus errorResponse, QString source);
+
+  void sendMessage(const QString& message);
 
 private:
 
@@ -72,16 +50,11 @@ private:
                      QList<SIPField> &fields, QString &body);
 
   void signalConnections();
-  void destroyConnection();
 
 
   QString partialMessage_;
 
-  std::shared_ptr<TCPConnection> connection_;
-
   StatisticsInterface *stats_;
-
-  std::shared_ptr<SIPRouting> routing_;
 
   int processingInProgress_;
 };

@@ -18,7 +18,7 @@
  * parameters with peers.
  */
 
-struct DialogData
+struct DialogInstance
 {
   SIPMessageFlow pipe;
   // state is used to find out whether message belongs to this dialog
@@ -26,15 +26,22 @@ struct DialogData
   SIPSingleCall call;
 };
 
-struct RegistrationData
+struct RegistrationInstance
 {
   SIPMessageFlow pipe;
   std::shared_ptr<SIPDialogState> state;
   SIPRegistration registration;
 };
 
+struct TransportInstance
+{
+  std::shared_ptr<TCPConnection> connection;
+  SIPMessageFlow pipe;
+};
+
 class SIPTransactionUser;
 class StatisticsInterface;
+
 
 
 class SIPManager : public QObject
@@ -77,19 +84,15 @@ private slots:
   void transportRequest(SIPRequest &request, QVariant& content);
   void transportResponse(SIPResponse &response, QVariant& content);
 
-  // send the SIP request to a proxy with transport layer.
-  void transportToProxy(QString serverAddress, SIPRequest &request);
-
   // Process incoming SIP message. May create session if it's an INVITE.
-  void processSIPRequest(SIPRequest &request,
-                         QVariant& content, QString localAddress);
+  void processSIPRequest(SIPRequest &request, QVariant& content);
   void processSIPResponse(SIPResponse &response, QVariant& content);
 
 private:
 
-  std::shared_ptr<DialogData> getDialog(uint32_t sessionID) const;
+  std::shared_ptr<DialogInstance> getDialog(uint32_t sessionID) const;
 
-  std::shared_ptr<RegistrationData> getRegistration(QString& address) const;
+  std::shared_ptr<RegistrationInstance> getRegistration(QString& address) const;
 
   bool haveWeRegistered();
 
@@ -107,14 +110,15 @@ private:
   void bindToServer();
 
   // helper function which handles all steps related to creation of new transport
-  std::shared_ptr<SIPTransport> createSIPTransport(QString address);
+  void createSIPTransport(QString remoteAddress,
+                          std::shared_ptr<TCPConnection> connection,
+                          bool startConnection);
 
   void createRegistration(NameAddr &addressRecord);
 
   void createDialog(uint32_t sessionID, NameAddr &local,
                     NameAddr &remote, QString localAddress, bool ourDialog);
   void removeDialog(uint32_t sessionID);
-
 
   // Goes through our current connections and returns if we are already connected
   // to this address.
@@ -129,7 +133,7 @@ private:
 
   // SIP Transport layer
   // Key is remote address
-  QMap<QString, std::shared_ptr<SIPTransport>> transports_;
+  QMap<QString, std::shared_ptr<TransportInstance>> transports_;
 
   // if we want to do something, but the TCP connection has not yet been established
   struct WaitingStart
@@ -154,10 +158,10 @@ private:
   uint32_t nextSessionID_;
 
   // key is sessionID
-  std::map<uint32_t, std::shared_ptr<DialogData>> dialogs_;
+  std::map<uint32_t, std::shared_ptr<DialogInstance>> dialogs_;
 
   // key is the server address
-  std::map<QString, std::shared_ptr<RegistrationData>> registrations_;
+  std::map<QString, std::shared_ptr<RegistrationInstance>> registrations_;
 
   SIPTransactionUser* transactionUser_;
   ServerStatusView *statusView_;

@@ -14,6 +14,7 @@
 
 class SIPRouting : public SIPMessageProcessor
 {
+  Q_OBJECT
 public:
   SIPRouting(std::shared_ptr<TCPConnection> connection);
 

@@ -35,6 +35,11 @@ public:
 
   bool haveWeRegistered();
 
+  QString getServerAddress()
+  {
+    return serverAddress_;
+  }
+
 public slots:
 
   virtual void processIncomingResponse(SIPResponse& response, QVariant& content);

@@ -20,153 +20,21 @@
 
 #include <functional>
 
-const uint16_t SIP_PORT = 5060;
-
 
 SIPTransport::SIPTransport(StatisticsInterface *stats):
   partialMessage_(""),
-  connection_(nullptr),
   stats_(stats),
-  routing_(nullptr),
   processingInProgress_(0)
 {}
 
 SIPTransport::~SIPTransport()
 {}
 
-void SIPTransport::cleanup()
-{
-  destroyConnection();
-}
-
-bool SIPTransport::isConnected()
-{
-  return connection_ && connection_->isConnected();
-}
-
-QString SIPTransport::getLocalAddress()
-{
-  Q_ASSERT(connection_);
-
-  QString address = connection_->localAddress();
-  if (connection_->localProtocol() == QAbstractSocket::IPv6Protocol)
-  {
-    address = "[" + address + "]";
-  }
-
-  return address;
-}
-
-QString SIPTransport::getRemoteAddress()
-{
-  Q_ASSERT(connection_);
-
-  QString address = connection_->remoteAddress();
-  if (connection_->remoteProtocol() == QAbstractSocket::IPv6Protocol)
-  {
-    address = "[" + address + "]";
-  }
-
-  return address;
-}
-
-uint16_t SIPTransport::getLocalPort()
-{
-  Q_ASSERT(connection_);
-  return connection_->localPort();
-}
-
-
-void SIPTransport::createConnection(SIPTransportProtocol type, QString target)
-{
-  if(type == TCP)
-  {
-    printNormal(this, "Initiating TCP connection for sip connection");
-    connection_ = std::shared_ptr<TCPConnection>(new TCPConnection());
-    routing_ = std::shared_ptr<SIPRouting> (new SIPRouting(connection_));
-    signalConnections();
-    connection_->establishConnection(target, SIP_PORT);
-  }
-  else
-  {
-    qDebug() << "WARNING: Trying to initiate a SIP Connection with "
-                "unsupported connection type.";
-  }
-}
-
-
-void SIPTransport::incomingTCPConnection(std::shared_ptr<TCPConnection> con)
-{
-  printNormal(this, "This SIP connection uses an incoming connection");
-  if(connection_ != nullptr)
-  {
-    qDebug() << "Replacing existing connection";
-  }
-  connection_ = con;
-  routing_ = std::shared_ptr<SIPRouting> (new SIPRouting(connection_));
-
-  signalConnections();
-}
-
-
-void SIPTransport::signalConnections()
-{
-  Q_ASSERT(connection_);
-  QObject::connect(connection_.get(), &TCPConnection::messageAvailable,
-                   this, &SIPTransport::networkPackage);
-
-  QObject::connect(connection_.get(), &TCPConnection::socketConnected,
-                   this, &SIPTransport::connectionEstablished);
-}
-
-
-void SIPTransport::connectionEstablished(QString localAddress, QString remoteAddress)
-{
-  emit sipTransportEstablished(localAddress, remoteAddress);
-}
-
-
-void SIPTransport::destroyConnection()
-{
-  if(connection_ == nullptr)
-  {
-    printProgramWarning(this, "Trying to destroy an already destroyed connection");
-    return;
-  }
-
-  if (processingInProgress_ > 0)
-  {
-     printNormal(this, "Processing in progress while trying to destroy transport");
-
-     while (processingInProgress_ > 0)
-     {
-       qSleep(5);
-     }
-  }
-
-  QObject::disconnect(connection_.get(), &TCPConnection::messageAvailable,
-                      this, &SIPTransport::networkPackage);
-
-  QObject::disconnect(connection_.get(), &TCPConnection::socketConnected,
-                      this, &SIPTransport::connectionEstablished);
-
-  connection_->exit(0); // stops qthread
-  connection_->stopConnection(); // exits run loop
-  while(connection_->isRunning())
-  {
-    qSleep(5);
-  }
-
-  connection_.reset();
-
-  printNormal(this, "Destroyed SIP Transport connection");
-}
 
 
 void SIPTransport::processOutgoingRequest(SIPRequest& request, QVariant &content)
 {
   Q_ASSERT(request.message->contentType == MT_NONE || content.isValid());
-  Q_ASSERT(connection_ != nullptr);
 
   if((request.message->contentType != MT_NONE && !content.isValid()))
   {
@@ -174,24 +42,10 @@ void SIPTransport::processOutgoingRequest(SIPRequest& request, QVariant &content
     return;
   }
 
-  if (connection_ == nullptr)
-  {
-     printProgramWarning(this, "Connection does not exist in sendRequest");
-     return;
-  }
-
   ++processingInProgress_;
 
-  printImportant(this, "Composing and sending SIP Request:", {"Type"},
+  printNormal(this, "Processing outgoing request:", {"Type"},
                  requestMethodToString(request.method));
-  if (routing_)
-  {
-    routing_->processOutgoingRequest(request, content);
-  }
-  else
-  {
-    return;
-  }
 
   QString lineEnding = "\r\n";
   QString message = "";
@@ -229,9 +83,9 @@ void SIPTransport::processOutgoingRequest(SIPRequest& request, QVariant &content
   // print the first line
   stats_->addSentSIPMessage(requestMethodToString(request.method),
                             message,
-                            getRemoteAddress());
+                            "Unavailable");
 
-  connection_->sendPacket(message);
+  emit sendMessage(message);
   --processingInProgress_;
 }
 
@@ -239,27 +93,16 @@ void SIPTransport::processOutgoingRequest(SIPRequest& request, QVariant &content
 void SIPTransport::processOutgoingResponse(SIPResponse &response, QVariant &content)
 {
   ++processingInProgress_;
-  printImportant(this, "Composing and sending SIP Response:", {"Type"},
+  printNormal(this, "Processing outgoing response:", {"Type"},
                  responseTypeToPhrase(response.type));
   Q_ASSERT(response.message->cSeq.method != SIP_INVITE
       || response.type != SIP_OK
       || (response.message->contentType == MT_APPLICATION_SDP && content.isValid()));
-  Q_ASSERT(connection_ != nullptr);
 
-  if((response.message->cSeq.method == SIP_INVITE && response.type == SIP_OK
+  if(response.message->cSeq.method == SIP_INVITE && response.type == SIP_OK
      && (!content.isValid() || response.message->contentType != MT_APPLICATION_SDP))
-     || connection_ == nullptr)
   {
-    printWarning(this, "SDP nullptr or connection does not exist in sendResponse");
-    return;
-  }
-
-  if (routing_)
-  {
-    routing_->processOutgoingResponse(response, content);
-  }
-  else
-  {
+    printWarning(this, "SDP nullptr in sendResponse");
     return;
   }
 
@@ -290,10 +133,9 @@ void SIPTransport::processOutgoingResponse(SIPResponse &response, QVariant &cont
   stats_->addSentSIPMessage(QString::number(responseTypeToCode(response.type))
                             + " " + responseTypeToPhrase(response.type),
                             message,
-                            getRemoteAddress());
+                            "Unavailable");
 
-
-  connection_->sendPacket(message);
+  sendMessage(message);
   --processingInProgress_;
 }
 
@@ -301,11 +143,7 @@ void SIPTransport::processOutgoingResponse(SIPResponse &response, QVariant &cont
 
 void SIPTransport::networkPackage(QString package)
 {
-  if (!isConnected())
-  {
-    printWarning(this, "Connection not open. Discarding received message");
-    return;
-  }
+  printNormal(this, "Parsing incoming network package");
 
   ++processingInProgress_;
   // parse to header and body
@@ -353,27 +191,23 @@ void SIPTransport::networkPackage(QString package)
       // If it matches request
       if (request_match.hasMatch() && request_match.lastCapturedIndex() == 3)
       {
-        if (isConnected())
-        {
-          stats_->addReceivedSIPMessage(request_match.captured(1),
-                                        package, getRemoteAddress());
-        }
+        stats_->addReceivedSIPMessage(request_match.captured(1),
+                                      package, "Unavailable");
 
         if (!parseRequest(request_match.captured(1), request_match.captured(3),
                           fields, body))
         {
           qDebug() << "Failed to parse request";
-          emit parsingError(SIP_BAD_REQUEST, getRemoteAddress());
+          //emit parsingError(SIP_BAD_REQUEST, getRemoteAddress());
         }
       }
       // first line matches a response
       else if (response_match.hasMatch() && response_match.lastCapturedIndex() == 3)
       {
-        if (isConnected())
-        {
-          stats_->addReceivedSIPMessage(response_match.captured(2) + " " + response_match.captured(3),
-                                        package, getRemoteAddress());
-        }
+
+        stats_->addReceivedSIPMessage(response_match.captured(2) + " " + response_match.captured(3),
+                                      package, "Unavailable");
+
 
         if (!parseResponse(response_match.captured(2),
                            response_match.captured(1),
@@ -381,7 +215,7 @@ void SIPTransport::networkPackage(QString package)
                            fields, body))
         {
           qDebug() << "ERROR: Failed to parse response: " << response_match.captured(2);
-          emit parsingError(SIP_BAD_REQUEST, getRemoteAddress());
+          //emit parsingError(SIP_BAD_REQUEST, getRemoteAddress());
         }
       }
       else
@@ -390,7 +224,7 @@ void SIPTransport::networkPackage(QString package)
                  << "Request index:" << request_match.lastCapturedIndex()
                  << "response index:" << response_match.lastCapturedIndex();
 
-        emit parsingError(SIP_BAD_REQUEST, connection_->remoteAddress());
+        //emit parsingError(SIP_BAD_REQUEST, connection_->remoteAddress());
       }
     }
     else
@@ -497,7 +331,7 @@ bool SIPTransport::parseRequest(QString requestString, QString version,
     parseContent(content, request.message->contentType, body);
   }
 
-  emit incomingRequest(request, content, getLocalAddress());
+  emit incomingRequest(request, content);
   return true;
 }
 
@@ -530,16 +364,7 @@ bool SIPTransport::parseResponse(QString responseString, QString version,
     parseContent(content, response.message->contentType, body);
   }
 
-  if (routing_)
-  {
-    routing_->processIncomingResponse(response, content);
-  }
-  else
-  {
-    return false;
-  }
-
-  emit incomingResponse(response, content, getLocalAddress());
+  emit incomingResponse(response, content);
 
   return true;
 }

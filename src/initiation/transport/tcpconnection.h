@@ -32,8 +32,6 @@ public:
   // use this to give the socket to Connection
   void setExistingConnection(qintptr socketDescriptor);
 
-  // sends packet via connection
-  void sendPacket(const QString &data);
 
   // callback
   template <typename Class>
@@ -65,6 +63,11 @@ signals:
 
   // connection has been established
   void socketConnected(QString localAddress, QString remoteAddress);
+
+public slots:
+
+  // sends packet via connection
+  void sendPacket(const QString &data);
 
 private slots:
   void receivedMessage();

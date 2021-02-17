@@ -17,6 +17,8 @@ void SIPRouting::processOutgoingRequest(SIPRequest& request, QVariant& content)
 {
   Q_UNUSED(content)
 
+  printNormal(this, "Processing outgoing request");
+
   if (connection_ == nullptr)
   {
     printProgramError(this, "No connection set!");
@@ -49,12 +51,16 @@ void SIPRouting::processOutgoingRequest(SIPRequest& request, QVariant& content)
                     DEFAULT_SIP_TYPE);
   }
 
+  emit outgoingRequest(request, content);
+
 }
 
 
 void SIPRouting::processOutgoingResponse(SIPResponse& response, QVariant& content)
 {
   Q_UNUSED(content)
+
+  printNormal(this, "Processing outgoing response");
 
   // TODO: Handle this better
   if (!connection_->isConnected())
@@ -70,6 +76,8 @@ void SIPRouting::processOutgoingResponse(SIPResponse& response, QVariant& conten
                       connection_->localPort(),
                       DEFAULT_SIP_TYPE);
   }
+
+  emit outgoingResponse(response, content);
 }
 
 
@@ -87,6 +95,8 @@ void SIPRouting::processIncomingResponse(SIPResponse& response, QVariant& conten
   {
     printError(this, "Not connected when checking response via field");
   }
+
+  emit incomingResponse(response, content);
 }
 
 
