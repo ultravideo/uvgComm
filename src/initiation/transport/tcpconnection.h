@@ -19,11 +19,7 @@ public:
   TCPConnection();
   ~TCPConnection();
 
-  void stopConnection()
-  {
-    active_ = false;
-    eventDispatcher()->interrupt();
-  }
+  void stopConnection();
 
   // establishes a new TCP connection
   void establishConnection(QString const &destination, uint16_t port);
@@ -86,6 +82,7 @@ signals:
 
   // connection has been established
   void socketConnected(QString localAddress, QString remoteAddress);
+  void unableToConnect(QString remoteAddress);
 
 private slots:
   void receivedMessage();
