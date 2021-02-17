@@ -87,6 +87,10 @@ private:
   // Is the internal state of this class correct for this sessionID
   bool checkSessionValidity(bool checkRemote) const;
 
+  void addSDPAccept(std::shared_ptr<QList<SIPAccept>>& accepts);
+
+  bool isSDPAccepted(std::shared_ptr<QList<SIPAccept>>& accepts);
+
   std::unique_ptr<ICE> ice_;
 
   std::shared_ptr<SDPMessageInfo> localSDP_;
@@ -99,4 +103,7 @@ private:
   // used to set the initial connection address in SDP. This only for spec,
   // the actual addresses used are determined by ICE.
   QString localAddress_;
+
+  // INVITE and INVITE OK tell us whether SDP is accepted by peer/us
+  bool peerAcceptsSDP_;
 };

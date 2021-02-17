@@ -7,14 +7,15 @@
 
 
 
-Negotiation::Negotiation(std::shared_ptr<NetworkCandidates> candidates, QString localAddress,
-                         uint32_t sessionID):
+Negotiation::Negotiation(std::shared_ptr<NetworkCandidates> candidates,
+                         QString localAddress, uint32_t sessionID):
   ice_(std::make_unique<ICE>(candidates, sessionID)),
   localSDP_(nullptr),
   remoteSDP_(nullptr),
   negotiationState_(NEG_NO_STATE),
   negotiator_(),
-  localAddress_(localAddress)
+  localAddress_(localAddress),
+  peerAcceptsSDP_(false)
 {
   QObject::connect(ice_.get(), &ICE::nominationSucceeded,
                    this,       &Negotiation::nominationSucceeded);
@@ -28,9 +29,14 @@ void Negotiation::processOutgoingRequest(SIPRequest& request, QVariant& content)
 {
   printNormal(this, "Processing outgoing request");
 
+  if (request.method == SIP_INVITE || request.method == SIP_OPTIONS)
+  {
+    addSDPAccept(request.message->accept);
+  }
+
   // We could also add SDP to INVITE, but we choose to send offer
   // in INVITE OK response and ACK.
-  if(request.method == SIP_ACK && negotiationState_ == NEG_ANSWER_GENERATED)
+  if (request.method == SIP_ACK && negotiationState_ == NEG_ANSWER_GENERATED)
   {
     request.message->contentLength = 0;
     printNormal(this, "Adding SDP content to request");
@@ -52,30 +58,36 @@ void Negotiation::processOutgoingRequest(SIPRequest& request, QVariant& content)
 
 void Negotiation::processOutgoingResponse(SIPResponse& response, QVariant& content)
 {
-  if (response.type == SIP_OK
-      && response.message->cSeq.method == SIP_INVITE)
+  if (response.type == SIP_OK &&
+      response.message->cSeq.method == SIP_INVITE)
   {
-    if (negotiationState_ == NEG_NO_STATE)
-    {
-      printNormal(this, "Adding SDP to an OK response");
-      response.message->contentLength = 0;
-      response.message->contentType = MT_APPLICATION_SDP;
-      if (!SDPOfferToContent(content, localAddress_))
-      {
-        return;
-      }
-    }
-    // if they sent an offer in their INVITE
-    else if (negotiationState_ == NEG_ANSWER_GENERATED)
-    {
-      printNormal(this, "Adding SDP to response since INVITE had an SDP.");
+    addSDPAccept(response.message->accept);
 
-      response.message->contentLength = 0;
-      response.message->contentType = MT_APPLICATION_SDP;
-      if (!SDPAnswerToContent(content))
+    if (peerAcceptsSDP_)
+    {
+      if (negotiationState_ == NEG_NO_STATE)
       {
-        printError(this, "Failed to get SDP answer to response");
-        return;
+        printNormal(this, "Adding SDP to an OK response");
+        response.message->contentLength = 0;
+        response.message->contentType = MT_APPLICATION_SDP;
+
+        if (!SDPOfferToContent(content, localAddress_))
+        {
+          return;
+        }
+      }
+      // if they sent an offer in their INVITE
+      else if (negotiationState_ == NEG_ANSWER_GENERATED)
+      {
+        printNormal(this, "Adding SDP to response since INVITE had an SDP.");
+
+        response.message->contentLength = 0;
+        response.message->contentType = MT_APPLICATION_SDP;
+        if (!SDPAnswerToContent(content))
+        {
+          printError(this, "Failed to get SDP answer to response");
+          return;
+        }
       }
     }
   }
@@ -92,9 +104,17 @@ void Negotiation::processIncomingRequest(SIPRequest& request, QVariant& content)
 
   printNormal(this, "Processing incoming request");
 
-  if((request.method == SIP_INVITE || request.method == SIP_ACK)
-     && request.message->contentType == MT_APPLICATION_SDP)
+
+  if (request.method == SIP_INVITE)
   {
+    peerAcceptsSDP_ = isSDPAccepted(request.message->accept);
+  }
+
+  if((request.method == SIP_INVITE || request.method == SIP_ACK) &&
+     request.message->contentType == MT_APPLICATION_SDP &&
+     peerAcceptsSDP_)
+  {
+
     switch (negotiationState_)
     {
     case NEG_NO_STATE:
@@ -145,7 +165,9 @@ void Negotiation::processIncomingResponse(SIPResponse& response, QVariant& conte
 
   if(response.message->cSeq.method == SIP_INVITE && response.type == SIP_OK)
   {
-    if(response.message->contentType == MT_APPLICATION_SDP)
+    peerAcceptsSDP_ = isSDPAccepted(response.message->accept);
+
+    if(peerAcceptsSDP_ && response.message->contentType == MT_APPLICATION_SDP)
     {
       switch (negotiationState_)
       {
@@ -426,4 +448,35 @@ bool Negotiation::processAnswerSDP(QVariant &content)
   }
 
   return true;
+}
+
+
+void Negotiation::addSDPAccept(std::shared_ptr<QList<SIPAccept>>& accepts)
+{
+  if (accepts == nullptr)
+  {
+    accepts = std::shared_ptr<QList<SIPAccept>> (new QList<SIPAccept>);
+  }
+
+  accepts->push_back({MT_APPLICATION_SDP, {}});
+}
+
+
+bool Negotiation::isSDPAccepted(std::shared_ptr<QList<SIPAccept>>& accepts)
+{
+  // sdp is accepted on default
+  if (accepts == nullptr)
+  {
+    return true;
+  }
+
+  for (auto& accept : *accepts)
+  {
+    if (accept.type == MT_APPLICATION_SDP)
+    {
+      return true;
+    }
+  }
+
+  return false;
 }
