@@ -19,7 +19,8 @@ const uint32_t NONCONTROLLER_SESSION_TIMEOUT = 20000;
 
 ICE::ICE(std::shared_ptr<NetworkCandidates> candidates, uint32_t sessionID):
   networkCandidates_(candidates),
-  sessionID_(sessionID)
+  sessionID_(sessionID),
+  peerSupportsICE_(false)
 {}
 
 ICE::~ICE()
@@ -30,9 +31,13 @@ void ICE::processOutgoingRequest(SIPRequest& request, QVariant& content)
 {
   printNormal(this, "Processing outgoing request");
 
-  // TODO: if INVITE or OPTIONS, add ice to supported
+  // Add ice as supported module so the other one can anticipate need for ice
+  if (request.method == SIP_INVITE || request.method == SIP_OPTIONS)
+  {
+    addICEToSupported(request.message->supported);
+  }
 
-  if(request.message->contentType == MT_APPLICATION_SDP)
+  if (peerSupportsICE_ && request.message->contentType == MT_APPLICATION_SDP)
   {
     addLocalStartNomination(content);
   }
@@ -41,9 +46,12 @@ void ICE::processOutgoingRequest(SIPRequest& request, QVariant& content)
 
 void ICE::processOutgoingResponse(SIPResponse& response, QVariant& content)
 {
-  // TODO: if INVITE or OPTIONS OK, add ice to supported
+  if (response.message->cSeq.method == SIP_INVITE && response.type == SIP_OK)
+  {
+    addICEToSupported(response.message->supported);
+  }
 
-  if (response.message->contentType == MT_APPLICATION_SDP)
+  if (peerSupportsICE_ && response.message->contentType == MT_APPLICATION_SDP)
   {
     addLocalStartNomination(content);
   }
@@ -54,7 +62,12 @@ void ICE::processIncomingRequest(SIPRequest& request, QVariant& content)
 {
   printNormal(this, "Processing incoming request");
 
-  if (request.message->contentType == MT_APPLICATION_SDP)
+  if (request.method == SIP_INVITE || request.method == SIP_OPTIONS)
+  {
+    peerSupportsICE_ = isICEToSupported(request.message->supported);
+  }
+
+  if (peerSupportsICE_ && request.message->contentType == MT_APPLICATION_SDP)
   {
     takeRemoteStartNomination(content);
   }
@@ -63,7 +76,12 @@ void ICE::processIncomingRequest(SIPRequest& request, QVariant& content)
 
 void ICE::processIncomingResponse(SIPResponse& response, QVariant& content)
 {
-  if (response.message->contentType == MT_APPLICATION_SDP)
+  if (response.message->cSeq.method == SIP_INVITE && response.type == SIP_OK)
+  {
+    peerSupportsICE_ = isICEToSupported(response.message->supported);
+  }
+
+  if (peerSupportsICE_ && response.message->contentType == MT_APPLICATION_SDP)
   {
     takeRemoteStartNomination(content);
   }
@@ -421,4 +439,20 @@ void ICE::uninit()
   connectionNominated_ = false;
 
   networkCandidates_->cleanupSession(sessionID_);
+}
+
+
+void ICE::addICEToSupported(std::shared_ptr<QStringList>& supported)
+{
+  if (supported == nullptr)
+  {
+    supported = std::shared_ptr<QStringList> (new QStringList);
+  }
+
+  supported->append("ice");
+}
+
+bool ICE::isICEToSupported(std::shared_ptr<QStringList> supported)
+{
+  return supported != nullptr && supported->contains("ice");
 }

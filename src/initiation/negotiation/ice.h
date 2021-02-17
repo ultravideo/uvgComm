@@ -107,6 +107,10 @@ private:
                      CandidateType type, quint16 localPriority,
                      QList<std::shared_ptr<ICEInfo>>& candidates);
 
+  void addICEToSupported(std::shared_ptr<QStringList> &supported);
+
+  bool isICEToSupported(std::shared_ptr<QStringList> supported);
+
   std::shared_ptr<NetworkCandidates> networkCandidates_;
   uint32_t sessionID_;
 
@@ -122,4 +126,6 @@ private:
   QList<std::shared_ptr<ICEPair>> selectedPairs_;
 
   bool connectionNominated_;
+
+  bool peerSupportsICE_;
 };
