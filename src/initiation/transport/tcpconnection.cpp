@@ -262,16 +262,19 @@ void TCPConnection::disconnect()
 {
   active_ = false;
   shouldConnect_ = false;
-  socket_->disconnectFromHost();
-  if(socket_->state() == QAbstractSocket::UnconnectedState ||
-     socket_->waitForDisconnected(1000))
+  if (socket_)
   {
-    printNormal(this, "TCP disconnected");
-  }
-  else
-  {
-    emit error(socket_->error(), socket_->errorString());
-    return;
+    socket_->disconnectFromHost();
+    if(socket_->state() == QAbstractSocket::UnconnectedState ||
+       socket_->waitForDisconnected(1000))
+    {
+      printNormal(this, "TCP disconnected");
+    }
+    else
+    {
+      emit error(socket_->error(), socket_->errorString());
+      return;
+    }
   }
 }
 
