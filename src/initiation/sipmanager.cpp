@@ -10,6 +10,7 @@
 
 #include "initiation/transport/siprouting.h"
 #include "initiation/transport/tcpconnection.h"
+#include "initiation/transport/sipauthentication.h"
 
 #include "common.h"
 #include "global.h"
@@ -430,7 +431,7 @@ void SIPManager::processSIPRequest(SIPRequest& request, QVariant& content)
 
 void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
 {
-  printNormal(this, "Processing incoming respose");
+  printNormal(this, "Processing incoming response");
 
   if (response.message == nullptr)
   {
@@ -625,8 +626,12 @@ void SIPManager::createSIPTransport(QString remoteAddress,
     std::shared_ptr<SIPRouting> routing =
         std::shared_ptr<SIPRouting> (new SIPRouting(instance->connection));
 
+    std::shared_ptr<SIPAuthentication> authentication =
+        std::shared_ptr<SIPAuthentication> (new SIPAuthentication());
+
     // remember that the processors are always added from outgoing to incoming
     instance->pipe.addProcessor(transport);
+    instance->pipe.addProcessor(authentication);
     instance->pipe.addProcessor(routing);
 
     QObject::connect(&instance->pipe, &SIPMessageFlow::incomingRequest,
