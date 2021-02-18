@@ -1,10 +1,9 @@
 #pragma once
 
-#include "initiation/siptypes.h"
-#include "initiation/negotiation/sdptypes.h"
 #include "initiation/sipmessageprocessor.h"
-#include "tcpconnection.h"
-#include "siprouting.h"
+
+#include "initiation/siptypes.h"
+
 #include <QHostAddress>
 #include <QString>
 

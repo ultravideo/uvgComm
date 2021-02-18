@@ -5,8 +5,8 @@
 #include "common.h"
 
 #include <QDateTime>
-#include <QDebug>
 #include <QSettings>
+#include <QDebug>
 
 const uint32_t UINT31_MAX = 2147483647;
 
@@ -56,7 +56,7 @@ bool SIPDialogState::correctRequestDialog(QString callID, QString toTag, QString
   Q_ASSERT(callID_ != "");
   if(callID_ == "")
   {
-    qDebug() << "WARNING: The SIP dialog has not been initialized, but it is used";
+    printWarning(this, "The SIP dialog has not been initialized, but it is used");
     return false;
   }
 
@@ -87,8 +87,8 @@ void SIPDialogState::initDialog()
     callID_ += "@" + localURI_.uri.hostport.host;
   }
 
-  qDebug() << "Local dialog created. CallID: " << callID_
-           << "Tag:" << localTag_;
+  printDebug(DEBUG_NORMAL, this, "Local dialog created",
+             {"Call-ID", "Tag"}, {callID_, localTag_});
 }
 
 

@@ -1,11 +1,9 @@
 #include "negotiation.h"
 
-#include <QObject>
-
 #include "common.h"
 #include "global.h"
 
-
+#include <QVariant>
 
 Negotiation::Negotiation(QString localAddress):
   localSDP_(nullptr),
@@ -203,7 +201,7 @@ void Negotiation::processIncomingResponse(SIPResponse& response, QVariant& conte
 
 bool Negotiation::generateOfferSDP(QString localAddress)
 {
-  qDebug() << "Getting local SDP suggestion";
+  printNormal(this, "Getting local SDP suggestion");
   std::shared_ptr<SDPMessageInfo> localSDP = negotiator_.generateLocalSDP(localAddress);
   // TODO: Set also media sdp parameters.
 
@@ -224,7 +222,7 @@ bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
   // check if suitable.
   if(!negotiator_.checkSDPOffer(remoteSDPOffer))
   {
-    qDebug() << "Incoming SDP did not have Opus and H265 in their offer.";
+    printNormal(this, "Incoming SDP did not have Opus and H265 in their offer.");
     return false;
   }
 

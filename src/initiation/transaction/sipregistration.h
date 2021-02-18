@@ -1,8 +1,6 @@
 #pragma once
 
-#include "initiation/transaction/sipclient.h"
-#include "initiation/transaction/sipdialogstate.h"
-
+#include "initiation/sipmessageprocessor.h"
 #include "initiation/siptypes.h"
 
 #include <QObject>

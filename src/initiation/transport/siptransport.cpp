@@ -135,7 +135,7 @@ void SIPTransport::processOutgoingResponse(SIPResponse &response, QVariant &cont
                             message,
                             "Unavailable");
 
-  sendMessage(message);
+  emit sendMessage(message);
   --processingInProgress_;
 }
 

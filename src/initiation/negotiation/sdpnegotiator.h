@@ -3,13 +3,15 @@
 #include "sdptypes.h"
 
 #include <QString>
+#include <QObject>
 
 #include <memory>
 
 // This class is responsible for SDP based media negotiation.
 
-class SDPNegotiator
+class SDPNegotiator : public QObject
 {
+  Q_OBJECT
 public:
   SDPNegotiator();
 
@@ -29,7 +31,7 @@ public:
                        QList<uint8_t>& outMatchingNums,  QList<RTPMap>& outMatchingCodecs);
 
   // Checks if SDP is acceptable to us.
-  bool checkSDPOffer(SDPMessageInfo& offer);
+  bool checkSDPOffer(SDPMessageInfo& offer) const;
 
   // update MediaInfo of SDP after ICE has finished
   void setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo, bool local);

@@ -1,10 +1,11 @@
 #pragma once
 
-#include "sdptypes.h"
-#include "icetypes.h"
 #include "networkcandidates.h"
 
 #include "initiation/sipmessageprocessor.h"
+
+#include "sdptypes.h"
+#include "icetypes.h"
 
 #include <QHostAddress>
 #include <QString>

@@ -307,8 +307,8 @@ bool fieldsToMessageHeader(QList<SIPField>& fields,
   header->cSeq.cSeq = 0;
   header->cSeq.method = SIP_NO_REQUEST;
   header->maxForwards = 0;
-  header->to =   {{"",SIP_URI{}}, ""};
-  header->from = {{"",SIP_URI{}}, ""};
+  header->to =   {{"",SIP_URI{}}, "", {}};
+  header->from = {{"",SIP_URI{}}, "", {}};
   header->contentType = MT_NONE;
   header->contentLength = 0;
   header->expires = 0;

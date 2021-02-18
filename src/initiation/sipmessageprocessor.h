@@ -26,12 +26,12 @@ signals:
   // Emit these signals when you want some other processor to continue
   // processing the message.
 
-  // Do not redefine signals in children!
-  virtual void outgoingRequest(SIPRequest& request, QVariant& content);
-  virtual void outgoingResponse(SIPResponse& response, QVariant& content);
+  // Do NOT redefine signals in children!
+  void outgoingRequest(SIPRequest& request, QVariant& content);
+  void outgoingResponse(SIPResponse& response, QVariant& content);
 
-  virtual void incomingRequest(SIPRequest& request, QVariant& content);
-  virtual void incomingResponse(SIPResponse& response, QVariant& content);
+  void incomingRequest(SIPRequest& request, QVariant& content);
+  void incomingResponse(SIPResponse& response, QVariant& content);
 
 public slots:
 

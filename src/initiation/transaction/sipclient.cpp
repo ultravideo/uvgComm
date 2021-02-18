@@ -160,4 +160,3 @@ void SIPClient::requestTimeOut()
     {"Ongoing transaction"}, {QString::number(ongoingTransactionType_)});
   processTimeout();
 }
-

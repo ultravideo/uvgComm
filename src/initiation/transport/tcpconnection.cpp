@@ -283,8 +283,8 @@ void TCPConnection::run()
         printNormal(this, "Can read one line", {"Bytes available"},
                     {QString::number(socket_->bytesAvailable())});
 
-        // TODO: maybe not create the data stream everytime.
         // TODO: This should probably be some other stream, because we get also non text stuff in content?
+
         QTextStream in(socket_);
         QString message;
         message = in.read(MAX_READ_BYTES);
@@ -338,6 +338,8 @@ void TCPConnection::bufferToSocket()
   QString message = buffer_.front();
   buffer_.pop();
 
+  // For some reason write stream has to be created every write, otherwise
+  // a mysterious crash appears.
   QTextStream stream (socket_);
   stream << message;
 }

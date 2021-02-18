@@ -1,9 +1,22 @@
 #include "sipmanager.h"
 
+#include "initiation/negotiation/negotiation.h"
+#include "initiation/negotiation/networkcandidates.h"
+#include "initiation/negotiation/ice.h"
+
+#include "initiation/transaction/sipserver.h"
+#include "initiation/transaction/sipclient.h"
+#include "initiation/transaction/sipdialogstate.h"
+
+#include "initiation/transport/siprouting.h"
+#include "initiation/transport/tcpconnection.h"
+
 #include "common.h"
 #include "global.h"
 
-#include <QObject>
+#include <QNetworkProxy>
+
+#include <QSettings>
 
 const uint32_t FIRSTSESSIONID = 1;
 

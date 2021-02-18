@@ -5,7 +5,6 @@
 #include "common.h"
 
 #include <QDateTime>
-#include <QDebug>
 
 SDPNegotiator::SDPNegotiator()
 {}
@@ -14,7 +13,9 @@ SDPNegotiator::SDPNegotiator()
 std::shared_ptr<SDPMessageInfo> SDPNegotiator::generateLocalSDP(QString localAddress)
 {
   // TODO: This should ask media manager, what options it supports.
-  qDebug() << "Generating new SDP message with our address as:" << localAddress;
+
+  printNormal(this, "Generating new SDP message with our address",
+              "Local address", localAddress);
 
   QString localUsername = getLocalUsername();
 
@@ -22,9 +23,9 @@ std::shared_ptr<SDPMessageInfo> SDPNegotiator::generateLocalSDP(QString localAdd
      || localAddress == "0.0.0.0"
      || localUsername == "")
   {
-    qWarning() << "WARNING: Necessary info not set for SDP generation:"
-               << localAddress
-               << localUsername;
+    printWarning(this, " Necessary info not set for SDP generation",
+                 {"username"}, {localUsername});
+
     return nullptr;
   }
 
@@ -207,7 +208,7 @@ bool SDPNegotiator::generateAudioMedia(MediaInfo &audio)
            "", "", "", "", {},"", DYNAMIC_AUDIO_CODECS, {A_SENDRECV}, {}};
 
   // add all the dynamic numbers first because we want to favor dynamic type codecs.
-  for(RTPMap codec : audio.codecs)
+  for(RTPMap& codec : audio.codecs)
   {
     audio.rtpNums.push_back(codec.rtpNum);
   }
@@ -223,7 +224,7 @@ bool SDPNegotiator::generateVideoMedia(MediaInfo& video)
   video = {"video", 0, "RTP/AVP", {},
            "", "", "", "", {},"", DYNAMIC_VIDEO_CODECS, {A_SENDRECV}, {}};
 
-  for(RTPMap codec : video.codecs)
+  for(RTPMap& codec : video.codecs)
   {
     video.rtpNums.push_back(codec.rtpNum);
   }
@@ -234,7 +235,7 @@ bool SDPNegotiator::generateVideoMedia(MediaInfo& video)
 }
 
 
-bool SDPNegotiator::checkSDPOffer(SDPMessageInfo &offer)
+bool SDPNegotiator::checkSDPOffer(SDPMessageInfo &offer) const
 {
   // TODO: check everything.
 
@@ -243,18 +244,20 @@ bool SDPNegotiator::checkSDPOffer(SDPMessageInfo &offer)
 
   if(offer.connection_address == "0.0.0.0")
   {
-    qDebug() << "Got bad global address from SDP:" << offer.connection_address;
+    printPeerError(this, "Got bad global address from SDP", "Address",
+                   offer.connection_address);
     return false;
   }
 
   if(offer.version != 0)
   {
-    qDebug() << "Their offer had not 0 version:" << offer.version;
+    printPeerError(this, "Their offer had non-0 version", "Version",
+                   QString::number(offer.version));
     return false;
   }
 
   QStringList debugCodecsFound = {};
-  for(MediaInfo media : offer.media)
+  for(MediaInfo& media : offer.media)
   {
     if(!media.rtpNums.empty() && media.rtpNums.first() == 0)
     {
@@ -262,7 +265,7 @@ bool SDPNegotiator::checkSDPOffer(SDPMessageInfo &offer)
       hasAudio = true;
     }
 
-    for(RTPMap rtp : media.codecs)
+    for(RTPMap& rtp : media.codecs)
     {
       if(rtp.codec == "opus")
       {

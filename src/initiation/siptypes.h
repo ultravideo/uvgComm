@@ -237,7 +237,7 @@ struct DigestChallenge
   DigestAlgorithm algorithm = SIP_NO_ALGORITHM;
   QList<QopValue> qopOptions = {};
 
-  //QString authParam; refers to any further parameters
+  //QString authParam; refers to parameters in other RFC:s
 };
 
 
@@ -254,7 +254,7 @@ struct DigestResponse
   QopValue messageQop = SIP_NO_AUTH;
   QString nonceCount = ""; // 8-letter lower hex
 
-  //QString authParam; refers to any further parameters
+  //QString authParam; refers to parameters in other RFC:s
 };
 
 

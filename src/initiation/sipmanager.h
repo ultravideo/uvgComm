@@ -4,10 +4,12 @@
 #include "initiation/transport/siptransport.h"
 
 #include "initiation/transaction/sipregistration.h"
-#include "initiation/negotiation/negotiation.h"
-
 #include "initiation/transaction/sipsinglecall.h"
+
+
 #include "initiation/sipmessageflow.h"
+
+#include <QObject>
 
 /* This is a manager class that manages interactions between different
  * components in Session Initiation Protocol (SIP). This class should implement
@@ -45,6 +47,7 @@ struct TransportInstance
 
 class SIPTransactionUser;
 class StatisticsInterface;
+class NetworkCandidates;
 
 
 

@@ -4,7 +4,6 @@
 
 #include <QNetworkInterface>
 #include <QUdpSocket>
-#include <QDebug>
 
 const QString STUN_SERVER = "stun.l.google.com";
 const uint16_t GOOGLE_STUN_PORT = 19302;

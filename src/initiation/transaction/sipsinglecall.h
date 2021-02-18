@@ -1,10 +1,6 @@
 #pragma once
 
-
-#include "initiation/transaction/sipserver.h"
-#include "initiation/transaction/sipclient.h"
 #include "initiation/siptransactionuser.h"
-
 #include "initiation/sipmessageprocessor.h"
 
 #include <memory>

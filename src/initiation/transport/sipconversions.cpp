@@ -2,8 +2,6 @@
 
 #include "common.h"
 
-#include <QDebug>
-
 
 // Note: if you see a non-POD static warning, it comes from glazy. This warning
 // is meant for libraries so they don't needlessly waste resources by initializing
@@ -65,7 +63,7 @@ SIPRequestMethod stringToRequestMethod(const QString &request)
 {
   if(requestTypes.find(request) == requestTypes.end())
   {
-    qDebug() << "Request type not listed in conversions.";
+    printWarning("SIP Conversions", "Request type not listed in conversions.");
     return SIP_NO_REQUEST;
   }
   return requestTypes.at(request);
@@ -139,7 +137,8 @@ SIPTransportProtocol stringToTransportProtocol(const QString &type)
   }
   else
   {
-    qDebug() << "Unrecognized connection protocol:" << type;
+    printWarning("SIP Conversions", "Unrecognized connection protocol.",
+                 {"Protocol"}, {type});
   }
   return NONE;
 }
@@ -163,8 +162,9 @@ QString transportProtocolToString(const SIPTransportProtocol connection)
     }
   default:
   {
-    qDebug() << "WARNING: Tried to convert unrecognized protocol to string! "
-             << connection << "Should be checked earlier.";
+    printWarning("SIP Conversions", "Tried to convert unrecognized protocol to string! "
+                                    "Should be checked earlier.",
+                 {"Protocol"}, {connection});
   }
   }
   return "";

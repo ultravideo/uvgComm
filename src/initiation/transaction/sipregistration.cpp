@@ -1,15 +1,11 @@
 #include "sipregistration.h"
 
-
-#include "initiation/transaction/sipdialogstate.h"
-#include "initiation/transaction/sipclient.h"
+#include "serverstatusview.h"
 
 #include "common.h"
-#include "serverstatusview.h"
 #include "global.h"
 
-
-#include <QDebug>
+#include <QVariant>
 
 const int REGISTER_SEND_PERIOD = (REGISTER_INTERVAL - 5)*1000;
 
@@ -75,15 +71,12 @@ void SIPRegistration::processIncomingResponse(SIPResponse& response, QVariant& c
 
   if (response.message->cSeq.method == SIP_REGISTER)
   {
-    bool foundRegistration = false;
-
     if (serverAddress_ == response.message->to.address.uri.hostport.host)
     {
       if (response.type == SIP_OK)
       {
         attemptedAuth_ = false; // reset our attempts so if the digest expires,
         // we auth again
-        foundRegistration = true;
 
         if (status_ != RE_REGISTRATION &&
             response.message->vias.at(0).receivedAddress != "" &&
@@ -146,10 +139,9 @@ void SIPRegistration::processIncomingResponse(SIPResponse& response, QVariant& c
         statusView_->updateServerStatus(response.text);
       }
     }
-
-    if (!foundRegistration)
+    else
     {
-      qDebug() << "PEER ERROR: Got a resonse to REGISTRATION we didn't send";
+      printPeerError(this, "Got a resonse to REGISTRATION we didn't send");
     }
   }
   else

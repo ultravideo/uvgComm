@@ -1,7 +1,6 @@
 #pragma once
 
 #include "sdpnegotiator.h"
-#include "ice.h"
 #include "initiation/negotiation/sdptypes.h"
 
 #include "initiation/sipmessageprocessor.h"
@@ -40,7 +39,6 @@ public:
 
 public slots:
 
-// TODO: Remove localaddress from parameters
 virtual void processOutgoingRequest(SIPRequest& request, QVariant& content);
 virtual void processOutgoingResponse(SIPResponse& response, QVariant& content);
 
