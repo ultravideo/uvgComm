@@ -18,6 +18,8 @@
  * parameters with peers.
  */
 
+
+// The components specific to one dialog
 struct DialogInstance
 {
   SIPMessageFlow pipe;
@@ -26,6 +28,7 @@ struct DialogInstance
   SIPSingleCall call;
 };
 
+// Components specific to one registration
 struct RegistrationInstance
 {
   SIPMessageFlow pipe;
@@ -33,6 +36,7 @@ struct RegistrationInstance
   SIPRegistration registration;
 };
 
+// Components specific to one transport connection
 struct TransportInstance
 {
   std::shared_ptr<TCPConnection> connection;
@@ -91,8 +95,8 @@ private slots:
 private:
 
   std::shared_ptr<DialogInstance> getDialog(uint32_t sessionID) const;
-
   std::shared_ptr<RegistrationInstance> getRegistration(QString& address) const;
+  std::shared_ptr<TransportInstance> getTransport(QString& address) const;
 
   bool haveWeRegistered();
 

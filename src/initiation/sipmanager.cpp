@@ -133,8 +133,6 @@ void SIPManager::bindToServer()
         std::shared_ptr<TCPConnection>(new TCPConnection());
     createSIPTransport(serverAddress, connection, true);
 
-    //transport->createConnection(DEFAULT_TRANSPORT, serverAddress);
-
     waitingToBind_.push_back(serverAddress);
   }
   else {
@@ -148,7 +146,7 @@ uint32_t SIPManager::startCall(NameAddr &remote)
 {
   uint32_t sessionID = reserveSessionID();
 
-  // TODO: ask network interface if we can start session
+
 
   // check if we are already connected to remoteaddress
   if (!isConnected(remote.uri.hostport.host))
@@ -158,12 +156,11 @@ uint32_t SIPManager::startCall(NameAddr &remote)
 
     // we are not yet connected to them. Form a connection by creating the transport layer
     createSIPTransport(remote.uri.hostport.host, connection, true);
-    //transport->createConnection(DEFAULT_TRANSPORT, remote.uri.hostport.host);
     waitingToStart_[remote.uri.hostport.host] = {sessionID, remote};
   }
   else
   {
-    QString localAddress = transports_[remote.uri.hostport.host]->connection->localAddress();
+    QString localAddress = getTransport(remote.uri.hostport.host)->connection->localAddress();
 
     NameAddr local = localInfo(haveWeRegistered(), localAddress);
 
@@ -272,7 +269,7 @@ void SIPManager::connectionEstablished(QString localAddress, QString remoteAddre
   // if we are planning to call a peer using this connection
   if (waitingToStart_.find(remoteAddress) != waitingToStart_.end())
   {
-    QString localAddress = transports_[remoteAddress]->connection->localAddress();
+    QString localAddress = getTransport(remoteAddress)->connection->localAddress();
 
     NameAddr local = localInfo(haveWeRegistered(), localAddress);
 
@@ -287,14 +284,14 @@ void SIPManager::connectionEstablished(QString localAddress, QString remoteAddre
   // if we are planning to register using this connection
   if(waitingToBind_.contains(remoteAddress))
   {
-    NameAddr local = localInfo(true, transports_[remoteAddress]->connection->localAddress());
+    NameAddr local = localInfo(true, getTransport(remoteAddress)->connection->localAddress());
 
     createRegistration(local);
 
     getRegistration(remoteAddress)->
         registration.bindToServer(local,
-                                  transports_[remoteAddress]->connection->localAddress(),
-                                  transports_[remoteAddress]->connection->localPort());
+                                  getTransport(remoteAddress)->connection->localAddress(),
+                                  getTransport(remoteAddress)->connection->localPort());
 
     waitingToBind_.removeOne(remoteAddress);
   }
@@ -305,10 +302,12 @@ void SIPManager::transportRequest(SIPRequest &request, QVariant& content)
 {
   printNormal(this, "Initiate sending of a dialog request");
 
-  if (transports_.find(request.requestURI.hostport.host) != transports_.end())
+  std::shared_ptr<TransportInstance> transport =
+      getTransport(request.requestURI.hostport.host);
+
+  if (transport != nullptr)
   {
-    transports_[request.requestURI.hostport.host]->pipe.processOutgoingRequest(request,
-                                                                               content);
+    transport->pipe.processOutgoingRequest(request, content);
   }
   else
   {
@@ -320,11 +319,13 @@ void SIPManager::transportRequest(SIPRequest &request, QVariant& content)
 
 void SIPManager::transportResponse(SIPResponse &response, QVariant& content)
 {
-  QString remoteAddress = response.message->vias.back().sentBy;
-  if (transports_.find(remoteAddress) != transports_.end())
+  std::shared_ptr<TransportInstance> transport =
+      getTransport(response.message->vias.back().sentBy);
+
+  if (transport != nullptr)
   {
     // send the request with or without SDP
-    transports_[remoteAddress]->pipe.processOutgoingResponse(response, content);
+    transport->pipe.processOutgoingResponse(response, content);
   }
   else {
     printDebug(DEBUG_ERROR, metaObject()->className(),
@@ -544,6 +545,23 @@ std::shared_ptr<RegistrationInstance> SIPManager::getRegistration(QString& addre
   }
 
   return foundRegistration;
+}
+
+
+std::shared_ptr<TransportInstance> SIPManager::getTransport(QString& address) const
+{
+  std::shared_ptr<TransportInstance> foundTransport = nullptr;
+  if (transports_.find(address) != transports_.end())
+  {
+    foundTransport = transports_[address];
+  }
+  else
+  {
+    printProgramError(this, "Could not find transport",
+                      "Address", address);
+  }
+
+  return foundTransport;
 }
 
 
