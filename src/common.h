@@ -89,6 +89,8 @@ void printDebug(DebugType type, QString className, QString description = "",
 void printDebug(DebugType type, const QObject* object, QString description = "",
                 QStringList valueNames = {}, QStringList values = {});
 
-bool settingEnabled(QString parameter);
+bool getBoolFromSetting(QString key);
+
+QString getStringFromSettings(QString key);
 
 QString getLocalUsername();

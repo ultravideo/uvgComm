@@ -225,17 +225,19 @@ enum DigestAlgorithm {SIP_NO_ALGORITHM, SIP_UNKNOWN_ALGORITHM,
                       SIP_MD5, SIP_MD5_SESS};
 
 // support for new qop types can be added to SIP Conversions module
+// qop = quality of protection
+// INT = identity
 enum QopValue {SIP_NO_AUTH, SIP_AUTH_UNKNOWN, SIP_AUTH, SIP_AUTH_INT};
 
 struct DigestChallenge
 {
   QString realm = "";
   std::shared_ptr<AbsoluteURI> domain = nullptr; // can also be abs-path
-  QString nonce = "";
+  QString nonce = ""; // arbitrary number use only once
   QString opaque = "";
   std::shared_ptr<bool> stale = nullptr;
   DigestAlgorithm algorithm = SIP_NO_ALGORITHM;
-  QList<QopValue> qopOptions = {};
+  QList<QopValue> qopOptions = {}; // list of supported
 
   //QString authParam; refers to parameters in other RFC:s
 };
@@ -243,14 +245,14 @@ struct DigestChallenge
 
 struct DigestResponse
 {
-  QString username = "";
+  QString username = ""; // user authenticated
   QString realm = ""; // proxy server where credentials are valid.
-  QString nonce = "";
+  QString nonce = ""; // nonce from challenge
   std::shared_ptr<SIP_URI> digestUri = nullptr; // equal to Request-URI
-  QString dresponse = ""; // 32-letter hex
+  QString dresponse = ""; // response-digest, a 32-letter hex.
   DigestAlgorithm algorithm = SIP_NO_ALGORITHM;
-  QString cnonce = "";
-  QString opaque = "";
+  QString cnonce = ""; // client nonce
+  QString opaque = ""; // server specific data
   QopValue messageQop = SIP_NO_AUTH;
   QString nonceCount = ""; // 8-letter lower hex
 

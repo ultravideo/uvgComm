@@ -317,10 +317,17 @@ bool checkError(QObject* object, bool check, DebugType type,
 }
 
 
-bool settingEnabled(QString parameter)
+bool getBoolFromSetting(QString key)
 {
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
-  return settings.value(parameter).toInt() == 1;
+  return settings.value(key).toInt() == 1;
+}
+
+
+QString getStringFromSettings(QString key)
+{
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+  return settings.value(key).toString();
 }
 
 

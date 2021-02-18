@@ -9,6 +9,8 @@
 
 #include <common.h>
 
+#include <QCryptographicHash>
+
 Settings::Settings(QWidget *parent) :
   QDialog(parent),
   basicUI_(new Ui::BasicSettings),
@@ -65,6 +67,8 @@ void Settings::init()
   QObject::connect(basicUI_->username_edit, &QLineEdit::textChanged,
                    this, &Settings::changedSIPText);
 
+
+
   QObject::connect(basicUI_->serverAddress_edit, &QLineEdit::textChanged,
                    this, &Settings::uiChangedString);
 
@@ -72,6 +76,9 @@ void Settings::init()
                    this, &Settings::uiChangedString);
 
   QObject::connect(basicUI_->username_edit, &QLineEdit::textChanged,
+                   this, &Settings::uiChangedString);
+
+  QObject::connect(basicUI_->passwd_edit, &QLineEdit::textChanged,
                    this, &Settings::uiChangedString);
 
   QObject::connect(basicUI_->auto_connect_box, &QCheckBox::stateChanged,
@@ -169,6 +176,20 @@ void Settings::saveSettings()
   // Local settings
   saveTextValue("local/Name", basicUI_->name_edit->text(), settings_);
   saveTextValue("local/Username", basicUI_->username_edit->text(), settings_);
+
+  if (basicUI_->passwd_edit->text() != "")
+  {
+    QCryptographicHash hash(QCryptographicHash::Md5);
+    QString qopString = basicUI_->username_edit->text() + ":" +
+        basicUI_->serverAddress_edit->text() +  ":" + basicUI_->passwd_edit->text();
+    hash.addData(qopString.toLatin1());
+
+    QString credentials = hash.result().toHex();
+
+    saveTextValue("local/Credentials", credentials, settings_);
+  }
+
+
   saveTextValue("sip/ServerAddress", basicUI_->serverAddress_edit->text(), settings_);
 
   saveCheckBox("sip/AutoConnect", basicUI_->auto_connect_box, settings_);
