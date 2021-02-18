@@ -41,6 +41,8 @@ void ICE::processOutgoingRequest(SIPRequest& request, QVariant& content)
   {
     addLocalStartNomination(content);
   }
+
+  emit outgoingRequest(request, content);
 }
 
 
@@ -55,6 +57,8 @@ void ICE::processOutgoingResponse(SIPResponse& response, QVariant& content)
   {
     addLocalStartNomination(content);
   }
+
+  emit outgoingResponse(response, content);
 }
 
 
@@ -71,6 +75,8 @@ void ICE::processIncomingRequest(SIPRequest& request, QVariant& content)
   {
     takeRemoteStartNomination(content);
   }
+
+  emit incomingRequest(request, content);
 }
 
 
@@ -85,6 +91,8 @@ void ICE::processIncomingResponse(SIPResponse& response, QVariant& content)
   {
     takeRemoteStartNomination(content);
   }
+
+  emit incomingResponse(response, content);
 }
 
 
@@ -365,7 +373,7 @@ void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local,
 }
 
 
-void ICE::handeICESuccess(QList<std::shared_ptr<ICEPair> > &streams)
+void ICE::handeICESuccess(QList<std::shared_ptr<ICEPair>> &streams)
 {
   // check that results make sense. They should always.
   if (streams.at(0) == nullptr ||
@@ -392,9 +400,13 @@ void ICE::handeICESuccess(QList<std::shared_ptr<ICEPair> > &streams)
     // end other tests. We have a winner.
     agent_->quit();
     connectionNominated_ = true;
-    selectedPairs_ = {streams.at(0), streams.at(1),
-                      streams.at(2), streams.at(3)};
-    emit nominationSucceeded(sessionID_);
+    QList<std::shared_ptr<ICEPair>> pairs;
+    pairs.push_back(streams.at(0));
+    pairs.push_back(streams.at(1));
+    pairs.push_back(streams.at(2));
+    pairs.push_back(streams.at(3));
+
+    emit nominationSucceeded(pairs, sessionID_);
   }
 }
 
@@ -406,17 +418,6 @@ void ICE::handleICEFailure()
   agent_->quit();
   connectionNominated_ = false;
   emit nominationFailed(sessionID_);
-}
-
-
-QList<std::shared_ptr<ICEPair>> ICE::getNominated()
-{
-  if (connectionNominated_)
-  {
-    return selectedPairs_;
-  }
-  printProgramError(this, "No selected ICE candidates stored.");
-  return QList<std::shared_ptr<ICEPair>>();
 }
 
 
@@ -435,7 +436,6 @@ void ICE::uninit()
 
   agent_ = nullptr;
   pairs_.clear();
-  selectedPairs_.clear();
   connectionNominated_ = false;
 
   networkCandidates_->cleanupSession(sessionID_);

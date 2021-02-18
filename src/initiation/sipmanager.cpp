@@ -683,7 +683,17 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
   dialogs_[sessionID] = dialog;
 
   std::shared_ptr<Negotiation> negotiation =
-      std::shared_ptr<Negotiation> (new Negotiation(nCandidates_, localAddress, sessionID));
+      std::shared_ptr<Negotiation> (new Negotiation(localAddress));
+  std::shared_ptr<ICE> ice = std::shared_ptr<ICE> (new ICE(nCandidates_, sessionID));
+
+  QObject::connect(ice.get(),         &ICE::nominationSucceeded,
+                   negotiation.get(), &Negotiation::nominationSucceeded,
+                   Qt::DirectConnection);
+
+  QObject::connect(ice.get(),         &ICE::nominationFailed,
+                   negotiation.get(), &Negotiation::iceNominationFailed);
+
+
   std::shared_ptr<SIPClient> client = std::shared_ptr<SIPClient> (new SIPClient);
   std::shared_ptr<SIPServer> server = std::shared_ptr<SIPServer> (new SIPServer);
 
@@ -700,6 +710,7 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
 
   // Add all components to the pipe.
   dialog->pipe.addProcessor(dialog->state);
+  dialog->pipe.addProcessor(ice);
   dialog->pipe.addProcessor(negotiation);
   dialog->pipe.addProcessor(client);
   dialog->pipe.addProcessor(server);

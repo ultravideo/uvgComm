@@ -7,9 +7,7 @@
 
 
 
-Negotiation::Negotiation(std::shared_ptr<NetworkCandidates> candidates,
-                         QString localAddress, uint32_t sessionID):
-  ice_(std::make_unique<ICE>(candidates, sessionID)),
+Negotiation::Negotiation(QString localAddress):
   localSDP_(nullptr),
   remoteSDP_(nullptr),
   negotiationState_(NEG_NO_STATE),
@@ -17,11 +15,8 @@ Negotiation::Negotiation(std::shared_ptr<NetworkCandidates> candidates,
   localAddress_(localAddress),
   peerAcceptsSDP_(false)
 {
-  QObject::connect(ice_.get(), &ICE::nominationSucceeded,
-                   this,       &Negotiation::nominationSucceeded);
-
-  QObject::connect(ice_.get(), &ICE::nominationFailed,
-                   this,       &Negotiation::iceNominationFailed);
+  // this makes it possible to send SDP as a signal parameter
+  qRegisterMetaType<std::shared_ptr<SDPMessageInfo> >("std::shared_ptr<SDPMessageInfo>");
 }
 
 
@@ -49,8 +44,6 @@ void Negotiation::processOutgoingRequest(SIPRequest& request, QVariant& content)
       return;
     }
   }
-
-  ice_->processOutgoingRequest(request, content);
 
   emit outgoingRequest(request, content);
 }
@@ -92,16 +85,12 @@ void Negotiation::processOutgoingResponse(SIPResponse& response, QVariant& conte
     }
   }
 
-  ice_->processOutgoingResponse(response, content);
-
   emit outgoingResponse(response, content);
 }
 
 
 void Negotiation::processIncomingRequest(SIPRequest& request, QVariant& content)
 {
-  ice_->processIncomingRequest(request, content);
-
   printNormal(this, "Processing incoming request");
 
 
@@ -161,8 +150,6 @@ void Negotiation::processIncomingRequest(SIPRequest& request, QVariant& content)
 
 void Negotiation::processIncomingResponse(SIPResponse& response, QVariant& content)
 {
-  ice_->processIncomingResponse(response, content);
-
   if(response.message->cSeq.method == SIP_INVITE && response.type == SIP_OK)
   {
     peerAcceptsSDP_ = isSDPAccepted(response.message->accept);
@@ -317,23 +304,18 @@ void Negotiation::uninit()
 
 
   negotiationState_ = NEG_NO_STATE;
-  if (ice_ != nullptr)
-  {
-    ice_->uninit();
-  }
 }
 
 
-void Negotiation::nominationSucceeded(quint32 sessionID)
+void Negotiation::nominationSucceeded(QList<std::shared_ptr<ICEPair>>& streams,
+                                      quint32 sessionID)
 {
   if (!checkSessionValidity(true))
   {
     return;
   }
 
-  QList<std::shared_ptr<ICEPair>> streams = ice_->getNominated();
-
-  if (streams.size() != 4)
+  if (streams.size() != STREAM_COMPONENTS)
   {
     return;
   }

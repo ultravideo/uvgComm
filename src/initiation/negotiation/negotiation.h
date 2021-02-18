@@ -33,9 +33,7 @@ class Negotiation : public SIPMessageProcessor
 {
   Q_OBJECT
 public:
-  Negotiation(std::shared_ptr<NetworkCandidates> candidates,
-              QString localAddress,
-              uint32_t sessionID);
+  Negotiation(QString localAddress);
 
   // frees the ports when they are not needed in rest of the program
   virtual void uninit();
@@ -57,7 +55,8 @@ signals:
   void iceNominationFailed(quint32 sessionID);
 
 public slots:
-  void nominationSucceeded(quint32 sessionID);
+  void nominationSucceeded(QList<std::shared_ptr<ICEPair>>& streams,
+                           quint32 sessionID);
 
 private:
 
@@ -90,8 +89,6 @@ private:
   void addSDPAccept(std::shared_ptr<QList<SIPAccept>>& accepts);
 
   bool isSDPAccepted(std::shared_ptr<QList<SIPAccept>>& accepts);
-
-  std::unique_ptr<ICE> ice_;
 
   std::shared_ptr<SDPMessageInfo> localSDP_;
   std::shared_ptr<SDPMessageInfo> remoteSDP_;

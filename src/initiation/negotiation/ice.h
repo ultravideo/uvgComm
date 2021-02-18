@@ -35,19 +35,15 @@ public slots:
   virtual void processIncomingRequest(SIPRequest& request, QVariant& content);
   virtual void processIncomingResponse(SIPResponse& response, QVariant& content);
 
-
-  // get nominated ICE pairs for sessionID
-  QList<std::shared_ptr<ICEPair> > getNominated();
-
-
 signals:
   void nominationFailed(quint32 sessionID);
-  void nominationSucceeded(quint32 sessionID);
+  void nominationSucceeded(QList<std::shared_ptr<ICEPair>>& streams,
+                           quint32 sessionID);
 
 private slots:
   // saves the nominated pair so it can be fetched later on and
   // sends nominationSucceeded signal that negotiation is done
-  void handeICESuccess(QList<std::shared_ptr<ICEPair> > &streams);
+  void handeICESuccess(QList<std::shared_ptr<ICEPair>> &streams);
 
   // ends testing and emits nominationFailed
   void handleICEFailure();
@@ -123,7 +119,6 @@ private:
 
   // list of all candidates, remote and local
   QList<std::shared_ptr<ICEPair>> pairs_;
-  QList<std::shared_ptr<ICEPair>> selectedPairs_;
 
   bool connectionNominated_;
 

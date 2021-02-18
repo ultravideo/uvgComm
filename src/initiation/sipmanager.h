@@ -72,6 +72,8 @@ public:
   void endAllCalls();
 
 signals:
+
+  // ICE signals
   void nominationSucceeded(const quint32 sessionID,
                            const std::shared_ptr<SDPMessageInfo> local,
                            const std::shared_ptr<SDPMessageInfo> remote);
