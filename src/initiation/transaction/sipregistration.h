@@ -64,4 +64,6 @@ private:
 
   ServerStatusView* statusView_;
   QTimer retryTimer_;
+
+  bool attemptedAuth_;
 };

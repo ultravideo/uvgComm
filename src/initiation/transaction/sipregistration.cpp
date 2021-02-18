@@ -15,7 +15,8 @@ const int REGISTER_SEND_PERIOD = (REGISTER_INTERVAL - 5)*1000;
 
 
 SIPRegistration::SIPRegistration():
-  retryTimer_(nullptr)
+  retryTimer_(nullptr),
+  attemptedAuth_(false)
 {}
 
 
@@ -80,6 +81,8 @@ void SIPRegistration::processIncomingResponse(SIPResponse& response, QVariant& c
     {
       if (response.type == SIP_OK)
       {
+        attemptedAuth_ = false; // reset our attempts so if the digest expires,
+        // we auth again
         foundRegistration = true;
 
         if (status_ != RE_REGISTRATION &&
@@ -128,6 +131,14 @@ void SIPRegistration::processIncomingResponse(SIPResponse& response, QVariant& c
         }
 
         printNormal(this, "Registration was successful.");
+      }
+      else if (response.type == SIP_UNAUTHORIZED)
+      {
+        if (!attemptedAuth_)
+        {
+          attemptedAuth_ = true;
+          sendREGISTERRequest(REGISTER_INTERVAL, RE_REGISTRATION);
+        }
       }
       else
       {
