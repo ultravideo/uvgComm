@@ -398,7 +398,7 @@ bool parseDigestValue(const QString& word, QString& name, QString& value)
     return true;
   }
 
-  QRegularExpression re_normal("(.*)=(.*)");
+  QRegularExpression re_normal("([\\w-]*)=(.*)");
   QRegularExpressionMatch normal_match = re_normal.match(word);
 
   if(normal_match.hasMatch() && normal_match.lastCapturedIndex() == 2)
@@ -533,6 +533,7 @@ void populateDigestTable(const QList<SIPCommaValue>& values,
          (values.at(i).words.size() != 2 || values.at(i).words.at(0) != "Digest")) ||
         (i > 0  && values.at(i).words.size() != 1 ))
     {
+      printWarning("SIP Field Parsing", "Faulty digest value detected");
       break;
     }
 
