@@ -279,21 +279,20 @@ void SIPDialogState::processIncomingResponse(SIPResponse& response, QVariant& co
 
   // set the correct request URI from their contact field
   if (response.type == SIP_OK &&
-      response.message->cSeq.method == SIP_INVITE &&
-      !response.message->contact.empty())
+      response.message->cSeq.method == SIP_INVITE)
   {
-    requestUri_ = {response.message->contact.first().address.uri};
+    if (!response.message->contact.empty())
+    {
+      requestUri_ = {response.message->contact.first().address.uri};
+    }
+
+    qDebug() << "We don't yet have their remote Tag. Using the one in response.";
+    remoteTag_ = response.message->to.tagParameter;
   }
 
   if (!response.message->recordRoutes.empty())
   {
     route_ = response.message->recordRoutes;
-  }
-
-  if(remoteTag_ == "")
-  {
-    qDebug() << "We don't yet have their remote Tag. Using the one in response.";
-    remoteTag_ = response.message->to.tagParameter;
   }
 
   emit incomingResponse(response, content);
