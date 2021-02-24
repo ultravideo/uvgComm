@@ -101,11 +101,13 @@ bool responseSanityCheck(QList<SIPField>& fields,
 
   SIPRequestMethod ongoingTransaction = SIP_NO_REQUEST;
 
+  /*
   if (countVias(fields) > 1)
   {
     printError("SIP Message Sanity", "Too many Vias in SIP Response");
     return false;
   }
+  */
 
   for (auto& field : fields)
   {
