@@ -43,7 +43,7 @@ void SIPRouting::processOutgoingRequest(SIPRequest& request, QVariant& content)
     request.message->vias.push_front(previousVia_);
   }
 
-  if (request.method == SIP_INVITE)
+  if (request.method == SIP_INVITE || request.method == SIP_REGISTER)
   {
     addContactField(request.message,
                     connection_->localAddress(),
