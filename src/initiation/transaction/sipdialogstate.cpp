@@ -151,7 +151,39 @@ void SIPDialogState::processOutgoingRequest(SIPRequest& request, QVariant& conte
   }
   else
   {
-    request.requestURI = requestUri_;
+    if (!route_.empty())
+    {
+      bool foundLR = false;
+
+      for (auto& parameter : route_.first().address.uri.uri_parameters)
+      {
+        if (parameter.name == "lr")
+        {
+          foundLR = true;
+        }
+      }
+
+      if (foundLR)
+      {
+        request.requestURI = remoteURI_.uri;
+        request.message->routes = route_;
+      }
+      else
+      {
+        request.requestURI = route_.first().address.uri;
+        // TODO: String all parameters not allowed in request-URI
+
+        QList<SIPRouteLocation> routes = route_;
+        routes.pop_front();
+
+        route_.push_back({remoteURI_, {}});
+        request.message->routes = routes;
+      }
+    }
+    else
+    {
+      request.requestURI = remoteURI_.uri;
+    }
 
     // init local cseq if it does not exist
     if (localCseq_ == UINT32_MAX)
@@ -185,7 +217,6 @@ void SIPDialogState::processOutgoingRequest(SIPRequest& request, QVariant& conte
 
     request.message->callID = callID_;
 
-    request.message->routes = route_;
 
     previousRequest_ = request;
   }
@@ -223,8 +254,10 @@ void SIPDialogState::processIncomingRequest(SIPRequest& request, QVariant& conte
 
     setDialog(request.message->callID);
 
+    // TODO: Request uri should be the first URI in route without lr parameter!!
+
     // in future we will address our requests to their contact address
-    requestUri_ = request.message->contact.first().address.uri;
+    //requestUri_ = request.message->contact.first().address.uri;
 
     remoteTag_ = request.message->from.tagParameter;
 
@@ -281,10 +314,12 @@ void SIPDialogState::processIncomingResponse(SIPResponse& response, QVariant& co
   if (response.type == SIP_OK &&
       response.message->cSeq.method == SIP_INVITE)
   {
+    /*
     if (!response.message->contact.empty())
     {
       requestUri_ = {response.message->contact.first().address.uri};
     }
+    */
 
     qDebug() << "We don't yet have their remote Tag. Using the one in response.";
     remoteTag_ = response.message->to.tagParameter;
