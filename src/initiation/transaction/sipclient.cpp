@@ -116,10 +116,9 @@ void SIPClient::generateRequest(SIPRequest& request)
 
   // via is set later
 
-  if (expires_ != nullptr &&
-      (request.method == SIP_REGISTER || request.method == SIP_INVITE))
+  if (request.message->expires != nullptr)
   {
-    request.message->expires = expires_;
+     expires_ = request.message->expires;
   }
 
   // INVITE has the same timeout as rest of them. Only after RINGING reply do we
