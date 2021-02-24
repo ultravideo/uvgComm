@@ -41,8 +41,6 @@ void SIPRegistration::uninit()
   }
 
   printNormal(this, "Finished uniniating registration");
-
-  // we don't wait for the OK reply so we can quit faster.
   return;
 }
 
@@ -76,7 +74,7 @@ void SIPRegistration::processIncomingResponse(SIPResponse& response, QVariant& c
       if (response.type == SIP_OK)
       {
         attemptedAuth_ = false; // reset our attempts so if the digest expires,
-        // we auth again
+                                // we auth again
 
         if (status_ != RE_REGISTRATION &&
             response.message->vias.at(0).receivedAddress != "" &&
@@ -130,7 +128,7 @@ void SIPRegistration::processIncomingResponse(SIPResponse& response, QVariant& c
         if (!attemptedAuth_)
         {
           attemptedAuth_ = true;
-          sendREGISTERRequest(REGISTER_INTERVAL, RE_REGISTRATION);
+          sendREGISTERRequest(REGISTER_INTERVAL, status_);
         }
       }
       else

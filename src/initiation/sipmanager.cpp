@@ -84,8 +84,12 @@ void SIPManager::uninit()
 
   for (auto& registration : registrations_)
   {
-    registration.second->pipe.uninit();
     registration.second->registration.uninit();
+    // TODO: wait for ok before continuing
+
+    qSleep(25);
+
+    registration.second->pipe.uninit();
   }
 
   registrations_.clear();
@@ -317,7 +321,7 @@ void SIPManager::transportRequest(SIPRequest &request, QVariant& content)
   printNormal(this, "Initiate sending of a dialog request");
 
   std::shared_ptr<TransportInstance> transport =
-      getTransport(request.requestURI.hostport.host);
+      getTransport(request.message->to.address.uri.hostport.host);
 
   if (transport != nullptr)
   {
@@ -334,7 +338,7 @@ void SIPManager::transportRequest(SIPRequest &request, QVariant& content)
 void SIPManager::transportResponse(SIPResponse &response, QVariant& content)
 {
   std::shared_ptr<TransportInstance> transport =
-      getTransport(response.message->vias.back().sentBy);
+      getTransport(response.message->from.address.uri.hostport.host);
 
   if (transport != nullptr)
   {
