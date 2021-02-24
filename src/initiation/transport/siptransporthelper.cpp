@@ -279,8 +279,8 @@ bool headerToFields(QString& header, QString& firstLine, QList<SIPField>& fields
       {
         if (!parseField(value, field))
         {
-          printWarning("SIP Transport Helper", "Failed to parse field",
-                       "Name", field.name);
+          printDebug(DEBUG_WARNING, "SIP Transport Helper", "Failed to parse field",
+                       {"Name", "Field"}, {field.name, value});
           return false;
         }
       }
@@ -424,6 +424,7 @@ bool parseField(QString& values, SIPField& field)
 
   SIPParameter parameter;
 
+
   for (QChar& character : values)
   {
     // add character to word if it is not parsed out
@@ -450,9 +451,9 @@ bool parseField(QString& values, SIPField& field)
           set.words.push_back(currentWord);
           currentWord = "";
         }
-        else
+        else if (!isParameter)
         {
-          return false;
+          return false; // empty quotation or URI
         }
       }
       else if (character == " " && !isQuotation)
@@ -504,17 +505,17 @@ bool parseField(QString& values, SIPField& field)
     }
     else if (character == "<") // start of URI
     {
-      if (isQuotation || isURI)
+      if (isURI)
       {
-        return false;
+        return false; // nested uris
       }
       isURI = true;
     }
     else if (character == ">") // end of URI
     {
-      if (!isURI || isQuotation)
+      if (!isURI)
       {
-        return false;
+        return false; // end of uri without start
       }
       isURI = false;
     }
@@ -526,7 +527,7 @@ bool parseField(QString& values, SIPField& field)
     {
       if (!comments)
       {
-        return false;
+        return false; // end of comment without start
       }
 
       --comments;
