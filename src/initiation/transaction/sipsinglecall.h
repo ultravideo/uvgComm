@@ -26,12 +26,6 @@ public:
     return shouldLive_;
   }
 
-signals:
-  void sendDialogRequest(uint32_t sessionID, SIPRequest& request);
-
-  void sendResponse(uint32_t sessionID, SIPResponse& response);
-
-
 public slots:
 
   virtual void processIncomingRequest(SIPRequest& request, QVariant& content);
@@ -53,4 +47,6 @@ private:
   // This variable is used to avoid HEAP corruption in a way that we would
   // delete ourselves.
   bool shouldLive_;
+
+  bool triedAuthenticating_;
 };

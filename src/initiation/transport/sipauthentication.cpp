@@ -14,31 +14,41 @@ SIPAuthentication::SIPAuthentication()
 {}
 
 
-void SIPAuthentication::processOutgoingRequest(SIPRequest& request, QVariant& content)
+void SIPAuthentication::processOutgoingRequest(SIPRequest& request,
+                                               QVariant& content)
 {
   printNormal(this, "Processing outgoing request");
 
   if (request.method == SIP_REGISTER)
   {
-    for (auto& challenge : challenges_)
+    for (auto& challenge : wwwChallenges_)
     {
-      request.message->authorization.push_back(generateAuthResponse(challenge,
+      authorizations_.push_back(generateAuthResponse(challenge,
                                                   request.message->from.address.uri.userinfo.user,
                                                   request.requestURI, request.method, content
                                                                     )
                                                );
     }
+
+    wwwChallenges_.clear(); // this makes sure we don't generate same responses again
+
+    request.message->authorization = authorizations_;
+
   }
   else
   {
-    for (auto& challenge : challenges_)
+    for (auto& challenge : proxyChallenges_)
     {
-      request.message->proxyAuthorization.push_back(generateAuthResponse(challenge,
+      proxyAuthorizations_.push_back(generateAuthResponse(challenge,
                                                        request.message->from.address.uri.userinfo.user,
                                                        request.requestURI, request.method, content
                                                                          )
                                                     );
     }
+
+    proxyChallenges_.clear();
+
+    request.message->proxyAuthorization = proxyAuthorizations_;
   }
 
   emit outgoingRequest(request, content);
@@ -53,11 +63,11 @@ void SIPAuthentication::processIncomingResponse(SIPResponse& response,
   // I think this is the REGISTER authorization
   if (response.type == SIP_UNAUTHORIZED)
   {
-    challenges_ = response.message->wwwAuthenticate;
+    wwwChallenges_ = response.message->wwwAuthenticate;
   }
   else if (response.type == SIP_PROXY_AUTHENTICATION_REQUIRED)
   {
-    challenges_ = response.message->proxyAuthenticate;
+    proxyChallenges_ = response.message->proxyAuthenticate;
   }
 
   emit incomingResponse(response, content);

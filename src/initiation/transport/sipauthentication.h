@@ -27,9 +27,11 @@ private:
 
   void updateNonceCount(DigestChallenge& challenge, DigestResponse& response);
 
-  QList<DigestChallenge> challenges_;
+  QList<DigestChallenge> wwwChallenges_;
+  QList<DigestChallenge> proxyChallenges_;
 
-
+  QList<DigestResponse> authorizations_;
+  QList<DigestResponse> proxyAuthorizations_;
 
   // key is realm and value current nonce
   std::map<QString, QString> realmToNonce_;

@@ -12,7 +12,8 @@ const unsigned int INVITE_TIMEOUT = 60000;
 SIPSingleCall::SIPSingleCall():
   transactionUser_(nullptr),
   sessionID_(0),
-  shouldLive_(true)
+  shouldLive_(true),
+  triedAuthenticating_(false)
 {}
 
 
@@ -202,6 +203,17 @@ void SIPSingleCall::processIncomingResponse(SIPResponse& response, QVariant& con
   }
   else if (response.type >= 400 && response.type <= 499)
   {
+    if (response.type == SIP_PROXY_AUTHENTICATION_REQUIRED && !triedAuthenticating_)
+    {
+      triedAuthenticating_ = true;
+
+      SIPRequest request = createRequest(response.message->cSeq.method);
+      QVariant content;
+
+      emit outgoingRequest(request, content);
+      return;
+    }
+
     // TODO: 8.1.3.5 Processing 4xx Responses in RFC 3261
     printWarning(this, "Got a Failure Response.");
     shouldLive_ = false;
@@ -223,6 +235,8 @@ void SIPSingleCall::processIncomingResponse(SIPResponse& response, QVariant& con
     }
     shouldLive_ = false;
   }
+
+  triedAuthenticating_ = false;
 }
 
 
