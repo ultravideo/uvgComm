@@ -154,6 +154,7 @@ void SIPRouting::addVia(SIPRequestMethod type,
   if (type == SIP_REGISTER)
   {
     message->vias.back().rport = true;
+    message->vias.back().alias = true;
   }
 
   previousVia_ = message->vias.back();

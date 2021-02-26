@@ -43,8 +43,7 @@ private:
 
   // sets the via and contact addresses of the request
   void addVia(SIPRequestMethod type, std::shared_ptr<SIPMessageHeader> message,
-                         QString localAddress,
-                         uint16_t localPort);
+              QString localAddress, uint16_t localPort);
 
   // modifies the just the contact-address. Use with responses
   void addContactField(std::shared_ptr<SIPMessageHeader> message,
