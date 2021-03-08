@@ -103,7 +103,9 @@ private:
   std::shared_ptr<RegistrationInstance> getRegistration(QString& address) const;
   std::shared_ptr<TransportInstance> getTransport(QString& address) const;
 
-  bool haveWeRegistered();
+  QString haveWeRegistered();
+
+  bool shouldUseProxy(QString remoteAddress);
 
   // returns true if the identification was successful
   bool identifySession(SIPRequest &request,
@@ -133,7 +135,12 @@ private:
   // to this address.
   bool isConnected(QString remoteAddress);
 
+  // If registered, we use the connection address in URI instead of our
+  // server URI from settings.
   NameAddr localInfo(bool registered, QString connectionAddress);
+
+  // get all values from settings.
+  NameAddr localInfo();
 
   // Helper functions for SDP management.
 

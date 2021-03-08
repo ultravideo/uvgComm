@@ -145,7 +145,7 @@ void SIPManager::bindToServer()
 
   QString serverAddress = settings.value("sip/ServerAddress").toString();
 
-  if (serverAddress != "" && !haveWeRegistered())
+  if (serverAddress != "" && haveWeRegistered() == "")
   {
     std::shared_ptr<TCPConnection> connection =
         std::shared_ptr<TCPConnection>(new TCPConnection());
@@ -164,27 +164,50 @@ uint32_t SIPManager::startCall(NameAddr &remote)
 {
   uint32_t sessionID = reserveSessionID();
 
+  QString connectionAddress = remote.uri.hostport.host;
+  QString ourProxyAddress = haveWeRegistered();
 
+  // check if this should be a peer-to-peer connection or if we should use proxy
+  bool useOurProxy = shouldUseProxy(remote.uri.hostport.host);
 
-  // check if we are already connected to remoteaddress
-  if (!isConnected(remote.uri.hostport.host))
+  if (useOurProxy)
   {
+    printNormal(this, "Using our proxy address", "Address", ourProxyAddress);
+    connectionAddress = ourProxyAddress;
+  }
+
+  // check if we already are connected where we want to send the message
+  if (!isConnected(connectionAddress))
+  {
+    printNormal(this, "Not connected when starting call. Have to init connection first");
+    if (waitingToStart_.find(connectionAddress) != waitingToStart_.end())
+    {
+      printProgramError(this, "We already have a waiting to start call "
+                              "for this connection, even though it is new");
+    }
+
+    // start creation of connection
     std::shared_ptr<TCPConnection> connection =
         std::shared_ptr<TCPConnection>(new TCPConnection());
 
     // we are not yet connected to them. Form a connection by creating the transport layer
-    createSIPTransport(remote.uri.hostport.host, connection, true);
-    waitingToStart_[remote.uri.hostport.host] = {sessionID, remote};
+    createSIPTransport(connectionAddress, connection, true);
+
+    // this start call will commence once the connection has been established
+    waitingToStart_[connectionAddress] = {sessionID, remote};
   }
   else
   {
-    QString localAddress = getTransport(remote.uri.hostport.host)->connection->localAddress();
+    printNormal(this, "Using existing connection.");
 
-    NameAddr local = localInfo(haveWeRegistered(), localAddress);
+    QString localAddress = getTransport(connectionAddress)->connection->localAddress();
+
+    // get correct local URI
+    NameAddr local = localInfo(useOurProxy, localAddress);
 
     createDialog(sessionID, local, remote, localAddress, true);
 
-    // this start call will commence once the connection has been established
+    // sends INVITE
     dialogs_[sessionID]->call.startCall(remote.realname);
   }
 
@@ -287,22 +310,22 @@ void SIPManager::connectionEstablished(QString localAddress, QString remoteAddre
   // if we are planning to call a peer using this connection
   if (waitingToStart_.find(remoteAddress) != waitingToStart_.end())
   {
+    WaitingStart startingSession = waitingToStart_[remoteAddress];
+    waitingToStart_.erase(remoteAddress);
+
     QString localAddress = getTransport(remoteAddress)->connection->localAddress();
 
-    NameAddr local = localInfo(haveWeRegistered(), localAddress);
+    NameAddr local = localInfo(shouldUseProxy(remoteAddress), localAddress);
 
-    uint32_t sessionID = waitingToStart_[remoteAddress].sessionID;
-    createDialog(sessionID, local, waitingToStart_[remoteAddress].contact, localAddress, true);
-    dialogs_[sessionID]->call.startCall(waitingToStart_[remoteAddress].contact.realname);
-
-    waitingToStart_.erase(remoteAddress);
+    uint32_t sessionID = startingSession.sessionID;
+    createDialog(sessionID, local, startingSession.contact, localAddress, true);
+    dialogs_[sessionID]->call.startCall(startingSession.contact.realname);
   }
 
-  // TODO: Fix this according to new architecture
   // if we are planning to register using this connection
   if(waitingToBind_.contains(remoteAddress))
   {
-    NameAddr local = localInfo(true, getTransport(remoteAddress)->connection->localAddress());
+    NameAddr local = localInfo();
 
     createRegistration(local);
 
@@ -342,6 +365,8 @@ void SIPManager::transportResponse(SIPResponse &response, QVariant& content)
 
   if (transport != nullptr)
   {
+    printNormal(this, "Found correct transport. Giving response to transport layer.");
+
     // send the request with or without SDP
     transport->pipe.processOutgoingResponse(response, content);
   }
@@ -367,6 +392,7 @@ void SIPManager::processSIPRequest(SIPRequest& request, QVariant& content)
     if(request.method == SIP_INVITE)
     {
       QString localAddress = "";
+      QString proxyAddress = haveWeRegistered();
 
       // try to determine our local address in case we don't have registrations
       // and need it fo our local URI.
@@ -378,24 +404,20 @@ void SIPManager::processSIPRequest(SIPRequest& request, QVariant& content)
       else if (!request.message->vias.empty() &&
                transports_.find(request.message->vias.last().sentBy) != transports_.end())
       {
-        // if the last via matches the local address
+        // If the last via matches the local address. Via determines the last
+        // place the request has been routed through so it should be the other
+        // end of that connection.
         localAddress = transports_[request.message->vias.last().sentBy]->connection->localAddress();
       }
-      else if (haveWeRegistered())
+      else if (proxyAddress != "")
       {
         // use a regisration if we have one as a last resort
-        for (auto& registration : registrations_)
-        {
-          if (registration.second->registration.haveWeRegistered())
-          {
-            localAddress = transports_[registration.second->registration.getServerAddress()]->
-                connection->localAddress();
-          }
-        }
+        localAddress = transports_[proxyAddress]->connection->localAddress();
       }
       else
       {
-        printWarning(this, "Couldn't determine our local URI!");
+        printError(this, "Couldn't determine our local URI!");
+        return;
       }
 
       printNormal(this, "Someone is trying to start a SIP dialog with us!");
@@ -767,20 +789,47 @@ void SIPManager::removeDialog(uint32_t sessionID)
 }
 
 
-bool SIPManager::haveWeRegistered()
+QString SIPManager::haveWeRegistered()
 {
   for (auto& registration : registrations_)
   {
     if (registration.second->registration.haveWeRegistered())
     {
-      return true;
+      return registration.second->registration.getServerAddress();
     }
   }
-  return false;
+  return "";
+}
+
+
+bool SIPManager::shouldUseProxy(QString remoteAddress)
+{
+  // The purpose of this function is to determine if our proxy can reach the remote
+  // address. This is not the case if the address is in local network or it is a
+  // loopback address.
+
+  // TODO: Improve this to work with LAN addresses
+
+  QHostAddress remote = QHostAddress(remoteAddress);
+
+  return remote.isGlobal() && haveWeRegistered() != "";
 }
 
 
 NameAddr SIPManager::localInfo(bool registered, QString connectionAddress)
+{
+  NameAddr address = localInfo();
+  // dont set server address if we have already set peer-to-peer address
+  if (!registered)
+  {
+    address.uri.hostport.host = connectionAddress;
+  }
+
+  return address;
+}
+
+
+NameAddr SIPManager::localInfo()
 {
   // init stuff from the settings
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
@@ -791,14 +840,7 @@ NameAddr SIPManager::localInfo(bool registered, QString connectionAddress)
   local.uri.userinfo.user = getLocalUsername();
 
   // dont set server address if we have already set peer-to-peer address
-  if (registered)
-  {
-    local.uri.hostport.host = settings.value("sip/ServerAddress").toString();
-  }
-  else
-  {
-    local.uri.hostport.host = connectionAddress;
-  }
+  local.uri.hostport.host = settings.value("sip/ServerAddress").toString();
 
   local.uri.type = DEFAULT_SIP_TYPE;
   local.uri.hostport.port = 0; // port is added later if needed
