@@ -242,13 +242,6 @@ bool SDPNegotiator::checkSDPOffer(SDPMessageInfo &offer) const
   bool hasAudio = false;
   bool hasH265 = false;
 
-  if(offer.connection_address == "0.0.0.0")
-  {
-    printPeerError(this, "Got bad global address from SDP", "Address",
-                   offer.connection_address);
-    return false;
-  }
-
   if(offer.version != 0)
   {
     printPeerError(this, "Their offer had non-0 version", "Version",
