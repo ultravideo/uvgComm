@@ -79,7 +79,7 @@ private:
   NameAddr localURI_; // local address-of-record.
   NameAddr remoteURI_; // remote address-of-record.
 
-  SIP_URI requestUri_;
+  SIP_URI remoteTarget_;
 
   // empty until first request is sent/received
   // cseq is used to determine the order of requests and must be sequential

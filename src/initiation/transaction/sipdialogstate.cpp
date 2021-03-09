@@ -33,7 +33,7 @@ void SIPDialogState::init(NameAddr &local, NameAddr &remote, bool createDialog)
   localURI_ = local;
   remoteURI_ = remote;
 
-  requestUri_ = remote.uri;
+  remoteTarget_ = remote.uri;
 
   if (createDialog)
   {
@@ -47,7 +47,7 @@ void SIPDialogState::createServerConnection(NameAddr &local, SIP_URI requestURI)
   printDebug(DEBUG_NORMAL, "SIPDialogState", "Creating a Server dialog.");
 
   init(local, local, true);
-  requestUri_ = requestURI; // server connection has different request uri from to
+  remoteTarget_ = requestURI; // server connection has different request uri from to
 }
 
 
@@ -165,7 +165,7 @@ void SIPDialogState::processOutgoingRequest(SIPRequest& request, QVariant& conte
 
       if (foundLR)
       {
-        request.requestURI = remoteURI_.uri;
+        request.requestURI = remoteTarget_;
         request.message->routes = route_;
       }
       else
@@ -176,13 +176,13 @@ void SIPDialogState::processOutgoingRequest(SIPRequest& request, QVariant& conte
         QList<SIPRouteLocation> routes = route_;
         routes.pop_front();
 
-        route_.push_back({remoteURI_, {}});
+        route_.push_back({{{}, remoteTarget_}, {}});
         request.message->routes = routes;
       }
     }
     else
     {
-      request.requestURI = remoteURI_.uri;
+      request.requestURI = remoteTarget_;
     }
 
     // init local cseq if it does not exist
@@ -254,11 +254,6 @@ void SIPDialogState::processIncomingRequest(SIPRequest& request, QVariant& conte
 
     setDialog(request.message->callID);
 
-    // TODO: Request uri should be the first URI in route without lr parameter!!
-
-    // in future we will address our requests to their contact address
-    //requestUri_ = request.message->contact.first().address.uri;
-
     remoteTag_ = request.message->from.tagParameter;
 
     // TODO: Do this at the outgoingresponse function
@@ -284,6 +279,12 @@ void SIPDialogState::processIncomingRequest(SIPRequest& request, QVariant& conte
         return;
       }
     }
+  }
+
+  // in future we will address our requests to their contact address
+  if (!request.message->contact.empty())
+  {
+    remoteTarget_ = request.message->contact.first().address.uri;
   }
 
   if (!request.message->recordRoutes.empty())
@@ -314,15 +315,14 @@ void SIPDialogState::processIncomingResponse(SIPResponse& response, QVariant& co
   if (response.type == SIP_OK &&
       response.message->cSeq.method == SIP_INVITE)
   {
-    /*
-    if (!response.message->contact.empty())
-    {
-      requestUri_ = {response.message->contact.first().address.uri};
-    }
-    */
-
     qDebug() << "We don't yet have their remote Tag. Using the one in response.";
     remoteTag_ = response.message->to.tagParameter;
+  }
+
+  if (!response.message->contact.empty() &&
+      response.message->cSeq.method != SIP_REGISTER)
+  {
+    remoteTarget_ = response.message->contact.first().address.uri;
   }
 
   if (!response.message->recordRoutes.empty())
