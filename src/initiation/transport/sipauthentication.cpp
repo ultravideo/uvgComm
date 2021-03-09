@@ -64,10 +64,12 @@ void SIPAuthentication::processIncomingResponse(SIPResponse& response,
   if (response.type == SIP_UNAUTHORIZED)
   {
     wwwChallenges_ = response.message->wwwAuthenticate;
+    authorizations_.clear();
   }
   else if (response.type == SIP_PROXY_AUTHENTICATION_REQUIRED)
   {
     proxyChallenges_ = response.message->proxyAuthenticate;
+    proxyAuthorizations_.clear();
   }
 
   emit incomingResponse(response, content);
