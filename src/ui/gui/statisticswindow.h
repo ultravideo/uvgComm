@@ -72,6 +72,10 @@ private slots:
   // Changes the label of sample window to reflect current value.
   void changeSampleWindow(int value);
 
+  // these are called automatically because of their naming
+  void on_save_button_clicked();
+  void on_clear_button_clicked();
+
 private:
 
   void clearCharts();
@@ -101,6 +105,9 @@ private:
   QString combineList(QStringList& list);
 
   QString getTimeConversion(int valueInMs);
+
+  void saveTextToFile(const QString& text, const QString &windowCaption,
+                      const QString &options);
 
   struct SessionInfo
   {

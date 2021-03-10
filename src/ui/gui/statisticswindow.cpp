@@ -6,6 +6,8 @@
 
 #include <QCloseEvent>
 #include <QDateTime>
+#include <QFileDialog>
+#include <QTextStream>
 
 
 const int BUFFERSIZE = 65536;
@@ -868,4 +870,81 @@ QString StatisticsWindow::getTimeConversion(int valueInMs)
   }
   // show as milliseconds
   return QString::number(valueInMs) + " ms";
+}
+
+
+void StatisticsWindow::on_save_button_clicked()
+{
+  printNormal(this, "Saving SIP messages");
+
+  if (ui_->sent_list->columnCount() == 0 ||
+      ui_->received_list->columnCount() == 0)
+  {
+    printProgramWarning(this, "The column count was too low to read tooltip");
+    return;
+  }
+
+  QString lineEnd = "\r\n";
+
+  QString text;
+  text += "Sent SIP Messages" + lineEnd + lineEnd;
+
+  sipMutex_.lock();
+  for (int i = 0; i < ui_->sent_list->rowCount(); ++i)
+  {
+    text += ui_->sent_list->item(i, 1)->toolTip() + lineEnd;
+  }
+  sipMutex_.unlock();
+
+  text += "Received SIP Messages" + lineEnd + lineEnd;
+
+  sipMutex_.lock();
+  for (int i = 0; i < ui_->received_list->rowCount(); ++i)
+  {
+    text += ui_->received_list->item(i, 1)->toolTip() + lineEnd;
+  }
+  sipMutex_.unlock();
+
+  // tr is for text translations
+  saveTextToFile(text, tr("Save SIP log"), tr("Text File (*.txt);;All Files (*)"));
+}
+
+
+void StatisticsWindow::on_clear_button_clicked()
+{
+  printNormal(this, "Clearing SIP messages");
+
+  sipMutex_.lock();
+
+  //ui_->sent_list->clearContents();
+  ui_->sent_list->setRowCount(0);
+  //ui_->received_list->clearContents();
+  ui_->received_list->setRowCount(0);
+  sipMutex_.unlock();
+}
+
+
+void StatisticsWindow::saveTextToFile(const QString& text, const QString &windowCaption,
+                                      const QString &options)
+{
+  if (text == "")
+  {
+    printWarning(this, "Tried to save empty text. Not saving");
+    return;
+  }
+
+  QString fileName = QFileDialog::getSaveFileName(this, windowCaption, "", options);
+
+  if (!fileName.isEmpty())
+  {
+    QFile file(fileName);
+
+    if (!file.open(QIODevice::WriteOnly))
+    {
+      printWarning(this, "Failed to open file");
+      return;
+    }
+    QTextStream fileStream(&file);
+    fileStream << text;
+  }
 }
