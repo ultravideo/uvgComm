@@ -23,7 +23,9 @@ const QStringList neededSettings = {"video/ResolutionWidth",
                                     "video/yuvThreads",
                                     "video/rgbThreads",
                                     "video/OPENHEVC_threads",
-                                    "video/FramerateID"};
+                                    "video/FramerateID",
+                                    "video/flipEnabled",
+                                    "video/forceFlip"};
 
 
 VideoSettings::VideoSettings(QWidget* parent,

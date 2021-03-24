@@ -39,12 +39,22 @@ DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
   updateSettings();
 }
 
+
 DisplayFilter::~DisplayFilter()
 {}
+
 
 void DisplayFilter::updateSettings()
 { 
   flipEnabled_ = settingEnabled("video/flipEnabled");
+
+  // TODO: This is a quick fix for video stream being flipped vertically on Linux.
+  // 1111 is set as sessionID for self view
+  if (sessionID_ != 1111)
+  {
+    verticalMirroring_ = settingEnabled("video/forceFlip");
+  }
+
   Filter::updateSettings();
 }
 

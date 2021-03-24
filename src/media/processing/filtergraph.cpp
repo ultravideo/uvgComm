@@ -387,15 +387,7 @@ void FilterGraph::receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> v
       std::shared_ptr<DisplayFilter>(new DisplayFilter(QString::number(sessionID),
                                                 stats_, view, sessionID));
 
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
-  if (settingEnabled("video/forceFlip"))
-  {
-    displayFilter->setProperties(false, true);
-  }
-
   addToGraph(displayFilter, *graph, 1);
-
-
 }
 
 
