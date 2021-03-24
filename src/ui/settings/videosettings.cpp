@@ -38,10 +38,12 @@ VideoSettings::VideoSettings(QWidget* parent,
   videoSettingsUI_->setupUi(this);
 
   // the buttons are named so that the slots are called automatically
-  QObject::connect(videoSettingsUI_->format_box, SIGNAL(activated(QString)),
-                   this, SLOT(initializeResolutions(QString)));
-  QObject::connect(videoSettingsUI_->resolution, SIGNAL(activated(QString)),
-                   this, SLOT(initializeFramerates(QString)));
+  // Overloads are needed, because QComboBox has overloaded the signal and
+  // the connect can't figure out which one to use.
+  QObject::connect(videoSettingsUI_->format_box, QOverload<int>::of(&QComboBox::activated),
+                   this, &VideoSettings::refreshResolutions);
+  QObject::connect(videoSettingsUI_->resolution, QOverload<int>::of(&QComboBox::activated),
+                   this, &VideoSettings::refreshFramerates);
 
   videoSettingsUI_->custom_parameters->setContextMenuPolicy(Qt::CustomContextMenu);
   connect(videoSettingsUI_->custom_parameters, &QWidget::customContextMenuRequested,
@@ -515,6 +517,21 @@ void VideoSettings::initializeFramerates()
     videoSettingsUI_->framerate_box->setCurrentIndex(videoSettingsUI_->framerate_box->count() - 1);
   }
 }
+
+
+void VideoSettings::refreshResolutions(int index)
+{
+  Q_UNUSED(index)
+  initializeResolutions();
+}
+
+
+void VideoSettings::refreshFramerates(int index)
+{
+  Q_UNUSED(index)
+  initializeFramerates();
+}
+
 
 
 bool VideoSettings::checkSettings()
