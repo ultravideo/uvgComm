@@ -270,6 +270,13 @@ bool checkError(QObject* object, bool check, DebugType type,
 bool settingEnabled(QString parameter)
 {
   QSettings settings("kvazzup.ini", QSettings::IniFormat);
+
+  if (!settings.value(parameter).isValid())
+  {
+    printDebug(DEBUG_WARNING, "Common", "Found faulty setting", {"Name"}, {parameter});
+    return false;
+  }
+
   return settings.value(parameter).toInt() == 1;
 }
 

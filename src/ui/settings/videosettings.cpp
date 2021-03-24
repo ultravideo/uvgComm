@@ -189,7 +189,8 @@ void VideoSettings::saveSettings()
 
   // Other-tab
   saveCheckBox("video/opengl",             videoSettingsUI_->opengl, settings_);
-  saveCheckBox("video/flipViews",          videoSettingsUI_->flip, settings_);
+  saveCheckBox("video/flipEnabled",          videoSettingsUI_->flip, settings_);
+  saveCheckBox("video/forceFlip",          videoSettingsUI_->force_flip, settings_);
 }
 
 
@@ -339,7 +340,8 @@ void VideoSettings::restoreSettings()
 
     // other-tab
     restoreCheckBox("video/opengl", videoSettingsUI_->opengl, settings_);
-    restoreCheckBox("video/flipViews", videoSettingsUI_->flip, settings_);
+    restoreCheckBox("video/flipEnabled", videoSettingsUI_->flip, settings_);
+    restoreCheckBox("video/forceFlip", videoSettingsUI_->force_flip, settings_);
   }
   else
   {

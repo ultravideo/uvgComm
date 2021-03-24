@@ -193,7 +193,8 @@ void FilterGraph::initSelfView(VideoInterface *selfView)
     */
 
     // connect selfview to camera
-    std::shared_ptr<DisplayFilter> selfviewFilter = std::shared_ptr<DisplayFilter>(new DisplayFilter("Self", stats_, selfView, 1111));
+    std::shared_ptr<DisplayFilter> selfviewFilter =
+        std::shared_ptr<DisplayFilter>(new DisplayFilter("Self", stats_, selfView, 1111));
     // the self view rotation depends on which conversions are use as some of the optimizations
     // do the mirroring. Note: mirroring is slow with Qt
     selfviewFilter->setProperties(true, cameraGraph_.at(0)->outputType() == RGB32VIDEO);
@@ -382,8 +383,19 @@ void FilterGraph::receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> v
   addToGraph(videoSink, *graph);
   addToGraph(std::shared_ptr<Filter>(new OpenHEVCFilter(sessionID, stats_)), *graph, 0);
 
-  addToGraph(std::shared_ptr<Filter>(new DisplayFilter(QString::number(sessionID), stats_,
-                                                       view, sessionID)), *graph, 1);
+  std::shared_ptr<DisplayFilter> displayFilter =
+      std::shared_ptr<DisplayFilter>(new DisplayFilter(QString::number(sessionID),
+                                                stats_, view, sessionID));
+
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+  if (settingEnabled("video/forceFlip"))
+  {
+    displayFilter->setProperties(false, true);
+  }
+
+  addToGraph(displayFilter, *graph, 1);
+
+
 }
 
 
@@ -538,11 +550,11 @@ void FilterGraph::screenShare(bool shareState, bool cameraState)
 
 void FilterGraph::running(bool state)
 {
-  for(std::shared_ptr<Filter> f : cameraGraph_)
+  for(std::shared_ptr<Filter>& f : cameraGraph_)
   {
     changeState(f, state);
   }
-  for(std::shared_ptr<Filter> f : audioProcessing_)
+  for(std::shared_ptr<Filter>& f : audioProcessing_)
   {
     changeState(f, state);
   }
@@ -574,7 +586,7 @@ void FilterGraph::running(bool state)
 
       for (auto& graph : peer.second->audioReceivers)
       {
-        for(std::shared_ptr<Filter> f : *graph)
+        for(std::shared_ptr<Filter>& f : *graph)
         {
           changeState(f, state);
         }
@@ -582,7 +594,7 @@ void FilterGraph::running(bool state)
 
       for (auto& graph : peer.second->videoReceivers)
       {
-        for(std::shared_ptr<Filter> f : *graph)
+        for(std::shared_ptr<Filter>& f : *graph)
         {
           changeState(f, state);
         }
@@ -599,7 +611,7 @@ void FilterGraph::destroyFilters(std::vector<std::shared_ptr<Filter> > &filters)
     printNormal(this, "Destroying filter in one graph",
                 {"Filter"}, {QString::number(filters.size())});
   }
-  for( std::shared_ptr<Filter> f : filters )
+  for( std::shared_ptr<Filter>& f : filters )
   {
     changeState(f, false);
   }
@@ -739,7 +751,7 @@ void FilterGraph::print()
   if ( aFile.open(QIODevice::WriteOnly) )
   {
       QTextStream stream( &aFile );
-      stream << audioDotFile << endl;
+      stream << audioDotFile << Qt::endl;
   }
 
   QString vFilename="videograph.dot";
@@ -747,6 +759,6 @@ void FilterGraph::print()
   if ( vFile.open(QIODevice::WriteOnly) )
   {
       QTextStream stream( &vFile );
-      stream << videoDotFile << endl;
+      stream << videoDotFile << Qt::endl;
   }
 }
