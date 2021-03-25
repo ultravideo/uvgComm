@@ -2,7 +2,9 @@
 
 #include "uvgrtpsender.h"
 #include "statisticsinterface.h"
+
 #include "common.h"
+#include "settingskeys.h"
 
 UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id, StatisticsInterface *stats,
                            DataType type, QString media, QFuture<uvg_rtp::media_stream *> mstream):
@@ -50,12 +52,10 @@ void UvgRTPSender::updateSettings()
 
   if (type_ == HEVCVIDEO)
   {
-    QSettings settings("kvazzup.ini", QSettings::IniFormat);
+    uint32_t vps   = settingValue(SettingsKey::videoVPS);
+    uint16_t intra = settingValue(SettingsKey::videoIntra);
 
-    uint32_t vps   = settings.value("video/VPS").toInt();
-    uint16_t intra = settings.value("video/Intra").toInt();
-
-    if (settings.value("video/Slices").toInt() == 1)
+    if (settingEnabled(SettingsKey::videoSlices))
     {
       rtpFlags_ |= RTP_SLICE;
     }

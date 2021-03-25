@@ -1,5 +1,7 @@
 #include "sipmanager.h"
 
+#include "settingskeys.h"
+
 #include <QObject>
 
 
@@ -40,8 +42,6 @@ void SIPManager::init(SIPTransactionUser* callControl, StatisticsInterface *stat
   dialogManager_.init(callControl);
   registrations_.init(statusView);
 
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
-
   negotiation_.init();
 
   QObject::connect(&dialogManager_, &SIPDialogManager::transportRequest,
@@ -55,7 +55,7 @@ void SIPManager::init(SIPTransactionUser* callControl, StatisticsInterface *stat
   QObject::connect(&registrations_, &SIPRegistrations::transportProxyRequest,
                    this, &SIPManager::transportToProxy);
 
-  int autoConnect = settings.value("sip/AutoConnect").toInt();
+  int autoConnect = settingValue(SettingsKey::sipAutoConnect);
 
   if(autoConnect == 1)
   {
@@ -95,9 +95,7 @@ void SIPManager::uninitSession(uint32_t sessionID)
 
 void SIPManager::updateSettings()
 {
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
-
-  int autoConnect = settings.value("sip/AutoConnect").toInt();
+  int autoConnect = settingValue(SettingsKey::sipAutoConnect);
   if(autoConnect == 1)
   {
     bindToServer();
@@ -108,9 +106,7 @@ void SIPManager::updateSettings()
 void SIPManager::bindToServer()
 {
   // get server address from settings and bind to server.
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
-
-  QString serverAddress = settings.value("sip/ServerAddress").toString();
+  QString serverAddress = settingString(SettingsKey::sipServerAddress);
 
   if (serverAddress != "" && !registrations_.haveWeRegistered())
   {

@@ -2,6 +2,7 @@
 
 #include "ui_sipsettings.h"
 #include "settingshelper.h"
+#include "settingskeys.h"
 
 #include <QDateTime>
 #include <QDebug>
@@ -9,7 +10,7 @@
 SIPSettings::SIPSettings(QWidget* parent):
   QDialog (parent),
   advancedUI_(new Ui::AdvancedSettings),
-  settings_("kvazzup.ini", QSettings::IniFormat)
+  settings_(settingsFile, settingsFileFormat)
 {
   advancedUI_->setupUi(this);
 }
@@ -25,7 +26,8 @@ void SIPSettings::init()
   QStringList longerList = (QStringList() << "Username" << "Date");
   advancedUI_->blockedUsers->setHorizontalHeaderLabels(longerList);
 
-  advancedUI_->blockedUsers->setEditTriggers(QAbstractItemView::NoEditTriggers); // disallow editing of fields.
+  // disallow editing of fields.
+  advancedUI_->blockedUsers->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
   advancedUI_->blockedUsers->setContextMenuPolicy(Qt::CustomContextMenu);
   connect(advancedUI_->blockedUsers, &QWidget::customContextMenuRequested,
@@ -40,6 +42,7 @@ void SIPSettings::resetSettings()
   qDebug() << "Settings," << metaObject()->className()
            << "Resetting Advanced settings from UI";
   // TODO: should we do something to blocked list in settings?
+
   saveAdvancedSettings();
 }
 
@@ -109,31 +112,29 @@ void SIPSettings::on_addUserBlock_clicked()
   }
 }
 
+
 void SIPSettings::saveAdvancedSettings()
 {
   qDebug() << "Settings," << metaObject()->className() << ": Saving advanced Settings";
 
-  listGUIToSettings("blocklist.local", "blocklist", QStringList() << "userName" << "date", advancedUI_->blockedUsers);
+  listGUIToSettings(blocklistFile, SettingsKey::blocklist,
+                    QStringList() << "userName" << "date", advancedUI_->blockedUsers);
 
   // sip settings.
-  //saveCheckBox("sip/conference", advancedUI_->conference, settings_);
-
-  saveCheckBox("local/Auto-Accept", advancedUI_->auto_accept, settings_);
+  saveCheckBox(SettingsKey::localAutoAccept, advancedUI_->auto_accept, settings_);
 }
 
 
 void SIPSettings::restoreAdvancedSettings()
 {
-  listSettingsToGUI("blocklist.local", "blocklist", QStringList()
+  listSettingsToGUI(blocklistFile, SettingsKey::blocklist, QStringList()
                     << "userName" << "date", advancedUI_->blockedUsers);
 
   bool validSettings = checkMissingValues(settings_);
 
   if(validSettings && checkSipSettings())
   {
-    //restoreCheckBox("sip/conference", advancedUI_->conference, settings_);
-
-    restoreCheckBox("local/Auto-Accept", advancedUI_->auto_accept, settings_);
+    restoreCheckBox(SettingsKey::localAutoAccept, advancedUI_->auto_accept, settings_);
   }
   else
   {
@@ -144,7 +145,7 @@ void SIPSettings::restoreAdvancedSettings()
 
 bool SIPSettings::checkSipSettings()
 {
-  return settings_.contains("sip/ServerAddress")
-      && settings_.contains("sip/AutoConnect")
-      && settings_.contains("local/Auto-Accept");
+  return settings_.contains(SettingsKey::sipServerAddress)
+      && settings_.contains(SettingsKey::sipAutoConnect)
+      && settings_.contains(SettingsKey::localAutoAccept);
 }

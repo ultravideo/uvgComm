@@ -3,6 +3,7 @@
 #include "initiation/siptransactionuser.h"
 
 #include "common.h"
+#include "settingskeys.h"
 
 #include <QDateTime>
 #include <QDebug>
@@ -233,11 +234,11 @@ void SIPDialogState::setDialog(QString callID)
 void SIPDialogState::initLocalURI()
 {
   // init stuff from the settings
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+  QSettings settings(settingsFile, settingsFileFormat);
 
-  localURI_.realname = settings.value("local/Name").toString();
+  localURI_.realname = settings.value(SettingsKey::localRealname).toString();
   localURI_.username = getLocalUsername();
-  localURI_.host = settings.value("sip/ServerAddress").toString();
+  localURI_.host = settings.value(SettingsKey::sipServerAddress).toString();
   localURI_.connectionType = TRANSPORTTYPE;
   localURI_.port = 0; // port is added later if needed
 

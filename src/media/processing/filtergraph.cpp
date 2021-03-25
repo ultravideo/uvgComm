@@ -19,6 +19,7 @@
 
 #include "ui/gui/videointerface.h"
 
+#include "settingskeys.h"
 #include "global.h"
 #include "common.h"
 
@@ -68,15 +69,15 @@ void FilterGraph::init(VideoInterface* selfView, StatisticsInterface* stats)
 
 void FilterGraph::updateSettings()
 {
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+  QSettings settings(settingsFile, settingsFileFormat);
   // if the video format has changed so that we need different conversions
 
-  QString wantedVideoFormat = settings.value("video/InputFormat").toString();
+  QString wantedVideoFormat = settings.value(SettingsKey::videoInputFormat).toString();
   if(videoFormat_ != wantedVideoFormat)
   {
     printDebug(DEBUG_NORMAL, this, "Video format changed. Reconstructing video send graph.",
                {"Previous format", "New format"},
-               {videoFormat_, settings.value("video/InputFormat").toString()});
+               {videoFormat_, settings.value(SettingsKey::videoInputFormat).toString()});
 
 
     // update selfview in case camera format has changed
@@ -171,8 +172,8 @@ void FilterGraph::initSelfView(VideoInterface *selfView)
     return; // TODO: return false that we failed so user can fix camera selection
   }
 
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
-  videoFormat_ = settings.value("video/InputFormat").toString();
+  QSettings settings(settingsFile, settingsFileFormat);
+  videoFormat_ = settings.value(SettingsKey::videoInputFormat).toString();
 
   if(screenShareGraph_.size() == 0)
   {
@@ -619,7 +620,6 @@ void FilterGraph::destroyPeer(Peer* peer)
   for (auto& audioSender : peer->audioSenders)
   {
     audioProcessing_.back()->removeOutConnection(audioSender);
-    //peer->audioFramedSource is destroyed by RTPStreamer
     changeState(audioSender, false);
     audioSender = nullptr;
   }
@@ -627,7 +627,6 @@ void FilterGraph::destroyPeer(Peer* peer)
   {
     cameraGraph_.back()->removeOutConnection(videoSender);
     changeState(videoSender, false);
-    //peer->videoFramedSource is destroyed by RTPStreamer
     videoSender = nullptr;
   }
   for (auto& graph : peer->audioReceivers)

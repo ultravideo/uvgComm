@@ -3,6 +3,8 @@
 #include "cameraframegrabber.h"
 #include "statisticsinterface.h"
 
+#include "settingskeys.h"
+
 #include "common.h"
 
 #include <QSettings>
@@ -37,13 +39,13 @@ CameraFilter::~CameraFilter()
 
 void CameraFilter::updateSettings()
 {
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+  QSettings settings(settingsFile, settingsFileFormat);
 
-  QString deviceName = settings.value("video/Device").toString();
-  int deviceID = settings.value("video/DeviceID").toInt();
-  QString inputFormat = settings.value("video/InputFormat").toString();
-  int resolutionID = settings.value("video/ResolutionID").toInt();
-  int framerateID = settings.value("video/FramerateID").toInt();
+  QString deviceName = settings.value(SettingsKey::videoDevice).toString();
+  int deviceID = settings.value(SettingsKey::videoDeviceID).toInt();
+  QString inputFormat = settings.value(SettingsKey::videoInputFormat).toString();
+  int resolutionID = settings.value(SettingsKey::videoResolutionID).toInt();
+  int framerateID = settings.value(SettingsKey::videoFramerateID).toInt();
 
   if (deviceName != currentDeviceName_ ||
       deviceID != currentDeviceID_ ||
@@ -52,6 +54,9 @@ void CameraFilter::updateSettings()
       framerateID != currentFramerateID_)
   {
     printNormal(this, "Updating camera settings since they have changed");
+
+    // TODO: Just set the viewfinder settings instead for restarting camera.
+    // Settings the viewfinder does not always restart camera.
 
     stop();
     uninit();
@@ -105,12 +110,13 @@ bool CameraFilter::initialCameraSetup()
     return false;
   }
 
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
-  currentDeviceName_ = settings.value("video/Device").toString();
-  currentDeviceID_ = settings.value("video/DeviceID").toInt();
+  QSettings settings(settingsFile, settingsFileFormat);
+  currentDeviceName_ = settings.value(SettingsKey::videoDevice).toString();
+  currentDeviceID_ = settings.value(SettingsKey::videoDeviceID).toInt();
 
   // if the deviceID has changed
-  if (currentDeviceID_ < cameras.size() && cameras[currentDeviceID_].description() != currentDeviceName_)
+  if (currentDeviceID_ < cameras.size() &&
+      cameras[currentDeviceID_].description() != currentDeviceName_)
   {
     // search for device with same name
     for(int i = 0; i < cameras.size(); ++i)
@@ -148,7 +154,7 @@ bool CameraFilter::cameraSetup()
 
   if (camera_ && cameraFrameGrabber_)
   {
-    QSettings settings("kvazzup.ini", QSettings::IniFormat);
+    QSettings settings(settingsFile, settingsFileFormat);
 #ifndef __linux__
 
     int waitRoundMS = 5;
@@ -172,7 +178,7 @@ bool CameraFilter::cameraSetup()
 
     QCameraViewfinderSettings viewSettings = camera_->viewfinderSettings();
 
-    currentInputFormat_ = settings.value("video/InputFormat").toString();
+    currentInputFormat_ = settings.value(SettingsKey::videoInputFormat).toString();
 
 #ifdef __linux__
     viewSettings.setPixelFormat(QVideoFrame::Format_RGB32);
@@ -206,7 +212,7 @@ bool CameraFilter::cameraSetup()
 #ifndef __linux__
     QList<QSize> resolutions = camera_->supportedViewfinderResolutions(viewSettings);
 
-    currentResolutionID_ = settings.value("video/ResolutionID").toInt();
+    currentResolutionID_ = settings.value(SettingsKey::videoResolutionID).toInt();
     if(resolutions.size() >= currentResolutionID_ && !resolutions.empty())
     {
       QSize resolution = resolutions.at(currentResolutionID_);
@@ -222,7 +228,7 @@ bool CameraFilter::cameraSetup()
 
     QList<QCamera::FrameRateRange> framerates = camera_->supportedViewfinderFrameRateRanges(viewSettings);
 
-    currentFramerateID_ = settings.value("video/FramerateID").toInt();
+    currentFramerateID_ = settings.value(SettingsKey::videoFramerateID).toInt();
 
 #ifndef __linux__
     if (!framerates.empty())

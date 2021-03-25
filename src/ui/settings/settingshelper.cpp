@@ -1,6 +1,7 @@
 #include "settingshelper.h"
 
 #include "common.h"
+#include "settingskeys.h"
 
 #include <QMenu>
 #include <QCheckBox>
@@ -80,7 +81,7 @@ void addFieldsToTable(QStringList& fields, QTableWidget* list)
 
 void listSettingsToGUI(QString filename, QString listName, QStringList values, QTableWidget* table)
 {
-  QSettings settings(filename, QSettings::IniFormat);
+  QSettings settings(filename, settingsFileFormat);
 
   int size = settings.beginReadArray(listName);
 
@@ -109,7 +110,7 @@ void listGUIToSettings(QString filename, QString listName, QStringList values, Q
   printDebug(DEBUG_NORMAL, "Settings Helper", "Writing list from GUI to settings", {"File", "List name", "Table items"},
              {filename, listName, QString::number(table->rowCount())});
 
-  QSettings settings(filename, QSettings::IniFormat);
+  QSettings settings(filename, settingsFileFormat);
 
   settings.beginWriteArray(listName);
   for(int i = 0; i < table->rowCount(); ++i)

@@ -3,6 +3,7 @@
 #include "statisticsinterface.h"
 
 #include "common.h"
+#include "settingskeys.h"
 
 #include <QSettings>
 #include <QHostAddress>
@@ -114,8 +115,8 @@ bool KvazzupController::incomingCall(uint32_t sessionID, QString caller)
     printProgramError(this, "Incoming call is overwriting an existing session!");
   }
 
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
-  int autoAccept = settings.value("local/Auto-Accept").toInt();
+  int autoAccept = settingValue(SettingsKey::localAutoAccept);
+
   if(autoAccept == 1)
   {
     printNormal(this, "Incoming call auto-accepted");

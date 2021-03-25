@@ -4,6 +4,7 @@
 #include "statisticsinterface.h"
 
 #include "common.h"
+#include "settingskeys.h"
 
 #include <QImage>
 #include <QtDebug>
@@ -46,13 +47,13 @@ DisplayFilter::~DisplayFilter()
 
 void DisplayFilter::updateSettings()
 { 
-  flipEnabled_ = settingEnabled("video/flipEnabled");
+  flipEnabled_ = settingEnabled(SettingsKey::videoFlipEnabled);
 
   // TODO: This is a quick fix for video stream being flipped vertically on Linux.
   // 1111 is set as sessionID for self view
   if (sessionID_ != 1111)
   {
-    verticalMirroring_ = settingEnabled("video/forceFlip");
+    verticalMirroring_ = settingEnabled(SettingsKey::videoForceFlip);
   }
 
   Filter::updateSettings();

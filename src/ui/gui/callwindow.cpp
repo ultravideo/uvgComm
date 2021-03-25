@@ -7,6 +7,7 @@
 #include "videoviewfactory.h"
 
 #include "common.h"
+#include "settingskeys.h"
 
 #include <QCloseEvent>
 #include <QTimer>
@@ -149,8 +150,7 @@ StatisticsInterface* CallWindow::createStatsWindow()
 void CallWindow::on_addContact_clicked()
 {
   printNormal(this, "Clicked");
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
-  QString serverAddress = settings.value("sip/ServerAddress").toString();
+  QString serverAddress = settingString(SettingsKey::sipServerAddress);
   ui_->address->setText(serverAddress);
   ui_->username->setText("username");
 

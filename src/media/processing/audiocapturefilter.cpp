@@ -3,6 +3,7 @@
 #include "statisticsinterface.h"
 
 #include "common.h"
+#include "settingskeys.h"
 #include "global.h"
 
 #include <QAudioInput>
@@ -35,9 +36,9 @@ bool AudioCaptureFilter::init()
 
   if (!microphones.empty())
   {
-    QSettings settings("kvazzup.ini", QSettings::IniFormat);
-    QString deviceName = settings.value("audio/Device").toString();
-    int deviceID = settings.value("audio/DeviceID").toInt();
+    QSettings settings(settingsFile, settingsFileFormat);
+    QString deviceName = settings.value(SettingsKey::audioDevice).toString();
+    int deviceID = settings.value(SettingsKey::audioDeviceID).toInt();
 
     if (deviceID < microphones.size())
     {

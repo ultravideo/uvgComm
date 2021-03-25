@@ -2,8 +2,10 @@
 
 #include "statisticsinterface.h"
 
+#include "common.h"
+#include "settingskeys.h"
+
 #include <kvazaar.h>
-#include <common.h>
 
 #include <QtDebug>
 #include <QTime>
@@ -76,10 +78,10 @@ bool KvazaarFilter::init()
       printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to allocate Kvazaar config.");
       return false;
     }
-    QSettings settings("kvazzup.ini", QSettings::IniFormat);
+    QSettings settings(settingsFile, settingsFileFormat);
 
     api_->config_init(config_);
-    api_->config_parse(config_, "preset", settings.value("video/Preset").toString().toUtf8());
+    api_->config_parse(config_, "preset", settings.value(SettingsKey::videoPreset).toString().toUtf8());
 
     // input
 
@@ -89,41 +91,41 @@ bool KvazaarFilter::init()
     config_->height = 480;
     config_->framerate_num = 30;
 #else
-    config_->width = settings.value("video/ResolutionWidth").toInt();
-    config_->height = settings.value("video/ResolutionHeight").toInt();
-    framerate_num_ = settings.value("video/Framerate").toFloat();
+    config_->width = settings.value(SettingsKey::videoResultionWidth).toInt();
+    config_->height = settings.value(SettingsKey::videoResultionHeight).toInt();
+    framerate_num_ = settings.value(SettingsKey::videoFramerate).toFloat();
     config_->framerate_num = framerate_num_;
 #endif
     config_->framerate_denom = framerate_denom_;
 
     // parallelization
 
-    if (settings.value("video/kvzThreads") == "auto")
+    if (settings.value(SettingsKey::videoKvzThreads) == "auto")
     {
       config_->threads = QThread::idealThreadCount();
     }
-    else if (settings.value("video/kvzThreads") == "Main")
+    else if (settings.value(SettingsKey::videoKvzThreads) == "Main")
     {
       config_->threads = 0;
     }
     else
     {
-      config_->threads = settings.value("video/kvzThreads").toInt();
+      config_->threads = settings.value(SettingsKey::videoKvzThreads).toInt();
     }
 
-    config_->owf = settings.value("video/OWF").toInt();
-    config_->wpp = settings.value("video/WPP").toInt();
+    config_->owf = settings.value(SettingsKey::videoOWF).toInt();
+    config_->wpp = settings.value(SettingsKey::videoWPP).toInt();
 
-    bool tiles = false; //settings.value("video/WPP").toBool();
+    bool tiles = false;
 
     if (tiles)
     {
-      std::string dimensions = settings.value("video/tileDimensions").toString().toStdString();
+      std::string dimensions = settings.value(SettingsKey::videoTileDimensions).toString().toStdString();
       api_->config_parse(config_, "tiles", dimensions.c_str());
     }
 
     // this does not work with uvgRTP at the moment. Avoid using slices.
-    if(settings.value("video/Slices").toInt() == 1)
+    if(settings.value(SettingsKey::videoSlices).toInt() == 1)
     {
       if(config_->wpp)
       {
@@ -137,15 +139,15 @@ bool KvazaarFilter::init()
 
     // Structure
 
-    config_->qp = settings.value("video/QP").toInt();
-    config_->intra_period = settings.value("video/Intra").toInt();
-    config_->vps_period = settings.value("video/VPS").toInt();
+    config_->qp = settings.value(SettingsKey::videoQP).toInt();
+    config_->intra_period = settings.value(SettingsKey::videoIntra).toInt();
+    config_->vps_period = settings.value(SettingsKey::videoVPS).toInt();
 
-    config_->target_bitrate = settings.value("video/bitrate").toInt();
+    config_->target_bitrate = settings.value(SettingsKey::videoBitrate).toInt();
 
     if (config_->target_bitrate != 0)
     {
-      QString rcAlgo = settings.value("video/rcAlgorithm").toString();
+      QString rcAlgo = settings.value(SettingsKey::videoRCAlgorithm).toString();
 
       if (rcAlgo == "lambda")
       {
@@ -154,7 +156,7 @@ bool KvazaarFilter::init()
       else if (rcAlgo == "oba")
       {
         config_->rc_algorithm = KVZ_OBA;
-        config_->clip_neighbour = settings.value("video/obaClipNeighbours").toInt();
+        config_->clip_neighbour = settings.value(SettingsKey::videoOBAClipNeighbours).toInt();
       }
       else
       {
@@ -169,7 +171,7 @@ bool KvazaarFilter::init()
 
     config_->gop_lowdelay = 1;
 
-    if (settings.value("video/scalingList").toInt() == 0)
+    if (settings.value(SettingsKey::videoScalingList).toInt() == 0)
     {
       config_->scaling_list = KVZ_SCALING_LIST_OFF;
     }
@@ -178,9 +180,9 @@ bool KvazaarFilter::init()
       config_->scaling_list = KVZ_SCALING_LIST_DEFAULT;
     }
 
-    config_->lossless = settings.value("video/lossless").toInt();
+    config_->lossless = settings.value(SettingsKey::videoLossless).toInt();
 
-    QString constraint = settings.value("video/mvConstraint").toString();
+    QString constraint = settings.value(SettingsKey::videoMVConstraint).toString();
 
     if (constraint == "frame")
     {
@@ -203,9 +205,8 @@ bool KvazaarFilter::init()
       config_->mv_constraint = KVZ_MV_CONSTRAIN_NONE;
     }
 
-    config_->set_qp_in_cu = settings.value("video/qpInCU").toInt();
-
-    config_->vaq = settings.value("video/vaq").toInt();
+    config_->set_qp_in_cu = settings.value(SettingsKey::videoQPInCU).toInt();
+    config_->vaq = settings.value(SettingsKey::videoVAQ).toInt();
 
 
     // compression-tab
@@ -275,7 +276,7 @@ void KvazaarFilter::process()
 
 void KvazaarFilter::customParameters(QSettings& settings)
 {
-  int size = settings.beginReadArray("parameters");
+  int size = settings.beginReadArray(SettingsKey::videoCustomParameters);
 
   qDebug() << "Initialization," << metaObject()->className()
            << "Getting custom Kvazaar options:" << size;
@@ -303,16 +304,17 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
   kvz_data_chunk *data_out = nullptr;
   uint32_t len_out = 0;
 
-  if(config_->width != input->width
-     || config_->height != input->height
-     || config_->framerate_num != input->framerate)
+  if (config_->width != input->width
+      || config_->height != input->height
+      || config_->framerate_num != input->framerate)
   {
     // This should not happen.
     qDebug() << getName() << "WARNING: Input resolution or framerate differs:"
              << config_->width << "x" << config_->height << "input:"
              << input->width << "x" << input->height;
 
-    qDebug() << getName() << "Framerate:" << config_->framerate_num << "input:" << input->framerate;
+    qDebug() << getName() << "Framerate:" << config_->framerate_num
+             << "input:" << input->framerate;
 
     return;
   }

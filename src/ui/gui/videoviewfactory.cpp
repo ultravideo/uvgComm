@@ -8,6 +8,7 @@
 #include "conferenceview.h"
 
 #include "common.h"
+#include "settingskeys.h"
 
 #include <QSettings>
 #include <QDebug>
@@ -22,9 +23,8 @@ uint32_t VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent,
                                         ConferenceView* conf)
 {
   qDebug() << "View, VideoFactory : Creating videowidget for sessionID:" << sessionID;
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
 
-  int opengl = settings.value("video/opengl").toInt();
+  bool openGLEnabled = settingEnabled(SettingsKey::videoOpenGL);
 
   QWidget* vw = nullptr;
   VideoInterface* video = nullptr;
@@ -44,7 +44,7 @@ uint32_t VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent,
 
     opengl_ = true;
   }
-  else if(opengl == 1)
+  else if(openGLEnabled)
   {
     VideoGLWidget* opengl = new VideoGLWidget(parent, sessionID);
     vw = opengl;

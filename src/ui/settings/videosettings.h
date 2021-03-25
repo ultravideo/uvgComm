@@ -78,7 +78,8 @@ private:
   void initializeFormat();
   void initializeThreads();
 
-  bool checkSettings();
+  bool checkVideoSettings();
+  bool checkKvazaarSettings();
 
   int currentDevice_;
 

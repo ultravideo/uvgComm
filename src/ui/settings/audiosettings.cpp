@@ -5,6 +5,8 @@
 #include "microphoneinfo.h"
 #include "settingshelper.h"
 
+#include "settingskeys.h"
+
 #include "common.h"
 
 
@@ -14,17 +16,17 @@ AudioSettings::AudioSettings(QWidget* parent,
   currentDevice_(0),
   audioSettingsUI_(new Ui::AudioSettings),
   mic_(info),
-  settings_("kvazzup.ini", QSettings::IniFormat)
+  settings_(settingsFile, settingsFileFormat)
 {
   audioSettingsUI_->setupUi(this);
 
-  sliders_.push_back({"audio/bitrate", audioSettingsUI_->bitrate_slider});
-  sliders_.push_back({"audio/complexity", audioSettingsUI_->complexity_slider});
+  sliders_.push_back({SettingsKey::audioBitrate, audioSettingsUI_->bitrate_slider});
+  sliders_.push_back({SettingsKey::audioComplexity, audioSettingsUI_->complexity_slider});
 
-  boxes_.push_back({"audio/aec", audioSettingsUI_->aec_box});
-  boxes_.push_back({"audio/denoise", audioSettingsUI_->denoise_box});
-  boxes_.push_back({"audio/dereverb", audioSettingsUI_->dereverberation_box});
-  boxes_.push_back({"audio/agc", audioSettingsUI_->agc_box});
+  boxes_.push_back({SettingsKey::audioAEC, audioSettingsUI_->aec_box});
+  boxes_.push_back({SettingsKey::audioDenoise, audioSettingsUI_->denoise_box});
+  boxes_.push_back({SettingsKey::audioDereverb, audioSettingsUI_->dereverberation_box});
+  boxes_.push_back({SettingsKey::audioAGC, audioSettingsUI_->agc_box});
 
   for (auto& slider : sliders_)
   {
@@ -114,7 +116,8 @@ void AudioSettings::restoreSettings()
 
   if (checkSettings())
   {
-    //restoreComboBoxValue("audio/channels", audioSettingsUI_->channel_combo, QString::number(1), settings_);
+    //restoreComboBoxValue("audio/channels",
+    // audioSettingsUI_->channel_combo, QString::number(1), settings_);
 
     for (auto& slider : sliders_)
     {
@@ -122,7 +125,7 @@ void AudioSettings::restoreSettings()
       slider.second->setValue(bitrate);
     }
 
-    QString type = settings_.value("audio/signalType").toString();
+    QString type = settings_.value(SettingsKey::audioSignalType).toString();
     audioSettingsUI_->signal_combo->setCurrentText(type);
 
     for (auto& box : boxes_)
@@ -143,7 +146,7 @@ void AudioSettings::saveSettings()
 
   audioSettingsUI_->audio_ok->hide();
 
-  //saveTextValue("audio/channels",
+  //saveTextValue(SettingsKey::audioChannels,
   //              audioSettingsUI_->channel_combo->currentText(), settings_);
 
   for (auto& slider : sliders_)
@@ -156,7 +159,7 @@ void AudioSettings::saveSettings()
     saveCheckBox(box.first, box.second, settings_);
   }
 
-  saveTextValue("audio/signalType",
+  saveTextValue(SettingsKey::audioSignalType,
                 audioSettingsUI_->signal_combo->currentText(), settings_);
 }
 
@@ -182,8 +185,8 @@ bool AudioSettings::checkSettings()
     }
   }
 
-  if(// !settings_.contains("audio/channels") ||
-     !settings_.contains("audio/signalType"))
+  if(// !settings_.contains(SettingsKey::audioChannels) ||
+     !settings_.contains(SettingsKey::audioSignalType))
   {
     printError(this, "Missing an audio settings value.");
     everythingOK = false;
@@ -218,11 +221,14 @@ void AudioSettings::updateComplexity(int value)
 
 void AudioSettings::initializeChannelList()
 {
-  //audioSettingsUI_->channel_combo->clear();
+  /*
+  audioSettingsUI_->channel_combo->clear();
   QList<int> channels = mic_->getChannels(currentDevice_);
+
 
   for (int channel : channels)
   {
-    //audioSettingsUI_->channel_combo->addItem(QString::number(channel));
+    audioSettingsUI_->channel_combo->addItem(QString::number(channel));
   }
+  */
 }

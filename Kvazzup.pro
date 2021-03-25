@@ -167,6 +167,7 @@ HEADERS  += \
     src/media/processing/screensharefilter.h \
     src/media/processing/yuvtorgb32.h \
     src/serverstatusview.h \
+    src/settingskeys.h \
     src/statisticsinterface.h \
     src/common.h \
     src/participantinterface.h \
