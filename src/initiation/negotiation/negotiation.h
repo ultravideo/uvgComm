@@ -34,6 +34,8 @@ public:
 
   void init();
 
+  void updateSettings();
+
   // Use this to generate the first SDP offer of the negotiation.
   // Includes all the media codecs suitable to us in preferred order.
   bool generateOfferSDP(QString localAddress, uint32_t sessionID);

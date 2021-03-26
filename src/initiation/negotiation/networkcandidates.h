@@ -26,7 +26,7 @@ public:
   NetworkCandidates();
   ~NetworkCandidates();
 
-  void setPortRange(uint16_t minport, uint16_t maxport);
+  void init();
 
   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> localCandidates(uint8_t streams,
                                                             uint32_t sessionID);
@@ -67,12 +67,16 @@ private:
   // if it is worth including in candidates
   bool sanityCheck(QHostAddress interface, uint16_t port);
 
-  QHostAddress stunServerAddress_;
+  // IP address corresponding to the used STUN server address
+  QHostAddress stunServerIP_;
 
+  // ongoing stun requests
   std::map<QString, std::shared_ptr<STUNRequest>> requests_;
 
   QMutex stunMutex_;
+  // public IP addresses we have found
   std::deque<std::pair<QHostAddress, uint16_t>> stunAddresses_;
+  // local ports that correspond to those addresses
   std::deque<std::pair<QHostAddress, uint16_t>> stunBindings_;
 
   QMutex portLock_;
@@ -80,10 +84,15 @@ private:
   // Key is the ip address of network interface.
   std::map<QString, std::deque<uint16_t>> availablePorts_;
 
-  // key is sessionID, 0 is STUN
+  // key is sessionID, key 0 is STUN
   std::map<uint32_t, QList<std::pair<QString, uint16_t>>> reservedPorts_;
 
   QTimer refreshSTUNTimer_;
 
   bool behindNAT_;
+
+  uint16_t currentMinPort_;
+  QString stunServerAddress_;
+  uint16_t stunPort_;
+  bool stunEnabled_;
 };

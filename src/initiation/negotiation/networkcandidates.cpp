@@ -1,14 +1,18 @@
 #include "networkcandidates.h"
 
 #include "common.h"
+#include "settingskeys.h"
 
 #include <QNetworkInterface>
 #include <QUdpSocket>
 #include <QDebug>
 
-const QString STUN_SERVER = "stun.l.google.com";
-const uint16_t GOOGLE_STUN_PORT = 19302;
 const uint16_t STUNADDRESSPOOL = 8;
+
+const int AN_HOUR = 1000 * 60 * 60;
+const int STUN_INTERVAL_PERIOD = 100;
+
+const int NUMBER_OF_POSSIBLE_PORTS = 1000;
 
 
 NetworkCandidates::NetworkCandidates():
@@ -19,7 +23,10 @@ NetworkCandidates::NetworkCandidates():
   portLock_(),
   availablePorts_(),
   reservedPorts_(),
-  behindNAT_(true) // assume that we are behind NAT at first
+  behindNAT_(true), // assume that we are behind NAT at first
+  currentMinPort_(0),
+  stunServerAddress_(""),
+  stunPort_(0)
 {}
 
 
@@ -29,49 +36,117 @@ NetworkCandidates::~NetworkCandidates()
 }
 
 
-void NetworkCandidates::setPortRange(uint16_t minport,
-                                     uint16_t maxport)
+void NetworkCandidates::init()
 {
-  if(minport >= maxport)
-  {
-    printProgramError(this, "Min port is smaller or equal to max port");
-  }
+  stunMutex_.lock();
 
-  foreach (const QHostAddress& address, QNetworkInterface::allAddresses())
+  // clear previous STUN stuff if it is not needed
+  if (!settingEnabled(SettingsKey::sipSTUNEnabled) ||
+      settingString(SettingsKey::sipSTUNAddress) != stunServerAddress_)
   {
-    if (address.protocol() == QAbstractSocket::IPv4Protocol &&
-        !address.isLoopback())
+    requests_.clear();
+    stunAddresses_.clear();
+    stunBindings_.clear();
+    stunServerIP_.clear();
+
+    if (reservedPorts_.find(0) != reservedPorts_.end())
     {
-      if (sanityCheck(address, minport))
-      {
-        availablePorts_.insert(std::pair<QString, std::deque<uint16_t>>(address.toString(),{}));
+      reservedPorts_[0].clear();
+    }
+  }
+  stunMutex_.unlock();
 
-        for(uint16_t i = minport; i < maxport; ++i)
+
+  int minPort = settingValue(SettingsKey::sipMediaPort);
+  int maxPort = minPort + NUMBER_OF_POSSIBLE_PORTS;
+
+  // if the settings have changed
+  if (currentMinPort_ != minPort)
+  {
+    // take all currently reserved ports so we don't make them available again
+    QList<std::pair<QString, uint16_t>> all_reserved;
+    for (auto& reserved : reservedPorts_)
+    {
+      all_reserved += reserved.second;
+    }
+
+    availablePorts_.clear();
+    currentMinPort_ = minPort;
+
+    printDebug(DEBUG_NORMAL, this, "Allocating (but not reserving) ports for media",
+               {"Min ports", "Max port"},
+               {QString::number(minPort), QString::number(maxPort)});
+
+    foreach (const QHostAddress& address, QNetworkInterface::allAddresses())
+    {
+      if (address.protocol() == QAbstractSocket::IPv4Protocol &&
+          !address.isLoopback())
+      {
+        if (sanityCheck(address, minPort))
         {
-          makePortAvailable(address.toString(), i);
+          portLock_.lock();
+          availablePorts_.insert(std::pair<QString, std::deque<uint16_t>>(address.toString(),{}));
+          portLock_.unlock();
+
+          for(uint16_t i = minPort; i < maxPort; ++i)
+          {
+            // only make available if it was not previously reserved
+            if (!all_reserved.contains(std::pair<QString, uint16_t>(address.toString(), i)))
+            {
+              makePortAvailable(address.toString(), i);
+            }
+          }
         }
       }
     }
   }
 
-  // get ip address of stun server
-  wantAddress(STUN_SERVER);
+  // Start stun address acquasition if stun was enabled or address has changed
+  if (settingEnabled(SettingsKey::sipSTUNEnabled) &&
+      (!stunEnabled_ ||
+      stunServerAddress_ != settingString(SettingsKey::sipSTUNAddress) ||
+      stunPort_ != settingValue(SettingsKey::sipSTUNPort)))
+  {
+    stunServerAddress_ = settingString(SettingsKey::sipSTUNAddress);
+    stunPort_ = settingValue(SettingsKey::sipSTUNPort);
 
-  QObject::connect(&refreshSTUNTimer_,  &QTimer::timeout,
-                   this,                &NetworkCandidates::refreshSTUN);
+    printDebug(DEBUG_NORMAL, this, "Looking up STUN server IP",
+               {"Server address"}, {stunServerAddress_});
 
-  // TODO: Probably best way to do this is periodically every 10 minutes or so.
-  // That way we get our current STUN address
-  refreshSTUNTimer_.setInterval(100);
-  refreshSTUNTimer_.setSingleShot(false);
-  refreshSTUNTimer_.start();
+    if (stunServerAddress_ != "")
+    {
+      stunMutex_.lock();
+      // get ip address of stun server
+      wantAddress(stunServerAddress_);
+
+      QObject::connect(&refreshSTUNTimer_,  &QTimer::timeout,
+                       this,                &NetworkCandidates::refreshSTUN);
+
+      refreshSTUNTimer_.setInterval(STUN_INTERVAL_PERIOD);
+      refreshSTUNTimer_.setSingleShot(false);
+      refreshSTUNTimer_.start();
+      stunMutex_.unlock();
+    }
+    else
+    {
+      printWarning(this, "Invalid STUN server address found in settings");
+    }
+  }
+
+  // record current stun state so we can check it next time
+  stunEnabled_ = settingEnabled(SettingsKey::sipSTUNEnabled);
 }
 
 
 void NetworkCandidates::refreshSTUN()
 {
+  if (!settingEnabled(SettingsKey::sipSTUNEnabled))
+  {
+    return;
+  }
+
   stunMutex_.lock();
-  if (!stunServerAddress_.isNull() &&
+  if (!stunServerIP_.isNull() &&
       stunAddresses_.size() + requests_.size() < STUNADDRESSPOOL)
   {
     // Send STUN-Request through all the interfaces, since we don't know which is
@@ -107,8 +182,8 @@ void NetworkCandidates::createSTUNCandidate(QHostAddress local, quint16 localPor
 {
   if (stun == QHostAddress(""))
   {
-    printDebug(DEBUG_WARNING, "ICE",
-       "Failed to resolve public IP! Server-reflexive candidates won't be created!");
+    printWarning(this, "Failed to resolve our public IP! "
+                       "Server-reflexive candidates won't be created!");
     return;
   }
 
@@ -117,7 +192,7 @@ void NetworkCandidates::createSTUNCandidate(QHostAddress local, quint16 localPor
   {
     printNormal(this, "We don't seem to be behind NAT");
     behindNAT_ = false;
-    refreshSTUNTimer_.setInterval(1000 * 60 * 60);
+    refreshSTUNTimer_.setInterval(AN_HOUR);
 
     stunMutex_.lock();
     stunAddresses_.clear();
@@ -129,7 +204,7 @@ void NetworkCandidates::createSTUNCandidate(QHostAddress local, quint16 localPor
   else
   {
     behindNAT_ = true;
-    refreshSTUNTimer_.setInterval(100);
+    refreshSTUNTimer_.setInterval(STUN_INTERVAL_PERIOD);
     printNormal(this, "Created ICE STUN candidate", {"STUN Translation"},
               {local.toString() + ":" + QString::number(localPort) + " << " +
                stun.toString() + ":" + QString::number(stunPort)});
@@ -174,7 +249,8 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::glo
 
   for (auto& interface : availablePorts_)
   {
-    if (!isPrivateNetwork(interface.first)&& availablePorts_[interface.first].size() >= streams)
+    if (!isPrivateNetwork(interface.first) &&
+        availablePorts_[interface.first].size() >= streams)
     {
       for (unsigned int i = 0; i < streams; ++i)
       {
@@ -193,22 +269,54 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::stu
   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> addresses
       =   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> (
         new QList<std::pair<QHostAddress, uint16_t>>());
-  stunMutex_.lock();
-  if (stunAddresses_.size() >= streams)
+
+  if (!settingEnabled(SettingsKey::sipSTUNEnabled))
   {
-    for (unsigned int i = 0; i < streams; ++i)
+    return addresses;
+  }
+
+  if (streams <= STUNADDRESSPOOL)
+  {
+    stunMutex_.lock();
+
+    // TODO:  We should use separate thread to get STUN candidates so we can
+    // wait for them if we don't have enough. This is more relevant in conference calls,
+    // where more candidates might be needed fast.
+
+    if (stunAddresses_.size() < streams)
     {
-      std::pair<QHostAddress, uint16_t> address = stunAddresses_.front();
-      stunAddresses_.pop_front();
-      addresses->push_back(address);
+      // the STUN candidates havent had time to refresh yet
+
+      stunMutex_.unlock();
+
+
+      // qSleep(STUN_INTERVAL_PERIOD*(stunAddresses_.size() - streams));
+      stunMutex_.lock();
+
     }
 
+    if (stunAddresses_.size() >= streams)
+    {
+      for (unsigned int i = 0; i < streams; ++i)
+      {
+        std::pair<QHostAddress, uint16_t> address = stunAddresses_.front();
+        stunAddresses_.pop_front();
+        addresses->push_back(address);
+      }
+
+    }
+    else
+    {
+      printWarning(this, "Not enough STUN candidates found!");
+    }
+
+    stunMutex_.unlock();
   }
   else
   {
-    printWarning(this, "No STUN candidates found!");
+    printWarning(this, "The STUN address pool is too small!");
   }
-  stunMutex_.unlock();
+
 
   return addresses;
 }
@@ -221,25 +329,33 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::stu
       =   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> (
         new QList<std::pair<QHostAddress, uint16_t>>());
 
-  stunMutex_.lock();
-  if (stunBindings_.size() >= streams)
+  if (!settingEnabled(SettingsKey::sipSTUNEnabled))
   {
-    for (unsigned int i = 0; i < streams; ++i)
+    return addresses;
+  }
+
+  if (streams <= STUNADDRESSPOOL)
+  {
+    stunMutex_.lock();
+    if (stunBindings_.size() >= streams)
     {
-      std::pair<QHostAddress, uint16_t> address = stunBindings_.front();
-      stunBindings_.pop_front();
+      for (unsigned int i = 0; i < streams; ++i)
+      {
+        std::pair<QHostAddress, uint16_t> address = stunBindings_.front();
+        stunBindings_.pop_front();
 
-      addresses->push_back(address);
+        addresses->push_back(address);
 
-      reservedPorts_[sessionID].push_back(
-            std::pair<QString, uint16_t>({address.first.toString(), address.second}));
+        reservedPorts_[sessionID].push_back(
+              std::pair<QString, uint16_t>({address.first.toString(), address.second}));
+      }
     }
+    else
+    {
+      printWarning(this, "No STUN bindings added!");
+    }
+    stunMutex_.unlock();
   }
-  else
-  {
-    printWarning(this, "No STUN bindings added!");
-  }
-  stunMutex_.unlock();
 
   return addresses;
 }
@@ -251,11 +367,13 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::tur
   Q_UNUSED(streams);
   Q_UNUSED(sessionID);
 
-  // We are probably never going to support TURN addresses.
-  // If we are, add candidates to the list.
+
+  // TODO: We should add possiblity to use TURN server. Add those candidates to this list.
+
   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> addresses
       =   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> (
         new QList<std::pair<QHostAddress, uint16_t>>());
+
   return addresses;
 }
 
@@ -359,7 +477,7 @@ void NetworkCandidates::handleStunHostLookup(QHostInfo info)
   const auto addresses = info.addresses();
   if(addresses.size() != 0)
   {
-    stunServerAddress_ = addresses.at(0);
+    stunServerIP_ = addresses.at(0);
   }
   else
   {
@@ -369,13 +487,22 @@ void NetworkCandidates::handleStunHostLookup(QHostInfo info)
 
 void NetworkCandidates::moreSTUNCandidates()
 {
-  if (!stunServerAddress_.isNull())
+  if (!stunServerIP_.isNull())
   {
     for (auto& interface : availablePorts_)
     {
-      // use 0 as STUN sessionID
-      sendSTUNserverRequest(QHostAddress(interface.first), nextAvailablePort(interface.first, 0),
-                            stunServerAddress_,                 GOOGLE_STUN_PORT);
+      int stunPort = settingValue(SettingsKey::sipSTUNPort);
+
+      if (stunPort != 0)
+      {
+        // use 0 as STUN sessionID
+        sendSTUNserverRequest(QHostAddress(interface.first), nextAvailablePort(interface.first, 0),
+                              stunServerIP_,                 stunPort);
+      }
+      else
+      {
+        printWarning(this, "An invalid zero found as STUN server port settings value");
+      }
     }
   }
   else
@@ -416,7 +543,6 @@ void NetworkCandidates::sendSTUNserverRequest(QHostAddress localAddress,
     requests_.erase(key);
     return;
   }
-
 
   STUNMessage request = requests_[key]->message.createRequest();
   QByteArray message  = requests_[key]->message.hostToNetwork(request);

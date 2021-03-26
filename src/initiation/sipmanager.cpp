@@ -29,7 +29,8 @@ void SIPManager::init(SIPTransactionUser* callControl, StatisticsInterface *stat
   tcpServer_.setProxy(QNetworkProxy::NoProxy);
 
   // listen to everything
-  printNormal(this, "Listening to SIP TCP connections", "Port", QString::number(sipPort_));
+  printNormal(this, "Listening to SIP TCP connections", "Port",
+              QString::number(sipPort_));
 
   if (!tcpServer_.listen(QHostAddress::Any, sipPort_))
   {
@@ -100,6 +101,8 @@ void SIPManager::updateSettings()
   {
     bindToServer();
   }
+
+  negotiation_.updateSettings();
 }
 
 

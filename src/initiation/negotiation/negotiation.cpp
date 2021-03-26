@@ -5,8 +5,6 @@
 #include "common.h"
 #include "global.h"
 
-const uint16_t MIN_ICE_PORT   = 23000;
-const uint16_t MAX_ICE_PORT   = 24000;
 
 Negotiation::Negotiation():
   nCandidates_(),
@@ -22,7 +20,13 @@ void Negotiation::init()
   QObject::connect(ice_.get(), &ICE::nominationFailed,
                    this,       &Negotiation::iceNominationFailed);
 
-  nCandidates_.setPortRange(MIN_ICE_PORT, MAX_ICE_PORT);
+  nCandidates_.init();
+}
+
+
+void Negotiation::updateSettings()
+{
+  nCandidates_.init();
 }
 
 
