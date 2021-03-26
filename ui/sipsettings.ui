@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>480</width>
+    <width>560</width>
     <height>640</height>
    </rect>
   </property>
@@ -14,41 +14,21 @@
    <string>Advanced Settings</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <item row="2" column="2">
+   <item row="3" column="2">
     <widget class="QPushButton" name="advanced_close">
      <property name="text">
       <string>Close</string>
      </property>
     </widget>
    </item>
-   <item row="2" column="1">
-    <widget class="QPushButton" name="advanced_ok">
-     <property name="text">
-      <string>Save</string>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="0">
-    <spacer name="horizontalSpacer">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>40</width>
-       <height>20</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
    <item row="0" column="0" colspan="3">
     <widget class="QTabWidget" name="Advanced">
      <property name="currentIndex">
       <number>0</number>
      </property>
-     <widget class="QWidget" name="sip">
+     <widget class="QWidget" name="call">
       <attribute name="title">
-       <string>SIP</string>
+       <string>Call</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_4">
        <item row="2" column="0" colspan="2">
@@ -65,7 +45,7 @@
         </spacer>
        </item>
        <item row="0" column="0" colspan="2">
-        <widget class="QLabel" name="label">
+        <widget class="QLabel" name="call_heading">
          <property name="font">
           <font>
            <pointsize>16</pointsize>
@@ -74,7 +54,7 @@
           </font>
          </property>
          <property name="text">
-          <string>Session Initiation Protcol (SIP)</string>
+          <string>Call Settings</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -90,7 +70,155 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="tab">
+     <widget class="QWidget" name="ice">
+      <attribute name="title">
+       <string>ICE</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayout_2">
+       <item row="3" column="0">
+        <widget class="QLabel" name="media_port_label">
+         <property name="text">
+          <string>First media port</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0">
+        <widget class="QLabel" name="stun_address_label">
+         <property name="text">
+          <string>STUN server address</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
+        <widget class="QLineEdit" name="stun_address">
+         <property name="maximumSize">
+          <size>
+           <width>300</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>stun.l.google.com</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QLabel" name="stun_enabled_label">
+         <property name="text">
+          <string>STUN enabled</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="2">
+        <widget class="QSpinBox" name="stun_port">
+         <property name="minimumSize">
+          <size>
+           <width>70</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>70</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="minimum">
+          <number>1</number>
+         </property>
+         <property name="maximum">
+          <number>65535</number>
+         </property>
+         <property name="value">
+          <number>19302</number>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="2">
+        <widget class="QSpinBox" name="media_port">
+         <property name="minimumSize">
+          <size>
+           <width>70</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>70</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="minimum">
+          <number>1024</number>
+         </property>
+         <property name="maximum">
+          <number>54535</number>
+         </property>
+         <property name="value">
+          <number>38500</number>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="2">
+        <widget class="QCheckBox" name="stun_enabled">
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="0" colspan="3">
+        <spacer name="verticalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="0" column="0" colspan="3">
+        <widget class="QLabel" name="ice_heading">
+         <property name="font">
+          <font>
+           <pointsize>16</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Interactive Connectivity Establishement (ICE)</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0" colspan="3">
+        <widget class="QLabel" name="tab_explanation">
+         <property name="text">
+          <string>ICE is a protocol for finding transport route for the media/RTP in a session. If you are calling from behind a NAT, STUN is used to find the outer IP address, where you can receive packets. STUN is not needed if you have a global IP address or if you are calling inside within a LAN.</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0" colspan="3">
+        <widget class="Line" name="line">
+         <property name="enabled">
+          <bool>true</bool>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="security">
       <property name="enabled">
        <bool>false</bool>
       </property>
@@ -193,7 +321,7 @@
           </font>
          </property>
          <property name="text">
-          <string>Security</string>
+          <string>Security (Not implemented yet)</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -204,11 +332,30 @@
      </widget>
     </widget>
    </item>
+   <item row="3" column="1">
+    <widget class="QPushButton" name="advanced_ok">
+     <property name="text">
+      <string>Save</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <spacer name="horizontalSpacer">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>40</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
   </layout>
  </widget>
  <tabstops>
   <tabstop>Advanced</tabstop>
-  <tabstop>advanced_ok</tabstop>
   <tabstop>advanced_close</tabstop>
  </tabstops>
  <resources/>

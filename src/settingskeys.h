@@ -90,6 +90,10 @@ const QString localAutoAccept = "local/Auto-Accept";
 const QString sipServerAddress = "sip/ServerAddress";
 const QString sipAutoConnect = "sip/AutoConnect";
 
+const QString sipMediaPort = "sip/mediaport";
+const QString sipSTUNEnabled = "sip/stunEnabled";
+const QString sipSTUNAddress = "sip/stunAddress";
+const QString sipSTUNPort = "sip/stunPort";
 
 // blocklist setting key
 const QString blocklist = "blocklist";

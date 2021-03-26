@@ -8,7 +8,11 @@
 #include <QDebug>
 
 
-const QStringList neededSettings = {SettingsKey::localAutoAccept};
+const QStringList neededSettings = {SettingsKey::localAutoAccept,
+                                    SettingsKey::sipMediaPort,
+                                    SettingsKey::sipSTUNEnabled,
+                                    SettingsKey::sipSTUNAddress,
+                                    SettingsKey::sipSTUNPort};
 
 SIPSettings::SIPSettings(QWidget* parent):
   QDialog (parent),
@@ -126,6 +130,13 @@ void SIPSettings::saveAdvancedSettings()
 
   // sip settings.
   saveCheckBox(SettingsKey::localAutoAccept, advancedUI_->auto_accept, settings_);
+  saveCheckBox(SettingsKey::sipSTUNEnabled, advancedUI_->stun_enabled, settings_);
+
+  saveTextValue(SettingsKey::sipSTUNAddress, advancedUI_->stun_address->text(),
+                settings_);
+
+  settings_.setValue(SettingsKey::sipSTUNPort,  QString::number(advancedUI_->stun_port->value()));
+  settings_.setValue(SettingsKey::sipMediaPort,  QString::number(advancedUI_->media_port->value()));
 }
 
 
@@ -137,6 +148,11 @@ void SIPSettings::restoreAdvancedSettings()
   if(checkSettingsList(settings_, neededSettings))
   {
     restoreCheckBox(SettingsKey::localAutoAccept, advancedUI_->auto_accept, settings_);
+    restoreCheckBox(SettingsKey::sipSTUNEnabled, advancedUI_->stun_enabled, settings_);
+
+    advancedUI_->stun_address->setText(settings_.value(SettingsKey::sipSTUNAddress).toString());
+    advancedUI_->stun_port->setValue  (settings_.value(SettingsKey::sipSTUNPort).toInt());
+    advancedUI_->media_port->setValue (settings_.value(SettingsKey::sipMediaPort).toInt());
   }
   else
   {
