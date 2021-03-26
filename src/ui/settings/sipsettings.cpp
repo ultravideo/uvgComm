@@ -7,6 +7,9 @@
 #include <QDateTime>
 #include <QDebug>
 
+
+const QStringList neededSettings = {SettingsKey::localAutoAccept};
+
 SIPSettings::SIPSettings(QWidget* parent):
   QDialog (parent),
   advancedUI_(new Ui::AdvancedSettings),
@@ -52,7 +55,8 @@ void SIPSettings::showBlocklistContextMenu(const QPoint& pos)
   if (advancedUI_->blockedUsers->rowCount() != 0)
   {
     showContextMenu(pos, advancedUI_->blockedUsers, this,
-                    QStringList() << "Delete", QStringList() << SLOT(deleteBlocklistItem()));
+                    QStringList() << "Delete", QStringList()
+                    << SLOT(deleteBlocklistItem()));
   }
 }
 
@@ -130,9 +134,7 @@ void SIPSettings::restoreAdvancedSettings()
   listSettingsToGUI(blocklistFile, SettingsKey::blocklist, QStringList()
                     << "userName" << "date", advancedUI_->blockedUsers);
 
-  bool validSettings = checkMissingValues(settings_);
-
-  if(validSettings && checkSipSettings())
+  if(checkSettingsList(settings_, neededSettings))
   {
     restoreCheckBox(SettingsKey::localAutoAccept, advancedUI_->auto_accept, settings_);
   }
@@ -140,12 +142,4 @@ void SIPSettings::restoreAdvancedSettings()
   {
     resetSettings();
   }
-}
-
-
-bool SIPSettings::checkSipSettings()
-{
-  return settings_.contains(SettingsKey::sipServerAddress)
-      && settings_.contains(SettingsKey::sipAutoConnect)
-      && settings_.contains(SettingsKey::localAutoAccept);
 }

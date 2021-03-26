@@ -10,6 +10,15 @@
 #include "common.h"
 
 
+const QStringList neededSettings = {SettingsKey::audioBitrate,
+                                    SettingsKey::audioComplexity,
+                                    SettingsKey::audioSignalType,
+                                    SettingsKey::audioAEC,
+                                    SettingsKey::audioDenoise,
+                                    SettingsKey::audioDereverb,
+                                    SettingsKey::audioAGC};
+
+
 AudioSettings::AudioSettings(QWidget* parent,
                              std::shared_ptr<MicrophoneInfo> info):
   QDialog(parent),
@@ -165,7 +174,7 @@ void AudioSettings::saveSettings()
 
 bool AudioSettings::checkSettings()
 {
-  bool everythingOK = checkMissingValues(settings_);
+  bool everythingOK = checkSettingsList(settings_, neededSettings);
 
   for (auto& slider : sliders_)
   {
@@ -183,13 +192,6 @@ bool AudioSettings::checkSettings()
       printError(this, "Missing a box settings value.");
       everythingOK = false;
     }
-  }
-
-  if(// !settings_.contains(SettingsKey::audioChannels) ||
-     !settings_.contains(SettingsKey::audioSignalType))
-  {
-    printError(this, "Missing an audio settings value.");
-    everythingOK = false;
   }
 
   return everythingOK;

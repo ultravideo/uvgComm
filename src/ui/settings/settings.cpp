@@ -11,6 +11,12 @@
 
 #include <common.h>
 
+
+const QStringList neededSettings = {SettingsKey::localRealname,
+                                    SettingsKey::localUsername,
+                                    SettingsKey::sipServerAddress,
+                                    SettingsKey::sipAutoConnect};
+
 Settings::Settings(QWidget *parent) :
   QDialog(parent),
   basicUI_(new Ui::BasicSettings),
@@ -136,7 +142,7 @@ void Settings::on_close_clicked()
 {
   printNormal(this, "Closing Settings. Gettings settings from file.");
 
-  if (checkMissingValues() && checkUserSettings())
+  if (checkSettingsList(settings_, neededSettings))
   {
     // discard UI values and restore the settings from file
     getSettings(false);
@@ -200,7 +206,7 @@ void Settings::getSettings(bool changedDevice)
                      SettingsKey::userScreen, screen_);
 
   //get values from QSettings
-  if(checkMissingValues() && checkUserSettings())
+  if (checkSettingsList(settings_, neededSettings))
   {
     printNormal(this, "Loading settings from file", {"File"}, {settings_.fileName()});
 
@@ -363,7 +369,7 @@ void Settings::saveDevice(QComboBox* deviceSelector, QString settingsID,
   {
     if(deviceSelector->currentText() != settings_.value(settingsDevice))
     {
-      settings_.setValue(settingsDevice,        deviceSelector->currentText());
+      settings_.setValue(settingsDevice, deviceSelector->currentText());
       // set capability to first
 
       if (video)
@@ -404,28 +410,4 @@ void Settings::changedSIPText(const QString &text)
 void Settings::updateServerStatus(QString status)
 {
   basicUI_->status->setText(status);
-}
-
-
-bool Settings::checkUserSettings()
-{
-  return settings_.contains(SettingsKey::localRealname)
-      && settings_.contains(SettingsKey::localUsername);
-}
-
-
-bool Settings::checkMissingValues()
-{
-  QStringList list = settings_.allKeys();
-
-  bool foundEverything = true;
-  for(auto& key : list)
-  {
-    if(settings_.value(key).isNull() || settings_.value(key) == "")
-    {
-      printWarning(this, "Missing settings value", {"Key"}, {key});
-      foundEverything = false;
-    }
-  }
-  return foundEverything;
 }

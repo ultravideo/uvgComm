@@ -290,10 +290,8 @@ void VideoSettings::restoreSettings()
   initializeFormat();
   initializeThreads();
 
-  bool validSettings = checkMissingValues(settings_);
-  if(validSettings &&
-     checkVideoSettings() &&
-     checkKvazaarSettings())
+  if(checkSettingsList(settings_, neededSettings) &&
+     checkSettingsList(settings_, kvazaarSettings))
   {
     printNormal(this, "Restoring previous video settings from file.",
                 {"Filename"}, {settings_.fileName()});
@@ -588,42 +586,6 @@ void VideoSettings::refreshFramerates(int index)
 {
   Q_UNUSED(index)
   initializeFramerates();
-}
-
-
-
-bool VideoSettings::checkVideoSettings()
-{
-  bool everythingPresent = checkMissingValues(settings_);
-
-  for(auto& need : neededSettings)
-  {
-    if(!settings_.contains(need))
-    {
-      printError(this, "Found missing setting. Resetting video settings", {"Missing key"}, need);
-      everythingPresent = false;
-    }
-  }
-
-  return everythingPresent;
-}
-
-
-bool VideoSettings::checkKvazaarSettings()
-{
-  bool everythingPresent = checkMissingValues(settings_);
-
-  for(auto& need : kvazaarSettings)
-  {
-    if(!settings_.contains(need))
-    {
-      printError(this, "Found missing kvazaar setting. Resetting video settings",
-                 {"Missing key"}, need);
-      everythingPresent = false;
-    }
-  }
-
-  return everythingPresent;
 }
 
 

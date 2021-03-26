@@ -78,9 +78,6 @@ private:
   void initializeFormat();
   void initializeThreads();
 
-  bool checkVideoSettings();
-  bool checkKvazaarSettings();
-
   int currentDevice_;
 
   Ui::VideoSettings *videoSettingsUI_;

@@ -8,6 +8,10 @@
 #include <QComboBox>
 
 
+// used internally in this module
+bool checkMissingValues(QSettings& settings);
+
+
 void saveCheckBox(const QString settingValue, QCheckBox* box, QSettings& settings)
 {
   if(box->isChecked())
@@ -61,7 +65,26 @@ bool checkMissingValues(QSettings& settings)
       foundEverything = false;
     }
   }
+
   return foundEverything;
+}
+
+
+bool checkSettingsList(QSettings& settings, const QStringList& keys)
+{
+  bool everythingPresent = checkMissingValues(settings);
+
+  for (auto& need : keys)
+  {
+    if(!settings.contains(need))
+    {
+      printDebug(DEBUG_WARNING, "Settings Helper",
+                 "Found missing setting. Resetting video settings", {"Missing key"}, {need});
+      everythingPresent = false;
+    }
+  }
+
+  return everythingPresent;
 }
 
 
