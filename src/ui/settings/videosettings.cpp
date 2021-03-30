@@ -124,10 +124,11 @@ void VideoSettings::changedDevice(uint16_t deviceIndex)
 
 void VideoSettings::resetSettings(int deviceID)
 {
-  printNormal(this, "Resettings video settings fomr UI");
+  printNormal(this, "Resettings video settings from UI");
 
   currentDevice_ = deviceID;
   initializeFormat();
+  initializeThreads();
   saveSettings();
   updateSliceBoxStatus();
   updateTilesStatus();
