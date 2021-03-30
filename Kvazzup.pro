@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT       += core gui concurrent
 
 message("Parsing project file.")
 message("Qt version:" "$$QT_MAJOR_VERSION"."$$QT_MINOR_VERSION")
@@ -95,6 +95,7 @@ SOURCES +=\
     src/ui/gui/conferenceview.cpp \
     src/ui/gui/contactlist.cpp \
     src/ui/gui/contactlistitem.cpp \
+    src/ui/gui/guimessage.cpp \
     src/ui/gui/statisticswindow.cpp \
     src/ui/gui/videodrawhelper.cpp \
     src/ui/gui/videoglwidget.cpp \
@@ -174,6 +175,7 @@ HEADERS  += \
     src/media/processing/screensharefilter.h \
     src/media/processing/yuvtorgb32.h \
     src/serverstatusview.h \
+    src/settingskeys.h \
     src/statisticsinterface.h \
     src/common.h \
     src/participantinterface.h \
@@ -183,6 +185,7 @@ HEADERS  += \
     src/ui/gui/conferenceview.h \
     src/ui/gui/contactlist.h \
     src/ui/gui/contactlistitem.h \
+    src/ui/gui/guimessage.h \
     src/ui/gui/statisticswindow.h \
     src/ui/gui/videodrawhelper.h \
     src/ui/gui/videoglwidget.h \
@@ -203,6 +206,7 @@ HEADERS  += \
 FORMS    += \
     ui/audiosettings.ui \
     ui/callwindow.ui \
+    ui/guimessage.ui \
     ui/messagewidget.ui \
     ui/sipsettings.ui \
     ui/statisticswindow.ui \

@@ -2,14 +2,22 @@
 
 #include "ui_sipsettings.h"
 #include "settingshelper.h"
+#include "settingskeys.h"
 
 #include <QDateTime>
 #include <QDebug>
 
+
+const QStringList neededSettings = {SettingsKey::localAutoAccept,
+                                    SettingsKey::sipMediaPort,
+                                    SettingsKey::sipSTUNEnabled,
+                                    SettingsKey::sipSTUNAddress,
+                                    SettingsKey::sipSTUNPort};
+
 SIPSettings::SIPSettings(QWidget* parent):
   QDialog (parent),
   advancedUI_(new Ui::AdvancedSettings),
-  settings_("kvazzup.ini", QSettings::IniFormat)
+  settings_(settingsFile, settingsFileFormat)
 {
   advancedUI_->setupUi(this);
 }
@@ -25,7 +33,8 @@ void SIPSettings::init()
   QStringList longerList = (QStringList() << "Username" << "Date");
   advancedUI_->blockedUsers->setHorizontalHeaderLabels(longerList);
 
-  advancedUI_->blockedUsers->setEditTriggers(QAbstractItemView::NoEditTriggers); // disallow editing of fields.
+  // disallow editing of fields.
+  advancedUI_->blockedUsers->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
   advancedUI_->blockedUsers->setContextMenuPolicy(Qt::CustomContextMenu);
   connect(advancedUI_->blockedUsers, &QWidget::customContextMenuRequested,
@@ -40,6 +49,7 @@ void SIPSettings::resetSettings()
   qDebug() << "Settings," << metaObject()->className()
            << "Resetting Advanced settings from UI";
   // TODO: should we do something to blocked list in settings?
+
   saveAdvancedSettings();
 }
 
@@ -49,7 +59,8 @@ void SIPSettings::showBlocklistContextMenu(const QPoint& pos)
   if (advancedUI_->blockedUsers->rowCount() != 0)
   {
     showContextMenu(pos, advancedUI_->blockedUsers, this,
-                    QStringList() << "Delete", QStringList() << SLOT(deleteBlocklistItem()));
+                    QStringList() << "Delete", QStringList()
+                    << SLOT(deleteBlocklistItem()));
   }
 }
 
@@ -109,42 +120,42 @@ void SIPSettings::on_addUserBlock_clicked()
   }
 }
 
+
 void SIPSettings::saveAdvancedSettings()
 {
   qDebug() << "Settings," << metaObject()->className() << ": Saving advanced Settings";
 
-  listGUIToSettings("blocklist.local", "blocklist", QStringList() << "userName" << "date", advancedUI_->blockedUsers);
+  listGUIToSettings(blocklistFile, SettingsKey::blocklist,
+                    QStringList() << "userName" << "date", advancedUI_->blockedUsers);
 
   // sip settings.
-  //saveCheckBox("sip/conference", advancedUI_->conference, settings_);
+  saveCheckBox(SettingsKey::localAutoAccept, advancedUI_->auto_accept, settings_);
+  saveCheckBox(SettingsKey::sipSTUNEnabled, advancedUI_->stun_enabled, settings_);
 
-  saveCheckBox("local/Auto-Accept", advancedUI_->auto_accept, settings_);
+  saveTextValue(SettingsKey::sipSTUNAddress, advancedUI_->stun_address->text(),
+                settings_);
+
+  settings_.setValue(SettingsKey::sipSTUNPort,  QString::number(advancedUI_->stun_port->value()));
+  settings_.setValue(SettingsKey::sipMediaPort,  QString::number(advancedUI_->media_port->value()));
 }
 
 
 void SIPSettings::restoreAdvancedSettings()
 {
-  listSettingsToGUI("blocklist.local", "blocklist", QStringList()
+  listSettingsToGUI(blocklistFile, SettingsKey::blocklist, QStringList()
                     << "userName" << "date", advancedUI_->blockedUsers);
 
-  bool validSettings = checkMissingValues(settings_);
-
-  if(validSettings && checkSipSettings())
+  if(checkSettingsList(settings_, neededSettings))
   {
-    //restoreCheckBox("sip/conference", advancedUI_->conference, settings_);
+    restoreCheckBox(SettingsKey::localAutoAccept, advancedUI_->auto_accept, settings_);
+    restoreCheckBox(SettingsKey::sipSTUNEnabled, advancedUI_->stun_enabled, settings_);
 
-    restoreCheckBox("local/Auto-Accept", advancedUI_->auto_accept, settings_);
+    advancedUI_->stun_address->setText(settings_.value(SettingsKey::sipSTUNAddress).toString());
+    advancedUI_->stun_port->setValue  (settings_.value(SettingsKey::sipSTUNPort).toInt());
+    advancedUI_->media_port->setValue (settings_.value(SettingsKey::sipMediaPort).toInt());
   }
   else
   {
     resetSettings();
   }
-}
-
-
-bool SIPSettings::checkSipSettings()
-{
-  return settings_.contains("sip/ServerAddress")
-      && settings_.contains("sip/AutoConnect")
-      && settings_.contains("local/Auto-Accept");
 }

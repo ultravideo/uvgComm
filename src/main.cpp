@@ -1,6 +1,7 @@
 #include "kvazzupcontroller.h"
 
 #include "common.h"
+#include "settingskeys.h"
 
 #include <QApplication>
 #include <QSettings>
@@ -35,7 +36,7 @@ int main(int argc, char *argv[])
   QCoreApplication::setOrganizationDomain("ultravideo.cs.tut.fi");
   QCoreApplication::setApplicationName("Kvazzup");
 
-  QSettings::setPath(QSettings::IniFormat, QSettings::SystemScope, ".");
+  QSettings::setPath(settingsFileFormat, QSettings::SystemScope, ".");
 
   QFile File("stylesheet.qss");
   File.open(QFile::ReadOnly);

@@ -4,6 +4,7 @@
 #include <QMutex>
 #include <QHostAddress>
 #include <QObject>
+#include <QFuture>
 
 #include <uvgrtp/lib.hh>
 
@@ -48,11 +49,15 @@ public:
 
    void removeAllPeers();
 
+signals:
+  void handleZRTPFailure(uint32_t sessionID);
+  void handleNoEncryption();
+
 private:
 
   struct MediaStream
   {
-   uvg_rtp::media_stream *stream;
+    QFuture<uvg_rtp::media_stream *> stream;
 
    std::shared_ptr<UvgRTPSender> sender;
    std::shared_ptr<UvgRTPReceiver> receiver;

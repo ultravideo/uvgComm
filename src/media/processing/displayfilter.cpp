@@ -4,6 +4,7 @@
 #include "statisticsinterface.h"
 
 #include "common.h"
+#include "settingskeys.h"
 
 #include <QImage>
 #include <QtDebug>
@@ -35,23 +36,24 @@ DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
     printDebug(DEBUG_PROGRAM_ERROR, "Display Filter",
                "Gived nonexistant widget");
   }
+
   updateSettings();
 }
+
 
 DisplayFilter::~DisplayFilter()
 {}
 
+
 void DisplayFilter::updateSettings()
-{
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
-  if(settings.value("video/flipViews").isValid())
+{ 
+  flipEnabled_ = settingEnabled(SettingsKey::videoFlipEnabled);
+
+  // TODO: This is a quick fix for video stream being flipped vertically on Linux.
+  // 1111 is set as sessionID for self view
+  if (sessionID_ != 1111)
   {
-    flipEnabled_ = (settings.value("video/flipViews").toInt() == 1);
-  }
-  else
-  {
-    printDebug(DEBUG_ERROR, "CameraInfo", 
-               "Missing settings value flip threads.");
+    verticalMirroring_ = settingEnabled(SettingsKey::videoForceFlip);
   }
 
   Filter::updateSettings();

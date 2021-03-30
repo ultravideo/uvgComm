@@ -16,14 +16,14 @@ struct LineAppearance
 
 // what the points will look like
 const std::vector<LineAppearance> appearances = {
-  {Qt::green, CIRCLE},
-  {Qt::red, SQUARE},
-  {Qt::blue, TRIANGLE},
-  {Qt::magenta, CROSS},
-  {Qt::cyan, SQUARE},
-  {Qt::darkBlue, TRIANGLE},
-  {Qt::darkGreen, CROSS},
-  {Qt::darkRed, CIRCLE}
+  {QColor(0,   0,   245), CIRCLE},   // blue
+  {QColor(230, 0,   230), SQUARE},   // violet
+  {QColor(180, 180, 0  ), CROSS},    // yellow
+  {QColor(200, 100, 0  ), TRIANGLE}, // orange
+  {QColor(0,   245, 0  ), CIRCLE},    // green
+  {QColor(245, 0,   0  ), SQUARE},   // red
+  {QColor(150, 150, 245), CROSS}, // light blue
+  {QColor(0,   245, 245), TRIANGLE}    // cyan
 };
 
 

@@ -3,6 +3,7 @@
 #include "statisticsinterface.h"
 
 #include "common.h"
+#include "settingskeys.h"
 
 #include <QSettings>
 #include <QHostAddress>
@@ -21,12 +22,6 @@ KvazzupController::KvazzupController():
 void KvazzupController::init()
 {
   printImportant(this, "Kvazzup initiation Started");
-  window_.init(this);
-  window_.show();
-  stats_ = window_.createStatsWindow();
-
-  sip_.init(this, stats_, window_.getStatusView());
-
 
   // register the GUI signals indicating GUI changes to be handled
   // approrietly in a system wide manner
@@ -48,6 +43,18 @@ void KvazzupController::init()
                    this, &KvazzupController::iceCompleted);
   QObject::connect(&sip_, &SIPManager::nominationFailed,
                    this, &KvazzupController::iceFailed);
+
+  QObject::connect(&media_, &MediaManager::handleZRTPFailure,
+                   this,    &KvazzupController::zrtpFailed);
+
+  QObject::connect(&media_, &MediaManager::handleNoEncryption,
+                   this,    &KvazzupController::noEncryptionAvailable);
+
+  window_.init(this);
+  window_.show();
+  stats_ = window_.createStatsWindow();
+
+  sip_.init(this, stats_, window_.getStatusView());
   media_.init(window_.getViewFactory(), stats_);
 
   printImportant(this, "Kvazzup initiation finished");
@@ -66,7 +73,8 @@ void KvazzupController::windowClosed()
   uninit();
 }
 
-uint32_t KvazzupController::callToParticipant(QString name, QString username, QString ip)
+uint32_t KvazzupController::callToParticipant(QString name, QString username,
+                                              QString ip)
 {
   NameAddr remote;
   remote.realname = name;
@@ -106,8 +114,8 @@ bool KvazzupController::incomingCall(uint32_t sessionID, QString caller)
     printProgramError(this, "Incoming call is overwriting an existing session!");
   }
 
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
-  int autoAccept = settings.value("local/Auto-Accept").toInt();
+  int autoAccept = settingValue(SettingsKey::localAutoAccept);
+
   if(autoAccept == 1)
   {
     printNormal(this, "Incoming call auto-accepted");
@@ -224,9 +232,25 @@ void KvazzupController::iceFailed(uint32_t sessionID)
 {
   printError(this, "ICE has failed");
 
+  window_.showICEFailedMessage();
+
   // TODO: Tell sip manager to send an error for ICE
   printUnimplemented(this, "Send SIP error code for ICE failure");
   endCall(sessionID);
+}
+
+void KvazzupController::zrtpFailed(quint32 sessionID)
+{
+  printError(this, "ZRTP has failed");
+
+  window_.showZRTPFailedMessage(QString::number(sessionID));
+  endCall(sessionID);
+}
+
+
+void KvazzupController::noEncryptionAvailable()
+{
+  window_.showCryptoMissingMessage();
 }
 
 

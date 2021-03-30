@@ -86,8 +86,6 @@ private:
 
   // checks if user settings make sense
   // TODO: display errors to user on ok click
-  bool checkUserSettings();
-  bool checkMissingValues();
 
   // QSettings -> GUI
   void getSettings(bool changedDevice);

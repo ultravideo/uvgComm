@@ -3,13 +3,15 @@
 #include "statisticsinterface.h"
 
 #include "common.h"
+#include "settingskeys.h"
 #include "global.h"
 
 #include <QDateTime>
 #include <QSettings>
 
 
-OpusEncoderFilter::OpusEncoderFilter(QString id, QAudioFormat format, StatisticsInterface* stats):
+OpusEncoderFilter::OpusEncoderFilter(QString id, QAudioFormat format,
+                                     StatisticsInterface* stats):
   Filter(id, "Opus Encoder", stats, RAWAUDIO, OPUSAUDIO),
   enc_(nullptr),
   opusOutput_(nullptr),
@@ -52,11 +54,11 @@ bool OpusEncoderFilter::init()
 
 void OpusEncoderFilter::updateSettings()
 {
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+  QSettings settings(settingsFile, settingsFileFormat);
 
-  int bitrate = settings.value("audio/bitrate").toInt();
-  int complexity = settings.value("audio/complexity").toInt();
-  QString type = settings.value("audio/signalType").toString();
+  int bitrate = settings.value(SettingsKey::audioBitrate).toInt();
+  int complexity = settings.value(SettingsKey::audioComplexity).toInt();
+  QString type = settings.value(SettingsKey::audioSignalType).toString();
 
   opus_encoder_ctl(enc_, OPUS_SET_BITRATE(bitrate));
   opus_encoder_ctl(enc_, OPUS_SET_COMPLEXITY(complexity));

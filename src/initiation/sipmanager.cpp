@@ -3,7 +3,6 @@
 #include "initiation/negotiation/negotiation.h"
 #include "initiation/negotiation/networkcandidates.h"
 #include "initiation/negotiation/ice.h"
-
 #include "initiation/transaction/sipserver.h"
 #include "initiation/transaction/sipclient.h"
 #include "initiation/transaction/sipdialogstate.h"
@@ -14,6 +13,7 @@
 
 #include "common.h"
 #include "global.h"
+#include "settingskeys.h"
 
 #include <QNetworkProxy>
 
@@ -60,10 +60,8 @@ void SIPManager::init(SIPTransactionUser* callControl, StatisticsInterface *stat
 
   transactionUser_ = callControl;
 
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
 
-
-  int autoConnect = settings.value("sip/AutoConnect").toInt();
+  int autoConnect = settingValue(SettingsKey::sipAutoConnect);
 
   if(autoConnect == 1)
   {
@@ -71,7 +69,7 @@ void SIPManager::init(SIPTransactionUser* callControl, StatisticsInterface *stat
   }
 
   nCandidates_ = std::shared_ptr<NetworkCandidates> (new NetworkCandidates);
-  nCandidates_->setPortRange(MIN_ICE_PORT, MAX_ICE_PORT);
+  nCandidates_->init();
 }
 
 
@@ -128,22 +126,20 @@ uint32_t SIPManager::reserveSessionID()
 
 void SIPManager::updateSettings()
 {
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
-
-  int autoConnect = settings.value("sip/AutoConnect").toInt();
+  int autoConnect = settingValue(SettingsKey::sipAutoConnect);
   if(autoConnect == 1)
   {
     bindToServer();
   }
+
+  nCandidates_->init();
 }
 
 
 void SIPManager::bindToServer()
 {
   // get server address from settings and bind to server.
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
-
-  QString serverAddress = settings.value("sip/ServerAddress").toString();
+  QString serverAddress = settingString(SettingsKey::sipServerAddress);
 
   if (serverAddress != "" && haveWeRegistered() == "")
   {

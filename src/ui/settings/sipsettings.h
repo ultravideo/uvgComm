@@ -47,8 +47,6 @@ private:
 
   void addUsernameToList(QString username, QString date);
 
-  bool checkSipSettings();
-
   Ui::AdvancedSettings *advancedUI_;
 
   QSettings settings_;

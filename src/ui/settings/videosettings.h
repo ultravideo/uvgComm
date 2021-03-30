@@ -48,8 +48,8 @@ public slots:
 
   void on_add_parameter_clicked();
 
-  void initializeResolutions(QString format);
-  void initializeFramerates(QString resolution);
+  void refreshResolutions(int index);
+  void refreshFramerates(int index);
 
   void updateBitrate(int value);
 
@@ -58,6 +58,9 @@ public slots:
   void updateObaStatus(int index);
 
 private:
+  void initializeResolutions();
+  void initializeFramerates();
+
   // QSettings -> GUI
   void restoreSettings();
 
@@ -74,8 +77,6 @@ private:
   // initializes the UI with correct formats and resolutions
   void initializeFormat();
   void initializeThreads();
-
-  bool checkSettings();
 
   int currentDevice_;
 

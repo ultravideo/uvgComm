@@ -80,7 +80,7 @@ bool checkError(QObject* object, bool check, DebugType type = DEBUG_ERROR,
 // Print debug information with custom class name. Use this and getname with filters.
 // context is a general context that makes it easier to link different prints to one another.
 // TODO: Fix different threads printing at the same time.
-// TODO: Make into a template
+// TODO: Use templates
 void printDebug(DebugType type, QString className, QString description = "",
                 QStringList valueNames = {}, QStringList values = {});
 
@@ -89,8 +89,8 @@ void printDebug(DebugType type, QString className, QString description = "",
 void printDebug(DebugType type, const QObject* object, QString description = "",
                 QStringList valueNames = {}, QStringList values = {});
 
-bool getBoolFromSetting(QString key);
-
-QString getStringFromSettings(QString key);
+bool settingEnabled(QString key);
+int settingValue(QString key);
+QString settingString(QString key);
 
 QString getLocalUsername();

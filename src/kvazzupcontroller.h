@@ -65,6 +65,10 @@ public slots:
                     const std::shared_ptr<SDPMessageInfo> remote);
   void iceFailed(quint32 sessionID);
 
+  void zrtpFailed(quint32 sessionID);
+
+  void noEncryptionAvailable();
+
   void delayedAutoAccept();
 private:
   void removeSession(uint32_t sessionID, QString message, bool temporaryMessage);

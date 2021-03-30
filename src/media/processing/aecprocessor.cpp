@@ -5,6 +5,7 @@
 #include <QSettings>
 
 #include "common.h"
+#include "settingskeys.h"
 #include "global.h"
 
 
@@ -31,11 +32,11 @@ void AECProcessor::updateSettings()
 {
   if (PREPROCESSOR && preprocessor_ != nullptr)
   {
-    QSettings settings("kvazzup.ini", QSettings::IniFormat);
+    QSettings settings(settingsFile, settingsFileFormat);
 
     echoMutex_.lock();
 
-    if (settings.value("audio/aec") == 1)
+    if (settings.value(SettingsKey::audioAEC) == 1)
     {
       speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_ECHO_STATE, echo_state_);
 
@@ -60,7 +61,7 @@ void AECProcessor::updateSettings()
     int* activeState = new int(1);
     int* inactiveState = new int(0);
 
-    if (settings.value("audio/denoise") == 1)
+    if (settings.value(SettingsKey::audioDenoise) == 1)
     {
       speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_DENOISE, activeState);
     }
@@ -69,7 +70,7 @@ void AECProcessor::updateSettings()
       speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_DENOISE, inactiveState);
     }
 
-    if (settings.value("audio/dereverb") == 1)
+    if (settings.value(SettingsKey::audioDereverb) == 1)
     {
       speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_DEREVERB, activeState);
     }
@@ -78,7 +79,7 @@ void AECProcessor::updateSettings()
       speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC, inactiveState);
     }
 
-    if (settings.value("audio/agc") == 1)
+    if (settings.value(SettingsKey::audioAGC) == 1)
     {
       speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC, activeState);
     }

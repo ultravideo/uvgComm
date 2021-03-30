@@ -1,10 +1,15 @@
 #include "settingshelper.h"
 
 #include "common.h"
+#include "settingskeys.h"
 
 #include <QMenu>
 #include <QCheckBox>
 #include <QComboBox>
+
+
+// used internally in this module
+bool checkMissingValues(QSettings& settings);
 
 
 void saveCheckBox(const QString settingValue, QCheckBox* box, QSettings& settings)
@@ -60,7 +65,26 @@ bool checkMissingValues(QSettings& settings)
       foundEverything = false;
     }
   }
+
   return foundEverything;
+}
+
+
+bool checkSettingsList(QSettings& settings, const QStringList& keys)
+{
+  bool everythingPresent = checkMissingValues(settings);
+
+  for (auto& need : keys)
+  {
+    if(!settings.contains(need))
+    {
+      printDebug(DEBUG_WARNING, "Settings Helper",
+                 "Found missing setting. Resetting video settings", {"Missing key"}, {need});
+      everythingPresent = false;
+    }
+  }
+
+  return everythingPresent;
 }
 
 
@@ -80,7 +104,7 @@ void addFieldsToTable(QStringList& fields, QTableWidget* list)
 
 void listSettingsToGUI(QString filename, QString listName, QStringList values, QTableWidget* table)
 {
-  QSettings settings(filename, QSettings::IniFormat);
+  QSettings settings(filename, settingsFileFormat);
 
   int size = settings.beginReadArray(listName);
 
@@ -109,7 +133,7 @@ void listGUIToSettings(QString filename, QString listName, QStringList values, Q
   printDebug(DEBUG_NORMAL, "Settings Helper", "Writing list from GUI to settings", {"File", "List name", "Table items"},
              {filename, listName, QString::number(table->rowCount())});
 
-  QSettings settings(filename, QSettings::IniFormat);
+  QSettings settings(filename, settingsFileFormat);
 
   settings.beginWriteArray(listName);
   for(int i = 0; i < table->rowCount(); ++i)

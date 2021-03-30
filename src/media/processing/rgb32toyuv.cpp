@@ -1,6 +1,8 @@
 #include "rgb32toyuv.h"
 
 #include "optimized/rgb2yuv.h"
+
+#include "settingskeys.h"
 #include "common.h"
 
 #include <QSettings>
@@ -16,19 +18,7 @@ RGB32toYUV::RGB32toYUV(QString id, StatisticsInterface *stats) :
 
 void RGB32toYUV::updateSettings()
 {
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
-  if(settings.value("video/rgbThreads").isValid())
-  {
-    threadCount_ = settings.value("video/rgbThreads").toInt();
-
-    qDebug() << "Settings for RGB32 to YUV threads:" << threadCount_;
-  }
-  else
-  {
-    printDebug(DEBUG_ERROR, "YUVtoRGB32",
-               "Missing settings value RGB32 threads.");
-  }
-
+  threadCount_ = settingValue(SettingsKey::videoRGBThreads);
   Filter::updateSettings();
 }
 

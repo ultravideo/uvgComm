@@ -1,8 +1,9 @@
 #include "openhevcfilter.h"
 
-#include "common.h"
-
 #include "statisticsinterface.h"
+
+#include "common.h"
+#include "settingskeys.h"
 
 #include <QSettings>
 
@@ -22,9 +23,9 @@ OpenHEVCFilter::OpenHEVCFilter(uint32_t sessionID, StatisticsInterface *stats):
 bool OpenHEVCFilter::init()
 {
   printNormal(this, "Starting to initiate OpenHEVC");
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+  QSettings settings(settingsFile, settingsFileFormat);
 
-  threads_ = settings.value("video/OPENHEVC_threads").toInt();
+  threads_ = settings.value(SettingsKey::videoOpenHEVCThreads).toInt();
   handle_ = libOpenHevcInit(threads_, OH_THREAD_FRAME);
 
   libOpenHevcSetDebugMode(handle_, 0);
@@ -66,8 +67,8 @@ void OpenHEVCFilter::run()
 
 void OpenHEVCFilter::updateSettings()
 {
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
-  if (settings.value("video/OPENHEVC_threads").toInt() != threads_)
+  QSettings settings(settingsFile, settingsFileFormat);
+  if (settings.value(SettingsKey::videoOpenHEVCThreads).toInt() != threads_)
   {
     uninit();
     init();

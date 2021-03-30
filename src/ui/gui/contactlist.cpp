@@ -4,6 +4,7 @@
 #include "participantinterface.h"
 
 #include "common.h"
+#include "settingskeys.h"
 
 #include <QSettings>
 #include <QDebug>
@@ -21,9 +22,9 @@ void ContactList::initializeList(QListWidget* list, ParticipantInterface* interf
   connect(list, SIGNAL(customContextMenuRequested(QPoint)),
           this, SLOT(showContextMenu(QPoint)));
 
-  QSettings settings("contacts.local", QSettings::IniFormat);
+  QSettings settings(contactsFile, settingsFileFormat);
 
-  int size = settings.beginReadArray("contacts");
+  int size = settings.beginReadArray(SettingsKey::contactList);
 
   printNormal(this, "Reading contact list", {"# of contacts"}, {QString::number(size)});
 
@@ -145,9 +146,9 @@ void ContactList::writeListToSettings()
 {
   qDebug() << "add/remove contact, " << metaObject()->className()
            << ": Writing contactList with" << items_.size() << "items to settings.";
-  QSettings settings("contacts.local", QSettings::IniFormat);
+  QSettings settings(contactsFile, settingsFileFormat);
 
-  settings.beginWriteArray("contacts");
+  settings.beginWriteArray(SettingsKey::contactList);
   int index = 0;
   for(auto& contact : items_)
   {
@@ -200,10 +201,10 @@ void ContactList::removeContact(int index)
 
   items_.erase(items_.begin() + index);
 
-  {
-    QSettings settings("contacts.local", QSettings::IniFormat);
-    settings.remove("contacts");
-  }
+  // delete the whole list and write it again
+  QSettings settings(contactsFile, settingsFileFormat);
+  settings.remove(SettingsKey::contactList);
+
   writeListToSettings();
 }
 

@@ -13,7 +13,7 @@ void saveCheckBox(const QString settingValue, QCheckBox* box, QSettings& setting
 
 void saveTextValue(const QString settingValue, const QString &text, QSettings& settings);
 
-bool checkMissingValues(QSettings& settings);
+bool checkSettingsList(QSettings& settings, const QStringList& keys);
 
 void addFieldsToTable(QStringList& fields, QTableWidget* list);
 
@@ -31,3 +31,4 @@ void restoreComboBoxValue(QString key, QComboBox* box,
 int roundToThousands(int value);
 
 QString getBitrateString(int bits);
+

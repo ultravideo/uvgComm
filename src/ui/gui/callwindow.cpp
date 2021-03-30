@@ -7,6 +7,7 @@
 #include "videoviewfactory.h"
 
 #include "common.h"
+#include "settingskeys.h"
 
 #include <QCloseEvent>
 #include <QTimer>
@@ -112,6 +113,7 @@ void CallWindow::init(ParticipantInterface *partInt)
   settingsView_.init();
 }
 
+
 void CallWindow::initButton(QString iconPath, QSize size, QSize iconSize, QPushButton* button)
 {
   QPixmap pixmap(iconPath);
@@ -148,8 +150,7 @@ StatisticsInterface* CallWindow::createStatsWindow()
 void CallWindow::on_addContact_clicked()
 {
   printNormal(this, "Clicked");
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
-  QString serverAddress = settings.value("sip/ServerAddress").toString();
+  QString serverAddress = settingString(SettingsKey::sipServerAddress);
   ui_->address->setText(serverAddress);
   ui_->username->setText("username");
 
@@ -312,4 +313,29 @@ void CallWindow::changedSIPText(const QString &text)
 {
   Q_UNUSED(text);
   ui_->sipAddress->setText("sip:" + ui_->username->text() + "@" + ui_->address->text());
+}
+
+
+void CallWindow::showICEFailedMessage()
+{
+  mesg_.showError("Error: ICE Failed",
+                  "ICE did not succeed to find a connection. "
+                  "You may try again. If the issue persists, "
+                  "please report the issue to Github if you are connected to the internet "
+                  "and describe your network setup.");
+}
+
+
+void CallWindow::showCryptoMissingMessage()
+{
+  mesg_.showWarning("Warning: Encryption not possible",
+                    "The uvgRTP library has not been compiled with crypto++. "
+                    "This means that media encryption will not be enabled.");
+}
+
+
+void CallWindow::showZRTPFailedMessage(QString sessionID)
+{
+  mesg_.showError("Error: ZRTP handshake has failed for session " + sessionID,
+                  "Could not exchange encryption keys.");
 }

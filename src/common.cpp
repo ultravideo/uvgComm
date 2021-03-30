@@ -1,5 +1,6 @@
 
 #include "common.h"
+#include "settingskeys.h"
 
 // Didn't find sleep in QCore
 #ifdef Q_OS_WIN
@@ -317,26 +318,46 @@ bool checkError(QObject* object, bool check, DebugType type,
 }
 
 
-bool getBoolFromSetting(QString key)
+bool settingEnabled(QString key)
 {
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
-  return settings.value(key).toInt() == 1;
+  return settingValue(key) == 1;
 }
 
 
-QString getStringFromSettings(QString key)
+int settingValue(QString key)
 {
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+  QSettings settings(settingsFile, settingsFileFormat);
+
+  if (!settings.value(key).isValid())
+  {
+    printDebug(DEBUG_WARNING, "Common", "Found faulty setting", {"Key"}, {key});
+    return false;
+  }
+
+  return settings.value(key).toInt();
+}
+
+
+QString settingString(QString key)
+{
+  QSettings settings(settingsFile, settingsFileFormat);
+
+  if (!settings.value(key).isValid())
+  {
+    printDebug(DEBUG_WARNING, "Common", "Found faulty setting", {"Key"}, {key});
+    return "";
+  }
+
   return settings.value(key).toString();
 }
 
 
 QString getLocalUsername()
 {
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+  QSettings settings(settingsFile, settingsFileFormat);
 
-  return !settings.value("local/Username").isNull()
-      ? settings.value("local/Username").toString() : "anonymous";
+  return !settings.value(SettingsKey::localUsername).isNull()
+      ? settings.value(SettingsKey::localUsername).toString() : "anonymous";
 }
 
 void printHelper(QString beginString, QString valueString, QString description, int valuenames)

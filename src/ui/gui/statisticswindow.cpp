@@ -47,8 +47,10 @@ StatisticsInterface(),
   receivePacketCount_(0),
   receivedData_(0),
   packetsDropped_(0),
-  audioEncDelay_(0),
-  videoEncDelay_(0),
+  videoEncDelayIndex_(0),
+  videoEncDelay_(BUFFERSIZE,nullptr),
+  audioEncDelayIndex_(0),
+  audioEncDelay_(BUFFERSIZE,nullptr),
   guiTimer_(),
   guiUpdates_(0),
   lastTabIndex_(254) // an invalid value so we will update the tab immediately
@@ -168,11 +170,13 @@ void StatisticsWindow::addSession(uint32_t sessionID)
     return;
   }
 
-  sessions_[sessionID] = {0, std::vector<PacketInfo*>(BUFFERSIZE, nullptr),
-                          0, std::vector<PacketInfo*>(BUFFERSIZE, nullptr),
-                          0, std::vector<PacketInfo*>(BUFFERSIZE, nullptr),
-                          0, std::vector<PacketInfo*>(BUFFERSIZE, nullptr),
-                          0, 0, -1};
+  sessions_[sessionID] = {0, std::vector<ValueInfo*>(BUFFERSIZE, nullptr),
+                          0, std::vector<ValueInfo*>(BUFFERSIZE, nullptr),
+                          0, std::vector<ValueInfo*>(BUFFERSIZE, nullptr),
+                          0, std::vector<ValueInfo*>(BUFFERSIZE, nullptr),
+                          0, std::vector<ValueInfo*>(BUFFERSIZE, nullptr),
+                          0, std::vector<ValueInfo*>(BUFFERSIZE, nullptr),
+                          -1};
 }
 
 
@@ -348,7 +352,11 @@ void StatisticsWindow::removeSession(uint32_t sessionID)
   ui_->a_delay_chart->removeLine(index);
   ui_->v_framerate_chart->removeLine(index);
 
+
+  // TODO: There is still unreleased memory in session!!
+
   sessions_.erase(sessionID);
+
 
   sessionMutex_.unlock();
 }
@@ -358,11 +366,13 @@ void StatisticsWindow::sendDelay(QString type, uint32_t delay)
 {
   if(type == "video" || type == "Video")
   {
-    videoEncDelay_ = delay;
+    updateValueBuffer(videoEncDelay_,
+                      videoEncDelayIndex_, delay);
   }
   else if(type == "audio" || type == "Audio")
   {
-    audioEncDelay_ = delay;
+    updateValueBuffer(audioEncDelay_,
+                      audioEncDelayIndex_, delay);
   }
 }
 
@@ -373,11 +383,13 @@ void StatisticsWindow::receiveDelay(uint32_t sessionID, QString type, int32_t de
   {
     if(type == "video" || type == "Video")
     {
-      sessions_.at(sessionID).videoDelay = delay;
+      updateValueBuffer(sessions_.at(sessionID).videoDelay,
+                        sessions_.at(sessionID).videoDelayIndex, delay);
     }
     else if(type == "audio" || type == "Audio")
     {
-      sessions_.at(sessionID).audioDelay = delay;
+      updateValueBuffer(sessions_.at(sessionID).audioDelay,
+                        sessions_.at(sessionID).audioDelayIndex, delay);
     }
   }
 }
@@ -390,12 +402,12 @@ void StatisticsWindow::presentPackage(uint32_t sessionID, QString type)
   {
     if(type == "video" || type == "Video")
     {
-      updateFramerateBuffer(sessions_.at(sessionID).pVideoPackets,
+      updateValueBuffer(sessions_.at(sessionID).pVideoPackets,
                             sessions_.at(sessionID).pVideoIndex, 0);
     }
     else if (type == "audio" || type == "Audio")
     {
-      updateFramerateBuffer(sessions_.at(sessionID).pAudioPackets,
+      updateValueBuffer(sessions_.at(sessionID).pAudioPackets,
                             sessions_.at(sessionID).pAudioIndex, 0);
     }
   }
@@ -406,17 +418,17 @@ void StatisticsWindow::addEncodedPacket(QString type, uint32_t size)
 {
   if(type == "video" || type == "Video")
   {
-    updateFramerateBuffer(videoPackets_, videoIndex_, size);
+    updateValueBuffer(videoPackets_, videoIndex_, size);
   }
   else if(type == "audio" || type == "Audio")
   {
-    updateFramerateBuffer(audioPackets_, audioIndex_, size);
+    updateValueBuffer(audioPackets_, audioIndex_, size);
   }
 }
 
 
-void StatisticsWindow::updateFramerateBuffer(std::vector<PacketInfo*>& packets,
-                                             uint32_t& index, uint32_t size)
+void StatisticsWindow::updateValueBuffer(std::vector<ValueInfo*>& packets,
+                                             uint32_t& index, uint32_t value)
 {
   // delete previous value from ring-buffer
   if(packets[index%BUFFERSIZE])
@@ -425,42 +437,39 @@ void StatisticsWindow::updateFramerateBuffer(std::vector<PacketInfo*>& packets,
   }
 
   // add packet at this timestamp
-  packets[index%BUFFERSIZE] = new PacketInfo{QDateTime::currentMSecsSinceEpoch(), size};
+  packets[index%BUFFERSIZE] = new ValueInfo{QDateTime::currentMSecsSinceEpoch(), value};
   ++index;
 }
 
 
-uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets, uint32_t index,
-                                   float& framerate, int64_t interval)
+
+uint32_t StatisticsWindow::calculateAverageAndRate(std::vector<ValueInfo*>& packets, uint32_t index,
+                                                   float& rate, int64_t interval, bool calcData)
 {
   if(index == 0)
     return 0;
 
   int64_t now = QDateTime::currentMSecsSinceEpoch();
-  int64_t bitrate = 0;
+  int64_t average = 0;
   uint16_t frames = 0;
   uint32_t currentTs = 0;
-  framerate = 0.0f;
+  rate = 0.0f;
 
   // set timestamp indexes to ringbuffer
   if(index == 0)
   {
     currentTs = BUFFERSIZE - 1;
   }
-  else if (index == 1)
-  {
-    currentTs = index - 1; // equals to 0
-  }
   else
   {
     currentTs = index - 1;
   }
 
-  // sum all bytes and time intervals in ring-buffer for specified timeperiod
+  // sum all values and time intervals in ring-buffer for specified timeperiod
   while(packets[currentTs%BUFFERSIZE] && now - packets[currentTs%BUFFERSIZE]->timestamp
         < interval)
   {
-    bitrate += packets[currentTs%BUFFERSIZE]->size;
+    average += packets[currentTs%BUFFERSIZE]->value;
     ++frames;
     if(currentTs != 0)
     {
@@ -472,13 +481,32 @@ uint32_t StatisticsWindow::bitrate(std::vector<PacketInfo*>& packets, uint32_t i
     }
   }
 
-  // calculate framerate and the average amount of bits per timeinterval (bitrate)
+  // calculate frame rate and the average amount of bits per timeinterval (bitrate)
   if(frames > 0)
   {
-    framerate = 1000*(float)frames/interval;
-    return 8*bitrate/(interval);
+    // rate per second
+    rate = (float)frames*1000/interval;
+
+    if (calcData)
+    {
+      // return the amount of value per second converted to kbits/s
+      return 8*average/(interval);
+    }
+    else
+    {
+      // return the average size of value
+      return average/frames;
+    }
   }
   return 0;
+}
+
+
+uint32_t StatisticsWindow::calculateAverage(std::vector<ValueInfo*>& packets, uint32_t index,
+                                            int64_t interval, bool kbitConversion)
+{
+  float rate = 0.0f;
+  return calculateAverageAndRate(packets, index, rate, interval, kbitConversion);
 }
 
 
@@ -488,7 +516,7 @@ void StatisticsWindow::addSendPacket(uint16_t size)
   ++sendPacketCount_;
   transferredData_ += size;
 
-  updateFramerateBuffer(outBandwidth_, outIndex_, size);
+  updateValueBuffer(outBandwidth_, outIndex_, size);
   deliveryMutex_.unlock();
 }
 
@@ -500,19 +528,19 @@ void StatisticsWindow::addReceivePacket(uint32_t sessionID, QString type,
   ++receivePacketCount_;
   receivedData_ += size;
 
-  updateFramerateBuffer(inBandWidth_, inIndex_, size);
+  updateValueBuffer(inBandWidth_, inIndex_, size);
   deliveryMutex_.unlock();
 
   if(sessions_.find(sessionID) != sessions_.end())
   {
     if(type == "video" || type == "Video")
     {
-      updateFramerateBuffer(sessions_.at(sessionID).videoPackets,
+      updateValueBuffer(sessions_.at(sessionID).videoPackets,
                             sessions_.at(sessionID).videoIndex, size);
     }
     else if (type == "audio" || type == "Audio")
     {
-      updateFramerateBuffer(sessions_.at(sessionID).audioPackets,
+      updateValueBuffer(sessions_.at(sessionID).audioPackets,
                             sessions_.at(sessionID).audioIndex, size);
     }
   }
@@ -616,8 +644,8 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 
       // bandwidth chart
       float packetRate = 0.0f; // not interested in this at the moment.
-      uint32_t inBandwidth = bitrate(inBandWidth_, inIndex_, packetRate, 5000);
-      uint32_t outBandwidth = bitrate(outBandwidth_, outIndex_, packetRate, 5000);
+      uint32_t inBandwidth = calculateAverageAndRate(inBandWidth_, inIndex_, packetRate, 5000, true);
+      uint32_t outBandwidth = calculateAverageAndRate(outBandwidth_, outIndex_, packetRate, 5000, true);
 
       ui_->bandwidth_chart->addPoint(1, inBandwidth);
       ui_->bandwidth_chart->addPoint(2, outBandwidth);
@@ -632,17 +660,19 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 
         // calculate local video bitrate and framerate
         float videoFramerate = 0.0f;
-        uint32_t videoBitrate = bitrate(videoPackets_, videoIndex_, videoFramerate, interval);
+        uint32_t videoBitrate = calculateAverageAndRate(videoPackets_, videoIndex_, videoFramerate, interval, true);
 
         // calculate local audio bitrate
-        float audioFramerate = 0.0f; // not interested in this at the moment.
-        uint32_t audioBitrate = bitrate(audioPackets_, audioIndex_, audioFramerate, interval);
+        uint32_t audioBitrate = calculateAverage(audioPackets_, audioIndex_, interval, true);
+
+        uint32_t videoEncoderDelay = calculateAverage(videoEncDelay_, videoEncDelayIndex_, interval, false);
+        uint32_t audioEncoderDelay = calculateAverage(audioEncDelay_, audioEncDelayIndex_, interval, false);
 
         // add points to chart
         ui_->v_bitrate_chart->addPoint(chartVideoID_, videoBitrate);
         ui_->a_bitrate_chart->addPoint(chartAudioID_, audioBitrate);
-        ui_->v_delay_chart->addPoint(chartVideoID_, videoEncDelay_);
-        ui_->a_delay_chart->addPoint(chartAudioID_, audioEncDelay_);
+        ui_->v_delay_chart->addPoint(chartVideoID_, videoEncoderDelay);
+        ui_->a_delay_chart->addPoint(chartAudioID_, audioEncoderDelay);
         ui_->v_framerate_chart->addPoint(chartVideoID_, videoFramerate);
 
         // add points for all existing sessions
@@ -651,25 +681,25 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
           sessionMutex_.lock();
 
           float receiveVideorate = 0; // not shown at the moment. We show presentation framerate instead
-          uint32_t videoBitrate = bitrate(d.second.videoPackets, d.second.videoIndex,
-                                          receiveVideorate, interval);
+          uint32_t videoBitrate = calculateAverageAndRate(d.second.videoPackets, d.second.videoIndex,
+                                                          receiveVideorate, interval, true);
 
           float presentationVideoFramerate = 0;
-          bitrate(d.second.pVideoPackets, d.second.pVideoIndex,
-                  presentationVideoFramerate, interval);
+          calculateAverageAndRate(d.second.pVideoPackets, d.second.pVideoIndex,
+                                  presentationVideoFramerate, interval, true);
 
-          float receiveAudiorate = 0; // not interesting and not shown.
-          uint32_t audioBitrate = bitrate(d.second.audioPackets, d.second.audioIndex,
-                                          receiveAudiorate, interval);
+          uint32_t audioBitrate = calculateAverage(d.second.audioPackets, d.second.audioIndex,
+                                                   interval, true);
 
-          // not showing audio framerate at the moment. Might show playback samplerate in the future
-          //float presentationAudioFramerate = 0;
-          //bitrate(d.second.pAudioPackets, d.second.pAudioIndex, presentationAudioFramerate, interval);
+          uint32_t videoDelay = calculateAverage(d.second.videoDelay, d.second.videoDelayIndex,
+                                                 interval, false);
+          uint32_t audioDelay = calculateAverage(d.second.audioDelay, d.second.audioDelayIndex,
+                                                 interval, false);
 
           ui_->v_bitrate_chart->addPoint(d.second.tableIndex + 2, videoBitrate);
           ui_->a_bitrate_chart->addPoint(d.second.tableIndex + 2, audioBitrate);
-          ui_->v_delay_chart->addPoint(d.second.tableIndex + 2, d.second.videoDelay);
-          ui_->a_delay_chart->addPoint(d.second.tableIndex + 2, d.second.audioDelay);
+          ui_->v_delay_chart->addPoint(d.second.tableIndex + 2, videoDelay);
+          ui_->a_delay_chart->addPoint(d.second.tableIndex + 2, audioDelay);
           ui_->v_framerate_chart->addPoint(d.second.tableIndex + 2, presentationVideoFramerate);
 
           sessionMutex_.unlock();
@@ -852,7 +882,7 @@ void StatisticsWindow::clearCharts()
   ui_->a_bitrate_chart->clearPoints();
   ui_->v_framerate_chart->clearPoints();
 
-  ui_->bandwidth_chart->clearPoints();
+  //ui_->bandwidth_chart->clearPoints();
 
   // reset GUI timer so the new frequency works
   guiUpdates_ = 0;

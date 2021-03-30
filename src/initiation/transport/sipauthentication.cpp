@@ -117,7 +117,7 @@ DigestResponse SIPAuthentication::generateAuthResponse(DigestChallenge& challeng
   if (a1_.isEmpty() && challenge.algorithm == SIP_MD5_SESS)
   {
     // get saved hash from
-    QString qopString = getStringFromSettings("local/Credentials");
+    QString qopString = settingString("local/Credentials");
 
     if (qopString == "")
     {
@@ -137,7 +137,7 @@ DigestResponse SIPAuthentication::generateAuthResponse(DigestChallenge& challeng
   else if (challenge.algorithm == SIP_NO_ALGORITHM ||
            challenge.algorithm == SIP_MD5)
   {
-    QString qopString = getStringFromSettings("local/Credentials");
+    QString qopString = settingString("local/Credentials");
     a1_ = qopString.toLatin1();
   }
   else if (challenge.algorithm == SIP_UNKNOWN_ALGORITHM)
