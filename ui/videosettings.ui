@@ -1461,13 +1461,41 @@ max-merge &lt;integer&gt;  : Maximum number of merge candidates, 1..5
   </layout>
  </widget>
  <tabstops>
+  <tabstop>Advanced</tabstop>
   <tabstop>format_box</tabstop>
   <tabstop>resolution</tabstop>
   <tabstop>framerate_box</tabstop>
+  <tabstop>kvazaar_threads</tabstop>
+  <tabstop>owf</tabstop>
   <tabstop>wpp</tabstop>
+  <tabstop>tiles_checkbox</tabstop>
+  <tabstop>tile_x</tabstop>
+  <tabstop>tile_y</tabstop>
   <tabstop>slices</tabstop>
+  <tabstop>openhevc_threads</tabstop>
+  <tabstop>rgb32_threads</tabstop>
+  <tabstop>yuv_threads</tabstop>
+  <tabstop>qp</tabstop>
+  <tabstop>intra</tabstop>
+  <tabstop>vps</tabstop>
+  <tabstop>rc_algorithm</tabstop>
+  <tabstop>bitrate_slider</tabstop>
+  <tabstop>oba_clip_neighbours</tabstop>
+  <tabstop>scaling_box</tabstop>
+  <tabstop>lossless_box</tabstop>
+  <tabstop>mv_constraint</tabstop>
+  <tabstop>qp_in_cu_box</tabstop>
+  <tabstop>vaq</tabstop>
+  <tabstop>preset</tabstop>
+  <tabstop>custom_parameters</tabstop>
+  <tabstop>parameter_name</tabstop>
+  <tabstop>parameter_value</tabstop>
+  <tabstop>add_parameter</tabstop>
+  <tabstop>opengl</tabstop>
+  <tabstop>flip</tabstop>
+  <tabstop>force_flip</tabstop>
+  <tabstop>video_ok</tabstop>
   <tabstop>video_close</tabstop>
-  <tabstop>Advanced</tabstop>
  </tabstops>
  <resources/>
  <connections>
