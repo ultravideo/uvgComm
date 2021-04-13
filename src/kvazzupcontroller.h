@@ -53,7 +53,6 @@ public slots:
   void updateSettings(); // update all the components that use settings
   void micState();       // change mic state
   void cameraState();    // change camera state
-  void shareState();    // update screen share
   void endTheCall();     // user wants to end the call
   void windowClosed();   // user has closed the window
   void userAcceptsCall(uint32_t sessionID); // user has accepted the incoming call

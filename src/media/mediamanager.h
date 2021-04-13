@@ -60,7 +60,6 @@ public:
   // call changes. Returns state after toggle
   bool toggleMic();
   bool toggleCamera();
-  bool toggleScreenShare();
 
 signals:
   void handleZRTPFailure(uint32_t sessionID);
@@ -106,5 +105,4 @@ private:
 
   bool mic_;
   bool camera_;
-  bool screenShare_;
 };

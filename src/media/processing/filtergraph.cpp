@@ -109,6 +109,11 @@ void FilterGraph::updateSettings()
     }
   }
 
+  for (auto& filter : screenShareGraph_)
+  {
+    filter->updateSettings();
+  }
+
   for(auto& filter : audioProcessing_)
   {
     filter->updateSettings();

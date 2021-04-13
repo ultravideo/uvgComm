@@ -11,6 +11,8 @@
 
 #include <QCloseEvent>
 #include <QTimer>
+#include <QScreen>
+
 #include <QMetaType>
 #include <QDebug>
 #include <QDir>
@@ -68,9 +70,6 @@ void CallWindow::init(ParticipantInterface *partInt)
   QObject::connect(ui_->camera, SIGNAL(clicked()),
                    this, SIGNAL(cameraStateSwitch()));
 
-  QObject::connect(ui_->screen_share, SIGNAL(clicked()),
-                   this, SIGNAL(shareStateSwitch()));
-
   QObject::connect(ui_->EndCallButton, SIGNAL(clicked()),
                    this, SIGNAL(endCall()));
 
@@ -82,6 +81,9 @@ void CallWindow::init(ParticipantInterface *partInt)
 
   QObject::connect(ui_->username, &QLineEdit::textChanged,
                    this, &CallWindow::changedSIPText);
+
+  QObject::connect(ui_->screen_share, &QPushButton::clicked,
+                   this, &CallWindow::screensShareButton);
 
 
   QMainWindow::show();
@@ -111,10 +113,14 @@ void CallWindow::init(ParticipantInterface *partInt)
   ui_->EndCallButton->hide();
 
   settingsView_.init();
+
+  QSize noRes; // this is not used with false
+  settingsView_.setScreenShareState(false, noRes);
 }
 
 
-void CallWindow::initButton(QString iconPath, QSize size, QSize iconSize, QPushButton* button)
+void CallWindow::initButton(QString iconPath, QSize size, QSize iconSize,
+                            QPushButton* button)
 {
   QPixmap pixmap(iconPath);
   if(!pixmap.isNull())
@@ -300,6 +306,23 @@ void CallWindow::removeWithMessage(uint32_t sessionID, QString message, bool tem
 void CallWindow::on_settings_button_clicked()
 {
   settingsView_.show();
+}
+
+
+void CallWindow::screensShareButton()
+{
+  printNormal(this, "Changing state of screen share");
+
+  bool screenShare = settingEnabled(SettingsKey::screenShareStatus);
+  QScreen *screen = QGuiApplication::primaryScreen();
+
+  QSize resultion;
+  resultion.setWidth(screen->size().width() - screen->size().width()%8);
+  resultion.setHeight(screen->size().height() - screen->size().height()%8);
+
+  settingsView_.setScreenShareState(!screenShare, resultion);
+
+  emit settingsChanged();
 }
 
 

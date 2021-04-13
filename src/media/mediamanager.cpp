@@ -1,31 +1,34 @@
 #include "mediamanager.h"
 #include "media/processing/filtergraph.h"
 #include "media/processing/filter.h"
+#include "media/delivery/delivery.h"
 #include "ui/gui/videoviewfactory.h"
 #include "initiation/negotiation/sdptypes.h"
 #include "statisticsinterface.h"
 #include "common.h"
 
+#include "settingskeys.h"
+
 #include <QHostAddress>
 #include <QtEndian>
 #include <QSettings>
 
-#include "media/delivery/delivery.h"
 
 MediaManager::MediaManager():
   stats_(nullptr),
   fg_(new FilterGraph()),
   streamer_(nullptr),
   mic_(true),
-  camera_(true),
-  screenShare_(false)
+  camera_(true)
 {}
+
 
 MediaManager::~MediaManager()
 {
   fg_->running(false);
   fg_->uninit();
 }
+
 
 void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory, StatisticsInterface *stats)
 {
@@ -72,6 +75,8 @@ void MediaManager::updateSettings()
   fg_->updateSettings();
   fg_->camera(camera_); // kind of a hack to make sure the camera/mic state is preserved
   fg_->mic(mic_);
+
+  fg_->screenShare(settingEnabled(SettingsKey::screenShareStatus), camera_);
 }
 
 
@@ -280,8 +285,8 @@ void MediaManager::createIncomingMedia(uint32_t sessionID,
       else
       {
         printDebug(DEBUG_ERROR, this, "Creating incoming media. "
-                                                    "No viable connection address in mediainfo. "
-                                                    "Should be detected earlier.");
+                                      "No viable connection address in mediainfo. "
+                                      "Should be detected earlier.");
         return;
       }
 
@@ -329,6 +334,7 @@ void MediaManager::removeParticipant(uint32_t sessionID)
   fg_->removeParticipant(sessionID);
   fg_->camera(camera_); // if the last participant was destroyed, restore camera state
   fg_->mic(mic_);
+  fg_->screenShare(settingEnabled(SettingsKey::screenShareStatus), camera_);
   streamer_->removePeer(sessionID);
 
   printDebug(DEBUG_NORMAL, "Media Manager", "Session media removed",
@@ -350,12 +356,6 @@ bool MediaManager::toggleCamera()
   return camera_;
 }
 
-bool MediaManager::toggleScreenShare()
-{
-  screenShare_ = !screenShare_;
-  fg_->screenShare(screenShare_, camera_);
-  return screenShare_;
-}
 
 QString MediaManager::rtpNumberToCodec(const MediaInfo& info)
 {

@@ -31,6 +31,10 @@ public:
   void changedDevice(uint16_t deviceIndex);
   void resetSettings(int deviceID);
 
+  // GUI -> QSettings
+
+  void saveCameraCapabilities(int deviceIndex);
+
 signals:
 
   void settingsChanged();
@@ -71,8 +75,6 @@ private:
 
   // GUI -> QSettings
   void saveSettings();
-
-  void saveCameraCapabilities(int deviceIndex);
 
   // initializes the UI with correct formats and resolutions
   void initializeFormat();

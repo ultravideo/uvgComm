@@ -3,6 +3,7 @@
 #include "filter.h"
 
 #include <QTimer>
+#include <QSize>
 
 class ScreenShareFilter : public Filter
 {
@@ -10,6 +11,8 @@ class ScreenShareFilter : public Filter
 public:
   ScreenShareFilter(QString id, StatisticsInterface* stats);
   virtual bool init();
+
+  virtual void updateSettings();
 
 protected:
 
@@ -22,4 +25,7 @@ private slots:
 private:
 
   QTimer sendTimer_;
+
+  int currentFramerate_;
+  QSize currentResolution_;
 };

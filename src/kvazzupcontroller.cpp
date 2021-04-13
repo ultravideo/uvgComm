@@ -28,7 +28,6 @@ void KvazzupController::init()
   QObject::connect(&window_, SIGNAL(settingsChanged()), this, SLOT(updateSettings()));
   QObject::connect(&window_, SIGNAL(micStateSwitch()), this, SLOT(micState()));
   QObject::connect(&window_, SIGNAL(cameraStateSwitch()), this, SLOT(cameraState()));
-  QObject::connect(&window_, SIGNAL(shareStateSwitch()), this, SLOT(shareState()));
   QObject::connect(&window_, SIGNAL(endCall()), this, SLOT(endTheCall()));
   QObject::connect(&window_, SIGNAL(closed()), this, SLOT(windowClosed()));
 
@@ -405,12 +404,6 @@ void KvazzupController::cameraState()
 {
   // TODO: Get this to change the icon faster
   window_.setCameraState(media_.toggleCamera());
-}
-
-void KvazzupController::shareState()
-{
-  printNormal(this, "Toggling screen sharing");
-  media_.toggleScreenShare();
 }
 
 

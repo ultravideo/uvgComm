@@ -51,6 +51,8 @@ public:
 
   void updateServerStatus(QString status);
 
+  void setScreenShareState(bool enabled, QSize &resolution);
+
 signals:
 
   // announces to rest of the program that they should reload their settings

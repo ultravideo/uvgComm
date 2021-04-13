@@ -114,6 +114,25 @@ void Settings::show()
 }
 
 
+void Settings::setScreenShareState(bool enabled, QSize& resolution)
+{
+  if (enabled)
+  {
+    settings_.setValue(SettingsKey::screenShareStatus, "1");
+    settings_.setValue(SettingsKey::videoResultionWidth, resolution.width());
+    settings_.setValue(SettingsKey::videoResultionHeight, resolution.height());
+    settings_.setValue(SettingsKey::videoFramerate, "5");
+  }
+  else
+  {
+    settings_.setValue(SettingsKey::screenShareStatus, "0");
+    videoSettings_.saveCameraCapabilities(getDeviceID(basicUI_->audioDevice_combo,
+                                                      SettingsKey::videoDeviceID,
+                                                      SettingsKey::videoDevice));
+  }
+}
+
+
 void Settings::uiChangedString(QString text)
 {
   Q_UNUSED(text);

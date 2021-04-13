@@ -5,7 +5,8 @@
 #include <QGuiApplication>
 #include <QDateTime>
 
-const int FRAMERATE = 5;
+#include "common.h"
+#include "settingskeys.h"
 
 ScreenShareFilter::ScreenShareFilter(QString id, StatisticsInterface *stats):
   Filter(id, "Screen Sharing", stats, NONE, RGB32VIDEO)
@@ -14,20 +15,52 @@ ScreenShareFilter::ScreenShareFilter(QString id, StatisticsInterface *stats):
 
 bool ScreenShareFilter::init()
 {
-  sendTimer_.setSingleShot(false);
-  sendTimer_.setInterval(1000/FRAMERATE);
-  connect(&sendTimer_, &QTimer::timeout, this, &ScreenShareFilter::sendScreen);
-  sendTimer_.start();
+  updateSettings();
 
   return Filter::init();
 }
+
+
+void ScreenShareFilter::updateSettings()
+{
+  bool enabled = settingEnabled(SettingsKey::screenShareStatus);
+
+  if (enabled)
+  {
+    printNormal(this, "Enabling screen share filter");
+    currentFramerate_ = settingValue(SettingsKey::videoFramerate);
+
+    currentResolution_.setWidth(settingValue(SettingsKey::videoResultionWidth));
+    currentResolution_.setHeight(settingValue(SettingsKey::videoResultionHeight));
+
+    sendTimer_.setSingleShot(false);
+    sendTimer_.setInterval(1000/currentFramerate_);
+    connect(&sendTimer_, &QTimer::timeout, this, &ScreenShareFilter::sendScreen);
+    sendTimer_.start();
+  }
+  else
+  {
+    printNormal(this, "Disabling screen share filter");
+    sendTimer_.stop();
+  }
+}
+
 
 void ScreenShareFilter::process()
 {
   QScreen *screen = QGuiApplication::primaryScreen();
   if (!screen)
-      return;
+  {
+    printError(this, "Couldn't get screen");
+    return;
+  }
 
+  if (currentResolution_.width() != screen->size().width() - screen->size().width()%8 ||
+      currentResolution_.height() != screen->size().height() - screen->size().height()%8)
+  {
+    printProgramError(this, "Current resolution differs from screen size");
+    return;
+  }
 
   QPixmap screenCapture = screen->grabWindow(0);
   QImage image = screenCapture.toImage();
@@ -46,10 +79,10 @@ void ScreenShareFilter::process()
   memcpy(newImage->data.get(), bits, image.sizeInBytes());
   newImage->data_size = image.sizeInBytes();
   // kvazaar requires divisable by 8 resolution
-  newImage->width = screen->size().width() - screen->size().width()%8;
-  newImage->height = screen->size().height() - screen->size().height()%8;
+  newImage->width = currentResolution_.width();
+  newImage->height = currentResolution_.height();
   newImage->source = LOCAL;
-  newImage->framerate = FRAMERATE;
+  newImage->framerate = currentFramerate_;
 
   std::unique_ptr<Data> u_newImage( newImage );
 
