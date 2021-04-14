@@ -59,7 +59,14 @@ void ScreenShareFilter::process()
   if (currentResolution_.width() != screen->size().width() - screen->size().width()%8 ||
       currentResolution_.height() != screen->size().height() - screen->size().height()%8)
   {
-    printProgramError(this, "Current resolution differs from screen size");
+    QString currentResolution = QString::number(currentResolution_.width()) + "x" +
+        QString::number(currentResolution_.height());
+
+    QString screenResolution = QString::number(screen->size().width()) + "x" +
+        QString::number(screen->size().height());
+
+    printDebug(DEBUG_PROGRAM_ERROR, this, "Current resolution differs from screen size",
+               {"Current", "Screen resolution"}, {currentResolution, screenResolution});
     return;
   }
 

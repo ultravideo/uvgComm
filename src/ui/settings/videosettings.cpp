@@ -57,6 +57,7 @@ VideoSettings::VideoSettings(QWidget* parent,
   currentDevice_(0),
   videoSettingsUI_(new Ui::VideoSettings),
   cam_(info),
+  sharingScreen_(false),
   settings_(settingsFile, settingsFileFormat)
 {
   videoSettingsUI_->setupUi(this);
@@ -118,7 +119,7 @@ void VideoSettings::changedDevice(uint16_t deviceIndex)
 {
   currentDevice_ = deviceIndex;
   initializeFormat();
-  saveCameraCapabilities(deviceIndex); // record the new camerasettings.
+  saveCameraCapabilities(deviceIndex, !sharingScreen_); // record the new camerasettings.
 }
 
 
@@ -169,13 +170,14 @@ void VideoSettings::on_add_parameter_clicked()
   addFieldsToTable(list, videoSettingsUI_->custom_parameters);
 }
 
+
 void VideoSettings::saveSettings()
 {
   printNormal(this, "Saving video Settings");
 
   // Video settings
   // input-tab
-  saveCameraCapabilities(settings_.value(SettingsKey::videoDeviceID).toInt());
+  saveCameraCapabilities(settings_.value(SettingsKey::videoDeviceID).toInt(), !sharingScreen_);
 
   // Parallelization-tab
   saveTextValue(SettingsKey::videoKvzThreads,       videoSettingsUI_->kvazaar_threads->currentText(),
@@ -233,56 +235,59 @@ void VideoSettings::saveSettings()
 }
 
 
-void VideoSettings::saveCameraCapabilities(int deviceIndex)
+void VideoSettings::saveCameraCapabilities(int deviceIndex, bool cameraEnabled)
 {
-  printNormal(this, "Recording capability settings for device",
-              {"Device Index"}, {QString::number(deviceIndex)});
-
-  int formatIndex = videoSettingsUI_->format_box->currentIndex();
-  int resolutionIndex = videoSettingsUI_->resolution->currentIndex();
-
-  printDebug(DEBUG_NORMAL, this, "Box status", {"Format", "Resolution"},
-             {QString::number(formatIndex), QString::number(resolutionIndex)});
-
-  if(formatIndex == -1)
+  if (cameraEnabled)
   {
-    formatIndex = 0;
-    resolutionIndex = 0;
+    printNormal(this, "Recording capability settings for device",
+                {"Device Index"}, {QString::number(deviceIndex)});
+
+    int formatIndex = videoSettingsUI_->format_box->currentIndex();
+    int resolutionIndex = videoSettingsUI_->resolution->currentIndex();
+
+    printDebug(DEBUG_NORMAL, this, "Box status", {"Format", "Resolution"},
+               {QString::number(formatIndex), QString::number(resolutionIndex)});
+
+    if(formatIndex == -1)
+    {
+      formatIndex = 0;
+      resolutionIndex = 0;
+    }
+
+    if(resolutionIndex == -1)
+    {
+      resolutionIndex = 0;
+    }
+
+    QString format = cam_->getFormat(currentDevice_, formatIndex);
+    QSize res = cam_->getResolution(currentDevice_, formatIndex, resolutionIndex);
+
+    // since kvazaar requires resolution to be divisible by eight
+    // TODO: Use QSize to record resolution
+    settings_.setValue(SettingsKey::videoResultionWidth,      res.width() - res.width()%8);
+    settings_.setValue(SettingsKey::videoResultionHeight,     res.height() - res.height()%8);
+    settings_.setValue(SettingsKey::videoResolutionID,         resolutionIndex);
+    settings_.setValue(SettingsKey::videoFramerateID,
+                       videoSettingsUI_->framerate_box->currentIndex());
+
+    // TODO: does not work if minimum and maximum framerates differ or if framerate is fractional
+    if (!videoSettingsUI_->framerate_box->currentText().isEmpty())
+    {
+      settings_.setValue(SettingsKey::videoFramerate,
+                         videoSettingsUI_->framerate_box->currentText());
+    }
+    else {
+      settings_.setValue(SettingsKey::videoFramerate,            0);
+    }
+
+    settings_.setValue(SettingsKey::videoInputFormat,          format);
+
+    printDebug(DEBUG_NORMAL, this, "Recorded following video settings.",
+               {"Resolution", "Resolution Index", "Format"},
+               {QString::number(res.width() - res.width()%8) + "x" +
+                QString::number(res.height() - res.height()%8),
+                QString::number(resolutionIndex), format});
   }
-
-  if(resolutionIndex == -1)
-  {
-    resolutionIndex = 0;
-  }
-
-  QString format = cam_->getFormat(currentDevice_, formatIndex);
-  QSize res = cam_->getResolution(currentDevice_, formatIndex, resolutionIndex);
-
-  // since kvazaar requires resolution to be divisible by eight
-  // TODO: Use QSize to record resolution
-  settings_.setValue(SettingsKey::videoResultionWidth,      res.width() - res.width()%8);
-  settings_.setValue(SettingsKey::videoResultionHeight,     res.height() - res.height()%8);
-  settings_.setValue(SettingsKey::videoResolutionID,         resolutionIndex);
-  settings_.setValue(SettingsKey::videoFramerateID,
-                     videoSettingsUI_->framerate_box->currentIndex());
-
-  // TODO: does not work if minimum and maximum framerates differ or if framerate is fractional
-  if (!videoSettingsUI_->framerate_box->currentText().isEmpty())
-  {
-    settings_.setValue(SettingsKey::videoFramerate,
-                       videoSettingsUI_->framerate_box->currentText());
-  }
-  else {
-    settings_.setValue(SettingsKey::videoFramerate,            0);
-  }
-
-  settings_.setValue(SettingsKey::videoInputFormat,          format);
-
-  printDebug(DEBUG_NORMAL, this, "Recorded following video settings.",
-             {"Resolution", "Resolution Index", "Format"},
-             {QString::number(res.width() - res.width()%8) + "x" +
-              QString::number(res.height() - res.height()%8),
-              QString::number(resolutionIndex), format});
 }
 
 

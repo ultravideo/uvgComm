@@ -33,7 +33,12 @@ public:
 
   // GUI -> QSettings
 
-  void saveCameraCapabilities(int deviceIndex);
+  void saveCameraCapabilities(int deviceIndex, bool cameraEnabled);
+
+  void setScreenShareState(bool state)
+  {
+    sharingScreen_ = state;
+  }
 
 signals:
 
@@ -85,6 +90,8 @@ private:
   Ui::VideoSettings *videoSettingsUI_;
 
   std::shared_ptr<CameraInfo> cam_;
+
+  bool sharingScreen_;
 
   QSettings settings_;
 };

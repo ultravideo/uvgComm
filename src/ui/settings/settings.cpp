@@ -98,8 +98,6 @@ void Settings::init()
 
 void Settings::show()
 {
-
-
   printNormal(this, "Opening settings");
   // initialize everytime in case they have changed
   initDeviceSelector(basicUI_->videoDevice_combo, SettingsKey::videoDeviceID,
@@ -122,13 +120,15 @@ void Settings::setScreenShareState(bool enabled, QSize& resolution)
     settings_.setValue(SettingsKey::videoResultionWidth, resolution.width());
     settings_.setValue(SettingsKey::videoResultionHeight, resolution.height());
     settings_.setValue(SettingsKey::videoFramerate, "5");
+    videoSettings_.setScreenShareState(enabled);
   }
   else
   {
     settings_.setValue(SettingsKey::screenShareStatus, "0");
+    videoSettings_.setScreenShareState(enabled);
     videoSettings_.saveCameraCapabilities(getDeviceID(basicUI_->audioDevice_combo,
                                                       SettingsKey::videoDeviceID,
-                                                      SettingsKey::videoDevice));
+                                                      SettingsKey::videoDevice), !enabled);
   }
 }
 
