@@ -163,13 +163,15 @@ void FilterGraph::initSelfView()
 {
   printNormal(this, "Iniating camera and selfview");
 
+  QSettings settings(settingsFile, settingsFileFormat);
+  videoFormat_ = settings.value(SettingsKey::videoInputFormat).toString();
+
   if(cameraGraph_.size() > 0)
   {
     destroyFilters(cameraGraph_);
   }
 
   // Sending video graph
-
   if (!addToGraph(std::shared_ptr<Filter>(new CameraFilter("", stats_)), cameraGraph_))
   {
     // camera failed
@@ -177,9 +179,7 @@ void FilterGraph::initSelfView()
     return; // TODO: return false that we failed so user can fix camera selection
   }
 
-  QSettings settings(settingsFile, settingsFileFormat);
-  videoFormat_ = settings.value(SettingsKey::videoInputFormat).toString();
-
+  // create screen share filter, but it is stopped at the beginning
   if(screenShareGraph_.size() == 0)
   {
     if (addToGraph(std::shared_ptr<Filter>(new ScreenShareFilter("", stats_)), screenShareGraph_))
@@ -198,9 +198,15 @@ void FilterGraph::initSelfView()
     addToGraph(std::shared_ptr<Filter>(scaler), videoSend_);
     */
 
-    // connect selfview to camera
-    // the self view rotation depends on which conversions are use as some of the optimizations
-    // do the mirroring. Note: mirroring is slow with Qt
+    // Connect selfview to camera and screen sharing. The self view vertical mirroring
+    // depends on which conversions are used.
+
+    // TODO: Figure out what is going on. There is probably a bug in one of the optimization
+    // that flip the video. This however removes the need for an additional flip for some
+    // reason saving CPU.
+
+    // we dont do horizontal mirroring if we are using screen sharing, but that is changed later
+    // Note: mirroring is slow with Qt
     selfviewFilter_->setProperties(true, cameraGraph_.at(0)->outputType() == RGB32VIDEO);
     addToGraph(selfviewFilter_, cameraGraph_);
     addToGraph(selfviewFilter_, screenShareGraph_);
@@ -246,8 +252,8 @@ void FilterGraph::initializeAudio(bool opus)
 
   if (opus)
   {
-    addToGraph(std::shared_ptr<Filter>(new OpusEncoderFilter("", format_, stats_)), audioProcessing_,
-               audioProcessing_.size() - 1);
+    addToGraph(std::shared_ptr<Filter>(new OpusEncoderFilter("", format_, stats_)),
+               audioProcessing_, audioProcessing_.size() - 1);
   }
 }
 
@@ -306,7 +312,8 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
 }
 
 
-bool FilterGraph::connectFilters(std::shared_ptr<Filter> filter, std::shared_ptr<Filter> previous)
+bool FilterGraph::connectFilters(std::shared_ptr<Filter> filter,
+                                 std::shared_ptr<Filter> previous)
 {
   Q_ASSERT(filter != nullptr && previous != nullptr);
 
@@ -416,7 +423,8 @@ void FilterGraph::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioF
 }
 
 
-void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> audioSink)
+void FilterGraph::receiveAudioFrom(uint32_t sessionID,
+                                   std::shared_ptr<Filter> audioSink)
 {
   Q_ASSERT(sessionID);
   Q_ASSERT(audioSink);
@@ -440,7 +448,6 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
   addToGraph(std::make_shared<AudioMixerFilter>(QString::number(sessionID),
                                                 stats_, sessionID, audioOutput_),
              *graph, graph->size() - 1);
-
 }
 
 
@@ -656,7 +663,8 @@ void FilterGraph::removeParticipant(uint32_t sessionID)
   if (peers_.find(sessionID) != peers_.end() &&
       peers_[sessionID] != nullptr)
   {
-    printDebug(DEBUG_NORMAL, this, "Removing peer", {"SessionID", "Remaining sessions"},
+    printDebug(DEBUG_NORMAL, this,
+               "Removing peer", {"SessionID", "Remaining sessions"},
                {QString::number(sessionID), QString::number(peers_.size())});
 
     destroyPeer(peers_[sessionID]);
@@ -675,6 +683,7 @@ void FilterGraph::removeParticipant(uint32_t sessionID)
     if(!peerPresent)
     {
       destroyFilters(cameraGraph_);
+      destroyFilters(screenShareGraph_);
       if (!quitting_)
       {
         initSelfView(); // restore the self view.

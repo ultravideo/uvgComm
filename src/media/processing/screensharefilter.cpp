@@ -37,6 +37,7 @@ void ScreenShareFilter::updateSettings()
     sendTimer_.setInterval(1000/currentFramerate_);
     connect(&sendTimer_, &QTimer::timeout, this, &ScreenShareFilter::sendScreen);
     sendTimer_.start();
+    sendScreen();
   }
   else
   {
