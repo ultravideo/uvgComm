@@ -10,9 +10,11 @@
 class VideoInterface;
 class StatisticsInterface;
 class AudioOutputDevice;
+
 class Filter;
 class ScreenShareFilter;
 class AECInputFilter;
+class DisplayFilter;
 
 typedef std::vector<std::shared_ptr<Filter>> GraphSegment;
 
@@ -60,7 +62,7 @@ private:
   void checkParticipant(uint32_t sessionID);
 
   // iniates camera and attaches a self view to it.
-  void initSelfView(VideoInterface *selfView);
+  void initSelfView();
 
   // iniates encoder and attaches it
   void initVideoSend();
@@ -96,7 +98,7 @@ private:
   GraphSegment screenShareGraph_;
   GraphSegment audioProcessing_;
 
-  VideoInterface *selfView_;
+  std::shared_ptr<DisplayFilter> selfviewFilter_;
 
   StatisticsInterface* stats_;
 
