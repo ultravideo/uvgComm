@@ -138,13 +138,18 @@ bool CameraFilter::initialCameraSetup()
   printDebug(DEBUG_NORMAL, this, "Initiating Qt camera", {"ID"},
               {QString::number(currentDeviceID_)});
 
-  camera_ = new QCamera(cameras.at(currentDeviceID_));
-  cameraFrameGrabber_ = new CameraFrameGrabber();
+  if (currentDeviceID_ < cameras.size())
+  {
+    camera_ = new QCamera(cameras.at(currentDeviceID_));
+    cameraFrameGrabber_ = new CameraFrameGrabber();
 
 #ifndef __linux__
-  camera_->load();
+    camera_->load();
 #endif
-  return true;
+    return true;
+  }
+
+  return false;
 }
 
 
