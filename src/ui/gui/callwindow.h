@@ -49,10 +49,6 @@ public:
   void removeWithMessage(uint32_t sessionID, QString message,
                          bool temporaryMessage);
 
-  // set GUI to reflect state
-  void setMicState(bool on);
-  void setCameraState(bool on);
-
   // if user closes the window
   void closeEvent(QCloseEvent *event);
 
@@ -75,8 +71,7 @@ signals:
 
   // signals for informing the program of users wishes
   void settingsChanged();
-  void micStateSwitch();
-  void cameraStateSwitch();
+
   void endCall();
   void closed();
 
@@ -97,10 +92,16 @@ public slots:
   void on_addContact_clicked();
 
   void screensShareButton();
+  void micButton(bool checked);
+  void cameraButton(bool checked);
 
   void changedSIPText(const QString &text);
 
 private:
+
+  // set GUI to reflect state
+  void setMicState(bool on);
+  void setCameraState(bool on);
 
   // helper for setting icons to buttons.
   void initButton(QString iconPath, QSize size, QSize iconSize,

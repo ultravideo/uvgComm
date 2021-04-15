@@ -26,8 +26,6 @@ void KvazzupController::init()
   // register the GUI signals indicating GUI changes to be handled
   // approrietly in a system wide manner
   QObject::connect(&window_, SIGNAL(settingsChanged()), this, SLOT(updateSettings()));
-  QObject::connect(&window_, SIGNAL(micStateSwitch()), this, SLOT(micState()));
-  QObject::connect(&window_, SIGNAL(cameraStateSwitch()), this, SLOT(cameraState()));
   QObject::connect(&window_, SIGNAL(endCall()), this, SLOT(endTheCall()));
   QObject::connect(&window_, SIGNAL(closed()), this, SLOT(windowClosed()));
 
@@ -390,20 +388,6 @@ void KvazzupController::endTheCall()
   printImportant(this, "We end the call");
 
   sip_.endAllCalls();
-}
-
-
-void KvazzupController::micState()
-{
-  // TODO: Get this to change the icon faster
-  window_.setMicState(media_.toggleMic());
-}
-
-
-void KvazzupController::cameraState()
-{
-  // TODO: Get this to change the icon faster
-  window_.setCameraState(media_.toggleCamera());
 }
 
 

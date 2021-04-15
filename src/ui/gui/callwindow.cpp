@@ -63,11 +63,11 @@ void CallWindow::init(ParticipantInterface *partInt)
   QObject::connect(&settingsView_, SIGNAL(settingsChanged()),
                    this, SIGNAL(settingsChanged()));
 
-  QObject::connect(ui_->mic, SIGNAL(clicked()),
-                   this, SIGNAL(micStateSwitch()));
+  QObject::connect(ui_->mic, &QPushButton::clicked,
+                   this, &CallWindow::micButton);
 
-  QObject::connect(ui_->camera, SIGNAL(clicked()),
-                   this, SIGNAL(cameraStateSwitch()));
+  QObject::connect(ui_->camera, &QPushButton::clicked,
+                   this, &CallWindow::cameraButton);
 
   QObject::connect(ui_->EndCallButton, SIGNAL(clicked()),
                    this, SIGNAL(endCall()));
@@ -114,6 +114,10 @@ void CallWindow::init(ParticipantInterface *partInt)
   settingsView_.init();
 
   settingsView_.setScreenShareState(false);
+
+  // set button icons to correct states
+  setMicState(settingEnabled(SettingsKey::micStatus));
+  setCameraState(settingEnabled(SettingsKey::cameraStatus));
 }
 
 
@@ -316,6 +320,31 @@ void CallWindow::screensShareButton()
 
   emit settingsChanged();
 }
+
+
+void CallWindow::micButton(bool checked)
+{
+  Q_UNUSED(checked);
+
+  bool currentState = settingEnabled(SettingsKey::micStatus);
+
+  setMicState(!currentState);
+  settingsView_.setMicState(!currentState);
+  emit settingsChanged();
+}
+
+
+void CallWindow::cameraButton(bool checked)
+{
+  Q_UNUSED(checked);
+
+  bool currentState = settingEnabled(SettingsKey::cameraStatus);
+
+  setCameraState(!currentState);
+  settingsView_.setCameraState(!currentState);
+  emit settingsChanged();
+}
+
 
 
 void CallWindow::on_about_clicked()

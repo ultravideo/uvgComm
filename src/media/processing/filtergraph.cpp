@@ -156,6 +156,8 @@ void FilterGraph::updateSettings()
   {
     audioOutput_->updateSettings();
   }
+
+  mediaSources();
 }
 
 
@@ -211,6 +213,8 @@ void FilterGraph::initSelfView()
     addToGraph(selfviewFilter_, cameraGraph_);
     addToGraph(selfviewFilter_, screenShareGraph_);
   }
+
+  mediaSources();
 }
 
 
@@ -420,6 +424,8 @@ void FilterGraph::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioF
 
   audioProcessing_.back()->addOutConnection(audioFramedSource);
   audioFramedSource->start();
+
+  mic(settingEnabled(SettingsKey::micStatus));
 }
 
 
@@ -525,32 +531,61 @@ void FilterGraph::camera(bool state)
     else
     {
       printNormal(this, "Starting camera");
+      selfviewFilter_->setProperties(true, cameraGraph_.at(0)->outputType() == RGB32VIDEO);
       cameraGraph_.at(0)->start();
     }
   }
 }
 
 
-void FilterGraph::screenShare(bool shareState, bool cameraState)
+void FilterGraph::screenShare(bool shareState)
 {
   if(cameraGraph_.size() > 0 && screenShareGraph_.size() > 0)
   {
     if(shareState)
     {
       printNormal(this, "Starting to share screen");
-      screenShareGraph_.at(0)->start();
-      cameraGraph_.at(0)->stop();
+
+      // We don't want to flip selfview horizontally when sharing the screen.
+      // This way the self view is an accurate representation of what the others
+      // will view. With camera on the other hand, we want it to mirror the user.
       selfviewFilter_->setProperties(false, true);
+      screenShareGraph_.at(0)->start();
     }
     else
     {
       printNormal(this, "Stopping to share screen");
       screenShareGraph_.at(0)->stop();
-      camera(cameraState);
-      selfviewFilter_->setProperties(true, cameraGraph_.at(0)->outputType() == RGB32VIDEO);
-
     }
   }
+}
+
+
+void FilterGraph::mediaSources()
+{
+  if (settingEnabled(SettingsKey::screenShareStatus))
+  {
+    printNormal(this, "Enabled screen sharing in filter graph");
+    camera(false);
+    screenShare(true);
+  }
+  else if (settingEnabled(SettingsKey::cameraStatus))
+  {
+    printNormal(this, "Enabled camera in filter graph");
+    screenShare(false);
+    camera(true);
+  }
+  else
+  {
+    printNormal(this, "No video in filter graph");
+
+    screenShare(false);
+    camera(false);
+
+    // maybe some custom image here?
+  }
+
+  mic(settingEnabled(SettingsKey::micStatus));
 }
 
 
@@ -690,6 +725,8 @@ void FilterGraph::removeParticipant(uint32_t sessionID)
       }
 
       destroyFilters(audioProcessing_);
+
+      mediaSources();
     }
   }
 }

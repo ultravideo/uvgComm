@@ -36,10 +36,7 @@ public:
   // removes participant and all its associated filter from filter graph.
   void removeParticipant(uint32_t sessionID);
 
-  void mic(bool state);
-  void camera(bool state);
   void running(bool state);
-  void screenShare(bool shareState, bool cameraState);
 
   // print the filter graph to a dot file to be drawn as a graph
   void print();
@@ -48,6 +45,12 @@ public:
   void updateSettings();
 
 private:
+
+  void mediaSources();
+
+  void mic(bool state);
+  void camera(bool state);
+  void screenShare(bool shareState);
 
   // adds fitler to graph and connects it to connectIndex unless this is the first filter in graph.
   // adds format conversion if needed.

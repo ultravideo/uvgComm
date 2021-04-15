@@ -17,9 +17,7 @@
 MediaManager::MediaManager():
   stats_(nullptr),
   fg_(new FilterGraph()),
-  streamer_(nullptr),
-  mic_(true),
-  camera_(true)
+  streamer_(nullptr)
 {}
 
 
@@ -70,13 +68,10 @@ void MediaManager::uninit()
   }
 }
 
+
 void MediaManager::updateSettings()
 {
   fg_->updateSettings();
-  fg_->camera(camera_); // kind of a hack to make sure the camera/mic state is preserved
-  fg_->mic(mic_);
-
-  fg_->screenShare(settingEnabled(SettingsKey::screenShareStatus), camera_);
 }
 
 
@@ -217,7 +212,6 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
       if(remoteMedia.type == "audio")
       {
         fg_->sendAudioTo(sessionID, std::shared_ptr<Filter>(framedSource));
-        fg_->mic(mic_);
       }
       else if(remoteMedia.type == "video")
       {
@@ -332,28 +326,10 @@ void MediaManager::createIncomingMedia(uint32_t sessionID,
 void MediaManager::removeParticipant(uint32_t sessionID)
 {
   fg_->removeParticipant(sessionID);
-  fg_->camera(camera_); // if the last participant was destroyed, restore camera state
-  fg_->mic(mic_);
-  fg_->screenShare(settingEnabled(SettingsKey::screenShareStatus), camera_);
   streamer_->removePeer(sessionID);
 
   printDebug(DEBUG_NORMAL, "Media Manager", "Session media removed",
             {"SessionID"}, {QString::number(sessionID)});
-}
-
-
-bool MediaManager::toggleMic()
-{
-  mic_ = !mic_;
-  fg_->mic(mic_);
-  return mic_;
-}
-
-bool MediaManager::toggleCamera()
-{
-  camera_ = !camera_;
-  fg_->camera(camera_);
-  return camera_;
 }
 
 
@@ -372,6 +348,7 @@ QString MediaManager::rtpNumberToCodec(const MediaInfo& info)
   }
   return "pcm";
 }
+
 
 void MediaManager::transportAttributes(const QList<SDPAttributeType>& attributes, bool& send, bool& recv)
 {

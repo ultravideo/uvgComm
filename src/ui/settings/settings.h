@@ -51,6 +51,8 @@ public:
 
   void updateServerStatus(QString status);
 
+  void setMicState(bool enabled);
+  void setCameraState(bool enabled);
   void setScreenShareState(bool enabled);
 
 signals:

@@ -19,6 +19,8 @@ namespace SettingsKey {
 // GUI setting keys
 
 const QString screenShareStatus = "gui/ScreenShareEnabled";
+const QString cameraStatus = "gui/CameraEnabled";
+const QString micStatus = "gui/MicrophoneEnabled";
 
 
 // Video setting keys

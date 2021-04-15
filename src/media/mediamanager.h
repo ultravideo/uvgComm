@@ -57,10 +57,6 @@ public:
   void streamToIP(in_addr ip, uint16_t port);
   void receiveFromIP(in_addr ip, uint16_t port);
 
-  // call changes. Returns state after toggle
-  bool toggleMic();
-  bool toggleCamera();
-
 signals:
   void handleZRTPFailure(uint32_t sessionID);
   void handleNoEncryption();
@@ -102,7 +98,4 @@ private:
   std::unique_ptr<Delivery> streamer_;
 
   std::shared_ptr<VideoviewFactory> viewfactory_;
-
-  bool mic_;
-  bool camera_;
 };

@@ -114,6 +114,32 @@ void Settings::show()
 }
 
 
+void Settings::setMicState(bool enabled)
+{
+  if (enabled)
+  {
+    settings_.setValue(SettingsKey::micStatus, "1");
+  }
+  else
+  {
+    settings_.setValue(SettingsKey::micStatus, "0");
+  }
+}
+
+
+void Settings::setCameraState(bool enabled)
+{
+  if (enabled)
+  {
+    settings_.setValue(SettingsKey::cameraStatus, "1");
+  }
+  else
+  {
+    settings_.setValue(SettingsKey::cameraStatus, "0");
+  }
+}
+
+
 void Settings::setScreenShareState(bool enabled)
 {
   if (enabled)
