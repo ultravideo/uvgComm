@@ -8,7 +8,7 @@ Kvazzup is under development and new features will become available.
 ## Current features 
 
 Currently Kvazzup has the following features:
-- Initiating call through *Session Initiation Procol (SIP)* proxy (authentication is not yet supported)
+- Initiating call through *Session Initiation Protocol (SIP)* proxy (authentication is not yet supported)
 - Initiating call peer-to-peer (firewall needs to have an open port 5060 for incoming TCP)
 - Peer-to-peer media delivery with NAT traversal using *Interactive Connectivity Protocol (ICE)*
 - Contacts list
@@ -21,17 +21,18 @@ Currently Kvazzup has the following features:
 ## Compile Kvazzup
 
 Kvazzup requires the following external libraries to operate: 
-- [Kvazaar](https://github.com/ultravideo/kvazaar)
-- [OpenHEVC](https://github.com/OpenHEVC/openHEVC)
-- [Opus](http://opus-codec.org/)
-- [uvgRTP](https://github.com/ultravideo/uvgRTP)
-- [Speex DSP](https://www.speex.org/)
+- [Kvazaar](https://github.com/ultravideo/kvazaar) for HEVC encoding
+- [OpenHEVC](https://github.com/OpenHEVC/openHEVC) for HEVC decoding
+- [Opus](http://opus-codec.org/) for audio coding
+- [uvgRTP](https://github.com/ultravideo/uvgRTP) for media delivery
+- [Speex DSP](https://www.speex.org/) for audio processing
+- [Crypto++](https://cryptopp.com/) for delivery encryption
 
 Qt Creator is the recommended tool for compiling Kvazzup. Make sure you use the same compiler and bit version for all the dependencies and for Kvazzup. If you want to use media encryption, you should compile uvgRTP with crypto++ by adding `-D__RTP_CRYPTO__` to uvgRTP CXXFLAGS.
 
 ### Linux(GCC)
 
-Install Qt and Qt multimedia. Make sure Opus, Speex DSP and OpenMP are installed. Compile and install openHEVC, Kvazaar and uvgRTP.
+Install Qt and Qt multimedia. Make sure Opus, Speex DSP, OpenMP and Crypto++ are installed. Compile and install openHEVC, Kvazaar and uvgRTP.
 
 ### MinGW
 

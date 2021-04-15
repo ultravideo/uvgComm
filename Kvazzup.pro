@@ -224,7 +224,9 @@ INCLUDEPATH += $$PWD/../include/
 LIBS += -lopus
 LIBS += -lLibOpenHevcWrapper
 LIBS += -lspeexdsp
+LIBS += -lcryptlib  # you may remove this, but then you wont have encryption with uvgRTP
 LIBS += -luvgrtp
+
 
 # windows build settings
 win32{
@@ -253,6 +255,7 @@ win32-msvc{
   LIBS += -L$$PWD/../msvc_libs
   LIBS += -ladvapi32
   LIBS += -lkernel32
+
   message("Using MSVC libraries in ../msvc_libs")
 }
 
