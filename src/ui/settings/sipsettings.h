@@ -21,7 +21,7 @@ public:
   void resetSettings();
 
 signals:
-  void advancedSettingsChanged();
+  void updateCallSettings();
   void hidden();
 
 public slots:

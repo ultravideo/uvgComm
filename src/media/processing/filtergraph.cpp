@@ -1,7 +1,5 @@
 #include "filtergraph.h"
 
-#include <QFile>
-
 #include "media/processing/camerafilter.h"
 #include "media/processing/screensharefilter.h"
 #include "media/processing/kvazaarfilter.h"
@@ -24,13 +22,14 @@
 #include "common.h"
 
 #include <QSettings>
+#include <QFile>
 
 FilterGraph::FilterGraph(): QObject(),
   peers_(),
   cameraGraph_(),
   screenShareGraph_(),
   audioProcessing_(),
-  selfView_(nullptr),
+  selfviewFilter_(nullptr),
   stats_(nullptr),
   format_(),
   videoFormat_(""),
@@ -61,13 +60,14 @@ void FilterGraph::init(VideoInterface* selfView, StatisticsInterface* stats)
   Q_ASSERT(stats);
 
   stats_ = stats;
-  selfView_ = selfView;
+  selfviewFilter_ =
+      std::shared_ptr<DisplayFilter>(new DisplayFilter("Self", stats_, selfView, 1111));
 
-  initSelfView(selfView);
+  initSelfView();
 }
 
 
-void FilterGraph::updateSettings()
+void FilterGraph::updateVideoSettings()
 {
   QSettings settings(settingsFile, settingsFileFormat);
   // if the video format has changed so that we need different conversions
@@ -81,7 +81,7 @@ void FilterGraph::updateSettings()
 
 
     // update selfview in case camera format has changed
-    initSelfView(selfView_);
+    initSelfView();
 
     // if we are in a call, initiate kvazaar and connect peers. Otherwise add it late.
     if(peers_.size() != 0)
@@ -109,7 +109,7 @@ void FilterGraph::updateSettings()
     }
   }
 
-  for(auto& filter : audioProcessing_)
+  for (auto& filter : screenShareGraph_)
   {
     filter->updateSettings();
   }
@@ -122,10 +122,6 @@ void FilterGraph::updateSettings()
       {
         senderFilter->updateSettings();
       }
-      for (auto& senderFilter : peer.second->audioSenders)
-      {
-        senderFilter->updateSettings();
-      }
 
       // decode and display settings
       for(auto& videoReceivers : peer.second->videoReceivers)
@@ -134,6 +130,28 @@ void FilterGraph::updateSettings()
         {
           filter->updateSettings();
         }
+      }
+    }
+  }
+
+  selectVideoSource();
+}
+
+
+void FilterGraph::updateAudioSettings()
+{
+  for(auto& filter : audioProcessing_)
+  {
+    filter->updateSettings();
+  }
+
+  for(auto& peer : peers_)
+  {
+    if(peer.second != nullptr)
+    {
+      for (auto& senderFilter : peer.second->audioSenders)
+      {
+        senderFilter->updateSettings();
       }
 
       for(auto& audioReceivers : peer.second->audioReceivers)
@@ -146,17 +164,21 @@ void FilterGraph::updateSettings()
     }
   }
 
-
   if (audioOutput_ != nullptr)
   {
     audioOutput_->updateSettings();
   }
+
+  mic(settingEnabled(SettingsKey::micStatus));
 }
 
 
-void FilterGraph::initSelfView(VideoInterface *selfView)
+void FilterGraph::initSelfView()
 {
   printNormal(this, "Iniating camera and selfview");
+
+  QSettings settings(settingsFile, settingsFileFormat);
+  videoFormat_ = settings.value(SettingsKey::videoInputFormat).toString();
 
   if(cameraGraph_.size() > 0)
   {
@@ -164,7 +186,6 @@ void FilterGraph::initSelfView(VideoInterface *selfView)
   }
 
   // Sending video graph
-
   if (!addToGraph(std::shared_ptr<Filter>(new CameraFilter("", stats_)), cameraGraph_))
   {
     // camera failed
@@ -172,9 +193,7 @@ void FilterGraph::initSelfView(VideoInterface *selfView)
     return; // TODO: return false that we failed so user can fix camera selection
   }
 
-  QSettings settings(settingsFile, settingsFileFormat);
-  videoFormat_ = settings.value(SettingsKey::videoInputFormat).toString();
-
+  // create screen share filter, but it is stopped at the beginning
   if(screenShareGraph_.size() == 0)
   {
     if (addToGraph(std::shared_ptr<Filter>(new ScreenShareFilter("", stats_)), screenShareGraph_))
@@ -183,7 +202,7 @@ void FilterGraph::initSelfView(VideoInterface *selfView)
     }
   }
 
-  if(selfView)
+  if(selfviewFilter_)
   {
     // connect scaling filter
     // TODO: not useful if it does not support YUV. Testing needed to verify
@@ -193,15 +212,21 @@ void FilterGraph::initSelfView(VideoInterface *selfView)
     addToGraph(std::shared_ptr<Filter>(scaler), videoSend_);
     */
 
-    // connect selfview to camera
-    std::shared_ptr<DisplayFilter> selfviewFilter =
-        std::shared_ptr<DisplayFilter>(new DisplayFilter("Self", stats_, selfView, 1111));
-    // the self view rotation depends on which conversions are use as some of the optimizations
-    // do the mirroring. Note: mirroring is slow with Qt
-    selfviewFilter->setProperties(true, cameraGraph_.at(0)->outputType() == RGB32VIDEO);
-    addToGraph(selfviewFilter, cameraGraph_);
-    addToGraph(selfviewFilter, screenShareGraph_);
+    // Connect selfview to camera and screen sharing. The self view vertical mirroring
+    // depends on which conversions are used.
+
+    // TODO: Figure out what is going on. There is probably a bug in one of the optimization
+    // that flip the video. This however removes the need for an additional flip for some
+    // reason saving CPU.
+
+    // we dont do horizontal mirroring if we are using screen sharing, but that is changed later
+    // Note: mirroring is slow with Qt
+    selfviewFilter_->setProperties(true, cameraGraph_.at(0)->outputType() == RGB32VIDEO);
+    addToGraph(selfviewFilter_, cameraGraph_);
+    addToGraph(selfviewFilter_, screenShareGraph_);
   }
+
+  selectVideoSource();
 }
 
 
@@ -212,7 +237,7 @@ void FilterGraph::initVideoSend()
   if(cameraGraph_.size() == 0)
   {
     printProgramWarning(this, "Camera was not iniated for video send");
-    initSelfView(selfView_);
+    initSelfView();
   }
   else if(cameraGraph_.size() > 3)
   {
@@ -243,8 +268,8 @@ void FilterGraph::initializeAudio(bool opus)
 
   if (opus)
   {
-    addToGraph(std::shared_ptr<Filter>(new OpusEncoderFilter("", format_, stats_)), audioProcessing_,
-               audioProcessing_.size() - 1);
+    addToGraph(std::shared_ptr<Filter>(new OpusEncoderFilter("", format_, stats_)),
+               audioProcessing_, audioProcessing_.size() - 1);
   }
 }
 
@@ -303,7 +328,8 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
 }
 
 
-bool FilterGraph::connectFilters(std::shared_ptr<Filter> filter, std::shared_ptr<Filter> previous)
+bool FilterGraph::connectFilters(std::shared_ptr<Filter> filter,
+                                 std::shared_ptr<Filter> previous)
 {
   Q_ASSERT(filter != nullptr && previous != nullptr);
 
@@ -410,10 +436,13 @@ void FilterGraph::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioF
 
   audioProcessing_.back()->addOutConnection(audioFramedSource);
   audioFramedSource->start();
+
+  mic(settingEnabled(SettingsKey::micStatus));
 }
 
 
-void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> audioSink)
+void FilterGraph::receiveAudioFrom(uint32_t sessionID,
+                                   std::shared_ptr<Filter> audioSink)
 {
   Q_ASSERT(sessionID);
   Q_ASSERT(audioSink);
@@ -437,7 +466,6 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
   addToGraph(std::make_shared<AudioMixerFilter>(QString::number(sessionID),
                                                 stats_, sessionID, audioOutput_),
              *graph, graph->size() - 1);
-
 }
 
 
@@ -515,28 +543,58 @@ void FilterGraph::camera(bool state)
     else
     {
       printNormal(this, "Starting camera");
+      selfviewFilter_->setProperties(true, cameraGraph_.at(0)->outputType() == RGB32VIDEO);
       cameraGraph_.at(0)->start();
     }
   }
 }
 
 
-void FilterGraph::screenShare(bool shareState, bool cameraState)
+void FilterGraph::screenShare(bool shareState)
 {
   if(cameraGraph_.size() > 0 && screenShareGraph_.size() > 0)
   {
     if(shareState)
     {
-      printNormal(this, "Starting to share screen");
+      printNormal(this, "Starting to share the screen");
+
+      // We don't want to flip selfview horizontally when sharing the screen.
+      // This way the self view is an accurate representation of what the others
+      // will view. With camera on the other hand, we want it to mirror the user.
+      selfviewFilter_->setProperties(false, true);
       screenShareGraph_.at(0)->start();
-      cameraGraph_.at(0)->stop();
     }
     else
     {
-      printNormal(this, "Stopping to share screen");
+      printNormal(this, "Not sharing the screen");
       screenShareGraph_.at(0)->stop();
-      camera(cameraState);
     }
+  }
+}
+
+
+void FilterGraph::selectVideoSource()
+{
+  if (settingEnabled(SettingsKey::screenShareStatus))
+  {
+    printNormal(this, "Enabled screen sharing in filter graph");
+    camera(false);
+    screenShare(true);
+  }
+  else if (settingEnabled(SettingsKey::cameraStatus))
+  {
+    printNormal(this, "Enabled camera in filter graph");
+    screenShare(false);
+    camera(true);
+  }
+  else
+  {
+    printNormal(this, "No video in filter graph");
+
+    screenShare(false);
+    camera(false);
+
+    // maybe some custom image here?
   }
 }
 
@@ -650,7 +708,8 @@ void FilterGraph::removeParticipant(uint32_t sessionID)
   if (peers_.find(sessionID) != peers_.end() &&
       peers_[sessionID] != nullptr)
   {
-    printDebug(DEBUG_NORMAL, this, "Removing peer", {"SessionID", "Remaining sessions"},
+    printDebug(DEBUG_NORMAL, this,
+               "Removing peer", {"SessionID", "Remaining sessions"},
                {QString::number(sessionID), QString::number(peers_.size())});
 
     destroyPeer(peers_[sessionID]);
@@ -669,12 +728,16 @@ void FilterGraph::removeParticipant(uint32_t sessionID)
     if(!peerPresent)
     {
       destroyFilters(cameraGraph_);
+      destroyFilters(screenShareGraph_);
       if (!quitting_)
       {
-        initSelfView(selfView_); // restore the self view.
+        initSelfView(); // restore the self view.
       }
 
       destroyFilters(audioProcessing_);
+
+      selectVideoSource();
+      mic(settingEnabled(SettingsKey::micStatus));
     }
   }
 }

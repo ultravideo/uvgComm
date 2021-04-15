@@ -40,10 +40,9 @@ public:
   MediaManager();
   ~MediaManager();
 
+  // make sure viewfactory is iniated before this
   void init(std::shared_ptr<VideoviewFactory> viewfactory, StatisticsInterface *stats);
   void uninit();
-
-  void updateSettings();
 
   // registers a contact for activity monitoring
   void registerContact(in_addr ip);
@@ -56,11 +55,6 @@ public:
   // Functions that enable using Kvazzup as just a streming client for whatever reason.
   void streamToIP(in_addr ip, uint16_t port);
   void receiveFromIP(in_addr ip, uint16_t port);
-
-  // call changes. Returns state after toggle
-  bool toggleMic();
-  bool toggleCamera();
-  bool toggleScreenShare();
 
 signals:
   void handleZRTPFailure(uint32_t sessionID);
@@ -84,6 +78,9 @@ signals:
   // the host has quit the call and we have been chosen to become the new host (ability to kick people)
   void becameHost();
 
+  void updateVideoSettings();
+  void updateAudioSettings();
+
 private:
 
   void createOutgoingMedia(uint32_t sessionID, const MediaInfo& localMedia,
@@ -103,8 +100,4 @@ private:
   std::unique_ptr<Delivery> streamer_;
 
   std::shared_ptr<VideoviewFactory> viewfactory_;
-
-  bool mic_;
-  bool camera_;
-  bool screenShare_;
 };

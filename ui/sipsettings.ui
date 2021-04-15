@@ -366,6 +366,17 @@
  </widget>
  <tabstops>
   <tabstop>Advanced</tabstop>
+  <tabstop>auto_accept</tabstop>
+  <tabstop>media_port</tabstop>
+  <tabstop>stun_enabled</tabstop>
+  <tabstop>stun_address</tabstop>
+  <tabstop>stun_port</tabstop>
+  <tabstop>Anon_contacts</tabstop>
+  <tabstop>CorrectUsername</tabstop>
+  <tabstop>blockedUsers</tabstop>
+  <tabstop>blockUser</tabstop>
+  <tabstop>addUserBlock</tabstop>
+  <tabstop>advanced_ok</tabstop>
   <tabstop>advanced_close</tabstop>
  </tabstops>
  <resources/>

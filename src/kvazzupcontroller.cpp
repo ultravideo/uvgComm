@@ -23,12 +23,23 @@ void KvazzupController::init()
 {
   printImportant(this, "Kvazzup initiation Started");
 
+  window_.init(this);
+  window_.show();
+  stats_ = window_.createStatsWindow();
+
+  sip_.init(this, stats_, window_.getStatusView());
+  media_.init(window_.getViewFactory(), stats_);
+
   // register the GUI signals indicating GUI changes to be handled
   // approrietly in a system wide manner
-  QObject::connect(&window_, SIGNAL(settingsChanged()), this, SLOT(updateSettings()));
-  QObject::connect(&window_, SIGNAL(micStateSwitch()), this, SLOT(micState()));
-  QObject::connect(&window_, SIGNAL(cameraStateSwitch()), this, SLOT(cameraState()));
-  QObject::connect(&window_, SIGNAL(shareStateSwitch()), this, SLOT(shareState()));
+  QObject::connect(&window_, &CallWindow::updateCallSettings,
+                   &sip_, &SIPManager::updateCallSettings);
+
+  QObject::connect(&window_, &CallWindow::updateVideoSettings,
+                   &media_, &MediaManager::updateVideoSettings);
+  QObject::connect(&window_, &CallWindow::updateAudioSettings,
+                   &media_, &MediaManager::updateAudioSettings);
+
   QObject::connect(&window_, SIGNAL(endCall()), this, SLOT(endTheCall()));
   QObject::connect(&window_, SIGNAL(closed()), this, SLOT(windowClosed()));
 
@@ -49,13 +60,6 @@ void KvazzupController::init()
 
   QObject::connect(&media_, &MediaManager::handleNoEncryption,
                    this,    &KvazzupController::noEncryptionAvailable);
-
-  window_.init(this);
-  window_.show();
-  stats_ = window_.createStatsWindow();
-
-  sip_.init(this, stats_, window_.getStatusView());
-  media_.init(window_.getViewFactory(), stats_);
 
   printImportant(this, "Kvazzup initiation finished");
 }
@@ -352,14 +356,6 @@ void KvazzupController::registeringFailed()
   // TODO: indicate error to user
 }
 
-
-void KvazzupController::updateSettings()
-{
-  media_.updateSettings();
-  sip_.updateSettings();
-}
-
-
 void KvazzupController::userAcceptsCall(uint32_t sessionID)
 {
   printNormal(this, "We accept");
@@ -389,26 +385,6 @@ void KvazzupController::endTheCall()
   printImportant(this, "We end the call");
 
   sip_.endAllCalls();
-}
-
-
-void KvazzupController::micState()
-{
-  // TODO: Get this to change the icon faster
-  window_.setMicState(media_.toggleMic());
-}
-
-
-void KvazzupController::cameraState()
-{
-  // TODO: Get this to change the icon faster
-  window_.setCameraState(media_.toggleCamera());
-}
-
-void KvazzupController::shareState()
-{
-  printNormal(this, "Toggling screen sharing");
-  media_.toggleScreenShare();
 }
 
 

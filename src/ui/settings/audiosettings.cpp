@@ -105,7 +105,7 @@ void AudioSettings::on_audio_ok_clicked()
 {
   printNormal(this, "Saving Audio Settings");
   saveSettings();
-  emit settingsChanged();
+  emit updateAudioSettings();
 }
 
 

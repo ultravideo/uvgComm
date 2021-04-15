@@ -15,6 +15,7 @@
 #include <QDebug>
 #include <QDir>
 
+
 CallWindow::CallWindow(QWidget *parent):
   QMainWindow(parent),
   ui_(new Ui::CallWindow),
@@ -58,18 +59,20 @@ void CallWindow::init(ParticipantInterface *partInt)
   // I don't know why this is required.
   qRegisterMetaType<QVector<int> >("QVector<int>");
 
+  QObject::connect(&settingsView_, &Settings::updateCallSettings,
+                   this,           &CallWindow::updateCallSettings);
 
-  QObject::connect(&settingsView_, SIGNAL(settingsChanged()),
-                   this, SIGNAL(settingsChanged()));
+  QObject::connect(&settingsView_, &Settings::updateVideoSettings,
+                   this,           &CallWindow::updateVideoSettings);
 
-  QObject::connect(ui_->mic, SIGNAL(clicked()),
-                   this, SIGNAL(micStateSwitch()));
+  QObject::connect(&settingsView_, &Settings::updateAudioSettings,
+                   this,           &CallWindow::updateAudioSettings);
 
-  QObject::connect(ui_->camera, SIGNAL(clicked()),
-                   this, SIGNAL(cameraStateSwitch()));
+  QObject::connect(ui_->mic, &QPushButton::clicked,
+                   this, &CallWindow::micButton);
 
-  QObject::connect(ui_->screen_share, SIGNAL(clicked()),
-                   this, SIGNAL(shareStateSwitch()));
+  QObject::connect(ui_->camera, &QPushButton::clicked,
+                   this, &CallWindow::cameraButton);
 
   QObject::connect(ui_->EndCallButton, SIGNAL(clicked()),
                    this, SIGNAL(endCall()));
@@ -82,6 +85,9 @@ void CallWindow::init(ParticipantInterface *partInt)
 
   QObject::connect(ui_->username, &QLineEdit::textChanged,
                    this, &CallWindow::changedSIPText);
+
+  QObject::connect(ui_->screen_share, &QPushButton::clicked,
+                   this, &CallWindow::screensShareButton);
 
 
   QMainWindow::show();
@@ -111,10 +117,16 @@ void CallWindow::init(ParticipantInterface *partInt)
   ui_->EndCallButton->hide();
 
   settingsView_.init();
+  settingsView_.setScreenShareState(false);
+
+  // set button icons to correct states
+  setMicState(settingEnabled(SettingsKey::micStatus));
+  setCameraState(settingEnabled(SettingsKey::cameraStatus));
 }
 
 
-void CallWindow::initButton(QString iconPath, QSize size, QSize iconSize, QPushButton* button)
+void CallWindow::initButton(QString iconPath, QSize size, QSize iconSize,
+                            QPushButton* button)
 {
   QPixmap pixmap(iconPath);
   if(!pixmap.isNull())
@@ -303,6 +315,41 @@ void CallWindow::on_settings_button_clicked()
 }
 
 
+void CallWindow::screensShareButton()
+{
+  printNormal(this, "Changing state of screen share");
+
+  // we change the state of screensharestatus setting here
+  settingsView_.setScreenShareState(!settingEnabled(SettingsKey::screenShareStatus));
+
+  emit updateVideoSettings();
+}
+
+
+void CallWindow::micButton(bool checked)
+{
+  Q_UNUSED(checked);
+
+  bool currentState = settingEnabled(SettingsKey::micStatus);
+
+  setMicState(!currentState);
+  settingsView_.setMicState(!currentState);
+  emit updateAudioSettings();
+}
+
+
+void CallWindow::cameraButton(bool checked)
+{
+  Q_UNUSED(checked);
+
+  bool currentState = settingEnabled(SettingsKey::cameraStatus);
+
+  setCameraState(!currentState);
+  settingsView_.setCameraState(!currentState);
+  emit updateVideoSettings();
+}
+
+
 void CallWindow::on_about_clicked()
 {
   about_.show();
@@ -329,8 +376,7 @@ void CallWindow::showICEFailedMessage()
 void CallWindow::showCryptoMissingMessage()
 {
   mesg_.showWarning("Warning: Encryption not possible",
-                    "The uvgRTP library has not been compiled with crypto++. "
-                    "This means that media encryption will not be enabled.");
+                    "Crypto++ has not been included in both Kvazzup and uvgRTP.");
 }
 
 

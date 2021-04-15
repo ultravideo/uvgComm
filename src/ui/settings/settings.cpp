@@ -11,7 +11,9 @@
 
 #include <common.h>
 
+#include <QScreen>
 #include <QCryptographicHash>
+
 
 const QStringList neededSettings = {SettingsKey::localRealname,
                                     SettingsKey::localUsername,
@@ -54,16 +56,16 @@ void Settings::init()
   //QObject::connect(basicUI_->save, &QPushButton::clicked, this, &Settings::on_ok_clicked);
   //QObject::connect(basicUI_->close, &QPushButton::clicked, this, &Settings::on_cancel_clicked);
 
-  QObject::connect(&videoSettings_, &VideoSettings::settingsChanged,
-                   this, &Settings::settingsChanged);
+  QObject::connect(&videoSettings_, &VideoSettings::updateVideoSettings,
+                   this, &Settings::updateVideoSettings);
   QObject::connect(&videoSettings_, &VideoSettings::hidden, this, &Settings::show);
 
-  QObject::connect(&audioSettings_, &AudioSettings::settingsChanged,
-                   this, &Settings::settingsChanged);
+  QObject::connect(&audioSettings_, &AudioSettings::updateAudioSettings,
+                   this, &Settings::updateAudioSettings);
   QObject::connect(&audioSettings_, &AudioSettings::hidden, this, &Settings::show);
 
-  QObject::connect(&sipSettings_, &SIPSettings::advancedSettingsChanged,
-                   this, &Settings::settingsChanged);
+  QObject::connect(&sipSettings_, &SIPSettings::updateCallSettings,
+                   this, &Settings::updateCallSettings);
   QObject::connect(&sipSettings_, &SIPSettings::hidden,
                    this, &Settings::show);
 
@@ -102,8 +104,6 @@ void Settings::init()
 
 void Settings::show()
 {
-
-
   printNormal(this, "Opening settings");
   // initialize everytime in case they have changed
   initDeviceSelector(basicUI_->videoDevice_combo, SettingsKey::videoDeviceID,
@@ -115,6 +115,71 @@ void Settings::show()
 
   QWidget::show();
   basicUI_->save->hide();
+}
+
+
+void Settings::setMicState(bool enabled)
+{
+  if (enabled)
+  {
+    settings_.setValue(SettingsKey::micStatus, "1");
+  }
+  else
+  {
+    settings_.setValue(SettingsKey::micStatus, "0");
+  }
+}
+
+
+void Settings::setCameraState(bool enabled)
+{
+  if (enabled)
+  {
+    settings_.setValue(SettingsKey::cameraStatus, "1");
+  }
+  else
+  {
+    settings_.setValue(SettingsKey::cameraStatus, "0");
+  }
+}
+
+
+void Settings::setScreenShareState(bool enabled)
+{
+  if (enabled)
+  {
+    int screenIndex = getDeviceID(basicUI_->screenDevice_combo, SettingsKey::userScreenID,
+                                  SettingsKey::userScreen);
+
+    if (screenIndex < QGuiApplication::screens().size())
+    {
+      QScreen *screen = QGuiApplication::screens().at(screenIndex);
+
+      if (screen != nullptr)
+      {
+        QSize resolution;
+        resolution.setWidth(screen->size().width() - screen->size().width()%8);
+        resolution.setHeight(screen->size().height() - screen->size().height()%8);
+
+        settings_.setValue(SettingsKey::screenShareStatus, "1");
+        settings_.setValue(SettingsKey::videoResultionWidth, resolution.width());
+        settings_.setValue(SettingsKey::videoResultionHeight, resolution.height());
+        settings_.setValue(SettingsKey::videoFramerate, "5");
+        videoSettings_.setScreenShareState(enabled);
+
+        printNormal(this, "Enabled Screen sharing", "Screen resolution",
+                    QString::number(resolution.width()) + "x" + QString::number(resolution.height()));
+      }
+    }
+  }
+  else
+  {
+    settings_.setValue(SettingsKey::screenShareStatus, "0");
+    videoSettings_.setScreenShareState(enabled);
+    videoSettings_.saveCameraCapabilities(getDeviceID(basicUI_->audioDevice_combo,
+                                                      SettingsKey::videoDeviceID,
+                                                      SettingsKey::videoDevice), !enabled);
+  }
 }
 
 
@@ -137,7 +202,12 @@ void Settings::on_save_clicked()
   printNormal(this, "Saving settings");
   // The UI values are saved to settings.
   saveSettings();
-  emit settingsChanged();
+  setScreenShareState(settingEnabled(SettingsKey::screenShareStatus));
+
+  emit updateCallSettings();
+  emit updateVideoSettings();
+  emit updateAudioSettings();
+
   basicUI_->save->hide();
 }
 
@@ -309,10 +379,10 @@ void Settings::resetFaultySettings()
 void Settings::initDeviceSelector(QComboBox* deviceSelector,
                                   QString settingID,
                                   QString settingsDevice,
-                                  std::shared_ptr<DeviceInfoInterface> interface)
+                                  std::shared_ptr<DeviceInfoInterface> deviceInterface)
 {
   deviceSelector->clear();
-  QStringList devices = interface->getDeviceList();
+  QStringList devices = deviceInterface->getDeviceList();
   for(int i = 0; i < devices.size(); ++i)
   {
     deviceSelector->addItem( devices[i]);

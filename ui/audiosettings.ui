@@ -389,8 +389,16 @@
   </layout>
  </widget>
  <tabstops>
-  <tabstop>audio_close</tabstop>
   <tabstop>Advanced</tabstop>
+  <tabstop>bitrate_slider</tabstop>
+  <tabstop>complexity_slider</tabstop>
+  <tabstop>signal_combo</tabstop>
+  <tabstop>aec_box</tabstop>
+  <tabstop>dereverberation_box</tabstop>
+  <tabstop>denoise_box</tabstop>
+  <tabstop>agc_box</tabstop>
+  <tabstop>audio_ok</tabstop>
+  <tabstop>audio_close</tabstop>
  </tabstops>
  <resources/>
  <connections/>

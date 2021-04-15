@@ -10,9 +10,11 @@
 class VideoInterface;
 class StatisticsInterface;
 class AudioOutputDevice;
+
 class Filter;
 class ScreenShareFilter;
 class AECInputFilter;
+class DisplayFilter;
 
 typedef std::vector<std::shared_ptr<Filter>> GraphSegment;
 
@@ -34,18 +36,24 @@ public:
   // removes participant and all its associated filter from filter graph.
   void removeParticipant(uint32_t sessionID);
 
-  void mic(bool state);
-  void camera(bool state);
   void running(bool state);
-  void screenShare(bool shareState, bool cameraState);
 
   // print the filter graph to a dot file to be drawn as a graph
   void print();
 
-  // Refresh settings of all filters from QSettings.
-  void updateSettings();
+
+public slots:
+
+  void updateVideoSettings();
+  void updateAudioSettings();
 
 private:
+
+  void selectVideoSource();
+
+  void mic(bool state);
+  void camera(bool state);
+  void screenShare(bool shareState);
 
   // adds fitler to graph and connects it to connectIndex unless this is the first filter in graph.
   // adds format conversion if needed.
@@ -60,7 +68,7 @@ private:
   void checkParticipant(uint32_t sessionID);
 
   // iniates camera and attaches a self view to it.
-  void initSelfView(VideoInterface *selfView);
+  void initSelfView();
 
   // iniates encoder and attaches it
   void initVideoSend();
@@ -96,7 +104,7 @@ private:
   GraphSegment screenShareGraph_;
   GraphSegment audioProcessing_;
 
-  VideoInterface *selfView_;
+  std::shared_ptr<DisplayFilter> selfviewFilter_;
 
   StatisticsInterface* stats_;
 

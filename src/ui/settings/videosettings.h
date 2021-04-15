@@ -31,9 +31,18 @@ public:
   void changedDevice(uint16_t deviceIndex);
   void resetSettings(int deviceID);
 
+  // GUI -> QSettings
+
+  void saveCameraCapabilities(int deviceIndex, bool cameraEnabled);
+
+  void setScreenShareState(bool state)
+  {
+    sharingScreen_ = state;
+  }
+
 signals:
 
-  void settingsChanged();
+  void updateVideoSettings();
   void hidden();
 
 public slots:
@@ -72,8 +81,6 @@ private:
   // GUI -> QSettings
   void saveSettings();
 
-  void saveCameraCapabilities(int deviceIndex);
-
   // initializes the UI with correct formats and resolutions
   void initializeFormat();
   void initializeThreads();
@@ -83,6 +90,8 @@ private:
   Ui::VideoSettings *videoSettingsUI_;
 
   std::shared_ptr<CameraInfo> cam_;
+
+  bool sharingScreen_;
 
   QSettings settings_;
 };

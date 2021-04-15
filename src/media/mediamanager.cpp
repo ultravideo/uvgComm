@@ -1,31 +1,32 @@
 #include "mediamanager.h"
 #include "media/processing/filtergraph.h"
 #include "media/processing/filter.h"
+#include "media/delivery/delivery.h"
 #include "ui/gui/videoviewfactory.h"
 #include "initiation/negotiation/sdptypes.h"
 #include "statisticsinterface.h"
 #include "common.h"
 
+#include "settingskeys.h"
+
 #include <QHostAddress>
 #include <QtEndian>
 #include <QSettings>
 
-#include "media/delivery/delivery.h"
 
 MediaManager::MediaManager():
   stats_(nullptr),
   fg_(new FilterGraph()),
-  streamer_(nullptr),
-  mic_(true),
-  camera_(true),
-  screenShare_(false)
+  streamer_(nullptr)
 {}
+
 
 MediaManager::~MediaManager()
 {
   fg_->running(false);
   fg_->uninit();
 }
+
 
 void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory, StatisticsInterface *stats)
 {
@@ -49,6 +50,12 @@ void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory, Statistic
   // 0 is the selfview index. The view should be created by GUI
   fg_->init(viewfactory_->getVideo(0, 0), stats);
   streamer_->init(stats_);
+
+  QObject::connect(this, &MediaManager::updateVideoSettings,
+                   fg_.get(), &FilterGraph::updateVideoSettings);
+
+  QObject::connect(this, &MediaManager::updateAudioSettings,
+                   fg_.get(), &FilterGraph::updateAudioSettings);
 }
 
 
@@ -65,13 +72,6 @@ void MediaManager::uninit()
     streamer_->uninit();
     streamer_ = nullptr;
   }
-}
-
-void MediaManager::updateSettings()
-{
-  fg_->updateSettings();
-  fg_->camera(camera_); // kind of a hack to make sure the camera/mic state is preserved
-  fg_->mic(mic_);
 }
 
 
@@ -212,7 +212,6 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
       if(remoteMedia.type == "audio")
       {
         fg_->sendAudioTo(sessionID, std::shared_ptr<Filter>(framedSource));
-        fg_->mic(mic_);
       }
       else if(remoteMedia.type == "video")
       {
@@ -280,8 +279,8 @@ void MediaManager::createIncomingMedia(uint32_t sessionID,
       else
       {
         printDebug(DEBUG_ERROR, this, "Creating incoming media. "
-                                                    "No viable connection address in mediainfo. "
-                                                    "Should be detected earlier.");
+                                      "No viable connection address in mediainfo. "
+                                      "Should be detected earlier.");
         return;
       }
 
@@ -327,35 +326,12 @@ void MediaManager::createIncomingMedia(uint32_t sessionID,
 void MediaManager::removeParticipant(uint32_t sessionID)
 {
   fg_->removeParticipant(sessionID);
-  fg_->camera(camera_); // if the last participant was destroyed, restore camera state
-  fg_->mic(mic_);
   streamer_->removePeer(sessionID);
 
   printDebug(DEBUG_NORMAL, "Media Manager", "Session media removed",
             {"SessionID"}, {QString::number(sessionID)});
 }
 
-
-bool MediaManager::toggleMic()
-{
-  mic_ = !mic_;
-  fg_->mic(mic_);
-  return mic_;
-}
-
-bool MediaManager::toggleCamera()
-{
-  camera_ = !camera_;
-  fg_->camera(camera_);
-  return camera_;
-}
-
-bool MediaManager::toggleScreenShare()
-{
-  screenShare_ = !screenShare_;
-  fg_->screenShare(screenShare_, camera_);
-  return screenShare_;
-}
 
 QString MediaManager::rtpNumberToCodec(const MediaInfo& info)
 {
@@ -372,6 +348,7 @@ QString MediaManager::rtpNumberToCodec(const MediaInfo& info)
   }
   return "pcm";
 }
+
 
 void MediaManager::transportAttributes(const QList<SDPAttributeType>& attributes, bool& send, bool& recv)
 {

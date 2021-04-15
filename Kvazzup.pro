@@ -234,6 +234,7 @@ LIBS += -lLibOpenHevcWrapper
 LIBS += -lspeexdsp
 LIBS += -luvgrtp
 
+
 # windows build settings
 win32{
   INCLUDEPATH += $$PWD/../include/uvgrtp
@@ -261,6 +262,8 @@ win32-msvc{
   LIBS += -L$$PWD/../msvc_libs
   LIBS += -ladvapi32
   LIBS += -lkernel32
+  LIBS += -lcryptlib # needed for encryption, can be removed
+
   message("Using MSVC libraries in ../msvc_libs")
 }
 
@@ -273,6 +276,7 @@ win32-g++{
   LIBS += -L$$PWD/../libs
   LIBS += -lstrmiids
   LIBS += -lssp
+  LIBS += -lcryptopp  # needed for encryption, can be removed
   message("Using MinGW libraries in ../libs")
 }
 
@@ -282,6 +286,7 @@ unix {
   QMAKE_LFLAGS += -fopenmp
   INCLUDEPATH += /usr/include/opus/
   INCLUDEPATH += /usr/local/include/uvgrtp/
+  LIBS += -lcryptopp # needed for encryption, can be removed
 }
 
 INCLUDEPATH += $$PWD/../

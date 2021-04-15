@@ -62,8 +62,6 @@ public:
             ServerStatusView *statusView);
   void uninit();
 
-  void updateSettings();
-
   // start a call with address. Returns generated sessionID
   uint32_t startCall(NameAddr &remote);
 
@@ -73,6 +71,9 @@ public:
   void cancelCall(uint32_t sessionID);
   void endCall(uint32_t sessionID);
   void endAllCalls();
+
+public slots:
+  void updateCallSettings();
 
 signals:
 

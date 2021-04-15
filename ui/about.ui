@@ -68,7 +68,7 @@
    <item>
     <widget class="QLabel" name="Ultra_url">
      <property name="text">
-      <string>&lt;a href=&quot;http://ultravideo.cs.tut.fi/&quot;&gt;ultravideo.cs.tut.fi&lt;/a&gt;</string>
+      <string>&lt;a href=&quot;http://ultravideo.fi/&quot;&gt;ultravideo.fi&lt;/a&gt;</string>
      </property>
      <property name="openExternalLinks">
       <bool>true</bool>

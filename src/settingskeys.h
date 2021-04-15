@@ -16,6 +16,13 @@ const QSettings::Format settingsFileFormat = QSettings::IniFormat;
 
 namespace SettingsKey {
 
+// GUI setting keys
+
+const QString screenShareStatus = "gui/ScreenShareEnabled";
+const QString cameraStatus = "gui/CameraEnabled";
+const QString micStatus = "gui/MicrophoneEnabled";
+
+
 // Video setting keys
 const QString videoDeviceID = "video/DeviceID";
 const QString videoDevice = "video/Device";
