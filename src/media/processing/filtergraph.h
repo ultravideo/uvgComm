@@ -41,12 +41,15 @@ public:
   // print the filter graph to a dot file to be drawn as a graph
   void print();
 
-  // Refresh settings of all filters from QSettings.
-  void updateSettings();
+
+public slots:
+
+  void updateVideoSettings();
+  void updateAudioSettings();
 
 private:
 
-  void mediaSources();
+  void selectVideoSource();
 
   void mic(bool state);
   void camera(bool state);

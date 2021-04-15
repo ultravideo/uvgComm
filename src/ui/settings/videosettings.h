@@ -42,7 +42,7 @@ public:
 
 signals:
 
-  void settingsChanged();
+  void updateVideoSettings();
   void hidden();
 
 public slots:

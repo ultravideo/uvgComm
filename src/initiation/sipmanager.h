@@ -28,8 +28,6 @@ public:
             ServerStatusView *statusView);
   void uninit();
 
-  void updateSettings();
-
   // start a call with address. Returns generated sessionID
   uint32_t startCall(SIP_URI& address);
 
@@ -49,6 +47,9 @@ public:
   void getSDPs(uint32_t sessionID,
                std::shared_ptr<SDPMessageInfo>& localSDP,
                std::shared_ptr<SDPMessageInfo>& remoteSDP) const;
+
+public slots:
+  void updateCallSettings();
 
 signals:
   void nominationSucceeded(quint32 sessionID);

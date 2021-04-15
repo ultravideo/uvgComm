@@ -77,7 +77,7 @@ void SIPSettings::on_advanced_ok_clicked()
 {
   qDebug() << "Settings," << metaObject()->className() << ": Saving advanced settings";
   saveAdvancedSettings();
-  emit advancedSettingsChanged();
+  emit updateCallSettings();
 }
 
 

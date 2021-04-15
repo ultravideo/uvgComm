@@ -58,7 +58,9 @@ public:
 signals:
 
   // announces to rest of the program that they should reload their settings
-  void settingsChanged();
+  void updateCallSettings();
+  void updateVideoSettings();
+  void updateAudioSettings();
 
 public slots:
 

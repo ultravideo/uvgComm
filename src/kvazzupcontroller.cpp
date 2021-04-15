@@ -23,9 +23,23 @@ void KvazzupController::init()
 {
   printImportant(this, "Kvazzup initiation Started");
 
+  window_.init(this);
+  window_.show();
+  stats_ = window_.createStatsWindow();
+
+  sip_.init(this, stats_, window_.getStatusView());
+  media_.init(window_.getViewFactory(), stats_);
+
   // register the GUI signals indicating GUI changes to be handled
   // approrietly in a system wide manner
-  QObject::connect(&window_, SIGNAL(settingsChanged()), this, SLOT(updateSettings()));
+  QObject::connect(&window_, &CallWindow::updateCallSettings,
+                   &sip_, &SIPManager::updateCallSettings);
+
+  QObject::connect(&window_, &CallWindow::updateVideoSettings,
+                   &media_, &MediaManager::updateVideoSettings);
+  QObject::connect(&window_, &CallWindow::updateAudioSettings,
+                   &media_, &MediaManager::updateAudioSettings);
+
   QObject::connect(&window_, SIGNAL(endCall()), this, SLOT(endTheCall()));
   QObject::connect(&window_, SIGNAL(closed()), this, SLOT(windowClosed()));
 
@@ -46,13 +60,6 @@ void KvazzupController::init()
 
   QObject::connect(&media_, &MediaManager::handleNoEncryption,
                    this,    &KvazzupController::noEncryptionAvailable);
-
-  window_.init(this);
-  window_.show();
-  stats_ = window_.createStatsWindow();
-
-  sip_.init(this, stats_, window_.getStatusView());
-  media_.init(window_.getViewFactory(), stats_);
 
   printImportant(this, "Kvazzup initiation finished");
 }
@@ -350,14 +357,6 @@ void KvazzupController::registeringFailed()
   printError(this, "Failed to register to a SIP server.");
   // TODO: indicate error to user
 }
-
-
-void KvazzupController::updateSettings()
-{
-  media_.updateSettings();
-  sip_.updateSettings();
-}
-
 
 void KvazzupController::userAcceptsCall(uint32_t sessionID)
 {

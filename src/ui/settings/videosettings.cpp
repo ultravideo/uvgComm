@@ -140,7 +140,7 @@ void VideoSettings::on_video_ok_clicked()
 {
   printNormal(this, "Saving video settings");
   saveSettings();
-  emit settingsChanged();
+  emit updateVideoSettings();
   //emit hidden();
   //hide();
 }

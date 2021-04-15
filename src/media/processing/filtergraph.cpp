@@ -67,7 +67,7 @@ void FilterGraph::init(VideoInterface* selfView, StatisticsInterface* stats)
 }
 
 
-void FilterGraph::updateSettings()
+void FilterGraph::updateVideoSettings()
 {
   QSettings settings(settingsFile, settingsFileFormat);
   // if the video format has changed so that we need different conversions
@@ -114,20 +114,11 @@ void FilterGraph::updateSettings()
     filter->updateSettings();
   }
 
-  for(auto& filter : audioProcessing_)
-  {
-    filter->updateSettings();
-  }
-
   for(auto& peer : peers_)
   {
     if(peer.second != nullptr)
     {
       for (auto& senderFilter : peer.second->videoSenders)
-      {
-        senderFilter->updateSettings();
-      }
-      for (auto& senderFilter : peer.second->audioSenders)
       {
         senderFilter->updateSettings();
       }
@@ -140,6 +131,28 @@ void FilterGraph::updateSettings()
           filter->updateSettings();
         }
       }
+    }
+  }
+
+  selectVideoSource();
+}
+
+
+void FilterGraph::updateAudioSettings()
+{
+  for(auto& filter : audioProcessing_)
+  {
+    filter->updateSettings();
+  }
+
+  for(auto& peer : peers_)
+  {
+    if(peer.second != nullptr)
+    {
+      for (auto& senderFilter : peer.second->audioSenders)
+      {
+        senderFilter->updateSettings();
+      }
 
       for(auto& audioReceivers : peer.second->audioReceivers)
       {
@@ -151,13 +164,12 @@ void FilterGraph::updateSettings()
     }
   }
 
-
   if (audioOutput_ != nullptr)
   {
     audioOutput_->updateSettings();
   }
 
-  mediaSources();
+  mic(settingEnabled(SettingsKey::micStatus));
 }
 
 
@@ -214,7 +226,7 @@ void FilterGraph::initSelfView()
     addToGraph(selfviewFilter_, screenShareGraph_);
   }
 
-  mediaSources();
+  selectVideoSource();
 }
 
 
@@ -544,7 +556,7 @@ void FilterGraph::screenShare(bool shareState)
   {
     if(shareState)
     {
-      printNormal(this, "Starting to share screen");
+      printNormal(this, "Starting to share the screen");
 
       // We don't want to flip selfview horizontally when sharing the screen.
       // This way the self view is an accurate representation of what the others
@@ -554,14 +566,14 @@ void FilterGraph::screenShare(bool shareState)
     }
     else
     {
-      printNormal(this, "Stopping to share screen");
+      printNormal(this, "Not sharing the screen");
       screenShareGraph_.at(0)->stop();
     }
   }
 }
 
 
-void FilterGraph::mediaSources()
+void FilterGraph::selectVideoSource()
 {
   if (settingEnabled(SettingsKey::screenShareStatus))
   {
@@ -584,8 +596,6 @@ void FilterGraph::mediaSources()
 
     // maybe some custom image here?
   }
-
-  mic(settingEnabled(SettingsKey::micStatus));
 }
 
 
@@ -726,7 +736,8 @@ void FilterGraph::removeParticipant(uint32_t sessionID)
 
       destroyFilters(audioProcessing_);
 
-      mediaSources();
+      selectVideoSource();
+      mic(settingEnabled(SettingsKey::micStatus));
     }
   }
 }

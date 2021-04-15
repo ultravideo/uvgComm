@@ -94,7 +94,7 @@ void SIPManager::uninitSession(uint32_t sessionID)
 }
 
 
-void SIPManager::updateSettings()
+void SIPManager::updateCallSettings()
 {
   int autoConnect = settingValue(SettingsKey::sipAutoConnect);
   if(autoConnect == 1)

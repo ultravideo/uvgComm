@@ -29,7 +29,7 @@ public:
 
 signals:
 
-  void settingsChanged();
+  void updateAudioSettings();
   void hidden();
 
 public slots:

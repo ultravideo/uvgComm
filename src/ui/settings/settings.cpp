@@ -57,16 +57,16 @@ void Settings::init()
   //QObject::connect(basicUI_->save, &QPushButton::clicked, this, &Settings::on_ok_clicked);
   //QObject::connect(basicUI_->close, &QPushButton::clicked, this, &Settings::on_cancel_clicked);
 
-  QObject::connect(&videoSettings_, &VideoSettings::settingsChanged,
-                   this, &Settings::settingsChanged);
+  QObject::connect(&videoSettings_, &VideoSettings::updateVideoSettings,
+                   this, &Settings::updateVideoSettings);
   QObject::connect(&videoSettings_, &VideoSettings::hidden, this, &Settings::show);
 
-  QObject::connect(&audioSettings_, &AudioSettings::settingsChanged,
-                   this, &Settings::settingsChanged);
+  QObject::connect(&audioSettings_, &AudioSettings::updateAudioSettings,
+                   this, &Settings::updateAudioSettings);
   QObject::connect(&audioSettings_, &AudioSettings::hidden, this, &Settings::show);
 
-  QObject::connect(&sipSettings_, &SIPSettings::advancedSettingsChanged,
-                   this, &Settings::settingsChanged);
+  QObject::connect(&sipSettings_, &SIPSettings::updateCallSettings,
+                   this, &Settings::updateCallSettings);
   QObject::connect(&sipSettings_, &SIPSettings::hidden,
                    this, &Settings::show);
 
@@ -200,7 +200,10 @@ void Settings::on_save_clicked()
   saveSettings();
   setScreenShareState(settingEnabled(SettingsKey::screenShareStatus));
 
-  emit settingsChanged();
+  emit updateCallSettings();
+  emit updateVideoSettings();
+  emit updateAudioSettings();
+
   basicUI_->save->hide();
 }
 

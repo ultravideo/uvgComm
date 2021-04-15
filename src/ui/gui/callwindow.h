@@ -69,8 +69,9 @@ public:
 
 signals:
 
-  // signals for informing the program of users wishes
-  void settingsChanged();
+  void updateCallSettings();
+  void updateVideoSettings();
+  void updateAudioSettings();
 
   void endCall();
   void closed();

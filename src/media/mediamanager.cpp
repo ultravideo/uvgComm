@@ -50,6 +50,12 @@ void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory, Statistic
   // 0 is the selfview index. The view should be created by GUI
   fg_->init(viewfactory_->getVideo(0, 0), stats);
   streamer_->init(stats_);
+
+  QObject::connect(this, &MediaManager::updateVideoSettings,
+                   fg_.get(), &FilterGraph::updateVideoSettings);
+
+  QObject::connect(this, &MediaManager::updateAudioSettings,
+                   fg_.get(), &FilterGraph::updateAudioSettings);
 }
 
 
@@ -66,12 +72,6 @@ void MediaManager::uninit()
     streamer_->uninit();
     streamer_ = nullptr;
   }
-}
-
-
-void MediaManager::updateSettings()
-{
-  fg_->updateSettings();
 }
 
 

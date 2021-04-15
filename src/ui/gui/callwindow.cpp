@@ -59,9 +59,14 @@ void CallWindow::init(ParticipantInterface *partInt)
   // I don't know why this is required.
   qRegisterMetaType<QVector<int> >("QVector<int>");
 
+  QObject::connect(&settingsView_, &Settings::updateCallSettings,
+                   this,           &CallWindow::updateCallSettings);
 
-  QObject::connect(&settingsView_, SIGNAL(settingsChanged()),
-                   this, SIGNAL(settingsChanged()));
+  QObject::connect(&settingsView_, &Settings::updateVideoSettings,
+                   this,           &CallWindow::updateVideoSettings);
+
+  QObject::connect(&settingsView_, &Settings::updateAudioSettings,
+                   this,           &CallWindow::updateAudioSettings);
 
   QObject::connect(ui_->mic, &QPushButton::clicked,
                    this, &CallWindow::micButton);
@@ -112,7 +117,6 @@ void CallWindow::init(ParticipantInterface *partInt)
   ui_->EndCallButton->hide();
 
   settingsView_.init();
-
   settingsView_.setScreenShareState(false);
 
   // set button icons to correct states
@@ -318,7 +322,7 @@ void CallWindow::screensShareButton()
   // we change the state of screensharestatus setting here
   settingsView_.setScreenShareState(!settingEnabled(SettingsKey::screenShareStatus));
 
-  emit settingsChanged();
+  emit updateVideoSettings();
 }
 
 
@@ -330,7 +334,7 @@ void CallWindow::micButton(bool checked)
 
   setMicState(!currentState);
   settingsView_.setMicState(!currentState);
-  emit settingsChanged();
+  emit updateAudioSettings();
 }
 
 
@@ -342,7 +346,7 @@ void CallWindow::cameraButton(bool checked)
 
   setCameraState(!currentState);
   settingsView_.setCameraState(!currentState);
-  emit settingsChanged();
+  emit updateVideoSettings();
 }
 
 

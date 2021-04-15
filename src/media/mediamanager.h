@@ -40,10 +40,9 @@ public:
   MediaManager();
   ~MediaManager();
 
+  // make sure viewfactory is iniated before this
   void init(std::shared_ptr<VideoviewFactory> viewfactory, StatisticsInterface *stats);
   void uninit();
-
-  void updateSettings();
 
   // registers a contact for activity monitoring
   void registerContact(in_addr ip);
@@ -78,6 +77,9 @@ signals:
 
   // the host has quit the call and we have been chosen to become the new host (ability to kick people)
   void becameHost();
+
+  void updateVideoSettings();
+  void updateAudioSettings();
 
 private:
 
