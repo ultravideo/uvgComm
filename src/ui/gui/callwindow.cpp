@@ -350,7 +350,6 @@ void CallWindow::cameraButton(bool checked)
 }
 
 
-
 void CallWindow::on_about_clicked()
 {
   about_.show();
@@ -377,8 +376,7 @@ void CallWindow::showICEFailedMessage()
 void CallWindow::showCryptoMissingMessage()
 {
   mesg_.showWarning("Warning: Encryption not possible",
-                    "The uvgRTP library has not been compiled with crypto++. "
-                    "This means that media encryption will not be enabled.");
+                    "Crypto++ has not been included in both Kvazzup and uvgRTP.");
 }
 
 
