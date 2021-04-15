@@ -11,6 +11,8 @@
 
 #include <common.h>
 
+#include <QScreen>
+
 
 const QStringList neededSettings = {SettingsKey::localRealname,
                                     SettingsKey::localUsername,
@@ -112,15 +114,33 @@ void Settings::show()
 }
 
 
-void Settings::setScreenShareState(bool enabled, QSize& resolution)
+void Settings::setScreenShareState(bool enabled)
 {
   if (enabled)
   {
-    settings_.setValue(SettingsKey::screenShareStatus, "1");
-    settings_.setValue(SettingsKey::videoResultionWidth, resolution.width());
-    settings_.setValue(SettingsKey::videoResultionHeight, resolution.height());
-    settings_.setValue(SettingsKey::videoFramerate, "5");
-    videoSettings_.setScreenShareState(enabled);
+    int screenIndex = getDeviceID(basicUI_->screenDevice_combo, SettingsKey::userScreenID,
+                                  SettingsKey::userScreen);
+
+    if (screenIndex < QGuiApplication::screens().size())
+    {
+      QScreen *screen = QGuiApplication::screens().at(screenIndex);
+
+      if (screen != nullptr)
+      {
+        QSize resolution;
+        resolution.setWidth(screen->size().width() - screen->size().width()%8);
+        resolution.setHeight(screen->size().height() - screen->size().height()%8);
+
+        settings_.setValue(SettingsKey::screenShareStatus, "1");
+        settings_.setValue(SettingsKey::videoResultionWidth, resolution.width());
+        settings_.setValue(SettingsKey::videoResultionHeight, resolution.height());
+        settings_.setValue(SettingsKey::videoFramerate, "5");
+        videoSettings_.setScreenShareState(enabled);
+
+        printNormal(this, "Enabled Screen sharing", "Screen resolution",
+                    QString::number(resolution.width()) + "x" + QString::number(resolution.height()));
+      }
+    }
   }
   else
   {
@@ -152,6 +172,8 @@ void Settings::on_save_clicked()
   printNormal(this, "Saving settings");
   // The UI values are saved to settings.
   saveSettings();
+  setScreenShareState(settingEnabled(SettingsKey::screenShareStatus));
+
   emit settingsChanged();
   basicUI_->save->hide();
 }

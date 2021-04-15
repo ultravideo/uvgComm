@@ -51,7 +51,7 @@ public:
 
   void updateServerStatus(QString status);
 
-  void setScreenShareState(bool enabled, QSize &resolution);
+  void setScreenShareState(bool enabled);
 
 signals:
 

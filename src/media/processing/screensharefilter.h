@@ -28,4 +28,6 @@ private:
 
   int currentFramerate_;
   QSize currentResolution_;
+
+  int screenID_;
 };

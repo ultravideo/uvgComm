@@ -11,11 +11,10 @@
 
 #include <QCloseEvent>
 #include <QTimer>
-#include <QScreen>
-
 #include <QMetaType>
 #include <QDebug>
 #include <QDir>
+
 
 CallWindow::CallWindow(QWidget *parent):
   QMainWindow(parent),
@@ -114,8 +113,7 @@ void CallWindow::init(ParticipantInterface *partInt)
 
   settingsView_.init();
 
-  QSize noRes; // this is not used with false
-  settingsView_.setScreenShareState(false, noRes);
+  settingsView_.setScreenShareState(false);
 }
 
 
@@ -313,14 +311,8 @@ void CallWindow::screensShareButton()
 {
   printNormal(this, "Changing state of screen share");
 
-  bool screenShare = settingEnabled(SettingsKey::screenShareStatus);
-  QScreen *screen = QGuiApplication::primaryScreen();
-
-  QSize resultion;
-  resultion.setWidth(screen->size().width() - screen->size().width()%8);
-  resultion.setHeight(screen->size().height() - screen->size().height()%8);
-
-  settingsView_.setScreenShareState(!screenShare, resultion);
+  // we change the state of screensharestatus setting here
+  settingsView_.setScreenShareState(!settingEnabled(SettingsKey::screenShareStatus));
 
   emit settingsChanged();
 }

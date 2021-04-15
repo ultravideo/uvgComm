@@ -9,7 +9,8 @@
 #include "settingskeys.h"
 
 ScreenShareFilter::ScreenShareFilter(QString id, StatisticsInterface *stats):
-  Filter(id, "Screen Sharing", stats, NONE, RGB32VIDEO)
+  Filter(id, "Screen Sharing", stats, NONE, RGB32VIDEO),
+screenID_(0)
 {}
 
 
@@ -28,6 +29,14 @@ void ScreenShareFilter::updateSettings()
   if (enabled)
   {
     printNormal(this, "Enabling screen share filter");
+
+    screenID_ = settingValue(SettingsKey::userScreenID);
+
+    if (screenID_ >= QGuiApplication::screens().size())
+    {
+      screenID_ = 0;
+    }
+
     currentFramerate_ = settingValue(SettingsKey::videoFramerate);
 
     currentResolution_.setWidth(settingValue(SettingsKey::videoResultionWidth));
@@ -37,6 +46,8 @@ void ScreenShareFilter::updateSettings()
     sendTimer_.setInterval(1000/currentFramerate_);
     connect(&sendTimer_, &QTimer::timeout, this, &ScreenShareFilter::sendScreen);
     sendTimer_.start();
+
+    // take first screenshot immediately so we don't have to wait
     sendScreen();
   }
   else
@@ -50,6 +61,11 @@ void ScreenShareFilter::updateSettings()
 void ScreenShareFilter::process()
 {
   QScreen *screen = QGuiApplication::primaryScreen();
+  if (screenID_ < QGuiApplication::screens().size())
+  {
+    screen = QGuiApplication::screens().at(screenID_);
+  }
+
   if (!screen)
   {
     printError(this, "Couldn't get screen");
