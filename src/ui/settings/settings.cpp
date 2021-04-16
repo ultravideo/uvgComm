@@ -94,6 +94,18 @@ void Settings::init()
   QObject::connect(basicUI_->screenDevice_combo, &QComboBox::currentTextChanged,
                    this, &Settings::uiChangedString);
 
+
+  if (!settings_.value(SettingsKey::micStatus).isValid())
+  {
+    setMicState(true);
+  }
+
+
+  if (!settings_.value(SettingsKey::cameraStatus).isValid())
+  {
+    setCameraState(true);
+  }
+
   // TODO: Also emit the position of closed window and move this setting there
 }
 
