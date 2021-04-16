@@ -28,7 +28,7 @@ Kvazzup requires the following external libraries to operate:
 - [Speex DSP](https://www.speex.org/) for audio processing
 - [Crypto++](https://cryptopp.com/) for delivery encryption
 
-Qt Creator is the recommended tool for compiling Kvazzup. Make sure you use the same compiler and bit version for all the dependencies and for Kvazzup. If you want to use media encryption, you should compile uvgRTP with crypto++ by adding `-D__RTP_CRYPTO__` to uvgRTP CXXFLAGS.
+Qt Creator is the recommended tool for compiling Kvazzup. Make sure you use the same compiler and bit version for all the dependencies and for Kvazzup. It is possible, although not recommended to use Kvazzup without Crypto++.
 
 ### Linux(GCC)
 
@@ -57,11 +57,6 @@ Please uncomment: `DEFINES += KVZ_STATIC_LIB` in Kvazzup.pro file.
 If you are using Kvazzup in your research, please refer to the following [paper](https://ieeexplore.ieee.org/abstract/document/8241673): <br>
 `J. Räsänen, M. Viitanen, J. Vanne, and T. D. Hämäläinen, “Kvazzup: open software for HEVC video calls,” in Proc. IEEE Int. Symp. Multimedia, Taichung, Taiwan, Dec. 2017. `
 
-
-## Known issues
-
-- The Linux version of Kvazzup has a bug with QCamera which prevents from changing the default resolution. 
-- The Opus codec is disabled on Linux until issues with it have been resolved.
 
 ## Planned features
 
