@@ -94,7 +94,7 @@ void Settings::init()
   QObject::connect(basicUI_->screenDevice_combo, &QComboBox::currentTextChanged,
                    this, &Settings::uiChangedString);
 
-
+  // we must initialize the settings if they do not exist
   if (!settings_.value(SettingsKey::micStatus).isValid())
   {
     setMicState(true);
@@ -105,6 +105,9 @@ void Settings::init()
   {
     setCameraState(true);
   }
+
+  // never start with screen sharing turned on
+  setScreenShareState(false);
 
   // TODO: Also emit the position of closed window and move this setting there
 }

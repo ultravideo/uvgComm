@@ -117,11 +117,11 @@ void CallWindow::init(ParticipantInterface *partInt)
   ui_->EndCallButton->hide();
 
   settingsView_.init();
-  settingsView_.setScreenShareState(false);
 
   // set button icons to correct states
   setMicState(settingEnabled(SettingsKey::micStatus));
   setCameraState(settingEnabled(SettingsKey::cameraStatus));
+  setScreenShareState(settingEnabled(SettingsKey::screenShareStatus));
 }
 
 
@@ -277,6 +277,12 @@ void CallWindow::setCameraState(bool on)
     initButton(QDir::currentPath() + "/icons/video_off.svg",
                QSize(60,60), QSize(35,35), ui_->camera);
   }
+}
+
+void CallWindow::setScreenShareState(bool on)
+{
+  Q_UNUSED(on)
+  // TODO: Change screen share icon
 }
 
 
