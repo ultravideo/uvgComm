@@ -1,7 +1,7 @@
 Kvazzup
 =======
 
-Kvazzup is a *High Efficiency Video Coding (HEVC)* video call software written in C++ and built on [Qt](https://www.qt.io/) application framework. The aim of Kvazzup is to be pave way for better quality video calls while valuing usability, security and privacy. Kvazzup is also designed to work as a testbed novel video call technologies that improve the video call experience. Kvazzup makes use of the following open-source tools: Kvazaar for HEVC encoding, OpenHEVC for HEVC decoding, Opus Codec for audio encoding and decoding, uvgRTP for media delivery and Speex DSP for *Acoustic Echo Cancellation (AEC)*. 
+Kvazzup is a *High Efficiency Video Coding (HEVC)* video call software written in C++ and built on [Qt](https://www.qt.io/) application framework. The aim of Kvazzup is to be pave way for better quality video calls while valuing usability, security and privacy. Kvazzup makes use of the following open-source tools: Kvazaar for HEVC encoding, OpenHEVC for HEVC decoding, Opus Codec for audio encoding and decoding, uvgRTP for media delivery and Speex DSP for *Acoustic Echo Cancellation (AEC)*. 
 
 Kvazzup is under development and new features will become available.
 
@@ -32,7 +32,9 @@ Qt Creator is the recommended tool for compiling Kvazzup. Make sure you use the 
 
 ### Linux(GCC)
 
-Install Qt and Qt multimedia. Make sure Opus, Speex DSP, OpenMP and Crypto++ are installed. Compile and install openHEVC, Kvazaar and uvgRTP.
+Install Qt, Qt multimedia and QtCreator. Make sure Opus, Speex DSP, OpenMP and Crypto++ are installed. Compile and install [OpenHEVC](https://github.com/OpenHEVC/openHEVC), [Kvazaar](https://github.com/ultravideo/kvazaar) and [uvgRTP](https://github.com/ultravideo/uvgRTP).
+
+On Ubuntu, the necessary packets are `qt5-default qtdeclarative5-dev libqt5svg5-dev qtmultimedia5-dev qtcreator libopus-dev libspeexdsp-dev libomp-dev libcrypto++-dev`.
 
 ### MinGW
 
