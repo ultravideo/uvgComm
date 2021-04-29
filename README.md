@@ -34,7 +34,15 @@ Qt Creator is the recommended tool for compiling Kvazzup. Make sure you use the 
 
 Install Qt, Qt multimedia and QtCreator. Make sure Opus, Speex DSP, OpenMP and Crypto++ are installed. Compile and install [OpenHEVC](https://github.com/OpenHEVC/openHEVC), [Kvazaar](https://github.com/ultravideo/kvazaar) and [uvgRTP](https://github.com/ultravideo/uvgRTP).
 
-On Ubuntu, the necessary packets are `qt5-default qtdeclarative5-dev libqt5svg5-dev qtmultimedia5-dev qtcreator libopus-dev libspeexdsp-dev libomp-dev libcrypto++-dev`.
+**Ubuntu**
+
+On Ubuntu, the necessary qt packets are `qt5-default qtdeclarative5-dev libqt5svg5-dev qtmultimedia5-dev libqt5multimedia5-plugins libqt5multimediawidgets5`.
+
+Next, install `qtcreator`.
+
+The following Kvazzup dependencies are available as packages: `libopus-dev libspeexdsp-dev libomp-dev libcrypto++-dev`. For the OpenHEVC, Kvazaar and uvgRTP, if they are not available, you will have to clone the Github repositories and compile them according to their respective instructions.
+
+Note: We have not been able to get the changing of the camera formats, resolutions or frame rates to work on Linux. It is possible that we didn't have all the necessary packets installed or that there is some sort of bug in qt multimedia/multimediawidgets on Ubuntu. Any information on this would be greatly appreciated.
 
 ### MinGW
 
@@ -44,13 +52,13 @@ Make sure OpenMP is installed in your build environment. Add compiled libraries 
 
 Compile the dependencies. Add compiled libraries to PATH or to `../msvc_libs` folder, and headers to PATH or `../include`. 
 
-#### Shared Kvazaar
+**Shared Kvazaar**
 
-When compiling Kvazaar, select Dynamic Lib(.dll) in kvazaar_lib project Properties: General/Configuration Type and add ;PIC to C/C++ Preprocessor/Preprocessor Definitions. 
+When compiling Kvazaar, select Dynamic Lib(.dll) in kvazaar_lib project Properties: General/Configuration Type and add `;PIC` to C/C++ Preprocessor/Preprocessor Definitions. 
 
-In Kvazzup, please make sure:`DEFINES += PIC` is included in Kvazzup.pro file. 
+In Kvazzup, please make sure: `DEFINES += PIC` is included in Kvazzup.pro file. 
 
-#### Static Kvazaar
+**Static Kvazaar**
 
 Please uncomment: `DEFINES += KVZ_STATIC_LIB` in Kvazzup.pro file.
 
