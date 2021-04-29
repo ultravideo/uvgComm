@@ -28,7 +28,7 @@ bool OpenHEVCFilter::init()
   threads_ = settings.value(SettingsKey::videoOpenHEVCThreads).toInt();
   handle_ = libOpenHevcInit(threads_, OH_THREAD_FRAME);
 
-  libOpenHevcSetDebugMode(handle_, 0);
+  //libOpenHevcSetDebugMode(handle_, 0);
   if(libOpenHevcStartDecoder(handle_) == -1)
   {
     printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to start decoder.");

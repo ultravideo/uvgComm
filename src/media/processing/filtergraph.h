@@ -39,7 +39,7 @@ public:
   void running(bool state);
 
   // print the filter graph to a dot file to be drawn as a graph
-  void print();
+  //void print();
 
 
 public slots:

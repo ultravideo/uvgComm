@@ -743,6 +743,7 @@ void FilterGraph::removeParticipant(uint32_t sessionID)
 }
 
 
+/*
 void FilterGraph::print()
 {
   QString audioDotFile = "digraph AudioGraph {\r\n";
@@ -816,3 +817,5 @@ void FilterGraph::print()
       stream << videoDotFile << Qt::endl;
   }
 }
+
+*/

@@ -3,6 +3,7 @@
 #include <QDialog>
 
 #include <deque>
+#include <memory>
 
 namespace Ui {
 class GUIMessage;
