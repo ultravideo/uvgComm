@@ -86,10 +86,21 @@ bool KvazaarFilter::init()
     // input
 
 #ifdef __linux__
-    // On Linux the Camerafilter seems to have a Qt bug that causes not being able to set resolution
-    config_->width = 640;
-    config_->height = 480;
-    config_->framerate_num = 30;
+
+    if (settingEnabled(SettingsKey::screenShareStatus))
+    {
+      config_->width = settings.value(SettingsKey::videoResultionWidth).toInt();
+      config_->height = settings.value(SettingsKey::videoResultionHeight).toInt();
+      framerate_num_ = settings.value(SettingsKey::videoFramerate).toFloat();
+      config_->framerate_num = framerate_num_;
+    }
+    else
+    {
+      // On Linux the Camerafilter seems to have a Qt bug that causes not being able to set resolution
+      config_->width = 640;
+      config_->height = 480;
+      config_->framerate_num = 30;
+    }
 #else
     config_->width = settings.value(SettingsKey::videoResultionWidth).toInt();
     config_->height = settings.value(SettingsKey::videoResultionHeight).toInt();
