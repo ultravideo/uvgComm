@@ -238,7 +238,7 @@ bool CameraFilter::cameraSetup()
 #ifndef __linux__
     if (!framerates.empty())
     {
-      if(currentFramerateID_ < framerates.size())
+      if(currentFramerateID_ < framerates.size() && currentFramerateID_ >= 0)
       {
         viewSettings.setMaximumFrameRate(framerates.at(currentFramerateID_).maximumFrameRate);
         viewSettings.setMinimumFrameRate(framerates.at(currentFramerateID_).minimumFrameRate);
