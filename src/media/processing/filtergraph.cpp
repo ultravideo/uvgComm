@@ -23,6 +23,7 @@
 
 #include <QSettings>
 #include <QFile>
+#include <QTextStream>
 
 FilterGraph::FilterGraph(): QObject(),
   peers_(),
@@ -221,7 +222,9 @@ void FilterGraph::initSelfView()
 
     // we dont do horizontal mirroring if we are using screen sharing, but that is changed later
     // Note: mirroring is slow with Qt
+
     selfviewFilter_->setProperties(true, cameraGraph_.at(0)->outputType() == RGB32VIDEO);
+
     addToGraph(selfviewFilter_, cameraGraph_);
     addToGraph(selfviewFilter_, screenShareGraph_);
   }
@@ -741,81 +744,3 @@ void FilterGraph::removeParticipant(uint32_t sessionID)
     }
   }
 }
-
-
-/*
-void FilterGraph::print()
-{
-  QString audioDotFile = "digraph AudioGraph {\r\n";
-
-  for(auto& f : audioProcessing_)
-  {
-    audioDotFile += f->printOutputs();
-  }
-
-  for(auto& peer : peers_)
-  {
-    if(peer.second != nullptr)
-    {
-      for(auto& graph : peer.second->audioReceivers)
-      {
-        for (auto& filter : *graph)
-        {
-          audioDotFile += filter->printOutputs();
-        }
-
-      }
-      for (auto& audioSender : peer.second->audioSenders)
-      {
-        audioDotFile += audioSender->printOutputs();
-      }
-    }
-  }
-  audioDotFile += "}";
-
-  QString videoDotFile = "digraph VideoGraph {\r\n";
-
-  for(auto& f : cameraGraph_)
-  {
-    videoDotFile += f->printOutputs();
-  }
-
-  for(auto& peer : peers_)
-  {
-    if(peer.second != nullptr)
-    {
-      for(auto&graph : peer.second->videoReceivers)
-      {
-        for (auto&filter : *graph)
-        {
-          videoDotFile += filter->printOutputs();
-        }
-      }
-
-      for (auto&videoSender : peer.second->videoSenders)
-      {
-        audioDotFile += videoSender->printOutputs();
-      }
-    }
-  }
-
-  videoDotFile += "}";
-
-  QString aFilename="audiograph.dot";
-  QFile aFile( aFilename );
-  if ( aFile.open(QIODevice::WriteOnly) )
-  {
-      QTextStream stream( &aFile );
-      stream << audioDotFile << Qt::endl;
-  }
-
-  QString vFilename="videograph.dot";
-  QFile vFile( vFilename );
-  if ( vFile.open(QIODevice::WriteOnly) )
-  {
-      QTextStream stream( &vFile );
-      stream << videoDotFile << Qt::endl;
-  }
-}
-
-*/

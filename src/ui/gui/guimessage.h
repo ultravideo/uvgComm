@@ -1,8 +1,11 @@
 #pragma once
 
 #include <QDialog>
+#include <QString>
 
 #include <deque>
+#include <memory>
+
 #include <memory>
 
 namespace Ui {

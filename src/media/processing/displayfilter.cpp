@@ -46,15 +46,8 @@ DisplayFilter::~DisplayFilter()
 
 
 void DisplayFilter::updateSettings()
-{ 
+{
   flipEnabled_ = settingEnabled(SettingsKey::videoFlipEnabled);
-
-  // TODO: This is a quick fix for video stream being flipped vertically on Linux.
-  // 1111 is set as sessionID for self view
-  if (sessionID_ != 1111)
-  {
-    verticalMirroring_ = settingEnabled(SettingsKey::videoForceFlip);
-  }
 
   Filter::updateSettings();
 }
@@ -100,7 +93,7 @@ void DisplayFilter::process()
 
       int32_t delay = QDateTime::currentMSecsSinceEpoch() - input->presentationTime;
 
-      widget_->inputImage(std::move(input->data),image, input->presentationTime);
+      widget_->inputImage(std::move(input->data), image, input->presentationTime);
 
       if( sessionID_ != 1111)
         getStats()->receiveDelay(sessionID_, "Video", delay);

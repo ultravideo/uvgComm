@@ -24,7 +24,6 @@ const QStringList neededSettings = {SettingsKey::videoResultionWidth,
                                     SettingsKey::videoFramerateID,
                                     SettingsKey::videoFramerate,
                                     SettingsKey::videoFlipEnabled,
-                                    SettingsKey::videoForceFlip,
                                     SettingsKey::videoOpenGL
                                    };
 
@@ -230,8 +229,6 @@ void VideoSettings::saveSettings()
 
   // Other-tab
   saveCheckBox(SettingsKey::videoOpenGL,         videoSettingsUI_->opengl, settings_);
-  saveCheckBox(SettingsKey::videoFlipEnabled,    videoSettingsUI_->flip, settings_);
-  saveCheckBox(SettingsKey::videoForceFlip,      videoSettingsUI_->force_flip, settings_);
 }
 
 
@@ -401,7 +398,6 @@ void VideoSettings::restoreSettings()
     // other-tab
     restoreCheckBox(SettingsKey::videoOpenGL, videoSettingsUI_->opengl, settings_);
     restoreCheckBox(SettingsKey::videoFlipEnabled, videoSettingsUI_->flip, settings_);
-    restoreCheckBox(SettingsKey::videoForceFlip, videoSettingsUI_->force_flip, settings_);
   }
   else
   {
