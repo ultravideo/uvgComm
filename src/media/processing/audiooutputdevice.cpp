@@ -21,6 +21,8 @@ AudioOutputDevice::AudioOutputDevice(StatisticsInterface *stats):
   sampleMutex_(),
   outputSample_(nullptr),
   sampleSize_(0),
+  partialSample_(nullptr),
+  partialSampleSize_(0),
   inputs_(0),
   mixedSample_(false),
   outputRepeats_(0)
@@ -34,6 +36,13 @@ AudioOutputDevice::~AudioOutputDevice()
     delete outputSample_;
     outputSample_ = nullptr;
     sampleSize_ = 0;
+  }
+
+  if (partialSample_ != nullptr)
+  {
+    delete partialSample_;
+    partialSample_ = nullptr;
+    partialSampleSize_ = 0;
   }
 
   audioOutput_->stop();
@@ -85,15 +94,27 @@ void AudioOutputDevice::createAudioOutput()
   if (outputSample_ != nullptr)
   {
     delete outputSample_;
+    outputSample_ = nullptr;
     sampleSize_ = 0;
   }
 
-  sampleSize_ = format_.sampleRate()*format_.bytesPerFrame()/AUDIO_FRAMES_PER_SECOND;
-  outputSample_ = aec_->createEmptyFrame(sampleSize_);
+  if (partialSample_ != nullptr)
+  {
+    delete partialSample_;
+    partialSample_ = nullptr;
+    partialSampleSize_ = 0;
+  }
+
+  //sampleSize_ = format_.sampleRate()*format_.bytesPerFrame()/AUDIO_FRAMES_PER_SECOND;
 
   open(QIODevice::ReadOnly);
   // pull mode
+
+  sampleMutex_.lock();
   audioOutput_->start(this);
+
+  resetBuffers(audioOutput_->periodSize());
+  sampleMutex_.unlock();
 }
 
 
@@ -201,7 +222,7 @@ void AudioOutputDevice::takeInput(std::unique_ptr<Data> input, uint32_t sessionI
 
     stats_->receiveDelay(sessionID, "Audio", delay);
 
-    int dataLeft = input->data_size;
+    int inputSize = input->data_size;
 
     // we record one sample to buffer in case there is a packet loss,
     // just so we don't have any breaks
@@ -224,16 +245,54 @@ void AudioOutputDevice::takeInput(std::unique_ptr<Data> input, uint32_t sessionI
 
     sampleMutex_.lock();
     mixedSample_ = true;
-    outputRepeats_ = 0;
 
-    if (sampleSize_ != dataLeft)
+    if (sampleSize_ == inputSize) // input is exactly right
     {
-      outputSample_ = aec_->createEmptyFrame(dataLeft);
-      sampleSize_ = dataLeft;
+      memcpy(outputSample_, outputFrame.get(), sampleSize_);
+      outputRepeats_ = 0;
+    }
+    else if (sampleSize_ > inputSize) // the input sample is smaller than what output wants
+    {
+      if (partialSampleSize_ + inputSize == sampleSize_)
+      {
+        memcpy(partialSample_ + partialSampleSize_, outputFrame.get(), inputSize);
+        memcpy(outputSample_, partialSample_, sampleSize_);
+        outputRepeats_ = 0;
+      }
+      else if (partialSampleSize_ + inputSize < sampleSize_)
+      {
+        // we did not update the sample so no reset for output repeats
+        // add this partial sample to temporary storage
+        memcpy(partialSample_ + partialSampleSize_, outputFrame.get(), inputSize);
+      }
+      else // if we somehow have more audio data than one sample needs
+      {
+        uint32_t missingSize = sampleSize_ - partialSampleSize_;
+
+        // add missing piece from new sample
+        memcpy(outputSample_ + partialSampleSize_, outputFrame.get(),  missingSize);
+
+        // store remaining piece from new sample
+        memcpy(partialSample_, outputFrame.get() + missingSize, inputSize - missingSize);
+        partialSampleSize_ = inputSize - missingSize;
+
+        // copy finished sample to output
+        memcpy(outputSample_, partialSample_, sampleSize_);
+        outputRepeats_ = 0;
+      }
+    }
+    // If the input frames are larger than output sample,
+    // we will have to wait until output wants this much data.
+    else if (sampleSize_ < inputSize)
+    {
+      printDebug(DEBUG_NORMAL, this, "Incoming audio sample is larger than what output wants",
+                  {"Incoming sample", "What output wants"}, {QString::number(inputSize), QString::number(sampleSize_)});
+
+      resetBuffers(inputSize);
+      memcpy(outputSample_, outputFrame.get(), sampleSize_);
+      outputRepeats_ = 0;
     }
 
-    // I don't like this memcpy, but visual studio had problems with smart pointers.
-    memcpy(outputSample_, outputFrame.get(), sampleSize_);
     sampleMutex_.unlock();
   }
 }
@@ -343,4 +402,13 @@ void AudioOutputDevice::stop()
   }
 
   close();
+}
+
+
+void AudioOutputDevice::resetBuffers(uint32_t newSize)
+{
+  sampleSize_ = newSize;
+  partialSampleSize_ = 0;
+  outputSample_ = aec_->createEmptyFrame(sampleSize_);
+  partialSample_ = aec_->createEmptyFrame(sampleSize_);
 }

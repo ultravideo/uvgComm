@@ -53,6 +53,8 @@ private:
 
   std::unique_ptr<uchar[]> doMixing(uint32_t frameSize);
 
+  void resetBuffers(uint32_t newSize);
+
   StatisticsInterface* stats_;
 
   QAudioDeviceInfo device_;
@@ -64,10 +66,14 @@ private:
   std::map<uint32_t, std::unique_ptr<Data>> mixingBuffer_;
 
   QMutex sampleMutex_;
+
   // this will have the next played output audio. The same frame is played
   // if no new frame has been received.
   uint8_t* outputSample_;
   uint32_t sampleSize_;
+
+  uint8_t* partialSample_;
+  uint32_t partialSampleSize_;
 
   unsigned int inputs_;
 
