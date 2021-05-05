@@ -14,11 +14,11 @@
 // voices, but not nearly all of them. I guess it is better than nothing, but
 // it could be replaced at some point. The Automatic gain control is enabled
 
-class AECProcessor : public QObject
+class SpeexDSP : public QObject
 {
   Q_OBJECT
 public:
-  AECProcessor(QAudioFormat format);
+  SpeexDSP(QAudioFormat format);
 
   void updateSettings();
 

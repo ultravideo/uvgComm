@@ -9,7 +9,7 @@
 
 class Filter;
 class StatisticsInterface;
-class AECProcessor;
+class SpeexDSP;
 struct Data;
 
 // TODO: There should be an audio buffer with minimum and maximum values so we always have data to send.
@@ -21,10 +21,8 @@ public:
   AudioOutputDevice(StatisticsInterface* stats);
   virtual ~AudioOutputDevice();
 
-  void updateSettings();
-
   void init(QAudioFormat format,
-            std::shared_ptr<AECProcessor> AEC);
+            std::shared_ptr<SpeexDSP> AEC);
   void start(); // resume audio output
   void stop(); // suspend audio output
 
@@ -77,7 +75,7 @@ private:
 
   unsigned int inputs_;
 
-  std::shared_ptr<AECProcessor> aec_;
+  std::shared_ptr<SpeexDSP> aec_;
 
   bool mixedSample_;
   unsigned int outputRepeats_;

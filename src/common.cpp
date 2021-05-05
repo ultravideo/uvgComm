@@ -226,7 +226,7 @@ void printDebug(DebugType type, QString className,
   case DEBUG_PEER_ERROR:
   {
     printMutex_.lock();
-    printHelper(red, beginString, valueString, "PEER ERROR:" + description, valueNames.size());
+    printHelper(red, beginString, valueString, "PEER ERROR: " + description, valueNames.size());
     printMutex_.unlock();
     break;
   }

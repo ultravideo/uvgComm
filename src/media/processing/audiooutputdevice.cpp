@@ -2,7 +2,7 @@
 
 #include "filter.h"
 #include "statisticsinterface.h"
-#include "aecprocessor.h"
+#include "speexdsp.h"
 
 #include "common.h"
 #include "global.h"
@@ -49,17 +49,8 @@ AudioOutputDevice::~AudioOutputDevice()
 }
 
 
-void AudioOutputDevice::updateSettings()
-{
-  if (aec_)
-  {
-    aec_->updateSettings();
-  }
-}
-
-
 void AudioOutputDevice::init(QAudioFormat format,
-                             std::shared_ptr<AECProcessor> AEC)
+                             std::shared_ptr<SpeexDSP> AEC)
 {
   aec_ = AEC;
 
@@ -141,7 +132,7 @@ qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
   uint32_t read = 0;
   if (maxlen < sampleSize_)
   {
-    printWarning(this, "Read too little audio data.", {"Read vs available"}, {
+    printWarning(this, "Output audio buffer already full with readData.", {"Read vs available"}, {
                    QString::number(maxlen) + " vs " + QString::number(sampleSize_)});
   }
   else

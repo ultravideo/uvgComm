@@ -67,14 +67,13 @@ SOURCES +=\
     src/media/delivery/uvgrtpreceiver.cpp \
     src/media/delivery/uvgrtpsender.cpp \
     src/media/mediamanager.cpp \
-    src/media/processing/aecinputfilter.cpp \
-    src/media/processing/aecprocessor.cpp \
     src/media/processing/audiocapturefilter.cpp \
     src/media/processing/audiomixerfilter.cpp \
     src/media/processing/audiooutputdevice.cpp \
     src/media/processing/camerafilter.cpp \
     src/media/processing/cameraframegrabber.cpp \
     src/media/processing/displayfilter.cpp \
+    src/media/processing/dspfilter.cpp \
     src/media/processing/filter.cpp \
     src/media/processing/filtergraph.cpp \
     src/media/processing/kvazaarfilter.cpp \
@@ -85,6 +84,7 @@ SOURCES +=\
     src/media/processing/scalefilter.cpp \
     src/media/processing/screensharefilter.cpp \
     src/common.cpp \
+    src/media/processing/speexdsp.cpp \
     src/media/processing/yuvtorgb32.cpp \
     src/ui/gui/callwindow.cpp \
     src/ui/gui/chartpainter.cpp \
@@ -146,14 +146,13 @@ HEADERS  += \
     src/media/delivery/uvgrtpreceiver.h \
     src/media/delivery/uvgrtpsender.h \
     src/media/mediamanager.h \
-    src/media/processing/aecinputfilter.h \
-    src/media/processing/aecprocessor.h \
     src/media/processing/audiocapturefilter.h \
     src/media/processing/audiomixerfilter.h \
     src/media/processing/audiooutputdevice.h \
     src/media/processing/camerafilter.h \
     src/media/processing/cameraframegrabber.h \
     src/media/processing/displayfilter.h \
+    src/media/processing/dspfilter.h \
     src/media/processing/filter.h \
     src/media/processing/filtergraph.h \
     src/media/processing/kvazaarfilter.h \
@@ -165,6 +164,7 @@ HEADERS  += \
     src/media/processing/rgb32toyuv.h \
     src/media/processing/scalefilter.h \
     src/media/processing/screensharefilter.h \
+    src/media/processing/speexdsp.h \
     src/media/processing/yuvtorgb32.h \
     src/serverstatusview.h \
     src/settingskeys.h \

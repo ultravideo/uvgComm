@@ -13,8 +13,10 @@ class AudioOutputDevice;
 
 class Filter;
 class ScreenShareFilter;
-class AECInputFilter;
+class DSPFilter;
 class DisplayFilter;
+
+class SpeexDSP;
 
 typedef std::vector<std::shared_ptr<Filter>> GraphSegment;
 
@@ -91,6 +93,7 @@ private:
 
   void destroyFilters(std::vector<std::shared_ptr<Filter>>& filters);
 
+  void createDSP(QAudioFormat format);
 
   // key is sessionID
   std::map<uint32_t, Peer*> peers_;
@@ -112,4 +115,6 @@ private:
   bool quitting_;
 
   std::shared_ptr<AudioOutputDevice> audioOutput_;
+
+  std::shared_ptr<SpeexDSP> dsp_;
 };

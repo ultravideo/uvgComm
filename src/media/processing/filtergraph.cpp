@@ -12,10 +12,12 @@
 #include "media/processing/audiooutputdevice.h"
 #include "media/processing/opusencoderfilter.h"
 #include "media/processing/opusdecoderfilter.h"
-#include "media/processing/aecinputfilter.h"
+#include "media/processing/dspfilter.h"
 #include "media/processing/audiomixerfilter.h"
 
 #include "ui/gui/videointerface.h"
+
+#include "speexdsp.h"
 
 #include "settingskeys.h"
 #include "global.h"
@@ -165,9 +167,9 @@ void FilterGraph::updateAudioSettings()
     }
   }
 
-  if (audioOutput_ != nullptr)
+  if (dsp_)
   {
-    audioOutput_->updateSettings();
+    dsp_->updateSettings();
   }
 
   mic(settingEnabled(SettingsKey::micStatus));
@@ -259,14 +261,19 @@ void FilterGraph::initializeAudio(bool opus)
   // Do this before adding participants, otherwise AEC filter wont get attached
   addToGraph(std::shared_ptr<Filter>(new AudioCaptureFilter("", format_, stats_)), audioProcessing_);
 
-  std::shared_ptr<AECInputFilter> aec = std::shared_ptr<AECInputFilter>(new AECInputFilter("", stats_));
-  aec->initInput(format_);
-  addToGraph(aec, audioProcessing_, audioProcessing_.size() - 1);
+  if (dsp_ == nullptr)
+  {
+    createDSP(format_);
+  }
+
+  std::shared_ptr<DSPFilter> dspProcessor = std::shared_ptr<DSPFilter>(new DSPFilter("", stats_, DSP_PROCESSOR, dsp_));
+
+  addToGraph(dspProcessor, audioProcessing_, audioProcessing_.size() - 1);
 
   if (audioOutput_ == nullptr)
   {
     audioOutput_ = std::make_shared<AudioOutputDevice>(stats_);
-    audioOutput_->init(format_, aec->getAEC());
+    audioOutput_->init(format_, dsp_);
   }
 
   if (opus)
@@ -744,3 +751,9 @@ void FilterGraph::removeParticipant(uint32_t sessionID)
     }
   }
 }
+
+void FilterGraph::createDSP(QAudioFormat format)
+{
+  dsp_ = std::make_shared<SpeexDSP>(format);
+}
+
