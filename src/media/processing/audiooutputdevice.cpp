@@ -35,6 +35,8 @@ AudioOutputDevice::~AudioOutputDevice()
     outputSample_ = nullptr;
     sampleSize_ = 0;
   }
+
+  audioOutput_->stop();
 }
 
 
@@ -320,7 +322,11 @@ void AudioOutputDevice::start()
   if(audioOutput_->state() == QAudio::SuspendedState
      || audioOutput_->state() == QAudio::StoppedState)
   {
+#ifdef __linux__
+    audioOutput_->start();
+#else
     audioOutput_->resume();
+#endif
   }
 }
 
@@ -329,7 +335,11 @@ void AudioOutputDevice::stop()
 {
   if(audioOutput_->state() == QAudio::ActiveState)
   {
+#ifdef __linux__
+    audioOutput_->stop();
+#else
     audioOutput_->suspend();
+#endif
   }
 
   close();

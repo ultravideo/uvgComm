@@ -205,7 +205,12 @@ void AudioCaptureFilter::stop()
   wantedState_ = QAudio::SuspendedState;
   if (audioInput_ && audioInput_->state() == QAudio::ActiveState)
   {
+#ifdef __linux__
+    // suspend hangs on linux with pulseaudio for some reason
+    audioInput_->stop();
+#else
     audioInput_->suspend();
+#endif
   }
 
   // just in case the filter part was running
@@ -248,7 +253,11 @@ void AudioCaptureFilter::stateChanged()
   {
     if (wantedState_ == QAudio::SuspendedState)
     {
+#ifdef __linux__
+      audioInput_->stop();
+#else
       audioInput_->suspend();
+#endif
     }
     else if (wantedState_ == QAudio::ActiveState)
     {
