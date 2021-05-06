@@ -42,14 +42,8 @@ FilterGraph::FilterGraph(): QObject(),
   // TODO negotiate these values with all included filters and SDP
   // TODO move these to settings and manage them automatically
 
-#ifndef __linux__
   // 48000 should be used with opus, since opus is able to downsample when needed
   format_ = createAudioFormat(1, 48000);
-#else
-  // Can be removed once uvgRTP supports pcm sample size 48000 or opus works on
-  // linux
-  format_ = createAudioFormat(1, 16000);
-#endif
 }
 
 
