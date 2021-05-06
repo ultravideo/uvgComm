@@ -8,6 +8,8 @@
 #include <memory>
 #include <deque>
 
+#include "audiomixer.h"
+
 class Filter;
 class StatisticsInterface;
 class SpeexDSP;
@@ -34,11 +36,13 @@ public:
   void addInput()
   {
     ++inputs_;
+    mixer_.setNumberOfInputs(inputs_);
   }
 
   void removeInput()
   {
     --inputs_;
+    mixer_.setNumberOfInputs(inputs_);
   }
 
   // Receives input from filter graph and tells output that there is input available
@@ -47,11 +51,6 @@ public:
 private:
 
   void createAudioOutput();
-
-  std::unique_ptr<uchar[]> mixAudio(std::unique_ptr<Data> input,
-                                    uint32_t sessionID);
-
-  std::unique_ptr<uchar[]> doMixing(uint32_t frameSize);
 
   void resetBuffers(uint32_t newSize);
   void deleteBuffers();
@@ -65,10 +64,9 @@ private:
   QIODevice *output_; // not owned
   QAudioFormat format_;
 
-  QMutex mixingMutex_;
-  std::map<uint32_t, std::unique_ptr<Data>> mixingBuffer_;
-
   QMutex sampleMutex_;
+
+  AudioMixer mixer_;
 
   // this will have the next played output audio. The same frame is played
   // if no new frame has been received.
