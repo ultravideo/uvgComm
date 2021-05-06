@@ -266,10 +266,18 @@ void AudioOutputDevice::takeInput(std::unique_ptr<Data> input, uint32_t sessionI
         partialSampleSize_ = inputSize - missingSize;
       }
     }
-    // If the input frames are larger than output sample,
-    // we will have to wait until output wants this much data.
-    else if (sampleSize_ < inputSize)
+    else if (inputSize%sampleSize_ == 0)
     {
+      for (int i = 0; i < inputSize; i += sampleSize_)
+      {
+        addSampleToBuffer(outputFrame.get(), sampleSize_);
+      }
+    }
+    else // if input is not an exact multitude of sample size
+    {
+      // If the input frames are larger than output sample,
+      // we will have to wait until output wants this much data.
+
       printDebug(DEBUG_NORMAL, this, "Incoming audio sample is larger than what output wants",
                   {"Incoming sample", "What output wants"}, {
                    QString::number(inputSize), QString::number(sampleSize_)});
