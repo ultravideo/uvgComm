@@ -31,7 +31,8 @@ public:
 
   // These functions are used to manipulate filter graphs regarding a peer
   void sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoFramedSource);
-  void receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> videoSink, VideoInterface *view);
+  void receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> videoSink,
+                        VideoInterface *view);
   void sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioFramedSource);
   void receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> audioSink);
 
@@ -53,8 +54,8 @@ private:
   void camera(bool state);
   void screenShare(bool shareState);
 
-  // adds fitler to graph and connects it to connectIndex unless this is the first filter in graph.
-  // adds format conversion if needed.
+  // Adds fitler to graph and connects it to connectIndex unless this is
+  // the first filter in graph. Adds format conversion if needed.
   bool addToGraph(std::shared_ptr<Filter> filter,
                   GraphSegment& graph,
                   unsigned int connectIndex = 0);
@@ -73,6 +74,8 @@ private:
 
   // iniates encoder and attaches it
   void initializeAudio(bool opus);
+
+  QAudioFormat createAudioFormat(uint8_t channels, uint32_t sampleRate);
 
   void removeAllParticipants();
 

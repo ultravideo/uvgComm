@@ -44,17 +44,12 @@ FilterGraph::FilterGraph(): QObject(),
 
 #ifndef __linux__
   // 48000 should be used with opus, since opus is able to downsample when needed
-  format_.setSampleRate(48000);
+  format_ = createAudioFormat(1, 48000);
 #else
   // Can be removed once uvgRTP supports pcm sample size 48000 or opus works on
   // linux
-  format_.setSampleRate(16000);
+  format_ = createAudioFormat(1, 16000);
 #endif
-  format_.setChannelCount(1);
-  format_.setSampleSize(16);
-  format_.setSampleType(QAudioFormat::SignedInt);
-  format_.setByteOrder(QAudioFormat::LittleEndian);
-  format_.setCodec("audio/pcm");
 }
 
 
@@ -199,7 +194,8 @@ void FilterGraph::initSelfView()
   // create screen share filter, but it is stopped at the beginning
   if(screenShareGraph_.size() == 0)
   {
-    if (addToGraph(std::shared_ptr<Filter>(new ScreenShareFilter("", stats_)), screenShareGraph_))
+    if (addToGraph(std::shared_ptr<Filter>(new ScreenShareFilter("", stats_)),
+                   screenShareGraph_))
     {
       screenShareGraph_.at(0)->stop();
     }
@@ -218,11 +214,12 @@ void FilterGraph::initSelfView()
     // Connect selfview to camera and screen sharing. The self view vertical mirroring
     // depends on which conversions are used.
 
-    // TODO: Figure out what is going on. There is probably a bug in one of the optimization
-    // that flip the video. This however removes the need for an additional flip for some
-    // reason saving CPU.
+    // TODO: Figure out what is going on. There is probably a bug in one of the
+    // optimization that flip the video. This however removes the need for an
+    // additional flip for some reason saving CPU.
 
-    // we dont do horizontal mirroring if we are using screen sharing, but that is changed later
+    // We dont do horizontal mirroring if we are using screen sharing, but that
+    // is changed later.
     // Note: mirroring is slow with Qt
 
     selfviewFilter_->setProperties(true, cameraGraph_.at(0)->outputType() == RGB32VIDEO);
@@ -259,14 +256,16 @@ void FilterGraph::initVideoSend()
 void FilterGraph::initializeAudio(bool opus)
 {
   // Do this before adding participants, otherwise AEC filter wont get attached
-  addToGraph(std::shared_ptr<Filter>(new AudioCaptureFilter("", format_, stats_)), audioProcessing_);
+  addToGraph(std::shared_ptr<Filter>(new AudioCaptureFilter("", format_, stats_)),
+             audioProcessing_);
 
   if (dsp_ == nullptr)
   {
     createDSP(format_);
   }
 
-  std::shared_ptr<DSPFilter> dspProcessor = std::shared_ptr<DSPFilter>(new DSPFilter("", stats_, DSP_PROCESSOR, dsp_));
+  std::shared_ptr<DSPFilter> dspProcessor =
+      std::shared_ptr<DSPFilter>(new DSPFilter("", stats_, DSP_PROCESSOR, dsp_));
 
   addToGraph(dspProcessor, audioProcessing_, audioProcessing_.size() - 1);
 
@@ -293,8 +292,8 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
   {
     if(graph.at(connectIndex)->outputType() != filter->inputType())
     {
-      printDebug(DEBUG_NORMAL, this, "Filter output and input do not match. Finding conversion", {"Connection"},
-                  {graph.at(connectIndex)->getName() + "->" + filter->getName()});
+      printDebug(DEBUG_NORMAL, this, "Filter output and input do not match. Finding conversion",
+                 {"Connection"}, {graph.at(connectIndex)->getName() + "->" + filter->getName()});
 
       Q_ASSERT(graph.at(connectIndex)->outputType() != NONE);
 
@@ -752,8 +751,23 @@ void FilterGraph::removeParticipant(uint32_t sessionID)
   }
 }
 
+
 void FilterGraph::createDSP(QAudioFormat format)
 {
   dsp_ = std::make_shared<SpeexDSP>(format);
 }
 
+
+QAudioFormat FilterGraph::createAudioFormat(uint8_t channels, uint32_t sampleRate)
+{
+  QAudioFormat format;
+
+  format.setSampleRate(sampleRate);
+  format.setChannelCount(channels);
+  format.setSampleSize(16);
+  format.setSampleType(QAudioFormat::SignedInt);
+  format.setByteOrder(QAudioFormat::LittleEndian);
+  format.setCodec("audio/pcm");
+
+  return format;
+}
