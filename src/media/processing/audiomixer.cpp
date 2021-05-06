@@ -2,8 +2,12 @@
 
 #include "filter.h"
 #include "common.h"
+#include "global.h"
+
 
 #include <QString>
+
+const unsigned int MAX_MIX_BUFFER = AUDIO_FRAMES_PER_SECOND/5;
 
 AudioMixer::AudioMixer():
   inputs_(0),
@@ -15,25 +19,42 @@ AudioMixer::AudioMixer():
 std::unique_ptr<uchar[]> AudioMixer::mixAudio(std::unique_ptr<Data> input,
                                               uint32_t sessionID)
 {
-  std::unique_ptr<uchar[]> outputFrame = nullptr;
   mixingMutex_.lock();
-  // mix if there is already a sample for this stream in buffer
-  if (mixingBuffer_.find(sessionID) != mixingBuffer_.end())
-  {
-    printWarning(this, "Mixing overflow. Missing samples.");
-    outputFrame = doMixing(input->data_size);
-    mixingBuffer_[sessionID] = std::move(input);
-  }
-  else
-  {
-    uint32_t size = input->data_size;
-    mixingBuffer_[sessionID] = std::move(input);
 
-    // mix if there is a sample for all streams
-    if (mixingBuffer_.size() == inputs_)
+  // make sure the buffer exists for this sessionID
+  if (mixingBuffer_.find(sessionID) == mixingBuffer_.end())
+  {
+    mixingBuffer_[sessionID] = std::deque<std::unique_ptr<Data>>();
+  }
+
+  // store size before moving sample to buffer
+  uint32_t data_size = input->data_size;
+
+  // add new sample to its buffer
+  mixingBuffer_[sessionID].push_back(std::move(input));
+
+  // check if all buffers have a sample we can mix
+  unsigned int samples = 0;
+  for (auto& buffer : mixingBuffer_)
+  {
+    if (!buffer.second.empty())
     {
-      outputFrame = doMixing(size);
+      ++samples;
     }
+  }
+
+  std::unique_ptr<uchar[]> outputFrame = nullptr;
+
+  // if all inputs have provided a sample for mixing
+  if (samples == inputs_)
+  {
+    outputFrame = doMixing(data_size);
+  }
+  else if (mixingBuffer_.at(sessionID).size() >= MAX_MIX_BUFFER)
+  {
+    printWarning(this, "Too many samples from one source and not enough from others. "
+                       "Forced mixing to avoid latency");
+    outputFrame = doMixing(data_size);
   }
 
   mixingMutex_.unlock();
@@ -47,10 +68,19 @@ std::unique_ptr<uchar[]> AudioMixer::doMixing(uint32_t frameSize)
   // don't do mixing if we have only one stream.
   if (mixingBuffer_.size() == 1)
   {
+    if (!mixingBuffer_.begin()->second.empty())
+    {
     std::unique_ptr<uchar[]> oneSample =
-        std::move(mixingBuffer_.begin()->second->data);
+        std::move(mixingBuffer_.begin()->second.front()->data);
+    mixingBuffer_.begin()->second.pop_front();
     mixingBuffer_.clear();
     return oneSample;
+    }
+    else
+    {
+      printProgramError(this, "Tried to mix without anything to mix");
+      return nullptr;
+    }
   }
 
   std::unique_ptr<uchar[]> result =
@@ -65,7 +95,10 @@ std::unique_ptr<uchar[]> AudioMixer::doMixing(uint32_t frameSize)
     // Just add them up.
     for (auto& buffer : mixingBuffer_)
     {
-      sum += *((int16_t*)buffer.second->data.get() + i);
+      if (!buffer.second.empty())
+      {
+        sum += *((int16_t*)buffer.second.front()->data.get() + i);
+      }
     }
 
     // clipping is not desired, but occurs rarely
@@ -85,7 +118,14 @@ std::unique_ptr<uchar[]> AudioMixer::doMixing(uint32_t frameSize)
     ++output_ptr;
   }
 
-  mixingBuffer_.clear();
+  // remove the samples that were mixed
+  for (auto& buffer : mixingBuffer_)
+  {
+    if (!buffer.second.empty())
+    {
+      buffer.second.pop_front();
+    }
+  }
 
   return result;
 }

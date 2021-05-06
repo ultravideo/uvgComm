@@ -5,6 +5,7 @@
 #include <QObject>
 
 #include <map>
+#include <deque>
 
 struct Data;
 
@@ -29,5 +30,5 @@ private:
   unsigned int inputs_;
 
   QMutex mixingMutex_;
-  std::map<uint32_t, std::unique_ptr<Data>> mixingBuffer_;
+  std::map<uint32_t, std::deque<std::unique_ptr<Data>>> mixingBuffer_;
 };
