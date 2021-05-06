@@ -11,6 +11,9 @@
 
 #include <QDebug>
 
+uint8_t MAX_SAMPLE_REPEATS = 5;
+uint8_t MAX_BUFFER_SAMPLES = 4;
+
 AudioOutputDevice::AudioOutputDevice(StatisticsInterface *stats):
   QIODevice(),
   stats_(stats),
@@ -19,7 +22,7 @@ AudioOutputDevice::AudioOutputDevice(StatisticsInterface *stats):
   output_(nullptr),
   format_(),
   sampleMutex_(),
-  outputSample_(nullptr),
+  outputBuffer_(),
   sampleSize_(0),
   partialSample_(nullptr),
   partialSampleSize_(0),
@@ -69,20 +72,6 @@ void AudioOutputDevice::createAudioOutput()
   }
   audioOutput_ = new QAudioOutput(device_, format_, this);
 
-  if (outputSample_ != nullptr)
-  {
-    delete outputSample_;
-    outputSample_ = nullptr;
-    sampleSize_ = 0;
-  }
-
-  if (partialSample_ != nullptr)
-  {
-    delete partialSample_;
-    partialSample_ = nullptr;
-    partialSampleSize_ = 0;
-  }
-
   //sampleSize_ = format_.sampleRate()*format_.bytesPerFrame()/AUDIO_FRAMES_PER_SECOND;
 
   open(QIODevice::ReadOnly);
@@ -119,14 +108,16 @@ qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
   uint32_t read = 0;
   if (maxlen < sampleSize_)
   {
-    printWarning(this, "Output audio buffer already full with readData.", {"Read vs available"}, {
-                   QString::number(maxlen) + " vs " + QString::number(sampleSize_)});
+    printWarning(this, "Output wants smaller sample than what we use. "
+                        "Part of the sample may be left unplayed",
+                 {"Read vs available"},
+                 {QString::number(maxlen) + " vs " + QString::number(sampleSize_)});
   }
   else
   {
     if (audioOutput_->periodSize() > sampleSize_)
     {
-      printWarning(this, "The audio Frame size is too small. "
+      printWarning(this, "We use smaller sample than what audio output wants. "
                          "Buffer output underflow.", {"PeriodSize vs frame size"}, {
                      QString::number(audioOutput_->periodSize()) + " vs " +
                      QString::number(sampleSize_)});
@@ -151,24 +142,43 @@ qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
     }
 
     // start playing silence if we played last frame three times.
-    if (outputRepeats_ == 3)
+    if (outputRepeats_ >= MAX_SAMPLE_REPEATS || outputBuffer_.empty())
     {
-      if (outputSample_ != nullptr)
-      {
-        delete[] outputSample_;
-      }
-
-      outputSample_ = aec_->createEmptyFrame(sampleSize_);
+      printWarning(this, "Resetting audio buffers since there is not enough samples");
+      resetBuffers(sampleSize_);
+      outputRepeats_ = 0;
     }
 
-    // send sample to AEC
-    aec_->processEchoFrame(outputSample_, sampleSize_);
+    // take oldest sample in buffer
+    uint8_t* sample = outputBuffer_.front();
+
+    // send sample to AEC to use as a reference of echo
+    aec_->processEchoFrame(sample, sampleSize_);
 
     // send sample to speakers
-    memcpy(data, outputSample_, sampleSize_);
+    memcpy(data, sample, sampleSize_);
     read = sampleSize_;
+
+    // delete sample from our buffer if it was not the only sample we have
+    if (outputBuffer_.size() > 1)
+    {
+      delete outputBuffer_.front();
+      outputBuffer_.pop_front();
+    }
+
+    // if we have too may audio samples stored
+    while (outputBuffer_.size() > MAX_BUFFER_SAMPLES)
+    {
+      printWarning(this, "Audio buffer has grown too large. "
+                         "Deleting oldest samples to avoid latency");
+      delete outputBuffer_.front();
+      outputBuffer_.pop_front();
+    }
+
     sampleMutex_.unlock();
   }
+
+
   return read;
 }
 
@@ -226,16 +236,14 @@ void AudioOutputDevice::takeInput(std::unique_ptr<Data> input, uint32_t sessionI
 
     if (sampleSize_ == inputSize) // input is exactly right
     {
-      memcpy(outputSample_, outputFrame.get(), sampleSize_);
-      outputRepeats_ = 0;
+      addSampleToBuffer(outputFrame.get(), sampleSize_);
     }
     else if (sampleSize_ > inputSize) // the input sample is smaller than what output wants
     {
       if (partialSampleSize_ + inputSize == sampleSize_)
       {
         memcpy(partialSample_ + partialSampleSize_, outputFrame.get(), inputSize);
-        memcpy(outputSample_, partialSample_, sampleSize_);
-        outputRepeats_ = 0;
+        addSampleToBuffer(partialSample_, sampleSize_);
       }
       else if (partialSampleSize_ + inputSize < sampleSize_)
       {
@@ -248,15 +256,14 @@ void AudioOutputDevice::takeInput(std::unique_ptr<Data> input, uint32_t sessionI
         uint32_t missingSize = sampleSize_ - partialSampleSize_;
 
         // add missing piece from new sample
-        memcpy(outputSample_ + partialSampleSize_, outputFrame.get(),  missingSize);
+        memcpy(partialSample_ + partialSampleSize_, outputFrame.get(), missingSize);
+
+        // copy finished sample to output
+        addSampleToBuffer(partialSample_, sampleSize_);
 
         // store remaining piece from new sample
         memcpy(partialSample_, outputFrame.get() + missingSize, inputSize - missingSize);
         partialSampleSize_ = inputSize - missingSize;
-
-        // copy finished sample to output
-        memcpy(outputSample_, partialSample_, sampleSize_);
-        outputRepeats_ = 0;
       }
     }
     // If the input frames are larger than output sample,
@@ -264,11 +271,14 @@ void AudioOutputDevice::takeInput(std::unique_ptr<Data> input, uint32_t sessionI
     else if (sampleSize_ < inputSize)
     {
       printDebug(DEBUG_NORMAL, this, "Incoming audio sample is larger than what output wants",
-                  {"Incoming sample", "What output wants"}, {QString::number(inputSize), QString::number(sampleSize_)});
+                  {"Incoming sample", "What output wants"}, {
+                   QString::number(inputSize), QString::number(sampleSize_)});
 
+      // increase size of buffers
       resetBuffers(inputSize);
-      memcpy(outputSample_, outputFrame.get(), sampleSize_);
-      outputRepeats_ = 0;
+
+      // add new sample to bigger buffers
+      addSampleToBuffer(outputFrame.get(), sampleSize_);
     }
 
     sampleMutex_.unlock();
@@ -385,19 +395,25 @@ void AudioOutputDevice::stop()
 
 void AudioOutputDevice::deleteBuffers()
 {
-  if (outputSample_ != nullptr)
+  for (auto& sample : outputBuffer_)
   {
-    delete outputSample_;
-    outputSample_ = nullptr;
-    sampleSize_ = 0;
+    if (sample != nullptr)
+    {
+      delete[] sample;
+      sample = nullptr;
+    }
   }
+
+  outputBuffer_.clear();
+  sampleSize_ = 0;
 
   if (partialSample_ != nullptr)
   {
-    delete partialSample_;
+    delete[] partialSample_;
     partialSample_ = nullptr;
-    partialSampleSize_ = 0;
   }
+
+  partialSampleSize_ = 0;
 }
 
 
@@ -407,6 +423,16 @@ void AudioOutputDevice::resetBuffers(uint32_t newSize)
 
   sampleSize_ = newSize;
   partialSampleSize_ = 0;
-  outputSample_ = aec_->createEmptyFrame(sampleSize_);
+  outputBuffer_.push_back(aec_->createEmptyFrame(sampleSize_));
   partialSample_ = aec_->createEmptyFrame(sampleSize_);
+}
+
+
+void AudioOutputDevice::addSampleToBuffer(uint8_t *sample, int sampleSize)
+{
+  uint8_t* new_sample = new uint8_t[sampleSize];
+  memcpy(new_sample, sample, sampleSize);
+  outputBuffer_.push_back(new_sample);
+
+  outputRepeats_ = 0;
 }

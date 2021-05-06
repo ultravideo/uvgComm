@@ -6,6 +6,7 @@
 
 #include <stdint.h>
 #include <memory>
+#include <deque>
 
 class Filter;
 class StatisticsInterface;
@@ -47,12 +48,15 @@ private:
 
   void createAudioOutput();
 
-  std::unique_ptr<uchar[]> mixAudio(std::unique_ptr<Data> input, uint32_t sessionID);
+  std::unique_ptr<uchar[]> mixAudio(std::unique_ptr<Data> input,
+                                    uint32_t sessionID);
 
   std::unique_ptr<uchar[]> doMixing(uint32_t frameSize);
 
   void resetBuffers(uint32_t newSize);
   void deleteBuffers();
+
+  void addSampleToBuffer(uint8_t* sample, int sampleSize);
 
   StatisticsInterface* stats_;
 
@@ -68,11 +72,11 @@ private:
 
   // this will have the next played output audio. The same frame is played
   // if no new frame has been received.
-  uint8_t* outputSample_;
-  uint32_t sampleSize_;
+  std::deque<uint8_t*> outputBuffer_;
+  int sampleSize_;
 
   uint8_t* partialSample_;
-  uint32_t partialSampleSize_;
+  int partialSampleSize_;
 
   unsigned int inputs_;
 
