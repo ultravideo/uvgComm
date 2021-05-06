@@ -31,20 +31,7 @@ AudioOutputDevice::AudioOutputDevice(StatisticsInterface *stats):
 
 AudioOutputDevice::~AudioOutputDevice()
 {
-  if (outputSample_ != nullptr)
-  {
-    delete outputSample_;
-    outputSample_ = nullptr;
-    sampleSize_ = 0;
-  }
-
-  if (partialSample_ != nullptr)
-  {
-    delete partialSample_;
-    partialSample_ = nullptr;
-    partialSampleSize_ = 0;
-  }
-
+  deleteBuffers();
   audioOutput_->stop();
 }
 
@@ -396,8 +383,28 @@ void AudioOutputDevice::stop()
 }
 
 
+void AudioOutputDevice::deleteBuffers()
+{
+  if (outputSample_ != nullptr)
+  {
+    delete outputSample_;
+    outputSample_ = nullptr;
+    sampleSize_ = 0;
+  }
+
+  if (partialSample_ != nullptr)
+  {
+    delete partialSample_;
+    partialSample_ = nullptr;
+    partialSampleSize_ = 0;
+  }
+}
+
+
 void AudioOutputDevice::resetBuffers(uint32_t newSize)
 {
+  deleteBuffers();
+
   sampleSize_ = newSize;
   partialSampleSize_ = 0;
   outputSample_ = aec_->createEmptyFrame(sampleSize_);

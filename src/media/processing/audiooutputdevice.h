@@ -52,6 +52,7 @@ private:
   std::unique_ptr<uchar[]> doMixing(uint32_t frameSize);
 
   void resetBuffers(uint32_t newSize);
+  void deleteBuffers();
 
   StatisticsInterface* stats_;
 
