@@ -1,11 +1,14 @@
 #pragma once
 
+#include "filter.h"
 
 #include <QMutex>
 #include <QObject>
 
 #include <map>
 #include <deque>
+
+#include <memory>
 
 struct Data;
 

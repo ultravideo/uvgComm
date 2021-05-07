@@ -1,6 +1,5 @@
 #include "audiomixer.h"
 
-#include "filter.h"
 #include "common.h"
 #include "global.h"
 

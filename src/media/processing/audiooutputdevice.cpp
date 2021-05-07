@@ -12,7 +12,12 @@
 #include <QDebug>
 
 uint8_t MAX_SAMPLE_REPEATS = 5;
-uint8_t MAX_BUFFER_SAMPLES = 4;
+
+#ifdef __linux__
+uint8_t MAX_BUFFER_SAMPLES = AUDIO_FRAMES_PER_SECOND/2;
+#else
+uint8_t MAX_BUFFER_SAMPLES = AUDIO_FRAMES_PER_SECOND/5;
+#endif
 
 AudioOutputDevice::AudioOutputDevice(StatisticsInterface *stats):
   QIODevice(),
@@ -28,7 +33,6 @@ AudioOutputDevice::AudioOutputDevice(StatisticsInterface *stats):
   partialSample_(nullptr),
   partialSampleSize_(0),
   inputs_(0),
-  mixedSample_(false),
   outputRepeats_(0)
 {}
 
@@ -132,18 +136,8 @@ qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
     // if no new input has arrived, we play the last sample
     sampleMutex_.lock();
 
-    // we keep track if this is a repeat so we can change it to silence.
-    if (!mixedSample_)
-    {
-      ++outputRepeats_;
-    }
-    else
-    {
-      mixedSample_ = false;
-    }
-
-    // start playing silence if we played last frame three times.
-    if (outputRepeats_ >= MAX_SAMPLE_REPEATS || outputBuffer_.empty())
+    // make sure we have a sample to play, even if it is silence
+    if (outputBuffer_.empty())
     {
       printWarning(this, "Resetting audio buffers since there is not enough samples");
       resetBuffers(sampleSize_);
@@ -165,13 +159,27 @@ qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
     {
       delete outputBuffer_.front();
       outputBuffer_.pop_front();
+      outputRepeats_ = 0;
+    }
+    else
+    {
+      printWarning(this, "Not enough samples in audio buffer, repeating previous audio sample");
+      ++outputRepeats_;
     }
 
-    // if we have too may audio samples stored
-    while (outputBuffer_.size() > MAX_BUFFER_SAMPLES)
+    // start playing silence if we played last frame too many times
+    if (outputRepeats_ >= MAX_SAMPLE_REPEATS)
     {
-      printWarning(this, "Audio buffer has grown too large. "
-                         "Deleting oldest samples to avoid latency");
+      printWarning(this, "Resetting audio buffer because too may repeated samples");
+      resetBuffers(sampleSize_);
+      outputRepeats_ = 0;
+    }
+
+    // if we have too may audio samples stored, remove one to reduce latency
+    if (outputBuffer_.size() > MAX_BUFFER_SAMPLES)
+    {
+      printWarning(this, "Too many audio samples in buffer. "
+                         "Deleting oldest sample to avoid latency");
       delete outputBuffer_.front();
       outputBuffer_.pop_front();
     }
@@ -233,7 +241,6 @@ void AudioOutputDevice::takeInput(std::unique_ptr<Data> input, uint32_t sessionI
     }
 
     sampleMutex_.lock();
-    mixedSample_ = true;
 
     if (sampleSize_ == inputSize) // input is exactly right
     {
@@ -269,9 +276,10 @@ void AudioOutputDevice::takeInput(std::unique_ptr<Data> input, uint32_t sessionI
     }
     else if (inputSize%sampleSize_ == 0)
     {
-      for (int i = 0; i < inputSize; i += sampleSize_)
+      // divide samples
+      for (int i = 0; i + sampleSize_ <= inputSize; i += sampleSize_)
       {
-        addSampleToBuffer(outputFrame.get(), sampleSize_);
+        addSampleToBuffer(outputFrame.get() + i, sampleSize_);
       }
     }
     else // if input is not an exact multitude of sample size

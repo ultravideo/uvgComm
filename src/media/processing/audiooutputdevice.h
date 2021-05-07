@@ -80,7 +80,6 @@ private:
 
   std::shared_ptr<SpeexDSP> aec_;
 
-  bool mixedSample_;
   unsigned int outputRepeats_;
 
 private slots:
