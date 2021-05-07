@@ -30,6 +30,8 @@ Kvazzup requires the following external libraries to operate:
 
 Qt Creator is the recommended tool for compiling Kvazzup. Make sure you use the same compiler and bit version for all the dependencies and for Kvazzup. It is possible, although not recommended to use Kvazzup without Crypto++.
 
+Kvazzup uses code indent of 2. You can change that in qt creator from Tools -> Options -> C++ -> Code Style by making a new code style with indent and tab sizes of 2.
+
 ### Linux(GCC)
 
 Install Qt, Qt multimedia and QtCreator. Make sure Opus, Speex DSP, OpenMP and Crypto++ are installed. Compile and install [OpenHEVC](https://github.com/OpenHEVC/openHEVC), [Kvazaar](https://github.com/ultravideo/kvazaar) and [uvgRTP](https://github.com/ultravideo/uvgRTP).
