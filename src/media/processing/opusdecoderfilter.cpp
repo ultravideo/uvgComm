@@ -67,6 +67,7 @@ void OpusDecoderFilter::process()
       input->data_size = datasize;
 
       input->data = std::move(pcm_frame);
+      input->type = RAWAUDIO;
       sendOutput(std::move(input));
     }
     else

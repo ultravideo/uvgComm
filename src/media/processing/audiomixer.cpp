@@ -15,8 +15,9 @@ AudioMixer::AudioMixer():
 {}
 
 
-std::unique_ptr<uchar[]> AudioMixer::mixAudio(std::unique_ptr<Data> input,
-                                              uint32_t sessionID)
+std::unique_ptr<Data> AudioMixer::mixAudio(std::unique_ptr<Data> input,
+                                           std::unique_ptr<Data> potentialOutput,
+                                           uint32_t sessionID)
 {
   mixingMutex_.lock();
 
@@ -42,23 +43,26 @@ std::unique_ptr<uchar[]> AudioMixer::mixAudio(std::unique_ptr<Data> input,
     }
   }
 
-  std::unique_ptr<uchar[]> outputFrame = nullptr;
-
   // if all inputs have provided a sample for mixing
   if (samples == inputs_)
   {
-    outputFrame = doMixing(data_size);
+    potentialOutput->data = doMixing(data_size);
+    mixingMutex_.unlock();
+    return std::move(potentialOutput);
   }
   else if (mixingBuffer_.at(sessionID).size() >= MAX_MIX_BUFFER)
   {
     printWarning(this, "Too many samples from one source and not enough from others. "
                        "Forced mixing to avoid latency");
-    outputFrame = doMixing(data_size);
+
+    potentialOutput->data = doMixing(data_size);
+    mixingMutex_.unlock();
+    return std::move(potentialOutput);
   }
 
   mixingMutex_.unlock();
 
-  return outputFrame;
+  return std::unique_ptr<Data> (nullptr);
 }
 
 

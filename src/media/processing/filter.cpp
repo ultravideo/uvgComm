@@ -118,7 +118,7 @@ void Filter::putInput(std::unique_ptr<Data> data)
     {
       if(inBuffer_[0]->type == OPUSAUDIO)
       {
-        printDebug(DEBUG_WARNING, this,  "Should input Null pointer to decoder.");
+        printDebug(DEBUG_WARNING, this,  "Should input Null pointer to opus decoder.");
       }
       inBuffer_.pop_front(); // discard the oldest
     }

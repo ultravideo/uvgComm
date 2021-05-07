@@ -9,15 +9,16 @@
 #include "media/processing/displayfilter.h"
 #include "media/processing/scalefilter.h"
 #include "media/processing/audiocapturefilter.h"
-#include "media/processing/audiooutputdevice.h"
 #include "media/processing/opusencoderfilter.h"
 #include "media/processing/opusdecoderfilter.h"
 #include "media/processing/dspfilter.h"
 #include "media/processing/audiomixerfilter.h"
+#include "media/processing/audiooutputfilter.h"
 
 #include "ui/gui/videointerface.h"
 
 #include "speexdsp.h"
+#include "audiomixer.h"
 
 #include "settingskeys.h"
 #include "global.h"
@@ -31,13 +32,15 @@ FilterGraph::FilterGraph(): QObject(),
   peers_(),
   cameraGraph_(),
   screenShareGraph_(),
-  audioProcessing_(),
+  audioInputGraph_(),
+  audioOutputGraph_(),
   selfviewFilter_(nullptr),
   stats_(nullptr),
   format_(),
   videoFormat_(""),
   quitting_(false),
-  audioOutput_(nullptr)
+  dsp_(),
+  mixer_()
 {
   // TODO negotiate these values with all included filters and SDP
   // TODO move these to settings and manage them automatically
@@ -132,21 +135,26 @@ void FilterGraph::updateVideoSettings()
 
 void FilterGraph::updateAudioSettings()
 {
-  for(auto& filter : audioProcessing_)
+  for (auto& filter : audioInputGraph_)
   {
     filter->updateSettings();
   }
 
-  for(auto& peer : peers_)
+  for (auto& filter : audioOutputGraph_)
   {
-    if(peer.second != nullptr)
+    filter->updateSettings();
+  }
+
+  for (auto& peer : peers_)
+  {
+    if (peer.second != nullptr)
     {
       for (auto& senderFilter : peer.second->audioSenders)
       {
         senderFilter->updateSettings();
       }
 
-      for(auto& audioReceivers : peer.second->audioReceivers)
+      for (auto& audioReceivers : peer.second->audioReceivers)
       {
         for (auto& filter : *audioReceivers)
         {
@@ -172,7 +180,7 @@ void FilterGraph::initSelfView()
   QSettings settings(settingsFile, settingsFileFormat);
   videoFormat_ = settings.value(SettingsKey::videoInputFormat).toString();
 
-  if(cameraGraph_.size() > 0)
+  if (cameraGraph_.size() > 0)
   {
     destroyFilters(cameraGraph_);
   }
@@ -186,7 +194,7 @@ void FilterGraph::initSelfView()
   }
 
   // create screen share filter, but it is stopped at the beginning
-  if(screenShareGraph_.size() == 0)
+  if (screenShareGraph_.size() == 0)
   {
     if (addToGraph(std::shared_ptr<Filter>(new ScreenShareFilter("", stats_)),
                    screenShareGraph_))
@@ -195,7 +203,7 @@ void FilterGraph::initSelfView()
     }
   }
 
-  if(selfviewFilter_)
+  if (selfviewFilter_)
   {
     // connect scaling filter
     // TODO: not useful if it does not support YUV. Testing needed to verify
@@ -251,29 +259,39 @@ void FilterGraph::initializeAudio(bool opus)
 {
   // Do this before adding participants, otherwise AEC filter wont get attached
   addToGraph(std::shared_ptr<Filter>(new AudioCaptureFilter("", format_, stats_)),
-             audioProcessing_);
+             audioInputGraph_);
 
   if (dsp_ == nullptr)
   {
-    createDSP(format_);
+    dsp_ = std::make_shared<SpeexDSP>(format_);
+  }
+
+  // mixer helps mix the incoming audio streams into one output stream
+  if (mixer_ == nullptr)
+  {
+    mixer_ = std::make_shared<AudioMixer>();
   }
 
   std::shared_ptr<DSPFilter> dspProcessor =
       std::shared_ptr<DSPFilter>(new DSPFilter("", stats_, DSP_PROCESSOR, dsp_));
 
-  addToGraph(dspProcessor, audioProcessing_, audioProcessing_.size() - 1);
-
-  if (audioOutput_ == nullptr)
-  {
-    audioOutput_ = std::make_shared<AudioOutputDevice>(stats_);
-    audioOutput_->init(format_, dsp_);
-  }
+  addToGraph(dspProcessor, audioInputGraph_, audioInputGraph_.size() - 1);
 
   if (opus)
   {
     addToGraph(std::shared_ptr<Filter>(new OpusEncoderFilter("", format_, stats_)),
-               audioProcessing_, audioProcessing_.size() - 1);
+               audioInputGraph_, audioInputGraph_.size() - 1);
   }
+
+  std::shared_ptr<DSPFilter> echoReference =
+      std::make_shared<DSPFilter>("", stats_, ECHO_FRAME_PROVIDER, dsp_);
+
+  addToGraph(echoReference, audioOutputGraph_);
+
+  std::shared_ptr<AudioOutputFilter> audioOutput =
+      std::make_shared<AudioOutputFilter>("", stats_, format_);
+
+  addToGraph(audioOutput, audioOutputGraph_, audioOutputGraph_.size() - 1);
 }
 
 
@@ -315,7 +333,7 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
       // the conversion filter has been added to the end
       connectIndex = graph.size() - 1;
     }
-    connectFilters(filter, graph.at(connectIndex));
+    connectFilters(graph.at(connectIndex), filter);
   }
 
   graph.push_back(filter);
@@ -331,8 +349,7 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
 }
 
 
-bool FilterGraph::connectFilters(std::shared_ptr<Filter> filter,
-                                 std::shared_ptr<Filter> previous)
+bool FilterGraph::connectFilters(std::shared_ptr<Filter> previous, std::shared_ptr<Filter> filter)
 {
   Q_ASSERT(filter != nullptr && previous != nullptr);
 
@@ -427,7 +444,7 @@ void FilterGraph::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioF
   Q_ASSERT(audioFramedSource);
 
   // just in case it is wanted later. AEC filter has to be attached
-  if(audioProcessing_.size() == 0)
+  if(audioInputGraph_.size() == 0)
   {
     initializeAudio(audioFramedSource->inputType() == OPUSAUDIO);
   }
@@ -437,7 +454,7 @@ void FilterGraph::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioF
 
   peers_[sessionID]->audioSenders.push_back(audioFramedSource);
 
-  audioProcessing_.back()->addOutConnection(audioFramedSource);
+  audioInputGraph_.back()->addOutConnection(audioFramedSource);
   audioFramedSource->start();
 
   mic(settingEnabled(SettingsKey::micStatus));
@@ -458,17 +475,27 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID,
   peers_[sessionID]->audioReceivers.push_back(graph);
 
   addToGraph(audioSink, *graph);
+
   if (audioSink->outputType() == OPUSAUDIO)
   {
     addToGraph(std::shared_ptr<Filter>(new OpusDecoderFilter(sessionID, format_, stats_)),
                *graph, graph->size() - 1);
   }
 
-  audioOutput_->addInput();
+  std::shared_ptr<AudioMixerFilter> audioMixer =
+      std::make_shared<AudioMixerFilter>(QString::number(sessionID), stats_, sessionID, mixer_);
 
-  addToGraph(std::make_shared<AudioMixerFilter>(QString::number(sessionID),
-                                                stats_, sessionID, audioOutput_),
-             *graph, graph->size() - 1);
+  addToGraph(audioMixer, *graph, graph->size() - 1);
+
+  if (!audioOutputGraph_.empty())
+  {
+    // connects audio reception to audio output
+    connectFilters(graph->back(), audioOutputGraph_.front());
+  }
+  else
+  {
+    printProgramError(this, "Audio output not initialized when adding audio reception");
+  }
 }
 
 
@@ -479,7 +506,9 @@ void FilterGraph::uninit()
 
   destroyFilters(cameraGraph_);
   destroyFilters(screenShareGraph_);
-  destroyFilters(audioProcessing_);
+
+  destroyFilters(audioInputGraph_);
+  destroyFilters(audioOutputGraph_);
 }
 
 
@@ -518,17 +547,17 @@ void changeState(std::shared_ptr<Filter> f, bool state)
 
 void FilterGraph::mic(bool state)
 {
-  if(audioProcessing_.size() > 0)
+  if(audioInputGraph_.size() > 0)
   {
     if(!state)
     {
       printNormal(this, "Stopping microphone");
-      audioProcessing_.at(0)->stop();
+      audioInputGraph_.at(0)->stop();
     }
     else
     {
       printNormal(this, "Starting microphone");
-      audioProcessing_.at(0)->start();
+      audioInputGraph_.at(0)->start();
     }
   }
 }
@@ -608,7 +637,13 @@ void FilterGraph::running(bool state)
   {
     changeState(f, state);
   }
-  for(std::shared_ptr<Filter>& f : audioProcessing_)
+
+  for(std::shared_ptr<Filter>& f : audioInputGraph_)
+  {
+    changeState(f, state);
+  }
+
+  for(std::shared_ptr<Filter>& f : audioOutputGraph_)
   {
     changeState(f, state);
   }
@@ -680,7 +715,7 @@ void FilterGraph::destroyPeer(Peer* peer)
 
   for (auto& audioSender : peer->audioSenders)
   {
-    audioProcessing_.back()->removeOutConnection(audioSender);
+    audioInputGraph_.back()->removeOutConnection(audioSender);
     changeState(audioSender, false);
     audioSender = nullptr;
   }
@@ -693,7 +728,6 @@ void FilterGraph::destroyPeer(Peer* peer)
   for (auto& graph : peer->audioReceivers)
   {
     destroyFilters(*graph);
-    audioOutput_->removeInput();
   }
 
   for (auto& graph : peer->videoReceivers)
@@ -737,18 +771,13 @@ void FilterGraph::removeParticipant(uint32_t sessionID)
         initSelfView(); // restore the self view.
       }
 
-      destroyFilters(audioProcessing_);
+      destroyFilters(audioInputGraph_);
+      destroyFilters(audioOutputGraph_);
 
       selectVideoSource();
       mic(settingEnabled(SettingsKey::micStatus));
     }
   }
-}
-
-
-void FilterGraph::createDSP(QAudioFormat format)
-{
-  dsp_ = std::make_shared<SpeexDSP>(format);
 }
 
 

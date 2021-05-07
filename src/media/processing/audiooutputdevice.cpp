@@ -2,14 +2,10 @@
 
 #include "filter.h"
 #include "statisticsinterface.h"
-#include "speexdsp.h"
 
 #include "common.h"
 #include "global.h"
 
-#include <QDateTime>
-
-#include <QDebug>
 
 uint8_t MAX_SAMPLE_REPEATS = 5;
 
@@ -19,20 +15,17 @@ uint8_t MAX_BUFFER_SAMPLES = AUDIO_FRAMES_PER_SECOND/2;
 uint8_t MAX_BUFFER_SAMPLES = AUDIO_FRAMES_PER_SECOND/5;
 #endif
 
-AudioOutputDevice::AudioOutputDevice(StatisticsInterface *stats):
+AudioOutputDevice::AudioOutputDevice():
   QIODevice(),
-  stats_(stats),
   device_(QAudioDeviceInfo::defaultOutputDevice()),
   audioOutput_(nullptr),
   output_(nullptr),
   format_(),
   sampleMutex_(),
-  mixer_(),
   outputBuffer_(),
   sampleSize_(0),
   partialSample_(nullptr),
   partialSampleSize_(0),
-  inputs_(0),
   outputRepeats_(0)
 {}
 
@@ -44,11 +37,8 @@ AudioOutputDevice::~AudioOutputDevice()
 }
 
 
-void AudioOutputDevice::init(QAudioFormat format,
-                             std::shared_ptr<SpeexDSP> AEC)
+void AudioOutputDevice::init(QAudioFormat format)
 {
-  aec_ = AEC;
-
   QAudioDeviceInfo info(device_);
   if (!info.isFormatSupported(format)) {
     printDebug(DEBUG_WARNING, this,
@@ -66,11 +56,6 @@ void AudioOutputDevice::init(QAudioFormat format,
 
 void AudioOutputDevice::createAudioOutput()
 {
-  if (!aec_)
-  {
-    printProgramError(this, "AEC not set");
-  }
-
   if(audioOutput_)
   {
     delete audioOutput_;
@@ -128,11 +113,6 @@ qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
                      QString::number(sampleSize_)});
     }
 
-    if (!aec_)
-    {
-      printProgramError(this, "AEC not set");
-    }
-
     // if no new input has arrived, we play the last sample
     sampleMutex_.lock();
 
@@ -146,9 +126,6 @@ qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
 
     // take oldest sample in buffer
     uint8_t* sample = outputBuffer_.front();
-
-    // send sample to AEC to use as a reference of echo
-    aec_->processEchoFrame(sample, sampleSize_);
 
     // send sample to speakers
     memcpy(data, sample, sampleSize_);
@@ -210,76 +187,56 @@ qint64 AudioOutputDevice::bytesAvailable() const
 }
 
 
-void AudioOutputDevice::takeInput(std::unique_ptr<Data> input, uint32_t sessionID)
+void AudioOutputDevice::input(std::unique_ptr<Data> input)
 {
+  if (input->type != RAWAUDIO)
+  {
+    printProgramError(this, "Audio output has received something other than raw audio!");
+    return;
+  }
+
   if (audioOutput_ && audioOutput_->state() != QAudio::StoppedState)
   {
-    // Add audio delay to statistics
-    int64_t delay = QDateTime::currentMSecsSinceEpoch() - input->presentationTime;
-
-    stats_->receiveDelay(sessionID, "Audio", delay);
-
-    int inputSize = input->data_size;
-
-    // we record one sample to buffer in case there is a packet loss,
-    // just so we don't have any breaks
-    std::unique_ptr<uchar[]> outputFrame;
-
-    if (inputs_ < 2)
-    {
-      outputFrame = std::move(input->data);
-    }
-    else
-    {
-      outputFrame = mixer_.mixAudio(std::move(input), sessionID);
-
-      // if we are still waiting for other samples to mix
-      if (outputFrame == nullptr)
-      {
-        return;
-      }
-    }
-
     sampleMutex_.lock();
 
-    if (sampleSize_ == inputSize) // input is exactly right
+    if (sampleSize_ == input->data_size) // input is exactly right
     {
-      addSampleToBuffer(outputFrame.get(), sampleSize_);
+      addSampleToBuffer(input->data.get(), sampleSize_);
     }
-    else if (sampleSize_ > inputSize) // the input sample is smaller than what output wants
+    else if (sampleSize_ > input->data_size) // the input sample is smaller than what output wants
     {
-      if (partialSampleSize_ + inputSize == sampleSize_)
+      if (partialSampleSize_ + input->data_size == sampleSize_)
       {
-        memcpy(partialSample_ + partialSampleSize_, outputFrame.get(), inputSize);
+        memcpy(partialSample_ + partialSampleSize_, input->data.get(), input->data_size);
         addSampleToBuffer(partialSample_, sampleSize_);
       }
-      else if (partialSampleSize_ + inputSize < sampleSize_)
+      else if (partialSampleSize_ + input->data_size < sampleSize_)
       {
         // we did not update the sample so no reset for output repeats
         // add this partial sample to temporary storage
-        memcpy(partialSample_ + partialSampleSize_, outputFrame.get(), inputSize);
+        memcpy(partialSample_ + partialSampleSize_, input->data.get(), input->data_size);
       }
       else // if we somehow have more audio data than one sample needs
       {
         uint32_t missingSize = sampleSize_ - partialSampleSize_;
 
         // add missing piece from new sample
-        memcpy(partialSample_ + partialSampleSize_, outputFrame.get(), missingSize);
+        memcpy(partialSample_ + partialSampleSize_, input->data.get(), missingSize);
 
         // copy finished sample to output
         addSampleToBuffer(partialSample_, sampleSize_);
 
         // store remaining piece from new sample
-        memcpy(partialSample_, outputFrame.get() + missingSize, inputSize - missingSize);
-        partialSampleSize_ = inputSize - missingSize;
+        memcpy(partialSample_, input->data.get() + missingSize, input->data_size - missingSize);
+        partialSampleSize_ = input->data_size - missingSize;
       }
     }
-    else if (inputSize%sampleSize_ == 0)
+    else if (input->data_size%sampleSize_ == 0)
     {
       // divide samples
-      for (int i = 0; i + sampleSize_ <= inputSize; i += sampleSize_)
+      for (int i = 0; i + sampleSize_ <= input->data_size; i += sampleSize_)
       {
-        addSampleToBuffer(outputFrame.get() + i, sampleSize_);
+        addSampleToBuffer(input->data.get() + i, sampleSize_);
       }
     }
     else // if input is not an exact multitude of sample size
@@ -289,13 +246,13 @@ void AudioOutputDevice::takeInput(std::unique_ptr<Data> input, uint32_t sessionI
 
       printDebug(DEBUG_NORMAL, this, "Incoming audio sample is larger than what output wants",
                   {"Incoming sample", "What output wants"}, {
-                   QString::number(inputSize), QString::number(sampleSize_)});
+                   QString::number(input->data_size), QString::number(sampleSize_)});
 
       // increase size of buffers
-      resetBuffers(inputSize);
+      resetBuffers(input->data_size);
 
       // add new sample to bigger buffers
-      addSampleToBuffer(outputFrame.get(), sampleSize_);
+      addSampleToBuffer(input->data.get(), sampleSize_);
     }
 
     sampleMutex_.unlock();
@@ -358,14 +315,22 @@ void AudioOutputDevice::deleteBuffers()
 }
 
 
+uint8_t* AudioOutputDevice::createEmptyFrame(uint32_t size)
+{
+  uint8_t* emptyFrame  = new uint8_t[size];
+  memset(emptyFrame, 0, size);
+  return emptyFrame;
+}
+
+
 void AudioOutputDevice::resetBuffers(uint32_t newSize)
 {
   deleteBuffers();
 
   sampleSize_ = newSize;
   partialSampleSize_ = 0;
-  outputBuffer_.push_back(aec_->createEmptyFrame(sampleSize_));
-  partialSample_ = aec_->createEmptyFrame(sampleSize_);
+  outputBuffer_.push_back(createEmptyFrame(sampleSize_));
+  partialSample_ = createEmptyFrame(sampleSize_);
 }
 
 

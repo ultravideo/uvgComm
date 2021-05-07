@@ -9,14 +9,13 @@
 
 class VideoInterface;
 class StatisticsInterface;
-class AudioOutputDevice;
 
 class Filter;
 class ScreenShareFilter;
-class DSPFilter;
 class DisplayFilter;
 
 class SpeexDSP;
+class AudioMixer;
 
 typedef std::vector<std::shared_ptr<Filter>> GraphSegment;
 
@@ -61,7 +60,7 @@ private:
                   unsigned int connectIndex = 0);
 
   // connects the two filters and checks for any problems
-  bool connectFilters(std::shared_ptr<Filter> filter, std::shared_ptr<Filter> previous);
+  bool connectFilters(std::shared_ptr<Filter> previous, std::shared_ptr<Filter> filter);
 
   // makes sure the participant exists and adds if necessary
   void checkParticipant(uint32_t sessionID);
@@ -96,15 +95,15 @@ private:
 
   void destroyFilters(std::vector<std::shared_ptr<Filter>>& filters);
 
-  void createDSP(QAudioFormat format);
-
   // key is sessionID
   std::map<uint32_t, Peer*> peers_;
 
  // std::shared_ptr<ScreenShareFilter> screenShare_;
   GraphSegment cameraGraph_;
   GraphSegment screenShareGraph_;
-  GraphSegment audioProcessing_;
+
+  GraphSegment audioInputGraph_;  // mic and stuff after it
+  GraphSegment audioOutputGraph_; // stuff before speakers and speakers
 
   std::shared_ptr<DisplayFilter> selfviewFilter_;
 
@@ -117,7 +116,7 @@ private:
 
   bool quitting_;
 
-  std::shared_ptr<AudioOutputDevice> audioOutput_;
-
+  // these are shared between filters
   std::shared_ptr<SpeexDSP> dsp_;
+  std::shared_ptr<AudioMixer> mixer_;
 };

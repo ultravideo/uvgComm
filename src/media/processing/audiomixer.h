@@ -18,12 +18,18 @@ class AudioMixer : public QObject
 public:
   AudioMixer();
 
-  std::unique_ptr<uchar[]> mixAudio(std::unique_ptr<Data> input,
+  std::unique_ptr<Data> mixAudio(std::unique_ptr<Data> input,
+                                 std::unique_ptr<Data> potentialOutput,
                                     uint32_t sessionID);
 
-  void setNumberOfInputs(unsigned int inputs)
+  void addInput()
   {
-    inputs_ = inputs;
+    ++inputs_;
+  }
+
+  void removeInput()
+  {
+    --inputs_;
   }
 
 private:

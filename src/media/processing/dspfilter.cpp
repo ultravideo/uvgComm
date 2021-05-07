@@ -7,7 +7,7 @@
 
 DSPFilter::DSPFilter(QString id, StatisticsInterface* stats,
                      DSPMode mode, std::shared_ptr<SpeexDSP> dsp):
-  Filter(id, "AEC input", stats, RAWAUDIO, RAWAUDIO),
+  Filter(id, "DSP", stats, RAWAUDIO, RAWAUDIO),
   dsp_(dsp),
   mode_(mode)
 {}

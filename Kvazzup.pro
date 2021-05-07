@@ -71,6 +71,7 @@ SOURCES +=\
     src/media/processing/audiomixer.cpp \
     src/media/processing/audiomixerfilter.cpp \
     src/media/processing/audiooutputdevice.cpp \
+    src/media/processing/audiooutputfilter.cpp \
     src/media/processing/camerafilter.cpp \
     src/media/processing/cameraframegrabber.cpp \
     src/media/processing/displayfilter.cpp \
@@ -151,6 +152,7 @@ HEADERS  += \
     src/media/processing/audiomixer.h \
     src/media/processing/audiomixerfilter.h \
     src/media/processing/audiooutputdevice.h \
+    src/media/processing/audiooutputfilter.h \
     src/media/processing/camerafilter.h \
     src/media/processing/cameraframegrabber.h \
     src/media/processing/displayfilter.h \
