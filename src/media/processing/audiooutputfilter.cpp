@@ -5,6 +5,7 @@ AudioOutputFilter::AudioOutputFilter(QString id, StatisticsInterface* stats,
   Filter(id, "Audio Output", stats, RAWAUDIO, NONE),
   output_()
 {
+  maxBufferSize_ = 3; // to avoid extra latency
   output_.init(format);
 }
 
