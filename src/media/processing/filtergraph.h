@@ -14,7 +14,7 @@ class Filter;
 class ScreenShareFilter;
 class DisplayFilter;
 
-class SpeexDSP;
+class SpeexAEC;
 class AudioMixer;
 
 typedef std::vector<std::shared_ptr<Filter>> GraphSegment;
@@ -117,6 +117,6 @@ private:
   bool quitting_;
 
   // these are shared between filters
-  std::shared_ptr<SpeexDSP> dsp_;
+  std::shared_ptr<SpeexAEC> aec_;
   std::shared_ptr<AudioMixer> mixer_;
 };

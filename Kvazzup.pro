@@ -86,6 +86,7 @@ SOURCES +=\
     src/media/processing/scalefilter.cpp \
     src/media/processing/screensharefilter.cpp \
     src/common.cpp \
+    src/media/processing/speexaec.cpp \
     src/media/processing/speexdsp.cpp \
     src/media/processing/yuvtorgb32.cpp \
     src/ui/gui/callwindow.cpp \
@@ -168,6 +169,7 @@ HEADERS  += \
     src/media/processing/rgb32toyuv.h \
     src/media/processing/scalefilter.h \
     src/media/processing/screensharefilter.h \
+    src/media/processing/speexaec.h \
     src/media/processing/speexdsp.h \
     src/media/processing/yuvtorgb32.h \
     src/serverstatusview.h \

@@ -17,7 +17,7 @@
 
 #include "ui/gui/videointerface.h"
 
-#include "speexdsp.h"
+#include "speexaec.h"
 #include "audiomixer.h"
 
 #include "settingskeys.h"
@@ -39,7 +39,7 @@ FilterGraph::FilterGraph(): QObject(),
   format_(),
   videoFormat_(""),
   quitting_(false),
-  dsp_(),
+  aec_(nullptr),
   mixer_()
 {
   // TODO negotiate these values with all included filters and SDP
@@ -164,9 +164,9 @@ void FilterGraph::updateAudioSettings()
     }
   }
 
-  if (dsp_)
+  if (aec_)
   {
-    dsp_->updateSettings();
+    aec_->updateSettings();
   }
 
   mic(settingEnabled(SettingsKey::micStatus));
@@ -261,9 +261,10 @@ void FilterGraph::initializeAudio(bool opus)
   addToGraph(std::shared_ptr<Filter>(new AudioCaptureFilter("", format_, stats_)),
              audioInputGraph_);
 
-  if (dsp_ == nullptr)
+  if (aec_ == nullptr)
   {
-    dsp_ = std::make_shared<SpeexDSP>(format_);
+    aec_ = std::make_shared<SpeexAEC>(format_);
+    aec_->init();
   }
 
   // mixer helps mix the incoming audio streams into one output stream
@@ -273,7 +274,7 @@ void FilterGraph::initializeAudio(bool opus)
   }
 
   std::shared_ptr<DSPFilter> dspProcessor =
-      std::shared_ptr<DSPFilter>(new DSPFilter("", stats_, DSP_PROCESSOR, dsp_));
+      std::shared_ptr<DSPFilter>(new DSPFilter("", stats_, DSP_PROCESSOR, aec_, format_));
 
   addToGraph(dspProcessor, audioInputGraph_, audioInputGraph_.size() - 1);
 
@@ -284,7 +285,7 @@ void FilterGraph::initializeAudio(bool opus)
   }
 
   std::shared_ptr<DSPFilter> echoReference =
-      std::make_shared<DSPFilter>("", stats_, ECHO_FRAME_PROVIDER, dsp_);
+      std::make_shared<DSPFilter>("", stats_, ECHO_FRAME_PROVIDER, aec_, format_);
 
   addToGraph(echoReference, audioOutputGraph_);
 
