@@ -27,38 +27,35 @@ void SpeexDSP::updateSettings()
 
     processMutex_.lock();
 
-    int* activeState = new int(1);
-    int* inactiveState = new int(0);
+    int activeState = 1;
+    int inactiveState = 0;
 
     if (settings.value(SettingsKey::audioDenoise) == 1)
     {
-      speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_DENOISE, activeState);
+      speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_DENOISE, &activeState);
     }
     else
     {
-      speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_DENOISE, inactiveState);
+      speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_DENOISE, &inactiveState);
     }
 
     if (settings.value(SettingsKey::audioDereverb) == 1)
     {
-      speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_DEREVERB, activeState);
+      speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_DEREVERB, &activeState);
     }
     else
     {
-      speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC, inactiveState);
+      speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_DEREVERB, &inactiveState);
     }
 
     if (settings.value(SettingsKey::audioAGC) == 1)
     {
-      speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC, activeState);
+      speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC, &activeState);
     }
     else
     {
-      speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC, inactiveState);
+      speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC, &inactiveState);
     }
-
-    delete activeState;
-    delete inactiveState;
 
     processMutex_.unlock();
   }
