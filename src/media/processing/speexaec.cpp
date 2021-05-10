@@ -88,6 +88,10 @@ void SpeexAEC::init()
     echo_state_ = speex_echo_state_init(samplesPerFrame_, echoFilterLength);
   }
 
+  // set echo sample rate
+  int sampleRate = format_.sampleRate();
+  speex_echo_ctl(echo_state_, SPEEX_ECHO_SET_SAMPLING_RATE, &sampleRate);
+
   if (echoSample_ != nullptr)
   {
     delete echoSample_;
