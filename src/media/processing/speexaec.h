@@ -41,4 +41,6 @@ private:
 
   uint32_t echoSize_;
   uint8_t* echoSample_;
+
+  bool enabled_;
 };

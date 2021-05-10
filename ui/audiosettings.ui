@@ -305,7 +305,7 @@
           </font>
          </property>
          <property name="text">
-          <string>Speex DSP Preprosessor</string>
+          <string>Speex DSP</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>

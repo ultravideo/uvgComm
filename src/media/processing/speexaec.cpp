@@ -20,7 +20,8 @@ SpeexAEC::SpeexAEC(QAudioFormat format):
   echo_state_(nullptr),
   preprocessor_(nullptr),
   echoSize_(0),
-  echoSample_(nullptr)
+  echoSample_(nullptr),
+  enabled_(false)
 {}
 
 
@@ -28,11 +29,11 @@ void SpeexAEC::updateSettings()
 {
   if ( preprocessor_ != nullptr)
   {
-    QSettings settings(settingsFile, settingsFileFormat);
+    enabled_ = settingEnabled(SettingsKey::audioAEC);
 
     echoMutex_.lock();
 
-    if (settings.value(SettingsKey::audioAEC) == 1)
+    if (enabled_)
     {
       speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_ECHO_STATE, echo_state_);
 
@@ -129,44 +130,47 @@ void SpeexAEC::cleanup()
 std::unique_ptr<uchar[]> SpeexAEC::processInputFrame(std::unique_ptr<uchar[]> input,
                                                      uint32_t dataSize)
 {
-  if (dataSize != samplesPerFrame_*format_.bytesPerFrame())
+  if (enabled_)
   {
-    printProgramError(this, "Wrong size of input frame for AEC");
-    return nullptr;
-  }
-
-  echoMutex_.lock();
-
-  if (echoSample_ != nullptr)
-  {
-    if (echo_state_)
+    if (dataSize != samplesPerFrame_*format_.bytesPerFrame())
     {
-      // do not know if this is allowed, but it saves a copy operation
-      int16_t* pcmOutput = (int16_t*)input.get();
-      speex_echo_cancellation(echo_state_,
-                              (int16_t*)input.get(),
-                              (int16_t*)echoSample_, pcmOutput);
+      printProgramError(this, "Wrong size of input frame for AEC");
+      return nullptr;
+    }
+
+    echoMutex_.lock();
+
+    if (echoSample_ != nullptr)
+    {
+      if (echo_state_)
+      {
+        // do not know if this is allowed, but it saves a copy operation
+        int16_t* pcmOutput = (int16_t*)input.get();
+        speex_echo_cancellation(echo_state_,
+                                (int16_t*)input.get(),
+                                (int16_t*)echoSample_, pcmOutput);
+      }
+      else
+      {
+        printProgramWarning(this, "Echo state not set");
+      }
+
+      if(preprocessor_ != nullptr)
+      {
+        speex_preprocess_run(preprocessor_, (int16_t*)input.get());
+      }
+      else
+      {
+        printProgramWarning(this, "Echo preprocessor not set");
+      }
     }
     else
     {
-      printProgramWarning(this, "Echo state not set");
+      printWarning(this, "No echo reference frame set. Not doing echo cancellation");
     }
 
-    if(preprocessor_ != nullptr)
-    {
-      speex_preprocess_run(preprocessor_, (int16_t*)input.get());
-    }
-    else
-    {
-      printProgramWarning(this, "Echo preprocessor not set");
-    }
+    echoMutex_.unlock();
   }
-  else
-  {
-    printWarning(this, "No echo reference frame set. Not doing echo cancellation");
-  }
-
-  echoMutex_.unlock();
 
   return input;
 }
