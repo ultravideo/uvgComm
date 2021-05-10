@@ -146,13 +146,13 @@ std::unique_ptr<uchar[]> SpeexAEC::processInputFrame(std::unique_ptr<uchar[]> in
 
     if (echoSample_ != nullptr)
     {
+      std::unique_ptr<uchar[]> pcmOutput = std::unique_ptr<uchar[]>(new uchar[dataSize]);
+
       if (echo_state_)
       {
-        // do not know if this is allowed, but it saves a copy operation
-        int16_t* pcmOutput = (int16_t*)input.get();
         speex_echo_cancellation(echo_state_,
                                 (int16_t*)input.get(),
-                                (int16_t*)echoSample_, pcmOutput);
+                                (int16_t*)echoSample_, (int16_t*)pcmOutput.get());
       }
       else
       {
@@ -161,12 +161,17 @@ std::unique_ptr<uchar[]> SpeexAEC::processInputFrame(std::unique_ptr<uchar[]> in
 
       if(preprocessor_ != nullptr)
       {
-        speex_preprocess_run(preprocessor_, (int16_t*)input.get());
+        speex_preprocess_run(preprocessor_, (int16_t*)pcmOutput.get());
       }
       else
       {
         printProgramWarning(this, "Echo preprocessor not set");
       }
+
+      //memcpy(input.get(), pcmOutput, dataSize);
+      echoMutex_.unlock();
+
+      return pcmOutput;
     }
     else
     {
