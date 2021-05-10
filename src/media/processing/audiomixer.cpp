@@ -99,7 +99,8 @@ std::unique_ptr<uchar[]> AudioMixer::doMixing(uint32_t frameSize)
     int32_t sum = 0;
 
     // This is in my understanding the correct way to do audio mixing.
-    // Just add them up.
+    // Just add them up and divide by number of participants
+    // the level should be corrected with Speex AGC
     for (auto& buffer : mixingBuffer_)
     {
       if (!buffer.second.empty())
@@ -108,18 +109,7 @@ std::unique_ptr<uchar[]> AudioMixer::doMixing(uint32_t frameSize)
       }
     }
 
-    // clipping is not desired, but occurs rarely
-    // TODO: Replace this with dynamic range compression
-    if (sum > INT16_MAX)
-    {
-      printWarning(this, "Clipping audio", "Value", QString::number(sum));
-      sum = INT16_MAX;
-    }
-    else if (sum < INT16_MIN)
-    {
-      printWarning(this, "Boosting audio", "Value", QString::number(sum));
-      sum = INT16_MIN;
-    }
+    sum = sum/inputs_;
 
     *output_ptr = sum;
     ++output_ptr;

@@ -7,25 +7,36 @@
 
 
 DSPFilter::DSPFilter(QString id, StatisticsInterface* stats,
-                     DSPMode mode, std::shared_ptr<SpeexAEC> aec,
-                     QAudioFormat& format):
+                     std::shared_ptr<SpeexAEC> aec, QAudioFormat& format,
+                     bool AECReference, bool doAEC, bool doDenoise,
+                     bool doDereverb, bool doAGC):
   Filter(id, "DSP", stats, RAWAUDIO, RAWAUDIO),
   aec_(aec),
   dsp_(nullptr),
-  mode_(mode)
+  AECReference_(AECReference),
+  doAEC_(doAEC),
+  doDSP_(doDereverb || doDereverb || doAGC)
 {
-  if (mode == DSP_PROCESSOR)
+  if (doDSP_)
   {
     dsp_ = std::make_unique<SpeexDSP> (format);
-    dsp_->init();
+    dsp_->init(doAGC, doDenoise, doDereverb);
+  }
+
+  if (doAEC_ && AECReference_)
+  {
+    printProgramWarning(this, "One filter doing both AEC and "
+                              "providing reference for it");
   }
 }
 
 
 DSPFilter::~DSPFilter()
 {
+  doAEC_ = false;
+  AECReference_ = false;
+  doDSP_ = false;
   dsp_.reset();
-  mode_ = NO_DSP_MODE;
 }
 
 
@@ -44,40 +55,22 @@ void DSPFilter::process()
 
   while(input)
   {
-    switch (mode_)
+    // do dsp operation such as denoise, dereverb and agc
+    if (doDSP_ && dsp_)
     {
-    case DSP_PROCESSOR:
-    {
-      if (aec_)
-      {
-        input->data = aec_->processInputFrame(std::move(input->data), input->data_size);
-      }
-
-      if (dsp_)
-      {
-        input->data = dsp_->processInputFrame(std::move(input->data), input->data_size);
-      }
-
-      break;
+      input->data = dsp_->processInputFrame(std::move(input->data), input->data_size);
     }
-    case ECHO_FRAME_PROVIDER:
-    {
-      if (aec_)
-      {
-        aec_->processEchoFrame(input->data.get(), input->data_size);
-      }
-      else
-      {
-        printProgramError(this, "");
-      }
 
-      break;
-    }
-    default:
+    // do echo cancellation
+    if (doAEC_ && aec_)
     {
-      printError(this, "DSP mode not set");
-      return;
+      input->data = aec_->processInputFrame(std::move(input->data), input->data_size);
     }
+
+    // provide a reference frame of our speaker output so AEC can remove echo
+    if (AECReference_ && aec_)
+    {
+      aec_->processEchoFrame(input->data.get(), input->data_size);
     }
 
     if (input->data != nullptr)

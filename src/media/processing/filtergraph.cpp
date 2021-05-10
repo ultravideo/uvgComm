@@ -273,8 +273,10 @@ void FilterGraph::initializeAudio(bool opus)
     mixer_ = std::make_shared<AudioMixer>();
   }
 
+  // Do everything (AGC, AEC, denoise, dereverb) for input expect provide AEC reference
   std::shared_ptr<DSPFilter> dspProcessor =
-      std::shared_ptr<DSPFilter>(new DSPFilter("", stats_, DSP_PROCESSOR, aec_, format_));
+      std::shared_ptr<DSPFilter>(new DSPFilter("", stats_, aec_, format_,
+                                               false, true, true, true, true));
 
   addToGraph(dspProcessor, audioInputGraph_, audioInputGraph_.size() - 1);
 
@@ -284,8 +286,11 @@ void FilterGraph::initializeAudio(bool opus)
                audioInputGraph_, audioInputGraph_.size() - 1);
   }
 
+  // Provide echo reference and do AGC once more so conference calls will have
+  // good volume levels.
   std::shared_ptr<DSPFilter> echoReference =
-      std::make_shared<DSPFilter>("", stats_, ECHO_FRAME_PROVIDER, aec_, format_);
+      std::make_shared<DSPFilter>("", stats_, aec_, format_,
+                                  true, false, false, false, true);
 
   addToGraph(echoReference, audioOutputGraph_);
 

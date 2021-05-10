@@ -14,9 +14,7 @@ SpeexDSP::SpeexDSP(QAudioFormat format):
   samplesPerFrame_(format.sampleRate()/AUDIO_FRAMES_PER_SECOND),
   processMutex_(),
   preprocessor_(nullptr)
-{
-  init();
-}
+{}
 
 
 void SpeexDSP::updateSettings()
@@ -30,7 +28,7 @@ void SpeexDSP::updateSettings()
     int activeState = 1;
     int inactiveState = 0;
 
-    if (settings.value(SettingsKey::audioDenoise) == 1)
+    if (denoise_ && settings.value(SettingsKey::audioDenoise) == 1)
     {
       speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_DENOISE, &activeState);
     }
@@ -39,7 +37,7 @@ void SpeexDSP::updateSettings()
       speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_DENOISE, &inactiveState);
     }
 
-    if (settings.value(SettingsKey::audioDereverb) == 1)
+    if (dereverb_ && settings.value(SettingsKey::audioDereverb) == 1)
     {
       speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_DEREVERB, &activeState);
     }
@@ -48,9 +46,12 @@ void SpeexDSP::updateSettings()
       speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_DEREVERB, &inactiveState);
     }
 
-    if (settings.value(SettingsKey::audioAGC) == 1)
+    if (agc_ && settings.value(SettingsKey::audioAGC) == 1)
     {
       speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC, &activeState);
+
+      // Setting the SPEEX_PREPROCESS_SET_AGC_LEVEL results in practically nothing coming
+      // from microphone.
     }
     else
     {
@@ -66,8 +67,12 @@ void SpeexDSP::updateSettings()
 }
 
 
-void SpeexDSP::init()
+void SpeexDSP::init(bool agc, bool denoise, bool dereverb)
 {
+  agc_ = agc;
+  denoise_ = denoise;
+  dereverb_ = dereverb;
+
   if (preprocessor_ != nullptr)
   {
     cleanup();
@@ -75,8 +80,15 @@ void SpeexDSP::init()
 
   processMutex_.lock();
 
-  preprocessor_ = speex_preprocess_state_init(samplesPerFrame_,
-                                              format_.sampleRate());
+  if  (agc_ || denoise_ || dereverb_)
+  {
+    preprocessor_ = speex_preprocess_state_init(samplesPerFrame_,
+                                                format_.sampleRate());
+  }
+  else
+  {
+    printProgramWarning(this, "Speex preprocessor has not been set to do anything");
+  }
 
   processMutex_.unlock();
 

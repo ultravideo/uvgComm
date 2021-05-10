@@ -23,7 +23,7 @@ public:
 
   void updateSettings();
 
-  void init();
+  void init(bool agc, bool denoise, bool dereverb);
   void cleanup();
 
   std::unique_ptr<uchar[]> processInputFrame(std::unique_ptr<uchar[]> input,
@@ -38,4 +38,7 @@ private:
   // preprocessor refers to running it before the encoder
   SpeexPreprocessState *preprocessor_;
 
+  bool agc_ = false;
+  bool denoise_ = false;
+  bool dereverb_ = false;
 };

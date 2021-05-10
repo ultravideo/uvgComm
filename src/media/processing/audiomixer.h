@@ -36,7 +36,7 @@ private:
 
   std::unique_ptr<uchar[]> doMixing(uint32_t frameSize);
 
-  unsigned int inputs_;
+  int32_t inputs_;
 
   QMutex mixingMutex_;
   std::map<uint32_t, std::deque<std::unique_ptr<Data>>> mixingBuffer_;
