@@ -17,5 +17,8 @@ void AudioOutputFilter::process()
   while(input)
   {
     output_.input(std::move(input));
+
+    // get next input
+    input = getInput();
   }
 }
