@@ -94,15 +94,8 @@ void AudioOutputDevice::volumeChanged(int value)
 
 qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
 {
-  uint32_t read = 0;
-  if (maxlen < sampleSize_)
-  {
-    printWarning(this, "Output wants smaller sample than what we use. "
-                        "Part of the sample may be left unplayed",
-                 {"Read vs available"},
-                 {QString::number(maxlen) + " vs " + QString::number(sampleSize_)});
-  }
-  else
+  qint64 read = 0;
+  if (maxlen >= sampleSize_)
   {
     if (audioOutput_->periodSize() > sampleSize_)
     {
@@ -129,26 +122,15 @@ qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
     }
 
     bufferMutex_.lock();
-    // take oldest sample in buffer
-    uint8_t* sample = outputBuffer_.front();
+    // always read one sample to audio buffer. Otherwise audio fails copmletely
+    read = readOneSample(data, read);
 
-    // send sample to speakers
-    memcpy(data, sample, sampleSize_);
-    read = sampleSize_;
-
-    // delete sample from our buffer if it was not the only sample we have
-    if (outputBuffer_.size() > 1)
+    // If we have, we can read more samples to the buffer
+    // we always keep one sample in output buffer in case we want to repeat it.
+    while (read + sampleSize_ < maxlen && outputBuffer_.size() > 1)
     {
-      delete outputBuffer_.front();
-      outputBuffer_.pop_front();
-      outputRepeats_ = 0;
+      read = readOneSample(data, read);
     }
-    else
-    {
-      printWarning(this, "Not enough samples in audio buffer, repeating previous audio sample");
-      ++outputRepeats_;
-    }
-
     bufferMutex_.unlock();
 
     // start playing silence if we played last frame too many times
@@ -168,10 +150,9 @@ qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
       delete outputBuffer_.front();
       outputBuffer_.pop_front();
     }
+
     bufferMutex_.unlock();
-
   }
-
 
   return read;
 }
@@ -363,4 +344,30 @@ void AudioOutputDevice::addSampleToBuffer(uint8_t *sample, int sampleSize)
   bufferMutex_.unlock();
 
   outputRepeats_ = 0;
+}
+
+
+qint64 AudioOutputDevice::readOneSample(char *data, qint64 read)
+{
+  // take oldest sample in buffer
+  uint8_t* sample = outputBuffer_.front();
+
+  // send sample to speakers
+  memcpy(data + read, sample, sampleSize_);
+  read += sampleSize_;
+
+  // delete sample from our buffer if it was not the only sample we have
+  if (outputBuffer_.size() > 1)
+  {
+    delete outputBuffer_.front();
+    outputBuffer_.pop_front();
+    outputRepeats_ = 0;
+  }
+  else
+  {
+    printWarning(this, "Not enough samples in audio buffer, repeating previous audio sample");
+    ++outputRepeats_;
+  }
+
+  return read;
 }

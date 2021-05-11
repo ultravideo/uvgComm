@@ -38,6 +38,8 @@ private:
 
   void addSampleToBuffer(uint8_t* sample, int sampleSize);
 
+  qint64 readOneSample(char *data, qint64 read);
+
   uint8_t* createEmptyFrame(uint32_t size);
 
   StatisticsInterface* stats_;
