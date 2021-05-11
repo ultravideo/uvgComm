@@ -21,9 +21,10 @@ AudioOutputDevice::AudioOutputDevice():
   audioOutput_(nullptr),
   output_(nullptr),
   format_(),
-  sampleMutex_(),
+  bufferMutex_(),
   outputBuffer_(),
   sampleSize_(0),
+  partialMutex_(),
   partialSample_(nullptr),
   partialSampleSize_(0),
   outputRepeats_(0)
@@ -67,11 +68,9 @@ void AudioOutputDevice::createAudioOutput()
   open(QIODevice::ReadOnly);
   // pull mode
 
-  sampleMutex_.lock();
   audioOutput_->start(this);
 
   resetBuffers(audioOutput_->periodSize());
-  sampleMutex_.unlock();
 }
 
 
@@ -114,16 +113,22 @@ qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
     }
 
     // if no new input has arrived, we play the last sample
-    sampleMutex_.lock();
+    bufferMutex_.lock();
 
     // make sure we have a sample to play, even if it is silence
     if (outputBuffer_.empty())
     {
+      bufferMutex_.unlock();
       printWarning(this, "Resetting audio buffers since there is not enough samples");
       resetBuffers(sampleSize_);
       outputRepeats_ = 0;
     }
+    else
+    {
+      bufferMutex_.unlock();
+    }
 
+    bufferMutex_.lock();
     // take oldest sample in buffer
     uint8_t* sample = outputBuffer_.front();
 
@@ -144,6 +149,8 @@ qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
       ++outputRepeats_;
     }
 
+    bufferMutex_.unlock();
+
     // start playing silence if we played last frame too many times
     if (outputRepeats_ >= MAX_SAMPLE_REPEATS)
     {
@@ -152,6 +159,7 @@ qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
       outputRepeats_ = 0;
     }
 
+    bufferMutex_.lock();
     // if we have too may audio samples stored, remove one to reduce latency
     if (outputBuffer_.size() > MAX_BUFFER_SAMPLES)
     {
@@ -160,8 +168,8 @@ qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
       delete outputBuffer_.front();
       outputBuffer_.pop_front();
     }
+    bufferMutex_.unlock();
 
-    sampleMutex_.unlock();
   }
 
 
@@ -197,8 +205,6 @@ void AudioOutputDevice::input(std::unique_ptr<Data> input)
 
   if (audioOutput_ && audioOutput_->state() != QAudio::StoppedState)
   {
-    sampleMutex_.lock();
-
     if (sampleSize_ == input->data_size) // input is exactly right
     {
       addSampleToBuffer(input->data.get(), sampleSize_);
@@ -207,19 +213,23 @@ void AudioOutputDevice::input(std::unique_ptr<Data> input)
     {
       if (partialSampleSize_ + input->data_size == sampleSize_)
       {
+        partialMutex_.lock();
         memcpy(partialSample_ + partialSampleSize_, input->data.get(), input->data_size);
         addSampleToBuffer(partialSample_, sampleSize_);
+        partialMutex_.unlock();
       }
       else if (partialSampleSize_ + input->data_size < sampleSize_)
       {
         // we did not update the sample so no reset for output repeats
         // add this partial sample to temporary storage
+        partialMutex_.lock();
         memcpy(partialSample_ + partialSampleSize_, input->data.get(), input->data_size);
+        partialMutex_.unlock();
       }
       else // if we somehow have more audio data than one sample needs
       {
         uint32_t missingSize = sampleSize_ - partialSampleSize_;
-
+        partialMutex_.lock();
         // add missing piece from new sample
         memcpy(partialSample_ + partialSampleSize_, input->data.get(), missingSize);
 
@@ -229,6 +239,7 @@ void AudioOutputDevice::input(std::unique_ptr<Data> input)
         // store remaining piece from new sample
         memcpy(partialSample_, input->data.get() + missingSize, input->data_size - missingSize);
         partialSampleSize_ = input->data_size - missingSize;
+        partialMutex_.unlock();
       }
     }
     else if (input->data_size%sampleSize_ == 0)
@@ -254,8 +265,6 @@ void AudioOutputDevice::input(std::unique_ptr<Data> input)
       // add new sample to bigger buffers
       addSampleToBuffer(input->data.get(), sampleSize_);
     }
-
-    sampleMutex_.unlock();
   }
 }
 
@@ -293,6 +302,7 @@ void AudioOutputDevice::stop()
 
 void AudioOutputDevice::deleteBuffers()
 {
+  bufferMutex_.lock();
   for (auto& sample : outputBuffer_)
   {
     if (sample != nullptr)
@@ -303,8 +313,11 @@ void AudioOutputDevice::deleteBuffers()
   }
 
   outputBuffer_.clear();
+  bufferMutex_.unlock();
+
   sampleSize_ = 0;
 
+  partialMutex_.lock();
   if (partialSample_ != nullptr)
   {
     delete[] partialSample_;
@@ -312,6 +325,7 @@ void AudioOutputDevice::deleteBuffers()
   }
 
   partialSampleSize_ = 0;
+  partialMutex_.unlock();
 }
 
 
@@ -327,10 +341,15 @@ void AudioOutputDevice::resetBuffers(uint32_t newSize)
 {
   deleteBuffers();
 
+  bufferMutex_.lock();
   sampleSize_ = newSize;
-  partialSampleSize_ = 0;
   outputBuffer_.push_back(createEmptyFrame(sampleSize_));
+  bufferMutex_.unlock();
+
+  partialMutex_.lock();
+  partialSampleSize_ = 0;
   partialSample_ = createEmptyFrame(sampleSize_);
+  partialMutex_.unlock();
 }
 
 
@@ -338,7 +357,10 @@ void AudioOutputDevice::addSampleToBuffer(uint8_t *sample, int sampleSize)
 {
   uint8_t* new_sample = new uint8_t[sampleSize];
   memcpy(new_sample, sample, sampleSize);
+
+  bufferMutex_.lock();
   outputBuffer_.push_back(new_sample);
+  bufferMutex_.unlock();
 
   outputRepeats_ = 0;
 }

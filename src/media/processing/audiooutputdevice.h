@@ -47,13 +47,14 @@ private:
   QIODevice *output_; // not owned
   QAudioFormat format_;
 
-  QMutex sampleMutex_;
+  QMutex bufferMutex_;
 
   // this will have the next played output audio. The same frame is played
   // if no new frame has been received.
   std::deque<uint8_t*> outputBuffer_;
   uint32_t sampleSize_;
 
+  QMutex partialMutex_;
   uint8_t* partialSample_;
   int partialSampleSize_;
 
