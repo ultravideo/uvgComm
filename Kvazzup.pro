@@ -68,6 +68,7 @@ SOURCES +=\
     src/media/delivery/uvgrtpsender.cpp \
     src/media/mediamanager.cpp \
     src/media/processing/audiocapturefilter.cpp \
+    src/media/processing/audioframebuffer.cpp \
     src/media/processing/audiomixer.cpp \
     src/media/processing/audiomixerfilter.cpp \
     src/media/processing/audiooutputdevice.cpp \
@@ -150,6 +151,7 @@ HEADERS  += \
     src/media/delivery/uvgrtpsender.h \
     src/media/mediamanager.h \
     src/media/processing/audiocapturefilter.h \
+    src/media/processing/audioframebuffer.h \
     src/media/processing/audiomixer.h \
     src/media/processing/audiomixerfilter.h \
     src/media/processing/audiooutputdevice.h \

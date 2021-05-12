@@ -10,6 +10,7 @@
 
 class StatisticsInterface;
 struct Data;
+class AudioFrameBuffer;
 
 class AudioOutputDevice : public QIODevice
 {
@@ -33,14 +34,9 @@ private:
 
   void createAudioOutput();
 
-  void resetBuffers(uint32_t newSize);
-  void deleteBuffers();
-
-  void addSampleToBuffer(uint8_t* sample, int sampleSize);
-
-  qint64 readOneSample(char *data, qint64 read);
-
   uint8_t* createEmptyFrame(uint32_t size);
+
+  void destroyLatestSample();
 
   StatisticsInterface* stats_;
 
@@ -49,16 +45,9 @@ private:
   QIODevice *output_; // not owned
   QAudioFormat format_;
 
-  QMutex bufferMutex_;
+  std::unique_ptr<AudioFrameBuffer> buffer_;
 
-  // this will have the next played output audio. The same frame is played
-  // if no new frame has been received.
-  std::deque<uint8_t*> outputBuffer_;
-  uint32_t sampleSize_;
-
-  QMutex partialMutex_;
-  uint8_t* partialSample_;
-  int partialSampleSize_;
+  uint8_t* latestSample_;
 
   unsigned int outputRepeats_;
 

@@ -1,6 +1,7 @@
 #include "audiocapturefilter.h"
 
 #include "statisticsinterface.h"
+#include "audioframebuffer.h"
 
 #include "common.h"
 #include "settingskeys.h"
@@ -19,13 +20,17 @@ AudioCaptureFilter::AudioCaptureFilter(QString id, QAudioFormat format,
   format_(format),
   audioInput_(nullptr),
   input_(nullptr),
-  frameSize_(format.sampleRate()*format.bytesPerFrame()/AUDIO_FRAMES_PER_SECOND),
-  buffer_(frameSize_, 0),
-  wantedState_(QAudio::StoppedState)
+  readBuffer_(nullptr),
+  currentBufferSize_(0),
+  wantedState_(QAudio::StoppedState),
+  buffer_(nullptr)
 {}
 
 
-AudioCaptureFilter::~AudioCaptureFilter(){}
+AudioCaptureFilter::~AudioCaptureFilter()
+{
+  destroyReadBuffer();
+}
 
 
 bool AudioCaptureFilter::init()
@@ -103,11 +108,18 @@ bool AudioCaptureFilter::init()
 
 void AudioCaptureFilter::createAudioInput()
 {
-
   audioInput_ = new QAudioInput(deviceInfo_, format_, this);
   if (audioInput_)
   {
     input_ = audioInput_->start();
+
+    int frameSize = format_.sampleRate()*format_.bytesPerFrame()/AUDIO_FRAMES_PER_SECOND;
+
+    // here we input the samples to be made the right size for our application
+    buffer_ = std::make_unique<AudioFrameBuffer>(frameSize);
+
+    createReadBuffer(audioInput_->periodSize());
+
     if (input_)
     {
       connect(input_, SIGNAL(readyRead()), SLOT(readMore()));
@@ -131,53 +143,39 @@ void AudioCaptureFilter::readMore()
     return;
   }
 
-  while (audioInput_->bytesReady() > frameSize_)
+  if (audioInput_->periodSize() != currentBufferSize_)
+  {
+    printWarning(this, "Mic changed period size");
+    createReadBuffer(audioInput_->periodSize());
+  }
+
+  while (audioInput_->bytesReady() >= currentBufferSize_)
   {
     qint64 len = audioInput_->bytesReady();
+    int micBufferSize = audioInput_->bufferSize();
 
 
-    if (len >= 3*audioInput_->bufferSize()/2)
+    if (len >= 3*micBufferSize/2)
     {
       printWarning(this, "Microphone buffer over 75 % full. Possibly losing audio soon", {"Amount"},
                    QString::number(len) + "/" + QString::number(audioInput_->bufferSize()));
     }
-    else if (len >= audioInput_->bufferSize()/2)
+    else if (len >= micBufferSize/2)
     {
       printWarning(this, "Microphone buffer over 50 % full", {"Amount"},
                    QString::number(len) + "/" + QString::number(audioInput_->bufferSize()));
     }
 
-    if (len > frameSize_)
+    if (len > currentBufferSize_)
     {
-      len = frameSize_;
+      len = currentBufferSize_;
     }
-    qint64 readData = input_->read(buffer_.data(), len);
 
-    if (readData > 0)
+    qint64 readData = input_->read(readBuffer_, currentBufferSize_);
+
+    if (readData == 0)
     {
-      Data* newSample = new Data;
-
-      // create audio data packet to be sent to filter graph
-      newSample->presentationTime = QDateTime::currentMSecsSinceEpoch();
-      newSample->type = RAWAUDIO;
-      newSample->data = std::unique_ptr<uint8_t[]>(new uint8_t[readData]);
-
-      memcpy(newSample->data.get(), buffer_.constData(), readData);
-
-      newSample->data_size = readData;
-      newSample->width = 0;
-      newSample->height = 0;
-      newSample->source = LOCAL;
-      newSample->framerate = format_.sampleRate();
-
-      std::unique_ptr<Data> u_newSample( newSample );
-      sendOutput(std::move(u_newSample));
-
-      //printNormal(this, "sent forward audio sample", {"Size"}, {QString::number(readData)});
-    }
-    else if (readData == 0)
-    {
-      printNormal(this, "No data given from microphone. Maybe the stream ended?",
+      printWarning(this, "No data given from microphone. Maybe the stream ended?",
                   {"Bytes ready"},{QString::number(audioInput_->bytesReady())});
       return;
     }
@@ -186,6 +184,37 @@ void AudioCaptureFilter::readMore()
       printWarning(this, "Error reading data from mic IODevice!",
       {"Amount"}, {QString::number(len)});
       return;
+    }
+    else if (readData > 0)
+    {
+      buffer_->inputData((uint8_t*)readBuffer_, readData);
+
+      uint8_t* frame = buffer_->readFrame();
+
+      while (frame != nullptr)
+      {
+        Data* audioFrame = new Data;
+
+        // create audio data packet to be sent to filter graph
+        audioFrame->presentationTime = QDateTime::currentMSecsSinceEpoch();
+        audioFrame->type = RAWAUDIO;
+
+        audioFrame->data_size = buffer_->getDesiredSize();
+        audioFrame->data = std::unique_ptr<uint8_t[]>(frame);
+
+        audioFrame->width = 0;
+        audioFrame->height = 0;
+        audioFrame->source = LOCAL;
+        audioFrame->framerate = format_.sampleRate();
+
+        std::unique_ptr<Data> u_newSample( audioFrame );
+        sendOutput(std::move(u_newSample));
+
+        //printNormal(this, "sent forward audio sample", {"Size"},
+        //            {QString::number(audioFrame->data_size)});
+
+        frame = buffer_->readFrame();
+      }
     }
   }
 }
@@ -282,6 +311,28 @@ void AudioCaptureFilter::stateChanged()
       }
     }
   }
+}
+
+void AudioCaptureFilter::createReadBuffer(int size)
+{
+  destroyReadBuffer();
+
+  // Qt recommends reading samples size of period size
+  readBuffer_ = new char [size];
+
+  currentBufferSize_ = size;
+}
+
+
+void AudioCaptureFilter::destroyReadBuffer()
+{
+  if (readBuffer_ != nullptr)
+  {
+    delete [] readBuffer_;
+    readBuffer_ = nullptr;
+  }
+
+  currentBufferSize_ = 0;
 }
 
 
