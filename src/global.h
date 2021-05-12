@@ -13,8 +13,10 @@ const int REGISTER_INTERVAL = 600;
 // has arrived before sending the packet. If packet is too small,
 // we waste bandwidth.
 
-// TODO: This should be at least 100 frames per second to reduce latency
-const uint16_t AUDIO_FRAMES_PER_SECOND = 25; // 40 ms of latency
+// With a value of 100, one audio frame constitutes 10 ms of audio samples.
+// It is recommended to keep the audio frame size relatively small to avoid 
+// unnecessary latency.
+const uint16_t AUDIO_FRAMES_PER_SECOND = 100;
 
 const int STREAM_COMPONENTS = 4;
 

@@ -12,11 +12,16 @@
 
 struct Data;
 
+// Mixes multiple audio tracks into one
+
 class AudioMixer : public QObject
 {
   Q_OBJECT
 public:
   AudioMixer();
+
+  // TODO: This should take into account different sizes of audio frames for
+  // compatability with other applications
 
   std::unique_ptr<Data> mixAudio(std::unique_ptr<Data> input,
                                  std::unique_ptr<Data> potentialOutput,

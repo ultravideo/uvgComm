@@ -197,6 +197,7 @@ void AudioOutputDevice::input(std::unique_ptr<Data> input)
         partialMutex_.lock();
         memcpy(partialSample_ + partialSampleSize_, input->data.get(), input->data_size);
         addSampleToBuffer(partialSample_, sampleSize_);
+        partialSampleSize_ = 0;
         partialMutex_.unlock();
       }
       else if (partialSampleSize_ + input->data_size < sampleSize_)
@@ -205,6 +206,7 @@ void AudioOutputDevice::input(std::unique_ptr<Data> input)
         // add this partial sample to temporary storage
         partialMutex_.lock();
         memcpy(partialSample_ + partialSampleSize_, input->data.get(), input->data_size);
+        partialSampleSize_ += input->data_size;
         partialMutex_.unlock();
       }
       else // if we somehow have more audio data than one sample needs

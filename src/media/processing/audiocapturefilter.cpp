@@ -134,10 +134,17 @@ void AudioCaptureFilter::readMore()
   while (audioInput_->bytesReady() > frameSize_)
   {
     qint64 len = audioInput_->bytesReady();
-    if (len > 10*frameSize_)
+
+
+    if (len >= 3*audioInput_->bufferSize()/2)
     {
-      printWarning(this, "There is a large amount of audio data in microphone", {
-                     "Amount"}, QString::number(len));
+      printWarning(this, "Microphone buffer over 75 % full. Possibly losing audio soon", {"Amount"},
+                   QString::number(len) + "/" + QString::number(audioInput_->bufferSize()));
+    }
+    else if (len >= audioInput_->bufferSize()/2)
+    {
+      printWarning(this, "Microphone buffer over 50 % full", {"Amount"},
+                   QString::number(len) + "/" + QString::number(audioInput_->bufferSize()));
     }
 
     if (len > frameSize_)
