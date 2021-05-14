@@ -36,7 +36,9 @@ private:
 
   uint8_t* createEmptyFrame(uint32_t size);
 
-  void destroyLatestSample();
+  void destroyLatestFrame();
+
+  void writeFrame(char *data, qint64& read, uint8_t* frame);
 
   StatisticsInterface* stats_;
 
@@ -47,8 +49,8 @@ private:
 
   std::unique_ptr<AudioFrameBuffer> buffer_;
 
-  uint8_t* latestSample_;
-  bool lastSampleIsSilence_;
+  uint8_t* latestFrame_;
+  bool latestFrameIsSilence_;
 
   unsigned int outputRepeats_;
 

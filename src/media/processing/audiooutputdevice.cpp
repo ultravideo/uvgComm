@@ -10,11 +10,6 @@
 
 uint8_t MAX_SAMPLE_REPEATS = 5;
 
-#ifdef __linux__
-uint8_t MAX_BUFFER_SAMPLES = AUDIO_FRAMES_PER_SECOND;
-#else
-uint8_t MAX_BUFFER_SAMPLES = AUDIO_FRAMES_PER_SECOND/5;
-#endif
 
 AudioOutputDevice::AudioOutputDevice():
   QIODevice(),
@@ -23,8 +18,8 @@ AudioOutputDevice::AudioOutputDevice():
   output_(nullptr),
   format_(),
   buffer_(nullptr),
-  latestSample_(nullptr),
-  lastSampleIsSilence_(true),
+  latestFrame_(nullptr),
+  latestFrameIsSilence_(true),
   outputRepeats_(0)
 {}
 
@@ -32,7 +27,7 @@ AudioOutputDevice::AudioOutputDevice():
 AudioOutputDevice::~AudioOutputDevice()
 {
   audioOutput_->stop();
-  destroyLatestSample();
+  destroyLatestFrame();
 }
 
 
@@ -100,52 +95,67 @@ qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
     buffer_->changeDesiredFrameSize(audioOutput_->periodSize());
   }
 
-  // read as many frames from buffer to output as possible
-  uint8_t* frame = buffer_->readFrame();
-  while (maxlen - read >= buffer_->getDesiredSize() && frame)
+  if (maxlen < buffer_->getDesiredSize())
   {
-    memcpy(data + read, frame, buffer_->getDesiredSize());
-    read += buffer_->getDesiredSize();
-
-    destroyLatestSample();
-    latestSample_ = frame;
-    outputRepeats_ = 0;
-    lastSampleIsSilence_ = false;
-
-    frame  = buffer_->readFrame();
+    printWarning(this, "The output is asking for too small of an audio frame");
+    return read;
   }
 
-  // if we failed to read any frames, put something (like previous sample or empty sample)
-  // into output. Otherwise trouble ensues (it stops asking for frames)
+  // on windows, read as many frames from buffer to output as possible
+  // on linux, we only read one sample, since it seems to work better
+  uint8_t* frame = buffer_->readFrame();
+
+#ifdef __linux__
+  if (frame)
+  {
+    writeFrame(data, read, frame);
+  }
+
+#else
+  while (frame)
+  {
+    writeFrame(data, read, frame);
+
+    if (maxlen - read < buffer_->getDesiredSize())
+    {
+      break;
+    }
+
+    frame = buffer_->readFrame();
+  }
+#endif
+
+  // If we failed to read any frames, we have to put something (previous or
+  // an empty frame) into output. Otherwise trouble ensues (Qt stops asking for frames).
   if (read == 0)
   {
     // we have to give output something
-    if (latestSample_ == nullptr)
+    if (latestFrame_ == nullptr)
     {
       printWarning(this, "No output audio frame available in time and no previous frame available. Playing silence");
       // equals to silence
-      latestSample_ = createEmptyFrame(buffer_->getDesiredSize());
-      lastSampleIsSilence_ = true;
+      latestFrame_ = createEmptyFrame(buffer_->getDesiredSize());
+      latestFrameIsSilence_ = true;
     }
-    else if (outputRepeats_ >= MAX_SAMPLE_REPEATS && !lastSampleIsSilence_)
+    else if (outputRepeats_ >= MAX_SAMPLE_REPEATS && !latestFrameIsSilence_)
     {
       printWarning(this, "No output audio frame available in time. Switching to silence");
-      destroyLatestSample();
-      latestSample_ = createEmptyFrame(buffer_->getDesiredSize());
+      destroyLatestFrame();
+      latestFrame_ = createEmptyFrame(buffer_->getDesiredSize());
       outputRepeats_ = 0;
-      lastSampleIsSilence_ = true;
+      latestFrameIsSilence_ = true;
     }
-    else if (lastSampleIsSilence_)
+    else if (latestFrameIsSilence_)
     {
       printWarning(this, "No output audio frame available in time. Repeating silence");
     }
     else
     {
-      printWarning(this, "No output audio frame available in time. Repeating last sample",
-      {"Repeats before"}, {QString::number(outputRepeats_)});
+      printWarning(this, "No output audio frame available in time. Repeating previous audio frame",
+      {"Consecutive repeats"}, {QString::number(outputRepeats_ + 1)});
     }
 
-    memcpy(data + read, latestSample_, buffer_->getDesiredSize());
+    memcpy(data + read, latestFrame_, buffer_->getDesiredSize());
     read += buffer_->getDesiredSize();
 
     // keep track of repeats so we can switch to silence at some point.
@@ -229,11 +239,22 @@ uint8_t* AudioOutputDevice::createEmptyFrame(uint32_t size)
 }
 
 
-void AudioOutputDevice::destroyLatestSample()
+void AudioOutputDevice::destroyLatestFrame()
 {
-  if (latestSample_)
+  if (latestFrame_)
   {
-    delete [] latestSample_;
-    latestSample_ = nullptr;
+    delete [] latestFrame_;
+    latestFrame_ = nullptr;
   }
+}
+
+void AudioOutputDevice::writeFrame(char *data, qint64& read, uint8_t* frame)
+{
+  memcpy(data + read, frame, buffer_->getDesiredSize());
+  read += buffer_->getDesiredSize();
+
+  destroyLatestFrame();
+  latestFrame_ = frame;
+  outputRepeats_ = 0;
+  latestFrameIsSilence_ = false;
 }

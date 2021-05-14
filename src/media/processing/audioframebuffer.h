@@ -28,6 +28,11 @@ public:
     return desiredFrameSize_;
   }
 
+  uint32_t getBufferSize()
+  {
+    return readyFrames_.size();
+  }
+
 private:
 
   void addSampleToBuffer(uint8_t* sample, int sampleSize);
