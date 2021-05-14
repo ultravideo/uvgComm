@@ -206,7 +206,7 @@ bool CameraFilter::cameraSetup()
     }
     else
     {
-      printError(this, "Input format not supported");
+      printError(this, "Input format not supported", {"Format"}, {currentInputFormat_});
       viewSettings.setPixelFormat(QVideoFrame::Format_Invalid);
       output_ = NONE;
       return false;

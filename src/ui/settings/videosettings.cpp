@@ -292,6 +292,7 @@ void VideoSettings::restoreSettings()
 {
   initializeFormat();
   initializeThreads();
+  initializeFramerates();
 
   if(checkSettingsList(settings_, neededSettings) &&
      checkSettingsList(settings_, kvazaarSettings))
@@ -428,11 +429,12 @@ void VideoSettings::restoreFormat()
       printDebug(DEBUG_NORMAL, this, "Trying to find format for camera",
                  {"Format", "Format index"}, {format, QString::number(formatIndex)});
 
-      if(formatIndex != -1)
+      if (0 <= formatIndex && formatIndex < videoSettingsUI_->format_box->count())
       {
         videoSettingsUI_->format_box->setCurrentIndex(formatIndex);
       }
-      else {
+      else
+      {
         videoSettingsUI_->format_box->setCurrentIndex(0);
       }
     }
@@ -448,15 +450,16 @@ void VideoSettings::restoreFormat()
 
 void VideoSettings::restoreResolution()
 {
-  if(videoSettingsUI_->resolution->count() > 0)
+  if (videoSettingsUI_->resolution->count() > 0)
   {
     int resolutionID = settings_.value(SettingsKey::videoResolutionID).toInt();
 
-    if(resolutionID >= 0)
+    if (0 <= resolutionID &&  resolutionID < videoSettingsUI_->resolution->count())
     {
       videoSettingsUI_->resolution->setCurrentIndex(resolutionID);
     }
-    else {
+    else
+    {
       videoSettingsUI_->resolution->setCurrentIndex(0);
     }
 
@@ -471,11 +474,12 @@ void VideoSettings::restoreFramerate()
   {
     int framerateID = settings_.value(SettingsKey::videoFramerateID).toInt();
 
-    if(framerateID < videoSettingsUI_->framerate_box->count())
+    if (0 <= framerateID && framerateID < videoSettingsUI_->framerate_box->count())
     {
       videoSettingsUI_->framerate_box->setCurrentIndex(framerateID);
     }
-    else {
+    else
+    {
       videoSettingsUI_->framerate_box->setCurrentIndex(videoSettingsUI_->framerate_box->count() - 1);
     }
   }
@@ -526,6 +530,11 @@ void VideoSettings::initializeFormat()
     videoSettingsUI_->format_box->setCurrentIndex(0);
     initializeResolutions();
   }
+  else
+  {
+    printWarning(this, "Couldn't find any camera formats");
+  }
+
 }
 
 
@@ -546,6 +555,10 @@ void VideoSettings::initializeResolutions()
       videoSettingsUI_->resolution->addItem(resolutions.at(i));
     }
   }
+  else
+  {
+    printWarning(this, "Couldn't find any camera resolutions");
+  }
 
   if(videoSettingsUI_->resolution->count() > 0)
   {
@@ -565,7 +578,7 @@ void VideoSettings::initializeFramerates()
   cam_->getFramerates(currentDevice_, videoSettingsUI_->format_box->currentText(),
                       videoSettingsUI_->resolution->currentIndex(), rates);
 
-  if(!rates.empty())
+  if (!rates.empty())
   {
     for(int i = 0; i < rates.size(); ++i)
     {
@@ -573,6 +586,10 @@ void VideoSettings::initializeFramerates()
     }
     // use the highest framerate values as default selection.
     videoSettingsUI_->framerate_box->setCurrentIndex(videoSettingsUI_->framerate_box->count() - 1);
+  }
+  else
+  {
+    printWarning(this, "Couldn't find any camera frame rates");
   }
 }
 

@@ -77,7 +77,7 @@ void CameraInfo::getVideoFormats(int deviceID, QStringList& formats)
     printDebug(DEBUG_NORMAL, "Camera Info", "Getting text of " + QString::number(p_formats.size()) + " video formats",
               {"DeviceID"}, {QString::number(deviceID)});
 
-    for(int i = 0; i < p_formats.size() ; ++i)
+    for (int i = 0; i < p_formats.size() ; ++i)
     {
       for (int j = 0; j < kvazzupFormats.size(); ++j)
       {
@@ -126,7 +126,8 @@ void CameraInfo::getFramerates(int deviceID, QString format, int resolutionID, Q
     QCameraViewfinderSettings viewSettings;
     viewSettings.setPixelFormat(stringToPixelFormat(format));
     QList<QSize> resolutions  = camera->supportedViewfinderResolutions(viewSettings);
-    if(resolutionID < resolutions.size())
+
+    if (0 <= resolutionID && resolutionID < resolutions.size())
     {
       viewSettings.setResolution(resolutions.at(resolutionID));
     }
@@ -134,13 +135,14 @@ void CameraInfo::getFramerates(int deviceID, QString format, int resolutionID, Q
     QList<QCamera::FrameRateRange> framerates = camera->supportedViewfinderFrameRateRanges(viewSettings);
     camera->unload();
 
-    for(int i = 0; i < framerates.size(); ++i)
+    for (int i = 0; i < framerates.size(); ++i)
     {
-      if(framerates.at(i).minimumFrameRate == framerates.at(i).maximumFrameRate)
+      if (framerates.at(i).minimumFrameRate == framerates.at(i).maximumFrameRate)
       {
         ranges.push_back(QString::number(framerates.at(i).maximumFrameRate));
       }
-      else {
+      else
+      {
         ranges.push_back(QString::number(framerates.at(i).minimumFrameRate)
                          + " to " + QString::number(framerates.at(i).maximumFrameRate));
       }
