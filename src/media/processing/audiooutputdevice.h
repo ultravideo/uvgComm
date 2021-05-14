@@ -48,6 +48,7 @@ private:
   std::unique_ptr<AudioFrameBuffer> buffer_;
 
   uint8_t* latestSample_;
+  bool lastSampleIsSilence_;
 
   unsigned int outputRepeats_;
 

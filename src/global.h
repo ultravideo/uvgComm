@@ -16,7 +16,14 @@ const int REGISTER_INTERVAL = 600;
 // With a value of 100, one audio frame constitutes 10 ms of audio samples.
 // It is recommended to keep the audio frame size relatively small to avoid 
 // unnecessary latency.
+#ifdef __linux__
+// linux uses such large audio frames, that the buffers cant keep up with
+// smaller packet sizes
+// TODO: Make buffers relative to this number
+const uint16_t AUDIO_FRAMES_PER_SECOND = 50;
+#else
 const uint16_t AUDIO_FRAMES_PER_SECOND = 100;
+#endif
 
 const int STREAM_COMPONENTS = 4;
 

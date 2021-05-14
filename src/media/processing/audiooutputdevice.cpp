@@ -11,7 +11,7 @@
 uint8_t MAX_SAMPLE_REPEATS = 5;
 
 #ifdef __linux__
-uint8_t MAX_BUFFER_SAMPLES = AUDIO_FRAMES_PER_SECOND/2;
+uint8_t MAX_BUFFER_SAMPLES = AUDIO_FRAMES_PER_SECOND;
 #else
 uint8_t MAX_BUFFER_SAMPLES = AUDIO_FRAMES_PER_SECOND/5;
 #endif
@@ -24,6 +24,7 @@ AudioOutputDevice::AudioOutputDevice():
   format_(),
   buffer_(nullptr),
   latestSample_(nullptr),
+  lastSampleIsSilence_(true),
   outputRepeats_(0)
 {}
 
@@ -109,6 +110,7 @@ qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
     destroyLatestSample();
     latestSample_ = frame;
     outputRepeats_ = 0;
+    lastSampleIsSilence_ = false;
 
     frame  = buffer_->readFrame();
   }
@@ -117,19 +119,30 @@ qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
   // into output. Otherwise trouble ensues (it stops asking for frames)
   if (read == 0)
   {
-    printWarning(this, "No output audio frame available in time");
-
     // we have to give output something
     if (latestSample_ == nullptr)
     {
+      printWarning(this, "No output audio frame available in time and no previous frame available. Playing silence");
       // equals to silence
       latestSample_ = createEmptyFrame(buffer_->getDesiredSize());
+      lastSampleIsSilence_ = true;
     }
-    else if (outputRepeats_ >= MAX_SAMPLE_REPEATS)
+    else if (outputRepeats_ >= MAX_SAMPLE_REPEATS && !lastSampleIsSilence_)
     {
+      printWarning(this, "No output audio frame available in time. Switching to silence");
       destroyLatestSample();
       latestSample_ = createEmptyFrame(buffer_->getDesiredSize());
       outputRepeats_ = 0;
+      lastSampleIsSilence_ = true;
+    }
+    else if (lastSampleIsSilence_)
+    {
+      printWarning(this, "No output audio frame available in time. Repeating silence");
+    }
+    else
+    {
+      printWarning(this, "No output audio frame available in time. Repeating last sample",
+      {"Repeats before"}, {QString::number(outputRepeats_)});
     }
 
     memcpy(data + read, latestSample_, buffer_->getDesiredSize());

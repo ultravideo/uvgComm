@@ -51,11 +51,10 @@ private:
   QAudioFormat format_;
   QAudioInput *audioInput_;
   QIODevice *input_;
-  bool pullMode_;
 
   // used in reading audio frames from mic
   char* readBuffer_;
-  int currentBufferSize_;
+  int readBufferSize_;
 
   QAudio::State wantedState_;
 

@@ -1,5 +1,7 @@
 #include "audioframebuffer.h"
 
+#include <cstring>
+
 AudioFrameBuffer::AudioFrameBuffer(uint32_t desiredFrameSize):
   desiredFrameSize_(desiredFrameSize),
   readyFrames_(),
