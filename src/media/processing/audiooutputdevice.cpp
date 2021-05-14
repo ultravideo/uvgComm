@@ -144,11 +144,7 @@ qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
       outputRepeats_ = 0;
       latestFrameIsSilence_ = true;
     }
-    else if (latestFrameIsSilence_)
-    {
-      printWarning(this, "No output audio frame available in time. Repeating silence");
-    }
-    else
+    else if (!latestFrameIsSilence_)
     {
       printWarning(this, "No output audio frame available in time. Repeating previous audio frame",
       {"Consecutive repeats"}, {QString::number(outputRepeats_ + 1)});
