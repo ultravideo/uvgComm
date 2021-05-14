@@ -97,7 +97,6 @@ qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
 
   if (maxlen < buffer_->getDesiredSize())
   {
-    printWarning(this, "The output is asking for too small of an audio frame");
     return read;
   }
 
