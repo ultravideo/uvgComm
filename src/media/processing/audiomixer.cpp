@@ -6,11 +6,9 @@
 
 #include <QString>
 
-#ifdef __linux__
+
 const unsigned int MAX_MIX_BUFFER = AUDIO_FRAMES_PER_SECOND/5;
-#else
-const unsigned int MAX_MIX_BUFFER = 2;
-#endif
+
 
 AudioMixer::AudioMixer():
   inputs_(0),
