@@ -50,8 +50,24 @@ void SpeexDSP::updateSettings()
     {
       speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC, &activeState);
 
-      // Setting the SPEEX_PREPROCESS_SET_AGC_LEVEL results in practically nothing coming
-      // from microphone.
+      // the default volume of INT32_MAX/2 seems somewhat low. Set volume to 75% of maximum
+      int level = INT32_MAX - INT32_MAX/4;
+      speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC_LEVEL, &level);
+      // we set a low increment to avoid background noises from coming through during pauses
+      int increment = 6;
+      speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC_INCREMENT, &increment);
+      int decrement = -40;
+      speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC_DECREMENT, &decrement);
+
+
+      printDebug(DEBUG_NORMAL, this, "AGC has been enabled",
+                 {"Level", "Increment", "Decrement"},
+                 {QString::number(level), QString::number(increment), QString::number(decrement)});
+
+
+      // VAD could be used to fix this AGC increment problem (background sounds
+      // are too loud after a long quiet time), but it doesn't work in current version of Speex
+      //speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_VAD, &activeState);
     }
     else
     {
@@ -126,7 +142,10 @@ std::unique_ptr<uchar[]> SpeexDSP::processInputFrame(std::unique_ptr<uchar[]> in
   // takes effect.
   if(preprocessor_ != nullptr)
   {
+    // The return value of run function is voice activity (if enabled). In my tests
+    // it didn't work very well
     speex_preprocess_run(preprocessor_, (int16_t*)input.get());
+
   }
   else
   {
