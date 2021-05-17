@@ -36,6 +36,8 @@ private:
 
   uint8_t* createEmptyFrame(uint32_t size);
 
+  void replaceLatestFrame(uint8_t* frame);
+
   void destroyLatestFrame();
 
   void writeFrame(char *data, qint64& read, uint8_t* frame);

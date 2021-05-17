@@ -10,6 +10,8 @@
 
 uint8_t MAX_SAMPLE_REPEATS = 5;
 
+uint8_t MAX_BUFFER_SIZE = AUDIO_FRAMES_PER_SECOND/5;
+
 
 AudioOutputDevice::AudioOutputDevice():
   QIODevice(),
@@ -122,7 +124,16 @@ qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
 
     frame = buffer_->readFrame();
   }
+
 #endif
+
+  // make sure buffer doesn't grow too large
+  while (MAX_BUFFER_SIZE < buffer_->getBufferSize())
+  {
+    printWarning(this, "The output device buffer is too large. Dropping audio frames");
+    frame = buffer_->readFrame();
+    replaceLatestFrame(frame);
+  }
 
   // If we failed to read any frames, we have to put something (previous or
   // an empty frame) into output. Otherwise trouble ensues (Qt stops asking for frames).
@@ -234,6 +245,14 @@ uint8_t* AudioOutputDevice::createEmptyFrame(uint32_t size)
 }
 
 
+void AudioOutputDevice::replaceLatestFrame(uint8_t* frame)
+{
+  destroyLatestFrame();
+  latestFrame_ = frame;
+  outputRepeats_ = 0;
+  latestFrameIsSilence_ = false;
+}
+
 void AudioOutputDevice::destroyLatestFrame()
 {
   if (latestFrame_)
@@ -248,8 +267,7 @@ void AudioOutputDevice::writeFrame(char *data, qint64& read, uint8_t* frame)
   memcpy(data + read, frame, buffer_->getDesiredSize());
   read += buffer_->getDesiredSize();
 
-  destroyLatestFrame();
-  latestFrame_ = frame;
-  outputRepeats_ = 0;
-  latestFrameIsSilence_ = false;
+  // Delete previous latest frame. This is how the memory is eventually freed
+  // for every frame.
+  replaceLatestFrame(frame);
 }
