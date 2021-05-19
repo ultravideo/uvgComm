@@ -17,6 +17,7 @@ Currently Kvazzup has the following features:
 - Video and audio Settings which are saved to the disk
 - Live call parameter adjustment
 - A statistics window for monitoring the call quality
+- Media delivery encryption
 
 ## Compile Kvazzup
 
@@ -38,7 +39,7 @@ Install Qt, Qt multimedia and QtCreator. Make sure Opus, Speex DSP, OpenMP and C
 
 **Ubuntu**
 
-On Ubuntu, the necessary qt packets are `qt5-default qtdeclarative5-dev libqt5svg5-dev qtmultimedia5-dev libqt5multimedia5-plugins libqt5multimediawidgets5`.
+On Ubuntu, the necessary Qt packets are `qt5-default qtdeclarative5-dev libqt5svg5-dev qtmultimedia5-dev libqt5multimedia5-plugins libqt5multimediawidgets5`.
 
 Next, install `qtcreator`.
 
@@ -54,7 +55,7 @@ Make sure OpenMP is installed in your build environment. Add compiled libraries 
 
 ### Microsoft Visual Studio
 
-Compile the dependencies. Add compiled libraries to PATH or to `../msvc_libs` folder, and headers to PATH or `../include`. 
+Compile the dependencies. Add compiled libraries to PATH or to `../msvc_libs` folder, and headers to PATH or `../include`. If you don't exclude Crypto++, you need to compile it with dynamic C++ runtime linking. See [this section](https://cryptopp.com/wiki/Visual_Studio#Runtime_Linking) for detailed instructions. After that, the easiest way to compile is to select `Build -> Batch Build...`. You must also make sure all static libraries (usually uvgRTP and Crypto++) have been compiled with same debug level (debug/release) as Kvazzup.
 
 **Shared Kvazaar**
 
