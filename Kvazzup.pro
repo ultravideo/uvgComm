@@ -6,9 +6,6 @@
 
 QT       += core gui concurrent
 
-message("Parsing project file.")
-message("Qt version:" "$$QT_MAJOR_VERSION"."$$QT_MINOR_VERSION")
-
 TARGET = Kvazzup
 
 TEMPLATE = app
@@ -29,6 +26,10 @@ defineTest(copyToDestination) {
 
     export(QMAKE_POST_LINK)
 }
+
+# Qt parses this file three times. Once on a general level, once for debug and once for release
+message("Parsing Kvazzup project file, Qt version" "$$QT_MAJOR_VERSION"."$$QT_MINOR_VERSION".)
+
 
 INCLUDEPATH += src
 
@@ -228,57 +229,78 @@ win32-g++: QMAKE_CXXFLAGS += -msse4.1 -mavx2 -fopenmp
 INCLUDEPATH += $$PWD/../include/openhevc_dec
 INCLUDEPATH += $$PWD/../include/
 
-# These you need to install or build yourself
+# These you need to install or build yourself. Here are the libraries that
+# have the same name on each platform.
 LIBS += -lopus
 LIBS += -lLibOpenHevcWrapper
 LIBS += -lspeexdsp
 LIBS += -luvgrtp
 
 
-# windows build settings
-win32{
-  INCLUDEPATH += $$PWD/../include/uvgrtp
-  INCLUDEPATH += $$PWD/../include/opus
+# Windows configurations have optional library folders defined for easier inclusion
+# The folders are different for easier building of multiple configurations. The debug
+# and release folders are different because uvgRTP and Crypto++ are usually compiled as
+# static libraries which means they don't work when mixing build types.
 
-  LIBS += -lws2_32
-  LIBS += -lole32
-  LIBS += -loleaut32
-}
-
-
+# Visual Studio
 win32-msvc{
   # Note: I had problems with msvc version 10.0.18362.0
   # and had to use another version
 
-  # static kvazaar. Untested
-  #DEFINES += KVZ_STATIC_LIB
+  # you can put your libaries here
+  CONFIG(debug, debug|release) {
+    LIBRARY_FOLDER = -L$$PWD/../msvc_libs_dbg
+  } else:CONFIG(release, debug|release) {
+    LIBRARY_FOLDER = -L$$PWD/../msvc_libs
+  }
 
-  # shared kvazaar
-  DEFINES += PIC
+  #DEFINES += KVZ_STATIC_LIB # static kvazaar. Untested
+  DEFINES += PIC             # shared kvazaar
 
   LIBS += -lkvazaar_lib
-
-  # you can put your libaries here
-  LIBS += -L$$PWD/../msvc_libs
   LIBS += -ladvapi32
   LIBS += -lkernel32
-  LIBS += -lcryptlib # needed for encryption, can be removed
 
-  message("Using MSVC libraries in ../msvc_libs")
+  # Needed for encryption. Can be removed if uvgRTP was compiled without
+  # Crypto++ support.
+  LIBS += -lcryptlib
 }
 
-
+# MinGW
 win32-g++{
+  # you can put your libaries here
+  CONFIG(debug, debug|release) {
+    LIBRARY_FOLDER = -L$$PWD/../libs_dbg
+  } else:CONFIG(release, debug|release) {
+    LIBRARY_FOLDER = -L$$PWD/../libs
+  }
 
   LIBS += -lkvazaar
   LIBS += -fopenmp # make sure openMP is installed in your build environment
-  # you can put your libaries here
-  LIBS += -L$$PWD/../libs
+
   LIBS += -lstrmiids
   LIBS += -lssp
-  LIBS += -lcryptopp  # needed for encryption, can be removed
-  message("Using MinGW libraries in ../libs")
+
+  # Needed for encryption. Can be removed if uvgRTP was compiled without
+  # Crypto++ support.
+  LIBS += -lcryptopp
 }
+
+# These apply to all Windows configurations
+win32{
+  INCLUDEPATH += $$PWD/../include/uvgrtp
+  INCLUDEPATH += $$PWD/../include/opus
+
+  # These seem to be needed
+  LIBS += -lws2_32
+  LIBS += -lole32
+  LIBS += -loleaut32
+
+  # Here we finally include the library folder set earlier
+  LIBS += $${LIBRARY_FOLDER}
+  message("Using library folder:" $${LIBRARY_FOLDER})
+}
+
 
 unix {
   LIBS += -lkvazaar
@@ -286,7 +308,10 @@ unix {
   QMAKE_LFLAGS += -fopenmp
   INCLUDEPATH += /usr/include/opus/
   INCLUDEPATH += /usr/local/include/uvgrtp/
-  LIBS += -lcryptopp # needed for encryption, can be removed
+
+  # Needed for encryption. Can be removed if uvgRTP was compiled without
+  # Crypto++ support.
+  LIBS += -lcryptopp
 }
 
 INCLUDEPATH += $$PWD/../
@@ -298,9 +323,12 @@ copyToDestination($$PWD/stylesheet.qss, $$OUT_PWD)
 copyToDestination($$PWD/fonts, $$OUT_PWD/fonts)
 copyToDestination($$PWD/icons, $$OUT_PWD/icons)
 
-# deploying portable version
+# Deploying a portable version of Kvazzup with Qt deployment script.
 # Copies only Qt libraries. OpenMP is not copied.
-# On windows OpenMP is located in Tools folder of Qt
+# On windows OpenMP is located in Tools folder of Qt.
+
+# TODO: There is a bug in this that creates a growing recursive structure and
+# it stops working. When that is solved, it should be enabled in release mode.
 CONFIG(false){
   isEmpty(TARGET_EXT) {
       win32 {
@@ -337,6 +365,7 @@ CONFIG(false){
   copyToDestination($$OUT_PWD/stylesheet.qss, $$OUTPUT_DIR)
   copyToDestination($$PWD/fonts, $$OUTPUT_DIR/fonts)
   copyToDestination($$PWD/icons, $$OUTPUT_DIR/icons)
+
   # Add deploy command to after linking
   QMAKE_POST_LINK += $${DEPLOY_COMMAND} $${OUTPUT_DIR} $$escape_expand(\\n\\t)
 }
