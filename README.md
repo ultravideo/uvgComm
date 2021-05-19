@@ -33,7 +33,7 @@ Qt Creator is the recommended tool for compiling Kvazzup. Make sure you use the 
 
 Kvazzup uses code indent of 2. You can change that in qt creator from Tools -> Options -> C++ -> Code Style by making a new code style with indent and tab sizes of 2.
 
-### Linux(GCC)
+### Linux (GCC)
 
 Install Qt, Qt multimedia and QtCreator. Make sure Opus, Speex DSP, OpenMP and Crypto++ are installed. Compile and install [OpenHEVC](https://github.com/OpenHEVC/openHEVC), [Kvazaar](https://github.com/ultravideo/kvazaar) and [uvgRTP](https://github.com/ultravideo/uvgRTP).
 
@@ -49,23 +49,31 @@ If you have trouble with Qt creator code highlights, but not compilation, make s
 
 Note: We have not been able to get the changing of the camera formats, resolutions or frame rates to work on Linux. It is possible that we didn't have all the necessary packets installed or that there is some sort of bug in qt multimedia/multimediawidgets on Ubuntu. Any information on this would be greatly appreciated.
 
-### MinGW
+### Windows (MinGW)
 
-Make sure OpenMP is installed in your build environment. Add compiled libraries to PATH or to `../libs` folder and headers to PATH or `../include`.
+Make sure OpenMP is installed in your build environment. Compile rest of the dependencies. If you are not putting files to PATH, Kvazzup MinGW build uses the following folders for build files:
+- `../include` for library headers
+- `../libs_dbg` for debug builds of libraries
+- `../libs` for release builds of libraries
 
-### Microsoft Visual Studio
+### Windows (Microsoft Visual Studio)
 
-Compile the dependencies. Add compiled libraries to PATH or to `../msvc_libs` folder, and headers to PATH or `../include`. If you don't exclude Crypto++, you need to compile it with dynamic C++ runtime linking. See [this section](https://cryptopp.com/wiki/Visual_Studio#Runtime_Linking) for detailed instructions. After that, the easiest way to compile is to select `Build -> Batch Build...`. You must also make sure all static libraries (usually uvgRTP and Crypto++) have been compiled with same debug level (debug/release) as Kvazzup.
+Compile the dependencies. If you don't exclude Crypto++, you need to compile it with dynamic C++ runtime linking. See [this section](https://cryptopp.com/wiki/Visual_Studio#Runtime_Linking) for detailed instructions. After that, the easiest way to compile Crypto++ is to select `Build -> Batch Build...`.
 
-**Shared Kvazaar**
+If you are not putting files to PATH, Kvazzup Visual Studio build uses the following folders for build files:
+- `../include` for library headers
+- `../msvc_libs_dbg` for debug builds of libraries
+- `../msvc_libs` for release builds of libraries
+
+**Shared Kvazaar (default)**
 
 When compiling Kvazaar, select Dynamic Lib(.dll) in kvazaar_lib project Properties: General/Configuration Type and add `;PIC` to C/C++ Preprocessor/Preprocessor Definitions. 
 
-In Kvazzup, please make sure: `DEFINES += PIC` is included in Kvazzup.pro file. 
+In Kvazzup, please make sure `DEFINES += PIC` is included in Kvazzup.pro file. It is include by default.
 
 **Static Kvazaar**
 
-Please uncomment: `DEFINES += KVZ_STATIC_LIB` in Kvazzup.pro file.
+Please uncomment: `DEFINES += KVZ_STATIC_LIB` in Kvazzup.pro file and remove `DEFINES += PIC`.
 
 ## Paper
 
