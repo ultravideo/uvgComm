@@ -39,8 +39,14 @@ private:
   SpeexEchoState *echo_state_;
   SpeexPreprocessState *preprocessor_;
 
+  QMutex speexMutex_;
+
   // Buffer for playback frames used in AEC
   std::unique_ptr<AudioFrameBuffer> echoBuffer_;
+
+
+  int playbackDelay_;
+  int echoFilterLength_;
 
   bool enabled_;
 };

@@ -281,7 +281,7 @@ int settingValue(QString key)
   if (!settings.value(key).isValid())
   {
     printDebug(DEBUG_WARNING, "Common", "Found faulty setting", {"Key"}, {key});
-    return false;
+    return 0;
   }
 
   return settings.value(key).toInt();
