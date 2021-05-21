@@ -616,7 +616,7 @@ void VideoSettings::updateBitrate(int value)
   }
   else
   {
-    value = roundToThousands(value);
+    value = roundToNumber(value, 1000);
 
     videoSettingsUI_->bitrate->setText(getBitrateString(value));
     videoSettingsUI_->bitrate_slider->setValue(value);

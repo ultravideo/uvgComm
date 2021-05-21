@@ -2,6 +2,7 @@
 
 #include <QDialog>
 #include <QSettings>
+#include <QLabel>
 
 #include <memory>
 
@@ -40,6 +41,10 @@ public slots:
 
   void updateBitrate(int value);
   void updateComplexity(int value);
+
+  void updateAECDelay(int value);
+  void updateAECFilterLength(int value);
+
   void showOkButton(QString text);
 
 private:
@@ -52,6 +57,8 @@ private:
   bool checkSettings();
 
   void initializeChannelList();
+
+  void setTimeValue(int value, QLabel* label, QSlider *slider);
 
   int currentDevice_;
 

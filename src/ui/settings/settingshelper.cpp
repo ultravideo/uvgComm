@@ -190,10 +190,11 @@ void restoreComboBoxValue(QString key, QComboBox* box,
 }
 
 
-int roundToThousands(int value)
+int roundToNumber(int value, int roundingNumber)
 {
-  int roundedValue = static_cast<int>((value + 500)/1000);
-  return roundedValue *= 1000;
+  int roundedValue = static_cast<int>((value + roundingNumber/2)/roundingNumber);
+  roundedValue *= roundingNumber;
+  return roundedValue;
 }
 
 

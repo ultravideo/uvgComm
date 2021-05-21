@@ -28,7 +28,8 @@ void showContextMenu(const QPoint& pos, QTableWidget* table, QObject* processor,
 void restoreComboBoxValue(QString key, QComboBox* box,
                           QString defaultValue, QSettings& settings);
 
-int roundToThousands(int value);
+// rounding number is usually something like 10, 100 or 1000
+int roundToNumber(int value, int roundingNumber);
 
 QString getBitrateString(int bits);
 
