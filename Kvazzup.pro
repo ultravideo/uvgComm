@@ -233,7 +233,7 @@ INCLUDEPATH += $$PWD/../include/
 # have the same name on each platform.
 LIBS += -lopus
 LIBS += -lLibOpenHevcWrapper
-LIBS += -lspeexdsp
+
 LIBS += -luvgrtp
 
 
@@ -261,6 +261,8 @@ win32-msvc{
   LIBS += -ladvapi32
   LIBS += -lkernel32
 
+  LIBS += -llibspeexdsp
+
   # Needed for encryption. Can be removed if uvgRTP was compiled without
   # Crypto++ support.
   LIBS += -lcryptlib
@@ -281,12 +283,14 @@ win32-g++{
   LIBS += -lstrmiids
   LIBS += -lssp
 
+  LIBS += -lspeexdsp
+
   # Needed for encryption. Can be removed if uvgRTP was compiled without
   # Crypto++ support.
   LIBS += -lcryptopp
 }
 
-# These apply to all Windows configurations
+# These apply to both Windows configurations
 win32{
   INCLUDEPATH += $$PWD/../include/uvgrtp
   INCLUDEPATH += $$PWD/../include/opus
@@ -302,12 +306,15 @@ win32{
 }
 
 
+# Linux
 unix {
   LIBS += -lkvazaar
   QMAKE_CXXFLAGS += -msse4.1 -mavx2 -fopenmp
   QMAKE_LFLAGS += -fopenmp
   INCLUDEPATH += /usr/include/opus/
   INCLUDEPATH += /usr/local/include/uvgrtp/
+
+  LIBS += -lspeexdsp
 
   # Needed for encryption. Can be removed if uvgRTP was compiled without
   # Crypto++ support.
@@ -348,8 +355,8 @@ CONFIG(false){
       DEPLOY_COMMAND = macdeployqt
   }
 
-  # Add a console window to executable so we see debug prints.
-  debug {
+  # if we are in debug mode, add a console window to executable so we see debug prints.
+  CONFIG(debug, debug|release) {
       CONFIG += console
   }
 
