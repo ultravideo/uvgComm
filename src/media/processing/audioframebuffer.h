@@ -18,7 +18,7 @@ public:
   void inputData(uint8_t* data, uint32_t dataAmount);
 
   // returns desired size frames if available. Returns nullptr if not
-  // Gives away the ownership of the returned frame
+  // Gives away the ownership of the returned frame. Delete with delete[]
   uint8_t* readFrame();
 
   void changeDesiredFrameSize(uint32_t desiredSize);

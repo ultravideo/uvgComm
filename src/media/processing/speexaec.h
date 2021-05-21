@@ -9,6 +9,8 @@
 #include <deque>
 #include <memory>
 
+class AudioFrameBuffer;
+
 
 class SpeexAEC : public QObject
 {
@@ -34,13 +36,11 @@ private:
   QAudioFormat format_;
   uint32_t samplesPerFrame_;
 
-  QMutex echoMutex_;
-
   SpeexEchoState *echo_state_;
   SpeexPreprocessState *preprocessor_;
 
-  uint32_t echoSize_;
-  uint8_t* echoSample_;
+  // Buffer for playback frames used in AEC
+  std::unique_ptr<AudioFrameBuffer> echoBuffer_;
 
   bool enabled_;
 };

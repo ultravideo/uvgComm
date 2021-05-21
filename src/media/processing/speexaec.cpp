@@ -2,8 +2,9 @@
 
 #include <QSettings>
 
-#include "settingskeys.h"
+#include "audioframebuffer.h"
 
+#include "settingskeys.h"
 #include "common.h"
 #include "global.h"
 
@@ -12,15 +13,15 @@
 // if you are in a large room, optimal time may be larger.
 const int REVERBERATION_TIME_MS = 100;
 
+const int ECHO_DELAY = 120;
+
 
 SpeexAEC::SpeexAEC(QAudioFormat format):
   format_(format),
   samplesPerFrame_(format.sampleRate()/AUDIO_FRAMES_PER_SECOND),
-  echoMutex_(),
   echo_state_(nullptr),
   preprocessor_(nullptr),
-  echoSize_(0),
-  echoSample_(nullptr),
+  echoBuffer_(nullptr),
   enabled_(false)
 {}
 
@@ -30,8 +31,6 @@ void SpeexAEC::updateSettings()
   if ( preprocessor_ != nullptr)
   {
     enabled_ = settingEnabled(SettingsKey::audioAEC);
-
-    echoMutex_.lock();
 
     if (enabled_)
     {
@@ -55,7 +54,6 @@ void SpeexAEC::updateSettings()
       speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_ECHO_STATE, nullptr);
     }
 
-    echoMutex_.unlock();
   }
 }
 
@@ -66,9 +64,6 @@ void SpeexAEC::init()
   {
     cleanup();
   }
-
-  echoMutex_.lock();
-
 
   // should be around 1/3 of the room reverberation time
   uint16_t echoFilterLength = format_.sampleRate()*REVERBERATION_TIME_MS/1000;
@@ -92,20 +87,15 @@ void SpeexAEC::init()
   int sampleRate = format_.sampleRate();
   speex_echo_ctl(echo_state_, SPEEX_ECHO_SET_SAMPLING_RATE, &sampleRate);
 
-  if (echoSample_ != nullptr)
-  {
-    delete echoSample_;
-    echoSample_ = nullptr;
-    echoSize_ = 0;
-  }
+  // TODO: Support multiple channels
+  int frameSize = format_.sampleRate()*format_.bytesPerFrame()/AUDIO_FRAMES_PER_SECOND;
 
-  echoSize_ = samplesPerFrame_*format_.bytesPerFrame();
-  echoSample_ = createEmptyFrame(echoSize_);
+  // here we input the samples to be made the right size for our application
+  echoBuffer_ = std::make_unique<AudioFrameBuffer>(frameSize);
+
 
   preprocessor_ = speex_preprocess_state_init(samplesPerFrame_,
                                               format_.sampleRate());
-
-  echoMutex_.unlock();
 
   updateSettings();
 }
@@ -113,8 +103,6 @@ void SpeexAEC::init()
 
 void SpeexAEC::cleanup()
 {
-  echoMutex_.lock();
-
   if (preprocessor_ != nullptr)
   {
     speex_preprocess_state_destroy(preprocessor_);
@@ -126,8 +114,6 @@ void SpeexAEC::cleanup()
     speex_echo_state_destroy(echo_state_);
     echo_state_ = nullptr;
   }
-
-  echoMutex_.unlock();
 }
 
 
@@ -136,49 +122,56 @@ std::unique_ptr<uchar[]> SpeexAEC::processInputFrame(std::unique_ptr<uchar[]> in
 {
   if (enabled_)
   {
-    if (dataSize != samplesPerFrame_*format_.bytesPerFrame())
+    if (echoBuffer_ == nullptr)
+    {
+      printProgramError(this, "AEC echo not initialized. AEC not working");
+      return nullptr;
+    }
+
+    if (dataSize != echoBuffer_->getDesiredSize())
     {
       printProgramError(this, "Wrong size of input frame for AEC");
       return nullptr;
     }
 
-    echoMutex_.lock();
+    int echoBufferSize = (AUDIO_FRAMES_PER_SECOND*ECHO_DELAY)/1000;
 
-    if (echoSample_ != nullptr)
+    if (echoBuffer_->getBufferSize() >= echoBufferSize)
     {
-      std::unique_ptr<uchar[]> pcmOutput = std::unique_ptr<uchar[]>(new uchar[dataSize]);
+      uint8_t* echoFrame = echoBuffer_->readFrame();
 
-      if (echo_state_)
+      if (echoFrame != nullptr)
       {
-        speex_echo_cancellation(echo_state_,
-                                (int16_t*)input.get(),
-                                (int16_t*)echoSample_, (int16_t*)pcmOutput.get());
-      }
-      else
-      {
-        printProgramWarning(this, "Echo state not set");
-      }
+        std::unique_ptr<uchar[]> pcmOutput = std::unique_ptr<uchar[]>(new uchar[dataSize]);
 
-      if(preprocessor_ != nullptr)
-      {
-        speex_preprocess_run(preprocessor_, (int16_t*)pcmOutput.get());
-      }
-      else
-      {
-        printProgramWarning(this, "Echo preprocessor not set");
-      }
+        if (echo_state_)
+        {
+          speex_echo_cancellation(echo_state_,
+                                  (int16_t*)input.get(),
+                                  (int16_t*)echoFrame, (int16_t*)pcmOutput.get());
+        }
+        else
+        {
+          printProgramWarning(this, "Echo state not set");
+        }
 
-      //memcpy(input.get(), pcmOutput, dataSize);
-      echoMutex_.unlock();
+        if(preprocessor_ != nullptr)
+        {
+          speex_preprocess_run(preprocessor_, (int16_t*)pcmOutput.get());
+        }
+        else
+        {
+          printProgramWarning(this, "Echo preprocessor not set");
+        }
 
-      return pcmOutput;
+        return pcmOutput;
+      }
     }
     else
     {
-      printWarning(this, "No echo reference frame set. Not doing echo cancellation");
+      printWarning(this, "We haven't buffered enough audio samples to start echo cancellation", "Buffered",
+                   QString::number(echoBuffer_->getBufferSize()) + "/" + QString::number(echoBufferSize));
     }
-
-    echoMutex_.unlock();
   }
 
   return input;
@@ -188,33 +181,14 @@ std::unique_ptr<uchar[]> SpeexAEC::processInputFrame(std::unique_ptr<uchar[]> in
 void SpeexAEC::processEchoFrame(uint8_t *echo,
                                 uint32_t dataSize)
 {
-  // TODO: This should prepare for different size of frames in case since they
-  // are not generated by us
-  if (dataSize != samplesPerFrame_*format_.bytesPerFrame())
+  if (echoBuffer_)
   {
-    printError(this, "Wrong size of echo frame for AEC. AEC will not operate");
-    return;
+    echoBuffer_->inputData(echo, dataSize);
   }
-
-  echoMutex_.lock();
-
-  if (echoSample_ == nullptr || echoSize_ != dataSize)
+  else
   {
-    if (echoSample_ != nullptr)
-    {
-      delete echoSample_;
-      echoSample_ = nullptr;
-      echoSize_ = 0;
-    }
-
-    echoSize_ = dataSize;
-    echoSample_ = createEmptyFrame(echoSize_);
+    printProgramError(this, "AEC not initialized when inputting echo frame");
   }
-  echoSize_ = dataSize;
-
-  // I don't like this memcpy, but visual studio had some problems with smart pointers.
-  memcpy(echoSample_, echo, dataSize);
-  echoMutex_.unlock();
 }
 
 
