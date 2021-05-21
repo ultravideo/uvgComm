@@ -24,10 +24,24 @@ void KvazzupController::init()
   printImportant(this, "Kvazzup initiation Started");
 
   window_.init(this);
-  window_.show();
+
   stats_ = window_.createStatsWindow();
 
+  // connect sip signals so we get information when ice is ready
+  QObject::connect(&sip_, &SIPManager::nominationSucceeded,
+                   this, &KvazzupController::iceCompleted);
+  QObject::connect(&sip_, &SIPManager::nominationFailed,
+                   this, &KvazzupController::iceFailed);
+
   sip_.init(this, stats_, window_.getStatusView());
+
+  QObject::connect(&media_, &MediaManager::handleZRTPFailure,
+                   this,    &KvazzupController::zrtpFailed);
+
+  QObject::connect(&media_, &MediaManager::handleNoEncryption,
+                   this,    &KvazzupController::noEncryptionAvailable);
+
+
   media_.init(window_.getViewFactory(), stats_);
 
   // register the GUI signals indicating GUI changes to be handled
@@ -50,16 +64,8 @@ void KvazzupController::init()
   QObject::connect(&window_, &CallWindow::callCancelled,
                    this, &KvazzupController::userCancelsCall);
 
-  QObject::connect(&sip_, &SIPManager::nominationSucceeded,
-                   this, &KvazzupController::iceCompleted);
-  QObject::connect(&sip_, &SIPManager::nominationFailed,
-                   this, &KvazzupController::iceFailed);
-
-  QObject::connect(&media_, &MediaManager::handleZRTPFailure,
-                   this,    &KvazzupController::zrtpFailed);
-
-  QObject::connect(&media_, &MediaManager::handleNoEncryption,
-                   this,    &KvazzupController::noEncryptionAvailable);
+  // lastly, show the window when our signals are ready
+  window_.show();
 
   printImportant(this, "Kvazzup initiation finished");
 }

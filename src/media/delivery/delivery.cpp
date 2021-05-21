@@ -27,6 +27,7 @@ void Delivery::init(StatisticsInterface *stats)
 
   if (!uvg_rtp::crypto::enabled())
   {
+    printWarning(this, "uvgRTP does not have crypto++ included. Cannot encrypt media traffic");
     emit handleNoEncryption();
   }
 }
@@ -232,8 +233,13 @@ bool Delivery::addMediaStream(uint32_t sessionID, uint16_t localPort, uint16_t p
   // enable encryption if it works
   if (uvg_rtp::crypto::enabled())
   {
+    printNormal(this, "Encryption enabled");
     // enable srtp + zrtp
     flags = RCE_SRTP_KMNGMNT_ZRTP | RCE_SRTP;
+  }
+  else
+  {
+    printWarning(this, "No media encryption");
   }
 
   QFuture<uvg_rtp::media_stream *> futureRes =
