@@ -58,6 +58,8 @@ void AudioOutputDevice::createAudioOutput()
   }
   audioOutput_ = new QAudioOutput(device_, format_, this);
 
+  // it is possible to reduce the buffer size here to reduce latency, but this
+  // causes issues with audio reliability with Qt and is not recommended.
 
   open(QIODevice::ReadOnly);
   // pull mode

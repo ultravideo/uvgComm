@@ -111,6 +111,9 @@ void AudioCaptureFilter::createAudioInput()
   audioInput_ = new QAudioInput(deviceInfo_, format_, this);
   if (audioInput_)
   {
+    // it is possible to reduce the buffer size here to reduce latency, but this
+    // causes issues with audio reliability with Qt and is not recommended.
+
     input_ = audioInput_->start();
 
     int frameSize = format_.sampleRate()*format_.bytesPerFrame()/AUDIO_FRAMES_PER_SECOND;
