@@ -130,8 +130,11 @@ void AudioCaptureFilter::createAudioInput()
   connect(audioInput_, &QAudioInput::stateChanged,
           this,        &AudioCaptureFilter::stateChanged);
 
-  printNormal(this, "Creating audio input.", {"Notify interval (ms)"},
-              {QString::number(audioInput_->notifyInterval())});
+  printDebug(DEBUG_NORMAL, this, "Created audio input",
+             {"Notify interval", "Buffer size", "Period Size"},
+             {QString::number(audioInput_->notifyInterval()),
+              QString::number(audioInput_->bufferSize()),
+              QString::number(audioInput_->periodSize())});
 }
 
 

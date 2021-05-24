@@ -58,7 +58,6 @@ void AudioOutputDevice::createAudioOutput()
   }
   audioOutput_ = new QAudioOutput(device_, format_, this);
 
-  //sampleSize_ = format_.sampleRate()*format_.bytesPerFrame()/AUDIO_FRAMES_PER_SECOND;
 
   open(QIODevice::ReadOnly);
   // pull mode
@@ -66,6 +65,12 @@ void AudioOutputDevice::createAudioOutput()
   audioOutput_->start(this);
 
   buffer_ = std::make_unique<AudioFrameBuffer>(audioOutput_->periodSize());
+
+  printDebug(DEBUG_NORMAL, this, "Created audio output",
+             {"Notify interval", "Buffer size", "Period Size"},
+             {QString::number(audioOutput_->notifyInterval()),
+              QString::number(audioOutput_->bufferSize()),
+              QString::number(audioOutput_->periodSize())});
 }
 
 
@@ -130,7 +135,10 @@ qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
   // make sure buffer doesn't grow too large
   while (MAX_BUFFER_SIZE < buffer_->getBufferSize())
   {
-    printWarning(this, "The output device buffer is too large. Dropping audio frames");
+    printWarning(this, "The output device buffer is too large. Dropping audio frames",
+                 "Buffer Status",
+                 QString::number(buffer_->getBufferSize()) + "/" + QString::number(MAX_BUFFER_SIZE));
+
     frame = buffer_->readFrame();
     replaceLatestFrame(frame);
   }
