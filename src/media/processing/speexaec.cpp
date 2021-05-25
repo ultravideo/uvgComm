@@ -169,6 +169,8 @@ std::unique_ptr<uchar[]> SpeexAEC::processInputFrame(std::unique_ptr<uchar[]> in
         speexMutex_.lock();
         if (echo_state_)
         {
+          // This is the actual AEC, the point being that the delay between echo and input
+          // should be minimal for the AEC to work
           speex_echo_cancellation(echo_state_,
                                   (int16_t*)input.get(),
                                   (int16_t*)echoFrame, (int16_t*)pcmOutput.get());
@@ -187,6 +189,30 @@ std::unique_ptr<uchar[]> SpeexAEC::processInputFrame(std::unique_ptr<uchar[]> in
           printProgramWarning(this, "Echo preprocessor not set");
         }
         speexMutex_.unlock();
+
+        delete[] echoFrame;
+        echoFrame = nullptr;
+
+        // a safety valve that drops frames if we have too much echo
+        while (echoBuffer_->getBufferSize() >= echoBufferSize*2)
+        {
+          printWarning(this, "Echo buffer has too many samples, "
+                              "dropping frames to avoid clock drift", {"Status"},
+                       {"Min:" + QString::number(echoBufferSize) + " < " +
+                        QString::number(echoBuffer_->getBufferSize()) + " < " +
+                       QString::number(echoBufferSize*2)});
+
+          echoFrame = echoBuffer_->readFrame();
+          if (echoFrame)
+          {
+            delete [] echoFrame;
+            echoFrame = nullptr;
+          }
+          else
+          {
+            break;
+          }
+        }
 
         return pcmOutput;
       }
