@@ -3,6 +3,7 @@
 #include <QSettings>
 
 #include "common.h"
+#include "logger.h"
 
 
 SIPRouting::SIPRouting():
@@ -21,12 +22,16 @@ void SIPRouting::processResponseViaFields(QList<ViaInfo>& vias,
   {
     if (via.address == localAddress && via.port == localPort)
     {
-      printDebug(DEBUG_NORMAL, "SIPRouting", "Found our via. This is meant for us!");
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, "SIPRouting", 
+                                      "Found our via. This is meant for us!");
 
       if (via.rportValue != 0 && via.receivedAddress != "")
       {
-        printDebug(DEBUG_NORMAL, "SIPRouting", "Found our received address and rport",
-                  {"Address"}, {via.receivedAddress + ":" + QString::number(via.rportValue)});
+        Logger::getLogger()->printDebug(DEBUG_NORMAL, "SIPRouting", 
+                                        "Found our received address and rport",
+                                        {"Address"}, 
+                                        {via.receivedAddress + ":" + 
+                                         QString::number(via.rportValue)});
 
         // we do not update our address, because we want to remove this registration
         // first before updating.

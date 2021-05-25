@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "settingskeys.h"
+#include "logger.h"
 
 #include <QApplication>
 #include <QSettings>
@@ -16,7 +17,7 @@ int main(int argc, char *argv[])
 
   a.setApplicationName("Kvazzup");
 
-  printDebug(DEBUG_NORMAL, "Main", "Starting Kvazzup.",
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, "Main", "Starting Kvazzup.",
     {"Location"}, {QDir::currentPath()});
 
   // TODO move to GUI
@@ -29,7 +30,8 @@ int main(int argc, char *argv[])
   }
   else
   {
-    printDebug(DEBUG_WARNING, "Main", "Could not find default font. Is the file missing?");
+    Logger::getLogger()->printDebug(DEBUG_WARNING, "Main", 
+                                    "Could not find default font. Is the file missing?");
   }
 
   QCoreApplication::setOrganizationName("Ultra Video Group");

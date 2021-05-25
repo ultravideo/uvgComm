@@ -2,7 +2,7 @@
 
 #include "common.h"
 #include "global.h"
-
+#include "logger.h"
 
 #include <QString>
 
@@ -54,7 +54,7 @@ std::unique_ptr<Data> AudioMixer::mixAudio(std::unique_ptr<Data> input,
   }
   else if (mixingBuffer_.at(sessionID).size() >= MAX_MIX_BUFFER)
   {
-    printWarning(this, "Too many samples from one source and not enough from others. "
+    Logger::getLogger()->printWarning(this, "Too many samples from one source and not enough from others. "
                        "Forced mixing to avoid latency");
 
     potentialOutput->data = doMixing(data_size);
@@ -83,7 +83,7 @@ std::unique_ptr<uchar[]> AudioMixer::doMixing(uint32_t frameSize)
     }
     else
     {
-      printProgramError(this, "Tried to mix without anything to mix");
+      Logger::getLogger()->printProgramError(this, "Tried to mix without anything to mix");
       return nullptr;
     }
   }

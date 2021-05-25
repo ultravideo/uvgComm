@@ -9,6 +9,7 @@
 
 #include "common.h"
 #include "global.h"
+#include "logger.h"
 
 
 const QStringList neededSettings = {SettingsKey::audioBitrate,
@@ -116,7 +117,7 @@ void AudioSettings::resetSettings(int deviceID)
 // button slots, called automatically by Qt
 void AudioSettings::on_audio_ok_clicked()
 {
-  printNormal(this, "Saving Audio Settings");
+  Logger::getLogger()->printNormal(this, "Saving Audio Settings");
   saveSettings();
   emit updateAudioSettings();
 }
@@ -164,7 +165,7 @@ void AudioSettings::restoreSettings()
 
 void AudioSettings::saveSettings()
 {
-  printNormal(this, "Saving audio Settings");
+  Logger::getLogger()->printNormal(this, "Saving audio Settings");
 
   audioSettingsUI_->audio_ok->hide();
 
@@ -194,7 +195,7 @@ bool AudioSettings::checkSettings()
   {
     if (!settings_.contains(slider.first))
     {
-      printError(this, "Missing a slider settings value.");
+      Logger::getLogger()->printError(this, "Missing a slider settings value.");
       everythingOK = false;
     }
   }
@@ -203,7 +204,7 @@ bool AudioSettings::checkSettings()
   {
     if (!settings_.contains(box.first))
     {
-      printError(this, "Missing a box settings value.");
+      Logger::getLogger()->printError(this, "Missing a box settings value.");
       everythingOK = false;
     }
   }

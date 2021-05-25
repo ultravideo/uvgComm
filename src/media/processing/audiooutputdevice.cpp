@@ -6,6 +6,7 @@
 
 #include "common.h"
 #include "global.h"
+#include "logger.h"
 
 
 uint8_t MAX_SAMPLE_REPEATS = 5;
@@ -37,7 +38,7 @@ void AudioOutputDevice::init(QAudioFormat format)
 {
   QAudioDeviceInfo info(device_);
   if (!info.isFormatSupported(format)) {
-    printDebug(DEBUG_WARNING, this,
+    Logger::getLogger()->printDebug(DEBUG_WARNING, this,
                "Default format not supported - trying to use nearest.");
     format_ = info.nearestFormat(format);
   }
@@ -68,7 +69,7 @@ void AudioOutputDevice::createAudioOutput()
 
   buffer_ = std::make_unique<AudioFrameBuffer>(audioOutput_->periodSize());
 
-  printDebug(DEBUG_NORMAL, this, "Created audio output",
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Created audio output",
              {"Notify interval", "Buffer size", "Period Size"},
              {QString::number(audioOutput_->notifyInterval()),
               QString::number(audioOutput_->bufferSize()),
@@ -79,7 +80,8 @@ void AudioOutputDevice::createAudioOutput()
 void AudioOutputDevice::deviceChanged(int index)
 {
   Q_UNUSED(index);
-  printUnimplemented(this, "Audio output device change not implemented fully.");
+  Logger::getLogger()->printUnimplemented(this, "Audio output device change "
+                                                "not implemented fully.");
 
   audioOutput_->stop();
   audioOutput_->disconnect(this);
@@ -137,7 +139,7 @@ qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
   // make sure buffer doesn't grow too large
   while (MAX_BUFFER_SIZE < buffer_->getBufferSize())
   {
-    printWarning(this, "The output device buffer is too large. Dropping audio frames",
+    Logger::getLogger()->printWarning(this, "The output device buffer is too large. Dropping audio frames",
                  "Buffer Status",
                  QString::number(buffer_->getBufferSize()) + "/" + QString::number(MAX_BUFFER_SIZE));
 
@@ -152,14 +154,15 @@ qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
     // we have to give output something
     if (latestFrame_ == nullptr)
     {
-      printWarning(this, "No output audio frame available in time and no previous frame available. Playing silence");
+      Logger::getLogger()->printWarning(this, "No output audio frame available "
+                                              "in time and no previous frame available. Playing silence");
       // equals to silence
       latestFrame_ = createEmptyFrame(buffer_->getDesiredSize());
       latestFrameIsSilence_ = true;
     }
     else if (outputRepeats_ >= MAX_SAMPLE_REPEATS && !latestFrameIsSilence_)
     {
-      printWarning(this, "No output audio frame available in time. Switching to silence");
+      Logger::getLogger()->printWarning(this, "No output audio frame available in time. Switching to silence");
       destroyLatestFrame();
       latestFrame_ = createEmptyFrame(buffer_->getDesiredSize());
       outputRepeats_ = 0;
@@ -167,8 +170,9 @@ qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
     }
     else if (!latestFrameIsSilence_)
     {
-      printWarning(this, "No output audio frame available in time. Repeating previous audio frame",
-      {"Consecutive repeats"}, {QString::number(outputRepeats_ + 1)});
+      Logger::getLogger()->printWarning(this, "No output audio frame available in time. "
+                                              "Repeating previous audio frame",
+                                        {"Consecutive repeats"}, {QString::number(outputRepeats_ + 1)});
     }
 
     memcpy(data + read, latestFrame_, buffer_->getDesiredSize());
@@ -188,7 +192,7 @@ qint64 AudioOutputDevice::writeData(const char *data, qint64 len)
   Q_UNUSED(len);
 
   // output does not write data to device, only reads it.
-  printProgramWarning(this, "Why is output writing to us");
+  Logger::getLogger()->printProgramWarning(this, "Why is output writing to us");
 
   return 0;
 }
@@ -204,7 +208,8 @@ void AudioOutputDevice::input(std::unique_ptr<Data> input)
 {
   if (input->type != RAWAUDIO)
   {
-    printProgramError(this, "Audio output has received something other than raw audio!");
+    Logger::getLogger()->printProgramError(this, "Audio output has received "
+                                                 "something other than raw audio!");
     return;
   }
 

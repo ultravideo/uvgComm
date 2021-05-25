@@ -3,6 +3,7 @@
 #include "sipconversions.h"
 
 #include "common.h"
+#include "logger.h"
 
 #include <QDebug>
 
@@ -90,14 +91,14 @@ bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
 {
   if(request.requestURI.host == "")
   {
-    printDebug(DEBUG_PROGRAM_ERROR, "SIPComposing", 
-               "Request URI host is empty when comprising the first line.");
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SIPComposing", 
+                                    "Request URI host is empty when comprising the first line.");
   }
 
   if(request.type == SIP_NO_REQUEST)
   {
-    printDebug(DEBUG_PROGRAM_ERROR, "SIPComposing",
-                "SIP_NO_REQUEST given.");
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SIPComposing",
+                                    "SIP_NO_REQUEST given.");
     return false;
   }
 

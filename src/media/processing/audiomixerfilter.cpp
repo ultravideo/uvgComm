@@ -4,6 +4,7 @@
 
 #include "statisticsinterface.h"
 #include "common.h"
+#include "logger.h"
 
 #include <QDateTime>
 
@@ -39,7 +40,7 @@ void AudioMixerFilter::process()
 {
   if (!mixer_)
   {
-    printProgramError(this, "Audio mixer not set for audio mixer filter");
+    Logger::getLogger()->printProgramError(this, "Audio mixer not set for audio mixer filter");
     return;
   }
 
@@ -69,7 +70,7 @@ void AudioMixerFilter::process()
     }
     else
     {
-      printProgramError(this, "No mixer set for mixer filter");
+      Logger::getLogger()->printProgramError(this, "No mixer set for mixer filter");
     }
 
     // get next input

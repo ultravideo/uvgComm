@@ -5,6 +5,7 @@
 
 #include "common.h"
 #include "settingskeys.h"
+#include "logger.h"
 
 #include <QImage>
 #include <QtDebug>
@@ -33,8 +34,8 @@ DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
   }
   else {
     Q_ASSERT(false);
-    printDebug(DEBUG_PROGRAM_ERROR, "Display Filter",
-               "Gived nonexistant widget");
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "Display Filter",
+                                    "Gived nonexistant widget");
   }
 
   updateSettings();
@@ -72,8 +73,9 @@ void DisplayFilter::process()
       format = QImage::Format_Invalid;
       break;
     default:
-      printDebug(DEBUG_PROGRAM_ERROR, this, 
-                 "Wrong type of display input.", {"Type"}, {QString::number(input->type)});
+      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, 
+                                      "Wrong type of display input.", {"Type"}, 
+                                      {QString::number(input->type)});
       format = QImage::Format_Invalid;
       break;
     }

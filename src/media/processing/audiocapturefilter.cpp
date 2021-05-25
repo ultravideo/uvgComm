@@ -6,6 +6,7 @@
 #include "common.h"
 #include "settingskeys.h"
 #include "global.h"
+#include "logger.h"
 
 #include <QAudioInput>
 #include <QTime>
@@ -35,7 +36,7 @@ AudioCaptureFilter::~AudioCaptureFilter()
 
 bool AudioCaptureFilter::init()
 {
-  printNormal(this, "Initializing audio capture filter.");
+  Logger::getLogger()->printNormal(this, "Initializing audio capture filter.");
 
   QList<QAudioDeviceInfo> microphones = QAudioDeviceInfo::availableDevices(QAudio::AudioInput);
 
@@ -67,13 +68,13 @@ bool AudioCaptureFilter::init()
           if(parsedName == deviceName)
           {
             deviceID = i;
-            printDebug(DEBUG_NORMAL, this, "Found Mic.", {"Name", "ID"},
+            Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Found Mic.", {"Name", "ID"},
                         {microphones.at(i).deviceName(), QString::number(deviceID)});
             break;
           }
         }
         // previous camera could not be found, use first.
-        printWarning(this, "Did not find selected microphone. Using first.",
+        Logger::getLogger()->printWarning(this, "Did not find selected microphone. Using first.",
                     {"Device name"}, {deviceName});
         deviceID = 0;
       }
@@ -82,16 +83,17 @@ bool AudioCaptureFilter::init()
   }
   else
   {
-    printWarning(this, "No available microphones found. Trying default.");
+    Logger::getLogger()->printWarning(this, "No available microphones found. Trying default.");
     deviceInfo_ = QAudioDeviceInfo::defaultInputDevice();
   }
 
   QAudioDeviceInfo info(deviceInfo_);
 
-  printNormal(this, "A microphone chosen.", {"Device name"}, {info.deviceName()});
+  Logger::getLogger()->printNormal(this, "A microphone chosen.", {"Device name"}, {info.deviceName()});
 
   if (!info.isFormatSupported(format_)) {
-    printWarning(this, "Default audio format not supported - trying to use nearest");
+    Logger::getLogger()->printWarning(this, "Default audio format not supported - "
+                                            "trying to use nearest");
     format_ = info.nearestFormat(format_);
   }
 
@@ -101,7 +103,7 @@ bool AudioCaptureFilter::init()
     getStats()->audioInfo(0, 0);
 
   createAudioInput();
-  printNormal(this, "Audio initializing completed.");
+  Logger::getLogger()->printNormal(this, "Audio initializing completed.");
   return true;
 }
 
@@ -133,7 +135,7 @@ void AudioCaptureFilter::createAudioInput()
   connect(audioInput_, &QAudioInput::stateChanged,
           this,        &AudioCaptureFilter::stateChanged);
 
-  printDebug(DEBUG_NORMAL, this, "Created audio input",
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Created audio input",
              {"Notify interval", "Buffer size", "Period Size"},
              {QString::number(audioInput_->notifyInterval()),
               QString::number(audioInput_->bufferSize()),
@@ -145,7 +147,7 @@ void AudioCaptureFilter::readMore()
 {
   if (!audioInput_ || !input_)
   {
-    printProgramWarning(this,  "No audio input in readMore");
+    Logger::getLogger()->printProgramWarning(this,  "No audio input in readMore");
     return;
   }
 
@@ -153,7 +155,7 @@ void AudioCaptureFilter::readMore()
 
   if (micBufferSize != readBufferSize_)
   {
-    printWarning(this, "Mic changed buffer size");
+    Logger::getLogger()->printWarning(this, "Mic changed buffer size");
     createReadBuffer(audioInput_->bufferSize());
   }
 
@@ -163,13 +165,14 @@ void AudioCaptureFilter::readMore()
 
     if (len >= 3*micBufferSize/2)
     {
-      printWarning(this, "Microphone buffer is 75 % full. Possibly losing audio soon", {"Amount"},
+      Logger::getLogger()->printWarning(this, "Microphone buffer is 75 % full. "
+                                              "Possibly losing audio soon", {"Amount"},
                    QString::number(len) + "/" + QString::number(audioInput_->bufferSize()));
     }
 
     if (len > readBufferSize_)
     {
-      printWarning(this, "Mic has too much input to read all at once");
+      Logger::getLogger()->printWarning(this, "Mic has too much input to read all at once");
       len = readBufferSize_;
     }
 
@@ -177,13 +180,13 @@ void AudioCaptureFilter::readMore()
 
     if (readData == 0)
     {
-      printWarning(this, "Failed to read any data",
+      Logger::getLogger()->printWarning(this, "Failed to read any data",
       {"Bytes attempted"}, {QString::number(len)});
       break;
     }
     else if (readData == -1)
     {
-      printWarning(this, "Error reading data from mic IODevice!",
+      Logger::getLogger()->printWarning(this, "Error reading data from mic IODevice!",
       {"Amount"}, {QString::number(len)});
       break;
     }
@@ -213,7 +216,7 @@ void AudioCaptureFilter::readMore()
       std::unique_ptr<Data> u_newSample( audioFrame );
       sendOutput(std::move(u_newSample));
 
-      //printNormal(this, "sent forward audio sample", {"Size"},
+      //Logger::getLogger()->printNormal(this, "sent forward audio sample", {"Size"},
       //            {QString::number(audioFrame->data_size)});
 
       frame = buffer_->readFrame();
@@ -224,7 +227,7 @@ void AudioCaptureFilter::readMore()
 
 void AudioCaptureFilter::start()
 {
-  printNormal(this, "Resuming audio input.");
+  Logger::getLogger()->printNormal(this, "Resuming audio input.");
 
   wantedState_ = QAudio::ActiveState;
   if (audioInput_ && (audioInput_->state() == QAudio::SuspendedState
@@ -238,7 +241,7 @@ void AudioCaptureFilter::start()
 
 void AudioCaptureFilter::stop()
 {
-  printNormal(this, "Suspending input.");
+  Logger::getLogger()->printNormal(this, "Suspending input.");
 
   wantedState_ = QAudio::SuspendedState;
   if (audioInput_ && audioInput_->state() == QAudio::ActiveState)
@@ -253,14 +256,14 @@ void AudioCaptureFilter::stop()
 
   // just in case the filter part was running
   Filter::stop();
-  printNormal(this, "Input suspended.");
+  Logger::getLogger()->printNormal(this, "Input suspended.");
 }
 
 
 // changing of audio device mid stream.
 void AudioCaptureFilter::updateSettings()
 {
-  printNormal(this, "Updating audio capture settings");
+  Logger::getLogger()->printNormal(this, "Updating audio capture settings");
 
   if (audioInput_)
   {
@@ -284,8 +287,9 @@ void AudioCaptureFilter::volumeChanged(int value)
 
 void AudioCaptureFilter::stateChanged()
 {
-  printNormal(this, "Audio Input State changed", {"States:"}, {
-                "Current: " + QString::number(audioInput_->state()) + ", Wanted: " + QString::number(wantedState_)});
+  Logger::getLogger()->printNormal(this, "Audio Input State changed", {"States:"}, 
+                                   {"Current: " + QString::number(audioInput_->state()) + 
+                                    ", Wanted: " + QString::number(wantedState_)});
 
   if (audioInput_ && audioInput_->state() != wantedState_)
   {

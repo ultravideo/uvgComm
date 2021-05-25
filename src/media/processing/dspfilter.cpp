@@ -4,6 +4,7 @@
 #include "speexaec.h"
 
 #include "common.h"
+#include "logger.h"
 
 
 DSPFilter::DSPFilter(QString id, StatisticsInterface* stats,
@@ -25,7 +26,7 @@ DSPFilter::DSPFilter(QString id, StatisticsInterface* stats,
 
   if (doAEC_ && AECReference_)
   {
-    printProgramWarning(this, "One filter doing both AEC and "
+    Logger::getLogger()->printProgramWarning(this, "One filter doing both AEC and "
                               "providing reference for it");
   }
 }

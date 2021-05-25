@@ -3,13 +3,16 @@
 #include "tcpconnection.h"
 
 #include "common.h"
+#include "global.h"
+#include "logger.h"
+
 
 ConnectionServer::ConnectionServer()
 {}
 
 void ConnectionServer::incomingConnection(qintptr socketDescriptor)
 {
-  printNormal(this, "Incoming TCP connection");
+  Logger::getLogger()->printNormal(this, "Incoming TCP connection");
   // create connection
   TCPConnection* con = new TCPConnection();
 

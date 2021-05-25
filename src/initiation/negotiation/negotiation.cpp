@@ -4,6 +4,7 @@
 
 #include "common.h"
 #include "global.h"
+#include "logger.h"
 
 
 Negotiation::Negotiation():
@@ -80,9 +81,9 @@ bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
 
   if (localSDP == nullptr)
   {
-    printDebug(DEBUG_PROGRAM_ERROR, "Negotiation", 
-               "Failed to generate our answer to their offer."
-               "Suitability should be detected earlier in checkOffer.");
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "Negotiation", 
+                                    "Failed to generate our answer to their offer."
+                                    "Suitability should be detected earlier in checkOffer.");
     return false;
   }
 
@@ -105,7 +106,8 @@ bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
 
 bool Negotiation::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer, uint32_t sessionID)
 {
-  printDebug(DEBUG_NORMAL, "Negotiation",  "Starting to process answer SDP.");
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, "Negotiation", 
+                                  "Starting to process answer SDP.");
   if (!checkSessionValidity(sessionID, false))
   {
     return false;
@@ -113,7 +115,8 @@ bool Negotiation::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer, uint32_t ses
 
   if (getState(sessionID) == NEG_NO_STATE)
   {
-    printDebug(DEBUG_WARNING, "Negotiation",  "Processing SDP answer without hacing sent an offer!");
+    Logger::getLogger()->printDebug(DEBUG_WARNING, "Negotiation",  
+                                    "Processing SDP answer without hacing sent an offer!");
     return false;
   }
 
@@ -218,7 +221,8 @@ void Negotiation::nominationSucceeded(quint32 sessionID)
     return;
   }
 
-  printNormal(this, "ICE nomination has succeeded", {"SessionID"}, {QString::number(sessionID)});
+  Logger::getLogger()->printNormal(this, "ICE nomination has succeeded", 
+                                   {"SessionID"}, {QString::number(sessionID)});
 
   std::shared_ptr<SDPMessageInfo> localSDP = sdps_.at(sessionID).localSDP;
   std::shared_ptr<SDPMessageInfo> remoteSDP = sdps_.at(sessionID).remoteSDP;
@@ -265,7 +269,7 @@ bool Negotiation::checkSessionValidity(uint32_t sessionID, bool checkRemote) con
      sdps_.at(sessionID).localSDP == nullptr ||
      (sdps_.at(sessionID).remoteSDP == nullptr && checkRemote))
   {
-    printDebug(DEBUG_PROGRAM_ERROR, "GlobalSDPState",
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "GlobalSDPState",
                "Attempting to use GlobalSDPState without setting SessionID correctly",
               {"sessionID"}, {QString::number(sessionID)});
     return false;

@@ -5,6 +5,8 @@
 
 #include "common.h"
 #include "settingskeys.h"
+#include "logger.h"
+
 
 UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id, StatisticsInterface *stats,
                            DataType type, QString media, QFuture<uvg_rtp::media_stream *> mstream):
@@ -70,7 +72,8 @@ void UvgRTPSender::updateSettings()
       rtpFlags_ &= ~RTP_SLICE;
     }
 
-    printDebug(DEBUG_NORMAL, this,  "Updated buffersize", {"Size"}, {QString::number(maxBufferSize_)});
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this,  "Updated buffersize", 
+                                    {"Size"}, {QString::number(maxBufferSize_)});
   }
 }
 
@@ -90,7 +93,8 @@ void UvgRTPSender::process()
 
     if (ret != RTP_OK)
     {
-      printDebug(DEBUG_ERROR, this,  "Failed to send data", { "Error" }, { QString(ret) });
+      Logger::getLogger()->printDebug(DEBUG_ERROR, this,  "Failed to send data", 
+                                      { "Error" }, { QString(ret) });
     }
 
     getStats()->addSendPacket(input->data_size);

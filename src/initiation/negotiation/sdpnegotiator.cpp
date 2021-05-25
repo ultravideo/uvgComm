@@ -3,6 +3,7 @@
 #include "mediacapabilities.h"
 
 #include "common.h"
+#include "logger.h"
 
 #include <QDateTime>
 #include <QDebug>
@@ -136,7 +137,7 @@ bool SDPNegotiator::selectBestCodec(QList<uint8_t>& remoteNums,       QList<RTPM
       if(remoteCodec.codec == supportedCodec.codec)
       {
         outMatchingCodecs.append(remoteCodec);
-        printDebug(DEBUG_NORMAL, "SDPNegotiator",  "Found suitable codec.");
+        Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPNegotiator",  "Found suitable codec.");
 
         outMatchingNums.push_back(remoteCodec.rtpNum);
 
@@ -152,14 +153,14 @@ bool SDPNegotiator::selectBestCodec(QList<uint8_t>& remoteNums,       QList<RTPM
       if(rtpNumber == supportedNum)
       {
         outMatchingNums.append(rtpNumber);
-        printDebug(DEBUG_NORMAL, "SDPNegotiator",  "Found suitable RTP number.");
+        Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPNegotiator",  "Found suitable RTP number.");
         return true;
       }
     }
   }
 
-  printDebug(DEBUG_ERROR, "SDPNegotiator",
-             "Could not find suitable codec or RTP number for media.");
+  Logger::getLogger()->printDebug(DEBUG_ERROR, "SDPNegotiator",
+                                  "Could not find suitable codec or RTP number for media.");
 
   return false;
 }
@@ -277,7 +278,7 @@ bool SDPNegotiator::checkSDPOffer(SDPMessageInfo &offer)
     }
   }
 
-  printDebug(DEBUG_NORMAL, "Negotiation",
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, "Negotiation",
              "Found following codecs in SDP", {"Codecs"}, debugCodecsFound);
 
   if (offer.timeDescriptions.size() >= 1)
@@ -285,13 +286,13 @@ bool SDPNegotiator::checkSDPOffer(SDPMessageInfo &offer)
     if (offer.timeDescriptions.at(0).startTime != 0 ||
         offer.timeDescriptions.at(0).stopTime != 0)
     {
-      printDebug(DEBUG_ERROR, "Negotiation",
+      Logger::getLogger()->printDebug(DEBUG_ERROR, "Negotiation",
                  "They offered us a session with limits. Unsupported.");
       return false;
     }
   }
   else {
-    printDebug(DEBUG_PROGRAM_ERROR, "Negotiation",
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "Negotiation",
                "they included wrong number of Time Descriptions. Should be detected earlier.");
     return false;
   }
@@ -307,7 +308,8 @@ void SDPNegotiator::setMediaPair(MediaInfo& media,
 {
   if (mediaInfo == nullptr)
   {
-    printDebug(DEBUG_PROGRAM_ERROR, "SDPNegotiator", "Null mediainfo in setMediaPair");
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SDPNegotiator", 
+                                    "Null mediainfo in setMediaPair");
     return;
   }
 

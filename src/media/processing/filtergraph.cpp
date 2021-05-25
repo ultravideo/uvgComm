@@ -23,6 +23,7 @@
 #include "settingskeys.h"
 #include "global.h"
 #include "common.h"
+#include "logger.h"
 
 #include <QSettings>
 #include <QFile>
@@ -91,9 +92,10 @@ void FilterGraph::updateVideoSettings()
   QString wantedVideoFormat = settings.value(SettingsKey::videoInputFormat).toString();
   if(videoFormat_ != wantedVideoFormat)
   {
-    printDebug(DEBUG_NORMAL, this, "Video format changed. Reconstructing video send graph.",
-               {"Previous format", "New format"},
-               {videoFormat_, settings.value(SettingsKey::videoInputFormat).toString()});
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, 
+                                    "Video format changed. Reconstructing video send graph.",
+                                    {"Previous format", "New format"},
+                                    {videoFormat_, settings.value(SettingsKey::videoInputFormat).toString()});
 
 
     // update selfview in case camera format has changed
@@ -196,7 +198,7 @@ void FilterGraph::updateAudioSettings()
 
 void FilterGraph::initSelfView()
 {
-  printNormal(this, "Iniating camera and selfview");
+  Logger::getLogger()->printNormal(this, "Iniating camera and selfview");
 
   QSettings settings(settingsFile, settingsFileFormat);
   videoFormat_ = settings.value(SettingsKey::videoInputFormat).toString();
@@ -210,7 +212,7 @@ void FilterGraph::initSelfView()
   if (!addToGraph(std::shared_ptr<Filter>(new CameraFilter("", stats_)), cameraGraph_))
   {
     // camera failed
-    printError(this, "Failed to add camera. Does it have supported formats.");
+    Logger::getLogger()->printError(this, "Failed to add camera. Does it have supported formats.");
     return; // TODO: return false that we failed so user can fix camera selection
   }
 
@@ -257,16 +259,16 @@ void FilterGraph::initSelfView()
 
 void FilterGraph::initVideoSend()
 {
-  printNormal(this, "Iniating video send");
+  Logger::getLogger()->printNormal(this, "Iniating video send");
 
   if(cameraGraph_.size() == 0)
   {
-    printProgramWarning(this, "Camera was not iniated for video send");
+    Logger::getLogger()->printProgramWarning(this, "Camera was not iniated for video send");
     initSelfView();
   }
   else if(cameraGraph_.size() > 3)
   {
-    printProgramError(this, "Too many filters in videosend");
+    Logger::getLogger()->printProgramError(this, "Too many filters in videosend");
     destroyFilters(cameraGraph_);
   }
 
@@ -331,8 +333,9 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
   {
     if(graph.at(connectIndex)->outputType() != filter->inputType())
     {
-      printDebug(DEBUG_NORMAL, this, "Filter output and input do not match. Finding conversion",
-                 {"Connection"}, {graph.at(connectIndex)->getName() + "->" + filter->getName()});
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, 
+                                      "Filter output and input do not match. Finding conversion",
+                                      {"Connection"}, {graph.at(connectIndex)->getName() + "->" + filter->getName()});
 
       Q_ASSERT(graph.at(connectIndex)->outputType() != NONE);
 
@@ -341,20 +344,20 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
       if(graph.at(connectIndex)->outputType() == RGB32VIDEO &&
          filter->inputType() == YUV420VIDEO)
       {
-        printNormal(this, "Adding RGB32 to YUV conversion");
+        Logger::getLogger()->printNormal(this, "Adding RGB32 to YUV conversion");
         addToGraph(std::shared_ptr<Filter>(new RGB32toYUV("", stats_)),
                    graph, connectIndex);
       }
       else if(graph.at(connectIndex)->outputType() == YUV420VIDEO &&
               filter->inputType() == RGB32VIDEO)
       {
-        printNormal(this, "Adding YUV to RGB32 conversion");
+        Logger::getLogger()->printNormal(this, "Adding YUV to RGB32 conversion");
         addToGraph(std::shared_ptr<Filter>(new YUVtoRGB32("", stats_)),
                    graph, connectIndex);
       }
       else
       {
-        printProgramError(this, "Could not find conversion for filter.");
+        Logger::getLogger()->printProgramError(this, "Could not find conversion for filter.");
         return false;
       }
       // the conversion filter has been added to the end
@@ -380,13 +383,13 @@ bool FilterGraph::connectFilters(std::shared_ptr<Filter> previous, std::shared_p
 {
   Q_ASSERT(filter != nullptr && previous != nullptr);
 
-  printDebug(DEBUG_NORMAL, "FilterGraph", "Connecting filters",
-              {"Connection"}, {previous->getName() + " -> " + filter->getName()});
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, "FilterGraph", "Connecting filters",
+                                  {"Connection"}, {previous->getName() + " -> " + filter->getName()});
 
   if(previous->outputType() != filter->inputType())
   {
-    printDebug(DEBUG_WARNING, "FilterGraph", 
-               "The connecting filter output and input DO NOT MATCH.");
+    Logger::getLogger()->printDebug(DEBUG_WARNING, "FilterGraph",
+                                    "The connecting filter output and input DO NOT MATCH.");
     return false;
   }
   previous->addOutConnection(filter);
@@ -425,7 +428,8 @@ void FilterGraph::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoF
   Q_ASSERT(sessionID);
   Q_ASSERT(videoFramedSource);
 
-  printNormal(this, "Adding send video", {"SessionID"}, QString::number(sessionID));
+  Logger::getLogger()->printNormal(this, "Adding send video", {"SessionID"}, 
+                                   QString::number(sessionID));
 
   // make sure we are generating video
   if(cameraGraph_.size() < 4)
@@ -521,7 +525,8 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID,
   }
   else
   {
-    printProgramError(this, "Audio output not initialized when adding audio reception");
+    Logger::getLogger()->printProgramError(this, "Audio output not initialized "
+                                                 "when adding audio reception");
   }
 }
 
@@ -578,12 +583,12 @@ void FilterGraph::mic(bool state)
   {
     if(!state)
     {
-      printNormal(this, "Stopping microphone");
+      Logger::getLogger()->printNormal(this, "Stopping microphone");
       audioInputGraph_.at(0)->stop();
     }
     else
     {
-      printNormal(this, "Starting microphone");
+      Logger::getLogger()->printNormal(this, "Starting microphone");
       audioInputGraph_.at(0)->start();
     }
   }
@@ -596,12 +601,12 @@ void FilterGraph::camera(bool state)
   {
     if(!state)
     {
-      printNormal(this, "Stopping camera");
+      Logger::getLogger()->printNormal(this, "Stopping camera");
       cameraGraph_.at(0)->stop();
     }
     else
     {
-      printNormal(this, "Starting camera");
+      Logger::getLogger()->printNormal(this, "Starting camera");
       selfviewFilter_->setProperties(true, cameraGraph_.at(0)->outputType() == RGB32VIDEO);
       cameraGraph_.at(0)->start();
     }
@@ -615,7 +620,7 @@ void FilterGraph::screenShare(bool shareState)
   {
     if(shareState)
     {
-      printNormal(this, "Starting to share the screen");
+      Logger::getLogger()->printNormal(this, "Starting to share the screen");
 
       // We don't want to flip selfview horizontally when sharing the screen.
       // This way the self view is an accurate representation of what the others
@@ -625,7 +630,7 @@ void FilterGraph::screenShare(bool shareState)
     }
     else
     {
-      printNormal(this, "Not sharing the screen");
+      Logger::getLogger()->printNormal(this, "Not sharing the screen");
       screenShareGraph_.at(0)->stop();
     }
   }
@@ -636,19 +641,19 @@ void FilterGraph::selectVideoSource()
 {
   if (settingEnabled(SettingsKey::screenShareStatus))
   {
-    printNormal(this, "Enabled screen sharing in filter graph");
+    Logger::getLogger()->printNormal(this, "Enabled screen sharing in filter graph");
     camera(false);
     screenShare(true);
   }
   else if (settingEnabled(SettingsKey::cameraStatus))
   {
-    printNormal(this, "Enabled camera in filter graph");
+    Logger::getLogger()->printNormal(this, "Enabled camera in filter graph");
     screenShare(false);
     camera(true);
   }
   else
   {
-    printNormal(this, "No video in filter graph");
+    Logger::getLogger()->printNormal(this, "No video in filter graph");
 
     screenShare(false);
     camera(false);
@@ -724,7 +729,7 @@ void FilterGraph::destroyFilters(std::vector<std::shared_ptr<Filter> > &filters)
 {
   if(filters.size() != 0)
   {
-    printNormal(this, "Destroying filter in one graph",
+    Logger::getLogger()->printNormal(this, "Destroying filter in one graph",
                 {"Filter"}, {QString::number(filters.size())});
   }
   for( std::shared_ptr<Filter>& f : filters )
@@ -738,7 +743,7 @@ void FilterGraph::destroyFilters(std::vector<std::shared_ptr<Filter> > &filters)
 
 void FilterGraph::destroyPeer(Peer* peer)
 {
-  printNormal(this, "Destroying peer from Filter Graph");
+  Logger::getLogger()->printNormal(this, "Destroying peer from Filter Graph");
 
   for (auto& audioSender : peer->audioSenders)
   {
@@ -772,9 +777,9 @@ void FilterGraph::removeParticipant(uint32_t sessionID)
   if (peers_.find(sessionID) != peers_.end() &&
       peers_[sessionID] != nullptr)
   {
-    printDebug(DEBUG_NORMAL, this,
-               "Removing peer", {"SessionID", "Remaining sessions"},
-               {QString::number(sessionID), QString::number(peers_.size())});
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
+                                    "Removing peer", {"SessionID", "Remaining sessions"},
+                                    {QString::number(sessionID), QString::number(peers_.size())});
 
     destroyPeer(peers_[sessionID]);
     peers_[sessionID] = nullptr;

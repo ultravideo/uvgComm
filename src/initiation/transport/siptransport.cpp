@@ -5,7 +5,9 @@
 #include "sipfieldcomposing.h"
 #include "initiation/negotiation/sipcontent.h"
 #include "statisticsinterface.h"
+
 #include "common.h"
+#include "logger.h"
 
 #include <QRegularExpression>
 #include <QRegularExpressionMatch>
@@ -102,7 +104,7 @@ void SIPTransport::createConnection(ConnectionType type, QString target)
 {
   if(type == TCP)
   {
-    printNormal(this, "Initiating TCP connection for sip connection",
+    Logger::getLogger()->printNormal(this, "Initiating TCP connection for sip connection",
                 {"TransportID"}, QString::number(transportID_));
     connection_ = std::shared_ptr<TCPConnection>(new TCPConnection());
     signalConnections();
@@ -147,13 +149,13 @@ void SIPTransport::destroyConnection()
 {
   if(connection_ == nullptr)
   {
-    printProgramWarning(this, "Trying to destroy an already destroyed connection");
+    Logger::getLogger()->printProgramWarning(this, "Trying to destroy an already destroyed connection");
     return;
   }
 
   if (processingInProgress_ > 0)
   {
-     printNormal(this, "Processing in progress while trying to destroy transport");
+     Logger::getLogger()->printNormal(this, "Processing in progress while trying to destroy transport");
 
      while (processingInProgress_ > 0)
      {
@@ -176,13 +178,13 @@ void SIPTransport::destroyConnection()
 
   connection_.reset();
 
-  printNormal(this, "Destroyed SIP Transport connection");
+  Logger::getLogger()->printNormal(this, "Destroyed SIP Transport connection");
 }
 
 void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
 {
   ++processingInProgress_;
-  printImportant(this, "Composing and sending SIP Request:", {"Type"},
+  Logger::getLogger()->printImportant(this, "Composing and sending SIP Request:", {"Type"},
                  requestToString(request.type));
   Q_ASSERT(request.message->content.type == NO_CONTENT || content.isValid());
   Q_ASSERT(connection_ != nullptr);
@@ -209,7 +211,7 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
 
   if (!includeRouteField(fields, request.message))
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this,  "Failed to add Route-fields");
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,  "Failed to add Route-fields");
   }
 
   if ((request.type == SIP_INVITE || request.type == SIP_REGISTER) &&
@@ -222,7 +224,7 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
   if (request.type == SIP_REGISTER &&
       !includeExpiresField(fields, request.message->expires))
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this,  "Failed to add expires-field");
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,  "Failed to add expires-field");
     return;
   }
 
@@ -255,7 +257,7 @@ void SIPTransport::sendRequest(SIPRequest& request, QVariant &content)
 void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
 {
   ++processingInProgress_;
-  printImportant(this, "Composing and sending SIP Response:", {"Type"},
+  Logger::getLogger()->printImportant(this, "Composing and sending SIP Response:", {"Type"},
                  responseToPhrase(response.type));
   Q_ASSERT(response.message->transactionRequest != SIP_INVITE
       || response.type != SIP_OK
@@ -266,20 +268,20 @@ void SIPTransport::sendResponse(SIPResponse &response, QVariant &content)
      && (!content.isValid() || response.message->content.type != APPLICATION_SDP))
      || connection_ == nullptr)
   {
-    printWarning(this, "SDP nullptr or connection does not exist in sendResponse");
+    Logger::getLogger()->printWarning(this, "SDP nullptr or connection does not exist in sendResponse");
     return;
   }
 
   QList<SIPField> fields;
   if(!composeMandatoryFields(fields, response.message))
   {
-    printWarning(this, "Failed to add mandatory fields. Probably because of missing values.");
+    Logger::getLogger()->printWarning(this, "Failed to add mandatory fields. Probably because of missing values.");
     return;
   }
 
   if (!includeRecordRouteField(fields, response.message))
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this,  "Failed to add RecordRoute-fields");
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,  "Failed to add RecordRoute-fields");
   }
 
   routing_.getContactAddress(response.message,
@@ -386,7 +388,7 @@ void SIPTransport::networkPackage(QString package)
 {
   if (!isConnected())
   {
-    printWarning(this, "Connection not open. Discarding received message");
+    Logger::getLogger()->printWarning(this, "Connection not open. Discarding received message");
     return;
   }
 
@@ -397,7 +399,7 @@ void SIPTransport::networkPackage(QString package)
 
   if (!parsePackage(package, headers, bodies) ||  headers.size() != bodies.size())
   {
-    printWarning(this, "Did not receive the whole SIP message");
+    Logger::getLogger()->printWarning(this, "Did not receive the whole SIP message");
     --processingInProgress_;
     return;
   }
@@ -412,7 +414,7 @@ void SIPTransport::networkPackage(QString package)
 
     if (!headerToFields(header, firstLine, fields))
     {
-      printError(this, "Parsing error converting header to fields.");
+      Logger::getLogger()->printError(this, "Parsing error converting header to fields.");
       return;
     }
 
@@ -440,7 +442,7 @@ void SIPTransport::networkPackage(QString package)
 
       if (request_match.hasMatch() && response_match.hasMatch())
       {
-        printDebug(DEBUG_PROGRAM_ERROR, this,
+        Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
                    "Both the request and response matched, which should not be possible!");
         --processingInProgress_;
         return;
@@ -504,7 +506,7 @@ bool SIPTransport::parsePackage(QString package, QStringList& headers, QStringLi
   // read maximum of 20 messages. 3 is -1 + 4
   for (int i = 0; i < 20 && headerEndIndex != 3; ++i)
   {
-    printDebug(DEBUG_NORMAL, this,  "Parsing package to header and body",
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this,  "Parsing package to header and body",
                 {"Messages parsed so far", "Header end index", "content-length index"},
     {QString::number(i), QString::number(headerEndIndex), QString::number(contentLengthIndex)});
 
@@ -521,13 +523,13 @@ bool SIPTransport::parsePackage(QString package, QStringList& headers, QStringLi
       if (contentLength < 0)
       {
         // TODO: Warn the user maybe. Maybe also ban the user at least temporarily.
-        printDebug(DEBUG_PEER_ERROR, this,
+        Logger::getLogger()->printDebug(DEBUG_PEER_ERROR, this,
                    "Got negative content-length! Peer is doing something very strange.");
         return false;
       }
     }
 
-    printNormal(this, "Parsed Content-length", {"Content-length"}, {QString::number(contentLength)});
+    Logger::getLogger()->printNormal(this, "Parsed Content-length", {"Content-length"}, {QString::number(contentLength)});
 
     // if we have the whole message
     if(package.length() >= headerEndIndex + contentLength)
@@ -535,7 +537,7 @@ bool SIPTransport::parsePackage(QString package, QStringList& headers, QStringLi
       headers.push_back(package.left(headerEndIndex));
       bodies.push_back(package.mid(headerEndIndex, contentLength));
 
-      //printDebug(DEBUG_IMPORTANT,this, "Whole SIP message Received",
+      //Logger::getLogger()->printDebug(DEBUG_IMPORTANT,this, "Whole SIP message Received",
       //            {"Body", "Content"}, {headers.last(), bodies.last()});
 
       package = package.right(package.length() - (headerEndIndex + contentLength));
@@ -584,7 +586,7 @@ bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPF
       {
         if (valueSets.size() != 1)
         {
-          printDebug(DEBUG_PEER_ERROR, this,
+          Logger::getLogger()->printDebug(DEBUG_PEER_ERROR, this,
                      "Incorrect amount of comma separated sets in field",
                       {"Amount"}, {QString::number(valueSets.size())});
           return false;
@@ -592,7 +594,7 @@ bool SIPTransport::headerToFields(QString header, QString& firstLine, QList<SIPF
       }
       else if (valueSets.size() == 0 || valueSets.size() > 100)
       {
-        printDebug(DEBUG_PEER_ERROR, this,
+        Logger::getLogger()->printDebug(DEBUG_PEER_ERROR, this,
                    "Incorrect amount of comma separated sets in field",
                     {"Field", "Amount"}, {field.name, QString::number(valueSets.size())});
         return false;
@@ -639,7 +641,7 @@ bool SIPTransport::combineContinuationLines(QStringList& lines)
     // combine current line with previous
     if (lines.at(i).front().isSpace())
     {
-      printNormal(this,  "Found a continuation line");
+      Logger::getLogger()->printNormal(this,  "Found a continuation line");
       lines[i - 1].append(lines.at(i));
       lines.erase(lines.begin() + i);
       --i;
@@ -880,7 +882,7 @@ bool SIPTransport::parseRequest(QString requestString, QString version,
 {  
   qDebug() << "Request detected:" << requestString;
 
-  printImportant(this, "Parsing incoming request", {"Type"}, {requestString});
+  Logger::getLogger()->printImportant(this, "Parsing incoming request", {"Type"}, {requestString});
 
   message->version = version; // TODO: set only version not SIP/version
   RequestType requestType = stringToRequest(requestString);
@@ -920,13 +922,13 @@ bool SIPTransport::parseResponse(QString responseString, QString version,
                                  std::shared_ptr<SIPMessageInfo> message,
                                  QVariant &content)
 {
-  printImportant(this, "Parsing incoming response", {"Type"}, {responseString});
+  Logger::getLogger()->printImportant(this, "Parsing incoming response", {"Type"}, {responseString});
   message->version = version; // TODO: set only version not SIP/version
   ResponseType type = codeToResponse(stringToResponseCode(responseString));
 
   if(type == SIP_UNKNOWN_RESPONSE)
   {
-    printWarning(this, "Could not recognize response type!");
+    Logger::getLogger()->printWarning(this, "Could not recognize response type!");
     return false;
   }
 
@@ -943,7 +945,7 @@ bool SIPTransport::parseResponse(QString responseString, QString version,
   }
   else
   {
-    printWarning(this, "Disconnected while parsing response");
+    Logger::getLogger()->printWarning(this, "Disconnected while parsing response");
     return false;
   }
 
@@ -993,7 +995,7 @@ QString SIPTransport::addContent(QList<SIPField>& fields, bool haveContent,
   }
   else if(!includeContentLengthField(fields, 0))
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this, 
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, 
                "Could not add content-length field to sip message!");
   }
   return sdp_str;

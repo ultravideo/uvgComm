@@ -3,6 +3,7 @@
 #include "initiation/siptransactionuser.h"
 
 #include "common.h"
+#include "logger.h"
 
 // 1 minute for the user to react
 const unsigned int INVITE_TIMEOUT = 60000;
@@ -24,14 +25,15 @@ bool SIPClient::processResponse(SIPResponse& response,
 
   if (!checkTransactionType(response.message->transactionRequest))
   {
-    printPeerError(this, "Their response transaction type is not the same as our request!");
+    Logger::getLogger()->printPeerError(this, "Their response transaction type "
+                                              "is not the same as our request!");
     return false;
   }
 
   // provisional response, continuing
   if (responseCode >= 100 && responseCode <= 199)
   {
-    printNormal(this, "Got a provisional response. Restarting timer.");
+    Logger::getLogger()->printNormal(this, "Got a provisional response. Restarting timer.");
     if (response.message->transactionRequest == SIP_INVITE &&
         responseCode == SIP_RINGING)
     {
@@ -53,20 +55,20 @@ bool SIPClient::processResponse(SIPResponse& response,
   if (responseCode >= 300 && responseCode <= 399)
   {
     // TODO: 8.1.3.4 Processing 3xx Responses in RFC 3261
-    printWarning(this, "Got a Redirection Response.");
+    Logger::getLogger()->printWarning(this, "Got a Redirection Response.");
   }
   else if (responseCode >= 400 && responseCode <= 499)
   {
     // TODO: 8.1.3.5 Processing 4xx Responses in RFC 3261
-    printWarning(this, "Got a Failure Response.");
+    Logger::getLogger()->printWarning(this, "Got a Failure Response.");
   }
   else if (responseCode >= 500 && responseCode <= 599)
   {
-    printWarning(this, "Got a Server Failure Response.");
+    Logger::getLogger()->printWarning(this, "Got a Server Failure Response.");
   }
   else if (responseCode >= 600 && responseCode <= 699)
   {
-    printWarning(this, "Got a Global Failure Response.");
+    Logger::getLogger()->printWarning(this, "Got a Global Failure Response.");
   }
 
   // delete dialog if response was not provisional or success.
@@ -103,18 +105,19 @@ void SIPClient::getRequestMessageInfo(RequestType type,
 
 bool SIPClient::startTransaction(RequestType type)
 {
-  printDebug(DEBUG_NORMAL, this,
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
              "Client starts sending a request.", {"Type"}, {QString::number(type)});
 
   if (ongoingTransactionType_ != SIP_NO_REQUEST && type != SIP_CANCEL)
   {
-    printProgramWarning(this, "Tried to send a request "
+    Logger::getLogger()->printProgramWarning(this, "Tried to send a request "
                               "while previous transaction has not finished");
     return false;
   }
   else if (ongoingTransactionType_ == SIP_NO_REQUEST && type == SIP_CANCEL)
   {
-    printProgramWarning(this, "Tried to cancel a transaction that does not exist!");
+    Logger::getLogger()->printProgramWarning(this, "Tried to cancel "
+                                                   "a transaction that does not exist!");
     return false;
   }
 
@@ -148,7 +151,8 @@ void SIPClient::processTimeout()
 
 void SIPClient::requestTimeOut()
 {
-  printWarning(this, "No response. Request timed out.",
-    {"Ongoing transaction"}, {QString::number(ongoingTransactionType_)});
+  Logger::getLogger()->printWarning(this, "No response. Request timed out.",
+                                          {"Ongoing transaction"}, 
+                                          {QString::number(ongoingTransactionType_)});
   processTimeout();
 }

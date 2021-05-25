@@ -5,6 +5,7 @@
 #include "common.h"
 #include "settingskeys.h"
 #include "global.h"
+#include "logger.h"
 
 #include <QDateTime>
 #include <QSettings>
@@ -39,8 +40,8 @@ bool OpusEncoderFilter::init()
 
   if(error)
   {
-    printWarning(this, "Failed to initialize opus encoder.",
-                  {"Errorcode"}, {QString::number(error)});
+    Logger::getLogger()->printWarning(this, "Failed to initialize opus encoder.",
+                                      {"Errorcode"}, {QString::number(error)});
     return false;
   }
 
@@ -77,7 +78,7 @@ void OpusEncoderFilter::updateSettings()
   }
   else
   {
-    printWarning(this, "Incorrect value in settings");
+    Logger::getLogger()->printWarning(this, "Incorrect value in settings");
   }
 
   Filter::updateSettings();
@@ -93,7 +94,7 @@ void OpusEncoderFilter::process()
     // The audiocapturefilter makes sure the frames are the correct (samplesPerFrame_) size.
     if (input->data_size != samplesPerFrame_*format_.bytesPerFrame())
     {
-      printProgramError(this, "Wrong size of input frame");
+      Logger::getLogger()->printProgramError(this, "Wrong size of input frame");
       return;
     }
 
@@ -106,7 +107,7 @@ void OpusEncoderFilter::process()
                       opusOutput_ + pos, max_data_bytes_ - pos);
     if(len <= 0)
     {
-      printWarning(this,  "Failed to encode audio",
+      Logger::getLogger()->printWarning(this,  "Failed to encode audio",
         {"Errorcode:"}, {QString::number(len)});
       break;
     }
@@ -120,7 +121,7 @@ void OpusEncoderFilter::process()
     u_copy->data = std::move(opus_frame);
     sendOutput(std::move(u_copy));
 
-    /*printDebug(DEBUG_NORMAL, this, "Encoded Opus Audio.",
+    /*Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Encoded Opus Audio.",
               {"Input size", "Index", "Position", "Output size"},
               {QString::number(input->data_size), QString::number(i),
                QString::number(pos), QString::number(len)});*/
@@ -135,7 +136,7 @@ void OpusEncoderFilter::process()
     }
     else
     {
-      printWarning(this,  "Failed to encode audio frame.",
+      Logger::getLogger()->printWarning(this,  "Failed to encode audio frame.",
         {"Frame length"}, {QString::number(input->data_size)});
     }
     input = getInput();

@@ -5,6 +5,7 @@
 
 #include "common.h"
 #include "settingskeys.h"
+#include "logger.h"
 
 #include <QSettings>
 #include <QDebug>
@@ -26,7 +27,8 @@ void ContactList::initializeList(QListWidget* list, ParticipantInterface* interf
 
   int size = settings.beginReadArray(SettingsKey::contactList);
 
-  printNormal(this, "Reading contact list", {"# of contacts"}, {QString::number(size)});
+  Logger::getLogger()->printNormal(this, "Reading contact list", {"# of contacts"}, 
+                                   {QString::number(size)});
 
   for (int i = 0; i < size; ++i) {
     settings.setArrayIndex(i);
@@ -122,7 +124,7 @@ void ContactList::addContact(ParticipantInterface* interface,
     username = "anonymous";
   if(address == "")
   {
-    printNormal(this, "Please input address!");
+    Logger::getLogger()->printNormal(this, "Please input address!");
     return;
   }
 
@@ -194,8 +196,8 @@ void ContactList::removeContact(int index)
 
   if(index == -1  || index >= items_.size())
   {
-    printDebug(DEBUG_WARNING, this,
-               "Tried to remove a nonexisting contact");
+    Logger::getLogger()->printDebug(DEBUG_WARNING, this,
+                                    "Tried to remove a nonexisting contact");
     return;
   }
 

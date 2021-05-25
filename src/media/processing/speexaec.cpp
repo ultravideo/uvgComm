@@ -7,6 +7,7 @@
 #include "settingskeys.h"
 #include "common.h"
 #include "global.h"
+#include "logger.h"
 
 
 SpeexAEC::SpeexAEC(QAudioFormat format):
@@ -77,8 +78,9 @@ void SpeexAEC::init()
   // should be around 1/3 of the room reverberation time
   uint16_t echoFilterLength = format_.sampleRate()*echoFilterLength_/1000;
 
-  printNormal(this, "Initiating echo frame processing", {"Filter length"}, {
-                QString::number(echoFilterLength) + " samples"});
+  Logger::getLogger()->printNormal(this, "Initiating echo frame processing", 
+                                   {"Filter length"}, {
+                                    QString::number(echoFilterLength) + " samples"});
 
   speexMutex_.lock();
 
@@ -140,20 +142,20 @@ std::unique_ptr<uchar[]> SpeexAEC::processInputFrame(std::unique_ptr<uchar[]> in
   {
     if (echoBuffer_ == nullptr)
     {
-      printProgramError(this, "AEC echo not initialized. AEC not working");
+      Logger::getLogger()->printProgramError(this, "AEC echo not initialized. AEC not working");
       return nullptr;
     }
 
     if (dataSize != echoBuffer_->getDesiredSize())
     {
-      printProgramError(this, "Wrong size of input frame for AEC");
+      Logger::getLogger()->printProgramError(this, "Wrong size of input frame for AEC");
       return nullptr;
     }
 
     if (playbackDelay_ == 0)
     {
-      printWarning(this, "Not delaying AEC playback frames. The AEC will not work well. "
-                         "Something wrong in settings");
+      Logger::getLogger()->printWarning(this, "Not delaying AEC playback frames. The AEC will not work well. "
+                                              "Something wrong in settings");
     }
 
     int echoBufferSize = (AUDIO_FRAMES_PER_SECOND*playbackDelay_)/1000;
@@ -177,7 +179,7 @@ std::unique_ptr<uchar[]> SpeexAEC::processInputFrame(std::unique_ptr<uchar[]> in
         }
         else
         {
-          printProgramWarning(this, "Echo state not set");
+          Logger::getLogger()->printProgramWarning(this, "Echo state not set");
         }
 
         if(preprocessor_ != nullptr)
@@ -186,7 +188,7 @@ std::unique_ptr<uchar[]> SpeexAEC::processInputFrame(std::unique_ptr<uchar[]> in
         }
         else
         {
-          printProgramWarning(this, "Echo preprocessor not set");
+          Logger::getLogger()->printProgramWarning(this, "Echo preprocessor not set");
         }
         speexMutex_.unlock();
 
@@ -196,7 +198,7 @@ std::unique_ptr<uchar[]> SpeexAEC::processInputFrame(std::unique_ptr<uchar[]> in
         // a safety valve that drops frames if we have too much echo
         while (echoBuffer_->getBufferSize() >= echoBufferSize*2)
         {
-          printWarning(this, "Echo buffer has too many samples, "
+          Logger::getLogger()->printWarning(this, "Echo buffer has too many samples, "
                               "dropping frames to avoid clock drift", {"Status"},
                        {"Min:" + QString::number(echoBufferSize) + " < " +
                         QString::number(echoBuffer_->getBufferSize()) + " < " +
@@ -219,9 +221,11 @@ std::unique_ptr<uchar[]> SpeexAEC::processInputFrame(std::unique_ptr<uchar[]> in
     }
     else
     {
-      printWarning(this, "We haven't buffered enough audio samples to start echo cancellation",
-                   "Buffered",   QString::number(echoBuffer_->getBufferSize()) + "/" +
-                   QString::number(echoBufferSize));
+      Logger::getLogger()->printWarning(this, "We haven't buffered enough audio "
+                                              "samples to start echo cancellation",
+                                        "Buffered",   
+                                        QString::number(echoBuffer_->getBufferSize()) + "/" +
+                                        QString::number(echoBufferSize));
     }
   }
 
@@ -237,7 +241,7 @@ void SpeexAEC::processEchoFrame(uint8_t *echo, uint32_t dataSize)
   }
   else
   {
-    printProgramError(this, "AEC not initialized when inputting echo frame");
+    Logger::getLogger()->printProgramError(this, "AEC not initialized when inputting echo frame");
   }
 }
 

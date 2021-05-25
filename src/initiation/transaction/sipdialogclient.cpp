@@ -4,6 +4,7 @@
 #include "initiation/transaction/sipdialogstate.h"
 
 #include "common.h"
+#include "logger.h"
 
 #include <QDebug>
 
@@ -42,25 +43,26 @@ void SIPDialogClient::getRequestMessageInfo(RequestType type,
 bool SIPDialogClient::processResponse(SIPResponse& response,
                                       SIPDialogState &state)
 {
-  printNormal(this, "Client starts processing response");
+  Logger::getLogger()->printNormal(this, "Client starts processing response");
   Q_ASSERT(sessionID_ != 0);
 
   if(!sessionID_)
   {
-    printProgramError(this, "SIP Client Transaction not initialized.");
+    Logger::getLogger()->printProgramError(this, "SIP Client Transaction not initialized.");
     return true;
   }
 
   if (!checkTransactionType(response.message->transactionRequest))
   {
-    printPeerError(this, "Their response transaction type is not the same as our request!");
+    Logger::getLogger()->printPeerError(this, "Their response transaction type "
+                                              "is not the same as our request!");
     return false;
   }
 
   // check if this is failure that requires shutdown of session
   if (!SIPClient::processResponse(response, state))
   {
-    printWarning(this, "Got a failure response!");
+    Logger::getLogger()->printWarning(this, "Got a failure response!");
     transactionUser_->failure(sessionID_, response.text);
     return false;
   }
@@ -111,7 +113,8 @@ bool SIPDialogClient::startCall(QString callee)
   Q_ASSERT(sessionID_ != 0);
   if(!sessionID_)
   {
-    printDebug(DEBUG_WARNING, this, "SIP Client Transaction not initialized.");
+    Logger::getLogger()->printDebug(DEBUG_WARNING, this, "SIP Client Transaction "
+                                                         "not initialized.");
     return false;
   }
 

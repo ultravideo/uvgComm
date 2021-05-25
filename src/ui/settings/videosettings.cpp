@@ -7,6 +7,7 @@
 #include "settingskeys.h"
 
 #include "common.h"
+#include "logger.h"
 
 #include <QTableWidgetItem>
 #include <QThread>
@@ -124,7 +125,7 @@ void VideoSettings::changedDevice(uint16_t deviceIndex)
 
 void VideoSettings::resetSettings(int deviceID)
 {
-  printNormal(this, "Resettings video settings from UI");
+  Logger::getLogger()->printNormal(this, "Resettings video settings from UI");
 
   currentDevice_ = deviceID;
   initializeFormat();
@@ -137,7 +138,7 @@ void VideoSettings::resetSettings(int deviceID)
 
 void VideoSettings::on_video_ok_clicked()
 {
-  printNormal(this, "Saving video settings");
+  Logger::getLogger()->printNormal(this, "Saving video settings");
   saveSettings();
   emit updateVideoSettings();
   //emit hidden();
@@ -147,7 +148,8 @@ void VideoSettings::on_video_ok_clicked()
 
 void VideoSettings::on_video_close_clicked()
 {
-  printNormal(this, "Cancelled modifying video settings. Getting settings from system.");
+  Logger::getLogger()->printNormal(this, "Cancelled modifying video settings. "
+                                         "Getting settings from system.");
   restoreSettings();
   hide();
   emit hidden();
@@ -156,11 +158,11 @@ void VideoSettings::on_video_close_clicked()
 
 void VideoSettings::on_add_parameter_clicked()
 {
-  printNormal(this, "Adding a custom parameter for kvazaar.");
+  Logger::getLogger()->printNormal(this, "Adding a custom parameter for kvazaar.");
 
   if (videoSettingsUI_->parameter_name->text() == "")
   {
-    printWarning(this, "Parameter name not set");
+    Logger::getLogger()->printWarning(this, "Parameter name not set");
     return;
   }
 
@@ -172,7 +174,7 @@ void VideoSettings::on_add_parameter_clicked()
 
 void VideoSettings::saveSettings()
 {
-  printNormal(this, "Saving video Settings");
+  Logger::getLogger()->printNormal(this, "Saving video Settings");
 
   // Video settings
   // input-tab
@@ -236,14 +238,14 @@ void VideoSettings::saveCameraCapabilities(int deviceIndex, bool cameraEnabled)
 {
   if (cameraEnabled)
   {
-    printNormal(this, "Recording capability settings for device",
+    Logger::getLogger()->printNormal(this, "Recording capability settings for device",
                 {"Device Index"}, {QString::number(deviceIndex)});
 
     int formatIndex = videoSettingsUI_->format_box->currentIndex();
     int resolutionIndex = videoSettingsUI_->resolution->currentIndex();
 
-    printDebug(DEBUG_NORMAL, this, "Box status", {"Format", "Resolution"},
-               {QString::number(formatIndex), QString::number(resolutionIndex)});
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Box status", {"Format", "Resolution"},
+                                    {QString::number(formatIndex), QString::number(resolutionIndex)});
 
     if(formatIndex == -1)
     {
@@ -279,11 +281,11 @@ void VideoSettings::saveCameraCapabilities(int deviceIndex, bool cameraEnabled)
 
     settings_.setValue(SettingsKey::videoInputFormat,          format);
 
-    printDebug(DEBUG_NORMAL, this, "Recorded following video settings.",
-               {"Resolution", "Resolution Index", "Format"},
-               {QString::number(res.width() - res.width()%8) + "x" +
-                QString::number(res.height() - res.height()%8),
-                QString::number(resolutionIndex), format});
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Recorded following video settings.",
+                                    {"Resolution", "Resolution Index", "Format"},
+                                    {QString::number(res.width() - res.width()%8) + "x" +
+                                     QString::number(res.height() - res.height()%8),
+                                     QString::number(resolutionIndex), format});
   }
 }
 
@@ -297,7 +299,7 @@ void VideoSettings::restoreSettings()
   if(checkSettingsList(settings_, neededSettings) &&
      checkSettingsList(settings_, kvazaarSettings))
   {
-    printNormal(this, "Restoring previous video settings from file.",
+    Logger::getLogger()->printNormal(this, "Restoring previous video settings from file.",
                 {"Filename"}, {settings_.fileName()});
 
     restoreComboBoxes();
@@ -426,8 +428,8 @@ void VideoSettings::restoreFormat()
       format = settings_.value(SettingsKey::videoInputFormat).toString();
       int formatIndex = videoSettingsUI_->format_box->findText(format);
 
-      printDebug(DEBUG_NORMAL, this, "Trying to find format for camera",
-                 {"Format", "Format index"}, {format, QString::number(formatIndex)});
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Trying to find format for camera",
+                                      {"Format", "Format index"}, {format, QString::number(formatIndex)});
 
       if (0 <= formatIndex && formatIndex < videoSettingsUI_->format_box->count())
       {
@@ -490,7 +492,7 @@ void VideoSettings::initializeThreads()
 {
   int maxThreads = QThread::idealThreadCount();
 
-  printNormal(this, "Max Threads", "Threads", QString::number(maxThreads));
+  Logger::getLogger()->printNormal(this, "Max Threads", "Threads", QString::number(maxThreads));
 
   // because I don't think the number of threads has changed if we have already
   // added them.
@@ -514,7 +516,7 @@ void VideoSettings::initializeThreads()
 
 void VideoSettings::initializeFormat()
 {
-  printNormal(this, "Initializing formats");
+  Logger::getLogger()->printNormal(this, "Initializing formats");
   QStringList formats;
 
   cam_->getVideoFormats(currentDevice_, formats);
@@ -532,7 +534,7 @@ void VideoSettings::initializeFormat()
   }
   else
   {
-    printWarning(this, "Couldn't find any camera formats");
+    Logger::getLogger()->printWarning(this, "Couldn't find any camera formats");
   }
 
 }
@@ -540,7 +542,7 @@ void VideoSettings::initializeFormat()
 
 void VideoSettings::initializeResolutions()
 {
-  printNormal(this, "Initializing camera resolutions", {"Format"},
+  Logger::getLogger()->printNormal(this, "Initializing camera resolutions", {"Format"},
               videoSettingsUI_->format_box->currentText());
   videoSettingsUI_->resolution->clear();
   QStringList resolutions;
@@ -557,7 +559,7 @@ void VideoSettings::initializeResolutions()
   }
   else
   {
-    printWarning(this, "Couldn't find any camera resolutions");
+    Logger::getLogger()->printWarning(this, "Couldn't find any camera resolutions");
   }
 
   if(videoSettingsUI_->resolution->count() > 0)
@@ -570,7 +572,7 @@ void VideoSettings::initializeResolutions()
 
 void VideoSettings::initializeFramerates()
 {
-  printNormal(this, "Initializing camera framerates", {"Resolution"},
+  Logger::getLogger()->printNormal(this, "Initializing camera framerates", {"Resolution"},
               videoSettingsUI_->resolution->currentText());
   videoSettingsUI_->framerate_box->clear();
   QStringList rates;
@@ -589,7 +591,7 @@ void VideoSettings::initializeFramerates()
   }
   else
   {
-    printWarning(this, "Couldn't find any camera frame rates");
+    Logger::getLogger()->printWarning(this, "Couldn't find any camera frame rates");
   }
 }
 

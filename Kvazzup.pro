@@ -63,6 +63,7 @@ SOURCES +=\
     src/initiation/transport/siptransport.cpp \
     src/initiation/transport/tcpconnection.cpp \
     src/kvazzupcontroller.cpp \
+    src/logger.cpp \
     src/main.cpp \
     src/media/delivery/delivery.cpp \
     src/media/delivery/uvgrtpreceiver.cpp \
@@ -147,6 +148,7 @@ HEADERS  += \
     src/initiation/transport/siptransport.h \
     src/initiation/transport/tcpconnection.h \
     src/kvazzupcontroller.h \
+    src/logger.h \
     src/media/delivery/delivery.h \
     src/media/delivery/uvgrtpreceiver.h \
     src/media/delivery/uvgrtpsender.h \

@@ -1,6 +1,7 @@
 #include "networkcandidates.h"
 
 #include "common.h"
+#include "logger.h"
 #include "settingskeys.h"
 
 #include <QNetworkInterface>
@@ -73,9 +74,10 @@ void NetworkCandidates::init()
     availablePorts_.clear();
     currentMinPort_ = minPort;
 
-    printDebug(DEBUG_NORMAL, this, "Allocating (but not reserving) ports for media",
-               {"Min ports", "Max port"},
-               {QString::number(minPort), QString::number(maxPort)});
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, 
+                                    "Allocating (but not reserving) ports for media",
+                                    {"Min ports", "Max port"},
+                                    {QString::number(minPort), QString::number(maxPort)});
 
     foreach (const QHostAddress& address, QNetworkInterface::allAddresses())
     {
@@ -110,8 +112,8 @@ void NetworkCandidates::init()
     stunServerAddress_ = settingString(SettingsKey::sipSTUNAddress);
     stunPort_ = settingValue(SettingsKey::sipSTUNPort);
 
-    printDebug(DEBUG_NORMAL, this, "Looking up STUN server IP",
-               {"Server address"}, {stunServerAddress_});
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Looking up STUN server IP",
+                                    {"Server address"}, {stunServerAddress_});
 
     if (stunServerAddress_ != "")
     {
@@ -129,7 +131,7 @@ void NetworkCandidates::init()
     }
     else
     {
-      printWarning(this, "Invalid STUN server address found in settings");
+      Logger::getLogger()->printWarning(this, "Invalid STUN server address found in settings");
     }
   }
 
@@ -172,7 +174,8 @@ void NetworkCandidates::refreshSTUN()
   for (auto& removal : removed)
   {
     requests_.erase(removal);
-    //printNormal(this, "Removed", {"Left"}, {QString::number(requests_.size())});
+    //Logger::getLogger()->printNormal(this, "Removed", {"Left"}, 
+    //                                 {QString::number(requests_.size())});
   }
 }
 
@@ -182,15 +185,15 @@ void NetworkCandidates::createSTUNCandidate(QHostAddress local, quint16 localPor
 {
   if (stun == QHostAddress(""))
   {
-    printWarning(this, "Failed to resolve our public IP! "
-                       "Server-reflexive candidates won't be created!");
+    Logger::getLogger()->printWarning(this, "Failed to resolve our public IP! "
+                                      "Server-reflexive candidates won't be created!");
     return;
   }
 
   // are we actually behind NAT
   if (local == stun)
   {
-    printNormal(this, "We don't seem to be behind NAT");
+    Logger::getLogger()->printNormal(this, "We don't seem to be behind NAT");
     behindNAT_ = false;
     refreshSTUNTimer_.setInterval(AN_HOUR);
 
@@ -205,9 +208,11 @@ void NetworkCandidates::createSTUNCandidate(QHostAddress local, quint16 localPor
   {
     behindNAT_ = true;
     refreshSTUNTimer_.setInterval(STUN_INTERVAL_PERIOD);
-    printNormal(this, "Created ICE STUN candidate", {"STUN Translation"},
-              {local.toString() + ":" + QString::number(localPort) + " << " +
-               stun.toString() + ":" + QString::number(stunPort)});
+    Logger::getLogger()->printNormal(this, "Created ICE STUN candidate", 
+                                     {"STUN Translation"},
+                                     {local.toString() + ":" + QString::number(localPort) + 
+                                      " << " +
+                                      stun.toString() + ":" + QString::number(stunPort)});
 
     stunMutex_.lock();
     stunAddresses_.push_back({stun, stunPort});
@@ -307,14 +312,14 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::stu
     }
     else
     {
-      printWarning(this, "Not enough STUN candidates found!");
+      Logger::getLogger()->printWarning(this, "Not enough STUN candidates found!");
     }
 
     stunMutex_.unlock();
   }
   else
   {
-    printWarning(this, "The STUN address pool is too small!");
+    Logger::getLogger()->printWarning(this, "The STUN address pool is too small!");
   }
 
 
@@ -352,7 +357,7 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::stu
     }
     else
     {
-      printWarning(this, "No STUN bindings added!");
+      Logger::getLogger()->printWarning(this, "No STUN bindings added!");
     }
     stunMutex_.unlock();
   }
@@ -388,7 +393,7 @@ uint16_t NetworkCandidates::nextAvailablePort(QString interface, uint32_t sessio
       availablePorts_[interface].size() == 0)
   {
     portLock_.unlock();
-    printWarning(this, "Either couldn't find interface or "
+    Logger::getLogger()->printWarning(this, "Either couldn't find interface or "
                        "this interface has run out of ports");
     return 0;
   }
@@ -411,7 +416,8 @@ void NetworkCandidates::makePortAvailable(QString interface, uint16_t port)
     if (availablePorts_.find(interface) == availablePorts_.end())
     {
       portLock_.unlock();
-      printWarning(this, "Couldn't find interface when making port available.");
+      Logger::getLogger()->printWarning(this, "Couldn't find interface "
+                                              "when making port available.");
       return;
     }
 
@@ -447,7 +453,8 @@ void NetworkCandidates::cleanupSession(uint32_t sessionID)
 {
   if (reservedPorts_.find(sessionID) == reservedPorts_.end())
   {
-    printWarning(this, "Tried to cleanup session with no reserved ports");
+    Logger::getLogger()->printWarning(this, "Tried to cleanup session "
+                                            "with no reserved ports");
     return;
   }
 
@@ -470,7 +477,8 @@ void NetworkCandidates::handleStunHostLookup(QHostInfo info)
 {
   if (availablePorts_.empty())
   {
-    printProgramError(this, "Interfaces have not been set before sending STUN requests");
+    Logger::getLogger()->printProgramError(this, "Interfaces have not been set "
+                                                 "before sending STUN requests");
     return;
   }
 
@@ -501,13 +509,14 @@ void NetworkCandidates::moreSTUNCandidates()
       }
       else
       {
-        printWarning(this, "An invalid zero found as STUN server port settings value");
+        Logger::getLogger()->printWarning(this, "An invalid zero found as "
+                                                "STUN server port settings value");
       }
     }
   }
   else
   {
-    printProgramError(this, "STUN server address not set!");
+    Logger::getLogger()->printProgramError(this, "STUN server address not set!");
   }
 }
 
@@ -519,11 +528,11 @@ void NetworkCandidates::sendSTUNserverRequest(QHostAddress localAddress,
 {
   if (localPort == 0 || serverPort == 0)
   {
-    printProgramError(this, "Not port set. Can't get STUN address.");
+    Logger::getLogger()->printProgramError(this, "Not port set. Can't get STUN address.");
     return;
   }
 
-  //printNormal(this, "Sending STUN server request", {"Path"},
+  //Logger::getLogger()->printNormal(this, "Sending STUN server request", {"Path"},
   //        {localAddress.toString() + ":" + QString::number(localPort) + " -> " +
   //         serverAddress.toString() + ":" + QString::number(serverPort)});
 
@@ -562,7 +571,7 @@ void NetworkCandidates::processSTUNReply(const QNetworkDatagram& packet)
 {
   if(packet.data().size() < 20)
   {
-    printDebug(DEBUG_WARNING, "STUN",
+    Logger::getLogger()->printDebug(DEBUG_WARNING, "STUN",
         "Received too small response to STUN query!");
     return;
   }
@@ -572,9 +581,11 @@ void NetworkCandidates::processSTUNReply(const QNetworkDatagram& packet)
 
   if (requests_.find(key) == requests_.end())
   {
-    printWarning(this, "Got stun request to an interface which has not sent one!",
-      {"Interface"}, {packet.destinationAddress().toString() + ":" +
-                      QString::number(packet.destinationPort())});
+    Logger::getLogger()->printWarning(this, "Got stun request to an interface "
+                                             "which has not sent one!",
+                                      {"Interface"}, 
+                                      {packet.destinationAddress().toString() + ":" +
+                                      QString::number(packet.destinationPort())});
     return;
   }
 
@@ -589,7 +600,8 @@ void NetworkCandidates::processSTUNReply(const QNetworkDatagram& packet)
 
   if (!requests_[key]->message.validateStunResponse(response))
   {
-    printWarning(this, "Invalid STUN response from server!", {"Message"}, {message});
+    Logger::getLogger()->printWarning(this, "Invalid STUN response from server!", 
+                                      {"Message"}, {message});
     return;
   }
 
@@ -602,12 +614,13 @@ void NetworkCandidates::processSTUNReply(const QNetworkDatagram& packet)
   }
   else
   {
-    printError(this, "STUN response sent by server was not Xor-mapped! Discarding...");
+    Logger::getLogger()->printError(this, "STUN response sent by server was not Xor-mapped! "
+                                          "Discarding...");
   }
 
   requests_[key]->finished = true;
 
-  //printNormal(this, "STUN reply processed");
+  //Logger::getLogger()->printNormal(this, "STUN reply processed");
 }
 
 
@@ -619,8 +632,8 @@ bool NetworkCandidates::sanityCheck(QHostAddress interface, uint16_t port)
 
   if (!testSocket.bind(interface, port))
   {
-    printNormal(this, "Could not bind to socket. Not adding to candidates", {"Port"}, {
-                  interface.toString() + ":" + QString::number(port)});
+    Logger::getLogger()->printNormal(this, "Could not bind to socket. Not adding to candidates", 
+                                    {"Port"}, {interface.toString() + ":" + QString::number(port)});
     return false;
   }
   QByteArray data = QString("TestString").toLatin1();
@@ -630,8 +643,10 @@ bool NetworkCandidates::sanityCheck(QHostAddress interface, uint16_t port)
   if (testSocket.writeDatagram(datagram) < 0)
   {
     testSocket.abort();
-    printNormal(this, "Could not send data with socket. Not adding to candidates", {"Port"}, {
-                  interface.toString() + ":" + QString::number(port)});
+    Logger::getLogger()->printNormal(this, "Could not send data with socket. "
+                                           "Not adding to candidates", 
+                                    {"Port"}, {interface.toString() + ":" + 
+                                               QString::number(port)});
     return false;
   }
 

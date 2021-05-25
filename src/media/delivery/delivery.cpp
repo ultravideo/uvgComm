@@ -1,7 +1,9 @@
 #include "delivery.h"
 #include "uvgrtpsender.h"
 #include "uvgrtpreceiver.h"
+
 #include "common.h"
+#include "logger.h"
 
 #include <QtEndian>
 #include <QHostInfo>
@@ -27,7 +29,8 @@ void Delivery::init(StatisticsInterface *stats)
 
   if (!uvg_rtp::crypto::enabled())
   {
-    printWarning(this, "uvgRTP does not have crypto++ included. Cannot encrypt media traffic");
+    Logger::getLogger()->printWarning(this, "uvgRTP does not have crypto++ included. "
+                                            "Cannot encrypt media traffic");
     emit handleNoEncryption();
   }
 }
@@ -47,7 +50,7 @@ bool Delivery::addPeer(uint32_t sessionID, QString peerAddress, QString localAdd
   {
     iniated_.lock(); // not being iniated
 
-    printNormal(this, "Adding new peer");
+    Logger::getLogger()->printNormal(this, "Adding new peer");
 
     ipv6to4(peerAddress);
 
@@ -62,11 +65,12 @@ bool Delivery::addPeer(uint32_t sessionID, QString peerAddress, QString localAdd
     {
       removePeer(sessionID);
     }
-    printNormal(this, "RTP streamer", { "SessionID" }, { QString::number(sessionID) });
+    Logger::getLogger()->printNormal(this, "RTP streamer", { "SessionID" }, 
+                                     { QString::number(sessionID) });
 
     return true;
   }
-  printNormal(this, "Trying to add peer while RTP was being destroyed.");
+  Logger::getLogger()->printNormal(this, "Trying to add peer while RTP was being destroyed.");
 
   return false;
 }
@@ -85,7 +89,7 @@ void Delivery::parseCodecString(QString codec, uint16_t dst_port,
 
   if (xmap.find(codec) == xmap.end())
   {
-    printError(this, "Tried to use non-defined codec type in uvgRTP.");
+    Logger::getLogger()->printError(this, "Tried to use non-defined codec type in uvgRTP.");
     type = NONE;
     return;
   }
@@ -112,7 +116,7 @@ void Delivery::parseCodecString(QString codec, uint16_t dst_port,
       break;
 
     default :
-      printError(this, "RTP support not implemented for this format");
+      Logger::getLogger()->printError(this, "RTP support not implemented for this format");
       mediaName += "UNKNOWN";
       break;
   }
@@ -131,14 +135,14 @@ std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID, QHostAddress
 
   if (!initializeStream(sessionID, localPort, peerPort, fmt))
   {
-    printError(this, "Failed to initialize stream");
+    Logger::getLogger()->printError(this, "Failed to initialize stream");
     return nullptr;
   }
 
   // create filter if it does not exist
   if (peers_[sessionID]->streams[localPort]->sender == nullptr)
   {
-    printNormal(this, "Creating sender filter");
+    Logger::getLogger()->printNormal(this, "Creating sender filter");
 
     peers_[sessionID]->streams[localPort]->sender =
         std::shared_ptr<UvgRTPSender>(new UvgRTPSender(sessionID,
@@ -176,7 +180,7 @@ std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID, QHostAddr
   // create filter if it does not exist
   if (peers_[sessionID]->streams[localPort]->receiver == nullptr)
   {
-    printNormal(this, "Creating receiver filter");
+    Logger::getLogger()->printNormal(this, "Creating receiver filter");
     peers_[sessionID]->streams[localPort]->receiver = std::shared_ptr<UvgRTPReceiver>(
         new UvgRTPReceiver(
           sessionID,
@@ -227,19 +231,19 @@ bool Delivery::addMediaStream(uint32_t sessionID, uint16_t localPort, uint16_t p
     return false;
   }
 
-  printNormal(this, "Creating mediastream");
+  Logger::getLogger()->printNormal(this, "Creating mediastream");
 
   int flags = 0;
   // enable encryption if it works
   if (uvg_rtp::crypto::enabled())
   {
-    printNormal(this, "Encryption enabled");
+    Logger::getLogger()->printNormal(this, "Encryption enabled");
     // enable srtp + zrtp
     flags = RCE_SRTP_KMNGMNT_ZRTP | RCE_SRTP;
   }
   else
   {
-    printWarning(this, "No media encryption");
+    Logger::getLogger()->printWarning(this, "No media encryption");
   }
 
   QFuture<uvg_rtp::media_stream *> futureRes =
@@ -254,7 +258,7 @@ bool Delivery::addMediaStream(uint32_t sessionID, uint16_t localPort, uint16_t p
   if (peers_[sessionID]->streams.find(localPort) != peers_[sessionID]->streams.end() &&
       peers_[sessionID]->streams[localPort] != nullptr)
   {
-    printProgramWarning(this, "Existing mediastream detected. Overwriting."
+    Logger::getLogger()->printProgramWarning(this, "Existing mediastream detected. Overwriting."
                               " Will cause a crash if previous filters are attached to filtergraph.");
     removeMediaStream(sessionID, localPort);
   }
@@ -269,7 +273,7 @@ bool Delivery::addMediaStream(uint32_t sessionID, uint16_t localPort, uint16_t p
 
 void Delivery::removeMediaStream(uint32_t sessionID, uint16_t localPort)
 {
-  printNormal(this, "Removing mediastream");
+  Logger::getLogger()->printNormal(this, "Removing mediastream");
 
   peers_[sessionID]->session->destroy_stream(peers_[sessionID]->streams[localPort]->stream);
   delete peers_[sessionID]->streams[localPort];

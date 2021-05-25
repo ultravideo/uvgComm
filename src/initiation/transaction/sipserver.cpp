@@ -4,6 +4,7 @@
 #include "initiation/transaction/sipdialogstate.h"
 
 #include "common.h"
+#include "logger.h"
 
 SIPServer::SIPServer():
   sessionID_(0),
@@ -31,8 +32,8 @@ bool SIPServer::processRequest(SIPRequest& request,
   Q_ASSERT(transactionUser_ && sessionID_);
   if(!transactionUser_ || sessionID_ == 0)
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this,
-               "SIP Server transaction not initialized.");
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+                                    "SIP Server transaction not initialized.");
     return false;
   }
 
@@ -44,9 +45,10 @@ bool SIPServer::processRequest(SIPRequest& request,
   }
   else if (request.type != SIP_ACK && request.type != SIP_CANCEL)
   {
-    printDebug(DEBUG_PEER_ERROR, "SIP Server Transaction",
-               "They sent us a new SIP request even though we have the old one still saved.",
-                {"SessionID"}, {QString::number(sessionID_)});
+    Logger::getLogger()->printDebug(DEBUG_PEER_ERROR, "SIP Server Transaction",
+                                    "They sent us a new SIP request even though "
+                                    "we have the old one still saved.",
+                                    {"SessionID"}, {QString::number(sessionID_)});
     return false;
   }
 
@@ -90,18 +92,18 @@ bool SIPServer::processRequest(SIPRequest& request,
   }
   case SIP_OPTIONS:
   {
-    printUnimplemented(this, "OPTIONS-request not implemented yet");
+    Logger::getLogger()->printUnimplemented(this, "OPTIONS-request not implemented yet");
     break;
   }
   case SIP_REGISTER:
   {
-    printPeerError(this, "REGISTER-method detected at server. Why?");
+    Logger::getLogger()->printPeerError(this, "REGISTER-method detected at server. Why?");
     responseSender(SIP_NOT_ALLOWED);
     break;
   }
   default:
   {
-    printUnimplemented(this, "Unsupported request type received");
+    Logger::getLogger()->printUnimplemented(this, "Unsupported request type received");
     responseSender(SIP_NOT_ALLOWED);
     break;
   }
@@ -114,7 +116,7 @@ void SIPServer::getResponseMessage(std::shared_ptr<SIPMessageInfo> &outMessage,
 {
   if(receivedRequest_ == nullptr)
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this, 
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, 
                "The received request was not set before trying to use it!");
     return;
   }
@@ -128,7 +130,7 @@ void SIPServer::getResponseMessage(std::shared_ptr<SIPMessageInfo> &outMessage,
   int responseCode = type;
   if(responseCode >= 200)
   {
-    printDebug(DEBUG_NORMAL, this, 
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, 
                "Sending a final response. Deleting request details.",
                {"SessionID", "Code", "Cseq"},
                {QString::number(sessionID_), QString::number(responseCode),

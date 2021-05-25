@@ -7,6 +7,7 @@
 #include "common.h"
 #include "serverstatusview.h"
 #include "global.h"
+#include "logger.h"
 
 
 #include <QDebug>
@@ -25,7 +26,7 @@ SIPRegistrations::~SIPRegistrations()
 
 void SIPRegistrations::init(ServerStatusView *statusView)
 {
-  printNormal(this, "Initiatin Registrations");
+  Logger::getLogger()->printNormal(this, "Initiatin Registrations");
   statusView_ = statusView;
 
   QObject::connect(&retryTimer_, &QTimer::timeout,
@@ -47,7 +48,7 @@ void SIPRegistrations::uninit()
     }
   }
 
-  printNormal(this, "Finished uniniating");
+  Logger::getLogger()->printNormal(this, "Finished uniniating");
 
   // we don't wait for the OK reply so we can quit faster.
   return;
@@ -90,7 +91,7 @@ bool SIPRegistrations::identifyRegistration(SIPResponse& response, QString &outA
       // TODO: we should check that every single detail is as specified in rfc.
       if(i->second->client.waitingResponse(response.message->transactionRequest))
       {
-        printNormal(this, "Found registration matching the response");
+        Logger::getLogger()->printNormal(this, "Found registration matching the response");
         outAddress = i->first;
       }
       else
@@ -119,7 +120,8 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
       {
         if (!i.second->client.processResponse(response, i.second->state))
         {
-          printWarning(this, "Got a failure response to our REGISTER");
+          Logger::getLogger()->printWarning(this, 
+                                            "Got a failure response to our REGISTER");
           i.second->status = INACTIVE;
           return;
         }
@@ -134,12 +136,12 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
               (i.second->contactAddress != response.message->vias.at(0).receivedAddress ||
                i.second->contactPort != response.message->vias.at(0).rportValue))
           {
-            printNormal(this, "Detected that we are behind NAT!");
+            Logger::getLogger()->printNormal(this, "Detected that we are behind NAT!");
 
             // we want to remove the previous registration so it doesn't cause problems
             if (i.second->status == FIRST_REGISTRATION)
             {
-              printNormal(this, "Resetting previous registration");
+              Logger::getLogger()->printNormal(this, "Resetting previous registration");
               i.second->status = DEREGISTERING;
               i.second->client.unRegister();
               return;
@@ -147,7 +149,7 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
             else if (i.second->status == DEREGISTERING)// the actual NAT registration
             {
               i.second->status = RE_REGISTRATION;
-              printNormal(this, "Sending the final NAT REGISTER");
+              Logger::getLogger()->printNormal(this, "Sending the final NAT REGISTER");
               i.second->contactAddress = response.message->contact.host;
               i.second->contactPort = response.message->contact.port;
               // makes sure we don't end up in infinite loop if the address doesn't match
@@ -159,7 +161,8 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
             }
             else
             {
-              printError(this, "The Registration response does not match internal state");
+              Logger::getLogger()->printError(this, "The Registration response "
+                                                    "does not match internal state");
             }
           }
           else
@@ -174,11 +177,11 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
             retryTimer_.start(REGISTER_SEND_PERIOD);
           }
 
-          printNormal(this, "Registration was successful.");
+          Logger::getLogger()->printNormal(this, "Registration was successful.");
         }
         else
         {
-          printDebug(DEBUG_ERROR, this, "REGISTER-request failed");
+          Logger::getLogger()->printDebug(DEBUG_ERROR, this, "REGISTER-request failed");
           statusView_->updateServerStatus(response.text);
         }
       }
@@ -191,7 +194,7 @@ void SIPRegistrations::processNonDialogResponse(SIPResponse& response)
   }
   else
   {
-    printUnimplemented(this, "Processing of Non-REGISTER requests");
+    Logger::getLogger()->printUnimplemented(this, "Processing of Non-REGISTER requests");
   }
 }
 
@@ -201,7 +204,8 @@ void SIPRegistrations::refreshRegistrations()
   // no need to continue refreshing if we have no active registrations
   if (!haveWeRegistered())
   {
-    printWarning(this, "Not refreshing our registrations, because we have none!");
+    Logger::getLogger()->printWarning(this, "Not refreshing our registrations, "
+                                            "because we have none!");
     retryTimer_.stop();
     return;
   }
@@ -243,7 +247,7 @@ void SIPRegistrations::sendNonDialogRequest(SIP_URI& uri, RequestType type)
   {
     if (registrations_.find(uri.host) == registrations_.end())
     {
-      printDebug(DEBUG_PROGRAM_ERROR, this,
+      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
                  "Registration information should have been created "
                  "already before sending REGISTER message!");
 
@@ -257,11 +261,11 @@ void SIPRegistrations::sendNonDialogRequest(SIP_URI& uri, RequestType type)
     emit transportProxyRequest(uri.host, request);
   }
   else if (type == SIP_OPTIONS) {
-    printDebug(DEBUG_PROGRAM_ERROR, this,
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
                      "Trying to send unimplemented non-dialog request OPTIONS!");
   }
   else {
-    printDebug(DEBUG_PROGRAM_ERROR, this,
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
                      "Trying to send a non-dialog request of type which is a dialog request!");
   }
 }

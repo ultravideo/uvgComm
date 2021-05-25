@@ -7,6 +7,7 @@
 #include "common.h"
 #include "settingskeys.h"
 #include "global.h"
+#include "logger.h"
 
 
 SpeexDSP::SpeexDSP(QAudioFormat format):
@@ -52,7 +53,7 @@ void SpeexDSP::updateSettings()
 
       if (agcLevel_ == 0)
       {
-        printProgramWarning(this, "AGC level not set. Using 0");
+        Logger::getLogger()->printProgramWarning(this, "AGC level not set. Using 0");
       }
 
       speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC_LEVEL, &agcLevel_);
@@ -64,7 +65,7 @@ void SpeexDSP::updateSettings()
 
       if (agcMaxGain_ == 0)
       {
-        printProgramWarning(this, "AGC max gain not set. Using 0");
+        Logger::getLogger()->printProgramWarning(this, "AGC max gain not set. Using 0");
       }
 
       int32_t level = 0;
@@ -73,7 +74,7 @@ void SpeexDSP::updateSettings()
       // we set a low gain to avoid background noises from coming through during pauses
       speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC_MAX_GAIN , &agcMaxGain_);
 
-      printDebug(DEBUG_NORMAL, this, "AGC has been enabled",
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "AGC has been enabled",
                  {"Level", "Max gain", "Increment", "Decrement"},
                  {QString::number(agcLevel_), QString::number(level),
                   QString::number(increment), QString::number(decrement)});
@@ -92,7 +93,8 @@ void SpeexDSP::updateSettings()
   }
   else
   {
-    printProgramWarning(this, "Preprocessor state was not set when updating settings");
+    Logger::getLogger()->printProgramWarning(this, "Preprocessor state was not "
+                                                   "set when updating settings");
   }
 }
 
@@ -120,7 +122,8 @@ void SpeexDSP::init(bool agc, bool denoise, bool dereverb, int32_t agcLevel, int
   }
   else
   {
-    printProgramWarning(this, "Speex preprocessor has not been set to do anything");
+    Logger::getLogger()->printProgramWarning(this, "Speex preprocessor has not "
+                                                   "been set to do anything");
   }
 
   processMutex_.unlock();
@@ -148,7 +151,7 @@ std::unique_ptr<uchar[]> SpeexDSP::processInputFrame(std::unique_ptr<uchar[]> in
 {
   if (dataSize != samplesPerFrame_*format_.bytesPerFrame())
   {
-    printProgramError(this, "Wrong size of input frame for DSP input");
+    Logger::getLogger()->printProgramError(this, "Wrong size of input frame for DSP input");
     return nullptr;
   }
 
@@ -166,7 +169,7 @@ std::unique_ptr<uchar[]> SpeexDSP::processInputFrame(std::unique_ptr<uchar[]> in
   }
   else
   {
-    printProgramWarning(this, "Preprocessor state not set for processing");
+    Logger::getLogger()->printProgramWarning(this, "Preprocessor state not set for processing");
   }
 
   processMutex_.unlock();

@@ -9,6 +9,7 @@
 
 #include "common.h"
 #include "settingskeys.h"
+#include "logger.h"
 
 #include <QSettings>
 #include <QDebug>
@@ -75,12 +76,13 @@ uint32_t VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent,
     checkInitializations(sessionID);
     sessionIDtoWidgetlist_[sessionID]->push_back(vw);
     sessionIDtoVideolist_[sessionID]->push_back(video);
-    printDebug(DEBUG_NORMAL, "VideoviewFactory", "Created video widget.", {"SessionID", "View Number"},
-        {QString::number(sessionID), QString::number(sessionIDtoWidgetlist_[sessionID]->size())});
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, "VideoviewFactory", 
+                                    "Created video widget.", {"SessionID", "View Number"},
+                                    {QString::number(sessionID), QString::number(sessionIDtoWidgetlist_[sessionID]->size())});
   }
   else
   {
-    printDebug(DEBUG_PROGRAM_ERROR, "VideoviewFactory", "Failed to create view widget.");
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "VideoviewFactory", "Failed to create view widget.");
   }
 
   return sessionIDtoWidgetlist_[sessionID]->size() - 1;
@@ -103,8 +105,9 @@ QWidget* VideoviewFactory::getView(uint32_t sessionID, uint32_t viewID)
      || sessionIDtoWidgetlist_[sessionID]->size() <= viewID)
   {
     Q_ASSERT(false);
-    printDebug(DEBUG_PROGRAM_ERROR, "VideoViewFactory", "Tried to get a video widget that doesn't exists",
-      {"SessionID"}, {QString::number(sessionID)});
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "VideoViewFactory", 
+                                    "Tried to get a video widget that doesn't exists",
+                                    {"SessionID"}, {QString::number(sessionID)});
     return nullptr;
   }
   return sessionIDtoWidgetlist_[sessionID]->at(viewID);
@@ -117,9 +120,9 @@ VideoInterface* VideoviewFactory::getVideo(uint32_t sessionID, uint32_t videoID)
      || sessionIDtoVideolist_[sessionID]->size() <= videoID)
   {
     Q_ASSERT(false);
-    printDebug(DEBUG_PROGRAM_ERROR, "VideoViewFactory", 
-               "Tried to get a video widget that doesn't exists.",
-              {"SessionID"}, {QString::number(sessionID)});
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "VideoViewFactory", 
+                                    "Tried to get a video widget that doesn't exists.",
+                                    {"SessionID"}, {QString::number(sessionID)});
     return nullptr;
   }
   return sessionIDtoVideolist_[sessionID]->at(videoID);
@@ -128,8 +131,8 @@ VideoInterface* VideoviewFactory::getVideo(uint32_t sessionID, uint32_t videoID)
 
 void VideoviewFactory::clearWidgets(uint32_t sessionID)
 {
-  printDebug(DEBUG_NORMAL, "VideoviewFactory",  "Clearing widgets",
-              {"SessionID"}, {QString::number(sessionID)});
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, "VideoviewFactory",  "Clearing widgets",
+                                  {"SessionID"}, {QString::number(sessionID)});
 
   if (sessionIDtoWidgetlist_.find(sessionID) != sessionIDtoWidgetlist_.end())
   {

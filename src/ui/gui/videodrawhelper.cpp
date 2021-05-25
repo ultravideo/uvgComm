@@ -1,6 +1,7 @@
 #include "videodrawhelper.h"
 
 #include "common.h"
+#include "logger.h"
 
 #include <QDebug>
 #include <QWidget>
@@ -78,9 +79,9 @@ void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data,
           !widget->isHidden() &&
           !widget->isMinimized())
       {
-        printWarning(this, "Buffer full when inputting image",
-                   {"Buffer"}, QString::number(frameBuffer_.size()) + "/"
-                     + QString::number(VIEWBUFFERSIZE));
+        Logger::getLogger()->printWarning(this, "Buffer full when inputting image",
+                                          {"Buffer"}, QString::number(frameBuffer_.size()) + "/"
+                                                      + QString::number(VIEWBUFFERSIZE));
       }
 
       frameBuffer_.pop_back();
@@ -120,7 +121,7 @@ void VideoDrawHelper::updateTargetRect(QWidget* widget)
     Q_ASSERT(lastFrame_.image.data_ptr());
     if(lastFrame_.image.data_ptr() == nullptr)
     {
-      printDebug(DEBUG_PROGRAM_ERROR, this, "Null pointer in current image!");
+      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Null pointer in current image!");
       return;
     }
 
@@ -146,7 +147,7 @@ void VideoDrawHelper::updateTargetRect(QWidget* widget)
   }
   else
   {
-    printWarning(this, "Tried updating target rect before picture");
+    Logger::getLogger()->printWarning(this, "Tried updating target rect before picture");
   }
 }
 

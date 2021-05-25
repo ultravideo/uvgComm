@@ -3,6 +3,7 @@
 #include "initiation/siptransactionuser.h"
 
 #include "common.h"
+#include "logger.h"
 #include "settingskeys.h"
 
 #include <QDateTime>
@@ -25,14 +26,15 @@ SIPDialogState::SIPDialogState():
 void SIPDialogState::createNewDialog(SIP_URI remoteURI, QString localAddress,
                                      bool registered)
 {
-  printDebug(DEBUG_NORMAL, "SIPDialogState", "Creating a new dialog.");
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, "SIPDialogState", "Creating a new dialog.");
   initDialog();
 
   remoteURI_ = remoteURI;
   requestUri_ = remoteURI;
   if(!registered)
   {
-    printDebug(DEBUG_NORMAL, "SIPDialogState", "Setting peer-to-peer address.");
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, "SIPDialogState", 
+                                    "Setting peer-to-peer address.");
     localURI_.host = localAddress;
   }
 }
@@ -40,7 +42,7 @@ void SIPDialogState::createNewDialog(SIP_URI remoteURI, QString localAddress,
 
 void SIPDialogState::createServerConnection(SIP_URI requestURI)
 {
-  printDebug(DEBUG_NORMAL, "SIPDialogState",
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, "SIPDialogState",
              "Creating a SIP Server dialog.");
   initDialog();
 
@@ -53,7 +55,7 @@ void SIPDialogState::createServerConnection(SIP_URI requestURI)
 void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inMessage,
                                             QString hostName)
 {
-  printDebug(DEBUG_NORMAL, "SIPDialogState",
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, "SIPDialogState",
              "Creating a dialog from incoming INVITE.");
   Q_ASSERT(callID_ == "");
   Q_ASSERT(inMessage);
@@ -63,13 +65,13 @@ void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inM
   {
     if(correctRequestDialog(inMessage->dialog, SIP_INVITE, inMessage->cSeq))
     {
-      printDebug(DEBUG_PROGRAM_ERROR, "SIPDialogState",
+      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SIPDialogState",
                  "Re-INVITE should be processed differently.");
       return;
     }
     else
     {
-      printDebug(DEBUG_PEER_ERROR, "SIPDialogState",
+      Logger::getLogger()->printDebug(DEBUG_PEER_ERROR, "SIPDialogState",
                  "Got a request not belonging to this dialog.");
       return;
     }
@@ -87,7 +89,7 @@ void SIPDialogState::createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inM
   remoteTag_ = inMessage->dialog->fromTag;
   if(remoteTag_ == "")
   {
-    printDebug(DEBUG_PEER_ERROR, "SIPDialogState",
+    Logger::getLogger()->printDebug(DEBUG_PEER_ERROR, "SIPDialogState",
                "They did not provide their tag in INVITE!");
     // TODO: send an error response.
   }
@@ -115,7 +117,7 @@ void SIPDialogState::getRequestDialogInfo(SIPRequest &outRequest)
   if(localURI_.username == "" || localURI_.host == "" ||
      remoteURI_.username == "" || remoteURI_.host == "")
   {
-    printDebug(DEBUG_PROGRAM_ERROR, "SIPDialogState", 
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SIPDialogState", 
                "The dialog state info has not been set, but we are using it.",
                 {"username", "host", "remote username", "remote host"},
                 {localURI_.username, localURI_.host, remoteURI_.username, remoteURI_.host});
@@ -126,7 +128,7 @@ void SIPDialogState::getRequestDialogInfo(SIPRequest &outRequest)
   if(outRequest.type != SIP_ACK && outRequest.type != SIP_CANCEL)
   {
     ++localCSeq_;
-    printDebug(DEBUG_NORMAL, "SIPDialogState",  "Increasing CSeq",
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, "SIPDialogState",  "Increasing CSeq",
               {"CSeq"}, {QString::number(localCSeq_)});
   }
 

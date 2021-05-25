@@ -1,6 +1,7 @@
 #include "chartpainter.h"
 
 #include "common.h"
+#include "logger.h"
 
 #include <QPainter>
 #include <QPaintEvent>
@@ -95,7 +96,7 @@ void ChartPainter::init(int maxY, int yLines, bool adaptive, int xWindowSize,
   Q_ASSERT(yLines >= 1);
   Q_ASSERT(xWindowSize >= 2);
 
-  printNormal(this, "Initiating chart", "Title", chartTitle);
+  Logger::getLogger()->printNormal(this, "Initiating chart", "Title", chartTitle);
 
   // just set variables
   maxY_ = maxY;
