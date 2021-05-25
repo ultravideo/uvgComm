@@ -15,7 +15,7 @@ public:
   DSPFilter(QString id, StatisticsInterface* stats,
             std::shared_ptr<SpeexAEC> aec, QAudioFormat &format,
             bool AECReference, bool doAEC, bool doDenoise, bool doDereverb,
-            bool doAGC);
+            bool doAGC, int32_t volume = 0, int maxGain = 0);
 
   ~DSPFilter();
 

@@ -23,7 +23,8 @@ public:
 
   void updateSettings();
 
-  void init(bool agc, bool denoise, bool dereverb);
+  void init(bool agc, bool denoise, bool dereverb,
+            int32_t agcLevel = 0, int agcMaxGain = 0);
   void cleanup();
 
   std::unique_ptr<uchar[]> processInputFrame(std::unique_ptr<uchar[]> input,
@@ -41,4 +42,7 @@ private:
   bool agc_ = false;
   bool denoise_ = false;
   bool dereverb_ = false;
+
+  int32_t agcLevel_ = 0;
+  int agcMaxGain_ = 0;
 };

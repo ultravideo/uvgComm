@@ -9,7 +9,7 @@
 DSPFilter::DSPFilter(QString id, StatisticsInterface* stats,
                      std::shared_ptr<SpeexAEC> aec, QAudioFormat& format,
                      bool AECReference, bool doAEC, bool doDenoise,
-                     bool doDereverb, bool doAGC):
+                     bool doDereverb, bool doAGC, int32_t volume, int maxGain):
   Filter(id, "DSP", stats, RAWAUDIO, RAWAUDIO),
   aec_(aec),
   dsp_(nullptr),
@@ -20,7 +20,7 @@ DSPFilter::DSPFilter(QString id, StatisticsInterface* stats,
   if (doDSP_)
   {
     dsp_ = std::make_unique<SpeexDSP> (format);
-    dsp_->init(doAGC, doDenoise, doDereverb);
+    dsp_->init(doAGC, doDenoise, doDereverb, volume, maxGain);
   }
 
   if (doAEC_ && AECReference_)

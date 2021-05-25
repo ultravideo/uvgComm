@@ -50,23 +50,33 @@ void SpeexDSP::updateSettings()
     {
       speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC, &activeState);
 
-      // the default volume of INT32_MAX/2 seems somewhat low. Set volume to 75% of maximum
-      int level = INT32_MAX - INT32_MAX/3;
-      speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC_LEVEL, &level);
+      if (agcLevel_ == 0)
+      {
+        printProgramWarning(this, "AGC level not set. Using 0");
+      }
+
+      speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC_LEVEL, &agcLevel_);
 
       int increment = 10;
       speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC_INCREMENT, &increment);
       int decrement = -40;
       speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC_DECREMENT, &decrement);
 
-      // we set a low gain to avoid background noises from coming through during pauses
-      int maxGain = 10;
-      speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC_MAX_GAIN , &maxGain);
+      if (agcMaxGain_ == 0)
+      {
+        printProgramWarning(this, "AGC max gain not set. Using 0");
+      }
 
+      int32_t level = 0;
+      speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_GET_AGC_LEVEL , &level);
+
+      // we set a low gain to avoid background noises from coming through during pauses
+      speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC_MAX_GAIN , &agcMaxGain_);
 
       printDebug(DEBUG_NORMAL, this, "AGC has been enabled",
-                 {"Level", "Increment", "Decrement"},
-                 {QString::number(level), QString::number(increment), QString::number(decrement)});
+                 {"Level", "Max gain", "Increment", "Decrement"},
+                 {QString::number(agcLevel_), QString::number(level),
+                  QString::number(increment), QString::number(decrement)});
 
 
       // VAD could be used to fix this AGC increment problem (background sounds
@@ -87,11 +97,14 @@ void SpeexDSP::updateSettings()
 }
 
 
-void SpeexDSP::init(bool agc, bool denoise, bool dereverb)
+void SpeexDSP::init(bool agc, bool denoise, bool dereverb, int32_t agcLevel, int agcMaxGain)
 {
   agc_ = agc;
   denoise_ = denoise;
   dereverb_ = dereverb;
+
+  agcLevel_ = agcLevel;
+  agcMaxGain_ = agcMaxGain;
 
   if (preprocessor_ != nullptr)
   {

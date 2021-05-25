@@ -28,6 +28,27 @@
 #include <QFile>
 #include <QTextStream>
 
+
+// speex DSP settings
+
+// We limit the gain so background noises don't start coming through in a quiet
+// audio stream.
+
+// The default Speex AGC volume seems to be 1191182336 which is around 55%.
+// 50% seems to be completely quiet
+
+// The input volume we want to normilize so the differences in mics and distance
+// from mic don't affect the sound as much
+const int32_t AUDIO_INPUT_VOLUME = 1191182336; // default
+const int AUDIO_INPUT_GAIN = 10; // dB
+
+// The output we want to normalize if we have multiple participants, two people
+// speaking at the same time should not sound very loud and only one person
+// speaking very quiet.
+const int32_t AUDIO_OUTPUT_VOLUME = INT32_MAX - INT32_MAX/4;
+const int AUDIO_OUTPUT_GAIN = 20; // dB
+
+
 FilterGraph::FilterGraph(): QObject(),
   peers_(),
   cameraGraph_(),
@@ -276,7 +297,7 @@ void FilterGraph::initializeAudio(bool opus)
   // Do everything (AGC, AEC, denoise, dereverb) for input expect provide AEC reference
   std::shared_ptr<DSPFilter> dspProcessor =
       std::shared_ptr<DSPFilter>(new DSPFilter("", stats_, aec_, format_,
-                                               false, true, true, true, true));
+                                               false, true, true, true, true, AUDIO_INPUT_VOLUME, AUDIO_INPUT_GAIN));
 
   addToGraph(dspProcessor, audioInputGraph_, audioInputGraph_.size() - 1);
 
@@ -290,7 +311,7 @@ void FilterGraph::initializeAudio(bool opus)
   // good volume levels.
   std::shared_ptr<DSPFilter> echoReference =
       std::make_shared<DSPFilter>("", stats_, aec_, format_,
-                                  true, false, false, false, true);
+                                  true, false, false, false, true, AUDIO_OUTPUT_VOLUME, AUDIO_OUTPUT_GAIN);
 
   addToGraph(echoReference, audioOutputGraph_);
 
