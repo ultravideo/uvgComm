@@ -3,6 +3,7 @@
 #include "statisticsinterface.h"
 
 #include "common.h"
+#include "logger.h"
 
 OpusDecoderFilter::OpusDecoderFilter(uint32_t sessionID, QAudioFormat format, StatisticsInterface *stats):
   Filter(QString::number(sessionID), "Opus Decoder", stats, OPUSAUDIO, RAWAUDIO),
@@ -33,7 +34,7 @@ bool OpusDecoderFilter::init()
 
   if(error)
   {
-    printWarning(this, "Failed to initialize opus decoder.",
+    Logger::getLogger()->printWarning(this, "Failed to initialize opus decoder.",
       {"Errorcode"}, {QString::number(error)});
     return false;
   }
@@ -57,8 +58,10 @@ void OpusDecoderFilter::process()
 
     uint32_t datasize = len*format_.channelCount()*sizeof(opus_int16);
 
-    //printDebug(DEBUG_NORMAL, this, "Decoded Opus audio.", {"Input size", "Output size"},
-              //{QString::number(input->data_size), QString::number(datasize)};
+    //Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Decoded Opus audio.", 
+    //                                {"Input size", "Output size"},
+    //                                {QString::number(input->data_size),
+    //                                 QString::number(datasize)};
 
     if(len > -1)
     {
@@ -67,11 +70,13 @@ void OpusDecoderFilter::process()
       input->data_size = datasize;
 
       input->data = std::move(pcm_frame);
+      input->type = RAWAUDIO;
       sendOutput(std::move(input));
     }
     else
     {
-      printWarning(this, "Failed to decode audio frame.", {"Error"}, {QString::number(len)});
+      Logger::getLogger()->printWarning(this, "Failed to decode audio frame.", 
+                                        {"Error"}, {QString::number(len)});
     }
     input = getInput();
   }

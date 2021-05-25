@@ -9,7 +9,8 @@
 
 #include "settingskeys.h"
 
-#include <common.h>
+#include "common.h"
+#include "logger.h"
 
 #include <QScreen>
 #include <QCryptographicHash>
@@ -98,13 +99,28 @@ void Settings::init()
   QObject::connect(basicUI_->screenDevice_combo, &QComboBox::currentTextChanged,
                    this, &Settings::uiChangedString);
 
+  // we must initialize the settings if they do not exist
+  if (!settings_.value(SettingsKey::micStatus).isValid())
+  {
+    setMicState(true);
+  }
+
+
+  if (!settings_.value(SettingsKey::cameraStatus).isValid())
+  {
+    setCameraState(true);
+  }
+
+  // never start with screen sharing turned on
+  setScreenShareState(false);
+
   // TODO: Also emit the position of closed window and move this setting there
 }
 
 
 void Settings::show()
 {
-  printNormal(this, "Opening settings");
+  Logger::getLogger()->printNormal(this, "Opening settings");
   // initialize everytime in case they have changed
   initDeviceSelector(basicUI_->videoDevice_combo, SettingsKey::videoDeviceID,
                      SettingsKey::videoDevice, cam_);
@@ -167,8 +183,8 @@ void Settings::setScreenShareState(bool enabled)
         settings_.setValue(SettingsKey::videoFramerate, "5");
         videoSettings_.setScreenShareState(enabled);
 
-        printNormal(this, "Enabled Screen sharing", "Screen resolution",
-                    QString::number(resolution.width()) + "x" + QString::number(resolution.height()));
+        Logger::getLogger()->printNormal(this, "Enabled Screen sharing", "Screen resolution",
+                                         QString::number(resolution.width()) + "x" + QString::number(resolution.height()));
       }
     }
   }
@@ -199,7 +215,7 @@ void Settings::uiChangedBool(bool state)
 
 void Settings::on_save_clicked()
 {
-  printNormal(this, "Saving settings");
+  Logger::getLogger()->printNormal(this, "Saving settings");
   // The UI values are saved to settings.
   saveSettings();
   setScreenShareState(settingEnabled(SettingsKey::screenShareStatus));
@@ -214,7 +230,7 @@ void Settings::on_save_clicked()
 
 void Settings::on_close_clicked()
 {
-  printNormal(this, "Closing Settings. Gettings settings from file.");
+  Logger::getLogger()->printNormal(this, "Closing Settings. Gettings settings from file.");
 
   if (checkSettingsList(settings_, neededSettings))
   {
@@ -251,7 +267,7 @@ void Settings::on_audio_settings_button_clicked()
 // records the settings
 void Settings::saveSettings()
 {
-  printNormal(this, "Recording settings");
+  Logger::getLogger()->printNormal(this, "Recording settings");
 
   // Local settings
   saveTextValue(SettingsKey::localRealname, basicUI_->name_edit->text(), settings_);
@@ -292,7 +308,7 @@ void Settings::getSettings(bool changedDevice)
   //get values from QSettings
   if (checkSettingsList(settings_, neededSettings))
   {
-    printNormal(this, "Loading settings from file", {"File"}, {settings_.fileName()});
+    Logger::getLogger()->printNormal(this, "Loading settings from file", {"File"}, {settings_.fileName()});
 
     basicUI_->name_edit->setText      (settings_.value(SettingsKey::localRealname).toString());
     basicUI_->username_edit->setText  (settings_.value(SettingsKey::localUsername).toString());
@@ -352,7 +368,7 @@ void Settings::getSettings(bool changedDevice)
 
 void Settings::resetFaultySettings()
 {
-  printWarning(this, "Could not restore settings! Resetting settings from defaults.");
+  Logger::getLogger()->printWarning(this, "Could not restore settings! Resetting settings from defaults.");
 
   // record GUI settings in hope that they are correct ( is case by default )
   saveSettings();
@@ -398,8 +414,9 @@ void Settings::initDeviceSelector(QComboBox* deviceSelector,
     deviceSelector->setCurrentIndex(deviceIndex);
   }
 
-  //printNormal(this, "Added " + QString::number(deviceSelector->count()) + " devices to selector",
-  //    {"SettingsID"}, {settingID});
+  //Logger::getLogger()->printNormal(this, "Added " + 
+  //                                 QString::number(deviceSelector->count()) + " devices to selector",
+  //                                 {"SettingsID"}, {settingID});
 }
 
 
@@ -412,7 +429,7 @@ int Settings::getDeviceID(QComboBox* deviceSelector, QString settingID,
   int deviceIndex = deviceSelector->findText(deviceName);
   int deviceID = settings_.value(settingID).toInt();
 
-//  printDebug(DEBUG_NORMAL, this, "Getting device ID from selector list",
+//  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Getting device ID from selector list",
 //      {"SettingsID", "DeviceName", "List Index", "Number of items"},
 //      {settingID, deviceName, QString::number(deviceIndex),
 //       QString::number(deviceSelector->count())});

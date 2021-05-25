@@ -1,5 +1,8 @@
-#include "common.h"
 #include "stunmessagefactory.h"
+
+#include "logger.h"
+#include "common.h"
+
 #include <QDateTime>
 
 // allocate 256 bytes of temporary memory for each outgoing STUN message
@@ -55,13 +58,15 @@ bool StunMessageFactory::validateStunMessage(STUNMessage& message, int type)
 {
   if (message.getCookie() != STUN_MAGIC_COOKIE)
   {
-    printDebug(DEBUG_WARNING, "StunMessageFactory", "Did not include magic cookie");
+    Logger::getLogger()->printDebug(DEBUG_WARNING, "StunMessageFactory", 
+                                    "Did not include magic cookie");
     return false;
   }
 
   if (message.getType() != type)
   {
-    printDebug(DEBUG_WARNING, "StunMessageFactory", "Request/response type mismatch");
+    Logger::getLogger()->printDebug(DEBUG_WARNING, "StunMessageFactory", 
+                                    "Request/response type mismatch");
     return false;
   }
 
@@ -87,8 +92,8 @@ bool StunMessageFactory::validateStunResponse(STUNMessage& response,
         {
             if (cached[i] != response.getTransactionIDAt(i))
             {
-              printDebug(DEBUG_WARNING, "StunMessageFactory",
-                         "Incorrect response transaction ID!");
+              Logger::getLogger()->printDebug(DEBUG_WARNING, "StunMessageFactory",
+                                             "Incorrect response transaction ID!");
               return false;
             }
         }
@@ -96,7 +101,8 @@ bool StunMessageFactory::validateStunResponse(STUNMessage& response,
     }
     else
     {
-      printDebug(DEBUG_WARNING, "StunMessageFactory", "Port not reported!");
+      Logger::getLogger()->printDebug(DEBUG_WARNING, "StunMessageFactory", 
+                                      "Port not reported!");
     }
   }
 
@@ -116,7 +122,7 @@ bool StunMessageFactory::validateStunResponse(STUNMessage& response)
     {
       if (responseTID[i] != requestTID[i])
       {
-        printDebug(DEBUG_WARNING, "StunMessageFactory",
+        Logger::getLogger()->printDebug(DEBUG_WARNING, "StunMessageFactory",
                    "Incorrect response transaction ID!");
         return false;
       }
@@ -191,8 +197,8 @@ bool StunMessageFactory::networkToHost(QByteArray& message, STUNMessage& outSTUN
 {
   if (message.size() < 20)
   {
-    printDebug(DEBUG_WARNING, "StunMessageFactory",
-               "Received too small packet to be a STUN message");
+    Logger::getLogger()->printDebug(DEBUG_WARNING, "StunMessageFactory",
+                                    "Received too small packet to be a STUN message");
     return false;
   }
 
@@ -248,7 +254,8 @@ bool StunMessageFactory::networkToHost(QByteArray& message, STUNMessage& outSTUN
         }
         default:
         {
-          printDebug(DEBUG_WARNING, "StunMessageFactory", "Could not determine attribute!");
+          Logger::getLogger()->printDebug(DEBUG_WARNING, "StunMessageFactory", 
+                                          "Could not determine attribute!");
           return false;
           break;
         }
@@ -259,8 +266,8 @@ bool StunMessageFactory::networkToHost(QByteArray& message, STUNMessage& outSTUN
   }
   else
   {
-    printDebug(DEBUG_WARNING, "StunMessageFactory",
-               "STUN message length does not match packet size");
+    Logger::getLogger()->printDebug(DEBUG_WARNING, "StunMessageFactory",
+                                    "STUN message length does not match packet size");
     return false;
   }
 
@@ -283,7 +290,8 @@ std::pair<QHostAddress, uint16_t> StunMessageFactory::extractXorMappedAddress(
     }
     else if (payload[1] == 0x02) // IPv6
     {
-      printDebug(DEBUG_PROGRAM_WARNING, "StunMessageFactory", "IPv6 Unimplemented");
+      Logger::getLogger()->printDebug(DEBUG_PROGRAM_WARNING, "StunMessageFactory", 
+                                      "IPv6 Unimplemented");
     }
   }
 

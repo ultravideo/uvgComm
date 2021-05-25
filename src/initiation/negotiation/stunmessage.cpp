@@ -1,8 +1,9 @@
-#include <QDateTime>
-
 #include "stunmessage.h"
 
+#include "logger.h"
 #include "common.h"
+
+#include <QDateTime>
 
 STUNMessage::STUNMessage():
   type_(0),
@@ -57,7 +58,8 @@ void STUNMessage::setTransactionID(uint8_t *transactionID)
 {
   if (!transactionID)
   {
-    printDebug(DEBUG_PROGRAM_ERROR, "STUN Message", "Could not set transaction ID");
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "STUN Message", 
+                                    "Could not set transaction ID");
     return;
   }
 
@@ -118,7 +120,8 @@ bool STUNMessage::getXorMappedAddress(std::pair<QHostAddress, uint16_t>& info)
 {
   if (this->mappedAddr_.first == QHostAddress("") || this->mappedAddr_.second == 0)
   {
-    printDebug(DEBUG_PROGRAM_ERROR, "STUN Message", "Could not set Xor mapped address");
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "STUN Message", 
+                                    "Could not set Xor mapped address");
     return false;
   }
 

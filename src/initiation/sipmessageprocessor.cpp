@@ -1,6 +1,7 @@
 #include "sipmessageprocessor.h"
 
 #include "common.h"
+#include "logger.h"
 
 SIPMessageProcessor::SIPMessageProcessor()
 {}
@@ -37,7 +38,7 @@ void SIPMessageProcessor::connectIncomingProcessor(SIPMessageProcessor& module)
 
 void SIPMessageProcessor::processOutgoingRequest(SIPRequest& request, QVariant& content)
 {
-  printNormal(this, "Skipping processing outgoing request");
+  Logger::getLogger()->printNormal(this, "Skipping processing outgoing request");
   // default is that we do no processing
   emit outgoingRequest(request, content);
 }
@@ -45,14 +46,14 @@ void SIPMessageProcessor::processOutgoingRequest(SIPRequest& request, QVariant& 
 
 void SIPMessageProcessor::processOutgoingResponse(SIPResponse& response, QVariant& content)
 {
-  printNormal(this, "Skipping processing outgoing response");
+  Logger::getLogger()->printNormal(this, "Skipping processing outgoing response");
   // default is that we do no processing
   emit outgoingResponse(response, content);
 }
 
 void SIPMessageProcessor::processIncomingRequest(SIPRequest& request, QVariant& content)
 {
-  printNormal(this, "Skipping processing incoming request");
+  Logger::getLogger()->printNormal(this, "Skipping processing incoming request");
 
   // default is that we do no processing
   emit incomingRequest(request, content);
@@ -61,7 +62,7 @@ void SIPMessageProcessor::processIncomingRequest(SIPRequest& request, QVariant& 
 
 void SIPMessageProcessor::processIncomingResponse(SIPResponse& response, QVariant& content)
 {
-  printNormal(this, "Skipping processing incoming response");
+  Logger::getLogger()->printNormal(this, "Skipping processing incoming response");
   // default is that we do no processing
   emit incomingResponse(response, content);
 }

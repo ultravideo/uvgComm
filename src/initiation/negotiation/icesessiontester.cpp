@@ -1,8 +1,9 @@
 #include "icesessiontester.h"
 
 #include "icecandidatetester.h"
-#include "ice.h"
+
 #include "common.h"
+#include "logger.h"
 
 #include <QEventLoop>
 #include <QTimer>
@@ -38,7 +39,8 @@ void IceSessionTester::componentSucceeded(std::shared_ptr<ICEPair> connection)
   if (finished_[connection->local->foundation].find(connection->local->component)
       != finished_[connection->local->foundation].end())
   {
-    printError(this, "Component finished, but it has already finished before.");
+    Logger::getLogger()->printError(this, 
+                                    "Component finished, but it has already finished before.");
   }
 
   finished_[connection->local->foundation][connection->local->component] = connection;
@@ -49,9 +51,9 @@ void IceSessionTester::componentSucceeded(std::shared_ptr<ICEPair> connection)
     type = "Controllee";
   }
 
-  printNormal(this, type + " component finished", {"Finished components"},
-              {QString::number(finished_[connection->local->foundation].size()) + "/" +
-              QString::number(components_)});
+  Logger::getLogger()->printNormal(this, type + " component finished", {"Finished components"},
+                                   {QString::number(finished_[connection->local->foundation].size()) + 
+                                   "/" + QString::number(components_)});
 
   // nominated check makes sure only one stream is nominated.
   // if we have received all components, nominate these.
@@ -99,8 +101,9 @@ void IceSessionTester::run()
 {
   if (pairs_ == nullptr || pairs_->size() == 0)
   {
-    printDebug(DEBUG_ERROR, this,
-               "Invalid candidates, unable to perform ICE candidate negotiation!");
+    Logger::getLogger()->printDebug(DEBUG_ERROR, this,
+                                    "Invalid candidates, "
+                                    "unable to perform ICE candidate negotiation!");
     emit iceFailure();
     return;
   }
@@ -164,7 +167,8 @@ void IceSessionTester::run()
   // we did not get nominations and instead we got a timeout
   if (nominated_.empty())
   {
-    printError(this, "Nominations from remote were not received in time!");
+    Logger::getLogger()->printError(this, 
+                                    "Nominations from remote were not received in time!");
     emit iceFailure();
     nominated_mtx.unlock();
     return;
@@ -208,8 +212,9 @@ std::shared_ptr<IceCandidateTester> IceSessionTester::createCandidateTester(
     }
     else
     {
-      printProgramError(this, "Relay address not set, when it is supposed to! "
-                              "Should be checked earlier.");
+      Logger::getLogger()->printProgramError(this, "Relay address not set, "
+                                                   "when it is supposed to! "
+                                                   "Should be checked earlier.");
       return tester;
     }
   }

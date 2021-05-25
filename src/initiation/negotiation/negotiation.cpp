@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "global.h"
+#include "logger.h"
 
 #include <QVariant>
 
@@ -20,7 +21,7 @@ Negotiation::Negotiation(QString localAddress):
 
 void Negotiation::processOutgoingRequest(SIPRequest& request, QVariant& content)
 {
-  printNormal(this, "Processing outgoing request");
+  Logger::getLogger()->printNormal(this, "Processing outgoing request");
 
   if (request.method == SIP_INVITE || request.method == SIP_OPTIONS)
   {
@@ -32,13 +33,13 @@ void Negotiation::processOutgoingRequest(SIPRequest& request, QVariant& content)
   if (request.method == SIP_ACK && negotiationState_ == NEG_ANSWER_GENERATED)
   {
     request.message->contentLength = 0;
-    printNormal(this, "Adding SDP content to request");
+    Logger::getLogger()->printNormal(this, "Adding SDP content to request");
 
     request.message->contentType = MT_APPLICATION_SDP;
 
     if (!SDPAnswerToContent(content))
     {
-      printError(this, "Failed to get SDP answer to request");
+      Logger::getLogger()->printError(this, "Failed to get SDP answer to request");
       return;
     }
   }
@@ -58,7 +59,7 @@ void Negotiation::processOutgoingResponse(SIPResponse& response, QVariant& conte
     {
       if (negotiationState_ == NEG_NO_STATE)
       {
-        printNormal(this, "Adding SDP to an OK response");
+        Logger::getLogger()->printNormal(this, "Adding SDP to an OK response");
         response.message->contentLength = 0;
         response.message->contentType = MT_APPLICATION_SDP;
 
@@ -70,13 +71,13 @@ void Negotiation::processOutgoingResponse(SIPResponse& response, QVariant& conte
       // if they sent an offer in their INVITE
       else if (negotiationState_ == NEG_ANSWER_GENERATED)
       {
-        printNormal(this, "Adding SDP to response since INVITE had an SDP.");
+        Logger::getLogger()->printNormal(this, "Adding SDP to response since INVITE had an SDP.");
 
         response.message->contentLength = 0;
         response.message->contentType = MT_APPLICATION_SDP;
         if (!SDPAnswerToContent(content))
         {
-          printError(this, "Failed to get SDP answer to response");
+          Logger::getLogger()->printError(this, "Failed to get SDP answer to response");
           return;
         }
       }
@@ -89,7 +90,7 @@ void Negotiation::processOutgoingResponse(SIPResponse& response, QVariant& conte
 
 void Negotiation::processIncomingRequest(SIPRequest& request, QVariant& content)
 {
-  printNormal(this, "Processing incoming request");
+  Logger::getLogger()->printNormal(this, "Processing incoming request");
 
 
   if (request.method == SIP_INVITE)
@@ -106,12 +107,13 @@ void Negotiation::processIncomingRequest(SIPRequest& request, QVariant& content)
     {
     case NEG_NO_STATE:
     {
-      printDebug(DEBUG_NORMAL, this,
-                 "Got first SDP offer.");
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
+                                      "Got first SDP offer.");
       if(!processOfferSDP(content, localAddress_))
       {
-         printDebug(DEBUG_PROGRAM_ERROR, this,
-                    "Failure to process SDP offer not implemented.");
+         Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+                                         "Failure to process SDP offer "
+                                         "not implemented.");
 
          // TODO: sendResponse SIP_DECLINE
          return;
@@ -120,22 +122,22 @@ void Negotiation::processIncomingRequest(SIPRequest& request, QVariant& content)
     }
     case NEG_OFFER_GENERATED:
     {
-      printDebug(DEBUG_NORMAL, this,
-                 "Got an SDP answer.");
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
+                                      "Got an SDP answer.");
       processAnswerSDP(content);
       break;
     }
     case NEG_ANSWER_GENERATED: // TODO: Not sure if these make any sense
     {
-      printDebug(DEBUG_NORMAL, this,
-                 "They sent us another SDP offer.");
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
+                                      "They sent us another SDP offer.");
       processOfferSDP(content, localAddress_);
       break;
     }
     case NEG_FINISHED:
     {
-      printDebug(DEBUG_NORMAL, this,
-                 "Got a new SDP offer in response.");
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
+                                      "Got a new SDP offer in response.");
       processOfferSDP(content, localAddress_);
       break;
     }
@@ -158,12 +160,12 @@ void Negotiation::processIncomingResponse(SIPResponse& response, QVariant& conte
       {
       case NEG_NO_STATE:
       {
-        printDebug(DEBUG_NORMAL, this,
-                   "Got first SDP offer.");
+        Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
+                                        "Got first SDP offer.");
         if(!processOfferSDP(content, localAddress_))
         {
-           printDebug(DEBUG_PROGRAM_ERROR, this,
-                      "Failure to process SDP offer not implemented.");
+           Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+                                           "Failure to process SDP offer not implemented.");
 
            //TODO: sendResponse SIP_DECLINE
            return;
@@ -172,22 +174,22 @@ void Negotiation::processIncomingResponse(SIPResponse& response, QVariant& conte
       }
       case NEG_OFFER_GENERATED:
       {
-        printDebug(DEBUG_NORMAL, this,
-                   "Got an SDP answer.");
+        Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
+                                        "Got an SDP answer.");
         processAnswerSDP(content);
         break;
       }
       case NEG_ANSWER_GENERATED: // TODO: Not sure if these make any sense
       {
-        printDebug(DEBUG_NORMAL, this,
-                   "They sent us another SDP offer.");
+        Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
+                                        "They sent us another SDP offer.");
         processOfferSDP(content, localAddress_);
         break;
       }
       case NEG_FINISHED:
       {
-        printDebug(DEBUG_NORMAL, this,
-                   "Got a new SDP offer in response.");
+        Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
+                                        "Got a new SDP offer in response.");
         processOfferSDP(content, localAddress_);
         break;
       }
@@ -201,7 +203,7 @@ void Negotiation::processIncomingResponse(SIPResponse& response, QVariant& conte
 
 bool Negotiation::generateOfferSDP(QString localAddress)
 {
-  printNormal(this, "Getting local SDP suggestion");
+  Logger::getLogger()->printNormal(this, "Getting local SDP suggestion");
   std::shared_ptr<SDPMessageInfo> localSDP = negotiator_.generateLocalSDP(localAddress);
   // TODO: Set also media sdp parameters.
 
@@ -222,7 +224,8 @@ bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
   // check if suitable.
   if(!negotiator_.checkSDPOffer(remoteSDPOffer))
   {
-    printNormal(this, "Incoming SDP did not have Opus and H265 in their offer.");
+    Logger::getLogger()->printNormal(this,
+                                     "Incoming SDP did not have Opus and H265 in their offer.");
     return false;
   }
 
@@ -235,9 +238,9 @@ bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
 
   if (localSDP == nullptr)
   {
-    printDebug(DEBUG_PROGRAM_ERROR, "Negotiation", 
-               "Failed to generate our answer to their offer."
-               "Suitability should be detected earlier in checkOffer.");
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "Negotiation", 
+                                    "Failed to generate our answer to their offer."
+                                    "Suitability should be detected earlier in checkOffer.");
     return false;
   }
 
@@ -256,7 +259,8 @@ bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
 
 bool Negotiation::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer)
 {
-  printDebug(DEBUG_NORMAL, "Negotiation",  "Starting to process answer SDP.");
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, "Negotiation", 
+                                  "Starting to process answer SDP.");
   if (!checkSessionValidity(false))
   {
     return false;
@@ -264,7 +268,8 @@ bool Negotiation::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer)
 
   if (negotiationState_ == NEG_NO_STATE)
   {
-    printDebug(DEBUG_WARNING, "Negotiation",  "Processing SDP answer without hacing sent an offer!");
+    Logger::getLogger()->printDebug(DEBUG_WARNING, "Negotiation",  
+                                    "Processing SDP answer without hacing sent an offer!");
     return false;
   }
 
@@ -318,8 +323,8 @@ void Negotiation::nominationSucceeded(QList<std::shared_ptr<ICEPair>>& streams,
     return;
   }
 
-  printNormal(this, "ICE nomination has succeeded", {"SessionID"},
-              {QString::number(sessionID)});
+  Logger::getLogger()->printNormal(this, "ICE nomination has succeeded", {"SessionID"},
+                                   {QString::number(sessionID)});
 
   // Video. 0 is RTP, 1 is RTCP
   if (streams.at(0) != nullptr && streams.at(1) != nullptr)
@@ -347,8 +352,8 @@ bool Negotiation::checkSessionValidity(bool checkRemote) const
   if(localSDP_ == nullptr ||
      (remoteSDP_ == nullptr && checkRemote))
   {
-    printDebug(DEBUG_PROGRAM_ERROR, "Negotiation",
-               "SDP not set correctly");
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "Negotiation",
+                                    "SDP not set correctly");
     return false;
   }
   return true;
@@ -358,10 +363,11 @@ bool Negotiation::SDPOfferToContent(QVariant& content, QString localAddress)
 {
   std::shared_ptr<SDPMessageInfo> pointer;
 
-  printDebug(DEBUG_NORMAL, this,  "Adding one-to-one SDP.");
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this,  "Adding one-to-one SDP.");
   if(!generateOfferSDP(localAddress))
   {
-    printWarning(this, "Failed to generate local SDP when sending offer.");
+    Logger::getLogger()->printWarning(this,
+                                      "Failed to generate local SDP when sending offer.");
     return false;
   }
    pointer = localSDP_;
@@ -379,16 +385,16 @@ bool Negotiation::processOfferSDP(QVariant& content,
 {
   if(!content.isValid())
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this,
-                     "The SDP content is not valid at processing. "
-                     "Should be detected earlier.");
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+                                    "The SDP content is not valid at processing. "
+                                    "Should be detected earlier.");
     return false;
   }
 
   SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
   if(!generateAnswerSDP(retrieved, localAddress))
   {
-    printWarning(this, "Remote SDP not suitable or we have no ports to assign");
+    Logger::getLogger()->printWarning(this, "Remote SDP not suitable or we have no ports to assign");
     uninit();
     return false;
   }
@@ -416,9 +422,9 @@ bool Negotiation::processAnswerSDP(QVariant &content)
   SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
   if (!content.isValid())
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this,
-               "Content is not valid when processing SDP. "
-               "Should be detected earlier.");
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+                                    "Content is not valid when processing SDP. "
+                                    "Should be detected earlier.");
     return false;
   }
 

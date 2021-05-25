@@ -1,7 +1,9 @@
 #include "sipfieldparsinghelper.h"
 
 #include "sipconversions.h"
+
 #include "common.h"
+#include "logger.h"
 
 #include <QRegularExpression>
 
@@ -11,7 +13,7 @@ bool parseNameAddr(const QStringList &words, NameAddr& nameAddr)
 {
   if (words.size() == 0 || words.size() > 2)
   {
-    printPeerError("SIP Field Helper", "Wrong amount of words in words list for URI. Expected 1-2",
+    Logger::getLogger()->printPeerError("SIP Field Helper", "Wrong amount of words in words list for URI. Expected 1-2",
                    "Words", QString::number(words.size()));
 
     return false;
@@ -175,7 +177,7 @@ bool parseUritype(const QString &type, SIPType& out_Type)
   }
   else
   {
-    printError("Could not identify uri scheme", "Scheme", type);
+    Logger::getLogger()->printError("Could not identify uri scheme", "Scheme", type);
 
     return false;
   }
@@ -505,7 +507,7 @@ bool parseDigestResponseField(const SIPField& field,
 
     if (!parseURI(uri, *dResponse.back().digestUri))
     {
-      printWarning("SIP Field Parsing", "Failed to parse Digest response URI");
+      Logger::getLogger()->printWarning("SIP Field Parsing", "Failed to parse Digest response URI");
       dResponse.back().digestUri = nullptr;
     }
   }
@@ -533,7 +535,7 @@ void populateDigestTable(const QList<SIPCommaValue>& values,
          (values.at(i).words.size() != 2 || values.at(i).words.at(0) != "Digest")) ||
         (i > 0  && values.at(i).words.size() != 1 ))
     {
-      printWarning("SIP Field Parsing", "Faulty digest value detected");
+      Logger::getLogger()->printWarning("SIP Field Parsing", "Faulty digest value detected");
       break;
     }
 

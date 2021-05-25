@@ -3,6 +3,8 @@
 #include "initiation/siptransactionuser.h"
 
 #include "common.h"
+#include "logger.h"
+#include "settingskeys.h"
 
 #include <QDateTime>
 #include <QSettings>
@@ -28,7 +30,7 @@ SIPDialogState::~SIPDialogState()
 
 void SIPDialogState::init(NameAddr &local, NameAddr &remote, bool createDialog)
 {
-  printDebug(DEBUG_NORMAL, "SIPDialogState", "Creating a new dialog.");
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, "SIPDialogState", "Creating a new dialog.");
 
   localURI_ = local;
   remoteURI_ = remote;
@@ -44,7 +46,7 @@ void SIPDialogState::init(NameAddr &local, NameAddr &remote, bool createDialog)
 
 void SIPDialogState::createServerConnection(NameAddr &local, SIP_URI requestURI)
 {
-  printDebug(DEBUG_NORMAL, "SIPDialogState", "Creating a Server dialog.");
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, "SIPDialogState", "Creating a Server dialog.");
 
   init(local, local, true);
   remoteTarget_ = requestURI; // server connection has different request uri from to
@@ -56,7 +58,7 @@ bool SIPDialogState::correctRequestDialog(QString callID, QString toTag, QString
   Q_ASSERT(callID_ != "");
   if(callID_ == "")
   {
-    printWarning(this, "The SIP dialog has not been initialized, but it is used");
+    Logger::getLogger()->printWarning(this, "The SIP dialog has not been initialized, but it is used");
     return false;
   }
 
@@ -87,7 +89,7 @@ void SIPDialogState::initDialog()
     callID_ += "@" + localURI_.uri.hostport.host;
   }
 
-  printDebug(DEBUG_NORMAL, this, "Local dialog created",
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Local dialog created",
              {"Call-ID", "Tag"}, {callID_, localTag_});
 }
 
@@ -101,7 +103,7 @@ void SIPDialogState::setDialog(QString callID)
     localTag_ = generateRandomString(TAG_LENGTH);
   }
 
-  printDebug(DEBUG_NORMAL, this, "Received a dialog creating INVITE. Creating dialog.",
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Received a dialog creating INVITE. Creating dialog.",
              {"Call-ID", "Local Tag"}, {callID_, localTag_});
 }
 
@@ -113,12 +115,12 @@ void SIPDialogState::processOutgoingRequest(SIPRequest& request, QVariant& conte
   Q_ASSERT(localURI_.uri.userinfo.user != "" && localURI_.uri.hostport.host != "");
   Q_ASSERT(remoteURI_.uri.userinfo.user != "" && remoteURI_.uri.hostport.host != "");
 
-  printNormal(this, "Processing outgoing request");
+  Logger::getLogger()->printNormal(this, "Processing outgoing request");
 
   if(localURI_.uri.userinfo.user == "" || localURI_.uri.hostport.host == "" ||
      remoteURI_.uri.userinfo.user == "" || remoteURI_.uri.hostport.host == "")
   {
-    printDebug(DEBUG_PROGRAM_ERROR, "SIPDialogState",
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SIPDialogState",
                "The dialog state info has not been set, but we are using it.",
                 {"username", "host", "remote username", "remote host"},
                 {localURI_.uri.userinfo.user, localURI_.uri.hostport.host,
@@ -130,13 +132,13 @@ void SIPDialogState::processOutgoingRequest(SIPRequest& request, QVariant& conte
   {
     if (localCseq_ == UINT32_MAX)
     {
-      printProgramError(this, "Local CSeq does not exist in CANCEL");
+      Logger::getLogger()->printProgramError(this, "Local CSeq does not exist in CANCEL");
       return;
     }
 
     if (previousRequest_.method != SIP_INVITE)
     {
-      printProgramWarning(this, "Trying to CANCEL a non-INVITE request!");
+      Logger::getLogger()->printProgramWarning(this, "Trying to CANCEL a non-INVITE request!");
       return;
     }
 
@@ -190,19 +192,19 @@ void SIPDialogState::processOutgoingRequest(SIPRequest& request, QVariant& conte
     {
       if (request.method == SIP_ACK)
       {
-        printProgramError(this, "No cseq in ACK");
+        Logger::getLogger()->printProgramError(this, "No cseq in ACK");
         return;
       }
 
       localCseq_ = initialCSeqNumber();
-      printNormal(this, "Initializing local CSeq with first request", "CSeq", QString::number(localCseq_));
+      Logger::getLogger()->printNormal(this, "Initializing local CSeq with first request", "CSeq", QString::number(localCseq_));
     }
     else
     {
       if(request.method != SIP_ACK && request.method != SIP_CANCEL)
       {
         ++localCseq_;
-        printDebug(DEBUG_NORMAL, "SIPDialogState",  "Increasing CSeq",
+        Logger::getLogger()->printDebug(DEBUG_NORMAL, "SIPDialogState",  "Increasing CSeq",
                    {"CSeq"}, {QString::number(localCseq_)});
       }
     }
@@ -230,18 +232,18 @@ void SIPDialogState::processIncomingRequest(SIPRequest& request, QVariant& conte
   Q_UNUSED(content)
   Q_ASSERT(request.message);
 
-  printNormal(this, "Processing incoming request");
+  Logger::getLogger()->printNormal(this, "Processing incoming request");
 
   if (localURI_.uri.hostport.host == "" ||
       remoteURI_.uri.hostport.host == "")
   {
-    printProgramError(this, "Dialog state not initialized");
+    Logger::getLogger()->printProgramError(this, "Dialog state not initialized");
     return;
   }
 
   if(request.message->from.tagParameter == "")
   {
-    printDebug(DEBUG_PEER_ERROR, this,
+    Logger::getLogger()->printDebug(DEBUG_PEER_ERROR, this,
                "They did not provide their tag!");
     // TODO: send an error response.
     return;
@@ -249,7 +251,7 @@ void SIPDialogState::processIncomingRequest(SIPRequest& request, QVariant& conte
 
   if (callID_ == "" && request.method == SIP_INVITE)
   {
-    printDebug(DEBUG_NORMAL, "SIPDialogState",
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, "SIPDialogState",
                "Creating a dialog from incoming INVITE.");
 
     setDialog(request.message->callID);
@@ -274,7 +276,7 @@ void SIPDialogState::processIncomingRequest(SIPRequest& request, QVariant& conte
          ((request.method != SIP_ACK && request.method != SIP_CANCEL) ||
           request.message->cSeq.cSeq != remoteCseq_))
       {
-        printPeerError(this, "Invalid CSeq in received request");
+        Logger::getLogger()->printPeerError(this, "Invalid CSeq in received request");
         // TODO: if remote cseq in message is lower than remote cseq, send 500
         return;
       }

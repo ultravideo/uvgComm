@@ -2,6 +2,7 @@
 #include "ui_guimessage.h"
 
 #include "common.h"
+#include "logger.h"
 
 GUIMessage::GUIMessage(QWidget *parent) :
     QDialog(parent),
@@ -59,8 +60,8 @@ void GUIMessage::showMessage(Message message)
 
 void GUIMessage::accept()
 {
-  printNormal(this, "Closing message",
-              {"Waiting messages"}, {QString::number(waiting_.size())});
+  Logger::getLogger()->printNormal(this, "Closing message",
+                                   {"Waiting messages"}, {QString::number(waiting_.size())});
 
   if (!waiting_.empty())
   {

@@ -3,6 +3,7 @@
 #include "statisticsinterface.h"
 
 #include "common.h"
+#include "logger.h"
 
 #include <QDebug>
 
@@ -57,8 +58,8 @@ void Filter::removeOutConnection(std::shared_ptr<Filter> out)
 
   if(!removed)
   {
-    printDebug(DEBUG_WARNING, this,
-               "Did not succeed at removing outconnection.");
+    Logger::getLogger()->printDebug(DEBUG_WARNING, this,
+                                    "Did not succeed at removing outconnection.");
   }
 }
 
@@ -79,7 +80,7 @@ void Filter::putInput(std::unique_ptr<Data> data)
      || data->type == NONE
      || data->data_size == 0)
   {
-    printDebug(DEBUG_WARNING, this,  "Discarding bad data.");
+    Logger::getLogger()->printDebug(DEBUG_WARNING, this,  "Discarding bad data.");
     return;
   }
 
@@ -118,7 +119,8 @@ void Filter::putInput(std::unique_ptr<Data> data)
     {
       if(inBuffer_[0]->type == OPUSAUDIO)
       {
-        printDebug(DEBUG_WARNING, this,  "Should input Null pointer to decoder.");
+        Logger::getLogger()->printDebug(DEBUG_WARNING, this,  
+                                        "Should input Null pointer to opus decoder.");
       }
       inBuffer_.pop_front(); // discard the oldest
     }
@@ -155,8 +157,8 @@ void Filter::sendOutput(std::unique_ptr<Data> output)
 
   if(outDataCallbacks_.size() == 0 && outConnections_.size() == 0)
   {
-    printDebug(DEBUG_WARNING, this, 
-               "Trying to send output data without outconnections.");
+    Logger::getLogger()->printDebug(DEBUG_WARNING, this, 
+                                    "Trying to send output data without outconnections.");
     return;
   }
 
@@ -240,8 +242,8 @@ Data* Filter::shallowDataCopy(Data* original)
 
     return copy;
   }
-  printDebug(DEBUG_WARNING, this, 
-             "Trying to copy nullptr Data pointer.");
+  Logger::getLogger()->printDebug(DEBUG_WARNING, this, 
+                                  "Trying to copy nullptr Data pointer.");
   return nullptr;
 }
 
@@ -256,8 +258,8 @@ Data* Filter::deepDataCopy(Data* original)
 
     return copy;
   }
-  printDebug(DEBUG_WARNING, this, 
-             "Trying to copy nullptr Data pointer.");
+  Logger::getLogger()->printDebug(DEBUG_WARNING, this, 
+                                  "Trying to copy nullptr Data pointer.");
   return nullptr;
 }
 

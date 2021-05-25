@@ -37,7 +37,6 @@ const QString videoOpenHEVCThreads = "video/OPENHEVC_threads";
 const QString videoFramerateID = "video/FramerateID";
 const QString videoFramerate = "video/Framerate";
 const QString videoFlipEnabled = "video/flipEnabled";
-const QString videoForceFlip = "video/forceFlip";
 const QString videoOpenGL = "video/opengl";
 
 
@@ -77,6 +76,9 @@ const QString audioSignalType = "audio/signalType";
 
 // Speex DSP setting keys
 const QString audioAEC = "audio/aec";
+const QString audioAECDelay = "audio/aecPlaybackDelay";
+const QString audioAECFilterLength = "audio/aecFilterLength";
+
 const QString audioDenoise = "audio/denoise";
 const QString audioDereverb = "audio/dereverb";
 const QString audioAGC = "audio/agc";

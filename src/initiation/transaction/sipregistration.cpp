@@ -4,6 +4,7 @@
 
 #include "common.h"
 #include "global.h"
+#include "logger.h"
 
 #include <QVariant>
 
@@ -22,7 +23,7 @@ SIPRegistration::~SIPRegistration()
 
 void SIPRegistration::init(ServerStatusView *statusView)
 {
-  printNormal(this, "Initiating Registration");
+  Logger::getLogger()->printNormal(this, "Initiating Registration");
   statusView_ = statusView;
 
   QObject::connect(&retryTimer_, &QTimer::timeout,
@@ -40,7 +41,7 @@ void SIPRegistration::uninit()
     sendREGISTERRequest(0, DEREGISTERING);
   }
 
-  printNormal(this, "Finished uniniating registration");
+  Logger::getLogger()->printNormal(this, "Finished uniniating registration");
   return;
 }
 
@@ -48,8 +49,8 @@ void SIPRegistration::uninit()
 void SIPRegistration::bindToServer(NameAddr& addressRecord, QString localAddress,
                                     uint16_t port)
 {
-  printNormal(this, "Binding to server", {"Server"},
-              {addressRecord.uri.hostport.host});
+  Logger::getLogger()->printNormal(this, "Binding to server", {"Server"},
+                                   {addressRecord.uri.hostport.host});
 
   status_ = INACTIVE;
   contactAddress_ = localAddress;
@@ -82,18 +83,18 @@ void SIPRegistration::processIncomingResponse(SIPResponse& response, QVariant& c
             (contactAddress_ != response.message->vias.at(0).receivedAddress ||
              contactPort_ != response.message->vias.at(0).rportValue))
         {
-          printNormal(this, "Detected that we are behind NAT!");
+          Logger::getLogger()->printNormal(this, "Detected that we are behind NAT!");
 
           // we want to remove the previous registration so it doesn't cause problems
           if (status_ == FIRST_REGISTRATION)
           {
-            printNormal(this, "Resetting previous registration");
+            Logger::getLogger()->printNormal(this, "Resetting previous registration");
             sendREGISTERRequest(0, DEREGISTERING);
             return;
           }
           else if (status_ == DEREGISTERING)// the actual NAT registration
           {
-            printNormal(this, "Sending the final NAT REGISTER");
+            Logger::getLogger()->printNormal(this, "Sending the final NAT REGISTER");
             contactAddress_ = response.message->contact.first().address.uri.hostport.host;
             contactPort_ = response.message->contact.first().address.uri.hostport.port;
             // makes sure we don't end up in infinite loop if the address doesn't match
@@ -106,7 +107,7 @@ void SIPRegistration::processIncomingResponse(SIPResponse& response, QVariant& c
           }
           else
           {
-            printError(this, "The Registration response does not match internal state");
+            Logger::getLogger()->printError(this, "The Registration response does not match internal state");
           }
         }
         else
@@ -121,7 +122,7 @@ void SIPRegistration::processIncomingResponse(SIPResponse& response, QVariant& c
           retryTimer_.start(REGISTER_SEND_PERIOD);
         }
 
-        printNormal(this, "Registration was successful.");
+        Logger::getLogger()->printNormal(this, "Registration was successful.");
       }
       else if (response.type == SIP_UNAUTHORIZED)
       {
@@ -133,18 +134,18 @@ void SIPRegistration::processIncomingResponse(SIPResponse& response, QVariant& c
       }
       else
       {
-        printDebug(DEBUG_ERROR, this, "REGISTER-request failed");
+        Logger::getLogger()->printDebug(DEBUG_ERROR, this, "REGISTER-request failed");
         statusView_->updateServerStatus(response.text);
       }
     }
     else
     {
-      printPeerError(this, "Got a resonse to REGISTRATION we didn't send");
+      Logger::getLogger()->printPeerError(this, "Got a resonse to REGISTRATION we didn't send");
     }
   }
   else
   {
-    printUnimplemented(this, "Processing of Non-REGISTER requests");
+    Logger::getLogger()->printUnimplemented(this, "Processing of Non-REGISTER requests");
   }
 }
 
@@ -154,7 +155,7 @@ void SIPRegistration::refreshRegistration()
   // no need to continue refreshing if we have no active registrations
   if (!haveWeRegistered())
   {
-    printWarning(this, "Not refreshing our registrations, because we have none!");
+    Logger::getLogger()->printWarning(this, "Not refreshing our registrations, because we have none!");
     retryTimer_.stop();
     return;
   }

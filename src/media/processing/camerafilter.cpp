@@ -6,6 +6,7 @@
 #include "settingskeys.h"
 
 #include "common.h"
+#include "logger.h"
 
 #include <QSettings>
 #include <QCameraInfo>
@@ -53,7 +54,7 @@ void CameraFilter::updateSettings()
       resolutionID != currentResolutionID_ ||
       framerateID != currentFramerateID_)
   {
-    printNormal(this, "Updating camera settings since they have changed");
+    Logger::getLogger()->printNormal(this, "Updating camera settings since they have changed");
 
     // TODO: Just set the viewfinder settings instead for restarting camera.
     // Settings the viewfinder does not always restart camera.
@@ -106,7 +107,7 @@ bool CameraFilter::initialCameraSetup()
 
   if(cameras.size() == 0)
   {
-    printWarning(this, "No camera found!");
+    Logger::getLogger()->printWarning(this, "No camera found!");
     return false;
   }
 
@@ -123,19 +124,20 @@ bool CameraFilter::initialCameraSetup()
     {
       if(cameras.at(i).description() == currentDeviceName_)
       {
-        printDebug(DEBUG_NORMAL, this, "Found the camera.", {"Description", "ID"},
+        Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Found the camera.", {"Description", "ID"},
                    {cameras.at(i).description(), QString::number(i)});
         currentDeviceID_ = i;
         break;
       }
     }
     // previous camera could not be found, use first.
-    printDebug(DEBUG_NORMAL, this, "Did not find the camera. Using first.", {"Settings camera", "First camera"},
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Did not find the camera. Using first.", 
+                                    {"Settings camera", "First camera"},
                {currentDeviceName_, cameras.at(0).description()});
     currentDeviceID_ = 0;
   }
 
-  printDebug(DEBUG_NORMAL, this, "Initiating Qt camera", {"ID"},
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Initiating Qt camera", {"ID"},
               {QString::number(currentDeviceID_)});
 
   if (currentDeviceID_ < cameras.size())
@@ -171,7 +173,7 @@ bool CameraFilter::cameraSetup()
       currentWaitTime += waitRoundMS;
       if (currentWaitTime >= totalWaitTime)
       {
-        printWarning(this, "Loading camera did not succeed.");
+        Logger::getLogger()->printWarning(this, "Loading camera did not succeed.");
         return false;
       }
     }
@@ -206,7 +208,8 @@ bool CameraFilter::cameraSetup()
     }
     else
     {
-      printError(this, "Input format not supported");
+      Logger::getLogger()->printError(this, "Input format not supported", 
+                                      {"Format"}, {currentInputFormat_});
       viewSettings.setPixelFormat(QVideoFrame::Format_Invalid);
       output_ = NONE;
       return false;
@@ -238,7 +241,7 @@ bool CameraFilter::cameraSetup()
 #ifndef __linux__
     if (!framerates.empty())
     {
-      if(currentFramerateID_ < framerates.size())
+      if(currentFramerateID_ < framerates.size() && currentFramerateID_ >= 0)
       {
         viewSettings.setMaximumFrameRate(framerates.at(currentFramerateID_).maximumFrameRate);
         viewSettings.setMinimumFrameRate(framerates.at(currentFramerateID_).minimumFrameRate);
@@ -253,7 +256,7 @@ bool CameraFilter::cameraSetup()
     viewSettings.setMinimumFrameRate(30);
 #endif
 
-    printDebug(DEBUG_NORMAL, this, "Using the following camera settings.",
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Using the following camera settings.",
                {"Format", "Resolution", "Framerate"}, {currentInputFormat_,
                QString::number(viewSettings.resolution().width()) + "x" + QString::number(viewSettings.resolution().height()),
                QString::number(viewSettings.minimumFrameRate()) + " to " + QString::number(viewSettings.maximumFrameRate())});
@@ -265,7 +268,7 @@ bool CameraFilter::cameraSetup()
     camera_->setViewfinderSettings(viewSettings);
     camera_->start();
 
-    printImportant(this, "Starting camera.");
+    Logger::getLogger()->printImportant(this, "Starting camera.");
   }
   else
   {
@@ -308,7 +311,7 @@ void CameraFilter::process()
 {
   if(frames_.empty())
   {
-    printWarning(this, "No frame.");
+    Logger::getLogger()->printWarning(this, "No frame.");
     return;
   }
 
@@ -338,10 +341,34 @@ void CameraFilter::process()
     newImage->source = LOCAL;
     newImage->framerate = framerate_;
 
+
+
     std::unique_ptr<Data> u_newImage( newImage );
     cloneFrame.unmap();
 
     Q_ASSERT(u_newImage->data);
+
+#ifndef _WIN32
+
+    // This is a fix for correct video orientation. Still not sure why the screen
+    // is flipped on linux. It may be possible that it just is that way or that some
+    // some optimization/conversion flips the view and windows has the actual problem.
+
+    // TODO: Flipping with Qt is slow
+    if(newImage->type == RGB32VIDEO)
+    {
+      QImage image(
+            newImage->data.get(),
+            newImage->width,
+            newImage->height,
+            QImage::Format_RGB32);
+      image = image.mirrored(false, true);
+
+      memcpy(newImage->data.get(), image.bits(), newImage->data_size);
+    }
+
+#endif
+
     sendOutput(std::move(u_newImage));
   }
 }

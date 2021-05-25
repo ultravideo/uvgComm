@@ -2,6 +2,7 @@
 
 #include "icesessiontester.h"
 #include "common.h"
+#include "logger.h"
 #include "global.h"
 
 #include <QNetworkInterface>
@@ -29,7 +30,7 @@ ICE::~ICE()
 
 void ICE::processOutgoingRequest(SIPRequest& request, QVariant& content)
 {
-  printNormal(this, "Processing outgoing request");
+  Logger::getLogger()->printNormal(this, "Processing outgoing request");
 
   // Add ice as supported module so the other one can anticipate need for ice
   if (request.method == SIP_INVITE || request.method == SIP_OPTIONS)
@@ -64,7 +65,7 @@ void ICE::processOutgoingResponse(SIPResponse& response, QVariant& content)
 
 void ICE::processIncomingRequest(SIPRequest& request, QVariant& content)
 {
-  printNormal(this, "Processing incoming request");
+  Logger::getLogger()->printNormal(this, "Processing incoming request");
 
   if (request.method == SIP_INVITE || request.method == SIP_OPTIONS)
   {
@@ -150,7 +151,7 @@ QList<std::shared_ptr<ICEInfo>> ICE::generateICECandidates(
     std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > stunBindings,
     std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > turnCandidates)
 {
-  printDebug(DEBUG_NORMAL, this, "Start Generating ICE candidates", {
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Start Generating ICE candidates", {
                "Local", "Global", "STUN", "STUN relays", "TURN"},
             {QString::number(localCandidates->size()),
              QString::number(globalCandidates->size()),
@@ -176,7 +177,7 @@ QList<std::shared_ptr<ICEInfo>> ICE::generateICECandidates(
   }
   else
   {
-    printProgramError(this, "STUN bindings don't match");
+    Logger::getLogger()->printProgramError(this, "STUN bindings don't match");
   }
   addCandidates(turnCandidates, nullptr, foundation, RELAY, 0, iceCandidates);
 
@@ -193,7 +194,7 @@ void ICE::addCandidates(std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> 
 
   if (!includeRelayAddress && type != HOST && !addresses->empty())
   {
-    printProgramError(this, "Bindings not given for non host cadidate!");
+    Logger::getLogger()->printProgramError(this, "Bindings not given for non host cadidate!");
     return;
   }
 
@@ -269,7 +270,8 @@ std::shared_ptr<ICEInfo> ICE::makeCandidate(uint32_t foundation,
   }
   else
   {
-    printProgramError(this, "Peer reflexive candidates not possible at this point");
+    Logger::getLogger()->printProgramError(this, "Peer reflexive candidates not "
+                                                 "possible at this point");
     return nullptr;
   }
 
@@ -290,8 +292,8 @@ void ICE::printCandidates(QList<std::shared_ptr<ICEInfo>>& candidates)
                                " Priority: " + candidate->priority);
   }
 
-  printDebug(DEBUG_NORMAL, this, "Generated the following ICE candidates",
-             candidateNames, candidateStrings);
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Generated the following ICE candidates", 
+                                  candidateNames, candidateStrings);
 }
 
 
@@ -326,7 +328,8 @@ QList<std::shared_ptr<ICEPair>> ICE::makeCandidatePairs(
     }
   }
 
-  printNormal(this, "Created " + QString::number(pairs.size()) + " candidate pairs");
+  Logger::getLogger()->printNormal(this, "Created " + QString::number(pairs.size()) + 
+                                         " candidate pairs");
   return pairs;
 }
 
@@ -334,7 +337,7 @@ QList<std::shared_ptr<ICEPair>> ICE::makeCandidatePairs(
 void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local,
                           QList<std::shared_ptr<ICEInfo>>& remote, bool controller)
 {
-  printImportant(this, "Starting ICE nomination");
+  Logger::getLogger()->printImportant(this, "Starting ICE nomination");
 
   // Starts a SessionTester which is responsible for handling
   // connectivity checks and nomination.
@@ -380,7 +383,8 @@ void ICE::handeICESuccess(QList<std::shared_ptr<ICEPair>> &streams)
       streams.at(1) == nullptr ||
       streams.size() != STREAM_COMPONENTS)
   {
-    printProgramError(this,  "The ICE results don't make sense even though they should");
+    Logger::getLogger()->printProgramError(this,  "The ICE results don't make " 
+                                                  "sense even though they should");
     handleICEFailure();
   }
   else 
@@ -395,7 +399,7 @@ void ICE::handeICESuccess(QList<std::shared_ptr<ICEPair>> &streams)
                     component->remote->address + ":" + QString::number(component->remote->port));
     }
 
-    printDebug(DEBUG_IMPORTANT, this, "ICE finished.", names, values);
+    Logger::getLogger()->printDebug(DEBUG_IMPORTANT, this, "ICE finished.", names, values);
 
     // end other tests. We have a winner.
     agent_->quit();
@@ -413,7 +417,8 @@ void ICE::handeICESuccess(QList<std::shared_ptr<ICEPair>> &streams)
 
 void ICE::handleICEFailure()
 {
-  printDebug(DEBUG_ERROR, "ICE",  "Failed to nominate RTP/RTCP candidates!");
+  Logger::getLogger()->printDebug(DEBUG_ERROR, "ICE",  
+                                  "Failed to nominate RTP/RTCP candidates!");
 
   agent_->quit();
   connectionNominated_ = false;

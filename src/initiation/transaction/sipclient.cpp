@@ -4,6 +4,7 @@
 #include "initiation/transaction/sipdialogstate.h"
 
 #include "common.h"
+#include "logger.h"
 
 #include <QVariant>
 
@@ -23,17 +24,17 @@ SIPClient::~SIPClient()
 
 void SIPClient::processOutgoingRequest(SIPRequest& request, QVariant& content)
 {
-  printNormal(this, "Processing outgoing request");
+  Logger::getLogger()->printNormal(this, "Processing outgoing request");
 
   if (ongoingTransactionType_ != SIP_NO_REQUEST && request.method != SIP_CANCEL)
   {
-    printProgramWarning(this, "Tried to send a request "
+    Logger::getLogger()->printProgramWarning(this, "Tried to send a request "
                               "while previous transaction has not finished");
     return;
   }
   else if (ongoingTransactionType_ == SIP_NO_REQUEST && request.method == SIP_CANCEL)
   {
-    printProgramWarning(this, "Tried to cancel a transaction that does not exist!");
+    Logger::getLogger()->printProgramWarning(this, "Tried to cancel a transaction that does not exist!");
     return;
   }
 
@@ -56,13 +57,14 @@ void SIPClient::processOutgoingRequest(SIPRequest& request, QVariant& content)
 
 void SIPClient::processIncomingResponse(SIPResponse& response, QVariant& content)
 {
-  printNormal(this, "Client starts processing response");
+  Logger::getLogger()->printNormal(this, "Client starts processing response");
 
   int responseCode = response.type;
 
   if (!checkTransactionType(response.message->cSeq.method))
   {
-    printPeerError(this, "Their response transaction type is not the same as our request!");
+    Logger::getLogger()->printPeerError(this, "Their response transaction type "
+                                              "is not the same as our request!");
 
     emit failure("Received wrong transaction type");
     return;
@@ -72,7 +74,7 @@ void SIPClient::processIncomingResponse(SIPResponse& response, QVariant& content
   // Refreshes timeout timer.
   if (responseCode >= 100 && responseCode <= 199)
   {
-    printNormal(this, "Got a provisional response. Restarting timer.");
+    Logger::getLogger()->printNormal(this, "Got a provisional response. Restarting timer.");
     if (response.message->cSeq.method == SIP_INVITE &&
         responseCode == SIP_RINGING && expires_ != nullptr)
     {
@@ -155,7 +157,8 @@ void SIPClient::processTimeout()
 
 void SIPClient::requestTimeOut()
 {
-  printWarning(this, "No response. Request timed out.",
-    {"Ongoing transaction"}, {QString::number(ongoingTransactionType_)});
+  Logger::getLogger()->printWarning(this, "No response. Request timed out.",
+                                          {"Ongoing transaction"}, 
+                                          {QString::number(ongoingTransactionType_)});
   processTimeout();
 }

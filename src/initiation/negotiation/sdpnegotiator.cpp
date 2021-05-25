@@ -3,6 +3,7 @@
 #include "mediacapabilities.h"
 
 #include "common.h"
+#include "logger.h"
 
 #include <QDateTime>
 
@@ -14,8 +15,9 @@ std::shared_ptr<SDPMessageInfo> SDPNegotiator::generateLocalSDP(QString localAdd
 {
   // TODO: This should ask media manager, what options it supports.
 
-  printNormal(this, "Generating new SDP message with our address",
-              "Local address", localAddress);
+  Logger::getLogger()->printNormal(this,
+                                   "Generating new SDP message with our address",
+                                   "Local address", localAddress);
 
   QString localUsername = getLocalUsername();
 
@@ -23,8 +25,9 @@ std::shared_ptr<SDPMessageInfo> SDPNegotiator::generateLocalSDP(QString localAdd
      || localAddress == "0.0.0.0"
      || localUsername == "")
   {
-    printWarning(this, " Necessary info not set for SDP generation",
-                 {"username"}, {localUsername});
+    Logger::getLogger()->printWarning(this,
+                                      "Necessary info not set for SDP generation",
+                                      {"username"}, {localUsername});
 
     return nullptr;
   }
@@ -137,7 +140,7 @@ bool SDPNegotiator::selectBestCodec(QList<uint8_t>& remoteNums,       QList<RTPM
       if(remoteCodec.codec == supportedCodec.codec)
       {
         outMatchingCodecs.append(remoteCodec);
-        printDebug(DEBUG_NORMAL, "SDPNegotiator",  "Found suitable codec.");
+        Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPNegotiator",  "Found suitable codec.");
 
         outMatchingNums.push_back(remoteCodec.rtpNum);
 
@@ -153,14 +156,14 @@ bool SDPNegotiator::selectBestCodec(QList<uint8_t>& remoteNums,       QList<RTPM
       if(rtpNumber == supportedNum)
       {
         outMatchingNums.append(rtpNumber);
-        printDebug(DEBUG_NORMAL, "SDPNegotiator",  "Found suitable RTP number.");
+        Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPNegotiator",  "Found suitable RTP number.");
         return true;
       }
     }
   }
 
-  printDebug(DEBUG_ERROR, "SDPNegotiator",
-             "Could not find suitable codec or RTP number for media.");
+  Logger::getLogger()->printDebug(DEBUG_ERROR, "SDPNegotiator",
+                                  "Could not find suitable codec or RTP number for media.");
 
   return false;
 }
@@ -244,8 +247,10 @@ bool SDPNegotiator::checkSDPOffer(SDPMessageInfo &offer) const
 
   if(offer.version != 0)
   {
-    printPeerError(this, "Their offer had non-0 version", "Version",
-                   QString::number(offer.version));
+    Logger::getLogger()->printPeerError(this,
+                                        "Their offer had non-0 version",
+                                        "Version",
+                                        QString::number(offer.version));
     return false;
   }
 
@@ -273,7 +278,7 @@ bool SDPNegotiator::checkSDPOffer(SDPMessageInfo &offer) const
     }
   }
 
-  printDebug(DEBUG_NORMAL, "Negotiation",
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, "Negotiation",
              "Found following codecs in SDP", {"Codecs"}, debugCodecsFound);
 
   if (offer.timeDescriptions.size() >= 1)
@@ -281,13 +286,13 @@ bool SDPNegotiator::checkSDPOffer(SDPMessageInfo &offer) const
     if (offer.timeDescriptions.at(0).startTime != 0 ||
         offer.timeDescriptions.at(0).stopTime != 0)
     {
-      printDebug(DEBUG_ERROR, "Negotiation",
+      Logger::getLogger()->printDebug(DEBUG_ERROR, "Negotiation",
                  "They offered us a session with limits. Unsupported.");
       return false;
     }
   }
   else {
-    printDebug(DEBUG_PROGRAM_ERROR, "Negotiation",
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "Negotiation",
                "they included wrong number of Time Descriptions. Should be detected earlier.");
     return false;
   }
@@ -303,7 +308,8 @@ void SDPNegotiator::setMediaPair(MediaInfo& media,
 {
   if (mediaInfo == nullptr)
   {
-    printDebug(DEBUG_PROGRAM_ERROR, "SDPNegotiator", "Null mediainfo in setMediaPair");
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SDPNegotiator", 
+                                    "Null mediainfo in setMediaPair");
     return;
   }
 

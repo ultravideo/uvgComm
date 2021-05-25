@@ -6,25 +6,20 @@
 
 #include <stdint.h>
 #include <memory>
+#include <deque>
 
-class Filter;
 class StatisticsInterface;
-class AECProcessor;
 struct Data;
-
-// TODO: There should be an audio buffer with minimum and maximum values so we always have data to send.
+class AudioFrameBuffer;
 
 class AudioOutputDevice : public QIODevice
 {
   Q_OBJECT
 public:
-  AudioOutputDevice(StatisticsInterface* stats);
+  AudioOutputDevice();
   virtual ~AudioOutputDevice();
 
-  void updateSettings();
-
-  void init(QAudioFormat format,
-            std::shared_ptr<AECProcessor> AEC);
+  void init(QAudioFormat format);
   void start(); // resume audio output
   void stop(); // suspend audio output
 
@@ -32,26 +27,20 @@ public:
   qint64 writeData(const char *data, qint64 len) override;
   qint64 bytesAvailable() const override;
 
-  void addInput()
-  {
-    ++inputs_;
-  }
-
-  void removeInput()
-  {
-    --inputs_;
-  }
-
-  // Receives input from filter graph and tells output that there is input available
-  void takeInput(std::unique_ptr<Data> input, uint32_t sessionID);
+  // input one frame of audio
+  void input(std::unique_ptr<Data> input);
 
 private:
 
   void createAudioOutput();
 
-  std::unique_ptr<uchar[]> mixAudio(std::unique_ptr<Data> input, uint32_t sessionID);
+  uint8_t* createEmptyFrame(uint32_t size);
 
-  std::unique_ptr<uchar[]> doMixing(uint32_t frameSize);
+  void replaceLatestFrame(uint8_t* frame);
+
+  void destroyLatestFrame();
+
+  void writeFrame(char *data, qint64& read, uint8_t* frame);
 
   StatisticsInterface* stats_;
 
@@ -60,20 +49,11 @@ private:
   QIODevice *output_; // not owned
   QAudioFormat format_;
 
-  QMutex mixingMutex_;
-  std::map<uint32_t, std::unique_ptr<Data>> mixingBuffer_;
+  std::unique_ptr<AudioFrameBuffer> buffer_;
 
-  QMutex sampleMutex_;
-  // this will have the next played output audio. The same frame is played
-  // if no new frame has been received.
-  uint8_t* outputSample_;
-  uint32_t sampleSize_;
+  uint8_t* latestFrame_;
+  bool latestFrameIsSilence_;
 
-  unsigned int inputs_;
-
-  std::shared_ptr<AECProcessor> aec_;
-
-  bool mixedSample_;
   unsigned int outputRepeats_;
 
 private slots:

@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "settingskeys.h"
+#include "logger.h"
 
 #include <QMenu>
 #include <QCheckBox>
@@ -37,8 +38,9 @@ void restoreCheckBox(const QString settingValue, QCheckBox* box, QSettings& sett
   }
   else
   {
-    printDebug(DEBUG_ERROR, "Settings Helper", "Corrupted value for checkbox in settings file",
-               {"Key"}, {settingValue});
+    Logger::getLogger()->printDebug(DEBUG_ERROR, "Settings Helper", 
+                                    "Corrupted value for checkbox in settings file",
+                                    {"Key"}, {settingValue});
   }
 }
 
@@ -61,7 +63,8 @@ bool checkMissingValues(QSettings& settings)
   {
     if(settings.value(key).isNull() || settings.value(key) == "")
     {
-      printDebug(DEBUG_ERROR, "Settings Helper", "Missing setting found", {"Key"}, {key});
+      Logger::getLogger()->printDebug(DEBUG_ERROR, "Settings Helper", 
+                                      "Missing setting found", {"Key"}, {key});
       foundEverything = false;
     }
   }
@@ -78,8 +81,8 @@ bool checkSettingsList(QSettings& settings, const QStringList& keys)
   {
     if(!settings.contains(need))
     {
-      printDebug(DEBUG_WARNING, "Settings Helper",
-                 "Found missing setting. Resetting video settings", {"Missing key"}, {need});
+      Logger::getLogger()->printDebug(DEBUG_WARNING, "Settings Helper",
+                                      "Found missing setting. Resetting video settings", {"Missing key"}, {need});
       everythingPresent = false;
     }
   }
@@ -108,8 +111,9 @@ void listSettingsToGUI(QString filename, QString listName, QStringList values, Q
 
   int size = settings.beginReadArray(listName);
 
-  printDebug(DEBUG_NORMAL, "Settings Helper", "Reading list from settings", {"File", "List name", "Items"},
-             {filename, listName, QString::number(size)});
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, "Settings Helper", 
+                                  "Reading list from settings", {"File", "List name", "Items"},
+                                  {filename, listName, QString::number(size)});
 
 
   for(int i = 0; i < size; ++i)
@@ -130,8 +134,9 @@ void listSettingsToGUI(QString filename, QString listName, QStringList values, Q
 
 void listGUIToSettings(QString filename, QString listName, QStringList values, QTableWidget* table)
 {
-  printDebug(DEBUG_NORMAL, "Settings Helper", "Writing list from GUI to settings", {"File", "List name", "Table items"},
-             {filename, listName, QString::number(table->rowCount())});
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, "Settings Helper", 
+                                  "Writing list from GUI to settings", {"File", "List name", "Table items"},
+                                  {filename, listName, QString::number(table->rowCount())});
 
   QSettings settings(filename, settingsFileFormat);
 
@@ -152,12 +157,15 @@ void listGUIToSettings(QString filename, QString listName, QStringList values, Q
 void showContextMenu(const QPoint& pos, QTableWidget* table, QObject* processor,
                      QStringList actions, QStringList processSlots)
 {
-  printDebug(DEBUG_NORMAL, "Settings Helper", "Showing context menu.");
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, "Settings Helper", "Showing context menu.");
 
   if(actions.size() != processSlots.size())
   {
-    printDebug(DEBUG_PROGRAM_ERROR, "SettingsHelper",  "Different amounts of actions and slots",
-                    {"Actions", "Slots"}, {QString::number(actions.size()), QString::number(processSlots.size())});
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SettingsHelper",  
+                                    "Different amounts of actions and slots",
+                                    {"Actions", "Slots"}, 
+                                    {QString::number(actions.size()), 
+                                     QString::number(processSlots.size())});
     return;
   }
 
@@ -190,10 +198,11 @@ void restoreComboBoxValue(QString key, QComboBox* box,
 }
 
 
-int roundToThousands(int value)
+int roundToNumber(int value, int roundingNumber)
 {
-  int roundedValue = static_cast<int>((value + 500)/1000);
-  return roundedValue *= 1000;
+  int roundedValue = static_cast<int>((value + roundingNumber/2)/roundingNumber);
+  roundedValue *= roundingNumber;
+  return roundedValue;
 }
 
 

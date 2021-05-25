@@ -1,7 +1,9 @@
 #include "icepairtester.h"
 
 #include "stunmessage.h"
+
 #include "common.h"
+#include "logger.h"
 
 #include <QEventLoop>
 
@@ -94,13 +96,15 @@ void IcePairTester::run()
 {
   if (pair_ == nullptr)
   {
-    printProgramError(this, "Unable to test connection, candidate is NULL!");
+    Logger::getLogger()->printProgramError(this, "Unable to test connection, "
+                                                 "candidate is NULL!");
     return;
   }
 
   pair_->state = PAIR_IN_PROGRESS;
 
-  printNormal(this, debugType_ + " starts connectivity tests.", {"Pair"}, {debugPair_});
+  Logger::getLogger()->printNormal(this, debugType_ + " starts connectivity tests.", 
+                                   {"Pair"}, {debugPair_});
 
   // TODO: I believe the testing should be identical for controller and controllee
   // at binding phase and done simultaniously.
@@ -123,7 +127,8 @@ void IcePairTester::run()
 
   pair_->state = PAIR_SUCCEEDED;
 
-  printNormal(this, debugType_ + " found a connection", {"Pair"}, {debugPair_});
+  Logger::getLogger()->printNormal(this, debugType_ + " found a connection", 
+                                   {"Pair"}, {debugPair_});
 
   // controller performs the nomination process separately so we exit
   if (controller_)
@@ -140,7 +145,8 @@ void IcePairTester::run()
       return; // failed or interrupted
     }
 
-    printNormal(this, debugType_ + " nomination succeeded", {"Pair"}, {debugPair_});
+    Logger::getLogger()->printNormal(this, debugType_ + " nomination succeeded", 
+                                     {"Pair"}, {debugPair_});
 
     emit controlleeNominationDone(pair_);
   }
@@ -246,8 +252,9 @@ bool IcePairTester::controllerBinding(ICEPair *pair)
         if (!udp_->sendData(message, getLocalAddress(pair->local),
                             QHostAddress(pair->remote->address), pair->remote->port))
         {
-          printNormal(this, debugType_ + " failed to send STUN Binding request!",
-                     {"Pair"}, {debugPair_});
+          Logger::getLogger()->printNormal(this, debugType_ + 
+                                                 " failed to send STUN Binding request!",
+                                           {"Pair"}, {debugPair_});
 
           return false;
         }
@@ -261,8 +268,9 @@ bool IcePairTester::controllerBinding(ICEPair *pair)
 
   if (!msgReceived)
   {
-    printNormal(this, debugType_ + " did not receive STUN binding request from remote!",
-               {"Pair"}, {debugPair_});
+    Logger::getLogger()->printNormal(this, debugType_ + " did not receive "
+                                           "STUN binding request from remote!",
+                                     {"Pair"}, {debugPair_});
   }
 
   return msgReceived;
@@ -284,8 +292,8 @@ bool IcePairTester::controlleeBinding(ICEPair *pair)
     if(!udp_->sendData(message,  getLocalAddress(pair->local),
                        QHostAddress(pair->remote->address), pair->remote->port))
     {
-      printWarning(this, debugType_ + " failed to send dummy packet", {"Pair"},
-                  {debugPair_});
+      Logger::getLogger()->printWarning(this, debugType_ + " failed to send dummy packet", 
+                                        {"Pair"}, {debugPair_});
       return false;
     }
 
@@ -308,8 +316,9 @@ bool IcePairTester::controlleeBinding(ICEPair *pair)
         if (!udp_->sendData(message,  getLocalAddress(pair->local),
                             QHostAddress(pair->remote->address), pair->remote->port))
         {
-          printNormal(this, debugType_ + " failed to send STUN Binding response!",
-                     {"Pair"}, {debugPair_});
+          Logger::getLogger()->printNormal(this, debugType_ + 
+                                                " failed to send STUN Binding response!",
+                                           {"Pair"}, {debugPair_});
           return false;
         }
 
@@ -322,8 +331,8 @@ bool IcePairTester::controlleeBinding(ICEPair *pair)
 
   if (!msgReceived)
   {
-    printNormal(this, "Failed to receive STUN Binding Request from remote!", {"Pair"},
-                {debugPair_});
+    Logger::getLogger()->printNormal(this, "Failed to receive STUN Binding Request from remote!", 
+                                    {"Pair"}, {debugPair_});
 
     return false;
   }
@@ -384,8 +393,9 @@ bool IcePairTester::waitNominationSendResponse(ICEPair *pair)
     if (!udp_->sendData(message,  getLocalAddress(pair->local),
                         QHostAddress(pair->remote->address), pair->remote->port))
     {
-      printWarning(this, debugType_ + " failed to send dummy packet in nomination",
-                   {"Pair"}, {debugPair_});
+      Logger::getLogger()->printWarning(this, debugType_ + " failed to send "
+                                              "dummy packet in nomination",
+                                        {"Pair"}, {debugPair_});
       return false;
     }
 
@@ -407,8 +417,9 @@ bool IcePairTester::waitNominationSendResponse(ICEPair *pair)
         if (!udp_->sendData(message,  getLocalAddress(pair->local),
                             QHostAddress(pair->remote->address), pair->remote->port))
         {
-          printWarning(this, debugType_ + " failed to send nomination response",
-                       {"Pair"}, {debugPair_});
+          Logger::getLogger()->printWarning(this, debugType_ + 
+                                                 " failed to send nomination response",
+                                            {"Pair"}, {debugPair_});
           return false;
         }
 
@@ -421,8 +432,8 @@ bool IcePairTester::waitNominationSendResponse(ICEPair *pair)
 
   if (nominationRecv == false)
   {
-    printNormal(this, "Failed to receive STUN Nomination Request from remote!", {"Pair"}, {
-                   debugPair_});
+    Logger::getLogger()->printNormal(this, "Failed to receive STUN Nomination Request "
+                                           "from remote!", {"Pair"}, {debugPair_});
     return false;
   }
 
@@ -448,13 +459,15 @@ void IcePairTester::recvStunMessage(QNetworkDatagram message)
       if (controller_ && !stunMsg.hasAttribute(STUN_ATTR_ICE_CONTROLLED))
       {
         // TODO: When dummy packets are removed, enable this print
-        //printWarning(this, "Got request without controlled attribute and we are the controller");
+        //Logger::getLogger()->printWarning(this, "Got request without controlled attribute "
+        //                                        "and we are the controller");
         return; // fail
       }
       else if (!controller_ && !stunMsg.hasAttribute(STUN_ATTR_ICE_CONTROLLING))
       {
         // TODO: When dummy packets are removed, enable this print
-        //printWarning(this, "Got request without controlling attribute and we are not the controller");
+        //Logger::getLogger()->printWarning(this, "Got request without controlling attribute "
+        //                                        "and we are not the controller");
         return; // fail
       }
 
@@ -464,7 +477,8 @@ void IcePairTester::recvStunMessage(QNetworkDatagram message)
       {
         if (pair_->state != PAIR_SUCCEEDED)
         {
-          printError(this, "Pair in wrong state when receiving nomination request");
+          Logger::getLogger()->printError(this, "Pair in wrong state "
+                                                "when receiving nomination request");
           return; // fail
         }
 
@@ -474,7 +488,8 @@ void IcePairTester::recvStunMessage(QNetworkDatagram message)
       {
         if (pair_->state != PAIR_IN_PROGRESS)
         {
-          printError(this, "Pair in wrong state when receiving binding request");
+          Logger::getLogger()->printError(this, "Pair in wrong state "
+                                                "when receiving binding request");
           return; // fail
         }
 
@@ -483,7 +498,7 @@ void IcePairTester::recvStunMessage(QNetworkDatagram message)
     }
     else
     {
-      printWarning(this, "Received invalid STUN request in ice");
+      Logger::getLogger()->printWarning(this, "Received invalid STUN request in ice");
     }
   }
   else if (stunMsg.getType() == STUN_RESPONSE)
@@ -496,18 +511,19 @@ void IcePairTester::recvStunMessage(QNetworkDatagram message)
     }
     else
     {
-      printWarning(this, "Received invalid STUN response in ICE");
+      Logger::getLogger()->printWarning(this, "Received invalid STUN response in ICE");
     }
   }
   else
   {
-     printDebug(DEBUG_WARNING, this,  "Received message with unknown type", {
-                  "type", "from", "to" }, {
-                  QString::number(stunMsg.getType()),
-                  message.senderAddress().toString() + ":" +
-                  QString::number(message.senderPort()),
-                  message.destinationAddress().toString() + ":" +
-                  QString::number(message.destinationPort())});
+     Logger::getLogger()->printDebug(DEBUG_WARNING, this,  
+                                     "Received message with unknown type", 
+                                     {"type", "from", "to" }, {
+                                     QString::number(stunMsg.getType()),
+                                     message.senderAddress().toString() + ":" +
+                                     QString::number(message.senderPort()),
+                                     message.destinationAddress().toString() + ":" +
+                                     QString::number(message.destinationPort())});
   }
 }
 
@@ -523,8 +539,8 @@ bool IcePairTester::sendRequestWaitResponse(ICEPair* pair, QByteArray& request,
                        QHostAddress(pair->remote->address),
                        pair->remote->port))
     {
-      printWarning(this, debugType_ + " failed to send dummy packet", {"Pair"},
-                  {debugPair_});
+      Logger::getLogger()->printWarning(this, debugType_ + " failed to send dummy packet", 
+                                       {"Pair"}, {debugPair_});
       return false;
     }
 
@@ -542,8 +558,9 @@ bool IcePairTester::sendRequestWaitResponse(ICEPair* pair, QByteArray& request,
 
   if (!msgReceived)
   {
-    printNormal(this, debugType_ + " failed to receive STUN Binding Response from remote!",
-               {"Pair"}, {debugPair_});
+    Logger::getLogger()->printNormal(this, debugType_ + " failed to receive "
+                                           "STUN Binding Response from remote!",
+                                     {"Pair"}, {debugPair_});
   }
 
   return msgReceived;

@@ -2,59 +2,43 @@
 
 #include "filter.h"
 #include "statisticsinterface.h"
-#include "aecprocessor.h"
+#include "audioframebuffer.h"
 
 #include "common.h"
 #include "global.h"
+#include "logger.h"
 
-#include <QDateTime>
 
-#include <QDebug>
+uint8_t MAX_SAMPLE_REPEATS = 5;
 
-AudioOutputDevice::AudioOutputDevice(StatisticsInterface *stats):
+uint8_t MAX_BUFFER_SIZE = AUDIO_FRAMES_PER_SECOND/5;
+
+
+AudioOutputDevice::AudioOutputDevice():
   QIODevice(),
-  stats_(stats),
   device_(QAudioDeviceInfo::defaultOutputDevice()),
   audioOutput_(nullptr),
   output_(nullptr),
   format_(),
-  sampleMutex_(),
-  outputSample_(nullptr),
-  sampleSize_(0),
-  inputs_(0),
-  mixedSample_(false),
+  buffer_(nullptr),
+  latestFrame_(nullptr),
+  latestFrameIsSilence_(true),
   outputRepeats_(0)
 {}
 
 
 AudioOutputDevice::~AudioOutputDevice()
 {
-  if (outputSample_ != nullptr)
-  {
-    delete outputSample_;
-    outputSample_ = nullptr;
-    sampleSize_ = 0;
-  }
+  audioOutput_->stop();
+  destroyLatestFrame();
 }
 
 
-void AudioOutputDevice::updateSettings()
+void AudioOutputDevice::init(QAudioFormat format)
 {
-  if (aec_)
-  {
-    aec_->updateSettings();
-  }
-}
-
-
-void AudioOutputDevice::init(QAudioFormat format,
-                             std::shared_ptr<AECProcessor> AEC)
-{
-  aec_ = AEC;
-
   QAudioDeviceInfo info(device_);
   if (!info.isFormatSupported(format)) {
-    printDebug(DEBUG_WARNING, this,
+    Logger::getLogger()->printDebug(DEBUG_WARNING, this,
                "Default format not supported - trying to use nearest.");
     format_ = info.nearestFormat(format);
   }
@@ -69,36 +53,35 @@ void AudioOutputDevice::init(QAudioFormat format,
 
 void AudioOutputDevice::createAudioOutput()
 {
-  if (!aec_)
-  {
-    printProgramError(this, "AEC not set");
-  }
-
   if(audioOutput_)
   {
     delete audioOutput_;
   }
   audioOutput_ = new QAudioOutput(device_, format_, this);
 
-  if (outputSample_ != nullptr)
-  {
-    delete outputSample_;
-    sampleSize_ = 0;
-  }
-
-  sampleSize_ = format_.sampleRate()*format_.bytesPerFrame()/AUDIO_FRAMES_PER_SECOND;
-  outputSample_ = aec_->createEmptyFrame(sampleSize_);
+  // it is possible to reduce the buffer size here to reduce latency, but this
+  // causes issues with audio reliability with Qt and is not recommended.
 
   open(QIODevice::ReadOnly);
   // pull mode
+
   audioOutput_->start(this);
+
+  buffer_ = std::make_unique<AudioFrameBuffer>(audioOutput_->periodSize());
+
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Created audio output",
+             {"Notify interval", "Buffer size", "Period Size"},
+             {QString::number(audioOutput_->notifyInterval()),
+              QString::number(audioOutput_->bufferSize()),
+              QString::number(audioOutput_->periodSize())});
 }
 
 
 void AudioOutputDevice::deviceChanged(int index)
 {
   Q_UNUSED(index);
-  printUnimplemented(this, "Audio output device change not implemented fully.");
+  Logger::getLogger()->printUnimplemented(this, "Audio output device change "
+                                                "not implemented fully.");
 
   audioOutput_->stop();
   audioOutput_->disconnect(this);
@@ -115,59 +98,90 @@ void AudioOutputDevice::volumeChanged(int value)
 
 qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
 {
-  uint32_t read = 0;
-  if (maxlen < sampleSize_)
+  qint64 read = 0;
+
+  // make sure we are giving the correct size audio frames
+  if (audioOutput_->periodSize() != buffer_->getDesiredSize())
   {
-    printWarning(this, "Read too little audio data.", {"Read vs available"}, {
-                   QString::number(maxlen) + " vs " + QString::number(sampleSize_)});
+    buffer_->changeDesiredFrameSize(audioOutput_->periodSize());
   }
-  else
+
+  if (maxlen < buffer_->getDesiredSize())
   {
-    if (audioOutput_->periodSize() > sampleSize_)
-    {
-      printWarning(this, "The audio Frame size is too small. "
-                         "Buffer output underflow.", {"PeriodSize vs frame size"}, {
-                     QString::number(audioOutput_->periodSize()) + " vs " +
-                     QString::number(sampleSize_)});
-    }
-
-    if (!aec_)
-    {
-      printProgramError(this, "AEC not set");
-    }
-
-    // if no new input has arrived, we play the last sample
-    sampleMutex_.lock();
-
-    // we keep track if this is a repeat so we can change it to silence.
-    if (!mixedSample_)
-    {
-      ++outputRepeats_;
-    }
-    else
-    {
-      mixedSample_ = false;
-    }
-
-    // start playing silence if we played last frame three times.
-    if (outputRepeats_ == 3)
-    {
-      if (outputSample_ != nullptr)
-      {
-        delete[] outputSample_;
-      }
-
-      outputSample_ = aec_->createEmptyFrame(sampleSize_);
-    }
-
-    // send sample to AEC
-    aec_->processEchoFrame(outputSample_, sampleSize_);
-
-    // send sample to speakers
-    memcpy(data, outputSample_, sampleSize_);
-    read = sampleSize_;
-    sampleMutex_.unlock();
+    return read;
   }
+
+  // on windows, read as many frames from buffer to output as possible
+  // on linux, we only read one sample, since it seems to work better
+  uint8_t* frame = buffer_->readFrame();
+
+#ifdef __linux__
+  if (frame)
+  {
+    writeFrame(data, read, frame);
+  }
+
+#else
+  while (frame)
+  {
+    writeFrame(data, read, frame);
+
+    if (maxlen - read < buffer_->getDesiredSize())
+    {
+      break;
+    }
+
+    frame = buffer_->readFrame();
+  }
+
+#endif
+
+  // make sure buffer doesn't grow too large
+  while (MAX_BUFFER_SIZE < buffer_->getBufferSize())
+  {
+    Logger::getLogger()->printWarning(this, "The output device buffer is too large. Dropping audio frames",
+                 "Buffer Status",
+                 QString::number(buffer_->getBufferSize()) + "/" + QString::number(MAX_BUFFER_SIZE));
+
+    frame = buffer_->readFrame();
+    replaceLatestFrame(frame);
+  }
+
+  // If we failed to read any frames, we have to put something (previous or
+  // an empty frame) into output. Otherwise trouble ensues (Qt stops asking for frames).
+  if (read == 0)
+  {
+    // we have to give output something
+    if (latestFrame_ == nullptr)
+    {
+      Logger::getLogger()->printWarning(this, "No output audio frame available "
+                                              "in time and no previous frame available. Playing silence");
+      // equals to silence
+      latestFrame_ = createEmptyFrame(buffer_->getDesiredSize());
+      latestFrameIsSilence_ = true;
+    }
+    else if (outputRepeats_ >= MAX_SAMPLE_REPEATS && !latestFrameIsSilence_)
+    {
+      Logger::getLogger()->printWarning(this, "No output audio frame available in time. Switching to silence");
+      destroyLatestFrame();
+      latestFrame_ = createEmptyFrame(buffer_->getDesiredSize());
+      outputRepeats_ = 0;
+      latestFrameIsSilence_ = true;
+    }
+    else if (!latestFrameIsSilence_)
+    {
+      Logger::getLogger()->printWarning(this, "No output audio frame available in time. "
+                                              "Repeating previous audio frame",
+                                        {"Consecutive repeats"}, {QString::number(outputRepeats_ + 1)});
+    }
+
+    memcpy(data + read, latestFrame_, buffer_->getDesiredSize());
+    read += buffer_->getDesiredSize();
+
+    // keep track of repeats so we can switch to silence at some point.
+    ++outputRepeats_;
+  }
+
   return read;
 }
 
@@ -178,7 +192,7 @@ qint64 AudioOutputDevice::writeData(const char *data, qint64 len)
   Q_UNUSED(len);
 
   // output does not write data to device, only reads it.
-  printProgramWarning(this, "Why is output writing to us");
+  Logger::getLogger()->printProgramWarning(this, "Why is output writing to us");
 
   return 0;
 }
@@ -186,130 +200,24 @@ qint64 AudioOutputDevice::writeData(const char *data, qint64 len)
 
 qint64 AudioOutputDevice::bytesAvailable() const
 {
-  return sampleSize_ + QIODevice::bytesAvailable();
+  return buffer_->getDesiredSize() + QIODevice::bytesAvailable();
 }
 
 
-void AudioOutputDevice::takeInput(std::unique_ptr<Data> input, uint32_t sessionID)
+void AudioOutputDevice::input(std::unique_ptr<Data> input)
 {
+  if (input->type != RAWAUDIO)
+  {
+    Logger::getLogger()->printProgramError(this, "Audio output has received "
+                                                 "something other than raw audio!");
+    return;
+  }
+
   if (audioOutput_ && audioOutput_->state() != QAudio::StoppedState)
   {
-    // Add audio delay to statistics
-    int64_t delay = QDateTime::currentMSecsSinceEpoch() - input->presentationTime;
-
-    stats_->receiveDelay(sessionID, "Audio", delay);
-
-    int dataLeft = input->data_size;
-
-    // we record one sample to buffer in case there is a packet loss,
-    // just so we don't have any breaks
-    std::unique_ptr<uchar[]> outputFrame;
-
-    if (inputs_ < 2)
-    {
-      outputFrame = std::move(input->data);
-    }
-    else
-    {
-      outputFrame = mixAudio(std::move(input), sessionID);
-
-      // if we are still waiting for other samples to mix
-      if (outputFrame == nullptr)
-      {
-        return;
-      }
-    }
-
-    sampleMutex_.lock();
-    mixedSample_ = true;
-    outputRepeats_ = 0;
-
-    if (sampleSize_ != dataLeft)
-    {
-      outputSample_ = aec_->createEmptyFrame(dataLeft);
-      sampleSize_ = dataLeft;
-    }
-
-    // I don't like this memcpy, but visual studio had problems with smart pointers.
-    memcpy(outputSample_, outputFrame.get(), sampleSize_);
-    sampleMutex_.unlock();
+    // buffer handles the correct size of the audio frame for output
+    buffer_->inputData(input->data.get(), input->data_size);
   }
-}
-
-
-std::unique_ptr<uchar[]> AudioOutputDevice::mixAudio(std::unique_ptr<Data> input,
-                                                     uint32_t sessionID)
-{
-  std::unique_ptr<uchar[]> outputFrame = nullptr;
-  mixingMutex_.lock();
-  // mix if there is already a sample for this stream in buffer
-  if (mixingBuffer_.find(sessionID) != mixingBuffer_.end())
-  {
-    printWarning(this, "Mixing overflow. Missing samples.");
-    outputFrame = doMixing(input->data_size);
-    mixingBuffer_[sessionID] = std::move(input);
-  }
-  else
-  {
-    uint32_t size = input->data_size;
-    mixingBuffer_[sessionID] = std::move(input);
-
-    // mix if there is a sample for all streams
-    if (mixingBuffer_.size() == inputs_)
-    {
-      outputFrame = doMixing(size);
-    }
-  }
-
-  mixingMutex_.unlock();
-
-  return outputFrame;
-}
-
-
-std::unique_ptr<uchar[]> AudioOutputDevice::doMixing(uint32_t frameSize)
-{
-  // don't do mixing if we have only one stream.
-  if (mixingBuffer_.size() == 1)
-  {
-    std::unique_ptr<uchar[]> oneSample = std::move(mixingBuffer_.begin()->second->data);
-    mixingBuffer_.clear();
-    return oneSample;
-  }
-
-  std::unique_ptr<uchar[]> result = std::unique_ptr<uint8_t[]>(new uint8_t[frameSize]);
-  int16_t * output_ptr = (int16_t*)result.get();
-
-  for (unsigned int i = 0; i < frameSize/2; ++i)
-  {
-    int32_t sum = 0;
-
-    // This is in my understanding the correct way to do audio mixing. Just add them up.
-    for (auto& buffer : mixingBuffer_)
-    {
-      sum += *((int16_t*)buffer.second->data.get() + i);
-    }
-
-    // clipping is not desired, but occurs rarely
-    // TODO: Replace this with dynamic range compression
-    if (sum > INT16_MAX)
-    {
-      printWarning(this, "Clipping audio", "Value", QString::number(sum));
-      sum = INT16_MAX;
-    }
-    else if (sum < INT16_MIN)
-    {
-      printWarning(this, "Boosting audio", "Value", QString::number(sum));
-      sum = INT16_MIN;
-    }
-
-    *output_ptr = sum;
-    ++output_ptr;
-  }
-
-  mixingBuffer_.clear();
-
-  return result;
 }
 
 
@@ -320,7 +228,11 @@ void AudioOutputDevice::start()
   if(audioOutput_->state() == QAudio::SuspendedState
      || audioOutput_->state() == QAudio::StoppedState)
   {
+#ifdef __linux__
+    audioOutput_->start();
+#else
     audioOutput_->resume();
+#endif
   }
 }
 
@@ -329,8 +241,48 @@ void AudioOutputDevice::stop()
 {
   if(audioOutput_->state() == QAudio::ActiveState)
   {
+#ifdef __linux__
+    audioOutput_->stop();
+#else
     audioOutput_->suspend();
+#endif
   }
 
   close();
+}
+
+
+uint8_t* AudioOutputDevice::createEmptyFrame(uint32_t size)
+{
+  uint8_t* emptyFrame  = new uint8_t[size];
+  memset(emptyFrame, 0, size);
+  return emptyFrame;
+}
+
+
+void AudioOutputDevice::replaceLatestFrame(uint8_t* frame)
+{
+  destroyLatestFrame();
+  latestFrame_ = frame;
+  outputRepeats_ = 0;
+  latestFrameIsSilence_ = false;
+}
+
+void AudioOutputDevice::destroyLatestFrame()
+{
+  if (latestFrame_)
+  {
+    delete [] latestFrame_;
+    latestFrame_ = nullptr;
+  }
+}
+
+void AudioOutputDevice::writeFrame(char *data, qint64& read, uint8_t* frame)
+{
+  memcpy(data + read, frame, buffer_->getDesiredSize());
+  read += buffer_->getDesiredSize();
+
+  // Delete previous latest frame. This is how the memory is eventually freed
+  // for every frame.
+  replaceLatestFrame(frame);
 }

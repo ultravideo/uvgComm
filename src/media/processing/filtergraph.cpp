@@ -9,49 +9,66 @@
 #include "media/processing/displayfilter.h"
 #include "media/processing/scalefilter.h"
 #include "media/processing/audiocapturefilter.h"
-#include "media/processing/audiooutputdevice.h"
 #include "media/processing/opusencoderfilter.h"
 #include "media/processing/opusdecoderfilter.h"
-#include "media/processing/aecinputfilter.h"
+#include "media/processing/dspfilter.h"
 #include "media/processing/audiomixerfilter.h"
+#include "media/processing/audiooutputfilter.h"
 
 #include "ui/gui/videointerface.h"
+
+#include "speexaec.h"
+#include "audiomixer.h"
 
 #include "settingskeys.h"
 #include "global.h"
 #include "common.h"
+#include "logger.h"
 
 #include <QSettings>
 #include <QFile>
+#include <QTextStream>
+
+
+// speex DSP settings
+
+// We limit the gain so background noises don't start coming through in a quiet
+// audio stream.
+
+// The default Speex AGC volume seems to be 1191182336 which is around 55%.
+// 50% seems to be completely quiet
+
+// The input volume we want to normilize so the differences in mics and distance
+// from mic don't affect the sound as much
+const int32_t AUDIO_INPUT_VOLUME = 1191182336; // default
+const int AUDIO_INPUT_GAIN = 10; // dB
+
+// The output we want to normalize if we have multiple participants, two people
+// speaking at the same time should not sound very loud and only one person
+// speaking very quiet.
+const int32_t AUDIO_OUTPUT_VOLUME = INT32_MAX - INT32_MAX/4;
+const int AUDIO_OUTPUT_GAIN = 20; // dB
+
 
 FilterGraph::FilterGraph(): QObject(),
   peers_(),
   cameraGraph_(),
   screenShareGraph_(),
-  audioProcessing_(),
+  audioInputGraph_(),
+  audioOutputGraph_(),
   selfviewFilter_(nullptr),
   stats_(nullptr),
   format_(),
   videoFormat_(""),
   quitting_(false),
-  audioOutput_(nullptr)
+  aec_(nullptr),
+  mixer_()
 {
   // TODO negotiate these values with all included filters and SDP
   // TODO move these to settings and manage them automatically
 
-#ifndef __linux__
   // 48000 should be used with opus, since opus is able to downsample when needed
-  format_.setSampleRate(48000);
-#else
-  // Can be removed once uvgRTP supports pcm sample size 48000 or opus works on
-  // linux
-  format_.setSampleRate(16000);
-#endif
-  format_.setChannelCount(1);
-  format_.setSampleSize(16);
-  format_.setSampleType(QAudioFormat::SignedInt);
-  format_.setByteOrder(QAudioFormat::LittleEndian);
-  format_.setCodec("audio/pcm");
+  format_ = createAudioFormat(1, 48000);
 }
 
 
@@ -75,9 +92,10 @@ void FilterGraph::updateVideoSettings()
   QString wantedVideoFormat = settings.value(SettingsKey::videoInputFormat).toString();
   if(videoFormat_ != wantedVideoFormat)
   {
-    printDebug(DEBUG_NORMAL, this, "Video format changed. Reconstructing video send graph.",
-               {"Previous format", "New format"},
-               {videoFormat_, settings.value(SettingsKey::videoInputFormat).toString()});
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, 
+                                    "Video format changed. Reconstructing video send graph.",
+                                    {"Previous format", "New format"},
+                                    {videoFormat_, settings.value(SettingsKey::videoInputFormat).toString()});
 
 
     // update selfview in case camera format has changed
@@ -140,21 +158,26 @@ void FilterGraph::updateVideoSettings()
 
 void FilterGraph::updateAudioSettings()
 {
-  for(auto& filter : audioProcessing_)
+  for (auto& filter : audioInputGraph_)
   {
     filter->updateSettings();
   }
 
-  for(auto& peer : peers_)
+  for (auto& filter : audioOutputGraph_)
   {
-    if(peer.second != nullptr)
+    filter->updateSettings();
+  }
+
+  for (auto& peer : peers_)
+  {
+    if (peer.second != nullptr)
     {
       for (auto& senderFilter : peer.second->audioSenders)
       {
         senderFilter->updateSettings();
       }
 
-      for(auto& audioReceivers : peer.second->audioReceivers)
+      for (auto& audioReceivers : peer.second->audioReceivers)
       {
         for (auto& filter : *audioReceivers)
         {
@@ -164,9 +187,9 @@ void FilterGraph::updateAudioSettings()
     }
   }
 
-  if (audioOutput_ != nullptr)
+  if (aec_)
   {
-    audioOutput_->updateSettings();
+    aec_->updateSettings();
   }
 
   mic(settingEnabled(SettingsKey::micStatus));
@@ -175,12 +198,12 @@ void FilterGraph::updateAudioSettings()
 
 void FilterGraph::initSelfView()
 {
-  printNormal(this, "Iniating camera and selfview");
+  Logger::getLogger()->printNormal(this, "Iniating camera and selfview");
 
   QSettings settings(settingsFile, settingsFileFormat);
   videoFormat_ = settings.value(SettingsKey::videoInputFormat).toString();
 
-  if(cameraGraph_.size() > 0)
+  if (cameraGraph_.size() > 0)
   {
     destroyFilters(cameraGraph_);
   }
@@ -189,20 +212,21 @@ void FilterGraph::initSelfView()
   if (!addToGraph(std::shared_ptr<Filter>(new CameraFilter("", stats_)), cameraGraph_))
   {
     // camera failed
-    printError(this, "Failed to add camera. Does it have supported formats.");
+    Logger::getLogger()->printError(this, "Failed to add camera. Does it have supported formats.");
     return; // TODO: return false that we failed so user can fix camera selection
   }
 
   // create screen share filter, but it is stopped at the beginning
-  if(screenShareGraph_.size() == 0)
+  if (screenShareGraph_.size() == 0)
   {
-    if (addToGraph(std::shared_ptr<Filter>(new ScreenShareFilter("", stats_)), screenShareGraph_))
+    if (addToGraph(std::shared_ptr<Filter>(new ScreenShareFilter("", stats_)),
+                   screenShareGraph_))
     {
       screenShareGraph_.at(0)->stop();
     }
   }
 
-  if(selfviewFilter_)
+  if (selfviewFilter_)
   {
     // connect scaling filter
     // TODO: not useful if it does not support YUV. Testing needed to verify
@@ -215,13 +239,16 @@ void FilterGraph::initSelfView()
     // Connect selfview to camera and screen sharing. The self view vertical mirroring
     // depends on which conversions are used.
 
-    // TODO: Figure out what is going on. There is probably a bug in one of the optimization
-    // that flip the video. This however removes the need for an additional flip for some
-    // reason saving CPU.
+    // TODO: Figure out what is going on. There is probably a bug in one of the
+    // optimization that flip the video. This however removes the need for an
+    // additional flip for some reason saving CPU.
 
-    // we dont do horizontal mirroring if we are using screen sharing, but that is changed later
+    // We dont do horizontal mirroring if we are using screen sharing, but that
+    // is changed later.
     // Note: mirroring is slow with Qt
+
     selfviewFilter_->setProperties(true, cameraGraph_.at(0)->outputType() == RGB32VIDEO);
+
     addToGraph(selfviewFilter_, cameraGraph_);
     addToGraph(selfviewFilter_, screenShareGraph_);
   }
@@ -232,16 +259,16 @@ void FilterGraph::initSelfView()
 
 void FilterGraph::initVideoSend()
 {
-  printNormal(this, "Iniating video send");
+  Logger::getLogger()->printNormal(this, "Iniating video send");
 
   if(cameraGraph_.size() == 0)
   {
-    printProgramWarning(this, "Camera was not iniated for video send");
+    Logger::getLogger()->printProgramWarning(this, "Camera was not iniated for video send");
     initSelfView();
   }
   else if(cameraGraph_.size() > 3)
   {
-    printProgramError(this, "Too many filters in videosend");
+    Logger::getLogger()->printProgramError(this, "Too many filters in videosend");
     destroyFilters(cameraGraph_);
   }
 
@@ -254,23 +281,46 @@ void FilterGraph::initVideoSend()
 void FilterGraph::initializeAudio(bool opus)
 {
   // Do this before adding participants, otherwise AEC filter wont get attached
-  addToGraph(std::shared_ptr<Filter>(new AudioCaptureFilter("", format_, stats_)), audioProcessing_);
+  addToGraph(std::shared_ptr<Filter>(new AudioCaptureFilter("", format_, stats_)),
+             audioInputGraph_);
 
-  std::shared_ptr<AECInputFilter> aec = std::shared_ptr<AECInputFilter>(new AECInputFilter("", stats_));
-  aec->initInput(format_);
-  addToGraph(aec, audioProcessing_, audioProcessing_.size() - 1);
-
-  if (audioOutput_ == nullptr)
+  if (aec_ == nullptr)
   {
-    audioOutput_ = std::make_shared<AudioOutputDevice>(stats_);
-    audioOutput_->init(format_, aec->getAEC());
+    aec_ = std::make_shared<SpeexAEC>(format_);
+    aec_->init();
   }
+
+  // mixer helps mix the incoming audio streams into one output stream
+  if (mixer_ == nullptr)
+  {
+    mixer_ = std::make_shared<AudioMixer>();
+  }
+
+  // Do everything (AGC, AEC, denoise, dereverb) for input expect provide AEC reference
+  std::shared_ptr<DSPFilter> dspProcessor =
+      std::shared_ptr<DSPFilter>(new DSPFilter("", stats_, aec_, format_,
+                                               false, true, true, true, true, AUDIO_INPUT_VOLUME, AUDIO_INPUT_GAIN));
+
+  addToGraph(dspProcessor, audioInputGraph_, audioInputGraph_.size() - 1);
 
   if (opus)
   {
     addToGraph(std::shared_ptr<Filter>(new OpusEncoderFilter("", format_, stats_)),
-               audioProcessing_, audioProcessing_.size() - 1);
+               audioInputGraph_, audioInputGraph_.size() - 1);
   }
+
+  // Provide echo reference and do AGC once more so conference calls will have
+  // good volume levels.
+  std::shared_ptr<DSPFilter> echoReference =
+      std::make_shared<DSPFilter>("", stats_, aec_, format_,
+                                  true, false, false, false, true, AUDIO_OUTPUT_VOLUME, AUDIO_OUTPUT_GAIN);
+
+  addToGraph(echoReference, audioOutputGraph_);
+
+  std::shared_ptr<AudioOutputFilter> audioOutput =
+      std::make_shared<AudioOutputFilter>("", stats_, format_);
+
+  addToGraph(audioOutput, audioOutputGraph_, audioOutputGraph_.size() - 1);
 }
 
 
@@ -283,8 +333,9 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
   {
     if(graph.at(connectIndex)->outputType() != filter->inputType())
     {
-      printDebug(DEBUG_NORMAL, this, "Filter output and input do not match. Finding conversion", {"Connection"},
-                  {graph.at(connectIndex)->getName() + "->" + filter->getName()});
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, 
+                                      "Filter output and input do not match. Finding conversion",
+                                      {"Connection"}, {graph.at(connectIndex)->getName() + "->" + filter->getName()});
 
       Q_ASSERT(graph.at(connectIndex)->outputType() != NONE);
 
@@ -293,26 +344,26 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
       if(graph.at(connectIndex)->outputType() == RGB32VIDEO &&
          filter->inputType() == YUV420VIDEO)
       {
-        printNormal(this, "Adding RGB32 to YUV conversion");
+        Logger::getLogger()->printNormal(this, "Adding RGB32 to YUV conversion");
         addToGraph(std::shared_ptr<Filter>(new RGB32toYUV("", stats_)),
                    graph, connectIndex);
       }
       else if(graph.at(connectIndex)->outputType() == YUV420VIDEO &&
               filter->inputType() == RGB32VIDEO)
       {
-        printNormal(this, "Adding YUV to RGB32 conversion");
+        Logger::getLogger()->printNormal(this, "Adding YUV to RGB32 conversion");
         addToGraph(std::shared_ptr<Filter>(new YUVtoRGB32("", stats_)),
                    graph, connectIndex);
       }
       else
       {
-        printProgramError(this, "Could not find conversion for filter.");
+        Logger::getLogger()->printProgramError(this, "Could not find conversion for filter.");
         return false;
       }
       // the conversion filter has been added to the end
       connectIndex = graph.size() - 1;
     }
-    connectFilters(filter, graph.at(connectIndex));
+    connectFilters(graph.at(connectIndex), filter);
   }
 
   graph.push_back(filter);
@@ -328,18 +379,17 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
 }
 
 
-bool FilterGraph::connectFilters(std::shared_ptr<Filter> filter,
-                                 std::shared_ptr<Filter> previous)
+bool FilterGraph::connectFilters(std::shared_ptr<Filter> previous, std::shared_ptr<Filter> filter)
 {
   Q_ASSERT(filter != nullptr && previous != nullptr);
 
-  printDebug(DEBUG_NORMAL, "FilterGraph", "Connecting filters",
-              {"Connection"}, {previous->getName() + " -> " + filter->getName()});
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, "FilterGraph", "Connecting filters",
+                                  {"Connection"}, {previous->getName() + " -> " + filter->getName()});
 
   if(previous->outputType() != filter->inputType())
   {
-    printDebug(DEBUG_WARNING, "FilterGraph", 
-               "The connecting filter output and input DO NOT MATCH.");
+    Logger::getLogger()->printDebug(DEBUG_WARNING, "FilterGraph",
+                                    "The connecting filter output and input DO NOT MATCH.");
     return false;
   }
   previous->addOutConnection(filter);
@@ -378,7 +428,8 @@ void FilterGraph::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoF
   Q_ASSERT(sessionID);
   Q_ASSERT(videoFramedSource);
 
-  printNormal(this, "Adding send video", {"SessionID"}, QString::number(sessionID));
+  Logger::getLogger()->printNormal(this, "Adding send video", {"SessionID"}, 
+                                   QString::number(sessionID));
 
   // make sure we are generating video
   if(cameraGraph_.size() < 4)
@@ -424,7 +475,7 @@ void FilterGraph::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioF
   Q_ASSERT(audioFramedSource);
 
   // just in case it is wanted later. AEC filter has to be attached
-  if(audioProcessing_.size() == 0)
+  if(audioInputGraph_.size() == 0)
   {
     initializeAudio(audioFramedSource->inputType() == OPUSAUDIO);
   }
@@ -434,7 +485,7 @@ void FilterGraph::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioF
 
   peers_[sessionID]->audioSenders.push_back(audioFramedSource);
 
-  audioProcessing_.back()->addOutConnection(audioFramedSource);
+  audioInputGraph_.back()->addOutConnection(audioFramedSource);
   audioFramedSource->start();
 
   mic(settingEnabled(SettingsKey::micStatus));
@@ -455,17 +506,28 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID,
   peers_[sessionID]->audioReceivers.push_back(graph);
 
   addToGraph(audioSink, *graph);
+
   if (audioSink->outputType() == OPUSAUDIO)
   {
     addToGraph(std::shared_ptr<Filter>(new OpusDecoderFilter(sessionID, format_, stats_)),
                *graph, graph->size() - 1);
   }
 
-  audioOutput_->addInput();
+  std::shared_ptr<AudioMixerFilter> audioMixer =
+      std::make_shared<AudioMixerFilter>(QString::number(sessionID), stats_, sessionID, mixer_);
 
-  addToGraph(std::make_shared<AudioMixerFilter>(QString::number(sessionID),
-                                                stats_, sessionID, audioOutput_),
-             *graph, graph->size() - 1);
+  addToGraph(audioMixer, *graph, graph->size() - 1);
+
+  if (!audioOutputGraph_.empty())
+  {
+    // connects audio reception to audio output
+    connectFilters(graph->back(), audioOutputGraph_.front());
+  }
+  else
+  {
+    Logger::getLogger()->printProgramError(this, "Audio output not initialized "
+                                                 "when adding audio reception");
+  }
 }
 
 
@@ -476,7 +538,9 @@ void FilterGraph::uninit()
 
   destroyFilters(cameraGraph_);
   destroyFilters(screenShareGraph_);
-  destroyFilters(audioProcessing_);
+
+  destroyFilters(audioInputGraph_);
+  destroyFilters(audioOutputGraph_);
 }
 
 
@@ -515,17 +579,17 @@ void changeState(std::shared_ptr<Filter> f, bool state)
 
 void FilterGraph::mic(bool state)
 {
-  if(audioProcessing_.size() > 0)
+  if(audioInputGraph_.size() > 0)
   {
     if(!state)
     {
-      printNormal(this, "Stopping microphone");
-      audioProcessing_.at(0)->stop();
+      Logger::getLogger()->printNormal(this, "Stopping microphone");
+      audioInputGraph_.at(0)->stop();
     }
     else
     {
-      printNormal(this, "Starting microphone");
-      audioProcessing_.at(0)->start();
+      Logger::getLogger()->printNormal(this, "Starting microphone");
+      audioInputGraph_.at(0)->start();
     }
   }
 }
@@ -537,12 +601,12 @@ void FilterGraph::camera(bool state)
   {
     if(!state)
     {
-      printNormal(this, "Stopping camera");
+      Logger::getLogger()->printNormal(this, "Stopping camera");
       cameraGraph_.at(0)->stop();
     }
     else
     {
-      printNormal(this, "Starting camera");
+      Logger::getLogger()->printNormal(this, "Starting camera");
       selfviewFilter_->setProperties(true, cameraGraph_.at(0)->outputType() == RGB32VIDEO);
       cameraGraph_.at(0)->start();
     }
@@ -556,7 +620,7 @@ void FilterGraph::screenShare(bool shareState)
   {
     if(shareState)
     {
-      printNormal(this, "Starting to share the screen");
+      Logger::getLogger()->printNormal(this, "Starting to share the screen");
 
       // We don't want to flip selfview horizontally when sharing the screen.
       // This way the self view is an accurate representation of what the others
@@ -566,7 +630,7 @@ void FilterGraph::screenShare(bool shareState)
     }
     else
     {
-      printNormal(this, "Not sharing the screen");
+      Logger::getLogger()->printNormal(this, "Not sharing the screen");
       screenShareGraph_.at(0)->stop();
     }
   }
@@ -577,19 +641,19 @@ void FilterGraph::selectVideoSource()
 {
   if (settingEnabled(SettingsKey::screenShareStatus))
   {
-    printNormal(this, "Enabled screen sharing in filter graph");
+    Logger::getLogger()->printNormal(this, "Enabled screen sharing in filter graph");
     camera(false);
     screenShare(true);
   }
   else if (settingEnabled(SettingsKey::cameraStatus))
   {
-    printNormal(this, "Enabled camera in filter graph");
+    Logger::getLogger()->printNormal(this, "Enabled camera in filter graph");
     screenShare(false);
     camera(true);
   }
   else
   {
-    printNormal(this, "No video in filter graph");
+    Logger::getLogger()->printNormal(this, "No video in filter graph");
 
     screenShare(false);
     camera(false);
@@ -605,7 +669,13 @@ void FilterGraph::running(bool state)
   {
     changeState(f, state);
   }
-  for(std::shared_ptr<Filter>& f : audioProcessing_)
+
+  for(std::shared_ptr<Filter>& f : audioInputGraph_)
+  {
+    changeState(f, state);
+  }
+
+  for(std::shared_ptr<Filter>& f : audioOutputGraph_)
   {
     changeState(f, state);
   }
@@ -659,7 +729,7 @@ void FilterGraph::destroyFilters(std::vector<std::shared_ptr<Filter> > &filters)
 {
   if(filters.size() != 0)
   {
-    printNormal(this, "Destroying filter in one graph",
+    Logger::getLogger()->printNormal(this, "Destroying filter in one graph",
                 {"Filter"}, {QString::number(filters.size())});
   }
   for( std::shared_ptr<Filter>& f : filters )
@@ -673,11 +743,11 @@ void FilterGraph::destroyFilters(std::vector<std::shared_ptr<Filter> > &filters)
 
 void FilterGraph::destroyPeer(Peer* peer)
 {
-  printNormal(this, "Destroying peer from Filter Graph");
+  Logger::getLogger()->printNormal(this, "Destroying peer from Filter Graph");
 
   for (auto& audioSender : peer->audioSenders)
   {
-    audioProcessing_.back()->removeOutConnection(audioSender);
+    audioInputGraph_.back()->removeOutConnection(audioSender);
     changeState(audioSender, false);
     audioSender = nullptr;
   }
@@ -690,7 +760,6 @@ void FilterGraph::destroyPeer(Peer* peer)
   for (auto& graph : peer->audioReceivers)
   {
     destroyFilters(*graph);
-    audioOutput_->removeInput();
   }
 
   for (auto& graph : peer->videoReceivers)
@@ -708,9 +777,9 @@ void FilterGraph::removeParticipant(uint32_t sessionID)
   if (peers_.find(sessionID) != peers_.end() &&
       peers_[sessionID] != nullptr)
   {
-    printDebug(DEBUG_NORMAL, this,
-               "Removing peer", {"SessionID", "Remaining sessions"},
-               {QString::number(sessionID), QString::number(peers_.size())});
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
+                                    "Removing peer", {"SessionID", "Remaining sessions"},
+                                    {QString::number(sessionID), QString::number(peers_.size())});
 
     destroyPeer(peers_[sessionID]);
     peers_[sessionID] = nullptr;
@@ -734,7 +803,8 @@ void FilterGraph::removeParticipant(uint32_t sessionID)
         initSelfView(); // restore the self view.
       }
 
-      destroyFilters(audioProcessing_);
+      destroyFilters(audioInputGraph_);
+      destroyFilters(audioOutputGraph_);
 
       selectVideoSource();
       mic(settingEnabled(SettingsKey::micStatus));
@@ -743,76 +813,16 @@ void FilterGraph::removeParticipant(uint32_t sessionID)
 }
 
 
-void FilterGraph::print()
+QAudioFormat FilterGraph::createAudioFormat(uint8_t channels, uint32_t sampleRate)
 {
-  QString audioDotFile = "digraph AudioGraph {\r\n";
+  QAudioFormat format;
 
-  for(auto& f : audioProcessing_)
-  {
-    audioDotFile += f->printOutputs();
-  }
+  format.setSampleRate(sampleRate);
+  format.setChannelCount(channels);
+  format.setSampleSize(16);
+  format.setSampleType(QAudioFormat::SignedInt);
+  format.setByteOrder(QAudioFormat::LittleEndian);
+  format.setCodec("audio/pcm");
 
-  for(auto& peer : peers_)
-  {
-    if(peer.second != nullptr)
-    {
-      for(auto& graph : peer.second->audioReceivers)
-      {
-        for (auto& filter : *graph)
-        {
-          audioDotFile += filter->printOutputs();
-        }
-
-      }
-      for (auto& audioSender : peer.second->audioSenders)
-      {
-        audioDotFile += audioSender->printOutputs();
-      }
-    }
-  }
-  audioDotFile += "}";
-
-  QString videoDotFile = "digraph VideoGraph {\r\n";
-
-  for(auto& f : cameraGraph_)
-  {
-    videoDotFile += f->printOutputs();
-  }
-
-  for(auto& peer : peers_)
-  {
-    if(peer.second != nullptr)
-    {
-      for(auto&graph : peer.second->videoReceivers)
-      {
-        for (auto&filter : *graph)
-        {
-          videoDotFile += filter->printOutputs();
-        }
-      }
-
-      for (auto&videoSender : peer.second->videoSenders)
-      {
-        audioDotFile += videoSender->printOutputs();
-      }
-    }
-  }
-
-  videoDotFile += "}";
-
-  QString aFilename="audiograph.dot";
-  QFile aFile( aFilename );
-  if ( aFile.open(QIODevice::WriteOnly) )
-  {
-      QTextStream stream( &aFile );
-      stream << audioDotFile << Qt::endl;
-  }
-
-  QString vFilename="videograph.dot";
-  QFile vFile( vFilename );
-  if ( vFile.open(QIODevice::WriteOnly) )
-  {
-      QTextStream stream( &vFile );
-      stream << videoDotFile << Qt::endl;
-  }
+  return format;
 }

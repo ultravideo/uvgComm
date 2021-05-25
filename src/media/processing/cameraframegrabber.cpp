@@ -1,6 +1,7 @@
 #include "cameraframegrabber.h"
 
 #include "common.h"
+#include "logger.h"
 
 CameraFrameGrabber::CameraFrameGrabber(QObject *parent) :
   QAbstractVideoSurface(parent)
@@ -12,7 +13,7 @@ bool CameraFrameGrabber::present(const QVideoFrame &frame)
     emit frameAvailable(frame);
     return true;
   }
-  printDebug(DEBUG_WARNING, this,  "Not a valid frame");
+  Logger::getLogger()->printDebug(DEBUG_WARNING, this,  "Not a valid frame");
   return false;
 }
 

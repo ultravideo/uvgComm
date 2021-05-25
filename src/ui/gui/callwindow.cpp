@@ -8,6 +8,7 @@
 
 #include "common.h"
 #include "settingskeys.h"
+#include "logger.h"
 
 #include <QCloseEvent>
 #include <QTimer>
@@ -117,11 +118,11 @@ void CallWindow::init(ParticipantInterface *partInt)
   ui_->EndCallButton->hide();
 
   settingsView_.init();
-  settingsView_.setScreenShareState(false);
 
   // set button icons to correct states
   setMicState(settingEnabled(SettingsKey::micStatus));
   setCameraState(settingEnabled(SettingsKey::cameraStatus));
+  setScreenShareState(settingEnabled(SettingsKey::screenShareStatus));
 }
 
 
@@ -147,7 +148,7 @@ void CallWindow::initButton(QString iconPath, QSize size, QSize iconSize,
 
 StatisticsInterface* CallWindow::createStatsWindow()
 {
-  printNormal(this,"Initiating, CallWindow: Creating statistics window");
+  Logger::getLogger()->printNormal(this,"Initiating, CallWindow: Creating statistics window");
   statsWindow_ = new StatisticsWindow(this);
 
   // Stats GUI updates are handled solely by timer
@@ -161,7 +162,7 @@ StatisticsInterface* CallWindow::createStatsWindow()
 
 void CallWindow::on_addContact_clicked()
 {
-  printNormal(this, "Clicked");
+  Logger::getLogger()->printNormal(this, "Clicked");
   QString serverAddress = settingString(SettingsKey::sipServerAddress);
   ui_->address->setText(serverAddress);
   ui_->username->setText("username");
@@ -239,7 +240,7 @@ void CallWindow::closeEvent(QCloseEvent *event)
 {
   emit closed();
   statsWindow_->hide();
-  statsWindow_->finished(0);
+  mesg_.hide();
 
   QMainWindow::closeEvent(event);
 }
@@ -279,6 +280,12 @@ void CallWindow::setCameraState(bool on)
   }
 }
 
+void CallWindow::setScreenShareState(bool on)
+{
+  Q_UNUSED(on)
+  // TODO: Change screen share icon
+}
+
 
 void CallWindow::removeParticipant(uint32_t sessionID)
 {
@@ -286,7 +293,7 @@ void CallWindow::removeParticipant(uint32_t sessionID)
 
   if (sessionID == 0)
   {
-    //printDebug();
+    //Logger::getLogger()->printDebug();
     return;
   }
 
@@ -317,7 +324,7 @@ void CallWindow::on_settings_button_clicked()
 
 void CallWindow::screensShareButton()
 {
-  printNormal(this, "Changing state of screen share");
+  Logger::getLogger()->printNormal(this, "Changing state of screen share");
 
   // we change the state of screensharestatus setting here
   settingsView_.setScreenShareState(!settingEnabled(SettingsKey::screenShareStatus));

@@ -4,6 +4,7 @@
 #include "sipconversions.h"
 
 #include "common.h"
+#include "logger.h"
 
 #include <QVariant>
 
@@ -17,7 +18,7 @@ SIPAuthentication::SIPAuthentication()
 void SIPAuthentication::processOutgoingRequest(SIPRequest& request,
                                                QVariant& content)
 {
-  printNormal(this, "Processing outgoing request");
+  Logger::getLogger()->printNormal(this, "Processing outgoing request");
 
   if (request.method == SIP_REGISTER)
   {
@@ -58,7 +59,7 @@ void SIPAuthentication::processOutgoingRequest(SIPRequest& request,
 void SIPAuthentication::processIncomingResponse(SIPResponse& response,
                                                 QVariant& content)
 {
-  printNormal(this, "Processing incoming response");
+  Logger::getLogger()->printNormal(this, "Processing incoming response");
 
   // I think this is the REGISTER authorization
   if (response.type == SIP_UNAUTHORIZED)
@@ -121,7 +122,7 @@ DigestResponse SIPAuthentication::generateAuthResponse(DigestChallenge& challeng
 
     if (qopString == "")
     {
-      printProgramError(this, "Did not find credentials when authenthicating");
+      Logger::getLogger()->printProgramError(this, "Did not find credentials when authenthicating");
       return {};
     }
 
@@ -142,7 +143,7 @@ DigestResponse SIPAuthentication::generateAuthResponse(DigestChallenge& challeng
   }
   else if (challenge.algorithm == SIP_UNKNOWN_ALGORITHM)
   {
-    printWarning(this, "Unknown digest algorithm found! Not generating response");
+    Logger::getLogger()->printWarning(this, "Unknown digest algorithm found! Not generating response");
     return {};
   }
 
@@ -187,7 +188,7 @@ DigestResponse SIPAuthentication::generateAuthResponse(DigestChallenge& challeng
   hash.addData(dResponse.toLatin1());
   response.dresponse = hash.result().toHex();
 
-  printDebug(DEBUG_NORMAL, this, "Calculated auth challenge response",
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Calculated auth challenge response",
              {"ha1", "ha2"}, {QString(a1_), QString(ha2)});
 
   return response;

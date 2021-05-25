@@ -3,6 +3,7 @@
 #include <QSettings>
 
 #include "common.h"
+#include "logger.h"
 
 
 SIPRouting::SIPRouting(std::shared_ptr<TCPConnection> connection):
@@ -17,18 +18,18 @@ void SIPRouting::processOutgoingRequest(SIPRequest& request, QVariant& content)
 {
   Q_UNUSED(content)
 
-  printNormal(this, "Processing outgoing request");
+  Logger::getLogger()->printNormal(this, "Processing outgoing request");
 
   if (connection_ == nullptr)
   {
-    printProgramError(this, "No connection set!");
+    Logger::getLogger()->printProgramError(this, "No connection set!");
     return;
   }
 
   // TODO: Handle this better
   if (!connection_->isConnected())
   {
-    printWarning(this, "Socket not connected");
+    Logger::getLogger()->printWarning(this, "Socket not connected");
     return;
   }
 
@@ -60,12 +61,12 @@ void SIPRouting::processOutgoingResponse(SIPResponse& response, QVariant& conten
 {
   Q_UNUSED(content)
 
-  printNormal(this, "Processing outgoing response");
+  Logger::getLogger()->printNormal(this, "Processing outgoing response");
 
   // TODO: Handle this better
   if (!connection_->isConnected())
   {
-    printWarning(this, "Socket not connected");
+    Logger::getLogger()->printWarning(this, "Socket not connected");
     return;
   }
 
@@ -93,7 +94,7 @@ void SIPRouting::processIncomingResponse(SIPResponse& response, QVariant& conten
   }
   else
   {
-    printError(this, "Not connected when checking response via field");
+    Logger::getLogger()->printError(this, "Not connected when checking response via field");
   }
 
   emit incomingResponse(response, content);
@@ -110,12 +111,12 @@ void SIPRouting::processResponseViaFields(QList<ViaField>& vias,
   {
     if (via.sentBy == localAddress && via.port == localPort)
     {
-      printNormal(this, "Found our via. This is meant for us!");
+      Logger::getLogger()->printNormal(this, "Found our via. This is meant for us!");
 
       if (via.rportValue != 0 && via.receivedAddress != "")
       {
-        printNormal(this, "Found our received address and rport",
-                  {"Address"}, {via.receivedAddress + ":" + QString::number(via.rportValue)});
+        Logger::getLogger()->printNormal(this, "Found our received address and rport",
+                                         {"Address"}, {via.receivedAddress + ":" + QString::number(via.rportValue)});
 
         // we do not update our address, because we want to remove this registration
         // first before updating.

@@ -5,6 +5,7 @@
 
 #include "common.h"
 #include "settingskeys.h"
+#include "logger.h"
 
 #include <QImage>
 #include <QtDebug>
@@ -33,8 +34,8 @@ DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
   }
   else {
     Q_ASSERT(false);
-    printDebug(DEBUG_PROGRAM_ERROR, "Display Filter",
-               "Gived nonexistant widget");
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "Display Filter",
+                                    "Gived nonexistant widget");
   }
 
   updateSettings();
@@ -46,15 +47,8 @@ DisplayFilter::~DisplayFilter()
 
 
 void DisplayFilter::updateSettings()
-{ 
+{
   flipEnabled_ = settingEnabled(SettingsKey::videoFlipEnabled);
-
-  // TODO: This is a quick fix for video stream being flipped vertically on Linux.
-  // 1111 is set as sessionID for self view
-  if (sessionID_ != 1111)
-  {
-    verticalMirroring_ = settingEnabled(SettingsKey::videoForceFlip);
-  }
 
   Filter::updateSettings();
 }
@@ -79,8 +73,9 @@ void DisplayFilter::process()
       format = QImage::Format_Invalid;
       break;
     default:
-      printDebug(DEBUG_PROGRAM_ERROR, this, 
-                 "Wrong type of display input.", {"Type"}, {QString::number(input->type)});
+      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, 
+                                      "Wrong type of display input.", {"Type"}, 
+                                      {QString::number(input->type)});
       format = QImage::Format_Invalid;
       break;
     }
@@ -100,7 +95,7 @@ void DisplayFilter::process()
 
       int32_t delay = QDateTime::currentMSecsSinceEpoch() - input->presentationTime;
 
-      widget_->inputImage(std::move(input->data),image, input->presentationTime);
+      widget_->inputImage(std::move(input->data), image, input->presentationTime);
 
       if( sessionID_ != 1111)
         getStats()->receiveDelay(sessionID_, "Video", delay);

@@ -6,7 +6,9 @@
 #include "sipfieldcomposing.h"
 
 #include "statisticsinterface.h"
+
 #include "common.h"
+#include "logger.h"
 
 #include <QRegularExpression>
 #include <QRegularExpressionMatch>
@@ -38,13 +40,13 @@ void SIPTransport::processOutgoingRequest(SIPRequest& request, QVariant &content
 
   if((request.message->contentType != MT_NONE && !content.isValid()))
   {
-    printProgramWarning(this, "Invalid SIP request content when sending");
+    Logger::getLogger()->printProgramWarning(this, "Invalid SIP request content when sending");
     return;
   }
 
   ++processingInProgress_;
 
-  printNormal(this, "Processing outgoing request:", {"Type"},
+  Logger::getLogger()->printNormal(this, "Processing outgoing request:", {"Type"},
                  requestMethodToString(request.method));
 
   QString lineEnding = "\r\n";
@@ -52,7 +54,7 @@ void SIPTransport::processOutgoingRequest(SIPRequest& request, QVariant &content
 
   if(!getFirstRequestLine(message, request, lineEnding))
   {
-    printProgramError(this, "Failed to get request first line");
+    Logger::getLogger()->printProgramError(this, "Failed to get request first line");
     return;
   }
 
@@ -72,7 +74,7 @@ void SIPTransport::processOutgoingRequest(SIPRequest& request, QVariant &content
   // this is just a debug test and can be removed if more performance is desired
   if (!requestSanityCheck(fields, request.method))
   {
-    printProgramError(this, "We did not manage to compose a legal SIP request!");
+    Logger::getLogger()->printProgramError(this, "We did not manage to compose a legal SIP request!");
     return;
   }
 
@@ -93,8 +95,8 @@ void SIPTransport::processOutgoingRequest(SIPRequest& request, QVariant &content
 void SIPTransport::processOutgoingResponse(SIPResponse &response, QVariant &content)
 {
   ++processingInProgress_;
-  printNormal(this, "Processing outgoing response:", {"Type"},
-                 responseTypeToPhrase(response.type));
+  Logger::getLogger()->printNormal(this, "Processing outgoing response:", {"Type"},
+                                   responseTypeToPhrase(response.type));
   Q_ASSERT(response.message->cSeq.method != SIP_INVITE
       || response.type != SIP_OK
       || (response.message->contentType == MT_APPLICATION_SDP && content.isValid()));
@@ -102,7 +104,7 @@ void SIPTransport::processOutgoingResponse(SIPResponse &response, QVariant &cont
   if(response.message->cSeq.method == SIP_INVITE && response.type == SIP_OK
      && (!content.isValid() || response.message->contentType != MT_APPLICATION_SDP))
   {
-    printWarning(this, "SDP nullptr in sendResponse");
+    Logger::getLogger()->printWarning(this, "SDP nullptr in sendResponse");
     return;
   }
 
@@ -111,7 +113,7 @@ void SIPTransport::processOutgoingResponse(SIPResponse &response, QVariant &cont
 
   if(!getFirstResponseLine(message, response, lineEnding))
   {
-    printProgramError(this, "Failed to compose SIP Response first line!");
+    Logger::getLogger()->printProgramError(this, "Failed to compose SIP Response first line!");
     return;
   }
 
@@ -123,7 +125,7 @@ void SIPTransport::processOutgoingResponse(SIPResponse &response, QVariant &cont
   // this is just a debug test and can be removed if more performance is desired
   if (!responseSanityCheck(fields, response.type))
   {
-    printProgramError(this, "Failed to compose a correct SIP Response!");
+    Logger::getLogger()->printProgramError(this, "Failed to compose a correct SIP Response!");
     return;
   }
 
@@ -143,7 +145,7 @@ void SIPTransport::processOutgoingResponse(SIPResponse &response, QVariant &cont
 
 void SIPTransport::networkPackage(QString package)
 {
-  printNormal(this, "Parsing incoming network package");
+  Logger::getLogger()->printNormal(this, "Parsing incoming network package");
 
   ++processingInProgress_;
   // parse to header and body
@@ -152,7 +154,7 @@ void SIPTransport::networkPackage(QString package)
 
   if (!parsePackage(package, headers, bodies) ||  headers.size() != bodies.size())
   {
-    printWarning(this, "Did not receive the whole SIP message");
+    Logger::getLogger()->printWarning(this, "Did not receive the whole SIP message");
     --processingInProgress_;
     return;
   }
@@ -167,7 +169,7 @@ void SIPTransport::networkPackage(QString package)
 
     if (!headerToFields(header, firstLine, fields))
     {
-      printError(this, "Parsing error converting header to fields.");
+      Logger::getLogger()->printError(this, "Parsing error converting header to fields.");
       return;
     }
 
@@ -182,7 +184,7 @@ void SIPTransport::networkPackage(QString package)
       // Something is wrong if it matches both
       if (request_match.hasMatch() && response_match.hasMatch())
       {
-        printDebug(DEBUG_PROGRAM_ERROR, this,
+        Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
                    "Both the request and response matched, which should not be possible!");
         --processingInProgress_;
         return;
@@ -251,7 +253,7 @@ bool SIPTransport::parsePackage(QString package, QStringList& headers, QStringLi
   // read maximum of 20 messages. 3 is -1 + 4
   for (int i = 0; i < 20 && headerEndIndex != 3; ++i)
   {
-    printDebug(DEBUG_NORMAL, this,  "Parsing package to header and body",
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this,  "Parsing package to header and body",
                 {"Messages parsed so far", "Header end index", "content-length index"},
     {QString::number(i), QString::number(headerEndIndex), QString::number(contentLengthIndex)});
 
@@ -268,13 +270,13 @@ bool SIPTransport::parsePackage(QString package, QStringList& headers, QStringLi
       if (contentLength < 0)
       {
         // TODO: Warn the user maybe. Maybe also ban the user at least temporarily.
-        printDebug(DEBUG_PEER_ERROR, this,
+        Logger::getLogger()->printDebug(DEBUG_PEER_ERROR, this,
                    "Got negative content-length! Peer is doing something very strange.");
         return false;
       }
     }
 
-    printNormal(this, "Parsed Content-length", {"Content-length"}, {QString::number(contentLength)});
+    Logger::getLogger()->printNormal(this, "Parsed Content-length", {"Content-length"}, {QString::number(contentLength)});
 
     // if we have the whole message
     if(package.length() >= headerEndIndex + contentLength)
@@ -282,7 +284,7 @@ bool SIPTransport::parsePackage(QString package, QStringList& headers, QStringLi
       headers.push_back(package.left(headerEndIndex));
       bodies.push_back(package.mid(headerEndIndex, contentLength));
 
-      //printDebug(DEBUG_IMPORTANT,this, "Whole SIP message Received",
+      //Logger::getLogger()->printDebug(DEBUG_IMPORTANT,this, "Whole SIP message Received",
       //            {"Body", "Content"}, {headers.last(), bodies.last()});
 
       package = package.right(package.length() - (headerEndIndex + contentLength));
@@ -302,7 +304,7 @@ bool SIPTransport::parseRequest(QString requestString, QString version,
 {  
   qDebug() << "Request detected:" << requestString;
 
-  printImportant(this, "Parsing incoming request", {"Type"}, {requestString});
+  Logger::getLogger()->printImportant(this, "Parsing incoming request", {"Type"}, {requestString});
   SIPRequest request;
   request.method = stringToRequestMethod(requestString);
   request.sipVersion = version;
@@ -340,7 +342,7 @@ bool SIPTransport::parseResponse(QString responseString, QString version,
                                  QString text, QList<SIPField> &fields,
                                  QString& body)
 {
-  printImportant(this, "Parsing incoming response", {"Type"}, {responseString});
+  Logger::getLogger()->printImportant(this, "Parsing incoming response", {"Type"}, {responseString});
 
   SIPResponse response;
   response.type = codeToResponseType(stringToResponseCode(responseString));

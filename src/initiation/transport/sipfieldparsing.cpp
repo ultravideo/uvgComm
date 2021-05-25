@@ -3,7 +3,9 @@
 
 #include "sipfieldparsinghelper.h"
 #include "sipconversions.h"
+
 #include "common.h"
+#include "logger.h"
 
 #include <QRegularExpression>
 
@@ -18,7 +20,7 @@ bool parsingPreChecks(const SIPField &field,
   if (message == nullptr ||
       (!emptyPossible && field.commaSeparated.empty()))
   {
-    printError("SIP Field Parsing", "Parsing prechecks failed");
+    Logger::getLogger()->printError("SIP Field Parsing", "Parsing prechecks failed");
     return false;
   }
 
@@ -31,7 +33,7 @@ bool parsingPreChecks(const SIPField &field,
 
     if (value.words.empty())
     {
-      printError("SIP Field Parsing", "Found empty word list");
+      Logger::getLogger()->printError("SIP Field Parsing", "Found empty word list");
       return false;
     }
   }
@@ -229,7 +231,7 @@ bool parseContentTypeField(const SIPField &field,
 
   if (message->contentType == MT_UNKNOWN)
   {
-    printWarning("SIP Field Parsing", "Detected unknown mediatype");
+    Logger::getLogger()->printWarning("SIP Field Parsing", "Detected unknown mediatype");
     return false;
   }
 

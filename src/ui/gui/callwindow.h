@@ -103,6 +103,7 @@ private:
   // set GUI to reflect state
   void setMicState(bool on);
   void setCameraState(bool on);
+  void setScreenShareState(bool on);
 
   // helper for setting icons to buttons.
   void initButton(QString iconPath, QSize size, QSize iconSize,

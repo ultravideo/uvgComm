@@ -3,6 +3,7 @@
 #include "sipconversions.h"
 
 #include "common.h"
+#include "logger.h"
 
 
 
@@ -22,7 +23,7 @@ QString composeURItype(SIPType type)
   }
   else
   {
-    printError("SIP Composing Helper", "Unknown SIP URI type found");
+    Logger::getLogger()->printError("SIP Composing Helper", "Unknown SIP URI type found");
   }
 
   return "";
@@ -129,7 +130,7 @@ bool composeSIPRouteLocation(const SIPRouteLocation& location, SIPCommaValue &va
     {
       if (!addParameter(value.parameters, parameter))
       {
-        printProgramWarning("SIP Field Helper",
+        Logger::getLogger()->printProgramWarning("SIP Field Helper",
                             "Failed to add location parameter");
       }
     }
@@ -236,7 +237,7 @@ bool composeInfoField(QList<SIPField>& fields,
     }
     else
     {
-      printProgramWarning("SIP Field Helper", "Failed to compose info abosluteURI");
+      Logger::getLogger()->printProgramWarning("SIP Field Helper", "Failed to compose info abosluteURI");
     }
   }
 

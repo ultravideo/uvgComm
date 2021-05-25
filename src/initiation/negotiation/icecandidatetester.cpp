@@ -3,6 +3,7 @@
 #include "icepairtester.h"
 
 #include "common.h"
+#include "logger.h"
 
 IceCandidateTester::IceCandidateTester()
 {}
@@ -54,7 +55,8 @@ void IceCandidateTester::startTestingPairs(bool controller)
   }
   else
   {
-    printWarning(this, "Tried to start testing, but the socket was not bound.");
+    Logger::getLogger()->printWarning(this, "Tried to start testing, "
+                                            "but the socket was not bound.");
   }
 }
 
@@ -96,7 +98,7 @@ bool IceCandidateTester::performNomination(QList<std::shared_ptr<ICEPair>>& nomi
     if (!workerThreads_.back()->sendNominationWaitResponse(pair.get()))
     {
       udp_.unbind();
-      printError(this,  "Failed to nominate a pair in for candidate!");
+      Logger::getLogger()->printError(this,  "Failed to nominate a pair in for candidate!");
       return false;
     }
 

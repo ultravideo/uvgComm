@@ -5,6 +5,8 @@
 #include <QUdpSocket>
 #include <QMetaObject>
 
+#include "logger.h"
+
 UDPServer::UDPServer():
   socket_(nullptr),
   sendPort_(0)
@@ -20,12 +22,14 @@ bool UDPServer::bindSocket(const QHostAddress& address, quint16 port)
   QString addressDebug = address.toString() + ":" + QString::number(port);
   if(!socket_->bind(address, port))
   {
-    printError(this, "Failed to bind UDP Socket to", {"Interface"}, {addressDebug});
+    Logger::getLogger()->printError(this, "Failed to bind UDP Socket to", 
+                                    {"Interface"}, {addressDebug});
     return false;
   }
   else
   {
-    //printNormal(this, "Binded UDP Port", {"Interface"}, addressDebug);
+    //Logger::getLogger()->printNormal(this, "Binded UDP Port", {"Interface"}, 
+    //                                  addressDebug);
   }
 
   connect(socket_, &QUdpSocket::readyRead, this, &UDPServer::readDatagram);
@@ -54,8 +58,9 @@ bool UDPServer::sendData(QByteArray& data, const QHostAddress &local,
 {
   if(data.size() > 512 || data.size() == 0)
   {
-    printProgramError(this, "Sending UDP packet with invalid size. Acceptable: 1 - 512",
-            {"Size"}, {QString::number(data.size())});
+    Logger::getLogger()->printProgramError(this, "Sending UDP packet with invalid size. "
+                                                 "Acceptable: 1 - 512",
+                                           {"Size"}, {QString::number(data.size())});
     return false;
   }
 
@@ -64,9 +69,9 @@ bool UDPServer::sendData(QByteArray& data, const QHostAddress &local,
 
   if (socket_->writeDatagram(datagram) < 0)
   {
-    //printWarning(this, "Failed to send UDP datagram!", {"Path"},
-    //          {local.toString() + ":" + QString::number(sendPort_) + " -> " +
-    //           remote.toString() + ":" + QString::number(remotePort)});
+    //Logger::getLogger()->printWarning(this, "Failed to send UDP datagram!", {"Path"},
+    //                                  {local.toString() + ":" + QString::number(sendPort_) + " -> " +
+    //                                   remote.toString() + ":" + QString::number(remotePort)});
     return false;
   }
 

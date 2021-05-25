@@ -1,6 +1,7 @@
 #include "sipconversions.h"
 
 #include "common.h"
+#include "logger.h"
 
 
 // Note: if you see a non-POD static warning, it comes from glazy. This warning
@@ -63,7 +64,7 @@ SIPRequestMethod stringToRequestMethod(const QString &request)
 {
   if(requestTypes.find(request) == requestTypes.end())
   {
-    printWarning("SIP Conversions", "Request type not listed in conversions.");
+    Logger::getLogger()->printWarning("SIP Conversions", "Request type not listed in conversions.");
     return SIP_NO_REQUEST;
   }
   return requestTypes.at(request);
@@ -110,8 +111,9 @@ QString responseTypeToPhrase(SIPResponseStatus response)
 {
   if(responsePhrases.find(response) == responsePhrases.end())
   {
-    printDebug(DEBUG_WARNING, "SIPConversions",
-                     "Did not find response in phrase map. Maybe it has not been added yet.");
+    Logger::getLogger()->printDebug(DEBUG_WARNING, "SIPConversions",
+                                    "Did not find response in phrase map. "
+                                    "Maybe it has not been added yet.");
 
     return "NO PHRASE";
   }
@@ -137,7 +139,7 @@ SIPTransportProtocol stringToTransportProtocol(const QString &type)
   }
   else
   {
-    printWarning("SIP Conversions", "Unrecognized connection protocol.",
+    Logger::getLogger()->printWarning("SIP Conversions", "Unrecognized connection protocol.",
                  {"Protocol"}, {type});
   }
   return NONE;
@@ -162,7 +164,7 @@ QString transportProtocolToString(const SIPTransportProtocol connection)
     }
   default:
   {
-    printWarning("SIP Conversions", "Tried to convert unrecognized protocol to string! "
+    Logger::getLogger()->printWarning("SIP Conversions", "Tried to convert unrecognized protocol to string! "
                                     "Should be checked earlier.",
                  {"Protocol"}, {connection});
   }
@@ -175,7 +177,7 @@ MediaType stringToContentType(const QString &typeStr)
 {
   if(mediaTypes.find(typeStr) == mediaTypes.end())
   {
-    printWarning("SIPConversions",
+    Logger::getLogger()->printWarning("SIPConversions",
                  "Did not find response in phrase map. Maybe it has not been added yet.");
 
     return MT_UNKNOWN;
@@ -189,7 +191,7 @@ QString contentTypeToString(const MediaType type)
 {
   if(mediaStrings.find(type) == mediaStrings.end())
   {
-    printWarning("SIPConversions",
+    Logger::getLogger()->printWarning("SIPConversions",
                  "Did not find response in phrase map. Maybe it has not been added yet.");
 
     return "";
@@ -232,7 +234,7 @@ QString qopValueToString(const QopValue qop)
   }
   else if (qop == SIP_AUTH_UNKNOWN)
   {
-    printProgramWarning("SIP Conversions", "Found unimplemented Auth type!");
+    Logger::getLogger()->printProgramWarning("SIP Conversions", "Found unimplemented Auth type!");
   }
   // Note: Add more auth types here if needed
 
@@ -271,7 +273,7 @@ QString algorithmToString(const DigestAlgorithm algorithm)
   }
   else if (algorithm == SIP_UNKNOWN_ALGORITHM)
   {
-    printProgramWarning("SIP Conversions", "Found unimplemented algorithm type!");
+    Logger::getLogger()->printProgramWarning("SIP Conversions", "Found unimplemented algorithm type!");
   }
 
   return "";
@@ -295,7 +297,7 @@ bool stringToBool(const QString& boolean, bool& ok)
   }
   // this is neither
 
-  printWarning("SIP Conversions", "Got neither true nor false for boolean");
+  Logger::getLogger()->printWarning("SIP Conversions", "Got neither true nor false for boolean");
   ok = false;
   return false;
 }
@@ -385,7 +387,7 @@ void copyParameterList(const QList<SIPParameter> &inParameters,
   {
     if (!addParameter(outParameters, parameter))
     {
-      printProgramWarning("SIP Conversions",
+      Logger::getLogger()->printProgramWarning("SIP Conversions",
                           "Failed to add parameter.");
     }
   }

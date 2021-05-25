@@ -6,9 +6,6 @@
 
 QT       += core gui concurrent
 
-message("Parsing project file.")
-message("Qt version:" "$$QT_MAJOR_VERSION"."$$QT_MINOR_VERSION")
-
 TARGET = Kvazzup
 
 TEMPLATE = app
@@ -29,6 +26,10 @@ defineTest(copyToDestination) {
 
     export(QMAKE_POST_LINK)
 }
+
+# Qt parses this file three times. Once on a general level, once for debug and once for release
+message("Parsing Kvazzup project file, Qt version" "$$QT_MAJOR_VERSION"."$$QT_MINOR_VERSION".)
+
 
 INCLUDEPATH += src
 
@@ -66,19 +67,22 @@ SOURCES +=\
     src/initiation/transport/siptransporthelper.cpp \
     src/initiation/transport/tcpconnection.cpp \
     src/kvazzupcontroller.cpp \
+    src/logger.cpp \
     src/main.cpp \
     src/media/delivery/delivery.cpp \
     src/media/delivery/uvgrtpreceiver.cpp \
     src/media/delivery/uvgrtpsender.cpp \
     src/media/mediamanager.cpp \
-    src/media/processing/aecinputfilter.cpp \
-    src/media/processing/aecprocessor.cpp \
     src/media/processing/audiocapturefilter.cpp \
+    src/media/processing/audioframebuffer.cpp \
+    src/media/processing/audiomixer.cpp \
     src/media/processing/audiomixerfilter.cpp \
     src/media/processing/audiooutputdevice.cpp \
+    src/media/processing/audiooutputfilter.cpp \
     src/media/processing/camerafilter.cpp \
     src/media/processing/cameraframegrabber.cpp \
     src/media/processing/displayfilter.cpp \
+    src/media/processing/dspfilter.cpp \
     src/media/processing/filter.cpp \
     src/media/processing/filtergraph.cpp \
     src/media/processing/kvazaarfilter.cpp \
@@ -89,6 +93,8 @@ SOURCES +=\
     src/media/processing/scalefilter.cpp \
     src/media/processing/screensharefilter.cpp \
     src/common.cpp \
+    src/media/processing/speexaec.cpp \
+    src/media/processing/speexdsp.cpp \
     src/media/processing/yuvtorgb32.cpp \
     src/ui/gui/callwindow.cpp \
     src/ui/gui/chartpainter.cpp \
@@ -150,18 +156,21 @@ HEADERS  += \
     src/initiation/transport/siptransporthelper.h \
     src/initiation/transport/tcpconnection.h \
     src/kvazzupcontroller.h \
+    src/logger.h \
     src/media/delivery/delivery.h \
     src/media/delivery/uvgrtpreceiver.h \
     src/media/delivery/uvgrtpsender.h \
     src/media/mediamanager.h \
-    src/media/processing/aecinputfilter.h \
-    src/media/processing/aecprocessor.h \
     src/media/processing/audiocapturefilter.h \
+    src/media/processing/audioframebuffer.h \
+    src/media/processing/audiomixer.h \
     src/media/processing/audiomixerfilter.h \
     src/media/processing/audiooutputdevice.h \
+    src/media/processing/audiooutputfilter.h \
     src/media/processing/camerafilter.h \
     src/media/processing/cameraframegrabber.h \
     src/media/processing/displayfilter.h \
+    src/media/processing/dspfilter.h \
     src/media/processing/filter.h \
     src/media/processing/filtergraph.h \
     src/media/processing/kvazaarfilter.h \
@@ -173,6 +182,8 @@ HEADERS  += \
     src/media/processing/rgb32toyuv.h \
     src/media/processing/scalefilter.h \
     src/media/processing/screensharefilter.h \
+    src/media/processing/speexaec.h \
+    src/media/processing/speexdsp.h \
     src/media/processing/yuvtorgb32.h \
     src/serverstatusview.h \
     src/settingskeys.h \
@@ -228,65 +239,96 @@ win32-g++: QMAKE_CXXFLAGS += -msse4.1 -mavx2 -fopenmp
 INCLUDEPATH += $$PWD/../include/openhevc_dec
 INCLUDEPATH += $$PWD/../include/
 
-# These you need to install or build yourself
+# These you need to install or build yourself. Here are the libraries that
+# have the same name on each platform.
 LIBS += -lopus
 LIBS += -lLibOpenHevcWrapper
-LIBS += -lspeexdsp
+
 LIBS += -luvgrtp
 
 
-# windows build settings
-win32{
-  INCLUDEPATH += $$PWD/../include/uvgrtp
-  INCLUDEPATH += $$PWD/../include/opus
+# Windows configurations have optional library folders defined for easier inclusion
+# The folders are different for easier building of multiple configurations. The debug
+# and release folders are different because uvgRTP and Crypto++ are usually compiled as
+# static libraries which means they don't work when mixing build types.
 
-  LIBS += -lws2_32
-  LIBS += -lole32
-  LIBS += -loleaut32
-}
-
-
+# Visual Studio
 win32-msvc{
   # Note: I had problems with msvc version 10.0.18362.0
   # and had to use another version
 
-  # static kvazaar. Untested
-  #DEFINES += KVZ_STATIC_LIB
+  # you can put your libaries here
+  CONFIG(debug, debug|release) {
+    LIBRARY_FOLDER = -L$$PWD/../msvc_libs_dbg
+  } else:CONFIG(release, debug|release) {
+    LIBRARY_FOLDER = -L$$PWD/../msvc_libs
+  }
 
-  # shared kvazaar
-  DEFINES += PIC
+  #DEFINES += KVZ_STATIC_LIB # static kvazaar. Untested
+  DEFINES += PIC             # shared kvazaar
 
   LIBS += -lkvazaar_lib
-
-  # you can put your libaries here
-  LIBS += -L$$PWD/../msvc_libs
   LIBS += -ladvapi32
   LIBS += -lkernel32
-  LIBS += -lcryptlib # needed for encryption, can be removed
 
-  message("Using MSVC libraries in ../msvc_libs")
+  LIBS += -llibspeexdsp
+
+  # Needed for encryption. Can be removed if uvgRTP was compiled without
+  # Crypto++ support.
+  LIBS += -lcryptlib
 }
 
-
+# MinGW
 win32-g++{
+  # you can put your libaries here
+  CONFIG(debug, debug|release) {
+    LIBRARY_FOLDER = -L$$PWD/../libs_dbg
+  } else:CONFIG(release, debug|release) {
+    LIBRARY_FOLDER = -L$$PWD/../libs
+  }
 
   LIBS += -lkvazaar
   LIBS += -fopenmp # make sure openMP is installed in your build environment
-  # you can put your libaries here
-  LIBS += -L$$PWD/../libs
+
   LIBS += -lstrmiids
   LIBS += -lssp
-  LIBS += -lcryptopp  # needed for encryption, can be removed
-  message("Using MinGW libraries in ../libs")
+
+  LIBS += -lspeexdsp
+
+  # Needed for encryption. Can be removed if uvgRTP was compiled without
+  # Crypto++ support.
+  LIBS += -lcryptopp
 }
 
+# These apply to both Windows configurations
+win32{
+  INCLUDEPATH += $$PWD/../include/uvgrtp
+  INCLUDEPATH += $$PWD/../include/opus
+
+  # These seem to be needed
+  LIBS += -lws2_32
+  LIBS += -lole32
+  LIBS += -loleaut32
+
+  # Here we finally include the library folder set earlier
+  LIBS += $${LIBRARY_FOLDER}
+  message("Using library folder:" $${LIBRARY_FOLDER})
+}
+
+
+# Linux
 unix {
   LIBS += -lkvazaar
   QMAKE_CXXFLAGS += -msse4.1 -mavx2 -fopenmp
   QMAKE_LFLAGS += -fopenmp
   INCLUDEPATH += /usr/include/opus/
   INCLUDEPATH += /usr/local/include/uvgrtp/
-  LIBS += -lcryptopp # needed for encryption, can be removed
+
+  LIBS += -lspeexdsp
+
+  # Needed for encryption. Can be removed if uvgRTP was compiled without
+  # Crypto++ support.
+  LIBS += -lcryptopp
 }
 
 INCLUDEPATH += $$PWD/../
@@ -298,9 +340,12 @@ copyToDestination($$PWD/stylesheet.qss, $$OUT_PWD)
 copyToDestination($$PWD/fonts, $$OUT_PWD/fonts)
 copyToDestination($$PWD/icons, $$OUT_PWD/icons)
 
-# deploying portable version
+# Deploying a portable version of Kvazzup with Qt deployment script.
 # Copies only Qt libraries. OpenMP is not copied.
-# On windows OpenMP is located in Tools folder of Qt
+# On windows OpenMP is located in Tools folder of Qt.
+
+# TODO: There is a bug in this that creates a growing recursive structure and
+# it stops working. When that is solved, it should be enabled in release mode.
 CONFIG(false){
   isEmpty(TARGET_EXT) {
       win32 {
@@ -320,8 +365,8 @@ CONFIG(false){
       DEPLOY_COMMAND = macdeployqt
   }
 
-  # Add a console window to executable so we see debug prints.
-  debug {
+  # if we are in debug mode, add a console window to executable so we see debug prints.
+  CONFIG(debug, debug|release) {
       CONFIG += console
   }
 
@@ -337,6 +382,7 @@ CONFIG(false){
   copyToDestination($$OUT_PWD/stylesheet.qss, $$OUTPUT_DIR)
   copyToDestination($$PWD/fonts, $$OUTPUT_DIR/fonts)
   copyToDestination($$PWD/icons, $$OUTPUT_DIR/icons)
+
   # Add deploy command to after linking
   QMAKE_POST_LINK += $${DEPLOY_COMMAND} $${OUTPUT_DIR} $$escape_expand(\\n\\t)
 }

@@ -7,6 +7,7 @@
 #include "initiation/negotiation/sipcontent.h"
 
 #include "common.h"
+#include "logger.h"
 
 #include <QRegularExpression>
 #include <QRegularExpressionMatch>
@@ -151,7 +152,7 @@ void composeAllFields(QList<SIPField>& fields,
   {
     if (field.second(fields, header))
     {
-      printNormal("SIP Transport Helper", "Composed a field", "Field", field.first);
+      Logger::getLogger()->printNormal("SIP Transport Helper", "Composed a field", "Field", field.first);
     }
   }
 }
@@ -204,7 +205,7 @@ QString fieldsToString(QList<SIPField>& fields, QString lineEnding)
     }
     else
     {
-      printProgramError("SIP Transport Helper", "Failed to convert field to string",
+      Logger::getLogger()->printProgramError("SIP Transport Helper", "Failed to convert field to string",
                         "Field name", field.name);
     }
   }
@@ -239,11 +240,11 @@ bool headerToFields(QString& header, QString& firstLine, QList<SIPField>& fields
 {
   // Divide into lines
   QStringList lines = header.split("\r\n", QString::SkipEmptyParts);
-  printNormal("SIP Transport Helper", "Parsing SIP header to fields",
+  Logger::getLogger()->printNormal("SIP Transport Helper", "Parsing SIP header to fields",
               "Fields", QString::number(lines.size()));
   if(lines.size() == 0)
   {
-    printPeerError("SIP Transport Helper", "No first line present in SIP header!");
+    Logger::getLogger()->printPeerError("SIP Transport Helper", "No first line present in SIP header!");
     return false;
   }
 
@@ -269,7 +270,7 @@ bool headerToFields(QString& header, QString& firstLine, QList<SIPField>& fields
       // Check the correct number of values for Field
       if (commaSeparated.size() > 500)
       {
-        printDebug(DEBUG_PEER_ERROR, "SIP Transport Helper",
+        Logger::getLogger()->printDebug(DEBUG_PEER_ERROR, "SIP Transport Helper",
                    "Too many comma separated sets in field",
                     {"Field", "Amount"}, {field.name, QString::number(commaSeparated.size())});
         return false;
@@ -279,7 +280,7 @@ bool headerToFields(QString& header, QString& firstLine, QList<SIPField>& fields
       {
         if (!parseField(value, field))
         {
-          printDebug(DEBUG_WARNING, "SIP Transport Helper", "Failed to parse field",
+          Logger::getLogger()->printDebug(DEBUG_WARNING, "SIP Transport Helper", "Failed to parse field",
                        {"Name", "Field"}, {field.name, value});
           return false;
         }
@@ -294,7 +295,7 @@ bool headerToFields(QString& header, QString& firstLine, QList<SIPField>& fields
     }
   }
 
-  printDebug(DEBUG_NORMAL, "SIP Transport Helper", "Found the following lines",
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, "SIP Transport Helper", "Found the following lines",
              {"Lines"}, debugLineNames);
 
   return true;
@@ -325,18 +326,18 @@ bool fieldsToMessageHeader(QList<SIPField>& fields,
 
     if (!parsingPreChecks(fields[i], header, emptyAllowed))
     {
-      printProgramError("SIP Transport Helper", "Parsing precheck failed!");
+      Logger::getLogger()->printProgramError("SIP Transport Helper", "Parsing precheck failed!");
       break;
     }
 
     if(parsing.find(fields[i].name) == parsing.end())
     {
-      printWarning("SIP Transport Helper", "Field not supported",
+      Logger::getLogger()->printWarning("SIP Transport Helper", "Field not supported",
                    "Name", fields[i].name);
     }
     else if(!parsing.at(fields.at(i).name)(fields[i], header))
     {
-      printWarning("SIP Transport Helper", "Failed to parse following field",
+      Logger::getLogger()->printWarning("SIP Transport Helper", "Failed to parse following field",
                    "Name", fields[i].name);
       return false;
     }
@@ -352,17 +353,17 @@ void parseContent(QVariant& content, MediaType mediaType, QString& body)
     SDPMessageInfo sdp;
     if(parseSDPContent(body, sdp))
     {
-      printNormal("SIP Transport Helper", "Successfully parsed SDP");
+      Logger::getLogger()->printNormal("SIP Transport Helper", "Successfully parsed SDP");
       content.setValue(sdp);
     }
     else
     {
-      printWarning("SIP Transport Helper", "Failed to parse SDP message");
+      Logger::getLogger()->printWarning("SIP Transport Helper", "Failed to parse SDP message");
     }
   }
   else
   {
-    printWarning("SIP Transport Helper", "Unsupported content type detected!");
+    Logger::getLogger()->printWarning("SIP Transport Helper", "Unsupported content type detected!");
   }
 }
 
@@ -374,7 +375,7 @@ bool combineContinuationLines(QStringList& lines)
     // combine current line with previous if there a space at the beginning
     if (lines.at(i).front().isSpace())
     {
-      printNormal("SIP Transport Helper", "Found a continuation line");
+      Logger::getLogger()->printNormal("SIP Transport Helper", "Found a continuation line");
       lines[i - 1].append(lines.at(i));
       lines.erase(lines.begin() + i);
       --i;

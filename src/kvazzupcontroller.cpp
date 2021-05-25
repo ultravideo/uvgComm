@@ -4,6 +4,7 @@
 
 #include "common.h"
 #include "settingskeys.h"
+#include "logger.h"
 
 #include <QSettings>
 #include <QHostAddress>
@@ -21,13 +22,27 @@ KvazzupController::KvazzupController():
 
 void KvazzupController::init()
 {
-  printImportant(this, "Kvazzup initiation Started");
+  Logger::getLogger()->printImportant(this, "Kvazzup initiation Started");
 
   window_.init(this);
-  window_.show();
+
   stats_ = window_.createStatsWindow();
 
+  // connect sip signals so we get information when ice is ready
+  QObject::connect(&sip_, &SIPManager::nominationSucceeded,
+                   this, &KvazzupController::iceCompleted);
+  QObject::connect(&sip_, &SIPManager::nominationFailed,
+                   this, &KvazzupController::iceFailed);
+
   sip_.init(this, stats_, window_.getStatusView());
+
+  QObject::connect(&media_, &MediaManager::handleZRTPFailure,
+                   this,    &KvazzupController::zrtpFailed);
+
+  QObject::connect(&media_, &MediaManager::handleNoEncryption,
+                   this,    &KvazzupController::noEncryptionAvailable);
+
+
   media_.init(window_.getViewFactory(), stats_);
 
   // register the GUI signals indicating GUI changes to be handled
@@ -50,18 +65,10 @@ void KvazzupController::init()
   QObject::connect(&window_, &CallWindow::callCancelled,
                    this, &KvazzupController::userCancelsCall);
 
-  QObject::connect(&sip_, &SIPManager::nominationSucceeded,
-                   this, &KvazzupController::iceCompleted);
-  QObject::connect(&sip_, &SIPManager::nominationFailed,
-                   this, &KvazzupController::iceFailed);
+  // lastly, show the window when our signals are ready
+  window_.show();
 
-  QObject::connect(&media_, &MediaManager::handleZRTPFailure,
-                   this,    &KvazzupController::zrtpFailed);
-
-  QObject::connect(&media_, &MediaManager::handleNoEncryption,
-                   this,    &KvazzupController::noEncryptionAvailable);
-
-  printImportant(this, "Kvazzup initiation finished");
+  Logger::getLogger()->printImportant(this, "Kvazzup initiation finished");
 }
 
 void KvazzupController::uninit()
@@ -89,7 +96,8 @@ uint32_t KvazzupController::callToParticipant(QString name, QString username,
 
   //start negotiations for this connection
 
-  printNormal(this, "Starting call with contact", {"Contact"}, {remote.realname});
+  Logger::getLogger()->printNormal(this, "Starting call with contact", 
+                                   {"Contact"}, {remote.realname});
 
   return sip_.startCall(remote);
 }
@@ -97,7 +105,7 @@ uint32_t KvazzupController::callToParticipant(QString name, QString username,
 uint32_t KvazzupController::chatWithParticipant(QString name, QString username,
                                                 QString ip)
 {
-  printDebug(DEBUG_NORMAL, this, "Starting a chat with contact",
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Starting a chat with contact",
             {"ip", "Name", "Username"}, {ip, name, username});
   return 0;
 }
@@ -115,14 +123,15 @@ bool KvazzupController::incomingCall(uint32_t sessionID, QString caller)
 {
   if(states_.find(sessionID) != states_.end())
   {
-    printProgramError(this, "Incoming call is overwriting an existing session!");
+    Logger::getLogger()->printProgramError(this, "Incoming call is overwriting "
+                                                 "an existing session!");
   }
 
   int autoAccept = settingValue(SettingsKey::localAutoAccept);
 
   if(autoAccept == 1)
   {
-    printNormal(this, "Incoming call auto-accepted");
+    Logger::getLogger()->printNormal(this, "Incoming call auto-accepted");
 
     // make sure there are no ongoing auto-accepts
     while (delayedAutoAccept_ != 0)
@@ -136,7 +145,7 @@ bool KvazzupController::incomingCall(uint32_t sessionID, QString caller)
   }
   else
   {
-    printNormal(this, "Showing incoming call");
+    Logger::getLogger()->printNormal(this, "Showing incoming call");
     states_[sessionID] = SessionState{CALLRINGINGWITHUS, nullptr, nullptr};
     window_.displayIncomingCall(sessionID, caller);
   }
@@ -156,13 +165,13 @@ void KvazzupController::callRinging(uint32_t sessionID)
 
   if(states_.find(sessionID) != states_.end() && states_[sessionID].state == CALLINGTHEM)
   {
-    printNormal(this, "Our call is ringing");
+    Logger::getLogger()->printNormal(this, "Our call is ringing");
     window_.displayRinging(sessionID);
     states_[sessionID].state = CALLRINGINWITHTHEM;
   }
   else
   {
-    printPeerError(this, "Got call ringing for nonexisting call",
+    Logger::getLogger()->printPeerError(this, "Got call ringing for nonexisting call",
                   {"SessionID"}, {sessionID});
   }
 }
@@ -173,17 +182,18 @@ void KvazzupController::peerAccepted(uint32_t sessionID)
   {
     if(states_[sessionID].state == CALLRINGINWITHTHEM || states_[sessionID].state == CALLINGTHEM)
     {
-      printImportant(this, "They accepted our call!");
+      Logger::getLogger()->printImportant(this, "They accepted our call!");
       states_[sessionID].state = CALLNEGOTIATING;
     }
     else
     {
-      printPeerError(this, "Got an accepted call even though we have not yet called them!");
+      Logger::getLogger()->printPeerError(this, "Got an accepted call even though "
+                                                "we have not yet called them!");
     }
   }
   else
   {
-    printPeerError(this, "Peer accepted a session which is not in Controller.");
+    Logger::getLogger()->printPeerError(this, "Peer accepted a session which is not in Controller.");
   }
 }
 
@@ -192,7 +202,7 @@ void KvazzupController::iceCompleted(quint32 sessionID,
                                      const std::shared_ptr<SDPMessageInfo> local,
                                      const std::shared_ptr<SDPMessageInfo> remote)
 {
-  printNormal(this, "ICE has been successfully completed",
+  Logger::getLogger()->printNormal(this, "ICE has been successfully completed",
             {"SessionID"}, {QString::number(sessionID)});
 
   if (states_.find(sessionID) != states_.end())
@@ -207,14 +217,14 @@ void KvazzupController::iceCompleted(quint32 sessionID,
   }
   else
   {
-    printError(this, "Got a ICE completion on non-existing call!");
+    Logger::getLogger()->printError(this, "Got a ICE completion on non-existing call!");
   }
 }
 
 
 void KvazzupController::callNegotiated(uint32_t sessionID)
 {
-  printNormal(this, "Call negotiated");
+  Logger::getLogger()->printNormal(this, "Call negotiated");
 
   if (states_.find(sessionID) != states_.end() &&
       states_[sessionID].state == CALLNEGOTIATING)
@@ -234,18 +244,18 @@ void KvazzupController::callNegotiated(uint32_t sessionID)
 
 void KvazzupController::iceFailed(uint32_t sessionID)
 {
-  printError(this, "ICE has failed");
+  Logger::getLogger()->printError(this, "ICE has failed");
 
   window_.showICEFailedMessage();
 
   // TODO: Tell sip manager to send an error for ICE
-  printUnimplemented(this, "Send SIP error code for ICE failure");
+  Logger::getLogger()->printUnimplemented(this, "Send SIP error code for ICE failure");
   endCall(sessionID);
 }
 
 void KvazzupController::zrtpFailed(quint32 sessionID)
 {
-  printError(this, "ZRTP has failed");
+  Logger::getLogger()->printError(this, "ZRTP has failed");
 
   window_.showZRTPFailedMessage(QString::number(sessionID));
   endCall(sessionID);
@@ -260,7 +270,7 @@ void KvazzupController::noEncryptionAvailable()
 
 void KvazzupController::createSingleCall(uint32_t sessionID)
 {
-  printNormal(this, "Call has been agreed upon with peer.",
+  Logger::getLogger()->printNormal(this, "Call has been agreed upon with peer.",
               "SessionID", {QString::number(sessionID)});
 
   if (states_[sessionID].state == CALLONGOING)
@@ -285,7 +295,7 @@ void KvazzupController::createSingleCall(uint32_t sessionID)
 
   if(localSDP == nullptr || remoteSDP == nullptr)
   {
-    printError(this, "Failed to get SDP. Error should be detected earlier.");
+    Logger::getLogger()->printError(this, "Failed to get SDP. Error should be detected earlier.");
     return;
   }
 
@@ -307,7 +317,8 @@ void KvazzupController::cancelIncomingCall(uint32_t sessionID)
 
 void KvazzupController::endCall(uint32_t sessionID)
 {
-  printNormal(this, "Ending the call", {"SessionID"}, {QString::number(sessionID)});
+  Logger::getLogger()->printNormal(this, "Ending the call", {"SessionID"}, 
+                                   {QString::number(sessionID)});
   if (states_.find(sessionID) != states_.end() &&
       states_[sessionID].state == CALLONGOING)
   {
@@ -323,42 +334,45 @@ void KvazzupController::failure(uint32_t sessionID, QString error)
   {
     if (states_[sessionID].state == CALLINGTHEM)
     {
-      printImportant(this, "Our call failed. Invalid sip address?");
+      Logger::getLogger()->printImportant(this, "Our call failed. Invalid sip address?");
     }
     else if(states_[sessionID].state == CALLRINGINWITHTHEM)
     {
-      printImportant(this, "Our call has been rejected!");
+      Logger::getLogger()->printImportant(this, "Our call has been rejected!");
     }
     else
     {
-      printPeerError(this, "Got reject when we weren't calling them", "SessionID", {sessionID});
+      Logger::getLogger()->printPeerError(this, "Got reject when we weren't calling them", 
+                                          "SessionID", {sessionID});
     }
     removeSession(sessionID, error, false);
   }
   else
   {
-    printPeerError(this, "Got reject for nonexisting call", "SessionID", {sessionID});
-    printPeerError(this, "", "Ongoing sessions", {QString::number(states_.size())});
+    Logger::getLogger()->printPeerError(this, "Got reject for nonexisting call", 
+                                        "SessionID", {sessionID});
+    Logger::getLogger()->printPeerError(this, "", "Ongoing sessions", 
+                                        {QString::number(states_.size())});
   }
 }
 
 
 void KvazzupController::registeredToServer()
 {
-  printImportant(this, "We have been registered to a SIP server.");
+  Logger::getLogger()->printImportant(this, "We have been registered to a SIP server.");
   // TODO: indicate to user in some small detail
 }
 
 
 void KvazzupController::registeringFailed()
 {
-  printError(this, "Failed to register to a SIP server.");
+  Logger::getLogger()->printError(this, "Failed to register to a SIP server.");
   // TODO: indicate error to user
 }
 
 void KvazzupController::userAcceptsCall(uint32_t sessionID)
 {
-  printNormal(this, "We accept");
+  Logger::getLogger()->printNormal(this, "We accept");
   states_[sessionID].state = CALLNEGOTIATING;
   sip_.acceptCall(sessionID);
 }
@@ -366,7 +380,7 @@ void KvazzupController::userAcceptsCall(uint32_t sessionID)
 
 void KvazzupController::userRejectsCall(uint32_t sessionID)
 {
-  printNormal(this, "We reject");
+  Logger::getLogger()->printNormal(this, "We reject");
   sip_.rejectCall(sessionID);
   removeSession(sessionID, "Rejected", true);
 }
@@ -374,7 +388,7 @@ void KvazzupController::userRejectsCall(uint32_t sessionID)
 
 void KvazzupController::userCancelsCall(uint32_t sessionID)
 {
-  printNormal(this, "We cancel our call");
+  Logger::getLogger()->printNormal(this, "We cancel our call");
   sip_.cancelCall(sessionID);
   removeSession(sessionID, "Cancelled", true);
 }
@@ -382,7 +396,7 @@ void KvazzupController::userCancelsCall(uint32_t sessionID)
 
 void KvazzupController::endTheCall()
 {
-  printImportant(this, "We end the call");
+  Logger::getLogger()->printImportant(this, "We end the call");
 
   sip_.endAllCalls();
 }

@@ -3,6 +3,7 @@
 #include "ui_statisticswindow.h"
 
 #include "common.h"
+#include "logger.h"
 
 #include <QCloseEvent>
 #include <QDateTime>
@@ -166,7 +167,7 @@ void StatisticsWindow::addSession(uint32_t sessionID)
 {
   if (sessions_.find(sessionID) != sessions_.end())
   {
-    printProgramError(this, "Session already exists");
+    Logger::getLogger()->printProgramError(this, "Session already exists");
     return;
   }
 
@@ -210,7 +211,7 @@ void StatisticsWindow::addMedia(QTableWidget* table, uint32_t sessionID, QString
 {
   if (sessions_.find(sessionID) == sessions_.end())
   {
-    printProgramError(this, "Session for media doesn't exist");
+    Logger::getLogger()->printProgramError(this, "Session for media doesn't exist");
     return;
   }
 
@@ -224,7 +225,7 @@ void StatisticsWindow::addMedia(QTableWidget* table, uint32_t sessionID, QString
   }
   else
   {
-    printProgramError(this, "Wrong table index detected in sessions for media!");
+    Logger::getLogger()->printProgramError(this, "Wrong table index detected in sessions for media!");
     return;
   }
 }
@@ -278,17 +279,18 @@ void StatisticsWindow::removeFilter(uint32_t id)
   if (buffers_.find(id) == buffers_.end())
   {
     filterMutex_.unlock();
-    printProgramWarning(this, "Tried to remove non-existing filter.",
+    Logger::getLogger()->printProgramWarning(this, "Tried to remove non-existing filter.",
                           {"Id"}, {QString::number(id)});
     return;
   }
   if (ui_->filterTable->rowCount() < buffers_[id].tableIndex)
   {
     filterMutex_.unlock();
-    printProgramWarning(this, "Filter doesn't exist in filter table when removing.",
-                          {"Id: Table size vs expected place"}, {
-                          QString::number(id) + ":" + QString::number(ui_->filterTable->rowCount())
-                          + " vs " + QString::number(buffers_[id].tableIndex)});
+    Logger::getLogger()->printProgramWarning(this, "Filter doesn't exist in filter table when removing.",
+                                             {"Id: Table size vs expected place"}, 
+                                             {QString::number(id) + ":" + 
+                                              QString::number(ui_->filterTable->rowCount())
+                                              + " vs " + QString::number(buffers_[id].tableIndex)});
     return;
   }
 
@@ -325,7 +327,7 @@ void StatisticsWindow::removeSession(uint32_t sessionID)
       ui_->table_outgoing->rowCount() <= index)
   {
     sessionMutex_.unlock();
-    printProgramWarning(this, "Missing participant row for participant");
+    Logger::getLogger()->printProgramWarning(this, "Missing participant row for participant");
     return;
   }
 
@@ -563,8 +565,8 @@ void StatisticsWindow::updateBufferStatus(uint32_t id, uint16_t buffersize,
   }
   else
   {
-    printProgramWarning(this, "Couldn't find correct filter for buffer status",
-                        "Filter id", QString::number(id));
+    Logger::getLogger()->printProgramWarning(this, "Couldn't find correct filter for buffer status",
+                                             "Filter id", QString::number(id));
   }
   filterMutex_.unlock();
 }
@@ -581,8 +583,8 @@ void StatisticsWindow::packetDropped(uint32_t id)
   }
   else
   {
-    printProgramWarning(this, "Couldn't find correct filter for dropped packet",
-                        "Filter id", QString::number(id));
+    Logger::getLogger()->printProgramWarning(this, "Couldn't find correct filter for dropped packet",
+                                             "Filter id", QString::number(id));
   }
   filterMutex_.unlock();
 }
@@ -723,7 +725,8 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
               it.second.tableIndex == -1)
           {
             filterMutex_.unlock();
-            printProgramError(this, "Invalid filtertable index detected!", {"Name"}, {it.first});
+            Logger::getLogger()->printProgramError(this, "Invalid filtertable index detected!", 
+                                                   {"Name"}, {it.first});
             return;
           }
 
@@ -905,12 +908,12 @@ QString StatisticsWindow::getTimeConversion(int valueInMs)
 
 void StatisticsWindow::on_save_button_clicked()
 {
-  printNormal(this, "Saving SIP messages");
+  Logger::getLogger()->printNormal(this, "Saving SIP messages");
 
   if (ui_->sent_list->columnCount() == 0 ||
       ui_->received_list->columnCount() == 0)
   {
-    printProgramWarning(this, "The column count was too low to read tooltip");
+    Logger::getLogger()->printProgramWarning(this, "The column count was too low to read tooltip");
     return;
   }
 
@@ -942,7 +945,7 @@ void StatisticsWindow::on_save_button_clicked()
 
 void StatisticsWindow::on_clear_button_clicked()
 {
-  printNormal(this, "Clearing SIP messages");
+  Logger::getLogger()->printNormal(this, "Clearing SIP messages");
 
   sipMutex_.lock();
 
@@ -959,7 +962,7 @@ void StatisticsWindow::saveTextToFile(const QString& text, const QString &window
 {
   if (text == "")
   {
-    printWarning(this, "Tried to save empty text. Not saving");
+    Logger::getLogger()->printWarning(this, "Tried to save empty text. Not saving");
     return;
   }
 
@@ -971,7 +974,7 @@ void StatisticsWindow::saveTextToFile(const QString& text, const QString &window
 
     if (!file.open(QIODevice::WriteOnly))
     {
-      printWarning(this, "Failed to open file");
+      Logger::getLogger()->printWarning(this, "Failed to open file");
       return;
     }
     QTextStream fileStream(&file);

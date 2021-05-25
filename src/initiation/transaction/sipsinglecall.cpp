@@ -1,6 +1,7 @@
 #include "sipsinglecall.h"
 
 #include "common.h"
+#include "logger.h"
 
 #include <QVariant>
 
@@ -27,11 +28,11 @@ void SIPSingleCall::init(SIPTransactionUser* tu,
 
 void SIPSingleCall::startCall(QString callee)
 {
-  printNormal(this, "Starting a call and sending an INVITE in session");
+  Logger::getLogger()->printNormal(this, "Starting a call and sending an INVITE in session");
   Q_ASSERT(sessionID_ != 0);
   if(!sessionID_)
   {
-    printDebug(DEBUG_WARNING, this, "SIP Client Transaction not initialized.");
+    Logger::getLogger()->printDebug(DEBUG_WARNING, this, "SIP Client Transaction not initialized.");
     return;
   }
 
@@ -78,13 +79,13 @@ void SIPSingleCall::declineIncomingCall()
 
 void SIPSingleCall::processIncomingRequest(SIPRequest& request, QVariant& content)
 {
-  printNormal(this, "Processing incoming request");
+  Logger::getLogger()->printNormal(this, "Processing incoming request");
 
   Q_UNUSED(content);
   Q_ASSERT(transactionUser_ && sessionID_);
   if(!transactionUser_ || sessionID_ == 0)
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this,
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
                "SIP Server transaction not initialized.");
     shouldLive_ = false;
     return;
@@ -135,12 +136,12 @@ void SIPSingleCall::processIncomingRequest(SIPRequest& request, QVariant& conten
   }
   case SIP_OPTIONS:
   {
-    printUnimplemented(this, "OPTIONS-request not implemented yet");
+    Logger::getLogger()->printUnimplemented(this, "OPTIONS-request not implemented yet");
     break;
   }
   case SIP_REGISTER:
   {
-    printPeerError(this, "REGISTER-method detected. We are not a registrar!!");
+    Logger::getLogger()->printPeerError(this, "REGISTER-method detected. We are not a registrar!!");
     SIPResponse response = createResponse(SIP_NOT_ALLOWED);
     QVariant content;
     emit outgoingResponse(response, content);
@@ -148,7 +149,7 @@ void SIPSingleCall::processIncomingRequest(SIPRequest& request, QVariant& conten
   }
   default:
   {
-    printUnimplemented(this, "Unsupported request type received");
+    Logger::getLogger()->printUnimplemented(this, "Unsupported request type received");
     SIPResponse response = createResponse(SIP_NOT_ALLOWED);
     QVariant content;
     emit outgoingResponse(response, content);
@@ -165,7 +166,7 @@ void SIPSingleCall::processIncomingResponse(SIPResponse& response, QVariant& con
 { 
   Q_UNUSED(content);
 
-  printNormal(this, "Processing incoming response");
+  Logger::getLogger()->printNormal(this, "Processing incoming response");
 
   if (response.type >= 100 && response.type <= 299)
   {
@@ -198,7 +199,7 @@ void SIPSingleCall::processIncomingResponse(SIPResponse& response, QVariant& con
   else if (response.type >= 300 && response.type <= 399)
   {
     // TODO: 8.1.3.4 Processing 3xx Responses in RFC 3261
-    printWarning(this, "Got a Redirection Response.");
+    Logger::getLogger()->printWarning(this, "Got a Redirection Response.");
     shouldLive_ = false;
   }
   else if (response.type >= 400 && response.type <= 499)
@@ -215,17 +216,17 @@ void SIPSingleCall::processIncomingResponse(SIPResponse& response, QVariant& con
     }
 
     // TODO: 8.1.3.5 Processing 4xx Responses in RFC 3261
-    printWarning(this, "Got a Failure Response.");
+    Logger::getLogger()->printWarning(this, "Got a Failure Response.");
     shouldLive_ = false;
   }
   else if (response.type >= 500 && response.type <= 599)
   {
-    printWarning(this, "Got a Server Failure Response.");
+    Logger::getLogger()->printWarning(this, "Got a Server Failure Response.");
     shouldLive_ = false;
   }
   else if (response.type >= 600 && response.type <= 699)
   {
-    printWarning(this, "Got a Global Failure Response.");
+    Logger::getLogger()->printWarning(this, "Got a Global Failure Response.");
     if (response.message->cSeq.method == SIP_INVITE)
     {
       if (response.type == SIP_DECLINE)

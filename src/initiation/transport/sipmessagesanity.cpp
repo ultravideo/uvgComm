@@ -4,6 +4,7 @@
 #include "sipconversions.h"
 
 #include "common.h"
+#include "logger.h"
 
 bool checkAlwaysMandatoryFields(QList<SIPField>& fields);
 bool alwaysSensibleField(QString field);
@@ -33,7 +34,7 @@ bool isLinePresent(QString name, QList<SIPField>& fields)
       return true;
     }
   }
-  printWarning("SIP Message Sanity", "Did not find field in header",
+  Logger::getLogger()->printWarning("SIP Message Sanity", "Did not find field in header",
                "Name", name);
   return false;
 }
@@ -57,7 +58,7 @@ int countVias(QList<SIPField> &fields)
 bool requestSanityCheck(QList<SIPField>& fields, SIPRequestMethod method)
 {
 
-  printNormal("SIP Message Sanity",
+  Logger::getLogger()->printNormal("SIP Message Sanity",
               "SIP Request Sanity check starting. Checking presence of mandatory fields",
               "Method", requestMethodToString(method));
 
@@ -67,7 +68,7 @@ bool requestSanityCheck(QList<SIPField>& fields, SIPRequestMethod method)
     return false;
   }
 
-  printNormal("SIP Message Sanity",
+  Logger::getLogger()->printNormal("SIP Message Sanity",
               "SIP Request Sanity check ongoing. Scrubbing illegal fields.");
 
   // remove invalid fields
@@ -79,7 +80,7 @@ bool requestSanityCheck(QList<SIPField>& fields, SIPRequestMethod method)
     }
   }
 
-  printNormal("SIP Message Sanity",
+  Logger::getLogger()->printNormal("SIP Message Sanity",
               "SIP Request Sanity check over.");
 
   return true;
@@ -89,13 +90,13 @@ bool requestSanityCheck(QList<SIPField>& fields, SIPRequestMethod method)
 bool responseSanityCheck(QList<SIPField>& fields,
                                        SIPResponseStatus status)
 {
-  printNormal("SIP Message Sanity",
+  Logger::getLogger()->printNormal("SIP Message Sanity",
               "SIP Response Sanity check starting. Checking presence of mandatory fields",
               "Response Code", QString::number(responseTypeToCode(status)));
 
   if(status == SIP_UNKNOWN_RESPONSE)
   {
-    printWarning("SIP Message Sanity", "Could not recognize SIP Response type!");
+    Logger::getLogger()->printWarning("SIP Message Sanity", "Could not recognize SIP Response type!");
     return false;
   }
 
@@ -104,7 +105,7 @@ bool responseSanityCheck(QList<SIPField>& fields,
   /*
   if (countVias(fields) > 1)
   {
-    printError("SIP Message Sanity", "Too many Vias in SIP Response");
+    Logger::getLogger()->printError("SIP Message Sanity", "Too many Vias in SIP Response");
     return false;
   }
   */
@@ -132,7 +133,7 @@ bool responseSanityCheck(QList<SIPField>& fields,
     return false;
   }
 
-  printNormal("SIP Message Sanity",
+  Logger::getLogger()->printNormal("SIP Message Sanity",
               "SIP Response Sanity check ongoing. Scrubbing illegal fields.");
 
   // remove invalid fields
@@ -145,7 +146,7 @@ bool responseSanityCheck(QList<SIPField>& fields,
     }
   }
 
-  printNormal("SIP Message Sanity",
+  Logger::getLogger()->printNormal("SIP Message Sanity",
               "SIP Response Sanity check over.");
 
   return true;
@@ -164,7 +165,7 @@ bool checkRequestMustFields(QList<SIPField>& fields, SIPRequestMethod method)
 
   if (!isLinePresent("Max-Forwards", fields))
   {
-    printError("SIP Message Sanity", "SIP Request has no max-forwards field!");
+    Logger::getLogger()->printError("SIP Message Sanity", "SIP Request has no max-forwards field!");
   }
 
   // There are request header fields that are mandatory in certain situations,
@@ -176,13 +177,13 @@ bool checkRequestMustFields(QList<SIPField>& fields, SIPRequestMethod method)
   {
     if (!isLinePresent("Contact", fields))
     {
-      printError("SIP Message Sanity", "INVITE Request has no contact-field!");
+      Logger::getLogger()->printError("SIP Message Sanity", "INVITE Request has no contact-field!");
       return false;
     }
 
     if (!isLinePresent("Supported", fields))
     {
-      printWarning("SIP Message Sanity", "An INVITE Request has no "
+      Logger::getLogger()->printWarning("SIP Message Sanity", "An INVITE Request has no "
                       "Supported-field, even though it should be included!");
     }
   }
@@ -192,7 +193,7 @@ bool checkRequestMustFields(QList<SIPField>& fields, SIPRequestMethod method)
   {
     if (!isLinePresent("Accept", fields))
     {
-      printWarning("SIP Message Sanity", "SIP OPTIONS Request has no Accept-field, "
+      Logger::getLogger()->printWarning("SIP Message Sanity", "SIP OPTIONS Request has no Accept-field, "
                       "even though it should be included!");
     }
   }
@@ -213,7 +214,7 @@ bool checkResponseMustFields(QList<SIPField>& fields, SIPResponseStatus status,
   {
     if (!isLinePresent("Allow", fields))
     {
-      printError("SIP Message Sanity", "405 Not Allowed Response has no "
+      Logger::getLogger()->printError("SIP Message Sanity", "405 Not Allowed Response has no "
                     "allow-field, even though it is mandatory!");
 
       return false;
@@ -225,7 +226,7 @@ bool checkResponseMustFields(QList<SIPField>& fields, SIPResponseStatus status,
   {
     if (!isLinePresent("Contact", fields))
     {
-      printError("SIP Message Sanity", "No contact-field in INVITE OK response!");
+      Logger::getLogger()->printError("SIP Message Sanity", "No contact-field in INVITE OK response!");
       return false;
     }
   }
@@ -235,7 +236,7 @@ bool checkResponseMustFields(QList<SIPField>& fields, SIPResponseStatus status,
   {
     if (!isLinePresent("Min-Expires", fields))
     {
-      printError("SIP Message Sanity", "No Min-Expires-field in SIP 423 "
+      Logger::getLogger()->printError("SIP Message Sanity", "No Min-Expires-field in SIP 423 "
                     "Interval Too Brief response!");
       return false;
     }
@@ -245,7 +246,7 @@ bool checkResponseMustFields(QList<SIPField>& fields, SIPResponseStatus status,
   {
     if (!isLinePresent("WWW-Authenticate", fields))
     {
-      printError("SIP Message Sanity", "401 Unauthorized Response to OPTIONS or INVITE request has no "
+      Logger::getLogger()->printError("SIP Message Sanity", "401 Unauthorized Response to OPTIONS or INVITE request has no "
                     "WWW-Authenticate field, even though it is mandatory!");
       return false;
     }
@@ -255,7 +256,7 @@ bool checkResponseMustFields(QList<SIPField>& fields, SIPResponseStatus status,
   {
     if (!isLinePresent("Unsupported", fields))
     {
-      printPeerError("SIP Message Sanity", "420 Bad Extension response has no "
+      Logger::getLogger()->printPeerError("SIP Message Sanity", "420 Bad Extension response has no "
                         "Unsupported-field, even though it is mandatory!");
       return false;
     }
@@ -267,19 +268,19 @@ bool checkResponseMustFields(QList<SIPField>& fields, SIPResponseStatus status,
   {
     if (!isLinePresent("Accept", fields))
     {
-      printWarning("SIP Message Sanity", "OK response to OPTIONS request has no "
+      Logger::getLogger()->printWarning("SIP Message Sanity", "OK response to OPTIONS request has no "
                       "Accept-field, even though it should be included!");
     }
 
     if (!isLinePresent("Accept-Encoding", fields))
     {
-      printWarning("SIP Message Sanity", "OK response to OPTIONS request has no "
+      Logger::getLogger()->printWarning("SIP Message Sanity", "OK response to OPTIONS request has no "
                       "Accept-Encoding field, even though it should be included!");
     }
 
     if (!isLinePresent("Accept-Language", fields))
     {
-      printWarning("SIP Message Sanity", "OK response to OPTIONS request has no "
+      Logger::getLogger()->printWarning("SIP Message Sanity", "OK response to OPTIONS request has no "
                       "Accept-Language field, even though it should be included!");
     }
   }
@@ -289,13 +290,13 @@ bool checkResponseMustFields(QList<SIPField>& fields, SIPResponseStatus status,
   {
     if (!isLinePresent("Allow", fields))
     {
-      printWarning("SIP Message Sanity", "OK response to OPTIONS or INVITE request has no "
+      Logger::getLogger()->printWarning("SIP Message Sanity", "OK response to OPTIONS or INVITE request has no "
                       "allow-field, even though it should be included!");
     }
 
     if (!isLinePresent("Supported", fields))
     {
-      printWarning("SIP Message Sanity", "OK response to OPTIONS or INVITE request has no "
+      Logger::getLogger()->printWarning("SIP Message Sanity", "OK response to OPTIONS or INVITE request has no "
                       "Supported-field, even though it should be included!");
     }
   }
@@ -395,7 +396,7 @@ bool sensibleRequestField(SIPRequestMethod method, const QString field)
     return true;
   }
 
-  printWarning("SIP Message Sanity", "Nonsensical field found in SIP Request!",
+  Logger::getLogger()->printWarning("SIP Message Sanity", "Nonsensical field found in SIP Request!",
                "Field name", field);
 
   return false;
@@ -413,7 +414,7 @@ bool sensibleResponseField(SIPResponseStatus status,
       status == SIP_UNKNOWN_RESPONSE ||
       ongoingTransaction == SIP_ACK)
   {
-    printProgramError("SIP Message Sanity",
+    Logger::getLogger()->printProgramError("SIP Message Sanity",
                       "Response field sensibility check preconditions failed!");
     return false;
   }
@@ -574,7 +575,7 @@ bool sensibleResponseField(SIPResponseStatus status,
     }
   }
 
-  printWarning("SIP Message Sanity", "Nonsensical field found in SIP Response",
+  Logger::getLogger()->printWarning("SIP Message Sanity", "Nonsensical field found in SIP Response",
                "Field name", field);
 
   return false;
@@ -608,7 +609,7 @@ bool sensiblePreconditions(QString field, SIPRequestMethod method)
 
   if (method == SIP_NO_REQUEST)
   {
-    printProgramError("SIP Message Sanity",
+    Logger::getLogger()->printProgramError("SIP Message Sanity",
                       "Bad request type parameter in sensibleRequestField");
     return false;
   }
@@ -632,7 +633,7 @@ bool checkAlwaysMandatoryFields(QList<SIPField>& fields)
     return true;
   }
 
-  printPeerError("SIP Message Sanity",
+  Logger::getLogger()->printPeerError("SIP Message Sanity",
                  "All mandatory fields not present in SIP message!");
 
   return false;

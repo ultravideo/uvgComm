@@ -9,12 +9,13 @@
 
 class VideoInterface;
 class StatisticsInterface;
-class AudioOutputDevice;
 
 class Filter;
 class ScreenShareFilter;
-class AECInputFilter;
 class DisplayFilter;
+
+class SpeexAEC;
+class AudioMixer;
 
 typedef std::vector<std::shared_ptr<Filter>> GraphSegment;
 
@@ -29,7 +30,8 @@ public:
 
   // These functions are used to manipulate filter graphs regarding a peer
   void sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoFramedSource);
-  void receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> videoSink, VideoInterface *view);
+  void receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> videoSink,
+                        VideoInterface *view);
   void sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioFramedSource);
   void receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> audioSink);
 
@@ -37,10 +39,6 @@ public:
   void removeParticipant(uint32_t sessionID);
 
   void running(bool state);
-
-  // print the filter graph to a dot file to be drawn as a graph
-  void print();
-
 
 public slots:
 
@@ -55,14 +53,14 @@ private:
   void camera(bool state);
   void screenShare(bool shareState);
 
-  // adds fitler to graph and connects it to connectIndex unless this is the first filter in graph.
-  // adds format conversion if needed.
+  // Adds fitler to graph and connects it to connectIndex unless this is
+  // the first filter in graph. Adds format conversion if needed.
   bool addToGraph(std::shared_ptr<Filter> filter,
                   GraphSegment& graph,
                   unsigned int connectIndex = 0);
 
   // connects the two filters and checks for any problems
-  bool connectFilters(std::shared_ptr<Filter> filter, std::shared_ptr<Filter> previous);
+  bool connectFilters(std::shared_ptr<Filter> previous, std::shared_ptr<Filter> filter);
 
   // makes sure the participant exists and adds if necessary
   void checkParticipant(uint32_t sessionID);
@@ -75,6 +73,8 @@ private:
 
   // iniates encoder and attaches it
   void initializeAudio(bool opus);
+
+  QAudioFormat createAudioFormat(uint8_t channels, uint32_t sampleRate);
 
   void removeAllParticipants();
 
@@ -95,14 +95,15 @@ private:
 
   void destroyFilters(std::vector<std::shared_ptr<Filter>>& filters);
 
-
   // key is sessionID
   std::map<uint32_t, Peer*> peers_;
 
  // std::shared_ptr<ScreenShareFilter> screenShare_;
   GraphSegment cameraGraph_;
   GraphSegment screenShareGraph_;
-  GraphSegment audioProcessing_;
+
+  GraphSegment audioInputGraph_;  // mic and stuff after it
+  GraphSegment audioOutputGraph_; // stuff before speakers and speakers
 
   std::shared_ptr<DisplayFilter> selfviewFilter_;
 
@@ -115,5 +116,7 @@ private:
 
   bool quitting_;
 
-  std::shared_ptr<AudioOutputDevice> audioOutput_;
+  // these are shared between filters
+  std::shared_ptr<SpeexAEC> aec_;
+  std::shared_ptr<AudioMixer> mixer_;
 };

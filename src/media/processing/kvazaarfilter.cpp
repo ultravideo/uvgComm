@@ -4,6 +4,7 @@
 
 #include "common.h"
 #include "settingskeys.h"
+#include "logger.h"
 
 #include <kvazaar.h>
 
@@ -67,7 +68,7 @@ bool KvazaarFilter::init()
     api_ = kvz_api_get(8);
     if(!api_)
     {
-      printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to retrieve Kvazaar API.");
+      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to retrieve Kvazaar API.");
       return false;
     }
     config_ = api_->config_alloc();
@@ -75,7 +76,7 @@ bool KvazaarFilter::init()
 
     if(!config_)
     {
-      printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to allocate Kvazaar config.");
+      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to allocate Kvazaar config.");
       return false;
     }
     QSettings settings(settingsFile, settingsFileFormat);
@@ -86,10 +87,21 @@ bool KvazaarFilter::init()
     // input
 
 #ifdef __linux__
-    // On Linux the Camerafilter seems to have a Qt bug that causes not being able to set resolution
-    config_->width = 640;
-    config_->height = 480;
-    config_->framerate_num = 30;
+
+    if (settingEnabled(SettingsKey::screenShareStatus))
+    {
+      config_->width = settings.value(SettingsKey::videoResultionWidth).toInt();
+      config_->height = settings.value(SettingsKey::videoResultionHeight).toInt();
+      framerate_num_ = settings.value(SettingsKey::videoFramerate).toFloat();
+      config_->framerate_num = framerate_num_;
+    }
+    else
+    {
+      // On Linux the Camerafilter seems to have a Qt bug that causes not being able to set resolution
+      config_->width = 640;
+      config_->height = 480;
+      config_->framerate_num = 30;
+    }
 #else
     config_->width = settings.value(SettingsKey::videoResultionWidth).toInt();
     config_->height = settings.value(SettingsKey::videoResultionHeight).toInt();
@@ -160,7 +172,7 @@ bool KvazaarFilter::init()
       }
       else
       {
-        printWarning(this, "Some carbage in rc algorithm setting");
+        Logger::getLogger()->printWarning(this, "Some carbage in rc algorithm setting");
         config_->rc_algorithm = KVZ_NO_RC;
       }
     }
@@ -218,7 +230,7 @@ bool KvazaarFilter::init()
 
     if(!enc_)
     {
-      printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to open Kvazaar encoder.");
+      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to open Kvazaar encoder.");
       return false;
     }
 
@@ -226,7 +238,7 @@ bool KvazaarFilter::init()
 
     if(!input_pic_)
     {
-      printDebug(DEBUG_PROGRAM_ERROR, this, "Could not allocate input picture.");
+      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Could not allocate input picture.");
       return false;
     }
 
@@ -264,7 +276,8 @@ void KvazaarFilter::process()
   {
     if(!input_pic_)
     {
-      printDebug(DEBUG_PROGRAM_ERROR, this,  "Input picture was not allocated correctly.");
+      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,  
+                                      "Input picture was not allocated correctly.");
       break;
     }
 

@@ -3,6 +3,7 @@
 #include "initiation/transaction/sipdialogstate.h"
 
 #include "common.h"
+#include "logger.h"
 
 SIPMessageFlow::SIPMessageFlow():
   messageFlow_()
@@ -26,11 +27,11 @@ void SIPMessageFlow::addProcessor(std::shared_ptr<SIPMessageProcessor> processor
 {
   if (processor == nullptr)
   {
-    printProgramError(this, "Processor given as nullptr");
+    Logger::getLogger()->printProgramError(this, "Processor given as nullptr");
     return;
   }
 
-  printNormal(this, "Adding processor to flow", "Processor number",
+  Logger::getLogger()->printNormal(this, "Adding processor to flow", "Processor number",
               QString::number(messageFlow_.size() + 1));
 
   // if there are already processors in the flow, connect to the end
@@ -115,7 +116,7 @@ bool SIPMessageFlow::internalCheck()
 {
   if (messageFlow_.empty())
   {
-    printProgramError(this, "Being used while flow not initialized. "
+    Logger::getLogger()->printProgramError(this, "Being used while flow not initialized. "
                             "Please call addProcessor function!");
     return false;
   }

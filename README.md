@@ -1,7 +1,7 @@
 Kvazzup
 =======
 
-Kvazzup is a *High Efficiency Video Coding (HEVC)* video call software written in C++ and built on [Qt](https://www.qt.io/) application framework. The aim of Kvazzup is to be pave way for better quality video calls while valuing usability, security and privacy. Kvazzup is also designed to work as a testbed novel video call technologies that improve the video call experience. Kvazzup makes use of the following open-source tools: Kvazaar for HEVC encoding, OpenHEVC for HEVC decoding, Opus Codec for audio encoding and decoding, uvgRTP for media delivery and Speex DSP for *Acoustic Echo Cancellation (AEC)*. 
+Kvazzup is a *High Efficiency Video Coding (HEVC)* video call software written in C++ and built on [Qt](https://www.qt.io/) application framework. The aim of Kvazzup is to be pave way for better quality video calls while valuing usability, security and privacy. Kvazzup makes use of the following open-source tools: Kvazaar for HEVC encoding, OpenHEVC for HEVC decoding, Opus Codec for audio encoding and decoding, uvgRTP for media delivery and Speex DSP for *Acoustic Echo Cancellation (AEC)*. 
 
 Kvazzup is under development and new features will become available.
 
@@ -17,6 +17,7 @@ Currently Kvazzup has the following features:
 - Video and audio Settings which are saved to the disk
 - Live call parameter adjustment
 - A statistics window for monitoring the call quality
+- Media delivery encryption
 
 ## Compile Kvazzup
 
@@ -28,40 +29,59 @@ Kvazzup requires the following external libraries to operate:
 - [Speex DSP](https://www.speex.org/) for audio processing
 - [Crypto++](https://cryptopp.com/) for delivery encryption
 
-Qt Creator is the recommended tool for compiling Kvazzup. Make sure you use the same compiler and bit version for all the dependencies and for Kvazzup. If you want to use media encryption, you should compile uvgRTP with crypto++ by adding `-D__RTP_CRYPTO__` to uvgRTP CXXFLAGS.
+Qt Creator is the recommended tool for compiling Kvazzup. Make sure you use the same compiler and bit version for all the dependencies and for Kvazzup. It is possible, although not recommended to use Kvazzup without Crypto++.
 
-### Linux(GCC)
+Kvazzup uses code indent of 2. You can change that in qt creator from Tools -> Options -> C++ -> Code Style by making a new code style with indent and tab sizes of 2.
 
-Install Qt and Qt multimedia. Make sure Opus, Speex DSP, OpenMP and Crypto++ are installed. Compile and install openHEVC, Kvazaar and uvgRTP.
+As per usual, make sure you don't mix libraries from different compilers or bit versions. 64-bit (x64) is the recommended bit version of Kvazzup.
 
-### MinGW
+### Linux (GCC)
 
-Make sure OpenMP is installed in your build environment. Add compiled libraries to PATH or to `../libs` folder and headers to PATH or `../include`.
+Install Qt, Qt multimedia and QtCreator. Make sure Opus, Speex DSP, OpenMP and Crypto++ are installed. Compile and install [OpenHEVC](https://github.com/OpenHEVC/openHEVC), [Kvazaar](https://github.com/ultravideo/kvazaar) and [uvgRTP](https://github.com/ultravideo/uvgRTP).
 
-### Microsoft Visual Studio
+**Ubuntu**
 
-Compile the dependencies. Add compiled libraries to PATH or to `../msvc_libs` folder, and headers to PATH or `../include`. 
+On Ubuntu, the necessary Qt packets are `qt5-default qtdeclarative5-dev libqt5svg5-dev qtmultimedia5-dev libqt5multimedia5-plugins libqt5multimediawidgets5`.
 
-#### Shared Kvazaar
+Next, install `qtcreator`.
 
-When compiling Kvazaar, select Dynamic Lib(.dll) in kvazaar_lib project Properties: General/Configuration Type and add ;PIC to C/C++ Preprocessor/Preprocessor Definitions. 
+The following Kvazzup dependencies are available as packages: `libopus-dev libspeexdsp-dev libomp-dev libcrypto++-dev`. For the OpenHEVC, Kvazaar and uvgRTP, if they are not available, you will have to clone the Github repositories and compile them according to their respective instructions.
 
-In Kvazzup, please make sure:`DEFINES += PIC` is included in Kvazzup.pro file. 
+If you have trouble with Qt creator code highlights, but not compilation, make sure you have the correct version of Clang installed. When testing, the Ubuntu had clang-10 installed when Qt depended on clang-8. Installing `clang-8` may solve this issue.
 
-#### Static Kvazaar
+Note: We have not been able to get the changing of the camera formats, resolutions or frame rates to work on Linux. It is possible that we didn't have all the necessary packets installed or that there is some sort of bug in qt multimedia/multimediawidgets on Ubuntu. Any information on this would be greatly appreciated.
 
-Please uncomment: `DEFINES += KVZ_STATIC_LIB` in Kvazzup.pro file.
+### Windows (MinGW)
+
+Make sure OpenMP is installed in your build environment. Compile rest of the dependencies. If you are not putting files to PATH, Kvazzup MinGW build uses the following folders for build files:
+- `../include` for library headers
+- `../libs_dbg` for debug builds of libraries
+- `../libs` for release builds of libraries
+
+### Windows (Microsoft Visual Studio)
+
+Compile the dependencies. If you don't exclude Crypto++, you need to compile it with dynamic C++ runtime linking. See [this section](https://cryptopp.com/wiki/Visual_Studio#Runtime_Linking) for detailed instructions. After that, the easiest way to compile Crypto++ is to select `Build -> Batch Build...`.
+
+If you are not putting files to PATH, Kvazzup Visual Studio build uses the following folders for build files:
+- `../include` for library headers
+- `../msvc_libs_dbg` for debug builds of libraries
+- `../msvc_libs` for release builds of libraries
+
+**Shared Kvazaar (default)**
+
+When compiling Kvazaar, select Dynamic Lib(.dll) in kvazaar_lib project Properties: General/Configuration Type and add `;PIC` to C/C++ Preprocessor/Preprocessor Definitions. 
+
+In Kvazzup, please make sure `DEFINES += PIC` is included in Kvazzup.pro file. It is include by default.
+
+**Static Kvazaar**
+
+Please uncomment: `DEFINES += KVZ_STATIC_LIB` in Kvazzup.pro file and remove `DEFINES += PIC`.
 
 ## Paper
 
 If you are using Kvazzup in your research, please refer to the following [paper](https://ieeexplore.ieee.org/abstract/document/8241673): <br>
 `J. Räsänen, M. Viitanen, J. Vanne, and T. D. Hämäläinen, “Kvazzup: open software for HEVC video calls,” in Proc. IEEE Int. Symp. Multimedia, Taichung, Taiwan, Dec. 2017. `
 
-
-## Known issues
-
-- The Linux version of Kvazzup has a bug with QCamera which prevents from changing the default resolution. 
-- The Opus codec is disabled on Linux until issues with it have been resolved.
 
 ## Planned features
 

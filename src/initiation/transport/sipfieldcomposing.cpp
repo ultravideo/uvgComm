@@ -4,6 +4,7 @@
 #include "sipconversions.h"
 
 #include "common.h"
+#include "logger.h"
 
 
 
@@ -11,13 +12,13 @@ bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
 {
   if(request.requestURI.hostport.host == "")
   {
-    printDebug(DEBUG_PROGRAM_ERROR, "SIPComposing", 
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SIPComposing",
                "Request URI host is empty when comprising the first line.");
   }
 
   if(request.method == SIP_NO_REQUEST)
   {
-    printDebug(DEBUG_PROGRAM_ERROR, "SIPComposing",
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SIPComposing",
                 "SIP_NO_REQUEST given.");
     return false;
   }
@@ -43,7 +44,7 @@ bool getFirstResponseLine(QString& line, SIPResponse& response,
 {
   if(response.type == SIP_UNKNOWN_RESPONSE)
   {
-    printProgramWarning("SIP Field Composing", "Found unknown response type.");
+    Logger::getLogger()->printProgramWarning("SIP Field Composing", "Found unknown response type.");
     return false;
   }
   line = "SIP/" + response.sipVersion + " "
@@ -188,7 +189,7 @@ bool includeContactField(QList<SIPField> &fields,
     if(contact.address.uri.userinfo.user == "" ||
        contact.address.uri.hostport.host == "")
     {
-      printProgramError("SIPFieldComposing", "Failed to include Contact-field");
+      Logger::getLogger()->printProgramError("SIPFieldComposing", "Failed to include Contact-field");
       return false;
     }
     SIPRouteLocation modifiedContact = contact;
@@ -223,7 +224,7 @@ bool includeContentDispositionField(QList<SIPField>& fields,
   {
     if (!addParameter(fields.back().commaSeparated.back().parameters, parameter))
     {
-      printProgramWarning("SIP Field Composing",
+      Logger::getLogger()->printProgramWarning("SIP Field Composing",
                           "Faulty parameter in content-disposition");
     }
   }
@@ -263,7 +264,7 @@ bool includeContentTypeField(QList<SIPField> &fields,
   Q_ASSERT(header->contentType != MT_UNKNOWN);
   if(header->contentType == MT_UNKNOWN)
   {
-    printProgramWarning("SIP Field Composing", "Content-type field failed.");
+    Logger::getLogger()->printProgramWarning("SIP Field Composing", "Content-type field failed.");
     return false;
   }
 
@@ -285,7 +286,7 @@ bool includeCSeqField(QList<SIPField> &fields,
   Q_ASSERT(header->cSeq.cSeq != 0 && header->cSeq.method != SIP_NO_REQUEST);
   if (header->cSeq.cSeq == 0 || header->cSeq.method == SIP_NO_REQUEST)
   {
-    printProgramWarning("SIP Field Composing", "CSeq field failed.");
+    Logger::getLogger()->printProgramWarning("SIP Field Composing", "CSeq field failed.");
     return false;
   }
 
@@ -356,7 +357,7 @@ bool includeFromField(QList<SIPField> &fields,
   if(header->from.address.uri.userinfo.user == "" ||
      header->from.address.uri.hostport.host == "")
   {
-    printProgramWarning("SIP Field Composing",
+    Logger::getLogger()->printProgramWarning("SIP Field Composing",
                         "Failed to compose From-field because of missing info",
                         "addressport", header->from.address.uri.userinfo.user +
                         "@" + header->from.address.uri.hostport.host);
@@ -516,7 +517,7 @@ bool includeRetryAfterField(QList<SIPField>& fields,
           !tryAddParameter(fields.back().commaSeparated.first().parameters,
                       "Duration", QString::number(header->retryAfter->duration)))
       {
-        printProgramWarning("SIP Field Composing",
+        Logger::getLogger()->printProgramWarning("SIP Field Composing",
                             "Failed to add Retry-After duration parameter");
       }
 
@@ -524,7 +525,7 @@ bool includeRetryAfterField(QList<SIPField>& fields,
       {
         if (!addParameter(fields.back().commaSeparated.first().parameters, parameter))
         {
-          printProgramWarning("SIP Field Composing",
+          Logger::getLogger()->printProgramWarning("SIP Field Composing",
                               "Failed to add Retry-After generic parameter");
         }
       }
@@ -618,7 +619,7 @@ bool includeToField(QList<SIPField> &fields,
   if(header->to.address.uri.userinfo.user == "" ||
      header->to.address.uri.hostport.host == "")
   {
-    printProgramWarning("SIP Field Composing",
+    Logger::getLogger()->printProgramWarning("SIP Field Composing",
                         "Failed to compose To-field because of missing",
                         "addressport", header->to.address.uri.userinfo.user +
                         "@" + header->to.address.uri.hostport.host);
@@ -658,7 +659,7 @@ bool includeViaFields(QList<SIPField>& fields, const std::shared_ptr<SIPMessageH
   Q_ASSERT(!header->vias.empty());
   if(header->vias.empty())
   {
-    printProgramWarning("SIP Field Composing", "Via field failed.");
+    Logger::getLogger()->printProgramWarning("SIP Field Composing", "Via field failed.");
     return false;
   }
 
@@ -676,32 +677,32 @@ bool includeViaFields(QList<SIPField>& fields, const std::shared_ptr<SIPMessageH
 
     if(!tryAddParameter(field.commaSeparated[0].parameters, "branch", via.branch))
     {
-      printProgramWarning("SIP Field Composing", "Via field branch failed.");
+      Logger::getLogger()->printProgramWarning("SIP Field Composing", "Via field branch failed.");
       return false;
     }
 
     if(via.alias && !tryAddParameter(field.commaSeparated[0].parameters, "alias"))
     {
-      printProgramWarning("SIP Field Composing", "Via field alias failed.");
+      Logger::getLogger()->printProgramWarning("SIP Field Composing", "Via field alias failed.");
       return false;
     }
 
     if(via.rport && !tryAddParameter(field.commaSeparated[0].parameters, "rport"))
     {
-      printProgramWarning("SIP Field Composing", "Via field rport failed.");
+      Logger::getLogger()->printProgramWarning("SIP Field Composing", "Via field rport failed.");
       return false;
     }
     else if(via.rportValue !=0 && !tryAddParameter(field.commaSeparated[0].parameters,
                                                    "rport", QString::number(via.rportValue)))
     {
-      printProgramWarning("SIP Field Composing", "Via field rport value failed.");
+      Logger::getLogger()->printProgramWarning("SIP Field Composing", "Via field rport value failed.");
       return false;
     }
 
     if (via.receivedAddress != "" && !tryAddParameter(field.commaSeparated[0].parameters,
                                                       "received", via.receivedAddress))
     {
-      printProgramWarning("SIP Field Composing", "Via field receive address failed.");
+      Logger::getLogger()->printProgramWarning("SIP Field Composing", "Via field receive address failed.");
       return false;
     }
 

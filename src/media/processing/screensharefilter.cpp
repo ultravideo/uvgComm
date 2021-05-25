@@ -7,6 +7,7 @@
 
 #include "common.h"
 #include "settingskeys.h"
+#include "logger.h"
 
 ScreenShareFilter::ScreenShareFilter(QString id, StatisticsInterface *stats):
   Filter(id, "Screen Sharing", stats, NONE, RGB32VIDEO),
@@ -28,7 +29,7 @@ void ScreenShareFilter::updateSettings()
 
   if (enabled)
   {
-    printNormal(this, "Enabling screen share filter");
+    Logger::getLogger()->printNormal(this, "Enabling screen share filter");
 
     screenID_ = settingValue(SettingsKey::userScreenID);
 
@@ -52,7 +53,7 @@ void ScreenShareFilter::updateSettings()
   }
   else
   {
-    printNormal(this, "Disabling screen share filter");
+    Logger::getLogger()->printNormal(this, "Disabling screen share filter");
     sendTimer_.stop();
   }
 }
@@ -68,7 +69,7 @@ void ScreenShareFilter::process()
 
   if (!screen)
   {
-    printError(this, "Couldn't get screen");
+    Logger::getLogger()->printError(this, "Couldn't get screen");
     return;
   }
 
@@ -81,8 +82,9 @@ void ScreenShareFilter::process()
     QString screenResolution = QString::number(screen->size().width()) + "x" +
         QString::number(screen->size().height());
 
-    printDebug(DEBUG_PROGRAM_ERROR, this, "Current resolution differs from screen size",
-               {"Current", "Screen resolution"}, {currentResolution, screenResolution});
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, 
+                                    "Current resolution differs from screen size",
+                                    {"Current", "Screen resolution"}, {currentResolution, screenResolution});
     return;
   }
 

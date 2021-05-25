@@ -4,6 +4,7 @@
 
 #include "common.h"
 #include "settingskeys.h"
+#include "logger.h"
 
 #include <QSettings>
 
@@ -22,22 +23,23 @@ OpenHEVCFilter::OpenHEVCFilter(uint32_t sessionID, StatisticsInterface *stats):
 
 bool OpenHEVCFilter::init()
 {
-  printNormal(this, "Starting to initiate OpenHEVC");
+  Logger::getLogger()->printNormal(this, "Starting to initiate OpenHEVC");
   QSettings settings(settingsFile, settingsFileFormat);
 
   threads_ = settings.value(SettingsKey::videoOpenHEVCThreads).toInt();
   handle_ = libOpenHevcInit(threads_, OH_THREAD_FRAME);
 
-  libOpenHevcSetDebugMode(handle_, 0);
+  //libOpenHevcSetDebugMode(handle_, 0);
   if(libOpenHevcStartDecoder(handle_) == -1)
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to start decoder.");
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to start decoder.");
     return false;
   }
   libOpenHevcSetTemporalLayer_id(handle_, 0);
   libOpenHevcSetActiveDecoders(handle_, 0);
   libOpenHevcSetViewLayers(handle_, 0);
-  printNormal(this, "OpenHEVC initiation successful.", {"Version"}, {libOpenHevcVersion(handle_)});
+  Logger::getLogger()->printNormal(this, "OpenHEVC initiation successful.", 
+                                   {"Version"}, {libOpenHevcVersion(handle_)});
 
   // This is because we don't know anything about the incoming stream
   maxBufferSize_ = -1; // no buffer limit
@@ -48,7 +50,7 @@ bool OpenHEVCFilter::init()
 
 void OpenHEVCFilter::uninit()
 {
-  printNormal(this, "Uniniating.");
+  Logger::getLogger()->printNormal(this, "Uniniating.");
   libOpenHevcFlush(handle_);
   libOpenHevcClose(handle_);
 }
@@ -81,7 +83,7 @@ void OpenHEVCFilter::combineFrame(std::unique_ptr<Data>& combinedFrame)
 {
   if(sliceBuffer_.size() == 0)
   {
-    printWarning(this, "No previous slices");
+    Logger::getLogger()->printWarning(this, "No previous slices");
     return;
   }
 
@@ -106,7 +108,7 @@ void OpenHEVCFilter::combineFrame(std::unique_ptr<Data>& combinedFrame)
   if(slices_ && sliceBuffer_.size() == 1)
   {
     slices_ = false;
-    printPeerError(this, "Detected no slices in incoming stream.");
+    Logger::getLogger()->printPeerError(this, "Detected no slices in incoming stream.");
     uninit();
     init();
   }
@@ -134,7 +136,7 @@ void OpenHEVCFilter::process()
        && buff[2] == 1)
     {
       slices_ = true;
-      printNormal(this, "Detected slices in incoming stream");
+      Logger::getLogger()->printNormal(this, "Detected slices in incoming stream");
       uninit();
       init();
     }
@@ -142,7 +144,8 @@ void OpenHEVCFilter::process()
     if(!parameterSets_ && (buff[4] >> 1) == 32)
     {
       parameterSets_ = true;
-      printNormal(this, "Parameter set found", {"Frame received before"}, {QString::number(waitFrames_)});
+      Logger::getLogger()->printNormal(this, "Parameter set found", 
+                                       {"Frame received before"}, {QString::number(waitFrames_)});
     }
 
     if(parameterSets_)
@@ -162,21 +165,21 @@ void OpenHEVCFilter::process()
         OpenHevc_Frame openHevcFrame;
         if( gotPicture == -1)
         {
-          printDebug(DEBUG_ERROR, this,  "Error while decoding.");
+          Logger::getLogger()->printDebug(DEBUG_ERROR, this,  "Error while decoding.");
         }
         else if(!gotPicture && frame->data_size >= 2)
         {
           // TODO: Fix SPS and PPS input to OpenHEVC and enable this debug print.
           /*
           const unsigned char *buff2 = frame->data.get();
-          printDebug(DEBUG_WARNING, getName(),  "Could not decode video frame.",
+          Logger::getLogger()->printDebug(DEBUG_WARNING, getName(),  "Could not decode video frame.",
                      {"NAL type"}, {QString() + QString::number(buff2[0]) + QString::number(buff2[1])
                      + QString::number(buff2[2]) + QString::number(buff2[3]) + QString::number(buff2[4] >> 1) });
            */
         }
         else if( libOpenHevcGetOutput(handle_, gotPicture, &openHevcFrame) == -1 )
         {
-          printDebug(DEBUG_ERROR, this,  "Failed to get output.");
+          Logger::getLogger()->printDebug(DEBUG_ERROR, this,  "Failed to get output.");
         }
         else
         {

@@ -7,6 +7,7 @@
 #include "settingskeys.h"
 
 #include "common.h"
+#include "logger.h"
 
 #include <QTableWidgetItem>
 #include <QThread>
@@ -24,7 +25,6 @@ const QStringList neededSettings = {SettingsKey::videoResultionWidth,
                                     SettingsKey::videoFramerateID,
                                     SettingsKey::videoFramerate,
                                     SettingsKey::videoFlipEnabled,
-                                    SettingsKey::videoForceFlip,
                                     SettingsKey::videoOpenGL
                                    };
 
@@ -125,7 +125,7 @@ void VideoSettings::changedDevice(uint16_t deviceIndex)
 
 void VideoSettings::resetSettings(int deviceID)
 {
-  printNormal(this, "Resettings video settings from UI");
+  Logger::getLogger()->printNormal(this, "Resettings video settings from UI");
 
   currentDevice_ = deviceID;
   initializeFormat();
@@ -138,7 +138,7 @@ void VideoSettings::resetSettings(int deviceID)
 
 void VideoSettings::on_video_ok_clicked()
 {
-  printNormal(this, "Saving video settings");
+  Logger::getLogger()->printNormal(this, "Saving video settings");
   saveSettings();
   emit updateVideoSettings();
   //emit hidden();
@@ -148,7 +148,8 @@ void VideoSettings::on_video_ok_clicked()
 
 void VideoSettings::on_video_close_clicked()
 {
-  printNormal(this, "Cancelled modifying video settings. Getting settings from system.");
+  Logger::getLogger()->printNormal(this, "Cancelled modifying video settings. "
+                                         "Getting settings from system.");
   restoreSettings();
   hide();
   emit hidden();
@@ -157,11 +158,11 @@ void VideoSettings::on_video_close_clicked()
 
 void VideoSettings::on_add_parameter_clicked()
 {
-  printNormal(this, "Adding a custom parameter for kvazaar.");
+  Logger::getLogger()->printNormal(this, "Adding a custom parameter for kvazaar.");
 
   if (videoSettingsUI_->parameter_name->text() == "")
   {
-    printWarning(this, "Parameter name not set");
+    Logger::getLogger()->printWarning(this, "Parameter name not set");
     return;
   }
 
@@ -173,7 +174,7 @@ void VideoSettings::on_add_parameter_clicked()
 
 void VideoSettings::saveSettings()
 {
-  printNormal(this, "Saving video Settings");
+  Logger::getLogger()->printNormal(this, "Saving video Settings");
 
   // Video settings
   // input-tab
@@ -230,8 +231,6 @@ void VideoSettings::saveSettings()
 
   // Other-tab
   saveCheckBox(SettingsKey::videoOpenGL,         videoSettingsUI_->opengl, settings_);
-  saveCheckBox(SettingsKey::videoFlipEnabled,    videoSettingsUI_->flip, settings_);
-  saveCheckBox(SettingsKey::videoForceFlip,      videoSettingsUI_->force_flip, settings_);
 }
 
 
@@ -239,14 +238,14 @@ void VideoSettings::saveCameraCapabilities(int deviceIndex, bool cameraEnabled)
 {
   if (cameraEnabled)
   {
-    printNormal(this, "Recording capability settings for device",
+    Logger::getLogger()->printNormal(this, "Recording capability settings for device",
                 {"Device Index"}, {QString::number(deviceIndex)});
 
     int formatIndex = videoSettingsUI_->format_box->currentIndex();
     int resolutionIndex = videoSettingsUI_->resolution->currentIndex();
 
-    printDebug(DEBUG_NORMAL, this, "Box status", {"Format", "Resolution"},
-               {QString::number(formatIndex), QString::number(resolutionIndex)});
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Box status", {"Format", "Resolution"},
+                                    {QString::number(formatIndex), QString::number(resolutionIndex)});
 
     if(formatIndex == -1)
     {
@@ -282,11 +281,11 @@ void VideoSettings::saveCameraCapabilities(int deviceIndex, bool cameraEnabled)
 
     settings_.setValue(SettingsKey::videoInputFormat,          format);
 
-    printDebug(DEBUG_NORMAL, this, "Recorded following video settings.",
-               {"Resolution", "Resolution Index", "Format"},
-               {QString::number(res.width() - res.width()%8) + "x" +
-                QString::number(res.height() - res.height()%8),
-                QString::number(resolutionIndex), format});
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Recorded following video settings.",
+                                    {"Resolution", "Resolution Index", "Format"},
+                                    {QString::number(res.width() - res.width()%8) + "x" +
+                                     QString::number(res.height() - res.height()%8),
+                                     QString::number(resolutionIndex), format});
   }
 }
 
@@ -295,11 +294,12 @@ void VideoSettings::restoreSettings()
 {
   initializeFormat();
   initializeThreads();
+  initializeFramerates();
 
   if(checkSettingsList(settings_, neededSettings) &&
      checkSettingsList(settings_, kvazaarSettings))
   {
-    printNormal(this, "Restoring previous video settings from file.",
+    Logger::getLogger()->printNormal(this, "Restoring previous video settings from file.",
                 {"Filename"}, {settings_.fileName()});
 
     restoreComboBoxes();
@@ -401,7 +401,6 @@ void VideoSettings::restoreSettings()
     // other-tab
     restoreCheckBox(SettingsKey::videoOpenGL, videoSettingsUI_->opengl, settings_);
     restoreCheckBox(SettingsKey::videoFlipEnabled, videoSettingsUI_->flip, settings_);
-    restoreCheckBox(SettingsKey::videoForceFlip, videoSettingsUI_->force_flip, settings_);
   }
   else
   {
@@ -429,14 +428,15 @@ void VideoSettings::restoreFormat()
       format = settings_.value(SettingsKey::videoInputFormat).toString();
       int formatIndex = videoSettingsUI_->format_box->findText(format);
 
-      printDebug(DEBUG_NORMAL, this, "Trying to find format for camera",
-                 {"Format", "Format index"}, {format, QString::number(formatIndex)});
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Trying to find format for camera",
+                                      {"Format", "Format index"}, {format, QString::number(formatIndex)});
 
-      if(formatIndex != -1)
+      if (0 <= formatIndex && formatIndex < videoSettingsUI_->format_box->count())
       {
         videoSettingsUI_->format_box->setCurrentIndex(formatIndex);
       }
-      else {
+      else
+      {
         videoSettingsUI_->format_box->setCurrentIndex(0);
       }
     }
@@ -452,15 +452,16 @@ void VideoSettings::restoreFormat()
 
 void VideoSettings::restoreResolution()
 {
-  if(videoSettingsUI_->resolution->count() > 0)
+  if (videoSettingsUI_->resolution->count() > 0)
   {
     int resolutionID = settings_.value(SettingsKey::videoResolutionID).toInt();
 
-    if(resolutionID >= 0)
+    if (0 <= resolutionID &&  resolutionID < videoSettingsUI_->resolution->count())
     {
       videoSettingsUI_->resolution->setCurrentIndex(resolutionID);
     }
-    else {
+    else
+    {
       videoSettingsUI_->resolution->setCurrentIndex(0);
     }
 
@@ -475,11 +476,12 @@ void VideoSettings::restoreFramerate()
   {
     int framerateID = settings_.value(SettingsKey::videoFramerateID).toInt();
 
-    if(framerateID < videoSettingsUI_->framerate_box->count())
+    if (0 <= framerateID && framerateID < videoSettingsUI_->framerate_box->count())
     {
       videoSettingsUI_->framerate_box->setCurrentIndex(framerateID);
     }
-    else {
+    else
+    {
       videoSettingsUI_->framerate_box->setCurrentIndex(videoSettingsUI_->framerate_box->count() - 1);
     }
   }
@@ -490,7 +492,7 @@ void VideoSettings::initializeThreads()
 {
   int maxThreads = QThread::idealThreadCount();
 
-  printNormal(this, "Max Threads", "Threads", QString::number(maxThreads));
+  Logger::getLogger()->printNormal(this, "Max Threads", "Threads", QString::number(maxThreads));
 
   // because I don't think the number of threads has changed if we have already
   // added them.
@@ -514,7 +516,7 @@ void VideoSettings::initializeThreads()
 
 void VideoSettings::initializeFormat()
 {
-  printNormal(this, "Initializing formats");
+  Logger::getLogger()->printNormal(this, "Initializing formats");
   QStringList formats;
 
   cam_->getVideoFormats(currentDevice_, formats);
@@ -530,12 +532,17 @@ void VideoSettings::initializeFormat()
     videoSettingsUI_->format_box->setCurrentIndex(0);
     initializeResolutions();
   }
+  else
+  {
+    Logger::getLogger()->printWarning(this, "Couldn't find any camera formats");
+  }
+
 }
 
 
 void VideoSettings::initializeResolutions()
 {
-  printNormal(this, "Initializing camera resolutions", {"Format"},
+  Logger::getLogger()->printNormal(this, "Initializing camera resolutions", {"Format"},
               videoSettingsUI_->format_box->currentText());
   videoSettingsUI_->resolution->clear();
   QStringList resolutions;
@@ -550,6 +557,10 @@ void VideoSettings::initializeResolutions()
       videoSettingsUI_->resolution->addItem(resolutions.at(i));
     }
   }
+  else
+  {
+    Logger::getLogger()->printWarning(this, "Couldn't find any camera resolutions");
+  }
 
   if(videoSettingsUI_->resolution->count() > 0)
   {
@@ -561,7 +572,7 @@ void VideoSettings::initializeResolutions()
 
 void VideoSettings::initializeFramerates()
 {
-  printNormal(this, "Initializing camera framerates", {"Resolution"},
+  Logger::getLogger()->printNormal(this, "Initializing camera framerates", {"Resolution"},
               videoSettingsUI_->resolution->currentText());
   videoSettingsUI_->framerate_box->clear();
   QStringList rates;
@@ -569,7 +580,7 @@ void VideoSettings::initializeFramerates()
   cam_->getFramerates(currentDevice_, videoSettingsUI_->format_box->currentText(),
                       videoSettingsUI_->resolution->currentIndex(), rates);
 
-  if(!rates.empty())
+  if (!rates.empty())
   {
     for(int i = 0; i < rates.size(); ++i)
     {
@@ -577,6 +588,10 @@ void VideoSettings::initializeFramerates()
     }
     // use the highest framerate values as default selection.
     videoSettingsUI_->framerate_box->setCurrentIndex(videoSettingsUI_->framerate_box->count() - 1);
+  }
+  else
+  {
+    Logger::getLogger()->printWarning(this, "Couldn't find any camera frame rates");
   }
 }
 
@@ -603,7 +618,7 @@ void VideoSettings::updateBitrate(int value)
   }
   else
   {
-    value = roundToThousands(value);
+    value = roundToNumber(value, 1000);
 
     videoSettingsUI_->bitrate->setText(getBitrateString(value));
     videoSettingsUI_->bitrate_slider->setValue(value);

@@ -3,7 +3,9 @@
 
 #include "statisticsinterface.h"
 #include "uvgrtpreceiver.h"
+
 #include "common.h"
+#include "logger.h"
 
 #include <QDateTime>
 
@@ -56,7 +58,7 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
       frame->payload == nullptr ||
       frame->payload_len == 0)
   {
-    printProgramError(this,  "Received a nullptr frame from uvgRTP");
+    Logger::getLogger()->printProgramError(this,  "Received a nullptr frame from uvgRTP");
     return;
   }
 

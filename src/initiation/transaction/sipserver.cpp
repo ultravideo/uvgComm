@@ -4,6 +4,7 @@
 #include "initiation/transaction/sipdialogstate.h"
 
 #include "common.h"
+#include "logger.h"
 
 #include <QVariant>
 
@@ -18,12 +19,12 @@ void SIPServer::processOutgoingResponse(SIPResponse& response, QVariant& content
 
   if(receivedRequest_ == nullptr)
   {
-    printDebug(DEBUG_PROGRAM_ERROR, this,
-               "We are trying to respond when we have not received a request!");
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+                                    "We are trying to respond when we have not received a request!");
     return;
   }
 
-  printNormal(this, "Initiate sending of a dialog response");
+  Logger::getLogger()->printNormal(this, "Initiate sending of a dialog response");
   response.sipVersion = SIP_VERSION;
 
   copyResponseDetails(receivedRequest_->message, response.message);
@@ -34,11 +35,11 @@ void SIPServer::processOutgoingResponse(SIPResponse& response, QVariant& content
 
   if(response.type >= 200)
   {
-    printDebug(DEBUG_NORMAL, this,
-               "Sending a final response. Deleting request details.",
-               {"Code", "Cseq"},
-               {QString::number(response.type),
-                QString::number(receivedRequest_->message->cSeq.cSeq)});
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
+                                   "Sending a final response. Deleting request details.",
+                                   {"Code", "Cseq"},
+                                   {QString::number(response.type),
+                                    QString::number(receivedRequest_->message->cSeq.cSeq)});
 
     // reset the request since we have responded to it
     receivedRequest_ = nullptr;
@@ -50,11 +51,11 @@ void SIPServer::processOutgoingResponse(SIPResponse& response, QVariant& content
 
 void SIPServer::processIncomingRequest(SIPRequest& request, QVariant& content)
 {
-  printNormal(this, "Processing incoming request");
+  Logger::getLogger()->printNormal(this, "Processing incoming request");
 
   if (request.method == SIP_CANCEL && !isCANCELYours(request))
   {
-    printError(this, "Received invalid CANCEL request");
+    Logger::getLogger()->printError(this, "Received invalid CANCEL request");
     return;
   }
 
@@ -67,7 +68,7 @@ void SIPServer::processIncomingRequest(SIPRequest& request, QVariant& content)
   }
   else if (request.method != SIP_ACK && request.method != SIP_CANCEL)
   {
-    printPeerError(this, "New request when previous transaction has not been completed. Ignoring...");
+    Logger::getLogger()->printPeerError(this, "New request when previous transaction has not been completed. Ignoring...");
     return;
   }
 
