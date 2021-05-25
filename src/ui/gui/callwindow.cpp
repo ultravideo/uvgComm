@@ -239,7 +239,7 @@ void CallWindow::closeEvent(QCloseEvent *event)
 {
   emit closed();
   statsWindow_->hide();
-  statsWindow_->finished(0);
+  mesg_.hide();
 
   QMainWindow::closeEvent(event);
 }
