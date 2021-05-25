@@ -51,13 +51,17 @@ void SpeexDSP::updateSettings()
       speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC, &activeState);
 
       // the default volume of INT32_MAX/2 seems somewhat low. Set volume to 75% of maximum
-      int level = INT32_MAX - INT32_MAX/4;
+      int level = INT32_MAX - INT32_MAX/3;
       speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC_LEVEL, &level);
-      // we set a low increment to avoid background noises from coming through during pauses
-      int increment = 6;
+
+      int increment = 10;
       speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC_INCREMENT, &increment);
       int decrement = -40;
       speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC_DECREMENT, &decrement);
+
+      // we set a low gain to avoid background noises from coming through during pauses
+      int maxGain = 10;
+      speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC_MAX_GAIN , &maxGain);
 
 
       printDebug(DEBUG_NORMAL, this, "AGC has been enabled",
