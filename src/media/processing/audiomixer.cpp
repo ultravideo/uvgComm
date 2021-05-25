@@ -109,7 +109,13 @@ std::unique_ptr<uchar[]> AudioMixer::doMixing(uint32_t frameSize)
 
     sum = sum/inputs_;
 
-    *output_ptr = sum;
+    // round correctly
+    if (sum%inputs_ >= inputs_/2)
+    {
+      ++sum;
+    }
+
+    *output_ptr = (int16_t)sum;
     ++output_ptr;
   }
 
