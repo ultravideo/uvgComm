@@ -46,7 +46,6 @@ void VideoWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image,
 
 void VideoWidget::paintEvent(QPaintEvent *event)
 {
-  //qDebug() << "Drawing," << metaObject()->className() << ": PaintEvent for widget:" << sessionID_;
   QPainter painter(this);
 
   if(helper_.readyToDraw())

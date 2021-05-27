@@ -114,9 +114,9 @@ void ContactList::addContact(ParticipantInterface* interface,
 {
   Q_ASSERT(!address.isEmpty());
 
-  qDebug() << "Add contact," << metaObject()->className()
-           << ": Adding contact. Name:" << name << "username:" << username
-           << "address:" << address << "index:" << items_.size();
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Adding contact",
+                                  {"Name", "username", "address", "index"},
+                                  {name, username, address, QString::number(items_.size())});
 
   if(name == "")
     name = "Anonymous";
@@ -132,8 +132,8 @@ void ContactList::addContact(ParticipantInterface* interface,
 
   if(index != -1)
   {
-    qDebug() << "Add contact," << metaObject()->className()
-             << ": User already exists at index:" << index;
+    Logger::getLogger()->printWarning(this, "Found previous contact with same name",
+                                      "Index", QString::number(index));
     return;
   }
 
@@ -146,8 +146,9 @@ void ContactList::addContact(ParticipantInterface* interface,
 
 void ContactList::writeListToSettings()
 {
-  qDebug() << "add/remove contact, " << metaObject()->className()
-           << ": Writing contactList with" << items_.size() << "items to settings.";
+  Logger::getLogger()->printNormal(this, "Add/remove contact", "Items in list",
+                                   QString::number(items_.size()));
+
   QSettings settings(contactsFile, settingsFileFormat);
 
   settings.beginWriteArray(SettingsKey::contactList);
@@ -191,8 +192,8 @@ void ContactList::removeContact(int index)
 {
   Q_ASSERT(index != -1 && index < items_.size());
 
-  qDebug() << "Remove contact," << metaObject()->className()
-           << ": Removing contact from index:" << index;
+  Logger::getLogger()->printNormal(this, "Removing contact",
+                                   "Index", QString::number(index));
 
   if(index == -1  || index >= items_.size())
   {

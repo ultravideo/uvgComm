@@ -30,7 +30,7 @@ KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats):
 
 void KvazaarFilter::updateSettings()
 {
-  qDebug() << "Updating kvazaar settings";
+  Logger::getLogger()->printNormal(this, "Updating kvazaar settings");
 
   stop();
 
@@ -45,11 +45,11 @@ void KvazaarFilter::updateSettings()
 
   if(init())
   {
-    qDebug() << getName() << "Kvazaar resolution change successful";
+    Logger::getLogger()->printNormal(this, "Resolution change successful");
   }
   else
   {
-    qDebug() << "Failed to change resolution";
+    Logger::getLogger()->printNormal(this, "Failed to change resolution");
   }
 
   start();
@@ -59,7 +59,7 @@ void KvazaarFilter::updateSettings()
 
 bool KvazaarFilter::init()
 {
-  qDebug() << getName() << "iniating";
+  Logger::getLogger()->printNormal(this, "Iniating Kvazaar");
 
   // input picture should not exist at this point
   if(!input_pic_ && !api_)
@@ -242,8 +242,9 @@ bool KvazaarFilter::init()
       return false;
     }
 
-    qDebug() << getName() << "iniation succeeded.";
+    Logger::getLogger()->printNormal(this, "Kvazaar iniation succeeded");
   }
+
   return true;
 }
 
@@ -260,9 +261,10 @@ void KvazaarFilter::close()
     input_pic_ = nullptr;
     api_ = nullptr;
   }
-  qDebug() << getName() << "Kvazaar closed";
 
   pts_ = 0;
+
+  Logger::getLogger()->printNormal(this, "Closed Kvazaar");
 }
 
 void KvazaarFilter::process()
@@ -291,8 +293,8 @@ void KvazaarFilter::customParameters(QSettings& settings)
 {
   int size = settings.beginReadArray(SettingsKey::videoCustomParameters);
 
-  qDebug() << "Initialization," << metaObject()->className()
-           << "Getting custom Kvazaar options:" << size;
+  Logger::getLogger()->printNormal(this, "Getting custom Kvazaar parameters",
+                                   "Amount", QString::number(size));
 
   for(int i = 0; i < size; ++i)
   {
@@ -302,8 +304,8 @@ void KvazaarFilter::customParameters(QSettings& settings)
     if (api_->config_parse(config_, name.toStdString().c_str(),
                            value.toStdString().c_str()) != 1)
     {
-      qDebug() << "Initialization," << metaObject()->className()
-               << ": Invalid custom parameter for kvazaar";
+      Logger::getLogger()->printWarning(this, "Invalid custom parameter for kvazaar",
+                                        "Amount", QString::number(size));
     }
   }
   settings.endArray();
@@ -322,12 +324,15 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
       || config_->framerate_num != input->framerate)
   {
     // This should not happen.
-    qDebug() << getName() << "WARNING: Input resolution or framerate differs:"
-             << config_->width << "x" << config_->height << "input:"
-             << input->width << "x" << input->height;
-
-    qDebug() << getName() << "Framerate:" << config_->framerate_num
-             << "input:" << input->framerate;
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+                                    "Input resolution or framerate differs from settings",
+                                    {"Settings", "Input"},
+                                    {QString::number(config_->width) + "x" +
+                                     QString::number(config_->height) + "p" +
+                                     QString::number(config_->framerate_num),
+                                     QString::number(input->width) + "x" +
+                                     QString::number(input->height) + "p" +
+                                     QString::number(input->framerate)});
 
     return;
   }

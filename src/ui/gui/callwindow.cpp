@@ -142,13 +142,14 @@ void CallWindow::initButton(QString iconPath, QSize size, QSize iconSize,
   }
   else
   {
-    qDebug() << "WARNING," << metaObject()->className() << ": Could not find icon:" << iconPath;
+    Logger::getLogger()->printWarning(this, "Could not find icon", "Path", iconPath);
   }
 }
 
 StatisticsInterface* CallWindow::createStatsWindow()
 {
-  Logger::getLogger()->printNormal(this,"Initiating, CallWindow: Creating statistics window");
+  Logger::getLogger()->printNormal(this, "Creating statistics window");
+
   statsWindow_ = new StatisticsWindow(this);
 
   // Stats GUI updates are handled solely by timer
@@ -231,8 +232,8 @@ void CallWindow::openStatistics()
   }
   else
   {
-    qDebug() << "WARNING," << metaObject()->className()
-             << ": No stats window class initiated";
+    Logger::getLogger()->printProgramWarning(this,
+                                             "No stats window class initiated when opening it");
   }
 }
 

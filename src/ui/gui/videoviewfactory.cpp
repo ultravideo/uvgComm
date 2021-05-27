@@ -23,7 +23,8 @@ VideoviewFactory::VideoviewFactory():
 uint32_t VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent,
                                         ConferenceView* conf)
 {
-  qDebug() << "View, VideoFactory : Creating videowidget for sessionID:" << sessionID;
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, "View Factory",
+                                  "Creating videoWidget", {"SessionID"}, {QString::number(sessionID)});
 
   bool openGLEnabled = settingEnabled(SettingsKey::videoOpenGL);
 

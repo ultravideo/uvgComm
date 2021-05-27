@@ -112,9 +112,10 @@ void ConferenceView::incomingCall(uint32_t sessionID, QString name)
     return;
   }
   viewMutex_.unlock();
-  qDebug() << "Incoming call," << metaObject()->className()
-           << "Displaying pop-up for somebody. Next layout location: "
-           << nextLocation_.row << "," << nextLocation_.column;
+
+  Logger::getLogger()->printNormal(this, "Dsiplaying pop-up for incoming call", "Location",
+                                   QString::number(nextLocation_.row) + "," +
+                                   QString::number(nextLocation_.column));
 
   attachIncomingCallWidget(name, sessionID);
 }
@@ -397,7 +398,7 @@ void ConferenceView::addVideoStream(uint32_t sessionID,
 void ConferenceView::ringing(uint32_t sessionID)
 {
   // get widget from layout and change the text.
-  qDebug() << "Ringing," << metaObject()->className() << ": Call is ringing. SessionID" << sessionID;
+  Logger::getLogger()->printNormal(this, "Call is ringing", "SessionID", QString::number(sessionID));
 
   viewMutex_.lock();
   if(activeViews_.find(sessionID) == activeViews_.end())
@@ -503,8 +504,8 @@ void ConferenceView::freeSlot(LayoutLoc &location)
 
 void ConferenceView::close()
 {
-  qDebug() << "End all calls," << metaObject()->className() << ": Closing views of the call with"
-           << detachedWidgets_.size() << "detached widgets";
+  Logger::getLogger()->printNormal(this, "Remove all views", "Detached",
+                                   QString::number(detachedWidgets_.size()));
 
   viewMutex_.lock();
   for (std::map<uint32_t, std::unique_ptr<SessionViews>>::iterator view = activeViews_.begin();
@@ -549,7 +550,8 @@ void ConferenceView::resetSlots()
   nextLocation_ = {0,0};
   rowMaxLength_ = 2;
   locMutex_.unlock();
-  qDebug() << "Closing," << metaObject()->className() << ": Removing last video view. Clearing previous data";
+
+  Logger::getLogger()->printNormal(this, "Removing last video view. Resetting state");
 }
 
 
@@ -577,7 +579,9 @@ void ConferenceView::uninitDetachedWidget(uint32_t sessionID)
 {
   if(detachedWidgets_.find(sessionID) != detachedWidgets_.end())
   {
-    qDebug() << "Closing," << metaObject()->className() << ": The widget was detached for sessionID" << sessionID << "so we destroy it.";
+    Logger::getLogger()->printNormal(this, "The widget was detached", "sessionID",
+                                     QString::number(sessionID));
+
     delete detachedWidgets_[sessionID].widget;
     detachedWidgets_.erase(sessionID);
   }

@@ -3,6 +3,7 @@
 #include "ui_sipsettings.h"
 #include "settingshelper.h"
 #include "settingskeys.h"
+#include "logger.h"
 
 #include <QDateTime>
 #include <QDebug>
@@ -46,8 +47,7 @@ void SIPSettings::init()
 
 void SIPSettings::resetSettings()
 {
-  qDebug() << "Settings," << metaObject()->className()
-           << "Resetting Advanced settings from UI";
+  Logger::getLogger()->printWarning(this, "Resetting default SIP settings from UI");
   // TODO: should we do something to blocked list in settings?
 
   saveAdvancedSettings();
@@ -67,15 +67,17 @@ void SIPSettings::showBlocklistContextMenu(const QPoint& pos)
 
 void SIPSettings::deleteBlocklistItem()
 {
-  qDebug() << "Settings," << metaObject()->className()
-           << ": deleting row:" << advancedUI_->blockedUsers->currentRow();
+  Logger::getLogger()->printNormal(this, "Deleting blocklist row", "Row index",
+                                   QString::number(advancedUI_->blockedUsers->currentRow()));
+
   advancedUI_->blockedUsers->removeRow(advancedUI_->blockedUsers->currentRow());
 }
 
 
 void SIPSettings::on_advanced_ok_clicked()
 {
-  qDebug() << "Settings," << metaObject()->className() << ": Saving advanced settings";
+  Logger::getLogger()->printNormal(this, "Saving SIP settings");
+
   saveAdvancedSettings();
   emit updateCallSettings();
 }
@@ -83,8 +85,8 @@ void SIPSettings::on_advanced_ok_clicked()
 
 void SIPSettings::on_advanced_close_clicked()
 {
-  qDebug() << "Settings," << metaObject()->className()
-           << ": Cancelled modifying custom settings. Getting settings from system";
+  Logger::getLogger()->printNormal(this, "Cancelled modifyin SIP settings. Restoring settings from file");
+
   restoreAdvancedSettings();
   hide();
   emit hidden();
@@ -99,13 +101,13 @@ void SIPSettings::on_addUserBlock_clicked()
     {
       if(advancedUI_->blockedUsers->item(i,0)->text() == advancedUI_->blockUser->text())
       {
-        qDebug() << "Settings," << metaObject()->className() << ": Name already exists at row:" << i;
+        Logger::getLogger()->printWarning(this, "Name already exists", "Row", QString::number(i + 1));
         advancedUI_->BlockUsernameLabel->setText("Name already blocked");
         return;
       }
     }
 
-    qDebug() << "Settings," << metaObject()->className() << ":Blocking an user";
+    Logger::getLogger()->printNormal(this, "Blocking an user");
 
     QStringList list = QStringList() << advancedUI_->blockUser->text()
                                      << QDateTime::currentDateTime().toString("yyyy-mm-dd hh:mm");
@@ -123,7 +125,7 @@ void SIPSettings::on_addUserBlock_clicked()
 
 void SIPSettings::saveAdvancedSettings()
 {
-  qDebug() << "Settings," << metaObject()->className() << ": Saving advanced Settings";
+  Logger::getLogger()->printNormal(this, "Saving SIP settings");
 
   listGUIToSettings(blocklistFile, SettingsKey::blocklist,
                     QStringList() << "userName" << "date", advancedUI_->blockedUsers);

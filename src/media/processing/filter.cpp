@@ -105,8 +105,9 @@ void Filter::putInput(std::unique_ptr<Data> data)
         const unsigned char *buff = inBuffer_.at(i)->data.get();
         if(!isHEVCIntra(buff))
         {
-          qDebug() << "Processing," << metaObject()->className() << ": Discarding" << i
-                   << "HEVC frames. Found non inter frame from buffer at :" << i;
+          Logger::getLogger()->printWarning(this, "Discarding HEVC frames from buffer. Finding next intra",
+                                            "Frames discarded", QString::number(i));
+
           for(int j = i; j != 0; --j)
           {
             inBuffer_.pop_front();
@@ -127,10 +128,13 @@ void Filter::putInput(std::unique_ptr<Data> data)
 
     ++inputDiscarded_;
     stats_->packetDropped(filterID_);
-    if(inputDiscarded_ == 1 || inputDiscarded_%10 == 0)
+
+    if (inputDiscarded_ == 1 || inputDiscarded_%10 == 0)
     {
-      qDebug() << "Processing," << name_ << "buffer full. Discarded input:"
-               << inputDiscarded_  << "Total input:" << inputTaken_;
+      Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Buffer too full",
+                                      {"Name", "Discarded/total input"},
+                                      {name_, QString::number(inputDiscarded_) + "/" +
+                                              QString::number(inputTaken_)});
     }
   }
   wakeUp();

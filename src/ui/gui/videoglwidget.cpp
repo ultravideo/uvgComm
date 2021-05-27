@@ -43,7 +43,6 @@ void VideoGLWidget::paintEvent(QPaintEvent *event)
 {
   Q_UNUSED(event);
 
-  //qDebug() << "Drawing," << metaObject()->className() << ": PaintEvent for widget:" << sessionID_;
   QPainter painter(this);
 
   if(helper_.readyToDraw())

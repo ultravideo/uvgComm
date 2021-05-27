@@ -59,8 +59,9 @@ void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data,
   {
     if(previousSize_ != image.size())
     {
-      qDebug() << "Drawing," << metaObject()->className()
-               << ": Video widget needs to update its target rectangle because of resolution change.";
+      Logger::getLogger()->printNormal(this, "Video widget needs to update its target "
+                                             "rectangle because of resolution change");
+
       frameBuffer_.clear();
       frameBuffer_.push_front({image, std::move(data), timestamp});
 
@@ -156,7 +157,8 @@ void VideoDrawHelper::keyPressEvent(QWidget* widget, QKeyEvent *event)
 {
   if(event->key() == Qt::Key_Escape)
   {
-    qDebug() << "Drawing," << metaObject()->className() << ": Esc key pressed";
+    Logger::getLogger()->printNormal(this, "ESC key pressed");
+
     if(widget->isFullScreen() && sessionID_ != 0)
     {
       exitFullscreen(widget);
@@ -164,7 +166,7 @@ void VideoDrawHelper::keyPressEvent(QWidget* widget, QKeyEvent *event)
   }
   else
   {
-    qDebug() << "Drawing," << metaObject()->className() << ": You Pressed non-ESC Key";
+    Logger::getLogger()->printNormal(this, "non-ESC key pressed. Doing nothing");
   }
 }
 
@@ -182,7 +184,7 @@ void VideoDrawHelper::mouseDoubleClickEvent(QWidget* widget) {
 
 void VideoDrawHelper::enterFullscreen(QWidget* widget)
 {
-  qDebug() << "Drawing," << metaObject()->className() << ": Setting VideoGLWidget fullscreen";
+  Logger::getLogger()->printNormal(this, "Setting video view fullscreen");
 
   tmpParent_ = widget->parentWidget();
   widget->setParent(nullptr);
@@ -197,7 +199,8 @@ void VideoDrawHelper::enterFullscreen(QWidget* widget)
 
 void VideoDrawHelper::exitFullscreen(QWidget* widget)
 {
-  qDebug() << "Drawing," << metaObject()->className() << ": Returning video widget" << sessionID_ << "to original place.";
+  Logger::getLogger()->printNormal(this, "Returning video widget to original place", "SessionID", QString::number(sessionID_));
+
   widget->setParent(tmpParent_);
   //this->showMaximized();
   widget->show();
