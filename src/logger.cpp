@@ -93,8 +93,6 @@ void Logger::printDebug(DebugType type, QString className, QString description,
 {
   QString valueString = "";
 
-
-
   // do we have values.
   if( values.size() != 0)
   {
@@ -142,9 +140,9 @@ void Logger::printDebug(DebugType type, QString className, QString description,
     }
     else if (valueNames.size() != values.size())
     {
-      qDebug() << "Debug printing could not figure how to print error values."
-               << "Names:" << valueNames.size()
-               << "values: " << values.size();
+      printDebug(DEBUG_PROGRAM_WARNING, "Logger",
+                 "Debug printing could not figure how to print error values.",
+                 {"Names", "Values"}, {QString::number(valueNames.size(), values.size())});
     }
   }
 
@@ -167,49 +165,32 @@ void Logger::printDebug(DebugType type, QString className, QString description,
   }
   case DEBUG_IMPORTANT:
   {
-    printMutex_.lock();
-    // TODO: Center text in middle.
-    qDebug();
-    qDebug().noquote() << blue << "=============================================================================" << black;
-    printHelper(blue, beginString, valueString, description, valueNames.size());
-    qDebug().noquote() << blue << "=============================================================================" << black;
-    qDebug();
-    printMutex_.unlock();
+    printHelper(blue, beginString, valueString, description, valueNames.size(), true);
     break;
   }
   case DEBUG_ERROR:
   {
-    printMutex_.lock();
     printHelper(red, beginString, valueString, "ERROR! " + description, valueNames.size());
-    printMutex_.unlock();
     break;
   }
   case DEBUG_WARNING:
   {
-    printMutex_.lock();
     printHelper(yellow, beginString, valueString, "Warning! " + description, valueNames.size());
-    printMutex_.unlock();
     break;
   }
   case DEBUG_PEER_ERROR:
   {
-    printMutex_.lock();
     printHelper(red, beginString, valueString, "PEER ERROR: " + description, valueNames.size());
-    printMutex_.unlock();
     break;
   }
   case DEBUG_PROGRAM_ERROR:
   {
-    printMutex_.lock();
     printHelper(red, beginString, valueString, "BUG: " + description, valueNames.size());
-    printMutex_.unlock();
     break;
   }
   case DEBUG_PROGRAM_WARNING:
   {
-    printMutex_.lock();
     printHelper(yellow, beginString, valueString, "Minor bug: " + description, valueNames.size());
-    printMutex_.unlock();
     break;
   }
   }
@@ -237,14 +218,23 @@ bool Logger::checkError(QObject* object, bool check, DebugType type,
 
 
 void Logger::printHelper(QString color, QString beginString, QString valueString,
-                         QString description, int valuenames)
+                         QString description, int valuenames, bool emphasize)
 {
+  // TODO: Center text in middle for emphisized prints.
   if (beginString.length() < BEGIN_LENGTH)
   {
     beginString = beginString.leftJustified(BEGIN_LENGTH, ' ');
   }
 
+  printMutex_.lock();
   QDebug printing = qDebug().nospace().noquote();
+
+  if (emphasize)
+  {
+    qDebug();
+    printing << color << "=============================================================================";
+  }
+
   printing << color << beginString << description;
   if (!valueString.isEmpty())
   {
@@ -259,6 +249,13 @@ void Logger::printHelper(QString color, QString beginString, QString valueString
     }
   }
 
+  if (emphasize)
+  {
+    printing << color << "=============================================================================";
+    qDebug();
+  }
+
   QString blackColor = "\033[0m";
   printing << blackColor;
+  printMutex_.unlock();
 }

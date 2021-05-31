@@ -77,7 +77,8 @@ public:
 private:
   Logger();
 
-  void printHelper(QString color, QString beginString, QString valueString, QString description, int valuenames);
+  void printHelper(QString color, QString beginString, QString valueString,
+                   QString description, int valuenames, bool emphasize = false);
 
   static std::shared_ptr<Logger> instance_;
 
