@@ -1,5 +1,7 @@
 #pragma once
 
+#include "audioframebuffer.h"
+
 #include <speex/speex_echo.h>
 #include <speex/speex_preprocess.h>
 
@@ -8,8 +10,6 @@
 
 #include <deque>
 #include <memory>
-
-class AudioFrameBuffer;
 
 
 class SpeexAEC : public QObject

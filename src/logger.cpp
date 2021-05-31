@@ -269,33 +269,62 @@ void Logger::printHelper(QString color, PrintSet &set, bool emphasize)
 
   if (emphasize)
   {
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+    printing << color << endl << longBar << endl;
+    fileStream << endl << longBar << endl;
+#else
     printing << color << Qt::endl << longBar << Qt::endl;
     fileStream << Qt::endl << longBar << Qt::endl;
+#endif
   }
 
   printing << color << set.firstLine;
+
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+  fileStream << set.firstLine << endl;
+#else
   fileStream << set.firstLine << Qt::endl;
+#endif
 
   if (!set.additionalLines.empty() || emphasize)
   {
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+    printing << endl;
+#else
     printing << Qt::endl;
+#endif
   }
 
   for (auto& additionalLine : set.additionalLines)
   {
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+    printing << additionalLine << endl;
+    fileStream  << additionalLine << endl;
+#else
     printing << additionalLine << Qt::endl;
     fileStream  << additionalLine << Qt::endl;
+#endif
   }
 
   if (!set.additionalLines.empty())
   {
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+    fileStream << endl;
+#else
     fileStream << Qt::endl;
+#endif
+
   }
 
   if (emphasize)
   {
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+    printing << color << longBar << endl;
+    fileStream << longBar << endl << endl;
+#else
     printing << color << longBar << Qt::endl;
     fileStream << longBar << Qt::endl << Qt::endl;
+#endif
   }
 
   // make sure we reset the color back to previous color
