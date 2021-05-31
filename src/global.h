@@ -6,6 +6,8 @@
 
 const QString APPLICATIONNAME = "Kvazzup";
 
+const QString LOG_FILE_NAME = "kvazzup.log";
+
 // how often registrations are sent in seconds
 const int REGISTER_INTERVAL = 600;
 

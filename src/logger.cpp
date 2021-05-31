@@ -1,15 +1,27 @@
 #include "logger.h"
 
+#include "global.h"
 
 #include <QDebug>
 
 const int BEGIN_LENGTH = 40;
 
+
 std::shared_ptr<Logger> Logger::instance_ = nullptr;
 
 
-Logger::Logger()
+Logger::Logger():
+  printMutex_(),
+  logFile_(),
+  triedOpeningFile_(false)
 {}
+
+
+Logger::~Logger()
+{
+  triedOpeningFile_ = false;
+  logFile_.close();
+}
 
 std::shared_ptr<Logger> Logger::getLogger()
 {
@@ -91,64 +103,7 @@ void Logger::printUnimplemented(const QObject* object, QString whatIsNotImplemen
 void Logger::printDebug(DebugType type, QString className, QString description,
                         QStringList valueNames, QStringList values)
 {
-  QString valueString = "";
-
-  // do we have values.
-  if( values.size() != 0)
-  {
-    // Add "name: value" because equal number of both.
-    if (valueNames.size() == values.size()) // equal number of names and values
-    {
-      for (int i = 0; i < valueNames.size(); ++i)
-      {
-        if (valueNames.at(i) != "" && values.at(i) != "")
-        {
-          if (valueNames.size() != 1)
-          {
-            valueString.append(QString(BEGIN_LENGTH, ' '));
-            valueString.append("-- ");
-          }
-          valueString.append(valueNames.at(i));
-          valueString.append(": ");
-          valueString.append(values.at(i));
-
-          if (valueNames.size() != 1)
-          {
-            valueString.append("\r\n");
-          }
-        }
-      }
-    }
-    else if (valueNames.size() == 1 && valueNames.at(0) != "") // if we have one name, add it
-    {
-      valueString.append(valueNames.at(0));
-      valueString.append(": ");
-    }
-
-    // If we have one or zero names, just add all values, unless we have 1 of both
-    // in which case they were added earlier.
-    if (valueNames.empty() || (valueNames.size() == 1 && values.size() != 1))
-    {
-      for (int i = 0; i < values.size(); ++i)
-      {
-        valueString.append(values.at(i));
-        if (i != values.size() - 1)
-        {
-          valueString.append(", ");
-        }
-      }
-    }
-    else if (valueNames.size() != values.size())
-    {
-      printDebug(DEBUG_PROGRAM_WARNING, "Logger",
-                 "Debug printing could not figure how to print error values.",
-                 {"Names", "Values"}, {QString::number(valueNames.size(), values.size())});
-    }
-  }
-
-  // TODO: Set a constant length for everything before description.
-
-  QString beginString = className + ": ";
+  PrintSet print;
 
   QString black   = "\033[0m";
   QString yellow  = "\033[1;33m";
@@ -160,37 +115,44 @@ void Logger::printDebug(DebugType type, QString className, QString description,
   switch (type) {
   case DEBUG_NORMAL:
   {
-    printHelper(black, beginString, valueString, description, valueNames.size());
+    createPrintSet(print, className, description, valueNames, values);
+    printHelper(black, print);
     break;
   }
   case DEBUG_IMPORTANT:
   {
-    printHelper(blue, beginString, valueString, description, valueNames.size(), true);
+    createPrintSet(print, className, description, valueNames, values);
+    printHelper(blue, print, true);
     break;
   }
   case DEBUG_ERROR:
   {
-    printHelper(red, beginString, valueString, "ERROR! " + description, valueNames.size());
+    createPrintSet(print, className, "ERROR! " + description, valueNames, values);
+    printHelper(red, print);
     break;
   }
   case DEBUG_WARNING:
   {
-    printHelper(yellow, beginString, valueString, "Warning! " + description, valueNames.size());
+    createPrintSet(print, className, "Warning! " + description, valueNames, values);
+    printHelper(yellow, print);
     break;
   }
   case DEBUG_PEER_ERROR:
   {
-    printHelper(red, beginString, valueString, "PEER ERROR: " + description, valueNames.size());
+    createPrintSet(print, className, "PEER ERROR: " + description, valueNames, values);
+    printHelper(red, print);
     break;
   }
   case DEBUG_PROGRAM_ERROR:
   {
-    printHelper(red, beginString, valueString, "BUG: " + description, valueNames.size());
+    createPrintSet(print, className, "BUG: " + description, valueNames, values);
+    printHelper(red, print);
     break;
   }
   case DEBUG_PROGRAM_WARNING:
   {
-    printHelper(yellow, beginString, valueString, "Minor bug: " + description, valueNames.size());
+    createPrintSet(print, className, "Minor bug: " + description, valueNames, values);
+    printHelper(yellow, print);
     break;
   }
   }
@@ -217,45 +179,141 @@ bool Logger::checkError(QObject* object, bool check, DebugType type,
 }
 
 
-void Logger::printHelper(QString color, QString beginString, QString valueString,
-                         QString description, int valuenames, bool emphasize)
+void Logger::createPrintSet(PrintSet& set, QString className, QString description,
+                            QStringList valueNames, QStringList values)
 {
-  // TODO: Center text in middle for emphisized prints.
-  if (beginString.length() < BEGIN_LENGTH)
+  set.firstLine = className + ": ";
+  if (set.firstLine.length() < BEGIN_LENGTH)
   {
-    beginString = beginString.leftJustified(BEGIN_LENGTH, ' ');
+    set.firstLine = set.firstLine.leftJustified(BEGIN_LENGTH, ' ');
   }
+  set.firstLine += description;
 
+  // do we have values to print
+  if (values.size() != 0)
+  {
+    // Add "name: value" because equal number of both.
+    if (valueNames.size() == values.size()) // equal number of names and values
+    {
+      for (int i = 0; i < valueNames.size(); ++i)
+      {
+        if (valueNames.at(i) != "" && values.at(i) != "")
+        {
+          QString field = valueNames.at(i) + ": " + values.at(i);
+
+          if (valueNames.size() != 1)
+          {
+            QString additionalLine;
+            additionalLine.append(QString(BEGIN_LENGTH, ' '));
+            additionalLine.append("-- ");
+            additionalLine.append(field);
+
+            set.additionalLines.push_back(additionalLine);
+          }
+          else
+          {
+            set.firstLine += " (" + field + ")";
+          }
+        }
+      }
+    }
+    else if (valueNames.empty() || valueNames.size() == 1)
+    {
+      // If we have one or zero names, just add all values, unless we have 1 of both
+      // in which case they were added earlier.
+
+      QString additionalLine;
+      if (valueNames.size() == 1)
+      {
+        additionalLine.append(valueNames.at(0) + ": ");
+      }
+
+      for (int i = 0; i < values.size(); ++i)
+      {
+        additionalLine.append(values.at(i));
+        if (i != values.size() - 1)
+        {
+          additionalLine.append(", ");
+        }
+      }
+      set.additionalLines.push_back(additionalLine);
+    }
+    else
+    {
+      qDebug() << "Debug printing could not figure how to print error values. "
+                  "Description:" << description;
+    }
+  }
+}
+
+
+void Logger::printHelper(QString color, PrintSet &set, bool emphasize)
+{
   printMutex_.lock();
+
+  if (!triedOpeningFile_ && !logFile_.isOpen())
+  {
+    if (!openFileStream())
+    {
+      qDebug() << "ERROR: Could not open log file! Printing not working!";
+      return;
+    }
+    qDebug() << "Opened log file for printing. Filename: " << logFile_.fileName();
+  }
+
+  // One additional line is added to printing when printing is destroyed
   QDebug printing = qDebug().nospace().noquote();
+  QTextStream fileStream(&logFile_);
+
+  QString longBar = "=============================================================================";
 
   if (emphasize)
   {
-    qDebug();
-    printing << color << "=============================================================================";
+    printing << color << Qt::endl << longBar << Qt::endl;
+    fileStream << Qt::endl << longBar << Qt::endl;
   }
 
-  printing << color << beginString << description;
-  if (!valueString.isEmpty())
+  printing << color << set.firstLine;
+  fileStream << set.firstLine << Qt::endl;
+
+  if (!set.additionalLines.empty() || emphasize)
   {
-    // print one value on same line
-    if (valuenames == 1)
-    {
-      printing << " (" << valueString << ")";
-    }
-    else // pring each value on separate line
-    {
-      printing << "\r\n" << valueString;
-    }
+    printing << Qt::endl;
+  }
+
+  for (auto& additionalLine : set.additionalLines)
+  {
+    printing << additionalLine << Qt::endl;
+    fileStream  << additionalLine << Qt::endl;
+  }
+
+  if (!set.additionalLines.empty())
+  {
+    fileStream << Qt::endl;
   }
 
   if (emphasize)
   {
-    printing << color << "=============================================================================";
-    qDebug();
+    printing << color << longBar << Qt::endl;
+    fileStream << longBar << Qt::endl << Qt::endl;
   }
 
+  // make sure we reset the color back to previous color
   QString blackColor = "\033[0m";
   printing << blackColor;
   printMutex_.unlock();
+}
+
+
+bool Logger::openFileStream()
+{
+  logFile_.setFileName(LOG_FILE_NAME);
+
+  if (!logFile_.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
+  {
+    return false;
+  }
+
+  triedOpeningFile_ = true;
+  return true;
 }

@@ -5,6 +5,7 @@
 #include <QString>
 #include <QMutex>
 #include <QFile>
+#include <QTextStream>
 
 #include <memory>
 
@@ -16,6 +17,8 @@ enum DebugType{DEBUG_NORMAL, DEBUG_IMPORTANT, DEBUG_ERROR, DEBUG_WARNING,
 class Logger
 {
 public:
+
+  ~Logger();
 
   // initializes the Logger instance if it has not been initialized
   static std::shared_ptr<Logger> getLogger();
@@ -75,13 +78,30 @@ public:
 
 
 private:
+
   Logger();
 
-  void printHelper(QString color, QString beginString, QString valueString,
-                   QString description, int valuenames, bool emphasize = false);
+  struct PrintSet
+  {
+    // The main line to print/log. Always present
+    QString firstLine;
+
+    // if there are additional lines, we print an additional Line change
+    QStringList additionalLines;
+  };
+
+  void createPrintSet(PrintSet& set, QString className, QString description,
+                      QStringList valueNames, QStringList values);
+
+  void printHelper(QString color, PrintSet& set, bool emphasize = false);
+
+  bool openFileStream();
+
 
   static std::shared_ptr<Logger> instance_;
 
-  // global variable until this becomes a static class
   QMutex printMutex_;
+  QFile logFile_;
+
+  bool triedOpeningFile_;
 };
