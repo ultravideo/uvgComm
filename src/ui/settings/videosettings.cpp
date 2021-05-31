@@ -230,6 +230,7 @@ void VideoSettings::saveSettings()
                     QStringList() << "Name" << "Value", videoSettingsUI_->custom_parameters);
 
   // Other-tab
+  saveCheckBox(SettingsKey::videoFlipEnabled, videoSettingsUI_->flip, settings_);
   saveCheckBox(SettingsKey::videoOpenGL,         videoSettingsUI_->opengl, settings_);
 }
 
