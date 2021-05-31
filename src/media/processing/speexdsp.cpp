@@ -68,15 +68,12 @@ void SpeexDSP::updateSettings()
         Logger::getLogger()->printProgramWarning(this, "AGC max gain not set. Using 0");
       }
 
-      int32_t level = 0;
-      speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_GET_AGC_LEVEL , &level);
-
       // we set a low gain to avoid background noises from coming through during pauses
       speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC_MAX_GAIN , &agcMaxGain_);
 
       Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "AGC has been enabled",
-                 {"Level", "Max gain", "Increment", "Decrement"},
-                 {QString::number(agcLevel_), QString::number(level),
+                 {"Level", "Increment", "Decrement"},
+                 {QString::number(agcLevel_),
                   QString::number(increment), QString::number(decrement)});
 
 
