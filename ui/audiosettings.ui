@@ -382,7 +382,7 @@
           </sizepolicy>
          </property>
          <property name="text">
-          <string>150 ms</string>
+          <string>250 ms</string>
          </property>
         </widget>
        </item>
@@ -507,7 +507,7 @@
           <number>100</number>
          </property>
          <property name="value">
-          <number>150</number>
+          <number>250</number>
          </property>
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
