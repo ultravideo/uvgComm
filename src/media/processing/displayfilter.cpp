@@ -8,7 +8,6 @@
 #include "logger.h"
 
 #include <QImage>
-#include <QtDebug>
 #include <QDateTime>
 #include <QSettings>
 
@@ -60,7 +59,7 @@ void DisplayFilter::process()
   // without adding too much latency
 
   std::unique_ptr<Data> input = getInput();
-  while(input)
+  while (input)
   {
     QImage::Format format;
 
@@ -80,7 +79,7 @@ void DisplayFilter::process()
       break;
     }
 
-    if(input->type == input_)
+    if (input->type == input_)
     {
       QImage image(
             input->data.get(),
@@ -88,7 +87,7 @@ void DisplayFilter::process()
             input->height,
             format);
 
-      if(flipEnabled_)
+      if (flipEnabled_)
       {
         image = image.mirrored(horizontalMirroring_, verticalMirroring_);
       }

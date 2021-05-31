@@ -15,6 +15,8 @@
 #include "media/processing/audiomixerfilter.h"
 #include "media/processing/audiooutputfilter.h"
 
+#include "audioframebuffer.h"
+
 #include "ui/gui/videointerface.h"
 
 #include "speexaec.h"
@@ -75,6 +77,10 @@ FilterGraph::FilterGraph(): QObject(),
 void FilterGraph::init(VideoInterface* selfView, StatisticsInterface* stats)
 {
   Q_ASSERT(stats);
+
+  uninit();
+
+  quitting_ = false;
 
   stats_ = stats;
   selfviewFilter_ =
@@ -198,7 +204,7 @@ void FilterGraph::updateAudioSettings()
 
 void FilterGraph::initSelfView()
 {
-  Logger::getLogger()->printNormal(this, "Iniating camera and selfview");
+  Logger::getLogger()->printNormal(this, "Iniating camera");
 
   QSettings settings(settingsFile, settingsFileFormat);
   videoFormat_ = settings.value(SettingsKey::videoInputFormat).toString();
@@ -228,6 +234,7 @@ void FilterGraph::initSelfView()
 
   if (selfviewFilter_)
   {
+    Logger::getLogger()->printNormal(this, "Iniating self view");
     // connect scaling filter
     // TODO: not useful if it does not support YUV. Testing needed to verify
     /*
@@ -251,6 +258,10 @@ void FilterGraph::initSelfView()
 
     addToGraph(selfviewFilter_, cameraGraph_);
     addToGraph(selfviewFilter_, screenShareGraph_);
+  }
+  else
+  {
+    Logger::getLogger()->printProgramError(this, "Self view filter has not been set");
   }
 
   selectVideoSource();
@@ -606,7 +617,8 @@ void FilterGraph::camera(bool state)
     }
     else
     {
-      Logger::getLogger()->printNormal(this, "Starting camera");
+      Logger::getLogger()->printNormal(this, "Starting camera", "Output Type",
+                                       QString::number(cameraGraph_.at(0)->outputType()));
       selfviewFilter_->setProperties(true, cameraGraph_.at(0)->outputType() == RGB32VIDEO);
       cameraGraph_.at(0)->start();
     }
