@@ -442,22 +442,39 @@ bool parseField(QString& values, SIPField& field)
     }
 
     // push current word if it ended
-    if (!comments)
+    if (!comments) // contents of comments are ignored
     {
-      if ((character == "\"" && isQuotation) ||
-          (character == ">" && isURI))
+      if (isQuotation) // quotation end
       {
-        if (!isParameter && currentWord != "")
+        if (character == "\"")
         {
-          set.words.push_back(currentWord);
-          currentWord = "";
-        }
-        else if (!isParameter)
-        {
-          return false; // empty quotation or URI
+          if (!isParameter && currentWord != "")
+          {
+            set.words.push_back(currentWord);
+            currentWord = "";
+          }
+          else if (!isParameter)
+          {
+            return false; // empty quotation
+          }
         }
       }
-      else if (character == " " && !isQuotation)
+      else if (isURI) // uri end
+      {
+        if (character == ">")
+        {
+          if (!isParameter && currentWord != "")
+          {
+            set.words.push_back(currentWord);
+            currentWord = "";
+          }
+          else if (!isParameter)
+          {
+            return false; // empty quotation or URI
+          }
+        }
+      }
+      else if (character == " ") // end of a word
       {
         if (!isParameter && currentWord != "")
         {
@@ -465,36 +482,32 @@ bool parseField(QString& values, SIPField& field)
         }
         currentWord = "";
       }
-      else if((character == "=" && isParameter) ||
-         (character == ";" && !isURI))
+      else if (isParameter)
       {
-        if (!isParameter)
+        if (character == "=")
         {
-          if (character == ";" && currentWord != "")
+          if (parameter.name != "")
           {
-            // last word before parameters
-            set.words.push_back(currentWord);
+            return false; // got name when we already have one
+          }
+          else
+          {
+            parameter.name = currentWord;
             currentWord = "";
           }
         }
-        else // isParameter
+        else if (character == ";")
         {
-          if (character == "=")
-          {
-            if (parameter.name != "")
-            {
-              return false; // got name when we already have one
-            }
-            else
-            {
-              parameter.name = currentWord;
-              currentWord = "";
-            }
-          }
-          else if (character == ";")
-          {
-            addParameterToSet(parameter, currentWord, set);
-          }
+          addParameterToSet(parameter, currentWord, set);
+        }
+      }
+      else
+      {
+        if (character == ";" && currentWord != "")
+        {
+          // last word before parameters
+          set.words.push_back(currentWord);
+          currentWord = "";
         }
       }
     }
