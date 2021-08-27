@@ -143,7 +143,7 @@ bool parseField(QString& values, SIPField& field);
 
 void addParameterToSet(SIPParameter& currentParameter, QString& currentWord,
                        SIPCommaValue& value);
-
+bool addWord(bool isParameter, QStringList &words, QString& currentWord, QChar character, QChar endCharacter);
 
 void composeAllFields(QList<SIPField>& fields,
                       std::shared_ptr<SIPMessageHeader> header)
@@ -446,32 +446,16 @@ bool parseField(QString& values, SIPField& field)
     {
       if (isQuotation) // quotation end
       {
-        if (character == "\"")
+        if (!addWord(isParameter, set.words, currentWord, character, '\"'))
         {
-          if (!isParameter && currentWord != "")
-          {
-            set.words.push_back(currentWord);
-            currentWord = "";
-          }
-          else if (!isParameter)
-          {
-            return false; // empty quotation
-          }
+          return false; // empty quotation
         }
       }
       else if (isURI) // uri end
       {
-        if (character == ">")
+        if (!addWord(isParameter, set.words, currentWord, character, '>'))
         {
-          if (!isParameter && currentWord != "")
-          {
-            set.words.push_back(currentWord);
-            currentWord = "";
-          }
-          else if (!isParameter)
-          {
-            return false; // empty quotation or URI
-          }
+          return false; // empty uri
         }
       }
       else if (character == " ") // end of a word
@@ -586,3 +570,21 @@ void addParameterToSet(SIPParameter& currentParameter, QString &currentWord,
   currentParameter = SIPParameter{"",""};
 }
 
+bool addWord(bool isParameter, QStringList& words, QString& currentWord,
+             QChar character, QChar endCharacter)
+{
+  if (character == endCharacter)
+  {
+    if (!isParameter && currentWord != "")
+    {
+      words.push_back(currentWord);
+      currentWord = "";
+    }
+    else if (!isParameter)
+    {
+      return false; // empty word not possible
+    }
+  }
+
+  return true;
+}
