@@ -14,6 +14,7 @@
 
 #include <QScreen>
 #include <QCryptographicHash>
+#include <QUuid>
 
 
 const QStringList neededSettings = {SettingsKey::localRealname,
@@ -53,6 +54,8 @@ void Settings::init()
   audioSettings_.init(audioIndex);
   videoSettings_.init(videoID);
   sipSettings_.init();
+
+  checkUUID(); // makes sure that we have an uuid and if not, creates one
 
   //QObject::connect(basicUI_->save, &QPushButton::clicked, this, &Settings::on_ok_clicked);
   //QObject::connect(basicUI_->close, &QPushButton::clicked, this, &Settings::on_cancel_clicked);
@@ -511,4 +514,22 @@ void Settings::changedSIPText(const QString &text)
 void Settings::updateServerStatus(QString status)
 {
   basicUI_->status->setText(status);
+}
+
+
+void Settings::checkUUID()
+{
+  if (!settings_.value(SettingsKey::sipUUID).isValid() ||
+      settings_.value(SettingsKey::sipUUID).toString().isEmpty())
+  {
+    QUuid uuid = QUuid::createUuid();
+    QString uuid_str = uuid.toString();
+
+    uuid = uuid_str.remove("{");
+    uuid = uuid_str.remove("}");
+
+    settings_.setValue(SettingsKey::sipUUID, uuid_str);
+
+    Logger::getLogger()->printNormal(this, "Generated new UUID.", "UUID", uuid_str);
+  }
 }

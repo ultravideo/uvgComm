@@ -93,6 +93,8 @@ private:
 
   void saveDevice(QComboBox* deviceSelector, QString settingsID, QString settingsDevice, bool video);
 
+  void checkUUID();
+
   // checks if user settings make sense
   // TODO: display errors to user on ok click
 

@@ -104,6 +104,8 @@ const QString sipSTUNEnabled = "sip/stunEnabled";
 const QString sipSTUNAddress = "sip/stunAddress";
 const QString sipSTUNPort = "sip/stunPort";
 
+const QString sipUUID = "sip/UUID";
+
 // blocklist setting key
 const QString blocklist = "blocklist";
 
