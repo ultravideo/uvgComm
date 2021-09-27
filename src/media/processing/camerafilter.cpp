@@ -221,7 +221,7 @@ bool CameraFilter::cameraSetup()
     QList<QSize> resolutions = camera_->supportedViewfinderResolutions(viewSettings);
 
     currentResolutionID_ = settings.value(SettingsKey::videoResolutionID).toInt();
-    if(resolutions.size() >= currentResolutionID_ && !resolutions.empty())
+    if(resolutions.size() > currentResolutionID_ && !resolutions.empty())
     {
       QSize resolution = resolutions.at(currentResolutionID_);
       viewSettings.setResolution(QSize(resolution.width(),
