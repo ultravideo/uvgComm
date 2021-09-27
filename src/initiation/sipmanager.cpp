@@ -73,10 +73,19 @@ void SIPManager::uninit()
   dialogManager_.uninit();
   registrations_.uninit();
 
-  for(std::shared_ptr<SIPTransport> transport : transports_)
+  for(std::shared_ptr<SIPTransport>& transport : transports_)
   {
     if(transport != nullptr)
     {
+      QObject::disconnect(transport.get(), &SIPTransport::incomingSIPRequest,
+                          this, &SIPManager::processSIPRequest);
+
+      QObject::disconnect(transport.get(), &SIPTransport::incomingSIPResponse,
+                          this, &SIPManager::processSIPResponse);
+
+      QObject::disconnect(transport.get(), &SIPTransport::sipTransportEstablished,
+                          this, &SIPManager::connectionEstablished);
+
       transport->cleanup();
       transport.reset();
     }

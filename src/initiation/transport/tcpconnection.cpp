@@ -42,20 +42,27 @@ void TCPConnection::init()
   if (socket_ == nullptr)
   {
     socket_ = new QTcpSocket();
-    QObject::connect(socket_, SIGNAL(bytesWritten(qint64)),
-                     this, SLOT(printBytesWritten(qint64)));
-
-    QObject::connect(socket_, SIGNAL(readyRead()),
-                     this, SLOT(receivedMessage()));
 
     QObject::connect(socket_, &QAbstractSocket::disconnected, this, &TCPConnection::disconnected);
+    QObject::connect(socket_, &QAbstractSocket::bytesWritten, this, &TCPConnection::printBytesWritten);
+    QObject::connect(socket_, &QAbstractSocket::readyRead, this, &TCPConnection::receivedMessage);
   }
 }
 
 void TCPConnection::uninit()
 {
+  active_ = false;
+
   if(socket_ != nullptr)
   {
+    QObject::disconnect(socket_, &QAbstractSocket::disconnected,
+                        this, &TCPConnection::disconnected);
+
+    QObject::disconnect(socket_, &QAbstractSocket::bytesWritten,
+                        this, &TCPConnection::printBytesWritten);
+
+    QObject::disconnect(socket_, &QAbstractSocket::readyRead,
+                        this, &TCPConnection::receivedMessage);
     delete socket_;
     socket_ = nullptr;
   }

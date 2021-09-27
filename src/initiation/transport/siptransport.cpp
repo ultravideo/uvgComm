@@ -55,7 +55,12 @@ SIPTransport::SIPTransport(quint32 transportID, StatisticsInterface *stats):
 {}
 
 SIPTransport::~SIPTransport()
-{}
+{
+  if (connection_)
+  {
+    cleanup();
+  }
+}
 
 void SIPTransport::cleanup()
 {
