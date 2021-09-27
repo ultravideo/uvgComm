@@ -50,11 +50,19 @@ private:
                           QString localAddress,
                           uint16_t localPort, SIPType type);
 
+  void addREGISTERContactParameters(std::shared_ptr<SIPMessageHeader> message);
+
+  void addGruuToSupported(std::shared_ptr<SIPMessageHeader> message);
+
+  void getGruus(std::shared_ptr<SIPMessageHeader> message);
 
   std::shared_ptr<TCPConnection> connection_;
 
   QString contactAddress_;
   uint16_t contactPort_;
+
+  QString tempGruu_;
+  QString pubGruu_;
 
   bool first_;
 

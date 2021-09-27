@@ -1,10 +1,11 @@
 #include "siprouting.h"
 
-#include <QSettings>
+#include "settingskeys.h"
 
 #include "common.h"
 #include "logger.h"
 
+#include <QSettings>
 
 SIPRouting::SIPRouting(std::shared_ptr<TCPConnection> connection):
   connection_(connection),
@@ -50,7 +51,14 @@ void SIPRouting::processOutgoingRequest(SIPRequest& request, QVariant& content)
                     connection_->localAddress(),
                     connection_->localPort(),
                     DEFAULT_SIP_TYPE);
+
+    if (request.method == SIP_REGISTER)
+    {
+      addREGISTERContactParameters(request.message);
+    }
   }
+
+  addGruuToSupported(request.message);
 
   emit outgoingRequest(request, content);
 
@@ -78,6 +86,8 @@ void SIPRouting::processOutgoingResponse(SIPResponse& response, QVariant& conten
                       DEFAULT_SIP_TYPE);
   }
 
+  addGruuToSupported(response.message);
+
   emit outgoingResponse(response, content);
 }
 
@@ -95,6 +105,11 @@ void SIPRouting::processIncomingResponse(SIPResponse& response, QVariant& conten
   else
   {
     Logger::getLogger()->printError(this, "Not connected when checking response via field");
+  }
+
+  if (response.type == SIP_OK && response.message->cSeq.method == SIP_REGISTER)
+  {
+    getGruus(response.message);
   }
 
   emit incomingResponse(response, content);
@@ -168,22 +183,81 @@ void SIPRouting::addContactField(std::shared_ptr<SIPMessageHeader> message,
 {
   message->contact.push_back({{"", SIP_URI{type, {getLocalUsername(), ""}, {"", 0}, {}, {}}}, {}});
 
-    // use rport address and port if we have them, otherwise use localaddress
-  if (contactAddress_ != "")
+  if (pubGruu_ != "")
+  {
+    message->contact.back().address.uri.hostport.host = pubGruu_;
+  }
+  else if (tempGruu_ != "")
+  {
+    message->contact.back().address.uri.hostport.host = tempGruu_;
+  }
+  // use rport address and port if we have them
+  else if (contactAddress_ != "" && contactPort_ != 0)
   {
     message->contact.back().address.uri.hostport.host = contactAddress_;
-  }
-  else
-  {
-    message->contact.back().address.uri.hostport.host = localAddress;
-  }
-
-  if (contactPort_ != 0)
-  {
     message->contact.back().address.uri.hostport.port = contactPort_;
   }
-  else
+  else // otherwise use localaddress
   {
+    message->contact.back().address.uri.hostport.host = localAddress;
     message->contact.back().address.uri.hostport.port = localPort;
   }
+
+}
+
+
+void SIPRouting::addREGISTERContactParameters(std::shared_ptr<SIPMessageHeader> message)
+{
+  if (message->contact.empty())
+  {
+    Logger::getLogger()->printProgramWarning(this,
+                                             "Please add contact field before adding parameters");
+  }
+
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+  message->contact.back().parameters.push_back({"reg-id", "1"});
+  message->contact.back().parameters.push_back({"+sip.instance", "\"<urn:uuid:" +
+                                                settings.value(SettingsKey::sipUUID).toString() + ">\""});
+}
+
+
+void SIPRouting::addGruuToSupported(std::shared_ptr<SIPMessageHeader> message)
+{
+  if (message->supported == nullptr)
+  {
+    message->supported = std::shared_ptr<QStringList>(new QStringList);
+  }
+
+  message->supported->append("gruu");
+}
+
+void SIPRouting::getGruus(std::shared_ptr<SIPMessageHeader> message)
+{
+  QString tempGruu = "";
+  QString pubGruu = "";
+
+  for (auto& contact : message->contact)
+  {
+    for (int i = 0; i < contact.parameters.size() && tempGruu == ""; ++i)
+    {
+      // TODO: Check that pub-gruu does not change
+      if (contact.parameters.at(i).name == "pub-gruu")
+      {
+        pubGruu = contact.parameters.at(i).value;
+        Logger::getLogger()->printNormal(this, "Found public GRUU", "pub-gruu", pubGruu);
+      }
+    }
+
+    for (int i = 0; i < contact.parameters.size() && tempGruu == ""; ++i)
+    {
+      if (contact.parameters.at(i).name == "temp-gruu")
+      {
+        tempGruu = contact.parameters.at(i).value;
+        Logger::getLogger()->printNormal(this, "Found temporary GRUU", "temp-gruu", tempGruu);
+      }
+    }
+  }
+
+  tempGruu_ = tempGruu;
+  pubGruu_ = pubGruu;
 }
