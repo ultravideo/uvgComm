@@ -247,23 +247,31 @@ void SIPManager::transportRequest(uint32_t sessionID, SIPRequest &request)
 
     if (transports_.find(transportID) != transports_.end())
     {
-      QVariant content;
-      if(request.type == SIP_ACK && negotiation_.getState(sessionID)
-         == NEG_ANSWER_GENERATED)
+      if (transports_[transportID]->isConnected())
       {
-        request.message->content.length = 0;
-        Logger::getLogger()->printNormal(this, "Adding SDP content to request");
-
-        request.message->content.type = APPLICATION_SDP;
-
-        if (!SDPAnswerToContent(content, sessionID))
+        QVariant content;
+        if(request.type == SIP_ACK && negotiation_.getState(sessionID)
+           == NEG_ANSWER_GENERATED)
         {
-          Logger::getLogger()->printError(this, "Failed to get SDP answer to request");
-          return;
-        }
-      }
+          request.message->content.length = 0;
+          Logger::getLogger()->printNormal(this, "Adding SDP content to request");
 
-      transports_[transportID]->sendRequest(request, content);
+          request.message->content.type = APPLICATION_SDP;
+
+          if (!SDPAnswerToContent(content, sessionID))
+          {
+            Logger::getLogger()->printError(this, "Failed to get SDP answer to request");
+            return;
+          }
+        }
+
+        transports_[transportID]->sendRequest(request, content);
+      }
+      else
+      {
+        Logger::getLogger()->printWarning(this, metaObject()->className(),
+                   "Tried to send a request with disconnected connection");
+      }
     }
     else {
       Logger::getLogger()->printDebug(DEBUG_ERROR,  metaObject()->className(), 
@@ -285,36 +293,44 @@ void SIPManager::transportResponse(uint32_t sessionID, SIPResponse &response)
 
     if (transports_.find(transportID) != transports_.end())
     {
-      // determine if we to attach SDP to our response
-      QVariant content;
-      if (response.type == SIP_OK
-          && response.message->transactionRequest == SIP_INVITE
-          && negotiation_.getState(sessionID) == NEG_NO_STATE)
+      if (transports_[transportID]->isConnected())
       {
-        Logger::getLogger()->printNormal(this, "Adding SDP to an OK response");
-        response.message->content.length = 0;
-        response.message->content.type = APPLICATION_SDP;
-        if (!SDPOfferToContent(content, transports_[transportID]->getLocalAddress(), sessionID))
+        // determine if we to attach SDP to our response
+        QVariant content;
+        if (response.type == SIP_OK
+            && response.message->transactionRequest == SIP_INVITE
+            && negotiation_.getState(sessionID) == NEG_NO_STATE)
         {
-          return;
+          Logger::getLogger()->printNormal(this, "Adding SDP to an OK response");
+          response.message->content.length = 0;
+          response.message->content.type = APPLICATION_SDP;
+          if (!SDPOfferToContent(content, transports_[transportID]->getLocalAddress(), sessionID))
+          {
+            return;
+          }
         }
+        // if they sent an offer in their INVITE
+        else if (negotiation_.getState(sessionID) == NEG_ANSWER_GENERATED)
+        {
+          Logger::getLogger()->printNormal(this, "Adding SDP to response since INVITE had an SDP.");
+
+          response.message->content.length = 0;
+          response.message->content.type = APPLICATION_SDP;
+          if (!SDPAnswerToContent(content, sessionID))
+          {
+            Logger::getLogger()->printError(this, "Failed to get SDP answer to response");
+            return;
+          }
+        }
+
+        // send the request with or without SDP
+        transports_[transportID]->sendResponse(response, content);
       }
-      // if they sent an offer in their INVITE
-      else if (negotiation_.getState(sessionID) == NEG_ANSWER_GENERATED)
+      else
       {
-        Logger::getLogger()->printNormal(this, "Adding SDP to response since INVITE had an SDP.");
-
-        response.message->content.length = 0;
-        response.message->content.type = APPLICATION_SDP;
-        if (!SDPAnswerToContent(content, sessionID))
-        {
-          Logger::getLogger()->printError(this, "Failed to get SDP answer to response");
-          return;
-        }
+        Logger::getLogger()->printWarning(this, metaObject()->className(),
+                   "Tried to respond to a disconnected connection");
       }
-
-      // send the request with or without SDP
-      transports_[transportID]->sendResponse(response, content);
     }
     else {
       Logger::getLogger()->printDebug(DEBUG_ERROR, metaObject()->className(), 
