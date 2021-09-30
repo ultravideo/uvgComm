@@ -47,7 +47,7 @@ void YUVtoRGB32::process()
 
 
     // TODO: Select thread count based on input resolution. Anything above fullhd should be around 2
-    if(threadCount_ == 1 && input->width % 16 == 0)
+    if(avx2_ && threadCount_ == 1 && input->width % 16 == 0)
     {
       yuv2rgb_i_avx2_single(input->data.get(), rgb32_frame.get(), input->width, input->height);
     }
