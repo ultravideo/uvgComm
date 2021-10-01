@@ -7,7 +7,9 @@ assignees: ''
 
 ---
 
-If you have multiple questions if you have multiple questions. This makes them easier to answer.
+Please check the existing documentation before asking. Asking questions helps us document aspects that the community finds unclear.
+
+Number the questions if you have multiple questions. This makes them easier to answer.
 1) Question one
 2) Question two
 3) Question 3
