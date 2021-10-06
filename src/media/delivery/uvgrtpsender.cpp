@@ -9,8 +9,9 @@
 
 
 UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id, StatisticsInterface *stats,
+                           std::shared_ptr<HWResourceManager> hwResources,
                            DataType type, QString media, QFuture<uvg_rtp::media_stream *> mstream):
-  Filter(id, "RTP Sender " + media, stats, type, NONE),
+  Filter(id, "RTP Sender " + media, stats, hwResources, type, NONE),
   type_(type),
   mstream_(nullptr),
   frame_(0),

@@ -12,8 +12,9 @@
 
 
 OpusEncoderFilter::OpusEncoderFilter(QString id, QAudioFormat format,
-                                     StatisticsInterface* stats):
-  Filter(id, "Opus Encoder", stats, RAWAUDIO, OPUSAUDIO),
+                                     StatisticsInterface* stats,
+                                     std::shared_ptr<HWResourceManager> hwResources):
+  Filter(id, "Opus Encoder", stats, hwResources, RAWAUDIO, OPUSAUDIO),
   enc_(nullptr),
   opusOutput_(nullptr),
   max_data_bytes_(65536),

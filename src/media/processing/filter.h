@@ -40,15 +40,19 @@ struct Data
 };
 
 class StatisticsInterface;
+class HWResourceManager;
 
 class Filter : public QThread
 {
   Q_OBJECT
 
 public:
-  Filter(QString id, QString name, StatisticsInterface* stats, DataType input, DataType output);
+  Filter(QString id, QString name, StatisticsInterface* stats,
+         std::shared_ptr<HWResourceManager> hwResources,
+         DataType input, DataType output);
   virtual ~Filter();
 
+  // Redefine this to handle the initialization of the filter
   virtual bool init();
 
   // the settings have been updated. Redefine this if inherited class uses qsettings.
@@ -139,6 +143,11 @@ protected:
     return stats_;
   }
 
+  std::shared_ptr<HWResourceManager> getHWManager() const
+  {
+    return hwResources_;
+  }
+
   // -1 disables buffer, but its not recommended because delay
   int maxBufferSize_;
 
@@ -167,6 +176,8 @@ private:
 
   unsigned int inputTaken_;
   unsigned int inputDiscarded_;
+
+  std::shared_ptr<HWResourceManager> hwResources_;
 
   uint32_t filterID_;
 };

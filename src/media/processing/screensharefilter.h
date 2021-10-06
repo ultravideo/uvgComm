@@ -9,7 +9,8 @@ class ScreenShareFilter : public Filter
 {
   Q_OBJECT
 public:
-  ScreenShareFilter(QString id, StatisticsInterface* stats);
+  ScreenShareFilter(QString id, StatisticsInterface* stats,
+                    std::shared_ptr<HWResourceManager> hwResources);
   virtual bool init();
 
   virtual void updateSettings();

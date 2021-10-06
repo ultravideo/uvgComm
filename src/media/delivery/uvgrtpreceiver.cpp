@@ -21,8 +21,9 @@ static void __receiveHook(void *arg, uvg_rtp::frame::rtp_frame *frame)
 }
 
 UvgRTPReceiver::UvgRTPReceiver(uint32_t sessionID, QString id, StatisticsInterface *stats,
+                               std::shared_ptr<HWResourceManager> hwResources,
                                DataType type, QString media, QFuture<uvg_rtp::media_stream *> stream):
-  Filter(id, "RTP Receiver " + media, stats, NONE, type),
+  Filter(id, "RTP Receiver " + media, stats, hwResources, NONE, type),
   type_(type),
   addStartCodes_(true),
   sessionID_(sessionID)

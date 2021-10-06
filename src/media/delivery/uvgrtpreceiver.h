@@ -8,8 +8,9 @@ class UvgRTPReceiver : public Filter
 {
   Q_OBJECT
 public:
-  UvgRTPReceiver(uint32_t sessionID, QString id, StatisticsInterface *stats, DataType type, QString media,
-      QFuture<uvg_rtp::media_stream *> mstream);
+  UvgRTPReceiver(uint32_t sessionID, QString id, StatisticsInterface *stats,
+                 std::shared_ptr<HWResourceManager> hwResources, DataType type,
+                 QString media, QFuture<uvg_rtp::media_stream *> mstream);
   ~UvgRTPReceiver();
 
   void receiveHook(uvg_rtp::frame::rtp_frame *frame);

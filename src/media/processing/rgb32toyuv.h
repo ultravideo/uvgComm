@@ -7,7 +7,8 @@
 class RGB32toYUV : public Filter
 {
 public:
-  RGB32toYUV(QString id, StatisticsInterface* stats);
+  RGB32toYUV(QString id, StatisticsInterface* stats,
+             std::shared_ptr<HWResourceManager> hwResources);
 
   virtual void updateSettings();
 
@@ -17,8 +18,6 @@ protected:
   void process();
 
 private:
-
-  bool sse_;
 
   int threadCount_;
 };

@@ -13,8 +13,9 @@
 #include <QTime>
 
 
-CameraFilter::CameraFilter(QString id, StatisticsInterface *stats):
-  Filter(id, "Camera", stats, NONE, RGB32VIDEO),
+CameraFilter::CameraFilter(QString id, StatisticsInterface *stats,
+                           std::shared_ptr<HWResourceManager> hwResources):
+  Filter(id, "Camera", stats, hwResources, NONE, RGB32VIDEO),
   camera_(nullptr),
   cameraFrameGrabber_(nullptr),
   framerate_(0),
@@ -37,6 +38,7 @@ CameraFilter::~CameraFilter()
     delete cameraFrameGrabber_;
   }
 }
+
 
 void CameraFilter::updateSettings()
 {

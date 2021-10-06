@@ -8,6 +8,7 @@
 #include <QDebug>
 
 Filter::Filter(QString id, QString name, StatisticsInterface *stats,
+               std::shared_ptr<HWResourceManager> hwResources,
                DataType input, DataType output):
   maxBufferSize_(10),
   input_(input),
@@ -20,8 +21,11 @@ Filter::Filter(QString id, QString name, StatisticsInterface *stats,
   running_(true),
   inputTaken_(0),
   inputDiscarded_(0),
+  hwResources_(hwResources),
   filterID_(0)
-{}
+{
+  Q_ASSERT(hwResources != nullptr);
+}
 
 Filter::~Filter()
 {

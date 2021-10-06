@@ -17,7 +17,8 @@ class AudioCaptureFilter : public Filter
   Q_OBJECT
 public:
   AudioCaptureFilter(QString id, QAudioFormat format,
-                     StatisticsInterface* stats);
+                     StatisticsInterface* stats,
+                     std::shared_ptr<HWResourceManager> hwResources);
   virtual ~AudioCaptureFilter();
 
   virtual bool init(); // setups audio device and parameters.

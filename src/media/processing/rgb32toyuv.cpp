@@ -2,14 +2,16 @@
 
 #include "optimized/rgb2yuv.h"
 
+#include "media/hwresourcemanager.h"
+
 #include "settingskeys.h"
 #include "common.h"
 
 #include <QSettings>
 
-RGB32toYUV::RGB32toYUV(QString id, StatisticsInterface *stats) :
-  Filter(id, "RGB32toYUV", stats, RGB32VIDEO, YUV420VIDEO),
-  sse_(true),
+RGB32toYUV::RGB32toYUV(QString id, StatisticsInterface *stats,
+                       std::shared_ptr<HWResourceManager> hwResources):
+  Filter(id, "RGB32toYUV", stats, hwResources, RGB32VIDEO, YUV420VIDEO),
   threadCount_(0)
 {
   updateSettings();
@@ -32,7 +34,7 @@ void RGB32toYUV::process()
     uint32_t finalDataSize = input->width*input->height + input->width*input->height/2;
     std::unique_ptr<uchar[]> yuv_data(new uchar[finalDataSize]);
 
-    if(sse_ && input->width % 4 == 0)
+    if(getHWManager()->isSSE41Enabled() && input->width % 4 == 0)
     {
       if (threadCount_ != 1)
       {

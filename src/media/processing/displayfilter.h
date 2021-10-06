@@ -6,7 +6,9 @@ class VideoInterface;
 class DisplayFilter : public Filter
 {
 public:
-  DisplayFilter(QString id, StatisticsInterface* stats, VideoInterface *widget, uint32_t peer);
+  DisplayFilter(QString id, StatisticsInterface* stats,
+                std::shared_ptr<HWResourceManager> hwResources,
+                VideoInterface *widget, uint32_t peer);
   ~DisplayFilter();
 
   void updateSettings();

@@ -3,8 +3,9 @@
 #include "global.h"
 
 AudioOutputFilter::AudioOutputFilter(QString id, StatisticsInterface* stats,
+                                     std::shared_ptr<HWResourceManager> hwResources,
                                      QAudioFormat format):
-  Filter(id, "Audio Output", stats, RAWAUDIO, NONE),
+  Filter(id, "Audio Output", stats, hwResources, RAWAUDIO, NONE),
   output_()
 {
 #ifdef __linux__

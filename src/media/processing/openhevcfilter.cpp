@@ -10,8 +10,9 @@
 
 enum OHThreadType {OH_THREAD_FRAME  = 1, OH_THREAD_SLICE  = 2, OH_THREAD_FRAMESLICE  = 3};
 
-OpenHEVCFilter::OpenHEVCFilter(uint32_t sessionID, StatisticsInterface *stats):
-  Filter(QString::number(sessionID), "OpenHEVC", stats, HEVCVIDEO, YUV420VIDEO),
+OpenHEVCFilter::OpenHEVCFilter(uint32_t sessionID, StatisticsInterface *stats,
+                               std::shared_ptr<HWResourceManager> hwResources):
+  Filter(QString::number(sessionID), "OpenHEVC", stats, hwResources, HEVCVIDEO, YUV420VIDEO),
   handle_(),
   parameterSets_(false),
   waitFrames_(0),

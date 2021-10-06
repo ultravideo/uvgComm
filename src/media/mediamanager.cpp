@@ -1,10 +1,13 @@
 #include "mediamanager.h"
+
 #include "media/processing/filtergraph.h"
 #include "media/processing/filter.h"
 #include "media/delivery/delivery.h"
 #include "ui/gui/videoviewfactory.h"
 #include "initiation/negotiation/sdptypes.h"
 #include "statisticsinterface.h"
+
+#include "hwresourcemanager.h"
 
 #include "common.h"
 #include "settingskeys.h"
@@ -29,7 +32,8 @@ MediaManager::~MediaManager()
 }
 
 
-void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory, StatisticsInterface *stats)
+void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory,
+                        StatisticsInterface *stats)
 {
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Initiating");
   viewfactory_ = viewfactory;
@@ -48,9 +52,12 @@ void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory, Statistic
     this,
     &MediaManager::handleNoEncryption);
 
+  std::shared_ptr<HWResourceManager> hwResources =
+      std::shared_ptr<HWResourceManager>(new HWResourceManager());
+
   // 0 is the selfview index. The view should be created by GUI
-  fg_->init(viewfactory_->getVideo(0, 0), stats);
-  streamer_->init(stats_);
+  fg_->init(viewfactory_->getVideo(0, 0), stats, hwResources);
+  streamer_->init(stats_, hwResources);
 
   QObject::connect(this, &MediaManager::updateVideoSettings,
                    fg_.get(), &FilterGraph::updateVideoSettings);
@@ -88,13 +95,16 @@ void MediaManager::addParticipant(uint32_t sessionID,
     Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "Media manager",
                "Addparticipant, number of media in localInfo and peerInfo don't match.",
                 {"LocalInfo", "PeerInfo"},
-                {QString::number(localInfo->media.size()), QString::number(peerInfo->media.size())});
+                {QString::number(localInfo->media.size()),
+                 QString::number(peerInfo->media.size())});
     return;
   }
 
-  if(peerInfo->timeDescriptions.at(0).startTime != 0 || localInfo->timeDescriptions.at(0).startTime != 0)
+  if(peerInfo->timeDescriptions.at(0).startTime != 0 ||
+     localInfo->timeDescriptions.at(0).startTime != 0)
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Nonzero start-time not supported!");
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+                                    "Nonzero start-time not supported!");
     return;
   }
 
@@ -113,7 +123,8 @@ void MediaManager::addParticipant(uint32_t sessionID,
   }
   else
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "What are we using if not the internet!?");
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+                                    "What are we using if not the internet!?");
     return;
   }
 
@@ -188,8 +199,9 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
 
         Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Using media specific address for outgoing media.",
                   {"Type", "Path"},
-                  {remoteMedia.type, localMedia.connection_address + ":" + QString::number(localMedia.receivePort) + " -> " +
-                                     remoteAddress.toString() + ":" + QString::number(remoteMedia.receivePort)});
+                  {remoteMedia.type,
+                   localMedia.connection_address + ":" + QString::number(localMedia.receivePort) + " -> " +
+                        remoteAddress.toString() + ":" + QString::number(remoteMedia.receivePort)});
       }
       else if (globalAddressPresent)
       {

@@ -9,8 +9,9 @@
 #include "settingskeys.h"
 #include "logger.h"
 
-ScreenShareFilter::ScreenShareFilter(QString id, StatisticsInterface *stats):
-  Filter(id, "Screen Sharing", stats, NONE, RGB32VIDEO),
+ScreenShareFilter::ScreenShareFilter(QString id, StatisticsInterface *stats,
+                                     std::shared_ptr<HWResourceManager> hwResources):
+  Filter(id, "Screen Sharing", stats, hwResources, NONE, RGB32VIDEO),
 screenID_(0)
 {}
 

@@ -23,7 +23,7 @@ public:
   Delivery();
   ~Delivery();
 
-   void init(StatisticsInterface *stats);
+   void init(StatisticsInterface *stats, std::shared_ptr<HWResourceManager> hwResources);
    void uninit();
 
   // init a session with sessionID to use with add/remove functions
@@ -96,4 +96,6 @@ private:
   struct in_addr sessionAddress_;
 
   StatisticsInterface *stats_;
+
+  std::shared_ptr<HWResourceManager> hwResources_;
 };

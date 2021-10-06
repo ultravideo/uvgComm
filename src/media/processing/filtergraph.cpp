@@ -59,6 +59,7 @@ FilterGraph::FilterGraph(): QObject(),
   audioInputGraph_(),
   audioOutputGraph_(),
   selfviewFilter_(nullptr),
+  hwResources_(nullptr),
   stats_(nullptr),
   format_(),
   videoFormat_(""),
@@ -74,7 +75,8 @@ FilterGraph::FilterGraph(): QObject(),
 }
 
 
-void FilterGraph::init(VideoInterface* selfView, StatisticsInterface* stats)
+void FilterGraph::init(VideoInterface* selfView, StatisticsInterface* stats,
+                       std::shared_ptr<HWResourceManager> hwResources)
 {
   Q_ASSERT(stats);
 
@@ -83,8 +85,11 @@ void FilterGraph::init(VideoInterface* selfView, StatisticsInterface* stats)
   quitting_ = false;
 
   stats_ = stats;
+
+  hwResources_ = hwResources;
+
   selfviewFilter_ =
-      std::shared_ptr<DisplayFilter>(new DisplayFilter("Self", stats_, selfView, 1111));
+      std::shared_ptr<DisplayFilter>(new DisplayFilter("Self", stats_, hwResources_, selfView, 1111));
 
   initSelfView();
 }
@@ -127,17 +132,20 @@ void FilterGraph::updateVideoSettings()
   }
   else
   {
+    // camera and conversions
     for(auto& filter : cameraGraph_)
     {
       filter->updateSettings();
     }
   }
 
+  // screen share and conversions
   for (auto& filter : screenShareGraph_)
   {
     filter->updateSettings();
   }
 
+  // send and receive graphs for each individual peer
   for(auto& peer : peers_)
   {
     if(peer.second != nullptr)
@@ -215,7 +223,7 @@ void FilterGraph::initSelfView()
   }
 
   // Sending video graph
-  if (!addToGraph(std::shared_ptr<Filter>(new CameraFilter("", stats_)), cameraGraph_))
+  if (!addToGraph(std::shared_ptr<Filter>(new CameraFilter("", stats_, hwResources_)), cameraGraph_))
   {
     // camera failed
     Logger::getLogger()->printError(this, "Failed to add camera. Does it have supported formats.");
@@ -225,7 +233,7 @@ void FilterGraph::initSelfView()
   // create screen share filter, but it is stopped at the beginning
   if (screenShareGraph_.size() == 0)
   {
-    if (addToGraph(std::shared_ptr<Filter>(new ScreenShareFilter("", stats_)),
+    if (addToGraph(std::shared_ptr<Filter>(new ScreenShareFilter("", stats_, hwResources_)),
                    screenShareGraph_))
     {
       screenShareGraph_.at(0)->stop();
@@ -283,7 +291,7 @@ void FilterGraph::initVideoSend()
     destroyFilters(cameraGraph_);
   }
 
-  std::shared_ptr<Filter> kvazaar = std::shared_ptr<Filter>(new KvazaarFilter("", stats_));
+  std::shared_ptr<Filter> kvazaar = std::shared_ptr<Filter>(new KvazaarFilter("", stats_, hwResources_));
   addToGraph(kvazaar, cameraGraph_, 0);
   addToGraph(cameraGraph_.back(), screenShareGraph_, 0);
 }
@@ -292,7 +300,7 @@ void FilterGraph::initVideoSend()
 void FilterGraph::initializeAudio(bool opus)
 {
   // Do this before adding participants, otherwise AEC filter wont get attached
-  addToGraph(std::shared_ptr<Filter>(new AudioCaptureFilter("", format_, stats_)),
+  addToGraph(std::shared_ptr<Filter>(new AudioCaptureFilter("", format_, stats_, hwResources_)),
              audioInputGraph_);
 
   if (aec_ == nullptr)
@@ -309,27 +317,27 @@ void FilterGraph::initializeAudio(bool opus)
 
   // Do everything (AGC, AEC, denoise, dereverb) for input expect provide AEC reference
   std::shared_ptr<DSPFilter> dspProcessor =
-      std::shared_ptr<DSPFilter>(new DSPFilter("", stats_, aec_, format_,
+      std::shared_ptr<DSPFilter>(new DSPFilter("", stats_, hwResources_, aec_, format_,
                                                false, true, true, true, true, AUDIO_INPUT_VOLUME, AUDIO_INPUT_GAIN));
 
   addToGraph(dspProcessor, audioInputGraph_, audioInputGraph_.size() - 1);
 
   if (opus)
   {
-    addToGraph(std::shared_ptr<Filter>(new OpusEncoderFilter("", format_, stats_)),
+    addToGraph(std::shared_ptr<Filter>(new OpusEncoderFilter("", format_, stats_, hwResources_)),
                audioInputGraph_, audioInputGraph_.size() - 1);
   }
 
   // Provide echo reference and do AGC once more so conference calls will have
   // good volume levels.
   std::shared_ptr<DSPFilter> echoReference =
-      std::make_shared<DSPFilter>("", stats_, aec_, format_,
+      std::make_shared<DSPFilter>("", stats_, hwResources_, aec_, format_,
                                   true, false, false, false, true, AUDIO_OUTPUT_VOLUME, AUDIO_OUTPUT_GAIN);
 
   addToGraph(echoReference, audioOutputGraph_);
 
   std::shared_ptr<AudioOutputFilter> audioOutput =
-      std::make_shared<AudioOutputFilter>("", stats_, format_);
+      std::make_shared<AudioOutputFilter>("", stats_, hwResources_, format_);
 
   addToGraph(audioOutput, audioOutputGraph_, audioOutputGraph_.size() - 1);
 }
@@ -356,14 +364,14 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
          filter->inputType() == YUV420VIDEO)
       {
         Logger::getLogger()->printNormal(this, "Adding RGB32 to YUV conversion");
-        addToGraph(std::shared_ptr<Filter>(new RGB32toYUV("", stats_)),
+        addToGraph(std::shared_ptr<Filter>(new RGB32toYUV("", stats_, hwResources_)),
                    graph, connectIndex);
       }
       else if(graph.at(connectIndex)->outputType() == YUV420VIDEO &&
               filter->inputType() == RGB32VIDEO)
       {
         Logger::getLogger()->printNormal(this, "Adding YUV to RGB32 conversion");
-        addToGraph(std::shared_ptr<Filter>(new YUVtoRGB32("", stats_)),
+        addToGraph(std::shared_ptr<Filter>(new YUVtoRGB32("", stats_, hwResources_)),
                    graph, connectIndex);
       }
       else
@@ -471,11 +479,11 @@ void FilterGraph::receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> v
   peers_[sessionID]->videoReceivers.push_back(graph);
 
   addToGraph(videoSink, *graph);
-  addToGraph(std::shared_ptr<Filter>(new OpenHEVCFilter(sessionID, stats_)), *graph, 0);
+  addToGraph(std::shared_ptr<Filter>(new OpenHEVCFilter(sessionID, stats_, hwResources_)), *graph, 0);
 
   std::shared_ptr<DisplayFilter> displayFilter =
       std::shared_ptr<DisplayFilter>(new DisplayFilter(QString::number(sessionID),
-                                                stats_, view, sessionID));
+                                                stats_, hwResources_, view, sessionID));
 
   addToGraph(displayFilter, *graph, 1);
 }
@@ -521,12 +529,12 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID,
 
   if (audioSink->outputType() == OPUSAUDIO)
   {
-    addToGraph(std::shared_ptr<Filter>(new OpusDecoderFilter(sessionID, format_, stats_)),
+    addToGraph(std::shared_ptr<Filter>(new OpusDecoderFilter(sessionID, format_, stats_, hwResources_)),
                *graph, graph->size() - 1);
   }
 
   std::shared_ptr<AudioMixerFilter> audioMixer =
-      std::make_shared<AudioMixerFilter>(QString::number(sessionID), stats_, sessionID, mixer_);
+      std::make_shared<AudioMixerFilter>(QString::number(sessionID), stats_, hwResources_, sessionID, mixer_);
 
   addToGraph(audioMixer, *graph, graph->size() - 1);
 

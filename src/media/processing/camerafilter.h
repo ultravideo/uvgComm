@@ -11,7 +11,8 @@ class CameraFilter : public Filter
   Q_OBJECT
 
 public:
-  CameraFilter(QString id, StatisticsInterface* stats);
+  CameraFilter(QString id, StatisticsInterface* stats,
+               std::shared_ptr<HWResourceManager> hwResources);
   ~CameraFilter();
 
   // setup camera device

@@ -15,7 +15,9 @@
 #include <iostream>
 
 Delivery::Delivery():
-  rtp_ctx_(new uvg_rtp::context)
+  rtp_ctx_(new uvg_rtp::context),
+  stats_(nullptr),
+  hwResources_(nullptr)
 {}
 
 
@@ -23,13 +25,15 @@ Delivery::~Delivery()
 {}
 
 
-void Delivery::init(StatisticsInterface *stats)
+void Delivery::init(StatisticsInterface *stats,
+                    std::shared_ptr<HWResourceManager> hwResources)
 {
   stats_ = stats;
+  hwResources_ = hwResources;
 
   if (!uvg_rtp::crypto::enabled())
   {
-    Logger::getLogger()->printWarning(this, "uvgRTP does not have crypto++ included. "
+    Logger::getLogger()->printWarning(this, "uvgRTP does not have Crypto++ included. "
                                             "Cannot encrypt media traffic");
     emit handleNoEncryption();
   }
@@ -148,6 +152,7 @@ std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID, QHostAddress
         std::shared_ptr<UvgRTPSender>(new UvgRTPSender(sessionID,
                                                        remoteAddress.toString() + ":" + QString::number(peerPort),
                                                        stats_,
+                                                       hwResources_,
                                                        type,
                                                        mediaName,
                                                        peers_[sessionID]->streams[localPort]->stream));
@@ -186,6 +191,7 @@ std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID, QHostAddr
           sessionID,
           localAddress.toString() + ":" + QString::number(localPort),
           stats_,
+          hwResources_,
           type,
           mediaName,
           peers_[sessionID]->streams[localPort]->stream

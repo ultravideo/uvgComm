@@ -12,8 +12,9 @@
 #include <QSettings>
 
 DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
+                             std::shared_ptr<HWResourceManager> hwResources,
                              VideoInterface *widget, uint32_t sessionID):
-  Filter(id, "Display", stats, RGB32VIDEO, NONE),
+  Filter(id, "Display", stats, hwResources, RGB32VIDEO, NONE),
   horizontalMirroring_(false),
   verticalMirroring_(false),
   widget_(widget),

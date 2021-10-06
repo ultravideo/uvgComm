@@ -9,7 +9,8 @@
 class ScaleFilter : public Filter
 {
 public:
-  ScaleFilter(QString id, StatisticsInterface *stats);
+  ScaleFilter(QString id, StatisticsInterface *stats,
+              std::shared_ptr<HWResourceManager> hwResources);
 
   void setResolution(QSize newResolution);
 

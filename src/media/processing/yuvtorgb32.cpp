@@ -3,6 +3,8 @@
 #include "optimized/yuv2rgb.h"
 #include "settingskeys.h"
 
+#include "media/hwresourcemanager.h"
+
 #include "common.h"
 
 #include <QSettings>
@@ -19,10 +21,9 @@ uint8_t clamp(int32_t input)
   return input;
 }
 
-YUVtoRGB32::YUVtoRGB32(QString id, StatisticsInterface *stats) :
-  Filter(id, "YUVtoRGB32", stats, YUV420VIDEO, RGB32VIDEO),
-  sse_(true),
-  avx2_(true),
+YUVtoRGB32::YUVtoRGB32(QString id, StatisticsInterface *stats,
+                       std::shared_ptr<HWResourceManager> hwResources) :
+  Filter(id, "YUVtoRGB32", stats, hwResources, YUV420VIDEO, RGB32VIDEO),
   threadCount_(0)
 {
   updateSettings();
@@ -45,17 +46,17 @@ void YUVtoRGB32::process()
     uint32_t finalDataSize = input->width*input->height*4;
     std::unique_ptr<uchar[]> rgb32_frame(new uchar[finalDataSize]);
 
-
     // TODO: Select thread count based on input resolution. Anything above fullhd should be around 2
-    if(avx2_ && threadCount_ == 1 && input->width % 16 == 0)
+    if (getHWManager()->isAVX2Enabled() && threadCount_ != 1 && input->width % 16 == 0)
+    {
+      yuv2rgb_i_avx2(input->data.get(), rgb32_frame.get(), input->width, input->height,
+                     threadCount_);
+    }
+    else if (getHWManager()->isAVX2Enabled() && input->width % 16 == 0)
     {
       yuv2rgb_i_avx2_single(input->data.get(), rgb32_frame.get(), input->width, input->height);
     }
-    else if(avx2_ && input->width % 16 == 0)
-    {
-      yuv2rgb_i_avx2(input->data.get(), rgb32_frame.get(), input->width, input->height, threadCount_);
-    }
-    else if(sse_ && input->width % 16 == 0)
+    else if (getHWManager()->isSSE41Enabled() && input->width % 16 == 0)
     {
       yuv2rgb_i_sse41(input->data.get(), rgb32_frame.get(), input->width, input->height);
     }

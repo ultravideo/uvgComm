@@ -68,6 +68,7 @@ SOURCES +=\
     src/media/delivery/delivery.cpp \
     src/media/delivery/uvgrtpreceiver.cpp \
     src/media/delivery/uvgrtpsender.cpp \
+    src/media/hwresourcemanager.cpp \
     src/media/mediamanager.cpp \
     src/media/processing/audiocapturefilter.cpp \
     src/media/processing/audioframebuffer.cpp \
@@ -152,6 +153,7 @@ HEADERS  += \
     src/media/delivery/delivery.h \
     src/media/delivery/uvgrtpreceiver.h \
     src/media/delivery/uvgrtpsender.h \
+    src/media/hwresourcemanager.h \
     src/media/mediamanager.h \
     src/media/processing/audiocapturefilter.h \
     src/media/processing/audioframebuffer.h \

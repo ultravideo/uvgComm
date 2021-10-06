@@ -8,7 +8,9 @@
 class AudioOutputFilter : public Filter
 {
 public:
-  AudioOutputFilter(QString id, StatisticsInterface* stats, QAudioFormat format);
+  AudioOutputFilter(QString id, StatisticsInterface* stats,
+                    std::shared_ptr<HWResourceManager> hwResources,
+                    QAudioFormat format);
 
 protected:
   void process();

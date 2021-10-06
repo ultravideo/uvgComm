@@ -12,7 +12,8 @@ struct kvz_data_chunk;
 class KvazaarFilter : public Filter
 {
 public:
-  KvazaarFilter(QString id, StatisticsInterface* stats);
+  KvazaarFilter(QString id, StatisticsInterface* stats,
+                std::shared_ptr<HWResourceManager> hwResources);
 
   virtual void updateSettings();
 

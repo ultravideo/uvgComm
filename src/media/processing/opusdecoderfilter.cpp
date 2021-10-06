@@ -5,8 +5,10 @@
 #include "common.h"
 #include "logger.h"
 
-OpusDecoderFilter::OpusDecoderFilter(uint32_t sessionID, QAudioFormat format, StatisticsInterface *stats):
-  Filter(QString::number(sessionID), "Opus Decoder", stats, OPUSAUDIO, RAWAUDIO),
+OpusDecoderFilter::OpusDecoderFilter(uint32_t sessionID, QAudioFormat format,
+                                     StatisticsInterface *stats,
+                                     std::shared_ptr<HWResourceManager> hwResources):
+  Filter(QString::number(sessionID), "Opus Decoder", stats, hwResources, OPUSAUDIO, RAWAUDIO),
   dec_(nullptr),
   pcmOutput_(nullptr),
   max_data_bytes_(65536),
