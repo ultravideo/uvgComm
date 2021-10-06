@@ -116,7 +116,7 @@ bool CameraFilter::initialCameraSetup()
   currentDeviceID_ = settings.value(SettingsKey::videoDeviceID).toInt();
 
   // if the deviceID has changed
-  if (currentDeviceID_ < cameras.size() &&
+  if (currentDeviceID_ >= cameras.size() ||
       cameras[currentDeviceID_].description() != currentDeviceName_)
   {
     // search for device with same name
