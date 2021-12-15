@@ -4,6 +4,7 @@
 
 #include "common.h"
 #include "logger.h"
+#include "sipfieldparsinghelper.h" // we need to parse GRUU URI
 
 #include <QSettings>
 
@@ -183,17 +184,12 @@ void SIPRouting::addContactField(std::shared_ptr<SIPMessageHeader> message,
 {
   message->contact.push_back({{"", SIP_URI{type, {getLocalUsername(), ""}, {"", 0}, {}, {}}}, {}});
 
-  if (pubGruu_ != "")
+  // use public GRUU if we have it, otherwise use temporary GRUU or rport if we have those
+  if ((pubGruu_ == "" || !parseURI(pubGruu_, message->contact.back().address.uri)) &&
+      (tempGruu_ == "" || !parseURI(tempGruu_, message->contact.back().address.uri)) &&
+      (contactAddress_ != "" && contactPort_ != 0))
   {
-    message->contact.back().address.uri.hostport.host = pubGruu_;
-  }
-  else if (tempGruu_ != "")
-  {
-    message->contact.back().address.uri.hostport.host = tempGruu_;
-  }
-  // use rport address and port if we have them
-  else if (contactAddress_ != "" && contactPort_ != 0)
-  {
+    // use rport address and port if we have them
     message->contact.back().address.uri.hostport.host = contactAddress_;
     message->contact.back().address.uri.hostport.port = contactPort_;
   }
@@ -202,7 +198,6 @@ void SIPRouting::addContactField(std::shared_ptr<SIPMessageHeader> message,
     message->contact.back().address.uri.hostport.host = localAddress;
     message->contact.back().address.uri.hostport.port = localPort;
   }
-
 }
 
 
