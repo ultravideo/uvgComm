@@ -431,11 +431,11 @@ void ICE::uninit()
   if (agent_ != nullptr)
   {
     agent_->exit(0);
-    uint8_t waits = 10;
-    while (agent_->isRunning() && waits > 10)
+    uint8_t waits = 0;
+    while (agent_->isRunning() && waits <= 10)
     {
       qSleep(10);
-      --waits;
+      ++waits;
     }
   }
 

@@ -78,8 +78,7 @@ void SIPManager::uninit()
 {
   Logger::getLogger()->printNormal(this, "Uninit SIP Manager");
 
-  dialogs_.clear();
-  nextSessionID_ = FIRSTSESSIONID;
+
 
   for (auto& registration : registrations_)
   {
@@ -114,6 +113,14 @@ void SIPManager::uninit()
   }
 
   transports_.clear();
+
+  for(auto& dialog : dialogs_)
+  {
+    dialog.second->pipe.uninit();
+  }
+
+  dialogs_.clear();
+  nextSessionID_ = FIRSTSESSIONID;
 }
 
 
