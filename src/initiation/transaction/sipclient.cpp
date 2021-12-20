@@ -34,7 +34,8 @@ void SIPClient::processOutgoingRequest(SIPRequest& request, QVariant& content)
   }
   else if (ongoingTransactionType_ == SIP_NO_REQUEST && request.method == SIP_CANCEL)
   {
-    Logger::getLogger()->printProgramWarning(this, "Tried to cancel a transaction that does not exist!");
+    Logger::getLogger()->printProgramWarning(this, "Tried to cancel a "
+                                                   "transaction that does not exist!");
     return;
   }
 

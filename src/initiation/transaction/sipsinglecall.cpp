@@ -211,6 +211,11 @@ void SIPSingleCall::processIncomingResponse(SIPResponse& response, QVariant& con
       SIPRequest request = createRequest(response.message->cSeq.method);
       QVariant content;
 
+      if (response.message->cSeq.method == SIP_INVITE)
+      {
+        setExpires(INVITE_TIMEOUT, request.message);
+      }
+
       emit outgoingRequest(request, content);
       return;
     }
