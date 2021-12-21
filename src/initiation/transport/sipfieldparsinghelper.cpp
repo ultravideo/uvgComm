@@ -77,7 +77,7 @@ bool parseURI(const QString &word, SIP_URI& uri)
   // for example <sip:bob@biloxi.com>
   // ?: means it wont create a capture group
   // TODO: accept passwords
-  QRegularExpression re_field("(\\w+):(?:(\\w+)@)?(.+)");
+  QRegularExpression re_field("(\\w+):(?:([\\w-]+)@)?(.+)");
   QRegularExpressionMatch field_match = re_field.match(word);
 
   // number of matches depends whether real name or the port were given

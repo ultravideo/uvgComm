@@ -184,10 +184,23 @@ void SIPRouting::addContactField(std::shared_ptr<SIPMessageHeader> message,
 {
   message->contact.push_back({{"", SIP_URI{type, {getLocalUsername(), ""}, {"", 0}, {}, {}}}, {}});
 
-  // use public GRUU if we have it, otherwise use temporary GRUU or rport if we have those
-  if ((pubGruu_ == "" || !parseURI(pubGruu_, message->contact.back().address.uri)) &&
-      (tempGruu_ == "" || !parseURI(tempGruu_, message->contact.back().address.uri)) &&
-      (contactAddress_ != "" && contactPort_ != 0))
+  // There are four different alternatives: use public GRUU if we have it,
+  // otherwise use temporary GRUU or rport if we have those
+  if (pubGruu_ != "")
+  {
+    if (!parseURI(pubGruu_, message->contact.back().address.uri))
+    {
+      Logger::getLogger()->printProgramError(this, "Failed to parse Public GRUU for contact field");
+    }
+  }
+  else if (tempGruu_ != "")
+  {
+    if (!parseURI(tempGruu_, message->contact.back().address.uri))
+    {
+      Logger::getLogger()->printProgramError(this, "Failed to parse Temporary GRUU for contact field");
+    }
+  }
+  else if (contactAddress_ != "" && contactPort_ != 0)
   {
     // use rport address and port if we have them
     message->contact.back().address.uri.hostport.host = contactAddress_;
