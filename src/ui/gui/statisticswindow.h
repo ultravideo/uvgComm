@@ -60,8 +60,10 @@ public:
   virtual void packetDropped(uint32_t id);
 
   // sip
-  virtual void addSentSIPMessage(QString type, QString message, QString address);
-  virtual void addReceivedSIPMessage(QString type, QString message, QString address);
+  virtual void addSentSIPMessage(const QString& headerType, const QString& header,
+                                 const QString& bodyType, const QString& body);
+  virtual void addReceivedSIPMessage(const QString& headerType, const QString& header,
+                                     const QString& bodyType, const QString& body);
 
 private slots:
 
@@ -103,6 +105,9 @@ private:
   void fillTableHeaders(QTableWidget* table, QMutex& mutex, QStringList headers);
 
   // returns the index of added row
+  int addTableRow(QTableWidget* table, QMutex& mutex, QStringList fields,
+                  QStringList tooltips);
+
   int addTableRow(QTableWidget* table, QMutex& mutex, QStringList fields,
                   QString tooltip = "");
 

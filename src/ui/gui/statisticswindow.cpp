@@ -94,9 +94,9 @@ StatisticsInterface(),
   fillTableHeaders(ui_->filterTable, filterMutex_,
                           {"Filter", "Info", "TID", "Buffer Size", "Dropped"});
   fillTableHeaders(ui_->sent_list, sipMutex_,
-                          {"Type", "Destination"});
+                          {"Header", "Body"});
   fillTableHeaders(ui_->received_list, sipMutex_,
-                          {"Type", "Source"});
+                          {"Header", "Body"});
 }
 
 
@@ -759,17 +759,17 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 }
 
 
-void StatisticsWindow::addSentSIPMessage(QString type, QString message,
-                                         QString address)
+void StatisticsWindow::addSentSIPMessage(const QString& headerType, const QString& header,
+                                         const QString& bodyType, const QString& body)
 {
-  addTableRow(ui_->sent_list, sipMutex_, {type, address}, message);
+  addTableRow(ui_->sent_list, sipMutex_, {headerType, bodyType}, {header, body});
 }
 
 
-void StatisticsWindow::addReceivedSIPMessage(QString type, QString message,
-                                             QString address)
+void StatisticsWindow::addReceivedSIPMessage(const QString& headerType, const QString& header,
+                                             const QString& bodyType, const QString& body)
 {
-  int row = addTableRow(ui_->received_list, sipMutex_, {type, address}, message);
+  int row = addTableRow(ui_->received_list, sipMutex_, {headerType, bodyType}, {header, body});
 
   sipMutex_.lock();
   QTableWidgetItem * first = ui_->received_list->itemAt(0, row);
@@ -824,9 +824,14 @@ void StatisticsWindow::fillTableHeaders(QTableWidget* table, QMutex& mutex,
   mutex.unlock();
 }
 
+int StatisticsWindow::addTableRow(QTableWidget* table, QMutex& mutex, QStringList fields,
+                                  QString tooltip)
+{
+  return addTableRow(table, mutex, fields, QStringList{tooltip});
+}
 
 int StatisticsWindow::addTableRow(QTableWidget* table, QMutex& mutex,
-                                  QStringList fields, QString tooltip)
+                                  QStringList fields, QStringList tooltips)
 {
   mutex.lock();
   table->insertRow(table->rowCount());
@@ -835,9 +840,17 @@ int StatisticsWindow::addTableRow(QTableWidget* table, QMutex& mutex,
   {
     QTableWidgetItem* item = new QTableWidgetItem(fields.at(i));
     item->setTextAlignment(Qt::AlignHCenter);
-    if (tooltip != "")
+    if (!tooltips.empty())
     {
-      item->setToolTip(tooltip);
+      // two modes are supported, single tooltip for all and setting from list at beginning
+      if (tooltips.size() == 1)
+      {
+        item->setToolTip(tooltips.at(0));
+      }
+      else if (tooltips.size() > i)
+      {
+        item->setToolTip(tooltips.at(i));
+      }
     }
     item->setFlags(item->flags() & ~(Qt::ItemIsEditable | Qt::ItemIsSelectable));
     table->setItem(table->rowCount() -1, i, item);

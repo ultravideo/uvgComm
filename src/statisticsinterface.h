@@ -68,6 +68,8 @@ public:
 
   // SIP
   // Tracking of sent and received SIP Messages
-  virtual void addSentSIPMessage(QString type, QString message, QString address) = 0;
-  virtual void addReceivedSIPMessage(QString type, QString message, QString address) = 0;
+  virtual void addSentSIPMessage(const QString& headerType, const QString& header,
+                                 const QString& bodyType,   const QString& body) = 0;
+  virtual void addReceivedSIPMessage(const QString& headerType, const QString& header,
+                                     const QString& bodyType,   const QString& body) = 0;
 };

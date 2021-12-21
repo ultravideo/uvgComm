@@ -50,9 +50,9 @@ void SIPTransport::processOutgoingRequest(SIPRequest& request, QVariant &content
                  requestMethodToString(request.method));
 
   QString lineEnding = "\r\n";
-  QString message = "";
+  QString firstLine = "";
 
-  if(!getFirstRequestLine(message, request, lineEnding))
+  if(!getFirstRequestLine(firstLine, request, lineEnding))
   {
     Logger::getLogger()->printProgramError(this, "Failed to get request first line");
     return;
@@ -78,14 +78,14 @@ void SIPTransport::processOutgoingRequest(SIPRequest& request, QVariant &content
     return;
   }
 
+  QString header = fieldsToString(fields, lineEnding);
+  QString message = firstLine + header + lineEnding + content_str;
 
-  message += fieldsToString(fields, lineEnding) + lineEnding;
-  message += content_str;
-
-  // print the first line
+  // add the message to statistics
   stats_->addSentSIPMessage(requestMethodToString(request.method),
-                            message,
-                            "Unavailable");
+                            firstLine + header,
+                            contentTypeToString(request.message->contentType),
+                            content_str);
 
   emit sendMessage(message);
   --processingInProgress_;
@@ -109,9 +109,9 @@ void SIPTransport::processOutgoingResponse(SIPResponse &response, QVariant &cont
   }
 
   QString lineEnding = "\r\n";
-  QString message = "";
+  QString firstLine = "";
 
-  if(!getFirstResponseLine(message, response, lineEnding))
+  if(!getFirstResponseLine(firstLine, response, lineEnding))
   {
     Logger::getLogger()->printProgramError(this, "Failed to compose SIP Response first line!");
     return;
@@ -129,13 +129,15 @@ void SIPTransport::processOutgoingResponse(SIPResponse &response, QVariant &cont
     return;
   }
 
-  message += fieldsToString(fields, lineEnding) + lineEnding;
-  message += content_str;
+  QString header = fieldsToString(fields, lineEnding);
+  QString message = firstLine + header + lineEnding + content_str;
 
+  // add response to statistics
   stats_->addSentSIPMessage(QString::number(responseTypeToCode(response.type))
                             + " " + responseTypeToPhrase(response.type),
-                            message,
-                            "Unavailable");
+                            firstLine + header,
+                            contentTypeToString(response.message->contentType),
+                            content_str);
 
   emit sendMessage(message);
   --processingInProgress_;
@@ -193,10 +195,7 @@ void SIPTransport::networkPackage(QString package)
       // If it matches request
       if (request_match.hasMatch() && request_match.lastCapturedIndex() == 3)
       {
-        stats_->addReceivedSIPMessage(request_match.captured(1),
-                                      package, "Unavailable");
-
-        if (!parseRequest(request_match.captured(1), request_match.captured(3),
+        if (!parseRequest(header, request_match.captured(1), request_match.captured(3),
                           fields, body))
         {
           qDebug() << "Failed to parse request";
@@ -207,11 +206,7 @@ void SIPTransport::networkPackage(QString package)
       else if (response_match.hasMatch() && response_match.lastCapturedIndex() == 3)
       {
 
-        stats_->addReceivedSIPMessage(response_match.captured(2) + " " + response_match.captured(3),
-                                      package, "Unavailable");
-
-
-        if (!parseResponse(response_match.captured(2),
+        if (!parseResponse(header, response_match.captured(2),
                            response_match.captured(1),
                            response_match.captured(3),
                            fields, body))
@@ -250,7 +245,7 @@ bool SIPTransport::parsePackage(QString package, QStringList& headers, QStringLi
   int headerEndIndex = package.indexOf("\r\n\r\n", 0, Qt::CaseInsensitive) + 4;
   int contentLengthIndex = package.indexOf("content-length", 0, Qt::CaseInsensitive);
 
-  // read maximum of 20 messages. 3 is -1 + 4
+  // read maximum of 20 SIP messages. 3 is -1 + 4
   for (int i = 0; i < 20 && headerEndIndex != 3; ++i)
   {
     Logger::getLogger()->printDebug(DEBUG_NORMAL, this,  "Parsing package to header and body",
@@ -299,7 +294,7 @@ bool SIPTransport::parsePackage(QString package, QStringList& headers, QStringLi
 }
 
 
-bool SIPTransport::parseRequest(QString requestString, QString version,
+bool SIPTransport::parseRequest(const QString &header, QString requestString, QString version,
                                 QList<SIPField> &fields, QString& body)
 {  
   qDebug() << "Request detected:" << requestString;
@@ -333,13 +328,16 @@ bool SIPTransport::parseRequest(QString requestString, QString version,
     parseContent(content, request.message->contentType, body);
   }
 
+  stats_->addReceivedSIPMessage(requestString, header,
+                                contentTypeToString(request.message->contentType), body);
+
   emit incomingRequest(request, content);
   return true;
 }
 
 
-bool SIPTransport::parseResponse(QString responseString, QString version,
-                                 QString text, QList<SIPField> &fields,
+bool SIPTransport::parseResponse(const QString &header, QString responseString,
+                                 QString version, QString text, QList<SIPField> &fields,
                                  QString& body)
 {
   Logger::getLogger()->printImportant(this, "Parsing incoming response", {"Type"}, {responseString});
@@ -365,6 +363,10 @@ bool SIPTransport::parseResponse(QString responseString, QString version,
   {
     parseContent(content, response.message->contentType, body);
   }
+
+  stats_->addReceivedSIPMessage(QString::number(responseTypeToCode(response.type))
+                                + " " + response.text, header,
+                                contentTypeToString(response.message->contentType), body);
 
   emit incomingResponse(response, content);
 
