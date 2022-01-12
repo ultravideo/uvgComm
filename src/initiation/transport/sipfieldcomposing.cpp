@@ -29,7 +29,20 @@ bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
     request.requestURI.userinfo.password = "";
   }
 
-  request.requestURI.uri_parameters.push_back(SIPParameter{"transport", "tcp"});
+  bool containsTransport = false;
+
+  for (auto& parameter : request.requestURI.uri_parameters)
+  {
+    if (parameter.name == "transport")
+    {
+      containsTransport = true;
+    }
+  }
+
+  if (!containsTransport)
+  {
+    request.requestURI.uri_parameters.push_back(SIPParameter{"transport", "tcp"});
+  }
 
   line = requestMethodToString(request.method) + " " +
       composeSIPURI(request.requestURI) +
@@ -186,8 +199,8 @@ bool includeContactField(QList<SIPField> &fields,
   {
     Q_ASSERT(contact.address.uri.userinfo.user != "" &&
              contact.address.uri.hostport.host != "");
-    if(contact.address.uri.userinfo.user == "" ||
-       contact.address.uri.hostport.host == "")
+    if (contact.address.uri.userinfo.user == "" ||
+        contact.address.uri.hostport.host == "")
     {
       Logger::getLogger()->printProgramError("SIPFieldComposing", "Failed to include Contact-field");
       return false;
