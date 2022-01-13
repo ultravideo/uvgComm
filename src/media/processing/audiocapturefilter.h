@@ -2,7 +2,7 @@
 #include "filter.h"
 
 #include <QByteArray>
-#include <QAudioDeviceInfo>
+#include <QtMultimedia/QAudioDeviceInfo>
 
 
 

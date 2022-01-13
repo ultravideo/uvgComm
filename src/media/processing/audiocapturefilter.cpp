@@ -8,7 +8,7 @@
 #include "global.h"
 #include "logger.h"
 
-#include <QAudioInput>
+#include <QtMultimedia/QAudioInput>
 #include <QTime>
 #include <QSettings>
 #include <QRegularExpression>

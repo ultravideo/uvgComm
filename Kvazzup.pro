@@ -230,7 +230,7 @@ FORMS    += \
     ui/videosettings.ui
 
 equals(QT_MAJOR_VERSION, 5){
-   QT += multimediawidgets
+   QT += multimedia multimediawidgets
 }
 
 QT += network

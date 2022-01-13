@@ -2,7 +2,7 @@
 #include "filter.h"
 
 #include <opus.h>
-#include <QAudioFormat>
+#include <QtMultimedia/QAudioFormat>
 
 class OpusEncoderFilter : public Filter
 {

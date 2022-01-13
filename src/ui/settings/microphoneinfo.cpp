@@ -1,6 +1,6 @@
 #include "microphoneinfo.h"
 
-#include <QAudioDeviceInfo>
+#include <QtMultimedia/QAudioDeviceInfo>
 #include <QRegularExpression>
 
 #include <common.h>

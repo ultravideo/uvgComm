@@ -1,6 +1,6 @@
 #pragma once
 
-#include <QAbstractVideoSurface>
+#include <QtMultimedia/QAbstractVideoSurface>
 #include <QList>
 
 // This class is used by CameraFilter to capture frames from camera.

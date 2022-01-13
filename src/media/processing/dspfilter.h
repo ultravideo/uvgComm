@@ -1,7 +1,7 @@
 #pragma once
 #include "filter.h"
 
-#include <QAudioFormat>
+#include <QtMultimedia/QAudioFormat>
 
 class SpeexAEC;
 class SpeexDSP;

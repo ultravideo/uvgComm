@@ -1,7 +1,7 @@
 #pragma once
 
 #include <QWidget>
-#include <QAudioFormat>
+#include <QtMultimedia/QAudioFormat>
 #include <QObject>
 
 #include <vector>

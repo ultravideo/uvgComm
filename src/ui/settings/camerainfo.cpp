@@ -3,7 +3,7 @@
 #include "common.h"
 #include "logger.h"
 
-#include <QCameraInfo>
+#include <QtMultimedia/QCameraInfo>
 
 const std::map<QVideoFrame::PixelFormat, QString> pixelFormatStrings = {{QVideoFrame::Format_Invalid, "INVALID"},
                                                          {QVideoFrame::Format_ARGB32, "ARGB32"},

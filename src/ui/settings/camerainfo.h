@@ -2,7 +2,7 @@
 
 #include <QStringList>
 #include <QSize>
-#include <QCamera>
+#include <QtMultimedia/QCamera>
 
 #include <memory>
 

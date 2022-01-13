@@ -1,6 +1,8 @@
 #pragma once
 
-#include <QAudioOutput>
+#include <QtMultimedia/QAudioOutput>
+#include <QtMultimedia/QAudioFormat>
+#include <QIODevice>
 #include <QObject>
 #include <QMutex>
 

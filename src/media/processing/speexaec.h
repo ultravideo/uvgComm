@@ -5,7 +5,7 @@
 #include <speex/speex_echo.h>
 #include <speex/speex_preprocess.h>
 
-#include <QAudioFormat>
+#include <QtMultimedia/QAudioFormat>
 #include <QMutex>
 
 #include <deque>

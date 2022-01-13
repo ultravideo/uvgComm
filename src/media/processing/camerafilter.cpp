@@ -9,7 +9,7 @@
 #include "logger.h"
 
 #include <QSettings>
-#include <QCameraInfo>
+#include <QtMultimedia/QCameraInfo>
 #include <QTime>
 
 
