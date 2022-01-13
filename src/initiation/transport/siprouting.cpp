@@ -59,7 +59,12 @@ void SIPRouting::processOutgoingRequest(SIPRequest& request, QVariant& content)
     }
   }
 
-  addGruuToSupported(request.message);
+  if (request.method == SIP_INVITE ||
+      request.method == SIP_OPTIONS ||
+      request.method == SIP_REGISTER)
+  {
+    addGruuToSupported(request.message);
+  }
 
   emit outgoingRequest(request, content);
 
@@ -81,13 +86,13 @@ void SIPRouting::processOutgoingResponse(SIPResponse& response, QVariant& conten
 
   if (response.message->cSeq.method == SIP_INVITE && response.type == SIP_OK)
   {
+    addGruuToSupported(response.message);
+
     addContactField(response.message,
                       connection_->localAddress(),
                       connection_->localPort(),
                       DEFAULT_SIP_TYPE);
   }
-
-  addGruuToSupported(response.message);
 
   emit outgoingResponse(response, content);
 }
