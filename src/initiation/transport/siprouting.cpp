@@ -231,6 +231,7 @@ void SIPRouting::addREGISTERContactParameters(std::shared_ptr<SIPMessageHeader> 
   message->contact.back().parameters.push_back({"reg-id", "1"});
   message->contact.back().parameters.push_back({"+sip.instance", "\"<urn:uuid:" +
                                                 settings.value(SettingsKey::sipUUID).toString() + ">\""});
+  message->contact.back().address.uri.uri_parameters.push_back({"ob", ""});
 }
 
 
