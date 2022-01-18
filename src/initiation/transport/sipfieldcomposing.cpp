@@ -206,7 +206,12 @@ bool includeContactField(QList<SIPField> &fields,
       return false;
     }
     SIPRouteLocation modifiedContact = contact;
-    modifiedContact.address.uri.uri_parameters.push_back({"transport", "tcp"});
+
+    if (modifiedContact.address.uri.uri_parameters.size() != 1 ||
+        modifiedContact.address.uri.uri_parameters.at(0).name != "gr")
+    {
+      modifiedContact.address.uri.uri_parameters.push_back({"transport", "tcp"});
+    }
 
     field.commaSeparated.push_back({{}, {}});
 
