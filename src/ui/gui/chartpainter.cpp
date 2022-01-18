@@ -116,7 +116,7 @@ int ChartPainter::addLine(QString name)
   // lineID should refer to position in both arrays
   legends_.push_back(name);
   points_.push_back(std::make_shared<std::deque<float>>());
-  int lineID = points_.size();
+  int lineID = (int)points_.size();
 
   // check if this is the widest name of all for drawing the legends
   QSize newSize = QFontMetrics(font_).size(Qt::TextSingleLine, name);
@@ -446,11 +446,11 @@ void ChartPainter::drawForeground(QPainter& painter, bool drawZero, bool drawMax
         // calculate how many rows our legend takes
         if (points_.size()%3 != 0)
         {
-          legendRows_ = points_.size()/3 + 1;
+          legendRows_ = (int)points_.size()/3 + 1;
         }
         else
         {
-          legendRows_ = points_.size()/3;
+          legendRows_ = (int)points_.size()/3;
         }
       }
       // Draw 2 legends on one row.
@@ -467,11 +467,11 @@ void ChartPainter::drawForeground(QPainter& painter, bool drawZero, bool drawMax
         // how many rows the legend takes
         if (points_.size()%2 != 0)
         {
-          legendRows_ = points_.size()/2 + 1;
+          legendRows_ = (int)points_.size()/2 + 1;
         }
         else
         {
-          legendRows_ = points_.size()/2;
+          legendRows_ = (int)points_.size()/2;
         }
       }
       // Draw one legend per row.
@@ -484,7 +484,7 @@ void ChartPainter::drawForeground(QPainter& painter, bool drawZero, bool drawMax
 
         drawLegend(painter, x, y, legendMargin, markSize, i + 1, legends_.at(i));
 
-        legendRows_ = points_.size();
+        legendRows_ = (int)points_.size();
       }
     }
   }
@@ -584,12 +584,18 @@ void ChartPainter::drawCross(QPainter& painter, float x, float y)
 
 
 void ChartPainter::resizeEvent(QResizeEvent *event)
-{}
+{
+  Q_UNUSED(event);
+}
 
 
 void ChartPainter::keyPressEvent(QKeyEvent *event)
-{}
+{
+  Q_UNUSED(event);
+}
 
 
-void ChartPainter::mouseDoubleClickEvent(QMouseEvent *e)
-{}
+void ChartPainter::mouseDoubleClickEvent(QMouseEvent *event)
+{
+  Q_UNUSED(event);
+}

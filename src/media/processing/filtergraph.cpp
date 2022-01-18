@@ -320,12 +320,12 @@ void FilterGraph::initializeAudio(bool opus)
       std::shared_ptr<DSPFilter>(new DSPFilter("", stats_, hwResources_, aec_, format_,
                                                false, true, true, true, true, AUDIO_INPUT_VOLUME, AUDIO_INPUT_GAIN));
 
-  addToGraph(dspProcessor, audioInputGraph_, audioInputGraph_.size() - 1);
+  addToGraph(dspProcessor, audioInputGraph_, (unsigned int)audioInputGraph_.size() - 1);
 
   if (opus)
   {
     addToGraph(std::shared_ptr<Filter>(new OpusEncoderFilter("", format_, stats_, hwResources_)),
-               audioInputGraph_, audioInputGraph_.size() - 1);
+               audioInputGraph_, (unsigned int)audioInputGraph_.size() - 1);
   }
 
   // Provide echo reference and do AGC once more so conference calls will have
@@ -339,7 +339,7 @@ void FilterGraph::initializeAudio(bool opus)
   std::shared_ptr<AudioOutputFilter> audioOutput =
       std::make_shared<AudioOutputFilter>("", stats_, hwResources_, format_);
 
-  addToGraph(audioOutput, audioOutputGraph_, audioOutputGraph_.size() - 1);
+  addToGraph(audioOutput, audioOutputGraph_, (unsigned int)audioOutputGraph_.size() - 1);
 }
 
 
@@ -380,7 +380,7 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
         return false;
       }
       // the conversion filter has been added to the end
-      connectIndex = graph.size() - 1;
+      connectIndex = (unsigned int)graph.size() - 1;
     }
     connectFilters(graph.at(connectIndex), filter);
   }
@@ -530,13 +530,13 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID,
   if (audioSink->outputType() == OPUSAUDIO)
   {
     addToGraph(std::shared_ptr<Filter>(new OpusDecoderFilter(sessionID, format_, stats_, hwResources_)),
-               *graph, graph->size() - 1);
+               *graph, (unsigned int)graph->size() - 1);
   }
 
   std::shared_ptr<AudioMixerFilter> audioMixer =
       std::make_shared<AudioMixerFilter>(QString::number(sessionID), stats_, hwResources_, sessionID, mixer_);
 
-  addToGraph(audioMixer, *graph, graph->size() - 1);
+  addToGraph(audioMixer, *graph, (unsigned int)graph->size() - 1);
 
   if (!audioOutputGraph_.empty())
   {

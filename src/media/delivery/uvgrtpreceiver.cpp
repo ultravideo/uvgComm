@@ -69,7 +69,7 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
   }
 
   Data *received_picture = new Data;
-  received_picture->data_size = frame->payload_len;
+  received_picture->data_size = (uint32_t)frame->payload_len;
   received_picture->type = type_;
   received_picture->data = std::unique_ptr<uchar[]>(new uchar[received_picture->data_size]);
   received_picture->width = 0; // not known at this point. Decoder tells the correct resolution

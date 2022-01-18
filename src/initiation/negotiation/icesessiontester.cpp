@@ -108,7 +108,7 @@ void IceSessionTester::run()
     return;
   }
 
-  QList<std::shared_ptr<IceCandidateTester>> candidates;
+  QVector<std::shared_ptr<IceCandidateTester>> candidates;
 
   QString prevAddr  = "";
   uint16_t prevPort = 0;

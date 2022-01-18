@@ -94,7 +94,7 @@ void Filter::putInput(std::unique_ptr<Data> data)
 
   if(inputTaken_%30 == 0)
   {
-    stats_->updateBufferStatus(filterID_, inBuffer_.size(), maxBufferSize_);
+    stats_->updateBufferStatus(filterID_, (uint16_t)inBuffer_.size(), maxBufferSize_);
   }
 
   inBuffer_.push_back(std::move(data));

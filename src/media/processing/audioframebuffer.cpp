@@ -65,7 +65,7 @@ void AudioFrameBuffer::inputData(uint8_t* data, uint32_t dataAmount)
     memcpy(partialFrame_, totalData + processedData, partialFrameSize_);
   }
 
-  // totaldata is deleted if necessary
+  // totaldata is deleted if we had to allocate new memory for it because of previous data
   if (totalDataAmount != dataAmount)
   {
     delete[] totalData;

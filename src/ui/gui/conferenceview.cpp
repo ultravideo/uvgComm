@@ -261,7 +261,7 @@ void ConferenceView::removeWidget(LayoutLoc& location)
 }
 
 
-void ConferenceView::attachWidget(uint32_t sessionID, uint32_t index, QWidget *view)
+void ConferenceView::attachWidget(uint32_t sessionID, size_t index, QWidget *view)
 {
   Q_ASSERT(view != nullptr);
   Q_ASSERT(sessionID != 0);
@@ -379,7 +379,7 @@ void ConferenceView::addVideoStream(uint32_t sessionID,
   }
 
   // create the view
-  uint32_t id = factory->createWidget(sessionID, nullptr, this);
+  size_t id = factory->createWidget(sessionID, nullptr, this);
   QWidget* view = factory->getView(sessionID, id);
 
   if (view != nullptr)
@@ -665,7 +665,7 @@ void ConferenceView::updateTimes()
 
 
 // return true if session is exists and is initialized correctly
-bool ConferenceView::checkSession(uint32_t sessionID, uint32_t minViewCount)
+bool ConferenceView::checkSession(uint32_t sessionID, size_t minViewCount)
 {
   viewMutex_.lock();
   if (activeViews_.find(sessionID) == activeViews_.end())

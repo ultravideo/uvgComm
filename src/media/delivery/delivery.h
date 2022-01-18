@@ -78,8 +78,8 @@ private:
                       rtp_format_t fmt);
   void removeMediaStream(uint32_t sessionID, uint16_t localPort);
 
-  void parseCodecString(QString codec, uint16_t dst_port,
-                        rtp_format_t& fmt, DataType& type, QString& mediaName);
+  void parseCodecString(QString codec, rtp_format_t& fmt,
+                        DataType& type, QString& mediaName);
 
   void ipv6to4(QHostAddress &address);
   void ipv6to4(QString &address);

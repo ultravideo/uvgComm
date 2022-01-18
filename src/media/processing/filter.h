@@ -24,7 +24,7 @@
 enum DataType {NONE = 0, RGB32VIDEO, YUV420VIDEO, RAWAUDIO, HEVCVIDEO, OPUSAUDIO};
 enum DataSource {UNKNOWN, LOCAL, REMOTE};
 
-// NOTE: remember to make changes to deepcopy, camera, audiocapture and RTPSinkFilter
+// NOTE: remember to make changes to deepcopy, camera, audiocapture and RTP Receiver filter
 struct Data
 {
   uint8_t type;

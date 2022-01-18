@@ -512,7 +512,7 @@ uint32_t StatisticsWindow::calculateAverage(std::vector<ValueInfo*>& packets, ui
 }
 
 
-void StatisticsWindow::addSendPacket(uint16_t size)
+void StatisticsWindow::addSendPacket(uint32_t size)
 {
   deliveryMutex_.lock();
   ++sendPacketCount_;
@@ -524,7 +524,7 @@ void StatisticsWindow::addSendPacket(uint16_t size)
 
 
 void StatisticsWindow::addReceivePacket(uint32_t sessionID, QString type,
-                                        uint16_t size)
+                                        uint32_t size)
 {
   deliveryMutex_.lock();
   ++receivePacketCount_;
@@ -772,9 +772,9 @@ void StatisticsWindow::addReceivedSIPMessage(const QString& headerType, const QS
   int row = addTableRow(ui_->received_list, sipMutex_, {headerType, bodyType}, {header, body});
 
   sipMutex_.lock();
-  QTableWidgetItem * first = ui_->received_list->itemAt(0, row);
+  ui_->received_list->itemAt(0, row);
   //first->setBackground(QColor(235,235,235));
-  QTableWidgetItem * second = ui_->received_list->itemAt(1, row);
+  ui_->received_list->itemAt(1, row);
   //second->setBackground(QColor(235,235,235));
   sipMutex_.unlock();
 }

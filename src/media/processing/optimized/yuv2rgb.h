@@ -35,7 +35,7 @@ int yuv2rgb_i_sse41(uint8_t* input, uint8_t* output, uint16_t width, uint16_t he
   __m128i luma_shufflemask = _mm_set_epi8(-1, -1, -1, 3, -1, -1, -1, 2, -1, -1, -1, 1, -1, -1, -1, 0);
   __m128i chroma_shufflemask = _mm_set_epi8(-1, -1, -1, 1, -1, -1, -1, 1, -1, -1, -1, 0, -1, -1, -1, 0);
 
-  for (uint32_t i = 0; i < width*height; i += 16) {
+  for (int32_t i = 0; i < width*height; i += 16) {
 
     // Load 16 bytes (16 luma pixels)
     __m128i y_a = _mm_loadu_si128((__m128i const*) in_y);
@@ -150,7 +150,7 @@ int yuv2rgb_i_avx2(uint8_t* input, uint8_t* output, uint16_t width, uint16_t hei
   // It seems the number of threads needs to be adjusted just before calling omp parrallel
   omp_set_num_threads(threads);
   #pragma omp parallel for
-  for (uint32_t i = 0; i < width*height; i += 16) {
+  for (int32_t i = 0; i < width*height; i += 16) {
     uint8_t *out = output + 4*i;
 
     int8_t row = i%(width*2) >= width ? 1 : 0;
@@ -260,7 +260,7 @@ int yuv2rgb_i_avx2_single(uint8_t* input, uint8_t* output, uint16_t width, uint1
   __m128i chroma_shufflemask_lo = _mm_set_epi8(-1, -1, -1, 1, -1, -1, -1, 1, -1, -1, -1, 0, -1, -1, -1, 0);
   __m128i chroma_shufflemask_hi = _mm_set_epi8(-1, -1, -1, 3, -1, -1, -1, 3, -1, -1, -1, 2, -1, -1, -1, 2);
 
-  for (uint32_t i = 0; i < width*height; i += 16) {
+  for (int32_t i = 0; i < width*height; i += 16) {
 
     // Load 16 bytes (16 luma pixels)
     __m128i y_a = _mm_loadu_si128((__m128i const*) in_y);

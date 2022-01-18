@@ -47,10 +47,10 @@ public:
 
   // DELIVERY
   // Tracking of sent packets
-  virtual void addSendPacket(uint16_t size) = 0;
+  virtual void addSendPacket(uint32_t size) = 0;
 
   // tracking of received packets.
-  virtual void addReceivePacket(uint32_t sessionID, QString type, uint16_t size) = 0;
+  virtual void addReceivePacket(uint32_t sessionID, QString type, uint32_t size) = 0;
 
 
   // FILTER

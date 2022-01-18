@@ -42,7 +42,7 @@ protected:
   void resizeEvent(QResizeEvent *event);
   void keyPressEvent(QKeyEvent *event);
 
-  void mouseDoubleClickEvent(QMouseEvent *e);
+  void mouseDoubleClickEvent(QMouseEvent *event);
 
 private:
 

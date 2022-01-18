@@ -100,7 +100,7 @@ void OpusEncoderFilter::process()
     }
 
     opus_int32 len = 0; // encoded frame size
-    uint32_t pos = 0; // output position
+    uint32_t pos = 0; // output position TODO: Is this pos variable necessary?
 
     // The audiocapturefilter makes sure the frames are the samplesPerFrame size.
 

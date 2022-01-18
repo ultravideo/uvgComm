@@ -20,7 +20,7 @@ VideoviewFactory::VideoviewFactory():
   opengl_(false)
 {}
 
-uint32_t VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent,
+size_t VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent,
                                         ConferenceView* conf)
 {
   Logger::getLogger()->printDebug(DEBUG_NORMAL, "View Factory",
@@ -90,7 +90,7 @@ uint32_t VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent,
 }
 
 
-uint32_t VideoviewFactory::setSelfview(VideoInterface *video, QWidget *view)
+size_t VideoviewFactory::setSelfview(VideoInterface *video, QWidget *view)
 { 
   checkInitializations(0);
 
@@ -100,7 +100,7 @@ uint32_t VideoviewFactory::setSelfview(VideoInterface *video, QWidget *view)
 }
 
 
-QWidget* VideoviewFactory::getView(uint32_t sessionID, uint32_t viewID)
+QWidget* VideoviewFactory::getView(uint32_t sessionID, size_t viewID)
 {
   if(sessionIDtoWidgetlist_.find(sessionID) == sessionIDtoWidgetlist_.end()
      || sessionIDtoWidgetlist_[sessionID]->size() <= viewID)

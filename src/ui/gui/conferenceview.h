@@ -102,7 +102,7 @@ private:
   void resetSlots();
 
   // attach widget to layout
-  void attachWidget(uint32_t sessionID, uint32_t index, QWidget *view);
+  void attachWidget(uint32_t sessionID, size_t index, QWidget *view);
 
   // attach widget to display that someone is calling us
   void attachIncomingCallWidget(QString name, uint32_t sessionID);
@@ -141,7 +141,7 @@ private:
   void removeWidget(LayoutLoc& location);
 
   // return true if session is exists and is initialized correctly
-  bool checkSession(uint32_t sessionID, uint32_t minViewCount = 0);
+  bool checkSession(uint32_t sessionID, size_t minViewCount = 0);
   void initializeSession(uint32_t sessionID, QString name);
   void unitializeSession(std::unique_ptr<SessionViews> peer);
 

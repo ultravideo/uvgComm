@@ -80,8 +80,8 @@ bool Delivery::addPeer(uint32_t sessionID, QString peerAddress, QString localAdd
 }
 
 
-void Delivery::parseCodecString(QString codec, uint16_t dst_port,
-                                rtp_format_t& fmt, DataType& type, QString& mediaName)
+void Delivery::parseCodecString(QString codec, rtp_format_t& fmt,
+                                DataType& type, QString& mediaName)
 {
   // TODO: This function should better facilitate additional type
 
@@ -131,11 +131,13 @@ std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID, QHostAddress
                                                 uint16_t localPort, uint16_t peerPort,
                                                 QString codec, uint8_t rtpNum)
 {
-  rtp_format_t fmt;
+  Q_UNUSED(rtpNum); // TODO in uvgRTP
+
+  rtp_format_t fmt = RTP_FORMAT_GENERIC;
   DataType type = NONE;
   QString mediaName = "";
 
-  parseCodecString(codec, localPort, fmt, type, mediaName);
+  parseCodecString(codec, fmt, type, mediaName);
 
   if (!initializeStream(sessionID, localPort, peerPort, fmt))
   {
@@ -171,11 +173,12 @@ std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID, QHostAddr
                                                    uint16_t localPort, uint16_t peerPort,
                                                    QString codec, uint8_t rtpNum)
 {
-  rtp_format_t fmt;
+  Q_UNUSED(rtpNum); // TODO in uvgRTP
+  rtp_format_t fmt = RTP_FORMAT_GENERIC;
   DataType type = NONE;
   QString mediaName = "";
 
-  parseCodecString(codec, localPort, fmt, type, mediaName);
+  parseCodecString(codec, fmt, type, mediaName);
 
   if (!initializeStream(sessionID, localPort, peerPort, fmt))
   {

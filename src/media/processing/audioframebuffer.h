@@ -28,7 +28,7 @@ public:
     return desiredFrameSize_;
   }
 
-  uint32_t getBufferSize()
+  size_t getBufferSize()
   {
     return readyFrames_.size();
   }

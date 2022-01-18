@@ -56,7 +56,7 @@ void UvgRTPSender::updateSettings()
   if (type_ == HEVCVIDEO)
   {
     uint32_t vps   = settingValue(SettingsKey::videoVPS);
-    uint16_t intra = settingValue(SettingsKey::videoIntra);
+    uint16_t intra = (uint16_t)settingValue(SettingsKey::videoIntra);
 
     if (settingEnabled(SettingsKey::videoSlices))
     {

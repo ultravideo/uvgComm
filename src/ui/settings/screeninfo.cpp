@@ -14,7 +14,7 @@ QStringList ScreenInfo::getDeviceList()
   QStringList screensList;
   QList<QScreen*> screens = QGuiApplication::screens();
 
-  for (auto screen : screens)
+  for (auto& screen : screens)
   {
     QString text = screen->name();
 

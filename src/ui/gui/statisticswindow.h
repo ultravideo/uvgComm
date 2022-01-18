@@ -49,8 +49,8 @@ public:
   virtual void addEncodedPacket(QString type, uint32_t size);
 
   // delivery
-  virtual void addSendPacket(uint16_t size);
-  virtual void addReceivePacket(uint32_t sessionID, QString type, uint16_t size);
+  virtual void addSendPacket(uint32_t size);
+  virtual void addReceivePacket(uint32_t sessionID, QString type, uint32_t size);
 
   // filter
   virtual uint32_t addFilter(QString type, QString identifier, uint64_t TID);
