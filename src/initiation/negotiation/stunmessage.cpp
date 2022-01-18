@@ -5,6 +5,8 @@
 
 #include <QDateTime>
 
+#include <cstdlib>
+
 STUNMessage::STUNMessage():
   type_(0),
   length_(0),
@@ -50,7 +52,7 @@ void STUNMessage::setTransactionID()
 {
   for (int i = 0; i < TRANSACTION_ID_SIZE; ++i)
   {
-    this->transactionID_[i] = uint8_t(qrand() % 256);
+    this->transactionID_[i] = uint8_t(rand() % 256);
   }
 }
 

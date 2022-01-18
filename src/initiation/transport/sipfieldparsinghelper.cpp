@@ -97,7 +97,7 @@ bool parseURI(const QString &word, SIP_URI& uri)
       addressString = field_match.captured(3);
     }
 
-    QStringList parameters = addressString.split(";", QString::SkipEmptyParts);
+    QStringList parameters = addressString.split(";", Qt::SkipEmptyParts);
 
     if (!parameters.empty())
     {

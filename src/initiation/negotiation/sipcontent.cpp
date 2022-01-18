@@ -55,7 +55,7 @@ bool checkSDPValidity(const SDPMessageInfo &sdpInfo)
                                     "SDP is not valid",
                                     {"Version", "Originator", "Session Name", 
                                      "Number of time descriptions", "Number of medias"},
-                                    {QString(sdpInfo.version), sdpInfo.originator_username, 
+                                    {QString::number(sdpInfo.version), sdpInfo.originator_username,
                                      sdpInfo.sessionName, QString::number(sdpInfo.timeDescriptions.size()), 
                                      QString::number(sdpInfo.media.size())});
 
@@ -230,7 +230,7 @@ bool nextLine(QStringListIterator& lineIterator, QStringList& words, char& lineT
   if(lineIterator.hasNext())
   {
     QString line = lineIterator.next();
-    words = line.split(" ", QString::SkipEmptyParts);
+    words = line.split(" ", Qt::SkipEmptyParts);
 
     if(words.at(0).length() < 3)
     {
@@ -265,7 +265,7 @@ void gatherLine(QString& target, QStringList& words)
 bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
 {
   // The SDP has strict ordering rules and the parsing follows those.
-  QStringList lines = content.split("\r\n", QString::SkipEmptyParts);
+  QStringList lines = content.split("\r\n", Qt::SkipEmptyParts);
   if(lines.size() > 1000)
   {
     qDebug() << "WHOAH: Got over a thousand lines of SDP. "

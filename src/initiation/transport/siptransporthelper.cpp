@@ -239,7 +239,7 @@ QString addContent(const std::shared_ptr<SIPMessageHeader> header,
 bool headerToFields(QString& header, QString& firstLine, QList<SIPField>& fields)
 {
   // Divide into lines
-  QStringList lines = header.split("\r\n", QString::SkipEmptyParts);
+  QStringList lines = header.split("\r\n", Qt::SkipEmptyParts);
   Logger::getLogger()->printNormal("SIP Transport Helper", "Parsing SIP header to fields",
               "Fields", QString::number(lines.size()));
   if(lines.size() == 0)
@@ -408,7 +408,7 @@ bool parseFieldName(QString& line, SIPField& field)
 void parseFieldCommaSeparatedList(QString& line, QStringList& outValues)
 {
   // separate value sections by commas
-  outValues = line.split(",", QString::SkipEmptyParts);
+  outValues = line.split(",", Qt::SkipEmptyParts);
 }
 
 
@@ -429,13 +429,13 @@ bool parseField(QString& values, SIPField& field)
   for (QChar& character : values)
   {
     // add character to word if it is not parsed out
-    if (isURI || (isQuotation && character != "\"") ||
-        (character != " "
-        && character != "\""
-        && character != ";"
-        && (character != "=" || !isParameter)
-        && character != "("
-        && character != ")"
+    if (isURI || (isQuotation && character != '\"') ||
+        (character != ' '
+        && character != '\"'
+        && character != ';'
+        && (character != '=' || !isParameter)
+        && character != '('
+        && character != ')'
         && !comments))
     {
       currentWord += character;
@@ -458,7 +458,7 @@ bool parseField(QString& values, SIPField& field)
           return false; // empty uri
         }
       }
-      else if (character == " ") // end of a word
+      else if (character == ' ') // end of a word
       {
         if (!isParameter && currentWord != "")
         {
@@ -468,7 +468,7 @@ bool parseField(QString& values, SIPField& field)
       }
       else if (isParameter)
       {
-        if (character == "=")
+        if (character == '=')
         {
           if (parameter.name != "")
           {
@@ -480,14 +480,14 @@ bool parseField(QString& values, SIPField& field)
             currentWord = "";
           }
         }
-        else if (character == ";")
+        else if (character == ';')
         {
           addParameterToSet(parameter, currentWord, set);
         }
       }
       else
       {
-        if (character == ";" && currentWord != "")
+        if (character == ';' && currentWord != "")
         {
           // last word before parameters
           set.words.push_back(currentWord);
@@ -497,11 +497,11 @@ bool parseField(QString& values, SIPField& field)
     }
 
     // change the state of parsing
-    if (character == "\"") // quote
+    if (character == '\"') // quote
     {
       isQuotation = !isQuotation;
     }
-    else if (character == "<") // start of URI
+    else if (character == '<') // start of URI
     {
       if (isURI)
       {
@@ -509,7 +509,7 @@ bool parseField(QString& values, SIPField& field)
       }
       isURI = true;
     }
-    else if (character == ">") // end of URI
+    else if (character == '>') // end of URI
     {
       if (!isURI)
       {
@@ -517,11 +517,11 @@ bool parseField(QString& values, SIPField& field)
       }
       isURI = false;
     }
-    else if (character == "(")
+    else if (character == '(')
     {
       ++comments;
     }
-    else if (character == ")")
+    else if (character == ')')
     {
       if (!comments)
       {
@@ -530,7 +530,7 @@ bool parseField(QString& values, SIPField& field)
 
       --comments;
     }
-    else if (!isURI && !isQuotation && character == ";") // parameter
+    else if (!isURI && !isQuotation && character == ';') // parameter
     {
       isParameter = true;
     }

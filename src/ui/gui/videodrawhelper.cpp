@@ -31,7 +31,11 @@ void VideoDrawHelper::initWidget(QWidget* widget)
   widget->setAttribute(Qt::WA_NoSystemBackground, true);
 
   QPalette palette = widget->palette();
+#if QT_VERSION_MAJOR == 6
+  palette.setColor(QPalette::Window, Qt::black);
+#else
   palette.setColor(QPalette::Background, Qt::black);
+#endif
   widget->setPalette(palette);
 
   widget->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);

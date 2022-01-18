@@ -166,7 +166,7 @@ QString transportProtocolToString(const SIPTransportProtocol connection)
   {
     Logger::getLogger()->printWarning("SIP Conversions", "Tried to convert unrecognized protocol to string! "
                                     "Should be checked earlier.",
-                 {"Protocol"}, {connection});
+                 {"Protocol"}, {QString::number(connection)});
   }
   }
   return "";

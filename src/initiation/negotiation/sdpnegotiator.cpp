@@ -177,7 +177,7 @@ void SDPNegotiator::generateOrigin(std::shared_ptr<SDPMessageInfo> sdp,
   sdp->sess_v = QDateTime::currentMSecsSinceEpoch();
   sdp->host_nettype = "IN";
   sdp->host_address = localAddress;
-  if (localAddress.front() == "[")
+  if (localAddress.front() == '[')
   {
     sdp->host_address = localAddress.mid(1, localAddress.size() - 2);
     sdp->host_addrtype = "IP6";
@@ -193,7 +193,7 @@ void SDPNegotiator::setConnectionAddress(std::shared_ptr<SDPMessageInfo> sdp,
 {
   sdp->connection_address = localAddress;
   sdp->connection_nettype = "IN";
-  if (localAddress.front() == "[")
+  if (localAddress.front() == '[')
   {
     sdp->connection_address = localAddress.mid(1, localAddress.size() - 2);
     sdp->connection_addrtype = "IP6";

@@ -1,13 +1,12 @@
 #pragma once
 
-class QWidget;
-class QMouseEvent;
-class QKeyEvent;
-
 #include <QObject>
 #include <QSize>
 #include <QImage>
 #include <QRect>
+#include <QWidget>
+#include <QMouseEvent>
+#include <QKeyEvent>
 
 #include <QElapsedTimer>
 

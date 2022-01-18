@@ -229,9 +229,9 @@ FORMS    += \
     ui/outgoingcallwidget.ui \
     ui/videosettings.ui
 
-equals(QT_MAJOR_VERSION, 5){
-   QT += multimedia multimediawidgets
-}
+
+QT += multimedia
+QT += multimediawidgets
 
 QT += network
 QT += svg # for icons

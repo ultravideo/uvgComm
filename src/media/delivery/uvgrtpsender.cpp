@@ -15,8 +15,8 @@ UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id, StatisticsInterface *
   type_(type),
   mstream_(nullptr),
   frame_(0),
-  rtpFlags_(RTP_NO_FLAGS),
-  sessionID_(sessionID)
+  sessionID_(sessionID),
+  rtpFlags_(RTP_NO_FLAGS)
 {
   updateSettings();
 
@@ -95,7 +95,7 @@ void UvgRTPSender::process()
     if (ret != RTP_OK)
     {
       Logger::getLogger()->printDebug(DEBUG_ERROR, this,  "Failed to send data", 
-                                      { "Error" }, { QString(ret) });
+                                      { "Error" }, { QString::number(ret) });
     }
 
     getStats()->addSendPacket(input->data_size);

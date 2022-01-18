@@ -10,6 +10,7 @@
 #include <QSettings>
 
 #include <memory>
+#include <cstdlib>
 
 
 #include <math.h>       /* pow */
@@ -161,7 +162,7 @@ QList<std::shared_ptr<ICEInfo>> ICE::generateICECandidates(
 
 
   QTime time = QTime::currentTime();
-  qsrand((uint)time.msec());
+  srand((uint)time.msec());
 
   QList<std::shared_ptr<ICEInfo>> iceCandidates;
 
@@ -289,7 +290,7 @@ void ICE::printCandidates(QList<std::shared_ptr<ICEInfo>>& candidates)
   {
     candidateNames.push_back(candidate->address + ":");
     candidateStrings.push_back("Foundation: " + candidate->foundation +
-                               " Priority: " + candidate->priority);
+                               " Priority: " + QString::number(candidate->priority));
   }
 
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Generated the following ICE candidates", 

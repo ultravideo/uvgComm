@@ -33,8 +33,13 @@ public:
 
 private:
 
+#if QT_VERSION_MAJOR == 6
+  QString videoFormatToString(QVideoFrameFormat::PixelFormat format);
+  QVideoFrameFormat::PixelFormat stringToPixelFormat(QString format);
+#else
   QString videoFormatToString(QVideoFrame::PixelFormat format);
   QVideoFrame::PixelFormat stringToPixelFormat(QString format);
+#endif
 
   std::unique_ptr<QCamera> loadCamera(int deviceID);
 

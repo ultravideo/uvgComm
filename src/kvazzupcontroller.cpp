@@ -172,7 +172,7 @@ void KvazzupController::callRinging(uint32_t sessionID)
   else
   {
     Logger::getLogger()->printPeerError(this, "Got call ringing for nonexisting call",
-                  {"SessionID"}, {sessionID});
+                  {"SessionID"}, {QString::number(sessionID)});
   }
 }
 
@@ -343,14 +343,14 @@ void KvazzupController::failure(uint32_t sessionID, QString error)
     else
     {
       Logger::getLogger()->printPeerError(this, "Got reject when we weren't calling them", 
-                                          "SessionID", {sessionID});
+                                          "SessionID", {QString::number(sessionID)});
     }
     removeSession(sessionID, error, false);
   }
   else
   {
     Logger::getLogger()->printPeerError(this, "Got reject for nonexisting call", 
-                                        "SessionID", {sessionID});
+                                        "SessionID", {QString::number(sessionID)});
     Logger::getLogger()->printPeerError(this, "", "Ongoing sessions", 
                                         {QString::number(states_.size())});
   }

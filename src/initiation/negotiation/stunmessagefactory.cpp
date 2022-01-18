@@ -5,6 +5,8 @@
 
 #include <QDateTime>
 
+#include <cstdlib>
+
 // allocate 256 bytes of temporary memory for each outgoing STUN message
 // Usually the size of message is less than 100 bytes but just in case add
 // some wiggle room.
@@ -16,7 +18,7 @@ const int STUN_MSG_MAX_SIZE = 256;
 
 StunMessageFactory::StunMessageFactory()
 {
-  qsrand(QDateTime::currentSecsSinceEpoch() / 2 + 1);
+  srand(QDateTime::currentSecsSinceEpoch() / 2 + 1);
 }
 
 StunMessageFactory::~StunMessageFactory()
