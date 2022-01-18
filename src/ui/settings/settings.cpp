@@ -13,14 +13,14 @@
 #include "logger.h"
 
 #include <QScreen>
+#include <QCryptographicHash>
+#include <QUuid>
 
 
 const QStringList neededSettings = {SettingsKey::localRealname,
                                     SettingsKey::localUsername,
                                     SettingsKey::sipServerAddress,
-                                    SettingsKey::sipAutoConnect};
-
-Settings::Settings(QWidget *parent) :
+                                    SettingsKey::sipAutoConnect};Settings::Settings(QWidget *parent) :
   QDialog(parent),
   basicUI_(new Ui::BasicSettings),
   cam_(std::shared_ptr<CameraInfo> (new CameraInfo())),
@@ -55,6 +55,8 @@ void Settings::init()
   videoSettings_.init(videoID);
   sipSettings_.init();
 
+  checkUUID(); // makes sure that we have an uuid and if not, creates one
+
   //QObject::connect(basicUI_->save, &QPushButton::clicked, this, &Settings::on_ok_clicked);
   //QObject::connect(basicUI_->close, &QPushButton::clicked, this, &Settings::on_cancel_clicked);
 
@@ -76,6 +78,8 @@ void Settings::init()
   QObject::connect(basicUI_->username_edit, &QLineEdit::textChanged,
                    this, &Settings::changedSIPText);
 
+
+
   QObject::connect(basicUI_->serverAddress_edit, &QLineEdit::textChanged,
                    this, &Settings::uiChangedString);
 
@@ -83,6 +87,9 @@ void Settings::init()
                    this, &Settings::uiChangedString);
 
   QObject::connect(basicUI_->username_edit, &QLineEdit::textChanged,
+                   this, &Settings::uiChangedString);
+
+  QObject::connect(basicUI_->passwd_edit, &QLineEdit::textChanged,
                    this, &Settings::uiChangedString);
 
   QObject::connect(basicUI_->auto_connect_box, &QCheckBox::stateChanged,
@@ -269,7 +276,17 @@ void Settings::saveSettings()
   saveTextValue(SettingsKey::localRealname, basicUI_->name_edit->text(), settings_);
   saveTextValue(SettingsKey::localUsername, basicUI_->username_edit->text(), settings_);
   saveTextValue(SettingsKey::sipServerAddress, basicUI_->serverAddress_edit->text(), settings_);
+  if (basicUI_->passwd_edit->text() != "")
+  {
+    QCryptographicHash hash(QCryptographicHash::Md5);
+    QString qopString = basicUI_->username_edit->text() + ":" +
+        basicUI_->serverAddress_edit->text() +  ":" + basicUI_->passwd_edit->text();
+    hash.addData(qopString.toLatin1());
 
+    QString credentials = hash.result().toHex();
+
+    saveTextValue("local/Credentials", credentials, settings_);
+  }
   saveCheckBox(SettingsKey::sipAutoConnect, basicUI_->auto_connect_box, settings_);
 
   saveDevice(basicUI_->videoDevice_combo, SettingsKey::videoDeviceID,
@@ -381,10 +398,10 @@ void Settings::resetFaultySettings()
 void Settings::initDeviceSelector(QComboBox* deviceSelector,
                                   QString settingID,
                                   QString settingsDevice,
-                                  std::shared_ptr<DeviceInfoInterface> interface)
+                                  std::shared_ptr<DeviceInfoInterface> deviceInterface)
 {
   deviceSelector->clear();
-  QStringList devices = interface->getDeviceList();
+  QStringList devices = deviceInterface->getDeviceList();
   for(int i = 0; i < devices.size(); ++i)
   {
     deviceSelector->addItem( devices[i]);
@@ -497,4 +514,22 @@ void Settings::changedSIPText(const QString &text)
 void Settings::updateServerStatus(QString status)
 {
   basicUI_->status->setText(status);
+}
+
+
+void Settings::checkUUID()
+{
+  if (!settings_.value(SettingsKey::sipUUID).isValid() ||
+      settings_.value(SettingsKey::sipUUID).toString().isEmpty())
+  {
+    QUuid uuid = QUuid::createUuid();
+    QString uuid_str = uuid.toString();
+
+    uuid = uuid_str.remove("{");
+    uuid = uuid_str.remove("}");
+
+    settings_.setValue(SettingsKey::sipUUID, uuid_str);
+
+    Logger::getLogger()->printNormal(this, "Generated new UUID.", "UUID", uuid_str);
+  }
 }

@@ -16,7 +16,6 @@ void qSleep(int ms);
 QString generateRandomString(uint32_t length);
 
 bool settingEnabled(QString key);
-
 int settingValue(QString key);
 
 QString settingString(QString key);

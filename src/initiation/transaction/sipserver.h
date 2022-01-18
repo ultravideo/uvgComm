@@ -1,7 +1,6 @@
 #pragma once
 
-#include <QObject>
-
+#include "initiation/sipmessageprocessor.h"
 #include "initiation/siptypes.h"
 
 /* This class implements the behavior defined in RFC3261 for component
@@ -12,55 +11,36 @@
 
 
 class SIPTransactionUser;
-class SIPDialogState;
 
 
-class SIPServer : public QObject
+class SIPServer : public SIPMessageProcessor
 {
    Q_OBJECT
 public:
   SIPServer();
 
-  void init(SIPTransactionUser* tu, uint32_t sessionID);
+public slots:
 
-  // processes incoming request. Part of our server transaction
-  // returns whether we should continue this session
-  bool processRequest(SIPRequest& request,
-                      SIPDialogState& state);
+  virtual void processOutgoingResponse(SIPResponse& response, QVariant& content);
 
-  void getResponseMessage(std::shared_ptr<SIPMessageInfo> &outMessage,
-                          ResponseType type);
+    // processes incoming request. Part of server transaction
+  virtual void processIncomingRequest(SIPRequest& request, QVariant& content);
 
-  // set the request details so we can use them when sending response
-  // used in special cases where we know the response before calling process function.
-  void setCurrentRequest(SIPRequest& request);
-
-  // send a accept/reject response to received request according to user.
-  void responseAccept();
-  void respondReject();
-
-  bool isCancelYours(std::shared_ptr<SIPMessageInfo> cancel);
-
-signals:
-
-  // a signal that response of the following type should be sent.
-  void sendResponse(uint32_t sessionID, ResponseType type);
 
 private:
 
-  void responseSender(ResponseType type);
-  bool goodRequest(); // use this to filter out untimely/duplicate requests
+    bool isCANCELYours(SIPRequest &cancel);
 
   // Copies the fields of to a response which are direct copies of the request.
   // includes at least via, to, from, CallID and cseq
-  void copyMessageDetails(std::shared_ptr<SIPMessageInfo> &inMessage,
-                          std::shared_ptr<SIPMessageInfo> &copy);
+  void copyResponseDetails(std::shared_ptr<SIPMessageHeader> &inMessage,
+                          std::shared_ptr<SIPMessageHeader> &copy);
 
+  bool equalURIs(SIP_URI& first, SIP_URI& second);
 
-  uint32_t sessionID_;
+  bool equalToFrom(ToFrom& first, ToFrom& second);
+
 
   // used for copying data to response
-  std::shared_ptr<SIPMessageInfo> receivedRequest_;
-
-  SIPTransactionUser* transactionUser_;
+  std::shared_ptr<SIPRequest> receivedRequest_;
 };

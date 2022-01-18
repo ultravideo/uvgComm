@@ -1,5 +1,6 @@
 #pragma once
 
+#include "initiation/sipmessageprocessor.h"
 #include "initiation/siptypes.h"
 
 #include <memory>
@@ -11,66 +12,62 @@
  */
 
 
-class SIPDialogState
+/* Responsible for the following fields:
+ * - Call-ID
+ * - To
+ * - From
+ * - Route
+ *
+ * Also responsible for the  Request-URI fields and CSeq number.
+ */
+
+class SIPDialogState : public SIPMessageProcessor
 {
+  Q_OBJECT
 public:
   SIPDialogState();
+  ~SIPDialogState();
 
-  // creates dialog which is about to start from our end
-  // needs local address in case we have not registered
-  // and this is a peer-to-peer dialog
-  void createNewDialog(SIP_URI remoteURI, QString localAddress, bool registered);
+  // sets the from and to addresses of this dialog as well as the request-URI
+  void init(NameAddr& local, NameAddr& remote, bool createDialog);
 
   // create a connection to server to be used for sending the REGISTER request
   // does not actually create dialog.
-  void createServerConnection(SIP_URI requestURI);
-
-  // creates the dialog from an incoming INVITE
-  void createDialogFromINVITE(std::shared_ptr<SIPMessageInfo> &inMessage,
-                              QString hostName);
-
-  // Generates the request message details
-  void getRequestDialogInfo(SIPRequest& outRequest);
-
-  void setRequestUri(SIP_URI& remoteContact)
-  {
-    requestUri_ = remoteContact;
-  }
-
-  void setRoute(QList<SIP_URI>& route);
-
-  // use this to check whether incoming request belongs to this dialog
-  // responses should be checked by client which sent the request
-  bool correctRequestDialog(std::shared_ptr<SIPDialogInfo> dialog,
-                            RequestType type, uint32_t remoteCSeq);
-  bool correctResponseDialog(std::shared_ptr<SIPDialogInfo> dialog,
-                             uint32_t messageCSeq, bool recordToTag = true);
+  void createServerConnection(NameAddr& local, SIP_URI requestURI);
 
 
-  // set and get whether the dialog is active
-  bool getState() const
-  {
-    return sessionState_;
-  }
+  // Use this to check whether incoming request belongs to this dialog.
+  // Please use the header field values here so the messages is checked correctly.
+  bool correctRequestDialog(QString callID, QString toTag, QString fromTag);
+  bool correctResponseDialog(QString callID, QString toTag, QString fromTag);
 
-  void setState(bool state)
-  {
-    sessionState_ = state;
-  }
+
+public slots:
+
+  // Adds dialog info to request
+  virtual void processOutgoingRequest(SIPRequest& request, QVariant& content);
+
+  // Creates a dialog if it is INVITE
+  virtual void processIncomingRequest(SIPRequest& request, QVariant& content);
+
+  // Gets the correct requestURI from INVITE OK contact
+  virtual void processIncomingResponse(SIPResponse& response, QVariant& content);
+
+
+private:
 
   // forbid copy and assignment
   SIPDialogState(const SIPDialogState& copied) = delete;
   SIPDialogState& operator=(SIPDialogState const&) = delete;
 
-private:
-
   // set our information as well as generate callID and tags
   void initDialog();
+
   // set our information, callID and tags
   // generate our own tag if needed.
   void setDialog(QString callID);
 
-  void initLocalURI();
+  uint32_t initialCSeqNumber();
 
   // SIP Dialog fields (section 12 in RFC 3261)
   QString localTag_;
@@ -79,18 +76,20 @@ private:
 
   // address-of-record is the SIP address if one exists. If we have not registered to
   // server we use our local IP address.
-  SIP_URI localURI_; // local address-of-record.
-  SIP_URI remoteURI_; // remote address-of-record.
+  NameAddr localURI_; // local address-of-record.
+  NameAddr remoteURI_; // remote address-of-record.
 
-  SIP_URI requestUri_;
+  SIP_URI remoteTarget_;
 
   // empty until first request is sent/received
   // cseq is used to determine the order of requests and must be sequential
-  uint32_t localCSeq_;
-  uint32_t remoteCSeq_;
+
+  // both our peer and us have separate cSeq numbers
+  uint32_t localCseq_;
+  uint32_t remoteCseq_;
 
   // may be empty if there is no route
-  QList<SIP_URI> route_;
+  QList<SIPRouteLocation> route_;
 
-  bool sessionState_;
+  SIPRequest previousRequest_;
 };

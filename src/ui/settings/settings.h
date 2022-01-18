@@ -4,12 +4,16 @@
 #include "ui/settings/videosettings.h"
 #include "ui/settings/sipsettings.h"
 
+#include "serverstatusview.h"
+#include "deviceinfointerface.h"
+
 #include <QDialog>
 #include <QSettings>
+#include <QString>
 
 #include <memory>
 
-#include "serverstatusview.h"
+
 
 /* Settings in Kvazzup work as follows:
  * 1) The settings view holds the setting information in a way that the user
@@ -32,7 +36,6 @@ class BasicSettings;
 class CameraInfo;
 class MicrophoneInfo;
 class ScreenInfo;
-class DeviceInfoInterface;
 class QCheckBox;
 class QComboBox;
 
@@ -86,9 +89,11 @@ private:
   int getDeviceID(QComboBox *deviceSelector, QString settingID, QString settingsDevice);
 
   void initDeviceSelector(QComboBox* deviceSelector, QString settingID,
-                          QString settingsDevice, std::shared_ptr<DeviceInfoInterface> interface);
+                          QString settingsDevice, std::shared_ptr<DeviceInfoInterface> deviceInterface);
 
   void saveDevice(QComboBox* deviceSelector, QString settingsID, QString settingsDevice, bool video);
+
+  void checkUUID();
 
   // checks if user settings make sense
   // TODO: display errors to user on ok click

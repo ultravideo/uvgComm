@@ -28,8 +28,6 @@ public:
   // use this to give the socket to Connection
   void setExistingConnection(qintptr socketDescriptor);
 
-  // sends packet via connection
-  void sendPacket(const QString &data);
 
   // callback
   template <typename Class>
@@ -41,40 +39,19 @@ public:
     });
   }
 
-  bool isConnected() const
-  {
-    return socket_ && socket_->state() == QAbstractSocket::ConnectedState;
-  }
+  bool isConnected() const;
 
-  // TODO: Returns empty if we are not connected to anything.
-  QHostAddress localAddress()
-  {
-    Q_ASSERT(socket_);
-    Q_ASSERT(socket_->state() == QAbstractSocket::ConnectedState);
-    Q_ASSERT(socket_->localAddress().toString() != "");
-    return socket_->localAddress();
-  }
+  // returns empty string if not connected
+  QString localAddress() const;
+  QString remoteAddress() const;
 
-  uint16_t localPort() const
-  {
-    Q_ASSERT(socket_);
-    Q_ASSERT(socket_->state() == QAbstractSocket::ConnectedState);
-    return socket_->localPort();
-  }
+  // returns 0 if not connected
+  uint16_t localPort() const;
+  uint16_t remotePort() const;
 
-  QHostAddress remoteAddress()
-  {
-    Q_ASSERT(socket_);
-    Q_ASSERT(socket_->state() == QAbstractSocket::ConnectedState);
-    Q_ASSERT(socket_->peerAddress().toString() != "");
-
-    if (!socket_)
-    {
-      return QHostAddress();
-    }
-
-    return socket_->peerAddress();
-  }
+  // returns ANY if not connected
+  QAbstractSocket::NetworkLayerProtocol localProtocol() const;
+  QAbstractSocket::NetworkLayerProtocol remoteProtocol() const;
 
 signals:
   void error(int socketError, const QString &message);
@@ -83,6 +60,11 @@ signals:
   // connection has been established
   void socketConnected(QString localAddress, QString remoteAddress);
   void unableToConnect(QString remoteAddress);
+
+public slots:
+
+  // sends packet via connection
+  void sendPacket(const QString &data);
 
 private slots:
   void receivedMessage();

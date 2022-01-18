@@ -37,7 +37,7 @@ std::shared_ptr<Logger> Logger::getLogger()
 void Logger::printDebug(DebugType type, const QObject *object, QString description,
                         QStringList valueNames, QStringList values)
 {
-  Logger::getLogger()->printDebug(type, object->metaObject()->className(),
+  printDebug(type, object->metaObject()->className(),
              description, valueNames, values);
 }
 
@@ -45,59 +45,113 @@ void Logger::printDebug(DebugType type, const QObject *object, QString descripti
 void Logger::printNormal(const QObject *object, QString description,
                          QString valueName, QString value)
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, object, description, {valueName}, {value});
+  printDebug(DEBUG_NORMAL, object, description, {valueName}, {value});
+}
+
+
+void Logger::printNormal(const QString module, QString description,
+                         QString valueName, QString value)
+{
+  printDebug(DEBUG_NORMAL, module, description, {valueName}, {value});
 }
 
 
 void Logger::printImportant(const QObject* object, QString description,
                             QString valueName, QString value)
 {
-  Logger::getLogger()->printDebug(DEBUG_IMPORTANT, object, description, {valueName}, {value});
+  printDebug(DEBUG_IMPORTANT, object, description, {valueName}, {value});
+}
+
+
+void Logger::printImportant(const QString module, QString description,
+                            QString valueName, QString value)
+{
+  printDebug(DEBUG_IMPORTANT, module, description, {valueName}, {value});
 }
 
 
 void Logger::printWarning(const QObject* object, QString description,
                           QString valueName, QString value)
 {
-  Logger::getLogger()->printDebug(DEBUG_WARNING, object, description, {valueName}, {value});
+  printDebug(DEBUG_WARNING, object, description, {valueName}, {value});
+}
+
+
+void Logger::printWarning(const QString module, QString description,
+                          QString valueName, QString value)
+{
+  printDebug(DEBUG_WARNING, module, description, {valueName}, {value});
 }
 
 
 void Logger::printError(const QObject *object, QString description,
                         QString valueName, QString value)
 {
-  Logger::getLogger()->printDebug(DEBUG_ERROR, object, description, {valueName}, {value});
+  printDebug(DEBUG_ERROR, object, description, {valueName}, {value});
+}
+
+
+void Logger::printError(const QString module, QString description,
+                        QString valueName, QString value)
+{
+  printDebug(DEBUG_ERROR, module, description, {valueName}, {value});
 }
 
 
 void Logger::printProgramError(const QObject *object, QString description,
                                QString valueName, QString value)
 {
-  Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, object, description, {valueName}, {value});
+  printDebug(DEBUG_PROGRAM_ERROR, object, description, {valueName}, {value});
+}
+
+
+void Logger::printProgramError(const QString module, QString description,
+                               QString valueName, QString value)
+{
+  printDebug(DEBUG_PROGRAM_ERROR, module, description, {valueName}, {value});
 }
 
 
 void Logger::printProgramWarning(const QObject *object, QString description,
                                  QString valueName, QString value)
 {
-  Logger::getLogger()->printDebug(DEBUG_PROGRAM_WARNING, object, description, {valueName}, {value});
+  printDebug(DEBUG_PROGRAM_WARNING, object, description, {valueName}, {value});
+}
+
+
+void Logger::printProgramWarning(const QString module, QString description,
+                                 QString valueName, QString value)
+{
+  printDebug(DEBUG_PROGRAM_WARNING, module, description, {valueName}, {value});
 }
 
 
 void Logger::printPeerError(const QObject *object, QString description,
                             QString valueName, QString value)
 {
-  Logger::getLogger()->printDebug(DEBUG_PEER_ERROR, object, description, {valueName}, {value});
+  printDebug(DEBUG_PEER_ERROR, object, description, {valueName}, {value});
+}
+
+
+void Logger::printPeerError(const QString module, QString description,
+                            QString valueName, QString value)
+{
+  printDebug(DEBUG_PEER_ERROR, module, description, {valueName}, {value});
 }
 
 
 void Logger::printUnimplemented(const QObject* object, QString whatIsNotImplemented)
 {
-  Logger::getLogger()->printDebug(DEBUG_PROGRAM_WARNING, object,
+  printDebug(DEBUG_PROGRAM_WARNING, object,
              QString("NOT IMPLEMENTED: ") + whatIsNotImplemented);
 }
 
 
+void Logger::printUnimplemented(const QString module, QString whatIsNotImplemented)
+{
+  printDebug(DEBUG_PROGRAM_WARNING, module,
+             QString("NOT IMPLEMENTED: ") + whatIsNotImplemented);
+}
 
 
 void Logger::printDebug(DebugType type, QString className, QString description,

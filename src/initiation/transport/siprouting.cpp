@@ -1,37 +1,145 @@
 #include "siprouting.h"
 
-#include <QSettings>
+#include "settingskeys.h"
 
 #include "common.h"
 #include "logger.h"
+#include "sipfieldparsinghelper.h" // we need to parse GRUU URI
 
+#include <QSettings>
 
-SIPRouting::SIPRouting():
+SIPRouting::SIPRouting(std::shared_ptr<TCPConnection> connection):
+  connection_(connection),
   contactAddress_(""),
   contactPort_(0),
   first_(true)
 {}
 
-void SIPRouting::processResponseViaFields(QList<ViaInfo>& vias,
+
+void SIPRouting::processOutgoingRequest(SIPRequest& request, QVariant& content)
+{
+  Q_UNUSED(content)
+
+  Logger::getLogger()->printNormal(this, "Processing outgoing request");
+
+  if (connection_ == nullptr)
+  {
+    Logger::getLogger()->printProgramError(this, "No connection set!");
+    return;
+  }
+
+  // TODO: Handle this better
+  if (!connection_->isConnected())
+  {
+    Logger::getLogger()->printWarning(this, "Socket not connected");
+    return;
+  }
+
+  if (request.method != SIP_CANCEL)
+  {
+    addVia(request.method, request.message,
+           connection_->localAddress(),
+           connection_->localPort());
+  }
+  else
+  {
+    request.message->vias.push_front(previousVia_);
+  }
+
+  if (request.method == SIP_INVITE || request.method == SIP_REGISTER)
+  {
+    addContactField(request.message,
+                    connection_->localAddress(),
+                    connection_->localPort(),
+                    DEFAULT_SIP_TYPE);
+
+    if (request.method == SIP_REGISTER)
+    {
+      addREGISTERContactParameters(request.message);
+      addToSupported("path", request.message); // RFC 5626 section 4.2.1
+    }
+  }
+
+  if (request.method == SIP_INVITE ||
+      request.method == SIP_OPTIONS ||
+      request.method == SIP_REGISTER)
+  {
+    addToSupported("gruu", request.message);
+  }
+
+  addToSupported("outbound", request.message); // RFC 5626 section 4.2.1
+  emit outgoingRequest(request, content);
+
+}
+
+
+void SIPRouting::processOutgoingResponse(SIPResponse& response, QVariant& content)
+{
+  Q_UNUSED(content)
+
+  Logger::getLogger()->printNormal(this, "Processing outgoing response");
+
+  // TODO: Handle this better
+  if (!connection_->isConnected())
+  {
+    Logger::getLogger()->printWarning(this, "Socket not connected");
+    return;
+  }
+
+  if (response.message->cSeq.method == SIP_INVITE && response.type == SIP_OK)
+  {
+    addToSupported("gruu", response.message);
+
+    addContactField(response.message,
+                      connection_->localAddress(),
+                      connection_->localPort(),
+                      DEFAULT_SIP_TYPE);
+  }
+
+  emit outgoingResponse(response, content);
+}
+
+
+void SIPRouting::processIncomingResponse(SIPResponse& response, QVariant& content)
+{
+  Q_UNUSED(content)
+
+  if (connection_ && connection_->isConnected())
+  {
+    processResponseViaFields(response.message->vias,
+                             connection_->localAddress(),
+                             connection_->localPort());
+  }
+  else
+  {
+    Logger::getLogger()->printError(this, "Not connected when checking response via field");
+  }
+
+  if (response.type == SIP_OK && response.message->cSeq.method == SIP_REGISTER)
+  {
+    getGruus(response.message);
+  }
+
+  emit incomingResponse(response, content);
+}
+
+
+void SIPRouting::processResponseViaFields(QList<ViaField>& vias,
                                           QString localAddress,
                                           uint16_t localPort)
 {
   // find the via with our address and port
 
-  for (ViaInfo& via : vias)
+  for (ViaField& via : vias)
   {
-    if (via.address == localAddress && via.port == localPort)
+    if (via.sentBy == localAddress && via.port == localPort)
     {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, "SIPRouting", 
-                                      "Found our via. This is meant for us!");
+      Logger::getLogger()->printNormal(this, "Found our via. This is meant for us!");
 
       if (via.rportValue != 0 && via.receivedAddress != "")
       {
-        Logger::getLogger()->printDebug(DEBUG_NORMAL, "SIPRouting", 
-                                        "Found our received address and rport",
-                                        {"Address"}, 
-                                        {via.receivedAddress + ":" + 
-                                         QString::number(via.rportValue)});
+        Logger::getLogger()->printNormal(this, "Found our received address and rport",
+                                         {"Address"}, {via.receivedAddress + ":" + QString::number(via.rportValue)});
 
         // we do not update our address, because we want to remove this registration
         // first before updating.
@@ -51,43 +159,121 @@ void SIPRouting::processResponseViaFields(QList<ViaInfo>& vias,
 }
 
 
-void SIPRouting::getViaAndContact(std::shared_ptr<SIPMessageInfo> message,
-                                   QString localAddress,
-                                   uint16_t localPort)
+void SIPRouting::addVia(SIPRequestMethod type,
+                        std::shared_ptr<SIPMessageHeader> message,
+                        QString localAddress,
+                        uint16_t localPort)
 {
-  // set via-address
-  if (!message->vias.empty())
+  ViaField via = ViaField{SIP_VERSION, DEFAULT_TRANSPORT, localAddress, localPort,
+      QString(MAGIC_COOKIE + generateRandomString(BRANCH_TAIL_LENGTH)),
+      false, false, 0, "", {}};
+
+  message->vias.push_back(via);
+
+  if (type == SIP_INVITE || type == SIP_ACK)
   {
-    message->vias.back().address = localAddress;
-    message->vias.back().port = localPort;
+    message->vias.back().rport = true;
   }
 
-  getContactAddress(message, localAddress, localPort, TCP);
+  if (type == SIP_REGISTER)
+  {
+    message->vias.back().rport = true;
+    message->vias.back().alias = true;
+  }
+
+  previousVia_ = message->vias.back();
 }
 
 
-void SIPRouting::getContactAddress(std::shared_ptr<SIPMessageInfo> message,
-                                   QString localAddress, uint16_t localPort,
-                                   ConnectionType type)
+void SIPRouting::addContactField(std::shared_ptr<SIPMessageHeader> message,
+                                 QString localAddress, uint16_t localPort,
+                                 SIPType type)
 {
-  message->contact = {type, getLocalUsername(), "", "", 0, {}};
+  message->contact.push_back({{"", SIP_URI{type, {getLocalUsername(), ""}, {"", 0}, {}, {}}}, {}});
 
-    // use rport address and port if we have them, otherwise use localaddress
-  if (contactAddress_ != "")
+  // There are four different alternatives: use public GRUU if we have it,
+  // otherwise use temporary GRUU or rport if we have those
+  if (pubGruu_ != "")
   {
-    message->contact.host = contactAddress_;
+    if (!parseURI(pubGruu_, message->contact.back().address.uri))
+    {
+      Logger::getLogger()->printProgramError(this, "Failed to parse Public GRUU for contact field");
+    }
   }
-  else
+  else if (tempGruu_ != "")
   {
-    message->contact.host = localAddress;
+    if (!parseURI(tempGruu_, message->contact.back().address.uri))
+    {
+      Logger::getLogger()->printProgramError(this, "Failed to parse Temporary GRUU for contact field");
+    }
+  }
+  else if (contactAddress_ != "" && contactPort_ != 0)
+  {
+    // use rport address and port if we have them
+    message->contact.back().address.uri.hostport.host = contactAddress_;
+    message->contact.back().address.uri.hostport.port = contactPort_;
+  }
+  else // otherwise use localaddress
+  {
+    message->contact.back().address.uri.hostport.host = localAddress;
+    message->contact.back().address.uri.hostport.port = localPort;
+  }
+}
+
+
+void SIPRouting::addREGISTERContactParameters(std::shared_ptr<SIPMessageHeader> message)
+{
+  if (message->contact.empty())
+  {
+    Logger::getLogger()->printProgramWarning(this,
+                                             "Please add contact field before adding parameters");
   }
 
-  if (contactPort_ != 0)
+  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+  message->contact.back().parameters.push_back({"reg-id", "1"});
+  message->contact.back().parameters.push_back({"+sip.instance", "\"<urn:uuid:" +
+                                                settings.value(SettingsKey::sipUUID).toString() + ">\""});
+}
+
+
+void SIPRouting::addToSupported(QString feature, std::shared_ptr<SIPMessageHeader> message)
+{
+  if (message->supported == nullptr)
   {
-    message->contact.port = contactPort_;
+    message->supported = std::shared_ptr<QStringList>(new QStringList);
   }
-  else
+
+  message->supported->append(feature);
+}
+
+
+void SIPRouting::getGruus(std::shared_ptr<SIPMessageHeader> message)
+{
+  QString tempGruu = "";
+  QString pubGruu = "";
+
+  for (auto& contact : message->contact)
   {
-    message->contact.port = localPort;
+    for (int i = 0; i < contact.parameters.size() && tempGruu == ""; ++i)
+    {
+      // TODO: Check that pub-gruu does not change
+      if (contact.parameters.at(i).name == "pub-gruu")
+      {
+        pubGruu = contact.parameters.at(i).value;
+        Logger::getLogger()->printNormal(this, "Found public GRUU", "pub-gruu", pubGruu);
+      }
+    }
+
+    for (int i = 0; i < contact.parameters.size() && tempGruu == ""; ++i)
+    {
+      if (contact.parameters.at(i).name == "temp-gruu")
+      {
+        tempGruu = contact.parameters.at(i).value;
+        Logger::getLogger()->printNormal(this, "Found temporary GRUU", "temp-gruu", tempGruu);
+      }
+    }
   }
+
+  tempGruu_ = tempGruu;
+  pubGruu_ = pubGruu;
 }

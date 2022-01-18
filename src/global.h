@@ -29,6 +29,9 @@ const uint16_t AUDIO_FRAMES_PER_SECOND = 100;
 
 const int STREAM_COMPONENTS = 4;
 
+const uint16_t MIN_ICE_PORT   = 23000;
+const uint16_t MAX_ICE_PORT   = 24000;
+
 // this macro checks the condition and quits in debug mode and exits the current function in
 #define CHECKERROR(condition, errorString, errorReturnValue) \
   Q_ASSERT(condition); \

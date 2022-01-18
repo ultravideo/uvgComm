@@ -16,7 +16,7 @@ public:
 signals:
 
   // signal to transmit the incoming connection
-void newConnection(TCPConnection* con);
+void newConnection(std::shared_ptr<TCPConnection> con);
 
 protected:
 

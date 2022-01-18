@@ -3,46 +3,75 @@
 #include "common.h"
 #include "logger.h"
 
-#include <QDebug>
 
-const std::map<QString, RequestType> requestTypes = {{"INVITE", SIP_INVITE},
-                                                     {"ACK", SIP_ACK},
-                                                     {"BYE", SIP_BYE},
-                                                     {"CANCEL", SIP_CANCEL},
-                                                     {"OPTIONS", SIP_OPTIONS},
-                                                     {"REGISTER", SIP_REGISTER}};
+// Note: if you see a non-POD static warning, it comes from glazy. This warning
+// is meant for libraries so they don't needlessly waste resources by initializing
+// features which are not used.
+const std::map<QString, SIPRequestMethod> requestTypes = {{"INVITE", SIP_INVITE},
+                                                          {"ACK", SIP_ACK},
+                                                          {"BYE", SIP_BYE},
+                                                          {"CANCEL", SIP_CANCEL},
+                                                          {"OPTIONS", SIP_OPTIONS},
+                                                          {"REGISTER", SIP_REGISTER}};
 
-const std::map<RequestType, QString> requestStrings = {{SIP_INVITE, "INVITE"},
-                                                       {SIP_ACK, "ACK"},
-                                                       {SIP_BYE, "BYE"},
-                                                       {SIP_CANCEL, "CANCEL"},
-                                                       {SIP_OPTIONS, "OPTIONS"},
-                                                       {SIP_REGISTER, "REGISTER"}};
+const std::map<SIPRequestMethod, QString> requestStrings = {{SIP_INVITE, "INVITE"},
+                                                            {SIP_ACK, "ACK"},
+                                                            {SIP_BYE, "BYE"},
+                                                            {SIP_CANCEL, "CANCEL"},
+                                                            {SIP_OPTIONS, "OPTIONS"},
+                                                            {SIP_REGISTER, "REGISTER"}};
 
-const std::map<ResponseType, QString> responsePhrases = {{SIP_UNKNOWN_RESPONSE, "Unknown response"},
-                                                       {SIP_TRYING, "Trying"},
-                                                       {SIP_RINGING, "Ringing"},
-                                                       {SIP_FORWARDED, "Forwarded"},
-                                                       {SIP_QUEUED, "Queued"},
-                                                       {SIP_SESSION_IN_PROGRESS, "Sesssion in progress"},
-                                                       {SIP_EARLY_DIALOG_TERMINATED, "Early dialog terminated"},
-                                                       {SIP_OK, "Ok"},
-                                                       {SIP_NO_NOTIFICATION, "No notification"},
-                                                       {SIP_BAD_REQUEST, "Bad Request"},
-                                                       {SIP_BUSY_HERE, "Busy"},
-                                                       {SIP_DECLINE, "Call declined"}}; // TODO: finish this
+const std::map<SIPResponseStatus, QString> responsePhrases = {{SIP_UNKNOWN_RESPONSE, "Unknown response"},
+                                                              {SIP_TRYING, "Trying"},
+                                                              {SIP_RINGING, "Ringing"},
+                                                              {SIP_FORWARDED, "Forwarded"},
+                                                              {SIP_QUEUED, "Queued"},
+                                                              {SIP_SESSION_IN_PROGRESS, "Sesssion in progress"},
+                                                              {SIP_EARLY_DIALOG_TERMINATED, "Early dialog terminated"},
+                                                              {SIP_OK, "Ok"},
+                                                              {SIP_NO_NOTIFICATION, "No notification"},
+                                                              {SIP_BAD_REQUEST, "Bad Request"},
+                                                              {SIP_BUSY_HERE, "Busy"},
+                                                              {SIP_DECLINE, "Call declined"}}; // TODO: finish this
 
-RequestType stringToRequest(QString request)
+const std::map<MediaType, QString> mediaStrings = {{MT_NONE, ""},
+                                                   {MT_UNKNOWN, ""},
+                                                   {MT_APPLICATION, "application"},
+                                                   {MT_APPLICATION_SDP, "application/sdp"},
+                                                   {MT_TEXT, "text"},
+                                                   {MT_AUDIO, "audio"},
+                                                   {MT_AUDIO_OPUS, "audio/opus"},
+                                                   {MT_VIDEO, "video"},
+                                                   {MT_VIDEO_HEVC, "video/hevc"},
+                                                   {MT_MESSAGE, "message"},
+                                                   {MT_MULTIPART, "multipart"}};
+
+const std::map<QString, MediaType> mediaTypes = {{"", MT_NONE},
+                                                 {"application", MT_APPLICATION},
+                                                 {"application/sdp", MT_APPLICATION_SDP},
+                                                 {"text", MT_TEXT},
+                                                 {"audio", MT_AUDIO},
+                                                 {"audio/opus", MT_AUDIO_OPUS},
+                                                 {"video", MT_VIDEO},
+                                                 {"video/hevc", MT_VIDEO_HEVC},
+                                                 {"message", MT_MESSAGE},
+                                                 {"multipart", MT_MULTIPART}};
+
+
+
+
+SIPRequestMethod stringToRequestMethod(const QString &request)
 {
   if(requestTypes.find(request) == requestTypes.end())
   {
-    qDebug() << "Request type not listed in conversions.";
+    Logger::getLogger()->printWarning("SIP Conversions", "Request type not listed in conversions.");
     return SIP_NO_REQUEST;
   }
   return requestTypes.at(request);
 }
 
-QString requestToString(RequestType request)
+
+QString requestMethodToString(SIPRequestMethod request)
 {
   Q_ASSERT(request != SIP_NO_REQUEST);
   if(request == SIP_NO_REQUEST)
@@ -53,27 +82,32 @@ QString requestToString(RequestType request)
   return requestStrings.at(request);
 }
 
-uint16_t stringToResponseCode(QString code)
+
+uint16_t stringToResponseCode(const QString &code)
 {
   return code.toUInt();
 }
 
-ResponseType codeToResponse(uint16_t code)
+
+SIPResponseStatus codeToResponseType(uint16_t code)
 {
-  return static_cast<ResponseType>(code);
+  return static_cast<SIPResponseStatus>(code);
 }
 
-uint16_t responseToCode(ResponseType response)
+
+uint16_t responseTypeToCode(SIPResponseStatus response)
 {
   return (uint16_t)response;
 }
 
+
 QString codeToPhrase(uint16_t code)
 {
-  return responseToPhrase(codeToResponse(code));
+  return responseTypeToPhrase(codeToResponseType(code));
 }
 
-QString responseToPhrase(ResponseType response)
+
+QString responseTypeToPhrase(SIPResponseStatus response)
 {
   if(responsePhrases.find(response) == responsePhrases.end())
   {
@@ -87,8 +121,9 @@ QString responseToPhrase(ResponseType response)
   return responsePhrases.at(response);
 }
 
+
 // connection type and string
-ConnectionType stringToConnection(QString type)
+SIPTransportProtocol stringToTransportProtocol(const QString &type)
 {
   if(type == "UDP")
   {
@@ -104,12 +139,14 @@ ConnectionType stringToConnection(QString type)
   }
   else
   {
-    qDebug() << "Unrecognized connection protocol:" << type;
+    Logger::getLogger()->printWarning("SIP Conversions", "Unrecognized connection protocol.",
+                 {"Protocol"}, {type});
   }
   return NONE;
 }
 
-QString connectionToString(ConnectionType connection)
+
+QString transportProtocolToString(const SIPTransportProtocol connection)
 {
   switch(connection)
   {
@@ -127,32 +164,231 @@ QString connectionToString(ConnectionType connection)
     }
   default:
   {
-    qDebug() << "WARNING: Tried to convert unrecognized protocol to string! "
-             << connection << "Should be checked earlier.";
+    Logger::getLogger()->printWarning("SIP Conversions", "Tried to convert unrecognized protocol to string! "
+                                    "Should be checked earlier.",
+                 {"Protocol"}, {connection});
   }
   }
   return "";
 }
 
-ContentType stringToContentType(QString typeStr)
+
+MediaType stringToContentType(const QString &typeStr)
 {
-  if(typeStr == "application/sdp")
+  if(mediaTypes.find(typeStr) == mediaTypes.end())
   {
-    return APPLICATION_SDP;
+    Logger::getLogger()->printWarning("SIPConversions",
+                 "Did not find response in phrase map. Maybe it has not been added yet.");
+
+    return MT_UNKNOWN;
   }
-  return NO_CONTENT;
+
+  return mediaTypes.at(typeStr);
 }
 
-QString contentTypeToString(ContentType type)
+
+QString contentTypeToString(const MediaType type)
 {
-  switch(type)
+  if(mediaStrings.find(type) == mediaStrings.end())
   {
-  case APPLICATION_SDP:
+    Logger::getLogger()->printWarning("SIPConversions",
+                 "Did not find response in phrase map. Maybe it has not been added yet.");
+
+    return "";
+  }
+
+  return mediaStrings.at(type);
+}
+
+
+QopValue stringToQopValue(const QString& qop)
+{
+  if (qop == "")
   {
-    return "application/sdp";
+    return SIP_NO_AUTH;
   }
-  default:
-    break;
+  if (qop == "auth")
+  {
+    return SIP_AUTH;
   }
+  else if (qop == "auth-int")
+  {
+    return SIP_AUTH_INT;
+  }
+  // Note: add more auth types here if needed
+
+
+  return SIP_AUTH_UNKNOWN;
+}
+
+
+QString qopValueToString(const QopValue qop)
+{
+  if (qop == SIP_AUTH)
+  {
+    return "auth";
+  }
+  else if (qop == SIP_AUTH_INT)
+  {
+    return "auth-int";
+  }
+  else if (qop == SIP_AUTH_UNKNOWN)
+  {
+    Logger::getLogger()->printProgramWarning("SIP Conversions", "Found unimplemented Auth type!");
+  }
+  // Note: Add more auth types here if needed
+
   return "";
+}
+
+
+DigestAlgorithm stringToAlgorithm(const QString& algorithm)
+{
+  if (algorithm == "")
+  {
+    return SIP_NO_ALGORITHM;
+  }
+  else if (algorithm == "MD5")
+  {
+    return SIP_MD5;
+  }
+  else if (algorithm == "MD5-sess")
+  {
+    return SIP_MD5_SESS;
+  }
+
+  return SIP_UNKNOWN_ALGORITHM;
+}
+
+
+QString algorithmToString(const DigestAlgorithm algorithm)
+{
+  if (algorithm == SIP_MD5)
+  {
+    return "MD5";
+  }
+  else if (algorithm == SIP_MD5_SESS)
+  {
+    return "MD5-sess";
+  }
+  else if (algorithm == SIP_UNKNOWN_ALGORITHM)
+  {
+    Logger::getLogger()->printProgramWarning("SIP Conversions", "Found unimplemented algorithm type!");
+  }
+
+  return "";
+}
+
+
+bool stringToBool(const QString& boolean, bool& ok)
+{
+  ok = true;
+  if (boolean == "false" ||
+      boolean == "FALSE" ||
+      boolean == "False")
+  {
+    return false;
+  }
+  else if (boolean == "true" ||
+           boolean == "TRUE" ||
+           boolean == "True")
+  {
+    return true;
+  }
+  // this is neither
+
+  Logger::getLogger()->printWarning("SIP Conversions", "Got neither true nor false for boolean");
+  ok = false;
+  return false;
+}
+
+
+QString boolToString(const bool boolean)
+{
+  if (boolean)
+  {
+    return "true";
+  }
+
+  return "false";
+}
+
+
+SIPPriorityField stringToPriority(const QString& priority)
+{
+  if (priority == "")
+  {
+    return SIP_NO_PRIORITY;
+  }
+  else if (priority == "emergency")
+  {
+    return SIP_EMERGENCY;
+  }
+  else if (priority == "urgent")
+  {
+    return SIP_URGENT;
+  }
+  else if (priority == "normal")
+  {
+    return SIP_NORMAL;
+  }
+  else if (priority == "non-urgent")
+  {
+    return SIP_NONURGENT;
+  }
+
+  return SIP_UNKNOWN_PRIORITY;
+}
+
+
+QString priorityToString(const SIPPriorityField priority)
+{
+  if (priority == SIP_EMERGENCY)
+  {
+    return "emergency";
+  }
+  else if (priority == SIP_URGENT)
+  {
+    return "urgent";
+  }
+  else if (priority == SIP_NORMAL)
+  {
+    return "normal";
+  }
+  else if (priority == SIP_NONURGENT)
+  {
+    return "non-urgent";
+  }
+
+  return "";
+}
+
+
+
+
+bool addParameter(QList<SIPParameter> &parameters,
+                  const SIPParameter& parameter)
+{
+  if (parameter.name == "")
+  {
+    return false;
+  }
+
+  parameters.append(parameter);
+  return true;
+}
+
+
+// this is here because it is used by both composing and parsing
+void copyParameterList(const QList<SIPParameter> &inParameters,
+                       QList<SIPParameter> &outParameters)
+{
+  for (auto& parameter : inParameters)
+  {
+    if (!addParameter(outParameters, parameter))
+    {
+      Logger::getLogger()->printProgramWarning("SIP Conversions",
+                          "Failed to add parameter.");
+    }
+  }
 }

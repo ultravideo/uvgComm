@@ -43,7 +43,8 @@ void TCPConnection::init()
   {
     socket_ = new QTcpSocket();
 
-    QObject::connect(socket_, &QAbstractSocket::disconnected, this, &TCPConnection::disconnected);
+    QObject::connect(socket_, &QAbstractSocket::disconnected,
+                     this, &TCPConnection::disconnected);
     QObject::connect(socket_, &QAbstractSocket::bytesWritten, this, &TCPConnection::printBytesWritten);
     QObject::connect(socket_, &QAbstractSocket::readyRead, this, &TCPConnection::receivedMessage);
   }
@@ -67,6 +68,75 @@ void TCPConnection::uninit()
     socket_ = nullptr;
   }
 }
+
+
+bool TCPConnection::isConnected() const
+{
+  return socket_ != nullptr &&
+      socket_->state() == QAbstractSocket::ConnectedState;
+}
+
+
+QString TCPConnection::localAddress() const
+{
+  if (isConnected())
+  {
+    return socket_->localAddress().toString();
+  }
+  return "";
+}
+
+
+QString TCPConnection::remoteAddress() const
+{
+  if (isConnected())
+  {
+    return socket_->peerAddress().toString();
+  }
+  return "";
+}
+
+
+uint16_t TCPConnection::localPort() const
+{
+  if (isConnected())
+  {
+    return socket_->localPort();
+  }
+  return 0;
+}
+
+uint16_t TCPConnection::remotePort() const
+{
+  if (isConnected())
+  {
+    return socket_->peerPort();
+  }
+  return 0;
+}
+
+
+QAbstractSocket::NetworkLayerProtocol TCPConnection::localProtocol() const
+{
+  if (isConnected())
+  {
+    return socket_->localAddress().protocol();
+  }
+
+  return QAbstractSocket::NetworkLayerProtocol::AnyIPProtocol;
+}
+
+
+QAbstractSocket::NetworkLayerProtocol TCPConnection::remoteProtocol() const
+{
+  if (isConnected())
+  {
+    return socket_->peerAddress().protocol();
+  }
+
+  return QAbstractSocket::NetworkLayerProtocol::AnyIPProtocol;
+}
+
 
 void TCPConnection::stopConnection()
 {
@@ -223,8 +293,8 @@ void TCPConnection::run()
         Logger::getLogger()->printNormal(this, "Can read one line", {"Bytes available"},
                     {QString::number(socket_->bytesAvailable())});
 
-        // TODO: maybe not create the data stream everytime.
         // TODO: This should probably be some other stream, because we get also non text stuff in content?
+
         QTextStream in(socket_);
         QString message;
         message = in.read(MAX_READ_BYTES);
@@ -280,6 +350,8 @@ void TCPConnection::bufferToSocket()
   QString message = buffer_.front();
   buffer_.pop();
 
+  // For some reason write stream has to be created every write, otherwise
+  // a mysterious crash appears.
   QTextStream stream (socket_);
   stream << message;
 }

@@ -1,43 +1,85 @@
 #include "sipclient.h"
 
 #include "initiation/siptransactionuser.h"
+#include "initiation/transaction/sipdialogstate.h"
 
 #include "common.h"
 #include "logger.h"
 
-// 1 minute for the user to react
-const unsigned int INVITE_TIMEOUT = 60000;
+#include <QVariant>
 
 SIPClient::SIPClient():
-  ongoingTransactionType_(SIP_NO_REQUEST)
+  ongoingTransactionType_(SIP_NO_REQUEST),
+  requestTimer_(),
+  expires_(nullptr)
 {
   requestTimer_.setSingleShot(true);
   connect(&requestTimer_, SIGNAL(timeout()), this, SLOT(requestTimeOut()));
 }
 
 
-bool SIPClient::processResponse(SIPResponse& response,
-                                SIPDialogState &state)
+SIPClient::~SIPClient()
+{}
+
+
+void SIPClient::processOutgoingRequest(SIPRequest& request, QVariant& content)
 {
-  Q_UNUSED(state);
+  Logger::getLogger()->printNormal(this, "Processing outgoing request");
+
+  if (ongoingTransactionType_ != SIP_NO_REQUEST && request.method != SIP_CANCEL)
+  {
+    Logger::getLogger()->printProgramWarning(this, "Tried to send a request "
+                              "while previous transaction has not finished");
+    return;
+  }
+  else if (ongoingTransactionType_ == SIP_NO_REQUEST && request.method == SIP_CANCEL)
+  {
+    Logger::getLogger()->printProgramWarning(this, "Tried to cancel a "
+                                                   "transaction that does not exist!");
+    return;
+  }
+
+  // we do not expect a response for these requests.
+  if (request.method == SIP_CANCEL || request.method == SIP_ACK)
+  {
+    stopTimeoutTimer();
+    // cancel and ack don't start a transaction
+    ongoingTransactionType_ = SIP_NO_REQUEST;
+  }
+  else
+  {
+    ongoingTransactionType_ = request.method;
+  }
+
+  generateRequest(request);
+  emit outgoingRequest(request, content);
+}
+
+
+void SIPClient::processIncomingResponse(SIPResponse& response, QVariant& content)
+{
+  Logger::getLogger()->printNormal(this, "Client starts processing response");
 
   int responseCode = response.type;
 
-  if (!checkTransactionType(response.message->transactionRequest))
+  if (!checkTransactionType(response.message->cSeq.method))
   {
     Logger::getLogger()->printPeerError(this, "Their response transaction type "
                                               "is not the same as our request!");
-    return false;
+
+    emit failure("Received wrong transaction type");
+    return;
   }
 
-  // provisional response, continuing
+  // Provisional response, continuing.
+  // Refreshes timeout timer.
   if (responseCode >= 100 && responseCode <= 199)
   {
     Logger::getLogger()->printNormal(this, "Got a provisional response. Restarting timer.");
-    if (response.message->transactionRequest == SIP_INVITE &&
-        responseCode == SIP_RINGING)
+    if (response.message->cSeq.method == SIP_INVITE &&
+        responseCode == SIP_RINGING && expires_ != nullptr)
     {
-      startTimeoutTimer(INVITE_TIMEOUT);
+      startTimeoutTimer(*expires_);
     }
     else
     {
@@ -50,102 +92,67 @@ bool SIPClient::processResponse(SIPResponse& response,
   {
     ongoingTransactionType_ = SIP_NO_REQUEST;
     stopTimeoutTimer();
+    expires_ = nullptr;
   }
 
-  if (responseCode >= 300 && responseCode <= 399)
-  {
-    // TODO: 8.1.3.4 Processing 3xx Responses in RFC 3261
-    Logger::getLogger()->printWarning(this, "Got a Redirection Response.");
-  }
-  else if (responseCode >= 400 && responseCode <= 499)
-  {
-    // TODO: 8.1.3.5 Processing 4xx Responses in RFC 3261
-    Logger::getLogger()->printWarning(this, "Got a Failure Response.");
-  }
-  else if (responseCode >= 500 && responseCode <= 599)
-  {
-    Logger::getLogger()->printWarning(this, "Got a Server Failure Response.");
-  }
-  else if (responseCode >= 600 && responseCode <= 699)
-  {
-    Logger::getLogger()->printWarning(this, "Got a Global Failure Response.");
-  }
-
-  // delete dialog if response was not provisional or success.
-  // TODO: this is a very simple logic. More complex logic could handle different
-  // situations
-  return responseCode >= 100 && responseCode <= 299;
+  emit incomingResponse(response, content);
 }
 
 
-void SIPClient::getRequestMessageInfo(RequestType type,
-                                                 std::shared_ptr<SIPMessageInfo>& outMessage)
+void SIPClient::generateRequest(SIPRequest& request)
 {
-  outMessage = std::shared_ptr<SIPMessageInfo> (new SIPMessageInfo);
-  outMessage->transactionRequest = type;
+  Q_ASSERT(request.method != SIP_NO_REQUEST);
+  Q_ASSERT(request.method != SIP_UNKNOWN_REQUEST);
+  Q_ASSERT(request.message != nullptr);
 
-  outMessage->dialog = nullptr;
-  outMessage->maxForwards = 71;
-  outMessage->version = "2.0";
-  outMessage->cSeq = 0; // invalid, should be set in dialog
-  outMessage->content.type = NO_CONTENT;
-  outMessage->content.length = 0;
+  request.sipVersion = SIP_VERSION;
 
-  ViaInfo via = ViaInfo{TRANSPORTTYPE, "2.0", "", 0,
-          QString("z9hG4bK" + generateRandomString(BRANCHLENGTH)), false, false, 0, ""};
-  outMessage->vias.push_back(via);
+  // sets many of the mandatory fields in SIP header
+  request.message->cSeq.cSeq = 0; // invalid, should be set in dialog
+  request.message->cSeq.method = request.method;
 
-  // INVITE has the same timeout as rest of them. Only after RINGING reply do we increase timeout
-  if(type != SIP_CANCEL && type != SIP_ACK)
+  request.message->maxForwards
+      = std::shared_ptr<uint8_t> (new uint8_t{DEFAULT_MAX_FORWARDS});
+
+  request.message->contentType = MT_NONE;
+  request.message->contentLength = 0;
+
+  // via is set later
+
+  if (request.message->expires != nullptr)
+  {
+     expires_ = request.message->expires;
+  }
+
+  // INVITE has the same timeout as rest of them. Only after RINGING reply do we
+  // increase the timeout. CANCEL and ACK have no reply
+  if(request.method != SIP_CANCEL && request.method != SIP_ACK)
   {
     startTimeoutTimer();
   }
 }
 
-
-bool SIPClient::startTransaction(RequestType type)
-{
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
-             "Client starts sending a request.", {"Type"}, {QString::number(type)});
-
-  if (ongoingTransactionType_ != SIP_NO_REQUEST && type != SIP_CANCEL)
-  {
-    Logger::getLogger()->printProgramWarning(this, "Tried to send a request "
-                              "while previous transaction has not finished");
-    return false;
-  }
-  else if (ongoingTransactionType_ == SIP_NO_REQUEST && type == SIP_CANCEL)
-  {
-    Logger::getLogger()->printProgramWarning(this, "Tried to cancel "
-                                                   "a transaction that does not exist!");
-    return false;
-  }
-
-  // we do not expect a response for these requests.
-  if (type == SIP_CANCEL || type == SIP_ACK)
-  {
-    stopTimeoutTimer();
-  }
-  else
-  {
-    // cancel and ack don't start a transaction
-    ongoingTransactionType_ = type;
-  }
-
-  return true;
-}
-
-
 void SIPClient::processTimeout()
 {
-  requestTimer_.stop();
+  emit failure("No response. Request timed out");
 
-  if (ongoingTransactionType_ == SIP_BYE)
+  if(ongoingTransactionType_ == SIP_INVITE)
   {
-    byeTimeout();
+    // send CANCEL request
+
+    SIPRequest request;
+    request.method = SIP_CANCEL;
+    request.message = std::shared_ptr<SIPMessageHeader> (new SIPMessageHeader);
+    QVariant content;
+
+    processOutgoingRequest(request, content);
   }
 
+  requestTimer_.stop();
+
   ongoingTransactionType_ = SIP_NO_REQUEST;
+
+  // TODO: Figure out a way to delete in case BYE timeouts
 }
 
 

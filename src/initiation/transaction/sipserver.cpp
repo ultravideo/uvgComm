@@ -6,193 +6,130 @@
 #include "common.h"
 #include "logger.h"
 
+#include <QVariant>
+
 SIPServer::SIPServer():
-  sessionID_(0),
-  receivedRequest_(nullptr),
-  transactionUser_(nullptr)
+  receivedRequest_(nullptr)
 {}
 
-void SIPServer::init(SIPTransactionUser* tu, uint32_t sessionID)
-{
-  transactionUser_ = tu;
-  sessionID_ = sessionID;
-}
 
-/*
-void SIPServerTransaction::setCurrentRequest(SIPRequest& request)
-{
-  copyMessageDetails(request.message, receivedRequest_);
-}
-*/
-
-// processes incoming request
-bool SIPServer::processRequest(SIPRequest& request,
-                                          SIPDialogState &state)
-{
-  Q_ASSERT(transactionUser_ && sessionID_);
-  if(!transactionUser_ || sessionID_ == 0)
-  {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
-                                    "SIP Server transaction not initialized.");
-    return false;
-  }
-
-  // TODO: check that the request is appropriate at this time.
-
-  if((receivedRequest_ == nullptr && request.type != SIP_ACK) || request.type == SIP_BYE)
-  {
-    copyMessageDetails(request.message, receivedRequest_);
-  }
-  else if (request.type != SIP_ACK && request.type != SIP_CANCEL)
-  {
-    Logger::getLogger()->printDebug(DEBUG_PEER_ERROR, "SIP Server Transaction",
-                                    "They sent us a new SIP request even though "
-                                    "we have the old one still saved.",
-                                    {"SessionID"}, {QString::number(sessionID_)});
-    return false;
-  }
-
-  switch(request.type)
-  {
-  case SIP_INVITE:
-  {
-    if (!state.getState())
-    {
-      if (!transactionUser_->incomingCall(sessionID_, request.message->from.realname))
-      {
-        // if we did not auto-accept
-        responseSender(SIP_RINGING);
-      }
-    }
-    else {
-      responseSender(SIP_OK);
-    }
-    break;
-  }
-  case SIP_ACK:
-  {
-    state.setState(true);
-    transactionUser_->callNegotiated(sessionID_);
-    break;
-  }
-  case SIP_BYE:
-  {
-    state.setState(false);
-    responseSender(SIP_OK);
-
-    // this takes too long, send response first.
-    transactionUser_->endCall(sessionID_);
-    return false;
-  }
-  case SIP_CANCEL:
-  {
-    transactionUser_->cancelIncomingCall(sessionID_);
-    // TODO: send 487
-    return false;
-  }
-  case SIP_OPTIONS:
-  {
-    Logger::getLogger()->printUnimplemented(this, "OPTIONS-request not implemented yet");
-    break;
-  }
-  case SIP_REGISTER:
-  {
-    Logger::getLogger()->printPeerError(this, "REGISTER-method detected at server. Why?");
-    responseSender(SIP_NOT_ALLOWED);
-    break;
-  }
-  default:
-  {
-    Logger::getLogger()->printUnimplemented(this, "Unsupported request type received");
-    responseSender(SIP_NOT_ALLOWED);
-    break;
-  }
-  }
-  return true;
-}
-
-void SIPServer::getResponseMessage(std::shared_ptr<SIPMessageInfo> &outMessage,
-                                              ResponseType type)
-{
-  if(receivedRequest_ == nullptr)
-  {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, 
-               "The received request was not set before trying to use it!");
-    return;
-  }
-  copyMessageDetails(receivedRequest_, outMessage);
-  outMessage->maxForwards = 71;
-  outMessage->version = "2.0";
-  outMessage->contact = SIP_URI{TRANSPORTTYPE, "", "", "", 0, {}};
-  outMessage->content.length = 0;
-  outMessage->content.type = NO_CONTENT;
-
-  int responseCode = type;
-  if(responseCode >= 200)
-  {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, 
-               "Sending a final response. Deleting request details.",
-               {"SessionID", "Code", "Cseq"},
-               {QString::number(sessionID_), QString::number(responseCode),
-                QString::number(receivedRequest_->cSeq)});
-    receivedRequest_.reset();
-    receivedRequest_ = nullptr;
-  }
-}
-
-void SIPServer::responseAccept()
-{
-  responseSender(SIP_OK);
-}
-
-void SIPServer::respondReject()
-{
-  responseSender(SIP_DECLINE);
-}
-
-void SIPServer::responseSender(ResponseType type)
+void SIPServer::processOutgoingResponse(SIPResponse& response, QVariant& content)
 {
   Q_ASSERT(receivedRequest_ != nullptr);
-  emit sendResponse(sessionID_, type);
+
+  if(receivedRequest_ == nullptr)
+  {
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+                                    "We are trying to respond when we have not received a request!");
+    return;
+  }
+
+  Logger::getLogger()->printNormal(this, "Initiate sending of a dialog response");
+  response.sipVersion = SIP_VERSION;
+
+  copyResponseDetails(receivedRequest_->message, response.message);
+  response.message->maxForwards = nullptr; // no max-forwards in responses
+
+  response.message->contentLength = 0;
+  response.message->contentType = MT_NONE;
+
+  if(response.type >= 200)
+  {
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
+                                   "Sending a final response. Deleting request details.",
+                                   {"Code", "Cseq"},
+                                   {QString::number(response.type),
+                                    QString::number(receivedRequest_->message->cSeq.cSeq)});
+
+    // reset the request since we have responded to it
+    receivedRequest_ = nullptr;
+  }
+
+  emit outgoingResponse(response, content);
 }
 
-void SIPServer::copyMessageDetails(std::shared_ptr<SIPMessageInfo>& inMessage,
-                        std::shared_ptr<SIPMessageInfo>& copy)
+
+void SIPServer::processIncomingRequest(SIPRequest& request, QVariant& content)
+{
+  Logger::getLogger()->printNormal(this, "Processing incoming request");
+
+  if (request.method == SIP_CANCEL && !isCANCELYours(request))
+  {
+    Logger::getLogger()->printError(this, "Received invalid CANCEL request");
+    return;
+  }
+
+
+  if((receivedRequest_ == nullptr && request.method != SIP_ACK) ||
+     request.method == SIP_BYE)
+  {
+    receivedRequest_ = std::shared_ptr<SIPRequest> (new SIPRequest);
+    *receivedRequest_ = request;
+  }
+  else if (request.method != SIP_ACK && request.method != SIP_CANCEL)
+  {
+    Logger::getLogger()->printPeerError(this, "New request when previous transaction has not been completed. Ignoring...");
+    return;
+  }
+
+  emit incomingRequest(request, content);
+}
+
+
+void SIPServer::copyResponseDetails(std::shared_ptr<SIPMessageHeader>& inMessage,
+                                    std::shared_ptr<SIPMessageHeader>& copy)
 {
   Q_ASSERT(inMessage);
-  copy = std::shared_ptr<SIPMessageInfo> (new SIPMessageInfo());
-  copy->dialog = std::shared_ptr<SIPDialogInfo> (new SIPDialogInfo());
+  Q_ASSERT(inMessage->from.tagParameter != "");
+  Q_ASSERT(inMessage->to.tagParameter != "");
+  copy = std::shared_ptr<SIPMessageHeader> (new SIPMessageHeader());
   // Which fields to copy are listed in section 8.2.6.2 of RFC 3621
 
-  // from-field
-  copy->from = inMessage->from;
-  copy->dialog->fromTag = inMessage->dialog->fromTag;
-
   // Call-ID field
-  copy->dialog->callID = inMessage->dialog->callID;
+  copy->callID = inMessage->callID;
 
   // CSeq
   copy->cSeq = inMessage->cSeq;
-  copy->transactionRequest = inMessage->transactionRequest;
 
-  copy->recordRoutes = inMessage->recordRoutes;
-
-  // Via- fields in same order
-  for(ViaInfo via : inMessage->vias)
-  {
-    copy->vias.push_back(via);
-  }
+  // from-field
+  copy->from = inMessage->from;
 
   // To field, expect if To tag is missing, in which case it should be added
   // To tag is added in dialog when checking the first request.
-  Q_ASSERT(inMessage->dialog->toTag != "");
   copy->to = inMessage->to;
-  copy->dialog->toTag = inMessage->dialog->toTag;
+
+  // Via- fields in same order
+  copy->vias = inMessage->vias;
+
+  copy->recordRoutes = inMessage->recordRoutes;
 }
 
 
-bool SIPServer::isCancelYours(std::shared_ptr<SIPMessageInfo> cancel)
+bool SIPServer::isCANCELYours(SIPRequest& cancel)
 {
-  // TODO: Check more info
-  return receivedRequest_->vias.first().branch == cancel->vias.first().branch;
+  return receivedRequest_ != nullptr &&
+      !receivedRequest_->message->vias.empty() &&
+      !cancel.message->vias.empty() &&
+      receivedRequest_->message->vias.first().branch == cancel.message->vias.first().branch &&
+      equalURIs(receivedRequest_->requestURI, cancel.requestURI) &&
+      receivedRequest_->message->callID == cancel.message->callID &&
+      receivedRequest_->message->cSeq.cSeq == cancel.message->cSeq.cSeq &&
+      equalToFrom(receivedRequest_->message->from, cancel.message->from) &&
+      equalToFrom(receivedRequest_->message->to, cancel.message->to);
+}
+
+
+bool SIPServer::equalURIs(SIP_URI& first, SIP_URI& second)
+{
+  return first.type == second.type &&
+      first.hostport.host == second.hostport.host &&
+      first.hostport.port == second.hostport.port &&
+      first.userinfo.user == second.userinfo.user;
+}
+
+
+bool SIPServer::equalToFrom(ToFrom& first, ToFrom& second)
+{
+  return first.address.realname == second.address.realname &&
+      equalURIs(first.address.uri, second.address.uri);
 }

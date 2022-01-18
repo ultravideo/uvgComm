@@ -18,11 +18,123 @@ const uint32_t CONTROLLER_SESSION_TIMEOUT = 10000;
 const uint32_t NONCONTROLLER_SESSION_TIMEOUT = 20000;
 
 
-ICE::ICE()
+ICE::ICE(std::shared_ptr<NetworkCandidates> candidates, uint32_t sessionID):
+  networkCandidates_(candidates),
+  sessionID_(sessionID),
+  peerSupportsICE_(false)
 {}
 
 ICE::~ICE()
 {}
+
+
+void ICE::processOutgoingRequest(SIPRequest& request, QVariant& content)
+{
+  Logger::getLogger()->printNormal(this, "Processing outgoing request");
+
+  // Add ice as supported module so the other one can anticipate need for ice
+  if (request.method == SIP_INVITE || request.method == SIP_OPTIONS)
+  {
+    addICEToSupported(request.message->supported);
+  }
+
+  if (peerSupportsICE_ && request.message->contentType == MT_APPLICATION_SDP)
+  {
+    addLocalStartNomination(content);
+  }
+
+  emit outgoingRequest(request, content);
+}
+
+
+void ICE::processOutgoingResponse(SIPResponse& response, QVariant& content)
+{
+  if (response.message->cSeq.method == SIP_INVITE && response.type == SIP_OK)
+  {
+    addICEToSupported(response.message->supported);
+  }
+
+  if (peerSupportsICE_ && response.message->contentType == MT_APPLICATION_SDP)
+  {
+    addLocalStartNomination(content);
+  }
+
+  emit outgoingResponse(response, content);
+}
+
+
+void ICE::processIncomingRequest(SIPRequest& request, QVariant& content)
+{
+  Logger::getLogger()->printNormal(this, "Processing incoming request");
+
+  if (request.method == SIP_INVITE || request.method == SIP_OPTIONS)
+  {
+    peerSupportsICE_ = isICEToSupported(request.message->supported);
+  }
+
+  if (peerSupportsICE_ && request.message->contentType == MT_APPLICATION_SDP)
+  {
+    takeRemoteStartNomination(content);
+  }
+
+  emit incomingRequest(request, content);
+}
+
+
+void ICE::processIncomingResponse(SIPResponse& response, QVariant& content)
+{
+  if (response.message->cSeq.method == SIP_INVITE && response.type == SIP_OK)
+  {
+    peerSupportsICE_ = isICEToSupported(response.message->supported);
+  }
+
+  if (peerSupportsICE_ && response.message->contentType == MT_APPLICATION_SDP)
+  {
+    takeRemoteStartNomination(content);
+  }
+
+  emit incomingResponse(response, content);
+}
+
+
+void ICE::addLocalStartNomination(QVariant& content)
+{
+  SDPMessageInfo localSDP = content.value<SDPMessageInfo>();
+
+  localSDP.candidates = generateICECandidates(networkCandidates_->localCandidates(STREAM_COMPONENTS, sessionID_),
+                                              networkCandidates_->globalCandidates(STREAM_COMPONENTS, sessionID_),
+                                              networkCandidates_->stunCandidates(STREAM_COMPONENTS),
+                                              networkCandidates_->stunBindings(STREAM_COMPONENTS, sessionID_),
+                                              networkCandidates_->turnCandidates(STREAM_COMPONENTS, sessionID_));
+
+  localCandidates_ = localSDP.candidates;
+
+  content.setValue(localSDP);
+
+  if (!remoteCandidates_.empty())
+  {
+    // Start candiate nomination. This function won't block,
+    // negotiation happens in the background
+    startNomination(localCandidates_, remoteCandidates_, true);
+  }
+}
+
+
+void ICE::takeRemoteStartNomination(QVariant& content)
+{
+  remoteCandidates_ = content.value<SDPMessageInfo>().candidates;
+
+  if (!localCandidates_.empty())
+  {
+    // spawn ICE controllee threads and start the candidate
+    // exchange and nomination
+    //
+    // This will start the ICE nomination process. After it has finished,
+    // it will send a signal which indicates its state and if successful, the call may start.
+    startNomination(localCandidates_, remoteCandidates_, false);
+  }
+}
+
 
 int ICE::calculatePriority(CandidateType type, quint16 local, uint8_t component)
 {
@@ -176,12 +288,14 @@ void ICE::printCandidates(QList<std::shared_ptr<ICEInfo>>& candidates)
   for (auto& candidate : candidates)
   {
     candidateNames.push_back(candidate->address + ":");
-    candidateStrings.push_back("Foundation: " + candidate->foundation + " Priority: " + candidate->priority);
+    candidateStrings.push_back("Foundation: " + candidate->foundation +
+                               " Priority: " + candidate->priority);
   }
 
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Generated the following ICE candidates", 
                                   candidateNames, candidateStrings);
 }
+
 
 QList<std::shared_ptr<ICEPair>> ICE::makeCandidatePairs(
     QList<std::shared_ptr<ICEInfo>>& local,
@@ -221,8 +335,7 @@ QList<std::shared_ptr<ICEPair>> ICE::makeCandidatePairs(
 
 
 void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local,
-    QList<std::shared_ptr<ICEInfo>>& remote,
-    uint32_t sessionID, bool controller)
+                          QList<std::shared_ptr<ICEInfo>>& remote, bool controller)
 {
   Logger::getLogger()->printImportant(this, "Starting ICE nomination");
 
@@ -242,33 +355,29 @@ void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local,
     timeout = NONCONTROLLER_SESSION_TIMEOUT;
   }
 
-  nominationInfo_[sessionID].agent = new IceSessionTester(controller, timeout);
-  nominationInfo_[sessionID].pairs = makeCandidatePairs(local, remote);
-  nominationInfo_[sessionID].connectionNominated = false;
+  agent_ = std::shared_ptr<IceSessionTester> (new IceSessionTester(controller, timeout));
+  pairs_ = makeCandidatePairs(local, remote);
+  connectionNominated_ = false;
 
-  IceSessionTester *agent = nominationInfo_[sessionID].agent;
-
-  QObject::connect(agent,
+  QObject::connect(agent_.get(),
                    &IceSessionTester::iceSuccess,
                    this,
                    &ICE::handeICESuccess,
                    Qt::DirectConnection);
-  QObject::connect(agent,
+  QObject::connect(agent_.get(),
                    &IceSessionTester::iceFailure,
                    this,
                    &ICE::handleICEFailure,
                    Qt::DirectConnection);
 
 
-  agent->init(&nominationInfo_[sessionID].pairs, sessionID, STREAM_COMPONENTS);
-  agent->start();
+  agent_->init(&pairs_, STREAM_COMPONENTS);
+  agent_->start();
 }
 
 
-void ICE::handeICESuccess(QList<std::shared_ptr<ICEPair> > &streams, uint32_t sessionID)
+void ICE::handeICESuccess(QList<std::shared_ptr<ICEPair>> &streams)
 {
-  Q_ASSERT(sessionID != 0);
-
   // check that results make sense. They should always.
   if (streams.at(0) == nullptr ||
       streams.at(1) == nullptr ||
@@ -276,7 +385,7 @@ void ICE::handeICESuccess(QList<std::shared_ptr<ICEPair> > &streams, uint32_t se
   {
     Logger::getLogger()->printProgramError(this,  "The ICE results don't make " 
                                                   "sense even though they should");
-    handleICEFailure(sessionID);
+    handleICEFailure();
   }
   else 
   {
@@ -293,45 +402,62 @@ void ICE::handeICESuccess(QList<std::shared_ptr<ICEPair> > &streams, uint32_t se
     Logger::getLogger()->printDebug(DEBUG_IMPORTANT, this, "ICE finished.", names, values);
 
     // end other tests. We have a winner.
-    nominationInfo_[sessionID].agent->quit();
-    nominationInfo_[sessionID].connectionNominated = true;
-    nominationInfo_[sessionID].selectedPairs = {streams.at(0), streams.at(1),
-                                                streams.at(2), streams.at(3)};
-    emit nominationSucceeded(sessionID);
+    agent_->quit();
+    connectionNominated_ = true;
+    QList<std::shared_ptr<ICEPair>> pairs;
+    pairs.push_back(streams.at(0));
+    pairs.push_back(streams.at(1));
+    pairs.push_back(streams.at(2));
+    pairs.push_back(streams.at(3));
+
+    emit nominationSucceeded(pairs, sessionID_);
   }
 }
 
 
-void ICE::handleICEFailure(uint32_t sessionID)
+void ICE::handleICEFailure()
 {
-  Q_ASSERT(sessionID != 0);
   Logger::getLogger()->printDebug(DEBUG_ERROR, "ICE",  
                                   "Failed to nominate RTP/RTCP candidates!");
 
-  nominationInfo_[sessionID].agent->quit();
-  nominationInfo_[sessionID].connectionNominated = false;
-  emit nominationFailed(sessionID);
+  agent_->quit();
+  connectionNominated_ = false;
+  emit nominationFailed(sessionID_);
 }
 
 
-QList<std::shared_ptr<ICEPair>> ICE::getNominated(uint32_t sessionID)
+void ICE::uninit()
 {
-  if (nominationInfo_.find(sessionID) != nominationInfo_.end() &&
-      nominationInfo_[sessionID].connectionNominated)
+  if (agent_ != nullptr)
   {
-    return nominationInfo_[sessionID].selectedPairs;
+    agent_->exit(0);
+    uint8_t waits = 0;
+    while (agent_->isRunning() && waits <= 10)
+    {
+      qSleep(10);
+      ++waits;
+    }
   }
-  Logger::getLogger()->printProgramError(this, "No selected ICE candidates stored.");
-  return QList<std::shared_ptr<ICEPair>>();
+
+  agent_ = nullptr;
+  pairs_.clear();
+  connectionNominated_ = false;
+
+  networkCandidates_->cleanupSession(sessionID_);
 }
 
 
-void ICE::cleanupSession(uint32_t sessionID)
+void ICE::addICEToSupported(std::shared_ptr<QStringList>& supported)
 {
-  Q_ASSERT(sessionID != 0);
-
-  if (nominationInfo_.contains(sessionID))
+  if (supported == nullptr)
   {
-    nominationInfo_.remove(sessionID);
+    supported = std::shared_ptr<QStringList> (new QStringList);
   }
+
+  supported->append("ice");
+}
+
+bool ICE::isICEToSupported(std::shared_ptr<QStringList> supported)
+{
+  return supported != nullptr && supported->contains("ice");
 }

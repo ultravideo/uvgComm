@@ -12,7 +12,6 @@
 
 IceSessionTester::IceSessionTester(bool controller, int timeout):
   pairs_(nullptr),
-  sessionID_(0),
   controller_(controller),
   timeout_(timeout),
   components_(0)
@@ -23,13 +22,10 @@ IceSessionTester::~IceSessionTester()
 {}
 
 
-void IceSessionTester::init(QList<std::shared_ptr<ICEPair>> *pairs,
-                            uint32_t sessionID, uint8_t components)
+void IceSessionTester::init(QList<std::shared_ptr<ICEPair>> *pairs, uint8_t components)
 {
   Q_ASSERT(pairs != nullptr);
-  Q_ASSERT(sessionID != 0);
   pairs_ = pairs;
-  sessionID_ = sessionID;
   components_ = components;
 }
 
@@ -108,7 +104,7 @@ void IceSessionTester::run()
     Logger::getLogger()->printDebug(DEBUG_ERROR, this,
                                     "Invalid candidates, "
                                     "unable to perform ICE candidate negotiation!");
-    emit iceFailure(sessionID_);
+    emit iceFailure();
     return;
   }
 
@@ -173,7 +169,7 @@ void IceSessionTester::run()
   {
     Logger::getLogger()->printError(this, 
                                     "Nominations from remote were not received in time!");
-    emit iceFailure(sessionID_);
+    emit iceFailure();
     nominated_mtx.unlock();
     return;
   }
@@ -185,14 +181,14 @@ void IceSessionTester::run()
     IceCandidateTester tester;
     if (!tester.performNomination(nominated_))
     {
-      emit iceFailure(sessionID_);
+      emit iceFailure();
       nominated_mtx.unlock();
       return;
     }
   }
 
   // announce that we have succeeded in nomination.
-  emit iceSuccess(nominated_, sessionID_);
+  emit iceSuccess(nominated_);
   nominated_mtx.unlock();
 }
 

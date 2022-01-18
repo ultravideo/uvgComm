@@ -1,59 +1,62 @@
 #pragma once
 
+#include "initiation/sipmessageprocessor.h"
 #include "initiation/siptypes.h"
 
 #include <QTimer>
-#include <QObject>
 
 // A class for handling all sent requests and processing responses. The purpose
 // of this class is to keep track of request transaction state on client side.
 // see RFC 3261 for more details.
 
 class SIPTransactionUser;
-class SIPDialogState;
 
-class SIPClient : public QObject
+class SIPClient : public SIPMessageProcessor
 {
   Q_OBJECT
 public:
   SIPClient();
+  ~SIPClient();
+
+  // used to inform the other peer that this request expires. Used with INVITE
+  // and REGISTER transactions
+  void setNextTransactionExpires(uint32_t timeout);
+
 
   // have we sent this kind of request
-  bool waitingResponse(RequestType requestType)
+  // TODO: Will be obsolete with new architecture
+  bool waitingResponse(SIPRequestMethod requestType)
   {
     return ongoingTransactionType_ == requestType
         && requestType != SIP_NO_REQUEST;
   }
 
+public slots:
+
+  virtual void processOutgoingRequest(SIPRequest& request, QVariant& content);
+
+  // processes incoming response. Part of client transaction
+  virtual void processIncomingResponse(SIPResponse& response, QVariant& content);
+
+signals:
+
+  void failure(QString message);
+
+private slots:
+  void requestTimeOut();
+
+private:
+
   // constructs the SIP message info struct as much as possible
-  virtual void getRequestMessageInfo(RequestType type,
-                                     std::shared_ptr<SIPMessageInfo> &outMessage);
+  void generateRequest(SIPRequest &request);
 
-  // processes incoming response. Part of our client transaction
-  // returns whether we should keep the dialog alive
-  virtual bool processResponse(SIPResponse& response,
-                               SIPDialogState& state) = 0;
-
-  // used to record request in case we want to cancel it
-  void recordRequest(SIPRequest& request)
-  {
-    sentRequest_ = request;
-  }
-
-  // get request we want to cancel
-  SIPRequest& getRecordedRequest()
-  {
-    return sentRequest_;
-  }
-
-protected:
-
-  bool checkTransactionType(RequestType transactionRequest)
+  bool checkTransactionType(SIPRequestMethod transactionRequest)
   {
     return transactionRequest == ongoingTransactionType_;
   }
 
-  // timeout is in milliseconds. Used for request timeout
+  // timeout is in milliseconds. Used for request timeout. The default timeout
+  // is 2 seconds which should be plenty of time for RTT
   void startTimeoutTimer(int timeout = 2000)
   {
     requestTimer_.start(timeout);
@@ -64,29 +67,19 @@ protected:
     requestTimer_.stop();
   }
 
-  virtual void processTimeout();
+  void processTimeout();
 
-  RequestType getOngoingRequest() const
-  {
-    return ongoingTransactionType_;
-  }
 
-  // set the internal state of client to such that we have sent a request.
-  // returns whether we should actually send the message
-  virtual bool startTransaction(RequestType type);
 
-  virtual void byeTimeout() {}
+  void byeTimeout();
 
-private slots:
-  void requestTimeOut();
-
-private:
   bool goodResponse(); // use this to filter out untimely/duplicate responses
 
   // used to keep track of our current transaction. This means it is used to
   // determine what request the response is responding to.
-  RequestType ongoingTransactionType_;
-  SIPRequest sentRequest_;
+  SIPRequestMethod ongoingTransactionType_;
 
   QTimer requestTimer_;
+
+  std::shared_ptr<uint32_t> expires_;
 };

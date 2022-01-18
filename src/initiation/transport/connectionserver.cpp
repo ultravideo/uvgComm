@@ -14,7 +14,7 @@ void ConnectionServer::incomingConnection(qintptr socketDescriptor)
 {
   Logger::getLogger()->printNormal(this, "Incoming TCP connection");
   // create connection
-  TCPConnection* con = new TCPConnection();
+  std::shared_ptr<TCPConnection> con = std::shared_ptr<TCPConnection> (new TCPConnection());
 
   con->setExistingConnection(socketDescriptor);
 

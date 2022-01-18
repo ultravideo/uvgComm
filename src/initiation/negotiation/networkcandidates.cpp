@@ -6,7 +6,6 @@
 
 #include <QNetworkInterface>
 #include <QUdpSocket>
-#include <QDebug>
 
 const uint16_t STUNADDRESSPOOL = 8;
 

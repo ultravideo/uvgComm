@@ -7,6 +7,8 @@
 
 #include <QCloseEvent>
 #include <QDateTime>
+#include <QFileDialog>
+#include <QTextStream>
 
 
 const int BUFFERSIZE = 65536;
@@ -92,9 +94,9 @@ StatisticsInterface(),
   fillTableHeaders(ui_->filterTable, filterMutex_,
                           {"Filter", "Info", "TID", "Buffer Size", "Dropped"});
   fillTableHeaders(ui_->sent_list, sipMutex_,
-                          {"Type", "Destination"});
+                          {"Header", "Body"});
   fillTableHeaders(ui_->received_list, sipMutex_,
-                          {"Type", "Source"});
+                          {"Header", "Body"});
 }
 
 
@@ -757,17 +759,17 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 }
 
 
-void StatisticsWindow::addSentSIPMessage(QString type, QString message,
-                                         QString address)
+void StatisticsWindow::addSentSIPMessage(const QString& headerType, const QString& header,
+                                         const QString& bodyType, const QString& body)
 {
-  addTableRow(ui_->sent_list, sipMutex_, {type, address}, message);
+  addTableRow(ui_->sent_list, sipMutex_, {headerType, bodyType}, {header, body});
 }
 
 
-void StatisticsWindow::addReceivedSIPMessage(QString type, QString message,
-                                             QString address)
+void StatisticsWindow::addReceivedSIPMessage(const QString& headerType, const QString& header,
+                                             const QString& bodyType, const QString& body)
 {
-  int row = addTableRow(ui_->received_list, sipMutex_, {type, address}, message);
+  int row = addTableRow(ui_->received_list, sipMutex_, {headerType, bodyType}, {header, body});
 
   sipMutex_.lock();
   QTableWidgetItem * first = ui_->received_list->itemAt(0, row);
@@ -822,9 +824,14 @@ void StatisticsWindow::fillTableHeaders(QTableWidget* table, QMutex& mutex,
   mutex.unlock();
 }
 
+int StatisticsWindow::addTableRow(QTableWidget* table, QMutex& mutex, QStringList fields,
+                                  QString tooltip)
+{
+  return addTableRow(table, mutex, fields, QStringList{tooltip});
+}
 
 int StatisticsWindow::addTableRow(QTableWidget* table, QMutex& mutex,
-                                  QStringList fields, QString tooltip)
+                                  QStringList fields, QStringList tooltips)
 {
   mutex.lock();
   table->insertRow(table->rowCount());
@@ -833,9 +840,17 @@ int StatisticsWindow::addTableRow(QTableWidget* table, QMutex& mutex,
   {
     QTableWidgetItem* item = new QTableWidgetItem(fields.at(i));
     item->setTextAlignment(Qt::AlignHCenter);
-    if (tooltip != "")
+    if (!tooltips.empty())
     {
-      item->setToolTip(tooltip);
+      // two modes are supported, single tooltip for all and setting from list at beginning
+      if (tooltips.size() == 1)
+      {
+        item->setToolTip(tooltips.at(0));
+      }
+      else if (tooltips.size() > i)
+      {
+        item->setToolTip(tooltips.at(i));
+      }
     }
     item->setFlags(item->flags() & ~(Qt::ItemIsEditable | Qt::ItemIsSelectable));
     table->setItem(table->rowCount() -1, i, item);
@@ -901,4 +916,81 @@ QString StatisticsWindow::getTimeConversion(int valueInMs)
   }
   // show as milliseconds
   return QString::number(valueInMs) + " ms";
+}
+
+
+void StatisticsWindow::on_save_button_clicked()
+{
+  Logger::getLogger()->printNormal(this, "Saving SIP messages");
+
+  if (ui_->sent_list->columnCount() == 0 ||
+      ui_->received_list->columnCount() == 0)
+  {
+    Logger::getLogger()->printProgramWarning(this, "The column count was too low to read tooltip");
+    return;
+  }
+
+  QString lineEnd = "\r\n";
+
+  QString text;
+  text += "Sent SIP Messages" + lineEnd + lineEnd;
+
+  sipMutex_.lock();
+  for (int i = 0; i < ui_->sent_list->rowCount(); ++i)
+  {
+    text += ui_->sent_list->item(i, 1)->toolTip() + lineEnd;
+  }
+  sipMutex_.unlock();
+
+  text += "Received SIP Messages" + lineEnd + lineEnd;
+
+  sipMutex_.lock();
+  for (int i = 0; i < ui_->received_list->rowCount(); ++i)
+  {
+    text += ui_->received_list->item(i, 1)->toolTip() + lineEnd;
+  }
+  sipMutex_.unlock();
+
+  // tr is for text translations
+  saveTextToFile(text, tr("Save SIP log"), tr("Text File (*.txt);;All Files (*)"));
+}
+
+
+void StatisticsWindow::on_clear_button_clicked()
+{
+  Logger::getLogger()->printNormal(this, "Clearing SIP messages");
+
+  sipMutex_.lock();
+
+  //ui_->sent_list->clearContents();
+  ui_->sent_list->setRowCount(0);
+  //ui_->received_list->clearContents();
+  ui_->received_list->setRowCount(0);
+  sipMutex_.unlock();
+}
+
+
+void StatisticsWindow::saveTextToFile(const QString& text, const QString &windowCaption,
+                                      const QString &options)
+{
+  if (text == "")
+  {
+    Logger::getLogger()->printWarning(this, "Tried to save empty text. Not saving");
+    return;
+  }
+
+  QString fileName = QFileDialog::getSaveFileName(this, windowCaption, "", options);
+
+  if (!fileName.isEmpty())
+  {
+    QFile file(fileName);
+
+    if (!file.open(QIODevice::WriteOnly))
+    {
+      Logger::getLogger()->printWarning(this, "Failed to open file");
+      return;
+    }
+    QTextStream fileStream(&file);
+    fileStream << text;
+  }
 }

@@ -60,8 +60,10 @@ public:
   virtual void packetDropped(uint32_t id);
 
   // sip
-  virtual void addSentSIPMessage(QString type, QString message, QString address);
-  virtual void addReceivedSIPMessage(QString type, QString message, QString address);
+  virtual void addSentSIPMessage(const QString& headerType, const QString& header,
+                                 const QString& bodyType, const QString& body);
+  virtual void addReceivedSIPMessage(const QString& headerType, const QString& header,
+                                     const QString& bodyType, const QString& body);
 
 private slots:
 
@@ -71,6 +73,10 @@ private slots:
 
   // Changes the label of sample window to reflect current value.
   void changeSampleWindow(int value);
+
+  // these are called automatically because of their naming
+  void on_save_button_clicked();
+  void on_clear_button_clicked();
 
 private:
 
@@ -100,6 +106,9 @@ private:
 
   // returns the index of added row
   int addTableRow(QTableWidget* table, QMutex& mutex, QStringList fields,
+                  QStringList tooltips);
+
+  int addTableRow(QTableWidget* table, QMutex& mutex, QStringList fields,
                   QString tooltip = "");
 
   void addMedia(QTableWidget* table, uint32_t sessionID, QStringList& ipList,
@@ -107,6 +116,9 @@ private:
   QString combineList(QStringList& list);
 
   QString getTimeConversion(int valueInMs);
+
+  void saveTextToFile(const QString& text, const QString &windowCaption,
+                      const QString &options);
 
   struct SessionInfo
   {

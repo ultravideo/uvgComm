@@ -1,5 +1,5 @@
-#include "common.h"
 
+#include "common.h"
 #include "settingskeys.h"
 
 #include "logger.h"
@@ -11,7 +11,6 @@
 #endif
 
 #include <QSettings>
-#include <QDebug>
 #include <QMutex>
 
 
@@ -33,7 +32,6 @@ const QString alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                          "0123456789";
 
 
-
 QString generateRandomString(uint32_t length)
 {
   // TODO make this cryptographically secure to avoid collisions
@@ -44,8 +42,6 @@ QString generateRandomString(uint32_t length)
   }
   return string;
 }
-
-
 
 
 bool settingEnabled(QString key)

@@ -47,20 +47,24 @@ SOURCES +=\
     src/initiation/negotiation/stunmessagefactory.cpp \
     src/initiation/negotiation/udpserver.cpp \
     src/initiation/sipmanager.cpp \
+    src/initiation/sipmessageflow.cpp \
+    src/initiation/sipmessageprocessor.cpp \
     src/initiation/transaction/sipclient.cpp \
-    src/initiation/transaction/sipdialog.cpp \
-    src/initiation/transaction/sipdialogclient.cpp \
-    src/initiation/transaction/sipdialogmanager.cpp \
     src/initiation/transaction/sipdialogstate.cpp \
-    src/initiation/transaction/sipnondialogclient.cpp \
-    src/initiation/transaction/sipregistrations.cpp \
+    src/initiation/transaction/sipregistration.cpp \
     src/initiation/transaction/sipserver.cpp \
+    src/initiation/transaction/sipsinglecall.cpp \
     src/initiation/transport/connectionserver.cpp \
+    src/initiation/transport/sipauthentication.cpp \
     src/initiation/transport/sipconversions.cpp \
     src/initiation/transport/sipfieldcomposing.cpp \
+    src/initiation/transport/sipfieldcomposinghelper.cpp \
     src/initiation/transport/sipfieldparsing.cpp \
+    src/initiation/transport/sipfieldparsinghelper.cpp \
+    src/initiation/transport/sipmessagesanity.cpp \
     src/initiation/transport/siprouting.cpp \
     src/initiation/transport/siptransport.cpp \
+    src/initiation/transport/siptransporthelper.cpp \
     src/initiation/transport/tcpconnection.cpp \
     src/kvazzupcontroller.cpp \
     src/logger.cpp \
@@ -131,22 +135,26 @@ HEADERS  += \
     src/initiation/negotiation/stunmessagefactory.h \
     src/initiation/negotiation/udpserver.h \
     src/initiation/sipmanager.h \
+    src/initiation/sipmessageflow.h \
+    src/initiation/sipmessageprocessor.h \
     src/initiation/siptransactionuser.h \
     src/initiation/siptypes.h \
     src/initiation/transaction/sipclient.h \
-    src/initiation/transaction/sipdialog.h \
-    src/initiation/transaction/sipdialogclient.h \
-    src/initiation/transaction/sipdialogmanager.h \
     src/initiation/transaction/sipdialogstate.h \
-    src/initiation/transaction/sipnondialogclient.h \
-    src/initiation/transaction/sipregistrations.h \
+    src/initiation/transaction/sipregistration.h \
     src/initiation/transaction/sipserver.h \
+    src/initiation/transaction/sipsinglecall.h \
     src/initiation/transport/connectionserver.h \
+    src/initiation/transport/sipauthentication.h \
     src/initiation/transport/sipconversions.h \
     src/initiation/transport/sipfieldcomposing.h \
+    src/initiation/transport/sipfieldcomposinghelper.h \
     src/initiation/transport/sipfieldparsing.h \
+    src/initiation/transport/sipfieldparsinghelper.h \
+    src/initiation/transport/sipmessagesanity.h \
     src/initiation/transport/siprouting.h \
     src/initiation/transport/siptransport.h \
+    src/initiation/transport/siptransporthelper.h \
     src/initiation/transport/tcpconnection.h \
     src/kvazzupcontroller.h \
     src/logger.h \
