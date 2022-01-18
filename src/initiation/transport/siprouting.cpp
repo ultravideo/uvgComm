@@ -56,6 +56,7 @@ void SIPRouting::processOutgoingRequest(SIPRequest& request, QVariant& content)
     if (request.method == SIP_REGISTER)
     {
       addREGISTERContactParameters(request.message);
+      addToSupported("path", request.message); // RFC 5626 section 4.2.1
     }
   }
 
@@ -63,9 +64,10 @@ void SIPRouting::processOutgoingRequest(SIPRequest& request, QVariant& content)
       request.method == SIP_OPTIONS ||
       request.method == SIP_REGISTER)
   {
-    addGruuToSupported(request.message);
+    addToSupported("gruu", request.message);
   }
 
+  addToSupported("outbound", request.message); // RFC 5626 section 4.2.1
   emit outgoingRequest(request, content);
 
 }
@@ -86,7 +88,7 @@ void SIPRouting::processOutgoingResponse(SIPResponse& response, QVariant& conten
 
   if (response.message->cSeq.method == SIP_INVITE && response.type == SIP_OK)
   {
-    addGruuToSupported(response.message);
+    addToSupported("gruu", response.message);
 
     addContactField(response.message,
                       connection_->localAddress(),
@@ -231,19 +233,19 @@ void SIPRouting::addREGISTERContactParameters(std::shared_ptr<SIPMessageHeader> 
   message->contact.back().parameters.push_back({"reg-id", "1"});
   message->contact.back().parameters.push_back({"+sip.instance", "\"<urn:uuid:" +
                                                 settings.value(SettingsKey::sipUUID).toString() + ">\""});
-  message->contact.back().address.uri.uri_parameters.push_back({"ob", ""});
 }
 
 
-void SIPRouting::addGruuToSupported(std::shared_ptr<SIPMessageHeader> message)
+void SIPRouting::addToSupported(QString feature, std::shared_ptr<SIPMessageHeader> message)
 {
   if (message->supported == nullptr)
   {
     message->supported = std::shared_ptr<QStringList>(new QStringList);
   }
 
-  message->supported->append("gruu");
+  message->supported->append(feature);
 }
+
 
 void SIPRouting::getGruus(std::shared_ptr<SIPMessageHeader> message)
 {

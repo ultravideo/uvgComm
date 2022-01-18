@@ -52,7 +52,7 @@ private:
 
   void addREGISTERContactParameters(std::shared_ptr<SIPMessageHeader> message);
 
-  void addGruuToSupported(std::shared_ptr<SIPMessageHeader> message);
+  void addToSupported(QString feature, std::shared_ptr<SIPMessageHeader> message);
 
   void getGruus(std::shared_ptr<SIPMessageHeader> message);
 
