@@ -87,14 +87,15 @@ private:
                                          quint16 localPriority);
 
   // calculate priority as recommended by specification
-  int calculatePriority(CandidateType type, quint16 local, uint8_t component);
+  int candidateTypePriority(CandidateType type, quint16 local, uint8_t component) const;
+  int pairPriority(int controllerCandidatePriority, int controlleeCandidatePriority) const;
 
   void printCandidates(QList<std::shared_ptr<ICEInfo>>& candidates);
 
   // Takes a list of local and remote candidates, matches them based component
   // and returns a list of all possible ICEPairs used for connectivity checks
   QList<std::shared_ptr<ICEPair>> makeCandidatePairs(QList<std::shared_ptr<ICEInfo>>& local,
-                                                     QList<std::shared_ptr<ICEInfo>>& remote);
+                                                     QList<std::shared_ptr<ICEInfo>>& remote, bool controller);
 
   // creates component candidates for this address list
   void addCandidates(std::shared_ptr<QList<std::pair<QHostAddress,

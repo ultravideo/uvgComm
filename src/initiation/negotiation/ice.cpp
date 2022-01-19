@@ -139,11 +139,20 @@ void ICE::takeRemoteStartNomination(QVariant& content)
 }
 
 
-int ICE::calculatePriority(CandidateType type, quint16 local, uint8_t component)
+int ICE::candidateTypePriority(CandidateType type, quint16 local, uint8_t component) const
 {
+  // see RFC 8445 section 5.1.2.1
   return ((int)pow(2, 24) * type) +
          ((int)pow(2, 8) * local) +
          256 - component;
+}
+
+int ICE::pairPriority(int controllerCandidatePriority, int controlleeCandidatePriority) const
+{
+  // see RFC 8445 section 6.1.2.3
+  return ((int)pow(2, 32) * qMin(controllerCandidatePriority, controlleeCandidatePriority)) +
+         ((int)2 * qMax(controllerCandidatePriority, controlleeCandidatePriority)) +
+         controllerCandidatePriority > controlleeCandidatePriority ? 1 : 0;
 }
 
 
@@ -247,7 +256,7 @@ std::shared_ptr<ICEInfo> ICE::makeCandidate(uint32_t foundation,
   candidate->foundation  = QString::number(foundation);
   candidate->transport  = "UDP";
   candidate->component  = component;
-  candidate->priority  = calculatePriority(type, localPriority, component);
+  candidate->priority  = candidateTypePriority(type, localPriority, component);
 
   QString typeString = "";
   candidate->rel_address = "";
@@ -302,7 +311,8 @@ void ICE::printCandidates(QList<std::shared_ptr<ICEInfo>>& candidates)
 
 QList<std::shared_ptr<ICEPair>> ICE::makeCandidatePairs(
     QList<std::shared_ptr<ICEInfo>>& local,
-    QList<std::shared_ptr<ICEInfo>>& remote
+    QList<std::shared_ptr<ICEInfo>>& remote,
+    bool controller
 )
 {
   QList<std::shared_ptr<ICEPair>> pairs;
@@ -323,7 +333,16 @@ QList<std::shared_ptr<ICEPair>> ICE::makeCandidatePairs(
         *(pair->local)    = *local[i];
 
         pair->remote   = remote[k];
-        pair->priority = qMin(local[i]->priority, remote[k]->priority); // TODO spec
+
+        if (controller)
+        {
+          pair->priority = pairPriority(local[i]->priority, remote[k]->priority);
+        }
+        else
+        {
+          pair->priority = pairPriority(remote[k]->priority, local[i]->priority);
+        }
+
         pair->state    = PAIR_FROZEN;
 
         pairs.push_back(pair);
@@ -359,7 +378,7 @@ void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local,
   }
 
   agent_ = std::shared_ptr<IceSessionTester> (new IceSessionTester(controller, timeout));
-  pairs_ = makeCandidatePairs(local, remote);
+  pairs_ = makeCandidatePairs(local, remote, controller);
   connectionNominated_ = false;
 
   QObject::connect(agent_.get(),
