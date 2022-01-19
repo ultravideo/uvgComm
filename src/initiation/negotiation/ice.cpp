@@ -11,6 +11,8 @@
 
 #include <memory>
 #include <cstdlib>
+#include <chrono>
+#include <thread>
 
 
 #include <math.h>       /* pow */
@@ -435,7 +437,7 @@ void ICE::uninit()
     uint8_t waits = 0;
     while (agent_->isRunning() && waits <= 10)
     {
-      qSleep(10);
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
       ++waits;
     }
   }

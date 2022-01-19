@@ -14,19 +14,6 @@
 #include <QMutex>
 
 
-// TODO move this to a different file from common.h
-void qSleep(int ms)
-{
-
-#ifdef Q_OS_WIN
-    Sleep(uint(ms));
-#else
-    struct timespec ts = { ms / 1000, (ms % 1000) * 1000 * 1000 };
-    nanosleep(&ts, nullptr);
-#endif
-}
-
-//TODO use cryptographically secure callID generation to avoid collisions.
 const QString alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                          "abcdefghijklmnopqrstuvwxyz"
                          "0123456789";

@@ -31,6 +31,9 @@
 #include <QFile>
 #include <QTextStream>
 
+#include <chrono>
+#include <thread>
+
 
 // speex DSP settings
 
@@ -591,7 +594,7 @@ void changeState(std::shared_ptr<Filter> f, bool state)
 
     while(f->isRunning())
     {
-      qSleep(1);
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
   }
 }

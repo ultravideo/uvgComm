@@ -20,6 +20,9 @@
 
 #include <QSettings>
 
+#include <chrono>
+#include <thread>
+
 const uint32_t FIRSTSESSIONID = 1;
 
 // default for SIP, use 5061 for tls encrypted
@@ -85,7 +88,7 @@ void SIPManager::uninit()
     registration.second->registration.uninit();
     // TODO: wait for ok before continuing
 
-    qSleep(25);
+    std::this_thread::sleep_for(std::chrono::milliseconds(25));
 
     registration.second->pipe.uninit();
   }
@@ -103,7 +106,7 @@ void SIPManager::uninit()
         transport->connection->stopConnection(); // exits run loop
         while(transport->connection->isRunning())
         {
-          qSleep(5);
+          std::this_thread::sleep_for(std::chrono::milliseconds(5));
         }
         transport->connection.reset();
       }
@@ -293,7 +296,7 @@ void SIPManager::receiveTCPConnection(std::shared_ptr<TCPConnection> con)
   int attempts = 100;
   while (!con->isConnected() && attempts > 0)
   {
-    qSleep(5);
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
     -- attempts;
   }
 

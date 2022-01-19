@@ -9,6 +9,9 @@
 #include <QSettings>
 #include <QHostAddress>
 
+#include <thread>
+#include <chrono>
+
 
 KvazzupController::KvazzupController():
   states_(),
@@ -136,7 +139,7 @@ bool KvazzupController::incomingCall(uint32_t sessionID, QString caller)
     // make sure there are no ongoing auto-accepts
     while (delayedAutoAccept_ != 0)
     {
-      qSleep(10);
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
     delayedAutoAccept_ = sessionID;

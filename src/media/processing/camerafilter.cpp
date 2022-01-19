@@ -12,6 +12,9 @@
 #include <QtMultimedia/QCameraInfo>
 #include <QTime>
 
+#include <chrono>
+#include <thread>
+
 
 CameraFilter::CameraFilter(QString id, StatisticsInterface *stats,
                            std::shared_ptr<HWResourceManager> hwResources):
@@ -171,7 +174,7 @@ bool CameraFilter::cameraSetup()
     int currentWaitTime = 0;
     while(camera_->state() != QCamera::LoadedState)
     {
-      qSleep(waitRoundMS);
+      std::this_thread::sleep_for(std::chrono::milliseconds(waitRoundMS));
       currentWaitTime += waitRoundMS;
       if (currentWaitTime >= totalWaitTime)
       {
