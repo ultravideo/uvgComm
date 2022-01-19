@@ -12,6 +12,7 @@
 
 #include <QSettings>
 #include <QMutex>
+#include <cstdlib>
 
 
 const QString alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -25,7 +26,7 @@ QString generateRandomString(uint32_t length)
   QString string;
   for( unsigned int i = 0; i < length; ++i )
   {
-    string.append(alphabet.at(qrand()%alphabet.size()));
+    string.append(alphabet.at(rand()%alphabet.size()));
   }
   return string;
 }
