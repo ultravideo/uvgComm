@@ -65,9 +65,15 @@ void SIPRouting::processOutgoingRequest(SIPRequest& request, QVariant& content)
       request.method == SIP_REGISTER)
   {
     addToSupported("gruu", request.message);
+
   }
 
-  addToSupported("outbound", request.message); // RFC 5626 section 4.2.1
+  if (request.method != SIP_ACK)
+  {
+    addToSupported("outbound", request.message); // RFC 5626 section 4.2.1
+  }
+
+
   emit outgoingRequest(request, content);
 
 }
