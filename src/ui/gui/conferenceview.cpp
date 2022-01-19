@@ -10,7 +10,6 @@
 #include "common.h"
 #include "logger.h"
 
-#include <QDebug>
 #include <QLabel>
 #include <QGridLayout>
 #include <QDir>

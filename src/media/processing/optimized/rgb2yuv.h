@@ -7,8 +7,6 @@
 #include <math.h>
 #include <cstring>
 
-#include <QDebug>
-
 #include <omp.h>
 
 int rgb2yuv_i_sse41_single(uint8_t* input, uint8_t* output, int width, int height)

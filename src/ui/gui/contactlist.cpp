@@ -8,7 +8,6 @@
 #include "logger.h"
 
 #include <QSettings>
-#include <QDebug>
 #include <QMenu>
 
 ContactList::ContactList()

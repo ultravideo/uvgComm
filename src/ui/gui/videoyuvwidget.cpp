@@ -3,7 +3,6 @@
 #include "statisticsinterface.h"
 
 #include <QPaintEvent>
-#include <QDebug>
 #include <QCoreApplication>
 #include <QEvent>
 #include <QKeyEvent>

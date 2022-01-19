@@ -8,7 +8,6 @@
 #include "common.h"
 
 #include <QSettings>
-#include <QDebug>
 
 #include <algorithm>    // std::min and std:max
 

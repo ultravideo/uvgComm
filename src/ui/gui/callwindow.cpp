@@ -13,7 +13,6 @@
 #include <QCloseEvent>
 #include <QTimer>
 #include <QMetaType>
-#include <QDebug>
 #include <QDir>
 
 

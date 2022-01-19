@@ -5,7 +5,6 @@
 #include "common.h"
 #include "logger.h"
 
-#include <QDebug>
 #include <QRegularExpression>
 #include <QSettings>
 
@@ -45,6 +44,8 @@ bool parseICECandidate(QStringList& words, QList<std::shared_ptr<ICEInfo>>& cand
 
 bool checkSDPValidity(const SDPMessageInfo &sdpInfo)
 {
+  Logger::getLogger()->printNormal("SipContent", "Checking SDP validity");
+
   if(sdpInfo.version != 0 ||
      sdpInfo.originator_username.isEmpty() ||
      sdpInfo.sessionName.isEmpty() ||
@@ -66,8 +67,9 @@ bool checkSDPValidity(const SDPMessageInfo &sdpInfo)
       sdpInfo.host_addrtype.isEmpty() ||
       sdpInfo.host_address.isEmpty())
   {
-    qDebug() << "SDP Host address is empty.";
-    qDebug() << sdpInfo.host_nettype << " " << sdpInfo.host_addrtype << " " << sdpInfo.host_address;
+    Logger::getLogger()->printError("SipContent", "SDP Host address is empty");
+    Logger::getLogger()->printError("SipContent", sdpInfo.host_nettype + " " + sdpInfo.host_addrtype + " " + sdpInfo.host_address);
+
     return false;
   }
 
@@ -75,14 +77,14 @@ bool checkSDPValidity(const SDPMessageInfo &sdpInfo)
       sdpInfo.connection_addrtype.isEmpty() ||
       sdpInfo.connection_address.isEmpty())
   {
-    qDebug() << "No Global address in SDP";
+    Logger::getLogger()->printError("SipContent", "No Global address in SDP");
     for (auto& media: sdpInfo.media)
     {
       if (media.connection_address.isEmpty() ||
           media.connection_addrtype.isEmpty() ||
           media.connection_address.isEmpty())
       {
-        qDebug() << "Missing global and media address. The SDP is not good";
+        Logger::getLogger()->printError("SipContent", "Missing global and media address. The SDP is not good");
         return false;
       }
     }
@@ -90,7 +92,7 @@ bool checkSDPValidity(const SDPMessageInfo &sdpInfo)
 
   if (sdpInfo.candidates.isEmpty())
   {
-    qDebug() << "PEER ERROR: Didn't receive any ICE candidates!";
+    Logger::getLogger()->printError("SipContent", "Didn't receive any ICE candidates!");
     return false;
   }
 
@@ -198,7 +200,8 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
       }
       default:
       {
-        qDebug() << "ERROR: Trying to compose SDP flag attribute with unimplemented flag";
+        Logger::getLogger()->printProgramError("SipContent",
+                                               "Trying to compose SDP flag attribute with unimplemented flag");
         break;
       }
       }
@@ -220,9 +223,9 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
     }
 
     sdp += lineEnd;
-  }
+  }  
 
-  qDebug().noquote() << "Sending, SIPContent :" << "Composed SDP string:" << sdp;  return sdp;
+  return sdp;
 }
 
 bool nextLine(QStringListIterator& lineIterator, QStringList& words, char& lineType)
@@ -234,7 +237,7 @@ bool nextLine(QStringListIterator& lineIterator, QStringList& words, char& lineT
 
     if(words.at(0).length() < 3)
     {
-      qDebug() << "First word missing in SDP Line:" << line;
+      Logger::getLogger()->printError("SipContent", "SDP Line doesn't have enough words!");
       return false;
     }
 
@@ -242,8 +245,6 @@ bool nextLine(QStringListIterator& lineIterator, QStringList& words, char& lineT
 
     // skip first two characters of first word. (for example "v=")
     words[0] = words.at(0).right(words.at(0).size() - 2);
-    // TODO: print the line type somehow
-    //qDebug().nospace().noquote() << lineType << ", ";
     return true;
   }
 
@@ -268,8 +269,8 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
   QStringList lines = content.split("\r\n", Qt::SkipEmptyParts);
   if(lines.size() > 1000)
   {
-    qDebug() << "WHOAH: Got over a thousand lines of SDP. "
-                "Not going to process this because of size: " << lines.size();
+    Logger::getLogger()->printError("SipContent", "Got over a thousand lines of SDP! "
+                                                  "Not going to process this because of the size.");
     return false;
   }
 
@@ -280,18 +281,16 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
   // the SDP must either have one global connection (c=)-field or each media must have its own.
   bool globalConnection = false;
 
-  // TODO: Print all recognized lines on one line.
-
   // v=
   if(!nextLine(lineIterator, words, type))
   {
-    qDebug() << "Empty SDP message";
+    Logger::getLogger()->printError("SipContent", "Empty SDP message!");
     return false;
   }
 
   if(type != 'v' || words.size() != 1)
   {
-    qDebug() << "First line malformed";
+    Logger::getLogger()->printError("SipContent", "First line malformed");
     return false;
   }
 
@@ -299,20 +298,20 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
 
   if(sdp.version != 0)
   {
-    qDebug() << "Unsupported SDP version:" << sdp.version;
+    Logger::getLogger()->printError("SipContent", "Unsupported SDP version", "version", QString::number(sdp.version));
     return false;
   }
 
   // o=
   if(!nextLine(lineIterator, words, type))
   {
-    qDebug() << "Only v= line present";
+    Logger::getLogger()->printError("SipContent", "Only v= line present");
     return false;
   }
 
   if(type != 'o' || words.size() != 6)
   {
-    qDebug() << "o= line malformed";
+    Logger::getLogger()->printError("SipContent", "o= line malformed");
     return false;
   }
 
@@ -327,7 +326,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
   // TODO: accept single empty character
   if(!nextLine(lineIterator, words, type) || type != 's')
   {
-    qDebug() << "Problem gettin s= line";
+    Logger::getLogger()->printError("SipContent", "Problem gettin s= line");
     return false;
   }
 
@@ -336,7 +335,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
   // i=,u=,e=,p=,c=,b= or t=
   if(!nextLine(lineIterator, words, type))
   {
-    qDebug() << "SDP ended without all mandatory lines!";
+    Logger::getLogger()->printError("SipContent", "SDP ended without all mandatory lines!");
     return false;
   }
 
@@ -347,7 +346,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
     // u=,e=,p=,c=,b= or t=
     if(!nextLine(lineIterator, words, type))
     {
-      qDebug() << "Nothing after i=";
+      Logger::getLogger()->printError("SipContent", "Nothing after i=");
       return false;
     }
   }
@@ -356,7 +355,8 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
   {
     if(words.size() != 1)
     {
-      qDebug() << "SDP URI size is wrong:" << words.size();
+      Logger::getLogger()->printError("SipContent", "SDP URI size is wrong", "URI words",
+                                      QString::number(words.size()));
       return false;
     }
 
@@ -366,7 +366,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
     // e=,p=,c=,b= or t=
     if(!nextLine(lineIterator, words, type))
     {
-      qDebug() << "Nothing after u=";
+      Logger::getLogger()->printError("SipContent", "Nothing after u=");
       return false;
     }
   }
@@ -375,7 +375,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
   {
     if(words.size() > 4) // not sure if middle name is allowed. Should check
     {
-      qDebug() << "Email field had too many words";
+      Logger::getLogger()->printError("SipContent", "Email field had too many words");
       return false;
     }
 
@@ -384,7 +384,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
     // p=,c=,b= or t=
     if(!nextLine(lineIterator, words, type))
     {
-      qDebug() << "Nothing after e=";
+      Logger::getLogger()->printError("SipContent", "Nothing after e=");
       return false;
     }
   }
@@ -393,7 +393,8 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
   {
     if(words.size() > 6)
     {
-      qDebug() << "Too many words in phone number. Phone number should be at most in 4 pieces + name.";
+      Logger::getLogger()->printError("SipContent", "Too many words in phone number. "
+                                                    "Phone number should be at most in 4 pieces + name.");
       return false;
     }
 
@@ -402,7 +403,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
     // c=,b= or t=
     if(!nextLine(lineIterator, words, type))
     {
-      qDebug() << "Nothing after p=";
+      Logger::getLogger()->printError("SipContent", "Nothing after p=");
       return false;
     }
   }
@@ -411,7 +412,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
   if(!parseConnection(lineIterator, type, words,
                       sdp.connection_nettype, sdp.connection_addrtype, sdp.connection_address))
   {
-    qDebug() << "Failed to parse connection";
+    Logger::getLogger()->printError("SipContent", "Failed to parse connection");
     return false;
   }
 
@@ -425,7 +426,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
 
   if(type!= 't')
   {
-    qDebug() << "No timing field present in SDP.";
+    Logger::getLogger()->printError("SipContent", "No timing field present in SDP");
     return false;
   }
 
@@ -434,7 +435,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
   {
     if(words.size() != 2)
     {
-      qDebug() << "Wrong size for time description.";
+      Logger::getLogger()->printError("SipContent", "Wrong size for time description");
       return false;
     }
 
@@ -454,7 +455,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
       // must have at least three values.
       if(words.size() < 3)
       {
-        qDebug() << "Failed to parse repeat interval (r=) line";
+        Logger::getLogger()->printError("SipContent", "Failed to parse repeat interval (r=) line");
         return false;
       }
 
@@ -479,7 +480,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
   {
     if(words.size() >= 2)
     {
-      qDebug() << "Failed to parse time offset (z=) line";
+      Logger::getLogger()->printError("SipContent", "Failed to parse time offset (z=) line");
       return false;
     }
 
@@ -499,29 +500,29 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
 
   if(!parseEncryptionKey(lineIterator, type, words, sdp.encryptionKey))
   {
-    qDebug() << "Failed to parse encryption key.";
+    Logger::getLogger()->printError("SipContent", "Failed to parse encryption key");
     return false;
   }
 
   QList<RTPMap> noCodecs;
   if(!parseAttributes(lineIterator, type, words, sdp.flagAttributes, sdp.valueAttributes, noCodecs, sdp.candidates))
   {
-    qDebug() << "Failed to parse attributes";
+    Logger::getLogger()->printError("SipContent", "Failed to parse attributes");
     return false;
   }
 
   if(!noCodecs.empty())
   {
-    qDebug() << "Found rtpmap outside media";
+    Logger::getLogger()->printError("SipContent", "Found rtpmap outside media");
     return false;
   }
 
   while(type == 'm')
   {
-    qDebug() << "Found media:" << words.at(0);
+    Logger::getLogger()->printNormal("SipContent", "Found media", "media", words.at(0));
     if(words.size() < 4)
     {
-      qDebug() << "Failed to parse media because its has too few words";
+      Logger::getLogger()->printError("SipContent", "Failed to parse media because its has too few words");
       return false;
     }
 
@@ -552,7 +553,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
 
     if(!globalConnection && type != 'c')
     {
-      qDebug() << "Not all media have a connection field!";
+      Logger::getLogger()->printError("SipContent", "Not all media have a connection field!");
       return false;
     }
 
@@ -567,7 +568,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
                            sdp.media.back().codecs,
                            sdp.candidates))
     {
-      qDebug() << "Failed to parse some media fields";
+      Logger::getLogger()->printError("SipContent", "Failed to parse some media fields");
       return false;
     }
 
@@ -575,14 +576,14 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
 
   if(!checkSDPValidity(sdp))
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SIPContent",
+    Logger::getLogger()->printError("SIPContent",
                                     "The parsing generated a bad SDP for some reason. "
                                     "The problem should be detected earlier.");
     return false;
   }
   else
   {
-    qDebug() << "Parsed SDP is valid.";
+    Logger::getLogger()->printNormal("SipContent", "Parsed SDP is valid");
   }
 
   return true;
@@ -644,7 +645,8 @@ bool parseAttributes(QStringListIterator &lineIterator, char &type, QStringList&
           {
             if(words.size() != 2)
             {
-              qDebug() << "Wrong amount of words in rtpmap " << words.size() << "Expected 2";
+              Logger::getLogger()->printError("SipContent", "Wrong amount of words in rtpmap, expected 2",
+                                              "words", QString::number(words.size()));
               return false;
             }
             parseRTPMap(match, words.at(1), codecs);
@@ -717,18 +719,19 @@ bool parseAttributes(QStringListIterator &lineIterator, char &type, QStringList&
           }
           default:
           {
-            qDebug() << "ERROR: Recognized SDP attribute type which is not implemented";
+            Logger::getLogger()->printError("SipContent", "Did not recognize SDP attribute type");
             break;
           }
           }
         }
-        else {
-          qDebug() << "Could not find the attribute.";
+        else
+        {
+          Logger::getLogger()->printError("SipContent", "Could not find the attribute");
         }
     }
     else
     {
-      qDebug() << "Failed to parse attribute because of an unknown format: " << words;
+      Logger::getLogger()->printError("SipContent", "Failed to parse attribute because of an unknown format");
     }
 
     // TODO: Check that there are as many codecs as there are rtpnums
@@ -747,12 +750,12 @@ void parseFlagAttribute(SDPAttributeType type, QRegularExpressionMatch& match, Q
 {
   if(match.lastCapturedIndex() == 1)
   {
-    qDebug() << "Correctly matched a flag attribute: " << match.captured(0);
+    Logger::getLogger()->printNormal("SipContent", "Correctly matched a flag attribute");
     attributes.push_back(type);
   }
   else
   {
-    qDebug() << "Flag attribute did not match correctly";
+    Logger::getLogger()->printError("SipContent", "Flag attribute did not match correctly");
   }
 }
 
@@ -760,13 +763,13 @@ void parseValueAttribute(SDPAttributeType type, QRegularExpressionMatch& match, 
 {
   if(match.lastCapturedIndex() == 3)
   {
-    qDebug() << "Correctly matched an SDP value attribute";
+    Logger::getLogger()->printNormal("SipContent", "Correctly matched an SDP value attribute");
     QString value = match.captured(2);
     valueAttributes.push_back(SDPAttribute{type, value});
   }
   else
   {
-    qDebug() << "Value attribute did not match correctly";
+    Logger::getLogger()->printError("SipContent", "Value attribute did not match correctly");
   }
 }
 
@@ -776,7 +779,8 @@ void parseRTPMap(QRegularExpressionMatch& match, QString secondWord, QList<RTPMa
   {
     QRegularExpression re_rtpParameters("(\\w+)\\/(\\w+)(\\/\\w+)?");
     QRegularExpressionMatch parameter_match = re_rtpParameters.match(secondWord);
-    if(parameter_match.hasMatch() && (parameter_match.lastCapturedIndex() == 2 || parameter_match.lastCapturedIndex() == 3))
+    if(parameter_match.hasMatch() && (parameter_match.lastCapturedIndex() == 2 ||
+                                      parameter_match.lastCapturedIndex() == 3))
     {
       codecs.push_back(RTPMap{static_cast<uint8_t>(match.captured(3).toUInt()),
                               parameter_match.captured(2).toUInt(), parameter_match.captured(1), ""});
@@ -787,13 +791,16 @@ void parseRTPMap(QRegularExpressionMatch& match, QString secondWord, QList<RTPMa
     }
     else
     {
-      qDebug() << "The second part in RTPMap did not match correctly for:" << secondWord
-               << "Got" << parameter_match.lastCapturedIndex() << "Expected 3 or 4";
+      Logger::getLogger()->printError("SipContent", "The second part in RTPMap "
+                                                    "did not match correctly for " + secondWord);
     }
   }
   else
   {
-    qDebug() << "The first part of RTPMap did not match correctly:" << match.lastCapturedIndex() << "Expected: 4";
+    Logger::getLogger()->printDebug(DEBUG_ERROR, "SipContent", "The first part of "
+                                                               "RTPMap did not match correctly",
+                                    {"last index", "Expected"},
+                                    {QString::number(match.lastCapturedIndex()), "4"});
   }
 }
 
@@ -805,7 +812,10 @@ bool parseConnection(QStringListIterator& lineIterator, char& type, QStringList&
   {
     if(words.size() != 3)
     {
-      qDebug() << "wrong number of values in connection:" << words.size() << "Expected 3";
+      Logger::getLogger()->printDebug(DEBUG_ERROR, "SipContent",
+                                      "Wrong number of values in connection",
+                                      {"values", "Expected"},
+                                      {QString::number(words.size()), "3"});
       return false;
     }
 
@@ -830,13 +840,11 @@ bool parseBitrate(QStringListIterator& lineIterator, char& type, QStringList& wo
   {
     if(words.size() != 1)
     {
-      qDebug() << "More than one value in bitrate.";
+      Logger::getLogger()->printError("SipContent", "More than one value in bitrate");
       return false;
     }
 
     bitrates.push_back(words.at(0));
-
-    qDebug() << "WARNING: Received a bitrate field, which is currently unsupported by us.";
 
     // t= if global
     // k=, a=, m= or nothing if media.
@@ -856,13 +864,13 @@ bool parseEncryptionKey(QStringListIterator& lineIterator, char& type, QStringLi
   {
     if(words.size() != 1)
     {
-      qDebug() << "More than one value in encryption key.";
+      Logger::getLogger()->printError("SipContent", "More than one value in encryption key");
       return false;
     }
 
     key = words.at(0);
-
-    qDebug() << "WARNING: Received a encryption key field, which is currently unsupported by us.";
+    Logger::getLogger()->printError("SipContent", "Received a encryption key field, "
+                                                  "which is unsupported by us");
 
     // a=, m= or nothing
     if(!nextLine(lineIterator, words, type))

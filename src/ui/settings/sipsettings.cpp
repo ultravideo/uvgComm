@@ -6,7 +6,6 @@
 #include "logger.h"
 
 #include <QDateTime>
-#include <QDebug>
 
 
 const QStringList neededSettings = {SettingsKey::localAutoAccept,

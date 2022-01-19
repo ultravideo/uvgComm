@@ -198,7 +198,7 @@ void SIPTransport::networkPackage(QString package)
         if (!parseRequest(header, request_match.captured(1), request_match.captured(3),
                           fields, body))
         {
-          qDebug() << "Failed to parse request";
+          Logger::getLogger()->printWarning(this, "Failed to parse request");
           //emit parsingError(SIP_BAD_REQUEST, getRemoteAddress());
         }
       }
@@ -211,22 +211,25 @@ void SIPTransport::networkPackage(QString package)
                            response_match.captured(3),
                            fields, body))
         {
-          qDebug() << "ERROR: Failed to parse response: " << response_match.captured(2);
+          Logger::getLogger()->printWarning(this, "Failed to parse response", "Type",
+                                            response_match.captured(2));
           //emit parsingError(SIP_BAD_REQUEST, getRemoteAddress());
         }
       }
       else
       {
-        qDebug() << "Failed to parse first line of SIP message:" << firstLine
-                 << "Request index:" << request_match.lastCapturedIndex()
-                 << "response index:" << response_match.lastCapturedIndex();
+        Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Failed to parse first line of SIP message",
+                                          {"First Line", "RequestIndex", "ResponseIndex"},
+                                          {firstLine,
+                                           QString::number(request_match.lastCapturedIndex()),
+                                           QString::number(response_match.lastCapturedIndex())});
 
         //emit parsingError(SIP_BAD_REQUEST, connection_->remoteAddress());
       }
     }
     else
     {
-      qDebug() << "The whole message was not received";
+      Logger::getLogger()->printNormal(this, "Received partial SIP message");
     }
   }
   --processingInProgress_;
@@ -297,9 +300,8 @@ bool SIPTransport::parsePackage(QString package, QStringList& headers, QStringLi
 bool SIPTransport::parseRequest(const QString &header, QString requestString, QString version,
                                 QList<SIPField> &fields, QString& body)
 {  
-  qDebug() << "Request detected:" << requestString;
-
   Logger::getLogger()->printImportant(this, "Parsing incoming request", {"Type"}, {requestString});
+
   SIPRequest request;
   request.method = stringToRequestMethod(requestString);
   request.sipVersion = version;
@@ -308,7 +310,7 @@ bool SIPTransport::parseRequest(const QString &header, QString requestString, QS
 
   if(request.method == SIP_NO_REQUEST)
   {
-    qDebug() << "Could not recognize request type!";
+    Logger::getLogger()->printWarning(this, "Could not recognize request type!");
     return false;
   }
 

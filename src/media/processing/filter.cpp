@@ -5,8 +5,6 @@
 #include "common.h"
 #include "logger.h"
 
-#include <QDebug>
-
 Filter::Filter(QString id, QString name, StatisticsInterface *stats,
                std::shared_ptr<HWResourceManager> hwResources,
                DataType input, DataType output):

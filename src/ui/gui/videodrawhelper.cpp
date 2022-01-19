@@ -3,7 +3,6 @@
 #include "common.h"
 #include "logger.h"
 
-#include <QDebug>
 #include <QWidget>
 #include <QKeyEvent>
 

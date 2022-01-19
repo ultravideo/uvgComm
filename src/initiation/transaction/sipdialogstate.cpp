@@ -8,7 +8,6 @@
 
 #include <QDateTime>
 #include <QSettings>
-#include <QDebug>
 
 const uint32_t UINT31_MAX = 2147483647;
 
@@ -307,8 +306,12 @@ void SIPDialogState::processIncomingResponse(SIPResponse& response, QVariant& co
   // The response cseq should be the same as our cseq
   if(response.message->cSeq.cSeq != localCseq_)
   {
-    qDebug() << "PEER_ERROR:" << "The response CSeq was not the same as our previous request!"
-             << response.message->cSeq.cSeq << "vs local" << localCseq_;
+    Logger::getLogger()->printDebug(DEBUG_ERROR, this,
+                                    "The CSeq in incoming response was not same as request",
+                                    {"Our CSeq", "Response CSeq"},
+                                    {QString::number(localCseq_),
+                                     QString::number(response.message->cSeq.cSeq)});
+
     // TODO: if remote cseq in message is lower than remote cseq, send 500
     return;
   }
@@ -317,7 +320,8 @@ void SIPDialogState::processIncomingResponse(SIPResponse& response, QVariant& co
   if (response.type == SIP_OK &&
       response.message->cSeq.method == SIP_INVITE)
   {
-    qDebug() << "We don't yet have their remote Tag. Using the one in response.";
+    Logger::getLogger()->printNormal(this, "We don't yet have their remote Tag. "
+                                           "Using the one in INVITE OK response.");
     remoteTag_ = response.message->to.tagParameter;
   }
 

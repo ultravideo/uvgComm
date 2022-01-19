@@ -12,7 +12,6 @@
 #include "logger.h"
 
 #include <QSettings>
-#include <QDebug>
 
 VideoviewFactory::VideoviewFactory():
   sessionIDtoWidgetlist_(),
