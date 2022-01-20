@@ -170,6 +170,16 @@ struct SIP_URI
 
   QList<SIPParameter> uri_parameters;
   QList<URIHeader> headers;
+
+  // makes uri comparisons easier
+  bool operator ==(const SIP_URI &other) const
+  {
+      return other.type              == type &&
+             other.userinfo.user     == userinfo.user &&
+             other.userinfo.password == userinfo.password &&
+             other.hostport.host     == hostport.host &&
+             other.hostport.port     == hostport.port;
+  }
 };
 
 struct AbsoluteURI

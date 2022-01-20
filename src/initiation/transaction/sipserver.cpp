@@ -76,6 +76,21 @@ void SIPServer::processIncomingRequest(SIPRequest& request, QVariant& content)
 }
 
 
+bool SIPServer::doesCANCELMatchRequest(SIPRequest &request) const
+{
+  // see section 9.1 of RFC 3261
+  return receivedRequest_ != nullptr &&
+      receivedRequest_->requestURI == request.requestURI &&
+
+      receivedRequest_->message->callID            == request.message->callID &&
+      receivedRequest_->message->to.address.uri    == request.message->to.address.uri &&
+      receivedRequest_->message->to.tagParameter   == request.message->to.tagParameter &&
+      receivedRequest_->message->from.address.uri  == request.message->from.address.uri &&
+      receivedRequest_->message->from.tagParameter == request.message->from.tagParameter &&
+      receivedRequest_->message->cSeq.cSeq         == request.message->cSeq.cSeq;
+}
+
+
 void SIPServer::copyResponseDetails(std::shared_ptr<SIPMessageHeader>& inMessage,
                                     std::shared_ptr<SIPMessageHeader>& copy)
 {

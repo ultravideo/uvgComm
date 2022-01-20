@@ -19,6 +19,8 @@ class SIPServer : public SIPMessageProcessor
 public:
   SIPServer();
 
+  bool doesCANCELMatchRequest(SIPRequest& request) const;
+
 public slots:
 
   virtual void processOutgoingResponse(SIPResponse& response, QVariant& content);
