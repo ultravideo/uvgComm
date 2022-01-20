@@ -83,12 +83,12 @@ bool Delivery::addPeer(uint32_t sessionID, QString peerAddress, QString localAdd
 void Delivery::parseCodecString(QString codec, rtp_format_t& fmt,
                                 DataType& type, QString& mediaName)
 {
-  // TODO: This function should better facilitate additional type
-
   std::map<QString, rtp_format_t> xmap = {
       { "pcm",  RTP_FORMAT_GENERIC },
       { "opus", RTP_FORMAT_OPUS },
-      { "h265", RTP_FORMAT_H265 }
+      { "h264", RTP_FORMAT_H264 },
+      { "h265", RTP_FORMAT_H265 },
+      { "h266", RTP_FORMAT_H266 }
   };
 
   if (xmap.find(codec) == xmap.end())
@@ -104,11 +104,18 @@ void Delivery::parseCodecString(QString codec, rtp_format_t& fmt,
 
   switch (fmt)
   {
+    case RTP_FORMAT_H264:
+      mediaName = "AVC";
+      type = HEVCVIDEO;
+      break;
     case RTP_FORMAT_H265:
       mediaName = "HEVC";
       type = HEVCVIDEO;
       break;
-
+    case RTP_FORMAT_H266:
+      mediaName = "VVC";
+      type = HEVCVIDEO;
+      break;
     case RTP_FORMAT_OPUS:
       mediaName = "OPUS";
       type = OPUSAUDIO;
