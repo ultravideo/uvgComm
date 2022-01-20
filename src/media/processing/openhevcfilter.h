@@ -11,7 +11,6 @@ public:
 
   virtual bool init();
   void uninit();
-  void run();
 
   virtual void updateSettings();
 

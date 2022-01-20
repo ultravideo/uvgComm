@@ -45,6 +45,8 @@ bool OpenHEVCFilter::init()
   // This is because we don't know anything about the incoming stream
   maxBufferSize_ = -1; // no buffer limit
 
+  setPriority(QThread::HighPriority);
+
   return true;
 }
 
@@ -54,17 +56,6 @@ void OpenHEVCFilter::uninit()
   Logger::getLogger()->printNormal(this, "Uniniating.");
   libOpenHevcFlush(handle_);
   libOpenHevcClose(handle_);
-}
-
-
-void OpenHEVCFilter::run()
-{
-  // TODO: if not iniated, init
-
-  // TODO: call uninit when stopping?
-
-  setPriority(QThread::HighPriority);
-  Filter::run();
 }
 
 
