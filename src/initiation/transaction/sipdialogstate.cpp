@@ -93,20 +93,6 @@ void SIPDialogState::initDialog()
 }
 
 
-void SIPDialogState::setDialog(QString callID)
-{
-  callID_ = callID;
-
-  if(localTag_ == "")
-  {
-    localTag_ = generateRandomString(TAG_LENGTH);
-  }
-
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Received a dialog creating INVITE. Creating dialog.",
-             {"Call-ID", "Local Tag"}, {callID_, localTag_});
-}
-
-
 void SIPDialogState::processOutgoingRequest(SIPRequest& request, QVariant& content)
 {
   Q_UNUSED(content)
@@ -135,23 +121,29 @@ void SIPDialogState::processOutgoingRequest(SIPRequest& request, QVariant& conte
       return;
     }
 
+    // see section 9.1 of RFC 3261 for cancelling request
+
     if (previousRequest_.method != SIP_INVITE)
     {
-      Logger::getLogger()->printProgramWarning(this, "Trying to CANCEL a non-INVITE request!");
+      Logger::getLogger()->printProgramWarning(this, "We are trying to CANCEL a non-INVITE request!");
       return;
     }
+
+    /* The Request-URI, Call-ID, To, the numeric part of CSeq, and From header
+       fields, including tags must be identical */
 
     request.requestURI = previousRequest_.requestURI;
     request.message->callID = previousRequest_.message->callID;
 
-    // cseq method is still CANCEL
+    // cseq method is still CANCEL even though cSeq itself is from cancelled request
     request.message->cSeq.cSeq = previousRequest_.message->cSeq.cSeq;
 
     request.message->from = previousRequest_.message->from;
     request.message->to = previousRequest_.message->to;
   }
-  else
+  else // Not a CANCEL but an actual request from us
   {
+    // routing of this request
     if (!route_.empty())
     {
       bool foundLR = false;
@@ -218,11 +210,27 @@ void SIPDialogState::processOutgoingRequest(SIPRequest& request, QVariant& conte
 
     request.message->callID = callID_;
 
-
     previousRequest_ = request;
   }
 
   emit outgoingRequest(request, content);
+}
+
+
+void SIPDialogState::processOutgoingResponse(SIPResponse& response, QVariant& content)
+{
+  // see section 8.2.6.2 of RFC 3261
+  if (response.message->to.tagParameter == "")
+  {
+    // we set our tag only at this point so we can correctly recognize when CANCEL comes without our tag
+    localTag_ = generateRandomString(TAG_LENGTH);
+    response.message->to.tagParameter = localTag_;
+
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Generated our tag to response. Creating dialog.",
+               {"Call-ID", "Local Tag"}, {callID_, localTag_});
+  }
+
+  emit outgoingResponse(response, content);
 }
 
 
@@ -253,17 +261,8 @@ void SIPDialogState::processIncomingRequest(SIPRequest& request, QVariant& conte
     Logger::getLogger()->printDebug(DEBUG_NORMAL, "SIPDialogState",
                "Creating a dialog from incoming INVITE.");
 
-    setDialog(request.message->callID);
-
+    callID_ = request.message->callID;
     remoteTag_ = request.message->from.tagParameter;
-
-    // TODO: Do this at the outgoingresponse function
-    // Set the request to tag to local tag value so when sending the response
-    // it is already there.
-    if(request.message->to.tagParameter == "")
-    {
-      request.message->to.tagParameter = localTag_;
-    }
   }
   else
   {

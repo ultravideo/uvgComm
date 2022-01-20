@@ -47,6 +47,9 @@ public slots:
   // Adds dialog info to request
   virtual void processOutgoingRequest(SIPRequest& request, QVariant& content);
 
+  // generates our tag with INVITE OK
+  virtual void processOutgoingResponse(SIPResponse& response, QVariant& content);
+
   // Creates a dialog if it is INVITE
   virtual void processIncomingRequest(SIPRequest& request, QVariant& content);
 
@@ -62,10 +65,6 @@ private:
 
   // set our information as well as generate callID and tags
   void initDialog();
-
-  // set our information, callID and tags
-  // generate our own tag if needed.
-  void setDialog(QString callID);
 
   uint32_t initialCSeqNumber();
 

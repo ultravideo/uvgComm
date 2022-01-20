@@ -68,7 +68,8 @@ void SIPServer::processIncomingRequest(SIPRequest& request, QVariant& content)
   }
   else if (request.method != SIP_ACK && request.method != SIP_CANCEL)
   {
-    Logger::getLogger()->printPeerError(this, "New request when previous transaction has not been completed. Ignoring...");
+    Logger::getLogger()->printPeerError(this, "New request when previous transaction "
+                                              "has not been completed. Ignoring...");
     return;
   }
 
@@ -96,7 +97,6 @@ void SIPServer::copyResponseDetails(std::shared_ptr<SIPMessageHeader>& inMessage
 {
   Q_ASSERT(inMessage);
   Q_ASSERT(inMessage->from.tagParameter != "");
-  Q_ASSERT(inMessage->to.tagParameter != "");
   copy = std::shared_ptr<SIPMessageHeader> (new SIPMessageHeader());
   // Which fields to copy are listed in section 8.2.6.2 of RFC 3621
 
@@ -109,8 +109,8 @@ void SIPServer::copyResponseDetails(std::shared_ptr<SIPMessageHeader>& inMessage
   // from-field
   copy->from = inMessage->from;
 
-  // To field, expect if To tag is missing, in which case it should be added
-  // To tag is added in dialog when checking the first request.
+  // To field, expect if To tag is missing, in which case it should be added later
+  // To tag is the responsibility of SIPDialog
   copy->to = inMessage->to;
 
   // Via- fields in same order
