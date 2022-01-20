@@ -270,13 +270,13 @@ void TCPConnection::run()
   }
   while(active_)
   {
-    // TODO: Stop trying if connection can't be established.
     if(!isConnected() && shouldConnect_)
     {
       if (!connectLoop())
       {
         Logger::getLogger()->printWarning(this, "Failed to connect TCP connection");
         shouldConnect_ = false;
+        active_ = false;
       }
     }
 
@@ -363,7 +363,11 @@ void TCPConnection::disconnect()
   shouldConnect_ = false;
   if (socket_)
   {
-    socket_->disconnectFromHost();
+    if(socket_->state() != QAbstractSocket::UnconnectedState)
+    {
+      socket_->disconnectFromHost();
+    }
+
     if(socket_->state() == QAbstractSocket::UnconnectedState ||
        socket_->waitForDisconnected(DISCONNECT_TIMEOUT_MS))
     {
