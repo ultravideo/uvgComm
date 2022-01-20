@@ -496,7 +496,7 @@ void ConferenceView::freeSlot(LayoutLoc &location)
 {
   locMutex_.lock();
   freedLocs_.push_back(location);
-  // TODO: reorder these
+  // TODO: reorder the views here
   locMutex_.unlock();
 }
 

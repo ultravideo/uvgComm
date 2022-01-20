@@ -44,7 +44,6 @@ signals:
 private slots:
 
   // finds which pair this packet belongs to
-  // TODO: should also detect if we should add a peer reflexive candidate
   void routeDatagram(QNetworkDatagram message);
 
 private:

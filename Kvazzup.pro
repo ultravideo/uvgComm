@@ -349,7 +349,7 @@ copyToDestination($$PWD/icons, $$OUT_PWD/icons)
 # On windows OpenMP is located in Tools folder of Qt.
 
 # TODO: There is a bug in this that creates a growing recursive structure and
-# it stops working. When that is solved, it should be enabled in release mode.
+# it eventually stops working. When that is solved, this should be enabled in release mode.
 CONFIG(false){
   isEmpty(TARGET_EXT) {
       win32 {

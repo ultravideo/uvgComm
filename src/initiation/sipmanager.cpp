@@ -81,12 +81,10 @@ void SIPManager::uninit()
 {
   Logger::getLogger()->printNormal(this, "Uninit SIP Manager");
 
-
-
   for (auto& registration : registrations_)
   {
     registration.second->registration.uninit();
-    // TODO: wait for ok before continuing
+    // TODO: wait for ok from server before continuing
 
     std::this_thread::sleep_for(std::chrono::milliseconds(25));
 
@@ -279,8 +277,7 @@ void SIPManager::endAllCalls()
     {
       dialog.second->call.endCall();
 
-      // TODO: This should be done later when we receive OK
-      //dialog.second->pipe.uninit();
+      // the call structures are removed when we receive an OK
     }
   }
 
@@ -788,9 +785,6 @@ void SIPManager::removeDialog(uint32_t sessionID)
   dialogs_.erase(dialogs_.find(sessionID));
   if (dialogs_.empty())
   {
-    // TODO: This may cause problems if we have reserved a sessionID, but have not yet
-    // started a new one. Maybe remove this when statistics has been updated with new
-    // map for tracking sessions.
     nextSessionID_ = FIRSTSESSIONID;
   }
 }
@@ -811,22 +805,21 @@ QString SIPManager::haveWeRegistered()
 
 bool SIPManager::shouldUseProxy(QString remoteAddress)
 {
-  // The purpose of this function is to determine if our proxy can reach the remote
-  // address. This is not the case if the address is in local network or it is a
-  // loopback address.
-
-  // TODO: Improve this to work with LAN addresses
+  // The purpose of this function is to determine if we can use the proxy to
+  // contact the remote AOR (SIP:username@proxy). We assume here that if we want to
+  // call a loopback address, we just establish a direct connection
 
   QHostAddress remote = QHostAddress(remoteAddress);
 
-  return remote.isGlobal() && haveWeRegistered() != "";
+  // if we have registered and the remote AOR is not loopback
+  return !remote.isLoopback() && haveWeRegistered() != "";
 }
 
 
 NameAddr SIPManager::localInfo(bool registered, QString connectionAddress)
 {
   NameAddr address = localInfo();
-  // dont set server address if we have already set peer-to-peer address
+  // don't set server address if we have already set peer-to-peer address
   if (!registered)
   {
     address.uri.hostport.host = connectionAddress;

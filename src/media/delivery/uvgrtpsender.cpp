@@ -81,7 +81,6 @@ void UvgRTPSender::updateSettings()
 
 void UvgRTPSender::process()
 {
-  // TODO
   if (!mstream_)
     return;
 

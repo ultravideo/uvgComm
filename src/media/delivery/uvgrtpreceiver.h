@@ -24,7 +24,6 @@ signals:
   void zrtpFailure(uint32_t sessionID);
 
 private:
-  // TODO why this must be static
 
   DataType type_;
   uint32_t sessionID_;

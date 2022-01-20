@@ -80,7 +80,7 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
   // TODO: Get this info from RTP
   received_picture->presentationTime = QDateTime::currentMSecsSinceEpoch();
 
-  // TODO: This copying should be done in separate thread as in
+  // TODO: Set uvgRTP to add these start codes
   // framedsource if we want to receive 4K with less powerful thread (like in Xeon)
   if (addStartCodes_ && type_ == HEVCVIDEO)
   {

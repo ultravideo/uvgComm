@@ -40,7 +40,7 @@ public:
                                            uint16_t localPort, uint16_t peerPort,
                                            QString codec, uint8_t rtpNum);
 
-  // TODO
+  // TODO: Add a way to remove individual streams
   //void removeSendStream(uint32_t sessionID, uint16_t localPort);
   //void removeReceiveStream(uint32_t sessionID, uint16_t localPort);
 

@@ -19,9 +19,9 @@ const int REGISTER_INTERVAL = 600;
 // It is recommended to keep the audio frame size relatively small to avoid 
 // unnecessary latency.
 #ifdef __linux__
-// linux uses such large audio frames, that the buffers cant keep up with
+// linux uses such large audio frames, that the buffers can't keep up with
 // smaller packet sizes
-// TODO: Make buffers relative to this number
+// TODO: Make filter buffer sizes relative to this number so the latency stays constant
 const uint16_t AUDIO_FRAMES_PER_SECOND = 50;
 #else
 const uint16_t AUDIO_FRAMES_PER_SECOND = 100;

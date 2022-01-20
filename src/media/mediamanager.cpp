@@ -111,7 +111,7 @@ void MediaManager::addParticipant(uint32_t sessionID,
   if(peerInfo->connection_nettype == "IN")
   {
 
-    // TODO: Should check if wer should use global or media address.
+    // TODO: Should check if we should use global or media address.
     if(!streamer_->addPeer(sessionID,
                            peerInfo->media.at(0).connection_address,
                            localInfo->media.at(0).connection_address))
@@ -140,7 +140,7 @@ void MediaManager::addParticipant(uint32_t sessionID,
   }
 
   // create each agreed media stream
-  for(int i = 0; i <peerInfo->media.size(); ++i)  {
+  for(int i = 0; i < peerInfo->media.size(); ++i)  {
     // TODO: I don't like that we match
     createOutgoingMedia(sessionID,
                         localInfo->media.at(i),
@@ -148,7 +148,7 @@ void MediaManager::addParticipant(uint32_t sessionID,
                         peerInfo->media.at(i));
   }
 
-  // TODO: THis should be got from somewhere instead of guessed.
+  // TODO: videoID should be gotten from somewhere instead of guessed
   uint32_t videoID = 0;
   for (int i = 0; i < localInfo->media.size(); ++i)
   {
@@ -399,7 +399,7 @@ void MediaManager::transportAttributes(const QList<SDPAttributeType>& attributes
 
 void MediaManager::sdpToStats(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> sdp, bool incoming)
 {
-  // TODO: This feels like a hack to this here. Instead we should give stats the whole SDP
+  // TODO: This feels like a hack to do this here. Instead we should give stats the whole SDP
   QStringList ipList;
   QStringList audioPorts;
   QStringList videoPorts;

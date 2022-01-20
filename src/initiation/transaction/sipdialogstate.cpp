@@ -172,7 +172,7 @@ void SIPDialogState::processOutgoingRequest(SIPRequest& request, QVariant& conte
       else
       {
         request.requestURI = route_.first().address.uri;
-        // TODO: String all parameters not allowed in request-URI
+        // TODO: All parameters not allowed in request-URI
 
         QList<SIPRouteLocation> routes = route_;
         routes.pop_front();
@@ -311,8 +311,6 @@ void SIPDialogState::processIncomingResponse(SIPResponse& response, QVariant& co
                                     {"Our CSeq", "Response CSeq"},
                                     {QString::number(localCseq_),
                                      QString::number(response.message->cSeq.cSeq)});
-
-    // TODO: if remote cseq in message is lower than remote cseq, send 500
     return;
   }
 

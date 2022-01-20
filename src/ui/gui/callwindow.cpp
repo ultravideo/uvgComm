@@ -172,7 +172,7 @@ void CallWindow::on_addContact_clicked()
 
 void CallWindow::addContact()
 {
-  // TODO: support dns
+  // TODO: support DNS
   QRegularExpression re_ip ("\\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\\.|$)){4}\\b");
   QRegularExpressionMatch ip_match = re_ip.match(ui_->address->text());
 
@@ -325,6 +325,8 @@ void CallWindow::on_settings_button_clicked()
 void CallWindow::screensShareButton()
 {
   Logger::getLogger()->printNormal(this, "Changing state of screen share");
+
+  // TODO: Show here a preview of each screen/window
 
   // we change the state of screensharestatus setting here
   settingsView_.setScreenShareState(!settingEnabled(SettingsKey::screenShareStatus));

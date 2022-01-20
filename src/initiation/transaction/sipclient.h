@@ -18,18 +18,9 @@ public:
   SIPClient();
   ~SIPClient();
 
-  // used to inform the other peer that this request expires. Used with INVITE
+  // Used to inform the other peer when this request expires. Used with INVITE
   // and REGISTER transactions
   void setNextTransactionExpires(uint32_t timeout);
-
-
-  // have we sent this kind of request
-  // TODO: Will be obsolete with new architecture
-  bool waitingResponse(SIPRequestMethod requestType)
-  {
-    return ongoingTransactionType_ == requestType
-        && requestType != SIP_NO_REQUEST;
-  }
 
 public slots:
 

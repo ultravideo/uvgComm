@@ -267,7 +267,7 @@ bool SIPTransport::parsePackage(QString package, QStringList& headers, QStringLi
       contentLength = value.toInt();
       if (contentLength < 0)
       {
-        // TODO: Warn the user maybe. Maybe also ban the user at least temporarily.
+        // TODO: Warn the user maybe. Maybe also ban the peer at least temporarily.
         Logger::getLogger()->printDebug(DEBUG_PEER_ERROR, this,
                    "Got negative content-length! Peer is doing something very strange.");
         return false;

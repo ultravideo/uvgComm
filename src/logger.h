@@ -81,7 +81,6 @@ public:
 
   // Print debug information with custom class name. Use this and getname with filters.
   // context is a general context that makes it easier to link different prints to one another.
-  // TODO: Fix different threads printing at the same time.
   // TODO: Make into a template
   void printDebug(DebugType type, QString className, QString description = "",
                   QStringList valueNames = {}, QStringList values = {});

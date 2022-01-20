@@ -289,7 +289,7 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::stu
 
     if (stunAddresses_.size() < streams)
     {
-      // the STUN candidates havent had time to refresh yet
+      // the STUN candidates haven't had time to refresh yet
 
       stunMutex_.unlock();
 

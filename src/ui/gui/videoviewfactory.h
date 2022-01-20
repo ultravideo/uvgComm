@@ -38,7 +38,7 @@ private:
 
   void checkInitializations(uint32_t sessionID);
 
-  //TODO: make shared ptr so they get deleted
+  // TODO: make these are deleted at some point
   std::map<uint32_t, std::shared_ptr<std::vector<QWidget*>>> sessionIDtoWidgetlist_;
   std::map<uint32_t, std::shared_ptr<std::vector<VideoInterface*>>> sessionIDtoVideolist_;
 

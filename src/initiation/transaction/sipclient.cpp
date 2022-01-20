@@ -152,7 +152,7 @@ void SIPClient::processTimeout()
 
   ongoingTransactionType_ = SIP_NO_REQUEST;
 
-  // TODO: Figure out a way to delete in case BYE timeouts
+  // TODO: Figure out a way to delete in case BYE timeout
 }
 
 

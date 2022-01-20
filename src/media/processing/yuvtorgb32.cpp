@@ -45,7 +45,8 @@ void YUVtoRGB32::process()
     uint32_t finalDataSize = input->width*input->height*4;
     std::unique_ptr<uchar[]> rgb32_frame(new uchar[finalDataSize]);
 
-    // TODO: Select thread count based on input resolution. Anything above fullhd should be around 2
+    // TODO: Select thread count based on input resolution instead of settings.
+    // Anything above fullhd should be around 2
     if (getHWManager()->isAVX2Enabled() && threadCount_ != 1 && input->width % 16 == 0)
     {
       yuv2rgb_i_avx2(input->data.get(), rgb32_frame.get(), input->width, input->height,

@@ -20,7 +20,9 @@
 const QStringList neededSettings = {SettingsKey::localRealname,
                                     SettingsKey::localUsername,
                                     SettingsKey::sipServerAddress,
-                                    SettingsKey::sipAutoConnect};Settings::Settings(QWidget *parent) :
+                                    SettingsKey::sipAutoConnect};
+
+Settings::Settings(QWidget *parent) :
   QDialog(parent),
   basicUI_(new Ui::BasicSettings),
   cam_(std::shared_ptr<CameraInfo> (new CameraInfo())),
@@ -117,7 +119,7 @@ void Settings::init()
   // never start with screen sharing turned on
   setScreenShareState(false);
 
-  // TODO: Also emit the position of closed window and move this setting there
+  // TODO: Also record the position of closed settings window and move the window there when shown again
 }
 
 

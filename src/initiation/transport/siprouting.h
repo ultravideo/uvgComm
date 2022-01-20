@@ -31,9 +31,6 @@ public slots:
   // Also sets our contact address if rport was set.
   virtual void processIncomingResponse(SIPResponse& response, QVariant& content);
 
-
-  // TODO: Should we also check the incoming request. Test with server
-
 private:
 
   // check the rport value if

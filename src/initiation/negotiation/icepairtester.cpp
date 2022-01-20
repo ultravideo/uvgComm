@@ -106,9 +106,6 @@ void IcePairTester::run()
   Logger::getLogger()->printNormal(this, debugType_ + " starts connectivity tests.", 
                                    {"Pair"}, {debugPair_});
 
-  // TODO: I believe the testing should be identical for controller and controllee
-  // at binding phase and done simultaniously.
-
   // binding phase
   if (controller_)
   {
@@ -281,7 +278,9 @@ bool IcePairTester::controlleeBinding(ICEPair *pair)
 {
   Q_ASSERT(pair != nullptr);
 
-  //TODO: Should the checks be performed at the same time?
+  //TODO: Should the checks be performed at the same time? To me the need for dummy packets makes little
+  // sense to me, the RFC must have a way to handle this situation differently
+
   // Dummy packet sending so the port can be hole-punched.
   bool msgReceived   = false;
   STUNMessage msg    = stunmsg_.createRequest();

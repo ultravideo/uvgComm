@@ -262,7 +262,7 @@ void SIPRouting::getGruus(std::shared_ptr<SIPMessageHeader> message)
   {
     for (int i = 0; i < contact.parameters.size() && tempGruu == ""; ++i)
     {
-      // TODO: Check that pub-gruu does not change
+      // TODO: Check that pub-gruu does not change from what we sent
       if (contact.parameters.at(i).name == "pub-gruu")
       {
         pubGruu = contact.parameters.at(i).value;

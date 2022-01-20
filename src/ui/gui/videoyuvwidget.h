@@ -16,9 +16,6 @@
 #include <deque>
 #include <memory>
 
-
-// TODO: duplicate code in this and videowidget.
-
 class StatisticsInterface;
 
 // The normal QOpenGLFunctions provides access to ES API so the whole API is used instead

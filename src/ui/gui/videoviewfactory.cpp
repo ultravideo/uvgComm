@@ -30,14 +30,15 @@ size_t VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent,
   QWidget* vw = nullptr;
   VideoInterface* video = nullptr;
 
+
+  // couldn't get these to work with videointerface, so the videowidget is used.
+  // TODO: try qobject_cast to get the signal working for videointerface
+
   if(false && !opengl_) // YUV widget not working yet
   {
     VideoYUVWidget* yuv = new VideoYUVWidget(parent, sessionID);
     vw = yuv;
     video = yuv;
-
-    // couldn't get this to work with videointerface, so the videowidget is used.
-    // TODO: try qobject_cast to get the signal working for interface
 
     // signals reattaching after fullscreen mode
     QObject::connect(yuv, &VideoYUVWidget::reattach, conf, &ConferenceView::reattachWidget);
@@ -52,7 +53,6 @@ size_t VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent,
     video = opengl;
 
     // couldn't get this to work with videointerface, so the videowidget is used.
-    // TODO: try qobject_cast to get the signal working for interface
 
     // signals reattaching after fullscreen mode
     QObject::connect(opengl, &VideoGLWidget::reattach, conf, &ConferenceView::reattachWidget);
@@ -64,7 +64,6 @@ size_t VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent,
     vw = normal;
     video = normal;
     // couldn't get this to work with videointerface, so the videowidget is used.
-    // TODO: try qobject_cast to get the signal working for interface
 
     // signals reattaching after fullscreen mode
     QObject::connect(normal, &VideoWidget::reattach, conf, &ConferenceView::reattachWidget);

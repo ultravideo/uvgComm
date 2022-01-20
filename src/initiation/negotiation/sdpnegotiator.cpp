@@ -13,7 +13,7 @@ SDPNegotiator::SDPNegotiator()
 
 std::shared_ptr<SDPMessageInfo> SDPNegotiator::generateLocalSDP(QString localAddress)
 {
-  // TODO: This should ask media manager, what options it supports.
+  // TODO: The desired media formats should come from outside initiation as a parameter
 
   Logger::getLogger()->printNormal(this,
                                    "Generating new SDP message with our address",
@@ -32,7 +32,6 @@ std::shared_ptr<SDPMessageInfo> SDPNegotiator::generateLocalSDP(QString localAdd
     return nullptr;
   }
 
-  // TODO: Get suitable SDP from media manager
   std::shared_ptr<SDPMessageInfo> newInfo = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
   newInfo->version = 0;
   generateOrigin(newInfo, localAddress);

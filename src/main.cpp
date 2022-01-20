@@ -20,7 +20,6 @@ int main(int argc, char *argv[])
   Logger::getLogger()->printDebug(DEBUG_NORMAL, "Main", "Starting Kvazzup.",
     {"Location"}, {QDir::currentPath()});
 
-  // TODO move to GUI
   int id = QFontDatabase::addApplicationFont(QDir::currentPath() + "/fonts/OpenSans-Regular.ttf");
 
   if(id != -1)

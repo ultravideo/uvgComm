@@ -30,6 +30,7 @@ signals:
   void outgoingRequest(SIPRequest& request, QVariant& content);
   void outgoingResponse(SIPResponse& response, QVariant& content);
 
+  // TODO: have some sort of error state attached to incoming requests
   void incomingRequest(SIPRequest& request, QVariant& content);
   void incomingResponse(SIPResponse& response, QVariant& content);
 

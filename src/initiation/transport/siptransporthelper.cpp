@@ -217,7 +217,7 @@ QString addContent(const std::shared_ptr<SIPMessageHeader> header,
                    QVariant &content)
 {
   // TODO: QString is probably not the right container for content
-  // since it can also be audio or video. QByteArray would probably be better
+  // since it can also be audio, video or an image. QByteArray would probably be better
 
   QString contentString = "";
 

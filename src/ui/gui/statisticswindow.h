@@ -192,7 +192,6 @@ private:
 
   uint64_t packetsDropped_;
 
-  // TODO: delete these
   uint32_t videoEncDelayIndex_;
   std::vector<ValueInfo*> videoEncDelay_;
   uint32_t audioEncDelayIndex_;
