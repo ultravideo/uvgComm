@@ -23,13 +23,14 @@ const std::vector<std::pair<QString,
                             std::function<bool(QList<SIPField>& fields,
                                                std::shared_ptr<SIPMessageHeader>)>>> composing =
 {
-    // fields probably needed by proxy
+    // fields probably needed by proxy are first for faster processing
     {"Call-ID",             includeCallIDField},
     {"CSeq",                includeCSeqField},
     {"From",                includeFromField},
     {"To",                  includeToField},
     {"Via",                 includeViaFields},
     {"Contact",             includeContactField},
+    {"Record-Route",        includeRecordRouteField},
     {"Route",               includeRouteField},
     {"Proxy-Authorization", includeProxyAuthorizationField},
     {"Proxy-Require",       includeProxyRequireField},
@@ -58,7 +59,6 @@ const std::vector<std::pair<QString,
     {"Organization",        includeOrganizationField},
     {"Priority",            includePriorityField},
     {"Proxy-Authenticate",  includeProxyAuthenticateField},
-    {"Record-Route",        includeRecordRouteField},
     {"Reply-To",            includeReplyToField},
     {"Require",             includeRequireField},
     {"Retry-After",         includeRetryAfterField},
