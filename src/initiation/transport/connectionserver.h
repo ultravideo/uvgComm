@@ -1,6 +1,8 @@
 #pragma once
 #include <QTcpServer>
 
+#include <memory>
+
 class TCPConnection;
 
 // a server that monitors TCP connections and emits signal when connection
