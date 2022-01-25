@@ -79,6 +79,11 @@ void SIPServer::processIncomingRequest(SIPRequest& request, QVariant& content)
 
 bool SIPServer::doesCANCELMatchRequest(SIPRequest &request) const
 {
+  if (receivedRequest_ == nullptr)
+  {
+    Logger::getLogger()->printError(this, "No previous request with CANCEL");
+  }
+
   // see section 9.1 of RFC 3261
   return receivedRequest_ != nullptr &&
       receivedRequest_->requestURI == request.requestURI &&

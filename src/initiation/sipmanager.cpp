@@ -433,6 +433,12 @@ void SIPManager::processSIPRequest(SIPRequest& request, QVariant& content)
 
       createDialog(sessionID, local, request.message->from.address, localAddress, false);
     }
+    else if (request.method == SIP_CANCEL && identifyCANCELSession(request, sessionID))
+    {
+      Logger::getLogger()->printNormal(this, "They are cancelling their request");
+      // the processing of CANCEL is handled in same way as other requests, it is just
+      // identified differently
+    }
     else
     {
       Logger::getLogger()->printUnimplemented(this, "Out of Dialog request");
@@ -549,6 +555,25 @@ bool SIPManager::identifySession(SIPResponse &response, uint32_t& out_sessionID)
                                                 response.message->from.tagParameter))
     {
       Logger::getLogger()->printNormal(this, "Found matching dialog for incoming response");
+      out_sessionID = i->first;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+
+bool SIPManager::identifyCANCELSession(SIPRequest &request, uint32_t& out_sessionID)
+{
+  out_sessionID = 0;
+  // find the request which is being cancelled
+  for (auto i = dialogs_.begin(); i != dialogs_.end(); ++i)
+  {
+    if (i->second != nullptr &&
+        i->second->server->doesCANCELMatchRequest(request))
+    {
+      Logger::getLogger()->printNormal(this, "Found matching request for cancellation");
       out_sessionID = i->first;
       return true;
     }
@@ -743,7 +768,7 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
 
 
   std::shared_ptr<SIPClient> client = std::shared_ptr<SIPClient> (new SIPClient);
-  std::shared_ptr<SIPServer> server = std::shared_ptr<SIPServer> (new SIPServer);
+  dialog->server = std::shared_ptr<SIPServer> (new SIPServer);
 
   // Initiatiate all the components of the flow.
   dialog->call.init(transactionUser_, sessionID);
@@ -761,7 +786,7 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
   dialog->pipe.addProcessor(ice);
   dialog->pipe.addProcessor(negotiation);
   dialog->pipe.addProcessor(client);
-  dialog->pipe.addProcessor(server);
+  dialog->pipe.addProcessor(dialog->server);
 
   // Connect the pipe to call and transmission functions.
   dialog->call.connectOutgoingProcessor(dialog->pipe);

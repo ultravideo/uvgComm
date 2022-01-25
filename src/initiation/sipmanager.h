@@ -20,6 +20,7 @@
  * parameters with peers.
  */
 
+class SIPServer;
 
 // The components specific to one dialog
 struct DialogInstance
@@ -27,6 +28,7 @@ struct DialogInstance
   SIPMessageFlow pipe;
   // state is used to find out whether message belongs to this dialog
   std::shared_ptr<SIPDialogState> state;
+  std::shared_ptr<SIPServer> server; // for identifying cancel
   SIPSingleCall call;
 };
 
@@ -114,6 +116,9 @@ private:
 
   bool identifySession(SIPResponse &response,
                        uint32_t& out_sessionID);
+
+  bool identifyCANCELSession(SIPRequest &request,
+                             uint32_t& out_sessionID);
 
   // reserve sessionID for a future call
   uint32_t reserveSessionID();
