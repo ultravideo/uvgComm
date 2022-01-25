@@ -130,7 +130,9 @@ void SIPSingleCall::processIncomingRequest(SIPRequest& request, QVariant& conten
   case SIP_CANCEL:
   {
     transactionUser_->cancelIncomingCall(sessionID_);
-    // TODO: send 487 for INVITE
+    SIPResponse response = createResponse(SIP_REQUEST_TERMINATED);
+    QVariant content;
+    emit outgoingResponse(response, content);
     shouldLive_ = false;
     return;
   }
