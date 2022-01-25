@@ -20,25 +20,47 @@ QStringList MicrophoneInfo::getDeviceList()
   //Logger::getLogger()->printDebug(DEBUG_NORMAL, "Microphone Info", "Get microhone list",
   //                                {"Microphones"}, {QString::number(microphones.size())});
 
+
+
+#if QT_VERSION_MAJOR >= 5 && QT_VERSION_MINOR >= 14
+  // exclude WASAPI devices unless they are the only option.
+  // They seemed worse than default in my tests
+  bool onlyWasapi = true;
   for (int i = 0; i < microphones.size(); ++i)
   {
-    // take only the device name from: "Microphone (device name)"
-    QRegularExpression re_mic (".*\\((.+)\\).*");
-    QRegularExpressionMatch mic_match = re_mic.match(microphones.at(i).deviceName());
-
-
-    if (mic_match.hasMatch() && mic_match.lastCapturedIndex() == 1)
+    if (microphones.at(i).realm() != "wasapi")
     {
-      // parsed extra text succesfully
-      list.push_back(mic_match.captured(1));
+      onlyWasapi = false;
     }
-    else
+  }
+#endif
+
+  for (int i = 0; i < microphones.size(); ++i)
+  {
+#if QT_VERSION_MAJOR >= 5 && QT_VERSION_MINOR >= 14
+    if (microphones.at(i).realm() != "wasapi" || onlyWasapi)
+#else
+    if (true)
+#endif
     {
-      // did not find extra text. Using everything
-      list.push_back(microphones.at(i).deviceName());
+      // take only the device name from: "Microphone (device name)"
+      QRegularExpression re_mic (".*\\((.+)\\).*");
+      QRegularExpressionMatch mic_match = re_mic.match(microphones.at(i).deviceName());
+
+      if (mic_match.hasMatch() && mic_match.lastCapturedIndex() == 1)
+      {
+        // parsed extra text succesfully
+        list.push_back(mic_match.captured(1));
+      }
+      else
+      {
+        // did not find extra text. Using everything
+        list.push_back(microphones.at(i).deviceName());
+      }
     }
   }
 
+  // the texts in this list must match exactly what the audio input is searching for
   return list;
 }
 
