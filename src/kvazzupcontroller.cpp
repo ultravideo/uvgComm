@@ -314,7 +314,7 @@ void KvazzupController::createSingleCall(uint32_t sessionID)
 
 void KvazzupController::cancelIncomingCall(uint32_t sessionID)
 {
-  removeSession(sessionID, "They cancelled", true);
+  removeSession(sessionID, "Cancelled", true);
 }
 
 
@@ -393,7 +393,7 @@ void KvazzupController::userCancelsCall(uint32_t sessionID)
 {
   Logger::getLogger()->printNormal(this, "We cancel our call");
   sip_.cancelCall(sessionID);
-  removeSession(sessionID, "Cancelled", true);
+  removeSession(sessionID, "Call cancelled", true);
 }
 
 
