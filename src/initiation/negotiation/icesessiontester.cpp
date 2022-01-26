@@ -108,7 +108,7 @@ void IceSessionTester::run()
     return;
   }
 
-  QVector<std::shared_ptr<IceCandidateTester>> candidates;
+  QVector<std::shared_ptr<ICECandidateTester>> candidates;
 
   QString prevAddr  = "";
   uint16_t prevPort = 0;
@@ -139,14 +139,14 @@ void IceSessionTester::run()
     if (controller_)
     {
       QObject::connect(
-          interface.get(), &IceCandidateTester::controllerPairFound,
+          interface.get(), &ICECandidateTester::controllerPairFound,
           this,            &IceSessionTester::componentSucceeded,
           Qt::DirectConnection);
     }
     else
     {
       QObject::connect(
-          interface.get(), &IceCandidateTester::controlleeNominationDone,
+          interface.get(), &ICECandidateTester::controlleeNominationDone,
           this,            &IceSessionTester::componentSucceeded,
           Qt::DirectConnection);
     }
@@ -178,7 +178,7 @@ void IceSessionTester::run()
   // non-controller does not reach this point until after nomination (or timeout).
   if (controller_)
   {
-    IceCandidateTester tester;
+    ICECandidateTester tester;
     if (!tester.performNomination(nominated_))
     {
       emit iceFailure();
@@ -193,10 +193,10 @@ void IceSessionTester::run()
 }
 
 
-std::shared_ptr<IceCandidateTester> IceSessionTester::createCandidateTester(
+std::shared_ptr<ICECandidateTester> IceSessionTester::createCandidateTester(
     std::shared_ptr<ICEInfo> local)
 {
-  std::shared_ptr<IceCandidateTester> tester = std::make_shared<IceCandidateTester>();
+  std::shared_ptr<ICECandidateTester> tester = std::make_shared<ICECandidateTester>();
 
   QHostAddress bindAddress = QHostAddress(local->address);
   quint16 bindPort = local->port;

@@ -1,6 +1,6 @@
 #include "sipmanager.h"
 
-#include "initiation/negotiation/negotiation.h"
+#include "initiation/negotiation/sdpnegotiation.h"
 #include "initiation/negotiation/networkcandidates.h"
 #include "initiation/negotiation/ice.h"
 #include "initiation/transaction/sipserver.h"
@@ -755,16 +755,16 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
   std::shared_ptr<DialogInstance> dialog = std::shared_ptr<DialogInstance> (new DialogInstance);
   dialogs_[sessionID] = dialog;
 
-  std::shared_ptr<Negotiation> negotiation =
-      std::shared_ptr<Negotiation> (new Negotiation(localAddress));
+  std::shared_ptr<SDPNegotiation> negotiation =
+      std::shared_ptr<SDPNegotiation> (new SDPNegotiation(localAddress));
   std::shared_ptr<ICE> ice = std::shared_ptr<ICE> (new ICE(nCandidates_, sessionID));
 
   QObject::connect(ice.get(),         &ICE::nominationSucceeded,
-                   negotiation.get(), &Negotiation::nominationSucceeded,
+                   negotiation.get(), &SDPNegotiation::nominationSucceeded,
                    Qt::DirectConnection);
 
   QObject::connect(ice.get(),         &ICE::nominationFailed,
-                   negotiation.get(), &Negotiation::iceNominationFailed);
+                   negotiation.get(), &SDPNegotiation::iceNominationFailed);
 
 
   std::shared_ptr<SIPClient> client = std::shared_ptr<SIPClient> (new SIPClient);
@@ -775,10 +775,10 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
   dialog->state = std::shared_ptr<SIPDialogState> (new SIPDialogState);
   dialog->state->init(local, remote, ourDialog);
 
-  QObject::connect(negotiation.get(), &Negotiation::iceNominationSucceeded,
+  QObject::connect(negotiation.get(), &SDPNegotiation::iceNominationSucceeded,
                     this, &SIPManager::nominationSucceeded);
 
-  QObject::connect(negotiation.get(), &Negotiation::iceNominationFailed,
+  QObject::connect(negotiation.get(), &SDPNegotiation::iceNominationFailed,
                     this, &SIPManager::nominationFailed);
 
   // Add all components to the pipe.

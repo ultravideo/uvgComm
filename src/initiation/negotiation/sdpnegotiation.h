@@ -1,6 +1,6 @@
 #pragma once
 
-#include "sdpnegotiator.h"
+
 #include "initiation/negotiation/sdptypes.h"
 
 #include "initiation/sipmessageprocessor.h"
@@ -28,11 +28,11 @@ enum NegotiationState {NEG_NO_STATE,
                        NEG_FINISHED};
 
 
-class Negotiation : public SIPMessageProcessor
+class SDPNegotiation : public SIPMessageProcessor
 {
   Q_OBJECT
 public:
-  Negotiation(QString localAddress);
+  SDPNegotiation(QString localAddress);
 
   // frees the ports when they are not needed in rest of the program
   virtual void uninit();
@@ -91,8 +91,6 @@ private:
   std::shared_ptr<SDPMessageInfo> remoteSDP_;
 
   NegotiationState negotiationState_;
-
-  SDPNegotiator negotiator_;
 
   // used to set the initial connection address in SDP. This only for spec,
   // the actual addresses used are determined by ICE.

@@ -1,4 +1,6 @@
-#include "negotiation.h"
+#include "sdpnegotiation.h"
+
+#include "sdpnegotiationhelper.h"
 
 #include "common.h"
 #include "global.h"
@@ -6,11 +8,10 @@
 
 #include <QVariant>
 
-Negotiation::Negotiation(QString localAddress):
+SDPNegotiation::SDPNegotiation(QString localAddress):
   localSDP_(nullptr),
   remoteSDP_(nullptr),
   negotiationState_(NEG_NO_STATE),
-  negotiator_(),
   localAddress_(localAddress),
   peerAcceptsSDP_(false)
 {
@@ -19,7 +20,7 @@ Negotiation::Negotiation(QString localAddress):
 }
 
 
-void Negotiation::processOutgoingRequest(SIPRequest& request, QVariant& content)
+void SDPNegotiation::processOutgoingRequest(SIPRequest& request, QVariant& content)
 {
   Logger::getLogger()->printNormal(this, "Processing outgoing request");
 
@@ -48,7 +49,7 @@ void Negotiation::processOutgoingRequest(SIPRequest& request, QVariant& content)
 }
 
 
-void Negotiation::processOutgoingResponse(SIPResponse& response, QVariant& content)
+void SDPNegotiation::processOutgoingResponse(SIPResponse& response, QVariant& content)
 {
   if (response.type == SIP_OK &&
       response.message->cSeq.method == SIP_INVITE)
@@ -88,7 +89,7 @@ void Negotiation::processOutgoingResponse(SIPResponse& response, QVariant& conte
 }
 
 
-void Negotiation::processIncomingRequest(SIPRequest& request, QVariant& content)
+void SDPNegotiation::processIncomingRequest(SIPRequest& request, QVariant& content)
 {
   Logger::getLogger()->printNormal(this, "Processing incoming request");
 
@@ -148,7 +149,7 @@ void Negotiation::processIncomingRequest(SIPRequest& request, QVariant& content)
 }
 
 
-void Negotiation::processIncomingResponse(SIPResponse& response, QVariant& content)
+void SDPNegotiation::processIncomingResponse(SIPResponse& response, QVariant& content)
 {
   if(response.message->cSeq.method == SIP_INVITE && response.type == SIP_OK)
   {
@@ -201,10 +202,10 @@ void Negotiation::processIncomingResponse(SIPResponse& response, QVariant& conte
 }
 
 
-bool Negotiation::generateOfferSDP(QString localAddress)
+bool SDPNegotiation::generateOfferSDP(QString localAddress)
 {
   Logger::getLogger()->printNormal(this, "Getting local SDP suggestion");
-  std::shared_ptr<SDPMessageInfo> localSDP = negotiator_.generateLocalSDP(localAddress);
+  std::shared_ptr<SDPMessageInfo> localSDP = generateLocalSDP(localAddress);
   // TODO: Set also media sdp parameters.
 
   if(localSDP != nullptr)
@@ -218,11 +219,11 @@ bool Negotiation::generateOfferSDP(QString localAddress)
 }
 
 
-bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
+bool SDPNegotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
                                     QString localAddress)
 {
   // check if suitable.
-  if(!negotiator_.checkSDPOffer(remoteSDPOffer))
+  if(!checkSDPOffer(remoteSDPOffer))
   {
     Logger::getLogger()->printNormal(this,
                                      "Incoming SDP did not have Opus and H265 in their offer.");
@@ -234,7 +235,7 @@ bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
 
   // generate our SDP.
   std::shared_ptr<SDPMessageInfo> localSDP =
-      negotiator_.negotiateSDP(remoteSDPOffer, localAddress);
+      negotiateSDP(remoteSDPOffer, localAddress);
 
   if (localSDP == nullptr)
   {
@@ -257,7 +258,7 @@ bool Negotiation::generateAnswerSDP(SDPMessageInfo &remoteSDPOffer,
 }
 
 
-bool Negotiation::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer)
+bool SDPNegotiation::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer)
 {
   Logger::getLogger()->printDebug(DEBUG_NORMAL, "Negotiation", 
                                   "Starting to process answer SDP.");
@@ -275,7 +276,7 @@ bool Negotiation::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer)
 
   // this function blocks until a candidate is nominated or all candidates are considered
   // invalid in which case it returns false to indicate error
-  if (negotiator_.checkSDPOffer(remoteSDPAnswer))
+  if (checkSDPOffer(remoteSDPAnswer))
   {
     std::shared_ptr<SDPMessageInfo> remoteSDP
         = std::shared_ptr<SDPMessageInfo>(new SDPMessageInfo);
@@ -291,7 +292,7 @@ bool Negotiation::processAnswerSDP(SDPMessageInfo &remoteSDPAnswer)
 }
 
 
-void Negotiation::uninit()
+void SDPNegotiation::uninit()
 {
 
   if (localSDP_ != nullptr)
@@ -310,7 +311,7 @@ void Negotiation::uninit()
 }
 
 
-void Negotiation::nominationSucceeded(QList<std::shared_ptr<ICEPair>>& streams,
+void SDPNegotiation::nominationSucceeded(QList<std::shared_ptr<ICEPair>>& streams,
                                       quint32 sessionID)
 {
   if (!checkSessionValidity(true))
@@ -329,22 +330,22 @@ void Negotiation::nominationSucceeded(QList<std::shared_ptr<ICEPair>>& streams,
   // Video. 0 is RTP, 1 is RTCP
   if (streams.at(0) != nullptr && streams.at(1) != nullptr)
   {
-    negotiator_.setMediaPair(localSDP_->media[1],  streams.at(0)->local, true);
-    negotiator_.setMediaPair(remoteSDP_->media[1], streams.at(0)->remote, false);
+    setMediaPair(localSDP_->media[1],  streams.at(0)->local, true);
+    setMediaPair(remoteSDP_->media[1], streams.at(0)->remote, false);
   }
 
   // Audio. 2 is RTP, 3 is RTCP
   if (streams.at(2) != nullptr && streams.at(3) != nullptr)
   {
-    negotiator_.setMediaPair(localSDP_->media[0],  streams.at(2)->local, true);
-    negotiator_.setMediaPair(remoteSDP_->media[0], streams.at(2)->remote, false);
+    setMediaPair(localSDP_->media[0],  streams.at(2)->local, true);
+    setMediaPair(remoteSDP_->media[0], streams.at(2)->remote, false);
   }
 
   emit iceNominationSucceeded(sessionID, localSDP_, remoteSDP_);
 }
 
 
-bool Negotiation::checkSessionValidity(bool checkRemote) const
+bool SDPNegotiation::checkSessionValidity(bool checkRemote) const
 {
   Q_ASSERT(localSDP_ != nullptr);
   Q_ASSERT(remoteSDP_ != nullptr || !checkRemote);
@@ -359,7 +360,7 @@ bool Negotiation::checkSessionValidity(bool checkRemote) const
   return true;
 }
 
-bool Negotiation::SDPOfferToContent(QVariant& content, QString localAddress)
+bool SDPNegotiation::SDPOfferToContent(QVariant& content, QString localAddress)
 {
   std::shared_ptr<SDPMessageInfo> pointer;
 
@@ -380,7 +381,7 @@ bool Negotiation::SDPOfferToContent(QVariant& content, QString localAddress)
 }
 
 
-bool Negotiation::processOfferSDP(QVariant& content,
+bool SDPNegotiation::processOfferSDP(QVariant& content,
                                   QString localAddress)
 {
   if(!content.isValid())
@@ -403,7 +404,7 @@ bool Negotiation::processOfferSDP(QVariant& content,
 }
 
 
-bool Negotiation::SDPAnswerToContent(QVariant &content)
+bool SDPNegotiation::SDPAnswerToContent(QVariant &content)
 {
   SDPMessageInfo sdp;
   std::shared_ptr<SDPMessageInfo> pointer = localSDP_;
@@ -417,7 +418,7 @@ bool Negotiation::SDPAnswerToContent(QVariant &content)
 }
 
 
-bool Negotiation::processAnswerSDP(QVariant &content)
+bool SDPNegotiation::processAnswerSDP(QVariant &content)
 {
   SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
   if (!content.isValid())
@@ -437,7 +438,7 @@ bool Negotiation::processAnswerSDP(QVariant &content)
 }
 
 
-void Negotiation::addSDPAccept(std::shared_ptr<QList<SIPAccept>>& accepts)
+void SDPNegotiation::addSDPAccept(std::shared_ptr<QList<SIPAccept>>& accepts)
 {
   if (accepts == nullptr)
   {
@@ -448,7 +449,7 @@ void Negotiation::addSDPAccept(std::shared_ptr<QList<SIPAccept>>& accepts)
 }
 
 
-bool Negotiation::isSDPAccepted(std::shared_ptr<QList<SIPAccept>>& accepts)
+bool SDPNegotiation::isSDPAccepted(std::shared_ptr<QList<SIPAccept>>& accepts)
 {
   // sdp is accepted on default
   if (accepts == nullptr)

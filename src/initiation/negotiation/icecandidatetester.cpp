@@ -5,37 +5,37 @@
 #include "common.h"
 #include "logger.h"
 
-IceCandidateTester::IceCandidateTester()
+ICECandidateTester::ICECandidateTester()
 {}
 
 
-bool IceCandidateTester::bindInterface(QHostAddress interface, quint16 port)
+bool ICECandidateTester::bindInterface(QHostAddress interface, quint16 port)
 {
   QObject::connect(&udp_, &UDPServer::datagramAvailable,
-                   this, &IceCandidateTester::routeDatagram);
+                   this, &ICECandidateTester::routeDatagram);
 
   return udp_.bindSocket(interface, port);
 }
 
 
-void IceCandidateTester::startTestingPairs(bool controller)
+void ICECandidateTester::startTestingPairs(bool controller)
 {
   if (udp_.isBound())
   {
     for (auto& pair : pairs_)
     {
-      workerThreads_.push_back(std::shared_ptr<IcePairTester>(new IcePairTester(&udp_)));
+      workerThreads_.push_back(std::shared_ptr<ICEPairTester>(new ICEPairTester(&udp_)));
 
       if (controller)
       {
-        QObject::connect(workerThreads_.back().get(), &IcePairTester::controllerPairSucceeded,
-                         this,                        &IceCandidateTester::controllerPairFound,
+        QObject::connect(workerThreads_.back().get(), &ICEPairTester::controllerPairSucceeded,
+                         this,                        &ICECandidateTester::controllerPairFound,
                          Qt::DirectConnection);
       }
       else
       {
-        QObject::connect(workerThreads_.back().get(), &IcePairTester::controlleeNominationDone,
-                         this,                        &IceCandidateTester::controlleeNominationDone,
+        QObject::connect(workerThreads_.back().get(), &ICEPairTester::controlleeNominationDone,
+                         this,                        &ICECandidateTester::controlleeNominationDone,
                          Qt::DirectConnection);
       }
 
@@ -61,7 +61,7 @@ void IceCandidateTester::startTestingPairs(bool controller)
 }
 
 
-void IceCandidateTester::endTests()
+void ICECandidateTester::endTests()
 {
   if (udp_.isBound())
   {
@@ -80,13 +80,13 @@ void IceCandidateTester::endTests()
 }
 
 
-bool IceCandidateTester::performNomination(QList<std::shared_ptr<ICEPair>>& nominated)
+bool ICECandidateTester::performNomination(QList<std::shared_ptr<ICEPair>>& nominated)
 {
   workerThreads_.clear();
-  workerThreads_.push_back(std::shared_ptr<IcePairTester>(new IcePairTester(&udp_)));
+  workerThreads_.push_back(std::shared_ptr<ICEPairTester>(new ICEPairTester(&udp_)));
 
   connect(&udp_,                       &UDPServer::datagramAvailable,
-          workerThreads_.back().get(), &IcePairTester::recvStunMessage);
+          workerThreads_.back().get(), &ICEPairTester::recvStunMessage);
 
   for (auto& pair : nominated)
   {
@@ -110,14 +110,14 @@ bool IceCandidateTester::performNomination(QList<std::shared_ptr<ICEPair>>& nomi
 }
 
 
-void IceCandidateTester::routeDatagram(QNetworkDatagram message)
+void ICECandidateTester::routeDatagram(QNetworkDatagram message)
 {
   listenerMutex_.lock();
   // is anyone listening to messages from this sender?
   if (listeners_.contains(message.senderAddress().toString()) &&
       listeners_[message.senderAddress().toString()].contains(message.senderPort()))
   {
-    std::shared_ptr<IcePairTester> listener
+    std::shared_ptr<ICEPairTester> listener
         = listeners_[message.senderAddress().toString()][message.senderPort()];
 
     listenerMutex_.unlock();

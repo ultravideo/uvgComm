@@ -1,4 +1,4 @@
-#include "sdpnegotiator.h"
+#include "sdpnegotiationhelper.h"
 
 #include "mediacapabilities.h"
 
@@ -7,15 +7,12 @@
 
 #include <QDateTime>
 
-SDPNegotiator::SDPNegotiator()
-{}
 
-
-std::shared_ptr<SDPMessageInfo> SDPNegotiator::generateLocalSDP(QString localAddress)
+std::shared_ptr<SDPMessageInfo> generateLocalSDP(QString localAddress)
 {
   // TODO: The desired media formats should come from outside initiation as a parameter
 
-  Logger::getLogger()->printNormal(this,
+  Logger::getLogger()->printNormal("SDPNegotiationHelper",
                                    "Generating new SDP message with our address",
                                    "Local address", localAddress);
 
@@ -25,7 +22,7 @@ std::shared_ptr<SDPMessageInfo> SDPNegotiator::generateLocalSDP(QString localAdd
      || localAddress == "0.0.0.0"
      || localUsername == "")
   {
-    Logger::getLogger()->printWarning(this,
+    Logger::getLogger()->printWarning("SDPNegotiationHelper",
                                       "Necessary info not set for SDP generation",
                                       {"username"}, {localUsername});
 
@@ -56,9 +53,8 @@ std::shared_ptr<SDPMessageInfo> SDPNegotiator::generateLocalSDP(QString localAdd
 }
 
 
-
-std::shared_ptr<SDPMessageInfo> SDPNegotiator::negotiateSDP(SDPMessageInfo& remoteSDPOffer,
-                                                          QString localAddress)
+std::shared_ptr<SDPMessageInfo> negotiateSDP(SDPMessageInfo& remoteSDPOffer,
+                                             QString localAddress)
 {
   // At this point we should have checked if their offer is acceptable.
   // Now we just have to generate our answer.
@@ -128,9 +124,9 @@ std::shared_ptr<SDPMessageInfo> SDPNegotiator::negotiateSDP(SDPMessageInfo& remo
 }
 
 
-bool SDPNegotiator::selectBestCodec(QList<uint8_t>& remoteNums,       QList<RTPMap> &remoteCodecs,
-                                    QList<uint8_t>& supportedNums,    QList<RTPMap> &supportedCodecs,
-                                    QList<uint8_t>& outMatchingNums,  QList<RTPMap> &outMatchingCodecs)
+bool selectBestCodec(QList<uint8_t>& remoteNums,       QList<RTPMap> &remoteCodecs,
+                     QList<uint8_t>& supportedNums,    QList<RTPMap> &supportedCodecs,
+                     QList<uint8_t>& outMatchingNums,  QList<RTPMap> &outMatchingCodecs)
 {
   for (auto& remoteCodec : remoteCodecs)
   {
@@ -139,7 +135,7 @@ bool SDPNegotiator::selectBestCodec(QList<uint8_t>& remoteNums,       QList<RTPM
       if(remoteCodec.codec == supportedCodec.codec)
       {
         outMatchingCodecs.append(remoteCodec);
-        Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPNegotiator",  "Found suitable codec.");
+        Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPNegotiationHelper",  "Found suitable codec.");
 
         outMatchingNums.push_back(remoteCodec.rtpNum);
 
@@ -155,21 +151,22 @@ bool SDPNegotiator::selectBestCodec(QList<uint8_t>& remoteNums,       QList<RTPM
       if(rtpNumber == supportedNum)
       {
         outMatchingNums.append(rtpNumber);
-        Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPNegotiator",  "Found suitable RTP number.");
+        Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPNegotiationHelper",
+                                        "Found suitable RTP number.");
         return true;
       }
     }
   }
 
-  Logger::getLogger()->printDebug(DEBUG_ERROR, "SDPNegotiator",
+  Logger::getLogger()->printDebug(DEBUG_ERROR, "SDPNegotiationHelper",
                                   "Could not find suitable codec or RTP number for media.");
 
   return false;
 }
 
 
-void SDPNegotiator::generateOrigin(std::shared_ptr<SDPMessageInfo> sdp,
-                                 QString localAddress)
+void generateOrigin(std::shared_ptr<SDPMessageInfo> sdp,
+                    QString localAddress)
 {
   sdp->originator_username = getLocalUsername();
   sdp->sess_id = QDateTime::currentMSecsSinceEpoch();
@@ -187,8 +184,8 @@ void SDPNegotiator::generateOrigin(std::shared_ptr<SDPMessageInfo> sdp,
 }
 
 
-void SDPNegotiator::setConnectionAddress(std::shared_ptr<SDPMessageInfo> sdp,
-                                       QString localAddress)
+void setConnectionAddress(std::shared_ptr<SDPMessageInfo> sdp,
+                          QString localAddress)
 {
   sdp->connection_address = localAddress;
   sdp->connection_nettype = "IN";
@@ -203,7 +200,8 @@ void SDPNegotiator::setConnectionAddress(std::shared_ptr<SDPMessageInfo> sdp,
   }
 }
 
-bool SDPNegotiator::generateAudioMedia(MediaInfo &audio)
+
+bool generateAudioMedia(MediaInfo &audio)
 {
   // we ignore nettype, addrtype and address, because we use a global c=
   audio = {"audio", 0, "RTP/AVP", {},
@@ -220,7 +218,7 @@ bool SDPNegotiator::generateAudioMedia(MediaInfo &audio)
 }
 
 
-bool SDPNegotiator::generateVideoMedia(MediaInfo& video)
+bool generateVideoMedia(MediaInfo& video)
 {
   // we ignore nettype, addrtype and address, because we use a global c=
   video = {"video", 0, "RTP/AVP", {},
@@ -237,7 +235,7 @@ bool SDPNegotiator::generateVideoMedia(MediaInfo& video)
 }
 
 
-bool SDPNegotiator::checkSDPOffer(SDPMessageInfo &offer) const
+bool checkSDPOffer(SDPMessageInfo &offer)
 {
   // TODO: check everything.
 
@@ -246,7 +244,7 @@ bool SDPNegotiator::checkSDPOffer(SDPMessageInfo &offer) const
 
   if(offer.version != 0)
   {
-    Logger::getLogger()->printPeerError(this,
+    Logger::getLogger()->printPeerError("SDPNegotiationHelper",
                                         "Their offer had non-0 version",
                                         "Version",
                                         QString::number(offer.version));
@@ -277,7 +275,7 @@ bool SDPNegotiator::checkSDPOffer(SDPMessageInfo &offer) const
     }
   }
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, "Negotiation",
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPNegotiationHelper",
              "Found following codecs in SDP", {"Codecs"}, debugCodecsFound);
 
   if (offer.timeDescriptions.size() >= 1)
@@ -285,13 +283,13 @@ bool SDPNegotiator::checkSDPOffer(SDPMessageInfo &offer) const
     if (offer.timeDescriptions.at(0).startTime != 0 ||
         offer.timeDescriptions.at(0).stopTime != 0)
     {
-      Logger::getLogger()->printDebug(DEBUG_ERROR, "Negotiation",
+      Logger::getLogger()->printDebug(DEBUG_ERROR, "SDPNegotiationHelper",
                  "They offered us a session with limits. Unsupported.");
       return false;
     }
   }
   else {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "Negotiation",
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SDPNegotiationHelper",
                "they included wrong number of Time Descriptions. Should be detected earlier.");
     return false;
   }
@@ -301,13 +299,11 @@ bool SDPNegotiator::checkSDPOffer(SDPMessageInfo &offer) const
 }
 
 
-void SDPNegotiator::setMediaPair(MediaInfo& media,
-                                 std::shared_ptr<ICEInfo> mediaInfo,
-                                 bool local)
+void setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo, bool local)
 {
   if (mediaInfo == nullptr)
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SDPNegotiator", 
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SDPNegotiationHelper",
                                     "Null mediainfo in setMediaPair");
     return;
   }
@@ -326,5 +322,3 @@ void SDPNegotiator::setMediaPair(MediaInfo& media,
     media.receivePort        = mediaInfo->port;
   }
 }
-
-

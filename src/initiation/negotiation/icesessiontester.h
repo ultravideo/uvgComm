@@ -10,7 +10,7 @@
 
 #include <memory>
 
-class IceCandidateTester;
+class ICECandidateTester;
 
 /* Handles ICE testing for one session. */
 
@@ -54,7 +54,7 @@ protected:
 
 private:
 
-  std::shared_ptr<IceCandidateTester> createCandidateTester(std::shared_ptr<ICEInfo> local);
+  std::shared_ptr<ICECandidateTester> createCandidateTester(std::shared_ptr<ICEInfo> local);
 
   // wait until all components have succeeded or timeout has occured
   void waitForEndOfTesting(unsigned long timeout);

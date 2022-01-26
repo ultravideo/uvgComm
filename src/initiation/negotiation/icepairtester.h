@@ -11,13 +11,13 @@
  * Note that one local pair has one ICEPairTester for each remote candidate.
  */
 
-class IcePairTester : public QThread
+class ICEPairTester : public QThread
 {
   Q_OBJECT
 
 public:
-  IcePairTester(UDPServer *server);
-  ~IcePairTester();
+  ICEPairTester(UDPServer *server);
+  ~ICEPairTester();
   void setCandidatePair(std::shared_ptr<ICEPair> pair);
 
   // Whether we are the controller affects how testing is performed. Most

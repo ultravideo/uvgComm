@@ -7,16 +7,16 @@
 #include <QHostAddress>
 #include <QMutex>
 
-class IcePairTester;
+class ICEPairTester;
 
 /* Tests one local candidate against all remote candidates using
  * ICEPairTester for each tested connection */
 
-class IceCandidateTester : public QObject
+class ICECandidateTester : public QObject
 {
   Q_OBJECT
 public:
-  IceCandidateTester();
+  ICECandidateTester();
 
   // bind to port this tester is responsible for
   bool bindInterface(QHostAddress interface, quint16 port);
@@ -54,9 +54,9 @@ private:
   UDPServer udp_;
   QList<std::shared_ptr<ICEPair>> pairs_;
 
-  std::vector<std::shared_ptr<IcePairTester>> workerThreads_;
+  std::vector<std::shared_ptr<ICEPairTester>> workerThreads_;
 
-  QMap<QString, QMap<quint16, std::shared_ptr<IcePairTester>>> listeners_;
+  QMap<QString, QMap<quint16, std::shared_ptr<ICEPairTester>>> listeners_;
 
   QMutex listenerMutex_;
 };
