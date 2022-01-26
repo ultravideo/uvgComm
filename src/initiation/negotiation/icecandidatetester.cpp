@@ -127,6 +127,10 @@ void IceCandidateTester::routeDatagram(QNetworkDatagram message)
   {
     listenerMutex_.unlock();
     // TODO: This is where we should detect if we should add Peer Reflexive candidates.
+    Logger::getLogger()->printWarning(this, "We have encountered a peer reflexive candidate "
+                                            "which has not been implemented!",
+                                            "Address", message.senderAddress().toString() + ":" +
+                                      QString::number(message.senderPort()));
   }
   else
   {

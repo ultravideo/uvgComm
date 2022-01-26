@@ -156,7 +156,7 @@ void SIPTransport::networkPackage(QString package)
 
   if (!parsePackage(package, headers, bodies) ||  headers.size() != bodies.size())
   {
-    Logger::getLogger()->printWarning(this, "Did not receive the whole SIP message");
+    Logger::getLogger()->printNormal(this, "Did not receive the whole SIP message");
     --processingInProgress_;
     return;
   }
