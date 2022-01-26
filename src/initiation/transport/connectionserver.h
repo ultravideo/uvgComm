@@ -5,8 +5,8 @@
 
 class TCPConnection;
 
-// a server that monitors TCP connections and emits signal when connection
-// is received.
+/* A server that monitors TCP connections and emits signal when connection
+ * is received. */
 
 class ConnectionServer : public QTcpServer
 {

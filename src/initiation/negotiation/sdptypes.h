@@ -6,7 +6,6 @@
 #include <QList>
 #include <QMetaType>
 
-
 #include <memory>
 #include <stdint.h>
 

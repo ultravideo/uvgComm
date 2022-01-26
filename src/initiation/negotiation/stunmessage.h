@@ -37,6 +37,7 @@ struct STUNRawMessage
   unsigned char payload[256];
 };
 
+
 class STUNMessage
 {
 public:

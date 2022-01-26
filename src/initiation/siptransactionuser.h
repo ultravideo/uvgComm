@@ -5,9 +5,14 @@
 
 #include "initiation/negotiation/sdptypes.h"
 
-// defines funcions implemented by transaction user (TU). Transaction layer call this
-// to let the program (transaction user) know of changes or messages in SIP Transaction.
+/* Defines funcions implemented by transaction user (TU). Transaction layer call this
+ * to let the program (transaction user) know of changes or messages in SIP Transaction.
+ */
 
+// TODO: I've been thinking that it would be simpler to just pass the SIP messages as they
+// arrive to the rest of the application which can then react to them as they please.
+// The current implementation is more complicated in both ends, but especially in the SIP
+// section.
 
 class SIPTransactionUser
 {

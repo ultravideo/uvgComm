@@ -19,3 +19,6 @@ const QList<RTPMap> DYNAMIC_VIDEO_CODECS = {RTPMap{97, 90000, "h265", ""}};
 const QString SESSION_NAME = "HEVC Video Call";
 const QString CONFERENCE_SESSION_DESCRIPTION = "HEVC Video Conference";
 const QString SESSION_DESCRIPTION = "A Kvazzup initiated video communication";
+
+
+// TODO: Get these as configuration parameter from the main program

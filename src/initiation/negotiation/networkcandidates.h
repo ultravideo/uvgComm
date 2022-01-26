@@ -10,7 +10,7 @@
 
 #include <deque>
 
-// This class handles the reservation of ports for ICE candidates.
+
 struct STUNRequest
 {
   UDPServer udp;
@@ -18,6 +18,7 @@ struct STUNRequest
   bool finished;
 };
 
+/* This class handles the reservation of ports for ICE candidates. */
 
 class NetworkCandidates : public QObject
 {

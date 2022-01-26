@@ -80,7 +80,6 @@ private:
   // process their response SDP.
   bool processAnswerSDP(SDPMessageInfo& remoteSDPAnswer);
 
-
   // Is the internal state of this class correct for this sessionID
   bool checkSessionValidity(bool checkRemote) const;
 

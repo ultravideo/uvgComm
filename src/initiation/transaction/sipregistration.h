@@ -12,6 +12,9 @@ class SIPDialogState;
 class SIPTransactionUser;
 class ServerStatusView;
 
+/* Handles logic that is used for keeping registration up to date
+ * with REGISTER-requests. */
+
 class SIPRegistration : public SIPMessageProcessor
 {
   Q_OBJECT

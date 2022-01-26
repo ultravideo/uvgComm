@@ -7,7 +7,7 @@
 
 #include <memory>
 
-// This class is responsible for SDP based media negotiation.
+/* This class is responsible for SDP based media negotiation. */
 
 class SDPNegotiator : public QObject
 {

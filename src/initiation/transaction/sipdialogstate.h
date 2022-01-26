@@ -17,6 +17,7 @@
  * - To
  * - From
  * - Route
+ * - Request-URI
  *
  * Also responsible for the  Request-URI fields and CSeq number.
  */

@@ -13,6 +13,11 @@
 
 #include <memory>
 
+/* This class represents the ICE protocol component in the flow. The ICE
+ * protocol is used to the best pathway for the media by performing connectivity
+ * tests. The parameters of these tests are added to the SDP message and once
+ * both parties have received the parameters, the tests begin. */
+
 class IceSessionTester;
 
 class ICE : public SIPMessageProcessor
@@ -111,8 +116,6 @@ private:
 
   std::shared_ptr<NetworkCandidates> networkCandidates_;
   uint32_t sessionID_;
-
-  // information related to one nomination process
 
   std::shared_ptr<IceSessionTester> agent_;
 

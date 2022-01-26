@@ -20,7 +20,7 @@ public:
   // Convert from little endian to big endian and return the given STUN message as byte array
   QByteArray hostToNetwork(STUNMessage& message);
 
-  // Conver from big endian to little endian and return the byte array as STUN message
+  // Convert from big endian to little endian and return the byte array as STUN message
   bool networkToHost(QByteArray& message, STUNMessage &outSTUN);
 
   // return true if the saved transaction id and message's transaction id match

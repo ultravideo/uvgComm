@@ -11,15 +11,6 @@
 
 #include <QObject>
 
-/* This is a manager class that manages interactions between different
- * components in Session Initiation Protocol (SIP). This class should implement
- * as little functionality as possible.
- *
- * SIP consists of Transaction layer, Transport Layer and Transaction User (TU).
- * SIP uses Session Description Protocol (SDP) for negotiating the call session
- * parameters with peers.
- */
-
 class SIPServer;
 
 // The components specific to one dialog
@@ -51,7 +42,14 @@ class SIPTransactionUser;
 class StatisticsInterface;
 class NetworkCandidates;
 
-
+/* This is a manager class that manages interactions between different
+ * components in Session Initiation Protocol (SIP). This class should implement
+ * as little functionality as possible.
+ *
+ * SIP consists of Transaction layer, Transport Layer and Transaction User (TU).
+ * SIP uses Session Description Protocol (SDP) for negotiating the call session
+ * parameters with peers.
+ */
 
 class SIPManager : public QObject
 {

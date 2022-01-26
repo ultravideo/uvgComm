@@ -9,6 +9,9 @@
 
 class IcePairTester;
 
+/* Tests one local candidate against all remote candidates using
+ * ICEPairTester for each tested connection */
+
 class IceCandidateTester : public QObject
 {
   Q_OBJECT

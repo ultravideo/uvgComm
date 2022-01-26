@@ -5,9 +5,9 @@
 
 #include <QTimer>
 
-// A class for handling all sent requests and processing responses. The purpose
-// of this class is to keep track of request transaction state on client side.
-// see RFC 3261 for more details.
+/* A class for handling all sent requests and processing responses. The purpose
+ * of this class is to keep track of request transaction state on client side.
+ * See RFC 3261 for more details. */
 
 class SIPTransactionUser;
 

@@ -43,6 +43,7 @@ void ICE::processOutgoingRequest(SIPRequest& request, QVariant& content)
 
   if (peerSupportsICE_ && request.message->contentType == MT_APPLICATION_SDP)
   {
+
     addLocalStartNomination(content);
   }
 
@@ -170,7 +171,6 @@ QList<std::shared_ptr<ICEInfo>> ICE::generateICECandidates(
              QString::number(stunCandidates->size()),
              QString::number(stunBindings->size()),
              QString::number(turnCandidates->size())});
-
 
   QTime time = QTime::currentTime();
   srand((uint)time.msec());
@@ -478,6 +478,7 @@ void ICE::addICEToSupported(std::shared_ptr<QStringList>& supported)
 
   supported->append("ice");
 }
+
 
 bool ICE::isICEToSupported(std::shared_ptr<QStringList> supported)
 {

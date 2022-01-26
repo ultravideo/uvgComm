@@ -4,6 +4,9 @@
 
 #include "initiation/siptypes.h"
 
+/* This class handles the authentication for this connection
+ * should we receive a challenge */
+
 class SIPAuthentication : public SIPMessageProcessor
 {
   Q_OBJECT
@@ -18,7 +21,6 @@ public slots:
   // take challenge if they require authentication
   virtual void processIncomingResponse(SIPResponse& response, QVariant& content);
 
-
 private:
 
   DigestResponse generateAuthResponse(DigestChallenge& challenge, QString username,
@@ -26,6 +28,8 @@ private:
                                       QVariant& content);
 
   void updateNonceCount(DigestChallenge& challenge, DigestResponse& response);
+
+  // TODO: Test if these need to be separate
 
   QList<DigestChallenge> wwwChallenges_;
   QList<DigestChallenge> proxyChallenges_;

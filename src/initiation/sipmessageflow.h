@@ -6,7 +6,9 @@
 class SIPDialogState;
 class SIPSingleCall;
 
-// The message flow class also functions as
+/* This class represent a collection of processors that can be
+ * used as a single processor for simplicity. This removes the need
+ * for implementing processor flows in different places multiple times. */
 
 class SIPMessageFlow : public SIPMessageProcessor
 {

@@ -5,8 +5,11 @@
 
 #include <QObject>
 
-// The base class for one processor in SIP message processing flow.
-// Inherit this and reimplement desired functions.
+/* The base class for one processor in SIP message processing flow.
+ * Inherit this and reimplement desired functions. The default
+ * implementation simply passes the messages forward. You should
+ * probably remember to do this in your own implementations as well.
+ */
 
 class SIPMessageProcessor : public QObject
 {

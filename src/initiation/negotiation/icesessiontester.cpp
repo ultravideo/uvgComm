@@ -219,7 +219,7 @@ std::shared_ptr<IceCandidateTester> IceSessionTester::createCandidateTester(
     }
   }
 
-  // because we cannot modify create new objects from child threads we must bind here
+  // because we cannot modify objects created from child threads we must bind here
   tester->bindInterface(bindAddress, bindPort);
 
   return tester;

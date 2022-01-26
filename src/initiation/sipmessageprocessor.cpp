@@ -3,13 +3,13 @@
 #include "common.h"
 #include "logger.h"
 
+
 SIPMessageProcessor::SIPMessageProcessor()
 {}
 
 
 SIPMessageProcessor::~SIPMessageProcessor()
 {}
-
 
 
 void SIPMessageProcessor::uninit()

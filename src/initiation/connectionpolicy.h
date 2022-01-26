@@ -7,6 +7,8 @@
 /* This class is responsible for determining if the incoming connection
  * is allowed */
 
+// TODO: Implement this class
+
 class ConnectionPolicy
 {
 public:

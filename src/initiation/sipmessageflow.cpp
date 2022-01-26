@@ -7,9 +7,7 @@
 
 SIPMessageFlow::SIPMessageFlow():
   messageFlow_()
-{
-
-}
+{}
 
 
 void SIPMessageFlow::uninit()

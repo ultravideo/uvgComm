@@ -7,6 +7,10 @@
 #include <QThread>
 #include <memory>
 
+/* Test one possible connection between one local pair and one remote pair.
+ * Note that one local pair has one ICEPairTester for each remote candidate.
+ */
+
 class IcePairTester : public QThread
 {
   Q_OBJECT

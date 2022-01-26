@@ -12,6 +12,11 @@
 
 class IceCandidateTester;
 
+/* Handles ICE testing for one session. */
+
+// TODO: Make it possible to test multiple session concurrently
+// by moving stuff from ICE class to this class
+
 class IceSessionTester : public QThread
 {
   Q_OBJECT

@@ -7,10 +7,8 @@
 
 #include <stdint.h>
 
-// handles one connection
+/* Handles one TCP connection */
 // TODO: Implement a keep-alive CRLF sending.
-// TODO: This class is a bit wonky at the moment,
-// needs general improvement in functionality
 
 class TCPConnection : public QThread
 {

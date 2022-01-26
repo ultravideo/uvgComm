@@ -9,8 +9,8 @@
 
 #include <memory>
 
-// This class is responsible for via and contact fields of SIP Requests
-// and possible contact fields of responses
+/* This class is responsible for via and contact fields of SIP Requests
+ * and possible contact fields of responses */
 
 class SIPRouting : public SIPMessageProcessor
 {
