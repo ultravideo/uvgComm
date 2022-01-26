@@ -29,8 +29,6 @@ private:
 
   void updateNonceCount(DigestChallenge& challenge, DigestResponse& response);
 
-  // TODO: Test if these need to be separate
-
   QList<DigestChallenge> wwwChallenges_;
   QList<DigestChallenge> proxyChallenges_;
 
