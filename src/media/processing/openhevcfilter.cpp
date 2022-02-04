@@ -14,8 +14,9 @@ OpenHEVCFilter::OpenHEVCFilter(uint32_t sessionID, StatisticsInterface *stats,
                                std::shared_ptr<HWResourceManager> hwResources):
   Filter(QString::number(sessionID), "OpenHEVC", stats, hwResources, HEVCVIDEO, YUV420VIDEO),
   handle_(),
-  parameterSets_(false),
-  waitFrames_(0),
+  vpsReceived_(false),
+  spsReceived_(false),
+  ppsReceived_(false),
   slices_(true),
   sessionID_(sessionID),
   threads_(-1)
@@ -133,14 +134,25 @@ void OpenHEVCFilter::process()
       init();
     }
 
-    if(!parameterSets_ && (buff[4] >> 1) == 32)
+    bool vps = (buff[4] >> 1) == 32;
+    if (!vpsReceived_ && vps)
     {
-      parameterSets_ = true;
-      Logger::getLogger()->printNormal(this, "Parameter set found", 
-                                       {"Frame received before"}, {QString::number(waitFrames_)});
+      vpsReceived_ = true;
     }
 
-    if(parameterSets_)
+    bool sps = (buff[4] >> 1) == 33;
+    if (!spsReceived_ && sps)
+    {
+      spsReceived_ = true;
+    }
+
+    bool pps = (buff[4] >> 1) == 34;
+    if (!ppsReceived_ && pps)
+    {
+      ppsReceived_ = true;;
+    }
+
+    if((vpsReceived_ && spsReceived_ && ppsReceived_) || vps || sps || pps)
     {
       if(nextSlice && sliceBuffer_.size() != 0)
       {
@@ -159,21 +171,11 @@ void OpenHEVCFilter::process()
         {
           Logger::getLogger()->printDebug(DEBUG_ERROR, this,  "Error while decoding.");
         }
-        else if(!gotPicture && frame->data_size >= 2)
-        {
-          // TODO: Fix SPS and PPS input to OpenHEVC and enable this debug print.
-          /*
-          const unsigned char *buff2 = frame->data.get();
-          Logger::getLogger()->printDebug(DEBUG_WARNING, getName(),  "Could not decode video frame.",
-                     {"NAL type"}, {QString() + QString::number(buff2[0]) + QString::number(buff2[1])
-                     + QString::number(buff2[2]) + QString::number(buff2[3]) + QString::number(buff2[4] >> 1) });
-           */
-        }
         else if( libOpenHevcGetOutput(handle_, gotPicture, &openHevcFrame) == -1 )
         {
           Logger::getLogger()->printDebug(DEBUG_ERROR, this,  "Failed to get output.");
         }
-        else
+        else if(gotPicture)
         {
           libOpenHevcGetPictureInfo(handle_, &openHevcFrame.frameInfo);
 
@@ -216,10 +218,6 @@ void OpenHEVCFilter::process()
         }
       }
       sliceBuffer_.push_back(std::move(input));
-    }
-    else
-    {
-      ++waitFrames_;
     }
 
     input = getInput();

@@ -249,13 +249,17 @@ bool Delivery::addMediaStream(uint32_t sessionID, uint16_t localPort, uint16_t p
 
   Logger::getLogger()->printNormal(this, "Creating mediastream");
 
-  int flags = 0;
+  // TODO: Couldn't get parameter sets to work with uvgRTP prepending SC
+  int flags = RCE_H26X_PREPEND_SC;
+
   // enable encryption if it works
   if (uvg_rtp::crypto::enabled())
   {
     Logger::getLogger()->printNormal(this, "Encryption enabled");
+
     // enable srtp + zrtp
-    flags = RCE_SRTP_KMNGMNT_ZRTP | RCE_SRTP;
+    flags |= RCE_SRTP;
+    flags |= RCE_SRTP_KMNGMNT_ZRTP;
   }
   else
   {

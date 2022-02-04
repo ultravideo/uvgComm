@@ -25,7 +25,6 @@ UvgRTPReceiver::UvgRTPReceiver(uint32_t sessionID, QString id, StatisticsInterfa
                                DataType type, QString media, QFuture<uvg_rtp::media_stream *> stream):
   Filter(id, "RTP Receiver " + media, stats, hwResources, NONE, type),
   type_(type),
-  addStartCodes_(true),
   sessionID_(sessionID)
 {
   watcher_.setFuture(stream);
@@ -63,7 +62,12 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
     return;
   }
 
-  if (addStartCodes_ && type_ == HEVCVIDEO)
+  // uvgRTP does not add start codes to all. Add the to VPS, SPS and PPS
+  bool startCodeMissing = (frame->payload[0] >> 1) == 32 ||
+      (frame->payload[0] >> 1) == 33 ||
+      (frame->payload[0] >> 1) == 34;
+
+  if (startCodeMissing && type_ == HEVCVIDEO)
   {
     frame->payload_len += 4;
   }
@@ -81,8 +85,7 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
   received_picture->presentationTime = QDateTime::currentMSecsSinceEpoch();
 
   // TODO: Set uvgRTP to add these start codes
-  // framedsource if we want to receive 4K with less powerful thread (like in Xeon)
-  if (addStartCodes_ && type_ == HEVCVIDEO)
+  if (startCodeMissing && type_ == HEVCVIDEO)
   {
     memcpy(received_picture->data.get() + 4, frame->payload, received_picture->data_size - 4);
     received_picture->data[0] = 0;

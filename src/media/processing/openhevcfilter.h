@@ -24,7 +24,9 @@ private:
 
   OpenHevc_Handle handle_;
 
-  bool parameterSets_;
+  bool vpsReceived_;
+  bool spsReceived_;
+  bool ppsReceived_;
 
   uint32_t waitFrames_;
 
