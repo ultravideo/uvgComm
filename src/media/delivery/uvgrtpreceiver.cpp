@@ -62,20 +62,8 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
     return;
   }
 
-  // uvgRTP does not add start codes to all. Add the to VPS, SPS and PPS
-  bool startCodeMissing = (frame->payload[0] >> 1) == 32 ||
-      (frame->payload[0] >> 1) == 33 ||
-      (frame->payload[0] >> 1) == 34;
-
-  if (startCodeMissing && type_ == HEVCVIDEO)
-  {
-    frame->payload_len += 4;
-  }
-
   Data *received_picture = new Data;
-  received_picture->data_size = (uint32_t)frame->payload_len;
   received_picture->type = type_;
-  received_picture->data = std::unique_ptr<uchar[]>(new uchar[received_picture->data_size]);
   received_picture->width = 0; // not known at this point. Decoder tells the correct resolution
   received_picture->height = 0;
   received_picture->framerate = 0;
@@ -84,10 +72,17 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
   // TODO: Get this info from RTP
   received_picture->presentationTime = QDateTime::currentMSecsSinceEpoch();
 
-  // TODO: Set uvgRTP to add these start codes
-  if (startCodeMissing && type_ == HEVCVIDEO)
+  // uvgRTP does not add start codes to all NAL types. Add them to VPS, SPS and PPS
+  if (type_ == HEVCVIDEO &&
+      ((frame->payload[0] >> 1) == 32 || // VPS
+      ( frame->payload[0] >> 1) == 33 || // SPS
+      ( frame->payload[0] >> 1) == 34))  // PPS
   {
+    received_picture->data_size = (uint32_t)frame->payload_len + 4;
+    received_picture->data = std::unique_ptr<uchar[]>(new uchar[received_picture->data_size]);
+
     memcpy(received_picture->data.get() + 4, frame->payload, received_picture->data_size - 4);
+
     received_picture->data[0] = 0;
     received_picture->data[1] = 0;
     received_picture->data[2] = 0;
@@ -95,7 +90,10 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
   }
   else
   {
-    memcpy(received_picture->data.get(), frame->payload, received_picture->data_size);
+    // We use the memory provided by uvgRTP so we don't have to copy the data
+    received_picture->data_size = (uint32_t)frame->payload_len;
+    received_picture->data = std::unique_ptr<uchar[]>(frame->payload);
+    frame->payload = nullptr;    // avoid memory deletion
   }
 
   (void)uvg_rtp::frame::dealloc_frame(frame);

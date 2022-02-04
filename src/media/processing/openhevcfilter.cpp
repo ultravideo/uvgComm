@@ -137,19 +137,22 @@ void OpenHEVCFilter::process()
     bool vps = (buff[4] >> 1) == 32;
     if (!vpsReceived_ && vps)
     {
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this,  "VPS found");
       vpsReceived_ = true;
     }
 
     bool sps = (buff[4] >> 1) == 33;
     if (!spsReceived_ && sps)
     {
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this,  "SPS found");
       spsReceived_ = true;
     }
 
     bool pps = (buff[4] >> 1) == 34;
     if (!ppsReceived_ && pps)
     {
-      ppsReceived_ = true;;
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this,  "PPS found");
+      ppsReceived_ = true;
     }
 
     if((vpsReceived_ && spsReceived_ && ppsReceived_) || vps || sps || pps)
