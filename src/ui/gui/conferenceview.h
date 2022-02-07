@@ -56,7 +56,7 @@ public:
   // return whether there are still participants left in call view
   bool removeCaller(uint32_t sessionID);
 
-  void attachMessageWidget(QString text, bool timeout);
+  void attachMessageWidget(QString text, int timeout);
 
   void close();
 

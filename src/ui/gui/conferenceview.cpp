@@ -194,7 +194,7 @@ void ConferenceView::attachOutgoingCallWidget(QString name, uint32_t sessionID)
 }
 
 
-void ConferenceView::attachMessageWidget(QString text, bool timeout)
+void ConferenceView::attachMessageWidget(QString text, int timeout)
 {
   QFrame* holder = new QFrame;
   Ui::MessageWidget *message = new Ui::MessageWidget;
@@ -203,12 +203,12 @@ void ConferenceView::attachMessageWidget(QString text, bool timeout)
   LayoutLoc loc = nextSlot();
   layout_->addWidget(holder, loc.row, loc.column);
 
-  if (timeout)
+  if (timeout > 0)
   {
     expiringWidgets_.push_back(loc);
     message->ok_button->hide();
     removeMessageTimer_.setSingleShot(true);
-    removeMessageTimer_.start(3000);
+    removeMessageTimer_.start(timeout);
 
     connect(&removeMessageTimer_, &QTimer::timeout, this, &ConferenceView::expireMessages);
   }

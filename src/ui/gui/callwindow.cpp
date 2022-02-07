@@ -312,7 +312,14 @@ void CallWindow::removeParticipant(uint32_t sessionID)
 void CallWindow::removeWithMessage(uint32_t sessionID, QString message, bool temporaryMessage)
 {
   removeParticipant(sessionID);
-  conference_.attachMessageWidget(message, temporaryMessage);
+
+  int timeout = 0;
+  if (temporaryMessage)
+  {
+    timeout = 3000;
+  }
+
+  conference_.attachMessageWidget(message, timeout);
 }
 
 
