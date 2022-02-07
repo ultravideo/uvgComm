@@ -121,6 +121,7 @@ protected:
   virtual void process() = 0;
 
   bool isHEVCIntra(const unsigned char *buff);
+  bool isHEVCInter(const unsigned char *buff);
 
   void wakeUp()
   {
