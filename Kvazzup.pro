@@ -220,14 +220,14 @@ HEADERS  += \
 FORMS    += \
     ui/audiosettings.ui \
     ui/callwindow.ui \
-    ui/guimessage.ui \
-    ui/messagewidget.ui \
+    ui/conference/incomingcallwidget.ui \
+    ui/conference/outgoingcallwidget.ui \
+    ui/message/guimessage.ui \
+    ui/message/messagewidget.ui \
     ui/sipsettings.ui \
     ui/statisticswindow.ui \
     ui/about.ui \
     ui/settings.ui \
-    ui/incomingcallwidget.ui \
-    ui/outgoingcallwidget.ui \
     ui/videosettings.ui
 
 
