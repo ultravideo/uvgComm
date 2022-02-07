@@ -13,6 +13,7 @@ TEMPLATE = app
 # Copies the given files to the destination directory
 defineTest(copyToDestination) {
     files = $$1
+    win32:COPY_DIR = xcopy /s /q /y /i
 
     for(FILE, files) {
         DDIR = $$2
@@ -21,7 +22,7 @@ defineTest(copyToDestination) {
         win32:FILE ~= s,/,\\,g
         win32:DDIR ~= s,/,\\,g
         win32:mkpath($${DDIR}) # done immediately
-        QMAKE_POST_LINK += $(COPY_DIR) $$shell_quote($$FILE) $$shell_quote($$DDIR) $$escape_expand(\\n\\t)
+        QMAKE_POST_LINK +=  $${COPY_DIR} $$shell_quote($$FILE) $$shell_quote($$DDIR) $$escape_expand(\\n\\t)
     }
 
     export(QMAKE_POST_LINK)
@@ -363,7 +364,7 @@ CONFIG(false){
   }
 
   win32 {
-      DEPLOY_COMMAND = windeployqt
+      DEPLOY_COMMAND = $(QTDIR)\bin\windeployqt
   }
   macx {
       DEPLOY_COMMAND = macdeployqt
@@ -376,7 +377,7 @@ CONFIG(false){
 
   DEPLOY_TARGET = $$shell_quote($$shell_path($${OUT_PWD}/$${TARGET}$${TARGET_CUSTOM_EXT}))
   OUTPUT_DIR =    $$shell_quote($$shell_path($${PWD}/portable))
-  message("Enabled deployment to" $${OUTPUT_DIR})
+  message("Enabled deployment from" $${DEPLOY_TARGET} "to" $${OUTPUT_DIR})
 
   # copy Kvazzup.exe
   copyToDestination($$DEPLOY_TARGET, $$OUTPUT_DIR)
@@ -389,6 +390,10 @@ CONFIG(false){
 
   # Add deploy command to after linking
   QMAKE_POST_LINK += $${DEPLOY_COMMAND} $${OUTPUT_DIR} $$escape_expand(\\n\\t)
+
+  message("Qt dir:" $(QTDIR))
+
+  message("QMAKE_POST_LINK after deployment:" $${QMAKE_POST_LINK})
 }
 
 
