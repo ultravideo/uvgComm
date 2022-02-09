@@ -3,7 +3,7 @@
 #include "media/mediamanager.h"
 #include "initiation/sipmanager.h"
 #include "initiation/siptransactionuser.h"
-#include "ui/gui/callwindow.h"
+#include "ui/uimanager.h"
 #include "participantinterface.h"
 
 #include <QObject>
@@ -49,9 +49,9 @@ public:
 
 public slots:  
 
-  // reaction to user GUI interactions
+  // reaction to user UI interactions
   void endTheCall();     // user wants to end the call
-  void windowClosed();   // user has closed the window
+  void quit();           // we should closed Kvazzup
   void userAcceptsCall(uint32_t sessionID); // user has accepted the incoming call
   void userRejectsCall(uint32_t sessionID); // user has rejected the incoming call
   void userCancelsCall(uint32_t sessionID); // user has rejected the incoming call
@@ -92,7 +92,7 @@ private:
 
   MediaManager media_; // Media processing and delivery
   SIPManager sip_; // SIP
-  CallWindow window_; // GUI
+  UIManager userInterface_; // UI
 
   StatisticsInterface* stats_;
 

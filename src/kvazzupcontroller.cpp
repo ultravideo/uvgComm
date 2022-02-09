@@ -17,19 +17,20 @@ KvazzupController::KvazzupController():
   states_(),
   media_(),
   sip_(),
-  window_(nullptr),
+  userInterface_(),
   stats_(nullptr),
   delayAutoAccept_(),
   delayedAutoAccept_(0)
 {}
 
+
 void KvazzupController::init()
 {
   Logger::getLogger()->printImportant(this, "Kvazzup initiation Started");
 
-  window_.init(this);
+  userInterface_.init(this);
 
-  stats_ = window_.createStatsWindow();
+  stats_ = userInterface_.createStatsWindow();
 
   // connect sip signals so we get information when ice is ready
   QObject::connect(&sip_, &SIPManager::nominationSucceeded,
@@ -37,7 +38,7 @@ void KvazzupController::init()
   QObject::connect(&sip_, &SIPManager::nominationFailed,
                    this, &KvazzupController::iceFailed);
 
-  sip_.init(this, stats_, window_.getStatusView());
+  sip_.init(this, stats_, userInterface_.getStatusView());
 
   QObject::connect(&media_, &MediaManager::handleZRTPFailure,
                    this,    &KvazzupController::zrtpFailed);
@@ -46,30 +47,30 @@ void KvazzupController::init()
                    this,    &KvazzupController::noEncryptionAvailable);
 
 
-  media_.init(window_.getViewFactory(), stats_);
+  media_.init(userInterface_.getViewFactory(), stats_);
 
   // register the GUI signals indicating GUI changes to be handled
   // approrietly in a system wide manner
-  QObject::connect(&window_, &CallWindow::updateCallSettings,
+  QObject::connect(&userInterface_, &UIManager::updateCallSettings,
                    &sip_, &SIPManager::updateCallSettings);
 
-  QObject::connect(&window_, &CallWindow::updateVideoSettings,
+  QObject::connect(&userInterface_, &UIManager::updateVideoSettings,
                    &media_, &MediaManager::updateVideoSettings);
-  QObject::connect(&window_, &CallWindow::updateAudioSettings,
+  QObject::connect(&userInterface_, &UIManager::updateAudioSettings,
                    &media_, &MediaManager::updateAudioSettings);
 
-  QObject::connect(&window_, SIGNAL(endCall()), this, SLOT(endTheCall()));
-  QObject::connect(&window_, SIGNAL(closed()), this, SLOT(windowClosed()));
+  QObject::connect(&userInterface_, &UIManager::endCall, this, &KvazzupController::endTheCall);
+  QObject::connect(&userInterface_, &UIManager::quit, this, &KvazzupController::quit);
 
-  QObject::connect(&window_, &CallWindow::callAccepted,
+  QObject::connect(&userInterface_, &UIManager::callAccepted,
                    this, &KvazzupController::userAcceptsCall);
-  QObject::connect(&window_, &CallWindow::callRejected,
+  QObject::connect(&userInterface_, &UIManager::callRejected,
                    this, &KvazzupController::userRejectsCall);
-  QObject::connect(&window_, &CallWindow::callCancelled,
+  QObject::connect(&userInterface_, &UIManager::callCancelled,
                    this, &KvazzupController::userCancelsCall);
 
   // lastly, show the window when our signals are ready
-  window_.show();
+  userInterface_.showMainWindow();
 
   Logger::getLogger()->printImportant(this, "Kvazzup initiation finished");
 }
@@ -82,7 +83,7 @@ void KvazzupController::uninit()
   media_.uninit();
 }
 
-void KvazzupController::windowClosed()
+void KvazzupController::quit()
 {
   uninit();
 }
@@ -115,7 +116,7 @@ uint32_t KvazzupController::chatWithParticipant(QString name, QString username,
 
 void KvazzupController::outgoingCall(uint32_t sessionID, QString callee)
 {
-  window_.displayOutgoingCall(sessionID, callee);
+  userInterface_.displayOutgoingCall(sessionID, callee);
   if(states_.find(sessionID) == states_.end())
   {
     states_[sessionID] = SessionState{CALLINGTHEM , nullptr, nullptr};
@@ -150,10 +151,11 @@ bool KvazzupController::incomingCall(uint32_t sessionID, QString caller)
   {
     Logger::getLogger()->printNormal(this, "Showing incoming call");
     states_[sessionID] = SessionState{CALLRINGINGWITHUS, nullptr, nullptr};
-    window_.displayIncomingCall(sessionID, caller);
+    userInterface_.displayIncomingCall(sessionID, caller);
   }
   return false;
 }
+
 
 void KvazzupController::delayedAutoAccept()
 {
@@ -169,7 +171,7 @@ void KvazzupController::callRinging(uint32_t sessionID)
   if(states_.find(sessionID) != states_.end() && states_[sessionID].state == CALLINGTHEM)
   {
     Logger::getLogger()->printNormal(this, "Our call is ringing");
-    window_.displayRinging(sessionID);
+    userInterface_.displayRinging(sessionID);
     states_[sessionID].state = CALLRINGINWITHTHEM;
   }
   else
@@ -249,7 +251,7 @@ void KvazzupController::iceFailed(uint32_t sessionID)
 {
   Logger::getLogger()->printError(this, "ICE has failed");
 
-  window_.showICEFailedMessage();
+  userInterface_.showICEFailedMessage();
 
   // TODO: Tell sip manager to send an error for ICE
   Logger::getLogger()->printUnimplemented(this, "Send SIP error code for ICE failure");
@@ -260,14 +262,14 @@ void KvazzupController::zrtpFailed(quint32 sessionID)
 {
   Logger::getLogger()->printError(this, "ZRTP has failed");
 
-  window_.showZRTPFailedMessage(QString::number(sessionID));
+  userInterface_.showZRTPFailedMessage(QString::number(sessionID));
   endCall(sessionID);
 }
 
 
 void KvazzupController::noEncryptionAvailable()
 {
-  window_.showCryptoMissingMessage();
+  userInterface_.showCryptoMissingMessage();
 }
 
 
@@ -280,7 +282,7 @@ void KvazzupController::createSingleCall(uint32_t sessionID)
   {
     // we have to remove previous media so we do not double them.
     media_.removeParticipant(sessionID);
-    window_.removeParticipant(sessionID);
+    userInterface_.removeParticipant(sessionID);
   }
 
   std::shared_ptr<SDPMessageInfo> localSDP = states_[sessionID].localSDP;
@@ -292,7 +294,7 @@ void KvazzupController::createSingleCall(uint32_t sessionID)
                                   || media.flagAttributes.at(0) == A_SENDRECV
                                   || media.flagAttributes.at(0) == A_RECVONLY))
     {
-      window_.addVideoStream(sessionID);
+      userInterface_.addVideoStream(sessionID);
     }
   }
 
@@ -373,6 +375,7 @@ void KvazzupController::registeringFailed()
   // TODO: indicate error to user
 }
 
+
 void KvazzupController::userAcceptsCall(uint32_t sessionID)
 {
   Logger::getLogger()->printNormal(this, "We accept");
@@ -410,11 +413,11 @@ void KvazzupController::removeSession(uint32_t sessionID, QString message,
 {
   if (message == "" || message.isEmpty())
   {
-    window_.removeParticipant(sessionID);
+    userInterface_.removeParticipant(sessionID);
   }
   else
   {
-    window_.removeWithMessage(sessionID, message, temporaryMessage);
+    userInterface_.removeWithMessage(sessionID, message, temporaryMessage);
   }
 
   auto it = states_.find(sessionID);

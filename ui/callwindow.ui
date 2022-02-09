@@ -433,7 +433,6 @@
             <property name="font">
              <font>
               <pointsize>12</pointsize>
-              <weight>75</weight>
               <bold>true</bold>
              </font>
             </property>
@@ -456,7 +455,6 @@
             <property name="font">
              <font>
               <pointsize>12</pointsize>
-              <weight>75</weight>
               <bold>true</bold>
              </font>
             </property>
@@ -479,7 +477,6 @@
             <property name="font">
              <font>
               <pointsize>12</pointsize>
-              <weight>75</weight>
               <bold>true</bold>
              </font>
             </property>
@@ -656,7 +653,7 @@
      <x>0</x>
      <y>0</y>
      <width>1280</width>
-     <height>21</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuConference">
@@ -664,7 +661,7 @@
      <string>Menu</string>
     </property>
     <addaction name="actionAbout"/>
-    <addaction name="action_Settings"/>
+    <addaction name="actionSettings"/>
     <addaction name="actionStatistics"/>
     <addaction name="actionClose"/>
    </widget>
@@ -691,7 +688,7 @@
     <string>Statistics</string>
    </property>
   </action>
-  <action name="action_Settings">
+  <action name="actionSettings">
    <property name="text">
     <string>Settings</string>
    </property>
@@ -732,38 +729,6 @@
     </hint>
     <hint type="destinationlabel">
      <x>639</x>
-     <y>319</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>actionStatistics</sender>
-   <signal>triggered()</signal>
-   <receiver>CallWindow</receiver>
-   <slot>openStatistics()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>639</x>
-     <y>379</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>actionAbout</sender>
-   <signal>triggered()</signal>
-   <receiver>CallWindow</receiver>
-   <slot>on_about_clicked()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>479</x>
      <y>319</y>
     </hint>
    </hints>
@@ -864,22 +829,6 @@
     </hint>
    </hints>
   </connection>
-  <connection>
-   <sender>action_Settings</sender>
-   <signal>triggered()</signal>
-   <receiver>CallWindow</receiver>
-   <slot>on_settings_button_clicked()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>479</x>
-     <y>319</y>
-    </hint>
-   </hints>
-  </connection>
  </connections>
  <slots>
   <slot>micState()</slot>
@@ -887,7 +836,5 @@
   <slot>openStatistics()</slot>
   <slot>endAllCalls()</slot>
   <slot>addContact()</slot>
-  <slot>on_about_clicked()</slot>
-  <slot>on_settings_button_clicked()</slot>
  </slots>
 </ui>

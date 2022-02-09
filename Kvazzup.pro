@@ -117,7 +117,8 @@ SOURCES +=\
     src/ui/settings/settings.cpp \
     src/ui/settings/settingshelper.cpp \
     src/ui/settings/sipsettings.cpp \
-    src/ui/settings/videosettings.cpp
+    src/ui/settings/videosettings.cpp \
+    src/ui/uimanager.cpp
 
 HEADERS  += \
     src/initiation/connectionpolicy.h \
@@ -215,7 +216,8 @@ HEADERS  += \
     src/ui/settings/settings.h \
     src/ui/settings/settingshelper.h \
     src/ui/settings/sipsettings.h \
-    src/ui/settings/videosettings.h
+    src/ui/settings/videosettings.h \
+    src/ui/uimanager.h
 
 FORMS    += \
     ui/audiosettings.ui \
