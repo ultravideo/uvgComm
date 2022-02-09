@@ -45,6 +45,8 @@ void Settings::init()
 { 
   basicUI_->setupUi(this);
 
+  setWindowTitle("Kvazzup Settings");
+
   // Checks that settings values are correct for the program to start. Also sets GUI.
   getSettings(false);
 
@@ -79,7 +81,6 @@ void Settings::init()
                    this, &Settings::changedSIPText);
   QObject::connect(basicUI_->username_edit, &QLineEdit::textChanged,
                    this, &Settings::changedSIPText);
-
 
 
   QObject::connect(basicUI_->serverAddress_edit, &QLineEdit::textChanged,
@@ -373,7 +374,8 @@ void Settings::getSettings(bool changedDevice)
 
 void Settings::resetFaultySettings()
 {
-  Logger::getLogger()->printWarning(this, "Could not restore settings! Resetting settings from defaults.");
+  Logger::getLogger()->printWarning(this, "Could not restore settings! "
+                                          "Resetting settings from defaults.");
 
   // record GUI settings in hope that they are correct ( is case by default )
   saveSettings();
@@ -391,9 +393,13 @@ void Settings::resetFaultySettings()
   // 2) that connecting to server is default since it is the easiest way to use Kvazzup
   // These two conditions can only be achieved by modifying UI after settings have been saved
   basicUI_->auto_connect_box->setChecked(true);
-  
+
+  sipSettings_.resetSettings();
+
   // Show resetted settings to user so she can fix them manually
   show();
+
+  sipSettings_.showSTUNQuestion();
 }
 
 

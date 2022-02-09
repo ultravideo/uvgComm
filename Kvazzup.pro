@@ -224,6 +224,7 @@ FORMS    += \
     ui/conference/outgoingcallwidget.ui \
     ui/message/guimessage.ui \
     ui/message/messagewidget.ui \
+    ui/message/stunmessage.ui \
     ui/sipsettings.ui \
     ui/statisticswindow.ui \
     ui/about.ui \

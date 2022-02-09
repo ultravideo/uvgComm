@@ -1,6 +1,8 @@
 #include "sipsettings.h"
 
 #include "ui_sipsettings.h"
+
+
 #include "settingshelper.h"
 #include "settingskeys.h"
 #include "logger.h"
@@ -20,6 +22,7 @@ SIPSettings::SIPSettings(QWidget* parent):
   settings_(settingsFile, settingsFileFormat)
 {
   advancedUI_->setupUi(this);
+  stunQuestion_.setupUi(&stun_);
 }
 
 
@@ -41,6 +44,40 @@ void SIPSettings::init()
           this, &SIPSettings::showBlocklistContextMenu);
 
   restoreAdvancedSettings();
+}
+
+void SIPSettings::showSTUNQuestion()
+{
+  connect(stunQuestion_.yes_button,  &QPushButton::pressed,
+          this,                      &SIPSettings::acceptSTUN);
+
+  connect(stunQuestion_.no_button,  &QPushButton::pressed,
+          this,                      &SIPSettings::declineSTUN);
+
+  // stun_.setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
+  stun_.show();
+  stun_.setWindowTitle("Use STUN?");
+}
+
+void SIPSettings::acceptSTUN()
+{
+  Logger::getLogger()->printNormal(this, "User accepted STUN usage");
+
+  advancedUI_->stun_enabled->setChecked(true);
+  advancedUI_->stun_address->setText(stunQuestion_.address->text());
+  advancedUI_->stun_port->setValue(stunQuestion_.port->value());
+
+  saveCheckBox(SettingsKey::sipSTUNEnabled, advancedUI_->stun_enabled, settings_);
+  stun_.hide();
+}
+
+void SIPSettings::declineSTUN()
+{
+  Logger::getLogger()->printNormal(this, "User declined STUN usage");
+  advancedUI_->stun_enabled->setChecked(false);
+
+  saveCheckBox(SettingsKey::sipSTUNEnabled, advancedUI_->stun_enabled, settings_);
+  stun_.hide();
 }
 
 

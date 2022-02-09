@@ -1,10 +1,15 @@
 #pragma once
 
+#include "ui_stunmessage.h"
+
 #include <QDialog>
 #include <QSettings>
 
+
+
 namespace Ui {
 class AdvancedSettings;
+class StunMessage;
 }
 
 class QCheckBox;
@@ -20,6 +25,7 @@ public:
 
   void resetSettings();
 
+  void showSTUNQuestion();
 signals:
   void updateCallSettings();
   void hidden();
@@ -37,6 +43,9 @@ public slots:
   void on_advanced_ok_clicked();
   void on_advanced_close_clicked();
 
+  void acceptSTUN();
+  void declineSTUN();
+
 private:
 
   // QSettings -> GUI
@@ -48,6 +57,8 @@ private:
   void addUsernameToList(QString username, QString date);
 
   Ui::AdvancedSettings *advancedUI_;
+  Ui::StunMessage stunQuestion_;
+  QWidget stun_;
 
   QSettings settings_;
 };
