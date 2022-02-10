@@ -224,7 +224,8 @@ void SIPManager::acceptCall(uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
 
-  Logger::getLogger()->printNormal(this, "Accepting call", {"SessionID"}, {QString::number(sessionID)});
+  Logger::getLogger()->printNormal(this, "Accepting call", {"SessionID"},
+                                   {QString::number(sessionID)});
 
   std::shared_ptr<DialogInstance> dialog = getDialog(sessionID);
   dialog->call.acceptIncomingCall();
@@ -713,6 +714,9 @@ void SIPManager::createRegistration(NameAddr& addressRecord)
     registration->registration.init(statusView_);
 
     registration->state = std::shared_ptr<SIPDialogState> (new SIPDialogState);
+    registration->callbacks = std::shared_ptr<SIPCallbacks> (new SIPCallbacks(addressRecord.uri.hostport.host,
+                                                                              registrationsRequests_,
+                                                                              registrationResponses_));
 
     SIP_URI serverUri = {DEFAULT_SIP_TYPE, {"", ""},
                          {addressRecord.uri.hostport.host, 0}, {}, {}};
@@ -725,6 +729,7 @@ void SIPManager::createRegistration(NameAddr& addressRecord)
     // Add all components to the pipe.
     registration->pipe.addProcessor(registration->state);
     registration->pipe.addProcessor(client);
+    registration->pipe.addProcessor(registration->callbacks);
     //registration->pipe.addProcessor(server);
 
 
@@ -769,6 +774,9 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
 
   std::shared_ptr<SIPClient> client = std::shared_ptr<SIPClient> (new SIPClient);
   dialog->server = std::shared_ptr<SIPServer> (new SIPServer);
+  dialog->callbacks = std::shared_ptr<SIPCallbacks> (new SIPCallbacks(sessionID,
+                                                                      requestCallbacks_,
+                                                                      responseCallbacks_));
 
   // Initiatiate all the components of the flow.
   dialog->call.init(transactionUser_, sessionID);
@@ -787,6 +795,7 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
   dialog->pipe.addProcessor(negotiation);
   dialog->pipe.addProcessor(client);
   dialog->pipe.addProcessor(dialog->server);
+  dialog->pipe.addProcessor(dialog->callbacks);
 
   // Connect the pipe to call and transmission functions.
   dialog->call.connectOutgoingProcessor(dialog->pipe);
@@ -811,6 +820,93 @@ void SIPManager::removeDialog(uint32_t sessionID)
   if (dialogs_.empty())
   {
     nextSessionID_ = FIRSTSESSIONID;
+  }
+}
+
+
+void SIPManager::installSIPRequestCallback(std::function<void(uint32_t sessionID,
+                                                              SIPRequest& request,
+                                                              QVariant& content)> callback)
+{
+  requestCallbacks_.push_back(callback);
+
+  for (auto& dialog: dialogs_)
+  {
+    if (dialog.second != nullptr)
+    {
+      dialog.second->callbacks->installSIPRequestCallback(callback);
+    }
+  }
+}
+
+
+void SIPManager::installSIPResponseCallback(std::function<void(uint32_t sessionID,
+                                                               SIPResponse& response,
+                                                               QVariant& content)> callback)
+{
+  responseCallbacks_.push_back(callback);
+
+  for (auto& dialog: dialogs_)
+  {
+    if (dialog.second != nullptr)
+    {
+      dialog.second->callbacks->installSIPResponseCallback(callback);
+    }
+  }
+}
+
+void SIPManager::installSIPRequestCallback(
+    std::function<void(QString address, SIPRequest& request, QVariant& content)> callback)
+{
+  registrationsRequests_.push_back(callback);
+
+  for (auto& registration: registrations_)
+  {
+    if (registration.second != nullptr)
+    {
+      registration.second->callbacks->installSIPRequestCallback(callback);
+    }
+  }
+}
+
+
+void SIPManager::installSIPResponseCallback(
+    std::function<void(QString address, SIPResponse& response, QVariant& content)> callback)
+{
+  registrationResponses_.push_back(callback);
+
+  for (auto& registration: registrations_)
+  {
+    if (registration.second != nullptr)
+    {
+      registration.second->callbacks->installSIPResponseCallback(callback);
+    }
+  }
+}
+
+
+void SIPManager::clearCallbacks()
+{
+  requestCallbacks_.clear();
+  responseCallbacks_.clear();
+
+  for (auto& dialog: dialogs_)
+  {
+    if (dialog.second != nullptr)
+    {
+      dialog.second->callbacks->clearCallbacks();
+    }
+  }
+
+  registrationsRequests_.clear();
+  registrationResponses_.clear();
+
+  for (auto& registration: registrations_)
+  {
+    if (registration.second != nullptr)
+    {
+      registration.second->callbacks->clearCallbacks();
+    }
   }
 }
 

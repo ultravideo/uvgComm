@@ -38,6 +38,26 @@ void KvazzupController::init()
   QObject::connect(&sip_, &SIPManager::nominationFailed,
                    this, &KvazzupController::iceFailed);
 
+
+
+  sip_.installSIPRequestCallback(std::bind(&KvazzupController::SIPRequestCallback, this,
+                                           std::placeholders::_1,
+                                           std::placeholders::_2,
+                                           std::placeholders::_3));
+  sip_.installSIPResponseCallback(std::bind(&KvazzupController::SIPResponseCallback, this,
+                                            std::placeholders::_1,
+                                            std::placeholders::_2,
+                                            std::placeholders::_3));
+
+  sip_.installSIPRequestCallback(std::bind(&KvazzupController::processRegisterRequest, this,
+                                           std::placeholders::_1,
+                                           std::placeholders::_2,
+                                           std::placeholders::_3));
+  sip_.installSIPResponseCallback(std::bind(&KvazzupController::processRegisterResponse, this,
+                                            std::placeholders::_1,
+                                            std::placeholders::_2,
+                                            std::placeholders::_3));
+
   sip_.init(this, stats_, userInterface_.getStatusView());
 
   QObject::connect(&media_, &MediaManager::handleZRTPFailure,
@@ -103,7 +123,9 @@ uint32_t KvazzupController::callToParticipant(QString name, QString username,
   Logger::getLogger()->printNormal(this, "Starting call with contact", 
                                    {"Contact"}, {remote.realname});
 
-  return sip_.startCall(remote);
+  uint32_t sessionID = sip_.startCall(remote);
+
+  return sessionID;
 }
 
 uint32_t KvazzupController::chatWithParticipant(QString name, QString username,
@@ -430,4 +452,38 @@ void KvazzupController::removeSession(uint32_t sessionID, QString message,
   {
     stats_->removeSession(sessionID);
   }
+}
+
+void KvazzupController::SIPRequestCallback(uint32_t sessionID,
+                                            SIPRequest& request,
+                                            QVariant& content)
+{
+  Logger::getLogger()->printNormal(this, "Got request callback",
+                                   "type", QString::number(request.method));
+}
+
+
+void KvazzupController::SIPResponseCallback(uint32_t sessionID,
+                                             SIPResponse& response,
+                                             QVariant& content)
+{
+  Logger::getLogger()->printNormal(this, "Got response callback",
+                                   "Code", QString::number(response.type));
+}
+
+
+void KvazzupController::processRegisterRequest(QString address,
+                        SIPRequest& request,
+                        QVariant& content)
+{
+  Logger::getLogger()->printNormal(this, "Got a register request callback",
+                                   "type", QString::number(request.method));
+}
+
+void KvazzupController::processRegisterResponse(QString address,
+                         SIPResponse& response,
+                         QVariant& content)
+{
+  Logger::getLogger()->printNormal(this, "Got a register response callback",
+                                   "Code", QString::number(response.type));
 }

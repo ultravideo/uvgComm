@@ -47,6 +47,22 @@ public:
   virtual void registeredToServer();
   virtual void registeringFailed();
 
+  void SIPRequestCallback(uint32_t sessionID,
+                          SIPRequest& request,
+                          QVariant& content);
+
+  void SIPResponseCallback(uint32_t sessionID,
+                           SIPResponse& response,
+                           QVariant& content);
+
+  void processRegisterRequest(QString address,
+                              SIPRequest& request,
+                              QVariant& content);
+
+  void processRegisterResponse(QString address,
+                               SIPResponse& response,
+                               QVariant& content);
+
 public slots:  
 
   // reaction to user UI interactions

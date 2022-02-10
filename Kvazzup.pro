@@ -50,6 +50,7 @@ SOURCES +=\
     src/initiation/sipmanager.cpp \
     src/initiation/sipmessageflow.cpp \
     src/initiation/sipmessageprocessor.cpp \
+    src/initiation/transaction/sipcallbacks.cpp \
     src/initiation/transaction/sipclient.cpp \
     src/initiation/transaction/sipdialogstate.cpp \
     src/initiation/transaction/sipregistration.cpp \
@@ -141,6 +142,7 @@ HEADERS  += \
     src/initiation/sipmessageprocessor.h \
     src/initiation/siptransactionuser.h \
     src/initiation/siptypes.h \
+    src/initiation/transaction/sipcallbacks.h \
     src/initiation/transaction/sipclient.h \
     src/initiation/transaction/sipdialogstate.h \
     src/initiation/transaction/sipregistration.h \

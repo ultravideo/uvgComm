@@ -5,11 +5,14 @@
 
 #include "initiation/transaction/sipregistration.h"
 #include "initiation/transaction/sipsinglecall.h"
+#include "initiation/transaction/sipcallbacks.h"
 
 
 #include "initiation/sipmessageflow.h"
 
 #include <QObject>
+
+#include <functional>
 
 class SIPServer;
 
@@ -20,6 +23,8 @@ struct DialogInstance
   // state is used to find out whether message belongs to this dialog
   std::shared_ptr<SIPDialogState> state;
   std::shared_ptr<SIPServer> server; // for identifying cancel
+
+  std::shared_ptr<SIPCallbacks> callbacks;
   SIPSingleCall call;
 };
 
@@ -28,6 +33,7 @@ struct RegistrationInstance
 {
   SIPMessageFlow pipe;
   std::shared_ptr<SIPDialogState> state;
+  std::shared_ptr<SIPCallbacks> callbacks;
   SIPRegistration registration;
 };
 
@@ -71,6 +77,18 @@ public:
   void cancelCall(uint32_t sessionID);
   void endCall(uint32_t sessionID);
   void endAllCalls();
+
+  void installSIPRequestCallback(
+      std::function<void(uint32_t sessionID, SIPRequest& request, QVariant& content)> callback);
+  void installSIPResponseCallback(
+      std::function<void(uint32_t sessionID, SIPResponse& response, QVariant& content)> callback);
+
+  void installSIPRequestCallback(
+      std::function<void(QString address, SIPRequest& request, QVariant& content)> callback);
+  void installSIPResponseCallback(
+      std::function<void(QString address, SIPResponse& response, QVariant& content)> callback);
+
+  void clearCallbacks();
 
 public slots:
   void updateCallSettings();
@@ -185,4 +203,22 @@ private:
 
   SIPTransactionUser* transactionUser_;
   ServerStatusView *statusView_;
+
+  // these hold existing callbacks for incoming requests/responses
+  std::vector<std::function<void(uint32_t sessionID,
+                                 SIPRequest& request,
+                                 QVariant& content)>> requestCallbacks_;
+
+  std::vector<std::function<void(uint32_t sessionID,
+                                 SIPResponse& response,
+                                 QVariant& content)>> responseCallbacks_;
+
+  // server versions
+  std::vector<std::function<void(QString address,
+                                 SIPRequest& request,
+                                 QVariant& content)>> registrationsRequests_;
+
+  std::vector<std::function<void(QString address,
+                                 SIPResponse& response,
+                                 QVariant& content)>> registrationResponses_;
 };
