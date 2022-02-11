@@ -72,8 +72,9 @@ public:
   uint32_t startCall(NameAddr &remote);
 
   // TU wants something to happen.
-  void acceptCall(uint32_t sessionID);
-  void rejectCall(uint32_t sessionID);
+  void respondRingingToINVITE(uint32_t sessionID);
+  void respondOkToINVITE(uint32_t sessionID);
+  void respondDeclineToINVITE(uint32_t sessionID);
   void cancelCall(uint32_t sessionID);
   void endCall(uint32_t sessionID);
   void endAllCalls();

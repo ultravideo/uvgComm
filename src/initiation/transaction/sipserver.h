@@ -17,11 +17,18 @@ class SIPServer : public SIPMessageProcessor
 public:
   SIPServer();
 
+  void respond_INVITE_RINGING();
+  void respond_INVITE_OK();
+  void respond_INVITE_DECLINE();
+
   bool doesCANCELMatchRequest(SIPRequest& request) const;
 
-public slots:
+  bool shouldBeDestroyed()
+  {
+    return !shouldLive_;
+  }
 
-  virtual void processOutgoingResponse(SIPResponse& response, QVariant& content);
+public slots:
 
     // processes incoming request. Part of server transaction
   virtual void processIncomingRequest(SIPRequest& request, QVariant& content);
@@ -29,7 +36,9 @@ public slots:
 
 private:
 
-    bool isCANCELYours(SIPRequest &cancel);
+  bool isCANCELYours(SIPRequest &cancel);
+
+  void createResponse(SIPResponseStatus status);
 
   // Copies the fields of to a response which are direct copies of the request.
   // includes at least via, to, from, CallID and cseq
@@ -40,6 +49,7 @@ private:
 
   bool equalToFrom(ToFrom& first, ToFrom& second);
 
+  bool shouldLive_;
 
   // used for copying data to response
   std::shared_ptr<SIPRequest> receivedRequest_;

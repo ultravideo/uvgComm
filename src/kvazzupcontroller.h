@@ -36,7 +36,6 @@ public:
   virtual uint32_t chatWithParticipant(QString name, QString username, QString ip);
 
   // Call Control Interface used by SIP transaction
-  virtual void outgoingCall(uint32_t sessionID, QString callee);
   virtual bool incomingCall(uint32_t sessionID, QString caller);
   virtual void callRinging(uint32_t sessionID);
   virtual void peerAccepted(uint32_t sessionID);

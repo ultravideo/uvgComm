@@ -220,7 +220,19 @@ uint32_t SIPManager::startCall(NameAddr &remote)
 }
 
 
-void SIPManager::acceptCall(uint32_t sessionID)
+void SIPManager::respondRingingToINVITE(uint32_t sessionID)
+{
+  Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
+
+  Logger::getLogger()->printNormal(this, "Sending that we are RINGING", {"SessionID"},
+                                   {QString::number(sessionID)});
+
+  std::shared_ptr<DialogInstance> dialog = getDialog(sessionID);
+  dialog->server->respond_INVITE_RINGING();
+}
+
+
+void SIPManager::respondOkToINVITE(uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
 
@@ -228,16 +240,16 @@ void SIPManager::acceptCall(uint32_t sessionID)
                                    {QString::number(sessionID)});
 
   std::shared_ptr<DialogInstance> dialog = getDialog(sessionID);
-  dialog->call.acceptIncomingCall();
+  dialog->server->respond_INVITE_OK();
 }
 
 
-void SIPManager::rejectCall(uint32_t sessionID)
+void SIPManager::respondDeclineToINVITE(uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
   std::shared_ptr<DialogInstance> dialog = getDialog(sessionID);
 
-  dialog->call.declineIncomingCall();
+  dialog->server->respond_INVITE_DECLINE();
 
   removeDialog(sessionID);
 }
@@ -455,7 +467,7 @@ void SIPManager::processSIPRequest(SIPRequest& request, QVariant& content)
 
   foundDialog->pipe.processIncomingRequest(request, content);
 
-  if(!foundDialog->call.shouldBeKeptAlive())
+  if(foundDialog->server->shouldBeDestroyed())
   {
     Logger::getLogger()->printNormal(this, "Ending session as a results of request.");
     removeDialog(sessionID);

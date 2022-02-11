@@ -9,13 +9,144 @@
 #include <QVariant>
 
 SIPServer::SIPServer():
+  shouldLive_(true),
   receivedRequest_(nullptr)
 {}
 
 
-void SIPServer::processOutgoingResponse(SIPResponse& response, QVariant& content)
+void SIPServer::processIncomingRequest(SIPRequest& request, QVariant& content)
 {
-  Q_ASSERT(receivedRequest_ != nullptr);
+  Logger::getLogger()->printNormal(this, "Processing incoming request");
+
+  if (request.method == SIP_CANCEL && !isCANCELYours(request))
+  {
+    Logger::getLogger()->printError(this, "Received invalid CANCEL request");
+    return;
+  }
+
+  if((receivedRequest_ == nullptr && request.method != SIP_ACK) ||
+     request.method == SIP_BYE)
+  {
+    receivedRequest_ = std::shared_ptr<SIPRequest> (new SIPRequest);
+    *receivedRequest_ = request;
+  }
+  else if (request.method != SIP_ACK && request.method != SIP_CANCEL)
+  {
+    Logger::getLogger()->printPeerError(this, "New request when previous transaction "
+                                              "has not been completed. Ignoring...");
+    return;
+  }
+
+  switch (request.method)
+  {
+    case SIP_INVITE:
+    {
+      // user deals with INVITE responses
+      break;
+    }
+    case SIP_ACK:
+    {
+      // ACK has no response
+      break;
+    }
+    case SIP_BYE:
+    {
+      createResponse(SIP_OK);
+      shouldLive_ = false;
+      break;
+    }
+    case SIP_CANCEL:
+    {
+      createResponse(SIP_REQUEST_TERMINATED);
+      shouldLive_ = false;
+      break;
+    }
+    case SIP_REGISTER:
+    {
+      // REGISTER not implemented
+      createResponse(SIP_NOT_ALLOWED);
+      return;
+    }
+    case SIP_OPTIONS:
+    {
+      // OPTIONS not implemented
+      createResponse(SIP_NOT_ALLOWED);
+      return;
+    }
+    default:
+    {
+      // Unknown request type
+      createResponse(SIP_NOT_ALLOWED);
+      return;
+    }
+  }
+
+  // send the request to callbacks
+  emit incomingRequest(request, content);
+}
+
+
+void SIPServer::respond_INVITE_RINGING()
+{
+  if (receivedRequest_ == nullptr || receivedRequest_->message->cSeq.method != SIP_INVITE)
+  {
+    Logger::getLogger()->printProgramError(this, "No INVITE found for OK");
+    return;
+  }
+
+  createResponse(SIP_RINGING);
+}
+
+
+void SIPServer::respond_INVITE_OK()
+{
+  if (receivedRequest_ == nullptr || receivedRequest_->message->cSeq.method != SIP_INVITE)
+  {
+    Logger::getLogger()->printProgramError(this, "No INVITE found for OK");
+    return;
+  }
+
+  createResponse(SIP_OK);
+}
+
+
+void SIPServer::respond_INVITE_DECLINE()
+{
+  if (receivedRequest_ == nullptr || receivedRequest_->message->cSeq.method != SIP_INVITE)
+  {
+    Logger::getLogger()->printProgramError(this, "No INVITE found for DECLINE");
+    return;
+  }
+
+  createResponse(SIP_DECLINE);
+}
+
+
+bool SIPServer::doesCANCELMatchRequest(SIPRequest &request) const
+{
+  if (receivedRequest_ == nullptr)
+  {
+    Logger::getLogger()->printError(this, "No previous request with CANCEL");
+  }
+
+  // see section 9.1 of RFC 3261
+  return receivedRequest_ != nullptr &&
+      receivedRequest_->requestURI == request.requestURI &&
+
+      receivedRequest_->message->callID            == request.message->callID &&
+      receivedRequest_->message->to.address.uri    == request.message->to.address.uri &&
+      receivedRequest_->message->to.tagParameter   == request.message->to.tagParameter &&
+      receivedRequest_->message->from.address.uri  == request.message->from.address.uri &&
+      receivedRequest_->message->from.tagParameter == request.message->from.tagParameter &&
+      receivedRequest_->message->cSeq.cSeq         == request.message->cSeq.cSeq;
+}
+
+
+void SIPServer::createResponse(SIPResponseStatus status)
+{
+  SIPResponse response;
+  response.type = status;
+  response.message = std::shared_ptr<SIPMessageHeader> (new SIPMessageHeader);
 
   if(receivedRequest_ == nullptr)
   {
@@ -45,55 +176,8 @@ void SIPServer::processOutgoingResponse(SIPResponse& response, QVariant& content
     receivedRequest_ = nullptr;
   }
 
+  QVariant content;
   emit outgoingResponse(response, content);
-}
-
-
-void SIPServer::processIncomingRequest(SIPRequest& request, QVariant& content)
-{
-  Logger::getLogger()->printNormal(this, "Processing incoming request");
-
-  if (request.method == SIP_CANCEL && !isCANCELYours(request))
-  {
-    Logger::getLogger()->printError(this, "Received invalid CANCEL request");
-    return;
-  }
-
-
-  if((receivedRequest_ == nullptr && request.method != SIP_ACK) ||
-     request.method == SIP_BYE)
-  {
-    receivedRequest_ = std::shared_ptr<SIPRequest> (new SIPRequest);
-    *receivedRequest_ = request;
-  }
-  else if (request.method != SIP_ACK && request.method != SIP_CANCEL)
-  {
-    Logger::getLogger()->printPeerError(this, "New request when previous transaction "
-                                              "has not been completed. Ignoring...");
-    return;
-  }
-
-  emit incomingRequest(request, content);
-}
-
-
-bool SIPServer::doesCANCELMatchRequest(SIPRequest &request) const
-{
-  if (receivedRequest_ == nullptr)
-  {
-    Logger::getLogger()->printError(this, "No previous request with CANCEL");
-  }
-
-  // see section 9.1 of RFC 3261
-  return receivedRequest_ != nullptr &&
-      receivedRequest_->requestURI == request.requestURI &&
-
-      receivedRequest_->message->callID            == request.message->callID &&
-      receivedRequest_->message->to.address.uri    == request.message->to.address.uri &&
-      receivedRequest_->message->to.tagParameter   == request.message->to.tagParameter &&
-      receivedRequest_->message->from.address.uri  == request.message->from.address.uri &&
-      receivedRequest_->message->from.tagParameter == request.message->from.tagParameter &&
-      receivedRequest_->message->cSeq.cSeq         == request.message->cSeq.cSeq;
 }
 
 

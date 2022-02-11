@@ -95,6 +95,7 @@ void KvazzupController::init()
   Logger::getLogger()->printImportant(this, "Kvazzup initiation finished");
 }
 
+
 void KvazzupController::uninit()
 {
   // for politeness, we send BYE messages to all our call participants.
@@ -103,10 +104,12 @@ void KvazzupController::uninit()
   media_.uninit();
 }
 
+
 void KvazzupController::quit()
 {
   uninit();
 }
+
 
 uint32_t KvazzupController::callToParticipant(QString name, QString username,
                                               QString ip)
@@ -125,8 +128,15 @@ uint32_t KvazzupController::callToParticipant(QString name, QString username,
 
   uint32_t sessionID = sip_.startCall(remote);
 
+  userInterface_.displayOutgoingCall(sessionID, remote.realname);
+  if(states_.find(sessionID) == states_.end())
+  {
+    states_[sessionID] = SessionState{CALLINGTHEM , nullptr, nullptr};
+  }
+
   return sessionID;
 }
+
 
 uint32_t KvazzupController::chatWithParticipant(QString name, QString username,
                                                 QString ip)
@@ -136,14 +146,6 @@ uint32_t KvazzupController::chatWithParticipant(QString name, QString username,
   return 0;
 }
 
-void KvazzupController::outgoingCall(uint32_t sessionID, QString callee)
-{
-  userInterface_.displayOutgoingCall(sessionID, callee);
-  if(states_.find(sessionID) == states_.end())
-  {
-    states_[sessionID] = SessionState{CALLINGTHEM , nullptr, nullptr};
-  }
-}
 
 bool KvazzupController::incomingCall(uint32_t sessionID, QString caller)
 {
@@ -402,14 +404,14 @@ void KvazzupController::userAcceptsCall(uint32_t sessionID)
 {
   Logger::getLogger()->printNormal(this, "We accept");
   states_[sessionID].state = CALLNEGOTIATING;
-  sip_.acceptCall(sessionID);
+  sip_.respondOkToINVITE(sessionID);
 }
 
 
 void KvazzupController::userRejectsCall(uint32_t sessionID)
 {
   Logger::getLogger()->printNormal(this, "We reject");
-  sip_.rejectCall(sessionID);
+  sip_.respondDeclineToINVITE(sessionID);
   removeSession(sessionID, "Rejected", true);
 }
 
@@ -455,34 +457,106 @@ void KvazzupController::removeSession(uint32_t sessionID, QString message,
 }
 
 void KvazzupController::SIPRequestCallback(uint32_t sessionID,
-                                            SIPRequest& request,
-                                            QVariant& content)
+                                           SIPRequest& request,
+                                           QVariant& content)
 {
   Logger::getLogger()->printNormal(this, "Got request callback",
                                    "type", QString::number(request.method));
+
+  switch (request.method)
+  {
+    case SIP_INVITE:
+    {
+      if (!incomingCall(sessionID, request.message->from.address.realname))
+      {
+        sip_.respondRingingToINVITE(sessionID);
+      }
+      else
+      {
+        sip_.respondOkToINVITE(sessionID);
+      }
+
+      break;
+    }
+    case SIP_ACK:
+    {
+      callNegotiated(sessionID);
+      break;
+    }
+    case SIP_BYE:
+    {
+      endCall(sessionID);
+      break;
+    }
+    case SIP_CANCEL:
+    {
+      cancelIncomingCall(sessionID);
+      break;
+    }
+    default:
+    {
+      break;
+    }
+  }
 }
 
 
 void KvazzupController::SIPResponseCallback(uint32_t sessionID,
-                                             SIPResponse& response,
-                                             QVariant& content)
+                                            SIPResponse& response,
+                                            QVariant& content)
 {
   Logger::getLogger()->printNormal(this, "Got response callback",
                                    "Code", QString::number(response.type));
+
+  if (response.type >= 100 && response.type <= 299)
+  {
+    if(response.message->cSeq.method == SIP_INVITE)
+    {
+      if(response.type == SIP_RINGING)
+      {
+      }
+      else if(response.type == SIP_OK)
+      {
+      }
+    }
+    else if (response.message->cSeq.method == SIP_BYE && response.type == 200)
+    {
+    }
+  }
+  else if (response.type >= 300 && response.type <= 399)
+  {
+  }
+  else if (response.type >= 400 && response.type <= 499)
+  {
+
+  }
+  else if (response.type >= 500 && response.type <= 599)
+  {
+
+  }
+  else if (response.type >= 600 && response.type <= 699)
+  {
+    if (response.message->cSeq.method == SIP_INVITE)
+    {
+      if (response.type == SIP_DECLINE)
+      {
+      }
+    }
+  }
 }
 
 
 void KvazzupController::processRegisterRequest(QString address,
-                        SIPRequest& request,
-                        QVariant& content)
+                                               SIPRequest& request,
+                                               QVariant& content)
 {
   Logger::getLogger()->printNormal(this, "Got a register request callback",
                                    "type", QString::number(request.method));
 }
 
 void KvazzupController::processRegisterResponse(QString address,
-                         SIPResponse& response,
-                         QVariant& content)
+                                                SIPResponse& response,
+                                                QVariant& content)
 {
   Logger::getLogger()->printNormal(this, "Got a register response callback",
                                    "Code", QString::number(response.type));

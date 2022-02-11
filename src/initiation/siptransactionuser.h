@@ -20,13 +20,6 @@ class SIPTransactionUser
 
   virtual ~SIPTransactionUser(){}
 
-  // We are calling someone
-  virtual void outgoingCall(uint32_t sessionID, QString callee) = 0;
-
-  // somebody is trying to call us
-  // returns true if this is auto-accepted
-  virtual bool incomingCall(uint32_t sessionID, QString caller) = 0;
-
   // the call is ringing
   virtual void callRinging(uint32_t sessionID) = 0;
 
@@ -35,9 +28,6 @@ class SIPTransactionUser
 
   // our or their call has finished negotiating
   virtual void callNegotiated(uint32_t sessionID) = 0;
-
-  // they cancelled the call request
-  virtual void cancelIncomingCall(uint32_t sessionID) = 0;
 
   // the call has ended
   virtual void endCall(uint32_t sessionID) = 0;

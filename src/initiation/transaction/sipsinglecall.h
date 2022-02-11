@@ -18,9 +18,6 @@ public:
   void endCall();
   void cancelOutgoingCall();
 
-  void acceptIncomingCall();
-  void declineIncomingCall();
-
   bool shouldBeKeptAlive()
   {
     return shouldLive_;
@@ -28,7 +25,6 @@ public:
 
 public slots:
 
-  virtual void processIncomingRequest(SIPRequest& request, QVariant& content);
   virtual void processIncomingResponse(SIPResponse& response, QVariant& content);
 
   void processFailure(QString message);
@@ -36,7 +32,6 @@ public slots:
 private:
 
   SIPRequest createRequest(SIPRequestMethod method);
-  SIPResponse createResponse(SIPResponseStatus status);
 
   void setExpires(uint32_t timeout, std::shared_ptr<SIPMessageHeader> header);
 

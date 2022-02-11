@@ -87,7 +87,7 @@ void SIPCallbacks::processIncomingRequest(SIPRequest& request, QVariant& content
     callback(address_, request, content);
   }
 
-  emit incomingRequest(request, content);
+  // requests stop at callbacks
 }
 
 
