@@ -94,15 +94,22 @@ void SIPRegistration::processIncomingResponse(SIPResponse& response, QVariant& c
           }
           else if (status_ == DEREGISTERING)// the actual NAT registration
           {
-            Logger::getLogger()->printNormal(this, "Sending the final NAT REGISTER");
-            contactAddress_ = response.message->contact.first().address.uri.hostport.host;
-            contactPort_ = response.message->contact.first().address.uri.hostport.port;
-            // makes sure we don't end up in infinite loop if the address doesn't match
+            if (!response.message->contact.empty())
+            {
+              Logger::getLogger()->printNormal(this, "Sending the final NAT REGISTER");
+              contactAddress_ = response.message->contact.first().address.uri.hostport.host;
+              contactPort_ = response.message->contact.first().address.uri.hostport.port;
+              // makes sure we don't end up in infinite loop if the address doesn't match
 
-            statusView_->updateServerStatus("Behind NAT, updating address...");
+              statusView_->updateServerStatus("Behind NAT, updating address...");
 
-             // re-REGISTER with NAT address and port
-            sendREGISTERRequest(REGISTER_INTERVAL, RE_REGISTRATION);
+               // re-REGISTER with NAT address and port
+              sendREGISTERRequest(REGISTER_INTERVAL, RE_REGISTRATION);
+            }
+            else
+            {
+              Logger::getLogger()->printError(this, "Failed to get contacts in REGISTER response");
+            }
             return;
           }
           else
