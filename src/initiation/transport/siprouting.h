@@ -45,7 +45,7 @@ private:
   // modifies the just the contact-address. Use with responses
   void addContactField(std::shared_ptr<SIPMessageHeader> message,
                           QString localAddress,
-                          uint16_t localPort, SIPType type);
+                          uint16_t localPort, SIPType type, SIPRequestMethod method);
 
   void addREGISTERContactParameters(std::shared_ptr<SIPMessageHeader> message);
 
@@ -55,8 +55,8 @@ private:
 
   std::shared_ptr<TCPConnection> connection_;
 
-  QString contactAddress_;
-  uint16_t contactPort_;
+  QString received_;
+  uint16_t rport_;
 
   QString tempGruu_;
   QString pubGruu_;

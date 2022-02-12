@@ -10,8 +10,8 @@
 
 SIPRouting::SIPRouting(std::shared_ptr<TCPConnection> connection):
   connection_(connection),
-  contactAddress_(""),
-  contactPort_(0),
+  received_(""),
+  rport_(0),
   first_(true)
 {}
 
@@ -51,7 +51,8 @@ void SIPRouting::processOutgoingRequest(SIPRequest& request, QVariant& content)
     addContactField(request.message,
                     connection_->localAddress(),
                     connection_->localPort(),
-                    DEFAULT_SIP_TYPE);
+                    DEFAULT_SIP_TYPE,
+                    request.method);
 
     if (request.method == SIP_REGISTER)
     {
@@ -99,7 +100,8 @@ void SIPRouting::processOutgoingResponse(SIPResponse& response, QVariant& conten
     addContactField(response.message,
                       connection_->localAddress(),
                       connection_->localPort(),
-                      DEFAULT_SIP_TYPE);
+                      DEFAULT_SIP_TYPE,
+                      response.message->cSeq.method);
   }
 
   emit outgoingResponse(response, content);
@@ -155,8 +157,8 @@ void SIPRouting::processResponseViaFields(QList<ViaField>& vias,
         }
         else
         {
-          contactAddress_ = via.receivedAddress;
-          contactPort_ = via.rportValue;
+          received_ = via.receivedAddress;
+          rport_ = via.rportValue;
         }
       }
       return;
@@ -193,33 +195,35 @@ void SIPRouting::addVia(SIPRequestMethod type,
 
 void SIPRouting::addContactField(std::shared_ptr<SIPMessageHeader> message,
                                  QString localAddress, uint16_t localPort,
-                                 SIPType type)
+                                 SIPType type, SIPRequestMethod method)
 {
   message->contact.push_back({{"", SIP_URI{type, {getLocalUsername(), ""}, {"", 0}, {}, {}}}, {}});
 
   // There are four different alternatives: use public GRUU if we have it,
   // otherwise use temporary GRUU or rport if we have those
-  if (pubGruu_ != "")
-  {
-    if (!parseURI(pubGruu_, message->contact.back().address.uri))
-    {
-      Logger::getLogger()->printProgramError(this, "Failed to parse Public GRUU for contact field");
-    }
-  }
-  else if (tempGruu_ != "")
+
+  if (tempGruu_ != "" && method != SIP_REGISTER)
   {
     if (!parseURI(tempGruu_, message->contact.back().address.uri))
     {
       Logger::getLogger()->printProgramError(this, "Failed to parse Temporary GRUU for contact field");
     }
   }
-  else if (contactAddress_ != "" && contactPort_ != 0)
+  else if (pubGruu_ != "" && method != SIP_REGISTER)
   {
-    // use rport address and port if we have them
-    message->contact.back().address.uri.hostport.host = contactAddress_;
-    message->contact.back().address.uri.hostport.port = contactPort_;
+    if (!parseURI(pubGruu_, message->contact.back().address.uri))
+    {
+      Logger::getLogger()->printProgramError(this, "Failed to parse Public GRUU for contact field");
+    }
   }
-  else // otherwise use localaddress
+  else if (received_ != "" && rport_ != 0)
+  {
+    // use received address and rport if we have them, works behind nat, but not all
+    // routers seem to support these parameters. GRUU works always
+    message->contact.back().address.uri.hostport.host = received_;
+    message->contact.back().address.uri.hostport.port = rport_;
+  }
+  else // otherwise use localaddress, works when not behind NAT
   {
     message->contact.back().address.uri.hostport.host = localAddress;
     message->contact.back().address.uri.hostport.port = localPort;
