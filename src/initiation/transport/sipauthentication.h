@@ -30,6 +30,9 @@ private:
 
   void updateNonceCount(DigestChallenge& challenge, DigestResponse& response);
 
+  bool isNewChallenge(QList<DigestChallenge>& oldChallenges,
+                    QList<DigestChallenge>& newChallenges);
+
   QList<DigestChallenge> wwwChallenges_;
   QList<DigestChallenge> proxyChallenges_;
 

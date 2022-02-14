@@ -64,6 +64,20 @@ void SIPSingleCall::processIncomingResponse(SIPResponse& response, QVariant& con
 { 
   Q_UNUSED(content);
 
+  if (retryRequest)
+  {
+    SIPRequest request = createRequest(response.message->cSeq.method);
+    QVariant content;
+
+    if (response.message->cSeq.method == SIP_INVITE)
+    {
+      setExpires(INVITE_TIMEOUT, request.message);
+    }
+
+    emit outgoingRequest(request, content);
+    return;
+  }
+
   Logger::getLogger()->printNormal(this, "Processing incoming response");
 
   if (response.type >= 100 && response.type <= 299)
@@ -102,22 +116,6 @@ void SIPSingleCall::processIncomingResponse(SIPResponse& response, QVariant& con
   }
   else if (response.type >= 400 && response.type <= 499)
   {
-    if (response.type == SIP_PROXY_AUTHENTICATION_REQUIRED && !triedAuthenticating_)
-    {
-      triedAuthenticating_ = true;
-
-      SIPRequest request = createRequest(response.message->cSeq.method);
-      QVariant content;
-
-      if (response.message->cSeq.method == SIP_INVITE)
-      {
-        setExpires(INVITE_TIMEOUT, request.message);
-      }
-
-      emit outgoingRequest(request, content);
-      return;
-    }
-
     // TODO: 8.1.3.5 Processing 4xx Responses in RFC 3261
     Logger::getLogger()->printWarning(this, "Got a Failure Response.");
     shouldLive_ = false;

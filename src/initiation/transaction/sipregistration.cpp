@@ -12,8 +12,7 @@ const int REGISTER_SEND_PERIOD = (REGISTER_INTERVAL - 5)*1000;
 
 
 SIPRegistration::SIPRegistration():
-  retryTimer_(nullptr),
-  attemptedAuth_(false)
+  retryTimer_(nullptr)
 {}
 
 
@@ -69,15 +68,18 @@ void SIPRegistration::processIncomingResponse(SIPResponse& response, QVariant& c
   Q_UNUSED(content);
   // REGISTER response must not create route. In other words ignore all record-routes
 
+  if (retryRequest)
+  {
+    sendREGISTERRequest(REGISTER_INTERVAL, status_);
+    return;
+  }
+
   if (response.message->cSeq.method == SIP_REGISTER)
   {
     if (serverAddress_ == response.message->to.address.uri.hostport.host)
     {
       if (response.type == SIP_OK)
       {
-        attemptedAuth_ = false; // reset our attempts so if the digest expires,
-                                // we auth again
-
         if (status_ != RE_REGISTRATION &&
             response.message->vias.at(0).receivedAddress != "" &&
             response.message->vias.at(0).rportValue != 0 &&
@@ -131,14 +133,6 @@ void SIPRegistration::processIncomingResponse(SIPResponse& response, QVariant& c
         }
 
         Logger::getLogger()->printNormal(this, "Registration was successful.");
-      }
-      else if (response.type == SIP_UNAUTHORIZED)
-      {
-        if (!attemptedAuth_)
-        {
-          attemptedAuth_ = true;
-          sendREGISTERRequest(REGISTER_INTERVAL, status_);
-        }
       }
       else
       {

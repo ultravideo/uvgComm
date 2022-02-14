@@ -62,19 +62,50 @@ void SIPAuthentication::processIncomingResponse(SIPResponse& response,
 {
   Logger::getLogger()->printNormal(this, "Processing incoming response");
 
-  // I think this is the REGISTER authorization
+  // this is the REGISTER authorization
   if (response.type == SIP_UNAUTHORIZED)
   {
+    // only retry if this is a new challenge
+    if (isNewChallenge(wwwChallenges_, response.message->wwwAuthenticate))
+    {
+      retryRequest = true;
+    }
+
     wwwChallenges_ = response.message->wwwAuthenticate;
     authorizations_.clear();
   }
   else if (response.type == SIP_PROXY_AUTHENTICATION_REQUIRED)
   {
+    // only retry if this is a new challenge
+    if (isNewChallenge(proxyChallenges_, response.message->proxyAuthenticate))
+    {
+      retryRequest = true;
+    }
+
     proxyChallenges_ = response.message->proxyAuthenticate;
     proxyAuthorizations_.clear();
   }
 
   emit incomingResponse(response, content, retryRequest);
+}
+
+
+bool SIPAuthentication::isNewChallenge(QList<DigestChallenge>& oldChallenges,
+                  QList<DigestChallenge> &newChallenges)
+{
+  if (newChallenges.isEmpty())
+  {
+    return false;
+  }
+
+  if (!oldChallenges.isEmpty() &&
+      !newChallenges.isEmpty() &&
+      oldChallenges[0].nonce == newChallenges[0].nonce)
+  {
+    return false;
+  }
+
+  return true;
 }
 
 
