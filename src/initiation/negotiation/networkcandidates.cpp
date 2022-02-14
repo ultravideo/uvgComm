@@ -86,6 +86,15 @@ void NetworkCandidates::init()
         if (sanityCheck(address, minPort))
         {
           portLock_.lock();
+
+          if (availablePorts_.find(address.toString()) != availablePorts_.end())
+          {
+            portLock_.unlock();
+            Logger::getLogger()->printWarning(this, "Detected same interface IP address a second time",
+                                              "Interface address", address.toString());
+            continue;
+          }
+
           availablePorts_.insert(std::pair<QString, std::deque<uint16_t>>(address.toString(),{}));
           portLock_.unlock();
 
@@ -95,6 +104,11 @@ void NetworkCandidates::init()
             if (!all_reserved.contains(std::pair<QString, uint16_t>(address.toString(), i)))
             {
               makePortAvailable(address.toString(), i);
+            }
+            else
+            {
+              Logger::getLogger()->printWarning(this, "Tried designating an already reserved interface port",
+                                                "Address", address.toString() + ":" + QString::number(i));
             }
           }
         }
@@ -169,7 +183,7 @@ void NetworkCandidates::refreshSTUN()
     }
   }
 
-  // remove requests so we know how many reaquests we have going on.
+  // remove requests so we know how many requests we have going on.
   for (auto& removal : removed)
   {
     requests_.erase(removal);
@@ -393,7 +407,8 @@ uint16_t NetworkCandidates::nextAvailablePort(QString interface, uint32_t sessio
   {
     portLock_.unlock();
     Logger::getLogger()->printWarning(this, "Either couldn't find interface or "
-                       "this interface has run out of ports");
+                                            "this interface has run out of ports",
+                                      "Interface", interface);
     return 0;
   }
 
@@ -503,8 +518,13 @@ void NetworkCandidates::moreSTUNCandidates()
       if (stunPort != 0)
       {
         // use 0 as STUN sessionID
-        sendSTUNserverRequest(QHostAddress(interface.first), nextAvailablePort(interface.first, 0),
-                              stunServerIP_,                 stunPort);
+        uint16_t nextPort = nextAvailablePort(interface.first, 0);
+
+        if (nextPort != 0)
+        {
+          sendSTUNserverRequest(QHostAddress(interface.first), nextPort,
+                                stunServerIP_,                 stunPort);
+        }
       }
       else
       {
@@ -527,13 +547,16 @@ void NetworkCandidates::sendSTUNserverRequest(QHostAddress localAddress,
 {
   if (localPort == 0 || serverPort == 0)
   {
-    Logger::getLogger()->printProgramError(this, "Not port set. Can't get STUN address.");
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Port set to 0. Can't get STUN address.",
+                                    {"Interface address", "Server address"},
+                                    {localAddress.toString() + ":" + QString::number(localPort),
+                                    serverAddress.toString() + ":" + QString::number(serverPort)});
     return;
   }
 
-  //Logger::getLogger()->printNormal(this, "Sending STUN server request", {"Path"},
-  //        {localAddress.toString() + ":" + QString::number(localPort) + " -> " +
-  //         serverAddress.toString() + ":" + QString::number(serverPort)});
+  Logger::getLogger()->printNormal(this, "Sending STUN server request", {"Path"},
+            {localAddress.toString() + ":" + QString::number(localPort) + " -> " +
+             serverAddress.toString() + ":" + QString::number(serverPort)});
 
   QString key = localAddress.toString() + ":" + QString::number(localPort);
 
