@@ -108,7 +108,8 @@ void SIPRouting::processOutgoingResponse(SIPResponse& response, QVariant& conten
 }
 
 
-void SIPRouting::processIncomingResponse(SIPResponse& response, QVariant& content)
+void SIPRouting::processIncomingResponse(SIPResponse& response, QVariant& content,
+                                         bool retryRequest)
 {
   Q_UNUSED(content)
 
@@ -128,7 +129,7 @@ void SIPRouting::processIncomingResponse(SIPResponse& response, QVariant& conten
     getGruus(response.message);
   }
 
-  emit incomingResponse(response, content);
+  emit incomingResponse(response, content, retryRequest);
 }
 
 

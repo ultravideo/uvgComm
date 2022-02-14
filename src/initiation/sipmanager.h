@@ -114,8 +114,10 @@ private slots:
   void transportResponse(SIPResponse &response, QVariant& content);
 
   // Process incoming SIP message. May create session if it's an INVITE.
-  void processSIPRequest(SIPRequest &request, QVariant& content);
-  void processSIPResponse(SIPResponse &response, QVariant& content);
+  void processSIPRequest(SIPRequest &request, QVariant& content,
+                         SIPResponseStatus generatedResponse);
+  void processSIPResponse(SIPResponse &response, QVariant& content,
+                          bool retryRequest);
 
 private:
 

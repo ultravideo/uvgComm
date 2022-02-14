@@ -59,7 +59,8 @@ void SIPSingleCall::cancelOutgoingCall()
 }
 
 
-void SIPSingleCall::processIncomingResponse(SIPResponse& response, QVariant& content)
+void SIPSingleCall::processIncomingResponse(SIPResponse& response, QVariant& content,
+                                            bool retryRequest)
 { 
   Q_UNUSED(content);
 

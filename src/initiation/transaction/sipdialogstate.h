@@ -52,11 +52,12 @@ public slots:
   virtual void processOutgoingResponse(SIPResponse& response, QVariant& content);
 
   // Creates a dialog if it is INVITE
-  virtual void processIncomingRequest(SIPRequest& request, QVariant& content);
+  virtual void processIncomingRequest(SIPRequest& request, QVariant& content,
+                                      SIPResponseStatus generatedResponse);
 
   // Gets the correct requestURI from INVITE OK contact
-  virtual void processIncomingResponse(SIPResponse& response, QVariant& content);
-
+  virtual void processIncomingResponse(SIPResponse& response, QVariant& content,
+                                       bool retryRequest);
 
 private:
 

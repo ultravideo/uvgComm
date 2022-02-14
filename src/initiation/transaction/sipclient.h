@@ -27,7 +27,8 @@ public slots:
   virtual void processOutgoingRequest(SIPRequest& request, QVariant& content);
 
   // processes incoming response. Part of client transaction
-  virtual void processIncomingResponse(SIPResponse& response, QVariant& content);
+  virtual void processIncomingResponse(SIPResponse& response, QVariant& content,
+                                       bool retryRequest);
 
 signals:
 

@@ -57,7 +57,8 @@ void SIPAuthentication::processOutgoingRequest(SIPRequest& request,
 
 
 void SIPAuthentication::processIncomingResponse(SIPResponse& response,
-                                                QVariant& content)
+                                                QVariant& content,
+                                                bool retryRequest)
 {
   Logger::getLogger()->printNormal(this, "Processing incoming response");
 
@@ -73,7 +74,7 @@ void SIPAuthentication::processIncomingResponse(SIPResponse& response,
     proxyAuthorizations_.clear();
   }
 
-  emit incomingResponse(response, content);
+  emit incomingResponse(response, content, retryRequest);
 }
 
 

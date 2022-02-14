@@ -75,8 +75,10 @@ void SIPCallbacks::clearCallbacks()
 }
 
 
-void SIPCallbacks::processIncomingRequest(SIPRequest& request, QVariant& content)
+void SIPCallbacks::processIncomingRequest(SIPRequest& request, QVariant& content,
+                                          SIPResponseStatus generatedResponse)
 {
+  Q_UNUSED(generatedResponse);
   for (auto& callback : requestCallbacks_)
   {
     callback(sessionID_, request, content);
@@ -91,7 +93,8 @@ void SIPCallbacks::processIncomingRequest(SIPRequest& request, QVariant& content
 }
 
 
-void SIPCallbacks::processIncomingResponse(SIPResponse& response, QVariant& content)
+void SIPCallbacks::processIncomingResponse(SIPResponse& response, QVariant& content,
+                                           bool retryRequest)
 {
   for (auto& callback : responseCallbacks_)
   {
@@ -103,5 +106,5 @@ void SIPCallbacks::processIncomingResponse(SIPResponse& response, QVariant& cont
     callback(address_, response, content);
   }
 
-  emit incomingResponse(response, content);
+  emit incomingResponse(response, content, retryRequest);
 }

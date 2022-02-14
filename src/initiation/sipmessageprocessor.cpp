@@ -51,18 +51,20 @@ void SIPMessageProcessor::processOutgoingResponse(SIPResponse& response, QVarian
   emit outgoingResponse(response, content);
 }
 
-void SIPMessageProcessor::processIncomingRequest(SIPRequest& request, QVariant& content)
+void SIPMessageProcessor::processIncomingRequest(SIPRequest& request, QVariant& content,
+                                                 SIPResponseStatus generatedResponse)
 {
   Logger::getLogger()->printNormal(this, "Skipping processing incoming request");
 
   // default is that we do no processing
-  emit incomingRequest(request, content);
+  emit incomingRequest(request, content, generatedResponse);
 }
 
 
-void SIPMessageProcessor::processIncomingResponse(SIPResponse& response, QVariant& content)
+void SIPMessageProcessor::processIncomingResponse(SIPResponse& response, QVariant& content,
+                                                  bool retryRequest)
 {
   Logger::getLogger()->printNormal(this, "Skipping processing incoming response");
   // default is that we do no processing
-  emit incomingResponse(response, content);
+  emit incomingResponse(response, content, retryRequest);
 }

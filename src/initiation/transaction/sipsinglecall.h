@@ -25,7 +25,8 @@ public:
 
 public slots:
 
-  virtual void processIncomingResponse(SIPResponse& response, QVariant& content);
+  virtual void processIncomingResponse(SIPResponse& response, QVariant& content,
+                                       bool retryRequest);
 
   void processFailure(QString message);
 

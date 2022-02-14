@@ -67,7 +67,7 @@ void ICE::processOutgoingResponse(SIPResponse& response, QVariant& content)
 }
 
 
-void ICE::processIncomingRequest(SIPRequest& request, QVariant& content)
+void ICE::processIncomingRequest(SIPRequest& request, QVariant& content, SIPResponseStatus generatedResponse)
 {
   Logger::getLogger()->printNormal(this, "Processing incoming request");
 
@@ -81,11 +81,12 @@ void ICE::processIncomingRequest(SIPRequest& request, QVariant& content)
     takeRemoteStartNomination(content);
   }
 
-  emit incomingRequest(request, content);
+  emit incomingRequest(request, content, generatedResponse);
 }
 
 
-void ICE::processIncomingResponse(SIPResponse& response, QVariant& content)
+void ICE::processIncomingResponse(SIPResponse& response, QVariant& content,
+                                  bool retryRequest)
 {
   if (response.message->cSeq.method == SIP_INVITE && response.type == SIP_OK)
   {
@@ -97,7 +98,7 @@ void ICE::processIncomingResponse(SIPResponse& response, QVariant& content)
     takeRemoteStartNomination(content);
   }
 
-  emit incomingResponse(response, content);
+  emit incomingResponse(response, content, retryRequest);
 }
 
 

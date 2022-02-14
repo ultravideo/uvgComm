@@ -333,7 +333,7 @@ bool SIPTransport::parseRequest(const QString &header, QString requestString, QS
   stats_->addReceivedSIPMessage(requestString, header,
                                 contentTypeToString(request.message->contentType), body);
 
-  emit incomingRequest(request, content);
+  emit incomingRequest(request, content, SIP_NO_RESPONSE);
   return true;
 }
 
@@ -370,7 +370,7 @@ bool SIPTransport::parseResponse(const QString &header, QString responseString,
                                 + " " + response.text, header,
                                 contentTypeToString(response.message->contentType), body);
 
-  emit incomingResponse(response, content);
+  emit incomingResponse(response, content, false);
 
   return true;
 }

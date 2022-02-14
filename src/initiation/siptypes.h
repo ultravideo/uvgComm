@@ -50,7 +50,8 @@ enum SIPRequestMethod {SIP_NO_REQUEST,
                        // SIP_UPDATE };
 
 // the phrase is for humans only, so we will ignore it when parsing and use the code instead
-enum SIPResponseStatus {SIP_UNKNOWN_RESPONSE = 0,
+enum SIPResponseStatus {SIP_UNKNOWN_RESPONSE = -1,
+                        SIP_NO_RESPONSE = 0,
                         SIP_TRYING = 100,
                         SIP_RINGING = 180,
                         SIP_FORWARDED = 181,

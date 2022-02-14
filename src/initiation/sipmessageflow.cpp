@@ -88,25 +88,27 @@ void SIPMessageFlow::processOutgoingResponse(SIPResponse& response, QVariant& co
 }
 
 
-void SIPMessageFlow::processIncomingRequest(SIPRequest& request, QVariant& content)
+void SIPMessageFlow::processIncomingRequest(SIPRequest& request, QVariant& content,
+                                            SIPResponseStatus generatedRespons)
 {
   if (!internalCheck())
   {
     return;
   }
 
-  messageFlow_.first()->processIncomingRequest(request, content);
+  messageFlow_.first()->processIncomingRequest(request, content, generatedRespons);
 }
 
 
-void SIPMessageFlow::processIncomingResponse(SIPResponse& response, QVariant& content)
+void SIPMessageFlow::processIncomingResponse(SIPResponse& response, QVariant& content,
+                                             bool retryRequest)
 {
   if (!internalCheck())
   {
     return;
   }
 
-  messageFlow_.first()->processIncomingResponse(response, content);
+  messageFlow_.first()->processIncomingResponse(response, content, retryRequest);
 }
 
 

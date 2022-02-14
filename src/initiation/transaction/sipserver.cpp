@@ -14,7 +14,8 @@ SIPServer::SIPServer():
 {}
 
 
-void SIPServer::processIncomingRequest(SIPRequest& request, QVariant& content)
+void SIPServer::processIncomingRequest(SIPRequest& request, QVariant& content,
+                                       SIPResponseStatus generatedResponse)
 {
   Logger::getLogger()->printNormal(this, "Processing incoming request");
 
@@ -82,7 +83,7 @@ void SIPServer::processIncomingRequest(SIPRequest& request, QVariant& content)
   }
 
   // send the request to callbacks
-  emit incomingRequest(request, content);
+  emit incomingRequest(request, content, generatedResponse);
 }
 
 

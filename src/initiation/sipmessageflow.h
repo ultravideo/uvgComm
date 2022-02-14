@@ -27,8 +27,10 @@ public slots:
   virtual void processOutgoingRequest(SIPRequest& request, QVariant& content);
   virtual void processOutgoingResponse(SIPResponse& response, QVariant& content);
 
-  virtual void processIncomingRequest(SIPRequest& request, QVariant& content);
-  virtual void processIncomingResponse(SIPResponse& response, QVariant& content);
+  virtual void processIncomingRequest(SIPRequest& request, QVariant& content,
+                                      SIPResponseStatus generatedRespons);
+  virtual void processIncomingResponse(SIPResponse& response, QVariant& content,
+                                       bool retryRequest);
 
 private:
 

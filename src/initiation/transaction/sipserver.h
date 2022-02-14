@@ -31,7 +31,8 @@ public:
 public slots:
 
     // processes incoming request. Part of server transaction
-  virtual void processIncomingRequest(SIPRequest& request, QVariant& content);
+  virtual void processIncomingRequest(SIPRequest& request, QVariant& content,
+                                      SIPResponseStatus generatedResponse);
 
 
 private:

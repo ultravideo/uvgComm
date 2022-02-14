@@ -234,7 +234,8 @@ void SIPDialogState::processOutgoingResponse(SIPResponse& response, QVariant& co
 }
 
 
-void SIPDialogState::processIncomingRequest(SIPRequest& request, QVariant& content)
+void SIPDialogState::processIncomingRequest(SIPRequest& request, QVariant& content,
+                                            SIPResponseStatus generatedResponse)
 {
   Q_UNUSED(content)
   Q_ASSERT(request.message);
@@ -294,11 +295,12 @@ void SIPDialogState::processIncomingRequest(SIPRequest& request, QVariant& conte
 
   remoteCseq_ = request.message->cSeq.cSeq;
 
-  emit incomingRequest(request, content);
+  emit incomingRequest(request, content, generatedResponse);
 }
 
 
-void SIPDialogState::processIncomingResponse(SIPResponse& response, QVariant& content)
+void SIPDialogState::processIncomingResponse(SIPResponse& response, QVariant& content,
+                                             bool retryRequest)
 {
   Q_UNUSED(content)
 
@@ -333,7 +335,7 @@ void SIPDialogState::processIncomingResponse(SIPResponse& response, QVariant& co
     route_ = response.message->recordRoutes;
   }
 
-  emit incomingResponse(response, content);
+  emit incomingResponse(response, content, retryRequest);
 }
 
 

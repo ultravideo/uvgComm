@@ -33,9 +33,15 @@ signals:
   void outgoingRequest(SIPRequest& request, QVariant& content);
   void outgoingResponse(SIPResponse& response, QVariant& content);
 
-  // TODO: have some sort of error state attached to incoming requests
-  void incomingRequest(SIPRequest& request, QVariant& content);
-  void incomingResponse(SIPResponse& response, QVariant& content);
+  // generated response parameter is for situations when the response is decided
+  // by components before server
+  void incomingRequest(SIPRequest& request, QVariant& content,
+                       SIPResponseStatus generatedResponse);
+
+  // retry parameter indicates whether a component needs the same request sent
+  // again to function correctly
+  void incomingResponse(SIPResponse& response, QVariant& content,
+                        bool retryRequest);
 
 public slots:
 
@@ -45,7 +51,9 @@ public slots:
   virtual void processOutgoingRequest(SIPRequest& request, QVariant& content);
   virtual void processOutgoingResponse(SIPResponse& response, QVariant& content);
 
-  virtual void processIncomingRequest(SIPRequest& request, QVariant& content);
-  virtual void processIncomingResponse(SIPResponse& response, QVariant& content);
+  virtual void processIncomingRequest(SIPRequest& request, QVariant& content,
+                                      SIPResponseStatus generatedResponse);
+  virtual void processIncomingResponse(SIPResponse& response, QVariant& content,
+                                       bool retryRequest);
 
 };

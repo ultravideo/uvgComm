@@ -56,7 +56,8 @@ void SIPClient::processOutgoingRequest(SIPRequest& request, QVariant& content)
 }
 
 
-void SIPClient::processIncomingResponse(SIPResponse& response, QVariant& content)
+void SIPClient::processIncomingResponse(SIPResponse& response, QVariant& content,
+                                        bool retryRequest)
 {
   Logger::getLogger()->printNormal(this, "Client starts processing response");
 
@@ -95,7 +96,7 @@ void SIPClient::processIncomingResponse(SIPResponse& response, QVariant& content
     expires_ = nullptr;
   }
 
-  emit incomingResponse(response, content);
+  emit incomingResponse(response, content, retryRequest);
 }
 
 

@@ -89,7 +89,8 @@ void SDPNegotiation::processOutgoingResponse(SIPResponse& response, QVariant& co
 }
 
 
-void SDPNegotiation::processIncomingRequest(SIPRequest& request, QVariant& content)
+void SDPNegotiation::processIncomingRequest(SIPRequest& request, QVariant& content,
+                                            SIPResponseStatus generatedResponse)
 {
   Logger::getLogger()->printNormal(this, "Processing incoming request");
 
@@ -145,11 +146,12 @@ void SDPNegotiation::processIncomingRequest(SIPRequest& request, QVariant& conte
     }
   }
 
-  emit incomingRequest(request, content);
+  emit incomingRequest(request, content, generatedResponse);
 }
 
 
-void SDPNegotiation::processIncomingResponse(SIPResponse& response, QVariant& content)
+void SDPNegotiation::processIncomingResponse(SIPResponse& response, QVariant& content,
+                                             bool retryRequest)
 {
   if(response.message->cSeq.method == SIP_INVITE && response.type == SIP_OK)
   {
@@ -198,7 +200,7 @@ void SDPNegotiation::processIncomingResponse(SIPResponse& response, QVariant& co
     }
   }
 
-  emit incomingResponse(response, content);
+  emit incomingResponse(response, content, retryRequest);
 }
 
 

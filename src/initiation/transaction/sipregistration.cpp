@@ -63,7 +63,8 @@ void SIPRegistration::bindToServer(NameAddr& addressRecord, QString localAddress
 }
 
 
-void SIPRegistration::processIncomingResponse(SIPResponse& response, QVariant& content)
+void SIPRegistration::processIncomingResponse(SIPResponse& response, QVariant& content,
+                                              bool retryRequest)
 {
   Q_UNUSED(content);
   // REGISTER response must not create route. In other words ignore all record-routes

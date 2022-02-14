@@ -394,7 +394,8 @@ void SIPManager::transportResponse(SIPResponse &response, QVariant& content)
 }
 
 
-void SIPManager::processSIPRequest(SIPRequest& request, QVariant& content)
+void SIPManager::processSIPRequest(SIPRequest& request, QVariant& content,
+                                   SIPResponseStatus generatedResponse)
 {
   Logger::getLogger()->printNormal(this, "Processing incoming re quest");
 
@@ -465,7 +466,7 @@ void SIPManager::processSIPRequest(SIPRequest& request, QVariant& content)
   // find the dialog which corresponds to the callID and tags received in request
   std::shared_ptr<DialogInstance> foundDialog = getDialog(sessionID);
 
-  foundDialog->pipe.processIncomingRequest(request, content);
+  foundDialog->pipe.processIncomingRequest(request, content, generatedResponse);
 
   if(foundDialog->server->shouldBeDestroyed())
   {
@@ -478,7 +479,8 @@ void SIPManager::processSIPRequest(SIPRequest& request, QVariant& content)
 }
 
 
-void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
+void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content,
+                                    bool retryRequest)
 {
   Logger::getLogger()->printNormal(this, "Processing incoming response");
 
@@ -495,7 +497,7 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
                                                          response.message->from.tagParameter))
     {
       Logger::getLogger()->printNormal(this, "Got a response to server message!");
-      registration.second->pipe.processIncomingResponse(response, content);
+      registration.second->pipe.processIncomingResponse(response, content, retryRequest);
       return;
     }
   }
@@ -512,7 +514,7 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content)
   // find the dialog which corresponds to the callID and tags received in request
   std::shared_ptr<DialogInstance> foundDialog = getDialog(sessionID);
 
-  foundDialog->pipe.processIncomingResponse(response, content);
+  foundDialog->pipe.processIncomingResponse(response, content, retryRequest);
 
   if (!foundDialog->call.shouldBeKeptAlive())
   {

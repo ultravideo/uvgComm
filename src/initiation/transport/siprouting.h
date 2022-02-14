@@ -29,7 +29,8 @@ public slots:
 
   // Checks that we are the correct destination for this response.
   // Also sets our contact address if rport was set.
-  virtual void processIncomingResponse(SIPResponse& response, QVariant& content);
+  virtual void processIncomingResponse(SIPResponse& response, QVariant& content,
+                                       bool retryRequest);
 
 private:
 

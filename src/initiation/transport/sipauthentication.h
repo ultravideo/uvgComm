@@ -19,7 +19,8 @@ public slots:
   virtual void processOutgoingRequest(SIPRequest& request, QVariant& content);
 
   // take challenge if they require authentication
-  virtual void processIncomingResponse(SIPResponse& response, QVariant& content);
+  virtual void processIncomingResponse(SIPResponse& response, QVariant& content,
+                                       bool retryRequest);
 
 private:
 

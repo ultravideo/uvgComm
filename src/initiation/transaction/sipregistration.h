@@ -43,7 +43,8 @@ public:
 
 public slots:
 
-  virtual void processIncomingResponse(SIPResponse& response, QVariant& content);
+  virtual void processIncomingResponse(SIPResponse& response, QVariant& content,
+                                       bool retryRequest);
 
 private slots:
 
