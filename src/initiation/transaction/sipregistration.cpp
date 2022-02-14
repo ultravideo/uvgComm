@@ -12,6 +12,7 @@ const int REGISTER_SEND_PERIOD = (REGISTER_INTERVAL - 5)*1000;
 
 
 SIPRegistration::SIPRegistration():
+  active_(false),
   retryTimer_(nullptr)
 {}
 
@@ -35,9 +36,9 @@ void SIPRegistration::init(ServerStatusView *statusView)
 
 void SIPRegistration::uninit()
 {
-  if (status_ == REG_ACTIVE)
+  if (active_)
   {
-    sendREGISTERRequest(0, DEREGISTERING);
+    sendREGISTERRequest(0);
   }
 
   Logger::getLogger()->printNormal(this, "Finished uniniating registration");
@@ -51,14 +52,11 @@ void SIPRegistration::bindToServer(NameAddr& addressRecord, QString localAddress
   Logger::getLogger()->printNormal(this, "Binding to server", {"Server"},
                                    {addressRecord.uri.hostport.host});
 
-  status_ = INACTIVE;
-  contactAddress_ = localAddress;
-  contactPort_ = port;
-
+  active_ = false;
   serverAddress_ = addressRecord.uri.hostport.host;
   statusView_->updateServerStatus("Request sent. Waiting response...");
 
-  sendREGISTERRequest(REGISTER_INTERVAL, FIRST_REGISTRATION);
+  sendREGISTERRequest(REGISTER_INTERVAL);
 }
 
 
@@ -70,84 +68,14 @@ void SIPRegistration::processIncomingResponse(SIPResponse& response, QVariant& c
 
   if (retryRequest)
   {
-    sendREGISTERRequest(REGISTER_INTERVAL, status_);
+    sendREGISTERRequest(REGISTER_INTERVAL);
     return;
   }
 
-  if (response.message->cSeq.method == SIP_REGISTER)
+  if (!response.message->contact.empty())
   {
-    if (serverAddress_ == response.message->to.address.uri.hostport.host)
-    {
-      if (response.type == SIP_OK)
-      {
-        if (status_ != RE_REGISTRATION &&
-            response.message->vias.at(0).receivedAddress != "" &&
-            response.message->vias.at(0).rportValue != 0 &&
-            (contactAddress_ != response.message->vias.at(0).receivedAddress ||
-             contactPort_ != response.message->vias.at(0).rportValue))
-        {
-          Logger::getLogger()->printNormal(this, "Detected that we are behind NAT!");
-
-          // we want to remove the previous registration so it doesn't cause problems
-          if (status_ == FIRST_REGISTRATION)
-          {
-            Logger::getLogger()->printNormal(this, "Resetting previous registration");
-            sendREGISTERRequest(0, DEREGISTERING);
-            return;
-          }
-          else if (status_ == DEREGISTERING)// the actual NAT registration
-          {
-            if (!response.message->contact.empty())
-            {
-              Logger::getLogger()->printNormal(this, "Sending the final NAT REGISTER");
-              contactAddress_ = response.message->contact.first().address.uri.hostport.host;
-              contactPort_ = response.message->contact.first().address.uri.hostport.port;
-              // makes sure we don't end up in infinite loop if the address doesn't match
-
-              statusView_->updateServerStatus("Behind NAT, updating address...");
-
-               // re-REGISTER with NAT address and port
-              sendREGISTERRequest(REGISTER_INTERVAL, RE_REGISTRATION);
-            }
-            else
-            {
-              Logger::getLogger()->printError(this, "Failed to get contacts in REGISTER response");
-            }
-            return;
-          }
-          else
-          {
-            Logger::getLogger()->printError(this, "The Registration response does not match internal state");
-          }
-        }
-        else
-        {
-          statusView_->updateServerStatus("Registered");
-        }
-
-        status_ = REG_ACTIVE;
-
-        if (!retryTimer_.isActive())
-        {
-          retryTimer_.start(REGISTER_SEND_PERIOD);
-        }
-
-        Logger::getLogger()->printNormal(this, "Registration was successful.");
-      }
-      else
-      {
-        Logger::getLogger()->printDebug(DEBUG_ERROR, this, "REGISTER-request failed");
-        statusView_->updateServerStatus(response.text);
-      }
-    }
-    else
-    {
-      Logger::getLogger()->printPeerError(this, "Got a resonse to REGISTRATION we didn't send");
-    }
-  }
-  else
-  {
-    Logger::getLogger()->printUnimplemented(this, "Processing of Non-REGISTER requests");
+    active_ = true;
+    statusView_->updateServerStatus("Registered");
   }
 }
 
@@ -162,21 +90,21 @@ void SIPRegistration::refreshRegistration()
     return;
   }
 
-  if (status_ == REG_ACTIVE)
+  if (active_)
   {
     statusView_->updateServerStatus("Second request sent. Waiting response...");
-    sendREGISTERRequest(REGISTER_INTERVAL, REG_ACTIVE);
+    sendREGISTERRequest(REGISTER_INTERVAL);
   }
 }
 
 
 bool SIPRegistration::haveWeRegistered()
 {
-  return status_ == REG_ACTIVE;
+  return active_;
 }
 
 
-void SIPRegistration::sendREGISTERRequest(uint32_t expires, RegistrationStatus newStatus)
+void SIPRegistration::sendREGISTERRequest(uint32_t expires)
 {
   SIPRequest request;
   request.method = SIP_REGISTER;
@@ -184,7 +112,5 @@ void SIPRegistration::sendREGISTERRequest(uint32_t expires, RegistrationStatus n
   request.message->expires = std::shared_ptr<uint32_t> (new uint32_t{expires});
 
   QVariant content;
-
-  status_ = newStatus;
   emit outgoingRequest(request, content);
 }

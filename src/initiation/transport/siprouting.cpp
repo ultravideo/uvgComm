@@ -12,7 +12,7 @@ SIPRouting::SIPRouting(std::shared_ptr<TCPConnection> connection):
   connection_(connection),
   received_(""),
   rport_(0),
-  first_(true)
+  resetRegistrations_(false)
 {}
 
 
@@ -59,6 +59,12 @@ void SIPRouting::processOutgoingRequest(SIPRequest& request, QVariant& content)
       addREGISTERContactParameters(request.message);
       addToSupported("path", request.message); // RFC 5626 section 4.2.1
     }
+
+    if (resetRegistrations_ && request.message->expires != nullptr)
+    {
+      // when we detect an rport difference, we remove our existing registration first
+      *request.message->expires = 0;
+    }
   }
 
   if (request.method == SIP_INVITE ||
@@ -66,7 +72,6 @@ void SIPRouting::processOutgoingRequest(SIPRequest& request, QVariant& content)
       request.method == SIP_REGISTER)
   {
     addToSupported("gruu", request.message);
-
   }
 
   if (request.method != SIP_ACK)
@@ -115,56 +120,116 @@ void SIPRouting::processIncomingResponse(SIPResponse& response, QVariant& conten
 
   if (connection_ && connection_->isConnected())
   {
-    processResponseViaFields(response.message->vias,
-                             connection_->localAddress(),
-                             connection_->localPort());
+    if (!isMeantForUs(response.message->vias,
+                       connection_->localAddress(),
+                       connection_->localPort()))
+    {
+      Logger::getLogger()->printError(this, "Received a response where our "
+                                            "via is not the only one!");
+      return;
+    }
   }
   else
   {
     Logger::getLogger()->printError(this, "Not connected when checking response via field");
   }
 
-  if (response.type == SIP_OK && response.message->cSeq.method == SIP_REGISTER)
+  if (response.message->cSeq.method == SIP_REGISTER)
   {
-    getGruus(response.message);
+    resetRegistrations_ = false; // resetting here avoids loops with registrar
+
+    if (response.type == SIP_OK)
+    {
+      // we always use gruus if they are available and don't bother with other methods
+      if (!getGruus(response.message))
+      {
+        // rport is another method around NAT, but it is not supported by all routers for
+        // TCP because it is technically an UDP feature
+        if (isRportDifferent(response.message->vias,
+                             connection_->localAddress(),
+                             connection_->localPort()))
+        {
+          retryRequest = true;
+
+          if (response.message->contact.empty())
+          {
+            updateReceiveAddressAndRport(response.message->vias,
+                                         connection_->localAddress(),
+                                         connection_->localPort());
+          }
+          else
+          {
+            // we are registered so we have to remove the registration
+            resetRegistrations_ = true;
+          }
+        }
+      }
+    }
+    else
+    {
+      updateReceiveAddressAndRport(response.message->vias,
+                                   connection_->localAddress(),
+                                   connection_->localPort());
+    }
   }
 
   emit incomingResponse(response, content, retryRequest);
 }
 
 
-void SIPRouting::processResponseViaFields(QList<ViaField>& vias,
+void SIPRouting::updateReceiveAddressAndRport(QList<ViaField>& vias,
                                           QString localAddress,
                                           uint16_t localPort)
 {
   // find the via with our address and port
-
   for (ViaField& via : vias)
   {
     if (via.sentBy == localAddress && via.port == localPort)
     {
-      Logger::getLogger()->printNormal(this, "Found our via. This is meant for us!");
-
-      if (via.rportValue != 0 && via.receivedAddress != "")
-      {
-        Logger::getLogger()->printNormal(this, "Found our received address and rport",
-                                         {"Address"}, {via.receivedAddress + ":" + QString::number(via.rportValue)});
-
-        // we do not update our address, because we want to remove this registration
-        // first before updating.
-        if (first_)
-        {
-          first_ = false;
-        }
-        else
-        {
-          received_ = via.receivedAddress;
-          rport_ = via.rportValue;
-        }
-      }
+      received_ = via.receivedAddress;
+      rport_ = via.rportValue;
       return;
     }
   }
+}
+
+
+bool SIPRouting::isRportDifferent(QList<ViaField> &vias,
+                                  QString localAddress,
+                                  uint16_t localPort)
+{
+  for (ViaField& via : vias)
+  {
+    if (via.sentBy == localAddress && via.port == localPort)
+    {
+      if ((via.rportValue != localPort || via.receivedAddress != localAddress) &&
+          (via.rportValue != rport_ || via.receivedAddress != received_))
+      {
+        Logger::getLogger()->printNormal(this, "Our receive address is different, meaning we are behind NAT",
+                                         {"Address"}, {via.receivedAddress + ":" + QString::number(via.rportValue)});
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+
+bool SIPRouting::isMeantForUs(QList<ViaField> &vias,
+                  QString localAddress,
+                  uint16_t localPort)
+{
+  // find the via with our address and port
+  if (vias.size() == 1)
+  {
+    if (vias.at(0).sentBy == localAddress && vias.at(0).port == localPort)
+    {
+      Logger::getLogger()->printNormal(this, "Found our via. This is meant for us!");
+      return true;
+    }
+  }
+
+  return false;
 }
 
 
@@ -258,7 +323,7 @@ void SIPRouting::addToSupported(QString feature, std::shared_ptr<SIPMessageHeade
 }
 
 
-void SIPRouting::getGruus(std::shared_ptr<SIPMessageHeader> message)
+bool SIPRouting::getGruus(std::shared_ptr<SIPMessageHeader> message)
 {
   QString tempGruu = "";
   QString pubGruu = "";
@@ -287,4 +352,6 @@ void SIPRouting::getGruus(std::shared_ptr<SIPMessageHeader> message)
 
   tempGruu_ = tempGruu;
   pubGruu_ = pubGruu;
+
+  return tempGruu != "" || pubGruu != "";
 }

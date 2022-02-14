@@ -51,18 +51,12 @@ private slots:
   void refreshRegistration();
 
 private:
-  enum RegistrationStatus {INACTIVE, FIRST_REGISTRATION,
-                           RE_REGISTRATION, DEREGISTERING, REG_ACTIVE};
 
-  void sendREGISTERRequest(uint32_t expires, RegistrationStatus newStatus);
+  void sendREGISTERRequest(uint32_t expires);
 
-  // TODO: these addressses should probably be the responsibility of routing
-  QString contactAddress_;
-  uint16_t contactPort_;
+  bool active_;
 
   QString serverAddress_;
-
-  RegistrationStatus status_;
 
   ServerStatusView* statusView_;
   QTimer retryTimer_;

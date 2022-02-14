@@ -34,10 +34,18 @@ public slots:
 
 private:
 
+  bool isMeantForUs(QList<ViaField> &vias,
+                    QString localAddress,
+                    uint16_t localPort);
+
   // check the rport value if
-  void processResponseViaFields(QList<ViaField> &vias,
-                                QString localAddress,
-                                uint16_t localPort);
+  void updateReceiveAddressAndRport(QList<ViaField> &vias,
+                                    QString localAddress,
+                                    uint16_t localPort);
+
+  bool isRportDifferent(QList<ViaField> &vias,
+                        QString localAddress,
+                        uint16_t localPort);
 
   // sets the via and contact addresses of the request
   void addVia(SIPRequestMethod type, std::shared_ptr<SIPMessageHeader> message,
@@ -52,7 +60,7 @@ private:
 
   void addToSupported(QString feature, std::shared_ptr<SIPMessageHeader> message);
 
-  void getGruus(std::shared_ptr<SIPMessageHeader> message);
+  bool getGruus(std::shared_ptr<SIPMessageHeader> message);
 
   std::shared_ptr<TCPConnection> connection_;
 
@@ -62,7 +70,7 @@ private:
   QString tempGruu_;
   QString pubGruu_;
 
-  bool first_;
+  bool resetRegistrations_;
 
   ViaField previousVia_;
 };
