@@ -80,8 +80,7 @@ void NetworkCandidates::init()
 
     foreach (const QHostAddress& address, QNetworkInterface::allAddresses())
     {
-      if (address.protocol() == QAbstractSocket::IPv4Protocol &&
-          !address.isLoopback())
+      if (!address.isLoopback())
       {
         if (sanityCheck(address, minPort))
         {
@@ -441,10 +440,10 @@ void NetworkCandidates::makePortAvailable(QString interface, uint16_t port)
 }
 
 
-/* https://en.wikipedia.org/wiki/Private_network#Private_IPv4_addresses */
+/* https://en.wikipedia.org/wiki/Private_network */
 bool NetworkCandidates::isPrivateNetwork(const QString& address)
 {
-  if (address.startsWith("10.") || address.startsWith("192.168"))
+  if (address.startsWith("10.") || address.startsWith("192.168") || address.startsWith("fd"))
   {
     return true;
   }
