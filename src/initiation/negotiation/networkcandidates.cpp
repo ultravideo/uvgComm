@@ -166,6 +166,12 @@ void NetworkCandidates::refreshSTUN()
     // Send STUN-Request through all the interfaces, since we don't know which is
     // connected to the internet. Most of them will fail.
     moreSTUNCandidates();
+
+    if (availablePorts_.empty())
+    {
+      refreshSTUNTimer_.stop();
+      Logger::getLogger()->printError(this, "There don't seem to be any valid network addresses!");
+    }
   }
   stunMutex_.unlock();
 
