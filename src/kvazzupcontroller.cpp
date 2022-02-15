@@ -420,7 +420,6 @@ void KvazzupController::userCancelsCall(uint32_t sessionID)
 {
   Logger::getLogger()->printNormal(this, "We cancel our call");
   sip_.cancelCall(sessionID);
-  removeSession(sessionID, "Call cancelled", true);
 }
 
 
@@ -514,13 +513,17 @@ void KvazzupController::SIPResponseCallback(uint32_t sessionID,
     {
       if(response.type == SIP_RINGING)
       {
+        callRinging(sessionID);
       }
       else if(response.type == SIP_OK)
       {
+        peerAccepted(sessionID);
+        callNegotiated(sessionID);
       }
     }
     else if (response.message->cSeq.method == SIP_BYE && response.type == 200)
     {
+      endCall(sessionID);
     }
   }
   else if (response.type >= 300 && response.type <= 399)
@@ -528,7 +531,13 @@ void KvazzupController::SIPResponseCallback(uint32_t sessionID,
   }
   else if (response.type >= 400 && response.type <= 499)
   {
-
+    if (response.type == SIP_REQUEST_TERMINATED)
+    {
+      if (response.message->cSeq.method == SIP_INVITE)
+      {
+        removeSession(sessionID, "Call cancelled", true);
+      }
+    }
   }
   else if (response.type >= 500 && response.type <= 599)
   {
@@ -540,6 +549,7 @@ void KvazzupController::SIPResponseCallback(uint32_t sessionID,
     {
       if (response.type == SIP_DECLINE)
       {
+        endCall(sessionID);
       }
     }
   }

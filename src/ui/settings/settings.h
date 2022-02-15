@@ -4,7 +4,6 @@
 #include "ui/settings/videosettings.h"
 #include "ui/settings/sipsettings.h"
 
-#include "serverstatusview.h"
 #include "deviceinfointerface.h"
 
 #include <QDialog>
@@ -40,7 +39,7 @@ class QCheckBox;
 class QComboBox;
 
 
-class Settings : public QDialog, public ServerStatusView
+class Settings : public QDialog
 {
   Q_OBJECT
 

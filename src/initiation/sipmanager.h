@@ -3,7 +3,6 @@
 #include "initiation/transport/connectionserver.h"
 #include "initiation/transport/siptransport.h"
 
-#include "initiation/transaction/sipsinglecall.h"
 #include "initiation/transaction/sipcallbacks.h"
 
 
@@ -23,10 +22,9 @@ struct DialogInstance
   SIPMessageFlow pipe;
   // state is used to find out whether message belongs to this dialog
   std::shared_ptr<SIPDialogState> state;
-  std::shared_ptr<SIPServer> server; // for identifying cancel
-
+  std::shared_ptr<SIPServer> server; // for identifying cancel and sending responses
+  std::shared_ptr<SIPClient> client; // for sending requests
   std::shared_ptr<SIPCallbacks> callbacks;
-  SIPSingleCall call;
 };
 
 // Components specific to one registration
@@ -52,6 +50,7 @@ struct TransportInstance
 class SIPTransactionUser;
 class StatisticsInterface;
 class NetworkCandidates;
+struct SDPMessageInfo;
 
 /* This is a manager class that manages interactions between different
  * components in Session Initiation Protocol (SIP). This class should implement

@@ -106,5 +106,5 @@ void SIPCallbacks::processIncomingResponse(SIPResponse& response, QVariant& cont
     callback(address_, response, content);
   }
 
-  emit incomingResponse(response, content, retryRequest);
+  // responses stop at callbacks
 }

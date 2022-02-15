@@ -216,7 +216,7 @@ uint32_t SIPManager::startCall(NameAddr &remote)
     createDialog(sessionID, local, remote, localAddress, true);
 
     // sends INVITE
-    dialogs_[sessionID]->call.startCall(remote.realname);
+    dialogs_[sessionID]->client->sendINVITE(INVITE_TIMEOUT);
   }
 
   return sessionID;
@@ -265,8 +265,8 @@ void SIPManager::cancelCall(uint32_t sessionID)
   if (dialogs_.find(sessionID) != dialogs_.end())
   {
     std::shared_ptr<DialogInstance> dialog = getDialog(sessionID);
-    dialog->call.cancelOutgoingCall();
-    removeDialog(sessionID);
+    dialog->client->sendCANCEL();
+    //removeDialog(sessionID);
   }
   else
   {
@@ -279,7 +279,7 @@ void SIPManager::endCall(uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
   std::shared_ptr<DialogInstance> dialog = getDialog(sessionID);
-  dialog->call.endCall();
+  dialog->client->sendBYE();
 
   removeDialog(sessionID);
 }
@@ -291,7 +291,7 @@ void SIPManager::endAllCalls()
   {
     if(dialog.second != nullptr)
     {
-      dialog.second->call.endCall();
+      dialog.second->client->sendBYE();
 
       // the call structures are removed when we receive an OK
     }
@@ -339,7 +339,7 @@ void SIPManager::connectionEstablished(QString localAddress, QString remoteAddre
 
     uint32_t sessionID = startingSession.sessionID;
     createDialog(sessionID, local, startingSession.contact, localAddress, true);
-    dialogs_[sessionID]->call.startCall(startingSession.contact.realname);
+    dialogs_[sessionID]->client->sendINVITE(INVITE_TIMEOUT);
   }
 
   // if we are planning to register using this connection
@@ -516,8 +516,9 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content,
 
   foundDialog->pipe.processIncomingResponse(response, content, retryRequest);
 
-  if (!foundDialog->call.shouldBeKeptAlive())
+  if (foundDialog->client->shouldBeDestroyed())
   {
+    Logger::getLogger()->printNormal(this, "Ending session as a results of response.");
     removeDialog(sessionID);
   }
 
@@ -795,14 +796,13 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
                    negotiation.get(), &SDPNegotiation::iceNominationFailed);
 
 
-  std::shared_ptr<SIPClient> client = std::shared_ptr<SIPClient> (new SIPClient);
+  dialog->client = std::shared_ptr<SIPClient> (new SIPClient);
   dialog->server = std::shared_ptr<SIPServer> (new SIPServer);
   dialog->callbacks = std::shared_ptr<SIPCallbacks> (new SIPCallbacks(sessionID,
                                                                       requestCallbacks_,
                                                                       responseCallbacks_));
 
   // Initiatiate all the components of the flow.
-  dialog->call.init(transactionUser_, sessionID);
   dialog->state = std::shared_ptr<SIPDialogState> (new SIPDialogState);
   dialog->state->init(local, remote, ourDialog);
 
@@ -816,13 +816,12 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
   dialog->pipe.addProcessor(dialog->state);
   dialog->pipe.addProcessor(ice);
   dialog->pipe.addProcessor(negotiation);
-  dialog->pipe.addProcessor(client);
+  dialog->pipe.addProcessor(dialog->client);
   dialog->pipe.addProcessor(dialog->server);
-  dialog->pipe.addProcessor(dialog->callbacks);
 
   // Connect the pipe to call and transmission functions.
-  dialog->call.connectOutgoingProcessor(dialog->pipe);
-  dialog->pipe.connectIncomingProcessor(dialog->call);
+  dialog->callbacks->connectOutgoingProcessor(dialog->pipe);
+  dialog->pipe.connectIncomingProcessor(*dialog->callbacks);
 
   QObject::connect(&dialogs_[sessionID]->pipe, &SIPMessageFlow::outgoingRequest,
                    this, &SIPManager::transportRequest);

@@ -11,6 +11,8 @@ const QString LOG_FILE_NAME = "kvazzup.log";
 // how often registrations are sent in seconds
 const int REGISTER_INTERVAL = 600;
 
+const unsigned int INVITE_TIMEOUT = 60000;
+
 // this affects latency of audio. We have to wait until this much audio
 // has arrived before sending the packet. If packet is too small,
 // we waste bandwidth.

@@ -18,20 +18,22 @@ public:
   SIPClient();
   ~SIPClient();
 
-  // Used to inform the other peer when this request expires. Used with INVITE
-  // and REGISTER transactions
-  void setNextTransactionExpires(uint32_t timeout);
-
   void sendREGISTER(uint32_t timeout);
+  void sendINVITE(uint32_t timeout);
+  void sendBYE();
+  void sendCANCEL();
 
   bool registrationActive()
   {
     return activeRegistration_;
   }
 
-public slots:
+  bool shouldBeDestroyed()
+  {
+    return !shouldLive_;
+  }
 
-  virtual void processOutgoingRequest(SIPRequest& request, QVariant& content);
+public slots:
 
   // processes incoming response. Part of client transaction
   virtual void processIncomingResponse(SIPResponse& response, QVariant& content,
@@ -39,20 +41,19 @@ public slots:
 
   void refreshRegistration();
 
-
-signals:
-
-  void failure(QString message);
-
 private slots:
   void requestTimeOut();
 
 private:
 
-  void sendREGISTERRequest(uint32_t expires);
+  bool correctRequestType(SIPRequestMethod method);
+
+  bool sendRequest(SIPRequestMethod method);
+  bool sendRequest(SIPRequestMethod method,
+                   uint32_t expires);
 
   // constructs the SIP message info struct as much as possible
-  void generateRequest(SIPRequest &request);
+  SIPRequest generateRequest(SIPRequestMethod method);
 
   bool checkTransactionType(SIPRequestMethod transactionRequest)
   {
@@ -83,7 +84,11 @@ private:
 
   QTimer requestTimer_;
 
-  std::shared_ptr<uint32_t> expires_;
+  uint32_t expires_;
+
+  // This variable is used to avoid HEAP corruption by destroying the flow afterwards
+  // instead of accidentally delete ourselves with signals etc.
+  bool shouldLive_;
 
   bool activeRegistration_;
 };
