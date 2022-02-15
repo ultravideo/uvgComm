@@ -5,13 +5,15 @@
 
 #include "common.h"
 #include "logger.h"
+#include "global.h"
 
 #include <QVariant>
 
 SIPClient::SIPClient():
   ongoingTransactionType_(SIP_NO_REQUEST),
   requestTimer_(),
-  expires_(nullptr)
+  expires_(nullptr),
+  activeRegistration_(false)
 {
   requestTimer_.setSingleShot(true);
   connect(&requestTimer_, SIGNAL(timeout()), this, SLOT(requestTimeOut()));
@@ -94,9 +96,20 @@ void SIPClient::processIncomingResponse(SIPResponse& response, QVariant& content
     ongoingTransactionType_ = SIP_NO_REQUEST;
     stopTimeoutTimer();
     expires_ = nullptr;
+
+    if (response.message->cSeq.method == SIP_REGISTER)
+    {
+      activeRegistration_ = !response.message->contact.empty();
+    }
   }
 
   emit incomingResponse(response, content, retryRequest);
+
+  if (retryRequest && response.message->cSeq.method == SIP_REGISTER)
+  {
+    sendREGISTERRequest(REGISTER_INTERVAL);
+    return;
+  }
 }
 
 
@@ -163,4 +176,35 @@ void SIPClient::requestTimeOut()
                                           {"Ongoing transaction"}, 
                                           {QString::number(ongoingTransactionType_)});
   processTimeout();
+}
+
+
+void SIPClient::refreshRegistration()
+{
+  if (!activeRegistration_)
+  {
+    Logger::getLogger()->printWarning(this, "We have no registrations when refreshing!");
+  }
+
+  sendREGISTER(REGISTER_INTERVAL);
+}
+
+
+void SIPClient::sendREGISTER(uint32_t timeout)
+{
+  Logger::getLogger()->printNormal(this, "Sending REGISTER request",
+                                   {"Expires"}, QString::number(timeout));
+  sendREGISTERRequest(timeout);
+}
+
+
+void SIPClient::sendREGISTERRequest(uint32_t expires)
+{
+  SIPRequest request;
+  request.method = SIP_REGISTER;
+  request.message = std::shared_ptr<SIPMessageHeader> (new SIPMessageHeader);
+  request.message->expires = std::shared_ptr<uint32_t> (new uint32_t{expires});
+
+  QVariant content;
+  processOutgoingRequest(request, content);
 }

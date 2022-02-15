@@ -58,7 +58,7 @@ void KvazzupController::init()
                                             std::placeholders::_2,
                                             std::placeholders::_3));
 
-  sip_.init(this, stats_, userInterface_.getStatusView());
+  sip_.init(this, stats_);
 
   QObject::connect(&media_, &MediaManager::handleZRTPFailure,
                    this,    &KvazzupController::zrtpFailed);
@@ -550,14 +550,25 @@ void KvazzupController::processRegisterRequest(QString address,
                                                SIPRequest& request,
                                                QVariant& content)
 {
+  Q_UNUSED(content);
   Logger::getLogger()->printNormal(this, "Got a register request callback",
                                    "type", QString::number(request.method));
+
+
 }
 
 void KvazzupController::processRegisterResponse(QString address,
                                                 SIPResponse& response,
                                                 QVariant& content)
 {
+  Q_UNUSED(content);
   Logger::getLogger()->printNormal(this, "Got a register response callback",
                                    "Code", QString::number(response.type));
+
+  if (response.message->cSeq.method == SIP_REGISTER &&
+      response.type == 200 &&
+      !response.message->contact.isEmpty())
+  {
+    userInterface_.getStatusView()->updateServerStatus("Registered");
+  }
 }

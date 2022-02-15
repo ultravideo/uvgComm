@@ -53,7 +53,6 @@ SOURCES +=\
     src/initiation/transaction/sipcallbacks.cpp \
     src/initiation/transaction/sipclient.cpp \
     src/initiation/transaction/sipdialogstate.cpp \
-    src/initiation/transaction/sipregistration.cpp \
     src/initiation/transaction/sipserver.cpp \
     src/initiation/transaction/sipsinglecall.cpp \
     src/initiation/transport/connectionserver.cpp \
@@ -145,7 +144,6 @@ HEADERS  += \
     src/initiation/transaction/sipcallbacks.h \
     src/initiation/transaction/sipclient.h \
     src/initiation/transaction/sipdialogstate.h \
-    src/initiation/transaction/sipregistration.h \
     src/initiation/transaction/sipserver.h \
     src/initiation/transaction/sipsinglecall.h \
     src/initiation/transport/connectionserver.h \

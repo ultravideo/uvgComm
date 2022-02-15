@@ -22,6 +22,13 @@ public:
   // and REGISTER transactions
   void setNextTransactionExpires(uint32_t timeout);
 
+  void sendREGISTER(uint32_t timeout);
+
+  bool registrationActive()
+  {
+    return activeRegistration_;
+  }
+
 public slots:
 
   virtual void processOutgoingRequest(SIPRequest& request, QVariant& content);
@@ -29,6 +36,9 @@ public slots:
   // processes incoming response. Part of client transaction
   virtual void processIncomingResponse(SIPResponse& response, QVariant& content,
                                        bool retryRequest);
+
+  void refreshRegistration();
+
 
 signals:
 
@@ -38,6 +48,8 @@ private slots:
   void requestTimeOut();
 
 private:
+
+  void sendREGISTERRequest(uint32_t expires);
 
   // constructs the SIP message info struct as much as possible
   void generateRequest(SIPRequest &request);
@@ -61,8 +73,6 @@ private:
 
   void processTimeout();
 
-
-
   void byeTimeout();
 
   bool goodResponse(); // use this to filter out untimely/duplicate responses
@@ -74,4 +84,6 @@ private:
   QTimer requestTimer_;
 
   std::shared_ptr<uint32_t> expires_;
+
+  bool activeRegistration_;
 };

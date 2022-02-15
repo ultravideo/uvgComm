@@ -3,7 +3,6 @@
 #include "initiation/transport/connectionserver.h"
 #include "initiation/transport/siptransport.h"
 
-#include "initiation/transaction/sipregistration.h"
 #include "initiation/transaction/sipsinglecall.h"
 #include "initiation/transaction/sipcallbacks.h"
 
@@ -11,10 +10,12 @@
 #include "initiation/sipmessageflow.h"
 
 #include <QObject>
+#include <QTimer>
 
 #include <functional>
 
 class SIPServer;
+class SIPClient;
 
 // The components specific to one dialog
 struct DialogInstance
@@ -33,8 +34,12 @@ struct RegistrationInstance
 {
   SIPMessageFlow pipe;
   std::shared_ptr<SIPDialogState> state;
+  std::shared_ptr<SIPClient> client;
+
   std::shared_ptr<SIPCallbacks> callbacks;
-  SIPRegistration registration;
+
+  QString serverAddress;
+  QTimer retryTimer;
 };
 
 // Components specific to one transport connection
@@ -64,8 +69,7 @@ public:
   SIPManager();
 
   // start listening to incoming SIP messages
-  void init(SIPTransactionUser* callControl, StatisticsInterface *stats,
-            ServerStatusView *statusView);
+  void init(SIPTransactionUser* callControl, StatisticsInterface *stats);
   void uninit();
 
   // start a call with address. Returns generated sessionID
@@ -205,7 +209,6 @@ private:
   std::map<QString, std::shared_ptr<RegistrationInstance>> registrations_;
 
   SIPTransactionUser* transactionUser_;
-  ServerStatusView *statusView_;
 
   // these hold existing callbacks for incoming requests/responses
   std::vector<std::function<void(uint32_t sessionID,

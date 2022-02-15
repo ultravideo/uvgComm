@@ -24,6 +24,7 @@
 #include <thread>
 
 const uint32_t FIRSTSESSIONID = 1;
+const int REGISTER_SEND_PERIOD = (REGISTER_INTERVAL - 5)*1000;
 
 // default for SIP, use 5061 for tls encrypted
 const uint16_t SIP_PORT = 5060;
@@ -39,14 +40,12 @@ SIPManager::SIPManager():
 
 
 // start listening to incoming
-void SIPManager::init(SIPTransactionUser* callControl, StatisticsInterface *stats,
-                      ServerStatusView *statusView)
+void SIPManager::init(SIPTransactionUser* callControl, StatisticsInterface *stats)
 {
   QObject::connect(&tcpServer_, &ConnectionServer::newConnection,
                    this, &SIPManager::receiveTCPConnection);
 
   stats_ = stats;
-  statusView_ = statusView;
 
   tcpServer_.setProxy(QNetworkProxy::NoProxy);
 
@@ -83,7 +82,11 @@ void SIPManager::uninit()
 
   for (auto& registration : registrations_)
   {
-    registration.second->registration.uninit();
+    if (registration.second->client->registrationActive())
+    {
+      registration.second->client->sendREGISTER(0);
+    }
+
     // TODO: wait for ok from server before continuing
 
     std::this_thread::sleep_for(std::chrono::milliseconds(25));
@@ -346,10 +349,7 @@ void SIPManager::connectionEstablished(QString localAddress, QString remoteAddre
 
     createRegistration(local);
 
-    getRegistration(remoteAddress)->
-        registration.bindToServer(local,
-                                  getTransport(remoteAddress)->connection->localAddress(),
-                                  getTransport(remoteAddress)->connection->localPort());
+    getRegistration(remoteAddress)->client->sendREGISTER(REGISTER_INTERVAL);
 
     waitingToBind_.removeOne(remoteAddress);
   }
@@ -725,7 +725,9 @@ void SIPManager::createRegistration(NameAddr& addressRecord)
         std::shared_ptr<RegistrationInstance> (new RegistrationInstance);
     registrations_[addressRecord.uri.hostport.host] = registration;
 
-    registration->registration.init(statusView_);
+    //registration->registration.init(statusView_);
+
+    registration->serverAddress = addressRecord.uri.hostport.host;
 
     registration->state = std::shared_ptr<SIPDialogState> (new SIPDialogState);
     registration->callbacks = std::shared_ptr<SIPCallbacks> (new SIPCallbacks(addressRecord.uri.hostport.host,
@@ -737,25 +739,32 @@ void SIPManager::createRegistration(NameAddr& addressRecord)
     registration->state->createServerConnection(addressRecord, serverUri);
 
 
-    std::shared_ptr<SIPClient> client = std::shared_ptr<SIPClient> (new SIPClient);
+    registration->client = std::shared_ptr<SIPClient> (new SIPClient);
     //std::shared_ptr<SIPServer> server = std::shared_ptr<SIPServer> (new SIPServer);
 
     // Add all components to the pipe.
     registration->pipe.addProcessor(registration->state);
-    registration->pipe.addProcessor(client);
-    registration->pipe.addProcessor(registration->callbacks);
+    registration->pipe.addProcessor(registration->client);
     //registration->pipe.addProcessor(server);
 
 
     // Connect the pipe to registration and transmission functions.
-    registration->registration.connectOutgoingProcessor(registration->pipe);
-    registration->pipe.connectIncomingProcessor(registration->registration);
+    registration->callbacks->connectOutgoingProcessor(registration->pipe);
+    registration->pipe.connectIncomingProcessor(*registration->callbacks);
 
     QObject::connect(&registration->pipe, &SIPMessageFlow::outgoingRequest,
                      this, &SIPManager::transportRequest);
 
     QObject::connect(&registration->pipe, &SIPMessageFlow::outgoingResponse,
                      this, &SIPManager::transportResponse);
+
+    QObject::connect(&registration->retryTimer,  &QTimer::timeout,
+                     registration->client.get(), &SIPClient::refreshRegistration);
+
+    registration->retryTimer.setInterval(REGISTER_SEND_PERIOD);
+    registration->retryTimer.setSingleShot(false);
+
+    registration->retryTimer.start();
   }
 }
 
@@ -929,9 +938,9 @@ QString SIPManager::haveWeRegistered()
 {
   for (auto& registration : registrations_)
   {
-    if (registration.second->registration.haveWeRegistered())
+    if (registration.second->client->registrationActive())
     {
-      return registration.second->registration.getServerAddress();
+      return registration.second->serverAddress;
     }
   }
   return "";
