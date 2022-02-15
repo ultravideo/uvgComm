@@ -2,7 +2,6 @@
 
 #include "media/mediamanager.h"
 #include "initiation/sipmanager.h"
-#include "initiation/siptransactionuser.h"
 #include "ui/uimanager.h"
 #include "participantinterface.h"
 
@@ -21,8 +20,7 @@ class StatisticsInterface;
 
 class KvazzupController :
     public QObject,
-    public ParticipantInterface,
-    public SIPTransactionUser
+    public ParticipantInterface
 {
   Q_OBJECT
 public:
@@ -32,19 +30,19 @@ public:
   void uninit();
 
   // participant interface funtions used to start a call or a chat.
-  virtual uint32_t callToParticipant(QString name, QString username, QString ip);
-  virtual uint32_t chatWithParticipant(QString name, QString username, QString ip);
+  uint32_t callToParticipant(QString name, QString username, QString ip);
+  uint32_t chatWithParticipant(QString name, QString username, QString ip);
 
   // Call Control Interface used by SIP transaction
-  virtual bool incomingCall(uint32_t sessionID, QString caller);
-  virtual void callRinging(uint32_t sessionID);
-  virtual void peerAccepted(uint32_t sessionID);
-  virtual void callNegotiated(uint32_t sessionID);
-  virtual void cancelIncomingCall(uint32_t sessionID);
-  virtual void endCall(uint32_t sessionID);
-  virtual void failure(uint32_t sessionID, QString error);
-  virtual void registeredToServer();
-  virtual void registeringFailed();
+  bool incomingCall(uint32_t sessionID, QString caller);
+  void callRinging(uint32_t sessionID);
+  void peerAccepted(uint32_t sessionID);
+  void callNegotiated(uint32_t sessionID);
+  void cancelIncomingCall(uint32_t sessionID);
+  void endCall(uint32_t sessionID);
+  void failure(uint32_t sessionID, QString error);
+  void registeredToServer();
+  void registeringFailed();
 
   void SIPRequestCallback(uint32_t sessionID,
                           SIPRequest& request,

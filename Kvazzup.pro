@@ -138,7 +138,6 @@ HEADERS  += \
     src/initiation/sipmanager.h \
     src/initiation/sipmessageflow.h \
     src/initiation/sipmessageprocessor.h \
-    src/initiation/siptransactionuser.h \
     src/initiation/siptypes.h \
     src/initiation/transaction/sipcallbacks.h \
     src/initiation/transaction/sipclient.h \

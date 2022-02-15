@@ -34,13 +34,12 @@ SIPManager::SIPManager():
   sipPort_(SIP_PORT),
   transports_(),
   nextSessionID_(FIRSTSESSIONID),
-  dialogs_(),
-  transactionUser_(nullptr)
+  dialogs_()
 {}
 
 
 // start listening to incoming
-void SIPManager::init(SIPTransactionUser* callControl, StatisticsInterface *stats)
+void SIPManager::init(StatisticsInterface *stats)
 {
   QObject::connect(&tcpServer_, &ConnectionServer::newConnection,
                    this, &SIPManager::receiveTCPConnection);
@@ -60,9 +59,6 @@ void SIPManager::init(SIPTransactionUser* callControl, StatisticsInterface *stat
 
     // TODO announce it to user!
   }
-
-  transactionUser_ = callControl;
-
 
   int autoConnect = settingValue(SettingsKey::sipAutoConnect);
 

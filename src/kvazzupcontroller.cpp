@@ -58,7 +58,7 @@ void KvazzupController::init()
                                             std::placeholders::_2,
                                             std::placeholders::_3));
 
-  sip_.init(this, stats_);
+  sip_.init(stats_);
 
   QObject::connect(&media_, &MediaManager::handleZRTPFailure,
                    this,    &KvazzupController::zrtpFailed);

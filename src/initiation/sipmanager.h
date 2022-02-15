@@ -5,7 +5,6 @@
 
 #include "initiation/transaction/sipcallbacks.h"
 
-
 #include "initiation/sipmessageflow.h"
 
 #include <QObject>
@@ -47,7 +46,6 @@ struct TransportInstance
   SIPMessageFlow pipe;
 };
 
-class SIPTransactionUser;
 class StatisticsInterface;
 class NetworkCandidates;
 struct SDPMessageInfo;
@@ -68,7 +66,7 @@ public:
   SIPManager();
 
   // start listening to incoming SIP messages
-  void init(SIPTransactionUser* callControl, StatisticsInterface *stats);
+  void init(StatisticsInterface *stats);
   void uninit();
 
   // start a call with address. Returns generated sessionID
@@ -206,8 +204,6 @@ private:
 
   // key is the server address
   std::map<QString, std::shared_ptr<RegistrationInstance>> registrations_;
-
-  SIPTransactionUser* transactionUser_;
 
   // these hold existing callbacks for incoming requests/responses
   std::vector<std::function<void(uint32_t sessionID,
