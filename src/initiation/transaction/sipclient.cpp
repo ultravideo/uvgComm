@@ -1,6 +1,5 @@
 #include "sipclient.h"
 
-#include "initiation/siptransactionuser.h"
 #include "initiation/transaction/sipdialogstate.h"
 
 #include "common.h"

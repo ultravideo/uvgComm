@@ -3,8 +3,6 @@
 #include "initiation/sipmessageprocessor.h"
 #include "initiation/siptypes.h"
 
-class SIPTransactionUser;
-
 /* This class implements the behavior defined in RFC3261 for component
  * User Agent Server (UAS). See section 8.2 for details.
  *

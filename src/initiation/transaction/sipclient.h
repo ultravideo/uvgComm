@@ -9,8 +9,6 @@
  * of this class is to keep track of request transaction state on client side.
  * See RFC 3261 for more details. */
 
-class SIPTransactionUser;
-
 class SIPClient : public SIPMessageProcessor
 {
   Q_OBJECT

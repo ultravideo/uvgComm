@@ -1,7 +1,5 @@
 #include "sipdialogstate.h"
 
-#include "initiation/siptransactionuser.h"
-
 #include "common.h"
 #include "logger.h"
 #include "settingskeys.h"
