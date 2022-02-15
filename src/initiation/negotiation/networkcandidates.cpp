@@ -448,6 +448,12 @@ bool NetworkCandidates::isPrivateNetwork(const QString& address)
     return true;
   }
 
+  // link-local
+  if (address.startsWith("169.254.") || address.startsWith("fe80::"))
+  {
+    return true;
+  }
+
   if (address.startsWith("172."))
   {
     int octet = address.split(".")[1].toInt();
@@ -505,6 +511,7 @@ void NetworkCandidates::handleStunHostLookup(QHostInfo info)
     return;
   }
 }
+
 
 void NetworkCandidates::moreSTUNCandidates()
 {
