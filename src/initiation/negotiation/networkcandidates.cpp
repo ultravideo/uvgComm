@@ -508,6 +508,7 @@ void NetworkCandidates::handleStunHostLookup(QHostInfo info)
 
 void NetworkCandidates::moreSTUNCandidates()
 {
+  QStringList toDelete;
   if (!stunServerIP_.isNull())
   {
     for (auto& interface : availablePorts_)
@@ -521,8 +522,11 @@ void NetworkCandidates::moreSTUNCandidates()
 
         if (nextPort != 0)
         {
-          sendSTUNserverRequest(QHostAddress(interface.first), nextPort,
-                                stunServerIP_,                 stunPort);
+          if (!sendSTUNserverRequest(QHostAddress(interface.first), nextPort,
+                                    stunServerIP_,                 stunPort))
+          {
+            toDelete.push_back(interface.first);
+          }
         }
       }
       else
@@ -536,10 +540,15 @@ void NetworkCandidates::moreSTUNCandidates()
   {
     Logger::getLogger()->printProgramError(this, "STUN server address not set!");
   }
+
+  for (auto& deleted : toDelete)
+  {
+    availablePorts_.erase(deleted);
+  }
 }
 
 
-void NetworkCandidates::sendSTUNserverRequest(QHostAddress localAddress,
+bool NetworkCandidates::sendSTUNserverRequest(QHostAddress localAddress,
                                               uint16_t localPort,
                                               QHostAddress serverAddress,
                                               uint16_t serverPort)
@@ -550,7 +559,7 @@ void NetworkCandidates::sendSTUNserverRequest(QHostAddress localAddress,
                                     {"Interface address", "Server address"},
                                     {localAddress.toString() + ":" + QString::number(localPort),
                                     serverAddress.toString() + ":" + QString::number(serverPort)});
-    return;
+    return false;
   }
 
   Logger::getLogger()->printNormal(this, "Sending STUN server request", {"Path"},
@@ -570,8 +579,10 @@ void NetworkCandidates::sendSTUNserverRequest(QHostAddress localAddress,
 
   if (!requests_[key]->udp.bindSocket(localAddress, localPort))
   {
+    Logger::getLogger()->printWarning(this, "Failed to bind to", "Address",
+              {localAddress.toString() + ":" + QString::number(localPort)});
     requests_.erase(key);
-    return;
+    return false;
   }
 
   STUNMessage request = requests_[key]->message.createRequest();
@@ -583,8 +594,13 @@ void NetworkCandidates::sendSTUNserverRequest(QHostAddress localAddress,
   if(!requests_[key]->udp.sendData(message, localAddress,
                                    serverAddress, serverPort))
   {
+    Logger::getLogger()->printWarning(this, "Failed to send data", "Address",
+              {localAddress.toString() + ":" + QString::number(localPort)});
     requests_.erase(key);
+    return false;
   }
+
+  return true;
 }
 
 

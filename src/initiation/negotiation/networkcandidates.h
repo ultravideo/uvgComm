@@ -50,7 +50,7 @@ private slots:
   void refreshSTUN();
 
 private:
-  void sendSTUNserverRequest(QHostAddress localAddress, uint16_t localPort,
+  bool sendSTUNserverRequest(QHostAddress localAddress, uint16_t localPort,
                              QHostAddress serverAddress, uint16_t serverPort);
   void wantAddress(QString stunServer);
   void createSTUNCandidate(QHostAddress local, quint16 localPort,
