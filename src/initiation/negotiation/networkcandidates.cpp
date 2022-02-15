@@ -528,6 +528,10 @@ void NetworkCandidates::moreSTUNCandidates()
             toDelete.push_back(interface.first);
           }
         }
+        else
+        {
+          toDelete.push_back(interface.first);
+        }
       }
       else
       {
