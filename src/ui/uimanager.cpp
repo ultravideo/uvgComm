@@ -54,8 +54,6 @@ void UIManager::init(ParticipantInterface *partInt)
   QObject::connect(&window_, &CallWindow::openSettings,
                    this, &UIManager::showSettings);
 
-
-
   QObject::connect(&window_, &CallWindow::closed,
                    this,     &UIManager::quit);
 
@@ -84,6 +82,12 @@ void UIManager::init(ParticipantInterface *partInt)
   settingsView_.init();
 
   window_.init(partInt);
+}
+
+
+void UIManager::updateServerStatus(QString status)
+{
+  settingsView_.updateServerStatus(status);
 }
 
 

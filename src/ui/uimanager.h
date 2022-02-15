@@ -6,7 +6,6 @@
 
 class StatisticsWindow;
 class StatisticsInterface;
-class ServerStatusView;
 class VideoviewFactory;
 
 namespace Ui {
@@ -49,10 +48,7 @@ public:
     return viewFactory_;
   }
 
-  ServerStatusView* getStatusView()
-  {
-    return &settingsView_;
-  }
+  void updateServerStatus(QString status);
 
   void showICEFailedMessage();
   void showCryptoMissingMessage();

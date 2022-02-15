@@ -189,7 +189,6 @@ HEADERS  += \
     src/media/processing/speexaec.h \
     src/media/processing/speexdsp.h \
     src/media/processing/yuvtorgb32.h \
-    src/serverstatusview.h \
     src/settingskeys.h \
     src/statisticsinterface.h \
     src/common.h \

@@ -569,6 +569,6 @@ void KvazzupController::processRegisterResponse(QString address,
       response.type == 200 &&
       !response.message->contact.isEmpty())
   {
-    userInterface_.getStatusView()->updateServerStatus("Registered");
+    userInterface_.updateServerStatus("Registered");
   }
 }
