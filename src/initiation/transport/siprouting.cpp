@@ -120,6 +120,11 @@ void SIPRouting::processIncomingResponse(SIPResponse& response, QVariant& conten
 
   if (connection_ && connection_->isConnected())
   {
+    /*
+     *TODO: This check does not work in all situations. Sometimes a router decides
+     * to change via for INVITE, but not REGISTER which would meaning we have no
+     * way of knowing what is our outside NAT address when we receive message to it.
+     *
     if (!isMeantForUs(response.message->vias,
                        connection_->localAddress(),
                        connection_->localPort()))
@@ -128,10 +133,12 @@ void SIPRouting::processIncomingResponse(SIPResponse& response, QVariant& conten
                                             "via is not the only one!");
       return;
     }
+    */
   }
   else
   {
     Logger::getLogger()->printError(this, "Not connected when checking response via field");
+    return;
   }
 
   if (response.message->cSeq.method == SIP_REGISTER)
@@ -225,6 +232,12 @@ bool SIPRouting::isMeantForUs(QList<ViaField> &vias,
     if (vias.at(0).sentBy == localAddress && vias.at(0).port == localPort)
     {
       Logger::getLogger()->printNormal(this, "Found our via. This is meant for us!");
+      return true;
+    }
+
+    if (vias.at(0).sentBy == received_ && vias.at(0).port == rport_)
+    {
+      Logger::getLogger()->printNormal(this, "Via matches our rport. Must be for us!");
       return true;
     }
   }
