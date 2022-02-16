@@ -120,6 +120,14 @@ bool CameraFilter::initialCameraSetup()
   currentDeviceName_ = settings.value(SettingsKey::videoDevice).toString();
   currentDeviceID_ = settings.value(SettingsKey::videoDeviceID).toInt();
 
+#ifndef __linux__
+  if (settings.value(SettingsKey::videoInputFormat).toString() == "")
+  {
+    Logger::getLogger()->printWarning(this, "Camera has no formats");
+    return false;
+  }
+#endif
+
   // if the deviceID has changed
   if (currentDeviceID_ >= cameras.size() ||
       cameras[currentDeviceID_].description() != currentDeviceName_)
