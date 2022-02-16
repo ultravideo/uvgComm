@@ -36,4 +36,15 @@ void YUYVtoYUV420::yuyv2yuv420_cpu(uint8_t* input, uint8_t* output,
     output[i] = input[i*2];
     output[i + 1] = input[i*2 + 2];
   }
+
+  // Chroma pixels
+  for(int i = 0; i < width*height/4; i += 1)
+  {
+    output[width*height + i] = input[i*8 + 1]/2 + input[i*8 + 5]/2;
+  }
+
+  for(int i = 0; i < width*height/4; i += 1)
+  {
+    output[width*height + width*height/4 + i] = input[i*8 + 7]/2 + input[i*8 + 7]/2;
+  }
 }
