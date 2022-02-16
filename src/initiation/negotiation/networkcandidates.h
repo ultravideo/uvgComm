@@ -71,7 +71,7 @@ private:
   // IP address corresponding to the used STUN server address
   QHostAddress stunServerIP_;
 
-  // ongoing stun requests
+  // ongoing stun requests, key is interface which sent it
   std::map<QString, std::shared_ptr<STUNRequest>> requests_;
 
   QMutex stunMutex_;

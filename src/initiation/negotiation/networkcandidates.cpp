@@ -625,8 +625,15 @@ void NetworkCandidates::processSTUNReply(const QNetworkDatagram& packet)
 {
   if(packet.data().size() < 20)
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, "STUN",
+    Logger::getLogger()->printWarning(this,
         "Received too small response to STUN query!");
+    return;
+  }
+
+  if (requests_.empty())
+  {
+    Logger::getLogger()->printWarning(this, "We have not outstanding requests, "
+                                            "but we got a STUN reply!");
     return;
   }
 
@@ -635,12 +642,34 @@ void NetworkCandidates::processSTUNReply(const QNetworkDatagram& packet)
 
   if (requests_.find(key) == requests_.end())
   {
-    Logger::getLogger()->printWarning(this, "Got stun request to an interface "
-                                             "which has not sent one!",
-                                      {"Interface"}, 
-                                      {packet.destinationAddress().toString() + ":" +
-                                      QString::number(packet.destinationPort())});
-    return;
+    Logger::getLogger()->printWarning(this, "Got a STUN response, but it does not directly "
+                                            "match any of our interface. Trying both IPv4 and IPv6 versions...",
+                                      {"Interface"}, {key});
+
+    // This takes care of the possiblity that we are getting the same address,
+    // but in a different protocol. Some devices may prefer one over the other and change this
+
+    QString ipv4Key = QHostAddress(packet.destinationAddress().toIPv4Address()).toString() + ":"
+        + QString::number(packet.destinationPort());
+    QString ipv6Key = QHostAddress(packet.destinationAddress().toIPv6Address()).toString() + ":"
+        + QString::number(packet.destinationPort());
+
+    if (requests_.find(ipv4Key) != requests_.end())
+    {
+      Logger::getLogger()->printNormal(this, "IPv4 version matches!");
+      key = ipv4Key;
+    }
+    else if (requests_.find(ipv6Key) != requests_.end())
+    {
+      Logger::getLogger()->printNormal(this, "IPv6 version matches!");
+      key = ipv6Key;
+    }
+    else
+    {
+      Logger::getLogger()->printWarning(this, "Failed to deduce which interface sent this stun request",
+                                        {"Interface"}, {key});
+          return;
+    }
   }
 
   QByteArray data = packet.data();
