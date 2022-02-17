@@ -15,12 +15,12 @@ void YUYVtoYUV420::process()
   while(input)
   {
     uint32_t finalDataSize = input->width*input->height + input->width*input->height/2;
-    std::unique_ptr<uchar[]> yuyv_frame(new uchar[finalDataSize]);
+    std::unique_ptr<uchar[]> yuv420_frame(new uchar[finalDataSize]);
 
-    yuyv_to_yuv420_c(input->data.get(), yuyv_frame.get(), input->width, input->height);
+    yuyv_to_yuv420_c(input->data.get(), yuv420_frame.get(), input->width, input->height);
 
-    input->type = YUYVVIDEO;
-    input->data = std::move(yuyv_frame);
+    input->type = YUV420VIDEO;
+    input->data = std::move(yuv420_frame);
     input->data_size = finalDataSize;
     sendOutput(std::move(input));
 

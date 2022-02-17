@@ -756,10 +756,10 @@ void yuyv_to_yuv420_c(uint8_t* input, uint8_t* output, uint16_t width, uint16_t 
   uint8_t* chromaV = output + width*height + width*height/4;
 
   // Luma values
-  for(int i = 0; i < width*height; i += 2)
+  for(int i = 0; i < width*height; ++i)
   {
-    lumaY[i]     = input[i*2];
-    lumaY[i + 1] = input[i*2 + 2];
+    // In YUYV, the Luma value is every other byte for the whole file
+    lumaY[i] = input[i*2];
   }
 
   /* Chroma values
@@ -780,6 +780,31 @@ void yuyv_to_yuv420_c(uint8_t* input, uint8_t* output, uint16_t width, uint16_t 
       chromaV[i*width/2 + j/4] = input[i*width*4 + j + 3]/2 + input[i*width*4 + width*2 + j + 3]/2;
     }
   }
+}
+
+
+void yuyv_to_rgb_c(uint8_t* input, uint8_t* output, uint16_t width, uint16_t height)
+{
+  // Luma pixels
+  /*
+  for(int i = 0; i < width*height; ++i)
+  {
+    output[i*4] = input[i];
+    output[i*4+1] = input[i];
+    output[i*4+2] = input[i];
+  }
+  */
+
+  // Luma values
+  for(int i = 0; i < width*height*2; i += 2)
+  {
+    // In YUYV, the Luma value is every other byte for the whole file
+    output[i*2]   = input[i];
+    output[i*2+1] = input[i];
+    output[i*2+2] = input[i];
+  }
+
+  // TODO: chroma values
 }
 
 

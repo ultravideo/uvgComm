@@ -98,6 +98,7 @@ SOURCES +=\
     src/media/processing/speexdsp.cpp \
     src/media/processing/yuvconversions.cpp \
     src/media/processing/yuvtorgb32.cpp \
+    src/media/processing/yuyvtorgb32.cpp \
     src/media/processing/yuyvtoyuv420.cpp \
     src/ui/gui/callwindow.cpp \
     src/ui/gui/chartpainter.cpp \
@@ -187,6 +188,7 @@ HEADERS  += \
     src/media/processing/speexdsp.h \
     src/media/processing/yuvconversions.h \
     src/media/processing/yuvtorgb32.h \
+    src/media/processing/yuyvtorgb32.h \
     src/media/processing/yuyvtoyuv420.h \
     src/settingskeys.h \
     src/statisticsinterface.h \

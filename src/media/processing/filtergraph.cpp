@@ -3,10 +3,14 @@
 #include "media/processing/camerafilter.h"
 #include "media/processing/screensharefilter.h"
 #include "media/processing/kvazaarfilter.h"
-#include "media/processing/rgb32toyuv.h"
+
 #include "media/processing/openhevcfilter.h"
+
+#include "media/processing/rgb32toyuv.h"
 #include "media/processing/yuvtorgb32.h"
 #include "media/processing/yuyvtoyuv420.h"
+#include "media/processing/yuyvtorgb32.h"
+
 #include "media/processing/displayfilter.h"
 #include "media/processing/scalefilter.h"
 #include "media/processing/audiocapturefilter.h"
@@ -387,6 +391,13 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
       {
         Logger::getLogger()->printNormal(this, "Adding YUYV to YUV420 conversion");
         addToGraph(std::shared_ptr<Filter>(new YUYVtoYUV420("", stats_, hwResources_)),
+                   graph, connectIndex);
+      }
+      else if(graph.at(connectIndex)->outputType() == YUYVVIDEO &&
+              filter->inputType() == RGB32VIDEO)
+      {
+        Logger::getLogger()->printNormal(this, "Adding YUYV to RGB32 conversion");
+        addToGraph(std::shared_ptr<Filter>(new YUYVtoRGB32("", stats_, hwResources_)),
                    graph, connectIndex);
       }
       else

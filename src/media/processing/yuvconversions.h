@@ -12,3 +12,5 @@ int  rgb_to_yuv420_i_sse41   (uint8_t* input, uint8_t* output, int width, int he
 void rgb_to_yuv420_i_c       (uint8_t* input, uint8_t* output, uint16_t width, uint16_t height);
 
 void yuyv_to_yuv420_c        (uint8_t* input, uint8_t* output, uint16_t width, uint16_t height);
+
+void yuyv_to_rgb_c           (uint8_t* input, uint8_t* output, uint16_t width, uint16_t height);
