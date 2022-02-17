@@ -30,21 +30,34 @@ void YUYVtoYUV420::process()
 void YUYVtoYUV420::yuyv2yuv420_cpu(uint8_t* input, uint8_t* output,
                                    uint16_t width, uint16_t height)
 {
-  // Luma pixels
+  uint8_t* lumaY = output;
+  uint8_t* chromaU = output + width*height;
+  uint8_t* chromaV = output + width*height + width*height/4;
+
+  // Luma values
   for(int i = 0; i < width*height; i += 2)
   {
-    output[i] = input[i*2];
-    output[i + 1] = input[i*2 + 2];
+    lumaY[i]     = input[i*2];
+    lumaY[i + 1] = input[i*2 + 2];
   }
 
-  // Chroma pixels
-  for(int i = 0; i < width*height/4; i += 1)
+  /* Chroma values
+   * In YUYV, the chroma is sampled half for the horizontal and fully for the vertical direction
+   * for YUV 420, both chroma directions and sampled half
+   *
+   * In this loop, the input is processed two rows at a time because the output is only
+   * half sampled vertically and the input is fully sampled.
+   */
+  for (int i = 0; i < height/2; ++i)
   {
-    output[width*height + i] = input[i*8 + 1]/2 + input[i*8 + 5]/2;
+    // In YUYV, all the luma and chroma values are mixed in YUYV order (YUYV YUYV YUYV etc.)
+    // It takes two bytes to represent one pixel in YUYV so we go until 2 times width
+    for (int j = 0; j < width*2; j += 4)
+    {
+      // we take the average of both rows to use all available information
+      chromaU[i*width/2 + j/4] = input[i*width*4 + j + 1]/2 + input[i*width*4 + width*2 + j + 1]/2;
+      chromaV[i*width/2 + j/4] = input[i*width*4 + j + 3]/2 + input[i*width*4 + width*2 + j + 3]/2;
+    }
   }
 
-  for(int i = 0; i < width*height/4; i += 1)
-  {
-    output[width*height + width*height/4 + i] = input[i*8 + 7]/2 + input[i*8 + 7]/2;
-  }
 }
