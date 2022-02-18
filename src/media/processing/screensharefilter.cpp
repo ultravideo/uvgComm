@@ -11,7 +11,7 @@
 
 ScreenShareFilter::ScreenShareFilter(QString id, StatisticsInterface *stats,
                                      std::shared_ptr<HWResourceManager> hwResources):
-  Filter(id, "Screen Sharing", stats, hwResources, NONE, RGB32VIDEO),
+  Filter(id, "Screen Sharing", stats, hwResources, DT_NONE, DT_RGB32VIDEO),
 screenID_(0)
 {}
 
@@ -93,28 +93,23 @@ void ScreenShareFilter::process()
   QImage image = screenCapture.toImage();
 
   // capture the frame data
-  Data * newImage = new Data;
-
+  std::unique_ptr<Data> newImage = initializeData(output_, DS_LOCAL);
   newImage->presentationTime = QDateTime::currentMSecsSinceEpoch();
-  newImage->type = output_;
   newImage->data = std::unique_ptr<uchar[]>(new uchar[image.sizeInBytes()]);
 
   image = image.mirrored(false, true);
   uchar *bits = image.bits();
 
-
   memcpy(newImage->data.get(), bits, image.sizeInBytes());
   newImage->data_size = image.sizeInBytes();
+
   // kvazaar requires divisable by 8 resolution
-  newImage->width = currentResolution_.width();
-  newImage->height = currentResolution_.height();
-  newImage->source = LOCAL;
-  newImage->framerate = currentFramerate_;
+  newImage->vInfo->width = currentResolution_.width();
+  newImage->vInfo->height = currentResolution_.height();
+  newImage->vInfo->framerate = currentFramerate_;
 
-  std::unique_ptr<Data> u_newImage( newImage );
-
-  Q_ASSERT(u_newImage->data);
-  sendOutput(std::move(u_newImage));
+  Q_ASSERT(newImage->data);
+  sendOutput(std::move(newImage));
 }
 
 

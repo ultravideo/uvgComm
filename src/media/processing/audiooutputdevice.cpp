@@ -206,7 +206,7 @@ qint64 AudioOutputDevice::bytesAvailable() const
 
 void AudioOutputDevice::input(std::unique_ptr<Data> input)
 {
-  if (input->type != RAWAUDIO)
+  if (input->type != DT_RAWAUDIO)
   {
     Logger::getLogger()->printProgramError(this, "Audio output has received "
                                                  "something other than raw audio!");

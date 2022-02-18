@@ -17,7 +17,7 @@
 AudioCaptureFilter::AudioCaptureFilter(QString id, QAudioFormat format,
                                        StatisticsInterface *stats,
                                        std::shared_ptr<HWResourceManager> hwResources):
-  Filter(id, "Audio_Capture", stats, hwResources, NONE, RAWAUDIO),
+  Filter(id, "Audio_Capture", stats, hwResources, DT_NONE, DT_RAWAUDIO),
   deviceInfo_(),
   format_(format),
   audioInput_(nullptr),
@@ -200,22 +200,15 @@ void AudioCaptureFilter::readMore()
 
     while (frame != nullptr)
     {
-      Data* audioFrame = new Data;
+      std::unique_ptr<Data> audioFrame = initializeData(DT_RAWAUDIO, DS_LOCAL);
 
       // create audio data packet to be sent to filter graph
       audioFrame->presentationTime = QDateTime::currentMSecsSinceEpoch();
-      audioFrame->type = RAWAUDIO;
 
       audioFrame->data_size = buffer_->getDesiredSize();
       audioFrame->data = std::unique_ptr<uint8_t[]>(frame);
-
-      audioFrame->width = 0;
-      audioFrame->height = 0;
-      audioFrame->source = LOCAL;
-      audioFrame->framerate = format_.sampleRate();
-
-      std::unique_ptr<Data> u_newSample( audioFrame );
-      sendOutput(std::move(u_newSample));
+      audioFrame->aInfo->sampleRate = format_.sampleRate();
+      sendOutput(std::move(audioFrame));
 
       //Logger::getLogger()->printNormal(this, "sent forward audio sample", {"Size"},
       //            {QString::number(audioFrame->data_size)});

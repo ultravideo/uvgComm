@@ -5,7 +5,7 @@
 AudioOutputFilter::AudioOutputFilter(QString id, StatisticsInterface* stats,
                                      std::shared_ptr<HWResourceManager> hwResources,
                                      QAudioFormat format):
-  Filter(id, "Audio Output", stats, hwResources, RAWAUDIO, NONE),
+  Filter(id, "Audio Output", stats, hwResources, DT_RAWAUDIO, DT_NONE),
   output_()
 {
 #ifdef __linux__

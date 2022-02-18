@@ -12,7 +12,7 @@ DSPFilter::DSPFilter(QString id, StatisticsInterface* stats,
                      std::shared_ptr<SpeexAEC> aec, QAudioFormat& format,
                      bool AECReference, bool doAEC, bool doDenoise,
                      bool doDereverb, bool doAGC, int32_t volume, int maxGain):
-  Filter(id, "DSP", stats, hwResources, RAWAUDIO, RAWAUDIO),
+  Filter(id, "DSP", stats, hwResources, DT_RAWAUDIO, DT_RAWAUDIO),
   aec_(aec),
   dsp_(nullptr),
   AECReference_(AECReference),

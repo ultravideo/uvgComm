@@ -24,11 +24,10 @@ static void __receiveHook(void *arg, uvg_rtp::frame::rtp_frame *frame)
 UvgRTPReceiver::UvgRTPReceiver(uint32_t sessionID, QString id, StatisticsInterface *stats,
                                std::shared_ptr<HWResourceManager> hwResources,
                                DataType type, QString media, QFuture<uvg_rtp::media_stream *> stream):
-  Filter(id, "RTP Receiver " + media, stats, hwResources, NONE, type),
+  Filter(id, "RTP Receiver " + media, stats, hwResources, DT_NONE, type),
   gotSeq_(false),
   discardUntilIntra_(false),
   lastSeq_(0),
-  type_(type),
   sessionID_(sessionID)
 {
   watcher_.setFuture(stream);
@@ -61,7 +60,7 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
     return;
   }
 
-  if (type_ == HEVCVIDEO && gotSeq_)
+  if (output_ == DT_HEVCVIDEO && gotSeq_)
   {
 /*
  *  TODO: Enable this once uvgRTP has correctly implemented sequence numbers
@@ -77,18 +76,13 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
   gotSeq_ = true;
   lastSeq_ = frame->header.seq;
 
-  Data *received_picture = new Data;
-  received_picture->type = type_;
-  received_picture->width = 0; // not known at this point. Decoder tells the correct resolution
-  received_picture->height = 0;
-  received_picture->framerate = 0;
-  received_picture->source = REMOTE;
+  std::unique_ptr<Data> received_picture = initializeData(output_, DS_REMOTE);
 
   // TODO: Get this info from RTP
   received_picture->presentationTime = QDateTime::currentMSecsSinceEpoch();
 
   // uvgRTP does not add start codes to all NAL types. Add them to VPS, SPS and PPS
-  if (type_ == HEVCVIDEO &&
+  if (output_ == DT_HEVCVIDEO &&
       ((frame->payload[0] >> 1) == 32 || // VPS
       ( frame->payload[0] >> 1) == 33 || // SPS
       ( frame->payload[0] >> 1) == 34))  // PPS
@@ -112,8 +106,7 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
   }
 
   (void)uvg_rtp::frame::dealloc_frame(frame);
-  std::unique_ptr<Data> rp( received_picture );
-  sendOutput(std::move(rp));
+  sendOutput(std::move(received_picture));
 }
 
 bool UvgRTPReceiver::shouldDiscard(uint16_t frameSeq, uint8_t* payload)

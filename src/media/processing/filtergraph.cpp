@@ -270,7 +270,7 @@ void FilterGraph::initSelfView()
     // is changed later.
     // Note: mirroring is slow with Qt
 
-    selfviewFilter_->setProperties(true, cameraGraph_.at(0)->outputType() == RGB32VIDEO);
+    selfviewFilter_->setProperties(true, cameraGraph_.at(0)->outputType() == DT_RGB32VIDEO);
 
     addToGraph(selfviewFilter_, cameraGraph_);
     addToGraph(selfviewFilter_, screenShareGraph_);
@@ -364,7 +364,7 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
                                       "Filter output and input do not match. Finding conversion",
                                       {"Connection"}, {graph.at(connectIndex)->getName() + "->" + filter->getName()});
 
-      if (graph.at(connectIndex)->outputType() == NONE)
+      if (graph.at(connectIndex)->outputType() == DT_NONE)
       {
         Logger::getLogger()->printProgramError(this, "The previous filter has no output!");
         return false;
@@ -372,29 +372,29 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
 
       // TODO: Check the out connections of connected filter for an already existing conversion.
 
-      if(graph.at(connectIndex)->outputType() == RGB32VIDEO &&
-         filter->inputType() == YUV420VIDEO)
+      if(graph.at(connectIndex)->outputType() == DT_RGB32VIDEO &&
+         filter->inputType() == DT_YUV420VIDEO)
       {
         Logger::getLogger()->printNormal(this, "Adding RGB32 to YUV420 conversion");
         addToGraph(std::shared_ptr<Filter>(new RGB32toYUV("", stats_, hwResources_)),
                    graph, connectIndex);
       }
-      else if(graph.at(connectIndex)->outputType() == YUV420VIDEO &&
-              filter->inputType() == RGB32VIDEO)
+      else if(graph.at(connectIndex)->outputType() == DT_YUV420VIDEO &&
+              filter->inputType() == DT_RGB32VIDEO)
       {
         Logger::getLogger()->printNormal(this, "Adding YUV420 to RGB32 conversion");
         addToGraph(std::shared_ptr<Filter>(new YUVtoRGB32("", stats_, hwResources_)),
                    graph, connectIndex);
       }
-      else if(graph.at(connectIndex)->outputType() == YUYVVIDEO &&
-              filter->inputType() == YUV420VIDEO)
+      else if(graph.at(connectIndex)->outputType() == DT_YUYVVIDEO &&
+              filter->inputType() == DT_YUV420VIDEO)
       {
         Logger::getLogger()->printNormal(this, "Adding YUYV to YUV420 conversion");
         addToGraph(std::shared_ptr<Filter>(new YUYVtoYUV420("", stats_, hwResources_)),
                    graph, connectIndex);
       }
-      else if(graph.at(connectIndex)->outputType() == YUYVVIDEO &&
-              filter->inputType() == RGB32VIDEO)
+      else if(graph.at(connectIndex)->outputType() == DT_YUYVVIDEO &&
+              filter->inputType() == DT_RGB32VIDEO)
       {
         Logger::getLogger()->printNormal(this, "Adding YUYV to RGB32 conversion");
         addToGraph(std::shared_ptr<Filter>(new YUYVtoRGB32("", stats_, hwResources_)),
@@ -523,7 +523,7 @@ void FilterGraph::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioF
   // just in case it is wanted later. AEC filter has to be attached
   if(audioInputGraph_.size() == 0)
   {
-    initializeAudio(audioFramedSource->inputType() == OPUSAUDIO);
+    initializeAudio(audioFramedSource->inputType() == DT_OPUSAUDIO);
   }
 
   // add participant if necessary
@@ -553,7 +553,7 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID,
 
   addToGraph(audioSink, *graph);
 
-  if (audioSink->outputType() == OPUSAUDIO)
+  if (audioSink->outputType() == DT_OPUSAUDIO)
   {
     addToGraph(std::shared_ptr<Filter>(new OpusDecoderFilter(sessionID, format_, stats_, hwResources_)),
                *graph, (unsigned int)graph->size() - 1);
@@ -654,7 +654,7 @@ void FilterGraph::camera(bool state)
     {
       Logger::getLogger()->printNormal(this, "Starting camera", "Output Type",
                                        QString::number(cameraGraph_.at(0)->outputType()));
-      selfviewFilter_->setProperties(true, cameraGraph_.at(0)->outputType() == RGB32VIDEO);
+      selfviewFilter_->setProperties(true, cameraGraph_.at(0)->outputType() == DT_RGB32VIDEO);
       cameraGraph_.at(0)->start();
     }
   }

@@ -78,13 +78,16 @@ void Filter::putInput(std::unique_ptr<Data> data)
 {
   Q_ASSERT(data);
 
-  if(data->source == UNKNOWN
-     || data->type == NONE
-     || data->data_size == 0)
+#ifndef NDEBUG
+  bool ok = true;
+  data = validityCheck(std::move(data), ok);
+
+  if(!ok)
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, this,  "Discarding bad data.");
+    Logger::getLogger()->printDebug(DEBUG_WARNING, this,  "Discarding bad data");
     return;
   }
+#endif
 
   ++inputTaken_;
 
@@ -99,7 +102,7 @@ void Filter::putInput(std::unique_ptr<Data> data)
 
   if(maxBufferSize_ != -1 && inBuffer_.size() >= (uint32_t)maxBufferSize_)
   {
-    if(inBuffer_[0]->type == HEVCVIDEO)
+    if(inBuffer_[0]->type == DT_HEVCVIDEO)
     {
       // Search for intra frames and discard everything up to it
       for(uint32_t i = 0; i < inBuffer_.size(); ++i)
@@ -120,7 +123,7 @@ void Filter::putInput(std::unique_ptr<Data> data)
     }
     else
     {
-      if(inBuffer_[0]->type == OPUSAUDIO)
+      if(inBuffer_[0]->type == DT_OPUSAUDIO)
       {
         Logger::getLogger()->printDebug(DEBUG_WARNING, this,  
                                         "Should input Null pointer to opus decoder.");
@@ -143,6 +146,32 @@ void Filter::putInput(std::unique_ptr<Data> data)
 
   bufferMutex_.unlock();
 }
+
+
+std::unique_ptr<Data> Filter::initializeData(DataType type, DataSource source)
+{
+  std::unique_ptr<Data> data(new Data);
+  data->type = type;
+  data->source = source;
+  data->data_size = 0;
+  data->presentationTime = 0;
+
+  if ((type & DT_VIDEO) != 0)
+  {
+    data->vInfo = std::unique_ptr<VideoInfo> (new VideoInfo);
+    data->vInfo->width = 0; // not known at this point. Decoder tells the correct resolution
+    data->vInfo->height = 0;
+    data->vInfo->framerate = 0;
+  }
+  else if ((type & DT_AUDIO) != 0)
+  {
+    data->aInfo = std::unique_ptr<AudioInfo> (new AudioInfo);
+    data->aInfo->sampleRate = 0;
+  }
+
+  return data;
+}
+
 
 std::unique_ptr<Data> Filter::getInput()
 {
@@ -167,6 +196,8 @@ void Filter::sendOutput(std::unique_ptr<Data> output)
                                     "Trying to send output data without outconnections.");
     return;
   }
+
+  // TODO: If data is HEVC, I think we can safely use shallowcopy
 
   connectionMutex_.lock();
   // copy data to callbacks expect the last one is moved
@@ -239,12 +270,27 @@ Data* Filter::shallowDataCopy(Data* original)
   {
     Data* copy = new Data;
     copy->type = original->type;
-    copy->width = original->width;
-    copy->height = original->height;
+
     copy->source = original->source;
     copy->presentationTime = original->presentationTime;
-    copy->framerate = original->framerate;
+
     copy->data_size = 0; // no data in shallow copy
+
+    if (original->vInfo != nullptr)
+    {
+      copy->vInfo = std::unique_ptr<VideoInfo> (new VideoInfo);
+
+      copy->vInfo->width     = original->vInfo->width;
+      copy->vInfo->height    = original->vInfo->height;
+      copy->vInfo->framerate = original->vInfo->framerate;
+    }
+
+    if (original->aInfo != nullptr)
+    {
+      copy->aInfo = std::unique_ptr<AudioInfo> (new AudioInfo);
+
+      copy->aInfo->sampleRate = original->aInfo->sampleRate;
+    }
 
     return copy;
   }
@@ -300,4 +346,34 @@ bool Filter::isHEVCInter(const unsigned char *buff)
       buff[2] == 0 &&
       buff[3] == 1 &&
       (buff[4] >> 1) == 1);
+}
+
+
+std::unique_ptr<Data> Filter::validityCheck(std::unique_ptr<Data> data, bool& ok)
+{
+  ok = true;
+
+  if(data->source == DS_UNKNOWN
+     || data->type == DT_NONE
+     || data->data_size == 0)
+  {
+    Logger::getLogger()->printWarning(this,  "Invalid data detected");
+    ok = false;
+  }
+
+  if((data->type & DT_AUDIO) != 0 &&
+     data->aInfo == nullptr)
+  {
+    Logger::getLogger()->printWarning(this,  "No audio info for audio");
+    ok = false;
+  }
+
+  if((data->type & DT_VIDEO) != 0 &&
+     data->vInfo == nullptr)
+  {
+    Logger::getLogger()->printWarning(this,  "No video info for video");
+    ok = false;
+  }
+
+  return data;
 }

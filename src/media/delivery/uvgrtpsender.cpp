@@ -11,7 +11,7 @@
 UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id, StatisticsInterface *stats,
                            std::shared_ptr<HWResourceManager> hwResources,
                            DataType type, QString media, QFuture<uvg_rtp::media_stream *> mstream):
-  Filter(id, "RTP Sender " + media, stats, hwResources, type, NONE),
+  Filter(id, "RTP Sender " + media, stats, hwResources, type, DT_NONE),
   type_(type),
   mstream_(nullptr),
   frame_(0),
@@ -22,11 +22,11 @@ UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id, StatisticsInterface *
 
   switch (type)
   {
-    case HEVCVIDEO:
+    case DT_HEVCVIDEO:
       dataFormat_ = RTP_FORMAT_H265;
       break;
 
-    case OPUSAUDIO:
+    case DT_OPUSAUDIO:
       dataFormat_ = RTP_FORMAT_OPUS;
       break;
 
@@ -53,7 +53,7 @@ void UvgRTPSender::updateSettings()
   // called in case we later decide to add some settings to filter
   Filter::updateSettings();
 
-  if (type_ == HEVCVIDEO)
+  if (type_ == DT_HEVCVIDEO)
   {
     uint32_t vps   = settingValue(SettingsKey::videoVPS);
     uint16_t intra = (uint16_t)settingValue(SettingsKey::videoIntra);

@@ -12,7 +12,7 @@ enum OHThreadType {OH_THREAD_FRAME  = 1, OH_THREAD_SLICE  = 2, OH_THREAD_FRAMESL
 
 OpenHEVCFilter::OpenHEVCFilter(uint32_t sessionID, StatisticsInterface *stats,
                                std::shared_ptr<HWResourceManager> hwResources):
-  Filter(QString::number(sessionID), "OpenHEVC", stats, hwResources, HEVCVIDEO, YUV420VIDEO),
+  Filter(QString::number(sessionID), "OpenHEVC", stats, hwResources, DT_HEVCVIDEO, DT_YUV420VIDEO),
   handle_(),
   vpsReceived_(false),
   spsReceived_(false),
@@ -182,22 +182,25 @@ void OpenHEVCFilter::process()
         {
           libOpenHevcGetPictureInfo(handle_, &openHevcFrame.frameInfo);
 
-          frame->width = openHevcFrame.frameInfo.nWidth;
-          frame->height = openHevcFrame.frameInfo.nHeight;
-          uint32_t finalDataSize = frame->width*frame->height + frame->width*frame->height/2;
+
+          frame->vInfo->width = openHevcFrame.frameInfo.nWidth;
+          frame->vInfo->height = openHevcFrame.frameInfo.nHeight;
+          uint32_t finalDataSize = frame->vInfo->width*frame->vInfo->height +
+              frame->vInfo->width*frame->vInfo->height/2;
           std::unique_ptr<uchar[]> yuv_frame(new uchar[finalDataSize]);
 
           uint8_t* pY = (uint8_t*)yuv_frame.get();
-          uint8_t* pU = (uint8_t*)&(yuv_frame.get()[frame->width*frame->height]);
-          uint8_t* pV = (uint8_t*)&(yuv_frame.get()[frame->width*frame->height + frame->width*frame->height/4]);
+          uint8_t* pU = (uint8_t*)&(yuv_frame.get()[frame->vInfo->width*frame->vInfo->height]);
+          uint8_t* pV = (uint8_t*)&(yuv_frame.get()[frame->vInfo->width*frame->vInfo->height +
+              frame->vInfo->width*frame->vInfo->height/4]);
 
           uint32_t s_stride = openHevcFrame.frameInfo.nYPitch;
           uint32_t qs_stride = openHevcFrame.frameInfo.nUPitch/2;
 
-          uint32_t d_stride = frame->width/2;
-          uint32_t dd_stride = frame->width;
+          uint32_t d_stride = frame->vInfo->width/2;
+          uint32_t dd_stride = frame->vInfo->width;
 
-          for (int i=0; i<frame->height; i++) {
+          for (int i=0; i<frame->vInfo->height; i++) {
             memcpy(pY,  (uint8_t *) openHevcFrame.pvY + i*s_stride, dd_stride);
             pY += dd_stride;
 
@@ -212,8 +215,8 @@ void OpenHEVCFilter::process()
 
           // TODO: put delay into deque, and set timestamp accordingly to get more accurate latency.
 
-          frame->type = YUV420VIDEO;
-          frame->framerate = openHevcFrame.frameInfo.frameRate.num/openHevcFrame.frameInfo.frameRate.den;
+          frame->type = DT_YUV420VIDEO;
+          frame->vInfo->framerate = openHevcFrame.frameInfo.frameRate.num/openHevcFrame.frameInfo.frameRate.den;
           frame->data_size = finalDataSize;
           frame->data = std::move(yuv_frame);
 

@@ -8,7 +8,7 @@
 OpusDecoderFilter::OpusDecoderFilter(uint32_t sessionID, QAudioFormat format,
                                      StatisticsInterface *stats,
                                      std::shared_ptr<HWResourceManager> hwResources):
-  Filter(QString::number(sessionID), "Opus Decoder", stats, hwResources, OPUSAUDIO, RAWAUDIO),
+  Filter(QString::number(sessionID), "Opus Decoder", stats, hwResources, DT_OPUSAUDIO, DT_RAWAUDIO),
   dec_(nullptr),
   pcmOutput_(nullptr),
   max_data_bytes_(65536),
@@ -72,7 +72,7 @@ void OpusDecoderFilter::process()
       input->data_size = datasize;
 
       input->data = std::move(pcm_frame);
-      input->type = RAWAUDIO;
+      input->type = DT_RAWAUDIO;
       sendOutput(std::move(input));
     }
     else

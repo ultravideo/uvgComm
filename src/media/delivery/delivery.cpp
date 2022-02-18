@@ -94,36 +94,36 @@ void Delivery::parseCodecString(QString codec, rtp_format_t& fmt,
   if (xmap.find(codec) == xmap.end())
   {
     Logger::getLogger()->printError(this, "Tried to use non-defined codec type in uvgRTP.");
-    type = NONE;
+    type = DT_NONE;
     return;
   }
 
   fmt  = xmap[codec];
   mediaName = "";
-  type = NONE;
+  type = DT_NONE;
 
   switch (fmt)
   {
     case RTP_FORMAT_H264:
       mediaName = "AVC";
-      type = HEVCVIDEO;
+      type = DT_HEVCVIDEO;
       break;
     case RTP_FORMAT_H265:
       mediaName = "HEVC";
-      type = HEVCVIDEO;
+      type = DT_HEVCVIDEO;
       break;
     case RTP_FORMAT_H266:
       mediaName = "VVC";
-      type = HEVCVIDEO;
+      type = DT_HEVCVIDEO;
       break;
     case RTP_FORMAT_OPUS:
       mediaName = "OPUS";
-      type = OPUSAUDIO;
+      type = DT_OPUSAUDIO;
       break;
 
     case RTP_FORMAT_GENERIC:
       mediaName+= "PCM";
-      type = RAWAUDIO;
+      type = DT_RAWAUDIO;
       break;
 
     default :
@@ -141,7 +141,7 @@ std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID, QHostAddress
   Q_UNUSED(rtpNum); // TODO in uvgRTP
 
   rtp_format_t fmt = RTP_FORMAT_GENERIC;
-  DataType type = NONE;
+  DataType type = DT_NONE;
   QString mediaName = "";
 
   parseCodecString(codec, fmt, type, mediaName);
@@ -182,7 +182,7 @@ std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID, QHostAddr
 {
   Q_UNUSED(rtpNum); // TODO in uvgRTP
   rtp_format_t fmt = RTP_FORMAT_GENERIC;
-  DataType type = NONE;
+  DataType type = DT_NONE;
   QString mediaName = "";
 
   parseCodecString(codec, fmt, type, mediaName);

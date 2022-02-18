@@ -11,7 +11,7 @@
 
 RGB32toYUV::RGB32toYUV(QString id, StatisticsInterface *stats,
                        std::shared_ptr<HWResourceManager> hwResources):
-  Filter(id, "RGB32toYUV", stats, hwResources, RGB32VIDEO, YUV420VIDEO),
+  Filter(id, "RGB32toYUV", stats, hwResources, DT_RGB32VIDEO, DT_YUV420VIDEO),
   threadCount_(0)
 {
   updateSettings();
@@ -31,26 +31,28 @@ void RGB32toYUV::process()
 
   while(input)
   {
-    uint32_t finalDataSize = input->width*input->height + input->width*input->height/2;
+    uint32_t finalDataSize = input->vInfo->width*input->vInfo->height + 
+                             input->vInfo->width*input->vInfo->height/2;
     std::unique_ptr<uchar[]> yuv_data(new uchar[finalDataSize]);
 
-    if(getHWManager()->isSSE41Enabled() && input->width % 4 == 0)
+    if(getHWManager()->isSSE41Enabled() && input->vInfo->width % 4 == 0)
     {
       if (threadCount_ != 1)
       {
-        rgb_to_yuv420_i_sse41_mt(input->data.get(), yuv_data.get(), input->width, input->height, threadCount_);
+        rgb_to_yuv420_i_sse41_mt(input->data.get(), yuv_data.get(), 
+                                 input->vInfo->width, input->vInfo->height, threadCount_);
       }
       else
       {
-        rgb_to_yuv420_i_sse41(input->data.get(), yuv_data.get(), input->width, input->height);
+        rgb_to_yuv420_i_sse41(input->data.get(), yuv_data.get(), input->vInfo->width, input->vInfo->height);
       }
     }
     else
     {
-      rgb_to_yuv420_i_c(input->data.get(), yuv_data.get(), input->width, input->height);
+      rgb_to_yuv420_i_c(input->data.get(), yuv_data.get(), input->vInfo->width, input->vInfo->height);
     }
 
-    input->type = YUV420VIDEO;
+    input->type = DT_YUV420VIDEO;
     input->data = std::move(yuv_data);
     input->data_size = finalDataSize;
     sendOutput(std::move(input));

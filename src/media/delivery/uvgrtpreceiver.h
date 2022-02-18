@@ -32,8 +32,6 @@ private:
   bool discardUntilIntra_;
 
   uint16_t lastSeq_;
-
-  DataType type_;
   uint32_t sessionID_;
 
   QFutureWatcher<uvg_rtp::media_stream *> watcher_;

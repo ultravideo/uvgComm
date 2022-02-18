@@ -7,7 +7,7 @@
 
 ScaleFilter::ScaleFilter(QString id, StatisticsInterface *stats,
                          std::shared_ptr<HWResourceManager> hwResources):
-  Filter(id, "Scaler", stats, hwResources, RGB32VIDEO, RGB32VIDEO),
+  Filter(id, "Scaler", stats, hwResources, DT_RGB32VIDEO, DT_RGB32VIDEO),
   newSize_(QSize(0,0))
 {
 
@@ -29,12 +29,12 @@ void ScaleFilter::process()
   std::unique_ptr<Data> input = getInput();
   while(input)
   {
-    if(input->height == 0 || input->width == 0 || input->data_size == 0)
+    if(input->vInfo->height == 0 || input->vInfo->width == 0 || input->data_size == 0)
     {
       Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, 
                                       "The resolution of input image for scaler is not set.",
-                                      {"Width", "Height"}, {QString::number(input->width), 
-                                       QString::number(input->height)});
+                                      {"Width", "Height"}, {QString::number(input->vInfo->width),
+                                       QString::number(input->vInfo->height)});
       return;
     }
 
@@ -42,7 +42,7 @@ void ScaleFilter::process()
 
     switch(input->type)
     {
-      case RGB32VIDEO:
+      case DT_RGB32VIDEO:
       {
         format = QImage::Format_RGB32;
         break;
@@ -68,19 +68,19 @@ std::unique_ptr<Data> ScaleFilter::scaleFrame(std::unique_ptr<Data> input)
 {
   QImage image(
         input->data.get(),
-        input->width,
-        input->height,
+        input->vInfo->width,
+        input->vInfo->height,
         QImage::Format_RGB32);
 
   QImage scaled = image.scaled(newSize_);
   if(newSize_.width() * newSize_.height()
-     > input->width * input->height)
+     > input->vInfo->width * input->vInfo->height)
   {
     input->data = std::unique_ptr<uchar[]>(new uchar[scaled.sizeInBytes()]);
   }
   memcpy(input->data.get(), scaled.bits(), scaled.sizeInBytes());
-  input->width = newSize_.width();
-  input->height = newSize_.height();
+  input->vInfo->width = newSize_.width();
+  input->vInfo->height = newSize_.height();
   input->data_size = scaled.sizeInBytes();
   return input;
 }

@@ -18,7 +18,7 @@
 
 CameraFilter::CameraFilter(QString id, StatisticsInterface *stats,
                            std::shared_ptr<HWResourceManager> hwResources):
-  Filter(id, "Camera", stats, hwResources, NONE, RGB32VIDEO),
+  Filter(id, "Camera", stats, hwResources, DT_NONE, DT_RGB32VIDEO),
   camera_(nullptr),
   cameraFrameGrabber_(nullptr),
   framerate_(0),
@@ -207,29 +207,29 @@ bool CameraFilter::cameraSetup()
     if(currentInputFormat_ == "MJPG")
     {
       viewSettings.setPixelFormat(QVideoFrame::Format_Jpeg);
-      output_ = RGB32VIDEO;
+      output_ = DT_RGB32VIDEO;
     }
     else if(currentInputFormat_ == "RGB32")
     {
       viewSettings.setPixelFormat(QVideoFrame::Format_RGB32);
-      output_ = RGB32VIDEO;
+      output_ = DT_RGB32VIDEO;
     }
     else if(currentInputFormat_ == "YUV420P")
     {
       viewSettings.setPixelFormat(QVideoFrame::Format_YUV420P);
-      output_ = YUV420VIDEO;
+      output_ = DT_YUV420VIDEO;
     }
     else if(currentInputFormat_ == "YUYV")
     {
       viewSettings.setPixelFormat(QVideoFrame::Format_YUYV);
-      output_ = YUYVVIDEO;
+      output_ = DT_YUYVVIDEO;
     }
     else
     {
       Logger::getLogger()->printError(this, "Input format not supported", 
                                       {"Format"}, {currentInputFormat_});
       viewSettings.setPixelFormat(QVideoFrame::Format_Invalid);
-      output_ = NONE;
+      output_ = DT_NONE;
       return false;
     }
 
@@ -341,7 +341,7 @@ void CameraFilter::process()
     frameMutex_.unlock();
 
     // capture the frame data
-    Data * newImage = new Data;
+    std::unique_ptr<Data> newImage = initializeData(output_, DS_LOCAL);
     newImage->presentationTime = QDateTime::currentMSecsSinceEpoch();
     newImage->type = output_;
 
@@ -353,18 +353,15 @@ void CameraFilter::process()
 
     memcpy(newImage->data.get(), bits, cloneFrame.mappedBytes());
     newImage->data_size = cloneFrame.mappedBytes();
+
     // kvazaar requires divisable by 8 resolution
-    newImage->width = cloneFrame.width() - cloneFrame.width()%8;
-    newImage->height = cloneFrame.height() - cloneFrame.height()%8;
-    newImage->source = LOCAL;
-    newImage->framerate = framerate_;
+    newImage->vInfo->width = cloneFrame.width() - cloneFrame.width()%8;
+    newImage->vInfo->height = cloneFrame.height() - cloneFrame.height()%8;
+    newImage->vInfo->framerate = framerate_;
 
-
-
-    std::unique_ptr<Data> u_newImage( newImage );
     cloneFrame.unmap();
 
-    Q_ASSERT(u_newImage->data);
+    Q_ASSERT(newImage->data);
 
 #ifndef _WIN32
 
@@ -377,8 +374,8 @@ void CameraFilter::process()
     {
       QImage image(
             newImage->data.get(),
-            newImage->width,
-            newImage->height,
+            newImage->vInfo->width,
+            newImage->vInfo->height,
             QImage::Format_RGB32);
       image = image.mirrored(false, true);
 
@@ -387,6 +384,6 @@ void CameraFilter::process()
 
 #endif
 
-    sendOutput(std::move(u_newImage));
+    sendOutput(std::move(newImage));
   }
 }

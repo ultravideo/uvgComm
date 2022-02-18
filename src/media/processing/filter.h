@@ -21,22 +21,43 @@
 // called filter graph. A class inherited from filter can do any sort of processing to the data it
 // receives. The filter sleeps when it does not have any input to process.
 
-enum DataType {NONE = 0, RGB32VIDEO, YUV420VIDEO, YUYVVIDEO, RAWAUDIO, HEVCVIDEO, OPUSAUDIO};
-enum DataSource {UNKNOWN, LOCAL, REMOTE};
+// the numbers will change as new formats are added, please use enum values
+enum DataType {DT_NONE        = 0 << 0,
+               DT_AUDIO       = 1 << 29,
+               DT_VIDEO       = 1 << 30,
+               DT_RGB32VIDEO  = (1 << 1) | DT_VIDEO,
+               DT_YUV420VIDEO = (1 << 2) | DT_VIDEO,
+               DT_YUYVVIDEO   = (1 << 3) | DT_VIDEO,
+               DT_HEVCVIDEO   = (1 << 4) | DT_VIDEO,
+               DT_RAWAUDIO    = (1 << 5) | DT_AUDIO,
+               DT_OPUSAUDIO   = (1 << 6) | DT_AUDIO};
 
-// NOTE: remember to make changes to deepcopy, camera, audiocapture and RTP Receiver filter
-struct Data
+enum DataSource {DS_UNKNOWN, DS_LOCAL, DS_REMOTE};
+
+
+struct VideoInfo
 {
-  uint8_t type;
-  std::unique_ptr<uchar[]> data;
-  uint32_t data_size;
   int16_t width;
   int16_t height;
+  uint16_t framerate;
+};
+
+struct AudioInfo
+{
+  uint16_t sampleRate;
+};
+
+struct Data
+{
+  DataSource source;
+  uint32_t type;
+  std::unique_ptr<uchar[]> data;
+  uint32_t data_size;
+
   int64_t presentationTime;
 
-  uint16_t framerate;
-
-  DataSource source;
+  std::unique_ptr<VideoInfo> vInfo;
+  std::unique_ptr<AudioInfo> aInfo;
 };
 
 class StatisticsInterface;
@@ -109,6 +130,8 @@ public:
 
 protected:
 
+  std::unique_ptr<Data> initializeData(enum DataType type, DataSource source);
+
   // return: oldest element in buffer, empty if none found
   std::unique_ptr<Data> getInput();
 
@@ -156,6 +179,8 @@ protected:
   DataType output_;
 
 private:
+
+  std::unique_ptr<Data> validityCheck(std::unique_ptr<Data> data, bool &ok);
 
   QString name_;
   QString id_;

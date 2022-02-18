@@ -14,7 +14,7 @@
 DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
                              std::shared_ptr<HWResourceManager> hwResources,
                              VideoInterface *widget, uint32_t sessionID):
-  Filter(id, "Display", stats, hwResources, RGB32VIDEO, NONE),
+  Filter(id, "Display", stats, hwResources, DT_RGB32VIDEO, DT_NONE),
   horizontalMirroring_(false),
   verticalMirroring_(false),
   widget_(widget),
@@ -24,11 +24,11 @@ DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
   {
     if(widget->supportedFormat() == VIDEO_RGB32)
     {
-      input_ = RGB32VIDEO;
+      input_ = DT_RGB32VIDEO;
     }
     else if(widget->supportedFormat() == VIDEO_YUV420)
     {
-      input_ = YUV420VIDEO;
+      input_ = DT_YUV420VIDEO;
     }
     widget_->setStats(stats);
   }
@@ -66,10 +66,10 @@ void DisplayFilter::process()
 
     switch(input->type)
     {
-    case RGB32VIDEO:
+    case DT_RGB32VIDEO:
       format = QImage::Format_RGB32;
       break;
-    case YUV420VIDEO:
+    case DT_YUV420VIDEO:
       format = QImage::Format_Invalid;
       break;
     default:
@@ -84,8 +84,8 @@ void DisplayFilter::process()
     {
       QImage image(
             input->data.get(),
-            input->width,
-            input->height,
+            input->vInfo->width,
+            input->vInfo->height,
             format);
 
       if (flipEnabled_)

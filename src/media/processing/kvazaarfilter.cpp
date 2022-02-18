@@ -16,7 +16,7 @@ enum RETURN_STATUS {C_SUCCESS = 0, C_FAILURE = -1};
 
 KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats,
                              std::shared_ptr<HWResourceManager> hwResources):
-  Filter(id, "Kvazaar", stats, hwResources, YUV420VIDEO, HEVCVIDEO),
+  Filter(id, "Kvazaar", stats, hwResources, DT_YUV420VIDEO, DT_HEVCVIDEO),
   api_(nullptr),
   config_(nullptr),
   enc_(nullptr),
@@ -28,6 +28,7 @@ KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats,
 {
   maxBufferSize_ = 3;
 }
+
 
 void KvazaarFilter::updateSettings()
 {
@@ -57,6 +58,7 @@ void KvazaarFilter::updateSettings()
 
   Filter::updateSettings();
 }
+
 
 bool KvazaarFilter::init()
 {
@@ -320,9 +322,9 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
   kvz_data_chunk *data_out = nullptr;
   uint32_t len_out = 0;
 
-  if (config_->width != input->width
-      || config_->height != input->height
-      || config_->framerate_num != input->framerate)
+  if (config_->width != input->vInfo->width
+      || config_->height != input->vInfo->height
+      || config_->framerate_num != input->vInfo->framerate)
   {
     // This should not happen.
     Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
@@ -331,9 +333,9 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
                                     {QString::number(config_->width) + "x" +
                                      QString::number(config_->height) + "p" +
                                      QString::number(config_->framerate_num),
-                                     QString::number(input->width) + "x" +
-                                     QString::number(input->height) + "p" +
-                                     QString::number(input->framerate)});
+                                     QString::number(input->vInfo->width) + "x" +
+                                     QString::number(input->vInfo->height) + "p" +
+                                     QString::number(input->vInfo->framerate)});
 
     return;
   }
@@ -341,13 +343,13 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
   // copy input to kvazaar picture
   memcpy(input_pic_->y,
          input->data.get(),
-         input->width*input->height);
+         input->vInfo->width*input->vInfo->height);
   memcpy(input_pic_->u,
-         &(input->data.get()[input->width*input->height]),
-         input->width*input->height/4);
+         &(input->data.get()[input->vInfo->width*input->vInfo->height]),
+         input->vInfo->width*input->vInfo->height/4);
   memcpy(input_pic_->v,
-         &(input->data.get()[input->width*input->height + input->width*input->height/4]),
-         input->width*input->height/4);
+         &(input->data.get()[input->vInfo->width*input->vInfo->height + input->vInfo->width*input->vInfo->height/4]),
+         input->vInfo->width*input->vInfo->height/4);
 
   input_pic_->pts = pts_;
   ++pts_;
@@ -418,7 +420,7 @@ void KvazaarFilter::sendEncodedFrame(std::unique_ptr<Data> input,
                                      std::unique_ptr<uchar[]> hevc_frame,
                                      uint32_t dataWritten)
 {
-  input->type = HEVCVIDEO;
+  input->type = DT_HEVCVIDEO;
   input->data_size = dataWritten;
   input->data = std::move(hevc_frame);
   sendOutput(std::move(input));
