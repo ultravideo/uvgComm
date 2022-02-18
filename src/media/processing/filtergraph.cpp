@@ -3,9 +3,14 @@
 #include "media/processing/camerafilter.h"
 #include "media/processing/screensharefilter.h"
 #include "media/processing/kvazaarfilter.h"
-#include "media/processing/rgb32toyuv.h"
+
 #include "media/processing/openhevcfilter.h"
+
+#include "media/processing/rgb32toyuv.h"
 #include "media/processing/yuvtorgb32.h"
+#include "media/processing/yuyvtoyuv420.h"
+#include "media/processing/yuyvtorgb32.h"
+
 #include "media/processing/displayfilter.h"
 #include "media/processing/scalefilter.h"
 #include "media/processing/audiocapturefilter.h"
@@ -229,7 +234,7 @@ void FilterGraph::initSelfView()
   if (!addToGraph(std::shared_ptr<Filter>(new CameraFilter("", stats_, hwResources_)), cameraGraph_))
   {
     // camera failed
-    Logger::getLogger()->printError(this, "Failed to add camera. Does it have supported formats.");
+    Logger::getLogger()->printError(this, "Failed to add camera. Does it have supported formats?");
     return; // TODO: return false that we failed so user can fix camera selection
   }
 
@@ -359,22 +364,40 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
                                       "Filter output and input do not match. Finding conversion",
                                       {"Connection"}, {graph.at(connectIndex)->getName() + "->" + filter->getName()});
 
-      Q_ASSERT(graph.at(connectIndex)->outputType() != NONE);
+      if (graph.at(connectIndex)->outputType() == NONE)
+      {
+        Logger::getLogger()->printProgramError(this, "The previous filter has no output!");
+        return false;
+      }
 
       // TODO: Check the out connections of connected filter for an already existing conversion.
 
       if(graph.at(connectIndex)->outputType() == RGB32VIDEO &&
          filter->inputType() == YUV420VIDEO)
       {
-        Logger::getLogger()->printNormal(this, "Adding RGB32 to YUV conversion");
+        Logger::getLogger()->printNormal(this, "Adding RGB32 to YUV420 conversion");
         addToGraph(std::shared_ptr<Filter>(new RGB32toYUV("", stats_, hwResources_)),
                    graph, connectIndex);
       }
       else if(graph.at(connectIndex)->outputType() == YUV420VIDEO &&
               filter->inputType() == RGB32VIDEO)
       {
-        Logger::getLogger()->printNormal(this, "Adding YUV to RGB32 conversion");
+        Logger::getLogger()->printNormal(this, "Adding YUV420 to RGB32 conversion");
         addToGraph(std::shared_ptr<Filter>(new YUVtoRGB32("", stats_, hwResources_)),
+                   graph, connectIndex);
+      }
+      else if(graph.at(connectIndex)->outputType() == YUYVVIDEO &&
+              filter->inputType() == YUV420VIDEO)
+      {
+        Logger::getLogger()->printNormal(this, "Adding YUYV to YUV420 conversion");
+        addToGraph(std::shared_ptr<Filter>(new YUYVtoYUV420("", stats_, hwResources_)),
+                   graph, connectIndex);
+      }
+      else if(graph.at(connectIndex)->outputType() == YUYVVIDEO &&
+              filter->inputType() == RGB32VIDEO)
+      {
+        Logger::getLogger()->printNormal(this, "Adding YUYV to RGB32 conversion");
+        addToGraph(std::shared_ptr<Filter>(new YUYVtoRGB32("", stats_, hwResources_)),
                    graph, connectIndex);
       }
       else

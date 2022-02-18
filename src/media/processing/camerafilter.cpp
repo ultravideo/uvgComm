@@ -219,6 +219,11 @@ bool CameraFilter::cameraSetup()
       viewSettings.setPixelFormat(QVideoFrame::Format_YUV420P);
       output_ = YUV420VIDEO;
     }
+    else if(currentInputFormat_ == "YUYV")
+    {
+      viewSettings.setPixelFormat(QVideoFrame::Format_YUYV);
+      output_ = YUYVVIDEO;
+    }
     else
     {
       Logger::getLogger()->printError(this, "Input format not supported", 
