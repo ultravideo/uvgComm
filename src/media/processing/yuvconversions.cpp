@@ -775,9 +775,12 @@ void yuyv_to_yuv420_c(uint8_t* input, uint8_t* output, uint16_t width, uint16_t 
     // It takes two bytes to represent one pixel in YUYV so we go until 2 times width
     for (int j = 0; j < width*2; j += 4)
     {
+      uint16_t uSum =  input[i*width*4 + j + 1] + input[i*width*4 + width*2 + j + 1];
+      uint16_t vSum =  input[i*width*4 + j + 3] + input[i*width*4 + width*2 + j + 3];
+
       // we take the average of both rows to use all available information
-      chromaU[i*width/2 + j/4] = input[i*width*4 + j + 1]/2 + input[i*width*4 + width*2 + j + 1]/2;
-      chromaV[i*width/2 + j/4] = input[i*width*4 + j + 3]/2 + input[i*width*4 + width*2 + j + 3]/2;
+      chromaU[i*width/2 + j/4] = uint8_t(uSum/2);
+      chromaV[i*width/2 + j/4] = uint8_t(vSum/2);
     }
   }
 }
