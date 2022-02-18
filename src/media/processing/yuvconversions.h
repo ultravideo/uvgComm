@@ -2,6 +2,10 @@
 
 #include <stdint.h>
 
+
+bool is_avx2_available();
+bool is_sse41_available();
+
 int  yuv420_to_rgb_i_avx2_mt (uint8_t* input, uint8_t* output, uint16_t width, uint16_t height, uint8_t threads);
 int  yuv420_to_rgb_i_avx2    (uint8_t* input, uint8_t* output, uint16_t width, uint16_t height);
 int  yuv420_to_rgb_i_sse41   (uint8_t* input, uint8_t* output, uint16_t width, uint16_t height);

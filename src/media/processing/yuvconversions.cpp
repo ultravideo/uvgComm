@@ -13,7 +13,54 @@
 #include <math.h>
 #include <omp.h> // for mt versions
 
+// For additional optimizations checks:
+// https://stackoverflow.com/questions/6121792/how-to-check-if-a-cpu-supports-the-sse3-instruction-set
+
+#ifdef _WIN32
+#include <intrin.h>
+  #define cpuid(info, x)    __cpuidex(info, x, 0)
+#else
+
+//  GCC Intrinsics
+#include <cpuid.h>
+  void cpuid(int info[4], int InfoType){
+      __cpuid_count(InfoType, 0, info[0], info[1], info[2], info[3]);
+}
+
+#endif
+
+
 uint8_t clamp_8bit(int32_t input);
+
+
+bool is_avx2_available()
+{
+  int info[4];
+  cpuid(info, 0);
+  int nIds = info[0];
+
+  if (nIds >= 0x00000007){
+      cpuid(info,0x00000007);
+      return (info[1] & ((int)1 <<  5)) != 0;
+  }
+
+  return false;
+}
+
+bool is_sse41_available()
+{
+  int info[4];
+  cpuid(info, 0);
+  int nIds = info[0];
+
+  //  Detect Features
+  if (nIds >= 0x00000001){
+      cpuid(info,0x00000001);
+      return (info[2] & ((int)1 << 19)) != 0;
+  }
+  return false;
+}
+
 
 #define _mm256_set_m128i(/* __m128i */ hi, /* __m128i */ lo) _mm256_insertf128_si256(_mm256_castsi128_si256(lo), (hi), 0x1)
 
@@ -788,16 +835,6 @@ void yuyv_to_yuv420_c(uint8_t* input, uint8_t* output, uint16_t width, uint16_t 
 
 void yuyv_to_rgb_c(uint8_t* input, uint8_t* output, uint16_t width, uint16_t height)
 {
-  // Luma pixels
-  /*
-  for(int i = 0; i < width*height; ++i)
-  {
-    output[i*4] = input[i];
-    output[i*4+1] = input[i];
-    output[i*4+2] = input[i];
-  }
-  */
-
   // Luma values
   for(int i = 0; i < width*height*2; i += 2)
   {
@@ -819,5 +856,3 @@ uint8_t clamp_8bit(int32_t input)
   }
   return input;
 }
-
-

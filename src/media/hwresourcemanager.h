@@ -13,8 +13,6 @@ public:
 
 private:
 
-  void setOptimizations();
-
   bool avx2_ = false;
   bool sse41_ = false;
 
