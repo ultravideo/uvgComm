@@ -143,15 +143,7 @@ void CameraInfo::getFramerates(int deviceID, QString format, int resolutionID, Q
 
     for (int i = 0; i < framerates.size(); ++i)
     {
-      if (framerates.at(i).minimumFrameRate == framerates.at(i).maximumFrameRate)
-      {
-        ranges.push_back(QString::number(framerates.at(i).maximumFrameRate));
-      }
-      else
-      {
-        ranges.push_back(QString::number(framerates.at(i).minimumFrameRate)
-                         + " to " + QString::number(framerates.at(i).maximumFrameRate));
-      }
+      ranges.push_back(QString::number(framerates.at(i).maximumFrameRate));
     }
   }
 }
