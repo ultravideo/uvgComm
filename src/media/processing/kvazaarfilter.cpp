@@ -108,7 +108,8 @@ bool KvazaarFilter::init()
 #else
     config_->width = settings.value(SettingsKey::videoResultionWidth).toInt();
     config_->height = settings.value(SettingsKey::videoResultionHeight).toInt();
-    framerate_num_ = settings.value(SettingsKey::videoFramerate).toFloat();
+
+    convertFramerate(settings.value(SettingsKey::videoFramerate).toReal());
     config_->framerate_num = framerate_num_;
 #endif
     config_->framerate_denom = framerate_denom_;
@@ -324,7 +325,7 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
 
   if (config_->width != input->vInfo->width
       || config_->height != input->vInfo->height
-      || config_->framerate_num != input->vInfo->framerate)
+      || (double)(config_->framerate_num/config_->framerate_denom) != input->vInfo->framerate)
   {
     // This should not happen.
     Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
@@ -424,4 +425,28 @@ void KvazaarFilter::sendEncodedFrame(std::unique_ptr<Data> input,
   input->data_size = dataWritten;
   input->data = std::move(hevc_frame);
   sendOutput(std::move(input));
+}
+
+
+void KvazaarFilter::convertFramerate(double framerate)
+{
+  uint32_t wholeNumber = (uint32_t)framerate;
+
+  double remainder = framerate - wholeNumber;
+
+  if (remainder > 0.0)
+  {
+    uint32_t multiplier = 1.0 /remainder;
+    framerate_num_ = framerate*multiplier;
+    framerate_denom_ = multiplier;
+  }
+  else
+  {
+    framerate_num_ = wholeNumber;
+    framerate_denom_ = 1;
+  }
+
+  Logger::getLogger()->printNormal(this, "Got framerate num and denum", "Framerate",
+                                   {QString::number(framerate_num_) + "/" +
+                                    QString::number(framerate_denom_) });
 }

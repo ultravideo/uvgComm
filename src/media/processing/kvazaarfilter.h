@@ -3,6 +3,7 @@
 
 #include <QSize>
 #include <QSettings>
+
 struct kvz_api;
 struct kvz_config;
 struct kvz_encoder;
@@ -39,6 +40,7 @@ private:
                         std::unique_ptr<uchar[]> hevc_frame,
                         uint32_t dataWritten);
 
+  void convertFramerate(double framerate);
 
   const kvz_api *api_;
   kvz_config *config_;
