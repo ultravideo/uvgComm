@@ -39,7 +39,7 @@ struct VideoInfo
 {
   int16_t width;
   int16_t height;
-  uint16_t framerate;
+  double framerate;
 };
 
 struct AudioInfo
