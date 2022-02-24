@@ -763,16 +763,15 @@ void rgb_to_yuv420_i_c(uint8_t* input, uint8_t* output, uint16_t width, uint16_t
 {
   uint32_t rgb_size =  width*height*4;
 
-  uint8_t* Y = input;
-  uint8_t* U = input + width*height;
-  uint8_t* V = input + width*height + width*height/4;
+  uint8_t* lumaY   = output;
+  uint8_t* chromaU = output + width*height;
+  uint8_t* chromaV = output + width*height + width*height/4;
 
   // Luma pixels
   for(unsigned int i = 0; i < rgb_size; i += 4)
   {
-    int32_t ypixel = 76*input[i] + 150 * input[i+1]
-        + 29 * input[i+2];
-    Y[width*height - i/4 - 1] = (ypixel + 128) >> 8;
+    int32_t ypixel = 76*input[i] + 150 * input[i+1] + 29 * input[i+2];
+    lumaY[width*height - i/4 - 1] = (ypixel + 128) >> 8;
   }
 
   for(unsigned int i = 0; i < rgb_size - width*4; i += 2*width*4)
@@ -783,14 +782,14 @@ void rgb_to_yuv420_i_c(uint8_t* input, uint8_t* output, uint16_t width, uint16_t
       upixel += -43 * input[j+2+4]                 - 84 * input[j+1+4]                 + 127 * input[j+4];
       upixel += -43 * input[j+2+width*4]    - 84  * input[j+1+width*4]   + 127 * input[j+width*4];
       upixel += -43 * input[j+2+4+width*4]  - 84  * input[j+1+4+width*4] + 127 * input[j+4+width*4];
-      U[width*height/4 - (i/16 + (j-i)/8) - 1] = ((upixel + 512) >> 10) + 128;
+      chromaU[width*height/4 - (i/16 + (j-i)/8) - 1] = ((upixel + 512) >> 10) + 128;
 
 
       int32_t vpixel =  127 * input[j+2]           - 106 * input[j+1]                  - 21 * input[j];
       vpixel +=  127 * input[j+2+4]                - 106 * input[j+1+4]                - 21 * input[j+4];
       vpixel +=  127 * input[j+2+width*4]   - 106 * input[j+1+width*4]   - 21 * input[j+width*4];
       vpixel +=  127 * input[j+2+4+width*4] - 106 * input[j+1+4+width*4] - 21 * input[j+4+width*4];
-      V[width*height/4 - (i/16 + (j-i)/8) - 1] = ((vpixel + 512) >> 10) + 128;
+      chromaV[width*height/4 - (i/16 + (j-i)/8) - 1] = ((vpixel + 512) >> 10) + 128;
     }
   }
 }
