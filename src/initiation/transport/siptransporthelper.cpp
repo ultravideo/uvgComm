@@ -239,7 +239,12 @@ QString addContent(const std::shared_ptr<SIPMessageHeader> header,
 bool headerToFields(QString& header, QString& firstLine, QList<SIPField>& fields)
 {
   // Divide into lines
-  QStringList lines = header.split("\r\n", Qt::SkipEmptyParts);
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+    QStringList lines = header.split("\r\n", QString::SkipEmptyParts);
+#else
+    QStringList lines = header.split("\r\n", Qt::SkipEmptyParts);
+#endif
+
   Logger::getLogger()->printNormal("SIP Transport Helper", "Parsing SIP header to fields",
               "Fields", QString::number(lines.size()));
   if(lines.size() == 0)
@@ -408,7 +413,12 @@ bool parseFieldName(QString& line, SIPField& field)
 void parseFieldCommaSeparatedList(QString& line, QStringList& outValues)
 {
   // separate value sections by commas
-  outValues = line.split(",", Qt::SkipEmptyParts);
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+    outValues = line.split(",", QString::SkipEmptyParts);
+#else
+    outValues = line.split(",", Qt::SkipEmptyParts);
+#endif
+
 }
 
 

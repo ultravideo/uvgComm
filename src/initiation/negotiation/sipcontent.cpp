@@ -233,7 +233,12 @@ bool nextLine(QStringListIterator& lineIterator, QStringList& words, char& lineT
   if(lineIterator.hasNext())
   {
     QString line = lineIterator.next();
+
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+    words = line.split(" ", QString::SkipEmptyParts);
+#else
     words = line.split(" ", Qt::SkipEmptyParts);
+#endif
 
     if(words.at(0).length() < 3)
     {
@@ -266,7 +271,12 @@ void gatherLine(QString& target, QStringList& words)
 bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
 {
   // The SDP has strict ordering rules and the parsing follows those.
-  QStringList lines = content.split("\r\n", Qt::SkipEmptyParts);
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+    QStringList lines = content.split("\r\n", QString::SkipEmptyParts);
+#else
+    QStringList lines = content.split("\r\n", Qt::SkipEmptyParts);
+#endif
+
   if(lines.size() > 1000)
   {
     Logger::getLogger()->printError("SipContent", "Got over a thousand lines of SDP! "
