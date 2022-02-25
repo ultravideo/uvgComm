@@ -270,7 +270,7 @@ void FilterGraph::initSelfView()
     // is changed later.
     // Note: mirroring is slow with Qt
 
-    selfviewFilter_->setProperties(true, cameraGraph_.at(0)->outputType() == DT_RGB32VIDEO);
+    selfviewFilter_->setHorizontalMirroring(true);
 
     addToGraph(selfviewFilter_, cameraGraph_);
     addToGraph(selfviewFilter_, screenShareGraph_);
@@ -654,7 +654,7 @@ void FilterGraph::camera(bool state)
     {
       Logger::getLogger()->printNormal(this, "Starting camera", "Output Type",
                                        QString::number(cameraGraph_.at(0)->outputType()));
-      selfviewFilter_->setProperties(true, cameraGraph_.at(0)->outputType() == DT_RGB32VIDEO);
+      selfviewFilter_->setHorizontalMirroring(true);
       cameraGraph_.at(0)->start();
     }
   }
@@ -672,7 +672,7 @@ void FilterGraph::screenShare(bool shareState)
       // We don't want to flip selfview horizontally when sharing the screen.
       // This way the self view is an accurate representation of what the others
       // will view. With camera on the other hand, we want it to mirror the user.
-      selfviewFilter_->setProperties(false, true);
+      selfviewFilter_->setHorizontalMirroring(false);
       screenShareGraph_.at(0)->start();
     }
     else

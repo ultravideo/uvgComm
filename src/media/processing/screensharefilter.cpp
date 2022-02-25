@@ -85,7 +85,8 @@ void ScreenShareFilter::process()
 
     Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, 
                                     "Current resolution differs from screen size",
-                                    {"Current", "Screen resolution"}, {currentResolution, screenResolution});
+                                    {"Current", "Screen resolution"}, {currentResolution,
+                                                                       screenResolution});
     return;
   }
 
@@ -107,6 +108,11 @@ void ScreenShareFilter::process()
   newImage->vInfo->width = currentResolution_.width();
   newImage->vInfo->height = currentResolution_.height();
   newImage->vInfo->framerate = currentFramerate_;
+
+#ifdef _WIN32
+  newImage->vInfo->flippedVertically = true;
+  newImage = normalizeOrientation(std::move(newImage));
+#endif
 
   Q_ASSERT(newImage->data);
   sendOutput(std::move(newImage));

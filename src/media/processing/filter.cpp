@@ -5,6 +5,8 @@
 #include "common.h"
 #include "logger.h"
 
+#include <QImage>
+
 Filter::Filter(QString id, QString name, StatisticsInterface *stats,
                std::shared_ptr<HWResourceManager> hwResources,
                DataType input, DataType output):
@@ -30,13 +32,32 @@ Filter::~Filter()
   delete waitMutex_;
 }
 
+
 void Filter::updateSettings()
 {}
+
 
 bool Filter::init()
 {
   return true;
 }
+
+
+bool Filter::isVideo(DataType type)
+{
+  return type == DT_RGB32VIDEO ||
+      type == DT_YUV420VIDEO ||
+      type == DT_YUYVVIDEO ||
+      type == DT_HEVCVIDEO;
+}
+
+
+bool Filter::isAudio(DataType type)
+{
+  return type == DT_RAWAUDIO ||
+      type == DT_OPUSAUDIO;
+}
+
 
 void Filter::addOutConnection(std::shared_ptr<Filter> out)
 {
@@ -156,20 +177,57 @@ std::unique_ptr<Data> Filter::initializeData(DataType type, DataSource source)
   data->data_size = 0;
   data->presentationTime = 0;
 
-  if ((type & DT_VIDEO) != 0)
+  if (isVideo(type))
   {
     data->vInfo = std::unique_ptr<VideoInfo> (new VideoInfo);
     data->vInfo->width = 0; // not known at this point. Decoder tells the correct resolution
     data->vInfo->height = 0;
     data->vInfo->framerate = 0;
+    data->vInfo->flippedVertically = false;
+    data->vInfo->flippedHorizontally = false;
   }
-  else if ((type & DT_AUDIO) != 0)
+  else if (isAudio(type))
   {
     data->aInfo = std::unique_ptr<AudioInfo> (new AudioInfo);
     data->aInfo->sampleRate = 0;
   }
 
   return data;
+}
+
+
+std::unique_ptr<Data> Filter::normalizeOrientation(std::unique_ptr<Data> video,
+                                                   bool forceHorizontalFlip)
+{
+  if (video->type != DT_RGB32VIDEO)
+  {
+    Logger::getLogger()->printProgramError(this, "Not correct "
+                                                 "data type for flipping");
+    return video;
+  }
+
+  if (forceHorizontalFlip || video->vInfo->flippedHorizontally ||
+      video->vInfo->flippedVertically)
+  {
+    QImage image(
+          video->data.get(),
+          video->vInfo->width,
+          video->vInfo->height,
+          QImage::Format_RGB32);
+    image = image.mirrored(forceHorizontalFlip || video->vInfo->flippedHorizontally,
+                           video->vInfo->flippedVertically);
+
+    if (forceHorizontalFlip || video->vInfo->flippedHorizontally)
+    {
+      video->vInfo->flippedHorizontally = !video->vInfo->flippedHorizontally;
+    }
+
+    video->vInfo->flippedVertically = false;
+
+    memcpy(video->data.get(), image.bits(), video->data_size);
+  }
+
+  return video;
 }
 
 
@@ -280,9 +338,11 @@ Data* Filter::shallowDataCopy(Data* original)
     {
       copy->vInfo = std::unique_ptr<VideoInfo> (new VideoInfo);
 
-      copy->vInfo->width     = original->vInfo->width;
-      copy->vInfo->height    = original->vInfo->height;
-      copy->vInfo->framerate = original->vInfo->framerate;
+      copy->vInfo->width               = original->vInfo->width;
+      copy->vInfo->height              = original->vInfo->height;
+      copy->vInfo->framerate           = original->vInfo->framerate;
+      copy->vInfo->flippedHorizontally = original->vInfo->flippedHorizontally;
+      copy->vInfo->flippedVertically   = original->vInfo->flippedVertically;
     }
 
     if (original->aInfo != nullptr)
@@ -361,14 +421,14 @@ std::unique_ptr<Data> Filter::validityCheck(std::unique_ptr<Data> data, bool& ok
     ok = false;
   }
 
-  if((data->type & DT_AUDIO) != 0 &&
+  if(isAudio(data->type) &&
      data->aInfo == nullptr)
   {
     Logger::getLogger()->printWarning(this,  "No audio info for audio");
     ok = false;
   }
 
-  if((data->type & DT_VIDEO) != 0 &&
+  if(isVideo(data->type) &&
      data->vInfo == nullptr)
   {
     Logger::getLogger()->printWarning(this,  "No video info for video");

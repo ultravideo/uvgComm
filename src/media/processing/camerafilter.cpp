@@ -363,25 +363,12 @@ void CameraFilter::process()
 
     Q_ASSERT(newImage->data);
 
-#ifndef _WIN32
-
-    // This is a fix for correct video orientation. Still not sure why the screen
-    // is flipped on linux. It may be possible that it just is that way or that some
-    // some optimization/conversion flips the view and windows has the actual problem.
-
-    // TODO: Flipping with Qt is slow
-    if(newImage->type == RGB32VIDEO)
-    {
-      QImage image(
-            newImage->data.get(),
-            newImage->vInfo->width,
-            newImage->vInfo->height,
-            QImage::Format_RGB32);
-      image = image.mirrored(false, true);
-
-      memcpy(newImage->data.get(), image.bits(), newImage->data_size);
-    }
-
+#ifdef _WIN32
+   if (output_ == DT_RGB32VIDEO)
+   {
+     newImage->vInfo->flippedVertically = true;
+     newImage = normalizeOrientation(std::move(newImage));
+   }
 #endif
 
     sendOutput(std::move(newImage));

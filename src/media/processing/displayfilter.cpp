@@ -16,7 +16,6 @@ DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
                              VideoInterface *widget, uint32_t sessionID):
   Filter(id, "Display", stats, hwResources, DT_RGB32VIDEO, DT_NONE),
   horizontalMirroring_(false),
-  verticalMirroring_(false),
   widget_(widget),
   sessionID_(sessionID)
 {
@@ -44,14 +43,6 @@ DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
 
 DisplayFilter::~DisplayFilter()
 {}
-
-
-void DisplayFilter::updateSettings()
-{
-  flipEnabled_ = settingEnabled(SettingsKey::videoFlipEnabled);
-
-  Filter::updateSettings();
-}
 
 
 void DisplayFilter::process()
@@ -82,16 +73,13 @@ void DisplayFilter::process()
 
     if (input->type == input_)
     {
+      input = normalizeOrientation(std::move(input), horizontalMirroring_);
+
       QImage image(
             input->data.get(),
             input->vInfo->width,
             input->vInfo->height,
             format);
-
-      if (flipEnabled_)
-      {
-        image = image.mirrored(horizontalMirroring_, verticalMirroring_);
-      }
 
       int32_t delay = QDateTime::currentMSecsSinceEpoch() - input->presentationTime;
 

@@ -36,7 +36,6 @@ const QString videoRGBThreads = "video/rgbThreads";
 const QString videoOpenHEVCThreads = "video/OPENHEVC_threads";
 const QString videoFramerateID = "video/FramerateID";
 const QString videoFramerate = "video/Framerate";
-const QString videoFlipEnabled = "video/flipEnabled";
 const QString videoOpenGL = "video/opengl";
 
 

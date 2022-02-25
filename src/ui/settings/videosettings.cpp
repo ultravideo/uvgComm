@@ -24,7 +24,6 @@ const QStringList neededSettings = {SettingsKey::videoResultionWidth,
                                     SettingsKey::videoOpenHEVCThreads,
                                     SettingsKey::videoFramerateID,
                                     SettingsKey::videoFramerate,
-                                    SettingsKey::videoFlipEnabled,
                                     SettingsKey::videoOpenGL
                                    };
 
@@ -230,7 +229,6 @@ void VideoSettings::saveSettings()
                     QStringList() << "Name" << "Value", videoSettingsUI_->custom_parameters);
 
   // Other-tab
-  saveCheckBox(SettingsKey::videoFlipEnabled, videoSettingsUI_->flip, settings_);
   saveCheckBox(SettingsKey::videoOpenGL,         videoSettingsUI_->opengl, settings_);
 }
 
@@ -401,7 +399,6 @@ void VideoSettings::restoreSettings()
 
     // other-tab
     restoreCheckBox(SettingsKey::videoOpenGL, videoSettingsUI_->opengl, settings_);
-    restoreCheckBox(SettingsKey::videoFlipEnabled, videoSettingsUI_->flip, settings_);
   }
   else
   {
@@ -575,6 +572,7 @@ void VideoSettings::initializeFramerates()
 {
   Logger::getLogger()->printNormal(this, "Initializing camera framerates", {"Resolution"},
               videoSettingsUI_->resolution->currentText());
+
   videoSettingsUI_->framerate_box->clear();
   QStringList rates;
 
