@@ -437,3 +437,20 @@ std::unique_ptr<Data> Filter::validityCheck(std::unique_ptr<Data> data, bool& ok
 
   return data;
 }
+
+void Filter::printDataBytes(QString type, uint8_t *payload, size_t size, int bytes, int shift)
+{
+  QString bytesString = "";
+
+  if (bytes > size)
+  {
+    bytes = size;
+  }
+
+  for (int i = 0; i < bytes; ++i)
+  {
+    bytesString += QString::number(payload[i] << shift);
+  }
+
+  Logger::getLogger()->printNormal(this, type + ": " + bytesString);
+}
