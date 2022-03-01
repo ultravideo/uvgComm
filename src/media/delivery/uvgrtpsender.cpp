@@ -84,7 +84,7 @@ void UvgRTPSender::process()
   if (!mstream_)
     return;
 
-  rtp_error_t ret;
+  rtp_error_t ret = RTP_OK;
   std::unique_ptr<Data> input = getInput();
 
   while (input)

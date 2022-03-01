@@ -249,7 +249,7 @@ bool Delivery::addMediaStream(uint32_t sessionID, uint16_t localPort, uint16_t p
 
   Logger::getLogger()->printNormal(this, "Creating mediastream");
 
-  // TODO: Couldn't get parameter sets to work with uvgRTP prepending SC
+  // This makes the uvgRTP add the start codes saving a memory copy
   int flags = RCE_H26X_PREPEND_SC;
 
   // enable encryption if it works

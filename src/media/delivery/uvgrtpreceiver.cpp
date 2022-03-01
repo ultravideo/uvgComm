@@ -81,12 +81,15 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
   // TODO: Get this info from RTP
   received_picture->presentationTime = QDateTime::currentMSecsSinceEpoch();
 
-  // uvgRTP does not add start codes to all NAL types. Add them to VPS, SPS and PPS
+  // check if the uvgRTP added start code and if not, add it ourselves
   if (output_ == DT_HEVCVIDEO &&
-      ((frame->payload[0] >> 1) == 32 || // VPS
-      ( frame->payload[0] >> 1) == 33 || // SPS
-      ( frame->payload[0] >> 1) == 34))  // PPS
+      ((frame->payload[0]) != 0 ||
+      ( frame->payload[1]) != 0 ||
+      ( frame->payload[2]) != 0 ||
+      ( frame->payload[3]) != 1))
   {
+    Logger::getLogger()->printWarning(this, "uvgRTP did not add the start code. Please use newer version"
+                                            "of uvgRTP and make user RCE_H26X_PREPEND_SC flag is used");
     received_picture->data_size = (uint32_t)frame->payload_len + 4;
     received_picture->data = std::unique_ptr<uchar[]>(new uchar[received_picture->data_size]);
 
@@ -99,7 +102,8 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
   }
   else
   {
-    // We use the memory provided by uvgRTP so we don't have to copy the data
+    // We use the memory provided by uvgRTP so we don't have to copy the data.
+    // The RCE_H26X_PREPEND_SC flag set in delivery adds NAL start codes to frames so we don't have to
     received_picture->data_size = (uint32_t)frame->payload_len;
     received_picture->data = std::unique_ptr<uchar[]>(frame->payload);
     frame->payload = nullptr;    // avoid memory deletion
