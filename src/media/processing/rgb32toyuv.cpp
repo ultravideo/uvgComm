@@ -32,7 +32,7 @@ void RGB32toYUV::process()
   while(input)
   {
     // TODO: Currently the RGB32 to YUV420 implementations flip the input orientation
-    input->vInfo->flippedVertically = true;
+    input->vInfo->flippedVertically = !input->vInfo->flippedVertically;
     input = normalizeOrientation(std::move(input));
 
     uint32_t finalDataSize = input->vInfo->width*input->vInfo->height + 

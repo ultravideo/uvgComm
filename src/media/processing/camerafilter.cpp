@@ -367,7 +367,9 @@ void CameraFilter::process()
    if (output_ == DT_RGB32VIDEO)
    {
      newImage->vInfo->flippedVertically = true;
-     newImage = normalizeOrientation(std::move(newImage));
+
+     // This flipping is done in self view and rgb32 to yuv filter
+     //newImage = normalizeOrientation(std::move(newImage));
    }
 #endif
 
