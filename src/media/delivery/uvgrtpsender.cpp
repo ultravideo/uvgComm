@@ -35,13 +35,14 @@ UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id, StatisticsInterface *
       break;
   }
 
-  watcher_.setFuture(mstream);
   connect(&watcher_, &QFutureWatcher<uvg_rtp::media_stream *>::finished,
           [this]()
           {
             if (!(mstream_ = watcher_.result()))
               emit zrtpFailure(sessionID_);
           });
+
+  watcher_.setFuture(mstream);
 }
 
 UvgRTPSender::~UvgRTPSender()

@@ -30,8 +30,6 @@ UvgRTPReceiver::UvgRTPReceiver(uint32_t sessionID, QString id, StatisticsInterfa
   lastSeq_(0),
   sessionID_(sessionID)
 {
-  watcher_.setFuture(stream);
-
   connect(&watcher_, &QFutureWatcher<uvg_rtp::media_stream *>::finished,
           [this]()
           {
@@ -40,6 +38,8 @@ UvgRTPReceiver::UvgRTPReceiver(uint32_t sessionID, QString id, StatisticsInterfa
             else
               watcher_.result()->install_receive_hook(this, __receiveHook);
           });
+
+  watcher_.setFuture(stream);
 }
 
 UvgRTPReceiver::~UvgRTPReceiver()
