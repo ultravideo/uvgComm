@@ -24,7 +24,11 @@ const QStringList neededSettings = {SettingsKey::videoResultionWidth,
                                     SettingsKey::videoOpenHEVCThreads,
                                     SettingsKey::videoFramerateID,
                                     SettingsKey::videoFramerate,
-                                    SettingsKey::videoOpenGL
+                                    SettingsKey::videoOpenGL,
+                                    SettingsKey::roiDetectorModel,
+                                    SettingsKey::roiKernelType,
+                                    SettingsKey::roiKernelSize,
+                                    SettingsKey::roiFilterDepth
                                    };
 
 const QStringList kvazaarSettings = {SettingsKey::videoQP,
@@ -91,6 +95,9 @@ VideoSettings::VideoSettings(QWidget* parent,
 void VideoSettings::init(int deviceID)
 {
   currentDevice_ = deviceID;
+
+  videoSettingsUI_->kernel_type->addItem("Gaussian");
+  videoSettingsUI_->kernel_type->addItem("Mean");
 
   restoreSettings();
 }
@@ -228,6 +235,12 @@ void VideoSettings::saveSettings()
   listGUIToSettings(settingsFile, SettingsKey::videoCustomParameters,
                     QStringList() << "Name" << "Value", videoSettingsUI_->custom_parameters);
 
+  // ROI-tab
+  saveTextValue(SettingsKey::roiDetectorModel, videoSettingsUI_->model_path->text(), settings_);
+  saveTextValue(SettingsKey::roiKernelType, videoSettingsUI_->kernel_type->currentText(), settings_);
+  saveTextValue(SettingsKey::roiKernelSize, videoSettingsUI_->kernel_size->text(), settings_);
+  saveTextValue(SettingsKey::roiFilterDepth, videoSettingsUI_->filter_depth->text(), settings_);
+
   // Other-tab
   saveCheckBox(SettingsKey::videoOpenGL,         videoSettingsUI_->opengl, settings_);
 }
@@ -272,7 +285,7 @@ void VideoSettings::saveCameraCapabilities(int deviceIndex, bool cameraEnabled)
     if (!videoSettingsUI_->framerate_box->currentText().isEmpty())
     {
       settings_.setValue(SettingsKey::videoFramerate,
-                         videoSettingsUI_->framerate_box->currentText());
+                         60);
     }
     else {
       settings_.setValue(SettingsKey::videoFramerate,            0);
@@ -396,6 +409,12 @@ void VideoSettings::restoreSettings()
     listSettingsToGUI(settingsFile, SettingsKey::videoCustomParameters,
                       QStringList() << "Name" << "Value",
                       videoSettingsUI_->custom_parameters);
+
+    // ROI-tab
+    videoSettingsUI_->model_path->setText(settings_.value(SettingsKey::roiDetectorModel).toString());
+    videoSettingsUI_->kernel_type->setCurrentText(settings_.value(SettingsKey::roiKernelType).toString());
+    videoSettingsUI_->kernel_size->setValue(settings_.value(SettingsKey::roiKernelSize).toInt());
+    videoSettingsUI_->filter_depth->setValue(settings_.value(SettingsKey::roiFilterDepth).toInt());
 
     // other-tab
     restoreCheckBox(SettingsKey::videoOpenGL, videoSettingsUI_->opengl, settings_);

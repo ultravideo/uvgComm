@@ -19,6 +19,7 @@
 #include "media/processing/dspfilter.h"
 #include "media/processing/audiomixerfilter.h"
 #include "media/processing/audiooutputfilter.h"
+#include "media/processing/roifilter.h"
 
 #include "audioframebuffer.h"
 
@@ -238,6 +239,13 @@ void FilterGraph::initSelfView()
     return; // TODO: return false that we failed so user can fix camera selection
   }
 
+  if (!addToGraph(std::shared_ptr<Filter>(new RoiFilter("", "", stats_, hwResources_, L"C:\\Users\\miika\\source\\models\\yolov5n-0.5-640.onnx", 640, true)), cameraGraph_))
+  {
+    // camera failed
+    Logger::getLogger()->printError(this, "Failed to add roi");
+    return; // TODO: return false that we failed so user can fix camera selection
+  }
+
   // create screen share filter, but it is stopped at the beginning
   if (screenShareGraph_.size() == 0)
   {
@@ -246,6 +254,12 @@ void FilterGraph::initSelfView()
     {
       screenShareGraph_.at(0)->stop();
     }
+//    if (!addToGraph(std::shared_ptr<Filter>(new RoiFilter("Roi filter", "", stats_, hwResources_, L"C:\\Users\\miika\\source\\models\\yolov5n-0.5-640.onnx", 640, false)), screenShareGraph_))
+//    {
+//      // camera failed
+//      Logger::getLogger()->printError(this, "Failed to add roi to screen share.");
+//      return; // TODO: return false that we failed so user can fix camera selection
+//    }
   }
 
   if (selfviewFilter_)
@@ -293,15 +307,15 @@ void FilterGraph::initVideoSend()
     Logger::getLogger()->printProgramWarning(this, "Camera was not iniated for video send");
     initSelfView();
   }
-  else if(cameraGraph_.size() > 3)
+  else if(cameraGraph_.size() > 10)
   {
     Logger::getLogger()->printProgramError(this, "Too many filters in videosend");
     destroyFilters(cameraGraph_);
   }
 
   std::shared_ptr<Filter> kvazaar = std::shared_ptr<Filter>(new KvazaarFilter("", stats_, hwResources_));
-  addToGraph(kvazaar, cameraGraph_, 0);
-  addToGraph(cameraGraph_.back(), screenShareGraph_, 0);
+  addToGraph(kvazaar, cameraGraph_, 2);
+  addToGraph(cameraGraph_.back(), screenShareGraph_, cameraGraph_.size()-1);
 }
 
 
@@ -478,7 +492,7 @@ void FilterGraph::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoF
                                    QString::number(sessionID));
 
   // make sure we are generating video
-  if(cameraGraph_.size() < 4)
+  if(cameraGraph_.size() > 0)
   {
     initVideoSend();
   }

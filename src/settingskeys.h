@@ -110,4 +110,10 @@ const QString blocklist = "blocklist";
 
 // contact list setting key
 const QString contactList = "contacts";
+
+// ROI settings
+const QString roiDetectorModel = "roi/Model";
+const QString roiKernelSize = "roi/KernelSize";
+const QString roiKernelType = "roi/KernelType";
+const QString roiFilterDepth = "roi/FilterDepth";
 }

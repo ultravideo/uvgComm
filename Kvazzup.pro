@@ -91,6 +91,7 @@ SOURCES +=\
     src/media/processing/opusdecoderfilter.cpp \
     src/media/processing/opusencoderfilter.cpp \
     src/media/processing/rgb32toyuv.cpp \
+    src/media/processing/roifilter.cpp \
     src/media/processing/scalefilter.cpp \
     src/media/processing/screensharefilter.cpp \
     src/common.cpp \
@@ -182,6 +183,7 @@ HEADERS  += \
     src/media/processing/opusdecoderfilter.h \
     src/media/processing/opusencoderfilter.h \
     src/media/processing/rgb32toyuv.h \
+    src/media/processing/roifilter.h \
     src/media/processing/scalefilter.h \
     src/media/processing/screensharefilter.h \
     src/media/processing/speexaec.h \
@@ -270,13 +272,19 @@ win32-msvc{
   # you can put your libaries here
   CONFIG(debug, debug|release) {
     LIBRARY_FOLDER = -L$$PWD/../msvc_libs_dbg
+    LIBS += -lopencv_core451d
+    LIBS += -lopencv_imgproc451d
+    LIBS += -lopencv_imgcodecs451d
   } else:CONFIG(release, debug|release) {
     LIBRARY_FOLDER = -L$$PWD/../msvc_libs
+    LIBS += -lopencv_core451
+    LIBS += -lopencv_imgproc451
   }
 
   #DEFINES += KVZ_STATIC_LIB # static kvazaar. Untested
   DEFINES += PIC             # shared kvazaar
 
+  LIBS += -lonnxruntime
   LIBS += -lkvazaar_lib
   LIBS += -ladvapi32
   LIBS += -lkernel32
@@ -292,7 +300,7 @@ win32-msvc{
 win32-g++{
   # you can put your libaries here
   CONFIG(debug, debug|release) {
-    LIBRARY_FOLDER = -L$$PWD/../libs_dbg
+    LIBRARY_FOLDER = -L$$PWD/../libs
   } else:CONFIG(release, debug|release) {
     LIBRARY_FOLDER = -L$$PWD/../libs
   }

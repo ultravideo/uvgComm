@@ -94,7 +94,7 @@ void NetworkCandidates::init()
             continue;
           }
 
-          availablePorts_.insert(std::pair<QString, std::deque<uint16_t>>(address.toString(),{}));
+          availablePorts_.insert(std::pair<QString, std::deque<uint16_t>>(QHostAddress(address.toIPv4Address()).toString(),{}));
           portLock_.unlock();
 
           for(uint16_t i = minPort; i < maxPort; ++i)

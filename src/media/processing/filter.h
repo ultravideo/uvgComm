@@ -50,6 +50,13 @@ struct AudioInfo
 
 struct Data
 {
+  struct
+  {
+    int width;
+    int height;
+    int8_t *roi_array = nullptr;
+  } roi;
+
   DataSource source;
   DataType type;
   std::unique_ptr<uchar[]> data;

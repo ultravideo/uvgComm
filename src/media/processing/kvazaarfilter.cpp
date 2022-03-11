@@ -352,6 +352,17 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
          &(input->data.get()[input->vInfo->width*input->vInfo->height + input->vInfo->width*input->vInfo->height/4]),
          input->vInfo->width*input->vInfo->height/4);
 
+  if(input->roi.roi_array)
+  {
+    input_pic_->roi.width = input->roi.width;
+    input_pic_->roi.height = input->roi.height;
+    input_pic_->roi.roi_array = input->roi.roi_array;
+  } else {
+    input_pic_->roi.width = 0;
+    input_pic_->roi.height = 0;
+    input_pic_->roi.roi_array = nullptr;
+  }
+
   input_pic_->pts = pts_;
   ++pts_;
 
