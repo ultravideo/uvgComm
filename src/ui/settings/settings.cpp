@@ -105,6 +105,9 @@ void Settings::init()
   QObject::connect(basicUI_->screenDevice_combo, &QComboBox::currentTextChanged,
                    this, &Settings::uiChangedString);
 
+  QObject::connect(basicUI_->manual_box, &QCheckBox::stateChanged,
+                   this, &Settings::manualSettings);
+
   // we must initialize the settings if they do not exist
   if (!settings_.value(SettingsKey::micStatus).isValid())
   {
@@ -121,6 +124,20 @@ void Settings::init()
   setScreenShareState(false);
 
   // TODO: Also record the position of closed settings window and move the window there when shown again
+}
+
+void Settings::manualSettings(bool state)
+{
+  if (state)
+  {
+    basicUI_->video_settings_button->show();
+    basicUI_->audio_settings_button->show();
+  }
+  else
+  {
+    basicUI_->video_settings_button->hide();
+    basicUI_->audio_settings_button->hide();
+  }
 }
 
 
