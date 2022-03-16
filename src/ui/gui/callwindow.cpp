@@ -77,7 +77,7 @@ void CallWindow::init(ParticipantInterface *partInt)
   initButton(QDir::currentPath() + "/icons/end_call.svg", QSize(60,60), QSize(35,35), ui_->EndCallButton);
   initButton(QDir::currentPath() + "/icons/screen_share.svg", QSize(60,60), QSize(35,35), ui_->screen_share);
 
-  ui_->buttonContainer->layout()->setAlignment(ui_->EndCallButton, Qt::AlignBottom);
+  ui_->buttonContainer->layout()->setAlignment(ui_->end_call_holder, Qt::AlignBottom);
   ui_->buttonContainer->layout()->setAlignment(ui_->settings_button, Qt::AlignBottom);
   ui_->buttonContainer->layout()->setAlignment(ui_->mic, Qt::AlignBottom);
   ui_->buttonContainer->layout()->setAlignment(ui_->camera, Qt::AlignBottom);
