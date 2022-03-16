@@ -130,8 +130,8 @@ bool UvgRTPReceiver::shouldDiscard(uint16_t frameSeq, uint8_t* payload)
 
       Logger::getLogger()->printDebug(DEBUG_WARNING, this,
                                       "Missing frame detected. Discarding if inter",
-                                      {"Current Seq", "Last Seq"},
-                                      {QString::number(frameSeq), QString::number(lastSeq_)});
+                                      {"Last Seq", "Current Seq"},
+                                      {QString::number(lastSeq_), QString::number(frameSeq)});
 
       discardUntilIntra_ = true;
 
@@ -140,7 +140,8 @@ bool UvgRTPReceiver::shouldDiscard(uint16_t frameSeq, uint8_t* payload)
     else if (discardUntilIntra_ && isHEVCInter(payload))
     {
       Logger::getLogger()->printWarning(this,  "Discarding frame because no intra"
-                                               " has arrived after last missing frame");
+                                               " has arrived after last missing frame",
+                                        "Seq", QString::number(frameSeq));
       return true;
     }
     else if (isHEVCIntra(payload))
