@@ -186,7 +186,7 @@ void Settings::setScreenShareState(bool enabled)
         settings_.setValue(SettingsKey::screenShareStatus, "1");
         settings_.setValue(SettingsKey::videoResultionWidth, resolution.width());
         settings_.setValue(SettingsKey::videoResultionHeight, resolution.height());
-        settings_.setValue(SettingsKey::videoFramerate, "5");
+        settings_.setValue(SettingsKey::videoFramerate, "10");
         videoSettings_.setScreenShareState(enabled);
 
         Logger::getLogger()->printNormal(this, "Enabled Screen sharing", "Screen resolution",
