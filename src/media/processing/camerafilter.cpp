@@ -202,7 +202,7 @@ bool CameraFilter::cameraSetup()
 
 #ifdef __linux__
     viewSettings.setPixelFormat(QVideoFrame::Format_RGB32);
-    output_ = RGB32VIDEO;
+    output_ = DT_RGB32VIDEO;
 #else
     if(currentInputFormat_ == "MJPG")
     {
