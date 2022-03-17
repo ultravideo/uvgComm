@@ -20,7 +20,8 @@
 const QStringList neededSettings = {SettingsKey::localRealname,
                                     SettingsKey::localUsername,
                                     SettingsKey::sipServerAddress,
-                                    SettingsKey::sipAutoConnect};
+                                    SettingsKey::sipAutoConnect,
+                                    SettingsKey::manualSettings};
 
 Settings::Settings(QWidget *parent) :
   QDialog(parent),
@@ -308,6 +309,7 @@ void Settings::saveSettings()
     saveTextValue("local/Credentials", credentials, settings_);
   }
   saveCheckBox(SettingsKey::sipAutoConnect, basicUI_->auto_connect_box, settings_);
+  saveCheckBox(SettingsKey::manualSettings, basicUI_->manual_box, settings_);
 
   saveDevice(basicUI_->videoDevice_combo, SettingsKey::videoDeviceID,
              SettingsKey::videoDevice, true);
@@ -339,6 +341,7 @@ void Settings::getSettings(bool changedDevice)
     basicUI_->serverAddress_edit->setText(settings_.value(SettingsKey::sipServerAddress).toString());
 
     restoreCheckBox(SettingsKey::sipAutoConnect, basicUI_->auto_connect_box, settings_);
+    restoreCheckBox(SettingsKey::manualSettings, basicUI_->manual_box, settings_);
 
     // updates the sip text label
     changedSIPText("");
@@ -410,6 +413,7 @@ void Settings::resetFaultySettings()
   // 2) that connecting to server is default since it is the easiest way to use Kvazzup
   // These two conditions can only be achieved by modifying UI after settings have been saved
   basicUI_->auto_connect_box->setChecked(true);
+  basicUI_->manual_box->setChecked(true); // TODO: Change this to false when automatic settigns are ready
 
   sipSettings_.resetSettings();
 
