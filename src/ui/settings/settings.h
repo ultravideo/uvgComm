@@ -5,6 +5,7 @@
 #include "ui/settings/sipsettings.h"
 
 #include "deviceinfointerface.h"
+#include "defaultsettings.h"
 
 #include <QDialog>
 #include <QSettings>
@@ -90,7 +91,8 @@ private:
   int getDeviceID(QComboBox *deviceSelector, QString settingID, QString settingsDevice);
 
   void initDeviceSelector(QComboBox* deviceSelector, QString settingID,
-                          QString settingsDevice, std::shared_ptr<DeviceInfoInterface> deviceInterface);
+                          QString settingsDevice,
+                          std::shared_ptr<DeviceInfoInterface> deviceInterface);
 
   void saveDevice(QComboBox* deviceSelector, QString settingsID, QString settingsDevice, bool video);
 
@@ -120,4 +122,6 @@ private:
   AudioSettings audioSettings_;
 
   QSettings settings_;
+
+  DefaultSettings defaults_;
 };

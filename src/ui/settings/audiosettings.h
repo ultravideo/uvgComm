@@ -26,7 +26,6 @@ public:
   void init(int deviceID);
 
   void changedDevice(uint16_t deviceIndex);
-  void resetSettings(int deviceID);
 
 signals:
 
@@ -53,8 +52,6 @@ private:
 
   // GUI -> QSettings
   void saveSettings();
-
-  bool checkSettings();
 
   void initializeChannelList();
 

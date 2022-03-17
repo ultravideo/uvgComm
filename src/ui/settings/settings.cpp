@@ -48,6 +48,9 @@ void Settings::init()
 
   setWindowTitle("Kvazzup Settings");
 
+  // makes sure the settings are valid and resets them to defaults if necessary
+  defaults_.validateSettings(mic_, cam_);
+
   // Checks that settings values are correct for the program to start. Also sets GUI.
   getSettings(false);
 
@@ -152,6 +155,9 @@ void Settings::manualSettingsButtons(bool state)
 void Settings::show()
 {
   Logger::getLogger()->printNormal(this, "Opening settings");
+
+  defaults_.validateSettings(mic_, cam_);
+
   // initialize everytime in case they have changed
   initDeviceSelector(basicUI_->videoDevice_combo, SettingsKey::videoDeviceID,
                      SettingsKey::videoDevice, cam_);
@@ -295,6 +301,7 @@ void Settings::on_audio_settings_button_clicked()
   audioSettings_.show();
 }
 
+
 // records the settings
 void Settings::saveSettings()
 {
@@ -412,10 +419,6 @@ void Settings::resetFaultySettings()
   videoSettings_.resetSettings(getDeviceID(basicUI_->videoDevice_combo,
                                            SettingsKey::videoDeviceID,
                                            SettingsKey::videoDevice));
-
-  audioSettings_.resetSettings(getDeviceID(basicUI_->audioDevice_combo,
-                                           SettingsKey::audioDeviceID,
-                                           SettingsKey::audioDevice));
 
   // we set the connecting to true at this point because we want two things:
   // 1) that Kvazzup doesn't connect to any server without user permission

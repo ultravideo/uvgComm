@@ -114,6 +114,7 @@ SOURCES +=\
     src/ui/gui/videoyuvwidget.cpp \
     src/ui/settings/audiosettings.cpp \
     src/ui/settings/camerainfo.cpp \
+    src/ui/settings/defaultsettings.cpp \
     src/ui/settings/microphoneinfo.cpp \
     src/ui/settings/screeninfo.cpp \
     src/ui/settings/settings.cpp \
@@ -210,6 +211,7 @@ HEADERS  += \
     src/ui/gui/videoyuvwidget.h \
     src/ui/settings/audiosettings.h \
     src/ui/settings/camerainfo.h \
+    src/ui/settings/defaultsettings.h \
     src/ui/settings/deviceinfointerface.h \
     src/ui/settings/microphoneinfo.h \
     src/ui/settings/screeninfo.h \

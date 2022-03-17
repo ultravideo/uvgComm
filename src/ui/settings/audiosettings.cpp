@@ -107,13 +107,6 @@ void AudioSettings::changedDevice(uint16_t deviceIndex)
 }
 
 
-void AudioSettings::resetSettings(int deviceID)
-{
-  currentDevice_ = deviceID;
-  saveSettings();
-}
-
-
 // button slots, called automatically by Qt
 void AudioSettings::on_audio_ok_clicked()
 {
@@ -137,28 +130,21 @@ void AudioSettings::restoreSettings()
 
   audioSettingsUI_->audio_ok->hide();
 
-  if (checkSettings())
+  //restoreComboBoxValue("audio/channels",
+  // audioSettingsUI_->channel_combo, QString::number(1), settings_);
+
+  for (auto& slider : sliders_)
   {
-    //restoreComboBoxValue("audio/channels",
-    // audioSettingsUI_->channel_combo, QString::number(1), settings_);
-
-    for (auto& slider : sliders_)
-    {
-      unsigned int bitrate = settings_.value(slider.first).toUInt();
-      slider.second->setValue(bitrate);
-    }
-
-    QString type = settings_.value(SettingsKey::audioSignalType).toString();
-    audioSettingsUI_->signal_combo->setCurrentText(type);
-
-    for (auto& box : boxes_)
-    {
-      restoreCheckBox(box.first, box.second, settings_);
-    }
+    unsigned int bitrate = settings_.value(slider.first).toUInt();
+    slider.second->setValue(bitrate);
   }
-  else
+
+  QString type = settings_.value(SettingsKey::audioSignalType).toString();
+  audioSettingsUI_->signal_combo->setCurrentText(type);
+
+  for (auto& box : boxes_)
   {
-    resetSettings(currentDevice_);
+    restoreCheckBox(box.first, box.second, settings_);
   }
 }
 
@@ -184,32 +170,6 @@ void AudioSettings::saveSettings()
 
   saveTextValue(SettingsKey::audioSignalType,
                 audioSettingsUI_->signal_combo->currentText(), settings_);
-}
-
-
-bool AudioSettings::checkSettings()
-{
-  bool everythingOK = checkSettingsList(settings_, neededSettings);
-
-  for (auto& slider : sliders_)
-  {
-    if (!settings_.contains(slider.first))
-    {
-      Logger::getLogger()->printError(this, "Missing a slider settings value.");
-      everythingOK = false;
-    }
-  }
-
-  for (auto& box : boxes_)
-  {
-    if (!settings_.contains(box.first))
-    {
-      Logger::getLogger()->printError(this, "Missing a box settings value.");
-      everythingOK = false;
-    }
-  }
-
-  return everythingOK;
 }
 
 
