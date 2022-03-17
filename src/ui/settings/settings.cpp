@@ -97,7 +97,10 @@ void Settings::init()
                    this, &Settings::uiChangedString);
 
   QObject::connect(basicUI_->auto_connect_box, &QCheckBox::stateChanged,
-                   this, &Settings::uiChangedBool);
+                   this,                       &Settings::uiChangedBool);
+
+  QObject::connect(basicUI_->manual_box, &QCheckBox::stateChanged,
+                   this,                 &Settings::uiChangedBool);
 
   QObject::connect(basicUI_->videoDevice_combo, &QComboBox::currentTextChanged,
                    this, &Settings::uiChangedString);
@@ -107,7 +110,7 @@ void Settings::init()
                    this, &Settings::uiChangedString);
 
   QObject::connect(basicUI_->manual_box, &QCheckBox::stateChanged,
-                   this, &Settings::manualSettings);
+                   this, &Settings::manualSettingsButtons);
 
   // we must initialize the settings if they do not exist
   if (!settings_.value(SettingsKey::micStatus).isValid())
@@ -127,17 +130,21 @@ void Settings::init()
   // TODO: Also record the position of closed settings window and move the window there when shown again
 }
 
-void Settings::manualSettings(bool state)
+void Settings::manualSettingsButtons(bool state)
 {
   if (state)
   {
     basicUI_->video_settings_button->show();
     basicUI_->audio_settings_button->show();
+
+    basicUI_->media_settings_button->hide();
   }
   else
   {
     basicUI_->video_settings_button->hide();
     basicUI_->audio_settings_button->hide();
+
+    basicUI_->media_settings_button->show();
   }
 }
 
@@ -342,6 +349,8 @@ void Settings::getSettings(bool changedDevice)
 
     restoreCheckBox(SettingsKey::sipAutoConnect, basicUI_->auto_connect_box, settings_);
     restoreCheckBox(SettingsKey::manualSettings, basicUI_->manual_box, settings_);
+
+    manualSettingsButtons(basicUI_->manual_box->checkState());
 
     // updates the sip text label
     changedSIPText("");

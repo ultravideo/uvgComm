@@ -536,6 +536,13 @@
          </property>
         </widget>
        </item>
+       <item row="17" column="3">
+        <widget class="QPushButton" name="media_settings_button">
+         <property name="text">
+          <string>Media Settings</string>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
     </widget>
