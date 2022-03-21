@@ -89,7 +89,7 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
       ( frame->payload[3]) != 1))
   {
     Logger::getLogger()->printWarning(this, "uvgRTP did not add the start code. Please use newer version"
-                                            "of uvgRTP and make user RCE_H26X_PREPEND_SC flag is used");
+                                            " of uvgRTP and make sure RCE_H26X_PREPEND_SC flag is used");
     received_picture->data_size = (uint32_t)frame->payload_len + 4;
     received_picture->data = std::unique_ptr<uchar[]>(new uchar[received_picture->data_size]);
 
