@@ -175,7 +175,9 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
   settings_.setValue(SettingsKey::videoQP, 32);
 
   settings_.setValue(SettingsKey::videoIntra, 64);
-  settings_.setValue(SettingsKey::videoSlices, 1);
+
+  // TODO: This should be enabled when the performance is good enough
+  settings_.setValue(SettingsKey::videoSlices, 0);
 
   settings_.setValue(SettingsKey::videoWPP, 1);
   settings_.setValue(SettingsKey::videoOWF, 0); // causes too much latency
@@ -216,7 +218,8 @@ SettingsCameraFormat DefaultSettings::selectBestCameraFormat(std::shared_ptr<Cam
 }
 
 
-SettingsCameraFormat DefaultSettings::selectBestDeviceFormat(std::shared_ptr<CameraInfo> cam, int deviceID)
+SettingsCameraFormat DefaultSettings::selectBestDeviceFormat(std::shared_ptr<CameraInfo> cam,
+                                                             int deviceID)
 {
   // point system for best format
 
@@ -230,7 +233,7 @@ SettingsCameraFormat DefaultSettings::selectBestDeviceFormat(std::shared_ptr<Cam
   for (auto& option: options)
   {
     uint64_t points = calculatePoints(option.resolution,
-                                      cam->getFramerate(deviceID, option.formatID, option.resolutionID, option.framerateID));
+                                      option.framerate.toDouble());
 
     if (points > highestValue)
     {
@@ -239,24 +242,23 @@ SettingsCameraFormat DefaultSettings::selectBestDeviceFormat(std::shared_ptr<Cam
     }
   }
 
-
   QString resolution = QString::number(bestOption.resolution.width()) + "x" +
                        QString::number(bestOption.resolution.height());
 
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Selected the best format",
                                   {"Points", "Device", "Format", "Resolution", "Framerate"},
-                                   {QString::number(highestValue), bestOption.deviceName, bestOption.format,
-                                    resolution, bestOption.framerate});
+                                   {QString::number(highestValue), bestOption.deviceName,
+                                    bestOption.format, resolution, bestOption.framerate});
 
   return bestOption;
 }
 
-uint64_t DefaultSettings::calculatePoints(QSize resolution, int fps)
+uint64_t DefaultSettings::calculatePoints(QSize resolution, double fps)
 {
-  if (fps < 30)
+  if (fps < 30.0)
   {
     return 0;
   }
 
-  return resolution.width()*resolution.height() + fps;
+  return resolution.width()*resolution.height() + (int)fps;
 }

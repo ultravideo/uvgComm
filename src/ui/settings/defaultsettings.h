@@ -35,7 +35,7 @@ private:
   SettingsCameraFormat selectBestCameraFormat(std::shared_ptr<CameraInfo> cam);
   SettingsCameraFormat selectBestDeviceFormat(std::shared_ptr<CameraInfo> cam, int deviceID);
 
-  uint64_t calculatePoints(QSize resolution, int fps);
+  uint64_t calculatePoints(QSize resolution, double fps);
 
   QSettings settings_;
 };

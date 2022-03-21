@@ -60,6 +60,9 @@ private:
   QVideoFrame::PixelFormat stringToPixelFormat(QString format);
 #endif
 
+  void getAllowedFormats(QList<QVideoFrame::PixelFormat>& p_formats,
+                         QStringList& allowedFormats);
+
   std::unique_ptr<QCamera> loadCamera(int deviceID);
 
 };
