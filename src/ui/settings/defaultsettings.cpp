@@ -227,7 +227,6 @@ SettingsCameraFormat DefaultSettings::selectBestDeviceFormat(std::shared_ptr<Cam
   uint64_t highestValue = 0;
 
   std::vector<SettingsCameraFormat> options;
-
   cam->getCameraOptions(options, deviceID);
 
   for (auto& option: options)
@@ -255,9 +254,10 @@ SettingsCameraFormat DefaultSettings::selectBestDeviceFormat(std::shared_ptr<Cam
 
 uint64_t DefaultSettings::calculatePoints(QSize resolution, double fps)
 {
+  // we give much lower score to low fps values
   if (fps < 30.0)
   {
-    return 0;
+    return (resolution.width()*resolution.height()/10 + (int)fps);
   }
 
   return resolution.width()*resolution.height() + (int)fps;
