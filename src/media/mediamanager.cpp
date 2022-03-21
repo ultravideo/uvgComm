@@ -64,6 +64,9 @@ void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory,
 
   QObject::connect(this, &MediaManager::updateAudioSettings,
                    fg_.get(), &FilterGraph::updateAudioSettings);
+
+  QObject::connect(this, &MediaManager::updateAutomaticSettings,
+                   fg_.get(), &FilterGraph::updateAutomaticSettings);
 }
 
 

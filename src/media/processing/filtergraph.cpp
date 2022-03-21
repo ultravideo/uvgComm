@@ -20,7 +20,9 @@
 #include "media/processing/audiomixerfilter.h"
 #include "media/processing/audiooutputfilter.h"
 
-#include "audioframebuffer.h"
+#include "media/processing/audioframebuffer.h"
+
+#include "media/hwresourcemanager.h"
 
 #include "ui/gui/videointerface.h"
 
@@ -215,6 +217,15 @@ void FilterGraph::updateAudioSettings()
   }
 
   mic(settingEnabled(SettingsKey::micStatus));
+}
+
+
+void FilterGraph::updateAutomaticSettings()
+{
+  if (hwResources_)
+  {
+    hwResources_->updateSettings();
+  }
 }
 
 

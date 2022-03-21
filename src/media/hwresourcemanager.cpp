@@ -2,6 +2,7 @@
 
 #include "processing/yuvconversions.h"
 
+#include "logger.h"
 
 HWResourceManager::HWResourceManager()
 {
@@ -19,4 +20,10 @@ bool HWResourceManager::isAVX2Enabled()
 bool HWResourceManager::isSSE41Enabled()
 {
   return sse41_;
+}
+
+
+void HWResourceManager::updateSettings()
+{
+  Logger::getLogger()->printNormal(this, "Updating automatic resource controller settings");
 }

@@ -47,6 +47,7 @@ public slots:
 
   void updateVideoSettings();
   void updateAudioSettings();
+  void updateAutomaticSettings();
 
 private:
 

@@ -92,6 +92,8 @@ void Settings::init()
                    this,                          &Settings::openCallSettings);
 
   // automatic settings
+  QObject::connect(&autoSettings_, &AutomaticSettings::updateAutomaticSettings,
+                   this,          &Settings::updateAutomaticSettings);
   QObject::connect(basicUI_->media_settings_button, &QCheckBox::clicked,
                    this,                            &Settings::openAutomaticSettings);
   QObject::connect(&autoSettings_, &AutomaticSettings::hidden,
