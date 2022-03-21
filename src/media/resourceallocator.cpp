@@ -1,29 +1,29 @@
-#include "hwresourcemanager.h"
+#include "resourceallocator.h"
 
 #include "processing/yuvconversions.h"
 
 #include "logger.h"
 
-HWResourceManager::HWResourceManager()
+ResourceAllocator::ResourceAllocator()
 {
   sse41_ = is_sse41_available();
   avx2_  = is_avx2_available();
 }
 
 
-bool HWResourceManager::isAVX2Enabled()
+bool ResourceAllocator::isAVX2Enabled()
 {
   return avx2_;
 }
 
 
-bool HWResourceManager::isSSE41Enabled()
+bool ResourceAllocator::isSSE41Enabled()
 {
   return sse41_;
 }
 
 
-void HWResourceManager::updateSettings()
+void ResourceAllocator::updateSettings()
 {
   Logger::getLogger()->printNormal(this, "Updating automatic resource controller settings");
 }

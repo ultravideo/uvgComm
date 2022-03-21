@@ -7,7 +7,7 @@ class OpenHEVCFilter : public Filter
 {
 public:
   OpenHEVCFilter(uint32_t sessionID, StatisticsInterface* stats,
-                 std::shared_ptr<HWResourceManager> hwResources);
+                 std::shared_ptr<ResourceAllocator> hwResources);
 
   virtual bool init();
   void uninit();

@@ -16,7 +16,7 @@
 
 AudioCaptureFilter::AudioCaptureFilter(QString id, QAudioFormat format,
                                        StatisticsInterface *stats,
-                                       std::shared_ptr<HWResourceManager> hwResources):
+                                       std::shared_ptr<ResourceAllocator> hwResources):
   Filter(id, "Audio_Capture", stats, hwResources, DT_NONE, DT_RAWAUDIO),
   deviceInfo_(),
   format_(format),

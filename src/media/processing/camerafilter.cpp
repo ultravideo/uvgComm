@@ -17,7 +17,7 @@
 
 
 CameraFilter::CameraFilter(QString id, StatisticsInterface *stats,
-                           std::shared_ptr<HWResourceManager> hwResources):
+                           std::shared_ptr<ResourceAllocator> hwResources):
   Filter(id, "Camera", stats, hwResources, DT_NONE, DT_RGB32VIDEO),
   camera_(nullptr),
   cameraFrameGrabber_(nullptr),

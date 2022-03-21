@@ -22,7 +22,7 @@
 
 #include "media/processing/audioframebuffer.h"
 
-#include "media/hwresourcemanager.h"
+#include "media/resourceallocator.h"
 
 #include "ui/gui/videointerface.h"
 
@@ -86,7 +86,7 @@ FilterGraph::FilterGraph(): QObject(),
 
 
 void FilterGraph::init(VideoInterface* selfView, StatisticsInterface* stats,
-                       std::shared_ptr<HWResourceManager> hwResources)
+                       std::shared_ptr<ResourceAllocator> hwResources)
 {
   Q_ASSERT(stats);
 

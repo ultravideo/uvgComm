@@ -8,7 +8,7 @@
 #include <QImage>
 
 Filter::Filter(QString id, QString name, StatisticsInterface *stats,
-               std::shared_ptr<HWResourceManager> hwResources,
+               std::shared_ptr<ResourceAllocator> hwResources,
                DataType input, DataType output):
   maxBufferSize_(10),
   input_(input),

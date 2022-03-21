@@ -14,7 +14,7 @@ class KvazaarFilter : public Filter
 {
 public:
   KvazaarFilter(QString id, StatisticsInterface* stats,
-                std::shared_ptr<HWResourceManager> hwResources);
+                std::shared_ptr<ResourceAllocator> hwResources);
 
   virtual void updateSettings();
 

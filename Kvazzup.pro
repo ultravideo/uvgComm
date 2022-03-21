@@ -72,7 +72,6 @@ SOURCES +=\
     src/media/delivery/delivery.cpp \
     src/media/delivery/uvgrtpreceiver.cpp \
     src/media/delivery/uvgrtpsender.cpp \
-    src/media/hwresourcemanager.cpp \
     src/media/mediamanager.cpp \
     src/media/processing/audiocapturefilter.cpp \
     src/media/processing/audioframebuffer.cpp \
@@ -100,6 +99,7 @@ SOURCES +=\
     src/media/processing/yuvtorgb32.cpp \
     src/media/processing/yuyvtorgb32.cpp \
     src/media/processing/yuyvtoyuv420.cpp \
+    src/media/resourceallocator.cpp \
     src/ui/gui/callwindow.cpp \
     src/ui/gui/chartpainter.cpp \
     src/ui/gui/conferenceview.cpp \
@@ -165,7 +165,6 @@ HEADERS  += \
     src/media/delivery/delivery.h \
     src/media/delivery/uvgrtpreceiver.h \
     src/media/delivery/uvgrtpsender.h \
-    src/media/hwresourcemanager.h \
     src/media/mediamanager.h \
     src/media/processing/audiocapturefilter.h \
     src/media/processing/audioframebuffer.h \
@@ -192,6 +191,7 @@ HEADERS  += \
     src/media/processing/yuvtorgb32.h \
     src/media/processing/yuyvtorgb32.h \
     src/media/processing/yuyvtoyuv420.h \
+    src/media/resourceallocator.h \
     src/settingskeys.h \
     src/statisticsinterface.h \
     src/common.h \

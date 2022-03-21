@@ -142,11 +142,11 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
 
     if (threads <= 4)
     {
-      settings_.setValue(SettingsKey::videoKvzThreads, 3);
+      settings_.setValue(SettingsKey::videoKvzThreads, threads);
     }
     else
     {
-      settings_.setValue(SettingsKey::videoKvzThreads, threads - 2);
+      settings_.setValue(SettingsKey::videoKvzThreads, threads - 1);
     }
   }
   else
@@ -154,7 +154,7 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
     settings_.setValue(SettingsKey::videoYUVThreads, 2);
     settings_.setValue(SettingsKey::videoRGBThreads, 2);
     settings_.setValue(SettingsKey::videoOpenHEVCThreads, 2);
-    settings_.setValue(SettingsKey::videoKvzThreads, threads - 3);
+    settings_.setValue(SettingsKey::videoKvzThreads, threads - 2);
   }
 
   SettingsCameraFormat format = selectBestCameraFormat(cam);

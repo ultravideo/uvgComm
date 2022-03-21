@@ -5,11 +5,11 @@
 /* The purpose of this class is the enable filters to easily query the
  * state of hardware in terms of possible optimizations and performance. */
 
-class HWResourceManager : public QObject
+class ResourceAllocator : public QObject
 {
   Q_OBJECT
 public:
-  HWResourceManager();
+  ResourceAllocator();
 
   bool isAVX2Enabled();
   bool isSSE41Enabled();

@@ -7,7 +7,7 @@
 #include "initiation/negotiation/sdptypes.h"
 #include "statisticsinterface.h"
 
-#include "hwresourcemanager.h"
+#include "resourceallocator.h"
 
 #include "common.h"
 #include "settingskeys.h"
@@ -52,8 +52,8 @@ void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory,
     this,
     &MediaManager::handleNoEncryption);
 
-  std::shared_ptr<HWResourceManager> hwResources =
-      std::shared_ptr<HWResourceManager>(new HWResourceManager());
+  std::shared_ptr<ResourceAllocator> hwResources =
+      std::shared_ptr<ResourceAllocator>(new ResourceAllocator());
 
   // 0 is the selfview index. The view should be created by GUI
   fg_->init(viewfactory_->getVideo(0, 0), stats, hwResources);

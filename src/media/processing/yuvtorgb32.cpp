@@ -3,7 +3,7 @@
 #include "yuvconversions.h"
 #include "settingskeys.h"
 
-#include "media/hwresourcemanager.h"
+#include "media/resourceallocator.h"
 
 #include "common.h"
 
@@ -11,7 +11,7 @@
 
 
 YUVtoRGB32::YUVtoRGB32(QString id, StatisticsInterface *stats,
-                       std::shared_ptr<HWResourceManager> hwResources) :
+                       std::shared_ptr<ResourceAllocator> hwResources) :
   Filter(id, "YUVtoRGB32", stats, hwResources, DT_YUV420VIDEO, DT_RGB32VIDEO),
   threadCount_(0)
 {

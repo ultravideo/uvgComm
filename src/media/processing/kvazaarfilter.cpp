@@ -15,7 +15,7 @@
 enum RETURN_STATUS {C_SUCCESS = 0, C_FAILURE = -1};
 
 KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats,
-                             std::shared_ptr<HWResourceManager> hwResources):
+                             std::shared_ptr<ResourceAllocator> hwResources):
   Filter(id, "Kvazaar", stats, hwResources, DT_YUV420VIDEO, DT_HEVCVIDEO),
   api_(nullptr),
   config_(nullptr),

@@ -6,7 +6,7 @@
 #include <QImage>
 
 ScaleFilter::ScaleFilter(QString id, StatisticsInterface *stats,
-                         std::shared_ptr<HWResourceManager> hwResources):
+                         std::shared_ptr<ResourceAllocator> hwResources):
   Filter(id, "Scaler", stats, hwResources, DT_RGB32VIDEO, DT_RGB32VIDEO),
   newSize_(QSize(0,0))
 {

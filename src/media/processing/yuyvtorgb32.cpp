@@ -3,7 +3,7 @@
 #include "yuvconversions.h"
 
 YUYVtoRGB32::YUYVtoRGB32(QString id, StatisticsInterface *stats,
-                           std::shared_ptr<HWResourceManager> hwResources):
+                           std::shared_ptr<ResourceAllocator> hwResources):
       Filter(id, "YUYVtoRGB32", stats, hwResources, DT_YUYVVIDEO, DT_RGB32VIDEO)
 {}
 

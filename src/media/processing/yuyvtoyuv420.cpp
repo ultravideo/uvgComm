@@ -3,7 +3,7 @@
 #include "yuvconversions.h"
 
 YUYVtoYUV420::YUYVtoYUV420(QString id, StatisticsInterface *stats,
-                           std::shared_ptr<HWResourceManager> hwResources) :
+                           std::shared_ptr<ResourceAllocator> hwResources) :
       Filter(id, "YUYVtoYUV420", stats, hwResources, DT_YUYVVIDEO, DT_YUV420VIDEO)
 {}
 

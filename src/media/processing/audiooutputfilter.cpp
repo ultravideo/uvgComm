@@ -3,7 +3,7 @@
 #include "global.h"
 
 AudioOutputFilter::AudioOutputFilter(QString id, StatisticsInterface* stats,
-                                     std::shared_ptr<HWResourceManager> hwResources,
+                                     std::shared_ptr<ResourceAllocator> hwResources,
                                      QAudioFormat format):
   Filter(id, "Audio Output", stats, hwResources, DT_RAWAUDIO, DT_NONE),
   output_()

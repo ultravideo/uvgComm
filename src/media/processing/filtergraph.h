@@ -17,7 +17,7 @@ class DisplayFilter;
 class SpeexAEC;
 class AudioMixer;
 
-class HWResourceManager;
+class ResourceAllocator;
 
 typedef std::vector<std::shared_ptr<Filter>> GraphSegment;
 
@@ -28,7 +28,7 @@ public:
   FilterGraph();
 
   void init(VideoInterface* selfView, StatisticsInterface *stats,
-            std::shared_ptr<HWResourceManager> hwResources);
+            std::shared_ptr<ResourceAllocator> hwResources);
   void uninit();
 
   // These functions are used to manipulate filter graphs regarding a peer
@@ -111,7 +111,7 @@ private:
 
   std::shared_ptr<DisplayFilter> selfviewFilter_;
 
-  std::shared_ptr<HWResourceManager> hwResources_;
+  std::shared_ptr<ResourceAllocator> hwResources_;
 
   StatisticsInterface* stats_;
 

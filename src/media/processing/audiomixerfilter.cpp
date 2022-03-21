@@ -10,7 +10,7 @@
 
 
 AudioMixerFilter::AudioMixerFilter(QString id, StatisticsInterface* stats,
-                                   std::shared_ptr<HWResourceManager> hwResources,
+                                   std::shared_ptr<ResourceAllocator> hwResources,
                  uint32_t sessionID, std::shared_ptr<AudioMixer> mixer):
   Filter(id, "Audio Mixer", stats, hwResources, DT_RAWAUDIO, DT_RAWAUDIO),
   sessionID_(sessionID),

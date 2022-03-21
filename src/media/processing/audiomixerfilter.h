@@ -17,7 +17,7 @@ class AudioMixerFilter : public Filter
 public:
 
   AudioMixerFilter(QString id, StatisticsInterface* stats,
-                   std::shared_ptr<HWResourceManager> hwResources,
+                   std::shared_ptr<ResourceAllocator> hwResources,
                    uint32_t sessionID, std::shared_ptr<AudioMixer> mixer);
 
   ~AudioMixerFilter();

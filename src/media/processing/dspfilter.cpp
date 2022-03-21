@@ -8,7 +8,7 @@
 
 
 DSPFilter::DSPFilter(QString id, StatisticsInterface* stats,
-                     std::shared_ptr<HWResourceManager> hwResources,
+                     std::shared_ptr<ResourceAllocator> hwResources,
                      std::shared_ptr<SpeexAEC> aec, QAudioFormat& format,
                      bool AECReference, bool doAEC, bool doDenoise,
                      bool doDereverb, bool doAGC, int32_t volume, int maxGain):

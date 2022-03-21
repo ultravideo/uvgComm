@@ -26,7 +26,7 @@ Delivery::~Delivery()
 
 
 void Delivery::init(StatisticsInterface *stats,
-                    std::shared_ptr<HWResourceManager> hwResources)
+                    std::shared_ptr<ResourceAllocator> hwResources)
 {
   stats_ = stats;
   hwResources_ = hwResources;
