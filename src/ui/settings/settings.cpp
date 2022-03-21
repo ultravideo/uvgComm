@@ -68,18 +68,36 @@ void Settings::init()
   //QObject::connect(basicUI_->save, &QPushButton::clicked, this, &Settings::on_ok_clicked);
   //QObject::connect(basicUI_->close, &QPushButton::clicked, this, &Settings::on_cancel_clicked);
 
+  // video settings
   QObject::connect(&videoSettings_, &VideoSettings::updateVideoSettings,
                    this, &Settings::updateVideoSettings);
   QObject::connect(&videoSettings_, &VideoSettings::hidden, this, &Settings::show);
+  QObject::connect(basicUI_->video_settings_button, &QCheckBox::clicked,
+                   this, &Settings::openVideoSettings);
 
+  // audio settings
   QObject::connect(&audioSettings_, &AudioSettings::updateAudioSettings,
-                   this, &Settings::updateAudioSettings);
-  QObject::connect(&audioSettings_, &AudioSettings::hidden, this, &Settings::show);
+                   this,            &Settings::updateAudioSettings);
+  QObject::connect(&audioSettings_, &AudioSettings::hidden,
+                   this,            &Settings::show);
+  QObject::connect(basicUI_->audio_settings_button, &QCheckBox::clicked,
+                   this,                            &Settings::openAudioSettings);
 
+  // call settings
   QObject::connect(&sipSettings_, &SIPSettings::updateCallSettings,
-                   this, &Settings::updateCallSettings);
+                   this,          &Settings::updateCallSettings);
   QObject::connect(&sipSettings_, &SIPSettings::hidden,
-                   this, &Settings::show);
+                   this,          &Settings::show);
+  QObject::connect(basicUI_->sip_settings_button, &QCheckBox::clicked,
+                   this,                          &Settings::openCallSettings);
+
+  // automatic settings
+  QObject::connect(basicUI_->media_settings_button, &QCheckBox::clicked,
+                   this,                            &Settings::openAutomaticSettings);
+  QObject::connect(&autoSettings_, &AutomaticSettings::hidden,
+                   this,           &Settings::show);
+
+
 
   QObject::connect(basicUI_->serverAddress_edit, &QLineEdit::textChanged,
                    this, &Settings::changedSIPText);
@@ -125,6 +143,15 @@ void Settings::init()
   if (!settings_.value(SettingsKey::cameraStatus).isValid())
   {
     setCameraState(true);
+  }
+
+  if (!settings_.value(SettingsKey::cameraStatus).isValid())
+  {
+    manualSettingsButtons(false);
+  }
+  else
+  {
+    manualSettingsButtons(settings_.value(SettingsKey::manualSettings).toBool());
   }
 
   // never start with screen sharing turned on
@@ -278,7 +305,7 @@ void Settings::on_close_clicked()
 }
 
 
-void Settings::on_sip_settings_button_clicked()
+void Settings::openCallSettings()
 {
   saveSettings();
   hide();
@@ -286,7 +313,7 @@ void Settings::on_sip_settings_button_clicked()
 }
 
 
-void Settings::on_video_settings_button_clicked()
+void Settings::openVideoSettings()
 {
   saveSettings();
   hide();
@@ -294,11 +321,19 @@ void Settings::on_video_settings_button_clicked()
 }
 
 
-void Settings::on_audio_settings_button_clicked()
+void Settings::openAudioSettings()
 {
   saveSettings();
   hide();
   audioSettings_.show();
+}
+
+
+void Settings::openAutomaticSettings()
+{
+  saveSettings();
+  hide();
+  autoSettings_.show();
 }
 
 

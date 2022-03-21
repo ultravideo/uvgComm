@@ -113,6 +113,7 @@ SOURCES +=\
     src/ui/gui/videowidget.cpp \
     src/ui/gui/videoyuvwidget.cpp \
     src/ui/settings/audiosettings.cpp \
+    src/ui/settings/automaticsettings.cpp \
     src/ui/settings/camerainfo.cpp \
     src/ui/settings/defaultsettings.cpp \
     src/ui/settings/microphoneinfo.cpp \
@@ -210,6 +211,7 @@ HEADERS  += \
     src/ui/gui/videowidget.h \
     src/ui/gui/videoyuvwidget.h \
     src/ui/settings/audiosettings.h \
+    src/ui/settings/automaticsettings.h \
     src/ui/settings/camerainfo.h \
     src/ui/settings/defaultsettings.h \
     src/ui/settings/deviceinfointerface.h \
@@ -223,6 +225,7 @@ HEADERS  += \
 
 FORMS    += \
     ui/audiosettings.ui \
+    ui/automaticsettings.ui \
     ui/callwindow.ui \
     ui/conference/incomingcallwidget.ui \
     ui/conference/outgoingcallwidget.ui \

@@ -3,6 +3,7 @@
 #include "ui/settings/audiosettings.h"
 #include "ui/settings/videosettings.h"
 #include "ui/settings/sipsettings.h"
+#include "ui/settings/automaticsettings.h"
 
 #include "deviceinfointerface.h"
 #include "defaultsettings.h"
@@ -51,7 +52,6 @@ public:
   void init();
 
   void updateDevices();
-
   void updateServerStatus(QString status);
 
   void setMicState(bool enabled);
@@ -65,6 +65,8 @@ signals:
   void updateVideoSettings();
   void updateAudioSettings();
 
+  void updateAutomaticSettings();
+
 public slots:
 
   virtual void show();
@@ -72,9 +74,11 @@ public slots:
   // button slots, called automatically by Qt
   void on_save_clicked();
   void on_close_clicked();
-  void on_sip_settings_button_clicked();
-  void on_video_settings_button_clicked();
-  void on_audio_settings_button_clicked();
+
+  void openCallSettings();
+  void openVideoSettings();
+  void openAudioSettings();
+  void openAutomaticSettings();
 
   void changedSIPText(const QString &text);
 
@@ -120,6 +124,7 @@ private:
   SIPSettings sipSettings_;
   VideoSettings videoSettings_;
   AudioSettings audioSettings_;
+  AutomaticSettings autoSettings_;
 
   QSettings settings_;
 
