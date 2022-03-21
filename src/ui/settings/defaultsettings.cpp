@@ -162,13 +162,10 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
   settings_.setValue(SettingsKey::videoDevice,          format.deviceName);
   settings_.setValue(SettingsKey::videoDeviceID,        format.deviceID);
 
-  settings_.setValue(SettingsKey::videoInputFormat,     format.format);
-  settings_.setValue(SettingsKey::videoResultionWidth,  format.width);
-
   // select best camera/format here
   settings_.setValue(SettingsKey::videoInputFormat,     format.format);
-  settings_.setValue(SettingsKey::videoResultionWidth,  format.width);
-  settings_.setValue(SettingsKey::videoResultionHeight, format.height);
+  settings_.setValue(SettingsKey::videoResultionWidth,  format.resolution.width());
+  settings_.setValue(SettingsKey::videoResultionHeight, format.resolution.height());
   settings_.setValue(SettingsKey::videoResolutionID,    format.resolutionID);
   settings_.setValue(SettingsKey::videoFramerateID,     format.framerateID);
   settings_.setValue(SettingsKey::videoFramerate,       format.framerate);
@@ -223,45 +220,29 @@ SettingsCameraFormat DefaultSettings::selectBestDeviceFormat(std::shared_ptr<Cam
 {
   // point system for best format
 
-  SettingsCameraFormat bestOption = {"No camera found", deviceID, "No camera", 0, 0, -1, 0, -1};
+  SettingsCameraFormat bestOption = {"No camera found", deviceID, "No camera", -1, {}, -1, 0, -1};
   uint64_t highestValue = 0;
 
-  if (deviceID != -1)
+  std::vector<SettingsCameraFormat> options;
+
+  cam->getCameraOptions(options, deviceID);
+
+  for (auto& option: options)
   {
-    // TODO: Optimize this by getting the raw Qt values directly instead of strings
-    QStringList devices = cam->getDeviceList();
+    uint64_t points = calculatePoints(option.resolution,
+                                      cam->getFramerate(deviceID, option.formatID, option.resolutionID, option.framerateID));
 
-    QStringList formats;
-    cam->getVideoFormats(deviceID, formats);
-
-    for (int formatID = 0; formatID < formats.size(); ++formatID)
+    if (points > highestValue)
     {
-      QStringList resolutions;
-      cam->getFormatResolutions(deviceID, formats.at(formatID), resolutions);
-
-      for (int resolutionID = 0; resolutionID < resolutions.size(); ++resolutionID)
-      {
-        QStringList fpsRanges;
-        cam->getFramerates(deviceID, formats.at(formatID), resolutionID, fpsRanges);
-
-        for (int fpsID = 0; fpsID < fpsRanges.size(); ++fpsID)
-        {
-          QSize resolution = cam->getResolution(deviceID, formatID, resolutionID);
-          uint64_t points = calculatePoints(resolution,
-                                            cam->getFramerate(deviceID, formatID, resolutionID, fpsID));
-
-          if (points > highestValue)
-          {
-            highestValue = points;
-            bestOption = {devices.at(deviceID), deviceID, formats.at(formatID),
-                          resolution.width(), resolution.height(), resolutionID, fpsRanges.at(fpsID), fpsID};
-          }
-        }
-      }
+      highestValue = points;
+      bestOption = option;
     }
   }
 
-  QString resolution = QString::number(bestOption.width) + "x" + QString::number(bestOption.height);
+
+  QString resolution = QString::number(bestOption.resolution.width()) + "x" +
+                       QString::number(bestOption.resolution.height());
+
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Selected the best format",
                                   {"Points", "Device", "Format", "Resolution", "Framerate"},
                                    {QString::number(highestValue), bestOption.deviceName, bestOption.format,

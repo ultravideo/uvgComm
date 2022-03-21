@@ -304,8 +304,39 @@ int CameraInfo::getFramerate(int deviceID, int formatID, int resolutionID, int f
   return 0;
 }
 
-void CameraInfo::getCameraOptions(std::vector<SettingsCameraFormat>& options)
+void CameraInfo::getCameraOptions(std::vector<SettingsCameraFormat>& options, int deviceID)
 {
+  if (deviceID != -1)
+  {
+    // TODO: Optimize this by getting the raw Qt values directly instead of strings
+    QStringList devices = getDeviceList();
 
+    QStringList formats;
+    getVideoFormats(deviceID, formats);
+
+    for (int formatID = 0; formatID < formats.size(); ++formatID)
+    {
+      QStringList resolutions;
+      getFormatResolutions(deviceID, formats.at(formatID), resolutions);
+
+      for (int resolutionID = 0; resolutionID < resolutions.size(); ++resolutionID)
+      {
+        QStringList fpsRanges;
+        getFramerates(deviceID, formats.at(formatID), resolutionID, fpsRanges);
+
+        for (int fpsID = 0; fpsID < fpsRanges.size(); ++fpsID)
+        {
+          QSize resolution = getResolution(deviceID, formatID, resolutionID);
+
+          options.push_back({devices.at(deviceID), deviceID,
+                             formats.at(formatID), formatID,
+                             resolution,           resolutionID,
+                             fpsRanges.at(fpsID),  fpsID});
+
+
+        }
+      }
+    }
+  }
 }
 

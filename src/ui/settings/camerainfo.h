@@ -14,8 +14,8 @@ struct SettingsCameraFormat
   int deviceID;
 
   QString format;
-  int width;
-  int height;
+  int formatID;
+  QSize resolution;
   int resolutionID;
 
   QString framerate;
@@ -48,7 +48,7 @@ public:
   int     getFramerate(int deviceID, int formatID, int resolutionID, int framerateID);
 
 
-  void getCameraOptions(std::vector<SettingsCameraFormat>& options);
+  void getCameraOptions(std::vector<SettingsCameraFormat>& options, int deviceID);
 
 private:
 
