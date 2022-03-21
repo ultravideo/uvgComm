@@ -6,6 +6,8 @@
 #include "logger.h"
 #include "settingskeys.h"
 
+#include <thread>
+
 DefaultSettings::DefaultSettings():
   settings_(settingsFile, settingsFileFormat)
 {}
@@ -36,9 +38,7 @@ void DefaultSettings::validateSettings(std::shared_ptr<MicrophoneInfo> mic,
 
 bool DefaultSettings::validateAudioSettings()
 {
-  QStringList neededSettings = {SettingsKey::audioDevice,
-                                SettingsKey::audioDeviceID,
-                                SettingsKey::audioBitrate,
+  QStringList neededSettings = {SettingsKey::audioBitrate,
                                 SettingsKey::audioComplexity,
                                 SettingsKey::audioSignalType,
                                 SettingsKey::audioAEC,
@@ -54,7 +54,39 @@ bool DefaultSettings::validateAudioSettings()
 
 bool DefaultSettings::validateVideoSettings()
 {
-  return true;
+  // video/DeviceID and video/Device are no checked in case we don't have a camera
+
+  const QStringList neededSettings = {SettingsKey::videoResultionWidth,
+                                      SettingsKey::videoResultionHeight,
+                                      SettingsKey::videoResolutionID,
+                                      SettingsKey::videoInputFormat,
+                                      SettingsKey::videoYUVThreads,
+                                      SettingsKey::videoRGBThreads,
+                                      SettingsKey::videoOpenHEVCThreads,
+                                      SettingsKey::videoFramerateID,
+                                      SettingsKey::videoFramerate,
+                                      SettingsKey::videoOpenGL,
+                                      SettingsKey::videoQP,
+
+                                      SettingsKey::videoIntra,
+                                      SettingsKey::videoSlices,
+                                      SettingsKey::videoKvzThreads,
+                                      SettingsKey::videoWPP,
+                                      SettingsKey::videoOWF,
+                                      SettingsKey::videoTiles,
+                                      SettingsKey::videoTileDimensions,
+                                      SettingsKey::videoVPS,
+                                      SettingsKey::videoBitrate,
+                                      SettingsKey::videoRCAlgorithm,
+                                      SettingsKey::videoOBAClipNeighbours,
+                                      SettingsKey::videoScalingList,
+                                      SettingsKey::videoLossless,
+                                      SettingsKey::videoMVConstraint,
+                                      SettingsKey::videoQPInCU,
+                                      SettingsKey::videoVAQ,
+                                      SettingsKey::videoPreset};
+
+  return checkSettingsList(settings_, neededSettings);
 }
 
 
@@ -99,10 +131,151 @@ void DefaultSettings::setDefaultAudioSettings(std::shared_ptr<MicrophoneInfo> mi
 void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
 {
 
+  // this is a sensible guess on the amounts of threads required
+  // TODO: Maybe it would be possible to come up with something even more accurate?
+  unsigned int threads = std::thread::hardware_concurrency();
+  if (threads < 16)
+  {
+    settings_.setValue(SettingsKey::videoYUVThreads, 1);
+    settings_.setValue(SettingsKey::videoRGBThreads, 1);
+    settings_.setValue(SettingsKey::videoOpenHEVCThreads, 1);
+
+    if (threads <= 4)
+    {
+      settings_.setValue(SettingsKey::videoKvzThreads, 3);
+    }
+    else
+    {
+      settings_.setValue(SettingsKey::videoKvzThreads, threads - 2);
+    }
+  }
+  else
+  {
+    settings_.setValue(SettingsKey::videoYUVThreads, 2);
+    settings_.setValue(SettingsKey::videoRGBThreads, 2);
+    settings_.setValue(SettingsKey::videoOpenHEVCThreads, 2);
+    settings_.setValue(SettingsKey::videoKvzThreads, threads - 3);
+  }
+
+  SettingsCameraFormat format = selectBestCameraFormat(cam);
+
+  settings_.setValue(SettingsKey::videoDevice,          format.deviceName);
+  settings_.setValue(SettingsKey::videoDeviceID,        format.deviceID);
+
+  settings_.setValue(SettingsKey::videoInputFormat,     format.format);
+  settings_.setValue(SettingsKey::videoResultionWidth,  format.width);
+
+  // select best camera/format here
+  settings_.setValue(SettingsKey::videoInputFormat,     format.format);
+  settings_.setValue(SettingsKey::videoResultionWidth,  format.width);
+  settings_.setValue(SettingsKey::videoResultionHeight, format.height);
+  settings_.setValue(SettingsKey::videoResolutionID,    format.resolutionID);
+  settings_.setValue(SettingsKey::videoFramerateID,     format.framerateID);
+  settings_.setValue(SettingsKey::videoFramerate,       format.framerate);
+
+
+  settings_.setValue(SettingsKey::videoOpenGL, 0); // TODO: When can we enable this?
+  settings_.setValue(SettingsKey::videoQP, 32);
+
+  settings_.setValue(SettingsKey::videoIntra, 64);
+  settings_.setValue(SettingsKey::videoSlices, 1);
+
+  settings_.setValue(SettingsKey::videoWPP, 1);
+  settings_.setValue(SettingsKey::videoOWF, 0); // causes too much latency
+  settings_.setValue(SettingsKey::videoTiles, 0);
+  settings_.setValue(SettingsKey::videoTileDimensions, "2x2");
+  settings_.setValue(SettingsKey::videoVPS, 1);
+  settings_.setValue(SettingsKey::videoBitrate, 0);
+  settings_.setValue(SettingsKey::videoRCAlgorithm, "lambda");
+  settings_.setValue(SettingsKey::videoOBAClipNeighbours, 0);
+  settings_.setValue(SettingsKey::videoScalingList, 0);
+  settings_.setValue(SettingsKey::videoLossless, 0); // very CPU intensive
+  settings_.setValue(SettingsKey::videoMVConstraint, "none");
+  settings_.setValue(SettingsKey::videoQPInCU, 0);
+  settings_.setValue(SettingsKey::videoVAQ, "disabled");
+  settings_.setValue(SettingsKey::videoPreset, "ultrafast");
 }
 
 
 void DefaultSettings::setDefaultCallSettings()
 {
+}
 
+
+SettingsCameraFormat DefaultSettings::selectBestCameraFormat(std::shared_ptr<CameraInfo> cam)
+{
+  // Note: the current implementation does not go through all the devices to
+  // find the best format, just the first one
+  if (!settings_.value(SettingsKey::videoDeviceID).isNull() &&
+      settings_.value(SettingsKey::videoDeviceID) != "")
+  {
+    int deviceID = settings_.value(SettingsKey::videoDeviceID).toInt();
+    deviceID = cam->getMostMatchingDeviceID(settings_.value(SettingsKey::videoDevice).toString(),
+                                            deviceID);
+    return selectBestDeviceFormat(cam, deviceID);
+  }
+
+  return selectBestDeviceFormat(cam, 0);
+}
+
+
+SettingsCameraFormat DefaultSettings::selectBestDeviceFormat(std::shared_ptr<CameraInfo> cam, int deviceID)
+{
+  // point system for best format
+
+  SettingsCameraFormat bestOption = {"No camera found", deviceID, "No camera", 0, 0, -1, 0, -1};
+  uint64_t highestValue = 0;
+
+  if (deviceID != -1)
+  {
+    // TODO: Optimize this by getting the raw Qt values directly instead of strings
+    QStringList devices = cam->getDeviceList();
+
+    QStringList formats;
+    cam->getVideoFormats(deviceID, formats);
+
+    for (int formatID = 0; formatID < formats.size(); ++formatID)
+    {
+      QStringList resolutions;
+      cam->getFormatResolutions(deviceID, formats.at(formatID), resolutions);
+
+      for (int resolutionID = 0; resolutionID < resolutions.size(); ++resolutionID)
+      {
+        QStringList fpsRanges;
+        cam->getFramerates(deviceID, formats.at(formatID), resolutionID, fpsRanges);
+
+        for (int fpsID = 0; fpsID < fpsRanges.size(); ++fpsID)
+        {
+          QSize resolution = cam->getResolution(deviceID, formatID, resolutionID);
+          uint64_t points = calculatePoints(resolution,
+                                            cam->getFramerate(deviceID, formatID, resolutionID, fpsID));
+
+          if (points > highestValue)
+          {
+            highestValue = points;
+            bestOption = {devices.at(deviceID), deviceID, formats.at(formatID),
+                          resolution.width(), resolution.height(), resolutionID, fpsRanges.at(fpsID), fpsID};
+          }
+        }
+      }
+    }
+  }
+
+  QString resolution = QString::number(bestOption.width) + "x" + QString::number(bestOption.height);
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Selected the best format",
+                                  {"Points", "Device", "Format", "Resolution", "Framerate"},
+                                   {QString::number(highestValue), bestOption.deviceName, bestOption.format,
+                                    resolution, bestOption.framerate});
+
+  return bestOption;
+}
+
+uint64_t DefaultSettings::calculatePoints(QSize resolution, int fps)
+{
+  if (fps < 30)
+  {
+    return 0;
+  }
+
+  return resolution.width()*resolution.height() + fps;
 }

@@ -13,41 +13,6 @@
 #include <QThread>
 #include <QComboBox>
 
-// video/DeviceID and video/Device are no checked in case we don't have a camera
-
-const QStringList neededSettings = {SettingsKey::videoResultionWidth,
-                                    SettingsKey::videoResultionHeight,
-                                    SettingsKey::videoResolutionID,
-                                    SettingsKey::videoInputFormat,
-                                    SettingsKey::videoYUVThreads,
-                                    SettingsKey::videoRGBThreads,
-                                    SettingsKey::videoOpenHEVCThreads,
-                                    SettingsKey::videoFramerateID,
-                                    SettingsKey::videoFramerate,
-                                    SettingsKey::videoOpenGL
-                                   };
-
-const QStringList kvazaarSettings = {SettingsKey::videoQP,
-                                     SettingsKey::videoIntra,
-                                     SettingsKey::videoSlices,
-                                     SettingsKey::videoKvzThreads,
-                                     SettingsKey::videoWPP,
-                                     SettingsKey::videoOWF,
-                                     SettingsKey::videoTiles,
-                                     SettingsKey::videoTileDimensions,
-                                     SettingsKey::videoVPS,
-                                     SettingsKey::videoBitrate,
-                                     SettingsKey::videoRCAlgorithm,
-                                     SettingsKey::videoOBAClipNeighbours,
-                                     SettingsKey::videoScalingList,
-                                     SettingsKey::videoLossless,
-                                     SettingsKey::videoMVConstraint,
-                                     SettingsKey::videoQPInCU,
-                                     SettingsKey::videoVAQ,
-                                     SettingsKey::videoPreset
-                                   };
-
-
 
 VideoSettings::VideoSettings(QWidget* parent,
                              std::shared_ptr<CameraInfo> info)
@@ -117,21 +82,10 @@ void VideoSettings::deleteListParameter()
 void VideoSettings::changedDevice(uint16_t deviceIndex)
 {
   currentDevice_ = deviceIndex;
-  initializeFormat();
-  saveCameraCapabilities(deviceIndex, !sharingScreen_); // record the new camerasettings.
-}
+  restoreSettings();
 
 
-void VideoSettings::resetSettings(int deviceID)
-{
-  Logger::getLogger()->printNormal(this, "Resettings video settings from UI");
-
-  currentDevice_ = deviceID;
-  initializeFormat();
-  initializeThreads();
-  saveSettings();
-  updateSliceBoxStatus();
-  updateTilesStatus();
+  //saveCameraCapabilities(deviceIndex, !sharingScreen_); // record the new camerasettings.
 }
 
 
@@ -295,115 +249,107 @@ void VideoSettings::restoreSettings()
   initializeThreads();
   initializeFramerates();
 
-  if(checkSettingsList(settings_, neededSettings) &&
-     checkSettingsList(settings_, kvazaarSettings))
+  Logger::getLogger()->printNormal(this, "Restoring previous video settings from file.",
+              {"Filename"}, {settings_.fileName()});
+
+  restoreComboBoxes();
+
+  // input-tab
+  videoSettingsUI_->format_box->setCurrentText
+      (settings_.value(SettingsKey::videoInputFormat).toString());
+
+  int resolutionID = settings_.value(SettingsKey::videoResolutionID).toInt();
+  videoSettingsUI_->resolution->setCurrentIndex(resolutionID);
+
+
+  // parallelization-tab
+  restoreComboBoxValue(SettingsKey::videoKvzThreads, videoSettingsUI_->kvazaar_threads,
+                       "auto", settings_);
+  restoreComboBoxValue(SettingsKey::videoOWF, videoSettingsUI_->owf, "0", settings_);
+
+  restoreCheckBox(SettingsKey::videoWPP, videoSettingsUI_->wpp, settings_);
+
+  restoreCheckBox(SettingsKey::videoTiles, videoSettingsUI_->tiles_checkbox, settings_);
+  QString dimensions = settings_.value(SettingsKey::videoTileDimensions).toString();
+
+  QRegularExpression re_dimension("(\\d*)x(\\d*)");
+  QRegularExpressionMatch dimension_match = re_dimension.match(dimensions);
+
+  if (dimension_match.hasMatch() &&
+      dimension_match.lastCapturedIndex() == 2)
   {
-    Logger::getLogger()->printNormal(this, "Restoring previous video settings from file.",
-                {"Filename"}, {settings_.fileName()});
+    int tile_x = dimension_match.captured(1).toInt();
+    int tile_y = dimension_match.captured(2).toInt();
 
-    restoreComboBoxes();
-
-    // input-tab
-    videoSettingsUI_->format_box->setCurrentText
-        (settings_.value(SettingsKey::videoInputFormat).toString());
-
-    int resolutionID = settings_.value(SettingsKey::videoResolutionID).toInt();
-    videoSettingsUI_->resolution->setCurrentIndex(resolutionID);
-
-
-    // parallelization-tab
-    restoreComboBoxValue(SettingsKey::videoKvzThreads, videoSettingsUI_->kvazaar_threads,
-                         "auto", settings_);
-    restoreComboBoxValue(SettingsKey::videoOWF, videoSettingsUI_->owf, "0", settings_);
-
-    restoreCheckBox(SettingsKey::videoWPP, videoSettingsUI_->wpp, settings_);
-
-    restoreCheckBox(SettingsKey::videoTiles, videoSettingsUI_->tiles_checkbox, settings_);
-    QString dimensions = settings_.value(SettingsKey::videoTileDimensions).toString();
-
-    QRegularExpression re_dimension("(\\d*)x(\\d*)");
-    QRegularExpressionMatch dimension_match = re_dimension.match(dimensions);
-
-    if (dimension_match.hasMatch() &&
-        dimension_match.lastCapturedIndex() == 2)
+    if (videoSettingsUI_->tile_x->maximum() >= tile_x)
     {
-      int tile_x = dimension_match.captured(1).toInt();
-      int tile_y = dimension_match.captured(2).toInt();
-
-      if (videoSettingsUI_->tile_x->maximum() >= tile_x)
-      {
-        videoSettingsUI_->tile_x->setValue(tile_x);
-      }
-      else
-      {
-        videoSettingsUI_->tile_x->setValue(2);
-      }
-
-      if (videoSettingsUI_->tile_y->maximum() >= tile_y)
-      {
-        videoSettingsUI_->tile_y->setValue(tile_y);
-      }
-      else
-      {
-        videoSettingsUI_->tile_y->setValue(2);
-      }
+      videoSettingsUI_->tile_x->setValue(tile_x);
+    }
+    else
+    {
+      videoSettingsUI_->tile_x->setValue(2);
     }
 
-    updateTilesStatus();
-
-    restoreCheckBox(SettingsKey::videoSlices, videoSettingsUI_->slices, settings_);
-
-    videoSettingsUI_->openhevc_threads->setValue(
-          settings_.value(SettingsKey::videoOpenHEVCThreads).toInt());
-    videoSettingsUI_->yuv_threads->setValue(
-          settings_.value(SettingsKey::videoYUVThreads).toInt());
-    videoSettingsUI_->rgb32_threads->setValue(
-          settings_.value(SettingsKey::videoRGBThreads).toInt());
-
-    updateSliceBoxStatus();
-
-    // structure-tab
-    videoSettingsUI_->qp->setValue            (settings_.value(SettingsKey::videoQP).toInt());
-    videoSettingsUI_->intra->setText          (settings_.value(SettingsKey::videoIntra).toString());
-    videoSettingsUI_->vps->setText            (settings_.value(SettingsKey::videoVPS).toString());
-
-    QString bitrate = settings_.value(SettingsKey::videoBitrate).toString();
-    videoSettingsUI_->bitrate_slider->setValue(bitrate.toInt());
-
-    restoreComboBoxValue(SettingsKey::videoRCAlgorithm, videoSettingsUI_->rc_algorithm,
-                         "lambda", settings_);
-
-    restoreCheckBox(SettingsKey::videoOBAClipNeighbours, videoSettingsUI_->oba_clip_neighbours,
-                    settings_);
-    restoreCheckBox(SettingsKey::videoScalingList, videoSettingsUI_->scaling_box,
-                    settings_);
-    restoreCheckBox(SettingsKey::videoLossless, videoSettingsUI_->lossless_box,
-                    settings_);
-
-    restoreComboBoxValue(SettingsKey::videoMVConstraint, videoSettingsUI_->mv_constraint,
-                         "none", settings_);
-    restoreCheckBox(SettingsKey::videoQPInCU, videoSettingsUI_->qp_in_cu_box,
-                    settings_);
-
-    videoSettingsUI_->vaq->setCurrentIndex( settings_.value(SettingsKey::videoVAQ).toInt());
-
-    updateObaStatus(videoSettingsUI_->rc_algorithm->currentIndex());
-
-    // tools-tab
-    restoreComboBoxValue(SettingsKey::videoPreset, videoSettingsUI_->preset,
-                         "ultrafast", settings_);
-
-    listSettingsToGUI(settingsFile, SettingsKey::videoCustomParameters,
-                      QStringList() << "Name" << "Value",
-                      videoSettingsUI_->custom_parameters);
-
-    // other-tab
-    restoreCheckBox(SettingsKey::videoOpenGL, videoSettingsUI_->opengl, settings_);
+    if (videoSettingsUI_->tile_y->maximum() >= tile_y)
+    {
+      videoSettingsUI_->tile_y->setValue(tile_y);
+    }
+    else
+    {
+      videoSettingsUI_->tile_y->setValue(2);
+    }
   }
-  else
-  {
-    resetSettings(currentDevice_);
-  }
+
+  updateTilesStatus();
+
+  restoreCheckBox(SettingsKey::videoSlices, videoSettingsUI_->slices, settings_);
+
+  videoSettingsUI_->openhevc_threads->setValue(
+        settings_.value(SettingsKey::videoOpenHEVCThreads).toInt());
+  videoSettingsUI_->yuv_threads->setValue(
+        settings_.value(SettingsKey::videoYUVThreads).toInt());
+  videoSettingsUI_->rgb32_threads->setValue(
+        settings_.value(SettingsKey::videoRGBThreads).toInt());
+
+  updateSliceBoxStatus();
+
+  // structure-tab
+  videoSettingsUI_->qp->setValue            (settings_.value(SettingsKey::videoQP).toInt());
+  videoSettingsUI_->intra->setText          (settings_.value(SettingsKey::videoIntra).toString());
+  videoSettingsUI_->vps->setText            (settings_.value(SettingsKey::videoVPS).toString());
+
+  QString bitrate = settings_.value(SettingsKey::videoBitrate).toString();
+  videoSettingsUI_->bitrate_slider->setValue(bitrate.toInt());
+
+  restoreComboBoxValue(SettingsKey::videoRCAlgorithm, videoSettingsUI_->rc_algorithm,
+                       "lambda", settings_);
+
+  restoreCheckBox(SettingsKey::videoOBAClipNeighbours, videoSettingsUI_->oba_clip_neighbours,
+                  settings_);
+  restoreCheckBox(SettingsKey::videoScalingList, videoSettingsUI_->scaling_box,
+                  settings_);
+  restoreCheckBox(SettingsKey::videoLossless, videoSettingsUI_->lossless_box,
+                  settings_);
+
+  restoreComboBoxValue(SettingsKey::videoMVConstraint, videoSettingsUI_->mv_constraint,
+                       "none", settings_);
+  restoreCheckBox(SettingsKey::videoQPInCU, videoSettingsUI_->qp_in_cu_box,
+                  settings_);
+
+  videoSettingsUI_->vaq->setCurrentIndex( settings_.value(SettingsKey::videoVAQ).toInt());
+
+  updateObaStatus(videoSettingsUI_->rc_algorithm->currentIndex());
+
+  // tools-tab
+  restoreComboBoxValue(SettingsKey::videoPreset, videoSettingsUI_->preset,
+                       "ultrafast", settings_);
+
+  listSettingsToGUI(settingsFile, SettingsKey::videoCustomParameters,
+                    QStringList() << "Name" << "Value",
+                    videoSettingsUI_->custom_parameters);
+
+  // other-tab
+  restoreCheckBox(SettingsKey::videoOpenGL, videoSettingsUI_->opengl, settings_);
 }
 
 

@@ -185,6 +185,7 @@ bool KvazaarFilter::init()
       config_->rc_algorithm = KVZ_NO_RC;
     }
 
+    // TODO: Move to settings even though it is practically always on
     config_->gop_lowdelay = 1;
 
     if (settings.value(SettingsKey::videoScalingList).toInt() == 0)

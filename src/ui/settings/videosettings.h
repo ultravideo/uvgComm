@@ -29,7 +29,6 @@ public:
   void init(int deviceID);
 
   void changedDevice(uint16_t deviceIndex);
-  void resetSettings(int deviceID);
 
   // GUI -> QSettings
 

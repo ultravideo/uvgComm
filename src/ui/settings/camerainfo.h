@@ -8,6 +8,20 @@
 
 #include "deviceinfointerface.h"
 
+struct SettingsCameraFormat
+{
+  QString deviceName;
+  int deviceID;
+
+  QString format;
+  int width;
+  int height;
+  int resolutionID;
+
+  QString framerate;
+  int framerateID;
+};
+
 // A helper class for settings.
 
 class CameraInfo : public DeviceInfoInterface
@@ -27,9 +41,14 @@ public:
   // get resolutions for a format.
   void getFramerates(int deviceID, QString format, int resolutionID, QStringList& ranges);
 
-  QSize getResolution(int deviceID, int formatID, int resolutionID);
-
+  // returns -1 if there are no devices
+  int getMostMatchingDeviceID(QString deviceName, int deviceID);
   QString getFormat(int deviceID, int formatID);
+  QSize   getResolution(int deviceID, int formatID, int resolutionID);
+  int     getFramerate(int deviceID, int formatID, int resolutionID, int framerateID);
+
+
+  void getCameraOptions(std::vector<SettingsCameraFormat>& options);
 
 private:
 

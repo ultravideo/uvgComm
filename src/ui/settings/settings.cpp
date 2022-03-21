@@ -229,7 +229,7 @@ void Settings::setScreenShareState(bool enabled)
   {
     settings_.setValue(SettingsKey::screenShareStatus, "0");
     videoSettings_.setScreenShareState(enabled);
-    videoSettings_.saveCameraCapabilities(getDeviceID(basicUI_->audioDevice_combo,
+    videoSettings_.saveCameraCapabilities(getDeviceID(basicUI_->videoDevice_combo,
                                                       SettingsKey::videoDeviceID,
                                                       SettingsKey::videoDevice), !enabled);
   }
@@ -367,6 +367,7 @@ void Settings::getSettings(bool changedDevice)
                                  SettingsKey::videoDevice);
     if(changedDevice)
     {
+      defaults_.setDefaultVideoSettings(cam_);
       videoSettings_.changedDevice(videoIndex);
     }
     basicUI_->videoDevice_combo->setCurrentIndex(videoIndex);
@@ -415,10 +416,6 @@ void Settings::resetFaultySettings()
 
   // record GUI settings in hope that they are correct ( is case by default )
   saveSettings();
-
-  videoSettings_.resetSettings(getDeviceID(basicUI_->videoDevice_combo,
-                                           SettingsKey::videoDeviceID,
-                                           SettingsKey::videoDevice));
 
   // we set the connecting to true at this point because we want two things:
   // 1) that Kvazzup doesn't connect to any server without user permission
@@ -512,28 +509,42 @@ void Settings::saveDevice(QComboBox* deviceSelector, QString settingsID,
   int currentIndex = deviceSelector->currentIndex();
   if( currentIndex != -1)
   {
-    if(deviceSelector->currentText() != settings_.value(settingsDevice))
+    if(deviceSelector->currentText() != settings_.value(settingsDevice).toString())
     {
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "The device name has changed",
+                                       {"Old name", "New name"},
+                                       {settings_.value(settingsDevice).toString(), deviceSelector->currentText()});
+
       settings_.setValue(settingsDevice, deviceSelector->currentText());
+
       // set capability to first
 
       if (video)
       {
+        defaults_.setDefaultVideoSettings(cam_);
         videoSettings_.changedDevice(currentIndex);
       }
       else
       {
+        defaults_.setDefaultAudioSettings(mic_);
         audioSettings_.changedDevice(currentIndex);
       }
     }
-    else if(basicUI_->videoDevice_combo->currentIndex() != settings_.value(settingsID))
+    else if(deviceSelector->currentIndex() != settings_.value(settingsID).toInt())
     {
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "The device ID has changed",
+                                       {"Old ID", "New ID"},
+                                       {settings_.value(settingsID).toString(),
+                                        QString::number(deviceSelector->currentIndex())});
+
       if (video)
       {
+        defaults_.setDefaultVideoSettings(cam_);
         videoSettings_.changedDevice(currentIndex);
       }
       else
       {
+        defaults_.setDefaultAudioSettings(mic_);
         audioSettings_.changedDevice(currentIndex);
       }
     }
