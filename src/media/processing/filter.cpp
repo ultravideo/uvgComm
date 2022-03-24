@@ -10,7 +10,7 @@
 Filter::Filter(QString id, QString name, StatisticsInterface *stats,
                std::shared_ptr<HWResourceManager> hwResources,
                DataType input, DataType output):
-  maxBufferSize_(-1),
+  maxBufferSize_(10),
   input_(input),
   output_(output),
   name_(name),

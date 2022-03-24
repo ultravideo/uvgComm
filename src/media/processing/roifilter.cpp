@@ -269,19 +269,19 @@ Ort::SessionOptions get_session_options(bool cuda)
   using namespace std::literals;
   auto providers = Ort::GetAvailableProviders();
 
-  if (!cuda || std::find(providers.begin(), providers.end(), "CUDAExecutionProvider"s) == providers.end())
-  {
-    return Ort::SessionOptions();
-  }
   Ort::SessionOptions options;
   OrtCUDAProviderOptions cuda_options;
-  cuda_options.device_id = 0;
-  cuda_options.arena_extend_strategy = 0;
-  cuda_options.gpu_mem_limit = SIZE_MAX;
-  cuda_options.cudnn_conv_algo_search = OrtCudnnConvAlgoSearchExhaustive;
-  cuda_options.do_copy_in_default_stream = 1;
-
-  options.AppendExecutionProvider_CUDA(cuda_options);
+  options.SetIntraOpNumThreads(1);
+  options.SetInterOpNumThreads(1);
+  if (cuda && std::find(providers.begin(), providers.end(), "CUDAExecutionProvider"s) == providers.end())
+  {
+    cuda_options.device_id = 0;
+    cuda_options.arena_extend_strategy = 0;
+    cuda_options.gpu_mem_limit = SIZE_MAX;
+    cuda_options.cudnn_conv_algo_search = OrtCudnnConvAlgoSearchExhaustive;
+    cuda_options.do_copy_in_default_stream = 1;
+    options.AppendExecutionProvider_CUDA(cuda_options);
+  }
 
   return options;
 }
@@ -356,7 +356,11 @@ void RoiFilter::process()
   } else {
     while(input)
     {
-      if(frame_count % 2) {
+      if(inputDiscarded_ > prevInputDiscarded_) {
+        skipInput_++;
+        prevInputDiscarded_ = inputDiscarded_;
+      }
+      if(frame_count % skipInput_ == 0) {
         auto detections = detect(input.get());
 
         auto largest_bbox = find_largest_bbox(detections);
@@ -422,6 +426,8 @@ void RoiFilter::process()
 
 bool RoiFilter::init()
 {
+  prevInputDiscarded_ = 0;
+  skipInput_ = 1;
   QSettings settings(settingsFile, settingsFileFormat);
   model = settings.value(SettingsKey::roiDetectorModel).toString().toStdWString();
   kernel_type = settings.value(SettingsKey::roiKernelType).toString().toStdString();
@@ -438,7 +444,8 @@ bool RoiFilter::init()
 
   is_ok = true;
   try {
-    session = std::make_unique<Ort::Session>(env, model.c_str(), get_session_options(true));
+    Ort::SessionOptions options = get_session_options(false);
+    session = std::make_unique<Ort::Session>(env, model.c_str(), options);
     allocator = std::make_unique<Ort::Allocator>(*session, Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault));
   }  catch (std::exception& e) {
     Logger::getLogger()->printError(this, e.what());

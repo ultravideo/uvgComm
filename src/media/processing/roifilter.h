@@ -43,6 +43,9 @@ private:
 
   std::vector<Detection> detect(const Data* input);
 
+  unsigned int prevInputDiscarded_;
+  unsigned int skipInput_;
+
   std::wstring model;
   std::string kernel_type;
   int kernel_size;
