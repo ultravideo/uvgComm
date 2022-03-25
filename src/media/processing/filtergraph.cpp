@@ -239,13 +239,6 @@ void FilterGraph::initSelfView()
     return; // TODO: return false that we failed so user can fix camera selection
   }
 
-  if (!addToGraph(std::shared_ptr<Filter>(new RoiFilter("", "", stats_, hwResources_, L"C:\\Users\\miika\\source\\models\\yolov5n-0.5-640.onnx", 640, true)), cameraGraph_))
-  {
-    // camera failed
-    Logger::getLogger()->printError(this, "Failed to add roi");
-    return; // TODO: return false that we failed so user can fix camera selection
-  }
-
   // create screen share filter, but it is stopped at the beginning
   if (screenShareGraph_.size() == 0)
   {
@@ -313,9 +306,28 @@ void FilterGraph::initVideoSend()
     destroyFilters(cameraGraph_);
   }
 
-  std::shared_ptr<Filter> kvazaar = std::shared_ptr<Filter>(new KvazaarFilter("", stats_, hwResources_));
-  addToGraph(kvazaar, cameraGraph_, 2);
-  addToGraph(cameraGraph_.back(), screenShareGraph_, cameraGraph_.size()-1);
+  auto roiIt = std::find_if(cameraGraph_.begin(), cameraGraph_.end(),
+                                [](std::shared_ptr<Filter> const& filter){
+      return filter->getName() == "ROI";
+  });
+
+  if (roiIt == cameraGraph_.end() &&
+      !addToGraph(std::shared_ptr<Filter>(new RoiFilter("", stats_, hwResources_, true)), cameraGraph_, 0))
+  {
+    Logger::getLogger()->printError(this, "Failed to add roi");
+    return; // TODO: return false that we failed so user can fix camera selection
+  }
+
+  auto kvazaarIt = std::find_if(cameraGraph_.begin(), cameraGraph_.end(),
+                                [](std::shared_ptr<Filter> const& filter){
+      return filter->getName() == "Kvazaar";
+  });
+
+  if(kvazaarIt == cameraGraph_.end()){
+    std::shared_ptr<Filter> kvazaar = std::shared_ptr<Filter>(new KvazaarFilter("", stats_, hwResources_));
+    addToGraph(kvazaar, cameraGraph_, cameraGraph_.size()-1);
+    addToGraph(cameraGraph_.back(), screenShareGraph_, cameraGraph_.size()-1);
+  }
 }
 
 

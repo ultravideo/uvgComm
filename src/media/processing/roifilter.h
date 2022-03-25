@@ -27,9 +27,9 @@ struct RoiMapFilter {
 
 class RoiFilter : public Filter {
 public:
-  RoiFilter(QString id, QString name, StatisticsInterface* stats,
+  RoiFilter(QString id, StatisticsInterface* stats,
             std::shared_ptr<HWResourceManager> hwResources,
-            std::wstring model, int size, bool cuda);
+            bool cuda);
 
   ~RoiFilter();
   void updateSettings() override;

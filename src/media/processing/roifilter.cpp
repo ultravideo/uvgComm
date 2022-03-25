@@ -306,10 +306,10 @@ cv::Mat RoiMapFilter::makeRoiMap(const std::vector<cv::Rect> &bbs)
   return filtered;
 }
 
-RoiFilter::RoiFilter(QString id, QString name, StatisticsInterface *stats, std::shared_ptr<HWResourceManager> hwResources,
-                     std::wstring model, int size, bool cuda)
+RoiFilter::RoiFilter(QString id, StatisticsInterface *stats, std::shared_ptr<HWResourceManager> hwResources,
+                     bool cuda)
   : Filter(id, "ROI", stats, hwResources, DT_YUV420VIDEO, DT_YUV420VIDEO),
-    input_size(size ? size : -1),
+    input_size(-1),
     minimum(false),
     min_bb_size(10, 10),
     draw_bbox(false),
