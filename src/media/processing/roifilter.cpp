@@ -264,15 +264,15 @@ cv::Rect enlarge_bb(Detection face)
   return ret;
 }
 
-Ort::SessionOptions get_session_options(bool cuda)
+Ort::SessionOptions get_session_options(bool cuda, int threads)
 {
   using namespace std::literals;
   auto providers = Ort::GetAvailableProviders();
 
   Ort::SessionOptions options;
   OrtCUDAProviderOptions cuda_options;
-  options.SetIntraOpNumThreads(1);
-  options.SetInterOpNumThreads(1);
+  options.SetIntraOpNumThreads(threads);
+  options.SetInterOpNumThreads(threads);
   if (cuda && std::find(providers.begin(), providers.end(), "CUDAExecutionProvider"s) == providers.end())
   {
     cuda_options.device_id = 0;
@@ -397,6 +397,10 @@ void RoiFilter::process()
           face_roi_rects.push_back(r);
         }
 
+//        if(face_roi_rects.size() > 0) {
+//          Logger::getLogger()->printDebug(DebugType::DEBUG_NORMAL, this, "Found faces", {"Number"}, {QString::number(face_roi_rects.size())});
+//        }
+
         cv::Size roi_size = calculate_roi_size(input->vInfo->width, input->vInfo->height);
         if(roi_size.width != filter.width || roi_size.height != filter.height) {
           filter.roi_maps.clear();
@@ -432,6 +436,7 @@ bool RoiFilter::init()
   model = settings.value(SettingsKey::roiDetectorModel).toString().toStdWString();
   kernel_type = settings.value(SettingsKey::roiKernelType).toString().toStdString();
   kernel_size = settings.value(SettingsKey::roiKernelSize).toInt();
+  int threads = settings.value(SettingsKey::roiMaxThreads).toInt();
 
   if(kernel_type == "Gaussian"){
     filter.kernel = cv::getGaussianKernel(kernel_size, 1.0);
@@ -444,7 +449,7 @@ bool RoiFilter::init()
 
   is_ok = true;
   try {
-    Ort::SessionOptions options = get_session_options(false);
+    Ort::SessionOptions options = get_session_options(false, threads);
     session = std::make_unique<Ort::Session>(env, model.c_str(), options);
     allocator = std::make_unique<Ort::Allocator>(*session, Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault));
   }  catch (std::exception& e) {

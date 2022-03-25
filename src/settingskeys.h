@@ -116,4 +116,5 @@ const QString roiDetectorModel = "roi/Model";
 const QString roiKernelSize = "roi/KernelSize";
 const QString roiKernelType = "roi/KernelType";
 const QString roiFilterDepth = "roi/FilterDepth";
+const QString roiMaxThreads = "roi/Threads";
 }
