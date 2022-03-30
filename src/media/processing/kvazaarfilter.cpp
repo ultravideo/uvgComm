@@ -82,57 +82,55 @@ bool KvazaarFilter::init()
       Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to allocate Kvazaar config.");
       return false;
     }
-    QSettings settings(settingsFile, settingsFileFormat);
 
     api_->config_init(config_);
-    api_->config_parse(config_, "preset", settings.value(SettingsKey::videoPreset).toString().toUtf8());
 
-    // input
+    QSettings settings(settingsFile, settingsFileFormat);
 
-#ifdef __linux__
+    QString preset = settings.value(SettingsKey::videoPreset).toString().toUtf8();
 
-    if (settingEnabled(SettingsKey::screenShareStatus))
-    {
-      config_->width = settings.value(SettingsKey::videoResultionWidth).toInt();
-      config_->height = settings.value(SettingsKey::videoResultionHeight).toInt();
-      framerate_num_ = settings.value(SettingsKey::videoFramerate).toFloat();
-      config_->framerate_num = framerate_num_;
-    }
-    else
-    {
-      // On Linux the Camerafilter seems to have a Qt bug that causes not being able to set resolution
-      config_->width = 640;
-      config_->height = 480;
-      config_->framerate_num = 30;
-    }
-#else
-    config_->width = settings.value(SettingsKey::videoResultionWidth).toInt();
-    config_->height = settings.value(SettingsKey::videoResultionHeight).toInt();
+    QString resolutionStr = settings.value(SettingsKey::videoResultionWidth).toString() + "x" +
+        settings.value(SettingsKey::videoResultionHeight).toString();
 
     convertFramerate(settings.value(SettingsKey::videoFramerate).toReal());
-    config_->framerate_num = framerate_num_;
+    QString framerate = QString::number(framerate_num_) + "/" + QString::number(framerate_denom_);
+
+#ifdef __linux__
+    if (!settingEnabled(SettingsKey::screenShareStatus))
+    {
+      // On Linux the QCamera doesn't seem to work correctly, expect with these values
+      resolutionStr = QString::number(640) + "x" + QString::number(480);
+      framerate = QString::number(30) + "/" + QString::number(1);
+    }
 #endif
-    config_->framerate_denom = framerate_denom_;
+
+    // Input
+
+    api_->config_parse(config_, "preset",    preset.toLocal8Bit());
+    api_->config_parse(config_, "input-res", resolutionStr.toLocal8Bit());
+    api_->config_parse(config_, "input-fps", framerate.toLocal8Bit());
+
+    QString threads = "0";
 
     // parallelization
-
     if (settings.value(SettingsKey::videoKvzThreads) == "auto")
     {
-      config_->threads = QThread::idealThreadCount();
+      threads = QString::number(QThread::idealThreadCount());
     }
     else if (settings.value(SettingsKey::videoKvzThreads) == "Main")
     {
-      config_->threads = 0;
+      threads = QString::number(0);
     }
     else
     {
-      config_->threads = settings.value(SettingsKey::videoKvzThreads).toInt();
+      threads = settings.value(SettingsKey::videoKvzThreads).toString();
     }
 
-    config_->owf = settings.value(SettingsKey::videoOWF).toInt();
-    config_->wpp = settings.value(SettingsKey::videoWPP).toInt();
+    api_->config_parse(config_, "threads", threads.toLocal8Bit());
+    api_->config_parse(config_, "owf", settings.value(SettingsKey::videoOWF).toString().toLocal8Bit());
+    api_->config_parse(config_, "wpp", settings.value(SettingsKey::videoWPP).toString().toLocal8Bit());
 
-    bool tiles = false;
+    bool tiles = settings.value(SettingsKey::videoTiles).toBool();
 
     if (tiles)
     {
@@ -145,60 +143,53 @@ bool KvazaarFilter::init()
     {
       if(config_->wpp)
       {
-        config_->slices = KVZ_SLICES_WPP;
+        api_->config_parse(config_, "slices", "wpp");
       }
       else if (tiles)
       {
-        config_->slices = KVZ_SLICES_TILES;
+        api_->config_parse(config_, "slices", "tiles");
       }
     }
 
-    // Structure
+    // Video structure
 
-    config_->qp = settings.value(SettingsKey::videoQP).toInt();
-    config_->intra_period = settings.value(SettingsKey::videoIntra).toInt();
-    config_->vps_period = settings.value(SettingsKey::videoVPS).toInt();
+    api_->config_parse(config_, "qp",         settings.value(SettingsKey::videoQP).toString().toLocal8Bit());
+    api_->config_parse(config_, "period",     settings.value(SettingsKey::videoIntra).toString().toLocal8Bit());
+    api_->config_parse(config_, "vps-period", settings.value(SettingsKey::videoVPS).toString().toLocal8Bit());
 
     config_->target_bitrate = settings.value(SettingsKey::videoBitrate).toInt();
 
     if (config_->target_bitrate != 0)
     {
-      QString rcAlgo = settings.value(SettingsKey::videoRCAlgorithm).toString();
-
-      if (rcAlgo == "lambda")
-      {
-        config_->rc_algorithm = KVZ_LAMBDA;
-      }
-      else if (rcAlgo == "oba")
-      {
-        config_->rc_algorithm = KVZ_OBA;
-        config_->clip_neighbour = settings.value(SettingsKey::videoOBAClipNeighbours).toInt();
-      }
-      else
-      {
-        Logger::getLogger()->printWarning(this, "Some carbage in rc algorithm setting");
-        config_->rc_algorithm = KVZ_NO_RC;
-      }
-    }
-    else
-    {
-      config_->rc_algorithm = KVZ_NO_RC;
+      api_->config_parse(config_, "rc-algorithm",    settings.value(SettingsKey::videoRCAlgorithm).toString().toLocal8Bit());
     }
 
-    config_->gop_lowdelay = 1;
+    api_->config_parse(config_, "gop", "lp-g4d3t1");
 
     if (settings.value(SettingsKey::videoScalingList).toInt() == 0)
     {
-      config_->scaling_list = KVZ_SCALING_LIST_OFF;
+      api_->config_parse(config_, "scaling-list", "off");
     }
     else
     {
-      config_->scaling_list = KVZ_SCALING_LIST_DEFAULT;
+      api_->config_parse(config_, "scaling-list", "default");
     }
 
-    config_->lossless = settings.value(SettingsKey::videoLossless).toInt();
+    if (settings.value(SettingsKey::videoLossless).toBool())
+    {
+      config_->lossless = 1;
+    }
 
     QString constraint = settings.value(SettingsKey::videoMVConstraint).toString();
+
+    if (constraint == "frame" || constraint == "frametile" || constraint == "frametilemargin")
+    {
+      api_->config_parse(config_, "mv-constraint", "");
+    }
+    else
+    {
+      api_->config_parse(config_, "mv-constraint", "none");
+    }
 
     if (constraint == "frame")
     {
@@ -222,8 +213,12 @@ bool KvazaarFilter::init()
     }
 
     config_->set_qp_in_cu = settings.value(SettingsKey::videoQPInCU).toInt();
-    config_->vaq = settings.value(SettingsKey::videoVAQ).toInt();
 
+    int vaq = settings.value(SettingsKey::videoVAQ).toInt();
+    if (vaq > 0 && vaq <= 20)
+    {
+      api_->config_parse(config_, "vaq", settings.value(SettingsKey::videoVAQ).toString().toLocal8Bit());
+    }
 
     // compression-tab
     customParameters(settings);
