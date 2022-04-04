@@ -88,6 +88,7 @@ void UvgRTPSender::process()
   rtp_error_t ret = RTP_OK;
   std::unique_ptr<Data> input = getInput();
 
+  // TODO: For HEVC, make sure that the first frame we send is intra
   while (input)
   {
     ret = mstream_->push_frame(std::move(input->data), input->data_size, rtpFlags_);
