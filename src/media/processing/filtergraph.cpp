@@ -312,7 +312,7 @@ void FilterGraph::initVideoSend()
 
   std::shared_ptr<Filter> kvazaar = std::shared_ptr<Filter>(new KvazaarFilter("", stats_, hwResources_));
   addToGraph(kvazaar, cameraGraph_, 0);
-  addToGraph(cameraGraph_.back(), screenShareGraph_, 0);
+  addToGraph(kvazaar, screenShareGraph_, 0);
 }
 
 
