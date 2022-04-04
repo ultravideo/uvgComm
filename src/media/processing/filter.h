@@ -62,7 +62,7 @@ struct Data
 };
 
 class StatisticsInterface;
-class HWResourceManager;
+class ResourceAllocator;
 
 class Filter : public QThread
 {
@@ -70,7 +70,7 @@ class Filter : public QThread
 
 public:
   Filter(QString id, QString name, StatisticsInterface* stats,
-         std::shared_ptr<HWResourceManager> hwResources,
+         std::shared_ptr<ResourceAllocator> hwResources,
          DataType input, DataType output);
   virtual ~Filter();
 
@@ -171,7 +171,7 @@ protected:
     return stats_;
   }
 
-  std::shared_ptr<HWResourceManager> getHWManager() const
+  std::shared_ptr<ResourceAllocator> getHWManager() const
   {
     return hwResources_;
   }
@@ -212,7 +212,7 @@ private:
   unsigned int inputTaken_;
   unsigned int inputDiscarded_;
 
-  std::shared_ptr<HWResourceManager> hwResources_;
+  std::shared_ptr<ResourceAllocator> hwResources_;
 
   uint32_t filterID_;
 };

@@ -78,6 +78,8 @@ void KvazzupController::init()
                    &media_, &MediaManager::updateVideoSettings);
   QObject::connect(&userInterface_, &UIManager::updateAudioSettings,
                    &media_, &MediaManager::updateAudioSettings);
+  QObject::connect(&userInterface_, &UIManager::updateAutomaticSettings,
+                   &media_, &MediaManager::updateAutomaticSettings);
 
   QObject::connect(&userInterface_, &UIManager::endCall, this, &KvazzupController::endTheCall);
   QObject::connect(&userInterface_, &UIManager::quit, this, &KvazzupController::quit);

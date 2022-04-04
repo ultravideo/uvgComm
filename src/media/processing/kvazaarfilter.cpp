@@ -15,7 +15,7 @@
 enum RETURN_STATUS {C_SUCCESS = 0, C_FAILURE = -1};
 
 KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats,
-                             std::shared_ptr<HWResourceManager> hwResources):
+                             std::shared_ptr<ResourceAllocator> hwResources):
   Filter(id, "Kvazaar", stats, hwResources, DT_YUV420VIDEO, DT_HEVCVIDEO),
   api_(nullptr),
   config_(nullptr),
@@ -164,6 +164,7 @@ bool KvazaarFilter::init()
       api_->config_parse(config_, "rc-algorithm",    settings.value(SettingsKey::videoRCAlgorithm).toString().toLocal8Bit());
     }
 
+    // TODO: Move to settings
     api_->config_parse(config_, "gop", "lp-g4d3t1");
 
     if (settings.value(SettingsKey::videoScalingList).toInt() == 0)
@@ -175,10 +176,7 @@ bool KvazaarFilter::init()
       api_->config_parse(config_, "scaling-list", "default");
     }
 
-    if (settings.value(SettingsKey::videoLossless).toBool())
-    {
-      config_->lossless = 1;
-    }
+    config_->lossless = settings.value(SettingsKey::videoLossless).toInt();
 
     QString constraint = settings.value(SettingsKey::videoMVConstraint).toString();
 

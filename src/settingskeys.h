@@ -86,6 +86,7 @@ const QString audioAGC = "audio/agc";
 // User setting keys
 const QString userScreenID = "user/ScreenID";
 const QString userScreen = "user/Screen";
+const QString manualSettings = "user/manualSettings";
 
 
 // Local setting keys

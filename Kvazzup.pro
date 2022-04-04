@@ -72,7 +72,6 @@ SOURCES +=\
     src/media/delivery/delivery.cpp \
     src/media/delivery/uvgrtpreceiver.cpp \
     src/media/delivery/uvgrtpsender.cpp \
-    src/media/hwresourcemanager.cpp \
     src/media/mediamanager.cpp \
     src/media/processing/audiocapturefilter.cpp \
     src/media/processing/audioframebuffer.cpp \
@@ -100,6 +99,7 @@ SOURCES +=\
     src/media/processing/yuvtorgb32.cpp \
     src/media/processing/yuyvtorgb32.cpp \
     src/media/processing/yuyvtoyuv420.cpp \
+    src/media/resourceallocator.cpp \
     src/ui/gui/callwindow.cpp \
     src/ui/gui/chartpainter.cpp \
     src/ui/gui/conferenceview.cpp \
@@ -113,7 +113,9 @@ SOURCES +=\
     src/ui/gui/videowidget.cpp \
     src/ui/gui/videoyuvwidget.cpp \
     src/ui/settings/audiosettings.cpp \
+    src/ui/settings/automaticsettings.cpp \
     src/ui/settings/camerainfo.cpp \
+    src/ui/settings/defaultsettings.cpp \
     src/ui/settings/microphoneinfo.cpp \
     src/ui/settings/screeninfo.cpp \
     src/ui/settings/settings.cpp \
@@ -163,7 +165,6 @@ HEADERS  += \
     src/media/delivery/delivery.h \
     src/media/delivery/uvgrtpreceiver.h \
     src/media/delivery/uvgrtpsender.h \
-    src/media/hwresourcemanager.h \
     src/media/mediamanager.h \
     src/media/processing/audiocapturefilter.h \
     src/media/processing/audioframebuffer.h \
@@ -190,6 +191,7 @@ HEADERS  += \
     src/media/processing/yuvtorgb32.h \
     src/media/processing/yuyvtorgb32.h \
     src/media/processing/yuyvtoyuv420.h \
+    src/media/resourceallocator.h \
     src/settingskeys.h \
     src/statisticsinterface.h \
     src/common.h \
@@ -209,7 +211,9 @@ HEADERS  += \
     src/ui/gui/videowidget.h \
     src/ui/gui/videoyuvwidget.h \
     src/ui/settings/audiosettings.h \
+    src/ui/settings/automaticsettings.h \
     src/ui/settings/camerainfo.h \
+    src/ui/settings/defaultsettings.h \
     src/ui/settings/deviceinfointerface.h \
     src/ui/settings/microphoneinfo.h \
     src/ui/settings/screeninfo.h \
@@ -221,6 +225,7 @@ HEADERS  += \
 
 FORMS    += \
     ui/audiosettings.ui \
+    ui/automaticsettings.ui \
     ui/callwindow.ui \
     ui/conference/incomingcallwidget.ui \
     ui/conference/outgoingcallwidget.ui \

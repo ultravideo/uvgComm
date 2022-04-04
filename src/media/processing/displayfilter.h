@@ -7,7 +7,7 @@ class DisplayFilter : public Filter
 {
 public:
   DisplayFilter(QString id, StatisticsInterface* stats,
-                std::shared_ptr<HWResourceManager> hwResources,
+                std::shared_ptr<ResourceAllocator> hwResources,
                 VideoInterface *widget, uint32_t peer);
   ~DisplayFilter();
 

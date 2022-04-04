@@ -9,7 +9,7 @@ class OpusDecoderFilter : public Filter
 public:
   OpusDecoderFilter(uint32_t sessionID, QAudioFormat format,
                     StatisticsInterface* stats,
-                    std::shared_ptr<HWResourceManager> hwResources);
+                    std::shared_ptr<ResourceAllocator> hwResources);
   ~OpusDecoderFilter();
 
   // setups decoder

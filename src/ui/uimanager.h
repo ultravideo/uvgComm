@@ -61,6 +61,7 @@ signals:
   void updateCallSettings();
   void updateVideoSettings();
   void updateAudioSettings();
+  void updateAutomaticSettings();
 
   void endCall();
   void quit();

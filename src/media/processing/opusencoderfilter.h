@@ -8,7 +8,7 @@ class OpusEncoderFilter : public Filter
 {
 public:
   OpusEncoderFilter(QString id, QAudioFormat format, StatisticsInterface* stats,
-                    std::shared_ptr<HWResourceManager> hwResources);
+                    std::shared_ptr<ResourceAllocator> hwResources);
   ~OpusEncoderFilter();
 
   virtual void updateSettings();

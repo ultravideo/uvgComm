@@ -12,7 +12,7 @@ class UvgRTPSender : public Filter
   Q_OBJECT
 public:
   UvgRTPSender(uint32_t sessionID, QString id, StatisticsInterface *stats,
-               std::shared_ptr<HWResourceManager> hwResources, DataType type,
+               std::shared_ptr<ResourceAllocator> hwResources, DataType type,
                QString media, QFuture<uvg_rtp::media_stream *> mstream);
   ~UvgRTPSender();
 

@@ -45,6 +45,9 @@ void UIManager::init(ParticipantInterface *partInt)
   QObject::connect(&settingsView_, &Settings::updateAudioSettings,
                    this,           &UIManager::updateAudioSettings);
 
+  QObject::connect(&settingsView_, &Settings::updateAutomaticSettings,
+                   this,           &UIManager::updateAutomaticSettings);
+
   QObject::connect(&window_, &CallWindow::videoSourceChanged,
                    this, &UIManager::videoSourceChanged);
 

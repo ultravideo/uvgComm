@@ -7,7 +7,7 @@
 
 OpusDecoderFilter::OpusDecoderFilter(uint32_t sessionID, QAudioFormat format,
                                      StatisticsInterface *stats,
-                                     std::shared_ptr<HWResourceManager> hwResources):
+                                     std::shared_ptr<ResourceAllocator> hwResources):
   Filter(QString::number(sessionID), "Opus Decoder", stats, hwResources, DT_OPUSAUDIO, DT_RAWAUDIO),
   dec_(nullptr),
   pcmOutput_(nullptr),

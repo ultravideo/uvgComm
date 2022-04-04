@@ -20,7 +20,8 @@
 const QStringList neededSettings = {SettingsKey::localRealname,
                                     SettingsKey::localUsername,
                                     SettingsKey::sipServerAddress,
-                                    SettingsKey::sipAutoConnect};
+                                    SettingsKey::sipAutoConnect,
+                                    SettingsKey::manualSettings};
 
 Settings::Settings(QWidget *parent) :
   QDialog(parent),
@@ -47,6 +48,9 @@ void Settings::init()
 
   setWindowTitle("Kvazzup Settings");
 
+  // makes sure the settings are valid and resets them to defaults if necessary
+  defaults_.validateSettings(mic_, cam_);
+
   // Checks that settings values are correct for the program to start. Also sets GUI.
   getSettings(false);
 
@@ -64,18 +68,38 @@ void Settings::init()
   //QObject::connect(basicUI_->save, &QPushButton::clicked, this, &Settings::on_ok_clicked);
   //QObject::connect(basicUI_->close, &QPushButton::clicked, this, &Settings::on_cancel_clicked);
 
+  // video settings
   QObject::connect(&videoSettings_, &VideoSettings::updateVideoSettings,
                    this, &Settings::updateVideoSettings);
   QObject::connect(&videoSettings_, &VideoSettings::hidden, this, &Settings::show);
+  QObject::connect(basicUI_->video_settings_button, &QCheckBox::clicked,
+                   this, &Settings::openVideoSettings);
 
+  // audio settings
   QObject::connect(&audioSettings_, &AudioSettings::updateAudioSettings,
-                   this, &Settings::updateAudioSettings);
-  QObject::connect(&audioSettings_, &AudioSettings::hidden, this, &Settings::show);
+                   this,            &Settings::updateAudioSettings);
+  QObject::connect(&audioSettings_, &AudioSettings::hidden,
+                   this,            &Settings::show);
+  QObject::connect(basicUI_->audio_settings_button, &QCheckBox::clicked,
+                   this,                            &Settings::openAudioSettings);
 
+  // call settings
   QObject::connect(&sipSettings_, &SIPSettings::updateCallSettings,
-                   this, &Settings::updateCallSettings);
+                   this,          &Settings::updateCallSettings);
   QObject::connect(&sipSettings_, &SIPSettings::hidden,
-                   this, &Settings::show);
+                   this,          &Settings::show);
+  QObject::connect(basicUI_->sip_settings_button, &QCheckBox::clicked,
+                   this,                          &Settings::openCallSettings);
+
+  // automatic settings
+  QObject::connect(&autoSettings_, &AutomaticSettings::updateAutomaticSettings,
+                   this,          &Settings::updateAutomaticSettings);
+  QObject::connect(basicUI_->media_settings_button, &QCheckBox::clicked,
+                   this,                            &Settings::openAutomaticSettings);
+  QObject::connect(&autoSettings_, &AutomaticSettings::hidden,
+                   this,           &Settings::show);
+
+
 
   QObject::connect(basicUI_->serverAddress_edit, &QLineEdit::textChanged,
                    this, &Settings::changedSIPText);
@@ -96,7 +120,10 @@ void Settings::init()
                    this, &Settings::uiChangedString);
 
   QObject::connect(basicUI_->auto_connect_box, &QCheckBox::stateChanged,
-                   this, &Settings::uiChangedBool);
+                   this,                       &Settings::uiChangedBool);
+
+  QObject::connect(basicUI_->manual_box, &QCheckBox::stateChanged,
+                   this,                 &Settings::uiChangedBool);
 
   QObject::connect(basicUI_->videoDevice_combo, &QComboBox::currentTextChanged,
                    this, &Settings::uiChangedString);
@@ -104,6 +131,9 @@ void Settings::init()
                    this, &Settings::uiChangedString);
   QObject::connect(basicUI_->screenDevice_combo, &QComboBox::currentTextChanged,
                    this, &Settings::uiChangedString);
+
+  QObject::connect(basicUI_->manual_box, &QCheckBox::stateChanged,
+                   this, &Settings::manualSettingsButtons);
 
   // we must initialize the settings if they do not exist
   if (!settings_.value(SettingsKey::micStatus).isValid())
@@ -117,16 +147,46 @@ void Settings::init()
     setCameraState(true);
   }
 
+  if (!settings_.value(SettingsKey::cameraStatus).isValid())
+  {
+    manualSettingsButtons(false);
+  }
+  else
+  {
+    manualSettingsButtons(settings_.value(SettingsKey::manualSettings).toBool());
+  }
+
   // never start with screen sharing turned on
   setScreenShareState(false);
 
   // TODO: Also record the position of closed settings window and move the window there when shown again
 }
 
+void Settings::manualSettingsButtons(bool state)
+{
+  if (state)
+  {
+    basicUI_->video_settings_button->show();
+    basicUI_->audio_settings_button->show();
+
+    basicUI_->media_settings_button->hide();
+  }
+  else
+  {
+    basicUI_->video_settings_button->hide();
+    basicUI_->audio_settings_button->hide();
+
+    basicUI_->media_settings_button->show();
+  }
+}
+
 
 void Settings::show()
 {
   Logger::getLogger()->printNormal(this, "Opening settings");
+
+  defaults_.validateSettings(mic_, cam_);
+
   // initialize everytime in case they have changed
   initDeviceSelector(basicUI_->videoDevice_combo, SettingsKey::videoDeviceID,
                      SettingsKey::videoDevice, cam_);
@@ -198,7 +258,7 @@ void Settings::setScreenShareState(bool enabled)
   {
     settings_.setValue(SettingsKey::screenShareStatus, "0");
     videoSettings_.setScreenShareState(enabled);
-    videoSettings_.saveCameraCapabilities(getDeviceID(basicUI_->audioDevice_combo,
+    videoSettings_.saveCameraCapabilities(getDeviceID(basicUI_->videoDevice_combo,
                                                       SettingsKey::videoDeviceID,
                                                       SettingsKey::videoDevice), !enabled);
   }
@@ -247,7 +307,7 @@ void Settings::on_close_clicked()
 }
 
 
-void Settings::on_sip_settings_button_clicked()
+void Settings::openCallSettings()
 {
   saveSettings();
   hide();
@@ -255,7 +315,7 @@ void Settings::on_sip_settings_button_clicked()
 }
 
 
-void Settings::on_video_settings_button_clicked()
+void Settings::openVideoSettings()
 {
   saveSettings();
   hide();
@@ -263,12 +323,21 @@ void Settings::on_video_settings_button_clicked()
 }
 
 
-void Settings::on_audio_settings_button_clicked()
+void Settings::openAudioSettings()
 {
   saveSettings();
   hide();
   audioSettings_.show();
 }
+
+
+void Settings::openAutomaticSettings()
+{
+  saveSettings();
+  hide();
+  autoSettings_.show();
+}
+
 
 // records the settings
 void Settings::saveSettings()
@@ -291,6 +360,7 @@ void Settings::saveSettings()
     saveTextValue("local/Credentials", credentials, settings_);
   }
   saveCheckBox(SettingsKey::sipAutoConnect, basicUI_->auto_connect_box, settings_);
+  saveCheckBox(SettingsKey::manualSettings, basicUI_->manual_box, settings_);
 
   saveDevice(basicUI_->videoDevice_combo, SettingsKey::videoDeviceID,
              SettingsKey::videoDevice, true);
@@ -322,6 +392,9 @@ void Settings::getSettings(bool changedDevice)
     basicUI_->serverAddress_edit->setText(settings_.value(SettingsKey::sipServerAddress).toString());
 
     restoreCheckBox(SettingsKey::sipAutoConnect, basicUI_->auto_connect_box, settings_);
+    restoreCheckBox(SettingsKey::manualSettings, basicUI_->manual_box, settings_);
+
+    manualSettingsButtons(basicUI_->manual_box->checkState());
 
     // updates the sip text label
     changedSIPText("");
@@ -331,6 +404,7 @@ void Settings::getSettings(bool changedDevice)
                                  SettingsKey::videoDevice);
     if(changedDevice)
     {
+      defaults_.setDefaultVideoSettings(cam_);
       videoSettings_.changedDevice(videoIndex);
     }
     basicUI_->videoDevice_combo->setCurrentIndex(videoIndex);
@@ -380,19 +454,12 @@ void Settings::resetFaultySettings()
   // record GUI settings in hope that they are correct ( is case by default )
   saveSettings();
 
-  videoSettings_.resetSettings(getDeviceID(basicUI_->videoDevice_combo,
-                                           SettingsKey::videoDeviceID,
-                                           SettingsKey::videoDevice));
-
-  audioSettings_.resetSettings(getDeviceID(basicUI_->audioDevice_combo,
-                                           SettingsKey::audioDeviceID,
-                                           SettingsKey::audioDevice));
-
   // we set the connecting to true at this point because we want two things:
   // 1) that Kvazzup doesn't connect to any server without user permission
   // 2) that connecting to server is default since it is the easiest way to use Kvazzup
   // These two conditions can only be achieved by modifying UI after settings have been saved
   basicUI_->auto_connect_box->setChecked(true);
+  basicUI_->manual_box->setChecked(true); // TODO: Change this to false when automatic settigns are ready
 
   sipSettings_.resetSettings();
 
@@ -479,28 +546,42 @@ void Settings::saveDevice(QComboBox* deviceSelector, QString settingsID,
   int currentIndex = deviceSelector->currentIndex();
   if( currentIndex != -1)
   {
-    if(deviceSelector->currentText() != settings_.value(settingsDevice))
+    if(deviceSelector->currentText() != settings_.value(settingsDevice).toString())
     {
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "The device name has changed",
+                                       {"Old name", "New name"},
+                                       {settings_.value(settingsDevice).toString(), deviceSelector->currentText()});
+
       settings_.setValue(settingsDevice, deviceSelector->currentText());
+
       // set capability to first
 
       if (video)
       {
+        defaults_.setDefaultVideoSettings(cam_);
         videoSettings_.changedDevice(currentIndex);
       }
       else
       {
+        defaults_.setDefaultAudioSettings(mic_);
         audioSettings_.changedDevice(currentIndex);
       }
     }
-    else if(basicUI_->videoDevice_combo->currentIndex() != settings_.value(settingsID))
+    else if(deviceSelector->currentIndex() != settings_.value(settingsID).toInt())
     {
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "The device ID has changed",
+                                       {"Old ID", "New ID"},
+                                       {settings_.value(settingsID).toString(),
+                                        QString::number(deviceSelector->currentIndex())});
+
       if (video)
       {
+        defaults_.setDefaultVideoSettings(cam_);
         videoSettings_.changedDevice(currentIndex);
       }
       else
       {
+        defaults_.setDefaultAudioSettings(mic_);
         audioSettings_.changedDevice(currentIndex);
       }
     }

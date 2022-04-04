@@ -8,7 +8,7 @@ class RGB32toYUV : public Filter
 {
 public:
   RGB32toYUV(QString id, StatisticsInterface* stats,
-             std::shared_ptr<HWResourceManager> hwResources);
+             std::shared_ptr<ResourceAllocator> hwResources);
 
   virtual void updateSettings();
 

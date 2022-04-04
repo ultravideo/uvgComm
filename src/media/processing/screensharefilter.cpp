@@ -10,7 +10,7 @@
 #include "logger.h"
 
 ScreenShareFilter::ScreenShareFilter(QString id, StatisticsInterface *stats,
-                                     std::shared_ptr<HWResourceManager> hwResources):
+                                     std::shared_ptr<ResourceAllocator> hwResources):
   Filter(id, "Screen Sharing", stats, hwResources, DT_NONE, DT_RGB32VIDEO),
 screenID_(0)
 {}

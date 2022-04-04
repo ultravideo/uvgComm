@@ -76,20 +76,12 @@ void CameraInfo::getVideoFormats(int deviceID, QStringList& formats)
     QList<QVideoFrame::PixelFormat> p_formats = camera->supportedViewfinderPixelFormats();
     camera->unload();
 
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, "Camera Info", 
+    /*
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, "Camera Info",
                                     "Getting text of " + QString::number(p_formats.size()) + " video formats",
-                                    {"DeviceID"}, {QString::number(deviceID)});
+                                    {"DeviceID"}, {QString::number(deviceID)}); */
 
-    for (int i = 0; i < p_formats.size() ; ++i)
-    {
-      for (int j = 0; j < kvazzupFormats.size(); ++j)
-      {
-        if (p_formats.at(i) == kvazzupFormats.at(j))
-        {
-          formats.push_back(pixelFormatStrings.at(p_formats.at(i)));
-        }
-      }
-    }
+    getAllowedFormats(p_formats, formats);
   }
 }
 
@@ -108,11 +100,12 @@ void CameraInfo::getFormatResolutions(int deviceID, QString format, QStringList 
     QList<QSize> supportedResolutions = camera->supportedViewfinderResolutions();
     camera->unload();
 
+    /*
     Logger::getLogger()->printDebug(DEBUG_NORMAL, "Camera Info", 
                                     "Getting text of " + 
                                     QString::number(supportedResolutions.size()) + 
                                     " video resolution strings",
-                                    {"DeviceID"},  {QString::number(deviceID)});
+                                    {"DeviceID"},  {QString::number(deviceID)}); */
 
     for (int i = 0; i < supportedResolutions.size(); ++i)
     {
@@ -186,28 +179,33 @@ QVideoFrame::PixelFormat CameraInfo::stringToPixelFormat(QString format)
 }
 
 
-QSize CameraInfo::getResolution(int deviceID, int formatID, int resolutionID)
+int CameraInfo::getMostMatchingDeviceID(QString deviceName, int deviceID)
 {
-  std::unique_ptr<QCamera> camera = loadCamera(deviceID);
-  if (camera != nullptr)
-  {
-    QString format = getFormat(deviceID, formatID);
-    QCameraViewfinderSettings viewSettings;
-    viewSettings.setPixelFormat(stringToPixelFormat(format));
-    QList<QSize> supporteResolutions = camera->supportedViewfinderResolutions(viewSettings);
-    camera->unload();
+  QStringList devices = getDeviceList();
 
-    if(supporteResolutions.size() > resolutionID)
-    {
-      return supporteResolutions.at(resolutionID);
-    }
-    else if(!supporteResolutions.empty())
-    {
-      supporteResolutions.at(0);
-    }
+  // no cameras have been found so we return invalid deviceID
+  if (devices.empty())
+  {
+    return -1;
   }
 
-  return QSize(0,0);
+  // if the deviceID is larger than is possible or if the name does not match
+  if (deviceID >= devices.size() || devices.at(deviceID) != deviceName)
+  {
+    // find the first camera with same name as deviceName
+    for (int i = 0; i < devices.size(); ++i)
+    {
+      if (devices.at(i) == deviceName)
+      {
+        return i;
+      }
+    }
+
+    // if none of the cameras match, return the first one
+    return 0;
+  }
+
+  return deviceID;
 }
 
 
@@ -228,3 +226,130 @@ QString CameraInfo::getFormat(int deviceID, int formatID)
   return "No_camera";
 }
 
+
+QSize CameraInfo::getResolution(int deviceID, int formatID, int resolutionID)
+{
+  std::unique_ptr<QCamera> camera = loadCamera(deviceID);
+  if (camera != nullptr)
+  {
+    QString format = getFormat(deviceID, formatID);
+    QCameraViewfinderSettings viewSettings;
+    viewSettings.setPixelFormat(stringToPixelFormat(format));
+    QList<QSize> supportedResolutions = camera->supportedViewfinderResolutions(viewSettings);
+    camera->unload();
+
+    if(supportedResolutions.size() > resolutionID)
+    {
+      return supportedResolutions.at(resolutionID);
+    }
+    else if(!supportedResolutions.empty())
+    {
+      supportedResolutions.at(0);
+    }
+  }
+
+  return QSize(0,0);
+}
+
+
+int CameraInfo::getFramerate(int deviceID, int formatID, int resolutionID, int framerateID)
+{
+  std::unique_ptr<QCamera> camera = loadCamera(deviceID);
+  if (camera != nullptr)
+  {
+    QString format = getFormat(deviceID, formatID);
+    QCameraViewfinderSettings viewSettings;
+    viewSettings.setPixelFormat(stringToPixelFormat(format));
+    QList<QSize> supportedResolutions = camera->supportedViewfinderResolutions(viewSettings);
+
+    if (supportedResolutions.size() > resolutionID)
+    {
+      viewSettings.setResolution(supportedResolutions.at(resolutionID));
+      QList<QCamera::FrameRateRange> framerates = camera->supportedViewfinderFrameRateRanges(viewSettings);
+      camera->unload();
+
+      if (framerates.size() > framerateID)
+      {
+        return framerates.at(framerateID).maximumFrameRate;
+      }
+      else if (!framerates.empty())
+      {
+        return framerates.at(0).maximumFrameRate;
+      }
+    }
+    else if(!supportedResolutions.empty())
+    {
+      viewSettings.setResolution(supportedResolutions.at(0));
+      QList<QCamera::FrameRateRange> framerates = camera->supportedViewfinderFrameRateRanges(viewSettings);
+      camera->unload();
+
+      if (!framerates.empty())
+      {
+        return framerates.at(0).maximumFrameRate;
+      }
+    }
+
+    camera->unload();
+  }
+
+  return 0;
+}
+
+void CameraInfo::getCameraOptions(std::vector<SettingsCameraFormat>& options, int deviceID)
+{
+  if (deviceID != -1)
+  {
+    std::unique_ptr<QCamera> camera = loadCamera(deviceID);
+    QStringList devices = getDeviceList();
+
+    if (camera != nullptr)
+    {
+      QCameraViewfinderSettings viewSettings;
+      QList<QVideoFrame::PixelFormat> p_formats = camera->supportedViewfinderPixelFormats();
+      QStringList formats;
+      getAllowedFormats(p_formats, formats);
+
+      for (int formatID = 0; formatID < formats.size(); ++formatID)
+      {
+        viewSettings = QCameraViewfinderSettings{};
+        viewSettings.setPixelFormat(stringToPixelFormat(formats.at(formatID)));
+        QList<QSize> resolutions  = camera->supportedViewfinderResolutions(viewSettings);
+
+        for (int resolutionID = 0; resolutionID < resolutions.size(); ++resolutionID)
+        {
+          viewSettings.setResolution(resolutions.at(resolutionID));
+          QList<QCamera::FrameRateRange> framerates = camera->supportedViewfinderFrameRateRanges(viewSettings);
+
+          for (int framerateID = 0; framerateID < framerates.size(); ++framerateID)
+          {
+            if (framerates.at(framerateID).maximumFrameRate >= 24.0)
+            {
+              options.push_back({devices.at(deviceID),                                         deviceID,
+                                 formats.at(formatID),                                         formatID,
+                                 resolutions.at(resolutionID),                                 resolutionID,
+                                 QString::number(framerates.at(framerateID).maximumFrameRate), framerateID});
+            }
+          }
+        }
+      }
+
+      camera->unload();
+    }
+  }
+}
+
+
+void CameraInfo::getAllowedFormats(QList<QVideoFrame::PixelFormat>& p_formats,
+                                   QStringList& allowedFormats)
+{
+  for (int i = 0; i < p_formats.size() ; ++i)
+  {
+    for (int j = 0; j < kvazzupFormats.size(); ++j)
+    {
+      if (p_formats.at(i) == kvazzupFormats.at(j))
+      {
+        allowedFormats.push_back(pixelFormatStrings.at(p_formats.at(i)));
+      }
+    }
+  }
+}

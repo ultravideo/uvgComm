@@ -80,6 +80,7 @@ signals:
 
   void updateVideoSettings();
   void updateAudioSettings();
+  void updateAutomaticSettings();
 
 private:
 
