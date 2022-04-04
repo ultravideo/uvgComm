@@ -449,8 +449,8 @@ void Filter::printDataBytes(QString type, uint8_t *payload, size_t size, int byt
 
   for (int i = 0; i < bytes; ++i)
   {
-    bytesString += QString::number(payload[i] << shift);
+    bytesString += QString::number(payload[i] << shift) + " ";
   }
 
-  Logger::getLogger()->printNormal(this, type + ": " + bytesString);
+  Logger::getLogger()->printNormal(this, type + ": " + bytesString, "size", QString::number(size));
 }

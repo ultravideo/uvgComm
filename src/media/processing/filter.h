@@ -185,7 +185,8 @@ protected:
   bool isVideo(DataType type);
   bool isAudio(DataType type);
 
-  void printDataBytes(QString type, uint8_t *payload, size_t size, int bytes, int shift);
+  void printDataBytes(QString type, uint8_t *payload, size_t size,
+                      int bytes, int shift);
 
 private:
 
