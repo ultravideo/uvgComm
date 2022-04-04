@@ -155,7 +155,7 @@ void OpenHEVCFilter::process()
       ppsReceived_ = true;
     }
 
-    if((vpsReceived_ && spsReceived_ && ppsReceived_) || vps || sps || pps)
+    if(slices_ || (vpsReceived_ && spsReceived_ && ppsReceived_) || vps || sps || pps)
     {
       if(nextSlice && sliceBuffer_.size() != 0)
       {
@@ -231,6 +231,10 @@ void OpenHEVCFilter::process()
         }
       }
       sliceBuffer_.push_back(std::move(input));
+    }
+    else
+    {
+      Logger::getLogger()->printWarning(this, "Discarding frame until necessary structures have arrived");
     }
 
     input = getInput();
