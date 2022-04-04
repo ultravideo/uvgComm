@@ -98,20 +98,23 @@ bool DefaultSettings::validateCallSettings()
 
 void DefaultSettings::setDefaultAudioSettings(std::shared_ptr<MicrophoneInfo> mic)
 {
-  QStringList devices = mic->getDeviceList();
-
-
-  // TODO: CHoose device based on which sample rates they support
-  if (!devices.empty())
+  if (settings_.value(SettingsKey::audioDevice).isNull() ||
+      settings_.value(SettingsKey::audioDevice).toString() == "")
   {
-    settings_.setValue(SettingsKey::audioDevice,        devices.first());
-    settings_.setValue(SettingsKey::audioDeviceID,      0);
-  }
-  else
-  {
-    settings_.setValue(SettingsKey::audioDevice,        "");
-    settings_.setValue(SettingsKey::audioDeviceID,      -1);
-    Logger::getLogger()->printError(this, "Did not find microphone!");
+    // TODO: Choose device based on which supports sample rate of 48000
+    QStringList devices = mic->getDeviceList();
+
+    if (!devices.empty())
+    {
+      settings_.setValue(SettingsKey::audioDevice,        devices.first());
+      settings_.setValue(SettingsKey::audioDeviceID,      0);
+    }
+    else
+    {
+      settings_.setValue(SettingsKey::audioDevice,        "");
+      settings_.setValue(SettingsKey::audioDeviceID,      -1);
+      Logger::getLogger()->printError(this, "Did not find microphone!");
+    }
   }
 
   // TODO: Choose rest of the audio paramers such as samplerate (and maybe codec)
