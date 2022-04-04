@@ -6,6 +6,8 @@ namespace Ui {
 class RoiArea;
 }
 
+class VideoWidget;
+
 class RoiArea : public QWidget
 {
   Q_OBJECT
@@ -14,6 +16,8 @@ public:
   explicit RoiArea(QWidget *parent = nullptr);
   ~RoiArea();
 
+  VideoWidget* getSelfVideoWidget();
+
 private:
-  Ui::RoiArea *ui;
+  Ui::RoiArea *ui_;
 };

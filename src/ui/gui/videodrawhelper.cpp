@@ -51,6 +51,13 @@ bool VideoDrawHelper::readyToDraw()
 void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data, QImage &image,
                                  int64_t timestamp)
 {
+  if (!widget->isVisible() ||
+      widget->isHidden() ||
+      widget->isMinimized())
+  {
+    return;
+  }
+
   if(!firstImageReceived_)
   {
     currentFrame_ = timestamp;
@@ -78,15 +85,11 @@ void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data,
     // delete oldes image if there is too much buffer
     if(frameBuffer_.size() > VIEWBUFFERSIZE)
     {
-      if ( widget->isVisible() &&
-           widget->isActiveWindow() &&
-          !widget->isHidden() &&
-          !widget->isMinimized())
-      {
-        Logger::getLogger()->printWarning(this, "Buffer full when inputting image",
-                                          {"Buffer"}, QString::number(frameBuffer_.size()) + "/"
-                                                      + QString::number(VIEWBUFFERSIZE));
-      }
+
+      Logger::getLogger()->printWarning(this, "Buffer full when inputting image",
+                                        {"Buffer"}, QString::number(frameBuffer_.size()) + "/"
+                                                    + QString::number(VIEWBUFFERSIZE));
+
 
       frameBuffer_.pop_back();
 

@@ -42,6 +42,12 @@ Settings::~Settings()
 }
 
 
+VideoWidget* Settings::getSelfViews()
+{
+  return autoSettings_.getRoiSelfView();
+}
+
+
 void Settings::init()
 { 
   basicUI_->setupUi(this);

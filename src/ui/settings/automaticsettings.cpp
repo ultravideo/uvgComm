@@ -36,3 +36,9 @@ void AutomaticSettings::showROI()
 {
   roi_.show();
 }
+
+
+VideoWidget* AutomaticSettings::getRoiSelfView()
+{
+  return roi_.getSelfVideoWidget();
+}

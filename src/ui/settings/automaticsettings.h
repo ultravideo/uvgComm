@@ -16,6 +16,8 @@ public:
   explicit AutomaticSettings(QWidget *parent = nullptr);
   ~AutomaticSettings();
 
+    VideoWidget* getRoiSelfView();
+
 public slots:
   void finished();
 

@@ -5,12 +5,19 @@
 
 RoiArea::RoiArea(QWidget *parent) :
   QWidget(parent),
-  ui(new Ui::RoiArea)
+  ui_(new Ui::RoiArea)
 {
-  ui->setupUi(this);
+  ui_->setupUi(this);
 }
+
 
 RoiArea::~RoiArea()
 {
-  delete ui;
+  delete ui_;
+}
+
+
+VideoWidget* RoiArea::getSelfVideoWidget()
+{
+  return ui_->frame;
 }

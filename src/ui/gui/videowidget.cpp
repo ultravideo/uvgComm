@@ -8,7 +8,8 @@
 #include <QKeyEvent>
 #include <QLayout>
 
-VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID, uint32_t index, uint8_t borderSize)
+VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID, uint32_t index,
+                         uint8_t borderSize)
   : QFrame(parent),
   stats_(nullptr),
   sessionID_(sessionID),
@@ -24,6 +25,8 @@ VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID, uint32_t index, ui
   QObject::connect(this, SIGNAL(newImage()), this, SLOT(repaint()));
   QObject::connect(&helper_, &VideoDrawHelper::detach, this, &VideoWidget::detach);
   QObject::connect(&helper_, &VideoDrawHelper::reattach, this, &VideoWidget::reattach);
+
+  helper_.updateTargetRect(this);
 }
 
 VideoWidget::~VideoWidget()

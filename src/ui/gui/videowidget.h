@@ -58,7 +58,6 @@ private:
 
   StatisticsInterface* stats_;
   uint32_t sessionID_;
-  uint32_t index_;
 
   VideoDrawHelper helper_;
 };
