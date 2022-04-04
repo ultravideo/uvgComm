@@ -30,7 +30,7 @@ UIManager::~UIManager()
 
 void UIManager::init(ParticipantInterface *partInt)
 {
-  viewFactory_->setSelfview(window_.getSelfViewInterface(),
+  viewFactory_->addSelfview(window_.getSelfViewInterface(),
                             window_.getSelfViewWidget());
 
   aboutWidget_ = new Ui::AboutWidget;

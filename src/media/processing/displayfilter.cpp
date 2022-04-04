@@ -13,23 +13,41 @@
 
 DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
                              std::shared_ptr<ResourceAllocator> hwResources,
-                             VideoInterface *widget, uint32_t sessionID):
+                             QList<VideoInterface *> widgets, uint32_t sessionID):
   Filter(id, "Display", stats, hwResources, DT_RGB32VIDEO, DT_NONE),
   horizontalMirroring_(false),
-  widget_(widget),
+  widgets_(widgets),
   sessionID_(sessionID)
 {
-  if (widget != nullptr)
+
+  if (widgets.empty())
   {
-    if(widget->supportedFormat() == VIDEO_RGB32)
+    Logger::getLogger()->printProgramError(this, "No widgest were provided");
+    return;
+  }
+
+  if (widgets.at(0) != nullptr)
+  {
+    VideoFormat chosenFormat = widgets.at(0)->supportedFormat();
+
+    if (chosenFormat == VIDEO_RGB32)
     {
       input_ = DT_RGB32VIDEO;
     }
-    else if(widget->supportedFormat() == VIDEO_YUV420)
+    else if (chosenFormat == VIDEO_YUV420)
     {
       input_ = DT_YUV420VIDEO;
     }
-    widget_->setStats(stats);
+
+    for (auto& widget : widgets)
+    {
+      if (widget->supportedFormat() != chosenFormat)
+      {
+        Logger::getLogger()->printProgramWarning(this, "The input formats of display widgets differ");
+      }
+    }
+
+    widgets.at(0)->setStats(stats);
   }
   else {
     Q_ASSERT(false);
@@ -83,7 +101,10 @@ void DisplayFilter::process()
 
       int32_t delay = QDateTime::currentMSecsSinceEpoch() - input->presentationTime;
 
-      widget_->inputImage(std::move(input->data), image, input->presentationTime);
+      for (auto& widget : widgets_)
+      {
+        widget->inputImage(std::move(input->data), image, input->presentationTime);
+      }
 
       if( sessionID_ != 1111)
         getStats()->receiveDelay(sessionID_, "Video", delay);

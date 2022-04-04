@@ -1,5 +1,7 @@
 #pragma once
 
+#include <QList>
+
 #include <stdint.h>
 
 #include <map>
@@ -24,12 +26,14 @@ public:
 
   // set self view which is part of the
   // returns viewID which is also videoID
-  size_t setSelfview(VideoInterface* video, QWidget* view);
+  void addSelfview(VideoInterface* video, QWidget* view);
 
-  // 0 in sessionID is for selfview
   // id is the index of that view or video
   QWidget* getView(uint32_t sessionID, size_t viewID);
   VideoInterface* getVideo(uint32_t sessionID, uint32_t videoID);
+
+  QList<QWidget*> getSelfViews();
+  QList<VideoInterface*> getSelfVideos();
 
   // Does not clear selfview
   void clearWidgets(uint32_t sessionID);
@@ -42,5 +46,9 @@ private:
   std::map<uint32_t, std::shared_ptr<std::vector<QWidget*>>> sessionIDtoWidgetlist_;
   std::map<uint32_t, std::shared_ptr<std::vector<VideoInterface*>>> sessionIDtoVideolist_;
 
+  QList<QWidget*> selfViews_;
+  QList<VideoInterface*> selfVideos_;
+
   bool opengl_;
 };
+

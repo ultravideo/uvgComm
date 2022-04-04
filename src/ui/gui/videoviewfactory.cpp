@@ -16,6 +16,8 @@
 VideoviewFactory::VideoviewFactory():
   sessionIDtoWidgetlist_(),
   sessionIDtoVideolist_(),
+  selfViews_(),
+  selfVideos_(),
   opengl_(false)
 {}
 
@@ -88,13 +90,22 @@ size_t VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent,
 }
 
 
-size_t VideoviewFactory::setSelfview(VideoInterface *video, QWidget *view)
+void VideoviewFactory::addSelfview(VideoInterface *video, QWidget *view)
 { 
-  checkInitializations(0);
+  selfViews_.push_back(view);
+  selfVideos_.push_back(video);
+}
 
-  sessionIDtoWidgetlist_[0]->push_back(view);
-  sessionIDtoVideolist_[0]->push_back(video);
-  return sessionIDtoVideolist_[0]->size() - 1;
+
+QList<QWidget*> VideoviewFactory::getSelfViews()
+{
+  return selfViews_;
+}
+
+
+QList<VideoInterface*> VideoviewFactory::getSelfVideos()
+{
+  return selfVideos_;
 }
 
 

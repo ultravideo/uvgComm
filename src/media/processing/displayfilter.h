@@ -8,7 +8,7 @@ class DisplayFilter : public Filter
 public:
   DisplayFilter(QString id, StatisticsInterface* stats,
                 std::shared_ptr<ResourceAllocator> hwResources,
-                VideoInterface *widget, uint32_t peer);
+                QList<VideoInterface*> widgets, uint32_t peer);
   ~DisplayFilter();
 
   void setHorizontalMirroring(bool status)
@@ -24,7 +24,7 @@ private:
   bool horizontalMirroring_;
 
   // Owned by Conference view
-  VideoInterface* widget_;
+  QList<VideoInterface*> widgets_;
 
   uint32_t sessionID_;
 };

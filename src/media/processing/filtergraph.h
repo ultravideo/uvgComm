@@ -27,7 +27,7 @@ class FilterGraph : public QObject
 public:
   FilterGraph();
 
-  void init(VideoInterface* selfView, StatisticsInterface *stats,
+  void init(QList<VideoInterface*> selfViews, StatisticsInterface *stats,
             std::shared_ptr<ResourceAllocator> hwResources);
   void uninit();
 

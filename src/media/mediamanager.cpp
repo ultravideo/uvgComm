@@ -55,8 +55,7 @@ void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory,
   std::shared_ptr<ResourceAllocator> hwResources =
       std::shared_ptr<ResourceAllocator>(new ResourceAllocator());
 
-  // 0 is the selfview index. The view should be created by GUI
-  fg_->init(viewfactory_->getVideo(0, 0), stats, hwResources);
+  fg_->init(viewfactory_->getSelfVideos(), stats, hwResources);
   streamer_->init(stats_, hwResources);
 
   QObject::connect(this, &MediaManager::updateVideoSettings,

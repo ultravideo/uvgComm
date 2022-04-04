@@ -85,7 +85,7 @@ FilterGraph::FilterGraph(): QObject(),
 }
 
 
-void FilterGraph::init(VideoInterface* selfView, StatisticsInterface* stats,
+void FilterGraph::init(QList<VideoInterface *> selfViews, StatisticsInterface* stats,
                        std::shared_ptr<ResourceAllocator> hwResources)
 {
   Q_ASSERT(stats);
@@ -99,7 +99,7 @@ void FilterGraph::init(VideoInterface* selfView, StatisticsInterface* stats,
   hwResources_ = hwResources;
 
   selfviewFilter_ =
-      std::shared_ptr<DisplayFilter>(new DisplayFilter("Self", stats_, hwResources_, selfView, 1111));
+      std::shared_ptr<DisplayFilter>(new DisplayFilter("Self", stats_, hwResources_, selfViews, 1111));
 
   initSelfView();
 }
@@ -520,7 +520,7 @@ void FilterGraph::receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> v
 
   std::shared_ptr<DisplayFilter> displayFilter =
       std::shared_ptr<DisplayFilter>(new DisplayFilter(QString::number(sessionID),
-                                                stats_, hwResources_, view, sessionID));
+                                                stats_, hwResources_, {view}, sessionID));
 
   addToGraph(displayFilter, *graph, 1);
 }
