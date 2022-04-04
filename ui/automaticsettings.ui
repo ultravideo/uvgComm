@@ -14,21 +14,7 @@
    <string>Media Settings</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <item row="1" column="0" colspan="3">
-    <widget class="Line" name="line">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="1">
-    <widget class="QPushButton" name="reset_button">
-     <property name="text">
-      <string>Reset</string>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="0">
+   <item row="5" column="0">
     <spacer name="horizontalSpacer">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
@@ -41,7 +27,14 @@
      </property>
     </spacer>
    </item>
-   <item row="4" column="2">
+   <item row="5" column="1">
+    <widget class="QPushButton" name="reset_button">
+     <property name="text">
+      <string>Reset</string>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="2">
     <widget class="QPushButton" name="close_button">
      <property name="text">
       <string>Finished</string>
@@ -84,6 +77,20 @@
      </property>
      <property name="wordWrap">
       <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="0" colspan="3">
+    <widget class="Line" name="line">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="2">
+    <widget class="QPushButton" name="roi_button">
+     <property name="text">
+      <string>Set ROI</string>
      </property>
     </widget>
    </item>

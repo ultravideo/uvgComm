@@ -1,5 +1,7 @@
 #pragma once
 
+#include "roiarea.h"
+
 #include <QDialog>
 
 namespace Ui {
@@ -17,10 +19,14 @@ public:
 public slots:
   void finished();
 
+  void showROI();
+
 signals:
   void updateAutomaticSettings();
   void hidden();
 
 private:
   Ui::AutomaticSettings *ui;
+
+  RoiArea roi_;
 };
