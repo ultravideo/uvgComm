@@ -41,6 +41,7 @@ public:
   bool getRecentImage(QImage& image);
 
   void drawOverlay(QPainter& painter);
+  void addPointToOverlay(const QPointF& position, bool addPoint, bool removePoint);
 
   void mouseDoubleClickEvent(QWidget* widget);
   void keyPressEvent(QWidget* widget, QKeyEvent* event);

@@ -1,6 +1,7 @@
 #include "videowidget.h"
 
 #include "statisticsinterface.h"
+#include "logger.h"
 
 #include <QPaintEvent>
 #include <QCoreApplication>
@@ -98,6 +99,34 @@ void VideoWidget::resizeEvent(QResizeEvent *event)
 void VideoWidget::keyPressEvent(QKeyEvent *event)
 {
   helper_.keyPressEvent(this, event);
+}
+
+
+void VideoWidget::mousePressEvent(QMouseEvent *e)
+{
+  QWidget::mousePressEvent(e);
+
+  // if you want this to also trigger on movement without pressing,
+  // enable mouse tracking in qwidget
+
+  helper_.addPointToOverlay(e->localPos(),
+                            e->button() == Qt::LeftButton,
+                            e->button() == Qt::RightButton);
+}
+
+
+void VideoWidget::mouseMoveEvent(QMouseEvent *e)
+{
+  QWidget::mouseMoveEvent(e);
+
+  // if you want this to also trigger on movement without pressing,
+  // enable mouse tracking in qwidget
+
+  Qt::MouseButtons buttonFlags = e->buttons();
+
+  helper_.addPointToOverlay(e->localPos(),
+                            buttonFlags & Qt::LeftButton,
+                            buttonFlags & Qt::RightButton);
 }
 
 

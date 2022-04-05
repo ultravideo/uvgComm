@@ -11,6 +11,9 @@ const uint16_t VIEWBUFFERSIZE = 5;
 
 const QImage::Format IMAGE_FORMAT = QImage::Format_ARGB32;
 
+const QColor unselectedColor = QColor(50, 50, 50, 200);
+const QColor selectedColor = QColor(255, 255, 255, 0);
+
 
 VideoDrawHelper::VideoDrawHelper(uint32_t sessionID, uint32_t index, uint8_t borderSize):
   sessionID_(sessionID),
@@ -165,12 +168,40 @@ void VideoDrawHelper::updateTargetRect(QWidget* widget)
     if (drawOverlay_)
     {
       overlay_ = QImage(size, IMAGE_FORMAT);
-      overlay_.fill(QColor(180, 180, 180, 150));
+      overlay_.fill(unselectedColor);
     }
   }
   else
   {
     Logger::getLogger()->printWarning(this, "Tried updating target rect before picture");
+  }
+}
+
+
+void VideoDrawHelper::addPointToOverlay(const QPointF& position, bool addPoint, bool removePoint)
+{
+  if (drawOverlay_ && (addPoint != removePoint))
+  {
+    const QSizeF size(64, 64);
+    QPointF circleHalfway(size.width()/2, size.height()/2);
+
+    QPainter painter(&overlay_);
+
+    QBrush brush(selectedColor);
+
+    if (removePoint)
+    {
+      brush = QBrush(unselectedColor);
+    }
+
+    painter.setBrush(brush);
+    painter.setPen(Qt::NoPen);
+
+    // need to be set so we can override the destination alpha
+    painter.setCompositionMode(QPainter::CompositionMode_Source);
+
+    QRectF drawnCircle(position - targetRect_.topLeft() - circleHalfway, size);
+    painter.drawEllipse(drawnCircle);
   }
 }
 
@@ -201,6 +232,7 @@ void VideoDrawHelper::keyPressEvent(QWidget* widget, QKeyEvent *event)
   }
 }
 
+
 void VideoDrawHelper::mouseDoubleClickEvent(QWidget* widget) {
   if(sessionID_ != 0)
   {
@@ -212,6 +244,7 @@ void VideoDrawHelper::mouseDoubleClickEvent(QWidget* widget) {
     }
   }
 }
+
 
 void VideoDrawHelper::enterFullscreen(QWidget* widget)
 {
