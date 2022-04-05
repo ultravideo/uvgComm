@@ -8,6 +8,7 @@ RoiArea::RoiArea(QWidget *parent) :
   ui_(new Ui::RoiArea)
 {
   ui_->setupUi(this);
+  ui_->frame->enableOverlay();
 }
 
 

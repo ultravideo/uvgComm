@@ -1,6 +1,7 @@
 #include "videoyuvwidget.h"
 
 #include "statisticsinterface.h"
+#include "logger.h"
 
 #include <QPaintEvent>
 #include <QCoreApplication>
@@ -26,8 +27,16 @@ VideoYUVWidget::VideoYUVWidget(QWidget* parent, uint32_t sessionID,
   QObject::connect(&helper_, &VideoDrawHelper::reattach, this, &VideoYUVWidget::reattach);
 }
 
+
 VideoYUVWidget::~VideoYUVWidget()
 {}
+
+
+void VideoYUVWidget::enableOverlay()
+{
+  Logger::getLogger()->printError(this, "Overlay not supported for YUV widget");
+}
+
 
 void VideoYUVWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image, int64_t timestamp)
 {

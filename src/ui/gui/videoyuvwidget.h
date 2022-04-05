@@ -39,6 +39,8 @@ public:
 
   static unsigned int number_;
 
+  virtual void enableOverlay();
+
   virtual VideoFormat supportedFormat()
   {
     //return VIDEO_RGB32;

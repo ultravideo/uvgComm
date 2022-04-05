@@ -25,6 +25,8 @@ public:
   // Takes ownership of the image data
   virtual void inputImage(std::unique_ptr<uchar[]> data, QImage &image, int64_t timestamp) = 0;
 
+  virtual void enableOverlay() = 0;
+
   virtual VideoFormat supportedFormat() = 0;
 };
 

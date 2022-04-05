@@ -22,8 +22,16 @@ VideoGLWidget::VideoGLWidget(QWidget* parent, uint32_t sessionID, uint32_t index
   QObject::connect(&helper_, &VideoDrawHelper::reattach, this, &VideoGLWidget::reattach);
 }
 
+
 VideoGLWidget::~VideoGLWidget()
 {}
+
+
+void VideoGLWidget::enableOverlay()
+{
+  helper_.enableOverlay();
+}
+
 
 void VideoGLWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image, int64_t timestamp)
 {

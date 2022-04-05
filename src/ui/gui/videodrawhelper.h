@@ -32,11 +32,15 @@ public:
 
   void initWidget(QWidget* widget);
 
+  void enableOverlay();
+
   bool readyToDraw();
   void inputImage(QWidget *widget, std::unique_ptr<uchar[]> data, QImage &image, int64_t timestamp);
 
   // returns whether this is a new image or the previous one
   bool getRecentImage(QImage& image);
+
+  void drawOverlay(QPainter& painter);
 
   void mouseDoubleClickEvent(QWidget* widget);
   void keyPressEvent(QWidget* widget, QKeyEvent* event);
@@ -87,4 +91,7 @@ private:
   std::deque<Frame> frameBuffer_;
 
   int64_t currentFrame_;
+
+  bool drawOverlay_;
+  QImage overlay_;
 };

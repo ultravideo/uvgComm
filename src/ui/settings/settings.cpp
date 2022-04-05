@@ -32,6 +32,7 @@ Settings::Settings(QWidget *parent) :
   sipSettings_(this),
   videoSettings_(this, cam_),
   audioSettings_(this, mic_),
+  autoSettings_(this),
   settings_(settingsFile, settingsFileFormat)
 {}
 

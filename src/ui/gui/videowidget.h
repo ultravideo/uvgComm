@@ -31,6 +31,8 @@ public:
   // Takes ownership of the image data
   virtual void inputImage(std::unique_ptr<uchar[]> data, QImage &image, int64_t timestamp);
 
+  virtual void enableOverlay();
+
   virtual VideoFormat supportedFormat()
   {
     return VIDEO_RGB32;

@@ -32,6 +32,11 @@ VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID, uint32_t index,
 VideoWidget::~VideoWidget()
 {}
 
+void VideoWidget::enableOverlay()
+{
+  helper_.enableOverlay();
+}
+
 void VideoWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image,
                              int64_t timestamp)
 {
@@ -72,6 +77,7 @@ void VideoWidget::paintEvent(QPaintEvent *event)
     }
 
     painter.drawImage(helper_.getTargetRect(), frame);
+    helper_.drawOverlay(painter);
     drawMutex_.unlock();
   }
   else

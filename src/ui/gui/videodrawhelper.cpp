@@ -5,8 +5,11 @@
 
 #include <QWidget>
 #include <QKeyEvent>
+#include <QPainter>
 
 const uint16_t VIEWBUFFERSIZE = 5;
+
+const QImage::Format IMAGE_FORMAT = QImage::Format_ARGB32;
 
 
 VideoDrawHelper::VideoDrawHelper(uint32_t sessionID, uint32_t index, uint8_t borderSize):
@@ -16,7 +19,9 @@ VideoDrawHelper::VideoDrawHelper(uint32_t sessionID, uint32_t index, uint8_t bor
   firstImageReceived_(false),
   previousSize_(QSize(0,0)),
   borderSize_(borderSize),
-  currentFrame_(0)
+  currentFrame_(0),
+  drawOverlay_(false),
+  overlay_()
 {}
 
 VideoDrawHelper::~VideoDrawHelper()
@@ -41,6 +46,11 @@ void VideoDrawHelper::initWidget(QWidget* widget)
   //widget->showFullScreen();
   widget->setWindowState(Qt::WindowFullScreen);
   widget->setUpdatesEnabled(true);
+}
+
+void VideoDrawHelper::enableOverlay()
+{
+  drawOverlay_ = true;
 }
 
 bool VideoDrawHelper::readyToDraw()
@@ -151,10 +161,25 @@ void VideoDrawHelper::updateTargetRect(QWidget* widget)
     newFrameRect_.moveCenter(widget->rect().center());
 
     previousSize_ = lastFrame_.image.size();
+
+    if (drawOverlay_)
+    {
+      overlay_ = QImage(size, IMAGE_FORMAT);
+      overlay_.fill(QColor(180, 180, 180, 150));
+    }
   }
   else
   {
     Logger::getLogger()->printWarning(this, "Tried updating target rect before picture");
+  }
+}
+
+
+void VideoDrawHelper::drawOverlay(QPainter& painter)
+{
+  if (drawOverlay_)
+  {
+    painter.drawImage(getTargetRect(), overlay_);
   }
 }
 
