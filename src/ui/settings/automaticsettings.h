@@ -3,6 +3,7 @@
 #include "roiarea.h"
 
 #include <QDialog>
+#include <QSettings>
 
 namespace Ui {
 class AutomaticSettings;
@@ -22,13 +23,18 @@ public slots:
   void finished();
 
   void showROI();
+  void roiAreaClosed();
 
 signals:
   void updateAutomaticSettings();
   void hidden();
 
+
+
 private:
   Ui::AutomaticSettings *ui;
 
   RoiArea roi_;
+
+  QSettings settings_;
 };

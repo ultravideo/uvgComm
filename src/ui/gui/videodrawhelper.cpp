@@ -12,7 +12,10 @@ const uint16_t VIEWBUFFERSIZE = 5;
 const QImage::Format IMAGE_FORMAT = QImage::Format_ARGB32;
 
 const QColor unselectedColor = QColor(50, 50, 50, 200);
-const QColor selectedColor = QColor(255, 255, 255, 0);
+const QColor selectedColor = QColor(0, 0, 0, 0);
+
+const int goodQP = 27;
+const int badQP = 47;
 
 
 VideoDrawHelper::VideoDrawHelper(uint32_t sessionID, uint32_t index, uint8_t borderSize):
@@ -283,14 +286,14 @@ void VideoDrawHelper::exitFullscreen(QWidget* widget)
 }
 
 
-std::shared_ptr<int8_t[]> VideoDrawHelper::getRoiMask(int width, int height)
+std::shared_ptr<int8_t[]> VideoDrawHelper::getRoiMask(int width, int height, int qp)
 {
+  roiMutex_.lock();
   if ((drawOverlay_ && roiMask_ == nullptr) || roiSize_ != width*height)
   {
-    createROIMask(width, height);
+    createROIMask(width, height, qp);
   }
 
-  roiMutex_.lock();
   std::shared_ptr<int8_t[]> mask = roiMask_;
   roiMutex_.unlock();
 
@@ -298,10 +301,11 @@ std::shared_ptr<int8_t[]> VideoDrawHelper::getRoiMask(int width, int height)
 }
 
 
-void VideoDrawHelper::createROIMask(int width, int height)
+void VideoDrawHelper::createROIMask(int width, int height, int qp)
 {
   roiSize_ = width*height;
   roiMask_ = std::shared_ptr<int8_t[]> (new int8_t[roiSize_]);
+  memset(roiMask_.get(), 0, roiSize_);
 
   for (int i = 0; i < height; ++i)
   {
@@ -315,12 +319,18 @@ void VideoDrawHelper::createROIMask(int width, int height)
 
       if (overlayColor == selectedColor)
       {
-        roiMask_[i*height + j] = 27;
+        roiMask_[i*width + j] = goodQP - qp;
+      }
+      else if (overlayColor == unselectedColor)
+      {
+        roiMask_[i*width + j] = badQP - qp;
       }
       else
       {
-        roiMask_[i*height + j] = 47;
+        Logger::getLogger()->printWarning(this, "Did not recognize color");
       }
+
+      //roiMask_[i*height + j] = 0;
     }
   }
 }

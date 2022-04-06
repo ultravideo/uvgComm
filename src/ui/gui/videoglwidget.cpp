@@ -33,9 +33,9 @@ void VideoGLWidget::enableOverlay()
 }
 
 
-std::shared_ptr<int8_t[]> VideoGLWidget::getRoiMask(int width, int height)
+std::shared_ptr<int8_t[]> VideoGLWidget::getRoiMask(int width, int height, int qp)
 {
-  return helper_.getRoiMask(width, height);
+  return helper_.getRoiMask(width, height, qp);
 }
 
 

@@ -11,9 +11,15 @@ public:
                   std::shared_ptr<ResourceAllocator> hwResources,
                   VideoInterface* roiInterface);
 
+  virtual bool init();
+
+  virtual void updateSettings();
+
 protected:
   void process();
 
 private:
   VideoInterface* roiSurface_;
+
+  int qp_;
 };

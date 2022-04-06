@@ -18,6 +18,10 @@ public:
 
   VideoWidget* getSelfVideoWidget();
 
+signals:
+
+  void closed();
+
 private:
   Ui::RoiArea *ui_;
 };

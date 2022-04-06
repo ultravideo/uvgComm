@@ -3,9 +3,13 @@
 
 #include "roiarea.h"
 
+#include "settingskeys.h"
+
 AutomaticSettings::AutomaticSettings(QWidget *parent) :
   QDialog(parent),
-  ui(new Ui::AutomaticSettings)
+  ui(new Ui::AutomaticSettings),
+  roi_(),
+  settings_(settingsFile, settingsFileFormat)
 {
   ui->setupUi(this);
   QObject::connect(ui->close_button, &QPushButton::clicked,
@@ -14,6 +18,10 @@ AutomaticSettings::AutomaticSettings(QWidget *parent) :
   QObject::connect(ui->roi_button, &QPushButton::clicked,
                    this,           &AutomaticSettings::showROI);
 
+  QObject::connect(&roi_, &RoiArea::closed,
+                   this, &AutomaticSettings::roiAreaClosed);
+
+  settings_.setValue(SettingsKey::manualROIStatus,          "0");
   roi_.hide();
 }
 
@@ -35,6 +43,15 @@ void AutomaticSettings::finished()
 void AutomaticSettings::showROI()
 {
   roi_.show();
+  settings_.setValue(SettingsKey::manualROIStatus,          "1");
+
+  emit updateAutomaticSettings();
+}
+
+void AutomaticSettings::roiAreaClosed()
+{
+  settings_.setValue(SettingsKey::manualROIStatus,          "0");
+  emit updateAutomaticSettings();
 }
 
 

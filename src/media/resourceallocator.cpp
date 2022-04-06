@@ -2,7 +2,9 @@
 
 #include "processing/yuvconversions.h"
 
+#include "settingskeys.h"
 #include "logger.h"
+#include "common.h"
 
 ResourceAllocator::ResourceAllocator()
 {
@@ -15,6 +17,7 @@ ResourceAllocator::ResourceAllocator()
 void ResourceAllocator::updateSettings()
 {
   Logger::getLogger()->printNormal(this, "Updating automatic resource controller settings");
+  manualROI_ = settingEnabled(SettingsKey::manualROIStatus);
 }
 
 

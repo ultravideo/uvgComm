@@ -22,6 +22,9 @@ const QString screenShareStatus = "gui/ScreenShareEnabled";
 const QString cameraStatus = "gui/CameraEnabled";
 const QString micStatus = "gui/MicrophoneEnabled";
 
+// automated setting keys
+
+const QString manualROIStatus = "auto/manualRoi";
 
 // Video setting keys
 const QString videoDeviceID = "video/DeviceID";

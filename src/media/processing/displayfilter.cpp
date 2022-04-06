@@ -103,6 +103,7 @@ void DisplayFilter::process()
 
       for (auto& widget : widgets_)
       {
+        // TODO: This move should not work
         widget->inputImage(std::move(input->data), image, input->presentationTime);
       }
 

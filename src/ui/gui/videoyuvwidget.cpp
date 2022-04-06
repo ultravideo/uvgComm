@@ -37,9 +37,9 @@ void VideoYUVWidget::enableOverlay()
   helper_.enableOverlay();
 }
 
-std::shared_ptr<int8_t[]> VideoYUVWidget::getRoiMask(int width, int height)
+std::shared_ptr<int8_t[]> VideoYUVWidget::getRoiMask(int width, int height, int qp)
 {
-  return helper_.getRoiMask(width, height);
+  return helper_.getRoiMask(width, height, qp);
 }
 
 
