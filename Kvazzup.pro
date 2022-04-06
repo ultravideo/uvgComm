@@ -91,6 +91,7 @@ SOURCES +=\
     src/media/processing/opusdecoderfilter.cpp \
     src/media/processing/opusencoderfilter.cpp \
     src/media/processing/rgb32toyuv.cpp \
+    src/media/processing/roimanualfilter.cpp \
     src/media/processing/scalefilter.cpp \
     src/media/processing/screensharefilter.cpp \
     src/common.cpp \
@@ -186,6 +187,7 @@ HEADERS  += \
     src/media/processing/opusdecoderfilter.h \
     src/media/processing/opusencoderfilter.h \
     src/media/processing/rgb32toyuv.h \
+    src/media/processing/roimanualfilter.h \
     src/media/processing/scalefilter.h \
     src/media/processing/screensharefilter.h \
     src/media/processing/speexaec.h \

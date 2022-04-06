@@ -36,6 +36,8 @@ public:
   // Takes ownership of the image data
   void inputImage(std::unique_ptr<uchar[]> data, QImage &image, int64_t timestamp);
 
+  virtual std::shared_ptr<int8_t[]> getRoiMask(int width, int height);
+
   virtual void enableOverlay();
 
   virtual VideoFormat supportedFormat()

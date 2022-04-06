@@ -17,6 +17,8 @@ enum VideoFormat {VIDEO_RGB32, VIDEO_YUV420};
 class VideoInterface
 {
 public:
+
+  // destructor needs to be declared for C++ interfaces
   virtual ~VideoInterface(){}
 
   // set stats to use with this video view.
@@ -26,6 +28,8 @@ public:
   virtual void inputImage(std::unique_ptr<uchar[]> data, QImage &image, int64_t timestamp) = 0;
 
   virtual void enableOverlay() = 0;
+
+  virtual std::shared_ptr<int8_t[]> getRoiMask(int width, int height) = 0;
 
   virtual VideoFormat supportedFormat() = 0;
 };

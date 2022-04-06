@@ -186,6 +186,11 @@ std::unique_ptr<Data> Filter::initializeData(DataType type, DataSource source)
     data->vInfo->framerate = 0;
     data->vInfo->flippedVertically = false;
     data->vInfo->flippedHorizontally = false;
+
+    data->vInfo->roiWidth = 0;
+    data->vInfo->roiHeight = 0;
+
+    std::shared_ptr<uint8_t[]> roiArray = nullptr;
   }
   else if (isAudio(type))
   {

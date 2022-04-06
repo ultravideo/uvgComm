@@ -8,6 +8,13 @@ ResourceAllocator::ResourceAllocator()
 {
   sse41_ = is_sse41_available();
   avx2_  = is_avx2_available();
+  manualROI_ = false;
+}
+
+
+void ResourceAllocator::updateSettings()
+{
+  Logger::getLogger()->printNormal(this, "Updating automatic resource controller settings");
 }
 
 
@@ -23,7 +30,7 @@ bool ResourceAllocator::isSSE41Enabled()
 }
 
 
-void ResourceAllocator::updateSettings()
+bool ResourceAllocator::useManualROI()
 {
-  Logger::getLogger()->printNormal(this, "Updating automatic resource controller settings");
+  return manualROI_;
 }

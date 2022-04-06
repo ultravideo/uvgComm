@@ -34,7 +34,12 @@ VideoYUVWidget::~VideoYUVWidget()
 
 void VideoYUVWidget::enableOverlay()
 {
-  Logger::getLogger()->printError(this, "Overlay not supported for YUV widget");
+  helper_.enableOverlay();
+}
+
+std::shared_ptr<int8_t[]> VideoYUVWidget::getRoiMask(int width, int height)
+{
+  return helper_.getRoiMask(width, height);
 }
 
 

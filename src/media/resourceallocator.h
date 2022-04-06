@@ -11,14 +11,17 @@ class ResourceAllocator : public QObject
 public:
   ResourceAllocator();
 
+  void updateSettings();
+
   bool isAVX2Enabled();
   bool isSSE41Enabled();
 
-  void updateSettings();
+  bool useManualROI();
 
 private:
 
   bool avx2_ = false;
   bool sse41_ = false;
 
+  bool manualROI_ = false;
 };

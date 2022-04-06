@@ -33,6 +33,12 @@ void VideoGLWidget::enableOverlay()
 }
 
 
+std::shared_ptr<int8_t[]> VideoGLWidget::getRoiMask(int width, int height)
+{
+  return helper_.getRoiMask(width, height);
+}
+
+
 void VideoGLWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image, int64_t timestamp)
 {
   drawMutex_.lock();

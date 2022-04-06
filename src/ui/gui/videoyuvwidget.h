@@ -41,6 +41,8 @@ public:
 
   virtual void enableOverlay();
 
+  virtual std::shared_ptr<int8_t[]> getRoiMask(int width, int height);
+
   virtual VideoFormat supportedFormat()
   {
     //return VIDEO_RGB32;

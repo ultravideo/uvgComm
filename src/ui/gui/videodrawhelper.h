@@ -9,6 +9,7 @@
 #include <QKeyEvent>
 
 #include <QElapsedTimer>
+#include <QMutex>
 
 #include <deque>
 #include <memory>
@@ -59,6 +60,8 @@ public:
     return newFrameRect_;
   }
 
+  std::shared_ptr<int8_t[]> getRoiMask(int width, int height);
+
 signals:
 
   void reattach(uint32_t sessionID_);
@@ -67,6 +70,8 @@ signals:
 private:
   void enterFullscreen(QWidget* widget);
   void exitFullscreen(QWidget* widget);
+
+  void createROIMask(int width, int height);
 
   uint32_t sessionID_;
   uint32_t index_;
@@ -92,6 +97,10 @@ private:
   std::deque<Frame> frameBuffer_;
 
   int64_t currentFrame_;
+
+  QMutex roiMutex_;
+  std::shared_ptr<int8_t[]> roiMask_;
+  int roiSize_;
 
   bool drawOverlay_;
   QImage overlay_;

@@ -23,6 +23,9 @@ VideoDrawHelper::VideoDrawHelper(uint32_t sessionID, uint32_t index, uint8_t bor
   previousSize_(QSize(0,0)),
   borderSize_(borderSize),
   currentFrame_(0),
+  roiMutex_(),
+  roiMask_(nullptr),
+  roiSize_(0),
   drawOverlay_(false),
   overlay_()
 {}
@@ -169,6 +172,9 @@ void VideoDrawHelper::updateTargetRect(QWidget* widget)
     {
       overlay_ = QImage(size, IMAGE_FORMAT);
       overlay_.fill(unselectedColor);
+      roiMutex_.lock();
+      roiMask_ = nullptr;
+      roiMutex_.unlock();
     }
   }
   else
@@ -182,7 +188,7 @@ void VideoDrawHelper::addPointToOverlay(const QPointF& position, bool addPoint, 
 {
   if (drawOverlay_ && (addPoint != removePoint))
   {
-    const QSizeF size(64, 64);
+    const QSizeF size(targetRect_.width()/10, targetRect_.width()/10);
     QPointF circleHalfway(size.width()/2, size.height()/2);
 
     QPainter painter(&overlay_);
@@ -202,6 +208,9 @@ void VideoDrawHelper::addPointToOverlay(const QPointF& position, bool addPoint, 
 
     QRectF drawnCircle(position - targetRect_.topLeft() - circleHalfway, size);
     painter.drawEllipse(drawnCircle);
+    roiMutex_.lock();
+    roiMask_ = nullptr;
+    roiMutex_.unlock();
   }
 }
 
@@ -271,4 +280,47 @@ void VideoDrawHelper::exitFullscreen(QWidget* widget)
   widget->setWindowState(Qt::WindowMaximized);
 
   emit reattach(sessionID_);
+}
+
+
+std::shared_ptr<int8_t[]> VideoDrawHelper::getRoiMask(int width, int height)
+{
+  if ((drawOverlay_ && roiMask_ == nullptr) || roiSize_ != width*height)
+  {
+    createROIMask(width, height);
+  }
+
+  roiMutex_.lock();
+  std::shared_ptr<int8_t[]> mask = roiMask_;
+  roiMutex_.unlock();
+
+  return mask;
+}
+
+
+void VideoDrawHelper::createROIMask(int width, int height)
+{
+  roiSize_ = width*height;
+  roiMask_ = std::shared_ptr<int8_t[]> (new int8_t[roiSize_]);
+
+  for (int i = 0; i < height; ++i)
+  {
+    for (int j = 0; j < width; ++j)
+    {
+      float widthMultiplier = (float)overlay_.width()/width;
+      float heightMultiplier = (float)overlay_.height()/height;
+
+      QPoint imagePosition(widthMultiplier*j, heightMultiplier*i);
+      QColor overlayColor = overlay_.pixelColor(imagePosition);
+
+      if (overlayColor == selectedColor)
+      {
+        roiMask_[i*height + j] = 27;
+      }
+      else
+      {
+        roiMask_[i*height + j] = 47;
+      }
+    }
+  }
 }

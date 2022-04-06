@@ -362,6 +362,11 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
   input_pic_->pts = pts_;
   ++pts_;
 
+  // can also be empty by default
+  input_pic_->roi.width = input->vInfo->roiWidth;
+  input_pic_->roi.height = input->vInfo->roiHeight;
+  input_pic_->roi.roi_array = input->vInfo->roiArray.get();
+
   encodingFrames_.push_front(std::move(input));
 
   api_->encoder_encode(enc_, input_pic_,

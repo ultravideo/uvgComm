@@ -35,30 +35,34 @@ enum DataSource {DS_UNKNOWN, DS_LOCAL, DS_REMOTE};
 
 struct VideoInfo
 {
-  int16_t width;
-  int16_t height;
-  double framerate;
+  int16_t width = 0;
+  int16_t height = 0;
+  double framerate = 0.0f;
 
-  bool flippedVertically;
-  bool flippedHorizontally;
+  bool flippedVertically = false;
+  bool flippedHorizontally = false;
+
+  int roiWidth = 0;
+  int roiHeight = 0;
+  std::shared_ptr<int8_t[]> roiArray = nullptr;
 };
 
 struct AudioInfo
 {
-  uint16_t sampleRate;
+  uint16_t sampleRate = 0;
 };
 
 struct Data
 {
-  DataSource source;
-  DataType type;
-  std::unique_ptr<uchar[]> data;
-  uint32_t data_size;
+  DataSource source = DS_UNKNOWN;
+  DataType type = DT_NONE;
+  std::unique_ptr<uchar[]> data = nullptr;
+  uint32_t data_size = 0;
 
-  int64_t presentationTime;
+  int64_t presentationTime = -1;
 
-  std::unique_ptr<VideoInfo> vInfo;
-  std::unique_ptr<AudioInfo> aInfo;
+  std::unique_ptr<VideoInfo> vInfo = nullptr;
+  std::unique_ptr<AudioInfo> aInfo = nullptr;
 };
 
 class StatisticsInterface;
