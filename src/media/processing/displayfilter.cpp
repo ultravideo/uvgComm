@@ -7,7 +7,6 @@
 #include "settingskeys.h"
 #include "logger.h"
 
-#include <QImage>
 #include <QDateTime>
 #include <QSettings>
 
@@ -91,25 +90,67 @@ void DisplayFilter::process()
 
     if (input->type == input_)
     {
-      input = normalizeOrientation(std::move(input), horizontalMirroring_);
+      for (int i = 0; i < widgets_.size(); ++i)
+      {
+        /* This is a bit of a hack in that multiple widgets are only used for
+         * the self view. The first index contains the self view (if this display filter
+         * is used for selfviews and not peer views) and needs the horizontal mirroring
+         * whereas other don't want it. We also must copy the data for all but the
+         * last one since the life of the the data in widgets differs.
+         *
+         * TODO: This copying could probably be eliminated by using shared_ptr in widgets */
 
-      QImage image(
-            input->data.get(),
-            input->vInfo->width,
-            input->vInfo->height,
-            format);
+        input = deliverFrame(widgets_.at(i), std::move(input),
+                             format, i != widgets_.size() -1,
+                             horizontalMirroring_ && i == 0);
+      }
 
       int32_t delay = QDateTime::currentMSecsSinceEpoch() - input->presentationTime;
-
-      for (auto& widget : widgets_)
-      {
-        // TODO: This move should not work
-        widget->inputImage(std::move(input->data), image, input->presentationTime);
-      }
 
       if( sessionID_ != 1111)
         getStats()->receiveDelay(sessionID_, "Video", delay);
     }
     input = getInput();
   }
+}
+
+
+std::unique_ptr<Data> DisplayFilter::deliverFrame(VideoInterface* screen,
+                                                  std::unique_ptr<Data> input,
+                                                  QImage::Format format,
+                                                  bool useCopy, bool mirrorHorizontally)
+{
+  std::unique_ptr<uchar[]> tmpData = nullptr;
+
+  // replace input data with copy
+  if (useCopy)
+  {
+    // save input data temporarily
+    tmpData = std::move(input->data);
+
+    // create a copy to input data structure for normalize orientation
+    input->data = std::unique_ptr<uchar[]>(new uchar[input->data_size]);
+    memcpy(input->data.get(), tmpData.get(), input->data_size);
+  }
+
+  bool verticalOrientation = input->vInfo->flippedVertically;
+  bool horizontalOrientation = input->vInfo->flippedHorizontally;
+  input = normalizeOrientation(std::move(input), mirrorHorizontally);
+
+  QImage image(
+        input->data.get(),
+        input->vInfo->width,
+        input->vInfo->height,
+        format);
+
+  screen->inputImage(std::move(input->data), image, input->presentationTime);
+
+  if (useCopy)
+  {
+    input->vInfo->flippedVertically = verticalOrientation;
+    input->vInfo->flippedHorizontally = horizontalOrientation;
+    input->data = std::move(tmpData);
+  }
+
+  return input;
 }
