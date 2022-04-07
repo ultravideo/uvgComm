@@ -14,7 +14,7 @@ const QImage::Format IMAGE_FORMAT = QImage::Format_ARGB32;
 const QColor unselectedColor = QColor(50, 50, 50, 200);
 const QColor selectedColor = QColor(0, 0, 0, 0);
 
-const int goodQP = 27;
+// Make sure this takes into account changes in QP by GOP!
 const int badQP = 47;
 
 
@@ -305,7 +305,6 @@ void VideoDrawHelper::createROIMask(int width, int height, int qp)
 {
   roiSize_ = width*height;
   roiMask_ = std::shared_ptr<int8_t[]> (new int8_t[roiSize_]);
-  memset(roiMask_.get(), 0, roiSize_);
 
   for (int i = 0; i < height; ++i)
   {
@@ -319,18 +318,18 @@ void VideoDrawHelper::createROIMask(int width, int height, int qp)
 
       if (overlayColor == selectedColor)
       {
-        roiMask_[i*width + j] = goodQP - qp;
+        // do not change the QP for good values
+        roiMask_[i*width + j] = 0;
       }
       else if (overlayColor == unselectedColor)
       {
+        // The QP difference with current QP and desired (bad) QP
         roiMask_[i*width + j] = badQP - qp;
       }
       else
       {
         Logger::getLogger()->printWarning(this, "Did not recognize color");
       }
-
-      //roiMask_[i*height + j] = 0;
     }
   }
 }
