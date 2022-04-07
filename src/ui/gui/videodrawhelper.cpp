@@ -15,7 +15,8 @@ const QColor unselectedColor = QColor(50, 50, 50, 200);
 const QColor selectedColor = QColor(0, 0, 0, 0);
 
 // Make sure this takes into account changes in QP by GOP!
-const int badQP = 47;
+const int maxQP = 47;
+const int maximumQPIncrease = 25;
 
 
 VideoDrawHelper::VideoDrawHelper(uint32_t sessionID, uint32_t index, uint8_t borderSize):
@@ -291,7 +292,8 @@ std::shared_ptr<int8_t[]> VideoDrawHelper::getRoiMask(int& width, int& height,
                                                       int qp, bool scaleToInput)
 {
   roiMutex_.lock();
-  if ((drawOverlay_ && roiMask_ == nullptr) || roiSize_ != width*height)
+  if (drawOverlay_ && (roiMask_ == nullptr ||
+      (roiSize_ != width*height && scaleToInput)))
   {
     createROIMask(width, height, qp, scaleToInput);
   }
@@ -305,6 +307,14 @@ std::shared_ptr<int8_t[]> VideoDrawHelper::getRoiMask(int& width, int& height,
 
 void VideoDrawHelper::createROIMask(int &width, int &height, int qp, bool scaleToInput)
 {
+  if (overlay_.width() == 0 || overlay_.height() == 0)
+  {
+    width = 0;
+    height = 0;
+    roiMask_ = nullptr;
+    return;
+  }
+
   if (!scaleToInput)
   {
     width = overlay_.width();
@@ -316,6 +326,13 @@ void VideoDrawHelper::createROIMask(int &width, int &height, int qp, bool scaleT
 
   float widthMultiplier = (float)overlay_.width()/width;
   float heightMultiplier = (float)overlay_.height()/height;
+
+  int qpIncrease = maxQP - qp;
+
+  if (qpIncrease > maximumQPIncrease)
+  {
+    qpIncrease = maximumQPIncrease;
+  }
 
   for (int i = 0; i < height; ++i)
   {
@@ -332,7 +349,7 @@ void VideoDrawHelper::createROIMask(int &width, int &height, int qp, bool scaleT
       else
       {
         // The QP difference with current QP and desired (bad) QP
-        roiMask_[i*width + j] = badQP - qp;
+        roiMask_[i*width + j] = qpIncrease;
       }
     }
   }  

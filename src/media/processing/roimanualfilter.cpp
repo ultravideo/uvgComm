@@ -35,12 +35,13 @@ void ROIManualFilter::process()
 
   while(input)
   {
+    // TODO: Check that rate control is not enabled
     if (getHWManager()->useManualROI())
     {
       input->vInfo->roiWidth = input->vInfo->width;
       input->vInfo->roiHeight = input->vInfo->height;
       input->vInfo->roiArray = roiSurface_->getRoiMask(input->vInfo->roiWidth,
-                                                       input->vInfo->roiHeight, qp_, false);
+                                                       input->vInfo->roiHeight, qp_, true);
     }
 
     sendOutput(std::move(input));
