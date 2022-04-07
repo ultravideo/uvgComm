@@ -18,6 +18,9 @@ public:
 
   VideoWidget* getSelfVideoWidget();
 
+  // if user closes the window
+  void closeEvent(QCloseEvent *event);
+
 signals:
 
   void closed();

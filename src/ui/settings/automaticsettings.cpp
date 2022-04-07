@@ -4,6 +4,7 @@
 #include "roiarea.h"
 
 #include "settingskeys.h"
+#include "logger.h"
 
 AutomaticSettings::AutomaticSettings(QWidget *parent) :
   QDialog(parent),
@@ -42,6 +43,8 @@ void AutomaticSettings::finished()
 
 void AutomaticSettings::showROI()
 {
+  Logger::getLogger()->printNormal(this, "Manual ROI window opened. "
+                                         "Enabling manual ROI");
   roi_.show();
   settings_.setValue(SettingsKey::manualROIStatus,          "1");
 
@@ -50,6 +53,8 @@ void AutomaticSettings::showROI()
 
 void AutomaticSettings::roiAreaClosed()
 {
+  Logger::getLogger()->printNormal(this, "Manual ROI window closed. "
+                                         "Disabling manual ROI");
   settings_.setValue(SettingsKey::manualROIStatus,          "0");
   emit updateAutomaticSettings();
 }

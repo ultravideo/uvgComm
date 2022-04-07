@@ -22,3 +22,10 @@ VideoWidget* RoiArea::getSelfVideoWidget()
 {
   return ui_->frame;
 }
+
+
+void RoiArea::closeEvent(QCloseEvent *event)
+{
+  QWidget::closeEvent(event);
+  emit closed();
+}
