@@ -174,9 +174,10 @@ void VideoDrawHelper::updateTargetRect(QWidget* widget)
 
     if (drawOverlay_)
     {
+      roiMutex_.lock();
       overlay_ = QImage(size, IMAGE_FORMAT);
       overlay_.fill(unselectedColor);
-      roiMutex_.lock();
+
       roiMask_ = nullptr;
       roiMutex_.unlock();
     }
