@@ -275,7 +275,8 @@ void VideoDrawHelper::enterFullscreen(QWidget* widget)
 
 void VideoDrawHelper::exitFullscreen(QWidget* widget)
 {
-  Logger::getLogger()->printNormal(this, "Returning video widget to original place", "SessionID", QString::number(sessionID_));
+  Logger::getLogger()->printNormal(this, "Returning video widget to original place", "SessionID",
+                                   QString::number(sessionID_));
 
   widget->setParent(tmpParent_);
   //this->showMaximized();
@@ -286,12 +287,13 @@ void VideoDrawHelper::exitFullscreen(QWidget* widget)
 }
 
 
-std::shared_ptr<int8_t[]> VideoDrawHelper::getRoiMask(int width, int height, int qp)
+std::shared_ptr<int8_t[]> VideoDrawHelper::getRoiMask(int& width, int& height,
+                                                      int qp, bool scaleToInput)
 {
   roiMutex_.lock();
   if ((drawOverlay_ && roiMask_ == nullptr) || roiSize_ != width*height)
   {
-    createROIMask(width, height, qp);
+    createROIMask(width, height, qp, scaleToInput);
   }
 
   std::shared_ptr<int8_t[]> mask = roiMask_;
@@ -301,18 +303,24 @@ std::shared_ptr<int8_t[]> VideoDrawHelper::getRoiMask(int width, int height, int
 }
 
 
-void VideoDrawHelper::createROIMask(int width, int height, int qp)
+void VideoDrawHelper::createROIMask(int &width, int &height, int qp, bool scaleToInput)
 {
+  if (!scaleToInput)
+  {
+    width = overlay_.width();
+    height = overlay_.height();
+  }
+
   roiSize_ = width*height;
   roiMask_ = std::shared_ptr<int8_t[]> (new int8_t[roiSize_]);
+
+  float widthMultiplier = (float)overlay_.width()/width;
+  float heightMultiplier = (float)overlay_.height()/height;
 
   for (int i = 0; i < height; ++i)
   {
     for (int j = 0; j < width; ++j)
     {
-      float widthMultiplier = (float)overlay_.width()/width;
-      float heightMultiplier = (float)overlay_.height()/height;
-
       QPoint imagePosition(widthMultiplier*j, heightMultiplier*i);
       QColor overlayColor = overlay_.pixelColor(imagePosition);
 
@@ -321,15 +329,11 @@ void VideoDrawHelper::createROIMask(int width, int height, int qp)
         // do not change the QP for good values
         roiMask_[i*width + j] = 0;
       }
-      else if (overlayColor == unselectedColor)
+      else
       {
         // The QP difference with current QP and desired (bad) QP
         roiMask_[i*width + j] = badQP - qp;
       }
-      else
-      {
-        Logger::getLogger()->printWarning(this, "Did not recognize color");
-      }
     }
-  }
+  }  
 }

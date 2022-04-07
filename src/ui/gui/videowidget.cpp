@@ -38,9 +38,9 @@ void VideoWidget::enableOverlay()
   helper_.enableOverlay();
 }
 
-std::shared_ptr<int8_t[]> VideoWidget::getRoiMask(int width, int height, int qp)
+std::shared_ptr<int8_t[]> VideoWidget::getRoiMask(int& width, int& height, int qp, bool scaleToInput)
 {
-  return helper_.getRoiMask(width, height, qp);
+  return helper_.getRoiMask(width, height, qp, scaleToInput);
 }
 
 void VideoWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image,

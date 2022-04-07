@@ -60,7 +60,7 @@ public:
     return newFrameRect_;
   }
 
-  std::shared_ptr<int8_t[]> getRoiMask(int width, int height, int qp);
+  std::shared_ptr<int8_t[]> getRoiMask(int& width, int& height, int qp, bool scaleToInput);
 
 signals:
 
@@ -71,7 +71,9 @@ private:
   void enterFullscreen(QWidget* widget);
   void exitFullscreen(QWidget* widget);
 
-  void createROIMask(int width, int height, int qp);
+  void createROIMask(int& width, int& height, int qp, bool scaleToInput);
+
+
 
   uint32_t sessionID_;
   uint32_t index_;

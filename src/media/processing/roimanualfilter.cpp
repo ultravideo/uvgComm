@@ -40,7 +40,7 @@ void ROIManualFilter::process()
       input->vInfo->roiWidth = input->vInfo->width;
       input->vInfo->roiHeight = input->vInfo->height;
       input->vInfo->roiArray = roiSurface_->getRoiMask(input->vInfo->roiWidth,
-                                                       input->vInfo->roiHeight, qp_);
+                                                       input->vInfo->roiHeight, qp_, false);
     }
 
     sendOutput(std::move(input));
