@@ -30,18 +30,28 @@ VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID, uint32_t index,
   helper_.updateTargetRect(this);
 }
 
+
 VideoWidget::~VideoWidget()
 {}
+
 
 void VideoWidget::enableOverlay()
 {
   helper_.enableOverlay();
 }
 
+
+void VideoWidget::resetOverlay()
+{
+  helper_.resetOverlay();
+}
+
+
 std::unique_ptr<int8_t[]> VideoWidget::getRoiMask(int& width, int& height, int qp, bool scaleToInput)
 {
   return helper_.getRoiMask(width, height, qp, scaleToInput);
 }
+
 
 void VideoWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image,
                              int64_t timestamp)

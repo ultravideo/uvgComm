@@ -17,6 +17,9 @@ AutomaticSettings::AutomaticSettings(QWidget *parent):
   QObject::connect(ui_->close_button, &QPushButton::clicked,
                    this,             &AutomaticSettings::finished);
 
+  QObject::connect(ui_->reset_button, &QPushButton::clicked,
+                   this,             &AutomaticSettings::reset);
+
   QObject::connect(ui_->tabs, &QTabWidget::currentChanged,
                    this,      &AutomaticSettings::tabChanged);
 
@@ -31,14 +34,6 @@ AutomaticSettings::~AutomaticSettings()
 }
 
 
-void AutomaticSettings::finished()
-{
-  disableROI();
-  hide();
-  emit hidden();
-}
-
-
 void AutomaticSettings::show()
 {
   if (ui_->tabs->currentIndex() == ROI_TAB)
@@ -48,6 +43,24 @@ void AutomaticSettings::show()
 
   QWidget::show();
 }
+
+
+void AutomaticSettings::finished()
+{
+  disableROI();
+  hide();
+  emit hidden();
+}
+
+
+void AutomaticSettings::reset()
+{
+  if (ui_->tabs->currentIndex() == ROI_TAB)
+  {
+    ui_->roi_surface->resetOverlay();
+  }
+}
+
 
 
 void AutomaticSettings::tabChanged(int index)

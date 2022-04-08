@@ -26,6 +26,8 @@ public slots:
 
   void tabChanged(int index);
 
+  void reset();
+
 signals:
   void updateAutomaticSettings();
   void hidden();

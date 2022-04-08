@@ -34,10 +34,12 @@ VideoDrawHelper::VideoDrawHelper(uint32_t sessionID, uint32_t index, uint8_t bor
   overlay_()
 {}
 
+
 VideoDrawHelper::~VideoDrawHelper()
 {
   frameBuffer_.clear();
 }
+
 
 void VideoDrawHelper::initWidget(QWidget* widget)
 {
@@ -58,15 +60,29 @@ void VideoDrawHelper::initWidget(QWidget* widget)
   widget->setUpdatesEnabled(true);
 }
 
+
 void VideoDrawHelper::enableOverlay()
 {
   drawOverlay_ = true;
 }
 
+
+void VideoDrawHelper::resetOverlay()
+{
+  roiMutex_.lock();
+  overlay_ = QImage(targetRect_.size(), IMAGE_FORMAT);
+  overlay_.fill(unselectedColor);
+
+  currentMask_ = nullptr;
+  roiMutex_.unlock();
+}
+
+
 bool VideoDrawHelper::readyToDraw()
 {
   return firstImageReceived_;
 }
+
 
 void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data, QImage &image,
                                  int64_t timestamp)
@@ -174,12 +190,7 @@ void VideoDrawHelper::updateTargetRect(QWidget* widget)
 
     if (drawOverlay_)
     {
-      roiMutex_.lock();
-      overlay_ = QImage(size, IMAGE_FORMAT);
-      overlay_.fill(unselectedColor);
-
-      currentMask_ = nullptr;
-      roiMutex_.unlock();
+      resetOverlay();
     }
   }
   else

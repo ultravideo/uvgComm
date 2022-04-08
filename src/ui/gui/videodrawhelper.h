@@ -34,6 +34,7 @@ public:
   void initWidget(QWidget* widget);
 
   void enableOverlay();
+  void resetOverlay();
 
   bool readyToDraw();
   void inputImage(QWidget *widget, std::unique_ptr<uchar[]> data, QImage &image, int64_t timestamp);

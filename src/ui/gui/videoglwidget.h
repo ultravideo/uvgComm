@@ -39,6 +39,7 @@ public:
   virtual std::unique_ptr<int8_t[]> getRoiMask(int& width, int& height, int qp, bool scaleToInput);
 
   virtual void enableOverlay();
+  virtual void resetOverlay();
 
   virtual VideoFormat supportedFormat()
   {
