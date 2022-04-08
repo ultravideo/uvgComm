@@ -71,8 +71,7 @@ private:
   void enterFullscreen(QWidget* widget);
   void exitFullscreen(QWidget* widget);
 
-  std::unique_ptr<int8_t[]> createROIMask(int& width, int& height, int qp, bool scaleToInput);
-
+  void updateROIMask(int& width, int& height, int qp, bool scaleToInput);
 
 
   uint32_t sessionID_;
@@ -101,6 +100,8 @@ private:
   int64_t currentFrame_;
 
   QMutex roiMutex_;
+  size_t currentSize_;
+  std::unique_ptr<int8_t[]> currentMask_;
 
   bool drawOverlay_;
   QImage overlay_;
