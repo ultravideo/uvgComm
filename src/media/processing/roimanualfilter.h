@@ -22,4 +22,5 @@ private:
   VideoInterface* roiSurface_;
 
   int qp_;
+  int rateControl_;
 };

@@ -46,16 +46,18 @@ void AutomaticSettings::showROI()
   Logger::getLogger()->printNormal(this, "Manual ROI window opened. "
                                          "Enabling manual ROI");
   roi_.show();
-  settings_.setValue(SettingsKey::manualROIStatus,          "1");
+  settings_.setValue(SettingsKey::manualROIStatus,          true);
 
   emit updateAutomaticSettings();
+
+  // TODO: Once rate control has been moved to automatic side, disable it here
 }
 
 void AutomaticSettings::roiAreaClosed()
 {
   Logger::getLogger()->printNormal(this, "Manual ROI window closed. "
                                          "Disabling manual ROI");
-  settings_.setValue(SettingsKey::manualROIStatus,          "0");
+  settings_.setValue(SettingsKey::manualROIStatus,          false);
   emit updateAutomaticSettings();
 }
 
