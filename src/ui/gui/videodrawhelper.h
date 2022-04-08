@@ -60,7 +60,7 @@ public:
     return newFrameRect_;
   }
 
-  std::shared_ptr<int8_t[]> getRoiMask(int& width, int& height, int qp, bool scaleToInput);
+  std::unique_ptr<int8_t[]> getRoiMask(int& width, int& height, int qp, bool scaleToInput);
 
 signals:
 
@@ -71,7 +71,7 @@ private:
   void enterFullscreen(QWidget* widget);
   void exitFullscreen(QWidget* widget);
 
-  void createROIMask(int& width, int& height, int qp, bool scaleToInput);
+  std::unique_ptr<int8_t[]> createROIMask(int& width, int& height, int qp, bool scaleToInput);
 
 
 
@@ -101,8 +101,6 @@ private:
   int64_t currentFrame_;
 
   QMutex roiMutex_;
-  std::shared_ptr<int8_t[]> roiMask_;
-  int roiSize_;
 
   bool drawOverlay_;
   QImage overlay_;

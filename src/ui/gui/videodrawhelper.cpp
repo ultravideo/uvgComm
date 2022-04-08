@@ -28,8 +28,6 @@ VideoDrawHelper::VideoDrawHelper(uint32_t sessionID, uint32_t index, uint8_t bor
   borderSize_(borderSize),
   currentFrame_(0),
   roiMutex_(),
-  roiMask_(nullptr),
-  roiSize_(0),
   drawOverlay_(false),
   overlay_()
 {}
@@ -178,7 +176,7 @@ void VideoDrawHelper::updateTargetRect(QWidget* widget)
       overlay_ = QImage(size, IMAGE_FORMAT);
       overlay_.fill(unselectedColor);
 
-      roiMask_ = nullptr;
+      //roiMask_ = nullptr;
       roiMutex_.unlock();
     }
   }
@@ -196,6 +194,7 @@ void VideoDrawHelper::addPointToOverlay(const QPointF& position, bool addPoint, 
     const QSizeF size(targetRect_.width()/10, targetRect_.width()/10);
     QPointF circleHalfway(size.width()/2, size.height()/2);
 
+    roiMutex_.lock();
     QPainter painter(&overlay_);
 
     QBrush brush(selectedColor);
@@ -213,8 +212,6 @@ void VideoDrawHelper::addPointToOverlay(const QPointF& position, bool addPoint, 
 
     QRectF drawnCircle(position - targetRect_.topLeft() - circleHalfway, size);
     painter.drawEllipse(drawnCircle);
-    roiMutex_.lock();
-    roiMask_ = nullptr;
     roiMutex_.unlock();
   }
 }
@@ -289,31 +286,27 @@ void VideoDrawHelper::exitFullscreen(QWidget* widget)
 }
 
 
-std::shared_ptr<int8_t[]> VideoDrawHelper::getRoiMask(int& width, int& height,
+std::unique_ptr<int8_t[]> VideoDrawHelper::getRoiMask(int& width, int& height,
                                                       int qp, bool scaleToInput)
 {
-  roiMutex_.lock();
-  if (drawOverlay_ && (roiMask_ == nullptr ||
-      (roiSize_ != width*height && scaleToInput)))
+  std::unique_ptr<int8_t[]> roiMask = nullptr;
+
+  if (drawOverlay_)
   {
-    createROIMask(width, height, qp, scaleToInput);
+    roiMutex_.lock();
+    roiMask = createROIMask(width, height, qp, scaleToInput);
+    roiMutex_.unlock();
   }
 
-  std::shared_ptr<int8_t[]> mask = roiMask_;
-  roiMutex_.unlock();
-
-  return mask;
+  return roiMask;
 }
 
 
-void VideoDrawHelper::createROIMask(int &width, int &height, int qp, bool scaleToInput)
+std::unique_ptr<int8_t[]> VideoDrawHelper::createROIMask(int &width, int &height, int qp, bool scaleToInput)
 {
   if (overlay_.width() == 0 || overlay_.height() == 0)
   {
-    width = 0;
-    height = 0;
-    roiMask_ = nullptr;
-    return;
+    return nullptr;
   }
 
   if (!scaleToInput)
@@ -322,8 +315,8 @@ void VideoDrawHelper::createROIMask(int &width, int &height, int qp, bool scaleT
     height = overlay_.height();
   }
 
-  roiSize_ = width*height;
-  roiMask_ = std::shared_ptr<int8_t[]> (new int8_t[roiSize_]);
+  size_t roiSize = width*height;
+  std::unique_ptr<int8_t[]> roiMask = std::unique_ptr<int8_t[]> (new int8_t[roiSize]);
 
   float widthMultiplier = (float)overlay_.width()/width;
   float heightMultiplier = (float)overlay_.height()/height;
@@ -345,13 +338,15 @@ void VideoDrawHelper::createROIMask(int &width, int &height, int qp, bool scaleT
       if (overlayColor == selectedColor)
       {
         // do not change the QP for good values
-        roiMask_[i*width + j] = 0;
+        roiMask[i*width + j] = 0;
       }
       else
       {
         // The QP difference with current QP and desired (bad) QP
-        roiMask_[i*width + j] = qpIncrease;
+        roiMask[i*width + j] = qpIncrease;
       }
     }
-  }  
+  }
+
+  return roiMask;
 }

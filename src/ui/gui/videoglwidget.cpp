@@ -33,7 +33,7 @@ void VideoGLWidget::enableOverlay()
 }
 
 
-std::shared_ptr<int8_t[]> VideoGLWidget::getRoiMask(int& width, int& height, int qp, bool scaleToInput)
+std::unique_ptr<int8_t[]> VideoGLWidget::getRoiMask(int& width, int& height, int qp, bool scaleToInput)
 {
   return helper_.getRoiMask(width, height, qp, scaleToInput);
 }

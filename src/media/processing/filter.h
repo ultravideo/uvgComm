@@ -44,7 +44,7 @@ struct VideoInfo
 
   int roiWidth = 0;
   int roiHeight = 0;
-  std::shared_ptr<int8_t[]> roiArray = nullptr;
+  std::unique_ptr<int8_t[]> roiArray = nullptr;
 };
 
 struct AudioInfo
