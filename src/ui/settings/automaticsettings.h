@@ -1,6 +1,6 @@
 #pragma once
 
-#include "roiarea.h"
+#include "ui/gui/videowidget.h"
 
 #include <QDialog>
 #include <QSettings>
@@ -17,24 +17,26 @@ public:
   explicit AutomaticSettings(QWidget *parent = nullptr);
   ~AutomaticSettings();
 
-    VideoWidget* getRoiSelfView();
+  VideoWidget* getRoiSelfView();
+
+  virtual void show();
 
 public slots:
   void finished();
 
-  void showROI();
-  void roiAreaClosed();
+  void tabChanged(int index);
 
 signals:
   void updateAutomaticSettings();
   void hidden();
 
-
-
 private:
-  Ui::AutomaticSettings *ui;
 
-  RoiArea roi_;
+  void activateROI();
+  void disableROI();
+
+
+  Ui::AutomaticSettings *ui_;
 
   QSettings settings_;
 };

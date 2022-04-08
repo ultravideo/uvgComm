@@ -120,7 +120,6 @@ SOURCES +=\
     src/ui/settings/camerainfo.cpp \
     src/ui/settings/defaultsettings.cpp \
     src/ui/settings/microphoneinfo.cpp \
-    src/ui/settings/roiarea.cpp \
     src/ui/settings/screeninfo.cpp \
     src/ui/settings/settings.cpp \
     src/ui/settings/settingshelper.cpp \
@@ -222,7 +221,6 @@ HEADERS  += \
     src/ui/settings/defaultsettings.h \
     src/ui/settings/deviceinfointerface.h \
     src/ui/settings/microphoneinfo.h \
-    src/ui/settings/roiarea.h \
     src/ui/settings/screeninfo.h \
     src/ui/settings/settings.h \
     src/ui/settings/settingshelper.h \
@@ -240,7 +238,6 @@ FORMS    += \
     ui/message/guimessage.ui \
     ui/message/messagewidget.ui \
     ui/message/stunmessage.ui \
-    ui/roiarea.ui \
     ui/sipsettings.ui \
     ui/statisticswindow.ui \
     ui/about.ui \

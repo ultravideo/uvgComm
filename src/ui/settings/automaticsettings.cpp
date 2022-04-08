@@ -1,68 +1,90 @@
 #include "automaticsettings.h"
 #include "ui_automaticsettings.h"
 
-#include "roiarea.h"
-
 #include "settingskeys.h"
 #include "logger.h"
 
-AutomaticSettings::AutomaticSettings(QWidget *parent) :
+enum TabType {
+  MAIN_TAB = 0, ROI_TAB = 1
+};
+
+AutomaticSettings::AutomaticSettings(QWidget *parent):
   QDialog(parent),
-  ui(new Ui::AutomaticSettings),
-  roi_(),
+  ui_(new Ui::AutomaticSettings),
   settings_(settingsFile, settingsFileFormat)
 {
-  ui->setupUi(this);
-  QObject::connect(ui->close_button, &QPushButton::clicked,
+  ui_->setupUi(this);
+  QObject::connect(ui_->close_button, &QPushButton::clicked,
                    this,             &AutomaticSettings::finished);
 
-  QObject::connect(ui->roi_button, &QPushButton::clicked,
-                   this,           &AutomaticSettings::showROI);
-
-  QObject::connect(&roi_, &RoiArea::closed,
-                   this, &AutomaticSettings::roiAreaClosed);
+  QObject::connect(ui_->tabs, &QTabWidget::currentChanged,
+                   this,      &AutomaticSettings::tabChanged);
 
   settings_.setValue(SettingsKey::manualROIStatus,          "0");
-  roi_.hide();
+  ui_->roi_surface->enableOverlay();
 }
 
 
 AutomaticSettings::~AutomaticSettings()
 {
-  delete ui;
+  delete ui_;
 }
 
 
 void AutomaticSettings::finished()
 {
-  roi_.hide();
+  disableROI();
   hide();
   emit hidden();
 }
 
 
-void AutomaticSettings::showROI()
+void AutomaticSettings::show()
+{
+  if (ui_->tabs->currentIndex() == ROI_TAB)
+  {
+    activateROI();
+  }
+
+  QWidget::show();
+}
+
+
+void AutomaticSettings::tabChanged(int index)
+{
+  if (index == ROI_TAB)
+  {
+    activateROI();
+  }
+  else
+  {
+    disableROI();
+  }
+}
+
+
+void AutomaticSettings::activateROI()
 {
   Logger::getLogger()->printNormal(this, "Manual ROI window opened. "
                                          "Enabling manual ROI");
-  roi_.show();
-  settings_.setValue(SettingsKey::manualROIStatus,          true);
+  settings_.setValue(SettingsKey::manualROIStatus,         "1");
 
   emit updateAutomaticSettings();
 
   // TODO: Once rate control has been moved to automatic side, disable it here
 }
 
-void AutomaticSettings::roiAreaClosed()
+
+void AutomaticSettings::disableROI()
 {
   Logger::getLogger()->printNormal(this, "Manual ROI window closed. "
                                          "Disabling manual ROI");
-  settings_.setValue(SettingsKey::manualROIStatus,          false);
+  settings_.setValue(SettingsKey::manualROIStatus,          "0");
   emit updateAutomaticSettings();
 }
 
 
 VideoWidget* AutomaticSettings::getRoiSelfView()
 {
-  return roi_.getSelfVideoWidget();
+  return ui_->roi_surface;
 }
