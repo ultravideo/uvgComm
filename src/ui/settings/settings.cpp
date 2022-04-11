@@ -589,6 +589,12 @@ void Settings::saveDevice(QComboBox* deviceSelector, QString settingsID,
     // record index in all cases
     settings_.setValue(settingsID,      currentIndex);
   }
+  else
+  {
+    // record something so it doesn't give error when checking for missing keys
+    settings_.setValue(settingsID,      "-1");
+    settings_.setValue(settingsDevice,  "none");
+  }
 }
 
 
