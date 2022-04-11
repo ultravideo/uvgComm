@@ -444,7 +444,7 @@ void ICE::handleICEFailure()
                                   "Failed to nominate RTP/RTCP candidates!");
 
   agent_->quit();
-  connectionNominated_ = false;
+  connectionNominated_ = false; // TODO: crash here with debugger
   emit nominationFailed(sessionID_);
 }
 

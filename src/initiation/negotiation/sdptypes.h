@@ -13,7 +13,7 @@
 // see RFC 4566 for details.
 
 // sendrecv is default, if none present.
-// Note that RTCP is still send in case of RECVONLY, SENDONLY and INACTIVE
+// Note that RTCP is still sent in case of RECVONLY, SENDONLY and INACTIVE
 enum SDPAttributeType{A_CAT, A_KEYWDS, A_TOOL, A_PTIME, A_MAXPTIME, A_RTPMAP,
                       A_RECVONLY, A_SENDRECV, A_SENDONLY, A_INACTIVE,
                       A_ORIENT, A_TYPE, A_CHARSET, A_SDPLANG, A_LANG,
@@ -101,7 +101,7 @@ struct SDPMessageInfo
   QString email;              // e=, optional
   QString phone;              // p=, optional
 
-  // c=, global
+  // c=, global default for all media that haven't specified address
   QString connection_nettype;
   QString connection_addrtype;
   QString connection_address;
@@ -112,7 +112,7 @@ struct SDPMessageInfo
 
   QList<TimezoneInfo> timezoneOffsets; // z=, optional
 
-  // see RFC 4567 and RFC 4568 for more details.
+  // see RFC 4567 and RFC 4568 for more details
   QString encryptionKey; // k=, optional
 
   // a=, optional, global
@@ -120,6 +120,8 @@ struct SDPMessageInfo
   QList<SDPAttribute> valueAttributes;
 
   QList<MediaInfo> media;// m=, zero or more
+
+  // TODO: Candidate is a media-level attribute only
   QList<std::shared_ptr<ICEInfo>> candidates;
 };
 
