@@ -141,7 +141,10 @@ QAbstractSocket::NetworkLayerProtocol TCPConnection::remoteProtocol() const
 void TCPConnection::stopConnection()
 {
   active_ = false;
-  eventDispatcher()->interrupt();
+  if (eventDispatcher())
+  {
+    eventDispatcher()->interrupt();
+  }
 }
 
 
