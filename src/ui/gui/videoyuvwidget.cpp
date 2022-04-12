@@ -32,9 +32,9 @@ VideoYUVWidget::~VideoYUVWidget()
 {}
 
 
-void VideoYUVWidget::enableOverlay()
+void VideoYUVWidget::enableOverlay(int goodQP, int badQP)
 {
-  helper_.enableOverlay();
+  helper_.enableOverlay(goodQP, badQP);
 }
 
 

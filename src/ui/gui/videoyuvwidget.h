@@ -39,7 +39,7 @@ public:
 
   static unsigned int number_;
 
-  virtual void enableOverlay();
+  virtual void enableOverlay(int goodQP, int badQP);
   virtual void resetOverlay();
 
   virtual std::unique_ptr<int8_t[]> getRoiMask(int& width, int& height, int qp, bool scaleToInput);

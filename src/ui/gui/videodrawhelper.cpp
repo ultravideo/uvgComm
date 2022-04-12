@@ -14,9 +14,7 @@ const QImage::Format IMAGE_FORMAT = QImage::Format_ARGB32;
 const QColor unselectedColor = QColor(50, 50, 50, 200);
 const QColor selectedColor = QColor(0, 0, 0, 0);
 
-// Make sure this takes into account changes in QP by GOP!
-const int maxQP = 47;
-const int maximumQPIncrease = 25;
+const int maximumQPChange = 25;
 
 
 VideoDrawHelper::VideoDrawHelper(uint32_t sessionID, uint32_t index, uint8_t borderSize):
@@ -31,7 +29,9 @@ VideoDrawHelper::VideoDrawHelper(uint32_t sessionID, uint32_t index, uint8_t bor
   currentSize_(0),
   currentMask_(nullptr),
   drawOverlay_(false),
-  overlay_()
+  overlay_(),
+  goodQP_(22),
+  badQP_(47)
 {}
 
 
@@ -61,9 +61,14 @@ void VideoDrawHelper::initWidget(QWidget* widget)
 }
 
 
-void VideoDrawHelper::enableOverlay()
+void VideoDrawHelper::enableOverlay(int goodQP, int badQP)
 {
+  roiMutex_.lock();
   drawOverlay_ = true;
+  goodQP_ = goodQP;
+  badQP_ = badQP;
+  currentMask_ = nullptr;
+  roiMutex_.unlock();
 }
 
 
@@ -354,12 +359,12 @@ void VideoDrawHelper::updateROIMask(int &width, int &height, int qp, bool scaleT
   float widthMultiplier = (float)overlay_.width()/width;
   float heightMultiplier = (float)overlay_.height()/height;
 
-  int qpIncrease = maxQP - qp;
+  int qpWorsening = badQP_ - qp;
+  int qpImprovement = goodQP_ - qp;
 
-  if (qpIncrease > maximumQPIncrease)
-  {
-    qpIncrease = maximumQPIncrease;
-  }
+  // currently not necessary, but as a safety measure for future changes
+  clipValue(qpWorsening, maximumQPChange);
+  clipValue(qpImprovement, maximumQPChange);
 
   for (int i = 0; i < height; ++i)
   {
@@ -371,15 +376,30 @@ void VideoDrawHelper::updateROIMask(int &width, int &height, int qp, bool scaleT
       if (overlayColor == selectedColor)
       {
         // do not change the QP for good values
-        currentMask_[i*width + j] = 0;
+        currentMask_[i*width + j] = qpImprovement;
       }
       else
       {
         // The QP difference with current QP and desired (bad) QP
-        currentMask_[i*width + j] = qpIncrease;
+        currentMask_[i*width + j] = qpWorsening;
       }
     }
   }
 
   return;
+}
+
+
+void VideoDrawHelper::clipValue(int& value, int maximumChange)
+{
+  if (value > maximumChange)
+  {
+    Logger::getLogger()->printWarning(this, "Clipping QP value because it increases too much");
+    value = maximumChange;
+  }
+  else if (value < -maximumChange)
+  {
+    Logger::getLogger()->printWarning(this, "Clipping QP value because it decreases too much");
+    value = -maximumChange;
+  }
 }

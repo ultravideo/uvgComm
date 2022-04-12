@@ -27,9 +27,9 @@ VideoGLWidget::~VideoGLWidget()
 {}
 
 
-void VideoGLWidget::enableOverlay()
+void VideoGLWidget::enableOverlay(int goodQP, int badQP)
 {
-  helper_.enableOverlay();
+  helper_.enableOverlay(goodQP, badQP);
 }
 
 

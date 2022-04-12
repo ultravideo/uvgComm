@@ -33,7 +33,7 @@ public:
 
   void initWidget(QWidget* widget);
 
-  void enableOverlay();
+  void enableOverlay(int goodQP, int badQP);
   void resetOverlay();
 
   bool readyToDraw();
@@ -74,6 +74,7 @@ private:
 
   void updateROIMask(int& width, int& height, int qp, bool scaleToInput);
 
+  inline void clipValue(int& value, int maximumChange);
 
   uint32_t sessionID_;
   uint32_t index_;
@@ -106,4 +107,7 @@ private:
 
   bool drawOverlay_;
   QImage overlay_;
+
+  int goodQP_;
+  int badQP_;
 };

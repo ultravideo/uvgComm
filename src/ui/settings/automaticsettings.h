@@ -28,6 +28,8 @@ public slots:
 
   void reset();
 
+  void spinnerValueChanged(int i);
+
 signals:
   void updateAutomaticSettings();
   void hidden();

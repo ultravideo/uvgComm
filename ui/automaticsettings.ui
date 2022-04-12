@@ -80,8 +80,64 @@
        <string>ROI</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_3">
-       <item row="0" column="0">
+       <item row="1" column="2">
+        <widget class="QLabel" name="bad_label">
+         <property name="text">
+          <string>Bad QP:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="4">
+        <spacer name="horizontalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="0" column="0" colspan="5">
         <widget class="VideoWidget" name="roi_surface" native="true"/>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="good_label">
+         <property name="text">
+          <string>Good QP:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QSpinBox" name="good_qp">
+         <property name="suffix">
+          <string/>
+         </property>
+         <property name="prefix">
+          <string/>
+         </property>
+         <property name="minimum">
+          <number>22</number>
+         </property>
+         <property name="maximum">
+          <number>47</number>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="3">
+        <widget class="QSpinBox" name="bad_qp">
+         <property name="minimum">
+          <number>22</number>
+         </property>
+         <property name="maximum">
+          <number>47</number>
+         </property>
+         <property name="value">
+          <number>47</number>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>

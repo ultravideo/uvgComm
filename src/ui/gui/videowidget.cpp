@@ -35,9 +35,9 @@ VideoWidget::~VideoWidget()
 {}
 
 
-void VideoWidget::enableOverlay()
+void VideoWidget::enableOverlay(int goodQP, int badQP)
 {
-  helper_.enableOverlay();
+  helper_.enableOverlay(goodQP, badQP);
 }
 
 

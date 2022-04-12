@@ -31,7 +31,7 @@ public:
   // Takes ownership of the image data
   virtual void inputImage(std::unique_ptr<uchar[]> data, QImage &image, int64_t timestamp);
 
-  virtual void enableOverlay();
+  virtual void enableOverlay(int goodQP, int badQP);
   virtual void resetOverlay();
 
   virtual std::unique_ptr<int8_t[]> getRoiMask(int& width, int& height, int qp, bool scaleToInput);
