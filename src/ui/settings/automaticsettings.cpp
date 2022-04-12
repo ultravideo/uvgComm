@@ -45,11 +45,6 @@ AutomaticSettings::~AutomaticSettings()
 
 void AutomaticSettings::spinnerValueChanged(int i)
 {
-  if (ui_->roi_qp->value() > ui_->background_qp->value())
-  {
-    ui_->roi_qp->setValue(ui_->background_qp->value());
-  }
-
   ui_->roi_surface->enableOverlay(ui_->roi_qp->value(),
                                   ui_->background_qp->value());
 
