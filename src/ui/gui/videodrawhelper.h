@@ -33,7 +33,7 @@ public:
 
   void initWidget(QWidget* widget);
 
-  void enableOverlay(int goodQP, int badQP);
+  void enableOverlay(int roiQP, int backgroundQP);
   void resetOverlay();
 
   bool readyToDraw();
@@ -112,6 +112,6 @@ private:
   bool drawOverlay_;
   QImage overlay_;
 
-  int goodQP_;
-  int badQP_;
+  int roiQP_;
+  int backgroundQP_;
 };

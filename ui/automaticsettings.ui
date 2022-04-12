@@ -81,9 +81,9 @@
       </attribute>
       <layout class="QGridLayout" name="gridLayout_3">
        <item row="1" column="2">
-        <widget class="QLabel" name="bad_label">
+        <widget class="QLabel" name="background_label">
          <property name="text">
-          <string>Bad QP:</string>
+          <string>Global QP</string>
          </property>
         </widget>
        </item>
@@ -104,14 +104,14 @@
         <widget class="VideoWidget" name="roi_surface" native="true"/>
        </item>
        <item row="1" column="0">
-        <widget class="QLabel" name="good_label">
+        <widget class="QLabel" name="roi_lable">
          <property name="text">
-          <string>Good QP:</string>
+          <string>ROI QP</string>
          </property>
         </widget>
        </item>
        <item row="1" column="1">
-        <widget class="QSpinBox" name="good_qp">
+        <widget class="QSpinBox" name="roi_qp">
          <property name="suffix">
           <string/>
          </property>
@@ -127,7 +127,7 @@
         </widget>
        </item>
        <item row="1" column="3">
-        <widget class="QSpinBox" name="bad_qp">
+        <widget class="QSpinBox" name="background_qp">
          <property name="minimum">
           <number>22</number>
          </property>

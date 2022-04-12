@@ -30,8 +30,8 @@ VideoDrawHelper::VideoDrawHelper(uint32_t sessionID, uint32_t index, uint8_t bor
   currentMask_(nullptr),
   drawOverlay_(false),
   overlay_(),
-  goodQP_(22),
-  badQP_(47)
+  roiQP_(22),
+  backgroundQP_(47)
 {}
 
 
@@ -61,12 +61,12 @@ void VideoDrawHelper::initWidget(QWidget* widget)
 }
 
 
-void VideoDrawHelper::enableOverlay(int goodQP, int badQP)
+void VideoDrawHelper::enableOverlay(int roiQP, int backgroundQP)
 {
   roiMutex_.lock();
   drawOverlay_ = true;
-  goodQP_ = goodQP;
-  badQP_ = badQP;
+  roiQP_ = roiQP;
+  backgroundQP_ = backgroundQP;
   currentMask_ = nullptr;
   roiMutex_.unlock();
 }
@@ -76,7 +76,7 @@ void VideoDrawHelper::resetOverlay()
 {
   roiMutex_.lock();
   overlay_ = QImage(targetRect_.size(), IMAGE_FORMAT);
-  overlay_.fill(qpToColor(badQP_));
+  overlay_.fill(qpToColor(backgroundQP_));
 
   currentMask_ = nullptr;
   roiMutex_.unlock();
@@ -215,11 +215,11 @@ void VideoDrawHelper::addPointToOverlay(const QPointF& position, bool addPoint, 
     roiMutex_.lock();
     QPainter painter(&overlay_);
 
-    QBrush brush(qpToColor(goodQP_));
+    QBrush brush(qpToColor(roiQP_));
 
     if (removePoint)
     {
-      brush = QBrush(qpToColor(badQP_));
+      brush = QBrush(qpToColor(backgroundQP_));
     }
 
     painter.setBrush(brush);
@@ -414,29 +414,18 @@ void VideoDrawHelper::clipValue(int& value, int maximumChange)
 
 int VideoDrawHelper::colorToQP(QColor& color, int baseQP)
 {
-  // which QP values we use for good and bad QP (to reflect the overlay)
-  if (color == selectedColor)
-  {
-    int qpImprovement = goodQP_ - baseQP;
-
-    // safety clips if the base QP in settings is near either end
-    clipValue(qpImprovement, maximumQPChange);
-
-    return qpImprovement;
-  }
-
-  int qpWorsening = badQP_ - baseQP;
-  clipValue(qpWorsening, maximumQPChange);
-  return qpWorsening;
+  int qp = color.alpha()*25/200 + 22 - baseQP;
+  clipValue(qp, maximumQPChange);
+  return qp;
 }
 
 
 QColor VideoDrawHelper::qpToColor(int qp)
 {
-  if (qp == goodQP_)
+  if (qp == 22)
   {
-    return selectedColor;
+    return QColor(0,0,0,0);
   }
 
-  return unselectedColor;
+  return QColor(50, 50, 50, (qp - 22)*200/25);
 }

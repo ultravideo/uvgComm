@@ -24,16 +24,16 @@ AutomaticSettings::AutomaticSettings(QWidget *parent):
                    this,      &AutomaticSettings::tabChanged);
 
   // the signal in Qt is overloaded (because of deprication) so we need different syntax
-  QObject::connect(ui_->good_qp, QOverload<int>::of(&QSpinBox::valueChanged),
+  QObject::connect(ui_->roi_qp, QOverload<int>::of(&QSpinBox::valueChanged),
                    this,         &AutomaticSettings::spinnerValueChanged);
 
-  QObject::connect(ui_->bad_qp, QOverload<int>::of(&QSpinBox::valueChanged),
+  QObject::connect(ui_->background_qp, QOverload<int>::of(&QSpinBox::valueChanged),
                    this,         &AutomaticSettings::spinnerValueChanged);
 
   settings_.setValue(SettingsKey::manualROIStatus,          "0");
 
-  ui_->roi_surface->enableOverlay(ui_->good_qp->value(),
-                                  ui_->bad_qp->value());
+  ui_->roi_surface->enableOverlay(ui_->roi_qp->value(),
+                                  ui_->background_qp->value());
 }
 
 
@@ -45,13 +45,15 @@ AutomaticSettings::~AutomaticSettings()
 
 void AutomaticSettings::spinnerValueChanged(int i)
 {
-  if (ui_->good_qp->value() > ui_->bad_qp->value())
+  if (ui_->roi_qp->value() > ui_->background_qp->value())
   {
-    ui_->good_qp->setValue(ui_->bad_qp->value());
+    ui_->roi_qp->setValue(ui_->background_qp->value());
   }
 
-  ui_->roi_surface->enableOverlay(ui_->good_qp->value(),
-                                  ui_->bad_qp->value());
+  ui_->roi_surface->enableOverlay(ui_->roi_qp->value(),
+                                  ui_->background_qp->value());
+
+  ui_->roi_surface->resetOverlay();
 }
 
 
