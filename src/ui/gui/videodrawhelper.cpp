@@ -340,25 +340,38 @@ std::unique_ptr<int8_t[]> VideoDrawHelper::getRoiMask(int& width, int& height,
 
 void VideoDrawHelper::updateROIMask(int &width, int &height, int qp, bool scaleToInput)
 {
-  if (overlay_.width() == 0 || overlay_.height() == 0)
+  // This offset is required because Kvazaar reads the ROI map from the left corner instead
+  // of the CU center and this offset correct for this error between overlay and ROI map
+  const int halfQPOffset = 32;
+
+  // These are needed for this to work. Sometimes the overlay has not been created yet when the
+  // first update call arrives so this takes care of that situation
+  if (overlay_.width() == 0 || overlay_.height() == 0 ||
+      width < halfQPOffset || height < halfQPOffset)
   {
     currentSize_ = 0;
     currentMask_ = nullptr;
     return;
   }
 
+  // Does not seem to work with kvazaar atm, but probably a smaller ROI map would
+  // also work than the whole frame (if divided by CU size for example)
   if (!scaleToInput)
   {
     width = overlay_.width();
     height = overlay_.height();
   }
 
+  // allocate memory for the mask. This is the mask we hold in memory and use to
+  // make copies for kvazaar to use.
   currentSize_ = width*height;
   currentMask_ = std::unique_ptr<int8_t[]> (new int8_t[currentSize_]);
 
+  // if the overlay is different size, we need to offset this difference
   float widthMultiplier = (float)overlay_.width()/width;
   float heightMultiplier = (float)overlay_.height()/height;
 
+  // which QP values we use for good and bad QP (to reflect the overlay)
   int qpWorsening = badQP_ - qp;
   int qpImprovement = goodQP_ - qp;
 
@@ -366,23 +379,34 @@ void VideoDrawHelper::updateROIMask(int &width, int &height, int qp, bool scaleT
   clipValue(qpWorsening, maximumQPChange);
   clipValue(qpImprovement, maximumQPChange);
 
-  for (int i = 0; i < height; ++i)
+  // write the QP values to ROI map
+  for (int i = 0; i < height - halfQPOffset; ++i)
   {
-    for (int j = 0; j < width; ++j)
+    for (int j = 0; j < width - halfQPOffset; ++j)
     {
-      QPoint imagePosition(widthMultiplier*j, heightMultiplier*i);
+      // calculate position in overlay
+      QPoint imagePosition(widthMultiplier*(j + halfQPOffset), heightMultiplier*(i + halfQPOffset));
       QColor overlayColor = overlay_.pixelColor(imagePosition);
 
       if (overlayColor == selectedColor)
       {
-        // do not change the QP for good values
+        // improve the QP in this position
         currentMask_[i*width + j] = qpImprovement;
       }
       else
       {
-        // The QP difference with current QP and desired (bad) QP
+        // worsen the QP in this position
         currentMask_[i*width + j] = qpWorsening;
       }
+    }
+  }
+
+  // zero the upper corner just in case, even though it is not used by kvazaar
+  for (int i = height - halfQPOffset; i < height; ++i)
+  {
+    for (int j = width - halfQPOffset; j < width; ++j)
+    {
+      currentMask_[i*width + j] = 0;
     }
   }
 
