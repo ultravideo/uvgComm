@@ -76,7 +76,7 @@ void VideoDrawHelper::resetOverlay()
 {
   roiMutex_.lock();
   overlay_ = QImage(targetRect_.size(), IMAGE_FORMAT);
-  overlay_.fill(unselectedColor);
+  overlay_.fill(qpToColor(badQP_));
 
   currentMask_ = nullptr;
   roiMutex_.unlock();
@@ -215,11 +215,11 @@ void VideoDrawHelper::addPointToOverlay(const QPointF& position, bool addPoint, 
     roiMutex_.lock();
     QPainter painter(&overlay_);
 
-    QBrush brush(selectedColor);
+    QBrush brush(qpToColor(goodQP_));
 
     if (removePoint)
     {
-      brush = QBrush(unselectedColor);
+      brush = QBrush(qpToColor(badQP_));
     }
 
     painter.setBrush(brush);
@@ -371,14 +371,6 @@ void VideoDrawHelper::updateROIMask(int &width, int &height, int qp, bool scaleT
   float widthMultiplier = (float)overlay_.width()/width;
   float heightMultiplier = (float)overlay_.height()/height;
 
-  // which QP values we use for good and bad QP (to reflect the overlay)
-  int qpWorsening = badQP_ - qp;
-  int qpImprovement = goodQP_ - qp;
-
-  // currently not necessary, but as a safety measure for future changes
-  clipValue(qpWorsening, maximumQPChange);
-  clipValue(qpImprovement, maximumQPChange);
-
   // write the QP values to ROI map
   for (int i = 0; i < height - halfQPOffset; ++i)
   {
@@ -388,16 +380,7 @@ void VideoDrawHelper::updateROIMask(int &width, int &height, int qp, bool scaleT
       QPoint imagePosition(widthMultiplier*(j + halfQPOffset), heightMultiplier*(i + halfQPOffset));
       QColor overlayColor = overlay_.pixelColor(imagePosition);
 
-      if (overlayColor == selectedColor)
-      {
-        // improve the QP in this position
-        currentMask_[i*width + j] = qpImprovement;
-      }
-      else
-      {
-        // worsen the QP in this position
-        currentMask_[i*width + j] = qpWorsening;
-      }
+      currentMask_[i*width + j] = colorToQP(overlayColor, qp);
     }
   }
 
@@ -426,4 +409,34 @@ void VideoDrawHelper::clipValue(int& value, int maximumChange)
     Logger::getLogger()->printWarning(this, "Clipping QP value because it decreases too much");
     value = -maximumChange;
   }
+}
+
+
+int VideoDrawHelper::colorToQP(QColor& color, int baseQP)
+{
+  // which QP values we use for good and bad QP (to reflect the overlay)
+  if (color == selectedColor)
+  {
+    int qpImprovement = goodQP_ - baseQP;
+
+    // safety clips if the base QP in settings is near either end
+    clipValue(qpImprovement, maximumQPChange);
+
+    return qpImprovement;
+  }
+
+  int qpWorsening = badQP_ - baseQP;
+  clipValue(qpWorsening, maximumQPChange);
+  return qpWorsening;
+}
+
+
+QColor VideoDrawHelper::qpToColor(int qp)
+{
+  if (qp == goodQP_)
+  {
+    return selectedColor;
+  }
+
+  return unselectedColor;
 }

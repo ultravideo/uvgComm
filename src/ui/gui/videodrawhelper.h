@@ -37,7 +37,8 @@ public:
   void resetOverlay();
 
   bool readyToDraw();
-  void inputImage(QWidget *widget, std::unique_ptr<uchar[]> data, QImage &image, int64_t timestamp);
+  void inputImage(QWidget *widget, std::unique_ptr<uchar[]> data,
+                  QImage &image, int64_t timestamp);
 
   // returns whether this is a new image or the previous one
   bool getRecentImage(QImage& image);
@@ -75,6 +76,9 @@ private:
   void updateROIMask(int& width, int& height, int qp, bool scaleToInput);
 
   inline void clipValue(int& value, int maximumChange);
+
+  int colorToQP(QColor& color, int baseQP);
+  QColor qpToColor(int qp);
 
   uint32_t sessionID_;
   uint32_t index_;
