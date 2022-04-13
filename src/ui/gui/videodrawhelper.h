@@ -80,6 +80,10 @@ private:
   int colorToQP(QColor& color, int baseQP);
   QColor qpToColor(int qp);
 
+  void drawGrid();
+
+  QSizeF getSizeMultipliers(int width, int height);
+
   uint32_t sessionID_;
   uint32_t index_;
 
@@ -111,6 +115,7 @@ private:
 
   bool drawOverlay_;
   QImage overlay_;
+  QImage grid_;
 
   int roiQP_;
   int backgroundQP_;

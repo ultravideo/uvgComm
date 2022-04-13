@@ -8,12 +8,7 @@
 #include <QPainter>
 
 const uint16_t VIEWBUFFERSIZE = 5;
-
 const QImage::Format IMAGE_FORMAT = QImage::Format_ARGB32;
-
-const QColor unselectedColor = QColor(50, 50, 50, 200);
-const QColor selectedColor = QColor(0, 0, 0, 0);
-
 const int maximumQPChange = 25;
 
 
@@ -30,6 +25,7 @@ VideoDrawHelper::VideoDrawHelper(uint32_t sessionID, uint32_t index, uint8_t bor
   currentMask_(nullptr),
   drawOverlay_(false),
   overlay_(),
+  grid_(),
   roiQP_(22),
   backgroundQP_(47)
 {}
@@ -77,6 +73,10 @@ void VideoDrawHelper::resetOverlay()
   roiMutex_.lock();
   overlay_ = QImage(targetRect_.size(), IMAGE_FORMAT);
   overlay_.fill(qpToColor(backgroundQP_));
+
+  grid_ = QImage(targetRect_.size(), IMAGE_FORMAT);
+  grid_.fill(QColor(0,0,0,0));
+  drawGrid();
 
   currentMask_ = nullptr;
   roiMutex_.unlock();
@@ -237,11 +237,51 @@ void VideoDrawHelper::addPointToOverlay(const QPointF& position, bool addPoint, 
 }
 
 
+void VideoDrawHelper::drawGrid()
+{
+  if (drawOverlay_ && firstImageReceived_)
+  {
+    QSizeF multiplier = getSizeMultipliers(previousSize_.width(), previousSize_.height());
+
+    QVector<QLine> lines;
+    for (unsigned int i = 0; i < previousSize_.width(); ++i)
+    {
+      if (i%64 == 0 || i%64 == 63)
+      {
+        int x1 = multiplier.width()*i;
+        int y1 = 0;
+        int x2 = x1;
+        int y2 = grid_.height();
+
+        lines.push_back(QLine(x1, y1, x2, y2));
+      }
+    }
+
+    for (unsigned int j = 0; j < previousSize_.height(); ++j)
+    {
+      if (j%64 == 0 || j%64 == 63)
+      {
+        int x1 = 0;
+        int y1 = multiplier.height()*j;
+        int x2 = grid_.width();
+        int y2 = y1;
+
+        lines.push_back(QLine(x1, y1, x2, y2));
+      }
+    }
+
+     QPainter painter(&grid_);
+     painter.drawLines(lines);
+  }
+}
+
+
 void VideoDrawHelper::drawOverlay(QPainter& painter)
 {
   if (drawOverlay_)
   {
     painter.drawImage(getTargetRect(), overlay_);
+    painter.drawImage(getTargetRect(), grid_);
   }
 }
 
@@ -368,8 +408,7 @@ void VideoDrawHelper::updateROIMask(int &width, int &height, int qp, bool scaleT
   currentMask_ = std::unique_ptr<int8_t[]> (new int8_t[currentSize_]);
 
   // if the overlay is different size, we need to offset this difference
-  float widthMultiplier = (float)overlay_.width()/width;
-  float heightMultiplier = (float)overlay_.height()/height;
+  QSizeF multipliers = getSizeMultipliers(width, height);
 
   // write the QP values to ROI map
   for (int i = 0; i < height - halfQPOffset; ++i)
@@ -377,7 +416,7 @@ void VideoDrawHelper::updateROIMask(int &width, int &height, int qp, bool scaleT
     for (int j = 0; j < width - halfQPOffset; ++j)
     {
       // calculate position in overlay
-      QPoint imagePosition(widthMultiplier*(j + halfQPOffset), heightMultiplier*(i + halfQPOffset));
+      QPoint imagePosition(multipliers.width()*(j + halfQPOffset), multipliers.height()*(i + halfQPOffset));
       QColor overlayColor = overlay_.pixelColor(imagePosition);
 
       currentMask_[i*width + j] = colorToQP(overlayColor, qp);
@@ -394,6 +433,11 @@ void VideoDrawHelper::updateROIMask(int &width, int &height, int qp, bool scaleT
   }
 
   return;
+}
+
+QSizeF VideoDrawHelper::getSizeMultipliers(int width, int height)
+{
+  return QSizeF((float)targetRect_.width()/width, (float)targetRect_.height()/height);
 }
 
 
