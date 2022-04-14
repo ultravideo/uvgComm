@@ -33,7 +33,7 @@ public:
 
   void initWidget(QWidget* widget);
 
-  void enableOverlay(int roiQP, int backgroundQP);
+  void enableOverlay(int roiQP, int backgroundQP, int brushSize, bool showGrid, bool pixelBased);
   void resetOverlay();
 
   bool readyToDraw();
@@ -81,7 +81,7 @@ private:
   QColor qpToColor(int qp);
 
   void drawGrid();
-  void setCTUQP(QPainter &painter, const QPointF &viewPosition);
+  void setCTUQP(QPainter &painter, const QPointF &viewPosition, QSizeF viewMultiplier);
 
   QSizeF getSizeMultipliers(int width, int height);
 
@@ -120,4 +120,8 @@ private:
 
   int roiQP_;
   int backgroundQP_;
+  int brushSize_;
+
+  bool showGrid_;
+  bool pixelBasedDrawing_;
 };

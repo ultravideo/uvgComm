@@ -27,10 +27,12 @@ public:
   // Takes ownership of the image data
   virtual void inputImage(std::unique_ptr<uchar[]> data, QImage &image, int64_t timestamp) = 0;
 
-  virtual void enableOverlay(int goodQP, int badQP) = 0;
+  virtual void enableOverlay(int goodQP, int badQP, int brushSize, 
+                             bool showGrid, bool pixelBased) = 0;
   virtual void resetOverlay() = 0;
 
-  virtual std::unique_ptr<int8_t[]> getRoiMask(int& width, int& height, int qp, bool scaleToInput) = 0;
+  virtual std::unique_ptr<int8_t[]> getRoiMask(int& width, int& height, int qp, 
+                                               bool scaleToInput) = 0;
 
   virtual VideoFormat supportedFormat() = 0;
 };

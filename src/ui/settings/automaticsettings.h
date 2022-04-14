@@ -28,7 +28,9 @@ public slots:
 
   void reset();
 
-  void spinnerValueChanged(int i);
+  void updateConfigAndReset(int i);
+  void updateConfig(int i);
+
 
 signals:
   void updateAutomaticSettings();

@@ -32,9 +32,10 @@ VideoYUVWidget::~VideoYUVWidget()
 {}
 
 
-void VideoYUVWidget::enableOverlay(int roiQP, int backgroundQP)
+void VideoYUVWidget::enableOverlay(int roiQP, int backgroundQP, int brushSize, 
+                                   bool showGrid, bool pixelBased)
 {
-  helper_.enableOverlay(roiQP, backgroundQP);
+  helper_.enableOverlay(roiQP, backgroundQP, brushSize, showGrid, pixelBased);
 }
 
 

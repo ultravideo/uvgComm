@@ -25,15 +25,27 @@ AutomaticSettings::AutomaticSettings(QWidget *parent):
 
   // the signal in Qt is overloaded (because of deprication) so we need different syntax
   QObject::connect(ui_->roi_qp, QOverload<int>::of(&QSpinBox::valueChanged),
-                   this,         &AutomaticSettings::spinnerValueChanged);
+                   this,         &AutomaticSettings::updateConfigAndReset);
 
   QObject::connect(ui_->background_qp, QOverload<int>::of(&QSpinBox::valueChanged),
-                   this,         &AutomaticSettings::spinnerValueChanged);
+                   this,         &AutomaticSettings::updateConfigAndReset);
+
+  QObject::connect(ui_->brush_size, QOverload<int>::of(&QSpinBox::valueChanged),
+                   this,         &AutomaticSettings::updateConfig);
+
+  QObject::connect(ui_->show_grid, &QCheckBox::stateChanged,
+                   this,         &AutomaticSettings::updateConfig);
+
+  QObject::connect(ui_->ctu_based, &QCheckBox::stateChanged,
+                   this,             &AutomaticSettings::updateConfigAndReset);
 
   settings_.setValue(SettingsKey::manualROIStatus,          "0");
 
   ui_->roi_surface->enableOverlay(ui_->roi_qp->value(),
-                                  ui_->background_qp->value());
+                                  ui_->background_qp->value(),
+                                  ui_->brush_size->value(),
+                                  ui_->show_grid->isChecked(),
+                                  !ui_->ctu_based->isChecked());
 }
 
 
@@ -43,12 +55,26 @@ AutomaticSettings::~AutomaticSettings()
 }
 
 
-void AutomaticSettings::spinnerValueChanged(int i)
+void AutomaticSettings::updateConfigAndReset(int i)
 {
   ui_->roi_surface->enableOverlay(ui_->roi_qp->value(),
-                                  ui_->background_qp->value());
+                                  ui_->background_qp->value(),
+                                  ui_->brush_size->value(),
+                                  ui_->show_grid->isChecked(),
+                                  !ui_->ctu_based->isChecked());
 
+  // reset the whole ROI map because changing config benefits from it
   ui_->roi_surface->resetOverlay();
+}
+
+
+void AutomaticSettings::updateConfig(int i)
+{
+  ui_->roi_surface->enableOverlay(ui_->roi_qp->value(),
+                                  ui_->background_qp->value(),
+                                  ui_->brush_size->value(),
+                                  ui_->show_grid->isChecked(),
+                                  !ui_->ctu_based->isChecked());
 }
 
 

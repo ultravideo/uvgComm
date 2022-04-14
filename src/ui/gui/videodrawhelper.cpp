@@ -28,7 +28,10 @@ VideoDrawHelper::VideoDrawHelper(uint32_t sessionID, uint32_t index, uint8_t bor
   overlay_(),
   grid_(),
   roiQP_(22),
-  backgroundQP_(47)
+  backgroundQP_(47),
+  brushSize_(2),
+  showGrid_(false),
+  pixelBasedDrawing_(false)
 {}
 
 
@@ -58,12 +61,23 @@ void VideoDrawHelper::initWidget(QWidget* widget)
 }
 
 
-void VideoDrawHelper::enableOverlay(int roiQP, int backgroundQP)
+void VideoDrawHelper::enableOverlay(int roiQP, int backgroundQP,
+                                    int brushSize, bool showGrid, bool pixelBased)
 {
   roiMutex_.lock();
+
   drawOverlay_ = true;
+
   roiQP_ = roiQP;
   backgroundQP_ = backgroundQP;
+
+  // grid updates are considered part of the UI so they are updated immediately
+  showGrid_ = showGrid;
+  drawGrid();
+
+  pixelBasedDrawing_ = pixelBased;
+  brushSize_ = brushSize;
+
   currentMask_ = nullptr;
   roiMutex_.unlock();
 }
@@ -75,9 +89,7 @@ void VideoDrawHelper::resetOverlay()
   overlay_ = QImage(targetRect_.size(), IMAGE_FORMAT);
   overlay_.fill(qpToColor(backgroundQP_));
 
-  grid_ = QImage(targetRect_.size(), IMAGE_FORMAT);
-  grid_.fill(QColor(0,0,0,0));
-  //drawGrid();
+  drawGrid();
 
   currentMask_ = nullptr;
   roiMutex_.unlock();
@@ -225,9 +237,20 @@ void VideoDrawHelper::addPointToOverlay(const QPointF& position, bool addPoint, 
     // need to be set so we can override the destination alpha
     painter.setCompositionMode(QPainter::CompositionMode_Source);
 
-    if (false)
+    if (pixelBasedDrawing_)
     {
-      const QSizeF size(targetRect_.width()/10, targetRect_.width()/10);
+      int proportion = 20; // 5% of image
+
+      if (brushSize_ == 2)
+      {
+        proportion = 10; // 10% of image
+      }
+      else if (brushSize_ >= 3)
+      {
+        proportion = 5;  // 20% of image
+      }
+
+      const QSizeF size(targetRect_.width()/proportion, targetRect_.width()/proportion);
       QPointF circleHalfway(size.width()/2, size.height()/2);
       QRectF drawnCircle(position - targetRect_.topLeft() - circleHalfway, size);
 
@@ -240,18 +263,34 @@ void VideoDrawHelper::addPointToOverlay(const QPointF& position, bool addPoint, 
       QPointF viewCTUSize = {CTU_SIZE*viewMultiplier.width(), CTU_SIZE*viewMultiplier.height()};
       QPointF viewPosition = (position - targetRect_.topLeft());
 
-      //setCTUQP(painter, viewPosition + QPointF{0,               -viewCTUSize.y()}); // top
-      //setCTUQP(painter, viewPosition + QPointF{-viewCTUSize.x(), 0}              ); // left
-      setCTUQP(painter, viewPosition                                             ); // center
-      //setCTUQP(painter, viewPosition + QPointF{viewCTUSize.x(),  0}              ); // right
-      //setCTUQP(painter, viewPosition + QPointF{               0, viewCTUSize.y()}); // bottom
+      // color the CTU at mouse coordinates
+      setCTUQP(painter, viewPosition, viewMultiplier); // center
 
-      // corners
-      //setCTUQP(painter, viewPosition - viewCTUSize                               ); // top left
-      //setCTUQP(painter, viewPosition + QPointF{viewCTUSize.x(), -viewCTUSize.y()}); // top right
-      //setCTUQP(painter, viewPosition + QPointF{-viewCTUSize.x(), viewCTUSize.y()}); // bottom left
-      //setCTUQP(painter, viewPosition + viewCTUSize                               ); // bottom right
+      if (brushSize_ >= 2)
+      {
+        // CTUs next to mouse click
+        setCTUQP(painter, viewPosition + QPointF{0,               -viewCTUSize.y()},
+                 viewMultiplier); // top
+        setCTUQP(painter, viewPosition + QPointF{-viewCTUSize.x(), 0}              ,
+                 viewMultiplier); // left
 
+        setCTUQP(painter, viewPosition + QPointF{ viewCTUSize.x(),  0}             ,
+                 viewMultiplier); // right
+        setCTUQP(painter, viewPosition + QPointF{               0, viewCTUSize.y()},
+                 viewMultiplier); // bottom
+      }
+      if (brushSize_ >= 3)
+      {
+        // corners
+        setCTUQP(painter, viewPosition - viewCTUSize                               ,
+                 viewMultiplier); // top left
+        setCTUQP(painter, viewPosition + QPointF{viewCTUSize.x(), -viewCTUSize.y()},
+                 viewMultiplier); // top right
+        setCTUQP(painter, viewPosition + QPointF{-viewCTUSize.x(), viewCTUSize.y()},
+                 viewMultiplier); // bottom left
+        setCTUQP(painter, viewPosition + viewCTUSize                               ,
+                 viewMultiplier); // bottom right
+      }
     }
 
     currentMask_ = nullptr;
@@ -260,21 +299,26 @@ void VideoDrawHelper::addPointToOverlay(const QPointF& position, bool addPoint, 
 }
 
 
-void VideoDrawHelper::setCTUQP(QPainter& painter, const QPointF& viewPosition)
+void VideoDrawHelper::setCTUQP(QPainter& painter, const QPointF& viewPosition, QSizeF viewMultiplier)
 {
-  QSizeF viewMultiplier = getSizeMultipliers(previousSize_.width(), previousSize_.height());
+  // here we get the area/rectangle in video frame coordinates rather than view coordinates
+  // because doing it correctly in view coordinates is much more difficult
 
+  // first we translate the point in view to our video
   QPointF pointInVideo;
 
   pointInVideo.setX(viewPosition.x()/viewMultiplier.width());
   pointInVideo.setY(viewPosition.y()/viewMultiplier.height());
 
+  // then we get the CTU rectangle within the video using modulo
+  // (since we know that video CTU size is contant).
   QRectF videoCTU;
 
   videoCTU.setLeft(pointInVideo.x() - fmod(pointInVideo.x(), CTU_SIZE));
   videoCTU.setTop(pointInVideo.y() - fmod(pointInVideo.y(), CTU_SIZE));
   videoCTU.setSize({CTU_SIZE, CTU_SIZE});
 
+  // then we translate the video CTU rectangle to our view as a rectangle
   QRectF viewCTU;
 
   viewCTU.setLeft(videoCTU.left()*viewMultiplier.width());
@@ -283,6 +327,7 @@ void VideoDrawHelper::setCTUQP(QPainter& painter, const QPointF& viewPosition)
   viewCTU.setWidth(videoCTU.width()*viewMultiplier.width());
   viewCTU.setHeight(videoCTU.height()*viewMultiplier.height());
 
+  // lastly we draw the view rectangle
   painter.drawRect(viewCTU);
 }
 
@@ -290,37 +335,49 @@ void VideoDrawHelper::drawGrid()
 {
   if (drawOverlay_ && firstImageReceived_)
   {
-    QSizeF multiplier = getSizeMultipliers(previousSize_.width(), previousSize_.height());
+    // reset the grid in every case, this also clears the grid in case it was disabled
+    grid_ = QImage(targetRect_.size(), IMAGE_FORMAT);
+    grid_.fill(QColor(0,0,0,0));
 
-    QVector<QLine> lines;
-    for (unsigned int i = 0; i < previousSize_.width(); ++i)
+    if (showGrid_)
     {
-      if (i%64 == 0 || i%64 == 63)
+      QSizeF multiplier = getSizeMultipliers(previousSize_.width(), previousSize_.height());
+
+      // first we generate the lines for drawing
+      QVector<QLine> lines;
+
+      // specify vertical lines
+      for (unsigned int i = 0; i < previousSize_.width(); ++i)
       {
-        int x1 = multiplier.width()*i;
-        int y1 = 0;
-        int x2 = x1;
-        int y2 = grid_.height();
+        if (i%64 == 0 || i%64 == 63)
+        {
+          int x1 = multiplier.width()*i;
+          int y1 = 0;
+          int x2 = x1;
+          int y2 = grid_.height();
 
-        lines.push_back(QLine(x1, y1, x2, y2));
+          lines.push_back(QLine(x1, y1, x2, y2));
+        }
       }
-    }
 
-    for (unsigned int j = 0; j < previousSize_.height(); ++j)
-    {
-      if (j%CTU_SIZE == 0 || j%CTU_SIZE == 63)
+      // specify horizontal lines
+      for (unsigned int j = 0; j < previousSize_.height(); ++j)
       {
-        int x1 = 0;
-        int y1 = multiplier.height()*j;
-        int x2 = grid_.width();
-        int y2 = y1;
+        if (j%CTU_SIZE == 0 || j%CTU_SIZE == 63)
+        {
+          int x1 = 0;
+          int y1 = multiplier.height()*j;
+          int x2 = grid_.width();
+          int y2 = y1;
 
-        lines.push_back(QLine(x1, y1, x2, y2));
+          lines.push_back(QLine(x1, y1, x2, y2));
+        }
       }
-    }
 
-     QPainter painter(&grid_);
-     painter.drawLines(lines);
+      // draw the lines
+      QPainter painter(&grid_);
+      painter.drawLines(lines);
+    }
   }
 }
 
@@ -409,6 +466,7 @@ std::unique_ptr<int8_t[]> VideoDrawHelper::getRoiMask(int& width, int& height,
       updateROIMask(width, height, qp, scaleToInput);
     }
 
+    // copy the ROI mask in memory because it is faster than always creating a new one
     if (currentMask_)
     {
       roiMask = std::unique_ptr<int8_t[]> (new int8_t[currentSize_]);
@@ -507,7 +565,7 @@ void VideoDrawHelper::clipValue(int& value, int maximumChange)
 
 int VideoDrawHelper::colorToQP(QColor& color, int baseQP)
 {
-  int qp = color.alpha()*25/200 + 22 - baseQP;
+  int qp = color.alpha()*maximumQPChange/200 + 22 - baseQP;
   clipValue(qp, maximumQPChange);
   return qp;
 }
@@ -520,5 +578,5 @@ QColor VideoDrawHelper::qpToColor(int qp)
     return QColor(0,0,0,0);
   }
 
-  return QColor(50, 50, 50, (qp - 22)*200/25);
+  return QColor(75, 75, 75, (qp - 22)*200/maximumQPChange);
 }

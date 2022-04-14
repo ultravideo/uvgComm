@@ -35,9 +35,10 @@ VideoWidget::~VideoWidget()
 {}
 
 
-void VideoWidget::enableOverlay(int roiQP, int backgroundQP)
+void VideoWidget::enableOverlay(int roiQP, int backgroundQP,
+                                int brushSize, bool showGrid, bool pixelBased)
 {
-  helper_.enableOverlay(roiQP, backgroundQP);
+  helper_.enableOverlay(roiQP, backgroundQP, brushSize, showGrid, pixelBased);
 }
 
 
@@ -47,7 +48,8 @@ void VideoWidget::resetOverlay()
 }
 
 
-std::unique_ptr<int8_t[]> VideoWidget::getRoiMask(int& width, int& height, int qp, bool scaleToInput)
+std::unique_ptr<int8_t[]> VideoWidget::getRoiMask(int& width, int& height,
+                                                  int qp, bool scaleToInput)
 {
   return helper_.getRoiMask(width, height, qp, scaleToInput);
 }
