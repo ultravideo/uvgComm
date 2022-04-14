@@ -10,6 +10,7 @@
 const uint16_t VIEWBUFFERSIZE = 5;
 const QImage::Format IMAGE_FORMAT = QImage::Format_ARGB32;
 const int maximumQPChange = 25;
+const int CTU_SIZE = 64;
 
 
 VideoDrawHelper::VideoDrawHelper(uint32_t sessionID, uint32_t index, uint8_t borderSize):
@@ -76,7 +77,7 @@ void VideoDrawHelper::resetOverlay()
 
   grid_ = QImage(targetRect_.size(), IMAGE_FORMAT);
   grid_.fill(QColor(0,0,0,0));
-  drawGrid();
+  //drawGrid();
 
   currentMask_ = nullptr;
   roiMutex_.unlock();
@@ -209,12 +210,8 @@ void VideoDrawHelper::addPointToOverlay(const QPointF& position, bool addPoint, 
 {
   if (drawOverlay_ && (addPoint != removePoint))
   {
-    const QSizeF size(targetRect_.width()/10, targetRect_.width()/10);
-    QPointF circleHalfway(size.width()/2, size.height()/2);
-
     roiMutex_.lock();
     QPainter painter(&overlay_);
-
     QBrush brush(qpToColor(roiQP_));
 
     if (removePoint)
@@ -228,14 +225,66 @@ void VideoDrawHelper::addPointToOverlay(const QPointF& position, bool addPoint, 
     // need to be set so we can override the destination alpha
     painter.setCompositionMode(QPainter::CompositionMode_Source);
 
-    QRectF drawnCircle(position - targetRect_.topLeft() - circleHalfway, size);
-    painter.drawEllipse(drawnCircle);
+    if (false)
+    {
+      const QSizeF size(targetRect_.width()/10, targetRect_.width()/10);
+      QPointF circleHalfway(size.width()/2, size.height()/2);
+      QRectF drawnCircle(position - targetRect_.topLeft() - circleHalfway, size);
+
+      painter.drawEllipse(drawnCircle);
+    }
+    else
+    {
+      QSizeF viewMultiplier = getSizeMultipliers(previousSize_.width(),
+                                                 previousSize_.height());
+      QPointF viewCTUSize = {CTU_SIZE*viewMultiplier.width(), CTU_SIZE*viewMultiplier.height()};
+      QPointF viewPosition = (position - targetRect_.topLeft());
+
+      //setCTUQP(painter, viewPosition + QPointF{0,               -viewCTUSize.y()}); // top
+      //setCTUQP(painter, viewPosition + QPointF{-viewCTUSize.x(), 0}              ); // left
+      setCTUQP(painter, viewPosition                                             ); // center
+      //setCTUQP(painter, viewPosition + QPointF{viewCTUSize.x(),  0}              ); // right
+      //setCTUQP(painter, viewPosition + QPointF{               0, viewCTUSize.y()}); // bottom
+
+      // corners
+      //setCTUQP(painter, viewPosition - viewCTUSize                               ); // top left
+      //setCTUQP(painter, viewPosition + QPointF{viewCTUSize.x(), -viewCTUSize.y()}); // top right
+      //setCTUQP(painter, viewPosition + QPointF{-viewCTUSize.x(), viewCTUSize.y()}); // bottom left
+      //setCTUQP(painter, viewPosition + viewCTUSize                               ); // bottom right
+
+    }
 
     currentMask_ = nullptr;
     roiMutex_.unlock();
   }
 }
 
+
+void VideoDrawHelper::setCTUQP(QPainter& painter, const QPointF& viewPosition)
+{
+  QSizeF viewMultiplier = getSizeMultipliers(previousSize_.width(), previousSize_.height());
+
+  QPointF pointInVideo;
+
+  pointInVideo.setX(viewPosition.x()/viewMultiplier.width());
+  pointInVideo.setY(viewPosition.y()/viewMultiplier.height());
+
+  QRectF videoCTU;
+
+  videoCTU.setLeft(pointInVideo.x() - fmod(pointInVideo.x(), CTU_SIZE));
+  videoCTU.setTop(pointInVideo.y() - fmod(pointInVideo.y(), CTU_SIZE));
+  videoCTU.setSize({CTU_SIZE, CTU_SIZE});
+
+  QRectF viewCTU;
+
+  viewCTU.setLeft(videoCTU.left()*viewMultiplier.width());
+  viewCTU.setTop(videoCTU.top()*viewMultiplier.height());
+
+  viewCTU.setWidth(videoCTU.width()*viewMultiplier.width());
+  viewCTU.setHeight(videoCTU.height()*viewMultiplier.height());
+
+  painter.drawRect(viewCTU);
+}
 
 void VideoDrawHelper::drawGrid()
 {
@@ -259,7 +308,7 @@ void VideoDrawHelper::drawGrid()
 
     for (unsigned int j = 0; j < previousSize_.height(); ++j)
     {
-      if (j%64 == 0 || j%64 == 63)
+      if (j%CTU_SIZE == 0 || j%CTU_SIZE == 63)
       {
         int x1 = 0;
         int y1 = multiplier.height()*j;
@@ -382,7 +431,7 @@ void VideoDrawHelper::updateROIMask(int &width, int &height, int qp, bool scaleT
 {
   // This offset is required because Kvazaar reads the ROI map from the left corner instead
   // of the CU center and this offset correct for this error between overlay and ROI map
-  const int halfQPOffset = 32;
+  const int halfQPOffset = CTU_SIZE/2;
 
   // These are needed for this to work. Sometimes the overlay has not been created yet when the
   // first update call arrives so this takes care of that situation

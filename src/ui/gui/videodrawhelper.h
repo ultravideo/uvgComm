@@ -81,6 +81,7 @@ private:
   QColor qpToColor(int qp);
 
   void drawGrid();
+  void setCTUQP(QPainter &painter, const QPointF &viewPosition);
 
   QSizeF getSizeMultipliers(int width, int height);
 
