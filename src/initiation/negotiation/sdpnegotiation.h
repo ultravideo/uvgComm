@@ -61,9 +61,9 @@ public slots:
 private:
 
   // When sending an SDP offer
-  bool SDPOfferToContent(QVariant &content, QString localAddress);
+  bool localSDPToContent(QVariant &content);
   // When receiving an SDP offer
-  bool processOfferSDP(QVariant &content, QString localAddress);
+  bool processOfferSDP(QVariant &content);
   // When sending an SDP answer
   bool SDPAnswerToContent(QVariant &content);
   // When receiving an SDP answer
@@ -76,8 +76,7 @@ private:
   // Use this to generate our response to their SDP suggestion.
   // Sets unacceptable media streams port number to 0.
   // Selects a subset of acceptable payload types from each media.
-  bool generateAnswerSDP(SDPMessageInfo& remoteSDPOffer,
-                         QString localAddress);
+  bool generateAnswerSDP(SDPMessageInfo& remoteSDPOffer);
 
   // process their response SDP.
   bool processAnswerSDP(SDPMessageInfo& remoteSDPAnswer);
@@ -93,10 +92,6 @@ private:
   std::shared_ptr<SDPMessageInfo> remoteSDP_;
 
   NegotiationState negotiationState_;
-
-  // used to set the initial connection address in SDP. This only for spec,
-  // the actual addresses used are determined by ICE.
-  QString localAddress_;
 
   // INVITE and INVITE OK tell us whether SDP is accepted by peer/us
   bool peerAcceptsSDP_;

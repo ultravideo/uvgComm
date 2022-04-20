@@ -29,7 +29,8 @@ std::shared_ptr<SDPMessageInfo> generateLocalSDP(QString localAddress)
     return nullptr;
   }
 
-  std::shared_ptr<SDPMessageInfo> newInfo = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
+  std::shared_ptr<SDPMessageInfo> newInfo
+      = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
   newInfo->version = 0;
   generateOrigin(newInfo, localAddress);
   setConnectionAddress(newInfo, localAddress);
@@ -53,22 +54,18 @@ std::shared_ptr<SDPMessageInfo> generateLocalSDP(QString localAddress)
 }
 
 
-std::shared_ptr<SDPMessageInfo> negotiateSDP(SDPMessageInfo& remoteSDPOffer,
-                                             QString localAddress)
+void negotiateSDP(std::shared_ptr<SDPMessageInfo> modifiedSDP,
+                  SDPMessageInfo& remoteSDPOffer)
 {
   // At this point we should have checked if their offer is acceptable.
   // Now we just have to generate our answer.
 
-  std::shared_ptr<SDPMessageInfo> newInfo = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
+  modifiedSDP->version = 0;
+  modifiedSDP->sessionName = remoteSDPOffer.sessionName;
+  modifiedSDP->sessionDescription = remoteSDPOffer.sessionDescription;
+  modifiedSDP->timeDescriptions = remoteSDPOffer.timeDescriptions;
 
-  // we assume our answer will be different so new origin
-  generateOrigin(newInfo, localAddress);
-  setConnectionAddress(newInfo, localAddress);
-
-  newInfo->version = 0;
-  newInfo->sessionName = remoteSDPOffer.sessionName;
-  newInfo->sessionDescription = remoteSDPOffer.sessionDescription;
-  newInfo->timeDescriptions = remoteSDPOffer.timeDescriptions;
+  modifiedSDP->media.clear();
 
   // Now the hard part. Select best codecs and set our corresponding media ports.
   for (auto& remoteMedia : remoteSDPOffer.media)
@@ -78,6 +75,7 @@ std::shared_ptr<SDPMessageInfo> negotiateSDP(SDPMessageInfo& remoteSDPOffer,
     ourMedia.receivePort = 0; // TODO: ICE Should set this to one of its candidates
     ourMedia.proto = remoteMedia.proto;
     ourMedia.title = remoteMedia.title;
+
     if (remoteMedia.flagAttributes.empty())
     {
       ourMedia.flagAttributes = {A_SENDRECV};
@@ -116,11 +114,8 @@ std::shared_ptr<SDPMessageInfo> negotiateSDP(SDPMessageInfo& remoteSDPOffer,
                       supportedNums, supportedCodecs,
                       ourMedia.rtpNums, ourMedia.codecs);
     }
-    newInfo->media.append(ourMedia);
+    modifiedSDP->media.append(ourMedia);
   }
-
-
-  return newInfo;
 }
 
 

@@ -10,8 +10,8 @@
 
 std::shared_ptr<SDPMessageInfo> generateLocalSDP(QString localAddress);
 
-std::shared_ptr<SDPMessageInfo> negotiateSDP(SDPMessageInfo& remoteSDPOffer,
-                                             QString localAddress);
+void negotiateSDP(std::shared_ptr<SDPMessageInfo> modifiedSDP,
+                  SDPMessageInfo& remoteSDPOffer);
 
 void generateOrigin(std::shared_ptr<SDPMessageInfo> sdp, QString localAddress);
 void setConnectionAddress(std::shared_ptr<SDPMessageInfo> sdp, QString localAddress);
