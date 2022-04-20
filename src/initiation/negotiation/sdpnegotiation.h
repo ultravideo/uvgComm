@@ -88,6 +88,13 @@ private:
 
   bool isSDPAccepted(std::shared_ptr<QList<SIPAccept>>& accepts);
 
+  void negotiateSDP(std::shared_ptr<SDPMessageInfo> modifiedSDP,
+                    SDPMessageInfo& remoteSDPOffer);
+
+  bool selectBestCodec(QList<uint8_t>& remoteNums,       QList<RTPMap>& remoteCodecs,
+                       QList<uint8_t>& supportedNums,    QList<RTPMap>& supportedCodecs,
+                       QList<uint8_t>& outMatchingNums,  QList<RTPMap>& outMatchingCodecs);
+
   std::shared_ptr<SDPMessageInfo> localSDP_;
   std::shared_ptr<SDPMessageInfo> remoteSDP_;
 

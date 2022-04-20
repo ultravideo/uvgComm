@@ -6,6 +6,8 @@
 #include "global.h"
 #include "logger.h"
 
+#include "mediacapabilities.h"
+
 #include <QVariant>
 
 SDPNegotiation::SDPNegotiation(QString localAddress):
@@ -106,8 +108,8 @@ void SDPNegotiation::processIncomingRequest(SIPRequest& request, QVariant& conte
                                          "Failure to process SDP offer "
                                          "not implemented.");
 
-         // TODO: sendResponse SIP_DECLINE
-         return;
+         // we send a DECLINE response
+         generatedResponse = SIP_DECLINE;
       }
       break;
     }
@@ -432,6 +434,112 @@ bool SDPNegotiation::isSDPAccepted(std::shared_ptr<QList<SIPAccept>>& accepts)
       return true;
     }
   }
+
+  return false;
+}
+
+
+void SDPNegotiation::negotiateSDP(std::shared_ptr<SDPMessageInfo> modifiedSDP,
+                                  SDPMessageInfo& remoteSDPOffer)
+{
+  // At this point we should have checked if their offer is acceptable.
+  // Now we just have to generate our answer.
+
+  modifiedSDP->version = 0;
+  modifiedSDP->sessionName = remoteSDPOffer.sessionName;
+  modifiedSDP->sessionDescription = remoteSDPOffer.sessionDescription;
+  modifiedSDP->timeDescriptions = remoteSDPOffer.timeDescriptions;
+
+  modifiedSDP->media.clear();
+
+  // Now the hard part. Select best codecs and set our corresponding media ports.
+  for (auto& remoteMedia : remoteSDPOffer.media)
+  {
+    MediaInfo ourMedia;
+    ourMedia.type = remoteMedia.type;
+    ourMedia.receivePort = 0; // TODO: ICE Should set this to one of its candidates
+    ourMedia.proto = remoteMedia.proto;
+    ourMedia.title = remoteMedia.title;
+
+    if (remoteMedia.flagAttributes.empty())
+    {
+      ourMedia.flagAttributes = {A_SENDRECV};
+    }
+    else if (remoteMedia.flagAttributes.back() == A_SENDONLY)
+    {
+      ourMedia.flagAttributes = {A_RECVONLY};
+    }
+    else if (remoteMedia.flagAttributes.back() == A_RECVONLY)
+    {
+      ourMedia.flagAttributes = {A_SENDONLY};
+    }
+    else {
+      ourMedia.flagAttributes = remoteMedia.flagAttributes;
+    }
+
+    // set our bitrate, not implemented
+    // set our encryptionKey, not implemented
+
+    if (remoteMedia.type == "audio")
+    {
+      QList<uint8_t> supportedNums = PREDEFINED_AUDIO_CODECS;
+      QList<RTPMap> supportedCodecs = DYNAMIC_AUDIO_CODECS;
+
+      selectBestCodec(remoteMedia.rtpNums, remoteMedia.codecs,
+                      supportedNums, supportedCodecs,
+                      ourMedia.rtpNums, ourMedia.codecs);
+
+    }
+    else if (remoteMedia.type == "video")
+    {
+      QList<uint8_t> supportedNums = PREDEFINED_VIDEO_CODECS;
+      QList<RTPMap> supportedCodecs = DYNAMIC_VIDEO_CODECS;
+
+      selectBestCodec(remoteMedia.rtpNums, remoteMedia.codecs,
+                      supportedNums, supportedCodecs,
+                      ourMedia.rtpNums, ourMedia.codecs);
+    }
+    modifiedSDP->media.append(ourMedia);
+  }
+}
+
+
+bool SDPNegotiation::selectBestCodec(QList<uint8_t>& remoteNums,      QList<RTPMap> &remoteCodecs,
+                                     QList<uint8_t>& supportedNums,   QList<RTPMap> &supportedCodecs,
+                                     QList<uint8_t>& outMatchingNums, QList<RTPMap> &outMatchingCodecs)
+{
+  for (auto& remoteCodec : remoteCodecs)
+  {
+    for (auto& supportedCodec : supportedCodecs)
+    {
+      if(remoteCodec.codec == supportedCodec.codec)
+      {
+        outMatchingCodecs.append(remoteCodec);
+        Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPNegotiationHelper",  "Found suitable codec.");
+
+        outMatchingNums.push_back(remoteCodec.rtpNum);
+
+        return true;
+      }
+    }
+  }
+
+  for (auto& rtpNumber : remoteNums)
+  {
+    for (auto& supportedNum : supportedNums)
+    {
+      if(rtpNumber == supportedNum)
+      {
+        outMatchingNums.append(rtpNumber);
+        Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPNegotiationHelper",
+                                        "Found suitable RTP number.");
+        return true;
+      }
+    }
+  }
+
+  Logger::getLogger()->printDebug(DEBUG_ERROR, "SDPNegotiationHelper",
+                                  "Could not find suitable codec or RTP number for media.");
 
   return false;
 }
