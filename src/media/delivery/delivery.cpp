@@ -4,6 +4,7 @@
 
 #include "common.h"
 #include "logger.h"
+#include "settingskeys.h"
 
 #include <QtEndian>
 #include <QHostInfo>
@@ -31,7 +32,7 @@ void Delivery::init(StatisticsInterface *stats,
   stats_ = stats;
   hwResources_ = hwResources;
 
-  if (!uvg_rtp::crypto::enabled())
+  if (!uvg_rtp::crypto::enabled() && settingEnabled(SettingsKey::sipSRTP))
   {
     Logger::getLogger()->printWarning(this, "uvgRTP does not have Crypto++ included. "
                                             "Cannot encrypt media traffic");
@@ -253,7 +254,7 @@ bool Delivery::addMediaStream(uint32_t sessionID, uint16_t localPort, uint16_t p
   int flags = RCE_H26X_PREPEND_SC;
 
   // enable encryption if it works
-  if (uvg_rtp::crypto::enabled())
+  if (uvg_rtp::crypto::enabled() && settingEnabled(SettingsKey::sipSRTP))
   {
     Logger::getLogger()->printNormal(this, "Encryption enabled");
 

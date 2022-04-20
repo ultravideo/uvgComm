@@ -103,6 +103,7 @@ const QString sipMediaPort = "sip/mediaport";
 const QString sipSTUNEnabled = "sip/stunEnabled";
 const QString sipSTUNAddress = "sip/stunAddress";
 const QString sipSTUNPort = "sip/stunPort";
+const QString sipSRTP = "sip/srtpEnabled";
 
 const QString sipUUID = "sip/UUID";
 

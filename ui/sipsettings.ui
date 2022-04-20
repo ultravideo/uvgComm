@@ -31,7 +31,30 @@
        <string>Call</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_4">
-       <item row="2" column="0" colspan="2">
+       <item row="1" column="0">
+        <widget class="QCheckBox" name="auto_accept">
+         <property name="text">
+          <string>Auto-Accept calls</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0" colspan="2">
+        <widget class="QLabel" name="call_heading">
+         <property name="font">
+          <font>
+           <pointsize>16</pointsize>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Call Settings</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0" colspan="2">
         <spacer name="verticalSpacer">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -44,27 +67,13 @@
          </property>
         </spacer>
        </item>
-       <item row="0" column="0" colspan="2">
-        <widget class="QLabel" name="call_heading">
-         <property name="font">
-          <font>
-           <pointsize>16</pointsize>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
-         </property>
+       <item row="2" column="0">
+        <widget class="QCheckBox" name="srtp_enabled">
          <property name="text">
-          <string>Call Settings</string>
+          <string>Encrypt media using SRTP</string>
          </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="0">
-        <widget class="QCheckBox" name="auto_accept">
-         <property name="text">
-          <string>Auto-Accept calls</string>
+         <property name="checked">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
@@ -100,7 +109,6 @@
          <property name="font">
           <font>
            <pointsize>16</pointsize>
-           <weight>75</weight>
            <bold>true</bold>
           </font>
          </property>
@@ -326,7 +334,6 @@
          <property name="font">
           <font>
            <pointsize>16</pointsize>
-           <weight>75</weight>
            <bold>true</bold>
           </font>
          </property>
