@@ -543,3 +543,92 @@ bool SDPNegotiation::selectBestCodec(QList<uint8_t>& remoteNums,      QList<RTPM
 
   return false;
 }
+
+
+bool SDPNegotiation::checkSDPOffer(SDPMessageInfo &offer)
+{
+  // TODO: check everything.
+
+  bool hasAudio = false;
+  bool hasH265 = false;
+
+  if(offer.version != 0)
+  {
+    Logger::getLogger()->printPeerError("SDPNegotiationHelper",
+                                        "Their offer had non-0 version",
+                                        "Version",
+                                        QString::number(offer.version));
+    return false;
+  }
+
+  QStringList debugCodecsFound = {};
+  for(MediaInfo& media : offer.media)
+  {
+    if(!media.rtpNums.empty() && media.rtpNums.first() == 0)
+    {
+      debugCodecsFound << "pcm";
+      hasAudio = true;
+    }
+
+    for(RTPMap& rtp : media.codecs)
+    {
+      if(rtp.codec == "opus")
+      {
+        debugCodecsFound << "opus";
+        hasAudio = true;
+      }
+      else if(rtp.codec == "h265")
+      {
+        debugCodecsFound << "h265";
+        hasH265 = true;
+      }
+    }
+  }
+
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPNegotiationHelper",
+             "Found following codecs in SDP", {"Codecs"}, debugCodecsFound);
+
+  if (offer.timeDescriptions.size() >= 1)
+  {
+    if (offer.timeDescriptions.at(0).startTime != 0 ||
+        offer.timeDescriptions.at(0).stopTime != 0)
+    {
+      Logger::getLogger()->printDebug(DEBUG_ERROR, "SDPNegotiationHelper",
+                 "They offered us a session with limits. Unsupported.");
+      return false;
+    }
+  }
+  else {
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SDPNegotiationHelper",
+               "they included wrong number of Time Descriptions. Should be detected earlier.");
+    return false;
+  }
+
+
+  return hasAudio && hasH265;
+}
+
+
+void SDPNegotiation::setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo, bool local)
+{
+  if (mediaInfo == nullptr)
+  {
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SDPNegotiationHelper",
+                                    "Null mediainfo in setMediaPair");
+    return;
+  }
+
+  // for local address, we bind to our rel-address if using non-host connection type
+  if (local &&
+      mediaInfo->type != "host" &&
+      mediaInfo->rel_address != "" && mediaInfo->rel_port != 0)
+  {
+    media.connection_address = mediaInfo->rel_address;
+    media.receivePort        = mediaInfo->rel_port;
+  }
+  else
+  {
+    media.connection_address = mediaInfo->address;
+    media.receivePort        = mediaInfo->port;
+  }
+}

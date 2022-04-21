@@ -95,6 +95,13 @@ private:
                        QList<uint8_t>& supportedNums,    QList<RTPMap>& supportedCodecs,
                        QList<uint8_t>& outMatchingNums,  QList<RTPMap>& outMatchingCodecs);
 
+
+  // Checks if SDP is acceptable to us.
+  bool checkSDPOffer(SDPMessageInfo& offer);
+
+  // update MediaInfo of SDP after ICE has finished
+  void setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo, bool local);
+
   std::shared_ptr<SDPMessageInfo> localSDP_;
   std::shared_ptr<SDPMessageInfo> remoteSDP_;
 

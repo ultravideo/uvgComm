@@ -8,6 +8,14 @@
 #include <QDateTime>
 
 
+void setSDPAddress(QString inAddress, QString& sdpAddress,
+                   QString& type, QString& addressType);
+
+void generateOrigin(std::shared_ptr<SDPMessageInfo> sdp, QString localAddress);
+
+bool generateAudioMedia(MediaInfo &audio);
+bool generateVideoMedia(MediaInfo &video);
+
 std::shared_ptr<SDPMessageInfo> generateLocalSDP(QString localAddress)
 {
   // TODO: The desired media formats should come from outside initiation as a parameter
@@ -33,7 +41,9 @@ std::shared_ptr<SDPMessageInfo> generateLocalSDP(QString localAddress)
       = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
   newInfo->version = 0;
   generateOrigin(newInfo, localAddress);
-  setConnectionAddress(newInfo, localAddress);
+
+  setSDPAddress(localAddress, newInfo->connection_address,
+                newInfo->connection_nettype, newInfo->connection_addrtype);
 
   newInfo->sessionName = SESSION_NAME;
   newInfo->sessionDescription = SESSION_DESCRIPTION;
@@ -57,35 +67,31 @@ std::shared_ptr<SDPMessageInfo> generateLocalSDP(QString localAddress)
 void generateOrigin(std::shared_ptr<SDPMessageInfo> sdp,
                     QString localAddress)
 {
+  // RFC 2327, section 6
   sdp->originator_username = getLocalUsername();
+
+  // TODO: NTP timestamp is recommended (secs and picosecs since 1900)
   sdp->sess_id = QDateTime::currentMSecsSinceEpoch();
   sdp->sess_v = QDateTime::currentMSecsSinceEpoch();
-  sdp->host_nettype = "IN";
-  sdp->host_address = localAddress;
-  if (localAddress.front() == '[')
-  {
-    sdp->host_address = localAddress.mid(1, localAddress.size() - 2);
-    sdp->host_addrtype = "IP6";
-  }
-  else {
-    sdp->host_addrtype = "IP4";
-  }
+
+  setSDPAddress(localAddress, sdp->host_address, sdp->host_nettype, sdp->host_addrtype);
 }
 
 
-void setConnectionAddress(std::shared_ptr<SDPMessageInfo> sdp,
-                          QString localAddress)
+void setSDPAddress(QString inAddress, QString& sdpAddress, QString& type, QString& addressType)
 {
-  sdp->connection_address = localAddress;
-  sdp->connection_nettype = "IN";
-  if (localAddress.front() == '[')
+  sdpAddress = inAddress;
+  type = "IN";
+
+  // TODO: Improve the address detection
+  if (inAddress.front() == '[')
   {
-    sdp->connection_address = localAddress.mid(1, localAddress.size() - 2);
-    sdp->connection_addrtype = "IP6";
+    sdpAddress = inAddress.mid(1, inAddress.size() - 2);
+    addressType = "IP6";
   }
   else
   {
-    sdp->connection_addrtype = "IP4";
+    addressType = "IP4";
   }
 }
 
@@ -121,93 +127,4 @@ bool generateVideoMedia(MediaInfo& video)
   // just for completeness, we will probably never support any of the pre-set video types.
   video.rtpNums += PREDEFINED_VIDEO_CODECS;
   return true;
-}
-
-
-bool checkSDPOffer(SDPMessageInfo &offer)
-{
-  // TODO: check everything.
-
-  bool hasAudio = false;
-  bool hasH265 = false;
-
-  if(offer.version != 0)
-  {
-    Logger::getLogger()->printPeerError("SDPNegotiationHelper",
-                                        "Their offer had non-0 version",
-                                        "Version",
-                                        QString::number(offer.version));
-    return false;
-  }
-
-  QStringList debugCodecsFound = {};
-  for(MediaInfo& media : offer.media)
-  {
-    if(!media.rtpNums.empty() && media.rtpNums.first() == 0)
-    {
-      debugCodecsFound << "pcm";
-      hasAudio = true;
-    }
-
-    for(RTPMap& rtp : media.codecs)
-    {
-      if(rtp.codec == "opus")
-      {
-        debugCodecsFound << "opus";
-        hasAudio = true;
-      }
-      else if(rtp.codec == "h265")
-      {
-        debugCodecsFound << "h265";
-        hasH265 = true;
-      }
-    }
-  }
-
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPNegotiationHelper",
-             "Found following codecs in SDP", {"Codecs"}, debugCodecsFound);
-
-  if (offer.timeDescriptions.size() >= 1)
-  {
-    if (offer.timeDescriptions.at(0).startTime != 0 ||
-        offer.timeDescriptions.at(0).stopTime != 0)
-    {
-      Logger::getLogger()->printDebug(DEBUG_ERROR, "SDPNegotiationHelper",
-                 "They offered us a session with limits. Unsupported.");
-      return false;
-    }
-  }
-  else {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SDPNegotiationHelper",
-               "they included wrong number of Time Descriptions. Should be detected earlier.");
-    return false;
-  }
-
-
-  return hasAudio && hasH265;
-}
-
-
-void setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo, bool local)
-{
-  if (mediaInfo == nullptr)
-  {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SDPNegotiationHelper",
-                                    "Null mediainfo in setMediaPair");
-    return;
-  }
-
-  // for local address, we bind to our rel-address if using non-host connection type
-  if (local &&
-      mediaInfo->type != "host" &&
-      mediaInfo->rel_address != "" && mediaInfo->rel_port != 0)
-  {
-    media.connection_address = mediaInfo->rel_address;
-    media.receivePort        = mediaInfo->rel_port;
-  }
-  else
-  {
-    media.connection_address = mediaInfo->address;
-    media.receivePort        = mediaInfo->port;
-  }
 }
