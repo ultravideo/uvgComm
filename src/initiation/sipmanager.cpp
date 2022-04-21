@@ -11,7 +11,7 @@
 #include "initiation/transport/tcpconnection.h"
 #include "initiation/transport/sipauthentication.h"
 
-#include "initiation/negotiation/sdpnegotiationhelper.h"
+#include "initiation/negotiation/sdpdefault.h"
 
 #include "common.h"
 #include "global.h"
@@ -783,7 +783,7 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
   dialogs_[sessionID] = dialog;
 
   std::shared_ptr<SDPNegotiation> negotiation =
-      std::shared_ptr<SDPNegotiation> (new SDPNegotiation(generateLocalSDP(localAddress)));
+      std::shared_ptr<SDPNegotiation> (new SDPNegotiation(generateDefaultSDP(localAddress)));
   std::shared_ptr<ICE> ice = std::shared_ptr<ICE> (new ICE(nCandidates_, sessionID));
 
   QObject::connect(ice.get(),         &ICE::nominationSucceeded,

@@ -1,4 +1,4 @@
-#include "sdpnegotiationhelper.h"
+#include "sdpdefault.h"
 
 #include "mediacapabilities.h"
 
@@ -16,7 +16,7 @@ void generateOrigin(std::shared_ptr<SDPMessageInfo> sdp, QString localAddress);
 bool generateAudioMedia(MediaInfo &audio);
 bool generateVideoMedia(MediaInfo &video);
 
-std::shared_ptr<SDPMessageInfo> generateLocalSDP(QString localAddress)
+std::shared_ptr<SDPMessageInfo> generateDefaultSDP(QString localAddress)
 {
   // TODO: The desired media formats should come from outside initiation as a parameter
 

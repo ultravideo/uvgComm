@@ -8,7 +8,7 @@
 #include <memory>
 
 
-std::shared_ptr<SDPMessageInfo> generateLocalSDP(QString localAddress);
+std::shared_ptr<SDPMessageInfo> generateDefaultSDP(QString localAddress);
 
 
 

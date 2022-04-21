@@ -41,8 +41,8 @@ SOURCES +=\
     src/initiation/negotiation/icepairtester.cpp \
     src/initiation/negotiation/icesessiontester.cpp \
     src/initiation/negotiation/networkcandidates.cpp \
+    src/initiation/negotiation/sdpdefault.cpp \
     src/initiation/negotiation/sdpnegotiation.cpp \
-    src/initiation/negotiation/sdpnegotiationhelper.cpp \
     src/initiation/negotiation/sipcontent.cpp \
     src/initiation/negotiation/stunmessage.cpp \
     src/initiation/negotiation/stunmessagefactory.cpp \
@@ -134,8 +134,8 @@ HEADERS  += \
     src/initiation/negotiation/icetypes.h \
     src/initiation/negotiation/mediacapabilities.h \
     src/initiation/negotiation/networkcandidates.h \
+    src/initiation/negotiation/sdpdefault.h \
     src/initiation/negotiation/sdpnegotiation.h \
-    src/initiation/negotiation/sdpnegotiationhelper.h \
     src/initiation/negotiation/sdptypes.h \
     src/initiation/negotiation/sipcontent.h \
     src/initiation/negotiation/stunmessage.h \
