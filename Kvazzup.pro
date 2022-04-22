@@ -132,7 +132,6 @@ HEADERS  += \
     src/initiation/negotiation/icepairtester.h \
     src/initiation/negotiation/icesessiontester.h \
     src/initiation/negotiation/icetypes.h \
-    src/initiation/negotiation/mediacapabilities.h \
     src/initiation/negotiation/networkcandidates.h \
     src/initiation/negotiation/sdpdefault.h \
     src/initiation/negotiation/sdpnegotiation.h \
