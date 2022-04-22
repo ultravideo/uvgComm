@@ -4,8 +4,6 @@
 #include "global.h"
 #include "logger.h"
 
-#include "mediacapabilities.h"
-
 #include <QVariant>
 
 SDPNegotiation::SDPNegotiation(std::shared_ptr<SDPMessageInfo> localSDP):
@@ -215,8 +213,9 @@ bool SDPNegotiation::processOfferSDP(QVariant& content)
 
   SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
 
-  // check if suitable.
-  if(!checkSDPOffer(retrieved) || !negotiateSDP(localSDP_, retrieved))
+  std::shared_ptr<SDPMessageInfo> answerSDP = negotiateSDP(*localSDP_.get(), retrieved);
+
+  if(answerSDP == nullptr)
   {
     Logger::getLogger()->printWarning(this, "Incoming SDP was not suitable");
     uninit();
@@ -355,76 +354,109 @@ bool SDPNegotiation::isSDPAccepted(std::shared_ptr<QList<SIPAccept>>& accepts)
 }
 
 
-bool SDPNegotiation::negotiateSDP(std::shared_ptr<SDPMessageInfo> modifiedSDP,
-                                  SDPMessageInfo& remoteSDPOffer)
+std::shared_ptr<SDPMessageInfo> SDPNegotiation::negotiateSDP(const SDPMessageInfo& localSDP,
+                                                             const SDPMessageInfo& remoteSDPOffer)
 {
   // At this point we should have checked if their offer is acceptable.
   // Now we just have to generate our answer.
 
-  modifiedSDP->version = 0;
-  modifiedSDP->sessionName = remoteSDPOffer.sessionName;
-  modifiedSDP->sessionDescription = remoteSDPOffer.sessionDescription;
-  modifiedSDP->timeDescriptions = remoteSDPOffer.timeDescriptions;
+  // TODO: This should also probably modify remoteSDPOffer according to what we select
 
-  modifiedSDP->media.clear();
+  std::vector<int> matches;
 
-  // Now the hard part. Select best codecs and set our corresponding media ports.
-  for (auto& remoteMedia : remoteSDPOffer.media)
+  if (!matchMedia(matches, remoteSDPOffer, localSDP) || matches.empty())
   {
-    MediaInfo ourMedia;
-    ourMedia.type = remoteMedia.type;
-    ourMedia.receivePort = 0; // TODO: ICE Should set this to one of its candidates
-    ourMedia.proto = remoteMedia.proto;
-    ourMedia.title = remoteMedia.title;
-
-    if (remoteMedia.flagAttributes.empty())
-    {
-      ourMedia.flagAttributes = {A_SENDRECV};
-    }
-    else if (remoteMedia.flagAttributes.back() == A_SENDONLY)
-    {
-      ourMedia.flagAttributes = {A_RECVONLY};
-    }
-    else if (remoteMedia.flagAttributes.back() == A_RECVONLY)
-    {
-      ourMedia.flagAttributes = {A_SENDONLY};
-    }
-    else {
-      ourMedia.flagAttributes = remoteMedia.flagAttributes;
-    }
-
-    // set our bitrate, not implemented
-    // set our encryptionKey, not implemented
-
-    if (remoteMedia.type == "audio")
-    {
-      QList<uint8_t> supportedNums = PREDEFINED_AUDIO_CODECS;
-      QList<RTPMap> supportedCodecs = DYNAMIC_AUDIO_CODECS;
-
-      selectBestCodec(remoteMedia.rtpNums, remoteMedia.codecs,
-                      supportedNums, supportedCodecs,
-                      ourMedia.rtpNums, ourMedia.codecs);
-
-    }
-    else if (remoteMedia.type == "video")
-    {
-      QList<uint8_t> supportedNums = PREDEFINED_VIDEO_CODECS;
-      QList<RTPMap> supportedCodecs = DYNAMIC_VIDEO_CODECS;
-
-      selectBestCodec(remoteMedia.rtpNums, remoteMedia.codecs,
-                      supportedNums, supportedCodecs,
-                      ourMedia.rtpNums, ourMedia.codecs);
-    }
-    modifiedSDP->media.append(ourMedia);
+    return nullptr;
   }
 
-  return true;
+  std::shared_ptr<SDPMessageInfo> newInfo =
+      std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
+
+  *newInfo.get() = localSDP; // use the local as default for all values
+
+  newInfo->version = 0;
+  newInfo->sessionName        = remoteSDPOffer.sessionName;
+  newInfo->sessionDescription = remoteSDPOffer.sessionDescription;
+  newInfo->timeDescriptions   = remoteSDPOffer.timeDescriptions;
+
+  newInfo->media.clear(); // contruct media based on remote offer
+
+  for (int i = 0; i < remoteSDPOffer.media.size(); ++i)
+  {
+    MediaInfo answerMedia;
+
+    answerMedia.type = remoteSDPOffer.media.at(i).type;
+    answerMedia.receivePort = 0; // TODO: ICE Should set this to one of its candidates, 0 means it is rejected
+    answerMedia.title = remoteSDPOffer.media.at(i).title;
+
+    answerMedia.proto = localSDP.media.at(matches.at(i)).proto;
+
+    if (matches.at(i) == -1)
+    {
+      // no match was found, this media is unacceptable
+
+      // compared to INACTIVE, 0 makes it so that no RTCP is sent
+      answerMedia.receivePort = 0;
+      answerMedia.flagAttributes = {A_INACTIVE};
+    }
+    else
+    {
+      SDPAttributeType ourAttribute   = findStatusAttribute(localSDP.media.at(matches.at(i)).flagAttributes);
+      SDPAttributeType theirAttribute = findStatusAttribute(remoteSDPOffer.media.at(i).flagAttributes);
+
+      answerMedia.flagAttributes.clear(); // TODO: Copy non-directional attributes
+
+      // important to know here that no attribute means same as sendrecv (default) in rfc
+      // These ifs are structured to got through possible flags one by one,
+      // some checks can be omitted thanks to previous cases
+      if (ourAttribute   == A_INACTIVE ||
+          theirAttribute == A_INACTIVE ||
+          (ourAttribute == A_SENDONLY && theirAttribute == A_SENDONLY) || // both want to send
+          (ourAttribute == A_RECVONLY && theirAttribute == A_RECVONLY))   // both want to receive
+      {
+        // no possible media connection found, but this stream can be activated at any time
+        // RTCP should be remain active while the stream itself is inactive
+        answerMedia.flagAttributes.push_back(A_INACTIVE);
+      }
+      else if ((ourAttribute   == A_SENDRECV || ourAttribute   == A_NO_ATTRIBUTE) &&
+               (theirAttribute == A_SENDRECV || theirAttribute == A_NO_ATTRIBUTE))
+      {
+        // media will flow in both directions
+        answerMedia.flagAttributes.push_back(ourAttribute); // sendrecv or no attribute
+      }
+      else if ((ourAttribute   == A_SENDONLY || ourAttribute   == A_SENDRECV ||  ourAttribute   == A_NO_ATTRIBUTE ) &&
+               (theirAttribute == A_RECVONLY || theirAttribute == A_SENDRECV ||  theirAttribute == A_NO_ATTRIBUTE))
+      {
+        // we will send media, but not receive it
+        answerMedia.flagAttributes.push_back(A_SENDONLY);
+      }
+      else if ((ourAttribute   == A_RECVONLY || ourAttribute   == A_SENDRECV ||  ourAttribute   == A_NO_ATTRIBUTE ) &&
+               (theirAttribute == A_SENDONLY || theirAttribute == A_SENDRECV ||  theirAttribute == A_NO_ATTRIBUTE))
+      {
+        // we will not send media, but will receive it
+        answerMedia.flagAttributes.push_back(A_RECVONLY);
+      }
+      else
+      {
+        Logger::getLogger()->printProgramError(this, "Couldn't determine attribute correctly");
+        return nullptr;
+      }
+
+      selectBestCodec(remoteSDPOffer.media.at(i).rtpNums,       remoteSDPOffer.media.at(i).codecs,
+                      localSDP.media.at(matches.at(i)).rtpNums, localSDP.media.at(matches.at(i)).codecs,
+                      answerMedia.rtpNums,                      answerMedia.codecs);
+    }
+
+    newInfo->media.append(answerMedia);
+  }
+
+  return newInfo;
 }
 
 
-bool SDPNegotiation::selectBestCodec(QList<uint8_t>& remoteNums,      QList<RTPMap> &remoteCodecs,
-                                     QList<uint8_t>& supportedNums,   QList<RTPMap> &supportedCodecs,
-                                     QList<uint8_t>& outMatchingNums, QList<RTPMap> &outMatchingCodecs)
+bool SDPNegotiation::selectBestCodec(const QList<uint8_t>& remoteNums,      const QList<RTPMap> &remoteCodecs,
+                                     const QList<uint8_t>& supportedNums,   const QList<RTPMap> &supportedCodecs,
+                                           QList<uint8_t>& outMatchingNums,       QList<RTPMap> &outMatchingCodecs)
 {
   for (auto& remoteCodec : remoteCodecs)
   {
@@ -433,7 +465,7 @@ bool SDPNegotiation::selectBestCodec(QList<uint8_t>& remoteNums,      QList<RTPM
       if(remoteCodec.codec == supportedCodec.codec)
       {
         outMatchingCodecs.append(remoteCodec);
-        Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPNegotiationHelper",  "Found suitable codec.");
+        Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPNegotiationHelper",  "Found suitable codec");
 
         outMatchingNums.push_back(remoteCodec.rtpNum);
 
@@ -450,7 +482,7 @@ bool SDPNegotiation::selectBestCodec(QList<uint8_t>& remoteNums,      QList<RTPM
       {
         outMatchingNums.append(rtpNumber);
         Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPNegotiationHelper",
-                                        "Found suitable RTP number.");
+                                        "Found suitable RTP number");
         return true;
       }
     }
@@ -465,7 +497,7 @@ bool SDPNegotiation::selectBestCodec(QList<uint8_t>& remoteNums,      QList<RTPM
 
 bool SDPNegotiation::checkSDPOffer(SDPMessageInfo &offer)
 {
-  // TODO: check everything.
+  // TODO: use local SDP to verify offer
 
   bool hasAudio = false;
   bool hasH265 = false;
@@ -548,4 +580,64 @@ void SDPNegotiation::setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> med
     media.connection_address = mediaInfo->address;
     media.receivePort        = mediaInfo->port;
   }
+}
+
+
+bool SDPNegotiation::matchMedia(std::vector<int> &matches,
+                                const SDPMessageInfo &firstSDP,
+                                const SDPMessageInfo &secondSDP)
+{
+  /* Currently, the matching tries to match all medias, but the
+   * best approach would be to set the ports of non-matched media streams
+   * to 0 which would only reject them instead of the whole call.
+   * We would also have to omit our media that was not in the offer
+   */
+  std::vector<bool> reserved = std::vector<bool>(secondSDP.media.size(), false);
+  for (auto& media : firstSDP.media)
+  {
+    bool foundMatch = false;
+
+    // see which remote media best matches our media
+    for (int j = 0; j < secondSDP.media.size(); ++j)
+    {
+      if (!reserved.at(j))
+      {
+        // TODO: Improve matching?
+        bool isMatch = media.type == secondSDP.media.at(j).type;
+
+        if (isMatch)
+        {
+          matches.push_back(j);
+          reserved.at(j) = true;
+          foundMatch = true;
+          break;
+        }
+      }
+    }
+
+    if (!foundMatch)
+    {
+      matches.push_back(-1);
+    }
+  }
+
+  // TODO: Support partial matches
+  return matches.size() == firstSDP.media.size();
+}
+
+
+SDPAttributeType SDPNegotiation::findStatusAttribute(const QList<SDPAttributeType>& attributes) const
+{
+  for (auto& attribute : attributes)
+  {
+    if (attribute == A_SENDRECV ||
+        attribute == A_RECVONLY ||
+        attribute == A_SENDONLY ||
+        attribute == A_INACTIVE)
+    {
+      return attribute;
+    }
+  }
+
+  return A_NO_ATTRIBUTE;
 }

@@ -78,11 +78,11 @@ private:
 
   bool isSDPAccepted(std::shared_ptr<QList<SIPAccept>>& accepts);
 
-  bool negotiateSDP(std::shared_ptr<SDPMessageInfo> modifiedSDP,
-                    SDPMessageInfo& remoteSDPOffer);
+  std::shared_ptr<SDPMessageInfo> negotiateSDP(const SDPMessageInfo &localSDP,
+                    const SDPMessageInfo &remoteSDPOffer);
 
-  bool selectBestCodec(QList<uint8_t>& remoteNums,       QList<RTPMap>& remoteCodecs,
-                       QList<uint8_t>& supportedNums,    QList<RTPMap>& supportedCodecs,
+  bool selectBestCodec(const QList<uint8_t> &remoteNums,       const QList<RTPMap> &remoteCodecs,
+                       const QList<uint8_t> &supportedNums,    const QList<RTPMap> &supportedCodecs,
                        QList<uint8_t>& outMatchingNums,  QList<RTPMap>& outMatchingCodecs);
 
 
@@ -91,6 +91,12 @@ private:
 
   // update MediaInfo of SDP after ICE has finished
   void setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo, bool local);
+
+  bool matchMedia(std::vector<int>& matches,
+                  const SDPMessageInfo &firstSDP,
+                  const SDPMessageInfo& secondSDP);
+
+  SDPAttributeType findStatusAttribute(const QList<SDPAttributeType>& attributes) const;
 
   std::shared_ptr<SDPMessageInfo> localSDP_;
   std::shared_ptr<SDPMessageInfo> remoteSDP_;
