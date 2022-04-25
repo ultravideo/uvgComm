@@ -41,6 +41,37 @@ SIPManager::SIPManager():
 {}
 
 
+std::shared_ptr<SDPMessageInfo> SIPManager::generateSDP(QString username,
+                                                        int audioStreams, int videoStreams,
+                                                        QList<QString> dynamicAudioSubtypes,
+                                                        QList<QString> dynamicVideoSubtypes,
+                                                        QList<uint8_t> staticAudioPayloadTypes,
+                                                        QList<uint8_t> staticVideoPayloadTypes)
+{
+  if (audioStreams > 0 && dynamicAudioSubtypes.empty() && staticAudioPayloadTypes.empty())
+  {
+    return nullptr;
+  }
+
+  if (videoStreams > 0 && dynamicVideoSubtypes.empty() && staticVideoPayloadTypes.empty())
+  {
+    return nullptr;
+  }
+
+  return generateDefaultSDP(username, "", audioStreams, videoStreams,
+                            dynamicAudioSubtypes, dynamicVideoSubtypes,
+                            staticAudioPayloadTypes, staticVideoPayloadTypes);
+}
+
+
+void SIPManager::setSDP(std::shared_ptr<SDPMessageInfo> sdp)
+{
+  ourSDP_ = sdp;
+
+  // TODO: Trigger re-INVITE for all dialogs
+}
+
+
 // start listening to incoming
 void SIPManager::init(StatisticsInterface *stats)
 {

@@ -254,7 +254,7 @@ void generateMedia(QString type, QList<MediaInfo>& medias,
 
   // we ignore nettype, addrtype and address, because we use a global c=
   MediaInfo media = {type, 0, "RTP/AVP", {},
-                     "", "", "", "", {},"", {}, {A_SENDRECV}, {}};
+                     "", "", "", "", {},"", {}, {}, {}};
 
   uint8_t dynamicPayloadType = 96;
 

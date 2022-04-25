@@ -65,6 +65,15 @@ class SIPManager : public QObject
 public:
   SIPManager();
 
+  std::shared_ptr<SDPMessageInfo> generateSDP(QString username,
+                                              int audioStreams, int videoStreams,
+                                              QList<QString> dynamicAudioSubtypes = {},
+                                              QList<QString> dynamicVideoSubtypes = {},
+                                              QList<uint8_t> staticAudioPayloadTypes = {},
+                                              QList<uint8_t> staticVideoPayloadTypes = {});
+
+  void setSDP(std::shared_ptr<SDPMessageInfo> sdp);
+
   // start listening to incoming SIP messages
   void init(StatisticsInterface *stats);
   void uninit();

@@ -79,6 +79,9 @@ public slots:
   void noEncryptionAvailable();
 
   void delayedAutoAccept();
+
+  void updateAudioSettings();
+  void updateVideoSettings();
 private:
   void removeSession(uint32_t sessionID, QString message, bool temporaryMessage);
 

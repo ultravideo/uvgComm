@@ -35,10 +35,9 @@ void KvazzupController::init()
   // connect sip signals so we get information when ice is ready
   QObject::connect(&sip_, &SIPManager::nominationSucceeded,
                    this, &KvazzupController::iceCompleted);
+
   QObject::connect(&sip_, &SIPManager::nominationFailed,
                    this, &KvazzupController::iceFailed);
-
-
 
   sip_.installSIPRequestCallback(std::bind(&KvazzupController::SIPRequestCallback, this,
                                            std::placeholders::_1,
@@ -58,6 +57,11 @@ void KvazzupController::init()
                                             std::placeholders::_2,
                                             std::placeholders::_3));
 
+  std::shared_ptr<SDPMessageInfo> sdp = sip_.generateSDP(getLocalUsername(), 1, 1,
+                                                         {"opus"}, {"H265"}, {0}, {});
+
+  sip_.setSDP(sdp);
+
   sip_.init(stats_);
 
   QObject::connect(&media_, &MediaManager::handleZRTPFailure,
@@ -75,9 +79,10 @@ void KvazzupController::init()
                    &sip_, &SIPManager::updateCallSettings);
 
   QObject::connect(&userInterface_, &UIManager::updateVideoSettings,
-                   &media_, &MediaManager::updateVideoSettings);
+                   this, &KvazzupController::updateVideoSettings);
   QObject::connect(&userInterface_, &UIManager::updateAudioSettings,
-                   &media_, &MediaManager::updateAudioSettings);
+                   this, &KvazzupController::updateAudioSettings);
+
   QObject::connect(&userInterface_, &UIManager::updateAutomaticSettings,
                    &media_, &MediaManager::updateAutomaticSettings);
 
@@ -188,6 +193,27 @@ void KvazzupController::delayedAutoAccept()
   userAcceptsCall(delayedAutoAccept_);
   delayedAutoAccept_ = 0;
 }
+
+
+void KvazzupController::updateAudioSettings()
+{
+  std::shared_ptr<SDPMessageInfo> sdp = sip_.generateSDP(getLocalUsername(), 1, 1,
+                                                         {"opus"}, {"H265"}, {0}, {});
+
+  sip_.setSDP(sdp);
+  emit media_.updateAudioSettings();
+}
+
+
+void KvazzupController::updateVideoSettings()
+{
+  std::shared_ptr<SDPMessageInfo> sdp = sip_.generateSDP(getLocalUsername(), 1, 1,
+                                                         {"opus"}, {"H265"}, {0}, {});
+
+  sip_.setSDP(sdp);
+  emit media_.updateVideoSettings();
+}
+
 
 void KvazzupController::callRinging(uint32_t sessionID)
 {
