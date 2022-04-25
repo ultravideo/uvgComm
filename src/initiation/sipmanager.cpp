@@ -782,8 +782,15 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
   std::shared_ptr<DialogInstance> dialog = std::shared_ptr<DialogInstance> (new DialogInstance);
   dialogs_[sessionID] = dialog;
 
+  std::shared_ptr<SDPMessageInfo> defaultSDP = generateDefaultSDP(getLocalUsername(),
+                                                                  localAddress,
+                                                                  1, 1,
+                                                                  {"opus"},
+                                                                  {"H265"},
+                                                                  {0}, {});
+
   std::shared_ptr<SDPNegotiation> negotiation =
-      std::shared_ptr<SDPNegotiation> (new SDPNegotiation(generateDefaultSDP(localAddress)));
+      std::shared_ptr<SDPNegotiation> (new SDPNegotiation(defaultSDP));
   std::shared_ptr<ICE> ice = std::shared_ptr<ICE> (new ICE(nCandidates_, sessionID));
 
   QObject::connect(ice.get(),         &ICE::nominationSucceeded,

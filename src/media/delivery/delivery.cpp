@@ -85,11 +85,11 @@ void Delivery::parseCodecString(QString codec, rtp_format_t& fmt,
                                 DataType& type, QString& mediaName)
 {
   std::map<QString, rtp_format_t> xmap = {
-      { "pcm",  RTP_FORMAT_GENERIC },
+      { "PCMU", RTP_FORMAT_GENERIC },
       { "opus", RTP_FORMAT_OPUS },
-      { "h264", RTP_FORMAT_H264 },
-      { "h265", RTP_FORMAT_H265 },
-      { "h266", RTP_FORMAT_H266 }
+      { "H264", RTP_FORMAT_H264 },
+      { "H265", RTP_FORMAT_H265 },
+      { "H266", RTP_FORMAT_H266 }
   };
 
   if (xmap.find(codec) == xmap.end())
@@ -123,7 +123,7 @@ void Delivery::parseCodecString(QString codec, rtp_format_t& fmt,
       break;
 
     case RTP_FORMAT_GENERIC:
-      mediaName+= "PCM";
+      mediaName+= "PCMU";
       type = DT_RAWAUDIO;
       break;
 

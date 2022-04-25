@@ -406,9 +406,8 @@ std::shared_ptr<SDPMessageInfo> SDPNegotiation::negotiateSDP(const SDPMessageInf
 
       answerMedia.flagAttributes.clear(); // TODO: Copy non-directional attributes
 
-      // important to know here that no attribute means same as sendrecv (default) in rfc
-      // These ifs are structured to got through possible flags one by one,
-      // some checks can be omitted thanks to previous cases
+      // important to know here that having no attribute means same as sendrecv (default) in SDP.
+      // These ifs go through possible flags one by one, some checks are omitted thanks to previous cases
       if (ourAttribute   == A_INACTIVE ||
           theirAttribute == A_INACTIVE ||
           (ourAttribute == A_SENDONLY && theirAttribute == A_SENDONLY) || // both want to send
@@ -516,7 +515,7 @@ bool SDPNegotiation::checkSDPOffer(SDPMessageInfo &offer)
   {
     if(!media.rtpNums.empty() && media.rtpNums.first() == 0)
     {
-      debugCodecsFound << "pcm";
+      debugCodecsFound << "PCMU";
       hasAudio = true;
     }
 
@@ -527,9 +526,9 @@ bool SDPNegotiation::checkSDPOffer(SDPMessageInfo &offer)
         debugCodecsFound << "opus";
         hasAudio = true;
       }
-      else if(rtp.codec == "h265")
+      else if(rtp.codec == "H265")
       {
-        debugCodecsFound << "h265";
+        debugCodecsFound << "H265";
         hasH265 = true;
       }
     }

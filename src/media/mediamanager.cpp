@@ -364,7 +364,7 @@ QString MediaManager::rtpNumberToCodec(const MediaInfo& info)
       return info.codecs.at(0).codec;
     }
   }
-  return "pcm";
+  return "PCMU";
 }
 
 
