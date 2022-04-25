@@ -60,6 +60,9 @@ void KvazzupController::init()
   std::shared_ptr<SDPMessageInfo> sdp = sip_.generateSDP(getLocalUsername(), 1, 1,
                                                          {"opus"}, {"H265"}, {0}, {});
 
+  updateSDPAudioStatus(sdp);
+  updateSDPVideoStatus(sdp);
+
   sip_.setSDP(sdp);
 
   sip_.init(stats_);
@@ -200,6 +203,8 @@ void KvazzupController::updateAudioSettings()
   std::shared_ptr<SDPMessageInfo> sdp = sip_.generateSDP(getLocalUsername(), 1, 1,
                                                          {"opus"}, {"H265"}, {0}, {});
 
+  updateSDPAudioStatus(sdp);
+
   sip_.setSDP(sdp);
   emit media_.updateAudioSettings();
 }
@@ -210,8 +215,41 @@ void KvazzupController::updateVideoSettings()
   std::shared_ptr<SDPMessageInfo> sdp = sip_.generateSDP(getLocalUsername(), 1, 1,
                                                          {"opus"}, {"H265"}, {0}, {});
 
+  updateSDPVideoStatus(sdp);
+
   sip_.setSDP(sdp);
   emit media_.updateVideoSettings();
+}
+
+
+void KvazzupController::updateSDPAudioStatus(std::shared_ptr<SDPMessageInfo> sdp)
+{
+  if (!settingEnabled(SettingsKey::micStatus))
+  {
+    for (auto& media : sdp->media)
+    {
+      if (media.type == "audio")
+      {
+        media.flagAttributes = {A_RECVONLY};
+      }
+    }
+  }
+}
+
+
+void KvazzupController::updateSDPVideoStatus(std::shared_ptr<SDPMessageInfo> sdp)
+{
+  if (!settingEnabled(SettingsKey::screenShareStatus) &&
+      !settingEnabled(SettingsKey::cameraStatus))
+  {
+    for (auto& media : sdp->media)
+    {
+      if (media.type == "video")
+      {
+        media.flagAttributes = {A_RECVONLY};
+      }
+    }
+  }
 }
 
 

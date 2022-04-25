@@ -101,13 +101,6 @@ void SIPManager::init(StatisticsInterface *stats)
     bindToServer();
   }
 
-  ourSDP_ = generateDefaultSDP(getLocalUsername(),
-                               "", // we don't know our address at this point
-                               1, 1,
-                               {"opus"},
-                               {"H265"},
-                               {0}, {});
-
   nCandidates_ = std::shared_ptr<NetworkCandidates> (new NetworkCandidates);
   nCandidates_->init();
 }

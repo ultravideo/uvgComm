@@ -88,6 +88,9 @@ private:
   void createSingleCall(uint32_t sessionID);
   void setupConference();
 
+  void updateSDPAudioStatus(std::shared_ptr<SDPMessageInfo> sdp);
+  void updateSDPVideoStatus(std::shared_ptr<SDPMessageInfo> sdp);
+
   // Call state is a non-dependant way
   enum CallState {
     CALLRINGINGWITHUS,
