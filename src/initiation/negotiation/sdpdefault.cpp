@@ -148,11 +148,6 @@ const QString SESSION_NAME = "-";
 const QString SESSION_DESCRIPTION = "A Kvazzup initiated communication";
 
 
-void setSDPAddress(QString inAddress, QString& sdpAddress,
-                   QString& type, QString& addressType);
-
-void generateOrigin(std::shared_ptr<SDPMessageInfo> sdp, QString localAddress, QString username);
-
 
 void generateMedia(QString type,
                    QList<MediaInfo>& medias,
@@ -174,9 +169,7 @@ std::shared_ptr<SDPMessageInfo> generateDefaultSDP(QString username, QString loc
                                    "Generating new SDP message with our address",
                                    "Local address", localAddress);
 
-  if(localAddress == ""
-     || localAddress == "0.0.0.0"
-     || username == "")
+  if(username == "")
   {
     Logger::getLogger()->printWarning("SDPNegotiationHelper",
                                       "Necessary info not set for SDP generation",
@@ -188,10 +181,15 @@ std::shared_ptr<SDPMessageInfo> generateDefaultSDP(QString username, QString loc
   std::shared_ptr<SDPMessageInfo> newInfo
       = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
   newInfo->version = 0;
-  generateOrigin(newInfo, localAddress, username);
 
-  setSDPAddress(localAddress, newInfo->connection_address,
-                newInfo->connection_nettype, newInfo->connection_addrtype);
+  if (localAddress != "" && localAddress != "0.0.0.0")
+  {
+    generateOrigin(newInfo, localAddress, username);
+    setSDPAddress(localAddress, newInfo->connection_address,
+                  newInfo->connection_nettype, newInfo->connection_addrtype);
+  }
+
+
 
   newInfo->sessionName = SESSION_NAME;
   newInfo->sessionDescription = SESSION_DESCRIPTION;

@@ -222,4 +222,6 @@ private:
   std::vector<std::function<void(QString address,
                                  SIPResponse& response,
                                  QVariant& content)>> registrationResponses_;
+
+  std::shared_ptr<SDPMessageInfo> ourSDP_;
 };

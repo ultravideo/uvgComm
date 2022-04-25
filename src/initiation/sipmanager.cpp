@@ -36,7 +36,8 @@ SIPManager::SIPManager():
   sipPort_(SIP_PORT),
   transports_(),
   nextSessionID_(FIRSTSESSIONID),
-  dialogs_()
+  dialogs_(),
+  ourSDP_(nullptr)
 {}
 
 
@@ -68,6 +69,13 @@ void SIPManager::init(StatisticsInterface *stats)
   {
     bindToServer();
   }
+
+  ourSDP_ = generateDefaultSDP(getLocalUsername(),
+                               "", // we don't know our address at this point
+                               1, 1,
+                               {"opus"},
+                               {"H265"},
+                               {0}, {});
 
   nCandidates_ = std::shared_ptr<NetworkCandidates> (new NetworkCandidates);
   nCandidates_->init();
@@ -652,6 +660,11 @@ void SIPManager::createSIPTransport(QString remoteAddress,
                                     std::shared_ptr<TCPConnection> connection,
                                     bool startConnection)
 {
+  /* SIP is divided to transport and transaction layers. Here we construct the transport
+   * layer for one connection (either to proxy or to peer) which is used by one or more
+   * transaction layer dialogs and/or registrations.
+   */
+
   Q_ASSERT(stats_);
 
   if (transports_.find(remoteAddress) == transports_.end())
@@ -718,6 +731,10 @@ void SIPManager::createSIPTransport(QString remoteAddress,
 
 void SIPManager::createRegistration(NameAddr& addressRecord)
 {
+  /* SIP is divided to transport and transaction layers. Here we construct the transaction
+   * part of connection with the server (mostly for sending REGISTER requests).
+   */
+
   if (registrations_.find(addressRecord.uri.hostport.host) == registrations_.end())
   {
     std::shared_ptr<RegistrationInstance> registration =
@@ -771,6 +788,10 @@ void SIPManager::createRegistration(NameAddr& addressRecord)
 void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
                               NameAddr &remote, QString localAddress, bool ourDialog)
 {
+  /* SIP is divided to transport and transaction layers. Here we construct the transaction
+   * part of connection with one peer.
+   */
+
   if (dialogs_.find(sessionID) != dialogs_.end())
   {
     Logger::getLogger()->printWarning(this, "Previous dialog existed with same sessionID as new one!");
@@ -782,15 +803,25 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
   std::shared_ptr<DialogInstance> dialog = std::shared_ptr<DialogInstance> (new DialogInstance);
   dialogs_[sessionID] = dialog;
 
-  std::shared_ptr<SDPMessageInfo> defaultSDP = generateDefaultSDP(getLocalUsername(),
-                                                                  localAddress,
-                                                                  1, 1,
-                                                                  {"opus"},
-                                                                  {"H265"},
-                                                                  {0}, {});
+  if (ourSDP_ == nullptr)
+  {
+    ourSDP_ = generateDefaultSDP(getLocalUsername(), "",  1, 1, {"opus"}, {"H265"}, {0}, {});
+  }
+
+  std::shared_ptr<SDPMessageInfo> sdp = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
+  *sdp = *ourSDP_;
+
+  // because we didn't know our address for this connection earlier, we set it now
+  // The origin may be overwritten by peer if they start the call
+  setSDPAddress(localAddress,
+                sdp->connection_address,
+                sdp->connection_nettype,
+                sdp->connection_addrtype);
+
+  generateOrigin(sdp, localAddress, getLocalUsername());
 
   std::shared_ptr<SDPNegotiation> negotiation =
-      std::shared_ptr<SDPNegotiation> (new SDPNegotiation(defaultSDP));
+      std::shared_ptr<SDPNegotiation> (new SDPNegotiation(sdp));
   std::shared_ptr<ICE> ice = std::shared_ptr<ICE> (new ICE(nCandidates_, sessionID));
 
   QObject::connect(ice.get(),         &ICE::nominationSucceeded,
