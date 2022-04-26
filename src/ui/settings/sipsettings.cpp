@@ -24,6 +24,7 @@ SIPSettings::SIPSettings(QWidget* parent):
 {
   advancedUI_->setupUi(this);
   stunQuestion_.setupUi(&stun_);
+  stun_.setWindowFlags(Qt::WindowStaysOnTopHint);
 }
 
 
