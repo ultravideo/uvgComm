@@ -87,7 +87,6 @@ std::vector<const float *> non_max_suppression_face(Ort::Value const &prediction
   auto shape = prediction.GetTensorTypeAndShapeInfo().GetShape();
   assert(shape.size() == 3 && shape[0] == 1 && shape[2] == 16);
 
-  int nc = prediction.GetTensorTypeAndShapeInfo().GetShape()[2] - 15; // number of classes
   const float *data = prediction.GetTensorData<float>();
   int64_t row_size = shape[2];
 
@@ -181,8 +180,7 @@ std::vector<Detection> scale_coords(cv::Size img1_shape, std::vector<const float
   std::vector<Detection> scaled;
   for (auto box : coords)
   {
-    scaled.push_back(
-          {{int((box[0] - box[2] / 2 - padw) / gain),
+    Detection d{{int((box[0] - box[2] / 2 - padw) / gain),
             int((box[1] - box[3] / 2 - padh) / gain),
             int(box[2] / gain),
             int(box[3] / gain)},
@@ -191,19 +189,37 @@ std::vector<Detection> scale_coords(cv::Size img1_shape, std::vector<const float
              cv::Point{int((box[7] - padw) / gain), int((box[8] - padh) / gain)},
              cv::Point{int((box[9] - padw) / gain), int((box[10] - padh) / gain)},
              cv::Point{int((box[11] - padw) / gain), int((box[12] - padh) / gain)},
-             cv::Point{int((box[13] - padw) / gain), int((box[14] - padh) / gain)}}});
+             cv::Point{int((box[13] - padw) / gain), int((box[14] - padh) / gain)}}};
+    scaled.push_back(d);
   }
   return scaled;
 }
 
-// std::vector<cv::Rect> clip_coords(std::vector<cv::Rect2f> const &boxes, cv::Rect img_shape)
-// {
+void clip_coords(std::vector<cv::Rect> &boxes, cv::Size img_shape)
+{
 //     // Clip bounding xyxy bounding boxes to image shape(height, width)
 //     boxes[:, 0].clamp_(0, img_shape[1]); // x1
 //     boxes[:, 1].clamp_(0, img_shape[0]); // y1
 //     boxes[:, 2].clamp_(0, img_shape[1]); // x2
 //     boxes[:, 3].clamp_(0, img_shape[0]); // y2
-// }
+for (auto& d : boxes)
+{
+  if(d.x < 0){
+    d.width+=d.x;
+    d.x=0;
+  }
+  if(d.y < 0){
+    d.height+=d.y;
+    d.y=0;
+  }
+  if(d.x+d.width > img_shape.width){
+    d.width=img_shape.width-d.x;
+  }
+  if(d.y+d.height > img_shape.height){
+    d.height=img_shape.height-d.y;
+  }
+}
+}
 
 bool filter_bb(cv::Rect bb, cv::Size min_size)
 {
@@ -289,21 +305,22 @@ Ort::SessionOptions get_session_options(bool cuda, int threads)
 
 cv::Mat RoiMapFilter::makeRoiMap(const std::vector<cv::Rect> &bbs)
 {
-  cv::Mat new_map(height, width, CV_8U, backgroundQP - INT8_MIN);
+  cv::Mat new_map(height, width, CV_16S, backgroundQP);
 
   for (auto roi : bbs)
   {
     for (int y = roi.y; y < roi.y + roi.height; y++)
       for (int x = roi.x; x < roi.x + roi.width; x++)
       {
-        new_map.data[y * new_map.step[0] + x] = (uint8_t)(dQP - INT8_MIN);
+        new_map.at<int16_t>(y,x) = (int16_t)dQP;
       }
   }
 
   cv::Mat filtered;
   cv::filter2D(new_map, filtered, -1, kernel);
-  new_map.convertTo(filtered, CV_8S, 1, INT8_MIN);
-  return filtered;
+  cv::Mat converted;
+  filtered.convertTo(converted, CV_8S);
+  return converted;
 }
 
 RoiFilter::RoiFilter(QString id, StatisticsInterface *stats, std::shared_ptr<HWResourceManager> hwResources,
@@ -347,7 +364,7 @@ void RoiFilter::process()
 {
   std::unique_ptr<Data> input = getInput();
   assert(input->type == DT_YUV420VIDEO);
-
+  is_ok =false;
   if(!is_ok){
     while(input){
       sendOutput(std::move(input));
@@ -402,7 +419,9 @@ void RoiFilter::process()
 //        }
 
         cv::Size roi_size = calculate_roi_size(input->vInfo->width, input->vInfo->height);
-        if(roi_size.width != filter.width || roi_size.height != filter.height) {
+        roi.width = roi_size.width;
+        roi.height = roi_size.height;
+        if(roi.width != filter.width || roi.height != filter.height) {
           filter.roi_maps.clear();
           filter.width = roi_size.width;
           filter.height = roi_size.height;
@@ -410,6 +429,7 @@ void RoiFilter::process()
 
         int roi_length = (roi_size.width+1)*(roi_size.height+1);
 
+        clip_coords(face_roi_rects, roi_size);
         cv::Mat roi_mat = filter.makeRoiMap(face_roi_rects);
         roi.data = std::make_unique<int8_t[]>(roi_length);
         memcpy(roi.data.get(), roi_mat.data, roi_length);
