@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
   }
 
   QCoreApplication::setOrganizationName("Ultra Video Group");
-  QCoreApplication::setOrganizationDomain("ultravideo.cs.tut.fi");
+  QCoreApplication::setOrganizationDomain("ultravideo.fi");
   QCoreApplication::setApplicationName("Kvazzup");
 
   QSettings::setPath(settingsFileFormat, QSettings::SystemScope, ".");
