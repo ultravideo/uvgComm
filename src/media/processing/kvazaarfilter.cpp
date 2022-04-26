@@ -67,6 +67,19 @@ bool KvazaarFilter::init()
   // input picture should not exist at this point
   if(!input_pic_ && !api_)
   {
+    QSettings settings(settingsFile, settingsFileFormat);
+
+    if (settings.value(SettingsKey::videoResultionWidth).toInt() == 0 ||
+        settings.value(SettingsKey::videoResultionHeight).toInt() == 0 ||
+        settings.value(SettingsKey::videoFramerate).toReal() == 0.0)
+    {
+      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Invalid values in settings",
+                                      {"Width", "Height", "Framerate"},
+                                      {settings.value(SettingsKey::videoResultionWidth).toString(),
+                                       settings.value(SettingsKey::videoResultionHeight).toString(),
+                                       settings.value(SettingsKey::videoFramerate).toString()});
+      return false;
+    }
 
     api_ = kvz_api_get(8);
     if(!api_)
@@ -85,7 +98,6 @@ bool KvazaarFilter::init()
 
     api_->config_init(config_);
 
-    QSettings settings(settingsFile, settingsFileFormat);
 
     QString preset = settings.value(SettingsKey::videoPreset).toString().toUtf8();
 
