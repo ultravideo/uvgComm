@@ -97,7 +97,7 @@ void CameraInfo::getFormatResolutions(int deviceID, QString format, QStringList 
 
   if (camera != nullptr)
   {
-    QList<QSize> supportedResolutions = camera->supportedViewfinderResolutions();
+    QList<QSize> supportedResolutions = camera->supportedViewfinderResolutions(viewSettings);
     camera->unload();
 
     /*
