@@ -19,3 +19,6 @@ void rgb_to_yuv420_i_c       (uint8_t* input, uint8_t* output, uint16_t width, u
 void yuyv_to_yuv420_c        (uint8_t* input, uint8_t* output, uint16_t width, uint16_t height);
 
 void yuyv_to_rgb_c           (uint8_t* input, uint8_t* output, uint16_t width, uint16_t height);
+
+// reduces the size of RGB frame to half height and half width
+void half_rgb                (uint8_t* input, uint8_t* output, uint16_t width, uint16_t height);

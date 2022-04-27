@@ -85,6 +85,7 @@ SOURCES +=\
     src/media/processing/dspfilter.cpp \
     src/media/processing/filter.cpp \
     src/media/processing/filtergraph.cpp \
+    src/media/processing/halfrgbfilter.cpp \
     src/media/processing/kvazaarfilter.cpp \
     src/media/processing/openhevcfilter.cpp \
     src/media/processing/opusdecoderfilter.cpp \
@@ -178,6 +179,7 @@ HEADERS  += \
     src/media/processing/dspfilter.h \
     src/media/processing/filter.h \
     src/media/processing/filtergraph.h \
+    src/media/processing/halfrgbfilter.h \
     src/media/processing/kvazaarfilter.h \
     src/media/processing/openhevcfilter.h \
     src/media/processing/opusdecoderfilter.h \

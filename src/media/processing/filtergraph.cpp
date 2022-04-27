@@ -10,6 +10,7 @@
 #include "media/processing/yuvtorgb32.h"
 #include "media/processing/yuyvtoyuv420.h"
 #include "media/processing/yuyvtorgb32.h"
+#include "media/processing/halfrgbfilter.h"
 
 #include "media/processing/displayfilter.h"
 #include "media/processing/scalefilter.h"
@@ -277,14 +278,19 @@ void FilterGraph::initSelfView()
     // optimization that flip the video. This however removes the need for an
     // additional flip for some reason saving CPU.
 
-    // We dont do horizontal mirroring if we are using screen sharing, but that
+    // We don't do horizontal mirroring if we are using screen sharing, but that
     // is changed later.
     // Note: mirroring is slow with Qt
 
+    std::shared_ptr<Filter> resizeFilter = std::shared_ptr<Filter>(new HalfRGBFilter("", stats_, hwResources_));
+
+    addToGraph(resizeFilter, cameraGraph_, cameraGraph_.size() - 1);
+    addToGraph(resizeFilter, screenShareGraph_, cameraGraph_.size() - 1);
+
     selfviewFilter_->setHorizontalMirroring(true);
 
-    addToGraph(selfviewFilter_, cameraGraph_);
-    addToGraph(selfviewFilter_, screenShareGraph_);
+    addToGraph(selfviewFilter_, cameraGraph_, cameraGraph_.size() - 1);
+    addToGraph(selfviewFilter_, screenShareGraph_, cameraGraph_.size() - 1);
   }
   else
   {
