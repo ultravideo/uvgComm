@@ -99,6 +99,7 @@ private:
   SDPAttributeType findStatusAttribute(const QList<SDPAttributeType>& attributes) const;
 
   std::shared_ptr<SDPMessageInfo> localSDP_;
+  std::shared_ptr<SDPMessageInfo> answerSDP_;
   std::shared_ptr<SDPMessageInfo> remoteSDP_;
 
   NegotiationState negotiationState_;

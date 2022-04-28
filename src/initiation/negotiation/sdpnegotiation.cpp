@@ -37,7 +37,7 @@ void SDPNegotiation::processOutgoingRequest(SIPRequest& request, QVariant& conte
     request.message->contentLength = 0;
     request.message->contentType = MT_APPLICATION_SDP;
 
-    if (!sdpToContent(localSDP_, content))
+    if (!sdpToContent(answerSDP_, content))
     {
       Logger::getLogger()->printError(this, "Failed to get SDP answer to request");
       return;
@@ -65,7 +65,14 @@ void SDPNegotiation::processOutgoingResponse(SIPResponse& response, QVariant& co
         response.message->contentLength = 0;
         response.message->contentType = MT_APPLICATION_SDP;
 
-        if (!sdpToContent(localSDP_, content))
+        std::shared_ptr<SDPMessageInfo> ourSDP = localSDP_;
+
+        if (negotiationState_ == NEG_OFFER_RECEIVED)
+        {
+          ourSDP = answerSDP_;
+        }
+
+        if (!sdpToContent(ourSDP, content))
         {
           Logger::getLogger()->printError(this, "Failed to get SDP answer to response");
           return;
@@ -211,9 +218,9 @@ bool SDPNegotiation::processOfferSDP(QVariant& content)
 
   SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
 
-  std::shared_ptr<SDPMessageInfo> answerSDP = negotiateSDP(*localSDP_.get(), retrieved);
+  answerSDP_ = negotiateSDP(*localSDP_.get(), retrieved);
 
-  if(answerSDP == nullptr)
+  if(answerSDP_ == nullptr)
   {
     Logger::getLogger()->printWarning(this, "Incoming SDP was not suitable");
     uninit();
