@@ -61,7 +61,7 @@ public slots:
 private:
 
   // When sending an SDP offer or answer
-  bool localSDPToContent(QVariant &content);
+  bool sdpToContent(std::shared_ptr<SDPMessageInfo> sdp, QVariant &content);
 
   // when receiving any SDP
   bool processSDP(QVariant &content);

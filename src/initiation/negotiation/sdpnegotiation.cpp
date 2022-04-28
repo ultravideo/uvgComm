@@ -37,7 +37,7 @@ void SDPNegotiation::processOutgoingRequest(SIPRequest& request, QVariant& conte
     request.message->contentLength = 0;
     request.message->contentType = MT_APPLICATION_SDP;
 
-    if (!localSDPToContent(content))
+    if (!sdpToContent(localSDP_, content))
     {
       Logger::getLogger()->printError(this, "Failed to get SDP answer to request");
       return;
@@ -65,7 +65,7 @@ void SDPNegotiation::processOutgoingResponse(SIPResponse& response, QVariant& co
         response.message->contentLength = 0;
         response.message->contentType = MT_APPLICATION_SDP;
 
-        if (!localSDPToContent(content))
+        if (!sdpToContent(localSDP_, content))
         {
           Logger::getLogger()->printError(this, "Failed to get SDP answer to response");
           return;
@@ -153,18 +153,16 @@ void SDPNegotiation::uninit()
 }
 
 
-bool SDPNegotiation::localSDPToContent(QVariant& content)
+bool SDPNegotiation::sdpToContent(std::shared_ptr<SDPMessageInfo> sdp, QVariant& content)
 {
-  Q_ASSERT(localSDP_ != nullptr);
+  Q_ASSERT(sdp != nullptr);
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this,  "Adding local SDP to content");
-  if(!localSDP_)
+  if(!sdp)
   {
     Logger::getLogger()->printWarning(this, "Failed to get local SDP!");
     return false;
   }
-
-  SDPMessageInfo sdp = *localSDP_;
-  content.setValue(sdp);
+  content.setValue(*sdp);
   return true;
 }
 
