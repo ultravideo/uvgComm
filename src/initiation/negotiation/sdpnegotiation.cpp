@@ -7,6 +7,7 @@
 #include <QVariant>
 
 SDPNegotiation::SDPNegotiation(std::shared_ptr<SDPMessageInfo> localSDP):
+  localbaseSDP_(nullptr),
   localSDP_(nullptr),
   remoteSDP_(nullptr),
   negotiationState_(NEG_NO_STATE),
@@ -15,7 +16,7 @@ SDPNegotiation::SDPNegotiation(std::shared_ptr<SDPMessageInfo> localSDP):
   // this makes it possible to send SDP as a signal parameter
   qRegisterMetaType<std::shared_ptr<SDPMessageInfo> >("std::shared_ptr<SDPMessageInfo>");
 
-  localSDP_ = localSDP;
+  localbaseSDP_ = localSDP;
 }
 
 
@@ -37,7 +38,7 @@ void SDPNegotiation::processOutgoingRequest(SIPRequest& request, QVariant& conte
     request.message->contentLength = 0;
     request.message->contentType = MT_APPLICATION_SDP;
 
-    if (!sdpToContent(answerSDP_, content))
+    if (!sdpToContent(localSDP_, content))
     {
       Logger::getLogger()->printError(this, "Failed to get SDP answer to request");
       return;
@@ -65,11 +66,11 @@ void SDPNegotiation::processOutgoingResponse(SIPResponse& response, QVariant& co
         response.message->contentLength = 0;
         response.message->contentType = MT_APPLICATION_SDP;
 
-        std::shared_ptr<SDPMessageInfo> ourSDP = localSDP_;
+        std::shared_ptr<SDPMessageInfo> ourSDP = localbaseSDP_;
 
         if (negotiationState_ == NEG_OFFER_RECEIVED)
         {
-          ourSDP = answerSDP_;
+          ourSDP = localSDP_;
         }
 
         if (!sdpToContent(ourSDP, content))
@@ -143,18 +144,8 @@ void SDPNegotiation::processIncomingResponse(SIPResponse& response, QVariant& co
 
 void SDPNegotiation::uninit()
 {
-
-  if (localSDP_ != nullptr)
-  {
-    /*for(auto& mediaStream : localSDP_->media)
-    {
-      // TODO: parameters_.makePortPairAvailable(mediaStream.receivePort);
-    }*/
-  }
-
   localSDP_ = nullptr;
   remoteSDP_ = nullptr;
-
 
   negotiationState_ = NEG_NO_STATE;
 }
@@ -200,6 +191,11 @@ bool SDPNegotiation::processSDP(QVariant& content)
       processAnswerSDP(content);
       break;
     }
+    case NEG_FAILED:
+    {
+      return false;
+      break;
+    }
   }
 
   return true;
@@ -218,19 +214,19 @@ bool SDPNegotiation::processOfferSDP(QVariant& content)
 
   SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
 
-  answerSDP_ = negotiateSDP(*localSDP_.get(), retrieved);
+  // get our final SDP, which is later sent to them
+  localSDP_ = findCommonSDP(*localbaseSDP_.get(), retrieved);
 
-  if(answerSDP_ == nullptr)
+  // get their final SDP based on what is acceptable to us
+  remoteSDP_ = findCommonSDP(retrieved, *localSDP_.get());
+
+  if (localSDP_ == nullptr || remoteSDP_ == nullptr)
   {
     Logger::getLogger()->printWarning(this, "Incoming SDP was not suitable");
+    negotiationState_ = NEG_FAILED;
     uninit();
     return false;
   }
-
-  std::shared_ptr<SDPMessageInfo> remoteSDP
-      = std::shared_ptr<SDPMessageInfo>(new SDPMessageInfo);
-  *remoteSDP = retrieved;
-  remoteSDP_ = remoteSDP;
 
   negotiationState_ = NEG_OFFER_RECEIVED;
 
@@ -251,16 +247,14 @@ bool SDPNegotiation::processAnswerSDP(QVariant &content)
 
   Logger::getLogger()->printDebug(DEBUG_NORMAL, "Negotiation",
                                   "Starting to process answer SDP.");
-  if (!checkSessionValidity(false) || negotiationState_ == NEG_NO_STATE)
-  {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, "Negotiation",
-                                    "Processing SDP answer without having sent an offer!");
-    return false;
-  }
+
+  /* Get our final SDP based on their answer, should succeed if they did everything correctly,
+   * but good to check */
+  localSDP_ = findCommonSDP(*localbaseSDP_.get(), retrieved);
 
   // this function blocks until a candidate is nominated or all candidates are considered
   // invalid in which case it returns false to indicate error
-  if (checkSDPOffer(retrieved))
+  if (localSDP_ != nullptr)
   {
     std::shared_ptr<SDPMessageInfo> remoteSDP
         = std::shared_ptr<SDPMessageInfo>(new SDPMessageInfo);
@@ -271,6 +265,8 @@ bool SDPNegotiation::processAnswerSDP(QVariant &content)
 
     return true;
   }
+
+  negotiationState_ = NEG_FAILED;
 
   return false;
 }
@@ -326,8 +322,6 @@ bool SDPNegotiation::checkSessionValidity(bool checkRemote) const
 }
 
 
-
-
 void SDPNegotiation::addSDPAccept(std::shared_ptr<QList<SIPAccept>>& accepts)
 {
   if (accepts == nullptr)
@@ -359,17 +353,15 @@ bool SDPNegotiation::isSDPAccepted(std::shared_ptr<QList<SIPAccept>>& accepts)
 }
 
 
-std::shared_ptr<SDPMessageInfo> SDPNegotiation::negotiateSDP(const SDPMessageInfo& localSDP,
-                                                             const SDPMessageInfo& remoteSDPOffer)
+std::shared_ptr<SDPMessageInfo> SDPNegotiation::findCommonSDP(const SDPMessageInfo& baseSDP,
+                                                              const SDPMessageInfo& comparedSDP)
 {
   // At this point we should have checked if their offer is acceptable.
   // Now we just have to generate our answer.
 
-  // TODO: This should also probably modify remoteSDPOffer according to what we select
-
   std::vector<int> matches;
 
-  if (!matchMedia(matches, remoteSDPOffer, localSDP) || matches.empty())
+  if (!matchMedia(matches, comparedSDP, baseSDP) || matches.empty())
   {
     return nullptr;
   }
@@ -377,39 +369,42 @@ std::shared_ptr<SDPMessageInfo> SDPNegotiation::negotiateSDP(const SDPMessageInf
   std::shared_ptr<SDPMessageInfo> newInfo =
       std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
 
-  *newInfo.get() = localSDP; // use the local as default for all values
+  *newInfo.get() = baseSDP; // use the base as default for all values
+
+  // since compared is usually the more processed or the initial SDP, we use its descriptions
 
   newInfo->version = 0;
-  newInfo->sessionName        = remoteSDPOffer.sessionName;
-  newInfo->sessionDescription = remoteSDPOffer.sessionDescription;
-  newInfo->timeDescriptions   = remoteSDPOffer.timeDescriptions;
+  newInfo->sessionName        = comparedSDP.sessionName;
+  newInfo->sessionDescription = comparedSDP.sessionDescription;
+  newInfo->timeDescriptions   = comparedSDP.timeDescriptions;
 
   newInfo->media.clear(); // contruct media based on remote offer
 
-  for (int i = 0; i < remoteSDPOffer.media.size(); ++i)
+  for (int i = 0; i < comparedSDP.media.size(); ++i)
   {
-    MediaInfo answerMedia;
+    MediaInfo resultMedia;
 
-    answerMedia.type = remoteSDPOffer.media.at(i).type;
-    answerMedia.receivePort = 0; // TODO: ICE Should set this to one of its candidates, 0 means it is rejected
-    answerMedia.title = remoteSDPOffer.media.at(i).title;
+    resultMedia.type = comparedSDP.media.at(i).type;
+    resultMedia.receivePort = 0; // TODO: ICE Should set this to one of its candidates, 0 means it is rejected
+    resultMedia.title = comparedSDP.media.at(i).title;
 
-    answerMedia.proto = localSDP.media.at(matches.at(i)).proto;
+    resultMedia.proto = baseSDP.media.at(matches.at(i)).proto;
 
     if (matches.at(i) == -1)
     {
       // no match was found, this media is unacceptable
 
       // compared to INACTIVE, 0 makes it so that no RTCP is sent
-      answerMedia.receivePort = 0;
-      answerMedia.flagAttributes = {A_INACTIVE};
+      resultMedia.receivePort = 0;
+      resultMedia.flagAttributes = {A_INACTIVE};
     }
     else
     {
-      SDPAttributeType ourAttribute   = findStatusAttribute(localSDP.media.at(matches.at(i)).flagAttributes);
-      SDPAttributeType theirAttribute = findStatusAttribute(remoteSDPOffer.media.at(i).flagAttributes);
+      // here we determine which side is ready to send and/or receive this media
+      SDPAttributeType ourAttribute   = findStatusAttribute(baseSDP.media.at(matches.at(i)).flagAttributes);
+      SDPAttributeType theirAttribute = findStatusAttribute(comparedSDP.media.at(i).flagAttributes);
 
-      answerMedia.flagAttributes.clear(); // TODO: Copy non-directional attributes
+      resultMedia.flagAttributes.clear(); // TODO: Copy non-directional attributes
 
       // important to know here that having no attribute means same as sendrecv (default) in SDP.
       // These ifs go through possible flags one by one, some checks are omitted thanks to previous cases
@@ -420,25 +415,25 @@ std::shared_ptr<SDPMessageInfo> SDPNegotiation::negotiateSDP(const SDPMessageInf
       {
         // no possible media connection found, but this stream can be activated at any time
         // RTCP should be remain active while the stream itself is inactive
-        answerMedia.flagAttributes.push_back(A_INACTIVE);
+        resultMedia.flagAttributes.push_back(A_INACTIVE);
       }
       else if ((ourAttribute   == A_SENDRECV || ourAttribute   == A_NO_ATTRIBUTE) &&
                (theirAttribute == A_SENDRECV || theirAttribute == A_NO_ATTRIBUTE))
       {
         // media will flow in both directions
-        answerMedia.flagAttributes.push_back(ourAttribute); // sendrecv or no attribute
+        resultMedia.flagAttributes.push_back(ourAttribute); // sendrecv or no attribute
       }
       else if ((ourAttribute   == A_SENDONLY || ourAttribute   == A_SENDRECV ||  ourAttribute   == A_NO_ATTRIBUTE ) &&
                (theirAttribute == A_RECVONLY || theirAttribute == A_SENDRECV ||  theirAttribute == A_NO_ATTRIBUTE))
       {
         // we will send media, but not receive it
-        answerMedia.flagAttributes.push_back(A_SENDONLY);
+        resultMedia.flagAttributes.push_back(A_SENDONLY);
       }
       else if ((ourAttribute   == A_RECVONLY || ourAttribute   == A_SENDRECV ||  ourAttribute   == A_NO_ATTRIBUTE ) &&
                (theirAttribute == A_SENDONLY || theirAttribute == A_SENDRECV ||  theirAttribute == A_NO_ATTRIBUTE))
       {
         // we will not send media, but will receive it
-        answerMedia.flagAttributes.push_back(A_RECVONLY);
+        resultMedia.flagAttributes.push_back(A_RECVONLY);
       }
       else
       {
@@ -446,45 +441,45 @@ std::shared_ptr<SDPMessageInfo> SDPNegotiation::negotiateSDP(const SDPMessageInf
         return nullptr;
       }
 
-      selectBestCodec(remoteSDPOffer.media.at(i).rtpNums,       remoteSDPOffer.media.at(i).codecs,
-                      localSDP.media.at(matches.at(i)).rtpNums, localSDP.media.at(matches.at(i)).codecs,
-                      answerMedia.rtpNums,                      answerMedia.codecs);
+      selectBestCodec(comparedSDP.media.at(i).rtpNums,         comparedSDP.media.at(i).codecs,
+                      baseSDP.media.at(matches.at(i)).rtpNums, baseSDP.media.at(matches.at(i)).codecs,
+                      resultMedia.rtpNums,                     resultMedia.codecs);
     }
 
-    newInfo->media.append(answerMedia);
+    newInfo->media.append(resultMedia);
   }
 
   return newInfo;
 }
 
 
-bool SDPNegotiation::selectBestCodec(const QList<uint8_t>& remoteNums,      const QList<RTPMap> &remoteCodecs,
-                                     const QList<uint8_t>& supportedNums,   const QList<RTPMap> &supportedCodecs,
-                                           QList<uint8_t>& outMatchingNums,       QList<RTPMap> &outMatchingCodecs)
+bool SDPNegotiation::selectBestCodec(const QList<uint8_t>& comparedNums, const QList<RTPMap> &comparedCodecs,
+                                     const QList<uint8_t>& baseNums,     const QList<RTPMap> &baseCodecs,
+                                           QList<uint8_t>& resultNums,         QList<RTPMap> &resultCodecs)
 {
-  for (auto& remoteCodec : remoteCodecs)
+  for (auto& remoteCodec : comparedCodecs)
   {
-    for (auto& supportedCodec : supportedCodecs)
+    for (auto& supportedCodec : baseCodecs)
     {
       if(remoteCodec.codec == supportedCodec.codec)
       {
-        outMatchingCodecs.append(remoteCodec);
+        resultCodecs.append(remoteCodec);
         Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPNegotiationHelper",  "Found suitable codec");
 
-        outMatchingNums.push_back(remoteCodec.rtpNum);
+        resultNums.push_back(remoteCodec.rtpNum);
 
         return true;
       }
     }
   }
 
-  for (auto& rtpNumber : remoteNums)
+  for (auto& rtpNumber : comparedNums)
   {
-    for (auto& supportedNum : supportedNums)
+    for (auto& supportedNum : baseNums)
     {
       if(rtpNumber == supportedNum)
       {
-        outMatchingNums.append(rtpNumber);
+        resultNums.append(rtpNumber);
         Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPNegotiationHelper",
                                         "Found suitable RTP number");
         return true;
@@ -496,69 +491,6 @@ bool SDPNegotiation::selectBestCodec(const QList<uint8_t>& remoteNums,      cons
                                   "Could not find suitable codec or RTP number for media.");
 
   return false;
-}
-
-
-bool SDPNegotiation::checkSDPOffer(SDPMessageInfo &offer)
-{
-  // TODO: use local SDP to verify offer
-
-  bool hasAudio = false;
-  bool hasH265 = false;
-
-  if(offer.version != 0)
-  {
-    Logger::getLogger()->printPeerError("SDPNegotiationHelper",
-                                        "Their offer had non-0 version",
-                                        "Version",
-                                        QString::number(offer.version));
-    return false;
-  }
-
-  QStringList debugCodecsFound = {};
-  for(MediaInfo& media : offer.media)
-  {
-    if(!media.rtpNums.empty() && media.rtpNums.first() == 0)
-    {
-      debugCodecsFound << "PCMU";
-      hasAudio = true;
-    }
-
-    for(RTPMap& rtp : media.codecs)
-    {
-      if(rtp.codec == "opus")
-      {
-        debugCodecsFound << "opus";
-        hasAudio = true;
-      }
-      else if(rtp.codec == "H265")
-      {
-        debugCodecsFound << "H265";
-        hasH265 = true;
-      }
-    }
-  }
-
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPNegotiationHelper",
-             "Found following codecs in SDP", {"Codecs"}, debugCodecsFound);
-
-  if (offer.timeDescriptions.size() >= 1)
-  {
-    if (offer.timeDescriptions.at(0).startTime != 0 ||
-        offer.timeDescriptions.at(0).stopTime != 0)
-    {
-      Logger::getLogger()->printDebug(DEBUG_ERROR, "SDPNegotiationHelper",
-                 "They offered us a session with limits. Unsupported.");
-      return false;
-    }
-  }
-  else {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SDPNegotiationHelper",
-               "they included wrong number of Time Descriptions. Should be detected earlier.");
-    return false;
-  }
-
-  return hasAudio && hasH265;
 }
 
 

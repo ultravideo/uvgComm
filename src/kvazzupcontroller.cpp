@@ -381,6 +381,7 @@ void KvazzupController::createSingleCall(uint32_t sessionID)
   for (auto& media : localSDP->media)
   {
     if (media.type == "video" && (media.flagAttributes.empty()
+                                  || media.flagAttributes.at(0) == A_NO_ATTRIBUTE
                                   || media.flagAttributes.at(0) == A_SENDRECV
                                   || media.flagAttributes.at(0) == A_RECVONLY))
     {
@@ -629,8 +630,6 @@ void KvazzupController::processRegisterRequest(QString address,
   Q_UNUSED(content);
   Logger::getLogger()->printNormal(this, "Got a register request callback",
                                    "type", QString::number(request.method));
-
-
 }
 
 void KvazzupController::processRegisterResponse(QString address,

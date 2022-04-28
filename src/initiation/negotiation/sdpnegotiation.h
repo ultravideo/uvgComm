@@ -25,7 +25,8 @@
 enum NegotiationState {NEG_NO_STATE,
                        NEG_OFFER_SENT,
                        NEG_OFFER_RECEIVED,
-                       NEG_FINISHED};
+                       NEG_FINISHED,
+                       NEG_FAILED};
 
 
 class SDPNegotiation : public SIPMessageProcessor
@@ -78,16 +79,13 @@ private:
 
   bool isSDPAccepted(std::shared_ptr<QList<SIPAccept>>& accepts);
 
-  std::shared_ptr<SDPMessageInfo> negotiateSDP(const SDPMessageInfo &localSDP,
-                    const SDPMessageInfo &remoteSDPOffer);
+  std::shared_ptr<SDPMessageInfo> findCommonSDP(const SDPMessageInfo &baseSDP,
+                    const SDPMessageInfo &comparedSDP);
 
-  bool selectBestCodec(const QList<uint8_t> &remoteNums,       const QList<RTPMap> &remoteCodecs,
-                       const QList<uint8_t> &supportedNums,    const QList<RTPMap> &supportedCodecs,
-                       QList<uint8_t>& outMatchingNums,  QList<RTPMap>& outMatchingCodecs);
+  bool selectBestCodec(const QList<uint8_t> &comparedNums, const QList<RTPMap> &comparedCodecs,
+                       const QList<uint8_t> &baseNums,     const QList<RTPMap> &baseCodecs,
+                             QList<uint8_t>& resultNums,         QList<RTPMap>& resultCodecs);
 
-
-  // Checks if SDP is acceptable to us.
-  bool checkSDPOffer(SDPMessageInfo& offer);
 
   // update MediaInfo of SDP after ICE has finished
   void setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo, bool local);
@@ -98,8 +96,8 @@ private:
 
   SDPAttributeType findStatusAttribute(const QList<SDPAttributeType>& attributes) const;
 
+  std::shared_ptr<SDPMessageInfo> localbaseSDP_;
   std::shared_ptr<SDPMessageInfo> localSDP_;
-  std::shared_ptr<SDPMessageInfo> answerSDP_;
   std::shared_ptr<SDPMessageInfo> remoteSDP_;
 
   NegotiationState negotiationState_;
