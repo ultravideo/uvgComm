@@ -85,15 +85,19 @@ signals:
 private:
 
   void createOutgoingMedia(uint32_t sessionID, const MediaInfo& localMedia,
-                           QString peerGlobalAddress, const MediaInfo& remoteMedia);
+                           QString peerAddress, const MediaInfo& remoteMedia);
   void createIncomingMedia(uint32_t sessionID, const MediaInfo& localMedia,
-                           QString localGlobalAddress, const MediaInfo& remoteMedia, uint32_t videoID);
+                           QString localAddress, const MediaInfo& remoteMedia, uint32_t videoID);
 
   QString rtpNumberToCodec(const MediaInfo& info);
 
   void transportAttributes(const QList<SDPAttributeType> &attributes, bool& send, bool& recv);
 
   void sdpToStats(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> sdp, bool incoming);
+
+  QString getMediaNettype(std::shared_ptr<SDPMessageInfo> sdp, int mediaIndex);
+  QString getMediaAddrtype(std::shared_ptr<SDPMessageInfo> sdp, int mediaIndex);
+  QString getMediaAddress(std::shared_ptr<SDPMessageInfo> sdp, int mediaIndex);
 
   StatisticsInterface* stats_;
 

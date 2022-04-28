@@ -46,23 +46,38 @@ void Delivery::uninit()
   removeAllPeers();
 }
 
-bool Delivery::addPeer(uint32_t sessionID, QString peerAddress, QString localAddress)
+bool Delivery::addPeer(uint32_t sessionID,
+                       QString peerAddressType, QString peerAddress,
+                       QString localAddressType, QString localAddress)
 {
   Q_ASSERT(sessionID != 0);
 
   // not being destroyed
   if (destroyed_.tryLock(0))
   {
+
     iniated_.lock(); // not being iniated
 
-    Logger::getLogger()->printNormal(this, "Adding new peer");
+    if (peerAddressType == "IP4" && localAddressType == "IP4")
+    {
+      Logger::getLogger()->printNormal(this, "Adding new peer");
 
-    ipv6to4(peerAddress);
+      ipv6to4(peerAddress);
 
-    std::shared_ptr<Peer> peer = std::shared_ptr<Peer> (new Peer{nullptr,{}});
-    peers_[sessionID] = peer;
-    peers_[sessionID]->session = rtp_ctx_->create_session(peerAddress.toStdString(), localAddress.toStdString());
+      std::shared_ptr<Peer> peer = std::shared_ptr<Peer> (new Peer{nullptr,{}});
+      peers_[sessionID] = peer;
+      peers_[sessionID]->session = rtp_ctx_->create_session(peerAddress.toStdString(),
+                                                            localAddress.toStdString());
+    }
+    else
+    {
+      Logger::getLogger()->printUnimplemented(this, "Tried to use address type "
+                                                    "that has not been implemented!");
+      iniated_.unlock();
+      destroyed_.unlock();
+      return false;
 
+    }
     iniated_.unlock();
     destroyed_.unlock();
 
@@ -135,7 +150,7 @@ void Delivery::parseCodecString(QString codec, rtp_format_t& fmt,
 }
 
 
-std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID, QHostAddress remoteAddress,
+std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID, QString remoteAddress,
                                                 uint16_t localPort, uint16_t peerPort,
                                                 QString codec, uint8_t rtpNum)
 {
@@ -160,7 +175,7 @@ std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID, QHostAddress
 
     peers_[sessionID]->streams[localPort]->sender =
         std::shared_ptr<UvgRTPSender>(new UvgRTPSender(sessionID,
-                                                       remoteAddress.toString() + ":" + QString::number(peerPort),
+                                                       remoteAddress + ":" + QString::number(peerPort),
                                                        stats_,
                                                        hwResources_,
                                                        type,
@@ -177,7 +192,7 @@ std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID, QHostAddress
   return peers_[sessionID]->streams[localPort]->sender;
 }
 
-std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID, QHostAddress localAddress,
+std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID, QString localAddress,
                                                    uint16_t localPort, uint16_t peerPort,
                                                    QString codec, uint8_t rtpNum)
 {
@@ -200,7 +215,7 @@ std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID, QHostAddr
     peers_[sessionID]->streams[localPort]->receiver = std::shared_ptr<UvgRTPReceiver>(
         new UvgRTPReceiver(
           sessionID,
-          localAddress.toString() + ":" + QString::number(localPort),
+          localAddress + ":" + QString::number(localPort),
           stats_,
           hwResources_,
           type,
@@ -352,7 +367,8 @@ void Delivery::removeAllPeers()
 
 void Delivery::ipv6to4(QHostAddress& address)
 {
-  // check if the IP addresses start with ::ffff: and remove it, uvgrtp only accepts IPv4 addresses
+  // check if the IP addresses start with ::ffff: and
+  // remove it, uvgrtp only accepts IPv4 addresses
   if (address.toString().left(7) == "::ffff:")
   {
     address = QHostAddress(address.toString().mid(7));
@@ -361,7 +377,8 @@ void Delivery::ipv6to4(QHostAddress& address)
 
 void Delivery::ipv6to4(QString &address)
 {
-  // check if the IP addresses start with ::ffff: and remove it, uvgrtp only accepts IPv4 addresses
+  // check if the IP addresses start with ::ffff: and
+  // remove it, uvgrtp only accepts IPv4 addresses
   if (address.left(7) == "::ffff:")
   {
     address = address.mid(7);

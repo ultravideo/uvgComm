@@ -92,10 +92,10 @@ void MediaManager::addParticipant(uint32_t sessionID,
   // TODO: support stop-time and start-time as recommended by RFC 4566 section 5.9
 
   Q_ASSERT(peerInfo->media.size() == localInfo->media.size());
-  if (peerInfo->media.size() != localInfo->media.size())
+  if (peerInfo->media.size() != localInfo->media.size() || peerInfo->media.empty())
   {
     Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "Media manager",
-               "Addparticipant, number of media in localInfo and peerInfo don't match.",
+               "addParticipant, invalid SDPs",
                 {"LocalInfo", "PeerInfo"},
                 {QString::number(localInfo->media.size()),
                  QString::number(peerInfo->media.size())});
@@ -110,13 +110,13 @@ void MediaManager::addParticipant(uint32_t sessionID,
     return;
   }
 
-  if(peerInfo->connection_nettype == "IN")
+  if (getMediaNettype(peerInfo, 0) == "IN")
   {
-
-    // TODO: Should check if we should use global or media address.
     if(!streamer_->addPeer(sessionID,
-                           peerInfo->media.at(0).connection_address,
-                           localInfo->media.at(0).connection_address))
+                           getMediaAddrtype(peerInfo, 0),
+                           getMediaAddress(peerInfo, 0),
+                           getMediaAddrtype(localInfo, 0),
+                           getMediaAddress(localInfo, 0)))
     {
       Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
                  "Error creating RTP peer. Simultaneous destruction?");
@@ -146,7 +146,7 @@ void MediaManager::addParticipant(uint32_t sessionID,
     // TODO: I don't like that we match
     createOutgoingMedia(sessionID,
                         localInfo->media.at(i),
-                        peerInfo->connection_address,
+                        getMediaAddress(peerInfo, i),
                         peerInfo->media.at(i));
   }
 
@@ -155,7 +155,7 @@ void MediaManager::addParticipant(uint32_t sessionID,
   for (int i = 0; i < localInfo->media.size(); ++i)
   {
     createIncomingMedia(sessionID, localInfo->media.at(i),
-                        localInfo->connection_address,
+                        getMediaAddress(localInfo, i),
                         peerInfo->media.at(i), videoID);
 
     if (localInfo->media.at(i).type == "video" )
@@ -171,9 +171,15 @@ void MediaManager::addParticipant(uint32_t sessionID,
 
 void MediaManager::createOutgoingMedia(uint32_t sessionID,
                                        const MediaInfo& localMedia,
-                                       QString peerGlobalAddress,
+                                       QString peerAddress,
                                        const MediaInfo& remoteMedia)
 {
+  if (peerAddress == "")
+  {
+    Logger::getLogger()->printProgramError(this, "Address was empty when creating outgoing media");
+    return;
+  }
+
   bool send = true;
   bool recv = true;
 
@@ -190,37 +196,7 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
 
     if(remoteMedia.proto == "RTP/AVP")
     {
-      bool globalAddressPresent = !peerGlobalAddress.isNull() && peerGlobalAddress != "";
-      bool specificAddressPresent = remoteMedia.connection_address != ""
-           && !remoteMedia.connection_address.isNull();
-
-      QHostAddress remoteAddress;
-      if (specificAddressPresent)
-      {
-        remoteAddress.setAddress(remoteMedia.connection_address);
-
-        Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Using media specific address for outgoing media.",
-                  {"Type", "Path"},
-                  {remoteMedia.type,
-                   localMedia.connection_address + ":" + QString::number(localMedia.receivePort) + " -> " +
-                        remoteAddress.toString() + ":" + QString::number(remoteMedia.receivePort)});
-      }
-      else if (globalAddressPresent)
-      {
-        remoteAddress.setAddress(peerGlobalAddress);
-        Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Using global address for outgoing media.",
-                  {"Type", "Remote address"},
-                  {remoteMedia.type, remoteAddress.toString() + ":" + QString::number(remoteMedia.receivePort)});
-      }
-      else
-      {
-        Logger::getLogger()->printDebug(DEBUG_ERROR, this, "Creating outgoing media. "
-                                      "No viable connection address in mediainfo. "
-                                      "Should be detected earlier.");
-        return;
-      }
-
-      std::shared_ptr<Filter> framedSource = streamer_->addSendStream(sessionID, remoteAddress,
+      std::shared_ptr<Filter> framedSource = streamer_->addSendStream(sessionID, peerAddress,
                                                                       localMedia.receivePort, remoteMedia.receivePort,
                                                                       codec, remoteMedia.rtpNums.at(0));
 
@@ -257,9 +233,14 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
 
 void MediaManager::createIncomingMedia(uint32_t sessionID,
                                        const MediaInfo &localMedia,
-                                       QString localGlobalAddress,
+                                       QString localAddress,
                                        const MediaInfo &remoteMedia, uint32_t videoID)
 {
+  if (localAddress == "")
+  {
+        Logger::getLogger()->printProgramError(this, "Address was empty when creating incoming media");
+    return;
+  }
   bool send = true;
   bool recv = true;
 
@@ -273,34 +254,6 @@ void MediaManager::createIncomingMedia(uint32_t sessionID,
 
     if(localMedia.proto == "RTP/AVP")
     {
-      bool globalAddressPresent = localGlobalAddress != "" && !localGlobalAddress.isNull();
-      bool specificAddressPresent = localMedia.connection_address != ""
-           && !localMedia.connection_address.isNull();
-
-      QHostAddress localAddress;
-      if (specificAddressPresent)
-      {
-        localAddress.setAddress(localMedia.connection_address);
-        Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Using media specific address for incoming.",
-                  {"Type", "Address", "Port"},
-                  {localMedia.type, localAddress.toString(), QString::number(localMedia.receivePort)});
-
-      }
-      else if (globalAddressPresent)
-      {
-        localAddress.setAddress(localGlobalAddress);
-        Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Using global address for incoming.",
-                   {"Type", "Address"},
-                   {localMedia.type, localAddress.toString() + ":" + QString::number(localMedia.receivePort)});
-      }
-      else
-      {
-        Logger::getLogger()->printDebug(DEBUG_ERROR, this, "Creating incoming media. "
-                                      "No viable connection address in mediainfo. "
-                                      "Should be detected earlier.");
-        return;
-      }
-
       std::shared_ptr<Filter> rtpSink = streamer_->addReceiveStream(sessionID, localAddress,
                                                                     localMedia.receivePort,
                                                                     remoteMedia.receivePort,
@@ -439,4 +392,34 @@ void MediaManager::sdpToStats(uint32_t sessionID, std::shared_ptr<SDPMessageInfo
       stats_->outgoingMedia(sessionID, sdp->originator_username,ipList, audioPorts, videoPorts);
     }
   }
+}
+
+
+QString MediaManager::getMediaNettype(std::shared_ptr<SDPMessageInfo> sdp, int mediaIndex)
+{
+  if (sdp->media.size() >= mediaIndex && sdp->media.at(mediaIndex).connection_nettype != "")
+  {
+    return sdp->media.at(mediaIndex).connection_nettype;
+  }
+  return sdp->connection_nettype;
+}
+
+
+QString MediaManager::getMediaAddrtype(std::shared_ptr<SDPMessageInfo> sdp, int mediaIndex)
+{
+  if (sdp->media.size() >= mediaIndex && sdp->media.at(mediaIndex).connection_addrtype != "")
+  {
+    return sdp->media.at(mediaIndex).connection_addrtype;
+  }
+  return sdp->connection_addrtype;
+}
+
+
+QString MediaManager::getMediaAddress(std::shared_ptr<SDPMessageInfo> sdp, int mediaIndex)
+{
+  if (sdp->media.size() >= mediaIndex && sdp->media.at(mediaIndex).connection_address != "")
+  {
+    return sdp->media.at(mediaIndex).connection_address;
+  }
+  return sdp->connection_address;
 }
