@@ -358,8 +358,9 @@ void ConferenceView::detachWidget(uint32_t sessionID, uint32_t index, QWidget* w
 
 
 // if our call is accepted or we accepted their call
-void ConferenceView::addVideoStream(uint32_t sessionID,
-                                    std::shared_ptr<VideoviewFactory> factory)
+void ConferenceView::callStarted(uint32_t sessionID,
+                                 std::shared_ptr<VideoviewFactory> factory,
+                                 bool videoEnabled, bool audioEnabled)
 {
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
                                   "Adding Videostream.", {"SessionID"}, {QString::number(sessionID)});

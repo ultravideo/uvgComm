@@ -22,7 +22,7 @@ VideoviewFactory::VideoviewFactory():
 {}
 
 size_t VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent,
-                                        ConferenceView* conf)
+                                      ConferenceView* conf)
 {
   Logger::getLogger()->printDebug(DEBUG_NORMAL, "View Factory",
                                   "Creating videoWidget", {"SessionID"}, {QString::number(sessionID)});

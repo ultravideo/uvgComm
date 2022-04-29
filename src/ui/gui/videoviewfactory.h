@@ -24,8 +24,7 @@ public:
   // returns viewID which is also videoID
   size_t createWidget(uint32_t sessionID, QWidget* parent, ConferenceView* conf);
 
-  // set self view which is part of the
-  // returns viewID which is also videoID
+  // set self view
   void addSelfview(VideoInterface* video, QWidget* view);
 
   // id is the index of that view or video

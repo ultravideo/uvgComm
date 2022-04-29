@@ -378,16 +378,28 @@ void KvazzupController::createSingleCall(uint32_t sessionID)
   std::shared_ptr<SDPMessageInfo> localSDP = states_[sessionID].localSDP;
   std::shared_ptr<SDPMessageInfo> remoteSDP = states_[sessionID].remoteSDP;
 
+  bool videoEnabled = false;
+  bool audioEnabled = false;
+
   for (auto& media : localSDP->media)
   {
-    if (media.type == "video" && (media.flagAttributes.empty()
-                                  || media.flagAttributes.at(0) == A_NO_ATTRIBUTE
-                                  || media.flagAttributes.at(0) == A_SENDRECV
-                                  || media.flagAttributes.at(0) == A_RECVONLY))
+    if (media.type == "video" && !videoEnabled)
     {
-      userInterface_.addVideoStream(sessionID);
+      videoEnabled = (media.flagAttributes.empty()
+                      || media.flagAttributes.at(0) == A_NO_ATTRIBUTE
+                      || media.flagAttributes.at(0) == A_SENDRECV
+                      || media.flagAttributes.at(0) == A_RECVONLY);
+    }
+    else if (media.type == "audio" && !audioEnabled)
+    {
+      audioEnabled = (media.flagAttributes.empty()
+                      || media.flagAttributes.at(0) == A_NO_ATTRIBUTE
+                      || media.flagAttributes.at(0) == A_SENDRECV
+                      || media.flagAttributes.at(0) == A_RECVONLY);
     }
   }
+
+  userInterface_.callStarted(sessionID, videoEnabled, audioEnabled);
 
   if(localSDP == nullptr || remoteSDP == nullptr)
   {

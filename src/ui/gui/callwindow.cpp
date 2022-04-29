@@ -208,12 +208,13 @@ void CallWindow::closeEvent(QCloseEvent *event)
 }
 
 
-void CallWindow::addVideoStream(uint32_t sessionID,
-                                std::shared_ptr<VideoviewFactory> viewFactory)
+void CallWindow::callStarted(uint32_t sessionID,
+                             std::shared_ptr<VideoviewFactory> viewFactory, 
+                             bool videoEnabled, bool audioEnabled)
 {
   ui_->EndCallButton->setEnabled(true);
   ui_->EndCallButton->show();
-  conference_.addVideoStream(sessionID, viewFactory);
+  conference_.callStarted(sessionID, viewFactory, videoEnabled, audioEnabled);
 }
 
 

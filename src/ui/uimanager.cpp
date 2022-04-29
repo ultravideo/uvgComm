@@ -131,9 +131,9 @@ void UIManager::displayIncomingCall(uint32_t sessionID, QString caller)
 
 
 // adds video stream to view
-void UIManager::addVideoStream(uint32_t sessionID)
+void UIManager::callStarted(uint32_t sessionID, bool videoEnabled, bool audioEnabled)
 {
-  window_.addVideoStream(sessionID, viewFactory_);
+  window_.callStarted(sessionID, viewFactory_, videoEnabled, audioEnabled);
 }
 
 

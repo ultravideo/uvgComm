@@ -34,7 +34,8 @@ public:
   void displayIncomingCall(uint32_t sessionID, QString caller);
 
   // adds video stream to view
-  void addVideoStream(uint32_t sessionID, std::shared_ptr<VideoviewFactory> viewFactory);
+  void callStarted(uint32_t sessionID, std::shared_ptr<VideoviewFactory> viewFactory,
+                   bool videoEnabled, bool audioEnabled);
 
   // removes caller from view
   void removeParticipant(uint32_t sessionID);

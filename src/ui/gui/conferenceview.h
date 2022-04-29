@@ -51,7 +51,8 @@ public:
   uint32_t rejectNewest();
 
   // if our call is accepted or we accepted their call
-  void addVideoStream(uint32_t sessionID, std::shared_ptr<VideoviewFactory> factory);
+  void callStarted(uint32_t sessionID, std::shared_ptr<VideoviewFactory> factory,
+                   bool videoEnabled, bool audioEnabled);
 
   // return whether there are still participants left in call view
   bool removeCaller(uint32_t sessionID);

@@ -34,7 +34,7 @@ public:
   void displayIncomingCall(uint32_t sessionID, QString caller);
 
   // adds video stream to view
-  void addVideoStream(uint32_t sessionID);
+  void callStarted(uint32_t sessionID, bool videoEnabled, bool audioEnabled);
 
   // removes caller from view
   void removeParticipant(uint32_t sessionID);
