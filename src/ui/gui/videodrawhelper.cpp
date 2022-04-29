@@ -200,16 +200,32 @@ void VideoDrawHelper::updateTargetRect(QWidget* widget)
     QSize size = lastFrame_.image.size();
     QSize widgetSize = widget->size() - QSize(borderSize_,borderSize_);
 
+    // Aspect ratios can be used to determine which is the best limiting factor 
+    // so all of the widget space can be used.
+    float widgetAspectRatio = (float)widgetSize.width()/widgetSize.height();
+    float frameAspectRatio =  (float)size.width()/size.height();
+
     if(widgetSize.height() > size.height()
        && widgetSize.width() > size.width())
     {
+      // Scale up the frame because it is too small to fill the widget slot (will stretch the image).
+      // Mostly relevant for very small resolutions (and big screens) where we sacrifice some of the visual appeal
+      // in order to show all the pixels to user in all cases, maximizing the little quality we have without forcing
+      // the receiver to look at a postage stamp video.
       size.scale(widgetSize.expandedTo(size), Qt::KeepAspectRatio);
+    }
+    else if (widgetAspectRatio <= frameAspectRatio)
+    {
+      // Limit the target by widget height without stretching the image
+      // (will cut some of the image from left and right)
+      QSize newScale = {size.width(), widgetSize.height()};
+      size.scale(newScale, Qt::KeepAspectRatio);
     }
     else
     {
-      /* Here we try to take advantage of as much widget space as possible as long as we don't
-       * start stretching the image */
-      QSize newScale = {size.width(), widgetSize.height()};
+      // Limit the target by widget width without stretching the image 
+      // (will cut some of the image from top and bottom)
+      QSize newScale = {widgetSize.width(), size.height()};
       size.scale(newScale, Qt::KeepAspectRatio);
     }
 
