@@ -10,6 +10,7 @@
 #include <QImage>
 #include <QMutex>
 
+
 #include <memory>
 
 class StatisticsInterface;
@@ -30,6 +31,8 @@ public:
 
   // Takes ownership of the image data
   virtual void inputImage(std::unique_ptr<uchar[]> data, QImage &image, int64_t timestamp);
+
+  virtual void drawMicOffIcon(bool status);
 
   virtual void enableOverlay(int roiQP, int backgroundQP, int brushSize, 
                              bool showGrid, bool pixelBased);
@@ -68,4 +71,6 @@ private:
   uint32_t sessionID_;
 
   VideoDrawHelper helper_;
+
+
 };

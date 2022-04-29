@@ -27,6 +27,8 @@ public:
   // Takes ownership of the image data
   virtual void inputImage(std::unique_ptr<uchar[]> data, QImage &image, int64_t timestamp) = 0;
 
+  virtual void drawMicOffIcon(bool status) = 0;
+
   virtual void enableOverlay(int goodQP, int badQP, int brushSize, 
                              bool showGrid, bool pixelBased) = 0;
   virtual void resetOverlay() = 0;

@@ -27,6 +27,12 @@ VideoGLWidget::~VideoGLWidget()
 {}
 
 
+void VideoGLWidget::drawMicOffIcon(bool status)
+{
+  helper_.setDrawMicOff(status);
+}
+
+
 void VideoGLWidget::enableOverlay(int roiQP, int backgroundQP,
                                   int brushSize, bool showGrid, bool pixelBased)
 {

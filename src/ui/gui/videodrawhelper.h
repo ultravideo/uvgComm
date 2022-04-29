@@ -10,6 +10,7 @@
 
 #include <QElapsedTimer>
 #include <QMutex>
+#include <QSvgRenderer>
 
 #include <deque>
 #include <memory>
@@ -36,6 +37,8 @@ public:
   void enableOverlay(int roiQP, int backgroundQP, int brushSize, bool showGrid, bool pixelBased);
   void resetOverlay();
 
+  void setDrawMicOff(bool state);
+
   bool readyToDraw();
   void inputImage(QWidget *widget, std::unique_ptr<uchar[]> data,
                   QImage &image, int64_t timestamp);
@@ -43,7 +46,8 @@ public:
   // returns whether this is a new image or the previous one
   bool getRecentImage(QImage& image);
 
-  void drawOverlay(QPainter& painter);
+  void draw(QPainter& painter);
+
   void addPointToOverlay(const QPointF& position, bool addPoint, bool removePoint);
 
   void mouseDoubleClickEvent(QWidget* widget);
@@ -91,6 +95,7 @@ private:
   QWidget* tmpParent_;
 
   QRect targetRect_;
+  QRect iconRect_;
   QRect newFrameRect_;
 
   bool firstImageReceived_;
@@ -124,4 +129,7 @@ private:
 
   bool showGrid_;
   bool pixelBasedDrawing_;
+
+  QSvgRenderer  micIcon_;
+  bool drawIcon_;
 };

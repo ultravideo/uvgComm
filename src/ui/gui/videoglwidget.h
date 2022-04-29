@@ -38,6 +38,8 @@ public:
 
   virtual std::unique_ptr<int8_t[]> getRoiMask(int& width, int& height, int qp, bool scaleToInput);
 
+  virtual void drawMicOffIcon(bool status);
+
   virtual void enableOverlay(int roiQP, int backgroundQP, int brushSize, 
                              bool showGrid, bool pixelBased);
   virtual void resetOverlay();

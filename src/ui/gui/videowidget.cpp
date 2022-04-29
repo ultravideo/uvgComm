@@ -28,11 +28,18 @@ VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID, uint32_t index,
   QObject::connect(&helper_, &VideoDrawHelper::reattach, this, &VideoWidget::reattach);
 
   helper_.updateTargetRect(this);
+
 }
 
 
 VideoWidget::~VideoWidget()
 {}
+
+
+void VideoWidget::drawMicOffIcon(bool status)
+{
+  helper_.setDrawMicOff(status);
+}
 
 
 void VideoWidget::enableOverlay(int roiQP, int backgroundQP,
@@ -95,7 +102,8 @@ void VideoWidget::paintEvent(QPaintEvent *event)
     }
 
     painter.drawImage(helper_.getTargetRect(), frame);
-    helper_.drawOverlay(painter);
+
+    helper_.draw(painter);
     drawMutex_.unlock();
   }
   else

@@ -31,8 +31,12 @@ VideoDrawHelper::VideoDrawHelper(uint32_t sessionID, uint32_t index, uint8_t bor
   backgroundQP_(47),
   brushSize_(2),
   showGrid_(false),
-  pixelBasedDrawing_(false)
-{}
+  pixelBasedDrawing_(false),
+  micIcon_(QString("icons/mic_off.svg")),
+  drawIcon_(false)
+{
+  micIcon_.setAspectRatioMode(Qt::KeepAspectRatio);
+}
 
 
 VideoDrawHelper::~VideoDrawHelper()
@@ -58,6 +62,12 @@ void VideoDrawHelper::initWidget(QWidget* widget)
   //widget->showFullScreen();
   widget->setWindowState(Qt::WindowFullScreen);
   widget->setUpdatesEnabled(true);
+}
+
+
+void VideoDrawHelper::setDrawMicOff(bool state)
+{
+  drawIcon_ = state;
 }
 
 
@@ -182,7 +192,8 @@ void VideoDrawHelper::updateTargetRect(QWidget* widget)
     Q_ASSERT(lastFrame_.image.data_ptr());
     if(lastFrame_.image.data_ptr() == nullptr)
     {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Null pointer in current image!");
+      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+                                      "Null pointer in current image!");
       return;
     }
 
@@ -206,6 +217,18 @@ void VideoDrawHelper::updateTargetRect(QWidget* widget)
     targetRect_.moveCenter(widget->rect().center());
     newFrameRect_ = QRect(QPoint(0, 0), size + QSize(borderSize_,borderSize_));
     newFrameRect_.moveCenter(widget->rect().center());
+
+    QPoint iconLocation = QPoint(0, 0);
+    if (newFrameRect_.topLeft().x() > iconLocation.x())
+    {
+      iconLocation.setX(newFrameRect_.topLeft().x());
+    }
+    if (newFrameRect_.topLeft().y() > iconLocation.y())
+    {
+      iconLocation.setY(newFrameRect_.topLeft().y());
+    }
+
+    iconRect_ = QRect(iconLocation, size*0.05);
 
     previousSize_ = lastFrame_.image.size();
 
@@ -385,12 +408,17 @@ void VideoDrawHelper::drawGrid()
 }
 
 
-void VideoDrawHelper::drawOverlay(QPainter& painter)
+void VideoDrawHelper::draw(QPainter& painter)
 {
   if (drawOverlay_)
   {
     painter.drawImage(getTargetRect(), overlay_);
     painter.drawImage(getTargetRect(), grid_);
+  }
+
+  if (drawIcon_)
+  {
+    micIcon_.render(&painter, iconRect_);
   }
 }
 

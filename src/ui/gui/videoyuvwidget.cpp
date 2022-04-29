@@ -32,6 +32,11 @@ VideoYUVWidget::~VideoYUVWidget()
 {}
 
 
+void VideoYUVWidget::drawMicOffIcon(bool status)
+{
+  helper_.setDrawMicOff(status);
+}
+
 void VideoYUVWidget::enableOverlay(int roiQP, int backgroundQP, int brushSize, 
                                    bool showGrid, bool pixelBased)
 {
