@@ -53,6 +53,11 @@ public:
     return VIDEO_YUV420;
   }
 
+  virtual bool isVisible()
+  {
+    return QWidget::isVisible();
+  }
+
 signals:
 
   // for reattaching after fullscreenmode

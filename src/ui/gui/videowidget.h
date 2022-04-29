@@ -10,7 +10,6 @@
 #include <QImage>
 #include <QMutex>
 
-
 #include <memory>
 
 class StatisticsInterface;
@@ -43,6 +42,11 @@ public:
   virtual VideoFormat supportedFormat()
   {
     return VIDEO_RGB32;
+  }
+
+  virtual bool isVisible()
+  {
+    return QWidget::isVisible();
   }
 
 signals:

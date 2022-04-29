@@ -37,6 +37,8 @@ public:
                                                bool scaleToInput) = 0;
 
   virtual VideoFormat supportedFormat() = 0;
+
+  virtual bool isVisible() = 0;
 };
 
 Q_DECLARE_INTERFACE(VideoInterface, "VideoInterface")

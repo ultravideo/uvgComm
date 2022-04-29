@@ -49,6 +49,11 @@ public:
     return VIDEO_RGB32;
   }
 
+  virtual bool isVisible()
+  {
+    return QWidget::isVisible();
+  }
+
   static unsigned int number_;
 
 signals:

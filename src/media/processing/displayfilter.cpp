@@ -90,9 +90,12 @@ void DisplayFilter::process()
 
     if (input->type == input_)
     {
-      for (int i = 0; i < widgets_.size(); ++i)
+      for (int i = widgets_.size() - 1; i > -1; --i)
       {
-        /* This is a bit of a hack in that multiple widgets are only used for
+        if (widgets_.at(i)->isVisible())
+        {
+
+          /* This is a bit of a hack in that multiple widgets are only used for
          * the self view. The first index contains the self view (if this display filter
          * is used for selfviews and not peer views) and needs the horizontal mirroring
          * whereas other don't want it. We also must copy the data for all but the
@@ -100,9 +103,10 @@ void DisplayFilter::process()
          *
          * TODO: This copying could probably be eliminated by using shared_ptr in widgets */
 
-        input = deliverFrame(widgets_.at(i), std::move(input),
-                             format, i != widgets_.size() -1,
-                             horizontalMirroring_ && i == 0);
+          input = deliverFrame(widgets_.at(i), std::move(input),
+                               format, i != 0,
+                               horizontalMirroring_ && i == 0);
+        }
       }
 
       int32_t delay = QDateTime::currentMSecsSinceEpoch() - input->presentationTime;
