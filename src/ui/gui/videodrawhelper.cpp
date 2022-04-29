@@ -187,16 +187,19 @@ void VideoDrawHelper::updateTargetRect(QWidget* widget)
     }
 
     QSize size = lastFrame_.image.size();
-    QSize frameSize = widget->size() - QSize(borderSize_,borderSize_);
+    QSize widgetSize = widget->size() - QSize(borderSize_,borderSize_);
 
-    if(frameSize.height() > size.height()
-       && frameSize.width() > size.width())
+    if(widgetSize.height() > size.height()
+       && widgetSize.width() > size.width())
     {
-      size.scale(frameSize.expandedTo(size), Qt::KeepAspectRatio);
+      size.scale(widgetSize.expandedTo(size), Qt::KeepAspectRatio);
     }
     else
     {
-       size.scale(frameSize.boundedTo(size), Qt::KeepAspectRatio);
+      /* Here we try to take advantage of as much widget space as possible as long as we don't
+       * start stretching the image */
+      QSize newScale = {size.width(), widgetSize.height()};
+      size.scale(newScale, Qt::KeepAspectRatio);
     }
 
     targetRect_ = QRect(QPoint(0, 0), size);
