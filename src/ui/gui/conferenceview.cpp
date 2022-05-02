@@ -6,6 +6,7 @@
 
 #include "ui/gui/videoviewfactory.h"
 #include "ui/gui/videowidget.h"
+#include "ui/gui/avatarview.h"
 
 #include "common.h"
 #include "logger.h"
@@ -379,17 +380,30 @@ void ConferenceView::callStarted(uint32_t sessionID,
                                     {"SessionID"}, {QString::number(sessionID)});
   }
 
-  QWidget* view = factory->getView(sessionID);
-
-  if (view != nullptr)
+  if (videoEnabled)
   {
-    updateSessionState(VIEW_VIDEO, view, sessionID);
-    view->show();
+    QWidget* view = factory->getView(sessionID);
+
+    if (view != nullptr)
+    {
+      updateSessionState(VIEW_VIDEO, view, sessionID);
+      view->show();
+    }
+    else
+    {
+      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+                                      "Failed to get view.");
+      return;
+    }
   }
   else
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
-                                    "Failed to create view.");
+    AvatarView* avatar = factory->getAvatar(sessionID);
+    if (avatar != nullptr)
+    {
+      updateSessionState(VIEW_VIDEO, avatar, sessionID);
+      avatar->show();
+    }
   }
 }
 
