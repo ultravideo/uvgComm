@@ -52,7 +52,7 @@ public:
 
   // if our call is accepted or we accepted their call
   void callStarted(uint32_t sessionID, std::shared_ptr<VideoviewFactory> factory,
-                   bool videoEnabled, bool audioEnabled);
+                   bool videoEnabled, bool audioEnabled, QString name);
 
   // return whether there are still participants left in call view
   bool removeCaller(uint32_t sessionID);

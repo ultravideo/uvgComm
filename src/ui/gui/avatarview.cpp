@@ -1,14 +1,22 @@
 #include "avatarview.h"
 #include "ui_avatarview.h"
 
+
 AvatarView::AvatarView(QWidget *parent) :
   QWidget(parent),
-  ui(new Ui::AvatarView)
+  ui_(new Ui::AvatarView)
 {
-  ui->setupUi(this);
+  ui_->setupUi(this);
 }
+
 
 AvatarView::~AvatarView()
 {
-  delete ui;
+  delete ui_;
+}
+
+
+void AvatarView::setName(QString name)
+{
+  ui_->name->setText(name);
 }

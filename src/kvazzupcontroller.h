@@ -105,6 +105,8 @@ private:
     CallState state;
     std::shared_ptr<SDPMessageInfo> localSDP;
     std::shared_ptr<SDPMessageInfo> remoteSDP;
+
+    QString name;
   };
 
   std::map<uint32_t, SessionState> states_;

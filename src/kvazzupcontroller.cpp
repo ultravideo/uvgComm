@@ -141,7 +141,7 @@ uint32_t KvazzupController::callToParticipant(QString name, QString username,
   userInterface_.displayOutgoingCall(sessionID, remote.realname);
   if(states_.find(sessionID) == states_.end())
   {
-    states_[sessionID] = SessionState{CALLINGTHEM , nullptr, nullptr};
+    states_[sessionID] = SessionState{CALLINGTHEM , nullptr, nullptr, name};
   }
 
   return sessionID;
@@ -184,7 +184,7 @@ bool KvazzupController::incomingCall(uint32_t sessionID, QString caller)
   else
   {
     Logger::getLogger()->printNormal(this, "Showing incoming call");
-    states_[sessionID] = SessionState{CALLRINGINGWITHUS, nullptr, nullptr};
+    states_[sessionID] = SessionState{CALLRINGINGWITHUS, nullptr, nullptr, caller};
     userInterface_.displayIncomingCall(sessionID, caller);
   }
   return false;
@@ -399,7 +399,7 @@ void KvazzupController::createSingleCall(uint32_t sessionID)
     }
   }
 
-  userInterface_.callStarted(sessionID, videoEnabled, audioEnabled);
+  userInterface_.callStarted(sessionID, videoEnabled, audioEnabled, states_[sessionID].name);
 
   if(localSDP == nullptr || remoteSDP == nullptr)
   {

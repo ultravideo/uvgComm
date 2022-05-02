@@ -203,11 +203,12 @@ void CallWindow::closeEvent(QCloseEvent *event)
 
 
 void CallWindow::callStarted(uint32_t sessionID,
-                             bool videoEnabled, bool audioEnabled)
+                             bool videoEnabled, bool audioEnabled,
+                             QString name)
 {
   ui_->EndCallButton->setEnabled(true);
   ui_->EndCallButton->show();
-  conference_.callStarted(sessionID, viewFactory_, videoEnabled, audioEnabled);
+  conference_.callStarted(sessionID, viewFactory_, videoEnabled, audioEnabled, name);
 }
 
 
