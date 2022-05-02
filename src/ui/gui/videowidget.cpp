@@ -11,16 +11,12 @@
 
 VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID, uint32_t index,
                          uint8_t borderSize)
-  : QFrame(parent),
+  : QWidget(parent),
   stats_(nullptr),
   sessionID_(sessionID),
   helper_(sessionID, index, borderSize)
 {
   helper_.initWidget(this);
-
-  QFrame::setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
-  QFrame::setLineWidth(borderSize);
-  QFrame::setMidLineWidth(1);
 
   // the new syntax does not work for some reason (unresolved overloaded function type)
   QObject::connect(this, SIGNAL(newImage()), this, SLOT(repaint()));
@@ -84,12 +80,6 @@ void VideoWidget::paintEvent(QPaintEvent *event)
   {
     drawMutex_.lock();
 
-    if(QFrame::frameRect() != helper_.getFrameRect())
-    {
-      QFrame::setFrameRect(helper_.getFrameRect());
-      QWidget::setMinimumHeight(helper_.getFrameRect().height()*QWidget::minimumWidth()/helper_.getFrameRect().width());
-    }
-
     QImage frame;
     if(helper_.getRecentImage(frame))
     {
@@ -111,7 +101,7 @@ void VideoWidget::paintEvent(QPaintEvent *event)
     painter.fillRect(event->rect(), QBrush(QColor(0,0,0)));
   }
 
-  QFrame::paintEvent(event);
+  QWidget::paintEvent(event);
 }
 
 void VideoWidget::resizeEvent(QResizeEvent *event)

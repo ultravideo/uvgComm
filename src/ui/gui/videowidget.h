@@ -4,7 +4,6 @@
 #include "videodrawhelper.h"
 
 #include <QPainter>
-#include <QFrame>
 #include <QRect>
 #include <QSize>
 #include <QImage>
@@ -14,7 +13,7 @@
 
 class StatisticsInterface;
 
-class VideoWidget : public QFrame, public VideoInterface
+class VideoWidget : public QWidget, public VideoInterface
 {
   Q_OBJECT
   Q_INTERFACES(VideoInterface)
