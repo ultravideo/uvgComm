@@ -150,18 +150,11 @@ void MediaManager::addParticipant(uint32_t sessionID,
                         peerInfo->media.at(i));
   }
 
-  // TODO: videoID should be gotten from somewhere instead of guessed
-  uint32_t videoID = 0;
   for (int i = 0; i < localInfo->media.size(); ++i)
   {
     createIncomingMedia(sessionID, localInfo->media.at(i),
                         getMediaAddress(localInfo, i),
-                        peerInfo->media.at(i), videoID);
-
-    if (localInfo->media.at(i).type == "video" )
-    {
-      ++videoID;
-    }
+                        peerInfo->media.at(i));
   }
 
   // TODO: crashes at the moment.
@@ -234,7 +227,7 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
 void MediaManager::createIncomingMedia(uint32_t sessionID,
                                        const MediaInfo &localMedia,
                                        QString localAddress,
-                                       const MediaInfo &remoteMedia, uint32_t videoID)
+                                       const MediaInfo &remoteMedia)
 {
   if (localAddress == "")
   {
@@ -265,7 +258,7 @@ void MediaManager::createIncomingMedia(uint32_t sessionID,
       }
       else if(localMedia.type == "video")
       {
-        VideoInterface *view = viewfactory_->getVideo(sessionID, videoID);
+        VideoInterface *view = viewfactory_->getVideo(sessionID);
         Q_ASSERT(view);
         if (view != nullptr)
         {

@@ -379,8 +379,8 @@ void ConferenceView::callStarted(uint32_t sessionID,
   }
 
   // create the view
-  size_t id = factory->createWidget(sessionID, nullptr, this);
-  QWidget* view = factory->getView(sessionID, id);
+  factory->createWidget(sessionID, nullptr, this);
+  QWidget* view = factory->getView(sessionID);
 
   if (view != nullptr)
   {

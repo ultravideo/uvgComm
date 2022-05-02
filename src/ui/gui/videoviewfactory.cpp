@@ -21,7 +21,7 @@ VideoviewFactory::VideoviewFactory():
   opengl_(false)
 {}
 
-size_t VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent,
+void VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent,
                                       ConferenceView* conf)
 {
   Logger::getLogger()->printDebug(DEBUG_NORMAL, "View Factory",
@@ -74,19 +74,16 @@ size_t VideoviewFactory::createWidget(uint32_t sessionID, QWidget* parent,
 
   if (vw != nullptr && video != nullptr)
   {
-    checkInitializations(sessionID);
-    sessionIDtoWidgetlist_[sessionID]->push_back(vw);
-    sessionIDtoVideolist_[sessionID]->push_back(video);
+    sessionIDtoWidgetlist_[sessionID] = vw;
+    sessionIDtoVideolist_[sessionID]  = video;
     Logger::getLogger()->printDebug(DEBUG_NORMAL, "VideoviewFactory", 
-                                    "Created video widget.", {"SessionID", "View Number"},
-                                    {QString::number(sessionID), QString::number(sessionIDtoWidgetlist_[sessionID]->size())});
+                                    "Created video widget.", {"SessionID"},
+                                    {QString::number(sessionID)});
   }
   else
   {
     Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "VideoviewFactory", "Failed to create view widget.");
   }
-
-  return sessionIDtoWidgetlist_[sessionID]->size() - 1;
 }
 
 
@@ -109,10 +106,9 @@ QList<VideoInterface*> VideoviewFactory::getSelfVideos()
 }
 
 
-QWidget* VideoviewFactory::getView(uint32_t sessionID, size_t viewID)
+QWidget* VideoviewFactory::getView(uint32_t sessionID)
 {
-  if(sessionIDtoWidgetlist_.find(sessionID) == sessionIDtoWidgetlist_.end()
-     || sessionIDtoWidgetlist_[sessionID]->size() <= viewID)
+  if(sessionIDtoWidgetlist_.find(sessionID) == sessionIDtoWidgetlist_.end())
   {
     Q_ASSERT(false);
     Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "VideoViewFactory", 
@@ -120,14 +116,13 @@ QWidget* VideoviewFactory::getView(uint32_t sessionID, size_t viewID)
                                     {"SessionID"}, {QString::number(sessionID)});
     return nullptr;
   }
-  return sessionIDtoWidgetlist_[sessionID]->at(viewID);
+  return sessionIDtoWidgetlist_[sessionID];
 }
 
 
-VideoInterface* VideoviewFactory::getVideo(uint32_t sessionID, uint32_t videoID)
+VideoInterface* VideoviewFactory::getVideo(uint32_t sessionID)
 {
-  if(sessionIDtoVideolist_.find(sessionID) == sessionIDtoVideolist_.end()
-     || sessionIDtoVideolist_[sessionID]->size() <= videoID)
+  if(sessionIDtoVideolist_.find(sessionID) == sessionIDtoVideolist_.end())
   {
     Q_ASSERT(false);
     Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "VideoViewFactory", 
@@ -135,7 +130,7 @@ VideoInterface* VideoviewFactory::getVideo(uint32_t sessionID, uint32_t videoID)
                                     {"SessionID"}, {QString::number(sessionID)});
     return nullptr;
   }
-  return sessionIDtoVideolist_[sessionID]->at(videoID);
+  return sessionIDtoVideolist_[sessionID];
 }
 
 
@@ -152,23 +147,5 @@ void VideoviewFactory::clearWidgets(uint32_t sessionID)
   if (sessionIDtoVideolist_.find(sessionID) != sessionIDtoVideolist_.end())
   {
     sessionIDtoVideolist_.erase(sessionID);
-  }
-}
-
-
-void VideoviewFactory::checkInitializations(uint32_t sessionID)
-{
-  if(sessionIDtoWidgetlist_.find(sessionID) == sessionIDtoWidgetlist_.end())
-  {
-    std::shared_ptr<std::vector<QWidget*>> widgets;
-    widgets = std::shared_ptr<std::vector<QWidget*>>(new std::vector<QWidget*>);
-    sessionIDtoWidgetlist_[sessionID] = widgets;
-  }
-
-  if (sessionIDtoVideolist_.find(sessionID) == sessionIDtoVideolist_.end())
-  {
-    std::shared_ptr<std::vector<VideoInterface*>> videos;
-    videos = std::shared_ptr<std::vector<VideoInterface*>>(new std::vector<VideoInterface*>);
-    sessionIDtoVideolist_[sessionID] = videos;
   }
 }
