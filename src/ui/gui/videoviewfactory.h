@@ -19,10 +19,6 @@ class VideoviewFactory
 public:
   VideoviewFactory(ConferenceView* conf);
 
-  // conferenceview is needed for connecting reattach signal, because I couldn't get the
-  // the interface signal connected for some reason.
-  void createWidget(uint32_t sessionID);
-
   // set self view
   void addSelfview(VideoInterface* video, QWidget* view);
 
@@ -37,6 +33,10 @@ public:
   void clearWidgets(uint32_t sessionID);
 
 private:
+
+  // conferenceview is needed for connecting reattach signal, because I couldn't get the
+  // the interface signal connected for some reason.
+  void createWidget(uint32_t sessionID);
 
   ConferenceView* conf_;
 

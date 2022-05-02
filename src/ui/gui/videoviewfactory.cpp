@@ -112,11 +112,7 @@ QWidget* VideoviewFactory::getView(uint32_t sessionID)
 {
   if(sessionIDtoWidgetlist_.find(sessionID) == sessionIDtoWidgetlist_.end())
   {
-    Q_ASSERT(false);
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "VideoViewFactory", 
-                                    "Tried to get a video widget that doesn't exists",
-                                    {"SessionID"}, {QString::number(sessionID)});
-    return nullptr;
+    createWidget(sessionID);
   }
   return sessionIDtoWidgetlist_[sessionID];
 }
@@ -126,11 +122,7 @@ VideoInterface* VideoviewFactory::getVideo(uint32_t sessionID)
 {
   if(sessionIDtoVideolist_.find(sessionID) == sessionIDtoVideolist_.end())
   {
-    Q_ASSERT(false);
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "VideoViewFactory", 
-                                    "Tried to get a video widget that doesn't exists.",
-                                    {"SessionID"}, {QString::number(sessionID)});
-    return nullptr;
+    createWidget(sessionID);
   }
   return sessionIDtoVideolist_[sessionID];
 }

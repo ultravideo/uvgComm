@@ -379,8 +379,6 @@ void ConferenceView::callStarted(uint32_t sessionID,
                                     {"SessionID"}, {QString::number(sessionID)});
   }
 
-  // create the view
-  factory->createWidget(sessionID);
   QWidget* view = factory->getView(sessionID);
 
   if (view != nullptr)
