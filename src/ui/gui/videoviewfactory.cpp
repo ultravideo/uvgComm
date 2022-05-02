@@ -24,6 +24,24 @@ VideoviewFactory::VideoviewFactory(ConferenceView* conf):
   opengl_(false)
 {}
 
+VideoviewFactory::~VideoviewFactory()
+{
+  sessionIDtoWidgetlist_.clear();
+
+  for (auto& video : sessionIDtoVideolist_)
+  {
+    delete video.second;
+  }
+  sessionIDtoVideolist_.clear();
+
+  for (auto& avatar : sessionIDtoVideolist_)
+  {
+    delete avatar.second;
+  }
+
+  sessionIDtoVideolist_.clear();
+}
+
 void VideoviewFactory::createWidget(uint32_t sessionID)
 {
   Logger::getLogger()->printDebug(DEBUG_NORMAL, "View Factory",
@@ -152,6 +170,13 @@ void VideoviewFactory::clearWidgets(uint32_t sessionID)
 
   if (sessionIDtoVideolist_.find(sessionID) != sessionIDtoVideolist_.end())
   {
+    delete sessionIDtoVideolist_[sessionID];
     sessionIDtoVideolist_.erase(sessionID);
+  }
+
+  if (sessionIDtoAvatars_.find(sessionID) != sessionIDtoAvatars_.end())
+  {
+    delete sessionIDtoAvatars_[sessionID];
+    sessionIDtoAvatars_.erase(sessionID);
   }
 }

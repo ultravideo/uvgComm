@@ -19,6 +19,7 @@ class VideoviewFactory
 {
 public:
   VideoviewFactory(ConferenceView* conf);
+  ~VideoviewFactory();
 
   // set self view
   void addSelfview(VideoInterface* video, QWidget* view);
@@ -42,7 +43,6 @@ private:
 
   ConferenceView* conf_;
 
-  // TODO: make these are deleted at some point
   std::map<uint32_t, QWidget*>        sessionIDtoWidgetlist_;
   std::map<uint32_t, VideoInterface*> sessionIDtoVideolist_;
   std::map<uint32_t, AvatarView*>     sessionIDtoAvatars_;
