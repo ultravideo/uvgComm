@@ -1,6 +1,8 @@
 #include "uimanager.h"
 
 #include "gui/statisticswindow.h"
+#include "gui/videowidget.h"
+
 #include "gui/videoviewfactory.h"
 
 #include "logger.h"
@@ -9,7 +11,6 @@
 
 UIManager::UIManager():
   window_(nullptr),
-  viewFactory_(std::shared_ptr<VideoviewFactory>(new VideoviewFactory)),
   settingsView_(&window_),
   statsWindow_(nullptr),
   timer_(new QTimer(&window_))
@@ -28,11 +29,14 @@ UIManager::~UIManager()
 }
 
 
+std::shared_ptr<VideoviewFactory> UIManager::getViewFactory() const
+{
+  return window_.getViewFactory();
+}
+
+
 void UIManager::init(ParticipantInterface *partInt)
 {
-  viewFactory_->addSelfview(window_.getSelfViewInterface(),
-                            window_.getSelfViewWidget());
-
   aboutWidget_ = new Ui::AboutWidget;
   aboutWidget_->setupUi(&about_);
 
@@ -133,7 +137,7 @@ void UIManager::displayIncomingCall(uint32_t sessionID, QString caller)
 // adds video stream to view
 void UIManager::callStarted(uint32_t sessionID, bool videoEnabled, bool audioEnabled)
 {
-  window_.callStarted(sessionID, viewFactory_, videoEnabled, audioEnabled);
+  window_.callStarted(sessionID, videoEnabled, audioEnabled);
 }
 
 
@@ -141,7 +145,6 @@ void UIManager::callStarted(uint32_t sessionID, bool videoEnabled, bool audioEna
 void UIManager::removeParticipant(uint32_t sessionID)
 {
   window_.removeParticipant(sessionID);
-  viewFactory_->clearWidgets(sessionID);
 }
 
 
@@ -149,7 +152,6 @@ void UIManager::removeWithMessage(uint32_t sessionID, QString message,
                        bool temporaryMessage)
 {
   window_.removeWithMessage(sessionID, message, temporaryMessage);
-  viewFactory_->clearWidgets(sessionID);
 }
 
 

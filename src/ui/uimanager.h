@@ -42,11 +42,6 @@ public:
   void removeWithMessage(uint32_t sessionID, QString message,
                          bool temporaryMessage);
 
-  // viewfactory for creating video views.
-  std::shared_ptr<VideoviewFactory> getViewFactory() const
-  {
-    return viewFactory_;
-  }
 
   void updateServerStatus(QString status);
 
@@ -55,6 +50,9 @@ public:
   void showZRTPFailedMessage(QString sessionID);
 
   void showMainWindow();
+
+  // viewfactory for creating video views.
+  std::shared_ptr<VideoviewFactory> getViewFactory() const;
 
 signals:
 
@@ -83,8 +81,6 @@ public slots:
 private:
 
   CallWindow window_;
-
-  std::shared_ptr<VideoviewFactory> viewFactory_;
 
   Settings settingsView_;
   StatisticsWindow *statsWindow_;

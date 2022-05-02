@@ -12,7 +12,7 @@ class CallWindow;
 class CallerWidget;
 }
 
-class VideoInterface;
+class VideoWidget;
 
 // The main Call window.
 
@@ -25,17 +25,13 @@ public:
 
   void init(ParticipantInterface *partInt);
 
-  VideoInterface* getSelfViewInterface();
-  QWidget* getSelfViewWidget();
-
   // sessionID identifies the view slot
   void displayOutgoingCall(uint32_t sessionID, QString name);
   void displayRinging(uint32_t sessionID);
   void displayIncomingCall(uint32_t sessionID, QString caller);
 
   // adds video stream to view
-  void callStarted(uint32_t sessionID, std::shared_ptr<VideoviewFactory> viewFactory,
-                   bool videoEnabled, bool audioEnabled);
+  void callStarted(uint32_t sessionID, bool videoEnabled, bool audioEnabled);
 
   // removes caller from view
   void removeParticipant(uint32_t sessionID);
@@ -45,6 +41,13 @@ public:
 
   // if user closes the window
   void closeEvent(QCloseEvent *event);
+
+  // viewfactory for creating video views.
+  std::shared_ptr<VideoviewFactory> getViewFactory() const
+  {
+    return viewFactory_;
+  }
+
 
 signals:
 
@@ -89,6 +92,8 @@ private:
                   QPushButton* button);
 
   Ui::CallWindow *ui_;
+
+  std::shared_ptr<VideoviewFactory> viewFactory_;
 
   ConferenceView conference_;
 

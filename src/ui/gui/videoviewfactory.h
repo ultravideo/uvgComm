@@ -17,11 +17,11 @@ class ConferenceView;
 class VideoviewFactory
 {
 public:
-  VideoviewFactory();
+  VideoviewFactory(ConferenceView* conf);
 
   // conferenceview is needed for connecting reattach signal, because I couldn't get the
   // the interface signal connected for some reason.
-  void createWidget(uint32_t sessionID, QWidget* parent, ConferenceView* conf);
+  void createWidget(uint32_t sessionID);
 
   // set self view
   void addSelfview(VideoInterface* video, QWidget* view);
@@ -37,6 +37,8 @@ public:
   void clearWidgets(uint32_t sessionID);
 
 private:
+
+  ConferenceView* conf_;
 
   // TODO: make these are deleted at some point
   std::map<uint32_t, QWidget*> sessionIDtoWidgetlist_;

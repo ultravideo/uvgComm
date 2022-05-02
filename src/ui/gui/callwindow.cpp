@@ -6,6 +6,8 @@
 
 #include "ui_callwindow.h"
 
+#include "videoviewfactory.h"
+
 #include <QCloseEvent>
 #include <QTimer>
 #include <QMetaType>
@@ -15,6 +17,7 @@
 CallWindow::CallWindow(QWidget *parent):
   QMainWindow(parent),
   ui_(new Ui::CallWindow),
+  viewFactory_(std::shared_ptr<VideoviewFactory>(new VideoviewFactory(&conference_))),
   conference_(this),
   partInt_(nullptr)
 {
@@ -30,6 +33,9 @@ CallWindow::~CallWindow()
 
 void CallWindow::init(ParticipantInterface *partInt)
 { 
+  viewFactory_->addSelfview(ui_->SelfView,
+                            ui_->SelfView);
+
   partInt_ = partInt;
 
   ui_->Add_contact_widget->setVisible(false);
@@ -98,18 +104,6 @@ void CallWindow::init(ParticipantInterface *partInt)
   setMicState(settingEnabled(SettingsKey::micStatus));
   setCameraState(settingEnabled(SettingsKey::cameraStatus));
   setScreenShareState(settingEnabled(SettingsKey::screenShareStatus));
-}
-
-
-VideoInterface* CallWindow::getSelfViewInterface()
-{
-  return ui_->SelfView;
-}
-
-
-QWidget* CallWindow::getSelfViewWidget()
-{
-  return ui_->SelfView;
 }
 
 
@@ -209,12 +203,11 @@ void CallWindow::closeEvent(QCloseEvent *event)
 
 
 void CallWindow::callStarted(uint32_t sessionID,
-                             std::shared_ptr<VideoviewFactory> viewFactory, 
                              bool videoEnabled, bool audioEnabled)
 {
   ui_->EndCallButton->setEnabled(true);
   ui_->EndCallButton->show();
-  conference_.callStarted(sessionID, viewFactory, videoEnabled, audioEnabled);
+  conference_.callStarted(sessionID, viewFactory_, videoEnabled, audioEnabled);
 }
 
 
@@ -282,6 +275,8 @@ void CallWindow::removeParticipant(uint32_t sessionID)
   }
 
   contacts_.setAccessible(sessionID);
+
+  viewFactory_->clearWidgets(sessionID);
 }
 
 
@@ -296,6 +291,8 @@ void CallWindow::removeWithMessage(uint32_t sessionID, QString message, bool tem
   }
 
   conference_.attachMessageWidget(message, timeout);
+
+  viewFactory_->clearWidgets(sessionID);
 }
 
 

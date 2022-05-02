@@ -210,7 +210,8 @@ void ConferenceView::attachMessageWidget(QString text, int timeout)
     removeMessageTimer_.setSingleShot(true);
     removeMessageTimer_.start(timeout);
 
-    connect(&removeMessageTimer_, &QTimer::timeout, this, &ConferenceView::expireMessages);
+    connect(&removeMessageTimer_, &QTimer::timeout,
+            this, &ConferenceView::expireMessages);
   }
   else
   {
@@ -379,7 +380,7 @@ void ConferenceView::callStarted(uint32_t sessionID,
   }
 
   // create the view
-  factory->createWidget(sessionID, nullptr, this);
+  factory->createWidget(sessionID);
   QWidget* view = factory->getView(sessionID);
 
   if (view != nullptr)
@@ -706,7 +707,8 @@ void ConferenceView::initializeSession(uint32_t sessionID, QString name)
   }
 
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, 
-                                  "Initializing session", {"SessionID"}, {QString::number(sessionID)});
+                                  "Initializing session", {"SessionID"},
+                                  {QString::number(sessionID)});
 
   viewMutex_.lock();
   activeViews_[sessionID] = std::unique_ptr<SessionViews>
