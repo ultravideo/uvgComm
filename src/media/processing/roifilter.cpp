@@ -365,14 +365,11 @@ void RoiFilter::process()
   std::unique_ptr<Data> input = getInput();
   assert(input->type == DT_YUV420VIDEO);
   is_ok =false;
+  while(input) {
   if(!is_ok){
-    while(input){
       sendOutput(std::move(input));
       input=getInput();
-    }
   } else {
-    while(input)
-    {
       if(inputDiscarded_ > prevInputDiscarded_) {
         skipInput_++;
         prevInputDiscarded_ = inputDiscarded_;

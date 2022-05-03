@@ -287,7 +287,7 @@ void VideoSettings::saveCameraCapabilities(int deviceIndex, bool cameraEnabled)
     if (!videoSettingsUI_->framerate_box->currentText().isEmpty())
     {
       settings_.setValue(SettingsKey::videoFramerate,
-                         60);
+                         videoSettingsUI_->framerate_box->currentText());
     }
     else {
       settings_.setValue(SettingsKey::videoFramerate,            0);
