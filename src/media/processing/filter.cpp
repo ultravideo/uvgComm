@@ -1,6 +1,7 @@
 #include "filter.h"
 
 #include "statisticsinterface.h"
+#include "yuvconversions.h"
 
 #include "common.h"
 #include "logger.h"
@@ -209,22 +210,21 @@ std::unique_ptr<Data> Filter::normalizeOrientation(std::unique_ptr<Data> video,
   if (forceHorizontalFlip || video->vInfo->flippedHorizontally ||
       video->vInfo->flippedVertically)
   {
-    QImage image(
-          video->data.get(),
-          video->vInfo->width,
-          video->vInfo->height,
-          QImage::Format_RGB32);
-    image = image.mirrored(forceHorizontalFlip || video->vInfo->flippedHorizontally,
-                           video->vInfo->flippedVertically);
+
+    uint32_t finalDataSize = video->vInfo->width*video->vInfo->height*4;
+    std::unique_ptr<uchar[]> flipped_data(new uchar[finalDataSize]);
+
+    flip_rgb(video->data.get(), flipped_data.get(), video->vInfo->width, video->vInfo->height,
+             forceHorizontalFlip || video->vInfo->flippedHorizontally, video->vInfo->flippedVertically);
+
 
     if (forceHorizontalFlip || video->vInfo->flippedHorizontally)
     {
       video->vInfo->flippedHorizontally = !video->vInfo->flippedHorizontally;
     }
-
     video->vInfo->flippedVertically = false;
 
-    memcpy(video->data.get(), image.bits(), video->data_size);
+    video->data = std::move(flipped_data);
   }
 
   return video;

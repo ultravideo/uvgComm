@@ -855,11 +855,65 @@ void half_rgb(uint8_t* input, uint8_t* output, uint16_t width, uint16_t height)
     for (int x = 0; x < width; x += 2)
     {
       int rgb_x = 4*x;
-      output[new_rgb_row*y/2 + rgb_x/2]     = input[y*old_rgb_row + rgb_x];
+      output[new_rgb_row*y/2 + rgb_x/2 + 0]     = input[y*old_rgb_row + rgb_x];
       output[new_rgb_row*y/2 + rgb_x/2 + 1] = input[y*old_rgb_row + rgb_x + 1];
       output[new_rgb_row*y/2 + rgb_x/2 + 2] = input[y*old_rgb_row + rgb_x + 2];
       output[new_rgb_row*y/2 + rgb_x/2 + 3] = input[y*old_rgb_row + rgb_x + 3];
     }
+  }
+}
+
+void flip_rgb(uint8_t* input, uint8_t* output, uint16_t width, uint16_t height,
+              bool horizontally, bool vertically)
+{
+  if (!horizontally && !vertically)
+  {
+    return;
+  }
+
+  int x_start = 0;
+  int x_change = 1;
+  int x_end = width;
+
+  if (horizontally)
+  {
+    x_start = width - 1;
+    x_change = -1;
+    x_end = -1;
+  }
+
+  int y_start = 0;
+  int y_change = 1;
+  int y_end = height;
+
+  if (vertically)
+  {
+    y_start = height - 1;
+    y_change = -1;
+    y_end = -1;
+  }
+
+  int basic_y = 0;
+  for (int y = y_start; y != y_end; y += y_change)
+  {
+    int basic_x = 0;
+    for (int x = x_start; x != x_end; x += x_change)
+    {
+      int rgb_x = 4*x;
+      int rgb_y = 4*y*width;
+
+      int rgb_basic_x = 4*basic_x;
+      int rgb_basic_y = 4*basic_y*width;
+
+      output[rgb_basic_y + rgb_basic_x + 0] = input[rgb_y + rgb_x];
+      output[rgb_basic_y + rgb_basic_x + 1] = input[rgb_y + rgb_x + 1];
+      output[rgb_basic_y + rgb_basic_x + 2] = input[rgb_y + rgb_x + 2];
+      output[rgb_basic_y + rgb_basic_x + 3] = input[rgb_y + rgb_x + 3];
+
+      ++basic_x;
+    }
+
+    ++basic_y;
   }
 }
 

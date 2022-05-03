@@ -22,3 +22,7 @@ void yuyv_to_rgb_c           (uint8_t* input, uint8_t* output, uint16_t width, u
 
 // reduces the size of RGB frame to half height and half width
 void half_rgb                (uint8_t* input, uint8_t* output, uint16_t width, uint16_t height);
+
+void flip_rgb                (uint8_t* input, uint8_t* output, uint16_t width, uint16_t height,
+                              bool horizontally, bool vertically);
+
