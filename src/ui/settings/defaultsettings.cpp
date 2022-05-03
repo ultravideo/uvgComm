@@ -150,13 +150,16 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
     else
     {
       settings_.setValue(SettingsKey::videoKvzThreads, threads - 1);
+
+      // slightly reduces decoding latency (~4 ms)
+      settings_.setValue(SettingsKey::videoOpenHEVCThreads, 2);
     }
   }
   else
   {
     settings_.setValue(SettingsKey::videoYUVThreads, 2);
     settings_.setValue(SettingsKey::videoRGBThreads, 2);
-    settings_.setValue(SettingsKey::videoOpenHEVCThreads, 2);
+    settings_.setValue(SettingsKey::videoOpenHEVCThreads, 3);
     settings_.setValue(SettingsKey::videoKvzThreads, threads - 2);
   }
 
