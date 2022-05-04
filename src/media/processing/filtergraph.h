@@ -125,4 +125,6 @@ private:
   // these are shared between filters
   std::shared_ptr<SpeexAEC> aec_;
   std::shared_ptr<AudioMixer> mixer_;
+
+  bool videoSendIniated_;
 };

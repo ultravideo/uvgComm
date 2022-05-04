@@ -76,7 +76,8 @@ FilterGraph::FilterGraph(): QObject(),
   videoFormat_(""),
   quitting_(false),
   aec_(nullptr),
-  mixer_()
+  mixer_(),
+  videoSendIniated_(false)
 {
   // TODO negotiate these values with all included filters and SDP
   // TODO move these to settings and manage them automatically
@@ -310,15 +311,12 @@ void FilterGraph::initVideoSend()
     Logger::getLogger()->printProgramWarning(this, "Camera was not iniated for video send");
     initSelfView();
   }
-  else if(cameraGraph_.size() > 3)
-  {
-    Logger::getLogger()->printProgramError(this, "Too many filters in videosend");
-    destroyFilters(cameraGraph_);
-  }
 
   std::shared_ptr<Filter> kvazaar = std::shared_ptr<Filter>(new KvazaarFilter("", stats_, hwResources_));
   addToGraph(kvazaar, cameraGraph_, 0);
   addToGraph(kvazaar, screenShareGraph_, 0);
+
+  videoSendIniated_ = true;
 }
 
 
@@ -495,7 +493,7 @@ void FilterGraph::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoF
                                    QString::number(sessionID));
 
   // make sure we are generating video
-  if(cameraGraph_.size() < 4)
+  if(!videoSendIniated_)
   {
     initVideoSend();
   }
