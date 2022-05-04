@@ -101,7 +101,7 @@ SOURCES +=\
     src/media/processing/yuyvtorgb32.cpp \
     src/media/processing/yuyvtoyuv420.cpp \
     src/media/resourceallocator.cpp \
-    src/ui/gui/avatarview.cpp \
+    src/ui/gui/avatarimage.cpp \
     src/ui/gui/callwindow.cpp \
     src/ui/gui/chartpainter.cpp \
     src/ui/gui/conferenceview.cpp \
@@ -199,7 +199,7 @@ HEADERS  += \
     src/common.h \
     src/participantinterface.h \
     src/global.h \
-    src/ui/gui/avatarview.h \
+    src/ui/gui/avatarimage.h \
     src/ui/gui/callwindow.h \
     src/ui/gui/chartpainter.h \
     src/ui/gui/conferenceview.h \
@@ -230,7 +230,7 @@ FORMS    += \
     ui/audiosettings.ui \
     ui/automaticsettings.ui \
     ui/callwindow.ui \
-    ui/conference/avatarview.ui \
+    ui/conference/avatarholder.ui \
     ui/conference/incomingcallwidget.ui \
     ui/conference/outgoingcallwidget.ui \
     ui/message/guimessage.ui \

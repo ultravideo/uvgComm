@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>AvatarView</class>
- <widget class="QWidget" name="AvatarView">
+ <class>AvatarHolder</class>
+ <widget class="QWidget" name="AvatarHolder">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -63,7 +63,7 @@
     </spacer>
    </item>
    <item row="1" column="1">
-    <widget class="QWidget" name="image" native="true">
+    <widget class="AvatarImage" name="image" native="true">
      <property name="minimumSize">
       <size>
        <width>100</width>
@@ -100,6 +100,14 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>AvatarImage</class>
+   <extends>QWidget</extends>
+   <header>avatarimage.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

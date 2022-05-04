@@ -13,7 +13,6 @@
 class QWidget;
 class VideoInterface;
 class ConferenceView;
-class AvatarView;
 
 class VideoviewFactory
 {
@@ -27,7 +26,6 @@ public:
   // id is the index of that view or video
   QWidget*        getView  (uint32_t sessionID);
   VideoInterface* getVideo (uint32_t sessionID);
-  AvatarView*     getAvatar(uint32_t sessionID);
 
   QList<QWidget*>        getSelfViews();
   QList<VideoInterface*> getSelfVideos();
@@ -45,7 +43,6 @@ private:
 
   std::map<uint32_t, QWidget*>        sessionIDtoWidgetlist_;
   std::map<uint32_t, VideoInterface*> sessionIDtoVideolist_;
-  std::map<uint32_t, AvatarView*>     sessionIDtoAvatars_;
 
   QList<QWidget*> selfViews_;
   QList<VideoInterface*> selfVideos_;

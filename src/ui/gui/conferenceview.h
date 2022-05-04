@@ -19,6 +19,7 @@ enum SessionViewState {VIEW_INACTIVE,
                        VIEW_ASKING,
                        VIEW_WAITING_PEER,
                        VIEW_RINGING,
+                       VIEW_AVATAR,
                        VIEW_VIDEO};
 
 class QGridLayout;
@@ -30,6 +31,7 @@ class VideoviewFactory;
 namespace Ui {
 class OutgoingCall;
 class IncomingCall;
+class AvatarHolder;
 }
 
 
@@ -111,6 +113,9 @@ private:
   // attach widget to display that we are calling somebody
   void attachOutgoingCallWidget(QString name, uint32_t sessionID);
 
+
+  void attachAvatarWidget(QString name, uint32_t sessionID);
+
   // update session state and attach widget.
   void updateSessionState(SessionViewState state, QWidget* widget,
                           uint32_t sessionID, QString name = "");
@@ -132,6 +137,7 @@ private:
 
     Ui::OutgoingCall* out; // The view for outgoing call. May be NULL
     Ui::IncomingCall*  in; // The view for incoming call. May be NULL
+    Ui::AvatarHolder* avatar;
   };
 
   // low level function which handles the destruction of callInfo struct

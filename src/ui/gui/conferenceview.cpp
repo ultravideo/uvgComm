@@ -3,10 +3,10 @@
 #include "ui_incomingcallwidget.h"
 #include "ui_outgoingcallwidget.h"
 #include "ui_messagewidget.h"
+#include "ui_avatarholder.h"
 
 #include "ui/gui/videoviewfactory.h"
 #include "ui/gui/videowidget.h"
-#include "ui/gui/avatarview.h"
 
 #include "common.h"
 #include "logger.h"
@@ -86,6 +86,7 @@ void ConferenceView::updateSessionState(SessionViewState state,
 
     activeViews_[sessionID]->in = nullptr;
     activeViews_[sessionID]->out = nullptr;
+    activeViews_[sessionID]->avatar = nullptr;
   }
 
   activeViews_[sessionID]->state = state;
@@ -190,6 +191,28 @@ void ConferenceView::attachOutgoingCallWidget(QString name, uint32_t sessionID)
   out->cancelCall->setIcon(ButtonIcon);
   out->cancelCall->setText("");
   out->cancelCall->setIconSize(QSize(35,35));
+
+  holder->show();
+}
+
+
+void ConferenceView::attachAvatarWidget(QString name, uint32_t sessionID)
+{
+  QFrame* holder = new QFrame;
+  Ui::AvatarHolder *avatar = new Ui::AvatarHolder;
+  avatar->setupUi(holder);
+  avatar->name->setText(name);
+
+  if(!timeoutTimer_.isActive())
+  {
+    timeoutTimer_.start(1000);
+  }
+
+  updateSessionState(VIEW_AVATAR, holder, sessionID, name);
+
+  viewMutex_.lock();
+  activeViews_[sessionID]->avatar = avatar;
+  viewMutex_.unlock();
 
   holder->show();
 }
@@ -398,13 +421,7 @@ void ConferenceView::callStarted(uint32_t sessionID,
   }
   else
   {
-    AvatarView* avatar = factory->getAvatar(sessionID);
-    if (avatar != nullptr)
-    {
-      updateSessionState(VIEW_VIDEO, avatar, sessionID);
-      avatar->setName(name);
-      avatar->show();
-    }
+    attachAvatarWidget(name, sessionID);
   }
 }
 

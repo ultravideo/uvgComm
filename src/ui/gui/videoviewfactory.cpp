@@ -4,8 +4,6 @@
 #include "videoglwidget.h"
 #include "videoyuvwidget.h"
 
-#include "ui/gui/avatarview.h"
-
 // this annoys me, but I can live with it. The only smart way to fix it would be to get signal connect working
 #include "conferenceview.h"
 
@@ -148,16 +146,6 @@ VideoInterface* VideoviewFactory::getVideo(uint32_t sessionID)
 }
 
 
-AvatarView* VideoviewFactory::getAvatar(uint32_t sessionID)
-{
-  if(sessionIDtoAvatars_.find(sessionID) == sessionIDtoAvatars_.end())
-  {
-    sessionIDtoAvatars_[sessionID] = new AvatarView;
-  }
-  return sessionIDtoAvatars_[sessionID];
-}
-
-
 void VideoviewFactory::clearWidgets(uint32_t sessionID)
 {
   Logger::getLogger()->printDebug(DEBUG_NORMAL, "VideoviewFactory",  "Clearing widgets",
@@ -172,11 +160,5 @@ void VideoviewFactory::clearWidgets(uint32_t sessionID)
   {
     delete sessionIDtoVideolist_[sessionID];
     sessionIDtoVideolist_.erase(sessionID);
-  }
-
-  if (sessionIDtoAvatars_.find(sessionID) != sessionIDtoAvatars_.end())
-  {
-    delete sessionIDtoAvatars_[sessionID];
-    sessionIDtoAvatars_.erase(sessionID);
   }
 }
