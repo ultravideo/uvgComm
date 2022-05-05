@@ -332,12 +332,6 @@ void FilterGraph::initializeAudio(bool opus)
     aec_->init();
   }
 
-  // mixer helps mix the incoming audio streams into one output stream
-  if (mixer_ == nullptr)
-  {
-    mixer_ = std::make_shared<AudioMixer>();
-  }
-
   // Do everything (AGC, AEC, denoise, dereverb) for input expect provide AEC reference
   std::shared_ptr<DSPFilter> dspProcessor =
       std::shared_ptr<DSPFilter>(new DSPFilter("", stats_, hwResources_, aec_, format_,
@@ -572,6 +566,12 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID,
   {
     addToGraph(std::shared_ptr<Filter>(new OpusDecoderFilter(sessionID, format_, stats_, hwResources_)),
                *graph, (unsigned int)graph->size() - 1);
+  }
+
+  // mixer helps mix the incoming audio streams into one output stream
+  if (mixer_ == nullptr)
+  {
+    mixer_ = std::make_shared<AudioMixer>();
   }
 
   std::shared_ptr<AudioMixerFilter> audioMixer =
