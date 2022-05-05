@@ -64,20 +64,20 @@ const int AUDIO_OUTPUT_GAIN = 20; // dB
 
 
 FilterGraph::FilterGraph(): QObject(),
+  quitting_(false),
   peers_(),
-  cameraGraph_(),
-  screenShareGraph_(),
-  audioInputGraph_(),
-  audioOutputGraph_(),
-  selfviewFilter_(nullptr),
   hwResources_(nullptr),
   stats_(nullptr),
-  format_(),
+  cameraGraph_(),
+  screenShareGraph_(),
+  selfviewFilter_(nullptr),
   videoFormat_(""),
-  quitting_(false),
+  videoSendIniated_(false),
+  audioInputGraph_(),
+  audioOutputGraph_(),
   aec_(nullptr),
   mixer_(),
-  videoSendIniated_(false)
+  format_()
 {
   // TODO negotiate these values with all included filters and SDP
   // TODO move these to settings and manage them automatically
@@ -103,7 +103,7 @@ void FilterGraph::init(QList<VideoInterface *> selfViews, StatisticsInterface* s
   selfviewFilter_ =
       std::shared_ptr<DisplayFilter>(new DisplayFilter("Self", stats_, hwResources_, selfViews, 1111));
 
-  initSelfView();
+  initCameraSelfView();
 }
 
 
@@ -122,7 +122,7 @@ void FilterGraph::updateVideoSettings()
 
 
     // update selfview in case camera format has changed
-    initSelfView();
+    initCameraSelfView();
 
     // if we are in a call, initiate kvazaar and connect peers. Otherwise add it late.
     if(peers_.size() != 0)
@@ -231,7 +231,7 @@ void FilterGraph::updateAutomaticSettings()
 }
 
 
-void FilterGraph::initSelfView()
+void FilterGraph::initCameraSelfView()
 {
   Logger::getLogger()->printNormal(this, "Iniating camera");
 
@@ -309,7 +309,7 @@ void FilterGraph::initVideoSend()
   if(cameraGraph_.size() == 0)
   {
     Logger::getLogger()->printProgramWarning(this, "Camera was not iniated for video send");
-    initSelfView();
+    initCameraSelfView();
   }
 
   std::shared_ptr<Filter> kvazaar = std::shared_ptr<Filter>(new KvazaarFilter("", stats_, hwResources_));
@@ -368,7 +368,7 @@ void FilterGraph::initializeAudio(bool opus)
 
 bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
                              GraphSegment &graph,
-                             unsigned int connectIndex)
+                             size_t connectIndex)
 {
   // // check if we need some sort of conversion and connect to index
   if(graph.size() > 0 && connectIndex <= graph.size() - 1)
@@ -598,6 +598,8 @@ void FilterGraph::uninit()
   removeAllParticipants();
 
   destroyFilters(cameraGraph_);
+  videoSendIniated_ = false;
+
   destroyFilters(screenShareGraph_);
 
   destroyFilters(audioInputGraph_);
@@ -862,7 +864,7 @@ void FilterGraph::removeParticipant(uint32_t sessionID)
       destroyFilters(screenShareGraph_);
       if (!quitting_)
       {
-        initSelfView(); // restore the self view.
+        initCameraSelfView(); // restore the self view.
       }
 
       destroyFilters(audioInputGraph_);

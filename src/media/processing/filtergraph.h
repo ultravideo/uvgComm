@@ -61,7 +61,7 @@ private:
   // the first filter in graph. Adds format conversion if needed.
   bool addToGraph(std::shared_ptr<Filter> filter,
                   GraphSegment& graph,
-                  unsigned int connectIndex = 0);
+                  size_t connectIndex = 0);
 
   // connects the two filters and checks for any problems
   bool connectFilters(std::shared_ptr<Filter> previous, std::shared_ptr<Filter> filter);
@@ -70,7 +70,7 @@ private:
   void checkParticipant(uint32_t sessionID);
 
   // iniates camera and attaches a self view to it.
-  void initSelfView();
+  void initCameraSelfView();
 
   // iniates encoder and attaches it
   void initVideoSend();
@@ -99,32 +99,31 @@ private:
 
   void destroyFilters(std::vector<std::shared_ptr<Filter>>& filters);
 
+  // --------------- General stuff ----------------
+  bool quitting_;
+
   // key is sessionID
   std::map<uint32_t, Peer*> peers_;
+  std::shared_ptr<ResourceAllocator> hwResources_;
+  StatisticsInterface* stats_;
 
- // std::shared_ptr<ScreenShareFilter> screenShare_;
+  // --------------- Video stuff   --------------------
   GraphSegment cameraGraph_;
   GraphSegment screenShareGraph_;
 
-  GraphSegment audioInputGraph_;  // mic and stuff after it
-  GraphSegment audioOutputGraph_; // stuff before speakers and speakers
-
   std::shared_ptr<DisplayFilter> selfviewFilter_;
 
-  std::shared_ptr<ResourceAllocator> hwResources_;
-
-  StatisticsInterface* stats_;
-
-  // audio configs
-  QAudioFormat format_;
-
   QString videoFormat_;
+  bool videoSendIniated_;
 
-  bool quitting_;
+  // --------------- Audio stuff   ----------------
+  GraphSegment audioInputGraph_;  // mic and stuff after it
+  GraphSegment audioOutputGraph_; // stuff before speakers and speakers
 
   // these are shared between filters
   std::shared_ptr<SpeexAEC> aec_;
   std::shared_ptr<AudioMixer> mixer_;
 
-  bool videoSendIniated_;
+  // audio configs
+  QAudioFormat format_;
 };
