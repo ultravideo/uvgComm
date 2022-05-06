@@ -149,7 +149,6 @@ void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data,
     // delete oldes image if there is too much buffer
     if(frameBuffer_.size() > VIEWBUFFERSIZE)
     {
-
       Logger::getLogger()->printWarning(this, "Buffer full when inputting image",
                                         {"Buffer"}, QString::number(frameBuffer_.size()) + "/"
                                                     + QString::number(VIEWBUFFERSIZE));
@@ -158,11 +157,11 @@ void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data,
       frameBuffer_.pop_back();
 
       //setUpdatesEnabled(true);
-
       //stats_->packetDropped("view" + QString::number(sessionID_));
     }
   }
 }
+
 
 bool VideoDrawHelper::getRecentImage(QImage& image)
 {
@@ -184,6 +183,7 @@ bool VideoDrawHelper::getRecentImage(QImage& image)
   }
   return false;
 }
+
 
 void VideoDrawHelper::updateTargetRect(QWidget* widget)
 {
@@ -373,6 +373,7 @@ void VideoDrawHelper::setCTUQP(QPainter& painter, const QPointF& viewPosition, Q
   painter.drawRect(viewCTU);
 }
 
+
 void VideoDrawHelper::drawGrid()
 {
   if (drawOverlay_ && firstImageReceived_)
@@ -457,13 +458,16 @@ void VideoDrawHelper::keyPressEvent(QWidget* widget, QKeyEvent *event)
 }
 
 
-void VideoDrawHelper::mouseDoubleClickEvent(QWidget* widget) {
+void VideoDrawHelper::mouseDoubleClickEvent(QWidget* widget)
+{
   if(sessionID_ != 0)
   {
     if(widget->isFullScreen())
     {
       exitFullscreen(widget);
-    } else {
+    }
+    else
+    {
       enterFullscreen(widget);
     }
   }
@@ -588,6 +592,7 @@ void VideoDrawHelper::updateROIMask(int &width, int &height, int qp, bool scaleT
 
   return;
 }
+
 
 QSizeF VideoDrawHelper::getSizeMultipliers(int width, int height)
 {
