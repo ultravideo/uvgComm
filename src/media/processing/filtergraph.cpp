@@ -861,6 +861,7 @@ void FilterGraph::removeParticipant(uint32_t sessionID)
     if(!peerPresent)
     {
       destroyFilters(cameraGraph_);
+      videoSendIniated_ = false;
       destroyFilters(screenShareGraph_);
       if (!quitting_)
       {
