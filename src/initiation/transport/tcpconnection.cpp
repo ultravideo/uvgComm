@@ -31,6 +31,17 @@ TCPConnection::TCPConnection()
 
 TCPConnection::~TCPConnection()
 {
+  active_ = false;
+  if (eventDispatcher())
+  {
+    eventDispatcher()->interrupt();
+  }
+
+  while (isRunning())
+  {
+    std::this_thread::sleep_for(std::chrono::milliseconds(3));
+  }
+
   uninit();
 }
 
@@ -44,26 +55,26 @@ void TCPConnection::init()
     socket_ = new QTcpSocket();
 
     QObject::connect(socket_, &QAbstractSocket::disconnected,
-                     this, &TCPConnection::disconnected);
-    QObject::connect(socket_, &QAbstractSocket::bytesWritten, this, &TCPConnection::printBytesWritten);
-    QObject::connect(socket_, &QAbstractSocket::readyRead, this, &TCPConnection::receivedMessage);
+                     this,    &TCPConnection::disconnected);
+    QObject::connect(socket_, &QAbstractSocket::bytesWritten,
+                     this,    &TCPConnection::printBytesWritten);
+    QObject::connect(socket_, &QAbstractSocket::readyRead,
+                     this,    &TCPConnection::receivedMessage);
   }
 }
 
 void TCPConnection::uninit()
 {
-  active_ = false;
-
   if(socket_ != nullptr)
   {
     QObject::disconnect(socket_, &QAbstractSocket::disconnected,
-                        this, &TCPConnection::disconnected);
+                        this,    &TCPConnection::disconnected);
 
     QObject::disconnect(socket_, &QAbstractSocket::bytesWritten,
-                        this, &TCPConnection::printBytesWritten);
+                        this,    &TCPConnection::printBytesWritten);
 
     QObject::disconnect(socket_, &QAbstractSocket::readyRead,
-                        this, &TCPConnection::receivedMessage);
+                        this,    &TCPConnection::receivedMessage);
     delete socket_;
     socket_ = nullptr;
   }
@@ -283,15 +294,16 @@ void TCPConnection::run()
       }
     }
 
-    if(socket_->bytesToWrite() > 0)
+    if(socket_ != nullptr && socket_->bytesToWrite() > 0)
     {
       Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Detected need to send.", {"Bytes", "State"},
                   {QString::number(socket_->bytesToWrite()), QString::number(socket_->state())});
     }
 
-    if(socket_->state() == QAbstractSocket::ConnectedState)
+    if(socket_ != nullptr && socket_->state() == QAbstractSocket::ConnectedState)
     {
-      if(socket_->isValid() && socket_->canReadLine() && socket_->bytesAvailable() < MAX_READ_BYTES)
+      if(socket_ != nullptr &&
+         socket_->isValid() && socket_->canReadLine() && socket_->bytesAvailable() < MAX_READ_BYTES)
       {
         Logger::getLogger()->printNormal(this, "Can read one line", {"Bytes available"},
                     {QString::number(socket_->bytesAvailable())});
@@ -312,23 +324,24 @@ void TCPConnection::run()
       }
 
       sendMutex_.lock();
-      while(buffer_.size() > 0 && socket_->state() == QAbstractSocket::ConnectedState)
+      while(buffer_.size() > 0 &&
+            socket_ != nullptr && socket_->state() == QAbstractSocket::ConnectedState)
       {
         bufferToSocket();
       }
       sendMutex_.unlock();
     }
 
+
     eventDispatcher()->processEvents(QEventLoop::WaitForMoreEvents);
   }
 
   // send all remaining messages in buffer
-  while(buffer_.size() > 0 && socket_->state() == QAbstractSocket::ConnectedState)
+  while(buffer_.size() > 0 &&
+        socket_ != nullptr && socket_->state() == QAbstractSocket::ConnectedState)
   {
     bufferToSocket();
   }
-
-  eventDispatcher()->processEvents(QEventLoop::ExcludeUserInputEvents);
 
   Logger::getLogger()->printNormal(this, "Disconnecting TCP connection");
   disconnect();

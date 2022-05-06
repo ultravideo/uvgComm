@@ -105,7 +105,7 @@ private:
 
   QMutex sendMutex_;
 
-  // Indicates whether the connection is active or disconnected
+  // Indicates whether the connection should be active or disconnected
   bool active_;
 
   QMutex readWriteMutex_;
