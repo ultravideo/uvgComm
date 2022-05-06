@@ -76,7 +76,8 @@ private:
   void initVideoSend();
 
   // iniates encoder and attaches it
-  void initializeAudio(bool opus);
+  void initializeAudioInput(bool opus);
+  void initializeAudioOutput(bool opus);
 
   QAudioFormat createAudioFormat(uint8_t channels, uint32_t sampleRate);
 
@@ -123,6 +124,9 @@ private:
   // these are shared between filters
   std::shared_ptr<SpeexAEC> aec_;
   std::shared_ptr<AudioMixer> mixer_;
+
+  bool audioInputInitialized_;
+  bool audioOutputInitialized_;
 
   // audio configs
   QAudioFormat format_;

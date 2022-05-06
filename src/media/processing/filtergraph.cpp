@@ -77,6 +77,8 @@ FilterGraph::FilterGraph(): QObject(),
   audioOutputGraph_(),
   aec_(nullptr),
   mixer_(),
+  audioInputInitialized_(false),
+  audioOutputInitialized_(false),
   format_()
 {
   // TODO negotiate these values with all included filters and SDP
@@ -320,7 +322,7 @@ void FilterGraph::initVideoSend()
 }
 
 
-void FilterGraph::initializeAudio(bool opus)
+void FilterGraph::initializeAudioInput(bool opus)
 {
   // Do this before adding participants, otherwise AEC filter wont get attached
   addToGraph(std::shared_ptr<Filter>(new AudioCaptureFilter("", format_, stats_, hwResources_)),
@@ -345,6 +347,18 @@ void FilterGraph::initializeAudio(bool opus)
                audioInputGraph_, (unsigned int)audioInputGraph_.size() - 1);
   }
 
+  audioInputInitialized_ = true;
+}
+
+
+void FilterGraph::initializeAudioOutput(bool opus)
+{
+  if (aec_ == nullptr)
+  {
+    aec_ = std::make_shared<SpeexAEC>(format_);
+    aec_->init();
+  }
+
   // Provide echo reference and do AGC once more so conference calls will have
   // good volume levels.
   std::shared_ptr<DSPFilter> echoReference =
@@ -357,6 +371,8 @@ void FilterGraph::initializeAudio(bool opus)
       std::make_shared<AudioOutputFilter>("", stats_, hwResources_, format_);
 
   addToGraph(audioOutput, audioOutputGraph_, (unsigned int)audioOutputGraph_.size() - 1);
+
+  audioOutputInitialized_ = true;
 }
 
 
@@ -529,10 +545,9 @@ void FilterGraph::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioF
   Q_ASSERT(sessionID);
   Q_ASSERT(audioFramedSource);
 
-  // just in case it is wanted later. AEC filter has to be attached
-  if(audioInputGraph_.size() == 0)
+  if (!audioInputInitialized_)
   {
-    initializeAudio(audioFramedSource->inputType() == DT_OPUSAUDIO);
+    initializeAudioInput(audioFramedSource->inputType() == DT_OPUSAUDIO);
   }
 
   // add participant if necessary
@@ -553,6 +568,10 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID,
   Q_ASSERT(sessionID);
   Q_ASSERT(audioSink);
 
+  if (!audioOutputInitialized_)
+  {
+    initializeAudioOutput(audioSink->outputType() == DT_OPUSAUDIO);
+  }
 
   // add participant if necessary
   checkParticipant(sessionID);
@@ -604,6 +623,8 @@ void FilterGraph::uninit()
 
   destroyFilters(audioInputGraph_);
   destroyFilters(audioOutputGraph_);
+  audioInputInitialized_ = false;
+  audioOutputInitialized_ = false;
 }
 
 
@@ -870,6 +891,8 @@ void FilterGraph::removeParticipant(uint32_t sessionID)
 
       destroyFilters(audioInputGraph_);
       destroyFilters(audioOutputGraph_);
+      audioInputInitialized_ = false;
+      audioOutputInitialized_ = false;
 
       selectVideoSource();
       mic(settingEnabled(SettingsKey::micStatus));
