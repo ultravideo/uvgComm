@@ -46,8 +46,6 @@ bool OpenHEVCFilter::init()
   // This is because we don't know anything about the incoming stream
   maxBufferSize_ = -1; // no buffer limit
 
-  setPriority(QThread::HighPriority);
-
   return true;
 }
 
