@@ -88,9 +88,9 @@ StatisticsInterface(),
 
   // init headers of call parameter table
   fillTableHeaders(ui_->table_outgoing, sessionMutex_,
-                          {"IP", "Audio Ports", "Video Ports"});
+                          {"Target IP", "Audio Ports", "Video Ports"});
   fillTableHeaders(ui_->table_incoming, sessionMutex_,
-                          {"IP", "Audio Ports", "Video Ports"});
+                          {"Local Interface IP", "Audio Ports", "Video Ports"});
   fillTableHeaders(ui_->filterTable, filterMutex_,
                           {"Filter", "Info", "TID", "Buffer Size", "Dropped"});
   fillTableHeaders(ui_->sent_list, sipMutex_,

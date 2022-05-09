@@ -130,10 +130,7 @@ void MediaManager::addParticipant(uint32_t sessionID,
     return;
   }
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Start creating media.", 
-                                  {"Outgoing media", "Incoming media"},
-                                  {QString::number(peerInfo->media.size()), 
-                                   QString::number(localInfo->media.size())});
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Start creating media");
 
   if (stats_ != nullptr)
   {
@@ -176,14 +173,13 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
   bool send = true;
   bool recv = true;
 
-  transportAttributes(remoteMedia.flagAttributes, send, recv);
+  transportAttributes(localMedia.flagAttributes, send, recv);
 
-  // if they want to receive
-  if(recv && remoteMedia.receivePort != 0)
+  // if we want to send
+  if(send && remoteMedia.receivePort != 0)
   {
     Q_ASSERT(remoteMedia.receivePort);
     Q_ASSERT(!remoteMedia.rtpNums.empty());
-
 
     QString codec = rtpNumberToCodec(remoteMedia);
 
@@ -217,9 +213,9 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
   else
   {
     Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
-               "Not creating media because they don't seem to want any according to attribute.");
+               "Not sending media according to attribute", {"Type"}, {localMedia.type});
 
-    // TODO: Spec says we should still send RTCP
+    // TODO: Spec says we should still send RTCP if the port is not 0
   }
 }
 
@@ -283,7 +279,7 @@ void MediaManager::createIncomingMedia(uint32_t sessionID,
   else
   {
     Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
-               "Not creating media because they don't seem to want any according to attribute.");
+                                    "Not receiving media according to attribute", {"Type"}, {localMedia.type});
   }
 }
 
@@ -345,7 +341,7 @@ void MediaManager::transportAttributes(const QList<SDPAttributeType>& attributes
 }
 
 
-void MediaManager::sdpToStats(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> sdp, bool incoming)
+void MediaManager::sdpToStats(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> sdp, bool local)
 {
   // TODO: This feels like a hack to do this here. Instead we should give stats the whole SDP
   QStringList ipList;
@@ -376,7 +372,7 @@ void MediaManager::sdpToStats(uint32_t sessionID, std::shared_ptr<SDPMessageInfo
 
   if (stats_)
   {
-    if (incoming)
+    if (local)
     {
       stats_->incomingMedia(sessionID, sdp->originator_username, ipList, audioPorts, videoPorts);
     }
