@@ -427,7 +427,7 @@ void SIPManager::transportResponse(SIPResponse &response, QVariant& content)
 void SIPManager::processSIPRequest(SIPRequest& request, QVariant& content,
                                    SIPResponseStatus generatedResponse)
 {
-  Logger::getLogger()->printNormal(this, "Processing incoming re quest");
+  Logger::getLogger()->printNormal(this, "Processing incoming request");
 
   uint32_t sessionID = 0;
 

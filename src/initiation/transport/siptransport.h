@@ -43,9 +43,11 @@ private:
   // returs true if the whole message was received
   bool parsePackage(QString package, QStringList &headers, QStringList &bodies);
 
-  bool parseRequest(const QString& header, QString requestString, QString version,
-                    QList<SIPField>& fields, QString &body);
-  bool parseResponse(const QString& header, QString responseString, QString version, QString text,
+  bool parseRequest(const QString& header, QString requestString, 
+                     QString requestURI, QString version,
+                     QList<SIPField>& fields, QString &body);
+  bool parseResponse(const QString& header, QString responseString, 
+                     QString version, QString text,
                      QList<SIPField> &fields, QString &body);
 
   void signalConnections();

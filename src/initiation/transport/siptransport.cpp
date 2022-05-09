@@ -5,6 +5,7 @@
 #include "sipconversions.h"
 #include "sipfieldcomposing.h"
 
+#include "sipfieldparsinghelper.h"
 #include "statisticsinterface.h"
 
 #include "common.h"
@@ -195,7 +196,10 @@ void SIPTransport::networkPackage(QString package)
       // If it matches request
       if (request_match.hasMatch() && request_match.lastCapturedIndex() == 3)
       {
-        if (!parseRequest(header, request_match.captured(1), request_match.captured(3),
+        if (!parseRequest(header,
+                          request_match.captured(1),
+                          request_match.captured(2),
+                          request_match.captured(3),
                           fields, body))
         {
           Logger::getLogger()->printWarning(this, "Failed to parse request");
@@ -297,7 +301,8 @@ bool SIPTransport::parsePackage(QString package, QStringList& headers, QStringLi
 }
 
 
-bool SIPTransport::parseRequest(const QString &header, QString requestString, QString version,
+bool SIPTransport::parseRequest(const QString &header, QString requestString, 
+                                QString requestURI, QString version,
                                 QList<SIPField> &fields, QString& body)
 {  
   Logger::getLogger()->printImportant(this, "Parsing incoming request", {"Type"}, {requestString});
@@ -307,6 +312,11 @@ bool SIPTransport::parseRequest(const QString &header, QString requestString, QS
   request.sipVersion = version;
   request.message = std::shared_ptr<SIPMessageHeader> (new SIPMessageHeader);
 
+  if (!parseURI(requestURI, request.requestURI))
+  {
+    Logger::getLogger()->printWarning(this, "Failed to parse Request URI!");
+    return false;
+  }
 
   if(request.method == SIP_NO_REQUEST)
   {

@@ -126,13 +126,46 @@ bool SIPServer::doesCANCELMatchRequest(SIPRequest &request) const
 {
   if (receivedRequest_ == nullptr)
   {
-    Logger::getLogger()->printError(this, "No previous request with CANCEL");
+    Logger::getLogger()->printNormal(this, "No previous request when evaluating CANCEL");
+  }
+  else if (!(receivedRequest_->requestURI == request.requestURI))
+  {
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Different request URI in CANCEL",
+                                     {"Existing request uri user", "Request uri user",
+                                      "Existing request uri host", "Request uri host"},
+                                     {receivedRequest_->requestURI.userinfo.user, request.requestURI.userinfo.user,
+                                      receivedRequest_->requestURI.hostport.host, request.requestURI.hostport.host});
+  }
+  else if (receivedRequest_->message->callID != request.message->callID)
+  {
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Different Call-ID in CANCEL",
+                                     {"Existing request Call-ID", "Request Call-ID"},
+                                     {receivedRequest_->message->callID, request.message->callID});
+  }
+  else if (!(receivedRequest_->message->to.address.uri == request.message->to.address.uri))
+  {
+    Logger::getLogger()->printNormal(this, "Different to address in CANCEL");
+  }
+  else if (receivedRequest_->message->to.tagParameter != request.message->to.tagParameter)
+  {
+    Logger::getLogger()->printNormal(this, "Different to parameters in CANCEL");
+  }
+  else if (!(receivedRequest_->message->from.address.uri == request.message->from.address.uri))
+  {
+    Logger::getLogger()->printNormal(this, "Different from address in CANCEL");
+  }
+  else if (receivedRequest_->message->from.tagParameter != request.message->from.tagParameter)
+  {
+    Logger::getLogger()->printNormal(this, "Different from parameters in CANCEL");
+  }
+  else if (receivedRequest_->message->cSeq.cSeq != request.message->cSeq.cSeq)
+  {
+    Logger::getLogger()->printNormal(this, "Different cSeq in CANCEL");
   }
 
   // see section 9.1 of RFC 3261
-  return receivedRequest_ != nullptr &&
-      receivedRequest_->requestURI == request.requestURI &&
-
+  return receivedRequest_                          != nullptr &&
+      receivedRequest_->requestURI                 == request.requestURI &&
       receivedRequest_->message->callID            == request.message->callID &&
       receivedRequest_->message->to.address.uri    == request.message->to.address.uri &&
       receivedRequest_->message->to.tagParameter   == request.message->to.tagParameter &&
