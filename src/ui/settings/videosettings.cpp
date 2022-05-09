@@ -29,7 +29,10 @@ const QStringList neededSettings = {SettingsKey::videoResultionWidth,
                                     SettingsKey::roiKernelType,
                                     SettingsKey::roiKernelSize,
                                     SettingsKey::roiFilterDepth,
-                                    SettingsKey::roiMaxThreads
+                                    SettingsKey::roiMaxThreads,
+                                    SettingsKey::roiQp,
+                                    SettingsKey::roiQpBackground,
+                                    SettingsKey::roiEnabled
                                    };
 
 const QStringList kvazaarSettings = {SettingsKey::videoQP,
@@ -208,6 +211,8 @@ void VideoSettings::saveSettings()
 
   // structure-tab
   settings_.setValue(SettingsKey::videoQP,          QString::number(videoSettingsUI_->qp->value()));
+  settings_.setValue(SettingsKey::roiQp,            videoSettingsUI_->qp_roi->value());
+  settings_.setValue(SettingsKey::roiQpBackground,  videoSettingsUI_->qp_roi_background->value());
   saveTextValue(SettingsKey::videoIntra,            videoSettingsUI_->intra->text(),
                 settings_);
   saveTextValue(SettingsKey::videoVPS,              videoSettingsUI_->vps->text(),
@@ -242,6 +247,7 @@ void VideoSettings::saveSettings()
   saveTextValue(SettingsKey::roiKernelSize, videoSettingsUI_->kernel_size->text(), settings_);
   saveTextValue(SettingsKey::roiFilterDepth, videoSettingsUI_->filter_depth->text(), settings_);
   saveTextValue(SettingsKey::roiMaxThreads, videoSettingsUI_->roi_threads->text(), settings_);
+  saveCheckBox(SettingsKey::roiEnabled, videoSettingsUI_->roi_enabled, settings_);
 
   // Other-tab
   saveCheckBox(SettingsKey::videoOpenGL,         videoSettingsUI_->opengl, settings_);
@@ -379,6 +385,8 @@ void VideoSettings::restoreSettings()
 
     // structure-tab
     videoSettingsUI_->qp->setValue            (settings_.value(SettingsKey::videoQP).toInt());
+    videoSettingsUI_->qp_roi->setValue        (settings_.value(SettingsKey::roiQp).toInt());
+    videoSettingsUI_->qp_roi_background->setValue(settings_.value(SettingsKey::roiQpBackground).toInt());
     videoSettingsUI_->intra->setText          (settings_.value(SettingsKey::videoIntra).toString());
     videoSettingsUI_->vps->setText            (settings_.value(SettingsKey::videoVPS).toString());
 
@@ -418,6 +426,7 @@ void VideoSettings::restoreSettings()
     videoSettingsUI_->kernel_size->setValue(settings_.value(SettingsKey::roiKernelSize).toInt());
     videoSettingsUI_->filter_depth->setValue(settings_.value(SettingsKey::roiFilterDepth).toInt());
     videoSettingsUI_->roi_threads->setValue(settings_.value(SettingsKey::roiMaxThreads).toInt());
+    videoSettingsUI_->roi_enabled->setChecked(settings_.value(SettingsKey::roiEnabled).toBool());
 
     // other-tab
     restoreCheckBox(SettingsKey::videoOpenGL, videoSettingsUI_->opengl, settings_);

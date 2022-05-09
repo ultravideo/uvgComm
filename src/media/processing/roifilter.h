@@ -18,11 +18,12 @@ struct RoiMapFilter {
 
   cv::Mat kernel;
   std::vector<cv::Mat> roi_maps;
-  int depth;
+  int depth = 1;
   int width = 0;
   int height = 0;
   int backgroundQP = 0;
-  int dQP = -20;
+  int roiQP = -20;
+  int qp = 27;
 };
 
 class RoiFilter : public Filter {
@@ -46,38 +47,40 @@ private:
   unsigned int prevInputDiscarded_;
   unsigned int skipInput_;
 
-  std::wstring model;
-  std::string kernel_type;
-  int kernel_size;
-  int filter_depth;
+  std::wstring model_;
+  std::string kernelType_;
+  int kernelSize_;
+  int filterDepth_;
 
-  Ort::Env env;
-  std::unique_ptr<Ort::Session> session;
-  std::unique_ptr<Ort::Allocator> allocator;
+  Ort::Env env_;
+  std::unique_ptr<Ort::Session> session_;
+  std::unique_ptr<Ort::Allocator> allocator_;
 
-  char *input_name;
-  std::vector<int64_t> input_shape;
-  int input_size;
-  bool minimum;
+  char *inputName_;
+  std::vector<int64_t> inputShape_;
+  int inputSize_;
+  bool minimum_;
 
-  char* output_name;
-  std::vector<int64_t> output_shape;
+  char* outputName_;
+  std::vector<int64_t> outputShape_;
 
 
-  cv::Size min_bb_size;
-  bool draw_bbox;
-  double min_relative_bb_size;
-  cv::Mat filter_kernel;
+  cv::Size minBbSize_;
+  bool drawBbox_;
+  double minRelativeBbSize_;
+  cv::Mat filterKernel_;
 
-  bool use_cuda;
-  bool is_ok;
-  int frame_count;
+  bool useCuda_;
+  QAtomicInt roiEnabled_;
+  int frameCount_;
   struct {
     int width;
     int height;
     std::unique_ptr<int8_t[]> data;
-  } roi;
-  RoiMapFilter filter;
+  } roi_;
+  RoiMapFilter roiFilter_;
+
+  QMutex settingsMutex_;
 };
 
 #endif // ROIFILTER_H

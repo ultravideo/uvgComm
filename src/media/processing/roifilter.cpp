@@ -305,14 +305,14 @@ Ort::SessionOptions get_session_options(bool cuda, int threads)
 
 cv::Mat RoiMapFilter::makeRoiMap(const std::vector<cv::Rect> &bbs)
 {
-  cv::Mat new_map(height, width, CV_16S, backgroundQP);
+  cv::Mat new_map(height, width, CV_16S, backgroundQP-qp);
 
   for (auto roi : bbs)
   {
     for (int y = roi.y; y < roi.y + roi.height; y++)
       for (int x = roi.x; x < roi.x + roi.width; x++)
       {
-        new_map.at<int16_t>(y,x) = (int16_t)dQP;
+        new_map.at<int16_t>(y,x) = (int16_t)(roiQP-qp);
       }
   }
 
@@ -326,15 +326,15 @@ cv::Mat RoiMapFilter::makeRoiMap(const std::vector<cv::Rect> &bbs)
 RoiFilter::RoiFilter(QString id, StatisticsInterface *stats, std::shared_ptr<HWResourceManager> hwResources,
                      bool cuda)
   : Filter(id, "ROI", stats, hwResources, DT_YUV420VIDEO, DT_YUV420VIDEO),
-    input_size(-1),
-    minimum(false),
-    min_bb_size(10, 10),
-    draw_bbox(false),
-    min_relative_bb_size(0.5),
-    use_cuda(cuda),
-    is_ok(false),
-    frame_count(0),
-    roi({0,0,nullptr})
+    inputSize_(-1),
+    minimum_(false),
+    minBbSize_(10, 10),
+    drawBbox_(false),
+    minRelativeBbSize_(0.5),
+    useCuda_(cuda),
+    roiEnabled_(false),
+    frameCount_(0),
+    roi_({0,0,nullptr})
 {
 }
 
@@ -345,36 +345,28 @@ RoiFilter::~RoiFilter()
 
 void RoiFilter::updateSettings()
 {
+  QSettings settings(settingsFile, settingsFileFormat);
+
   Logger::getLogger()->printNormal(this, "Updating ROI filter settings");
-
-  stop();
-
-  while(isRunning())
-  {
-    sleep(1);
-  }
-
-  close();
+  roiEnabled_ = false;
+  QMutexLocker lock(&settingsMutex_);
   init();
-
   Filter::updateSettings();
+  Logger::getLogger()->printNormal(this, "ROI filter settings updated");
 }
 
 void RoiFilter::process()
 {
   std::unique_ptr<Data> input = getInput();
   assert(input->type == DT_YUV420VIDEO);
-  is_ok =false;
   while(input) {
-  if(!is_ok){
-      sendOutput(std::move(input));
-      input=getInput();
-  } else {
+    if(roiEnabled_){
+      QMutexLocker lock(&settingsMutex_);
       if(inputDiscarded_ > prevInputDiscarded_) {
         skipInput_++;
         prevInputDiscarded_ = inputDiscarded_;
       }
-      if(frame_count % skipInput_ == 0) {
+      if(frameCount_ % skipInput_ == 0) {
         auto detections = detect(input.get());
 
         auto largest_bbox = find_largest_bbox(detections);
@@ -383,20 +375,20 @@ void RoiFilter::process()
         std::vector<cv::Rect> face_roi_rects;
         for (auto face : detections)
         {
-          if (!filter_bb(face.bbox, min_bb_size))
+          if (!filter_bb(face.bbox, minBbSize_))
           {
             continue;
           }
 
           double area = face.bbox.width * face.bbox.height;
-          if (area / largest_area < min_relative_bb_size)
+          if (area / largest_area < minRelativeBbSize_)
           {
             continue;
           }
 
           face.bbox = enlarge_bb(face);
 
-          if (draw_bbox)
+          if (drawBbox_)
           {
             //              cv::rectangle(rgb, face.bbox, {255, 0, 0}, 3);
             //              auto &landmarks = face.landmarks;
@@ -411,116 +403,122 @@ void RoiFilter::process()
           face_roi_rects.push_back(r);
         }
 
-//        if(face_roi_rects.size() > 0) {
-//          Logger::getLogger()->printDebug(DebugType::DEBUG_NORMAL, this, "Found faces", {"Number"}, {QString::number(face_roi_rects.size())});
-//        }
+        //        if(face_roi_rects.size() > 0) {
+        //          Logger::getLogger()->printDebug(DebugType::DEBUG_NORMAL, this, "Found faces", {"Number"}, {QString::number(face_roi_rects.size())});
+        //        }
 
         cv::Size roi_size = calculate_roi_size(input->vInfo->width, input->vInfo->height);
-        roi.width = roi_size.width;
-        roi.height = roi_size.height;
-        if(roi.width != filter.width || roi.height != filter.height) {
-          filter.roi_maps.clear();
-          filter.width = roi_size.width;
-          filter.height = roi_size.height;
+        roi_.width = roi_size.width;
+        roi_.height = roi_size.height;
+        if(roi_.width != roiFilter_.width || roi_.height != roiFilter_.height) {
+          roiFilter_.roi_maps.clear();
+          roiFilter_.width = roi_size.width;
+          roiFilter_.height = roi_size.height;
         }
 
         int roi_length = (roi_size.width+1)*(roi_size.height+1);
 
         clip_coords(face_roi_rects, roi_size);
-        cv::Mat roi_mat = filter.makeRoiMap(face_roi_rects);
-        roi.data = std::make_unique<int8_t[]>(roi_length);
-        memcpy(roi.data.get(), roi_mat.data, roi_length);
+        cv::Mat roi_mat = roiFilter_.makeRoiMap(face_roi_rects);
+        roi_.data = std::make_unique<int8_t[]>(roi_length);
+        memcpy(roi_.data.get(), roi_mat.data, roi_length);
       }
-      if(roi.data){
-        input->roi.width = roi.width;
-        input->roi.height = roi.height;
-        input->roi.roi_array = (int8_t*)malloc(roi.width*roi.height);
-        memcpy(input->roi.roi_array, roi.data.get(), roi.width*roi.height);
+      if(roi_.data){
+        input->roi.width = roi_.width;
+        input->roi.height = roi_.height;
+        input->roi.roi_array = (int8_t*)malloc(roi_.width*roi_.height);
+        memcpy(input->roi.roi_array, roi_.data.get(), roi_.width*roi_.height);
       }
-      sendOutput(std::move(input));
-      frame_count++;
-
-      input = getInput();
+      frameCount_++;
     }
+    sendOutput(std::move(input));
+    input = getInput();
   }
 }
 
 bool RoiFilter::init()
 {
+  bool isOk = true;
   prevInputDiscarded_ = 0;
   skipInput_ = 1;
   QSettings settings(settingsFile, settingsFileFormat);
-  model = settings.value(SettingsKey::roiDetectorModel).toString().toStdWString();
-  kernel_type = settings.value(SettingsKey::roiKernelType).toString().toStdString();
-  kernel_size = settings.value(SettingsKey::roiKernelSize).toInt();
+  std::wstring newModel = settings.value(SettingsKey::roiDetectorModel).toString().toStdWString();
+  kernelType_ = settings.value(SettingsKey::roiKernelType).toString().toStdString();
+  kernelSize_ = settings.value(SettingsKey::roiKernelSize).toInt();
   int threads = settings.value(SettingsKey::roiMaxThreads).toInt();
 
-  if(kernel_type == "Gaussian"){
-    filter.kernel = cv::getGaussianKernel(kernel_size, 1.0);
+  if(kernelType_ == "Gaussian"){
+    roiFilter_.kernel = cv::getGaussianKernel(kernelSize_, 1.0);
   } else {
     // Default to median
-    filter.kernel = cv::Mat(kernel_size, 1, 1.0/kernel_size);
+    roiFilter_.kernel = cv::Mat(kernelSize_, 1, 1.0/kernelSize_);
   }
 
-  filter.depth = settings.value(SettingsKey::roiFilterDepth).toInt();
+  roiFilter_.depth = settings.value(SettingsKey::roiFilterDepth).toInt();
 
-  is_ok = true;
-  try {
-    Ort::SessionOptions options = get_session_options(false, threads);
-    session = std::make_unique<Ort::Session>(env, model.c_str(), options);
-    allocator = std::make_unique<Ort::Allocator>(*session, Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault));
-  }  catch (std::exception& e) {
-    Logger::getLogger()->printError(this, e.what());
-    is_ok = false;
-    return is_ok;
+  roiFilter_.roiQP = settings.value(SettingsKey::roiQp).toInt();
+  roiFilter_.backgroundQP = settings.value(SettingsKey::roiQpBackground).toInt();
+  roiFilter_.qp = settings.value(SettingsKey::videoQP).toInt();
+
+  if(newModel != model_){
+    model_ = newModel;
+    try {
+      Ort::SessionOptions options = get_session_options(false, threads);
+      session_ = std::make_unique<Ort::Session>(env_, model_.c_str(), options);
+      allocator_ = std::make_unique<Ort::Allocator>(*session_, Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault));
+    }  catch (std::exception& e) {
+      Logger::getLogger()->printError(this, e.what());
+      return isOk;
+    }
+
+    size_t input_count = session_->GetInputCount();
+    if (input_count != 1)
+    {
+      Logger::getLogger()->printError(this, "Expected model input count to be 1");
+      isOk = false;
+    }
+
+    inputName_ = session_->GetInputName(0, *allocator_);
+    inputShape_ = session_->GetInputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
+
+    if (inputShape_.size() != 4)
+    {
+      Logger::getLogger()->printError(this, "Expected model input dimensions to be 4");
+      isOk = false;
+    }
+
+    if (inputShape_[0] > 1 || inputShape_[1] != 3)
+    {
+      Logger::getLogger()->printError(this, "Expected model with input shape [-1, 3, height, width]");
+      isOk = false;
+    }
+
+    if ((inputShape_[2] == -1 || inputShape_[3] == -1) && inputShape_[2] != inputShape_[3])
+    {
+      Logger::getLogger()->printError(this, "Model width or height is dynamic while the other is not");
+      isOk = false;
+    }
+
+    outputName_ = session_->GetOutputName(0, *allocator_);
+    outputShape_ = session_->GetOutputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
+    //size_t output_count = session.GetOutputCount();
+
+    if (inputShape_[2] != -1)
+    {
+      Logger::getLogger()->printWarning(this,"Using model with fixed input size.\nUser provided input size ignored.\n", "Input shape", QString::number(inputShape_[3])+","+QString::number(inputShape_[2]));
+      inputSize_ = std::max(inputShape_[2], inputShape_[3]);
+      minimum_ = false;
+    }
   }
 
-  size_t input_count = session->GetInputCount();
-  if (input_count != 1)
-  {
-    Logger::getLogger()->printError(this, "Expected model input count to be 1");
-    is_ok = false;
-  }
-
-  input_name = session->GetInputName(0, *allocator);
-  input_shape = session->GetInputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
-
-  if (input_shape.size() != 4)
-  {
-    Logger::getLogger()->printError(this, "Expected model input dimensions to be 4");
-    is_ok = false;
-  }
-
-  if (input_shape[0] > 1 || input_shape[1] != 3)
-  {
-    Logger::getLogger()->printError(this, "Expected model with input shape [-1, 3, height, width]");
-    is_ok = false;
-  }
-
-  if ((input_shape[2] == -1 || input_shape[3] == -1) && input_shape[2] != input_shape[3])
-  {
-    Logger::getLogger()->printError(this, "Model width or height is dynamic while the other is not");
-    is_ok = false;
-  }
-
-  output_name = session->GetOutputName(0, *allocator);
-  output_shape = session->GetOutputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
-  //size_t output_count = session.GetOutputCount();
-
-  if (input_shape[2] != -1)
-  {
-    printf("Using model with fixed input size %lldx%lld.\nUser provided input size ignored.\n", input_shape[3], input_shape[2]);
-    input_size = std::max(input_shape[2], input_shape[3]);
-    minimum = false;
-  }
-
-  return is_ok;
+  roiEnabled_ = isOk && settings.value(SettingsKey::roiEnabled).toBool();
+  return isOk;
 }
 
 void RoiFilter::close()
 {
-  allocator.reset();
-  session.reset();
+  allocator_.reset();
+  session_.reset();
 }
 
 std::vector<Detection> RoiFilter::detect(const Data* input)
@@ -528,7 +526,7 @@ std::vector<Detection> RoiFilter::detect(const Data* input)
   cv::Size original_size(input->vInfo->width, input->vInfo->height);
   cv::Mat Y(input->vInfo->height, input->vInfo->width, CV_8U, input->data.get());
 
-  cv::Mat Y_input = letterbox(Y, {input_size, input_size}, {114, 114, 114}, minimum);
+  cv::Mat Y_input = letterbox(Y, {inputSize_, inputSize_}, {114, 114, 114}, minimum_);
 
   //cv::cvtColor(input, input, cv::COLOR_RGBA2RGB);
   Y_input.convertTo(Y_input, CV_32FC3, 1.0 / 255.0);
@@ -549,7 +547,7 @@ std::vector<Detection> RoiFilter::detect(const Data* input)
   auto input_tensor = Ort::Value::CreateTensor<float>(&*memory, (float *)channels.data, channels.total() * channels.elemSize1(), shape, 4);
 
   Ort::RunOptions options;
-  auto detections = session->Run(options, &input_name, &input_tensor, 1, &output_name, 1);
+  auto detections = session_->Run(options, &inputName_, &input_tensor, 1, &outputName_, 1);
   auto out_shape = detections[0].GetTensorTypeAndShapeInfo().GetShape();
   auto faces = non_max_suppression_face(detections[0]);
 
