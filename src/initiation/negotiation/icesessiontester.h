@@ -61,7 +61,7 @@ private:
 
   QList<std::shared_ptr<ICEPair>> *pairs_;
 
-  bool controller_;
+  bool isController_;
   int timeout_;
 
   uint8_t components_;

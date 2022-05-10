@@ -12,7 +12,7 @@
 
 IceSessionTester::IceSessionTester(bool controller, int timeout):
   pairs_(nullptr),
-  controller_(controller),
+  isController_(controller),
   timeout_(timeout),
   components_(0)
 {}
@@ -46,7 +46,7 @@ void IceSessionTester::componentSucceeded(std::shared_ptr<ICEPair> connection)
   finished_[connection->local->foundation][connection->local->component] = connection;
 
   QString type = "Controller";
-  if (!controller_)
+  if (!isController_)
   {
     type = "Controllee";
   }
@@ -136,7 +136,7 @@ void IceSessionTester::run()
   // start testing for this interface/port combination
   for (auto& interface : candidates)
   {
-    if (controller_)
+    if (isController_)
     {
       QObject::connect(
           interface.get(), &ICECandidateTester::controllerPairFound,
@@ -151,7 +151,7 @@ void IceSessionTester::run()
           Qt::DirectConnection);
     }
 
-    interface->startTestingPairs(controller_);
+    interface->startTestingPairs(isController_);
   }
 
   // now we wait until the connection tests have ended. Wait at most timeout_
@@ -176,7 +176,7 @@ void IceSessionTester::run()
 
   // if we are the controller we must perform the final nomination.
   // non-controller does not reach this point until after nomination (or timeout).
-  if (controller_)
+  if (isController_)
   {
     ICECandidateTester tester;
     if (!tester.performNomination(nominated_))
