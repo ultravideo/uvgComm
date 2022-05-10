@@ -251,7 +251,7 @@ void Logger::createPrintSet(PrintSet& set, QString className, QString descriptio
     {
       for (int i = 0; i < valueNames.size(); ++i)
       {
-        if (valueNames.at(i) != "" && values.at(i) != "")
+        if (valueNames.at(i) != "")
         {
           QString field = valueNames.at(i) + ": " + values.at(i);
 
