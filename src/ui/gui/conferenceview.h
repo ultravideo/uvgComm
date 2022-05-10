@@ -128,6 +128,10 @@ private:
     LayoutLoc location;
   };
 
+  // TODO: Make sure that the widgets are always deleted. Since the layout takes
+  // ownership of the widget memory when attached, conference view is only possible
+  // location to handle the proper deletion of widgets
+
   struct SessionViews
   {
     SessionViewState state;

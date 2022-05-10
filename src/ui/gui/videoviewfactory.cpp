@@ -147,7 +147,6 @@ void VideoviewFactory::clearWidgets(uint32_t sessionID)
 
   if (sessionIDtoVideolist_.find(sessionID) != sessionIDtoVideolist_.end())
   {
-    delete sessionIDtoVideolist_[sessionID];
     sessionIDtoVideolist_.erase(sessionID);
   }
 }
