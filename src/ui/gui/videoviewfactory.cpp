@@ -25,14 +25,6 @@ VideoviewFactory::VideoviewFactory(ConferenceView* conf):
 VideoviewFactory::~VideoviewFactory()
 {
   sessionIDtoWidgetlist_.clear(); // these are the same pointers as in videolist
-
-  for (auto& video : sessionIDtoVideolist_)
-  {
-    if (video.second)
-    {
-      delete video.second;
-    }
-  }
   sessionIDtoVideolist_.clear();
 }
 
