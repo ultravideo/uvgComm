@@ -292,8 +292,6 @@ void CallWindow::removeWithMessage(uint32_t sessionID, QString message, bool tem
   }
 
   conference_.attachMessageWidget(message, timeout);
-
-  viewFactory_->clearWidgets(sessionID);
 }
 
 
