@@ -307,18 +307,21 @@ void Filter::stop()
 
 void Filter::run()
 {
-  filterID_ = stats_->addFilter(name_, id_, (uint64_t)currentThreadId());
-  while(running_)
+  if (stats_ != nullptr)
   {
-    waitForInput();
-    if(!running_) break;
+    filterID_ = stats_->addFilter(name_, id_, (uint64_t)currentThreadId());
+    while(running_)
+    {
+      waitForInput();
+      if(!running_) break;
 
-    process();
-  }
-  if (filterID_ != 0)
-  {
-    stats_->removeFilter(filterID_);
-    filterID_ = 0;
+      process();
+    }
+    if (filterID_ != 0)
+    {
+      stats_->removeFilter(filterID_);
+      filterID_ = 0;
+    }
   }
 }
 
