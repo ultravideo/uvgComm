@@ -325,18 +325,18 @@ void ConferenceView::reattachWidget(uint32_t sessionID)
   Q_ASSERT(sessionID != 0);
   if (detachedWidgets_.find(sessionID) != detachedWidgets_.end())
   {
+    // if there are no detached widgets blocking the view, then show the window
+    if (detachedWidgets_.size() == 1)
+    {
+      parent_->show();
+    }
+
     attachWidget(sessionID,
                  detachedWidgets_[sessionID].index,
                  detachedWidgets_[sessionID].widget);
 
     // remove from detached widgets
     detachedWidgets_.erase(sessionID);
-
-    // if there are no detached widgets blocking the view, then show the window
-    if(detachedWidgets_.empty())
-    {
-      parent_->show();
-    }
   }
   else {
     Logger::getLogger()->printDebug(DEBUG_PROGRAM_WARNING, this,
@@ -365,7 +365,7 @@ void ConferenceView::detachWidget(uint32_t sessionID, uint32_t index, QWidget* w
 
     detachedWidgets_[sessionID] = {widget, index};
 
-    if(detachedWidgets_.size() == 1)
+    if (detachedWidgets_.size() == 1)
     {
       parent_->hide();
     }
@@ -610,6 +610,11 @@ void ConferenceView::uninitDetachedWidget(uint32_t sessionID)
 {
   if(detachedWidgets_.find(sessionID) != detachedWidgets_.end())
   {
+    if (detachedWidgets_.size() == 1)
+    {
+      parent_->show();
+    }
+
     Logger::getLogger()->printNormal(this, "The widget was detached", "sessionID",
                                      QString::number(sessionID));
 
