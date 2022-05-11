@@ -9,6 +9,7 @@
 #include <QHostInfo>
 
 #include <deque>
+#include <set>
 
 
 struct STUNRequest
@@ -84,6 +85,7 @@ private:
   // Keeps a list of all available ports.
   // Key is the ip address of network interface.
   std::map<QString, std::deque<uint16_t>> availablePorts_;
+  std::set<QString> stunFailureList_;
 
   // key is sessionID, key 0 is STUN
   std::map<uint32_t, QList<std::pair<QString, uint16_t>>> reservedPorts_;

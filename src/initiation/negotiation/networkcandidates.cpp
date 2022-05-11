@@ -22,6 +22,7 @@ NetworkCandidates::NetworkCandidates():
   stunBindings_(),
   portLock_(),
   availablePorts_(),
+  stunFailureList_(),
   reservedPorts_(),
   behindNAT_(true), // assume that we are behind NAT at first
   currentMinPort_(0),
@@ -77,6 +78,8 @@ void NetworkCandidates::init()
                                     "Allocating (but not reserving) ports for media",
                                     {"Min ports", "Max port"},
                                     {QString::number(minPort), QString::number(maxPort)});
+    QStringList addressNames;
+    QStringList addresses;
 
     foreach (const QHostAddress& address, QNetworkInterface::allAddresses())
     {
@@ -96,6 +99,8 @@ void NetworkCandidates::init()
 
           availablePorts_.insert(std::pair<QString, std::deque<uint16_t>>(address.toString(),{}));
           portLock_.unlock();
+          addressNames.push_back("address");
+          addresses.append(address.toString());
 
           for(uint16_t i = minPort; i < maxPort; ++i)
           {
@@ -113,6 +118,10 @@ void NetworkCandidates::init()
         }
       }
     }
+
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
+                                    "Found the following addresses",
+                                    addressNames, addresses);
   }
 
   // Start stun address acquasition if stun was enabled or address has changed
@@ -521,14 +530,13 @@ void NetworkCandidates::handleStunHostLookup(QHostInfo info)
 
 void NetworkCandidates::moreSTUNCandidates()
 {
-  QStringList toDelete;
   if (!stunServerIP_.isNull())
   {
     for (auto& interface : availablePorts_)
     {
       int stunPort = settingValue(SettingsKey::sipSTUNPort);
 
-      if (stunPort != 0)
+      if (stunPort != 0 && stunFailureList_.find(interface.first) == stunFailureList_.end())
       {
         // use 0 as STUN sessionID
         uint16_t nextPort = nextAvailablePort(interface.first, 0);
@@ -538,12 +546,12 @@ void NetworkCandidates::moreSTUNCandidates()
           if (!sendSTUNserverRequest(QHostAddress(interface.first), nextPort,
                                     stunServerIP_,                 stunPort))
           {
-            toDelete.push_back(interface.first);
+            stunFailureList_.insert(interface.first);
           }
         }
         else
         {
-          toDelete.push_back(interface.first);
+          stunFailureList_.insert(interface.first);
         }
       }
       else
@@ -556,11 +564,6 @@ void NetworkCandidates::moreSTUNCandidates()
   else
   {
     Logger::getLogger()->printProgramError(this, "STUN server address not set!");
-  }
-
-  for (auto& deleted : toDelete)
-  {
-    availablePorts_.erase(deleted);
   }
 }
 
