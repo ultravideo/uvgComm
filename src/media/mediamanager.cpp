@@ -134,8 +134,8 @@ void MediaManager::addParticipant(uint32_t sessionID,
 
   if (stats_ != nullptr)
   {
-    sdpToStats(sessionID, peerInfo, true);
-    sdpToStats(sessionID, localInfo, false);
+    sdpToStats(sessionID, peerInfo, false);
+    sdpToStats(sessionID, localInfo, true);
   }
 
   // create each agreed media stream
