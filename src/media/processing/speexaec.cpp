@@ -16,6 +16,7 @@ SpeexAEC::SpeexAEC(QAudioFormat format):
   echo_state_(nullptr),
   preprocessor_(nullptr),
   echoBuffer_(nullptr),
+  echoBufferUpdated_(true),
   playbackDelay_(0),
   echoFilterLength_(0),
   enabled_(false)
@@ -219,13 +220,15 @@ std::unique_ptr<uchar[]> SpeexAEC::processInputFrame(std::unique_ptr<uchar[]> in
         return pcmOutput;
       }
     }
-    else
+    else if (echoBufferUpdated_)
     {
       Logger::getLogger()->printWarning(this, "We haven't buffered enough audio "
                                               "samples to start echo cancellation",
                                         "Buffered",   
                                         QString::number(echoBuffer_->getBufferSize()) + "/" +
                                         QString::number(echoBufferSize));
+
+      echoBufferUpdated_ = false;
     }
   }
 
@@ -238,6 +241,7 @@ void SpeexAEC::processEchoFrame(uint8_t *echo, uint32_t dataSize)
   if (echoBuffer_)
   {
     echoBuffer_->inputData(echo, dataSize);
+    echoBufferUpdated_ = true;
   }
   else
   {

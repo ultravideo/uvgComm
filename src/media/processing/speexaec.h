@@ -43,6 +43,7 @@ private:
 
   // Buffer for playback frames used in AEC
   std::unique_ptr<AudioFrameBuffer> echoBuffer_;
+  bool echoBufferUpdated_; // for debug prints  only
 
 
   int playbackDelay_;
