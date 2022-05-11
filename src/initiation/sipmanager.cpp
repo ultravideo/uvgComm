@@ -311,6 +311,7 @@ void SIPManager::endCall(uint32_t sessionID)
   std::shared_ptr<DialogInstance> dialog = getDialog(sessionID);
   dialog->client->sendBYE();
 
+  // TODO: Do this when receiving BYE OK
   removeDialog(sessionID);
 }
 

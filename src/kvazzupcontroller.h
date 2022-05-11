@@ -98,7 +98,8 @@ private:
     CALLRINGINWITHTHEM,
     CALLNEGOTIATING,
     CALLWAITINGICE,
-    CALLONGOING
+    CALLONGOING,
+    CALLENDING
   };
 
   struct SessionState {

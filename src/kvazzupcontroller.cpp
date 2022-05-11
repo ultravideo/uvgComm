@@ -353,7 +353,14 @@ void KvazzupController::zrtpFailed(quint32 sessionID)
   Logger::getLogger()->printError(this, "ZRTP has failed");
 
   userInterface_.showZRTPFailedMessage(QString::number(sessionID));
-  endCall(sessionID);
+  if (states_.find(sessionID) != states_.end() &&
+      states_[sessionID].state != CALLENDING)
+  {
+    // TODO: Mutex this
+    states_[sessionID].state = CALLENDING;
+    sip_.endCall(sessionID);
+    endCall(sessionID); // TODO: Remove this once the BYE OK is processed correctly in SIPManager
+  }
 }
 
 
@@ -428,7 +435,7 @@ void KvazzupController::endCall(uint32_t sessionID)
   Logger::getLogger()->printNormal(this, "Ending the call", {"SessionID"}, 
                                    {QString::number(sessionID)});
   if (states_.find(sessionID) != states_.end() &&
-      states_[sessionID].state == CALLONGOING)
+      (states_[sessionID].state == CALLONGOING || states_[sessionID].state == CALLENDING))
   {
     media_.removeParticipant(sessionID);
   }
