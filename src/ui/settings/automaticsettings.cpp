@@ -11,7 +11,8 @@ enum TabType {
 AutomaticSettings::AutomaticSettings(QWidget *parent):
   QDialog(parent),
   ui_(new Ui::AutomaticSettings),
-  settings_(settingsFile, settingsFileFormat)
+  settings_(settingsFile, settingsFileFormat),
+  previousBitrate_(0)
 {
   ui_->setupUi(this);
   QObject::connect(ui_->close_button, &QPushButton::clicked,
@@ -124,11 +125,18 @@ void AutomaticSettings::activateROI()
 {
   Logger::getLogger()->printNormal(this, "Manual ROI window opened. "
                                          "Enabling manual ROI");
+
+  previousBitrate_ = settings_.value(SettingsKey::videoBitrate).toInt();
+  if (previousBitrate_ != 0)
+  {
+    // bitrate must be disabled for ROI
+    settings_.setValue(SettingsKey::videoBitrate,            "0");
+
+    emit updateVideoSettings();
+  }
+
   settings_.setValue(SettingsKey::manualROIStatus,         "1");
-
   emit updateAutomaticSettings();
-
-  // TODO: Once rate control has been moved to automatic side, disable it here
 }
 
 
@@ -138,6 +146,14 @@ void AutomaticSettings::disableROI()
                                          "Disabling manual ROI");
   settings_.setValue(SettingsKey::manualROIStatus,          "0");
   emit updateAutomaticSettings();
+
+  if (previousBitrate_ != 0) // only set bitrate if we had to disable it
+  {
+    // return bitrate to previous value
+    settings_.setValue(SettingsKey::videoBitrate, previousBitrate_);
+
+    emit updateVideoSettings();
+  }
 }
 
 

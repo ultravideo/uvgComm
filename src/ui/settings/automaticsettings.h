@@ -34,6 +34,7 @@ public slots:
 
 signals:
   void updateAutomaticSettings();
+  void updateVideoSettings();
   void hidden();
 
 private:
@@ -41,8 +42,9 @@ private:
   void activateROI();
   void disableROI();
 
-
   Ui::AutomaticSettings *ui_;
 
   QSettings settings_;
+
+  int previousBitrate_;
 };

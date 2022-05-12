@@ -105,6 +105,8 @@ void Settings::init()
                    this,                            &Settings::openAutomaticSettings);
   QObject::connect(&autoSettings_, &AutomaticSettings::hidden,
                    this,           &Settings::show);
+  QObject::connect(&autoSettings_, &AutomaticSettings::updateVideoSettings,
+                   this,           &Settings::updateVideoSettings);
 
 
 
