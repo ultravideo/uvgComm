@@ -42,7 +42,7 @@ UvgRTPSender::~UvgRTPSender()
 {
   if (mstream_)
   {
-    // clear hooks here
+    mstream_->get_rtcp()->remove_all_hooks();
   }
 }
 
