@@ -27,6 +27,8 @@ private:
 
   bool shouldDiscard(uint16_t frameSeq, uint8_t* payload);
 
+  void processRTCPSenderReport(std::unique_ptr<uvgrtp::frame::rtcp_sender_report> sr);
+
   bool gotSeq_;
 
   bool discardUntilIntra_;
@@ -35,4 +37,5 @@ private:
   uint32_t sessionID_;
 
   QFutureWatcher<uvg_rtp::media_stream *> watcher_;
+  uvg_rtp::media_stream * mstream_;
 };

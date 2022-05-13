@@ -1,14 +1,14 @@
-
-#include <cstdio>
-
-#include "statisticsinterface.h"
 #include "uvgrtpreceiver.h"
+#include "statisticsinterface.h"
 
 #include "common.h"
 #include "logger.h"
 
 #include <QDateTime>
 #include <QDebug>
+
+#include <functional>
+#include <cstdio>
 
 #define RTP_HEADER_SIZE 2
 #define FU_HEADER_SIZE  1
@@ -28,22 +28,36 @@ UvgRTPReceiver::UvgRTPReceiver(uint32_t sessionID, QString id, StatisticsInterfa
   gotSeq_(false),
   discardUntilIntra_(false),
   lastSeq_(0),
-  sessionID_(sessionID)
+  sessionID_(sessionID),
+  watcher_(),
+  mstream_(nullptr)
 {
   connect(&watcher_, &QFutureWatcher<uvg_rtp::media_stream *>::finished,
           [this]()
           {
-            if (!watcher_.result())
+            mstream_ = watcher_.result();
+            if (!mstream_)
+            {
               emit zrtpFailure(sessionID_);
+            }
             else
-              watcher_.result()->install_receive_hook(this, __receiveHook);
+            {
+              mstream_->install_receive_hook(this, __receiveHook);
+              mstream_->get_rtcp()->install_sender_hook(std::bind(&UvgRTPReceiver::processRTCPSenderReport,
+                                                                           this, std::placeholders::_1 ));
+            }
           });
 
   watcher_.setFuture(stream);
 }
 
 UvgRTPReceiver::~UvgRTPReceiver()
-{}
+{
+  if (mstream_)
+  {
+    // clear hooks here
+  }
+}
 
 void UvgRTPReceiver::process()
 {}
@@ -151,4 +165,9 @@ bool UvgRTPReceiver::shouldDiscard(uint16_t frameSeq, uint8_t* payload)
   }
 
   return false;
+}
+
+void UvgRTPReceiver::processRTCPSenderReport(std::unique_ptr<uvgrtp::frame::rtcp_sender_report> sr)
+{
+  Logger::getLogger()->printNormal(this, "Got sender report");
 }

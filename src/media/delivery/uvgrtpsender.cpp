@@ -1,45 +1,38 @@
-#include <QSettings>
-
 #include "uvgrtpsender.h"
-#include "statisticsinterface.h"
 
+#include "statisticsinterface.h"
 #include "common.h"
 #include "settingskeys.h"
 #include "logger.h"
 
+#include <QSettings>
+
+#include <functional>
 
 UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id, StatisticsInterface *stats,
                            std::shared_ptr<ResourceAllocator> hwResources,
-                           DataType type, QString media, QFuture<uvg_rtp::media_stream *> mstream):
+                           DataType type, QString media,
+                           QFuture<uvg_rtp::media_stream *> mstream):
   Filter(id, "RTP Sender " + media, stats, hwResources, type, DT_NONE),
-  type_(type),
   mstream_(nullptr),
-  frame_(0),
   sessionID_(sessionID),
   rtpFlags_(RTP_NO_FLAGS)
 {
-  updateSettings();
-
-  switch (type)
-  {
-    case DT_HEVCVIDEO:
-      dataFormat_ = RTP_FORMAT_H265;
-      break;
-
-    case DT_OPUSAUDIO:
-      dataFormat_ = RTP_FORMAT_OPUS;
-      break;
-
-    default:
-      dataFormat_ = RTP_FORMAT_GENERIC;
-      break;
-  }
+  UvgRTPSender::updateSettings();
 
   connect(&watcher_, &QFutureWatcher<uvg_rtp::media_stream *>::finished,
           [this]()
           {
-            if (!(mstream_ = watcher_.result()))
+            mstream_ = watcher_.result(); // TODO: This can crash in sending
+            if (!mstream_)
+            {
               emit zrtpFailure(sessionID_);
+            }
+            else
+            {
+              mstream_->get_rtcp()->install_receiver_hook(std::bind(&UvgRTPSender::processRTCPReceiverReport,
+                                                                    this, std::placeholders::_1 ));
+            }
           });
 
   watcher_.setFuture(mstream);
@@ -47,6 +40,10 @@ UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id, StatisticsInterface *
 
 UvgRTPSender::~UvgRTPSender()
 {
+  if (mstream_)
+  {
+    // clear hooks here
+  }
 }
 
 void UvgRTPSender::updateSettings()
@@ -54,7 +51,7 @@ void UvgRTPSender::updateSettings()
   // called in case we later decide to add some settings to filter
   Filter::updateSettings();
 
-  if (type_ == DT_HEVCVIDEO)
+  if (input_ == DT_HEVCVIDEO)
   {
     uint32_t vps   = settingValue(SettingsKey::videoVPS);
     uint16_t intra = (uint16_t)settingValue(SettingsKey::videoIntra);
@@ -67,10 +64,6 @@ void UvgRTPSender::updateSettings()
     {
       // the number of frames between parameter sets
       maxBufferSize_ = vps * intra;
-
-      // discrete framer doesn't like start codes
-      removeStartCodes_ = true;
-
       rtpFlags_ &= ~RTP_SLICE;
     }
 
@@ -103,4 +96,10 @@ void UvgRTPSender::process()
 
     input = getInput();
   }
+}
+
+
+void UvgRTPSender::processRTCPReceiverReport(std::unique_ptr<uvgrtp::frame::rtcp_receiver_report> rr)
+{
+  Logger::getLogger()->printNormal(this, "Got receiver report");
 }
