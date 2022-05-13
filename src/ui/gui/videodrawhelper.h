@@ -36,6 +36,7 @@ public:
 
   void enableOverlay(int roiQP, int backgroundQP, int brushSize, bool showGrid, bool pixelBased);
   void resetOverlay();
+  void updateROIMask();
 
   void setDrawMicOff(bool state);
 

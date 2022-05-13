@@ -130,6 +130,12 @@ void VideoWidget::mousePressEvent(QMouseEvent *e)
 }
 
 
+void VideoWidget::mouseReleaseEvent(QMouseEvent *e)
+{
+  helper_.updateROIMask();
+}
+
+
 void VideoWidget::mouseMoveEvent(QMouseEvent *e)
 {
   QWidget::mouseMoveEvent(e);

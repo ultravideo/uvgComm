@@ -106,6 +106,14 @@ void VideoDrawHelper::resetOverlay()
 }
 
 
+void VideoDrawHelper::updateROIMask()
+{
+  roiMutex_.lock();
+  currentMask_ = nullptr;
+  roiMutex_.unlock();
+}
+
+
 bool VideoDrawHelper::readyToDraw()
 {
   return firstImageReceived_;
@@ -335,7 +343,6 @@ void VideoDrawHelper::addPointToOverlay(const QPointF& position, bool addPoint, 
       }
     }
 
-    currentMask_ = nullptr;
     roiMutex_.unlock();
   }
 }
