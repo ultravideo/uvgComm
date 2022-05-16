@@ -164,5 +164,17 @@ bool UvgRTPReceiver::shouldDiscard(uint16_t frameSeq, uint8_t* payload)
 
 void UvgRTPReceiver::processRTCPSenderReport(std::unique_ptr<uvgrtp::frame::rtcp_sender_report> sr)
 {
-  Logger::getLogger()->printNormal(this, "Got sender report");
+  uint32_t ourSSRC = mstream_->get_ssrc();
+
+  for (auto& block : sr->report_blocks)
+  {
+    if (block.ssrc == ourSSRC)
+    {
+        getStats()->addRTCPPacket(sessionID_, ourSSRC,
+                                  block.fraction,
+                                  block.lost,
+                                  block.last_seq,
+                                  block.jitter);
+    }
+  }
 }

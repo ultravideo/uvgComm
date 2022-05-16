@@ -549,6 +549,16 @@ void StatisticsWindow::addReceivePacket(uint32_t sessionID, QString type,
 }
 
 
+void StatisticsWindow::addRTCPPacket(uint32_t sessionID, uint32_t localSSRC,
+                           uint8_t  fraction,
+                           int32_t  lost,
+                           uint32_t last_seq,
+                           uint32_t jitter)
+{
+  Logger::getLogger()->printNormal(this, "Got RTCP packet", "Jitter", QString::number(jitter));
+}
+
+
 void StatisticsWindow::updateBufferStatus(uint32_t id, uint16_t buffersize,
                                           uint16_t maxBufferSize)
 {

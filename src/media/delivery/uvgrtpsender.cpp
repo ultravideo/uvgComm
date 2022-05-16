@@ -98,5 +98,17 @@ void UvgRTPSender::process()
 
 void UvgRTPSender::processRTCPReceiverReport(std::unique_ptr<uvgrtp::frame::rtcp_receiver_report> rr)
 {
-  Logger::getLogger()->printNormal(this, "Got receiver report");
+  uint32_t ourSSRC = mstream_->get_ssrc();
+
+  for (auto& block : rr->report_blocks)
+  {
+    if (block.ssrc == ourSSRC)
+    {
+        getStats()->addRTCPPacket(sessionID_, ourSSRC,
+                                  block.fraction,
+                                  block.lost,
+                                  block.last_seq,
+                                  block.jitter);
+    }
+  }
 }

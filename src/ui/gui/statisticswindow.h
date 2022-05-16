@@ -51,6 +51,11 @@ public:
   // delivery
   virtual void addSendPacket(uint32_t size);
   virtual void addReceivePacket(uint32_t sessionID, QString type, uint32_t size);
+  virtual void addRTCPPacket(uint32_t sessionID, uint32_t localSSRC,
+                             uint8_t  fraction,
+                             int32_t  lost,
+                             uint32_t last_seq,
+                             uint32_t jitter);
 
   // filter
   virtual uint32_t addFilter(QString type, QString identifier, uint64_t TID);

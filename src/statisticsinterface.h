@@ -1,9 +1,11 @@
 #pragma once
+
 #include <QString>
 #include <QSize>
 
 #include <map>
 #include <stdint.h>
+#include <vector>
 
 // An interface where the program tells various statistics of its operations.
 // Can be used to show the statistics in window or to record the statistics to a file.
@@ -51,6 +53,13 @@ public:
 
   // tracking of received packets.
   virtual void addReceivePacket(uint32_t sessionID, QString type, uint32_t size) = 0;
+
+  // Details of an individual packet that shows how well our data is getting delivered
+  virtual void addRTCPPacket(uint32_t sessionID, uint32_t localSSRC,
+                             uint8_t  fraction,
+                             int32_t  lost,
+                             uint32_t last_seq,
+                             uint32_t jitter) = 0;
 
 
   // FILTER
