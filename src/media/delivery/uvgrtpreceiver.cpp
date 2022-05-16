@@ -52,12 +52,7 @@ UvgRTPReceiver::UvgRTPReceiver(uint32_t sessionID, QString id, StatisticsInterfa
 }
 
 UvgRTPReceiver::~UvgRTPReceiver()
-{
-  if (mstream_)
-  {
-    mstream_->get_rtcp()->remove_all_hooks();
-  }
-}
+{}
 
 void UvgRTPReceiver::process()
 {}

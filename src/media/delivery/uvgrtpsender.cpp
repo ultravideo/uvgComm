@@ -38,13 +38,10 @@ UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id, StatisticsInterface *
   watcher_.setFuture(mstream);
 }
 
+
 UvgRTPSender::~UvgRTPSender()
-{
-  if (mstream_)
-  {
-    mstream_->get_rtcp()->remove_all_hooks();
-  }
-}
+{}
+
 
 void UvgRTPSender::updateSettings()
 {
