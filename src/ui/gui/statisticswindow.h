@@ -51,7 +51,7 @@ public:
   // delivery
   virtual void addSendPacket(uint32_t size);
   virtual void addReceivePacket(uint32_t sessionID, QString type, uint32_t size);
-  virtual void addRTCPPacket(uint32_t sessionID, uint32_t localSSRC,
+  virtual void addRTCPPacket(uint32_t sessionID, QString type,
                              uint8_t  fraction,
                              int32_t  lost,
                              uint32_t last_seq,
@@ -147,6 +147,11 @@ private:
     uint32_t audioDelayIndex;
     std::vector<ValueInfo*> audioDelay;
 
+    uint32_t videoJitter;
+    int32_t videoLost;
+    uint32_t audioJitter;
+    int32_t audioLost;
+
     // index for all UI tables this peer is part of
     int tableIndex;
   };
@@ -206,6 +211,7 @@ private:
   // a timer for reducing number of gui updates and making it more readable
   QElapsedTimer guiTimer_;
   qint64 guiUpdates_;
+  qint64 rtcpUpdates_;
 
   // for updating the tab as fast as possible
   int lastTabIndex_;

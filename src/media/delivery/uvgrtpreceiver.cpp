@@ -170,11 +170,21 @@ void UvgRTPReceiver::processRTCPSenderReport(std::unique_ptr<uvgrtp::frame::rtcp
   {
     if (block.ssrc == ourSSRC)
     {
-        getStats()->addRTCPPacket(sessionID_, ourSSRC,
-                                  block.fraction,
-                                  block.lost,
-                                  block.last_seq,
-                                  block.jitter);
+      QString type = "Other";
+      if (isVideo(outputType()))
+      {
+        type = "Video";
+      }
+      else if (isAudio(outputType()))
+      {
+        type = "Audio";
+      }
+
+      getStats()->addRTCPPacket(sessionID_, type,
+                                block.fraction,
+                                block.lost,
+                                block.last_seq,
+                                block.jitter);
     }
   }
 }
