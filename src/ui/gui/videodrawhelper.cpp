@@ -234,6 +234,11 @@ void VideoDrawHelper::updateTargetRect(QWidget* widget)
       imageSize.scale(maxImageArea.expandedTo(imageSize), Qt::KeepAspectRatio);
       borderRect_.setSize(imageSize + QSize(1,1));
     }
+    else if (drawOverlay_)
+    {
+      imageSize.scale(maxImageArea.boundedTo(imageSize), Qt::KeepAspectRatio);
+      borderRect_.setSize(imageSize + QSize(1,1));
+    }
     else if (widgetAspectRatio <= frameAspectRatio)
     {
       // Limit the target by widget height without stretching the image
