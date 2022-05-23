@@ -96,7 +96,7 @@ void VideoDrawHelper::enableOverlay(int roiQP, int backgroundQP,
 void VideoDrawHelper::resetOverlay()
 {
   roiMutex_.lock();
-  overlay_ = QImage(targetRect_.size(), IMAGE_FORMAT);
+  overlay_ = QImage(imageRect_.size(), IMAGE_FORMAT);
   overlay_.fill(qpToColor(backgroundQP_));
 
   drawGrid();
@@ -205,54 +205,85 @@ void VideoDrawHelper::updateTargetRect(QWidget* widget)
       return;
     }
 
-    QSize size = lastFrame_.image.size();
-    QSize widgetSize = widget->size() - QSize(borderSize_,borderSize_);
+    QSize imageSize = lastFrame_.image.size();
+    QSize maxImageArea = widget->size() - QSize(borderSize_, borderSize_)*2;
+
+    // draw borders at the edges by default, may need some adjustment depending on the image size
+    borderRect_ = widget->rect();
+    borderRect_.setSize(borderRect_.size() - QSize(1,1));
+
 
     // Aspect ratios can be used to determine which is the best limiting factor 
     // so all of the widget space can be used.
-    float widgetAspectRatio = (float)widgetSize.width()/widgetSize.height();
-    float frameAspectRatio =  (float)size.width()/size.height();
+    float widgetAspectRatio = (float)maxImageArea.width()/maxImageArea.height();
+    float frameAspectRatio =  (float)imageSize.width()/imageSize.height();
 
-    if(widgetSize.height() > size.height()
-       && widgetSize.width() > size.width())
+    // by default we use the image as our borders, but in some cases the best way to display
+    // the image is to only show part of it in which case we use the widget border
+    bool useImageLeft = true;
+    bool useImageTop = true;
+
+    if(maxImageArea.height() > imageSize.height()
+       && maxImageArea.width() > imageSize.width())
     {
-      // Scale up the frame because it is too small to fill the widget slot (will stretch the image).
-      // Mostly relevant for very small resolutions (and big screens) where we sacrifice some of the visual appeal
-      // in order to show all the pixels to user in all cases, maximizing the little quality we have without forcing
-      // the receiver to look at a postage stamp video.
-      size.scale(widgetSize.expandedTo(size), Qt::KeepAspectRatio);
+      // Scale up the frame because it is too small to fill the widget slot (will stretch the image, but not lose pixels).
+      // Mostly relevant for very small resolutions (and big screens) where we fill the widget space as much as we can
+      // while also showing all the pixels available, maximizing the little quality we have without forcing
+      // the user to look at a postage stamp video.
+      imageSize.scale(maxImageArea.expandedTo(imageSize), Qt::KeepAspectRatio);
+      borderRect_.setSize(imageSize + QSize(1,1));
     }
     else if (widgetAspectRatio <= frameAspectRatio)
     {
       // Limit the target by widget height without stretching the image
       // (will cut some of the image from left and right)
-      QSize newScale = {size.width(), widgetSize.height()};
-      size.scale(newScale, Qt::KeepAspectRatio);
+      QSize newScale = {imageSize.width(), maxImageArea.height()};
+      imageSize.scale(newScale, Qt::KeepAspectRatio);
+
+      if (imageSize.height() < maxImageArea.height())
+      {
+        borderRect_.setHeight(imageSize.height());
+      }
+      useImageLeft = false;
     }
     else
     {
-      // Limit the target by widget width without stretching the image 
+      // Limit the target by widget width without stretching the image
       // (will cut some of the image from top and bottom)
-      QSize newScale = {widgetSize.width(), size.height()};
-      size.scale(newScale, Qt::KeepAspectRatio);
+      QSize newScale = {maxImageArea.width(), imageSize.height()};
+      imageSize.scale(newScale, Qt::KeepAspectRatio);
+
+      if (imageSize.width() < maxImageArea.width())
+      {
+        borderRect_.setWidth(imageSize.width());
+      }
+
+      useImageTop = false;
     }
 
-    targetRect_ = QRect(QPoint(0, 0), size);
-    targetRect_.moveCenter(widget->rect().center());
-    newFrameRect_ = QRect(QPoint(0, 0), size + QSize(borderSize_,borderSize_));
-    newFrameRect_.moveCenter(widget->rect().center());
+    imageRect_ = QRect(QPoint(0, 0), imageSize);
+    imageRect_.moveCenter(widget->rect().center());
+
+    if (useImageLeft)
+    {
+      borderRect_.moveLeft(imageRect_.left() - 1);
+    }
+    if (useImageTop)
+    {
+      borderRect_.moveTop(imageRect_.top() - 1);
+    }
 
     QPoint iconLocation = QPoint(0, 0);
-    if (newFrameRect_.topLeft().x() > iconLocation.x())
+    if (imageRect_.topLeft().x() > iconLocation.x())
     {
-      iconLocation.setX(newFrameRect_.topLeft().x());
+      iconLocation.setX(imageRect_.topLeft().x());
     }
-    if (newFrameRect_.topLeft().y() > iconLocation.y())
+    if (imageRect_.topLeft().y() > iconLocation.y())
     {
-      iconLocation.setY(newFrameRect_.topLeft().y());
+      iconLocation.setY(imageRect_.topLeft().y());
     }
 
-    iconRect_ = QRect(iconLocation, size*0.05);
+    iconRect_ = QRect(iconLocation, imageSize*0.05);
 
     previousSize_ = lastFrame_.image.size();
 
@@ -300,9 +331,9 @@ void VideoDrawHelper::addPointToOverlay(const QPointF& position, bool addPoint, 
         proportion = 5;  // 20% of image
       }
 
-      const QSizeF size(targetRect_.width()/proportion, targetRect_.width()/proportion);
+      const QSizeF size(imageRect_.width()/proportion, imageRect_.width()/proportion);
       QPointF circleHalfway(size.width()/2, size.height()/2);
-      QRectF drawnCircle(position - targetRect_.topLeft() - circleHalfway, size);
+      QRectF drawnCircle(position - imageRect_.topLeft() - circleHalfway, size);
 
       painter.drawEllipse(drawnCircle);
     }
@@ -311,7 +342,7 @@ void VideoDrawHelper::addPointToOverlay(const QPointF& position, bool addPoint, 
       QSizeF viewMultiplier = getSizeMultipliers(previousSize_.width(),
                                                  previousSize_.height());
       QPointF viewCTUSize = {CTU_SIZE*viewMultiplier.width(), CTU_SIZE*viewMultiplier.height()};
-      QPointF viewPosition = (position - targetRect_.topLeft());
+      QPointF viewPosition = (position - imageRect_.topLeft());
 
       // color the CTU at mouse coordinates
       setCTUQP(painter, viewPosition, viewMultiplier); // center
@@ -386,7 +417,7 @@ void VideoDrawHelper::drawGrid()
   if (drawOverlay_ && firstImageReceived_)
   {
     // reset the grid in every case, this also clears the grid in case it was disabled
-    grid_ = QImage(targetRect_.size(), IMAGE_FORMAT);
+    grid_ = QImage(imageRect_.size(), IMAGE_FORMAT);
     grid_.fill(QColor(0,0,0,0));
 
     if (showGrid_)
@@ -443,6 +474,13 @@ void VideoDrawHelper::draw(QPainter& painter)
   if (drawIcon_)
   {
     micIcon_.render(&painter, iconRect_);
+  }
+
+  if (borderSize_ > 0)
+  {
+    QPen borderPen(QColor(140, 140, 140, 255));
+    painter.setPen(borderPen);
+    painter.drawRect(borderRect_);
   }
 }
 
@@ -603,7 +641,7 @@ void VideoDrawHelper::updateROIMask(int &width, int &height, int qp, bool scaleT
 
 QSizeF VideoDrawHelper::getSizeMultipliers(int width, int height)
 {
-  return QSizeF((float)targetRect_.width()/width, (float)targetRect_.height()/height);
+  return QSizeF((float)imageRect_.width()/width, (float)imageRect_.height()/height);
 }
 
 

@@ -59,12 +59,12 @@ public:
 
   QRect getTargetRect()
   {
-    return targetRect_;
+    return imageRect_;
   }
 
   QRect getFrameRect()
   {
-    return newFrameRect_;
+    return borderRect_;
   }
 
   std::unique_ptr<int8_t[]> getRoiMask(int& width, int& height, int qp, bool scaleToInput);
@@ -95,9 +95,9 @@ private:
 
   QWidget* tmpParent_;
 
-  QRect targetRect_;
+  QRect imageRect_;
   QRect iconRect_;
-  QRect newFrameRect_;
+  QRect borderRect_;
 
   bool firstImageReceived_;
   QSize previousSize_;
