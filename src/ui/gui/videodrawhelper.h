@@ -133,4 +133,6 @@ private:
 
   QSvgRenderer  micIcon_;
   bool drawIcon_;
+
+  bool fullscreen_;
 };

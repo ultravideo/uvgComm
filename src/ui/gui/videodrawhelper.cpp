@@ -33,7 +33,8 @@ VideoDrawHelper::VideoDrawHelper(uint32_t sessionID, uint32_t index, uint8_t bor
   showGrid_(false),
   pixelBasedDrawing_(false),
   micIcon_(QString("icons/mic_off.svg")),
-  drawIcon_(false)
+  drawIcon_(false),
+  fullscreen_(false)
 {
   micIcon_.setAspectRatioMode(Qt::KeepAspectRatio);
 }
@@ -476,7 +477,7 @@ void VideoDrawHelper::draw(QPainter& painter)
     micIcon_.render(&painter, iconRect_);
   }
 
-  if (borderSize_ > 0)
+  if (borderSize_ > 0 && !fullscreen_)
   {
     QPen borderPen(QColor(140, 140, 140, 255));
     painter.setPen(borderPen);
@@ -522,6 +523,7 @@ void VideoDrawHelper::mouseDoubleClickEvent(QWidget* widget)
 void VideoDrawHelper::enterFullscreen(QWidget* widget)
 {
   Logger::getLogger()->printNormal(this, "Setting video view fullscreen");
+  fullscreen_ = true;
 
   tmpParent_ = widget->parentWidget();
   widget->setParent(nullptr);
@@ -538,6 +540,8 @@ void VideoDrawHelper::exitFullscreen(QWidget* widget)
 {
   Logger::getLogger()->printNormal(this, "Returning video widget to original place", "SessionID",
                                    QString::number(sessionID_));
+
+  fullscreen_ = false;
 
   widget->setParent(tmpParent_);
   //this->showMaximized();
