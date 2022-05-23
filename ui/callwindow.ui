@@ -64,6 +64,9 @@
        </size>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout">
+       <property name="spacing">
+        <number>0</number>
+       </property>
        <property name="topMargin">
         <number>0</number>
        </property>
@@ -660,7 +663,7 @@
         <number>3</number>
        </property>
        <property name="spacing">
-        <number>3</number>
+        <number>0</number>
        </property>
       </layout>
      </widget>
