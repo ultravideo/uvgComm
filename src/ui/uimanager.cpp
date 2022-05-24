@@ -88,11 +88,10 @@ void UIManager::init(ParticipantInterface *partInt)
                    this,     &UIManager::endCall);
 
   settingsView_.init();
+  window_.init(partInt);
 
   getViewFactory()->addSelfview(settingsView_.getSelfViews(),
                                 settingsView_.getSelfViews());
-
-  window_.init(partInt);
 }
 
 
