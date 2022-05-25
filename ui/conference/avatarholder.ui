@@ -104,7 +104,7 @@
   <customwidget>
    <class>AvatarImage</class>
    <extends>QWidget</extends>
-   <header>avatarimage.h</header>
+   <header>src/ui/gui/avatarimage.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
