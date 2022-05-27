@@ -211,7 +211,6 @@ private:
   // a timer for reducing number of gui updates and making it more readable
   QElapsedTimer guiTimer_;
   qint64 guiUpdates_;
-  qint64 rtcpUpdates_;
 
   // for updating the tab as fast as possible
   int lastTabIndex_;

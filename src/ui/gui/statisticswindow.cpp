@@ -55,7 +55,6 @@ StatisticsInterface(),
   audioEncDelay_(BUFFERSIZE,nullptr),
   guiTimer_(),
   guiUpdates_(0),
-  rtcpUpdates_(0),
   lastTabIndex_(254) // an invalid value so we will update the tab immediately
 {
   ui_->setupUi(this);
@@ -702,6 +701,15 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
       ui_->packets_received_value->setText( QString::number(receivePacketCount_));
       ui_->data_received_value->setText( QString::number(receivedData_));
 
+      // jitter and lost charts
+      for(auto& d : sessions_)
+      {
+        ui_->v_jitter->addPoint(d.second.tableIndex + 1, d.second.videoJitter);
+        ui_->v_lost->addPoint(  d.second.tableIndex + 1, d.second.videoLost);
+        ui_->a_jitter->addPoint(d.second.tableIndex + 1, d.second.audioJitter);
+        ui_->a_lost->addPoint(  d.second.tableIndex + 1, d.second.audioLost);
+      }
+
       // bandwidth chart
       float packetRate = 0.0f; // not interested in this at the moment.
       uint32_t inBandwidth = calculateAverageAndRate(inBandWidth_, inIndex_, packetRate, 5000, true);
@@ -710,7 +718,6 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 
       ui_->bandwidth_chart->addPoint(1, inBandwidth);
       ui_->bandwidth_chart->addPoint(2, outBandwidth);
-
 
       break;
     }
@@ -812,27 +819,6 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
       break;
     }
     }
-  }
-
-  if((lastTabIndex_ != DELIVERY_TAB || rtcpUpdates_*5000 < guiTimer_.elapsed()) &&
-     ui_->Statistics_tabs->currentIndex() == DELIVERY_TAB)
-  {
-    // do not take this account if this was only a tab switch
-    if (lastTabIndex_ == DELIVERY_TAB)
-    {
-      ++rtcpUpdates_;
-    }
-
-    deliveryMutex_.lock();
-    // jitter and lost charts
-    for(auto& d : sessions_)
-    {
-      ui_->v_jitter->addPoint(d.second.tableIndex + 1, d.second.videoJitter);
-      ui_->v_lost->addPoint(  d.second.tableIndex + 1, d.second.videoLost);
-      ui_->a_jitter->addPoint(d.second.tableIndex + 1, d.second.audioJitter);
-      ui_->a_lost->addPoint(  d.second.tableIndex + 1, d.second.audioLost);
-    }
-    deliveryMutex_.unlock();
   }
 
   QDialog::paintEvent(event);
