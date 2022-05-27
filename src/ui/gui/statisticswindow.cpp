@@ -576,8 +576,6 @@ void StatisticsWindow::addRTCPPacket(uint32_t sessionID, QString type,
                                      uint32_t last_seq,
                                      uint32_t jitter)
 {
-  Logger::getLogger()->printNormal(this, "Got RTCP packet", "Jitter", QString::number(jitter));
-
   if(sessions_.find(sessionID) != sessions_.end())
   {
     deliveryMutex_.lock();
