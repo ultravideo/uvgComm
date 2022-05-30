@@ -35,7 +35,8 @@ public:
 
 private:
 
-  void updateGlobalBitrate(int bitrate, DataType type);
+  void updateGlobalBitrate(int& bitrate,
+                           std::map<uint32_t, std::shared_ptr<StreamInfo> > &streams);
 
   std::shared_ptr<StreamInfo> getStreamInfo(uint32_t sessionID, DataType type);
 

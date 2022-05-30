@@ -6,10 +6,10 @@
 #include "logger.h"
 #include "common.h"
 
-const int MIN_OPUS_BITRATE_BITS = 16000;
-const int MAX_OPUS_BITRATE_BITS = 24000;
-const int MIN_HEVC_BITRATE_BITS = 150000;
-const int MAX_HEVC_BITRATE_BITS = 1500000;
+const int MIN_OPUS_BITRATE_BITS = 16000;    // 16 kbit/s
+const int MAX_OPUS_BITRATE_BITS = 24000;    // 24 kbit/s
+const int MIN_HEVC_BITRATE_BITS = 150000;   // 150 kbit/s
+const int MAX_HEVC_BITRATE_BITS = 10000000; // 10 Mbit/s
 
 
 ResourceAllocator::ResourceAllocator():
@@ -76,13 +76,41 @@ void ResourceAllocator::addRTCPReport(uint32_t sessionID, DataType type,
   info->previousJitter = jitter;
   info->previousLost = lost;
 
-  updateGlobalBitrate(info->bitrate, type);
+  bitrateMutex_.lock();
+  if (type == DT_OPUSAUDIO)
+  {
+    updateGlobalBitrate(info->bitrate, audioStreams_);
+  }
+  else
+  {
+    updateGlobalBitrate(info->bitrate, videoStreams_);
+  }
+  bitrateMutex_.unlock();
 }
 
 
-void ResourceAllocator::updateGlobalBitrate(int bitrate, DataType type)
+void ResourceAllocator::updateGlobalBitrate(int& bitrate,
+                                            std::map<uint32_t, std::shared_ptr<StreamInfo>>& streams)
 {
+  if (streams.empty())
+  {
+    return;
+  }
 
+  bool startValueSet = false;
+
+  for (auto& stream : streams)
+  {
+    if (!startValueSet)
+    {
+      bitrate = stream.second->bitrate;
+      startValueSet = true;
+    }
+    else if (stream.second->bitrate < bitrate)
+    {
+      bitrate = stream.second->bitrate;
+    }
+  }
 }
 
 
