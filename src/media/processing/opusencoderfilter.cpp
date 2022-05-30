@@ -1,6 +1,7 @@
 #include "opusencoderfilter.h"
 
 #include "statisticsinterface.h"
+#include "src/media/resourceallocator.h"
 
 #include "common.h"
 #include "settingskeys.h"
@@ -101,6 +102,8 @@ void OpusEncoderFilter::process()
 
     opus_int32 len = 0; // encoded frame size
     uint32_t pos = 0; // output position TODO: Is this pos variable necessary?
+
+    opus_encoder_ctl(enc_, OPUS_SET_BITRATE(getHWManager()->getBitrate(outputType())));
 
     // The audiocapturefilter makes sure the frames are the samplesPerFrame size.
 
