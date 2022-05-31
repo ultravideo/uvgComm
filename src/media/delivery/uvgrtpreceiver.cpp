@@ -1,5 +1,7 @@
 #include "uvgrtpreceiver.h"
+
 #include "statisticsinterface.h"
+#include "src/media/resourceallocator.h"
 
 #include "common.h"
 #include "logger.h"
@@ -170,6 +172,8 @@ void UvgRTPReceiver::processRTCPSenderReport(std::unique_ptr<uvgrtp::frame::rtcp
   {
     if (block.ssrc == ourSSRC)
     {
+      getHWManager()->addRTCPReport(sessionID_, outputType(), block.lost, block.jitter);
+
       QString type = "Other";
       if (isVideo(outputType()))
       {
