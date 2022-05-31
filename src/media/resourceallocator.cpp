@@ -79,11 +79,11 @@ void ResourceAllocator::addRTCPReport(uint32_t sessionID, DataType type,
   bitrateMutex_.lock();
   if (type == DT_OPUSAUDIO)
   {
-    updateGlobalBitrate(info->bitrate, audioStreams_);
+    updateGlobalBitrate(audioBitrate_, audioStreams_);
   }
   else
   {
-    updateGlobalBitrate(info->bitrate, videoStreams_);
+    updateGlobalBitrate(videoBitrate_, videoStreams_);
   }
   bitrateMutex_.unlock();
 }
