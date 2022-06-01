@@ -9,6 +9,7 @@
 
 #include <QObject>
 #include <QTimer>
+#include <map>
 
 #include <functional>
 
@@ -184,7 +185,7 @@ private:
 
   // SIP Transport layer
   // Key is remote address
-  QMap<QString, std::shared_ptr<TransportInstance>> transports_;
+  std::map<QString, std::shared_ptr<TransportInstance>> transports_;
 
   // if we want to do something, but the TCP connection has not yet been established
   struct WaitingStart

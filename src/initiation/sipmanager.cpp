@@ -128,21 +128,21 @@ void SIPManager::uninit()
 
   for(auto& transport : transports_)
   {
-    if(transport != nullptr)
+    if(transport.second != nullptr)
     {
-      if (transport->connection != nullptr)
+      if (transport.second->connection != nullptr)
       {
 
-        transport->connection->exit(0); // stops qthread
-        transport->connection->stopConnection(); // exits run loop
-        while(transport->connection->isRunning())
+        transport.second->connection->exit(0); // stops qthread
+        transport.second->connection->stopConnection(); // exits run loop
+        while(transport.second->connection->isRunning())
         {
           std::this_thread::sleep_for(std::chrono::milliseconds(5));
         }
-        transport->connection.reset();
+        transport.second->connection.reset();
       }
-      transport->pipe.uninit();
-      transport.reset();
+      transport.second->pipe.uninit();
+      transport.second.reset();
     }
   }
 
@@ -441,7 +441,7 @@ void SIPManager::processSIPRequest(SIPRequest& request, QVariant& content,
       if (transports_.size() == 1)
       {
         // if we have one address, it must be it
-        localAddress = transports_.first()->connection->localAddress();
+        localAddress = transports_.begin()->second->connection->localAddress();
       }
       else if (!request.message->vias.empty() &&
                transports_.find(request.message->vias.last().sentBy) != transports_.end())
@@ -662,12 +662,18 @@ std::shared_ptr<TransportInstance> SIPManager::getTransport(QString& address) co
   std::shared_ptr<TransportInstance> foundTransport = nullptr;
   if (transports_.find(address) != transports_.end())
   {
-    foundTransport = transports_[address];
+    foundTransport = transports_.at(address);
   }
   else
   {
-    Logger::getLogger()->printProgramError(this, "Could not find transport",
-                      "Address", address);
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Could not find transport",
+                      {"Address", "Number of transports"}, {address, QString::number(transports_.size())});
+
+    if (transports_.size() == 1)
+    {
+      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Only existing transport address",
+                        {"Address"}, {transports_.begin()->first});
+    }
   }
 
   return foundTransport;
