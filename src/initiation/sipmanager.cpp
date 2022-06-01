@@ -666,13 +666,36 @@ std::shared_ptr<TransportInstance> SIPManager::getTransport(QString& address) co
   }
   else
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Could not find transport",
+    Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Could not find transport",
                       {"Address", "Number of transports"}, {address, QString::number(transports_.size())});
 
     if (transports_.size() == 1)
     {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Only existing transport address",
+      Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Only existing transport address",
                         {"Address"}, {transports_.begin()->first});
+    }
+
+    Logger::getLogger()->printNormal(this, "Trying different IP version of the address");
+
+    QHostAddress differentAddress(address);
+
+    if (differentAddress.protocol() == QAbstractSocket::IPv4Protocol)
+    {
+      differentAddress = QHostAddress(differentAddress.toIPv6Address());
+    }
+    else
+    {
+      differentAddress = QHostAddress(differentAddress.toIPv4Address());
+    }
+
+    if (transports_.find(differentAddress.toString()) != transports_.end())
+    {
+      foundTransport = transports_.at(differentAddress.toString());
+    }
+    else
+    {
+      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "This was not successful",
+                        {"Different IP Address", }, {differentAddress.toString()});
     }
   }
 
