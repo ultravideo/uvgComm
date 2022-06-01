@@ -337,14 +337,7 @@ void SIPManager::receiveTCPConnection(std::shared_ptr<TCPConnection> con)
   Logger::getLogger()->printNormal(this, "Received a TCP connection. Initializing dialog.");
   Q_ASSERT(con);
 
-  int attempts = 100;
-  while (!con->isConnected() && attempts > 0)
-  {
-    std::this_thread::sleep_for(std::chrono::milliseconds(5));
-    -- attempts;
-  }
-
-  if (!con->isConnected())
+  if (!con->waitUntilConnected())
   {
     Logger::getLogger()->printWarning(this, "Did not manage to connect incoming connection!");
     return;

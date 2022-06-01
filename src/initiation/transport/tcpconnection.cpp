@@ -88,6 +88,41 @@ bool TCPConnection::isConnected() const
 }
 
 
+bool TCPConnection::waitUntilConnected()
+{
+  if (socket_ == nullptr && shouldConnect_)
+  {
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+  }
+
+  if (socket_ != nullptr)
+  {
+    if (socket_->state() == QAbstractSocket::ConnectedState)
+    {
+      return true;
+    }
+
+    if (socket_->state() == QAbstractSocket::UnconnectedState ||
+        socket_->state() == QAbstractSocket::HostLookupState  ||
+        socket_->state() == QAbstractSocket::ConnectingState)
+    {
+      int timeout_ms  = 500;
+      return socket_->waitForConnected(timeout_ms);
+    }
+    else
+    {
+      Logger::getLogger()->printWarning(this, "Socket in unsuitable state for connection");
+    }
+  }
+  else
+  {
+    Logger::getLogger()->printWarning(this, "No socket found");
+  }
+
+  return false;
+}
+
+
 QString TCPConnection::localAddress() const
 {
   if (isConnected())

@@ -28,10 +28,9 @@ void SIPRouting::processOutgoingRequest(SIPRequest& request, QVariant& content)
     return;
   }
 
-  // TODO: Handle this better
-  if (!connection_->isConnected())
+  if (!connection_->waitUntilConnected())
   {
-    Logger::getLogger()->printWarning(this, "Socket not connected");
+    Logger::getLogger()->printWarning(this, "Socket is not connected when sending request");
     return;
   }
 
@@ -91,10 +90,9 @@ void SIPRouting::processOutgoingResponse(SIPResponse& response, QVariant& conten
 
   Logger::getLogger()->printNormal(this, "Processing outgoing response");
 
-  // TODO: Handle this better
-  if (!connection_->isConnected())
+  if (!connection_->waitUntilConnected())
   {
-    Logger::getLogger()->printWarning(this, "Socket not connected");
+    Logger::getLogger()->printWarning(this, "Socket is not connected when sending a response");
     return;
   }
 
@@ -118,9 +116,10 @@ void SIPRouting::processIncomingResponse(SIPResponse& response, QVariant& conten
 {
   Q_UNUSED(content)
 
+  /*
   if (connection_ && connection_->isConnected())
   {
-    /*
+
      *TODO: This check does not work in all situations. Sometimes a router decides
      * to change via for INVITE, but not REGISTER which would meaning we have no
      * way of knowing what is our outside NAT address when we receive message to it.
@@ -133,13 +132,14 @@ void SIPRouting::processIncomingResponse(SIPResponse& response, QVariant& conten
                                             "via is not the only one!");
       return;
     }
-    */
+
   }
   else
   {
     Logger::getLogger()->printError(this, "Not connected when checking response via field");
     return;
   }
+  */
 
   if (response.message->cSeq.method == SIP_REGISTER)
   {

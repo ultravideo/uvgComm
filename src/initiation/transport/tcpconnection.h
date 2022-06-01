@@ -37,7 +37,7 @@ public:
     });
   }
 
-  bool isConnected() const;
+  bool waitUntilConnected();
 
   // returns empty string if not connected
   QString localAddress() const;
@@ -75,6 +75,8 @@ protected:
   void run();
 
 private:
+
+  bool isConnected() const;
 
   // connects signals.
   void init();
