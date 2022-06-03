@@ -47,4 +47,6 @@ private:
   QSettings settings_;
 
   int previousBitrate_;
+
+  int lastTabIndex_;
 };

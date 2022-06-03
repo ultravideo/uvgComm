@@ -12,7 +12,8 @@ AutomaticSettings::AutomaticSettings(QWidget *parent):
   QDialog(parent),
   ui_(new Ui::AutomaticSettings),
   settings_(settingsFile, settingsFileFormat),
-  previousBitrate_(0)
+  previousBitrate_(0),
+  lastTabIndex_(0)
 {
   ui_->setupUi(this);
   QObject::connect(ui_->close_button, &QPushButton::clicked,
@@ -110,14 +111,19 @@ void AutomaticSettings::reset()
 
 void AutomaticSettings::tabChanged(int index)
 {
+  // disable the last tab
+  if (lastTabIndex_ == ROI_TAB)
+  {
+    disableROI();
+  }
+
+  // enable the new tab
   if (index == ROI_TAB)
   {
     activateROI();
   }
-  else
-  {
-    disableROI();
-  }
+
+  lastTabIndex_ = index;
 }
 
 
