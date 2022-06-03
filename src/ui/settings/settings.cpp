@@ -122,18 +122,12 @@ void Settings::init()
   QObject::connect(basicUI_->auto_connect_box, &QCheckBox::stateChanged,
                    this,                       &Settings::uiChangedBool);
 
-  QObject::connect(basicUI_->manual_box, &QCheckBox::stateChanged,
-                   this,                 &Settings::uiChangedBool);
-
   QObject::connect(basicUI_->videoDevice_combo, &QComboBox::currentTextChanged,
                    this, &Settings::uiChangedString);
   QObject::connect(basicUI_->audioDevice_combo, &QComboBox::currentTextChanged,
                    this, &Settings::uiChangedString);
   QObject::connect(basicUI_->screenDevice_combo, &QComboBox::currentTextChanged,
                    this, &Settings::uiChangedString);
-
-  QObject::connect(basicUI_->manual_box, &QCheckBox::stateChanged,
-                   this, &Settings::manualSettingsButtons);
 
   // we must initialize the settings if they do not exist
   if (!settings_.value(SettingsKey::micStatus).isValid())
@@ -147,37 +141,10 @@ void Settings::init()
     setCameraState(true);
   }
 
-  if (!settings_.value(SettingsKey::cameraStatus).isValid())
-  {
-    manualSettingsButtons(false);
-  }
-  else
-  {
-    manualSettingsButtons(settings_.value(SettingsKey::manualSettings).toBool());
-  }
-
   // never start with screen sharing turned on
   setScreenShareState(false);
 
   // TODO: Also record the position of closed settings window and move the window there when shown again
-}
-
-void Settings::manualSettingsButtons(bool state)
-{
-  if (state)
-  {
-    basicUI_->video_settings_button->show();
-    basicUI_->audio_settings_button->show();
-
-    basicUI_->media_settings_button->hide();
-  }
-  else
-  {
-    basicUI_->video_settings_button->hide();
-    basicUI_->audio_settings_button->hide();
-
-    basicUI_->media_settings_button->show();
-  }
 }
 
 
@@ -360,7 +327,6 @@ void Settings::saveSettings()
     saveTextValue("local/Credentials", credentials, settings_);
   }
   saveCheckBox(SettingsKey::sipAutoConnect, basicUI_->auto_connect_box, settings_);
-  saveCheckBox(SettingsKey::manualSettings, basicUI_->manual_box, settings_);
 
   saveDevice(basicUI_->videoDevice_combo, SettingsKey::videoDeviceID,
              SettingsKey::videoDevice, true);
@@ -392,9 +358,6 @@ void Settings::getSettings(bool changedDevice)
     basicUI_->serverAddress_edit->setText(settings_.value(SettingsKey::sipServerAddress).toString());
 
     restoreCheckBox(SettingsKey::sipAutoConnect, basicUI_->auto_connect_box, settings_);
-    restoreCheckBox(SettingsKey::manualSettings, basicUI_->manual_box, settings_);
-
-    manualSettingsButtons(basicUI_->manual_box->checkState());
 
     // updates the sip text label
     changedSIPText("");
@@ -459,7 +422,6 @@ void Settings::resetFaultySettings()
   // 2) that connecting to server is default since it is the easiest way to use Kvazzup
   // These two conditions can only be achieved by modifying UI after settings have been saved
   basicUI_->auto_connect_box->setChecked(true);
-  basicUI_->manual_box->setChecked(true); // TODO: Change this to false when automatic settigns are ready
 
   sipSettings_.resetSettings();
 

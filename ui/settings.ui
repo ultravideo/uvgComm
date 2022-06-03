@@ -90,43 +90,6 @@
        <string>User</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_2">
-       <item row="15" column="3">
-        <widget class="QCheckBox" name="manual_box">
-         <property name="text">
-          <string/>
-         </property>
-         <property name="checked">
-          <bool>true</bool>
-         </property>
-         <property name="tristate">
-          <bool>false</bool>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="0">
-        <widget class="QLabel" name="Name">
-         <property name="font">
-          <font>
-           <pointsize>12</pointsize>
-          </font>
-         </property>
-         <property name="text">
-          <string>Display Name</string>
-         </property>
-        </widget>
-       </item>
-       <item row="12" column="0">
-        <widget class="QLabel" name="label_VideoDevice">
-         <property name="font">
-          <font>
-           <pointsize>12</pointsize>
-          </font>
-         </property>
-         <property name="text">
-          <string>Camera</string>
-         </property>
-        </widget>
-       </item>
        <item row="13" column="3">
         <widget class="QComboBox" name="audioDevice_combo">
          <property name="maximumSize">
@@ -147,33 +110,45 @@
          </property>
         </widget>
        </item>
-       <item row="12" column="1" colspan="2">
-        <spacer name="horizontalSpacer_4">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
+       <item row="18" column="3">
+        <widget class="QPushButton" name="media_settings_button">
+         <property name="minimumSize">
           <size>
-           <width>40</width>
-           <height>20</height>
+           <width>150</width>
+           <height>0</height>
           </size>
          </property>
-        </spacer>
-       </item>
-       <item row="0" column="3">
-        <widget class="QLineEdit" name="name_edit">
          <property name="maximumSize">
           <size>
-           <width>256</width>
+           <width>250</width>
            <height>16777215</height>
           </size>
          </property>
          <property name="text">
-          <string/>
+          <string>Media Settings</string>
          </property>
         </widget>
        </item>
-       <item row="15" column="0">
+       <item row="9" column="3">
+        <widget class="QLabel" name="status">
+         <property name="text">
+          <string>Disconnected</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="Name">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
+         <property name="text">
+          <string>Display Name</string>
+         </property>
+        </widget>
+       </item>
+       <item row="20" column="0">
         <widget class="QLabel" name="label_manual">
          <property name="font">
           <font>
@@ -185,42 +160,42 @@
          </property>
         </widget>
        </item>
-       <item row="10" column="0" colspan="4">
-        <widget class="QLabel" name="label">
-         <property name="minimumSize">
+       <item row="3" column="3">
+        <widget class="QLineEdit" name="serverAddress_edit">
+         <property name="maximumSize">
           <size>
-           <width>0</width>
-           <height>50</height>
+           <width>256</width>
+           <height>16777215</height>
           </size>
          </property>
          <property name="text">
-          <string>Note: Only enable proxy connection if you are okay with sharing your IP address with the proxy for connection purposes.</string>
-         </property>
-         <property name="wordWrap">
-          <bool>true</bool>
+          <string/>
          </property>
         </widget>
        </item>
-       <item row="4" column="3">
-        <widget class="QLineEdit" name="passwd_edit"/>
-       </item>
-       <item row="1" column="0">
-        <spacer name="verticalSpacer">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeType">
-          <enum>QSizePolicy::Minimum</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
+       <item row="14" column="3">
+        <widget class="QComboBox" name="screenDevice_combo">
+         <property name="maximumSize">
           <size>
-           <width>20</width>
-           <height>20</height>
+           <width>256</width>
+           <height>16777215</height>
           </size>
          </property>
-        </spacer>
+        </widget>
        </item>
-       <item row="19" column="3">
+       <item row="12" column="0">
+        <widget class="QLabel" name="label_VideoDevice">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
+         <property name="text">
+          <string>Camera</string>
+         </property>
+        </widget>
+       </item>
+       <item row="24" column="3">
         <widget class="QPushButton" name="video_settings_button">
          <property name="enabled">
           <bool>true</bool>
@@ -242,43 +217,16 @@
          </property>
         </widget>
        </item>
-       <item row="15" column="1" colspan="2">
-        <spacer name="horizontalSpacer_7">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
+       <item row="0" column="3">
+        <widget class="QLineEdit" name="name_edit">
+         <property name="maximumSize">
           <size>
-           <width>40</width>
-           <height>20</height>
+           <width>256</width>
+           <height>16777215</height>
           </size>
          </property>
-        </spacer>
-       </item>
-       <item row="6" column="0">
-        <widget class="QLabel" name="label_status">
-         <property name="font">
-          <font>
-           <pointsize>12</pointsize>
-          </font>
-         </property>
          <property name="text">
-          <string>Status:</string>
-         </property>
-        </widget>
-       </item>
-       <item row="14" column="0">
-        <widget class="QLabel" name="label_share">
-         <property name="font">
-          <font>
-           <pointsize>12</pointsize>
-          </font>
-         </property>
-         <property name="text">
-          <string>Shared Screen Number</string>
-         </property>
-         <property name="checked" stdset="0">
-          <bool>false</bool>
+          <string/>
          </property>
         </widget>
        </item>
@@ -294,46 +242,14 @@
          </property>
         </widget>
        </item>
-       <item row="13" column="1" colspan="2">
-        <spacer name="horizontalSpacer_5">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
+       <item row="17" column="3">
+        <widget class="QPushButton" name="sip_settings_button">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
          </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>40</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="Username">
-         <property name="font">
-          <font>
-           <pointsize>12</pointsize>
-          </font>
-         </property>
-         <property name="text">
-          <string>Username</string>
-         </property>
-        </widget>
-       </item>
-       <item row="16" column="0" colspan="3">
-        <spacer name="horizontalSpacer_2">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>40</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="18" column="3">
-        <widget class="QPushButton" name="audio_settings_button">
          <property name="minimumSize">
           <size>
            <width>150</width>
@@ -347,80 +263,11 @@
           </size>
          </property>
          <property name="text">
-          <string>Audio Settings</string>
+          <string>Call Settings</string>
          </property>
         </widget>
        </item>
-       <item row="12" column="3">
-        <widget class="QComboBox" name="videoDevice_combo">
-         <property name="minimumSize">
-          <size>
-           <width>164</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>256</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="insertPolicy">
-          <enum>QComboBox::InsertAtBottom</enum>
-         </property>
-        </widget>
-       </item>
-       <item row="16" column="3">
-        <spacer name="verticalSpacer_2">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>40</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="4" column="0">
-        <widget class="QLabel" name="label_password">
-         <property name="font">
-          <font>
-           <pointsize>12</pointsize>
-          </font>
-         </property>
-         <property name="text">
-          <string>Password</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="label_server">
-         <property name="font">
-          <font>
-           <pointsize>12</pointsize>
-          </font>
-         </property>
-         <property name="text">
-          <string>Proxy address</string>
-         </property>
-        </widget>
-       </item>
-       <item row="14" column="1" colspan="2">
-        <spacer name="horizontalSpacer_6">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>40</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="2" column="3">
+       <item row="1" column="3">
         <widget class="QLineEdit" name="username_edit">
          <property name="maximumSize">
           <size>
@@ -449,30 +296,116 @@
          </property>
         </widget>
        </item>
-       <item row="6" column="3">
-        <widget class="QLabel" name="status">
+       <item row="1" column="0">
+        <widget class="QLabel" name="Username">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
          <property name="text">
-          <string>Disconnected</string>
+          <string>Username</string>
          </property>
         </widget>
        </item>
-       <item row="8" column="3">
-        <widget class="QCheckBox" name="auto_connect_box">
-         <property name="text">
-          <string>Connect to proxy</string>
+       <item row="16" column="3">
+        <spacer name="verticalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
          </property>
-        </widget>
-       </item>
-       <item row="3" column="3">
-        <widget class="QLineEdit" name="serverAddress_edit">
-         <property name="maximumSize">
+         <property name="sizeType">
+          <enum>QSizePolicy::Expanding</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
           <size>
-           <width>256</width>
-           <height>16777215</height>
+           <width>20</width>
+           <height>20</height>
           </size>
          </property>
+        </spacer>
+       </item>
+       <item row="16" column="0" rowspan="2">
+        <spacer name="verticalSpacer_3">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="13" column="0">
+        <widget class="QLabel" name="label_audioDevice">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
+         <property name="text">
+          <string>Microphone</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="3">
+        <widget class="QCheckBox" name="auto_connect_box">
          <property name="text">
           <string/>
+         </property>
+        </widget>
+       </item>
+       <item row="12" column="1" colspan="2">
+        <spacer name="horizontalSpacer_4">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="24" column="2">
+        <spacer name="horizontalSpacer_7">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="14" column="0">
+        <widget class="QLabel" name="label_share">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
+         <property name="text">
+          <string>Shared Screen Number</string>
+         </property>
+         <property name="checked" stdset="0">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="label_server">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
+         <property name="text">
+          <string>Address</string>
          </property>
         </widget>
        </item>
@@ -489,8 +422,40 @@
          </property>
         </spacer>
        </item>
-       <item row="14" column="3">
-        <widget class="QComboBox" name="screenDevice_combo">
+       <item row="12" column="3">
+        <widget class="QComboBox" name="videoDevice_combo">
+         <property name="minimumSize">
+          <size>
+           <width>164</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>256</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="insertPolicy">
+          <enum>QComboBox::InsertAtBottom</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="13" column="1" colspan="2">
+        <spacer name="horizontalSpacer_5">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="2" column="3">
+        <widget class="QLineEdit" name="passwd_edit">
          <property name="maximumSize">
           <size>
            <width>256</width>
@@ -499,26 +464,64 @@
          </property>
         </widget>
        </item>
-       <item row="13" column="0">
-        <widget class="QLabel" name="label_audioDevice">
+       <item row="2" column="0">
+        <widget class="QLabel" name="label_password">
          <property name="font">
           <font>
            <pointsize>12</pointsize>
           </font>
          </property>
          <property name="text">
-          <string>Microphone</string>
+          <string>Password</string>
+         </property>
+        </widget>
+       </item>
+       <item row="14" column="1" colspan="2">
+        <spacer name="horizontalSpacer_6">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="6" column="0">
+        <widget class="QLabel" name="label">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
+         <property name="text">
+          <string>Address is a Proxy</string>
+         </property>
+        </widget>
+       </item>
+       <item row="9" column="0">
+        <widget class="QLabel" name="label_status">
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+          </font>
+         </property>
+         <property name="text">
+          <string>Status:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="19" column="0" colspan="4">
+        <widget class="Line" name="line_2">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
          </property>
         </widget>
        </item>
        <item row="20" column="3">
-        <widget class="QPushButton" name="sip_settings_button">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
+        <widget class="QPushButton" name="audio_settings_button">
          <property name="minimumSize">
           <size>
            <width>150</width>
@@ -532,14 +535,7 @@
           </size>
          </property>
          <property name="text">
-          <string>Call Settings</string>
-         </property>
-        </widget>
-       </item>
-       <item row="17" column="3">
-        <widget class="QPushButton" name="media_settings_button">
-         <property name="text">
-          <string>Media Settings</string>
+          <string>Audio Settings</string>
          </property>
         </widget>
        </item>
@@ -553,12 +549,9 @@
   <tabstop>name_edit</tabstop>
   <tabstop>username_edit</tabstop>
   <tabstop>serverAddress_edit</tabstop>
-  <tabstop>auto_connect_box</tabstop>
   <tabstop>videoDevice_combo</tabstop>
   <tabstop>audioDevice_combo</tabstop>
   <tabstop>screenDevice_combo</tabstop>
-  <tabstop>audio_settings_button</tabstop>
-  <tabstop>video_settings_button</tabstop>
   <tabstop>save</tabstop>
   <tabstop>close</tabstop>
   <tabstop>SettingTabs</tabstop>

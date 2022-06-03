@@ -82,8 +82,6 @@ public slots:
 
   void changedSIPText(const QString &text);
 
-  void manualSettingsButtons(bool state);
-
   void uiChangedString(QString text);
   void uiChangedBool(bool state);
 
