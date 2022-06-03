@@ -101,12 +101,12 @@ void ResourceAllocator::updateGlobalBitrate(int& bitrate,
 
   for (auto& stream : streams)
   {
-    if (!startValueSet)
+    if (!startValueSet && stream.second != nullptr)
     {
       bitrate = stream.second->bitrate;
       startValueSet = true;
     }
-    else if (stream.second->bitrate < bitrate)
+    else if (stream.second != nullptr && stream.second->bitrate < bitrate)
     {
       bitrate = stream.second->bitrate;
     }
@@ -136,6 +136,7 @@ int ResourceAllocator::getBitrate(DataType type)
 std::shared_ptr<StreamInfo> ResourceAllocator::getStreamInfo(uint32_t sessionID, DataType type)
 {
   std::shared_ptr<StreamInfo> pointer = nullptr;
+  bitrateMutex_.lock();
   if (type == DT_OPUSAUDIO)
   {
     if (audioStreams_.find(sessionID) == audioStreams_.end())
@@ -160,6 +161,7 @@ std::shared_ptr<StreamInfo> ResourceAllocator::getStreamInfo(uint32_t sessionID,
   {
     Logger::getLogger()->printUnimplemented(this, "Resource allocator tries to adjust unimplemented bit rate");
   }
+  bitrateMutex_.unlock();
   return pointer;
 }
 
