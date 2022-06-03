@@ -82,6 +82,8 @@ void AutomaticSettings::updateConfig(int i)
 
 void AutomaticSettings::show()
 {
+  Logger::getLogger()->printNormal(this, "Showing media settings");
+
   if (ui_->tabs->currentIndex() == ROI_TAB)
   {
     activateROI();
@@ -91,9 +93,22 @@ void AutomaticSettings::show()
 }
 
 
+void AutomaticSettings::closeEvent(QCloseEvent *event)
+{
+  Logger::getLogger()->printNormal(this, "Closing media settings");
+
+  finished();
+  QWidget::closeEvent(event);
+}
+
+
 void AutomaticSettings::finished()
 {
-  disableROI();
+  if (ui_->tabs->currentIndex() == ROI_TAB)
+  {
+    disableROI();
+  }
+
   hide();
   emit hidden();
 }

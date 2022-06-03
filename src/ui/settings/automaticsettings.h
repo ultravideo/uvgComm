@@ -21,6 +21,9 @@ public:
 
   virtual void show();
 
+protected:
+  virtual void closeEvent(QCloseEvent *event);
+
 public slots:
   void finished();
 
