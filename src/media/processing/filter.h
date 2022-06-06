@@ -15,6 +15,7 @@
 #include <queue>
 #include <memory>
 #include <functional>
+#include <chrono>
 
 // One of the most fundamental classes of Kvazzup. A filter is an indipendent data processing
 // unit running on its own thread. Filters can be linked together to form a data processing pipeline
@@ -75,7 +76,7 @@ class Filter : public QThread
 public:
   Filter(QString id, QString name, StatisticsInterface* stats,
          std::shared_ptr<ResourceAllocator> hwResources,
-         DataType input, DataType output);
+         DataType input, DataType output, bool enforceFramerate = false);
   virtual ~Filter();
 
   // Redefine this to handle the initialization of the filter
@@ -196,6 +197,9 @@ private:
 
   std::unique_ptr<Data> validityCheck(std::unique_ptr<Data> data, bool &ok);
 
+  std::chrono::time_point<std::chrono::high_resolution_clock> getFrameTimepoint();
+  void resetSynchronizationPoint(double framerate);
+
   QString name_;
   QString id_;
 
@@ -220,4 +224,10 @@ private:
   std::shared_ptr<ResourceAllocator> hwResources_;
 
   uint32_t filterID_;
+
+  // optional smoothing of input frames to frame rate
+  bool enforceFramerate_;
+  std::chrono::time_point<std::chrono::high_resolution_clock> synchronizationPoint_;
+  uint64_t framesSinceSynchronization_;
+  double currentFramerate_;
 };
