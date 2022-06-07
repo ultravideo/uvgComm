@@ -773,6 +773,10 @@ void SIPManager::createSIPTransport(QString remoteAddress,
   {
     Logger::getLogger()->printNormal(this, "Not creating SIP transport since it already exists");
   }
+
+  // In case the connection has already received a message,
+  // we announce that we are ready to process them
+  connection->allowReceiving();
 }
 
 

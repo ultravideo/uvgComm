@@ -26,6 +26,10 @@ public:
   // use this to give the socket to Connection
   void setExistingConnection(qintptr socketDescriptor);
 
+  void allowReceiving()
+  {
+    allowedToSendMessages_ = true;
+  }
 
   // callback
   template <typename Class>
@@ -113,4 +117,6 @@ private:
   QMutex readWriteMutex_;
 
   QString leftOvers_;
+
+  bool allowedToSendMessages_;
 };

@@ -26,7 +26,8 @@ TCPConnection::TCPConnection()
     socketDescriptor_(0),
     buffer_(),
     sendMutex_(),
-    active_(false)
+    active_(false),
+    allowedToSendMessages_(false)
 {}
 
 TCPConnection::~TCPConnection()
@@ -348,6 +349,11 @@ void TCPConnection::run()
         QTextStream in(socket_);
         QString message;
         message = in.read(MAX_READ_BYTES);
+
+        while (!allowedToSendMessages_ && active_)
+        {
+          msleep(5);
+        }
 
         emit messageAvailable(message);
       }
