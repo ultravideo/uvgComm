@@ -178,6 +178,8 @@ bool KvazaarFilter::init()
       api_->config_parse(config_, "rc-algorithm",    settings.value(SettingsKey::videoRCAlgorithm).toString().toLocal8Bit());
     }
 
+    api_->config_parse(config_, "intra-bits", "");
+
     // TODO: Move to settings
     api_->config_parse(config_, "gop", "lp-g4d3t1");
 
