@@ -122,6 +122,12 @@ void Settings::init()
   QObject::connect(basicUI_->auto_connect_box, &QCheckBox::stateChanged,
                    this,                       &Settings::uiChangedBool);
 
+  QObject::connect(basicUI_->show_manual_box, &QCheckBox::stateChanged,
+                   this,                       &Settings::uiChangedBool);
+
+  QObject::connect(basicUI_->show_manual_box, &QCheckBox::stateChanged,
+                   this,                      &Settings::showManual);
+
   QObject::connect(basicUI_->videoDevice_combo, &QComboBox::currentTextChanged,
                    this, &Settings::uiChangedString);
   QObject::connect(basicUI_->audioDevice_combo, &QComboBox::currentTextChanged,
@@ -134,7 +140,6 @@ void Settings::init()
   {
     setMicState(true);
   }
-
 
   if (!settings_.value(SettingsKey::cameraStatus).isValid())
   {
@@ -246,6 +251,21 @@ void Settings::uiChangedBool(bool state)
 }
 
 
+void Settings::showManual(bool state)
+{
+  if (state)
+  {
+    basicUI_->video_settings_button->show();
+    basicUI_->audio_settings_button->show();
+  }
+  else
+  {
+    basicUI_->video_settings_button->hide();
+    basicUI_->audio_settings_button->hide();
+  }
+}
+
+
 void Settings::on_save_clicked()
 {
   Logger::getLogger()->printNormal(this, "Saving settings");
@@ -326,7 +346,9 @@ void Settings::saveSettings()
 
     saveTextValue("local/Credentials", credentials, settings_);
   }
+
   saveCheckBox(SettingsKey::sipAutoConnect, basicUI_->auto_connect_box, settings_);
+  saveCheckBox(SettingsKey::manualSettings, basicUI_->show_manual_box, settings_);
 
   saveDevice(basicUI_->videoDevice_combo, SettingsKey::videoDeviceID,
              SettingsKey::videoDevice, true);
@@ -358,6 +380,10 @@ void Settings::getSettings(bool changedDevice)
     basicUI_->serverAddress_edit->setText(settings_.value(SettingsKey::sipServerAddress).toString());
 
     restoreCheckBox(SettingsKey::sipAutoConnect, basicUI_->auto_connect_box, settings_);
+    restoreCheckBox(SettingsKey::manualSettings, basicUI_->show_manual_box, settings_);
+
+    // set the UI in correct state
+    showManual(basicUI_->show_manual_box->isChecked());
 
     // updates the sip text label
     changedSIPText("");

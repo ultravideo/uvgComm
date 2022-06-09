@@ -85,6 +85,8 @@ public slots:
   void uiChangedString(QString text);
   void uiChangedBool(bool state);
 
+  void showManual(bool state);
+
 private:
 
   // Make sure the UI video devices are initialized before calling this.
