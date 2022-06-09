@@ -169,13 +169,21 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
   settings_.setValue(SettingsKey::videoDeviceID,        format.deviceID);
 
   // select best camera/format here
+  settings_.setValue(SettingsKey::videoResolutionID,    format.resolutionID);
+  settings_.setValue(SettingsKey::videoFramerateID,     format.framerateID);
+
+#ifdef __linux__
+  // TODO: Find an alternative to Linux Qt camera
+  settings_.setValue(SettingsKey::videoInputFormat,     "RGB32");
+  settings_.setValue(SettingsKey::videoResultionWidth,  640);
+  settings_.setValue(SettingsKey::videoResultionHeight, 480);
+  settings_.setValue(SettingsKey::videoFramerate,       30);
+#else
   settings_.setValue(SettingsKey::videoInputFormat,     format.format);
   settings_.setValue(SettingsKey::videoResultionWidth,  format.resolution.width());
   settings_.setValue(SettingsKey::videoResultionHeight, format.resolution.height());
-  settings_.setValue(SettingsKey::videoResolutionID,    format.resolutionID);
-  settings_.setValue(SettingsKey::videoFramerateID,     format.framerateID);
   settings_.setValue(SettingsKey::videoFramerate,       format.framerate);
-
+#endif
 
   settings_.setValue(SettingsKey::videoOpenGL, 0); // TODO: When can we enable this?
   settings_.setValue(SettingsKey::videoQP, 32);
