@@ -188,7 +188,6 @@
          <property name="font">
           <font>
            <pointsize>16</pointsize>
-           <weight>75</weight>
            <bold>true</bold>
           </font>
          </property>
@@ -418,7 +417,6 @@
          <property name="font">
           <font>
            <pointsize>16</pointsize>
-           <weight>75</weight>
            <bold>true</bold>
           </font>
          </property>
@@ -451,7 +449,6 @@
          <property name="font">
           <font>
            <pointsize>16</pointsize>
-           <weight>75</weight>
            <bold>true</bold>
           </font>
          </property>
@@ -555,6 +552,8 @@
   <tabstop>complexity_slider</tabstop>
   <tabstop>signal_combo</tabstop>
   <tabstop>aec_box</tabstop>
+  <tabstop>aec_playback_delay</tabstop>
+  <tabstop>aec_filter_length</tabstop>
   <tabstop>dereverberation_box</tabstop>
   <tabstop>denoise_box</tabstop>
   <tabstop>agc_box</tabstop>

@@ -548,10 +548,16 @@
  <tabstops>
   <tabstop>name_edit</tabstop>
   <tabstop>username_edit</tabstop>
+  <tabstop>passwd_edit</tabstop>
   <tabstop>serverAddress_edit</tabstop>
+  <tabstop>auto_connect_box</tabstop>
   <tabstop>videoDevice_combo</tabstop>
   <tabstop>audioDevice_combo</tabstop>
   <tabstop>screenDevice_combo</tabstop>
+  <tabstop>sip_settings_button</tabstop>
+  <tabstop>media_settings_button</tabstop>
+  <tabstop>audio_settings_button</tabstop>
+  <tabstop>video_settings_button</tabstop>
   <tabstop>save</tabstop>
   <tabstop>close</tabstop>
   <tabstop>SettingTabs</tabstop>
