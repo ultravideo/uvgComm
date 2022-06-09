@@ -77,7 +77,7 @@
      </widget>
      <widget class="QWidget" name="roi">
       <attribute name="title">
-       <string>ROI</string>
+       <string>RoI</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_3">
        <item row="0" column="0" colspan="5">
@@ -116,7 +116,7 @@
        <item row="2" column="0">
         <widget class="QLabel" name="roi_lable">
          <property name="text">
-          <string>ROI QP</string>
+          <string>RoI QP</string>
          </property>
         </widget>
        </item>
