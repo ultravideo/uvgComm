@@ -83,7 +83,8 @@ void NetworkCandidates::init()
 
     foreach (const QHostAddress& address, QNetworkInterface::allAddresses())
     {
-      if (!address.isLoopback())
+      // TODO: IPv6 support (currently excluded because it is not supported)
+      if (!address.isLoopback() && address.protocol() == QAbstractSocket::IPv4Protocol)
       {
         if (sanityCheck(address, minPort))
         {
