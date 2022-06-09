@@ -53,6 +53,12 @@ private:
   int32_t framerate_num_;
   int32_t framerate_denom_;
 
+  struct FrameInfo
+  {
+    std::unique_ptr<Data> data;
+    int8_t * roi_array;
+  };
+
   // temporarily store frame data during encoding
-  std::deque<std::unique_ptr<Data>> encodingFrames_;
+  std::deque<FrameInfo> encodingFrames_;
 };
