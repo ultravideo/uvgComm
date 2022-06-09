@@ -8,14 +8,26 @@
 #include <QSettings>
 #include <QFontDatabase>
 #include <QDir>
+#include <QMessageBox>
+#include <QSystemTrayIcon>
 
 int main(int argc, char *argv[])
 {
   QGuiApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-
   QApplication a(argc, argv);
 
+#ifndef QT_NO_SYSTEMTRAYICON
+
+  if (!QSystemTrayIcon::isSystemTrayAvailable()) {
+      QMessageBox::critical(nullptr, QObject::tr("Systray"),
+                            QObject::tr("couldn't detect any system tray "
+                                        "on this system."));
+      return 1;
+  }
+#endif
+
   a.setApplicationName("Kvazzup");
+  //a.setQuitOnLastWindowClosed(false);
 
   Logger::getLogger()->printDebug(DEBUG_NORMAL, "Main", "Starting Kvazzup.",
     {"Location"}, {QDir::currentPath()});

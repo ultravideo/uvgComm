@@ -242,13 +242,15 @@ FORMS    += \
     ui/settings.ui \
     ui/videosettings.ui
 
-
+QT += widgets
 QT += multimedia
 QT += multimediawidgets
 
 QT += network
 QT += svg # for icons
 QT += opengl
+
+requires(qtConfig(combobox))
 
 win32-g++: QMAKE_CXXFLAGS += -msse4.1 -mavx2 -fopenmp
 
