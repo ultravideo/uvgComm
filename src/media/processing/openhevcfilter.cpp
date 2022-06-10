@@ -99,7 +99,7 @@ void OpenHEVCFilter::combineFrame(std::unique_ptr<Data>& combinedFrame)
   if(slices_ && sliceBuffer_.size() == 1)
   {
     slices_ = false;
-    Logger::getLogger()->printPeerError(this, "Detected no slices in incoming stream.");
+    Logger::getLogger()->printNormal(this, "Detected no slices in incoming stream.");
     uninit();
     init();
   }
