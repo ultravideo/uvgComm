@@ -69,6 +69,7 @@ bool KvazaarFilter::init()
   {
     QSettings settings(settingsFile, settingsFileFormat);
 
+#ifndef __linux__
     if (settings.value(SettingsKey::videoResultionWidth).toInt() == 0 ||
         settings.value(SettingsKey::videoResultionHeight).toInt() == 0 ||
         settings.value(SettingsKey::videoFramerate).toReal() == 0.0)
@@ -80,6 +81,7 @@ bool KvazaarFilter::init()
                                        settings.value(SettingsKey::videoFramerate).toString()});
       return false;
     }
+#endif
 
     api_ = kvz_api_get(8);
     if(!api_)
