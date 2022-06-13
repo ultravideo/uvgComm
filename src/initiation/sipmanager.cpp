@@ -3,9 +3,11 @@
 #include "initiation/negotiation/sdpnegotiation.h"
 #include "initiation/negotiation/networkcandidates.h"
 #include "initiation/negotiation/ice.h"
+
 #include "initiation/transaction/sipserver.h"
 #include "initiation/transaction/sipclient.h"
 #include "initiation/transaction/sipdialogstate.h"
+#include "initiation/transaction/sipallow.h"
 
 #include "initiation/transport/siprouting.h"
 #include "initiation/transport/tcpconnection.h"
@@ -900,6 +902,7 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
                     this, &SIPManager::nominationFailed);
 
   // Add all components to the pipe.
+  dialog->pipe.addProcessor(std::shared_ptr<SIPAllow>(new SIPAllow));
   dialog->pipe.addProcessor(dialog->state);
   dialog->pipe.addProcessor(ice);
   dialog->pipe.addProcessor(negotiation);

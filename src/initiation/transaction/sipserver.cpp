@@ -18,6 +18,14 @@ void SIPServer::processIncomingRequest(SIPRequest& request, QVariant& content,
 {
   Logger::getLogger()->printNormal(this, "Processing incoming request");
 
+  if (generatedResponse != SIP_NO_RESPONSE)
+  {
+    Logger::getLogger()->printError(this, "Earlier processor has created a response, "
+                                          "responding with it");
+    createResponse(generatedResponse);
+    return;
+  }
+
   if (request.method == SIP_CANCEL && !isCANCELYours(request))
   {
     Logger::getLogger()->printError(this, "Received invalid CANCEL request");
