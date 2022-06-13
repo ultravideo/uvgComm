@@ -198,6 +198,10 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
         sdp += "a=inactive"  + lineEnd;
         break;
       }
+      case A_NO_ATTRIBUTE:
+      {
+        break;
+      }
       default:
       {
         Logger::getLogger()->printProgramError("SipContent",
