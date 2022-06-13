@@ -9,7 +9,9 @@
 #include "settingskeys.h"
 #include "yuvconversions.h"
 
+#ifdef HAVE_OPENCV
 #include <opencv2/imgproc.hpp>
+#endif
 
 #ifdef max
 #undef max
@@ -17,9 +19,9 @@
 
 namespace
 {
-cv::Rect find_largest_bbox(std::vector<Detection> &detections)
+Rect find_largest_bbox(std::vector<Detection> &detections)
 {
-  cv::Rect largest;
+  Rect largest;
   int largest_area = 0;
   for (auto &d : detections)
   {
@@ -33,21 +35,19 @@ cv::Rect find_largest_bbox(std::vector<Detection> &detections)
   return largest;
 }
 
-cv::Mat letterbox(cv::Mat img, cv::Size new_shape, cv::Scalar color = {114, 114, 114},
+std::vector<float> letterbox(const std::vector<float>& img, Size original_shape, Size new_shape, uint8_t color = 114,
                   bool minimum = false, bool scaleFill = false, bool scaleup = true)
 {
   //Resize image to a 32 - pixel - multiple rectangle https://github.com/ultralytics/yolov3/issues/232
-  cv::Size shape(img.size[1], img.size[0]); // current shape [width, height]
-
   // Scale ratio(new / old)
-  double r = std::min((double)new_shape.width / (double)shape.width,
-                      (double)new_shape.height / (double)shape.height);
+  double r = std::min((double)new_shape.width / (double)original_shape.width,
+                      (double)new_shape.height / (double)original_shape.height);
   if (!scaleup) // only scale down, do not scale up (for better test mAP)
   {
     r = std::min(r, 1.0);
   }
   // Compute padding
-  cv::Size new_unpad(int(std::round(shape.width * r)), int(std::round(shape.height * r)));
+  Size new_unpad{int(std::round(original_shape.width * r)), int(std::round(original_shape.height * r))};
   int dw = new_shape.width - new_unpad.width;
   int dh = new_shape.height - new_unpad.height; // wh padding
   if (minimum)                                  //minimum rectangle
@@ -62,11 +62,6 @@ cv::Mat letterbox(cv::Mat img, cv::Size new_shape, cv::Scalar color = {114, 114,
     new_unpad = {new_shape.width, new_shape.height};
   }
 
-  if (shape != new_unpad) // resize
-  {
-    cv::resize(img, img, new_unpad, 0.0, 0.0, cv::INTER_NEAREST);
-  }
-
   double ddh = (double)dh / 2.0; // divide padding into 2 sides
   double ddw = (double)dw / 2.0;
   int top = int(std::round(ddh - 0.1));
@@ -74,8 +69,36 @@ cv::Mat letterbox(cv::Mat img, cv::Size new_shape, cv::Scalar color = {114, 114,
   int left = int(std::round(ddw - 0.1));
   int right = int(std::round(ddw + 0.1));
 
-  cv::copyMakeBorder(img, img, top, bottom, left, right, cv::BORDER_CONSTANT, color); // add border
-  return img;
+#ifdef HAVE_OPENCV
+  cv::Mat scaled;
+#else
+  std::vector<float> scaled_img((dw+new_unpad.width)*(dh+new_unpad.height), color/255.0f);
+#endif
+
+  if (original_shape.width != new_unpad.width && original_shape.height != new_unpad.height) // resize
+  {
+#ifdef HAVE_OPENCV
+    cv::Mat input(original_shape.height, original_shape.width, CV_32F, (void*)img.data());
+    cv::resize(input, scaled, {new_unpad.width, new_unpad.height}, 0.0, 0.0, cv::INTER_NEAREST);
+#else
+    double fx = 1/((double)new_shape.width / (double)original_shape.width);
+    double fy = 1/((double)new_shape.height / (double)original_shape.height);
+    for(int y = top; y < new_unpad.height+top; y++) {
+      for(int x = left; x < new_unpad.width+left; x++) {
+        int old_x = std::floor(x*fx),
+            old_y = std::floor(y*fy);
+        scaled_img[y*(new_unpad.width+dw)+x] = img[old_y*original_shape.width+old_x];
+      }
+    }
+#endif
+  }
+
+#ifdef HAVE_OPENCV
+  cv::copyMakeBorder(scaled, scaled, top, bottom, left, right, cv::BORDER_CONSTANT, color/255.0f); // add border
+  std::vector<float> scaled_img(new_shape.width*new_shape.height);
+  memcpy((void*)scaled_img.data(), (void*)scaled.datastart, new_shape.width*new_shape.height*scaled.elemSize());
+#endif
+  return scaled_img;
 }
 
 std::vector<const float *> non_max_suppression_face(Ort::Value const &prediction, double conf_thres = 0.25, double iou_thres = 0.45)
@@ -112,7 +135,7 @@ std::vector<const float *> non_max_suppression_face(Ort::Value const &prediction
 
   // Settings
   // (pixels) minimum and maximum box width and height
-  std::vector<cv::Rect> output;
+  std::vector<Rect> output;
   for (size_t i_ = 0; i_ < candidates.size(); i_++)
   {
     auto i = order[i_];
@@ -167,8 +190,8 @@ std::vector<const float *> non_max_suppression_face(Ort::Value const &prediction
   return faces;
 }
 
-std::vector<Detection> scale_coords(cv::Size img1_shape, std::vector<const float *> const &coords,
-                                    cv::Size img0_shape)
+std::vector<Detection> scale_coords(Size img1_shape, std::vector<const float *> const &coords,
+                                    Size img0_shape)
 {
   // Rescale coords (centre-x, centre-y, width, height) from img1_shape to img0_shape
   // calculate from img0_shape
@@ -184,18 +207,18 @@ std::vector<Detection> scale_coords(cv::Size img1_shape, std::vector<const float
             int((box[1] - box[3] / 2 - padh) / gain),
             int(box[2] / gain),
             int(box[3] / gain)},
-           std::array<cv::Point, 5>{
-             cv::Point{int((box[5] - padw) / gain), int((box[6] - padh) / gain)},
-             cv::Point{int((box[7] - padw) / gain), int((box[8] - padh) / gain)},
-             cv::Point{int((box[9] - padw) / gain), int((box[10] - padh) / gain)},
-             cv::Point{int((box[11] - padw) / gain), int((box[12] - padh) / gain)},
-             cv::Point{int((box[13] - padw) / gain), int((box[14] - padh) / gain)}}};
+           std::array<Point, 5>{
+             Point{int((box[5] - padw) / gain), int((box[6] - padh) / gain)},
+             Point{int((box[7] - padw) / gain), int((box[8] - padh) / gain)},
+             Point{int((box[9] - padw) / gain), int((box[10] - padh) / gain)},
+             Point{int((box[11] - padw) / gain), int((box[12] - padh) / gain)},
+             Point{int((box[13] - padw) / gain), int((box[14] - padh) / gain)}}};
     scaled.push_back(d);
   }
   return scaled;
 }
 
-void clip_coords(std::vector<cv::Rect> &boxes, cv::Size img_shape)
+void clip_coords(std::vector<Rect> &boxes, Size img_shape)
 {
 //     // Clip bounding xyxy bounding boxes to image shape(height, width)
 //     boxes[:, 0].clamp_(0, img_shape[1]); // x1
@@ -221,12 +244,12 @@ for (auto& d : boxes)
 }
 }
 
-bool filter_bb(cv::Rect bb, cv::Size min_size)
+bool filter_bb(Rect bb, Size min_size)
 {
   return bb.width >= min_size.width && bb.height >= min_size.height;
 }
 
-cv::Rect bbox_to_roi(cv::Rect bb)
+Rect bbox_to_roi(Rect bb)
 {
   bb.x /= 64;
   bb.y /= 64;
@@ -237,7 +260,7 @@ cv::Rect bbox_to_roi(cv::Rect bb)
   return bb;
 }
 
-cv::Point calculate_roi_size(uint32_t img_width, uint32_t img_height)
+Size calculate_roi_size(uint32_t img_width, uint32_t img_height)
 {
   int map_width = ceil(img_width / 64.0);
   int map_height = ceil(img_height / 64.0);
@@ -245,9 +268,9 @@ cv::Point calculate_roi_size(uint32_t img_width, uint32_t img_height)
   return {map_width, map_height};
 }
 
-cv::Rect enlarge_bb(Detection face)
+Rect enlarge_bb(Detection face)
 {
-  cv::Rect ret = face.bbox;
+  Rect ret = face.bbox;
 
   //enlarge bounding box from a top
   double bb_top_enlargement = 0.1;
@@ -303,10 +326,12 @@ Ort::SessionOptions get_session_options(bool cuda, int threads)
 }
 }
 
-cv::Mat RoiMapFilter::makeRoiMap(const std::vector<cv::Rect> &bbs)
+Roi RoiMapFilter::makeRoiMap(const std::vector<Rect> &bbs)
 {
-  cv::Mat new_map(height, width, CV_16S, backgroundQP-qp);
+  Roi roi_map {width, height, std::make_unique<int8_t[]>(width*height)};
 
+#ifdef HAVE_OPENCV
+  cv::Mat new_map(height, width, CV_16S, backgroundQP-qp);
   for (auto roi : bbs)
   {
     for (int y = roi.y; y < roi.y + roi.height; y++)
@@ -320,7 +345,19 @@ cv::Mat RoiMapFilter::makeRoiMap(const std::vector<cv::Rect> &bbs)
   cv::filter2D(new_map, filtered, -1, kernel);
   cv::Mat converted;
   filtered.convertTo(converted, CV_8S);
-  return converted;
+  memcpy(roi_map.data.get(), converted.datastart, width*height);
+#else
+  memset(roi_map.data.get(), backgroundQP-qp, roi_map.width*roi_map.height);
+  for (auto roi : bbs)
+  {
+    for (int y = roi.y; y < roi.y + roi.height; y++)
+      for (int x = roi.x; x < roi.x + roi.width; x++)
+      {
+        roi_map.data[width*y+x] = (roiQP-qp);
+      }
+  }
+#endif
+  return roi_map;
 }
 
 RoiFilter::RoiFilter(QString id, StatisticsInterface *stats, std::shared_ptr<HWResourceManager> hwResources,
@@ -328,7 +365,7 @@ RoiFilter::RoiFilter(QString id, StatisticsInterface *stats, std::shared_ptr<HWR
   : Filter(id, "ROI", stats, hwResources, DT_YUV420VIDEO, DT_YUV420VIDEO),
     inputSize_(-1),
     minimum_(false),
-    minBbSize_(10, 10),
+    minBbSize_{10, 10},
     drawBbox_(false),
     minRelativeBbSize_(0.5),
     useCuda_(cuda),
@@ -372,7 +409,7 @@ void RoiFilter::process()
         auto largest_bbox = find_largest_bbox(detections);
         double largest_area = largest_bbox.width * largest_bbox.height;
 
-        std::vector<cv::Rect> face_roi_rects;
+        std::vector<Rect> face_roi_rects;
         for (auto face : detections)
         {
           if (!filter_bb(face.bbox, minBbSize_))
@@ -407,7 +444,7 @@ void RoiFilter::process()
         //          Logger::getLogger()->printDebug(DebugType::DEBUG_NORMAL, this, "Found faces", {"Number"}, {QString::number(face_roi_rects.size())});
         //        }
 
-        cv::Size roi_size = calculate_roi_size(input->vInfo->width, input->vInfo->height);
+        Size roi_size = calculate_roi_size(input->vInfo->width, input->vInfo->height);
         roi_.width = roi_size.width;
         roi_.height = roi_size.height;
         if(roi_.width != roiFilter_.width || roi_.height != roiFilter_.height) {
@@ -419,9 +456,9 @@ void RoiFilter::process()
         int roi_length = (roi_size.width+1)*(roi_size.height+1);
 
         clip_coords(face_roi_rects, roi_size);
-        cv::Mat roi_mat = roiFilter_.makeRoiMap(face_roi_rects);
+        Roi roi_mat = roiFilter_.makeRoiMap(face_roi_rects);
         roi_.data = std::make_unique<int8_t[]>(roi_length);
-        memcpy(roi_.data.get(), roi_mat.data, roi_length);
+        memcpy(roi_.data.get(), roi_mat.data.get(), roi_length);
       }
       if(roi_.data){
         input->roi.width = roi_.width;
@@ -447,12 +484,14 @@ bool RoiFilter::init()
   kernelSize_ = settings.value(SettingsKey::roiKernelSize).toInt();
   int threads = settings.value(SettingsKey::roiMaxThreads).toInt();
 
+#ifdef HAVE_OPENCV
   if(kernelType_ == "Gaussian"){
     roiFilter_.kernel = cv::getGaussianKernel(kernelSize_, 1.0);
   } else {
     // Default to median
     roiFilter_.kernel = cv::Mat(kernelSize_, 1, 1.0/kernelSize_);
   }
+#endif
 
   roiFilter_.depth = settings.value(SettingsKey::roiFilterDepth).toInt();
 
@@ -521,13 +560,31 @@ void RoiFilter::close()
   session_.reset();
 }
 
+namespace {
+void copyConvert(uint8_t* src, float* dst, size_t len) {
+  for(size_t i = 0; i < len; i++) {
+    dst[i] = float(src[i]) / 255.0f;
+  }
+}
+}
+
+//#include <memory>
+
 std::vector<Detection> RoiFilter::detect(const Data* input)
 {
-  cv::Size original_size(input->vInfo->width, input->vInfo->height);
-  cv::Mat Y(input->vInfo->height, input->vInfo->width, CV_8U, input->data.get());
+  Size original_size{input->vInfo->width, input->vInfo->height};
+  std::vector<float> Y_f(original_size.width*original_size.height);
+  copyConvert(input->data.get(), Y_f.data(), original_size.width*original_size.height);
 
-  cv::Mat Y_input = letterbox(Y, {inputSize_, inputSize_}, {114, 114, 114}, minimum_);
+  //cv::Mat Y(input->vInfo->height, input->vInfo->width, CV_8U, input->data.get());
 
+  auto Y_input = letterbox(Y_f, original_size,{inputSize_, inputSize_}, 114, minimum_);
+  auto channel_size = Y_input.size();
+  Y_input.resize(Y_input.size()*3);
+  std::memcpy(Y_input.data()+channel_size, Y_input.data(), channel_size);
+  std::memcpy(Y_input.data()+channel_size*2, Y_input.data(), channel_size);
+
+/*
   //cv::cvtColor(input, input, cv::COLOR_RGBA2RGB);
   Y_input.convertTo(Y_input, CV_32FC3, 1.0 / 255.0);
 
@@ -541,17 +598,18 @@ std::vector<Detection> RoiFilter::detect(const Data* input)
   Y_input.copyTo(out[0]);
   Y_input.copyTo(out[1]);
   Y_input.copyTo(out[2]);
+*/
 
+  int64_t shape[4] = {1, 3, inputSize_, inputSize_};
   auto memory = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
-  int64_t shape[4] = {1, channels.size[0], channels.size[1], channels.size[2]};
-  auto input_tensor = Ort::Value::CreateTensor<float>(&*memory, (float *)channels.data, channels.total() * channels.elemSize1(), shape, 4);
+  auto input_tensor = Ort::Value::CreateTensor<float>(&*memory, Y_input.data(), Y_input.size(), shape, 4);
 
   Ort::RunOptions options;
   auto detections = session_->Run(options, &inputName_, &input_tensor, 1, &outputName_, 1);
   auto out_shape = detections[0].GetTensorTypeAndShapeInfo().GetShape();
   auto faces = non_max_suppression_face(detections[0]);
 
-  auto scaled_detections = scale_coords(Y_input.size(), faces, original_size);
+  auto scaled_detections = scale_coords({inputSize_, inputSize_}, faces, original_size);
 
   return scaled_detections;
 }

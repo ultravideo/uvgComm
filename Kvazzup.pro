@@ -352,6 +352,9 @@ unix {
 INCLUDEPATH += $$PWD/../
 DEPENDPATH += $$PWD/../
 
+CONFIG(false){
+ DEFINES += HAVE_OPENCV
+}
 
 # copy assets to build folder so we have them when running from QtCreator
 copyToDestination($$PWD/stylesheet.qss, $$OUT_PWD)
