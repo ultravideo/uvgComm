@@ -28,13 +28,10 @@ private:
   bool spsReceived_;
   bool ppsReceived_;
 
-  uint32_t waitFrames_;
-
-  bool slices_;
-
-  std::vector<std::unique_ptr<Data>> sliceBuffer_;
-
   uint32_t sessionID_;
 
   int threads_;
+
+  // temporarily store frame info during decoding
+  std::deque<std::unique_ptr<Data>> decodingFrames_;
 };

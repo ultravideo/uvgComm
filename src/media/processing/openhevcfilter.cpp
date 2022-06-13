@@ -17,7 +17,6 @@ OpenHEVCFilter::OpenHEVCFilter(uint32_t sessionID, StatisticsInterface *stats,
   vpsReceived_(false),
   spsReceived_(false),
   ppsReceived_(false),
-  slices_(true),
   sessionID_(sessionID),
   threads_(-1)
 {}
@@ -70,45 +69,6 @@ void OpenHEVCFilter::updateSettings()
 }
 
 
-void OpenHEVCFilter::combineFrame(std::unique_ptr<Data>& combinedFrame)
-{
-  if(sliceBuffer_.size() == 0)
-  {
-    Logger::getLogger()->printWarning(this, "No previous slices");
-    return;
-  }
-
-  combinedFrame = std::unique_ptr<Data>(shallowDataCopy(sliceBuffer_.at(0).get()));
-  combinedFrame->data_size = 0;
-
-  for(unsigned int i = 0; i < sliceBuffer_.size(); ++i)
-  {
-    combinedFrame->data_size += sliceBuffer_.at(i)->data_size;
-  }
-
-  combinedFrame->data = std::unique_ptr<uchar[]>(new uchar[combinedFrame->data_size]);
-
-  uint32_t dataWritten = 0;
-  for(unsigned int i = 0; i < sliceBuffer_.size(); ++i)
-  {
-    memcpy(combinedFrame->data.get() + dataWritten,
-           sliceBuffer_.at(i)->data.get(), sliceBuffer_.at(i)->data_size );
-    dataWritten += sliceBuffer_.at(i)->data_size;
-  }
-
-  if(slices_ && sliceBuffer_.size() == 1)
-  {
-    slices_ = false;
-    Logger::getLogger()->printNormal(this, "Detected no slices in incoming stream.");
-    uninit();
-    init();
-  }
-
-  sliceBuffer_.clear();
-
-  return;
-}
-
 void OpenHEVCFilter::process()
 {
   std::unique_ptr<Data> input = getInput();
@@ -117,20 +77,6 @@ void OpenHEVCFilter::process()
     getStats()->addReceivePacket(sessionID_, "Video", input->data_size);
 
     const unsigned char *buff = input->data.get();
-
-    bool nextSlice = buff[0] == 0
-        && buff[1] == 0
-        && buff[2] == 0;
-
-    if(!slices_ && buff[0] == 0
-       && buff[1] == 0
-       && buff[2] == 1)
-    {
-      slices_ = true;
-      Logger::getLogger()->printNormal(this, "Detected slices in incoming stream");
-      uninit();
-      init();
-    }
 
     bool vps = (buff[4] >> 1) == 32;
     if (!vpsReceived_ && vps)
@@ -153,82 +99,76 @@ void OpenHEVCFilter::process()
       ppsReceived_ = true;
     }
 
-    if(slices_ || (vpsReceived_ && spsReceived_ && ppsReceived_) || vps || sps || pps)
+    if((vpsReceived_ && spsReceived_ && ppsReceived_) || vps || sps || pps)
     {
-      if(nextSlice && sliceBuffer_.size() != 0)
+      int gotPicture = libOpenHevcDecode(handle_, input->data.get(), input->data_size, input->presentationTime);
+
+      if (!vps && !sps && !pps)
       {
-        std::unique_ptr<Data> frame;
-        combineFrame(frame);
-
-        if (frame == nullptr)
-        {
-          break;
-        }
-
-        int gotPicture = libOpenHevcDecode(handle_, frame->data.get(), frame->data_size, frame->presentationTime);
-
-        OpenHevc_Frame openHevcFrame;
-        if( gotPicture == -1)
-        {
-          Logger::getLogger()->printDebug(DEBUG_ERROR, this,  "Error while decoding.");
-        }
-        else if( libOpenHevcGetOutput(handle_, gotPicture, &openHevcFrame) == -1 )
-        {
-          Logger::getLogger()->printDebug(DEBUG_ERROR, this,  "Failed to get output.");
-        }
-        else if(gotPicture)
-        {
-          libOpenHevcGetPictureInfo(handle_, &openHevcFrame.frameInfo);
-
-
-          frame->vInfo->width = openHevcFrame.frameInfo.nWidth;
-          frame->vInfo->height = openHevcFrame.frameInfo.nHeight;
-          uint32_t finalDataSize = frame->vInfo->width*frame->vInfo->height +
-              frame->vInfo->width*frame->vInfo->height/2;
-          std::unique_ptr<uchar[]> yuv_frame(new uchar[finalDataSize]);
-
-          uint8_t* pY = (uint8_t*)yuv_frame.get();
-          uint8_t* pU = (uint8_t*)&(yuv_frame.get()[frame->vInfo->width*frame->vInfo->height]);
-          uint8_t* pV = (uint8_t*)&(yuv_frame.get()[frame->vInfo->width*frame->vInfo->height +
-              frame->vInfo->width*frame->vInfo->height/4]);
-
-          uint32_t s_stride = openHevcFrame.frameInfo.nYPitch;
-          uint32_t qs_stride = openHevcFrame.frameInfo.nUPitch/2;
-
-          uint32_t d_stride = frame->vInfo->width/2;
-          uint32_t dd_stride = frame->vInfo->width;
-
-          for (int i=0; i<frame->vInfo->height; i++) {
-            memcpy(pY,  (uint8_t *) openHevcFrame.pvY + i*s_stride, dd_stride);
-            pY += dd_stride;
-
-            if (! (i%2) ) {
-              memcpy(pU,  (uint8_t *) openHevcFrame.pvU + i*qs_stride, d_stride);
-              pU += d_stride;
-
-              memcpy(pV,  (uint8_t *) openHevcFrame.pvV + i*qs_stride, d_stride);
-              pV += d_stride;
-            }
-          }
-
-          // TODO: put delay into deque, and set timestamp accordingly to get more accurate latency.
-
-          frame->type = DT_YUV420VIDEO;
-          if (openHevcFrame.frameInfo.frameRate.den != 0)
-          {
-            frame->vInfo->framerate = openHevcFrame.frameInfo.frameRate.num/openHevcFrame.frameInfo.frameRate.den;
-          }
-          else
-          {
-            frame->vInfo->framerate = openHevcFrame.frameInfo.frameRate.num;
-          }
-          frame->data_size = finalDataSize;
-          frame->data = std::move(yuv_frame);
-
-          sendOutput(std::move(frame));
-        }
+        decodingFrames_.push_front(std::move(input));
       }
-      sliceBuffer_.push_back(std::move(input));
+
+      // TODO: Should figure out a way to get more output to reduce latency
+      OpenHevc_Frame openHevcFrame;
+      if( gotPicture == -1)
+      {
+        Logger::getLogger()->printDebug(DEBUG_ERROR, this,  "Error while decoding.");
+      }
+      else if (libOpenHevcGetOutput(handle_, gotPicture, &openHevcFrame) == -1)
+      {
+        Logger::getLogger()->printDebug(DEBUG_ERROR, this,  "Failed to get output.");
+      }
+      else if (gotPicture > 0)
+      {
+        std::unique_ptr<Data> decodedFrame = std::move(decodingFrames_.back());
+        decodingFrames_.pop_back();
+
+        libOpenHevcGetPictureInfo(handle_, &openHevcFrame.frameInfo);
+
+        decodedFrame->vInfo->width = openHevcFrame.frameInfo.nWidth;
+        decodedFrame->vInfo->height = openHevcFrame.frameInfo.nHeight;
+        uint32_t finalDataSize = decodedFrame->vInfo->width*decodedFrame->vInfo->height +
+            decodedFrame->vInfo->width*decodedFrame->vInfo->height/2;
+        std::unique_ptr<uchar[]> yuv_frame(new uchar[finalDataSize]);
+
+        uint8_t* pY = (uint8_t*)yuv_frame.get();
+        uint8_t* pU = (uint8_t*)&(yuv_frame.get()[decodedFrame->vInfo->width*decodedFrame->vInfo->height]);
+        uint8_t* pV = (uint8_t*)&(yuv_frame.get()[decodedFrame->vInfo->width*decodedFrame->vInfo->height +
+            decodedFrame->vInfo->width*decodedFrame->vInfo->height/4]);
+
+        uint32_t s_stride = openHevcFrame.frameInfo.nYPitch;
+        uint32_t qs_stride = openHevcFrame.frameInfo.nUPitch/2;
+
+        uint32_t d_stride = decodedFrame->vInfo->width/2;
+        uint32_t dd_stride = decodedFrame->vInfo->width;
+
+        for (int i=0; i<decodedFrame->vInfo->height; i++) {
+          memcpy(pY,  (uint8_t *) openHevcFrame.pvY + i*s_stride, dd_stride);
+          pY += dd_stride;
+
+          if (! (i%2) ) {
+            memcpy(pU,  (uint8_t *) openHevcFrame.pvU + i*qs_stride, d_stride);
+            pU += d_stride;
+
+            memcpy(pV,  (uint8_t *) openHevcFrame.pvV + i*qs_stride, d_stride);
+            pV += d_stride;
+          }
+        }
+
+        decodedFrame->type = DT_YUV420VIDEO;
+        if (openHevcFrame.frameInfo.frameRate.den != 0)
+        {
+          decodedFrame->vInfo->framerate = openHevcFrame.frameInfo.frameRate.num/openHevcFrame.frameInfo.frameRate.den;
+        }
+        else
+        {
+          decodedFrame->vInfo->framerate = openHevcFrame.frameInfo.frameRate.num;
+        }
+        decodedFrame->data_size = finalDataSize;
+        decodedFrame->data = std::move(yuv_frame);
+
+        sendOutput(std::move(decodedFrame));
+      }
     }
     else
     {
@@ -238,3 +178,4 @@ void OpenHEVCFilter::process()
     input = getInput();
   }
 }
+
