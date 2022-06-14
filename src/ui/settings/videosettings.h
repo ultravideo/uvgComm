@@ -65,6 +65,11 @@ public slots:
   void updateTilesStatus();
   void updateObaStatus(int index);
 
+protected:
+
+  // if user closes the window
+  void closeEvent(QCloseEvent *event);
+
 private:
   void initializeResolutions();
   void initializeFramerates();

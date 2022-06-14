@@ -618,3 +618,10 @@ void VideoSettings::updateObaStatus(int index)
     videoSettingsUI_->oba_clip_neighbours->setCheckState(Qt::CheckState::Unchecked);
   }
 }
+
+
+void VideoSettings::closeEvent(QCloseEvent *event)
+{
+  on_video_close_clicked();
+  QDialog::closeEvent(event);
+}

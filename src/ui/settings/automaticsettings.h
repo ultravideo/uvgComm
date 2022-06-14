@@ -21,6 +21,11 @@ signals:
   void updateAutomaticSettings();
   void hidden();
 
+protected:
+
+  // if user closes the window
+  void closeEvent(QCloseEvent *event);
+
 private:
   Ui::AutomaticSettings *ui;
 };

@@ -85,6 +85,13 @@ void AudioSettings::showOkButton(QString text)
 }
 
 
+void AudioSettings::closeEvent(QCloseEvent *event)
+{
+  on_audio_close_clicked();
+  QDialog::closeEvent(event);
+}
+
+
 void AudioSettings::init(int deviceID)
 {
   currentDevice_ = deviceID;

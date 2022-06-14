@@ -26,6 +26,9 @@ public:
   void resetSettings();
 
   void showSTUNQuestion();
+
+  virtual void closeEvent(QCloseEvent *event);
+
 signals:
   void updateCallSettings();
   void hidden();

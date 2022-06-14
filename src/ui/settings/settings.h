@@ -87,6 +87,11 @@ public slots:
 
   void showManual(bool state);
 
+protected:
+
+  // if user closes the window
+  void closeEvent(QCloseEvent *event);
+
 private:
 
   // Make sure the UI video devices are initialized before calling this.

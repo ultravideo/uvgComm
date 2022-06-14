@@ -265,6 +265,12 @@ void Settings::showManual(bool state)
   }
 }
 
+void Settings::closeEvent(QCloseEvent *event)
+{
+  on_close_clicked();
+  QDialog::closeEvent(event);
+}
+
 
 void Settings::on_save_clicked()
 {
