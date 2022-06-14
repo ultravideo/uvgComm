@@ -261,7 +261,7 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::loc
 
   for (auto& interface : availablePorts_)
   {
-    if (isPrivateNetwork(interface.first) && availablePorts_[interface.first].size() >= streams)
+    if (isPrivateNetwork(interface.first.toStdString()) && availablePorts_[interface.first].size() >= streams)
     {
       for (unsigned int i = 0; i < streams; ++i)
       {
@@ -284,7 +284,7 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::glo
 
   for (auto& interface : availablePorts_)
   {
-    if (!isPrivateNetwork(interface.first) &&
+    if (!isPrivateNetwork(interface.first.toStdString()) &&
         availablePorts_[interface.first].size() >= streams)
     {
       for (unsigned int i = 0; i < streams; ++i)

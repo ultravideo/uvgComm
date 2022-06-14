@@ -1049,7 +1049,8 @@ bool SIPManager::shouldUseProxy(QString remoteAddress)
   QHostAddress remote = QHostAddress(remoteAddress);
 
   // if we have registered and the remote AOR is not loopback
-  return !remote.isLoopback() && !isPrivateNetwork(remoteAddress) && haveWeRegistered() != "";
+  return !remote.isLoopback() && !isPrivateNetwork(remoteAddress.toStdString()) &&
+      haveWeRegistered() != "";
 }
 
 
