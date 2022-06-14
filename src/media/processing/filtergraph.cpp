@@ -21,6 +21,7 @@
 #include "media/processing/dspfilter.h"
 #include "media/processing/audiomixerfilter.h"
 #include "media/processing/audiooutputfilter.h"
+#include "media/processing/roifilter.h"
 
 #include "media/processing/audioframebuffer.h"
 
@@ -268,6 +269,12 @@ void FilterGraph::initCameraSelfView()
     {
       screenShareGraph_.at(0)->stop();
     }
+//    if (!addToGraph(std::shared_ptr<Filter>(new RoiFilter("Roi filter", "", stats_, hwResources_, L"C:\\Users\\miika\\source\\models\\yolov5n-0.5-640.onnx", 640, false)), screenShareGraph_))
+//    {
+//      // camera failed
+//      Logger::getLogger()->printError(this, "Failed to add roi to screen share.");
+//      return; // TODO: return false that we failed so user can fix camera selection
+//    }
   }
 
   if (selfviewFilter_)
@@ -324,6 +331,7 @@ void FilterGraph::initVideoSend()
   std::shared_ptr<Filter> mRoi =
       std::shared_ptr<Filter>(new ROIManualFilter("", stats_, hwResources_, roiInterface_));
   addToGraph(mRoi, cameraGraph_, 0);
+  addToGraph(std::shared_ptr<Filter>(new RoiFilter("", stats_, hwResources_, true)), cameraGraph_, 0);
 
   std::shared_ptr<Filter> kvazaar =
       std::shared_ptr<Filter>(new KvazaarFilter("", stats_, hwResources_));

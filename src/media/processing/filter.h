@@ -192,6 +192,7 @@ protected:
   void printDataBytes(QString type, uint8_t *payload, size_t size,
                       int bytes, int shift);
 
+  unsigned int inputDiscarded_;
 private:
 
   std::unique_ptr<Data> validityCheck(std::unique_ptr<Data> data, bool &ok);
@@ -215,7 +216,6 @@ private:
   std::deque<std::unique_ptr<Data>> inBuffer_;
 
   unsigned int inputTaken_;
-  unsigned int inputDiscarded_;
 
   std::shared_ptr<ResourceAllocator> hwResources_;
 
