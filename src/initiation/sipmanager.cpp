@@ -292,7 +292,7 @@ void SIPManager::respondDeclineToINVITE(uint32_t sessionID)
 }
 
 
-void SIPManager::cancelCall(uint32_t sessionID)
+bool SIPManager::cancelCall(uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
 
@@ -305,7 +305,9 @@ void SIPManager::cancelCall(uint32_t sessionID)
   else
   {
     Logger::getLogger()->printProgramWarning(this, "Tried to remove a non-existing dialog");
+    return false;
   }
+  return true;
 }
 
 

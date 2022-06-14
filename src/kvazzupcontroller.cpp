@@ -505,7 +505,10 @@ void KvazzupController::userRejectsCall(uint32_t sessionID)
 void KvazzupController::userCancelsCall(uint32_t sessionID)
 {
   Logger::getLogger()->printNormal(this, "We cancel our call");
-  sip_.cancelCall(sessionID);
+  if (!sip_.cancelCall(sessionID))
+  {
+    userInterface_.removeParticipant(sessionID);
+  }
 }
 
 
