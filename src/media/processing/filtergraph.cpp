@@ -331,7 +331,8 @@ void FilterGraph::initVideoSend()
   std::shared_ptr<Filter> mRoi =
       std::shared_ptr<Filter>(new ROIManualFilter("", stats_, hwResources_, roiInterface_));
   addToGraph(mRoi, cameraGraph_, 0);
-  addToGraph(std::shared_ptr<Filter>(new RoiFilter("", stats_, hwResources_, true)), cameraGraph_, 0);
+  auto roi = std::shared_ptr<Filter>(new RoiFilter("", stats_, hwResources_, true));
+  addToGraph(roi, cameraGraph_, cameraGraph_.size() - 1);
 
   std::shared_ptr<Filter> kvazaar =
       std::shared_ptr<Filter>(new KvazaarFilter("", stats_, hwResources_));

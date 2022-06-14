@@ -18,10 +18,16 @@ public:
 
   bool useManualROI();
 
+  uint8_t getRoiQp() const;
+  uint8_t getBackgroundQp() const;
+
 private:
 
   bool avx2_ = false;
   bool sse41_ = false;
 
   bool manualROI_ = false;
+
+  uint8_t roiQp_;
+  uint8_t backgroundQp_;
 };

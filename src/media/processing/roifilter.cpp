@@ -8,6 +8,7 @@
 #include "common.h"
 #include "settingskeys.h"
 #include "yuvconversions.h"
+#include "media/resourceallocator.h"
 
 #ifdef HAVE_OPENCV
 #include <opencv2/imgproc.hpp>
@@ -454,6 +455,9 @@ void RoiFilter::process()
         }
 
         int roi_length = (roi_size.width+1)*(roi_size.height+1);
+
+        roiFilter_.roiQP = getHWManager()->getRoiQp();
+        roiFilter_.backgroundQP = getHWManager()->getBackgroundQp();
 
         clip_coords(face_roi_rects, roi_size);
         Roi roi_mat = roiFilter_.makeRoiMap(face_roi_rects);

@@ -67,6 +67,10 @@ void AutomaticSettings::updateConfigAndReset(int i)
 
   // reset the whole ROI map because changing config benefits from it
   ui_->roi_surface->resetOverlay();
+
+  settings_.setValue(SettingsKey::RoiQp, ui_->roi_qp->value());
+  settings_.setValue(SettingsKey::backgroundQp, ui_->background_qp->value());
+  emit updateAutomaticSettings();
 }
 
 

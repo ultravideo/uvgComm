@@ -18,6 +18,8 @@ void ResourceAllocator::updateSettings()
 {
   Logger::getLogger()->printNormal(this, "Updating automatic resource controller settings");
   manualROI_ = settingEnabled(SettingsKey::manualROIStatus);
+  roiQp_ = settingValue(SettingsKey::RoiQp);
+  backgroundQp_ = settingValue(SettingsKey::backgroundQp);
 }
 
 
@@ -36,4 +38,14 @@ bool ResourceAllocator::isSSE41Enabled()
 bool ResourceAllocator::useManualROI()
 {
   return manualROI_;
+}
+
+uint8_t ResourceAllocator::getRoiQp() const
+{
+  return roiQp_;
+}
+
+uint8_t ResourceAllocator::getBackgroundQp() const
+{
+  return backgroundQp_;
 }

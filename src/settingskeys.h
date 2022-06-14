@@ -25,6 +25,8 @@ const QString micStatus = "gui/MicrophoneEnabled";
 // automated setting keys
 
 const QString manualROIStatus = "auto/manualRoi";
+const QString backgroundQp = "auto/BackgroundQp";
+const QString RoiQp = "auto/RoiQp";
 
 // Video setting keys
 const QString videoDeviceID = "video/DeviceID";
