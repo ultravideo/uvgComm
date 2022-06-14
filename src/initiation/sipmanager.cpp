@@ -15,6 +15,8 @@
 
 #include "initiation/negotiation/sdpdefault.h"
 
+#include "siphelper.h"
+
 #include "common.h"
 #include "global.h"
 #include "settingskeys.h"
@@ -1045,7 +1047,7 @@ bool SIPManager::shouldUseProxy(QString remoteAddress)
   QHostAddress remote = QHostAddress(remoteAddress);
 
   // if we have registered and the remote AOR is not loopback
-  return !remote.isLoopback() && haveWeRegistered() != "";
+  return !remote.isLoopback() && !isPrivateNetwork(remoteAddress) && haveWeRegistered() != "";
 }
 
 

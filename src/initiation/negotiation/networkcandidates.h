@@ -63,8 +63,6 @@ private:
   uint16_t nextAvailablePort(QString interface, uint32_t sessionID);
   void makePortAvailable(QString interface, uint16_t port);
 
-  bool isPrivateNetwork(const QString &address);
-
   // Tries to bind to port and send a UDP packet just to check
   // if it is worth including in candidates
   bool sanityCheck(QHostAddress interface, uint16_t port);

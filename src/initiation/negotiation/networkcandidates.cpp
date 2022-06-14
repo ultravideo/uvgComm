@@ -4,6 +4,8 @@
 #include "logger.h"
 #include "settingskeys.h"
 
+#include "initiation/siphelper.h"
+
 #include <QNetworkInterface>
 #include <QUdpSocket>
 
@@ -453,34 +455,6 @@ void NetworkCandidates::makePortAvailable(QString interface, uint16_t port)
     availablePorts_[interface].push_back(port);
     portLock_.unlock();
   }
-}
-
-
-/* https://en.wikipedia.org/wiki/Private_network */
-bool NetworkCandidates::isPrivateNetwork(const QString& address)
-{
-  if (address.startsWith("10.") || address.startsWith("192.168") || address.startsWith("fd"))
-  {
-    return true;
-  }
-
-  // link-local
-  if (address.startsWith("169.254.") || address.startsWith("fe80::"))
-  {
-    return true;
-  }
-
-  if (address.startsWith("172."))
-  {
-    int octet = address.split(".")[1].toInt();
-
-    if (octet >= 16 && octet <= 31)
-    {
-      return true;
-    }
-  }
-
-  return false;
 }
 
 
