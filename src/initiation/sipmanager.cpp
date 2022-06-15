@@ -681,8 +681,6 @@ std::shared_ptr<TransportInstance> SIPManager::getTransport(QString& address) co
                         {"Address"}, {transports_.begin()->first});
     }
 
-    Logger::getLogger()->printNormal(this, "Trying different IP version of the address");
-
     QHostAddress differentAddress(address);
 
     if (differentAddress.protocol() == QAbstractSocket::IPv4Protocol)
@@ -696,11 +694,12 @@ std::shared_ptr<TransportInstance> SIPManager::getTransport(QString& address) co
 
     if (transports_.find(differentAddress.toString()) != transports_.end())
     {
+      Logger::getLogger()->printNormal(this, "Different IP version matches!");
       foundTransport = transports_.at(differentAddress.toString());
     }
     else
     {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "This was not successful",
+      Logger::getLogger()->printDebug(DEBUG_ERROR, this, "Different IP version was not successful either",
                         {"Different IP Address", }, {differentAddress.toString()});
     }
   }
