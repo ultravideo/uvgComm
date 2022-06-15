@@ -28,6 +28,7 @@ Kvazzup requires the following external libraries to operate:
 - [uvgRTP](https://github.com/ultravideo/uvgRTP) for media delivery
 - [Speex DSP](https://www.speex.org/) for audio processing
 - [Crypto++](https://cryptopp.com/) for delivery encryption
+- [OnnxRuntime](https://github.com/microsoft/onnxruntime) for ROI detection. [Build instructions](https://onnxruntime.ai/docs/build/inferencing.html). Windows has its own onnxruntime.dll that may be incompatible with the GitHub sources. To fix this, build from source and place the dll in libs folder so that it is copied to the exe folder.
 
 Qt Creator is the recommended tool for compiling Kvazzup. Make sure you use the same compiler and bit version for all the dependencies and for Kvazzup. It is possible, although not recommended to use Kvazzup without Crypto++.
 
