@@ -586,81 +586,103 @@
        <string>Structure</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_4">
-       <item row="23" column="0" colspan="3">
-        <spacer name="verticalSpacer">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
+       <item row="6" column="2">
+        <widget class="QLineEdit" name="vps">
+         <property name="maximumSize">
           <size>
-           <width>20</width>
-           <height>40</height>
+           <width>48</width>
+           <height>16777215</height>
           </size>
          </property>
-        </spacer>
-       </item>
-       <item row="21" column="2">
-        <widget class="QLabel" name="label_27">
          <property name="text">
-          <string>6.2</string>
-         </property>
-        </widget>
-       </item>
-       <item row="18" column="2">
-        <widget class="QCheckBox" name="lossless_box">
-         <property name="text">
-          <string/>
-         </property>
-        </widget>
-       </item>
-       <item row="11" column="0">
-        <widget class="QLabel" name="bitrate_label">
-         <property name="text">
-          <string>Target bit rate</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="QP">
-         <property name="text">
-          <string>Quantization Parameter (QP)</string>
-         </property>
-        </widget>
-       </item>
-       <item row="15" column="0">
-        <widget class="QLabel" name="label_15">
-         <property name="text">
-          <string>LP-GOP</string>
-         </property>
-        </widget>
-       </item>
-       <item row="20" column="0" colspan="2">
-        <widget class="QLabel" name="label_25">
-         <property name="text">
-          <string>QP in Coding Unit(CU)</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="0" colspan="3">
-        <widget class="QLabel" name="label_8">
-         <property name="font">
-          <font>
-           <pointsize>16</pointsize>
-           <bold>true</bold>
-          </font>
-         </property>
-         <property name="text">
-          <string>Video Structure</string>
+          <string>1</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
          </property>
         </widget>
        </item>
-       <item row="20" column="2">
-        <widget class="QCheckBox" name="qp_in_cu_box">
+       <item row="16" column="0" colspan="2">
+        <widget class="QLabel" name="label_23">
          <property name="text">
-          <string/>
+          <string>Lossless</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="label_13">
+         <property name="font">
+          <font>
+           <pointsize>14</pointsize>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Kvazaar</string>
+         </property>
+        </widget>
+       </item>
+       <item row="19" column="2">
+        <widget class="QLabel" name="label_27">
+         <property name="text">
+          <string>6.2</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="0">
+        <widget class="QLabel" name="label_21">
+         <property name="text">
+          <string>Rate-Control Algorithm</string>
+         </property>
+        </widget>
+       </item>
+       <item row="19" column="0">
+        <widget class="QLabel" name="label_26">
+         <property name="text">
+          <string>Level</string>
+         </property>
+        </widget>
+       </item>
+       <item row="10" column="2">
+        <widget class="QLabel" name="bitrate">
+         <property name="maximumSize">
+          <size>
+           <width>96</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>disabled</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="2">
+        <widget class="QComboBox" name="rc_algorithm">
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <item>
+          <property name="text">
+           <string>lambda</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>oba</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item row="18" column="0" colspan="2">
+        <widget class="QLabel" name="label_25">
+         <property name="text">
+          <string>QP in Coding Unit(CU)</string>
          </property>
         </widget>
        </item>
@@ -686,7 +708,127 @@
          </property>
         </widget>
        </item>
-       <item row="7" column="2">
+       <item row="6" column="0">
+        <widget class="QLabel" name="VPS">
+         <property name="text">
+          <string>VPS period</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <spacer name="horizontalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="QP">
+         <property name="text">
+          <string>Quantization Parameter (QP)</string>
+         </property>
+        </widget>
+       </item>
+       <item row="16" column="2">
+        <widget class="QCheckBox" name="lossless_box">
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item row="12" column="0">
+        <widget class="QLabel" name="oba_clip_neighbour_label">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>Oba clip Neightbours</string>
+         </property>
+        </widget>
+       </item>
+       <item row="12" column="2">
+        <widget class="QCheckBox" name="oba_clip_neighbours">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0">
+        <widget class="QLabel" name="Intra">
+         <property name="text">
+          <string>Intra period</string>
+         </property>
+        </widget>
+       </item>
+       <item row="17" column="0" colspan="2">
+        <widget class="QLabel" name="label_24">
+         <property name="text">
+          <string>MV constraint</string>
+         </property>
+        </widget>
+       </item>
+       <item row="14" column="0">
+        <widget class="QLabel" name="label_20">
+         <property name="text">
+          <string>Scaling list</string>
+         </property>
+        </widget>
+       </item>
+       <item row="9" column="2">
+        <widget class="QSlider" name="bitrate_slider">
+         <property name="maximum">
+          <number>10000000</number>
+         </property>
+         <property name="singleStep">
+          <number>50000</number>
+         </property>
+         <property name="pageStep">
+          <number>1000000</number>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="17" column="2">
+        <widget class="QComboBox" name="mv_constraint">
+         <item>
+          <property name="text">
+           <string>none</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>frame</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>tile</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>frametile</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>frametilemargin</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item row="5" column="2">
         <widget class="QLineEdit" name="intra">
          <property name="maximumSize">
           <size>
@@ -705,6 +847,77 @@
          </property>
         </widget>
        </item>
+       <item row="9" column="0">
+        <widget class="QLabel" name="bitrate_label">
+         <property name="text">
+          <string>Target bit rate</string>
+         </property>
+        </widget>
+       </item>
+       <item row="20" column="0">
+        <widget class="QLabel" name="label_28">
+         <property name="text">
+          <string>Variance Adaptive Quantization (VAQ)</string>
+         </property>
+        </widget>
+       </item>
+       <item row="18" column="2">
+        <widget class="QCheckBox" name="qp_in_cu_box">
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item row="13" column="2">
+        <widget class="QLabel" name="label_19">
+         <property name="text">
+          <string>On</string>
+         </property>
+        </widget>
+       </item>
+       <item row="21" column="0" colspan="3">
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="0" column="0" colspan="3">
+        <widget class="QLabel" name="label_8">
+         <property name="font">
+          <font>
+           <pointsize>16</pointsize>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Video Structure</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="14" column="2">
+        <widget class="QCheckBox" name="scaling_box">
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item row="13" column="0">
+        <widget class="QLabel" name="label_15">
+         <property name="text">
+          <string>LP-GOP</string>
+         </property>
+        </widget>
+       </item>
        <item row="2" column="0" colspan="3">
         <widget class="Line" name="line_6">
          <property name="orientation">
@@ -712,53 +925,7 @@
          </property>
         </widget>
        </item>
-       <item row="18" column="0" colspan="2">
-        <widget class="QLabel" name="label_23">
-         <property name="text">
-          <string>Lossless</string>
-         </property>
-        </widget>
-       </item>
-       <item row="11" column="2">
-        <widget class="QSlider" name="bitrate_slider">
-         <property name="maximum">
-          <number>10000000</number>
-         </property>
-         <property name="singleStep">
-          <number>50000</number>
-         </property>
-         <property name="pageStep">
-          <number>1000000</number>
-         </property>
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="0">
-        <widget class="QLabel" name="label_22">
-         <property name="text">
-          <string>QP difference in ROI area</string>
-         </property>
-        </widget>
-       </item>
-       <item row="12" column="2">
-        <widget class="QLabel" name="bitrate">
-         <property name="maximumSize">
-          <size>
-           <width>96</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>disabled</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="22" column="2">
+       <item row="20" column="2">
         <widget class="QComboBox" name="vaq">
          <item>
           <property name="text">
@@ -865,257 +1032,6 @@
            <string>20</string>
           </property>
          </item>
-        </widget>
-       </item>
-       <item row="19" column="2">
-        <widget class="QComboBox" name="mv_constraint">
-         <item>
-          <property name="text">
-           <string>none</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>frame</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>tile</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>frametile</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>frametilemargin</string>
-          </property>
-         </item>
-        </widget>
-       </item>
-       <item row="14" column="0">
-        <widget class="QLabel" name="oba_clip_neighbour_label">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-         <property name="text">
-          <string>Oba clip Neightbours</string>
-         </property>
-        </widget>
-       </item>
-       <item row="14" column="2">
-        <widget class="QCheckBox" name="oba_clip_neighbours">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-        </widget>
-       </item>
-       <item row="7" column="0">
-        <widget class="QLabel" name="Intra">
-         <property name="text">
-          <string>Intra period</string>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="1">
-        <spacer name="horizontalSpacer_3">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>40</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="6" column="1">
-        <spacer name="horizontalSpacer_4">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>40</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="8" column="0">
-        <widget class="QLabel" name="VPS">
-         <property name="text">
-          <string>VPS period</string>
-         </property>
-        </widget>
-       </item>
-       <item row="8" column="2">
-        <widget class="QLineEdit" name="vps">
-         <property name="maximumSize">
-          <size>
-           <width>48</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>1</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="15" column="2">
-        <widget class="QLabel" name="label_19">
-         <property name="text">
-          <string>On</string>
-         </property>
-        </widget>
-       </item>
-       <item row="9" column="0">
-        <widget class="QLabel" name="label_21">
-         <property name="text">
-          <string>Rate-Control Algorithm</string>
-         </property>
-        </widget>
-       </item>
-       <item row="9" column="2">
-        <widget class="QComboBox" name="rc_algorithm">
-         <property name="maximumSize">
-          <size>
-           <width>16777215</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <item>
-          <property name="text">
-           <string>lambda</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>oba</string>
-          </property>
-         </item>
-        </widget>
-       </item>
-       <item row="3" column="1">
-        <spacer name="horizontalSpacer_2">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>40</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="16" column="2">
-        <widget class="QCheckBox" name="scaling_box">
-         <property name="text">
-          <string/>
-         </property>
-        </widget>
-       </item>
-       <item row="22" column="0">
-        <widget class="QLabel" name="label_28">
-         <property name="text">
-          <string>Variance Adaptive Quantization (VAQ)</string>
-         </property>
-        </widget>
-       </item>
-       <item row="6" column="0">
-        <widget class="QLabel" name="label_33">
-         <property name="text">
-          <string>QP difference in ROI background</string>
-         </property>
-        </widget>
-       </item>
-       <item row="19" column="0" colspan="2">
-        <widget class="QLabel" name="label_24">
-         <property name="text">
-          <string>MV constraint</string>
-         </property>
-        </widget>
-       </item>
-       <item row="21" column="0">
-        <widget class="QLabel" name="label_26">
-         <property name="text">
-          <string>Level</string>
-         </property>
-        </widget>
-       </item>
-       <item row="16" column="0">
-        <widget class="QLabel" name="label_20">
-         <property name="text">
-          <string>Scaling list</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="0">
-        <widget class="QLabel" name="label_13">
-         <property name="font">
-          <font>
-           <pointsize>14</pointsize>
-           <bold>true</bold>
-          </font>
-         </property>
-         <property name="text">
-          <string>Kvazaar</string>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="2">
-        <widget class="QSpinBox" name="qp_roi">
-         <property name="maximumSize">
-          <size>
-           <width>64</width>
-           <height>24</height>
-          </size>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
-         </property>
-         <property name="minimum">
-          <number>22</number>
-         </property>
-         <property name="maximum">
-          <number>47</number>
-         </property>
-         <property name="value">
-          <number>27</number>
-         </property>
-        </widget>
-       </item>
-       <item row="6" column="2">
-        <widget class="QSpinBox" name="qp_roi_background">
-         <property name="maximumSize">
-          <size>
-           <width>64</width>
-           <height>24</height>
-          </size>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
-         </property>
-         <property name="minimum">
-          <number>22</number>
-         </property>
-         <property name="maximum">
-          <number>47</number>
-         </property>
-         <property name="value">
-          <number>27</number>
-         </property>
         </widget>
        </item>
       </layout>

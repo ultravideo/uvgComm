@@ -500,7 +500,7 @@ bool RoiFilter::init()
   roiFilter_.depth = settings.value(SettingsKey::roiFilterDepth).toInt();
 
   roiFilter_.roiQP = settings.value(SettingsKey::roiQp).toInt();
-  roiFilter_.backgroundQP = settings.value(SettingsKey::roiQpBackground).toInt();
+  roiFilter_.backgroundQP = settings.value(SettingsKey::backgroundQp).toInt();
   roiFilter_.qp = settings.value(SettingsKey::videoQP).toInt();
 
   if(newModel != model_){

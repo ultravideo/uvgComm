@@ -18,7 +18,7 @@ void ResourceAllocator::updateSettings()
 {
   Logger::getLogger()->printNormal(this, "Updating automatic resource controller settings");
   manualROI_ = settingEnabled(SettingsKey::manualROIStatus);
-  roiQp_ = settingValue(SettingsKey::RoiQp);
+  roiQp_ = settingValue(SettingsKey::roiQp);
   backgroundQp_ = settingValue(SettingsKey::backgroundQp);
 }
 

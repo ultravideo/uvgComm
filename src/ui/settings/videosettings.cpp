@@ -157,8 +157,6 @@ void VideoSettings::saveSettings()
 
   // structure-tab
   settings_.setValue(SettingsKey::videoQP,          QString::number(videoSettingsUI_->qp->value()));
-  settings_.setValue(SettingsKey::roiQp,            videoSettingsUI_->qp_roi->value());
-  settings_.setValue(SettingsKey::roiQpBackground,  videoSettingsUI_->qp_roi_background->value());
   saveTextValue(SettingsKey::videoIntra,            videoSettingsUI_->intra->text(),
                 settings_);
   saveTextValue(SettingsKey::videoVPS,              videoSettingsUI_->vps->text(),
@@ -328,8 +326,6 @@ void VideoSettings::restoreSettings()
 
   // structure-tab
   videoSettingsUI_->qp->setValue            (settings_.value(SettingsKey::videoQP).toInt());
-  videoSettingsUI_->qp_roi->setValue        (settings_.value(SettingsKey::roiQp).toInt());
-  videoSettingsUI_->qp_roi_background->setValue(settings_.value(SettingsKey::roiQpBackground).toInt());
   videoSettingsUI_->intra->setText          (settings_.value(SettingsKey::videoIntra).toString());
   videoSettingsUI_->vps->setText            (settings_.value(SettingsKey::videoVPS).toString());
 
