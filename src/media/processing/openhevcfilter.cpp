@@ -55,6 +55,8 @@ bool OpenHEVCFilter::init()
   libOpenHevcSetActiveDecoders(handle_, 0);
   libOpenHevcSetViewLayers(handle_, 0);
 
+  decodingFrames_.clear();
+
   // libOpenHevcSetDebugMode(handle_, OHEVC_LOG_DEBUG);
 
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "OpenHEVC initiation successful.",
