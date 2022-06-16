@@ -164,7 +164,6 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
 
     settings_.setValue(SettingsKey::videoKvzThreads, threads);
     settings_.setValue(SettingsKey::videoOpenHEVCThreads, 1);
-    settings_.setValue(SettingsKey::videoOHParallelization, "Slice");
     settings_.setValue(SettingsKey::videoYUVThreads, 1);
     settings_.setValue(SettingsKey::videoRGBThreads, 1);
     settings_.setValue(SettingsKey::videoOWF, 0);
@@ -174,7 +173,6 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
     cpuPower = CC_MEDIUM;
     settings_.setValue(SettingsKey::videoKvzThreads, threads - 1);
     settings_.setValue(SettingsKey::videoOpenHEVCThreads, 2);
-    settings_.setValue(SettingsKey::videoOHParallelization, "Slice");
     settings_.setValue(SettingsKey::videoYUVThreads, 1);
     settings_.setValue(SettingsKey::videoRGBThreads, 1);
     settings_.setValue(SettingsKey::videoOWF, 0);
@@ -184,7 +182,6 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
     cpuPower = CC_COMPLEX;
     settings_.setValue(SettingsKey::videoKvzThreads, threads - 1);
     settings_.setValue(SettingsKey::videoOpenHEVCThreads, 4);
-    settings_.setValue(SettingsKey::videoOHParallelization, "Slice");
     settings_.setValue(SettingsKey::videoYUVThreads, 1);
     settings_.setValue(SettingsKey::videoRGBThreads, 1);
     settings_.setValue(SettingsKey::videoOWF, 1);
@@ -194,11 +191,13 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
     cpuPower = CC_EXTREME;
     settings_.setValue(SettingsKey::videoKvzThreads, threads - 2);
     settings_.setValue(SettingsKey::videoOpenHEVCThreads, 8);
-    settings_.setValue(SettingsKey::videoOHParallelization, "Frame and Slice");
     settings_.setValue(SettingsKey::videoYUVThreads, 2);
     settings_.setValue(SettingsKey::videoRGBThreads, 2);
     settings_.setValue(SettingsKey::videoOWF, 2);
   }
+
+  // seems to work the best in all cases
+  settings_.setValue(SettingsKey::videoOHParallelization, "Frame and Slice");
 
   SettingsCameraFormat format = selectBestCameraFormat(cam, cpuPower);
 
