@@ -43,8 +43,8 @@ void KvazaarFilter::updateSettings()
 
 
   close();
-  encodingFrames_.clear();
 
+  settingsMutex_.lock();
   if(init())
   {
     Logger::getLogger()->printNormal(this, "Resolution change successful");
@@ -53,6 +53,8 @@ void KvazaarFilter::updateSettings()
   {
     Logger::getLogger()->printNormal(this, "Failed to change resolution");
   }
+  encodingFrames_.clear();
+  settingsMutex_.unlock();
 
   start();
 
@@ -280,9 +282,6 @@ void KvazaarFilter::close()
 
 void KvazaarFilter::process()
 {
-  Q_ASSERT(enc_);
-  Q_ASSERT(config_);
-
   std::unique_ptr<Data> input = getInput();
 
   while(input)
@@ -293,8 +292,9 @@ void KvazaarFilter::process()
                                       "Input picture was not allocated correctly.");
       break;
     }
-
+    settingsMutex_.lock();
     feedInput(std::move(input));
+    settingsMutex_.unlock();
 
     input = getInput();
   }
