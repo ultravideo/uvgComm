@@ -30,6 +30,7 @@ private:
   uint32_t sessionID_;
 
   int threads_;
+  QString parallelizationMode_;
 
   // temporarily store frame info during decoding
   std::deque<std::unique_ptr<Data>> decodingFrames_;

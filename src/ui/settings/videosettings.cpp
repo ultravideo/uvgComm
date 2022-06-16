@@ -137,6 +137,10 @@ void VideoSettings::saveSettings()
   saveTextValue(SettingsKey::videoKvzThreads,       videoSettingsUI_->kvazaar_threads->currentText(),
                 settings_);
   settings_.setValue(SettingsKey::videoOWF,         videoSettingsUI_->owf->currentText());
+
+  saveTextValue(SettingsKey::videoOHParallelization,  videoSettingsUI_->oh_parallelization_combo->currentText(),
+                settings_);
+
   saveCheckBox(SettingsKey::videoWPP,               videoSettingsUI_->wpp, settings_);
 
   saveCheckBox(SettingsKey::videoTiles,             videoSettingsUI_->tiles_checkbox, settings_);
@@ -266,6 +270,9 @@ void VideoSettings::restoreSettings()
   restoreComboBoxValue(SettingsKey::videoKvzThreads, videoSettingsUI_->kvazaar_threads,
                        "auto", settings_);
   restoreComboBoxValue(SettingsKey::videoOWF, videoSettingsUI_->owf, "0", settings_);
+
+  restoreComboBoxValue(SettingsKey::videoOHParallelization,
+                       videoSettingsUI_->oh_parallelization_combo, "slice", settings_);
 
   restoreCheckBox(SettingsKey::videoWPP, videoSettingsUI_->wpp, settings_);
 
@@ -455,6 +462,10 @@ void VideoSettings::initializeThreads()
       videoSettingsUI_->owf->addItem(QString::number(i));
     }
   }
+
+  videoSettingsUI_->openhevc_threads->setMaximum(maxThreads);
+  videoSettingsUI_->yuv_threads->setMaximum(maxThreads);
+  videoSettingsUI_->rgb32_threads->setMaximum(maxThreads);
 }
 
 

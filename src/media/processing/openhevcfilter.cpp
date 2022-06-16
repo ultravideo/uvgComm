@@ -20,7 +20,8 @@ OpenHEVCFilter::OpenHEVCFilter(uint32_t sessionID, StatisticsInterface *stats,
   spsReceived_(false),
   ppsReceived_(false),
   sessionID_(sessionID),
-  threads_(-1)
+  threads_(-1),
+  parallelizationMode_("Slice")
 {}
 
 
@@ -30,8 +31,20 @@ bool OpenHEVCFilter::init()
   QSettings settings(settingsFile, settingsFileFormat);
 
   threads_ = settings.value(SettingsKey::videoOpenHEVCThreads).toInt();
+  parallelizationMode_ = settings.value(SettingsKey::videoOHParallelization).toString();
 
-  handle_ = libOpenHevcInit(threads_, OH_THREAD_FRAMESLICE);
+  if (parallelizationMode_ == "Slice")
+  {
+    handle_ = libOpenHevcInit(threads_, OH_THREAD_SLICE);
+  }
+  else if (parallelizationMode_ == "Frame")
+  {
+    handle_ = libOpenHevcInit(threads_, OH_THREAD_FRAME);
+  }
+  else
+  {
+    handle_ = libOpenHevcInit(threads_, OH_THREAD_FRAMESLICE);
+  }
 
   if(libOpenHevcStartDecoder(handle_) == -1)
   {
@@ -41,9 +54,13 @@ bool OpenHEVCFilter::init()
   libOpenHevcSetTemporalLayer_id(handle_, 0);
   libOpenHevcSetActiveDecoders(handle_, 0);
   libOpenHevcSetViewLayers(handle_, 0);
-  //libOpenHevcSetDebugMode(handle_, OHEVC_LOG_DEBUG);
-  Logger::getLogger()->printNormal(this, "OpenHEVC initiation successful.", 
-                                   {"Version"}, {libOpenHevcVersion(handle_)});
+
+  // libOpenHevcSetDebugMode(handle_, OHEVC_LOG_DEBUG);
+
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "OpenHEVC initiation successful.",
+                                   {"Version", "Threads", "Parallelization"},
+                                  {libOpenHevcVersion(handle_), QString::number(threads_),
+                                  parallelizationMode_});
 
   // This is because we don't know anything about the incoming stream
   maxBufferSize_ = -1; // no buffer limit
@@ -68,7 +85,8 @@ void OpenHEVCFilter::updateSettings()
 {
   QSettings settings(settingsFile, settingsFileFormat);
 
-  if (settings.value(SettingsKey::videoOpenHEVCThreads).toInt() != threads_)
+  if (settings.value(SettingsKey::videoOpenHEVCThreads).toInt() != threads_ ||
+      settings.value(SettingsKey::videoOHParallelization).toString() != parallelizationMode_)
   {
     settingsMutex_.lock();
     uninit();
@@ -82,11 +100,12 @@ void OpenHEVCFilter::updateSettings()
 
 void OpenHEVCFilter::process()
 {
-  settingsMutex_.lock();
   std::unique_ptr<Data> input = getInput();
+
   while(input)
   {
     getStats()->addReceivePacket(sessionID_, "Video", input->data_size);
+    settingsMutex_.lock();
 
     const unsigned char *buff = input->data.get();
 
@@ -148,9 +167,11 @@ void OpenHEVCFilter::process()
       Logger::getLogger()->printWarning(this, "Discarding frame until necessary structures have arrived");
     }
 
+    settingsMutex_.unlock();
+
     input = getInput();
   }
-  settingsMutex_.unlock();
+
 }
 
 

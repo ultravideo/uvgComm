@@ -34,6 +34,7 @@ const QString videoInputFormat = "video/InputFormat";
 const QString videoYUVThreads = "video/yuvThreads";
 const QString videoRGBThreads = "video/rgbThreads";
 const QString videoOpenHEVCThreads = "video/OPENHEVC_threads";
+const QString videoOHParallelization = "video/OH_parallelization";
 const QString videoFramerateID = "video/FramerateID";
 const QString videoFramerate = "video/Framerate";
 const QString videoOpenGL = "video/opengl";
