@@ -10,7 +10,6 @@
 
 enum OHThreadType {OH_THREAD_FRAME  = 1, OH_THREAD_SLICE = 2, OH_THREAD_FRAMESLICE  = 3};
 
-enum NAL_UNIT_TYPE {VPS_NUT = 32, SPS_NUT = 33, PPS_NUT = 34};
 
 OpenHEVCFilter::OpenHEVCFilter(uint32_t sessionID, StatisticsInterface *stats,
                                std::shared_ptr<ResourceAllocator> hwResources):

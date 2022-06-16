@@ -25,7 +25,6 @@ UvgRTPReceiver::UvgRTPReceiver(uint32_t sessionID, QString id, StatisticsInterfa
                                std::shared_ptr<ResourceAllocator> hwResources,
                                DataType type, QString media, QFuture<uvg_rtp::media_stream *> stream):
   Filter(id, "RTP Receiver " + media, stats, hwResources, DT_NONE, type),
-  gotSeq_(false),
   discardUntilIntra_(false),
   lastSeq_(0),
   sessionID_(sessionID)
@@ -60,20 +59,6 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
     return;
   }
 
-  if (output_ == DT_HEVCVIDEO && gotSeq_)
-  {
-/*
- *  TODO: Enable this once uvgRTP has correctly implemented sequence numbers
-    if (shouldDiscard(frame->header.seq, frame->payload))
-    {
-      lastSeq_ = frame->header.seq;
-      (void)uvg_rtp::frame::dealloc_frame(frame);
-      return;
-    }
-    */
-  }
-
-  gotSeq_ = true;
   lastSeq_ = frame->header.seq;
 
   std::unique_ptr<Data> received_picture = initializeData(output_, DS_REMOTE);
@@ -111,44 +96,4 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
 
   (void)uvg_rtp::frame::dealloc_frame(frame);
   sendOutput(std::move(received_picture));
-}
-
-bool UvgRTPReceiver::shouldDiscard(uint16_t frameSeq, uint8_t* payload)
-{
-  if (gotSeq_)
-  {
-    if ((lastSeq_ == UINT16_MAX - 1 && frameSeq != 0) ||
-        frameSeq > lastSeq_ + 1)
-    {
-      // We have detected that there are frames missing after last intra
-
-      if (isHEVCIntra(payload))
-      {
-        discardUntilIntra_ = false;
-        return false;
-      }
-
-      Logger::getLogger()->printDebug(DEBUG_WARNING, this,
-                                      "Missing frame detected. Discarding if inter",
-                                      {"Last Seq", "Current Seq"},
-                                      {QString::number(lastSeq_), QString::number(frameSeq)});
-
-      discardUntilIntra_ = true;
-
-      return isHEVCInter(payload);
-    }
-    else if (discardUntilIntra_ && isHEVCInter(payload))
-    {
-      Logger::getLogger()->printWarning(this,  "Discarding frame because no intra"
-                                               " has arrived after last missing frame",
-                                        "Seq", QString::number(frameSeq));
-      return true;
-    }
-    else if (isHEVCIntra(payload))
-    {
-      discardUntilIntra_ = false;
-    }
-  }
-
-  return false;
 }

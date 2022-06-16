@@ -44,7 +44,7 @@ bool Filter::init()
 }
 
 
-bool Filter::isVideo(DataType type)
+bool Filter::isVideo(DataType type) const
 {
   return type == DT_RGB32VIDEO ||
       type == DT_YUV420VIDEO ||
@@ -53,7 +53,7 @@ bool Filter::isVideo(DataType type)
 }
 
 
-bool Filter::isAudio(DataType type)
+bool Filter::isAudio(DataType type) const
 {
   return type == DT_RAWAUDIO ||
       type == DT_OPUSAUDIO;
@@ -170,7 +170,7 @@ void Filter::putInput(std::unique_ptr<Data> data)
 }
 
 
-std::unique_ptr<Data> Filter::initializeData(DataType type, DataSource source)
+std::unique_ptr<Data> Filter::initializeData(DataType type, DataSource source) const
 {
   std::unique_ptr<Data> data(new Data);
   data->type = type;
@@ -325,7 +325,7 @@ void Filter::run()
   }
 }
 
-Data* Filter::shallowDataCopy(Data* original)
+Data* Filter::shallowDataCopy(Data* original) const
 {
   if(original != nullptr)
   {
@@ -362,7 +362,7 @@ Data* Filter::shallowDataCopy(Data* original)
   return nullptr;
 }
 
-Data* Filter::deepDataCopy(Data* original)
+Data* Filter::deepDataCopy(Data* original) const
 {
   if(original != nullptr)
   {
@@ -393,7 +393,7 @@ QString Filter::printOutputs()
 }
 
 
-bool Filter::isHEVCIntra(const unsigned char *buff)
+bool Filter::isHEVCIntra(const unsigned char *buff) const
 {
   return (buff[0] == 0 &&
       buff[1] == 0 &&
@@ -402,7 +402,7 @@ bool Filter::isHEVCIntra(const unsigned char *buff)
       (buff[4] >> 1) == 19);
 }
 
-bool Filter::isHEVCInter(const unsigned char *buff)
+bool Filter::isHEVCInter(const unsigned char *buff) const
 {
   return (buff[0] == 0 &&
       buff[1] == 0 &&
@@ -441,7 +441,7 @@ std::unique_ptr<Data> Filter::validityCheck(std::unique_ptr<Data> data, bool& ok
   return data;
 }
 
-void Filter::printDataBytes(QString type, uint8_t *payload, size_t size, int bytes, int shift)
+void Filter::printDataBytes(QString type, const uint8_t *payload, size_t size, int bytes, int shift)
 {
   QString bytesString = "";
 
