@@ -19,8 +19,7 @@ protected:
 
 private:
 
-  // combine the slices to a frame.
-  void combineFrame(std::unique_ptr<Data> &combinedFrame);
+  void sendDecodedOutput(int &gotPicture);
 
   OpenHevc_Handle handle_;
 
@@ -34,4 +33,6 @@ private:
 
   // temporarily store frame info during decoding
   std::deque<std::unique_ptr<Data>> decodingFrames_;
+
+  QMutex settingsMutex_;
 };
