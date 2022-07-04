@@ -261,7 +261,6 @@ win32-g++: QMAKE_CXXFLAGS += -msse4.1 -mavx2 -fopenmp
 RC_ICONS = favicon.ico
 
 # common includes
-INCLUDEPATH += $$PWD/../include/openhevc_dec
 INCLUDEPATH += $$PWD/../include/
 
 # These you need to install or build yourself. Here are the libraries that
