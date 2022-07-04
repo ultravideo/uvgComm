@@ -40,15 +40,12 @@ public:
   void removeWithMessage(uint32_t sessionID, QString message,
                          bool temporaryMessage);
 
-  // if user closes the window
-  void closeEvent(QCloseEvent *event);
 
   // viewfactory for creating video views.
   std::shared_ptr<VideoviewFactory> getViewFactory() const
   {
     return viewFactory_;
   }
-
 
 signals:
 
@@ -80,6 +77,11 @@ public slots:
   void cameraButton(bool checked);
 
   void changedSIPText(const QString &text);
+
+protected:
+
+  // if user closes the window
+  void closeEvent(QCloseEvent *event);
 
 private:
 

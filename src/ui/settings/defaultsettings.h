@@ -10,6 +10,12 @@
 class CameraInfo;
 class MicrophoneInfo;
 
+enum ComplexityClass {CC_TRIVIAL = 10000000,   // 480p30,  10m,  almost any computer can achieve this
+                      CC_EASY    = 20000000,   // 480p60,  20m,  most computers can achieve
+                      CC_MEDIUM  = 30000000,   // 720p30,  30m,  average computers can achieve this
+                      CC_COMPLEX = 70000000,   // 1080p30, 70m,  good computers can achieve this
+                      CC_EXTREME = 300000000}; // 2160p30, 300m, only the best computers can achieve this
+
 class DefaultSettings : public QObject
 {
   Q_OBJECT
@@ -29,13 +35,14 @@ private:
   bool validateVideoSettings();
   bool validateCallSettings();
 
-
   void setDefaultCallSettings();
 
-  SettingsCameraFormat selectBestCameraFormat(std::shared_ptr<CameraInfo> cam);
-  SettingsCameraFormat selectBestDeviceFormat(std::shared_ptr<CameraInfo> cam, int deviceID);
+  SettingsCameraFormat selectBestCameraFormat(std::shared_ptr<CameraInfo> cam, ComplexityClass complexity);
+  SettingsCameraFormat selectBestDeviceFormat(std::shared_ptr<CameraInfo> cam, int deviceID, ComplexityClass complexity);
 
-  uint64_t calculatePoints(QSize resolution, double fps);
+  uint64_t calculatePoints(QString format, QSize resolution, double fps);
+
+  ComplexityClass calculateComplexity(QSize resolution, double fps);
 
   QSettings settings_;
 };

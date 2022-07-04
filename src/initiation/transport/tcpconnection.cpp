@@ -344,7 +344,7 @@ void TCPConnection::run()
         Logger::getLogger()->printNormal(this, "Can read one line", {"Bytes available"},
                     {QString::number(socket_->bytesAvailable())});
 
-        // TODO: This should probably be some other stream, because we get also non text stuff in content?
+        // TODO: This should probably be some other stream, because we can also get non-text stuff in content?
 
         QTextStream in(socket_);
         QString message;

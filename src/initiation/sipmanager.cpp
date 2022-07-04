@@ -3,15 +3,19 @@
 #include "initiation/negotiation/sdpnegotiation.h"
 #include "initiation/negotiation/networkcandidates.h"
 #include "initiation/negotiation/ice.h"
+
 #include "initiation/transaction/sipserver.h"
 #include "initiation/transaction/sipclient.h"
 #include "initiation/transaction/sipdialogstate.h"
+#include "initiation/transaction/sipallow.h"
 
 #include "initiation/transport/siprouting.h"
 #include "initiation/transport/tcpconnection.h"
 #include "initiation/transport/sipauthentication.h"
 
 #include "initiation/negotiation/sdpdefault.h"
+
+#include "siphelper.h"
 
 #include "common.h"
 #include "global.h"
@@ -288,7 +292,7 @@ void SIPManager::respondDeclineToINVITE(uint32_t sessionID)
 }
 
 
-void SIPManager::cancelCall(uint32_t sessionID)
+bool SIPManager::cancelCall(uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
 
@@ -301,7 +305,9 @@ void SIPManager::cancelCall(uint32_t sessionID)
   else
   {
     Logger::getLogger()->printProgramWarning(this, "Tried to remove a non-existing dialog");
+    return false;
   }
+  return true;
 }
 
 
@@ -675,8 +681,6 @@ std::shared_ptr<TransportInstance> SIPManager::getTransport(QString& address) co
                         {"Address"}, {transports_.begin()->first});
     }
 
-    Logger::getLogger()->printNormal(this, "Trying different IP version of the address");
-
     QHostAddress differentAddress(address);
 
     if (differentAddress.protocol() == QAbstractSocket::IPv4Protocol)
@@ -690,11 +694,12 @@ std::shared_ptr<TransportInstance> SIPManager::getTransport(QString& address) co
 
     if (transports_.find(differentAddress.toString()) != transports_.end())
     {
+      Logger::getLogger()->printNormal(this, "Different IP version matches!");
       foundTransport = transports_.at(differentAddress.toString());
     }
     else
     {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "This was not successful",
+      Logger::getLogger()->printDebug(DEBUG_ERROR, this, "Different IP version was not successful either",
                         {"Different IP Address", }, {differentAddress.toString()});
     }
   }
@@ -900,6 +905,7 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
                     this, &SIPManager::nominationFailed);
 
   // Add all components to the pipe.
+  dialog->pipe.addProcessor(std::shared_ptr<SIPAllow>(new SIPAllow));
   dialog->pipe.addProcessor(dialog->state);
   dialog->pipe.addProcessor(ice);
   dialog->pipe.addProcessor(negotiation);
@@ -1042,7 +1048,8 @@ bool SIPManager::shouldUseProxy(QString remoteAddress)
   QHostAddress remote = QHostAddress(remoteAddress);
 
   // if we have registered and the remote AOR is not loopback
-  return !remote.isLoopback() && haveWeRegistered() != "";
+  return !remote.isLoopback() && !isPrivateNetwork(remoteAddress.toStdString()) &&
+      haveWeRegistered() != "";
 }
 
 

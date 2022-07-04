@@ -46,6 +46,11 @@ public slots:
 
   void showOkButton(QString text);
 
+protected:
+
+  // if user closes the window
+  void closeEvent(QCloseEvent *event);
+
 private:
   // QSettings -> GUI
   void restoreSettings();

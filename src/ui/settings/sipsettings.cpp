@@ -61,6 +61,14 @@ void SIPSettings::showSTUNQuestion()
   stun_.setWindowTitle("Use STUN?");
 }
 
+
+void SIPSettings::closeEvent(QCloseEvent *event)
+{
+  on_advanced_close_clicked();
+  QDialog::closeEvent(event);
+}
+
+
 void SIPSettings::acceptSTUN()
 {
   Logger::getLogger()->printNormal(this, "User accepted STUN usage");

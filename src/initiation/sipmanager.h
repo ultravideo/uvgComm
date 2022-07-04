@@ -86,7 +86,7 @@ public:
   void respondRingingToINVITE(uint32_t sessionID);
   void respondOkToINVITE(uint32_t sessionID);
   void respondDeclineToINVITE(uint32_t sessionID);
-  void cancelCall(uint32_t sessionID);
+  bool cancelCall(uint32_t sessionID);
   void endCall(uint32_t sessionID);
   void endAllCalls();
 

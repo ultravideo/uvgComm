@@ -63,6 +63,7 @@ bool DefaultSettings::validateVideoSettings()
                                       SettingsKey::videoYUVThreads,
                                       SettingsKey::videoRGBThreads,
                                       SettingsKey::videoOpenHEVCThreads,
+                                      SettingsKey::videoOHParallelization,
                                       SettingsKey::videoFramerateID,
                                       SettingsKey::videoFramerate,
                                       SettingsKey::videoOpenGL,
@@ -133,37 +134,74 @@ void DefaultSettings::setDefaultAudioSettings(std::shared_ptr<MicrophoneInfo> mi
 
 void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
 {
-
-  // this is a sensible guess on the amounts of threads required
-  // TODO: Maybe it would be possible to come up with something even more accurate?
   unsigned int threads = std::thread::hardware_concurrency();
-  if (threads < 16)
+
+  // Try to guess best resolution and thread distribution based on available threads
+  ComplexityClass cpuPower = CC_TRIVIAL;
+  if (threads <= 4)
   {
+    /* Kvazaar wants the most threads, but some should be left for other components
+     * to avoid too much competition for thread run time. The OWF options increases
+     * latency, but is needed with high resolution in machines with low power cores.
+     *
+     * The openHEVC may require more threads if the incoming resolution is high,
+     * but usually one is enough. The OpenHEVC parallelization mode slice is the best for latency,
+     * but when receiving high resolution, "Frame and Slice" may be needed
+     * (selection should probably be done based on received resolution).
+     *
+     * YUV and RGB conversions should be able to handle everything expect 4K with one thread.
+     *
+     * The resolution guess is based on testing and is subject to changes */
+
+    if (threads < 4)
+    {
+      cpuPower = CC_TRIVIAL;
+    }
+    else if (threads == 4)
+    {
+      cpuPower = CC_EASY;
+    }
+
+    settings_.setValue(SettingsKey::videoKvzThreads, threads);
+    settings_.setValue(SettingsKey::videoOpenHEVCThreads, 1);
+    settings_.setValue(SettingsKey::videoOHParallelization, "Slice");
     settings_.setValue(SettingsKey::videoYUVThreads, 1);
     settings_.setValue(SettingsKey::videoRGBThreads, 1);
-    settings_.setValue(SettingsKey::videoOpenHEVCThreads, 1);
-
-    if (threads <= 4)
-    {
-      settings_.setValue(SettingsKey::videoKvzThreads, threads);
-    }
-    else
-    {
-      settings_.setValue(SettingsKey::videoKvzThreads, threads - 1);
-
-      // slightly reduces decoding latency (~4 ms)
-      settings_.setValue(SettingsKey::videoOpenHEVCThreads, 2);
-    }
+    settings_.setValue(SettingsKey::videoOWF, 0);
+  }
+  else if (threads <= 8)
+  {
+    cpuPower = CC_MEDIUM;
+    settings_.setValue(SettingsKey::videoKvzThreads, threads - 1);
+    settings_.setValue(SettingsKey::videoOpenHEVCThreads, 2);
+    settings_.setValue(SettingsKey::videoOHParallelization, "Slice");
+    settings_.setValue(SettingsKey::videoYUVThreads, 1);
+    settings_.setValue(SettingsKey::videoRGBThreads, 1);
+    settings_.setValue(SettingsKey::videoOWF, 0);
+  }
+  else if (threads <= 16)
+  {
+    cpuPower = CC_COMPLEX;
+    settings_.setValue(SettingsKey::videoKvzThreads, threads - 1);
+    settings_.setValue(SettingsKey::videoOpenHEVCThreads, 4);
+    settings_.setValue(SettingsKey::videoOHParallelization, "Frame and Slice");
+    settings_.setValue(SettingsKey::videoYUVThreads, 1);
+    settings_.setValue(SettingsKey::videoRGBThreads, 1);
+    settings_.setValue(SettingsKey::videoOWF, 1);
   }
   else
   {
+    cpuPower = CC_EXTREME;
+    settings_.setValue(SettingsKey::videoKvzThreads, threads - 2);
+    settings_.setValue(SettingsKey::videoOpenHEVCThreads, 8);
+    settings_.setValue(SettingsKey::videoOHParallelization, "Frame and Slice");
     settings_.setValue(SettingsKey::videoYUVThreads, 2);
     settings_.setValue(SettingsKey::videoRGBThreads, 2);
-    settings_.setValue(SettingsKey::videoOpenHEVCThreads, 3);
-    settings_.setValue(SettingsKey::videoKvzThreads, threads - 2);
+    settings_.setValue(SettingsKey::videoOWF, 2);
   }
 
-  SettingsCameraFormat format = selectBestCameraFormat(cam);
+
+  SettingsCameraFormat format = selectBestCameraFormat(cam, cpuPower);
 
   settings_.setValue(SettingsKey::videoDevice,          format.deviceName);
   settings_.setValue(SettingsKey::videoDeviceID,        format.deviceID);
@@ -186,28 +224,56 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
   settings_.setValue(SettingsKey::videoSlices, 0);
 
   settings_.setValue(SettingsKey::videoWPP, 1);
-  settings_.setValue(SettingsKey::videoOWF, 0); // causes too much latency
   settings_.setValue(SettingsKey::videoTiles, 0);
   settings_.setValue(SettingsKey::videoTileDimensions, "2x2");
   settings_.setValue(SettingsKey::videoVPS, 1);
-  settings_.setValue(SettingsKey::videoBitrate, 0);
-  settings_.setValue(SettingsKey::videoRCAlgorithm, "lambda");
   settings_.setValue(SettingsKey::videoOBAClipNeighbours, 0);
   settings_.setValue(SettingsKey::videoScalingList, 0);
   settings_.setValue(SettingsKey::videoLossless, 0); // very CPU intensive
   settings_.setValue(SettingsKey::videoMVConstraint, "none");
   settings_.setValue(SettingsKey::videoQPInCU, 0);
   settings_.setValue(SettingsKey::videoVAQ, "disabled");
-  settings_.setValue(SettingsKey::videoPreset, "ultrafast");
+
+  settings_.setValue(SettingsKey::videoRCAlgorithm, "lambda");
+
+  ComplexityClass formatComplexity = calculateComplexity(format.resolution,
+                                                         format.framerate.toDouble());
+
+  // use resolution to determine the best bit rate
+  if (formatComplexity == CC_TRIVIAL)
+  {
+    settings_.setValue(SettingsKey::videoBitrate, 250000); // 250 kbit/s
+    settings_.setValue(SettingsKey::videoPreset, "fast");
+  }
+  else if (formatComplexity == CC_EASY)
+  {
+    settings_.setValue(SettingsKey::videoBitrate, 500000); // 500 kbit/s
+    settings_.setValue(SettingsKey::videoPreset, "faster");
+  }
+  else if (formatComplexity == CC_MEDIUM)
+  {
+    settings_.setValue(SettingsKey::videoBitrate, 1000000); // 1 mbit/s
+    settings_.setValue(SettingsKey::videoPreset, "veryfast");
+  }
+  else if (formatComplexity == CC_COMPLEX)
+  {
+    settings_.setValue(SettingsKey::videoBitrate, 3000000); // 3 mbit/s
+    settings_.setValue(SettingsKey::videoPreset, "superfast");
+  }
+  else
+  {
+    settings_.setValue(SettingsKey::videoBitrate, 6000000); // 6 mbit/s
+    settings_.setValue(SettingsKey::videoPreset, "ultrafast");
+  }
 }
 
 
 void DefaultSettings::setDefaultCallSettings()
-{
-}
+{}
 
 
-SettingsCameraFormat DefaultSettings::selectBestCameraFormat(std::shared_ptr<CameraInfo> cam)
+SettingsCameraFormat DefaultSettings::selectBestCameraFormat(std::shared_ptr<CameraInfo> cam,
+                                                             ComplexityClass complexity)
 {
   // Note: the current implementation does not go through all the devices to
   // find the best format, just the first one
@@ -217,19 +283,20 @@ SettingsCameraFormat DefaultSettings::selectBestCameraFormat(std::shared_ptr<Cam
     int deviceID = settings_.value(SettingsKey::videoDeviceID).toInt();
     deviceID = cam->getMostMatchingDeviceID(settings_.value(SettingsKey::videoDevice).toString(),
                                             deviceID);
-    return selectBestDeviceFormat(cam, deviceID);
+    return selectBestDeviceFormat(cam, deviceID, complexity);
   }
 
-  return selectBestDeviceFormat(cam, 0);
+  return selectBestDeviceFormat(cam, 0, complexity);
 }
 
 
 SettingsCameraFormat DefaultSettings::selectBestDeviceFormat(std::shared_ptr<CameraInfo> cam,
-                                                             int deviceID)
+                                                             int deviceID, ComplexityClass complexity)
 {
   // point system for best format
 
-  SettingsCameraFormat bestOption = {"No camera found", deviceID, "No camera", -1, {}, -1, 0, -1};
+  SettingsCameraFormat bestOption = {"No camera found", deviceID, "No camera",
+                                     -1, {}, -1, 0, -1};
   uint64_t highestValue = 0;
 
   std::vector<SettingsCameraFormat> options;
@@ -237,13 +304,17 @@ SettingsCameraFormat DefaultSettings::selectBestDeviceFormat(std::shared_ptr<Cam
 
   for (auto& option: options)
   {
-    uint64_t points = calculatePoints(option.resolution,
-                                      option.framerate.toDouble());
-
-    if (points > highestValue)
+    if (calculateComplexity(option.resolution,
+                            option.framerate.toDouble()) <= complexity)
     {
-      highestValue = points;
-      bestOption = option;
+      uint64_t points = calculatePoints(option.format, option.resolution,
+                                        option.framerate.toDouble());
+
+      if (points > highestValue)
+      {
+        highestValue = points;
+        bestOption = option;
+      }
     }
   }
 
@@ -258,13 +329,54 @@ SettingsCameraFormat DefaultSettings::selectBestDeviceFormat(std::shared_ptr<Cam
   return bestOption;
 }
 
-uint64_t DefaultSettings::calculatePoints(QSize resolution, double fps)
+uint64_t DefaultSettings::calculatePoints(QString format, QSize resolution, double fps)
 {
   // we give much lower score to low fps values
-  if (fps < 30.0)
+
+  int formatPoints = 0;
+
+  if (format == "YUYV")
   {
-    return (resolution.width()*resolution.height()/10 + (int)fps);
+    formatPoints = 1;
+  }
+  else if (format == "MJPG")
+  {
+    formatPoints = 2;
+  }
+  else if (format == "YUV_420")
+  {
+    formatPoints = 3;
   }
 
-  return resolution.width()*resolution.height() + (int)fps;
+  if (fps < 30.0)
+  {
+    return (resolution.width()*resolution.height()/10 + (int)fps) + formatPoints;
+  }
+
+  return resolution.width()*resolution.height() + (int)fps + formatPoints;
+}
+
+
+ComplexityClass DefaultSettings::calculateComplexity(QSize resolution, double fps)
+{
+  uint64_t complexityScore = resolution.width()*resolution.height()*fps;
+
+  if (complexityScore <= CC_TRIVIAL)
+  {
+    return CC_TRIVIAL;
+  }
+  else if (complexityScore <= CC_EASY)
+  {
+    return CC_EASY;
+  }
+  else if (complexityScore <= CC_MEDIUM)
+  {
+    return CC_MEDIUM;
+  }
+  else if (complexityScore <= CC_COMPLEX)
+  {
+    return CC_COMPLEX;
+  }
+
+  return CC_EXTREME;
 }

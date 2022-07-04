@@ -47,9 +47,11 @@ SOURCES +=\
     src/initiation/negotiation/stunmessage.cpp \
     src/initiation/negotiation/stunmessagefactory.cpp \
     src/initiation/negotiation/udpserver.cpp \
+    src/initiation/siphelper.cpp \
     src/initiation/sipmanager.cpp \
     src/initiation/sipmessageflow.cpp \
     src/initiation/sipmessageprocessor.cpp \
+    src/initiation/transaction/sipallow.cpp \
     src/initiation/transaction/sipcallbacks.cpp \
     src/initiation/transaction/sipclient.cpp \
     src/initiation/transaction/sipdialogstate.cpp \
@@ -141,10 +143,12 @@ HEADERS  += \
     src/initiation/negotiation/stunmessage.h \
     src/initiation/negotiation/stunmessagefactory.h \
     src/initiation/negotiation/udpserver.h \
+    src/initiation/siphelper.h \
     src/initiation/sipmanager.h \
     src/initiation/sipmessageflow.h \
     src/initiation/sipmessageprocessor.h \
     src/initiation/siptypes.h \
+    src/initiation/transaction/sipallow.h \
     src/initiation/transaction/sipcallbacks.h \
     src/initiation/transaction/sipclient.h \
     src/initiation/transaction/sipdialogstate.h \
@@ -257,7 +261,6 @@ win32-g++: QMAKE_CXXFLAGS += -msse4.1 -mavx2 -fopenmp
 RC_ICONS = favicon.ico
 
 # common includes
-INCLUDEPATH += $$PWD/../include/openhevc_dec
 INCLUDEPATH += $$PWD/../include/
 
 # These you need to install or build yourself. Here are the libraries that

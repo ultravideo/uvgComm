@@ -25,10 +25,6 @@ signals:
 
 private:
 
-  bool shouldDiscard(uint16_t frameSeq, uint8_t* payload);
-
-  bool gotSeq_;
-
   bool discardUntilIntra_;
 
   uint16_t lastSeq_;

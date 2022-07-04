@@ -32,6 +32,8 @@ enum DataType {DT_NONE        = 0,
 
 enum DataSource {DS_UNKNOWN, DS_LOCAL, DS_REMOTE};
 
+enum HEVC_NAL_UNIT_TYPE {TRAIL_R = 1, IDR_W_RADL = 19,
+                         VPS_NUT = 32, SPS_NUT = 33, PPS_NUT = 34};
 
 struct VideoInfo
 {
@@ -121,17 +123,17 @@ public:
   QString printOutputs();
 
   // helper function for copying Data
-  Data* shallowDataCopy(Data* original);
-  Data* deepDataCopy(Data* original);
+  Data* shallowDataCopy(Data* original) const;
+  Data* deepDataCopy(Data* original) const;
 
-  QString getName()
+  QString getName() const
   {
     return name_;
   }
 
 protected:
 
-  std::unique_ptr<Data> initializeData(enum DataType type, DataSource source);
+  std::unique_ptr<Data> initializeData(DataType type, DataSource source) const;
 
   std::unique_ptr<Data> normalizeOrientation(std::unique_ptr<Data> video,
                                              bool forceHorizontalFlip = false);
@@ -147,8 +149,9 @@ protected:
 
   virtual void process() = 0;
 
-  bool isHEVCIntra(const unsigned char *buff);
-  bool isHEVCInter(const unsigned char *buff);
+  // TODO: Replace with returning NAL unit
+  bool isHEVCIntra(const unsigned char *buff) const;
+  bool isHEVCInter(const unsigned char *buff) const;
 
   void wakeUp()
   {
@@ -165,7 +168,7 @@ protected:
     waitMutex_->unlock();
   }
 
-  StatisticsInterface* getStats()
+  StatisticsInterface* getStats() const
   {
     Q_ASSERT(stats_);
     return stats_;
@@ -182,10 +185,10 @@ protected:
   DataType input_;
   DataType output_;
 
-  bool isVideo(DataType type);
-  bool isAudio(DataType type);
+  bool isVideo(DataType type) const;
+  bool isAudio(DataType type) const;
 
-  void printDataBytes(QString type, uint8_t *payload, size_t size,
+  void printDataBytes(QString type, const uint8_t *payload, size_t size,
                       int bytes, int shift);
 
 private:

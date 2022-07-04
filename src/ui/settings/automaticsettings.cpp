@@ -23,3 +23,10 @@ void AutomaticSettings::finished()
   hide();
   emit hidden();
 }
+
+
+void AutomaticSettings::closeEvent(QCloseEvent *event)
+{
+  finished();
+  QDialog::closeEvent(event);
+}

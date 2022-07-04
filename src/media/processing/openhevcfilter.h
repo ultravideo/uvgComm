@@ -19,8 +19,7 @@ protected:
 
 private:
 
-  // combine the slices to a frame.
-  void combineFrame(std::unique_ptr<Data> &combinedFrame);
+  void sendDecodedOutput(int &gotPicture);
 
   OpenHevc_Handle handle_;
 
@@ -28,13 +27,13 @@ private:
   bool spsReceived_;
   bool ppsReceived_;
 
-  uint32_t waitFrames_;
-
-  bool slices_;
-
-  std::vector<std::unique_ptr<Data>> sliceBuffer_;
-
   uint32_t sessionID_;
 
   int threads_;
+  QString parallelizationMode_;
+
+  // temporarily store frame info during decoding
+  std::deque<std::unique_ptr<Data>> decodingFrames_;
+
+  QMutex settingsMutex_;
 };

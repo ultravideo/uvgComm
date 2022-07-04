@@ -55,4 +55,6 @@ private:
 
   // temporarily store frame data during encoding
   std::deque<std::unique_ptr<Data>> encodingFrames_;
+
+  QMutex settingsMutex_;
 };

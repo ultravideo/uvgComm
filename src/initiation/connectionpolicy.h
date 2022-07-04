@@ -1,8 +1,7 @@
 #pragma once
 
-
-#include <QString>
-#include <QList>
+#include <string>
+#include <vector>
 
 /* This class is responsible for determining if the incoming connection
  * is allowed */
@@ -14,13 +13,13 @@ class ConnectionPolicy
 public:
   ConnectionPolicy();
 
-  bool isAllowed(QString localUsername, QString theirUsername, QString serverAddress,
-                 QString contactAddress);
+  bool isAllowed(std::string localUsername, std::string theirUsername, std::string serverAddress,
+                 std::string contactAddress);
 
 private:
   void initializePolicy();
 
-  QList<QString> blockedUsers_;
-  QList<QString> blockedIPs_;
+  std::vector<std::string> blockedUsers_;
+  std::vector<std::string> blockedIPs_;
 };
 
