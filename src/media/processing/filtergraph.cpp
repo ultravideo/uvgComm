@@ -250,11 +250,10 @@ void FilterGraph::initCameraSelfView()
   {
     // camera failed
     Logger::getLogger()->printError(this, "Failed to add camera. Does it have supported formats?");
-    return; // TODO: return false that we failed so user can fix camera selection
   }
 
   // create screen share filter, but it is stopped at the beginning
-  if (screenShareGraph_.size() == 0)
+  if (screenShareGraph_.empty())
   {
     if (addToGraph(std::shared_ptr<Filter>(new ScreenShareFilter("", stats_, hwResources_)),
                    screenShareGraph_))
@@ -286,14 +285,19 @@ void FilterGraph::initCameraSelfView()
     // Note: mirroring is slow with Qt
 
     std::shared_ptr<Filter> resizeFilter = std::shared_ptr<Filter>(new HalfRGBFilter("", stats_, hwResources_));
+    if (!cameraGraph_.empty())
+    {
+      addToGraph(resizeFilter, cameraGraph_, cameraGraph_.size() - 1);
+      addToGraph(selfviewFilter_, cameraGraph_, cameraGraph_.size() - 1);
+    }
 
-    addToGraph(resizeFilter, cameraGraph_, cameraGraph_.size() - 1);
-    addToGraph(resizeFilter, screenShareGraph_, cameraGraph_.size() - 1);
+    if (!screenShareGraph_.empty())
+    {
+      addToGraph(resizeFilter, screenShareGraph_, screenShareGraph_.size() - 1);
+      addToGraph(selfviewFilter_, screenShareGraph_, screenShareGraph_.size() - 1);
+    }
 
     selfviewFilter_->setHorizontalMirroring(true);
-
-    addToGraph(selfviewFilter_, cameraGraph_, cameraGraph_.size() - 1);
-    addToGraph(selfviewFilter_, screenShareGraph_, cameraGraph_.size() - 1);
   }
   else
   {
@@ -701,7 +705,7 @@ void FilterGraph::camera(bool state)
 
 void FilterGraph::screenShare(bool shareState)
 {
-  if(cameraGraph_.size() > 0 && screenShareGraph_.size() > 0)
+  if(screenShareGraph_.size() > 0)
   {
     if(shareState)
     {
@@ -718,6 +722,10 @@ void FilterGraph::screenShare(bool shareState)
       Logger::getLogger()->printNormal(this, "Not sharing the screen");
       screenShareGraph_.at(0)->stop();
     }
+  }
+  else
+  {
+    Logger::getLogger()->printProgramError(this, "Screen share graph empty");
   }
 }
 
@@ -882,20 +890,21 @@ void FilterGraph::removeParticipant(uint32_t sessionID)
     if(!peerPresent)
     {
       destroyFilters(cameraGraph_);
-      videoSendIniated_ = false;
       destroyFilters(screenShareGraph_);
-      if (!quitting_)
-      {
-        initCameraSelfView(); // restore the self view.
-      }
-
       destroyFilters(audioInputGraph_);
       destroyFilters(audioOutputGraph_);
+
+      videoSendIniated_ = false;
       audioInputInitialized_ = false;
       audioOutputInitialized_ = false;
 
-      selectVideoSource();
-      mic(settingEnabled(SettingsKey::micStatus));
+      if (!quitting_)
+      {
+        // since destruction removes even the inputs, we must restore them
+        initCameraSelfView();
+        selectVideoSource();
+        mic(settingEnabled(SettingsKey::micStatus));
+      }
     }
   }
 }
