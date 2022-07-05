@@ -71,7 +71,6 @@ bool KvazaarFilter::init()
   {
     QSettings settings(settingsFile, settingsFileFormat);
 
-#ifndef __linux__
     if (settings.value(SettingsKey::videoResultionWidth).toInt() == 0 ||
         settings.value(SettingsKey::videoResultionHeight).toInt() == 0 ||
         settings.value(SettingsKey::videoFramerate).toReal() == 0.0)
@@ -83,7 +82,6 @@ bool KvazaarFilter::init()
                                        settings.value(SettingsKey::videoFramerate).toString()});
       return false;
     }
-#endif
 
     api_ = kvz_api_get(8);
     if(!api_)
@@ -110,15 +108,6 @@ bool KvazaarFilter::init()
 
     convertFramerate(settings.value(SettingsKey::videoFramerate).toReal());
     QString framerate = QString::number(framerate_num_) + "/" + QString::number(framerate_denom_);
-
-#ifdef __linux__
-    if (!settingEnabled(SettingsKey::screenShareStatus))
-    {
-      // On Linux the QCamera doesn't seem to work correctly, expect with these values
-      resolutionStr = QString::number(640) + "x" + QString::number(480);
-      framerate = QString::number(30) + "/" + QString::number(1);
-    }
-#endif
 
     // Input
 

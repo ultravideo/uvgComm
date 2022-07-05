@@ -120,13 +120,11 @@ bool CameraFilter::initialCameraSetup()
   currentDeviceName_ = settings.value(SettingsKey::videoDevice).toString();
   currentDeviceID_ = settings.value(SettingsKey::videoDeviceID).toInt();
 
-#ifndef __linux__
   if (settings.value(SettingsKey::videoInputFormat).toString() == "")
   {
-    Logger::getLogger()->printWarning(this, "Camera has no formats");
+    Logger::getLogger()->printWarning(this, "Camera format not set");
     return false;
   }
-#endif
 
   // if the deviceID has changed
   if (currentDeviceID_ >= cameras.size() ||
@@ -175,8 +173,8 @@ bool CameraFilter::cameraSetup()
   if (camera_ && cameraFrameGrabber_)
   {
     QSettings settings(settingsFile, settingsFileFormat);
-#ifndef __linux__
 
+#ifndef __linux__
     int waitRoundMS = 5;
     int totalWaitTime = 1000;
     int currentWaitTime = 0;
@@ -200,10 +198,6 @@ bool CameraFilter::cameraSetup()
 
     currentInputFormat_ = settings.value(SettingsKey::videoInputFormat).toString();
 
-#ifdef __linux__
-    viewSettings.setPixelFormat(QVideoFrame::Format_RGB32);
-    output_ = DT_RGB32VIDEO;
-#else
     if(currentInputFormat_ == "MJPG")
     {
       viewSettings.setPixelFormat(QVideoFrame::Format_Jpeg);
@@ -232,8 +226,6 @@ bool CameraFilter::cameraSetup()
       output_ = DT_NONE;
       return false;
     }
-
-#endif
 
 #ifndef __linux__
     QList<QSize> resolutions = camera_->supportedViewfinderResolutions(viewSettings);
