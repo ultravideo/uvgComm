@@ -198,6 +198,14 @@ void VideoSettings::saveCameraCapabilities(int deviceIndex, bool cameraEnabled)
     Logger::getLogger()->printNormal(this, "Recording capability settings for device",
                 {"Device Index"}, {QString::number(deviceIndex)});
 
+#ifdef __linux__
+    // only these work on Linux with Qt 5
+    settings_.setValue(SettingsKey::videoInputFormat,         "RGB32");
+    settings_.setValue(SettingsKey::videoResultionWidth,      640);
+    settings_.setValue(SettingsKey::videoResultionHeight,     480);
+    settings_.setValue(SettingsKey::videoFramerate,           30);
+
+#else
     int formatIndex = videoSettingsUI_->format_box->currentIndex();
     int resolutionIndex = videoSettingsUI_->resolution->currentIndex();
 
@@ -243,6 +251,7 @@ void VideoSettings::saveCameraCapabilities(int deviceIndex, bool cameraEnabled)
                                     {QString::number(res.width() - res.width()%8) + "x" +
                                      QString::number(res.height() - res.height()%8),
                                      QString::number(resolutionIndex), format});
+#endif
   }
 }
 
