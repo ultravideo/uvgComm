@@ -8,15 +8,16 @@ Kvazzup is under development and new features will become available.
 ## Current features 
 
 Currently Kvazzup has the following features:
-- Initiating call through *Session Initiation Protocol (SIP)* proxy (authentication is not yet supported)
-- Initiating call peer-to-peer (firewall needs to have an open port 5060 for incoming TCP)
+- Initiating call through *Session Initiation Protocol (SIP)* proxy with authentication
+- Alternatively, initiating call peer-to-peer (firewall needs to have incoming TCP port 5060 open)
 - Peer-to-peer media delivery with NAT traversal using *Interactive Connectivity Protocol (ICE)*
 - Contacts list
 - Enable/disable audio and video
 - Screen sharing
-- Video and audio Settings which are saved to the disk
-- Live call parameter adjustment
-- A statistics window for monitoring the call quality
+- Media settings which are saved to the disk
+- Automatic selection of best media settings with option for manual adjustment
+- Live media setting adjustment
+- A statistics window for monitoring call quality
 - Media delivery encryption
 
 ## Compile Kvazzup
@@ -82,11 +83,8 @@ Please uncomment: `DEFINES += KVZ_STATIC_LIB` in Kvazzup.pro file and remove `DE
 If you are using Kvazzup in your research, please refer to the following [paper](https://ieeexplore.ieee.org/abstract/document/8241673): <br>
 `J. Räsänen, M. Viitanen, J. Vanne, and T. D. Hämäläinen, “Kvazzup: open software for HEVC video calls,” in Proc. IEEE Int. Symp. Multimedia, Taichung, Taiwan, Dec. 2017. `
 
-
 ## Planned features
 
-- RFC 3261 Authentication
 - Contact presence monitoring
 - Multiparty video conferences
 - TLS Encryption
-- Automatic call parameter adjustment
