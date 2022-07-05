@@ -161,10 +161,10 @@ void DefaultSettings::setDefaultAudioSettings(std::shared_ptr<MicrophoneInfo> mi
 
 void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
 {
-  unsigned int threads = std::thread::hardware_concurrency();
-
   // Try to guess best resolution and thread distribution based on available threads
   ComplexityClass cpuPower = CC_TRIVIAL;
+
+  unsigned int threads = std::thread::hardware_concurrency();
   if (threads <= 4)
   {
     /* Kvazaar wants the most threads, but some should be left for other components
@@ -174,21 +174,9 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
      * The openHEVC may require more threads if the incoming resolution is high,
      * but usually one is enough. The OpenHEVC parallelization mode slice is the best for latency,
      * but when receiving high resolution, "Frame and Slice" may be needed
-     * (selection should probably be done based on received resolution).
+     * (TODO: selection should probably be done based on received resolution).
      *
-     * YUV and RGB conversions should be able to handle everything expect 4K with one thread.
-     *
-     * The resolution guess is based on testing and is subject to changes */
-
-    if (threads < 4)
-    {
-      cpuPower = CC_TRIVIAL;
-    }
-    else if (threads == 4)
-    {
-      cpuPower = CC_EASY;
-    }
-
+     * YUV and RGB conversions should be able to handle everything expect 4K with one thread. */
     settings_.setValue(SettingsKey::videoKvzThreads, threads);
     settings_.setValue(SettingsKey::videoOpenHEVCThreads, 1);
     settings_.setValue(SettingsKey::videoOHParallelization, "Slice");
@@ -198,7 +186,6 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
   }
   else if (threads <= 8)
   {
-    cpuPower = CC_MEDIUM;
     settings_.setValue(SettingsKey::videoKvzThreads, threads - 1);
     settings_.setValue(SettingsKey::videoOpenHEVCThreads, 2);
     settings_.setValue(SettingsKey::videoOHParallelization, "Slice");
@@ -208,7 +195,6 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
   }
   else if (threads <= 16)
   {
-    cpuPower = CC_COMPLEX;
     settings_.setValue(SettingsKey::videoKvzThreads, threads - 1);
     settings_.setValue(SettingsKey::videoOpenHEVCThreads, 4);
     settings_.setValue(SettingsKey::videoOHParallelization, "Frame and Slice");
@@ -218,7 +204,6 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
   }
   else
   {
-    cpuPower = CC_EXTREME;
     settings_.setValue(SettingsKey::videoKvzThreads, threads - 2);
     settings_.setValue(SettingsKey::videoOpenHEVCThreads, 8);
     settings_.setValue(SettingsKey::videoOHParallelization, "Frame and Slice");
@@ -227,6 +212,32 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
     settings_.setValue(SettingsKey::videoOWF, 2);
   }
 
+#ifdef NDEBUG
+  // The complexity guess is based on testing and is subject to changes
+  if (threads < 4)
+  {
+    cpuPower = CC_TRIVIAL;
+  }
+  else if (threads == 4)
+  {
+    cpuPower = CC_EASY;
+  }
+  else if (threads <= 8)
+  {
+    cpuPower = CC_MEDIUM;
+  }
+  else if (threads <= 16)
+  {
+    cpuPower = CC_COMPLEX;
+  }
+  else
+  {
+    cpuPower = CC_EXTREME;
+  }
+#else
+  // we always use the lightest option when using debug mode to get a more responsive program
+  cpuPower = CC_TRIVIAL;
+#endif
 
   SettingsCameraFormat format = selectBestCameraFormat(cam, cpuPower);
 
@@ -263,10 +274,11 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
 
   settings_.setValue(SettingsKey::videoRCAlgorithm, "lambda");
 
+#ifdef NDEBUG
+  // use resolution and framerate to determine the best bit rate
   ComplexityClass formatComplexity = calculateComplexity(format.resolution,
                                                          format.framerate.toDouble());
 
-  // use resolution to determine the best bit rate
   if (formatComplexity == CC_TRIVIAL)
   {
     settings_.setValue(SettingsKey::videoBitrate, 250000); // 250 kbit/s
@@ -292,6 +304,11 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
     settings_.setValue(SettingsKey::videoBitrate, 6000000); // 6 mbit/s
     settings_.setValue(SettingsKey::videoPreset, "ultrafast");
   }
+#else
+  // makes sure debug kvazaar can keep up
+  settings_.setValue(SettingsKey::videoBitrate, 250000); // 250 kbit/s
+  settings_.setValue(SettingsKey::videoPreset, "ultrafast");
+#endif
 }
 
 
@@ -324,26 +341,49 @@ SettingsCameraFormat DefaultSettings::selectBestDeviceFormat(std::shared_ptr<Cam
 {
   // point system for best format
 
-  SettingsCameraFormat bestOption = {"No camera found", deviceID, "No camera",
+  SettingsCameraFormat bestOption = {"No option found", deviceID, "No option",
                                      -1, {}, -1, 0, -1};
   uint64_t highestValue = 0;
+  ComplexityClass lowestComplexity = CC_EXTREME;
+  SettingsCameraFormat lowestComplexityOption = bestOption;
 
   std::vector<SettingsCameraFormat> options;
   cam->getCameraOptions(options, deviceID);
 
   for (auto& option: options)
   {
-    if (calculateComplexity(option.resolution,
-                            option.framerate.toDouble()) <= complexity)
-    {
-      uint64_t points = calculatePoints(option.format, option.resolution,
-                                        option.framerate.toDouble());
+    uint64_t points = calculatePoints(option.format, option.resolution,
+                                      option.framerate.toDouble());
+    ComplexityClass optionComplexity = calculateComplexity(option.resolution,
+                                                           option.framerate.toDouble());
 
+    if (optionComplexity <= complexity)
+    {
       if (points > highestValue)
       {
         highestValue = points;
         bestOption = option;
       }
+    }
+    else if (optionComplexity < lowestComplexity)
+    {
+      // try to find the lowest complexity option in case none of the options are suitable
+      lowestComplexityOption = option;
+      lowestComplexity = optionComplexity;
+    }
+  }
+
+  // use lowest complexity option in case none are low complexity enough
+  if (bestOption.deviceName == "No option found")
+  {
+    if (lowestComplexityOption.deviceName != "No option found")
+    {
+      Logger::getLogger()->printWarning(this, "Using lowest complexity option since none were suitable");
+      bestOption = lowestComplexityOption;
+    }
+    else
+    {
+       Logger::getLogger()->printError(this, "No options were found!");
     }
   }
 
