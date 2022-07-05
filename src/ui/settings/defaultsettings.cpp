@@ -16,13 +16,25 @@ DefaultSettings::DefaultSettings():
 void DefaultSettings::validateSettings(std::shared_ptr<MicrophoneInfo> mic,
                                        std::shared_ptr<CameraInfo> cam)
 {
-  if (!validateAudioSettings())
+  if (mic->getDeviceList().empty())
+  {
+    Logger::getLogger()->printWarning(this, "No mic found");
+    settings_.setValue(SettingsKey::audioDevice,        "No microphone");
+    settings_.setValue(SettingsKey::audioDeviceID,      -1);
+  }
+  else if (!validateAudioSettings() || settings_.value(SettingsKey::audioDeviceID).toInt() == -1)
   {
     Logger::getLogger()->printWarning(this, "Did not find valid audio settings, using defaults");
     setDefaultAudioSettings(mic);
   }
 
-  if (!validateVideoSettings())
+  if (cam->getDeviceList().empty())
+  {
+    Logger::getLogger()->printWarning(this, "No cam found");
+    settings_.setValue(SettingsKey::videoDevice,        "No Camera");
+    settings_.setValue(SettingsKey::videoDeviceID,      -1);
+  }
+  else  if (!validateVideoSettings() || settings_.value(SettingsKey::videoDeviceID).toInt() == -1)
   {
     Logger::getLogger()->printWarning(this, "Did not find valid video settings, using defaults");
     setDefaultVideoSettings(cam);
@@ -54,7 +66,7 @@ bool DefaultSettings::validateAudioSettings()
 
 bool DefaultSettings::validateVideoSettings()
 {
-  // video/DeviceID and video/Device are no checked in case we don't have a camera
+  // video/DeviceID and video/Device are handled separately
 
   const QStringList neededSettings = {SettingsKey::videoResultionWidth,
                                       SettingsKey::videoResultionHeight,
@@ -100,7 +112,10 @@ bool DefaultSettings::validateCallSettings()
 void DefaultSettings::setDefaultAudioSettings(std::shared_ptr<MicrophoneInfo> mic)
 {
   if (settings_.value(SettingsKey::audioDevice).isNull() ||
-      settings_.value(SettingsKey::audioDevice).toString() == "")
+      settings_.value(SettingsKey::audioDevice).toString() == "" ||
+      settings_.value(SettingsKey::audioDeviceID).isNull() ||
+      settings_.value(SettingsKey::audioDeviceID).toString() == "" ||
+      settings_.value(SettingsKey::audioDeviceID).toInt() == -1)
   {
     // TODO: Choose device based on which supports sample rate of 48000
     QStringList devices = mic->getDeviceList();
@@ -112,7 +127,7 @@ void DefaultSettings::setDefaultAudioSettings(std::shared_ptr<MicrophoneInfo> mi
     }
     else
     {
-      settings_.setValue(SettingsKey::audioDevice,        "");
+      settings_.setValue(SettingsKey::audioDevice,        "No microphone");
       settings_.setValue(SettingsKey::audioDeviceID,      -1);
       Logger::getLogger()->printError(this, "Did not find microphone!");
     }

@@ -190,7 +190,7 @@ int CameraInfo::getMostMatchingDeviceID(QString deviceName, int deviceID)
   }
 
   // if the deviceID is larger than is possible or if the name does not match
-  if (deviceID >= devices.size() || devices.at(deviceID) != deviceName)
+  if (deviceID >= devices.size() || deviceID < 0 || devices.at(deviceID) != deviceName)
   {
     // find the first camera with same name as deviceName
     for (int i = 0; i < devices.size(); ++i)
