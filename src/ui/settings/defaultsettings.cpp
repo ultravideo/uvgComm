@@ -111,29 +111,41 @@ bool DefaultSettings::validateCallSettings()
 
 void DefaultSettings::setDefaultAudioSettings(std::shared_ptr<MicrophoneInfo> mic)
 {
-  if (settings_.value(SettingsKey::audioDevice).isNull() ||
-      settings_.value(SettingsKey::audioDevice).toString() == "" ||
-      settings_.value(SettingsKey::audioDeviceID).isNull() ||
-      settings_.value(SettingsKey::audioDeviceID).toString() == "" ||
-      settings_.value(SettingsKey::audioDeviceID).toInt() == -1)
-  {
-    // TODO: Choose device based on which supports sample rate of 48000
-    QStringList devices = mic->getDeviceList();
+  QStringList devices = mic->getDeviceList();
+  int deviceID = -1;
+  QString deviceName = "Error";
 
+  // choose something in case nothing has been chosen
+  if (settings_.value(SettingsKey::audioDevice).isNull() ||
+      settings_.value(SettingsKey::audioDeviceID).isNull())
+  {
     if (!devices.empty())
     {
-      settings_.setValue(SettingsKey::audioDevice,        devices.first());
-      settings_.setValue(SettingsKey::audioDeviceID,      0);
+      // TODO: Choose device based on which supports sample rate of 48000
+      deviceID = 0;
+      deviceName = devices.at(deviceID);
     }
     else
     {
-      settings_.setValue(SettingsKey::audioDevice,        "No microphone");
-      settings_.setValue(SettingsKey::audioDeviceID,      -1);
-      Logger::getLogger()->printError(this, "Did not find microphone!");
+      Logger::getLogger()->printProgramError(this, "Devices should not be empty!");
+      return;
     }
   }
+  else
+  {
+    /* here we try to improve our deviceID based on deviceName in case
+     * the devices have changed */
+    deviceID = settings_.value(SettingsKey::audioDeviceID).toInt();
+    deviceName = settings_.value(SettingsKey::audioDevice).toString();
 
-  // TODO: Choose rest of the audio paramers such as samplerate (and maybe codec)
+    deviceID = getMostMatchingDeviceID(devices, deviceName, deviceID);
+    deviceName = devices.at(deviceID);
+  }
+
+  settings_.setValue(SettingsKey::audioDevice,        deviceName);
+  settings_.setValue(SettingsKey::audioDeviceID,      deviceID);
+
+  // TODO: Choose rest of the audio parameters such as samplerate (and maybe codec)
 
   settings_.setValue(SettingsKey::audioBitrate,         24000);
   settings_.setValue(SettingsKey::audioComplexity,      10);
@@ -296,8 +308,10 @@ SettingsCameraFormat DefaultSettings::selectBestCameraFormat(std::shared_ptr<Cam
       settings_.value(SettingsKey::videoDeviceID) != "")
   {
     int deviceID = settings_.value(SettingsKey::videoDeviceID).toInt();
-    deviceID = cam->getMostMatchingDeviceID(settings_.value(SettingsKey::videoDevice).toString(),
-                                            deviceID);
+    deviceID = getMostMatchingDeviceID(cam->getDeviceList(),
+                                       settings_.value(SettingsKey::videoDevice).toString(),
+                                       deviceID);
+
     return selectBestDeviceFormat(cam, deviceID, complexity);
   }
 

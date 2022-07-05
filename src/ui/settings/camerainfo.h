@@ -41,12 +41,9 @@ public:
   // get resolutions for a format.
   void getFramerates(int deviceID, QString format, int resolutionID, QStringList& ranges);
 
-  // returns -1 if there are no devices
-  int getMostMatchingDeviceID(QString deviceName, int deviceID);
   QString getFormat(int deviceID, int formatID);
   QSize   getResolution(int deviceID, int formatID, int resolutionID);
   int     getFramerate(int deviceID, int formatID, int resolutionID, int framerateID);
-
 
   void getCameraOptions(std::vector<SettingsCameraFormat>& options, int deviceID);
 

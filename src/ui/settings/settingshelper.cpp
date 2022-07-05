@@ -227,3 +227,31 @@ QString getBitrateString(int bits)
 
   return finalString;
 }
+
+
+int getMostMatchingDeviceID(QStringList devices, QString deviceName, int deviceID)
+{
+  // no devices so we return invalid deviceID
+  if (devices.empty())
+  {
+    return -1;
+  }
+
+  // if the deviceID is invalid or if the name does not match
+  if (deviceID >= devices.size() || deviceID < 0 || devices.at(deviceID) != deviceName)
+  {
+    // find the first camera with same name as deviceName
+    for (int i = 0; i < devices.size(); ++i)
+    {
+      if (devices.at(i) == deviceName)
+      {
+        return i;
+      }
+    }
+
+    // if none of the cameras match, return the first one
+    return 0;
+  }
+
+  return deviceID;
+}

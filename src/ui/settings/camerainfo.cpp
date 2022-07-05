@@ -179,36 +179,6 @@ QVideoFrame::PixelFormat CameraInfo::stringToPixelFormat(QString format)
 }
 
 
-int CameraInfo::getMostMatchingDeviceID(QString deviceName, int deviceID)
-{
-  QStringList devices = getDeviceList();
-
-  // no cameras have been found so we return invalid deviceID
-  if (devices.empty())
-  {
-    return -1;
-  }
-
-  // if the deviceID is larger than is possible or if the name does not match
-  if (deviceID >= devices.size() || deviceID < 0 || devices.at(deviceID) != deviceName)
-  {
-    // find the first camera with same name as deviceName
-    for (int i = 0; i < devices.size(); ++i)
-    {
-      if (devices.at(i) == deviceName)
-      {
-        return i;
-      }
-    }
-
-    // if none of the cameras match, return the first one
-    return 0;
-  }
-
-  return deviceID;
-}
-
-
 QString CameraInfo::getFormat(int deviceID, int formatID)
 {
   QStringList formats;
@@ -294,6 +264,7 @@ int CameraInfo::getFramerate(int deviceID, int formatID, int resolutionID, int f
 
   return 0;
 }
+
 
 void CameraInfo::getCameraOptions(std::vector<SettingsCameraFormat>& options, int deviceID)
 {

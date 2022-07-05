@@ -153,7 +153,7 @@ bool CameraFilter::initialCameraSetup()
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Initiating Qt camera", {"ID"},
               {QString::number(currentDeviceID_)});
 
-  if (currentDeviceID_ < cameras.size())
+  if (currentDeviceID_ != -1 && currentDeviceID_ < cameras.size())
   {
     camera_ = new QCamera(cameras.at(currentDeviceID_));
     cameraFrameGrabber_ = new CameraFrameGrabber();

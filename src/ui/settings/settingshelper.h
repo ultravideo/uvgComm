@@ -33,3 +33,5 @@ int roundToNumber(int value, int roundingNumber);
 
 QString getBitrateString(int bits);
 
+// returns -1 if there are no devices
+int getMostMatchingDeviceID(QStringList devices, QString deviceName, int deviceID);

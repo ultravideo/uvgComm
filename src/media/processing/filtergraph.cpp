@@ -447,7 +447,7 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
   }
   else
   {
-    Logger::getLogger()->printProgramError(this, "Failed to init filter");
+    Logger::getLogger()->printError(this, "Failed to init filter");
     return false;
   }
   return true;
