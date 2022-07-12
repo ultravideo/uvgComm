@@ -112,6 +112,14 @@ bool DefaultSettings::validateCallSettings()
 void DefaultSettings::setDefaultAudioSettings(std::shared_ptr<MicrophoneInfo> mic)
 {
   QStringList devices = mic->getDeviceList();
+
+  // should be checked earlier
+  if (devices.empty())
+  {
+    Logger::getLogger()->printProgramError(this, "Devices should not be empty!");
+    return;
+  }
+
   int deviceID = -1;
   QString deviceName = "Error";
 
@@ -119,26 +127,19 @@ void DefaultSettings::setDefaultAudioSettings(std::shared_ptr<MicrophoneInfo> mi
   if (settings_.value(SettingsKey::audioDevice).isNull() ||
       settings_.value(SettingsKey::audioDeviceID).isNull())
   {
-    if (!devices.empty())
-    {
-      // TODO: Choose device based on which supports sample rate of 48000
-      deviceID = 0;
-      deviceName = devices.at(deviceID);
-    }
-    else
-    {
-      Logger::getLogger()->printProgramError(this, "Devices should not be empty!");
-      return;
-    }
+    // TODO: Choose device based on which supports sample rate of 48000
+    deviceID = 0;
+    deviceName = devices.at(deviceID);
   }
   else
   {
-    /* here we try to improve our deviceID based on deviceName in case
+    /* Here we try to improve our deviceID based on deviceName in case
      * the devices have changed */
     deviceID = settings_.value(SettingsKey::audioDeviceID).toInt();
     deviceName = settings_.value(SettingsKey::audioDevice).toString();
 
     deviceID = getMostMatchingDeviceID(devices, deviceName, deviceID);
+
     deviceName = devices.at(deviceID);
   }
 

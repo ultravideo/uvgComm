@@ -357,11 +357,11 @@ void Settings::saveSettings()
   saveCheckBox(SettingsKey::manualSettings, basicUI_->show_manual_box, settings_);
 
   saveDevice(basicUI_->videoDevice_combo, SettingsKey::videoDeviceID,
-             SettingsKey::videoDevice, true);
+             SettingsKey::videoDevice, D_VIDEO);
   saveDevice(basicUI_->audioDevice_combo, SettingsKey::audioDeviceID,
-             SettingsKey::audioDevice, false);
+             SettingsKey::audioDevice, D_AUDIO);
   saveDevice(basicUI_->screenDevice_combo, SettingsKey::userScreenID,
-             SettingsKey::userScreen, false);
+             SettingsKey::userScreen, D_SCREEN);
 }
 
 
@@ -535,7 +535,7 @@ int Settings::getDeviceID(QComboBox* deviceSelector, QString settingID,
 
 
 void Settings::saveDevice(QComboBox* deviceSelector, QString settingsID,
-                          QString settingsDevice, bool video)
+                          QString settingsDevice, DeviceType type)
 {
   int currentIndex = deviceSelector->currentIndex();
   if( currentIndex != -1)
@@ -550,12 +550,12 @@ void Settings::saveDevice(QComboBox* deviceSelector, QString settingsID,
 
       // set capability to first
 
-      if (video)
+      if (type == D_VIDEO)
       {
         defaults_.setDefaultVideoSettings(cam_);
         videoSettings_.changedDevice(currentIndex);
       }
-      else
+      else if (type == D_AUDIO)
       {
         defaults_.setDefaultAudioSettings(mic_);
         audioSettings_.changedDevice(currentIndex);
@@ -568,12 +568,12 @@ void Settings::saveDevice(QComboBox* deviceSelector, QString settingsID,
                                        {settings_.value(settingsID).toString(),
                                         QString::number(deviceSelector->currentIndex())});
 
-      if (video)
+      if (type == D_VIDEO)
       {
         defaults_.setDefaultVideoSettings(cam_);
         videoSettings_.changedDevice(currentIndex);
       }
-      else
+      else if (type == D_AUDIO)
       {
         defaults_.setDefaultAudioSettings(mic_);
         audioSettings_.changedDevice(currentIndex);

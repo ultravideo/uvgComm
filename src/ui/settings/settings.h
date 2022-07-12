@@ -40,6 +40,7 @@ class ScreenInfo;
 class QCheckBox;
 class QComboBox;
 
+enum DeviceType {D_VIDEO, D_AUDIO, D_SCREEN};
 
 class Settings : public QDialog
 {
@@ -103,7 +104,7 @@ private:
                           QString settingsDevice,
                           std::shared_ptr<DeviceInfoInterface> deviceInterface);
 
-  void saveDevice(QComboBox* deviceSelector, QString settingsID, QString settingsDevice, bool video);
+  void saveDevice(QComboBox* deviceSelector, QString settingsID, QString settingsDevice, DeviceType type);
 
   void checkUUID();
 
