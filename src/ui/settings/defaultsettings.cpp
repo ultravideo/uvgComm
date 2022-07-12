@@ -424,7 +424,8 @@ uint64_t DefaultSettings::calculatePoints(QString format, QSize resolution, doub
     formatPoints = 3;
   }
 
-  if (fps < 30.0)
+  // try to use fps values between 30 and 60, since these are most widely supported
+  if (fps < 30.0 || 61.0 < fps)
   {
     return (resolution.width()*resolution.height()/10 + (int)fps) + formatPoints;
   }
