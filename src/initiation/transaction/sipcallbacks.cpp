@@ -96,6 +96,8 @@ void SIPCallbacks::processIncomingRequest(SIPRequest& request, QVariant& content
 void SIPCallbacks::processIncomingResponse(SIPResponse& response, QVariant& content,
                                            bool retryRequest)
 {
+  Q_UNUSED(retryRequest);
+
   for (auto& callback : responseCallbacks_)
   {
     callback(sessionID_, response, content);

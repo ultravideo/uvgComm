@@ -22,8 +22,6 @@ KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats,
   enc_(nullptr),
   pts_(0),
   input_pic_(nullptr),
-  framerate_num_(30),
-  framerate_denom_(1),
   encodingFrames_()
 {
   maxBufferSize_ = 3;
@@ -73,13 +71,15 @@ bool KvazaarFilter::init()
 
     if (settings.value(SettingsKey::videoResultionWidth).toInt() == 0 ||
         settings.value(SettingsKey::videoResultionHeight).toInt() == 0 ||
-        settings.value(SettingsKey::videoFramerate).toReal() == 0.0)
+        settings.value(SettingsKey::videoFramerateNumerator).toInt() == 0 ||
+        settings.value(SettingsKey::videoFramerateDenominator).toInt() == 0)
     {
       Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Invalid values in settings",
-                                      {"Width", "Height", "Framerate"},
+                                      {"Width", "Height", "Framerate Numerator", "Framerate Denominator"},
                                       {settings.value(SettingsKey::videoResultionWidth).toString(),
                                        settings.value(SettingsKey::videoResultionHeight).toString(),
-                                       settings.value(SettingsKey::videoFramerate).toString()});
+                                       settings.value(SettingsKey::videoFramerateNumerator).toString(),
+                                       settings.value(SettingsKey::videoFramerateDenominator).toString()});
       return false;
     }
 
@@ -100,14 +100,13 @@ bool KvazaarFilter::init()
 
     api_->config_init(config_);
 
-
     QString preset = settings.value(SettingsKey::videoPreset).toString().toUtf8();
 
     QString resolutionStr = settings.value(SettingsKey::videoResultionWidth).toString() + "x" +
         settings.value(SettingsKey::videoResultionHeight).toString();
 
-    convertFramerate(settings.value(SettingsKey::videoFramerate).toReal());
-    QString framerate = QString::number(framerate_num_) + "/" + QString::number(framerate_denom_);
+    QString framerate = QString::number(settings.value(SettingsKey::videoFramerateNumerator).toInt()) + "/" +
+                        QString::number(settings.value(SettingsKey::videoFramerateDenominator).toInt());
 
     // Input
 
@@ -321,7 +320,8 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
 
   if (config_->width != input->vInfo->width
       || config_->height != input->vInfo->height
-      || (double)(config_->framerate_num/config_->framerate_denom) != input->vInfo->framerate)
+      || config_->framerate_num != input->vInfo->framerateNumerator
+      || config_->framerate_denom != input->vInfo->framerateDenominator)
   {
     // This should not happen.
     Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
@@ -332,7 +332,8 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
                                      QString::number(config_->framerate_num),
                                      QString::number(input->vInfo->width) + "x" +
                                      QString::number(input->vInfo->height) + "p" +
-                                     QString::number(input->vInfo->framerate)});
+                                     QString::number(input->vInfo->framerateNumerator) + "/" +
+                                     QString::number(input->vInfo->framerateDenominator)});
 
     return;
   }
@@ -421,28 +422,4 @@ void KvazaarFilter::sendEncodedFrame(std::unique_ptr<Data> input,
   input->data_size = dataWritten;
   input->data = std::move(hevc_frame);
   sendOutput(std::move(input));
-}
-
-
-void KvazaarFilter::convertFramerate(double framerate)
-{
-  uint32_t wholeNumber = (uint32_t)framerate;
-
-  double remainder = framerate - wholeNumber;
-
-  if (remainder > 0.0)
-  {
-    uint32_t multiplier = 1.0 /remainder;
-    framerate_num_ = framerate*multiplier;
-    framerate_denom_ = multiplier;
-  }
-  else
-  {
-    framerate_num_ = wholeNumber;
-    framerate_denom_ = 1;
-  }
-
-  Logger::getLogger()->printNormal(this, "Got framerate num and denum", "Framerate",
-                                   {QString::number(framerate_num_) + "/" +
-                                    QString::number(framerate_denom_) });
 }

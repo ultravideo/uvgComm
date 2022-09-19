@@ -12,6 +12,8 @@
 ScreenShareFilter::ScreenShareFilter(QString id, StatisticsInterface *stats,
                                      std::shared_ptr<ResourceAllocator> hwResources):
   Filter(id, "Screen Sharing", stats, hwResources, DT_NONE, DT_RGB32VIDEO),
+  framerateNumerator_(10),
+  framerateDenominator_(1),
 screenID_(0)
 {}
 
@@ -39,13 +41,14 @@ void ScreenShareFilter::updateSettings()
       screenID_ = 0;
     }
 
-    currentFramerate_ = settingValue(SettingsKey::videoFramerate);
+    framerateNumerator_ = settingValue(SettingsKey::videoFramerateNumerator);
+    framerateDenominator_ = settingValue(SettingsKey::videoFramerateDenominator);
 
     currentResolution_.setWidth(settingValue(SettingsKey::videoResultionWidth));
     currentResolution_.setHeight(settingValue(SettingsKey::videoResultionHeight));
 
     sendTimer_.setSingleShot(false);
-    sendTimer_.setInterval(1000/currentFramerate_);
+    sendTimer_.setInterval(1000/(framerateNumerator_/framerateDenominator_));
     connect(&sendTimer_, &QTimer::timeout, this, &ScreenShareFilter::sendScreen);
     sendTimer_.start();
 
@@ -107,7 +110,8 @@ void ScreenShareFilter::process()
   // kvazaar requires divisable by 8 resolution
   newImage->vInfo->width = currentResolution_.width();
   newImage->vInfo->height = currentResolution_.height();
-  newImage->vInfo->framerate = currentFramerate_;
+  newImage->vInfo->framerateNumerator = framerateNumerator_;
+  newImage->vInfo->framerateDenominator = framerateDenominator_;
 
 #ifdef _WIN32
   newImage->vInfo->flippedVertically = true;

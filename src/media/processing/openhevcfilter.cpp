@@ -216,14 +216,8 @@ void OpenHEVCFilter::sendDecodedOutput(int& gotPicture)
     }
 
     decodedFrame->type = DT_YUV420VIDEO;
-    if (openHevcFrame.frameInfo.frameRate.den != 0)
-    {
-      decodedFrame->vInfo->framerate = openHevcFrame.frameInfo.frameRate.num/openHevcFrame.frameInfo.frameRate.den;
-    }
-    else
-    {
-      decodedFrame->vInfo->framerate = openHevcFrame.frameInfo.frameRate.num;
-    }
+    decodedFrame->vInfo->framerateNumerator = openHevcFrame.frameInfo.frameRate.num;
+    decodedFrame->vInfo->framerateDenominator = openHevcFrame.frameInfo.frameRate.den;
     decodedFrame->data_size = finalDataSize;
     decodedFrame->data = std::move(yuv_frame);
 

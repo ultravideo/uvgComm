@@ -203,7 +203,8 @@ void VideoSettings::saveCameraCapabilities(int deviceIndex, bool cameraEnabled)
     settings_.setValue(SettingsKey::videoInputFormat,         "RGB32");
     settings_.setValue(SettingsKey::videoResultionWidth,      640);
     settings_.setValue(SettingsKey::videoResultionHeight,     480);
-    settings_.setValue(SettingsKey::videoFramerate,           30);
+    settings_.setValue(SettingsKey::videoFramerateNumerator,   30);
+    settings_.setValue(SettingsKey::videoFramerateDenominator, 1);
 
 #else
     int formatIndex = videoSettingsUI_->format_box->currentIndex();
@@ -234,14 +235,19 @@ void VideoSettings::saveCameraCapabilities(int deviceIndex, bool cameraEnabled)
     settings_.setValue(SettingsKey::videoFramerateID,
                        videoSettingsUI_->framerate_box->currentIndex());
 
-    // TODO: does not work if minimum and maximum framerates differ or if framerate is fractional
+    // TODO: does not work if minimum and maximum framerates differ
     if (!videoSettingsUI_->framerate_box->currentText().isEmpty())
     {
-      settings_.setValue(SettingsKey::videoFramerate,
-                         videoSettingsUI_->framerate_box->currentText());
+      int32_t numerator = 0;
+      int32_t denominator = 1;
+      convertFramerate(videoSettingsUI_->framerate_box->currentText(), numerator, denominator);
+
+      settings_.setValue(SettingsKey::videoFramerateNumerator,       numerator);
+      settings_.setValue(SettingsKey::videoFramerateDenominator,     denominator);
     }
     else {
-      settings_.setValue(SettingsKey::videoFramerate,            0);
+      settings_.setValue(SettingsKey::videoFramerateNumerator,       0);
+      settings_.setValue(SettingsKey::videoFramerateDenominator,     1);
     }
 
     settings_.setValue(SettingsKey::videoInputFormat,          format);

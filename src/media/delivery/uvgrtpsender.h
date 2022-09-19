@@ -34,4 +34,7 @@ private:
   uint32_t sessionID_;
   rtp_format_t dataFormat_;
   int rtpFlags_;
+
+  int32_t framerateNumerator_;
+  int32_t framerateDenominator_;
 };

@@ -39,7 +39,8 @@ struct VideoInfo
 {
   int16_t width;
   int16_t height;
-  double framerate;
+  int32_t framerateNumerator;
+  int32_t framerateDenominator;
 
   bool flippedVertically;
   bool flippedHorizontally;

@@ -32,7 +32,8 @@ void Delivery::init(StatisticsInterface *stats,
   stats_ = stats;
   hwResources_ = hwResources;
 
-  if (!uvg_rtp::crypto::enabled() && settingEnabled(SettingsKey::sipSRTP))
+  uvgrtp::context ctx;
+  if (!ctx.crypto_enabled() && settingEnabled(SettingsKey::sipSRTP))
   {
     Logger::getLogger()->printWarning(this, "uvgRTP does not have Crypto++ included. "
                                             "Cannot encrypt media traffic");
@@ -266,10 +267,19 @@ bool Delivery::addMediaStream(uint32_t sessionID, uint16_t localPort, uint16_t p
   Logger::getLogger()->printNormal(this, "Creating mediastream");
 
   // This makes the uvgRTP add the start codes saving a memory copy
-  int flags = RCE_H26X_PREPEND_SC;
+  int flags = RCE_NO_FLAGS;
+
+  if (fmt == RTP_FORMAT_H264 ||
+      fmt == RTP_FORMAT_H265 ||
+      fmt == RTP_FORMAT_H266)
+  {
+    flags |= RCE_FRAMERATE;
+    flags |= RCE_PACE_FRAGMENT_SENDING;
+  }
 
   // enable encryption if it works
-  if (uvg_rtp::crypto::enabled() && settingEnabled(SettingsKey::sipSRTP))
+    uvgrtp::context ctx;
+  if (ctx.crypto_enabled() && settingEnabled(SettingsKey::sipSRTP))
   {
     Logger::getLogger()->printNormal(this, "Encryption enabled");
 

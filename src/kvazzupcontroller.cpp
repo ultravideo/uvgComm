@@ -548,6 +548,8 @@ void KvazzupController::SIPRequestCallback(uint32_t sessionID,
                                            SIPRequest& request,
                                            QVariant& content)
 {
+  Q_UNUSED(content);
+
   Logger::getLogger()->printNormal(this, "Got request callback",
                                    "type", QString::number(request.method));
 
@@ -593,6 +595,8 @@ void KvazzupController::SIPResponseCallback(uint32_t sessionID,
                                             SIPResponse& response,
                                             QVariant& content)
 {
+  Q_UNUSED(content);
+
   Logger::getLogger()->printNormal(this, "Got response callback",
                                    "Code", QString::number(response.type));
 

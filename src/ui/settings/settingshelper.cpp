@@ -255,3 +255,38 @@ int getMostMatchingDeviceID(QStringList devices, QString deviceName, int deviceI
 
   return deviceID;
 }
+
+
+void convertFramerate(QString framerate, int32_t &out_numerator, int32_t &out_denominator)
+{
+  bool ok = true;
+  double framerate_d = framerate.toDouble(&ok);
+
+  if (ok)
+  {
+    uint32_t wholeNumber = (uint32_t)framerate_d;
+
+    double remainder = framerate_d - wholeNumber;
+
+    if (remainder > 0.0)
+    {
+      uint32_t multiplier = 1.0 /remainder;
+      out_numerator = framerate_d*multiplier;
+      out_denominator = multiplier;
+    }
+    else
+    {
+      out_numerator = wholeNumber;
+      out_denominator = 1;
+    }
+  }
+  else
+  {
+    out_numerator = 0;
+    out_denominator = 0;
+  }
+
+  Logger::getLogger()->printNormal("Settings Helper", "Got framerate num and denum", "Framerate",
+                                   {QString::number(out_numerator) + "/" +
+                                    QString::number(out_denominator) });
+}

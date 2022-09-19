@@ -35,3 +35,5 @@ QString getBitrateString(int bits);
 
 // returns -1 if there are no devices
 int getMostMatchingDeviceID(QStringList devices, QString deviceName, int deviceID);
+
+void convertFramerate(QString framerate, int32_t& out_numerator, int32_t& out_denominator);

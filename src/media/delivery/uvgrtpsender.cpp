@@ -16,7 +16,9 @@ UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id, StatisticsInterface *
   mstream_(nullptr),
   frame_(0),
   sessionID_(sessionID),
-  rtpFlags_(RTP_NO_FLAGS)
+  rtpFlags_(RTP_NO_FLAGS),
+  framerateNumerator_(0),
+  framerateDenominator_(0)
 {
   updateSettings();
 
@@ -38,8 +40,18 @@ UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id, StatisticsInterface *
   connect(&watcher_, &QFutureWatcher<uvg_rtp::media_stream *>::finished,
           [this]()
           {
-            if (!(mstream_ = watcher_.result()))
+            mstream_ = watcher_.result();
+            if (!mstream_)
+            {
               emit zrtpFailure(sessionID_);
+            }
+            else if (dataFormat_ == RTP_FORMAT_H264 ||
+                     dataFormat_ == RTP_FORMAT_H265 ||
+                     dataFormat_ == RTP_FORMAT_H266)
+            {
+              mstream_->configure_ctx(RCC_FPS_NUMERATOR, framerateNumerator_);
+              mstream_->configure_ctx(RCC_FPS_DENOMINATOR, framerateDenominator_);
+            }
           });
 
   watcher_.setFuture(mstream);
@@ -58,6 +70,15 @@ void UvgRTPSender::updateSettings()
   {
     uint32_t vps   = settingValue(SettingsKey::videoVPS);
     uint16_t intra = (uint16_t)settingValue(SettingsKey::videoIntra);
+
+    framerateNumerator_ = settingValue(SettingsKey::videoFramerateNumerator);
+    framerateDenominator_ = settingValue(SettingsKey::videoFramerateDenominator);
+
+    if (mstream_)
+    {
+      mstream_->configure_ctx(RCC_FPS_NUMERATOR, framerateNumerator_);
+      mstream_->configure_ctx(RCC_FPS_DENOMINATOR, framerateDenominator_);
+    }
 
     if (settingEnabled(SettingsKey::videoSlices))
     {

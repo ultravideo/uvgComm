@@ -183,7 +183,8 @@ std::unique_ptr<Data> Filter::initializeData(DataType type, DataSource source) c
     data->vInfo = std::unique_ptr<VideoInfo> (new VideoInfo);
     data->vInfo->width = 0; // not known at this point. Decoder tells the correct resolution
     data->vInfo->height = 0;
-    data->vInfo->framerate = 0;
+    data->vInfo->framerateNumerator = 0;
+    data->vInfo->framerateDenominator = 0;
     data->vInfo->flippedVertically = false;
     data->vInfo->flippedHorizontally = false;
   }
@@ -343,7 +344,8 @@ Data* Filter::shallowDataCopy(Data* original) const
 
       copy->vInfo->width               = original->vInfo->width;
       copy->vInfo->height              = original->vInfo->height;
-      copy->vInfo->framerate           = original->vInfo->framerate;
+      copy->vInfo->framerateNumerator  = original->vInfo->framerateNumerator;
+      copy->vInfo->framerateDenominator  = original->vInfo->framerateDenominator;
       copy->vInfo->flippedHorizontally = original->vInfo->flippedHorizontally;
       copy->vInfo->flippedVertically   = original->vInfo->flippedVertically;
     }

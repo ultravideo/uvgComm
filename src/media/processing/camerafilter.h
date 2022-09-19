@@ -51,7 +51,8 @@ private:
   QCamera *camera_;
   CameraFrameGrabber *cameraFrameGrabber_;
 
-  uint16_t framerate_;
+  int32_t framerateNumerator_;
+  int32_t framerateDenominator_;
 
   QMutex frameMutex_;
   std::deque<QVideoFrame> frames_;

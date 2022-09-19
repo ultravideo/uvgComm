@@ -77,7 +77,8 @@ bool DefaultSettings::validateVideoSettings()
                                       SettingsKey::videoOpenHEVCThreads,
                                       SettingsKey::videoOHParallelization,
                                       SettingsKey::videoFramerateID,
-                                      SettingsKey::videoFramerate,
+                                      SettingsKey::videoFramerateNumerator,
+                                      SettingsKey::videoFramerateDenominator,
                                       SettingsKey::videoOpenGL,
                                       SettingsKey::videoQP,
 
@@ -252,7 +253,14 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
   settings_.setValue(SettingsKey::videoInputFormat,     format.format);
   settings_.setValue(SettingsKey::videoResultionWidth,  format.resolution.width());
   settings_.setValue(SettingsKey::videoResultionHeight, format.resolution.height());
-  settings_.setValue(SettingsKey::videoFramerate,       format.framerate);
+
+  int32_t numerator = 0;
+  int32_t denominator = 0;
+
+  convertFramerate(format.framerate, numerator, denominator);
+
+  settings_.setValue(SettingsKey::videoFramerateNumerator,       numerator);
+  settings_.setValue(SettingsKey::videoFramerateDenominator,     denominator);
 
   settings_.setValue(SettingsKey::videoOpenGL, 0); // TODO: When can we enable this?
   settings_.setValue(SettingsKey::videoQP, 32);

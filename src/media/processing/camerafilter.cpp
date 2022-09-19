@@ -21,7 +21,8 @@ CameraFilter::CameraFilter(QString id, StatisticsInterface *stats,
   Filter(id, "Camera", stats, hwResources, DT_NONE, DT_RGB32VIDEO),
   camera_(nullptr),
   cameraFrameGrabber_(nullptr),
-  framerate_(0),
+  framerateNumerator_(0),
+  framerateDenominator_(0),
   currentDeviceName_(""),
   currentDeviceID_(-1),
   currentInputFormat_(""),
@@ -247,6 +248,8 @@ bool CameraFilter::cameraSetup()
     QList<QCamera::FrameRateRange> framerates = camera_->supportedViewfinderFrameRateRanges(viewSettings);
 
     currentFramerateID_ = settings.value(SettingsKey::videoFramerateID).toInt();
+    framerateNumerator_ = settings.value(SettingsKey::videoFramerateNumerator).toInt();
+    framerateDenominator_ = settings.value(SettingsKey::videoFramerateDenominator).toInt();
 
 #ifndef __linux__
     if (!framerates.empty())
@@ -273,7 +276,6 @@ bool CameraFilter::cameraSetup()
 
     getStats()->videoInfo(viewSettings.maximumFrameRate(),
                           viewSettings.resolution());
-    framerate_ = viewSettings.maximumFrameRate();
 
     camera_->setViewfinderSettings(viewSettings);
     camera_->start();
@@ -349,7 +351,8 @@ void CameraFilter::process()
     // kvazaar requires divisable by 8 resolution
     newImage->vInfo->width = cloneFrame.width() - cloneFrame.width()%8;
     newImage->vInfo->height = cloneFrame.height() - cloneFrame.height()%8;
-    newImage->vInfo->framerate = framerate_;
+    newImage->vInfo->framerateNumerator = framerateNumerator_;
+    newImage->vInfo->framerateDenominator = framerateDenominator_;
 
     cloneFrame.unmap();
 

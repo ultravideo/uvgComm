@@ -27,7 +27,8 @@ private:
 
   QTimer sendTimer_;
 
-  int currentFramerate_;
+  int32_t framerateNumerator_;
+  int32_t framerateDenominator_;
   QSize currentResolution_;
 
   int screenID_;

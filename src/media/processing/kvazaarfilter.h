@@ -40,8 +40,6 @@ private:
                         std::unique_ptr<uchar[]> hevc_frame,
                         uint32_t dataWritten);
 
-  void convertFramerate(double framerate);
-
   const kvz_api *api_;
   kvz_config *config_;
   kvz_encoder *enc_;
@@ -49,9 +47,6 @@ private:
   int64_t pts_;
 
   kvz_picture *input_pic_;
-
-  int32_t framerate_num_;
-  int32_t framerate_denom_;
 
   // temporarily store frame data during encoding
   std::deque<std::unique_ptr<Data>> encodingFrames_;
