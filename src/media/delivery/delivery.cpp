@@ -273,7 +273,7 @@ bool Delivery::addMediaStream(uint32_t sessionID, uint16_t localPort, uint16_t p
       fmt == RTP_FORMAT_H265 ||
       fmt == RTP_FORMAT_H266)
   {
-    flags |= RCE_FRAMERATE;
+    // flags |= RCE_FRAME_RATE; does not work with tiles at the moment
     flags |= RCE_PACE_FRAGMENT_SENDING;
   }
 

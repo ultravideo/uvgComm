@@ -265,14 +265,11 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
   settings_.setValue(SettingsKey::videoOpenGL, 0); // TODO: When can we enable this?
   settings_.setValue(SettingsKey::videoQP, 32);
 
-  settings_.setValue(SettingsKey::videoIntra, 64);
+  // video calls work better with high intra period
+  settings_.setValue(SettingsKey::videoIntra, 320);
 
-  // TODO: This should be enabled when the performance is good enough
-  settings_.setValue(SettingsKey::videoSlices, 0);
-
+  settings_.setValue(SettingsKey::videoSlices, 0); // TODO: Fix slices
   settings_.setValue(SettingsKey::videoWPP, 1);
-  settings_.setValue(SettingsKey::videoTiles, 0);
-  settings_.setValue(SettingsKey::videoTileDimensions, "2x2");
   settings_.setValue(SettingsKey::videoVPS, 1);
   settings_.setValue(SettingsKey::videoOBAClipNeighbours, 0);
   settings_.setValue(SettingsKey::videoScalingList, 0);
@@ -283,41 +280,49 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
 
   settings_.setValue(SettingsKey::videoRCAlgorithm, "lambda");
 
-#ifdef NDEBUG
   // use resolution and framerate to determine the best bit rate
   ComplexityClass formatComplexity = calculateComplexity(format.resolution,
                                                          format.framerate.toDouble());
 
   if (formatComplexity == CC_TRIVIAL)
   {
+    settings_.setValue(SettingsKey::videoTiles, 0);
+    settings_.setValue(SettingsKey::videoTileDimensions, "2x2");
     settings_.setValue(SettingsKey::videoBitrate, 250000); // 250 kbit/s
+#ifdef NDEBUG
     settings_.setValue(SettingsKey::videoPreset, "fast");
+#else
+     settings_.setValue(SettingsKey::videoPreset, "ultrafast");
+#endif
   }
   else if (formatComplexity == CC_EASY)
   {
+    settings_.setValue(SettingsKey::videoTiles, 0);
+    settings_.setValue(SettingsKey::videoTileDimensions, "2x2");
     settings_.setValue(SettingsKey::videoBitrate, 500000); // 500 kbit/s
     settings_.setValue(SettingsKey::videoPreset, "faster");
   }
   else if (formatComplexity == CC_MEDIUM)
   {
+    settings_.setValue(SettingsKey::videoTiles, 1);
+    settings_.setValue(SettingsKey::videoTileDimensions, "4x4");
     settings_.setValue(SettingsKey::videoBitrate, 1000000); // 1 mbit/s
     settings_.setValue(SettingsKey::videoPreset, "veryfast");
   }
   else if (formatComplexity == CC_COMPLEX)
   {
+    settings_.setValue(SettingsKey::videoTiles, 1);
+    settings_.setValue(SettingsKey::videoTileDimensions, "8x8");
     settings_.setValue(SettingsKey::videoBitrate, 3000000); // 3 mbit/s
     settings_.setValue(SettingsKey::videoPreset, "superfast");
   }
   else
   {
+    settings_.setValue(SettingsKey::videoTiles, 1);
+    settings_.setValue(SettingsKey::videoTileDimensions, "16x16");
     settings_.setValue(SettingsKey::videoBitrate, 6000000); // 6 mbit/s
     settings_.setValue(SettingsKey::videoPreset, "ultrafast");
   }
-#else
-  // makes sure debug kvazaar can keep up
-  settings_.setValue(SettingsKey::videoBitrate, 250000); // 250 kbit/s
-  settings_.setValue(SettingsKey::videoPreset, "ultrafast");
-#endif
 }
 
 
