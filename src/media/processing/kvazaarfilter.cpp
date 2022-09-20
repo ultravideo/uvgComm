@@ -384,20 +384,6 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
 
   for (kvz_data_chunk *chunk = data_out; chunk != nullptr; chunk = chunk->next)
   {
-    if(chunk->len > 3 && chunk->data[0] == 0 && chunk->data[1] == 0
-       && ( chunk->data[2] == 1 || (chunk->data[2] == 0 && chunk->data[3] == 1 ))
-       && dataWritten != 0 && config_->slices != KVZ_SLICES_NONE)
-    {
-      // send previous packet if this is not the first
-      std::unique_ptr<Data> slice(shallowDataCopy(encodedFrame.get()));
-
-      sendEncodedFrame(std::move(slice), std::move(hevc_frame), dataWritten);
-
-      hevc_frame = std::unique_ptr<uchar[]>(new uchar[len_out - dataWritten]);
-      writer = hevc_frame.get();
-      dataWritten = 0;
-    }
-
     memcpy(writer, chunk->data, chunk->len);
     writer += chunk->len;
     dataWritten += chunk->len;

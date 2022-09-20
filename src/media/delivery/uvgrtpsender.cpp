@@ -70,6 +70,9 @@ void UvgRTPSender::updateSettings()
   {
     uint32_t vps   = settingValue(SettingsKey::videoVPS);
     uint16_t intra = (uint16_t)settingValue(SettingsKey::videoIntra);
+    maxBufferSize_ = vps * intra;
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this,  "Updated buffersize",
+                                    {"Size"}, {QString::number(maxBufferSize_)});
 
     framerateNumerator_ = settingValue(SettingsKey::videoFramerateNumerator);
     framerateDenominator_ = settingValue(SettingsKey::videoFramerateDenominator);
@@ -79,24 +82,6 @@ void UvgRTPSender::updateSettings()
       mstream_->configure_ctx(RCC_FPS_NUMERATOR, framerateNumerator_);
       mstream_->configure_ctx(RCC_FPS_DENOMINATOR, framerateDenominator_);
     }
-
-    if (settingEnabled(SettingsKey::videoSlices))
-    {
-      rtpFlags_ |= RTP_SLICE;
-    }
-    else
-    {
-      // the number of frames between parameter sets
-      maxBufferSize_ = vps * intra;
-
-      // discrete framer doesn't like start codes
-      removeStartCodes_ = true;
-
-      rtpFlags_ &= ~RTP_SLICE;
-    }
-
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this,  "Updated buffersize", 
-                                    {"Size"}, {QString::number(maxBufferSize_)});
   }
 }
 

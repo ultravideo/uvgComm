@@ -26,7 +26,6 @@ signals:
 
 private:
   DataType type_;
-  bool removeStartCodes_;
 
   uvg_rtp::media_stream * mstream_;
   QFutureWatcher<uvg_rtp::media_stream *> watcher_;
