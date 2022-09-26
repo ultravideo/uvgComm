@@ -40,16 +40,21 @@ private:
                         std::unique_ptr<uchar[]> hevc_frame,
                         uint32_t dataWritten);
 
+  void createInputVector(int size);
+  void cleanupInputVector();
+
+
   const kvz_api *api_;
   kvz_config *config_;
   kvz_encoder *enc_;
 
   int64_t pts_;
 
-  kvz_picture *input_pic_;
-
   // temporarily store frame data during encoding
   std::deque<std::unique_ptr<Data>> encodingFrames_;
+
+  std::vector<kvz_picture*> inputPics_;
+  int nextInputPic_;
 
   QMutex settingsMutex_;
 };

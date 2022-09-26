@@ -267,8 +267,8 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
 
   // video calls work better with high intra period
   settings_.setValue(SettingsKey::videoIntra, 320);
-
-  settings_.setValue(SettingsKey::videoSlices, 0); // TODO: Fix slices
+  settings_.setValue(SettingsKey::videoTiles, 0);
+  settings_.setValue(SettingsKey::videoSlices, 0); // TODO: Fix slices and enable tiles
   settings_.setValue(SettingsKey::videoWPP, 1);
   settings_.setValue(SettingsKey::videoVPS, 1);
   settings_.setValue(SettingsKey::videoOBAClipNeighbours, 0);
@@ -286,7 +286,6 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
 
   if (formatComplexity == CC_TRIVIAL)
   {
-    settings_.setValue(SettingsKey::videoTiles, 0);
     settings_.setValue(SettingsKey::videoTileDimensions, "2x2");
     settings_.setValue(SettingsKey::videoBitrate, 250000); // 250 kbit/s
 #ifdef NDEBUG
@@ -297,28 +296,28 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
   }
   else if (formatComplexity == CC_EASY)
   {
-    settings_.setValue(SettingsKey::videoTiles, 0);
+    //settings_.setValue(SettingsKey::videoTiles, 0);
     settings_.setValue(SettingsKey::videoTileDimensions, "2x2");
     settings_.setValue(SettingsKey::videoBitrate, 500000); // 500 kbit/s
     settings_.setValue(SettingsKey::videoPreset, "faster");
   }
   else if (formatComplexity == CC_MEDIUM)
   {
-    settings_.setValue(SettingsKey::videoTiles, 1);
+    //settings_.setValue(SettingsKey::videoTiles, 1);
     settings_.setValue(SettingsKey::videoTileDimensions, "4x4");
     settings_.setValue(SettingsKey::videoBitrate, 1000000); // 1 mbit/s
     settings_.setValue(SettingsKey::videoPreset, "veryfast");
   }
   else if (formatComplexity == CC_COMPLEX)
   {
-    settings_.setValue(SettingsKey::videoTiles, 1);
+    //settings_.setValue(SettingsKey::videoTiles, 1);
     settings_.setValue(SettingsKey::videoTileDimensions, "8x8");
     settings_.setValue(SettingsKey::videoBitrate, 3000000); // 3 mbit/s
     settings_.setValue(SettingsKey::videoPreset, "superfast");
   }
   else
   {
-    settings_.setValue(SettingsKey::videoTiles, 1);
+    //settings_.setValue(SettingsKey::videoTiles, 1);
     settings_.setValue(SettingsKey::videoTileDimensions, "16x16");
     settings_.setValue(SettingsKey::videoBitrate, 6000000); // 6 mbit/s
     settings_.setValue(SettingsKey::videoPreset, "ultrafast");

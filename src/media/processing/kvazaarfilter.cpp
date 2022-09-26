@@ -21,12 +21,52 @@ KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats,
   config_(nullptr),
   enc_(nullptr),
   pts_(0),
-  input_pic_(nullptr),
-  encodingFrames_()
+  encodingFrames_(),
+  inputPics_(),
+  nextInputPic_(-1)
 {
   maxBufferSize_ = 3;
 }
 
+
+void KvazaarFilter::createInputVector(int size)
+{
+  if (!api_ || !config_)
+  {
+    Logger::getLogger()->printProgramError(this, "Initilize API and config before creating input vector");
+    return;
+  }
+
+  cleanupInputVector();
+
+  for (unsigned int i = 0; i < size; ++i)
+  {
+    kvz_picture* pic = api_->picture_alloc(config_->width, config_->height);
+    if (pic)
+    {
+      inputPics_.push_back(pic);
+    }
+  }
+
+  nextInputPic_ = 0;
+}
+
+
+void KvazaarFilter::cleanupInputVector()
+{
+  if (!api_)
+  {
+    Logger::getLogger()->printProgramError(this, "Make sure Kvazaar API exists when cleaning input vector");
+    return;
+  }
+  for (auto pic : inputPics_)
+  {
+     api_->picture_free(pic);
+  }
+
+  inputPics_.clear();
+  nextInputPic_ = -1;
+}
 
 void KvazaarFilter::updateSettings()
 {
@@ -65,7 +105,7 @@ bool KvazaarFilter::init()
   Logger::getLogger()->printNormal(this, "Iniating Kvazaar");
 
   // input picture should not exist at this point
-  if(!input_pic_ && !api_)
+  if(inputPics_.empty() && !api_)
   {
     QSettings settings(settingsFile, settingsFileFormat);
 
@@ -235,11 +275,11 @@ bool KvazaarFilter::init()
       return false;
     }
 
-    input_pic_ = api_->picture_alloc(config_->width, config_->height);
+    createInputVector(config_->owf + 1);
 
-    if(!input_pic_)
+    if(inputPics_.empty())
     {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Could not allocate input picture.");
+      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Could not allocate input picture vector!");
       return false;
     }
 
@@ -258,8 +298,7 @@ void KvazaarFilter::close()
     enc_ = nullptr;
     config_ = nullptr;
 
-    api_->picture_free(input_pic_);
-    input_pic_ = nullptr;
+    cleanupInputVector();
     api_ = nullptr;
   }
 
@@ -274,10 +313,10 @@ void KvazaarFilter::process()
 
   while(input)
   {
-    if(!input_pic_)
+    if(inputPics_.empty())
     {
       Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,  
-                                      "Input picture was not allocated correctly.");
+                                      "Input pictures were not allocated correctly");
       break;
     }
     settingsMutex_.lock();
@@ -338,23 +377,32 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
     return;
   }
 
+  if (nextInputPic_ == -1 || nextInputPic_ >= inputPics_.size())
+  {
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Input vec initilized incorrectly");
+    return;
+  }
+
+  kvz_picture* inputPic = inputPics_.at(nextInputPic_);
+  nextInputPic_ = (nextInputPic_ + 1)%inputPics_.size();
+
   // copy input to kvazaar picture
-  memcpy(input_pic_->y,
+  memcpy(inputPic->y,
          input->data.get(),
          input->vInfo->width*input->vInfo->height);
-  memcpy(input_pic_->u,
+  memcpy(inputPic->u,
          &(input->data.get()[input->vInfo->width*input->vInfo->height]),
          input->vInfo->width*input->vInfo->height/4);
-  memcpy(input_pic_->v,
+  memcpy(inputPic->v,
          &(input->data.get()[input->vInfo->width*input->vInfo->height + input->vInfo->width*input->vInfo->height/4]),
          input->vInfo->width*input->vInfo->height/4);
 
-  input_pic_->pts = pts_;
+  inputPic->pts = pts_;
   ++pts_;
 
   encodingFrames_.push_front(std::move(input));
 
-  api_->encoder_encode(enc_, input_pic_,
+  api_->encoder_encode(enc_, inputPic,
                        &data_out, &len_out,
                        &recon_pic, nullptr,
                        &frame_info );
