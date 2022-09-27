@@ -557,7 +557,12 @@ void KvazzupController::SIPRequestCallback(uint32_t sessionID,
   {
     case SIP_INVITE:
     {
-      if (!incomingCall(sessionID, request.message->from.address.realname))
+      if(states_.find(sessionID) != states_.end() && states_.at(sessionID).state == CALLONGOING)
+      {
+        Logger::getLogger()->printNormal(this, "Detected a re-INVITE");
+        sip_.respondOkToINVITE(sessionID);
+      }
+      else if (!incomingCall(sessionID, request.message->from.address.realname))
       {
         sip_.respondRingingToINVITE(sessionID);
       }

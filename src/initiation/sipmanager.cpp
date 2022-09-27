@@ -72,7 +72,15 @@ void SIPManager::setSDP(std::shared_ptr<SDPMessageInfo> sdp)
 {
   ourSDP_ = sdp;
 
-  // TODO: Trigger re-INVITE for all dialogs
+  Logger::getLogger()->printNormal(this, "Sending reINVITE through all our dialogs since our SDP has changed");
+
+  for (auto& dialog : dialogs_)
+  {
+    if (dialog.second != nullptr)
+    {
+      reINVITE(dialog.first);
+    }
+  }
 }
 
 
@@ -254,6 +262,18 @@ uint32_t SIPManager::startCall(NameAddr &remote)
   }
 
   return sessionID;
+}
+
+
+void SIPManager::reINVITE(uint32_t sessionID)
+{
+  Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
+
+  Logger::getLogger()->printNormal(this, "Sending reINVITE", {"SessionID"},
+                                   {QString::number(sessionID)});
+
+  std::shared_ptr<DialogInstance> dialog = getDialog(sessionID);
+  dialog->client->sendINVITE(INVITE_TIMEOUT);
 }
 
 
