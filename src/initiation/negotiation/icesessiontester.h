@@ -22,7 +22,7 @@ class IceSessionTester : public QThread
   Q_OBJECT
 
 public:
-  IceSessionTester(bool controller, int timeout);
+  IceSessionTester(bool controller);
   ~IceSessionTester();
 
   void init(QList<std::shared_ptr<ICEPair>> *pairs_,

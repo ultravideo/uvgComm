@@ -9,13 +9,25 @@
 #include <QTimer>
 #include <QThread>
 
+const uint32_t CONTROLLER_SESSION_TIMEOUT = 10000;
+const uint32_t NONCONTROLLER_SESSION_TIMEOUT = 20000;
 
-IceSessionTester::IceSessionTester(bool controller, int timeout):
+
+IceSessionTester::IceSessionTester(bool controller):
   pairs_(nullptr),
   isController_(controller),
-  timeout_(timeout),
+  timeout_(0),
   components_(0)
-{}
+{
+  if (controller)
+  {
+    timeout_ = CONTROLLER_SESSION_TIMEOUT;
+  }
+  else
+  {
+    timeout_ = NONCONTROLLER_SESSION_TIMEOUT;
+  }
+}
 
 
 IceSessionTester::~IceSessionTester()

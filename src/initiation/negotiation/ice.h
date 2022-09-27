@@ -121,13 +121,13 @@ private:
 
   std::shared_ptr<IceSessionTester> agent_;
 
-  QList<std::shared_ptr<ICEInfo>> localCandidates_;
-  QList<std::shared_ptr<ICEInfo>> remoteCandidates_;
-
   // list of all candidates, remote and local
   QList<std::shared_ptr<ICEPair>> pairs_;
 
   bool connectionNominated_;
 
   bool peerSupportsICE_;
+
+  SDPMessageInfo localSDP_;
+  SDPMessageInfo remoteSDP_;
 };

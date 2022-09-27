@@ -13,13 +13,7 @@
 #include <cstdlib>
 #include <chrono>
 #include <thread>
-
-
 #include <math.h>       /* pow */
-
-const uint32_t CONTROLLER_SESSION_TIMEOUT = 10000;
-const uint32_t NONCONTROLLER_SESSION_TIMEOUT = 20000;
-
 
 ICE::ICE(std::shared_ptr<NetworkCandidates> candidates, uint32_t sessionID):
   networkCandidates_(candidates),
@@ -43,7 +37,6 @@ void ICE::processOutgoingRequest(SIPRequest& request, QVariant& content)
 
   if (peerSupportsICE_ && request.message->contentType == MT_APPLICATION_SDP)
   {
-
     addLocalStartNomination(content);
   }
 
@@ -104,39 +97,37 @@ void ICE::processIncomingResponse(SIPResponse& response, QVariant& content,
 
 void ICE::addLocalStartNomination(QVariant& content)
 {
-  SDPMessageInfo localSDP = content.value<SDPMessageInfo>();
+  localSDP_ = content.value<SDPMessageInfo>();
+  localSDP_.candidates = generateICECandidates(networkCandidates_->localCandidates(STREAM_COMPONENTS, sessionID_),
+                                               networkCandidates_->globalCandidates(STREAM_COMPONENTS, sessionID_),
+                                               networkCandidates_->stunCandidates(STREAM_COMPONENTS),
+                                               networkCandidates_->stunBindings(STREAM_COMPONENTS, sessionID_),
+                                               networkCandidates_->turnCandidates(STREAM_COMPONENTS, sessionID_));
 
-  localSDP.candidates = generateICECandidates(networkCandidates_->localCandidates(STREAM_COMPONENTS, sessionID_),
-                                              networkCandidates_->globalCandidates(STREAM_COMPONENTS, sessionID_),
-                                              networkCandidates_->stunCandidates(STREAM_COMPONENTS),
-                                              networkCandidates_->stunBindings(STREAM_COMPONENTS, sessionID_),
-                                              networkCandidates_->turnCandidates(STREAM_COMPONENTS, sessionID_));
+  content.setValue(localSDP_); // adds the candidates to outgoing message
 
-  localCandidates_ = localSDP.candidates;
-
-  content.setValue(localSDP);
-
-  if (!remoteCandidates_.empty())
+  if (!remoteSDP_.candidates.empty())
   {
     // Start candiate nomination. This function won't block,
     // negotiation happens in the background
-    startNomination(localCandidates_, remoteCandidates_, true);
+    startNomination(localSDP_.candidates, remoteSDP_.candidates, true);
   }
+
 }
 
 
 void ICE::takeRemoteStartNomination(QVariant& content)
 {
-  remoteCandidates_ = content.value<SDPMessageInfo>().candidates;
+  remoteSDP_ = content.value<SDPMessageInfo>();
 
-  if (!localCandidates_.empty())
+  if (!localSDP_.candidates.empty())
   {
     // spawn ICE controllee threads and start the candidate
     // exchange and nomination
     //
     // This will start the ICE nomination process. After it has finished,
     // it will send a signal which indicates its state and if successful, the call may start.
-    startNomination(localCandidates_, remoteCandidates_, false);
+    startNomination(localSDP_.candidates, remoteSDP_.candidates, false);
   }
 }
 
@@ -362,23 +353,10 @@ void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local,
 {
   Logger::getLogger()->printImportant(this, "Starting ICE nomination");
 
-  // Starts a SessionTester which is responsible for handling
-  // connectivity checks and nomination.
-  // When testing is finished it is connected tonominationSucceeded/nominationFailed
+  /* Starts a SessionTester which is responsible for handling connectivity checks and nomination.
+   * When testing is finished it is connected tonominationSucceeded/nominationFailed */
 
-  // nomination-related memory is released by cleanupSession
-
-  uint32_t timeout = 0;
-  if (controller)
-  {
-    timeout = CONTROLLER_SESSION_TIMEOUT;
-  }
-  else
-  {
-    timeout = NONCONTROLLER_SESSION_TIMEOUT;
-  }
-
-  agent_ = std::shared_ptr<IceSessionTester> (new IceSessionTester(controller, timeout));
+  agent_ = std::shared_ptr<IceSessionTester> (new IceSessionTester(controller));
   pairs_ = makeCandidatePairs(local, remote, controller);
   connectionNominated_ = false;
 
@@ -422,18 +400,18 @@ void ICE::handeICESuccess(QList<std::shared_ptr<ICEPair>> &streams)
                     component->remote->address + ":" + QString::number(component->remote->port));
     }
 
-    Logger::getLogger()->printDebug(DEBUG_IMPORTANT, this, "ICE finished.", names, values);
+    Logger::getLogger()->printDebug(DEBUG_IMPORTANT, this, "ICE succeeded", names, values);
 
     // end other tests. We have a winner.
     agent_->quit();
     connectionNominated_ = true;
-    QList<std::shared_ptr<ICEPair>> pairs;
-    pairs.push_back(streams.at(0));
-    pairs.push_back(streams.at(1));
-    pairs.push_back(streams.at(2));
-    pairs.push_back(streams.at(3));
+    pairs_.clear();
+    pairs_.push_back(streams.at(0));
+    pairs_.push_back(streams.at(1));
+    pairs_.push_back(streams.at(2));
+    pairs_.push_back(streams.at(3));
 
-    emit nominationSucceeded(pairs, sessionID_);
+    emit nominationSucceeded(pairs_, sessionID_);
   }
 }
 
