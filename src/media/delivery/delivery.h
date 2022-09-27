@@ -71,13 +71,14 @@ private:
 
    // uses local port as key
    std::map<uint16_t, MediaStream*> streams;
+   bool dhSelected;
   };
 
   bool initializeStream(uint32_t sessionID, uint16_t localPort, uint16_t peerPort,
                         rtp_format_t fmt);
 
   bool addMediaStream(uint32_t sessionID, uint16_t localPort, uint16_t peerPort,
-                      rtp_format_t fmt);
+                      rtp_format_t fmt, bool dhSelected);
   void removeMediaStream(uint32_t sessionID, uint16_t localPort);
 
   void parseCodecString(QString codec, rtp_format_t& fmt,
@@ -100,4 +101,6 @@ private:
   StatisticsInterface *stats_;
 
   std::shared_ptr<ResourceAllocator> hwResources_;
+
+
 };

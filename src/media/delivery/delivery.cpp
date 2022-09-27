@@ -65,7 +65,7 @@ bool Delivery::addPeer(uint32_t sessionID,
 
       ipv6to4(peerAddress);
 
-      std::shared_ptr<Peer> peer = std::shared_ptr<Peer> (new Peer{nullptr,{}});
+      std::shared_ptr<Peer> peer = std::shared_ptr<Peer> (new Peer{nullptr, {}, false});
       peers_[sessionID] = peer;
       peers_[sessionID]->session = rtp_ctx_->create_session(peerAddress.toStdString(),
                                                             localAddress.toStdString());
@@ -240,6 +240,7 @@ bool Delivery::initializeStream(uint32_t sessionID,
                                 uint16_t localPort, uint16_t peerPort,
                                 rtp_format_t fmt)
 {
+  bool success = true;
   // add peer if it does not exist
   if (peers_.find(sessionID) == peers_.end())
   {
@@ -249,15 +250,19 @@ bool Delivery::initializeStream(uint32_t sessionID,
   // create mediastream if it does not exist
   if (peers_[sessionID]->streams.find(localPort) == peers_[sessionID]->streams.end())
   {
-    return addMediaStream(sessionID, localPort, peerPort, fmt);
+    success = addMediaStream(sessionID, localPort, peerPort, fmt, peers_[sessionID]->dhSelected);
+    if (success)
+    {
+      peers_[sessionID]->dhSelected = true;
+    }
   }
 
-  return true;
+  return success;
 }
 
 
 bool Delivery::addMediaStream(uint32_t sessionID, uint16_t localPort, uint16_t peerPort,
-                                      rtp_format_t fmt)
+                              rtp_format_t fmt, bool dhSelected)
 {
   if (peers_.find(sessionID) == peers_.end())
   {
@@ -269,14 +274,6 @@ bool Delivery::addMediaStream(uint32_t sessionID, uint16_t localPort, uint16_t p
   // This makes the uvgRTP add the start codes saving a memory copy
   int flags = RCE_NO_FLAGS;
 
-  if (fmt == RTP_FORMAT_H264 ||
-      fmt == RTP_FORMAT_H265 ||
-      fmt == RTP_FORMAT_H266)
-  {
-    // flags |= RCE_FRAME_RATE; TODO: there are still some issue with this in uvgRTP
-    flags |= RCE_PACE_FRAGMENT_SENDING;
-  }
-
   // enable encryption if it works
     uvgrtp::context ctx;
   if (ctx.crypto_enabled() && settingEnabled(SettingsKey::sipSRTP))
@@ -286,6 +283,15 @@ bool Delivery::addMediaStream(uint32_t sessionID, uint16_t localPort, uint16_t p
     // enable srtp + zrtp
     flags |= RCE_SRTP;
     flags |= RCE_SRTP_KMNGMNT_ZRTP;
+
+    if (!dhSelected)
+    {
+      flags |= RCE_ZRTP_DIFFIE_HELLMAN_MODE;
+    }
+    else
+    {
+      flags |= RCE_ZRTP_MULTISTREAM_MODE;
+    }
   }
   else
   {

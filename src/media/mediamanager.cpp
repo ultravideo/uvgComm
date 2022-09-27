@@ -186,7 +186,8 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
     if(remoteMedia.proto == "RTP/AVP")
     {
       std::shared_ptr<Filter> framedSource = streamer_->addSendStream(sessionID, peerAddress,
-                                                                      localMedia.receivePort, remoteMedia.receivePort,
+                                                                      localMedia.receivePort,
+                                                                      remoteMedia.receivePort,
                                                                       codec, remoteMedia.rtpNums.at(0));
 
       Q_ASSERT(framedSource != nullptr);
@@ -227,7 +228,7 @@ void MediaManager::createIncomingMedia(uint32_t sessionID,
 {
   if (localAddress == "")
   {
-        Logger::getLogger()->printProgramError(this, "Address was empty when creating incoming media");
+    Logger::getLogger()->printProgramError(this, "Address was empty when creating incoming media");
     return;
   }
   bool send = true;
