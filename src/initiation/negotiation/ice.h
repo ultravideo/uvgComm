@@ -72,7 +72,8 @@ private:
                             std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> globalCandidates,
                             std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> stunCandidates,
                             std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> stunBindings,
-                            std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> turnCandidates);
+                            std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> turnCandidates,
+                            int components);
 
   // Call this function to start the connectivity check/nomination process.
   // The other side should start negotiation as fast as possible
@@ -110,7 +111,8 @@ private:
                      std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> relayAddresses,
                      quint32 &foundation,
                      CandidateType type, quint16 localPriority,
-                     QList<std::shared_ptr<ICEInfo>>& candidates);
+                     QList<std::shared_ptr<ICEInfo>>& candidates,
+                     int components);
 
   void addICEToSupported(std::shared_ptr<QStringList> &supported);
 
@@ -127,6 +129,8 @@ private:
   bool connectionNominated_;
 
   bool peerSupportsICE_;
+
+  int components_;
 
   SDPMessageInfo localSDP_;
   SDPMessageInfo remoteSDP_;

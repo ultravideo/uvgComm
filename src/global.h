@@ -29,8 +29,6 @@ const uint16_t AUDIO_FRAMES_PER_SECOND = 50;
 const uint16_t AUDIO_FRAMES_PER_SECOND = 100;
 #endif
 
-const int STREAM_COMPONENTS = 4;
-
 const uint16_t MIN_ICE_PORT   = 23000;
 const uint16_t MAX_ICE_PORT   = 24000;
 

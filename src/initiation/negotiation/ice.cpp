@@ -18,7 +18,12 @@
 ICE::ICE(std::shared_ptr<NetworkCandidates> candidates, uint32_t sessionID):
   networkCandidates_(candidates),
   sessionID_(sessionID),
-  peerSupportsICE_(false)
+  pairs_(),
+  connectionNominated_(false),
+  peerSupportsICE_(false),
+  components_(0),
+  localSDP_(),
+  remoteSDP_()
 {}
 
 ICE::~ICE()
@@ -98,19 +103,26 @@ void ICE::processIncomingResponse(SIPResponse& response, QVariant& content,
 void ICE::addLocalStartNomination(QVariant& content)
 {
   localSDP_ = content.value<SDPMessageInfo>();
-  localSDP_.candidates = generateICECandidates(networkCandidates_->localCandidates(STREAM_COMPONENTS, sessionID_),
-                                               networkCandidates_->globalCandidates(STREAM_COMPONENTS, sessionID_),
-                                               networkCandidates_->stunCandidates(STREAM_COMPONENTS),
-                                               networkCandidates_->stunBindings(STREAM_COMPONENTS, sessionID_),
-                                               networkCandidates_->turnCandidates(STREAM_COMPONENTS, sessionID_));
+
+  components_ = localSDP_.media.count()*2;
+
+  localSDP_.candidates = generateICECandidates(networkCandidates_->localCandidates(components_, sessionID_),
+                                               networkCandidates_->globalCandidates(components_, sessionID_),
+                                               networkCandidates_->stunCandidates(components_),
+                                               networkCandidates_->stunBindings(components_, sessionID_),
+                                               networkCandidates_->turnCandidates(components_, sessionID_),
+                                               components_);
 
   content.setValue(localSDP_); // adds the candidates to outgoing message
 
   if (!remoteSDP_.candidates.empty())
   {
-    // Start candiate nomination. This function won't block,
-    // negotiation happens in the background
-    startNomination(localSDP_.candidates, remoteSDP_.candidates, true);
+    if (!connectionNominated_)
+    {
+      // Start candiate nomination. This function won't block,
+      // negotiation happens in the background
+      startNomination(localSDP_.candidates, remoteSDP_.candidates, true);
+    }
   }
 
 }
@@ -154,7 +166,8 @@ QList<std::shared_ptr<ICEInfo>> ICE::generateICECandidates(
     std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > globalCandidates,
     std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > stunCandidates,
     std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > stunBindings,
-    std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > turnCandidates)
+    std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > turnCandidates,
+    int components)
 {
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Start Generating ICE candidates", {
                "Local", "Global", "STUN", "STUN relays", "TURN"},
@@ -171,19 +184,19 @@ QList<std::shared_ptr<ICEInfo>> ICE::generateICECandidates(
 
   quint32 foundation = 1;
 
-  addCandidates(localCandidates, nullptr, foundation, HOST, 65535, iceCandidates);
-  addCandidates(globalCandidates, nullptr, foundation, HOST, 65534, iceCandidates);
+  addCandidates(localCandidates, nullptr, foundation, HOST, 65535, iceCandidates, components);
+  addCandidates(globalCandidates, nullptr, foundation, HOST, 65534, iceCandidates, components);
 
   if (stunCandidates->size() == stunBindings->size())
   {
     addCandidates(stunCandidates, stunBindings, foundation, SERVER_REFLEXIVE,
-                  65535, iceCandidates);
+                  65535, iceCandidates, components);
   }
   else
   {
     Logger::getLogger()->printProgramError(this, "STUN bindings don't match");
   }
-  addCandidates(turnCandidates, nullptr, foundation, RELAY, 0, iceCandidates);
+  addCandidates(turnCandidates, nullptr, foundation, RELAY, 0, iceCandidates, components);
 
   return iceCandidates;
 }
@@ -192,7 +205,8 @@ QList<std::shared_ptr<ICEInfo>> ICE::generateICECandidates(
 void ICE::addCandidates(std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > addresses,
                         std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > relayAddresses,
                         quint32& foundation, CandidateType type, quint16 localPriority,
-                        QList<std::shared_ptr<ICEInfo>>& candidates)
+                        QList<std::shared_ptr<ICEInfo>>& candidates,
+                        int components)
 {
   bool includeRelayAddress = relayAddresses != nullptr && addresses->size() == relayAddresses->size();
 
@@ -203,11 +217,11 @@ void ICE::addCandidates(std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> 
   }
 
   // got through sets of STREAMS addresses
-  for (int i = 0; i + STREAM_COMPONENTS <= addresses->size(); i += STREAM_COMPONENTS)
+  for (int i = 0; i + components <= addresses->size(); i += components)
   {
     // make a candidate set
     // j is the index in addresses
-    for (int j = i; j < i + STREAM_COMPONENTS; ++j)
+    for (int j = i; j < i + components; ++j)
     {
 
       QHostAddress relayAddress = QHostAddress("");
@@ -372,7 +386,7 @@ void ICE::startNomination(QList<std::shared_ptr<ICEInfo>>& local,
                    Qt::DirectConnection);
 
 
-  agent_->init(&pairs_, STREAM_COMPONENTS);
+  agent_->init(&pairs_, components_);
   agent_->start();
 }
 
@@ -382,7 +396,7 @@ void ICE::handeICESuccess(QList<std::shared_ptr<ICEPair>> &streams)
   // check that results make sense. They should always.
   if (streams.at(0) == nullptr ||
       streams.at(1) == nullptr ||
-      streams.size() != STREAM_COMPONENTS)
+      streams.size() != components_)
   {
     Logger::getLogger()->printProgramError(this,  "The ICE results don't make " 
                                                   "sense even though they should");

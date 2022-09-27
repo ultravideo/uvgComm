@@ -280,11 +280,6 @@ void SDPNegotiation::nominationSucceeded(QList<std::shared_ptr<ICEPair>>& stream
     return;
   }
 
-  if (streams.size() != STREAM_COMPONENTS)
-  {
-    return;
-  }
-
   Logger::getLogger()->printNormal(this, "ICE nomination has succeeded", {"SessionID"},
                                    {QString::number(sessionID)});
 
