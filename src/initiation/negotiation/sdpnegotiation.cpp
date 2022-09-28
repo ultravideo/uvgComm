@@ -29,6 +29,11 @@ void SDPNegotiation::processOutgoingRequest(SIPRequest& request, QVariant& conte
     addSDPAccept(request.message->accept);
   }
 
+  if (request.method == SIP_INVITE)
+  {
+    negotiationState_ = NEG_NO_STATE;
+  }
+
   // We could also add SDP to INVITE, but we choose to send offer
   // in INVITE OK response and ACK.
   if (request.method == SIP_ACK && negotiationState_ == NEG_OFFER_RECEIVED)
@@ -104,6 +109,7 @@ void SDPNegotiation::processIncomingRequest(SIPRequest& request, QVariant& conte
   if (request.method == SIP_INVITE)
   {
     peerAcceptsSDP_ = isSDPAccepted(request.message->accept);
+    negotiationState_ = NEG_NO_STATE; // reset state so we can negotiate again
   }
 
   if((request.method == SIP_INVITE || request.method == SIP_ACK) &&
