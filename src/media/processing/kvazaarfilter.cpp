@@ -31,21 +31,11 @@ KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats,
 
 void KvazaarFilter::createInputVector(int size)
 {
-  if (!api_ || !config_)
-  {
-    Logger::getLogger()->printProgramError(this, "Initilize API and config before creating input vector");
-    return;
-  }
-
   cleanupInputVector();
 
   for (unsigned int i = 0; i < size; ++i)
   {
-    kvz_picture* pic = api_->picture_alloc(config_->width, config_->height);
-    if (pic)
-    {
-      inputPics_.push_back(pic);
-    }
+    addInputPic(inputPics_.size());
   }
 
   nextInputPic_ = 0;
@@ -68,6 +58,36 @@ void KvazaarFilter::cleanupInputVector()
   nextInputPic_ = -1;
 }
 
+void KvazaarFilter::addInputPic(int index)
+{
+  if (!api_ || !config_)
+  {
+    Logger::getLogger()->printProgramError(this, "Initilize API and config before creating input vector");
+    return;
+  }
+
+  kvz_picture* pic = api_->picture_alloc(config_->width, config_->height);
+  if (pic)
+  {
+    inputPics_.insert(inputPics_.begin() + index, pic);
+  }
+}
+
+kvz_picture* KvazaarFilter::getNextPic()
+{
+  // if we have no free pics, add more slots
+  if (encodingFrames_.size() == inputPics_.size())
+  {
+    Logger::getLogger()->printNormal(this, "Increasing Kvazaar input pic vector size");
+    addInputPic(nextInputPic_);
+  }
+
+  kvz_picture* inputPic = inputPics_.at(nextInputPic_);
+  nextInputPic_ = (nextInputPic_ + 1)%inputPics_.size();
+  return inputPic;
+}
+
+
 void KvazaarFilter::updateSettings()
 {
   Logger::getLogger()->printNormal(this, "Updating kvazaar settings");
@@ -78,7 +98,6 @@ void KvazaarFilter::updateSettings()
   {
     sleep(1);
   }
-
 
   close();
 
@@ -383,8 +402,7 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
     return;
   }
 
-  kvz_picture* inputPic = inputPics_.at(nextInputPic_);
-  nextInputPic_ = (nextInputPic_ + 1)%inputPics_.size();
+  kvz_picture* inputPic = getNextPic();
 
   // copy input to kvazaar picture
   memcpy(inputPic->y,

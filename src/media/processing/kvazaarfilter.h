@@ -43,6 +43,9 @@ private:
   void createInputVector(int size);
   void cleanupInputVector();
 
+  void addInputPic(int index);
+
+  kvz_picture* getNextPic();
 
   const kvz_api *api_;
   kvz_config *config_;
@@ -53,6 +56,7 @@ private:
   // temporarily store frame data during encoding
   std::deque<std::unique_ptr<Data>> encodingFrames_;
 
+  // filter has only one thread, so no need to lock the usage of input pics
   std::vector<kvz_picture*> inputPics_;
   int nextInputPic_;
 
