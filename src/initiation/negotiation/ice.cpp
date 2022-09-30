@@ -1,9 +1,7 @@
 #include "ice.h"
 
 #include "icesessiontester.h"
-#include "common.h"
 #include "logger.h"
-#include "global.h"
 
 #include <QNetworkInterface>
 #include <QTime>
@@ -65,7 +63,8 @@ void ICE::processOutgoingResponse(SIPResponse& response, QVariant& content)
 }
 
 
-void ICE::processIncomingRequest(SIPRequest& request, QVariant& content, SIPResponseStatus generatedResponse)
+void ICE::processIncomingRequest(SIPRequest& request, QVariant& content,
+                                 SIPResponseStatus generatedResponse)
 {
   Logger::getLogger()->printNormal(this, "Processing incoming request");
 
@@ -106,12 +105,13 @@ void ICE::addLocalStartNomination(QVariant& content)
 
   components_ = localSDP_.media.count()*2;
 
-  localSDP_.candidates = generateICECandidates(networkCandidates_->localCandidates(components_, sessionID_),
-                                               networkCandidates_->globalCandidates(components_, sessionID_),
-                                               networkCandidates_->stunCandidates(components_),
-                                               networkCandidates_->stunBindings(components_, sessionID_),
-                                               networkCandidates_->turnCandidates(components_, sessionID_),
-                                               components_);
+  localSDP_.candidates = generateICECandidates(
+        networkCandidates_->localCandidates(components_, sessionID_),
+        networkCandidates_->globalCandidates(components_, sessionID_),
+        networkCandidates_->stunCandidates(components_),
+        networkCandidates_->stunBindings(components_, sessionID_),
+        networkCandidates_->turnCandidates(components_, sessionID_),
+        components_);
 
   content.setValue(localSDP_); // adds the candidates to outgoing message
 
@@ -134,12 +134,15 @@ void ICE::takeRemoteStartNomination(QVariant& content)
 
   if (!localSDP_.candidates.empty())
   {
-    // spawn ICE controllee threads and start the candidate
-    // exchange and nomination
-    //
-    // This will start the ICE nomination process. After it has finished,
-    // it will send a signal which indicates its state and if successful, the call may start.
-    startNomination(localSDP_.candidates, remoteSDP_.candidates, false);
+    if (!connectionNominated_)
+    {
+      // spawn ICE controllee threads and start the candidate
+      // exchange and nomination
+      //
+      // This will start the ICE nomination process. After it has finished,
+      // it will send a signal which indicates its state and if successful, the call may start.
+      startNomination(localSDP_.candidates, remoteSDP_.candidates, false);
+    }
   }
 }
 
