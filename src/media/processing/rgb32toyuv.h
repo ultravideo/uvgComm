@@ -14,7 +14,6 @@ public:
 
 protected:
 
-  // flips input
   void process();
 
 private:

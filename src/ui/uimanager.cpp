@@ -4,6 +4,7 @@
 #include "gui/videowidget.h"
 
 #include "gui/videoviewfactory.h"
+#include "gui/videowidget.h"
 
 #include "logger.h"
 
@@ -87,8 +88,10 @@ void UIManager::init(ParticipantInterface *partInt)
                    this,     &UIManager::endCall);
 
   settingsView_.init();
-
   window_.init(partInt);
+
+  getViewFactory()->addSelfview(settingsView_.getSelfViews(),
+                                settingsView_.getSelfViews());
 }
 
 

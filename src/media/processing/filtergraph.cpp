@@ -3,6 +3,7 @@
 #include "media/processing/camerafilter.h"
 #include "media/processing/screensharefilter.h"
 #include "media/processing/kvazaarfilter.h"
+#include "media/processing/roimanualfilter.h"
 
 #include "media/processing/openhevcfilter.h"
 
@@ -71,6 +72,7 @@ FilterGraph::FilterGraph(): QObject(),
   cameraGraph_(),
   screenShareGraph_(),
   selfviewFilter_(nullptr),
+  roiInterface_(nullptr),
   videoFormat_(""),
   videoSendIniated_(false),
   audioInputGraph_(),
@@ -101,6 +103,11 @@ void FilterGraph::init(QList<VideoInterface *> selfViews, StatisticsInterface* s
   stats_ = stats;
 
   hwResources_ = hwResources;
+
+  if (selfViews.size() > 1)
+  {
+    roiInterface_ = selfViews.at(1);
+  }
 
   selfviewFilter_ =
       std::shared_ptr<DisplayFilter>(new DisplayFilter("Self", stats_, hwResources_, selfViews, 1111));
@@ -318,8 +325,13 @@ void FilterGraph::initVideoSend()
     initCameraSelfView();
   }
 
-  std::shared_ptr<Filter> kvazaar = std::shared_ptr<Filter>(new KvazaarFilter("", stats_, hwResources_));
-  addToGraph(kvazaar, cameraGraph_, 0);
+  std::shared_ptr<Filter> mRoi =
+      std::shared_ptr<Filter>(new ROIManualFilter("", stats_, hwResources_, roiInterface_));
+  addToGraph(mRoi, cameraGraph_, 0);
+
+  std::shared_ptr<Filter> kvazaar =
+      std::shared_ptr<Filter>(new KvazaarFilter("", stats_, hwResources_));
+  addToGraph(kvazaar, cameraGraph_, cameraGraph_.size() - 1);
   addToGraph(kvazaar, screenShareGraph_, 0);
 
   videoSendIniated_ = true;

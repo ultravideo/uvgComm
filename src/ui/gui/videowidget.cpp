@@ -1,6 +1,7 @@
 #include "videowidget.h"
 
 #include "statisticsinterface.h"
+#include "logger.h"
 
 #include <QPaintEvent>
 #include <QCoreApplication>
@@ -8,26 +9,54 @@
 #include <QKeyEvent>
 #include <QLayout>
 
-VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID, uint32_t index, uint8_t borderSize)
-  : QFrame(parent),
+VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID, uint32_t index,
+                         uint8_t borderSize)
+  : QWidget(parent),
   stats_(nullptr),
   sessionID_(sessionID),
   helper_(sessionID, index, borderSize)
 {
   helper_.initWidget(this);
 
-  QFrame::setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
-  QFrame::setLineWidth(borderSize);
-  QFrame::setMidLineWidth(1);
-
   // the new syntax does not work for some reason (unresolved overloaded function type)
   QObject::connect(this, SIGNAL(newImage()), this, SLOT(repaint()));
   QObject::connect(&helper_, &VideoDrawHelper::detach, this, &VideoWidget::detach);
   QObject::connect(&helper_, &VideoDrawHelper::reattach, this, &VideoWidget::reattach);
+
+  helper_.updateTargetRect(this);
+
 }
+
 
 VideoWidget::~VideoWidget()
 {}
+
+
+void VideoWidget::drawMicOffIcon(bool status)
+{
+  helper_.setDrawMicOff(status);
+}
+
+
+void VideoWidget::enableOverlay(int roiQP, int backgroundQP,
+                                int brushSize, bool showGrid, bool pixelBased)
+{
+  helper_.enableOverlay(roiQP, backgroundQP, brushSize, showGrid, pixelBased);
+}
+
+
+void VideoWidget::resetOverlay()
+{
+  helper_.resetOverlay();
+}
+
+
+std::unique_ptr<int8_t[]> VideoWidget::getRoiMask(int& width, int& height,
+                                                  int qp, bool scaleToInput)
+{
+  return helper_.getRoiMask(width, height, qp, scaleToInput);
+}
+
 
 void VideoWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image,
                              int64_t timestamp)
@@ -51,12 +80,6 @@ void VideoWidget::paintEvent(QPaintEvent *event)
   {
     drawMutex_.lock();
 
-    if(QFrame::frameRect() != helper_.getFrameRect())
-    {
-      QFrame::setFrameRect(helper_.getFrameRect());
-      QWidget::setMinimumHeight(helper_.getFrameRect().height()*QWidget::minimumWidth()/helper_.getFrameRect().width());
-    }
-
     QImage frame;
     if(helper_.getRecentImage(frame))
     {
@@ -69,6 +92,8 @@ void VideoWidget::paintEvent(QPaintEvent *event)
     }
 
     painter.drawImage(helper_.getTargetRect(), frame);
+
+    helper_.draw(painter);
     drawMutex_.unlock();
   }
   else
@@ -76,7 +101,7 @@ void VideoWidget::paintEvent(QPaintEvent *event)
     painter.fillRect(event->rect(), QBrush(QColor(0,0,0)));
   }
 
-  QFrame::paintEvent(event);
+  QWidget::paintEvent(event);
 }
 
 void VideoWidget::resizeEvent(QResizeEvent *event)
@@ -89,6 +114,40 @@ void VideoWidget::resizeEvent(QResizeEvent *event)
 void VideoWidget::keyPressEvent(QKeyEvent *event)
 {
   helper_.keyPressEvent(this, event);
+}
+
+
+void VideoWidget::mousePressEvent(QMouseEvent *e)
+{
+  QWidget::mousePressEvent(e);
+
+  // if you want this to also trigger on movement without pressing,
+  // enable mouse tracking in qwidget
+
+  helper_.addPointToOverlay(e->localPos(),
+                            e->button() == Qt::LeftButton,
+                            e->button() == Qt::RightButton);
+}
+
+
+void VideoWidget::mouseReleaseEvent(QMouseEvent *e)
+{
+  helper_.updateROIMask();
+}
+
+
+void VideoWidget::mouseMoveEvent(QMouseEvent *e)
+{
+  QWidget::mouseMoveEvent(e);
+
+  // if you want this to also trigger on movement without pressing,
+  // enable mouse tracking in qwidget
+
+  Qt::MouseButtons buttonFlags = e->buttons();
+
+  helper_.addPointToOverlay(e->localPos(),
+                            buttonFlags & Qt::LeftButton,
+                            buttonFlags & Qt::RightButton);
 }
 
 

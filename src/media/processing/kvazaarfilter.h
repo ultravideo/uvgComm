@@ -53,12 +53,17 @@ private:
 
   int64_t pts_;
 
-  // temporarily store frame data during encoding
-  std::deque<std::unique_ptr<Data>> encodingFrames_;
-
   // filter has only one thread, so no need to lock the usage of input pics
   std::vector<kvz_picture*> inputPics_;
   int nextInputPic_;
 
   QMutex settingsMutex_;
+  struct FrameInfo
+  {
+    std::unique_ptr<Data> data;
+    int8_t * roi_array;
+  };
+
+  // temporarily store frame data during encoding
+  std::deque<FrameInfo> encodingFrames_;
 };

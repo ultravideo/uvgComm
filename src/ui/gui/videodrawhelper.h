@@ -9,6 +9,8 @@
 #include <QKeyEvent>
 
 #include <QElapsedTimer>
+#include <QMutex>
+#include <QSvgRenderer>
 
 #include <deque>
 #include <memory>
@@ -32,11 +34,22 @@ public:
 
   void initWidget(QWidget* widget);
 
+  void enableOverlay(int roiQP, int backgroundQP, int brushSize, bool showGrid, bool pixelBased);
+  void resetOverlay();
+  void updateROIMask();
+
+  void setDrawMicOff(bool state);
+
   bool readyToDraw();
-  void inputImage(QWidget *widget, std::unique_ptr<uchar[]> data, QImage &image, int64_t timestamp);
+  void inputImage(QWidget *widget, std::unique_ptr<uchar[]> data,
+                  QImage &image, int64_t timestamp);
 
   // returns whether this is a new image or the previous one
   bool getRecentImage(QImage& image);
+
+  void draw(QPainter& painter);
+
+  void addPointToOverlay(const QPointF& position, bool addPoint, bool removePoint);
 
   void mouseDoubleClickEvent(QWidget* widget);
   void keyPressEvent(QWidget* widget, QKeyEvent* event);
@@ -46,13 +59,15 @@ public:
 
   QRect getTargetRect()
   {
-    return targetRect_;
+    return imageRect_;
   }
 
   QRect getFrameRect()
   {
-    return newFrameRect_;
+    return borderRect_;
   }
+
+  std::unique_ptr<int8_t[]> getRoiMask(int& width, int& height, int qp, bool scaleToInput);
 
 signals:
 
@@ -63,13 +78,26 @@ private:
   void enterFullscreen(QWidget* widget);
   void exitFullscreen(QWidget* widget);
 
+  void updateROIMask(int& width, int& height, int qp, bool scaleToInput);
+
+  inline void clipValue(int& value, int maximumChange);
+
+  int colorToQP(QColor& color, int baseQP);
+  QColor qpToColor(int qp);
+
+  void drawGrid();
+  void setCTUQP(QPainter &painter, const QPointF &viewPosition, QSizeF viewMultiplier);
+
+  QSizeF getSizeMultipliers(int width, int height);
+
   uint32_t sessionID_;
   uint32_t index_;
 
   QWidget* tmpParent_;
 
-  QRect targetRect_;
-  QRect newFrameRect_;
+  QRect imageRect_;
+  QRect iconRect_;
+  QRect borderRect_;
 
   bool firstImageReceived_;
   QSize previousSize_;
@@ -87,4 +115,24 @@ private:
   std::deque<Frame> frameBuffer_;
 
   int64_t currentFrame_;
+
+  QMutex roiMutex_;
+  size_t currentSize_;
+  std::unique_ptr<int8_t[]> currentMask_;
+
+  bool drawOverlay_;
+  QImage overlay_;
+  QImage grid_;
+
+  int roiQP_;
+  int backgroundQP_;
+  int brushSize_;
+
+  bool showGrid_;
+  bool pixelBasedDrawing_;
+
+  QSvgRenderer  micIcon_;
+  bool drawIcon_;
+
+  bool fullscreen_;
 };

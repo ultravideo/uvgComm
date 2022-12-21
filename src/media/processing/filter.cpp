@@ -7,10 +7,12 @@
 #include "logger.h"
 
 #include <QImage>
+#include <QDebug>
+
 
 Filter::Filter(QString id, QString name, StatisticsInterface *stats,
                std::shared_ptr<ResourceAllocator> hwResources,
-               DataType input, DataType output):
+               DataType input, DataType output, bool enforceFramerate):
   maxBufferSize_(10),
   input_(input),
   output_(output),
@@ -23,7 +25,10 @@ Filter::Filter(QString id, QString name, StatisticsInterface *stats,
   inputTaken_(0),
   inputDiscarded_(0),
   hwResources_(hwResources),
-  filterID_(0)
+  filterID_(0),
+  enforceFramerate_(enforceFramerate),
+  synchronizationPoint_(std::chrono::high_resolution_clock::now()),
+  framesSinceSynchronization_(0)
 {
   Q_ASSERT(hwResources != nullptr);
 }
@@ -187,6 +192,11 @@ std::unique_ptr<Data> Filter::initializeData(DataType type, DataSource source) c
     data->vInfo->framerateDenominator = 0;
     data->vInfo->flippedVertically = false;
     data->vInfo->flippedHorizontally = false;
+
+    data->vInfo->roiWidth = 0;
+    data->vInfo->roiHeight = 0;
+
+    std::shared_ptr<uint8_t[]> roiArray = nullptr;
   }
   else if (isAudio(type))
   {
@@ -242,8 +252,62 @@ std::unique_ptr<Data> Filter::getInput()
     inBuffer_.pop_front();
   }
   bufferMutex_.unlock();
+
+  // optional enforcement of smooth frame rate, only done if there was input
+  // TODO: Does not work at the moment
+  if (enforceFramerate_ && r && r->vInfo)
+  {
+    std::chrono::time_point<std::chrono::high_resolution_clock> timeSlot =
+        getFrameTimepoint();
+    std::chrono::time_point<std::chrono::high_resolution_clock> now =
+        std::chrono::high_resolution_clock::now();
+
+    // is this frame late or has frame rate changed
+    if (r->vInfo->framerateNumerator != framerateNumerator_ ||
+        r->vInfo->framerateDenominator != framerateDenominator_ || now > timeSlot)
+    {
+      /*
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Updating frame rate synchronization point.",
+                                      {"Arrival time"},
+                                      {QString::number(std::chrono::duration_cast<
+                                       std::chrono::milliseconds>
+                                       (timeSlot - now).count()) + " ms"});
+                                       */
+      resetSynchronizationPoint(r->vInfo->framerateNumerator, r->vInfo->framerateDenominator);
+    }
+    else
+    {
+      // wait until timeslot
+      std::this_thread::sleep_for(timeSlot - now);
+    }
+
+    ++framesSinceSynchronization_;
+  }
+
   return r;
 }
+
+
+std::chrono::time_point<std::chrono::high_resolution_clock> Filter::getFrameTimepoint()
+{
+  int flexibility1ms = 1000000;
+
+  double framerate = (double)framerateNumerator_/framerateDenominator_;
+
+  return synchronizationPoint_ +
+      std::chrono::nanoseconds((uint64_t)(1000000000*framesSinceSynchronization_/framerate + flexibility1ms));
+}
+
+
+void Filter::resetSynchronizationPoint(int32_t framerateNumerator,
+                                       int32_t framerateDenominator)
+{
+  framerateNumerator_ = framerateNumerator;
+  framerateDenominator_ = framerateDenominator;
+  framesSinceSynchronization_ = 0;
+  synchronizationPoint_ = std::chrono::high_resolution_clock::now();
+}
+
 
 void Filter::sendOutput(std::unique_ptr<Data> output)
 {

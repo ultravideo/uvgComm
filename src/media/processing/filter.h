@@ -15,6 +15,7 @@
 #include <queue>
 #include <memory>
 #include <functional>
+#include <chrono>
 
 // One of the most fundamental classes of Kvazzup. A filter is an indipendent data processing
 // unit running on its own thread. Filters can be linked together to form a data processing pipeline
@@ -42,26 +43,30 @@ struct VideoInfo
   int32_t framerateNumerator;
   int32_t framerateDenominator;
 
-  bool flippedVertically;
-  bool flippedHorizontally;
+  bool flippedVertically = false;
+  bool flippedHorizontally = false;
+
+  int roiWidth = 0;
+  int roiHeight = 0;
+  std::unique_ptr<int8_t[]> roiArray = nullptr;
 };
 
 struct AudioInfo
 {
-  uint16_t sampleRate;
+  uint16_t sampleRate = 0;
 };
 
 struct Data
 {
-  DataSource source;
-  DataType type;
-  std::unique_ptr<uchar[]> data;
-  uint32_t data_size;
+  DataSource source = DS_UNKNOWN;
+  DataType type = DT_NONE;
+  std::unique_ptr<uchar[]> data = nullptr;
+  uint32_t data_size = 0;
 
-  int64_t presentationTime;
+  int64_t presentationTime = -1;
 
-  std::unique_ptr<VideoInfo> vInfo;
-  std::unique_ptr<AudioInfo> aInfo;
+  std::unique_ptr<VideoInfo> vInfo = nullptr;
+  std::unique_ptr<AudioInfo> aInfo = nullptr;
 };
 
 class StatisticsInterface;
@@ -74,7 +79,7 @@ class Filter : public QThread
 public:
   Filter(QString id, QString name, StatisticsInterface* stats,
          std::shared_ptr<ResourceAllocator> hwResources,
-         DataType input, DataType output);
+         DataType input, DataType output, bool enforceFramerate = false);
   virtual ~Filter();
 
   // Redefine this to handle the initialization of the filter
@@ -196,6 +201,10 @@ private:
 
   std::unique_ptr<Data> validityCheck(std::unique_ptr<Data> data, bool &ok);
 
+  std::chrono::time_point<std::chrono::high_resolution_clock> getFrameTimepoint();
+  void resetSynchronizationPoint(int32_t framerateNumerator,
+                                 int32_t framerateDenominator);
+
   QString name_;
   QString id_;
 
@@ -220,4 +229,11 @@ private:
   std::shared_ptr<ResourceAllocator> hwResources_;
 
   uint32_t filterID_;
+
+  // optional smoothing of input frames to frame rate
+  bool enforceFramerate_;
+  std::chrono::time_point<std::chrono::high_resolution_clock> synchronizationPoint_;
+  uint64_t framesSinceSynchronization_;
+  int32_t framerateNumerator_;
+  int32_t framerateDenominator_;
 };

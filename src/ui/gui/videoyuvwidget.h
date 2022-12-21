@@ -39,10 +39,23 @@ public:
 
   static unsigned int number_;
 
+  virtual void drawMicOffIcon(bool status);
+
+  virtual void enableOverlay(int roiQP, int backgroundQP, int brushSize, 
+                             bool showGrid, bool pixelBased);
+  virtual void resetOverlay();
+
+  virtual std::unique_ptr<int8_t[]> getRoiMask(int& width, int& height, int qp, bool scaleToInput);
+
   virtual VideoFormat supportedFormat()
   {
     //return VIDEO_RGB32;
     return VIDEO_YUV420;
+  }
+
+  virtual bool isVisible()
+  {
+    return QWidget::isVisible();
   }
 
 signals:

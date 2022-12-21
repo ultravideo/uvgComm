@@ -16,6 +16,7 @@ const int BUFFERSIZE = 65536;
 const int FPSPRECISION = 4;
 
 const int CHARTVALUES = 20;
+const int RTCP_CHARTVALUES = 12;
 
 enum TabType {
   SIP_TAB = 0, PARAMETERS_TAB = 1, DELIVERY_TAB = 2,
@@ -71,11 +72,16 @@ StatisticsInterface(),
   ui_->bandwidth_chart->addLine("In");
   ui_->bandwidth_chart->addLine("Out");
 
+  ui_->v_jitter->init( 50, 5, true, RTCP_CHARTVALUES, "Jitter");
+  ui_->v_lost->init(   50, 5, true, RTCP_CHARTVALUES, "Lost");
+  ui_->a_jitter->init( 50, 5, true, RTCP_CHARTVALUES, "Jitter");
+  ui_->a_lost->init(   50, 5, true, RTCP_CHARTVALUES, "Lost");
+
   // performance-tab
-  ui_->v_bitrate_chart->init(500, 5, true, CHARTVALUES, "Bit rates (kbit/s)");
-  ui_->a_bitrate_chart->init(50, 5, false, CHARTVALUES, "Bit rates (kbit/s)");
-  ui_->v_delay_chart->init(100, 5, true, CHARTVALUES, "Latencies (ms)");
-  ui_->a_delay_chart->init(10, 5, false, CHARTVALUES, "Latencies (ms)");
+  ui_->v_bitrate_chart->init( 500, 5, true,  CHARTVALUES, "Bit rates (kbit/s)");
+  ui_->a_bitrate_chart->init(  50, 5, false, CHARTVALUES, "Bit rates (kbit/s)");
+  ui_->v_delay_chart->init(   100, 5, true,  CHARTVALUES, "Latencies (ms)");
+  ui_->a_delay_chart->init(    10, 5, false, CHARTVALUES, "Latencies (ms)");
   ui_->v_framerate_chart->init(30, 5, false, CHARTVALUES, "Frame rates (fps)");
 
   chartVideoID_ = ui_->v_bitrate_chart->addLine("Outgoing");
@@ -177,6 +183,7 @@ void StatisticsWindow::addSession(uint32_t sessionID)
                           0, std::vector<ValueInfo*>(BUFFERSIZE, nullptr),
                           0, std::vector<ValueInfo*>(BUFFERSIZE, nullptr),
                           0, std::vector<ValueInfo*>(BUFFERSIZE, nullptr),
+                          0,0, 0,0, // jitter and lost
                           -1};
 }
 
@@ -203,6 +210,11 @@ void StatisticsWindow::outgoingMedia(uint32_t sessionID, QString name, QStringLi
                                      QStringList& audioPorts, QStringList& videoPorts)
 {
   addMedia(ui_->table_outgoing, sessionID, ipList, audioPorts, videoPorts);
+
+  ui_->v_jitter->addLine(name);
+  ui_->a_jitter->addLine(name);
+  ui_->v_lost->addLine(name);
+  ui_->a_lost->addLine(name);
 }
 
 
@@ -354,6 +366,11 @@ void StatisticsWindow::removeSession(uint32_t sessionID)
   ui_->a_delay_chart->removeLine(index);
   ui_->v_framerate_chart->removeLine(index);
 
+  // these do not have local so -1 is needed
+  ui_->a_jitter->removeLine(index - 1);
+  ui_->v_jitter->removeLine(index - 1);
+  ui_->a_lost->removeLine(index - 1);
+  ui_->v_lost->removeLine(index - 1);
 
   // TODO: There is still unreleased memory in session!!
 
@@ -545,6 +562,39 @@ void StatisticsWindow::addReceivePacket(uint32_t sessionID, QString type,
       updateValueBuffer(sessions_.at(sessionID).audioPackets,
                             sessions_.at(sessionID).audioIndex, size);
     }
+    else
+    {
+      Logger::getLogger()->printWarning(this, "Unknown type with receive packet");
+    }
+  }
+}
+
+
+void StatisticsWindow::addRTCPPacket(uint32_t sessionID, QString type,
+                                     uint8_t  fraction,
+                                     int32_t  lost,
+                                     uint32_t last_seq,
+                                     uint32_t jitter)
+{
+  if(sessions_.find(sessionID) != sessions_.end())
+  {
+    deliveryMutex_.lock();
+    if(type == "video" || type == "Video")
+    {
+      sessions_[sessionID].videoLost = lost;
+      sessions_[sessionID].videoJitter = jitter;
+    }
+    else if (type == "audio" || type == "Audio")
+    {
+      sessions_[sessionID].audioLost = lost;
+      sessions_[sessionID].audioJitter = jitter;
+    }
+    else
+    {
+      Logger::getLogger()->printWarning(this, "Unknown type with RTCP packet");
+    }
+
+    deliveryMutex_.unlock();
   }
 }
 
@@ -608,6 +658,11 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
     else if (ui_->Statistics_tabs->currentIndex() == DELIVERY_TAB)
     {
       ui_->bandwidth_chart->clearPoints();
+
+      ui_->a_jitter->clearPoints();
+      ui_->v_jitter->clearPoints();
+      ui_->a_lost->clearPoints();
+      ui_->v_lost->clearPoints();
     }
   }
 
@@ -644,14 +699,23 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
       ui_->packets_received_value->setText( QString::number(receivePacketCount_));
       ui_->data_received_value->setText( QString::number(receivedData_));
 
+      // jitter and lost charts
+      for(auto& d : sessions_)
+      {
+        ui_->v_jitter->addPoint(d.second.tableIndex + 1, d.second.videoJitter);
+        ui_->v_lost->addPoint(  d.second.tableIndex + 1, d.second.videoLost);
+        ui_->a_jitter->addPoint(d.second.tableIndex + 1, d.second.audioJitter);
+        ui_->a_lost->addPoint(  d.second.tableIndex + 1, d.second.audioLost);
+      }
+
       // bandwidth chart
       float packetRate = 0.0f; // not interested in this at the moment.
       uint32_t inBandwidth = calculateAverageAndRate(inBandWidth_, inIndex_, packetRate, 5000, true);
       uint32_t outBandwidth = calculateAverageAndRate(outBandwidth_, outIndex_, packetRate, 5000, true);
+      deliveryMutex_.unlock();
 
       ui_->bandwidth_chart->addPoint(1, inBandwidth);
       ui_->bandwidth_chart->addPoint(2, outBandwidth);
-      deliveryMutex_.unlock();
 
       break;
     }
@@ -897,6 +961,11 @@ void StatisticsWindow::clearCharts()
   ui_->v_bitrate_chart->clearPoints();
   ui_->a_bitrate_chart->clearPoints();
   ui_->v_framerate_chart->clearPoints();
+
+  ui_->a_jitter->clearPoints();
+  ui_->v_jitter->clearPoints();
+  ui_->a_lost->clearPoints();
+  ui_->v_lost->clearPoints();
 
   //ui_->bandwidth_chart->clearPoints();
 

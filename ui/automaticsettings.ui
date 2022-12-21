@@ -6,29 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>300</height>
+    <width>560</width>
+    <height>640</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Media Settings</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <item row="1" column="0" colspan="3">
-    <widget class="Line" name="line">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="1">
-    <widget class="QPushButton" name="reset_button">
-     <property name="text">
-      <string>Reset</string>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="0">
+   <item row="3" column="0">
     <spacer name="horizontalSpacer">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
@@ -41,7 +27,14 @@
      </property>
     </spacer>
    </item>
-   <item row="4" column="2">
+   <item row="3" column="1">
+    <widget class="QPushButton" name="reset_button">
+     <property name="text">
+      <string>Reset</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="2">
     <widget class="QPushButton" name="close_button">
      <property name="text">
       <string>Finished</string>
@@ -64,31 +57,143 @@
      </property>
     </widget>
    </item>
-   <item row="3" column="0" colspan="3">
-    <spacer name="verticalSpacer">
+   <item row="1" column="0" colspan="3">
+    <widget class="Line" name="line">
      <property name="orientation">
-      <enum>Qt::Vertical</enum>
+      <enum>Qt::Horizontal</enum>
      </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>40</height>
-      </size>
-     </property>
-    </spacer>
+    </widget>
    </item>
    <item row="2" column="0" colspan="3">
-    <widget class="QLabel" name="label">
-     <property name="text">
-      <string>In the future, here will reside values for managing the different aspects of automated settings.</string>
+    <widget class="QTabWidget" name="tabs">
+     <property name="currentIndex">
+      <number>0</number>
      </property>
-     <property name="wordWrap">
-      <bool>true</bool>
-     </property>
+     <widget class="QWidget" name="main">
+      <attribute name="title">
+       <string>Main</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayout_2"/>
+     </widget>
+     <widget class="QWidget" name="roi">
+      <attribute name="title">
+       <string>RoI</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayout_3">
+       <item row="0" column="0" colspan="5">
+        <widget class="VideoWidget" name="roi_surface" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="0">
+        <widget class="QCheckBox" name="ctu_based">
+         <property name="text">
+          <string>CTU based drawing</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QSpinBox" name="roi_qp">
+         <property name="suffix">
+          <string/>
+         </property>
+         <property name="prefix">
+          <string/>
+         </property>
+         <property name="minimum">
+          <number>22</number>
+         </property>
+         <property name="maximum">
+          <number>47</number>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="roi_lable">
+         <property name="text">
+          <string>RoI QP</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="0">
+        <widget class="QCheckBox" name="show_grid">
+         <property name="text">
+          <string>Show grid</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="4">
+        <spacer name="horizontalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="3" column="1">
+        <widget class="QSpinBox" name="background_qp">
+         <property name="minimum">
+          <number>22</number>
+         </property>
+         <property name="maximum">
+          <number>47</number>
+         </property>
+         <property name="value">
+          <number>47</number>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="background_label">
+         <property name="text">
+          <string>Global QP</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="brush_size_label">
+         <property name="text">
+          <string>Brush Size</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QSpinBox" name="brush_size">
+         <property name="minimum">
+          <number>1</number>
+         </property>
+         <property name="maximum">
+          <number>3</number>
+         </property>
+         <property name="value">
+          <number>3</number>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
     </widget>
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>VideoWidget</class>
+   <extends>QWidget</extends>
+   <header>ui/gui/videowidget.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

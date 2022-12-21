@@ -51,6 +51,7 @@ void KvazaarFilter::cleanupInputVector()
   }
   for (auto pic : inputPics_)
   {
+     pic->roi.roi_array = nullptr;
      api_->picture_free(pic);
   }
 
@@ -226,6 +227,8 @@ bool KvazaarFilter::init()
     {
       api_->config_parse(config_, "rc-algorithm",    settings.value(SettingsKey::videoRCAlgorithm).toString().toLocal8Bit());
     }
+
+    api_->config_parse(config_, "intra-bits", "");
 
     // TODO: Move to settings
     api_->config_parse(config_, "gop", "lp-g4d3t1");
@@ -418,7 +421,17 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
   inputPic->pts = pts_;
   ++pts_;
 
-  encodingFrames_.push_front(std::move(input));
+  if (config_->target_bitrate == 0)
+  {
+    // can also be empty by default
+    inputPic->roi.width = input->vInfo->roiWidth;
+    inputPic->roi.height = input->vInfo->roiHeight;
+
+    // needs to be deleted later
+    inputPic->roi.roi_array = input->vInfo->roiArray.release();
+  }
+
+  encodingFrames_.push_front({std::move(input), inputPic->roi.roi_array});
 
   api_->encoder_encode(enc_, inputPic,
                        &data_out, &len_out,
@@ -441,8 +454,14 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
 void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
                                       uint32_t len_out, kvz_picture *recon_pic)
 {
-  std::unique_ptr<Data> encodedFrame = std::move(encodingFrames_.back());
+  FrameInfo info = std::move(encodingFrames_.back());
   encodingFrames_.pop_back();
+
+  if (info.roi_array)
+  {
+    delete info.roi_array;
+    info.roi_array = nullptr;
+  }
 
   std::unique_ptr<uchar[]> hevc_frame(new uchar[len_out]);
   uint8_t* writer = hevc_frame.get();
@@ -457,12 +476,12 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
   api_->chunk_free(data_out);
   api_->picture_free(recon_pic);
 
-  uint32_t delay = QDateTime::currentMSecsSinceEpoch() - encodedFrame->presentationTime;
+  uint32_t delay = QDateTime::currentMSecsSinceEpoch() - info.data->presentationTime;
   getStats()->sendDelay("video", delay);
   getStats()->addEncodedPacket("video", len_out);
 
   // send last packet reusing input structure
-  sendEncodedFrame(std::move(encodedFrame), std::move(hevc_frame), dataWritten);
+  sendEncodedFrame(std::move(info.data), std::move(hevc_frame), dataWritten);
 }
 
 

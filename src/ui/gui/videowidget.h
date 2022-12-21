@@ -4,7 +4,6 @@
 #include "videodrawhelper.h"
 
 #include <QPainter>
-#include <QFrame>
 #include <QRect>
 #include <QSize>
 #include <QImage>
@@ -14,7 +13,7 @@
 
 class StatisticsInterface;
 
-class VideoWidget : public QFrame, public VideoInterface
+class VideoWidget : public QWidget, public VideoInterface
 {
   Q_OBJECT
   Q_INTERFACES(VideoInterface)
@@ -31,9 +30,22 @@ public:
   // Takes ownership of the image data
   virtual void inputImage(std::unique_ptr<uchar[]> data, QImage &image, int64_t timestamp);
 
+  virtual void drawMicOffIcon(bool status);
+
+  virtual void enableOverlay(int roiQP, int backgroundQP, int brushSize, 
+                             bool showGrid, bool pixelBased);
+  virtual void resetOverlay();
+
+  virtual std::unique_ptr<int8_t[]> getRoiMask(int& width, int& height, int qp, bool scaleToInput);
+
   virtual VideoFormat supportedFormat()
   {
     return VIDEO_RGB32;
+  }
+
+  virtual bool isVisible()
+  {
+    return QWidget::isVisible();
   }
 
 signals:
@@ -47,6 +59,9 @@ protected:
   void resizeEvent(QResizeEvent *event);
   void keyPressEvent(QKeyEvent *event);
 
+  void mousePressEvent(QMouseEvent *e);
+  void mouseReleaseEvent(QMouseEvent *e);
+  void mouseMoveEvent(QMouseEvent *e);
   void mouseDoubleClickEvent(QMouseEvent *e);
 
 private:
@@ -58,7 +73,6 @@ private:
 
   StatisticsInterface* stats_;
   uint32_t sessionID_;
-  uint32_t index_;
 
   VideoDrawHelper helper_;
 };

@@ -1,9 +1,11 @@
 #pragma once
 #include "media/processing/filter.h"
+
+#include <uvgrtp/lib.hh>
+
 #include <QMutex>
 #include <QSemaphore>
 #include <QFutureWatcher>
-#include <uvgrtp/lib.hh>
 
 class StatisticsInterface;
 
@@ -25,11 +27,11 @@ signals:
   void zrtpFailure(uint32_t sessionID);
 
 private:
-  DataType type_;
+
+  void processRTCPReceiverReport(std::unique_ptr<uvgrtp::frame::rtcp_receiver_report> rr);
 
   uvg_rtp::media_stream * mstream_;
   QFutureWatcher<uvg_rtp::media_stream *> watcher_;
-  uint64_t frame_;
   uint32_t sessionID_;
   rtp_format_t dataFormat_;
   int rtpFlags_;

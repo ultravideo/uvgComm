@@ -1,6 +1,8 @@
 #pragma once
 #include "filter.h"
 
+#include <QImage>
+
 class VideoInterface;
 
 class DisplayFilter : public Filter
@@ -20,6 +22,15 @@ protected:
   void process();
 
 private:
+
+  /* The purpose of this function is to deliver frames to widgets
+   * that draw the frames. The copy is needed since the final life
+   * of the frames can be different. Non-copy operations
+   * invalidate the data */
+  std::unique_ptr<Data> deliverFrame(VideoInterface* screen,
+                                     std::unique_ptr<Data> input,
+                                     QImage::Format format,
+                                     bool useCopy, bool mirrorHorizontally);
 
   bool horizontalMirroring_;
 

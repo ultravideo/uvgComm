@@ -32,6 +32,7 @@ Settings::Settings(QWidget *parent) :
   sipSettings_(this),
   videoSettings_(this, cam_),
   audioSettings_(this, mic_),
+  autoSettings_(this),
   settings_(settingsFile, settingsFileFormat)
 {}
 
@@ -39,6 +40,12 @@ Settings::Settings(QWidget *parent) :
 Settings::~Settings()
 {
   // I believe the UI:s are destroyed when parents are destroyed
+}
+
+
+VideoWidget* Settings::getSelfViews()
+{
+  return autoSettings_.getRoiSelfView();
 }
 
 
@@ -98,6 +105,8 @@ void Settings::init()
                    this,                            &Settings::openAutomaticSettings);
   QObject::connect(&autoSettings_, &AutomaticSettings::hidden,
                    this,           &Settings::show);
+  QObject::connect(&autoSettings_, &AutomaticSettings::updateVideoSettings,
+                   this,           &Settings::updateVideoSettings);
 
 
 

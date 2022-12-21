@@ -423,6 +423,9 @@ void ConferenceView::callStarted(uint32_t sessionID,
   {
     attachAvatarWidget(name, sessionID);
   }
+
+  VideoInterface* video = factory->getVideo(sessionID);
+  video->drawMicOffIcon(!audioEnabled);
 }
 
 

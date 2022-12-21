@@ -59,6 +59,8 @@ public:
   void setCameraState(bool enabled);
   void setScreenShareState(bool enabled);
 
+  VideoWidget* getSelfViews();
+
 signals:
 
   // announces to rest of the program that they should reload their settings

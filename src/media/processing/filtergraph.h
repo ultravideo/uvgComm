@@ -113,6 +113,7 @@ private:
   GraphSegment screenShareGraph_;
 
   std::shared_ptr<DisplayFilter> selfviewFilter_;
+  VideoInterface* roiInterface_; // this is the roi surface from settings
 
   QString videoFormat_;
   bool videoSendIniated_;

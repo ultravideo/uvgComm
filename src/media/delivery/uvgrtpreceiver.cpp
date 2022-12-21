@@ -1,14 +1,16 @@
-
-#include <cstdio>
+#include "uvgrtpreceiver.h"
 
 #include "statisticsinterface.h"
-#include "uvgrtpreceiver.h"
+#include "src/media/resourceallocator.h"
 
 #include "common.h"
 #include "logger.h"
 
 #include <QDateTime>
 #include <QDebug>
+
+#include <functional>
+#include <cstdio>
 
 #define RTP_HEADER_SIZE 2
 #define FU_HEADER_SIZE  1
@@ -27,15 +29,24 @@ UvgRTPReceiver::UvgRTPReceiver(uint32_t sessionID, QString id, StatisticsInterfa
   Filter(id, "RTP Receiver " + media, stats, hwResources, DT_NONE, type),
   discardUntilIntra_(false),
   lastSeq_(0),
-  sessionID_(sessionID)
+  sessionID_(sessionID),
+  watcher_(),
+  mstream_(nullptr)
 {
   connect(&watcher_, &QFutureWatcher<uvg_rtp::media_stream *>::finished,
           [this]()
           {
-            if (!watcher_.result())
+            mstream_ = watcher_.result();
+            if (!mstream_)
+            {
               emit zrtpFailure(sessionID_);
+            }
             else
-              watcher_.result()->install_receive_hook(this, __receiveHook);
+            {
+              mstream_->install_receive_hook(this, __receiveHook);
+              mstream_->get_rtcp()->install_sender_hook(std::bind(&UvgRTPReceiver::processRTCPSenderReport,
+                                                                           this, std::placeholders::_1 ));
+            }
           });
 
   watcher_.setFuture(stream);
@@ -96,4 +107,32 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
 
   (void)uvg_rtp::frame::dealloc_frame(frame);
   sendOutput(std::move(received_picture));
+}
+void UvgRTPReceiver::processRTCPSenderReport(std::unique_ptr<uvgrtp::frame::rtcp_sender_report> sr)
+{
+  uint32_t ourSSRC = mstream_->get_ssrc();
+
+  for (auto& block : sr->report_blocks)
+  {
+    if (block.ssrc == ourSSRC)
+    {
+      getHWManager()->addRTCPReport(sessionID_, outputType(), block.lost, block.jitter);
+
+      QString type = "Other";
+      if (isVideo(outputType()))
+      {
+        type = "Video";
+      }
+      else if (isAudio(outputType()))
+      {
+        type = "Audio";
+      }
+
+      getStats()->addRTCPPacket(sessionID_, type,
+                                block.fraction,
+                                block.lost,
+                                block.last_seq,
+                                block.jitter);
+    }
+  }
 }

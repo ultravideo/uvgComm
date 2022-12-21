@@ -1,46 +1,33 @@
-#include <QSettings>
-
 #include "uvgrtpsender.h"
+
 #include "statisticsinterface.h"
+#include "src/media/resourceallocator.h"
 
 #include "common.h"
 #include "settingskeys.h"
 #include "logger.h"
 
+#include <QSettings>
+
+#include <functional>
 
 UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id, StatisticsInterface *stats,
                            std::shared_ptr<ResourceAllocator> hwResources,
-                           DataType type, QString media, QFuture<uvg_rtp::media_stream *> mstream):
-  Filter(id, "RTP Sender " + media, stats, hwResources, type, DT_NONE),
-  type_(type),
+                           DataType type, QString media,
+                           QFuture<uvg_rtp::media_stream *> mstream):
+  Filter(id, "RTP Sender " + media, stats, hwResources, type, DT_NONE, false),
   mstream_(nullptr),
-  frame_(0),
   sessionID_(sessionID),
   rtpFlags_(RTP_NO_FLAGS),
   framerateNumerator_(0),
   framerateDenominator_(0)
 {
-  updateSettings();
-
-  switch (type)
-  {
-    case DT_HEVCVIDEO:
-      dataFormat_ = RTP_FORMAT_H265;
-      break;
-
-    case DT_OPUSAUDIO:
-      dataFormat_ = RTP_FORMAT_OPUS;
-      break;
-
-    default:
-      dataFormat_ = RTP_FORMAT_GENERIC;
-      break;
-  }
+  UvgRTPSender::updateSettings();
 
   connect(&watcher_, &QFutureWatcher<uvg_rtp::media_stream *>::finished,
           [this]()
           {
-            mstream_ = watcher_.result();
+            mstream_ = watcher_.result(); // TODO: This can crash in sending
             if (!mstream_)
             {
               emit zrtpFailure(sessionID_);
@@ -57,16 +44,17 @@ UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id, StatisticsInterface *
   watcher_.setFuture(mstream);
 }
 
+
 UvgRTPSender::~UvgRTPSender()
-{
-}
+{}
+
 
 void UvgRTPSender::updateSettings()
 {
   // called in case we later decide to add some settings to filter
   Filter::updateSettings();
 
-  if (type_ == DT_HEVCVIDEO)
+  if (input_ == DT_HEVCVIDEO)
   {
     uint32_t vps   = settingValue(SettingsKey::videoVPS);
     uint16_t intra = (uint16_t)settingValue(SettingsKey::videoIntra);
@@ -108,5 +96,35 @@ void UvgRTPSender::process()
     getStats()->addSendPacket(input->data_size);
 
     input = getInput();
+  }
+}
+
+
+void UvgRTPSender::processRTCPReceiverReport(std::unique_ptr<uvgrtp::frame::rtcp_receiver_report> rr)
+{
+  uint32_t ourSSRC = mstream_->get_ssrc();
+
+  for (auto& block : rr->report_blocks)
+  {
+    if (block.ssrc == ourSSRC)
+    {
+      getHWManager()->addRTCPReport(sessionID_, inputType(), block.lost, block.jitter);
+
+      QString type = "Other";
+      if (isVideo(inputType()))
+      {
+        type = "Video";
+      }
+      else if (isAudio(inputType()))
+      {
+        type = "Audio";
+      }
+
+      getStats()->addRTCPPacket(sessionID_, type,
+                                block.fraction,
+                                block.lost,
+                                block.last_seq,
+                                block.jitter);
+    }
   }
 }

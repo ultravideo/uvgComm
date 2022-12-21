@@ -25,10 +25,13 @@ signals:
 
 private:
 
+  void processRTCPSenderReport(std::unique_ptr<uvgrtp::frame::rtcp_sender_report> sr);
+
   bool discardUntilIntra_;
 
   uint16_t lastSeq_;
   uint32_t sessionID_;
 
   QFutureWatcher<uvg_rtp::media_stream *> watcher_;
+  uvg_rtp::media_stream * mstream_;
 };

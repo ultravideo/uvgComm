@@ -1,6 +1,7 @@
 #include "videoyuvwidget.h"
 
 #include "statisticsinterface.h"
+#include "logger.h"
 
 #include <QPaintEvent>
 #include <QCoreApplication>
@@ -26,8 +27,34 @@ VideoYUVWidget::VideoYUVWidget(QWidget* parent, uint32_t sessionID,
   QObject::connect(&helper_, &VideoDrawHelper::reattach, this, &VideoYUVWidget::reattach);
 }
 
+
 VideoYUVWidget::~VideoYUVWidget()
 {}
+
+
+void VideoYUVWidget::drawMicOffIcon(bool status)
+{
+  helper_.setDrawMicOff(status);
+}
+
+void VideoYUVWidget::enableOverlay(int roiQP, int backgroundQP, int brushSize, 
+                                   bool showGrid, bool pixelBased)
+{
+  helper_.enableOverlay(roiQP, backgroundQP, brushSize, showGrid, pixelBased);
+}
+
+
+void VideoYUVWidget::resetOverlay()
+{
+  helper_.resetOverlay();
+}
+
+
+std::unique_ptr<int8_t[]> VideoYUVWidget::getRoiMask(int& width, int& height, int qp, bool scaleToInput)
+{
+  return helper_.getRoiMask(width, height, qp, scaleToInput);
+}
+
 
 void VideoYUVWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image, int64_t timestamp)
 {

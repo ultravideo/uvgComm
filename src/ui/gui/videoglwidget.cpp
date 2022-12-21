@@ -22,8 +22,35 @@ VideoGLWidget::VideoGLWidget(QWidget* parent, uint32_t sessionID, uint32_t index
   QObject::connect(&helper_, &VideoDrawHelper::reattach, this, &VideoGLWidget::reattach);
 }
 
+
 VideoGLWidget::~VideoGLWidget()
 {}
+
+
+void VideoGLWidget::drawMicOffIcon(bool status)
+{
+  helper_.setDrawMicOff(status);
+}
+
+
+void VideoGLWidget::enableOverlay(int roiQP, int backgroundQP,
+                                  int brushSize, bool showGrid, bool pixelBased)
+{
+  helper_.enableOverlay(roiQP, backgroundQP, brushSize, showGrid, pixelBased);
+}
+
+
+void VideoGLWidget::resetOverlay()
+{
+  helper_.resetOverlay();
+}
+
+
+std::unique_ptr<int8_t[]> VideoGLWidget::getRoiMask(int& width, int& height, int qp, bool scaleToInput)
+{
+  return helper_.getRoiMask(width, height, qp, scaleToInput);
+}
+
 
 void VideoGLWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image, int64_t timestamp)
 {
