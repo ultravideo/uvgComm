@@ -866,7 +866,6 @@ void FilterGraph::destroyPeer(Peer* peer)
 
 void FilterGraph::removeParticipant(uint32_t sessionID)
 {
-  Q_ASSERT(peers_.find(sessionID) != peers_.end());
   if (peers_.find(sessionID) != peers_.end() &&
       peers_[sessionID] != nullptr)
   {

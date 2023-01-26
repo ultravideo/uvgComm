@@ -2,6 +2,8 @@
 
 #include "initiation/negotiation/sdptypes.h"
 
+#include "delivery/ice.h"
+
 #include <QObject>
 #include <QMutex>
 #include <QList>
@@ -48,7 +50,8 @@ public:
   void registerContact(in_addr ip);
 
   void addParticipant(uint32_t sessionID, const std::shared_ptr<SDPMessageInfo> peerInfo,
-                      const std::shared_ptr<SDPMessageInfo> localInfo);
+                      const std::shared_ptr<SDPMessageInfo> localInfo,
+                      bool iceController);
 
   void removeParticipant(uint32_t sessionID);
 
@@ -82,7 +85,19 @@ signals:
   void updateAudioSettings();
   void updateAutomaticSettings();
 
+public slots:
+  void iceSucceeded(QList<std::shared_ptr<ICEPair>>& streams,
+                           quint32 sessionID);
+  void iceFailed(quint32 sessionID);
+
+signals:
+  void iceMediaFailed(uint32_t sessionID);
+
 private:
+
+  void createCall(uint32_t sessionID,
+                  std::shared_ptr<SDPMessageInfo> peerInfo,
+                  const std::shared_ptr<SDPMessageInfo> localInfo);
 
   void createOutgoingMedia(uint32_t sessionID, const MediaInfo& localMedia,
                            QString peerAddress, const MediaInfo& remoteMedia);
@@ -99,10 +114,22 @@ private:
   QString getMediaAddrtype(std::shared_ptr<SDPMessageInfo> sdp, int mediaIndex);
   QString getMediaAddress(std::shared_ptr<SDPMessageInfo> sdp, int mediaIndex);
 
+  // update MediaInfo of SDP after ICE has finished
+  void setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo, bool local);
+
+  struct ParticipantMedia
+  {
+    std::unique_ptr<ICE> ice;
+    std::shared_ptr<SDPMessageInfo> localInfo;
+    std::shared_ptr<SDPMessageInfo> peerInfo;
+  };
+
   StatisticsInterface* stats_;
 
   std::unique_ptr<FilterGraph> fg_;
   std::unique_ptr<Delivery> streamer_;
 
   std::shared_ptr<VideoviewFactory> viewfactory_;
+
+  std::map<uint32_t, ParticipantMedia> participants_;
 };

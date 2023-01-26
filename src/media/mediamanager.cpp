@@ -87,7 +87,7 @@ void MediaManager::uninit()
 
 void MediaManager::addParticipant(uint32_t sessionID,
                                   std::shared_ptr<SDPMessageInfo> peerInfo,
-                                  const std::shared_ptr<SDPMessageInfo> localInfo)
+                                  const std::shared_ptr<SDPMessageInfo> localInfo, bool iceController)
 {
   // TODO: support stop-time and start-time as recommended by RFC 4566 section 5.9
 
@@ -138,6 +138,41 @@ void MediaManager::addParticipant(uint32_t sessionID,
     sdpToStats(sessionID, localInfo, true);
   }
 
+  // perform ICE
+  if (!localInfo->candidates.empty() && !peerInfo->candidates.empty())
+  {
+    if (participants_.find(sessionID) == participants_.end())
+    {
+      participants_[sessionID].ice = std::unique_ptr<ICE>(new ICE(sessionID));
+    }
+
+
+    participants_[sessionID].localInfo = localInfo;
+    participants_[sessionID].peerInfo = peerInfo;
+
+    // connect signals so we get information when ice is ready
+    QObject::connect(participants_[sessionID].ice.get(), &ICE::nominationSucceeded,
+                     this, &MediaManager::iceSucceeded);
+
+    QObject::connect(participants_[sessionID].ice.get(), &ICE::nominationFailed,
+                     this, &MediaManager::iceFailed);
+
+    participants_[sessionID].ice->startNomination(localInfo->media.count()*2,
+                                                  localInfo->candidates,
+                                                  peerInfo->candidates, iceController);
+  }
+  else
+  {
+    Logger::getLogger()->printWarning(this, "Did not find any ICE candidates, not performing ICE");
+    createCall(sessionID, peerInfo, localInfo);
+  }
+}
+
+
+void MediaManager::createCall(uint32_t sessionID,
+                std::shared_ptr<SDPMessageInfo> peerInfo,
+                const std::shared_ptr<SDPMessageInfo> localInfo)
+{
   // create each agreed media stream
   for(int i = 0; i < peerInfo->media.size(); ++i)  {
     // TODO: I don't like that we match
@@ -293,6 +328,44 @@ void MediaManager::removeParticipant(uint32_t sessionID)
             {"SessionID"}, {QString::number(sessionID)});
 }
 
+void MediaManager::iceSucceeded(QList<std::shared_ptr<ICEPair>>& streams,
+                                quint32 sessionID)
+{
+  if (participants_.find(sessionID) == participants_.end())
+  {
+    Logger::getLogger()->printProgramError(this, "Could not find participant when ice finished");
+    return;
+  }
+
+  Logger::getLogger()->printNormal(this, "ICE nomination has succeeded", {"SessionID"},
+                                   {QString::number(sessionID)});
+
+  // Video. 0 is RTP, 1 is RTCP
+  if (streams.at(0) != nullptr && streams.at(1) != nullptr)
+  {
+    setMediaPair(participants_[sessionID].localInfo->media[1],  streams.at(0)->local, true);
+    setMediaPair(participants_[sessionID].peerInfo->media[1], streams.at(0)->remote, false);
+  }
+
+  // Audio. 2 is RTP, 3 is RTCP
+  if (streams.at(2) != nullptr && streams.at(3) != nullptr)
+  {
+    setMediaPair(participants_[sessionID].localInfo->media[0],  streams.at(2)->local, true);
+    setMediaPair(participants_[sessionID].peerInfo->media[0], streams.at(2)->remote, false);
+  }
+
+  createCall(sessionID, participants_[sessionID].peerInfo, participants_[sessionID].localInfo);
+}
+
+
+void MediaManager::iceFailed(uint32_t sessionID)
+{
+  Logger::getLogger()->printError(this, "ICE failed, removing participant");
+  participants_.erase(sessionID);
+
+  emit iceMediaFailed(sessionID);
+}
+
 
 QString MediaManager::rtpNumberToCodec(const MediaInfo& info)
 {
@@ -381,6 +454,31 @@ void MediaManager::sdpToStats(uint32_t sessionID, std::shared_ptr<SDPMessageInfo
     {
       stats_->outgoingMedia(sessionID, sdp->originator_username,ipList, audioPorts, videoPorts);
     }
+  }
+}
+
+
+void MediaManager::setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo, bool local)
+{
+  if (mediaInfo == nullptr)
+  {
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SDPNegotiationHelper",
+                                    "Null mediainfo in setMediaPair");
+    return;
+  }
+
+  // for local address, we bind to our rel-address if using non-host connection type
+  if (local &&
+      mediaInfo->type != "host" &&
+      mediaInfo->rel_address != "" && mediaInfo->rel_port != 0)
+  {
+    media.connection_address = mediaInfo->rel_address;
+    media.receivePort        = mediaInfo->rel_port;
+  }
+  else
+  {
+    media.connection_address = mediaInfo->address;
+    media.receivePort        = mediaInfo->port;
   }
 }
 

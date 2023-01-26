@@ -48,17 +48,6 @@ virtual void processIncomingRequest(SIPRequest& request, QVariant& content,
 virtual void processIncomingResponse(SIPResponse& response, QVariant& content,
                                      bool retryRequest);
 
-signals:
-  void iceNominationSucceeded(const quint32 sessionID,
-                              const std::shared_ptr<SDPMessageInfo> local,
-                              const std::shared_ptr<SDPMessageInfo> remote);
-
-  void iceNominationFailed(quint32 sessionID);
-
-public slots:
-  void nominationSucceeded(QList<std::shared_ptr<ICEPair>>& streams,
-                           quint32 sessionID);
-
 private:
 
   // When sending an SDP offer or answer
@@ -85,10 +74,6 @@ private:
   bool selectBestCodec(const QList<uint8_t> &comparedNums, const QList<RTPMap> &comparedCodecs,
                        const QList<uint8_t> &baseNums,     const QList<RTPMap> &baseCodecs,
                              QList<uint8_t>& resultNums,         QList<RTPMap>& resultCodecs);
-
-
-  // update MediaInfo of SDP after ICE has finished
-  void setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo, bool local);
 
   bool matchMedia(std::vector<int>& matches,
                   const SDPMessageInfo &firstSDP,

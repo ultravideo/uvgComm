@@ -69,9 +69,7 @@ public slots:
   void userRejectsCall(uint32_t sessionID); // user has rejected the incoming call
   void userCancelsCall(uint32_t sessionID); // user has rejected the incoming call
 
-  void iceCompleted(quint32 sessionID,
-                    const std::shared_ptr<SDPMessageInfo> local,
-                    const std::shared_ptr<SDPMessageInfo> remote);
+  void inputLocalSDP(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> local);
   void iceFailed(quint32 sessionID);
 
   void zrtpFailed(quint32 sessionID);
@@ -91,13 +89,17 @@ private:
   void updateSDPAudioStatus(std::shared_ptr<SDPMessageInfo> sdp);
   void updateSDPVideoStatus(std::shared_ptr<SDPMessageInfo> sdp);
 
-  // Call state is a non-dependant way
+  void getRemoteSDP(uint32_t sessionID, std::shared_ptr<SIPMessageHeader> message,
+                    QVariant& content);
+
+  // call state is used to make sure everything is going according to plan,
+  // no surprise ACK messages etc
   enum CallState {
+    CALLNOSTATE,
     CALLRINGINGWITHUS,
     CALLINGTHEM,
     CALLRINGINWITHTHEM,
     CALLNEGOTIATING,
-    CALLWAITINGICE,
     CALLONGOING,
     CALLENDING
   };
@@ -106,6 +108,7 @@ private:
     CallState state;
     std::shared_ptr<SDPMessageInfo> localSDP;
     std::shared_ptr<SDPMessageInfo> remoteSDP;
+    bool iceController;
 
     QString name;
   };

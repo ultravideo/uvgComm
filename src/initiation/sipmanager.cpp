@@ -2,7 +2,7 @@
 
 #include "initiation/negotiation/sdpnegotiation.h"
 #include "initiation/negotiation/networkcandidates.h"
-#include "initiation/negotiation/ice.h"
+#include "initiation/negotiation/sdpice.h"
 
 #include "initiation/transaction/sipserver.h"
 #include "initiation/transaction/sipclient.h"
@@ -898,15 +898,11 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
 
   std::shared_ptr<SDPNegotiation> negotiation =
       std::shared_ptr<SDPNegotiation> (new SDPNegotiation(sdp));
-  std::shared_ptr<ICE> ice = std::shared_ptr<ICE> (new ICE(nCandidates_, sessionID));
+  std::shared_ptr<SDPICE> ice = std::shared_ptr<SDPICE> (new SDPICE(nCandidates_, sessionID));
 
-  QObject::connect(ice.get(),         &ICE::nominationSucceeded,
-                   negotiation.get(), &SDPNegotiation::nominationSucceeded,
-                   Qt::DirectConnection);
-
-  QObject::connect(ice.get(),         &ICE::nominationFailed,
-                   negotiation.get(), &SDPNegotiation::iceNominationFailed);
-
+  // we need a way to get our final SDP to the SIP user
+  QObject::connect(ice.get(), &SDPICE::localSDPWithCandidates,
+                   this, &SIPManager::finalLocalSDP);
 
   dialog->client = std::shared_ptr<SIPClient> (new SIPClient);
   dialog->server = std::shared_ptr<SIPServer> (new SIPServer);
@@ -917,12 +913,6 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
   // Initiatiate all the components of the flow.
   dialog->state = std::shared_ptr<SIPDialogState> (new SIPDialogState);
   dialog->state->init(local, remote, ourDialog);
-
-  QObject::connect(negotiation.get(), &SDPNegotiation::iceNominationSucceeded,
-                    this, &SIPManager::nominationSucceeded);
-
-  QObject::connect(negotiation.get(), &SDPNegotiation::iceNominationFailed,
-                    this, &SIPManager::nominationFailed);
 
   // Add all components to the pipe.
   dialog->pipe.addProcessor(std::shared_ptr<SIPAllow>(new SIPAllow));

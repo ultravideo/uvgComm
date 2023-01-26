@@ -278,35 +278,6 @@ bool SDPNegotiation::processAnswerSDP(QVariant &content)
 }
 
 
-void SDPNegotiation::nominationSucceeded(QList<std::shared_ptr<ICEPair>>& streams,
-                                      quint32 sessionID)
-{
-  if (!checkSessionValidity(true))
-  {
-    return;
-  }
-
-  Logger::getLogger()->printNormal(this, "ICE nomination has succeeded", {"SessionID"},
-                                   {QString::number(sessionID)});
-
-  // Video. 0 is RTP, 1 is RTCP
-  if (streams.at(0) != nullptr && streams.at(1) != nullptr)
-  {
-    setMediaPair(localSDP_->media[1],  streams.at(0)->local, true);
-    setMediaPair(remoteSDP_->media[1], streams.at(0)->remote, false);
-  }
-
-  // Audio. 2 is RTP, 3 is RTCP
-  if (streams.at(2) != nullptr && streams.at(3) != nullptr)
-  {
-    setMediaPair(localSDP_->media[0],  streams.at(2)->local, true);
-    setMediaPair(remoteSDP_->media[0], streams.at(2)->remote, false);
-  }
-
-  emit iceNominationSucceeded(sessionID, localSDP_, remoteSDP_);
-}
-
-
 bool SDPNegotiation::checkSessionValidity(bool checkRemote) const
 {
   Q_ASSERT(localSDP_ != nullptr);
@@ -492,31 +463,6 @@ bool SDPNegotiation::selectBestCodec(const QList<uint8_t>& comparedNums, const Q
                                   "Could not find suitable codec or RTP number for media.");
 
   return false;
-}
-
-
-void SDPNegotiation::setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo, bool local)
-{
-  if (mediaInfo == nullptr)
-  {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SDPNegotiationHelper",
-                                    "Null mediainfo in setMediaPair");
-    return;
-  }
-
-  // for local address, we bind to our rel-address if using non-host connection type
-  if (local &&
-      mediaInfo->type != "host" &&
-      mediaInfo->rel_address != "" && mediaInfo->rel_port != 0)
-  {
-    media.connection_address = mediaInfo->rel_address;
-    media.receivePort        = mediaInfo->rel_port;
-  }
-  else
-  {
-    media.connection_address = mediaInfo->address;
-    media.receivePort        = mediaInfo->port;
-  }
 }
 
 
