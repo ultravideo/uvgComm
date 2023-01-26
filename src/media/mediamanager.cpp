@@ -72,6 +72,7 @@ void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory,
 void MediaManager::uninit()
 {
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Closing");
+
   // first filter graph, then streamer because of the rtpfilters
   fg_->running(false);
   fg_->uninit();
@@ -146,7 +147,6 @@ void MediaManager::addParticipant(uint32_t sessionID,
       participants_[sessionID].ice = std::unique_ptr<ICE>(new ICE(sessionID));
     }
 
-
     participants_[sessionID].localInfo = localInfo;
     participants_[sessionID].peerInfo = peerInfo;
     participants_[sessionID].followOurSDP = iceController;
@@ -177,7 +177,7 @@ void MediaManager::createCall(uint32_t sessionID,
 {
   // create each agreed media stream
   for(int i = 0; i < peerInfo->media.size(); ++i)  {
-    // TODO: I don't like that we match
+    // TODO: I don't like that we match indexes
     createOutgoingMedia(sessionID,
                         localInfo->media.at(i),
                         getMediaAddress(peerInfo, i),
@@ -190,9 +190,6 @@ void MediaManager::createCall(uint32_t sessionID,
                         getMediaAddress(localInfo, i),
                         peerInfo->media.at(i), followOurSDP);
   }
-
-  // TODO: crashes at the moment.
-  //fg_->print();
 }
 
 
@@ -339,6 +336,12 @@ void MediaManager::createIncomingMedia(uint32_t sessionID,
 
 void MediaManager::removeParticipant(uint32_t sessionID)
 {
+  if (participants_.find(sessionID) != participants_.end())
+  {
+    participants_[sessionID].ice->uninit();
+    participants_.erase(sessionID);
+  }
+
   fg_->removeParticipant(sessionID);
   streamer_->removePeer(sessionID);
 
