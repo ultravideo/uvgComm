@@ -92,6 +92,9 @@ private:
   void getRemoteSDP(uint32_t sessionID, std::shared_ptr<SIPMessageHeader> message,
                     QVariant& content);
 
+  void getReceiveAttribute(std::shared_ptr<SDPMessageInfo> sdp,
+                           bool& recvVideo, bool& recvAudio);
+
   // call state is used to make sure everything is going according to plan,
   // no surprise ACK messages etc
   enum CallState {
@@ -108,7 +111,7 @@ private:
     CallState state;
     std::shared_ptr<SDPMessageInfo> localSDP;
     std::shared_ptr<SDPMessageInfo> remoteSDP;
-    bool iceController;
+    bool followOurSDP;
 
     QString name;
   };

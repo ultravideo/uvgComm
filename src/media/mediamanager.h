@@ -97,12 +97,12 @@ private:
 
   void createCall(uint32_t sessionID,
                   std::shared_ptr<SDPMessageInfo> peerInfo,
-                  const std::shared_ptr<SDPMessageInfo> localInfo);
+                  const std::shared_ptr<SDPMessageInfo> localInfo, bool followOurSDP);
 
   void createOutgoingMedia(uint32_t sessionID, const MediaInfo& localMedia,
-                           QString peerAddress, const MediaInfo& remoteMedia);
+                           QString peerAddress, const MediaInfo& remoteMedia, bool useOurSDP);
   void createIncomingMedia(uint32_t sessionID, const MediaInfo& localMedia,
-                           QString localAddress, const MediaInfo& remoteMedia);
+                           QString localAddress, const MediaInfo& remoteMedia, bool useOurSDP);
 
   QString rtpNumberToCodec(const MediaInfo& info);
 
@@ -122,6 +122,8 @@ private:
     std::unique_ptr<ICE> ice;
     std::shared_ptr<SDPMessageInfo> localInfo;
     std::shared_ptr<SDPMessageInfo> peerInfo;
+
+    bool followOurSDP;
   };
 
   StatisticsInterface* stats_;

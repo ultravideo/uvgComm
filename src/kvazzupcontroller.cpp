@@ -366,22 +366,13 @@ void KvazzupController::createSingleCall(uint32_t sessionID)
   bool videoEnabled = false;
   bool audioEnabled = false;
 
-  for (auto& media : localSDP->media)
+  if (states_[sessionID].followOurSDP)
   {
-    if (media.type == "video" && !videoEnabled)
-    {
-      videoEnabled = (media.flagAttributes.empty()
-                      || media.flagAttributes.at(0) == A_NO_ATTRIBUTE
-                      || media.flagAttributes.at(0) == A_SENDRECV
-                      || media.flagAttributes.at(0) == A_RECVONLY);
-    }
-    else if (media.type == "audio" && !audioEnabled)
-    {
-      audioEnabled = (media.flagAttributes.empty()
-                      || media.flagAttributes.at(0) == A_NO_ATTRIBUTE
-                      || media.flagAttributes.at(0) == A_SENDRECV
-                      || media.flagAttributes.at(0) == A_RECVONLY);
-    }
+    getReceiveAttribute(localSDP, videoEnabled, audioEnabled);
+  }
+  else
+  {
+    getReceiveAttribute(remoteSDP, videoEnabled, audioEnabled);
   }
 
   userInterface_.callStarted(sessionID, videoEnabled, audioEnabled, states_[sessionID].name);
@@ -397,8 +388,31 @@ void KvazzupController::createSingleCall(uint32_t sessionID)
     stats_->addSession(sessionID);
   }
 
-  media_.addParticipant(sessionID, remoteSDP, localSDP, states_[sessionID].iceController);
+  media_.addParticipant(sessionID, remoteSDP, localSDP, states_[sessionID].followOurSDP);
   states_[sessionID].state = CALLONGOING;
+}
+
+
+void KvazzupController::getReceiveAttribute(std::shared_ptr<SDPMessageInfo> sdp, bool& recvVideo,
+                         bool& recvAudio)
+{
+  for (auto& media : sdp->media)
+  {
+    if (media.type == "video")
+    {
+      recvVideo = (media.flagAttributes.empty()
+                      || media.flagAttributes.at(0) == A_NO_ATTRIBUTE
+                      || media.flagAttributes.at(0) == A_SENDRECV
+                      || media.flagAttributes.at(0) == A_RECVONLY);
+    }
+    else if (media.type == "audio")
+    {
+      recvAudio = (media.flagAttributes.empty()
+                      || media.flagAttributes.at(0) == A_NO_ATTRIBUTE
+                      || media.flagAttributes.at(0) == A_SENDRECV
+                      || media.flagAttributes.at(0) == A_RECVONLY);
+    }
+  }
 }
 
 
@@ -654,6 +668,7 @@ void KvazzupController::inputLocalSDP(uint32_t sessionID, std::shared_ptr<SDPMes
   }
 
   states_[sessionID].localSDP = local;
+  states_[sessionID].followOurSDP = true;
 
   if (states_[sessionID].remoteSDP != nullptr)
   {
@@ -670,6 +685,7 @@ void KvazzupController::processRegisterRequest(QString address,
   Logger::getLogger()->printNormal(this, "Got a register request callback",
                                    "type", QString::number(request.method));
 }
+
 
 void KvazzupController::processRegisterResponse(QString address,
                                                 SIPResponse& response,
@@ -703,5 +719,7 @@ void KvazzupController::getRemoteSDP(uint32_t sessionID,
     SDPMessageInfo sdp = content.value<SDPMessageInfo>();
     states_[sessionID].remoteSDP = std::shared_ptr<SDPMessageInfo>(new SDPMessageInfo);
     *(states_[sessionID].remoteSDP) = sdp;
+
+    states_[sessionID].followOurSDP = false;
   }
 }

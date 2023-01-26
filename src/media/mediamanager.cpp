@@ -149,6 +149,7 @@ void MediaManager::addParticipant(uint32_t sessionID,
 
     participants_[sessionID].localInfo = localInfo;
     participants_[sessionID].peerInfo = peerInfo;
+    participants_[sessionID].followOurSDP = iceController;
 
     // connect signals so we get information when ice is ready
     QObject::connect(participants_[sessionID].ice.get(), &ICE::nominationSucceeded,
@@ -164,14 +165,15 @@ void MediaManager::addParticipant(uint32_t sessionID,
   else
   {
     Logger::getLogger()->printWarning(this, "Did not find any ICE candidates, not performing ICE");
-    createCall(sessionID, peerInfo, localInfo);
+    createCall(sessionID, peerInfo, localInfo, iceController);
   }
 }
 
 
 void MediaManager::createCall(uint32_t sessionID,
                 std::shared_ptr<SDPMessageInfo> peerInfo,
-                const std::shared_ptr<SDPMessageInfo> localInfo)
+                const std::shared_ptr<SDPMessageInfo> localInfo,
+                              bool followOurSDP)
 {
   // create each agreed media stream
   for(int i = 0; i < peerInfo->media.size(); ++i)  {
@@ -179,14 +181,14 @@ void MediaManager::createCall(uint32_t sessionID,
     createOutgoingMedia(sessionID,
                         localInfo->media.at(i),
                         getMediaAddress(peerInfo, i),
-                        peerInfo->media.at(i));
+                        peerInfo->media.at(i), followOurSDP);
   }
 
   for (int i = 0; i < localInfo->media.size(); ++i)
   {
     createIncomingMedia(sessionID, localInfo->media.at(i),
                         getMediaAddress(localInfo, i),
-                        peerInfo->media.at(i));
+                        peerInfo->media.at(i), followOurSDP);
   }
 
   // TODO: crashes at the moment.
@@ -197,7 +199,8 @@ void MediaManager::createCall(uint32_t sessionID,
 void MediaManager::createOutgoingMedia(uint32_t sessionID,
                                        const MediaInfo& localMedia,
                                        QString peerAddress,
-                                       const MediaInfo& remoteMedia)
+                                       const MediaInfo& remoteMedia,
+                                       bool useOurSDP)
 {
   if (peerAddress == "")
   {
@@ -207,8 +210,14 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
 
   bool send = true;
   bool recv = true;
-
-  transportAttributes(localMedia.flagAttributes, send, recv);
+  if (useOurSDP)
+  {
+    transportAttributes(localMedia.flagAttributes, send, recv);
+  }
+  else
+  {
+    transportAttributes(remoteMedia.flagAttributes, send, recv);
+  }
 
   // if we want to send
   if(send && remoteMedia.receivePort != 0)
@@ -259,7 +268,8 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
 void MediaManager::createIncomingMedia(uint32_t sessionID,
                                        const MediaInfo &localMedia,
                                        QString localAddress,
-                                       const MediaInfo &remoteMedia)
+                                       const MediaInfo &remoteMedia,
+                                       bool useOurSDP)
 {
   if (localAddress == "")
   {
@@ -269,7 +279,15 @@ void MediaManager::createIncomingMedia(uint32_t sessionID,
   bool send = true;
   bool recv = true;
 
-  transportAttributes(localMedia.flagAttributes, send, recv);
+  if (useOurSDP)
+  {
+    transportAttributes(localMedia.flagAttributes, send, recv);
+  }
+  else
+  {
+    transportAttributes(remoteMedia.flagAttributes, send, recv);
+  }
+
   if(recv)
   {
     Q_ASSERT(localMedia.receivePort);
@@ -354,7 +372,10 @@ void MediaManager::iceSucceeded(QList<std::shared_ptr<ICEPair>>& streams,
     setMediaPair(participants_[sessionID].peerInfo->media[0], streams.at(2)->remote, false);
   }
 
-  createCall(sessionID, participants_[sessionID].peerInfo, participants_[sessionID].localInfo);
+  createCall(sessionID,
+             participants_[sessionID].peerInfo,
+             participants_[sessionID].localInfo,
+             participants_[sessionID].followOurSDP);
 }
 
 
