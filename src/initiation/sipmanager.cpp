@@ -12,6 +12,7 @@
 #include "initiation/transport/siprouting.h"
 #include "initiation/transport/tcpconnection.h"
 #include "initiation/transport/sipauthentication.h"
+#include "initiation/transport/siptransport.h"
 
 #include "initiation/negotiation/sdpdefault.h"
 
@@ -86,7 +87,13 @@ void SIPManager::setSDP(std::shared_ptr<SDPMessageInfo> sdp)
   {
     if (dialog.second != nullptr)
     {
-      dMessages_.push(dialog.first);
+      dialog.second->sdp->setBaseSDP(sdp);
+
+      // only send reINVITE for dialogs that have an active call ongoing
+      if (dialog.second->state->isCallActive())
+      {
+        dMessages_.push(dialog.first);
+      }
     }
   }
 
@@ -98,6 +105,8 @@ void SIPManager::refreshDelayTimer()
 {
   if (!dMessages_.empty() && !delayTimer_.isActive())
   {
+    Logger::getLogger()->printNormal(this, "Starting timer for delayed messages",
+                                     "Count", QString::number(dMessages_.size()));
     int delay = rand()%(MAX_RANDOM_DELAY_MS - MIN_RANDOM_DELAY_MS) + MIN_RANDOM_DELAY_MS;
     delayTimer_.start(delay);
   }
@@ -907,17 +916,7 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
   std::shared_ptr<SDPMessageInfo> sdp = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
   *sdp = *ourSDP_;
 
-  // because we didn't know our address for this connection earlier, we set it now
-  // The origin may be overwritten by peer if they start the call
-  setSDPAddress(localAddress,
-                sdp->connection_address,
-                sdp->connection_nettype,
-                sdp->connection_addrtype);
-
-  generateOrigin(sdp, localAddress, getLocalUsername());
-
-  std::shared_ptr<SDPNegotiation> negotiation =
-      std::shared_ptr<SDPNegotiation> (new SDPNegotiation(sdp));
+  dialog->sdp = std::shared_ptr<SDPNegotiation> (new SDPNegotiation(localAddress, sdp));
   std::shared_ptr<SDPICE> ice = std::shared_ptr<SDPICE> (new SDPICE(nCandidates_, sessionID));
 
   // we need a way to get our final SDP to the SIP user
@@ -938,7 +937,7 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
   dialog->pipe.addProcessor(std::shared_ptr<SIPAllow>(new SIPAllow));
   dialog->pipe.addProcessor(dialog->state);
   dialog->pipe.addProcessor(ice);
-  dialog->pipe.addProcessor(negotiation);
+  dialog->pipe.addProcessor(dialog->sdp);
   dialog->pipe.addProcessor(dialog->client);
   dialog->pipe.addProcessor(dialog->server);
 

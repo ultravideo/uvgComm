@@ -1,7 +1,6 @@
 #pragma once
 
 #include "initiation/transport/connectionserver.h"
-#include "initiation/transport/siptransport.h"
 
 #include "initiation/transaction/sipcallbacks.h"
 
@@ -16,6 +15,7 @@
 
 class SIPServer;
 class SIPClient;
+class SDPNegotiation;
 
 // The components specific to one dialog
 struct DialogInstance
@@ -25,6 +25,8 @@ struct DialogInstance
   std::shared_ptr<SIPDialogState> state;
   std::shared_ptr<SIPServer> server; // for identifying cancel and sending responses
   std::shared_ptr<SIPClient> client; // for sending requests
+  std::shared_ptr<SDPNegotiation> sdp; // for sending requests
+
   std::shared_ptr<SIPCallbacks> callbacks;
 };
 

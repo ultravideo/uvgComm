@@ -33,7 +33,9 @@ class SDPNegotiation : public SIPMessageProcessor
 {
   Q_OBJECT
 public:
-  SDPNegotiation(std::shared_ptr<SDPMessageInfo> localSDP);
+  SDPNegotiation(QString localAddress, std::shared_ptr<SDPMessageInfo> localSDP);
+
+  void setBaseSDP(std::shared_ptr<SDPMessageInfo> localSDP);
 
   // frees the ports when they are not needed in rest of the program
   virtual void uninit();
@@ -89,4 +91,6 @@ private:
 
   // INVITE and INVITE OK tell us whether SDP is accepted by peer/us
   bool peerAcceptsSDP_;
+
+  QString localAddress_;
 };

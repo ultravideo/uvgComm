@@ -42,6 +42,10 @@ public:
   bool correctRequestDialog(QString callID, QString toTag, QString fromTag);
   bool correctResponseDialog(QString callID, QString toTag, QString fromTag);
 
+  bool isCallActive()
+  {
+    return callActive_;
+  }
 
 public slots:
 
@@ -93,4 +97,6 @@ private:
   QList<SIPRouteLocation> route_;
 
   SIPRequest previousRequest_;
+
+  bool callActive_;
 };

@@ -82,7 +82,7 @@ private:
   uint32_t expires_;
 
   // This variable is used to avoid HEAP corruption by destroying the flow afterwards
-  // instead of accidentally delete ourselves with signals etc.
+  // instead of accidentally delete ourselves with signals etc. as part of the stack
   bool shouldLive_;
 
   bool activeRegistration_;

@@ -2,7 +2,6 @@
 
 #include "common.h"
 #include "logger.h"
-#include "settingskeys.h"
 
 #include <QDateTime>
 #include <QSettings>
@@ -17,7 +16,8 @@ SIPDialogState::SIPDialogState():
   localCseq_(UINT32_MAX),
   remoteCseq_(UINT32_MAX),
   route_(),
-  previousRequest_({SIP_NO_REQUEST, {}, "",nullptr})
+  previousRequest_({SIP_NO_REQUEST, {}, "",nullptr}),
+  callActive_(false)
 {}
 
 
@@ -198,6 +198,15 @@ void SIPDialogState::processOutgoingRequest(SIPRequest& request, QVariant& conte
       }
     }
 
+    if (request.message->cSeq.method == SIP_ACK && request.method == SIP_ACK)
+    {
+      callActive_ = true;
+    }
+    else if (request.method == SIP_BYE)
+    {
+      callActive_ = false;
+    }
+
     request.message->cSeq.cSeq = localCseq_;
 
     request.message->from.address = localURI_;
@@ -292,6 +301,15 @@ void SIPDialogState::processIncomingRequest(SIPRequest& request, QVariant& conte
   }
 
   remoteCseq_ = request.message->cSeq.cSeq;
+
+  if (request.message->cSeq.method == SIP_ACK && request.method == SIP_ACK)
+  {
+    callActive_ = true;
+  }
+  else if (request.method == SIP_BYE)
+  {
+    callActive_ = false;
+  }
 
   emit incomingRequest(request, content, generatedResponse);
 }

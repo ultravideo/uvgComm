@@ -1,12 +1,13 @@
 #include "sdpnegotiation.h"
 
+#include "sdpdefault.h"
+
 #include "common.h"
-#include "global.h"
 #include "logger.h"
 
 #include <QVariant>
 
-SDPNegotiation::SDPNegotiation(std::shared_ptr<SDPMessageInfo> localSDP):
+SDPNegotiation::SDPNegotiation(QString localAddress, std::shared_ptr<SDPMessageInfo> localSDP):
   localbaseSDP_(nullptr),
   localSDP_(nullptr),
   remoteSDP_(nullptr),
@@ -16,6 +17,18 @@ SDPNegotiation::SDPNegotiation(std::shared_ptr<SDPMessageInfo> localSDP):
   // this makes it possible to send SDP as a signal parameter
   qRegisterMetaType<std::shared_ptr<SDPMessageInfo> >("std::shared_ptr<SDPMessageInfo>");
 
+  localAddress_ = localAddress;
+  setBaseSDP(localSDP);
+}
+
+void SDPNegotiation::setBaseSDP(std::shared_ptr<SDPMessageInfo> localSDP)
+{
+  setSDPAddress(localAddress_,
+                localSDP->connection_address,
+                localSDP->connection_nettype,
+                localSDP->connection_addrtype);
+
+  generateOrigin(localSDP, localAddress_, getLocalUsername());
   localbaseSDP_ = localSDP;
 }
 
