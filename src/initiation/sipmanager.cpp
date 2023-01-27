@@ -32,6 +32,9 @@
 const uint32_t FIRSTSESSIONID = 1;
 const int REGISTER_SEND_PERIOD = (REGISTER_INTERVAL - 5)*1000;
 
+const int MIN_RANDOM_DELAY_MS = 25;
+const int MAX_RANDOM_DELAY_MS = 75;
+
 // default for SIP, use 5061 for tls encrypted
 const uint16_t SIP_PORT = 5060;
 
@@ -41,8 +44,13 @@ SIPManager::SIPManager():
   transports_(),
   nextSessionID_(FIRSTSESSIONID),
   dialogs_(),
-  ourSDP_(nullptr)
-{}
+  ourSDP_(nullptr),
+  delayTimer_()
+{
+  delayTimer_.setSingleShot(true);
+  QObject::connect(&delayTimer_, &QTimer::timeout,
+                   this, &SIPManager::delayedMessage);
+}
 
 
 std::shared_ptr<SDPMessageInfo> SIPManager::generateSDP(QString username,
@@ -78,8 +86,20 @@ void SIPManager::setSDP(std::shared_ptr<SDPMessageInfo> sdp)
   {
     if (dialog.second != nullptr)
     {
-      reINVITE(dialog.first);
+      dMessages_.push(dialog.first);
     }
+  }
+
+  refreshDelayTimer();
+}
+
+
+void SIPManager::refreshDelayTimer()
+{
+  if (!dMessages_.empty() && !delayTimer_.isActive())
+  {
+    int delay = rand()%(MAX_RANDOM_DELAY_MS - MIN_RANDOM_DELAY_MS) + MIN_RANDOM_DELAY_MS;
+    delayTimer_.start(delay);
   }
 }
 
@@ -1098,4 +1118,24 @@ NameAddr SIPManager::localInfo()
   }
 
   return local;
+}
+
+
+void SIPManager::delayedMessage()
+{
+  if (dMessages_.empty())
+  {
+    Logger::getLogger()->printProgramWarning(this, "No delayed messages in queue");
+    return;
+  }
+
+  Logger::getLogger()->printNormal(this, "Sending delayed re-INVITE");
+
+  uint32_t sessionID = dMessages_.front();
+  dMessages_.pop();
+
+  // so far only INVITE is supported, but others could easily be supported
+  reINVITE(sessionID);
+
+  refreshDelayTimer();
 }

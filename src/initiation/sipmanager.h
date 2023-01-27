@@ -12,6 +12,7 @@
 #include <map>
 
 #include <functional>
+#include <queue>
 
 class SIPServer;
 class SIPClient;
@@ -129,6 +130,8 @@ private slots:
   void processSIPResponse(SIPResponse &response, QVariant& content,
                           bool retryRequest);
 
+  void delayedMessage();
+
 private:
 
   std::shared_ptr<DialogInstance> getDialog(uint32_t sessionID) const;
@@ -169,6 +172,8 @@ private:
   // Goes through our current connections and returns if we are already connected
   // to this address.
   bool isConnected(QString remoteAddress);
+
+  void refreshDelayTimer();
 
   // If registered, we use the connection address in URI instead of our
   // server URI from settings.
@@ -233,4 +238,10 @@ private:
                                  QVariant& content)>> registrationResponses_;
 
   std::shared_ptr<SDPMessageInfo> ourSDP_;
+
+  /* Used to avoid congestion when sending multiple messages
+   * mutexing is not needed at this point since both adding and
+   * processing are done by Qt main thread */
+  QTimer delayTimer_;
+  std::queue<uint32_t> dMessages_;
 };
