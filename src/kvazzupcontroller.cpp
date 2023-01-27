@@ -280,6 +280,10 @@ void KvazzupController::peerAccepted(uint32_t sessionID)
       Logger::getLogger()->printImportant(this, "They accepted our call!");
       states_[sessionID].state = CALLNEGOTIATING;
     }
+    else if (states_[sessionID].state == CALLONGOING)
+    {
+      Logger::getLogger()->printNormal(this, "Detected a re-INVITE");
+    }
     else
     {
       Logger::getLogger()->printPeerError(this, "Got an accepted call even though "
