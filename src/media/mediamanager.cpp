@@ -385,8 +385,8 @@ void MediaManager::iceSucceeded(QList<std::shared_ptr<ICEPair>>& streams,
 void MediaManager::iceFailed(uint32_t sessionID)
 {
   Logger::getLogger()->printError(this, "ICE failed, removing participant");
-  participants_.erase(sessionID);
 
+  // the participant is removed later
   emit iceMediaFailed(sessionID);
 }
 

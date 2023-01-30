@@ -302,12 +302,13 @@ void KvazzupController::callNegotiated(uint32_t sessionID)
   Logger::getLogger()->printNormal(this, "Call negotiated");
 
   if (states_.find(sessionID) != states_.end() &&
-      states_[sessionID].state == CALLNEGOTIATING)
+      (states_[sessionID].state == CALLNEGOTIATING ||
+       states_[sessionID].state == CALLONGOING))
   {
     if (states_[sessionID].localSDP != nullptr &&
         states_[sessionID].remoteSDP != nullptr)
     {
-      createSingleCall(sessionID);
+      createCall(sessionID);
     }
     else
     {
@@ -353,7 +354,7 @@ void KvazzupController::noEncryptionAvailable()
 }
 
 
-void KvazzupController::createSingleCall(uint32_t sessionID)
+void KvazzupController::createCall(uint32_t sessionID)
 {
   Logger::getLogger()->printNormal(this, "Call has been agreed upon with peer.",
               "SessionID", {QString::number(sessionID)});

@@ -83,7 +83,7 @@ public slots:
 private:
   void removeSession(uint32_t sessionID, QString message, bool temporaryMessage);
 
-  void createSingleCall(uint32_t sessionID);
+  void createCall(uint32_t sessionID);
   void setupConference();
 
   void updateSDPAudioStatus(std::shared_ptr<SDPMessageInfo> sdp);
