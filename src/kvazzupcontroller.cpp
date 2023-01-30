@@ -382,6 +382,22 @@ void KvazzupController::createCall(uint32_t sessionID)
     getReceiveAttribute(remoteSDP, videoEnabled, audioEnabled);
   }
 
+  QString videoState = "no";
+  QString audioState = "no";
+
+  if (videoEnabled)
+  {
+    videoState = "yes";
+  }
+
+  if (audioEnabled)
+  {
+    audioState = "yes";
+  }
+
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Creating call media",
+                                  {"Video Enabled", "Audio Enabled"},
+                                  {videoState, audioState});
 
   if (states_[sessionID].state != CALLONGOING)
   {
@@ -395,6 +411,10 @@ void KvazzupController::createCall(uint32_t sessionID)
     media_.addParticipant(sessionID, remoteSDP, localSDP, states_[sessionID].followOurSDP);
     states_[sessionID].state = CALLONGOING;
   }
+
+  // lastly we delete our saved SDP messages when they are no longer needed
+  states_[sessionID].localSDP = nullptr;
+  states_[sessionID].remoteSDP = nullptr;
 }
 
 
