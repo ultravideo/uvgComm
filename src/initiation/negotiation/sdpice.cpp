@@ -90,18 +90,50 @@ void SDPICE::addLocalCandidates(QVariant& content)
 {
   SDPMessageInfo sdp = content.value<SDPMessageInfo>();
 
-  // TODO: Improve this component calculation for those formats that don't use RTCP
+  int components = 0;
+  for (auto& media: sdp.media)
+  {
+    if (media.proto == "RTP/AVP")
+    {
+      components += 2; // RTP and RTCP
+    }
+    else
+    {
+      components += 1;
+    }
+  }
 
-  // media has RTP and RTCP
-  int components = sdp.media.count()*2;
+  // here we generate new candidates addresses if we don't have any existing,
+  // or if the amount of components has changed
+  if (!existingLocalCandidates_ || existingLocalCandidates_->size() != components)
+  {
+    existingLocalCandidates_ = networkCandidates_->localCandidates(components, sessionID_);
+  }
 
-  sdp.candidates = generateICECandidates(
-        networkCandidates_->localCandidates(components, sessionID_),
-        networkCandidates_->globalCandidates(components, sessionID_),
-        networkCandidates_->stunCandidates(components),
-        networkCandidates_->stunBindings(components, sessionID_),
-        networkCandidates_->turnCandidates(components, sessionID_),
-        components);
+  if (!existingGlobalCandidates_ || existingGlobalCandidates_->size() != components)
+  {
+    existingGlobalCandidates_ = networkCandidates_->globalCandidates(components, sessionID_);
+  }
+
+  if (!existingStunCandidates_ || existingStunCandidates_->size() != components)
+  {
+    existingStunCandidates_ = networkCandidates_->stunCandidates(components);
+  }
+
+  if (!existingStunBindings_ || existingStunBindings_->size() != components)
+  {
+    existingStunBindings_ = networkCandidates_->stunBindings(components, sessionID_);
+  }
+
+  if (!existingturnCandidates_ || existingturnCandidates_->size() != components)
+  {
+    existingturnCandidates_ = networkCandidates_->turnCandidates(components, sessionID_);
+  }
+
+  // transform network addresses into ICE candidates
+  sdp.candidates = generateICECandidates(existingLocalCandidates_, existingGlobalCandidates_,
+                                         existingStunCandidates_,  existingStunBindings_,
+                                         existingturnCandidates_, components);
 
   content.setValue(sdp); // adds the candidates to outgoing message
   std::shared_ptr<SDPMessageInfo> local = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
@@ -289,4 +321,14 @@ int SDPICE::candidateTypePriority(CandidateType type, quint16 local, uint8_t com
   return ((int)pow(2, 24) * type) +
          ((int)pow(2, 8) * local) +
          256 - component;
+}
+
+bool SDPICE::areMediasEqual(const MediaInfo first, const MediaInfo second) const
+{
+  return first.type == second.type &&
+      first.receivePort == second.receivePort &&
+      first.proto == second.proto &&
+      first.connection_nettype == second.connection_nettype &&
+      first.connection_addrtype == second.connection_addrtype &&
+      first.connection_address == second.connection_address;
 }

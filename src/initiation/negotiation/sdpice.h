@@ -77,9 +77,19 @@ private:
   void addICEToSupported(std::shared_ptr<QStringList> &supported);
   bool isICEToSupported(std::shared_ptr<QStringList> supported);
 
+  bool areMediasEqual(const MediaInfo first, const MediaInfo second) const;
+
   uint32_t sessionID_;
 
   std::shared_ptr<NetworkCandidates> networkCandidates_;
 
   bool peerSupportsICE_;
+
+  // these are saved so that when we want to renegotiate call parameters,
+  // we don't have to redo ICE
+  std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> existingLocalCandidates_;
+  std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> existingGlobalCandidates_;
+  std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> existingStunCandidates_;
+  std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> existingStunBindings_;
+  std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> existingturnCandidates_;
 };
