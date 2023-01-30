@@ -272,6 +272,7 @@ void KvazzupController::callRinging(uint32_t sessionID)
   }
 }
 
+
 void KvazzupController::peerAccepted(uint32_t sessionID)
 {
   if(states_.find(sessionID) != states_.end())
@@ -360,15 +361,14 @@ void KvazzupController::createCall(uint32_t sessionID)
   Logger::getLogger()->printNormal(this, "Call has been agreed upon with peer.",
               "SessionID", {QString::number(sessionID)});
 
-  if (states_[sessionID].state == CALLONGOING)
-  {
-    // we have to remove previous media so we do not double them.
-    media_.removeParticipant(sessionID);
-    userInterface_.removeParticipant(sessionID);
-  }
-
   std::shared_ptr<SDPMessageInfo> localSDP = states_[sessionID].localSDP;
   std::shared_ptr<SDPMessageInfo> remoteSDP = states_[sessionID].remoteSDP;
+
+  if (localSDP == nullptr || remoteSDP == nullptr)
+  {
+    Logger::getLogger()->printError(this, "Failed to get SDP. Error should be detected earlier.");
+    return;
+  }
 
   bool videoEnabled = false;
   bool audioEnabled = false;
@@ -382,21 +382,19 @@ void KvazzupController::createCall(uint32_t sessionID)
     getReceiveAttribute(remoteSDP, videoEnabled, audioEnabled);
   }
 
-  userInterface_.callStarted(sessionID, videoEnabled, audioEnabled, states_[sessionID].name);
 
-  if(localSDP == nullptr || remoteSDP == nullptr)
+  if (states_[sessionID].state != CALLONGOING)
   {
-    Logger::getLogger()->printError(this, "Failed to get SDP. Error should be detected earlier.");
-    return;
-  }
+    userInterface_.callStarted(sessionID, videoEnabled, audioEnabled, states_[sessionID].name);
 
-  if (stats_)
-  {
-    stats_->addSession(sessionID);
-  }
+    if (stats_)
+    {
+      stats_->addSession(sessionID);
+    }
 
-  media_.addParticipant(sessionID, remoteSDP, localSDP, states_[sessionID].followOurSDP);
-  states_[sessionID].state = CALLONGOING;
+    media_.addParticipant(sessionID, remoteSDP, localSDP, states_[sessionID].followOurSDP);
+    states_[sessionID].state = CALLONGOING;
+  }
 }
 
 
