@@ -201,11 +201,11 @@ void KvazzupController::updateAudioSettings()
 {
   std::shared_ptr<SDPMessageInfo> sdp = sip_.generateSDP(getLocalUsername(), 1, 1,
                                                          {"opus"}, {"H265"}, {0}, {});
-
+  updateSDPVideoStatus(sdp);
   updateSDPAudioStatus(sdp);
 
-  sip_.setSDP(sdp);
   emit media_.updateAudioSettings();
+  sip_.setSDP(sdp);
 }
 
 
@@ -214,10 +214,11 @@ void KvazzupController::updateVideoSettings()
   std::shared_ptr<SDPMessageInfo> sdp = sip_.generateSDP(getLocalUsername(), 1, 1,
                                                          {"opus"}, {"H265"}, {0}, {});
 
-  // NOTE: Media must be updated before SIP so that SIP does not time out while we update media
-  emit media_.updateVideoSettings();
-
   updateSDPVideoStatus(sdp);
+  updateSDPAudioStatus(sdp);
+
+  // NOTE: Media must be updated before SIP so that SIP does not time-out while we update media
+  emit media_.updateVideoSettings();
   sip_.setSDP(sdp);
 }
 
