@@ -9,11 +9,11 @@
 #include <QLayout>
 
 VideoYUVWidget::VideoYUVWidget(QWidget* parent, uint32_t sessionID,
-                               uint32_t index, uint8_t borderSize)
+                               uint8_t borderSize)
   : QOpenGLWidget(parent),
   stats_(nullptr),
   sessionID_(sessionID),
-  helper_(sessionID, index, borderSize),
+  helper_(sessionID, borderSize),
   texture_(0),
   prog_(nullptr)
 

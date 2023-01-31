@@ -76,7 +76,7 @@ public slots:
   // slots for attaching and detaching view to/from layout
   // Currently only one widget can be detached for one sessionID
   void reattachWidget(uint32_t sessionID);
-  void detachWidget(uint32_t sessionID, uint32_t index, QWidget *widget);
+  void detachWidget(uint32_t sessionID);
 
 private slots:
 
@@ -105,7 +105,7 @@ private:
   void resetSlots();
 
   // attach widget to layout
-  void attachWidget(uint32_t sessionID, size_t index, QWidget *view);
+  void attachWidget(uint32_t sessionID, QLayoutItem *item, LayoutLoc loc, QWidget *view);
 
   // attach widget to display that someone is calling us
   void attachIncomingCallWidget(QString name, uint32_t sessionID);
@@ -122,37 +122,25 @@ private:
 
   QLayoutItem* getSessionItem();
 
-  struct ViewInfo
-  {
-    QLayoutItem* item;
-    LayoutLoc location;
-  };
-
-  // TODO: Make sure that the widgets are always deleted. Since the layout takes
-  // ownership of the widget memory when attached, conference view is only possible
-  // location to handle the proper deletion of widgets
-
   struct SessionViews
   {
     SessionViewState state;
     QString name;
-
-    std::vector<ViewInfo> views_;
+    QLayoutItem* item;
+    LayoutLoc loc;
 
     Ui::OutgoingCall* out; // The view for outgoing call. May be NULL
     Ui::IncomingCall*  in; // The view for incoming call. May be NULL
     Ui::AvatarHolder* avatar;
+
+    QWidget* video;
   };
 
-  // low level function which handles the destruction of callInfo struct
-  void uninitDetachedWidget(uint32_t sessionID);
 
-  void uninitializeView(ViewInfo& view);
+  void uninitializeView(QLayoutItem* item, LayoutLoc loc);
 
   void removeWidget(LayoutLoc& location);
 
-  // return true if session is exists and is initialized correctly
-  bool checkSession(uint32_t sessionID, size_t minViewCount = 0);
   void initializeSession(uint32_t sessionID, QString name);
   void unitializeSession(std::unique_ptr<SessionViews> peer);
 
@@ -165,21 +153,11 @@ private:
 
   // dynamic widget adding to layout
   // mutex takes care of locations accessing and changes
-  QMutex layoutMutex_; // prevent modifying the layout at the same time
   QGridLayout* layout_;
   QWidget* layoutWidget_;
 
-  struct DetachedWidget
-  {
-    QWidget* widget;
-    uint32_t index;
-  };
-
-  QMutex viewMutex_; // prevent modifying activeViews at the same time
-
   // key is sessionID
   std::map<uint32_t, std::unique_ptr<SessionViews>> activeViews_;
-  std::map<uint32_t, DetachedWidget> detachedWidgets_;
 
   // keeping track of freed places
   // TODO: update the whole layout with each added and removed participant. Use window width.

@@ -8,11 +8,11 @@
 #include <QKeyEvent>
 #include <QLayout>
 
-VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID, uint32_t index, uint8_t borderSize)
+VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID, uint8_t borderSize)
   : QFrame(parent),
   stats_(nullptr),
   sessionID_(sessionID),
-  helper_(sessionID, index, borderSize)
+  helper_(sessionID, borderSize)
 {
   helper_.initWidget(this);
 

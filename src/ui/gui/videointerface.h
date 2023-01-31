@@ -29,7 +29,7 @@ public:
 
 signals:
   virtual void reattach(uint32_t sessionID) = 0;
-  virtual void detach(uint32_t sessionID_, uint32_t index, QWidget* widget) = 0;
+  virtual void detach(uint32_t sessionID_) = 0;
 };
 
 Q_DECLARE_INTERFACE(VideoInterface, "VideoInterface")
