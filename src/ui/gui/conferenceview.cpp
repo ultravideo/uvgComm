@@ -5,10 +5,8 @@
 #include "ui_messagewidget.h"
 #include "ui_avatarholder.h"
 
-#include "ui/gui/videoviewfactory.h"
-#include "ui/gui/videowidget.h"
+#include "videointerface.h"
 
-#include "common.h"
 #include "logger.h"
 
 #include <QLabel>
@@ -323,6 +321,9 @@ void ConferenceView::attachWidget(uint32_t sessionID, size_t index, QWidget *vie
 void ConferenceView::reattachWidget(uint32_t sessionID)
 {
   Q_ASSERT(sessionID != 0);
+
+  Logger::getLogger()->printNormal(this, "Reattaching widget");
+
   if (detachedWidgets_.find(sessionID) != detachedWidgets_.end())
   {
     // if there are no detached widgets blocking the view, then show the window
@@ -349,6 +350,8 @@ void ConferenceView::detachWidget(uint32_t sessionID, uint32_t index, QWidget* w
 {
   Q_ASSERT(sessionID != 0);
   Q_ASSERT(activeViews_[sessionID]->views_.size() >index);
+
+  Logger::getLogger()->printNormal(this, "Detaching widget from layout");
 
   layoutMutex_.lock();
   if(checkSession(sessionID))
@@ -383,8 +386,7 @@ void ConferenceView::detachWidget(uint32_t sessionID, uint32_t index, QWidget* w
 
 
 // if our call is accepted or we accepted their call
-void ConferenceView::callStarted(uint32_t sessionID,
-                                 std::shared_ptr<VideoviewFactory> factory,
+void ConferenceView::callStarted(uint32_t sessionID, QWidget* video,
                                  bool videoEnabled, bool audioEnabled, QString name)
 {
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
@@ -405,12 +407,22 @@ void ConferenceView::callStarted(uint32_t sessionID,
 
   if (videoEnabled)
   {
-    QWidget* view = factory->getView(sessionID);
-
-    if (view != nullptr)
+    if (video != nullptr)
     {
-      updateSessionState(VIEW_VIDEO, view, sessionID);
-      view->show();
+      updateSessionState(VIEW_VIDEO, video, sessionID);
+      /*
+      QObject::connect(dynamic_cast<VideoInterface*>(video), &VideoInterface::reattach,
+                       this, &ConferenceView::reattachWidget);
+      QObject::connect(dynamic_cast<VideoInterface*>(video), &VideoInterface::detach,
+                       this, &ConferenceView::detachWidget);
+*/
+      // signals for double click attach/detach
+      QObject::connect(video, SIGNAL(reattach(uint32_t)),
+                       this,  SLOT(reattachWidget(uint32_t)));
+      QObject::connect(video, SIGNAL(detach(uint32_t, uint32_t, QWidget*)),
+                       this,  SLOT(detachWidget(uint32_t, uint32_t, QWidget*)));
+
+      video->show();
     }
     else
     {

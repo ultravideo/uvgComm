@@ -1,9 +1,6 @@
 #include "uimanager.h"
 
 #include "gui/statisticswindow.h"
-#include "gui/videowidget.h"
-
-#include "gui/videoviewfactory.h"
 
 #include "logger.h"
 
@@ -28,12 +25,10 @@ UIManager::~UIManager()
   }
 }
 
-
-std::shared_ptr<VideoviewFactory> UIManager::getViewFactory() const
+VideoWidget* UIManager::getSelfView()
 {
-  return window_.getViewFactory();
+  return window_.getSelfView();
 }
-
 
 void UIManager::init(ParticipantInterface *partInt)
 {
@@ -136,9 +131,9 @@ void UIManager::displayIncomingCall(uint32_t sessionID, QString caller)
 
 // adds video stream to view
 void UIManager::callStarted(uint32_t sessionID, bool videoEnabled, bool audioEnabled,
-                            QString name)
+                            QWidget* view, QString name)
 {
-  window_.callStarted(sessionID, videoEnabled, audioEnabled, name);
+  window_.callStarted(sessionID, videoEnabled, audioEnabled, view, name);
 }
 
 

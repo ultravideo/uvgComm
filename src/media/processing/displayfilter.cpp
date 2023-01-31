@@ -3,8 +3,6 @@
 #include "ui/gui/videointerface.h"
 #include "statisticsinterface.h"
 
-#include "common.h"
-#include "settingskeys.h"
 #include "logger.h"
 
 #include <QImage>

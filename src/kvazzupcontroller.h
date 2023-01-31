@@ -126,4 +126,7 @@ private:
 
   QTimer delayAutoAccept_;
   uint32_t delayedAutoAccept_;
+
+  // video views
+  std::shared_ptr<VideoviewFactory> viewFactory_;
 };

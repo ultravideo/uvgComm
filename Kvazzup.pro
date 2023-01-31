@@ -114,7 +114,6 @@ SOURCES +=\
     src/ui/gui/statisticswindow.cpp \
     src/ui/gui/videodrawhelper.cpp \
     src/ui/gui/videoglwidget.cpp \
-    src/ui/gui/videoviewfactory.cpp \
     src/ui/gui/videowidget.cpp \
     src/ui/gui/videoyuvwidget.cpp \
     src/ui/settings/audiosettings.cpp \
@@ -127,7 +126,8 @@ SOURCES +=\
     src/ui/settings/settingshelper.cpp \
     src/ui/settings/sipsettings.cpp \
     src/ui/settings/videosettings.cpp \
-    src/ui/uimanager.cpp
+    src/ui/uimanager.cpp \
+    src/videoviewfactory.cpp
 
 HEADERS  += \
     src/icetypes.h \
@@ -216,7 +216,6 @@ HEADERS  += \
     src/ui/gui/videodrawhelper.h \
     src/ui/gui/videoglwidget.h \
     src/ui/gui/videointerface.h \
-    src/ui/gui/videoviewfactory.h \
     src/ui/gui/videowidget.h \
     src/ui/gui/videoyuvwidget.h \
     src/ui/settings/audiosettings.h \
@@ -230,7 +229,8 @@ HEADERS  += \
     src/ui/settings/settingshelper.h \
     src/ui/settings/sipsettings.h \
     src/ui/settings/videosettings.h \
-    src/ui/uimanager.h
+    src/ui/uimanager.h \
+    src/videoviewfactory.h
 
 FORMS    += \
     ui/audiosettings.ui \

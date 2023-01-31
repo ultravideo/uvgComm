@@ -1,7 +1,6 @@
 #pragma once
 
 #include "initiation/negotiation/sdptypes.h"
-
 #include "delivery/ice.h"
 
 #include <QObject>
@@ -31,6 +30,7 @@ class Delivery;
 class FilterGraph;
 class MediaSession;
 struct MediaInfo;
+class VideoInterface;
 
 typedef int16_t PeerID;
 
@@ -43,14 +43,14 @@ public:
   ~MediaManager();
 
   // make sure viewfactory is iniated before this
-  void init(std::shared_ptr<VideoviewFactory> viewfactory, StatisticsInterface *stats);
+  void init(QList<VideoInterface *> selfViews, StatisticsInterface *stats);
   void uninit();
 
   // registers a contact for activity monitoring
   void registerContact(in_addr ip);
 
   void addParticipant(uint32_t sessionID, const std::shared_ptr<SDPMessageInfo> peerInfo,
-                      const std::shared_ptr<SDPMessageInfo> localInfo,
+                      const std::shared_ptr<SDPMessageInfo> localInfo, VideoInterface *videoView,
                       bool iceController);
 
   void removeParticipant(uint32_t sessionID);
@@ -97,12 +97,12 @@ private:
 
   void createCall(uint32_t sessionID,
                   std::shared_ptr<SDPMessageInfo> peerInfo,
-                  const std::shared_ptr<SDPMessageInfo> localInfo, bool followOurSDP);
+                  const std::shared_ptr<SDPMessageInfo> localInfo, VideoInterface *videoView, bool followOurSDP);
 
   void createOutgoingMedia(uint32_t sessionID, const MediaInfo& localMedia,
                            QString peerAddress, const MediaInfo& remoteMedia, bool useOurSDP);
   void createIncomingMedia(uint32_t sessionID, const MediaInfo& localMedia,
-                           QString localAddress, const MediaInfo& remoteMedia, bool useOurSDP);
+                           QString localAddress, const MediaInfo& remoteMedia, VideoInterface *videoView, bool useOurSDP);
 
   QString rtpNumberToCodec(const MediaInfo& info);
 
@@ -123,6 +123,7 @@ private:
     std::shared_ptr<SDPMessageInfo> localInfo;
     std::shared_ptr<SDPMessageInfo> peerInfo;
 
+    VideoInterface* videoView;
     bool followOurSDP;
   };
 
@@ -130,8 +131,6 @@ private:
 
   std::unique_ptr<FilterGraph> fg_;
   std::unique_ptr<Delivery> streamer_;
-
-  std::shared_ptr<VideoviewFactory> viewfactory_;
 
   std::map<uint32_t, ParticipantMedia> participants_;
 };

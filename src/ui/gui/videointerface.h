@@ -26,6 +26,10 @@ public:
   virtual void inputImage(std::unique_ptr<uchar[]> data, QImage &image, int64_t timestamp) = 0;
 
   virtual VideoFormat supportedFormat() = 0;
+
+signals:
+  virtual void reattach(uint32_t sessionID) = 0;
+  virtual void detach(uint32_t sessionID_, uint32_t index, QWidget* widget) = 0;
 };
 
 Q_DECLARE_INTERFACE(VideoInterface, "VideoInterface")

@@ -6,8 +6,6 @@
 
 #include "ui_callwindow.h"
 
-#include "videoviewfactory.h"
-
 #include <QCloseEvent>
 #include <QTimer>
 #include <QMetaType>
@@ -17,7 +15,7 @@
 CallWindow::CallWindow(QWidget *parent):
   QMainWindow(parent),
   ui_(new Ui::CallWindow),
-  viewFactory_(std::shared_ptr<VideoviewFactory>(new VideoviewFactory(&conference_))),
+
   conference_(this),
   partInt_(nullptr)
 {
@@ -31,11 +29,14 @@ CallWindow::~CallWindow()
 }
 
 
+VideoWidget* CallWindow::getSelfView() const
+{
+  return ui_->SelfView;
+}
+
+
 void CallWindow::init(ParticipantInterface *partInt)
 { 
-  viewFactory_->addSelfview(ui_->SelfView,
-                            ui_->SelfView);
-
   partInt_ = partInt;
 
   ui_->Add_contact_widget->setVisible(false);
@@ -204,11 +205,11 @@ void CallWindow::closeEvent(QCloseEvent *event)
 
 void CallWindow::callStarted(uint32_t sessionID,
                              bool videoEnabled, bool audioEnabled,
-                             QString name)
+                             QWidget* view, QString name)
 {
   ui_->EndCallButton->setEnabled(true);
   ui_->EndCallButton->show();
-  conference_.callStarted(sessionID, viewFactory_, videoEnabled, audioEnabled, name);
+  conference_.callStarted(sessionID, view, videoEnabled, audioEnabled, name);
 }
 
 
@@ -276,8 +277,6 @@ void CallWindow::removeParticipant(uint32_t sessionID)
   }
 
   contacts_.setAccessible(sessionID);
-
-  viewFactory_->clearWidgets(sessionID);
 }
 
 

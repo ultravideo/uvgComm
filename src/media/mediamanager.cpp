@@ -3,14 +3,11 @@
 #include "media/processing/filtergraph.h"
 #include "media/processing/filter.h"
 #include "media/delivery/delivery.h"
-#include "ui/gui/videoviewfactory.h"
 #include "initiation/negotiation/sdptypes.h"
 #include "statisticsinterface.h"
 
 #include "resourceallocator.h"
 
-#include "common.h"
-#include "settingskeys.h"
 #include "logger.h"
 
 #include <QHostAddress>
@@ -32,11 +29,10 @@ MediaManager::~MediaManager()
 }
 
 
-void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory,
+void MediaManager::init(QList<VideoInterface*> selfViews,
                         StatisticsInterface *stats)
 {
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Initiating");
-  viewfactory_ = viewfactory;
   stats_ = stats;
   streamer_ = std::unique_ptr<Delivery> (new Delivery());
 
@@ -55,7 +51,7 @@ void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory,
   std::shared_ptr<ResourceAllocator> hwResources =
       std::shared_ptr<ResourceAllocator>(new ResourceAllocator());
 
-  fg_->init(viewfactory_->getSelfVideos(), stats, hwResources);
+  fg_->init(selfViews, stats, hwResources);
   streamer_->init(stats_, hwResources);
 
   QObject::connect(this, &MediaManager::updateVideoSettings,
@@ -88,7 +84,8 @@ void MediaManager::uninit()
 
 void MediaManager::addParticipant(uint32_t sessionID,
                                   std::shared_ptr<SDPMessageInfo> peerInfo,
-                                  const std::shared_ptr<SDPMessageInfo> localInfo, bool iceController)
+                                  const std::shared_ptr<SDPMessageInfo> localInfo,
+                                  VideoInterface* videoView, bool iceController)
 {
   // TODO: support stop-time and start-time as recommended by RFC 4566 section 5.9
 
@@ -149,6 +146,7 @@ void MediaManager::addParticipant(uint32_t sessionID,
 
     participants_[sessionID].localInfo = localInfo;
     participants_[sessionID].peerInfo = peerInfo;
+    participants_[sessionID].videoView = videoView;
     participants_[sessionID].followOurSDP = iceController;
 
     // connect signals so we get information when ice is ready
@@ -165,7 +163,7 @@ void MediaManager::addParticipant(uint32_t sessionID,
   else
   {
     Logger::getLogger()->printWarning(this, "Did not find any ICE candidates, not performing ICE");
-    createCall(sessionID, peerInfo, localInfo, iceController);
+    createCall(sessionID, peerInfo, localInfo, videoView, iceController);
   }
 }
 
@@ -173,7 +171,7 @@ void MediaManager::addParticipant(uint32_t sessionID,
 void MediaManager::createCall(uint32_t sessionID,
                 std::shared_ptr<SDPMessageInfo> peerInfo,
                 const std::shared_ptr<SDPMessageInfo> localInfo,
-                              bool followOurSDP)
+                VideoInterface* videoView, bool followOurSDP)
 {
   // create each agreed media stream
   for(int i = 0; i < peerInfo->media.size(); ++i)  {
@@ -188,7 +186,7 @@ void MediaManager::createCall(uint32_t sessionID,
   {
     createIncomingMedia(sessionID, localInfo->media.at(i),
                         getMediaAddress(localInfo, i),
-                        peerInfo->media.at(i), followOurSDP);
+                        peerInfo->media.at(i), videoView, followOurSDP);
   }
 }
 
@@ -266,6 +264,7 @@ void MediaManager::createIncomingMedia(uint32_t sessionID,
                                        const MediaInfo &localMedia,
                                        QString localAddress,
                                        const MediaInfo &remoteMedia,
+                                       VideoInterface* videoView,
                                        bool useOurSDP)
 {
   if (localAddress == "")
@@ -305,13 +304,13 @@ void MediaManager::createIncomingMedia(uint32_t sessionID,
       }
       else if(localMedia.type == "video")
       {
-        VideoInterface *view = viewfactory_->getVideo(sessionID);
-        Q_ASSERT(view);
-        if (view != nullptr)
+        Q_ASSERT(videoView);
+        if (videoView != nullptr)
         {
-          fg_->receiveVideoFrom(sessionID, std::shared_ptr<Filter>(rtpSink), view);
+          fg_->receiveVideoFrom(sessionID, std::shared_ptr<Filter>(rtpSink), videoView);
         }
-        else {
+        else
+        {
           Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to get view from viewFactory");
         }
       }
@@ -378,6 +377,7 @@ void MediaManager::iceSucceeded(QList<std::shared_ptr<ICEPair>>& streams,
   createCall(sessionID,
              participants_[sessionID].peerInfo,
              participants_[sessionID].localInfo,
+             participants_[sessionID].videoView,
              participants_[sessionID].followOurSDP);
 }
 
