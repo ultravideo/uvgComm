@@ -53,24 +53,14 @@ void ConferenceView::updateSessionState(SessionViewState state,
                                         uint32_t sessionID,
                                         QString name)
 {
-  // remove all previous widgets if they are not videostreams
-  if (activeViews_[sessionID]->state != VIEW_VIDEO &&
-      activeViews_[sessionID]->state != VIEW_INACTIVE)
+  if (activeViews_[sessionID]->state != VIEW_INACTIVE)
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, 
-               "Clearing all previous views.");
-
-    uninitializeView(activeViews_[sessionID]->item, activeViews_[sessionID]->loc);
+    removeItemFromLayout(activeViews_[sessionID]->item);
     activeViews_[sessionID]->item = nullptr;
-
-    activeViews_[sessionID]->in = nullptr;
-    activeViews_[sessionID]->out = nullptr;
-    activeViews_[sessionID]->avatar = nullptr;
   }
 
-  activeViews_[sessionID]->state = state;
-
   attachWidget(sessionID, activeViews_[sessionID]->item, activeViews_[sessionID]->loc, widget);
+  activeViews_[sessionID]->state = state;
 }
 
 
@@ -474,8 +464,29 @@ void ConferenceView::unitializeSession(std::unique_ptr<SessionViews> peer)
 {
   if (peer->state != VIEW_INACTIVE)
   {
-    uninitializeView(peer->item, peer->loc);
+    removeItemFromLayout(peer->item);
+    peer->item = nullptr; // deleted by above function
     peer->state = VIEW_INACTIVE;
+
+    if (peer->in)
+    {
+      delete peer->in;
+      peer->in = nullptr;
+    }
+
+    if (peer->out)
+    {
+      delete peer->out;
+      peer->out = nullptr;
+    }
+
+    if (peer->avatar)
+    {
+      delete peer->avatar;
+      peer->avatar = nullptr;
+    }
+
+    peer->video = nullptr; // video is deleted elsewhere
   }
 }
 
@@ -492,7 +503,7 @@ void ConferenceView::resetSlots()
 }
 
 
-void ConferenceView::uninitializeView(QLayoutItem* item, LayoutLoc loc)
+void ConferenceView::removeItemFromLayout(QLayoutItem* item)
 {
   if(item != nullptr)
   {
@@ -502,6 +513,8 @@ void ConferenceView::uninitializeView(QLayoutItem* item, LayoutLoc loc)
     {
       item->widget()->hide();
     }
+
+    delete item;
   }
 }
 

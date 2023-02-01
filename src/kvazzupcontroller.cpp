@@ -404,11 +404,11 @@ void KvazzupController::createCall(uint32_t sessionID)
                                   {"Video Enabled", "Audio Enabled"},
                                   {videoState, audioState});
 
+  userInterface_.callStarted(sessionID, videoEnabled, audioEnabled,
+                             viewFactory_->getView(sessionID), states_[sessionID].name);
+
   if (states_[sessionID].state != CALLONGOING)
   {
-    userInterface_.callStarted(sessionID, videoEnabled, audioEnabled,
-                               viewFactory_->getView(sessionID), states_[sessionID].name);
-
     if (stats_)
     {
       stats_->addSession(sessionID);

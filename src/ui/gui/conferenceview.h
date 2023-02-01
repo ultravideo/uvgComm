@@ -137,7 +137,7 @@ private:
   };
 
 
-  void uninitializeView(QLayoutItem* item, LayoutLoc loc);
+  void removeItemFromLayout(QLayoutItem* item);
 
   void removeWidget(LayoutLoc& location);
 
