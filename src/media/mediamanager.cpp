@@ -88,23 +88,8 @@ void MediaManager::addParticipant(uint32_t sessionID,
                                   VideoInterface* videoView, bool iceController)
 {
   // TODO: support stop-time and start-time as recommended by RFC 4566 section 5.9
-
-  Q_ASSERT(peerInfo->media.size() == localInfo->media.size());
-  if (peerInfo->media.size() != localInfo->media.size() || peerInfo->media.empty())
+  if (!sessionChecks(peerInfo, localInfo))
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "Media manager",
-               "addParticipant, invalid SDPs",
-                {"LocalInfo", "PeerInfo"},
-                {QString::number(localInfo->media.size()),
-                 QString::number(peerInfo->media.size())});
-    return;
-  }
-
-  if(peerInfo->timeDescriptions.at(0).startTime != 0 ||
-     localInfo->timeDescriptions.at(0).startTime != 0)
-  {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
-                                    "Nonzero start-time not supported!");
     return;
   }
 
@@ -130,24 +115,9 @@ void MediaManager::addParticipant(uint32_t sessionID,
 
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Start creating media");
 
-  if (stats_ != nullptr)
+  if (participants_.find(sessionID) == participants_.end())
   {
-    sdpToStats(sessionID, peerInfo, false);
-    sdpToStats(sessionID, localInfo, true);
-  }
-
-  // perform ICE
-  if (!localInfo->candidates.empty() && !peerInfo->candidates.empty())
-  {
-    if (participants_.find(sessionID) == participants_.end())
-    {
-      participants_[sessionID].ice = std::unique_ptr<ICE>(new ICE(sessionID));
-    }
-
-    participants_[sessionID].localInfo = localInfo;
-    participants_[sessionID].peerInfo = peerInfo;
-    participants_[sessionID].videoView = videoView;
-    participants_[sessionID].followOurSDP = iceController;
+    participants_[sessionID].ice = std::unique_ptr<ICE>(new ICE(sessionID));
 
     // connect signals so we get information when ice is ready
     QObject::connect(participants_[sessionID].ice.get(), &ICE::nominationSucceeded,
@@ -155,6 +125,39 @@ void MediaManager::addParticipant(uint32_t sessionID,
 
     QObject::connect(participants_[sessionID].ice.get(), &ICE::nominationFailed,
                      this, &MediaManager::iceFailed);
+  }
+
+  return modifyParticipant(sessionID, peerInfo, localInfo, videoView, iceController);
+}
+
+
+void MediaManager::modifyParticipant(uint32_t sessionID,
+                                  std::shared_ptr<SDPMessageInfo> peerInfo,
+                                  const std::shared_ptr<SDPMessageInfo> localInfo,
+                                  VideoInterface* videoView, bool iceController)
+{
+  // TODO: support stop-time and start-time as recommended by RFC 4566 section 5.9
+  if (!sessionChecks(peerInfo, localInfo))
+  {
+    return;
+  }
+
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Start creating media");
+
+  if (stats_ != nullptr)
+  {
+    // TODO: Update SDP in stats, currently it just adds a new one
+    //sdpToStats(sessionID, peerInfo, false);
+    //sdpToStats(sessionID, localInfo, true);
+  }
+
+  // perform ICE
+  if (!localInfo->candidates.empty() && !peerInfo->candidates.empty())
+  {
+    participants_[sessionID].localInfo = localInfo;
+    participants_[sessionID].peerInfo = peerInfo;
+    participants_[sessionID].videoView = videoView;
+    participants_[sessionID].followOurSDP = iceController;
 
     participants_[sessionID].ice->startNomination(localInfo->media.count()*2,
                                                   localInfo->candidates,
@@ -534,4 +537,32 @@ QString MediaManager::getMediaAddress(std::shared_ptr<SDPMessageInfo> sdp, int m
     return sdp->media.at(mediaIndex).connection_address;
   }
   return sdp->connection_address;
+}
+
+
+
+bool MediaManager::sessionChecks(std::shared_ptr<SDPMessageInfo> peerInfo,
+                   const std::shared_ptr<SDPMessageInfo> localInfo) const
+{
+
+  Q_ASSERT(peerInfo->media.size() == localInfo->media.size());
+  if (peerInfo->media.size() != localInfo->media.size() || peerInfo->media.empty())
+  {
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "Media manager",
+               "addParticipant, invalid SDPs",
+                {"LocalInfo", "PeerInfo"},
+                {QString::number(localInfo->media.size()),
+                 QString::number(peerInfo->media.size())});
+    return false;
+  }
+
+  if(peerInfo->timeDescriptions.at(0).startTime != 0 ||
+     localInfo->timeDescriptions.at(0).startTime != 0)
+  {
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+                                    "Nonzero start-time not supported!");
+    return false;
+  }
+
+  return true;
 }

@@ -55,6 +55,12 @@ private:
 
   int pairPriority(int controllerCandidatePriority, int controlleeCandidatePriority) const;
 
+  bool sameCandidates(QList<std::shared_ptr<ICEPair>> newCandidates,
+                      QList<std::shared_ptr<ICEPair>> oldCandidates);
+
+  bool sameCandidate(std::shared_ptr<ICEInfo> firstCandidate,
+                     std::shared_ptr<ICEInfo> secondCandidate);
+
   uint32_t sessionID_;
 
   std::unique_ptr<IceSessionTester> agent_;

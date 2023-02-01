@@ -45,29 +45,41 @@ void ICE::startNomination(int components, QList<std::shared_ptr<ICEInfo>>& local
     uninit();
   }
 
-  /* Starts a SessionTester which is responsible for handling connectivity checks and nomination.
-   * When testing is finished it is connected tonominationSucceeded/nominationFailed */
-
   agent_ = std::unique_ptr<IceSessionTester> (new IceSessionTester(controller));
-  candidatePairs_ = makeCandidatePairs(local, remote, controller);
-  succeededPairs_.clear();
+  QList<std::shared_ptr<ICEPair>> newCandidates = makeCandidatePairs(local, remote, controller);
 
-  connectionNominated_ = false;
+  // see if we our old results are good enough
+  if (!succeededPairs_.empty() && sameCandidates(newCandidates, candidatePairs_))
+  {
+    // use old results
+    Logger::getLogger()->printNormal(this, "Found existing ICE results, using those");
+    emit nominationSucceeded(succeededPairs_, sessionID_);
+  }
+  else
+  {
+    Logger::getLogger()->printNormal(this, "No previous mathinc ICE results, performing nomination");
+    // perform connection testing and use those instead
+    succeededPairs_.clear();
+    candidatePairs_ = newCandidates;
 
-  QObject::connect(agent_.get(),
-                   &IceSessionTester::iceSuccess,
-                   this,
-                   &ICE::handeICESuccess,
-                   Qt::DirectConnection);
-  QObject::connect(agent_.get(),
-                   &IceSessionTester::iceFailure,
-                   this,
-                   &ICE::handleICEFailure,
-                   Qt::DirectConnection);
+    connectionNominated_ = false;
 
+    QObject::connect(agent_.get(),
+                     &IceSessionTester::iceSuccess,
+                     this,
+                     &ICE::handeICESuccess,
+                     Qt::DirectConnection);
+    QObject::connect(agent_.get(),
+                     &IceSessionTester::iceFailure,
+                     this,
+                     &ICE::handleICEFailure,
+                     Qt::DirectConnection);
 
-  agent_->init(&candidatePairs_, components_);
-  agent_->start();
+    /* Starts a SessionTester which is responsible for handling connectivity checks and nomination.
+     * When testing is finished it is connected tonominationSucceeded/nominationFailed */
+    agent_->init(&candidatePairs_, components_);
+    agent_->start();
+  }
 }
 
 
@@ -113,6 +125,8 @@ QList<std::shared_ptr<ICEPair>> ICE::makeCandidatePairs(
 )
 {
   QList<std::shared_ptr<ICEPair>> pairs;
+
+  // TODO: Check if local are actually local interfaces
 
   // match all host candidates with remote (remote does the same)
   for (int i = 0; i < local.size(); ++i)
@@ -178,8 +192,6 @@ void ICE::uninit()
   }
 
   agent_ = nullptr;
-  candidatePairs_.clear();
-  succeededPairs_.clear();
   connectionNominated_ = false;
 }
 
@@ -192,3 +204,49 @@ int ICE::pairPriority(int controllerCandidatePriority, int controlleeCandidatePr
          controllerCandidatePriority > controlleeCandidatePriority ? 1 : 0;
 }
 
+
+bool ICE::sameCandidates(QList<std::shared_ptr<ICEPair>> newCandidates,
+                         QList<std::shared_ptr<ICEPair>> oldCandidates)
+{
+  if (newCandidates.empty() || oldCandidates.empty())
+  {
+    return false;
+  }
+
+  for (auto& newCandidate: newCandidates)
+  {
+    bool candidatesFound = false;
+
+    for (auto& oldCandidate: oldCandidates)
+    {
+      if (sameCandidate(newCandidate->local, oldCandidate->local) &&
+          sameCandidate(newCandidate->remote, oldCandidate->remote))
+      {
+        // we have a match!
+        candidatesFound = true;
+      }
+    }
+
+    if(!candidatesFound)
+    {
+      // could not find a match for this candidate, which means we have to perform ICE
+      return false;
+    }
+  }
+
+  return true;
+}
+
+
+bool ICE::sameCandidate(std::shared_ptr<ICEInfo> firstCandidate,
+                        std::shared_ptr<ICEInfo> secondCandidate)
+{
+  return firstCandidate->foundation == secondCandidate->foundation &&
+      firstCandidate->component == secondCandidate->component &&
+      firstCandidate->transport == secondCandidate->transport &&
+      firstCandidate->address == secondCandidate->address &&
+      firstCandidate->port == secondCandidate->port &&
+      firstCandidate->type == secondCandidate->type &&
+      firstCandidate->rel_address == secondCandidate->rel_address &&
+      firstCandidate->rel_port == secondCandidate->rel_port;
+}

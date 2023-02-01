@@ -53,6 +53,10 @@ public:
                       const std::shared_ptr<SDPMessageInfo> localInfo, VideoInterface *videoView,
                       bool iceController);
 
+  void modifyParticipant(uint32_t sessionID, const std::shared_ptr<SDPMessageInfo> peerInfo,
+                         const std::shared_ptr<SDPMessageInfo> localInfo, VideoInterface *videoView,
+                         bool iceController);
+
   void removeParticipant(uint32_t sessionID);
 
   // Functions that enable using Kvazzup as just a streming client for whatever reason.
@@ -116,6 +120,9 @@ private:
 
   // update MediaInfo of SDP after ICE has finished
   void setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo, bool local);
+
+  bool sessionChecks(std::shared_ptr<SDPMessageInfo> peerInfo,
+                     const std::shared_ptr<SDPMessageInfo> localInfo) const;
 
   struct ParticipantMedia
   {
