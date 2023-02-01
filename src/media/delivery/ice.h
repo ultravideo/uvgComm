@@ -57,10 +57,11 @@ private:
 
   uint32_t sessionID_;
 
-  std::shared_ptr<IceSessionTester> agent_;
+  std::unique_ptr<IceSessionTester> agent_;
 
   // list of all candidates, remote and local
-  QList<std::shared_ptr<ICEPair>> pairs_;
+  QList<std::shared_ptr<ICEPair>> candidatePairs_;
+  QList<std::shared_ptr<ICEPair>> succeededPairs_;
 
   bool connectionNominated_;
 

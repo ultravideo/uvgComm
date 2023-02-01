@@ -14,7 +14,9 @@
 
 ICE::ICE(uint32_t sessionID):
   sessionID_(sessionID),
-  pairs_(),
+  agent_(nullptr),
+  candidatePairs_(),
+  succeededPairs_(),
   connectionNominated_(false),
   components_(0),
   localSDP_(),
@@ -25,7 +27,9 @@ ICE::ICE(uint32_t sessionID):
 
 
 ICE::~ICE()
-{}
+{
+  uninit();
+}
 
 
 void ICE::startNomination(int components, QList<std::shared_ptr<ICEInfo>>& local,
@@ -35,11 +39,19 @@ void ICE::startNomination(int components, QList<std::shared_ptr<ICEInfo>>& local
 
   components_ = components;
 
+  // wait for previous nomination to finish so we don't delete a running thread
+  if (agent_ != nullptr)
+  {
+    uninit();
+  }
+
   /* Starts a SessionTester which is responsible for handling connectivity checks and nomination.
    * When testing is finished it is connected tonominationSucceeded/nominationFailed */
 
-  agent_ = std::shared_ptr<IceSessionTester> (new IceSessionTester(controller));
-  pairs_ = makeCandidatePairs(local, remote, controller);
+  agent_ = std::unique_ptr<IceSessionTester> (new IceSessionTester(controller));
+  candidatePairs_ = makeCandidatePairs(local, remote, controller);
+  succeededPairs_.clear();
+
   connectionNominated_ = false;
 
   QObject::connect(agent_.get(),
@@ -54,7 +66,7 @@ void ICE::startNomination(int components, QList<std::shared_ptr<ICEInfo>>& local
                    Qt::DirectConnection);
 
 
-  agent_->init(&pairs_, components_);
+  agent_->init(&candidatePairs_, components_);
   agent_->start();
 }
 
@@ -87,13 +99,9 @@ void ICE::handeICESuccess(QList<std::shared_ptr<ICEPair>> &streams)
     // end other tests. We have a winner.
     agent_->quit();
     connectionNominated_ = true;
-    pairs_.clear();
-    pairs_.push_back(streams.at(0));
-    pairs_.push_back(streams.at(1));
-    pairs_.push_back(streams.at(2));
-    pairs_.push_back(streams.at(3));
+    succeededPairs_ += streams;
 
-    emit nominationSucceeded(pairs_, sessionID_);
+    emit nominationSucceeded(succeededPairs_, sessionID_);
   }
 }
 
@@ -170,7 +178,8 @@ void ICE::uninit()
   }
 
   agent_ = nullptr;
-  pairs_.clear();
+  candidatePairs_.clear();
+  succeededPairs_.clear();
   connectionNominated_ = false;
 }
 

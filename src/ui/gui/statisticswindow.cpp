@@ -225,7 +225,9 @@ void StatisticsWindow::addMedia(QTableWidget* table, uint32_t sessionID, QString
   }
   else
   {
-    Logger::getLogger()->printProgramError(this, "Wrong table index detected in sessions for media!");
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Wrong table index detected in sessions for media!",
+                                    {"Expected index", "Table index"},
+                                    {QString::number(sessions_[sessionID].tableIndex), QString::number(index)});
     return;
   }
 }
