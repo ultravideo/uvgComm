@@ -177,8 +177,8 @@ void MediaManager::createCall(uint32_t sessionID,
                 VideoInterface* videoView, bool followOurSDP)
 {
   // create each agreed media stream
-  for(int i = 0; i < peerInfo->media.size(); ++i)  {
-    // TODO: I don't like that we match indexes
+  for(int i = 0; i < peerInfo->media.size(); ++i)
+  {
     createOutgoingMedia(sessionID,
                         localInfo->media.at(i),
                         getMediaAddress(peerInfo, i),
@@ -236,11 +236,13 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
 
       if(remoteMedia.type == "audio")
       {
-        fg_->sendAudioTo(sessionID, std::shared_ptr<Filter>(framedSource));
+        fg_->sendAudioTo(sessionID, std::shared_ptr<Filter>(framedSource),
+                         peerAddress, localMedia.receivePort, remoteMedia.receivePort);
       }
       else if(remoteMedia.type == "video")
       {
-        fg_->sendVideoto(sessionID, std::shared_ptr<Filter>(framedSource));
+        fg_->sendVideoto(sessionID, std::shared_ptr<Filter>(framedSource),
+                         peerAddress, localMedia.receivePort, remoteMedia.receivePort);
       }
       else
       {
@@ -303,14 +305,16 @@ void MediaManager::createIncomingMedia(uint32_t sessionID,
       Q_ASSERT(rtpSink != nullptr);
       if(localMedia.type == "audio")
       {
-        fg_->receiveAudioFrom(sessionID, std::shared_ptr<Filter>(rtpSink));
+        fg_->receiveAudioFrom(sessionID, std::shared_ptr<Filter>(rtpSink),
+                              localAddress, localMedia.receivePort, remoteMedia.receivePort);
       }
       else if(localMedia.type == "video")
       {
         Q_ASSERT(videoView);
         if (videoView != nullptr)
         {
-          fg_->receiveVideoFrom(sessionID, std::shared_ptr<Filter>(rtpSink), videoView);
+          fg_->receiveVideoFrom(sessionID, std::shared_ptr<Filter>(rtpSink), videoView,
+                                localAddress, localMedia.receivePort, remoteMedia.receivePort);
         }
         else
         {

@@ -31,7 +31,6 @@
 #include "audiomixer.h"
 
 #include "settingskeys.h"
-#include "global.h"
 #include "common.h"
 #include "logger.h"
 
@@ -498,7 +497,8 @@ void FilterGraph::checkParticipant(uint32_t sessionID)
 }
 
 
-void FilterGraph::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoFramedSource)
+void FilterGraph::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoFramedSource,
+                              QString remoteAddress, uint16_t localPort, uint16_t peerPort)
 {
   Q_ASSERT(sessionID);
   Q_ASSERT(videoFramedSource);
@@ -515,36 +515,47 @@ void FilterGraph::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoF
   // add participant if necessary
   checkParticipant(sessionID);
 
-  peers_[sessionID]->videoSenders.push_back(videoFramedSource);
+  if (!existingConnection(peers_[sessionID]->sendingStreams, {remoteAddress, localPort, peerPort}))
+  {
+    peers_[sessionID]->sendingStreams.push_back({remoteAddress, localPort, peerPort});
 
-  cameraGraph_.back()->addOutConnection(videoFramedSource);
-  videoFramedSource->start();
+    peers_[sessionID]->videoSenders.push_back(videoFramedSource);
+
+    cameraGraph_.back()->addOutConnection(videoFramedSource);
+    videoFramedSource->start();
+  }
 }
 
 
 void FilterGraph::receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> videoSink,
-                                   VideoInterface *view)
+                                   VideoInterface *view, QString localAddress, uint16_t localPort, uint16_t peerPort)
 {
   Q_ASSERT(sessionID);
   Q_ASSERT(videoSink);
 
   checkParticipant(sessionID);
 
-  std::shared_ptr<GraphSegment> graph = std::shared_ptr<GraphSegment> (new GraphSegment);
-  peers_[sessionID]->videoReceivers.push_back(graph);
+  if (!existingConnection(peers_[sessionID]->receivingStreams, {localAddress, localPort, peerPort}))
+  {
+    peers_[sessionID]->receivingStreams.push_back({localAddress, localPort, peerPort});
 
-  addToGraph(videoSink, *graph);
-  addToGraph(std::shared_ptr<Filter>(new OpenHEVCFilter(sessionID, stats_, hwResources_)), *graph, 0);
+    std::shared_ptr<GraphSegment> graph = std::shared_ptr<GraphSegment> (new GraphSegment);
+    peers_[sessionID]->videoReceivers.push_back(graph);
 
-  std::shared_ptr<DisplayFilter> displayFilter =
-      std::shared_ptr<DisplayFilter>(new DisplayFilter(QString::number(sessionID),
-                                                stats_, hwResources_, {view}, sessionID));
+    addToGraph(videoSink, *graph);
+    addToGraph(std::shared_ptr<Filter>(new OpenHEVCFilter(sessionID, stats_, hwResources_)), *graph, 0);
 
-  addToGraph(displayFilter, *graph, 1);
+    std::shared_ptr<DisplayFilter> displayFilter =
+        std::shared_ptr<DisplayFilter>(new DisplayFilter(QString::number(sessionID),
+                                                         stats_, hwResources_, {view}, sessionID));
+
+    addToGraph(displayFilter, *graph, 1);
+  }
 }
 
 
-void FilterGraph::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioFramedSource)
+void FilterGraph::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioFramedSource,
+                              QString remoteAddress, uint16_t localPort, uint16_t peerPort)
 {
   Q_ASSERT(sessionID);
   Q_ASSERT(audioFramedSource);
@@ -557,17 +568,22 @@ void FilterGraph::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioF
   // add participant if necessary
   checkParticipant(sessionID);
 
-  peers_[sessionID]->audioSenders.push_back(audioFramedSource);
+  if (!existingConnection(peers_[sessionID]->sendingStreams, {remoteAddress, localPort, peerPort}))
+  {
+    peers_[sessionID]->sendingStreams.push_back({remoteAddress, localPort, peerPort});
 
-  audioInputGraph_.back()->addOutConnection(audioFramedSource);
-  audioFramedSource->start();
+    peers_[sessionID]->audioSenders.push_back(audioFramedSource);
+
+    audioInputGraph_.back()->addOutConnection(audioFramedSource);
+    audioFramedSource->start();
+  }
 
   mic(settingEnabled(SettingsKey::micStatus));
 }
 
 
 void FilterGraph::receiveAudioFrom(uint32_t sessionID,
-                                   std::shared_ptr<Filter> audioSink)
+                                   std::shared_ptr<Filter> audioSink, QString localAddress, uint16_t localPort, uint16_t peerPort)
 {
   Q_ASSERT(sessionID);
   Q_ASSERT(audioSink);
@@ -580,40 +596,60 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID,
   // add participant if necessary
   checkParticipant(sessionID);
 
-  std::shared_ptr<GraphSegment> graph = std::shared_ptr<GraphSegment> (new GraphSegment);
-  peers_[sessionID]->audioReceivers.push_back(graph);
-
-  addToGraph(audioSink, *graph);
-
-  if (audioSink->outputType() == DT_OPUSAUDIO)
+  if (!existingConnection(peers_[sessionID]->receivingStreams, {localAddress, localPort, peerPort}))
   {
-    addToGraph(std::shared_ptr<Filter>(new OpusDecoderFilter(sessionID, format_, stats_, hwResources_)),
-               *graph, (unsigned int)graph->size() - 1);
-  }
+    peers_[sessionID]->receivingStreams.push_back({localAddress, localPort, peerPort});
 
-  // mixer helps mix the incoming audio streams into one output stream
-  if (mixer_ == nullptr)
-  {
-    mixer_ = std::make_shared<AudioMixer>();
-  }
+    std::shared_ptr<GraphSegment> graph = std::shared_ptr<GraphSegment> (new GraphSegment);
+    peers_[sessionID]->audioReceivers.push_back(graph);
 
-  std::shared_ptr<AudioMixerFilter> audioMixer =
-      std::make_shared<AudioMixerFilter>(QString::number(sessionID), stats_, hwResources_, sessionID, mixer_);
+    addToGraph(audioSink, *graph);
 
-  addToGraph(audioMixer, *graph, (unsigned int)graph->size() - 1);
+    if (audioSink->outputType() == DT_OPUSAUDIO)
+    {
+      addToGraph(std::shared_ptr<Filter>(new OpusDecoderFilter(sessionID, format_, stats_, hwResources_)),
+                 *graph, (unsigned int)graph->size() - 1);
+    }
 
-  if (!audioOutputGraph_.empty())
-  {
-    // connects audio reception to audio output
-    connectFilters(graph->back(), audioOutputGraph_.front());
-  }
-  else
-  {
-    Logger::getLogger()->printProgramError(this, "Audio output not initialized "
-                                                 "when adding audio reception");
+    // mixer helps mix the incoming audio streams into one output stream
+    if (mixer_ == nullptr)
+    {
+      mixer_ = std::make_shared<AudioMixer>();
+    }
+
+    std::shared_ptr<AudioMixerFilter> audioMixer =
+        std::make_shared<AudioMixerFilter>(QString::number(sessionID), stats_, hwResources_, sessionID, mixer_);
+
+    addToGraph(audioMixer, *graph, (unsigned int)graph->size() - 1);
+
+    if (!audioOutputGraph_.empty())
+    {
+      // connects audio reception to audio output
+      connectFilters(graph->back(), audioOutputGraph_.front());
+    }
+    else
+    {
+      Logger::getLogger()->printProgramError(this, "Audio output not initialized "
+                                                   "when adding audio reception");
+    }
   }
 }
 
+
+bool FilterGraph::existingConnection(std::vector<ConnectionDetails>& connections, ConnectionDetails details)
+{
+  for (auto& connection: connections)
+  {
+    if (connection.address == details.address &&
+        connection.localPort == details.localPort &&
+        connection.peerPort == details.peerPort)
+    {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 void FilterGraph::uninit()
 {

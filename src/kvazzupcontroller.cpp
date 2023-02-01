@@ -415,8 +415,14 @@ void KvazzupController::createCall(uint32_t sessionID)
     }
 
     media_.addParticipant(sessionID, remoteSDP, localSDP, viewFactory_->getVideo(sessionID),
-                          states_[sessionID].followOurSDP);
+                           states_[sessionID].followOurSDP);
+
     states_[sessionID].state = CALLONGOING;
+   }
+  else
+  {
+    media_.modifyParticipant(sessionID, remoteSDP, localSDP, viewFactory_->getVideo(sessionID),
+                             states_[sessionID].followOurSDP);
   }
 
   // lastly we delete our saved SDP messages when they are no longer needed

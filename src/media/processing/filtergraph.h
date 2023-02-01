@@ -21,6 +21,13 @@ class ResourceAllocator;
 
 typedef std::vector<std::shared_ptr<Filter>> GraphSegment;
 
+struct ConnectionDetails
+{
+  QString address;
+  uint16_t localPort;
+  uint16_t peerPort;
+};
+
 class FilterGraph : public QObject
 {
   Q_OBJECT
@@ -32,11 +39,16 @@ public:
   void uninit();
 
   // These functions are used to manipulate filter graphs regarding a peer
-  void sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoFramedSource);
+  void sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoFramedSource,
+                   QString remoteAddress, uint16_t localPort, uint16_t peerPort);
+
   void receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> videoSink,
-                        VideoInterface *view);
-  void sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioFramedSource);
-  void receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> audioSink);
+                        VideoInterface *view,
+                        QString localAddress, uint16_t localPort, uint16_t peerPort);
+  void sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioFramedSource,
+                   QString remoteAddress, uint16_t localPort, uint16_t peerPort);
+  void receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> audioSink,
+                        QString localAddress, uint16_t localPort, uint16_t peerPort);
 
   // removes participant and all its associated filter from filter graph.
   void removeParticipant(uint32_t sessionID);
@@ -85,6 +97,9 @@ private:
 
   struct Peer
   {
+    std::vector<ConnectionDetails> sendingStreams;
+    std::vector<ConnectionDetails> receivingStreams;
+
     // Arrays of filters which send media, but are not connected to each other.
     std::vector<std::shared_ptr<Filter>> audioSenders; // sends audio
     std::vector<std::shared_ptr<Filter>> videoSenders; // sends video
@@ -99,6 +114,8 @@ private:
   void destroyPeer(Peer* peer);
 
   void destroyFilters(std::vector<std::shared_ptr<Filter>>& filters);
+
+  bool existingConnection(std::vector<ConnectionDetails>& connections, ConnectionDetails details);
 
   // --------------- General stuff ----------------
   bool quitting_;
