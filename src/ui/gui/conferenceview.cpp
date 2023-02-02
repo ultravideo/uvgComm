@@ -16,7 +16,7 @@ ConferenceView::ConferenceView(QWidget *parent):
   layout_(nullptr),
   layoutWidget_(nullptr),
   activeViews_(),
-  freedLocs_(),
+  locations_(),
   nextLocation_({0,0}),
   rowMaxLength_(2)
 {}
@@ -180,58 +180,60 @@ void ConferenceView::attachAvatarWidget(QString name, uint32_t sessionID)
 }
 
 
-void ConferenceView::attachMessageWidget(QString text, int timeout)
+void ConferenceView::removeWithMessage(uint32_t sessionID, QString text, int timeout)
 {
   QFrame* holder = new QFrame;
   Ui::MessageWidget *message = new Ui::MessageWidget;
   message->setupUi(holder);
   message->message_text->setText(text);
-  LayoutLoc loc = nextSlot();
-  layout_->addWidget(holder, loc.row, loc.column);
 
   if (timeout > 0)
   {
-    expiringWidgets_.push_back(loc);
+    expiringSessions_.push_back(sessionID);
     message->ok_button->hide();
-    removeMessageTimer_.setSingleShot(true);
-    removeMessageTimer_.start(timeout);
+    removeSessionTimer_.setSingleShot(true);
+    removeSessionTimer_.start(timeout);
 
-    connect(&removeMessageTimer_, &QTimer::timeout,
-            this, &ConferenceView::expireMessages);
+    connect(&removeSessionTimer_, &QTimer::timeout,
+            this, &ConferenceView::expireSessions);
   }
   else
   {
-    message->ok_button->setProperty("row", QVariant(loc.row));
-    message->ok_button->setProperty("column", QVariant(loc.column));
-    connect(message->ok_button, SIGNAL(clicked()), this, SLOT(removeMessage()));
+    message->ok_button->setProperty("sessionID", QVariant(sessionID));
+    connect(message->ok_button, SIGNAL(clicked()), this, SLOT(removeSessionFromProperty()));
   }
+
+  updateSessionState(VIEW_MESSAGE, holder, sessionID);
+
+  activeViews_[sessionID]->message = message;
 
   holder->show();
 }
 
 
-void ConferenceView::removeMessage()
+void ConferenceView::removeSessionFromProperty()
 {
-  QVariant row = sender()->property("row");
-  QVariant column = sender()->property("column");
+  QVariant sessionID = sender()->property("sessionID");
 
-  if (row.isValid() && column.isValid())
+  if (sessionID.isValid())
   {
-    LayoutLoc loc;
-    loc.row = row.toUInt();
-    loc.column = column.toUInt();
-    removeWidget(loc);
+    unitializeSession(sessionID.toUInt());
   }
 }
 
 
-void ConferenceView::expireMessages()
+void ConferenceView::expireSessions()
 {
-  for (auto& location : expiringWidgets_)
+  for (auto& sessionID : expiringSessions_)
   {
-    removeWidget(location);
+    unitializeSession(sessionID);
   }
-  expiringWidgets_.clear();
+  expiringSessions_.clear();
+
+  if (activeViews_.empty())
+  {
+    emit lastSessionRemoved();
+  }
 }
 
 
@@ -370,7 +372,7 @@ void ConferenceView::ringing(uint32_t sessionID)
 }
 
 
-bool ConferenceView::removeCaller(uint32_t sessionID)
+void ConferenceView::removeCaller(uint32_t sessionID)
 {
   if(activeViews_.find(sessionID) == activeViews_.end())
   {
@@ -379,23 +381,24 @@ bool ConferenceView::removeCaller(uint32_t sessionID)
   }
   else
   {
-    unitializeSession(std::move(activeViews_[sessionID]));
-    activeViews_.erase(sessionID);
+    unitializeSession(sessionID);
   }
 
-  return !activeViews_.empty();
+  if (activeViews_.empty())
+  {
+    emit lastSessionRemoved();
+  }
 }
 
 
-ConferenceView::LayoutLoc ConferenceView::nextSlot()
+ConferenceView::LayoutLoc ConferenceView::getSlot()
 {
   LayoutLoc location = {0,0};
-  locMutex_.lock();
   // give a freed up slot
-  if(!freedLocs_.empty())
+  if(!locations_.empty())
   {
-    location = freedLocs_.front();
-    freedLocs_.pop_front();
+    location = locations_.front();
+    locations_.pop_front();
   }
   else // get the next slot
   {
@@ -430,17 +433,13 @@ ConferenceView::LayoutLoc ConferenceView::nextSlot()
       }
     }
   }
-  locMutex_.unlock();
   return location;
 }
 
 
 void ConferenceView::freeSlot(LayoutLoc &location)
 {
-  locMutex_.lock();
-  freedLocs_.push_back(location);
-  // TODO: reorder the views here
-  locMutex_.unlock();
+  locations_.push_back(location);
 }
 
 
@@ -453,10 +452,16 @@ void ConferenceView::close()
   {
     unitializeSession(std::move(view->second));
   }
-
   activeViews_.clear();
 
   resetSlots();
+}
+
+
+void ConferenceView::unitializeSession(uint32_t sessionID)
+{
+  unitializeSession(std::move(activeViews_[sessionID]));
+  activeViews_.erase(sessionID);
 }
 
 
@@ -467,6 +472,7 @@ void ConferenceView::unitializeSession(std::unique_ptr<SessionViews> peer)
     removeItemFromLayout(peer->item);
     peer->item = nullptr; // deleted by above function
     peer->state = VIEW_INACTIVE;
+    freeSlot(peer->loc);
 
     if (peer->in)
     {
@@ -486,6 +492,12 @@ void ConferenceView::unitializeSession(std::unique_ptr<SessionViews> peer)
       peer->avatar = nullptr;
     }
 
+    if (peer->message)
+    {
+      delete peer->message;
+      peer->message = nullptr;
+    }
+
     peer->video = nullptr; // video is deleted elsewhere
   }
 }
@@ -493,11 +505,9 @@ void ConferenceView::unitializeSession(std::unique_ptr<SessionViews> peer)
 
 void ConferenceView::resetSlots()
 {
-  locMutex_.lock();
-  freedLocs_.clear();
+  locations_.clear();
   nextLocation_ = {0,0};
   rowMaxLength_ = 2;
-  locMutex_.unlock();
 
   Logger::getLogger()->printNormal(this, "Removing last video view. Resetting state");
 }
@@ -593,7 +603,9 @@ void ConferenceView::initializeSession(uint32_t sessionID, QString name)
                                   "Initializing session", {"SessionID"},
                                   {QString::number(sessionID)});
 
+
+
   activeViews_[sessionID] = std::unique_ptr<SessionViews>
-                            (new SessionViews{VIEW_INACTIVE, name, nullptr, nextSlot(),
-                                              nullptr, nullptr, nullptr});
+                            (new SessionViews{VIEW_INACTIVE, name, nullptr, getSlot(),
+                                              nullptr, nullptr, nullptr, nullptr});
 }

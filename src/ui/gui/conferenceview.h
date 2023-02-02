@@ -20,6 +20,7 @@ enum SessionViewState {VIEW_INACTIVE,
                        VIEW_WAITING_PEER,
                        VIEW_RINGING,
                        VIEW_AVATAR,
+                       VIEW_MESSAGE,
                        VIEW_VIDEO};
 
 class QGridLayout;
@@ -32,6 +33,7 @@ namespace Ui {
 class OutgoingCall;
 class IncomingCall;
 class AvatarHolder;
+class MessageWidget;
 }
 
 
@@ -57,9 +59,9 @@ public:
                    bool videoEnabled, bool audioEnabled, QString name);
 
   // return whether there are still participants left in call view
-  bool removeCaller(uint32_t sessionID);
+  void removeCaller(uint32_t sessionID);
 
-  void attachMessageWidget(QString text, int timeout);
+  void removeWithMessage(uint32_t sessionID, QString text, int timeout);
 
   void close();
 
@@ -69,6 +71,8 @@ signals:
   void acceptCall(uint32_t sessionID);
   void rejectCall(uint32_t sessionID);
   void cancelCall(uint32_t sessionID);
+
+  void lastSessionRemoved();
 
 public slots:
 
@@ -87,8 +91,8 @@ private slots:
 
   void updateTimes();
 
-  void expireMessages();
-  void removeMessage();
+  void expireSessions();
+  void removeSessionFromProperty();
 
 private:
 
@@ -100,7 +104,7 @@ private:
   };
 
   // functions for getting and freeing a location in layout
-  LayoutLoc nextSlot();
+  LayoutLoc getSlot();
   void freeSlot(LayoutLoc& location);
   void resetSlots();
 
@@ -133,6 +137,8 @@ private:
     Ui::IncomingCall*  in; // The view for incoming call. May be NULL
     Ui::AvatarHolder* avatar;
 
+    Ui::MessageWidget *message;
+
     QWidget* video;
   };
 
@@ -142,12 +148,13 @@ private:
   void removeWidget(LayoutLoc& location);
 
   void initializeSession(uint32_t sessionID, QString name);
+  void unitializeSession(uint32_t sessionID);
   void unitializeSession(std::unique_ptr<SessionViews> peer);
 
   QTimer timeoutTimer_;
-  QTimer removeMessageTimer_;
+  QTimer removeSessionTimer_;
 
-  QList<LayoutLoc> expiringWidgets_;
+  QList<uint32_t> expiringSessions_;
 
   QWidget *parent_;
 
@@ -162,8 +169,7 @@ private:
   // keeping track of freed places
   // TODO: update the whole layout with each added and removed participant. Use window width.
 
-  QMutex locMutex_; // prevent reserving same location by two threads
-  std::deque<LayoutLoc> freedLocs_;
+  std::deque<LayoutLoc> locations_;
   LayoutLoc nextLocation_;
   uint16_t rowMaxLength_;
 };

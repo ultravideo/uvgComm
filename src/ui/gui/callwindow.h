@@ -73,6 +73,8 @@ public slots:
 
   void changedSIPText(const QString &text);
 
+  void restoreCallUI();
+
 protected:
 
   // if user closes the window

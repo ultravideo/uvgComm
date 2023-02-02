@@ -20,6 +20,9 @@ CallWindow::CallWindow(QWidget *parent):
   partInt_(nullptr)
 {
   ui_->setupUi(this);
+
+  QObject::connect(&conference_, &ConferenceView::lastSessionRemoved,
+                   this,         &CallWindow::restoreCallUI);
 }
 
 
@@ -269,28 +272,20 @@ void CallWindow::removeParticipant(uint32_t sessionID)
     return;
   }
 
-  if(!conference_.removeCaller(sessionID))
-  {
-    ui_->EndCallButton->setEnabled(false);
-    ui_->EndCallButton->hide();
-    contacts_.setAccessibleAll();
-  }
-
+  conference_.removeCaller(sessionID);
   contacts_.setAccessible(sessionID);
 }
 
 
 void CallWindow::removeWithMessage(uint32_t sessionID, QString message, bool temporaryMessage)
 {
-  removeParticipant(sessionID);
-
   int timeout = 0;
   if (temporaryMessage)
   {
     timeout = 3000;
   }
 
-  conference_.attachMessageWidget(message, timeout);
+  conference_.removeWithMessage(sessionID, message, timeout);
 }
 
 
@@ -333,4 +328,11 @@ void CallWindow::changedSIPText(const QString &text)
 {
   Q_UNUSED(text);
   ui_->sipAddress->setText("sip:" + ui_->username->text() + "@" + ui_->address->text());
+}
+
+void CallWindow::restoreCallUI()
+{
+  ui_->EndCallButton->setEnabled(false);
+  ui_->EndCallButton->hide();
+  contacts_.setAccessibleAll();
 }
