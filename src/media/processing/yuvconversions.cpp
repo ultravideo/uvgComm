@@ -628,6 +628,8 @@ int rgb_to_yuv420_i_sse41_mt(uint8_t* input, uint8_t* output, int width, int hei
 
 int rgb_to_yuv420_i_sse41(uint8_t* input, uint8_t* output, int width, int height)
 {
+  // TODO: Green colorshift in this conversion
+
   const int r_mul_y[4] = { 76, 76, 76, 76 };
   const int r_mul_u[4] = { -43, -43, -43, -43 };
   const int r_mul_v[4] = { 127, 127, 127, 127 };
@@ -771,7 +773,7 @@ void rgb_to_yuv420_i_c(uint8_t* input, uint8_t* output, uint16_t width, uint16_t
   for(unsigned int i = 0; i < rgb_size; i += 4)
   {
     int32_t ypixel = 76*input[i] + 150 * input[i+1] + 29 * input[i+2];
-    lumaY[width*height - i/4 - 1] = (ypixel + 128) >> 8; // TODO: This flips the input!!!
+    lumaY[i/4] = (ypixel + 128) >> 8;
   }
 
   for(unsigned int i = 0; i < rgb_size - width*4; i += 2*width*4)
@@ -782,13 +784,13 @@ void rgb_to_yuv420_i_c(uint8_t* input, uint8_t* output, uint16_t width, uint16_t
       upixel +=        -43 * input[j+2+4]         - 84  * input[j+1+4]         + 127 * input[j+4];
       upixel +=        -43 * input[j+2+width*4]   - 84  * input[j+1+width*4]   + 127 * input[j+width*4];
       upixel +=        -43 * input[j+2+4+width*4] - 84  * input[j+1+4+width*4] + 127 * input[j+4+width*4];
-      chromaU[width*height/4 - (i/16 + (j-i)/8) - 1] = ((upixel + 512) >> 10) + 128;
+      chromaU[(i/16 + (j-i)/8)] = ((upixel + 512) >> 10) + 128;
 
       int32_t vpixel =  127 * input[j+2]     - 106 * input[j+1]           - 21 * input[j];
       vpixel +=  127 * input[j+2+4]          - 106 * input[j+1+4]         - 21 * input[j+4];
       vpixel +=  127 * input[j+2+width*4]    - 106 * input[j+1+width*4]   - 21 * input[j+width*4];
       vpixel +=  127 * input[j+2+4+width*4]  - 106 * input[j+1+4+width*4] - 21 * input[j+4+width*4];
-      chromaV[width*height/4 - (i/16 + (j-i)/8) - 1] = ((vpixel + 512) >> 10) + 128;
+      chromaV[(i/16 + (j-i)/8)] = ((vpixel + 512) >> 10) + 128;
     }
   }
 }
