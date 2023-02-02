@@ -704,10 +704,17 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
       // jitter and lost charts
       for(auto& d : sessions_)
       {
-        ui_->v_jitter->addPoint(d.second.tableIndex + 1, d.second.videoJitter);
-        ui_->v_lost->addPoint(  d.second.tableIndex + 1, d.second.videoLost);
-        ui_->a_jitter->addPoint(d.second.tableIndex + 1, d.second.audioJitter);
-        ui_->a_lost->addPoint(  d.second.tableIndex + 1, d.second.audioLost);
+        if (d.second.tableIndex != -1)
+        {
+          ui_->v_jitter->addPoint(d.second.tableIndex + 1, d.second.videoJitter);
+          ui_->v_lost->addPoint(  d.second.tableIndex + 1, d.second.videoLost);
+          ui_->a_jitter->addPoint(d.second.tableIndex + 1, d.second.audioJitter);
+          ui_->a_lost->addPoint(  d.second.tableIndex + 1, d.second.audioLost);
+        }
+        else
+        {
+          Logger::getLogger()->printProgramWarning(this, "Table index not set correctly in session");
+        }
       }
 
       // bandwidth chart

@@ -113,6 +113,13 @@ void MediaManager::addParticipant(uint32_t sessionID,
     return;
   }
 
+  if (stats_ != nullptr)
+  {
+    // TODO: Update SDP in stats, currently it just shows the first
+    sdpToStats(sessionID, peerInfo, false);
+    sdpToStats(sessionID, localInfo, true);
+  }
+
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Start creating media");
 
   if (participants_.find(sessionID) == participants_.end())
@@ -143,13 +150,6 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
   }
 
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Start creating media");
-
-  if (stats_ != nullptr)
-  {
-    // TODO: Update SDP in stats, currently it just adds a new one
-    //sdpToStats(sessionID, peerInfo, false);
-    //sdpToStats(sessionID, localInfo, true);
-  }
 
   // perform ICE
   if (!localInfo->candidates.empty() && !peerInfo->candidates.empty())
