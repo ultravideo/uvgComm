@@ -1,7 +1,6 @@
 #pragma once
 
 #include "initiation/transport/connectionserver.h"
-#include "initiation/transport/siptransport.h"
 
 #include "initiation/transaction/sipcallbacks.h"
 
@@ -12,9 +11,11 @@
 #include <map>
 
 #include <functional>
+#include <queue>
 
 class SIPServer;
 class SIPClient;
+class SDPNegotiation;
 
 // The components specific to one dialog
 struct DialogInstance
@@ -24,6 +25,8 @@ struct DialogInstance
   std::shared_ptr<SIPDialogState> state;
   std::shared_ptr<SIPServer> server; // for identifying cancel and sending responses
   std::shared_ptr<SIPClient> client; // for sending requests
+  std::shared_ptr<SDPNegotiation> sdp; // for sending requests
+
   std::shared_ptr<SIPCallbacks> callbacks;
 };
 
@@ -82,6 +85,8 @@ public:
   // start a call with address. Returns generated sessionID
   uint32_t startCall(NameAddr &remote);
 
+  void reINVITE(uint32_t sessionID);
+
   // TU wants something to happen.
   void respondRingingToINVITE(uint32_t sessionID);
   void respondOkToINVITE(uint32_t sessionID);
@@ -107,11 +112,8 @@ public slots:
 
 signals:
 
-  // ICE signals
-  void nominationSucceeded(const quint32 sessionID,
-                           const std::shared_ptr<SDPMessageInfo> local,
-                           const std::shared_ptr<SDPMessageInfo> remote);
-  void nominationFailed(quint32 sessionID);
+  void finalLocalSDP(const quint32 sessionID,
+                     const std::shared_ptr<SDPMessageInfo> local);
 
 private slots:
 
@@ -129,6 +131,8 @@ private slots:
                          SIPResponseStatus generatedResponse);
   void processSIPResponse(SIPResponse &response, QVariant& content,
                           bool retryRequest);
+
+  void delayedMessage();
 
 private:
 
@@ -170,6 +174,8 @@ private:
   // Goes through our current connections and returns if we are already connected
   // to this address.
   bool isConnected(QString remoteAddress);
+
+  void refreshDelayTimer();
 
   // If registered, we use the connection address in URI instead of our
   // server URI from settings.
@@ -234,4 +240,10 @@ private:
                                  QVariant& content)>> registrationResponses_;
 
   std::shared_ptr<SDPMessageInfo> ourSDP_;
+
+  /* Used to avoid congestion when sending multiple messages
+   * mutexing is not needed at this point since both adding and
+   * processing are done by Qt main thread */
+  QTimer delayTimer_;
+  std::queue<uint32_t> dMessages_;
 };

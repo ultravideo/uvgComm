@@ -2,7 +2,7 @@
 
 #include "initiation/negotiation/sdpnegotiation.h"
 #include "initiation/negotiation/networkcandidates.h"
-#include "initiation/negotiation/ice.h"
+#include "initiation/negotiation/sdpice.h"
 
 #include "initiation/transaction/sipserver.h"
 #include "initiation/transaction/sipclient.h"
@@ -12,6 +12,7 @@
 #include "initiation/transport/siprouting.h"
 #include "initiation/transport/tcpconnection.h"
 #include "initiation/transport/sipauthentication.h"
+#include "initiation/transport/siptransport.h"
 
 #include "initiation/negotiation/sdpdefault.h"
 
@@ -32,6 +33,9 @@
 const uint32_t FIRSTSESSIONID = 1;
 const int REGISTER_SEND_PERIOD = (REGISTER_INTERVAL - 5)*1000;
 
+const int MIN_RANDOM_DELAY_MS = 25;
+const int MAX_RANDOM_DELAY_MS = 75;
+
 // default for SIP, use 5061 for tls encrypted
 const uint16_t SIP_PORT = 5060;
 
@@ -41,8 +45,13 @@ SIPManager::SIPManager():
   transports_(),
   nextSessionID_(FIRSTSESSIONID),
   dialogs_(),
-  ourSDP_(nullptr)
-{}
+  ourSDP_(nullptr),
+  delayTimer_()
+{
+  delayTimer_.setSingleShot(true);
+  QObject::connect(&delayTimer_, &QTimer::timeout,
+                   this, &SIPManager::delayedMessage);
+}
 
 
 std::shared_ptr<SDPMessageInfo> SIPManager::generateSDP(QString username,
@@ -72,7 +81,35 @@ void SIPManager::setSDP(std::shared_ptr<SDPMessageInfo> sdp)
 {
   ourSDP_ = sdp;
 
-  // TODO: Trigger re-INVITE for all dialogs
+  Logger::getLogger()->printNormal(this, "Sending reINVITE through all our dialogs since our SDP has changed");
+
+  for (auto& dialog : dialogs_)
+  {
+    if (dialog.second != nullptr)
+    {
+      dialog.second->sdp->setBaseSDP(sdp);
+
+      // only send reINVITE for dialogs that have an active call ongoing
+      if (dialog.second->state->isCallActive())
+      {
+        dMessages_.push(dialog.first);
+      }
+    }
+  }
+
+  refreshDelayTimer();
+}
+
+
+void SIPManager::refreshDelayTimer()
+{
+  if (!dMessages_.empty() && !delayTimer_.isActive())
+  {
+    Logger::getLogger()->printNormal(this, "Starting timer for delayed messages",
+                                     "Count", QString::number(dMessages_.size()));
+    int delay = rand()%(MAX_RANDOM_DELAY_MS - MIN_RANDOM_DELAY_MS) + MIN_RANDOM_DELAY_MS;
+    delayTimer_.start(delay);
+  }
 }
 
 
@@ -254,6 +291,18 @@ uint32_t SIPManager::startCall(NameAddr &remote)
   }
 
   return sessionID;
+}
+
+
+void SIPManager::reINVITE(uint32_t sessionID)
+{
+  Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
+
+  Logger::getLogger()->printNormal(this, "Sending reINVITE", {"SessionID"},
+                                   {QString::number(sessionID)});
+
+  std::shared_ptr<DialogInstance> dialog = getDialog(sessionID);
+  dialog->client->sendINVITE(INVITE_TIMEOUT);
 }
 
 
@@ -867,26 +916,12 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
   std::shared_ptr<SDPMessageInfo> sdp = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
   *sdp = *ourSDP_;
 
-  // because we didn't know our address for this connection earlier, we set it now
-  // The origin may be overwritten by peer if they start the call
-  setSDPAddress(localAddress,
-                sdp->connection_address,
-                sdp->connection_nettype,
-                sdp->connection_addrtype);
+  dialog->sdp = std::shared_ptr<SDPNegotiation> (new SDPNegotiation(localAddress, sdp));
+  std::shared_ptr<SDPICE> ice = std::shared_ptr<SDPICE> (new SDPICE(nCandidates_, sessionID));
 
-  generateOrigin(sdp, localAddress, getLocalUsername());
-
-  std::shared_ptr<SDPNegotiation> negotiation =
-      std::shared_ptr<SDPNegotiation> (new SDPNegotiation(sdp));
-  std::shared_ptr<ICE> ice = std::shared_ptr<ICE> (new ICE(nCandidates_, sessionID));
-
-  QObject::connect(ice.get(),         &ICE::nominationSucceeded,
-                   negotiation.get(), &SDPNegotiation::nominationSucceeded,
-                   Qt::DirectConnection);
-
-  QObject::connect(ice.get(),         &ICE::nominationFailed,
-                   negotiation.get(), &SDPNegotiation::iceNominationFailed);
-
+  // we need a way to get our final SDP to the SIP user
+  QObject::connect(ice.get(), &SDPICE::localSDPWithCandidates,
+                   this, &SIPManager::finalLocalSDP);
 
   dialog->client = std::shared_ptr<SIPClient> (new SIPClient);
   dialog->server = std::shared_ptr<SIPServer> (new SIPServer);
@@ -898,17 +933,11 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
   dialog->state = std::shared_ptr<SIPDialogState> (new SIPDialogState);
   dialog->state->init(local, remote, ourDialog);
 
-  QObject::connect(negotiation.get(), &SDPNegotiation::iceNominationSucceeded,
-                    this, &SIPManager::nominationSucceeded);
-
-  QObject::connect(negotiation.get(), &SDPNegotiation::iceNominationFailed,
-                    this, &SIPManager::nominationFailed);
-
   // Add all components to the pipe.
   dialog->pipe.addProcessor(std::shared_ptr<SIPAllow>(new SIPAllow));
   dialog->pipe.addProcessor(dialog->state);
   dialog->pipe.addProcessor(ice);
-  dialog->pipe.addProcessor(negotiation);
+  dialog->pipe.addProcessor(dialog->sdp);
   dialog->pipe.addProcessor(dialog->client);
   dialog->pipe.addProcessor(dialog->server);
 
@@ -1088,4 +1117,24 @@ NameAddr SIPManager::localInfo()
   }
 
   return local;
+}
+
+
+void SIPManager::delayedMessage()
+{
+  if (dMessages_.empty())
+  {
+    Logger::getLogger()->printProgramWarning(this, "No delayed messages in queue");
+    return;
+  }
+
+  Logger::getLogger()->printNormal(this, "Sending delayed re-INVITE");
+
+  uint32_t sessionID = dMessages_.front();
+  dMessages_.pop();
+
+  // so far only INVITE is supported, but others could easily be supported
+  reINVITE(sessionID);
+
+  refreshDelayTimer();
 }

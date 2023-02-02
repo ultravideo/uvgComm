@@ -23,6 +23,8 @@ public:
   UIManager();
   ~UIManager();
 
+  VideoWidget* getSelfView();
+
   void init(ParticipantInterface *partInt);
 
   // functions for managing the GUI
@@ -34,7 +36,8 @@ public:
   void displayIncomingCall(uint32_t sessionID, QString caller);
 
   // adds video stream to view
-  void callStarted(uint32_t sessionID, bool videoEnabled, bool audioEnabled, QString name);
+  void callStarted(uint32_t sessionID, bool videoEnabled, bool audioEnabled,
+                   QWidget *view, QString name);
 
   // removes caller from view
   void removeParticipant(uint32_t sessionID);
@@ -50,9 +53,6 @@ public:
   void showZRTPFailedMessage(QString sessionID);
 
   void showMainWindow();
-
-  // viewfactory for creating video views.
-  std::shared_ptr<VideoviewFactory> getViewFactory() const;
 
 signals:
 

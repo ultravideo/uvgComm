@@ -18,7 +18,7 @@ class VideoWidget : public QWidget, public VideoInterface
   Q_OBJECT
   Q_INTERFACES(VideoInterface)
 public:
-  VideoWidget(QWidget* parent = nullptr, uint32_t sessionID = 0, uint32_t index = 0,
+  VideoWidget(QWidget* parent = nullptr, uint32_t sessionID = 0,
               uint8_t borderSize = 1);
   ~VideoWidget();
 
@@ -51,7 +51,7 @@ public:
 signals:
 
   void reattach(uint32_t sessionID);
-  void detach(uint32_t sessionID, uint32_t index, QWidget* widget);
+  void detach(uint32_t sessionID);
 
   void newImage();
 protected:

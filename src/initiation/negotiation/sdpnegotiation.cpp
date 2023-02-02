@@ -1,12 +1,13 @@
 #include "sdpnegotiation.h"
 
+#include "sdpdefault.h"
+
 #include "common.h"
-#include "global.h"
 #include "logger.h"
 
 #include <QVariant>
 
-SDPNegotiation::SDPNegotiation(std::shared_ptr<SDPMessageInfo> localSDP):
+SDPNegotiation::SDPNegotiation(QString localAddress, std::shared_ptr<SDPMessageInfo> localSDP):
   localbaseSDP_(nullptr),
   localSDP_(nullptr),
   remoteSDP_(nullptr),
@@ -16,6 +17,18 @@ SDPNegotiation::SDPNegotiation(std::shared_ptr<SDPMessageInfo> localSDP):
   // this makes it possible to send SDP as a signal parameter
   qRegisterMetaType<std::shared_ptr<SDPMessageInfo> >("std::shared_ptr<SDPMessageInfo>");
 
+  localAddress_ = localAddress;
+  setBaseSDP(localSDP);
+}
+
+void SDPNegotiation::setBaseSDP(std::shared_ptr<SDPMessageInfo> localSDP)
+{
+  setSDPAddress(localAddress_,
+                localSDP->connection_address,
+                localSDP->connection_nettype,
+                localSDP->connection_addrtype);
+
+  generateOrigin(localSDP, localAddress_, getLocalUsername());
   localbaseSDP_ = localSDP;
 }
 
@@ -27,6 +40,11 @@ void SDPNegotiation::processOutgoingRequest(SIPRequest& request, QVariant& conte
   if (request.method == SIP_INVITE || request.method == SIP_OPTIONS)
   {
     addSDPAccept(request.message->accept);
+  }
+
+  if (request.method == SIP_INVITE)
+  {
+    negotiationState_ = NEG_NO_STATE;
   }
 
   // We could also add SDP to INVITE, but we choose to send offer
@@ -104,6 +122,7 @@ void SDPNegotiation::processIncomingRequest(SIPRequest& request, QVariant& conte
   if (request.method == SIP_INVITE)
   {
     peerAcceptsSDP_ = isSDPAccepted(request.message->accept);
+    negotiationState_ = NEG_NO_STATE; // reset state so we can negotiate again
   }
 
   if((request.method == SIP_INVITE || request.method == SIP_ACK) &&
@@ -269,40 +288,6 @@ bool SDPNegotiation::processAnswerSDP(QVariant &content)
   negotiationState_ = NEG_FAILED;
 
   return false;
-}
-
-
-void SDPNegotiation::nominationSucceeded(QList<std::shared_ptr<ICEPair>>& streams,
-                                      quint32 sessionID)
-{
-  if (!checkSessionValidity(true))
-  {
-    return;
-  }
-
-  if (streams.size() != STREAM_COMPONENTS)
-  {
-    return;
-  }
-
-  Logger::getLogger()->printNormal(this, "ICE nomination has succeeded", {"SessionID"},
-                                   {QString::number(sessionID)});
-
-  // Video. 0 is RTP, 1 is RTCP
-  if (streams.at(0) != nullptr && streams.at(1) != nullptr)
-  {
-    setMediaPair(localSDP_->media[1],  streams.at(0)->local, true);
-    setMediaPair(remoteSDP_->media[1], streams.at(0)->remote, false);
-  }
-
-  // Audio. 2 is RTP, 3 is RTCP
-  if (streams.at(2) != nullptr && streams.at(3) != nullptr)
-  {
-    setMediaPair(localSDP_->media[0],  streams.at(2)->local, true);
-    setMediaPair(remoteSDP_->media[0], streams.at(2)->remote, false);
-  }
-
-  emit iceNominationSucceeded(sessionID, localSDP_, remoteSDP_);
 }
 
 
@@ -491,31 +476,6 @@ bool SDPNegotiation::selectBestCodec(const QList<uint8_t>& comparedNums, const Q
                                   "Could not find suitable codec or RTP number for media.");
 
   return false;
-}
-
-
-void SDPNegotiation::setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo, bool local)
-{
-  if (mediaInfo == nullptr)
-  {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SDPNegotiationHelper",
-                                    "Null mediainfo in setMediaPair");
-    return;
-  }
-
-  // for local address, we bind to our rel-address if using non-host connection type
-  if (local &&
-      mediaInfo->type != "host" &&
-      mediaInfo->rel_address != "" && mediaInfo->rel_port != 0)
-  {
-    media.connection_address = mediaInfo->rel_address;
-    media.receivePort        = mediaInfo->rel_port;
-  }
-  else
-  {
-    media.connection_address = mediaInfo->address;
-    media.receivePort        = mediaInfo->port;
-  }
 }
 
 

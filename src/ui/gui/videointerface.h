@@ -38,6 +38,9 @@ public:
 
   virtual VideoFormat supportedFormat() = 0;
 
+signals:
+  virtual void reattach(uint32_t sessionID) = 0;
+  virtual void detach(uint32_t sessionID_) = 0;
   virtual bool isVisible() = 0;
 };
 

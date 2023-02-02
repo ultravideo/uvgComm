@@ -36,17 +36,11 @@ INCLUDEPATH += src
 
 SOURCES +=\
     src/initiation/connectionpolicy.cpp \
-    src/initiation/negotiation/ice.cpp \
-    src/initiation/negotiation/icecandidatetester.cpp \
-    src/initiation/negotiation/icepairtester.cpp \
-    src/initiation/negotiation/icesessiontester.cpp \
     src/initiation/negotiation/networkcandidates.cpp \
     src/initiation/negotiation/sdpdefault.cpp \
+    src/initiation/negotiation/sdpice.cpp \
     src/initiation/negotiation/sdpnegotiation.cpp \
     src/initiation/negotiation/sipcontent.cpp \
-    src/initiation/negotiation/stunmessage.cpp \
-    src/initiation/negotiation/stunmessagefactory.cpp \
-    src/initiation/negotiation/udpserver.cpp \
     src/initiation/siphelper.cpp \
     src/initiation/sipmanager.cpp \
     src/initiation/sipmessageflow.cpp \
@@ -72,6 +66,10 @@ SOURCES +=\
     src/logger.cpp \
     src/main.cpp \
     src/media/delivery/delivery.cpp \
+    src/media/delivery/ice.cpp \
+    src/media/delivery/icecandidatetester.cpp \
+    src/media/delivery/icepairtester.cpp \
+    src/media/delivery/icesessiontester.cpp \
     src/media/delivery/uvgrtpreceiver.cpp \
     src/media/delivery/uvgrtpsender.cpp \
     src/media/mediamanager.cpp \
@@ -104,6 +102,9 @@ SOURCES +=\
     src/media/processing/yuyvtorgb32.cpp \
     src/media/processing/yuyvtoyuv420.cpp \
     src/media/resourceallocator.cpp \
+    src/stunmessage.cpp \
+    src/stunmessagefactory.cpp \
+    src/udpserver.cpp \
     src/ui/gui/avatarimage.cpp \
     src/ui/gui/callwindow.cpp \
     src/ui/gui/chartpainter.cpp \
@@ -114,7 +115,6 @@ SOURCES +=\
     src/ui/gui/statisticswindow.cpp \
     src/ui/gui/videodrawhelper.cpp \
     src/ui/gui/videoglwidget.cpp \
-    src/ui/gui/videoviewfactory.cpp \
     src/ui/gui/videowidget.cpp \
     src/ui/gui/videoyuvwidget.cpp \
     src/ui/settings/audiosettings.cpp \
@@ -127,23 +127,18 @@ SOURCES +=\
     src/ui/settings/settingshelper.cpp \
     src/ui/settings/sipsettings.cpp \
     src/ui/settings/videosettings.cpp \
-    src/ui/uimanager.cpp
+    src/ui/uimanager.cpp \
+    src/videoviewfactory.cpp
 
 HEADERS  += \
+    src/icetypes.h \
     src/initiation/connectionpolicy.h \
-    src/initiation/negotiation/ice.h \
-    src/initiation/negotiation/icecandidatetester.h \
-    src/initiation/negotiation/icepairtester.h \
-    src/initiation/negotiation/icesessiontester.h \
-    src/initiation/negotiation/icetypes.h \
     src/initiation/negotiation/networkcandidates.h \
     src/initiation/negotiation/sdpdefault.h \
+    src/initiation/negotiation/sdpice.h \
     src/initiation/negotiation/sdpnegotiation.h \
     src/initiation/negotiation/sdptypes.h \
     src/initiation/negotiation/sipcontent.h \
-    src/initiation/negotiation/stunmessage.h \
-    src/initiation/negotiation/stunmessagefactory.h \
-    src/initiation/negotiation/udpserver.h \
     src/initiation/siphelper.h \
     src/initiation/sipmanager.h \
     src/initiation/sipmessageflow.h \
@@ -169,6 +164,10 @@ HEADERS  += \
     src/kvazzupcontroller.h \
     src/logger.h \
     src/media/delivery/delivery.h \
+    src/media/delivery/ice.h \
+    src/media/delivery/icecandidatetester.h \
+    src/media/delivery/icepairtester.h \
+    src/media/delivery/icesessiontester.h \
     src/media/delivery/uvgrtpreceiver.h \
     src/media/delivery/uvgrtpsender.h \
     src/media/mediamanager.h \
@@ -205,6 +204,9 @@ HEADERS  += \
     src/common.h \
     src/participantinterface.h \
     src/global.h \
+    src/stunmessage.h \
+    src/stunmessagefactory.h \
+    src/udpserver.h \
     src/ui/gui/avatarimage.h \
     src/ui/gui/callwindow.h \
     src/ui/gui/chartpainter.h \
@@ -216,7 +218,6 @@ HEADERS  += \
     src/ui/gui/videodrawhelper.h \
     src/ui/gui/videoglwidget.h \
     src/ui/gui/videointerface.h \
-    src/ui/gui/videoviewfactory.h \
     src/ui/gui/videowidget.h \
     src/ui/gui/videoyuvwidget.h \
     src/ui/settings/audiosettings.h \
@@ -230,7 +231,8 @@ HEADERS  += \
     src/ui/settings/settingshelper.h \
     src/ui/settings/sipsettings.h \
     src/ui/settings/videosettings.h \
-    src/ui/uimanager.h
+    src/ui/uimanager.h \
+    src/videoviewfactory.h
 
 FORMS    += \
     ui/audiosettings.ui \

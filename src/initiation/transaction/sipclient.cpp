@@ -178,10 +178,21 @@ SIPRequest SIPClient::generateRequest(SIPRequestMethod method)
   return request;
 }
 
+void SIPClient::startTimeoutTimer(int timeout)
+{
+  Logger::getLogger()->printNormal(this, "Starting timout timer");
+  sendTime_ = std::chrono::system_clock::now();
+  requestTimer_.start(timeout);
+}
+
 
 void SIPClient::processTimeout()
 {
-  Logger::getLogger()->printWarning(this, "Request timed out!");
+  std::chrono::milliseconds delay =
+      std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - sendTime_);
+
+  Logger::getLogger()->printWarning(this, "Request timed out!",
+                                    "Time since sending", QString::number(delay.count()) + " ms");
 
   if(ongoingTransactionType_ == SIP_INVITE)
   {

@@ -3,14 +3,11 @@
 #include "media/processing/filtergraph.h"
 #include "media/processing/filter.h"
 #include "media/delivery/delivery.h"
-#include "ui/gui/videoviewfactory.h"
 #include "initiation/negotiation/sdptypes.h"
 #include "statisticsinterface.h"
 
 #include "resourceallocator.h"
 
-#include "common.h"
-#include "settingskeys.h"
 #include "logger.h"
 
 #include <QHostAddress>
@@ -32,11 +29,10 @@ MediaManager::~MediaManager()
 }
 
 
-void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory,
+void MediaManager::init(QList<VideoInterface*> selfViews,
                         StatisticsInterface *stats)
 {
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Initiating");
-  viewfactory_ = viewfactory;
   stats_ = stats;
   streamer_ = std::unique_ptr<Delivery> (new Delivery());
 
@@ -55,7 +51,7 @@ void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory,
   std::shared_ptr<ResourceAllocator> hwResources =
       std::shared_ptr<ResourceAllocator>(new ResourceAllocator());
 
-  fg_->init(viewfactory_->getSelfVideos(), stats, hwResources);
+  fg_->init(selfViews, stats, hwResources);
   streamer_->init(stats_, hwResources);
 
   QObject::connect(this, &MediaManager::updateVideoSettings,
@@ -72,6 +68,7 @@ void MediaManager::init(std::shared_ptr<VideoviewFactory> viewfactory,
 void MediaManager::uninit()
 {
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Closing");
+
   // first filter graph, then streamer because of the rtpfilters
   fg_->running(false);
   fg_->uninit();
@@ -87,26 +84,12 @@ void MediaManager::uninit()
 
 void MediaManager::addParticipant(uint32_t sessionID,
                                   std::shared_ptr<SDPMessageInfo> peerInfo,
-                                  const std::shared_ptr<SDPMessageInfo> localInfo)
+                                  const std::shared_ptr<SDPMessageInfo> localInfo,
+                                  VideoInterface* videoView, bool iceController)
 {
   // TODO: support stop-time and start-time as recommended by RFC 4566 section 5.9
-
-  Q_ASSERT(peerInfo->media.size() == localInfo->media.size());
-  if (peerInfo->media.size() != localInfo->media.size() || peerInfo->media.empty())
+  if (!sessionChecks(peerInfo, localInfo))
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "Media manager",
-               "addParticipant, invalid SDPs",
-                {"LocalInfo", "PeerInfo"},
-                {QString::number(localInfo->media.size()),
-                 QString::number(peerInfo->media.size())});
-    return;
-  }
-
-  if(peerInfo->timeDescriptions.at(0).startTime != 0 ||
-     localInfo->timeDescriptions.at(0).startTime != 0)
-  {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
-                                    "Nonzero start-time not supported!");
     return;
   }
 
@@ -132,37 +115,90 @@ void MediaManager::addParticipant(uint32_t sessionID,
 
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Start creating media");
 
-  if (stats_ != nullptr)
+  if (participants_.find(sessionID) == participants_.end())
   {
-    sdpToStats(sessionID, peerInfo, false);
-    sdpToStats(sessionID, localInfo, true);
+    participants_[sessionID].ice = std::unique_ptr<ICE>(new ICE(sessionID));
+
+    // connect signals so we get information when ice is ready
+    QObject::connect(participants_[sessionID].ice.get(), &ICE::nominationSucceeded,
+                     this, &MediaManager::iceSucceeded);
+
+    QObject::connect(participants_[sessionID].ice.get(), &ICE::nominationFailed,
+                     this, &MediaManager::iceFailed);
   }
 
+  return modifyParticipant(sessionID, peerInfo, localInfo, videoView, iceController);
+}
+
+
+void MediaManager::modifyParticipant(uint32_t sessionID,
+                                  std::shared_ptr<SDPMessageInfo> peerInfo,
+                                  const std::shared_ptr<SDPMessageInfo> localInfo,
+                                  VideoInterface* videoView, bool iceController)
+{
+  // TODO: support stop-time and start-time as recommended by RFC 4566 section 5.9
+  if (!sessionChecks(peerInfo, localInfo))
+  {
+    return;
+  }
+
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Start creating media");
+
+  if (stats_ != nullptr)
+  {
+    // TODO: Update SDP in stats, currently it just adds a new one
+    //sdpToStats(sessionID, peerInfo, false);
+    //sdpToStats(sessionID, localInfo, true);
+  }
+
+  // perform ICE
+  if (!localInfo->candidates.empty() && !peerInfo->candidates.empty())
+  {
+    participants_[sessionID].localInfo = localInfo;
+    participants_[sessionID].peerInfo = peerInfo;
+    participants_[sessionID].videoView = videoView;
+    participants_[sessionID].followOurSDP = iceController;
+
+    participants_[sessionID].ice->startNomination(localInfo->media.count()*2,
+                                                  localInfo->candidates,
+                                                  peerInfo->candidates, iceController);
+  }
+  else
+  {
+    Logger::getLogger()->printWarning(this, "Did not find any ICE candidates, not performing ICE");
+    createCall(sessionID, peerInfo, localInfo, videoView, iceController);
+  }
+}
+
+
+void MediaManager::createCall(uint32_t sessionID,
+                std::shared_ptr<SDPMessageInfo> peerInfo,
+                const std::shared_ptr<SDPMessageInfo> localInfo,
+                VideoInterface* videoView, bool followOurSDP)
+{
   // create each agreed media stream
-  for(int i = 0; i < peerInfo->media.size(); ++i)  {
-    // TODO: I don't like that we match
+  for(int i = 0; i < peerInfo->media.size(); ++i)
+  {
     createOutgoingMedia(sessionID,
                         localInfo->media.at(i),
                         getMediaAddress(peerInfo, i),
-                        peerInfo->media.at(i));
+                        peerInfo->media.at(i), followOurSDP);
   }
 
   for (int i = 0; i < localInfo->media.size(); ++i)
   {
     createIncomingMedia(sessionID, localInfo->media.at(i),
                         getMediaAddress(localInfo, i),
-                        peerInfo->media.at(i));
+                        peerInfo->media.at(i), videoView, followOurSDP);
   }
-
-  // TODO: crashes at the moment.
-  //fg_->print();
 }
 
 
 void MediaManager::createOutgoingMedia(uint32_t sessionID,
                                        const MediaInfo& localMedia,
                                        QString peerAddress,
-                                       const MediaInfo& remoteMedia)
+                                       const MediaInfo& remoteMedia,
+                                       bool useOurSDP)
 {
   if (peerAddress == "")
   {
@@ -172,8 +208,14 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
 
   bool send = true;
   bool recv = true;
-
-  transportAttributes(localMedia.flagAttributes, send, recv);
+  if (useOurSDP)
+  {
+    transportAttributes(localMedia.flagAttributes, send, recv);
+  }
+  else
+  {
+    transportAttributes(remoteMedia.flagAttributes, send, recv);
+  }
 
   // if we want to send
   if(send && remoteMedia.receivePort != 0)
@@ -186,18 +228,21 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
     if(remoteMedia.proto == "RTP/AVP")
     {
       std::shared_ptr<Filter> framedSource = streamer_->addSendStream(sessionID, peerAddress,
-                                                                      localMedia.receivePort, remoteMedia.receivePort,
+                                                                      localMedia.receivePort,
+                                                                      remoteMedia.receivePort,
                                                                       codec, remoteMedia.rtpNums.at(0));
 
       Q_ASSERT(framedSource != nullptr);
 
       if(remoteMedia.type == "audio")
       {
-        fg_->sendAudioTo(sessionID, std::shared_ptr<Filter>(framedSource));
+        fg_->sendAudioTo(sessionID, std::shared_ptr<Filter>(framedSource),
+                         peerAddress, localMedia.receivePort, remoteMedia.receivePort);
       }
       else if(remoteMedia.type == "video")
       {
-        fg_->sendVideoto(sessionID, std::shared_ptr<Filter>(framedSource));
+        fg_->sendVideoto(sessionID, std::shared_ptr<Filter>(framedSource),
+                         peerAddress, localMedia.receivePort, remoteMedia.receivePort);
       }
       else
       {
@@ -223,17 +268,27 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
 void MediaManager::createIncomingMedia(uint32_t sessionID,
                                        const MediaInfo &localMedia,
                                        QString localAddress,
-                                       const MediaInfo &remoteMedia)
+                                       const MediaInfo &remoteMedia,
+                                       VideoInterface* videoView,
+                                       bool useOurSDP)
 {
   if (localAddress == "")
   {
-        Logger::getLogger()->printProgramError(this, "Address was empty when creating incoming media");
+    Logger::getLogger()->printProgramError(this, "Address was empty when creating incoming media");
     return;
   }
   bool send = true;
   bool recv = true;
 
-  transportAttributes(localMedia.flagAttributes, send, recv);
+  if (useOurSDP)
+  {
+    transportAttributes(localMedia.flagAttributes, send, recv);
+  }
+  else
+  {
+    transportAttributes(remoteMedia.flagAttributes, send, recv);
+  }
+
   if(recv)
   {
     Q_ASSERT(localMedia.receivePort);
@@ -250,17 +305,19 @@ void MediaManager::createIncomingMedia(uint32_t sessionID,
       Q_ASSERT(rtpSink != nullptr);
       if(localMedia.type == "audio")
       {
-        fg_->receiveAudioFrom(sessionID, std::shared_ptr<Filter>(rtpSink));
+        fg_->receiveAudioFrom(sessionID, std::shared_ptr<Filter>(rtpSink),
+                              localAddress, localMedia.receivePort, remoteMedia.receivePort);
       }
       else if(localMedia.type == "video")
       {
-        VideoInterface *view = viewfactory_->getVideo(sessionID);
-        Q_ASSERT(view);
-        if (view != nullptr)
+        Q_ASSERT(videoView);
+        if (videoView != nullptr)
         {
-          fg_->receiveVideoFrom(sessionID, std::shared_ptr<Filter>(rtpSink), view);
+          fg_->receiveVideoFrom(sessionID, std::shared_ptr<Filter>(rtpSink), videoView,
+                                localAddress, localMedia.receivePort, remoteMedia.receivePort);
         }
-        else {
+        else
+        {
           Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to get view from viewFactory");
         }
       }
@@ -285,11 +342,59 @@ void MediaManager::createIncomingMedia(uint32_t sessionID,
 
 void MediaManager::removeParticipant(uint32_t sessionID)
 {
+  if (participants_.find(sessionID) != participants_.end())
+  {
+    participants_[sessionID].ice->uninit();
+    participants_.erase(sessionID);
+  }
+
   fg_->removeParticipant(sessionID);
   streamer_->removePeer(sessionID);
 
   Logger::getLogger()->printDebug(DEBUG_NORMAL, "Media Manager", "Session media removed",
             {"SessionID"}, {QString::number(sessionID)});
+}
+
+void MediaManager::iceSucceeded(QList<std::shared_ptr<ICEPair>>& streams,
+                                quint32 sessionID)
+{
+  if (participants_.find(sessionID) == participants_.end())
+  {
+    Logger::getLogger()->printProgramError(this, "Could not find participant when ice finished");
+    return;
+  }
+
+  Logger::getLogger()->printNormal(this, "ICE nomination has succeeded", {"SessionID"},
+                                   {QString::number(sessionID)});
+
+  // Video. 0 is RTP, 1 is RTCP
+  if (streams.at(0) != nullptr && streams.at(1) != nullptr)
+  {
+    setMediaPair(participants_[sessionID].localInfo->media[1],  streams.at(0)->local, true);
+    setMediaPair(participants_[sessionID].peerInfo->media[1], streams.at(0)->remote, false);
+  }
+
+  // Audio. 2 is RTP, 3 is RTCP
+  if (streams.at(2) != nullptr && streams.at(3) != nullptr)
+  {
+    setMediaPair(participants_[sessionID].localInfo->media[0],  streams.at(2)->local, true);
+    setMediaPair(participants_[sessionID].peerInfo->media[0], streams.at(2)->remote, false);
+  }
+
+  createCall(sessionID,
+             participants_[sessionID].peerInfo,
+             participants_[sessionID].localInfo,
+             participants_[sessionID].videoView,
+             participants_[sessionID].followOurSDP);
+}
+
+
+void MediaManager::iceFailed(uint32_t sessionID)
+{
+  Logger::getLogger()->printError(this, "ICE failed, removing participant");
+
+  // the participant is removed later
+  emit iceMediaFailed(sessionID);
 }
 
 
@@ -384,6 +489,31 @@ void MediaManager::sdpToStats(uint32_t sessionID, std::shared_ptr<SDPMessageInfo
 }
 
 
+void MediaManager::setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo, bool local)
+{
+  if (mediaInfo == nullptr)
+  {
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SDPNegotiationHelper",
+                                    "Null mediainfo in setMediaPair");
+    return;
+  }
+
+  // for local address, we bind to our rel-address if using non-host connection type
+  if (local &&
+      mediaInfo->type != "host" &&
+      mediaInfo->rel_address != "" && mediaInfo->rel_port != 0)
+  {
+    media.connection_address = mediaInfo->rel_address;
+    media.receivePort        = mediaInfo->rel_port;
+  }
+  else
+  {
+    media.connection_address = mediaInfo->address;
+    media.receivePort        = mediaInfo->port;
+  }
+}
+
+
 QString MediaManager::getMediaNettype(std::shared_ptr<SDPMessageInfo> sdp, int mediaIndex)
 {
   if (sdp->media.size() >= mediaIndex && sdp->media.at(mediaIndex).connection_nettype != "")
@@ -411,4 +541,32 @@ QString MediaManager::getMediaAddress(std::shared_ptr<SDPMessageInfo> sdp, int m
     return sdp->media.at(mediaIndex).connection_address;
   }
   return sdp->connection_address;
+}
+
+
+
+bool MediaManager::sessionChecks(std::shared_ptr<SDPMessageInfo> peerInfo,
+                   const std::shared_ptr<SDPMessageInfo> localInfo) const
+{
+
+  Q_ASSERT(peerInfo->media.size() == localInfo->media.size());
+  if (peerInfo->media.size() != localInfo->media.size() || peerInfo->media.empty())
+  {
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "Media manager",
+               "addParticipant, invalid SDPs",
+                {"LocalInfo", "PeerInfo"},
+                {QString::number(localInfo->media.size()),
+                 QString::number(peerInfo->media.size())});
+    return false;
+  }
+
+  if(peerInfo->timeDescriptions.at(0).startTime != 0 ||
+     localInfo->timeDescriptions.at(0).startTime != 0)
+  {
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+                                    "Nonzero start-time not supported!");
+    return false;
+  }
+
+  return true;
 }

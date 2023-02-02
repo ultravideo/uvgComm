@@ -60,10 +60,7 @@ private:
 
   // timeout is in milliseconds. Used for request timeout. The default timeout
   // is 2 seconds which should be plenty of time for RTT
-  void startTimeoutTimer(int timeout = 2000)
-  {
-    requestTimer_.start(timeout);
-  }
+  void startTimeoutTimer(int timeout = 2000);
 
   void stopTimeoutTimer()
   {
@@ -85,8 +82,10 @@ private:
   uint32_t expires_;
 
   // This variable is used to avoid HEAP corruption by destroying the flow afterwards
-  // instead of accidentally delete ourselves with signals etc.
+  // instead of accidentally delete ourselves with signals etc. as part of the stack
   bool shouldLive_;
 
   bool activeRegistration_;
+
+  std::chrono::time_point<std::chrono::system_clock> sendTime_;
 };
