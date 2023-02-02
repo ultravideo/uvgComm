@@ -20,7 +20,8 @@ OpenHEVCFilter::OpenHEVCFilter(uint32_t sessionID, StatisticsInterface *stats,
   ppsReceived_(false),
   sessionID_(sessionID),
   threads_(-1),
-  parallelizationMode_("Slice")
+  parallelizationMode_("Slice"),
+  discardedFrames_(0)
 {}
 
 
@@ -134,6 +135,13 @@ void OpenHEVCFilter::process()
 
     if((vpsReceived_ && spsReceived_ && ppsReceived_) || !vcl)
     {
+      if (discardedFrames_ != 0)
+      {
+        Logger::getLogger()->printNormal(this, "Starting to decode HEVC video after discarding frames",
+                                         "Discarded frames", QString::number(discardedFrames_));
+        discardedFrames_ = 0;
+      }
+
       int gotPicture = libOpenHevcDecode(handle_, input->data.get(),
                                          input->data_size, input->presentationTime);
 
@@ -165,7 +173,12 @@ void OpenHEVCFilter::process()
     }
     else
     {
-      Logger::getLogger()->printWarning(this, "Discarding frame until necessary structures have arrived");
+      if (discardedFrames_ == 0)
+      {
+        Logger::getLogger()->printWarning(this, "Discarding frames until necessary structures have arrived");
+      }
+
+      ++discardedFrames_;
     }
 
     settingsMutex_.unlock();

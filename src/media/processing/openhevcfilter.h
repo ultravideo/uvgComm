@@ -36,4 +36,6 @@ private:
   std::deque<std::unique_ptr<Data>> decodingFrames_;
 
   QMutex settingsMutex_;
+
+  uint32_t discardedFrames_;
 };
