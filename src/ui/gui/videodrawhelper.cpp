@@ -299,7 +299,7 @@ void VideoDrawHelper::updateTargetRect(QWidget* widget)
   }
   else
   {
-    Logger::getLogger()->printWarning(this, "Tried updating target rect before picture");
+    //Logger::getLogger()->printWarning(this, "Tried updating target rect before picture");
   }
 }
 
