@@ -26,6 +26,10 @@ public:
   virtual void start(); // resumes audio input
   virtual void stop(); // suspends audio input
 
+public slots:
+
+  void mute();
+
 protected:
 
   // this does nothing. ReadMore does the sending of
@@ -60,4 +64,7 @@ private:
   QAudio::State wantedState_;
 
   std::unique_ptr<AudioFrameBuffer> buffer_;
+
+  uint8_t muteSamples_;
+  uint8_t mutingPeriod_;
 };

@@ -23,7 +23,8 @@ AudioOutputDevice::AudioOutputDevice():
   buffer_(nullptr),
   latestFrame_(nullptr),
   latestFrameIsSilence_(true),
-  outputRepeats_(0)
+  outputRepeats_(0),
+  muting_(false)
 {}
 
 
@@ -182,6 +183,12 @@ qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
     ++outputRepeats_;
   }
 
+
+  if (muting_ && isLoud((int16_t*)data, read))
+  {
+    emit outputtingSound();
+  }
+
   return read;
 }
 
@@ -285,4 +292,28 @@ void AudioOutputDevice::writeFrame(char *data, qint64& read, uint8_t* frame)
   // Delete previous latest frame. This is how the memory is eventually freed
   // for every frame.
   replaceLatestFrame(frame);
+}
+
+
+bool AudioOutputDevice::isLoud(int16_t* data, uint32_t size)
+{
+  bool sound = false;
+
+  for (int16_t* sRead = data; sRead < data + size/2; ++sRead)
+  {
+    if (*sRead > INT16_MAX/8)
+    {
+      Logger::getLogger()->printWarning(this, "Too high");
+      sound = true;
+      break;
+    }
+    else if (*sRead < -INT16_MAX/8)
+    {
+      Logger::getLogger()->printWarning(this, "Too low");
+      sound = true;
+      break;
+    }
+  }
+
+  return sound;
 }

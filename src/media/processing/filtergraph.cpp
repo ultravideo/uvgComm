@@ -339,9 +339,17 @@ void FilterGraph::initVideoSend()
 
 void FilterGraph::initializeAudioInput(bool opus)
 {
+  audioCapture_ = std::shared_ptr<AudioCaptureFilter>(new AudioCaptureFilter("", format_, stats_, hwResources_));
+
+  if (autioOutput_)
+  {
+    QObject::connect(autioOutput_.get(), &AudioOutputFilter::outputtingSound,
+                     audioCapture_.get(), &AudioCaptureFilter::mute);
+  }
+
+
   // Do this before adding participants, otherwise AEC filter wont get attached
-  addToGraph(std::shared_ptr<Filter>(new AudioCaptureFilter("", format_, stats_, hwResources_)),
-             audioInputGraph_);
+  addToGraph(audioCapture_, audioInputGraph_);
 
   if (aec_ == nullptr)
   {
@@ -376,16 +384,19 @@ void FilterGraph::initializeAudioOutput(bool opus)
 
   // Provide echo reference and do AGC once more so conference calls will have
   // good volume levels.
-  std::shared_ptr<DSPFilter> echoReference =
-      std::make_shared<DSPFilter>("", stats_, hwResources_, aec_, format_,
-                                  true, false, false, false, true, AUDIO_OUTPUT_VOLUME, AUDIO_OUTPUT_GAIN);
+  addToGraph(std::make_shared<DSPFilter>("", stats_, hwResources_, aec_, format_,
+                                         true, false, false, false, true, AUDIO_OUTPUT_VOLUME, AUDIO_OUTPUT_GAIN),
+             audioOutputGraph_);
 
-  addToGraph(echoReference, audioOutputGraph_);
+  autioOutput_ = std::make_shared<AudioOutputFilter>("", stats_, hwResources_, format_);
 
-  std::shared_ptr<AudioOutputFilter> audioOutput =
-      std::make_shared<AudioOutputFilter>("", stats_, hwResources_, format_);
+  addToGraph(autioOutput_, audioOutputGraph_, (unsigned int)audioOutputGraph_.size() - 1);
 
-  addToGraph(audioOutput, audioOutputGraph_, (unsigned int)audioOutputGraph_.size() - 1);
+  if (audioCapture_)
+  {
+    QObject::connect(autioOutput_.get(),  &AudioOutputFilter::outputtingSound,
+                     audioCapture_.get(), &AudioCaptureFilter::mute);
+  }
 
   audioOutputInitialized_ = true;
 }
@@ -619,8 +630,9 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID,
 
     if (audioSink->outputType() == DT_OPUSAUDIO)
     {
-      addToGraph(std::shared_ptr<Filter>(new OpusDecoderFilter(sessionID, format_, stats_, hwResources_)),
-                 *graph, (unsigned int)graph->size() - 1);
+      std::shared_ptr<OpusDecoderFilter> decoder =
+          std::shared_ptr<OpusDecoderFilter>(new OpusDecoderFilter(sessionID, format_, stats_, hwResources_));
+      addToGraph(decoder, *graph, (unsigned int)graph->size() - 1);
     }
 
     // mixer helps mix the incoming audio streams into one output stream

@@ -25,12 +25,21 @@ public:
   void start(); // resume audio output
   void stop(); // suspend audio output
 
+  void setMutingState(bool state)
+  {
+    muting_ = state;
+  }
+
   qint64 readData(char *data, qint64 maxlen) override;
   qint64 writeData(const char *data, qint64 len) override;
   qint64 bytesAvailable() const override;
 
   // input one frame of audio
   void input(std::unique_ptr<Data> input);
+
+signals:
+
+  void outputtingSound();
 
 private:
 
@@ -43,6 +52,8 @@ private:
   void destroyLatestFrame();
 
   void writeFrame(char *data, qint64& read, uint8_t* frame);
+
+  bool isLoud(int16_t* data, uint32_t size);
 
   StatisticsInterface* stats_;
 
@@ -57,6 +68,8 @@ private:
   bool latestFrameIsSilence_;
 
   unsigned int outputRepeats_;
+
+  bool muting_;
 
 private slots:
   void deviceChanged(int index);

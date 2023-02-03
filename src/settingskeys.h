@@ -87,6 +87,8 @@ const QString audioDenoise = "audio/denoise";
 const QString audioDereverb = "audio/dereverb";
 const QString audioAGC = "audio/agc";
 
+const QString audioSelectiveMuting = "audio/selectiveMuting";
+const QString audioMutingPeriod = "audio/mutingPeriod";
 
 // User setting keys
 const QString userScreenID = "user/ScreenID";

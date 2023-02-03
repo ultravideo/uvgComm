@@ -7,10 +7,16 @@
 
 class AudioOutputFilter : public Filter
 {
+  Q_OBJECT
 public:
   AudioOutputFilter(QString id, StatisticsInterface* stats,
                     std::shared_ptr<ResourceAllocator> hwResources,
                     QAudioFormat format);
+
+  virtual void updateSettings();
+
+signals:
+  void outputtingSound();
 
 protected:
   void process();

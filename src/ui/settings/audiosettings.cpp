@@ -37,10 +37,13 @@ AudioSettings::AudioSettings(QWidget* parent,
   sliders_.push_back({SettingsKey::audioAECDelay, audioSettingsUI_->aec_playback_delay});
   sliders_.push_back({SettingsKey::audioAECFilterLength, audioSettingsUI_->aec_filter_length});
 
+  sliders_.push_back({SettingsKey::audioMutingPeriod, audioSettingsUI_->muting_slider});
+
   boxes_.push_back({SettingsKey::audioAEC, audioSettingsUI_->aec_box});
   boxes_.push_back({SettingsKey::audioDenoise, audioSettingsUI_->denoise_box});
   boxes_.push_back({SettingsKey::audioDereverb, audioSettingsUI_->dereverberation_box});
   boxes_.push_back({SettingsKey::audioAGC, audioSettingsUI_->agc_box});
+  boxes_.push_back({SettingsKey::audioSelectiveMuting, audioSettingsUI_->muting});
 
   for (auto& slider : sliders_)
   {
@@ -65,6 +68,9 @@ AudioSettings::AudioSettings(QWidget* parent,
 
   connect(audioSettingsUI_->aec_filter_length, &QSlider::valueChanged,
           this, &AudioSettings::updateAECFilterLength);
+
+  connect(audioSettingsUI_->muting_slider, &QSlider::valueChanged,
+          this, &AudioSettings::updateMutingPeriod);
 
 
   connect(audioSettingsUI_->signal_combo, &QComboBox::currentTextChanged,
@@ -214,6 +220,13 @@ void AudioSettings::updateAECFilterLength(int value)
 {
   setTimeValue(value, audioSettingsUI_->aec_filter_label,
                audioSettingsUI_->aec_filter_length);
+}
+
+
+void AudioSettings::updateMutingPeriod(int value)
+{
+  setTimeValue(value, audioSettingsUI_->muting_period,
+               audioSettingsUI_->muting_slider);
 }
 
 

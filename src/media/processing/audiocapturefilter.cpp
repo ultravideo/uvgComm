@@ -25,7 +25,9 @@ AudioCaptureFilter::AudioCaptureFilter(QString id, QAudioFormat format,
   readBuffer_(nullptr),
   readBufferSize_(0),
   wantedState_(QAudio::StoppedState),
-  buffer_(nullptr)
+  buffer_(nullptr),
+  muteSamples_(0),
+  mutingPeriod_(0)
 {}
 
 
@@ -46,6 +48,13 @@ bool AudioCaptureFilter::init()
     QSettings settings(settingsFile, settingsFileFormat);
     QString deviceName = settings.value(SettingsKey::audioDevice).toString();
     int deviceID = settings.value(SettingsKey::audioDeviceID).toInt();
+
+    int frame_length = 1000/AUDIO_FRAMES_PER_SECOND;
+    if (settings.value(SettingsKey::audioMutingPeriod).toInt() != 0)
+    {
+      mutingPeriod_ = settings.value(SettingsKey::audioMutingPeriod).toInt()/frame_length;
+    }
+    Logger::getLogger()->printNormal(this, "Muting period set", "Samples to mute", QString::number(mutingPeriod_));
 
     if (deviceID < microphones.size())
     {
@@ -208,6 +217,13 @@ void AudioCaptureFilter::readMore()
       audioFrame->data_size = buffer_->getDesiredSize();
       audioFrame->data = std::unique_ptr<uint8_t[]>(frame);
       audioFrame->aInfo->sampleRate = format_.sampleRate();
+
+      if (muteSamples_ > 0)
+      {
+        memset(audioFrame->data.get(), 0, audioFrame->data_size);
+        --muteSamples_;
+      }
+
       sendOutput(std::move(audioFrame));
 
       //Logger::getLogger()->printNormal(this, "sent forward audio sample", {"Size"},
@@ -216,6 +232,13 @@ void AudioCaptureFilter::readMore()
       frame = buffer_->readFrame();
     }
   }
+}
+
+
+void AudioCaptureFilter::mute()
+{
+  muteSamples_ = mutingPeriod_;
+  //Logger::getLogger()->printWarning(this, "Muting", "Samples to mute", QString::number(mutingPeriod_));
 }
 
 

@@ -13,6 +13,8 @@ class StatisticsInterface;
 class Filter;
 class ScreenShareFilter;
 class DisplayFilter;
+class AudioCaptureFilter;
+class AudioOutputFilter;
 
 class SpeexAEC;
 class AudioMixer;
@@ -145,6 +147,9 @@ private:
 
   bool audioInputInitialized_;
   bool audioOutputInitialized_;
+
+  std::shared_ptr<AudioCaptureFilter> audioCapture_;
+  std::shared_ptr<AudioOutputFilter>  autioOutput_;
 
   // audio configs
   QAudioFormat format_;

@@ -44,6 +44,8 @@ public slots:
   void updateAECDelay(int value);
   void updateAECFilterLength(int value);
 
+  void updateMutingPeriod(int value);
+
   void showOkButton(QString text);
 
 protected:
