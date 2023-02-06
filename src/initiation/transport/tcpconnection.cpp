@@ -27,7 +27,8 @@ TCPConnection::TCPConnection()
     buffer_(),
     sendMutex_(),
     active_(false),
-    allowedToSendMessages_(false)
+    allowedToSendMessages_(false),
+    next_connection_attempt_(std::chrono::system_clock::now())
 {}
 
 TCPConnection::~TCPConnection()
@@ -303,6 +304,8 @@ bool TCPConnection::connectLoop()
 
 
   emit socketConnected(socket_->localAddress().toString(), socket_->peerAddress().toString());
+
+  next_connection_attempt_ = std::chrono::system_clock::now() + std::chrono::seconds(32);
   return true;
 }
 
@@ -322,7 +325,8 @@ void TCPConnection::run()
   {
     if(!isConnected() && shouldConnect_)
     {
-      if (!connectLoop())
+
+      if (std::chrono::system_clock::now() > next_connection_attempt_ && !connectLoop())
       {
         Logger::getLogger()->printWarning(this, "Failed to connect TCP connection");
         shouldConnect_ = false;

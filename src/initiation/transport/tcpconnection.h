@@ -119,4 +119,8 @@ private:
   QString leftOvers_;
 
   bool allowedToSendMessages_;
+
+  // this variable prevents us fom spamming connections
+  // if the connections are dropped right after succeeding
+  std::chrono::time_point<std::chrono::system_clock> next_connection_attempt_;
 };
