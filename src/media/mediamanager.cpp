@@ -93,20 +93,7 @@ void MediaManager::addParticipant(uint32_t sessionID,
     return;
   }
 
-  if (getMediaNettype(peerInfo, 0) == "IN")
-  {
-    if(!streamer_->addPeer(sessionID,
-                           getMediaAddrtype(peerInfo, 0),
-                           getMediaAddress(peerInfo, 0),
-                           getMediaAddrtype(localInfo, 0),
-                           getMediaAddress(localInfo, 0)))
-    {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
-                 "Error creating RTP peer. Simultaneous destruction?");
-      return;
-    }
-  }
-  else
+  if (getMediaNettype(peerInfo, 0) != "IN")
   {
     Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
                                     "What are we using if not the internet!?");
@@ -176,6 +163,17 @@ void MediaManager::createCall(uint32_t sessionID,
                 const std::shared_ptr<SDPMessageInfo> localInfo,
                 VideoInterface* videoView, bool followOurSDP)
 {
+  if(!streamer_->addPeer(sessionID,
+                         getMediaAddrtype(peerInfo, 0),
+                         getMediaAddress(peerInfo, 0),
+                         getMediaAddrtype(localInfo, 0),
+                         getMediaAddress(localInfo, 0)))
+  {
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+               "Error creating RTP peer. Simultaneous destruction?");
+    return;
+  }
+
   // create each agreed media stream
   for(int i = 0; i < peerInfo->media.size(); ++i)
   {
