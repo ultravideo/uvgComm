@@ -311,7 +311,12 @@ void ConferenceView::callStarted(uint32_t sessionID, QWidget* video,
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
                                   "Adding Videostream.", {"SessionID"}, {QString::number(sessionID)});
 
-  if(activeViews_[sessionID]->state == VIEW_INACTIVE)
+  // auto-accept enters straight into video mode
+  if (activeViews_.find(sessionID) == activeViews_.end() || activeViews_[sessionID] == nullptr)
+  {
+    initializeSession(sessionID, name);
+  }
+  else if(activeViews_[sessionID]->state == VIEW_INACTIVE)
   {
     Logger::getLogger()->printDebug(DEBUG_PROGRAM_WARNING, this,
                                     "Activating video view for session state which should not be possible.",
