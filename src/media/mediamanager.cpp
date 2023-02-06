@@ -170,7 +170,7 @@ void MediaManager::createCall(uint32_t sessionID,
                          getMediaAddress(localInfo, 0)))
   {
     Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
-               "Error creating RTP peer. Simultaneous destruction?");
+               "Error creating RTP peer");
     return;
   }
 

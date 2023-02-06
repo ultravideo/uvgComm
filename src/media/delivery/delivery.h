@@ -61,13 +61,16 @@ private:
   {
     QFuture<uvg_rtp::media_stream *> stream;
 
-   std::shared_ptr<UvgRTPSender> sender;
-   std::shared_ptr<UvgRTPReceiver> receiver;
+    std::shared_ptr<UvgRTPSender> sender;
+    std::shared_ptr<UvgRTPReceiver> receiver;
   };
 
   struct Peer
   {
    uvg_rtp::session *session;
+
+   QString localAddress;
+   QString peerAddress;
 
    // uses local port as key
    std::map<uint16_t, MediaStream*> streams;
@@ -91,9 +94,6 @@ private:
   std::map<uint32_t, std::shared_ptr<Peer>> peers_;
 
   uvg_rtp::context *rtp_ctx_;
-
-  QMutex iniated_; // locks for duration of creation
-  QMutex destroyed_; // locks for duration of destruction
 
   uint8_t ttl_;
   struct in_addr sessionAddress_;

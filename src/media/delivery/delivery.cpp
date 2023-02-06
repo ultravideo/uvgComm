@@ -53,47 +53,39 @@ bool Delivery::addPeer(uint32_t sessionID,
 {
   Q_ASSERT(sessionID != 0);
 
-  // not being destroyed
-  if (destroyed_.tryLock(0))
+  if (peers_.find(sessionID) != peers_.end() && peers_[sessionID] != nullptr &&
+      peers_[sessionID]->localAddress == localAddress &&
+      peers_[sessionID]->peerAddress == peerAddress)
   {
-
-    iniated_.lock(); // not being iniated
-
-    if (peerAddressType == "IP4" && localAddressType == "IP4")
-    {
-      Logger::getLogger()->printNormal(this, "Adding new peer");
-
-      ipv6to4(peerAddress);
-
-      std::shared_ptr<Peer> peer = std::shared_ptr<Peer> (new Peer{nullptr, {}, false});
-      peers_[sessionID] = peer;
-      peers_[sessionID]->session = rtp_ctx_->create_session(peerAddress.toStdString(),
-                                                            localAddress.toStdString());
-    }
-    else
-    {
-      Logger::getLogger()->printUnimplemented(this, "Tried to use address type "
-                                                    "that has not been implemented!");
-      iniated_.unlock();
-      destroyed_.unlock();
-      return false;
-
-    }
-    iniated_.unlock();
-    destroyed_.unlock();
-
-    if (peers_[sessionID]->session == nullptr)
-    {
-      removePeer(sessionID);
-    }
-    Logger::getLogger()->printNormal(this, "RTP streamer", { "SessionID" }, 
-                                     { QString::number(sessionID) });
-
-    return true;
+    return true; // use old peer)
   }
-  Logger::getLogger()->printNormal(this, "Trying to add peer while RTP was being destroyed.");
+  else if (peerAddressType == "IP4" && localAddressType == "IP4")
+  {
+    Logger::getLogger()->printNormal(this, "Adding new peer");
 
-  return false;
+    ipv6to4(peerAddress);
+
+    peers_[sessionID] = std::shared_ptr<Peer> (new Peer{nullptr, localAddress, peerAddress, {}, false});
+    peers_[sessionID]->session = rtp_ctx_->create_session(peerAddress.toStdString(),
+                                                          localAddress.toStdString());
+  }
+  else
+  {
+    Logger::getLogger()->printUnimplemented(this, "Tried to use address type "
+                                                  "that has not been implemented!");
+    return false;
+
+  }
+
+  if (peers_[sessionID]->session == nullptr)
+  {
+    removePeer(sessionID);
+  }
+
+  Logger::getLogger()->printNormal(this, "RTP streamer", { "SessionID" },
+                                   { QString::number(sessionID) });
+
+  return true;
 }
 
 
@@ -230,6 +222,10 @@ std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID, QString l
       &UvgRTPReceiver::zrtpFailure,
       this,
       &Delivery::handleZRTPFailure);
+  }
+  else
+  {
+    Logger::getLogger()->printNormal(this, "Using existing RTP receiver");
   }
 
   return peers_[sessionID]->streams[localPort]->receiver;
