@@ -380,11 +380,11 @@ void KvazzupController::createCall(uint32_t sessionID)
 
   if (states_[sessionID].followOurSDP)
   {
-    getReceiveAttribute(localSDP, videoEnabled, audioEnabled);
+    getReceiveAttribute(localSDP, true, videoEnabled, audioEnabled);
   }
   else
   {
-    getReceiveAttribute(remoteSDP, videoEnabled, audioEnabled);
+    getReceiveAttribute(remoteSDP, false, videoEnabled, audioEnabled);
   }
 
   QString videoState = "no";
@@ -433,24 +433,44 @@ void KvazzupController::createCall(uint32_t sessionID)
 }
 
 
-void KvazzupController::getReceiveAttribute(std::shared_ptr<SDPMessageInfo> sdp, bool& recvVideo,
+void KvazzupController::getReceiveAttribute(std::shared_ptr<SDPMessageInfo> sdp, bool isThisLocal, bool& recvVideo,
                          bool& recvAudio)
 {
   for (auto& media : sdp->media)
   {
     if (media.type == "video")
     {
-      recvVideo = (media.flagAttributes.empty()
-                      || media.flagAttributes.at(0) == A_NO_ATTRIBUTE
-                      || media.flagAttributes.at(0) == A_SENDRECV
-                      || media.flagAttributes.at(0) == A_RECVONLY);
+      if (isThisLocal)
+      {
+        recvVideo = (media.flagAttributes.empty()
+                     || media.flagAttributes.at(0) == A_NO_ATTRIBUTE
+                     || media.flagAttributes.at(0) == A_SENDRECV
+                     || media.flagAttributes.at(0) == A_RECVONLY);
+      }
+      else
+      {
+        recvVideo = (media.flagAttributes.empty()
+                     || media.flagAttributes.at(0) == A_NO_ATTRIBUTE
+                     || media.flagAttributes.at(0) == A_SENDRECV
+                     || media.flagAttributes.at(0) == A_SENDONLY);
+      }
     }
     else if (media.type == "audio")
     {
+      if (isThisLocal)
+      {
       recvAudio = (media.flagAttributes.empty()
                       || media.flagAttributes.at(0) == A_NO_ATTRIBUTE
                       || media.flagAttributes.at(0) == A_SENDRECV
                       || media.flagAttributes.at(0) == A_RECVONLY);
+      }
+      else
+      {
+        recvAudio = (media.flagAttributes.empty()
+                        || media.flagAttributes.at(0) == A_NO_ATTRIBUTE
+                        || media.flagAttributes.at(0) == A_SENDRECV
+                        || media.flagAttributes.at(0) == A_SENDONLY);
+      }
     }
   }
 }
