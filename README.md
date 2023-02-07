@@ -11,14 +11,13 @@ Currently Kvazzup has the following features:
 - Initiating call through *Session Initiation Protocol (SIP)* proxy with authentication
 - Alternatively, initiating call peer-to-peer (firewall needs to have incoming TCP port 5060 open)
 - Peer-to-peer media delivery with NAT traversal using *Interactive Connectivity Protocol (ICE)*
+- Media delivery encryption using *Secure Real-time Transport Protocol (SRTP)* and *Zimmermann RTP (ZRTP)*
 - Contacts list
-- Enable/disable audio and video
+- Enable/disable audio and video, including at the other end with Re-INVITE
 - Screen sharing
 - Media settings which are saved to the disk
-- Automatic selection of best media settings with option for manual adjustment
-- Live media setting adjustment
+- Automatic selection of best media settings with option for live manual adjustment
 - A statistics window for monitoring call quality
-- Media delivery encryption
 
 ## Compile Kvazzup
 
@@ -28,7 +27,7 @@ Kvazzup requires the following external libraries to operate:
 - [Opus](http://opus-codec.org/) for audio coding
 - [uvgRTP](https://github.com/ultravideo/uvgRTP) for media delivery
 - [Speex DSP](https://www.speex.org/) for audio processing
-- [Crypto++](https://cryptopp.com/) for delivery encryption
+- [Crypto++](https://cryptopp.com/) for delivery encryption (optional)
 
 Qt Creator is the recommended tool for compiling Kvazzup. Make sure you use the same compiler and bit version for all the dependencies and for Kvazzup. It is possible, although not recommended to use Kvazzup without Crypto++.
 
@@ -50,7 +49,7 @@ The following Kvazzup dependencies are available as packages: `libopus-dev libsp
 
 If you have trouble with Qt creator code highlights, but not compilation, make sure you have the correct version of Clang installed. When testing, the Ubuntu had clang-10 installed when Qt depended on clang-8. Installing `clang-8` may solve this issue.
 
-Note: We have not been able to get the changing of the camera formats, resolutions or frame rates to work on Linux. It is possible that we didn't have all the necessary packets installed or that there is some sort of bug in qt multimedia/multimediawidgets on Ubuntu. Any information on this would be greatly appreciated.
+Note: We have not been able to get the changing of the camera formats, resolutions or frame rates to work on Linux. It is possible that we didn't have all the necessary packets installed or that there is some sort of bug in Qt Multimedia/Qt Multimediawidgets.
 
 ### Windows (MinGW)
 
@@ -78,13 +77,24 @@ In Kvazzup, please make sure `DEFINES += PIC` is included in Kvazzup.pro file. I
 
 Please uncomment: `DEFINES += KVZ_STATIC_LIB` in Kvazzup.pro file and remove `DEFINES += PIC`.
 
-## Paper
+## Papers
 
-If you are using Kvazzup in your research, please refer to the following [paper](https://ieeexplore.ieee.org/abstract/document/8241673): <br>
+If you are using Kvazzup in your research, please cite one of the following papers: <br>
+
+[Kvazzup: open software for HEVC video calls](https://urn.fi/URN:NBN:fi:tty-201908262019)
+
 `J. Räsänen, M. Viitanen, J. Vanne, and T. D. Hämäläinen, “Kvazzup: open software for HEVC video calls,” in Proc. IEEE Int. Symp. Multimedia, Taichung, Taiwan, Dec. 2017. `
+
+[Live Demonstration: Kvazzup 4K HEVC Video Call](https://urn.fi/URN:NBN:fi:tty-201908231999)
+
+`J. Räsänen, M. Viitanen, J. Vanne, and T. D. Hämäläinen, “Live Demonstration: Kvazzup 4K HEVC Video Call,” in Proc. IEEE Int. Symp. Multimedia, Taichung, Taiwan, Dec. 2018. `
+
+[Live Demonstration : Interactive Quality of Experience Evaluation in Kvazzup Video Call](https://urn.fi/URN:NBN:fi:tuni-202102041923)
+
+`J. Räsänen, A. Altonen, A. Mercat, and J. Vanne, “Live Demonstration : Interactive Quality of Experience Evaluation in Kvazzup Video Call,” in Proc. IEEE Int. Symp. Multimedia, Naples, Italy, Dec. 2020. `
 
 ## Planned features
 
 - Contact presence monitoring
 - Multiparty video conferences
-- TLS Encryption
+- TLS Encryption for SIP
