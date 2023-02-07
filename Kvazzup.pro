@@ -39,6 +39,7 @@ SOURCES +=\
     src/initiation/negotiation/networkcandidates.cpp \
     src/initiation/negotiation/sdpdefault.cpp \
     src/initiation/negotiation/sdpice.cpp \
+    src/initiation/negotiation/sdpmeshconference.cpp \
     src/initiation/negotiation/sdpnegotiation.cpp \
     src/initiation/negotiation/sipcontent.cpp \
     src/initiation/siphelper.cpp \
@@ -136,6 +137,7 @@ HEADERS  += \
     src/initiation/negotiation/networkcandidates.h \
     src/initiation/negotiation/sdpdefault.h \
     src/initiation/negotiation/sdpice.h \
+    src/initiation/negotiation/sdpmeshconference.h \
     src/initiation/negotiation/sdpnegotiation.h \
     src/initiation/negotiation/sdptypes.h \
     src/initiation/negotiation/sipcontent.h \

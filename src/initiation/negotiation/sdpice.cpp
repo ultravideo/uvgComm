@@ -90,50 +90,53 @@ void SDPICE::addLocalCandidates(QVariant& content)
 {
   SDPMessageInfo sdp = content.value<SDPMessageInfo>();
 
-  int components = 0;
+  int neededComponents = 0;
   for (auto& media: sdp.media)
   {
     if (media.proto == "RTP/AVP")
     {
-      components += 2; // RTP and RTCP
+      neededComponents += 2; // RTP and RTCP
     }
     else
     {
-      components += 1;
+      neededComponents += 1;
     }
   }
 
+  // remove the ready candidates
+  neededComponents -= sdp.candidates.size();
+
   // here we generate new candidates addresses if we don't have any existing,
   // or if the amount of components has changed
-  if (!existingLocalCandidates_ || existingLocalCandidates_->size() != components)
+  if (!existingLocalCandidates_ || existingLocalCandidates_->size() != neededComponents)
   {
-    existingLocalCandidates_ = networkCandidates_->localCandidates(components, sessionID_);
+    existingLocalCandidates_ = networkCandidates_->localCandidates(neededComponents, sessionID_);
   }
 
-  if (!existingGlobalCandidates_ || existingGlobalCandidates_->size() != components)
+  if (!existingGlobalCandidates_ || existingGlobalCandidates_->size() != neededComponents)
   {
-    existingGlobalCandidates_ = networkCandidates_->globalCandidates(components, sessionID_);
+    existingGlobalCandidates_ = networkCandidates_->globalCandidates(neededComponents, sessionID_);
   }
 
-  if (!existingStunCandidates_ || existingStunCandidates_->size() != components)
+  if (!existingStunCandidates_ || existingStunCandidates_->size() != neededComponents)
   {
-    existingStunCandidates_ = networkCandidates_->stunCandidates(components);
+    existingStunCandidates_ = networkCandidates_->stunCandidates(neededComponents);
   }
 
-  if (!existingStunBindings_ || existingStunBindings_->size() != components)
+  if (!existingStunBindings_ || existingStunBindings_->size() != neededComponents)
   {
-    existingStunBindings_ = networkCandidates_->stunBindings(components, sessionID_);
+    existingStunBindings_ = networkCandidates_->stunBindings(neededComponents, sessionID_);
   }
 
-  if (!existingturnCandidates_ || existingturnCandidates_->size() != components)
+  if (!existingturnCandidates_ || existingturnCandidates_->size() != neededComponents)
   {
-    existingturnCandidates_ = networkCandidates_->turnCandidates(components, sessionID_);
+    existingturnCandidates_ = networkCandidates_->turnCandidates(neededComponents, sessionID_);
   }
 
   // transform network addresses into ICE candidates
   sdp.candidates = generateICECandidates(existingLocalCandidates_, existingGlobalCandidates_,
                                          existingStunCandidates_,  existingStunBindings_,
-                                         existingturnCandidates_, components);
+                                         existingturnCandidates_, neededComponents);
 
   content.setValue(sdp); // adds the candidates to outgoing message
   std::shared_ptr<SDPMessageInfo> local = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);

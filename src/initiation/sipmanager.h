@@ -52,6 +52,7 @@ struct TransportInstance
 
 class StatisticsInterface;
 class NetworkCandidates;
+class SDPMeshConference;
 struct SDPMessageInfo;
 
 /* This is a manager class that manages interactions between different
@@ -84,6 +85,8 @@ public:
 
   // start a call with address. Returns generated sessionID
   uint32_t p2pCall(NameAddr &remote);
+
+  void p2pMeshConference();
 
   void re_INVITE(uint32_t sessionID);
 
@@ -184,6 +187,8 @@ private:
   // get all values from settings.
   NameAddr localInfo();
 
+  void re_INVITE_all();
+
   // Helper functions for SDP management.
 
   ConnectionServer tcpServer_;
@@ -246,4 +251,6 @@ private:
    * processing are done by Qt main thread */
   QTimer delayTimer_;
   std::queue<uint32_t> dMessages_;
+
+  std::shared_ptr<SDPMeshConference> sdpConf_;
 };

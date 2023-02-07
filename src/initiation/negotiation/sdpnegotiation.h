@@ -19,6 +19,8 @@
  * See RFC 3264 for details.
  */
 
+class SDPMeshConference;
+
 // State tells what is the next step for this sessionID.
 // State is needed to accomidate software with different
 // negotiation order from ours.
@@ -33,7 +35,9 @@ class SDPNegotiation : public SIPMessageProcessor
 {
   Q_OBJECT
 public:
-  SDPNegotiation(QString localAddress, std::shared_ptr<SDPMessageInfo> localSDP);
+  SDPNegotiation(uint32_t sessionID, QString localAddress,
+                 std::shared_ptr<SDPMessageInfo> localSDP,
+                 std::shared_ptr<SDPMeshConference> sdpConf);
 
   void setBaseSDP(std::shared_ptr<SDPMessageInfo> localSDP);
 
@@ -53,7 +57,7 @@ virtual void processIncomingResponse(SIPResponse& response, QVariant& content,
 private:
 
   // When sending an SDP offer or answer
-  bool sdpToContent(std::shared_ptr<SDPMessageInfo> sdp, QVariant &content);
+  bool sdpToContent(QVariant &content);
 
   // when receiving any SDP
   bool processSDP(QVariant &content);
@@ -83,6 +87,8 @@ private:
 
   SDPAttributeType findStatusAttribute(const QList<SDPAttributeType>& attributes) const;
 
+  uint32_t sessionID_;
+
   std::shared_ptr<SDPMessageInfo> localbaseSDP_;
   std::shared_ptr<SDPMessageInfo> localSDP_;
   std::shared_ptr<SDPMessageInfo> remoteSDP_;
@@ -93,4 +99,6 @@ private:
   bool peerAcceptsSDP_;
 
   QString localAddress_;
+
+  std::shared_ptr<SDPMeshConference> sdpConf_;
 };

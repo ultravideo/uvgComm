@@ -1,5 +1,6 @@
 #include "sipmanager.h"
 
+#include "initiation/negotiation/sdpmeshconference.h"
 #include "initiation/negotiation/sdpnegotiation.h"
 #include "initiation/negotiation/networkcandidates.h"
 #include "initiation/negotiation/sdpice.h"
@@ -46,7 +47,8 @@ SIPManager::SIPManager():
   nextSessionID_(FIRSTSESSIONID),
   dialogs_(),
   ourSDP_(nullptr),
-  delayTimer_()
+  delayTimer_(),
+  sdpConf_(std::shared_ptr<SDPMeshConference>(new SDPMeshConference))
 {
   delayTimer_.setSingleShot(true);
   QObject::connect(&delayTimer_, &QTimer::timeout,
@@ -81,23 +83,15 @@ void SIPManager::setSDP(std::shared_ptr<SDPMessageInfo> sdp)
 {
   ourSDP_ = sdp;
 
-  Logger::getLogger()->printNormal(this, "Sending Re-INVITE through all our dialogs since our SDP has changed");
-
   for (auto& dialog : dialogs_)
   {
     if (dialog.second != nullptr)
     {
       dialog.second->sdp->setBaseSDP(sdp);
-
-      // only send Re-INVITE for dialogs that have an active call ongoing
-      if (dialog.second->state->isCallActive())
-      {
-        dMessages_.push(dialog.first);
-      }
     }
   }
 
-  refreshDelayTimer();
+  re_INVITE_all();
 }
 
 
@@ -255,6 +249,8 @@ uint32_t SIPManager::p2pCall(NameAddr &remote)
     connectionAddress = ourProxyAddress;
   }
 
+  sdpConf_->setConferenceMode(false);
+
   // check if we already are connected where we want to send the message
   if (!isConnected(connectionAddress))
   {
@@ -291,6 +287,13 @@ uint32_t SIPManager::p2pCall(NameAddr &remote)
   }
 
   return sessionID;
+}
+
+
+void SIPManager::p2pMeshConference()
+{
+  sdpConf_->setConferenceMode(false);
+  re_INVITE_all();
 }
 
 
@@ -916,7 +919,7 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
   std::shared_ptr<SDPMessageInfo> sdp = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
   *sdp = *ourSDP_;
 
-  dialog->sdp = std::shared_ptr<SDPNegotiation> (new SDPNegotiation(localAddress, sdp));
+  dialog->sdp = std::shared_ptr<SDPNegotiation> (new SDPNegotiation(sessionID, localAddress, sdp, sdpConf_));
   std::shared_ptr<SDPICE> ice = std::shared_ptr<SDPICE> (new SDPICE(nCandidates_, sessionID));
 
   // we need a way to get our final SDP to the SIP user
@@ -1135,6 +1138,27 @@ void SIPManager::delayedMessage()
 
   // so far only INVITE is supported, but others could easily be supported
   re_INVITE(sessionID);
+
+  refreshDelayTimer();
+}
+
+
+void SIPManager::re_INVITE_all()
+{
+  Logger::getLogger()->printNormal(this, "Sending Re-INVITE through all our "
+                                         "dialogs since our SDP has changed");
+
+  for (auto& dialog : dialogs_)
+  {
+    if (dialog.second != nullptr)
+    {
+      // only send Re-INVITE for dialogs that have an active call ongoing
+      if (dialog.second->state->isCallActive())
+      {
+        dMessages_.push(dialog.first);
+      }
+    }
+  }
 
   refreshDelayTimer();
 }

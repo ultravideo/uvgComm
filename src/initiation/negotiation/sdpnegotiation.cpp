@@ -2,17 +2,23 @@
 
 #include "sdpdefault.h"
 
+#include "initiation/negotiation/sdpmeshconference.h"
+
 #include "common.h"
 #include "logger.h"
 
 #include <QVariant>
 
-SDPNegotiation::SDPNegotiation(QString localAddress, std::shared_ptr<SDPMessageInfo> localSDP):
+SDPNegotiation::SDPNegotiation(uint32_t sessionID, QString localAddress,
+                               std::shared_ptr<SDPMessageInfo> localSDP,
+                               std::shared_ptr<SDPMeshConference> sdpConf):
+  sessionID_(sessionID),
   localbaseSDP_(nullptr),
   localSDP_(nullptr),
   remoteSDP_(nullptr),
   negotiationState_(NEG_NO_STATE),
-  peerAcceptsSDP_(false)
+  peerAcceptsSDP_(false),
+  sdpConf_(sdpConf)
 {
   // this makes it possible to send SDP as a signal parameter
   qRegisterMetaType<std::shared_ptr<SDPMessageInfo> >("std::shared_ptr<SDPMessageInfo>");
@@ -56,7 +62,7 @@ void SDPNegotiation::processOutgoingRequest(SIPRequest& request, QVariant& conte
     request.message->contentLength = 0;
     request.message->contentType = MT_APPLICATION_SDP;
 
-    if (!sdpToContent(localSDP_, content))
+    if (!sdpToContent(content))
     {
       Logger::getLogger()->printError(this, "Failed to get SDP answer to request");
       return;
@@ -84,14 +90,9 @@ void SDPNegotiation::processOutgoingResponse(SIPResponse& response, QVariant& co
         response.message->contentLength = 0;
         response.message->contentType = MT_APPLICATION_SDP;
 
-        std::shared_ptr<SDPMessageInfo> ourSDP = localbaseSDP_;
+        //sdpConf_->getMeshSDP(sessionID_, ourSDP);
 
-        if (negotiationState_ == NEG_OFFER_RECEIVED)
-        {
-          ourSDP = localSDP_;
-        }
-
-        if (!sdpToContent(ourSDP, content))
+        if (!sdpToContent(content))
         {
           Logger::getLogger()->printError(this, "Failed to get SDP answer to response");
           return;
@@ -170,16 +171,23 @@ void SDPNegotiation::uninit()
 }
 
 
-bool SDPNegotiation::sdpToContent(std::shared_ptr<SDPMessageInfo> sdp, QVariant& content)
+bool SDPNegotiation::sdpToContent(QVariant& content)
 {
-  Q_ASSERT(sdp != nullptr);
+  std::shared_ptr<SDPMessageInfo> ourSDP = localbaseSDP_;
+
+  if (negotiationState_ == NEG_OFFER_RECEIVED)
+  {
+    ourSDP = localSDP_;
+  }
+
+  Q_ASSERT(ourSDP != nullptr);
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this,  "Adding local SDP to content");
-  if(!sdp)
+  if(!ourSDP)
   {
     Logger::getLogger()->printWarning(this, "Failed to get local SDP!");
     return false;
   }
-  content.setValue(*sdp);
+  content.setValue(*ourSDP);
   return true;
 }
 
