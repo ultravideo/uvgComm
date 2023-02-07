@@ -11,9 +11,11 @@ public:
 
   void setConferenceMode(bool state);
 
-  void addP2PSDP(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> sdp);
+  void addP2PSDP(uint32_t sessionID, SDPMessageInfo& sdp);
+  void removeP2PSDP(uint32_t sessionID);
 
-  void getMeshSDP(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> sdp);
+  std::shared_ptr<SDPMessageInfo> getMeshSDP(uint32_t sessionID,
+                                             std::shared_ptr<SDPMessageInfo> sdp);
 
 private:
 

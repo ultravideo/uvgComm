@@ -88,8 +88,6 @@ void SDPNegotiation::processOutgoingResponse(SIPResponse& response, QVariant& co
         response.message->contentLength = 0;
         response.message->contentType = MT_APPLICATION_SDP;
 
-        //sdpConf_->getMeshSDP(sessionID_, ourSDP);
-
         if (!sdpToContent(content))
         {
           Logger::getLogger()->printError(this, "Failed to get SDP answer to response");
@@ -179,6 +177,8 @@ bool SDPNegotiation::sdpToContent(QVariant& content)
     return false;
   }
 
+  ourSDP = sdpConf_->getMeshSDP(sessionID_, ourSDP);
+
   Q_ASSERT(ourSDP != nullptr);
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this,  "Adding local SDP to content");
   if(!ourSDP)
@@ -241,6 +241,8 @@ bool SDPNegotiation::processOfferSDP(QVariant& content)
 
   SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
 
+ sdpConf_->addP2PSDP(sessionID_, retrieved);
+
   // get our final SDP, which is later sent to them
   localSDP_ = findCommonSDP(*localbaseSDP_.get(), retrieved);
 
@@ -274,6 +276,8 @@ bool SDPNegotiation::processAnswerSDP(QVariant &content)
 
   Logger::getLogger()->printDebug(DEBUG_NORMAL, "Negotiation",
                                   "Starting to process answer SDP.");
+
+  sdpConf_->addP2PSDP(sessionID_, retrieved);
 
   /* Get our final SDP based on their answer, should succeed if they did everything correctly,
    * but good to check */
