@@ -81,7 +81,7 @@ void SIPManager::setSDP(std::shared_ptr<SDPMessageInfo> sdp)
 {
   ourSDP_ = sdp;
 
-  Logger::getLogger()->printNormal(this, "Sending reINVITE through all our dialogs since our SDP has changed");
+  Logger::getLogger()->printNormal(this, "Sending Re-INVITE through all our dialogs since our SDP has changed");
 
   for (auto& dialog : dialogs_)
   {
@@ -89,7 +89,7 @@ void SIPManager::setSDP(std::shared_ptr<SDPMessageInfo> sdp)
     {
       dialog.second->sdp->setBaseSDP(sdp);
 
-      // only send reINVITE for dialogs that have an active call ongoing
+      // only send Re-INVITE for dialogs that have an active call ongoing
       if (dialog.second->state->isCallActive())
       {
         dMessages_.push(dialog.first);
@@ -294,11 +294,11 @@ uint32_t SIPManager::startCall(NameAddr &remote)
 }
 
 
-void SIPManager::reINVITE(uint32_t sessionID)
+void SIPManager::re_INVITE(uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
 
-  Logger::getLogger()->printNormal(this, "Sending reINVITE", {"SessionID"},
+  Logger::getLogger()->printNormal(this, "Sending Re-INVITE", {"SessionID"},
                                    {QString::number(sessionID)});
 
   std::shared_ptr<DialogInstance> dialog = getDialog(sessionID);
@@ -1134,7 +1134,7 @@ void SIPManager::delayedMessage()
   dMessages_.pop();
 
   // so far only INVITE is supported, but others could easily be supported
-  reINVITE(sessionID);
+  re_INVITE(sessionID);
 
   refreshDelayTimer();
 }

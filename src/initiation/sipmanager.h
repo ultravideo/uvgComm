@@ -85,7 +85,7 @@ public:
   // start a call with address. Returns generated sessionID
   uint32_t startCall(NameAddr &remote);
 
-  void reINVITE(uint32_t sessionID);
+  void re_INVITE(uint32_t sessionID);
 
   // TU wants something to happen.
   void respondRingingToINVITE(uint32_t sessionID);
