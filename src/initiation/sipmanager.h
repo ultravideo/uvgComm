@@ -83,7 +83,7 @@ public:
   void uninit();
 
   // start a call with address. Returns generated sessionID
-  uint32_t startCall(NameAddr &remote);
+  uint32_t p2pCall(NameAddr &remote);
 
   void re_INVITE(uint32_t sessionID);
 

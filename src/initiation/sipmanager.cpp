@@ -239,7 +239,7 @@ void SIPManager::bindToServer()
 }
 
 
-uint32_t SIPManager::startCall(NameAddr &remote)
+uint32_t SIPManager::p2pCall(NameAddr &remote)
 {
   uint32_t sessionID = reserveSessionID();
 

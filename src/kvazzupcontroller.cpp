@@ -139,7 +139,7 @@ uint32_t KvazzupController::callToParticipant(QString name, QString username,
   Logger::getLogger()->printNormal(this, "Starting call with contact", 
                                    {"Contact"}, {remote.realname});
 
-  uint32_t sessionID = sip_.startCall(remote);
+  uint32_t sessionID = sip_.p2pCall(remote);
 
   userInterface_.displayOutgoingCall(sessionID, remote.realname);
   if(states_.find(sessionID) == states_.end())
