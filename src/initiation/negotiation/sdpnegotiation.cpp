@@ -55,7 +55,7 @@ void SDPNegotiation::processOutgoingRequest(SIPRequest& request, QVariant& conte
 
   // We could also add SDP to INVITE, but we choose to send offer
   // in INVITE OK response and ACK.
-  if (request.method == SIP_ACK && negotiationState_ == NEG_OFFER_RECEIVED)
+  if (request.method == SIP_INVITE || (request.method == SIP_ACK && negotiationState_ == NEG_OFFER_RECEIVED))
   {
     Logger::getLogger()->printNormal(this, "Adding SDP content to request");
 
@@ -67,8 +67,6 @@ void SDPNegotiation::processOutgoingRequest(SIPRequest& request, QVariant& conte
       Logger::getLogger()->printError(this, "Failed to get SDP answer to request");
       return;
     }
-
-    negotiationState_ = NEG_FINISHED;
   }
 
   emit outgoingRequest(request, content);
@@ -96,15 +94,6 @@ void SDPNegotiation::processOutgoingResponse(SIPResponse& response, QVariant& co
         {
           Logger::getLogger()->printError(this, "Failed to get SDP answer to response");
           return;
-        }
-
-        if (negotiationState_ == NEG_NO_STATE)
-        {
-          negotiationState_ = NEG_OFFER_SENT;
-        }
-        else if (negotiationState_ == NEG_OFFER_RECEIVED)
-        {
-          negotiationState_ = NEG_FINISHED;
         }
       }
     }
@@ -178,6 +167,16 @@ bool SDPNegotiation::sdpToContent(QVariant& content)
   if (negotiationState_ == NEG_OFFER_RECEIVED)
   {
     ourSDP = localSDP_;
+    negotiationState_ = NEG_FINISHED;
+  }
+  else if (negotiationState_ == NEG_NO_STATE)
+  {
+    negotiationState_ = NEG_OFFER_SENT;
+  }
+  else
+  {
+    Logger::getLogger()->printWarning(this, "SDP negotiation in wrong state when including SDP");
+    return false;
   }
 
   Q_ASSERT(ourSDP != nullptr);
@@ -188,6 +187,7 @@ bool SDPNegotiation::sdpToContent(QVariant& content)
     return false;
   }
   content.setValue(*ourSDP);
+
   return true;
 }
 

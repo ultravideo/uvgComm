@@ -724,7 +724,9 @@ void KvazzupController::SIPResponseCallback(uint32_t sessionID,
 void KvazzupController::inputLocalSDP(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> local)
 {
   if (states_.find(sessionID) == states_.end() ||
-      (states_[sessionID].state != CALLNEGOTIATING && states_[sessionID].state != CALLONGOING))
+      (states_[sessionID].state != CALLNEGOTIATING &&
+       states_[sessionID].state != CALLONGOING &&
+       states_[sessionID].state != CALLINGTHEM))
   {
     Logger::getLogger()->printProgramError(this, "Got local SDP, but we are not in correct state");
     return;

@@ -25,7 +25,9 @@ void SDPICE::processOutgoingRequest(SIPRequest& request, QVariant& content)
     addICEToSupported(request.message->supported);
   }
 
-  if (peerSupportsICE_ && request.message->contentType == MT_APPLICATION_SDP)
+  if ((request.method == SIP_INVITE ||
+       (peerSupportsICE_ && request.method == SIP_ACK))
+      && request.message->contentType == MT_APPLICATION_SDP)
   {
     addLocalCandidates(content);  
   }
