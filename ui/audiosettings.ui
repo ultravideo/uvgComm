@@ -261,59 +261,23 @@
        <string>AEC/DSP</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_2">
-       <item row="6" column="0" colspan="3">
-        <widget class="QLabel" name="label_6">
-         <property name="font">
-          <font>
-           <pointsize>16</pointsize>
-           <bold>true</bold>
-          </font>
-         </property>
+       <item row="14" column="0">
+        <widget class="QLabel" name="muting_label">
          <property name="text">
-          <string>Speex DSP</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
+          <string>Selective Muting</string>
          </property>
         </widget>
        </item>
-       <item row="16" column="0" colspan="3">
-        <spacer name="verticalSpacer">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>40</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="4" column="2">
-        <widget class="QLabel" name="aec_filter_label">
+       <item row="2" column="0">
+        <widget class="QLabel" name="aec_label">
          <property name="sizePolicy">
-          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+          <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
          </property>
          <property name="text">
-          <string>250 ms</string>
-         </property>
-        </widget>
-       </item>
-       <item row="12" column="0" colspan="3">
-        <widget class="Line" name="line_4">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-        </widget>
-       </item>
-       <item row="11" column="0">
-        <widget class="QLabel" name="agc_label">
-         <property name="text">
-          <string>Automatic Gain Control (AGC)</string>
+          <string>Acoustic Echo Cancellation (AEC)</string>
          </property>
         </widget>
        </item>
@@ -330,31 +294,18 @@
          </property>
         </widget>
        </item>
-       <item row="1" column="0" colspan="3">
-        <widget class="Line" name="line">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="2">
-        <widget class="QCheckBox" name="aec_box">
-         <property name="minimumSize">
-          <size>
-           <width>75</width>
-           <height>0</height>
-          </size>
+       <item row="14" column="2">
+        <widget class="QCheckBox" name="muting">
+         <property name="toolTip">
+          <string>Mute our mic when the speakers are active</string>
          </property>
          <property name="text">
           <string/>
          </property>
-         <property name="checked">
-          <bool>true</bool>
-         </property>
         </widget>
        </item>
-       <item row="0" column="0" colspan="3">
-        <widget class="QLabel" name="label_3">
+       <item row="13" column="0" colspan="3">
+        <widget class="QLabel" name="label_7">
          <property name="font">
           <font>
            <pointsize>16</pointsize>
@@ -362,67 +313,51 @@
           </font>
          </property>
          <property name="text">
-          <string>Speex AEC</string>
+          <string>Feedback Prevention</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
          </property>
         </widget>
        </item>
-       <item row="8" column="0">
-        <widget class="QLabel" name="dereverberation_label">
-         <property name="text">
-          <string>Dereverberation</string>
-         </property>
-        </widget>
-       </item>
-       <item row="15" column="0">
-        <widget class="QLabel" name="muting_slider_label">
-         <property name="text">
-          <string>Muting Period</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="label_4">
-         <property name="text">
-          <string>AEC Playback delay</string>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="0" colspan="3">
-        <spacer name="verticalSpacer_3">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeType">
-          <enum>QSizePolicy::Preferred</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>10</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="11" column="2">
-        <widget class="QCheckBox" name="agc_box">
+       <item row="15" column="1">
+        <widget class="QSlider" name="muting_slider">
          <property name="toolTip">
-          <string extracomment="Boosts quiet sounds and reduces loud sounds. Recommended if audio feedback is an issue."/>
+          <string>How long is the input muted</string>
          </property>
+         <property name="minimum">
+          <number>0</number>
+         </property>
+         <property name="maximum">
+          <number>1000</number>
+         </property>
+         <property name="singleStep">
+          <number>20</number>
+         </property>
+         <property name="pageStep">
+          <number>100</number>
+         </property>
+         <property name="value">
+          <number>400</number>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="tickPosition">
+          <enum>QSlider::TicksBelow</enum>
+         </property>
+         <property name="tickInterval">
+          <number>100</number>
+         </property>
+        </widget>
+       </item>
+       <item row="10" column="2">
+        <widget class="QCheckBox" name="denoise_box">
          <property name="text">
           <string/>
          </property>
          <property name="checked">
           <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="0">
-        <widget class="QLabel" name="label_5">
-         <property name="text">
-          <string>AEC Filter Tail Length</string>
          </property>
         </widget>
        </item>
@@ -460,33 +395,79 @@
          </property>
         </widget>
        </item>
-       <item row="15" column="1">
-        <widget class="QSlider" name="muting_slider">
-         <property name="minimum">
-          <number>0</number>
+       <item row="6" column="0" colspan="3">
+        <widget class="QLabel" name="label_6">
+         <property name="font">
+          <font>
+           <pointsize>16</pointsize>
+           <bold>true</bold>
+          </font>
          </property>
-         <property name="maximum">
-          <number>1000</number>
+         <property name="text">
+          <string>Speex DSP</string>
          </property>
-         <property name="singleStep">
-          <number>20</number>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
          </property>
-         <property name="pageStep">
-          <number>100</number>
+        </widget>
+       </item>
+       <item row="4" column="2">
+        <widget class="QLabel" name="aec_filter_label">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
          </property>
-         <property name="value">
-          <number>100</number>
+         <property name="text">
+          <string>250 ms</string>
          </property>
+        </widget>
+       </item>
+       <item row="2" column="2">
+        <widget class="QCheckBox" name="aec_box">
+         <property name="minimumSize">
+          <size>
+           <width>75</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0" colspan="3">
+        <widget class="QLabel" name="label_3">
+         <property name="font">
+          <font>
+           <pointsize>16</pointsize>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Speex AEC</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="11" column="1">
+        <spacer name="horizontalSpacer_2">
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
          </property>
-         <property name="tickPosition">
-          <enum>QSlider::TicksBelow</enum>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
          </property>
-         <property name="tickInterval">
-          <number>100</number>
-         </property>
-        </widget>
+        </spacer>
        </item>
        <item row="3" column="1">
         <widget class="QSlider" name="aec_playback_delay">
@@ -522,6 +503,29 @@
          </property>
         </widget>
        </item>
+       <item row="1" column="0" colspan="3">
+        <widget class="Line" name="line">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0" colspan="3">
+        <spacer name="verticalSpacer_3">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Preferred</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>10</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
        <item row="10" column="0">
         <widget class="QLabel" name="denoise_label">
          <property name="text">
@@ -529,37 +533,10 @@
          </property>
         </widget>
        </item>
-       <item row="7" column="0" colspan="3">
-        <widget class="Line" name="line_2">
+       <item row="12" column="0" colspan="3">
+        <widget class="Line" name="line_4">
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
-         </property>
-        </widget>
-       </item>
-       <item row="15" column="2">
-        <widget class="QLabel" name="muting_period">
-         <property name="text">
-          <string>100 ms</string>
-         </property>
-        </widget>
-       </item>
-       <item row="14" column="2">
-        <widget class="QCheckBox" name="muting">
-         <property name="text">
-          <string/>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="aec_label">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="text">
-          <string>Acoustic Echo Cancellation (AEC)</string>
          </property>
         </widget>
        </item>
@@ -573,15 +550,38 @@
          </property>
         </widget>
        </item>
-       <item row="14" column="0">
-        <widget class="QLabel" name="muting_label">
+       <item row="15" column="0">
+        <widget class="QLabel" name="muting_slider_label">
          <property name="text">
-          <string>Selective Muting</string>
+          <string>Muting Period</string>
          </property>
         </widget>
        </item>
-       <item row="10" column="2">
-        <widget class="QCheckBox" name="denoise_box">
+       <item row="4" column="0">
+        <widget class="QLabel" name="label_5">
+         <property name="text">
+          <string>AEC Filter Tail Length</string>
+         </property>
+        </widget>
+       </item>
+       <item row="17" column="0" colspan="3">
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="11" column="2">
+        <widget class="QCheckBox" name="agc_box">
+         <property name="toolTip">
+          <string extracomment="Boosts quiet sounds and reduces loud sounds. Recommended if audio feedback is an issue."/>
+         </property>
          <property name="text">
           <string/>
          </property>
@@ -590,32 +590,74 @@
          </property>
         </widget>
        </item>
-       <item row="11" column="1">
-        <spacer name="horizontalSpacer_2">
+       <item row="11" column="0">
+        <widget class="QLabel" name="agc_label">
+         <property name="text">
+          <string>Automatic Gain Control (AGC)</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="label_4">
+         <property name="text">
+          <string>AEC Playback delay</string>
+         </property>
+        </widget>
+       </item>
+       <item row="15" column="2">
+        <widget class="QLabel" name="muting_period">
+         <property name="text">
+          <string>400 ms</string>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="0">
+        <widget class="QLabel" name="dereverberation_label">
+         <property name="text">
+          <string>Dereverberation</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="0" colspan="3">
+        <widget class="Line" name="line_2">
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
          </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>40</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
+        </widget>
        </item>
-       <item row="13" column="0" colspan="3">
-        <widget class="QLabel" name="label_7">
-         <property name="font">
-          <font>
-           <pointsize>16</pointsize>
-           <bold>true</bold>
-          </font>
-         </property>
+       <item row="16" column="0">
+        <widget class="QLabel" name="threshold_label">
          <property name="text">
-          <string>Feedback Prevention</string>
+          <string>Muting Threshold</string>
          </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
+        </widget>
+       </item>
+       <item row="16" column="1">
+        <widget class="QSlider" name="threshold_slider">
+         <property name="toolTip">
+          <string>Only start muting when the sound is above this level</string>
+         </property>
+         <property name="minimum">
+          <number>1</number>
+         </property>
+         <property name="maximum">
+          <number>100</number>
+         </property>
+         <property name="value">
+          <number>10</number>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="tickPosition">
+          <enum>QSlider::TicksBelow</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="16" column="2">
+        <widget class="QLabel" name="threshold_value">
+         <property name="text">
+          <string>10 %</string>
          </property>
         </widget>
        </item>

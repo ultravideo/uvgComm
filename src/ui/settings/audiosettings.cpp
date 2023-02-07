@@ -38,6 +38,7 @@ AudioSettings::AudioSettings(QWidget* parent,
   sliders_.push_back({SettingsKey::audioAECFilterLength, audioSettingsUI_->aec_filter_length});
 
   sliders_.push_back({SettingsKey::audioMutingPeriod, audioSettingsUI_->muting_slider});
+  sliders_.push_back({SettingsKey::audioMutingThreshold, audioSettingsUI_->threshold_slider});
 
   boxes_.push_back({SettingsKey::audioAEC, audioSettingsUI_->aec_box});
   boxes_.push_back({SettingsKey::audioDenoise, audioSettingsUI_->denoise_box});
@@ -58,23 +59,25 @@ AudioSettings::AudioSettings(QWidget* parent,
   }
 
   connect(audioSettingsUI_->bitrate_slider, &QSlider::valueChanged,
-          this, &AudioSettings::updateBitrate);
+          this,                             &AudioSettings::updateBitrate);
 
   connect(audioSettingsUI_->complexity_slider, &QSlider::valueChanged,
-          this, &AudioSettings::updateComplexity);
+          this,                                &AudioSettings::updateComplexity);
 
   connect(audioSettingsUI_->aec_playback_delay, &QSlider::valueChanged,
-          this, &AudioSettings::updateAECDelay);
+          this,                                 &AudioSettings::updateAECDelay);
 
   connect(audioSettingsUI_->aec_filter_length, &QSlider::valueChanged,
-          this, &AudioSettings::updateAECFilterLength);
+          this,                                &AudioSettings::updateAECFilterLength);
 
   connect(audioSettingsUI_->muting_slider, &QSlider::valueChanged,
-          this, &AudioSettings::updateMutingPeriod);
+          this,                            &AudioSettings::updateMutingPeriod);
 
+  connect(audioSettingsUI_->threshold_slider, &QSlider::valueChanged,
+          this,                               &AudioSettings::updateMutingThreshold);
 
   connect(audioSettingsUI_->signal_combo, &QComboBox::currentTextChanged,
-          this, &AudioSettings::showOkButton);
+          this,                           &AudioSettings::showOkButton);
 }
 
 
@@ -227,6 +230,12 @@ void AudioSettings::updateMutingPeriod(int value)
 {
   setTimeValue(value, audioSettingsUI_->muting_period,
                audioSettingsUI_->muting_slider);
+}
+
+
+void AudioSettings::updateMutingThreshold(int value)
+{
+  audioSettingsUI_->threshold_value->setText(QString::number(value) + " %");
 }
 
 

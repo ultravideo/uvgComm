@@ -24,7 +24,8 @@ AudioOutputDevice::AudioOutputDevice():
   latestFrame_(nullptr),
   latestFrameIsSilence_(true),
   outputRepeats_(0),
-  muting_(false)
+  muting_(false),
+  mutingThreshold_(0.1f)
 {}
 
 
@@ -301,15 +302,17 @@ bool AudioOutputDevice::isLoud(int16_t* data, uint32_t size)
 
   for (int16_t* sRead = data; sRead < data + size/2; ++sRead)
   {
-    if (*sRead > INT16_MAX/8)
+    if (*sRead > INT16_MAX*mutingThreshold_)
     {
-      Logger::getLogger()->printWarning(this, "Too high");
+      Logger::getLogger()->printWarning(this, "Too loud (high)",
+                                        "Sound amplitude", QString::number(float(*sRead)/INT16_MAX * 100) + " %");
       sound = true;
       break;
     }
-    else if (*sRead < -INT16_MAX/8)
+    else if(*sRead < INT16_MIN*mutingThreshold_)
     {
-      Logger::getLogger()->printWarning(this, "Too low");
+      Logger::getLogger()->printWarning(this, "Too loud (low)",
+                                        "Sound amplitude", QString::number(float(*sRead)/INT16_MAX * 100) + " %");
       sound = true;
       break;
     }

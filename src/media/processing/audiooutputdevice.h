@@ -30,6 +30,11 @@ public:
     muting_ = state;
   }
 
+  void setMutingThreshold(float threshold)
+  {
+    mutingThreshold_ = threshold;
+  }
+
   qint64 readData(char *data, qint64 maxlen) override;
   qint64 writeData(const char *data, qint64 len) override;
   qint64 bytesAvailable() const override;
@@ -70,6 +75,7 @@ private:
   unsigned int outputRepeats_;
 
   bool muting_;
+  float mutingThreshold_;
 
 private slots:
   void deviceChanged(int index);

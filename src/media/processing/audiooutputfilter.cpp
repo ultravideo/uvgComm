@@ -25,12 +25,14 @@ AudioOutputFilter::AudioOutputFilter(QString id, StatisticsInterface* stats,
                    this,     &AudioOutputFilter::outputtingSound);
 
   output_.setMutingState(settingEnabled(SettingsKey::audioSelectiveMuting));
+  output_.setMutingThreshold(float(settingValue(SettingsKey::audioMutingThreshold))/100);
 }
 
 
 void AudioOutputFilter::updateSettings()
 {
   output_.setMutingState(settingEnabled(SettingsKey::audioSelectiveMuting));
+  output_.setMutingThreshold(float(settingValue(SettingsKey::audioMutingThreshold))/100);
 }
 
 
