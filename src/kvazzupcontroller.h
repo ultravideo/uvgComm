@@ -30,17 +30,16 @@ public:
   void uninit();
 
   // participant interface funtions used to start a call or a chat.
-  uint32_t callToParticipant(QString name, QString username, QString ip);
+  uint32_t startINVITETransaction(QString name, QString username, QString ip);
   uint32_t chatWithParticipant(QString name, QString username, QString ip);
 
   // Call Control Interface used by SIP transaction
-  bool incomingCall(uint32_t sessionID, QString caller);
-  void callRinging(uint32_t sessionID);
-  void peerAccepted(uint32_t sessionID);
-  void callNegotiated(uint32_t sessionID);
+  bool processINVITE(uint32_t sessionID, QString caller);
+  void processRINGING(uint32_t sessionID);
+  void processINVITE_OK(uint32_t sessionID);
+  void INVITETransactionConcluded(uint32_t sessionID);
   void cancelIncomingCall(uint32_t sessionID);
-  void endCall(uint32_t sessionID);
-  void failure(uint32_t sessionID, QString error);
+  void sessionTerminated(uint32_t sessionID);
   void registeredToServer();
   void registeringFailed();
 
@@ -80,6 +79,7 @@ public slots:
 
   void updateAudioSettings();
   void updateVideoSettings();
+
 private:
   void removeSession(uint32_t sessionID, QString message, bool temporaryMessage);
 
@@ -94,28 +94,35 @@ private:
   void getReceiveAttribute(std::shared_ptr<SDPMessageInfo> sdp, bool isThisLocal,
                            bool& recvVideo, bool& recvAudio);
 
+  void renegotiateAllCalls();
+
+  void renegotiateNextCall();
+
+
   // call state is used to make sure everything is going according to plan,
   // no surprise ACK messages etc
-  enum CallState {
-    CALL_NO_STATE,
-    CALL_RINGING_WITH_US,
-    CALLING_THEM,
-    CALL_RINGING_WITH_THEM,
-    CALL_NEGOTIATING,
-    CALL_ONGOING,
+  enum INVITETransactionState {
+    CALL_INVITE_SENT,
+    CALL_INVITE_RECEIVED,
+    CALL_OK_SENT,
+    CALL_TRANSACTION_CONCLUDED,
     CALL_ENDING
   };
 
   struct SessionState {
-    CallState state;
+    INVITETransactionState state;
     std::shared_ptr<SDPMessageInfo> localSDP;
     std::shared_ptr<SDPMessageInfo> remoteSDP;
     bool followOurSDP;
+    bool sessionRunning;
+    bool negotiatingConference;
 
     QString name;
   };
 
   std::map<uint32_t, SessionState> states_;
+
+  std::deque<uint32_t> pendingRenegotiations_;
 
   MediaManager media_; // Media processing and delivery
   SIPManager sip_; // SIP
@@ -125,6 +132,10 @@ private:
 
   QTimer delayAutoAccept_;
   uint32_t delayedAutoAccept_;
+
+  int ongoingNegotiations_;
+
+  QTimer delayedNegotiation_;
 
   // video views
   std::shared_ptr<VideoviewFactory> viewFactory_;

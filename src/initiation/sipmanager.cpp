@@ -90,8 +90,6 @@ void SIPManager::setSDP(std::shared_ptr<SDPMessageInfo> sdp)
       dialog.second->sdp->setBaseSDP(sdp);
     }
   }
-
-  re_INVITE_all();
 }
 
 
