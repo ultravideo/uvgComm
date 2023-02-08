@@ -32,7 +32,12 @@ void KvazzupController::init()
 
   userInterface_.init(this);
 
-  viewFactory_->addSelfview(userInterface_.getSelfView());
+  std::vector<VideoWidget*> views = userInterface_.getSelfViews();
+
+  for (auto& view : views)
+  {
+    viewFactory_->addSelfview(view);
+  }
 
   stats_ = userInterface_.createStatsWindow();
 

@@ -46,8 +46,15 @@ void ROIManualFilter::process()
       {
         input->vInfo->roiWidth = input->vInfo->width;
         input->vInfo->roiHeight = input->vInfo->height;
-        input->vInfo->roiArray = roiSurface_->getRoiMask(input->vInfo->roiWidth,
-                                                         input->vInfo->roiHeight, qp_, true);
+        if (roiSurface_)
+        {
+          input->vInfo->roiArray = roiSurface_->getRoiMask(input->vInfo->roiWidth,
+                                                           input->vInfo->roiHeight, qp_, true);
+        }
+        else
+        {
+          Logger::getLogger()->printWarning(this, "RoI surface not set");
+        }
       }
       else
       {

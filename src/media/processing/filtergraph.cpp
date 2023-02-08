@@ -107,6 +107,10 @@ void FilterGraph::init(QList<VideoInterface *> selfViews, StatisticsInterface* s
   {
     roiInterface_ = selfViews.at(1);
   }
+  else
+  {
+    Logger::getLogger()->printProgramWarning(this, "RoI surface not set, RoI usage not possible");
+  }
 
   selfviewFilter_ =
       std::shared_ptr<DisplayFilter>(new DisplayFilter("Self", stats_, hwResources_, selfViews, 1111));

@@ -23,7 +23,7 @@ public:
   UIManager();
   ~UIManager();
 
-  VideoWidget* getSelfView();
+  std::vector<VideoWidget*> getSelfViews();
 
   void init(ParticipantInterface *partInt);
 

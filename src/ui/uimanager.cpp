@@ -25,9 +25,9 @@ UIManager::~UIManager()
   }
 }
 
-VideoWidget* UIManager::getSelfView()
+std::vector<VideoWidget*> UIManager::getSelfViews()
 {
-  return window_.getSelfView();
+  return {window_.getSelfView(), settingsView_.getSelfViews()};
 }
 
 void UIManager::init(ParticipantInterface *partInt)
