@@ -84,7 +84,6 @@ private:
   void removeSession(uint32_t sessionID, QString message, bool temporaryMessage);
 
   void createCall(uint32_t sessionID);
-  void setupConference();
 
   void updateSDPAudioStatus(std::shared_ptr<SDPMessageInfo> sdp);
   void updateSDPVideoStatus(std::shared_ptr<SDPMessageInfo> sdp);
@@ -98,13 +97,13 @@ private:
   // call state is used to make sure everything is going according to plan,
   // no surprise ACK messages etc
   enum CallState {
-    CALLNOSTATE,
-    CALLRINGINGWITHUS,
-    CALLINGTHEM,
-    CALLRINGINWITHTHEM,
-    CALLNEGOTIATING,
-    CALLONGOING,
-    CALLENDING
+    CALL_NO_STATE,
+    CALL_RINGING_WITH_US,
+    CALLING_THEM,
+    CALL_RINGING_WITH_THEM,
+    CALL_NEGOTIATING,
+    CALL_ONGOING,
+    CALL_ENDING
   };
 
   struct SessionState {
