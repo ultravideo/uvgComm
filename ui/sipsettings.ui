@@ -31,13 +31,6 @@
        <string>Call</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_4">
-       <item row="1" column="0">
-        <widget class="QCheckBox" name="auto_accept">
-         <property name="text">
-          <string>Auto-Accept calls</string>
-         </property>
-        </widget>
-       </item>
        <item row="0" column="0" colspan="2">
         <widget class="QLabel" name="call_heading">
          <property name="font">
@@ -54,7 +47,7 @@
          </property>
         </widget>
        </item>
-       <item row="3" column="0" colspan="2">
+       <item row="4" column="0" colspan="2">
         <spacer name="verticalSpacer">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -71,6 +64,23 @@
         <widget class="QCheckBox" name="srtp_enabled">
          <property name="text">
           <string>Encrypt media using SRTP</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QCheckBox" name="auto_accept">
+         <property name="text">
+          <string>Auto-Accept calls</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QCheckBox" name="p2p_conferencing">
+         <property name="text">
+          <string>P2P Mesh Conference</string>
          </property>
          <property name="checked">
           <bool>true</bool>
