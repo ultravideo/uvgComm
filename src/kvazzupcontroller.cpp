@@ -145,7 +145,7 @@ uint32_t KvazzupController::startINVITETransaction(QString name, QString usernam
   Logger::getLogger()->printNormal(this, "Starting call with contact", 
                                    {"Contact"}, {remote.realname});
 
-  uint32_t sessionID = sip_.p2pCall(remote);
+  uint32_t sessionID = sip_.reserveSessionID();
 
   userInterface_.displayOutgoingCall(sessionID, remote.realname);
   if(states_.find(sessionID) == states_.end())
@@ -158,6 +158,7 @@ uint32_t KvazzupController::startINVITETransaction(QString name, QString usernam
   }
 
   ++ongoingNegotiations_;
+  sip_.p2pCall(remote, sessionID);
 
   return sessionID;
 }
@@ -339,6 +340,7 @@ void KvazzupController::INVITETransactionConcluded(uint32_t sessionID)
                   "SessionID", {QString::number(sessionID)});
       createCall(sessionID);
 
+      // P2P Mesh Conferencing (if enabled and we have more than one call)
       if (settingEnabled(SettingsKey::sipP2PConferencing) &&
           states_.size() > 1 &&
           !states_[sessionID].negotiatingConference)
@@ -355,6 +357,10 @@ void KvazzupController::INVITETransactionConcluded(uint32_t sessionID)
 
      delayedNegotiation_.singleShot(DELAYED_NEGOTIATION_TIMEOUT_MS,
                                     this, &KvazzupController::renegotiateNextCall);
+    }
+    else
+    {
+      Logger::getLogger()->printNormal(this, "Still waiting for SDP messages");
     }
   }
 }

@@ -231,10 +231,8 @@ void SIPManager::bindToServer()
 }
 
 
-uint32_t SIPManager::p2pCall(NameAddr &remote)
+uint32_t SIPManager::p2pCall(NameAddr &remote, uint32_t sessionID)
 {
-  uint32_t sessionID = reserveSessionID();
-
   QString connectionAddress = remote.uri.hostport.host;
   QString ourProxyAddress = haveWeRegistered();
 
@@ -290,8 +288,7 @@ uint32_t SIPManager::p2pCall(NameAddr &remote)
 
 void SIPManager::p2pMeshConference()
 {
-  sdpConf_->setConferenceMode(false);
-  re_INVITE_all();
+  sdpConf_->setConferenceMode(true);
 }
 
 

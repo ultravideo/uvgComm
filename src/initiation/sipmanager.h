@@ -83,8 +83,12 @@ public:
   void init(StatisticsInterface *stats);
   void uninit();
 
+
+  // reserve sessionID for a future call
+  uint32_t reserveSessionID();
+
   // start a call with address. Returns generated sessionID
-  uint32_t p2pCall(NameAddr &remote);
+  uint32_t p2pCall(NameAddr &remote, uint32_t sessionID);
 
   void p2pMeshConference();
 
@@ -156,9 +160,6 @@ private:
 
   bool identifyCANCELSession(SIPRequest &request,
                              uint32_t& out_sessionID);
-
-  // reserve sessionID for a future call
-  uint32_t reserveSessionID();
 
   // REGISTER our information to SIP-registrar
   void bindToServer();
