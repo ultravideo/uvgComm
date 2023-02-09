@@ -35,17 +35,17 @@ ICE::~ICE()
 void ICE::startNomination(int components, QList<std::shared_ptr<ICEInfo>>& local,
                           QList<std::shared_ptr<ICEInfo>>& remote, bool controller)
 {
-  Logger::getLogger()->printImportant(this, "Starting ICE nomination");
+  if (controller)
+  {
+    Logger::getLogger()->printImportant(this, "Starting ICE nomination as controller");
+  }
+  else
+  {
+    Logger::getLogger()->printImportant(this, "Starting ICE nomination as controllee");
+  }
 
   components_ = components;
 
-  // wait for previous nomination to finish so we don't delete a running thread
-  if (agent_ != nullptr)
-  {
-    uninit();
-  }
-
-  agent_ = std::unique_ptr<IceSessionTester> (new IceSessionTester(controller));
   QList<std::shared_ptr<ICEPair>> newCandidates = makeCandidatePairs(local, remote, controller);
 
   // see if we our old results are good enough
@@ -55,9 +55,23 @@ void ICE::startNomination(int components, QList<std::shared_ptr<ICEInfo>>& local
     Logger::getLogger()->printNormal(this, "Found existing ICE results, using those");
     emit nominationSucceeded(succeededPairs_, sessionID_);
   }
+  else if (!candidatePairs_.empty() && sameCandidates(newCandidates, candidatePairs_))
+  {
+    Logger::getLogger()->printNormal(this, "Already running ICE with these candidates, not doing anything");
+  }
   else
   {
-    Logger::getLogger()->printNormal(this, "No previous mathinc ICE results, performing nomination");
+    // wait for previous nomination to finish so we don't delete a running thread
+    if (agent_ != nullptr)
+    {
+      Logger::getLogger()->printProgramWarning(this, "Deleting previous ICE while it is running");
+      uninit();
+    }
+
+    agent_ = std::unique_ptr<IceSessionTester> (new IceSessionTester(controller));
+
+
+    Logger::getLogger()->printNormal(this, "No previous matching ICE results, performing nomination");
     // perform connection testing and use those instead
     succeededPairs_.clear();
     candidatePairs_ = newCandidates;
