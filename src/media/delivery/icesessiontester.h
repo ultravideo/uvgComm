@@ -57,12 +57,12 @@ private:
   std::shared_ptr<ICECandidateTester> createCandidateTester(std::shared_ptr<ICEInfo> local);
 
   // wait until all components have succeeded or timeout has occured
-  void waitForEndOfTesting(unsigned long timeout);
+  void waitForEndOfTesting(unsigned long timeoutMs);
 
   QList<std::shared_ptr<ICEPair>> *pairs_;
 
   bool isController_;
-  int timeout_;
+  int timeoutMs_;
 
   uint8_t components_;
 
@@ -76,4 +76,6 @@ private:
   // currently the first pair to have all its components succeed is selected.
   // These are then these are copied here.
   QList<std::shared_ptr<ICEPair>> nominated_;
+
+  std::chrono::time_point<std::chrono::system_clock> startTime_;
 };

@@ -9,23 +9,23 @@
 #include <QTimer>
 #include <QThread>
 
-const uint32_t CONTROLLER_SESSION_TIMEOUT = 10000;
-const uint32_t NONCONTROLLER_SESSION_TIMEOUT = 20000;
+const uint32_t CONTROLLER_SESSION_TIMEOUT_MS = 10000;
+const uint32_t NONCONTROLLER_SESSION_TIMEOUT_MS = 20000;
 
 
 IceSessionTester::IceSessionTester(bool controller):
   pairs_(nullptr),
   isController_(controller),
-  timeout_(0),
+  timeoutMs_(0),
   components_(0)
 {
   if (controller)
   {
-    timeout_ = CONTROLLER_SESSION_TIMEOUT;
+    timeoutMs_ = CONTROLLER_SESSION_TIMEOUT_MS;
   }
   else
   {
-    timeout_ = NONCONTROLLER_SESSION_TIMEOUT;
+    timeoutMs_ = NONCONTROLLER_SESSION_TIMEOUT_MS;
   }
 }
 
@@ -85,7 +85,7 @@ void IceSessionTester::componentSucceeded(std::shared_ptr<ICEPair> connection)
 }
 
 
-void IceSessionTester::waitForEndOfTesting(unsigned long timeout)
+void IceSessionTester::waitForEndOfTesting(unsigned long timeoutMs)
 {
   QTimer timer;
 
@@ -104,7 +104,10 @@ void IceSessionTester::waitForEndOfTesting(unsigned long timeout)
       &loop,  &QEventLoop::quit,
       Qt::DirectConnection);
 
-  timer.start(timeout);
+  timer.start(timeoutMs);
+
+  startTime_ = std::chrono::system_clock::now();
+
   loop.exec();
 }
 
@@ -167,7 +170,7 @@ void IceSessionTester::run()
   }
 
   // now we wait until the connection tests have ended. Wait at most timeout_
-  waitForEndOfTesting(timeout_);
+  waitForEndOfTesting(timeoutMs_);
 
   for (auto& interface : candidates)
   {
@@ -180,7 +183,10 @@ void IceSessionTester::run()
   if (nominated_.empty())
   {
     Logger::getLogger()->printError(this, 
-                                    "Nominations from remote were not received in time!");
+                                    "Nominations from remote were not received in time!",
+                                    "Time since start", QString::number(
+                                      std::chrono::duration_cast<std::chrono::milliseconds>(
+                                        std::chrono::system_clock::now() - startTime_).count()) + " ms");
     emit iceFailure();
     nominated_mtx.unlock();
     return;
