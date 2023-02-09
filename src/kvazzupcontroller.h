@@ -80,6 +80,8 @@ public slots:
   void updateAudioSettings();
   void updateVideoSettings();
 
+  void renegotiateNextCall();
+
 private:
   void removeSession(uint32_t sessionID, QString message, bool temporaryMessage);
 
@@ -95,8 +97,6 @@ private:
                            bool& recvVideo, bool& recvAudio);
 
   void renegotiateAllCalls();
-
-  void renegotiateNextCall();
 
 
   // call state is used to make sure everything is going according to plan,
@@ -114,6 +114,7 @@ private:
     std::shared_ptr<SDPMessageInfo> localSDP;
     std::shared_ptr<SDPMessageInfo> remoteSDP;
     bool followOurSDP;
+    bool sessionNegotiated;
     bool sessionRunning;
     bool negotiatingConference;
 

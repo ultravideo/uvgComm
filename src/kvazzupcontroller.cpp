@@ -13,6 +13,10 @@
 #include <thread>
 #include <chrono>
 
+// TODO: Eliminating this would speed up the start of conference, but does require making the media more
+// resilient to repeated re-negotiations
+const int DELAYED_NEGOTIATION_TIMEOUT_MS = 500;
+
 
 KvazzupController::KvazzupController():
   states_(),
@@ -146,7 +150,11 @@ uint32_t KvazzupController::startINVITETransaction(QString name, QString usernam
   userInterface_.displayOutgoingCall(sessionID, remote.realname);
   if(states_.find(sessionID) == states_.end())
   {
-    states_[sessionID] = SessionState{CALL_INVITE_SENT, nullptr, nullptr, true, false, false, name};
+    states_[sessionID] = SessionState{CALL_INVITE_SENT, nullptr, nullptr, true, false, false, false, name};
+  }
+  else
+  {
+    Logger::getLogger()->printProgramError(this, "SIP Manager is giving existing sessionIDs as new ones");
   }
 
   ++ongoingNegotiations_;
@@ -172,7 +180,7 @@ bool KvazzupController::processINVITE(uint32_t sessionID, QString caller)
                                                  "an existing session!");
   }
 
-  states_[sessionID] = SessionState{CALL_INVITE_RECEIVED, nullptr, nullptr, false, false, false, caller};
+  states_[sessionID] = SessionState{CALL_INVITE_RECEIVED, nullptr, nullptr, false, false, false, false, caller};
   ++ongoingNegotiations_;
 
   if(settingEnabled(SettingsKey::localAutoAccept))
@@ -216,6 +224,8 @@ void KvazzupController::updateAudioSettings()
 
   sip_.setSDP(sdp);
   renegotiateAllCalls();
+  delayedNegotiation_.singleShot(DELAYED_NEGOTIATION_TIMEOUT_MS,
+                                 this, &KvazzupController::renegotiateNextCall);
 }
 
 
@@ -233,6 +243,8 @@ void KvazzupController::updateVideoSettings()
   emit media_.updateVideoSettings();
   sip_.setSDP(sdp);
   renegotiateAllCalls();
+  delayedNegotiation_.singleShot(DELAYED_NEGOTIATION_TIMEOUT_MS,
+                                 this, &KvazzupController::renegotiateNextCall);
 }
 
 
@@ -316,35 +328,33 @@ void KvazzupController::INVITETransactionConcluded(uint32_t sessionID)
   if (states_.find(sessionID) != states_.end())
   {
     states_[sessionID].state = CALL_TRANSACTION_CONCLUDED; // all messages received for call
+    states_[sessionID].sessionNegotiated = true;
 
     // we start the session only if we have both SDP messages
     if (states_[sessionID].localSDP != nullptr &&
         states_[sessionID].remoteSDP != nullptr)
     {
+       --ongoingNegotiations_;
+      Logger::getLogger()->printImportant(this, "Starting session for peer",
+                  "SessionID", {QString::number(sessionID)});
+      createCall(sessionID);
+
       if (settingEnabled(SettingsKey::sipP2PConferencing) &&
           states_.size() > 1 &&
-          !states_[sessionID].negotiatingConference && false)
+          !states_[sessionID].negotiatingConference)
       {
-        Logger::getLogger()->printNormal(this, "Renegotiating call as P2P Mesh Conference",
+        Logger::getLogger()->printImportant(this, "Renegotiating call as P2P Mesh Conference",
                     "SessionID", {QString::number(sessionID)});
 
         states_[sessionID].negotiatingConference = true;
-        renegotiateAllCalls();
-
-        //ongoingNegotiations_
 
         // here we renegotiate the call with all other participants
         sip_.p2pMeshConference();
+        renegotiateAllCalls();
       }
-      else
-      {
-        Logger::getLogger()->printNormal(this, "Starting session for peer",
-                    "SessionID", {QString::number(sessionID)});
-        states_[sessionID].negotiatingConference = false;
-        createCall(sessionID);
-        --ongoingNegotiations_;
-        renegotiateNextCall();
-      }
+
+     delayedNegotiation_.singleShot(DELAYED_NEGOTIATION_TIMEOUT_MS,
+                                    this, &KvazzupController::renegotiateNextCall);
     }
   }
 }
@@ -605,7 +615,7 @@ void KvazzupController::SIPRequestCallback(uint32_t sessionID,
     case SIP_INVITE:
     {
       if (states_.find(sessionID) != states_.end() &&
-          (states_.at(sessionID).sessionRunning))
+          (states_.at(sessionID).sessionNegotiated))
       {
         Logger::getLogger()->printNormal(this, "Detected a re-INVITE");
         ++ongoingNegotiations_;
@@ -783,12 +793,21 @@ void KvazzupController::renegotiateAllCalls()
 {
   for (auto& state : states_)
   {
-    pendingRenegotiations_.push_back(state.first);
-    state.second.localSDP = nullptr;
-    state.second.remoteSDP = nullptr;
-  }
+    // avoid renegotiating the same call twice
+    bool found = false;
+    for (auto& sessionID: pendingRenegotiations_)
+    {
+      if (state.first == sessionID)
+      {
+        found = true;
+      }
+    }
 
-  renegotiateNextCall();
+    if (!found)
+    {
+      pendingRenegotiations_.push_back(state.first);
+    }
+  }
 }
 
 
@@ -799,6 +818,8 @@ void KvazzupController::renegotiateNextCall()
     ++ongoingNegotiations_;
     uint32_t sessionID = pendingRenegotiations_.front();
     pendingRenegotiations_.pop_front();
+    states_[sessionID].localSDP = nullptr;
+    states_[sessionID].remoteSDP = nullptr;
 
     states_[sessionID].state = CALL_INVITE_SENT;
     sip_.re_INVITE(sessionID);
