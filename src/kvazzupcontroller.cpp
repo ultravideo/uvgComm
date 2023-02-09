@@ -224,7 +224,7 @@ void KvazzupController::updateAudioSettings()
   emit media_.updateAudioSettings();
 
   sip_.setSDP(sdp);
-  renegotiateAllCalls();
+  renegotiateAllCalls(false);
   delayedNegotiation_.singleShot(DELAYED_NEGOTIATION_TIMEOUT_MS,
                                  this, &KvazzupController::renegotiateNextCall);
 }
@@ -243,7 +243,7 @@ void KvazzupController::updateVideoSettings()
   // NOTE: Media must be updated before SIP so that SIP does not time-out while we update media
   emit media_.updateVideoSettings();
   sip_.setSDP(sdp);
-  renegotiateAllCalls();
+  renegotiateAllCalls(false);
   delayedNegotiation_.singleShot(DELAYED_NEGOTIATION_TIMEOUT_MS,
                                  this, &KvazzupController::renegotiateNextCall);
 }
@@ -348,11 +348,9 @@ void KvazzupController::INVITETransactionConcluded(uint32_t sessionID)
         Logger::getLogger()->printImportant(this, "Renegotiating call as P2P Mesh Conference",
                     "SessionID", {QString::number(sessionID)});
 
-        states_[sessionID].negotiatingConference = true;
-
         // here we renegotiate the call with all other participants
         sip_.p2pMeshConference();
-        renegotiateAllCalls();
+        renegotiateAllCalls(true);
       }
 
      delayedNegotiation_.singleShot(DELAYED_NEGOTIATION_TIMEOUT_MS,
@@ -801,7 +799,7 @@ void KvazzupController::getRemoteSDP(uint32_t sessionID,
 }
 
 
-void KvazzupController::renegotiateAllCalls()
+void KvazzupController::renegotiateAllCalls(bool conferencing)
 {
   for (auto& state : states_)
   {
@@ -817,6 +815,7 @@ void KvazzupController::renegotiateAllCalls()
 
     if (!found)
     {
+      state.second.negotiatingConference = true;
       pendingRenegotiations_.push_back(state.first);
     }
   }

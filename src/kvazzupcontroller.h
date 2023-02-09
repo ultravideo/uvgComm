@@ -96,7 +96,7 @@ private:
   void getReceiveAttribute(std::shared_ptr<SDPMessageInfo> sdp, bool isThisLocal,
                            bool& recvVideo, bool& recvAudio);
 
-  void renegotiateAllCalls();
+  void renegotiateAllCalls(bool conferencing);
 
 
   // call state is used to make sure everything is going according to plan,
