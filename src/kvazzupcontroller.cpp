@@ -710,6 +710,12 @@ void KvazzupController::SIPResponseCallback(uint32_t sessionID,
         removeSession(sessionID, "Call cancelled", true);
       }
     }
+    else if(response.type == SIP_NOT_FOUND)
+    {
+      removeSession(sessionID, "Not found", true);
+    }
+
+    // TODO: Put rest of the error return values
   }
   else if (response.type >= 500 && response.type <= 599)
   {
