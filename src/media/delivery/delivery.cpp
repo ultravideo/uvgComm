@@ -149,6 +149,10 @@ std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID, QString remo
 {
   Q_UNUSED(rtpNum); // TODO in uvgRTP
 
+  Logger::getLogger()->printNormal(this, "Creating uvgRTP send stream",
+                                   "Path", QString::number(localPort) + " -> " +
+                                   remoteAddress + ":" + QString::number(peerPort));
+
   rtp_format_t fmt = RTP_FORMAT_GENERIC;
   DataType type = DT_NONE;
   QString mediaName = "";
@@ -190,6 +194,13 @@ std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID, QString l
                                                    QString codec, uint8_t rtpNum)
 {
   Q_UNUSED(rtpNum); // TODO in uvgRTP
+
+  Logger::getLogger()->printNormal(this, "Creating uvgRTP receive stream",
+                                   "Path", localAddress + ":" +
+                                   QString::number(localPort) +
+                                   " <- " +
+                                   QString::number(peerPort));
+
   rtp_format_t fmt = RTP_FORMAT_GENERIC;
   DataType type = DT_NONE;
   QString mediaName = "";
