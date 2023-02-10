@@ -42,7 +42,6 @@ const uint16_t SIP_PORT = 5060;
 
 SIPManager::SIPManager():
   tcpServer_(),
-  sipPort_(SIP_PORT),
   transports_(),
   nextSessionID_(FIRSTSESSIONID),
   dialogs_(),
@@ -108,25 +107,7 @@ void SIPManager::refreshDelayTimer()
 // start listening to incoming
 void SIPManager::init(StatisticsInterface *stats)
 {
-  QObject::connect(&tcpServer_, &ConnectionServer::newConnection,
-                   this, &SIPManager::receiveTCPConnection);
-
   stats_ = stats;
-
-  tcpServer_.setProxy(QNetworkProxy::NoProxy);
-
-  // listen to everything
-  Logger::getLogger()->printNormal(this, "Listening to SIP TCP connections", 
-                                   "Port", QString::number(sipPort_));
-
-  if (!tcpServer_.listen(QHostAddress::Any, sipPort_))
-  {
-    Logger::getLogger()->printDebug(DEBUG_ERROR, this,
-                                    "Failed to listen to socket. Is it reserved?");
-
-    // TODO announce it to user!
-  }
-
   int autoConnect = settingValue(SettingsKey::sipAutoConnect);
 
   if(autoConnect == 1)
@@ -190,6 +171,30 @@ void SIPManager::uninit()
   nextSessionID_ = FIRSTSESSIONID;
 }
 
+
+bool SIPManager::listenToAny(SIPConnectionType type, uint16_t port)
+{
+  if (type == SIP_TCP)
+  {
+    QObject::connect(&tcpServer_, &ConnectionServer::newConnection,
+                     this, &SIPManager::receiveTCPConnection);
+
+    tcpServer_.setProxy(QNetworkProxy::NoProxy);
+
+    // listen to everything
+    Logger::getLogger()->printNormal(this, "Listening to SIP TCP connections",
+                                     "Port", QString::number(port));
+
+    return tcpServer_.listen(QHostAddress::Any, port);
+  }
+  else
+  {
+    Logger::getLogger()->printProgramError(this, "Listening to SIP TCP connections",
+                                           "Port", QString::number(port));
+  }
+
+  return false;
+}
 
 // reserve sessionID for a future call
 uint32_t SIPManager::reserveSessionID()
@@ -794,7 +799,7 @@ void SIPManager::createSIPTransport(QString remoteAddress,
 
       if (startConnection)
       {
-        instance->connection->establishConnection(remoteAddress, sipPort_);
+        instance->connection->establishConnection(remoteAddress, SIP_PORT);
       }
     }
     else

@@ -72,6 +72,7 @@ void KvazzupController::init()
   sip_.setSDP(sdp);
 
   sip_.init(stats_);
+  sip_.listenToAny(SIP_TCP, 5060);
 
   QObject::connect(&media_, &MediaManager::handleZRTPFailure,
                    this,    &KvazzupController::zrtpFailed);

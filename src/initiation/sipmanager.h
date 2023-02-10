@@ -64,6 +64,13 @@ struct SDPMessageInfo;
  * parameters with peers.
  */
 
+enum SIPConnectionType
+{
+  SIP_UDP,
+  SIP_TCP,
+  SIP_TLS
+};
+
 class SIPManager : public QObject
 {
   Q_OBJECT
@@ -78,6 +85,8 @@ public:
                                               QList<uint8_t> staticVideoPayloadTypes = {});
 
   void setSDP(std::shared_ptr<SDPMessageInfo> sdp);
+
+  bool listenToAny(SIPConnectionType type, uint16_t port);
 
   // start listening to incoming SIP messages
   void init(StatisticsInterface *stats);
@@ -193,7 +202,6 @@ private:
   // Helper functions for SDP management.
 
   ConnectionServer tcpServer_;
-  uint16_t sipPort_;
 
   // SIP Transport layer
   // Key is remote address
