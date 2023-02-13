@@ -86,22 +86,28 @@ public:
 
   void setSDP(std::shared_ptr<SDPMessageInfo> sdp);
 
-  bool listenToAny(SIPConnectionType type, uint16_t port);
 
   // start listening to incoming SIP messages
   void init(StatisticsInterface *stats);
   void uninit();
 
+  bool listenToAny(SIPConnectionType type, uint16_t port);
 
-  // reserve sessionID for a future call
+  // returns whether the connection is ready
+  bool connect(SIPConnectionType type, QString address, uint16_t port);
+  void disconnect(QString remoteAddress); // TODO
+
+  void bindingAtRegistrar(QString serverAddress);
+  void removeBinding(QString serverAddress);
+
   uint32_t reserveSessionID();
 
-  // start a call with address. Returns generated sessionID
-  uint32_t p2pCall(NameAddr &remote, uint32_t sessionID);
+  /* Creates all the necessary structures needed for sending Dialog Requests
+   * and returns the sessionID of newly created Dialog. Does not send requests.
+ */
+  void createDialog(uint32_t sessionID, NameAddr &remote, QString remoteAddress);
 
-  void p2pMeshConference();
-
-  void re_INVITE(uint32_t sessionID);
+  void sendINVITE(uint32_t sessionID);
 
   // TU wants something to happen.
   void respondRingingToINVITE(uint32_t sessionID);
@@ -128,15 +134,18 @@ public slots:
 
 signals:
 
+  void connectionFormed(QString address);
+
   void finalLocalSDP(const quint32 sessionID,
                      const std::shared_ptr<SDPMessageInfo> local);
+
+  void connectionEstablished(QString localAddress, QString remoteAddress);
 
 private slots:
 
   // somebody established a TCP connection with us
   void receiveTCPConnection(std::shared_ptr<TCPConnection> con);
   // our outbound TCP connection was established.
-  void connectionEstablished(QString localAddress, QString remoteAddress);
 
   // send the SIP message to a SIP User agent with transport layer. Attaches SDP message if needed.
   void transportRequest(SIPRequest &request, QVariant& content);
@@ -170,13 +179,9 @@ private:
   bool identifyCANCELSession(SIPRequest &request,
                              uint32_t& out_sessionID);
 
-  // REGISTER our information to SIP-registrar
-  void bindToServer();
-
   // helper function which handles all steps related to creation of new transport
   void createSIPTransport(QString remoteAddress,
-                          std::shared_ptr<TCPConnection> connection,
-                          bool startConnection);
+                          std::shared_ptr<TCPConnection> connection);
 
   void createRegistration(NameAddr &addressRecord);
 
@@ -199,6 +204,8 @@ private:
 
   void re_INVITE_all();
 
+  std::shared_ptr<TCPConnection> createConnection(SIPConnectionType type, QString address, uint16_t port);
+
   // Helper functions for SDP management.
 
   ConnectionServer tcpServer_;
@@ -206,16 +213,6 @@ private:
   // SIP Transport layer
   // Key is remote address
   std::map<QString, std::shared_ptr<TransportInstance>> transports_;
-
-  // if we want to do something, but the TCP connection has not yet been established
-  struct WaitingStart
-  {
-    uint32_t sessionID;
-    NameAddr contact;
-  };
-
-  std::map<QString, WaitingStart> waitingToStart_; // INVITE after connect
-  QStringList waitingToBind_; // REGISTER after connect
 
   std::shared_ptr<NetworkCandidates> nCandidates_;
 

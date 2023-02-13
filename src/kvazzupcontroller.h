@@ -79,8 +79,11 @@ public slots:
 
   void updateAudioSettings();
   void updateVideoSettings();
+  void updateCallSettings();
 
   void renegotiateNextCall();
+
+  void connectionEstablished(QString localAddress, QString remoteAddress);
 
 private:
   void removeSession(uint32_t sessionID, QString message, bool temporaryMessage);
@@ -96,8 +99,12 @@ private:
   void getReceiveAttribute(std::shared_ptr<SDPMessageInfo> sdp, bool isThisLocal,
                            bool& recvVideo, bool& recvAudio);
 
-  void renegotiateAllCalls(bool conferencing);
+  void renegotiateCall(uint32_t sessionID);
+  void renegotiateAllCalls();
 
+  void createSIPDialog(QString name, QString username, QString ip, uint32_t sessionID);
+
+  void checkBinding();
 
   // call state is used to make sure everything is going according to plan,
   // no surprise ACK messages etc
@@ -116,7 +123,6 @@ private:
     bool followOurSDP;
     bool sessionNegotiated;
     bool sessionRunning;
-    bool negotiatingConference;
 
     QString name;
   };
@@ -140,4 +146,15 @@ private:
 
   // video views
   std::shared_ptr<VideoviewFactory> viewFactory_;
+
+  // if we want to do something, but the TCP connection has not yet been established
+  struct WaitingStart
+  {
+    QString realname;
+    QString username;
+    uint32_t sessionID;
+  };
+
+  std::map<QString, WaitingStart> waitingToStart_; // INVITE after connect
+  QStringList waitingToBind_; // REGISTER after connect
 };

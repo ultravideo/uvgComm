@@ -52,6 +52,7 @@ SIPManager::SIPManager():
   delayTimer_.setSingleShot(true);
   QObject::connect(&delayTimer_, &QTimer::timeout,
                    this, &SIPManager::delayedMessage);
+  sdpConf_->setConferenceMode(true);
 }
 
 
@@ -108,12 +109,6 @@ void SIPManager::refreshDelayTimer()
 void SIPManager::init(StatisticsInterface *stats)
 {
   stats_ = stats;
-  int autoConnect = settingValue(SettingsKey::sipAutoConnect);
-
-  if(autoConnect == 1)
-  {
-    bindToServer();
-  }
 
   nCandidates_ = std::shared_ptr<NetworkCandidates> (new NetworkCandidates);
   nCandidates_->init();
@@ -196,6 +191,24 @@ bool SIPManager::listenToAny(SIPConnectionType type, uint16_t port)
   return false;
 }
 
+
+bool SIPManager::connect(SIPConnectionType type, QString address, uint16_t port)
+{
+  if (transports_.find(address) == transports_.end())
+  {
+    std::shared_ptr<TCPConnection> connection =
+        std::shared_ptr<TCPConnection>(new TCPConnection());
+    createSIPTransport(address, createConnection(type, address, port));
+  }
+  else
+  {
+    return true;
+  }
+
+  return false;
+}
+
+
 // reserve sessionID for a future call
 uint32_t SIPManager::reserveSessionID()
 {
@@ -206,37 +219,33 @@ uint32_t SIPManager::reserveSessionID()
 
 void SIPManager::updateCallSettings()
 {
-  int autoConnect = settingValue(SettingsKey::sipAutoConnect);
-  if(autoConnect == 1)
-  {
-    bindToServer();
-  }
-
   nCandidates_->init();
 }
 
 
-void SIPManager::bindToServer()
+void SIPManager::bindingAtRegistrar(QString serverAddress)
 {
-  // get server address from settings and bind to server.
-  QString serverAddress = settingString(SettingsKey::sipServerAddress);
-
-  if (serverAddress != "" && haveWeRegistered() == "")
+  if (transports_.find(serverAddress) == transports_.end())
   {
-    std::shared_ptr<TCPConnection> connection =
-        std::shared_ptr<TCPConnection>(new TCPConnection());
-    createSIPTransport(serverAddress, connection, true);
-
-    waitingToBind_.push_back(serverAddress);
+    Logger::getLogger()->printError(this, "No connection found when binding");
+    return;
   }
-  else {
-    Logger::getLogger()->printWarning(this, "SIP Registrar was empty "
-                       "or we have already registered. No registering.");
+
+  if (registrations_.find(serverAddress) == registrations_.end())
+  {
+    NameAddr local = localInfo();
+    createRegistration(local);
+
+    getRegistration(serverAddress)->client->sendREGISTER(REGISTER_INTERVAL);
+  }
+  else
+  {
+    Logger::getLogger()->printNormal(this, "Registration already exists, not doing anything");
   }
 }
 
 
-uint32_t SIPManager::p2pCall(NameAddr &remote, uint32_t sessionID)
+void SIPManager::createDialog(uint32_t sessionID, NameAddr &remote, QString remoteAddress)
 {
   QString connectionAddress = remote.uri.hostport.host;
   QString ourProxyAddress = haveWeRegistered();
@@ -250,54 +259,22 @@ uint32_t SIPManager::p2pCall(NameAddr &remote, uint32_t sessionID)
     connectionAddress = ourProxyAddress;
   }
 
-  sdpConf_->setConferenceMode(false);
-
-  // check if we already are connected where we want to send the message
   if (!isConnected(connectionAddress))
   {
-    Logger::getLogger()->printNormal(this, "Not connected when starting call. Have to init connection first");
-    if (waitingToStart_.find(connectionAddress) != waitingToStart_.end())
-    {
-      Logger::getLogger()->printProgramError(this, "We already have a waiting to start call "
-                              "for this connection, even though it is new");
-    }
-
-    // start creation of connection
-    std::shared_ptr<TCPConnection> connection =
-        std::shared_ptr<TCPConnection>(new TCPConnection());
-
-    // we are not yet connected to them. Form a connection by creating the transport layer
-    createSIPTransport(connectionAddress, connection, true);
-
-    // this start call will commence once the connection has been established
-    waitingToStart_[connectionAddress] = {sessionID, remote};
-  }
-  else
-  {
-    Logger::getLogger()->printNormal(this, "Using existing connection.");
-
-    QString localAddress = getTransport(connectionAddress)->connection->localAddress();
-
-    // get correct local URI
-    NameAddr local = localInfo(useOurProxy, localAddress);
-
-    createDialog(sessionID, local, remote, localAddress, true);
-
-    // sends INVITE
-    dialogs_[sessionID]->client->sendINVITE(INVITE_TIMEOUT);
+    Logger::getLogger()->printError(this, "Creating a dialog for non-active connection");
+    return;
   }
 
-  return sessionID;
+  QString localAddress = getTransport(remoteAddress)->connection->localAddress();
+
+  // get correct local URI
+  NameAddr local = localInfo(useOurProxy, localAddress);
+
+  createDialog(sessionID, local, remote, localAddress, true);
 }
 
 
-void SIPManager::p2pMeshConference()
-{
-  sdpConf_->setConferenceMode(true);
-}
-
-
-void SIPManager::re_INVITE(uint32_t sessionID)
+void SIPManager::sendINVITE(uint32_t sessionID)
 {
   Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
 
@@ -399,40 +376,11 @@ void SIPManager::receiveTCPConnection(std::shared_ptr<TCPConnection> con)
     return;
   }
 
-  createSIPTransport(con->remoteAddress(), con, false);
-}
+  // this informs us when the connection has been established
+  QObject::connect(con.get(), &TCPConnection::socketConnected,
+                   this,      &SIPManager::connectionEstablished);
 
-
-void SIPManager::connectionEstablished(QString localAddress, QString remoteAddress)
-{
-  Q_UNUSED(localAddress)
-
-  // if we are planning to call a peer using this connection
-  if (waitingToStart_.find(remoteAddress) != waitingToStart_.end())
-  {
-    WaitingStart startingSession = waitingToStart_[remoteAddress];
-    waitingToStart_.erase(remoteAddress);
-
-    QString localAddress = getTransport(remoteAddress)->connection->localAddress();
-
-    NameAddr local = localInfo(shouldUseProxy(remoteAddress), localAddress);
-
-    uint32_t sessionID = startingSession.sessionID;
-    createDialog(sessionID, local, startingSession.contact, localAddress, true);
-    dialogs_[sessionID]->client->sendINVITE(INVITE_TIMEOUT);
-  }
-
-  // if we are planning to register using this connection
-  if(waitingToBind_.contains(remoteAddress))
-  {
-    NameAddr local = localInfo();
-
-    createRegistration(local);
-
-    getRegistration(remoteAddress)->client->sendREGISTER(REGISTER_INTERVAL);
-
-    waitingToBind_.removeOne(remoteAddress);
-  }
+  createSIPTransport(con->remoteAddress(), con);
 }
 
 
@@ -758,9 +706,7 @@ std::shared_ptr<TransportInstance> SIPManager::getTransport(QString& address) co
 }
 
 
-void SIPManager::createSIPTransport(QString remoteAddress,
-                                    std::shared_ptr<TCPConnection> connection,
-                                    bool startConnection)
+void SIPManager::createSIPTransport(QString remoteAddress, std::shared_ptr<TCPConnection> connection)
 {
   /* SIP is divided to transport and transaction layers. Here we construct the transport
    * layer for one connection (either to proxy or to peer) which is used by one or more
@@ -783,35 +729,19 @@ void SIPManager::createSIPTransport(QString remoteAddress,
     std::shared_ptr<SIPTransport> transport =
         std::shared_ptr<SIPTransport>(new SIPTransport(stats_));
 
-    if (DEFAULT_TRANSPORT == TCP)
-    {
-      // this informs us when the connection has been established
-      QObject::connect(instance->connection.get(), &TCPConnection::socketConnected,
-                       this,                       &SIPManager::connectionEstablished);
-
-      // get those network messages to transport
-      QObject::connect(instance->connection.get(), &TCPConnection::messageAvailable,
-                       transport.get(),            &SIPTransport::networkPackage);
-
-      // get those network messages to transport
-      QObject::connect(transport.get(),             &SIPTransport::sendMessage,
-                       instance->connection.get(),  &TCPConnection::sendPacket);
-
-      if (startConnection)
-      {
-        instance->connection->establishConnection(remoteAddress, SIP_PORT);
-      }
-    }
-    else
-    {
-      Logger::getLogger()->printUnimplemented(this, "Non-TCP connection in transport creation");
-    }
-
     std::shared_ptr<SIPRouting> routing =
         std::shared_ptr<SIPRouting> (new SIPRouting(instance->connection));
 
     std::shared_ptr<SIPAuthentication> authentication =
         std::shared_ptr<SIPAuthentication> (new SIPAuthentication());
+
+    // get those network messages to transport
+    QObject::connect(connection.get(), &TCPConnection::messageAvailable,
+                     transport.get(),  &SIPTransport::networkPackage);
+
+    // get those network messages to transport
+    QObject::connect(transport.get(),             &SIPTransport::sendMessage,
+                     instance->connection.get(),  &TCPConnection::sendPacket);
 
     // remember that the processors are always added from outgoing to incoming
     instance->pipe.addProcessor(transport);
@@ -832,6 +762,28 @@ void SIPManager::createSIPTransport(QString remoteAddress,
   // In case the connection has already received a message,
   // we announce that we are ready to process them
   connection->allowReceiving();
+}
+
+
+std::shared_ptr<TCPConnection> SIPManager::createConnection(SIPConnectionType type, QString address, uint16_t port)
+{
+  if (type == SIP_TCP)
+  {
+    std::shared_ptr<TCPConnection> connection =
+        std::shared_ptr<TCPConnection>(new TCPConnection());
+
+    // this informs us when the connection has been established
+    QObject::connect(connection.get(), &TCPConnection::socketConnected,
+                     this,             &SIPManager::connectionEstablished);
+
+    connection->establishConnection(address, 5060);
+    return connection;
+  }
+  else
+  {
+    Logger::getLogger()->printUnimplemented(this, "Non-TCP connection in transport creation");
+  }
+  return nullptr;
 }
 
 
@@ -1135,7 +1087,7 @@ void SIPManager::delayedMessage()
   dMessages_.pop();
 
   // so far only INVITE is supported, but others could easily be supported
-  re_INVITE(sessionID);
+  sendINVITE(sessionID);
 
   refreshDelayTimer();
 }
