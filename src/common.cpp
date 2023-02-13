@@ -2,6 +2,8 @@
 #include "common.h"
 #include "settingskeys.h"
 
+#include "initiation/negotiation/sdptypes.h"
+
 #include "logger.h"
 
 // Didn't find sleep in QCore
@@ -76,4 +78,47 @@ QString getLocalUsername()
       ? settings.value(SettingsKey::localUsername).toString() : "anonymous";
 }
 
+
+bool getSendAttribute(const MediaInfo &media, bool local)
+{
+  bool send = false;
+  if (local)
+  {
+    send = (media.flagAttributes.empty()
+                 || media.flagAttributes.at(0) == A_NO_ATTRIBUTE
+                 || media.flagAttributes.at(0) == A_SENDRECV
+                 || media.flagAttributes.at(0) == A_SENDONLY);
+  }
+  else
+  {
+    send = (media.flagAttributes.empty()
+                 || media.flagAttributes.at(0) == A_NO_ATTRIBUTE
+                 || media.flagAttributes.at(0) == A_SENDRECV
+                 || media.flagAttributes.at(0) == A_RECVONLY);
+  }
+
+  return send;
+}
+
+
+bool getReceiveAttribute(const MediaInfo &media, bool local)
+{
+  bool receive = false;
+  if (local)
+  {
+    receive = (media.flagAttributes.empty()
+                 || media.flagAttributes.at(0) == A_NO_ATTRIBUTE
+                 || media.flagAttributes.at(0) == A_SENDRECV
+                 || media.flagAttributes.at(0) == A_RECVONLY);
+  }
+  else
+  {
+    receive = (media.flagAttributes.empty()
+                 || media.flagAttributes.at(0) == A_NO_ATTRIBUTE
+                 || media.flagAttributes.at(0) == A_SENDRECV
+                 || media.flagAttributes.at(0) == A_SENDONLY);
+  }
+
+  return receive;
+}
 

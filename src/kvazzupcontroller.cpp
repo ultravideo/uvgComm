@@ -451,11 +451,31 @@ void KvazzupController::createCall(uint32_t sessionID)
 
   if (states_[sessionID].followOurSDP)
   {
-    getReceiveAttribute(localSDP, true, videoEnabled, audioEnabled);
+    for (auto& media : localSDP->media)
+    {
+      if (media.type == "audio")
+      {
+        audioEnabled = getReceiveAttribute(media, true);
+      }
+      else if (media.type == "video")
+      {
+        videoEnabled = getReceiveAttribute(media, true);
+      }
+    }
   }
   else
   {
-    getReceiveAttribute(remoteSDP, false, videoEnabled, audioEnabled);
+    for (auto& media : remoteSDP->media)
+    {
+      if (media.type == "audio")
+      {
+        audioEnabled = getReceiveAttribute(media, false);
+      }
+      else if (media.type == "video")
+      {
+        videoEnabled = getReceiveAttribute(media, false);
+      }
+    }
   }
 
   QString videoState = "no";
@@ -501,49 +521,6 @@ void KvazzupController::createCall(uint32_t sessionID)
   // lastly we delete our saved SDP messages when they are no longer needed
   states_[sessionID].localSDP = nullptr;
   states_[sessionID].remoteSDP = nullptr;
-}
-
-
-void KvazzupController::getReceiveAttribute(std::shared_ptr<SDPMessageInfo> sdp, bool isThisLocal, bool& recvVideo,
-                         bool& recvAudio)
-{
-  for (auto& media : sdp->media)
-  {
-    if (media.type == "video")
-    {
-      if (isThisLocal)
-      {
-        recvVideo = (media.flagAttributes.empty()
-                     || media.flagAttributes.at(0) == A_NO_ATTRIBUTE
-                     || media.flagAttributes.at(0) == A_SENDRECV
-                     || media.flagAttributes.at(0) == A_RECVONLY);
-      }
-      else
-      {
-        recvVideo = (media.flagAttributes.empty()
-                     || media.flagAttributes.at(0) == A_NO_ATTRIBUTE
-                     || media.flagAttributes.at(0) == A_SENDRECV
-                     || media.flagAttributes.at(0) == A_SENDONLY);
-      }
-    }
-    else if (media.type == "audio")
-    {
-      if (isThisLocal)
-      {
-      recvAudio = (media.flagAttributes.empty()
-                      || media.flagAttributes.at(0) == A_NO_ATTRIBUTE
-                      || media.flagAttributes.at(0) == A_SENDRECV
-                      || media.flagAttributes.at(0) == A_RECVONLY);
-      }
-      else
-      {
-        recvAudio = (media.flagAttributes.empty()
-                        || media.flagAttributes.at(0) == A_NO_ATTRIBUTE
-                        || media.flagAttributes.at(0) == A_SENDRECV
-                        || media.flagAttributes.at(0) == A_SENDONLY);
-      }
-    }
-  }
 }
 
 

@@ -96,9 +96,6 @@ private:
   void getRemoteSDP(uint32_t sessionID, std::shared_ptr<SIPMessageHeader> message,
                     QVariant& content);
 
-  void getReceiveAttribute(std::shared_ptr<SDPMessageInfo> sdp, bool isThisLocal,
-                           bool& recvVideo, bool& recvAudio);
-
   void renegotiateCall(uint32_t sessionID);
   void renegotiateAllCalls();
 

@@ -9,6 +9,7 @@
 #include "resourceallocator.h"
 
 #include "logger.h"
+#include "common.h"
 
 #include <QHostAddress>
 #include <QtEndian>
@@ -205,14 +206,13 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
   }
 
   bool send = true;
-  bool recv = true;
   if (useOurSDP)
   {
-    transportAttributes(localMedia.flagAttributes, send, recv);
+    send = getSendAttribute(localMedia, true);
   }
   else
   {
-    transportAttributes(remoteMedia.flagAttributes, send, recv);
+    send = getSendAttribute(remoteMedia, false);
   }
 
   // if we want to send
@@ -275,16 +275,15 @@ void MediaManager::createIncomingMedia(uint32_t sessionID,
     Logger::getLogger()->printProgramError(this, "Address was empty when creating incoming media");
     return;
   }
-  bool send = true;
-  bool recv = true;
 
+  bool recv = true;
   if (useOurSDP)
   {
-    transportAttributes(localMedia.flagAttributes, send, recv);
+    recv = getReceiveAttribute(localMedia, true);
   }
   else
   {
-    transportAttributes(remoteMedia.flagAttributes, send, recv);
+    recv = getReceiveAttribute(remoteMedia, false);
   }
 
   if(recv)
@@ -410,37 +409,6 @@ QString MediaManager::rtpNumberToCodec(const MediaInfo& info)
     }
   }
   return "PCMU";
-}
-
-
-void MediaManager::transportAttributes(const QList<SDPAttributeType>& attributes, bool& send, bool& recv)
-{
-  send = true;
-  recv = true;
-
-  for(SDPAttributeType attribute : attributes)
-  {
-    if(attribute == A_SENDRECV)
-    {
-      send = true;
-      recv = true;
-    }
-    else if(attribute == A_SENDONLY)
-    {
-      send = true;
-      recv = false;
-    }
-    else if(attribute == A_RECVONLY)
-    {
-      send = false;
-      recv = true;
-    }
-    else if(attribute == A_INACTIVE)
-    {
-      send = false;
-      recv = false;
-    }
-  }
 }
 
 
