@@ -776,7 +776,7 @@ std::shared_ptr<TCPConnection> SIPManager::createConnection(SIPConnectionType ty
     QObject::connect(connection.get(), &TCPConnection::socketConnected,
                      this,             &SIPManager::connectionEstablished);
 
-    connection->establishConnection(address, 5060);
+    connection->establishConnection(address, port);
     return connection;
   }
   else
