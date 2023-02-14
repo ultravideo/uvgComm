@@ -37,6 +37,8 @@ private:
 
   void setDefaultCallSettings();
 
+  void selectDefaultCamera(std::shared_ptr<MicrophoneInfo> mic);
+
   SettingsCameraFormat selectBestCameraFormat(std::shared_ptr<CameraInfo> cam, ComplexityClass complexity);
   SettingsCameraFormat selectBestDeviceFormat(std::shared_ptr<CameraInfo> cam, int deviceID, ComplexityClass complexity);
 
