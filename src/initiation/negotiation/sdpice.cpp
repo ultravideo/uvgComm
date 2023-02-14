@@ -136,9 +136,9 @@ void SDPICE::addLocalCandidates(QVariant& content)
   }
 
   // transform network addresses into ICE candidates
-  sdp.candidates = generateICECandidates(existingLocalCandidates_, existingGlobalCandidates_,
-                                         existingStunCandidates_,  existingStunBindings_,
-                                         existingturnCandidates_, neededComponents);
+  sdp.candidates += generateICECandidates(existingLocalCandidates_, existingGlobalCandidates_,
+                                          existingStunCandidates_,  existingStunBindings_,
+                                          existingturnCandidates_, neededComponents);
 
   content.setValue(sdp); // adds the candidates to outgoing message
   std::shared_ptr<SDPMessageInfo> local = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
