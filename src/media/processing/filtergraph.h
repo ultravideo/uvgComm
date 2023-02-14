@@ -99,6 +99,7 @@ private:
 
   struct Peer
   {
+    // keep track of existing connections, so we don't duplicate them
     std::vector<ConnectionDetails> sendingStreams;
     std::vector<ConnectionDetails> receivingStreams;
 
