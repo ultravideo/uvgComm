@@ -278,8 +278,8 @@ bool Delivery::addMediaStream(uint32_t sessionID, uint16_t localPort, uint16_t p
 
   Logger::getLogger()->printNormal(this, "Creating mediastream");
 
-  // This makes the uvgRTP add the start codes saving a memory copy
-  int flags = RCE_NO_FLAGS;
+  // This makes the uvgRTP keep the firewall open even if the other side is not sending media
+  int flags = RCE_HOLEPUNCH_KEEPALIVE;
 
   if (fmt == RTP_FORMAT_H264 ||
       fmt == RTP_FORMAT_H265 ||
