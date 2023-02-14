@@ -215,20 +215,23 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
     send = getSendAttribute(remoteMedia, false);
   }
 
+  QString codec = rtpNumberToCodec(remoteMedia);
+
+  std::shared_ptr<Filter> framedSource = streamer_->addSendStream(sessionID, peerAddress,
+                                                                  localMedia.receivePort,
+                                                                  remoteMedia.receivePort,
+                                                                  codec, remoteMedia.rtpNums.at(0));
+
   // if we want to send
   if(send && remoteMedia.receivePort != 0)
   {
     Q_ASSERT(remoteMedia.receivePort);
     Q_ASSERT(!remoteMedia.rtpNums.empty());
 
-    QString codec = rtpNumberToCodec(remoteMedia);
-
     if(remoteMedia.proto == "RTP/AVP")
     {
-      std::shared_ptr<Filter> framedSource = streamer_->addSendStream(sessionID, peerAddress,
-                                                                      localMedia.receivePort,
-                                                                      remoteMedia.receivePort,
-                                                                      codec, remoteMedia.rtpNums.at(0));
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Creating send stream", {"Destination", "Type"},
+                                       {peerAddress + ":" + QString::number(remoteMedia.receivePort), remoteMedia.type});
 
       Q_ASSERT(framedSource != nullptr);
 
@@ -286,19 +289,24 @@ void MediaManager::createIncomingMedia(uint32_t sessionID,
     recv = getReceiveAttribute(remoteMedia, false);
   }
 
+  QString codec = rtpNumberToCodec(localMedia);
+
+  std::shared_ptr<Filter> rtpSink = streamer_->addReceiveStream(sessionID, localAddress,
+                                                                localMedia.receivePort,
+                                                                remoteMedia.receivePort,
+                                                                codec, localMedia.rtpNums.at(0));
+
   if(recv)
   {
     Q_ASSERT(localMedia.receivePort);
     Q_ASSERT(!localMedia.rtpNums.empty());
 
-    QString codec = rtpNumberToCodec(localMedia);
-
     if(localMedia.proto == "RTP/AVP")
     {
-      std::shared_ptr<Filter> rtpSink = streamer_->addReceiveStream(sessionID, localAddress,
-                                                                    localMedia.receivePort,
-                                                                    remoteMedia.receivePort,
-                                                                    codec, localMedia.rtpNums.at(0));
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Creating receive stream", {"Interface", "codec"},
+                                       {localAddress + ":" + QString::number(localMedia.receivePort), codec});
+
+
       Q_ASSERT(rtpSink != nullptr);
       if(localMedia.type == "audio")
       {
