@@ -19,6 +19,10 @@ public:
 
 private:
 
+  MediaInfo copyMedia(MediaInfo& media);
+
+  std::shared_ptr<ICEInfo> updateICECandidate(std::shared_ptr<ICEInfo> candidate, int components, int foundation);
+
   bool conferenceMode_;
 
   std::map<uint32_t, std::shared_ptr<SDPMessageInfo>> singleSDPs_;
