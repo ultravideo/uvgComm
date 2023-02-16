@@ -194,7 +194,7 @@ void KvazzupController::createSIPDialog(QString name, QString username, QString 
 
   if (ongoingNegotiations_ == 0)
   {
-    renegotiateNextCall();
+    negotiateNextCall();
   }
 }
 
@@ -262,7 +262,7 @@ void KvazzupController::updateAudioSettings()
   renegotiateAllCalls();
   if (ongoingNegotiations_ == 0)
   {
-    renegotiateNextCall();
+    negotiateNextCall();
   }
 }
 
@@ -283,7 +283,7 @@ void KvazzupController::updateVideoSettings()
   renegotiateAllCalls();
   if (ongoingNegotiations_ == 0)
   {
-    renegotiateNextCall();
+    negotiateNextCall();
   }
 }
 
@@ -390,7 +390,7 @@ void KvazzupController::INVITETransactionConcluded(uint32_t sessionID)
       if (!pendingRenegotiations_.empty())
       {
         delayedNegotiation_.singleShot(DELAYED_NEGOTIATION_TIMEOUT_MS,
-                                       this, &KvazzupController::renegotiateNextCall);
+                                       this, &KvazzupController::negotiateNextCall);
       }
     }
     else
@@ -727,6 +727,13 @@ void KvazzupController::SIPResponseCallback(uint32_t sessionID,
       removeSession(sessionID, "Not found", true);
     }
 
+    // TODO: A bit of a hack, we should redo authentication INVITE here instead of elsewhere
+    if (response.message->cSeq.method == SIP_INVITE &&
+        response.type != SIP_PROXY_AUTHENTICATION_REQUIRED)
+    {
+      --ongoingNegotiations_;
+    }
+
     // TODO: Put rest of the error return values
   }
   else if (response.type >= 500 && response.type <= 599)
@@ -842,7 +849,7 @@ void KvazzupController::renegotiateAllCalls()
 }
 
 
-void KvazzupController::renegotiateNextCall()
+void KvazzupController::negotiateNextCall()
 {
   if (!pendingRenegotiations_.empty() && ongoingNegotiations_ == 0)
   {

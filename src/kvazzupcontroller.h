@@ -81,7 +81,7 @@ public slots:
   void updateVideoSettings();
   void updateCallSettings();
 
-  void renegotiateNextCall();
+  void negotiateNextCall();
 
   void connectionEstablished(QString localAddress, QString remoteAddress);
 
