@@ -71,7 +71,7 @@ private:
   // Adds local ICE candidates to SDP and starts nomination if we have
   // their candidates.
   void addLocalCandidatesToSDP(QVariant& content);
-  void addLocalCandidatesToMedia(MediaInfo& media);
+  void addLocalCandidatesToMedia(MediaInfo& media, int mediaIndex);
 
   void printCandidates(QList<std::shared_ptr<ICEInfo>>& candidates);
 
@@ -86,11 +86,14 @@ private:
 
   bool peerSupportsICE_;
 
+
+
   // these are saved so that when we want to renegotiate call parameters,
   // we don't have to redo ICE
-  std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> existingLocalCandidates_;
-  std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> existingGlobalCandidates_;
-  std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> existingStunCandidates_;
-  std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> existingStunBindings_;
-  std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> existingturnCandidates_;
+
+  std::vector<std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>>> existingLocalCandidates_;
+  std::vector<std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>>> existingGlobalCandidates_;
+  std::vector<std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>>> existingStunCandidates_;
+  std::vector<std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>>> existingStunBindings_;
+  std::vector<std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>>> existingturnCandidates_;
 };

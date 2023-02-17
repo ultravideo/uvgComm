@@ -92,11 +92,11 @@ void SDPICE::processIncomingResponse(SIPResponse& response, QVariant& content,
 void SDPICE::addLocalCandidatesToSDP(QVariant& content)
 {
   SDPMessageInfo sdp = content.value<SDPMessageInfo>();
-  for (auto& media: sdp.media)
+  for (unsigned int i = 0; i < sdp.media.size(); ++i)
   {
-    if (media.candidates.empty())
+    if (sdp.media.at(i).candidates.empty())
     {
-      addLocalCandidatesToMedia(media);
+      addLocalCandidatesToMedia(sdp.media[i], i);
     }
   }
 
@@ -109,7 +109,7 @@ void SDPICE::addLocalCandidatesToSDP(QVariant& content)
 }
 
 
-void SDPICE::addLocalCandidatesToMedia(MediaInfo& media)
+void SDPICE::addLocalCandidatesToMedia(MediaInfo& media, int mediaIndex)
 {
   int neededComponents = 1;
   if (media.proto == "RTP/AVP")
@@ -117,21 +117,35 @@ void SDPICE::addLocalCandidatesToMedia(MediaInfo& media)
     neededComponents = 2; // RTP and RTCP
   }
 
-  existingLocalCandidates_ = networkCandidates_->localCandidates(neededComponents, sessionID_);
-  existingGlobalCandidates_ = networkCandidates_->globalCandidates(neededComponents, sessionID_);
-  existingStunCandidates_ = networkCandidates_->stunCandidates(neededComponents);
-  existingStunBindings_ = networkCandidates_->stunBindings(neededComponents, sessionID_);
-  existingturnCandidates_ = networkCandidates_->turnCandidates(neededComponents, sessionID_);
+  if (existingLocalCandidates_.size() <= mediaIndex)
+  {
+    existingLocalCandidates_.push_back(networkCandidates_->localCandidates(neededComponents, sessionID_));
+  }
+  if (existingGlobalCandidates_.size() <= mediaIndex)
+  {
+    existingGlobalCandidates_.push_back(networkCandidates_->globalCandidates(neededComponents, sessionID_));
+  }
+  if (existingStunCandidates_.size() <= mediaIndex)
+  {
+    existingStunCandidates_.push_back(networkCandidates_->stunCandidates(neededComponents));
+  }
+  if (existingStunBindings_.size() <= mediaIndex)
+  {
+    existingStunBindings_.push_back(networkCandidates_->stunBindings(neededComponents, sessionID_));
+  }
+  if (existingturnCandidates_.size() <= mediaIndex)
+  {
+    existingturnCandidates_.push_back(networkCandidates_->turnCandidates(neededComponents, sessionID_));
+  }
 
   // transform network addresses into ICE candidates
-  media.candidates += generateICECandidates(existingLocalCandidates_, existingGlobalCandidates_,
-                                            existingStunCandidates_,  existingStunBindings_,
-                                            existingturnCandidates_, neededComponents);
+  media.candidates += generateICECandidates(existingLocalCandidates_[mediaIndex], existingGlobalCandidates_[mediaIndex],
+                                            existingStunCandidates_[mediaIndex],  existingStunBindings_[mediaIndex],
+                                            existingturnCandidates_[mediaIndex], neededComponents);
 
   if (!media.candidates.empty())
   {
     media.receivePort = media.candidates.first()->port;
-
   }
 }
 
