@@ -76,6 +76,8 @@ private:
   // update MediaInfo of SDP after ICE has finished
   void setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo, bool local);
 
+  void updateMedia(MediaInfo& oldMedia, const MediaInfo& newMedia);
+
   struct MediaNomination
   {
     ICEState state;

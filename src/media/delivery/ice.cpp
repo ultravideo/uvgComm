@@ -46,7 +46,12 @@ void ICE::startNomination(const MediaInfo &local, const MediaInfo &remote, bool 
   if (matchNominationList(ICE_FINISHED, matchIndex, mediaNominations_, newCandidates))
   {
     Logger::getLogger()->printNormal(this, "Found existing ICE results, using those");
-    //emit nominationSucceeded(succeededPairs_, sessionID_);
+
+    updateMedia(mediaNominations_[matchIndex].localMedia, local);
+    updateMedia(mediaNominations_[matchIndex].remoteMedia, remote);
+    emit mediaNominationSucceeded(sessionID_,
+                                  mediaNominations_[matchIndex].localMedia,
+                                  mediaNominations_[matchIndex].remoteMedia);
   }
   else if (matchNominationList(ICE_RUNNING, matchIndex, mediaNominations_, newCandidates))
   {
@@ -355,4 +360,22 @@ void ICE::setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo, boo
                   media.connection_addrtype);
     media.receivePort        = mediaInfo->port;
   }
+}
+
+
+void ICE::updateMedia(MediaInfo& oldMedia, const MediaInfo &newMedia)
+{
+  // basically update everything expect ICE connection
+  oldMedia.type = newMedia.type;
+  oldMedia.proto = newMedia.proto;
+
+  oldMedia.rtpNums = newMedia.rtpNums;
+  oldMedia.title = newMedia.title;
+  oldMedia.bitrate = newMedia.bitrate;
+  oldMedia.encryptionKey = newMedia.encryptionKey;
+
+  oldMedia.codecs = newMedia.codecs;
+  oldMedia.flagAttributes = newMedia.flagAttributes;
+  oldMedia.valueAttributes = newMedia.valueAttributes;
+  oldMedia.candidates = newMedia.candidates;
 }
